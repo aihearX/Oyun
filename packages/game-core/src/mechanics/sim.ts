@@ -53,6 +53,8 @@ export interface SimStart {
   /** kayma: gövde alçak (ilk 0.5 s) */
   slideUntil?: number;
   maxT?: number;
+  /** inişten sonra koşmaya devam süresi (s); varsayılan 0.3 — sonrası yeni karar */
+  postLand?: number;
 }
 export type SimKind = 'ok' | 'hazard' | 'fall' | 'stuck' | 'gear' | 'bounce';
 export interface SimResult { kind: SimKind; x: number; y: number; t: number; coins: number; landX: number | null; landT: number | null; gear: Circle | null; bouncer: Box | null; vy: number }
@@ -66,6 +68,7 @@ export function simulate(geo: Geometry, s: SimStart): SimResult {
   const supportAt = (px: number, feet: number): Box | null => { let best: Box | null = null; for (const b of geo.supports) { if (px < b.l - 12 || px > b.r + 12) continue; if (Math.abs(b.t - feet) <= 4 && (!best || b.t < best.t)) best = b; } return best; };
   let grounded = !!supportAt(x, y) && vy >= 0;
   while (t < maxT) {
+    if (landT != null && t - landT >= (s.postLand ?? 0.3)) return done('ok');
     const prevY = y; const hh = s.slideUntil != null && t < s.slideUntil ? 22 : HERO_H;
     if (grounded) { vy = 0; const sup = supportAt(x, y); if (!sup) grounded = false; else y = sup.t; }
     if (!grounded) {

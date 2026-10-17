@@ -205,7 +205,7 @@ export const ruya: Mechanic = {
     const tap = () => { input.tap(); c.botNextAt = now + 140; };
     const canFlip = now >= (c.flipReadyAt as number);
     // iniş penceresi: çevirince diğer yüzeye ~0.6–0.8 s sonra varılır
-    const landLo = speed * 0.55 - 50, landHi = speed * 0.85 + 70;
+    const landHi = speed * 0.85 + 70;
     if (g) {
       const cur = nearest(d, -10, 600); const cd = dist(cur);
       const reach = 125 + speed * 0.08;
@@ -214,7 +214,8 @@ export const ruya: Mechanic = {
         // tehdit üstümüzde/hemen önümüzde ve altından geçilebilir: çevirme (yükselirken çarparız), kaymaya devam
         if (slideable && cd <= 30) { if ((c.slideUntil as number) - now < 170) { input.swipeDown(); c.botNextAt = now + 70; } return; }
         if (cd <= reach) {
-          const otherSafe = !nearest(other, landLo, landHi);
+          // karşı yüzeyde tam karşımızda (çift bulut) ya da iniş penceresinde tehdit varsa çevirme
+          const otherSafe = !nearest(other, -80, landHi);
           if (otherSafe && canFlip) tap();
           else if (slideable && cd <= 110) { if ((c.slideUntil as number) - now < 170) { input.swipeDown(); c.botNextAt = now + 70; } }
           else if (!slideable && canFlip && cd <= reach * 0.8) tap();

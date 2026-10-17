@@ -16,7 +16,7 @@ const gear = (x: number, y: number, r: number, speed = 1, dir: 1 | -1 = 1): Enti
 export const MAKINE_CHUNKS = [
   // ---- nefes
   chunk('mak-rest-1', 'makine', 1, 520, [ground(0, 520), ...coins(160, G - 70, 5)], { rest: true, tags: ['nefes'] }),
-  chunk('mak-rest-gear', 'makine', 1, 700, [ground(0, 700), gear(350, G - 220, 40, 0.8, 1), ...coins(280, G - 290, 5, 36, 20), ...coins(300, G - 70, 4)], { rest: true, tags: ['nefes'] }),
+  chunk('mak-rest-gear', 'makine', 1, 700, [ground(0, 700), gear(350, G - 300, 40, 0.8, 1), ...coins(280, G - 370, 5, 36, 20), ...coins(300, G - 70, 4)], { rest: true, tags: ['nefes'] }),
   chunk('mak-checkpoint', 'makine', 2, 480, [ground(0, 480), checkpoint(240), ...coins(300, G - 70, 3)], { rest: true, tags: ['checkpoint'] }),
 
   // ---- öğretici
@@ -38,7 +38,7 @@ export const MAKINE_CHUNKS = [
     moving(900, G - 120, 120, 0, -60, 2400), ...coins(900, G - 200, 4), spike(1100, 96), ...coins(1250, G - 80, 3),
   ], { tags: ['yay', 'hareketli'] }),
   chunk('mak-enemy-run', 'makine', 2, 1200, [
-    ground(0, 1200), enemy(400, G, 'bakteri', 50), gear(700, G - 50, 44, 1, 1), enemy(1000, G, 'bakteri', 50), ...coins(500, G - 120, 4), ...coins(820, G - 80, 3),
+    ground(0, 1200), enemy(400, G, 'bakteri', 50), gear(700, G - 50, 44, 1, 1), enemy(1150, G, 'bakteri', 50), ...coins(500, G - 120, 4), ...coins(820, G - 80, 3),
   ], { tags: ['dusman', 'disli'] }),
   chunk('mak-chain-3', 'makine', 3, 1500, [
     ground(0, 300), ground(300, 700, G + 150), spike(450, 450, G + 150), spring(976, G + 150, 1.3),
@@ -46,7 +46,7 @@ export const MAKINE_CHUNKS = [
     ground(1000, 500), ...coins(1060, G - 80, 4), ...coins(480, G - 190, 3, 36, 20), ...coins(700, G - 200, 3, 36, 20),
   ], { tags: ['disli', 'zincir'] }),
   chunk('mak-gear-over-spikes', 'makine', 3, 1400, [
-    ground(0, 1400), gear(460, G - 70, 50, 1, 1), spike(520, 140), spike(780, 80), gear(900, G - 60, 50, 1, -1), spike(1000, 96),
+    ground(0, 1400), gear(460, G - 70, 50, 1, 1), spike(500, 120), gear(900, G - 60, 50, 1, -1), spike(1000, 96),
     ...coins(560, G - 200, 4, 36, 30), ...coins(1200, G - 80, 4),
   ], { tags: ['disli', 'diken'] }),
   chunk('mak-movers', 'makine', 3, 1200, [
@@ -58,8 +58,8 @@ export const MAKINE_CHUNKS = [
   ], { tags: ['gizli', 'disli', 'diken'] }),
   chunk('mak-melody', 'makine', 3, 1400, [
     ground(0, 300), ground(300, 520, G + 160), spike(450, 110, G + 160), spring(796, G + 160, 1.3),
-    gear(400, G - 30, 50, 1, 1), gear(640, G - 90, 44, 1, -1), ground(820, 580),
-    note(200, G - 50, 0, 0.05), note(454, G - 30, 1, 0.2), note(400, G + 24, 2, 0.35), note(592, G - 90, 3, 0.5), note(640, G - 42, 4, 0.65), note(900, G - 50, 5, 0.8), note(1000, G - 50, 6, 0.95),
+    gear(400, G - 30, 50, 1, 1), gear(620, G - 70, 44, 1, -1), ground(820, 580),
+    note(200, G - 50, 0, 0.05), note(454, G - 30, 1, 0.2), note(400, G + 24, 2, 0.35), note(572, G - 70, 3, 0.5), note(620, G - 22, 4, 0.65), note(900, G - 50, 5, 0.8), note(1000, G - 50, 6, 0.95),
   ], { tags: ['melodi', 'disli'] }),
   chunk('mak-double-chain', 'makine', 4, 1600, [
     ground(0, 300), ground(300, 900, G + 160), spike(420, 680, G + 160), spring(1176, G + 160, 1.3),
@@ -67,7 +67,7 @@ export const MAKINE_CHUNKS = [
     ground(1200, 400), ...coins(1260, G - 80, 4), ...coins(480, G - 170, 3, 36, 20), ...coins(900, G - 170, 3, 36, 20),
   ], { tags: ['disli', 'zincir'] }),
   chunk('mak-spike-timing', 'makine', 4, 1500, [
-    ground(0, 1500), gear(400, G - 60, 50, 1, 1), spike(470, 192), hazard(540, G - 260, 100, 60), gear(900, G - 60, 50, 1, -1), spike(760, 96), spike(980, 128),
+    ground(0, 1500), gear(400, G - 60, 50, 1, 1), spike(470, 160), hazard(540, G - 260, 100, 60), gear(900, G - 60, 50, 1, -1), spike(790, 64), spike(980, 128),
     ...coins(560, G - 160, 4, 36, 20), ...coins(1250, G - 80, 4),
   ], { tags: ['disli', 'diken'] }),
   chunk('mak-pit-spikes', 'makine', 4, 1600, [

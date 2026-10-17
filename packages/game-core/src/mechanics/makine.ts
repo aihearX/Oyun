@@ -136,24 +136,15 @@ export const makine: Mechanic = {
       const r = simulate(geo, { x: hero.x, y: feet, vx: v.x, vy: v.y, ignoreGear: cur ?? null, ignoreUntil: 0.45, maxT: 3 });
       let score = -1;
       if (r.kind === 'gear' && r.gear) score = r.gear.x > st.gx + 10 ? 3 : -1;
-      else if (r.kind === 'bounce') score = 2;
-      else if (r.kind === 'ok') score = r.landX != null ? (r.landX > st.gx + st.r * 0.5 ? 2 : 0) : -1;
-      // hedef: sağdaki en yakın dişli, yoksa sağdaki platform
-      let aim: { x: number; y: number } | null = null;
-      const nextGear = geo.gears.filter((c) => c.x > st.gx + 10 && c.x - st.gx < 760).sort((a, c) => a.x - c.x)[0];
-      if (nextGear) aim = { x: nextGear.x, y: nextGear.y - 10 };
-      else { const sup = geo.supports.filter((s) => s.r > st.gx + st.r && s.l - st.gx < 640).sort((a, c) => a.l - c.l)[0]; if (sup) aim = { x: Math.max(sup.l + 50, st.gx + st.r + 60), y: sup.t - 30 }; }
-      let aimOk = false;
-      if (aim) {
-        const want = Math.atan2(aim.y - feet, aim.x - hero.x) - 0.3; // biraz yukarı nişan
-        let d = Math.atan2(v.y, v.x) - want; d = Math.atan2(Math.sin(d), Math.cos(d));
-        aimOk = Math.abs(d) <= (15 * Math.PI) / 180;
-      }
+      else if (r.kind === 'bounce') score = r.y <= ctx.groundY + 40 ? 2 : 0;
+      else if (r.kind === 'ok') score = r.landX != null ? (r.landX > st.gx + st.r * 0.5 && r.y <= ctx.groundY + 40 ? 2 : 0) : -1;
+      // sağda ulaşılabilir dişli varken yalnızca ona tutunma kabul; yoksa güvenli iniş yeter
+      const nextGear = geo.gears.some((c) => c.x > st.gx + 10 && c.x - st.gx < 760);
       const elapsed = now - st.attachedAt;
       // halkadaki jeton/notalar toplanmadan fırlama (en çok 1.6 tur)
       const rimCoins = geo.coins.filter((c) => Math.hypot(c.x - st.gx, c.y - st.gy) < st.r + 40).length;
       if (rimCoins > 0 && st.turns < 1.6) return;
-      if (score >= 3 || (score >= 2 && (aimOk || !nextGear || st.turns >= 1.1))) input.tap();
+      if (score >= 3 || (score >= 2 && (!nextGear || st.turns >= 1.1))) input.tap();
       else if (score >= 0 && st.turns >= 2.6) input.tap();
       else if (elapsed > 14000 && st.turns >= 4) input.swipeDown();
       return;

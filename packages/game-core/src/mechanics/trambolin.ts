@@ -101,13 +101,13 @@ export const trambolin: Mechanic = {
     if (onGround) {
       for (const bo of geo.bouncers) { const d = bo.l - (hero.x + 17); if (d >= -4 && d < 70 && Math.abs(bo.b - feet) <= 8) contact = { bouncer: bo, x: bo.l - 17, t: Math.max(0, d) / vx }; }
     } else if (b.velocity.y > -1) {
-      const r = simulate(geo, { x: hero.x, y: feet, vx, vy: b.velocity.y, maxT: 2.5 });
+      const r = simulate(geo, { x: hero.x, y: feet, vx, vy: b.velocity.y, maxT: 2.5, postLand: 1.2 });
       if (r.kind === 'bounce' && r.bouncer) contact = { bouncer: r.bouncer, x: r.x, t: r.t };
       else if (!good(r.kind)) {
         // tehlikeli iniş: dalış ya da süzülme kurtarır mı?
-        const dive = simulate(geo, { x: hero.x, y: feet, vx, vy: DIVE_V, maxT: 2.5 });
+        const dive = simulate(geo, { x: hero.x, y: feet, vx, vy: DIVE_V, maxT: 2.5, postLand: 1.2 });
         if (good(dive.kind) && !st.floating) { input.swipeDown(); return; }
-        const fl = simulate(geo, { x: hero.x, y: feet, vx, vy: Math.min(b.velocity.y, FLOAT_CAP), floatCap: FLOAT_CAP, maxT: 3 });
+        const fl = simulate(geo, { x: hero.x, y: feet, vx, vy: Math.min(b.velocity.y, FLOAT_CAP), floatCap: FLOAT_CAP, maxT: 3, postLand: 1.2 });
         if (good(fl.kind)) { if (!st.floating) { st.floating = true; input.virtual = { primaryDown: true }; } return; }
         stopFloat(); return;
       } else stopFloat();
@@ -117,7 +117,7 @@ export const trambolin: Mechanic = {
     // temas sonrası: normal mi mükemmel mi? (güvenli olan; eşitse jeton sayısı, sonra mükemmel)
     if (st.planFor !== contact.bouncer.sprite) {
       const p = Number(contact.bouncer.e.props?.power ?? 1);
-      const from = { x: contact.x, y: contact.bouncer.t, vx, maxT: 3.2 };
+      const from = { x: contact.x, y: contact.bouncer.t, vx, maxT: 3.2, postLand: 1.5 };
       const n = simulate(geo, { ...from, vy: -BOUNCE_V * p });
       const q = simulate(geo, { ...from, vy: -BOUNCE_V * p * PERFECT_MULT });
       const nOk = good(n.kind), qOk = good(q.kind);
