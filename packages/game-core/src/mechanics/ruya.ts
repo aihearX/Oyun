@@ -16,6 +16,8 @@ const CEIL_BOTTOM = 100;
 const MID_Y = (GROUND_Y + CEIL_BOTTOM) / 2;
 
 const custom = (ctx: LevelContext) => ctx.state.custom;
+/** Fizikle aynı saatte geçen süre (ms); kayma süresi mesafeye bağlı kalsın. */
+const physMs = (ctx: LevelContext) => ctx.scene.game.loop.delta * (ctx.scene.opts?.timeScale ?? 1);
 const dirOf = (ctx: LevelContext) => (custom(ctx).ruyaDir as number) === -1 ? -1 : 1;
 const grounded = (ctx: LevelContext) => { const b = ctx.hero.body; return dirOf(ctx) === 1 ? b.blocked.down || b.touching.down : b.blocked.up || b.touching.up; };
 
@@ -37,7 +39,7 @@ function setOriginFor(ctx: LevelContext, d: 1 | -1) {
 function flip(ctx: LevelContext, forced = false) {
   const c = custom(ctx); const now = ctx.scene.time.now;
   const d = (dirOf(ctx) === 1 ? -1 : 1) as 1 | -1;
-  c.ruyaDir = d; c.flipReadyAt = now + FLIP_CD_MS; c.lastFlipAt = now; c.slideUntil = 0;
+  c.ruyaDir = d; c.flipReadyAt = now + FLIP_CD_MS; c.lastFlipAt = now; c.slideLeft = 0;
   resetHitbox(ctx);
   setOriginFor(ctx, d);
   applyGravity(ctx);
@@ -117,7 +119,7 @@ export const ruya: Mechanic = {
   id: 'ruya',
   setup(ctx) {
     const c = custom(ctx); const s = ctx.scene; const biome = BIOMES[ctx.spec.biome];
-    c.manualGravity = true; c.ruyaDir = 1; c.flipReadyAt = 0; c.lastFlipAt = -9999; c.slideUntil = 0; c.lastX = ctx.hero.x; c.stuckTicks = 0; c.botNextAt = 0; c.hue = 0;
+    c.manualGravity = true; c.ruyaDir = 1; c.flipReadyAt = 0; c.lastFlipAt = -9999; c.slideLeft = 0; c.lastX = ctx.hero.x; c.stuckTicks = 0; c.botNextAt = 0; c.hue = 0;
     // ters-yerçekimi değiştiricisinin eklediği ikinci tavan (y=GROUND_Y-520) rüya tavanıyla çakışır: kaldır
     for (const o of ctx.groups.platforms.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
       const e = o.getData('e') as Entity | undefined;
@@ -139,7 +141,7 @@ export const ruya: Mechanic = {
   update(ctx, input, dt) {
     const { hero, state } = ctx; const b = hero.body; const c = custom(ctx); const now = ctx.scene.time.now; const s = ctx.scene;
     // yeniden doğma (düşme sonrası LevelScene kahramanı kontrol noktasına, zemine koyar)
-    if (hero.x < (c.lastX as number) - 60) { c.ruyaDir = 1; c.slideUntil = 0; resetHitbox(ctx); hero.sprite.setOrigin(0.5, 1); hero.sprite.setY(GROUND_Y - 10); }
+    if (hero.x < (c.lastX as number) - 60) { c.ruyaDir = 1; c.slideLeft = 0; resetHitbox(ctx); hero.sprite.setOrigin(0.5, 1); hero.sprite.setY(GROUND_Y - 10); }
     c.lastX = hero.x;
     // ters-yerçekimi değiştiricisi aradaki karede çevirdiyse geri al
     const wasGrounded = c.wasGrounded === true;
@@ -149,10 +151,11 @@ export const ruya: Mechanic = {
     c.wasGrounded = g;
     b.setVelocityX(RUN_SPEED * state.speedMult);
     // kayma: hitbox küçülür (her iki yüzeyde); kayarken tekrar kaydırmak süreyi tazeler
-    if (input.secondaryPressed && g) { const fresh = (c.slideUntil as number) <= now; c.slideUntil = now + (ctx.skills.longSlide ? 1000 : SLIDE_MS); if (fresh) { sfx.tick(); ctx.haptic('light'); } }
-    const sliding = (c.slideUntil as number) > now;
+    c.slideLeft = (c.slideLeft as number) - physMs(ctx);
+    if (input.secondaryPressed && g) { const fresh = (c.slideLeft as number) <= 0; c.slideLeft = ctx.skills.longSlide ? 1000 : SLIDE_MS; if (fresh) { sfx.tick(); ctx.haptic('light'); } }
+    const sliding = (c.slideLeft as number) > 0;
     if (sliding) { b.setSize(34, 22).setOffset(7, d === 1 ? 26 : 0); hero.sprite.setScale(1.1, 0.55); }
-    else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || now > (c.slideUntil as number) + 120) hero.sprite.setScale(1, 1); }
+    else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || (c.slideLeft as number) < -120) hero.sprite.setScale(1, 1); }
     if (input.primaryPressed && now >= (c.flipReadyAt as number)) flip(ctx);
     // arka plan: hafif renk kayması (sky ↔ bgMid)
     c.hue = ((c.hue as number) + dt) % 1000;
@@ -212,12 +215,12 @@ export const ruya: Mechanic = {
       if (cur) {
         const slideable = !cur.solid && cur.clearance >= 20;
         // tehdit üstümüzde/hemen önümüzde ve altından geçilebilir: çevirme (yükselirken çarparız), kaymaya devam
-        if (slideable && cd <= 30) { if ((c.slideUntil as number) - now < 170) { input.swipeDown(); c.botNextAt = now + 70; } return; }
+        if (slideable && cd <= 30) { if ((c.slideLeft as number) < 170) { input.swipeDown(); c.botNextAt = now + 70; } return; }
         if (cd <= reach) {
           // karşı yüzeyde tam karşımızda (çift bulut) ya da iniş penceresinde tehdit varsa çevirme
           const otherSafe = !nearest(other, -80, landHi);
           if (otherSafe && canFlip) tap();
-          else if (slideable && cd <= 110) { if ((c.slideUntil as number) - now < 170) { input.swipeDown(); c.botNextAt = now + 70; } }
+          else if (slideable && cd <= 110) { if ((c.slideLeft as number) < 170) { input.swipeDown(); c.botNextAt = now + 70; } }
           else if (!slideable && canFlip && cd <= reach * 0.8) tap();
           return;
         }

@@ -17,6 +17,8 @@ const LANE_T = [0.9, 0.5, 0.1]; // tonotopi: alt şerit kalın (turuncu), üst i
 
 type SceneExtra = { __impulsTrail?: Phaser.GameObjects.Particles.ParticleEmitter };
 const custom = (ctx: LevelContext) => ctx.state.custom;
+/** Fizikle aynı saatte geçen süre (ms): düşük fps'te sahne dt'si kırpılır, zamanlayıcılar ise gerçek zamanla koşar; sprint/şerit geçişi mesafeye bağlı kalsın. */
+const physMs = (ctx: LevelContext) => ctx.scene.game.loop.delta * (ctx.scene.opts?.timeScale ?? 1);
 const laneCenter = (l: number) => LANE_Y[l]! - 24;
 const laneOf = (y: number) => { let best = 0; for (let i = 1; i < 3; i++) if (Math.abs(y - laneCenter(i)) < Math.abs(y - laneCenter(best))) best = i; return best; };
 
@@ -24,7 +26,7 @@ function speedOf(ctx: LevelContext): number {
   const lvl = ctx.spec.number;
   const grow = 1 + Math.min(0.2, Math.max(0, lvl - 31) * 0.025); // bölüm ilerledikçe hafifçe hızlan
   const now = ctx.scene.time.now; const c = custom(ctx);
-  const sprint = now < (c.sprintUntil as number) ? SPRINT_MULT : 1;
+  const sprint = (c.sprintLeft as number) > 0 ? SPRINT_MULT : 1;
   const slow = now < (c.slowUntil as number) ? 0.6 : 1;
   return BASE_SPEED * grow * ctx.state.speedMult * sprint * slow;
 }
@@ -66,7 +68,7 @@ function dotTexture(s: Phaser.Scene): string {
   return key;
 }
 
-function isSprinting(ctx: LevelContext, grace = 0) { return ctx.scene.time.now < (custom(ctx).sprintUntil as number) + grace; }
+function isSprinting(ctx: LevelContext, grace = 0) { return (custom(ctx).sprintLeft as number) > -grace; }
 
 /** Yön: dir varsa o; yakın zamanda basılı tutulan yön varsa o (yankı gecikmesi); yoksa dokunulan yarı. */
 function chooseDir(ctx: LevelContext, input: { dir: -1 | 0 | 1; pointerX: number }): -1 | 1 {
@@ -82,8 +84,8 @@ export const impuls: Mechanic = {
   id: 'impuls',
   setup(ctx) {
     const c = custom(ctx); const s = ctx.scene; const b = ctx.hero.body;
-    c.lane = 1; c.sprintUntil = 0; c.sprintReadyAt = 0; c.slowUntil = 0; c.lastDir = 0; c.lastDirAt = -9999; c.lastSwitchAt = -9999;
-    c.botNextAt = 0; c.botLastTapAt = -9999; c.sprintVisual = false; c.lastUpdateAt = ctx.scene.time.now;
+    c.lane = 1; c.sprintLeft = -9999; c.sprintCd = 0; c.slowUntil = 0; c.lastDir = 0; c.lastDirAt = -9999; c.lastSwitchAt = -9999;
+    c.botNextAt = 0; c.botLastTapAt = -9999; c.sprintVisual = false;
     b.setAllowGravity(false); b.setVelocity(0, 0);
     ctx.hero.sprite.setPosition(ctx.hero.x, LANE_Y[1]);
     // şerit çizgileri (dünya içinde, tonotopi renkleri)
@@ -99,6 +101,7 @@ export const impuls: Mechanic = {
   },
   update(ctx, input, dt) {
     const { hero, state } = ctx; const b = hero.body; const c = custom(ctx); const now = ctx.scene.time.now;
+    const pd = physMs(ctx); c.sprintLeft = (c.sprintLeft as number) - pd; c.sprintCd = (c.sprintCd as number) - pd;
     hero.sprite.setFlipY(false); // ters yerçekimi değiştiricisi görseli çevirmesin
     if (input.dir !== 0) { c.lastDir = input.dir; c.lastDirAt = now; }
     // şerit değiştir
@@ -108,8 +111,8 @@ export const impuls: Mechanic = {
       else sfx.toneAt(220, 0.05);
     }
     // sprint
-    if (input.secondaryPressed && now >= (c.sprintReadyAt as number)) {
-      c.sprintUntil = now + SPRINT_MS; c.sprintReadyAt = now + SPRINT_CD_MS; sfx.power(); ctx.haptic('medium'); hero.mood('wow', SPRINT_MS);
+    if (input.secondaryPressed && (c.sprintCd as number) <= 0) {
+      c.sprintLeft = SPRINT_MS; c.sprintCd = SPRINT_CD_MS; sfx.power(); ctx.haptic('medium'); hero.mood('wow', SPRINT_MS);
     }
     const sprinting = isSprinting(ctx);
     if (sprinting !== c.sprintVisual) { c.sprintVisual = sprinting; hero.sprite.setScale(sprinting ? 1.22 : 1, sprinting ? 0.86 : 1); if (sprinting) hero.sprite.setTint(0xbfffff); else if (state.shield === 0) hero.sprite.clearTint(); }
@@ -118,9 +121,8 @@ export const impuls: Mechanic = {
     // hareket: x sabit hız, y şeride yumuşak geçiş (yerçekimi kapalı)
     b.setVelocityX(speedOf(ctx)); b.setVelocityY(0);
     const target = LANE_Y[c.lane as number]!;
-    // gerçek geçen süre (düşük fps'te sahne dt'si 50 ms'e kırpılır; şerit geçişi fizikle aynı saatte kalsın)
-    const realDt = Math.min(0.2, Math.max(dt, (now - (c.lastUpdateAt as number)) / 1000)); c.lastUpdateAt = now;
-    const k = 1 - Math.exp(-LANE_SMOOTH * realDt);
+    // şerit geçişi fizikle aynı saatte (sahne dt'si 50 ms'e kırpılır)
+    const k = 1 - Math.exp(-LANE_SMOOTH * Math.max(dt, pd / 1000));
     const ny = hero.y + (target - hero.y) * k;
     hero.sprite.setY(Math.abs(target - ny) < 0.5 ? target : ny);
     if (!sprinting && hero.sprite.scaleY > 1 && now - (c.lastSwitchAt as number) > 150) hero.sprite.setScale(1, 1);
@@ -186,7 +188,7 @@ export const impuls: Mechanic = {
       }
     }
     // sinaps boşluğu: sprint
-    if (sinapsD <= 240 && now >= (c.sprintReadyAt as number)) { input.swipeDown(); c.botNextAt = now + 100; return; }
+    if (sinapsD <= 240 && (c.sprintCd as number) <= 0) { input.swipeDown(); c.botNextAt = now + 100; return; }
     const firstObs = (l: number, from = -45) => { let m = Infinity; for (const o of obs) if (o.lane === l && o.d >= from && o.d < m) m = o.d; return m; };
     const coinAhead = (l: number, range: number) => { for (const o of ctx.groups.coins.getChildren() as Phaser.Physics.Arcade.Sprite[]) { if (!o.active) continue; const d = o.x - hx; if (d > 10 && d < range && laneOf(o.y) === l) return true; } return false; };
     const tapTo = (l: number) => { input.virtual = { dir: l > lane ? 1 : -1 }; input.tap(); c.botNextAt = now + 130; c.botLastTapAt = now; };
