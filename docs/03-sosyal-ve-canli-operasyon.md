@@ -1,10 +1,15 @@
 # 03 · Sosyal Katman ve Canlı Operasyon
 
-## 1. Neden hibrit: tek akış + takım
-Tek akışlı bulmaca oyunları (Candy Crush) günlük geri dönüşü en yüksek, takım tabanlı oyunlar (Whiteout Survival) ise uzun vadeli bağlılığı ve oyuncu başına geliri en yüksek olan türdür. İkisinin bağladığı şey farklıdır:
-- Tek akış **alışkanlığa** bağlar: "bir bölüm daha", net ilerleme, her gün bir dilim.
-- Takım **insanlara** bağlar: sohbet, karşılıklı yükümlülük, "takımımı yüzüstü bırakamam". Takımlı oyunlarda 30. gün tutma oranı tek akışlı oyunların 2-3 katıdır; ama savaş odaklı ekonomi ödeme duvarı ve toksiklik getirir.
-Kararımız: tek akış çekirdek, takım katmanı **iş birliği** (savaş değil). Takımlar birbirine karşı değil, ortak hedefe karşı oynar; liderlik tablosu takımlar arasında dostça rekabet verir.
+## 1. Karar: tek akış + takım savaşı
+Tek akış (bölüm haritası) günlük alışkanlığı kurar; **takımlar arası savaş** uzun vadeli bağlılığın motorudur: "takımımı yüzüstü bırakamam", rakip takımı geçme hırsı, sohbette strateji. Whiteout Survival'dan alınan: takım kimliği, bölge, haftalık savaş, baskın, sezon ligi, sohbet. Alınmayan: parayla alınan güç. **Savaş puanı yalnızca oynayarak kazanılır**; satın almalar zaman kazandırır (hızlandırıcı) ve stil verir, savaş puanını doğrudan artırmaz. Böylece savaş adil kalır ve kimse "harcamayan ezilir" demez.
+
+## 1a. Savaş sistemleri
+- **Bölge Savaşı (haftalık):** Kulak Haritası 12 bölgeye bölünür (Dış Kulak, Kanal, Zar, Çekiç, Örs, Üzengi, Koklea 1-3, Sinir, Beyin Sapı, Korteks). Takım üyeleri o bölgenin bölümlerinde koşarak "ses gücü" biriktirir; Pazar 20:00'de en çok gücü olan takım bölgeyi alır. Bölge sahibi takım 1 hafta boyunca o bölgede +%10 jeton kazanır, bayrağı herkes görür, takım kartı paylaşılır. 12 bölge = 12 farklı takımın kazanma şansı; dev takımlar her şeyi alamasın diye bir takım en fazla 3 bölge tutabilir.
+- **Takım Düellosu (48 saat, haftada 2):** benzer güçteki iki takım eşleştirilir; iki tarafın koşu puanları toplanır; canlı skor çubuğu, son 2 saatte "son hamle" bildirimi (gerçek). Kazanan takım sandık değil **belirli** ödül alır; kaybeden teselli ödülü (küçük ama var).
+- **Baskın (Cuma 20:00):** dev Gürültü Canavarı; takımlar aynı canavarı kendi başına yener; sıralama "yenme süresi"ne göre. İlk 10 takıma kozmetik.
+- **Takım Ligi (sezonluk, 4 hafta):** Bronz → Gümüş → Altın → Koklea Ligi; bölge, düello ve baskın puanlarıyla yükselme/düşme. Sezon sonu kostüm ve amblem çerçevesi.
+- **Savaş rolleri:** her oyuncu haftada bir rol seçer: Keşifçi (bölüm puanı x1,2), Koruyucu (takım arkadaşının başarısız bölümünü "kurtarma" koşusu), Haberci (davet ve can gönderme bonusu). Roller iş bölümü ve sohbet yaratır.
+- **Adalet:** takımlar güce göre eşleşir; yeni takımlar 2 hafta "koruma" alır; savaş puanı parayla alınamaz; hile tespiti sunucuda.
 
 ## 2. Arkadaş daveti (viral çekirdek)
 - Her oyuncunun bir **davet kodu ve linki** vardır (aihearX kodu ile aynı altyapı). Link tarayıcıda açılır ve ilk 3 bölüm **anında oynanır** (indirme gerektirmez); 3. bölüm sonunda "ilerlemeni kaydetmek için uygulamayı indir".

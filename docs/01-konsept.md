@@ -23,10 +23,10 @@ Odi adlı küçük bir ses parçacığını kulağın girişinden beyne taşırs
 | Duolingo | Seri, günlük hedef, nazik hatırlatma, lig | Hiçbir şey; ritim modeli doğrudan uygulanır |
 
 ## Temel kararlar (onaya sunulan)
-1. **Tek akış + takım katmanı (hibrit).** Candy Crush gibi tek, sonsuz bölüm haritası çekirdektir; üstüne Whiteout Survival'ın takım ve sohbet katmanı gelir, ama savaş değil **ortak keşif** olarak. Gerekçe `05-baglilik-tasarimi.md` içinde.
+1. **Tek akış + takım savaşı (ONAYLANDI).** Candy Crush gibi tek, sonsuz bölüm haritası çekirdektir; üstüne Whiteout Survival tarzı **takımlar arası rekabet** gelir: bölge savaşı, takım düellosu, baskınlar, takım ligi, sohbet. Savaş puanı yalnızca oynayarak kazanılır (para ile değil); bkz. `03-sosyal-ve-canli-operasyon.md`.
 2. **Kazanç modeli:** sezon kartı + kozmetik + kolaylık; ödeme duvarı yok, loot box yok.
-3. **Platform:** oyun çekirdeği web teknolojisi (Phaser 3 + TypeScript); iOS/Android uygulaması Expo ile; davet linki tarayıcıda anında oynatır.
-4. **Ad:** çalışma adı **"ODİ: Sesin Yolu"**; alternatifler: "Odi", "Kulak Macerası", "Sesin Yolculuğu".
+3. **Platform (ONAYLANDI):** bağımsız uygulama, aihearX ile entegrasyon yok. Oyun çekirdeği Phaser 3 + TypeScript; iOS/Android kabuğu Expo (Mac gerektirmeden bulut derleme ve TestFlight); davet linki aynı çekirdeği tarayıcıda anında oynatır. Unity/Godot bu ortamda derlenip doğrulanamadığı için seçilmedi.
+4. **Ad:** **"ODİ: Sesin Yolu"** (çalışma adı; kullanıcı farklı bir ad vermedi).
 
 ## Söz
 "Bir sesi beyne ulaştırmak bu kadar eğlenceli olmamalıydı."
