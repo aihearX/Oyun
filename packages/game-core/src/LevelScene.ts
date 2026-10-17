@@ -29,6 +29,7 @@ export class LevelScene extends Phaser.Scene {
   private fog?: Phaser.GameObjects.Image; private escort?: Phaser.Physics.Arcade.Sprite; private gravityFlipAt = 0; private objectiveText!: Phaser.GameObjects.Text;
   private inputDelay: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[] = [];
   private lastScan: Scan | null = null; private lastScanAt = 0;
+  private noteXs: number[] = [];
   private sparks?: Phaser.GameObjects.Particles.ParticleEmitter; private dust?: Phaser.GameObjects.Particles.ParticleEmitter;
   private wasAirborne = false; private combo = 0; private comboAt = 0; private progressBar!: Phaser.GameObjects.Rectangle; private nearMissed = new WeakSet<Phaser.GameObjects.GameObject>(); private lastDamageAt = -9999;
 
@@ -45,7 +46,8 @@ export class LevelScene extends Phaser.Scene {
     // dünya
     const chunks = this.spec.chunks.length ? this.spec.chunks : [];
     let x = START_PAD;
-    for (const c of chunks) { this.chunks.push({ x, spec: c, spawned: false }); x += c.length; }
+    for (const c of chunks) { this.chunks.push({ x, spec: c, spawned: false }); for (const e of c.entities) if (e.type === 'note') this.noteXs.push(x + e.x); x += c.length; }
+    this.noteXs.sort((a, b) => a - b);
     if (!chunks.length) x = START_PAD + Math.max(1200, this.spec.lengthPx);
     this.worldW = x + END_PAD; this.gateX = this.worldW - 150;
     this.physics.world.setBounds(0, -1200, this.worldW, GROUND_Y + 1200 + 400);
@@ -177,7 +179,7 @@ export class LevelScene extends Phaser.Scene {
   private collectCoin(c: Phaser.Physics.Arcade.Sprite) {
     if (!c.active) return; const e = c.getData('e') as Entity; c.destroy();
     if (e.type === 'note') {
-      const idx = Number(e.props?.idx ?? this.state.notesCollected);
+      const wx = Number(c.getData('wx')); const gi = this.noteXs.indexOf(wx); const idx = gi >= 0 ? gi : Number(e.props?.idx ?? this.state.notesCollected);
       const t = Number(e.props?.t ?? idx / Math.max(1, this.state.notesNeeded));
       if (idx === this.state.nextNote) { this.state.nextNote++; this.state.notesCollected++; sfx.toneAt(tonotopyFreq(1 - t), 0.25); floatText(this, c.x, c.y - 10, `♪ ${this.state.notesCollected}/${this.state.notesNeeded}`, COLORS.accent); this.state.score += 40; }
       else { sfx.tick(); floatText(this, c.x, c.y - 10, 'sıra değil', COLORS.coral); this.state.score += 5; }

@@ -63,24 +63,27 @@ export function generateLevel(journeyId: string, number: number, profile: Player
   const base = baseDifficulty(number, profile);
   const curve = rhythm(n, base);
   const chunks: ChunkSpec[] = [];
-  let lastId = '';
+  let lastId = ''; const used = new Set<string>();
   for (let i = 0; i < n; i++) {
     const want = curve[i]!;
     const wantRest = i === Math.floor(n / 2) && n >= 5;
     let cands = pool.filter((c) => (wantRest ? c.rest : !c.rest) && Math.abs(c.difficulty - want) <= 1 && c.id !== lastId);
     if (!cands.length) cands = pool.filter((c) => c.id !== lastId);
+    // çeşitlilik: daha önce kullanılmamış parçalar varsa onları tercih et
+    const fresh = cands.filter((c) => !used.has(c.id)); if (fresh.length) cands = fresh;
     if (!cands.length) cands = pool;
     // öğretici bölümde "ogretici" etiketli parçalar önce
     if (plan.tutorial && i < 2) { const tut = cands.filter((c) => c.tags.includes('ogretici')); if (tut.length) cands = tut; }
     // gizli hedefte en az bir gizli parça
     if (plan.objective === 'secret' && i === n - 2) { const s = cands.filter((c) => c.tags.includes('gizli')); if (s.length) cands = s; }
     const c = pick(rng, cands);
-    chunks.push(c); lastId = c.id;
+    chunks.push(c); lastId = c.id; used.add(c.id);
   }
   const lengthPx = chunks.reduce((a, c) => a + c.length, 0) + 600; // başlangıç ve kapı payı
   const coinsTotal = chunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'coin').length, 0);
   const notes = chunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'note').length, 0);
-  const speedPx = 260 * (modifiers.includes('hiz') ? 1.3 : 1);
+  const MECH_SPEED: Record<string, number> = { kosu: 260, yuzme: 220, trambolin: 260, makine: 240, impuls: 380, ruya: 260 };
+  const speedPx = (MECH_SPEED[plan.mechanic] ?? 260) * (modifiers.includes('hiz') ? 1.3 : 1);
   const parTimeSec = Math.round(lengthPx / speedPx + n * 3);
   const obj = plan.objective === 'collect-all' ? objective('collect-all', coinsTotal)
     : plan.objective === 'timed' ? objective('timed', Math.max(20, Math.round(parTimeSec * 0.9)))
