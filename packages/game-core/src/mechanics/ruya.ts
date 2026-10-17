@@ -238,7 +238,7 @@ export const ruya: Mechanic = {
     // havada: iniş yüzeyi tehlikeliyse ve geldiğin yüzey güvenliyse geri çevir
     const rem = d === 1 ? GROUND_Y - b.bottom : b.top - CEIL_BOTTOM; // kalan dikey yol
     if (rem < 60) return;
-    const vy = Math.abs(b.velocity.y); const tRem = (-vy + Math.sqrt(vy * vy + 2 * GRAVITY * rem)) / GRAVITY;
+    const vy = b.velocity.y * d; const tRem = (-vy + Math.sqrt(vy * vy + 2 * GRAVITY * rem)) / GRAVITY; // hedef yüzeye doğru hız
     const adv = speed * tRem;
     const landing = nearest(d, adv - 60, adv + 60);
     if (landing && canFlip && !nearest(other, adv - 60, adv + 160)) tap();

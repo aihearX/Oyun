@@ -133,7 +133,7 @@ export const yuzme: Mechanic = {
     };
     const rectOf = (o: Phaser.Physics.Arcade.Sprite, mx: number, my: number): Rect => { const bb = o.body as Phaser.Physics.Arcade.Body; return { l: bb.left - mx, r: bb.right + mx, t: bb.top - my, b: bb.bottom + my }; };
     const children = (g: Phaser.Physics.Arcade.Group | Phaser.Physics.Arcade.StaticGroup) => (g.getChildren() as Phaser.Physics.Arcade.Sprite[]).filter((o) => o.active && o.body);
-    for (const o of children(ctx.groups.hazards)) add(rectOf(o, BOT_MARGIN_X + 6, BOT_MARGIN_Y + 8));
+    for (const o of children(ctx.groups.hazards)) add(rectOf(o, BOT_MARGIN_X + 6, BOT_MARGIN_Y + 12));
     for (const o of children(ctx.groups.enemies)) add(rectOf(o, BOT_MARGIN_X + 60, BOT_MARGIN_Y + 10));
     for (const o of [...children(ctx.groups.platforms), ...children(ctx.groups.movers)]) { const bb = o.body as Phaser.Physics.Arcade.Body; if (bb.top >= groundTop - 2) continue; add(rectOf(o, BOT_MARGIN_X, BOT_MARGIN_Y - 4)); }
     // çekim noktaları
@@ -143,8 +143,9 @@ export const yuzme: Mechanic = {
     bubbles.sort((p, q) => p.x - q.x);
     const blocked = (list: Rect[], y: number) => list.some((r) => y > r.t && y < r.b);
     // şu anki bandı kapatan ilk engel: ona kadar kalan süre → ulaşılabilir dikey mesafe
+    const nearMid = [...near, ...mid];
     let tEsc = Infinity;
-    for (const r of [...near, ...mid]) if (hy > r.t && hy < r.b) tEsc = Math.min(tEsc, Math.max(0.05, (r.l - hx) / vx));
+    for (const r of nearMid) if (hy > r.t && hy < r.b) tEsc = Math.min(tEsc, Math.max(0.05, (r.l - hx) / vx));
     const reachUp = RISE_MAX * tEsc + 20, reachDown = SINK_MAX * tEsc + 20;
     const yMin = SURFACE_Y + hh + 6, yMax = groundTop - hh - 6;
     let best = hy, bestCost = Infinity;
@@ -156,13 +157,18 @@ export const yuzme: Mechanic = {
       const dy = y - hy; const upward = gd === 1 ? dy < 0 : dy > 0;
       if (Math.abs(dy) > (upward ? reachUp : reachDown)) cost += 600;
       cost += Math.abs(dy) * 0.35;
+      // kenardan uzak dur: düşük fps'te salınım payı
+      let dEdge = 999;
+      for (const r of nearMid) { if (y <= r.t) dEdge = Math.min(dEdge, r.t - y); else if (y >= r.b) dEdge = Math.min(dEdge, y - r.b); }
+      if (dEdge < 44) cost += (44 - dEdge) * 1.2;
       for (const k of coins) { const d = Math.abs(k.y - y); if (d < 26) cost -= 28 * (1 - Math.abs(k.x - hx) / 400); }
       const bub = bubbles[0];
       if (bub) { const d = Math.abs(bub.y - y); const want = breath < 0.4 ? 420 : breath < 0.75 ? 90 : 25; if (d < 24) cost -= want; else cost += (d / 40) * (breath < 0.4 ? 10 : 1); }
       if (cost < bestCost) { bestCost = cost; best = y; }
     }
     // tahmin: hız ataletini hesaba kat
-    const predicted = hy + b.velocity.y * 0.18;
+    const horizon = Math.min(0.4, Math.max(0.18, 1.6 * scene.game.loop.delta / 1000));
+    const predicted = hy + b.velocity.y * horizon;
     const wantUp = gd === 1 ? best < predicted - 4 : best > predicted + 4;
     if (wantUp) {
       // basılı tut: ilk karede hold (basma kenarı), sonra sanal giriş her kare basılı tutar

@@ -72,7 +72,7 @@ export const YUZME_CHUNKS = [
     bubble(340, 430), bubble(880, 400), ...coins(500, 220, 3, 36), ...coins(700, 460, 3, 36), power(930, 300, 'shield'),
   ], { tags: ['dusman'] }),
   chunk('yuzme-hazard-clouds', 'yuzme', 4, 940, [
-    ground(0, 940), hazard(200, 90, 140, 170), hazard(420, 440, 160, 180), hazard(740, 250, 140, 190),
+    ground(0, 940), hazard(200, 80, 140, 150), hazard(420, 440, 160, 180), hazard(760, 260, 140, 180),
     bubble(520, 300), ...coins(220, 420, 4, 36), ...coins(760, 540, 4, 36), bubble(900, 520),
   ], { tags: ['tehlike'] }),
   chunk('yuzme-narrow-pass', 'yuzme', 4, 1020, [
