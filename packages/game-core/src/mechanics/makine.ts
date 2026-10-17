@@ -16,10 +16,10 @@ type ASprite = Phaser.Physics.Arcade.Sprite;
 interface MakState {
   gear: ASprite | null; gx: number; gy: number; r: number; speed: number; dir: number; angle: number; turns: number; hinted: boolean; attachedAt: number;
   detachUntil: number; flying: boolean; launchVx: number;
-  jumps: number; slideUntil: number; holdUntil: number; coyote: number; wasAirborne: boolean; tutorialShown: boolean; lastBounceAt: number;
+  jumps: number; slideUntil: number; holdLeft: number; coyote: number; wasAirborne: boolean; tutorialShown: boolean; lastBounceAt: number;
 }
 let st: MakState;
-const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, jumps: 0, slideUntil: 0, holdUntil: 0, coyote: 0, wasAirborne: false, tutorialShown: false, lastBounceAt: -1e9 });
+const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, jumps: 0, slideUntil: 0, holdLeft: 0, coyote: 0, wasAirborne: false, tutorialShown: false, lastBounceAt: -1e9 });
 
 /** dişli dokusu: dişler, göbek ve tutunma halkası */
 function gearTex(s: Phaser.Scene, r: number, color: number, accent: number): string {
@@ -97,11 +97,13 @@ export const makine: Mechanic = {
   },
   update(ctx, input, dt) {
     const { hero, state } = ctx; const b = hero.body; const now = ctx.scene.time.now; const g = state.gravityDir;
+    // oyun zamanı adımı (düşük fps'te LevelScene dt'yi 0.05'e kırpar; tween'ler ve fizik bunu kullanır)
+    const gdt = Math.min(0.1, Math.max(dt, ctx.scene.game.loop.delta / 1000));
     // ---- dişlide
     if (st.gear) {
       if (!st.gear.active) { detach(ctx, 0, false); }
       else {
-        const da = OMEGA * st.speed * st.dir * dt; st.angle += da; st.turns += Math.abs(da) / (Math.PI * 2);
+        const da = OMEGA * st.speed * st.dir * gdt; st.angle += da; st.turns += Math.abs(da) / (Math.PI * 2);
         const R = st.r + RIM_PAD; const fx = st.gx + Math.cos(st.angle) * R, fy = st.gy + Math.sin(st.angle) * R;
         hero.sprite.setPosition(fx, fy); hero.sprite.setRotation(st.angle + Math.PI / 2); b.setVelocity(0, 0);
         if (st.turns >= 1.5 && !st.hinted) { st.hinted = true; ctx.hint('Dokun: fırla', 1800); }
@@ -123,11 +125,12 @@ export const makine: Mechanic = {
     else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || now > st.slideUntil + 120) hero.sprite.setScale(1, 1); }
     const canJump = (onGround || now < st.coyote) && st.jumps < 1;
     if (input.primaryPressed && canJump && !sliding) {
-      b.setVelocityY(-JUMP_V * g); st.jumps = 1; st.coyote = 0; st.holdUntil = now + 220;
+      b.setVelocityY(-JUMP_V * g); st.jumps = 1; st.coyote = 0; st.holdLeft = 0.22;
       hero.stretch(); sfx.jump(); ctx.haptic('light');
     }
     // basılı tutma penceresi: kare hızından bağımsız olsun diye gövde yerçekimiyle (−%45)
-    b.setGravityY(input.primaryDown && now < st.holdUntil && b.velocity.y * g < 0 ? -1400 * 0.45 * g : 0);
+    const holding = input.primaryDown && st.holdLeft > 0 && b.velocity.y * g < 0;
+    b.setGravityY(holding ? -1400 * 0.45 * g : 0); if (holding) st.holdLeft -= gdt;
     if (input.primaryReleased && b.velocity.y * g < 0 && st.jumps === 1 && !st.flying) b.setVelocityY(b.velocity.y * 0.55);
     if (input.secondaryPressed && onGround) { st.slideUntil = now + (ctx.skills.longSlide ? 900 : 500); sfx.tick(); ctx.haptic('light'); }
     if (input.secondaryPressed && !onGround) b.setVelocityY(900 * g);

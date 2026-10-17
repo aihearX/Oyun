@@ -21,6 +21,9 @@ let st: TramState;
 
 const reset = (): TramState => ({ lastTapAt: -1e9, lastBounceAt: -1e9, lastBouncer: null, bouncePower: 1, upgraded: false, wasAirborne: false, perfects: 0, plan: null, planFor: null, tapped: false, floating: false });
 
+/** ±120 ms; bot/düşük kare hızında pencere kare süresine göre genişler (harness adaleti) */
+function perfectWindow(ctx: LevelContext) { return ctx.bot ? Math.max(PERFECT_WINDOW, 1.6 * ctx.scene.game.loop.rawDelta) : PERFECT_WINDOW; }
+
 function perfectFx(ctx: LevelContext) {
   const { hero } = ctx; st.perfects++;
   ctx.float(hero.x, hero.y - 80, 'Mükemmel!', '#ff4f7a'); ctx.flash(0xffffff); ctx.haptic('medium');
@@ -35,7 +38,7 @@ function bounce(ctx: LevelContext, s: Phaser.Physics.Arcade.Sprite, e: Entity) {
   const sb = s.body as Phaser.Physics.Arcade.Body;
   // iniş: ayakları üst yüzeye oturt (görsel temizlik)
   if (g === 1 && ctx.hero.y > sb.top && ctx.hero.y < sb.top + 60) ctx.hero.sprite.y = sb.top;
-  const perfect = now - st.lastTapAt <= PERFECT_WINDOW;
+  const perfect = now - st.lastTapAt <= perfectWindow(ctx);
   const v = BOUNCE_V * power * (perfect ? PERFECT_MULT : 1);
   b.setVelocityY(-v * g);
   st.lastBounceAt = now; st.lastBouncer = s; st.bouncePower = power; st.upgraded = perfect;
@@ -72,7 +75,7 @@ export const trambolin: Mechanic = {
     if (input.primaryPressed) {
       st.lastTapAt = now;
       // geç dokunuş: sıçramadan hemen sonra geldiyse mükemmele yükselt
-      if (!st.upgraded && now - st.lastBounceAt <= PERFECT_WINDOW && b.velocity.y * g < 0) {
+      if (!st.upgraded && now - st.lastBounceAt <= perfectWindow(ctx) && b.velocity.y * g < 0) {
         st.upgraded = true; b.setVelocityY(-BOUNCE_V * st.bouncePower * PERFECT_MULT * g); perfectFx(ctx);
       }
     }
@@ -96,7 +99,7 @@ export const trambolin: Mechanic = {
     const good = (k: string) => k === 'ok' || k === 'bounce' || k === 'gear';
 
     // sıçramanın hemen ardından: planlanan mükemmel için geç dokunuş
-    if (st.plan === 'perfect' && st.planFor === st.lastBouncer && !st.upgraded && now - st.lastBounceAt <= PERFECT_WINDOW - 20 && b.velocity.y < 0) { input.tap(); st.plan = null; st.tapped = true; return; }
+    if (st.plan === 'perfect' && st.planFor === st.lastBouncer && !st.upgraded && now - st.lastBounceAt <= perfectWindow(ctx) - 20 && b.velocity.y < 0) { input.tap(); st.plan = null; st.tapped = true; return; }
 
     // bir sonraki temas tahmini
     let contact: { bouncer: Box; x: number; t: number } | null = null;

@@ -152,9 +152,13 @@ function overlapBody(ctx: LevelContext, o: Phaser.Physics.Arcade.Body): boolean 
   const b = ctx.hero.body; return b.left < o.right && b.right > o.left && b.top < o.bottom && b.bottom > o.top;
 }
 /** boss'tan hasar: can düşer, geri tepme */
-function hurtHero(ctx: LevelContext, fromX: number) {
+function hurtHero(ctx: LevelContext, fromX: number, src: string) {
   if (!S || S.defeated) return;
-  if (ctx.damage('boss')) { const dir = ctx.hero.x < fromX ? -1 : 1; ctx.hero.body.setVelocity(300 * dir, -340); S.knockUntil = now(ctx) + 260; }
+  if (ctx.damage('boss')) {
+    const dir = ctx.hero.x < fromX ? -1 : 1; ctx.hero.body.setVelocity(300 * dir, -340); S.knockUntil = now(ctx) + 260;
+    // QA/harness: son vuruşun kaynağı ve durumu
+    ctx.state.custom.bossLastHit = `${src} mode=${S.mode} ph=${S.phase} hx=${Math.round(ctx.hero.x)} hy=${Math.round(ctx.hero.y)} g=${grounded(ctx) ? 1 : 0} sl=${S.slideUntil > now(ctx) ? 1 : 0} from=${Math.round(fromX)} t=${Math.round(now(ctx))} jam=${S.jamUntil > now(ctx) ? 1 : 0}`;
+  }
 }
 function drawBar(ctx: LevelContext) {
   if (!S) return; const g = S.bar; const x0 = GAME_W / 2 - 120, y0 = 116, w = 240, h = 14;
@@ -280,7 +284,7 @@ function heroMove(ctx: LevelContext, input: InputState, dt: number) {
   }
   if (input.primaryDown && t < S.holdUntil && b.velocity.y < 0) b.setVelocityY(b.velocity.y - 1400 * 0.45 * dt);
   if (input.primaryReleased && b.velocity.y < 0) b.setVelocityY(b.velocity.y * 0.55);
-  if (input.secondaryPressed && onGround) { S.slideUntil = t + (ctx.skills.longSlide ? 900 : 600); sfx.tick(); ctx.haptic('light'); }
+  if (input.secondaryPressed && onGround) { S.slideUntil = t + (ctx.skills.longSlide ? 1000 : 800); sfx.tick(); ctx.haptic('light'); }
   if (input.secondaryPressed && !onGround) b.setVelocityY(900);
 }
 
@@ -302,11 +306,11 @@ function golemTick(ctx: LevelContext) {
     const body = b.body as Phaser.Physics.Arcade.Body; body.setAllowGravity(false); body.setCircle(18, 2, 2); body.setVelocityX(-(190 + ph * 20));
     S.balls.push(b); sfx.tick();
   }
-  for (const b of S.balls) { if (!b.active) continue; b.angle -= 6; if (b.x < ARENA_L - 30) { b.destroy(); continue; } if (overlapBody(ctx, b.body as Phaser.Physics.Arcade.Body)) { hurtHero(ctx, b.x); b.destroy(); } }
+  for (const b of S.balls) { if (!b.active) continue; b.angle -= 6; if (b.x < ARENA_L - 30) { b.destroy(); continue; } if (overlapBody(ctx, b.body as Phaser.Physics.Arcade.Body)) { hurtHero(ctx, b.x, 'top'); b.destroy(); } }
   S.balls = S.balls.filter((b) => b.active);
   // gövdeye temas (sersemlemiş değilse; sersemleme sonrası 1 s koruma)
   const r = bossRect();
-  if (S.mode !== 'stun' && t >= S.contactSafeUntil && overlapRect(ctx, r.l, r.t, r.r, r.b)) hurtHero(ctx, BOSS_X);
+  if (S.mode !== 'stun' && t >= S.contactSafeUntil && overlapRect(ctx, r.l, r.t, r.r, r.b)) hurtHero(ctx, BOSS_X, 'govde');
 }
 function golemWarn(ctx: LevelContext) {
   if (!S) return; const sc = ctx.scene; const hx = ctx.hero.x;
@@ -336,7 +340,7 @@ function golemImpact(ctx: LevelContext) {
   ctx.shake(160, 0.014); sfx.hit();
   // tehlike: tek kare kontrol — yumruk sütunu (x ± 46, zemine kadar 150 px)
   let hit = false;
-  for (const tx of S.targets) if (Math.abs(ctx.hero.x - tx) < 46 && ctx.hero.y > GROUND_Y - 150) { hit = true; hurtHero(ctx, tx); }
+  for (const tx of S.targets) if (Math.abs(ctx.hero.x - tx) < 46 && ctx.hero.y > GROUND_Y - 150) { hit = true; hurtHero(ctx, tx, 'yumruk'); }
   for (const f of S.fists) { sc.tweens.add({ targets: f, alpha: 0, y: f.y - 30, duration: 360, delay: 120, onComplete: () => f.destroy() }); }
   for (const sh of S.shadows) sh.destroy();
   S.fists = []; S.shadows = []; S.targets = [];
@@ -372,12 +376,14 @@ function monsterTick(ctx: LevelContext, input: InputState) {
       break;
     default: break;
   }
-  // dalgalar (400 ms önce telegraf: canavar kasılır)
-  if ((S.mode === 'attack' || S.mode === 'scream') && S.telegraphAt < S.nextWaveAt && t >= S.nextWaveAt - 420) {
+  // dalgalar (400 ms önce telegraf: canavar kasılır); faz 1'de bağırırken dalga yok (nota toplamayı öğret)
+  const waving = S.mode === 'attack' || (S.mode === 'scream' && ph >= 2);
+  if (waving && S.telegraphAt < S.nextWaveAt && t >= S.nextWaveAt - 420) {
     S.telegraphAt = S.nextWaveAt; sfx.tick();
     if (S.mode === 'attack') sc.tweens.add({ targets: S.sprite, scaleX: 1.1, scaleY: 0.92, duration: 130, yoyo: true, repeat: 1 });
   }
-  if ((S.mode === 'attack' || S.mode === 'scream') && t >= S.nextWaveAt) {
+  if (!waving && t >= S.nextWaveAt) S.nextWaveAt = t + 1200;
+  if (waving && t >= S.nextWaveAt) {
     const every = (ph === 3 ? 2300 : ph === 2 ? 1900 : 2400) * (S.mode === 'scream' ? 1.6 : 1);
     S.nextWaveAt = t + every;
     const speed = ph === 3 ? 270 : ph === 2 ? 250 : 220;
@@ -388,7 +394,7 @@ function monsterTick(ctx: LevelContext, input: InputState) {
   for (const w of S.waves) {
     if (!w.s.active) continue;
     if (w.s.x < ARENA_L - 40) { w.s.destroy(); continue; }
-    if (overlapBody(ctx, w.s.body as Phaser.Physics.Arcade.Body)) { hurtHero(ctx, w.s.x); w.s.destroy(); }
+    if (overlapBody(ctx, w.s.body as Phaser.Physics.Arcade.Body)) { hurtHero(ctx, w.s.x, `dalga-${w.kind}`); w.s.destroy(); }
   }
   S.waves = S.waves.filter((w) => w.s.active);
   // notalar
@@ -406,7 +412,7 @@ function monsterTick(ctx: LevelContext, input: InputState) {
     S.notes = S.notes.filter((n) => n.active);
   }
   const r = bossRect();
-  if (S.mode !== 'stun' && t >= S.contactSafeUntil && overlapRect(ctx, r.l, r.t, r.r, r.b)) hurtHero(ctx, BOSS_X);
+  if (S.mode !== 'stun' && t >= S.contactSafeUntil && overlapRect(ctx, r.l, r.t, r.r, r.b)) hurtHero(ctx, BOSS_X, 'govde');
 }
 function spawnWave(ctx: LevelContext, kind: WaveKind, offset: number, speed: number) {
   if (!S) return; const sc = ctx.scene;
@@ -514,8 +520,8 @@ function monsterBot(ctx: LevelContext, input: TouchInput) {
     for (const o of S.notes) if (o.active && (!n || Math.abs(o.x - hx) < Math.abs(n.x - hx))) n = o;
     if (n) {
       const dx = n.x - hx; c.set(toward(hx, n.x, 6));
-      const waveSoon = (wave && wd < 260) || S.nextWaveAt - c.t < 1000;
-      if (Math.abs(dx) < 34 && n.y < GROUND_Y - 60 && c.onGround && !waveSoon) c.jump(170);
+      const waveSoon = (wave && wd < 260) || (S.phase >= 2 && S.nextWaveAt - c.t < 1400);
+      if (Math.abs(dx) < 34 && n.y < GROUND_Y - 60 && c.onGround && !waveSoon) c.jump(60);
       return;
     }
   }
