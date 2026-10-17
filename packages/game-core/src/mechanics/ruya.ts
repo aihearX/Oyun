@@ -97,6 +97,19 @@ function dreamColor(biome: keyof typeof BIOMES, t: number): number {
   return arr[Math.max(0, Math.min(45, Math.round(t * 45)))]!;
 }
 
+/** Paralaks katmanı tint'i: beyaz ↔ biyom vurgu rengi arasında çok hafif kayma. */
+const tintCache = new Map<string, number[]>();
+function dreamTint(biome: keyof typeof BIOMES, t: number): number {
+  let arr = tintCache.get(biome);
+  if (!arr) {
+    const p = BIOMES[biome].palette; const a = Phaser.Display.Color.ValueToColor(0xffffff), b = Phaser.Display.Color.ValueToColor(p.accent);
+    arr = Array.from({ length: 46 }, (_, i) => { const m = Phaser.Display.Color.Interpolate.ColorWithColor(a, b, 100, Math.round(i * 0.55)); return Phaser.Display.Color.GetColor(m.r, m.g, m.b); });
+    tintCache.set(biome, arr);
+  }
+  return arr[Math.max(0, Math.min(45, Math.round(t * 45)))]!;
+}
+type SceneExtra = { __ruyaLayers?: Phaser.GameObjects.TileSprite[] };
+
 type Threat = { left: number; right: number; top: number; bottom: number; surface: 1 | -1; clearance: number; solid: boolean };
 function threats(ctx: LevelContext): Threat[] {
   const out: Threat[] = [];
@@ -132,6 +145,8 @@ export const ruya: Mechanic = {
     s.cameras.main.setBounds(0, -40, ctx.worldW, 780);
     // rüya rengi: arka plan biyom paletinden, hafif kayma update'te
     s.cameras.main.setBackgroundColor(biome.palette.sky);
+    // paralaks katmanları (derinlik ≤ -20 TileSprite): rüya renk kayması için
+    (s as unknown as SceneExtra).__ruyaLayers = s.children.list.filter((o): o is Phaser.GameObjects.TileSprite => o instanceof Phaser.GameObjects.TileSprite && o.depth <= -20);
     // yıldız/sinaps parıltıları
     for (let i = 0; i < Math.min(140, ctx.worldW / 60); i++) addStar(s, 120 + ctx.rng() * (ctx.worldW - 200), 150 + ctx.rng() * 400, ctx.rng);
     applyGravity(ctx); resetHitbox(ctx);
@@ -161,6 +176,9 @@ export const ruya: Mechanic = {
     c.hue = ((c.hue as number) + dt) % 1000;
     const t = 0.5 + 0.5 * Math.sin((c.hue as number) * 0.7);
     s.cameras.main.setBackgroundColor(dreamColor(ctx.spec.biome, t));
+    // paralaks katmanları arka planı örter: aynı kaymayı hafif tint olarak katmanlara da uygula
+    const layers = (s as unknown as SceneExtra).__ruyaLayers;
+    if (layers) { const tint = dreamTint(ctx.spec.biome, t); for (const l of layers) if (l.active) l.setTint(tint); }
   },
   spawn(ctx, e, worldX) {
     const s = ctx.scene; const x = worldX + e.x; const p = BIOMES[ctx.spec.biome].palette;
@@ -247,5 +265,5 @@ export const ruya: Mechanic = {
     const landing = nearest(d, adv - 60, adv + 60);
     if (landing && canFlip && !nearest(other, adv - 60, adv + 160)) tap();
   },
-  teardown(ctx) { ctx.scene.physics.world.gravity.y = GRAVITY; ctx.hero.sprite.setOrigin(0.5, 1).setFlipY(false); },
+  teardown(ctx) { ctx.scene.physics.world.gravity.y = GRAVITY; ctx.hero.sprite.setOrigin(0.5, 1).setFlipY(false); (ctx.scene as unknown as SceneExtra).__ruyaLayers = undefined; },
 };

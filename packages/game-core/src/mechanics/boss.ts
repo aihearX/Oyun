@@ -145,11 +145,16 @@ function sparkTexture(s: Phaser.Scene): string {
 // ---------- yardımcılar
 const now = (ctx: LevelContext) => S?.clock ?? ctx.scene.time.now;
 const grounded = (ctx: LevelContext) => { const b = ctx.hero.body; return b.blocked.down || b.touching.down; };
+/** Kahramanın çarpışma kutusu: ayak tabanından yukarı; kayarken 12 px (fizik gövdesinin bir karelik gecikmesine bağlı kalmaz). */
+function heroBox(ctx: LevelContext): { l: number; r: number; t: number; b: number } {
+  const b = ctx.hero.body; const sliding = !!S && S.slideUntil > now(ctx); const h = sliding ? 12 : 44; const cx = b.center.x;
+  return { l: cx - 17, r: cx + 17, t: b.bottom - h, b: b.bottom };
+}
 function overlapRect(ctx: LevelContext, l: number, t: number, r: number, btm: number): boolean {
-  const b = ctx.hero.body; return b.left < r && b.right > l && b.top < btm && b.bottom > t;
+  const h = heroBox(ctx); return h.l < r && h.r > l && h.t < btm && h.b > t;
 }
 function overlapBody(ctx: LevelContext, o: Phaser.Physics.Arcade.Body): boolean {
-  const b = ctx.hero.body; return b.left < o.right && b.right > o.left && b.top < o.bottom && b.bottom > o.top;
+  return overlapRect(ctx, o.left, o.top, o.right, o.bottom);
 }
 /** boss'tan hasar: can düşer, geri tepme */
 function hurtHero(ctx: LevelContext, fromX: number, src: string) {
@@ -277,14 +282,15 @@ function heroMove(ctx: LevelContext, input: InputState, dt: number) {
   if (S.defeated) { b.setVelocityX(RUN_SPEED); hero.sprite.setFlipX(false); return; }
   if (t >= S.knockUntil) b.setVelocityX(input.dir * RUN_SPEED * (sliding ? 1.15 : 1));
   if (input.dir !== 0) hero.sprite.setFlipX(input.dir < 0);
-  if (sliding) { b.setSize(34, 22).setOffset(7, 26); hero.sprite.setScale(1.1, 0.55); }
-  else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || t > S.slideUntil + 120) hero.sprite.setScale(1, 1); }
+  // kayma: yalnızca görsel ölçek (fizik gövdesi ölçekle küçülür); boss çarpışmaları heroBox ile anında hesaplanır
+  if (sliding) hero.sprite.setScale(1.1, 0.55);
+  else if (!(hero.sprite.scaleY < 1) || t > S.slideUntil + 120) hero.sprite.setScale(1, 1);
   if (input.primaryPressed && (onGround || t < S.coyote) && !sliding) {
     b.setVelocityY(-JUMP_V); S.coyote = 0; S.holdUntil = t + 220; hero.stretch(); sfx.jump(); ctx.haptic('light');
   }
   if (input.primaryDown && t < S.holdUntil && b.velocity.y < 0) b.setVelocityY(b.velocity.y - 1400 * 0.45 * dt);
   if (input.primaryReleased && b.velocity.y < 0) b.setVelocityY(b.velocity.y * 0.55);
-  if (input.secondaryPressed && onGround) { S.slideUntil = t + (ctx.skills.longSlide ? 1000 : 800); sfx.tick(); ctx.haptic('light'); }
+  if (input.secondaryPressed && onGround) { S.slideUntil = t + (ctx.skills.longSlide ? 1100 : 900); sfx.tick(); ctx.haptic('light'); }
   if (input.secondaryPressed && !onGround) b.setVelocityY(900);
 }
 
@@ -350,15 +356,18 @@ function golemImpact(ctx: LevelContext) {
 }
 
 // ---------- Gürültü Canavarı
-function monsterTick(ctx: LevelContext, input: InputState) {
-  if (!S) return; const sc = ctx.scene; const t = now(ctx); const ph = S.phase;
-  // gürültü: girişler 100 ms gecikmeli
+/** gürültü: girişler 100 ms gecikmeli (kahraman hareketinden önce uygulanır) */
+function monsterJam(ctx: LevelContext, input: InputState) {
+  if (!S) return; const t = now(ctx);
   if (S.jamUntil > t) {
     if (input.primaryPressed) { S.delayed.push({ at: t + 100, key: 'primaryPressed' }); input.primaryPressed = false; }
     if (input.secondaryPressed) { S.delayed.push({ at: t + 100, key: 'secondaryPressed' }); input.secondaryPressed = false; }
     S.jamOverlay.setAlpha(0.06 + ctx.rng() * 0.1);
   } else S.jamOverlay.setAlpha(0);
   if (S.delayed.length) S.delayed = S.delayed.filter((q) => { if (q.at <= t) { input[q.key] = true; return false; } return true; });
+}
+function monsterTick(ctx: LevelContext) {
+  if (!S) return; const sc = ctx.scene; const t = now(ctx); const ph = S.phase;
   switch (S.mode) {
     case 'attack':
       if (t >= S.nextScreamAt) monsterScream(ctx);
@@ -507,10 +516,8 @@ function monsterBot(ctx: LevelContext, input: TouchInput) {
     const frameDt = Math.min(0.15, ctx.scene.game.loop.delta / 1000);
     const speed = Math.abs((wave.s.body as Phaser.Physics.Arcade.Body).velocity.x) || 220;
     const lead = speed * (frameDt + (S.jamUntil > c.t ? 0.1 : 0));
-    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) { c.jump(120); S.botPassUntil = c.t + 900; S.botPassWave = wave.s; }
-    if (wave.kind === 'high' && wd < 70 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); S.botPassUntil = c.t + 700; S.botPassWave = wave.s; }
-    // yalnızca tetiklenen dalgayı geçerken ona doğru koş (bağıl hız artar); gövdeye yaklaşma
-    if (c.t < S.botPassUntil && S.botPassWave === wave.s && (!c.onGround || c.sliding) && wd > -50) { c.set(hx < 170 ? 1 : 0); return; }
+    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) c.jump(120);
+    if (wave.kind === 'high' && wd < 60 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); }
   }
   if (S.mode === 'stun') { if (wave && wd < 150 && c.onGround) { c.set(0); return; } botStomp(ctx, input); return; }
   if (hx > BOSS_X - 105) { c.set(-1); return; } // sersemleme bitti: gövdeden uzaklaş
@@ -563,8 +570,10 @@ export const boss: Mechanic = {
     if (!S) return;
     if (!S.camLocked) { S.camLocked = true; const cam = ctx.scene.cameras.main; cam.stopFollow(); cam.setScroll(ARENA_L, CAM_Y); }
     S.clock += ctx.scene.game.loop.delta * ctx.scene.time.timeScale;
-    if (S.kind === 'golem') golemTick(ctx); else monsterTick(ctx, input);
+    // sıra: giriş gecikmesi → kahraman (zıplama/kayma bu karede işlensin) → boss ve çarpışmalar
+    if (S.kind === 'canavar') monsterJam(ctx, input);
     heroMove(ctx, input, dt);
+    if (S.kind === 'golem') golemTick(ctx); else monsterTick(ctx);
   },
   botTick(ctx, input) {
     if (!S) return;
