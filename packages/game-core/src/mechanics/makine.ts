@@ -152,7 +152,7 @@ export const makine: Mechanic = {
       else if (r.kind === 'bounce') score = r.y <= ctx.groundY + 40 ? 2 : 0;
       else if (r.kind === 'ok') score = r.landX != null ? (r.landX > st.gx + st.r * 0.5 && r.y <= ctx.groundY + 40 ? 2 : 0) : -1;
       // sağda ulaşılabilir dişli varken yalnızca ona tutunma kabul; yoksa güvenli iniş yeter
-      const nextGear = geo.gears.some((c) => c.x > st.gx + 10 && c.x - st.gx < 760);
+      const nextGear = geo.gears.some((c) => c.x > st.gx + 10 && c.x - st.gx < 420 && Math.abs(c.y - st.gy) < 200);
       const elapsed = now - st.attachedAt;
       // halkadaki jeton/notalar toplanmadan fırlama (en çok 1.6 tur)
       const rimCoins = geo.coins.filter((c) => Math.hypot(c.x - st.gx, c.y - st.gy) < st.r + 40).length;
