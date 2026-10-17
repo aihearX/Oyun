@@ -125,7 +125,7 @@ export const makine: Mechanic = {
   },
   onDamage(ctx) { if (st.gear) detach(ctx, -200, false); st.flying = false; },
   botTick(ctx, input) {
-    const { hero } = ctx; const b = hero.body; const now = ctx.scene.time.now; const feet = hero.y;
+    const { hero } = ctx; const now = ctx.scene.time.now; const feet = hero.y;
     const geo = geometry(ctx, 1100);
     const good = (r: SimResult) => r.kind === 'ok' || r.kind === 'bounce' || r.kind === 'gear';
 

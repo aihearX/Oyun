@@ -383,7 +383,7 @@ function monsterTick(ctx: LevelContext, input: InputState) {
     const speed = ph === 3 ? 270 : ph === 2 ? 250 : 220;
     if (ph === 1) spawnWave(ctx, 'low', 0, speed);
     else if (ph === 2) spawnWave(ctx, ctx.rng() < 0.5 ? 'low' : 'high', 0, speed);
-    else { const first: WaveKind = ctx.rng() < 0.5 ? 'low' : 'high'; spawnWave(ctx, first, 0, speed); spawnWave(ctx, first === 'low' ? 'high' : 'low', 320, speed); }
+    else { const first: WaveKind = ctx.rng() < 0.5 ? 'low' : 'high'; spawnWave(ctx, first, 0, speed); spawnWave(ctx, first === 'low' ? 'high' : 'low', 420, speed); }
   }
   for (const w of S.waves) {
     if (!w.s.active) continue;
@@ -497,8 +497,14 @@ function monsterBot(ctx: LevelContext, input: TouchInput) {
   let wave: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind } | null = null; let wd = Infinity;
   for (const w of S.waves) { if (!w.s.active) continue; const d = (w.s.x - 12) - (hx + 17); if (d < -40) continue; if (d < wd) { wd = d; wave = w; } }
   if (wave) {
-    if (wave.kind === 'low' && wd < 95 && c.onGround) c.jump(120);
-    if (wave.kind === 'high' && wd < 72 && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); }
+    // kare hızından bağımsız: kare süresi + gürültü gecikmesi kadar öncü mesafe
+    const frameDt = Math.min(0.15, ctx.scene.game.loop.delta / 1000);
+    const speed = Math.abs((wave.s.body as Phaser.Physics.Arcade.Body).velocity.x) || 220;
+    const lead = speed * (frameDt + (S.jamUntil > c.t ? 0.1 : 0));
+    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) { c.jump(120); S.botPassUntil = c.t + 900; }
+    if (wave.kind === 'high' && wd < 70 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); S.botPassUntil = c.t + 700; }
+    // geçerken dalgaya doğru koş: bağıl hız artar, kayma/zıplama süresi yeter
+    if (c.t < S.botPassUntil && (!c.onGround || c.sliding) && wd > -50) { c.set(hx < 200 ? 1 : 0); return; }
   }
   if (S.mode === 'stun') { if (wave && wd < 150 && c.onGround) { c.set(0); return; } botStomp(ctx, input); return; }
   if (hx > BOSS_X - 105) { c.set(-1); return; } // sersemleme bitti: gövdeden uzaklaş
