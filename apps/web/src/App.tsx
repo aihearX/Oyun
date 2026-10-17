@@ -8,8 +8,9 @@ import { LevelHost } from './screens/LevelHost';
 import { ResultScreen } from './screens/ResultScreen';
 import { SkillsScreen } from './screens/SkillsScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
+import { TitleScreen } from './screens/TitleScreen';
 
-type Route = { name: 'map' } | { name: 'level'; spec: LevelSpec } | { name: 'result'; spec: LevelSpec; result: RunResult } | { name: 'skills' } | { name: 'settings' };
+type Route = { name: 'title' } | { name: 'map' } | { name: 'level'; spec: LevelSpec } | { name: 'result'; spec: LevelSpec; result: RunResult } | { name: 'skills' } | { name: 'settings' };
 
 /** `?bot=1&level=N[&ts=2][&skills=all][&salt=K]` → test modu: harness bölümü otomatik oynatır. */
 function botParams() {
@@ -21,7 +22,7 @@ function botParams() {
 export function App() {
   const bot = useMemo(botParams, []);
   const store = useStore();
-  const [route, setRoute] = useState<Route>({ name: 'map' });
+  const [route, setRoute] = useState<Route>({ name: 'title' });
 
   useEffect(() => {
     if (!bot) return;
@@ -40,6 +41,7 @@ export function App() {
   }
 
   switch (route.name) {
+    case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} onStart={() => { store.touchDay(); setRoute({ name: 'map' }); }} />;
     case 'map': return <MapScreen onPlay={play} onSkills={() => setRoute({ name: 'skills' })} onSettings={() => setRoute({ name: 'settings' })} />;
     case 'level': return <LevelHost spec={route.spec} skills={store.skills} sounds={store.sounds} onDone={(result) => { store.recordRun(route.spec.number, result); setRoute({ name: 'result', spec: route.spec, result }); }} onQuit={() => setRoute({ name: 'map' })} />;
     case 'result': return <ResultScreen spec={route.spec} result={route.result} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} />;

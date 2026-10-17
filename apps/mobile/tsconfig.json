@@ -1,0 +1,54 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@odi/game-core": [
+        "../../packages/game-core/src/index.ts"
+      ],
+      "@odi/game-core/*": [
+        "../../packages/game-core/src/*"
+      ],
+      "@odi/content": [
+        "../../packages/content/src/index.ts"
+      ],
+      "@odi/content/*": [
+        "../../packages/content/src/*"
+      ],
+      "@odi/level-gen": [
+        "../../packages/level-gen/src/index.ts"
+      ],
+      "@odi/level-gen/*": [
+        "../../packages/level-gen/src/*"
+      ],
+      "@odi/shared": [
+        "../../packages/shared/src/index.ts"
+      ],
+      "@odi/shared/*": [
+        "../../packages/shared/src/*"
+      ]
+    },
+    "types": [
+      "jest"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "__tests__/**/*.ts",
+    "__tests__/**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tools"
+  ]
+}

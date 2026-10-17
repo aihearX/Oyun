@@ -29,6 +29,8 @@ export class LevelScene extends Phaser.Scene {
   private fog?: Phaser.GameObjects.Image; private escort?: Phaser.Physics.Arcade.Sprite; private gravityFlipAt = 0; private objectiveText!: Phaser.GameObjects.Text;
   private inputDelay: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[] = [];
   private lastScan: Scan | null = null; private lastScanAt = 0;
+  private sparks?: Phaser.GameObjects.Particles.ParticleEmitter; private dust?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private wasAirborne = false; private combo = 0; private comboAt = 0; private progressBar!: Phaser.GameObjects.Rectangle; private nearMissed = new WeakSet<Phaser.GameObjects.GameObject>(); private lastDamageAt = -9999;
 
   constructor() { super('level'); }
 
@@ -69,6 +71,10 @@ export class LevelScene extends Phaser.Scene {
     this.hud.set(0, lives, `${this.spec.number} · ${this.spec.name}`);
     this.objectiveText = this.add.text(GAME_W / 2, 84, this.spec.objective.label, { fontFamily: FONT, fontSize: '13px', fontStyle: '700', color: COLORS.muted, backgroundColor: 'rgba(255,255,255,0.8)', padding: { x: 10, y: 4 } }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
+    this.progressBar = this.add.rectangle(0, 72, 0, 4, 0x6c4cf1, 1).setOrigin(0, 0.5).setScrollFactor(0).setDepth(102);
+    if (!this.textures.exists('spark')) { const g = this.add.graphics(); g.fillStyle(0xffffff, 1); g.fillCircle(4, 4, 4); g.generateTexture('spark', 8, 8); g.destroy(); }
+    this.sparks = this.add.particles(0, 0, 'spark', { speed: { min: 60, max: 220 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, alpha: { start: 1, end: 0 }, lifespan: 420, gravityY: 500, tint: [0xffc25c, 0xffe6a8, 0xffffff], emitting: false }).setDepth(30);
+    this.dust = this.add.particles(0, 0, 'spark', { speed: { min: 20, max: 80 }, angle: { min: 200, max: 340 }, scale: { start: 0.9, end: 0 }, alpha: { start: 0.5, end: 0 }, lifespan: 350, tint: this.biome.palette.groundDark, emitting: false }).setDepth(19);
     const rng = mulberry32(this.spec.seed ^ 0x9e3779b9);
     this.ctx = {
       scene: this, spec: this.spec, hero: this.hero, input: this.input_, skills: this.opts.skills, state: this.state, groups, rng,
@@ -135,6 +141,12 @@ export class LevelScene extends Phaser.Scene {
     if (this.spec.modifiers.includes('cihaz-kapali')) this.revealNearbyCoins();
     if (this.state.magnetUntil > this.time.now || this.opts.skills.magnet > 0) this.magnet(80 + this.opts.skills.magnet * 50);
     if (this.escort) { this.escort.x += (this.hero.x - 56 - this.escort.x) * 0.08; this.escort.y += (this.hero.y - 40 - this.escort.y) * 0.08; }
+    // iniş tozu
+    const hb = this.hero.body; const groundedNow = this.state.gravityDir === 1 ? hb.blocked.down || hb.touching.down : hb.blocked.up || hb.touching.up;
+    if (groundedNow && this.wasAirborne) { this.dust?.explode(8, this.hero.x, this.hero.y - (this.state.gravityDir === 1 ? 2 : 46)); this.hero.squash(1.18, 0.82, 70); }
+    this.wasAirborne = !groundedNow;
+    this.nearMiss();
+    this.progressBar.width = GAME_W * Math.min(1, this.hero.x / this.gateX);
     // düşme
     if (this.hero.y > GROUND_Y + 420 || this.hero.y < -1300) this.damage('fall');
     // ilerleme olayı
@@ -172,7 +184,10 @@ export class LevelScene extends Phaser.Scene {
       return;
     }
     this.state.coins++; this.state.score += 10; sfx.coin(); this.emit({ type: 'haptic', kind: 'light' });
-    if (this.state.coins % 10 === 0) floatText(this, c.x, c.y - 10, `${this.state.coins} 🪙`, COLORS.amber);
+    this.sparks?.explode(6, c.x, c.y);
+    const now = this.time.now; this.combo = now - this.comboAt < 1400 ? this.combo + 1 : 1; this.comboAt = now;
+    if (this.combo > 0 && this.combo % 5 === 0) { const bonus = this.combo * 4; this.state.score += bonus; floatText(this, c.x, c.y - 16, `Seri x${this.combo}  +${bonus}`, COLORS.amber); sfx.power(); this.emit({ type: 'haptic', kind: 'medium' }); }
+    else if (this.state.coins % 10 === 0) floatText(this, c.x, c.y - 10, `${this.state.coins} 🪙`, COLORS.amber);
   }
   private hazardTouch(_o: Phaser.Physics.Arcade.Sprite) { return true; }
   private enemyTouch(e: Phaser.Physics.Arcade.Sprite) {
@@ -226,7 +241,7 @@ export class LevelScene extends Phaser.Scene {
   damage(reason: string): boolean {
     if (this.state.finished || this.time.now < this.state.invulnUntil) return false;
     if (reason !== 'fall' && this.state.shield > 0) { this.state.shield--; this.state.invulnUntil = this.time.now + 1000; this.hero.blink(900); if (this.state.shield === 0) this.hero.sprite.clearTint(); sfx.hit(); floatText(this, this.hero.x, this.hero.y - 70, 'Kalkan kırıldı', COLORS.accent); return false; }
-    this.state.lives--; this.state.damageTaken++; this.state.invulnUntil = this.time.now + 1500;
+    this.state.lives--; this.state.damageTaken++; this.state.invulnUntil = this.time.now + 1500; this.lastDamageAt = this.time.now;
     this.mechanic.onDamage?.(this.ctx);
     sfx.hit(); flash(this); this.cameras.main.shake(160, 0.01); this.hero.mood('hurt', 700); this.hero.squash(); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.state.lives });
     if (this.state.lives <= 0) { this.fail(reason); return true; }
@@ -266,6 +281,22 @@ export class LevelScene extends Phaser.Scene {
   }
 
   // ---- yardımcılar
+  /** Engeli hasarsız ve yakından geçince küçük ödül: "Kıl payı!" */
+  private nearMiss() {
+    if (this.time.now - this.lastDamageAt < 600) return;
+    const hb = this.hero.body;
+    for (const g of [this.ctx.groups.hazards, this.ctx.groups.enemies]) {
+      for (const o of g.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+        if (!o.active || !o.body || this.nearMissed.has(o)) continue;
+        const b = o.body as Phaser.Physics.Arcade.Body;
+        if (b.right < hb.left && b.right > hb.left - 24) {
+          this.nearMissed.add(o);
+          const dy = Math.min(Math.abs(hb.bottom - b.top), Math.abs(b.bottom - hb.top));
+          if (dy < 26) { this.state.score += 25; floatText(this, this.hero.x, this.hero.y - 76, 'Kıl payı! +25', COLORS.coral); sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); }
+        }
+      }
+    }
+  }
   private emit(e: GameEvent) { try { void this.opts.onEvent(e); } catch { /* kabuk hatası oyunu durdurmasın */ } }
   private scan(range?: number): Scan { if (this.lastScan && this.time.now - this.lastScanAt < 33) return this.lastScan; this.lastScan = scanAhead(this.ctx, range); this.lastScanAt = this.time.now; return this.lastScan; }
   hint(text: string, ms = 2500) {

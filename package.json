@@ -13,7 +13,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint packages apps/web/src tools/harness",
     "test": "vitest run",
-    "bot": "node tools/harness/bot.mjs"
+    "bot": "node tools/harness/bot.mjs",
+    "mobile": "npm run start -w apps/mobile",
+    "mobile:export": "npm run export:ios -w apps/mobile",
+    "mobile:test": "npm test -w apps/mobile",
+    "mobile:domcheck": "npm run domcheck -w apps/mobile"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -15,4 +15,19 @@ Bu repo, aiHear'ın bağımsız oyun projesidir. aihearX süper uygulamasındaki
 | [`docs/07-yol-haritasi.md`](docs/07-yol-haritasi.md) | Fazlar, kilometre taşları, ölçütler |
 | [`docs/08-onay-sorulari.md`](docs/08-onay-sorulari.md) | Başlamadan önce karar verilmesi gereken sorular |
 
-Durum: **konsept aşaması, onay bekliyor.**
+| [`docs/09-motor-rehberi.md`](docs/09-motor-rehberi.md) | Geliştirici rehberi: mekanik, parça, boss, harness |
+
+Durum: **Faz 1 (dikey dilim) geliştirmede.** Kod bu repoda; aşağıdaki komutlarla çalışır.
+
+## Çalıştırma
+```
+npm install --legacy-peer-deps
+npm run dev          # web: http://localhost:5173 (telefonda aynı Wi-Fi ile LAN adresi)
+npm run typecheck && npm run lint && npm test
+npm run build:web    # apps/web/dist
+node tools/harness/bot.mjs --levels 1-40 --parallel 3 --shots 1   # otomatik oyuncu: tüm bölümleri oynar
+```
+Mobil (Expo Go, iPhone): `cd apps/mobile && npx expo start` — ayrıntı için `apps/mobile/README.md`.
+
+## Yapı
+`packages/shared` tipler · `packages/content` biyomlar, parçalar, yolculuk, boss · `packages/level-gen` deterministik bölüm üretimi · `packages/game-core` Phaser motoru (mekanikler, kahraman, varlıklar, bot) · `apps/web` React kabuk · `apps/mobile` Expo kabuk · `tools/harness` Playwright bot.

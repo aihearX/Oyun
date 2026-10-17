@@ -14,7 +14,7 @@ export function MapScreen({ onPlay, onSkills, onSettings }: { onPlay: (n: number
     <div className="screen fade-in" ref={ref}>
       <div className="topbar">
         <div className="brand">OD<span>İ</span> <span className="muted" style={{ fontSize: 14 }}>Sesin Yolu</span></div>
-        <div className="pills"><div className="pill">🪙 {s.coins}</div><div className="pill">⭐ {totalStars}</div><div className="pill">Sv {s.playerLevel()}</div></div>
+        <div className="pills"><div className="pill">🪙 {s.coins}</div><div className="pill">⭐ {totalStars}</div><div className="pill">Sv {s.playerLevel()}</div>{s.streak > 1 && <div className="pill">🔥 {s.streak} gün</div>}</div>
       </div>
       <div className="card row"><div className="grow"><h2>{HUMAN_JOURNEY.name}</h2><div className="muted">{HUMAN_JOURNEY.blurb}</div></div><button className="btn" onClick={() => onPlay(unlocked)}>Bölüm {unlocked} ▶</button></div>
       <div className="map">

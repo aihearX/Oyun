@@ -1,0 +1,1 @@
+{ "name": "ODİ: Sesin Yolu", "short_name": "ODİ", "start_url": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#6c4cf1", "lang": "tr", "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }] }
