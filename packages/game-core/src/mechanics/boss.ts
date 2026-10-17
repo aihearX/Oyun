@@ -40,7 +40,7 @@ interface BossState {
   waves: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind }[]; notes: Phaser.GameObjects.Image[]; noteCount: number; nextWaveAt: number; nextScreamAt: number;
   jamUntil: number; nextJamAt: number; jamOverlay: Phaser.GameObjects.Rectangle; delayed: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[];
   /** kahraman */
-  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number; botPassUntil: number; botPassWave: Phaser.GameObjects.GameObject | null;
+  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number;
 }
 
 let S: BossState | null = null;
@@ -559,7 +559,7 @@ export const boss: Mechanic = {
       sprite, glow, bar, nameText, mode: kind === 'golem' ? 'idle' : 'attack', modeUntil: t + 2200, stunHits: 0, hintedStun: false,
       targets: [], shadows: [], fists: [], balls: [], nextBallAt: 0,
       waves: [], notes: [], noteCount: 0, nextWaveAt: t + 2600, nextScreamAt: t + 3800, jamUntil: 0, nextJamAt: 0, jamOverlay, delayed: [],
-      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0, botPassUntil: 0, botPassWave: null,
+      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0,
     };
     ctx.state.custom.bossDefeated = false; ctx.state.custom.bossMode = S.mode;
     glow.setPosition(BOSS_X, headTop() + 26);
