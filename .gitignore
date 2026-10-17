@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+tools/harness/out/
+tools/harness/scratch/
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+.env
+.env.*

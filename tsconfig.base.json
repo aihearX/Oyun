@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@odi/game-core": ["./packages/game-core/src/index.ts"],
+      "@odi/game-core/*": ["./packages/game-core/src/*"],
+      "@odi/content": ["./packages/content/src/index.ts"],
+      "@odi/content/*": ["./packages/content/src/*"],
+      "@odi/level-gen": ["./packages/level-gen/src/index.ts"],
+      "@odi/level-gen/*": ["./packages/level-gen/src/*"],
+      "@odi/shared": ["./packages/shared/src/index.ts"],
+      "@odi/shared/*": ["./packages/shared/src/*"]
+    }
+  }
+}
