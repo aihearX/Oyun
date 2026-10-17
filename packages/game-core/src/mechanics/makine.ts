@@ -121,7 +121,6 @@ export const makine: Mechanic = {
     if (input.primaryReleased && b.velocity.y * g < 0 && st.jumps === 1 && !st.flying) b.setVelocityY(b.velocity.y * 0.55);
     if (input.secondaryPressed && onGround) { st.slideUntil = now + (ctx.skills.longSlide ? 900 : 500); sfx.tick(); ctx.haptic('light'); }
     if (input.secondaryPressed && !onGround) b.setVelocityY(900 * g);
-    if (onGround && st.wasAirborne) hero.squash(1.2, 0.8, 70);
     st.wasAirborne = !onGround;
   },
   onDamage(ctx) { if (st.gear) detach(ctx, -200, false); st.flying = false; },
@@ -151,7 +150,10 @@ export const makine: Mechanic = {
         aimOk = Math.abs(d) <= (15 * Math.PI) / 180;
       }
       const elapsed = now - st.attachedAt;
-      if (score >= 2 && (aimOk || !aim || st.turns >= 1.1)) input.tap();
+      // halkadaki jeton/notalar toplanmadan fırlama (en çok 1.6 tur)
+      const rimCoins = geo.coins.filter((c) => Math.hypot(c.x - st.gx, c.y - st.gy) < st.r + 40).length;
+      if (rimCoins > 0 && st.turns < 1.6) return;
+      if (score >= 3 || (score >= 2 && (aimOk || !nextGear || st.turns >= 1.1))) input.tap();
       else if (score >= 0 && st.turns >= 2.6) input.tap();
       else if (elapsed > 14000 && st.turns >= 4) input.swipeDown();
       return;

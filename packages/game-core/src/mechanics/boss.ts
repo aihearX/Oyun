@@ -40,7 +40,7 @@ interface BossState {
   waves: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind }[]; notes: Phaser.GameObjects.Image[]; noteCount: number; nextWaveAt: number; nextScreamAt: number;
   jamUntil: number; nextJamAt: number; jamOverlay: Phaser.GameObjects.Rectangle; delayed: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[];
   /** kahraman */
-  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number;
+  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number; botPassUntil: number;
 }
 
 let S: BossState | null = null;
@@ -312,14 +312,15 @@ function golemWarn(ctx: LevelContext) {
   if (!S) return; const sc = ctx.scene; const hx = ctx.hero.x;
   const clampX = (x: number) => Math.max(HERO_MIN + 10, Math.min(BOSS_X - 70, x));
   const esc = ctx.hero.body.velocity.x < -10 ? -1 : ctx.hero.body.velocity.x > 10 ? 1 : (hx < 150 ? 1 : -1);
-  S.targets = S.phase === 3 ? [clampX(hx), clampX(hx + 110 * esc)] : [clampX(hx)];
+  // faz 3: ikinci yumruk 150 px öteye; arada (75 px) ve dışında güvenli alan kalır
+  S.targets = S.phase === 3 ? [clampX(hx), clampX(hx + 150 * esc)] : [clampX(hx)];
   for (const tx of S.targets) {
     const sh = sc.add.image(tx, GROUND_Y - 2, shadowTexture(sc)).setDepth(6).setAlpha(0.6);
     sc.tweens.add({ targets: sh, alpha: 1, scaleX: 1.15, duration: 160, yoyo: true, repeat: -1 });
     S.shadows.push(sh);
   }
   sc.tweens.add({ targets: S.sprite, y: GROUND_Y - 16, duration: 200, yoyo: true, hold: 250 });
-  sfx.tick(); setMode(ctx, 'warn', S.phase === 3 ? 450 : 600);
+  sfx.tick(); setMode(ctx, 'warn', S.phase === 3 ? 520 : 600);
 }
 function golemSlam(ctx: LevelContext) {
   if (!S) return; const sc = ctx.scene;
@@ -477,9 +478,12 @@ function golemBot(ctx: LevelContext, input: TouchInput) {
     const minD = Math.min(...S.targets.map((tx) => Math.abs(hx - tx)));
     if (minD >= 72) { c.set(0); return; }
     const lo = HERO_MIN + 12, hi = bossLeft - 40;
-    const cands = [lo, hx - 130, hx + 130, hi].map((x) => Math.max(lo, Math.min(hi, x)));
+    // kalan uyarı süresinde erişilebilir adaylar: kenarlar, ±130, iki hedefin ortası
+    const reach = Math.max(40, (RUN_SPEED * Math.max(0, S.modeUntil - c.t)) / 1000 + 12);
+    const mid = S.targets.length > 1 ? ((S.targets[0] ?? hx) + (S.targets[1] ?? hx)) / 2 : hx - 130;
+    const cands = [lo, hx - 130, hx + 130, hi, mid].map((x) => Math.max(lo, Math.min(hi, Math.max(hx - reach, Math.min(hx + reach, x)))));
     let best = cands[0] ?? lo; let bestScore = -1;
-    for (const x of cands) { const s = Math.min(...S.targets.map((tx) => Math.abs(x - tx))) - Math.abs(x - hx) * 0.15; if (s > bestScore) { bestScore = s; best = x; } }
+    for (const x of cands) { const s = Math.min(...S.targets.map((tx) => Math.abs(x - tx))) - Math.abs(x - hx) * 0.1; if (s > bestScore) { bestScore = s; best = x; } }
     c.set(toward(hx, best, 6)); return;
   }
   // boşta: dodge alanı geniş olsun diye arena ortasının solunda bekle
@@ -536,7 +540,7 @@ export const boss: Mechanic = {
       sprite, glow, bar, nameText, mode: kind === 'golem' ? 'idle' : 'attack', modeUntil: t + 2200, stunHits: 0, hintedStun: false,
       targets: [], shadows: [], fists: [], balls: [], nextBallAt: 0,
       waves: [], notes: [], noteCount: 0, nextWaveAt: t + 2600, nextScreamAt: t + 3800, jamUntil: 0, nextJamAt: 0, jamOverlay, delayed: [],
-      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0,
+      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0, botPassUntil: 0,
     };
     ctx.state.custom.bossDefeated = false; ctx.state.custom.bossMode = S.mode;
     glow.setPosition(BOSS_X, headTop() + 26);

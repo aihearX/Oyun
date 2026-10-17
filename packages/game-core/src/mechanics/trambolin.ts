@@ -81,8 +81,7 @@ export const trambolin: Mechanic = {
     else if (!onGround && Math.abs(hero.sprite.scaleX - 1) > 0.05 && now - st.lastBounceAt > 250) hero.sprite.setScale(1, 1);
     // aşağı kaydırma: dalış
     if (input.secondaryPressed && !onGround) { b.setVelocityY(Math.max(b.velocity.y * g, DIVE_V) * g); sfx.tick(); ctx.haptic('light'); hero.sprite.setScale(0.85, 1.2); }
-    // inişte kısa squash
-    if (onGround && st.wasAirborne) { hero.squash(1.2, 0.8, 70); }
+    // iniş squash'ı LevelScene (iniş tozu) yapar
     st.wasAirborne = !onGround;
     void dt;
   },

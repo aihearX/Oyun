@@ -198,8 +198,11 @@ export const impuls: Mechanic = {
       for (const l of [lane - 1, lane + 1]) {
         if (l < 0 || l > 2) continue; const f = firstObs(l);
         if (f < minFree) continue; // engelin içine geçme
-        const score = Math.min(f, 700) + (coinAhead(l, 300) ? 60 : 0) + (l === 1 ? 5 : 0);
-        if (score > bestScore) { bestScore = score; best = l; bestF = f; }
+        // iki şeridi kapatan duvar: yandaki şerit de kapalıysa ama onun ötesi açıksa iki adımlı yol (önce yana, sonra öteye)
+        let eff = f; const beyond = l + (l - lane);
+        if (f <= cur + 40 && beyond >= 0 && beyond <= 2) { const fb = firstObs(beyond); if (fb > cur + 40) eff = fb; }
+        const score = Math.min(eff, 700) + (coinAhead(l, 300) ? 60 : 0) + (l === 1 ? 5 : 0);
+        if (score > bestScore) { bestScore = score; best = l; bestF = eff; }
       }
       // yalnızca durumu iyileştiriyorsa (ya da engel çok yakınsa) geç; aksi halde yandaki engel geçene dek bekle
       if (best >= 0 && (bestF > cur + 40 || cur < 150)) tapTo(best);
