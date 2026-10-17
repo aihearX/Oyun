@@ -65,7 +65,7 @@ export function buildParallax(scene: Phaser.Scene, biome: BiomeDef, worldW: numb
           g.beginPath(); g.moveTo(w / 2 + r0 * Math.cos(t0), h * 0.45 + r0 * Math.sin(t0)); g.lineTo(w / 2 + r1 * Math.cos(t1), h * 0.45 + r1 * Math.sin(t1)); g.strokePath();
         }
         g.lineStyle(4, p.bgMid, 0.5); g.beginPath(); for (let i = 0; i <= 150; i++) { const t = (i / 150) * Math.PI * 4; const r = 12 * Math.exp(0.22 * t) + 18; const x = w / 2 + r * Math.cos(t), y = h * 0.45 + r * Math.sin(t); if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); } g.strokePath();
-        for (let i = 0; i < 9; i++) drawTuft(g, 30 + i * (w / 9), h - 40 - (i % 2) * 30, 50 + (i % 3) * 14, p.bgMid, 0.6);
+        for (let i = 0; i < 9; i++) drawTuft(g, 30 + i * (w / 9), h * 0.64 - (i % 2) * 30, 50 + (i % 3) * 14, p.bgMid, 0.6);
         break;
       }
       case 'nerve': {
@@ -91,7 +91,7 @@ export function buildParallax(scene: Phaser.Scene, biome: BiomeDef, worldW: numb
     switch (biome.motif) {
       case 'auricle':
         // kıl/tüy ormanı: zeminden yükselen tüy siluetleri + ten dokusu lekeleri
-        for (let i = 0; i < 10; i++) { const x = (i * 53 + 20) % w; const len = 90 + (i % 4) * 35; drawFeather(g, x, h - 20, len, -Math.PI / 2 + (rnd() - 0.5) * 0.5, i % 3 ? p.bgNear : p.accent, 0.5 + (i % 2) * 0.2, 8); }
+        for (let i = 0; i < 10; i++) { const x = (i * 53 + 20) % w; const len = 90 + (i % 4) * 35; drawFeather(g, x, h * 0.66, len, -Math.PI / 2 + (rnd() - 0.5) * 0.5, i % 3 ? p.bgNear : p.accent, 0.5 + (i % 2) * 0.2, 8); }
         for (let i = 0; i < 8; i++) { g.fillStyle(p.bgNear, 0.3); g.fillCircle((i * 97) % w, (i * 173) % (h * 0.6), 8 + (i % 4) * 7); }
         break;
       case 'tunnel':
@@ -110,7 +110,7 @@ export function buildParallax(scene: Phaser.Scene, biome: BiomeDef, worldW: numb
         break;
       case 'spiral':
         // tüylü (kıl) hücreleri: tonotopi renginde demetler + kabarcıklar
-        for (let i = 0; i < 9; i++) { const x = (i * 59 + 15) % w; drawTuft(g, x, h - 10 - (i % 3) * 25, 40 + (i % 3) * 16, tonotopyColor(tono[0] + (tono[1] - tono[0]) * ((i * 0.37) % 1)), 0.7, 4 + (i % 2)); }
+        for (let i = 0; i < 9; i++) { const x = (i * 59 + 15) % w; drawTuft(g, x, h * 0.66 - (i % 3) * 25, 40 + (i % 3) * 16, tonotopyColor(tono[0] + (tono[1] - tono[0]) * ((i * 0.37) % 1)), 0.7, 4 + (i % 2)); }
         for (let i = 0; i < 7; i++) { g.lineStyle(2, p.accent, 0.35); g.strokeCircle((i * 83 + 20) % w, (i * 141 + 40) % (h * 0.7), 8 + (i % 4) * 6); g.fillStyle(0xffffff, 0.25); g.fillCircle((i * 83 + 16) % w, (i * 141 + 36) % (h * 0.7), 3); }
         drawWave(g, 0, w, h * 0.3, 14, 140, p.accent, 2, 0.25);
         break;

@@ -33,16 +33,16 @@ export const TRAMBOLIN_CHUNKS = [
 
   // ---- normal
   chunk('tram-spikes-1', 'trambolin', 2, 1200, [
-    ground(0, 1200), T(300, 1.0), spike(400, 96), ...coins(380, G - 250, 4, 36, 40),
-    T(760, 1.0), spike(860, 96), ...coins(840, G - 250, 4, 36, 40),
-  ], { tags: ['diken'] }),
+    ground(0, 1200), T(300, 1.0), spike(400, 96), ...coins(380, G - 250, 4, 36, 40), note(386, G - 305, 0, 0.2),
+    T(760, 1.0), spike(860, 96), ...coins(840, G - 250, 4, 36, 40), note(846, G - 305, 1, 0.6),
+  ], { tags: ['diken', 'melodi'] }),
   chunk('tram-pit-1', 'trambolin', 2, 1450, [
     ground(0, 300), ground(300, 260, G + 100), T(496, 1.0, G + 100), ...coins(440, G + 40, 3),
     ground(560, 300), ...coins(600, G - 80, 4), ground(860, 260, G + 100), T(1056, 1.0, G + 100), ...coins(1000, G + 40, 3),
     ground(1120, 330), ...coins(1200, G - 80, 3),
   ], { tags: ['cukur'] }),
   chunk('tram-ridge', 'trambolin', 3, 1500, [
-    ground(0, 1500), T(300, 1.2), plat(560, G - 120, 200), spike(600, 128), ...coins(580, G - 170, 4),
+    ground(0, 1500), T(300, 1.2), plat(560, G - 120, 200), spike(600, 128), ...coins(580, G - 170, 4), note(640, G - 160, 0, 0.3), note(720, G - 160, 1, 0.5),
     ...coins(380, G - 320, 3, 36, 40), T(1000, 1.0), spike(1080, 96), ...coins(1060, G - 250, 4, 36, 40),
   ], { tags: ['platform', 'diken'] }),
   chunk('tram-double', 'trambolin', 3, 1500, [
@@ -55,11 +55,11 @@ export const TRAMBOLIN_CHUNKS = [
   ], { tags: ['melodi', 'zincir'] }),
   chunk('tram-gizli-1', 'trambolin', 3, 1500, [
     ground(0, 1500), T(400, 1.2), spike(480, 96), secret(610, G - 870), ...coins(560, G - 400, 4, 36, 40),
-    T(1000, 1.0), spike(1080, 128), ...coins(1060, G - 250, 4, 36, 40),
+    T(1000, 1.0), spike(1080, 128), ...coins(1060, G - 250, 4, 36, 40), note(1320, G - 60, 0, 0.4), note(1420, G - 60, 1, 0.7),
   ], { tags: ['gizli', 'diken'] }),
   chunk('tram-enemy', 'trambolin', 3, 1400, [
     ground(0, 1400), T(260, 1.0), enemy(420, G, 'bakteri', 40), ...coins(340, G - 250, 4, 36, 40),
-    T(760, 1.0), enemy(900, G, 'sinek', 40), ...coins(840, G - 250, 4, 36, 40),
+    T(760, 1.0), enemy(900, G, 'sinek', 40), ...coins(840, G - 250, 4, 36, 40), note(1240, G - 60, 0, 0.5), note(1330, G - 60, 1, 0.8),
   ], { tags: ['dusman'] }),
   chunk('tram-stairs', 'trambolin', 4, 1800, [
     ground(0, 1800), T(220, 1.1), plat(400, G - 160, 300), spike(420, 128), note(500, G - 200, 0, 0.2), note(650, G - 200, 1, 0.4),

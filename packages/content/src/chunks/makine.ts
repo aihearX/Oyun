@@ -43,11 +43,11 @@ export const MAKINE_CHUNKS = [
   chunk('mak-chain-3', 'makine', 3, 1500, [
     ground(0, 300), ground(300, 700, G + 150), spike(450, 450, G + 150), spring(976, G + 150, 1.3),
     gear(380, G - 40, 48, 1.2, 1), gear(600, G - 120, 44, 1.2, -1), gear(820, G - 60, 48, 1, 1),
-    ground(1000, 500), ...coins(1060, G - 80, 4), ...coins(480, G - 190, 3, 36, 20), ...coins(700, G - 200, 3, 36, 20),
+    ground(1000, 500), ...coins(1060, G - 80, 4), ...coins(480, G - 190, 3, 36, 20), ...coins(700, G - 200, 3, 36, 20), note(1300, G - 50, 0, 0.4), note(1420, G - 50, 1, 0.7),
   ], { tags: ['disli', 'zincir'] }),
   chunk('mak-gear-over-spikes', 'makine', 3, 1400, [
     ground(0, 1400), gear(460, G - 70, 50, 1, 1), spike(500, 120), gear(900, G - 60, 50, 1, -1), spike(1000, 96),
-    ...coins(560, G - 200, 4, 36, 30), ...coins(1200, G - 80, 4),
+    ...coins(560, G - 200, 4, 36, 30), ...coins(1200, G - 80, 4), note(1150, G - 50, 0, 0.3), note(1360, G - 50, 1, 0.6),
   ], { tags: ['disli', 'diken'] }),
   chunk('mak-movers', 'makine', 3, 1200, [
     ground(0, 300), ground(300, 440, G + 150), spike(400, 200, G + 150), spring(716, G + 150, 1.3),
@@ -73,7 +73,7 @@ export const MAKINE_CHUNKS = [
   chunk('mak-pit-spikes', 'makine', 4, 1600, [
     ground(0, 300), ground(300, 340, G + 150), spike(340, 200, G + 150), spring(616, G + 150, 1.2), gear(380, G - 30, 48, 1, 1),
     ground(640, 160), ...coins(660, G - 80, 3), ground(800, 300, G + 150), spike(820, 180, G + 150), spring(1076, G + 150, 1.2), gear(880, G, 48, 1, -1),
-    ground(1100, 500), ...coins(1180, G - 80, 4),
+    ground(1100, 500), ...coins(1180, G - 80, 4), note(1400, G - 50, 0, 0.5), note(1500, G - 50, 1, 0.8),
   ], { tags: ['disli', 'cukur', 'diken'] }),
   chunk('mak-tower-launch', 'makine', 5, 1600, [
     ground(0, 300), ground(300, 600, G + 170), spike(340, 520, G + 170), spring(876, G + 170, 1.4),

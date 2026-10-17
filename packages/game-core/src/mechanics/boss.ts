@@ -40,7 +40,7 @@ interface BossState {
   waves: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind }[]; notes: Phaser.GameObjects.Image[]; noteCount: number; nextWaveAt: number; nextScreamAt: number;
   jamUntil: number; nextJamAt: number; jamOverlay: Phaser.GameObjects.Rectangle; delayed: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[];
   /** kahraman */
-  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number; botPassUntil: number;
+  slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number; botPassUntil: number; botPassWave: Phaser.GameObjects.GameObject | null;
 }
 
 let S: BossState | null = null;
@@ -501,10 +501,10 @@ function monsterBot(ctx: LevelContext, input: TouchInput) {
     const frameDt = Math.min(0.15, ctx.scene.game.loop.delta / 1000);
     const speed = Math.abs((wave.s.body as Phaser.Physics.Arcade.Body).velocity.x) || 220;
     const lead = speed * (frameDt + (S.jamUntil > c.t ? 0.1 : 0));
-    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) { c.jump(120); S.botPassUntil = c.t + 900; }
-    if (wave.kind === 'high' && wd < 70 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); S.botPassUntil = c.t + 700; }
-    // geçerken dalgaya doğru koş: bağıl hız artar, kayma/zıplama süresi yeter
-    if (c.t < S.botPassUntil && (!c.onGround || c.sliding) && wd > -50) { c.set(hx < 200 ? 1 : 0); return; }
+    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) { c.jump(120); S.botPassUntil = c.t + 900; S.botPassWave = wave.s; }
+    if (wave.kind === 'high' && wd < 70 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); S.botPassUntil = c.t + 700; S.botPassWave = wave.s; }
+    // yalnızca tetiklenen dalgayı geçerken ona doğru koş (bağıl hız artar); gövdeye yaklaşma
+    if (c.t < S.botPassUntil && S.botPassWave === wave.s && (!c.onGround || c.sliding) && wd > -50) { c.set(hx < 170 ? 1 : 0); return; }
   }
   if (S.mode === 'stun') { if (wave && wd < 150 && c.onGround) { c.set(0); return; } botStomp(ctx, input); return; }
   if (hx > BOSS_X - 105) { c.set(-1); return; } // sersemleme bitti: gövdeden uzaklaş
@@ -546,7 +546,7 @@ export const boss: Mechanic = {
       sprite, glow, bar, nameText, mode: kind === 'golem' ? 'idle' : 'attack', modeUntil: t + 2200, stunHits: 0, hintedStun: false,
       targets: [], shadows: [], fists: [], balls: [], nextBallAt: 0,
       waves: [], notes: [], noteCount: 0, nextWaveAt: t + 2600, nextScreamAt: t + 3800, jamUntil: 0, nextJamAt: 0, jamOverlay, delayed: [],
-      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0, botPassUntil: 0,
+      slideUntil: 0, holdUntil: 0, coyote: 0, knockUntil: 0, botJumpAt: 0, botSlideAt: 0, botPassUntil: 0, botPassWave: null,
     };
     ctx.state.custom.bossDefeated = false; ctx.state.custom.bossMode = S.mode;
     glow.setPosition(BOSS_X, headTop() + 26);
