@@ -66,6 +66,7 @@ export const makine: Mechanic = {
   id: 'makine',
   setup(ctx) {
     st = reset(); ctx.state.custom.noteSeq = 0; ctx.hero.body.setGravityY(0);
+    if (ctx.bot) (globalThis as unknown as { __makState?: MakState }).__makState = st; // harness ayıklama
     if (ctx.spec.tutorial) ctx.hint('Dokun: zıpla · Dişliye değ: tutun · Dokun: fırla', 4500);
   },
   spawn(ctx, e, worldX) {

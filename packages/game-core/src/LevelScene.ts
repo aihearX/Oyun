@@ -105,7 +105,7 @@ export class LevelScene extends Phaser.Scene {
 
     // değiştiriciler
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
-    if (this.spec.modifiers.includes('ters-yercekimi')) { this.buildCeiling(); this.gravityFlipAt = 0; }
+    if (this.spec.modifiers.includes('ters-yercekimi') && this.spec.mechanic !== 'ruya') { this.buildCeiling(); this.gravityFlipAt = 0; }
     if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: jetonlar yaklaşınca görünür, ses yok', 3500);
 
     this.mechanic.setup(this.ctx);
@@ -139,7 +139,7 @@ export class LevelScene extends Phaser.Scene {
     this.streamChunks(false);
     this.parallax?.update(this.cameras.main.scrollX);
     if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
-    if (this.spec.modifiers.includes('ters-yercekimi')) this.tickGravityFlip();
+    if (this.spec.modifiers.includes('ters-yercekimi') && !this.state.custom.manualGravity) this.tickGravityFlip();
     if (this.spec.modifiers.includes('cihaz-kapali')) this.revealNearbyCoins();
     if (this.state.magnetUntil > this.time.now || this.opts.skills.magnet > 0) this.magnet(80 + this.opts.skills.magnet * 50);
     if (this.escort) { this.escort.x += (this.hero.x - 56 - this.escort.x) * 0.08; this.escort.y += (this.hero.y - 40 - this.escort.y) * 0.08; }

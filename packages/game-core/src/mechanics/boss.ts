@@ -38,7 +38,7 @@ interface BossState {
   targets: number[]; shadows: Phaser.GameObjects.Image[]; fists: Phaser.GameObjects.Image[]; balls: Phaser.Physics.Arcade.Sprite[]; nextBallAt: number;
   /** canavar */
   waves: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind }[]; notes: Phaser.GameObjects.Image[]; noteCount: number; nextWaveAt: number; nextScreamAt: number;
-  jamUntil: number; nextJamAt: number; jamOverlay: Phaser.GameObjects.Rectangle; delayed: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[];
+  jamUntil: number; nextJamAt: number; jamOverlay: Phaser.GameObjects.Rectangle; delayed: { at: number; key: 'primaryPressed' | 'primaryReleased' | 'secondaryPressed' }[];
   /** kahraman */
   slideUntil: number; holdUntil: number; coyote: number; knockUntil: number; botJumpAt: number; botSlideAt: number;
 }
@@ -360,7 +360,9 @@ function golemImpact(ctx: LevelContext) {
 function monsterJam(ctx: LevelContext, input: InputState) {
   if (!S) return; const t = now(ctx);
   if (S.jamUntil > t) {
+    // bırakış da gecikir: aksi halde gecikmiş basış + anında bırakış zıplamayı kısaltır
     if (input.primaryPressed) { S.delayed.push({ at: t + 100, key: 'primaryPressed' }); input.primaryPressed = false; }
+    if (input.primaryReleased) { S.delayed.push({ at: t + 100, key: 'primaryReleased' }); input.primaryReleased = false; }
     if (input.secondaryPressed) { S.delayed.push({ at: t + 100, key: 'secondaryPressed' }); input.secondaryPressed = false; }
     S.jamOverlay.setAlpha(0.06 + ctx.rng() * 0.1);
   } else S.jamOverlay.setAlpha(0);
@@ -506,17 +508,17 @@ function golemBot(ctx: LevelContext, input: TouchInput) {
 }
 
 function monsterBot(ctx: LevelContext, input: TouchInput) {
-  if (!S) return; const c = botCommon(ctx, input); const hx = ctx.hero.x;
+  if (!S) return; const c = botCommon(ctx, input); const hb = ctx.hero.body; const hx = hb.center.x;
   if (S.defeated) { c.set(1); return; }
-  // en yakın yaklaşan dalga
+  // en yakın yaklaşan dalga (fizik gövdeleriyle: sprite'lar bir fizik adımı geride kalır)
   let wave: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind } | null = null; let wd = Infinity;
-  for (const w of S.waves) { if (!w.s.active) continue; const d = (w.s.x - 12) - (hx + 17); if (d < -40) continue; if (d < wd) { wd = d; wave = w; } }
+  for (const w of S.waves) { if (!w.s.active) continue; const d = (w.s.body as Phaser.Physics.Arcade.Body).left - hb.right; if (d < -40) continue; if (d < wd) { wd = d; wave = w; } }
   if (wave) {
-    // kare hızından bağımsız: kare süresi + gürültü gecikmesi kadar öncü mesafe
+    // kare hızından bağımsız: karar + uygulama (2 kare) + gürültü gecikmesi kadar öncü mesafe
     const frameDt = Math.min(0.15, ctx.scene.game.loop.delta / 1000);
     const speed = Math.abs((wave.s.body as Phaser.Physics.Arcade.Body).velocity.x) || 220;
-    const lead = speed * (frameDt + (S.jamUntil > c.t ? 0.1 : 0));
-    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) c.jump(120);
+    const lead = speed * (2 * frameDt + (S.jamUntil > c.t ? 0.1 : 0));
+    if (wave.kind === 'low' && wd < 90 + lead && c.onGround) c.jump(200);
     if (wave.kind === 'high' && wd < 60 + lead && c.onGround && !c.sliding && c.t - S.botSlideAt > 700) { S.botSlideAt = c.t; input.swipeDown(); }
   }
   if (S.mode === 'stun') { if (wave && wd < 150 && c.onGround) { c.set(0); return; } botStomp(ctx, input); return; }
