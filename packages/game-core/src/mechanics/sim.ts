@@ -62,6 +62,8 @@ export interface SimStart {
   maxT?: number;
   /** inişten sonra koşmaya devam süresi (s); varsayılan 0.3 — sonrası yeni karar */
   postLand?: number;
+  /** yerdeyken yatay hız (fırlatma sonrası iniş: koşu hızına döner); yoksa vx */
+  runVx?: number;
 }
 export type SimKind = 'ok' | 'hazard' | 'fall' | 'stuck' | 'gear' | 'bounce';
 export interface SimResult { kind: SimKind; x: number; y: number; t: number; coins: number; landX: number | null; landT: number | null; gear: Circle | null; bouncer: Box | null; vy: number }
@@ -86,7 +88,7 @@ export function simulate(geo: Geometry, s: SimStart): SimResult {
       if (s.floatCap != null && vy > s.floatCap) vy = s.floatCap;
       y += vy * dt;
     }
-    x += s.vx * dt; t += dt;
+    x += (grounded && s.runVx != null ? s.runVx : s.vx) * dt; t += dt;
     if (s.releaseAt != null && t >= s.releaseAt && t - dt < s.releaseAt && vy < 0) vy *= 0.55;
     const hl = x - HERO_HW, hr = x + HERO_HW, ht = y - hh;
     // jetonlar

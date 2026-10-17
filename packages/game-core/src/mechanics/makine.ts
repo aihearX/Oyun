@@ -147,7 +147,7 @@ export const makine: Mechanic = {
     if (st.gear) {
       const cur: Circle | undefined = geo.gears.find((c) => c.sprite === st.gear);
       const v = launchVel(st.angle, st.dir);
-      const r = simulate(geo, { x: hero.x, y: feet, vx: v.x, vy: v.y, ignoreGear: cur ?? null, ignoreUntil: 0.45, maxT: 3 });
+      const r = simulate(geo, { x: hero.x, y: feet, vx: v.x, vy: v.y, runVx: RUN_SPEED * ctx.state.speedMult, ignoreGear: cur ?? null, ignoreUntil: 0.45, maxT: 3 });
       let score = -1;
       if (r.kind === 'gear' && r.gear) score = r.gear.x > st.gx + 10 ? 3 : -1;
       else if (r.kind === 'bounce') score = r.y <= ctx.groundY + 40 ? 2 : 0;
