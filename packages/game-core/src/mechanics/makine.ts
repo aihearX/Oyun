@@ -16,10 +16,10 @@ type ASprite = Phaser.Physics.Arcade.Sprite;
 interface MakState {
   gear: ASprite | null; gx: number; gy: number; r: number; speed: number; dir: number; angle: number; turns: number; hinted: boolean; attachedAt: number;
   detachUntil: number; flying: boolean; launchVx: number;
-  jumps: number; slideUntil: number; holdUntil: number; coyote: number; wasAirborne: boolean; tutorialShown: boolean;
+  jumps: number; slideUntil: number; holdUntil: number; coyote: number; wasAirborne: boolean; tutorialShown: boolean; lastBounceAt: number;
 }
 let st: MakState;
-const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, jumps: 0, slideUntil: 0, holdUntil: 0, coyote: 0, wasAirborne: false, tutorialShown: false });
+const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, jumps: 0, slideUntil: 0, holdUntil: 0, coyote: 0, wasAirborne: false, tutorialShown: false, lastBounceAt: -1e9 });
 
 /** dişli dokusu: dişler, göbek ve tutunma halkası */
 function gearTex(s: Phaser.Scene, r: number, color: number, accent: number): string {
@@ -42,7 +42,7 @@ function gearTex(s: Phaser.Scene, r: number, color: number, accent: number): str
 function detach(ctx: LevelContext, vy: number, flying: boolean, vx = 0) {
   const b = ctx.hero.body; const s = ctx.hero.sprite;
   st.gear = null; st.detachUntil = ctx.scene.time.now + 420; st.flying = flying; st.launchVx = vx;
-  s.setRotation(0); b.setAllowGravity(true); b.setVelocity(vx, vy);
+  s.setRotation(0); b.setAllowGravity(true); b.setGravityY(0); b.setVelocity(vx, vy);
 }
 
 function attach(ctx: LevelContext, g: ASprite, e: Entity) {
@@ -80,6 +80,15 @@ export const makine: Mechanic = {
     return true;
   },
   onSpecial(ctx, sprite, e) {
+    if (e.type === 'spring' || e.type === 'trampoline') {
+      // yürüyerek de sıçrar (genel işleyici yalnızca düşerken); çukur yayları böyle kurtarır
+      const b = ctx.hero.body; const g = ctx.state.gravityDir; const now = ctx.scene.time.now;
+      if (st.gear || b.velocity.y * g < -1 || now - st.lastBounceAt < 150) return true;
+      const sb = sprite.body as Phaser.Physics.Arcade.Body; if (g === 1 && b.bottom < sb.top - 4) return true;
+      const power = Number(e.props?.power ?? 1); b.setVelocityY(-900 * power * g); st.lastBounceAt = now; st.flying = false; st.jumps = 1;
+      ctx.hero.stretch(); sfx.bounce(); ctx.haptic('medium'); ctx.scene.tweens.add({ targets: sprite, scaleY: 0.6, duration: 80, yoyo: true });
+      return true;
+    }
     if (e.type !== 'gear') return false;
     if (st.gear) return true;
     if (ctx.scene.time.now < st.detachUntil) return true;
@@ -117,7 +126,8 @@ export const makine: Mechanic = {
       b.setVelocityY(-JUMP_V * g); st.jumps = 1; st.coyote = 0; st.holdUntil = now + 220;
       hero.stretch(); sfx.jump(); ctx.haptic('light');
     }
-    if (input.primaryDown && now < st.holdUntil && b.velocity.y * g < 0) b.setVelocityY(b.velocity.y - 1400 * 0.45 * dt * g);
+    // basılı tutma penceresi: kare hızından bağımsız olsun diye gövde yerçekimiyle (−%45)
+    b.setGravityY(input.primaryDown && now < st.holdUntil && b.velocity.y * g < 0 ? -1400 * 0.45 * g : 0);
     if (input.primaryReleased && b.velocity.y * g < 0 && st.jumps === 1 && !st.flying) b.setVelocityY(b.velocity.y * 0.55);
     if (input.secondaryPressed && onGround) { st.slideUntil = now + (ctx.skills.longSlide ? 900 : 500); sfx.tick(); ctx.haptic('light'); }
     if (input.secondaryPressed && !onGround) b.setVelocityY(900 * g);

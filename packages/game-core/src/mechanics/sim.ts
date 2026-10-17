@@ -14,7 +14,7 @@ export const GRAVITY = 1400;
 /** kahraman gövdesi (hero.ts: 48×0.7, 48×0.9) */
 export const HERO_HW = 17; export const HERO_H = 43;
 
-export interface Box { l: number; t: number; r: number; b: number; sprite: Phaser.Physics.Arcade.Sprite; e: Entity }
+export interface Box { l: number; t: number; r: number; b: number; sprite: Phaser.Physics.Arcade.Sprite; e: Entity; /** hareketli platform hızı (px/s) */ vx?: number; vy?: number }
 export interface Circle { x: number; y: number; r: number; sprite: Phaser.Physics.Arcade.Sprite; e: Entity }
 export interface Geometry { supports: Box[]; hazards: Box[]; bouncers: Box[]; gears: Circle[]; coins: { x: number; y: number }[] }
 
@@ -28,7 +28,14 @@ export function geometry(ctx: LevelContext, range = 1000): Geometry {
   const within = (o: ASprite) => { const b = o.body as Phaser.Physics.Arcade.Body; return b.right >= lo && b.left <= hi; };
   const g: Geometry = { supports: [], hazards: [], bouncers: [], gears: [], coins: [] };
   for (const o of alive(ctx.groups.platforms)) if (within(o)) g.supports.push(box(o));
-  for (const o of alive(ctx.groups.movers)) if (within(o)) g.supports.push(box(o));
+  const now = ctx.scene.time.now;
+  for (const o of alive(ctx.groups.movers)) {
+    // tween ile taşınan platform: son konumdan hız kestir (bot yörüngesi için)
+    const pv = o.getData('mv') as { x: number; y: number; t: number } | undefined; const bx = box(o);
+    if (pv && now - pv.t > 8 && now - pv.t < 600) { const k = 1000 / (now - pv.t); bx.vx = (o.x - pv.x) * k; bx.vy = (o.y - pv.y) * k; }
+    o.setData('mv', { x: o.x, y: o.y, t: now });
+    if (within(o)) g.supports.push(bx);
+  }
   for (const o of alive(ctx.groups.hazards)) if (within(o)) g.hazards.push(box(o));
   for (const o of alive(ctx.groups.enemies)) if (within(o)) { const dx = Math.abs(Number((o.getData('e') as Entity).props?.dx ?? 60)); g.hazards.push(box(o, dx)); }
   for (const o of alive(ctx.groups.specials)) {
@@ -65,12 +72,14 @@ export function simulate(geo: Geometry, s: SimStart): SimResult {
   let x = s.x, y = s.y, vy = s.vy, t = 0; let landX: number | null = null, landT: number | null = null;
   const seen = new Set<number>(); let coins = 0;
   const done = (kind: SimKind, extra: Partial<SimResult> = {}): SimResult => ({ kind, x, y, t, coins, landX, landT, gear: null, bouncer: null, vy, ...extra });
-  const supportAt = (px: number, feet: number): Box | null => { let best: Box | null = null; for (const b of geo.supports) { if (px < b.l - 12 || px > b.r + 12) continue; if (Math.abs(b.t - feet) <= 4 && (!best || b.t < best.t)) best = b; } return best; };
-  let grounded = !!supportAt(x, y) && vy >= 0;
+  type R = { l: number; t: number; r: number; b: number };
+  const at = (b: Box, tt: number): R => (b.vx || b.vy) ? { l: b.l + (b.vx ?? 0) * tt, r: b.r + (b.vx ?? 0) * tt, t: b.t + (b.vy ?? 0) * tt, b: b.b + (b.vy ?? 0) * tt } : b;
+  const supportAt = (px: number, feet: number, tt: number): R | null => { let best: R | null = null; for (const b0 of geo.supports) { const b = at(b0, tt); if (px < b.l - 12 || px > b.r + 12) continue; if (Math.abs(b.t - feet) <= 4 && (!best || b.t < best.t)) best = b; } return best; };
+  let grounded = !!supportAt(x, y, 0) && vy >= 0;
   while (t < maxT) {
     if (landT != null && t - landT >= (s.postLand ?? 0.3)) return done('ok');
     const prevY = y; const hh = s.slideUntil != null && t < s.slideUntil ? 22 : HERO_H;
-    if (grounded) { vy = 0; const sup = supportAt(x, y); if (!sup) grounded = false; else y = sup.t; }
+    if (grounded) { vy = 0; const sup = supportAt(x, y, t); if (!sup) grounded = false; else y = sup.t; }
     if (!grounded) {
       const low = s.lowGravUntil != null && t < s.lowGravUntil && vy < 0;
       vy += (low ? GRAVITY * 0.55 : GRAVITY) * dt;
@@ -100,15 +109,15 @@ export function simulate(geo: Geometry, s: SimStart): SimResult {
     if (!grounded) {
       // iniş
       if (vy >= 0) {
-        let land: Box | null = null;
-        for (const b of geo.supports) { if (x < b.l - 12 || x > b.r + 12) continue; if (prevY <= b.t + 1 && y >= b.t - 1) { if (!land || b.t < land.t) land = b; } }
+        let land: R | null = null;
+        for (const b0 of geo.supports) { const b = at(b0, t); if (x < b.l - 12 || x > b.r + 12) continue; if (prevY <= b.t + 1 && y >= b.t - 1) { if (!land || b.t < land.t) land = b; } }
         if (land) { y = land.t; vy = 0; grounded = true; if (landX == null) { landX = x; landT = t; } continue; }
       }
       // duvar / tavan
-      for (const b of geo.supports) if (hr > b.l + 2 && hl < b.r - 2 && y > b.t + 6 && ht < b.b - 2) return done('stuck');
+      for (const b0 of geo.supports) { const b = at(b0, t); if (hr > b.l + 2 && hl < b.r - 2 && y > b.t + 6 && ht < b.b - 2) return done('stuck'); }
       if (y > GROUND_Y + 400) return done('fall');
     } else {
-      for (const b of geo.supports) if (hr > b.l + 2 && hl < b.r - 2 && b.t < y - 6 && b.b > y - hh + 4) return done('stuck');
+      for (const b0 of geo.supports) { const b = at(b0, t); if (hr > b.l + 2 && hl < b.r - 2 && b.t < y - 6 && b.b > y - hh + 4) return done('stuck'); }
     }
   }
   return done('ok');

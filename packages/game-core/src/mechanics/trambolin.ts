@@ -77,7 +77,9 @@ export const trambolin: Mechanic = {
       }
     }
     // havada basılı tutma: süzülme
-    if (!onGround && input.primaryDown && b.velocity.y * g > FLOAT_CAP) { b.setVelocityY(FLOAT_CAP * g); hero.sprite.setScale(1.12, 0.92); }
+    const floating = !onGround && input.primaryDown && b.velocity.y * g >= FLOAT_CAP;
+    b.setGravityY(floating ? -1400 * g : 0); // süzülme: yerçekimi askıya (kare hızından bağımsız)
+    if (floating) { if (b.velocity.y * g > FLOAT_CAP + 1) b.setVelocityY(FLOAT_CAP * g); hero.sprite.setScale(1.12, 0.92); }
     else if (!onGround && Math.abs(hero.sprite.scaleX - 1) > 0.05 && now - st.lastBounceAt > 250) hero.sprite.setScale(1, 1);
     // aşağı kaydırma: dalış
     if (input.secondaryPressed && !onGround) { b.setVelocityY(Math.max(b.velocity.y * g, DIVE_V) * g); sfx.tick(); ctx.haptic('light'); hero.sprite.setScale(0.85, 1.2); }
