@@ -47,6 +47,9 @@
       ],
       "@odi/net/store": [
         "../../packages/net/src/store.ts"
+      ],
+      "@odi/audio": [
+        "../../packages/audio/src/index.ts"
       ]
     },
     "types": [

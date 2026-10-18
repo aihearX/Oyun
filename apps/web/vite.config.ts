@@ -14,6 +14,7 @@ export default defineConfig({
       '@odi/shared': path.resolve(import.meta.dirname, '../../packages/shared/src'),
       '@odi/meta': path.resolve(import.meta.dirname, '../../packages/meta/src'),
       '@odi/net': path.resolve(import.meta.dirname, '../../packages/net/src'),
+      '@odi/audio': path.resolve(import.meta.dirname, '../../packages/audio/src'),
     },
   },
   build: { target: 'es2020', chunkSizeWarningLimit: 2000 },

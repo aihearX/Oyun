@@ -19,6 +19,8 @@
       "@odi/content/*": ["./packages/content/src/*"],
       "@odi/level-gen": ["./packages/level-gen/src/index.ts"],
       "@odi/level-gen/*": ["./packages/level-gen/src/*"],
+      "@odi/audio": ["./packages/audio/src/index.ts"],
+      "@odi/audio/*": ["./packages/audio/src/*"],
       "@odi/shared": ["./packages/shared/src/index.ts"],
       "@odi/shared/*": ["./packages/shared/src/*"],
       "@odi/meta": ["./packages/meta/src/index.ts"],
