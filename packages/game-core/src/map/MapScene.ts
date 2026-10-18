@@ -359,7 +359,7 @@ export class MapScene extends Phaser.Scene {
     for (const m of s.war) {
       const rv = this.regions.find((r) => r.zone.id === m.zone); if (!rv) continue;
       const k = perZone.get(m.zone) ?? 0; perZone.set(m.zone, k + 1);
-      const side = k % 2 ? -1 : 1; const x = W / 2 + side * 150, y = rv.label.y - 4 + Math.floor(k / 2) * 36;
+      const side = k % 2 ? -1 : 1; const x = W / 2 + side * 132, y = rv.label.y - 4 + Math.floor(k / 2) * 36;
       if (m.owned) {
         const fl = this.add.image(x, y, flagTex(this, this.R, s.teamColor ?? 0xff5c8a)).setScale(1 / this.R).setOrigin(0.18, 0.95).setDepth(8.6);
         const em = this.add.image(x + 12, y - 40, emojiTexture(this, `emj-${m.emblem}`, m.emblem, 48)).setScale(0.36).setDepth(8.7);

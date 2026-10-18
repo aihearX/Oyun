@@ -40,7 +40,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
 
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
-    let dead = false; let h: MapHandle | null = null;
+    let dead = false; let h: MapHandle | null = null; let started = false;
     void loadMapSeen().then(() => {
       if (dead || !host.current) return;
       const s = useStore.getState(); const now = starsOf(s.progress);
@@ -63,12 +63,13 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
           if (z === 'finale') { celebrate.banner({ icon: '👑', title: 'Ninni beyne ulaştı!', body: 'Ninni Merkezi ışıl ışıl yandı.', tone: 'gold' }); return; }
           await celebrate.biomeRestored({ biome: z, name: BIOMES[z].name });
         },
-        onSequence: (p) => { setSeq(p === 'start'); if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
+        onSequence: (p) => { setSeq(p === 'start'); if (p === 'start') started = true; if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
       });
       handle.current = h;
     });
-    return () => { dead = true; h?.destroy(); handle.current = null; };
+    // sahne yarıda bırakılırsa (ör. hemen bölüme geçildi) bir dahaki açılışta tekrar oynamasın
+    return () => { dead = true; if (started) useMapSeen.getState().commit(starsOf(useStore.getState().progress)); h?.destroy(); handle.current = null; };
   }, []);
   // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
   useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);
