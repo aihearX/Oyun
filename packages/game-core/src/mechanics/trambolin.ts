@@ -15,6 +15,8 @@ const FLOAT_CAP = 230;        // basılı tutarken en yüksek düşüş hızı
 const DIVE_V = 900;
 
 interface TramState {
+  /** fizikle aynı hızda ilerleyen saat (ms): oyun döngüsünün adımı birikir; düzensiz kare hızında duvar saatinden sapmaz */
+  clock: number;
   lastTapAt: number; lastBounceAt: number; lastBouncer: Phaser.GameObjects.GameObject | null; bouncePower: number; upgraded: boolean; quality: 'zayif' | 'iyi' | 'mukemmel'; weakHinted: boolean;
   wasAirborne: boolean; perfects: number;
   // bot
@@ -22,7 +24,7 @@ interface TramState {
 }
 let st: TramState;
 
-const reset = (): TramState => ({ lastTapAt: -1e9, lastBounceAt: -1e9, lastBouncer: null, bouncePower: 1, upgraded: false, quality: 'iyi', weakHinted: false, wasAirborne: false, perfects: 0, plan: null, planFor: null, tapped: false, floating: false, netTapFor: null });
+const reset = (): TramState => ({ clock: 0, lastTapAt: -1e9, lastBounceAt: -1e9, lastBouncer: null, bouncePower: 1, upgraded: false, quality: 'iyi', weakHinted: false, wasAirborne: false, perfects: 0, plan: null, planFor: null, tapped: false, floating: false, netTapFor: null });
 
 /** ±120 ms; bot/düşük kare hızında pencere kare süresine göre genişler (harness adaleti) */
 function perfectWindow(ctx: LevelContext) { return ctx.bot ? Math.max(PERFECT_WINDOW, 1.6 * ctx.scene.game.loop.rawDelta) : PERFECT_WINDOW; }
@@ -39,7 +41,7 @@ function perfectFx(ctx: LevelContext) {
 
 /** trambolin/yay temasında sıçrama; zamanlama tutarsa mükemmel */
 function bounce(ctx: LevelContext, s: Phaser.Physics.Arcade.Sprite, e: Entity) {
-  const b = ctx.hero.body; const now = ctx.scene.time.now; const g = ctx.state.gravityDir;
+  const b = ctx.hero.body; const now = st.clock; const g = ctx.state.gravityDir;
   const power = Number(e.props?.power ?? 1);
   const sb = s.body as Phaser.Physics.Arcade.Body;
   // iniş: ayakları üst yüzeye oturt (görsel temizlik)
@@ -48,7 +50,6 @@ function bounce(ctx: LevelContext, s: Phaser.Physics.Arcade.Sprite, e: Entity) {
   const perfect = since <= perfectWindow(ctx);
   const good = !perfect && since <= goodWindow(ctx);
   st.quality = perfect ? 'mukemmel' : good ? 'iyi' : 'zayif';
-  ctx.state.custom.tramQ = `${st.quality}:${Math.round(Math.min(since, 9999))}:p${power}:plan=${st.plan}`;
   const v = BOUNCE_V * power * (perfect ? PERFECT_MULT : good ? 1 : WEAK_MULT);
   b.setVelocityY(-v * g);
   st.lastBounceAt = now; st.lastBouncer = s; st.bouncePower = power; st.upgraded = perfect;
@@ -70,7 +71,7 @@ export const trambolin: Mechanic = {
   onSpecial(ctx, sprite, e) {
     if (e.type !== 'trampoline' && e.type !== 'spring') return false;
     const b = ctx.hero.body; const g = ctx.state.gravityDir;
-    const now = ctx.scene.time.now;
+    const now = st.clock;
     if (now - st.lastBounceAt < 150) return true;             // aynı temas
     if (b.velocity.y * g < -1) return true;                   // yükselirken temas yok
     const sb = sprite.body as Phaser.Physics.Arcade.Body;
@@ -79,7 +80,8 @@ export const trambolin: Mechanic = {
     return true;
   },
   update(ctx, input, dt) {
-    const { hero, state } = ctx; const b = hero.body; const now = ctx.scene.time.now; const g = state.gravityDir;
+    st.clock += ctx.scene.game.loop.delta;
+    const { hero, state } = ctx; const b = hero.body; const now = st.clock; const g = state.gravityDir;
     const onGround = grounded(ctx);
     b.setVelocityX(RUN_SPEED * state.speedMult);
     b.setSize(34, 44).setOffset(7, 4);
@@ -108,7 +110,7 @@ export const trambolin: Mechanic = {
   },
   onDamage() { st.plan = null; st.planFor = null; },
   botTick(ctx, input) {
-    const { hero } = ctx; const b = hero.body; const now = ctx.scene.time.now; const feet = hero.y;
+    const { hero } = ctx; const b = hero.body; const now = st.clock; const feet = hero.y;
     const onGround = grounded(ctx); const vx = RUN_SPEED * ctx.state.speedMult;
     const geo = geometry(ctx, 1100);
     const stopFloat = () => { if (st.floating) { st.floating = false; input.virtual = null; } };
@@ -133,7 +135,9 @@ export const trambolin: Mechanic = {
         if (bo.sprite === st.netTapFor) continue;
         if (st.plan === 'perfect' && st.planFor === bo.sprite) continue;
         if (st.plan === 'normal' && st.planFor === bo.sprite && st.tapped) continue;
-        const dy = bo.t - feet; if (dy < -6 || vy < -1) continue;
+        const dy = bo.t - feet; if (vy < -1) continue;
+        // yerdeyken zar ayak hizasında durur (tabanı = zemin); havadayken üst yüzü ayağın altında olmalı
+        if (onGround ? Math.abs(bo.b - feet) > 8 : dy < -6) continue;
         const fall = (h: number) => (h <= 2 ? 0 : (-vy + Math.sqrt(vy * vy + 2 * G * h)) / G);
         let t = -1;
         if (onGround) t = Math.max(0, (bo.l - hr) / vx);
