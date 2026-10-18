@@ -1,3 +1,4 @@
+declare const __ODI_E2E__: boolean | undefined;
 /**
  * Etkinlik durumu (istemci): sunucudaki etkinliklerin son görünümü + gerçek zamanlı bildirim kuyruğu.
  * bindEvents(client) net.ts'ten bir kez çağrılır; olaylar depoya yazılır, bileşenler useEvents ile okur.
@@ -48,7 +49,7 @@ const NOTICE_MAX = 3;
 export function bindEvents(c: NetClient): () => void {
   client = c;
   // yalnızca uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemciye erişir; normal derlemede bu satır yok
-  if (import.meta.env.VITE_ODI_E2E === '1') (window as unknown as { __etkinlik?: unknown }).__etkinlik = { net: () => client, events: useEvents, netStore: useNet };
+  if (typeof __ODI_E2E__ !== 'undefined' && __ODI_E2E__) (window as unknown as { __etkinlik?: unknown }).__etkinlik = { net: () => client, events: useEvents, netStore: useNet };
   const set = useEvents.setState;
   const offs = [
     c.onStatus((s) => { if (s === 'bağlı') void refreshEvents(); }),

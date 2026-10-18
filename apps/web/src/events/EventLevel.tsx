@@ -16,7 +16,9 @@ export interface EventFlash { icon: string; title: string; text: string; tone: '
  * Yalnızca uçtan uca test derlemesi (VITE_ODI_E2E=1) + `?etkinlik-bot=1`: bölümü harness botu oynar.
  * Normal derlemede sabit false olur ve bu yol tamamen çıkarılır (üretimde etkisiz).
  */
-const E2E = import.meta.env.VITE_ODI_E2E === '1';
+/** yalnız test derlemesi (VITE_ODI_E2E=1 → vite define); Metro/mobil pakette tanımsız → kapalı */
+declare const __ODI_E2E__: boolean | undefined;
+const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
 export const EVENT_BOT = E2E && new URLSearchParams(location.search).get('etkinlik-bot') === '1';
 
 /** Mevcut LevelHost ile etkinlik bölümünü oynatır; bitince sonucu ilgili etkinliğe (runId ile idempotent) gönderir. */

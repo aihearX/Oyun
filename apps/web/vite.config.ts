@@ -5,7 +5,7 @@ import path from 'node:path';
 export default defineConfig({
   plugins: [react()],
   // sosyal sunucu adresi derleme zamanında verilebilir: VITE_ODI_SERVER=wss://... npm run build:web
-  define: { __ODI_SERVER__: JSON.stringify(process.env.VITE_ODI_SERVER ?? '') },
+  define: { __ODI_SERVER__: JSON.stringify(process.env.VITE_ODI_SERVER ?? ''), __ODI_E2E__: JSON.stringify(process.env.VITE_ODI_E2E === '1') },
   resolve: {
     alias: {
       '@odi/game-core': path.resolve(import.meta.dirname, '../../packages/game-core/src'),
