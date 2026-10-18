@@ -32,17 +32,17 @@ export class Sequencer {
   /** parçanın bittiği an (tek seferlikse) */
   get endTime(): number { return this.o.maxBars != null ? this.barTime(this.o.maxBars) : Infinity; }
 
-  /** planlama: [şimdi, şimdi + lookahead) içinde başlayan ölçüleri bir kez çağırır; planlanan ölçü sayısını döndürür */
-  tick(now: number): number {
+  /** planlama: [şimdi, şimdi + lookahead) içinde (ya da verilen ufka kadar) başlayan ölçüleri bir kez çağırır; planlanan ölçü sayısını döndürür */
+  tick(now: number, horizon = now + this.lookahead): number {
     let n = 0;
     // tamamen geçmişte kalmış ölçüleri atla (sekme uykudaydı)
     if (this.o.maxBars == null && this.barTime(this.next) + this.barDur < now) {
       this.next = Math.max(this.next, Math.floor((now - this.o.startAt) / this.barDur));
     }
-    while (!this.done && this.barTime(this.next) < now + this.lookahead) {
+    while (!this.done && this.barTime(this.next) < horizon) {
       this.o.onBar(this.next, this.barTime(this.next));
       this.next++; n++;
-      if (n > 64) break; // güvenlik
+      if (n > 256) break; // güvenlik
     }
     return n;
   }

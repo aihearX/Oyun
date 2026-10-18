@@ -32,26 +32,10 @@ export interface AudioEngine {
   volumes(): { music: number; sfx: number; enabled: boolean };
 }
 
-// ---- Geçici asgari uygulama (ses ekibi değiştirecek): basit bip sesleri, müzik yok.
-let ctx: AudioContext | null = null; let master: GainNode | null = null;
-const vol = { music: 0.6, sfx: 0.9, enabled: true };
-function ensure() {
-  if (ctx) return ctx;
-  try { const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext; ctx = new AC(); master = ctx.createGain(); master.gain.value = 0.5; master.connect(ctx.destination); } catch { ctx = null; }
-  return ctx;
-}
-function beep(freq: number, dur = 0.08, v = 0.15) {
-  const c = ensure(); if (!c || !master || !vol.enabled) return;
-  const t = c.currentTime; const o = c.createOscillator(); const g = c.createGain();
-  o.frequency.value = freq; g.gain.setValueAtTime(v * vol.sfx, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
-}
-export const audio: AudioEngine = {
-  unlock() { const c = ensure(); if (c && c.state === 'suspended') void c.resume(); },
-  play(_s, o) { beep(660 * Math.pow(2, (o?.semitones ?? 0) / 12), 0.08, o?.vol ?? 0.15); },
-  tone(f, d = 0.1, v = 0.12) { beep(f, d, v); },
-  music() { /* ses ekibi */ },
-  duck() { /* ses ekibi */ },
-  setVolumes(v) { Object.assign(vol, v); },
-  volumes() { return { ...vol }; },
-};
+// ---- Uygulama: engine.ts (sentez araç seti synth.ts, SFX kütüphanesi sfx.ts, müzik music.ts, sıralayıcı sequencer.ts, sınırlayıcı limiter.ts).
+// Not (mobil): iOS'ta WebView/Web Audio, telefonun sessiz anahtarını her zaman dikkate almaz; oyuncu sesi Ayarlar'daki
+// müzik/efekt kaydırıcılarından kısar. Android'de medya ses düzeyi geçerlidir.
+import { Engine } from './engine';
+export { Engine, type EngineOptions } from './engine';
+export { TRACKS, resolveTrack } from './music';
+export const audio: AudioEngine & { playing(): string | null } = new Engine();
