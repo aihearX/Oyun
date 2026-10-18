@@ -17,6 +17,8 @@ export interface LevelOptions {
   skills: PlayerSkills;
   /** harness/test: otomatik oyuncu */
   bot?: boolean;
+  /** test: bot modunda başlar ama hiçbir giriş yapmaz (boşta oyuncu). Her bölüm boşta kaybedilmeli. */
+  botIdle?: boolean;
   sounds?: boolean;
   /** bölüm başı can (varsayılan 3) */
   lives?: number;

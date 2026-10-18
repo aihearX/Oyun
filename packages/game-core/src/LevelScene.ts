@@ -136,7 +136,7 @@ export class LevelScene extends Phaser.Scene {
       input.primaryPressed = false; input.secondaryPressed = false;
       this.inputDelay = this.inputDelay.filter((q) => { if (q.at <= now) { input[q.key] = true; return false; } return true; });
     }
-    if (this.opts.bot) { this.mechanic.botTick(this.ctx, this.input_, this.scan()); Object.assign(input, this.input_.tick(), { primaryPressed: input.primaryPressed || this.input_.state.primaryPressed }); }
+    if (this.opts.bot && !this.opts.botIdle) { this.mechanic.botTick(this.ctx, this.input_, this.scan()); Object.assign(input, this.input_.tick(), { primaryPressed: input.primaryPressed || this.input_.state.primaryPressed }); }
     this.mechanic.update(this.ctx, input, dt);
     this.streamChunks(false);
     this.parallax?.update(this.cameras.main.scrollX);

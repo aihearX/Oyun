@@ -37,7 +37,7 @@ async function playLevel(n) {
   const errors = []; const events = [];
   page.on('pageerror', (e) => errors.push(String(e.message ?? e)));
   page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay/i.test(t)) errors.push(t); if (t.startsWith('ODI_EVENT ')) { try { events.push(JSON.parse(t.slice(10))); } catch { /* yok */ } } });
-  const url = `${base}/?bot=1&level=${n}&ts=${ts}${args.skills === 'all' ? '&skills=all' : ''}${args.salt ? `&salt=${args.salt}` : ''}`;
+  const url = `${base}/?bot=1&level=${n}&ts=${ts}${args.skills === 'all' ? '&skills=all' : ''}${args.salt ? `&salt=${args.salt}` : ''}${args.idle ? '&idle=1' : ''}`;
   const t0 = Date.now();
   let result = null; let timedOut = false;
   try {

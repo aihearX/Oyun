@@ -1,6 +1,7 @@
 import type { LevelSpec, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY } from '@odi/content';
 import { useState } from 'react';
+import { platform } from '../platform';
 import { inviteUrl, type Invite } from '../invite';
 
 export function ResultScreen({ spec, result, onRetry, onNext, onMap, challenge }: { spec: LevelSpec; result: RunResult; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null }) {
@@ -9,7 +10,7 @@ export function ResultScreen({ spec, result, onRetry, onNext, onMap, challenge }
   const share = async () => {
     const link = inviteUrl({ level: spec.number, score: result.completed ? result.score : 0, stars: result.stars });
     const text = result.completed ? `ODİ: ${spec.number}. bölümü ${'⭐'.repeat(result.stars)} ile ${result.score} puanla geçtim. Beni geçebilir misin? ${link}` : `ODİ'de ${spec.number}. bölümde takıldım. Sen geçebilir misin? ${link}`;
-    try { if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); setToast('Kopyalandı'); setTimeout(() => setToast(''), 1500); } } catch { /* iptal */ }
+    const r = await platform().share(text); if (r === 'copied') { setToast('Kopyalandı'); setTimeout(() => setToast(''), 1500); }
   };
   return (
     <div className="screen fade-in"><div className="result">

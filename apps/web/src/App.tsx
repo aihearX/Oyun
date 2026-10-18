@@ -17,7 +17,7 @@ type Route = { name: 'title' } | { name: 'map' } | { name: 'level'; spec: LevelS
 function botParams() {
   const q = new URLSearchParams(location.search);
   if (q.get('bot') !== '1') return null;
-  return { level: Number(q.get('level') ?? 1), ts: Number(q.get('ts') ?? 1), skillsAll: q.get('skills') === 'all', salt: Number(q.get('salt') ?? 0) };
+  return { idle: q.get('idle') === '1', level: Number(q.get('level') ?? 1), ts: Number(q.get('ts') ?? 1), skillsAll: q.get('skills') === 'all', salt: Number(q.get('salt') ?? 0) };
 }
 
 export function App() {
@@ -39,7 +39,7 @@ export function App() {
 
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
-    return <LevelHost spec={route.spec} skills={skills} sounds={false} bot timeScale={bot.ts} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
+    return <LevelHost spec={route.spec} skills={skills} sounds={false} bot botIdle={bot.idle} timeScale={bot.ts} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
   }
 
   switch (route.name) {

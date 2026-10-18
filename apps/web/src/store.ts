@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { platform } from './platform';
 import type { PlayerSkills, RunResult } from '@odi/shared';
 import { xpForRun, levelFromXp } from '@odi/shared';
 import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY } from '@odi/content';
@@ -40,7 +41,7 @@ export const useStore = create<State>()(persist((set, get) => ({
   setSounds(v) { set({ sounds: v }); },
   reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [] }); },
   playerLevel() { return levelFromXp(get().xp); },
-}), { name: 'odi-v1', partialize: (s) => ({ journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay }) }));
+}), { name: 'odi-v1', storage: createJSONStorage(() => platform().storage), partialize: (s) => ({ journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay }) }));
 
 export function ownsSkill(skills: PlayerSkills, id: string): boolean {
   const node = SKILL_TREE.find((n) => n.id === id); if (!node) return false;
