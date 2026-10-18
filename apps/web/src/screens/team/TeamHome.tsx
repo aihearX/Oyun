@@ -5,6 +5,7 @@ import { platform } from '../../platform';
 import { ChatRoom } from '../../ui/Chat';
 import { Sheet, SubTabs, fmtNum } from '../../ui/social';
 import { Bar } from '../../ui/bits';
+import { ActionButton, IconButton } from '../../ui/Button';
 import { TeamMembers } from './TeamMembers';
 import { TeamHelp } from './TeamHelp';
 import { TeamTech, TeamGifts, TeamGoals } from './TeamExtra';
@@ -52,7 +53,7 @@ export function TeamHome() {
       <div className="card team-head">
         <span className="th-emblem" aria-hidden>{team.emblem}</span>
         <div className="grow min0">
-          <div className="row between"><h2 className="ellipsis">{team.name}</h2><button className="btn ghost small icon-btn" onClick={() => setMenu(true)} aria-label="Takım menüsü">⋯</button></div>
+          <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
           <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span>👥 {team.members}/{team.max}</span><span>⚡ {fmtNum(team.power)}</span></div>
           {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
         </div>
@@ -83,15 +84,15 @@ export function TeamHome() {
         <Sheet title={`${team.emblem} ${team.name}`} onClose={() => setMenu(false)}>
           {team.description && <div className="muted wrap">{team.description}</div>}
           <div className="card code-card"><span className="muted">Davet kodu</span><b className="big-code">{team.code}</b><span className="muted small-note">{team.open ? 'Herkese açık takım' : 'Yalnızca kodla katılım'}{team.minLevel > 1 ? ` · en az ${team.minLevel}. bölüm` : ''}</span></div>
-          <button className="btn" onClick={() => void share()}>📣 Davet kodunu paylaş</button>
-          <button className="btn ghost coral-text" onClick={() => { setMenu(false); setConfirmLeave(true); }}>Takımdan ayrıl</button>
+          <ActionButton block icon="megaphone" onClick={() => void share()}>Davet kodunu paylaş</ActionButton>
+          <ActionButton block tone="coral" onClick={() => { setMenu(false); setConfirmLeave(true); }}>Takımdan ayrıl</ActionButton>
         </Sheet>
       )}
       {confirmLeave && (
         <Sheet title="Takımdan ayrılıyor musun?" onClose={() => setConfirmLeave(false)}>
           <div className="muted">{myRole === 'lider' ? 'Liderlik en kıdemli yardımcıya (yoksa en kıdemli üyeye) geçer.' : 'İstediğin zaman yeniden katılabilirsin.'} Bu haftaki katkıların takımda kalır.</div>
-          <button className="btn coral" onClick={() => void leave()}>Evet, ayrıl</button>
-          <button className="btn ghost" onClick={() => setConfirmLeave(false)}>Vazgeç</button>
+          <ActionButton block tone="coral" onClick={() => void leave()}>Evet, ayrıl</ActionButton>
+          <ActionButton block tone="plain" onClick={() => setConfirmLeave(false)}>Vazgeç</ActionButton>
         </Sheet>
       )}
     </>

@@ -4,6 +4,7 @@ import { platform } from '../platform';
 import { Av } from './common';
 import { useFriends } from './state';
 import './friends.css';
+import { Icon } from '../ui/icons';
 
 /**
  * Üstten kayan bildirim şeridi: yeni özel mesaj, arkadaşlık isteği/kabulü, arkadaş hediyesi.
@@ -43,8 +44,8 @@ export function DmTopPill() {
   const nav = useNav();
   const n = useFriends((s) => s.dmUnread);
   return (
-    <button className="pill tb-pill tap" onClick={() => nav.open({ name: 'messages' })} aria-label={`Mesajlar: ${n} okunmamış`} data-testid="mesaj-rozeti">
-      💬{n > 0 && <span className="dot">{n > 99 ? '99+' : n}</span>}
+    <button className="pill tb-pill tap ico" onClick={() => nav.open({ name: 'messages' })} aria-label={`Mesajlar: ${n} okunmamış`} data-testid="mesaj-rozeti">
+      <Icon name="chat" size={20} />{n > 0 && <span className="dot">{n > 99 ? '99+' : n}</span>}
     </button>
   );
 }

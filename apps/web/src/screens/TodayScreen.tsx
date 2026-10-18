@@ -9,6 +9,7 @@ import { Bar, RewardChips, rewardIcon, rewardLabel } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
+import { IconButton } from '../ui/Button';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
@@ -79,7 +80,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
               </div>
               {q.claimed ? <span className="muted">Alındı</span>
                 : ok ? <button className="btn small" onClick={(e) => claimQuest(q.id, e)}>Al</button>
-                : d.metric === 'share' ? <button className="btn coral small" onClick={challenge}>📣</button> : null}
+                : d.metric === 'share' ? <IconButton icon="megaphone" tone="gold" label="Meydan okuma bağlantısını paylaş" onClick={() => void challenge()} /> : null}
             </div>); })}
         </div>
       </section>

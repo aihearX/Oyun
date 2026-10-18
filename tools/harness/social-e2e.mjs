@@ -57,7 +57,7 @@ async function shot(page, name) {
   const f = resolve(outDir, `${String(++shotN).padStart(2, '0')}-${name}.png`);
   await page.screenshot({ path: f });
   // yatay taşma denetimi (360 px)
-  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const over = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.getElementById('root')?.scrollWidth ?? 0) - window.innerWidth);
   if (over > 0) { errors.push(`${name}: yatay taşma ${over}px`); console.log(`  ⚠ ${name}: yatay taşma ${over}px`); }
   console.log(`  📸 ${f.replace(root + '/', '')}`);
 }
@@ -212,7 +212,7 @@ try {
   await sub(B, 'Yardım');
   await B.getByRole('button', { name: /Yardım iste/ }).click();
   await toastGone(B);
-  await A.locator('.screen-head .btn').first().click(); // mağazadan geri
+  await A.locator('.screen-head button[aria-label="Geri"]').first().click(); // mağazadan geri
   await sub(A, 'Yardım');
   await A.getByRole('button', { name: '🛡️ Gönder' }).click();
   await A.getByRole('button', { name: 'Gönderildi' }).waitFor({ timeout: 8000 });
@@ -227,7 +227,7 @@ try {
   await B.locator('.empty').waitFor({ timeout: 8000 });
   ok('ödül alındı (kalkan bir sonraki bölümde kullanılacak)');
   await shot(B, 'B-odul-alindi');
-  await B.locator('.screen-head .btn').first().click();
+  await B.locator('.screen-head button[aria-label="Geri"]').first().click();
 
   step('11 · Savaş hedefi');
   await sub(A, 'Savaş');
@@ -264,7 +264,7 @@ try {
   await sub(A, 'Hedefler'); await shot(A, 'A-hedefler');
   await sub(A, 'Sohbet'); await shot(A, 'A-sohbet-sistem-mesajlari');
   await tab(A, 'Profil'); await A.locator('.league-card').waitFor({ timeout: 8000 }); await shot(A, 'A-profil-lig');
-  await A.locator('.league-card').click(); await shot(A, 'A-lig-listesi'); await A.locator('.screen-head .btn').first().click();
+  await A.locator('.league-card').click(); await shot(A, 'A-lig-listesi'); await A.locator('.screen-head button[aria-label="Geri"]').first().click();
   // arkadaşlık istekle kurulur: A, B'yi koduyla arar → istek; B İstekler sekmesinden kabul eder (arkadaşlık/özel mesaj ekibinin akışı)
   await A.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await A.locator('.fr-mycode').waitFor();
   const friendCodeB = await (async () => { await tab(B, 'Profil'); return (await B.locator('.profile-hero .mono').innerText()).trim(); })();
@@ -281,11 +281,11 @@ try {
   await A.getByRole('textbox', { name: 'Mesaj' }).fill('Yarışa var mısın? 🏁'); await A.getByRole('button', { name: 'Gönder', exact: true }).click();
   await A.locator('[data-testid="dm-mesaj"]', { hasText: 'Yarışa var mısın' }).waitFor();
   await shot(A, 'A-ozel-sohbet');
-  await B.locator('.screen-head .btn').first().click();
-  await A.locator('.dm-head .btn').first().click();
-  await A.locator('.screen-head .btn').first().click();
+  await B.locator('.screen-head button[aria-label="Geri"]').first().click();
+  await A.locator('.dm-head button[aria-label="Geri"]').first().click();
+  await A.locator('.screen-head button[aria-label="Geri"]').first().click();
   await A.getByLabel(/Ödül kutusu/).click(); await A.locator('.screen-head').waitFor(); await sleep(600); await shot(A, 'A-odul-kutusu');
-  await A.locator('.screen-head .btn').first().click();
+  await A.locator('.screen-head button[aria-label="Geri"]').first().click();
   await tab(A, 'Kamp'); await A.locator('.camp-base').waitFor({ timeout: 20_000 }); await A.locator('.camp-loading').waitFor({ state: 'detached', timeout: 20_000 }); await shot(A, 'A-kamp');
   await tab(A, 'Bugün'); await shot(A, 'A-bugun');
   // harita sosyal katmanı: arkadaş balonu (Bora) + takımın savaş bayrağı/hedefleri (gerçek sunucu verisi)

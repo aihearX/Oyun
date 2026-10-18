@@ -66,7 +66,7 @@ async function shot(page, name, wait = 450) {
   await sleep(wait);
   const f = resolve(outDir, `${String(++shotN).padStart(2, '0')}-${name}.png`);
   await page.screenshot({ path: f });
-  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const over = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.getElementById('root')?.scrollWidth ?? 0) - window.innerWidth);
   if (over > 0) { errors.push(`${name}: yatay taşma ${over}px`); console.log(`  ⚠ ${name}: yatay taşma ${over}px`); }
   console.log(`  📸 ${f.replace(root + '/', '')}`);
 }

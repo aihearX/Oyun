@@ -5,6 +5,7 @@ import { HUMAN_JOURNEY } from '@odi/content';
 import { NetError } from '@odi/net';
 import { ItemChips, fmtLeft } from '../ui/social';
 import { srvNow } from './store';
+import { IconButton } from '../ui/Button';
 
 /** Etkinlik kimlikleri ve vurgu renkleri (tema tokenları; events.css'te --ev olarak kullanılır) */
 export const EVENT_META: Record<EventKind, { name: string; icon: string; tone: string; blurb: string }> = {
@@ -44,7 +45,7 @@ export function EvHead({ kind, title, onBack, right }: { kind: EventKind; title?
   const m = EVENT_META[kind];
   return (
     <div className="ev-head" data-tone={m.tone}>
-      <button className="btn ghost small icon-btn" onClick={onBack} aria-label="Geri">←</button>
+      <IconButton icon="back" label="Geri" onClick={onBack} />
       <h1><span aria-hidden>{m.icon}</span> {title ?? m.name}</h1>
       <span className="ev-head-r">{right}</span>
     </div>

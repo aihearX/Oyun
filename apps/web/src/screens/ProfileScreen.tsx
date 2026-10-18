@@ -8,6 +8,8 @@ import { errText, getNet, toast, usePending } from '../net';
 import { useNav } from '../nav';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
+import { Icon } from '../ui/icons';
+import { IconButton } from '../ui/Button';
 import { Sheet, TopBar, fmtNum } from '../ui/social';
 import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
@@ -31,7 +33,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
       <div className="card profile-hero">
         <button className="avatar-btn" onClick={() => onOpen('wardrobe')} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /></button>
         <div className="grow min0">
-          <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <button className="btn ghost small icon-btn" onClick={() => setRename(true)} aria-label="Takma adı değiştir">✏️</button>}</h2>
+          <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <IconButton icon="pencil" label="Takma adı değiştir" tone="gold" small onClick={() => setRename(true)} />}</h2>
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
           {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? ` · ${me.teamEmblem} ${me.teamName}` : ''}</div>}
@@ -42,17 +44,17 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
       </div>
       {online && <LeagueCard onOpen={() => onOpen('league')} />}
       <div className="menu-grid">
-        <button className="menu-tile" onClick={() => onOpen('friends')}><span className="mi rel">🫂{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b><span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span></button>
-        <button className="menu-tile" onClick={() => nav.open({ name: 'messages' })}><span className="mi rel">💬{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b><span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span></button>
-        <button className="menu-tile" onClick={() => onOpen('inbox')}><span className="mi rel">✉️{inbox > 0 && <span className="sbadge abs">{inbox}</span>}</span><b>Ödül kutusu</b><span className="muted">{inbox ? `${inbox} ödül seni bekliyor` : 'Savaş ve takım ödülleri'}</span></button>
-        <button className="menu-tile" onClick={() => onOpen('shop')}><span className="mi">💎</span><b>Mağaza</b><span className="muted">İçerikler açık, sınır sende</span></button>
-        <button className="menu-tile" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}><span className="mi">🌍</span><b>Genel sohbet</b><span className="muted">Herkesle konuş</span></button>
-        <button className="menu-tile" onClick={() => onOpen('achievements')}><span className="mi">🏆</span><b>Başarımlar</b><span className="muted">{tiers}/{maxTiers} kademe</span><Bar value={tiers / maxTiers} tone="amber" label="Başarımlar" /></button>
-        <button className="menu-tile" onClick={() => onOpen('album')}><span className="mi">🃏</span><b>Kulak Kartları</b><span className="muted">{album.owned}/{CARDS.length} · %{album.pct}</span><Bar value={album.pct / 100} tone="green" label="Albüm" /></button>
-        <button className="menu-tile" onClick={() => onOpen('wardrobe')}><span className="mi">🎩</span><b>Dolap</b><span className="muted">{s.meta.cosmetics.owned.length}/{COSMETICS.length} parça</span><Bar value={s.meta.cosmetics.owned.length / COSMETICS.length} tone="coral" label="Dolap" /></button>
-        <button className="menu-tile" onClick={() => onOpen('skills')}><span className="mi">🧠</span><b>Yetenekler</b><span className="muted">Jetonla kalıcı güç</span></button>
-        <button className="menu-tile" onClick={() => onOpen('settings')}><span className="mi">⚙️</span><b>Ayarlar</b><span className="muted">Ses, kayıt</span></button>
-        <button className="menu-tile" onClick={() => onOpen('info')}><span className="mi">ⓘ</span><b>Nasıl çalışır?</b><span className="muted">Ödüller, ihtimaller</span></button>
+        <button className="menu-tile" onClick={() => onOpen('friends')}><span className="mi teal rel"><Icon name="friends" />{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b><span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span></button>
+        <button className="menu-tile" onClick={() => nav.open({ name: 'messages' })}><span className="mi teal rel"><Icon name="chat" />{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b><span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span></button>
+        <button className="menu-tile" onClick={() => onOpen('inbox')}><span className="mi gold rel"><Icon name="inbox" />{inbox > 0 && <span className="sbadge abs">{inbox}</span>}</span><b>Ödül kutusu</b><span className="muted">{inbox ? `${inbox} ödül seni bekliyor` : 'Savaş ve takım ödülleri'}</span></button>
+        <button className="menu-tile" onClick={() => onOpen('shop')}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b><span className="muted">İçerikler açık, sınır sende</span></button>
+        <button className="menu-tile" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}><span className="mi teal"><Icon name="globe" /></span><b>Genel sohbet</b><span className="muted">Herkesle konuş</span></button>
+        <button className="menu-tile" onClick={() => onOpen('achievements')}><span className="mi gold"><Icon name="trophy" /></span><b>Başarımlar</b><span className="muted">{tiers}/{maxTiers} kademe</span><Bar value={tiers / maxTiers} tone="amber" label="Başarımlar" /></button>
+        <button className="menu-tile" onClick={() => onOpen('album')}><span className="mi teal"><Icon name="cards" /></span><b>Kulak Kartları</b><span className="muted">{album.owned}/{CARDS.length} · %{album.pct}</span><Bar value={album.pct / 100} tone="green" label="Albüm" /></button>
+        <button className="menu-tile" onClick={() => onOpen('wardrobe')}><span className="mi coral"><Icon name="hat" /></span><b>Dolap</b><span className="muted">{s.meta.cosmetics.owned.length}/{COSMETICS.length} parça</span><Bar value={s.meta.cosmetics.owned.length / COSMETICS.length} tone="coral" label="Dolap" /></button>
+        <button className="menu-tile" onClick={() => onOpen('skills')}><span className="mi gold"><Icon name="bolt" /></span><b>Yetenekler</b><span className="muted">Jetonla kalıcı güç</span></button>
+        <button className="menu-tile" onClick={() => onOpen('settings')}><span className="mi plain"><Icon name="sliders" /></span><b>Ayarlar</b><span className="muted">Ses, kayıt</span></button>
+        <button className="menu-tile" onClick={() => onOpen('info')}><span className="mi plain"><Icon name="info" /></span><b>Nasıl çalışır?</b><span className="muted">Ödüller, ihtimaller</span></button>
       </div>
       {rename && me && <Rename current={me.name} onClose={() => setRename(false)} />}
     </div>

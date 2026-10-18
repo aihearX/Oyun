@@ -33,7 +33,7 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   return (
     <ErrorBoundary>
-      <View style={{ flex: 1, backgroundColor: '#ffffff' }} testID="odi-root">
+      <View style={{ flex: 1, backgroundColor: '#140c35' }} testID="odi-root">
         <WebApp
           getItem={(k) => AsyncStorage.getItem(k)}
           setItem={(k, v) => AsyncStorage.setItem(k, v)}
@@ -45,7 +45,9 @@ export default function Home() {
           serverUrl={serverUrl()}
           insetTop={insets.top}
           insetBottom={insets.bottom}
-          dom={{ style: { flex: 1 }, scrollEnabled: false, bounces: false, overScrollMode: 'never', mediaPlaybackRequiresUserAction: false, allowsInlineMediaPlayback: true }}
+          // Kaydırma web tarafında #root kabında (ivmeli, kenar sekmesi kapta); WebView'in kendi kaydırması kapalı.
+          // Güvenli alan payları prop olarak gider (insetTop/insetBottom) → içerik kenardan kenara çizilir, iOS ayrıca kaydırmaz.
+          dom={{ style: { flex: 1, backgroundColor: '#140c35' }, scrollEnabled: false, bounces: false, overScrollMode: 'never', contentInsetAdjustmentBehavior: 'never', automaticallyAdjustContentInsets: false, mediaPlaybackRequiresUserAction: false, allowsInlineMediaPlayback: true }}
         />
       </View>
     </ErrorBoundary>

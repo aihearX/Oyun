@@ -18,6 +18,10 @@ describe('Mobil kabuk', () => {
     expect(p.serverUrl).toBe('ws://192.168.1.20:8787');
     expect(p.insetTop).toBe(47);
     expect(p.insetBottom).toBe(34);
+    // kaydırma web tarafındaki #root kabında; iOS içeriği ayrıca kaydırmaz (güvenli alan prop'larla gelir)
+    const dom = p.dom as { scrollEnabled?: boolean; contentInsetAdjustmentBehavior?: string };
+    expect(dom.scrollEnabled).toBe(false);
+    expect(dom.contentInsetAdjustmentBehavior).toBe('never');
     for (const k of ['getItem', 'setItem', 'removeItem', 'haptic', 'share']) expect(typeof p[k]).toBe('function');
     await (p.setItem as (k: string, v: string) => Promise<void>)('x', '1');
     expect(await (p.getItem as (k: string) => Promise<string | null>)('x')).toBe('1');

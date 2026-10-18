@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
 import { cardById, cosmeticById } from '@odi/content';
+import { IconButton } from './Button';
 
 /** Ödül içeriğini görünür kılan çipler: "🪙 50", "✨ 20 XP", "🛡️ 1", kart/kozmetik adı. */
 export function RewardChips({ items, small }: { items: RewardItem[]; small?: boolean }) {
@@ -31,7 +32,7 @@ export function Bar({ value, tone = 'accent', label }: { value: number; tone?: '
 export function ScreenHead({ title, onBack, right }: { title: string; onBack?: () => void; right?: ReactNode }) {
   return (
     <div className="screen-head">
-      {onBack ? <button className="btn ghost small" onClick={onBack} aria-label="Geri">←</button> : <span />}
+      {onBack ? <IconButton icon="back" label="Geri" onClick={onBack} /> : <span />}
       <h1>{title}</h1>
       <span className="sh-right">{right}</span>
     </div>

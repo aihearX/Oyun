@@ -22,6 +22,14 @@ export type WebAppProps = {
   dom?: import('expo/dom').DOMProps;
 };
 
+/** çentik / ana çizgi payları → CSS (--safe-top/--safe-bottom; styles.css --sat/--sab bunlardan türetilir) + platform köprüsü */
+function applyInsets(top: number, bottom: number) {
+  const t = Math.max(0, Math.round(top || 0)), b = Math.max(0, Math.round(bottom || 0));
+  document.documentElement.style.setProperty('--safe-top', `${t}px`);
+  document.documentElement.style.setProperty('--safe-bottom', `${b}px`);
+  installPlatform({ insets: { top: t, bottom: b } });
+}
+
 /**
  * Tek arayüz: web uygulamasının (apps/web) aynısı iPhone/Android'de bu DOM bileşeninin içinde çalışır.
  * Yerel yetenekler props üzerinden platform köprüsüne bağlanır; React Native import YOK.
@@ -38,12 +46,16 @@ export default function WebApp(p: WebAppProps) {
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
     });
-    document.documentElement.style.setProperty('--safe-top', `${p.insetTop}px`);
-    document.documentElement.style.setProperty('--safe-bottom', `${p.insetBottom}px`);
+    applyInsets(p.insetTop, p.insetBottom);
+    // Expo'nun DOM sayfası viewport-fit=cover içermez → env(safe-area-inset-*) 0 kalır; ekle (köprü değerleri yine esas)
+    const vp = document.querySelector('meta[name="viewport"]');
+    if (vp && !/viewport-fit/.test(vp.getAttribute('content') ?? '')) vp.setAttribute('content', `${vp.getAttribute('content')}, viewport-fit=cover`);
     // kayıt köprü kurulduktan sonra yerel depodan yüklenir
     void Promise.resolve(useStore.persist.rehydrate()).finally(() => setReady(true));
     // eslint yok: props köprüsü bir kez kurulur
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // güvenli alan payları ilk çizimden sonra gelebilir/değişebilir (SafeAreaProvider ölçümü, döndürme): her değişimde yaz
+  useEffect(() => { applyInsets(p.insetTop, p.insetBottom); }, [p.insetTop, p.insetBottom]);
   if (!ready) return null;
   return <App />;
 }

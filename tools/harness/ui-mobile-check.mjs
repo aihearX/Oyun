@@ -1,0 +1,337 @@
+#!/usr/bin/env node
+// ODİ mobil kabuk denetimi (iPhone / Expo Go koşulları): her sekme ve alt sayfa için
+//   · ekran görüntüsü (çentik ve ana çizgi alanı yarı saydam bantla işaretli),
+//   · dokunmatik kaydırma (Chromium: CDP dokunma hareketi, WebKit: tekerlek) → kaydırma konumu değişmeli,
+//   · yatay taşma: her öğenin sağ kenarı görünüm genişliği içinde (html/body/#root/.screen kırpması sayılmaz),
+//   · sohbet giriş kutusu alt sekme çubuğunun üstünde ve görünür,
+//   · üst güvenli alan (varsayılan 47 px): üst çubuk / ekran başlığı / sonuç üst satırı / alt sayfa çentiğin altında.
+// Hedefler:
+//   web — apps/web derlemesi (vite preview); güvenli alan payları köprünün yaptığı gibi --safe-top/--safe-bottom ile verilir.
+//   dom — Expo DOM paketi (apps/mobile/dist/www.bundle): gerçek WebApp köprüsü (insetTop/insetBottom prop'ları),
+//         Expo'nun kendi sayfa iskeleti (viewport-fit yok, #root flex) ve yerel WebView'in scrollEnabled:false kilidi
+//         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
+// Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
+//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,etkinlik,sonuc]
+// Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
+import { spawn } from 'node:child_process';
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { chromium, webkit } from 'playwright';
+
+const argv = process.argv.slice(2);
+const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
+const has = (k) => argv.includes(`--${k}`);
+const root = resolve(new URL('../..', import.meta.url).pathname);
+const tag = opt('tag', 'after');
+const targets = opt('target', 'both') === 'both' ? ['web', 'dom'] : [opt('target')];
+const browsers = opt('browsers', 'chromium,webkit').split(',');
+const sizes = opt('sizes', '390x844,320x640').split(',').map((s) => s.split('x').map(Number));
+const INSET = Number(opt('inset', 47)), INSET_B = 34;
+const only = opt('only', '') ? opt('only').split(',') : null;
+const want = (k) => !only || only.includes(k);
+const outRoot = resolve(root, 'tools/harness/out/ui-mobile', tag); mkdirSync(outRoot, { recursive: true });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const procs = [];
+const cleanup = () => { for (const p of procs) { try { p.kill(); } catch { /* yok */ } } };
+process.on('exit', cleanup);
+for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { cleanup(); process.exit(130); });
+const run = (cmd, a, o = {}) => new Promise((res, rej) => { const p = spawn(cmd, a, { cwd: root, stdio: 'inherit', ...o }); p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`${cmd} ${a.join(' ')} → ${c}`)))); });
+
+// ---------------------------------------------------------------- derleme + sunucu
+const distDir = resolve(root, 'tools/harness/out/ui-mobile/dist');
+if (targets.includes('web') && (!has('no-build') || !existsSync(resolve(distDir, 'index.html')))) await run('npx', ['vite', 'build', '--outDir', distDir, '--emptyOutDir', '--logLevel', 'warn'], { cwd: resolve(root, 'apps/web') });
+if (!existsSync(resolve(root, 'apps/server/dist/server.mjs')) || (!has('no-build') && targets.includes('web'))) await run('npm', ['run', 'build:server', '--silent']);
+const mobileDist = resolve(root, 'apps/mobile/dist');
+if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDist, 'www.bundle')))) {
+  rmSync(mobileDist, { recursive: true, force: true });
+  await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') });
+}
+const sport = 8800 + Math.floor(Math.random() * 400);
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+procs.push(server);
+await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
+const wsUrl = `ws://127.0.0.1:${sport}`;
+let webBase = '';
+if (targets.includes('web')) {
+  const wport = 5300 + Math.floor(Math.random() * 400);
+  // vite doğrudan node ile: kapanışta öksüz önizleme sunucusu kalmasın (npx sarmalayıcısı çocuğunu öldürmez)
+  const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' });
+  procs.push(preview);
+  for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://localhost:${wport}/`)).ok) break; } catch { /* henüz değil */ } await sleep(200); }
+  webBase = `http://localhost:${wport}/`;
+}
+let domHtml = '';
+if (targets.includes('dom')) {
+  const dir = resolve(mobileDist, 'www.bundle'); const h = readdirSync(dir).find((f) => f.endsWith('.html'));
+  domHtml = pathToFileURL(resolve(dir, h)).href;
+}
+
+// ---------------------------------------------------------------- sayfa içi ölçümler
+/** çentik / ana çizgi bantları (yalnızca görsel; html'e eklenir, body ölçümlerine girmez) */
+function paintInsets([top, bottom]) {
+  const put = () => {
+    if (document.getElementById('__inset_top')) return;
+    const mk = (id, css) => { const d = document.createElement('div'); d.id = id; d.style.cssText = `position:fixed;left:0;right:0;z-index:2147483647;pointer-events:none;${css}`; document.documentElement.appendChild(d); };
+    mk('__inset_top', `top:0;height:${top}px;background:repeating-linear-gradient(135deg,rgba(255,0,80,.22) 0 6px,rgba(255,0,80,.08) 6px 12px);border-bottom:1px dashed rgba(255,0,80,.8)`);
+    mk('__inset_bottom', `bottom:0;height:${bottom}px;background:rgba(255,0,80,.12);border-top:1px dashed rgba(255,0,80,.6)`);
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', put); else put();
+}
+/** web hedefi: mobil köprünün yaptığı gibi güvenli alan değişkenlerini yaz */
+function webInsets([top, bottom]) {
+  const set = () => { const de = document.documentElement; if (!de) return false; de.style.setProperty('--safe-top', `${top}px`); de.style.setProperty('--safe-bottom', `${bottom}px`); return true; };
+  if (!set()) document.addEventListener('DOMContentLoaded', set);
+}
+/** dom hedefi: Expo DOM köprüsü + yerel scrollEnabled:false kilidi (belge kullanıcıyla kaydırılamaz) */
+function domBridge([serverUrl, top, bottom]) {
+  const store = {};
+  window.ReactNativeWebView = {
+    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
+    postMessage: (s) => {
+      try {
+        const m = JSON.parse(s);
+        if (m.type !== '$$native_action') return;
+        const [k, v] = m.data.args ?? []; let result = null;
+        if (m.data.actionId === 'getItem') result = store[k] ?? null;
+        if (m.data.actionId === 'setItem') store[k] = v;
+        if (m.data.actionId === 'removeItem') delete store[k];
+        if (m.data.actionId === 'share') result = 'copied';
+        setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
+      } catch { /* yok */ }
+    },
+  };
+  const lock = () => { const st = document.createElement('style'); st.textContent = 'html{overflow:hidden!important}'; document.head.appendChild(st); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lock); else lock();
+}
+
+/** yatay taşma: görünümün dışına çıkan (ve meşru bir kaydırma/kırpma kabı içinde olmayan) öğeler */
+function measureOverflow() {
+  const W = document.documentElement.clientWidth; const out = [];
+  const shell = (el) => el === document.documentElement || el === document.body || el.id === 'root' || el.classList.contains('screen');
+  const desc = (el) => { const c = typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : ''; const t = (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 28); return `${el.tagName.toLowerCase()}${c}${t ? ` “${t}”` : ''}`; };
+  const bad = new Set();
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest('.cel-root, .map-screen, .camp-canvas, .level-host')) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
+    if (r.right <= W + 1 && r.left >= -1) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
+    let p = el.parentElement, clipped = false;
+    while (p && !shell(p)) {
+      const ps = getComputedStyle(p);
+      if (/(auto|scroll|hidden|clip)/.test(ps.overflowX)) { const pr = p.getBoundingClientRect(); if (pr.right <= W + 1 && pr.left >= -1) { clipped = true; break; } }
+      p = p.parentElement;
+    }
+    if (clipped) continue;
+    if (el.parentElement && bad.has(el.parentElement)) { bad.add(el); continue; }
+    bad.add(el); out.push(`${desc(el)} [${Math.round(r.left)}…${Math.round(r.right)} / ${W}]`);
+  }
+  const rootEl = document.getElementById('root');
+  return { offenders: out.slice(0, 12), count: out.length, docScrollW: document.documentElement.scrollWidth - W, rootScrollW: rootEl ? rootEl.scrollWidth - rootEl.clientWidth : 0 };
+}
+/** kaydırılabilir mi: ekran içeriği görünümden uzun mu + toplam kaydırma konumu */
+function scrollState() {
+  const scr = document.querySelector('.screen');
+  const tall = scr ? scr.scrollHeight > innerHeight + 8 || scr.getBoundingClientRect().height > innerHeight + 8 : false;
+  let total = (document.scrollingElement?.scrollTop ?? 0);
+  for (const el of document.querySelectorAll('body, body *')) if (el.scrollTop > 0 && !el.closest('.chat-box, .dm-list, .subtabs')) total += el.scrollTop;
+  const r = document.getElementById('root'); const se = document.scrollingElement;
+  const room = Math.max(r ? r.scrollHeight - r.clientHeight : 0, se ? se.scrollHeight - se.clientHeight : 0);
+  return { tall, total, room };
+}
+function resetScroll() {
+  if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+  for (const el of document.querySelectorAll('body, body *')) if (el.scrollTop > 0 && !el.closest('.chat-box, .dm-list')) el.scrollTop = 0;
+}
+/** üst güvenli alan: başlık öğelerinin en üst noktası çentiğin altında mı */
+function measureTop(inset) {
+  const sels = ['.topbar2 > *', '.screen-head > *', '.result-top > *', '.dm-head > *', '.map-hud', '.sheet > *:not(.sheet-grip)', '.toast-top', '.fr-banner', '.ev-notice', '.title-screen h1'];
+  const hits = [];
+  // alt sayfa açıkken altta kalan ekran örtülüdür: yalnızca sayfanın kendisi denetlenir
+  const modal = document.querySelector('.sheet-wrap, .bp-wrap, .map-sheet-wrap');
+  for (const s of modal ? ['.sheet', '.sheet > *', '.bp', '.map-sheet'] : sels) for (const el of document.querySelectorAll(s)) {
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom < 0 || r.top > innerHeight * 0.5) continue;
+    if (getComputedStyle(el).visibility === 'hidden') continue;
+    hits.push({ s, top: Math.round(r.top) });
+  }
+  const min = hits.length ? Math.min(...hits.map((h) => h.top)) : null;
+  return { min, ok: min === null || min >= inset, worst: hits.sort((a, b) => a.top - b.top)[0] ?? null, n: hits.length };
+}
+/** sohbet giriş kutusu: tamamen görünür, alt sekme çubuğunun ve ana çizginin üstünde */
+function measureChat() {
+  const f = document.querySelector('.chat-input'); if (!f) return { present: false };
+  const r = f.getBoundingClientRect(); const tb = document.querySelector('.tabbar')?.getBoundingClientRect();
+  const limit = tb ? tb.top : innerHeight;
+  return { present: true, top: Math.round(r.top), bottom: Math.round(r.bottom), tabTop: tb ? Math.round(tb.top) : null, ok: r.bottom <= limit + 0.5 && r.top >= 0 && r.right <= document.documentElement.clientWidth + 1 };
+}
+
+// ---------------------------------------------------------------- akış
+const report = []; let failures = 0; let suiteNo = 0;
+const fail = (rec, why) => { rec.fails.push(why); failures++; };
+
+async function suite(browserName, target, [W, H]) {
+  const name = `${target}-${browserName}-${W}x${H}`; const sno = ++suiteNo;
+  const dir = resolve(outRoot, name); mkdirSync(dir, { recursive: true });
+  for (const f of readdirSync(dir)) if (f.endsWith('.png')) rmSync(resolve(dir, f));
+  const B = browserName === 'webkit' ? webkit : chromium;
+  const browser = await B.launch({ headless: true, executablePath: browserName === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined, args: browserName === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 3, hasTouch: true, ...(browserName === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
+  await page.addInitScript(paintInsets, [INSET, INSET_B]);
+  if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B]);
+  else await page.addInitScript(webInsets, [INSET, INSET_B]);
+  const cdp = browserName === 'chromium' ? await ctx.newCDPSession(page) : null;
+  const url = (q = '') => target === 'dom' ? domHtml + (q ? `?${q}` : '') : `${webBase}?sunucu=${encodeURIComponent(wsUrl)}${q ? `&${q}` : ''}`;
+  let n = 0;
+  const recs = [];
+
+  async function swipe() {
+    if (cdp) {
+      // gerçek dokunma dizisi (parmak aşağıdan yukarı kayar); synthesizeScrollGesture başsız modda kaydırmıyor
+      const x = Math.round(W / 2), y0 = Math.round(H * 0.68), dy = Math.round(H * 0.4), steps = 14;
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y: y0 }] });
+      for (let i = 1; i <= steps; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y0 - Math.round((dy * i) / steps) }] }); await sleep(16); }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    } else { await page.mouse.move(W / 2, H * 0.5); await page.mouse.wheel(0, Math.round(H * 0.45)); }
+    await sleep(500);
+  }
+  /** bir ekranı denetle: görüntü, taşma, üst pay, (uzunsa) kaydırma; opsiyonel sohbet kontrolü */
+  async function check(label, { scroll = true, chat = false, top = true } = {}) {
+    await sleep(350);
+    const rec = { screen: label, fails: [] };
+    const file = resolve(dir, `${String(++n).padStart(2, '0')}-${label}.png`);
+    await page.screenshot({ path: file }); rec.shot = file.replace(root + '/', '');
+    const ov = await page.evaluate(measureOverflow); rec.overflow = ov;
+    if (ov.count > 0 || ov.docScrollW > 0) fail(rec, `yatay taşma: ${ov.offenders.slice(0, 3).join(' | ')}${ov.docScrollW > 0 ? ` (belge +${ov.docScrollW}px)` : ''}`);
+    if (top) { const t = await page.evaluate(measureTop, INSET); rec.top = t; if (!t.ok) fail(rec, `üst pay: ${t.worst?.s} top=${t.worst?.top} < ${INSET}`); }
+    // ekran başlığı kesilmemeli (üst çubuk hapları başlığı “T…” yapmasın)
+    const cut = await page.evaluate(() => [...document.querySelectorAll('.tb-title h1, .screen-head h1')].filter((h) => h.getBoundingClientRect().width > 0 && h.scrollWidth > h.clientWidth + 1).map((h) => h.textContent));
+    if (cut.length) fail(rec, `başlık kesildi: ${cut.join(', ')}`);
+    if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
+    if (scroll) {
+      await page.evaluate(resetScroll);
+      const s0 = await page.evaluate(scrollState);
+      if (s0.tall) {
+        await swipe();
+        // ivmeli/yumuşak kaydırma birkaç kare sürebilir: hedefe varana ya da 2 sn dolana dek bekle
+        const need = s0.total + Math.min(20, Math.max(1, s0.room - 2));
+        let s1 = await page.evaluate(scrollState);
+        for (let i = 0; i < 14 && s1.total < need; i++) { await sleep(150); s1 = await page.evaluate(scrollState); }
+        rec.scroll = { before: s0.total, after: s1.total };
+        if (!(s1.total >= need)) fail(rec, `kaydırılamıyor (${s0.total} → ${s1.total})`);
+        else await page.screenshot({ path: file.replace(/\.png$/, '-kaydirildi.png') });
+        await page.evaluate(resetScroll);
+      } else rec.scroll = 'kısa';
+    }
+    console.log(`  ${rec.fails.length ? '✗' : '✓'} ${name} · ${label}${rec.fails.length ? ' — ' + rec.fails.join(' ; ') : ''}`);
+    recs.push(rec);
+    return rec;
+  }
+  const tab = async (label) => { await page.locator('nav.tabbar .tab', { hasText: label }).click(); await sleep(500); };
+  const toastGone = async () => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
+  const back = async () => { const b = page.getByRole('button', { name: 'Geri' }).first(); if (await b.count()) await b.click(); await sleep(400); };
+
+  try {
+    // ---- açılış + takma ad
+    await page.goto(url(), { waitUntil: 'load' });
+    await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
+    await page.locator('.onboard').waitFor({ timeout: 15_000 });
+    await page.getByRole('textbox', { name: 'Takma ad' }).fill('Kulakçı Ayşegül1');
+    await page.getByRole('button', { name: 'Başla' }).click();
+    await page.locator('.onboard').waitFor({ state: 'detached' });
+    await toastGone();
+    await page.locator('.net-dot.on').first().waitFor({ timeout: 10_000 }).catch(() => undefined);
+    await check('harita', { scroll: false });
+
+    if (want('bugun')) { await tab('Bugün'); await check('bugun'); }
+    if (want('profil')) {
+      await tab('Profil'); await check('profil');
+      const tiles = await page.locator('.menu-tile').evaluateAll((els) => els.map((e) => e.querySelector('b')?.textContent ?? ''));
+      for (const t of tiles) {
+        await page.locator('.menu-tile', { hasText: t }).first().click(); await sleep(600);
+        await check(`profil-${t.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`, { chat: t === 'Genel sohbet' });
+        await back();
+        if (!(await page.locator('.menu-tile').count())) await tab('Profil');
+      }
+      // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)
+      const rn = page.getByRole('button', { name: 'Takma adı değiştir' });
+      if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).click(); }
+    }
+    if (want('kamp')) { await tab('Kamp'); await sleep(800); await check('kamp', { scroll: false }); }
+    if (want('takim')) {
+      await tab('Takım');
+      await page.locator('.team-hero').waitFor({ timeout: 10_000 });
+      await check('takim-kesif');
+      await page.getByRole('button', { name: '＋ Takım kur' }).first().click();
+      await page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20));
+      await page.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her gün biraz, hep birlikte; kulaktan beyne kadar birlikte koşuyoruz ve hiç durmuyoruz.');
+      await check('takim-kur-sayfasi', { scroll: false });
+      await page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
+      await page.locator('.team-head').waitFor();
+      await toastGone();
+      const msgs = ['Merhaba takım! Bu hafta kepçeyi alalım mı? Herkes en az iki bölüm oynasın, savaş hedefini birlikte seçelim.', 'Çokuzunbirkelimeiçerenmesajbölünmedenekranıntaşmamasıgerekiyorçünküsağtarafgörünmüyordu', 'Tamam 👍'];
+      for (const m of msgs) { await page.getByRole('textbox', { name: 'Mesaj' }).fill(m); await page.getByRole('button', { name: 'Gönder', exact: true }).click(); await sleep(1300); }
+      await check('takim-sohbet', { chat: true });
+      const subs = await page.locator('.subtabs .subtab').evaluateAll((els) => els.map((e) => e.textContent.replace(/\d+$/, '').trim()));
+      for (const s of subs.slice(1)) {
+        await page.locator('.subtabs .subtab', { hasText: s.replace(/^\S+\s/, '') }).first().click(); await sleep(700);
+        await check(`takim-${s.replace(/^\S+\s/, '').toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`);
+      }
+      await page.getByLabel('Takım menüsü').click(); await page.locator('.sheet').waitFor();
+      await check('takim-menu-sayfasi', { scroll: false });
+      await page.getByRole('button', { name: 'Kapat' }).click();
+      await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(500);
+      // klavye: giriş odaklanınca kutu yine görünür (görsel görünüm küçülünce)
+      await page.getByRole('textbox', { name: 'Mesaj' }).focus();
+      await check('takim-sohbet-odak', { chat: true, scroll: false });
+      // klavye taklidi: iOS klavyesi (~%40 yükseklik) açıkken ui/viewport.ts'nin yazdığı --kb + html.kb-open → giriş kutusu klavyenin hemen üstünde
+      const kb = Math.round(H * 0.4);
+      await page.evaluate((k) => { document.documentElement.style.setProperty('--kb', `${k}px`); document.documentElement.classList.add('kb-open'); }, kb);
+      { const rec = await check('takim-sohbet-klavye', { scroll: false });
+        const r = await page.evaluate(() => { const b = document.querySelector('.chat-input')?.getBoundingClientRect(); const box = document.querySelector('.chat-box')?.getBoundingClientRect(); return b && { top: Math.round(b.top), bottom: Math.round(b.bottom), box: box ? Math.round(box.height) : 0 }; });
+        rec.keyboard = { kb, ...r };
+        if (!r || r.bottom > H - kb + 0.5 || r.top < INSET || r.box < 60) fail(rec, `klavye açıkken giriş kutusu görünmüyor: ${JSON.stringify(r)} (klavye üstü ${H - kb})`); }
+      await page.evaluate(() => { document.documentElement.style.setProperty('--kb', '0px'); document.documentElement.classList.remove('kb-open'); });
+    }
+    if (want('etkinlik')) {
+      await tab('Harita'); await sleep(800);
+      await page.getByTestId('ev-fab').click(); await page.getByTestId('etkinlikler').waitFor({ timeout: 10_000 });
+      await check('etkinlikler');
+      const card = page.locator('[data-testid="etkinlikler"] button', { hasText: 'Ralli' }).first();
+      if (await card.count()) { await card.click(); await sleep(600); await check('etkinlik-ralli'); }
+      await back(); await back();
+    }
+    if (want('sonuc')) {
+      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti']]) {
+        await page.goto(url(q), { waitUntil: 'load' });
+        await page.locator('.result-actions').waitFor({ timeout: 30_000 });
+        await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
+        const rec = await check(label);
+        const btn = await page.evaluate(() => [...document.querySelectorAll('.result-actions button')].map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; }));
+        rec.buttons = btn;
+        const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);
+        if (bad.length) fail(rec, `sonuç düğmeleri görünüm dışında: ${JSON.stringify(bad)}`);
+      }
+    }
+  } catch (e) {
+    const rec = { screen: 'akış', fails: [] }; fail(rec, String(e.message ?? e).split('\n')[0]); recs.push(rec);
+    await page.screenshot({ path: resolve(dir, `${String(++n).padStart(2, '0')}-HATA.png`) }).catch(() => undefined);
+    console.log(`  ✗ ${name} · akış — ${rec.fails[0]}`);
+  }
+  if (errors.length) { const rec = { screen: 'konsol', fails: [] }; fail(rec, errors.slice(0, 4).join(' | ')); recs.push(rec); console.log(`  ✗ ${name} · konsol — ${errors.slice(0, 2).join(' | ')}`); }
+  report.push({ run: name, screens: recs });
+  await browser.close();
+}
+
+try {
+  for (const target of targets) for (const b of browsers) for (const s of sizes) { console.log(`\n▶ ${target} · ${b} · ${s.join('×')}`); await suite(b, target, s); }
+} finally {
+  writeFileSync(resolve(outRoot, 'rapor.json'), JSON.stringify(report, null, 2));
+  cleanup();
+}
+const total = report.reduce((a, r) => a + r.screens.length, 0);
+console.log(`\n${failures ? '✗' : '✓'} ${total} ekran denetlendi, ${failures} sorun · çıktı: ${outRoot.replace(root + '/', '')}`);
+process.exit(failures ? 1 : 0);

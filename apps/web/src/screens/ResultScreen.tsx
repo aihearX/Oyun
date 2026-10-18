@@ -9,6 +9,7 @@ import { inviteUrl, type Invite } from '../invite';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
+import { ActionButton } from '../ui/Button';
 import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
@@ -190,7 +191,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                 <span className="ub"><small>{u.kicker}</small><b>{u.title}</b>{u.text && <span className="muted">{u.text}</span>}{u.chips && <RewardChips items={u.chips} small />}</span>
               </div>
             ))}
-            {hidden > 0 && <button className="btn ghost small more-unlocks" onClick={(e) => { e.stopPropagation(); setShowAll(true); }}>+{hidden} açılım daha göster</button>}
+            {hidden > 0 && <ActionButton tone="plain" className="more-unlocks" onClick={(e) => { e.stopPropagation(); setShowAll(true); }}>+{hidden} açılım daha göster</ActionButton>}
             {summary.quests.length > 0 && (
               <div className="card quests-mini" style={{ animationDelay: `${reduced ? 0 : unlocks.length * 140}ms` }}>
                 <div className="muted">Bugünün görevleri</div>
@@ -211,14 +212,24 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
         {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
         <div className="result-actions" onClick={(e) => e.stopPropagation()}>
-          <div className="row" style={{ width: '100%' }}>
-            <button className={`btn grow${result.completed ? ' ghost' : ''}`} onClick={onRetry}>↻ Tekrar</button>
-            {result.completed && !last && <button className="btn grow" onClick={onNext}>Sonraki ▶</button>}
-          </div>
-          <div className="row" style={{ width: '100%' }}>
-            <button className="btn coral grow" onClick={share}>📣 Meydan oku</button>
-            <button className="btn ghost grow" onClick={onMap}>🗺️ Harita</button>
-          </div>
+          {result.completed && !last ? (
+            <>
+              <ActionButton block icon="play" onClick={onNext}>Sonraki</ActionButton>
+              <div className="abtn-grid">
+                <ActionButton tone="teal" tile icon="retry" onClick={onRetry}>Tekrar</ActionButton>
+                <ActionButton tone="gold" tile icon="megaphone" onClick={share}>Meydan oku</ActionButton>
+                <ActionButton tone="plain" tile icon="map" onClick={onMap}>Harita</ActionButton>
+              </div>
+            </>
+          ) : (
+            <>
+              <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
+              <div className="abtn-grid">
+                <ActionButton tone="gold" tile icon="megaphone" onClick={share}>Meydan oku</ActionButton>
+                <ActionButton tone="plain" tile icon="map" onClick={onMap}>Harita</ActionButton>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

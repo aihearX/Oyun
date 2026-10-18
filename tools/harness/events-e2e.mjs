@@ -83,7 +83,7 @@ async function shot(p, name) {
   await sleep(500);
   const file = `${String(++shotN).padStart(2, '0')}-${p.slug}-${name}.png`;
   await p.page.screenshot({ path: resolve(outDir, file) });
-  const over = await p.page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const over = await p.page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.getElementById('root')?.scrollWidth ?? 0) - window.innerWidth);
   if (over > 0) p.errors.push(`${name}: yatay taşma ${over}px`);
   log(`📸 ${file}`);
   return file;
@@ -122,7 +122,7 @@ async function settle(p, ms = 400) {
   await sleep(ms);
 }
 async function openEvents(p, view) {
-  await p.page.evaluate(() => window.scrollTo(0, 0));
+  await p.page.evaluate(() => document.getElementById('root')?.scrollTo(0, 0));
   if (await tid(p, 'etkinlikler').count()) {
     if (view) { const back = p.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) await back.click(); }
   } else {
@@ -169,7 +169,7 @@ try {
   await openEvents(A);
   await tid(A, 'ev-kart-ralli').waitFor();
   await shot(A, 'etkinlik-merkezi');
-  await A.page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await A.page.evaluate(() => { const r = document.getElementById('root'); r?.scrollTo(0, r.scrollHeight); });
   await shot(A, 'etkinlik-merkezi-alt');
 
   // ---- düello eşleşmesi (A'nın takımı merkezi açınca yazıldı; Cem'in takımı açınca eşleşir)

@@ -62,7 +62,7 @@ async function shot(page, name) {
   await sleep(400);
   const f = resolve(outDir, `${String(++shotN).padStart(2, '0')}-${name}.png`);
   await page.screenshot({ path: f });
-  const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const over = await page.evaluate(() => Math.max(document.documentElement.scrollWidth, document.getElementById('root')?.scrollWidth ?? 0) - window.innerWidth);
   if (over > 0) { errors.push(`${name}: yatay taşma ${over}px`); console.log(`  ⚠ ${name}: yatay taşma ${over}px`); }
   console.log(`  📸 ${f.replace(root + '/', '')}`);
 }
@@ -70,7 +70,7 @@ const tab = (page, label) => page.locator('nav.tabbar .tab', { hasText: label })
 const sub = (page, label) => page.locator('.subtabs .subtab', { hasText: label }).click();
 const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
 const bannerGone = async (page) => { if (await page.locator('.fr-banner').count()) await page.locator('.fr-banner-x').click().catch(() => undefined); };
-const back = (page) => page.locator('.screen-head .btn, .dm-head .btn').first().click();
+const back = (page) => page.locator('.screen-head button[aria-label="Geri"], .dm-head button[aria-label="Geri"]').first().click();
 async function openFriends(page) { await tab(page, 'Profil'); await page.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await page.locator('.fr-mycode').waitFor(); }
 async function longPress(page, loc) {
   const box = await loc.boundingBox();

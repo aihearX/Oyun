@@ -8,6 +8,7 @@ import { Empty, Sheet, Skeleton, SubTabs } from '../ui/social';
 import { Av, giftFriend, infoLine, raceWith, requestFriend, useOnline } from './common';
 import { friendsNet, openProfile, refreshFriends, useFriends } from './state';
 import './friends.css';
+import { IconButton } from '../ui/Button';
 
 type T = 'arkadaslar' | 'istekler' | 'oneriler';
 
@@ -53,7 +54,7 @@ function MyCode({ code }: { code: string }) {
         <span className="muted small-note">Arkadaş kodun</span>
         <b className="fr-code" aria-label={`Arkadaş kodun ${code.split('').join(' ')}`}>{code}</b>
       </div>
-      <button className="btn ghost small icon-btn" onClick={() => void copy()} aria-label="Kodu kopyala">📋</button>
+      <IconButton icon="copy" label="Kodu kopyala" tone="teal" onClick={() => void copy()} />
       <button className="btn small" onClick={() => void share()} aria-label="Kodu paylaş">📣 Paylaş</button>
     </div>
   );

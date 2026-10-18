@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { audio } from '@odi/audio';
 import { useStore } from '../store';
+import { ScreenHead } from '../ui/bits';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
 function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: string; label: string; value: number; onChange: (v: number) => void; onRelease?: () => void; disabled?: boolean }) {
@@ -22,8 +23,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
   return (
     <div className="screen fade-in">
-      <div className="topbar"><button className="btn ghost small" onClick={onBack} aria-label="Geri">← Profil</button></div>
-      <h1>Ayarlar</h1>
+      <ScreenHead title="Ayarlar" onBack={onBack} />
       <div className="card vol-row">
         <div className="row between"><div><h2>Sesler</h2><div className="muted">Müzik ve efektler ayrı ayarlanır</div></div>
           <button className={`btn small toggle-btn${s.sounds ? '' : ' ghost'}`} onClick={() => s.setSounds(!s.sounds)} aria-pressed={s.sounds}>{s.sounds ? 'Açık' : 'Kapalı'}</button></div>

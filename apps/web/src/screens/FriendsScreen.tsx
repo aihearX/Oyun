@@ -1,6 +1,7 @@
 import { useNav } from '../nav';
 import { ScreenHead } from '../ui/bits';
 import { ChatRoom } from '../ui/Chat';
+import { IconButton } from '../ui/Button';
 import { Online } from '../ui/social';
 import { DmScreen, FriendsHub, Messages, useFriends } from '../friends';
 
@@ -11,7 +12,7 @@ export function FriendsScreen({ onBack, raceReady }: { onBack: () => void; raceR
   return (
     <div className="screen fade-in">
       <ScreenHead title="Arkadaşlar" onBack={onBack} right={
-        <button className="btn ghost small icon-btn rel" onClick={() => nav.open({ name: 'messages' })} aria-label={`Mesajlar${unread ? `: ${unread} okunmamış` : ''}`}>💬{unread > 0 && <span className="sbadge abs">{unread > 99 ? '99+' : unread}</span>}</button>
+        <IconButton icon="chat" tone="teal" onClick={() => nav.open({ name: 'messages' })} label={`Mesajlar${unread ? `: ${unread} okunmamış` : ''}`}>{unread > 0 && <span className="sbadge abs">{unread > 99 ? '99+' : unread}</span>}</IconButton>
       } />
       <Online what="Arkadaşlar ve mesajlar"><FriendsHub raceReady={raceReady} /></Online>
     </div>
@@ -25,7 +26,7 @@ export function MessagesScreen({ onBack }: { onBack: () => void }) {
   return (
     <div className="screen fade-in">
       <ScreenHead title="Mesajlar" onBack={onBack} right={
-        <button className="btn ghost small icon-btn rel" onClick={() => nav.open({ name: 'friends' })} aria-label={`Arkadaşlar${req ? `: ${req} istek` : ''}`}>🫂{req > 0 && <span className="sbadge abs">{req}</span>}</button>
+        <IconButton icon="friends" tone="teal" onClick={() => nav.open({ name: 'friends' })} label={`Arkadaşlar${req ? `: ${req} istek` : ''}`}>{req > 0 && <span className="sbadge abs">{req}</span>}</IconButton>
       } />
       <Online what="Mesajlar"><Messages /></Online>
     </div>

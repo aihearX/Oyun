@@ -1,0 +1,83 @@
+/* =====================================================================================
+   Ortak düğme sistemi (ui/Button.tsx): tek bir birincil (altın, parıltılı) + koyu cam ikincil düğmeler.
+   Ölçüler: birincil 62 px, ikincil satır 52 px, ikincil karo 66 px, ikon düğmesi 44 px; köşe 18/16/14 px.
+   ===================================================================================== */
+.ic { display:block; flex:none; }
+.ic .ic-fill { fill:currentColor; fill-opacity:.22; stroke:none; }
+
+.abtn {
+  --edge:rgba(255,255,255,.16); --ink:var(--cream); --icon:var(--cream); --ring:rgba(255,255,255,.06);
+  position:relative; isolation:isolate; overflow:hidden; appearance:none; border:0; margin:0; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; gap:10px; min-width:0; min-height:52px; padding:0 16px;
+  border-radius:16px; font:inherit; font-weight:900; font-size:16px; line-height:1.1; letter-spacing:.2px; color:var(--ink); white-space:nowrap;
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  transition:transform .08s ease-out, box-shadow .08s ease-out, filter .15s, background-color .15s;
+}
+.abtn .ic { color:var(--icon); }
+.abtn .lbl { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.abtn:disabled { cursor:default; filter:grayscale(.8) brightness(.8); opacity:.55; }
+.abtn:focus-visible { outline:3px solid var(--teal); outline-offset:3px; }
+
+/* --- birincil: altın degrade, ikon madalyonu, üstte cam parlaklık, ara ara geçen ışıltı */
+.abtn.primary {
+  --ink:var(--gold-ink); --icon:var(--gold-ink);
+  min-height:62px; border-radius:18px; font-size:19px; gap:12px; padding:0 22px;
+  text-shadow:0 1px 0 rgba(255,255,255,.45);
+  background:linear-gradient(180deg, #ffeaa0 0%, #ffd04d 34%, var(--gold) 52%, var(--gold-2) 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.75), inset 0 -4px 0 rgba(201,111,0,.32), 0 0 0 1.5px rgba(255,236,170,.55), 0 5px 0 var(--gold-edge), 0 12px 26px rgba(255,159,28,.32), 0 14px 22px rgba(8,4,26,.45);
+}
+.abtn.primary::after { content:''; position:absolute; z-index:-1; left:8px; right:8px; top:3px; height:44%; border-radius:14px 14px 22px 22px; background:linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)); pointer-events:none; }
+.abtn.primary::before { content:''; position:absolute; z-index:-1; top:-30%; bottom:-30%; left:0; width:34%; background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.6), rgba(255,255,255,0)); transform:translateX(-160%) skewX(-22deg); animation:abtnShine 4.2s 1.1s ease-in-out infinite; pointer-events:none; }
+@keyframes abtnShine { 0%, 62% { transform:translateX(-160%) skewX(-22deg); } 84%, 100% { transform:translateX(420%) skewX(-22deg); } }
+.abtn.primary .ic-medal { display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; flex:none;
+  background:radial-gradient(circle at 50% 35%, rgba(255,255,255,.55), rgba(255,255,255,.12) 70%); box-shadow:inset 0 0 0 1.5px rgba(150,80,0,.25), 0 1px 0 rgba(255,255,255,.6); }
+.abtn.primary .ic-medal .ic { width:20px; height:20px; }
+.abtn.primary .ic .ic-fill { fill-opacity:.9; }
+.abtn.primary:active:not(:disabled), .abtn.primary.pressed { transform:translateY(4px); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(201,111,0,.3), 0 0 0 1.5px rgba(255,236,170,.5), 0 1px 0 var(--gold-edge), 0 4px 10px rgba(8,4,26,.4); }
+
+/* --- ikincil: koyu cam + renkli kenar (altın / turkuaz / mercan / sade) */
+.abtn.glass {
+  background:linear-gradient(180deg, rgba(255,255,255,.12) 0%, rgba(255,255,255,.035) 46%, rgba(255,255,255,0) 100%), rgba(22,13,60,.78);
+  border:2px solid var(--edge);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 0 18px var(--ring), 0 4px 0 rgba(5,2,20,.6), 0 10px 18px rgba(5,2,20,.38);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+}
+.abtn.glass.gold { --edge:rgba(255,201,60,.72); --icon:var(--gold); --ring:rgba(255,201,60,.10); }
+.abtn.glass.teal { --edge:rgba(46,230,214,.68); --icon:var(--teal); --ring:rgba(46,230,214,.10); }
+.abtn.glass.coral { --edge:rgba(255,92,138,.7); --icon:var(--coral); --ring:rgba(255,92,138,.10); }
+.abtn.glass.plain { --edge:rgba(201,193,255,.32); --icon:var(--text-2); }
+.abtn.glass:active:not(:disabled), .abtn.glass.pressed { transform:translateY(3px); box-shadow:inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 18px var(--ring), 0 1px 0 rgba(5,2,20,.6), 0 3px 8px rgba(5,2,20,.35); filter:brightness(1.12); }
+
+/* karo düzeni: ikon üstte, etiket altta — dar ekranda üçlü sıra da sığar */
+.abtn.tile { flex-direction:column; gap:5px; min-height:66px; padding:8px 6px; font-size:13.5px; border-radius:16px; }
+.abtn.tile .ic { width:24px; height:24px; }
+
+.abtn-grid { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:10px; width:100%; }
+.abtn-stack { display:flex; flex-direction:column; gap:12px; width:100%; }
+.abtn.block { display:flex; width:100%; }
+
+/* --- ikon düğmesi (geri, kapat, menü, gönder): 44 px koyu cam */
+.ibtn {
+  --icon:var(--cream); position:relative; appearance:none; flex:none; width:44px; height:44px; padding:0; margin:0; border-radius:14px; cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center; color:var(--icon); font:inherit;
+  background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.02)), rgba(22,13,60,.72);
+  border:2px solid rgba(201,193,255,.28); box-shadow:inset 0 1px 0 rgba(255,255,255,.18), 0 3px 0 rgba(5,2,20,.55);
+  -webkit-tap-highlight-color:transparent; touch-action:manipulation; transition:transform .08s, box-shadow .08s;
+}
+.ibtn.gold { --icon:var(--gold); border-color:rgba(255,201,60,.6); }
+.ibtn.teal { --icon:var(--teal); border-color:rgba(46,230,214,.55); }
+.ibtn.coral { --icon:var(--coral); border-color:rgba(255,92,138,.6); }
+.ibtn.solid { --icon:var(--gold-ink); border-color:#ffe08a; background:linear-gradient(180deg,#ffe27a,var(--gold) 50%,var(--gold-2)); box-shadow:inset 0 2px 0 rgba(255,255,255,.6), 0 3px 0 var(--gold-edge); }
+.ibtn:active:not(:disabled) { transform:translateY(2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.14), 0 1px 0 rgba(5,2,20,.55); }
+.ibtn:disabled { cursor:default; opacity:.5; filter:grayscale(.6); }
+.ibtn.solid:disabled { --icon:var(--text-2); opacity:1; filter:none; border-color:rgba(201,193,255,.22); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)), rgba(22,13,60,.72); box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 3px 0 rgba(5,2,20,.55); }
+.ibtn:focus-visible { outline:3px solid var(--teal); outline-offset:2px; }
+.ibtn.sm { width:36px; height:36px; border-radius:12px; }
+.ibtn.sm::after { content:''; position:absolute; inset:-4px; }
+
+@media (max-width:360px) {
+  .abtn.primary { min-height:58px; font-size:18px; }
+  .abtn.tile { font-size:12.5px; min-height:62px; }
+  .abtn-grid { gap:8px; }
+}
+@media (prefers-reduced-motion: reduce) { .abtn.primary::before { display:none; } }

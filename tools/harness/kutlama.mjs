@@ -34,7 +34,7 @@ async function page(w = W, h = H) {
 }
 async function shot(p, name) {
   const f = resolve(out, `${name}.png`); await p.screenshot({ path: f }); shots.push(f);
-  const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const over = await p.evaluate(() => Math.max(document.documentElement.scrollWidth, document.getElementById('root')?.scrollWidth ?? 0) - window.innerWidth);
   if (over > 0) errors.push(`${name}: yatay taşma ${over}px`);
   console.log(`  📸 ${name}${over > 0 ? `  ⚠ taşma ${over}px` : ''}`);
 }

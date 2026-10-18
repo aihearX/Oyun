@@ -7,6 +7,8 @@ import { useStore } from '../store';
 import { reconnect, usePending, useSocial } from '../net';
 import { useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
+import { IconButton } from './Button';
+import { Icon } from './icons';
 
 /** saniyelik (ya da verilen aralıkta) yeniden çizim için şimdiki zaman */
 export function useNow(ms = 1000): number {
@@ -82,7 +84,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
         {linked && <DmTopPill />}
         <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}>🪙 {fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend">⏳</i>}</span>
         {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmtNum(kc.value)}</button>}
-        {linked && <button className="pill tb-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}>✉️{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
+        {linked && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>
   );
@@ -125,7 +127,7 @@ export function Sheet({ title, onClose, children }: { title?: string; onClose: (
     <div className="sheet-wrap" onClick={onClose}>
       <div className="sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" aria-hidden />
-        {title && <div className="row between"><h2>{title}</h2><button className="btn ghost small icon-btn" onClick={onClose} aria-label="Kapat">✕</button></div>}
+        {title && <div className="row between"><h2>{title}</h2><IconButton icon="close" label="Kapat" onClick={onClose} /></div>}
         {children}
       </div>
     </div>

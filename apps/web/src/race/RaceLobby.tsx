@@ -9,6 +9,7 @@ import { platform } from '../platform';
 import { errText } from '../net';
 import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
 import './race.css';
+import { IconButton } from '../ui/Button';
 
 type View = 'menu' | 'pick' | 'code' | 'room' | 'busy';
 
@@ -116,7 +117,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
 function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
   return (
     <div className="screen fade-in race-screen">
-      <div className="screen-head"><button className="btn ghost small" onClick={onBack} aria-label="Geri">←</button><h1>{title}</h1><span /></div>
+      <div className="screen-head"><IconButton icon="back" label="Geri" onClick={onBack} /><h1>{title}</h1><span /></div>
       {children}
     </div>
   );
@@ -150,7 +151,7 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
 
   return (
     <div className="screen fade-in race-screen">
-      <div className="screen-head"><button className="btn ghost small" onClick={onBack} aria-label="Geri">←</button><h1>Yarış odası</h1><span /></div>
+      <div className="screen-head"><IconButton icon="back" label="Geri" onClick={onBack} /><h1>Yarış odası</h1><span /></div>
       {err && <div className="race-error" role="alert">{err}</div>}
       <div className="card race-room-head">
         <div className="min0">

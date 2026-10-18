@@ -5,6 +5,7 @@ import { SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
+import { ActionButton, IconButton } from './Button';
 
 const QUICK = ['👍', '❤️', '😂', '🔥', '👏', '💪', '🎉', '🙏'];
 const EMPTY: ChatMessage[] = [];
@@ -69,7 +70,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   const visible = msgs.filter((m) => !muted.has(m.from));
   return (
     <div className="chat">
-      <div className="chat-box" ref={box} onScroll={onScroll} style={{ height: `max(260px, calc(100dvh - ${offset}px))` }}>
+      <div className="chat-box" ref={box} onScroll={onScroll} style={{ ['--chat-off' as string]: `${offset}px` }}>
         {loading ? <Skeleton rows={3} /> : visible.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : visible.map((m, i) => {
           const prev = visible[i - 1];
           if (m.from === 'sistem') return <div key={m.id} className={`msg-sys kind-${m.kind}`}><span aria-hidden>{sysIcon(m)}</span> {m.text}</div>;
@@ -88,14 +89,14 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       {err && <div className="chat-err" role="alert">{err}</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
         <input className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Mesaj" enterKeyHint="send" />
-        <button className="btn small" type="submit" disabled={!text.trim()} aria-label="Gönder">➤</button>
+        <IconButton type="submit" icon="send" label="Gönder" tone="solid" disabled={!text.trim()} />
       </form>
       {menu && (
         <Sheet title={menu.name} onClose={() => setMenu(null)}>
           <div className="muted wrap">“{menu.text}”</div>
-          <button className="btn ghost" onClick={async () => { const r = await act('chat.report', { msgId: menu.id }); if (r) toast('🙏', 'Teşekkürler', 'Şikâyetin alındı. Üç farklı kişi şikâyet ederse mesaj gizlenir.', 'green'); setMenu(null); }}>🚩 Şikâyet et</button>
-          <button className="btn ghost" onClick={async () => { const r = await act('chat.mute', { id: menu.from, on: true }); if (r) { setMuted(new Set([...muted, menu.from])); toast('🔇', `${menu.name} sessize alındı`, 'Mesajlarını artık görmeyeceksin.'); } setMenu(null); }}>🔇 Sessize al</button>
-          <button className="btn ghost" onClick={() => setMenu(null)}>Vazgeç</button>
+          <ActionButton block tone="coral" onClick={async () => { const r = await act('chat.report', { msgId: menu.id }); if (r) toast('🙏', 'Teşekkürler', 'Şikâyetin alındı. Üç farklı kişi şikâyet ederse mesaj gizlenir.', 'green'); setMenu(null); }}>Şikâyet et</ActionButton>
+          <ActionButton block tone="plain" onClick={async () => { const r = await act('chat.mute', { id: menu.from, on: true }); if (r) { setMuted(new Set([...muted, menu.from])); toast('🔇', `${menu.name} sessize alındı`, 'Mesajlarını artık görmeyeceksin.'); } setMenu(null); }}>Sessize al</ActionButton>
+          <ActionButton block tone="plain" onClick={() => setMenu(null)}>Vazgeç</ActionButton>
         </Sheet>
       )}
     </div>

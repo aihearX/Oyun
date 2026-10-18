@@ -15,7 +15,9 @@ import { QuestsView } from './Quests';
 import { ChallengeView } from './Challenge';
 import { TourneyView } from './Tourney';
 import type { EventFlash, EventPlay } from './EventLevel';
+import { scrollAppTop } from '../ui/viewport';
 import './events.css';
+import { IconButton } from '../ui/Button';
 
 export type EventView = 'merkez' | EventKind;
 export type PlayFn = (spec: LevelSpec, play: EventPlay) => void;
@@ -28,7 +30,7 @@ export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?
   const inTeam = useEvents((s) => s.inTeam); const loaded = useEvents((s) => s.loaded); const status = useNet((s) => s.status);
   useEffect(() => { void refreshEvents(); }, [v, status]);
   useEffect(() => { if (!shown) return; const h = setTimeout(() => setShown(undefined), 6000); return () => clearTimeout(h); }, [shown]);
-  useEffect(() => { window.scrollTo(0, 0); }, [v]);
+  useEffect(() => { scrollAppTop(); }, [v]);
   const back = () => (v === 'merkez' ? onBack() : setV('merkez'));
   const needTeam = v !== 'merkez' && TEAM_ONLY.includes(v) && loaded && !inTeam;
   return (
@@ -57,7 +59,7 @@ export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?
 function EvHeadHub({ onBack }: { onBack: () => void }) {
   return (
     <div className="ev-hub-head">
-      <button className="btn ghost small icon-btn" onClick={onBack} aria-label="Geri">←</button>
+      <IconButton icon="back" label="Geri" onClick={onBack} />
       <div className="min0"><h1>Etkinlikler</h1><small>Bireysel oyna, takımca kazan!</small></div>
       <span className="ev-hub-art" aria-hidden>🎪</span>
     </div>

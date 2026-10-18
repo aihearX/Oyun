@@ -10,6 +10,7 @@ import type { LevelOptions } from '@odi/game-core';
 import { audio, type Track } from '@odi/audio';
 import { CelebrationLayer } from './celebrate/CelebrationLayer';
 import { installUiFeedback } from './ui/feedback';
+import { installViewport, scrollAppTop } from './ui/viewport';
 import { useStore } from './store';
 import { MapScreen } from './screens/MapScreen';
 import { LevelHost } from './screens/LevelHost';
@@ -51,11 +52,12 @@ type Route =
   | { name: 'eventLevel'; spec: LevelSpec; play: EventPlay; back: Tab }
   | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string };
 
-/** `?bot=1&level=N[&ts=2][&skills=all][&salt=K][&hd=2]` → test modu: harness bölümü otomatik oynatır (hd: pazarlama çekimi için tuval piksel oranı). */
+/** `?bot=1&level=N[&ts=2][&skills=all][&salt=K][&hd=2][&human=1]` → test modu: harness bölümü otomatik oynatır (hd: pazarlama çekimi için tuval piksel oranı;
+ *  human: bot yerine dokunuş girdisi — mobil duraklat/kaydırma testleri). */
 function botParams() {
   const q = new URLSearchParams(location.search);
   if (q.get('bot') !== '1') return null;
-  return { idle: q.get('idle') === '1', level: Number(q.get('level') ?? 1), ts: Number(q.get('ts') ?? 1), skillsAll: q.get('skills') === 'all', salt: Number(q.get('salt') ?? 0), hd: Number(q.get('hd') ?? 0) };
+  return { human: q.get('human') === '1', idle: q.get('idle') === '1', level: Number(q.get('level') ?? 1), ts: Number(q.get('ts') ?? 1), skillsAll: q.get('skills') === 'all', salt: Number(q.get('salt') ?? 0), hd: Number(q.get('hd') ?? 0) };
 }
 
 /**
@@ -102,6 +104,7 @@ export function App() {
   // ses: oyuncu ayarları (kalıcı) → motor; ilk dokunuşta kilit açma + global düğme sesleri
   useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol }); }, [store.sounds, store.musicVol, store.sfxVol]);
   useEffect(() => (bot ? undefined : installUiFeedback()), [bot]);
+  useEffect(() => (bot ? undefined : installViewport()), [bot]);
   // müzik geçişleri (crossfade): harita teması, menü, biyom tanıtımı. Bölüm/sonuç kendi müziğini yönetir (LevelScene, ResultScreen).
   // useLayoutEffect: ekranın kendi useEffect'i (ör. harita ekibinin özel parçası) bundan SONRA çalışır ve üstüne yazabilir.
   useLayoutEffect(() => { if (bot) return; const t = routeTrack(route); if (t) audio.music(t); }, [route.name, bot]);
@@ -116,7 +119,7 @@ export function App() {
   const socialBadges = useSocialBadges(store.coins);
   const dmBadge = useSocialUnread();
   // ekran değişince en üstten başla (harita kendi kaydırmasını yapar)
-  useEffect(() => { if (route.name !== 'level' && route.name !== 'map') window.scrollTo(0, 0); }, [route.name, 'room' in route ? route.room : '']);
+  useEffect(() => { if (route.name !== 'level' && route.name !== 'map') scrollAppTop(); }, [route.name, 'room' in route ? route.room : '']);
 
   const play = (number: number) => {
     const s = useStore.getState();
@@ -133,7 +136,7 @@ export function App() {
 
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
-    return <LevelHost spec={route.spec} skills={skills} sounds={false} bot botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
+    return <LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
   }
 
   // sekme rozetleri: bekleyen (alınabilir) ödüller

@@ -8,6 +8,7 @@ import { Sheet } from '../ui/social';
 import { Av, Sticker, dayLabel, lastSeenText, openInvite, raceWith, useOnline } from './common';
 import { applyMsg, friendsNet, loadConvo, openProfile, readActive, sendDm, useFriends } from './state';
 import './friends.css';
+import { IconButton } from '../ui/Button';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
 const EMPTY: DmMessage[] = [];
@@ -104,7 +105,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   return (
     <div className="dm-screen fade-in" style={vh ? { height: vh } : undefined} data-testid="dm-ekrani">
       <header className="dm-head">
-        <button className="btn ghost small icon-btn" onClick={onBack} aria-label="Geri">←</button>
+        <IconButton icon="back" label="Geri" onClick={onBack} />
         <button className="dm-head-who min0" onClick={() => openProfile(id)} aria-label={`${name} profili`}>
           {other && <Av p={other} size={40} />}
           <span className="min0">
