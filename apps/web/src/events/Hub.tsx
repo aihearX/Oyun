@@ -8,6 +8,7 @@ import { fmtNum } from '../ui/social';
 import { useNav } from '../nav';
 import { useEvents } from './store';
 import { Countdown, EVENT_META, levelName, useSrvNow } from './common';
+import { MonsterArt } from './MonsterArt';
 
 /** Etkinlik kartı: renkli bant (etkinliğin vurgu rengi), başlık, kalan süre, içerik, ana düğme */
 export function EvCard({ kind, live, clock, cta, ctaTone, onOpen, children, testId }: { kind: EventKind; live?: string | null; clock?: ReactNode; cta?: string; ctaTone?: 'gold' | 'ghost'; onOpen: () => void; children?: ReactNode; testId?: string }) {
@@ -52,11 +53,11 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
         cta={r ? (rJoined ? (r.participants.length >= 2 ? '⚔️ Saldır' : 'Takım bekleniyor…') : '🔥 Katıl') : '🔥 Ralli başlat'}>
         {r && rMon ? (
           <div className="ev-rally-mini">
-            <span className="ev-mon-s" aria-hidden>{rMon.emoji}</span>
+            <span className="ev-mon-s" aria-hidden><MonsterArt id={rMon.id} size={44} /></span>
             <div className="grow min0"><b className="ellipsis">{rMon.name}</b><div className="row"><Bar value={r.hp / r.maxHp} tone="coral" label="Canavarın canı" /><span className="qn">{fmtNum(r.hp)}/{fmtNum(r.maxHp)}</span></div></div>
             <Avatars list={r.participants} max={3} />
           </div>
-        ) : <div className="ev-mons">{RALLY_MONSTERS.map((m) => <span key={m.id} title={m.name}>{m.emoji}</span>)}<small className="muted">3 canavar, en az 2 katılımcı</small></div>}
+        ) : <div className="ev-mons">{RALLY_MONSTERS.map((m) => <span key={m.id} title={m.name}><MonsterArt id={m.id} size={46} /></span>)}<small className="muted">3 canavar · en az 2 katılımcı · 10 dk</small></div>}
       </EvCard>,
       <EvCard key="duello" kind="duello" live={duel?.finalPush ? 'SON 2 SAAT' : null} onOpen={() => open('duello')}
         clock={duel?.period ? <Countdown to={duel.period.endsAt} urgentMs={duel.finalPushMs} /> : duel ? <Countdown to={duel.next.startsAt} label="başlamasına" /> : null}

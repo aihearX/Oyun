@@ -9,6 +9,7 @@ import { fmtNum, fmtTime } from '../ui/social';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, levelName, useSrvNow } from './common';
 import type { PlayFn } from './EventsScreen';
+import { MonsterArt } from './MonsterArt';
 
 /** Ralli odası: canavar seçimi → canlı can barı, katılımcılar, hasar akışı, geri sayım, sonuç kutlaması */
 export function RallyView({ onPlay }: { onPlay: PlayFn }) {
@@ -51,7 +52,7 @@ export function RallyView({ onPlay }: { onPlay: PlayFn }) {
         </div>
         <div className="ev-monster" aria-hidden>
           <span className="ev-mon-glow" />
-          <span className="ev-mon-e">{rally.status === 'kazanildi' ? '😵' : m.emoji}</span>
+          <span className="ev-mon-e"><MonsterArt id={m.id} size={136} beaten={rally.status === 'kazanildi'} /></span>
           {hit > 0 && <span className="ev-dmg">−{hit}</span>}
         </div>
         <b className="ev-mon-name">{m.name}</b>
@@ -95,7 +96,7 @@ function Picker({ left, members, busy, err, onStart }: { left: number; members: 
       <div className="card ev-intro tone-coral"><b>Canavarını seç, takımını topla!</b><span className="muted">Ralli 10 dakika sürer. En az 2 kişi katılınca herkes canavarın kısa bölümünü oynar; her sonuç hasar verir. Can sıfırlanırsa katılan herkes ödülü alır.</span><span className="ev-tag">Bugün kalan ralli: {left}</span></div>
       {RALLY_MONSTERS.map((m) => (
         <div key={m.id} className="ev-mon-card" data-tone="coral">
-          <span className="ev-mon-big" aria-hidden>{m.emoji}</span>
+          <span className="ev-mon-big" aria-hidden><MonsterArt id={m.id} size={72} /></span>
           <div className="grow min0">
             <b>{m.name}</b>
             <div className="muted small-note">{m.desc}</div>

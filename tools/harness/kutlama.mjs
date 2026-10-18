@@ -89,6 +89,7 @@ try {
   await sleep(500); await shot(p, '21-serit');
   await sleep(2600);
   await p.locator('nav.tabbar .tab', { hasText: 'Profil' }).click(); await sleep(600); await shot(p, '22-profil');
+  await p.locator('.menu-tile', { hasText: 'Ayarlar' }).click(); await sleep(600); await shot(p, '23-ayarlar');
   await p.close();
 
   console.log('▶ 360 px taşma denetimi');

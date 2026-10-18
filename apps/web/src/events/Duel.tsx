@@ -21,9 +21,9 @@ export function DuelView() {
         <div className="ev-versus" data-tone="violet">
           <div className="row between"><span className="ev-tag">{d.status === 'eslesti' ? 'Düello sürüyor' : 'Rakip aranıyor'}</span>{d.period && <Countdown to={d.period.endsAt} urgentMs={d.finalPushMs} />}</div>
           <div className="ev-vs-row">
-            <div className="ev-side me"><span className="ev-emb">{d.me?.emblem}</span><b className="ellipsis">{d.me?.name}</b><small>⚡ güç {fmtNum(d.me?.power ?? 0)}</small></div>
+            <div className="ev-side me"><span className="ev-emb">{d.me?.emblem}</span><b className="ellipsis">{d.me?.name}</b>{(d.me?.power ?? 0) > 0 && <small>⚡ güç {fmtNum(d.me!.power)}</small>}</div>
             <span className="ev-vs">VS</span>
-            {d.rival ? <div className="ev-side"><span className="ev-emb">{d.rival.emblem}</span><b className="ellipsis">{d.rival.name}</b><small>⚡ güç {fmtNum(d.rival.power)}</small></div>
+            {d.rival ? <div className="ev-side"><span className="ev-emb">{d.rival.emblem}</span><b className="ellipsis">{d.rival.name}</b>{d.rival.power > 0 && <small>⚡ güç {fmtNum(d.rival.power)}</small>}</div>
               : <div className="ev-side searching"><span className="ev-emb">🔎</span><b>Rakip aranıyor</b><small>Gerçek bir takım katılınca eşleşirsin</small></div>}
           </div>
           <div className="ev-tug" data-testid="duello-skor" data-me={d.me?.points ?? 0} data-rival={d.rival?.points ?? 0}>

@@ -175,6 +175,7 @@ try {
     await sleep(1600);
     await toastGone(B);
     await shot(B, 'B-bitis-sonrasi', 200);
+    if (process.env.DEBUG_KAMP) console.log(await B.evaluate(() => { const p = window.__kamp.pos('merkez'); const el = document.elementFromPoint(p.x, p.y + 10); return JSON.stringify({ p, el: el && (el.className || el.tagName) }); }));
     await tapBuilding(B, 'merkez'); await B.locator('.bp').waitFor();
     check((await B.locator('.bp-tier').innerText()).includes('Sv 2'), 'Kamp Merkezi Sv 2');
     await B.locator('.bp-x').click();

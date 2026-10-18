@@ -73,7 +73,7 @@ export const SFX: Record<Sfx, SfxDesign> = {
     return Math.max(end, sparkle(k, t + 0.5, 6, v, 3000));
   },
   countTick: (k, t, p, v) => {
-    tone(k, { type: 'sine', f: 1800 * p, t, dur: 0.008, vol: 0.08 * v, a: 0.001, d: 0.025, s: 0, r: 0.025 });
+    tone(k, { type: 'sine', f: 1800 * p, t, dur: 0.008, vol: 0.13 * v, a: 0.001, d: 0.025, s: 0, r: 0.025 });
     return tone(k, { type: 'triangle', f: 3600 * p, t, dur: 0.004, vol: 0.025 * v, a: 0.001, d: 0.012, s: 0, r: 0.012 });
   },
   star1: (k, t, p, v) => { whoosh(k, t, 0.22, v * 0.6); bell(k, C6 * p, t + 0.2, 0.9, 0.09 * v, { verb: 0.35 }); sub(k, t + 0.2, v * 0.5, 90, 0.25); return bell(k, E6 * p, t + 0.28, 1, 0.08 * v, { verb: 0.35 }); },

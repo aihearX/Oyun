@@ -112,10 +112,12 @@ async function player(name, slug) {
 }
 /** kutlama/bildirim katmanlarını kapat (dokunuşla hızlanır) */
 async function settle(p, ms = 400) {
-  for (let i = 0; i < 6; i++) {
-    const layer = p.page.locator('.celebrate-layer, .cl-wrap, .chest-overlay, .reward-pop').first();
-    if (!(await layer.count())) break;
-    await p.page.mouse.click(195, 600).catch(() => undefined); await sleep(350);
+  for (let i = 0; i < 12; i++) {
+    if (!(await p.page.locator('.cel-root.on').count())) break;
+    const cta = p.page.locator('.cel-cta button');
+    if (await cta.count() && await cta.first().isVisible()) await cta.first().click().catch(() => undefined);
+    else await p.page.mouse.click(195, 420).catch(() => undefined);
+    await sleep(400);
   }
   await sleep(ms);
 }
@@ -258,8 +260,8 @@ try {
   await shot(A, 'duello-skor-cubugu');
 
   // ---- GÜNÜN MEYDAN OKUMASI (üçü aynı bölüm)
-  for (const p of [A, B, C]) { await openEvents(p, 'meydan'); await tid(p, 'meydan-oyna').click(); }
-  for (const p of [A, B, C]) log(`meydan ${p.name}:`, JSON.stringify(await waitLevelDone(p)));
+  // üçü de aynı tohumlu bölümü oynar (yazılımsal GPU'da üç Phaser aynı anda çok yavaş: sırayla)
+  for (const p of [A, B, C]) { await openEvents(p, 'meydan'); await tid(p, 'meydan-oyna').click(); log(`meydan ${p.name}:`, JSON.stringify(await waitLevelDone(p))); }
   for (const p of [A, B, C]) await p.page.locator('[data-testid="meydan"]:not([data-rank="0"])').waitFor({ timeout: 15_000 });
   await A.page.locator('[data-testid="siralama"] li').nth(2).waitFor({ timeout: 10_000 }).catch(() => undefined);
   const board = await A.page.$$eval('[data-testid="siralama"] li', (els) => els.map((e) => `${e.getAttribute('data-rank')}:${e.getAttribute('data-name')}`));
@@ -292,4 +294,4 @@ try {
   if (errCount) { console.error('✗ sayfa hataları:', JSON.stringify(errors)); process.exit(2); }
   console.log(`\n✓ etkinlikler uçtan uca: ${checks.length} denetim geçti, ${shotN} ekran görüntüsü: ${outDir}`);
   process.exit(0);
-} catch (e) { await fail(String(e?.message ?? e).split('\n')[0]); }
+} catch (e) { console.error(String(e?.stack ?? e).split('\n').filter((l) => /events-e2e|Error|Timeout/.test(l)).slice(0, 6).join('\n')); await fail(String(e?.message ?? e).split('\n')[0]); }
