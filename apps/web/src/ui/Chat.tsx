@@ -10,6 +10,8 @@ const QUICK = ['👍', '❤️', '😂', '🔥', '👏', '💪', '🎉', '🙏']
 const EMPTY: ChatMessage[] = [];
 
 function sysIcon(m: ChatMessage): string {
+  const ev = m.meta?.event;
+  if (ev === 'ralli') return '⚔️'; if (ev === 'duello') return '🥊'; if (ev === 'bayrak') return '🚩'; if (ev === 'quiz') return '🧠'; if (ev === 'avi') return '🎵';
   if (m.kind === 'war') return '⚔️';
   if (m.kind === 'help') return '🙋';
   if (m.kind === 'race') return '🏁';

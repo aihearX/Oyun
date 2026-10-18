@@ -38,8 +38,8 @@ export function Board({ rows, meId, empty }: { rows: RankRow[]; meId?: string; e
   return (
     <ol className="ev-board" data-testid="siralama">
       {rows.map((r) => (
-        <li key={r.id} className={`${r.id === meId ? 'me' : ''}${r.rank <= 3 ? ` top${r.rank}` : ''}`} data-name={r.name} data-rank={r.rank}>
-          <span className="ev-rk">{r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</span>
+        <li key={r.id} className={`${r.id === meId ? 'me' : ''}${r.rank <= 3 && r.score > 0 ? ` top${r.rank}` : ''}`} data-name={r.name} data-rank={r.rank}>
+          <span className="ev-rk">{r.score <= 0 ? '—' : r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</span>
           <OdiAvatar color={r.color} size={30} />
           <b className="grow ellipsis">{r.name}{r.id === meId ? ' (sen)' : ''}</b>
           <span className="qn">{fmtNum(r.score)}</span>

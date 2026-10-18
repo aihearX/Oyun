@@ -91,7 +91,8 @@ export async function raceWith(p: PublicProfile, nav: Nav): Promise<void> {
 export function openInvite(meta: Record<string, string | number | boolean> | undefined, nav: Nav): void {
   if (!meta) return;
   if (meta.type === 'yaris' && typeof meta.roomId === 'string') { nav.open({ name: 'race', inviteRoomId: meta.roomId }); return; }
-  // ralli ve diğer takım etkinlikleri takım ekranında
+  if (meta.type === 'ralli') { nav.open({ name: 'events', view: 'ralli' }); return; }
+  // diğer takım etkinlikleri takım ekranında
   nav.tab('team');
 }
 

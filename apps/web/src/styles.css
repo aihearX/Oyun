@@ -713,3 +713,5 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
   .bi-rings, .unlock-card::after { display:none; }
 }
 .msg-name.linkish { font-size:inherit; padding:0; font-weight:800; }
+/* aynı anda gelen bildirimler üst üste binmesin: arkadaş/mesaj şeridi üstte, etkinlik şeridi onun altında */
+body:has(.fr-banner) .ev-notice { top:calc(env(safe-area-inset-top,0px) + 88px); }

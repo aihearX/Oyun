@@ -83,7 +83,7 @@ export function QuizView() {
           <span className="ev-art big" aria-hidden>🏆</span>
           <b>Takım ortalaması</b>
           <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span>
-          {joined && <span className="muted">Sen: {q.players.find((p) => p.id === meId)?.correct ?? 0}/10 doğru · ödüller ödül kutunda</span>}
+          {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/10 doğru{c > 0 ? ` · 🪙 ${c * 10} ödül kutunda` : ' · bir dahaki yarışmada!'}</span>; })()}
           <button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button>
         </div>
       )}

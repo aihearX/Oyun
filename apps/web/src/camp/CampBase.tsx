@@ -49,7 +49,7 @@ export function CampBase(p: CampBaseProps) {
       onReady: () => setReady(true),
     });
     handle.current = h;
-    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id) };
+    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id), view: () => h.view() };
     audio.music('menu');
     return () => { h.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
   }, []);
@@ -70,6 +70,7 @@ export function CampBase(p: CampBaseProps) {
   }
   const actions: CampActions = { ...p.actions, ask: async (id) => { const ok = await p.actions.ask(id); if (ok) setAskTick((n) => n + 1); return ok; }, collect: async () => { await collect(); return 0; } };
 
+  useEffect(() => { if (sel) handle.current?.focus(sel, true); else handle.current?.unfocus(); }, [sel]);
   const helpAll = async () => { audio.play('tap'); const n = await p.actions.helpAll(); if (n) { audio.play('coinBurst', { semitones: 4 }); platform().haptic('success'); } };
   const idle = !active;
   const anyUpgrade = idle && p.camp.buildings.some((b) => canUpgrade(p.camp, p.wallet, b.id).ok);
@@ -81,7 +82,7 @@ export function CampBase(p: CampBaseProps) {
       <div className="camp-top">
         <TopBar title="Kamp" />
         <div className="camp-hud" aria-label="Kaynaklar">
-          <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { handle.current?.focus(active.id); setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
+          <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
             🔨 {active ? <>{defOf(active.id).name.split(' ')[0]} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
           </button>
           <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}>⏩{ITEMS.map((it) => <span key={it.k} className="hs">{it.label.replace(' ', '')}<b>×{p.wallet.hizlandirici[it.k]}</b></span>)}</span>

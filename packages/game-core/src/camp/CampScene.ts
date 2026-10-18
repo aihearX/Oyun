@@ -25,6 +25,8 @@ export interface CampSceneOpts {
 
 const FONT = '"SF Pro Rounded","Segoe UI Rounded",Nunito,"Helvetica Neue",Arial,sans-serif';
 const GTEX = 1.25; // zemin dokusu çözünürlüğü
+/** bina ölçeği (arsayı dolduracak kadar) */
+const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15 };
 const DEPTH = { sky: -2000, waves: -1500, ground: -1000, fog: 4000, fx: 4500, ui: 6000 };
 const fmtLeft = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60; return h > 0 ? `${h} sa ${String(m).padStart(2, '0')} dk` : `${m}:${String(sec).padStart(2, '0')}`; };
 const bez = (p: [number, number][], t: number): [number, number] => { const [a, b, c] = p as [[number, number], [number, number], [number, number]]; return [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1]]; };
@@ -105,7 +107,8 @@ export class CampScene extends Phaser.Scene {
   }
   /** ekran noktası (oyun pikseli) sabit kalacak şekilde yakınlaştır */
   private zoomAt(z: number, sx: number, sy: number) {
-    const cam = this.cameras.main; const before = cam.getWorldPoint(sx, sy);
+    // dünya noktasını analitik hesapla (getWorldPoint önceki karenin matrisini kullanır; bir karede çok hareket gelebilir)
+    const cam = this.cameras.main; const before = { x: cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / cam.zoom, y: cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / cam.zoom };
     this.userZoom = Phaser.Math.Clamp(z, 0.42, 1.8);
     cam.setZoom(this.dpr * this.userZoom);
     cam.scrollX = before.x - cam.width / 2 - (sx - cam.width / 2) / cam.zoom;
@@ -135,7 +138,7 @@ export class CampScene extends Phaser.Scene {
         return;
       }
       this.moved = Math.max(this.moved, Math.hypot(p.x - s.x0, p.y - s.y0));
-      if (this.moved > 6 * this.dpr) { cam.scrollX -= dx / cam.zoom; cam.scrollY -= dy / cam.zoom; this.vel.x = dx / cam.zoom; this.vel.y = dy / cam.zoom; this.clampCam(); }
+      if (this.moved > 6 * this.dpr) { this.restoreCam = null; cam.scrollX -= dx / cam.zoom; cam.scrollY -= dy / cam.zoom; this.vel.x = dx / cam.zoom; this.vel.y = dy / cam.zoom; this.clampCam(); }
     });
     const up = (p: Phaser.Input.Pointer) => {
       const s = this.pointers.get(p.id); this.pointers.delete(p.id);
@@ -161,14 +164,14 @@ export class CampScene extends Phaser.Scene {
       if (lx >= 0 && ly >= 0 && lx < tex.width && ly < tex.height) { const a = this.textures.getPixelAlpha(Math.floor(lx), Math.floor(ly), v.key); if ((a ?? 0) > 20) return v.id; }
     }
     // arsa elmasına dokunuş
-    for (const id of BUILDING_ORDER) { const l = LOTS[id]; const h = l.tiles * 16 + 6; if (Math.abs(wx - l.x) / (h * 2) + Math.abs(wy - l.y) / h <= 1) return id; }
+    for (const id of BUILDING_ORDER) { const l = LOTS[id]; const h = l.tiles * 16 + 4; if (Math.abs(wx - l.x) / (h * 2) + Math.abs(wy - l.y) / h <= 1) return id; }
     return null;
   }
 
   override update(time: number, delta: number) {
     const cam = this.cameras.main;
     if (this.pointers.size === 0 && (Math.abs(this.vel.x) > 0.05 || Math.abs(this.vel.y) > 0.05)) {
-      cam.scrollX -= this.vel.x; cam.scrollY -= this.vel.y; const k = Math.pow(0.9, delta / 16.7); this.vel.x *= k; this.vel.y *= k; this.clampCam();
+      cam.scrollX -= this.vel.x; cam.scrollY -= this.vel.y; const k = Math.pow(0.86, delta / 16.7); this.vel.x *= k; this.vel.y *= k; this.clampCam();
     }
     // ses dalgası halkaları adanın etrafında yayılır
     const g = this.waves; g.clear();
@@ -181,7 +184,6 @@ export class CampScene extends Phaser.Scene {
     const us = this.uiScale;
     for (const v of this.views.values()) { v.badge.setScale(us); if (v.build) { v.build.bubble.setScale(us); } }
     if (this.depot) this.depot.bubble.setScale(us);
-    if (this.teamFlag) this.teamFlag.setScale(Math.min(1.4, us));
     // işçi yürüme kareleri
     for (const w of this.workers) { if (!w.walking) continue; w.frameT += delta; if (w.frameT > 170) { w.frameT = 0; const f = w.sprite.frame.name.endsWith('-0') ? 1 : 0; w.sprite.setFrame(`c-odi-${w.color}-${f}`, false, false); } }
     if (time - this.lastTick > 250) { this.lastTick = time; this.tick(); }
@@ -235,7 +237,7 @@ export class CampScene extends Phaser.Scene {
 
   private makeView(id: BuildingId, level: number) {
     const l = LOTS[id]; const t = this.texFor(id, level);
-    const img = this.add.image(l.x, l.y, t.key).setScale(1 / TEX).setDepth(l.y);
+    const img = this.add.image(l.x, l.y, t.key).setScale(BS[id] / TEX).setDepth(l.y);
     const src = img.texture.getSourceImage() as HTMLCanvasElement; img.setOrigin(t.ox / src.width, t.oy / src.height);
     const badgeImg = this.add.image(0, 0, ATLAS, 'c-badge-0').setScale(1 / TEX);
     const badgeText = this.add.text(0, -1, '', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#ffffff', stroke: '#2d1d6e', strokeThickness: 2.5 }).setOrigin(0.5).setResolution(this.dpr * 1.5);
@@ -262,10 +264,10 @@ export class CampScene extends Phaser.Scene {
     v.fx = []; v.tweens = []; v.timers = [];
     if (v.level <= 0) return;
     const l = LOTS[v.id]; const a = v.anchors; const tier = tierOf(v.level); const calm = !!this.opts.reducedMotion;
-    const at = (p: [number, number]) => [l.x + p[0], l.y + p[1]] as const;
+    const k = BS[v.id]; const at = (p: [number, number]) => [l.x + p[0] * k, l.y + p[1] * k] as const;
     for (const [gx, gy, r] of a.gears) {
       const [x, y] = at([gx, gy]);
-      const g = this.add.image(x, y, ATLAS, `c-gear-${tier}`).setScale((r / 11) / TEX * 1.0, (r / 11) / TEX * 0.82).setDepth(l.y + 0.5);
+      const g = this.add.image(x, y, ATLAS, `c-gear-${tier}`).setScale((r * k / 11) / TEX, (r * k / 11) / TEX * 0.82).setDepth(l.y + 0.5);
       v.fx.push(g); if (!calm) v.tweens.push(this.tweens.add({ targets: g, angle: 360 * (r > 6 ? 1 : -1), duration: 2600 + r * 300, repeat: -1 }));
     }
     for (const [lx, ly, c] of a.lights) {
@@ -358,7 +360,7 @@ export class CampScene extends Phaser.Scene {
     const l = LOTS[v.id];
     this.time.delayedCall(380, () => {
       this.setLevel(v, st.level);
-      const s = v.sprite; const sx = 1 / TEX;
+      const s = v.sprite; const sx = BS[v.id] / TEX;
       s.setScale(sx * 0.55, sx * 0.4);
       this.tweens.add({ targets: s, scaleX: sx, scaleY: sx, duration: 700, ease: 'Elastic.Out', easeParams: [1.1, 0.5] });
       const cy = s.y - s.originY * s.displayHeight * 0.5;
@@ -411,7 +413,7 @@ export class CampScene extends Phaser.Scene {
     const bubble = this.add.container(l.x + 6, topY - 4, [bg, coin, label]).setDepth(DEPTH.ui).setVisible(false);
     if (!this.opts.reducedMotion) this.tweens.add({ targets: bubble, y: topY - 10, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     const cp = v.anchors.coins ?? [20, 10];
-    const glow = this.add.image(l.x + cp[0], l.y + cp[1], ATLAS, 'c-glow').setTint(0xffc93c).setBlendMode(Phaser.BlendModes.ADD).setScale(0.7).setDepth(l.y + 0.9).setVisible(false);
+    const glow = this.add.image(l.x + cp[0] * BS.depo, l.y + cp[1] * BS.depo, ATLAS, 'c-glow').setTint(0xffc93c).setBlendMode(Phaser.BlendModes.ADD).setScale(0.7).setDepth(l.y + 0.9).setVisible(false);
     this.tweens.add({ targets: glow, alpha: { from: 0.4, to: 1 }, scale: { from: 0.6, to: 0.85 }, duration: 800, yoyo: true, repeat: -1 });
     this.depot = { bubble, glow, label, full: false };
     this.hots.push({ owner: 'depot', x: () => bubble.x, y: () => bubble.y - 16 * this.uiScale, r: 22, act: () => this.opts.onCollect(), visible: () => bubble.visible });
@@ -442,11 +444,15 @@ export class CampScene extends Phaser.Scene {
     const v = this.views.get('merkez'); const team = this.opts.team;
     if (!v || !team || v.level <= 0) return;
     const l = LOTS.merkez;
-    const pole = this.add.graphics(); pole.fillStyle(0x5b3a24, 1); pole.fillRect(-1.2, -54, 2.4, 54); pole.fillStyle(0xffc93c, 1); pole.fillCircle(0, -55, 2.6);
-    const cloth = this.add.graphics(); cloth.fillStyle(0x8b6bff, 1); cloth.fillRoundedRect(0, -53, 30, 22, 4); cloth.lineStyle(1.5, 0xffc93c, 1); cloth.strokeRoundedRect(0, -53, 30, 22, 4);
-    const em = this.add.text(15, -42, team.emblem, { fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontSize: '14px' }).setOrigin(0.5).setResolution(this.dpr * 1.5);
-    const c = this.add.container(l.x - 74, l.y + 44, [pole, cloth, em]).setDepth(l.y + 44);
-    if (!this.opts.reducedMotion) this.tweens.add({ targets: [cloth, em], scaleX: { from: 1, to: 0.86 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    const pole = this.add.graphics();
+    pole.fillStyle(0x2d1d6e, 0.35); pole.fillEllipse(3, 0, 16, 6);
+    pole.fillStyle(0x8a8274, 1); pole.fillRect(-4, -4, 8, 4); pole.fillStyle(0x5b3a24, 1); pole.fillRect(-1.3, -78, 2.6, 75); pole.fillStyle(0xffc93c, 1); pole.fillCircle(0, -79, 3);
+    const cloth = this.add.graphics();
+    cloth.fillStyle(0x6c4cf1, 1); cloth.beginPath(); cloth.moveTo(1, -76); cloth.lineTo(38, -73); cloth.lineTo(34, -61); cloth.lineTo(38, -49); cloth.lineTo(1, -52); cloth.closePath(); cloth.fillPath();
+    cloth.fillStyle(0x8b6bff, 1); cloth.fillRect(1, -76, 34, 4); cloth.lineStyle(1.4, 0xffc93c, 1); cloth.strokePath();
+    const em = this.add.text(17, -63, team.emblem, { fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontSize: '15px' }).setOrigin(0.5).setResolution(this.dpr * 1.5);
+    const c = this.add.container(l.x - 128, l.y + 40, [pole, cloth, em]).setDepth(l.y + 40);
+    if (!this.opts.reducedMotion) this.tweens.add({ targets: [cloth, em], scaleX: { from: 1, to: 0.82 }, scaleY: { from: 1, to: 1.04 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     this.teamFlag = c;
   }
 
@@ -485,7 +491,8 @@ export class CampScene extends Phaser.Scene {
       add(key, x, y, z, key.startsWith('c-tree') || key.startsWith('c-hair') ? 0.9 + r.frac() * 0.35 : 1);
     }
     // merkez seviyesine bağlı süsler: yol fenerleri (4+), meydan çiti (7+), heykel (7+), çeşme (10+), altın (13+)
-    ROADS.forEach((road, ri) => { for (const t of [0.42, 0.8]) { const [px, py] = bez(road, t); add('c-lamp', px + 15, py - 2, 0, 1, 4, 12); add('c-lamp-g', px + 15, py - 2, 0, 1, 13); void ri; } });
+    const pool = (x: number, y: number, minMerkez: number) => { const g = this.add.image(x, y, ATLAS, 'c-glow').setTint(0xffb84a).setBlendMode(Phaser.BlendModes.ADD).setScale(1.1, 0.55).setAlpha(0.35).setDepth(DEPTH.ground + 1); this.decor.push({ zone: 0, obj: g, shown: true, minMerkez }); };
+    ROADS.forEach((road) => { for (const t of [0.42, 0.8]) { const [px, py] = bez(road, t); add('c-lamp', px + 15, py - 2, 0, 1, 4, 12); add('c-lamp-g', px + 15, py - 2, 0, 1, 13); pool(px + 17, py, 4); } });
     for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; if (Math.sin(a) > 0.55 && Math.abs(Math.cos(a)) < 0.45) continue; const x = Math.cos(a) * 176, y = 4 + Math.sin(a) * 90; if (ROADS.some((rd) => Math.hypot(rd[1]![0] * 0.6 - x, rd[1]![1] * 0.6 - y) < 34)) continue; const axis = Math.abs(Math.cos(a)) > Math.abs(Math.sin(a)) * 1.6 ? 'v' : 'u'; add(`c-fence-${axis}`, x, y, 0, 0.9, 7, 12); add(`c-fence-${axis}-g`, x, y, 0, 0.9, 13); }
     add('c-statue', 128, 120, 0, 1, 7, 12); add('c-statue-g', 128, 120, 0, 1, 13);
     add('c-fountain', -128, 116, 0, 1, 10, 12); add('c-fountain-g', -128, 116, 0, 1, 13);
@@ -498,12 +505,12 @@ export class CampScene extends Phaser.Scene {
     const r = Phaser.Math.RND; r.sow(['sis']);
     const zones: [number, number, number][] = [[1, Math.PI * 0.78, Math.PI * 1.22], [2, -Math.PI * 0.36, Math.PI * 0.26], [3, Math.PI * 1.28, Math.PI * 1.6], [4, Math.PI * 1.6, Math.PI * 1.86]];
     for (const [zone, a0, a1] of zones) {
-      const n = 8;
+      const n = 7;
       for (let i = 0; i < n; i++) {
         const a = a0 + (a1 - a0) * (i / (n - 1)) + (r.frac() - 0.5) * 0.08;
-        for (const k of [0.7, 0.86]) {
+        for (const k of [0.78, 0.93]) {
           const s = shoreK(a) * k; const x = Math.cos(a) * ISLAND.rx * s, y = ISLAND.cy + Math.sin(a) * ISLAND.ry * s + 8;
-          const img = this.add.image(x, y, ATLAS, `c-cloud-${Math.floor(r.frac() * 4)}`).setScale((0.85 + r.frac() * 0.35) / TEX).setDepth(y + 30).setAlpha(0.92);
+          const img = this.add.image(x, y, ATLAS, `c-cloud-${Math.floor(r.frac() * 4)}`).setScale((0.8 + r.frac() * 0.35) / TEX).setDepth(y + 30).setAlpha(0.86);
           if (!this.opts.reducedMotion) this.tweens.add({ targets: img, x: x + 14, duration: 4000 + r.frac() * 3000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
           this.fog.push({ zone, img });
         }
@@ -515,13 +522,13 @@ export class CampScene extends Phaser.Scene {
     for (const f of this.fog) {
       const should = f.zone >= open;
       if (f.img.visible && !should) { if (initial) f.img.setVisible(false); else this.tweens.add({ targets: f.img, alpha: 0, scale: f.img.scale * 1.6, y: f.img.y - 30, duration: 1400 + Math.random() * 600, ease: 'Sine.In', onComplete: () => f.img.setVisible(false) }); }
-      else if (!f.img.visible && should) f.img.setVisible(true).setAlpha(0.95);
+      else if (!f.img.visible && should) f.img.setVisible(true).setAlpha(0.86);
     }
     for (const d of this.decor) {
       const show = d.zone < Math.max(1, open) && (d.minMerkez == null || this.merkezLevel >= d.minMerkez) && (d.maxMerkez == null || this.merkezLevel <= d.maxMerkez);
       if (show === d.shown) continue;
       d.shown = show;
-      if (show && !initial && open > before) { d.obj.setVisible(true).setScale(0); this.tweens.add({ targets: d.obj, scale: 1 / TEX, duration: 500, delay: 600 + Math.random() * 900, ease: 'Back.Out' }); }
+      if (show && !initial && open > before && d.obj.blendMode !== Phaser.BlendModes.ADD) { const sc = d.obj.scaleX; d.obj.setVisible(true).setScale(0); this.tweens.add({ targets: d.obj, scale: sc, duration: 500, delay: 600 + Math.random() * 900, ease: 'Back.Out' }); }
       else d.obj.setVisible(show);
     }
   }
@@ -587,7 +594,7 @@ export class CampScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ dış yardımcılar
   bounce(id: BuildingId) {
-    const v = this.views.get(id); if (!v) return; const s = v.sprite; const sx = 1 / TEX;
+    const v = this.views.get(id); if (!v) return; const s = v.sprite; const sx = BS[id] / TEX;
     this.tweens.killTweensOf(s); s.setScale(sx);
     this.tweens.add({ targets: s, scaleX: sx * 1.06, scaleY: sx * 0.93, duration: 90, yoyo: true, ease: 'Quad.Out', onComplete: () => this.tweens.add({ targets: s, scaleY: sx * 1.04, duration: 110, yoyo: true }) });
     const gl = this.add.image(s.x, s.y - 4, ATLAS, 'c-ring').setScale(0.3 * (LOTS[id].tiles / 2)).setTint(0xffc93c).setBlendMode(Phaser.BlendModes.ADD).setDepth(s.depth - 0.5);
@@ -599,8 +606,17 @@ export class CampScene extends Phaser.Scene {
     const wy = s.y - s.originY * s.displayHeight * 0.6;
     return { x: (s.x - cam.worldView.x) * cam.zoom, y: (wy - cam.worldView.y) * cam.zoom };
   }
-  focus(id: BuildingId) {
-    const l = LOTS[id]; const cam = this.cameras.main;
-    cam.pan(l.x, l.y - 30, 500, 'Sine.InOut');
+  /** binaya kaydır; above: alttan açılan panel için binayı ekranın üst kısmına al */
+  private restoreCam: { x: number; y: number } | null = null;
+  focus(id: BuildingId, above = false) {
+    const l = LOTS[id]; const cam = this.cameras.main; const v = this.views.get(id);
+    if (above && !this.restoreCam) this.restoreCam = { x: cam.midPoint.x, y: cam.midPoint.y };
+    const midY = v ? v.sprite.y - v.sprite.originY * v.sprite.displayHeight * 0.5 : l.y - 30;
+    const viewH = cam.height / cam.zoom;
+    cam.pan(l.x, above ? midY + viewH * 0.2 : midY, 450, 'Sine.easeInOut');
+  }
+  unfocus() {
+    const r = this.restoreCam; this.restoreCam = null; if (!r) return;
+    this.cameras.main.pan(r.x, r.y, 400, 'Sine.easeInOut');
   }
 }

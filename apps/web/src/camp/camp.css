@@ -58,6 +58,7 @@
 .bp-bar > i.full { background:linear-gradient(90deg,#ff9f1c,#ff5c8a); }
 .bp-depot, .bp-build, .bp-up { display:flex; flex-direction:column; gap:8px; }
 .bp-depot { background:rgba(255,201,60,.16); border-radius:16px; padding:10px 12px; }
+.bp .qn { color:#2d1d6e; font-weight:900; font-variant-numeric:tabular-nums; }
 .bp-build .big-count { font-size:22px; font-weight:900; color:#2d1d6e; font-variant-numeric:tabular-nums; }
 .bp-note { font-size:12.5px; color:#6b5a9a; }
 .bp .btn.gold { background:linear-gradient(180deg,#ffd66b,#ff9f1c); color:#2d1d6e; box-shadow:0 6px 16px rgba(255,159,28,.35); }

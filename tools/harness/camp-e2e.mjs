@@ -11,6 +11,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createServer } from 'node:net';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 
@@ -42,13 +43,14 @@ const pidOf = (name) => db.get('SELECT id FROM players WHERE name = ?', name)?.i
 const wsUrl = srv.url;
 
 // ---- web önizleme
-const wport = 5300 + Math.floor(Math.random() * 400);
-const preview = spawn('npx', ['vite', 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32' });
+// boş bir port (eski, sahipsiz bir önizleme sunucusuna denk gelip eski derlemeyi görmeyelim)
+const wport = await new Promise((res) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
+const preview = spawn('npx', ['vite', 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32', detached: process.platform !== 'win32' });
 procs.push(preview);
 await sleep(1800);
 const host = `http://localhost:${wport}`;
 const base = `${host}/?sunucu=${encodeURIComponent(wsUrl)}`;
-const cleanup = async () => { for (const p of procs) { try { p.kill(); } catch { /* yok */ } } await srv.close().catch(() => undefined); };
+const cleanup = async () => { for (const p of procs) { try { if (process.platform !== 'win32') process.kill(-p.pid); else p.kill(); } catch { try { p.kill(); } catch { /* yok */ } } } await srv.close().catch(() => undefined); };
 
 const browser = await chromium.launch({ headless: !args.has('--headed'), executablePath: process.env.PLAYWRIGHT_CHROMIUM, args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
 const errors = [];
@@ -92,7 +94,7 @@ try {
       if (L === 10) {
         await tapBuilding(P, 'laboratuvar');
         await P.locator('.bp').waitFor();
-        await shot(P, 'panel-onizleme-lab', 700);
+        await shot(P, 'panel-onizleme-lab', 1800);
         await P.locator('.bp-x').click();
       }
     }
@@ -141,7 +143,7 @@ try {
     await tapBuilding(B, 'merkez');
     await B.locator('.bp').waitFor();
     check((await B.locator('.bp h2').innerText()).includes('Kamp Merkezi'), 'panel: Kamp Merkezi');
-    await shot(B, 'B-panel-merkez', 600);
+    await shot(B, 'B-panel-merkez', 1800);
     await B.locator('.bp').getByRole('button', { name: /Yükselt/ }).click();
     await B.locator('.bp-build').waitFor({ timeout: 8000 });
     ok('inşaat başladı (panelde geri sayım)');
@@ -187,7 +189,8 @@ try {
     await shot(B, 'B-depo-dolu', 1500);
     const coinsBefore = (await B.locator('.tb-pill', { hasText: '🪙' }).innerText()).trim();
     await tapBuilding(B, 'depo'); await B.locator('.bp').waitFor();
-    await shot(B, 'B-panel-depo', 500);
+    if (process.env.DEBUG_KAMP) console.log('kamera', JSON.stringify(await B.evaluate(() => window.__kamp.view())), JSON.stringify(await B.evaluate(() => window.__kamp.pos('depo'))));
+    await shot(B, 'B-panel-depo', 1800);
     await B.locator('.bp').getByRole('button', { name: /Topla/ }).click();
     await sleep(350);
     await shot(B, 'B-depo-topla-ucus', 0);

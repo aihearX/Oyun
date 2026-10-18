@@ -4,6 +4,7 @@ import type { TeamMember, TeamRole } from '@odi/shared';
 import { act, toast } from '../../net';
 import { OdiAvatar } from '../../ui/OdiAvatar';
 import { ROLE_LABEL, Sheet, fmtNum } from '../../ui/social';
+import { openProfile } from '../../friends';
 
 const HATS: Record<string, string> = { 'sapka-bere': 'bere', 'sapka-nota': 'nota', 'sapka-koklea': 'koklea', 'sapka-kulaklik': 'kulaklik', 'sapka-parti': 'parti', 'sapka-yildiz': 'yildiz', 'sapka-dalgic': 'dalgic', 'sapka-tac': 'tac', 'sapka-kasif': 'kasif' };
 export const hatKey = (h: string) => HATS[h] ?? h;
@@ -27,7 +28,7 @@ export function TeamMembers() {
     <div className="stack">
       <div className="row between"><span className="muted">{onlineCount} çevrimiçi · {team.members}/{team.max} üye</span><span className="muted">bu hafta</span></div>
       {roster.map((m) => { const c = contrib.get(m.id); return (
-        <button className="card member" key={m.id} onClick={() => canManage(m) && setSel(m)} disabled={!canManage(m)} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`}>
+        <button className="card member" key={m.id} onClick={() => (canManage(m) ? setSel(m) : openProfile(m.id))} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`}>
           <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
           <span className="grow min0 mem-body">
             <span className="row mem-top"><b className="ellipsis">{m.name}{m.id === me.id ? ' (sen)' : ''}</b>{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{ROLE_LABEL[m.role]}</span>}</span>
@@ -35,10 +36,11 @@ export function TeamMembers() {
           </span>
           <span className="mem-lvl muted">{m.highest}. bölüm</span>
         </button>); })}
-      {myRole !== 'uye' && <div className="muted small-note">Bir üyeye dokun: rol ver ya da takımdan çıkar.</div>}
+      <div className="muted small-note">{myRole !== 'uye' ? 'Bir üyeye dokun: profil, rol ver ya da takımdan çıkar.' : 'Bir üyeye dokun: profil kartı.'}</div>
       {sel && (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           <div className="muted">{ROLE_LABEL[sel.role]} · {sel.highest}. bölüm · ⭐ {sel.stars}</div>
+          <button className="btn ghost" onClick={() => { const id = sel.id; setSel(null); openProfile(id); }}>👤 Profili gör</button>
           {myRole === 'lider' && sel.role !== 'yardimci' && <button className="btn ghost" onClick={() => void role(sel, 'yardimci')}>⭐ Yardımcı yap</button>}
           {myRole === 'lider' && sel.role === 'yardimci' && <button className="btn ghost" onClick={() => void role(sel, 'uye')}>Üye yap</button>}
           {myRole === 'lider' && <button className="btn ghost" onClick={() => void role(sel, 'lider')}>👑 Liderliği devret</button>}

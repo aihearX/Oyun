@@ -130,13 +130,20 @@ async function openEvents(p, view) {
     if (await fab.count()) await fab.click();
     else {
       // haritayı yeniden açmadan: Takım → Etkinlikler sekmesi → merkez
-      await p.page.locator('nav.tabbar .tab', { hasText: 'Takım' }).click();
+      await toTab(p, 'Takım');
       await p.page.locator('.subtab', { hasText: 'Etkinlikler' }).click();
       await p.page.getByRole('button', { name: /Etkinlik merkezini aç/ }).click();
     }
   }
   await tid(p, 'etkinlikler').waitFor();
   if (view) { await tid(p, `ev-kart-${view}`).locator('.ev-band').click(); await p.page.locator(`[data-testid="etkinlikler"][data-view="${view}"]`).waitFor(); }
+}
+/** alt ekranlardan geri gelerek sekmeye geç */
+async function toTab(p, label) {
+  for (let i = 0; i < 10 && !(await p.page.locator('nav.tabbar').count()); i++) {
+    await p.page.locator('button[aria-label="Geri"]').first().click().catch(() => undefined); await sleep(300);
+  }
+  await p.page.locator('nav.tabbar .tab', { hasText: label }).click();
 }
 /** bölüm botla oynanır; etkinlik ekranına sonuçla dönülür */
 async function waitLevelDone(p, timeoutMs = 150_000) {
@@ -271,9 +278,7 @@ try {
   await shot(A, 'meydan-siralama');
 
   // ---- takım sekmesi, görevler, ses avı, turnuva
-  await B.page.locator('.ev-head button[aria-label="Geri"]').click().catch(() => undefined);
-  await B.page.locator('.ev-hub-head button[aria-label="Geri"]').click().catch(() => undefined);
-  await B.page.locator('nav.tabbar .tab', { hasText: 'Takım' }).click();
+  await toTab(B, 'Takım');
   await B.page.locator('.subtab', { hasText: 'Etkinlikler' }).click();
   await tid(B, 'takim-etkinlikler').waitFor();
   await shot(B, 'takim-etkinlik-sekmesi');

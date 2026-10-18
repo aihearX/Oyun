@@ -138,7 +138,7 @@
 .ev-leg .btn.small { padding:8px 10px; min-height:40px; }
 .ev-carrier { display:flex; flex-direction:column; gap:8px; }
 .ev-carrier.tone-teal { border:2px solid var(--teal); box-shadow:0 0 0 4px color-mix(in srgb, var(--teal) 20%, transparent), var(--shadow); }
-.ev-pass { appearance:none; font:inherit; color:var(--text); display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border-radius:16px; background:var(--glass); border:2px solid rgba(255,255,255,.14); cursor:pointer; min-height:52px; }
+.ev-pass { flex-wrap:wrap; appearance:none; font:inherit; color:var(--text); display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border-radius:16px; background:var(--glass); border:2px solid rgba(255,255,255,.14); cursor:pointer; min-height:52px; }
 .ev-pass:active { transform:scale(.98); }
 .ev-dot { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.3); flex:none; } .ev-dot.on { background:var(--lime); box-shadow:0 0 8px var(--lime); }
 

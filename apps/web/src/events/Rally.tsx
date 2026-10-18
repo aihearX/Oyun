@@ -5,7 +5,7 @@ import { platform } from '../platform';
 import { celebrate } from '../celebrate';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
-import { fmtNum, fmtTime } from '../ui/social';
+import { Sheet, fmtNum, fmtTime } from '../ui/social';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, levelName, useSrvNow } from './common';
 import type { PlayFn } from './EventsScreen';
@@ -69,7 +69,8 @@ export function RallyView({ onPlay }: { onPlay: PlayFn }) {
       </div>
 
       {open && !mine && <button className="btn coral ev-big" data-testid="ralli-katil" disabled={busy} onClick={() => void act(async () => { const r = await evNet()!.call('rally.join', { rallyId: rally.id }); useEvents.setState({ rally: r.rally }); platform().haptic('heavy'); })}>🔥 Ralliye katıl</button>}
-      {open && mine && !ready && <div className="card ev-wait" data-testid="ralli-bekleme"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Takım arkadaşları bekleniyor</b><span className="muted small-note">Saldırı için en az {RALLY_RULES.minPlayers} katılımcı gerekli. Takımına bildirim gitti!</span></div>}
+      {open && mine && !ready && <div className="card ev-wait" data-testid="ralli-bekleme"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Takım arkadaşları bekleniyor</b><span className="muted small-note">Saldırı için en az {RALLY_RULES.minPlayers} katılımcı gerekli. Takımına bildirim gitti!</span><RallyCall rallyId={rally.id} title={m.name} joined={rally.participants.map((p) => p.id)} /></div>}
+      {open && mine && ready && <RallyCall rallyId={rally.id} title={m.name} joined={rally.participants.map((p) => p.id)} />}
       {open && mine && ready && (
         <button className="btn ev-big" data-testid="ralli-saldir" disabled={mine.tries >= RALLY_RULES.triesPerPlayer} onClick={() => onPlay(eventSpec(m.level, rally.salt), { kind: 'ralli', rallyId: rally.id })}>
           ⚔️ Saldır! · {m.level}. {levelName(m.level)} <small>({RALLY_RULES.triesPerPlayer - mine.tries} hak)</small>
@@ -107,5 +108,34 @@ function Picker({ left, members, busy, err, onStart }: { left: number; members: 
         </div>
       ))}
     </div>
+  );
+}
+
+/** Ralliye takım arkadaşını özel mesajla çağır (DM davet kartı → Etkinlikler › Ralli) */
+export function RallyCall({ rallyId, title, joined }: { rallyId: string; title: string; joined: string[] }) {
+  const team = useNet((s) => s.team); const me = useNet((s) => s.me);
+  const [open, setOpen] = useState(false); const [sent, setSent] = useState<Record<string, string>>({});
+  const list = (team?.roster ?? []).filter((m) => m.id !== me?.id && !joined.includes(m.id));
+  if (!list.length) return null;
+  const call = async (to: string) => {
+    try { await evNet()!.call('dm.send', { to, text: `Ralliye katıl! ${title} seni bekliyor 🔥`, kind: 'davet', meta: { type: 'ralli', roomId: rallyId, title } }); setSent((s) => ({ ...s, [to]: 'ok' })); platform().haptic('light'); }
+    catch (e) { setSent((s) => ({ ...s, [to]: errText(e) })); }
+  };
+  return (
+    <>
+      <button className="btn ghost small" data-testid="ralli-cagir" onClick={() => setOpen(true)}>📨 Takım arkadaşını çağır</button>
+      {open && (
+        <Sheet title="Kimi ralliye çağıralım?" onClose={() => setOpen(false)}>
+          <div className="muted small-note">Özel mesajla davet kartı gider; dokununca ralli açılır.</div>
+          {list.map((m) => (
+            <div key={m.id} className="ev-pass">
+              <OdiAvatar color={m.color} hat={m.hat} size={36} /><b className="grow ellipsis">{m.name}</b>
+              {sent[m.id] === 'ok' ? <span className="ev-tag">Gönderildi ✓</span> : <button className="btn small" onClick={() => void call(m.id)}>Çağır</button>}
+              {sent[m.id] && sent[m.id] !== 'ok' && <small className="ev-note" style={{ flexBasis: '100%' }}>{sent[m.id]}</small>}
+            </div>
+          ))}
+        </Sheet>
+      )}
+    </>
   );
 }

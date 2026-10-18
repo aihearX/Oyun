@@ -143,7 +143,7 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><ProfileCardHost /><EventNoticeStrip onOpen={(v) => nav.open({ name: 'events', view: v })} /></>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><ProfileCardHost /><EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} /></>;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);

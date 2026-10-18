@@ -19,7 +19,12 @@ export interface CampHandle {
   /** binanın ekrandaki noktası (CSS px, sayfa koordinatı) */
   screenPos(id: BuildingId): { x: number; y: number } | null;
   bounce(id: BuildingId): void;
-  focus(id: BuildingId): void;
+  /** binaya kaydır (above: alttaki panel için binayı üste al) */
+  focus(id: BuildingId, above?: boolean): void;
+  /** kamera merkezi ve yakınlaştırma (test/hata ayıklama) */
+  view(): { x: number; y: number; zoom: number } | null;
+  /** panel kapanınca kamerayı önceki yerine döndür */
+  unfocus(): void;
   /** döngüyü uyut/uyandır (ekranda değilken) */
   sleep(on: boolean): void;
   destroy(): void;
@@ -69,7 +74,9 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
       const r = game.canvas.getBoundingClientRect(); return { x: r.left + p.x / dpr, y: r.top + p.y / dpr };
     },
     bounce: (id) => run(() => scene.bounce(id)),
-    focus: (id) => run(() => { boost(1500); scene.focus(id); }),
+    view: () => { if (!scene.ready) return null; const c = scene.cameras.main; return { x: c.midPoint.x, y: c.midPoint.y, zoom: scene.userZoom }; },
+    unfocus: () => run(() => { boost(1200); scene.unfocus(); }),
+    focus: (id, above) => run(() => { boost(1500); scene.focus(id, above); }),
     sleep: (on) => { if (!game.loop) return; if (on) game.loop.sleep(); else { game.loop.wake(); boost(); } },
     destroy: () => { if (dead) return; dead = true; ro?.disconnect(); clearInterval(idleTimer); document.removeEventListener('visibilitychange', onVis); for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.removeEventListener(ev, onInput); try { game.destroy(true); } catch { /* yok */ } },
   };

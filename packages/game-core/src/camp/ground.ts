@@ -105,7 +105,7 @@ export function paintGround(ctx: Ctx) {
   // ---- arsalar (taş döşeme)
   for (const id of BUILDING_ORDER) {
     if (id === 'merkez') continue;
-    const l = LOTS[id]; const h = l.tiles * 16 + 6;
+    const l = LOTS[id]; const h = l.tiles * 16 + 4;
     const pts: [number, number][] = [P(-h, -h), P(h, -h), P(h, h), P(-h, h)].map(([x, y]) => [x + l.x, y + l.y]);
     soft(ctx, () => { pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y + 3) : ctx.moveTo(x, y + 3))); ctx.closePath(); }, 'rgba(40,20,10,0.35)', 6);
     ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); ctx.fillStyle = '#b89a74'; ctx.fill();

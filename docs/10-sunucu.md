@@ -155,3 +155,21 @@ Web/mobil arayüz (`apps/web/src/net.ts`): bağlıyken sunucu cüzdanı tek doğ
 4. **Uyarı:** ücretsiz planda disk kalıcı değildir; her dağıtım/yeniden başlatmada sqlite dosyası sıfırlanır (oyuncular yeni hesapla başlar — istemci bunu otomatik yönetir). Ücretsiz servis 15 dk hareketsizlikte uyur; ilk bağlantı ~30-60 sn sürebilir. Kalıcılık için: ücretli plana kalıcı disk ekleyip `ODI_DB`'yi diskin yoluna (ör. `/var/data/odi.sqlite`) ver, ya da ileride Postgres'e geç.
 
 Yerelde Docker ile: `docker build -f apps/server/Dockerfile -t odi-sunucu . && docker run -p 8787:8787 -v odi-veri:/app/data odi-sunucu`.
+
+
+## Etkinlikler (grup ve bireysel)
+
+Hepsi sunucu yetkilidir; saatler Europe/Istanbul'a göredir; ödüller ödül kutusu ya da takım hediyesi olarak gelir; aynı koşu (runId) iki kez sayılmaz.
+
+| Etkinlik | Takvim | Kısaca |
+|---|---|---|
+| Ralli | her an (takım günde 6) | Üye mini canavara ralli başlatır, 10 dk içinde en az 2 üye katılıp ralli bölümünü oynar; can sıfırlanırsa katılan herkese ödül, takıma XP, düello puanı |
+| Takım Düellosu | Pzt 00:00–Çar 00:00, Per 00:00–Cmt 00:00 | Güce en yakın takımla eşleşme; yıldız, ralli, bayrak puanları; son 2 saat bildirimi; kazanan/berabere/teselli ödülleri |
+| Bayrak Yarışı | haftalık | 4 ayaklı parkur, bayrağı al-koş-devret; en iyi ayak süreleri toplamı takım sıralamasına |
+| Ses Avı | 3 günlük (Pzt–Per, Cum–Pzt) | Bölüm jetonları ortak melodiye nota olarak sayılır; 8 kademe hediyesi; %100'de takım şarkısı + sandık |
+| Kulak Bilgi Yarışması | 13:00 ve 20:00 (lider/yardımcı da başlatabilir) | 10 soru × 15 sn, açıklamalı; takım ortalaması; günlük sıralama |
+| Günlük takım görevleri | her gün | 3 ortak görev, her biri tüm üyelere hediye; üçü birden ortak sandık |
+| Günün Meydan Okuması | her gün | Herkese aynı bölüm, eşit şartlar, 3 deneme; genel ve arkadaş sıralaması |
+| Haftalık Turnuva | haftalık | 5 bölümde en iyi skorlar toplamı; 50 kişilik gruplar |
+
+Test modu: `ODI_EVENTS_FAST=1` → süreler dakikaya iner, dönemler sunucu açılışında başlar, bilgi yarışması her an açılabilir. Uçtan uca test: `node tools/harness/events-e2e.mjs`.

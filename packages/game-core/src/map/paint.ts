@@ -259,7 +259,7 @@ const zar: Painter = (ctx, w, h, rnd) => {
 };
 
 const kemik: Painter = (ctx, w, h, rnd, z, L) => {
-  ctx.fillStyle = css(0x9fc2ea, 0.5); ctx.fillRect(0, 0, w, h);
+  { const g = ctx.createLinearGradient(0, 0, w, h); g.addColorStop(0, css(0x6fa3e6, 0.62)); g.addColorStop(1, css(0x9fd0f0, 0.55)); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h); }
   // hava boşluğu: bulutlu açık gökyüzü platoları
   for (let i = 0; i < 9; i++) { const p = blobPath(ctx, rnd() * w, rnd() * h, 50 + rnd() * 40, 20 + rnd() * 12, rnd, 0.25); wash(ctx, p, 0xffffff, 0.35, 0.2); }
   // Üç Kemik Dağları: kemik biçimli platolar (fildişi, taramalı)
