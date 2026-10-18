@@ -10,7 +10,7 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
 import { Sheet, TopBar, fmtNum } from '../ui/social';
 import { LeagueCard } from './InboxScreen';
-import { DmTopPill, useFriends } from '../friends';
+import { useFriends } from '../friends';
 
 export type ProfileLink = 'achievements' | 'album' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
@@ -27,7 +27,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const online = st === 'bağlı' && !!me;
   return (
     <div className="screen fade-in with-tabs">
-      <TopBar title="Profil" extra={online ? <DmTopPill /> : undefined} />
+      <TopBar title="Profil" />
       <div className="card profile-hero">
         <button className="avatar-btn" onClick={() => onOpen('wardrobe')} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /></button>
         <div className="grow min0">
