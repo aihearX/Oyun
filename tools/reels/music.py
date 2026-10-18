@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """ODİ Reels müziği: telifsiz, özgün, ninni esintili neşeli bir parça (numpy ile sentez).
 Yapı: 104 BPM, Do majör; C-G-Am-F akoru; yumuşak davul, bas, pluck melodi, parlak çan vurguları.
-Kullanım: python3 tools/reels/music.py <çıktı.wav> <saniye>
+Sahne işaretleri (isteğe bağlı JSON): {"cuts": [sn, ...], "boss": [[başla, bitir], ...]}
+  cuts → geçişten hemen önce yükselen "vuuş" + geçişte parlak çan; boss → bas oktav aşağı, ağır davul, gerilimli akor.
+Kullanım: python3 tools/reels/music.py <çıktı.wav> <saniye> [işaretler.json]
 """
-import sys, wave
+import sys, wave, json
 import numpy as np
 
 SR = 44100
@@ -11,6 +13,10 @@ BPM = 104
 BEAT = 60 / BPM
 out_path = sys.argv[1] if len(sys.argv) > 1 else 'music.wav'
 seconds = float(sys.argv[2]) if len(sys.argv) > 2 else 60
+cues = json.load(open(sys.argv[3])) if len(sys.argv) > 3 else {}
+CUTS = [float(x) for x in cues.get('cuts', [])]
+BOSS = [(float(a), float(b)) for a, b in cues.get('boss', [])]
+in_boss = lambda t: any(a <= t < b for a, b in BOSS)
 N = int(SR * seconds)
 mix = np.zeros(N)
 
@@ -69,6 +75,19 @@ def clap(vol=0.12):
     w = rng.standard_normal(n)
     return vol * w * (np.exp(-t * 25) + 0.5 * np.exp(-np.maximum(0, t - 0.012) * 30))
 
+def whoosh(dur=0.7, vol=0.16):
+    """yükselen beyaz gürültü süpürmesi (sahne geçişi)"""
+    n = int(dur * SR); t = np.arange(n) / SR
+    w = rng.standard_normal(n)
+    # basit yüksek geçiren: fark + giderek artan parlaklık
+    hp = np.diff(np.concatenate([[0], w])) * (0.3 + 0.7 * t / dur) + w * 0.25 * (1 - t / dur)
+    return vol * hp * (t / dur) ** 2
+
+def boom(vol=0.6):
+    n = int(0.6 * SR); t = np.arange(n) / SR
+    f = 70 * np.exp(-t * 6) + 32
+    return vol * np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 4.5)
+
 # akorlar (her biri 1 ölçü = 4 vuruş): C G Am F
 chords = [(48, [60, 64, 67]), (43, [59, 62, 67]), (45, [60, 64, 69]), (41, [60, 65, 69])]
 # özgün melodi (8 ölçü), ninni gibi inen-çıkan: (nota, vuruş uzunluğu)
@@ -80,17 +99,25 @@ motif = [
 ]
 bar = 4 * BEAT
 bars = int(seconds / bar) + 1
+boss_chords = [(45, [57, 60, 64]), (41, [57, 60, 65]), (43, [55, 59, 62]), (40, [56, 59, 64])]  # Am F G E: gerilim
 for b in range(bars):
     t0 = b * bar
-    root, tri = chords[b % 4]
-    add(pad(tri, bar * 1.02), t0)
+    boss = in_boss(t0 + bar / 2)
+    root, tri = (boss_chords if boss else chords)[b % 4]
+    add(pad(tri, bar * 1.02, 0.065 if boss else 0.05), t0)
     for k in range(4):
-        add(bass(root if k % 2 == 0 else root + 12, BEAT * 0.9), t0 + k * BEAT)
+        add(bass((root - 12 if boss else root) if k % 2 == 0 else root + (0 if boss else 12), BEAT * 0.9, 0.34 if boss else 0.28), t0 + k * BEAT)
     if b >= 1:  # davul ilk ölçüden sonra girer
         for k in range(4):
-            add(kick(), t0 + k * BEAT)
+            add(kick(0.7 if boss else 0.55), t0 + k * BEAT)
             add(hat(), t0 + k * BEAT + BEAT / 2)
-            if k in (1, 3): add(clap(), t0 + k * BEAT)
+            if boss: add(hat(0.035), t0 + k * BEAT + BEAT / 4); add(hat(0.035), t0 + k * BEAT + 3 * BEAT / 4)
+            if k in (1, 3): add(clap(0.15 if boss else 0.12), t0 + k * BEAT)
+        if boss: add(boom(), t0)
+# sahne geçişleri: vuuş + çan
+for c in CUTS:
+    add(whoosh(), max(0, c - 0.7))
+    add(bell(84, 1.4, 0.1), c); add(bell(79, 1.4, 0.06), c)
 # melodi: 2. ölçüden itibaren, döngü
 t = bar
 i = 0
