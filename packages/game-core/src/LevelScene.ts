@@ -106,7 +106,7 @@ export class LevelScene extends Phaser.Scene {
     };
     if (this.opts.race) {
       const race = this.opts.race;
-      this.race = new RaceLayer({ scene: this, hero: this.hero, gateX: w.gateX, startX: w.startX, startY: w.startY, timeScale: ts, haptic: (k) => this.emit({ type: 'haptic', kind: k }), live: () => this.state.started && !this.state.finished }, race);
+      this.race = new RaceLayer({ scene: this, hero: this.hero, gateX: w.gateX, startX: w.startX, startY: w.startY, timeScale: ts, haptic: (k) => this.emit({ type: 'haptic', kind: k }), live: () => this.state.started && !this.state.finished, heroColor }, race);
       const go = () => { this.input_.tick(); begin(); };
       const delay = this.opts.bot ? Math.max(0, race.botDelayMs ?? 0) : 0;
       this.race.countdown(`${this.spec.number}. ${this.spec.name}\n${this.spec.objective.label}`, () => { if (delay) this.time.delayedCall(delay, go); else go(); });

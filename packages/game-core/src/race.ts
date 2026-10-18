@@ -40,6 +40,8 @@ export interface RaceHost {
   haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error'): void;
   /** kendi koşum sürüyor mu (başladı ve bitmedi) */
   live(): boolean;
+  /** kendi Odi rengim (şeritteki işaret için; yoksa varsayılan mor) */
+  heroColor?: number;
 }
 
 /**
@@ -103,15 +105,18 @@ export class RaceLayer {
   private buildStrip() {
     const { scene } = this.host; const w = viewW(scene); const y = this.stripY;
     const bg = scene.add.graphics().setScrollFactor(0).setDepth(104);
-    bg.fillStyle(0xffffff, 0.9); bg.fillRoundedRect(8, y - 14, w - 16, 28, 14); bg.lineStyle(1, 0xe6e8f0, 1); bg.strokeRoundedRect(8, y - 14, w - 16, 28, 14);
-    this.rankText = scene.add.text(18, y, '', { fontFamily: FONT, fontSize: '14px', fontStyle: '800', color: COLORS.text }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(105);
-    this.x0 = 64; this.x1 = w - 36;
+    // sağdaki seri rozetiyle (LevelHud) çakışmasın diye şerit sola yaslı ve koyu cam görünümünde
+    const right = w - 132;
+    bg.fillStyle(0x140c35, 0.62); bg.fillRoundedRect(8, y - 14, right - 8, 28, 14); bg.lineStyle(1.5, 0x8f7cff, 0.55); bg.strokeRoundedRect(8, y - 14, right - 8, 28, 14);
+    this.rankText = scene.add.text(18, y, '', { fontFamily: FONT, fontSize: '14px', fontStyle: '800', color: '#fff6e5' }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(105);
+    this.x0 = 64; this.x1 = right - 30;
     const track = scene.add.graphics().setScrollFactor(0).setDepth(104);
-    track.lineStyle(3, 0xd0d4e2, 1); track.lineBetween(this.x0, y, this.x1, y);
+    track.lineStyle(3, 0x6a5fb0, 1); track.lineBetween(this.x0, y, this.x1, y);
     scene.add.text(this.x1 + 14, y, '🏁', { fontFamily: FONT, fontSize: '15px' }).setOrigin(0.5).setScrollFactor(0).setDepth(105);
     this.meRing = scene.add.graphics().setScrollFactor(0).setDepth(106);
     this.meRing.lineStyle(2.5, 0x6c4cf1, 1); this.meRing.strokeCircle(0, 0, 12);
-    this.meDot = scene.add.image(this.x0, y, 'odi-happy').setScale(0.42).setScrollFactor(0).setDepth(107);
+    const meColor = this.host.heroColor ?? 0x6c4cf1;
+    this.meDot = scene.add.image(this.x0, y, heroTexture(scene, `odi-g${(meColor & 0xffffff).toString(16)}`, meColor, HERO_SIZE, 'happy')).setScale(0.42).setScrollFactor(0).setDepth(107);
     this.leadBadge = scene.add.text(this.x0, y - 15, '1.', { fontFamily: FONT, fontSize: '11px', fontStyle: '800', color: '#13162a', backgroundColor: '#ffc25c', padding: { x: 4, y: 1 } })
       .setOrigin(0.5, 1).setScrollFactor(0).setDepth(108).setVisible(false);
   }
