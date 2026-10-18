@@ -706,7 +706,7 @@ function bubbleTex(scene: Phaser.Scene): string {
  * opts.quality 'low': ışık huzmesi, sis bandı ve parçacıklar kapalı, doku ölçeği 1 (zayıf cihazlar için).
  */
 export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number, worldH: number, opts: { quality?: 'high' | 'low' } = {}): BiomeBackdrop {
-  const A = artOf(biomeId); const set = PAINTERS[A.motif]!; const low = opts.quality === 'low';
+  const A = artOf(biomeId); const set = PAINTERS[A.motif]!; let low = opts.quality === 'low';
   const R = low ? 1 : renderResolution(); const cam = scene.cameras.main;
   let vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
   const seed = hashStr(A.id);
@@ -803,6 +803,7 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
     },
     resize(w, h) { vw = w; vh = h; layout(); mkMotes(); },
     setForegroundAlpha(a) { fgA = a; for (const l of layers) if (l.def.depth > 0) l.ts.setAlpha(fgA); },
+    setQuality(q) { const l = q === 'low'; if (l === low) return; low = l; shafts.setVisible(!low); fog.setVisible(!low); mkMotes(); },
     destroy() { for (const o of objects) o.destroy(); for (const m of motes) m.destroy(); },
   };
   void worldW;

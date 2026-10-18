@@ -48,6 +48,8 @@ export interface LevelOptions {
   sounds?: boolean;
   /** bölüm başı can (varsayılan 3) */
   lives?: number;
+  /** harness/pazarlama çekimi: tuval piksel oranını zorla (1–3). Yoksa bot 1, oyuncu cihaz oranı (en çok 2). Yalnız görsel. */
+  renderScale?: number;
   /** bot: hız çarpanı (test süresini kısaltmak için) */
   timeScale?: number;
   /** kozmetik görünüm (yalnızca görsel): gövde rengi ve şapka anahtarı */

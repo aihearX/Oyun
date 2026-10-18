@@ -21,6 +21,8 @@ export interface BiomeBackdrop {
   resize(viewW: number, viewH: number): void;
   /** ön plan katmanını aç/kapa (ör. öğretici anında) */
   setForegroundAlpha(a: number): void;
+  /** çalışırken kalite değiştir: 'low' toplamsal ışık huzmelerini, sis bandını ve parçacıkları kapatır (yeniden boyamaz) */
+  setQuality(q: 'high' | 'low'): void;
   destroy(): void;
   readonly objects: Phaser.GameObjects.GameObject[];
 }

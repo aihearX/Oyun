@@ -44,19 +44,55 @@ export function flash(scene: Phaser.Scene, color = 0xff5c5c, alpha = 0.35, ms = 
   scene.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
 }
 
+/** oyun içi (koyu "Kulak Gecesi" sahnesi) için açık tonlar: açık tema renkleri koyu zeminde okunmaz */
+const NIGHT: Record<string, string> = { [COLORS.accent]: '#c9b8ff', [COLORS.accent2]: '#2ee6d6', [COLORS.coral]: '#ff7aa2', [COLORS.amber]: '#ffc93c', [COLORS.muted]: '#e4dcff', [COLORS.text]: '#fff6e5', '#1b8f52': '#8ef0b0' };
+const DPR = (s: Phaser.Scene) => Math.max(1, Math.min(3, s.cameras.main.zoom || 1));
+
 /** Uçan "+120" yazısı. */
 export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = COLORS.accent2) {
-  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: '22px', fontStyle: '800', color }).setOrigin(0.5).setDepth(150);
+  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: '21px', fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: 5, resolution: DPR(scene) }).setOrigin(0.5).setDepth(150);
   scene.tweens.add({ targets: t, y: y - 60, alpha: 0, duration: 700, ease: 'Cubic.Out', onComplete: () => t.destroy() });
+}
+
+/** koyu cam kart dokusu (Kulak Gecesi: mor cam, altın kenar) */
+function nightCardTex(scene: Phaser.Scene, w: number, h: number, rim = '#ffc93c'): string {
+  const r = DPR(scene); const key = `ui-night-${w}x${h}-${rim}@${r}`;
+  if (scene.textures.exists(key)) return key;
+  const pad = 14; const c = document.createElement('canvas'); c.width = (w + pad * 2) * r; c.height = (h + pad * 2) * r; const g = c.getContext('2d')!; g.scale(r, r);
+  g.save(); g.shadowColor = 'rgba(5,0,25,0.65)'; g.shadowBlur = 18; g.shadowOffsetY = 6; g.beginPath(); g.roundRect(pad, pad, w, h, 26);
+  const bg = g.createLinearGradient(0, pad, 0, pad + h); bg.addColorStop(0, 'rgba(58,39,136,0.97)'); bg.addColorStop(1, 'rgba(26,16,70,0.97)'); g.fillStyle = bg; g.fill(); g.restore();
+  g.save(); g.beginPath(); g.roundRect(pad, pad, w, h, 26); g.clip(); const sh = g.createLinearGradient(0, pad, 0, pad + h * 0.5); sh.addColorStop(0, 'rgba(255,255,255,0.16)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = sh; g.fillRect(pad, pad, w, h * 0.5);
+  const gl = g.createRadialGradient(pad + w / 2, pad, 4, pad + w / 2, pad, w * 0.6); gl.addColorStop(0, 'rgba(255,201,60,0.22)'); gl.addColorStop(1, 'rgba(255,201,60,0)'); g.fillStyle = gl; g.fillRect(pad, pad, w, h); g.restore();
+  g.beginPath(); g.roundRect(pad + 1, pad + 1, w - 2, h - 2, 25); g.strokeStyle = rim; g.globalAlpha = 0.75; g.lineWidth = 2; g.stroke(); g.globalAlpha = 1;
+  g.beginPath(); g.roundRect(pad + 4, pad + 4, w - 8, h - 8, 22); g.strokeStyle = 'rgba(255,255,255,0.08)'; g.lineWidth = 1; g.stroke();
+  scene.textures.addCanvas(key, c); return key;
+}
+/** altın yıldız (dolu) ya da boş yuva */
+function starTex(scene: Phaser.Scene, full: boolean): string {
+  const r = DPR(scene); const key = `ui-star-${full ? 1 : 0}@${r}`; if (scene.textures.exists(key)) return key;
+  const S = 48; const c = document.createElement('canvas'); c.width = S * r; c.height = S * r; const g = c.getContext('2d')!; g.scale(r, r);
+  const path = () => { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5; const rr = i % 2 ? 9.5 : 21; g.lineTo(24 + Math.cos(a) * rr, 25 + Math.sin(a) * rr); } g.closePath(); };
+  if (full) {
+    const gl = g.createRadialGradient(24, 25, 2, 24, 25, 24); gl.addColorStop(0, 'rgba(255,201,60,0.55)'); gl.addColorStop(1, 'rgba(255,201,60,0)'); g.fillStyle = gl; g.fillRect(0, 0, S, S);
+    path(); const f = g.createLinearGradient(0, 5, 0, 45); f.addColorStop(0, '#fff6c4'); f.addColorStop(0.45, '#ffc93c'); f.addColorStop(1, '#ff9f1c'); g.fillStyle = f; g.fill(); g.lineJoin = 'round'; g.strokeStyle = '#8a4500'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.8)'; g.beginPath(); g.ellipse(19, 17, 3.2, 1.8, -0.6, 0, Math.PI * 2); g.fill();
+  } else { path(); g.fillStyle = 'rgba(20,10,60,0.7)'; g.fill(); g.lineJoin = 'round'; g.strokeStyle = 'rgba(201,193,255,0.55)'; g.lineWidth = 2; g.stroke(); }
+  scene.textures.addCanvas(key, c); return key;
 }
 
 /** Dokunuşta başlat kapısı: ses kilidini açar. */
 export function tapToStart(scene: Phaser.Scene, text: string, onStart: () => void) {
-  const w = viewW(scene), h = viewH(scene);
-  const veil = scene.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0.75).setDepth(300).setInteractive();
-  const t = label(scene, w / 2, h / 2, text, 22, COLORS.text).setDepth(301);
-  scene.tweens.add({ targets: t, alpha: 0.4, yoyo: true, repeat: -1, duration: 600 });
-  veil.once('pointerdown', () => { veil.destroy(); t.destroy(); onStart(); });
+  const w = viewW(scene), h = viewH(scene); const r = DPR(scene);
+  const veil = scene.add.rectangle(w / 2, h / 2, w, h, 0x140c35, 0.62).setDepth(300).setScrollFactor(0).setInteractive();
+  const lines = text.split('\n').filter((l, i, a) => l || (i > 0 && a[i - 1])); const call = lines.pop() ?? '';
+  const body = scene.add.text(0, 0, lines.join('\n').trim(), { fontFamily: FONT, fontSize: '21px', fontStyle: '900', color: '#fff6e5', align: 'center', lineSpacing: 6, wordWrap: { width: Math.min(300, w - 72) }, resolution: r }).setOrigin(0.5);
+  const cw = Math.min(320, w - 40), ch = Math.round(body.height + 92);
+  const bg = scene.add.image(0, 0, nightCardTex(scene, cw, ch)).setScale(1 / r);
+  const cta = scene.add.text(0, ch / 2 - 30, call, { fontFamily: FONT, fontSize: '18px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 4, resolution: r }).setOrigin(0.5);
+  body.setY(-24);
+  const card = scene.add.container(w / 2, h / 2, [bg, body, cta]).setDepth(301).setScrollFactor(0);
+  scene.tweens.add({ targets: cta, alpha: 0.45, scale: 0.96, yoyo: true, repeat: -1, duration: 600 });
+  veil.once('pointerdown', () => { veil.destroy(); card.destroy(); onStart(); });
 }
 
 // ---------------------------------------------------------------- ödül anı / juice (yalnızca görsel)
@@ -116,27 +152,26 @@ export class ComboMeter {
   }
 }
 
-/** Bölüm sonu kartı (oyun içinde, sonuç ekranından önce): okunur zemin, satırlar üst üste binmez. */
+/** Bölüm sonu kartı (oyun içinde, sonuç ekranından önce): koyu cam üstünde altın yıldızlar; satırlar üst üste binmez. */
 export function endCard(scene: Phaser.Scene, opts: { stars?: number; title: string; sub?: string; color?: string }) {
-  const w = viewW(scene), h = viewH(scene); const cw = Math.min(300, w - 48);
+  const w = viewW(scene), h = viewH(scene); const cw = Math.min(300, w - 48); const r = DPR(scene);
+  const won = opts.stars != null;
   const items: Phaser.GameObjects.GameObject[] = [];
-  let y = 0; const parts: { obj: Phaser.GameObjects.Text; h: number }[] = [];
-  const starRow: Phaser.GameObjects.Text[] = [];
-  if (opts.stars != null) {
-    for (let i = 0; i < 3; i++) { const s = scene.add.text((i - 1) * 54, 0, i < opts.stars ? '⭐' : '☆', { fontFamily: FONT, fontSize: '40px', color: '#d0d4e2', padding: { x: 2, y: 6 } }).setOrigin(0.5); starRow.push(s); }
-    y += 56;
-  }
-  const title = scene.add.text(0, 0, opts.title, { fontFamily: FONT, fontSize: '30px', fontStyle: '800', color: opts.color ?? COLORS.text, align: 'center', wordWrap: { width: cw - 32 }, padding: { x: 0, y: 4 } }).setOrigin(0.5, 0);
+  const parts: { obj: Phaser.GameObjects.Text; h: number }[] = [];
+  const starRow: Phaser.GameObjects.Image[] = [];
+  let y = 0;
+  if (won) { for (let i = 0; i < 3; i++) starRow.push(scene.add.image((i - 1) * 58, 0, starTex(scene, i < (opts.stars ?? 0))).setScale((i === 1 ? 1.2 : 1) / r)); y += 58; }
+  const title = scene.add.text(0, 0, opts.title, { fontFamily: FONT, fontSize: won ? '34px' : '30px', fontStyle: '900', color: opts.color ?? (won ? '#ffc93c' : '#fff6e5'), stroke: '#140c35', strokeThickness: 5, align: 'center', wordWrap: { width: cw - 32 }, padding: { x: 0, y: 4 }, resolution: r }).setOrigin(0.5, 0);
   parts.push({ obj: title, h: title.height });
-  if (opts.sub) { const sub = scene.add.text(0, 0, opts.sub, { fontFamily: FONT, fontSize: '16px', fontStyle: '700', color: COLORS.muted, align: 'center', wordWrap: { width: cw - 32 }, lineSpacing: 4 }).setOrigin(0.5, 0); parts.push({ obj: sub, h: sub.height }); }
-  const contentH = y + parts.reduce((a, p) => a + p.h, 0) + (parts.length - 1) * 6; const ch = contentH + 40;
-  const bg = scene.add.graphics(); bg.fillStyle(0x13162a, 0.12); bg.fillRoundedRect(-cw / 2 + 2, -ch / 2 + 6, cw, ch, 24); bg.fillStyle(0xffffff, 0.96); bg.fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 24);
+  if (opts.sub) { const sub = scene.add.text(0, 0, opts.sub, { fontFamily: FONT, fontSize: '16px', fontStyle: '800', color: '#c9c1ff', align: 'center', wordWrap: { width: cw - 32 }, lineSpacing: 4, resolution: r }).setOrigin(0.5, 0); parts.push({ obj: sub, h: sub.height }); }
+  const contentH = y + parts.reduce((a, p) => a + p.h, 0) + (parts.length - 1) * 6; const ch = Math.round(contentH + 44);
+  const bg = scene.add.image(0, 0, nightCardTex(scene, cw, ch, won ? '#ffc93c' : '#ff5c8a')).setScale(1 / r);
   items.push(bg);
-  let cy = -ch / 2 + 20;
-  if (starRow.length) { for (const s of starRow) { s.setY(cy + 26); items.push(s); } cy += 56; }
+  let cy = -ch / 2 + 22;
+  if (starRow.length) { for (const s of starRow) { s.setY(cy + 26); items.push(s); } cy += 58; }
   for (const p of parts) { p.obj.setY(cy); items.push(p.obj); cy += p.h + 6; }
   const c = scene.add.container(w / 2, h / 2 - 40, items).setScrollFactor(0).setDepth(250).setScale(0.85).setAlpha(0);
   scene.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
-  starRow.forEach((s, i) => { s.setScale(0); scene.tweens.add({ targets: s, scale: 1, delay: 120 + i * 140, duration: 260, ease: 'Back.Out' }); });
+  starRow.forEach((s, i) => { const k = s.scale; s.setScale(0); scene.tweens.add({ targets: s, scale: k, delay: 120 + i * 140, duration: 280, ease: 'Back.Out' }); });
   return c;
 }

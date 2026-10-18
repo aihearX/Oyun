@@ -7,6 +7,10 @@ import Phaser from 'phaser';
 import { artOf } from './palette';
 import { R, T, dotTex, puffTex, ringTex, softGlowTex, sparkTex, drawGoldNote, drawGoldCochlea } from './tex';
 import { canvasTex, FONT, screenOrigin, THEME } from './util';
+import { fxQuality } from './quality';
+
+/** düşük kalitede parçacık sayısı azalır (en az 1) */
+const q = (n: number) => Math.max(1, Math.round(n * fxQuality()));
 
 const ADD = Phaser.BlendModes.ADD;
 type Emitter = Phaser.GameObjects.Particles.ParticleEmitter;
@@ -16,7 +20,8 @@ export interface LevelFx {
   jumpPuff(x: number, y: number): void;
   noteSparkle(x: number, y: number): void;
   hitFlash(x?: number, y?: number): void;
-  perfectRing(x: number, y: number): void;
+  /** altın halka + parıltı; label: övgü sözü (null: söz yok — motor kendi yazısını gösteriyorsa) */
+  perfectRing(x: number, y: number, label?: string | null): void;
   comboBurst(x: number, y: number, n?: number): void;
   checkpointLight(x: number, y: number): void;
   cochleaPickup(x: number, y: number): void;
@@ -61,25 +66,25 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
     s.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.Out' }); s.tweens.add({ targets: t, y: y - 36, alpha: 0, delay: 420, duration: 360, onComplete: () => t.destroy() });
   };
   return {
-    landDust(x, y, k = 0.6) { dust.explode(Math.round(4 + k * 8), x, y - 2); if (k > 0.7) ring(x, y - 2, A.ground.topHi, 0.08, 0.5, 300, 0.25); },
-    jumpPuff(x, y) { dust.explode(5, x, y - 2); ring(x, y - 2, 0xffffff, 0.06, 0.32, 240, 0.3); },
-    noteSparkle(x, y) { sparks.explode(7, x, y); flare(x, y, THEME.gold, 80, 280); },
+    landDust(x, y, k = 0.6) { dust.explode(q(Math.round(4 + k * 8)), x, y - 2); if (k > 0.7) ring(x, y - 2, A.ground.topHi, 0.08, 0.5, 300, 0.25); },
+    jumpPuff(x, y) { dust.explode(q(5), x, y - 2); ring(x, y - 2, 0xffffff, 0.06, 0.32, 240, 0.3); },
+    noteSparkle(x, y) { sparks.explode(q(7), x, y); flare(x, y, THEME.gold, 80, 280); },
     hitFlash(x, y) {
       s.tweens.killTweensOf(flashI); flashI.setAlpha(0.9); s.tweens.add({ targets: flashI, alpha: 0, duration: 420, ease: 'Cubic.Out' });
       if (x != null && y != null) { flare(x, y, 0xffffff, 120, 200); ring(x, y, THEME.hazard, 0.1, 0.6, 320); const st = s.add.image(x, y, sparkTex(s)).setBlendMode(ADD).setDepth(32).setScale(1.4).setTint(0xffd0e0); s.tweens.add({ targets: st, scale: 0, angle: 90, duration: 260, onComplete: () => st.destroy() }); }
     },
-    perfectRing(x, y) { ring(x, y, THEME.gold, 0.1, 0.9, 420); ring(x, y, 0xffffff, 0.05, 0.6, 320); sparks.explode(10, x, y); praise(x, y - 40, 'Mükemmel!', '#ffc93c'); },
-    comboBurst(x, y, n = 10) { dots.explode(Math.min(40, 10 + n), x, y); notes.explode(Math.min(8, 2 + Math.floor(n / 5)), x, y); flare(x, y, THEME.violet, 160, 380); },
+    perfectRing(x, y, label = 'Mükemmel!') { ring(x, y, THEME.gold, 0.1, 0.9, 420); ring(x, y, 0xffffff, 0.05, 0.6, 320); sparks.explode(q(10), x, y); if (label) praise(x, y - 40, label, '#ffc93c'); },
+    comboBurst(x, y, n = 10) { dots.explode(q(Math.min(40, 10 + n)), x, y); notes.explode(q(Math.min(8, 2 + Math.floor(n / 5))), x, y); flare(x, y, THEME.violet, 160, 380); },
     checkpointLight(x, y) {
       const b = s.add.image(x, y, beamTex(s)).setOrigin(0.5, 1).setBlendMode(ADD).setTint(THEME.gold).setDepth(29).setDisplaySize(10, 420).setAlpha(0.9);
       s.tweens.add({ targets: b, displayWidth: 70, alpha: 0, duration: 900, ease: 'Cubic.Out', onComplete: () => b.destroy() });
-      ring(x, y - 70, THEME.gold, 0.1, 1.1, 600); sparks.explode(16, x, y - 70); flare(x, y - 70, THEME.gold, 220, 600);
+      ring(x, y - 70, THEME.gold, 0.1, 1.1, 600); sparks.explode(q(16), x, y - 70); flare(x, y - 70, THEME.gold, 220, 600);
     },
     cochleaPickup(x, y) {
       const c = s.add.image(x, y, cochleaMiniTex(s)).setDepth(33).setScale(1 / R());
       s.tweens.add({ targets: c, scale: 2.2 / R(), angle: 360, duration: 520, ease: 'Back.Out' });
       s.tweens.add({ targets: c, alpha: 0, y: y - 30, delay: 520, duration: 300, onComplete: () => c.destroy() });
-      ring(x, y, THEME.gold, 0.1, 1.4, 700); ring(x, y, 0xffffff, 0.05, 0.8, 500); sparks.explode(24, x, y); dots.explode(20, x, y); flare(x, y, THEME.gold, 300, 700);
+      ring(x, y, THEME.gold, 0.1, 1.4, 700); ring(x, y, 0xffffff, 0.05, 0.8, 500); sparks.explode(q(24), x, y); dots.explode(q(20), x, y); flare(x, y, THEME.gold, 300, 700);
       praise(x, y - 52, 'Altın Koklea!', '#ffc93c');
     },
     softGlow(x, y, color, size, alpha = 0.6) { return s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(color).setDisplaySize(size, size).setAlpha(alpha).setDepth(29); },

@@ -15,7 +15,7 @@ import { beatState, colorMatch, enemyAt, enemyKind, hazardAt, hazardWarn, initSt
 import { Planner } from './play/planner';
 import { Tutorial, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
-  paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution,
+  paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
   type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
 } from './play/visuals';
 
@@ -41,13 +41,15 @@ export class LevelScene extends Phaser.Scene {
   private backdrop?: BiomeBackdrop; private views = new Map<number, EntityView>(); private streamAt = 0;
   private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: { update(x: number, y: number, alive: boolean): void };
   private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0;
-  private hintText?: Phaser.GameObjects.Text; private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
+  private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
   private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1; private praiseFree = 0; private comboShown = 0;
   private combo = 0; private comboAt = -99; private maxCombo = 0; private chain = 0; private chainAt = -99; private firstsDone: string[] = [];
   private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
   private resultSent = false; private lastWall = 0;
+  /** görsel kalite: gerçek cihazda kare hızı 2 sn boyunca ~45'in altında kalırsa 'low'a iner (bot/harness'te ölçülmez) */
+  quality: 'high' | 'low' = 'high'; private perfMs = 0; private perfN = 0; private perfLast = 0;
 
   constructor() { super('level'); }
 
@@ -59,7 +61,9 @@ export class LevelScene extends Phaser.Scene {
     this.biome = BIOMES[this.spec.biome];
     setSoundsEnabled(this.opts.sounds !== false && !this.spec.modifiers.includes('cihaz-kapali'));
     const ts = this.opts.timeScale ?? 1;
-    if (ts !== 1) { this.time.timeScale = ts; this.tweens.timeScale = ts; }
+    // parçacıklar da sahne hız çarpanıyla (ağır çekim kayıt: tools/reels)
+    this.sys.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, (o: Phaser.GameObjects.GameObject) => { if (o instanceof Phaser.GameObjects.Particles.ParticleEmitter) o.timeScale = this.opts.timeScale ?? 1; });
+    if (ts !== 1) this.setTimeScale(ts);
     const isBoss = this.spec.mechanic === 'boss' || !!this.spec.boss;
     const track = isBoss ? 'boss' : (`biyom:${this.spec.biome}` as const);
     const bpm = resolveTrack(track)?.bpm ?? 100;
@@ -77,7 +81,8 @@ export class LevelScene extends Phaser.Scene {
     // keskinlik: oyun cihaz piksel oranında boyutlanır, kamera aynı oranda yakınlaşır (köşe kökenli: tasarım birimi = 390×780)
     this.dpr = Number(this.registry.get('dpr') ?? 1) || 1; setVisualResolution(this.dpr);
     this.cameras.main.setZoom(this.dpr).setOrigin(0, 0);
-    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.dpr > 1 ? 'high' : 'low');
+    this.quality = this.dpr > 1 ? 'high' : 'low'; setFxQuality(1);
+    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.quality);
     const terrain: TerrainRect[] = [];
     for (const e of w.ents) if (isTerrain(e)) terrain.push({ l: e.l, t: e.t, r: e.r, b: e.b, kind: e.type === 'wall' ? 'wall' : e.p.tavan ? 'ceiling' : 'platform' });
     this.terrain = makeTerrain(this, terrain, this.biome);
@@ -122,10 +127,12 @@ export class LevelScene extends Phaser.Scene {
     if (this.state.finished) return; // bitiş animasyonu kahraman sprite'ını kendisi taşır
     // bot (harness): duvar saati — Phaser düşük kare hızında deltayı kırptığından simülasyon gerçek zamanın gerisinde kalmasın
     const wall = performance.now(); const botDt = this.lastWall ? (wall - this.lastWall) / 1000 : dtMs / 1000; this.lastWall = wall;
-    const realDt = Math.min(0.25, this.opts.bot ? botDt : dtMs / 1000);
+    // kare başına en çok 0,25 oyun saniyesi (ağır çekimde gerçek süre buna göre uzar)
+    const ts = this.opts.timeScale ?? 1;
+    const realDt = Math.min(0.25 / Math.min(1, ts), this.opts.bot ? botDt : dtMs / 1000);
     const slow = this.tutorial ? TUTORIAL_SLOW : 1;
-    this.acc += realDt * (this.opts.timeScale ?? 1) * slow;
-    if (this.tutorial) { this.tutorialT += realDt; if (this.tutorialT > 6) this.endTutorial(false); }
+    this.acc += realDt * ts * slow;
+    if (this.tutorial) { this.tutorialT += realDt * Math.min(1, ts); if (this.tutorialT > 6) this.endTutorial(false); }
     if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
     const raw = this.input_.tick();
@@ -145,8 +152,9 @@ export class LevelScene extends Phaser.Scene {
     if (this.sim.finished && !this.state.finished) { this.finish(); }
     this.state.timeSec = this.sim.t; this.state.lives = this.sim.lives; this.state.coins = this.sim.coins; this.state.deaths = this.sim.deaths; this.state.damageTaken = this.sim.damageTaken; this.state.shield = this.sim.shield;
     if (this.sim.boss) { const b = this.sim.boss; this.state.custom.bossHp = b.hp; this.state.custom.bossPhase = b.phase; this.state.custom.bossMode = b.mode; this.state.custom.bossDefeated = b.defeated; }
-    this.syncCamera(realDt); this.syncViews(false); this.syncHero(); this.syncHud();
+    this.syncCamera(realDt * Math.min(1, ts)); this.syncViews(false); this.syncHero(); this.syncHud();
     this.backdrop?.update(this.cameras.main);
+    this.watchPerf();
     if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
     this.nearMiss();
     if (this.luckyState === 'armed') this.tickLucky();
@@ -169,7 +177,7 @@ export class LevelScene extends Phaser.Scene {
       case 'cling': sfx.tick(); break;
       case 'land': hv.land(Number(e.n ?? 600)); this.fx.landDust(e.x, e.y, Math.min(1, Number(e.n ?? 600) / 900)); sfx.land(); break;
       case 'slide': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'tramp-strong': sfx.bounce(); this.fx.perfectRing(e.x, e.y); floatText(this, e.x, e.y - 70, 'Güçlü!', COLORS.accent); this.emit({ type: 'haptic', kind: 'medium' }); break;
+      case 'tramp-strong': sfx.bounce(); this.fx.perfectRing(e.x, e.y, 'Güçlü!'); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'tramp-weak': sfx.tick(); break;
       case 'spring': case 'launch': sfx.bounce(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'hook': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
@@ -193,7 +201,7 @@ export class LevelScene extends Phaser.Scene {
       case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); break;
       case 'hurt': this.onHurt(e); break;
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
-      case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
+      case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20, null); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
       case 'shieldbounce': sfx.tick(); floatText(this, e.x, e.y - 50, 'Kalkanlı! Çakıl ya da atıl', COLORS.muted); break;
       case 'break': S.score += 20; sfx.hit(); this.fx.hitFlash(e.x, e.y); this.cameras.main.shake(80, 0.005); break;
       case 'crumble': if (e.s === 'kir') sfx.hit(); else sfx.tick(); break;
@@ -316,6 +324,7 @@ export class LevelScene extends Phaser.Scene {
         case 'freqgate': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
         case 'fork': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
         case 'trampoline': V.on = s.hero.tramp > 0 && s.hero.trampId === id; break;
+        case 'text': V.on = !!this.tutorial; break;
         case 'hazard': {
           if (e.p.chase && !s.timers.has(id)) { V.visible = false; break; }
           if (hazardAt(this.world, s, e, t)) { V.x = rectX() - 8; V.y = rectY() - 8; } else if (Number(e.p.on ?? 0) > 0) { V.alpha = 0.3; }
@@ -336,7 +345,7 @@ export class LevelScene extends Phaser.Scene {
     const list: { x: number; y: number }[] = []; const tmp: { x: number; y: number }[] = [];
     for (const id of near(this.world, L - 200, Rr + 200)) { const e = this.world.ents[id]!; if (e.cls === 'enemy' && enemyKind(e) === 'atici') { projectiles(e, t, s.killed.get(id), tmp); list.push(...tmp); } }
     this.projLayer.update(list);
-    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null }, GROUND_Y); }
+    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null, heroX: s.hero.x }, GROUND_Y); }
   }
   /** varlık artık görünmeyecek mi (toplandı, öldü, kırıldı) */
   private gone(e: WEnt): boolean {
@@ -353,6 +362,29 @@ export class LevelScene extends Phaser.Scene {
     this.input_.virtual = { primaryDown: inp.down, dir: inp.dash ? 1 : 0 };
     if (inp.swipeDown) this.input_.swipeDown();
     if (inp.dash) this.input_.swipeRight();
+  }
+  /** bot/kayıt: oyun hızı çarpanı (simülasyon, zamanlayıcı, tween ve parçacıklar birlikte). Yalnız harness ve Reels stüdyosu kullanır. */
+  setTimeScale(ts: number) {
+    this.opts = { ...this.opts, timeScale: ts }; this.time.timeScale = ts; this.tweens.timeScale = ts;
+    for (const o of this.children.list) if (o instanceof Phaser.GameObjects.Particles.ParticleEmitter) o.timeScale = ts;
+  }
+  /** kare hızı bekçisi: oyuncu oyununda, başladıktan 1,5 sn sonra 2 sn'lik pencerelerle ölçer; ortalama < 45 fps ise kaliteyi düşürür */
+  private watchPerf() {
+    if (this.opts.bot || this.sim.t < 1.5 || this.quality === 'low') return;
+    // Phaser düşük kare hızında deltayı kırpar: gerçek süre duvar saatinden
+    const now = performance.now(); const gap = now - this.perfLast; this.perfLast = now;
+    // ilk kare ya da duraklatma/sekme değişimi sonrası (tek karede 250 ms+): pencereyi yeniden başlat
+    if (!this.perfMs || gap > 250) { this.perfMs = now; this.perfN = 0; return; }
+    this.perfN++; const span = now - this.perfMs;
+    if (span < 2000) return;
+    const fps = (this.perfN * 1000) / span; this.perfMs = now; this.perfN = 0;
+    if (fps < 45) this.setQuality('low');
+  }
+  /** görsel kaliteyi değiştir (oynanışa etkisi yok): arka plan ışık/sis/parçacıkları ve efekt yoğunluğu */
+  setQuality(q: 'high' | 'low') {
+    if (q === 'low') setFxQuality(0.45); else setFxQuality(1);
+    if (q === this.quality) return; this.quality = q;
+    this.backdrop?.setQuality(q);
   }
   private beatSync() {
     const c = beatClock(); if (!c || c.track !== (this.world.boss ? 'boss' : `biyom:${this.spec.biome}`)) return;
@@ -425,14 +457,14 @@ export class LevelScene extends Phaser.Scene {
   }
   finish() {
     if (this.state.finished || !this.state.started) return; this.state.finished = true; this.sim.finished = true;
-    this.endTutorial(false); this.hud.setCombo(0, 1); this.race?.finished(true);
+    this.endTutorial(false); this.hud.setCombo(0, 1); this.hud.toast('', 0); this.race?.finished(true);
     const r = this.withJuice(this.result(true));
     sfx.win(); music('zafer', 0.4); flash(this, 0x8ef0b0, 0.35, 400); this.syncHero(); this.emit({ type: 'haptic', kind: 'success' });
     endCard(this, { stars: r.stars, title: r.score.toLocaleString('tr-TR'), sub: r.stars === 3 ? 'Mükemmel!' : r.stars === 2 ? 'Harika!' : 'Kapıdan geçtin!' });
     this.sendResult('levelComplete', r);
   }
   fail(reason: string) {
-    if (this.state.finished) return; this.state.finished = true; this.endTutorial(false); this.hud.setCombo(0, 1); this.race?.finished(false);
+    if (this.state.finished) return; this.state.finished = true; this.endTutorial(false); this.hud.setCombo(0, 1); this.hud.toast('', 0); this.race?.finished(false);
     this.syncHud(); const r = this.withJuice(this.result(false)); sfx.gameOver(); music(null, 1.2); this.emit({ type: 'haptic', kind: 'error' });
     const pct = this.pct();
     endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
@@ -453,9 +485,7 @@ export class LevelScene extends Phaser.Scene {
   /** ekranda kısa ipucu; `kind` verilirse göstergenin el işaretiyle (dokun / basılı / aşağı / ileri) */
   hint(text: string, ms = 2500, kind?: HintKind) {
     if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
-    this.hintText?.destroy(); this.hintTimer?.remove(); if (!text) return;
-    this.hintText = this.add.text(GAME_W / 2, GAME_H - 70, text, { fontFamily: '"SF Pro Rounded","Segoe UI",Arial,sans-serif', fontSize: '16px', fontStyle: '700', color: '#ffffff', align: 'center', backgroundColor: 'rgba(13,16,36,0.78)', padding: { x: 14, y: 8 }, wordWrap: { width: GAME_W - 60 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160);
-    this.hintTimer = this.time.delayedCall(ms, () => { const t = this.hintText; if (t) this.tweens.add({ targets: t, alpha: 0, duration: 300, onComplete: () => t.destroy() }); });
+    this.hud.toast(text, ms);
   }
   private buildFog(strength: number) {
     const r0 = this.opts.skills.echoSight ? 160 : 110, r1 = this.opts.skills.echoSight ? 340 : 260;

@@ -8,7 +8,7 @@ import { setSoundsEnabled } from './audio';
 export function startLevel(parent: HTMLElement | string, opts: LevelOptions): LevelHandle {
   setSoundsEnabled(opts.sounds !== false);
   // keskinlik: tuval cihaz piksel oranında (en çok 2); bot/harness 1 (yazılım GL'de hız)
-  const dpr = opts.bot ? 1 : Math.max(1, Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
+  const dpr = opts.renderScale ? Math.max(1, Math.min(3, opts.renderScale)) : opts.bot ? 1 : Math.max(1, Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1));
   const game = new Phaser.Game({
     type: Phaser.AUTO, parent, width: GAME_W * dpr, height: GAME_H * dpr, backgroundColor: '#140c35',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },

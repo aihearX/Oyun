@@ -1,10 +1,9 @@
 import Phaser from 'phaser';
 import type { Entity } from '@odi/shared';
-import { GAME_W, GROUND_Y } from '@odi/shared';
+import { GROUND_Y } from '@odi/shared';
 import type { BiomeDef } from '@odi/content';
 import * as RD from '../render';
 import { luckyNoteTexture } from '../art';
-import { FONT } from '../ui';
 
 /**
  * ============================================================================================
@@ -29,10 +28,10 @@ import { FONT } from '../ui';
  */
 
 // ---------------------------------------------------------------- arka plan
-export interface BiomeBackdrop { update(cam: Phaser.Cameras.Scene2D.Camera): void; destroy(): void; setForegroundAlpha(a: number): void }
+export interface BiomeBackdrop { update(cam: Phaser.Cameras.Scene2D.Camera): void; destroy(): void; setForegroundAlpha(a: number): void; setQuality(q: 'high' | 'low'): void }
 export function paintBiome(scene: Phaser.Scene, biome: BiomeDef, worldW: number, worldH: number, quality: 'high' | 'low' = 'high'): BiomeBackdrop {
   const bd = RD.paintBiome(scene, biome.id, worldW, worldH, { quality });
-  return { update: (cam) => bd.update(cam.scrollX, cam.scrollY), destroy: () => bd.destroy(), setForegroundAlpha: (a) => bd.setForegroundAlpha(a) };
+  return { update: (cam) => bd.update(cam.scrollX, cam.scrollY), destroy: () => bd.destroy(), setForegroundAlpha: (a) => bd.setForegroundAlpha(a), setQuality: (q) => bd.setQuality(q) };
 }
 
 // ---------------------------------------------------------------- zemin
@@ -59,7 +58,7 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
   if (e.type === 'tutor' || e.type === 'escortee') return null;
   const v = RD.entitySprite(s, { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, props: e.props }, biome.id);
   const moves = MOVERS.has(e.type);
-  let lastOn: boolean | null = null; let lastWarn = 0; let lastFace = 0; let lastVis = true; let lastCrack = 0; let lastAlpha = -1; let lx = e.x, ly = e.y;
+  let lastOn: boolean | null = null; let lastWarn = 0; let signHalf = -1; let lastFace = 0; let lastVis = true; let lastCrack = 0; let lastAlpha = -1; let lx = e.x, ly = e.y;
   return {
     obj: v,
     destroy: () => { if (!v.dead) v.destroy(); },
@@ -79,6 +78,16 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
         case 'hazard': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
         case 'coin': case 'note': case 'collect': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } break;
         case 'fork': if (st.on !== lastOn) { v.setScale(st.on ? 1.25 : 1); lastOn = st.on; } break;
+        case 'text': {
+          // dünya tabelası ekran kenarında kesilmesin: görünürken ekran içine yaslanır, uzaklaştıkça söner; öğretici an açıkken geri çekilir
+          const cam = s.cameras.main; const L = RD.viewTopLeft(cam).x; const W = cam.width / cam.zoom;
+          if (signHalf < 0) signHalf = Math.min(W / 2 - 10, ((v.list[0] as Phaser.GameObjects.Container | undefined)?.getBounds().width ?? 200) / 2);
+          const cx = Math.max(L + signHalf + 10, Math.min(L + W - signHalf - 10, e.x)); const d = Math.abs(cx - e.x);
+          const a = (d <= signHalf * 0.6 ? 1 : Math.max(0, 1 - (d - signHalf * 0.6) / (signHalf * 0.9))) * (st.on ? 0 : 1);
+          if (cx !== lx) { v.setPosition(cx, e.y); lx = cx; }
+          if (Math.abs(a - lastAlpha) > 0.01) { v.setAlpha(a); lastAlpha = a; }
+          break;
+        }
         default: break;
       }
     },
@@ -146,6 +155,8 @@ export interface LevelHudView {
   setCombo(n: number, mult: number): void;
   praise(text: string): void;
   showHint(kind: HintKind, text: string): void; hideHint(): void;
+  /** alt-orta bilgi şeridi (bölüm girişi, faz uyarıları); boş metin gizler */
+  toast(text: string, ms: number): void;
   setCheckpoints(pcts: number[]): void;
   onPause(cb: () => void): void;
 }
@@ -164,6 +175,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHud
     setCombo: (n, m) => hud.setCombo(n, m),
     praise: (t) => hud.praise(t),
     showHint: (k, t) => hud.showHint(k, t), hideHint: () => hud.hideHint(),
+    toast: (t, ms) => hud.toast(t, ms),
     setCheckpoints: (p) => hud.setCheckpoints(p),
     onPause: (cb) => hud.onPause(cb),
   };
@@ -176,72 +188,15 @@ export function createFx(s: Phaser.Scene, biome: BiomeDef): LevelFx { return RD.
 // ---------------------------------------------------------------- boss
 export interface BossVisual {
   kind: 'golem' | 'canavar'; name: string; hp: number; maxHp: number; phase: number; defeated: boolean; mode: string; t: number;
-  fists: { x: number; st: string; t0: number; until: number }[]; balls: { x: number }[]; drops: { x: number; t0: number }[];
-  waves: { x: number; kind: 'low' | 'high' }[]; warnWall: { side: -1 | 1; kind: string } | null; notes: { x: number; y: number; got: boolean }[]; core: { x: number } | null;
+  fists: { x: number; st: string; t0: number; until: number; slot?: number; hit?: boolean }[]; balls: { x: number }[]; drops: { x: number; t0: number }[];
+  waves: { x: number; kind: 'low' | 'high'; dir?: number }[]; warnWall: { side: -1 | 1; kind: string } | null; notes: { x: number; y: number; got: boolean }[]; core: { x: number } | null;
+  /** gözler kahramanı izler (yalnız görsel) */
+  heroX?: number;
 }
 export interface BossView { update(b: BossVisual, groundY: number): void; destroy(): void }
-const tex = (s: Phaser.Scene, key: string, w: number, h: number, draw: (g: Phaser.GameObjects.Graphics) => void) => {
-  if (!s.textures.exists(key)) { const g = s.add.graphics(); draw(g); g.generateTexture(key, w, h); g.destroy(); }
-  return key;
-};
+/** Boss ve saldırıları: render/boss.ts (boyalı kukla, telegraf, vuruş flaşı, faz dönüşümü, yenilgi patlaması, can çubuğu). */
 export function createBossView(s: Phaser.Scene, kind: 'golem' | 'canavar', name: string, groundY: number, biome: BiomeDef): BossView {
-  const bodyKey = kind === 'golem' ? tex(s, 'boss-golem2', 200, 210, (g) => {
-    g.fillStyle(0xb8903d, 1); g.fillEllipse(100, 130, 180, 150); g.fillStyle(0xd4b25a, 1); g.fillCircle(100, 64, 58);
-    g.fillStyle(0xffffff, 1); g.fillCircle(78, 60, 13); g.fillCircle(122, 60, 13); g.fillStyle(0x13162a, 1); g.fillCircle(80, 62, 6); g.fillCircle(120, 62, 6);
-    g.lineStyle(6, 0x6b3a1a, 1); g.beginPath(); g.moveTo(60, 40); g.lineTo(90, 50); g.moveTo(140, 40); g.lineTo(110, 50); g.strokePath();
-    g.fillStyle(0x9c6b2f, 1); g.fillCircle(60, 150, 12); g.fillCircle(140, 160, 10); g.fillCircle(100, 175, 8);
-  }) : tex(s, 'boss-canavar2', 220, 190, (g) => {
-    g.fillStyle(0x2a163a, 1); for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; g.fillTriangle(110 + Math.cos(a - 0.15) * 70, 95 + Math.sin(a - 0.15) * 62, 110 + Math.cos(a + 0.15) * 70, 95 + Math.sin(a + 0.15) * 62, 110 + Math.cos(a) * 100, 95 + Math.sin(a) * 88); }
-    g.fillStyle(0x4a2a6a, 1); g.fillCircle(110, 95, 70); g.fillStyle(0xff4fd8, 1); g.fillCircle(84, 80, 14); g.fillCircle(136, 80, 14); g.fillStyle(0x000000, 1); g.fillCircle(86, 82, 6); g.fillCircle(134, 82, 6);
-    g.fillStyle(0x1a0208, 1); g.fillEllipse(110, 125, 80, 34); g.fillStyle(0xffffff, 1); for (let i = 0; i < 5; i++) g.fillTriangle(78 + i * 15, 110, 90 + i * 15, 110, 84 + i * 15, 122);
-  });
-  const body = s.add.image(195, kind === 'golem' ? groundY - 330 : groundY - 360, bodyKey).setDepth(3);
-  const fistKey = tex(s, 'boss-fist2', 80, 64, (g) => { g.fillStyle(0xb8903d, 1); g.fillRoundedRect(0, 0, 80, 64, 20); g.fillStyle(0xd4b25a, 1); for (let i = 0; i < 4; i++) g.fillCircle(12 + i * 19, 10, 9); g.fillStyle(0xffe066, 1); g.fillCircle(40, 30, 9); });
-  const shadowKey = tex(s, 'boss-shadow2', 100, 24, (g) => { g.fillStyle(0x000000, 0.35); g.fillEllipse(50, 12, 96, 22); g.fillStyle(0xe5484d, 0.7); g.fillEllipse(50, 12, 60, 12); });
-  const ballKey = tex(s, 'boss-ball2', 36, 36, (g) => { g.fillStyle(0xc9a24a, 1); g.fillCircle(18, 18, 17); g.lineStyle(4, 0x8a5a28, 1); g.beginPath(); g.arc(18, 18, 9, 0, Math.PI * 1.5); g.strokePath(); });
-  const dropKey = tex(s, `boss-drop2-${kind}`, 44, 36, (g) => { g.fillStyle(kind === 'golem' ? 0xc9a24a : 0x6b7280, 1); g.fillEllipse(22, 18, 44, 34); });
-  const waveKey = (k: string) => tex(s, `boss-wave2-${k}`, 26, k === 'low' ? 30 : 52, (g) => { g.fillStyle(k === 'low' ? 0xff5c5c : 0xc44dff, 0.9); g.fillRoundedRect(0, 0, 26, k === 'low' ? 30 : 52, 6); g.lineStyle(3, 0xffffff, 0.85); g.beginPath(); g.moveTo(13, 2); g.lineTo(5, 10); g.lineTo(20, 18); g.lineTo(6, 26); g.strokePath(); });
-  const coreKey = tex(s, 'boss-core', 70, 70, (g) => { g.fillStyle(0xff4fd8, 0.35); g.fillCircle(35, 35, 35); g.fillStyle(0xff4fd8, 1); g.fillCircle(35, 35, 22); g.fillStyle(0xffffff, 0.8); g.fillCircle(28, 28, 6); });
-  const pool = new Map<string, Phaser.GameObjects.Image[]>();
-  const use = (key: string, n: number, depth = 12) => { const arr = pool.get(key) ?? []; while (arr.length < n) arr.push(s.add.image(0, 0, key).setDepth(depth)); pool.set(key, arr); arr.forEach((o, i) => o.setVisible(i < n)); return arr.slice(0, n); };
-  const notes: RD.EntityView[] = [];
-  const wallGlow = s.add.rectangle(0, groundY - 150, 30, 300, 0xff3b3b, 0).setDepth(14);
-  const bar = s.add.graphics().setScrollFactor(0).setDepth(102);
-  const nameText = s.add.text(GAME_W / 2, 132, '', { fontFamily: FONT, fontSize: '12px', fontStyle: '800', color: '#ffffff', backgroundColor: 'rgba(13,16,36,0.6)', padding: { x: 8, y: 2 } }).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-  let shownHp = -1;
-  return {
-    update: (b, gy) => {
-      body.setScale(1 + 0.03 * Math.sin(b.t * 2), 1 - 0.03 * Math.sin(b.t * 2)).setTint(b.mode === 'stun' ? 0x9ad0ff : b.phase === 3 ? 0xff9a8a : b.phase === 2 ? 0xffc8a8 : 0xffffff);
-      if (b.defeated) body.setAlpha(Math.max(0, body.alpha - 0.02)).setAngle(body.angle + 3);
-      const fists = use(fistKey, b.fists.length); const shadows = use(shadowKey, b.fists.filter((f) => f.st === 'warn').length, 6);
-      let si = 0;
-      b.fists.forEach((f, i) => {
-        const o = fists[i]!; o.setOrigin(0.5, 1);
-        const y = f.st === 'warn' ? gy - 320 + Math.sin(b.t * 20) * 4 : f.st === 'slam' ? gy - 160 : f.st === 'up' ? gy - 40 - (b.t - (f.until - 0.3)) * 400 : gy;
-        o.setPosition(f.x, y); o.setTint(f.st === 'planted' ? 0xffffff : 0xdddddd);
-        if (f.st === 'warn') shadows[si++]!.setPosition(f.x, gy - 2).setScale(1 + 0.15 * Math.sin(b.t * 25), 1);
-      });
-      use(ballKey, b.balls.length).forEach((o, i) => { const q = b.balls[i]!; o.setPosition(q.x, gy - 17).setAngle(q.x * 3); });
-      use(dropKey, b.drops.length, 15).forEach((o, i) => { const d = b.drops[i]!; const age = b.t - d.t0; o.setPosition(d.x, age < 0.8 ? gy - 330 : gy - 330 + (age - 0.8) / 0.3 * 330); });
-      const lows = b.waves.filter((w) => w.kind === 'low'), highs = b.waves.filter((w) => w.kind === 'high');
-      use(waveKey('low'), lows.length).forEach((o, i) => o.setPosition(lows[i]!.x, gy - 15));
-      use(waveKey('high'), highs.length).forEach((o, i) => o.setPosition(highs[i]!.x, gy - 52));
-      const open = b.notes.filter((n) => !n.got);
-      while (notes.length < open.length) notes.push(RD.entitySprite(s, { type: 'note', x: 0, y: 0 }, biome.id).setDepth(16));
-      notes.forEach((o, i) => { const n = open[i]; o.setVisible(!!n); if (n) o.setPosition(n.x, n.y); });
-      use(coreKey, b.core ? 1 : 0, 16).forEach((o) => o.setPosition(b.core!.x, gy - 40).setScale(1 + 0.12 * Math.sin(b.t * 10)));
-      if (b.warnWall) wallGlow.setPosition(b.warnWall.side > 0 ? 375 : 15, gy - 150).setFillStyle(b.warnWall.kind === 'high' ? 0xc44dff : 0xff3b3b, 0.25 + 0.25 * Math.abs(Math.sin(b.t * 16)));
-      else wallGlow.setFillStyle(0xff3b3b, 0);
-      if (shownHp !== b.hp) {
-        shownHp = b.hp; const x0 = GAME_W / 2 - 120, y0 = 112, w = 240, h = 12; bar.clear();
-        bar.fillStyle(0x0d1024, 0.6); bar.fillRoundedRect(x0, y0, w, h, 6);
-        const ratio = Math.max(0, b.hp / b.maxHp); if (ratio > 0) { bar.fillStyle(b.phase === 3 ? 0xb3122e : b.phase === 2 ? 0xe5484d : 0xf0567a, 1); bar.fillRoundedRect(x0 + 2, y0 + 2, Math.max(8, (w - 4) * ratio), h - 4, 4); }
-        bar.lineStyle(1.5, 0xffd27a, 0.8); bar.strokeRoundedRect(x0, y0, w, h, 6);
-        nameText.setText(b.defeated ? `${name} · Yenildi!` : `${name} · Faz ${b.phase}`);
-      }
-    },
-    destroy: () => { body.destroy(); for (const a of pool.values()) a.forEach((o) => o.destroy()); notes.forEach((o) => o.destroy()); bar.destroy(); nameText.destroy(); wallGlow.destroy(); },
-  };
+  return RD.createBossArt(s, kind, name, groundY, biome.id);
 }
 
 /** Şanslı Nota parıltısı (bir notanın üstünde) */
@@ -250,6 +205,9 @@ export function luckyGlow(s: Phaser.Scene, x: number, y: number): Phaser.GameObj
   s.tweens.add({ targets: o, scale: 1.18, yoyo: true, repeat: -1, duration: 420, ease: 'Sine.InOut' });
   return o;
 }
+
+/** parçacık yoğunluğu (1 = tam; düşük kalitede ~0,45) — efekt ve boss patlamaları bu çarpanla saçılır */
+export function setFxQuality(k: number) { RD.setFxQuality(k); }
 
 /** görsel çözünürlük (cihaz piksel oranı): render modülü dokuları bu ölçekte boyar */
 export function setVisualResolution(dpr: number) { RD.setRenderResolution(dpr); }

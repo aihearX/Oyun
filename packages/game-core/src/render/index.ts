@@ -14,3 +14,5 @@ export { idColor } from './mech';
 export { createHeroVisual, hatTex } from './hero';
 export { createFx, type LevelFx } from './fx';
 export { LevelHud, type HintKind, type GhostMark } from './hud';
+export { createBossArt, type BossArt, type BossArtState } from './boss';
+export { setFxQuality, fxQuality } from './quality';

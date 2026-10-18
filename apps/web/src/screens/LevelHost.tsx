@@ -13,7 +13,7 @@ declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunR
  * `race` verilirse canlı yarış: rakip hayaletleri + üst şerit + sunucu saatine hizalı geri sayım; bölüm bitince
  * `race.finish` gönderilir ve onDone(sonuç, güncel oda) çağrılır. `raceBotDelayMs` yalnızca test harness'i içindir (bot ile).
  */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<string | null>(null);
@@ -51,7 +51,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
       catch { return latest; } // yarış zaten bitmiş (süre doldu) ya da bağlantı yok: son bilinen oda
     };
     const h = startLevel(ref.current, {
-      spec, skills, sounds, bot, botIdle, timeScale, ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt } : {}),
+      spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt } : {}),
       // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
       onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
       // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı

@@ -85,6 +85,7 @@ export class LevelHud {
   private ticks: { pct: number; off: Phaser.GameObjects.Image; on: Phaser.GameObjects.Image }[] = []; private ghosts = new Map<string, Phaser.GameObjects.Container>();
   private combo: Phaser.GameObjects.Container; private comboBg: Phaser.GameObjects.Image; private comboMult: Phaser.GameObjects.Text; private comboCount: Phaser.GameObjects.Text; private comboShown = false;
   private hint?: Phaser.GameObjects.Container; private hintTweens: Phaser.Tweens.Tween[] = []; private hintTimer?: Phaser.Time.TimerEvent;
+  private toastC?: Phaser.GameObjects.Container; private toastTimer?: Phaser.Time.TimerEvent;
   private pct = 0; private notes = 0;
   private barX = 16; private barY = 0; private barW = 0; private k = 1;
 
@@ -231,6 +232,21 @@ export class LevelHud {
     s.tweens.add({ targets: c, y: y0 - 26, alpha: 0, delay: 700, duration: 380, ease: 'Cubic.In', onComplete: () => c.destroy() });
   }
   onPause(cb: () => void) { this.pauseCb = cb; }
+
+  /** alt-orta bilgi şeridi: koyu cam üstünde krem yazı (bölüm girişi, faz uyarıları). Boş metin gizler. */
+  toast(text: string, ms = 2500) {
+    const s = this.scene; this.toastTimer?.remove(false);
+    const prev = this.toastC; this.toastC = undefined;
+    if (prev) s.tweens.add({ targets: prev, alpha: 0, duration: 140, onComplete: () => prev.destroy() });
+    if (!text) return;
+    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#fff6e5', align: 'center', lineSpacing: 2, wordWrap: { width: this.iw - 64 }, resolution: R() }).setOrigin(0.5);
+    const pw = Math.round(Math.min(this.iw - 32, label.width + 40)), ph = Math.round(label.height + 20);
+    const bg = I(s, panelTex(s, pw, ph, Math.min(18, Math.round(ph / 2)))).setPosition(0, 2);
+    const c = s.add.container(this.iw / 2, this.ih - 74, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0);
+    this.root.add(c); this.toastC = c;
+    s.tweens.add({ targets: c, alpha: 1, y: c.y - 6, duration: 220, ease: 'Cubic.Out' });
+    this.toastTimer = s.time.delayedCall(ms, () => { if (this.toastC !== c) return; this.toastC = undefined; s.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() }); });
+  }
 
   /** öğretici el işareti + açıklama (ekranın alt-ortası) */
   showHint(kind: HintKind, text: string) {
