@@ -12,6 +12,13 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const args = process.argv.slice(2);
+// oyun sunucusu yerleşik SQLite (node:sqlite) kullanır: Node 22.13 ve üstü gerekir
+const [maj, min] = process.versions.node.split('.').map(Number);
+if (maj < 22 || (maj === 22 && min < 13)) {
+  console.error(`\n⚠️  Node ${process.versions.node} eski. ODİ sunucusu için Node 22.13 veya üstü gerekiyor.`);
+  console.error('   https://nodejs.org adresinden "LTS" sürümünü kurup terminali kapatıp yeniden açın.\n');
+  process.exit(1);
+}
 const win = process.platform === 'win32';
 const run = (cmd, a, cwd, env = {}) => spawn(cmd, a, { cwd, stdio: 'inherit', shell: win, env: { ...process.env, ...env } });
 
