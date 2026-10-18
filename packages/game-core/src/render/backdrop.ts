@@ -5,7 +5,7 @@
  */
 import Phaser from 'phaser';
 import type { BiomeBackdrop } from './types';
-import { artOf, type BiomeArt } from './palette';
+import { artOf, variantArt, type BiomeArt } from './palette';
 import { screenOrigin, viewTopLeft, canvasTex, circle, css, darken, glow, glowEllipse, grain, hashStr, lighten, mix, renderResolution, ridgeFn, rng, softFill, sparkle, taperHair, tono, wrapX, type Ctx, type Rnd } from './util';
 
 const TW = 1024;          // katman döşeme genişliği (tasarım px)
@@ -69,6 +69,7 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
     glow(ctx, x, y, r * 4, c, 0.18 + rnd() * 0.2); ctx.fillStyle = css(c, 0.5 + rnd() * 0.5); circle(ctx, x, y, r * 0.6); ctx.fill();
   }
   for (let i = 0; i < 6; i++) sparkle(ctx, rnd() * W, rnd() * H * 0.45, 2 + rnd() * 2.5, A.motes[i % A.motes.length]!, 0.8);
+  if (A.skyAccent) paintSkyAccent(ctx, W, H, rnd, A);
   switch (A.motif) {
     case 'cortex': {
       // aurora şeritleri
@@ -101,6 +102,58 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
     }
     default: break;
   }
+}
+
+/** bölüm kimliği: gökte tek, hafif bir motif (oynanış alanının üstünde kalır, okunaklılığı bozmaz) */
+function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
+  const L = A.light; const lx = L.x * W, ly = L.y * H;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  switch (A.skyAccent) {
+    case 'halkalar': { // ışığın çevresinde ses dalgası halkaları (Odi küçük bir ses)
+      for (let i = 0; i < 5; i++) { ctx.strokeStyle = css(lighten(L.c, 0.4), 0.16 - i * 0.025); ctx.lineWidth = 2.2 - i * 0.3; ctx.beginPath(); ctx.arc(lx, ly, 60 + i * 34, 0, Math.PI * 2); ctx.stroke(); }
+      break;
+    }
+    case 'ay': { // hilal ay + yoğun yıldız
+      ctx.restore(); ctx.save();
+      const mx = W * 0.26, my = H * 0.17, r = 34;
+      glow(ctx, mx, my, r * 3.4, L.c, 0.35);
+      // hilal ayrı tuvalde kesilir (gök gradyanı delinmesin)
+      const off = document.createElement('canvas'); off.width = off.height = Math.ceil(r * 2 + 4); const o = off.getContext('2d')!;
+      o.fillStyle = css(0xf4f6ff, 0.95); circle(o, r + 2, r + 2, r); o.fill();
+      o.globalCompositeOperation = 'destination-out'; o.fillStyle = 'rgba(0,0,0,0.9)'; circle(o, r + 2 + r * 0.42, r + 2 - r * 0.18, r * 0.9); o.fill();
+      ctx.drawImage(off, mx - r - 2, my - r - 2);
+      for (let i = 0; i < 60; i++) { const x = rnd() * W, y = Math.pow(rnd(), 1.4) * H * 0.55; ctx.fillStyle = css(0xffffff, 0.35 + rnd() * 0.5); circle(ctx, x, y, 0.4 + rnd() * 0.8); ctx.fill(); }
+      break;
+    }
+    case 'huzme': { // ufuktan yükselen yumuşak ışık huzmeleri (şafak)
+      for (let i = 0; i < 7; i++) {
+        const a = -Math.PI / 2 + (i - 3) * 0.2 + (rnd() - 0.5) * 0.08; const len = H * (0.55 + rnd() * 0.25); const wd = 18 + rnd() * 26;
+        ctx.save(); ctx.translate(lx, ly); ctx.rotate(a + Math.PI / 2);
+        const g = ctx.createLinearGradient(0, 0, 0, -len); g.addColorStop(0, css(L.c, 0.2)); g.addColorStop(1, css(L.c, 0));
+        ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-wd * 0.3, 0); ctx.lineTo(wd * 0.3, 0); ctx.lineTo(wd, -len); ctx.lineTo(-wd, -len); ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+      break;
+    }
+    case 'kayan': { // kayan yıldızlar
+      for (let i = 0; i < 4; i++) {
+        const x = W * (0.15 + rnd() * 0.7), y = H * (0.06 + rnd() * 0.3), len = 60 + rnd() * 70; const a = 0.5 + rnd() * 0.25;
+        const g = ctx.createLinearGradient(x, y, x - Math.cos(a) * len, y - Math.sin(a) * len); g.addColorStop(0, css(0xffffff, 0.85)); g.addColorStop(1, css(A.motes[0]!, 0));
+        ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - Math.cos(a) * len, y - Math.sin(a) * len); ctx.stroke();
+        glow(ctx, x, y, 6, 0xffffff, 0.8);
+      }
+      break;
+    }
+    case 'nota-burcu': { // sekizlik nota biçiminde takımyıldız
+      const cx = W * 0.7, cy = H * 0.2;
+      const pts: [number, number][] = [[cx - 30, cy + 46], [cx - 12, cy + 40], [cx - 6, cy + 30], [cx - 6, cy - 30], [cx + 24, cy - 18], [cx + 30, cy - 4]];
+      ctx.strokeStyle = css(0xfff1c8, 0.28); ctx.lineWidth = 1; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(cx - 20, cy + 42, 12, 8, -0.4, 0, Math.PI * 2); ctx.stroke();
+      for (const [x, y] of pts) { glow(ctx, x, y, 8, 0xfff1a8, 0.55); ctx.fillStyle = '#fffbe8'; circle(ctx, x, y, 1.4); ctx.fill(); }
+      break;
+    }
+    default: break;
+  }
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------- AURICLE · Dış Kulak (gün batımı, kepçe kıvrımları, kıl ormanı)
@@ -705,8 +758,8 @@ function bubbleTex(scene: Phaser.Scene): string {
  * katmanlar bu konumda ekranın altına hizalanır, kamera yükseldikçe paralaksla aşağı kayar. Kare başına `update(cam.scrollX, cam.scrollY)`.
  * opts.quality 'low': ışık huzmesi, sis bandı ve parçacıklar kapalı, doku ölçeği 1 (zayıf cihazlar için).
  */
-export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number, worldH: number, opts: { quality?: 'high' | 'low' } = {}): BiomeBackdrop {
-  const A = artOf(biomeId); const set = PAINTERS[A.motif]!; let low = opts.quality === 'low';
+export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number, worldH: number, opts: { quality?: 'high' | 'low'; variant?: number } = {}): BiomeBackdrop {
+  const A = opts.variant === undefined ? artOf(biomeId) : variantArt(artOf(biomeId), opts.variant); const set = PAINTERS[A.motif]!; let low = opts.quality === 'low';
   const R = low ? 1 : renderResolution(); const cam = scene.cameras.main;
   let vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
   const seed = hashStr(A.id);

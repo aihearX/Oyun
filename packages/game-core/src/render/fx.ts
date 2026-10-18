@@ -25,6 +25,8 @@ export interface LevelFx {
   comboBurst(x: number, y: number, n?: number): void;
   checkpointLight(x: number, y: number): void;
   cochleaPickup(x: number, y: number): void;
+  /** gizli altın koklea ipucu: (x0,y0)'dan koklea yönüne süzülüp yolun yarısında sönen birkaç ince kıvılcım (yeri söylemez, yönü fısıldar) */
+  hintTrail(x0: number, y0: number, x1: number, y1: number): void;
   /** kalıcı yumuşak ışık (toplamsal); dönen görüntüyü motor taşır/yok eder */
   softGlow(x: number, y: number, color: number, size: number, alpha?: number): Phaser.GameObjects.Image;
   /** ekran kenarı vinyeti: 0..1 (varsayılan 0.55); renk (ör. hasar anında kırmızı) */
@@ -86,6 +88,13 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
       s.tweens.add({ targets: c, alpha: 0, y: y - 30, delay: 520, duration: 300, onComplete: () => c.destroy() });
       ring(x, y, THEME.gold, 0.1, 1.4, 700); ring(x, y, 0xffffff, 0.05, 0.8, 500); sparks.explode(q(24), x, y); dots.explode(q(20), x, y); flare(x, y, THEME.gold, 300, 700);
       praise(x, y - 52, 'Altın Koklea!', '#ffc93c');
+    },
+    hintTrail(x0, y0, x1, y1) {
+      for (let i = 0; i < q(5); i++) {
+        const sp = s.add.image(x0, y0, sparkTex(s)).setBlendMode(ADD).setTint(i % 2 ? THEME.gold : 0xfff1a8).setDepth(29).setScale(0.22).setAlpha(0);
+        const k = 0.35 + i * 0.07;
+        s.tweens.add({ targets: sp, x: x0 + (x1 - x0) * k, y: y0 + (y1 - y0) * k, alpha: { from: 0.75, to: 0 }, scale: 0.08, angle: 160, delay: i * 110, duration: 900, ease: 'Sine.Out', onComplete: () => sp.destroy() });
+      }
     },
     softGlow(x, y, color, size, alpha = 0.6) { return s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(color).setDisplaySize(size, size).setAlpha(alpha).setDepth(29); },
     setVignette(intensity, color = 0x05001a) { vig.setTint(color).setAlpha(intensity); },

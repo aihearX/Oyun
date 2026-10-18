@@ -8,7 +8,7 @@ import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, softGlowTex, sparkT
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 
 const ADD = Phaser.BlendModes.ADD;
-export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight';
+export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight' | 'swipeLeft';
 export interface GhostMark { id: string; pct: number; color: number; label?: string }
 
 // ---------------------------------------------------------------- dokular
@@ -106,8 +106,9 @@ export class LevelHud {
     this.livesPanel = I(s, panelTex(s, 86, 40, 20)).setOrigin(0, 0);
     for (let i = 0; i < 5; i++) { this.heartsOff.push(I(s, heartIcon(s, false))); this.hearts.push(I(s, heartIcon(s, true))); }
     // duraklat
-    this.pause = I(s, pauseTex(s)).setInteractive({ useHandCursor: true });
-    this.pause.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: Phaser.Types.Input.EventData) => { ev?.stopPropagation?.(); this.scene.tweens.killTweensOf(this.pause); this.pause.setScale(1 / R()); this.scene.tweens.add({ targets: this.pause, scale: 0.88 / R(), duration: 70, yoyo: true }); this.pauseCb?.(); });
+    // duraklat: isabet testi oyunun girdi katmanında yapılır (pauseHit) — Phaser'ın kaydırma-çarpanı 0 + yakınlaştırılmış kamera
+    // altındaki etkileşim eşlemesine güvenilmez (telefonda DPR > 1); dokunuş asla zıplama olarak da sayılmaz
+    this.pause = I(s, pauseTex(s));
     // ilerleme çubuğu
     this.bar = s.add.container(0, 0);
     const RR = R(); const gl = !!(s.sys.renderer as { gl?: unknown }).gl;
@@ -232,6 +233,11 @@ export class LevelHud {
     s.tweens.add({ targets: c, y: y0 - 26, alpha: 0, delay: 700, duration: 380, ease: 'Cubic.In', onComplete: () => c.destroy() });
   }
   onPause(cb: () => void) { this.pauseCb = cb; }
+  /** duraklat düğmesi isabeti (tasarım ekran koordinatı; parmak için cömert 34 px yarıçap) */
+  pauseCenter(): { x: number; y: number } { return { x: this.pause.x * this.k, y: this.pause.y * this.k }; }
+  pauseHit(x: number, y: number): boolean { const px = this.pause.x * this.k, py = this.pause.y * this.k; return Math.hypot(x - px, y - py) <= 34 * this.k; }
+  /** duraklat düğmesine basıldı: küçük basılma animasyonu + geri çağrı */
+  pressPause() { this.scene.tweens.killTweensOf(this.pause); this.pause.setScale(1 / R()); this.scene.tweens.add({ targets: this.pause, scale: 0.88 / R(), duration: 70, yoyo: true }); this.pauseCb?.(); }
 
   /** alt-orta bilgi şeridi: koyu cam üstünde krem yazı (bölüm girişi, faz uyarıları). Boş metin gizler. */
   toast(text: string, ms = 2500) {
@@ -262,9 +268,9 @@ export class LevelHud {
     const ring = s.add.image(hx, hy, ringTex(s)).setBlendMode(ADD).setTint(THEME.gold).setScale(0.1).setAlpha(0);
     const glowI = s.add.image(hx, hy, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDisplaySize(90, 90).setAlpha(0.5);
     c.add([glowI, ring]);
-    if (kind === 'swipeDown' || kind === 'swipeRight') {
-      const d = kind === 'swipeDown' ? { x: 0, y: 1 } : { x: 1, y: 0 };
-      for (let i = 0; i < 3; i++) { const ch = I(s, chevTex(s), hx + d.x * (30 + i * 22), hy + d.y * (30 + i * 22)).setAngle(kind === 'swipeDown' ? 90 : 0).setAlpha(0); c.add(ch); tw({ targets: ch, alpha: { from: 0, to: 1 }, duration: 300, delay: i * 120, yoyo: true, repeat: -1, repeatDelay: 600 }); }
+    if (kind === 'swipeDown' || kind === 'swipeRight' || kind === 'swipeLeft') {
+      const d = kind === 'swipeDown' ? { x: 0, y: 1 } : kind === 'swipeLeft' ? { x: -1, y: 0 } : { x: 1, y: 0 };
+      for (let i = 0; i < 3; i++) { const ch = I(s, chevTex(s), hx + d.x * (30 + i * 22), hy + d.y * (30 + i * 22)).setAngle(kind === 'swipeDown' ? 90 : kind === 'swipeLeft' ? 180 : 0).setAlpha(0); c.add(ch); tw({ targets: ch, alpha: { from: 0, to: 1 }, duration: 300, delay: i * 120, yoyo: true, repeat: -1, repeatDelay: 600 }); }
       hand.setPosition(hx - d.x * 40, hy - d.y * 40); c.add(hand);
       tw({ targets: hand, x: hx + d.x * 70, y: hy + d.y * 70, duration: 750, ease: 'Cubic.InOut', repeat: -1, repeatDelay: 450, onRepeat: () => hand.setPosition(hx - d.x * 40, hy - d.y * 40) });
       tw({ targets: glowI, x: { from: hx - d.x * 40, to: hx + d.x * 70 }, y: { from: hy - d.y * 40, to: hy + d.y * 70 }, duration: 750, ease: 'Cubic.InOut', repeat: -1, repeatDelay: 450 });

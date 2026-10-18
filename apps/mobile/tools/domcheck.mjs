@@ -85,5 +85,70 @@ let failed = 0;
   if (!result?.completed || errors.length) failed++;
   await page.close();
 }
+// 3) dokunmatik oyun: DPR 3 + dokunma; duraklat düğmesi zıplatmadan menüyü açar, gösterge güvenli alanın (insetTop 47) altında,
+//    Devam / Yeniden başla çalışır
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: !isWebkit, deviceScaleFactor: 3 });
+  const errors = []; page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  await page.addInitScript(() => { window.ReactNativeWebView = { injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl: '', insetTop: 47, insetBottom: 34 } } }), postMessage: (s) => { try { const m = JSON.parse(s); if (m.type === '$$native_action') setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result: null } } })), 0); } catch { /* yok */ } } }; });
+  const r = { step: 'dokunma', pauseOpens: false, noJump: false, hudBelowInset: false, resume: false, restart: false };
+  try {
+    await page.goto(html + '?bot=1&human=1&level=1&hd=3', { waitUntil: 'load' });
+    await page.waitForFunction(() => !!globalThis.__odiScene?.hud, null, { timeout: 45_000 });
+    const box = await page.locator('canvas').boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2); // dokun ve başla
+    await page.waitForFunction(() => window.__odi?.events.some((e) => e.type === 'started'), null, { timeout: 20_000 });
+    await page.waitForTimeout(500);
+    const pb = await page.evaluate(() => globalThis.__odiScene.pauseButtonPage());
+    r.hudBelowInset = pb.y - 22 >= 47;
+    const y0 = await page.evaluate(() => globalThis.__odiScene.sim.hero.y);
+    await page.touchscreen.tap(pb.x, pb.y);
+    await page.getByText('Duraklatıldı').waitFor({ timeout: 5000 }); r.pauseOpens = true;
+    const st = await page.evaluate(() => { const sc = globalThis.__odiScene; return { y: sc.sim.hero.y, g: sc.sim.hero.grounded, vy: sc.sim.hero.vy, paused: sc.scene.isPaused() }; });
+    r.noJump = st.g && st.vy === 0 && Math.abs(st.y - y0) < 1 && st.paused;
+    await page.getByText('Devam').click(); await page.waitForTimeout(400);
+    r.resume = await page.evaluate(() => !globalThis.__odiScene.scene.isPaused());
+    const pb2 = await page.evaluate(() => globalThis.__odiScene.pauseButtonPage());
+    await page.touchscreen.tap(pb2.x, pb2.y); await page.getByText('Yeniden başla').click();
+    await page.waitForFunction(() => globalThis.__odiScene && globalThis.__odiScene.sim.t < 1 && !globalThis.__odiScene.state.finished, null, { timeout: 10_000 }); r.restart = true;
+    await page.screenshot({ path: path.join(outDir, `domcheck-dokunma-${isWebkit ? 'webkit' : 'chromium'}.png`) });
+  } catch (e) { errors.push('dokunma: ' + String(e.message ?? e).split('\n')[0]); }
+  const ok = r.pauseOpens && r.noJump && r.hudBelowInset && r.resume && r.restart && !errors.length;
+  console.log(JSON.stringify({ ...r, ok, errors: errors.slice(0, 4) }));
+  if (!ok) failed++;
+  await page.close();
+}
+// 4) (Chromium, DPR 1 — yazılım GL'de DPR 3 kareleri saniyeler sürer, kaydırma hızı ölçülemez) yatay kaydırma
+if (!isWebkit) {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
+  const errors = []; page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
+  await page.addInitScript(() => { window.ReactNativeWebView = { injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl: '', insetTop: 47, insetBottom: 34 } } }), postMessage: (s) => { try { const m = JSON.parse(s); if (m.type === '$$native_action') setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result: null } } })), 0); } catch { /* yok */ } } }; });
+  const r = { step: 'kaydırma', swipeTurn: false, forwardIgnored: false };
+  try {
+    await page.goto(html + '?bot=1&human=1&level=1', { waitUntil: 'load' });
+    await page.waitForFunction(() => !!globalThis.__odiScene?.hud, null, { timeout: 45_000 });
+    const box = await page.locator('canvas').boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForFunction(() => window.__odi?.events.some((e) => e.type === 'started'), null, { timeout: 20_000 });
+    // Odi sol duvardan biraz uzaklaşsın (çukura varmadan)
+    await page.waitForFunction(() => { const sc = globalThis.__odiScene; return sc.sim.hero.x > 330 && sc.sim.hero.grounded; }, null, { timeout: 60_000, polling: 50 });
+    // CDP dokunma: koşunun tersine (sola) hızlı kaydırma → dönüş; sağa kaydırma (darbe kapalı) yön değiştirmez
+    const cdp = await page.context().newCDPSession(page);
+    const swipe = async (x0, x1) => { const y = box.y + box.height * 0.6; await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x0, y }] }); for (let i = 1; i <= 4; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x0 + ((x1 - x0) * i) / 4, y }] }); } await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
+    const d0 = await page.evaluate(() => globalThis.__odiScene.sim.hero.dir);
+    await swipe(box.x + 300, box.x + 120); await page.waitForTimeout(250);
+    const d1 = await page.evaluate(() => globalThis.__odiScene.sim.hero.dir);
+    r.swipeTurn = d0 === 1 && d1 === -1;
+    await swipe(box.x + 120, box.x + 300); await page.waitForTimeout(250); // şimdi koşu sola: sağa kaydırma = geri dön
+    const d2 = await page.evaluate(() => globalThis.__odiScene.sim.hero.dir);
+    await swipe(box.x + 120, box.x + 300); await page.waitForTimeout(250); // koşu sağa: sağa kaydırma = ileri (darbe kapalı) → yön aynı
+    const d3 = await page.evaluate(() => globalThis.__odiScene.sim.hero.dir);
+    r.forwardIgnored = d2 === 1 && d3 === 1; r.dirs = [d0, d1, d2, d3];
+  } catch (e) { errors.push('kaydırma: ' + String(e.message ?? e).split('\n')[0]); }
+  const ok = r.swipeTurn === true && r.forwardIgnored === true && !errors.length;
+  console.log(JSON.stringify({ ...r, ok, errors: errors.slice(0, 4) }));
+  if (!ok) failed++;
+  await page.close();
+}
 await browser.close();
 process.exit(failed ? 1 : 0);

@@ -52,7 +52,7 @@ export type EntityType =
   | 'tutor';        // öğretici an tetikleyicisi (props: ability, w)
 
 /** Yetenekler (docs/11 §2): yolculukta sırayla açılır. */
-export type AbilityId = 'zipla' | 'kayma' | 'duvar' | 'suzul' | 'trambolin' | 'kanca' | 'cakil' | 'yuz' | 'darbe' | 'cevir';
+export type AbilityId = 'zipla' | 'don' | 'kayma' | 'duvar' | 'suzul' | 'trambolin' | 'kanca' | 'cakil' | 'yuz' | 'darbe' | 'cevir';
 
 export interface Entity {
   type: EntityType;
@@ -167,4 +167,7 @@ export interface InputState {
   pointerX: number; // 0-1
   /** yatay kaydırma (ses darbesi / atılma) bu karede */
   dashPressed?: boolean;
+  /** bu karedeki yatay kaydırmanın oyun yönü (-1 sol, 1 sağ; ayna değiştiricisi uygulanmış), yoksa 0.
+   *  Koşu yönünün tersi = geri dön; koşu yönü = ses darbesi (açıksa) */
+  swipeX?: -1 | 0 | 1;
 }

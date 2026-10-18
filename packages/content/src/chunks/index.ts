@@ -11,12 +11,13 @@ import { KOKLEA_CHUNKS } from './koklea';
 import { SINIR_CHUNKS } from './sinir';
 import { BEYIN_SAPI_CHUNKS } from './beyin-sapi';
 import { KORTEKS_CHUNKS } from './korteks';
-export { GENEL_CHUNKS, GENEL_ODA_CHUNKS, OGRETICI_CHUNKS, DIS_KULAK_CHUNKS, KANAL_CHUNKS, ZAR_CHUNKS, KEMIKCIKLER_CHUNKS, KOKLEA_CHUNKS, SINIR_CHUNKS, BEYIN_SAPI_CHUNKS, KORTEKS_CHUNKS };
+import { MIKRO_CHUNKS } from './mikro';
+export { MIKRO_CHUNKS, GENEL_CHUNKS, GENEL_ODA_CHUNKS, OGRETICI_CHUNKS, DIS_KULAK_CHUNKS, KANAL_CHUNKS, ZAR_CHUNKS, KEMIKCIKLER_CHUNKS, KOKLEA_CHUNKS, SINIR_CHUNKS, BEYIN_SAPI_CHUNKS, KORTEKS_CHUNKS };
 
 /** Tüm el yapımı odalar: genel (nefes/kontrol), öğretici, biyomdan bağımsız odalar, biyom odaları ve gösteri parçaları. */
 export const ALL_CHUNKS: ChunkSpec[] = [
   ...GENEL_CHUNKS, ...OGRETICI_CHUNKS, ...GENEL_ODA_CHUNKS, ...DIS_KULAK_CHUNKS, ...KANAL_CHUNKS, ...ZAR_CHUNKS,
-  ...KEMIKCIKLER_CHUNKS, ...KOKLEA_CHUNKS, ...SINIR_CHUNKS, ...BEYIN_SAPI_CHUNKS, ...KORTEKS_CHUNKS,
+  ...KEMIKCIKLER_CHUNKS, ...KOKLEA_CHUNKS, ...SINIR_CHUNKS, ...BEYIN_SAPI_CHUNKS, ...KORTEKS_CHUNKS, ...MIKRO_CHUNKS,
 ];
 
 /** Mekaniğin parçaları (geriye uyum); yoksa tümü. */

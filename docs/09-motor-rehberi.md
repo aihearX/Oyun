@@ -37,7 +37,8 @@ Komutlar (kökten): `npm run typecheck`, `npm run lint`, `npm test`, `npm run bu
 - Yetenekler bölüm numarasına göre açılır (`content/abilities.ts`): zıpla 1, kayma 3, duvar 6, süzülme + zar 9, kanca 13,
   çakılma 15, yüzme 21, ses darbesi 31, yerçekimi çevirme 35. Açık olmayan yetenek motor tarafından yok sayılır;
   üretici de o yeteneği isteyen odayı seçmez (`chunkNeeds`).
-- Girdi (`SimInput`): `down/pressed/released` (dokun/basılı), `swipeDown` (kay / havada çakıl), `dash` (ileri kaydır).
+- Girdi (`SimInput`): `down/pressed/released` (dokun/basılı), `swipeDown` (kay / havada çakıl), `dash` (koşu yönüne kaydır), `turn`
+  (koşunun tersine kaydır: geri dön — her zaman açık; `switch` props.by 'temas' anahtarları ve geri oyuklar bunu ister).
   Dokunmatik girdide basış 70 ms içinde kaydırma olmazsa kesinleşir (kaydırma ile zıplama karışmaz).
 - Değiştiriciler simde: `yanki` girdileri 140 ms geciktirir, `hiz` ×1,3, `tek-can`, `ters-yercekimi` (tavan güvenliyse 8 sn'de bir),
   `ayna` ileri kaydırmayı sola çevirir; `sis/gece/cihaz-kapali` yalnızca görsel/ses.

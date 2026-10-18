@@ -39,6 +39,11 @@ export const GLIDE_FALL = 115;
 export const TRAMP_STRONG = 1080;
 export const TRAMP_WEAK = 560;
 export const TRAMP_WINDOW = 0.12;
+/** "Mükemmel" zar sıçrayışı: değme anının ±0,05 sn içinde dokunuş → güç ×1,12 (yalnız ustalık ödülü; geçmek için gerekmez) */
+export const TRAMP_PERFECT = 0.05;
+export const TRAMP_PERFECT_MULT = 1.12;
+/** vuruşta nabız atan zar (props.beat): vuruşa denk gelen güçlü sıçrayış ×1,1 */
+export const TRAMP_BEAT_MULT = 1.1;
 export const SPRING_V = 900;
 
 /** kanca */
@@ -79,3 +84,5 @@ export const BUCKET = 256;
 /** ters yerçekimi değiştiricisi: tavan yüksekliği (zeminden) ve çevirme aralığı */
 export const CEIL_GAP = 520;
 export const MOD_FLIP_EVERY = 8;
+/** ters yerçekimi değiştiricisi: tavanda kalma süresi (tavan yolu ölü kalmasın diye kısa; tavanda yerdeki dikenlerin aynası var) */
+export const MOD_INV_T = 3.5;

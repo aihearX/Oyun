@@ -62,6 +62,8 @@ export interface LevelOptions {
   race?: RaceOptions;
   /** oyun içi göstergenin duraklat düğmesine basıldı (kabuk duraklatma/yarıştan çıkma menüsünü açar) */
   onPauseRequest?: () => void;
+  /** cihazın güvenli alan üst boşluğu (CSS px; çentik/kamera/saat): oyun içi gösterge bunun altına iner */
+  safeTop?: number;
 }
 
 export interface LevelHandle {

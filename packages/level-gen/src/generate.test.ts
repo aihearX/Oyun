@@ -59,7 +59,8 @@ describe('bölüm üretici', () => {
     for (const b of biomes) expect(normal.filter((s) => s.biome === b).some((s) => s.chunks.some((c) => c.setPiece)), b).toBe(true);
   });
   it('her bölüm farklı: iki bölümün oda kümesi en çok %60 örtüşür', () => {
-    const sets = normal.map((s) => new Set(s.chunks.filter((c) => !c.rest).map((c) => c.id)));
+    // dinlenme, mikro ve doruk gösterisi odaları hariç (gösteri, biyomun bölümleri arasında dönüşümlü kullanılan doruktur)
+    const sets = normal.map((s) => new Set(s.chunks.filter((c) => !c.rest && !c.setPiece && !c.tags.includes('mikro')).map((c) => c.id)));
     for (let i = 0; i < sets.length; i++) for (let j = i + 1; j < sets.length; j++) {
       const a = sets[i]!, b = sets[j]!; const inter = [...a].filter((x) => b.has(x)).length; const uni = new Set([...a, ...b]).size;
       expect(inter / uni, `${normal[i]!.number} ~ ${normal[j]!.number}`).toBeLessThanOrEqual(0.6);
