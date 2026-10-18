@@ -12,7 +12,9 @@ export class Clock {
 }
 
 const ALL_EVENTS: Evt[] = ['presence', 'chat', 'friend.updated', 'team.updated', 'team.help', 'war.updated', 'raid.updated', 'race.updated', 'race.pos', 'race.invited',
-  'inbox.new', 'kicked', 'wallet.updated', 'camp.updated', 'camp.helped', 'team.extra.updated', 'team.gift', 'team.campHelpNeeded'];
+  'inbox.new', 'kicked', 'wallet.updated', 'camp.updated', 'camp.helped', 'team.extra.updated', 'team.gift', 'team.campHelpNeeded',
+  // arkadaşlık + özel mesaj
+  'friend.request', 'friend.accepted', 'friend.removed', 'friend.gift', 'dm.message', 'dm.read', 'dm.typing', 'dm.reaction', 'dm.unread'];
 
 export interface TC extends NetClient {
   token: string;

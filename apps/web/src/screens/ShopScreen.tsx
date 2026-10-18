@@ -3,6 +3,9 @@ import { useNet } from '@odi/net/store';
 import type { OpMap, ShopProduct, SpendState } from '@odi/shared';
 import { applyServerItems, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
+import { audio } from '@odi/audio';
+import { celebrate } from '../celebrate';
+import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
 import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtTry } from '../ui/social';
 
@@ -13,10 +16,10 @@ const LIMITS = [0, 100, 250, 500, 1000, 2000, 5000];
 
 /** Mağaza: içerik ve takım hediyesi açık, kişi başı sınır, aylık harcama sınırı, geçmiş. Savaş/lig puanı satılmaz. */
 export function ShopScreen({ onBack }: { onBack: () => void }) {
-  const wallet = useNet((s) => s.wallet);
+  const wallet = useNet((s) => s.wallet); const k = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
     <div className="screen fade-in">
-      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className="pill">💎 {wallet.kristal}</span> : undefined} />
+      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className={`pill${k.bump ? ' hud-pop' : ''}`} key={`k${k.bump}`} data-hud="kristal">💎 {k.value}</span> : undefined} />
       <Online what="Mağaza"><Shop /></Online>
     </div>
   );
@@ -44,11 +47,13 @@ function Shop() {
         if (!pr.ok) { if (!pr.cancelled) toast('🙈', 'Satın alma tamamlanmadı', pr.error, 'bronze'); setBusy(false); return; }
         res = await c.call('shop.purchase', { productId: p.id, store: pr.store, receipt: pr.receipt });
       } else res = await c.call('shop.purchase', { productId: p.id, store: 'test' });
+      const before = useNet.getState().wallet?.kristal ?? 0;
       useNet.setState({ wallet: res.wallet });
       applyServerItems(p.contents.filter((x) => x.kind === 'kozmetik').map((x) => ({ kind: 'kozmetik' as const, amount: 1, ref: x.ref ?? '' })));
       void c.call('profile.update', {}).catch(() => undefined);
-      platform().haptic('success');
-      toast('🎉', `${p.name} hesabında`, res.teamGiftSent ? 'Takımındaki herkese hediye gitti!' : undefined, 'gold');
+      platform().haptic('success'); audio.play('fanfare');
+      celebrate.banner({ icon: '🎉', title: `${p.name} hesabında`, body: res.teamGiftSent ? 'Takımındaki herkese hediye gitti!' : undefined, tone: 'gold' });
+      if (res.wallet.kristal > before) void celebrate.coins({ amount: res.wallet.kristal - before, kind: 'kristal' });
       setSel(null); await load();
     } catch (e) { toast('🙈', 'Satın alınamadı', errText(e), 'bronze'); }
     setBusy(false);

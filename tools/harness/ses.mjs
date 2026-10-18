@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global OdiSes */
 // ODİ ses ölçümü: @odi/audio motorunu Playwright'ta (Chromium) OfflineAudioContext ile çalıştırır;
 // her müzik parçasının 8 saniyesini ve her SFX'i WAV olarak yazar, RMS/tepe/kırpılma/spektral merkezi raporlar.
 // Kullanım: node tools/harness/ses.mjs [--saniye 8]
@@ -17,7 +18,7 @@ for (const d of ['muzik', 'sfx']) mkdirSync(resolve(out, d), { recursive: true }
 const bundle = await build({ entryPoints: [resolve(root, 'tools/harness/ses-page.ts')], bundle: true, write: false, format: 'iife', target: 'es2020', logLevel: 'warning' });
 const code = bundle.outputFiles[0].text;
 
-const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM, args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(String(e.message ?? e)));
@@ -26,7 +27,7 @@ await page.addScriptTag({ content: code });
 
 const report = { muzik: [], sfx: [], ozel: [] };
 const save = (dir, r) => { writeFileSync(resolve(out, dir, `${r.name.replace(':', '-')}.wav`), Buffer.from(r.wav, 'base64')); delete r.wav; return r; };
-const line = (r) => `${r.name.padEnd(20)} ${String(r.seconds).padStart(5)} sn  RMS ${String(r.rmsDb).padStart(6)} dB  tepe ${String(r.peakDb).padStart(6)} dB  kırpılma ${String(r.clipped).padStart(3)}  merkez ${String(r.centroidHz).padStart(5)} Hz`;
+const line = (r) => `${r.name.padEnd(20)} ${String(r.seconds).padStart(5)} sn  RMS ${String(r.rmsDb).padStart(6)} dB  tepe ${String(r.peakDb).padStart(6)} dB  kırpılma ${String(r.clipped).padStart(3)}  merkez ${String(r.centroidHz).padStart(5)} Hz  bant %${r.bands.low}/${r.bands.mid}/${r.bands.high}`;
 
 console.log('— müzik —');
 for (const t of await page.evaluate(() => OdiSes.tracks())) { const r = save('muzik', await page.evaluate(([n, s]) => OdiSes.track(n, s), [t, seconds])); report.muzik.push(r); console.log(line(r)); }

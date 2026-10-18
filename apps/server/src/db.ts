@@ -1,6 +1,7 @@
 import { DatabaseSync, type StatementSync, type SQLInputValue } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
+import { EVENTS_SCHEMA } from './events/schema';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -76,6 +77,19 @@ CREATE INDEX IF NOT EXISTS progress_runs_at ON progress_runs(at);
 CREATE TABLE IF NOT EXISTS local_grants(player_id TEXT NOT NULL, ledger_id TEXT NOT NULL, jeton INTEGER NOT NULL, credited INTEGER NOT NULL, reason TEXT NOT NULL, day TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, ledger_id));
 CREATE INDEX IF NOT EXISTS local_grants_day ON local_grants(player_id, day);
 CREATE TABLE IF NOT EXISTS player_skills(player_id TEXT NOT NULL, skill_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, skill_id));
+-- arkadaşlık istekleri, engeller, arkadaş hediyeleri, şikâyetler, özel mesajlar (dm)
+CREATE TABLE IF NOT EXISTS friend_requests(id TEXT PRIMARY KEY, from_id TEXT NOT NULL, to_id TEXT NOT NULL, at INTEGER NOT NULL, UNIQUE(from_id, to_id));
+CREATE INDEX IF NOT EXISTS friend_requests_to ON friend_requests(to_id, at);
+CREATE TABLE IF NOT EXISTS blocks(a TEXT NOT NULL, b TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(a, b));
+CREATE INDEX IF NOT EXISTS blocks_b ON blocks(b);
+CREATE TABLE IF NOT EXISTS friend_gifts(day TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(day, from_id, to_id));
+CREATE TABLE IF NOT EXISTS player_reports(target TEXT NOT NULL, reporter TEXT NOT NULL, msg_id TEXT NOT NULL DEFAULT '', reason TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(target, reporter, msg_id));
+CREATE TABLE IF NOT EXISTS dm(seq INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE, pair TEXT NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL, meta TEXT, at INTEGER NOT NULL, deleted INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS dm_pair ON dm(pair, seq);
+CREATE INDEX IF NOT EXISTS dm_to ON dm(to_id, seq);
+CREATE INDEX IF NOT EXISTS dm_from ON dm(from_id, seq);
+CREATE TABLE IF NOT EXISTS dm_reactions(msg_id TEXT NOT NULL, player_id TEXT NOT NULL, emoji TEXT NOT NULL, PRIMARY KEY(msg_id, player_id));
+CREATE TABLE IF NOT EXISTS dm_reads(player_id TEXT NOT NULL, other_id TEXT NOT NULL, seq INTEGER NOT NULL, PRIMARY KEY(player_id, other_id));
 `;
 
 export type Row = Record<string, SQLInputValue>;
@@ -92,6 +106,7 @@ export class Db {
     if (file !== ':memory:') this.raw.exec('PRAGMA journal_mode = WAL;');
     this.raw.exec('PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = OFF; PRAGMA busy_timeout = 2000;');
     this.raw.exec(SCHEMA);
+    this.raw.exec(EVENTS_SCHEMA);
   }
 
   private stmt(sql: string): StatementSync {

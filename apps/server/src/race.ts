@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { SOCIAL_LIMITS, type RacePlayer, type RaceRoom } from '@odi/shared';
 import { fail, rid, type App, type Conn, type Handlers } from './app';
 import { areFriends } from './chat';
+import { isBlocked } from './friends';
 
 /**
  * Canlı yarış odaları yalnızca bellekte tutulur: sunucu yeniden başlarsa açık odalar kaybolur.
@@ -177,6 +178,12 @@ export function raceMemberIds(app: App, roomId: string): string[] | null {
   return r ? active(r).map((p) => p.id) : null;
 }
 
+/** son biten yarıştaki rakipler (arkadaş önerileri: "Seninle yarıştı") */
+export function recentRivalIds(app: App, pid: string): string[] {
+  const x = store(app).recent.get(pid);
+  return x && x.until > app.now() ? [...x.rivals] : [];
+}
+
 /** son biten yarışta birlikte yarıştılar mı (rövanş) */
 function recentRival(app: App, a: string, b: string): boolean {
   const x = store(app).recent.get(a);
@@ -217,6 +224,7 @@ export const raceHandlers: Handlers = {
   'race.invite': (app, s, { friendId }) => {
     const r = myRoom(app, s.pid);
     if (r.status !== 'lobi') fail('BASLADI', 'Yarış başladıktan sonra davet gönderilemez.');
+    if (isBlocked(app, s.pid, friendId)) fail('ENGEL', 'Bu oyuncu davet edilemiyor.');
     if (!areFriends(app, s.pid, friendId) && !recentRival(app, s.pid, friendId)) fail('YETKI', 'Yalnızca arkadaşlarını ya da son yarıştaki rakiplerini davet edebilirsin.');
     if (!app.online.has(friendId)) fail('CEVRIMDISI', 'Arkadaşın şu an çevrimiçi değil.');
     app.emit(friendId, 'race.invited', { room: view(r), from: app.publicProfile(app.player(s.pid)) });

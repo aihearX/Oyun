@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_COLOR_ID, DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
@@ -6,7 +6,10 @@ import {
   calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, resolveLook, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
 } from '@odi/meta';
-import { setSoundsEnabled, type LevelOptions } from '@odi/game-core';
+import type { LevelOptions } from '@odi/game-core';
+import { audio, type Track } from '@odi/audio';
+import { CelebrationLayer } from './celebrate/CelebrationLayer';
+import { installUiFeedback } from './ui/feedback';
 import { useStore } from './store';
 import { MapScreen } from './screens/MapScreen';
 import { LevelHost } from './screens/LevelHost';
@@ -23,10 +26,10 @@ import { WardrobeScreen } from './screens/WardrobeScreen';
 import { InfoScreen } from './screens/InfoScreen';
 import { BiomeIntro } from './screens/BiomeIntro';
 import { TabBar, type Tab } from './ui/TabBar';
-import { Toasts } from './ui/Toasts';
 import { readInvite } from './invite';
 import { CampScreen } from './screens/CampScreen';
-import { ChatScreen, FriendsScreen } from './screens/FriendsScreen';
+import { ChatScreen, DmRouteScreen, FriendsScreen, MessagesScreen } from './screens/FriendsScreen';
+import { FriendBanner, ProfileCardHost, useSocialUnread } from './friends';
 import { ShopScreen } from './screens/ShopScreen';
 import { InboxScreen, LeagueScreen } from './screens/InboxScreen';
 import { Onboarding } from './ui/Onboarding';
@@ -35,6 +38,7 @@ import { startNet, submitRun, toast, useSocial } from './net';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
 import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
+import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 
 type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>;
 type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'wardrobe' | 'info';
@@ -44,6 +48,7 @@ type Route =
   | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills }
   | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom }
   | { name: 'raceResult'; room: RaceRoom; result: RunResult; back: Tab }
+  | { name: 'eventLevel'; spec: LevelSpec; play: EventPlay; back: Tab }
   | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string };
 
 /** `?bot=1&level=N[&ts=2][&skills=all][&salt=K]` → test modu: harness bölümü otomatik oynatır. */
@@ -94,7 +99,12 @@ export function App() {
     const spec = generateLevel(store.journey, bot.level, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, bot.salt);
     setRoute({ name: 'level', spec, extras: {} });
   }, [bot, store.journey]);
-  useEffect(() => { setSoundsEnabled(store.sounds); }, [store.sounds]);
+  // ses: oyuncu ayarları (kalıcı) → motor; ilk dokunuşta kilit açma + global düğme sesleri
+  useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol }); }, [store.sounds, store.musicVol, store.sfxVol]);
+  useEffect(() => (bot ? undefined : installUiFeedback()), [bot]);
+  // müzik geçişleri (crossfade): harita teması, menü, biyom tanıtımı. Bölüm/sonuç kendi müziğini yönetir (LevelScene, ResultScreen).
+  // useLayoutEffect: ekranın kendi useEffect'i (ör. harita ekibinin özel parçası) bundan SONRA çalışır ve üstüne yazabilir.
+  useLayoutEffect(() => { if (bot) return; const t = routeTrack(route); if (t) audio.music(t); }, [route.name, bot]);
   // sosyal katman: bot modunda hiç başlamaz (harness sözleşmesi ve konsol temiz kalsın)
   useEffect(() => { if (!bot) startNet(); }, [bot]);
   useEffect(() => {
@@ -104,6 +114,7 @@ export function App() {
       ack: { highest: demo.spec.number + 1, stars: 0, warPoints: r.completed ? 10 * r.stars + Math.ceil(demo.spec.number / 4) : 0, raidDamage: r.completed ? 5 + 5 * r.stars : 0, leaguePoints: r.completed ? 5 + 5 * r.stars : 1, newInbox: 0, jeton: Math.round(r.coins * 1.06), wallet: { jeton: 0, kristal: 0, hizlandirici: { m5: 0, m60: 0, s8: 0 } } } } });
   }, [demo]);
   const socialBadges = useSocialBadges(store.coins);
+  const dmBadge = useSocialUnread();
   // ekran değişince en üstten başla (harita kendi kaydırmasını yapar)
   useEffect(() => { if (route.name !== 'level' && route.name !== 'map') window.scrollTo(0, 0); }, [route.name, 'room' in route ? route.room : '']);
 
@@ -132,25 +143,30 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} />;
-  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team }} /><Toasts /><Onboarding /></NavContext.Provider>;
-  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<Toasts /></NavContext.Provider>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><ProfileCardHost /><EventNoticeStrip onOpen={(v) => nav.open({ name: 'events', view: v })} /></>;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
+  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
   const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
 
-  switch (route.name) {
+  // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
+  const view = (() => { switch (route.name) {
     case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={() => { store.touchDay(); setRoute({ name: 'map' }); }} />;
-    case 'map': return withTabs('map', <MapScreen onPlay={play} onToday={() => tab('today')} />);
+    case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} /><EventsFab onOpen={() => nav.open({ name: 'events' })} /></>);
     case 'today': return withTabs('today', <TodayScreen onInfo={() => openSub('today')('info')} />);
     case 'camp': return withTabs('camp', <CampScreen />);
     case 'team': return withTabs('team', <TeamScreen />);
     case 'profile': return withTabs('profile', <ProfileScreen onOpen={openSub('profile')} />);
     case 'friends': return sub(<FriendsScreen onBack={back(route)} raceReady />);
     case 'chat': return sub(<ChatScreen key={route.room} room={route.room} title={route.title} onBack={back(route)} />);
+    case 'messages': return sub(<MessagesScreen onBack={back(route)} />);
+    case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'shop': return sub(<ShopScreen onBack={back(route)} />);
     case 'inbox': return sub(<InboxScreen onBack={back(route)} />);
     case 'league': return sub(<LeagueScreen onBack={back(route)} />);
     case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: {}, race: room })} onClose={back(route)} />);
+    case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} onBack={back(route)} onPlay={(spec, p) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back })} />);
+    case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
     case 'raceResult': return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
     case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds} extras={r.extras} race={r.race}
@@ -163,13 +179,24 @@ export function App() {
         const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result); setRoute({ name: 'result', spec: r.spec, result, summary, runId });
       }}
       onQuit={() => setRoute(r.race ? { name: 'race', back: 'team', key: Date.now() } : { name: 'map' })} />; }
-    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /><Toasts /></NavContext.Provider>;
-    case 'skills': return <><SkillsScreen onBack={() => setRoute({ name: route.back })} /><Toasts /></>;
+    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
+    case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'album': return <AlbumScreen onBack={() => setRoute({ name: route.back })} />;
     case 'wardrobe': return <WardrobeScreen onBack={() => setRoute({ name: route.back })} />;
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
+  } })();
+  return <>{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro'} /></>;
+}
+
+/** ekran → müzik parçası (undefined: o ekran kendi yönetir) */
+function routeTrack(r: Route): Track | undefined {
+  switch (r.name) {
+    case 'title': case 'map': return 'harita';
+    case 'intro': return `biyom:${r.spec.biome}`;
+    case 'level': case 'result': case 'eventLevel': return undefined;
+    default: return 'menu';
   }
 }
 

@@ -5,6 +5,7 @@ import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type S
 import { campHandlers, completeDue } from './camp';
 import { chatHandlers, pruneChat } from './chat';
 import { friendHandlers } from './friends';
+import { dmHandlers, dmTyping } from './dm';
 import { leagueHandlers, leagueRollover } from './league';
 import { announcePresence, playerHandlers } from './players';
 import { progressHandlers, pruneRuns } from './progress';
@@ -16,14 +17,17 @@ import { extraHandlers } from './teamextra';
 import { teamHandlers } from './teams';
 import { walletHandlers } from './wallet';
 import { warHandlers, warRollover } from './war';
+import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
 
-const HANDLERS: Handlers = {
+const HANDLERS: Handlers = withEventHooks({
+  ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
-};
+  ...eventHandlers,
+});
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
 
@@ -39,6 +43,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   if (env.ODI_RAID_ALWAYS) o.raidAlways = env.ODI_RAID_ALWAYS === '1';
   o.testStore = env.ODI_TEST_STORE === '1' || env.NODE_ENV !== 'production';
   o.revenueCatKey = env.REVENUECAT_API_KEY || null;
+  if (env.ODI_EVENTS_FAST) o.eventsFast = env.ODI_EVENTS_FAST === '1';
   return o;
 }
 
@@ -56,9 +61,10 @@ export interface OdiServer {
 export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> {
   const cfg: ServerConfig = {
     port: 8787, host: '0.0.0.0', dbFile: ':memory:', now: () => Date.now(), raidAlways: false, testStore: false, revenueCatKey: null,
-    raceCountdownMs: SOCIAL_LIMITS.raceCountdownMs, raceFinishGraceMs: 60_000, sweepMs: 5_000, pingMs: 25_000, msgPerSec: 30, log: false, version: SERVER_VERSION,
+    raceCountdownMs: SOCIAL_LIMITS.raceCountdownMs, raceFinishGraceMs: 60_000, sweepMs: 5_000, pingMs: 25_000, msgPerSec: 30, log: false, version: SERVER_VERSION, eventsFast: false, eventsEpoch: 0,
     ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)),
   };
+  if (!cfg.eventsEpoch) cfg.eventsEpoch = cfg.now();
   const app = new App(cfg);
   app.weekHooks.push((oldWeek) => warRollover(app, oldWeek), (oldWeek) => leagueRollover(app, oldWeek));
   const log = (...a: unknown[]) => { if (cfg.log) console.log(new Date().toISOString(), ...a); };
@@ -106,7 +112,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       if (msg.op === 'race.pos') {
         const d = firePosSchema.safeParse(msg.data);
         if (d.success) racePos(app, c, d.data);
-      }
+      } else if (msg.op === 'dm.typing') dmTyping(app, c, msg.data);
       return;
     }
     const id = typeof msg.id === 'number' ? msg.id : 0;
@@ -173,6 +179,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     try {
       app.run(() => {
         completeDue(app);
+        eventsSweep(app);
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
       });
       sweepRaces(app);
@@ -193,6 +200,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     close: async () => {
       clearInterval(pinger); clearInterval(sweeper);
       raceShutdown(app);
+      eventsShutdown(app);
       for (const c of conns) { c.pid = null; c.ws.terminate(); }
       await new Promise<void>((r) => wss.close(() => r()));
       await new Promise<void>((r) => httpServer.close(() => r()));

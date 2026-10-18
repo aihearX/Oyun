@@ -2,7 +2,7 @@
  * ODİ ağ istemcisi: tarayıcı ve React Native'de çalışır (yalnızca standart WebSocket).
  * React'e bağımlı değildir; React yardımcıları için bkz. ./store.ts
  */
-import { PROTOCOL_VERSION, type Evt, type EvtMap, type MyProfile, type Op, type OpMap, type ProgressSubmit } from '@odi/shared';
+import { PROTOCOL_VERSION, type Evt, type EvtMap, type FireMap, type FireOp, type MyProfile, type Op, type OpMap, type ProgressSubmit } from '@odi/shared';
 
 export type NetStatus = 'kapalı' | 'bağlanıyor' | 'bağlı' | 'çevrimdışı';
 
@@ -48,7 +48,8 @@ export interface NetClient {
   /** sunucu saati tahmini (ms) */
   serverNow(): number;
   call<O extends Op>(op: O, data: OpMap[O]['req']): Promise<OpMap[O]['res']>;
-  fire(op: 'race.pos', data: { x: number; y: number; pct: number }): void;
+  /** yanıtsız anlık ileti: 'race.pos' (yarış konumu), 'dm.typing' (yazıyor…) */
+  fire<F extends FireOp>(op: F, data: FireMap[F]): void;
   on<E extends Evt>(ev: E, cb: (data: EvtMap[E]) => void): () => void;
   onStatus(cb: (s: NetStatus) => void): () => void;
   /** profil değişince (hello, profile.update) */

@@ -11,10 +11,13 @@ import {
 
 export interface LevelProgress { stars: number; best: number; plays: number; lastResult?: RunResult }
 /** Üstte kısa kutlama bildirimi (kalıcı değil) */
-export interface Toast { id: number; icon: string; title: string; text?: string; tone?: 'gold' | 'silver' | 'bronze' | 'accent' | 'green' }
+export interface Toast { id: number; icon: string; title: string; text?: string; tone?: 'gold' | 'silver' | 'bronze' | 'accent' | 'green' | 'coral' }
 
 interface State extends PlayerCore {
   journey: string; progress: Record<number, LevelProgress>; sounds: boolean; recentStars: number[];
+  /** ses düzeyleri (0-1): müzik ve efekt ayrı; kalıcı */
+  musicVol: number; sfxVol: number;
+  setVolumes(v: { musicVol?: number; sfxVol?: number }): void;
   toasts: Toast[];
   /** gün sayacı: ardışık günlerde açılışta artar; kaçırılan gün seri koruyucuyla korunur; suçlama yok */
   touchDay(): StreakEvent;
@@ -64,7 +67,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta() };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta() };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -126,6 +129,7 @@ export const useStore = create<State>()(persist((set, get) => {
       settleAndToast({ ...core(get()), meta: { ...m, cards: [...m.cards, ...newCards], cosmetics: { ...m.cosmetics, owned: [...m.cosmetics.owned, ...newCos] } } }, extra);
     },
     setSounds(v) { set({ sounds: v }); },
+    setVolumes(v) { set({ ...(v.musicVol != null ? { musicVol: Math.max(0, Math.min(1, v.musicVol)) } : {}), ...(v.sfxVol != null ? { sfxVol: Math.max(0, Math.min(1, v.sfxVol)) } : {}) }); },
     reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [], meta: defaultMeta() }); },
     playerLevel() { return levelFromXp(get().xp); },
   };
@@ -135,7 +139,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };

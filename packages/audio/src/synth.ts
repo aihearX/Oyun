@@ -32,16 +32,28 @@ export interface ToneOpts {
   vib?: { rate: number; depth: number; delay?: number };
 }
 
-function panNode(k: Kit, pan: number | undefined, input: AudioNode): AudioNode {
-  if (!pan || typeof k.ctx.createStereoPanner !== 'function') return input;
-  const p = k.ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); input.connect(p); return p;
+/** paylaşılan yönlendirme düğümleri: aynı pan değeri / yankı miktarı için tek düğüm (nota başına düğüm sayısını azaltır) */
+type Shared = { pan: Map<number, AudioNode>; vs: Map<number, GainNode> };
+const shared = new WeakMap<Kit, Shared>();
+function sh(k: Kit): Shared { let x = shared.get(k); if (!x) { x = { pan: new Map(), vs: new Map() }; shared.set(k, x); } return x; }
+function panDest(k: Kit, pan: number | undefined): AudioNode {
+  const q = Math.round(Math.max(-1, Math.min(1, pan ?? 0)) * 10) / 10;
+  if (!q || typeof k.ctx.createStereoPanner !== 'function') return k.out;
+  const m = sh(k).pan; let n = m.get(q);
+  if (!n) { const p = k.ctx.createStereoPanner(); p.pan.value = q; p.connect(k.out); n = p; m.set(q, n); }
+  return n;
+}
+function verbSend(k: Kit, amt: number): AudioNode | null {
+  if (!k.verb || amt <= 0) return null;
+  const q = Math.round(amt * 20) / 20; const m = sh(k).vs; let g = m.get(q);
+  if (!g) { g = k.ctx.createGain(); g.gain.value = q; g.connect(k.verb); m.set(q, g); }
+  return g;
 }
 
 /** çıkış: (pan) → out (+ yankı gönderme) */
 function route(k: Kit, node: AudioNode, o: { pan?: number; verb?: number }) {
-  const n = panNode(k, o.pan, node);
-  n.connect(k.out);
-  if (o.verb && k.verb) { const s = k.ctx.createGain(); s.gain.value = o.verb; n.connect(s); s.connect(k.verb); }
+  node.connect(panDest(k, o.pan));
+  const v = verbSend(k, o.verb ?? 0); if (v) node.connect(v);
 }
 
 /** ADSR zarfı: gain parametresine yazar; bitiş zamanını döndürür */
@@ -137,13 +149,17 @@ export function pluck(k: Kit, f: number, t: number, dur: number, vol = 0.18, o: 
   return e1;
 }
 
-/** pad: hafif ayrık testereler + üçgen, yavaş atak, yumuşak filtre */
+/** pad: hafif ayrık testere + üçgen → tek filtre → tek zarf (yavaş atak, yumuşak) */
 export function pad(k: Kit, f: number, t: number, dur: number, vol = 0.05, o: { pan?: number; verb?: number; lp?: number; a?: number } = {}): number {
-  const lp = o.lp ?? 1200; const a = o.a ?? 0.35;
-  let end = 0;
-  for (const [type, det, v, pn] of [['sawtooth', -8, 0.5, -0.35], ['sawtooth', 8, 0.5, 0.35], ['triangle', 0, 0.8, 0]] as const) {
-    end = tone(k, { type, f, t, dur, vol: vol * v, a, d: 0.4, s: 0.85, r: Math.min(1.2, a * 2 + 0.3), detune: det, lp, q: 0.4, pan: (o.pan ?? 0) + pn, verb: o.verb });
+  const { ctx } = k; const a = o.a ?? 0.35;
+  const flt = ctx.createBiquadFilter(); flt.type = 'lowpass'; flt.frequency.value = o.lp ?? 1200; flt.Q.value = 0.4;
+  const g = ctx.createGain(); flt.connect(g);
+  const end = envelope(g.gain, t, dur, vol, a, 0.4, 0.85, Math.min(1.2, a * 2 + 0.3));
+  for (const [type, det, v] of [['sawtooth', 7, 0.55], ['triangle', -4, 0.9]] as const) {
+    const osc = ctx.createOscillator(); osc.type = type; osc.frequency.value = f; osc.detune.value = det;
+    const og = ctx.createGain(); og.gain.value = v; osc.connect(og); og.connect(flt); osc.start(t); osc.stop(end);
   }
+  route(k, g, o);
   return end;
 }
 

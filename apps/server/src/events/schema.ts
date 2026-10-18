@@ -1,0 +1,34 @@
+/** Etkinlik tabloları (db.ts kurulumda çalıştırır). Tüm anahtarlar dönem/gün/hafta ile tutulur; dönemler tembel kapanır. */
+export const EVENTS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS ev_done(kind TEXT NOT NULL, period TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(kind, period));
+CREATE TABLE IF NOT EXISTS ev_rally(id TEXT PRIMARY KEY, team_id TEXT NOT NULL, monster TEXT NOT NULL, salt INTEGER NOT NULL, starter TEXT NOT NULL, starter_name TEXT NOT NULL, status TEXT NOT NULL, hp INTEGER NOT NULL, max_hp INTEGER NOT NULL, starts_at INTEGER NOT NULL, ends_at INTEGER NOT NULL, won_at INTEGER, day TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS ev_rally_team ON ev_rally(team_id, starts_at);
+CREATE INDEX IF NOT EXISTS ev_rally_open ON ev_rally(status, ends_at);
+CREATE TABLE IF NOT EXISTS ev_rally_part(rally_id TEXT NOT NULL, player_id TEXT NOT NULL, joined_at INTEGER NOT NULL, damage INTEGER NOT NULL DEFAULT 0, tries INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(rally_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_rally_hit(player_id TEXT NOT NULL, run_id TEXT NOT NULL, rally_id TEXT NOT NULL, damage INTEGER NOT NULL, stars INTEGER NOT NULL, completed INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
+CREATE INDEX IF NOT EXISTS ev_rally_hit_r ON ev_rally_hit(rally_id, at);
+CREATE TABLE IF NOT EXISTS ev_duel(period TEXT NOT NULL, team_id TEXT NOT NULL, rival_id TEXT, power INTEGER NOT NULL, enrolled_at INTEGER NOT NULL, matched_at INTEGER, push_sent INTEGER NOT NULL DEFAULT 0, result TEXT, PRIMARY KEY(period, team_id));
+CREATE TABLE IF NOT EXISTS ev_duel_pts(period TEXT NOT NULL, team_id TEXT NOT NULL, player_id TEXT NOT NULL, points INTEGER NOT NULL, PRIMARY KEY(period, team_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_relay(period TEXT NOT NULL, team_id TEXT NOT NULL, current INTEGER NOT NULL DEFAULT 0, carrier TEXT, carrier_at INTEGER, last_runner TEXT, PRIMARY KEY(period, team_id));
+CREATE TABLE IF NOT EXISTS ev_relay_leg(period TEXT NOT NULL, team_id TEXT NOT NULL, leg INTEGER NOT NULL, best_sec REAL, best_by TEXT, first_by TEXT, first_at INTEGER, PRIMARY KEY(period, team_id, leg));
+CREATE TABLE IF NOT EXISTS ev_relay_run(player_id TEXT NOT NULL, run_id TEXT NOT NULL, period TEXT NOT NULL, team_id TEXT NOT NULL, leg INTEGER NOT NULL, time_sec REAL NOT NULL, completed INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
+CREATE INDEX IF NOT EXISTS ev_relay_run_t ON ev_relay_run(period, team_id, at);
+CREATE TABLE IF NOT EXISTS ev_hunt(period TEXT NOT NULL, team_id TEXT NOT NULL, target INTEGER NOT NULL, progress INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(period, team_id));
+CREATE TABLE IF NOT EXISTS ev_hunt_contrib(period TEXT NOT NULL, team_id TEXT NOT NULL, player_id TEXT NOT NULL, notes INTEGER NOT NULL, PRIMARY KEY(period, team_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_quiz(id TEXT PRIMARY KEY, team_id TEXT NOT NULL, day TEXT NOT NULL, slot TEXT, started_by TEXT NOT NULL, created_at INTEGER NOT NULL, lobby_ends INTEGER NOT NULL, questions TEXT NOT NULL, finished_at INTEGER, avg REAL);
+CREATE INDEX IF NOT EXISTS ev_quiz_team ON ev_quiz(team_id, created_at);
+CREATE INDEX IF NOT EXISTS ev_quiz_day ON ev_quiz(day, finished_at);
+CREATE TABLE IF NOT EXISTS ev_quiz_player(quiz_id TEXT NOT NULL, player_id TEXT NOT NULL, joined_at INTEGER NOT NULL, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, answers TEXT NOT NULL DEFAULT '{}', PRIMARY KEY(quiz_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_tquest(day TEXT NOT NULL, team_id TEXT NOT NULL, quests TEXT NOT NULL, PRIMARY KEY(day, team_id));
+CREATE TABLE IF NOT EXISTS ev_tquest_prog(day TEXT NOT NULL, team_id TEXT NOT NULL, kind TEXT NOT NULL, progress INTEGER NOT NULL, PRIMARY KEY(day, team_id, kind));
+CREATE TABLE IF NOT EXISTS ev_tquest_member(day TEXT NOT NULL, team_id TEXT NOT NULL, player_id TEXT NOT NULL, PRIMARY KEY(day, team_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_challenge(day TEXT NOT NULL, player_id TEXT NOT NULL, tries INTEGER NOT NULL, best INTEGER NOT NULL, best_at INTEGER NOT NULL, PRIMARY KEY(day, player_id));
+CREATE INDEX IF NOT EXISTS ev_challenge_rank ON ev_challenge(day, best DESC, best_at);
+CREATE TABLE IF NOT EXISTS ev_challenge_run(player_id TEXT NOT NULL, run_id TEXT NOT NULL, day TEXT NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
+CREATE TABLE IF NOT EXISTS ev_tourney_group(id TEXT PRIMARY KEY, week TEXT NOT NULL, n INTEGER NOT NULL, created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS ev_tourney_group_w ON ev_tourney_group(week, n);
+CREATE TABLE IF NOT EXISTS ev_tourney(week TEXT NOT NULL, player_id TEXT NOT NULL, group_id TEXT NOT NULL, total INTEGER NOT NULL DEFAULT 0, joined_at INTEGER NOT NULL, PRIMARY KEY(week, player_id));
+CREATE INDEX IF NOT EXISTS ev_tourney_g ON ev_tourney(group_id);
+CREATE TABLE IF NOT EXISTS ev_tourney_best(week TEXT NOT NULL, player_id TEXT NOT NULL, slot INTEGER NOT NULL, score INTEGER NOT NULL, PRIMARY KEY(week, player_id, slot));
+CREATE TABLE IF NOT EXISTS ev_tourney_run(player_id TEXT NOT NULL, run_id TEXT NOT NULL, week TEXT NOT NULL, slot INTEGER NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
+`;

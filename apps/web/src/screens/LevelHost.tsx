@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { platform } from '../platform';
+import { audio } from '@odi/audio';
 import { getNet, useSocial } from '../net';
 import { newerRoom } from '../race/common';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
@@ -68,7 +69,9 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
     handle.current = h;
     return () => { for (const o of offs) o(); h.destroy(); handle.current = null; };
   }, [spec.id]);
-  const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); } else { handle.current?.pause(); setPaused(true); } };
+  // duraklatınca müzik kısılır (durmaz), devam edince geri gelir
+  const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.duck(0); } else { handle.current?.pause(); setPaused(true); audio.duck(3600, 0.25); } };
+  useEffect(() => () => audio.duck(0), []);
   const leaveRace = () => { const net = getNet(); if (net) void net.call('race.leave', {}).catch(() => undefined); onQuit(); };
   return (
     <>

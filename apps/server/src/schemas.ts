@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { BUILDINGS, SOCIAL_LIMITS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
+import { EVENT_SCHEMAS } from './events/schemas';
+import { FRIEND_SCHEMAS } from './dm-schemas';
 
 const id = z.string().min(1).max(40).regex(/^[A-Za-z0-9]+$/);
 const empty = z.object({});
@@ -13,6 +15,7 @@ const room = z.string().min(1).max(80);
 
 /** her op için giriş şeması; bilinmeyen alanlar atılır */
 export const SCHEMAS: Record<Op, z.ZodType> = {
+  ...FRIEND_SCHEMAS,
   'hello': z.object({ token: z.string().max(200).optional(), name: z.string().max(40).optional(), version: z.number().int() }),
   'profile.update': z.object({ name: z.string().max(40).optional(), color: z.number().int().min(0).max(0xffffff).optional(), hat: z.string().max(32).regex(/^[a-z0-9-]*$/).optional() }),
   'profile.get': z.object({ id }),
@@ -71,6 +74,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'wallet.spend': z.object({ jeton: z.number().int().min(1).max(100_000), reason: z.string().min(1).max(60) }),
   'skills.list': empty,
   'progress.sync': z.object({ best: z.array(z.object({ level, stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE) })).max(MAX_LEVEL) }),
+  ...EVENT_SCHEMAS,
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

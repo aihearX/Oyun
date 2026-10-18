@@ -224,9 +224,9 @@ const beyinSapi: TrackDef = {
   bar(i, loop, r) {
     const P: Ch[] = [{ b: 38, t: [62, 65, 69] }, { b: 46, t: [62, 65, 70] }, { b: 41, t: [60, 65, 69] }, { b: 36, t: [60, 64, 67] }];
     const c = P[i % 4]!; const o: NoteEv[] = [];
-    o.push(...padCh(c, 0.8, -12, { lp: 1000 }));
-    o.push(...arp(c.t, [0, 2, 1, 2, 0, 2, 1, 3], 0.5, 'pulse', 0.75, 12, { panAlt: 0.85, lp: 2200 }));
-    o.push(ev(0, 3.8, 'sub', c.b, 0.8));
+    o.push(...padCh(c, 0.7, 0, { lp: 1300 }));
+    o.push(...arp(c.t, [0, 2, 1, 2, 0, 2, 1, 3], 0.5, 'pulse', 0.95, 12, { panAlt: 0.85, lp: 2200 }));
+    o.push(ev(0, 3.8, 'sub', c.b, 0.6));
     if (loop > 0 || i > 0) o.push(...steps('x.....x...x.....', 'kick', 0, 0.75), ...steps('........x.......', 'snare', 0, 0.6), ...steps('o.o.o.o.o.o.o.o.', 'hat', 0, 0.45));
     if (i % 2 === 1) o.push(...arp(c.t, [2, 1], 1, 'marimba', 0.4, 12, { panAlt: 0.7 }).map((e) => ({ ...e, at: e.at + 2 })));
     if (i >= 4) o.push(...mel([[c.t[2]! + 12, 1], [c.t[1]! + 12, 0.5], [c.t[0]! + 12, 2.5]], 'bell', 0.4, 0, { pan: r() < 0.5 ? -0.5 : 0.5 }));
@@ -260,10 +260,10 @@ const boss: TrackDef = {
     const P: Ch[] = [{ b: 36, t: [60, 63, 67] }, { b: 44, t: [60, 63, 68] }, { b: 46, t: [62, 65, 70] }, { b: 43, t: [59, 62, 67] }];
     const c = P[i % 4]!; const o: NoteEv[] = [];
     const ost = [0, 0, 12, 0, 0, 12, 10, 0];
-    ost.forEach((d, k) => o.push(ev(k * 0.5, 0.4, 'saw', c.b - 12 + d, k % 4 === 0 ? 0.95 : 0.7)));
+    ost.forEach((d, k) => o.push(ev(k * 0.5, 0.4, 'saw', c.b + d, k % 4 === 0 ? 0.95 : 0.7)));
     o.push(...steps('x.....x.x.......', 'kick', 0, 0.85), ...steps('....x.......x...', 'snare', 0, 0.75), ...steps('oxoxoxoxoxoxoxox', 'hat', 0, 0.45));
     o.push(...[1.5, 3.5].flatMap((at) => c.t.map((m) => ev(at, 0.3, 'stab', m, 0.6))));
-    o.push(...padCh(c, 0.4, -12, { lp: 900 }));
+    o.push(...padCh(c, 0.5, 0, { lp: 1200 }));
     if (i >= 4) {
       const riff: [number, number][][] = [[[67, 1], [68, 0.5], [67, 0.5], [63, 1], [60, 1]], [[68, 1], [70, 0.5], [68, 0.5], [67, 2]], [[70, 1], [72, 0.5], [70, 0.5], [74, 2]], [[71, 1.5], [74, 0.5], [79, 2]]];
       o.push(...mel(riff[i % 4]!, 'brass', 0.6));

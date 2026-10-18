@@ -3,6 +3,7 @@ import { useNet } from '@odi/net/store';
 import type { InboxItem, LeagueState } from '@odi/shared';
 import { claimInboxItem, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
+import { celebrate } from '../celebrate';
 import { ScreenHead } from '../ui/bits';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Empty, ItemChips, Online, Skeleton, TIER, fmtDate, fmtLeft, fmtNum, useNow } from '../ui/social';
@@ -21,11 +22,13 @@ function Inbox() {
   const [items, setItems] = useState<InboxItem[] | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const load = () => getNet()?.call('inbox.list', {}).then((r) => { setItems(r.items); useNet.setState({ inboxCount: r.items.length }); }, (e) => setErr(errText(e)));
   useEffect(() => { void load(); const off = getNet()?.on('inbox.new', ({ item }) => setItems((l) => (l ? [item, ...l] : l))); return off; }, []);
-  const one = async (it: InboxItem) => { setBusy(true); if (await claimInboxItem(it.id)) { setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); platform().haptic('success'); } setBusy(false); };
+  /** alınan jeton/kristal sayaca uçar (miktar = alınan öğeler) */
+  const fly = (got: InboxItem[]) => { for (const kind of ['jeton', 'kristal'] as const) { const n = got.filter((x) => x.kind === kind).reduce((a, x) => a + x.amount, 0); if (n > 0) void celebrate.coins({ amount: n, kind }); } };
+  const one = async (it: InboxItem) => { setBusy(true); if (await claimInboxItem(it.id)) { setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); platform().haptic('success'); fly([it]); } setBusy(false); };
   const all = async () => {
-    if (!items) return; setBusy(true); let n = 0;
-    for (const it of items) if (await claimInboxItem(it.id)) { n++; setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); }
-    setBusy(false); if (n) { platform().haptic('success'); toast('📬', `${n} ödül alındı`, 'Jeton ve kristal cüzdanında; kalkan bir sonraki bölümde.', 'gold'); }
+    if (!items) return; setBusy(true); let n = 0; const got: InboxItem[] = [];
+    for (const it of items) if (await claimInboxItem(it.id)) { n++; got.push(it); setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); }
+    setBusy(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, 'Jeton ve kristal cüzdanında; kalkan bir sonraki bölümde.', 'gold'); }
   };
   if (err) return <div className="chat-err">{err}</div>;
   if (!items) return <Skeleton rows={3} />;

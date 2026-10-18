@@ -103,6 +103,9 @@ log('üç oyuncu bağlandı');
 // Bora, Ayşe'yi arkadaş ekler (davet yalnızca arkadaşa); arkadaş ekranı sosyal ekibin, burada doğrudan istemciyle
 const code = await A.page.evaluate(() => window.__yaris.net().me.friendCode);
 await B.page.evaluate((c) => window.__yaris.net().call('friends.add', { code: c }), code);
+// arkadaşlık istekle kurulur: Ayşe de Bora'yı ekleyince (karşılıklı) arkadaş olurlar
+const codeB = await B.page.evaluate(() => window.__yaris.net().me.friendCode);
+await A.page.evaluate((c) => window.__yaris.net().call('friends.add', { code: c }), codeB);
 
 // Ayşe oda kurar (yeni oyuncu: yalnızca 1. bölüm açık)
 await tid(A, 'yaris-oda-kur').click();

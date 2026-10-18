@@ -10,8 +10,10 @@ import { TeamHelp } from './TeamHelp';
 import { TeamTech, TeamGifts, TeamGoals } from './TeamExtra';
 import { TeamWar } from './TeamWar';
 import { TeamRaid } from './TeamRaid';
+import { TeamEvents } from './TeamEvents';
+import { pendingCount, useEvents } from '../../events';
 
-export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin';
+export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik';
 let lastTab: TeamTab = 'sohbet';
 
 /** Takım ana ekranı: başlık (amblem, seviye, üye, güç) + 8 alt sekme. */
@@ -19,6 +21,7 @@ export function TeamHome() {
   const team = useNet((s) => s.team)!; const extra = useNet((s) => s.extra); const me = useNet((s) => s.me)!;
   const unread = useNet((s) => s.unread[`takim:${s.team?.id}`] ?? 0); const gifts = useNet((s) => s.giftCount); const campHelp = useNet((s) => s.campHelp);
   const [tab, setTabState] = useState<TeamTab>(lastTab);
+  const evBadge = useEvents((s) => pendingCount(s, me.id));
   const setTab = (t: TeamTab) => { lastTab = t; setTabState(t); platform().haptic('light'); };
   const [menu, setMenu] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -56,6 +59,7 @@ export function TeamHome() {
       </div>
       <SubTabs<TeamTab> active={tab} onChange={setTab} tabs={[
         { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread },
+        { id: 'etkinlik', icon: '🎪', label: 'Etkinlikler', badge: evBadge },
         { id: 'uyeler', icon: '👥', label: 'Üyeler' },
         { id: 'yardim', icon: '🤝', label: 'Yardım', badge: campHelp.length + levelHelp },
         { id: 'tekno', icon: '🔬', label: 'Teknoloji' },
@@ -73,6 +77,7 @@ export function TeamHome() {
         {tab === 'hedef' && <TeamGoals />}
         {tab === 'savas' && <TeamWar />}
         {tab === 'baskin' && <TeamRaid />}
+        {tab === 'etkinlik' && <TeamEvents />}
       </div>
       {menu && (
         <Sheet title={`${team.emblem} ${team.name}`} onClose={() => setMenu(false)}>

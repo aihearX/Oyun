@@ -10,6 +10,7 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
 import { Sheet, TopBar, fmtNum } from '../ui/social';
 import { LeagueCard } from './InboxScreen';
+import { DmTopPill, useFriends } from '../friends';
 
 export type ProfileLink = 'achievements' | 'album' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
@@ -17,6 +18,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const s = useStore(); const lp = levelProgress(s.xp); const look = resolveLook(s.meta);
   const me = useNet((x) => x.me); const st = useNet((x) => x.status); const inbox = useNet((x) => x.inboxCount); const wallet = useNet((x) => x.wallet);
   const pending = usePending(); const nav = useNav();
+  const dms = useFriends((x) => x.dmUnread); const reqs = useFriends((x) => x.incoming.length);
   const [rename, setRename] = useState(false);
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
@@ -25,7 +27,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const online = st === 'bağlı' && !!me;
   return (
     <div className="screen fade-in with-tabs">
-      <TopBar title="Profil" />
+      <TopBar title="Profil" extra={online ? <DmTopPill /> : undefined} />
       <div className="card profile-hero">
         <button className="avatar-btn" onClick={() => onOpen('wardrobe')} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /></button>
         <div className="grow min0">
@@ -40,7 +42,8 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
       </div>
       {online && <LeagueCard onOpen={() => onOpen('league')} />}
       <div className="menu-grid">
-        <button className="menu-tile" onClick={() => onOpen('friends')}><span className="mi">🫂</span><b>Arkadaşlar</b><span className="muted">Kod, sohbet, yarış</span></button>
+        <button className="menu-tile" onClick={() => onOpen('friends')}><span className="mi rel">🫂{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b><span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span></button>
+        <button className="menu-tile" onClick={() => nav.open({ name: 'messages' })}><span className="mi rel">💬{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b><span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span></button>
         <button className="menu-tile" onClick={() => onOpen('inbox')}><span className="mi rel">✉️{inbox > 0 && <span className="sbadge abs">{inbox}</span>}</span><b>Ödül kutusu</b><span className="muted">{inbox ? `${inbox} ödül seni bekliyor` : 'Savaş ve takım ödülleri'}</span></button>
         <button className="menu-tile" onClick={() => onOpen('shop')}><span className="mi">💎</span><b>Mağaza</b><span className="muted">İçerikler açık, sınır sende</span></button>
         <button className="menu-tile" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}><span className="mi">🌍</span><b>Genel sohbet</b><span className="muted">Herkesle konuş</span></button>

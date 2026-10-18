@@ -1,12 +1,13 @@
 import { useEffect } from 'react';
 import { useStore } from '../store';
 import { platform } from '../platform';
+import { audio } from '@odi/audio';
 
-/** Üstte kısa kutlama bildirimi: sırayla, tek tek. Dokununca kapanır. */
+/** Üstte kısa kutlama bildirimi (celebrate.banner da buraya düşer): sırayla, tek tek, sesli. Dokununca kapanır. */
 export function Toasts() {
   const toasts = useStore((s) => s.toasts); const dismiss = useStore((s) => s.dismissToast);
   const t = toasts[0];
-  useEffect(() => { if (!t) return; platform().haptic('success'); const h = setTimeout(() => dismiss(t.id), 2600); return () => clearTimeout(h); }, [t?.id]);
+  useEffect(() => { if (!t) return; platform().haptic('success'); audio.play(t.tone === 'gold' ? 'unlock' : 'notify', { vol: 0.8 }); const h = setTimeout(() => dismiss(t.id), 2600); return () => clearTimeout(h); }, [t?.id]);
   if (!t) return null;
   return (
     <div className="toast-top" role="status" aria-live="polite" key={t.id} onClick={() => dismiss(t.id)}>

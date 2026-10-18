@@ -4,7 +4,7 @@
  */
 import { ALL_SFX, ALL_TRACKS, renderCoinRain, renderSfx, renderTrack } from '../../packages/audio/src/offline';
 
-interface Report { name: string; seconds: number; rmsDb: number; peakDb: number; peak: number; clipped: number; centroidHz: number; wav: string }
+interface Report { name: string; seconds: number; rmsDb: number; peakDb: number; peak: number; clipped: number; centroidHz: number; bands: { low: number; mid: number; high: number }; wav: string }
 
 function fft(re: Float64Array, im: Float64Array) {
   const n = re.length;
@@ -29,13 +29,13 @@ function analyze(name: string, b: AudioBuffer): Report {
   for (let i = 0; i < n; i++) { const l = L[i]!, r = R[i]!; sum += l * l + r * r; const a = Math.max(Math.abs(l), Math.abs(r)); if (a > peak) peak = a; if (a >= 0.999) clipped++; }
   const rms = Math.sqrt(sum / (2 * n));
   // spektral merkez: 4096'lık pencerelerin güç ağırlıklı ortalaması (sessiz pencereler atlanır)
-  const N = 4096; let wsum = 0, fsum = 0;
+  const N = 4096; let wsum = 0, fsum = 0; const band = [0, 0, 0];
   for (let off = 0; off + N <= n; off += N) {
     const re = new Float64Array(N), im = new Float64Array(N); let e = 0;
     for (let i = 0; i < N; i++) { const w = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (N - 1)); re[i] = ((L[off + i]! + R[off + i]!) / 2) * w; e += re[i]! * re[i]!; }
     if (e < 1e-6) continue;
     fft(re, im);
-    for (let k = 1; k < N / 2; k++) { const p = re[k]! * re[k]! + im[k]! * im[k]!; wsum += p; fsum += p * ((k * b.sampleRate) / N); }
+    for (let k = 1; k < N / 2; k++) { const p = re[k]! * re[k]! + im[k]! * im[k]!; const m = Math.sqrt(p); const f = (k * b.sampleRate) / N; wsum += m; fsum += m * f; band[f < 250 ? 0 : f < 2500 ? 1 : 2]! += p; }
   }
   // WAV
   const bytes = new Uint8Array(44 + n * 4); const dv = new DataView(bytes.buffer);
@@ -45,7 +45,7 @@ function analyze(name: string, b: AudioBuffer): Report {
   for (let i = 0; i < n; i++) { dv.setInt16(44 + i * 4, Math.max(-1, Math.min(1, L[i]!)) * 32767, true); dv.setInt16(46 + i * 4, Math.max(-1, Math.min(1, R[i]!)) * 32767, true); }
   let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   const db = (x: number) => Math.round(20 * Math.log10(Math.max(1e-9, x)) * 10) / 10;
-  return { name, seconds: Math.round((n / b.sampleRate) * 100) / 100, rmsDb: db(rms), peakDb: db(peak), peak: Math.round(peak * 1000) / 1000, clipped, centroidHz: Math.round(wsum ? fsum / wsum : 0), wav: btoa(bin) };
+  return { name, seconds: Math.round((n / b.sampleRate) * 100) / 100, rmsDb: db(rms), peakDb: db(peak), peak: Math.round(peak * 1000) / 1000, clipped, centroidHz: Math.round(wsum ? fsum / wsum : 0), bands: (() => { const t = band[0]! + band[1]! + band[2]! || 1; return { low: Math.round((band[0]! / t) * 100), mid: Math.round((band[1]! / t) * 100), high: Math.round((band[2]! / t) * 100) }; })(), wav: btoa(bin) };
 }
 
 const api = {

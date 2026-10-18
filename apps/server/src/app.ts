@@ -25,6 +25,10 @@ export interface ServerConfig {
   msgPerSec: number;
   log: boolean;
   version: string;
+  /** ODI_EVENTS_FAST=1: etkinlik süreleri kısalır (saat → dakika), quiz her an açılabilir (test) */
+  eventsFast: boolean;
+  /** hızlı modda etkinlik dönemlerinin başlangıç anı (varsayılan: sunucu açılışı) */
+  eventsEpoch: number;
 }
 
 export class OdiError extends Error {

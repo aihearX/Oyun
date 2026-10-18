@@ -10,7 +10,7 @@ import { spawnEntity } from './entities';
 import { getMechanic, type LevelContext, type LevelState, type Mechanic, type Scan } from './mechanics';
 import { scanAhead } from './bot';
 import { Hud, flash, floatText, tapToStart, FONT, COLORS, ComboMeter, cheer, banner, endCard } from './ui';
-import { sfx, unlock, setSoundsEnabled } from './audio';
+import { sfx, unlock, setSoundsEnabled, music } from './audio';
 import { tonotopyFreq, luckyNoteTexture } from './art';
 import { RaceLayer } from './race';
 
@@ -123,8 +123,11 @@ export class LevelScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.hero.sprite, true, 0.12, 0.1, -GAME_W * 0.2, 120);
     this.emit({ type: 'ready' });
 
+    // bölüm müziği: biyomun kendi teması; boss bölümünde gerilimli 'boss' (kilit açılmadıysa motor bekletir)
+    const track = this.spec.mechanic === 'boss' || this.spec.objective.id === 'boss' ? 'boss' : `biyom:${this.spec.biome}` as const;
+    music(track);
     const begin = () => {
-      unlock(); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' }); if (this.spec.intro) this.hint(this.spec.intro, 3200);
+      unlock(); music(track); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' }); if (this.spec.intro) this.hint(this.spec.intro, 3200);
       if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, '🍀 Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200));
     };
     if (this.opts.race) {
@@ -174,7 +177,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.escort) { this.escort.x += (this.hero.x - 56 - this.escort.x) * 0.08; this.escort.y += (this.hero.y - 40 - this.escort.y) * 0.08; }
     // iniş tozu
     const hb = this.hero.body; const groundedNow = this.state.gravityDir === 1 ? hb.blocked.down || hb.touching.down : hb.blocked.up || hb.touching.up;
-    if (groundedNow && this.wasAirborne) { this.dust?.explode(8, this.hero.x, this.hero.y - (this.state.gravityDir === 1 ? 2 : 46)); this.hero.squash(1.18, 0.82, 70); }
+    if (groundedNow && this.wasAirborne) { this.dust?.explode(8, this.hero.x, this.hero.y - (this.state.gravityDir === 1 ? 2 : 46)); this.hero.squash(1.18, 0.82, 70); sfx.land(); }
     this.wasAirborne = !groundedNow;
     if (groundedNow && this.state.gravityDir === 1) { this.lastGroundX = this.hero.x; if (this.time.now - this.lastSafeCheck > 200) { this.lastSafeCheck = this.time.now; this.recordSafeSpot(); } }
     this.nearMiss();
@@ -218,12 +221,13 @@ export class LevelScene extends Phaser.Scene {
       else { sfx.tick(); floatText(this, c.x, c.y - 10, 'sıra değil', COLORS.coral); this.state.score += 5; }
       return;
     }
-    this.state.coins++; this.state.score += 10; sfx.coin(); this.emit({ type: 'haptic', kind: 'light' });
+    this.state.coins++; this.state.score += 10; this.emit({ type: 'haptic', kind: 'light' });
     this.sparks?.explode(6, c.x, c.y);
     const now = this.time.now; this.combo = now - this.comboAt < 1400 ? this.combo + 1 : 1; this.comboAt = now;
+    sfx.coin(this.combo); // seri arttıkça perde yükselir
     this.maxCombo = Math.max(this.maxCombo, this.combo); this.comboMeter.bump(this.combo);
     if (this.combo > 0 && this.combo % 5 === 0) {
-      const bonus = this.combo * 4; this.state.score += bonus; floatText(this, c.x, c.y - 16, `Seri x${this.combo}  +${bonus}`, COLORS.amber); sfx.power(); this.emit({ type: 'haptic', kind: 'medium' });
+      const bonus = this.combo * 4; this.state.score += bonus; floatText(this, c.x, c.y - 16, `Seri x${this.combo}  +${bonus}`, COLORS.amber); sfx.combo(this.combo); this.emit({ type: 'haptic', kind: 'medium' });
       const words = ['Güzel!', 'Harika!', 'Mükemmel!', 'Kulaklara ziyafet!', 'Efsane frekans!'];
       cheer(this, words[Math.min(words.length - 1, this.combo / 5 - 1)]!, this.combo >= 15 ? COLORS.coral : COLORS.amber); this.firstTime('seri5');
     }
@@ -330,7 +334,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.state.finished || !this.state.started) return; this.state.finished = true;
     this.comboMeter.tick(0); this.race?.finished(true);
     const r = this.withJuice(this.result(true)); this.state.objectiveMet = r.objectiveMet;
-    sfx.levelUp(); flash(this, 0x8ef0b0, 0.35, 400); this.hero.mood('wow'); this.emit({ type: 'haptic', kind: 'success' });
+    sfx.win(); music('zafer', 0.4); flash(this, 0x8ef0b0, 0.35, 400); this.hero.mood('wow'); this.emit({ type: 'haptic', kind: 'success' });
     this.hero.body.setVelocity(0, 0); this.hero.body.setAllowGravity(false);
     this.tweens.add({ targets: this.hero.sprite, y: this.hero.y - 40, scale: 1.2, duration: 500, ease: 'Back.Out' });
     endCard(this, { stars: r.stars, title: r.score.toLocaleString('tr-TR'), sub: r.stars === 3 ? 'Mükemmel!' : r.stars === 2 ? 'Harika!' : 'Kapıdan geçtin!' });
@@ -338,7 +342,7 @@ export class LevelScene extends Phaser.Scene {
   }
   fail(reason: string) {
     if (this.state.finished) return; this.state.finished = true; this.comboMeter.tick(0); this.race?.finished(false);
-    this.hud.set(this.state.score, this.state.lives); const r = this.withJuice(this.result(false)); sfx.gameOver(); this.hero.mood('hurt'); this.emit({ type: 'haptic', kind: 'error' });
+    this.hud.set(this.state.score, this.state.lives); const r = this.withJuice(this.result(false)); sfx.gameOver(); music(null, 1.2); this.hero.mood('hurt'); this.emit({ type: 'haptic', kind: 'error' });
     const pct = Math.max(0, Math.min(1, this.hero.x / this.gateX));
     endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
     this.time.delayedCall(this.opts.bot ? 100 : 900, () => this.emit({ type: 'levelFailed', result: { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000 } } }));
@@ -376,6 +380,7 @@ export class LevelScene extends Phaser.Scene {
   /** kısa sürede art arda ezme / kıl payı: "Mükemmel!" zinciri */
   private chainHit(_kind: string) {
     const now = this.time.now; this.chain = now - this.chainAt < 4000 ? this.chain + 1 : 1; this.chainAt = now;
+    if (this.chain >= 2) sfx.perfect(this.chain);
     if (this.chain >= 2) cheer(this, this.chain >= 4 ? 'Kulak ustası!' : this.chain === 3 ? 'Mükemmel!' : 'İkiledin!', this.chain >= 3 ? COLORS.coral : COLORS.accent, 28 + Math.min(3, this.chain) * 2);
   }
   /** Şanslı Nota: ileride, yolun ortasındaki bir jetonun üstüne yerleşir; o jetonla birlikte toplanır. */

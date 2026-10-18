@@ -37,7 +37,7 @@ const wsUrl = `ws://127.0.0.1:${sport}`;
 const wport = 5300 + Math.floor(Math.random() * 400);
 const preview = spawn('npx', ['vite', 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32' });
 procs.push(preview);
-await sleep(1800);
+for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://localhost:${wport}/`)).ok) break; } catch { /* henüz değil */ } await sleep(200); }
 const base = `http://localhost:${wport}/?sunucu=${encodeURIComponent(wsUrl)}`;
 const cleanup = () => { for (const p of procs) { try { p.kill(); } catch { /* yok */ } } };
 
@@ -264,16 +264,24 @@ try {
   await sub(A, 'Sohbet'); await shot(A, 'A-sohbet-sistem-mesajlari');
   await tab(A, 'Profil'); await A.locator('.league-card').waitFor({ timeout: 8000 }); await shot(A, 'A-profil-lig');
   await A.locator('.league-card').click(); await shot(A, 'A-lig-listesi'); await A.locator('.screen-head .btn').first().click();
-  await A.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await A.locator('.my-code').waitFor();
+  // arkadaşlık istekle kurulur: A, B'yi koduyla arar → istek; B İstekler sekmesinden kabul eder (arkadaşlık/özel mesaj ekibinin akışı)
+  await A.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await A.locator('.fr-mycode').waitFor();
   const friendCodeB = await (async () => { await tab(B, 'Profil'); return (await B.locator('.profile-hero .mono').innerText()).trim(); })();
-  await A.getByRole('textbox', { name: 'Arkadaş kodu' }).fill(friendCodeB); await A.getByRole('button', { name: 'Ekle' }).click();
-  await A.locator('.friend', { hasText: 'Bora' }).waitFor({ timeout: 8000 }); await toastGone(A);
+  await A.getByRole('textbox', { name: 'Oyuncu ara' }).fill(friendCodeB); await A.getByRole('button', { name: 'Bora ekle' }).click();
+  await A.locator('[data-testid="arama-sonucu"] .fr-state', { hasText: 'İstek gitti' }).waitFor({ timeout: 8000 }); await toastGone(A);
+  await B.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await B.locator('.fr-mycode').waitFor();
+  await B.locator('.subtabs .subtab', { hasText: 'İstekler' }).click();
+  await B.locator('[data-testid="gelen-istek"]', { hasText: 'Ayşe' }).getByRole('button', { name: 'Kabul' }).click();
+  await A.getByRole('button', { name: 'Aramayı temizle' }).click();
+  await A.locator('[data-testid="arkadas-satiri"]', { hasText: 'Bora' }).waitFor({ timeout: 8000 }); await toastGone(A);
+  await A.locator('.fr-banner-x').click().catch(() => undefined);
   await shot(A, 'A-arkadaslar');
-  await A.getByLabel('Bora ile sohbet').click();
+  await A.getByRole('button', { name: 'Bora ile mesajlaş' }).click();
   await A.getByRole('textbox', { name: 'Mesaj' }).fill('Yarışa var mısın? 🏁'); await A.getByRole('button', { name: 'Gönder', exact: true }).click();
-  await A.locator('.msg .bubble', { hasText: 'Yarışa var mısın' }).waitFor();
+  await A.locator('[data-testid="dm-mesaj"]', { hasText: 'Yarışa var mısın' }).waitFor();
   await shot(A, 'A-ozel-sohbet');
-  await A.locator('.screen-head .btn').first().click();
+  await B.locator('.screen-head .btn').first().click();
+  await A.locator('.dm-head .btn').first().click();
   await A.locator('.screen-head .btn').first().click();
   await A.getByLabel(/Ödül kutusu/).click(); await A.locator('.screen-head').waitFor(); await sleep(600); await shot(A, 'A-odul-kutusu');
   await A.locator('.screen-head .btn').first().click();

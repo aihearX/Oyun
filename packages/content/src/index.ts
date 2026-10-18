@@ -14,3 +14,4 @@ export * from './cosmetics';
 export * from './cards';
 export * from './achievements';
 export * from './daily';
+export * from './quiz';

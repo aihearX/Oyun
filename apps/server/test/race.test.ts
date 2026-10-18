@@ -17,6 +17,7 @@ describe('canlı yarış', () => {
     // arkadaş daveti
     expect((await err(a.call('race.invite', { friendId: b.me!.id }))).code).toBe('YETKI');
     await a.call('friends.add', { code: b.me!.friendCode });
+    await b.call('friends.add', { code: a.me!.friendCode }); // karşılıklı ekleme = arkadaş
     await a.call('race.invite', { friendId: b.me!.id });
     const inv = await b.waitFor('race.invited');
     expect(inv.room.id).toBe(room.id);

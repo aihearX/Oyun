@@ -85,14 +85,17 @@ describe('kimlik ve oturum', () => {
 });
 
 describe('arkadaşlar', () => {
-  it('kodla karşılıklı ekleme, presence, listeleme, silme', async () => {
+  it('kodla karşılıklı ekleme (iki taraf da ekleyince arkadaş), presence, listeleme, silme', async () => {
     env = await setup();
     const a = await env.connect('Ayşe');
     const b = await env.connect('Bora');
     const r = await a.call('friends.add', { code: b.me!.friendCode.toLowerCase() });
     expect(r.friend.id).toBe(b.me!.id);
-    const upd = await b.waitFor('friend.updated');
-    expect(upd.friend.id).toBe(a.me!.id);
+    expect(r.status).toBe('istek');
+    expect((await b.call('friends.list', {})).friends).toEqual([]);
+    expect((await b.call('friends.add', { code: a.me!.friendCode })).status).toBe('arkadas');
+    const upd = await a.waitFor('friend.updated');
+    expect(upd.friend.id).toBe(b.me!.id);
     expect((await b.call('friends.list', {})).friends.map((f) => f.id)).toEqual([a.me!.id]);
     expect((await a.call('friends.list', {})).friends[0]!.online).toBe(true);
     expect((await err(a.call('friends.add', { code: a.me!.friendCode }))).code).toBe('GECERSIZ');
@@ -129,6 +132,7 @@ describe('sohbet', () => {
     const room = dmRoom(a.me!.id, b.me!.id);
     expect((await err(a.call('chat.join', { room }))).code).toBe('YETKI');
     await a.call('friends.add', { code: b.me!.friendCode });
+    await b.call('friends.add', { code: a.me!.friendCode });
     await a.call('chat.join', { room });
     env.clock.advance(1300);
     await a.call('chat.send', { room, text: 'gizli selam' });

@@ -1,7 +1,7 @@
 import type { LevelSpec, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, TIER_NAMES, achievementById, achievementDesc, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
 import { levelProgress, type RunSummary } from '@odi/meta';
-import { sfx } from '@odi/game-core';
+import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
 import { useStore } from '../store';
@@ -9,6 +9,9 @@ import { inviteUrl, type Invite } from '../invite';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
+import { celebrate } from '../celebrate';
+import { fx } from '../celebrate/fx';
+import { useHudCount } from '../celebrate/hud';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
@@ -32,7 +35,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const store = useStore();
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
+  /** önizleme bayrağı: ?demo=sonuc&kutlama=0 → seviye kutlaması açılmaz (yalnızca ekran görüntüsü için) */
+  const demoNoCelebrate = !!demo && new URLSearchParams(location.search).get('kutlama') === '0';
   const S = result.stars; const FINAL = S + 4;
+  const title = result.completed ? (S === 3 ? 'Mükemmel!' : S === 2 ? 'Harika!' : 'Geçtin!') : 'Bu sefer olmadı';
+  const allUnlocks = buildUnlocks(summary, store.meta.cosmetics.color);
+  const [showAll, setShowAll] = useState(false);
+  const unlocks = showAll ? allUnlocks : allUnlocks.slice(0, 4); const hidden = allUnlocks.length - unlocks.length;
   const [step, setStep] = useState(reduced ? FINAL : 0);
   const skip = () => setStep(FINAL);
   const done = step >= FINAL;
@@ -51,15 +60,40 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     return () => ts.forEach(clearTimeout);
   }, [reduced, S]);
 
-  // her yıldız: ses + titreşim (yükselen perde)
+  // müzik: kazanınca zafer jingle'ı (bölümden devam eder), sonra yumuşakça menü teması
+  useEffect(() => { audio.music(result.completed ? 'zafer' : null, { fade: 0.6 }); }, []);
+  useEffect(() => { if (!done) return; const h = setTimeout(() => audio.music('menu', { fade: 2 }), reduced ? 300 : 1800); return () => clearTimeout(h); }, [done]);
+
+  // her yıldız: ekranı sallayarak iner + büyüyen çan sesi + titreşim + ışıltı
+  const starsRef = useRef<HTMLDivElement>(null); const scoreRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const shake = (px: number) => { try { rootRef.current?.animate([{ transform: 'none' }, { transform: `translate(${-px}px, ${px * 0.6}px)` }, { transform: `translate(${px}px, ${-px * 0.6}px)` }, { transform: `translate(${-px / 2}px, ${px / 3}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' }); } catch { /* yok */ } };
   useEffect(() => {
-    if (step >= 1 && step <= S && !reduced) { sfx.toneAt([523, 659, 784][step - 1] ?? 784, 0.18); platform().haptic(step === 3 ? 'heavy' : 'medium'); }
-    if (step === S + 2) { if (summary.newRecord) { sfx.levelUp(); platform().haptic('success'); } else if (result.completed) sfx.coin(); }
-    if (step === S + 3 && summary.levelAfter > summary.levelBefore) { sfx.power(); platform().haptic('success'); }
+    if (reduced) return;
+    if (step >= 1 && step <= S) {
+      audio.play((['star1', 'star2', 'star3'] as const)[step - 1]!); platform().haptic(step === 3 ? 'heavy' : 'medium');
+      const t = setTimeout(() => { shake(3 + step * 2); fx.sparkle(starsRef.current?.children[step - 1], 14 + step * 6); if (step === 3) fx.confetti(starsRef.current?.children[1], 60); }, 330);
+      return () => clearTimeout(t);
+    }
+    if (step === S + 2) {
+      if (summary.newRecord) { audio.play('newRecord'); platform().haptic('success'); setTimeout(() => fx.confetti(scoreRef.current, 80), 120); }
+      if (summary.xpEarned > 0) audio.play('xpFill', { delay: 0.25, vol: 0.8 });
+    }
+  }, [step]);
+
+  // skor sayarken tık sesi; perde sayaçla birlikte yükselir
+  useEffect(() => {
+    if (reduced || step !== S + 1 || result.score <= 0) return;
+    let i = 0; const n = Math.min(14, Math.max(4, Math.round(result.score / 120)));
+    const h = setInterval(() => { audio.play('countTick', { semitones: Math.round((i / n) * 12) }); if (++i >= n) clearInterval(h); }, SCORE_MS / n);
+    return () => clearInterval(h);
   }, [step]);
 
   const score = useCountUp(0, result.score, step >= S + 1, SCORE_MS, reduced);
-  const coinsShown = useCountUp(summary.coinsBefore, summary.coinsAfter, step >= S + 2, 900, reduced);
+  // cüzdan: jetonlar uçarken sayaç varışlarla birlikte sayarak artar (sonunda gerçek değer)
+  const [coinsFlying, setCoinsFlying] = useState(false);
+  const hudCoins = useHudCount('jeton', summary.coinsAfter);
+  const coinsShown = reduced || done || coinsFlying ? hudCoins.value : step >= S + 2 && summary.coinsAfter <= summary.coinsBefore ? summary.coinsAfter : summary.coinsBefore;
 
   // XP çubuğu: seviye atlarsa önce doldur, patlat, sonra yeni seviyede devam et
   const before = levelProgress(summary.xpBefore), after = levelProgress(summary.xpAfter);
@@ -70,15 +104,29 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const xpWidth = xpPhase === 0 ? before.pct : xpPhase === 1 ? 1 : (leveled ? after.pct : after.pct);
   const xpLevel = xpPhase === 2 ? after.level : before.level;
 
-  // jetonların cüzdana uçuşu
+  // jetonların cüzdana uçuşu (celebrate.coins: eğrisel yollar, her varışta tık + sayaç zıplar)
   const walletRef = useRef<HTMLDivElement>(null); const coinRef = useRef<HTMLDivElement>(null);
-  const [fly, setFly] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
   useLayoutEffect(() => {
-    if (reduced || step !== S + 2 || summary.coinsAfter <= summary.coinsBefore) return;
-    const a = coinRef.current?.getBoundingClientRect(), b = walletRef.current?.getBoundingClientRect(); if (!a || !b) return;
-    setFly({ x: a.left + a.width / 2, y: a.top + a.height / 2, dx: b.left + b.width / 2 - (a.left + a.width / 2), dy: b.top + b.height / 2 - (a.top + a.height / 2) });
+    if (reduced || step !== S + 2 || summary.coinsAfter <= summary.coinsBefore || coinsFlying) return;
+    const a = coinRef.current?.getBoundingClientRect();
+    void celebrate.coins({ amount: summary.coinsAfter - summary.coinsBefore, kind: 'jeton', ...(a ? { from: { x: a.left + a.width / 2, y: a.top + a.height / 2 } } : {}) });
+    setCoinsFlying(true);
   }, [step]);
-  useEffect(() => { if (!fly) return; const h = setTimeout(() => setFly(null), 1500); return () => clearTimeout(h); }, [fly]);
+  // seviye atladıysa büyük kutlama (XP çubuğu dolup patladıktan sonra); açılan şeyler bu koşuda gerçekten açılanlar
+  const leveledShown = useRef(false);
+  useEffect(() => {
+    if (leveledShown.current || !leveled || xpPhase !== 2 || step < S + 2 || demoNoCelebrate) return;
+    leveledShown.current = true;
+    levelTimer.current = window.setTimeout(() => void celebrate.levelUp({ level: after.level, unlocks: allUnlocks.slice(0, 4).map((u) => u.title) }), reduced ? 0 : 500);
+  }, [xpPhase, step]);
+  const levelTimer = useRef(0);
+  useEffect(() => () => clearTimeout(levelTimer.current), []);
+  // açılım kartları gelirken her biri için ses
+  useEffect(() => {
+    if (reduced || step !== S + 3) return;
+    const ts = unlocks.map((_, i) => setTimeout(() => audio.play('itemReveal', { semitones: Math.min(12, i * 2), vol: 0.8 }), 120 + i * 140));
+    return () => ts.forEach(clearTimeout);
+  }, [step]);
 
   const share = async () => {
     const link = inviteUrl({ level: spec.number, score: result.completed ? result.score : 0, stars: result.stars });
@@ -88,24 +136,20 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     if (r === 'copied') { setToast('Bağlantı kopyalandı'); setTimeout(() => setToast(''), 1500); }
   };
 
-  const title = result.completed ? (S === 3 ? 'Mükemmel!' : S === 2 ? 'Harika!' : 'Geçtin!') : 'Bu sefer olmadı';
-  const allUnlocks = buildUnlocks(summary, store.meta.cosmetics.color);
-  const [showAll, setShowAll] = useState(false);
-  const unlocks = showAll ? allUnlocks : allUnlocks.slice(0, 4); const hidden = allUnlocks.length - unlocks.length;
 
   return (
-    <div className="screen fade-in result-screen" onClick={() => { if (!done) skip(); }}>
+    <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
       <div className="result-top">
         <div className="muted ellipsis">{spec.number}. {spec.name}</div>
-        <div className="pill wallet" ref={walletRef} data-bump={step >= S + 2 && !reduced ? 'yes' : 'no'} key={step >= S + 2 ? 'w2' : 'w1'}>🪙 {coinsShown.toLocaleString('tr-TR')}</div>
+        <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}>🪙 {coinsShown.toLocaleString('tr-TR')}</div>
       </div>
 
       <div className="result">
         <h1 className="result-title">{title}</h1>
-        <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`}>
+        <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
           {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty">★</span><span className="star-full">⭐</span></span>)}
         </div>
-        <div className="score-line">
+        <div className="score-line" ref={scoreRef}>
           <div className="score">{score.toLocaleString('tr-TR')}</div>
           {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
           {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, result.score).toLocaleString('tr-TR')}</div>}
@@ -178,9 +222,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         </div>
       </div>
 
-      {fly && Array.from({ length: Math.min(8, Math.max(3, Math.ceil(summary.coinsEarned / 4))) }, (_, i) => (
-        <span key={i} className="coin-fly" style={{ left: fly.x, top: fly.y, ['--dx' as string]: `${fly.dx}px`, ['--dy' as string]: `${fly.dy}px`, ['--sx' as string]: `${(i % 4 - 1.5) * 14}px`, animationDelay: `${i * 70}ms` }}>🪙</span>
-      ))}
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

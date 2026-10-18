@@ -5,6 +5,7 @@ import { cardById, cosmeticById } from '@odi/content';
 import { useStore } from '../store';
 import { reconnect, usePending, useSocial } from '../net';
 import { useNav } from '../nav';
+import { useHudCount } from '../celebrate/hud';
 
 /** saniyelik (ya da verilen aralıkta) yeniden çizim için şimdiki zaman */
 export function useNow(ms = 1000): number {
@@ -67,6 +68,8 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
   const wallet = useNet((s) => s.wallet); const inbox = useNet((s) => s.inboxCount); const st = useNet((s) => s.status);
   const pending = usePending(); const nav = useNav();
   const linked = !!wallet;
+  // jeton uçuşu sırasında sayaç gerçek değerin yoldaki kadar altında görünür ve varışta sayarak artar
+  const jc = useHudCount('jeton', coins); const kc = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
     <div className="topbar2">
       <div className="tb-title min0">
@@ -75,8 +78,8 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       </div>
       <div className="tb-pills">
         {extra}
-        <span className="pill tb-pill" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}>🪙 {fmtNum(coins)}{pending > 0 && st !== 'bağlı' && <i className="pend">⏳</i>}</span>
-        {linked && <button className="pill tb-pill tap" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmtNum(wallet.kristal)}</button>}
+        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}>🪙 {fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend">⏳</i>}</span>
+        {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmtNum(kc.value)}</button>}
         {linked && <button className="pill tb-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}>✉️{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>

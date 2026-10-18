@@ -1,57 +1,41 @@
 /**
- * Web Audio ile sentezlenmiş oyun sesleri (WebView içinde). Varlık dosyası yok.
+ * Oyun içi sesler: mevcut `sfx` API'si korunur, içi @odi/audio motoruna yönlenir (Web Audio sentezi, varlık dosyası yok).
  * iOS'ta ses ancak bir dokunuştan sonra başlar: unlock() ilk pointerdown'da çağrılır.
+ * setSoundsEnabled yalnızca BU bölümün seslerini açıp kapatır (bot/test, "cihaz kapalı" değiştiricisi);
+ * oyuncunun genel ses ayarı kabuktan audio.setVolumes ile gelir.
  */
-let ctx: AudioContext | null = null;
-let master: GainNode | null = null;
+import { audio, type PlayOpts, type Sfx, type Track } from '@odi/audio';
+
 let enabled = true;
 
-export function setSoundsEnabled(v: boolean) { enabled = v; if (master) master.gain.value = v ? 0.5 : 0; }
+export function setSoundsEnabled(v: boolean) { enabled = v; if (!v) audio.music(null, { fade: 0.3 }); }
+export function unlock() { if (enabled) audio.unlock(); }
 
-export function unlock() {
-  try {
-    if (!ctx) {
-      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
-      ctx = new AC();
-      master = ctx.createGain(); master.gain.value = enabled ? 0.5 : 0; master.connect(ctx.destination);
-    }
-    if (ctx.state === 'suspended') void ctx.resume();
-  } catch { /* ses yoksa oyun yine çalışır */ }
-}
-
-function tone(freq: number, dur: number, type: OscillatorType = 'square', vol = 0.25, slideTo?: number) {
-  if (!ctx || !master || !enabled) return;
-  const t = ctx.currentTime;
-  const o = ctx.createOscillator(); const g = ctx.createGain();
-  o.type = type; o.frequency.setValueAtTime(freq, t);
-  if (slideTo) o.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), t + dur);
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.02);
-}
-
-function noise(dur: number, vol = 0.2, cutoff = 1200) {
-  if (!ctx || !master || !enabled) return;
-  const t = ctx.currentTime; const n = Math.floor(ctx.sampleRate * dur);
-  const buf = ctx.createBuffer(1, n, ctx.sampleRate); const d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
-  const s = ctx.createBufferSource(); s.buffer = buf;
-  const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cutoff;
-  const g = ctx.createGain(); g.gain.value = vol;
-  s.connect(f); f.connect(g); g.connect(master); s.start(t);
-}
+const play = (s: Sfx, o?: PlayOpts) => { if (enabled) audio.play(s, o); };
+/** seri arttıkça perde majör gamda yükselir (en çok bir oktav) */
+const SCALE = [0, 2, 4, 5, 7, 9, 11, 12];
+export const comboSemitones = (combo: number) => SCALE[Math.max(0, Math.min(SCALE.length - 1, combo - 1))]!;
 
 export const sfx = {
-  jump: () => tone(300, 0.15, 'square', 0.18, 700),
-  doubleJump: () => tone(500, 0.12, 'square', 0.16, 1000),
-  coin: () => { tone(1047, 0.06, 'square', 0.14); setTimeout(() => tone(1319, 0.12, 'square', 0.14), 50); },
-  hit: () => { noise(0.18, 0.3, 700); tone(160, 0.25, 'sawtooth', 0.2, 60); },
-  power: () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'triangle', 0.18), i * 60)); },
-  levelUp: () => { [523, 659, 784, 1047, 1319].forEach((f, i) => setTimeout(() => tone(f, 0.12, 'square', 0.16), i * 80)); },
-  gameOver: () => { [392, 330, 262, 196].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'triangle', 0.2), i * 160)); },
-  bounce: () => tone(220, 0.1, 'sine', 0.2, 440),
-  tick: () => tone(1500, 0.03, 'square', 0.08),
+  jump: () => play('jump'),
+  doubleJump: () => play('doubleJump'),
+  /** combo: o anki jeton serisi (perde yükselir) */
+  coin: (combo = 0) => play('coin', { semitones: comboSemitones(combo) }),
+  hit: () => play('hit'),
+  power: () => play('power'),
+  levelUp: () => play('levelUp'),
+  gameOver: () => play('gameOver'),
+  bounce: () => play('bounce'),
+  tick: () => play('tick'),
+  land: () => play('land', { vol: 0.7 }),
+  perfect: (chain = 0) => play('perfect', { semitones: Math.min(12, chain * 2) }),
+  combo: (combo = 0) => play('combo', { semitones: Math.min(12, Math.floor(combo / 5) * 2) }),
+  win: () => play('win'),
   /** Tonotopi: koklea derinliğine göre nota (taban ince, apeks kalın) */
-  toneAt: (freq: number, dur = 0.1) => tone(freq, dur, 'sine', 0.12),
+  toneAt: (freq: number, dur = 0.1) => { if (enabled) audio.tone(freq, dur, 0.12); },
   /** yarış geri sayımı: 3-2-1 kısa bip, "Başla!" uzun ve tiz */
-  countdown: (go: boolean) => { if (go) { tone(880, 0.35, 'square', 0.2); setTimeout(() => tone(1320, 0.3, 'square', 0.16), 90); } else tone(440, 0.16, 'square', 0.2); },
+  countdown: (go: boolean) => play(go ? 'countdownGo' : 'countdown'),
 };
+
+/** bölüm müziği (bölüm sesi kapalıysa çalmaz) */
+export function music(track: Track | null, fade?: number) { if (enabled || track === null) audio.music(track, fade != null ? { fade } : undefined); }

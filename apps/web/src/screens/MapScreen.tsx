@@ -1,68 +1,148 @@
-import { useEffect, useRef } from 'react';
-import { BIOMES, HUMAN_JOURNEY, questById, treasureAt, type LevelPlan } from '@odi/content';
-import type { BiomeId } from '@odi/shared';
-import { biomeStats, calendarView, chestReady, dayKey, ensureDaily, levelProgress, nextTreasure, questDone } from '@odi/meta';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { BIOMES, HUMAN_JOURNEY } from '@odi/content';
+import { calendarView, chestReady, dayKey, ensureDaily, levelProgress, questDone, resolveLook } from '@odi/meta';
+import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
+import { useNet } from '@odi/net/store';
+import { audio } from '@odi/audio';
+import { startMap, type MapHandle, type MapSocial, type ZoneId } from '@odi/game-core';
 import { useStore } from '../store';
-import { Bar, RewardChips } from '../ui/bits';
-import { TopBar } from '../ui/social';
+import { getNet, useSocial } from '../net';
+import { useNav } from '../nav';
+import { platform } from '../platform';
+import { StatusDot } from '../ui/social';
+import { prefersReducedMotion } from '../ui/bits';
+import { celebrate } from '../celebrate';
+import { useHudCount } from '../celebrate/hud';
+import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
+import { mapGoals, treasureItems } from '../map/goals';
+import { MapCards, type MapCard } from '../map/MapCards';
+import { Compass, MapFrame } from '../map/MapChrome';
+import '../map/map.css';
 
-/** Yolculuk haritası: biyom biyom gruplanmış 40 düğüm. Kilit: önceki bölüm en az 1 yıldız. Üstte kompakt "Bugün" kartı ve sıradaki hazine. */
+const fmt = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}B` : n.toLocaleString('tr-TR'));
+
+/**
+ * Yaşayan Kulak Haritası: tam ekran Phaser haritası + React katmanı (cam HUD, Bugün çipi, sıradaki hedef rozeti,
+ * pusula, büyük "Bölüm N ▶" düğmesi, bölüm/hazine/bölge kartları). Bölümden dönünce dönüş sahnesi oynar.
+ */
 export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; onToday: () => void }) {
-  const s = useStore(); const unlocked = s.highestUnlocked(); const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { ref.current?.querySelector('.node.current')?.scrollIntoView({ block: 'center' }); }, []);
-  const groups: { biome: BiomeId; levels: LevelPlan[] }[] = [];
-  for (const l of HUMAN_JOURNEY.levels) { const g = groups[groups.length - 1]; if (g && g.biome === l.biome) g.levels.push(l); else groups.push({ biome: l.biome, levels: [l] }); }
-  const today = dayKey(); const daily = ensureDaily(s.meta.daily, today);
-  const cal = calendarView(s, today); const calReady = s.lastDay === today && !cal.claimedToday;
-  const treasure = nextTreasure(unlocked, s.progress, s.meta.treasures);
-  const journey = biomeStats(HUMAN_JOURNEY.levels, s.progress); const lp = levelProgress(s.xp);
-  const doneCount = daily.quests.filter(questDone).length;
+  const progress = useStore((s) => s.progress); const meta = useStore((s) => s.meta); const coins = useStore((s) => s.coins); const xp = useStore((s) => s.xp);
+  const streak = useStore((s) => s.streak); const lastDay = useStore((s) => s.lastDay);
+  const unlocked = useStore((s) => s.highestUnlocked());
+  const stars = useMemo(() => starsOf(progress), [progress]);
+  const host = useRef<HTMLDivElement>(null); const hudRef = useRef<HTMLDivElement>(null); const playRef = useRef<HTMLDivElement>(null);
+  const handle = useRef<MapHandle | null>(null);
+  const [card, setCard] = useState<MapCard | null>(null);
+  const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
+  const social = useMapSocial(); const socialRef = useRef(social); socialRef.current = social;
+
+  // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
+  useEffect(() => {
+    let dead = false; let h: MapHandle | null = null;
+    audio.music('harita');
+    void loadMapSeen().then(() => {
+      if (dead || !host.current) return;
+      const s = useStore.getState(); const now = starsOf(s.progress);
+      const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
+      if (!seenSt.init) seenSt.commit(now);
+      const look = resolveLook(s.meta);
+      const hb = hudRef.current?.getBoundingClientRect().bottom ?? 70; const pb = playRef.current?.getBoundingClientRect().top ?? innerHeight - 140;
+      h = startMap(host.current, {
+        stars: now, seen, treasuresOpen: s.meta.treasures, hero: { color: look.color, hat: look.hat }, social: socialRef.current,
+        insets: { top: hb + 8, bottom: Math.max(90, innerHeight - pb + 10) }, reducedMotion: prefersReducedMotion(),
+        sfx: (x, o) => audio.play(x, o), haptic: (k) => platform().haptic(k),
+        onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
+        onTreasure: async (n) => {
+          const items = treasureItems(useStore.getState().meta, n);
+          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz' });
+        },
+        onZoneRise: async (z, _from, to) => {
+          const ms = useMapSeen.getState(); if (to < 3 || ms.restored.includes(z)) return;
+          ms.markRestored(z);
+          if (z === 'finale') { celebrate.banner({ icon: '👑', title: 'Ninni beyne ulaştı!', body: 'Ninni Merkezi ışıl ışıl yandı.', tone: 'gold' }); return; }
+          await celebrate.biomeRestored({ biome: z, name: BIOMES[z].name });
+        },
+        onSequence: (p) => { setSeq(p === 'start'); if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
+        onCurrentVisible: (v, d) => setAway(v ? null : d),
+      });
+      handle.current = h;
+    });
+    return () => { dead = true; h?.destroy(); handle.current = null; };
+  }, []);
+  // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
+  useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);
+  useEffect(() => { handle.current?.setSocial(social); }, [social]);
+
+  // ---- HUD verileri
+  const lp = levelProgress(xp);
+  const totalStars = Object.values(stars).reduce((a, b) => a + b, 0);
+  const coin = useHudCount('jeton', coins);
+  const wallet = useNet((s) => s.wallet); const inbox = useNet((s) => s.inboxCount); const nav = useNav();
+  const kristal = useHudCount('kristal', wallet?.kristal ?? 0);
+  const today = dayKey(); const daily = ensureDaily(meta.daily, today);
+  const cal = calendarView({ progress, coins, xp, streak, lastDay, failStreak: 0, skills: useStore.getState().skills, meta }, today);
+  const calReady = lastDay === today && !cal.claimedToday; const doneQ = daily.quests.filter(questDone).length;
+  const todayText = chestReady(daily) ? '🎁 Sandık hazır!' : calReady ? '📅 Ödül hazır' : `${doneQ}/3 görev`;
+  const todayHot = chestReady(daily) || calReady;
+  const goals = useMemo(() => mapGoals(stars, progress, unlocked, meta.treasures), [stars, progress, unlocked, meta.treasures]);
+  const [gi, setGi] = useState(0);
+  useEffect(() => { const t = setInterval(() => setGi((i) => i + 1), 4800); return () => clearInterval(t); }, []);
+  const goal = goals[gi % goals.length]!;
+  const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
+
   return (
-    <div className="screen fade-in with-tabs" ref={ref}>
-      <TopBar brand />
-
-      <div className="card journey-card">
-        <div className="row">
-          <div className="grow min0"><h2>{HUMAN_JOURNEY.name}</h2><div className="muted">Sv {lp.level} · {journey.stars}/{journey.maxStars} ⭐{s.streak > 1 ? ` · 🔥 ${s.streak}` : ''}</div></div>
-          <button className="btn" onClick={() => onPlay(unlocked)}>Bölüm {unlocked} ▶</button>
-        </div>
-        <Bar value={journey.pct} label="Yolculuk ilerlemesi" />
-        {treasure && (
-          <div className="treasure-line">
-            <span className="ti">🎁</span>
-            <span className="grow min0"><b>{treasure.remaining <= 1 ? 'Bu bölümün sonunda hazine!' : `${treasure.remaining} bölüm sonra hazine`}</b><RewardChips items={treasure.reward} small /></span>
-          </div>
-        )}
+    <div className="map-screen" onPointerDown={() => audio.unlock()}>
+      <div className="map-stage" ref={host} aria-label="Yolculuk haritası" role="img" />
+      <MapFrame />
+      <div className="map-hud" ref={hudRef}>
+        <div className="mh-lvl" title={`Seviye ${lp.level}`} style={{ ['--p' as string]: `${Math.round(lp.pct * 100)}%` }}><b>{lp.level}</b><span>Sv</span></div>
+        <StatusDot />
+        <span className="mh-pill" aria-label={`${totalStars} yıldız`}>⭐ {totalStars}</span>
+        <span className="grow" />
+        <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${coin.value} jeton`}>🪙 {fmt(coin.value)}</span>
+        {wallet && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmt(kristal.value)}</button>}
+        {wallet && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}>✉️{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
-
-      <button className="card today-mini" onClick={onToday} aria-label="Bugün: görevler ve takvim">
-        <div className="row between"><b>☀️ Bugün</b><span className="muted">{chestReady(daily) ? '🎁 Sandık hazır!' : calReady ? `📅 ${cal.dayIndex + 1}. gün ödülü hazır` : `${doneCount}/3 görev`}</span></div>
-        <div className="tm-quests">
-          {daily.quests.map((q) => { const d = questById(q.id); if (!d) return null; return (
-            <div className="tm-q" key={q.id}><span className="tm-e">{questDone(q) ? '✅' : d.emoji}</span><Bar value={q.progress / d.target} tone="green" label={d.text} /></div>); })}
-        </div>
-        <div className="tm-cal" aria-hidden>{cal.days.map((d) => <i key={d.day} className={d.state} />)}</div>
+      <div className="map-side-l">
+        <button className={`map-today${todayHot ? ' hot' : ''}`} onClick={onToday} aria-label="Bugün: görevler ve takvim">
+          <span>☀️</span><span className="mt-t"><b>Bugün</b><small>{todayText}</small></span>
+        </button>
+        <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
+      </div>
+      <button className="map-goal" key={gi % goals.length} onClick={() => handle.current?.focusCurrent()} aria-label={`Sıradaki hedef: ${goal.text}`}>
+        <small>Sıradaki hedef</small><span>{goal.icon} {goal.text}</span>
       </button>
-
-      <div className="map">
-        {groups.map((g) => { const b = BIOMES[g.biome]; const st = biomeStats(g.levels, s.progress); return (
-          <div className="biome" key={g.biome + g.levels[0]!.number}>
-            <div className="biome-head">
-              <h2>{b.name}</h2><span className="muted">{st.stars}/{st.maxStars} ⭐</span>
-            </div>
-            <Bar value={st.pct} tone={st.cleared === st.total ? 'green' : 'accent'} label={`${b.name} ilerlemesi`} />
-            <div className="fact">{b.fact}</div>
-            <div className="nodes">
-              {g.levels.map((l) => { const p = s.progress[l.number]; const locked = l.number > unlocked; const cur = l.number === unlocked; const tr = treasureAt(l.number); const trOpen = s.meta.treasures.includes(l.number); return (
-                <div key={l.number} className={`node${locked ? ' locked' : ''}${cur ? ' current' : ''}`} onClick={() => { if (!locked) onPlay(l.number); }} role="button" aria-label={`Bölüm ${l.number}: ${l.name}${locked ? ', kilitli' : ''}`}>
-                  {l.boss && <span className="boss">👹</span>}
-                  {tr && <span className={`treasure${trOpen ? ' open' : ''}`} title={trOpen ? 'Hazine açıldı' : 'Hazine'}>{trOpen ? '✓' : '🎁'}</span>}
-                  <div className="n">{l.number}</div><div className="name">{l.name}</div>
-                  <div className="stars">{p ? '⭐'.repeat(p.stars) + '☆'.repeat(3 - p.stars) : locked ? '🔒' : '☆☆☆'}</div>
-                </div>); })}
-            </div>
-          </div>); })}
+      {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
+      {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır ⏩</div>}
+      <div className="map-play-wrap" ref={playRef}>
+        <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done ? `👑 Bölüm ${unlocked} ▶` : `Bölüm ${unlocked} ▶`}</button>
       </div>
+      <MapCards card={card} stars={stars} unlocked={unlocked} onClose={() => setCard(null)} onPlay={onPlay} />
     </div>
   );
+}
+
+/** Sosyal katman: arkadaşların en yüksek bölümleri ve takımın savaş bölgeleri (gerçek veri; sunucu yoksa null) */
+function useMapSocial(): MapSocial | null {
+  const status = useNet((s) => s.status); const war = useNet((s) => s.war); const team = useNet((s) => s.team); const enabled = useSocial((s) => s.enabled);
+  const [friends, setFriends] = useState<PublicProfile[] | null>(null);
+  useEffect(() => {
+    if (status !== 'bağlı') return; const c = getNet(); if (!c) return; let dead = false;
+    c.call('friends.list', {}).then((r) => { if (!dead) setFriends(r.friends); }, () => undefined);
+    return () => { dead = true; };
+  }, [status]);
+  return useMemo(() => {
+    if (!enabled || status !== 'bağlı') return null;
+    const marks: MapSocial['war'] = [];
+    if (war && team) {
+      for (const r of war.regions) {
+        const owned = r.owner?.teamId === team.id; const target = war.targets.includes(r.id);
+        if (!owned && !target) continue;
+        const def = WAR_REGIONS.find((x) => x.id === r.id);
+        const zone: ZoneId = r.id === 'merkez' ? 'finale' : ((def?.biomes[0] ?? r.biomes[0] ?? 'dis-kulak') as ZoneId);
+        marks.push({ regionId: r.id, name: r.name, zone, emblem: team.emblem, owned, target });
+      }
+    }
+    return { friends: (friends ?? []).map((f) => ({ id: f.id, name: f.name, color: f.color, highest: f.highest })), war: marks, teamColor: 0xff5c8a };
+  }, [enabled, status, war, team, friends]);
 }

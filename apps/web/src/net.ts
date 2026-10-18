@@ -10,8 +10,10 @@ import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
 import { WAR_REGIONS, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { COSMETICS, SKILL_TREE, CARDS } from '@odi/content';
+import { bindEvents } from './events/store';
 import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
+import { bindFriends } from './friends/state';
 
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
@@ -240,6 +242,8 @@ export function startNet(): void {
     });
     const c = client;
     bindNet(c);
+    bindEvents(c);
+    bindFriends(c); // arkadaşlık + özel mesaj olayları (istek, dm, okunmamış, bildirim şeridi)
     c.onStatus((st) => { if (st !== 'bağlanıyor') useSocial.setState({ tried: true }); if (st === 'bağlı') void onConnected(c); });
     c.onMe((me) => applyServerItems([...me.cosmetics.map((ref) => ({ kind: 'kozmetik' as const, amount: 1, ref })), ...me.cards.map((ref) => ({ kind: 'kart' as const, amount: 1, ref }))]));
     useNet.subscribe((n, p) => { if (n.wallet !== p.wallet || n.status !== p.status) mirrorCoins(); });

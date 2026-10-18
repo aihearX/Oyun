@@ -1,22 +1,34 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
+import { audio } from '@odi/audio';
 import { MAX_STREAK_SHIELDS, questById, type RewardItem } from '@odi/content';
 import { calendarView, chestReady, dailyChestReward, dayKey, ensureDaily, highestUnlocked, questDone, resolveReward } from '@odi/meta';
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, rewardIcon } from '../ui/bits';
+import { Bar, RewardChips, rewardIcon, rewardLabel } from '../ui/bits';
+import { celebrate } from '../celebrate';
+import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const s = useStore(); const today = dayKey();
   useEffect(() => { s.touchDay(); }, []);
-  const [got, setGot] = useState<{ title: string; items: RewardItem[] } | null>(null);
   const [note, setNote] = useState('');
+  const [just, setJust] = useState<string | null>(null);
   const daily = ensureDaily(s.meta.daily, today); const cal = calendarView(s, today);
   const chestItems = resolveReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
   const doneCount = daily.quests.filter(questDone).length;
-  const show = (title: string, items: RewardItem[] | null) => { if (items) { setGot({ title, items }); platform().haptic('success'); } };
+  /** sandık/takvim: kutlama katmanında açılır; gösterilen = verilen (store'un döndürdüğü öğeler aynen) */
+  const openChest = (title: string, items: RewardItem[] | null, big = false) => { if (items) void celebrate.chest({ title, items, tier: big ? 'altin' : chestTierFor(items) }); };
+  /** görev: tamam sesi + kart parlaması; jetonlar düğmeden sayaca uçar, diğerleri şeritte yazılı */
+  const claimQuest = (id: string, e: MouseEvent<HTMLButtonElement>) => {
+    const r = e.currentTarget.getBoundingClientRect(); const items = s.claimQuest(id); if (!items) return;
+    audio.play('questDone'); platform().haptic('success'); setJust(id); setTimeout(() => setJust((j) => (j === id ? null : j)), 900);
+    const coins = items.filter((i) => i.kind === 'jeton').reduce((a, i) => a + i.amount, 0);
+    if (coins > 0) void celebrate.coins({ amount: coins, kind: 'jeton', from: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
+    celebrate.banner({ icon: '✅', title: 'Görev tamam!', body: items.map(rewardLabel).join(' · '), tone: 'green' });
+  };
   const challenge = async () => {
     const lvl = Math.max(1, highestUnlocked(s.progress) - 1); const p = s.progress[lvl];
     const link = inviteUrl({ level: lvl, score: p?.best ?? 0, stars: p?.stars ?? 0 });
@@ -50,7 +62,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="cal-today">
           <div className="grow min0"><div className="muted">{cal.claimedToday ? 'Bugünün ödülü alındı. Yarın:' : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
             <RewardChips items={(cal.claimedToday ? cal.days[(cal.dayIndex + 1) % 7] : cal.days[cal.dayIndex])!.reward} small /></div>
-          <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => show(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar())}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>
+          <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => openChest(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar(), !!cal.days[cal.dayIndex]?.big)}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>
         </div>
       </section>
 
@@ -58,7 +70,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="row between"><h2>Günlük görevler</h2><span className="muted">{doneCount}/3</span></div>
         <div className="quests">
           {daily.quests.map((q) => { const d = questById(q.id); if (!d) return null; const ok = questDone(q); return (
-            <div className={`quest${ok ? ' ok' : ''}${q.claimed ? ' claimed' : ''}`} key={q.id}>
+            <div className={`quest${ok ? ' ok' : ''}${q.claimed ? ' claimed' : ''}${just === q.id ? ' just' : ''}`} key={q.id}>
               <span className="qe">{q.claimed ? '✅' : d.emoji}</span>
               <div className="grow min0">
                 <div className="qt">{d.text}</div>
@@ -66,7 +78,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
                 <RewardChips items={d.reward} small />
               </div>
               {q.claimed ? <span className="muted">Alındı</span>
-                : ok ? <button className="btn small" onClick={() => show(d.text, s.claimQuest(q.id))}>Al</button>
+                : ok ? <button className="btn small" onClick={(e) => claimQuest(q.id, e)}>Al</button>
                 : d.metric === 'share' ? <button className="btn coral small" onClick={challenge}>📣</button> : null}
             </div>); })}
         </div>
@@ -79,22 +91,11 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
           <div className="muted">{daily.chestOpened ? 'Açıldı. Yarın yeni görevler, yeni sandık.' : ready ? 'Üç görev de tamam. Aç bakalım!' : `Üç görev bitince açılır (${doneCount}/3). İçinde:`}</div>
           {!daily.chestOpened && <RewardChips items={chestItems} small />}
         </div>
-        {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => show('Günlük sandık', s.openChest())}>Aç</button>}
+        {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest())}>Aç</button>}
       </section>
 
       <button className="linkish" onClick={onInfo}>Ödüller nasıl çalışır? Şanslı Nota ihtimali, sandık içerikleri →</button>
 
-      {got && (
-        <div className="overlay" onClick={() => setGot(null)}>
-          <div className="card reward-pop" role="dialog" aria-label="Kazandın">
-            <div className="rp-burst" aria-hidden>✨</div>
-            <h2>Kulağına müjde!</h2>
-            <div className="muted">{got.title}</div>
-            <RewardChips items={got.items} />
-            <button className="btn" onClick={() => setGot(null)}>Süper</button>
-          </div>
-        </div>
-      )}
       {note && <div className="toast">{note}</div>}
     </div>
   );

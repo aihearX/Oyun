@@ -13,26 +13,26 @@ import { bell, brass, clap, cymbal, drop, hat, kick, makeImpulse, marimba, mtof,
 export function playNote(k: Kit, e: NoteEv, t: number, beat: number): void {
   const f = mtof(e.m); const d = Math.max(0.05, e.dur * beat); const v = e.v; const pan = e.pan;
   switch (e.inst) {
-    case 'pluck': pluck(k, f, t, d, 0.16 * v, { pan, verb: 0.25 }); break;
-    case 'bell': bell(k, f, t, Math.max(0.9, d * 1.5), 0.075 * v, { pan, verb: 0.4 }); break;
-    case 'celesta': bell(k, f, t, 1, 0.05 * v, { pan, verb: 0.45, bright: 0.45 }); break;
-    case 'pad': pad(k, f, t, d, 0.03 * v, { pan, verb: 0.35, lp: e.lp }); break;
-    case 'bass': tone(k, { type: 'triangle', f, t, dur: d * 0.85, vol: 0.22 * v, a: 0.006, d: 0.15, s: 0.6, r: 0.07, lp: 900 }); tone(k, { type: 'sine', f, t, dur: d * 0.85, vol: 0.14 * v, a: 0.006, d: 0.2, s: 0.7, r: 0.07 }); break;
-    case 'sub': tone(k, { type: 'sine', f, t, dur: d, vol: 0.26 * v, a: 0.03, d: 0.3, s: 0.8, r: 0.2 }); break;
-    case 'saw': tone(k, { type: 'sawtooth', f, t, dur: d * 0.8, vol: 0.1 * v, a: 0.004, d: 0.12, s: 0.4, r: 0.05, lp: 2200, lpEnd: 500, lpTime: 0.15, q: 2 }); tone(k, { type: 'sine', f, t, dur: d * 0.8, vol: 0.12 * v, a: 0.004, d: 0.15, s: 0.6, r: 0.05 }); break;
-    case 'kick': kick(k, t, 0.42 * v); break;
-    case 'heart': kick(k, t, 0.38 * v, { f: 95, f2: 38, dur: 0.3 }); break;
+    case 'pluck': pluck(k, f, t, d, 0.21 * v, { pan, verb: 0.25 }); break;
+    case 'bell': bell(k, f, t, Math.max(0.9, d * 1.5), 0.095 * v, { pan, verb: 0.4 }); break;
+    case 'celesta': bell(k, f, t, 1, 0.07 * v, { pan, verb: 0.45, bright: 0.45 }); break;
+    case 'pad': pad(k, f, t, d, 0.034 * v, { pan, verb: 0.35, lp: e.lp }); break;
+    case 'bass': tone(k, { type: 'triangle', f, t, dur: d * 0.85, vol: 0.13 * v, a: 0.006, d: 0.15, s: 0.6, r: 0.07, lp: 900 }); tone(k, { type: 'sine', f, t, dur: d * 0.85, vol: 0.07 * v, a: 0.006, d: 0.2, s: 0.7, r: 0.07 }); break;
+    case 'sub': tone(k, { type: 'sine', f, t, dur: d, vol: 0.14 * v, a: 0.03, d: 0.3, s: 0.8, r: 0.2 }); break;
+    case 'saw': tone(k, { type: 'sawtooth', f, t, dur: d * 0.8, vol: 0.1 * v, a: 0.004, d: 0.12, s: 0.4, r: 0.05, lp: 2200, lpEnd: 500, lpTime: 0.15, q: 2 }); tone(k, { type: 'sine', f, t, dur: d * 0.8, vol: 0.07 * v, a: 0.004, d: 0.15, s: 0.6, r: 0.05 }); break;
+    case 'kick': kick(k, t, 0.3 * v); break;
+    case 'heart': kick(k, t, 0.27 * v, { f: 95, f2: 38, dur: 0.3 }); break;
     case 'snare': snare(k, t, 0.15 * v, { verb: 0.2 }); break;
     case 'clap': clap(k, t, 0.12 * v, { pan }); break;
     case 'hat': hat(k, t, 0.045 * v, { pan }); break;
     case 'ohat': hat(k, t, 0.04 * v, { open: true, pan }); break;
     case 'shaker': shaker(k, t, 0.035 * v, { pan }); break;
-    case 'tom': tom(k, f, t, 0.24 * v, { pan, verb: 0.2 }); break;
+    case 'tom': tom(k, f, t, 0.18 * v, { pan, verb: 0.2 }); break;
     case 'wood': wood(k, f, t, 0.07 * v, { pan }); break;
-    case 'drop': drop(k, f, t, 0.12 * v, { pan, verb: 0.45 }); break;
-    case 'pulse': tone(k, { type: 'square', f, t, dur: d * 0.6, vol: 0.05 * v, a: 0.003, d: 0.08, s: 0.3, r: 0.04, lp: e.lp ?? 1600, q: 3, pan, verb: 0.2 }); break;
-    case 'marimba': marimba(k, f, t, 0.12 * v, { pan, verb: 0.2 }); break;
-    case 'lead': tone(k, { type: 'triangle', f, t, dur: d, vol: 0.09 * v, a: 0.05, d: 0.2, s: 0.7, r: 0.2, pan, verb: 0.4, vib: { rate: 5, depth: f * 0.008, delay: 0.25 } }); tone(k, { type: 'sine', f: f * 2, t, dur: d, vol: 0.025 * v, a: 0.06, d: 0.2, s: 0.6, r: 0.2, pan }); break;
+    case 'drop': drop(k, f, t, 0.17 * v, { pan, verb: 0.45 }); break;
+    case 'pulse': tone(k, { type: 'square', f, t, dur: d * 0.6, vol: 0.07 * v, a: 0.003, d: 0.08, s: 0.3, r: 0.04, lp: e.lp ?? 1600, q: 3, pan, verb: 0.2 }); break;
+    case 'marimba': marimba(k, f, t, 0.17 * v, { pan, verb: 0.2 }); break;
+    case 'lead': tone(k, { type: 'triangle', f, t, dur: d, vol: 0.11 * v, a: 0.05, d: 0.2, s: 0.7, r: 0.2, pan, verb: 0.4, vib: { rate: 5, depth: f * 0.008, delay: 0.25 } }); tone(k, { type: 'sine', f: f * 2, t, dur: d, vol: 0.025 * v, a: 0.06, d: 0.2, s: 0.6, r: 0.2, pan }); break;
     case 'brass': brass(k, f, t, d, 0.07 * v, { pan, verb: 0.3 }); break;
     case 'stab': tone(k, { type: 'sawtooth', f, t, dur: Math.min(d, 0.12), vol: 0.05 * v, a: 0.003, d: 0.1, s: 0.2, r: 0.06, lp: 2400, lpEnd: 600, lpTime: 0.1, pan }); break;
     case 'cym': cymbal(k, t, 0.06 * v, Math.max(1, d)); break;
@@ -85,7 +85,7 @@ export class Engine implements AudioEngine {
       this.sfxBus = c.createGain(); this.sfxBus.gain.value = this.vol.sfx; this.sfxBus.connect(this.comp);
       this.duckGain = c.createGain(); this.duckGain.connect(this.comp);
       this.musicBus = c.createGain(); this.musicBus.gain.value = this.vol.music; this.musicBus.connect(this.duckGain);
-      const conv = c.createConvolver(); conv.buffer = makeImpulse(c, 1.8, 3.4);
+      const conv = c.createConvolver(); conv.buffer = makeImpulse(c, 1.3, 3);
       this.verbIn = c.createGain(); this.verbIn.gain.value = 0.35; this.verbIn.connect(conv); conv.connect(this.comp);
       if (!this.o.context) {
         this.unlocked = false;

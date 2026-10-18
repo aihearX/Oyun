@@ -1,137 +1,126 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState } from '@odi/shared';
-import { act, getNet, toast, useSocial } from '../net';
+import type { BuildingId, CampState, Wallet } from '@odi/shared';
+import { tierOf, CAMP_TIER_NAMES } from '@odi/game-core';
+import { audio } from '@odi/audio';
+import { act, getNet, reconnect, toast, useSocial } from '../net';
 import { platform } from '../platform';
-import { Bar } from '../ui/bits';
-import { FloatBurst, Online, Sheet, TopBar, fmtDur, fmtLeft, fmtNum, useNow } from '../ui/social';
+import { celebrate } from '../celebrate';
+import { Skeleton, TopBar, useNow } from '../ui/social';
+import { CampBase } from '../camp/CampBase';
+import { CampList } from '../camp/CampList';
+import { askedHelp, buildKey, defOf, effect, type CampActions } from '../camp/model';
+import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
+import '../camp/camp.css';
 
-const DEPOT_RATE = 20; const DEPOT_CAP_H = 8;
-function effect(id: BuildingDef['id'], l: number): string {
-  switch (id) {
-    case 'merkez': return `Diğer binalar en çok Sv ${l}`;
-    case 'laboratuvar': return `Bölüm jetonu +%${l * 3}`;
-    case 'atolye': return `Bölüm başında kalkan şansı %${l * 4}`;
-    case 'depo': return l ? `${l * DEPOT_RATE} jeton/saat (8 saatte dolar)` : 'Pasif jeton üretimi yok';
-    case 'kule': return `Savaş puanı +%${l * 2}`;
-    case 'revir': return `İlk hasarı yok sayma şansı %${l * 3}`;
-  }
+type View = 'us' | 'liste';
+const VIEW_KEY = 'odi.kamp.gorunum';
+function useView(): [View, (v: View) => void] {
+  const [v, setV] = useState<View>(() => { try { return localStorage.getItem(VIEW_KEY) === 'liste' ? 'liste' : 'us'; } catch { return 'us'; } });
+  return [v, (n) => { setV(n); try { localStorage.setItem(VIEW_KEY, n); } catch { /* gizli mod */ } }];
 }
-const asked = new Set<string>();
-const ITEMS = [{ k: 'm5', label: '5 dk', sec: 300 }, { k: 'm60', label: '60 dk', sec: 3600 }, { k: 's8', label: '8 sa', sec: 28_800 }] as const;
 
-/** Kulak Kampı: binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
+/** Kulak Kampı: izometrik üs görünümü (varsayılan) ya da erişilebilir liste görünümü. Tüm kamp işlevleri iki görünümde de var. */
 export function CampScreen() {
+  const demo = useMemo(demoParams, []);
+  const [view, setView] = useView();
+  return demo ? <DemoCamp p={demo} view={view} setView={setView} /> : <RealCamp view={view} setView={setView} />;
+}
+
+function ListShell({ children, setView }: { children: ReactNode; setView: (v: View) => void }) {
   return (
     <div className="screen fade-in with-tabs">
-      <TopBar title="Kamp" />
-      <Online what="Kulak Kampı">
-        <Camp />
-      </Online>
+      <TopBar title="Kamp" extra={<button className="pill tb-pill tap" onClick={() => { audio.play('tap'); setView('us'); }} aria-label="Üs görünümü">🏕️ Üs</button>} />
+      {children}
     </div>
   );
 }
 
-function Camp() {
-  const camp = useNet((s) => s.camp); const wallet = useNet((s) => s.wallet); const team = useNet((s) => s.team); const extra = useNet((s) => s.extra);
-  const fast = team ? (extra?.tech.find((t) => t.id === 'insaat')?.level ?? 0) * 2 : 0;
-  const dur = (sec: number) => Math.max(1, Math.round(sec * (1 - fast / 100)));
-  const bonuses = useSocial((s) => s.bonuses);
-  const now = useNow(); const net = getNet(); const sNow = now + (net ? net.serverNow() - Date.now() : 0);
-  const [confirm, setConfirm] = useState<BuildingDef | null>(null);
-  const [party, setParty] = useState<string | null>(null);
-  const [burst, setBurst] = useState<string | null>(null);
-  const prev = useRef<CampState | null>(null);
+/** sunucu yoksa: nazik kart + Tekrar dene */
+function CampOffline() {
+  const enabled = useSocial((s) => s.enabled); const st = useNet((s) => s.status);
+  return (
+    <div className="card offline-card fade-in camp-offline">
+      <div className="ph-icon" aria-hidden>🏕️</div>
+      <h2>Kampın sunucuda tutulur — bağlanınca görünür</h2>
+      <div className="muted">{enabled ? 'Şu an sunucuya ulaşamıyoruz. Bu arada bölüm oynamaya devam edebilirsin; jetonların ve ilerlemen kaybolmaz.' : 'Kulak Kampı için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.'}</div>
+      {enabled && <button className="btn" onClick={reconnect} disabled={st === 'bağlanıyor'}>{st === 'bağlanıyor' ? 'Bağlanıyor…' : 'Tekrar dene'}</button>}
+    </div>
+  );
+}
 
-  useEffect(() => { void net?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp, wallet: r.wallet })).catch(() => undefined); }, []);
-  // inşaat bitince kutlama
-  useEffect(() => {
-    if (camp && prev.current) for (const b of camp.buildings) { const o = prev.current.buildings.find((x) => x.id === b.id); if (o && b.level > o.level) { const d = BUILDINGS.find((x) => x.id === b.id)!; setParty(`${d.emoji} ${d.name} ${b.level}. seviye!`); platform().haptic('success'); } }
-    prev.current = camp;
-  }, [camp]);
+function RealCamp({ view, setView }: { view: View; setView: (v: View) => void }) {
+  const st = useNet((s) => s.status); const me = useNet((s) => s.me); const tried = useSocial((s) => s.tried); const enabled = useSocial((s) => s.enabled);
+  const camp = useNet((s) => s.camp); const wallet = useNet((s) => s.wallet); const team = useNet((s) => s.team); const extra = useNet((s) => s.extra);
+  const helpCount = useNet((s) => s.campHelp.length); const bonuses = useSocial((s) => s.bonuses);
+  const fast = team ? (extra?.tech.find((t) => t.id === 'insaat')?.level ?? 0) * 2 : 0;
+  const nowMs = useNow(); const net = getNet();
+  const sNow = net ? net.serverNow() : nowMs;
+  const serverNow = useCallback(() => { const n = getNet(); return n ? n.serverNow() : Date.now(); }, []);
+
+  useEffect(() => { if (st === 'bağlı') void getNet()?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp, wallet: r.wallet })).catch(() => undefined); }, [st]);
   // süre dolunca sunucudan tazele (5 sn'lik zamanlayıcıyı beklemeden)
   const active = camp?.buildings.find((b) => b.upgradingTo && b.endsAt);
-  useEffect(() => { if (active?.endsAt && active.endsAt <= sNow + 500) { const h = setTimeout(() => void net?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp })).catch(() => undefined), 800); return () => clearTimeout(h); } }, [active?.endsAt, Math.floor(sNow / 1000)]);
+  useEffect(() => { if (active?.endsAt && active.endsAt <= sNow + 500) { const h = setTimeout(() => void getNet()?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp })).catch(() => undefined), 800); return () => clearTimeout(h); } }, [active?.endsAt, Math.floor(sNow / 1000)]);
+  useListCelebration(view === 'liste' ? camp : null);
 
-  if (!camp || !wallet) return null;
-  const lv = (id: string) => camp.buildings.find((b) => b.id === id)?.level ?? 0;
-  const merkez = lv('merkez'); const depot = lv('depo');
-  const stored = depot ? Math.floor((Math.min(Math.max(0, sNow - camp.depotStoredAt), DEPOT_CAP_H * 3_600_000) / 3_600_000) * depot * DEPOT_RATE) : 0;
-  const depotMax = depot * DEPOT_RATE * DEPOT_CAP_H;
+  const actions = useMemo<CampActions>(() => ({
+    upgrade: async (id) => { const r = await act('camp.upgrade', { id }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); audio.play('whoosh'); toast('🏗️', `${defOf(id).name} inşaatı başladı`, useNet.getState().team ? 'Takımından yardım iste, süre kısalsın.' : undefined); return true; },
+    speed: async (id, item) => { const r = await act('camp.speedup', { id, item, count: 1 }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('light'); return true; },
+    ask: async (id) => {
+      const r = await act('camp.help.request', { id }); if (!r) return false;
+      useNet.setState({ camp: r.camp }); const b = r.camp.buildings.find((x) => x.id === id); if (b) askedHelp.add(buildKey(b));
+      toast('🙋', 'Takımına haber verildi', 'Her yardım süreyi kısaltır.', 'green'); return true;
+    },
+    collect: async () => { const r = await act('camp.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp, wallet: r.wallet }); return r.collected; },
+    helpAll: async () => { const r = await act('team.camp.helpAll', {}); if (!r) return null; if (r.given > 0) toast('🤝', `${r.given} inşaatı hızlandırdın`, 'Her yardım takımına güç katar.', 'green'); return r.given; },
+  }), []);
+  const onHelped = useCallback((fn: (b: BuildingId, s: number) => void) => { const n = getNet(); if (!n) return () => undefined; return n.on('camp.helped', ({ building, seconds }) => fn(building, seconds)); }, []);
+  const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name } : null), [team?.emblem, team?.name]);
 
-  const upgrade = async (d: BuildingDef) => { setConfirm(null); const r = await act('camp.upgrade', { id: d.id }); if (r) { useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); toast('🏗️', `${d.name} inşaatı başladı`, team ? 'Takımından yardım iste, süre kısalsın.' : undefined); } };
-  const collect = async () => { const r = await act('camp.collect', {}); if (r) { useNet.setState({ camp: r.camp, wallet: r.wallet }); if (r.collected) { platform().haptic('success'); setBurst(`+${fmtNum(r.collected)} 🪙`); } } };
-
-  return (
-    <div className="stack">
-      {active && <Construction b={active} camp={camp} sNow={sNow} />}
-      {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
-        <div className="card idle-card"><span aria-hidden>👷</span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
-
-      {depot > 0 && (
-        <div className="card depot">
-          <div className="row between"><b>📦 Kulak Deposu</b><span className="qn">{fmtNum(stored)}/{fmtNum(depotMax)}</span></div>
-          <div className="row qbar"><Bar value={depotMax ? stored / depotMax : 0} tone={stored >= depotMax ? 'coral' : 'amber'} label="Depo doluluğu" /><button className="btn small" disabled={stored < 1} onClick={() => void collect()}>Topla</button></div>
-          <div className="muted small-note">{stored >= depotMax ? 'Depo dolu! Topla ki üretim sürsün.' : `Saatte ${depot * DEPOT_RATE} jeton · ${fmtDur(((depotMax - stored) / (depot * DEPOT_RATE)) * 3600)} sonra dolar`}</div>
-          {burst && <FloatBurst text={burst} onDone={() => setBurst(null)} />}
-        </div>
-      )}
-
-      {bonuses && Object.values(bonuses).some((v) => v > 0) && (
-        <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
-          <span className="muted small-note">Kamp + takım etkilerin</span>
-          <div className="bonus-row">
-            <span><b>+%{bonuses.coinPct}</b>🪙 jeton</span><span><b>%{bonuses.shieldChancePct}</b>🛡️ kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b>💚 revir</span><span><b>+%{bonuses.warPct}</b>⚔️ savaş</span><span><b>+%{bonuses.raidPct}</b>👹 baskın</span>
-          </div>
-        </div>)}
-
-      {BUILDINGS.map((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; const cost = buildCost(d.id, to); const max = b.level >= d.maxLevel;
-        const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active; const poor = wallet.jeton < cost.jeton;
-        return (
-          <div className={`card building${b.upgradingTo ? ' building-now' : ''}`} key={d.id}>
-            <div className="row">
-              <span className="b-i" aria-hidden>{d.emoji}</span>
-              <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div></div>
-            </div>
-            {!max && <div className="row b-up">
-              <span className="muted grow">Sv {to}: {effect(d.id, to)}<br />🪙 {fmtNum(cost.jeton)} · ⏱ {fmtDur(dur(cost.seconds))}</span>
-              <button className="btn small" disabled={busy || blocked || poor} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : blocked ? `Merkez ${to}` : 'Yükselt'}</button>
-            </div>}
-            {max && <div className="muted">En yüksek seviye.</div>}
-          </div>); })}
-
-      {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); return (
-        <Sheet title={`${confirm.emoji} ${confirm.name} → Sv ${b.level + 1}`} onClose={() => setConfirm(null)}>
-          <div className="muted">{effect(confirm.id, b.level + 1)}</div>
-          <div className="chips"><span className="chip">🪙 {fmtNum(c.jeton)}</span><span className="chip">⏱ {fmtDur(dur(c.seconds))}</span>{fast > 0 && <span className="chip">🏗️ takım −%{fast}</span>}</div>
-          <button className="btn" onClick={() => void upgrade(confirm)}>Yükselt</button>
-          <button className="btn ghost" onClick={() => setConfirm(null)}>Vazgeç</button>
-        </Sheet>); })()}
-      {party && <div className="overlay" onClick={() => setParty(null)}><div className="card reward-pop" role="dialog" aria-label="İnşaat bitti"><div className="rp-burst" aria-hidden>🎉</div><h2>İnşaat bitti!</h2><div className="muted">{party}</div><button className="btn" onClick={() => setParty(null)}>Harika</button></div></div>}
-    </div>
-  );
+  if (!me) {
+    if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><Skeleton rows={4} /></ListShell>;
+    return <ListShell setView={setView}><CampOffline /></ListShell>;
+  }
+  const banner = st !== 'bağlı' && <div className="net-banner camp-net">📡 Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
+  if (!camp || !wallet) return <ListShell setView={setView}>{banner}<Skeleton rows={4} /></ListShell>;
+  if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
+  return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;
 }
 
-function Construction({ b, camp, sNow }: { b: BuildingState; camp: CampState; sNow: number }) {
-  const wallet = useNet((s) => s.wallet)!; const team = useNet((s) => s.team);
-  const d = BUILDINGS.find((x) => x.id === b.id)!;
-  const left = Math.max(0, (b.endsAt ?? 0) - sNow); const total = Math.max(1, (b.endsAt ?? 0) - (b.startedAt ?? 0));
-  const leftSec = Math.ceil(left / 1000); const crystals = crystalsToFinish(leftSec);
-  const key = `${b.id}:${b.upgradingTo}:${camp.serverTime > 0 ? b.startedAt : 0}`;
-  const [isAsked, setAsked] = useState(asked.has(key));
-  const speed = async (item: 'm5' | 'm60' | 's8' | 'kristal') => { const r = await act('camp.speedup', { id: b.id, item, count: 1 }); if (r) { useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('light'); } };
-  const ask = async () => { const r = await act('camp.help.request', { id: b.id }); if (r) { useNet.setState({ camp: r.camp }); asked.add(key); setAsked(true); toast('🙋', 'Takımına haber verildi', 'Her yardım süreyi kısaltır.', 'green'); } };
-  return (
-    <div className="card construction">
-      <div className="row"><span className="b-i big" aria-hidden>{d.emoji}</span><div className="grow min0"><b>{d.name} → Sv {b.upgradingTo}</b><div className="countdown big-count" aria-live="off">{fmtLeft(left)}</div></div></div>
-      <Bar value={1 - left / total} tone="accent" label="İnşaat ilerlemesi" />
-      {team ? <button className="btn ghost" disabled={isAsked} onClick={() => void ask()}>{isAsked ? `🙋 Yardım istendi · ${b.helpsReceived} yardım` : `🙋 Takımdan yardım iste${b.helpsReceived ? ` · ${b.helpsReceived} yardım` : ''}`}</button>
-        : <div className="muted small-note">Bir takıma katılırsan arkadaşların inşaatını tek dokunuşla hızlandırabilir.</div>}
-      <div className="speed-row">
-        {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={wallet.hizlandirici[it.k] < 1} onClick={() => void speed(it.k)}>⏩ {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
-      </div>
-      <button className="btn ghost small finish" disabled={wallet.kristal < crystals} onClick={() => void speed('kristal')}>💎 {crystals} kristalle hemen bitir</button>
-      <div className="muted small-note">Kristal: kalan her dakika için 1 (sende 💎 {fmtNum(wallet.kristal)}).</div>
-    </div>
-  );
+/** liste görünümünde inşaat bitince kutlama (üs görünümünde sahne kendisi kutlar) */
+function useListCelebration(camp: CampState | null) {
+  const prev = useRef<CampState | null>(null);
+  useEffect(() => {
+    if (camp && prev.current) for (const b of camp.buildings) {
+      const o = prev.current.buildings.find((x) => x.id === b.id);
+      if (o && b.level > o.level) {
+        const d = defOf(b.id); const tierUp = tierOf(o.level) !== tierOf(b.level);
+        audio.play('fanfare'); platform().haptic('success');
+        celebrate.banner({ icon: d.emoji, title: `${d.name} Sv ${b.level}!`, body: tierUp ? `Yeni görünüm: ${CAMP_TIER_NAMES[tierOf(b.level)]}` : effect(b.id, b.level), tone: tierUp ? 'gold' : 'green' });
+        toast(d.emoji, 'İnşaat bitti!', `${d.name} ${b.level}. seviye`, 'gold');
+      }
+    }
+    prev.current = camp;
+  }, [camp]);
+}
+
+/** önizleme: yerel sahte kamp (sunucusuz; hiçbir şey gönderilmez) */
+function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v: View) => void }) {
+  const [s, setRaw] = useState<{ camp: CampState; wallet: Wallet }>(() => demoCamp(p));
+  const ref = useRef(s); ref.current = s;
+  const setS = (f: (o: typeof s) => typeof s) => { ref.current = f(ref.current); setRaw(ref.current); };
+  const nowMs = useNow();
+  useEffect(() => { const b = s.camp.buildings.find((x) => x.endsAt && x.endsAt <= nowMs); if (b) setS((o) => demoReduce(o, { k: 'complete' })); }, [nowMs]);
+  useListCelebration(view === 'liste' ? s.camp : null);
+  const actions = useMemo<CampActions>(() => ({
+    upgrade: async (id) => { setS((o) => demoReduce(o, { k: 'upgrade', id })); audio.play('whoosh'); return true; },
+    speed: async (id, item) => { setS((o) => demoReduce(o, { k: 'speed', id, item })); return true; },
+    ask: async (id) => { const b = ref.current.camp.buildings.find((x) => x.id === id); if (b) askedHelp.add(buildKey(b)); toast('🙋', 'Önizleme', 'Gerçek oyunda takımına haber gider.', 'green'); return true; },
+    collect: async () => { const r = demoReduce(ref.current, { k: 'collect' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
+    helpAll: async () => { toast('🤝', 'Önizleme', 'Gerçek oyunda takım arkadaşlarının inşaatı hızlanır.', 'green'); return 2; },
+  }), []);
+  const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri' }), []);
+  if (view === 'us') return <CampBase demo camp={s.camp} wallet={s.wallet} team={team} helpCount={2} fast={4} now={Date.now} actions={actions} onList={() => setView('liste')} />;
+  return <ListShell setView={setView}><div className="camp-demo-tag static">ÖNİZLEME · sunucuya bir şey gitmez</div><CampList camp={s.camp} wallet={s.wallet} team fast={4} sNow={nowMs} actions={actions} bonuses={null} /></ListShell>;
 }

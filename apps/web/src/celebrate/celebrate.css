@@ -1,0 +1,112 @@
+/* ===================================================================== kutlama katmanı */
+.cel-root { position:fixed; inset:0; z-index:200; pointer-events:none; overflow:hidden; }
+.cel-root.on { pointer-events:auto; }
+.cel-canvas { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:3; }
+.cel-fly { position:absolute; inset:0; pointer-events:none; z-index:4; }
+.cel-back { position:absolute; inset:0; z-index:0; background:radial-gradient(70% 55% at 50% 42%, rgba(60,32,140,.82), rgba(8,4,26,.97) 75%); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); animation:celFade .3s ease-out both; }
+.cel-back.out { animation:celFadeOut .3s ease-in both; }
+.cel-back.biome { background:radial-gradient(75% 60% at 50% 40%, var(--b1, #8b6bff), var(--b2, #2d1d6e) 60%, rgba(8,4,26,.96)); }
+@keyframes celFade { from { opacity:0; } to { opacity:1; } }
+@keyframes celFadeOut { to { opacity:0; } }
+.cel-stage { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:calc(env(safe-area-inset-top,0px) + 24px) 16px calc(env(safe-area-inset-bottom,0px) + 28px); text-align:center; color:#fff; }
+.cel-stage.ph-out { animation:celFadeOut .3s ease-in .1s both; }
+.cel-title { font-weight:900; font-size:clamp(22px, 7vw, 28px); text-shadow:0 3px 0 rgba(0,0,0,.35); animation:titleDrop .5s cubic-bezier(.2,1.5,.4,1) both; max-width:100%; overflow-wrap:anywhere; }
+.cel-title.big { font-size:clamp(34px, 11vw, 46px); color:var(--gold); text-shadow:0 4px 0 #b85c00, 0 8px 26px rgba(255,159,28,.55); }
+@keyframes titleDrop { from { opacity:0; transform:translateY(-30px) scale(.8); } to { opacity:1; transform:none; } }
+.cel-cta { min-height:72px; display:flex; align-items:center; justify-content:center; }
+.cel-cta .btn { animation:ctaIn .4s cubic-bezier(.2,1.6,.4,1) both, ctaGlow 1.6s .5s ease-in-out infinite; }
+@keyframes ctaIn { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:none; } }
+/* parıltı (konum/ölçek değişmez → dokunma hedefi sabit) */
+@keyframes ctaGlow { 50% { filter:brightness(1.12) drop-shadow(0 0 14px rgba(255,201,60,.75)); } }
+.cel-hint { font-weight:800; font-size:13px; color:var(--text-2); opacity:.75; }
+
+/* ---------------------------------------------------------------- sandık */
+.cel-chest { position:relative; width:200px; height:170px; margin-top:12px; --c1:#e7a466; --c2:#a5602b; --c3:#6e3a14; --band:#7b4a24; --stud:#ffd28a; }
+.cel-chest.tier-gumus { --c1:#f3f6ff; --c2:#a9b3cc; --c3:#5f6a88; --band:#7d88a8; --stud:#ffffff; }
+.cel-chest.tier-altin { --c1:#fff09a; --c2:#ffb825; --c3:#b8640a; --band:#8a4a07; --stud:#fff7d6; }
+.ph-drop .cel-chest { animation:chestDrop .7s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes chestDrop { 0% { transform:translateY(-120vh) scale(.6) rotate(-8deg); } 70% { transform:translateY(10px) scale(1.06, .92); } 100% { transform:none; } }
+.cel-chest[data-shake="1"] .cc-body, .cel-chest[data-shake="1"] .cc-lid { animation:chestShake .45s ease-in-out; }
+.cel-chest[data-shake="2"] .cc-body, .cel-chest[data-shake="2"] .cc-lid { animation:chestShake2 .45s ease-in-out; }
+.cel-chest[data-shake="3"]:not(.opened) .cc-body, .cel-chest[data-shake="3"]:not(.opened) .cc-lid { animation:chestShake3 .45s ease-in-out; }
+@keyframes chestShake { 20% { transform:rotate(-6deg) translateY(-6px); } 50% { transform:rotate(5deg); } 80% { transform:rotate(-2deg); } }
+@keyframes chestShake2 { 20% { transform:rotate(8deg) translateY(-10px) scale(1.04); } 50% { transform:rotate(-7deg); } 80% { transform:rotate(3deg); } }
+@keyframes chestShake3 { 15% { transform:rotate(-11deg) translateY(-16px) scale(1.08); } 45% { transform:rotate(10deg) scale(1.1); } 75% { transform:rotate(-4deg) scale(1.05); } }
+.cc-rays { position:absolute; left:50%; top:45%; width:520px; height:520px; margin:-260px; border-radius:50%; background:repeating-conic-gradient(from 0deg, rgba(255,230,150,.32) 0deg 9deg, rgba(255,230,150,0) 9deg 24deg); -webkit-mask:radial-gradient(closest-side, #000 25%, transparent 100%); mask:radial-gradient(closest-side, #000 25%, transparent 100%); animation:raySpin 9s linear infinite; opacity:.55; transition:opacity .4s, transform .4s; }
+.tier-altin .cc-rays { opacity:.8; }
+.cel-chest.opened .cc-rays { opacity:1; transform:scale(1.35); }
+@keyframes raySpin { to { rotate:360deg; } }
+.cc-glow { position:absolute; left:50%; top:52%; width:260px; height:260px; margin:-130px; border-radius:50%; background:radial-gradient(closest-side, rgba(255,214,120,.65), rgba(255,214,120,0)); animation:glowPulse 1.4s ease-in-out infinite; }
+.tier-gumus .cc-glow { background:radial-gradient(closest-side, rgba(200,220,255,.6), rgba(200,220,255,0)); }
+@keyframes glowPulse { 50% { transform:scale(1.15); opacity:.75; } }
+.cc-body, .cc-lid { position:absolute; left:10px; right:10px; transform-origin:50% 100%; }
+.cc-body { bottom:0; height:100px; border-radius:10px 10px 22px 22px; background:linear-gradient(180deg, var(--c1) 0%, var(--c2) 55%, var(--c3) 100%); border:4px solid var(--c3); box-shadow:inset 0 6px 0 rgba(255,255,255,.35), inset 0 -10px 0 rgba(0,0,0,.18), 0 10px 0 rgba(0,0,0,.3), 0 18px 30px rgba(0,0,0,.45); }
+.cc-lid { bottom:92px; height:64px; border-radius:60px 60px 10px 10px; background:linear-gradient(180deg, var(--c1), var(--c2)); border:4px solid var(--c3); box-shadow:inset 0 8px 0 rgba(255,255,255,.4), inset 0 -6px 0 rgba(0,0,0,.15); transform-origin:50% 100%; transition:transform .45s cubic-bezier(.2,1.6,.4,1); z-index:1; }
+.cel-chest.opened .cc-lid { transform:translateY(-34px) rotate(-18deg) translateX(-20px); }
+.cc-band { position:absolute; top:-4px; bottom:-4px; left:28px; width:16px; background:linear-gradient(90deg, var(--band), color-mix(in srgb, var(--band) 70%, #fff), var(--band)); border-radius:3px; }
+.cc-band.r { left:auto; right:28px; }
+.cc-lock { position:absolute; left:50%; top:-6px; width:38px; height:44px; margin-left:-19px; border-radius:10px; background:linear-gradient(180deg, #fff6d0, var(--stud) 40%, #d99a00); border:3px solid var(--c3); box-shadow:0 3px 0 rgba(0,0,0,.25); }
+.cc-lock::after { content:''; position:absolute; left:50%; top:13px; width:10px; height:14px; margin-left:-5px; border-radius:5px 5px 2px 2px; background:var(--c3); }
+.cel-chest.opened .cc-lock { opacity:0; transition:opacity .2s; }
+.cc-burst { position:absolute; left:50%; top:40%; width:30px; height:30px; margin:-15px; border-radius:50%; background:#fff; box-shadow:0 0 60px 40px rgba(255,240,190,.9); animation:burstOut .7s ease-out forwards; z-index:2; }
+@keyframes burstOut { 0% { transform:scale(.2); opacity:1; } 100% { transform:scale(6); opacity:0; } }
+.ph-reveal .cel-chest, .ph-collect .cel-chest, .ph-out .cel-chest { animation:chestShrink .5s ease-out forwards; }
+@keyframes chestShrink { to { transform:scale(.72) translateY(-10px); } }
+
+/* ---------------------------------------------------------------- ödül kartları */
+.cel-cards { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; width:100%; max-width:360px; min-height:20px; }
+.cel-cards > .cel-card { width:104px; }
+.cel-cards.n1 > .cel-card { width:130px; }
+.cel-card { position:relative; display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 6px 10px; border-radius:18px; background:linear-gradient(180deg, #fffdf6, var(--cream)); color:var(--ink); border:3px solid #fff; box-shadow:0 5px 0 rgba(0,0,0,.28), 0 0 0 0 rgba(255,201,60,0), 0 14px 26px rgba(0,0,0,.4); opacity:0; transform:translateY(-60px) scale(.2) rotate(-10deg); overflow:hidden; min-width:0; }
+.cel-card.in { animation:cardIn .55s cubic-bezier(.2,1.5,.4,1) forwards; }
+@keyframes cardIn { 0% { opacity:0; transform:translateY(-70px) scale(.2) rotate(-14deg); } 65% { opacity:1; transform:translateY(6px) scale(1.08) rotate(3deg); } 100% { opacity:1; transform:none; } }
+.cel-card::after { content:''; position:absolute; inset:0; background:linear-gradient(105deg, transparent 35%, rgba(255,255,255,.9) 50%, transparent 65%); transform:translateX(-130%); pointer-events:none; }
+.cel-card.in::after { animation:shine .9s .35s ease-out both; }
+.cel-card.tone-gold { border-color:#ffe08a; background:linear-gradient(180deg,#fff9de,#ffe7a0); }
+.cel-card.tone-teal { border-color:#b5fff7; background:linear-gradient(180deg,#f2fffd,#c9f7f2); }
+.cel-card.tone-violet { border-color:#ddd3ff; background:linear-gradient(180deg,#faf8ff,#e4dcff); }
+.cel-card.tone-coral { border-color:#ffd0de; background:linear-gradient(180deg,#fff6f9,#ffd9e5); }
+.cel-card.tone-lime { border-color:#d2ffe1; background:linear-gradient(180deg,#f6fff9,#d2f8df); }
+.cc-icon { font-size:40px; line-height:1.1; filter:drop-shadow(0 3px 0 rgba(0,0,0,.18)); }
+.cc-amt { font-weight:900; font-size:22px; font-variant-numeric:tabular-nums; color:var(--ink); }
+.cc-name { font-weight:900; font-size:12px; color:var(--ink-2); line-height:1.15; overflow-wrap:anywhere; text-align:center; }
+.ph-out .cel-card.in { animation:cardOut .45s ease-in forwards; animation-delay:calc(var(--i) * 60ms); }
+@keyframes cardOut { to { opacity:0; transform:translateY(-120px) scale(.5); } }
+
+/* ---------------------------------------------------------------- uçan jeton / kristal */
+.cel-coin, .cel-gem { position:absolute; left:0; top:0; width:30px; height:30px; margin:-15px 0 0 -15px; will-change:transform; }
+.cel-coin { border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff8c8 0 14%, #ffd84a 30%, #f5a400 70%, #b56a00 100%); border:2px solid #ffeb99; box-shadow:inset 0 -3px 0 rgba(150,80,0,.45), 0 0 10px rgba(255,201,60,.8); }
+.cel-coin::after { content:'★'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:15px; color:#c47a00; text-shadow:0 1px 0 #ffe9a0; }
+.cel-gem { width:26px; height:26px; margin:-13px 0 0 -13px; border-radius:6px; background:linear-gradient(135deg, #e6fffd 0%, #2ee6d6 40%, #8b6bff 100%); border:2px solid #fff; box-shadow:0 0 12px rgba(46,230,214,.8); }
+
+/* ---------------------------------------------------------------- seviye atlama */
+.lvl-rays { position:absolute; left:50%; top:36%; width:150vmax; height:150vmax; margin:-75vmax; background:repeating-conic-gradient(from 0deg, rgba(255,214,110,.22) 0deg 8deg, rgba(255,214,110,0) 8deg 20deg); -webkit-mask:radial-gradient(closest-side, #000 15%, transparent 70%); mask:radial-gradient(closest-side, #000 15%, transparent 70%); animation:raySpin 14s linear infinite, celFade .5s ease-out both; pointer-events:none; }
+.lvl-badge { position:relative; width:170px; height:170px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at 40% 30%, #fff3b0 0 12%, var(--gold) 45%, var(--gold-2) 80%, #c96f00 100%); border:6px solid #fff6d0; box-shadow:0 8px 0 #a85600, 0 0 0 10px rgba(255,201,60,.25), 0 0 60px rgba(255,201,60,.7); color:var(--gold-ink); animation:badgeIn .7s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes badgeIn { 0% { transform:scale(0) rotate(-180deg); } 70% { transform:scale(1.15) rotate(8deg); } 100% { transform:none; } }
+.lb-k { font-weight:900; font-size:15px; letter-spacing:2px; }
+.lb-n { font-weight:900; font-size:72px; line-height:.95; text-shadow:0 3px 0 rgba(255,255,255,.55); }
+.lb-star { position:absolute; top:-26px; font-size:44px; color:#fff6d0; text-shadow:0 0 18px rgba(255,255,255,.9); animation:pop .5s .5s cubic-bezier(.2,1.6,.4,1) both; }
+.lvl-list { display:flex; flex-direction:column; gap:8px; width:100%; max-width:320px; }
+.lvl-item { display:flex; gap:10px; align-items:center; background:linear-gradient(180deg,#fffdf6,var(--cream)); color:var(--ink); border:3px solid #fff; border-radius:16px; padding:10px 14px; text-align:left; box-shadow:0 4px 0 rgba(0,0,0,.28); opacity:0; transform:translateX(-40px); }
+.lvl-item.in { animation:itemIn .45s cubic-bezier(.2,1.4,.4,1) forwards; }
+.lvl-item b { font-weight:900; font-size:15px; overflow-wrap:anywhere; }
+@keyframes itemIn { to { opacity:1; transform:none; } }
+
+/* ---------------------------------------------------------------- biyom canlandı */
+.bm-wave { position:absolute; left:50%; top:42%; width:0; height:0; pointer-events:none; }
+.bm-wave i { position:absolute; left:-90px; top:-90px; width:180px; height:180px; border-radius:50%; border:4px solid rgba(255,255,255,.7); opacity:0; animation:wave 2.4s ease-out infinite; }
+.bm-wave i:nth-child(2) { animation-delay:.8s; } .bm-wave i:nth-child(3) { animation-delay:1.6s; }
+.bm-name { font-weight:900; font-size:clamp(36px, 12vw, 54px); line-height:1.05; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 30px rgba(255,255,255,.45); animation:nameIn .8s cubic-bezier(.2,1.4,.4,1) both; max-width:100%; overflow-wrap:anywhere; }
+@keyframes nameIn { 0% { opacity:0; transform:scale(2.2); filter:blur(8px); } 100% { opacity:1; transform:none; filter:none; } }
+.bm-sub { font-weight:900; font-size:clamp(20px, 6.5vw, 26px); color:var(--gold); text-shadow:0 3px 0 #9a4f00; animation:titleDrop .5s .45s cubic-bezier(.2,1.5,.4,1) both; }
+.ph-rise .bm-wave i { border-color:rgba(255,255,255,.9); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-rays, .lvl-rays, .bm-wave, .cc-burst { display:none; }
+  .cel-card, .lvl-item { opacity:1; transform:none; }
+}
+@media (max-width:360px) {
+  .cel-cards { gap:8px; } .cel-cards > .cel-card { width:96px; }
+  .cel-chest { transform:scale(.9); }
+  .lvl-badge { width:150px; height:150px; } .lb-n { font-size:62px; }
+}
