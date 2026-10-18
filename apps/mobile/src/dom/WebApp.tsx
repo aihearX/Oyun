@@ -12,6 +12,9 @@ export type WebAppProps = {
   removeItem: (key: string) => Promise<void>;
   haptic: (kind: HapticKind) => Promise<void>;
   share: (text: string) => Promise<'shared' | 'copied' | 'cancelled'>;
+  /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
+  purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
+  canPurchase: boolean;
   /** sosyal sunucu (ws://bilgisayar-ip:8787 ya da wss://...) */
   serverUrl: string;
   insetTop: number;
@@ -31,6 +34,7 @@ export default function WebApp(p: WebAppProps) {
       storage: { getItem: (k) => p.getItem(k), setItem: (k, v) => p.setItem(k, v), removeItem: (k) => p.removeItem(k) },
       haptic: (k) => { void p.haptic(k); },
       share: (t) => p.share(t),
+      ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
     });

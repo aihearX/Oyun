@@ -61,3 +61,16 @@ npx expo start
 - Expo Go'da paylaşım (`Share`), haptik ve AsyncStorage çalışır; IAP, push ve derin link doğrulaması Faz 2 (dev client).
 - `expo-router` typed routes `.expo/types` altına yazılır; `tsc` bunlar olmadan da temizdir.
 - Simülatör/cihaz bu ortamda yok; doğrulama `expo export` + `tools/domcheck.mjs` (gerçek www.bundle, stub köprü) ile yapılır.
+
+## Uygulama içi satın alma (gerçek para)
+
+Gerçek ödeme yalnızca **App Store / Google Play** üzerinden ve **mağaza derlemesinde** (EAS build) çalışır. Expo Go'da gerçek ödeme yoktur; geliştirmede oyun sunucusunun açıkça **TEST MAĞAZASI** etiketli test satın almaları kullanılır (para çekilmez).
+
+Kurulum (bir kez):
+1. App Store Connect'te (ve Google Play Console'da) tüketilebilir ürünleri oluştur; kimlikler `packages/shared/src/social.ts` içindeki `SHOP` ile aynı olmalı: `odi.baslangic`, `odi.kristal.1`, `odi.kristal.2`, `odi.kristal.3`, `odi.hiz.1`, `odi.hiz.2`, `odi.pass`.
+2. RevenueCat'te proje aç, iOS/Android uygulamalarını bağla, ürünleri içe aktar.
+3. Mobil derleme için anahtarlar (EAS ortam değişkeni ya da `.env`): `EXPO_PUBLIC_REVENUECAT_IOS`, `EXPO_PUBLIC_REVENUECAT_ANDROID` (RevenueCat "public SDK key").
+4. Oyun sunucusuna gizli anahtar: `REVENUECAT_API_KEY` (RevenueCat "secret API key"). Sunucu her satın almayı RevenueCat'ten doğrular; doğrulanmayan makbuz kabul edilmez.
+5. `npm run build:preview -w @odi/mobile` (TestFlight) ile sandbox hesabında dene.
+
+Kurallar: fiyat ve içerik satın almadan önce açıkça gösterilir; aylık harcama sınırı vardır (oyuncu düşürebilir, yükseltme 24 saat sonra geçerli); savaş ve lig puanı satılmaz; ganimet kutusu yoktur.

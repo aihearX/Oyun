@@ -5,6 +5,9 @@ import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
+import { createNativePurchase } from '@/purchases';
+
+const nativePurchase = createNativePurchase();
 
 /** Sosyal sunucu adresi: EXPO_PUBLIC_ODI_SERVER > geliştirmede Metro'nun çalıştığı bilgisayar (aynı Wi-Fi) */
 function serverUrl(): string {
@@ -37,6 +40,8 @@ export default function Home() {
           removeItem={(k) => AsyncStorage.removeItem(k)}
           haptic={haptic}
           share={share}
+          {...(nativePurchase ? { purchase: nativePurchase } : {})}
+          canPurchase={!!nativePurchase}
           serverUrl={serverUrl()}
           insetTop={insets.top}
           insetBottom={insets.bottom}
