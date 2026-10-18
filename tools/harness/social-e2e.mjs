@@ -44,7 +44,7 @@ const cleanup = () => { for (const p of procs) { try { p.kill(); } catch { /* yo
 const browser = await chromium.launch({ headless: !args.has('--headed'), executablePath: process.env.PLAYWRIGHT_CHROMIUM, args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
 const errors = [];
 async function player(tag) {
-  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 2), isMobile: true, hasTouch: true, locale: 'tr-TR' });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: `http://localhost:${wport}` }).catch(() => undefined);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));

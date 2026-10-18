@@ -85,7 +85,7 @@ cleanup.push(async () => browser.close());
 const PLAYERS = [{ name: 'Ayşe', delay: 0 }, { name: 'Bora', delay: 350 }, { name: 'Cem', delay: 700 }];
 const shot = (p, file) => p.page.screenshot({ path: resolve(outDir, file) });
 for (const pl of PLAYERS) {
-  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
   const page = await ctx.newPage();
   const p = { ...pl, ctx, page, errors: [] };
   page.on('pageerror', (e) => p.errors.push(String(e.message ?? e)));
