@@ -136,7 +136,8 @@ describe('ilerleme geri bildirimi', () => {
   it('XP çubuğu levelFromXp ile tutarlı', () => { const p = levelProgress(0); expect(p.level).toBe(1); expect(p.pct).toBe(0); const q = levelProgress(p.to); expect(q.level).toBe(2); expect(q.pct).toBe(0); });
   it('dürüst yakın-kaçış metinleri', () => {
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.92 } })).text).toBe('Kapıya %8 kaldı!');
-    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 4 jeton daha');
+    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha ya da: Hedef');
+    expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha');
     expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toContain('2. yıldız için');
     expect(nextGoal(spec(3), run({ stars: 3, coins: 30 })).text).toContain('hazine');
   });

@@ -48,8 +48,15 @@ function weighted<T>(rng: () => number, items: { v: T; w: number }[]): T | undef
   return items[items.length - 1]?.v;
 }
 
-/** Bölüm üretimi: deterministik (journey + number + seedSalt). Profil yalnızca zorluk ve parça seçimini etkiler. */
+/** Bölüm üretimi: deterministik (journey + number + seedSalt). Profil yalnızca zorluk ve parça seçimini etkiler.
+ *  Bir önceki bölümün odaları düşük ağırlık alır: art arda bölümler farklı hissettirsin. */
 export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0): LevelSpec {
+  const prev = new Set<string>();
+  for (const k of [1, 2]) if (number > k) { try { for (const c of generateCore(journeyId, number - k, profile, seedSalt, new Set()).chunks) prev.add(c.id); } catch { /* yok */ } }
+  return generateCore(journeyId, number, profile, seedSalt, prev);
+}
+
+function generateCore(journeyId: string, number: number, profile: PlayerProfile, seedSalt: number, prevIds: Set<string>): LevelSpec {
   const journey = journeyById(journeyId);
   if (!journey) throw new Error(`yolculuk yok: ${journeyId}`);
   const plan = journey.levels.find((l) => l.number === number) ?? journey.levels[journey.levels.length - 1]!;
@@ -93,6 +100,7 @@ export function generateLevel(journeyId: string, number: number, profile: Player
       if (needs.includes(latest)) w *= 2.2;
       if (c.tags.some((t) => focus.has(t))) w *= 3;
       if (last && c.tags.length && last.tags[0] === c.tags[0]) w *= 0.5; // aynı tür art arda gelmesin
+      if (prevIds.has(c.id)) w *= 0.25; // önceki bölümde vardı
       return { v: c, w };
     }))!;
     used.add(c.id);

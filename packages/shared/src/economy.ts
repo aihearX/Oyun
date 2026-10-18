@@ -1,14 +1,28 @@
 import type { LevelSpec, RunResult } from './types';
-import { STAR_COIN_RATIO } from './constants';
+import { STAR2_NOTE_RATIO, STAR3_NOTE_RATIO } from './constants';
 
-/** Skor: mesafe + jeton + süre bonusu − hasar. Yıldız: tamamla / hedef / jeton. */
+/** Hedefin 3. yıldız sayılması için anlamlı olup olmadığı ('reach' zaten bitirmektir) */
+export const objectiveCountsForStar = (spec: Pick<LevelSpec, 'objective'>) => spec.objective.id !== 'reach';
+
+/**
+ * Yıldız kuralı (docs/11 §5): 1★ bitir · 2★ notaların %60'ı · 3★ (2★ üstüne) notaların %90'ı YA DA bölüm hedefi.
+ * Notasız bölümlerde (boss) 2★ en çok 1 hasar, 3★ hasarsız.
+ * Skor: mesafe + nota + süre bonusu − hasar + altın koklealar + hedef.
+ */
 export function scoreRun(spec: LevelSpec, r: Omit<RunResult, 'score' | 'stars'>): Pick<RunResult, 'score' | 'stars'> {
   if (!r.completed) return { score: Math.round(r.coins * 10), stars: 0 };
+  const cochleas = typeof r.extra?.cochleas === 'number' ? r.extra.cochleas : r.secretFound ? 1 : 0;
   const timeBonus = Math.max(0, Math.round((spec.parTimeSec - r.timeSec) * 5));
-  const score = Math.round(spec.lengthPx / 10 + r.coins * 10 + timeBonus - r.damageTaken * 50 + (r.secretFound ? 500 : 0) + (r.objectiveMet ? 200 : 0));
+  const score = Math.round(spec.lengthPx / 10 + r.coins * 10 + timeBonus - r.damageTaken * 50 + cochleas * 150 + (r.secretFound ? 300 : 0) + (r.objectiveMet ? 200 : 0));
   let stars: 1 | 2 | 3 = 1;
-  if (r.objectiveMet) stars = 2;
-  if (r.objectiveMet && spec.coinsTotal > 0 && r.coins >= spec.coinsTotal * STAR_COIN_RATIO) stars = 3;
+  if (spec.coinsTotal <= 0) {
+    if (r.damageTaken <= 1) stars = 2;
+    if (r.damageTaken === 0) stars = 3;
+  } else {
+    const ratio = r.coins / spec.coinsTotal;
+    if (ratio >= STAR2_NOTE_RATIO - 1e-9) stars = 2;
+    if (stars === 2 && (ratio >= STAR3_NOTE_RATIO - 1e-9 || (r.objectiveMet && objectiveCountsForStar(spec)))) stars = 3;
+  }
   return { score: Math.max(0, score), stars };
 }
 

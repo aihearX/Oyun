@@ -1,4 +1,4 @@
-import { STAR_COIN_RATIO, levelFromXp, type BiomeId, type LevelSpec, type RunResult } from '@odi/shared';
+import { STAR2_NOTE_RATIO, STAR3_NOTE_RATIO, levelFromXp, type BiomeId, type LevelSpec, type RunResult } from '@odi/shared';
 import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TREASURES, cosmeticById, type HatId, type Reward } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
@@ -20,10 +20,14 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     if (pct != null) return { kind: 'yakin', text: `Yolun %${Math.round(pct * 100)}'ini geçtin. Bir dahakine daha ileri!` };
     return { kind: 'yakin', text: 'Bir daha dene: her denemede yol biraz daha tanıdık.' };
   }
-  if (r.stars === 1 || !r.objectiveMet) return { kind: 'yildiz', text: `2. yıldız için: ${spec.objective.label}` };
-  if (r.stars === 2) {
-    const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR_COIN_RATIO) - r.coins);
-    return { kind: 'yildiz', text: `3. yıldız için ${need} jeton daha` };
+  if (spec.coinsTotal <= 0) {
+    if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
+  } else if (r.stars === 1) {
+    const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR2_NOTE_RATIO) - r.coins);
+    return { kind: 'yildiz', text: `2. yıldız için ${need} nota daha` };
+  } else if (r.stars === 2) {
+    const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR3_NOTE_RATIO) - r.coins);
+    return { kind: 'yildiz', text: spec.objective.id === 'reach' ? `3. yıldız için ${need} nota daha` : `3. yıldız için ${need} nota daha ya da: ${spec.objective.label}` };
   }
   const t = nextTreasure(spec.number + 1, progress);
   if (t && t.remaining <= 3) return { kind: 'hazine', text: t.remaining === 1 ? 'Sıradaki bölümün sonunda hazine var!' : `${t.remaining} bölüm sonra hazine!` };

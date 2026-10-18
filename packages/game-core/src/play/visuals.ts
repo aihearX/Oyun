@@ -353,7 +353,11 @@ export function createHud(s: Phaser.Scene, info: { title: string; objective: str
       bar.width = (GAME_W - 40) * Math.max(0, Math.min(1, h.pct));
       last = { ...h };
     },
-    pulse: (k) => { const t = k === 'note' ? noteIcon : k === 'cochlea' ? slots.find((o) => o.alpha === 1 && !o.isTinted) ?? slots[0]! : lives; s.tweens.add({ targets: t, scale: (t.scale || 1) * 1.35, duration: 90, yoyo: true }); },
+    pulse: (k) => {
+      const t = k === 'note' ? noteIcon : k === 'cochlea' ? slots.find((o) => o.alpha === 1 && !o.isTinted) ?? slots[0]! : lives;
+      const base = k === 'note' ? 0.8 : k === 'cochlea' ? 0.5 : 1;
+      s.tweens.killTweensOf(t); t.setScale(base); s.tweens.add({ targets: t, scale: base * 1.35, duration: 90, yoyo: true });
+    },
     setTitle: (t) => title.setText(t),
   };
 }
@@ -385,7 +389,7 @@ export function createBossView(s: Phaser.Scene, kind: 'golem' | 'canavar', name:
   const noteKey = noteGlyph(s, 'nota-boss', 0x4cf0ff, 40);
   const coreKey = tex(s, 'boss-core', 70, 70, (g) => { g.fillStyle(0xff4fd8, 0.35); g.fillCircle(35, 35, 35); g.fillStyle(0xff4fd8, 1); g.fillCircle(35, 35, 22); g.fillStyle(0xffffff, 0.8); g.fillCircle(28, 28, 6); });
   const pool = new Map<string, Phaser.GameObjects.Image[]>();
-  const use = (key: string, n: number, depth = 12) => { const arr = pool.get(key) ?? []; while (arr.length < n) arr.push(s.add.image(0, 0, key).setDepth(depth)); pool.set(key, arr); arr.forEach((o, i) => o.setVisible(i < n)); return arr; };
+  const use = (key: string, n: number, depth = 12) => { const arr = pool.get(key) ?? []; while (arr.length < n) arr.push(s.add.image(0, 0, key).setDepth(depth)); pool.set(key, arr); arr.forEach((o, i) => o.setVisible(i < n)); return arr.slice(0, n); };
   const wallGlow = s.add.rectangle(0, groundY - 150, 30, 300, 0xff3b3b, 0).setDepth(14);
   const bar = s.add.graphics().setScrollFactor(0).setDepth(102);
   const nameText = s.add.text(GAME_W / 2, 92, '', { fontFamily: FONT, fontSize: '12px', fontStyle: '800', color: '#ffffff', backgroundColor: 'rgba(13,16,36,0.6)', padding: { x: 8, y: 2 } }).setOrigin(0.5).setScrollFactor(0).setDepth(102);

@@ -90,6 +90,8 @@ export function cloneState(s: SimState): SimState {
 }
 
 export const has = (w: World, a: AbilityId) => w.abilities.has(a);
+/** yerçekimi yönünü değiştir: gövde yerinde kalsın diye ayak noktası başın olduğu yere taşınır */
+function setG(h: HeroS, g: 1 | -1) { if (h.g === g) return; h.y += -h.g * (h.slide > 0 ? C.HERO_SLIDE_H : C.HERO_H); h.g = g; h.grounded = false; h.groundId = -1; }
 const breathMax = (w: World) => C.BREATH + 2 * (w.skills.breath ?? 0);
 const speedOf = (w: World, s: SimState) => (w.mods.hiz ? 1.3 : 1) * (s.speedUntil > s.t ? 1.25 : 1);
 const ev = (s: SimState, k: string, x: number, y: number, extra?: Partial<SimEvent>) => { if (s.events) s.events.push({ k, x, y, ...extra }); };
@@ -375,7 +377,7 @@ export function step(w: World, s: SimState, raw: SimInput): void {
   }
   if (!has(w, 'yuz')) waterId = -1;
   const wasGrav = h.grav; h.grav = gravId >= 0 && has(w, 'cevir');
-  if (wasGrav && !h.grav) { const base: 1 | -1 = s.modInverted ? -1 : 1; if (h.g !== base) { h.g = base; h.grounded = false; ev(s, 'flip', h.x, h.y, { n: h.g }); } }
+  if (wasGrav && !h.grav) { const base: 1 | -1 = s.modInverted ? -1 : 1; if (h.g !== base) { setG(h, base); ev(s, 'flip', h.x, h.y, { n: h.g }); } }
 
   // ters yerçekimi değiştiricisi (tavan güvenliyse)
   if (w.mods.tersYercekimi && !h.grav && h.hookId < 0 && waterId < 0) modFlip(w, s);
@@ -415,10 +417,10 @@ function modFlip(w: World, s: SimState) {
   const h = s.hero;
   const ceilAhead = (dist: number) => { const x0 = h.x, x1 = h.x + h.dir * dist; const lo = Math.min(x0, x1), hi = Math.max(x0, x1); return w.ceilings.some((c) => c.l <= lo && c.r >= hi); };
   if (!s.modInverted) {
-    if (s.t >= s.modNext && h.grounded && h.g > 0 && ceilAhead(420)) { s.modInverted = true; h.g = -1; h.grounded = false; h.vy = -60; s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: -1, s: 'mod' }); }
+    if (s.t >= s.modNext && h.grounded && h.g > 0 && ceilAhead(420)) { s.modInverted = true; setG(h, -1); h.vy = -60; s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: -1, s: 'mod' }); }
     else if (s.t >= s.modNext) s.modNext = s.t + 0.5;
   } else if (s.t >= s.modNext || !ceilAhead(280)) {
-    s.modInverted = false; if (h.g < 0) { h.g = 1; h.grounded = false; h.vy = 60; } s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: 1, s: 'mod' });
+    s.modInverted = false; if (h.g < 0) { setG(h, 1); h.vy = 60; } s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: 1, s: 'mod' });
   }
 }
 
@@ -460,7 +462,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
   if (inp.swipeDown && h.grounded && has(w, 'kayma') && h.slide <= 0) { h.slide = w.skills.longSlide ? C.SLIDE_LONG_T : C.SLIDE_T; ev(s, 'slide', h.x, h.y); }
   // zıplama / çevirme
   if (h.buffer > 0 && h.wallId < 0 && h.tramp <= 0) {
-    if (h.grav) { h.buffer = 0; h.g = (h.g === 1 ? -1 : 1); h.grounded = false; h.vy = 120 * h.g; h.jumpRise = false; h.slide = 0; ev(s, 'flip', h.x, h.y, { n: h.g }); }
+    if (h.grav) { h.buffer = 0; setG(h, h.g === 1 ? -1 : 1); h.vy = 120 * h.g; h.jumpRise = false; h.slide = 0; ev(s, 'flip', h.x, h.y, { n: h.g }); }
     else if (h.grounded || h.coyote > 0) {
       h.buffer = 0; h.slide = 0; h.grounded = false; h.coyote = 0; h.vy = -C.JUMP_V * h.g; h.jumpRise = true; h.cut = !inp.down; h.pound = false;
       ev(s, 'jump', h.x, h.y);
@@ -583,7 +585,7 @@ function hookStep(w: World, s: SimState, inp: SimInput, ids: number[]) {
 
 function swimStep(w: World, s: SimState, inp: SimInput, ids: number[], waterId: number, cvx: number, cvy: number, sp: number) {
   const h = s.hero; const dt = C.DT; const wz = w.ents[waterId]!;
-  if (h.water < 0) { h.water = waterId; h.pound = false; h.dash = 0; h.wallId = -1; h.jumpRise = false; h.g = 1; ev(s, 'splash', h.x, wz.t); }
+  if (h.water < 0) { h.water = waterId; h.pound = false; h.dash = 0; h.wallId = -1; h.jumpRise = false; setG(h, 1); ev(s, 'splash', h.x, wz.t); }
   h.vx = h.dir * C.RUN * C.SWIM_SPEED * sp + cvx;
   const target = h.held ? -C.SWIM_UP : C.SWIM_SINK;
   h.vy += (target - h.vy) * Math.min(1, dt * 6); h.vy += cvy * dt * 4;
@@ -613,7 +615,7 @@ function tryHook(w: World, s: SimState, ids: number[]) {
     const tw = (h.vx * Math.cos(h.hookAng) - h.vy * Math.sin(h.hookAng)) / L;
     const minW = Math.sqrt((2 * C.G_FALL / L) * Math.max(0.05, Math.cos(h.hookAng) - Math.cos(C.HOOK_MAX_ANGLE)));
     h.hookW = h.dir * Math.max(Math.abs(tw) * Math.sign(tw) * h.dir, minW);
-    h.jumpRise = false; h.glideT = 0; h.airDash = false; h.g = 1;
+    h.jumpRise = false; h.glideT = 0; h.airDash = false; setG(h, 1);
     ev(s, 'hook', e.x, e.y, { id });
     return;
   }

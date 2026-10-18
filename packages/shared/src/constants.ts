@@ -4,5 +4,8 @@ export const GAME_H = 780;
 export const GROUND_Y = 640;
 export const TILE = 32;
 export const HERO_SIZE = 48;
-/** Yıldız eşikleri: tamamla=1, hedef=2, hedef+jetonların %80'i=3 */
-export const STAR_COIN_RATIO = 0.8;
+/** Yıldız eşikleri (docs/11 §5): bitir=1★, notaların %60'ı=2★, %90'ı ya da bölüm hedefi=3★ */
+export const STAR2_NOTE_RATIO = 0.6;
+export const STAR3_NOTE_RATIO = 0.9;
+/** geriye uyum: 3. yıldızın nota eşiği */
+export const STAR_COIN_RATIO = STAR3_NOTE_RATIO;

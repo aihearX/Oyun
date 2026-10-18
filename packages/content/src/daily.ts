@@ -55,4 +55,8 @@ export const treasureAt = (level: number) => TREASURES.find((t) => t.level === l
 /** Oyun içi "ilk kez" kutlamaları (görsel; mekaniği etkilemez) */
 export const FIRSTS: Record<string, string> = {
   ezme: 'İlk ezme!', seri5: 'İlk 5\'li seri!', kilpayi: 'İlk kıl payı!', guc: 'İlk güçlendirme!', kontrol: 'İlk kontrol noktası!',
+  // yeni yeteneğin öğretici anı (bir kez yavaşlatılmış, oynanarak öğrenilir)
+  'ogret-zipla': 'Yeni yetenek: Zıpla!', 'ogret-kayma': 'Yeni yetenek: Kayma!', 'ogret-duvar': 'Yeni yetenek: Duvar Zıplaması!',
+  'ogret-suzul': 'Yeni yetenek: Süzülme!', 'ogret-trambolin': 'Yeni yetenek: Zar Sıçrayışı!', 'ogret-kanca': 'Yeni yetenek: Kanca!',
+  'ogret-cakil': 'Yeni yetenek: Yere Çakılma!', 'ogret-yuz': 'Yeni yetenek: Yüzme!', 'ogret-darbe': 'Yeni yetenek: Ses Darbesi!', 'ogret-cevir': 'Yeni yetenek: Yerçekimi Çevirme!',
 };

@@ -1,5 +1,6 @@
 import { GROUND_Y } from '@odi/shared';
 import { cloneState, step, NO_INPUT, type SimInput, type SimState } from './sim';
+import { near } from './world';
 import type { World } from './world';
 import { has } from './sim';
 
@@ -50,6 +51,17 @@ function potential(w: World, s: SimState): number {
 
 const INP: SimInput = { ...NO_INPUT };
 
+/** havadaki kahramanın altında (ilerideki ~120 px dahil) inebileceği bir yüzey var mı */
+function groundBelow(w: World, s: SimState): boolean {
+  const h = s.hero; const x0 = Math.min(h.x, h.x + h.dir * 120), x1 = Math.max(h.x, h.x + h.dir * 120);
+  for (const id of near(w, x0 - 20, x1 + 20)) {
+    const e = w.ents[id]!; if (e.cls !== 'solid' && e.cls !== 'oneway' && e.type !== 'water') continue;
+    if (e.r < x0 - 15 || e.l > x1 + 15) continue;
+    if (e.type === 'water') return true;
+    if (e.t >= h.y - 4 && e.t < GROUND_Y + 300) return true;
+  }
+  return false;
+}
 /** çakılarak etkileşilecek hedefler (x, y üst yüzey) */
 function poundTargets(w: World, s: SimState): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = []; const hx = s.hero.x;
@@ -76,7 +88,7 @@ export function simulatePlan(w: World, s0: SimState, plan: Action[], from = 0, k
     if (i >= H && (s.hero.grounded || s.hero.water >= 0 || s.hero.wallId >= 0)) break; // kuyruk: yere bastıysa güvenli
   }
   const hh = s.hero;
-  if (failAt < 0 && !s.finished && !hh.grounded && hh.water < 0 && hh.wallId < 0 && hh.g > 0 && hh.y > GROUND_Y + 40) failAt = total;
+  if (failAt < 0 && !s.finished && !hh.grounded && hh.water < 0 && hh.wallId < 0 && hh.hookId < 0 && hh.g > 0 && (hh.y > GROUND_Y + 40 || !groundBelow(w, s))) failAt = total;
   const ok = failAt < 0;
   const pe = potential(w, s);
   return { ok, failAt, score: ok ? pe : -1e6 + failAt * 100 + pe * 0.01, end: s, states, prog: pe - potential(w, s0) };

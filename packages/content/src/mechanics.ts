@@ -2,11 +2,11 @@ import type { MechanicId } from '@odi/shared';
 
 export interface MechanicDef { id: MechanicId; name: string; hint: string; icon: string }
 export const MECHANICS: Record<MechanicId, MechanicDef> = {
-  kosu: { id: 'kosu', name: 'Koşu', hint: 'Dokun: zıpla · Basılı tut: yüksek · Aşağı kaydır: kay', icon: '🏃' },
-  yuzme: { id: 'yuzme', name: 'Yüzme', hint: 'Basılı tut: yüksel · Bırak: alçal · Kabarcıkları kaçırma', icon: '🫧' },
-  trambolin: { id: 'trambolin', name: 'Trambolin', hint: 'Zara değdiğin an dokun: güçlü sıçra', icon: '🥁' },
-  makine: { id: 'makine', name: 'Makine', hint: 'Dişliye tutun · Doğru anda bırak', icon: '⚙️' },
-  impuls: { id: 'impuls', name: 'İmpuls', hint: 'Sağa/sola kaydır: şerit değiştir · Çok hızlı', icon: '⚡' },
-  ruya: { id: 'ruya', name: 'Rüya', hint: 'Dokun: yerçekimini çevir', icon: '🌀' },
+  kosu: { id: 'kosu', name: 'Koşu', hint: 'Dokun: zıpla · Basılı tut: yüksek · Aşağı kaydır: kay · Duvara değince dokun: karşıya zıpla', icon: '🏃' },
+  yuzme: { id: 'yuzme', name: 'Yüzme', hint: 'Sıvıda basılı tut: yüksel · Bırak: dal · Diyapazonla kapının rengini eşle', icon: '🫧' },
+  trambolin: { id: 'trambolin', name: 'Zar ve Süzülme', hint: 'Zara değdiğin an dokun · Havada basılı tut: süzül · Ritim platformları vuruşla belirir', icon: '🥁' },
+  makine: { id: 'makine', name: 'Kanca ve Çakılma', hint: 'Kancanın yanında basılı tut: sallan, bırak: fırla · Havada aşağı kaydır: çakıl', icon: '⚙️' },
+  impuls: { id: 'impuls', name: 'Ses Darbesi', hint: 'İleri kaydır: atıl · Gürültü duvarını kır · Yankı yollarını görünür kıl', icon: '⚡' },
+  ruya: { id: 'ruya', name: 'Yerçekimi', hint: 'Mor bölgede dokun: yerçekimini çevir', icon: '🌀' },
   boss: { id: 'boss', name: 'Canavar', hint: 'Zayıf noktasına vur, saldırısını atlat', icon: '👹' },
 };
