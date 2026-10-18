@@ -19,7 +19,8 @@
     "mobile": "npm run start -w apps/mobile",
     "mobile:export": "npm run export:ios -w apps/mobile",
     "mobile:test": "npm test -w apps/mobile",
-    "mobile:domcheck": "npm run domcheck -w apps/mobile"
+    "mobile:domcheck": "npm run domcheck -w apps/mobile",
+    "oyna": "node tools/oyna.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
