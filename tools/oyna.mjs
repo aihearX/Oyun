@@ -4,6 +4,7 @@
  * Kullanım (kökten): npm run oyna            → aynı Wi-Fi'daki iPhone, Expo Go ile QR'ı okutur
  *                    npm run oyna -- --tunnel → farklı ağ (Expo tüneli; sosyal sunucu yine yerel ağda olmalı)
  *                    npm run oyna -- --web    → telefon yerine tarayıcı (http://localhost:5173)
+ *                    npm run oyna -- --temiz  → Expo önbelleğini temizleyerek başlat (eski sürüm görünüyorsa)
  */
 import { spawn } from 'node:child_process';
 import { networkInterfaces } from 'node:os';
@@ -30,7 +31,7 @@ console.log('   Kapatmak için: Ctrl + C\n');
 const server = run('npm', ['run', 'server'], root, { ODI_TEST_STORE: '1' });
 const client = args.includes('--web')
   ? run('npm', ['run', 'dev'], root)
-  : run('npx', ['expo', 'start', ...(args.includes('--tunnel') ? ['--tunnel'] : [])], resolve(root, 'apps/mobile'));
+  : run('npx', ['expo', 'start', ...(args.includes('--tunnel') ? ['--tunnel'] : []), ...(args.includes('--temiz') ? ['-c'] : [])], resolve(root, 'apps/mobile'));
 
 const stop = () => { for (const p of [server, client]) { try { p.kill(); } catch { /* yok */ } } process.exit(0); };
 process.on('SIGINT', stop); process.on('SIGTERM', stop);
