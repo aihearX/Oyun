@@ -116,6 +116,8 @@ export class MapScene extends Phaser.Scene {
     // görünür bölgeler etkin, diğerleri duraklar
     const top = this.viewTop - 120, bot = this.viewTop + this.viewH + 120;
     for (const rv of this.regions) rv.setActive(rv.zone.bottom + 80 > top && rv.zone.top < bot);
+    // ön yükleme: yakındaki çizilmemiş bir bölge (kare başına en çok bir tane; kaydırma sırasında değil)
+    if (!this.drag && Math.abs(this.vel) < 0.05) { const vh = this.viewH * 2; const nx = this.regions.find((rv) => !rv.painted && rv.zone.bottom > top - vh && rv.zone.top < bot + vh); nx?.paint(); }
     for (const g of this.prog) g.setVisible((g.getData('y1') as number) > top && (g.getData('y0') as number) < bot);
     // boşta: kare hızı düşer (pil/ısı); hafif modda döngü tamamen uyur
     const moving = this.busy || !!this.drag || Math.abs(this.vel) > 0.002 || this.autoTarget != null || this.follow != null;
@@ -294,14 +296,13 @@ export class MapScene extends Phaser.Scene {
     lead.destroy();
     // Odi zıplayarak yürür
     const hop = 52; const total = sB - sA; const hops = Math.max(2, Math.round(total / hop));
-    const lift = (s: number) => (to === 'finale' && s >= sB - 1 ? 40 : 0);
     this.follow = () => this.odi.y;
     for (let i = 1; i <= hops; i++) {
       const s0 = sA + (total * (i - 1)) / hops, s1 = sA + (total * i) / hops; const c = { t: 0 };
       this.opts.sfx?.('odiStep', { semitones: (i % 4) });
       await new Promise<void>((res) => this.tweens.add({ targets: c, t: 1, duration: 230, onUpdate: () => {
         const p = pointAt(this.L, s0 + (s1 - s0) * c.t); const arc = Math.sin(c.t * Math.PI) * 16;
-        this.odi.setPosition(p.x, p.y - ODI / 2 - 10 - arc + lift(s1) * c.t * 0);
+        this.odi.setPosition(p.x, p.y - ODI / 2 - 10 - arc);
         this.odiBody.setScale((1 + Math.sin(c.t * Math.PI) * 0.06) / this.R, (1 - Math.sin(c.t * Math.PI) * 0.04) / this.R);
       }, onComplete: () => res() }));
     }

@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import type { BuildingId, CampState, Wallet } from '@odi/shared';
-import { tierOf, CAMP_TIER_NAMES } from '@odi/game-core';
+import { tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { act, getNet, reconnect, toast, useSocial } from '../net';
 import { platform } from '../platform';
-import { celebrate } from '../celebrate';
 import { Skeleton, TopBar, useNow } from '../ui/social';
 import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
-import { askedHelp, buildKey, defOf, effect, type CampActions } from '../camp/model';
+import { askedHelp, buildKey, celebrateBuilt, defOf, type CampActions } from '../camp/model';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
 import '../camp/camp.css';
 
@@ -95,10 +94,7 @@ function useListCelebration(camp: CampState | null) {
     if (camp && prev.current) for (const b of camp.buildings) {
       const o = prev.current.buildings.find((x) => x.id === b.id);
       if (o && b.level > o.level) {
-        const d = defOf(b.id); const tierUp = tierOf(o.level) !== tierOf(b.level);
-        audio.play('fanfare'); platform().haptic('success');
-        celebrate.banner({ icon: d.emoji, title: `${d.name} Sv ${b.level}!`, body: tierUp ? `Yeni görünüm: ${CAMP_TIER_NAMES[tierOf(b.level)]}` : effect(b.id, b.level), tone: tierUp ? 'gold' : 'green' });
-        toast(d.emoji, 'İnşaat bitti!', `${d.name} ${b.level}. seviye`, 'gold');
+        celebrateBuilt(b.id, b.level, o.level > 0 && tierOf(o.level) !== tierOf(b.level));
       }
     }
     prev.current = camp;

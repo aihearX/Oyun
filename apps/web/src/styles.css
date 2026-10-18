@@ -712,3 +712,4 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
   .star-slot.on .star-full { opacity:1; transform:none; }
   .bi-rings, .unlock-card::after { display:none; }
 }
+.msg-name.linkish { font-size:inherit; padding:0; font-weight:800; }

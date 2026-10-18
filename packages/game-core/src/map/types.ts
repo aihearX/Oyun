@@ -19,7 +19,7 @@ export interface MapOptions {
   /** üst HUD ve alt düğme/sekme çubuğunun kapladığı alan (CSS px) — odak bu boşluğun ortasına */
   insets: { top: number; bottom: number };
   reducedMotion?: boolean;
-  /** hafif mod (düşük güç): sürekli animasyon yok, boşta döngü uyur */
+  /** hafif mod (düşük güç): sürekli animasyon yok, boşta döngü uyur. Verilmezse: test tarayıcısı ya da azaltılmış harekette açık */
   light?: boolean;
   sfx?(s: MapSfx, o?: { semitones?: number; vol?: number }): void;
   haptic?(k: 'light' | 'medium' | 'heavy' | 'success'): void;

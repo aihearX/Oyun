@@ -165,6 +165,7 @@ try {
     check(left1 != null && left1 <= left0 - 55, `süre kısaldı: ${left0} sn → ${left1} sn`);
     await toastGone(B);
     await shot(B, 'B-yardim-sonrasi', 300);
+    await tab(A, 'Bugün'); // A'nın sahnesi kapanır (Phaser yok edilir)
 
     step('B5 · Kristalle bitir → bitiş animasyonu');
     await tapBuilding(B, 'merkez'); await B.locator('.bp').waitFor();
@@ -175,7 +176,6 @@ try {
     await sleep(1600);
     await toastGone(B);
     await shot(B, 'B-bitis-sonrasi', 200);
-    if (process.env.DEBUG_KAMP) console.log(await B.evaluate(() => { const p = window.__kamp.pos('merkez'); const el = document.elementFromPoint(p.x, p.y + 10); return JSON.stringify({ p, el: el && (el.className || el.tagName) }); }));
     await tapBuilding(B, 'merkez'); await B.locator('.bp').waitFor();
     check((await B.locator('.bp-tier').innerText()).includes('Sv 2'), 'Kamp Merkezi Sv 2');
     await B.locator('.bp-x').click();

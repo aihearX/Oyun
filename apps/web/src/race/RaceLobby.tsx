@@ -1,3 +1,4 @@
+import { openProfile } from '../friends/state';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChatMessage, LevelSpec, PublicProfile, RaceRoom } from '@odi/shared';
 import { SOCIAL_LIMITS } from '@odi/shared';
@@ -165,7 +166,7 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
         {players.map((p) => (
           <div key={p.id} className={`race-player${p.ready ? ' ready' : ''}${p.id === meId ? ' me' : ''}`} data-testid="yaris-oyuncu" data-name={p.name} style={{ ['--pc' as string]: hexColor(p.color) }}>
             <OdiAvatar color={p.color} hat={p.hat} size={52} mood={p.ready ? 'wow' : 'happy'} />
-            <b className="ellipsis">{p.name}{p.id === meId ? ' (sen)' : ''}</b>
+            <b className="ellipsis" onClick={() => { if (p.id !== meId) openProfile(p.id); }} role={p.id !== meId ? 'button' : undefined}>{p.name}{p.id === meId ? ' (sen)' : ''}</b>
             <span className={`race-state${p.ready ? ' on' : ''}`}>{p.ready ? 'Hazır ✓' : 'Bekliyor'}</span>
             {p.id === room.hostId && <i className="race-host" aria-label="oda kurucusu">👑</i>}
           </div>
@@ -260,7 +261,7 @@ function RaceChat({ roomId, meId }: { roomId: string; meId: string | null }) {
         {!shown.length && <div className="muted small-note">Rakiplerine bir merhaba de 👋</div>}
         {shown.map((m) => (
           <div key={m.id} className={`race-msg${m.from === meId ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}`}>
-            {m.from !== meId && <b style={{ color: hexColor(m.color) }}>{m.name}</b>}<span>{m.text}</span>
+            {m.from !== meId && <b style={{ color: hexColor(m.color), cursor: 'pointer' }} onClick={() => openProfile(m.from)}>{m.name}</b>}<span>{m.text}</span>
           </div>
         ))}
       </div>

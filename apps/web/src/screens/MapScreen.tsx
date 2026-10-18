@@ -19,6 +19,8 @@ import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import '../map/map.css';
 
+/** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
+const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
 const fmt = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}B` : n.toLocaleString('tr-TR'));
 
 /**
@@ -39,7 +41,6 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
     let dead = false; let h: MapHandle | null = null;
-    audio.music('harita');
     void loadMapSeen().then(() => {
       if (dead || !host.current) return;
       const s = useStore.getState(); const now = starsOf(s.progress);
@@ -49,7 +50,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       const hb = hudRef.current?.getBoundingClientRect().bottom ?? 70; const pb = playRef.current?.getBoundingClientRect().top ?? innerHeight - 140;
       h = startMap(host.current, {
         stars: now, seen, treasuresOpen: s.meta.treasures, hero: { color: look.color, hat: look.hat }, social: socialRef.current,
-        insets: { top: hb + 8, bottom: Math.max(90, innerHeight - pb + 10) }, reducedMotion: prefersReducedMotion(),
+        insets: { top: hb + 8, bottom: Math.max(90, innerHeight - pb + 10) }, reducedMotion: prefersReducedMotion(), ...fullMotion(),
         sfx: (x, o) => audio.play(x, o), haptic: (k) => platform().haptic(k),
         onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
         onTreasure: async (n) => {

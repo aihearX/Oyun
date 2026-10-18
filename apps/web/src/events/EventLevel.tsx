@@ -52,7 +52,7 @@ async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
         const x = await c.call('relay.submit', { leg: play.leg, ...run });
         useEvents.setState({ relay: x.relay });
         if (!run.completed) return { icon: '🚩', title: 'Ayak tamamlanmadı', text: 'Bayrak hâlâ sende; bir daha dene!', tone: 'warn' };
-        return { icon: '🚩', title: `${play.leg + 1}. ayak: ${run.timeSec} sn`, text: x.improved ? 'Ayağın en iyi süresi senin!' : 'Koşu kaydedildi.', tone: 'ok' };
+        return { icon: '🚩', title: `${play.leg + 1}. ayak: ${run.timeSec.toLocaleString('tr-TR')} sn`, text: x.improved ? 'Ayağın en iyi süresi senin!' : 'Koşu kaydedildi.', tone: 'ok' };
       }
       case 'meydan': {
         const x = await c.call('challenge.submit', run);

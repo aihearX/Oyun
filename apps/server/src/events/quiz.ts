@@ -79,7 +79,7 @@ function finalize(app: App, q: QuizRow): void {
   }
   if (rows.length) questProgress(app, q.team_id, 'quiz', 1);
   const best = [...rows].sort((a, b) => b.score - a.score)[0];
-  systemMessage(app, teamRoom(q.team_id), `🧠 Bilgi yarışması bitti! Takım ortalaması: ${avg} puan${best ? ` · en iyi: ${app.playerOrNull(best.player_id)?.name ?? '?'} (${best.correct}/${QUIZ_COUNT})` : ''}.`, 'system', { event: 'quiz', quizId: q.id });
+  systemMessage(app, teamRoom(q.team_id), `Bilgi yarışması bitti! Takım ortalaması: ${avg} puan${best ? ` · en iyi: ${app.playerOrNull(best.player_id)?.name ?? '?'} (${best.correct}/${QUIZ_COUNT})` : ''}.`, 'system', { event: 'quiz', quizId: q.id });
 }
 
 /** faz geçişlerini işle ve değişince yayınla (zamanlayıcı + sweep + istek anında) */
@@ -123,7 +123,7 @@ function create(app: App, teamId: string, by: string, slot: string | null): Quiz
   const id = rid('q');
   app.db.run('INSERT INTO ev_quiz(id, team_id, day, slot, started_by, created_at, lobby_ends, questions) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, teamId, dayKey(now), slot, by, now, now + lobbyMs(app), JSON.stringify(pickd));
   const who = by === 'sistem' ? 'Sabit saat geldi' : `${app.playerOrNull(by)?.name ?? '?'} başlattı`;
-  systemMessage(app, teamRoom(teamId), `🧠 Kulak Bilgi Yarışması başlıyor! ${who}. 10 soru, her biri 15 sn. Katıl!`, 'system', { event: 'quiz', quizId: id });
+  systemMessage(app, teamRoom(teamId), `Kulak Bilgi Yarışması başlıyor! ${who}. 10 soru, her biri 15 sn. Katıl!`, 'system', { event: 'quiz', quizId: id });
   notify(app, app.teamMemberIds(teamId).filter((x) => x !== by), { kind: 'quiz', icon: '🧠', title: 'Bilgi yarışması başlıyor!', text: `${who} · ${Math.round(lobbyMs(app) / 1000)} sn içinde katıl`, target: 'quiz', ref: id });
   if (by !== 'sistem') app.db.run('INSERT INTO ev_quiz_player(quiz_id, player_id, joined_at) VALUES(?, ?, ?)', id, by, now);
   app.after(() => schedule(app, id));

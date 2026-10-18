@@ -80,7 +80,7 @@ export function relayTick(app: App): void {
         giveRewards(app, pid, RELAY_REWARDS.finish, `Bayrak Yarışı: parkur tamam (${total} sn)`);
         if (i < 3) giveRewards(app, pid, RELAY_REWARDS.podium[i]!, `Bayrak Yarışı: ${i + 1}. sıra`);
       }
-      systemMessage(app, teamRoom(d.team_id), `🚩 Bayrak Yarışı bitti: toplam ${total} sn, ${i + 1}. sıra! Koşuculara ödüller ödül kutusunda.`, 'system', { event: 'bayrak' });
+      systemMessage(app, teamRoom(d.team_id), `Bayrak Yarışı bitti: toplam ${total} sn, ${i + 1}. sıra! Koşuculara ödüller ödül kutusunda.`, 'system', { event: 'bayrak' });
     });
   }
 }
@@ -96,7 +96,7 @@ export const relayHandlers: Handlers = {
     if (r.carrier) fail('MESGUL', `Bayrak şu an ${nameOf(app, r.carrier)} adlı üyede.`);
     if (r.last_runner === p.id && app.teamMemberIds(t.id).length > 1) fail('SART', 'Sıradaki ayağı başka bir takım arkadaşın koşmalı; bayrağı devret!');
     app.db.run('UPDATE ev_relay SET carrier = ?, carrier_at = ? WHERE period = ? AND team_id = ?', p.id, app.now(), period.key, t.id);
-    systemMessage(app, teamRoom(t.id), `🚩 ${p.name} bayrağı aldı: ${r.current + 1}. ayak koşuluyor!`, 'system', { event: 'bayrak' });
+    systemMessage(app, teamRoom(t.id), `${p.name} bayrağı aldı: ${r.current + 1}. ayak koşuluyor!`, 'system', { event: 'bayrak' });
     broadcastRelay(app, t.id);
     return { relay: relayState(app, t.id) };
   },
@@ -111,7 +111,7 @@ export const relayHandlers: Handlers = {
     const target = app.playerOrNull(to);
     if (!target || target.team_id !== t.id) return fail('YOK', 'Bu oyuncu takımında değil.');
     app.db.run('UPDATE ev_relay SET carrier = ?, carrier_at = ? WHERE period = ? AND team_id = ?', to, app.now(), period.key, t.id);
-    systemMessage(app, teamRoom(t.id), `🚩 ${p.name} bayrağı ${target.name} adlı üyeye devretti: ${r.current + 1}. ayak!`, 'system', { event: 'bayrak' });
+    systemMessage(app, teamRoom(t.id), `${p.name} bayrağı ${target.name} adlı üyeye devretti: ${r.current + 1}. ayak!`, 'system', { event: 'bayrak' });
     notify(app, [to], { kind: 'bayrak', icon: '🚩', title: 'Bayrak sende!', text: `${p.name} sana devretti: ${r.current + 1}. ayağı koş!`, target: 'bayrak' });
     broadcastRelay(app, t.id);
     return { relay: relayState(app, t.id) };
@@ -144,15 +144,15 @@ export const relayHandlers: Handlers = {
       if (next >= RELAY_LEGS) {
         addTeamXp(app, t.id, RELAY_TEAM_XP);
         broadcastExtra(app, t.id);
-        systemMessage(app, teamRoom(t.id), `🏁 ${p.name} son ayağı ${time} sn'de bitirdi: parkur tamam! Artık her ayakta süreyi iyileştirebilirsiniz.`, 'system', { event: 'bayrak' });
+        systemMessage(app, teamRoom(t.id), `${p.name} son ayağı ${time} sn'de bitirdi: parkur tamam! Artık her ayakta süreyi iyileştirebilirsiniz.`, 'system', { event: 'bayrak' });
         notify(app, app.teamMemberIds(t.id), { kind: 'bayrak', icon: '🏁', title: 'Bayrak Yarışı parkuru tamam!', text: 'Şimdi en iyi süreleri kovalayın.', target: 'bayrak' });
       } else {
-        systemMessage(app, teamRoom(t.id), `🚩 ${p.name} ${d.leg + 1}. ayağı ${time} sn'de bitirdi! Sıradaki ${next + 1}. ayak: bayrağı kim alacak?`, 'system', { event: 'bayrak' });
+        systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayağı ${time} sn'de bitirdi! Sıradaki ${next + 1}. ayak: bayrağı kim alacak?`, 'system', { event: 'bayrak' });
         notify(app, app.teamMemberIds(t.id).filter((x) => x !== p.id), { kind: 'bayrak', icon: '🚩', title: `${next + 1}. ayak seni bekliyor!`, text: `${p.name} ${d.leg + 1}. ayağı bitirdi. Bayrağı al!`, target: 'bayrak' });
       }
     } else if (improved) {
       addDuelPoints(app, t.id, p.id, DUEL_RULES.relayImprove);
-      systemMessage(app, teamRoom(t.id), `⏱️ ${p.name} ${d.leg + 1}. ayakta yeni en iyi süre: ${time} sn!`, 'system', { event: 'bayrak' });
+      systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayakta yeni en iyi süre: ${time} sn!`, 'system', { event: 'bayrak' });
     }
     broadcastRelay(app, t.id);
     return { relay: relayState(app, t.id), improved };

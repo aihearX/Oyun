@@ -11,8 +11,8 @@ export { ZONE_PLACE, zoneName } from './paint';
  * Kapatınca oyun, dokular ve dinleyiciler tamamen yok edilir.
  */
 export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
-  // hafif mod: otomasyon tarayıcısı (test), azaltılmış hareket ya da açıkça istenmiş; ayrıca DPI 2 ile sınırlı
-  const light = !!opts.light || !!opts.reducedMotion || (typeof navigator !== 'undefined' && navigator.webdriver === true);
+  // hafif mod: otomasyon tarayıcısı (test) ya da azaltılmış hareket (opts.light ile açıkça seçilebilir); DPI 2 ile sınırlı
+  const light = opts.light ?? (!!opts.reducedMotion || (typeof navigator !== 'undefined' && navigator.webdriver === true));
   const dpr = Math.max(1, Math.min(light ? 2 : 3, window.devicePixelRatio || 1));
   const size = () => ({ w: Math.max(1, Math.round(parent.clientWidth * dpr)), h: Math.max(1, Math.round(parent.clientHeight * dpr)) });
   const s0 = size();

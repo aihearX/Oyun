@@ -139,8 +139,11 @@ try {
 
   step('5 · B kamp inşaatı başlatır ve yardım ister');
   await tab(B, 'Kamp');
-  await B.locator('.building').first().waitFor();
+  await B.locator('.camp-base').waitFor({ timeout: 20_000 }); // üs görünümü (izometrik sahne)
+  await B.locator('.camp-loading').waitFor({ state: 'detached', timeout: 20_000 });
   await shot(B, 'B-kamp');
+  await B.getByRole('button', { name: 'Liste görünümü' }).click(); // erişilebilir liste görünümü: aynı işlevler
+  await B.locator('.building').first().waitFor();
   await B.locator('.building', { hasText: 'Ses Laboratuvarı' }).getByRole('button', { name: 'Yükselt' }).click();
   await B.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
   await B.locator('.construction').waitFor();
@@ -163,13 +166,11 @@ try {
   await toastGone(A);
 
   step('7 · B\'nin süresi kısalır');
-  // 60 sn'lik inşaat: bir yardım (en az 60 sn) bitirir → kutlama
-  await B.locator('.reward-pop', { hasText: 'İnşaat bitti' }).waitFor({ timeout: 10_000 }).then(() => ok(`süre ${leftBefore} → 0:00, kutlama göründü`)).catch(async () => {
-    const after = (await B.locator('.big-count').innerText().catch(() => '')).trim();
-    check(after && after !== leftBefore, `süre kısaldı: ${leftBefore} → ${after}`);
-  });
+  // 60 sn'lik inşaat: bir yardım (en az 60 sn) bitirir → kart Sv 1 olur ve kutlama afişi çıkar
+  await B.locator('.building', { hasText: 'Ses Laboratuvarı' }).locator('.lvl-pill', { hasText: 'Sv 1' }).waitFor({ timeout: 12_000 });
+  ok(`süre ${leftBefore} → 0:00, Ses Laboratuvarı Sv 1`);
+  await sleep(300);
   await shot(B, 'B-insaat-bitti');
-  await B.locator('.reward-pop .btn').click().catch(() => undefined);
   await toastGone(B);
   await shot(B, 'B-kamp-sonra');
 
@@ -285,7 +286,7 @@ try {
   await A.locator('.screen-head .btn').first().click();
   await A.getByLabel(/Ödül kutusu/).click(); await A.locator('.screen-head').waitFor(); await sleep(600); await shot(A, 'A-odul-kutusu');
   await A.locator('.screen-head .btn').first().click();
-  await tab(A, 'Kamp'); await A.locator('.building').first().waitFor(); await shot(A, 'A-kamp');
+  await tab(A, 'Kamp'); await A.locator('.camp-base').waitFor({ timeout: 20_000 }); await A.locator('.camp-loading').waitFor({ state: 'detached', timeout: 20_000 }); await shot(A, 'A-kamp');
   await tab(A, 'Bugün'); await shot(A, 'A-bugun');
 
   step('14 · Sonuç ekranı katkı satırları (önizleme: gerçek takım + hedefler, örnek onay)');

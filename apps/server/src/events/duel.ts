@@ -30,7 +30,7 @@ function enroll(app: App, cur: EventPeriod, teamId: string): DuelRow {
   app.db.run('UPDATE ev_duel SET rival_id = ?, matched_at = ? WHERE period = ? AND team_id = ?', teamId, now, cur.key, rival.team_id);
   for (const [a, b] of [[teamId, rival.team_id], [rival.team_id, teamId]] as const) {
     const other = app.team(b)!;
-    systemMessage(app, teamRoom(a), `⚔️ Takım Düellosu başladı! Rakibiniz: ${other.emblem} ${other.name}. Her yıldız, ralli ve bayrak ayağı puan getirir.`, 'war', { event: 'duello' });
+    systemMessage(app, teamRoom(a), `Takım Düellosu başladı! Rakibiniz: ${other.emblem} ${other.name}. Her yıldız, ralli ve bayrak ayağı puan getirir.`, 'war', { event: 'duello' });
     notify(app, app.teamMemberIds(a), { kind: 'duello', icon: '⚔️', title: 'Düello rakibiniz belli oldu!', text: `${other.emblem} ${other.name} ile 48 saatlik düello`, target: 'duello' });
   }
   broadcastDuel(app, rival.team_id); broadcastDuel(app, teamId);
@@ -56,7 +56,7 @@ export function duelTick(app: App): void {
       if (!app.team(r.team_id)) continue;
       const mine = points(app, r.period, r.team_id); const theirs = points(app, r.period, r.rival_id!);
       const lead = mine > theirs ? `${mine - theirs} puan öndesiniz` : mine < theirs ? `${theirs - mine} puan gerideyiz` : 'skor eşit';
-      systemMessage(app, teamRoom(r.team_id), `⏰ Düellonun son 2 saati! ${lead}. Son hamle zamanı!`, 'war', { event: 'duello' });
+      systemMessage(app, teamRoom(r.team_id), `Düellonun son 2 saati! ${lead}. Son hamle zamanı!`, 'war', { event: 'duello' });
       notify(app, app.teamMemberIds(r.team_id), { kind: 'duello', icon: '⏰', title: 'Düello: son 2 saat!', text: `${lead}. Her yıldız sayılır!`, target: 'duello' });
     }
   }
@@ -72,7 +72,7 @@ export function duelTick(app: App): void {
       const items = result === 'kazandi' ? DUEL_REWARDS.win : result === 'kaybetti' ? DUEL_REWARDS.lose : DUEL_REWARDS.tie;
       const label = result === 'kazandi' ? 'kazandınız' : result === 'kaybetti' ? 'kaybettiniz (teselli ödülü)' : 'berabere';
       for (const m of app.teamMemberIds(r.team_id)) giveRewards(app, m, items, `Takım Düellosu ${label}: ${mine}–${theirs}`);
-      systemMessage(app, teamRoom(r.team_id), result === 'kazandi' ? `🏆 Düelloyu ${mine}–${theirs} kazandınız! Ödüller ödül kutusunda.` : result === 'kaybetti' ? `Düello bitti: ${mine}–${theirs}. Bu sefer olmadı; teselli ödülü ödül kutusunda. Sıradaki düelloda!` : `Düello berabere bitti: ${mine}–${theirs}. Ödüller ödül kutusunda.`, 'war', { event: 'duello' });
+      systemMessage(app, teamRoom(r.team_id), result === 'kazandi' ? `Düelloyu ${mine}–${theirs} kazandınız! Ödüller ödül kutusunda.` : result === 'kaybetti' ? `Düello bitti: ${mine}–${theirs}. Bu sefer olmadı; teselli ödülü ödül kutusunda. Sıradaki düelloda!` : `Düello berabere bitti: ${mine}–${theirs}. Ödüller ödül kutusunda.`, 'war', { event: 'duello' });
       notify(app, app.teamMemberIds(r.team_id), { kind: 'duello', icon: result === 'kazandi' ? '🏆' : '⚔️', title: result === 'kazandi' ? 'Düelloyu kazandınız!' : result === 'kaybetti' ? 'Düello bitti' : 'Düello berabere', text: `${mine}–${theirs} · ödüller ödül kutusunda`, target: 'duello' });
     }
   }

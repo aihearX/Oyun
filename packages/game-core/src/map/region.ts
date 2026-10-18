@@ -19,9 +19,9 @@ const dullTint = (v: Vitality) => (v === 0 ? 0x6f6a90 : v === 1 ? 0xb9b3d6 : 0xf
 export interface RegionDeps { L: MapLayout; R: number; S: number; webgl: boolean; reduced: boolean; light: boolean }
 
 export class RegionView {
-  readonly zone: MapZone; v: Vitality; active = true;
+  readonly zone: MapZone; v: Vitality; active = false;
   readonly label: Phaser.GameObjects.Image; private lock?: Phaser.GameObjects.Image;
-  private bg: Phaser.GameObjects.Image; private overlay?: Phaser.GameObjects.Image;
+  private bg?: Phaser.GameObjects.Image; private overlay?: Phaser.GameObjects.Image;
   private dyn: Phaser.GameObjects.Container; private land: Phaser.GameObjects.Container;
   private tw: Phaser.Tweens.Tween[] = []; private timers: Phaser.Time.TimerEvent[] = []; private emitters: Phaser.GameObjects.Particles.ParticleEmitter[] = [];
   private landObjs: Phaser.GameObjects.Image[] = [];
@@ -29,11 +29,7 @@ export class RegionView {
 
   constructor(private scene: Phaser.Scene, private d: RegionDeps, zone: MapZone, private idx: number, v: Vitality) {
     this.zone = zone; this.v = v; this.seed = Math.round(zone.top) + idx * 97;
-    const { L, S } = d; const first = idx === 0;
-    const key = `zone-${zone.id}`;
-    if (!scene.textures.exists(key)) scene.textures.addCanvas(key, paintZone(L, zone, S, first));
-    const base = idx * 0.1;
-    this.bg = scene.add.image(0, zone.top, key).setOrigin(0, 0).setScale(1 / S).setDepth(base);
+    const { L } = d;
     this.land = scene.add.container(0, 0).setDepth(2 + idx * 0.01);
     this.dyn = scene.add.container(0, 0).setDepth(3 + idx * 0.01);
     this.buildLandmark();
@@ -42,41 +38,53 @@ export class RegionView {
     // kavisli şerit etiket (bölge kapısı)
     this.label = scene.add.image(L.width / 2, zone.id === 'finale' ? zone.top + 46 : zone.gateY, this.labelKey(v)).setScale(1 / d.R).setDepth(7);
     this.syncLock();
+    // ilk karede sahne görünür bölgeleri etkinleştirir (ve çizer)
+    this.dyn.setVisible(false); this.land.setVisible(false); this.label.setVisible(false); this.lock?.setVisible(false);
   }
 
+  get painted() { return !!this.bg; }
+  /** büyük arka plan resmini çiz (tembel: bölge ekrana yaklaşınca; mobilde açılışı hızlandırır) */
+  paint() {
+    if (this.bg) return;
+    const { L, S } = this.d; const key = `zone-${this.zone.id}`;
+    if (!this.scene.textures.exists(key)) this.scene.textures.addCanvas(key, paintZone(L, this.zone, S, this.idx === 0));
+    this.bg = this.scene.add.image(0, this.zone.top, key).setOrigin(0, 0).setScale(1 / S).setDepth(this.idx * 0.1).setVisible(this.active);
+    this.applyStatic(this.v);
+  }
   private labelKey(v: Vitality) {
     const z = this.zone.id; const k = `lbl-${z}-${v}`;
     return labelTex(this.scene, this.d.R, k, zoneName(z), ZONE_PLACE[z], zoneAccent(z), v, v === 0);
   }
   private syncLock() {
-    if (this.v === 0 && !this.lock) this.lock = this.scene.add.image(this.label.x, this.label.y - 30, lockTex(this.scene, this.d.R)).setScale(1 / this.d.R).setDepth(7.1);
+    if (this.v === 0 && !this.lock) this.lock = this.scene.add.image(this.label.x, this.label.y - 30, lockTex(this.scene, this.d.R)).setScale(1 / this.d.R).setDepth(7.1).setVisible(this.label.visible);
     if (this.v > 0 && this.lock) { this.lock.destroy(); this.lock = undefined; }
   }
   /** kilitli görünüm: renkli dokudan düşük çözünürlüklü gece-mürekkebi kopyası (bir kez; FX gerektirmez, mobilde ucuz) */
   private ensureOverlay(): Phaser.GameObjects.Image {
     if (this.overlay) return this.overlay;
-    const key = `${this.bg.texture.key}-night`; const k = 0.5;
+    this.paint(); const bg = this.bg!;
+    const key = `${bg.texture.key}-night`; const k = 0.5;
     if (!this.scene.textures.exists(key)) {
-      const src = this.scene.textures.get(this.bg.texture.key).getSourceImage() as HTMLCanvasElement;
+      const src = this.scene.textures.get(bg.texture.key).getSourceImage() as HTMLCanvasElement;
       const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(src.width * k / this.d.S)); c.height = Math.max(1, Math.round(src.height * k / this.d.S));
       const ctx = c.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(src, 0, 0, c.width, c.height);
       const im = ctx.getImageData(0, 0, c.width, c.height); const p = im.data; const m = NIGHT_MATRIX;
       for (let i = 0; i < p.length; i += 4) { const r = p[i]!, g = p[i + 1]!, b = p[i + 2]!; p[i] = r * m[0]! + g * m[1]! + b * m[2]! + m[4]!; p[i + 1] = r * m[5]! + g * m[6]! + b * m[7]! + m[9]!; p[i + 2] = r * m[10]! + g * m[11]! + b * m[12]! + m[14]!; }
       ctx.putImageData(im, 0, 0); this.scene.textures.addCanvas(key, c);
     }
-    const o = this.scene.add.image(0, this.zone.top, key).setOrigin(0, 0).setScale(1 / k).setDepth(this.bg.depth + 0.01).setVisible(this.active);
+    const o = this.scene.add.image(0, this.zone.top, key).setOrigin(0, 0).setScale(1 / k).setDepth(bg.depth + 0.01).setVisible(this.active);
     this.overlay = o; return o;
   }
   private applyStatic(v: Vitality) {
     const a = overlayAlpha(v);
-    if (a > 0) this.ensureOverlay().setAlpha(a); else if (this.overlay) { this.overlay.destroy(); this.overlay = undefined; }
+    if (a > 0 && !this.bg) { /* çizilince uygulanır */ } else if (a > 0) this.ensureOverlay().setAlpha(a); else if (this.overlay) { this.overlay.destroy(); this.overlay = undefined; }
     for (const o of this.landObjs) o.setTint(dullTint(v));
   }
 
   /** görünürlük: kamera dışındayken animasyonlar duraklar, nesneler çizilmez */
   setActive(on: boolean) {
-    if (on === this.active) return; this.active = on;
-    this.dyn.setVisible(on); this.land.setVisible(on); this.bg.setVisible(on); this.overlay?.setVisible(on); this.label.setVisible(on); this.lock?.setVisible(on);
+    if (on === this.active) return; this.active = on; if (on) this.paint();
+    this.dyn.setVisible(on); this.land.setVisible(on); this.bg?.setVisible(on); this.overlay?.setVisible(on); this.label.setVisible(on); this.lock?.setVisible(on);
     for (const t of this.tw) { if (on) t.resume(); else t.pause(); }
     for (const t of this.timers) t.paused = !on;
     for (const e of this.emitters) { if (on) e.start(); else e.stop(); }
@@ -85,6 +93,7 @@ export class RegionView {
   /** canlanma seviyesini değiştir; animate: mürekkep gibi yayılan renk + çekilen sis + uyanış */
   async setLevel(v: Vitality, animate: boolean, origin?: { x: number; y: number }): Promise<void> {
     const from = this.v; if (v === from) return;
+    this.paint();
     this.v = v;
     if (!animate || this.d.reduced) { this.applyStatic(v); this.buildDynamic(v, false); this.label.setTexture(this.labelKey(v)); this.syncLock(); return; }
     const sc = this.scene; const z = this.zone; const L = this.d.L;
@@ -332,6 +341,6 @@ export class RegionView {
     }
   }
 
-  destroy() { this.killAnims(); this.dyn.destroy(true); this.land.destroy(true); this.bg.destroy(); this.overlay?.destroy(); this.label.destroy(); this.lock?.destroy(); }
+  destroy() { this.killAnims(); this.dyn.destroy(true); this.land.destroy(true); this.bg?.destroy(); this.overlay?.destroy(); this.label.destroy(); this.lock?.destroy(); }
 }
 export const wait = (sc: Phaser.Scene, ms: number) => new Promise<void>((res) => { sc.time.delayedCall(ms, () => res()); });

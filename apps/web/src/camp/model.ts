@@ -2,7 +2,10 @@
  * Kulak Kampı arayüz modeli: etki metinleri, yükseltme uygunluğu (nedeniyle), hızlandırıcılar, eylemler (gerçek/demo).
  */
 import { BUILDINGS, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
-import { DEPOT_CAP_H, DEPOT_RATE } from '@odi/game-core';
+import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core';
+import { audio } from '@odi/audio';
+import { celebrate } from '../celebrate';
+import { platform } from '../platform';
 
 export { DEPOT_CAP_H, DEPOT_RATE };
 export const defOf = (id: BuildingId): BuildingDef => BUILDINGS.find((b) => b.id === id)!;
@@ -46,4 +49,15 @@ export interface CampActions {
   collect(): Promise<number | null>;
   /** verilen yardım sayısı; başarısızsa null */
   helpAll(): Promise<number | null>;
+}
+
+/** inşaat bitti: her zaman fanfar + afiş; görsel kademe değiştiyse (Sv 4, 7, 10, 13) büyük "seviye" anı */
+export function celebrateBuilt(id: BuildingId, level: number, bigTier: boolean): void {
+  const d = defOf(id); platform().haptic('success');
+  if (bigTier) {
+    void celebrate.levelUp({ level, unlocks: [`${d.name}: ${CAMP_TIER_NAMES[tierOf(level)]} görünüm`, effect(id, level)] });
+    return;
+  }
+  audio.play('fanfare');
+  celebrate.banner({ icon: d.emoji, title: `${d.name} Sv ${level}!`, body: level === 1 ? `Kuruldu · ${effect(id, level)}` : effect(id, level), tone: 'green' });
 }

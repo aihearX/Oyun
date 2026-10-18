@@ -1,3 +1,4 @@
+import { DmTopPill } from '../friends/Banner';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, type InboxKind } from '@odi/shared';
@@ -78,6 +79,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       </div>
       <div className="tb-pills">
         {extra}
+        {linked && <DmTopPill />}
         <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}>🪙 {fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend">⏳</i>}</span>
         {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmtNum(kc.value)}</button>}
         {linked && <button className="pill tb-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}>✉️{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}

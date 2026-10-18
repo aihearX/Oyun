@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RankRow } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { SubTabs, fmtNum } from '../ui/social';
-import { useEvents } from './store';
+import { refreshEvents, useEvents } from './store';
 import { Countdown, Rewards, eventSpec, levelName } from './common';
 import type { PlayFn } from './EventsScreen';
 
@@ -11,6 +11,8 @@ import type { PlayFn } from './EventsScreen';
 export function ChallengeView({ onPlay }: { onPlay: PlayFn }) {
   const c = useEvents((s) => s.challenge); const me = useNet((s) => s.me);
   const [tab, setTab] = useState<'genel' | 'arkadas'>('genel');
+  // sıralama başkalarının skorlarıyla değişir: açıkken arada bir tazele
+  useEffect(() => { const h = setInterval(() => void refreshEvents(), 20_000); return () => clearInterval(h); }, []);
   if (!c) return <div className="card muted">Yükleniyor…</div>;
   const left = c.maxTries - c.tries;
   return (

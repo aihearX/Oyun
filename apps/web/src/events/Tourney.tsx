@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useNet } from '@odi/net/store';
 import { fmtNum } from '../ui/social';
-import { useEvents } from './store';
+import { refreshEvents, useEvents } from './store';
 import { Countdown, Rewards, eventSpec, levelName } from './common';
 import { Board } from './Challenge';
 import type { PlayFn } from './EventsScreen';
@@ -8,6 +9,7 @@ import type { PlayFn } from './EventsScreen';
 /** Haftalık Turnuva: haftanın 5 bölümü, bölüm başına en iyi skorların toplamı; 50 kişilik grup sıralaması */
 export function TourneyView({ onPlay }: { onPlay: PlayFn }) {
   const t = useEvents((s) => s.tourney); const me = useNet((s) => s.me);
+  useEffect(() => { const h = setInterval(() => void refreshEvents(), 30_000); return () => clearInterval(h); }, []);
   if (!t) return <div className="card muted">Yükleniyor…</div>;
   return (
     <div className="stack ev-tourney" data-testid="turnuva">

@@ -75,7 +75,7 @@ export function questProgress(app: App, teamId: string, kind: TeamQuestKind, n: 
     createGift(app, teamId, { id: 'sistem', name: 'Takım görevi' }, `Günlük görev: ${text}`, QUEST_REWARD as Grant[], members);
     const all = quests.every((x) => (x.kind === kind ? afterN : prog(app, day, teamId, x.kind)) >= x.need);
     if (all) createGift(app, teamId, { id: 'sistem', name: 'Takım görevi' }, 'Günlük görevlerin hepsi tamam: ortak sandık', QUEST_BONUS as Grant[], members);
-    systemMessage(app, teamRoom(teamId), all ? `🎯 Günlük görevlerin hepsi tamam! Ortak sandık herkesin hediye kutusunda.` : `🎯 Günlük görev tamam: ${text}. Ödül hediye kutusunda!`);
+    systemMessage(app, teamRoom(teamId), all ? `Günlük görevlerin hepsi tamam! Ortak sandık herkesin hediye kutusunda.` : `Günlük görev tamam: ${text}. Ödül hediye kutusunda!`);
     notify(app, members, { kind: 'gorev', icon: '🎯', title: all ? 'Ortak sandık açıldı!' : 'Takım görevi tamam!', text: all ? 'Bugünün 3 görevi de bitti. Hediyeni al!' : text, target: 'gorev' });
   }
   if (!quiet) broadcastQuests(app, teamId);

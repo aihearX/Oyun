@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BuildingId, CampState, Wallet } from '@odi/shared';
-import { CAMP_TIER_NAMES, startCamp, tierOf, type CampHandle, type CampTeam } from '@odi/game-core';
+import { startCamp, type CampHandle, type CampTeam } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
 import { TopBar, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { BuildingPanel } from './BuildingPanel';
-import { ITEMS, askedHelp, buildKey, canUpgrade, defOf, effect, type CampActions } from './model';
+import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, type CampActions } from './model';
 
 export interface CampBaseProps {
   camp: CampState; wallet: Wallet; team: CampTeam | null; helpCount: number; fast: number;
@@ -44,10 +44,7 @@ export function CampBase(p: CampBaseProps) {
       onSpeedup: (id) => { audio.play('tap'); setSel(id); },
       onCollect: () => { void collect(); },
       onBuilt: (id, level, tierUp) => {
-        const d = defOf(id);
-        audio.play('fanfare'); if (tierUp) audio.play('unlock', { delay: 0.35 });
-        platform().haptic('success');
-        celebrate.banner({ icon: d.emoji, title: `${d.name} Sv ${level}!`, body: tierUp ? `Yeni görünüm: ${CAMP_TIER_NAMES[tierOf(level)]} · ${effect(id, level)}` : effect(id, level), tone: tierUp ? 'gold' : 'green' });
+        celebrateBuilt(id, level, tierUp && level > 1);
       },
       onReady: () => setReady(true),
     });

@@ -263,6 +263,7 @@ try {
   // üçü de aynı tohumlu bölümü oynar (yazılımsal GPU'da üç Phaser aynı anda çok yavaş: sırayla)
   for (const p of [A, B, C]) { await openEvents(p, 'meydan'); await tid(p, 'meydan-oyna').click(); log(`meydan ${p.name}:`, JSON.stringify(await waitLevelDone(p))); }
   for (const p of [A, B, C]) await p.page.locator('[data-testid="meydan"]:not([data-rank="0"])').waitFor({ timeout: 15_000 });
+  await openEvents(A, 'meydan');
   await A.page.locator('[data-testid="siralama"] li').nth(2).waitFor({ timeout: 10_000 }).catch(() => undefined);
   const board = await A.page.$$eval('[data-testid="siralama"] li', (els) => els.map((e) => `${e.getAttribute('data-rank')}:${e.getAttribute('data-name')}`));
   check(board.length === 3, `meydan okuma genel sıralama: ${board.join(', ')}`);

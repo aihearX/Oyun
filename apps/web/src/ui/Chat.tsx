@@ -1,3 +1,4 @@
+import { openProfile } from '../friends/state';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
@@ -74,7 +75,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
           return (
             <div key={m.id} className={`msg${mine ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}`}
               onPointerDown={() => startPress(m)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => { e.preventDefault(); if (!mine) setMenu(m); }}>
-              {head && !mine && <div className="msg-name" style={{ color: hex(m.color) }}>{m.name}</div>}
+              {head && !mine && <button type="button" className="msg-name linkish" style={{ color: hex(m.color) }} onClick={() => openProfile(m.from)}>{m.name}</button>}
               <div className="bubble">{m.text}<span className="msg-time">{fmtTime(m.at)}</span></div>
               {!mine && <button className="msg-more" onClick={() => setMenu(m)} aria-label={`${m.name} mesajı için seçenekler`}>⋯</button>}
             </div>

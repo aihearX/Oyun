@@ -63,7 +63,7 @@ export function addHuntNotes(app: App, teamId: string, pid: string, notes: numbe
       const members = app.teamMemberIds(teamId);
       const full = k === HUNT_TIERS;
       createGift(app, teamId, { id: 'sistem', name: 'Ses Avı' }, full ? 'Ses Avı tamam: melodi sandığı' : `Ses Avı ${k}. nota kademesi`, huntTierReward(k) as Grant[], members, { expiresAt: Math.max(cur.endsAt, app.now() + 86_400_000) });
-      systemMessage(app, teamRoom(teamId), full ? '🎶 Melodi tamamlandı! Takım şarkınız açıldı, melodi sandığı herkesin hediye kutusunda.' : `🎵 Ses Avı: ${k}/${HUNT_TIERS} nota kademesi doldu! Hediye kutunuza bakın.`, 'system', { event: 'avi' });
+      systemMessage(app, teamRoom(teamId), full ? 'Melodi tamamlandı! Takım şarkınız açıldı, melodi sandığı herkesin hediye kutusunda.' : `Ses Avı: ${k}/${HUNT_TIERS} nota kademesi doldu! Hediye kutunuza bakın.`, 'system', { event: 'avi' });
       notify(app, members, { kind: 'avi', icon: full ? '🎶' : '🎵', title: full ? 'Takım şarkısı açıldı!' : `Melodi ${k}/${HUNT_TIERS}`, text: full ? 'Melodi sandığı hediye kutusunda. Şarkınızı dinleyin!' : 'Yeni kademe ödülü hediye kutusunda.', target: 'avi' });
     }
   }
