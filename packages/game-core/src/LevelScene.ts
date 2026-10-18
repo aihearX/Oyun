@@ -30,6 +30,8 @@ export class LevelScene extends Phaser.Scene {
   private inputDelay: { at: number; key: 'primaryPressed' | 'secondaryPressed' }[] = [];
   private lastScan: Scan | null = null; private lastScanAt = 0;
   private noteXs: number[] = [];
+  /** son güvenli zeminler: düşünce çukurun gerisinden devam (bölüm başına atmak yerine) */
+  private safeSpots: { x: number; y: number }[] = []; private lastSafeCheck = 0; private lastGroundX = 0;
   private sparks?: Phaser.GameObjects.Particles.ParticleEmitter; private dust?: Phaser.GameObjects.Particles.ParticleEmitter;
   private wasAirborne = false; private combo = 0; private comboAt = 0; private progressBar!: Phaser.GameObjects.Rectangle; private nearMissed = new WeakSet<Phaser.GameObjects.GameObject>(); private lastDamageAt = -9999;
 
@@ -147,6 +149,7 @@ export class LevelScene extends Phaser.Scene {
     const hb = this.hero.body; const groundedNow = this.state.gravityDir === 1 ? hb.blocked.down || hb.touching.down : hb.blocked.up || hb.touching.up;
     if (groundedNow && this.wasAirborne) { this.dust?.explode(8, this.hero.x, this.hero.y - (this.state.gravityDir === 1 ? 2 : 46)); this.hero.squash(1.18, 0.82, 70); }
     this.wasAirborne = !groundedNow;
+    if (groundedNow && this.state.gravityDir === 1) { this.lastGroundX = this.hero.x; if (this.time.now - this.lastSafeCheck > 200) { this.lastSafeCheck = this.time.now; this.recordSafeSpot(); } }
     this.nearMiss();
     this.progressBar.width = GAME_W * Math.min(1, this.hero.x / this.gateX);
     // düşme
@@ -169,7 +172,7 @@ export class LevelScene extends Phaser.Scene {
     }
     if (!initial && (this.time.now & 15) === 0) {
       const limit = this.cameras.main.scrollX - DESPAWN_BEHIND;
-      for (const g of [this.ctx.groups.coins, this.ctx.groups.enemies, this.ctx.groups.powerups, this.ctx.groups.movers]) {
+      for (const g of [this.ctx.groups.coins, this.ctx.groups.enemies, this.ctx.groups.powerups]) { // hareketli platformlar silinmez: geri doğan oyuncu çukuru yine geçebilsin
         for (const o of g.getChildren() as Phaser.Physics.Arcade.Sprite[]) if (o.active && o.x + 200 < limit) o.destroy();
       }
     }
@@ -250,8 +253,22 @@ export class LevelScene extends Phaser.Scene {
     if (reason === 'fall') { this.state.deaths++; this.respawn(); } else this.hero.blink(1400);
     return true;
   }
+  /** kahraman sabit bir platformun üstünde ve yakınında tehlike yoksa konumu kaydet */
+  private recordSafeSpot() {
+    const hb = this.hero.body; const x = hb.center.x, feet = hb.bottom;
+    let onStatic = false;
+    for (const o of this.ctx.groups.platforms.getChildren() as Phaser.Physics.Arcade.Sprite[]) { const b = o.body as Phaser.Physics.Arcade.StaticBody | null; if (b && x > b.left + 20 && x < b.right - 20 && Math.abs(b.top - feet) < 6) { onStatic = true; break; } }
+    if (!onStatic) return;
+    for (const g of [this.ctx.groups.hazards, this.ctx.groups.enemies]) for (const o of g.getChildren() as Phaser.Physics.Arcade.Sprite[]) { const b = o.body as Phaser.Physics.Arcade.Body | null; if (o.active && b && b.right > x - 70 && b.left < x + 70) return; }
+    const last = this.safeSpots[this.safeSpots.length - 1];
+    if (!last || Math.abs(last.x - x) > 40) { this.safeSpots.push({ x, y: feet }); if (this.safeSpots.length > 60) this.safeSpots.shift(); }
+  }
   private respawn() {
-    const cx = this.state.checkpointX; this.hero.sprite.setPosition(cx, GROUND_Y - 10); this.hero.body.setVelocity(0, 0);
+    // düşülen yerden en az 180 px geride kalan son güvenli zemin; yoksa kontrol noktası
+    let spot: { x: number; y: number } | undefined;
+    for (let i = this.safeSpots.length - 1; i >= 0; i--) { const sp = this.safeSpots[i]!; if (sp.x <= this.lastGroundX - 180 && sp.x >= this.state.checkpointX) { spot = sp; break; } }
+    const cx = spot?.x ?? this.state.checkpointX; const cy = spot ? spot.y - 2 : GROUND_Y - 10;
+    this.hero.sprite.setPosition(cx, cy); this.hero.body.reset(cx, cy); this.hero.body.setVelocity(0, 0);
     if (this.state.gravityDir === -1) this.flipGravity();
     this.hero.blink(1400); this.cameras.main.flash(200, 255, 255, 255);
   }

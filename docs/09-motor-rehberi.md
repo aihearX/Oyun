@@ -59,3 +59,5 @@ Kabul ölçütü: her bölüm botla tamamlanır (`OK`), konsolda hata yok, ekran
 - **Ardışık tehditler arası süre, havada kalma süresinden uzun olmalı.** Tam zıplama ~0,9 sn sürer; alçak engeli atlayan oyuncu yüksek engelin önüne inmemeli.
 - **Faz geçişinde nefes payı.** Boss sersemlemeden çıktıktan sonra ilk saldırı en az 900 ms sonra gelir.
 - **Bot kare hızından bağımsız olmalı.** Harness ortak CPU'da 5-15 fps, WebKit'te 60 fps görür; ikisinde de geçmeyen bölüm ya tasarım ya bot hatasıdır, ikisi ayrı ayrı incelenir.
+- **Düşen oyuncu çukurun gerisinden devam eder.** Sahne, sabit platform üstünde ve yakınında tehlike olmayan son konumları kaydeder; düşünce en az 180 px geriden yeniden doğar. Kontrol noktası olmayan bölümde bile oyuncu başa dönmez.
+- **Hareketli platformlar geride kalınca silinmez**, yalnızca jeton, düşman ve güçlendiriciler silinir.
