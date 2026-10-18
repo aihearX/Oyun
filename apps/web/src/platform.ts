@@ -13,6 +13,12 @@ export interface Platform {
   serverUrl(): string;
   /** güvenli alan (çentik) payları, px */
   insets: { top: number; bottom: number };
+  /**
+   * Gerçek mağaza satın alması (App Store / Google Play, RevenueCat üzerinden). Yalnızca mağaza derlemesinde vardır;
+   * tarayıcıda ve Expo Go'da tanımsızdır → arayüz sunucunun açıkça TEST etiketli test mağazasını kullanır.
+   * Dönen makbuz sunucuya 'shop.purchase' ile gönderilir; sunucu doğrular.
+   */
+  purchase?: (productId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
 }
 
 const webStorage: Platform['storage'] = {
