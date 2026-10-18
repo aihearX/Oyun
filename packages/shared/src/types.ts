@@ -32,7 +32,27 @@ export type EntityType =
   | 'escortee'      // eskort edilen fısıltı başlangıcı
   | 'gate'          // bölüm sonu kapısı
   | 'decor'         // görsel (props: kind)
-  | 'text';         // ipucu metni (props: text)
+  | 'text'          // ipucu metni (props: text)
+  // ---- v2 (docs/11): yetenek ve ses mekanikleri
+  | 'wall'          // dikey, tırmanılabilir yüzey (w,h) — duvar zıplaması
+  | 'hook'          // kanca (props: r ip uzunluğu)
+  | 'crumble'       // çatlak zemin: basınca 0,4 sn sonra düşer, çakılmayla kırılır (w)
+  | 'barrier'       // gürültü duvarı: ses darbesiyle kırılır (w,h)
+  | 'switch'        // anahtar (props: id) — çakılma/darbe ile tetiklenir
+  | 'door'          // kapı (props: id, open) — anahtarla açılır (w,h)
+  | 'fork'          // diyapazon (props: color 0..1 tonotopi)
+  | 'freqgate'      // frekans kapısı (props: color): aynı renk diyapazon taşıyana açık (w,h)
+  | 'beat'          // ritim platformu (props: pattern '1010', mode 'belir'|'kay', dx)
+  | 'echo'          // yankı platformu: yalnızca ses darbesinden sonra birkaç saniye katı (w)
+  | 'launcher'      // fırlatıcı (props: vx, vy)
+  | 'water'         // sıvı bölgesi (w,h): yüzme fiziği
+  | 'gravzone'      // yerçekimi çevirme bölgesi (w,h)
+  | 'lift'          // üstünde durunca yükselen platform (w, props: dy)
+  | 'collect'       // büyük nota (5 nota değerinde)
+  | 'tutor';        // öğretici an tetikleyicisi (props: ability, w)
+
+/** Yetenekler (docs/11 §2): yolculukta sırayla açılır. */
+export type AbilityId = 'zipla' | 'kayma' | 'duvar' | 'suzul' | 'trambolin' | 'kanca' | 'cakil' | 'yuz' | 'darbe' | 'cevir';
 
 export interface Entity {
   type: EntityType;
@@ -59,7 +79,14 @@ export interface ChunkSpec {
   biomes?: BiomeId[];
   /** üretici bu parçayı "nefes" parçası olarak kullanabilir */
   rest?: boolean;
+  /** parçanın gerektirdiği yetenekler (boşsa varlıklardan çıkarılır) */
+  needs?: AbilityId[];
+  /** elle tasarlanmış gösteri parçası (biyom başına 1-2) */
+  setPiece?: boolean;
 }
+
+/** Bölüm-içi bölüm (giriş → gelişim → final); `start` dünya x'i (kapı dahil değil) */
+export interface LevelSection { name: string; start: number; end: number }
 
 export interface ObjectiveSpec {
   id: ObjectiveId;
@@ -94,6 +121,14 @@ export interface LevelSpec {
   boss?: BossSpec;
   /** ilk kez görülen mekanik: öğretici ipuçları açık */
   tutorial?: boolean;
+  /** bu bölümde kullanılabilen yetenekler (yolculuk ilerlemesine göre) */
+  abilities?: AbilityId[];
+  /** bu bölümde ilk kez açılan yetenekler (öğretici an) */
+  newAbilities?: AbilityId[];
+  /** 3 bölüm-içi bölüm; parça dizisindeki sınır indeksleri (chunks[i] i ≥ sectionStarts[k]) */
+  sectionStarts?: number[];
+  /** gizli altın koklea sayısı (3) */
+  cochleasTotal?: number;
 }
 
 export interface RunResult {
@@ -130,4 +165,6 @@ export interface InputState {
   /** şerit/yön (impuls): -1,0,1 */
   dir: -1 | 0 | 1;
   pointerX: number; // 0-1
+  /** yatay kaydırma (ses darbesi / atılma) bu karede */
+  dashPressed?: boolean;
 }

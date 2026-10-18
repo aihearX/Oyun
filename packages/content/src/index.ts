@@ -2,6 +2,7 @@ export * from './schema';
 export * from './biomes';
 export * from './mechanics';
 export * from './skills';
+export * from './abilities';
 export * from './companions';
 export * from './objectives';
 export * from './modifiers';

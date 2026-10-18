@@ -1,14 +1,13 @@
 export * from './bridge';
 export * from './boot';
-export * from './mechanics';
-export * from './bot';
 export { LevelScene } from './LevelScene';
 export { Hero } from './hero';
 export { TouchInput } from './input';
 export { sfx, unlock, setSoundsEnabled, music, comboSemitones } from './audio';
 export * from './art';
 export * from './ui';
-export { spawnEntity } from './entities';
+export * from './entities';
+export * from './play';
 export { RaceLayer, type RaceHost } from './race';
 export * from './map';
 export * from './camp';

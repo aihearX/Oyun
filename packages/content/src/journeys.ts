@@ -1,7 +1,13 @@
 import type { BiomeId, MechanicId, ObjectiveId } from '@odi/shared';
 
 /** Bir yolculuk = sıralı bölüm planı. Üretici bu planı parçalarla doldurur. */
-export interface LevelPlan { number: number; biome: BiomeId; mechanic: MechanicId; objective: ObjectiveId; name: string; intro?: string; tutorial?: boolean; boss?: string; targetChunks?: number }
+export interface LevelPlan {
+  number: number; biome: BiomeId; mechanic: MechanicId; objective: ObjectiveId; name: string; intro?: string; tutorial?: boolean; boss?: string; targetChunks?: number;
+  /** bölümün karakteri: üretici bu etiketli odaları öne çıkarır (her bölüm farklı hissettirsin) */
+  focus?: string[];
+  /** gösteri parçasını zorla */
+  setPiece?: boolean;
+}
 export interface Journey { id: string; name: string; blurb: string; levels: LevelPlan[] }
 
 const L = (number: number, biome: BiomeId, mechanic: MechanicId, objective: ObjectiveId, name: string, extra: Partial<LevelPlan> = {}): LevelPlan => ({ number, biome, mechanic, objective, name, ...extra });

@@ -4,17 +4,16 @@ import { HERO_SIZE } from '@odi/shared';
 
 export type Mood = 'happy' | 'hurt' | 'wow';
 
-/** Odi: fizikli sprite + ruh hali + squash/stretch. */
+/** Odi: görsel sprite + ruh hali + squash/stretch. Fizik play/sim.ts'te (bu sınıf yalnızca çizim). */
 export class Hero {
-  sprite: Phaser.Physics.Arcade.Sprite;
+  sprite: Phaser.GameObjects.Sprite;
   private moodTimer?: Phaser.Time.TimerEvent;
   /** kozmetik şapka (yalnızca görsel): her karede gövdeyi izler (konum, ölçek, dönüş, ters çevirme, saydamlık) */
   hat?: Phaser.GameObjects.Image;
   constructor(public scene: Phaser.Scene, x: number, y: number, public color = 0x6c4cf1, hat?: string) {
     heroTexture(scene, 'odi', color, HERO_SIZE, 'happy'); heroTexture(scene, 'odi', color, HERO_SIZE, 'hurt'); heroTexture(scene, 'odi', color, HERO_SIZE, 'wow');
-    this.sprite = scene.physics.add.sprite(x, y, 'odi-happy');
+    this.sprite = scene.add.sprite(x, y, 'odi-happy');
     this.sprite.setOrigin(0.5, 1);
-    this.sprite.body!.setSize(HERO_SIZE * 0.7, HERO_SIZE * 0.9).setOffset(HERO_SIZE * 0.15, HERO_SIZE * 0.1);
     this.sprite.setDepth(20);
     const hk = hat ? hatTexture(scene, hat) : null;
     if (hk) {
@@ -26,7 +25,7 @@ export class Hero {
   }
   private syncHat() {
     const h = this.hat, s = this.sprite; if (!h || !h.active || !s.active) return;
-    const half = (HERO_SIZE / 2) * s.scaleY; const rot = s.rotation;
+    const flip = s.flipY ? -1 : 1; const half = (HERO_SIZE / 2) * s.scaleY * flip; const rot = s.rotation;
     h.setPosition(s.x + Math.sin(rot) * half, s.y - Math.cos(rot) * half).setRotation(rot).setScale(s.scaleX, s.scaleY)
       .setFlip(s.flipX, s.flipY).setAlpha(s.alpha).setVisible(s.visible);
   }
@@ -45,5 +44,4 @@ export class Hero {
     this.scene.tweens.add({ targets: this.sprite, alpha: 0.25, yoyo: true, repeat: Math.floor(ms / 120), duration: 60, onComplete: () => this.sprite.setAlpha(1) });
   }
   get x() { return this.sprite.x; } get y() { return this.sprite.y; }
-  get body() { return this.sprite.body as Phaser.Physics.Arcade.Body; }
 }

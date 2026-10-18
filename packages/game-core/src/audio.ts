@@ -39,3 +39,6 @@ export const sfx = {
 
 /** bölüm müziği (bölüm sesi kapalıysa çalmaz) */
 export function music(track: Track | null, fade?: number) { if (enabled || track === null) audio.music(track, fade != null ? { fade } : undefined); }
+
+/** müziğin vuruş saati (ritim platformları müziğe kilitlenir); bölüm sesi kapalıysa null */
+export function beatClock() { return enabled ? audio.beatClock() : null; }

@@ -38,4 +38,4 @@ export interface AudioEngine {
 import { Engine } from './engine';
 export { Engine, type EngineOptions } from './engine';
 export { TRACKS, resolveTrack } from './music';
-export const audio: AudioEngine & { playing(): string | null } = new Engine();
+export const audio: AudioEngine & { playing(): string | null; beatClock(): { now: number; startAt: number; beatDur: number; track: string } | null } = new Engine();

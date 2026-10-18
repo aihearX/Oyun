@@ -149,6 +149,12 @@ export class Engine implements AudioEngine {
     return c.name;
   }
 
+  /** çalan parçanın vuruş saati (oyun içi ritim platformlarını müziğe kilitlemek için); çalmıyorsa null */
+  beatClock(): { now: number; startAt: number; beatDur: number; track: string } | null {
+    const c = this.current; if (!c || c.stopAt != null || !this.ctx || !this.unlocked) return null;
+    return { now: this.now(), startAt: c.seq.barTime(0), beatDur: c.seq.beatDur, track: c.name };
+  }
+
   music(track: Track | null, opts: { fade?: number } = {}): void {
     if (!this.unlocked) { this.wanted = track; return; }
     const c = this.ensure(); if (!c) return;
