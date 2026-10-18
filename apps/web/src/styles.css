@@ -241,7 +241,7 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
 .qm .qt { font-weight:800; font-size:14px; line-height:1.25; overflow-wrap:anywhere; }
 .qm .qn { font-weight:900; font-size:13px; color:var(--text-2); }
 .qm .bar { grid-column:2 / span 2; height:8px; }
-.result-actions { width:calc(100% + 32px); margin:4px -16px 0; display:flex; flex-direction:column; gap:12px; position:sticky; bottom:0; z-index:20; padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 14px); background:linear-gradient(rgba(20,12,53,0), rgba(20,12,53,.92) 26%, var(--bg-0)); }
+.result-actions { width:calc(100% + 32px); margin:4px -16px 0; display:flex; flex-direction:column; gap:12px; position:sticky; bottom:0; z-index:20; padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 14px); background:linear-gradient(rgba(20,12,53,0), rgba(20,12,53,.97) 16%, var(--bg-0)); }
 .more-unlocks { align-self:center; }
 .result-actions .btn { padding:14px 10px; font-size:16px; white-space:nowrap; }
 .skip-hint { font-size:12px; opacity:.7; }

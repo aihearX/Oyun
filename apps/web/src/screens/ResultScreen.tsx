@@ -24,7 +24,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
     if (instant) { setV(to); return; }
     if (!active) return;
     let raf = 0; const t0 = performance.now();
-    const tick = (t: number) => { const k = Math.min(1, (t - t0) / ms); const e = 1 - Math.pow(1 - k, 3); setV(Math.round(from + (to - from) * e)); if (k < 1) raf = requestAnimationFrame(tick); };
+    const tick = (t: number) => { const k = Math.max(0, Math.min(1, (t - t0) / ms)); /* rAF zaman damgası t0dan önce olabilir: negatif ilerleme yok */ const e = 1 - Math.pow(1 - k, 3); setV(Math.round(from + (to - from) * e)); if (k < 1) raf = requestAnimationFrame(tick); };
     raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
   }, [active, instant, from, to, ms]);
   return v;

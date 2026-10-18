@@ -216,7 +216,7 @@ function CountUp({ to, run, prefix = '' }: { to: number; run: boolean; prefix?: 
   useEffect(() => {
     if (!run) return; if (prefersReducedMotion()) { setV(to); return; }
     let raf = 0; const t0 = performance.now(); const ms = Math.min(700, 250 + to * 4);
-    const f = (t: number) => { const k = Math.min(1, (t - t0) / ms); setV(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(f); };
+    const f = (t: number) => { const k = Math.max(0, Math.min(1, (t - t0) / ms)); setV(Math.round(to * (1 - Math.pow(1 - k, 3)))); if (k < 1) raf = requestAnimationFrame(f); };
     raf = requestAnimationFrame(f); return () => cancelAnimationFrame(raf);
   }, [run, to]);
   return <div className="cc-amt">{prefix}{v.toLocaleString('tr-TR')}</div>;
