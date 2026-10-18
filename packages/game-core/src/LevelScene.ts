@@ -4,9 +4,8 @@ import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
 import { BIOMES, FIRSTS, tutorialKey, type BiomeDef } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import type { GameEvent, LevelOptions } from './bridge';
-import type { Hero } from './hero';
 import { TouchInput } from './input';
-import { flash, floatText, tapToStart, COLORS, ComboMeter, cheer, banner, endCard } from './ui';
+import { flash, floatText, tapToStart, COLORS, banner, endCard } from './ui';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
 import { tonotopyFreq } from './art';
 import { RaceLayer } from './race';
@@ -14,10 +13,10 @@ import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
-import { TutorialOverlay, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
+import { Tutorial, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
-  paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createBossView, createProjectileLayer, createEscortView, luckyGlow,
-  type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type LevelHudView, type BossView, type ProjectileLayer, type TerrainRect,
+  paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution,
+  type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
 } from './play/visuals';
 
 /** kabuğun/harness'in okuduğu özet durum (geriye uyum: state.finished, lives, custom.boss*) */
@@ -43,16 +42,17 @@ export class LevelScene extends Phaser.Scene {
   private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: { update(x: number, y: number, alive: boolean): void };
   private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0;
   private hintText?: Phaser.GameObjects.Text; private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
-  private sparks?: Phaser.GameObjects.Particles.ParticleEmitter; private dust?: Phaser.GameObjects.Particles.ParticleEmitter;
+  private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1; private praiseFree = 0; private comboShown = 0;
   private combo = 0; private comboAt = -99; private maxCombo = 0; private chain = 0; private chainAt = -99; private firstsDone: string[] = [];
-  private comboMeter!: ComboMeter; private nearMissed = new Set<number>(); private lastHurtAt = -99;
+  private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
-  private tutorial?: TutorialOverlay; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
+  private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
   private resultSent = false; private lastWall = 0;
 
   constructor() { super('level'); }
 
-  get hero(): Hero { return this.heroView.hero; }
+  /** yarış katmanı ve harness araçları: hero.x / hero.y */
+  get hero(): HeroHandle { return this.heroView.hero; }
 
   create() {
     this.opts = this.registry.get('opts') as LevelOptions; this.spec = this.opts.spec;
@@ -74,19 +74,21 @@ export class LevelScene extends Phaser.Scene {
 
     // ---- görünüm (seam'ler: play/visuals.ts)
     const w = this.world;
-    this.cameras.main.setBounds(0, -1200, Math.max(GAME_W, w.worldW), GROUND_Y + 300 + 1200);
-    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200);
+    // keskinlik: oyun cihaz piksel oranında boyutlanır, kamera aynı oranda yakınlaşır (köşe kökenli: tasarım birimi = 390×780)
+    this.dpr = Number(this.registry.get('dpr') ?? 1) || 1; setVisualResolution(this.dpr);
+    this.cameras.main.setZoom(this.dpr).setOrigin(0, 0);
+    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.dpr > 1 ? 'high' : 'low');
     const terrain: TerrainRect[] = [];
     for (const e of w.ents) if (isTerrain(e)) terrain.push({ l: e.l, t: e.t, r: e.r, b: e.b, kind: e.type === 'wall' ? 'wall' : e.p.tavan ? 'ceiling' : 'platform' });
-    makeTerrain(this, terrain, this.biome);
-    this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, this.spec.biome.startsWith('koklea') ? 0x0e9c98 : 0x6c4cf1);
-    this.projLayer = createProjectileLayer(this);
-    if (this.sim.boss) this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y);
-    this.hud = createHud(this, { title: this.opts.race ? '' : `${this.spec.number} · ${this.spec.name} — ${this.spec.objective.label}`, objective: this.spec.objective.label });
-    this.comboMeter = new ComboMeter(this, this.opts.race ? 156 : 122);
-    if (!this.textures.exists('spark')) { const g = this.add.graphics(); g.fillStyle(0xffffff, 1); g.fillCircle(4, 4, 4); g.generateTexture('spark', 8, 8); g.destroy(); }
-    this.sparks = this.add.particles(0, 0, 'spark', { speed: { min: 60, max: 220 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, alpha: { start: 1, end: 0 }, lifespan: 420, gravityY: 500, tint: [0xffc25c, 0xffe6a8, 0xffffff], emitting: false }).setDepth(30);
-    this.dust = this.add.particles(0, 0, 'spark', { speed: { min: 20, max: 80 }, angle: { min: 200, max: 340 }, scale: { start: 0.9, end: 0 }, alpha: { start: 0.5, end: 0 }, lifespan: 350, tint: this.biome.palette.groundDark, emitting: false }).setDepth(19);
+    this.terrain = makeTerrain(this, terrain, this.biome);
+    const heroColor = this.opts.cosmetic?.color ?? (this.spec.biome.startsWith('koklea') ? 0x0e9c98 : 0x6c4cf1);
+    this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, heroColor);
+    this.projLayer = createProjectileLayer(this, this.biome);
+    if (this.sim.boss) this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome);
+    this.fx = createFx(this, this.biome);
+    this.hud = createHud(this, heroColor, 0);
+    if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
+    this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
     if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500);
@@ -116,7 +118,6 @@ export class LevelScene extends Phaser.Scene {
 
   override update(_t: number, dtMs: number) {
     this.race?.update();
-    this.tutorial?.tick();
     if (!this.state.started) { this.syncHero(); return; }
     if (this.state.finished) return; // bitiş animasyonu kahraman sprite'ını kendisi taşır
     // bot (harness): duvar saati — Phaser düşük kare hızında deltayı kırptığından simülasyon gerçek zamanın gerisinde kalmasın
@@ -125,6 +126,7 @@ export class LevelScene extends Phaser.Scene {
     const slow = this.tutorial ? TUTORIAL_SLOW : 1;
     this.acc += realDt * (this.opts.timeScale ?? 1) * slow;
     if (this.tutorial) { this.tutorialT += realDt; if (this.tutorialT > 6) this.endTutorial(false); }
+    if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
     const raw = this.input_.tick();
     let first = true; let n = 0;
@@ -146,7 +148,6 @@ export class LevelScene extends Phaser.Scene {
     this.syncCamera(realDt); this.syncViews(false); this.syncHero(); this.syncHud();
     this.backdrop?.update(this.cameras.main);
     if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
-    this.comboMeter.tick(this.combo >= 2 ? 1 - (this.sim.t - this.comboAt) / 1.4 : 0);
     this.nearMiss();
     if (this.luckyState === 'armed') this.tickLucky();
     if (this.time.now - this.lastProgress > 500) { this.lastProgress = this.time.now; this.emit({ type: 'progress', pct: this.pct(), coins: this.sim.coins, score: this.state.score }); }
@@ -162,39 +163,39 @@ export class LevelScene extends Phaser.Scene {
     const hv = this.heroView; const S = this.state;
     if (this.tutorial && TUTORIAL_SUCCESS[this.tutorial.ability].includes(e.k)) this.endTutorial(true);
     switch (e.k) {
-      case 'jump': sfx.jump(); hv.fx('jump'); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'airjump': sfx.doubleJump(); hv.fx('wow'); break;
-      case 'walljump': sfx.jump(); hv.fx('jump'); this.dust?.explode(6, e.x, e.y - 20); this.emit({ type: 'haptic', kind: 'light' }); break;
+      case 'jump': sfx.jump(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'light' }); break;
+      case 'airjump': sfx.doubleJump(); this.fx.jumpPuff(e.x, e.y); break;
+      case 'walljump': sfx.jump(); this.fx.jumpPuff(e.x, e.y - 20); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'cling': sfx.tick(); break;
-      case 'land': hv.fx('land'); this.dust?.explode(8, e.x, e.y); sfx.land(); break;
+      case 'land': hv.land(Number(e.n ?? 600)); this.fx.landDust(e.x, e.y, Math.min(1, Number(e.n ?? 600) / 900)); sfx.land(); break;
       case 'slide': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'tramp-strong': sfx.bounce(); hv.fx('jump'); floatText(this, e.x, e.y - 70, 'Güçlü!', COLORS.accent); this.emit({ type: 'haptic', kind: 'medium' }); break;
+      case 'tramp-strong': sfx.bounce(); this.fx.perfectRing(e.x, e.y); floatText(this, e.x, e.y - 70, 'Güçlü!', COLORS.accent); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'tramp-weak': sfx.tick(); break;
-      case 'spring': case 'launch': sfx.bounce(); hv.fx('jump'); this.emit({ type: 'haptic', kind: 'medium' }); break;
+      case 'spring': case 'launch': sfx.bounce(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'hook': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'unhook': sfx.jump(); hv.fx('wow'); break;
+      case 'unhook': sfx.jump(); break;
       case 'pound': sfx.tick(); break;
-      case 'poundland': sfx.hit(); this.cameras.main.shake(120, 0.008); this.dust?.explode(14, e.x, e.y); this.emit({ type: 'haptic', kind: 'medium' }); break;
+      case 'poundland': sfx.hit(); this.cameras.main.shake(120, 0.008); this.fx.landDust(e.x, e.y, 1); hv.land(1400); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'dash': sfx.power(); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'flip': sfx.power(); this.cameras.main.flash(90, 214, 184, 255); break;
-      case 'splash': sfx.land(); this.dust?.explode(10, e.x, e.y); break;
+      case 'splash': sfx.land(); this.fx.landDust(e.x, e.y, 0.6); break;
       case 'coin': this.collectCoin(e); break;
-      case 'collect': S.score += 50; this.sparks?.explode(16, e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 ♪', COLORS.amber); this.hud.pulse('note'); break;
+      case 'collect': S.score += 50; this.fx.comboBurst(e.x, e.y, 16); this.hud.flyNote(e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 ♪', COLORS.amber); break;
       case 'note': { const ent = this.world.ents[e.id!]!; sfx.toneAt(tonotopyFreq(1 - Number(ent.p.t ?? 0.5)), 0.25); floatText(this, e.x, e.y - 10, `♪ ${e.n}/${this.spec.objective.target ?? this.world.notesTotal}`, COLORS.accent); S.score += 40; break; }
       case 'noteWrong': sfx.tick(); floatText(this, e.x, e.y - 10, 'sıra değil', COLORS.coral); break;
-      case 'cochlea': S.score += 200; sfx.levelUp(); flash(this, 0xffc25c, 0.3); floatText(this, e.x, e.y - 30, `Altın koklea ${e.n}/${this.world.cochleasTotal}`, COLORS.amber); this.hud.pulse('cochlea'); this.emit({ type: 'haptic', kind: 'success' }); break;
+      case 'cochlea': S.score += 200; sfx.levelUp(); this.afterPraise(() => this.fx.cochleaPickup(e.x, e.y)); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'power': {
         sfx.power(); this.emit({ type: 'haptic', kind: 'success' }); this.firstTime('guc');
         const k = e.s; floatText(this, this.hero.x, this.hero.y - 70, k === 'shield' ? 'Kalkan!' : k === 'magnet' ? 'Mıknatıs 8s' : k === 'life' ? '+1 can' : 'Hız!', k === 'life' ? COLORS.coral : COLORS.accent); break;
       }
       case 'fork': sfx.toneAt(tonotopyFreq(Number(e.n ?? 0.5)), 0.4); floatText(this, e.x, e.y - 30, 'Frekans ayarlandı', COLORS.accent2); break;
       case 'freqwrong': floatText(this, e.x, e.y - 60, 'Yanlış frekans!', COLORS.coral); break;
-      case 'checkpoint': sfx.tick(); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); break;
+      case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); break;
       case 'hurt': this.onHurt(e); break;
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
-      case 'kill': S.score += 50; sfx.bounce(); hv.fx('stomp'); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
+      case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
       case 'shieldbounce': sfx.tick(); floatText(this, e.x, e.y - 50, 'Kalkanlı! Çakıl ya da atıl', COLORS.muted); break;
-      case 'break': S.score += 20; sfx.hit(); this.sparks?.explode(10, e.x, e.y); this.cameras.main.shake(80, 0.005); break;
+      case 'break': S.score += 20; sfx.hit(); this.fx.hitFlash(e.x, e.y); this.cameras.main.shake(80, 0.005); break;
       case 'crumble': if (e.s === 'kir') sfx.hit(); else sfx.tick(); break;
       case 'switch': sfx.power(); floatText(this, e.x, e.y - 60, 'Kapı açıldı!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'tutor': this.startTutorial(e); break;
@@ -210,7 +211,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `♪ ${e.n}/3`, COLORS.accent); break;
       case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200); sfx.power(); break;
-      case 'bossDown': flash(this, 0xffffff, 0.5); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.sparks?.explode(60, e.x, e.y);
+      case 'bossDown': flash(this, 0xffffff, 0.5); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
         floatText(this, GAME_W / 2, GROUND_Y - 220, this.sim.boss?.kind === 'canavar' ? 'Ninni beyne ulaştı' : 'Kanal açıldı!', COLORS.accent); break;
       default: break;
@@ -220,18 +221,19 @@ export class LevelScene extends Phaser.Scene {
     if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan kırıldı', COLORS.accent); return; }
     if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, '💚 Revir korudu!', COLORS.accent2); return; }
     this.lastHurtAt = this.sim.t;
-    sfx.hit(); flash(this); this.cameras.main.shake(160, 0.01); this.heroView.fx('hurt'); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
+    sfx.hit(); this.fx.hitFlash(); this.cameras.main.shake(160, 0.01); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
   }
   private collectCoin(e: SimEvent) {
     const S = this.state; S.coins = this.sim.coins; S.score += 10; this.emit({ type: 'haptic', kind: 'light' });
-    this.sparks?.explode(6, e.x, e.y); this.hud.pulse('note');
+    this.fx.noteSparkle(e.x, e.y); this.hud.flyNote(e.x, e.y);
     if (e.id === this.luckyId && this.luckyState === 'armed') this.collectLucky(e.x, e.y);
     const now = this.sim.t; this.combo = now - this.comboAt < 1.4 ? this.combo + 1 : 1; this.comboAt = now;
-    sfx.coin(this.combo); this.maxCombo = Math.max(this.maxCombo, this.combo); this.comboMeter.bump(this.combo);
+    sfx.coin(this.combo); this.maxCombo = Math.max(this.maxCombo, this.combo);
+    const mult = Math.min(4, 1 + Math.floor(this.combo / 5)); this.hud.setCombo(this.combo, mult); this.comboShown = this.combo;
     if (this.combo % 5 === 0) {
       const bonus = this.combo * 4; S.score += bonus; floatText(this, e.x, e.y - 16, `Seri x${this.combo}  +${bonus}`, COLORS.amber); sfx.combo(this.combo); this.emit({ type: 'haptic', kind: 'medium' });
       const words = ['Güzel!', 'Harika!', 'Mükemmel!', 'Kulaklara ziyafet!', 'Efsane frekans!'];
-      cheer(this, words[Math.min(words.length - 1, this.combo / 5 - 1)]!, this.combo >= 15 ? COLORS.coral : COLORS.amber); this.firstTime('seri5');
+      this.fx.comboBurst(e.x, e.y, this.combo); this.praise(words[Math.min(words.length - 1, this.combo / 5 - 1)]!); this.firstTime('seri5');
     }
   }
 
@@ -244,12 +246,12 @@ export class LevelScene extends Phaser.Scene {
   }
   private startTutorial(e: SimEvent) {
     const a = e.s as AbilityId; if (!a || this.tutorial || !this.showTutorial(a)) return;
-    this.tutorial = new TutorialOverlay(this, a, e.id ?? -1); this.tutorialT = 0; this.tutorAbilities.add(a);
+    this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop); this.tutorialT = 0; this.tutorAbilities.add(a);
   }
   private endTutorial(success: boolean) {
-    const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done(success);
+    const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done();
     if (success) {
-      cheer(this, 'Harika!', COLORS.accent2); sfx.perfect(2);
+      this.praise('Harika!'); sfx.perfect(2);
       const key = tutorialKey(t.ability); if (this.opts.firsts?.includes(key) && !this.firstsDone.includes(key)) this.firstsDone.push(key);
       else if (!this.firstsDone.includes(key)) this.firstsDone.push(key);
     }
@@ -267,19 +269,20 @@ export class LevelScene extends Phaser.Scene {
     const tx = h.x - (h.dir > 0 ? GAME_W * 0.32 : GAME_W * 0.68); const ty = h.y - GAME_H * 0.6 - (h.g < 0 ? -200 : 0);
     const k = 1 - Math.pow(0.0008, Math.min(0.1, dt)); const ky = 1 - Math.pow(0.004, Math.min(0.1, dt));
     this.camX += (tx - this.camX) * k; this.camY += (ty - this.camY) * ky;
-    cam.setScroll(Math.round(this.camX), Math.round(this.camY));
+    this.camX = Math.max(0, Math.min(Math.max(0, this.world.worldW - GAME_W), this.camX)); this.camY = Math.max(-1200, Math.min(GROUND_Y + 700 - GAME_H, this.camY));
+    cam.setScroll(Math.round(this.camX * this.dpr) / this.dpr, Math.round(this.camY * this.dpr) / this.dpr);
   }
   private syncHero() {
     const h = this.sim.hero; const hook = h.hookId >= 0 ? this.world.ents[h.hookId]! : null;
     this.heroView.update({
-      x: h.x, y: h.y, dir: h.dir, g: h.g, t: this.sim.t, grounded: h.grounded, sliding: h.slide > 0, gliding: h.glideT > 0.05, dashing: h.dash > 0, pounding: h.pound,
-      hook: hook ? { x: hook.x, y: hook.y } : null, wall: h.wallId >= 0, water: h.water >= 0, invuln: h.invuln > 0.05 && !this.state.finished, shield: this.sim.shield,
-      breath: h.breath, breathMax: BREATH + 2 * (this.opts.skills.breath ?? 0), color: h.color, echo: h.echoUntil > this.sim.t,
+      x: h.x, y: h.y, vx: h.vx, vy: h.vy, dir: h.dir, g: h.g, t: this.sim.t, grounded: h.grounded, sliding: h.slide > 0, gliding: h.glideT > 0.05, dashing: h.dash > 0, pounding: h.pound,
+      hook: hook ? { x: hook.x, y: hook.y } : null, wall: h.wallId >= 0, water: h.water >= 0, invuln: h.invuln > 0.05 && !this.state.finished, hurt: this.sim.t - this.lastHurtAt < 0.35,
+      win: this.state.finished && this.sim.finished, shield: this.sim.shield, breath: h.breath, breathMax: BREATH + 2 * (this.opts.skills.breath ?? 0), echo: h.echoUntil > this.sim.t,
     });
-    const esc = this.sim.escort; if (esc) { this.escortView ??= createEscortView(this); this.escortView.update(esc.x, esc.y, esc.alive); }
+    const esc = this.sim.escort; if (esc) { this.escortView ??= createEscortView(this, this.biome); this.escortView.update(esc.x, esc.y, esc.alive); }
   }
   private syncHud() {
-    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), score: this.state.score, shield: this.sim.shield });
+    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, lives: this.sim.lives, pct: this.pct() });
   }
   private syncViews(initial: boolean) {
     const cam = this.cameras.main; const L = cam.scrollX, Rr = cam.scrollX + GAME_W; const s = this.sim; const t = s.t;
@@ -290,9 +293,13 @@ export class LevelScene extends Phaser.Scene {
         const v = drawEntity(this, worldEntity(e), this.biome); if (v) this.views.set(id, v);
       }
       for (const e of this.world.ents) if ((e.cls === 'none') && !this.views.has(e.id) && e.x > L - 300 && e.x < Rr + STREAM_AHEAD) { const v = drawEntity(this, worldEntity(e), this.biome); if (v) this.views.set(e.id, v); }
-      for (const [id, v] of this.views) { const e = this.world.ents[id]!; if (e.sr < L - STREAM_KEEP || e.sl > Rr + STREAM_KEEP || this.gone(e)) { v.destroy(); this.views.delete(id); if (id === this.luckyId) this.luckyGlowImg?.setVisible(false); } }
+      for (const [id, v] of this.views) { const e = this.world.ents[id]!; if (e.sr < L - STREAM_KEEP || e.sl > Rr + STREAM_KEEP) { v.destroy(); this.views.delete(id); if (id === this.luckyId) this.luckyGlowImg?.setVisible(false); } }
+      this.terrain.cull(L, Rr);
     }
-    const V: EntityVisual = { x: 0, y: 0, visible: true, alpha: 1, warn: 0, on: false, t, color: s.hero.color, face: -1 };
+    // toplanan / kırılan / ölen: render kendi patlamasını oynatıp yok olur
+    for (const [id, v] of this.views) { const e = this.world.ents[id]!; if (this.gone(e)) { if (e.cls === 'pickup') v.collect(); else v.shatter(); this.views.delete(id); if (id === this.luckyId) this.luckyGlowImg?.setVisible(false); } }
+    const V: EntityVisual = { x: 0, y: 0, visible: true, alpha: 1, warn: 0, on: false, phase: 0, t, color: s.hero.color, face: -1 };
+    const bt = (t + s.beatOff) / this.world.beatDur; const beatPhase = bt - Math.floor(bt);
     const hx = s.hero.x;
     for (const [id, view] of this.views) {
       const e = this.world.ents[id]!;
@@ -300,7 +307,7 @@ export class LevelScene extends Phaser.Scene {
       if (RECT_TYPES.has(e.type)) { V.x = e.l; V.y = e.t; }
       switch (e.type) {
         case 'moving': case 'lift': solidAt(this.world, s, e, t); V.x = rectX(); V.y = rectY(); break;
-        case 'beat': { const b = beatState(this.world, s, e, t); solidAt(this.world, s, e, t); V.x = rectX(); V.on = b.on; V.warn = b.warn; break; }
+        case 'beat': { const b = beatState(this.world, s, e, t); solidAt(this.world, s, e, t); V.x = rectX(); V.on = b.on; V.warn = b.warn; V.phase = beatPhase; break; }
         case 'crumble': { const trig = s.crumble.get(id); if (trig !== undefined) { const u = t - trig; if (u < 0.4) V.warn = u / 0.4; else if (u < 3.4) V.visible = false; } break; }
         case 'echo': V.on = t < s.hero.echoUntil; break;
         case 'door': V.on = s.opened.has(e.key) !== (e.p.open === true); break;
@@ -376,7 +383,7 @@ export class LevelScene extends Phaser.Scene {
   }
   private chainHit() {
     const now = this.sim.t; this.chain = now - this.chainAt < 4 ? this.chain + 1 : 1; this.chainAt = now;
-    if (this.chain >= 2) { sfx.perfect(this.chain); cheer(this, this.chain >= 4 ? 'Kulak ustası!' : this.chain === 3 ? 'Mükemmel!' : 'İkiledin!', this.chain >= 3 ? COLORS.coral : COLORS.accent, 28 + Math.min(3, this.chain) * 2); }
+    if (this.chain >= 2) { sfx.perfect(this.chain); this.praise(this.chain >= 4 ? 'Kulak ustası!' : this.chain === 3 ? 'Mükemmel!' : 'İkiledin!'); }
   }
   /** Şanslı Nota: yolun ortasındaki bir notanın üstüne yerleşir; o notayla birlikte toplanır */
   private armLucky() {
@@ -388,8 +395,8 @@ export class LevelScene extends Phaser.Scene {
   private tickLucky() { const c = this.world.ents[this.luckyId]; if (c && this.sim.hero.x > c.x + 400 && !this.sim.collected.has(c.id)) { this.luckyState = 'missed'; this.luckyGlowImg?.destroy(); } }
   private collectLucky(x: number, y: number) {
     this.luckyState = 'got'; this.luckyGlowImg?.destroy(); this.luckyGlowImg = undefined;
-    this.sparks?.explode(18, x, y); sfx.levelUp(); flash(this, 0x8ef0b0, 0.25, 260); this.emit({ type: 'haptic', kind: 'success' });
-    cheer(this, '🍀 Şanslı Nota!', '#1b8f52', 32); floatText(this, x, y - 30, 'Bonus sonuçta!', '#1b8f52');
+    this.fx.comboBurst(x, y, 18); sfx.levelUp(); flash(this, 0x8ef0b0, 0.25, 260); this.emit({ type: 'haptic', kind: 'success' });
+    this.praise('🍀 Şanslı Nota!'); floatText(this, x, y - 30, 'Bonus sonuçta!', '#1b8f52');
   }
 
   // ------------------------------------------------------------------ sonuç
@@ -418,16 +425,15 @@ export class LevelScene extends Phaser.Scene {
   }
   finish() {
     if (this.state.finished || !this.state.started) return; this.state.finished = true; this.sim.finished = true;
-    this.endTutorial(false); this.comboMeter.tick(0); this.race?.finished(true);
+    this.endTutorial(false); this.hud.setCombo(0, 1); this.race?.finished(true);
     const r = this.withJuice(this.result(true));
-    sfx.win(); music('zafer', 0.4); flash(this, 0x8ef0b0, 0.35, 400); this.heroView.fx('wow'); this.emit({ type: 'haptic', kind: 'success' });
-    this.tweens.add({ targets: this.hero.sprite, y: this.hero.y - 40, scale: 1.2, duration: 500, ease: 'Back.Out' });
+    sfx.win(); music('zafer', 0.4); flash(this, 0x8ef0b0, 0.35, 400); this.syncHero(); this.emit({ type: 'haptic', kind: 'success' });
     endCard(this, { stars: r.stars, title: r.score.toLocaleString('tr-TR'), sub: r.stars === 3 ? 'Mükemmel!' : r.stars === 2 ? 'Harika!' : 'Kapıdan geçtin!' });
     this.sendResult('levelComplete', r);
   }
   fail(reason: string) {
-    if (this.state.finished) return; this.state.finished = true; this.endTutorial(false); this.comboMeter.tick(0); this.race?.finished(false);
-    this.syncHud(); const r = this.withJuice(this.result(false)); sfx.gameOver(); music(null, 1.2); this.heroView.fx('hurt'); this.emit({ type: 'haptic', kind: 'error' });
+    if (this.state.finished) return; this.state.finished = true; this.endTutorial(false); this.hud.setCombo(0, 1); this.race?.finished(false);
+    this.syncHud(); const r = this.withJuice(this.result(false)); sfx.gameOver(); music(null, 1.2); this.emit({ type: 'haptic', kind: 'error' });
     const pct = this.pct();
     endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
     this.sendResult('levelFailed', { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000 } });
@@ -438,7 +444,15 @@ export class LevelScene extends Phaser.Scene {
   }
 
   private emit(e: GameEvent) { try { void this.opts.onEvent(e); } catch { /* kabuk hatası oyunu durdurmasın */ } }
-  hint(text: string, ms = 2500) {
+  /** övgü sözleri ve altın koklea yazısı üst üste binmesin: sırayla (en az 0,8 sn arayla) */
+  private praise(text: string) { this.afterPraise(() => this.hud.praise(text)); }
+  private afterPraise(f: () => void) {
+    const now = this.time.now; const at = Math.max(now, this.praiseFree); this.praiseFree = at + 800;
+    if (at <= now) f(); else this.time.delayedCall(at - now, f);
+  }
+  /** ekranda kısa ipucu; `kind` verilirse göstergenin el işaretiyle (dokun / basılı / aşağı / ileri) */
+  hint(text: string, ms = 2500, kind?: HintKind) {
+    if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
     this.hintText?.destroy(); this.hintTimer?.remove(); if (!text) return;
     this.hintText = this.add.text(GAME_W / 2, GAME_H - 70, text, { fontFamily: '"SF Pro Rounded","Segoe UI",Arial,sans-serif', fontSize: '16px', fontStyle: '700', color: '#ffffff', align: 'center', backgroundColor: 'rgba(13,16,36,0.78)', padding: { x: 14, y: 8 }, wordWrap: { width: GAME_W - 60 } }).setOrigin(0.5).setScrollFactor(0).setDepth(160);
     this.hintTimer = this.time.delayedCall(ms, () => { const t = this.hintText; if (t) this.tweens.add({ targets: t, alpha: 0, duration: 300, onComplete: () => t.destroy() }); });

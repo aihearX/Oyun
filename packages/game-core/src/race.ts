@@ -1,9 +1,8 @@
 import Phaser from 'phaser';
 import { HERO_SIZE, SOCIAL_LIMITS } from '@odi/shared';
 import type { RaceGhostInfo, RaceOptions, RacePosUpdate } from './bridge';
-import type { Hero } from './hero';
 import { hatTexture, heroTexture } from './art';
-import { COLORS, FONT, floatText } from './ui';
+import { COLORS, FONT, floatText, viewW, viewH } from './ui';
 import { sfx, unlock } from './audio';
 
 /** bu kadar uzağa tek seferde atlayan hayalet kaydırılmaz, ışınlanır (yeniden doğma, kontrol noktası) */
@@ -30,7 +29,8 @@ interface Ghost {
 
 export interface RaceHost {
   scene: Phaser.Scene;
-  hero: Hero;
+  /** kendi kahramanım (yalnızca konum okunur) */
+  hero: { readonly x: number; readonly y: number };
   /** kapı x'i (ilerleme = hero.x / gateX) */
   gateX: number;
   startX: number;
@@ -101,7 +101,7 @@ export class RaceLayer {
 
   // ------------------------------------------------------------ üst şerit
   private buildStrip() {
-    const { scene } = this.host; const w = scene.scale.width; const y = this.stripY;
+    const { scene } = this.host; const w = viewW(scene); const y = this.stripY;
     const bg = scene.add.graphics().setScrollFactor(0).setDepth(104);
     bg.fillStyle(0xffffff, 0.9); bg.fillRoundedRect(8, y - 14, w - 16, 28, 14); bg.lineStyle(1, 0xe6e8f0, 1); bg.strokeRoundedRect(8, y - 14, w - 16, 28, 14);
     this.rankText = scene.add.text(18, y, '', { fontFamily: FONT, fontSize: '14px', fontStyle: '800', color: COLORS.text }).setOrigin(0, 0.5).setScrollFactor(0).setDepth(105);
@@ -180,7 +180,7 @@ export class RaceLayer {
   // ------------------------------------------------------------ geri sayım
   /** "Hazır ol" → 3-2-1 → "Başla!"; o ana kadar giriş kilitli (sahne başlamadı). Başlama anı herkes için sunucu saatine hizalı. */
   countdown(info: string, go: () => void) {
-    const { scene } = this.host; const w = scene.scale.width, h = scene.scale.height;
+    const { scene } = this.host; const w = viewW(scene), h = viewH(scene);
     unlock(); // oyuncu lobide "Hazırım"a dokundu: sayfa etkinleştirilmiş durumda, ses açılabilir
     this.goFn = go;
     this.countVeil = scene.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0.45).setScrollFactor(0).setDepth(300);

@@ -58,6 +58,8 @@ export interface LevelOptions {
   firsts?: string[];
   /** canlı yarış (gerçek oyuncular); yoksa normal tek kişilik bölüm */
   race?: RaceOptions;
+  /** oyun içi göstergenin duraklat düğmesine basıldı (kabuk duraklatma/yarıştan çıkma menüsünü açar) */
+  onPauseRequest?: () => void;
 }
 
 export interface LevelHandle {

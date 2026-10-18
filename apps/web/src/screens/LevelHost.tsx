@@ -17,6 +17,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<string | null>(null);
+  const pauseRef = useRef<() => void>(() => undefined);
   useEffect(() => {
     if (!ref.current) return;
     const bus: NonNullable<Window['__odi']> = { events: [], spec, race }; window.__odi = bus;
@@ -51,6 +52,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
     };
     const h = startLevel(ref.current, {
       spec, skills, sounds, bot, botIdle, timeScale, ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt } : {}),
+      // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
+      onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
       // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
       firstHitIgnorePct: bot || raceOpt ? 0 : (useSocial.getState().bonuses?.firstHitIgnorePct ?? 0),
       onEvent: (e) => {
@@ -71,13 +74,12 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
   }, [spec.id]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir
   const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.duck(0); } else { handle.current?.pause(); setPaused(true); audio.duck(3600, 0.25); } };
+  pauseRef.current = () => { if (!paused) togglePause(); };
   useEffect(() => () => audio.duck(0), []);
   const leaveRace = () => { const net = getNet(); if (net) void net.call('race.leave', {}).catch(() => undefined); onQuit(); };
   return (
     <>
       <div className="level-host" ref={ref} />
-      {!bot && !race && <button className="hud-btn" onClick={togglePause} aria-label="Duraklat">{paused ? '▶' : '⏸'}</button>}
-      {!bot && race && <button className="hud-btn" onClick={() => setRaceMenu(true)} aria-label="Yarıştan çık">✕</button>}
       {paused && (
         <div className="overlay"><div className="card">
           <h2>Duraklatıldı</h2><div className="muted">{spec.number}. {spec.name}{lives != null ? ` · ${lives} can` : ''}</div>

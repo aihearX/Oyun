@@ -1,13 +1,16 @@
 import Phaser from 'phaser';
 
 export const FONT = '"SF Pro Rounded","Segoe UI Rounded","Nunito","Helvetica Neue",Arial,sans-serif';
+/** tasarım birimiyle görünüm boyutu (kamera cihaz piksel oranında yakınlaşmış olabilir) */
+export const viewW = (s: Phaser.Scene) => s.cameras.main.width / s.cameras.main.zoom;
+export const viewH = (s: Phaser.Scene) => s.cameras.main.height / s.cameras.main.zoom;
 export const COLORS = { text: '#13162a', muted: '#5d6378', accent: '#6c4cf1', accent2: '#0e9c98', coral: '#f0567a', amber: '#d98b00', white: '#ffffff', bg: 0xffffff, bg2: 0xf7f8fb };
 
 export function title(scene: Phaser.Scene, x: number, y: number, text: string, size = 44, color = COLORS.text) {
   return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '800', color }).setOrigin(0.5);
 }
 export function label(scene: Phaser.Scene, x: number, y: number, text: string, size = 18, color = COLORS.muted) {
-  return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '600', color, align: 'center', wordWrap: { width: scene.scale.width - 48 } }).setOrigin(0.5);
+  return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '600', color, align: 'center', wordWrap: { width: viewW(scene) - 48 } }).setOrigin(0.5);
 }
 export function pill(scene: Phaser.Scene, x: number, y: number, text: string, bg = 0x6c4cf1, fg = '#ffffff', w = 220, h = 56) {
   const c = scene.add.container(x, y);
@@ -21,7 +24,7 @@ export function pill(scene: Phaser.Scene, x: number, y: number, text: string, bg
 export class Hud {
   score: Phaser.GameObjects.Text; lives: Phaser.GameObjects.Text; level: Phaser.GameObjects.Text;
   constructor(scene: Phaser.Scene) {
-    const w = scene.scale.width;
+    const w = viewW(scene);
     const bg = scene.add.rectangle(w / 2, 36, w, 72, 0xffffff, 0.85).setScrollFactor(0).setDepth(100);
     bg.setStrokeStyle(1, 0xe6e8f0);
     this.score = scene.add.text(16, 24, '0', { fontFamily: FONT, fontSize: '26px', fontStyle: '800', color: COLORS.text }).setScrollFactor(0).setDepth(101);
@@ -37,7 +40,7 @@ export class Hud {
 
 /** Kısa tam ekran flaş (vuruş/ödül). */
 export function flash(scene: Phaser.Scene, color = 0xff5c5c, alpha = 0.35, ms = 180) {
-  const r = scene.add.rectangle(scene.scale.width / 2, scene.scale.height / 2, scene.scale.width, scene.scale.height, color, alpha).setScrollFactor(0).setDepth(200);
+  const r = scene.add.rectangle(viewW(scene) / 2, viewH(scene) / 2, viewW(scene), viewH(scene), color, alpha).setScrollFactor(0).setDepth(200);
   scene.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
 }
 
@@ -49,7 +52,7 @@ export function floatText(scene: Phaser.Scene, x: number, y: number, text: strin
 
 /** Dokunuşta başlat kapısı: ses kilidini açar. */
 export function tapToStart(scene: Phaser.Scene, text: string, onStart: () => void) {
-  const w = scene.scale.width, h = scene.scale.height;
+  const w = viewW(scene), h = viewH(scene);
   const veil = scene.add.rectangle(w / 2, h / 2, w, h, 0xffffff, 0.75).setDepth(300).setInteractive();
   const t = label(scene, w / 2, h / 2, text, 22, COLORS.text).setDepth(301);
   scene.tweens.add({ targets: t, alpha: 0.4, yoyo: true, repeat: -1, duration: 600 });
@@ -61,7 +64,7 @@ export function tapToStart(scene: Phaser.Scene, text: string, onStart: () => voi
 /** Ekranın ortasında büyüyüp sönen kutlama kelimesi ("Mükemmel!"). Aynı anda tek tane. */
 export function cheer(scene: Phaser.Scene, text: string, color = COLORS.accent, size = 34) {
   const prev = scene.data?.get('cheer') as Phaser.GameObjects.Text | undefined; if (prev?.active) prev.destroy();
-  const t = scene.add.text(scene.scale.width / 2, 190, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '800', color, stroke: '#ffffff', strokeThickness: 6, align: 'center' })
+  const t = scene.add.text(viewW(scene) / 2, 190, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '800', color, stroke: '#ffffff', strokeThickness: 6, align: 'center' })
     .setOrigin(0.5).setScrollFactor(0).setDepth(155).setScale(0.4).setAlpha(0);
   scene.data?.set('cheer', t);
   scene.tweens.add({ targets: t, scale: 1.08, alpha: 1, duration: 160, ease: 'Back.Out', onComplete: () => {
@@ -73,7 +76,7 @@ export function cheer(scene: Phaser.Scene, text: string, color = COLORS.accent, 
 
 /** Üstten kayan küçük şerit: "İlk ezme! 🎉", "Şanslı Nota bu bölümde!" */
 export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 1800) {
-  const w = scene.scale.width; const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
+  const w = viewW(scene); const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
   const bw = Math.min(w - 32, t.width + 32), bh = 34;
   const r = scene.add.graphics(); r.fillStyle(bg, 0.96); r.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
   const c = scene.add.container(w / 2, 96, [r, t]).setScrollFactor(0).setDepth(170).setAlpha(0);
@@ -88,7 +91,7 @@ export class ComboMeter {
   private c: Phaser.GameObjects.Container; private bg: Phaser.GameObjects.Graphics; private t: Phaser.GameObjects.Text; private bar: Phaser.GameObjects.Rectangle; private shown = 0;
   /** y: dikey konum (yarışta üst şeridin altına iner) */
   constructor(private scene: Phaser.Scene, y = 116) {
-    const w = scene.scale.width;
+    const w = viewW(scene);
     this.bg = scene.add.graphics(); this.t = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '18px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
     this.bar = scene.add.rectangle(0, 20, 60, 3, 0xffc25c, 1).setOrigin(0.5);
     this.c = scene.add.container(w - 58, y, [this.bg, this.t, this.bar]).setScrollFactor(0).setDepth(103).setAlpha(0);
@@ -101,7 +104,7 @@ export class ComboMeter {
     this.t.setText(`Seri ×${combo}`).setFontSize(16 + Math.min(10, Math.floor(combo / 3)));
     const bw = this.t.width + 22, bh = this.t.height + 8;
     this.bg.clear(); this.bg.fillStyle(col, 0.95); this.bg.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
-    this.bar.setPosition(0, bh / 2 + 4).setSize(bw - 12, 3); this.c.setX(this.scene.scale.width - 12 - bw / 2);
+    this.bar.setPosition(0, bh / 2 + 4).setSize(bw - 12, 3); this.c.setX(viewW(this.scene) - 12 - bw / 2);
     this.scene.tweens.killTweensOf(this.c); this.c.setAlpha(1).setScale(1.35);
     this.scene.tweens.add({ targets: this.c, scale: 1, duration: 180, ease: 'Back.Out' });
   }
@@ -115,7 +118,7 @@ export class ComboMeter {
 
 /** Bölüm sonu kartı (oyun içinde, sonuç ekranından önce): okunur zemin, satırlar üst üste binmez. */
 export function endCard(scene: Phaser.Scene, opts: { stars?: number; title: string; sub?: string; color?: string }) {
-  const w = scene.scale.width, h = scene.scale.height; const cw = Math.min(300, w - 48);
+  const w = viewW(scene), h = viewH(scene); const cw = Math.min(300, w - 48);
   const items: Phaser.GameObjects.GameObject[] = [];
   let y = 0; const parts: { obj: Phaser.GameObjects.Text; h: number }[] = [];
   const starRow: Phaser.GameObjects.Text[] = [];

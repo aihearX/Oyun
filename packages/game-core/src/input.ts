@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { InputState } from '@odi/shared';
+import { GAME_W } from '@odi/shared';
 
 /** dokunuştan bu kadar ms sonra (parmak kaymadıysa) basış kesinleşir: kaydırma ile zıplama karışmasın */
 const PRESS_DELAY = 70;
@@ -28,7 +29,7 @@ export class TouchInput {
       if (!p.isDown || !this.pointerIsDown) return;
       this.state.pointerX = p.x / scene.scale.width;
       if (scene.time.now - this.downAt > SWIPE_MS) return;
-      const dx = p.x - this.downX, dy = p.y - this.downY;
+      const k = scene.scale.width / GAME_W; const dx = (p.x - this.downX) / k, dy = (p.y - this.downY) / k; // tasarım pikseli
       if (dy > SWIPE_PX && dy > Math.abs(dx)) this.swipe('down');
       else if (Math.abs(dx) > SWIPE_PX && Math.abs(dx) > Math.abs(dy) && (this.mirrored ? dx < 0 : dx > 0)) this.swipe('dash');
     });
