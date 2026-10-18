@@ -16,10 +16,12 @@ type ASprite = Phaser.Physics.Arcade.Sprite;
 interface MakState {
   gear: ASprite | null; gx: number; gy: number; r: number; speed: number; dir: number; angle: number; turns: number; hinted: boolean; attachedAt: number;
   detachUntil: number; flying: boolean; launchVx: number;
+  /** bilerek bırakılan (ya da hasarla düşülen) dişli: kahraman onu geçene kadar yeniden tutunulmaz */
+  dropped: ASprite | null; droppedRight: number;
   jumps: number; slideUntil: number; holdLeft: number; coyote: number; wasAirborne: boolean; tutorialShown: boolean; lastBounceAt: number;
 }
 let st: MakState;
-const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, jumps: 0, slideUntil: 0, holdLeft: 0, coyote: 0, wasAirborne: false, tutorialShown: false, lastBounceAt: -1e9 });
+const reset = (): MakState => ({ gear: null, gx: 0, gy: 0, r: 40, speed: 1, dir: 1, angle: 0, turns: 0, hinted: false, attachedAt: 0, detachUntil: 0, flying: false, launchVx: 0, dropped: null, droppedRight: 0, jumps: 0, slideUntil: 0, holdLeft: 0, coyote: 0, wasAirborne: false, tutorialShown: false, lastBounceAt: -1e9 });
 
 /** dişli dokusu: dişler, göbek ve tutunma halkası */
 function gearTex(s: Phaser.Scene, r: number, color: number, accent: number): string {
@@ -93,6 +95,7 @@ export const makine: Mechanic = {
     if (e.type !== 'gear') return false;
     if (st.gear) return true;
     if (ctx.scene.time.now < st.detachUntil) return true;
+    if (st.dropped === sprite && ctx.hero.x < st.droppedRight) return true;
     attach(ctx, sprite, e);
     return true;
   },
@@ -113,7 +116,7 @@ export const makine: Mechanic = {
           detach(ctx, v.y, true, v.x);
           hero.stretch(); sfx.jump(); ctx.haptic('medium'); hero.mood('wow', 300);
           ctx.scene.tweens.add({ targets: gs, scale: 0.92, duration: 70, yoyo: true });
-        } else if (input.secondaryPressed) { detach(ctx, 160, false); sfx.tick(); ctx.haptic('light'); }
+        } else if (input.secondaryPressed) { st.dropped = st.gear; st.droppedRight = st.gx + st.r + 30; detach(ctx, 160, false); sfx.tick(); ctx.haptic('light'); }
         return;
       }
     }
@@ -139,7 +142,7 @@ export const makine: Mechanic = {
     if (input.secondaryPressed && !onGround) b.setVelocityY(900 * g);
     st.wasAirborne = !onGround;
   },
-  onDamage(ctx) { if (st.gear) detach(ctx, -200, false); st.flying = false; },
+  onDamage(ctx) { if (st.gear) { st.dropped = st.gear; st.droppedRight = st.gx + st.r + 30; detach(ctx, -200, false); } st.flying = false; },
   botTick(ctx, input) {
     const { hero } = ctx; const now = ctx.scene.time.now; const feet = hero.y;
     const geo = geometry(ctx, 1100);
@@ -162,7 +165,8 @@ export const makine: Mechanic = {
       if (rimCoins > 0 && st.turns < 1.6) return;
       if (score >= 3 || (score >= 2 && (!nextGear || st.turns >= 1.1))) input.tap();
       else if (score >= 0 && st.turns >= 2.6) input.tap();
-      else if (elapsed > 14000 && st.turns >= 4) input.swipeDown();
+      // çıkış yolu: uygun pencere bulunamazsa bırak ve yerden devam et (bırakılan dişli tekrar yakalanmaz)
+      else if (elapsed > 7000 && st.turns >= 3) input.swipeDown();
       return;
     }
     if (!grounded(ctx)) return;

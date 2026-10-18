@@ -51,7 +51,7 @@ export const MAKINE_CHUNKS = [
   ], { tags: ['disli', 'diken'] }),
   chunk('mak-movers', 'makine', 3, 1200, [
     ground(0, 300), ground(300, 440, G + 150), spike(400, 200, G + 150), spring(716, G + 150, 1.3),
-    moving(380, G - 20, 120, 100, 0, 3000), ...coins(400, G - 120, 5), ground(740, 460), ...coins(820, G - 80, 4),
+    moving(370, G - 20, 160, 90, 0, 3000), ...coins(400, G - 120, 5), ground(740, 460), ...coins(820, G - 80, 4),
   ], { tags: ['hareketli'] }),
   chunk('mak-gizli', 'makine', 3, 1400, [
     ground(0, 1400), spike(420, 200), gear(520, G - 140, 56, 1, 1), secret(460, G - 290), ...coins(700, G - 90, 4), ...coins(1000, G - 80, 3),
@@ -67,7 +67,7 @@ export const MAKINE_CHUNKS = [
     ground(1200, 400), ...coins(1260, G - 80, 4), ...coins(480, G - 170, 3, 36, 20), ...coins(900, G - 170, 3, 36, 20),
   ], { tags: ['disli', 'zincir'] }),
   chunk('mak-spike-timing', 'makine', 4, 1500, [
-    ground(0, 1500), gear(400, G - 60, 50, 1, 1), spike(470, 160), hazard(540, G - 260, 100, 60), gear(900, G - 60, 50, 1, -1), spike(790, 64), spike(980, 128),
+    ground(0, 1500), gear(400, G - 90, 50, 1, 1), spike(470, 110), hazard(540, G - 280, 100, 60), gear(900, G - 90, 50, 1, -1), spike(790, 64), spike(980, 128),
     ...coins(560, G - 160, 4, 36, 20), ...coins(1250, G - 80, 4),
   ], { tags: ['disli', 'diken'] }),
   chunk('mak-pit-spikes', 'makine', 4, 1600, [
