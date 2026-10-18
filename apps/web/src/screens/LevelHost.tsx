@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { platform } from '../platform';
-import { startLevel, type GameEvent, type LevelHandle } from '@odi/game-core';
+import { startLevel, type GameEvent, type LevelHandle, type LevelOptions } from '@odi/game-core';
 
 declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec } } }
 
 /** Phaser bölümünü bir div'e bağlar; olayları kabuğa ve (test için) window.__odi'ye aktarır. */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; onDone: (r: RunResult) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extras, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>; onDone: (r: RunResult) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   useEffect(() => {
@@ -14,7 +14,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, onDon
     const bus: NonNullable<Window['__odi']> = { events: [], spec }; window.__odi = bus;
     let finished = false;
     const h = startLevel(ref.current, {
-      spec, skills, sounds, bot, botIdle, timeScale,
+      spec, skills, sounds, bot, botIdle, timeScale, ...(bot ? {} : extras),
       onEvent: (e) => {
         bus.events.push(e);
         if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));

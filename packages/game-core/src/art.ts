@@ -104,3 +104,41 @@ export function drawWave(g: Phaser.GameObjects.Graphics, x0: number, x1: number,
 
 /** Deterministik küçük rastgele sayı üreteci (dokular her açılışta aynı olsun). */
 export function seeded(seed: number): () => number { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+// ---------------------------------------------------------------- kozmetik: şapkalar
+/**
+ * Şapka dokusu: 64×64 tuval, merkezi kahramanın merkezine hizalanır (kahraman 48 px, yarıçap ~22; başın tepesi y≈10).
+ * Arayüzdeki SVG avatar (apps/web OdiAvatar) aynı koordinatları kullanır.
+ */
+export function hatTexture(scene: Phaser.Scene, hat: string): string | null {
+  const key = `hat-${hat}`; if (scene.textures.exists(key)) return key;
+  const g = scene.add.graphics({ x: 0, y: 0 });
+  const star = (cx: number, cy: number, r: number, color: number) => { const pts: Phaser.Types.Math.Vector2Like[] = []; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + (i * Math.PI) / 5; const rr = i % 2 ? r * 0.45 : r; pts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr }); } g.fillStyle(color, 1); g.fillPoints(pts, true); };
+  const spiral = (cx: number, cy: number, r: number, color: number, w: number) => { g.lineStyle(w, color, 1); g.beginPath(); for (let i = 0; i <= 60; i++) { const t = i / 60; const a = t * Math.PI * 5; const rr = r * (1 - t * 0.85); const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr; if (i === 0) g.moveTo(x, y); else g.lineTo(x, y); } g.strokePath(); };
+  switch (hat) {
+    case 'bere': g.fillStyle(0xf0567a, 1); g.fillEllipse(32, 15, 40, 20); g.fillRect(12, 13, 40, 4); g.fillStyle(0xffffff, 0.9); g.fillRect(12, 14, 40, 5); g.fillStyle(0xf0567a, 1); for (let x = 14; x < 52; x += 6) g.fillRect(x, 15, 3, 3); g.fillStyle(0xffffff, 1); g.fillCircle(32, 4, 4.5); break;
+    case 'kulaklik': g.lineStyle(4, 0x13162a, 1); g.beginPath(); g.arc(32, 32, 26, Math.PI * 1.12, Math.PI * 1.88); g.strokePath(); g.fillStyle(0xf0567a, 1); g.fillRoundedRect(3, 24, 10, 18, 4); g.fillRoundedRect(51, 24, 10, 18, 4); g.fillStyle(0x13162a, 1); g.fillRect(11, 27, 3, 12); g.fillRect(50, 27, 3, 12); break;
+    case 'nota': g.lineStyle(2.5, 0x13162a, 1); g.lineBetween(32, 11, 34, 1); g.fillStyle(0x13162a, 1); g.fillEllipse(31, 4, 8, 6); g.lineBetween(35, 4, 35, -1); g.fillStyle(0xffc25c, 1); g.fillCircle(31, 4, 1.6); break;
+    case 'dalgic': g.lineStyle(3, 0x13162a, 1); g.lineBetween(8, 29, 56, 29); g.fillStyle(0x8fe3ff, 0.55); g.fillCircle(24, 29.5, 8); g.fillCircle(40, 29.5, 8); g.lineStyle(2.5, 0x0e9c98, 1); g.strokeCircle(24, 29.5, 8); g.strokeCircle(40, 29.5, 8); g.fillStyle(0xffffff, 0.8); g.fillCircle(21, 26, 2); g.fillCircle(37, 26, 2); break;
+    case 'tac': g.fillStyle(0xf5b700, 1); g.fillPoints([{ x: 18, y: 14 }, { x: 18, y: 3 }, { x: 24, y: 9 }, { x: 32, y: 0 }, { x: 40, y: 9 }, { x: 46, y: 3 }, { x: 46, y: 14 }], true); g.fillStyle(0xf0567a, 1); g.fillCircle(32, 9, 2.5); g.fillStyle(0x6c4cf1, 1); g.fillCircle(24, 12, 1.8); g.fillCircle(40, 12, 1.8); break;
+    case 'parti': g.fillStyle(0x0e9c98, 1); g.fillTriangle(22, 13, 42, 13, 33, -6 + 6); g.fillStyle(0xffc25c, 1); g.fillTriangle(26, 9, 38, 9, 37, 13); g.fillTriangle(29, 5, 36, 5, 35, 8); g.fillStyle(0xf0567a, 1); g.fillCircle(33, 1, 3.5); break;
+    case 'kasif': g.fillStyle(0xb88a4a, 1); g.fillEllipse(32, 14, 50, 9); g.fillStyle(0xc9a063, 1); g.fillEllipse(32, 9, 28, 14); g.fillRect(18, 9, 28, 5); g.fillStyle(0x6b4a24, 1); g.fillRect(18, 10, 28, 3); break;
+    case 'koklea': g.fillStyle(0xffe1ea, 1); g.fillCircle(46, 12, 8); spiral(46, 12, 7, 0xf0567a, 2); break;
+    case 'yildiz': g.lineStyle(3, 0xf5b700, 1); g.beginPath(); g.arc(32, 32, 23, Math.PI * 1.2, Math.PI * 1.8); g.strokePath(); star(32, 7, 8, 0xf5b700); g.fillStyle(0xffffff, 0.9); g.fillCircle(30, 5, 1.6); break;
+    case 'altin': g.fillStyle(0xfff3c4, 1); g.fillCircle(32, 7, 8); spiral(32, 7, 7.5, 0xd9a400, 2.4); g.fillStyle(0xffffff, 1); g.fillCircle(42, 2, 1.8); g.fillCircle(21, 4, 1.4); break;
+    default: g.destroy(); return null;
+  }
+  g.generateTexture(key, 64, 64); g.destroy();
+  return key;
+}
+
+/** Şanslı Nota: yeşil hâleli altın nota. */
+export function luckyNoteTexture(scene: Phaser.Scene): string {
+  const key = 'lucky-note'; if (scene.textures.exists(key)) return key;
+  const g = scene.add.graphics();
+  g.fillStyle(0x2fbf71, 0.22); g.fillCircle(24, 24, 23); g.fillStyle(0x2fbf71, 0.35); g.fillCircle(24, 24, 16);
+  g.fillStyle(0xf5b700, 1); g.fillEllipse(19, 32, 14, 10); g.fillRect(24, 10, 4, 22); g.fillTriangle(28, 10, 36, 16, 28, 19);
+  g.fillStyle(0xffffff, 0.8); g.fillCircle(16, 30, 2.4);
+  g.generateTexture(key, 48, 48); g.destroy();
+  return key;
+}

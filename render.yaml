@@ -1,0 +1,23 @@
+# Render.com Blueprint — ODİ sosyal sunucusu (ücretsiz web servisi)
+# Not: ücretsiz planda disk kalıcı değildir; her yeniden başlatma/dağıtımda sqlite dosyası sıfırlanır.
+# Kalıcılık için ücretli plana kalıcı disk ekleyin (ODI_DB'yi diskin yoluna verin) ya da ileride Postgres'e geçin.
+services:
+  - type: web
+    name: odi-sunucu
+    runtime: docker
+    plan: free
+    dockerfilePath: ./apps/server/Dockerfile
+    dockerContext: .
+    healthCheckPath: /saglik
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ODI_DB
+        value: /app/data/odi.sqlite
+      # Gerçek mağaza makbuz doğrulaması için (yoksa App Store / Play satın alımları reddedilir)
+      - key: REVENUECAT_API_KEY
+        sync: false
+      # Yalnızca test dağıtımlarında: "1" yapılırsa web'deki TEST mağazası açılır (para çekmez)
+      - key: ODI_TEST_STORE
+        value: "0"

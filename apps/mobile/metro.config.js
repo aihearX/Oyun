@@ -18,7 +18,7 @@ config.resolver.nodeModulesPaths = [
 config.resolver.disableHierarchicalLookup = true;
 
 // @odi/* → packages/*/src (workspace sembolik bağlantısına gerek kalmadan, deterministik).
-const pkgs = ['game-core', 'content', 'level-gen', 'shared'];
+const pkgs = ['game-core', 'content', 'level-gen', 'shared', 'net', 'meta'];
 config.resolver.extraNodeModules = Object.fromEntries(pkgs.map((p) => [`@odi/${p}`, path.resolve(workspaceRoot, 'packages', p, 'src')]));
 const baseResolve = config.resolver.resolveRequest;
 config.resolver.resolveRequest = (context, moduleName, platform) => {

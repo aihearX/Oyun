@@ -32,6 +32,21 @@
       ],
       "@odi/shared/*": [
         "../../packages/shared/src/*"
+      ],
+      "@odi/net": [
+        "../../packages/net/src/index.ts"
+      ],
+      "@odi/net/*": [
+        "../../packages/net/src/*"
+      ],
+      "@odi/meta": [
+        "../../packages/meta/src/index.ts"
+      ],
+      "@odi/meta/*": [
+        "../../packages/meta/src/*"
+      ],
+      "@odi/net/store": [
+        "../../packages/net/src/store.ts"
       ]
     },
     "types": [

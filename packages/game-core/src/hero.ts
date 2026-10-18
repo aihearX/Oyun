@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { heroTexture } from './art';
+import { heroTexture, hatTexture } from './art';
 import { HERO_SIZE } from '@odi/shared';
 
 export type Mood = 'happy' | 'hurt' | 'wow';
@@ -8,12 +8,27 @@ export type Mood = 'happy' | 'hurt' | 'wow';
 export class Hero {
   sprite: Phaser.Physics.Arcade.Sprite;
   private moodTimer?: Phaser.Time.TimerEvent;
-  constructor(public scene: Phaser.Scene, x: number, y: number, public color = 0x6c4cf1) {
+  /** kozmetik şapka (yalnızca görsel): her karede gövdeyi izler (konum, ölçek, dönüş, ters çevirme, saydamlık) */
+  hat?: Phaser.GameObjects.Image;
+  constructor(public scene: Phaser.Scene, x: number, y: number, public color = 0x6c4cf1, hat?: string) {
     heroTexture(scene, 'odi', color, HERO_SIZE, 'happy'); heroTexture(scene, 'odi', color, HERO_SIZE, 'hurt'); heroTexture(scene, 'odi', color, HERO_SIZE, 'wow');
     this.sprite = scene.physics.add.sprite(x, y, 'odi-happy');
     this.sprite.setOrigin(0.5, 1);
     this.sprite.body!.setSize(HERO_SIZE * 0.7, HERO_SIZE * 0.9).setOffset(HERO_SIZE * 0.15, HERO_SIZE * 0.1);
     this.sprite.setDepth(20);
+    const hk = hat ? hatTexture(scene, hat) : null;
+    if (hk) {
+      this.hat = scene.add.image(x, y, hk).setDepth(21);
+      const sync = () => this.syncHat();
+      scene.events.on('postupdate', sync); scene.events.once('shutdown', () => scene.events.off('postupdate', sync));
+      this.syncHat();
+    }
+  }
+  private syncHat() {
+    const h = this.hat, s = this.sprite; if (!h || !h.active || !s.active) return;
+    const half = (HERO_SIZE / 2) * s.scaleY; const rot = s.rotation;
+    h.setPosition(s.x + Math.sin(rot) * half, s.y - Math.cos(rot) * half).setRotation(rot).setScale(s.scaleX, s.scaleY)
+      .setFlip(s.flipX, s.flipY).setAlpha(s.alpha).setVisible(s.visible);
   }
   mood(m: Mood, ms = 0) {
     this.sprite.setTexture(`odi-${m}`);

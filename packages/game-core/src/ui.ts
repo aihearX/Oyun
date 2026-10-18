@@ -55,3 +55,84 @@ export function tapToStart(scene: Phaser.Scene, text: string, onStart: () => voi
   scene.tweens.add({ targets: t, alpha: 0.4, yoyo: true, repeat: -1, duration: 600 });
   veil.once('pointerdown', () => { veil.destroy(); t.destroy(); onStart(); });
 }
+
+// ---------------------------------------------------------------- ödül anı / juice (yalnızca görsel)
+
+/** Ekranın ortasında büyüyüp sönen kutlama kelimesi ("Mükemmel!"). Aynı anda tek tane. */
+export function cheer(scene: Phaser.Scene, text: string, color = COLORS.accent, size = 34) {
+  const prev = scene.data?.get('cheer') as Phaser.GameObjects.Text | undefined; if (prev?.active) prev.destroy();
+  const t = scene.add.text(scene.scale.width / 2, 190, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '800', color, stroke: '#ffffff', strokeThickness: 6, align: 'center' })
+    .setOrigin(0.5).setScrollFactor(0).setDepth(155).setScale(0.4).setAlpha(0);
+  scene.data?.set('cheer', t);
+  scene.tweens.add({ targets: t, scale: 1.08, alpha: 1, duration: 160, ease: 'Back.Out', onComplete: () => {
+    scene.tweens.add({ targets: t, scale: 1, duration: 120 });
+    scene.tweens.add({ targets: t, y: 160, alpha: 0, delay: 520, duration: 380, ease: 'Cubic.In', onComplete: () => t.destroy() });
+  } });
+  return t;
+}
+
+/** Üstten kayan küçük şerit: "İlk ezme! 🎉", "Şanslı Nota bu bölümde!" */
+export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 1800) {
+  const w = scene.scale.width; const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
+  const bw = Math.min(w - 32, t.width + 32), bh = 34;
+  const r = scene.add.graphics(); r.fillStyle(bg, 0.96); r.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
+  const c = scene.add.container(w / 2, 96, [r, t]).setScrollFactor(0).setDepth(170).setAlpha(0);
+  const y0 = 128;
+  scene.tweens.add({ targets: c, y: y0, alpha: 1, duration: 220, ease: 'Back.Out' });
+  scene.tweens.add({ targets: c, alpha: 0, y: y0 - 16, delay: ms, duration: 260, onComplete: () => c.destroy() });
+  return c;
+}
+
+/** Jeton serisi göstergesi: seri büyüdükçe büyüyen, renk değiştiren rozet + kalan süre çizgisi. */
+export class ComboMeter {
+  private c: Phaser.GameObjects.Container; private bg: Phaser.GameObjects.Graphics; private t: Phaser.GameObjects.Text; private bar: Phaser.GameObjects.Rectangle; private shown = 0;
+  constructor(private scene: Phaser.Scene) {
+    const w = scene.scale.width;
+    this.bg = scene.add.graphics(); this.t = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '18px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
+    this.bar = scene.add.rectangle(0, 20, 60, 3, 0xffc25c, 1).setOrigin(0.5);
+    this.c = scene.add.container(w - 58, 116, [this.bg, this.t, this.bar]).setScrollFactor(0).setDepth(103).setAlpha(0);
+  }
+  /** seri arttı */
+  bump(combo: number) {
+    if (combo < 2) return;
+    this.shown = combo;
+    const col = combo >= 20 ? 0xf0567a : combo >= 10 ? 0xd98b00 : 0x6c4cf1;
+    this.t.setText(`Seri ×${combo}`).setFontSize(16 + Math.min(10, Math.floor(combo / 3)));
+    const bw = this.t.width + 22, bh = this.t.height + 8;
+    this.bg.clear(); this.bg.fillStyle(col, 0.95); this.bg.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
+    this.bar.setPosition(0, bh / 2 + 4).setSize(bw - 12, 3); this.c.setX(this.scene.scale.width - 12 - bw / 2);
+    this.scene.tweens.killTweensOf(this.c); this.c.setAlpha(1).setScale(1.35);
+    this.scene.tweens.add({ targets: this.c, scale: 1, duration: 180, ease: 'Back.Out' });
+  }
+  /** her kare: serinin kalan süresi (0-1); 0 olunca söner */
+  tick(remaining: number) {
+    if (!this.shown) return;
+    this.bar.scaleX = Math.max(0, remaining);
+    if (remaining <= 0) { this.shown = 0; this.scene.tweens.add({ targets: this.c, alpha: 0, scale: 0.8, duration: 220 }); }
+  }
+}
+
+/** Bölüm sonu kartı (oyun içinde, sonuç ekranından önce): okunur zemin, satırlar üst üste binmez. */
+export function endCard(scene: Phaser.Scene, opts: { stars?: number; title: string; sub?: string; color?: string }) {
+  const w = scene.scale.width, h = scene.scale.height; const cw = Math.min(300, w - 48);
+  const items: Phaser.GameObjects.GameObject[] = [];
+  let y = 0; const parts: { obj: Phaser.GameObjects.Text; h: number }[] = [];
+  const starRow: Phaser.GameObjects.Text[] = [];
+  if (opts.stars != null) {
+    for (let i = 0; i < 3; i++) { const s = scene.add.text((i - 1) * 54, 0, i < opts.stars ? '⭐' : '☆', { fontFamily: FONT, fontSize: '40px', color: '#d0d4e2', padding: { x: 2, y: 6 } }).setOrigin(0.5); starRow.push(s); }
+    y += 56;
+  }
+  const title = scene.add.text(0, 0, opts.title, { fontFamily: FONT, fontSize: '30px', fontStyle: '800', color: opts.color ?? COLORS.text, align: 'center', wordWrap: { width: cw - 32 }, padding: { x: 0, y: 4 } }).setOrigin(0.5, 0);
+  parts.push({ obj: title, h: title.height });
+  if (opts.sub) { const sub = scene.add.text(0, 0, opts.sub, { fontFamily: FONT, fontSize: '16px', fontStyle: '700', color: COLORS.muted, align: 'center', wordWrap: { width: cw - 32 }, lineSpacing: 4 }).setOrigin(0.5, 0); parts.push({ obj: sub, h: sub.height }); }
+  const contentH = y + parts.reduce((a, p) => a + p.h, 0) + (parts.length - 1) * 6; const ch = contentH + 40;
+  const bg = scene.add.graphics(); bg.fillStyle(0x13162a, 0.12); bg.fillRoundedRect(-cw / 2 + 2, -ch / 2 + 6, cw, ch, 24); bg.fillStyle(0xffffff, 0.96); bg.fillRoundedRect(-cw / 2, -ch / 2, cw, ch, 24);
+  items.push(bg);
+  let cy = -ch / 2 + 20;
+  if (starRow.length) { for (const s of starRow) { s.setY(cy + 26); items.push(s); } cy += 56; }
+  for (const p of parts) { p.obj.setY(cy); items.push(p.obj); cy += p.h + 6; }
+  const c = scene.add.container(w / 2, h / 2 - 40, items).setScrollFactor(0).setDepth(250).setScale(0.85).setAlpha(0);
+  scene.tweens.add({ targets: c, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
+  starRow.forEach((s, i) => { s.setScale(0); scene.tweens.add({ targets: s, scale: 1, delay: 120 + i * 140, duration: 260, ease: 'Back.Out' }); });
+  return c;
+}

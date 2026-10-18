@@ -25,13 +25,15 @@ function defaultServerUrl(): string {
   try {
     const q = new URLSearchParams(location.search).get('sunucu');
     if (q) return q;
-    const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_ODI_SERVER;
-    if (env) return env;
+    // derleme zamanı sabiti (vite.config define); Metro/DOM paketinde tanımsız olabilir
+    if (typeof __ODI_SERVER__ !== 'undefined' && __ODI_SERVER__) return __ODI_SERVER__;
     if (location.protocol === 'file:') return '';
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
     return `${proto}://${location.hostname}:8787`;
   } catch { return ''; }
 }
+
+declare const __ODI_SERVER__: string | undefined;
 
 let current: Platform = {
   kind: 'web',
@@ -46,3 +48,10 @@ let current: Platform = {
 
 export function installPlatform(p: Partial<Platform>) { current = { ...current, ...p, storage: p.storage ?? current.storage }; }
 export function platform(): Platform { return current; }
+
+/** Kalıcı depolama: her çağrıda o anki platforma gider (mobil köprü sonradan kurulsa da doğru yere yazar). */
+export const platformStorage: Platform['storage'] = {
+  getItem: (k) => current.storage.getItem(k),
+  setItem: (k, v) => current.storage.setItem(k, v),
+  removeItem: (k) => current.storage.removeItem(k),
+};

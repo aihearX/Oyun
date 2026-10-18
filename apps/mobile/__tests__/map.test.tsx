@@ -1,30 +1,25 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import MapScreen from '../src/app/index';
-import { useStore } from '../src/store';
+import Home from '../src/app/index';
 
-const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }), Redirect: () => null }));
-jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }), SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children }));
+const captured: Record<string, unknown>[] = [];
+jest.mock('@/dom/WebApp', () => ({ __esModule: true, default: (p: Record<string, unknown>) => { captured.push(p); return null; } }));
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }), SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: { hostUri: '192.168.1.20:8081' } } }));
+jest.mock('expo-haptics', () => ({ impactAsync: jest.fn(), notificationAsync: jest.fn(), ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
 
-/** Duman testi: harita 40 düğümle çizilir; 1. bölüm açık, 2. kilitli; "Bölüm 1 ▶" oyuna yönlendirir. */
-describe('Harita', () => {
-  it('40 düğüm çizer ve ilk bölümü açar', async () => {
-    useStore.setState({ hydrated: true });
+/** Duman testi: kabuk web arayüzünü yerel köprüyle (depolama, titreşim, paylaşım, sunucu, çentik) başlatır. */
+describe('Mobil kabuk', () => {
+  it('web arayüzüne yerel köprüyü verir', async () => {
     let tree!: ReactTestRenderer;
-    await act(async () => { tree = create(<MapScreen />); });
-    const nodes = tree.root.findAll((n) => typeof n.props.testID === 'string' && n.props.testID.startsWith('node-') && typeof n.type !== 'string');
-    const ids = new Set(nodes.map((n) => n.props.testID));
-    expect(ids.size).toBe(40);
-    const node1 = tree.root.find((n) => n.props.testID === 'node-1' && n.props.onPress != null && typeof n.type !== 'string');
-    const node2 = tree.root.find((n) => n.props.testID === 'node-2' && n.props.onPress != null && typeof n.type !== 'string');
-    expect(node1.props.disabled).toBe(false);
-    expect(node2.props.disabled).toBe(true);
-    const play = tree.root.find((n) => n.props.testID === 'play-current' && n.props.onPress != null && typeof n.type !== 'string');
-    await act(async () => { play.props.onPress(); });
-    expect(mockPush).toHaveBeenCalledWith({ pathname: '/oyun/[n]', params: { n: '1' } });
-    const texts = JSON.stringify(tree.toJSON());
-    expect(texts).toContain('Sesin Yolu');
-    expect(texts).toContain('Dış Kulak');
+    await act(async () => { tree = create(<Home />); });
+    expect(tree).toBeTruthy();
+    const p = captured[captured.length - 1]!;
+    expect(p.serverUrl).toBe('ws://192.168.1.20:8787');
+    expect(p.insetTop).toBe(47);
+    expect(p.insetBottom).toBe(34);
+    for (const k of ['getItem', 'setItem', 'removeItem', 'haptic', 'share']) expect(typeof p[k]).toBe('function');
+    await (p.setItem as (k: string, v: string) => Promise<void>)('x', '1');
+    expect(await (p.getItem as (k: string) => Promise<string | null>)('x')).toBe('1');
   });
 });

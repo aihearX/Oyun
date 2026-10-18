@@ -36,6 +36,12 @@ export interface MyProfile extends PublicProfile {
   friendCode: string;
   /** cihazda saklanan gizli anahtar; yalnızca hello yanıtında döner */
   token?: string;
+  /** ödül kutusundan alınmış, henüz kullanılmamış kalkanlar */
+  shields: number;
+  /** sahip olunan kozmetik kimlikleri */
+  cosmetics: string[];
+  /** açılmış kulak kartı kimlikleri */
+  cards: string[];
 }
 
 export type ChatKind = 'text' | 'emoji' | 'system' | 'help' | 'race' | 'war';
@@ -68,7 +74,7 @@ export interface TeamSummary {
   minLevel: number;
 }
 export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number }
-export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number }
+export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number }
 export interface TeamDetail extends TeamSummary { roster: TeamMember[]; help: HelpRequest[]; weekPoints: number }
 
 // ---------- Bölge Savaşı (haftalık)
@@ -115,11 +121,11 @@ export interface RacePos { id: string; x: number; y: number; pct: number; at: nu
 export interface LeagueState { tier: LeagueTier; week: string; endsAt: number; rank: number; points: number; group: { id: string; name: string; color: number; points: number }[]; promoteTop: number; demoteBottom: number }
 
 // ---------- Ödül kutusu (sunucu verdiği ödüller; istemci alınca yerel cüzdana ekler)
-export type InboxKind = 'jeton' | 'kalkan' | 'kozmetik' | 'kart';
+export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
 export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: string; reason: string; at: number }
 
 // ---------- İlerleme bildirimi (her bölüm sonunda)
-export interface ProgressSubmit { level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string }
+export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string }
 export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet }
 
 
@@ -168,7 +174,7 @@ export interface TechState { id: TechId; level: number; progress: number; cost: 
 // ---------- Takım hediyeleri ve ortak hedefler
 export interface TeamGift { id: string; from: string; fromName: string; reason: string; contents: { kind: InboxKind; amount: number; ref: string }[]; at: number; expiresAt: number; claimed: boolean }
 export interface TeamGoalTier { need: number; reward: { kind: InboxKind; amount: number; ref: string }[] }
-export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin' | 'savas'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number }
+export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number }
 export interface TeamExtra { level: number; xp: number; xpNext: number; tech: TechState[]; gifts: TeamGift[]; goals: TeamGoal[]; contributionWeek: { id: string; name: string; donated: number; helps: number; stars: number }[] }
 
 // ---------- Mağaza (uygulama içi satın alma)
@@ -181,6 +187,8 @@ export interface ShopProduct {
   contents: { kind: 'kristal' | 'jeton' | 'm5' | 'm60' | 's8' | 'kozmetik' | 'pass'; amount: number; ref?: string }[];
   /** satın alanın takımındaki herkese hediye düşer mi */
   teamGift: boolean;
+  /** takım hediyesi olarak diğer üyelere düşen içerik (teamGift true ise) */
+  teamGiftContents?: { kind: InboxKind; amount: number; ref: string }[];
   /** kişi başı satın alma sınırı (0 = sınırsız) */
   limit: number;
   tag?: 'populer' | 'en-iyi-deger' | 'baslangic';
@@ -198,7 +206,7 @@ export const SHOP: ShopProduct[] = [
 export function crystalsToFinish(remainingSec: number): number { return Math.max(1, Math.ceil(remainingSec / 60)); }
 export interface PurchaseRecord { id: string; productId: string; at: number; store: 'test' | 'app-store' | 'play'; amountTry: number }
 /** harcama sınırı (aylık TL); oyuncu ayarlardan düşürebilir; 18 yaş altı beyanında 0 */
-export interface SpendState { monthTry: number; limitTry: number; purchases: PurchaseRecord[] }
+export interface SpendState { monthTry: number; limitTry: number; purchases: PurchaseRecord[]; /** yükseltme isteği 24 saat sonra geçerli olur */ pendingLimitTry: number | null; pendingLimitAt: number | null }
 
 // ---------- İstek/yanıt sözleşmesi
 export interface OpMap {
@@ -251,6 +259,7 @@ export interface OpMap {
   'shop.list': { req: Record<string, never>; res: { products: (ShopProduct & { bought: number })[]; spend: SpendState; testStore: boolean } };
   'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
   'shop.limit': { req: { limitTry: number }; res: { spend: SpendState } };
+  'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
 }
 export type Op = keyof OpMap;
 

@@ -1,0 +1,21 @@
+{
+  "name": "@odi/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ODİ sosyal sunucusu: HTTP + WebSocket, node:sqlite",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node --disable-warning=ExperimentalWarning dist/server.mjs"
+  },
+  "dependencies": {
+    "@odi/shared": "*",
+    "ws": "^8.18.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@odi/net": "*",
+    "@types/ws": "^8.18.1"
+  }
+}

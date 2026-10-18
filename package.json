@@ -10,8 +10,10 @@
   "scripts": {
     "dev": "npm run dev -w apps/web",
     "build:web": "npm run build -w apps/web",
+    "server": "npm run build -w @odi/server && node --disable-warning=ExperimentalWarning apps/server/dist/server.mjs",
+    "build:server": "npm run build -w @odi/server",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint packages apps/web/src tools/harness",
+    "lint": "eslint packages apps/web/src apps/server/src apps/server/test tools/harness",
     "test": "vitest run",
     "bot": "node tools/harness/bot.mjs",
     "mobile": "npm run start -w apps/mobile",

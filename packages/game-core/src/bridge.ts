@@ -24,6 +24,12 @@ export interface LevelOptions {
   lives?: number;
   /** bot: hız çarpanı (test süresini kısaltmak için) */
   timeScale?: number;
+  /** kozmetik görünüm (yalnızca görsel): gövde rengi ve şapka anahtarı */
+  cosmetic?: { color?: number; hat?: string };
+  /** bu denemede Şanslı Nota var mı (kabuk zarı atar, ihtimal bilgi ekranında yazılı); yalnızca görsel + sonuç bayrağı */
+  lucky?: boolean;
+  /** henüz kutlanmamış "ilk kez" anları (ezme, seri5, kilpayi, guc, kontrol) */
+  firsts?: string[];
 }
 
 export interface LevelHandle { destroy: () => void; pause: () => void; resume: () => void }

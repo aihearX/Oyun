@@ -5,7 +5,7 @@ export function SkillsScreen({ onBack }: { onBack: () => void }) {
   const s = useStore();
   return (
     <div className="screen fade-in">
-      <div className="topbar"><button className="btn ghost small" onClick={onBack}>← Harita</button><div className="pill">🪙 {s.coins}</div></div>
+      <div className="topbar"><button className="btn ghost small" onClick={onBack} aria-label="Geri">← Profil</button><div className="pill">🪙 {s.coins}</div></div>
       <h1>Yetenekler</h1><div className="muted">Jetonlarla kalıcı yetenek al. Hepsi oyun içinden kazanılır.</div>
       {SKILL_TREE.map((n) => { const owned = ownsSkill(s.skills, n.id); const locked = n.requires ? !ownsSkill(s.skills, n.requires) : false; return (
         <div className={`card skill${owned ? ' owned' : ''}`} key={n.id}>

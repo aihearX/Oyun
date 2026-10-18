@@ -20,7 +20,11 @@
       "@odi/level-gen": ["./packages/level-gen/src/index.ts"],
       "@odi/level-gen/*": ["./packages/level-gen/src/*"],
       "@odi/shared": ["./packages/shared/src/index.ts"],
-      "@odi/shared/*": ["./packages/shared/src/*"]
+      "@odi/shared/*": ["./packages/shared/src/*"],
+      "@odi/meta": ["./packages/meta/src/index.ts"],
+      "@odi/meta/*": ["./packages/meta/src/*"],
+      "@odi/net": ["./packages/net/src/index.ts"],
+      "@odi/net/*": ["./packages/net/src/*"]
     }
   }
 }

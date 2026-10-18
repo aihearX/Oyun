@@ -8,21 +8,27 @@ const RUN_SPEED = 260;
 const BOUNCE_V = 900;
 const PERFECT_MULT = 1.45;
 const PERFECT_WINDOW = 120;   // ms: temasın ± penceresi
+const GOOD_WINDOW = 260;      // ms: tam güç penceresi
+/** dokunmadan sıçrama sönük: oyuncu dokunmazsa boşlukları aşamaz (boşta bölüm bitmez) */
+const WEAK_MULT = 0.6;
 const FLOAT_CAP = 230;        // basılı tutarken en yüksek düşüş hızı
 const DIVE_V = 900;
 
 interface TramState {
-  lastTapAt: number; lastBounceAt: number; lastBouncer: Phaser.GameObjects.GameObject | null; bouncePower: number; upgraded: boolean;
+  lastTapAt: number; lastBounceAt: number; lastBouncer: Phaser.GameObjects.GameObject | null; bouncePower: number; upgraded: boolean; quality: 'zayif' | 'iyi' | 'mukemmel'; weakHinted: boolean;
   wasAirborne: boolean; perfects: number;
   // bot
-  plan: 'normal' | 'perfect' | null; planFor: Phaser.GameObjects.GameObject | null; tapped: boolean; floating: boolean;
+  plan: 'normal' | 'perfect' | null; planFor: Phaser.GameObjects.GameObject | null; tapped: boolean; floating: boolean; netTapFor: Phaser.GameObjects.GameObject | null;
 }
 let st: TramState;
 
-const reset = (): TramState => ({ lastTapAt: -1e9, lastBounceAt: -1e9, lastBouncer: null, bouncePower: 1, upgraded: false, wasAirborne: false, perfects: 0, plan: null, planFor: null, tapped: false, floating: false });
+const reset = (): TramState => ({ lastTapAt: -1e9, lastBounceAt: -1e9, lastBouncer: null, bouncePower: 1, upgraded: false, quality: 'iyi', weakHinted: false, wasAirborne: false, perfects: 0, plan: null, planFor: null, tapped: false, floating: false, netTapFor: null });
 
 /** ±120 ms; bot/düşük kare hızında pencere kare süresine göre genişler (harness adaleti) */
 function perfectWindow(ctx: LevelContext) { return ctx.bot ? Math.max(PERFECT_WINDOW, 1.6 * ctx.scene.game.loop.rawDelta) : PERFECT_WINDOW; }
+function goodWindow(ctx: LevelContext) { return ctx.bot ? Math.max(GOOD_WINDOW, perfectWindow(ctx) + 2.2 * ctx.scene.game.loop.rawDelta) : GOOD_WINDOW; }
+/** geç dokunuşta yükseltme: aynı tepe yüksekliğine ulaşacak hız (enerji eşitleme). V0: şu anki sıçramanın başlangıç hızı, V: hedef, a: geçen sn */
+function lateVelocity(V0: number, V: number, a: number): number { const g = 1400; const vt = V - g * a; return Math.sqrt(Math.max(0, vt * vt + 2 * g * (V - V0) * a)); }
 
 function perfectFx(ctx: LevelContext) {
   const { hero } = ctx; st.perfects++;
@@ -38,13 +44,18 @@ function bounce(ctx: LevelContext, s: Phaser.Physics.Arcade.Sprite, e: Entity) {
   const sb = s.body as Phaser.Physics.Arcade.Body;
   // iniş: ayakları üst yüzeye oturt (görsel temizlik)
   if (g === 1 && ctx.hero.y > sb.top && ctx.hero.y < sb.top + 60) ctx.hero.sprite.y = sb.top;
-  const perfect = now - st.lastTapAt <= perfectWindow(ctx);
-  const v = BOUNCE_V * power * (perfect ? PERFECT_MULT : 1);
+  const since = now - st.lastTapAt;
+  const perfect = since <= perfectWindow(ctx);
+  const good = !perfect && since <= goodWindow(ctx);
+  st.quality = perfect ? 'mukemmel' : good ? 'iyi' : 'zayif';
+  ctx.state.custom.tramQ = `${st.quality}:${Math.round(Math.min(since, 9999))}:p${power}:plan=${st.plan}`;
+  const v = BOUNCE_V * power * (perfect ? PERFECT_MULT : good ? 1 : WEAK_MULT);
   b.setVelocityY(-v * g);
   st.lastBounceAt = now; st.lastBouncer = s; st.bouncePower = power; st.upgraded = perfect;
   ctx.hero.stretch(); sfx.bounce(); ctx.haptic(perfect ? 'medium' : 'light');
-  ctx.scene.tweens.add({ targets: s, scaleY: 0.55, duration: 90, yoyo: true });
+  ctx.scene.tweens.add({ targets: s, scaleY: perfect ? 0.45 : good ? 0.55 : 0.8, duration: 90, yoyo: true });
   if (perfect) perfectFx(ctx);
+  else if (!good) { s.setTint(0x9aa0b5); ctx.scene.time.delayedCall(220, () => s.clearTint()); if (!st.weakHinted) { st.weakHinted = true; ctx.hint('Zar sönük kaldı: değdiğin an dokun!', 2200); } }
 }
 
 /** Trambolin: otomatik koşu, zıplama yok; yalnızca zar/yay sıçratır. Temasın ±120 ms'inde dokun → ×1.45. */
@@ -53,7 +64,7 @@ export const trambolin: Mechanic = {
   setup(ctx) {
     st = reset(); ctx.state.custom.noteSeq = 0;
     ctx.hero.body.setGravityY(0);
-    if (ctx.spec.tutorial) ctx.hint('Zıplayamazsın: zar seni fırlatır. Zara değdiğin an dokun → Mükemmel!', 5000);
+    if (ctx.spec.tutorial) ctx.hint('Zar seni fırlatır ama dokunmazsan sönük kalır. Değdiğin an dokun: tam güç! Tam zamanında: Mükemmel!', 5500);
   },
   spawn(ctx, e, worldX) { return spawnNoteSequenced(ctx, e, worldX); },
   onSpecial(ctx, sprite, e) {
@@ -75,8 +86,13 @@ export const trambolin: Mechanic = {
     if (input.primaryPressed) {
       st.lastTapAt = now;
       // geç dokunuş: sıçramadan hemen sonra geldiyse mükemmele yükselt
-      if (!st.upgraded && now - st.lastBounceAt <= perfectWindow(ctx) && b.velocity.y * g < 0) {
-        st.upgraded = true; b.setVelocityY(-BOUNCE_V * st.bouncePower * PERFECT_MULT * g); perfectFx(ctx);
+      const after = now - st.lastBounceAt; const a = after / 1000;
+      const V0 = BOUNCE_V * st.bouncePower * (st.quality === 'zayif' ? WEAK_MULT : 1);
+      if (!st.upgraded && after <= perfectWindow(ctx) && b.velocity.y * g < 0) {
+        st.upgraded = true; st.quality = 'mukemmel'; b.setVelocityY(-lateVelocity(V0, BOUNCE_V * st.bouncePower * PERFECT_MULT, a) * g); perfectFx(ctx);
+      } else if (st.quality === 'zayif' && after <= goodWindow(ctx) && b.velocity.y * g < 0) {
+        // biraz geç ama yetişti: tam güce yükselt (aynı tepe yüksekliği)
+        st.quality = 'iyi'; b.setVelocityY(-lateVelocity(V0, BOUNCE_V * st.bouncePower, a) * g);
       }
     }
     // havada basılı tutma: süzülme
@@ -100,6 +116,44 @@ export const trambolin: Mechanic = {
 
     // sıçramanın hemen ardından: planlanan mükemmel için geç dokunuş
     if (st.plan === 'perfect' && st.planFor === st.lastBouncer && !st.upgraded && now - st.lastBounceAt <= perfectWindow(ctx) - 20 && b.velocity.y < 0) { input.tap(); st.plan = null; st.tapped = true; return; }
+    // normal plan: mükemmel penceresi geçtikten sonra, tam güç penceresi içinde dokun (sönük sıçramayı tam güce çevirir)
+    if (st.plan === 'normal' && st.planFor === st.lastBouncer && st.quality === 'zayif' && b.velocity.y < 0) {
+      const after = now - st.lastBounceAt;
+      if (after > perfectWindow(ctx) + 5 && after <= goodWindow(ctx)) { input.tap(); st.plan = null; st.tapped = true; return; }
+      if (after <= perfectWindow(ctx) + 5) return;
+    }
+
+    // güvenlik ağı: planlayıcı bir zarı kaçırırsa (yere yakın iniş, yerden koşarak gelme) geometriyle temas süresini hesapla
+    // ve tam güç penceresinde dokun. Planlanmış mükemmel dokunuşa karışmaz.
+    {
+      const frame = Math.max(0.017, ctx.scene.game.loop.delta / 1000);
+      const lo = perfectWindow(ctx) / 1000 + frame * 0.6, hi = Math.max(lo, (perfectWindow(ctx) + goodWindow(ctx)) / 2000 + frame * 0.5);
+      const hl = b.left, hr = b.right, vy = b.velocity.y, G = 1400;
+      for (const bo of geo.bouncers) {
+        if (bo.sprite === st.netTapFor) continue;
+        if (st.plan === 'perfect' && st.planFor === bo.sprite) continue;
+        if (st.plan === 'normal' && st.planFor === bo.sprite && st.tapped) continue;
+        const dy = bo.t - feet; if (dy < -6 || vy < -1) continue;
+        const fall = (h: number) => (h <= 2 ? 0 : (-vy + Math.sqrt(vy * vy + 2 * G * h)) / G);
+        let t = -1;
+        if (onGround) t = Math.max(0, (bo.l - hr) / vx);
+        else {
+          // a) havadan doğrudan zarın üstüne düşüş
+          const tv = fall(dy); const xl = hl + vx * tv, xr = hr + vx * tv;
+          if (xr >= bo.l + 4 && xl <= bo.r - 4) t = tv;
+          else {
+            // b) önce zeminin üstüne in (zar tabanı hizası), sonra koşarak zara gir
+            const tg = fall(bo.b - feet); const xg = hr + vx * tg;
+            if (xg < bo.l + 4) t = tg + (bo.l - xg) / vx;
+          }
+        }
+        if (t < 0) continue;
+        const xAt = hl + vx * t, xr = hr + vx * t;
+        if (xr < bo.l || xAt > bo.r - 4) continue;
+        if (t >= lo && t <= hi) { input.tap(); st.netTapFor = bo.sprite; if (st.planFor === bo.sprite) st.tapped = true; return; }
+      }
+    }
+    if (st.netTapFor && now - st.lastBounceAt < 50 && st.lastBouncer === st.netTapFor) st.netTapFor = null;
 
     // bir sonraki temas tahmini
     let contact: { bouncer: Box; x: number; t: number } | null = null;
@@ -128,6 +182,14 @@ export const trambolin: Mechanic = {
       const nOk = good(n.kind), qOk = good(q.kind);
       st.plan = qOk && (!nOk || q.coins >= n.coins) ? 'perfect' : nOk ? 'normal' : 'perfect';
       st.planFor = contact.bouncer.sprite; st.tapped = false;
+    }
+    if (st.plan === 'normal' && !st.tapped) {
+      // temastan önce, mükemmel penceresinin dışında ama tam güç penceresinin içinde dokun
+      const frame = Math.max(0.017, ctx.scene.game.loop.delta / 1000);
+      const lo = perfectWindow(ctx) / 1000 + frame * 0.6, hi = goodWindow(ctx) / 1000 - frame * 0.3;
+      const mid = (perfectWindow(ctx) + goodWindow(ctx)) / 2000;
+      // pencerenin ortasına hedefle: tahmin hatası iki yöne de tolere edilsin
+      if (contact.t >= lo && contact.t <= Math.max(lo, Math.min(hi, mid + frame * 0.5))) { input.tap(); st.tapped = true; }
     }
     if (st.plan === 'perfect' && !st.tapped) {
       const frame = Math.max(0.05, ctx.scene.game.loop.delta / 1000);
