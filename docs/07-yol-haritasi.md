@@ -26,3 +26,23 @@ Kodda hazır ve otomatik oyuncuyla doğrulanmış olanlar:
 - **Bot harness**: 40 bölümün hepsi Chromium'da botla tamamlanıyor; her mekanikten bir bölüm ve iki boss WebKit'te de geçiyor.
 
 Faz 1'de kalanlar: web davet linki (hayalet yarışı Faz 2 ile birlikte), 20 kişilik kapalı test ve ölçüm.
+
+## Durum güncellemesi: ittifak çekirdeği
+
+Kullanıcı geri bildirimiyle sıra değişti: Faz 2 (sosyal), Faz 3 (takımlar) ve Faz 4'ün mağaza kısmı öne alındı ve kodda hazır.
+
+- **Takım (ittifak):** kurma, katılma, roller, takım sohbeti, bölüm yardımı.
+- **Kulak Kampı:** süreli inşaat, "Herkese yardım et" ile hızlanma, hızlandırıcılar, depo.
+- **Takım teknolojisi:** bağışla ortak bonuslar.
+- **Takım hediyeleri ve haftalık takım hedefleri.**
+- **Bölge Savaşı ve Baskın:** 12 bölgeli haftalık Bölge Savaşı; ortak can barlı haftalık Baskın.
+- **Canlı yarış:** gerçek oyuncu hayaletleri ve oda sohbeti.
+- **Sosyal:** arkadaşlar, 1-1 sohbet ve genel sohbet; haftalık lig.
+- **Mağaza:** RevenueCat ile App Store / Google Play; geliştirmede açıkça etiketli test mağazası; harcama sınırı.
+- **Bağlılık:** günlük görevler, 7 gün takvimi, 42 başarım, 50 Kulak Kartı, kozmetikler, hazine düğümleri, seri çarpanı, Şanslı Nota.
+
+Kalanlar:
+- push bildirimleri
+- sunucunun kalıcı veritabanıyla internete açılması
+- App Store Connect ürünlerinin ve RevenueCat anahtarlarının girilmesi
+- 20 kişilik kapalı test

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { platform } from '../platform';
-import { getNet } from '../net';
+import { getNet, useSocial } from '../net';
 import { newerRoom } from '../race/common';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
 
@@ -50,6 +50,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
     };
     const h = startLevel(ref.current, {
       spec, skills, sounds, bot, botIdle, timeScale, ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt } : {}),
+      // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
+      firstHitIgnorePct: bot || raceOpt ? 0 : (useSocial.getState().bonuses?.firstHitIgnorePct ?? 0),
       onEvent: (e) => {
         bus.events.push(e);
         if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));

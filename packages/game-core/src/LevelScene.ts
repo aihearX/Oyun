@@ -279,8 +279,15 @@ export class LevelScene extends Phaser.Scene {
   }
 
   // ---- hasar / sonuç
+  private firstHitRolled = false;
   damage(reason: string): boolean {
     if (this.state.finished || this.time.now < this.state.invulnUntil) return false;
+    // Revir: ilk gerçek hasarda tek bir şans zarı (dürüst: oran Kamp'ta yazılı, bot/yarışta kapalı)
+    const revir = this.opts.firstHitIgnorePct ?? 0;
+    if (!this.firstHitRolled && reason !== 'fall' && revir > 0 && this.state.shield === 0) {
+      this.firstHitRolled = true;
+      if (Math.random() * 100 < revir) { this.state.invulnUntil = this.time.now + 1000; this.hero.blink(900); sfx.power(); floatText(this, this.hero.x, this.hero.y - 70, '💚 Revir korudu!', COLORS.accent2); return false; }
+    }
     if (reason !== 'fall' && this.state.shield > 0) { this.state.shield--; this.state.invulnUntil = this.time.now + 1000; this.hero.blink(900); if (this.state.shield === 0) this.hero.sprite.clearTint(); sfx.hit(); floatText(this, this.hero.x, this.hero.y - 70, 'Kalkan kırıldı', COLORS.accent); return false; }
     this.state.lives--; this.state.damageTaken++; this.state.invulnUntil = this.time.now + 1500; this.lastDamageAt = this.time.now;
     this.mechanic.onDamage?.(this.ctx);

@@ -22,12 +22,24 @@ Durum: **Faz 1 (dikey dilim) geliştirmede.** Kod bu repoda; aşağıdaki komutl
 ## Çalıştırma
 ```
 npm install --legacy-peer-deps
-npm run dev          # web: http://localhost:5173 (telefonda aynı Wi-Fi ile LAN adresi)
+npm run oyna            # oyun sunucusu + Expo: iPhone'da Expo Go ile QR'ı okut (aynı Wi-Fi)
+npm run oyna -- --web   # telefon yerine tarayıcı: http://localhost:5173
 npm run typecheck && npm run lint && npm test
-npm run build:web    # apps/web/dist
-node tools/harness/bot.mjs --levels 1-40 --parallel 3 --shots 1   # otomatik oyuncu: tüm bölümleri oynar
+node tools/harness/bot.mjs --levels 1-40 --parallel 3            # otomatik oyuncu: tüm bölümler
+node tools/harness/bot.mjs --levels 1-40 --idle 1 --parallel 4   # boşta oyuncu: hiçbir bölüm dokunmadan bitmemeli
+node tools/harness/social-e2e.mjs   # iki oyunculu takım/sohbet/kamp/mağaza/baskın testi
+node tools/harness/race-e2e.mjs     # üç oyunculu canlı yarış testi
 ```
-Mobil (Expo Go, iPhone): `cd apps/mobile && npx expo start` — ayrıntı için `apps/mobile/README.md`.
+Arkadaşların başka ağlardan bağlanacaksa sunucuyu internete açmak gerekir: `docs/10-sunucu.md` (Render.com adımları).
 
 ## Yapı
-`packages/shared` tipler · `packages/content` biyomlar, parçalar, yolculuk, boss · `packages/level-gen` deterministik bölüm üretimi · `packages/game-core` Phaser motoru (mekanikler, kahraman, varlıklar, bot) · `apps/web` React kabuk · `apps/mobile` Expo kabuk · `tools/harness` Playwright bot.
+- `packages/shared` tipler, sosyal protokol (`social.ts`), ekonomi formülleri
+- `packages/content` biyomlar, parçalar, yolculuk, boss, başarımlar, kartlar, kozmetik, günlük görevler
+- `packages/level-gen` deterministik bölüm üretimi
+- `packages/game-core` Phaser motoru: 6 mekanik + boss, kahraman, varlıklar, bot, canlı yarış katmanı
+- `packages/meta` bağlılık sistemlerinin saf mantığı (görev, takvim, başarım, albüm, kozmetik)
+- `packages/net` sosyal sunucu istemcisi (yeniden bağlanma, çevrimdışı kuyruk)
+- `apps/server` oyun sunucusu: takım, sohbet, kamp, teknoloji, hediyeler, savaş, baskın, yarış, lig, mağaza
+- `apps/web` tek arayüz (tarayıcı ve telefon aynı kodu çalıştırır)
+- `apps/mobile` Expo kabuğu: web arayüzünü DOM bileşeninde çalıştırır; depolama, titreşim, paylaşım, gerçek mağaza köprüsü
+- `tools/harness` otomatik testler

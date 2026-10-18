@@ -43,6 +43,8 @@ export interface LevelOptions {
   bot?: boolean;
   /** test: bot modunda başlar ama hiçbir giriş yapmaz (boşta oyuncu). Her bölüm boşta kaybedilmeli. */
   botIdle?: boolean;
+  /** Revir bonusu: bölümdeki ilk (düşme dışı) hasarı bu yüzde şansla yok say. Tek zar atılır; oran Kamp ekranında yazılıdır. */
+  firstHitIgnorePct?: number;
   sounds?: boolean;
   /** bölüm başı can (varsayılan 3) */
   lives?: number;
