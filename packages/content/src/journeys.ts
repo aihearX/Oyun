@@ -48,7 +48,7 @@ export const HUMAN_JOURNEY: Journey = {
     L(28, 'koklea-3', 'yuzme', 'escort', 'Ninni Derinlerde', { targetChunks: 7, focus: ['su'] }),
     L(29, 'koklea-3', 'trambolin', 'collect-all', 'Apeks Sıçrayışı', { targetChunks: 7, focus: ['zar', 'firlatici', 'yay'] }),
     L(30, 'koklea-3', 'yuzme', 'timed', 'Son Kıvrım', { targetChunks: 8, focus: ['su', 'akinti', 'frekans'] }),
-    L(31, 'sinir', 'impuls', 'reach', 'Elektrik', { tutorial: true, intro: 'Artık bir impulsusun. Sağa sola kay, hiç durma.', targetChunks: 6, focus: ['darbe'] }),
+    L(31, 'sinir', 'impuls', 'reach', 'Elektrik', { tutorial: true, intro: 'Artık bir impulsusun. İleri kaydır, ses darbesiyle atıl.', targetChunks: 6, focus: ['darbe'] }),
     L(32, 'sinir', 'impuls', 'collect-all', 'Lif Yolu', { targetChunks: 7, focus: ['yanki', 'jeton'] }),
     L(33, 'sinir', 'impuls', 'timed', 'Işık Hızı', { targetChunks: 7, focus: ['hiz', 'darbe'] }),
     L(34, 'beyin-sapi', 'impuls', 'no-damage', 'Çapraz Yollar', { targetChunks: 8, focus: ['gurultu', 'dusman', 'atici'] }),
