@@ -53,3 +53,9 @@ export const yuzme: Mechanic = {
 ## Harness
 `?bot=1&level=N[&ts=2][&skills=all][&salt=K]` → window.__odi {events, result, done, spec}; `globalThis.__odiScene` sahne. `--tag` ile ayrı dist/çıktı: aynı anda birden çok harness güvenle çalışır. Çıktı: `tools/harness/out/<tag>/L21-end.png`, `results.json` (`--json 1`).
 Kabul ölçütü: her bölüm botla tamamlanır (`OK`), konsolda hata yok, ekran görüntüsünde dünya ve kahraman görünür.
+
+## Oyun hissi kuralları (bot turlarından çıkan dersler)
+- **Zıplama kaymayı iptal eder.** Kayarken zıplama tuşu yutulmamalı; koşu, makine ve boss arenasında böyle.
+- **Ardışık tehditler arası süre, havada kalma süresinden uzun olmalı.** Tam zıplama ~0,9 sn sürer; alçak engeli atlayan oyuncu yüksek engelin önüne inmemeli.
+- **Faz geçişinde nefes payı.** Boss sersemlemeden çıktıktan sonra ilk saldırı en az 900 ms sonra gelir.
+- **Bot kare hızından bağımsız olmalı.** Harness ortak CPU'da 5-15 fps, WebKit'te 60 fps görür; ikisinde de geçmeyen bölüm ya tasarım ya bot hatasıdır, ikisi ayrı ayrı incelenir.

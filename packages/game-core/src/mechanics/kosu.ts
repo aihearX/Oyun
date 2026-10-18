@@ -23,7 +23,9 @@ export const kosu: Mechanic = {
     if (sliding) { b.setSize(34, 22).setOffset(7, 26); hero.sprite.setScale(1.1, 0.55); }
     else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || now > (state.custom.slideUntil as number) + 120) hero.sprite.setScale(1, 1); }
     const canJump = grounded || now < (state.custom.coyote as number) || ((state.custom.jumps as number) < 1 && ctx.skills.doubleJump);
-    if (input.primaryPressed && canJump && !sliding) {
+    // zıplama kaymayı iptal eder (kayarken kilitlenme hissi olmasın)
+    if (input.primaryPressed && canJump) {
+      if (sliding) { state.custom.slideUntil = 0; b.setSize(34, 44).setOffset(7, 4); hero.sprite.setScale(1, 1); }
       const second = !grounded && now >= (state.custom.coyote as number);
       b.setVelocityY(-JUMP_V * g * (second ? 0.85 : 1));
       state.custom.jumps = (state.custom.jumps as number) + (second ? 2 : 1);

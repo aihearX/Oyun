@@ -125,7 +125,9 @@ export const makine: Mechanic = {
     if (sliding) { b.setSize(34, 22).setOffset(7, 26); hero.sprite.setScale(1.1, 0.55); }
     else { b.setSize(34, 44).setOffset(7, 4); if (!(hero.sprite.scaleY < 1) || now > st.slideUntil + 120) hero.sprite.setScale(1, 1); }
     const canJump = (onGround || now < st.coyote) && st.jumps < 1;
-    if (input.primaryPressed && canJump && !sliding) {
+    // zıplama kaymayı iptal eder
+    if (input.primaryPressed && canJump) {
+      if (sliding) { st.slideUntil = 0; b.setSize(34, 44).setOffset(7, 4); hero.sprite.setScale(1, 1); }
       b.setVelocityY(-JUMP_V * g); st.jumps = 1; st.coyote = 0; st.holdLeft = 0.22;
       hero.stretch(); sfx.jump(); ctx.haptic('light');
     }

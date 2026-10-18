@@ -285,7 +285,9 @@ function heroMove(ctx: LevelContext, input: InputState, dt: number) {
   // kayma: yalnızca görsel ölçek (fizik gövdesi ölçekle küçülür); boss çarpışmaları heroBox ile anında hesaplanır
   if (sliding) hero.sprite.setScale(1.1, 0.55);
   else if (!(hero.sprite.scaleY < 1) || t > S.slideUntil + 120) hero.sprite.setScale(1, 1);
-  if (input.primaryPressed && (onGround || t < S.coyote) && !sliding) {
+  // zıplama kaymayı iptal eder: yüksek dalgadan hemen sonra gelen alçak dalga adil kalsın
+  if (input.primaryPressed && (onGround || t < S.coyote)) {
+    if (sliding) { S.slideUntil = 0; hero.sprite.setScale(1, 1); }
     b.setVelocityY(-JUMP_V); S.coyote = 0; S.holdUntil = t + 220; hero.stretch(); sfx.jump(); ctx.haptic('light');
   }
   if (input.primaryDown && t < S.holdUntil && b.velocity.y < 0) b.setVelocityY(b.velocity.y - 1400 * 0.45 * dt);
@@ -383,7 +385,7 @@ function monsterTick(ctx: LevelContext) {
       if (t >= S.modeUntil || S.stunHits >= 3) { endStun(ctx); setMode(ctx, 'recover', 700); }
       break;
     case 'recover':
-      if (t >= S.modeUntil) { setMode(ctx, 'attack', 0); S.nextScreamAt = t + (ph === 1 ? 4000 : 5000); S.nextWaveAt = t + 600; }
+      if (t >= S.modeUntil) { setMode(ctx, 'attack', 0); S.nextScreamAt = t + (ph === 1 ? 4000 : 5000); S.nextWaveAt = t + 900; }
       break;
     default: break;
   }
@@ -395,7 +397,8 @@ function monsterTick(ctx: LevelContext) {
   }
   if (!waving && t >= S.nextWaveAt) S.nextWaveAt = t + 1200;
   if (waving && t >= S.nextWaveAt) {
-    const every = (ph === 3 ? 2300 : ph === 2 ? 1900 : 2400) * (S.mode === 'scream' ? 1.6 : 1);
+    // faz 3 çift dalga (420 px arayla): çiftler arası da ≥ ~380 px kalsın (zıplama havada ~0,9 sn)
+    const every = (ph === 3 ? 3000 : ph === 2 ? 1900 : 2400) * (S.mode === 'scream' ? 1.6 : 1);
     S.nextWaveAt = t + every;
     const speed = ph === 3 ? 270 : ph === 2 ? 250 : 220;
     if (ph === 1) spawnWave(ctx, 'low', 0, speed);
@@ -512,7 +515,7 @@ function monsterBot(ctx: LevelContext, input: TouchInput) {
   if (S.defeated) { c.set(1); return; }
   // en yakın yaklaşan dalga (fizik gövdeleriyle: sprite'lar bir fizik adımı geride kalır)
   let wave: { s: Phaser.Physics.Arcade.Sprite; kind: WaveKind } | null = null; let wd = Infinity;
-  for (const w of S.waves) { if (!w.s.active) continue; const d = (w.s.body as Phaser.Physics.Arcade.Body).left - hb.right; if (d < -40) continue; if (d < wd) { wd = d; wave = w; } }
+  for (const w of S.waves) { if (!w.s.active) continue; const wb = w.s.body as Phaser.Physics.Arcade.Body; if (wb.right < hb.left - 6) continue; /* tamamen geçmeden 'geçti' sayma */ const d = wb.left - hb.right; if (d < wd) { wd = d; wave = w; } }
   if (wave) {
     // kare hızından bağımsız: karar + uygulama (2 kare) + gürültü gecikmesi kadar öncü mesafe
     const frameDt = Math.min(0.15, ctx.scene.game.loop.delta / 1000);
