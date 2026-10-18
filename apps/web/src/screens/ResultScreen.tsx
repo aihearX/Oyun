@@ -8,8 +8,9 @@ import { useStore } from '../store';
 import { inviteUrl, type Invite } from '../invite';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
+import { TeamContribution } from '../ui/TeamContribution';
 
-interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean }
+interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
 const STAR_AT = 380, STAR_GAP = 380, SCORE_MS = 900;
 
@@ -27,7 +28,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 }
 
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
-export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo }: Props) {
+export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId }: Props) {
   const store = useStore();
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
@@ -126,6 +127,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <span className="gi">{result.completed ? (summary.goal.kind === 'hazine' ? '🎁' : '🎯') : '👂'}</span>
           <span>{summary.goal.text}</span>
         </div>
+
+        {runId && step >= S + 3 && <TeamContribution runId={runId} result={result} reduced={reduced} />}
 
         {challenge && challenge.level === spec.number && challenge.score > 0 && (
           <div className="card" style={{ width: '100%' }}>

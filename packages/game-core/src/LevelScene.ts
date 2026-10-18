@@ -12,6 +12,7 @@ import { scanAhead } from './bot';
 import { Hud, flash, floatText, tapToStart, FONT, COLORS, ComboMeter, cheer, banner, endCard } from './ui';
 import { sfx, unlock, setSoundsEnabled } from './audio';
 import { tonotopyFreq, luckyNoteTexture } from './art';
+import { RaceLayer } from './race';
 
 const START_PAD = 220;
 const END_PAD = 260;
@@ -36,6 +37,8 @@ export class LevelScene extends Phaser.Scene {
   private wasAirborne = false; private combo = 0; private comboAt = 0; private progressBar!: Phaser.GameObjects.Rectangle; private nearMissed = new WeakSet<Phaser.GameObjects.GameObject>(); private lastDamageAt = -9999;
   // juice (yalnızca görsel + sonuç bayrakları): seri göstergesi, kutlama zincirleri, Şanslı Nota, "ilk kez" anları
   private comboMeter!: ComboMeter; private maxCombo = 0; private chain = 0; private chainAt = 0; private firstsDone: string[] = [];
+  /** canlı yarış: hayaletler, üst şerit, geri sayım (opts.race varsa) */
+  private race?: RaceLayer;
   private luckyCoin?: Phaser.Physics.Arcade.Sprite; private luckyGlow?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'placed' | 'got' | 'missed' = 'off'; private luckyCheckAt = 0;
 
   constructor() { super('level'); }
@@ -79,7 +82,8 @@ export class LevelScene extends Phaser.Scene {
     this.objectiveText = this.add.text(GAME_W / 2, 84, this.spec.objective.label, { fontFamily: FONT, fontSize: '13px', fontStyle: '700', color: COLORS.muted, backgroundColor: 'rgba(255,255,255,0.8)', padding: { x: 10, y: 4 } }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
     this.progressBar = this.add.rectangle(0, 72, 0, 4, 0x6c4cf1, 1).setOrigin(0, 0.5).setScrollFactor(0).setDepth(102);
-    this.comboMeter = new ComboMeter(this);
+    this.comboMeter = new ComboMeter(this, this.opts.race ? 156 : 116);
+    if (this.opts.race) this.objectiveText.setY(132); // yarış şeridine yer aç
     if (this.opts.lucky && !this.opts.bot) this.luckyState = 'armed';
     if (!this.textures.exists('spark')) { const g = this.add.graphics(); g.fillStyle(0xffffff, 1); g.fillCircle(4, 4, 4); g.generateTexture('spark', 8, 8); g.destroy(); }
     this.sparks = this.add.particles(0, 0, 'spark', { speed: { min: 60, max: 220 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, alpha: { start: 1, end: 0 }, lifespan: 420, gravityY: 500, tint: [0xffc25c, 0xffe6a8, 0xffffff], emitting: false }).setDepth(30);
@@ -123,7 +127,21 @@ export class LevelScene extends Phaser.Scene {
       unlock(); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' }); if (this.spec.intro) this.hint(this.spec.intro, 3200);
       if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, '🍀 Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200));
     };
-    if (this.opts.bot) begin(); else tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}\n\nDokun ve başla`, begin);
+    if (this.opts.race) {
+      // yarış: dokunarak başlama yok; herkes için aynı anda (sunucu saati) 3-2-1-Başla!, öncesinde giriş kilitli
+      const race = this.opts.race;
+      this.race = new RaceLayer({
+        scene: this, hero: this.hero, gateX: this.gateX, startX: 100, startY: firstY, timeScale: ts,
+        haptic: (k) => this.emit({ type: 'haptic', kind: k }), live: () => this.state.started && !this.state.finished,
+      }, race);
+      const go = () => {
+        this.input_.tick(); // geri sayımda biriken dokunuşları at
+        begin();
+        const o = this.objectiveText; this.time.delayedCall(5000, () => this.tweens.add({ targets: o, alpha: 0, duration: 400 }));
+      };
+      const delay = this.opts.bot ? Math.max(0, race.botDelayMs ?? 0) : 0;
+      this.race.countdown(`${this.spec.number}. ${this.spec.name}\n${this.spec.objective.label}`, () => { if (delay) this.time.delayedCall(delay, go); else go(); });
+    } else if (this.opts.bot) begin(); else tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}\n\nDokun ve başla`, begin);
 
     // DOM köprüsü (harness / web kabuğu)
     (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = this;
@@ -131,6 +149,7 @@ export class LevelScene extends Phaser.Scene {
   }
 
   override update(_t: number, dtMs: number) {
+    this.race?.update();
     if (!this.state.started || this.state.finished) return;
     const dt = Math.min(0.05, dtMs / 1000);
     this.state.timeSec += (dtMs / 1000) * (this.opts.timeScale ?? 1);
@@ -302,7 +321,7 @@ export class LevelScene extends Phaser.Scene {
   }
   finish() {
     if (this.state.finished || !this.state.started) return; this.state.finished = true;
-    this.comboMeter.tick(0);
+    this.comboMeter.tick(0); this.race?.finished(true);
     const r = this.withJuice(this.result(true)); this.state.objectiveMet = r.objectiveMet;
     sfx.levelUp(); flash(this, 0x8ef0b0, 0.35, 400); this.hero.mood('wow'); this.emit({ type: 'haptic', kind: 'success' });
     this.hero.body.setVelocity(0, 0); this.hero.body.setAllowGravity(false);
@@ -311,7 +330,7 @@ export class LevelScene extends Phaser.Scene {
     this.time.delayedCall(this.opts.bot ? 100 : 900, () => this.emit({ type: 'levelComplete', result: r }));
   }
   fail(reason: string) {
-    if (this.state.finished) return; this.state.finished = true; this.comboMeter.tick(0);
+    if (this.state.finished) return; this.state.finished = true; this.comboMeter.tick(0); this.race?.finished(false);
     this.hud.set(this.state.score, this.state.lives); const r = this.withJuice(this.result(false)); sfx.gameOver(); this.hero.mood('hurt'); this.emit({ type: 'haptic', kind: 'error' });
     const pct = Math.max(0, Math.min(1, this.hero.x / this.gateX));
     endCard(this, { title: reason === 'fall' ? 'Düştün…' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });

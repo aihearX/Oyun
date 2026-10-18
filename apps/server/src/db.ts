@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS purchases(id TEXT PRIMARY KEY, player_id TEXT NOT NUL
 CREATE INDEX IF NOT EXISTS purchases_player ON purchases(player_id, at);
 CREATE TABLE IF NOT EXISTS progress_runs(player_id TEXT NOT NULL, run_id TEXT NOT NULL, ack TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
 CREATE INDEX IF NOT EXISTS progress_runs_at ON progress_runs(at);
+CREATE TABLE IF NOT EXISTS local_grants(player_id TEXT NOT NULL, ledger_id TEXT NOT NULL, jeton INTEGER NOT NULL, credited INTEGER NOT NULL, reason TEXT NOT NULL, day TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, ledger_id));
+CREATE INDEX IF NOT EXISTS local_grants_day ON local_grants(player_id, day);
+CREATE TABLE IF NOT EXISTS player_skills(player_id TEXT NOT NULL, skill_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, skill_id));
 `;
 
 export type Row = Record<string, SQLInputValue>;

@@ -96,4 +96,106 @@ describe('canlı yarış', () => {
     await sleep(100);
     expect((await err(c.call('race.join', { roomId: room.id }))).code).toBe('YOK');
   });
+
+  it('tuz 1..999; geri sayımda katılım kapalı; hızlı eşleşme geri sayımdaki odayı seçmez; bitiremeyenin derecesi yok', async () => {
+    env = await setup({ raceCountdownMs: 100, raceFinishGraceMs: 60_000 });
+    const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
+    for (let i = 0; i < 25; i++) {
+      const s = (await a.call('race.create', {})).room.salt;
+      expect(Number.isInteger(s) && s >= 1 && s <= 999).toBe(true);
+    }
+    const room = (await a.call('race.create', {})).room;
+    await b.call('race.join', { roomId: room.id });
+    await a.call('race.ready', { ready: true });
+    expect((await b.call('race.ready', { ready: true })).room.status).toBe('geri-sayim');
+    // geri sayımda kodla katılım yok; hızlı yarış yeni oda açar
+    expect((await err(c.call('race.join', { roomId: room.id }))).code).toBe('BASLADI');
+    const q = await c.call('race.quick', {});
+    expect(q.room.id).not.toBe(room.id);
+    expect(q.room.players.map((p) => p.name)).toEqual(['Cem']);
+    await c.call('race.leave', {});
+    env.clock.advance(100);
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 2000);
+    await a.call('race.finish', { completed: true, score: 700, timeSec: 30 });
+    // b hiç bitirmez: ilk bitirenden 60 sn sonra (bekleme süresi) yarış biter
+    env.clock.advance(59_000); env.srv.sweep();
+    expect(a.log.filter((e) => e.ev === 'race.updated' && (e.data as { room: { status: string } }).room.status === 'bitti')).toHaveLength(0);
+    env.clock.advance(1_000); env.srv.sweep();
+    const end = await b.waitFor('race.updated', (x) => x.room.status === 'bitti', 2000);
+    expect(end.room.players.map((p) => [p.name, p.place])).toEqual([['Ayşe', 1], ['Bora', null]]);
+  });
+
+  it('en geç 3 dk: kimse bitirmese de yarış biter', async () => {
+    env = await setup({ raceCountdownMs: 50, raceFinishGraceMs: 60_000 });
+    const [a, b] = [await env.connect('Ayşe'), await env.connect('Bora')];
+    const room = (await a.call('race.create', {})).room;
+    await b.call('race.join', { roomId: room.id });
+    await a.call('race.ready', { ready: true });
+    await b.call('race.ready', { ready: true });
+    env.clock.advance(50);
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 2000);
+    env.clock.advance(3 * 60_000 - 1); env.srv.sweep();
+    await sleep(30);
+    expect(a.log.some((e) => e.ev === 'race.updated' && (e.data as { room: { status: string } }).room.status === 'bitti')).toBe(false);
+    env.clock.advance(1); env.srv.sweep();
+    const end = await a.waitFor('race.updated', (x) => x.room.status === 'bitti', 2000);
+    expect(end.room.players.every((p) => p.place == null && p.finishedAt == null)).toBe(true);
+    const e = await err(b.call('race.finish', { completed: true, score: 1, timeSec: 1 }));
+    expect([e.code, e.message]).toEqual(['GECERSIZ', 'Yarış bitti.']);
+  });
+
+  it('yarış sohbeti: yalnız odadakiler okur/yazar; ayrılan almaz', async () => {
+    env = await setup({ raceCountdownMs: 50 });
+    const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
+    const room = (await a.call('race.create', {})).room;
+    await b.call('race.join', { roomId: room.id });
+    const rr = `race:${room.id}`;
+    expect((await a.call('chat.join', { room: rr })).history).toEqual([]);
+    expect((await err(c.call('chat.join', { room: rr }))).code).toBe('YETKI');
+    expect((await err(c.call('chat.send', { room: rr, text: 'selam' }))).code).toBe('YETKI');
+    expect((await err(c.call('chat.join', { room: 'race:yok123' }))).code).toBe('YETKI');
+    await a.call('chat.send', { room: rr, text: 'Hazır mısın?' });
+    // katılmamış (chat.join yapmamış) oda üyesine de gider; odada olmayana gitmez
+    expect((await b.waitFor('chat', (x) => x.msg.room === rr)).msg.text).toBe('Hazır mısın?');
+    await sleep(50);
+    expect(c.log.some((e) => e.ev === 'chat')).toBe(false);
+    // üçüncü katılınca geçmişi görür
+    await c.call('race.join', { roomId: room.id });
+    expect((await c.call('chat.join', { room: rr })).history.map((m) => m.text)).toEqual(['Hazır mısın?']);
+    // ayrılan artık almaz ve yazamaz
+    await b.call('race.leave', {});
+    b.drain();
+    env.clock.advance(2000);
+    await c.call('chat.send', { room: rr, text: 'Başlıyoruz' });
+    await a.waitFor('chat', (x) => x.msg.text === 'Başlıyoruz');
+    await sleep(50);
+    expect(b.log.some((e) => e.ev === 'chat' && !e.used)).toBe(false);
+    expect((await err(b.call('chat.send', { room: rr, text: 'ben de' }))).code).toBe('YETKI');
+  });
+
+  it('rövanş: arkadaş olmayan son rakipler davet edilebilir; aynı bölümde oda kurulabilir', async () => {
+    env = await setup({ raceCountdownMs: 50, raceFinishGraceMs: 60_000 });
+    const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
+    for (let l = 1; l <= 3; l++) await a.call('progress.submit', run(l));
+    const room = (await a.call('race.create', {})).room;
+    expect(room.level).toBe(4);
+    await b.call('race.join', { roomId: room.id });
+    await a.call('race.ready', { ready: true });
+    await b.call('race.ready', { ready: true });
+    env.clock.advance(50);
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 2000);
+    await a.call('race.finish', { completed: true, score: 900, timeSec: 40 });
+    await b.call('race.finish', { completed: true, score: 800, timeSec: 45 });
+    await b.waitFor('race.updated', (x) => x.room.status === 'bitti');
+    // b'nin açık bölümü 1, ama son yarışın bölümünde (4) rövanş odası kurabilir; başka yüksek bölümde kuramaz
+    expect((await err(b.call('race.create', { level: 5 }))).code).toBe('GECERSIZ');
+    const re = (await b.call('race.create', { level: 4 })).room;
+    expect(re.level).toBe(4);
+    await b.call('race.invite', { friendId: a.me!.id });
+    expect((await a.waitFor('race.invited')).room.id).toBe(re.id);
+    // yarışmadığı biri: arkadaş da değilse davet edilemez
+    expect((await err(b.call('race.invite', { friendId: c.me!.id }))).code).toBe('YETKI');
+    const j = await a.call('race.join', { roomId: re.id });
+    expect(j.room.players.map((p) => p.name)).toEqual(['Bora', 'Ayşe']);
+  });
 });

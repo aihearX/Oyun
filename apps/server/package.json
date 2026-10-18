@@ -4,12 +4,15 @@
   "private": true,
   "type": "module",
   "description": "ODİ sosyal sunucusu: HTTP + WebSocket, node:sqlite",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "build": "node build.mjs",
     "start": "node --disable-warning=ExperimentalWarning dist/server.mjs"
   },
   "dependencies": {
+    "@odi/content": "*",
     "@odi/shared": "*",
     "ws": "^8.18.0",
     "zod": "^4.6.7"

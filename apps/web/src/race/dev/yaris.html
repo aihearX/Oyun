@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>ODİ · Yarış test sayfası (geliştirme)</title>
+  </head>
+  <body>
+    <!--
+      Yalnızca geliştirme/test: üretim derlemesine (index.html) girmez.
+      Geliştirmede: npm run dev → http://localhost:5173/src/race/dev/yaris.html?ad=Ayşe
+      Harness: tools/harness/race-e2e.mjs bu sayfayı ayrı bir derlemeye ekler ve ?yaris-bot=1 ile oynatır.
+    -->
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

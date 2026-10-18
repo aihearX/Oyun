@@ -31,6 +31,11 @@ interface State extends PlayerCore {
   markBiomeSeen(biome: string): void;
   dismissToast(id: number): void;
   buySkill(id: string): boolean;
+  /** takım/ödül kutusundan gelen kalkanlar: bir sonraki bölüme kalkanla başlatır */
+  teamShields: number;
+  consumeTeamShield(): boolean;
+  /** sunucudan gelen kozmetik/kart/kalkanları yerel meta'ya işler (jetonsuz) */
+  applyServerMeta(p: { cosmetics: string[]; cards: string[]; teamShields: number }): void;
   setSounds(v: boolean): void;
   reset(): void;
   playerLevel(): number;
@@ -59,7 +64,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta() };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta() };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -108,6 +113,18 @@ export const useStore = create<State>()(persist((set, get) => {
       skills[node.key] = node.level ?? true;
       settleAndToast({ ...core(s), coins: s.coins - node.cost, skills: skills as unknown as PlayerSkills }); return true;
     },
+    consumeTeamShield() { const n = get().teamShields; if (n <= 0) return false; set({ teamShields: n - 1 }); return true; },
+    applyServerMeta({ cosmetics, cards, teamShields }) {
+      const s = get(); const m = s.meta;
+      const newCos = cosmetics.filter((id) => !m.cosmetics.owned.includes(id)); const newCards = cards.filter((id) => !m.cards.includes(id));
+      const extra: Toast[] = [];
+      for (const id of newCos) { const c = cosmeticById(id); if (c) extra.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
+      for (const id of newCards) { const c = cardById(id); if (c) extra.push({ id: toastSeq++, icon: c.emoji, title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
+      if (teamShields > s.teamShields) extra.push({ id: toastSeq++, icon: '🛡️', title: `+${teamShields - s.teamShields} kalkan`, text: 'Bir sonraki bölüme kalkanla başlarsın.', tone: 'accent' });
+      set({ teamShields });
+      if (!newCos.length && !newCards.length) { if (extra.length) set({ toasts: [...get().toasts, ...extra] }); return; }
+      settleAndToast({ ...core(get()), meta: { ...m, cards: [...m.cards, ...newCards], cosmetics: { ...m.cosmetics, owned: [...m.cosmetics.owned, ...newCos] } } }, extra);
+    },
     setSounds(v) { set({ sounds: v }); },
     reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [], meta: defaultMeta() }); },
     playerLevel() { return levelFromXp(get().xp); },
@@ -118,7 +135,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };

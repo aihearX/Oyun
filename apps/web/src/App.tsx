@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { LevelSpec, RunResult } from '@odi/shared';
+import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_COLOR_ID, DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
 import {
@@ -25,14 +25,26 @@ import { BiomeIntro } from './screens/BiomeIntro';
 import { TabBar, type Tab } from './ui/TabBar';
 import { Toasts } from './ui/Toasts';
 import { readInvite } from './invite';
+import { CampScreen } from './screens/CampScreen';
+import { ChatScreen, FriendsScreen } from './screens/FriendsScreen';
+import { ShopScreen } from './screens/ShopScreen';
+import { InboxScreen, LeagueScreen } from './screens/InboxScreen';
+import { Onboarding } from './ui/Onboarding';
+import { NavContext, type Nav, type SocialRoute } from './nav';
+import { startNet, submitRun, toast, useSocial } from './net';
+import { useNet } from '@odi/net/store';
+import { BUILDINGS, buildCost } from '@odi/shared';
+import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
 
 type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>;
 type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'wardrobe' | 'info';
 type Route =
   | { name: 'title' } | { name: Tab } | { name: Sub; back: Tab }
-  | { name: 'intro'; spec: LevelSpec; extras: Extras }
-  | { name: 'level'; spec: LevelSpec; extras: Extras }
-  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean };
+  | (SocialRoute & { back: Tab; key?: number })
+  | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills }
+  | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom }
+  | { name: 'raceResult'; room: RaceRoom; result: RunResult; back: Tab }
+  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string };
 
 /** `?bot=1&level=N[&ts=2][&skills=all][&salt=K]` → test modu: harness bölümü otomatik oynatır. */
 function botParams() {
@@ -80,6 +92,9 @@ export function App() {
     setRoute({ name: 'level', spec, extras: {} });
   }, [bot, store.journey]);
   useEffect(() => { setSoundsEnabled(store.sounds); }, [store.sounds]);
+  // sosyal katman: bot modunda hiç başlamaz (harness sözleşmesi ve konsol temiz kalsın)
+  useEffect(() => { if (!bot) startNet(); }, [bot]);
+  const socialBadges = useSocialBadges(store.coins);
 
   const play = (number: number) => {
     const s = useStore.getState();
@@ -90,7 +105,8 @@ export function App() {
       lucky: rollLucky(),
       firsts: Object.keys(FIRSTS).filter((f) => !s.meta.firsts.includes(f)),
     };
-    setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras } : { name: 'level', spec, extras });
+    const skills = runSkills(s.skills);
+    setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills } : { name: 'level', spec, extras, skills });
   };
 
   if (bot && route.name === 'level') {
@@ -102,18 +118,36 @@ export function App() {
   const today = dayKey(); const daily = ensureDaily(store.meta.daily, today);
   const todayBadge = daily.quests.filter((q) => questDone(q) && !q.claimed).length + (chestReady(daily) ? 1 : 0) + (store.lastDay === today && !calendarView(store, today).claimedToday ? 1 : 0);
   const tab = (t: Tab) => setRoute({ name: t });
-  const withTabs = (active: Tab, el: ReactNode) => <>{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge }} /><Toasts /></>;
-  const openSub = (back: Tab) => (l: ProfileLink | Sub) => setRoute({ name: l, back });
+  const curTab: Tab = 'back' in route ? route.back : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
+  const nav: Nav = { open: (r) => setRoute({ ...r, back: curTab, key: Date.now() } as Route), play, tab };
+  const banner = <RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} />;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team }} /><Toasts /><Onboarding /></NavContext.Provider>;
+  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<Toasts /></NavContext.Provider>;
+  const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
+  const back = (r: { back: Tab }) => () => setRoute({ name: r.back });
 
   switch (route.name) {
     case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={() => { store.touchDay(); setRoute({ name: 'map' }); }} />;
     case 'map': return withTabs('map', <MapScreen onPlay={play} onToday={() => tab('today')} />);
     case 'today': return withTabs('today', <TodayScreen onInfo={() => openSub('today')('info')} />);
+    case 'camp': return withTabs('camp', <CampScreen />);
     case 'team': return withTabs('team', <TeamScreen />);
     case 'profile': return withTabs('profile', <ProfileScreen onOpen={openSub('profile')} />);
-    case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras }); }} />;
-    case 'level': return <LevelHost spec={route.spec} skills={store.skills} sounds={store.sounds} extras={route.extras} onDone={(result) => { const summary = store.completeRun(route.spec, result); setRoute({ name: 'result', spec: route.spec, result, summary }); }} onQuit={() => setRoute({ name: 'map' })} />;
-    case 'result': return <><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /><Toasts /></>;
+    case 'friends': return sub(<FriendsScreen onBack={back(route)} raceReady />);
+    case 'chat': return sub(<ChatScreen key={route.room} room={route.room} title={route.title} onBack={back(route)} />);
+    case 'shop': return sub(<ShopScreen onBack={back(route)} />);
+    case 'inbox': return sub(<InboxScreen onBack={back(route)} />);
+    case 'league': return sub(<LeagueScreen onBack={back(route)} />);
+    case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: {}, race: room })} onClose={back(route)} />);
+    case 'raceResult': return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
+    case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
+    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds} extras={r.extras} race={r.race}
+      onDone={(result, room) => {
+        if (r.race) { store.completeRun(r.spec, result); submitRun(r.spec, result, r.race.id); setRoute({ name: 'raceResult', room: room ?? r.race, result, back: curTab }); return; }
+        const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result); setRoute({ name: 'result', spec: r.spec, result, summary, runId });
+      }}
+      onQuit={() => setRoute(r.race ? { name: 'race', back: 'team', key: Date.now() } : { name: 'map' })} />; }
+    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /><Toasts /></NavContext.Provider>;
     case 'skills': return <><SkillsScreen onBack={() => setRoute({ name: route.back })} /><Toasts /></>;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;
@@ -122,3 +156,25 @@ export function App() {
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
   }
 }
+
+/** sekme rozetleri: Kamp = inşaatçı boşta ve yükseltmeye jeton yetiyor; Takım = okunmamış takım sohbeti + hediye + yardım bekleyen */
+function useSocialBadges(coins: number) {
+  const camp = useNet((s) => s.camp); const team = useNet((s) => s.team); const gifts = useNet((s) => s.giftCount); const help = useNet((s) => s.campHelp.length);
+  const unread = useNet((s) => (s.team ? s.unread[`takim:${s.team.id}`] ?? 0 : 0));
+  let campBadge = 0;
+  if (camp && !camp.buildings.some((b) => b.upgradingTo)) {
+    const merkez = camp.buildings.find((b) => b.id === 'merkez')?.level ?? 1;
+    campBadge = camp.buildings.some((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= coins; }) ? 1 : 0;
+  }
+  return { camp: campBadge, team: team ? unread + gifts + help : 0 };
+}
+
+/** bu koşunun yetenekleri: takım kalkanı varsa bir tanesi kullanılır; yoksa Atölye/Ortak Kalkan şansı (oranı Kamp'ta yazılı) */
+function runSkills(skills: PlayerSkills): PlayerSkills {
+  if (skills.shield > 0) return skills;
+  if (useStore.getState().consumeTeamShield()) { toast('🛡️', 'Takım kalkanı devrede', 'Bu bölüme kalkanla başlıyorsun.', 'accent'); return { ...skills, shield: 1 }; }
+  const pct = useSocial.getState().bonuses?.shieldChancePct ?? 0;
+  if (pct > 0 && Math.random() * 100 < pct) { toast('🛠️', 'Atölye kalkanı!', `%${pct} şansla bu bölüme kalkanla başlıyorsun.`, 'green'); return { ...skills, shield: 1 }; }
+  return skills;
+}
+

@@ -4,7 +4,8 @@ import { calendarView, chestReady, dailyChestReward, dayKey, ensureDaily, highes
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, ScreenHead, rewardIcon } from '../ui/bits';
+import { Bar, RewardChips, rewardIcon } from '../ui/bits';
+import { TopBar } from '../ui/social';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
@@ -26,7 +27,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const dateLabel = new Date().toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
   return (
     <div className="screen fade-in with-tabs">
-      <ScreenHead title="Bugün" right={<button className="btn ghost small" onClick={onInfo} aria-label="Ödüller nasıl çalışır?">ⓘ</button>} />
+      <TopBar title="Bugün" />
       <div className="muted cap">{dateLabel}</div>
 
       <div className="card streak-card">

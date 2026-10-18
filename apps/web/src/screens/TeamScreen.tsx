@@ -1,13 +1,18 @@
-/** Takım sekmesi: şimdilik yer tutucu (sosyal ekip dolduracak). */
+import { useNet } from '@odi/net/store';
+import { useNav } from '../nav';
+import { Online, TopBar } from '../ui/social';
+import { TeamBrowse } from './team/TeamBrowse';
+import { TeamHome } from './team/TeamHome';
+
+/** Takım sekmesi: takımsızken keşif/kurma, takımdayken takım merkezi. */
 export function TeamScreen() {
+  const team = useNet((s) => s.team); const nav = useNav();
   return (
-    <div className="screen fade-in with-tabs">
-      <div className="screen-head"><span /><h1>Takım</h1><span /></div>
-      <div className="card placeholder">
-        <div className="ph-icon" aria-hidden>👥</div>
-        <h2>Yakında: takımlar, sohbet, savaş</h2>
-        <div className="muted">Arkadaşlarınla bir takım kur, birlikte kulak kabart. Hazırlanıyor!</div>
-      </div>
+    <div className="screen fade-in with-tabs team-screen">
+      <TopBar title="Takım" extra={<button className="pill tb-pill tap" onClick={() => nav.open({ name: 'friends' })} aria-label="Arkadaşlar">🫂</button>} />
+      <Online what="Takım, sohbet, savaş ve baskın">
+        {team ? <TeamHome /> : <TeamBrowse />}
+      </Online>
     </div>
   );
 }

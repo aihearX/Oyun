@@ -86,11 +86,12 @@ export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 18
 /** Jeton serisi göstergesi: seri büyüdükçe büyüyen, renk değiştiren rozet + kalan süre çizgisi. */
 export class ComboMeter {
   private c: Phaser.GameObjects.Container; private bg: Phaser.GameObjects.Graphics; private t: Phaser.GameObjects.Text; private bar: Phaser.GameObjects.Rectangle; private shown = 0;
-  constructor(private scene: Phaser.Scene) {
+  /** y: dikey konum (yarışta üst şeridin altına iner) */
+  constructor(private scene: Phaser.Scene, y = 116) {
     const w = scene.scale.width;
     this.bg = scene.add.graphics(); this.t = scene.add.text(0, 0, '', { fontFamily: FONT, fontSize: '18px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
     this.bar = scene.add.rectangle(0, 20, 60, 3, 0xffc25c, 1).setOrigin(0.5);
-    this.c = scene.add.container(w - 58, 116, [this.bg, this.t, this.bar]).setScrollFactor(0).setDepth(103).setAlpha(0);
+    this.c = scene.add.container(w - 58, y, [this.bg, this.t, this.bar]).setScrollFactor(0).setDepth(103).setAlpha(0);
   }
   /** seri arttı */
   bump(combo: number) {

@@ -14,6 +14,7 @@ import { firePosSchema, schemaError, SCHEMAS } from './schemas';
 import { shopHandlers } from './shop';
 import { extraHandlers } from './teamextra';
 import { teamHandlers } from './teams';
+import { walletHandlers } from './wallet';
 import { warHandlers, warRollover } from './war';
 
 export const SERVER_VERSION = '0.1.0';
@@ -21,7 +22,7 @@ export const MAX_MESSAGE_BYTES = 8 * 1024;
 
 const HANDLERS: Handlers = {
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
-  ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers,
+  ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
 };
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);

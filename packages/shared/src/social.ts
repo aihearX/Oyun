@@ -260,6 +260,14 @@ export interface OpMap {
   'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
   'shop.limit': { req: { limitTry: number }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
+  /** yerel meta ödüllerinin (görev/takvim/sandık/hazine…) jetonu: ledgerId ile idempotent, günlük üst sınırlı */
+  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number } };
+  /** jeton harcama (şimdilik yalnızca `yetenek:<id>`; sunucu maliyeti doğrular, aynı yetenek iki kez alınmaz) */
+  'wallet.spend': { req: { jeton: number; reason: string }; res: { wallet: Wallet; skills: string[] } };
+  /** sunucuda kayıtlı yetenekler (SKILL_TREE kimlikleri) */
+  'skills.list': { req: Record<string, never>; res: { skills: string[] } };
+  /** cihazdaki çevrimdışı bölüm ilerlemesini hesaba taşır: yalnızca açık bölüm ve en iyi yıldız/skor (jeton, savaş, baskın, lig vermez) */
+  'progress.sync': { req: { best: { level: number; stars: number; score: number }[] }; res: { highest: number; stars: number } };
 }
 export type Op = keyof OpMap;
 

@@ -8,16 +8,22 @@ import { areFriends } from './chat';
  * Yalnızca gerçek oyuncular; bot ya da sahte rakip yok.
  */
 interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null }
-interface RaceStore { rooms: Map<string, Room>; byPlayer: Map<string, string> }
+/** son biten yarışın rakipleri: rövanş daveti (arkadaş olmasalar da) ve aynı bölümde yeniden oda kurma için */
+interface Recent { rivals: Set<string>; level: number; until: number }
+interface RaceStore { rooms: Map<string, Room>; byPlayer: Map<string, string>; recent: Map<string, Recent> }
 
 const LOBBY_TTL_MS = 30 * 60_000;
 const DONE_TTL_MS = 10 * 60_000;
+/** yarış en geç bu süre sonra (başlangıçtan itibaren) 'bitti' olur; bitiremeyenlerin derecesi yok */
+export const RACE_MAX_MS = 3 * 60_000;
+/** rövanş hakkı süresi */
+const RECENT_TTL_MS = 30 * 60_000;
 const POS_MIN_INTERVAL_MS = Math.floor(1000 / SOCIAL_LIMITS.racePosHz) - 10;
 
 const stores = new WeakMap<App, RaceStore>();
 function store(app: App): RaceStore {
   let s = stores.get(app);
-  if (!s) { s = { rooms: new Map(), byPlayer: new Map() }; stores.set(app, s); }
+  if (!s) { s = { rooms: new Map(), byPlayer: new Map(), recent: new Map() }; stores.set(app, s); }
   return s;
 }
 
@@ -46,6 +52,10 @@ function finishRace(app: App, r: Room): void {
   if (r.status === 'bitti') return;
   r.status = 'bitti';
   clearTimers(r);
+  const now = app.now(); const recent = store(app).recent;
+  for (const [k, v] of recent) if (v.until <= now) recent.delete(k);
+  const ids = r.players.map((p) => p.id);
+  for (const id of ids) recent.set(id, { rivals: new Set(ids.filter((x) => x !== id)), level: r.level, until: now + RECENT_TTL_MS });
   setTimer(app, r, DONE_TTL_MS, () => deleteRoom(app, r));
   broadcast(app, r);
 }
@@ -58,6 +68,7 @@ function tick(app: App, r: Room): void {
     const act = active(r);
     if (act.length === 0 || act.every((p) => p.finishedAt != null)) finishRace(app, r);
     else if (r.firstFinishAt != null && now >= r.firstFinishAt + app.cfg.raceFinishGraceMs) finishRace(app, r);
+    else if (r.startsAt != null && now >= r.startsAt + RACE_MAX_MS) finishRace(app, r);
   }
 }
 
@@ -65,6 +76,7 @@ function startCountdown(app: App, r: Room): void {
   r.status = 'geri-sayim';
   r.startsAt = app.now() + app.cfg.raceCountdownMs;
   setTimer(app, r, app.cfg.raceCountdownMs, () => tick(app, r));
+  setTimer(app, r, app.cfg.raceCountdownMs + RACE_MAX_MS, () => tick(app, r));
 }
 
 function maybeStart(app: App, r: Room): void {
@@ -100,7 +112,7 @@ function playerEntry(app: App, pid: string): RacePlayer {
 
 function createRoom(app: App, pid: string, level: number): Room {
   leaveRace(app, pid);
-  const r: Room = { id: rid('r'), hostId: pid, level, salt: randomInt(0, 2 ** 31 - 1), status: 'lobi', startsAt: null, players: [playerEntry(app, pid)], max: SOCIAL_LIMITS.raceMax, createdAt: app.now(), timers: [], linked: new Set(), firstFinishAt: null };
+  const r: Room = { id: rid('r'), hostId: pid, level, salt: randomInt(1, 1000), status: 'lobi', startsAt: null, players: [playerEntry(app, pid)], max: SOCIAL_LIMITS.raceMax, createdAt: app.now(), timers: [], linked: new Set(), firstFinishAt: null };
   const s = store(app);
   s.rooms.set(r.id, r);
   s.byPlayer.set(pid, r.id);
@@ -111,7 +123,7 @@ function createRoom(app: App, pid: string, level: number): Room {
 
 function joinRoom(app: App, pid: string, r: Room): void {
   if (r.players.some((p) => p.id === pid && !p.left)) return;
-  if (r.status !== 'lobi') fail('BASLADI', 'Bu yarış başladı; yeni bir yarışa katıl.');
+  if (r.status !== 'lobi') fail('BASLADI', r.status === 'geri-sayim' ? 'Bu yarışta geri sayım başladı; yeni bir yarışa katıl.' : 'Bu yarış başladı; yeni bir yarışa katıl.');
   if (active(r).length >= r.max) fail('DOLU', 'Yarış odası dolu.');
   leaveRace(app, pid);
   r.players.push(playerEntry(app, pid));
@@ -159,6 +171,18 @@ export function racePos(app: App, conn: Conn, data: { x: number; y: number; pct:
   for (const p of active(r)) if (p.id !== pid) app.emit(p.id, 'race.pos', ev);
 }
 
+/** yarış sohbeti ('race:<oda>') için: odadaki (ayrılmamış) oyuncular; oda yoksa null */
+export function raceMemberIds(app: App, roomId: string): string[] | null {
+  const r = store(app).rooms.get(roomId);
+  return r ? active(r).map((p) => p.id) : null;
+}
+
+/** son biten yarışta birlikte yarıştılar mı (rövanş) */
+function recentRival(app: App, a: string, b: string): boolean {
+  const x = store(app).recent.get(a);
+  return !!x && x.until > app.now() && x.rivals.has(b);
+}
+
 export function raceShutdown(app: App): void {
   for (const r of store(app).rooms.values()) clearTimers(r);
   stores.delete(app);
@@ -170,7 +194,8 @@ export const raceHandlers: Handlers = {
   'race.create': (app, s, { level }) => {
     const p = app.player(s.pid);
     const lv = level ?? p.highest;
-    if (lv > p.highest) fail('GECERSIZ', 'Henüz açmadığın bir bölümde yarış kuramazsın.');
+    const rematch = store(app).recent.get(s.pid);
+    if (lv > p.highest && !(rematch && rematch.until > app.now() && rematch.level === lv)) fail('GECERSIZ', 'Henüz açmadığın bir bölümde yarış kuramazsın.');
     const r = createRoom(app, s.pid, lv);
     return { room: view(r) };
   },
@@ -192,7 +217,7 @@ export const raceHandlers: Handlers = {
   'race.invite': (app, s, { friendId }) => {
     const r = myRoom(app, s.pid);
     if (r.status !== 'lobi') fail('BASLADI', 'Yarış başladıktan sonra davet gönderilemez.');
-    if (!areFriends(app, s.pid, friendId)) fail('YETKI', 'Yalnızca arkadaşlarını davet edebilirsin.');
+    if (!areFriends(app, s.pid, friendId) && !recentRival(app, s.pid, friendId)) fail('YETKI', 'Yalnızca arkadaşlarını ya da son yarıştaki rakiplerini davet edebilirsin.');
     if (!app.online.has(friendId)) fail('CEVRIMDISI', 'Arkadaşın şu an çevrimiçi değil.');
     app.emit(friendId, 'race.invited', { room: view(r), from: app.publicProfile(app.player(s.pid)) });
     return {};

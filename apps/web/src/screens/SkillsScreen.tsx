@@ -1,5 +1,6 @@
 import { SKILL_TREE } from '@odi/content';
 import { ownsSkill, useStore } from '../store';
+import { buySkill } from '../net';
 
 export function SkillsScreen({ onBack }: { onBack: () => void }) {
   const s = useStore();
@@ -10,7 +11,7 @@ export function SkillsScreen({ onBack }: { onBack: () => void }) {
       {SKILL_TREE.map((n) => { const owned = ownsSkill(s.skills, n.id); const locked = n.requires ? !ownsSkill(s.skills, n.requires) : false; return (
         <div className={`card skill${owned ? ' owned' : ''}`} key={n.id}>
           <div><h2>{n.name}</h2><div className="muted">{n.desc}{locked ? ` · önce: ${SKILL_TREE.find((x) => x.id === n.requires)?.name}` : ''}</div></div>
-          <button className="btn small" disabled={owned || locked || s.coins < n.cost} onClick={() => s.buySkill(n.id)}>{owned ? 'Alındı' : `🪙 ${n.cost}`}</button>
+          <button className="btn small" disabled={owned || locked || s.coins < n.cost} onClick={() => void buySkill(n.id)}>{owned ? 'Alındı' : `🪙 ${n.cost}`}</button>
         </div>); })}
     </div>
   );

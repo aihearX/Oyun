@@ -67,6 +67,10 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'shop.purchase': z.object({ productId: z.string().max(60), store: z.enum(['test', 'app-store', 'play']), receipt: z.string().max(4096).optional() }),
   'shop.limit': z.object({ limitTry: z.number().int().min(0).max(SPEND_LIMIT_MAX_TRY) }),
   'me.bonuses': empty,
+  'wallet.local': z.object({ ledgerId: z.string().min(1).max(80).regex(/^[A-Za-z0-9_.:-]+$/), jeton: z.number().int().min(1).max(10_000), reason: z.string().min(1).max(60) }),
+  'wallet.spend': z.object({ jeton: z.number().int().min(1).max(100_000), reason: z.string().min(1).max(60) }),
+  'skills.list': empty,
+  'progress.sync': z.object({ best: z.array(z.object({ level, stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE) })).max(MAX_LEVEL) }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

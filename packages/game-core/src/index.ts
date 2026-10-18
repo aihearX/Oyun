@@ -9,3 +9,4 @@ export { sfx, unlock, setSoundsEnabled } from './audio';
 export * from './art';
 export * from './ui';
 export { spawnEntity } from './entities';
+export { RaceLayer, type RaceHost } from './race';

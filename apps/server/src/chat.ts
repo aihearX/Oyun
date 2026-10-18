@@ -1,6 +1,7 @@
 import { SOCIAL_LIMITS, type ChatKind, type ChatMessage } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Handlers } from './app';
 import { maskProfanity } from './profanity';
+import { raceMemberIds } from './race';
 import { DAY_MS } from './time';
 
 const MUTE_MS = 10 * 60_000;
@@ -16,6 +17,8 @@ const toMsg = (r: ChatRow): ChatMessage => {
 };
 
 export const teamRoom = (teamId: string) => `takim:${teamId}`;
+/** canlı yarış odasının sohbeti: yalnızca o yarış odasındaki (ayrılmamış) oyuncular */
+export const raceRoom = (roomId: string) => `race:${roomId}`;
 export const dmRoom = (a: string, b: string) => (a < b ? `dm:${a}:${b}` : `dm:${b}:${a}`);
 
 export function areFriends(app: App, a: string, b: string): boolean {
@@ -38,16 +41,23 @@ export function checkRoom(app: App, pid: string, room: string): void {
     if (!areFriends(app, a, b)) fail('YETKI', 'Özel mesaj yalnızca arkadaşlar arasında gönderilebilir.');
     return;
   }
+  const rc = /^race:([A-Za-z0-9]+)$/.exec(room);
+  if (rc) {
+    if (!raceMemberIds(app, rc[1]!)?.includes(pid)) fail('YETKI', 'Bu yarış sohbetine yalnızca odadaki oyuncular girebilir.');
+    return;
+  }
   fail('GECERSIZ', 'Böyle bir sohbet odası yok.');
 }
 
-/** odadaki mesajı alacak çevrimiçi oyuncular: genel = abone olanlar; takım/özel = tüm çevrimiçi üyeler */
+/** odadaki mesajı alacak çevrimiçi oyuncular: genel = abone olanlar; takım/özel/yarış = tüm çevrimiçi üyeler */
 function recipients(app: App, room: string): string[] {
   if (room === 'genel') return [...(app.rooms.get('genel') ?? [])];
   const t = /^takim:(.+)$/.exec(room);
   if (t) return app.teamMemberIds(t[1]!).filter((id) => app.online.has(id));
   const d = /^dm:([^:]+):([^:]+)$/.exec(room);
   if (d) return [d[1]!, d[2]!].filter((id) => app.online.has(id));
+  const rc = /^race:(.+)$/.exec(room);
+  if (rc) return (raceMemberIds(app, rc[1]!) ?? []).filter((id) => app.online.has(id));
   return [];
 }
 

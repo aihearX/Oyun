@@ -11,6 +11,30 @@ export type GameEvent =
   | { type: 'levelFailed'; result: RunResult }
   | { type: 'quit' };
 
+/** Canlı yarışta bir rakip (görünüm bilgisi) */
+export interface RaceGhostInfo { id: string; name: string; color: number; hat: string }
+/** Rakibin konumu (dünya koordinatı) ve ilerlemesi (0-1) */
+export interface RacePosUpdate { id: string; x: number; y: number; pct: number }
+/**
+ * Canlı yarış bağlantısı (kabuk kurar; game-core ağ bilmez).
+ * Rakipler yarı saydam "hayalet" Odi olarak çizilir (çarpışma yok), üstte yarış şeridi gösterilir,
+ * dokunarak başlama yerine geri sayım (3-2-1-Başla!) çalışır ve o ana kadar giriş kilitlidir.
+ */
+export interface RaceOptions {
+  /** benim oyuncu kimliğim (players içinde olabilir; kendim hayalet olarak çizilmem) */
+  meId: string;
+  /** odadaki tüm oyuncular (ben dahil olabilir) */
+  players: RaceGhostInfo[];
+  /** yerel performance.now() tabanlı başlama anı (sunucunun startsAt'inden saat farkıyla hesaplanır); 0 = hemen başla */
+  startAt: number;
+  /** kendi konumumu gönder (sahne zamanlayıcısıyla ~racePosHz) */
+  sendPos(p: { x: number; y: number; pct: number }): void;
+  /** rakip konumlarını dinle; dönüş değeri aboneliği bırakır */
+  subscribe(cb: (p: RacePosUpdate) => void): () => void;
+  /** yalnızca test harness'i: bot, "Başla!"dan bu kadar ms sonra başlar (oyunculara hiç gösterilmez; bot değilse yok sayılır) */
+  botDelayMs?: number;
+}
+
 export interface LevelOptions {
   spec: LevelSpec;
   onEvent: (e: GameEvent) => void | Promise<void>;
@@ -30,6 +54,8 @@ export interface LevelOptions {
   lucky?: boolean;
   /** henüz kutlanmamış "ilk kez" anları (ezme, seri5, kilpayi, guc, kontrol) */
   firsts?: string[];
+  /** canlı yarış (gerçek oyuncular); yoksa normal tek kişilik bölüm */
+  race?: RaceOptions;
 }
 
 export interface LevelHandle { destroy: () => void; pause: () => void; resume: () => void }

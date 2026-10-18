@@ -4,6 +4,7 @@ import type { BiomeId } from '@odi/shared';
 import { biomeStats, calendarView, chestReady, dayKey, ensureDaily, levelProgress, nextTreasure, questDone } from '@odi/meta';
 import { useStore } from '../store';
 import { Bar, RewardChips } from '../ui/bits';
+import { TopBar } from '../ui/social';
 
 /** Yolculuk haritası: biyom biyom gruplanmış 40 düğüm. Kilit: önceki bölüm en az 1 yıldız. Üstte kompakt "Bugün" kartı ve sıradaki hazine. */
 export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; onToday: () => void }) {
@@ -11,7 +12,6 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   useEffect(() => { ref.current?.querySelector('.node.current')?.scrollIntoView({ block: 'center' }); }, []);
   const groups: { biome: BiomeId; levels: LevelPlan[] }[] = [];
   for (const l of HUMAN_JOURNEY.levels) { const g = groups[groups.length - 1]; if (g && g.biome === l.biome) g.levels.push(l); else groups.push({ biome: l.biome, levels: [l] }); }
-  const totalStars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   const today = dayKey(); const daily = ensureDaily(s.meta.daily, today);
   const cal = calendarView(s, today); const calReady = s.lastDay === today && !cal.claimedToday;
   const treasure = nextTreasure(unlocked, s.progress, s.meta.treasures);
@@ -19,14 +19,11 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const doneCount = daily.quests.filter(questDone).length;
   return (
     <div className="screen fade-in with-tabs" ref={ref}>
-      <div className="topbar">
-        <div className="brand">OD<span>İ</span> <span className="muted brand-sub">Sesin Yolu</span></div>
-        <div className="pills"><div className="pill">🪙 {s.coins}</div><div className="pill">⭐ {totalStars}</div>{s.streak > 1 && <div className="pill">🔥 {s.streak}</div>}</div>
-      </div>
+      <TopBar brand />
 
       <div className="card journey-card">
         <div className="row">
-          <div className="grow min0"><h2>{HUMAN_JOURNEY.name}</h2><div className="muted">Sv {lp.level} · {journey.stars}/{journey.maxStars} ⭐</div></div>
+          <div className="grow min0"><h2>{HUMAN_JOURNEY.name}</h2><div className="muted">Sv {lp.level} · {journey.stars}/{journey.maxStars} ⭐{s.streak > 1 ? ` · 🔥 ${s.streak}` : ''}</div></div>
           <button className="btn" onClick={() => onPlay(unlocked)}>Bölüm {unlocked} ▶</button>
         </div>
         <Bar value={journey.pct} label="Yolculuk ilerlemesi" />

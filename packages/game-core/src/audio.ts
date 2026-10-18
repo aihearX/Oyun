@@ -52,4 +52,6 @@ export const sfx = {
   tick: () => tone(1500, 0.03, 'square', 0.08),
   /** Tonotopi: koklea derinliğine göre nota (taban ince, apeks kalın) */
   toneAt: (freq: number, dur = 0.1) => tone(freq, dur, 'sine', 0.12),
+  /** yarış geri sayımı: 3-2-1 kısa bip, "Başla!" uzun ve tiz */
+  countdown: (go: boolean) => { if (go) { tone(880, 0.35, 'square', 0.2); setTimeout(() => tone(1320, 0.3, 'square', 0.16), 90); } else tone(440, 0.16, 'square', 0.2); },
 };
