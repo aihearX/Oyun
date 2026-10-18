@@ -24,6 +24,8 @@ interface Ghost {
   body: Phaser.GameObjects.Image; hat?: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text; dot: Phaser.GameObjects.Image;
   x: number; y: number; fromX: number; fromY: number; toX: number; toY: number; t0: number; dur: number;
   lastAt: number; pct: number; seen: boolean; stale: boolean; done: boolean;
+  /** isim etiketinin kafadan yüksekliği: yan yana koşanların etiketleri üst üste binmesin diye sırayla kademeli */
+  labelDy: number;
 }
 
 export interface RaceHost {
@@ -72,14 +74,14 @@ export class RaceLayer {
     const { scene } = this.host;
     const key = heroTexture(scene, `odi-g${(info.color & 0xffffff).toString(16)}`, info.color, HERO_SIZE, 'happy');
     // başlangıç dizilişi: konumu gelene kadar kahramanın arkasında sıra (herkes aynı noktadan başlar)
-    const x = Math.max(16, this.host.startX - 28 * (i + 1)); const y = this.host.startY;
+    const x = Math.max(16, this.host.startX - 30 * (i + 1)); const y = this.host.startY; const labelDy = HERO_SIZE + 6 + (i % 2) * 17;
     const body = scene.add.image(x, y, key).setOrigin(0.5, 1).setAlpha(GHOST_ALPHA).setDepth(18);
     const hk = info.hat ? hatTexture(scene, info.hat) : null;
     const hat = hk ? scene.add.image(x, y - HERO_SIZE / 2, hk).setAlpha(GHOST_ALPHA).setDepth(18.5) : undefined;
-    const label = scene.add.text(x, y - HERO_SIZE - 6, info.name, { fontFamily: FONT, fontSize: '12px', fontStyle: '800', color: '#ffffff', backgroundColor: 'rgba(19,22,42,0.55)', padding: { x: 6, y: 2 } })
+    const label = scene.add.text(x, y - labelDy, info.name, { fontFamily: FONT, fontSize: '12px', fontStyle: '800', color: '#ffffff', backgroundColor: 'rgba(19,22,42,0.55)', padding: { x: 6, y: 2 } })
       .setOrigin(0.5, 1).setDepth(19).setAlpha(0.9);
     const dot = scene.add.image(this.x0, this.stripY, key).setScale(0.42).setScrollFactor(0).setDepth(105);
-    return { info, body, hat, label, dot, x, y, fromX: x, fromY: y, toX: x, toY: y, t0: 0, dur: 1, lastAt: 0, pct: 0, seen: false, stale: false, done: false };
+    return { info, body, hat, label, dot, x, y, fromX: x, fromY: y, toX: x, toY: y, t0: 0, dur: 1, lastAt: 0, pct: 0, seen: false, stale: false, done: false, labelDy };
   }
 
   private onPos(p: RacePosUpdate) {
@@ -129,7 +131,7 @@ export class RaceLayer {
     for (const g of this.ghosts.values()) {
       const k = Math.min(1, (now - g.t0) / g.dur);
       g.x = g.fromX + (g.toX - g.fromX) * k; g.y = g.fromY + (g.toY - g.fromY) * k;
-      g.body.setPosition(g.x, g.y); g.hat?.setPosition(g.x, g.y - HERO_SIZE / 2); g.label.setPosition(g.x, g.y - HERO_SIZE - 6);
+      g.body.setPosition(g.x, g.y); g.hat?.setPosition(g.x, g.y - HERO_SIZE / 2); g.label.setPosition(g.x, g.y - g.labelDy);
       const stale = g.seen && !g.done && now - g.lastAt > STALE_MS;
       if (stale !== g.stale) { g.stale = stale; const a = stale ? 0.18 : GHOST_ALPHA; g.body.setAlpha(a); g.hat?.setAlpha(a); g.label.setAlpha(stale ? 0.45 : 0.9); g.dot.setAlpha(stale ? 0.4 : 1); }
       g.dot.setX(this.x0 + (this.x1 - this.x0) * g.pct);

@@ -65,7 +65,8 @@ function Camp() {
   return (
     <div className="stack">
       {active && <Construction b={active} camp={camp} sNow={sNow} />}
-      {!active && <div className="card idle-card"><span aria-hidden>👷</span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.</div></div></div>}
+      {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
+        <div className="card idle-card"><span aria-hidden>👷</span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
 
       {depot > 0 && (
         <div className="card depot">
@@ -76,7 +77,13 @@ function Camp() {
         </div>
       )}
 
-      {bonuses && <div className="bonus-row" aria-label="Kamp ve takım etkileri"><span>🪙 +%{bonuses.coinPct}</span><span>🛡️ %{bonuses.shieldChancePct}</span><span>💚 %{bonuses.firstHitIgnorePct}</span><span>⚔️ +%{bonuses.warPct}</span><span>👹 +%{bonuses.raidPct}</span></div>}
+      {bonuses && Object.values(bonuses).some((v) => v > 0) && (
+        <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
+          <span className="muted small-note">Kamp + takım etkilerin</span>
+          <div className="bonus-row">
+            <span><b>+%{bonuses.coinPct}</b>🪙 jeton</span><span><b>%{bonuses.shieldChancePct}</b>🛡️ kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b>💚 revir</span><span><b>+%{bonuses.warPct}</b>⚔️ savaş</span><span><b>+%{bonuses.raidPct}</b>👹 baskın</span>
+          </div>
+        </div>)}
 
       {BUILDINGS.map((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; const cost = buildCost(d.id, to); const max = b.level >= d.maxLevel;
         const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active; const poor = wallet.jeton < cost.jeton;

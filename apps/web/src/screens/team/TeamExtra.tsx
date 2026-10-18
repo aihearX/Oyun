@@ -7,6 +7,8 @@ import { Bar } from '../../ui/bits';
 import { Empty, FloatBurst, ItemChips, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
 
 const DONATE = [100, 500, 1000];
+/** açıklamanın sonundaki birim: '+%', '-%' ya da '+' */
+const unitOf = (desc: string) => /[+-]%?$/.exec(desc)?.[0] ?? '';
 
 /** Teknoloji: üyeler bağışlar, herkes yararlanır. Etki metni açık. */
 export function TeamTech() {
@@ -27,7 +29,8 @@ export function TeamTech() {
           <div className="row">
             <span className="tech-i" aria-hidden>{d.emoji}</span>
             <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {st.level}/{d.maxLevel}</span></div>
-              <div className="tech-eff">{st.level > 0 ? `${d.desc}${st.level * d.perLevel}` : `${d.desc}0`}{!max && <span className="muted"> → {d.desc}{(st.level + 1) * d.perLevel}</span>}</div>
+              <div className="tech-eff">{d.desc}{st.level * d.perLevel}</div>
+              {!max && <div className="muted small-note">Sv {st.level + 1}: {unitOf(d.desc)}{(st.level + 1) * d.perLevel}</div>}
             </div>
           </div>
           {!max ? <>

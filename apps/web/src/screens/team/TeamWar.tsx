@@ -12,7 +12,6 @@ import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
 const SNAKE = [0, 1, 2, 5, 4, 3, 6, 7, 8, 11, 10, 9];
 const CX = [50, 150, 250];
 const PATH = SNAKE.map((_, i) => { const row = Math.floor(i / 3); const col = row % 2 === 0 ? i % 3 : 2 - (i % 3); return `${CX[col]},${row * 100 + 50}`; }).join(' ');
-const short = (n: string) => n.replace('Kulak ', '').replace('İşitme ', '');
 
 /** Bölge Savaşı: 12 bölge, sahip amblemleri, hedefler, ilk 5, geri sayım; lider/yardımcı hedef seçer. */
 export function TeamWar() {
@@ -49,7 +48,7 @@ export function TeamWar() {
         <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen: <b>{fmtNum(war.myPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
         <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına 💎 50 + 🪙 300.</div>
         {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç.' : 'Liderin hedef seçmesini bekle; sohbette öner!'}</div>
-          : fit ? <button className="btn" onClick={() => nav.play(fit.number)}>▶ {fit.number}. bölüm · {BIOMES[fit.biome].name} puan yazar</button>
+          : fit ? <button className="btn" onClick={() => nav.play(fit.number)}>▶ {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
           : <div className="war-cta muted">Hedef bölgelerin henüz açmadığın biyomlarda. Haritada ilerledikçe açılır.</div>}
       </div>
 
@@ -64,7 +63,7 @@ export function TeamWar() {
             onClick={() => (edit ? toggle(r.id) : setSel(r))} aria-pressed={edit ? target : undefined} aria-label={`${r.name}${r.owner ? `, sahibi ${r.owner.name}` : ', sahipsiz'}${target ? ', hedef' : ''}`}>
             <span className="rg-n">{idx + 1}</span>{target && <span className="rg-t" aria-hidden>🎯</span>}
             <span className="rg-e" aria-hidden>{r.owner?.emblem ?? '🏳️'}</span>
-            <span className="rg-name">{short(r.name)}</span>
+            <span className="rg-name">{r.name}</span>
             <span className="rg-p">{r.owner ? fmtNum(r.owner.points) : '—'}</span>
           </button>); })}
       </div>

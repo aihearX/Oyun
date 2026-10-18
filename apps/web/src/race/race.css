@@ -61,7 +61,6 @@
 
 /* davet kartı (ekranın üstünde) */
 .race-invite { position:fixed; top:calc(env(safe-area-inset-top,0px) + 10px); left:50%; transform:translateX(-50%); width:min(460px, calc(100vw - 20px)); z-index:70; display:flex; align-items:center; gap:8px; background:#fff; border:2px solid var(--accent); border-radius:18px; padding:8px 10px; box-shadow:0 12px 32px rgba(19,22,42,.18); animation:race-drop .3s cubic-bezier(.2,.9,.3,1.2); }
-.race-invite.inline { position:static; transform:none; width:100%; box-shadow:none; animation:none; }
 .race-invite .ri-body { flex:1; display:flex; flex-direction:column; }
 .race-invite .ri-body b { font-size:14px; }
 .race-invite .ri-body small { font-size:12px; }

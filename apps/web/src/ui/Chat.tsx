@@ -81,10 +81,10 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
           );
         })}
       </div>
-      <div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`${e} gönder`}>{e}</button>)}</div>
+      <div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`Hızlı tepki ${e}`}>{e}</button>)}</div>
       {err && <div className="chat-err" role="alert">{err}</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
-        <input value={text} maxLength={SOCIAL_LIMITS.chatMax} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Mesaj" enterKeyHint="send" />
+        <input className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label="Mesaj" enterKeyHint="send" />
         <button className="btn small" type="submit" disabled={!text.trim()} aria-label="Gönder">➤</button>
       </form>
       {menu && (

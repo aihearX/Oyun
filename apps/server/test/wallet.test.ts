@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
 import { SKILL_TREE } from '@odi/content';
-import { LOCAL_JETON_DAILY_MAX } from '../src/wallet';
+import { DEVIR_MAX, LOCAL_JETON_DAILY_MAX } from '../src/wallet';
 import { setup, run, type Env } from './helpers';
 
 let env: Env;
@@ -34,6 +34,20 @@ describe('yerel ödül cüzdanı (wallet.local)', () => {
     expect((await a.call('wallet.get', {})).wallet.jeton).toBe(100 + 600);
     env.clock.advance(24 * 3600_000);
     expect((await a.call('wallet.local', { ledgerId: 'a4', jeton: 30, reason: 'gorev:x' })).credited).toBe(30);
+  });
+
+  it('devir: yeni hesapta bir kez, en çok 3000, günlük sınırı tüketmez; 24 saatten sonra yok', async () => {
+    env = await setup();
+    const a = await env.connect('Ayşe');
+    const d = await a.call('wallet.local', { ledgerId: 'devir', jeton: 5000, reason: 'devir' });
+    expect(d.credited).toBe(DEVIR_MAX);
+    expect(d.dailyLeft).toBe(LOCAL_JETON_DAILY_MAX);
+    expect((await a.call('wallet.local', { ledgerId: 'devir-2', jeton: 100, reason: 'devir' })).credited).toBe(0);
+    expect((await a.call('wallet.local', { ledgerId: 'g1', jeton: 50, reason: 'gorev:x' })).credited).toBe(50);
+    expect((await a.call('wallet.get', {})).wallet.jeton).toBe(100 + DEVIR_MAX + 50);
+    const b = await env.connect('Bora');
+    env.clock.advance(25 * 3600_000);
+    expect((await b.call('wallet.local', { ledgerId: 'devir', jeton: 500, reason: 'devir' })).credited).toBe(0);
   });
 
   it('geçersiz veri reddedilir', async () => {

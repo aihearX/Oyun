@@ -4,24 +4,33 @@ import { leaguePointsFor } from '@odi/shared';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
 import { errText } from '../net';
-import { fmtSec, levelName, placeMedal, raceBonus, raceTimeSec, standings, useRaceNet } from './common';
-import { useRaceInvites } from './useRaceInvites';
+import { useNet } from '@odi/net/store';
+import { fmtSec, levelName, newerRoom, placeMedal, raceBonus, raceTimeSec, standings, useRaceNet } from './common';
 import './race.css';
 
 /**
  * Yarış sonucu: sunucunun odası tek doğru kaynaktır (her istemcide aynı sıra). Diğerleri bitirene kadar canlı güncellenir.
  * "Rövanş": aynı bölümde yeni oda + odadaki herkese davet → onRematch(yeniOdaId). "Lobiye dön": onLobby().
+ * Rakibin rövanş daveti uygulamanın genel davet kartıyla (RaceInviteBanner) gelir.
  */
 export function RaceResult({ room: initial, result, onRematch, onLobby }: { room: RaceRoom; result?: RunResult; onRematch: (roomId: string) => void; onLobby: () => void }) {
   const { net, meId } = useRaceNet();
-  const [room, setRoom] = useState(initial);
+  const [local, setRoom] = useState(initial);
+  // depo (bindNet) her 'race.updated' olayını tutar: bu ekran açılmadan hemen önce gelen son güncelleme de kaçmaz
+  const stored = useNet((s) => s.race);
+  const room = newerRoom(local, stored) ?? local;
   const [busy, setBusy] = useState(false);
+  const [live, setLive] = useState<Record<string, number>>({});
   const [err, setErr] = useState<string | null>(null);
-  const { invite, accept, dismiss } = useRaceInvites();
   useEffect(() => { setRoom(initial); }, [initial]);
   useEffect(() => {
     if (!net) return;
-    return net.on('race.updated', ({ room: r }) => { if (r.id === initial.id) setRoom(r); });
+    const offs = [
+      net.on('race.updated', ({ room: r }) => { if (r.id === initial.id) setRoom((cur) => newerRoom(cur, r) ?? r); }),
+      // hâlâ koşanların canlı ilerlemesi (konum akışından)
+      net.on('race.pos', (p) => setLive((m) => (m[p.id] === p.pct ? m : { ...m, [p.id]: p.pct }))),
+    ];
+    return () => { for (const o of offs) o(); };
   }, [net, initial.id]);
   const done = room.status === 'bitti';
   useEffect(() => { if (done) platform().haptic('success'); }, [done]);
@@ -32,7 +41,6 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
   const headline = myPlace === 1 ? '🏆 Birinci oldun!' : myPlace === 2 ? '🥈 İkinci oldun!' : myPlace === 3 ? '🥉 Üçüncü oldun!' : myPlace != null ? `${myPlace}. oldun!` : result && !result.completed ? 'Bu sefer olmadı' : 'Yarış bitti';
   const myLeague = result ? leaguePointsFor({ completed: result.completed, stars: result.stars }, myPlace) : null;
   const rivals = room.players.filter((p) => p.id !== meId);
-  const rematchInvite = invite && invite.room.id !== room.id && rivals.some((p) => p.id === invite.from.id) ? invite : null;
 
   const rematch = async () => {
     if (!net) return;
@@ -56,7 +64,7 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
       <ol className="race-standings" aria-label="Sıralama">
         {order.map((p, i) => {
           const t = raceTimeSec(room, p);
-          const status = p.place != null ? (t != null ? fmtSec(t) : 'Bitirdi') : p.left ? 'Ayrıldı' : p.finishedAt != null ? 'Bitiremedi' : done ? 'Bitiremedi' : `Yarışta · %${Math.round(p.pct * 100)}`;
+          const status = p.place != null ? (t != null ? fmtSec(t) : 'Bitirdi') : p.left ? 'Ayrıldı' : p.finishedAt != null ? 'Bitiremedi' : done ? 'Bitiremedi' : `Yarışta · %${Math.round(Math.max(p.pct, live[p.id] ?? 0) * 100)}`;
           return (
             <li key={p.id} className={`race-row${p.id === meId ? ' me' : ''}${p.place === 1 ? ' first' : ''}`} data-testid="yaris-sonuc-sira" data-name={p.name} data-place={p.place ?? ''}>
               <span className="race-rank">{p.place != null ? <>{placeMedal(p.place) || ''}<b>{p.place}.</b></> : <b>{done ? '–' : `${i + 1}`}</b>}</span>
@@ -74,14 +82,6 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
         <div className="card race-league-card">
           <b>Bu yarıştan {myLeague} lig puanı</b>
           <small className="muted">Bölüm ({result!.completed ? `${5 + result!.stars * 5}` : '1'}) + yarış derecesi ({raceBonus(myPlace)}). Puanı sunucu hesaplar; parayla alınamaz.</small>
-        </div>
-      )}
-      {rematchInvite && (
-        <div className="race-invite inline" data-testid="yaris-rovans-daveti">
-          <OdiAvatar color={rematchInvite.from.color} hat={rematchInvite.from.hat} size={40} mood="wow" />
-          <div className="ri-body min0"><b className="ellipsis">{rematchInvite.from.name} rövanş istiyor!</b></div>
-          <button className="btn small" onClick={() => { const id = accept(); if (id) onRematch(id); }}>Katıl</button>
-          <button className="btn ghost small" aria-label="Kapat" onClick={dismiss}>✕</button>
         </div>
       )}
       <div className="race-actions">

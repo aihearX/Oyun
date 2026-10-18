@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { platform } from '../platform';
 import { getNet } from '../net';
+import { newerRoom } from '../race/common';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
 
 declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom } } }
@@ -26,8 +27,10 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
     if (race && net) {
       offs.push(net.on('race.updated', ({ room }) => {
         if (room.id !== race.id) return;
-        latest = room; bus.race = room;
+        latest = newerRoom(latest, room); bus.race = latest;
         if (room.status === 'lobi' && !finished) setRaceNote('Yarış iptal oldu: rakip geri sayımda ayrıldı.');
+        // sunucu yarışı bitirdi (süre doldu ya da ilk bitirenden sonra bekleme süresi geçti) ama ben hâlâ koşuyorum: koşu biter, sonuç gösterilir
+        if (room.status === 'bitti' && !finished) setTimeout(() => { if (!finished) handle.current?.end('yaris-bitti'); }, 1200);
       }));
       raceOpt = {
         meId: net.me?.id ?? '',
@@ -54,7 +57,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, extra
         if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
         if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
           finished = true; bus.result = e.result;
-          if (race) void finishRace(e.result).then((room) => { bus.race = room; bus.done = true; setTimeout(() => onDone(e.result, room), 200); });
+          // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)
+          if (race) void finishRace(e.result).then((room) => { latest = newerRoom(latest, room); bus.race = latest; bus.done = true; setTimeout(() => onDone(e.result, latest), 200); });
           else { bus.done = true; if (!bot) setTimeout(() => onDone(e.result), 200); }
         }
       },

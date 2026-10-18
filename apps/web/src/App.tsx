@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_COLOR_ID, DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
@@ -56,6 +56,7 @@ function botParams() {
 /**
  * Geliştirme önizlemesi: `?demo=sonuc&yildiz=3&skor=1234&rekor=1[&seviye=1][&sans=1][&acilim=1][&bolum=8]`
  * Sonuç ekranını sahte bir çekirdek üzerinde gösterir; kayda hiçbir şey yazmaz (üretimde zararsız).
+ * `&katki=1`: takım katkısı satırlarını örnek bir sunucu onayıyla gösterir (yalnızca görünüm; sunucuya bir şey gitmez).
  */
 function demoResult(): Extract<Route, { name: 'result' }> | null {
   const q = new URLSearchParams(location.search); if (q.get('demo') !== 'sonuc') return null;
@@ -76,7 +77,7 @@ function demoResult(): Extract<Route, { name: 'result' }> | null {
   const L = 3; const xp = levelUp ? xpThreshold(L + 1) - 12 : xpThreshold(L) + 40;
   const base = { ...settle<PlayerCore>({ progress, coins: 140, xp, streak: 3, lastDay: dayKey(), failStreak: 0, skills: DEFAULT_SKILLS, meta }).core, xp };
   const { summary } = processRun(base, spec, result, dayKey());
-  return { name: 'result', spec, result, summary, demo: true };
+  return { name: 'result', spec, result, summary, demo: true, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}) };
 }
 
 export function App() {
@@ -85,6 +86,8 @@ export function App() {
   const invite = useMemo(() => (bot ? null : readInvite()), [bot]);
   const store = useStore();
   const [route, setRoute] = useState<Route>(demo ?? { name: 'title' });
+  // alt ekran geçmişi (ör. Arkadaşlar → özel sohbet → geri: Arkadaşlar)
+  const stack = useRef<Route[]>([]);
 
   useEffect(() => {
     if (!bot) return;
@@ -94,7 +97,15 @@ export function App() {
   useEffect(() => { setSoundsEnabled(store.sounds); }, [store.sounds]);
   // sosyal katman: bot modunda hiç başlamaz (harness sözleşmesi ve konsol temiz kalsın)
   useEffect(() => { if (!bot) startNet(); }, [bot]);
+  useEffect(() => {
+    if (demo?.runId !== 'demo') return;
+    const r = demo.result;
+    useSocial.setState({ lastRun: { runId: 'demo', state: 'tamam', biome: demo.spec.biome, level: demo.spec.number, completed: r.completed,
+      ack: { highest: demo.spec.number + 1, stars: 0, warPoints: r.completed ? 10 * r.stars + Math.ceil(demo.spec.number / 4) : 0, raidDamage: r.completed ? 5 + 5 * r.stars : 0, leaguePoints: r.completed ? 5 + 5 * r.stars : 1, newInbox: 0, jeton: Math.round(r.coins * 1.06), wallet: { jeton: 0, kristal: 0, hizlandirici: { m5: 0, m60: 0, s8: 0 } } } } });
+  }, [demo]);
   const socialBadges = useSocialBadges(store.coins);
+  // ekran değişince en üstten başla (harita kendi kaydırmasını yapar)
+  useEffect(() => { if (route.name !== 'level' && route.name !== 'map') window.scrollTo(0, 0); }, [route.name, 'room' in route ? route.room : '']);
 
   const play = (number: number) => {
     const s = useStore.getState();
@@ -117,14 +128,15 @@ export function App() {
   // sekme rozetleri: bekleyen (alınabilir) ödüller
   const today = dayKey(); const daily = ensureDaily(store.meta.daily, today);
   const todayBadge = daily.quests.filter((q) => questDone(q) && !q.claimed).length + (chestReady(daily) ? 1 : 0) + (store.lastDay === today && !calendarView(store, today).claimedToday ? 1 : 0);
-  const tab = (t: Tab) => setRoute({ name: t });
+  const tab = (t: Tab) => { stack.current = []; setRoute({ name: t }); };
   const curTab: Tab = 'back' in route ? route.back : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
-  const nav: Nav = { open: (r) => setRoute({ ...r, back: curTab, key: Date.now() } as Route), play, tab };
+  const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
+  const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
   const banner = <RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} />;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team }} /><Toasts /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<Toasts /></NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
-  const back = (r: { back: Tab }) => () => setRoute({ name: r.back });
+  const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
 
   switch (route.name) {
     case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={() => { store.touchDay(); setRoute({ name: 'map' }); }} />;
@@ -143,7 +155,11 @@ export function App() {
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
     case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds} extras={r.extras} race={r.race}
       onDone={(result, room) => {
-        if (r.race) { store.completeRun(r.spec, result); submitRun(r.spec, result, r.race.id); setRoute({ name: 'raceResult', room: room ?? r.race, result, back: curTab }); return; }
+        if (r.race) {
+          // yarış bölümü açık bölümlerdense ilerlemeye ve takıma sayılır (rövanşta açılmamış bölüm sayılmaz)
+          if (r.spec.number <= store.highestUnlocked()) { store.completeRun(r.spec, result); submitRun(r.spec, result, r.race.id); }
+          setRoute({ name: 'raceResult', room: room ?? r.race, result, back: curTab }); return;
+        }
         const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result); setRoute({ name: 'result', spec: r.spec, result, summary, runId });
       }}
       onQuit={() => setRoute(r.race ? { name: 'race', back: 'team', key: Date.now() } : { name: 'map' })} />; }

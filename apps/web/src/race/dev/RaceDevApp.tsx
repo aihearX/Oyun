@@ -46,6 +46,9 @@ export function RaceDevApp() {
     </>;
     case 'level': return <LevelHost spec={route.spec} skills={DEFAULT_SKILLS} sounds={!BOT} bot={BOT} race={route.room} raceBotDelayMs={BOT_DELAY}
       onDone={(result, room) => setRoute({ name: 'result', room: room ?? route.room, result })} onQuit={() => lobby()} />;
-    case 'result': return <RaceResult room={route.room} result={route.result} onRematch={(id) => lobby(id)} onLobby={() => lobby()} />;
+    case 'result': return <>
+      <RaceInviteBanner onAccept={(id) => lobby(id)} />
+      <RaceResult room={route.room} result={route.result} onRematch={(id) => lobby(id)} onLobby={() => lobby()} />
+    </>;
   }
 }

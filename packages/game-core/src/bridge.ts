@@ -58,4 +58,8 @@ export interface LevelOptions {
   race?: RaceOptions;
 }
 
-export interface LevelHandle { destroy: () => void; pause: () => void; resume: () => void }
+export interface LevelHandle {
+  destroy: () => void; pause: () => void; resume: () => void;
+  /** koşuyu dışarıdan sonlandır (ör. canlı yarış sunucuda bitti): bitmemişse 'levelFailed' olayı gelir */
+  end: (reason: string) => void;
+}

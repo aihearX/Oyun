@@ -333,7 +333,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.state.finished) return; this.state.finished = true; this.comboMeter.tick(0); this.race?.finished(false);
     this.hud.set(this.state.score, this.state.lives); const r = this.withJuice(this.result(false)); sfx.gameOver(); this.hero.mood('hurt'); this.emit({ type: 'haptic', kind: 'error' });
     const pct = Math.max(0, Math.min(1, this.hero.x / this.gateX));
-    endCard(this, { title: reason === 'fall' ? 'Düştün…' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
+    endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
     this.time.delayedCall(this.opts.bot ? 100 : 900, () => this.emit({ type: 'levelFailed', result: { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000 } } }));
   }
 

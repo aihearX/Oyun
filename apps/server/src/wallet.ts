@@ -9,6 +9,9 @@ import { dayKey } from './time';
  * ama sahte istemcinin sınırsız jeton basmasını engeller.
  */
 export const LOCAL_JETON_DAILY_MAX = 600;
+/** Hesap ilk kez açılırken cihazdaki çevrimdışı jetonun devri: hesap başına bir kez, ilk 24 saatte, en çok bu kadar (günlük sınırdan ayrı) */
+export const DEVIR_MAX = 3000;
+const DEVIR_WINDOW_MS = 24 * 3_600_000;
 
 export function localCreditedToday(app: App, pid: string): number {
   return app.db.get<{ s: number | null }>('SELECT SUM(credited) AS s FROM local_grants WHERE player_id = ? AND day = ?', pid, dayKey(app.now()))!.s ?? 0;
@@ -22,6 +25,15 @@ export const walletHandlers: Handlers = {
   'wallet.local': (app, s, { ledgerId, jeton, reason }) => {
     const prev = app.db.get<{ credited: number }>('SELECT credited FROM local_grants WHERE player_id = ? AND ledger_id = ?', s.pid, ledgerId);
     if (prev) return { wallet: app.wallet(s.pid), credited: prev.credited, dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid)) };
+    if (reason === 'devir') {
+      // cihazdaki çevrimdışı birikim: yalnızca yeni hesapta, bir kez
+      const p = app.player(s.pid);
+      const done = app.db.get('SELECT 1 AS x FROM local_grants WHERE player_id = ? AND reason = ?', s.pid, 'devir');
+      const credited = done || app.now() - p.created_at > DEVIR_WINDOW_MS ? 0 : Math.min(jeton, DEVIR_MAX);
+      app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)', s.pid, ledgerId, jeton, credited, reason, 'devir', app.now());
+      app.addCurrency(s.pid, 'jeton', credited);
+      return { wallet: app.walletChanged(s.pid), credited, dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid)) };
+    }
     const left = Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid));
     const credited = Math.min(jeton, left);
     app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)',

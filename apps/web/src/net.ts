@@ -102,7 +102,8 @@ async function flushOutbox(): Promise<void> {
       try {
         if (item.k === 'local') {
           const r = await client.call('wallet.local', { ledgerId: item.ledgerId, jeton: item.jeton, reason: item.reason });
-          if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır 600. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
+          if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); }
+          else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır 600. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
         } else {
           const r = await client.call('wallet.spend', { jeton: item.jeton, reason: item.reason });
           applyServerSkills(r.skills);
@@ -216,8 +217,20 @@ export function startNet(): void {
   useSocial.setState({ enabled: true });
   void (async () => {
     sent = new Set(await readJson<string[]>(K.sent, []));
-    const outbox = await readJson<OutItem[]>(K.outbox, []);
-    useSocial.setState({ outbox: Array.isArray(outbox) ? outbox : [] });
+    let outbox = await readJson<OutItem[]>(K.outbox, []);
+    if (!Array.isArray(outbox)) outbox = [];
+    // ilk kez hesap açılacaksa: cihazdaki çevrimdışı jeton bir kez hesaba devredilir (sunucu: yeni hesapta, en çok 3000);
+    // devre dahil olan eski defter kayıtları ayrıca gönderilmez (iki kez sayılmasın)
+    const hadToken = !!(await store().getItem(K.token).catch(() => null));
+    if (!hadToken) {
+      const st = useStore.getState();
+      for (const g of st.meta.ledger) sent.add(ledgerKey(g.at, g.reason));
+      writeJson(K.sent, [...sent].slice(-300));
+      outbox = outbox.filter((o) => !(o.k === 'local' && o.reason === 'devir'));
+      if (st.coins > 0) outbox = [{ k: 'local', ledgerId: `devir-${Date.now().toString(36)}`, jeton: Math.round(st.coins), reason: 'devir' }, ...outbox];
+      writeJson(K.outbox, outbox);
+    }
+    useSocial.setState({ outbox });
     client = createClient({
       url,
       getToken: () => store().getItem(K.token),
@@ -233,6 +246,7 @@ export function startNet(): void {
     c.on('camp.updated', () => { void c.call('me.bonuses', {}).then((b) => useSocial.setState({ bonuses: b })).catch(() => undefined); });
     c.on('team.extra.updated', () => { void c.call('me.bonuses', {}).then((b) => useSocial.setState({ bonuses: b })).catch(() => undefined); });
     c.on('team.updated', ({ team }) => { if (team) void c.call('war.state', {}).then((w) => useNet.setState({ war: w.war })).catch(() => undefined); });
+    c.on('team.help', ({ request }) => useNet.setState((s) => (s.team ? { team: { ...s.team, help: [request, ...s.team.help.filter((h) => h.id !== request.id)] } } : {})));
     c.on('camp.helped', ({ name, seconds }) => toast('🤝', `${name} inşaatını hızlandırdı`, `−${fmtShort(seconds)}`, 'green'));
     c.on('team.gift', ({ gift }) => toast('🎁', 'Takım hediyesi geldi!', gift.reason, 'gold'));
     useStore.subscribe((n, p) => { if (n.meta.ledger !== p.meta.ledger) scanLedger(); });

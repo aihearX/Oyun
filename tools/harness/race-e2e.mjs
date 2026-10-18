@@ -21,11 +21,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const run = (cmd, a, opts = {}) => new Promise((res, rej) => { const p = spawn(cmd, a, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts }); p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`${cmd} ${a.join(' ')} → ${c}`)))); });
 
 const cleanup = [];
-const fail = async (msg) => { console.error(`\n✗ ${msg}`); for (const f of cleanup.reverse()) { try { await f(); } catch { /* yok */ } } process.exit(1); };
+const ps = [];
+const fail = async (msg) => {
+  console.error(`\n✗ ${msg} (${new Date().toISOString().slice(11, 19)})`);
+  // tanı: her istemcinin ekranı ve son durumu
+  for (const p of ps) {
+    try {
+      await p.page.screenshot({ path: resolve(outDir, `hata-${p.name}.png`) });
+      console.error(`  ${p.name}:`, JSON.stringify(await p.page.evaluate(() => ({ route: window.__yaris?.route, events: (window.__odi?.events ?? []).filter((e) => e.type !== 'haptic' && e.type !== 'progress').map((e) => e.type), last: (window.__odi?.events ?? []).filter((e) => e.type === 'progress').pop(), race: window.__odi?.race?.status }))), p.errors.slice(0, 5));
+    } catch { /* yok */ }
+  }
+  for (const f of cleanup.reverse()) { try { await f(); } catch { /* yok */ } } process.exit(1); };
 
 // ---------------------------------------------------------------- 1) sunucu (arka planda, bellek içi veritabanı)
+const { createServer } = await import('node:net');
+const freePort = () => new Promise((res) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => res(port)); }); });
 await run('npm', ['run', 'build', '-w', '@odi/server']);
-const srvPort = 8900 + Math.floor(Math.random() * 400);
+const srvPort = await freePort();
+
 const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', resolve(root, 'apps/server/dist/server.mjs')], {
   cwd: root, env: { ...process.env, PORT: String(srvPort), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -49,7 +62,7 @@ if (!args['no-build'] || !existsSync(resolve(distDir, testPage))) {
     build: { outDir: distDir, emptyOutDir: true, rollupOptions: { input: { main: resolve(webRoot, 'index.html'), yaris: resolve(webRoot, testPage) } } },
   });
 }
-const webPort = 4700 + Math.floor(Math.random() * 300);
+const webPort = await freePort();
 const pv = await vite.preview({ root: webRoot, configFile: resolve(webRoot, 'vite.config.ts'), logLevel: 'warn', build: { outDir: distDir }, preview: { port: webPort, strictPort: true, host: '127.0.0.1' } });
 cleanup.push(async () => { await pv.close(); });
 const base = `http://127.0.0.1:${webPort}`;
@@ -71,7 +84,6 @@ cleanup.push(async () => browser.close());
 // bot gecikmeleri: botlar aynı bölümü aynı biçimde oynar; kısa gecikmeyle bitiş sırası ayrışır ve hayaletler aynı ekrana sığar
 const PLAYERS = [{ name: 'Ayşe', delay: 0 }, { name: 'Bora', delay: 350 }, { name: 'Cem', delay: 700 }];
 const shot = (p, file) => p.page.screenshot({ path: resolve(outDir, file) });
-const ps = [];
 for (const pl of PLAYERS) {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'tr-TR' });
   const page = await ctx.newPage();

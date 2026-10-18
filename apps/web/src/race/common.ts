@@ -36,6 +36,15 @@ export function raceTimeSec(room: RaceRoom, p: RacePlayer): number | null {
   return p.finishedAt != null && room.startsAt != null ? Math.max(0, (p.finishedAt - room.startsAt) / 1000) : null;
 }
 
+const STATUS_ORDER = { 'lobi': 0, 'geri-sayim': 1, 'yarista': 2, 'bitti': 3 } as const;
+/** aynı odanın iki görünümünden daha güncel olanı (olay ve yanıt sırası karışabilir): durum ilerlemesi, sonra bitiren sayısı */
+export function newerRoom(a: RaceRoom | undefined | null, b: RaceRoom | undefined | null): RaceRoom | undefined {
+  if (!a) return b ?? undefined; if (!b || b.id !== a.id) return a;
+  const done = (r: RaceRoom) => r.players.filter((p) => p.finishedAt != null || p.left).length;
+  const d = STATUS_ORDER[b.status] - STATUS_ORDER[a.status];
+  return d > 0 || (d === 0 && done(b) >= done(a)) ? b : a;
+}
+
 export const fmtSec = (s: number) => `${s.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sn`;
 export const fmtClock = (ms: number) => { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 export const placeMedal = (place: number | null) => (place === 1 ? '🥇' : place === 2 ? '🥈' : place === 3 ? '🥉' : '');
