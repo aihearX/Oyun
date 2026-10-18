@@ -1,5 +1,6 @@
 /** Harita kartları: bölüm kartı, hazine önizlemesi, bölge (biyom) kartı. Alt tabaka, dokununca kapanır. */
 import { useMemo, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { BIOMES, BOSSES, HUMAN_JOURNEY, MECHANICS, treasureAt } from '@odi/content';
 import { generateLevel } from '@odi/level-gen';
 import { albumProgress, biomeStats } from '@odi/meta';
@@ -12,13 +13,15 @@ import { treasureItems } from './goals';
 export type MapCard = { kind: 'node'; n: number } | { kind: 'treasure'; n: number } | { kind: 'zone'; z: ZoneId };
 
 function Sheet({ onClose, children, tone }: { onClose: () => void; children: ReactNode; tone?: string }) {
-  return (
+  // gövdeye taşınır: haritanın sabit katmanı sekme çubuğunun altında kalmasın
+  return createPortal(
     <div className="map-sheet-wrap" onClick={onClose} role="dialog" aria-modal="true">
-      <div className={`map-sheet${tone ? ` ${tone}` : ''}`} onClick={(e) => e.stopPropagation()} style={tone ? undefined : undefined}>
+      <div className={`map-sheet${tone ? ` ${tone}` : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;

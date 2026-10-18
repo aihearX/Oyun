@@ -12,7 +12,7 @@ import {
 /** kilitli bölge: gri tonlu + gece moruna boyanmış (mürekkep henüz yayılmamış harita) */
 const g3 = (k: number, o: number) => [0.3 * k, 0.59 * k, 0.11 * k, 0, o];
 const NIGHT_MATRIX = [...g3(0.46, 16), ...g3(0.4, 10), ...g3(0.66, 38), 0, 0, 0, 1, 0];
-const overlayAlpha = (v: Vitality) => (v === 0 ? 1 : v === 1 ? 0.55 : 0);
+const overlayAlpha = (v: Vitality) => (v === 0 ? 1 : v === 1 ? 0.42 : 0);
 const dullTint = (v: Vitality) => (v === 0 ? 0x6f6a90 : v === 1 ? 0xb9b3d6 : 0xffffff);
 
 /** light: hafif mod (az güçlü cihaz, test tarayıcısı, azaltılmış hareket) — sürekli döngü animasyonu ve parçacık yok */

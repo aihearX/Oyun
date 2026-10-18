@@ -288,6 +288,8 @@ try {
   await A.locator('.screen-head .btn').first().click();
   await tab(A, 'Kamp'); await A.locator('.camp-base').waitFor({ timeout: 20_000 }); await A.locator('.camp-loading').waitFor({ state: 'detached', timeout: 20_000 }); await shot(A, 'A-kamp');
   await tab(A, 'Bugün'); await shot(A, 'A-bugun');
+  // harita sosyal katmanı: arkadaş balonu (Bora) + takımın savaş bayrağı/hedefleri (gerçek sunucu verisi)
+  await tab(A, 'Harita'); await A.locator('.map-stage canvas').waitFor({ timeout: 20_000 }); await sleep(2500); await shot(A, 'A-harita-sosyal');
 
   step('14 · Sonuç ekranı katkı satırları (önizleme: gerçek takım + hedefler, örnek onay)');
   await A.goto(`http://localhost:${wport}/?demo=sonuc&yildiz=3&skor=1840&bolum=2&katki=1&sunucu=${encodeURIComponent(wsUrl)}`, { waitUntil: 'load' });

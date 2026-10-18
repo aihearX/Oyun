@@ -1,6 +1,6 @@
 /* Yaşayan Kulak Haritası — "Kulak Gecesi" teması: koyu cam HUD, altın vurgular, gece parşömeni çerçevesi. */
-.map-screen { --m-gold: var(--gold-bright, #ffc93c); --m-orange: #ff9f1c; --m-coral: var(--coral-bright, #ff5c8a); --m-teal: #2ee6d6; --m-violet: #8b6bff; --m-cream: var(--cream, #fff6e5); --m-ink: #140c35;
-  position: fixed; inset: 0; overflow: hidden; background: #140c35; color: var(--m-cream); touch-action: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
+.map-screen, .map-sheet-wrap { --m-gold: var(--gold, #ffc93c); --m-orange: var(--gold-2, #ff9f1c); --m-coral: var(--coral, #ff5c8a); --m-teal: var(--teal, #2ee6d6); --m-violet: var(--violet, #8b6bff); --m-cream: var(--cream, #fff6e5); --m-ink: var(--bg-0, #140c35); }
+.map-screen { position: fixed; inset: 0; overflow: hidden; background: #140c35; color: var(--m-cream); touch-action: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none; }
 .map-stage { position: absolute; inset: 0; }
 .map-stage canvas { display: block; touch-action: none; }
 

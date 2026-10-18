@@ -134,10 +134,14 @@ export function fogTex(scene: Phaser.Scene, R: number, v: number): string {
     const puffs: [number, number, number][] = v ? [[50, 66, 34], [92, 52, 42], [140, 64, 36], [70, 80, 30], [120, 82, 32]] : [[46, 70, 30], [84, 54, 38], [130, 50, 34], [160, 70, 28], [104, 80, 34], [64, 84, 26]];
     const path = () => { ctx.beginPath(); for (const [x, y, r] of puffs) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); } };
     ctx.save(); ctx.filter = 'blur(6px)'; path(); ctx.fillStyle = 'rgba(30,18,80,0.55)'; ctx.fill(); ctx.restore();
-    path(); const g = ctx.createLinearGradient(0, 15, 0, 110); g.addColorStop(0, '#5b4a9e'); g.addColorStop(1, '#2a1d63'); ctx.fillStyle = g; ctx.fill();
-    // üst ışıltı ve mürekkep kıvrımları
-    for (const [x, y, r] of puffs) { ctx.strokeStyle = 'rgba(190,175,255,0.45)'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.arc(x, y, r - 3, Math.PI * 1.1, Math.PI * 1.7); ctx.stroke(); }
-    ctx.strokeStyle = 'rgba(160,140,240,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(96, 64, 16, Math.PI * 0.2, Math.PI * 1.6); ctx.stroke();
+    path(); const g = ctx.createLinearGradient(0, 15, 0, 110); g.addColorStop(0, '#4f3f96'); g.addColorStop(1, '#22175a'); ctx.fillStyle = g; ctx.fill();
+    // her kabarcık: sol üstten ay ışığı alan yumuşak hacim
+    ctx.save(); path(); ctx.clip();
+    for (const [x, y, r] of puffs) { const rg = ctx.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.1, x, y, r); rg.addColorStop(0, 'rgba(170,150,255,0.55)'); rg.addColorStop(0.6, 'rgba(110,90,200,0.15)'); rg.addColorStop(1, 'rgba(40,25,100,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+    for (const [x, y, r] of puffs) { ctx.strokeStyle = 'rgba(205,190,255,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r - 3, Math.PI * 1.12, Math.PI * 1.62); ctx.stroke(); }
+    // gizem yıldızcıkları
+    for (const [x, y] of [[70, 50], [128, 40], [150, 74], [96, 78]] as [number, number][]) { ctx.fillStyle = 'rgba(255,240,190,0.85)'; ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 1, y - 1); ctx.lineTo(x + 4, y); ctx.lineTo(x + 1, y + 1); ctx.lineTo(x, y + 4); ctx.lineTo(x - 1, y + 1); ctx.lineTo(x - 4, y); ctx.lineTo(x - 1, y - 1); ctx.closePath(); ctx.fill(); }
   });
 }
 export function hazeTex(scene: Phaser.Scene): string {
