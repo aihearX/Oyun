@@ -100,7 +100,7 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
       if (needs.includes(latest)) w *= 2.2;
       if (c.tags.some((t) => focus.has(t))) w *= 3;
       if (last && c.tags.length && last.tags[0] === c.tags[0]) w *= 0.5; // aynı tür art arda gelmesin
-      if (prevIds.has(c.id)) w *= 0.25; // önceki bölümde vardı
+      if (prevIds.has(c.id)) w *= 0.1; // önceki iki bölümde vardı
       return { v: c, w };
     }))!;
     used.add(c.id);

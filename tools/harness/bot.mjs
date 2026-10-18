@@ -24,7 +24,7 @@ const run = (cmd, a, opts = {}) => new Promise((res, rej) => { const p = spawn(c
 
 if (!args['no-build'] || !existsSync(resolve(distDir, 'index.html'))) await run('npx', ['vite', 'build', '--outDir', distDir, '--emptyOutDir'], { cwd: resolve(root, 'apps/web') });
 const port = 4173 + Math.floor(Math.random() * 500);
-const preview = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32' });
+const preview = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32', detached: process.platform !== 'win32' });
 await new Promise((r) => setTimeout(r, 1500));
 const base = `http://localhost:${port}`;
 
@@ -59,7 +59,7 @@ const results = [];
 const queue = [...levels];
 await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, async () => { while (queue.length) { const n = queue.shift(); const r = await playLevel(n); results.push(r); const s = r.spec ?? {}; console.log(`L${String(n).padStart(2, '0')} ${(s.mechanic ?? '?').padEnd(9)} ${(s.biome ?? '?').padEnd(12)} ${(s.objective ?? '?').padEnd(11)} ${r.result ? (r.result.completed ? `OK ⭐${r.result.stars}` : 'FAIL  ') : 'TIMEOUT'} prog ${(r.progress * 100).toFixed(0).padStart(3)}% coins ${r.result?.coins ?? 0}/${s.coins ?? '?'} dmg ${r.result?.damageTaken ?? '-'} fall ${r.result?.deaths ?? '-'} ${r.result?.extra?.reason ?? ''} t=${r.result?.timeSec ?? '-'}s fps ${r.fps} wall ${r.wall}s${r.errors.length ? ' ERR: ' + r.errors.join(' | ').slice(0, 300) : ''}`); } }));
 results.sort((a, b) => a.n - b.n);
-await browser.close(); preview.kill();
+await browser.close(); try { if (process.platform !== 'win32') process.kill(-preview.pid); else preview.kill(); } catch { preview.kill(); }
 const failed = results.filter((r) => !r.result?.completed);
 const errored = results.filter((r) => r.errors.length);
 console.log(`\n${results.length} bölüm · ${results.length - failed.length} tamamlandı · ${failed.length} başarısız/timeout · ${errored.length} hatalı`);

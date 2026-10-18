@@ -48,7 +48,7 @@ export class LevelScene extends Phaser.Scene {
   private comboMeter!: ComboMeter; private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: TutorialOverlay; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
-  private resultSent = false;
+  private resultSent = false; private lastWall = 0;
 
   constructor() { super('level'); }
 
@@ -82,8 +82,7 @@ export class LevelScene extends Phaser.Scene {
     this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, this.spec.biome.startsWith('koklea') ? 0x0e9c98 : 0x6c4cf1);
     this.projLayer = createProjectileLayer(this);
     if (this.sim.boss) this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y);
-    const raceTop = this.opts.race ? 40 : 0;
-    this.hud = createHud(this, { title: `${this.spec.number} · ${this.spec.name} — ${this.spec.objective.label}`, objective: this.spec.objective.label, top: raceTop });
+    this.hud = createHud(this, { title: this.opts.race ? '' : `${this.spec.number} · ${this.spec.name} — ${this.spec.objective.label}`, objective: this.spec.objective.label });
     this.comboMeter = new ComboMeter(this, this.opts.race ? 156 : 122);
     if (!this.textures.exists('spark')) { const g = this.add.graphics(); g.fillStyle(0xffffff, 1); g.fillCircle(4, 4, 4); g.generateTexture('spark', 8, 8); g.destroy(); }
     this.sparks = this.add.particles(0, 0, 'spark', { speed: { min: 60, max: 220 }, angle: { min: 0, max: 360 }, scale: { start: 1, end: 0 }, alpha: { start: 1, end: 0 }, lifespan: 420, gravityY: 500, tint: [0xffc25c, 0xffe6a8, 0xffffff], emitting: false }).setDepth(30);
@@ -118,8 +117,11 @@ export class LevelScene extends Phaser.Scene {
   override update(_t: number, dtMs: number) {
     this.race?.update();
     this.tutorial?.tick();
-    if (!this.state.started || this.state.finished) { this.syncHero(); return; }
-    const realDt = Math.min(0.25, dtMs / 1000);
+    if (!this.state.started) { this.syncHero(); return; }
+    if (this.state.finished) return; // bitiş animasyonu kahraman sprite'ını kendisi taşır
+    // bot (harness): duvar saati — Phaser düşük kare hızında deltayı kırptığından simülasyon gerçek zamanın gerisinde kalmasın
+    const wall = performance.now(); const botDt = this.lastWall ? (wall - this.lastWall) / 1000 : dtMs / 1000; this.lastWall = wall;
+    const realDt = Math.min(0.25, this.opts.bot ? botDt : dtMs / 1000);
     const slow = this.tutorial ? TUTORIAL_SLOW : 1;
     this.acc += realDt * (this.opts.timeScale ?? 1) * slow;
     if (this.tutorial) { this.tutorialT += realDt; if (this.tutorialT > 6) this.endTutorial(false); }

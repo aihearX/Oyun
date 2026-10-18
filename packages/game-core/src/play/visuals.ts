@@ -341,7 +341,7 @@ export function createHud(s: Phaser.Scene, info: { title: string; objective: str
   const lives = s.add.text(GAME_W - 22, 33 + top, '', { fontFamily: FONT, fontSize: '18px' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(101);
   const barBg = s.add.rectangle(20, 64 + top, GAME_W - 40, 4, 0xffffff, 0.18).setOrigin(0, 0.5).setScrollFactor(0).setDepth(100);
   const bar = s.add.rectangle(20, 64 + top, 0, 4, 0xffd27a, 1).setOrigin(0, 0.5).setScrollFactor(0).setDepth(101);
-  const title = s.add.text(GAME_W / 2, 78 + top, info.title, { fontFamily: FONT, fontSize: '12px', fontStyle: '700', color: '#ffffff', backgroundColor: 'rgba(13,16,36,0.45)', padding: { x: 8, y: 2 } }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101);
+  const title = s.add.text(GAME_W / 2, 78 + top, info.title || ' ', { fontFamily: FONT, fontSize: '12px', fontStyle: '700', color: '#ffffff', backgroundColor: 'rgba(13,16,36,0.45)', padding: { x: 8, y: 2 } }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(101).setVisible(!!info.title);
   void barBg;
   let last: HudSnapshot | null = null;
   return {
