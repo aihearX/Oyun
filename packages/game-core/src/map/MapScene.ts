@@ -30,12 +30,14 @@ export class MapScene extends Phaser.Scene {
   private follow: (() => number) | null = null; private autoTarget: number | null = null;
   private busy = false; private queue: StarMap | null = null; private speed = 1; private curVisible = true;
   private progS = 0;
+  /** hafif mod: döngü animasyonu yok; boşta döngü tamamen uyur (dokununca uyanır) */
+  light = false; private lastInput = 0; private sleeping = false;
 
   constructor() { super('map'); }
 
   create() {
     this.opts = this.registry.get('mapOpts') as MapOptions;
-    this.dpr = (this.registry.get('dpr') as number) || 1;
+    this.dpr = (this.registry.get('dpr') as number) || 1; this.light = !!this.registry.get('light'); this.lastInput = this.time.now;
     this.L = buildLayout();
     this.cameras.main.setBackgroundColor('#140c35');
     this.fitCamera();
@@ -43,7 +45,7 @@ export class MapScene extends Phaser.Scene {
     this.shown = { ...sh };
     this.treasures = new Set(this.opts.treasuresOpen.filter((n) => (sh[n] ?? 0) > 0));
     const webgl = this.game.renderer.type === Phaser.WEBGL;
-    this.L.zones.forEach((z, i) => this.regions.push(new RegionView(this, { L: this.L, R: this.R, S: this.S, webgl, reduced: !!this.opts.reducedMotion }, z, i, zoneVitality(z.id, this.shown))));
+    this.L.zones.forEach((z, i) => this.regions.push(new RegionView(this, { L: this.L, R: this.R, S: this.S, webgl, reduced: !!this.opts.reducedMotion, light: this.light }, z, i, zoneVitality(z.id, this.shown))));
     // ilerleme yolu (bölge parçaları: görünmeyen parça çizilmez)
     for (const z of this.L.zones) { const g = this.add.graphics().setDepth(5); g.setData('y0', z.top - 80).setData('y1', z.bottom + 80); this.prog.push(g); }
     this.shine = this.add.image(0, 0, glowTex(this, this.R, 0xfff3b0, 'm-glow-shine')).setScale(0.55).setBlendMode(Phaser.BlendModes.ADD).setDepth(5.1);
@@ -72,13 +74,13 @@ export class MapScene extends Phaser.Scene {
   private focusTop(y: number) { const t = this.opts.insets.top * this.cssToWorld, b = this.opts.insets.bottom * this.cssToWorld; return y - (t + (this.viewH - b)) / 2; }
   private clampTop(v: number) { const b = this.bounds; return Math.max(b.min, Math.min(b.max, v)); }
   focusY(y: number, animate = true) { const t = this.clampTop(this.focusTop(y)); if (!animate) { this.viewTop = t; this.autoTarget = null; this.applyView(); } else { this.autoTarget = t; this.vel = 0; } }
-  focusCurrent(animate = true) { this.follow = null; this.focusY(this.currentY(), animate); }
+  focusCurrent(animate = true) { this.poke(); this.follow = null; this.focusY(this.currentY(), animate); }
   private currentY() { return journeyDone(this.shown) ? this.L.finale.y : this.L.nodes[unlockedOf(this.shown) - 1]!.y; }
 
   private setupInput() {
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.drag = { y: p.y, t: p.event.timeStamp || performance.now(), moved: 0, startTop: this.viewTop }; this.vel = 0; this.autoTarget = null; });
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.poke(); this.drag = { y: p.y, t: p.event.timeStamp || performance.now(), moved: 0, startTop: this.viewTop }; this.vel = 0; this.autoTarget = null; });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      const d = this.drag; if (!d || !p.isDown) return;
+      const d = this.drag; if (!d || !p.isDown) return; this.poke();
       const dy = (p.y - d.y) / this.cameras.main.zoom; const now = p.event.timeStamp || performance.now(); const dt = Math.max(1, now - d.t);
       d.moved += Math.abs(p.y - d.y); d.y = p.y; d.t = now;
       if (this.busy) return;
@@ -89,7 +91,7 @@ export class MapScene extends Phaser.Scene {
       const d = this.drag; this.drag = null; if (!d) return;
       if (d.moved < 10 * this.dpr) { this.vel = 0; this.tap(p); }
     });
-    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => { if (this.busy) return; this.autoTarget = null; this.viewTop = this.clampTop(this.viewTop + dy / this.cameras.main.zoom * this.dpr * 0.6); });
+    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => { this.poke(); if (this.busy) return; this.autoTarget = null; this.viewTop = this.clampTop(this.viewTop + dy / this.cameras.main.zoom * this.dpr * 0.6); });
   }
   private tap(p: Phaser.Input.Pointer) {
     if (this.busy) { this.speedUp(); return; }
@@ -115,9 +117,19 @@ export class MapScene extends Phaser.Scene {
     const top = this.viewTop - 120, bot = this.viewTop + this.viewH + 120;
     for (const rv of this.regions) rv.setActive(rv.zone.bottom + 80 > top && rv.zone.top < bot);
     for (const g of this.prog) g.setVisible((g.getData('y1') as number) > top && (g.getData('y0') as number) < bot);
+    // boşta: kare hızı düşer (pil/ısı); hafif modda döngü tamamen uyur
+    const moving = this.busy || !!this.drag || Math.abs(this.vel) > 0.002 || this.autoTarget != null || this.follow != null;
+    if (moving) this.lastInput = this.time.now;
+    const idleMs = this.time.now - this.lastInput;
+    const loop = this.game.loop as unknown as { _limitRate: number };
+    loop._limitRate = idleMs > 1500 ? 1000 / 30 : 1000 / 62;
+    if (this.light && idleMs > 700 && !this.sleeping) { this.sleeping = true; this.time.delayedCall(0, () => { if (this.sleeping) this.game.loop.sleep(); }); }
     const cy = this.currentY(); const vis = cy > this.viewTop + 20 && cy < this.viewTop + this.viewH - 20;
     if (vis !== this.curVisible) { this.curVisible = vis; this.opts.onCurrentVisible?.(vis, cy < this.viewTop ? 'up' : 'down'); }
   }
+
+  /** etkileşim: döngüyü uyandır ve tam hıza çıkar */
+  poke() { this.lastInput = this.time.now; if (this.sleeping) { this.sleeping = false; this.game.loop.wake(); } }
 
   // ---------------------------------------------------------------- düğümler
   private makeNode(n: MapNode): NodeView {
@@ -146,14 +158,14 @@ export class MapScene extends Phaser.Scene {
     for (const p of this.pulse) p.destroy(); this.pulse = [];
     if (journeyDone(this.shown)) return;
     const cur = this.nodes[unlockedOf(this.shown) - 1]!;
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < (this.light ? 0 : 2); i++) {
       const k = (cur.r * 2.1) / 100 / this.R;
       const ring = this.add.image(cur.n.x, cur.n.y, pulseRingTex(this, this.R)).setDepth(5.9).setScale(k).setAlpha(0);
       this.tweens.add({ targets: ring, scale: { from: k, to: k * 1.75 }, alpha: { from: 0.9, to: 0 }, duration: 1500, delay: i * 750, repeat: -1, ease: 'Sine.easeOut' });
       this.pulse.push(ring);
     }
     const halo = this.add.image(cur.n.x, cur.n.y, glowTex(this, this.R, 0xffe9a8, 'm-glow-gold')).setDepth(5.8).setScale(cur.r / 14).setAlpha(0.6).setBlendMode(Phaser.BlendModes.ADD);
-    this.tweens.add({ targets: halo, alpha: 0.25, duration: 900, yoyo: true, repeat: -1 });
+    if (!this.light) this.tweens.add({ targets: halo, alpha: 0.25, duration: 900, yoyo: true, repeat: -1 });
     this.pulse.push(halo);
   }
 
@@ -173,7 +185,7 @@ export class MapScene extends Phaser.Scene {
     }
     // akan ışıltı: tamamlanan yol boyunca dolaşır
     this.shineT?.remove();
-    if (this.shine && s > this.L.start.s + 20) {
+    if (this.shine && s > this.L.start.s + 20 && !this.light) {
       const o = { s: this.L.start.s }; const sh = this.shine; sh.setVisible(true);
       this.shineT = this.tweens.add({ targets: o, s, duration: Math.max(1500, s * 0.9), repeat: -1, repeatDelay: 600, onUpdate: () => { const p = pointAt(this.L, o.s); sh.setPosition(p.x, p.y); } });
     } else this.shine?.setVisible(false);
@@ -197,13 +209,14 @@ export class MapScene extends Phaser.Scene {
     const p = this.odiAt(); this.odi.setPosition(p.x, p.y); this.startIdle();
   }
   private startIdle() {
-    this.odiIdle?.remove(); const y = this.odi.y;
+    this.odiIdle?.remove(); const y = this.odi.y; if (this.light) return;
     this.odiIdle = this.tweens.add({ targets: this.odi, y: y - 7, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
   // ---------------------------------------------------------------- dönüş sahnesi
-  speedUp() { if (!this.busy) return; this.speed = Math.min(6, this.speed * 2.5); this.tweens.timeScale = this.speed; this.time.timeScale = this.speed; }
+  speedUp() { this.poke(); if (!this.busy) return; this.speed = Math.min(6, this.speed * 2.5); this.tweens.timeScale = this.speed; this.time.timeScale = this.speed; }
   updateProgress(stars: StarMap, treasures: number[]) {
+    this.poke();
     this.opts.treasuresOpen = treasures;
     if (this.busy) { this.queue = stars; return; }
     void this.play(stars);
@@ -321,6 +334,7 @@ export class MapScene extends Phaser.Scene {
 
   // ---------------------------------------------------------------- sosyal katman
   setSocial(s: MapSocial | null) {
+    this.poke();
     for (const t of this.socialTw) t.remove(); this.socialTw = [];
     for (const o of this.social) o.destroy(); this.social = [];
     if (!s) return;
@@ -335,7 +349,7 @@ export class MapScene extends Phaser.Scene {
         const letter = (f.name.trim()[0] ?? '?').toLocaleUpperCase('tr-TR');
         const av = this.add.image(x, y, avatarTex(this, this.R, f.color, letter)).setScale(0.85 / this.R).setDepth(8.5 - i * 0.01).setOrigin(0.5, 0.95);
         this.social.push(av);
-        this.socialTw.push(this.tweens.add({ targets: av, y: y - 5, duration: 1300 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
+        if (!this.light) this.socialTw.push(this.tweens.add({ targets: av, y: y - 5, duration: 1300 + i * 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
       });
       if (fs.length > 3) { const t = this.add.text(nv.n.x - side * (nv.r + 20 + 3 * 18), nv.n.y - 44, `+${fs.length - 3}`, { fontFamily: FONT, fontSize: '13px', fontStyle: '900', color: '#fff6e5', stroke: '#2a1660', strokeThickness: 4, resolution: this.R }).setOrigin(0.5).setDepth(8.5); this.social.push(t); }
     }
@@ -349,12 +363,12 @@ export class MapScene extends Phaser.Scene {
         const fl = this.add.image(x, y, flagTex(this, this.R, s.teamColor ?? 0xff5c8a)).setScale(1 / this.R).setOrigin(0.18, 0.95).setDepth(8.6);
         const em = this.add.image(x + 12, y - 40, emojiTexture(this, `emj-${m.emblem}`, m.emblem, 48)).setScale(0.36).setDepth(8.7);
         this.social.push(fl, em);
-        this.socialTw.push(this.tweens.add({ targets: fl, scaleX: 0.9 / this.R, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
+        if (!this.light) this.socialTw.push(this.tweens.add({ targets: fl, scaleX: 0.9 / this.R, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
       }
       if (m.target) {
         const tg = this.add.image(x + (m.owned ? -side * 34 : 0), y - 20, targetTex(this, this.R)).setScale(0.7 / this.R).setDepth(8.6);
         this.social.push(tg);
-        this.socialTw.push(this.tweens.add({ targets: tg, angle: { from: -10, to: 10 }, scale: 0.8 / this.R, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
+        if (!this.light) this.socialTw.push(this.tweens.add({ targets: tg, angle: { from: -10, to: 10 }, scale: 0.8 / this.R, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
       }
     }
   }

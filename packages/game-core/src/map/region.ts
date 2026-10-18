@@ -15,7 +15,8 @@ const NIGHT_MATRIX = [...g3(0.46, 16), ...g3(0.4, 10), ...g3(0.66, 38), 0, 0, 0,
 const overlayAlpha = (v: Vitality) => (v === 0 ? 1 : v === 1 ? 0.55 : 0);
 const dullTint = (v: Vitality) => (v === 0 ? 0x6f6a90 : v === 1 ? 0xb9b3d6 : 0xffffff);
 
-export interface RegionDeps { L: MapLayout; R: number; S: number; webgl: boolean; reduced: boolean }
+/** light: hafif mod (az güçlü cihaz, test tarayıcısı, azaltılmış hareket) — sürekli döngü animasyonu ve parçacık yok */
+export interface RegionDeps { L: MapLayout; R: number; S: number; webgl: boolean; reduced: boolean; light: boolean }
 
 export class RegionView {
   readonly zone: MapZone; v: Vitality; active = true;
@@ -139,7 +140,7 @@ export class RegionView {
     if (pop) { const g = o as unknown as Phaser.GameObjects.Image; const s = g.scaleX; g.setScale(0); this.scene.tweens.add({ targets: g, scale: s, duration: 500, delay: Math.random() * 500, ease: 'Back.Out' }); }
     return o;
   }
-  private loop(cfg: Phaser.Types.Tweens.TweenBuilderConfig) { const t = this.scene.tweens.add({ repeat: -1, ...cfg }); this.tw.push(t); if (!this.active) t.pause(); return t; }
+  private loop(cfg: Phaser.Types.Tweens.TweenBuilderConfig) { if (this.d.light) return null; const t = this.scene.tweens.add({ repeat: -1, ...cfg }); this.tw.push(t); if (!this.active) t.pause(); return t; }
 
   /** yolun bu yükseklikteki x'i: dekorlar yoldan uzak durur */
   private freeX(y: number, r: () => number): number {
@@ -207,12 +208,12 @@ export class RegionView {
     }
     // akıntı noktaları (yanlarda yukarı akan küçük ışıklar)
     const dot = pulseDotTex(sc, R, dark ? 0x7ff3ea : 0xffffff);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < (this.d.light ? 0 : 5); i++) {
       const x = i % 2 ? W - 16 - r() * 30 : 16 + r() * 30; const y0 = z.bottom - 10, y1 = z.top + 20;
       const d = this.add(sc.add.image(x, y0, dot).setScale(0.6 / Math.min(R, 2)).setAlpha(0.8).setBlendMode(Phaser.BlendModes.ADD), false);
       this.loop({ targets: d, y: y1, duration: 5200 + r() * 2000, delay: r() * 3000, onRepeat: () => d.setX(i % 2 ? W - 16 - Math.random() * 30 : 16 + Math.random() * 30) });
     }
-    this.landmarkAnim(v, r);
+    if (!this.d.light) this.landmarkAnim(v, r);
     // uyanık sakinler
     const nc = v >= 3 ? 3 : 2;
     for (let i = 0; i < nc; i++) {
@@ -225,7 +226,7 @@ export class RegionView {
       } else this.loop({ targets: c, y: y - 8, duration: 500, yoyo: true, ease: 'Quad.easeOut', repeatDelay: 1500 + r() * 2000 });
     }
     // --- seviye 4: altın parıltı, nota kelebekleri, gökkuşağı ışıkları
-    if (v >= 4) {
+    if (v >= 4 && !this.d.light) {
       const em = sc.add.particles(0, 0, sparkleTex(sc, R), {
         x: { min: 10, max: W - 10 }, y: { min: z.top + 10, max: z.bottom - 10 }, lifespan: 1600, scale: { start: 0.9 / R, end: 0 }, alpha: { start: 1, end: 0 },
         frequency: 260, quantity: 1, maxAliveParticles: 10, blendMode: Phaser.BlendModes.ADD, speedY: { min: -20, max: -6 },
