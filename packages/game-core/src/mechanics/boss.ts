@@ -489,7 +489,13 @@ function golemBot(ctx: LevelContext, input: TouchInput) {
   // yuvarlanan toplar: yaklaşınca zıpla
   let ball: Phaser.Physics.Arcade.Sprite | null = null;
   for (const b of S.balls) { if (!b.active || b.x < hx - 10) continue; if (!ball || b.x < ball.x) ball = b; }
-  if (ball) { const d = ball.x - 18 - (hx + 17); if (d < 100 && d > -30 && c.onGround) c.jump(140); }
+  if (ball) {
+    // yaklaşma hızına göre zamanla (düşük fps'te erken zıplayıp topun üstüne inmesin)
+    const d = ball.x - 18 - (hx + 17); const closing = Math.abs((ball.body as Phaser.Physics.Arcade.Body).velocity.x) + Math.max(0, ctx.hero.body.velocity.x);
+    if (d < 24 + closing * 0.2 && d > -30 && c.onGround) c.jump(140);
+    // havada ve top altındaysa ileri devam: üstünden hızlıca geç
+    if (!c.onGround && d < 20 && d > -70) { c.set(1); return; }
+  }
   if (botStomp(ctx, input)) return;
   const bossLeft = BOSS_X - 70;
   // sersemleme bitti: gövdeden uzaklaş

@@ -1,3 +1,4 @@
+import type Phaser from 'phaser';
 import type { Mechanic } from './types';
 import { sfx } from '../audio';
 
@@ -47,6 +48,13 @@ export const kosu: Mechanic = {
     const low = hz && hz.y < feet - 60 && hz.y + hz.h < feet - 10 && hz.h < 120; // havada asılı engel: altından kay
     if (low && hz && hz.dist < 120 && grounded && (ctx.state.custom.slideUntil as number) < now) { input.swipeDown(); return; }
     const near = (d: number, lim = 110) => d < lim && d > -10;
+    // tepede asılı engel varken zıplama: zıplama kaymayı iptal eder ve kahraman engele çarpar
+    const hb = b; let overhead = false;
+    for (const g of [ctx.groups.hazards, ctx.groups.enemies]) for (const o of g.getChildren() as Phaser.Physics.Arcade.Sprite[]) {
+      const ob = o.body as Phaser.Physics.Arcade.Body | null; if (!o.active || !ob) continue;
+      if (ob.right > hb.left - 30 && ob.left < hb.right + 40 && ob.bottom < feet - 10 && ob.bottom > feet - 150) { overhead = true; break; }
+    }
+    if (overhead && !(scan.gap && scan.gap.dist < 30)) return;
     if (grounded) {
       const jumpHazard = hz && !low && near(hz.dist, hz.type === 'enemy' ? 130 : 110);
       const jumpGap = scan.gap && near(scan.gap.dist + 10, 120);
