@@ -5,6 +5,7 @@ import { regionForBiome, useSocial } from '../net';
 import { useNav } from '../nav';
 import { Bar } from './bits';
 import { fmtNum } from './social';
+import { Art } from './art';
 
 /** Sayaç: 0'dan hedefe (azaltılmış harekette anında) */
 function useCount(to: number, reduced: boolean, delay = 0): number {
@@ -29,17 +30,17 @@ export function TeamContribution({ runId, result, reduced }: { runId: string; re
   const jet$ = useCount(ack?.jeton ?? 0, reduced, 420);
   const nav = useNav();
   if (!run || run.state === 'yok') return null;
-  if (run.state === 'kuyrukta') return <div className="team-contrib"><div className="tc-line muted">📡 Çevrimdışısın: sonucun kuyrukta. Bağlanınca takımına ve ligine yazılır.</div></div>;
-  if (run.state === 'gonderiliyor') return <div className="team-contrib"><div className="tc-line muted">👥 Takımına yazılıyor…</div></div>;
+  if (run.state === 'kuyrukta') return <div className="team-contrib"><div className="tc-line muted"><Art name="signal" size={20} /> Çevrimdışısın: sonucun kuyrukta. Bağlanınca takımına ve ligine yazılır.</div></div>;
+  if (run.state === 'gonderiliyor') return <div className="team-contrib"><div className="tc-line muted"><Art name="users" size={20} /> Takımına yazılıyor…</div></div>;
   if (run.state === 'hata' || !ack) return <div className="team-contrib"><div className="tc-line muted">Sunucu bu sonucu saymadı: {run.error}</div></div>;
   const region = team && war ? regionForBiome(war.targets, run.biome) : null;
   const bonus = ack.jeton - result.coins;
   const lines: ReactNode[] = [];
-  if (team && ack.warPoints > 0) lines.push(<><span className="tc-i">⚔️</span><span>Takımına katkın: <b>+{war$} savaş puanı</b>{region ? <> → <b>{region.name}</b></> : <span className="muted"> (hedef bölge seçilmemiş)</span>}</span></>);
-  if (team && ack.raidDamage > 0) lines.push(<><span className="tc-i">👹</span><span className="grow"><span>Gürültü Canavarı’na <b>−{raid$} hasar</b></span>{raid && raid.maxHp > 0 && <Bar value={raid.hp / raid.maxHp} tone="coral" label="Canavarın canı" />}</span></>);
-  if (ack.leaguePoints > 0) lines.push(<><span className="tc-i">🏆</span><span><b>+{lig$} lig puanı</b> bu haftaki grubunda</span></>);
-  if (ack.jeton > 0) lines.push(<><span className="tc-i">🪙</span><span><b>+{fmtNum(jet$)} jeton</b> hesabına{bonus > 0 ? <span className="muted"> (kamp/takım bonusu +{bonus})</span> : null}</span></>);
-  if (!team && ack.warPoints > 0) lines.push(<><span className="tc-i">👥</span><span className="grow">Bir takımda olsaydın bu koşu <b>+{ack.warPoints} savaş puanı</b> yazardı. <button className="linkish" onClick={(e) => { e.stopPropagation(); nav.tab('team'); }}>Takım bul →</button></span></>);
+  if (team && ack.warPoints > 0) lines.push(<><span className="tc-i"><Art name="swords" /></span><span>Takımına katkın: <b>+{war$} savaş puanı</b>{region ? <> → <b>{region.name}</b></> : <span className="muted"> (hedef bölge seçilmemiş)</span>}</span></>);
+  if (team && ack.raidDamage > 0) lines.push(<><span className="tc-i"><Art name="monster" /></span><span className="grow"><span>Gürültü Canavarı’na <b>−{raid$} hasar</b></span>{raid && raid.maxHp > 0 && <Bar value={raid.hp / raid.maxHp} tone="coral" label="Canavarın canı" />}</span></>);
+  if (ack.leaguePoints > 0) lines.push(<><span className="tc-i"><Art name="trophy" /></span><span><b>+{lig$} lig puanı</b> bu haftaki grubunda</span></>);
+  if (ack.jeton > 0) lines.push(<><span className="tc-i"><Art name="coin" /></span><span><b>+{fmtNum(jet$)} jeton</b> hesabına{bonus > 0 ? <span className="muted"> (kamp/takım bonusu +{bonus})</span> : null}</span></>);
+  if (!team && ack.warPoints > 0) lines.push(<><span className="tc-i"><Art name="users" /></span><span className="grow">Bir takımda olsaydın bu koşu <b>+{ack.warPoints} savaş puanı</b> yazardı. <button className="linkish" onClick={(e) => { e.stopPropagation(); nav.tab('team'); }}>Takım bul →</button></span></>);
   if (!lines.length) return null;
   return (
     <div className="team-contrib" aria-live="polite">

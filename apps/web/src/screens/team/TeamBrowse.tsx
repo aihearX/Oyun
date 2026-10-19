@@ -4,6 +4,7 @@ import { SOCIAL_LIMITS, type TeamSummary } from '@odi/shared';
 import { act, errText, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { Empty, Sheet, Skeleton, fmtNum } from '../../ui/social';
+import { Art, Glyph } from '../../ui/art';
 
 const EMBLEMS = ['👂', '🦻', '🎧', '🎵', '🎶', '🐚', '🔊', '🌀', '⭐', '🔥', '🌙', '🦉', '🐬', '🦋', '🍀', '🌈', '⚡', '🛡️', '🏰', '🎺'];
 const PERKS = [
@@ -38,10 +39,10 @@ export function TeamBrowse() {
   return (
     <>
       <div className="card team-hero">
-        <div className="th-emblems" aria-hidden>👂🎵🦻</div>
+        <div className="th-emblems" aria-hidden><Art e="👂" size="1.15em" className="art-inline" /><Art e="🎵" size="1.15em" className="art-inline" /><Art e="🦻" size="1.15em" className="art-inline" /></div>
         <h2>Birlikte daha uzağa</h2>
         <div className="muted">Bir takıma katıl ya da kendi takımını kur. Her bölümün takımına puan yazar.</div>
-        <div className="perks">{PERKS.map((p) => <div className="perk" key={p.title}><span className="pk-i" aria-hidden>{p.icon}</span><b>{p.title}</b><span className="muted">{p.text}</span></div>)}</div>
+        <div className="perks">{PERKS.map((p) => <div className="perk" key={p.title}><span className="pk-i" aria-hidden><Glyph e={p.icon} size={26} /></span><b>{p.title}</b><span className="muted">{p.text}</span></div>)}</div>
         <button className="btn" onClick={() => setCreating(true)}>＋ Takım kur</button>
       </div>
 
@@ -54,7 +55,7 @@ export function TeamBrowse() {
       </div>
 
       <div className="row between"><h2>Önerilen takımlar</h2><span className="muted">güce göre</span></div>
-      <input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="🔎 Takım ara" aria-label="Takım ara" />
+      <input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Takım ara" aria-label="Takım ara" />
       {err && <div className="chat-err">{err}</div>}
       {!teams ? <Skeleton rows={3} /> : teams.length === 0 ? (
         <Empty icon="🌱" title={q ? 'Bu isimde açık takım yok' : 'Henüz açık takım yok'} text="İlk takımı sen kur; arkadaşlarını kodla davet et." >
@@ -67,7 +68,7 @@ export function TeamBrowse() {
               <span className="tr-emblem" aria-hidden>{t.emblem}</span>
               <div className="grow min0">
                 <b className="ellipsis">{t.name}</b>
-                <div className="tr-meta"><span>👥 {t.members}/{t.max}</span><span>⚡ {fmtNum(t.power)}</span>{t.minLevel > 1 && <span>🔓 {t.minLevel}. bölüm</span>}</div>
+                <div className="tr-meta"><span><Art e="👥" size="1.15em" className="art-inline" /> {t.members}/{t.max}</span><span><Art e="⚡" size="1.15em" className="art-inline" /> {fmtNum(t.power)}</span>{t.minLevel > 1 && <span><Art e="🔓" size="1.15em" className="art-inline" /> {t.minLevel}. bölüm</span>}</div>
                 {t.description && <div className="muted tr-desc">{t.description}</div>}
               </div>
               <button className="btn small" disabled={locked || full || busy === t.id} onClick={() => void join(t)}>{full ? 'Dolu' : locked ? `${t.minLevel}. bölüm` : 'Katıl'}</button>
@@ -104,7 +105,7 @@ function CreateTeam({ onClose, onDone }: { onClose: () => void; onDone: (name: s
         <div className="stepper"><button type="button" className="btn ghost small icon-btn" onClick={() => setMinLevel(Math.max(1, minLevel - 1))} aria-label="Azalt">−</button><b>{minLevel}</b><button type="button" className="btn ghost small icon-btn" onClick={() => setMinLevel(Math.min(me.highest, minLevel + 1))} aria-label="Artır">+</button></div>
       </div>
       {err && <div className="chat-err" role="alert">{err}</div>}
-      <button className="btn" disabled={busy || name.trim().length < 3} onClick={() => void submit()}>{busy ? 'Kuruluyor…' : `${emblem} Takımı kur`}</button>
+      <button className="btn" disabled={busy || name.trim().length < 3} onClick={() => void submit()}>{busy ? 'Kuruluyor…' : <><span data-ugc>{emblem}</span> Takımı kur</>}</button>
       <div className="muted small-note">Takım kurmak ücretsiz. İsim benzersiz olmalı (3–20 karakter).</div>
     </Sheet>
   );

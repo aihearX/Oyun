@@ -187,7 +187,7 @@ try {
     db.run('UPDATE players SET depot_at = ? WHERE id = ?', Date.now() - 9 * 3_600_000, bId);
     await tab(B, 'Takım'); await sleep(300); await tab(B, 'Kamp'); await campReady(B); await toastGone(B);
     await shot(B, 'B-depo-dolu', 1500);
-    const coinsBefore = (await B.locator('.tb-pill', { hasText: '🪙' }).innerText()).trim();
+    const coinsBefore = (await B.locator('.tb-pill[data-hud="jeton"]').innerText()).trim();
     await tapBuilding(B, 'depo'); await B.locator('.bp').waitFor();
     if (process.env.DEBUG_KAMP) console.log('kamera', JSON.stringify(await B.evaluate(() => window.__kamp.view())), JSON.stringify(await B.evaluate(() => window.__kamp.pos('depo'))));
     await shot(B, 'B-panel-depo', 1800);
@@ -195,7 +195,7 @@ try {
     await sleep(350);
     await shot(B, 'B-depo-topla-ucus', 0);
     await sleep(900);
-    const coinsAfter = (await B.locator('.tb-pill', { hasText: '🪙' }).innerText()).trim();
+    const coinsAfter = (await B.locator('.tb-pill[data-hud="jeton"]').innerText()).trim();
     check(coinsAfter !== coinsBefore, `jeton: ${coinsBefore} → ${coinsAfter}`);
     await B.locator('.bp-x').click();
 

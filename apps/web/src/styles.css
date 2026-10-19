@@ -766,9 +766,40 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
   .screen.chat-screen .chat-box, .team-body > .chat .chat-box { min-height:120px; }
 }
 /* Takım ekranında üst çubukta tek sosyal kısayol (Arkadaşlar, rozetinde okunmamış mesajlar da var): başlık her genişlikte sığar */
-.team-screen .tb-pill[data-testid="mesaj-rozeti"] { display:none; }
+.team-screen .tb-pill[data-testid="mesaj-rozeti"], .camp-list-screen .tb-pill[data-testid="mesaj-rozeti"] { display:none; }
 @media (max-width:340px) {
   .profile-hero { gap:10px; }
   .profile-hero .avatar-btn svg { width:64px; height:64px; }
 }
 @media (max-width:360px) { .perks { grid-template-columns:1fr; } .perk:last-child { grid-column:auto; } }
+
+/* ===================================================================== resimli ikonlar (ui/art.tsx) */
+.art { display:block; flex:none; overflow:visible; }
+.art-inline { display:inline-block; width:1.32em; height:1.32em; vertical-align:-0.3em; margin:0 .1em; }
+.star-empty, .star-full { line-height:0; }
+.star-empty { display:flex; width:100%; height:100%; align-items:center; justify-content:center; }
+.star-empty svg { width:84%; height:84%; }
+.star-full .art { width:86%; height:86%; }
+.star-slot:nth-child(2) .star-empty svg { width:88%; height:88%; } .star-slot:nth-child(2) .star-full .art { width:90%; height:90%; }
+.star-row.dim .star-empty svg path { fill:rgba(5,2,20,.4); }
+.pstat .ps-art { margin-bottom:2px; }
+.pstat b { line-height:1.1; }
+.mh-pill .art, .tb-pill .art { flex:none; }
+.tb-pill { gap:4px; }
+.chip .art-inline { margin:0 .12em 0 0; }
+.ph-icon { display:flex; justify-content:center; }
+.sc-flame .art { filter:drop-shadow(0 0 12px rgba(255,159,28,.7)); }
+.chest-icon .art { display:block; }
+.cd-i { display:flex; align-items:center; justify-content:center; min-height:24px; }
+.qe .art, .tc-i .art, .gift-i .art, .hr-i .art, .tech-i .art, .b-i .art, .pk-i .art, .lg-tier .art, .ae .art, .vi .art { margin:0 auto; }
+.ae .art { width:30px; height:30px; }
+.ic-inline { display:inline-block; vertical-align:-0.18em; }
+.stats .v { display:flex; align-items:center; justify-content:center; gap:4px; min-height:28px; }
+.art-gallery .ag-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.art-gallery .ag-grid.cream { background:var(--cream); border-radius:16px; padding:8px; }
+.art-gallery .ag-cell { display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px; border-radius:12px; background:rgba(5,2,20,.35); }
+.art-gallery .ag-grid.cream .ag-cell { background:none; }
+.art-gallery .ag-row { display:flex; gap:6px; align-items:center; }
+.art-gallery small { font-size:10px; color:var(--text-2); font-weight:800; }
+.ev-h-ic { display:inline-flex; vertical-align:middle; line-height:0; }
+.ev-notice-i { display:flex; align-items:center; }

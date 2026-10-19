@@ -9,6 +9,8 @@ import { Av, Sticker, dayLabel, lastSeenText, openInvite, raceWith, useOnline } 
 import { applyMsg, friendsNet, loadConvo, openProfile, readActive, sendDm, useFriends } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
+import { Art } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
 const EMPTY: DmMessage[] = [];
@@ -113,7 +115,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
             <small className={`ellipsis${typing ? ' dm-typing-txt' : online ? ' fr-on' : ''}`} data-testid="dm-durum">{typing ? 'yazıyor…' : other ? lastSeenText(other, online) : ''}</small>
           </span>
         </button>
-        {isFriend && other && <button className="btn coral small icon-btn" onClick={() => void raceWith(other, nav)} aria-label={`${name} ile yarış`}>🏁</button>}
+        {isFriend && other && <button className="btn coral small icon-btn" onClick={() => void raceWith(other, nav)} aria-label={`${name} ile yarış`}><Art e="🏁" size="1.15em" className="art-inline" /></button>}
       </header>
 
       <div className="dm-list" ref={list} onScroll={onScroll} aria-live="polite">
@@ -151,8 +153,8 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           {panel && (
             <div className="dm-panel" role="dialog" aria-label="Emoji ve çıkartmalar">
               <div className="dm-panel-tabs">
-                <button className={panel === 'emoji' ? 'on' : ''} onClick={() => setPanel('emoji')}>😊 Emoji</button>
-                <button className={panel === 'odi' ? 'on' : ''} onClick={() => setPanel('odi')}>🫧 Odi çıkartmaları</button>
+                <button className={panel === 'emoji' ? 'on' : ''} onClick={() => setPanel('emoji')}><Icon name="smile" size="1.1em" className="ic-inline" /> Emoji</button>
+                <button className={panel === 'odi' ? 'on' : ''} onClick={() => setPanel('odi')}><Art e="🫧" size="1.15em" className="art-inline" /> Odi çıkartmaları</button>
               </div>
               {panel === 'emoji'
                 ? <div className="dm-emoji-grid">{EMOJIS.map((e) => <button key={e} onClick={() => pickEmoji(e)} aria-label={`Emoji ${e}`}>{e}</button>)}</div>
@@ -160,17 +162,17 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
             </div>
           )}
           <form className="dm-compose" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
-            <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar">{panel ? '⌨️' : '😊'}</button>
+            <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar"><Icon name={panel ? 'list' : 'smile'} size={22} /></button>
             <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={`${name} kişisine yaz…`} aria-label="Mesaj" enterKeyHint="send"
               onFocus={() => { setPanel(''); stick.current = true; }}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
-            <button className="dm-send" type="submit" disabled={!text.trim()} aria-label="Gönder">➤</button>
+            <button className="dm-send" type="submit" disabled={!text.trim()} aria-label="Gönder"><Icon name="send" size="1.1em" className="ic-inline" /></button>
           </form>
         </div>
       ) : (
         <div className="dm-closed card">
-          <span>🔒 {conv?.reason ?? 'Bu sohbete mesaj gönderilemiyor.'}</span>
+          <span><Art e="🔒" size="1.15em" className="art-inline" /> {conv?.reason ?? 'Bu sohbete mesaj gönderilemiyor.'}</span>
           <button className="btn small" onClick={() => openProfile(id)}>Profili aç</button>
         </div>
       )}
@@ -192,14 +194,14 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   const counts = new Map<string, number>(); for (const [, e] of reacts) counts.set(e, (counts.get(e) ?? 0) + 1);
   const meta = <span className="dm-meta">{time}{ticks}</span>;
   let body;
-  if (m.deleted) body = <div className="dm-bubble deleted">🚫 Bu mesaj silindi {meta}</div>;
+  if (m.deleted) body = <div className="dm-bubble deleted"><Art e="🚫" size="1.15em" className="art-inline" /> Bu mesaj silindi {meta}</div>;
   else if (m.kind === 'sticker') body = <div className="dm-free">{sender && <Sticker id={m.text} color={sender.color} hat={sender.hat} />}{meta}</div>;
   else if (m.kind === 'emoji') body = <div className="dm-free"><span className="dm-big-emoji">{m.text}</span>{meta}</div>;
   else if (m.kind === 'davet') {
     const yaris = m.meta?.type === 'yaris';
     body = (
       <div className="dm-invite" data-testid="davet-karti">
-        <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden>{yaris ? '🏁' : '📨'}</span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
+        <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
         <div className="dm-inv-text">{m.text}</div>
         <button className={`btn small ${mine ? 'ghost' : ''}`} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : 'Davete git'}</button>
         {meta}
@@ -229,9 +231,9 @@ function MsgMenu({ m, mine, meId, name, onClose }: { m: DmMessage; mine: boolean
         {DM_REACTIONS.map((e) => <button key={e} className={m.reactions?.[meId] === e ? 'on' : ''} onClick={() => void react(e)} aria-label={`Tepki ${e}`}>{e}</button>)}
       </div>
       {m.kind === 'text' && <div className="dm-quote">“{m.text}”</div>}
-      {m.kind === 'text' && <button className="btn ghost" onClick={() => void copy()}>📋 Kopyala</button>}
-      {mine ? <button className="btn ghost coral-text" onClick={() => void del()}>🗑️ Herkesten sil</button>
-        : <button className="btn ghost" onClick={() => void report()}>🚩 Şikâyet et</button>}
+      {m.kind === 'text' && <button className="btn ghost" onClick={() => void copy()}><Art e="📋" size="1.15em" className="art-inline" /> Kopyala</button>}
+      {mine ? <button className="btn ghost coral-text" onClick={() => void del()}><Art e="🗑️" size="1.15em" className="art-inline" /> Herkesten sil</button>
+        : <button className="btn ghost" onClick={() => void report()}><Art e="🚩" size="1.15em" className="art-inline" /> Şikâyet et</button>}
       <button className="btn ghost" onClick={onClose}>Vazgeç</button>
     </Sheet>
   );

@@ -4,6 +4,7 @@ import { useNet } from '@odi/net/store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
 import { levelName } from './common';
+import { Icon } from '../ui/icons';
 
 /** davet bu kadar süre sonra kendiliğinden düşer (oda başlamış olabilir) */
 const INVITE_TTL_MS = 90_000;
@@ -43,7 +44,7 @@ export function RaceInviteBanner({ onAccept }: { onAccept: (roomId: string) => v
         <small className="muted ellipsis">{invite.room.level}. {levelName(invite.room.level)} · {invite.room.players.filter((p) => !p.left).length}/{invite.room.max} oyuncu</small>
       </div>
       <button className="btn small" data-testid="yaris-davet-kabul" onClick={() => { const id = accept(); if (id) onAccept(id); }}>Katıl</button>
-      <button className="btn ghost small" aria-label="Daveti kapat" onClick={dismiss}>✕</button>
+      <button className="btn ghost small" aria-label="Daveti kapat" onClick={dismiss}><Icon name="close" size="1.1em" className="ic-inline" /></button>
     </div>
   );
 }

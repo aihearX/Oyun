@@ -5,6 +5,7 @@ import { refreshEvents, useEvents } from './store';
 import { Countdown, Rewards, eventSpec, levelName } from './common';
 import { Board } from './Challenge';
 import type { PlayFn } from './EventsScreen';
+import { Icon } from '../ui/icons';
 
 /** Haftalık Turnuva: haftanın 5 bölümü, bölüm başına en iyi skorların toplamı; 50 kişilik grup sıralaması */
 export function TourneyView({ onPlay }: { onPlay: PlayFn }) {
@@ -22,7 +23,7 @@ export function TourneyView({ onPlay }: { onPlay: PlayFn }) {
           <button key={l.slot} className={`ev-slot${l.best != null ? ' played' : ''}`} data-testid={`turnuva-${l.slot}`} onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'turnuva', slot: l.slot })}>
             <span className="ev-slot-n">{l.level}</span>
             <span className="grow min0"><b className="ellipsis">{levelName(l.level)}</b><small>{l.best != null ? `En iyi: ${fmtNum(l.best)}` : 'Henüz oynanmadı'}</small></span>
-            <span className="ev-play">▶</span>
+            <span className="ev-play"><Icon name="play" size="0.9em" className="ic-inline" /></span>
           </button>
         ))}
       </div>

@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { ScreenHead } from '../ui/bits';
 import { platform } from '../platform';
+import { Art } from '../ui/art';
 
 /** Dolap: Odi renkleri ve şapkaları. Yalnızca görünüm; seçilen kozmetik oyunda da görünür. */
 export function WardrobeScreen({ onBack }: { onBack: () => void }) {
@@ -15,7 +16,7 @@ export function WardrobeScreen({ onBack }: { onBack: () => void }) {
       <button key={c.id} className={`wtile${has ? '' : ' locked'}${on ? ' on' : ''}`} disabled={!has} onClick={() => { s.equip(c.id); platform().haptic('light'); }} aria-pressed={on} aria-label={`${c.name}${has ? '' : ', kilitli'}`}>
         <OdiAvatar size={52} color={c.kind === 'renk' ? c.color : baseColor} hat={c.kind === 'sapka' ? c.hat : c.hat} />
         <b>{c.name}</b>
-        <span className="muted">{has ? (on ? 'Giyili' : 'Giy') : `🔒 ${cosmeticUnlockText(c.unlock)}`}</span>
+        <span className="muted">{has ? (on ? 'Giyili' : 'Giy') : <><Art name="lock" size="1.15em" className="art-inline" /> {cosmeticUnlockText(c.unlock)}</>}</span>
       </button>
     );
   };

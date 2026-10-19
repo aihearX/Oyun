@@ -8,6 +8,7 @@ import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
 import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtTry } from '../ui/social';
+import { Art, Rich } from '../ui/art';
 
 type Product = ShopProduct & { bought: number };
 type List = OpMap['shop.list']['res'];
@@ -19,7 +20,7 @@ export function ShopScreen({ onBack }: { onBack: () => void }) {
   const wallet = useNet((s) => s.wallet); const k = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
     <div className="screen fade-in">
-      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className={`pill${k.bump ? ' hud-pop' : ''}`} key={`k${k.bump}`} data-hud="kristal">💎 {k.value}</span> : undefined} />
+      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className={`pill${k.bump ? ' hud-pop' : ''}`} key={`k${k.bump}`} data-hud="kristal"><Art name="crystal" size={18} className="art-inline" />{k.value}</span> : undefined} />
       <Online what="Mağaza"><Shop /></Online>
     </div>
   );
@@ -61,7 +62,7 @@ function Shop() {
 
   return (
     <div className="stack">
-      {mode === 'test' && <div className="test-banner" role="note">🧪 TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
+      {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
       {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
       <div className="muted small-note">Mağazada savaş ya da lig puanı satılmaz; içerikler önceden yazılı, şans yok.</div>
 
@@ -73,7 +74,7 @@ function Shop() {
           {mode === 'test' && <span className="test-chip">TEST</span>}
           <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
           <ItemChips items={p.contents} small />
-          {p.teamGift && p.teamGiftContents && <div className="team-gift-line">🎁 Takımındaki herkese: {p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
+          {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Rich text={`🎁 Takımındaki herkese: ${p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}`} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
           {p.id === 'odi.pass' && <PassPath />}
           <div className="row between prod-foot">
             <span className="muted small-note">{p.limit > 0 ? `Kişi başı ${p.limit} · alındı ${p.bought}/${p.limit}` : p.bought ? `${p.bought} kez alındı` : ''}</span>
@@ -90,10 +91,10 @@ function Shop() {
 
       {sel && (() => { const over = sp.monthTry + sel.priceTry > sp.limitTry + 1e-9; return (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
-          {mode === 'test' && <div className="test-banner small">🧪 TEST — gerçek para çekilmez</div>}
+          {mode === 'test' && <div className="test-banner small"><Art name="flask" size="1.2em" className="art-inline" /> TEST — gerçek para çekilmez</div>}
           <div className="confirm-price">{fmtTry(sel.priceTry)}</div>
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
-          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line">🎁 {team.emblem} {team.name} takımındaki diğer {team.members - 1} kişiye: {sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}</div>}
+          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <span data-ugc>{team.emblem}</span> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
           <div className="muted small-note">Bu ay: {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / sınır {fmtTry(sp.limitTry)}</div>
           {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı aşağıdan değiştirebilirsin (yükseltme 24 saat sonra geçerli).</div>}
           <button className="btn" disabled={busy || over} onClick={() => void buy(sel)}>{busy ? 'İşleniyor…' : mode === 'test' ? 'Test satın alması yap' : `${fmtTry(sel.priceTry)} öde`}</button>
@@ -130,8 +131,8 @@ function LimitSheet({ sp, onClose, onSaved }: { sp: SpendState; onClose: () => v
 function PassPath() {
   return (
     <div className="pass-path" aria-label="Sezon Kartı ödül yolu">
-      <div className="pp-day first"><b>Hemen</b><span>🎨 Altın Koklea</span></div>
-      {Array.from({ length: 28 }, (_, i) => <div className="pp-day" key={i}><b>{i + 1}. gün</b><span>💎 30</span></div>)}
+      <div className="pp-day first"><b>Hemen</b><span><Art name="palette" size="1.15em" className="art-inline" /> Altın Koklea</span></div>
+      {Array.from({ length: 28 }, (_, i) => <div className="pp-day" key={i}><b>{i + 1}. gün</b><span><Art name="crystal" size="1.15em" className="art-inline" /> 30</span></div>)}
     </div>
   );
 }

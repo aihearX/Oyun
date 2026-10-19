@@ -2,13 +2,14 @@ import { useRef } from 'react';
 import { audio } from '@odi/audio';
 import { useStore } from '../store';
 import { ScreenHead } from '../ui/bits';
+import { Glyph } from '../ui/art';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
 function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: string; label: string; value: number; onChange: (v: number) => void; onRelease?: () => void; disabled?: boolean }) {
   const pct = Math.round(value * 100);
   return (
     <div className="row">
-      <span className="vi" aria-hidden>{icon}</span>
+      <span className="vi" aria-hidden><Glyph e={icon} size={26} /></span>
       <input className="range" type="range" min={0} max={100} step={5} value={pct} disabled={disabled} aria-label={label}
         style={{ ['--p' as string]: `${pct}%` }}
         onChange={(e) => onChange(Number(e.target.value) / 100)} onPointerUp={onRelease} onKeyUp={onRelease} />

@@ -10,6 +10,7 @@ import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
 import { IconButton } from '../ui/Button';
+import { Art, Glyph } from '../ui/art';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
@@ -44,9 +45,9 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
       <div className="muted cap">{dateLabel}</div>
 
       <div className="card streak-card">
-        <div className="sc-flame" aria-hidden>🔥</div>
+        <div className="sc-flame" aria-hidden><Art name="flame" size={46} /></div>
         <div className="grow min0"><b className="big">{Math.max(1, s.streak)}. gün</b><div className="muted">Seri: her gün bir uğra, takvim ilerlesin.</div></div>
-        <div className="shield-pill" title="Seri koruyucu: bir günü kaçırırsan serini korur">🛡️ {s.meta.shields}/{MAX_STREAK_SHIELDS}</div>
+        <div className="shield-pill" title="Seri koruyucu: bir günü kaçırırsan serini korur"><Art name="shield" size="1.25em" className="art-inline" /> {s.meta.shields}/{MAX_STREAK_SHIELDS}</div>
       </div>
 
       <section className="card">
@@ -55,7 +56,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
           {cal.days.map((d) => (
             <div key={d.day} className={`cal-day ${d.state}${d.big ? ' big' : ''}`}>
               <span className="cd-n">{d.day}</span>
-              <span className="cd-i">{d.state === 'alindi' ? '✓' : rewardIcon(d.reward)}</span>
+              <span className="cd-i">{d.state === 'alindi' ? <Art name="check" size={22} /> : <Glyph e={rewardIcon(d.reward)} size={22} />}</span>
               <span className="cd-a">{d.reward.find((r) => r.kind === 'jeton')?.amount ?? ''}</span>
             </div>
           ))}
@@ -72,7 +73,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="quests">
           {daily.quests.map((q) => { const d = questById(q.id); if (!d) return null; const ok = questDone(q); return (
             <div className={`quest${ok ? ' ok' : ''}${q.claimed ? ' claimed' : ''}${just === q.id ? ' just' : ''}`} key={q.id}>
-              <span className="qe">{q.claimed ? '✅' : d.emoji}</span>
+              <span className="qe"><Glyph e={q.claimed ? '✅' : d.emoji} size={26} /></span>
               <div className="grow min0">
                 <div className="qt">{d.text}</div>
                 <div className="row qbar"><Bar value={q.progress / d.target} tone="green" label={d.text} /><span className="qn">{q.progress}/{d.target}</span></div>
@@ -86,7 +87,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
       </section>
 
       <section className={`card chest${ready ? ' ready' : ''}${daily.chestOpened ? ' opened' : ''}`}>
-        <div className="chest-icon" aria-hidden>{daily.chestOpened ? '📭' : '🎁'}</div>
+        <div className="chest-icon" aria-hidden><Art name={daily.chestOpened ? 'mail' : 'chest'} size={52} /></div>
         <div className="grow min0">
           <h2>Günlük sandık</h2>
           <div className="muted">{daily.chestOpened ? 'Açıldı. Yarın yeni görevler, yeni sandık.' : ready ? 'Üç görev de tamam. Aç bakalım!' : `Üç görev bitince açılır (${doneCount}/3). İçinde:`}</div>

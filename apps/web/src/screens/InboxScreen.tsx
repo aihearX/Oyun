@@ -7,6 +7,7 @@ import { celebrate } from '../celebrate';
 import { ScreenHead } from '../ui/bits';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Empty, ItemChips, Online, Skeleton, TIER, fmtDate, fmtLeft, fmtNum, useNow } from '../ui/social';
+import { Art, Glyph, Rich } from '../ui/art';
 
 /** Ödül kutusu: sunucunun verdiği ödüller; tek tek ya da "Hepsini al". */
 export function InboxScreen({ onBack }: { onBack: () => void }) {
@@ -34,10 +35,10 @@ function Inbox() {
   if (!items) return <Skeleton rows={3} />;
   return (
     <div className="stack">
-      {items.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}>📬 Hepsini al ({items.length})</button>}
+      {items.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({items.length})</button>}
       {items.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text="Savaş zaferleri, takım yardımları ve Sezon Kartı ödülleri buraya gelir." /> : items.map((it) => (
         <div className="card gift" key={it.id}>
-          <span className="gift-i" aria-hidden>{it.kind === 'kalkan' ? '🛡️' : it.kind === 'kristal' ? '💎' : it.kind === 'jeton' ? '🪙' : it.kind === 'kart' ? '🃏' : '🎩'}</span>
+          <span className="gift-i" aria-hidden><Art name={it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
           <div className="grow min0"><b className="wrap">{it.reason}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={[it]} small /></div>
           <button className="btn small" disabled={busy} onClick={() => void one(it)}>Al</button>
         </div>))}
@@ -55,9 +56,9 @@ export function LeagueCard({ onOpen }: { onOpen: () => void }) {
   const zone = lg.rank <= lg.promoteTop && lg.tier !== 'koklea' ? 'up' : lg.tier !== 'bronz' && lg.rank > Math.max(lg.promoteTop, n - lg.demoteBottom) ? 'down' : 'safe';
   return (
     <button className={`card league-card z-${zone}`} onClick={onOpen}>
-      <span className="lg-tier" aria-hidden>{t.icon}</span>
+      <span className="lg-tier" aria-hidden><Glyph e={t.icon} size={40} /></span>
       <span className="grow min0"><b>{t.name} Ligi · {lg.rank}. sıra</b><span className="muted">{fmtNum(lg.points)} puan · {n} kişi · bitişe {fmtLeft(lg.endsAt - now)}</span>
-        <span className="lg-zone">{zone === 'up' ? '⬆️ Yükselme bölgesindesin' : zone === 'down' ? '⬇️ Düşme bölgesi: biraz gayret!' : lg.tier === 'koklea' && lg.rank <= lg.promoteTop ? '🐚 Zirvedesin' : `İlk ${lg.promoteTop} bir üst lige çıkar`}</span>
+        <span className="lg-zone"><Rich text={zone === 'up' ? '⬆️ Yükselme bölgesindesin' : zone === 'down' ? '⬇️ Düşme bölgesi: biraz gayret!' : lg.tier === 'koklea' && lg.rank <= lg.promoteTop ? '🐚 Zirvedesin' : `İlk ${lg.promoteTop} bir üst lige çıkar`} /></span>
       </span>
       <span aria-hidden>›</span>
     </button>
@@ -74,7 +75,7 @@ export function LeagueScreen({ onBack }: { onBack: () => void }) {
       <Online what="Lig">
         {!lg ? <Skeleton rows={5} /> : (() => { const n = lg.group.length; const downFrom = Math.max(lg.promoteTop, n - lg.demoteBottom); return (
           <div className="stack">
-            <div className="card"><b>{TIER[lg.tier].icon} {TIER[lg.tier].name} Ligi</b><div className="muted">Bitişe {fmtLeft(lg.endsAt - now)}. İlk {lg.promoteTop} bir üst lige çıkar{lg.tier !== 'bronz' ? `, son ${lg.demoteBottom} bir alta iner` : ''}. Puan: her bölüm 5 + 5 × yıldız (+ yarış derecesi).</div></div>
+            <div className="card"><b><Glyph e={TIER[lg.tier].icon} size="1.2em" /> {TIER[lg.tier].name} Ligi</b><div className="muted">Bitişe {fmtLeft(lg.endsAt - now)}. İlk {lg.promoteTop} bir üst lige çıkar{lg.tier !== 'bronz' ? `, son ${lg.demoteBottom} bir alta iner` : ''}. Puan: her bölüm 5 + 5 × yıldız (+ yarış derecesi).</div></div>
             <ol className="league-list">
               {lg.group.map((p, i) => { const up = i < lg.promoteTop && lg.tier !== 'koklea'; const down = lg.tier !== 'bronz' && i >= downFrom; return (
                 <li key={p.id} className={`${p.id === me?.id ? 'me ' : ''}${up ? 'up' : down ? 'down' : ''}`}>

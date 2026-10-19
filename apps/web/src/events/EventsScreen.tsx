@@ -18,6 +18,7 @@ import type { EventFlash, EventPlay } from './EventLevel';
 import { scrollAppTop } from '../ui/viewport';
 import './events.css';
 import { IconButton } from '../ui/Button';
+import { Art, Glyph } from '../ui/art';
 
 export type EventView = 'merkez' | EventKind;
 export type PlayFn = (spec: LevelSpec, play: EventPlay) => void;
@@ -36,7 +37,7 @@ export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?
   return (
     <div className="screen fade-in ev-screen" data-testid="etkinlikler" data-view={v}>
       {v === 'merkez' ? <EvHeadHub onBack={onBack} /> : <EvHead kind={v} onBack={back} />}
-      {shown && <div className={`ev-flash ${shown.tone}`} role="status" data-testid="ev-flash" onClick={() => setShown(undefined)}><span className="ev-flash-i">{shown.icon}</span><span className="min0"><b>{shown.title}</b><small>{shown.text}</small></span></div>}
+      {shown && <div className={`ev-flash ${shown.tone}`} role="status" data-testid="ev-flash" onClick={() => setShown(undefined)}><span className="ev-flash-i"><Glyph e={shown.icon} size={30} /></span><span className="min0"><b>{shown.title}</b><small>{shown.text}</small></span></div>}
       <Online what="Etkinlikler">
         {needTeam ? <div className="card muted">Bu etkinlik için bir takımda olmalısın.</div> : (
           <>
@@ -61,7 +62,7 @@ function EvHeadHub({ onBack }: { onBack: () => void }) {
     <div className="ev-hub-head">
       <IconButton icon="back" label="Geri" onClick={onBack} />
       <div className="min0"><h1>Etkinlikler</h1><small>Bireysel oyna, takımca kazan!</small></div>
-      <span className="ev-hub-art" aria-hidden>🎪</span>
+      <span className="ev-hub-art" aria-hidden><Art e="🎪" size="1.15em" className="art-inline" /></span>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Av } from './common';
 import { useFriends } from './state';
 import './friends.css';
 import { Icon } from '../ui/icons';
+import { Glyph, rich } from '../ui/art';
 
 /**
  * Üstten kayan bildirim şeridi: yeni özel mesaj, arkadaşlık isteği/kabulü, arkadaş hediyesi.
@@ -32,14 +33,14 @@ export function FriendBanner() {
     <div className="fr-banner" role="status" aria-live="polite" key={b.id} data-testid="mesaj-bildirimi">
       <button className={`fr-banner-card k-${b.kind}`} onClick={go}>
         <Av p={b.from} size={42} dot={false} />
-        <span className="min0 grow fr-banner-text"><b className="ellipsis"><span aria-hidden>{icon}</span> {b.title}</b><small className="ellipsis">{b.text}</small></span>
+        <span className="min0 grow fr-banner-text"><b className="ellipsis"><span aria-hidden className="fr-b-ic"><Glyph e={icon} size="1.25em" /></span> {b.title}</b><small className="ellipsis">{rich(b.text)}</small></span>
       </button>
-      <button className="fr-banner-x" onClick={close} aria-label="Bildirimi kapat">✕</button>
+      <button className="fr-banner-x" onClick={close} aria-label="Bildirimi kapat"><Icon name="close" size="1.1em" className="ic-inline" /></button>
     </div>
   );
 }
 
-/** üst bar için: okunmamış mesaj rozetli 💬 düğmesi (TopBar `extra` olarak verilebilir) */
+/** üst bar için: okunmamış mesaj rozetli sohbet düğmesi (TopBar `extra` olarak verilebilir) */
 export function DmTopPill() {
   const nav = useNav();
   const n = useFriends((s) => s.dmUnread);

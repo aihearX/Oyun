@@ -10,6 +10,8 @@ import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, levelName, useSrvNow } from './common';
 import type { PlayFn } from './EventsScreen';
 import { MonsterArt } from './MonsterArt';
+import { Art, rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 /** Ralli odası: canavar seçimi → canlı can barı, katılımcılar, hasar akışı, geri sayım, sonuç kutlaması */
 export function RallyView({ onPlay }: { onPlay: PlayFn }) {
@@ -48,7 +50,7 @@ export function RallyView({ onPlay }: { onPlay: PlayFn }) {
       <div className={`ev-stage tone-coral${hit ? ' shake' : ''}${rally.status === 'kazanildi' ? ' won' : ''}${rally.status === 'kaybedildi' ? ' lost' : ''}`}>
         <div className="row between ev-stage-top">
           <span className="ev-tag">{rally.starterName} başlattı · {fmtTime(rally.startsAt)}</span>
-          {open ? <Countdown to={rally.endsAt} urgentMs={120_000} /> : <span className="ev-tag strong">{rally.status === 'kazanildi' ? '🏆 Kazanıldı' : '💨 Kaçtı'}</span>}
+          {open ? <Countdown to={rally.endsAt} urgentMs={120_000} /> : <span className="ev-tag strong">{rich(rally.status === 'kazanildi' ? '🏆 Kazanıldı' : '💨 Kaçtı')}</span>}
         </div>
         <div className="ev-monster" aria-hidden>
           <span className="ev-mon-glow" />
@@ -56,33 +58,33 @@ export function RallyView({ onPlay }: { onPlay: PlayFn }) {
           {hit > 0 && <span className="ev-dmg">−{hit}</span>}
         </div>
         <b className="ev-mon-name">{m.name}</b>
-        <div className="ev-hp"><Bar value={pct} tone="coral" label="Canavarın canı" /><span className="qn">❤️ {fmtNum(rally.hp)}/{fmtNum(rally.maxHp)}</span></div>
+        <div className="ev-hp"><Bar value={pct} tone="coral" label="Canavarın canı" /><span className="qn"><Art e="❤️" size="1.15em" className="art-inline" /> {fmtNum(rally.hp)}/{fmtNum(rally.maxHp)}</span></div>
         <div className="ev-parts">
           {rally.participants.map((p) => (
             <div key={p.id} className={`ev-part${p.id === me?.id ? ' me' : ''}`} title={p.name}>
               <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.damage > 0 ? 'wow' : 'happy'} />
-              <b className="ellipsis">{p.name}</b><small>⚔️ {p.damage}</small>
+              <b className="ellipsis">{p.name}</b><small><Art e="⚔️" size="1.15em" className="art-inline" /> {p.damage}</small>
             </div>
           ))}
           {open && Array.from({ length: Math.max(0, RALLY_RULES.minPlayers - rally.participants.length) }, (_, i) => <div key={`b${i}`} className="ev-part empty"><span>＋</span><small>Bekleniyor</small></div>)}
         </div>
       </div>
 
-      {open && !mine && <button className="btn coral ev-big" data-testid="ralli-katil" disabled={busy} onClick={() => void act(async () => { const r = await evNet()!.call('rally.join', { rallyId: rally.id }); useEvents.setState({ rally: r.rally }); platform().haptic('heavy'); })}>🔥 Ralliye katıl</button>}
+      {open && !mine && <button className="btn coral ev-big" data-testid="ralli-katil" disabled={busy} onClick={() => void act(async () => { const r = await evNet()!.call('rally.join', { rallyId: rally.id }); useEvents.setState({ rally: r.rally }); platform().haptic('heavy'); })}><Art e="🔥" size="1.15em" className="art-inline" /> Ralliye katıl</button>}
       {open && mine && !ready && <div className="card ev-wait" data-testid="ralli-bekleme"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Takım arkadaşları bekleniyor</b><span className="muted small-note">Saldırı için en az {RALLY_RULES.minPlayers} katılımcı gerekli. Takımına bildirim gitti!</span><RallyCall rallyId={rally.id} title={m.name} joined={rally.participants.map((p) => p.id)} /></div>}
       {open && mine && ready && <RallyCall rallyId={rally.id} title={m.name} joined={rally.participants.map((p) => p.id)} />}
       {open && mine && ready && (
         <button className="btn ev-big" data-testid="ralli-saldir" disabled={mine.tries >= RALLY_RULES.triesPerPlayer} onClick={() => onPlay(eventSpec(m.level, rally.salt), { kind: 'ralli', rallyId: rally.id })}>
-          ⚔️ Saldır! · {m.level}. {levelName(m.level)} <small>({RALLY_RULES.triesPerPlayer - mine.tries} hak)</small>
+          <Art e="⚔️" size="1.15em" className="art-inline" /> Saldır! · {m.level}. {levelName(m.level)} <small>({RALLY_RULES.triesPerPlayer - mine.tries} hak)</small>
         </button>
       )}
-      {rally.status === 'kazanildi' && <div className="card cream ev-result"><b>🏆 {m.name} yenildi!</b><span>Katılan herkese:</span><Rewards items={m.reward} /><small>Takıma +{m.teamXp} XP · Düelloya +{RALLY_RULES.duelPoints} puan/kişi</small></div>}
+      {rally.status === 'kazanildi' && <div className="card cream ev-result"><b><Art e="🏆" size="1.15em" className="art-inline" /> {m.name} yenildi!</b><span>Katılan herkese:</span><Rewards items={m.reward} /><small>Takıma +{m.teamXp} XP · Düelloya +{RALLY_RULES.duelPoints} puan/kişi</small></div>}
       {!open && <button className="btn ghost" onClick={() => useEvents.setState({ rally: null })}>Yeni ralli</button>}
 
       <div className="card">
         <b>Hasar akışı</b>
         {rally.hits.length === 0 ? <div className="muted small-note">Henüz darbe yok. İlk vuruş senden olsun!</div> : (
-          <ul className="ev-feed">{rally.hits.map((h, i) => <li key={`${h.at}-${i}`}><span className="grow ellipsis">{h.completed ? '⭐'.repeat(Math.max(1, h.stars)) : '🩹'} {h.name}</span><b className="coral-t">−{h.damage}</b></li>)}</ul>
+          <ul className="ev-feed">{rally.hits.map((h, i) => <li key={`${h.at}-${i}`}><span className="grow ellipsis">{rich(h.completed ? '⭐'.repeat(Math.max(1, h.stars)) : '🩹')} {h.name}</span><b className="coral-t">−{h.damage}</b></li>)}</ul>
         )}
       </div>
       <div className="muted small-note">Hasar: bölümü bitirirsen 60 + 30 × yıldız, bitiremezsen 15. Her katılımcının {RALLY_RULES.triesPerPlayer} hakkı var. Süre: {RALLY_RULES.durationMs / 60_000} dk.</div>
@@ -101,7 +103,7 @@ function Picker({ left, members, busy, err, onStart }: { left: number; members: 
           <div className="grow min0">
             <b>{m.name}</b>
             <div className="muted small-note">{m.desc}</div>
-            <div className="ev-mon-meta"><span>❤️ {rallyMaxHp(m, members)} can</span><span>🗺️ {m.level}. {levelName(m.level)}</span></div>
+            <div className="ev-mon-meta"><span><Art e="❤️" size="1.15em" className="art-inline" /> {rallyMaxHp(m, members)} can</span><span><Art e="🗺️" size="1.15em" className="art-inline" /> {m.level}. {levelName(m.level)}</span></div>
             <Rewards items={m.reward} label="Katılan herkese" />
           </div>
           <button className="btn small coral" data-testid={`ralli-baslat-${m.id}`} disabled={busy || left <= 0} onClick={() => onStart(m.id)}>Başlat</button>
@@ -123,14 +125,14 @@ export function RallyCall({ rallyId, title, joined }: { rallyId: string; title: 
   };
   return (
     <>
-      <button className="btn ghost small" data-testid="ralli-cagir" onClick={() => setOpen(true)}>📨 Takım arkadaşını çağır</button>
+      <button className="btn ghost small" data-testid="ralli-cagir" onClick={() => setOpen(true)}><Art e="📨" size="1.15em" className="art-inline" /> Takım arkadaşını çağır</button>
       {open && (
         <Sheet title="Kimi ralliye çağıralım?" onClose={() => setOpen(false)}>
           <div className="muted small-note">Özel mesajla davet kartı gider; dokununca ralli açılır.</div>
           {list.map((m) => (
             <div key={m.id} className="ev-pass">
               <OdiAvatar color={m.color} hat={m.hat} size={36} /><b className="grow ellipsis">{m.name}</b>
-              {sent[m.id] === 'ok' ? <span className="ev-tag">Gönderildi ✓</span> : <button className="btn small" onClick={() => void call(m.id)}>Çağır</button>}
+              {sent[m.id] === 'ok' ? <span className="ev-tag">Gönderildi <Icon name="check" size="1.1em" className="ic-inline" /></span> : <button className="btn small" onClick={() => void call(m.id)}>Çağır</button>}
               {sent[m.id] && sent[m.id] !== 'ok' && <small className="ev-note" style={{ flexBasis: '100%' }}>{sent[m.id]}</small>}
             </div>
           ))}

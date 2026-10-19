@@ -1,0 +1,52 @@
+/* =====================================================================================
+   Açılış ekranı: Kulak Gecesi zemini (aurora, yıldız tozu, Odi'den yayılan ses halkaları, süzülen notalar),
+   Odi kahraman çizimi, altın logo, tek ana düğme.
+   ===================================================================================== */
+.title-screen { position:relative; justify-content:center; align-items:center; text-align:center; gap:16px; overflow:hidden; padding-bottom:calc(var(--sab) + 28px); }
+.ts-sky { position:fixed; inset:0; z-index:-1; pointer-events:none; overflow:hidden;
+  background:
+    radial-gradient(60% 38% at 50% 34%, rgba(139,107,255,.42), transparent 70%),
+    radial-gradient(48% 30% at 18% 8%, rgba(46,230,214,.16), transparent 70%),
+    radial-gradient(52% 34% at 86% 92%, rgba(255,92,138,.16), transparent 70%); }
+.ts-sky::before { content:''; position:absolute; inset:-20%; opacity:.75;
+  background-image:
+    radial-gradient(1.6px 1.6px at 12% 22%, #fff 50%, transparent 51%), radial-gradient(1.2px 1.2px at 78% 14%, #fff6e5 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 64% 66%, #c9c1ff 50%, transparent 51%), radial-gradient(1px 1px at 30% 80%, #fff 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 88% 44%, #ffe08a 50%, transparent 51%), radial-gradient(1.2px 1.2px at 44% 10%, #fff 50%, transparent 51%);
+  background-size:220px 220px, 260px 260px, 300px 300px, 240px 240px, 340px 340px, 280px 280px;
+  animation:tsDrift 60s linear infinite; }
+@keyframes tsDrift { to { transform:translateY(-220px); } }
+.ts-ring { position:absolute; left:50%; top:calc(var(--sat) + 30vh); width:200px; height:200px; margin:-100px 0 0 -100px; border-radius:50%;
+  border:2px solid rgba(255,201,60,.35); opacity:0; animation:tsRing 5.4s ease-out infinite; }
+.ts-ring.r2 { animation-delay:1.8s; border-color:rgba(46,230,214,.32); }
+.ts-ring.r3 { animation-delay:3.6s; border-color:rgba(139,107,255,.4); }
+@keyframes tsRing { 0% { transform:scale(.6); opacity:.9; } 100% { transform:scale(3.6); opacity:0; } }
+.ts-note { position:absolute; filter:drop-shadow(0 0 10px rgba(255,201,60,.55)); animation:tsFloat 7s ease-in-out infinite; }
+.ts-note.n1 { left:12%; top:24%; } .ts-note.n2 { right:14%; top:18%; animation-delay:-2s; } .ts-note.n3 { right:10%; top:46%; animation-delay:-4s; } .ts-note.n4 { left:16%; top:52%; animation-delay:-5s; }
+@keyframes tsFloat { 0%, 100% { transform:translateY(0) rotate(-8deg); } 50% { transform:translateY(-14px) rotate(8deg); } }
+
+.ts-hero { position:relative; margin-top:8px; animation:tsBob 4.2s ease-in-out infinite; }
+.ts-hero .odi-hero { display:block; filter:drop-shadow(0 18px 30px rgba(8,4,26,.55)); }
+.oh-halo { animation:tsGlow 3.2s ease-in-out infinite; transform-origin:100px 100px; }
+.oh-waves { animation:tsWaves 2.4s ease-in-out infinite; transform-origin:100px 100px; }
+.oh-eyes { animation:tsBlink 5s infinite; transform-origin:100px 97px; }
+@keyframes tsBob { 50% { transform:translateY(-8px); } }
+@keyframes tsGlow { 50% { opacity:.65; transform:scale(.94); } }
+@keyframes tsWaves { 50% { opacity:.55; transform:scale(1.04); } }
+@keyframes tsBlink { 0%, 92%, 100% { transform:scaleY(1); } 95% { transform:scaleY(.1); } }
+
+.ts-logo { display:flex; flex-direction:column; align-items:center; gap:2px; margin-top:-6px; }
+.ts-word { font-size:clamp(54px, 18vw, 72px); line-height:1; letter-spacing:2px; font-weight:900; margin:0;
+  background:linear-gradient(180deg, #fff9e0 0%, #ffe27a 38%, #ffc93c 58%, #ff9f1c 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 3px 0 #b85c00) drop-shadow(0 10px 22px rgba(255,159,28,.35)); text-shadow:none; }
+.ts-word span { background:linear-gradient(180deg, #e9fffc 0%, #2ee6d6 60%, #12a89e 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.ts-tag { display:flex; align-items:center; gap:10px; font-weight:900; font-size:15px; letter-spacing:4px; text-transform:uppercase; color:var(--cream); opacity:.92; }
+.ts-tag i { width:28px; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold)); }
+.ts-tag i:last-child { background:linear-gradient(90deg, var(--gold), transparent); }
+.ts-story { max-width:310px; margin:0; color:var(--text-2); font-weight:800; font-size:15.5px; line-height:1.45; }
+.ts-invite { width:100%; max-width:340px; display:flex; flex-direction:column; gap:8px; text-align:center; }
+.ts-invite h2 { font-size:18px; }
+.ts-cta { width:100%; max-width:340px; opacity:0; transform:translateY(10px); transition:opacity .35s, transform .35s; }
+.ts-cta.on { opacity:1; transform:none; }
+@media (max-height:680px) { .ts-hero .odi-hero { width:128px; height:128px; } .title-screen { gap:12px; } }
+@media (prefers-reduced-motion: reduce) { .ts-sky::before, .ts-ring, .ts-note, .ts-hero, .oh-halo, .oh-waves, .oh-eyes { animation:none !important; } .ts-ring { display:none; } }

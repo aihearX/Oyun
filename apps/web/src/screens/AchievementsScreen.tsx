@@ -2,6 +2,7 @@ import { ACHIEVEMENTS, TIER_NAMES, achievementDesc, type Tier } from '@odi/conte
 import { achievementNext, computeMetrics } from '@odi/meta';
 import { useStore } from '../store';
 import { Bar, ScreenHead } from '../ui/bits';
+import { Glyph } from '../ui/art';
 
 /** Başarımlar: bronz/gümüş/altın kademeler, sıradaki kademeye gerçek ilerleme. */
 export function AchievementsScreen({ onBack }: { onBack: () => void }) {
@@ -15,7 +16,7 @@ export function AchievementsScreen({ onBack }: { onBack: () => void }) {
       <div className="ach-list">
         {sorted.map((a) => { const have = s.meta.achievements[a.id] ?? 0; const v = m[a.metric] ?? 0; const next = achievementNext(a, v, have); return (
           <div className={`ach${have ? ' got' : ''}`} key={a.id}>
-            <span className="ae">{a.emoji}</span>
+            <span className="ae"><Glyph e={a.emoji} size={30} /></span>
             <div className="grow min0">
               <div className="row between"><b className="ellipsis">{a.name}</b><span className="medals" aria-label={have ? TIER_NAMES[have as Tier] : 'henüz yok'}>{a.tiers.map((_, i) => <i key={i} className={`m${i + 1}${have > i ? ' on' : ''}`} />)}</span></div>
               <div className="muted wrap">{next ? achievementDesc(a, (have + 1) as Tier) : `Tamamlandı · ${achievementDesc(a, have as Tier)}`}</div>

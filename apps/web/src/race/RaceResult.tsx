@@ -6,6 +6,7 @@ import { platform } from '../platform';
 import { errText } from '../net';
 import { useNet } from '@odi/net/store';
 import { fmtSec, levelName, newerRoom, placeMedal, raceBonus, raceTimeSec, standings, useRaceNet } from './common';
+import { Art, rich, Glyph } from '../ui/art';
 import './race.css';
 
 /**
@@ -57,7 +58,7 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
     <div className="screen fade-in race-screen race-result" data-testid="yaris-sonuc" data-status={room.status}>
       <div className="race-result-top">
         <div className="muted small-note">{room.level}. {levelName(room.level)} · canlı yarış</div>
-        <h1>{done ? headline : me?.finishedAt != null ? 'Bitirdin!' : 'Yarış sürüyor'}</h1>
+        <h1>{done ? rich(headline) : me?.finishedAt != null ? 'Bitirdin!' : 'Yarış sürüyor'}</h1>
         {!done && <div className="muted race-live"><span className="race-dots" aria-hidden><i /><i /><i /></span> Diğerleri bitiriyor…</div>}
       </div>
       {err && <div className="race-error" role="alert">{err}</div>}
@@ -67,7 +68,7 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
           const status = p.place != null ? (t != null ? fmtSec(t) : 'Bitirdi') : p.left ? 'Ayrıldı' : p.finishedAt != null ? 'Bitiremedi' : done ? 'Bitiremedi' : `Yarışta · %${Math.round(Math.max(p.pct, live[p.id] ?? 0) * 100)}`;
           return (
             <li key={p.id} className={`race-row${p.id === meId ? ' me' : ''}${p.place === 1 ? ' first' : ''}`} data-testid="yaris-sonuc-sira" data-name={p.name} data-place={p.place ?? ''}>
-              <span className="race-rank">{p.place != null ? <>{placeMedal(p.place) || ''}<b>{p.place}.</b></> : <b>{done ? '–' : `${i + 1}`}</b>}</span>
+              <span className="race-rank">{p.place != null ? <>{placeMedal(p.place) ? <Glyph e={placeMedal(p.place)} size={20} /> : null}<b>{p.place}.</b></> : <b>{done ? '–' : `${i + 1}`}</b>}</span>
               <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.place === 1 ? 'wow' : 'happy'} />
               <span className="race-row-main min0">
                 <b className="ellipsis">{p.name}{p.id === meId ? ' (sen)' : ''}</b>
@@ -85,7 +86,7 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
         </div>
       )}
       <div className="race-actions">
-        <button className="btn race-big" data-testid="yaris-rovans" disabled={busy || !net} onClick={() => void rematch()}>🔁 Rövanş</button>
+        <button className="btn race-big" data-testid="yaris-rovans" disabled={busy || !net} onClick={() => void rematch()}><Art e="🔁" size="1.15em" className="art-inline" /> Rövanş</button>
         <button className="btn ghost" data-testid="yaris-lobiye" onClick={onLobby}>Lobiye dön</button>
       </div>
     </div>

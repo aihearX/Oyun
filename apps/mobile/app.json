@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "odi",
-    "userInterfaceStyle": "light",
-    "backgroundColor": "#FFFFFF",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#140c35",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
@@ -29,7 +29,7 @@
       "expo-router",
       [
         "expo-splash-screen",
-        { "backgroundColor": "#FFFFFF", "image": "./assets/splash-icon.png", "imageWidth": 180 }
+        { "backgroundColor": "#140c35", "image": "./assets/splash-icon.png", "imageWidth": 180 }
       ],
       "expo-status-bar"
     ],

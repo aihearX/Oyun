@@ -84,8 +84,8 @@ function webInsets([top, bottom]) {
   if (!set()) document.addEventListener('DOMContentLoaded', set);
 }
 /** dom hedefi: Expo DOM köprüsü + yerel scrollEnabled:false kilidi (belge kullanıcıyla kaydırılamaz) */
-function domBridge([serverUrl, top, bottom]) {
-  const store = {};
+function domBridge([serverUrl, top, bottom, seed]) {
+  const store = { ...(seed || {}) };
   window.ReactNativeWebView = {
     injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
@@ -115,7 +115,9 @@ function measureOverflow() {
     if (el.closest('.cel-root, .map-screen, .camp-canvas, .level-host')) continue;
     const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) continue;
     if (r.right <= W + 1 && r.left >= -1) continue;
-    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) === 0) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    let hid = false; for (let q = el; q && q !== document.body; q = q.parentElement) if (Number(getComputedStyle(q).opacity) === 0) { hid = true; break; }
+    if (hid) continue;
     let p = el.parentElement, clipped = false;
     while (p && !shell(p)) {
       const ps = getComputedStyle(p);
@@ -128,6 +130,26 @@ function measureOverflow() {
   }
   const rootEl = document.getElementById('root');
   return { offenders: out.slice(0, 12), count: out.length, docScrollW: document.documentElement.scrollWidth - W, rootScrollW: rootEl ? rootEl.scrollWidth - rootEl.clientWidth : 0 };
+}
+/** arayüz metninde emoji: kullanıcı içeriği (sohbet, tepkiler, takma ad, takım amblemi, Kulak Kartı resmi) hariç her metin düğümü,
+ *  yer tutucu ve ::before/::after içeriği taranır; emoji yerine ui/art.tsx resimli ikonları kullanılmalı */
+function measureEmoji() {
+  const re = /(?:\p{Extended_Pictographic}|[▶★])️?/u; const skip = new Set(['©', '®', '™']);
+  const ALLOW = '[data-ugc], .ev-emb, .race-quick, .race-msg, [class*="sticker"], .bubble, .msg-name, .quick-row, .dm-list, .dm-bottom, .dm-react, .emoji-grid, .emoji-opt, .th-emblem, .tr-emblem, .cp-emblem, .ear-card, .fact-card, .fc-e, input, textarea, script, style, #__inset_top, #__inset_bottom';
+  const vis = (el) => { const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05; };
+  const hits = new Map();
+  const add = (el, t) => { const m = t.match(re); if (!m || skip.has(m[0])) return; const key = `${m[0]} ${(el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : el.tagName.toLowerCase())}: ${t.trim().replace(/\s+/g, ' ').slice(0, 40)}`; hits.set(key, 1); };
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const el = n.parentElement; if (!el || !re.test(n.nodeValue) || el.closest(ALLOW) || !vis(el)) continue;
+    add(el, n.nodeValue);
+  }
+  for (const el of document.querySelectorAll('body *')) {
+    if (el.closest(ALLOW)) continue;
+    const ph = el.getAttribute('placeholder'); if (ph && re.test(ph) && vis(el)) add(el, ph);
+    for (const pe of ['::before', '::after']) { const c = getComputedStyle(el, pe).content; if (c && c !== 'none' && c !== 'normal' && re.test(c) && vis(el)) add(el, c); }
+  }
+  return [...hits.keys()].slice(0, 20);
 }
 /** kaydırılabilir mi: ekran içeriği görünümden uzun mu + toplam kaydırma konumu */
 function scrollState() {
@@ -199,7 +221,7 @@ async function suite(browserName, target, [W, H]) {
     await sleep(500);
   }
   /** bir ekranı denetle: görüntü, taşma, üst pay, (uzunsa) kaydırma; opsiyonel sohbet kontrolü */
-  async function check(label, { scroll = true, chat = false, top = true } = {}) {
+  async function check(label, { scroll = true, chat = false, top = true, emoji = true } = {}) {
     await sleep(350);
     const rec = { screen: label, fails: [] };
     const file = resolve(dir, `${String(++n).padStart(2, '0')}-${label}.png`);
@@ -210,6 +232,7 @@ async function suite(browserName, target, [W, H]) {
     // ekran başlığı kesilmemeli (üst çubuk hapları başlığı “T…” yapmasın)
     const cut = await page.evaluate(() => [...document.querySelectorAll('.tb-title h1, .screen-head h1')].filter((h) => h.getBoundingClientRect().width > 0 && h.scrollWidth > h.clientWidth + 1).map((h) => h.textContent));
     if (cut.length) fail(rec, `başlık kesildi: ${cut.join(', ')}`);
+    if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {
       await page.evaluate(resetScroll);
@@ -237,6 +260,8 @@ async function suite(browserName, target, [W, H]) {
   try {
     // ---- açılış + takma ad
     await page.goto(url(), { waitUntil: 'load' });
+    await page.getByRole('button', { name: /Yola çık/ }).waitFor({ timeout: 45_000 }); await sleep(700);
+    await check('giris', { scroll: false });
     await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
     await page.locator('.onboard').waitFor({ timeout: 15_000 });
     await page.getByRole('textbox', { name: 'Takma ad' }).fill('Kulakçı Ayşegül1');
@@ -256,11 +281,19 @@ async function suite(browserName, target, [W, H]) {
         await back();
         if (!(await page.locator('.menu-tile').count())) await tab('Profil');
       }
+      const lg = page.locator('.league-card').first();
+      if (await lg.count()) { await lg.click(); await sleep(600); await check('profil-lig'); await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)
       const rn = page.getByRole('button', { name: 'Takma adı değiştir' });
       if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).click(); }
     }
-    if (want('kamp')) { await tab('Kamp'); await sleep(800); await check('kamp', { scroll: false }); }
+    if (want('kamp')) {
+      await tab('Kamp'); await sleep(1200); await check('kamp', { scroll: false });
+      const b = page.locator('.sr-only button').first();
+      if (await b.count()) { await b.evaluate((el) => el.click()); await sleep(600); await check('kamp-bina', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300); }
+      const l = page.getByRole('button', { name: 'Liste görünümü' });
+      if (await l.count()) { await l.click(); await sleep(600); await check('kamp-liste'); await back(); }
+    }
     if (want('takim')) {
       await tab('Takım');
       await page.locator('.team-hero').waitFor({ timeout: 10_000 });
@@ -300,9 +333,25 @@ async function suite(browserName, target, [W, H]) {
       await tab('Harita'); await sleep(800);
       await page.getByTestId('ev-fab').click(); await page.getByTestId('etkinlikler').waitFor({ timeout: 10_000 });
       await check('etkinlikler');
-      const card = page.locator('[data-testid="etkinlikler"] button', { hasText: 'Ralli' }).first();
-      if (await card.count()) { await card.click(); await sleep(600); await check('etkinlik-ralli'); }
-      await back(); await back();
+      const kinds = await page.locator('[data-testid^="ev-kart-"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-testid').slice(8)));
+      for (const k of kinds) {
+        const c = page.getByTestId(`ev-kart-${k}`); const btn = c.locator('button').first();
+        if (!(await btn.count())) continue;
+        await c.locator('.ev-band').first().click().catch(() => undefined); await sleep(500);
+        if (await page.locator('[data-testid="etkinlikler"][data-view="merkez"]').count()) continue;
+        await check(`etkinlik-${k}`);
+        await page.locator('.ev-head button[aria-label="Geri"]').first().click().catch(() => undefined); await sleep(400);
+      }
+      await back();
+    }
+    if (want('giris')) {
+      // geri dönen oyuncu: kayıtlı ilerleme → “Devam et”
+      const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240 }, version: 2 }) };
+      if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed]); }
+      else await page.evaluate((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
+      await page.goto(url(), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Devam et/ }).waitFor({ timeout: 45_000 }); await sleep(700);
+      await check('giris-devam', { scroll: false });
     }
     if (want('sonuc')) {
       for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti']]) {

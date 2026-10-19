@@ -5,6 +5,8 @@ import { useNav } from '../nav';
 import { Sheet } from '../ui/social';
 import { Av, giftFriend, lastSeenText, raceWith, requestFriend, tierLabel, useOnline } from './common';
 import { closeProfile, friendsNet, refreshFriends, useFriends } from './state';
+import { Art, rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 import './friends.css';
 
 /**
@@ -47,40 +49,40 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
           <div className="min0">
             <h2 className="ellipsis">{p.name}</h2>
             <div className={`fr-seen${online ? ' on' : ''}`}>{lastSeenText(p, online)}</div>
-            <div className="fr-rel-tag">{rel === 'arkadas' ? '🫂 Arkadaşın' : rel === 'istek-giden' ? '⏳ İstek gönderildi' : rel === 'istek-gelen' ? '👋 Sana istek gönderdi' : rel === 'engelledin' ? '🚫 Engelledin' : card.sameTeam ? '🤝 Takım arkadaşın' : rel === 'ben' ? '🙂 Bu sensin' : ''}</div>
+            <div className="fr-rel-tag">{rich(rel === 'arkadas' ? '🫂 Arkadaşın' : rel === 'istek-giden' ? '⏳ İstek gönderildi' : rel === 'istek-gelen' ? '👋 Sana istek gönderdi' : rel === 'engelledin' ? '🚫 Engelledin' : card.sameTeam ? '🤝 Takım arkadaşın' : rel === 'ben' ? 'Bu sensin' : '')}</div>
           </div>
         </div>
         <div className="fr-badges">
-          <span className="fr-badge"><b>⭐ {p.stars}</b><small>yıldız</small></span>
-          <span className="fr-badge"><b>🗺️ {p.highest}</b><small>en yüksek bölüm</small></span>
-          <span className="fr-badge"><b>{tierLabel(p)}</b><small>lig</small></span>
+          <span className="fr-badge"><b><Art e="⭐" size="1.15em" className="art-inline" /> {p.stars}</b><small>yıldız</small></span>
+          <span className="fr-badge"><b><Art e="🗺️" size="1.15em" className="art-inline" /> {p.highest}</b><small>en yüksek bölüm</small></span>
+          <span className="fr-badge"><b>{rich(tierLabel(p))}</b><small>lig</small></span>
           <span className="fr-badge"><b>Sv {p.level}</b><small>seviye</small></span>
-          {p.teamName && <span className="fr-badge wide"><b>{p.teamEmblem} {p.teamName}</b><small>takım</small></span>}
-          <span className="fr-badge"><b>🫂 {card.friendCount}</b><small>{card.mutualFriends ? `${card.mutualFriends} ortak` : 'arkadaş'}</small></span>
+          {p.teamName && <span className="fr-badge wide"><b><span data-ugc>{p.teamEmblem}</span> {p.teamName}</b><small>takım</small></span>}
+          <span className="fr-badge"><b><Art e="🫂" size="1.15em" className="art-inline" /> {card.friendCount}</b><small>{card.mutualFriends ? `${card.mutualFriends} ortak` : 'arkadaş'}</small></span>
         </div>
 
         {mode === 'main' && rel !== 'ben' && (
           <div className="fr-card-actions">
-            {rel === 'yok' && <button className="btn" disabled={busy} onClick={() => void run(() => requestFriend(p))}>➕ Arkadaş ekle</button>}
+            {rel === 'yok' && <button className="btn" disabled={busy} onClick={() => void run(() => requestFriend(p))}><Art e="➕" size="1.15em" className="art-inline" /> Arkadaş ekle</button>}
             {rel === 'istek-giden' && <button className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.cancel', { requestId: card.requestId })) { useFriends.setState((s) => ({ outgoing: s.outgoing.filter((r) => r.id !== card.requestId) })); toast('↩️', 'İstek geri çekildi'); } })}>↩️ İsteği geri çek</button>}
             {rel === 'istek-gelen' && (
               <div className="row">
-                <button className="btn grow" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.respond', { requestId: card.requestId, accept: true })) { toast('🫂', `${p.name} artık arkadaşın`, undefined, 'green'); void refreshFriends(); } })}>✓ Kabul et</button>
+                <button className="btn grow" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.respond', { requestId: card.requestId, accept: true })) { toast('🫂', `${p.name} artık arkadaşın`, undefined, 'green'); void refreshFriends(); } })}><Icon name="check" size="1.1em" className="ic-inline" /> Kabul et</button>
                 <button className="btn ghost grow" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.respond', { requestId: card.requestId, accept: false })) void refreshFriends(); })}>Reddet</button>
               </div>
             )}
-            {card.canMessage && <button className="btn teal" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}>💬 Mesaj gönder</button>}
+            {card.canMessage && <button className="btn teal" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}><Art e="💬" size="1.15em" className="art-inline" /> Mesaj gönder</button>}
             {rel === 'arkadas' && (
               <div className="row">
-                <button className="btn ghost grow" disabled={busy || gifted || card.giftedToday} onClick={() => void run(() => giftFriend(p))}>{gifted || card.giftedToday ? '🎁 Bugün gönderildi' : '🎁 Hediye'}</button>
-                <button className="btn coral grow" onClick={() => go(() => void raceWith(p, nav))}>🏁 Yarış</button>
+                <button className="btn ghost grow" disabled={busy || gifted || card.giftedToday} onClick={() => void run(() => giftFriend(p))}>{rich(gifted || card.giftedToday ? '🎁 Bugün gönderildi' : '🎁 Hediye')}</button>
+                <button className="btn coral grow" onClick={() => go(() => void raceWith(p, nav))}><Art e="🏁" size="1.15em" className="art-inline" /> Yarış</button>
               </div>
             )}
             {rel === 'engelledin'
               ? <button className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (await act('players.unblock', { id: p.id })) toast('✅', `${p.name} engeli kaldırıldı`); })}>Engeli kaldır</button>
               : <div className="fr-card-quiet">
-                  <button className="linkish" onClick={() => setMode('block')}>🚫 Engelle</button>
-                  <button className="linkish" onClick={() => setMode('report')}>🚩 Şikâyet et</button>
+                  <button className="linkish" onClick={() => setMode('block')}><Art e="🚫" size="1.15em" className="art-inline" /> Engelle</button>
+                  <button className="linkish" onClick={() => setMode('report')}><Art e="🚩" size="1.15em" className="art-inline" /> Şikâyet et</button>
                   {rel === 'arkadas' && <button className="linkish" onClick={() => void run(async () => { if (await act('friends.remove', { id: p.id })) { useFriends.setState((s) => ({ friends: s.friends?.filter((f) => f.id !== p.id) ?? null })); toast('👋', `${p.name} listeden çıkarıldı`); } })}>Arkadaşlıktan çıkar</button>}
                 </div>}
           </div>
@@ -88,15 +90,15 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
         {mode === 'block' && (
           <div className="fr-card-actions">
             <div className="muted">{p.name} sana mesaj, arkadaşlık isteği, yarış daveti ve hediye gönderemeyecek; arkadaşsanız listeden çıkacak. Bunu ona söylemeyiz.</div>
-            <button className="btn coral" disabled={busy} onClick={() => void run(async () => { if (await act('players.block', { id: p.id })) { useFriends.setState((s) => ({ friends: s.friends?.filter((f) => f.id !== p.id) ?? null, threads: s.threads?.filter((t) => t.other.id !== p.id) ?? null })); toast('🚫', `${p.name} engellendi`, 'İstediğin zaman Arkadaşlar → Engellenenler’den kaldırabilirsin.'); setMode('main'); } })}>🚫 Engelle</button>
+            <button className="btn coral" disabled={busy} onClick={() => void run(async () => { if (await act('players.block', { id: p.id })) { useFriends.setState((s) => ({ friends: s.friends?.filter((f) => f.id !== p.id) ?? null, threads: s.threads?.filter((t) => t.other.id !== p.id) ?? null })); toast('🚫', `${p.name} engellendi`, 'İstediğin zaman Arkadaşlar → Engellenenler’den kaldırabilirsin.'); setMode('main'); } })}><Art e="🚫" size="1.15em" className="art-inline" /> Engelle</button>
             <button className="btn ghost" onClick={() => setMode('main')}>Vazgeç</button>
           </div>
         )}
         {mode === 'report' && (
           <div className="fr-card-actions">
             <div className="muted">Neden şikâyet ediyorsun? Şikâyetler gizlidir; birkaç farklı kişi şikâyet ederse oyuncu bir süre susturulur.</div>
-            {([['isim', '🏷️ Uygunsuz isim'], ['taciz', '😣 Rahatsız ediyor'], ['diger', '❓ Başka bir şey']] as const).map(([reason, label]) => (
-              <button key={reason} className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (await act('players.report', { id: p.id, reason })) { toast('🙏', 'Teşekkürler', 'Şikâyetin alındı. İstersen onu engelleyebilirsin.', 'green'); setMode('main'); } })}>{label}</button>
+            {([['isim', '🏷️ Uygunsuz isim'], ['taciz', '🚫 Rahatsız ediyor'], ['diger', '❓ Başka bir şey']] as const).map(([reason, label]) => (
+              <button key={reason} className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (await act('players.report', { id: p.id, reason })) { toast('🙏', 'Teşekkürler', 'Şikâyetin alındı. İstersen onu engelleyebilirsin.', 'green'); setMode('main'); } })}>{rich(label)}</button>
             ))}
             <button className="btn ghost" onClick={() => setMode('main')}>Vazgeç</button>
           </div>

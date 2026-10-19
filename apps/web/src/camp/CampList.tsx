@@ -4,6 +4,7 @@ import { depotStored } from '@odi/game-core';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, effect, type CampActions } from './model';
+import { Art, rich, Glyph } from '../ui/art';
 
 /** Liste görünümü (erişilebilirlik): binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
 export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
@@ -24,11 +25,11 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
     <div className="stack">
       {active && <Construction b={active} sNow={sNow} wallet={wallet} team={team} actions={actions} />}
       {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
-        <div className="card idle-card"><span aria-hidden>👷</span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
+        <div className="card idle-card"><span aria-hidden><Art e="👷" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
 
       {depot > 0 && (
         <div className="card depot">
-          <div className="row between"><b>📦 Kulak Deposu</b><span className="qn">{fmtNum(stored)}/{fmtNum(depotMax)}</span></div>
+          <div className="row between"><b><Art e="📦" size="1.15em" className="art-inline" /> Kulak Deposu</b><span className="qn">{fmtNum(stored)}/{fmtNum(depotMax)}</span></div>
           <div className="row qbar"><Bar value={depotMax ? stored / depotMax : 0} tone={stored >= depotMax ? 'coral' : 'amber'} label="Depo doluluğu" /><button className="btn small" disabled={stored < 1} onClick={() => void collect()}>Topla</button></div>
           <div className="muted small-note">{stored >= depotMax ? 'Depo dolu! Topla ki üretim sürsün.' : `Saatte ${depot * DEPOT_RATE} jeton · ${fmtDur(((depotMax - stored) / (depot * DEPOT_RATE)) * 3600)} sonra dolar`}</div>
           {burst && <FloatBurst text={burst} onDone={() => setBurst(null)} />}
@@ -39,7 +40,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
           <span className="muted small-note">Kamp + takım etkilerin</span>
           <div className="bonus-row">
-            <span><b>+%{bonuses.coinPct}</b>🪙 jeton</span><span><b>%{bonuses.shieldChancePct}</b>🛡️ kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b>💚 revir</span><span><b>+%{bonuses.warPct}</b>⚔️ savaş</span><span><b>+%{bonuses.raidPct}</b>👹 baskın</span>
+            <span><b>+%{bonuses.coinPct}</b><Art e="🪙" size="1.15em" className="art-inline" /> jeton</span><span><b>%{bonuses.shieldChancePct}</b><Art e="🛡️" size="1.15em" className="art-inline" /> kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b><Art e="💚" size="1.15em" className="art-inline" /> revir</span><span><b>+%{bonuses.warPct}</b><Art e="⚔️" size="1.15em" className="art-inline" /> savaş</span><span><b>+%{bonuses.raidPct}</b><Art e="👹" size="1.15em" className="art-inline" /> baskın</span>
           </div>
         </div>)}
 
@@ -48,11 +49,11 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         return (
           <div className={`card building${b.upgradingTo ? ' building-now' : ''}`} key={d.id}>
             <div className="row">
-              <span className="b-i" aria-hidden>{d.emoji}</span>
+              <span className="b-i" aria-hidden><Glyph e={d.emoji} size={32} /></span>
               <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div></div>
             </div>
             {!max && <div className="row b-up">
-              <span className="muted grow">Sv {to}: {effect(d.id, to)}<br />🪙 {fmtNum(cost.jeton)} · ⏱ {fmtDur(dur(cost.seconds))}</span>
+              <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {fmtDur(dur(cost.seconds))}</span>
               <button className="btn small" disabled={busy || blocked || poor} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : blocked ? `Merkez ${to}` : 'Yükselt'}</button>
             </div>}
             {max && <div className="muted">En yüksek seviye.</div>}
@@ -61,7 +62,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
       {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); return (
         <Sheet title={`${confirm.emoji} ${confirm.name} → Sv ${b.level + 1}`} onClose={() => setConfirm(null)}>
           <div className="muted">{effect(confirm.id, b.level + 1)}</div>
-          <div className="chips"><span className="chip">🪙 {fmtNum(c.jeton)}</span><span className="chip">⏱ {fmtDur(dur(c.seconds))}</span>{fast > 0 && <span className="chip">🏗️ takım −%{fast}</span>}</div>
+          <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(dur(c.seconds))}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
           <button className="btn" onClick={() => void upgrade(confirm)}>Yükselt</button>
           <button className="btn ghost" onClick={() => setConfirm(null)}>Vazgeç</button>
         </Sheet>); })()}
@@ -78,15 +79,15 @@ export function Construction({ b, sNow, wallet, team, actions }: { b: BuildingSt
   const ask = async () => { if (await actions.ask(b.id)) setAsked(true); };
   return (
     <div className="card construction">
-      <div className="row"><span className="b-i big" aria-hidden>{d.emoji}</span><div className="grow min0"><b>{d.name} → Sv {b.upgradingTo}</b><div className="countdown big-count" aria-live="off">{fmtLeft(left)}</div></div></div>
+      <div className="row"><span className="b-i big" aria-hidden><Glyph e={d.emoji} size={40} /></span><div className="grow min0"><b>{d.name} → Sv {b.upgradingTo}</b><div className="countdown big-count" aria-live="off">{fmtLeft(left)}</div></div></div>
       <Bar value={1 - left / total} tone="accent" label="İnşaat ilerlemesi" />
-      {team ? <button className="btn ghost" disabled={isAsked} onClick={() => void ask()}>{isAsked ? `🙋 Yardım istendi · ${b.helpsReceived} yardım` : `🙋 Takımdan yardım iste${b.helpsReceived ? ` · ${b.helpsReceived} yardım` : ''}`}</button>
+      {team ? <button className="btn ghost" disabled={isAsked} onClick={() => void ask()}>{rich(isAsked ? `🙋 Yardım istendi · ${b.helpsReceived} yardım` : `🙋 Takımdan yardım iste${b.helpsReceived ? ` · ${b.helpsReceived} yardım` : ''}`)}</button>
         : <div className="muted small-note">Bir takıma katılırsan arkadaşların inşaatını tek dokunuşla hızlandırabilir.</div>}
       <div className="speed-row">
-        {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={wallet.hizlandirici[it.k] < 1} onClick={() => void actions.speed(b.id, it.k)}>⏩ {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
+        {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={wallet.hizlandirici[it.k] < 1} onClick={() => void actions.speed(b.id, it.k)}><Art e="⏩" size="1.15em" className="art-inline" /> {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
       </div>
-      <button className="btn ghost small finish" disabled={wallet.kristal < crystals} onClick={() => void actions.speed(b.id, 'kristal')}>💎 {crystals} kristalle hemen bitir</button>
-      <div className="muted small-note">Kristal: kalan her dakika için 1 (sende 💎 {fmtNum(wallet.kristal)}).</div>
+      <button className="btn ghost small finish" disabled={wallet.kristal < crystals} onClick={() => void actions.speed(b.id, 'kristal')}><Art e="💎" size="1.15em" className="art-inline" /> {crystals} kristalle hemen bitir</button>
+      <div className="muted small-note">Kristal: kalan her dakika için 1 (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
     </div>
   );
 }

@@ -5,6 +5,8 @@ import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-
 import { audio } from '@odi/audio';
 import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canUpgrade, defOf, effect, type CampActions } from './model';
+import { Art, rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 /** binanın görünümü (önbellekli küçük resim) */
 const thumbs = new Map<string, string>();
@@ -47,7 +49,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
             <div className="bp-lv"><span className={`bp-tier t${Math.max(0, tierOf(b.level))}`}>{b.level > 0 ? `Sv ${b.level} · ${CAMP_TIER_NAMES[tierOf(b.level)]}` : 'Kurulmadı'}</span><span className="bp-max">en çok Sv {d.maxLevel}</span></div>
             <div className="bp-desc">{d.desc}</div>
           </div>
-          <button className="bp-x" onClick={onClose} aria-label="Kapat">✕</button>
+          <button className="bp-x" onClick={onClose} aria-label="Kapat"><Icon name="close" size="1.1em" className="ic-inline" /></button>
         </div>
 
         <div className="bp-eff">
@@ -57,7 +59,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
 
         {depot && (
           <div className="bp-depot">
-            <div className="row between"><b>Depoda</b><span className="qn">🪙 {fmtNum(depot.stored)} / {fmtNum(depot.max)}</span></div>
+            <div className="row between"><b>Depoda</b><span className="qn"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(depot.stored)} / {fmtNum(depot.max)}</span></div>
             <div className="bp-bar"><i style={{ width: `${Math.round(depot.ratio * 100)}%` }} className={depot.ratio >= 1 ? 'full' : ''} /></div>
             <div className="row between"><span className="bp-note">{depot.ratio >= 1 ? 'Depo dolu! Topla ki üretim sürsün.' : `Saatte ${b.level * DEPOT_RATE} jeton`}</span>
               <button className="btn small gold" disabled={busy || depot.stored < 1} onClick={() => void run(async () => { await actions.collect(); })}>Topla{depot.stored >= 1 ? ` +${fmtNum(depot.stored)}` : ''}</button></div>
@@ -66,20 +68,20 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
 
         {building ? (
           <div className="bp-build">
-            <div className="row between"><b>🏗️ Sv {b.upgradingTo} yapılıyor</b><span className="countdown big-count" aria-live="off">{left > 0 ? fmtLeft(left) : 'Bitiyor…'}</span></div>
+            <div className="row between"><b><Art e="🏗️" size="1.15em" className="art-inline" /> Sv {b.upgradingTo} yapılıyor</b><span className="countdown big-count" aria-live="off">{left > 0 ? fmtLeft(left) : 'Bitiyor…'}</span></div>
             <div className="bp-bar"><i style={{ width: `${Math.round((1 - left / total) * 100)}%` }} /></div>
             {team
-              ? <button className="btn help" disabled={busy || asked} onClick={() => void run(async () => { if (await actions.ask(id)) setAsked(true); })}>{asked ? `🙋 Yardım istendi · ${b.helpsReceived} yardım` : `🙋 Takımdan yardım iste${b.helpsReceived ? ` · ${b.helpsReceived} yardım` : ''}`}</button>
+              ? <button className="btn help" disabled={busy || asked} onClick={() => void run(async () => { if (await actions.ask(id)) setAsked(true); })}>{rich(asked ? `🙋 Yardım istendi · ${b.helpsReceived} yardım` : `🙋 Takımdan yardım iste${b.helpsReceived ? ` · ${b.helpsReceived} yardım` : ''}`)}</button>
               : <div className="bp-note">Bir takıma katılırsan arkadaşların inşaatını tek dokunuşla hızlandırabilir.</div>}
             <div className="speed-row">
-              {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={busy || wallet.hizlandirici[it.k] < 1} onClick={() => void run(() => actions.speed(id, it.k))}>⏩ {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
+              {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={busy || wallet.hizlandirici[it.k] < 1} onClick={() => void run(() => actions.speed(id, it.k))}><Art e="⏩" size="1.15em" className="art-inline" /> {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
             </div>
-            <button className="btn finish" disabled={busy || wallet.kristal < crystals} onClick={() => void run(() => actions.speed(id, 'kristal'))}>💎 {crystals} ile bitir</button>
-            <div className="bp-note">Kristal: kalan her dakika için 1 (sende 💎 {fmtNum(wallet.kristal)}).</div>
+            <button className="btn finish" disabled={busy || wallet.kristal < crystals} onClick={() => void run(() => actions.speed(id, 'kristal'))}><Art e="💎" size="1.15em" className="art-inline" /> {crystals} ile bitir</button>
+            <div className="bp-note">Kristal: kalan her dakika için 1 (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
           </div>
         ) : max ? <div className="bp-note">En yüksek seviyede. Tebrikler!</div> : (
           <div className="bp-up">
-            <div className="chips"><span className="chip">🪙 {fmtNum(cost.jeton)}</span><span className="chip">⏱ {fmtDur(seconds)}</span>{fast > 0 && <span className="chip">🏗️ takım −%{fast}</span>}</div>
+            <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
             {tierNext && <div className="bp-next"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: yeni görünüm!</b><br />{CAMP_TIER_NAMES[tierOf(to)]} {b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}</span></div>}
             <button className="btn" disabled={busy || !verdict.ok} onClick={() => void run(() => actions.upgrade(id))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
             {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}

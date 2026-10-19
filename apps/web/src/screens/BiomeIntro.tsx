@@ -2,6 +2,8 @@ import { BIOMES, MECHANICS } from '@odi/content';
 import type { LevelSpec } from '@odi/shared';
 import { useEffect, useState } from 'react';
 import { platform } from '../platform';
+import { Art, Glyph } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 /** İlk kez girilen biyom için kısa sinematik kart. Tek dokunuşla geçilir. */
@@ -17,9 +19,9 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
         <div className="bi-kicker">Yeni biyom</div>
         <h1 className="bi-title">{b.name}</h1>
         <p className="bi-blurb">{b.blurb}</p>
-        <div className="bi-fact">👂 {b.fact}</div>
-        <div className="bi-mech">{m.icon} {m.name}: {m.hint}</div>
-        <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! ▶</button>
+        <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>
+        <div className="bi-mech"><Glyph e={m.icon} size="1.2em" /> {m.name}: {m.hint}</div>
+        <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
     </div>
   );

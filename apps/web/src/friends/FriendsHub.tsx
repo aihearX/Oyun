@@ -9,6 +9,8 @@ import { Av, giftFriend, infoLine, raceWith, requestFriend, useOnline } from './
 import { friendsNet, openProfile, refreshFriends, useFriends } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
+import { Art, Glyph, rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 type T = 'arkadaslar' | 'istekler' | 'oneriler';
 
@@ -25,9 +27,9 @@ export function FriendsHub({ raceReady = true }: { raceReady?: boolean }) {
     <div className="stack fr-hub">
       <MyCode code={me.friendCode} />
       <div className="fr-search">
-        <span aria-hidden className="fr-search-ico">🔎</span>
+        <span aria-hidden className="fr-search-ico"><Art e="🔎" size="1.15em" className="art-inline" /></span>
         <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="İsim ya da arkadaş kodu ara" aria-label="Oyuncu ara" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false} maxLength={30} />
-        {searching && <button className="fr-search-x" onClick={() => setQ('')} aria-label="Aramayı temizle">✕</button>}
+        {searching && <button className="fr-search-x" onClick={() => setQ('')} aria-label="Aramayı temizle"><Icon name="close" size="1.1em" className="ic-inline" /></button>}
       </div>
       {searching ? <SearchResults q={q.trim()} /> : (
         <>
@@ -55,7 +57,7 @@ function MyCode({ code }: { code: string }) {
         <b className="fr-code" aria-label={`Arkadaş kodun ${code.split('').join(' ')}`}>{code}</b>
       </div>
       <IconButton icon="copy" label="Kodu kopyala" tone="teal" onClick={() => void copy()} />
-      <button className="btn small" onClick={() => void share()} aria-label="Kodu paylaş">📣 Paylaş</button>
+      <button className="btn small" onClick={() => void share()} aria-label="Kodu paylaş"><Art e="📣" size="1.15em" className="art-inline" /> Paylaş</button>
     </div>
   );
 }
@@ -64,11 +66,11 @@ function RelBtn({ hit, onDone }: { hit: SearchHit; onDone: (r: SearchHit['relati
   const [busy, setBusy] = useState(false);
   const incoming = useFriends((s) => s.incoming.find((r) => r.from.id === hit.profile.id));
   const p = hit.profile;
-  if (hit.relation === 'arkadas') return <span className="fr-state ok">Arkadaş ✓</span>;
+  if (hit.relation === 'arkadas') return <span className="fr-state ok">Arkadaş <Icon name="check" size="1.1em" className="ic-inline" /></span>;
   if (hit.relation === 'istek-giden') return <span className="fr-state">İstek gitti</span>;
   if (hit.relation === 'engelledin') return <span className="fr-state">Engelli</span>;
   if (hit.relation === 'istek-gelen' && incoming) return <button className="btn small" disabled={busy} onClick={async () => { setBusy(true); if (await act('friends.respond', { requestId: incoming.id, accept: true })) { void refreshFriends(); onDone('arkadas'); } setBusy(false); }}>Kabul et</button>;
-  return <button className="btn small" disabled={busy} aria-label={`${p.name} ekle`} onClick={async () => { setBusy(true); const r = await requestFriend(p); if (r) onDone(r === 'arkadas' ? 'arkadas' : 'istek-giden'); setBusy(false); }}>➕ Ekle</button>;
+  return <button className="btn small" disabled={busy} aria-label={`${p.name} ekle`} onClick={async () => { setBusy(true); const r = await requestFriend(p); if (r) onDone(r === 'arkadas' ? 'arkadas' : 'istek-giden'); setBusy(false); }}><Art e="➕" size="1.15em" className="art-inline" /> Ekle</button>;
 }
 
 function SearchResults({ q }: { q: string }) {
@@ -97,7 +99,7 @@ function SearchResults({ q }: { q: string }) {
         <div className="card fr-row" key={h.profile.id} data-testid="arama-sonucu">
           <button className="fr-row-main" onClick={() => openProfile(h.profile.id)} aria-label={`${h.profile.name} profili`}>
             <Av p={h.profile} />
-            <span className="min0 grow fr-row-text"><b className="ellipsis">{h.profile.name}</b><small className="ellipsis">⭐ {h.profile.stars} · {infoLine(h.profile)}</small></span>
+            <span className="min0 grow fr-row-text"><b className="ellipsis">{h.profile.name}</b><small className="ellipsis"><Art e="⭐" size="1.15em" className="art-inline" /> {h.profile.stars} · {<span data-ugc>{infoLine(h.profile)}</span>}</small></span>
           </button>
           <RelBtn hit={h} onDone={(r) => setRel(h.profile.id, r)} />
         </div>
@@ -119,13 +121,13 @@ function FriendRow({ f, raceReady }: { f: PublicProfile; raceReady: boolean }) {
         <Av p={f} />
         <span className="min0 grow fr-row-text">
           <b className="ellipsis">{f.name}</b>
-          <small className="ellipsis">{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{f.highest}. bölüm{f.teamEmblem ? ` · ${f.teamEmblem}` : ''}</small>
+          <small className="ellipsis">{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{f.highest}. bölüm{f.teamEmblem ? <> · <span data-ugc>{f.teamEmblem}</span></> : ''}</small>
         </span>
       </button>
       <div className="fr-acts">
-        <button className="fr-act rel" onClick={() => nav.open({ name: 'dm', id: f.id })} aria-label={`${f.name} ile mesajlaş`}><span aria-hidden>💬</span><small>Mesaj</small>{unread > 0 && <span className="sbadge abs">{unread}</span>}</button>
-        <button className={`fr-act${gifted ? ' done' : ''}`} disabled={gifted || busy} onClick={async () => { setBusy(true); await giftFriend(f); setBusy(false); }} aria-label={gifted ? `${f.name} için bugünkü hediye gönderildi` : `${f.name} için hediye gönder`}><span aria-hidden>{gifted ? '✅' : '🎁'}</span><small>{gifted ? 'Gitti' : 'Hediye'}</small></button>
-        {raceReady && <button className="fr-act race" onClick={() => void raceWith(f, nav)} aria-label={`${f.name} ile yarış`}><span aria-hidden>🏁</span><small>Yarış</small></button>}
+        <button className="fr-act rel" onClick={() => nav.open({ name: 'dm', id: f.id })} aria-label={`${f.name} ile mesajlaş`}><span aria-hidden><Art e="💬" size="1.15em" className="art-inline" /></span><small>Mesaj</small>{unread > 0 && <span className="sbadge abs">{unread}</span>}</button>
+        <button className={`fr-act${gifted ? ' done' : ''}`} disabled={gifted || busy} onClick={async () => { setBusy(true); await giftFriend(f); setBusy(false); }} aria-label={gifted ? `${f.name} için bugünkü hediye gönderildi` : `${f.name} için hediye gönder`}><span aria-hidden><Art name={gifted ? 'check' : 'gift'} size={24} /></span><small>{gifted ? 'Gitti' : 'Hediye'}</small></button>
+        {raceReady && <button className="fr-act race" onClick={() => void raceWith(f, nav)} aria-label={`${f.name} ile yarış`}><span aria-hidden><Art e="🏁" size="1.15em" className="art-inline" /></span><small>Yarış</small></button>}
       </div>
     </div>
   );
@@ -144,15 +146,15 @@ function FriendList({ raceReady, onFind }: { raceReady: boolean; onFind: () => v
     <div className="stack">
       {sorted.length === 0
         ? <Empty icon="🫂" title="Henüz arkadaşın yok" text="Kodunu paylaş, yukarıdan isimle ara ya da önerilere göz at. Birlikte konuşup yarışabilir, her gün hediye gönderebilirsiniz.">
-            <button className="btn small" onClick={onFind}>✨ Önerilere bak</button>
+            <button className="btn small" onClick={onFind}><Art e="✨" size="1.15em" className="art-inline" /> Önerilere bak</button>
           </Empty>
         : <>
-            <div className="fr-sub muted small-note">{onlineN > 0 ? `🟢 ${onlineN} arkadaşın şu an çevrimiçi` : 'Şu an kimse çevrimiçi değil; mesaj bırakabilirsin.'}</div>
+            <div className="fr-sub muted small-note">{rich(onlineN > 0 ? `🟢 ${onlineN} arkadaşın şu an çevrimiçi` : 'Şu an kimse çevrimiçi değil; mesaj bırakabilirsin.')}</div>
             {sorted.map((f) => <FriendRow key={f.id} f={f} raceReady={raceReady} />)}
           </>}
       <div className="fr-foot">
-        <button className="linkish" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}>🌍 Genel sohbet</button>
-        <button className="linkish" onClick={() => setBlocked(true)}>🚫 Engellenenler</button>
+        <button className="linkish" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}><Art e="🌍" size="1.15em" className="art-inline" /> Genel sohbet</button>
+        <button className="linkish" onClick={() => setBlocked(true)}><Art e="🚫" size="1.15em" className="art-inline" /> Engellenenler</button>
       </div>
       {blocked && <BlockedSheet onClose={() => setBlocked(false)} />}
     </div>
@@ -164,7 +166,7 @@ function BlockedSheet({ onClose }: { onClose: () => void }) {
   useEffect(() => { const c = friendsNet(); if (c) void c.call('players.blocked', {}).then((r) => setList(r.players), () => setList([])); }, []);
   return (
     <Sheet title="Engellenenler" onClose={onClose}>
-      {!list ? <Skeleton rows={2} /> : !list.length ? <div className="muted">Kimseyi engellemedin. 🌱</div> : list.map((p) => (
+      {!list ? <Skeleton rows={2} /> : !list.length ? <div className="muted">Kimseyi engellemedin. <Art e="🌱" size="1.15em" className="art-inline" /></div> : list.map((p) => (
         <div className="fr-row plain" key={p.id}>
           <Av p={p} dot={false} size={40} /><b className="grow ellipsis">{p.name}</b>
           <button className="btn ghost small" onClick={async () => { if (await act('players.unblock', { id: p.id })) { setList((l) => l?.filter((x) => x.id !== p.id) ?? null); toast('✅', `${p.name} engeli kaldırıldı`); } }}>Kaldır</button>
@@ -191,10 +193,10 @@ function ReqRow({ r, dir }: { r: FriendRequest; dir: 'in' | 'out' }) {
     <div className={`card fr-row${dir === 'in' ? ' wrap' : ''}`} data-testid={dir === 'in' ? 'gelen-istek' : 'giden-istek'}>
       <button className="fr-row-main" onClick={() => openProfile(p.id)} aria-label={`${p.name} profili`}>
         <Av p={p} />
-        <span className="min0 grow fr-row-text"><b className="ellipsis">{p.name}</b><small className="ellipsis">{dir === 'in' ? `seninle arkadaş olmak istiyor · ⭐ ${p.stars} · ${p.highest}. bölüm` : 'yanıt bekleniyor'}</small></span>
+        <span className="min0 grow fr-row-text"><b className="ellipsis">{p.name}</b><small className="ellipsis">{rich(dir === 'in' ? `seninle arkadaş olmak istiyor · ⭐ ${p.stars} · ${p.highest}. bölüm` : 'yanıt bekleniyor')}</small></span>
       </button>
       {dir === 'in'
-        ? <div className="fr-req-btns"><button className="btn small" disabled={busy} onClick={() => void respond(true)}>✓ Kabul</button><button className="btn ghost small" disabled={busy} onClick={() => void respond(false)}>Reddet</button></div>
+        ? <div className="fr-req-btns"><button className="btn small" disabled={busy} onClick={() => void respond(true)}><Icon name="check" size="1.1em" className="ic-inline" /> Kabul</button><button className="btn ghost small" disabled={busy} onClick={() => void respond(false)}>Reddet</button></div>
         : <button className="btn ghost small" disabled={busy} onClick={() => void cancel()}>İptal</button>}
     </div>
   );
@@ -227,10 +229,10 @@ function Suggestions() {
         <div className="card fr-row" key={s.profile.id} data-testid="oneri">
           <button className="fr-row-main" onClick={() => openProfile(s.profile.id)} aria-label={`${s.profile.name} profili`}>
             <Av p={s.profile} />
-            <span className="min0 grow fr-row-text"><b className="ellipsis">{s.profile.name}</b><small className="fr-reason">{REASON_ICON[s.kind]} {s.reason}</small></span>
+            <span className="min0 grow fr-row-text"><b className="ellipsis">{s.profile.name}</b><small className="fr-reason"><Glyph e={REASON_ICON[s.kind]} size="1.2em" /> {s.reason}</small></span>
           </button>
           {sent[s.profile.id] ? <span className="fr-state">İstek gitti</span>
-            : <button className="btn small" onClick={async () => { const r = await requestFriend(s.profile); if (r) setSent((x) => ({ ...x, [s.profile.id]: true })); }}>➕ Ekle</button>}
+            : <button className="btn small" onClick={async () => { const r = await requestFriend(s.profile); if (r) setSent((x) => ({ ...x, [s.profile.id]: true })); }}><Art e="➕" size="1.15em" className="art-inline" /> Ekle</button>}
         </div>
       ))}
     </div>

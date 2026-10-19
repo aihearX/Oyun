@@ -13,6 +13,7 @@ import { ActionButton } from '../ui/Button';
 import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
+import { Art, Glyph, Rich } from '../ui/art';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
@@ -142,13 +143,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
       <div className="result-top">
         <div className="muted ellipsis">{spec.number}. {spec.name}</div>
-        <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}>🪙 {coinsShown.toLocaleString('tr-TR')}</div>
+        <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}><Art name="coin" size={19} className="art-inline" />{coinsShown.toLocaleString('tr-TR')}</div>
       </div>
 
       <div className="result">
         <h1 className="result-title">{title}</h1>
         <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
-          {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty">★</span><span className="star-full">⭐</span></span>)}
+          {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty"><StarHole /></span><span className="star-full"><Art name="star" size="100%" /></span></span>)}
         </div>
         <div className="score-line" ref={scoreRef}>
           <div className="score">{score.toLocaleString('tr-TR')}</div>
@@ -157,20 +158,20 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         </div>
 
         <div className="stats">
-          <div className="card" ref={coinRef}><div className="v">🪙 {result.coins}</div><div className="k">jeton{spec.coinsTotal ? ` / ${spec.coinsTotal}` : ''}</div></div>
-          <div className="card"><div className="v">⏱ {Math.round(result.timeSec)} sn</div><div className="k">par {spec.parTimeSec} sn</div></div>
-          <div className="card"><div className="v">{result.objectiveMet ? '✅' : '⬜'}</div><div className="k">{spec.objective.label}</div></div>
+          <div className="card" ref={coinRef}><div className="v"><Art name="coin" size={22} className="art-inline" />{result.coins}</div><div className="k">jeton{spec.coinsTotal ? ` / ${spec.coinsTotal}` : ''}</div></div>
+          <div className="card"><div className="v"><Art name="timer" size={22} className="art-inline" />{Math.round(result.timeSec)} sn</div><div className="k">par {spec.parTimeSec} sn</div></div>
+          <div className="card"><div className="v"><Art name={result.objectiveMet ? 'check' : 'empty'} size={26} /></div><div className="k">{spec.objective.label}</div></div>
         </div>
 
         <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
           <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpEarned} XP</span></div>
           <div className="bar tone-accent xp"><i style={{ width: `${xpWidth * 100}%`, transition: xpPhase === 2 && leveled && !reduced ? 'none' : undefined }} key={xpPhase === 2 && leveled ? 'n' : 'o'} /></div>
-          {leveled && xpPhase >= 1 && <div className="levelup" role="status">🎉 Seviye {after.level}!</div>}
+          {leveled && xpPhase >= 1 && <div className="levelup" role="status"><Art name="party" size="1.2em" className="art-inline" /> Seviye {after.level}!</div>}
         </div>
 
         <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
-          <span className="gi">{result.completed ? (summary.goal.kind === 'hazine' ? '🎁' : '🎯') : '👂'}</span>
-          <span>{summary.goal.text}</span>
+          <span className="gi"><Art name={result.completed ? (summary.goal.kind === 'hazine' ? 'chest' : 'target') : 'ear'} size={30} /></span>
+          <span><Rich text={summary.goal.text} /></span>
         </div>
 
         {runId && step >= S + 3 && <TeamContribution runId={runId} result={result} reduced={reduced} />}
@@ -187,8 +188,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <div className="unlocks">
             {unlocks.map((u, i) => (
               <div className={`unlock-card tone-${u.tone}`} key={i} style={{ animationDelay: `${reduced ? 0 : i * 140}ms` }}>
-                <span className="ui">{u.icon}</span>
-                <span className="ub"><small>{u.kicker}</small><b>{u.title}</b>{u.text && <span className="muted">{u.text}</span>}{u.chips && <RewardChips items={u.chips} small />}</span>
+                <span className="ui"><Glyph e={u.icon} size={32} /></span>
+                <span className="ub"><small><Rich text={u.kicker} /></small><b><Rich text={u.title} /></b>{u.text && <span className="muted"><Rich text={u.text} /></span>}{u.chips && <RewardChips items={u.chips} small />}</span>
               </div>
             ))}
             {hidden > 0 && <ActionButton tone="plain" className="more-unlocks" onClick={(e) => { e.stopPropagation(); setShowAll(true); }}>+{hidden} açılım daha göster</ActionButton>}
@@ -197,7 +198,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                 <div className="muted">Bugünün görevleri</div>
                 {summary.quests.map((q) => (
                   <div className="qm" key={q.id}>
-                    <span className="qe">{q.justDone ? '✅' : q.emoji}</span>
+                    <span className="qe"><Glyph e={q.justDone ? '✅' : q.emoji} size={20} /></span>
                     <span className="qt">{q.text}</span>
                     <span className="qn">{q.after}/{q.target}</span>
                     <div className="bar tone-green"><i style={{ width: `${(q.after / q.target) * 100}%` }} /></div>
@@ -238,6 +239,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   );
 }
 
+/** boş yıldız yuvası: koyu oyuk (emoji/yazı karakteri yerine) */
+function StarHole() { return <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden><path d="M12 2.6l2.75 5.6 6.15.9-4.45 4.33 1.05 6.12L12 16.65 6.5 19.55l1.05-6.12L3.1 9.1l6.15-.9z" fill="rgba(5,2,20,.5)" stroke="rgba(255,255,255,.08)" strokeWidth="1" strokeLinejoin="round" /></svg>; }
+
 interface UnlockView { icon: ReactNode; kicker: string; title: string; text?: string; chips?: RewardItem[]; tone: 'accent' | 'green' | 'gold' | 'coral' | 'silver' | 'bronze' }
 function buildUnlocks(s: RunSummary, colorId: string): UnlockView[] {
   const out: UnlockView[] = [];
@@ -246,9 +250,9 @@ function buildUnlocks(s: RunSummary, colorId: string): UnlockView[] {
   for (const a of s.announcements) out.push({ icon: a.kind === 'biyom' ? '🧭' : '🆕', kicker: a.kind === 'biyom' ? 'Kapı aralandı' : 'Yeni hareket', title: a.title, text: a.text, tone: 'accent' });
   const order = { card: 0, cosmetic: 1, albumBadge: 2, achievement: 3 } as const;
   for (const e of [...s.events].sort((a, b) => order[a.kind] - order[b.kind])) {
-    if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ icon: c.emoji, kicker: `Yeni Kulak Kartı · ${BIOMES[c.biome].name}`, title: c.title, text: c.fact, tone: 'green' }); }
+    if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ icon: '🃏', kicker: `Yeni Kulak Kartı · ${BIOMES[c.biome].name}`, title: c.title, text: c.fact, tone: 'green' }); }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); const col = cosmeticById(colorId)?.color; if (c) out.push({ icon: <OdiAvatar size={40} color={c.kind === 'renk' ? c.color : col} hat={c.hat} />, kicker: 'Dolaba yeni', title: c.name, text: c.desc, tone: 'accent' }); }
-    else if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ icon: a.emoji, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
+    else if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }
   return out;

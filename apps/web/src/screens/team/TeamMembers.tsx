@@ -5,6 +5,7 @@ import { act, toast } from '../../net';
 import { OdiAvatar } from '../../ui/OdiAvatar';
 import { ROLE_LABEL, Sheet, fmtNum } from '../../ui/social';
 import { openProfile } from '../../friends';
+import { Art, rich } from '../../ui/art';
 
 const HATS: Record<string, string> = { 'sapka-bere': 'bere', 'sapka-nota': 'nota', 'sapka-koklea': 'koklea', 'sapka-kulaklik': 'kulaklik', 'sapka-parti': 'parti', 'sapka-yildiz': 'yildiz', 'sapka-dalgic': 'dalgic', 'sapka-tac': 'tac', 'sapka-kasif': 'kasif' };
 export const hatKey = (h: string) => HATS[h] ?? h;
@@ -31,19 +32,19 @@ export function TeamMembers() {
         <button className="card member" key={m.id} onClick={() => (canManage(m) ? setSel(m) : openProfile(m.id))} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`}>
           <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
           <span className="grow min0 mem-body">
-            <span className="row mem-top"><b className="ellipsis">{m.name}{m.id === me.id ? ' (sen)' : ''}</b>{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{ROLE_LABEL[m.role]}</span>}</span>
-            <span className="mem-stats"><span title="Bağış">🪙 {fmtNum(c?.donated ?? 0)}</span><span title="Yardım">🤝 {c?.helps ?? 0}</span><span title="Yıldız">⭐ {c?.stars ?? 0}</span><span title="Savaş puanı">⚔️ {fmtNum(m.weekPoints)}</span></span>
+            <span className="row mem-top"><b className="ellipsis">{m.name}{m.id === me.id ? ' (sen)' : ''}</b>{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{rich(ROLE_LABEL[m.role])}</span>}</span>
+            <span className="mem-stats"><span title="Bağış"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c?.donated ?? 0)}</span><span title="Yardım"><Art e="🤝" size="1.15em" className="art-inline" /> {c?.helps ?? 0}</span><span title="Yıldız"><Art e="⭐" size="1.15em" className="art-inline" /> {c?.stars ?? 0}</span><span title="Savaş puanı"><Art e="⚔️" size="1.15em" className="art-inline" /> {fmtNum(m.weekPoints)}</span></span>
           </span>
           <span className="mem-lvl muted">{m.highest}. bölüm</span>
         </button>); })}
       <div className="muted small-note">{myRole !== 'uye' ? 'Bir üyeye dokun: profil, rol ver ya da takımdan çıkar.' : 'Bir üyeye dokun: profil kartı.'}</div>
       {sel && (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
-          <div className="muted">{ROLE_LABEL[sel.role]} · {sel.highest}. bölüm · ⭐ {sel.stars}</div>
-          <button className="btn ghost" onClick={() => { const id = sel.id; setSel(null); openProfile(id); }}>👤 Profili gör</button>
-          {myRole === 'lider' && sel.role !== 'yardimci' && <button className="btn ghost" onClick={() => void role(sel, 'yardimci')}>⭐ Yardımcı yap</button>}
+          <div className="muted">{rich(ROLE_LABEL[sel.role])} · {sel.highest}. bölüm · <Art name="star" size="1.15em" className="art-inline" /> {sel.stars}</div>
+          <button className="btn ghost" onClick={() => { const id = sel.id; setSel(null); openProfile(id); }}><Art e="👤" size="1.15em" className="art-inline" /> Profili gör</button>
+          {myRole === 'lider' && sel.role !== 'yardimci' && <button className="btn ghost" onClick={() => void role(sel, 'yardimci')}><Art e="⭐" size="1.15em" className="art-inline" /> Yardımcı yap</button>}
           {myRole === 'lider' && sel.role === 'yardimci' && <button className="btn ghost" onClick={() => void role(sel, 'uye')}>Üye yap</button>}
-          {myRole === 'lider' && <button className="btn ghost" onClick={() => void role(sel, 'lider')}>👑 Liderliği devret</button>}
+          {myRole === 'lider' && <button className="btn ghost" onClick={() => void role(sel, 'lider')}><Art e="👑" size="1.15em" className="art-inline" /> Liderliği devret</button>}
           <button className="btn ghost coral-text" onClick={() => { setKick(sel); setSel(null); }}>Takımdan çıkar</button>
         </Sheet>
       )}

@@ -9,6 +9,7 @@ import { useNav } from '../nav';
 import { useEvents } from './store';
 import { Countdown, EVENT_META, levelName, useSrvNow } from './common';
 import { MonsterArt } from './MonsterArt';
+import { Art, Glyph, rich } from '../ui/art';
 
 /** Etkinlik kartı: renkli bant (etkinliğin vurgu rengi), başlık, kalan süre, içerik, ana düğme */
 export function EvCard({ kind, live, clock, cta, ctaTone, onOpen, children, testId }: { kind: EventKind; live?: string | null; clock?: ReactNode; cta?: string; ctaTone?: 'gold' | 'ghost'; onOpen: () => void; children?: ReactNode; testId?: string }) {
@@ -16,14 +17,14 @@ export function EvCard({ kind, live, clock, cta, ctaTone, onOpen, children, test
   return (
     <div className={`ev-card${live ? ' live' : ''}`} data-tone={m.tone} data-testid={testId ?? `ev-kart-${kind}`}>
       <button className="ev-band" onClick={onOpen} aria-label={`${m.name} ayrıntıları`}>
-        <span className="ev-art" aria-hidden>{m.icon}</span>
+        <span className="ev-art" aria-hidden><Glyph e={m.icon} size={30} /></span>
         <span className="ev-band-t min0"><b className="ellipsis">{m.name}</b><small className="ellipsis">{m.blurb}</small></span>
         {live && <span className="ev-live">{live}</span>}
       </button>
       <div className="ev-body">
         {clock && <div className="ev-clockrow">{clock}</div>}
         {children}
-        {cta && <button className={`btn small ev-cta${ctaTone === 'ghost' ? ' ghost' : ''}`} onClick={onOpen}>{cta}</button>}
+        {cta && <button className={`btn small ev-cta${ctaTone === 'ghost' ? ' ghost' : ''}`} onClick={onOpen}>{rich(cta)}</button>}
       </div>
     </div>
   );
@@ -63,17 +64,17 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
         clock={duel?.period ? <Countdown to={duel.period.endsAt} urgentMs={duel.finalPushMs} /> : duel ? <Countdown to={duel.next.startsAt} label="başlamasına" /> : null}
         cta={duel?.status === 'eslesti' ? 'Skoru gör' : undefined} ctaTone="ghost">
         {duel?.status === 'eslesti' && duel.me && duel.rival ? <MiniTug a={duel.me.points} b={duel.rival.points} ea={duel.me.emblem} eb={duel.rival.emblem} />
-          : duel?.status === 'araniyor' ? <div className="ev-note">🔎 Rakip aranıyor… Yıldızların şimdiden puan.</div>
+          : duel?.status === 'araniyor' ? <div className="ev-note"><Art e="🔎" size="1.15em" className="art-inline" /> Rakip aranıyor… Yıldızların şimdiden puan.</div>
           : <div className="ev-note">Haftada 2 düello: Pzt–Çar ve Per–Cmt.</div>}
       </EvCard>,
       <EvCard key="bayrak" kind="bayrak" live={relayMine ? 'BAYRAK SENDE' : null} onOpen={() => open('bayrak')} clock={s.relay ? <Countdown to={s.relay.period.endsAt} /> : null}
         cta={relayMine ? '🏃 Ayağı koş' : s.relay && s.relay.current < 4 && !s.relay.carrier ? '🚩 Bayrağı al' : 'Parkuru gör'} ctaTone={relayMine || (s.relay && !s.relay.carrier && s.relay.current < 4) ? 'gold' : 'ghost'}>
-        {s.relay && <div className="ev-flags">{s.relay.legs.map((l, i) => <span key={i} className={`ev-flag${l.firstBy ? ' done' : ''}${i === s.relay!.current ? ' cur' : ''}`}>{l.firstBy ? '🚩' : i + 1}</span>)}
+        {s.relay && <div className="ev-flags">{s.relay.legs.map((l, i) => <span key={i} className={`ev-flag${l.firstBy ? ' done' : ''}${i === s.relay!.current ? ' cur' : ''}`}>{l.firstBy ? <Art name="flag" size={16} /> : i + 1}</span>)}
           <small className="muted ellipsis">{s.relay.current >= 4 ? `Toplam ${s.relay.totalSec} sn` : s.relay.carrier ? `Bayrak: ${s.relay.carrier.name}` : `${s.relay.current + 1}. ayak gönüllü bekliyor`}</small></div>}
       </EvCard>,
       <EvCard key="avi" kind="avi" onOpen={() => open('avi')} clock={s.hunt?.period ? <Countdown to={s.hunt.period.endsAt} /> : s.hunt ? <Countdown to={s.hunt.next.startsAt} label="başlamasına" /> : null}
         cta={s.hunt?.song ? '🎶 Şarkıyı dinle' : undefined} ctaTone="ghost">
-        {s.hunt?.period ? <div className="row"><Bar value={s.hunt.progress / Math.max(1, s.hunt.target)} tone="amber" label="Melodi" /><span className="qn">♪ {fmtNum(s.hunt.progress)}/{fmtNum(s.hunt.target)}</span></div>
+        {s.hunt?.period ? <div className="row"><Bar value={s.hunt.progress / Math.max(1, s.hunt.target)} tone="amber" label="Melodi" /><span className="qn"><Art e="♪" size="1.15em" className="art-inline" /> {fmtNum(s.hunt.progress)}/{fmtNum(s.hunt.target)}</span></div>
           : <div className="ev-note">Perşembe dinlenme günü; Cuma yeni av!</div>}
       </EvCard>,
       <EvCard key="quiz" kind="quiz" live={q ? (q.phase === 'lobi' ? 'KATILIM AÇIK' : 'CANLI') : null} onOpen={() => open('quiz')}
@@ -82,31 +83,31 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
         {!q && <div className="ev-note">Her gün 13:00 ve 20:00'de kendiliğinden açılır.</div>}
       </EvCard>,
       <EvCard key="gorev" kind="gorev" onOpen={() => open('gorev')} clock={s.quests ? <Countdown to={s.quests.endsAt} /> : null}>
-        {s.quests && <div className="ev-qmini">{s.quests.quests.map((x) => <div key={x.kind} className={`row${x.done ? ' done' : ''}`}><span className="grow min0 ellipsis">{x.done ? '✅' : '◻️'} {x.text}</span><span className="qn">{x.progress}/{x.need}</span></div>)}</div>}
+        {s.quests && <div className="ev-qmini">{s.quests.quests.map((x) => <div key={x.kind} className={`row${x.done ? ' done' : ''}`}><span className="grow min0 ellipsis"><Art name={x.done ? 'check' : 'empty'} size="1.15em" className="art-inline" /> {x.text}</span><span className="qn">{x.progress}/{x.need}</span></div>)}</div>}
       </EvCard>,
     );
   }
   const ch = s.challenge; const tn = s.tourney;
   return (
     <div className="ev-hub stack">
-      {s.fast && <div className="ev-fast">⚡ Test modu: etkinlik süreleri kısaltıldı (saat → dakika)</div>}
-      <h2 className="ev-sec">👥 Takım etkinlikleri</h2>
+      {s.fast && <div className="ev-fast"><Art e="⚡" size="1.15em" className="art-inline" /> Test modu: etkinlik süreleri kısaltıldı (saat → dakika)</div>}
+      <h2 className="ev-sec"><Art e="👥" size="1.15em" className="art-inline" /> Takım etkinlikleri</h2>
       {s.inTeam ? team : (
         <div className="card ev-join">
-          <span className="ev-art big" aria-hidden>🤝</span>
+          <span className="ev-art big" aria-hidden><Art e="🤝" size="1.15em" className="art-inline" /></span>
           <b>Ralli, düello, bayrak yarışı, quiz… hepsi takımla!</b>
           <span className="muted">Bir takıma katıl ya da kendi takımını kur; grup etkinlikleri hemen açılır.</span>
           <button className="btn small" onClick={() => nav.tab('team')}>Takım bul</button>
         </div>
       )}
-      <h2 className="ev-sec">🙋 Bireysel etkinlikler</h2>
+      <h2 className="ev-sec"><Art e="🙋" size="1.15em" className="art-inline" /> Bireysel etkinlikler</h2>
       {ch && (
-        <EvCard kind="meydan" onOpen={() => open('meydan')} clock={<Countdown to={ch.endsAt} />} cta={ch.tries < ch.maxTries ? `▶ Oyna (${ch.maxTries - ch.tries} deneme)` : 'Sıralamayı gör'} ctaTone={ch.tries < ch.maxTries ? 'gold' : 'ghost'}>
+        <EvCard kind="meydan" onOpen={() => open('meydan')} clock={<Countdown to={ch.endsAt} />} cta={ch.tries < ch.maxTries ? `Oyna (${ch.maxTries - ch.tries} deneme)` : 'Sıralamayı gör'} ctaTone={ch.tries < ch.maxTries ? 'gold' : 'ghost'}>
           <div className="ev-stat-row"><span><small>Bölüm</small><b className="ellipsis">{ch.level}. {levelName(ch.level)}</b></span><span><small>En iyi</small><b>{ch.best != null ? fmtNum(ch.best) : '—'}</b></span><span><small>Sıra</small><b>{ch.rank ? `${ch.rank}/${ch.total}` : '—'}</b></span></div>
         </EvCard>
       )}
       {tn && (
-        <EvCard kind="turnuva" onOpen={() => open('turnuva')} clock={<Countdown to={tn.endsAt} />} cta="▶ Turnuva bölümleri" ctaTone="ghost">
+        <EvCard kind="turnuva" onOpen={() => open('turnuva')} clock={<Countdown to={tn.endsAt} />} cta="Turnuva bölümleri" ctaTone="ghost">
           <div className="ev-stat-row"><span><small>Toplam</small><b>{fmtNum(tn.total)}</b></span><span><small>Grup sıran</small><b>{tn.rank ? `${tn.rank}.` : '—'}</b></span><span><small>Oynanan</small><b>{tn.levels.filter((l) => l.best != null).length}/5</b></span></div>
         </EvCard>
       )}
@@ -119,9 +120,9 @@ function MiniTug({ a, b, ea, eb }: { a: number; b: number; ea: string; eb: strin
   const p = a + b > 0 ? a / (a + b) : 0.5;
   return (
     <div className="ev-tug mini" aria-label={`Biz ${a}, rakip ${b}`}>
-      <span className="ev-tug-e">{ea}</span><b>{fmtNum(a)}</b>
+      <span className="ev-tug-e" data-ugc>{ea}</span><b>{fmtNum(a)}</b>
       <div className="ev-tug-bar"><i style={{ width: `${p * 100}%` }} /></div>
-      <b>{fmtNum(b)}</b><span className="ev-tug-e">{eb}</span>
+      <b>{fmtNum(b)}</b><span className="ev-tug-e" data-ugc>{eb}</span>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useStore } from '../../store';
 import { useNav } from '../../nav';
 import { Bar } from '../../ui/bits';
 import { Skeleton, fmtDate, fmtLeft, fmtNum, useNow } from '../../ui/social';
+import { Art, rich } from '../../ui/art';
 
 /** Baskın: Gürültü Canavarı'nın ortak can barı (canlı), katkı sıralaması, takımlar arası sıralama, pencere saati. */
 export function TeamRaid() {
@@ -23,15 +24,15 @@ export function TeamRaid() {
   return (
     <div className="stack">
       <div className={`card raid${defeated ? ' won' : ''}${hit ? ' shake' : ''}`}>
-        <div className="row between"><b>Gürültü Canavarı</b><span className="countdown">{raid.open ? `⏳ kapanışa ${fmtLeft(raid.closesAt - now)}` : `🔒 açılışa ${fmtLeft(raid.opensAt - now)}`}</span></div>
-        <div className="monster" aria-hidden>{defeated ? '😵' : '👹'}{hit > 0 && <span className="dmg">−{hit}</span>}</div>
+        <div className="row between"><b>Gürültü Canavarı</b><span className="countdown">{rich(raid.open ? `⏳ kapanışa ${fmtLeft(raid.closesAt - now)}` : `🔒 açılışa ${fmtLeft(raid.opensAt - now)}`)}</span></div>
+        <div className="monster" aria-hidden><Art name="monster" size={88} className={defeated ? 'defeated' : undefined} />{hit > 0 && <span className="dmg">−{hit}</span>}</div>
         <div className="hp-row"><Bar value={pct} tone="coral" label="Canavarın canı" /><span className="qn">{fmtNum(raid.hp)}/{fmtNum(raid.maxHp)}</span></div>
         <div className="muted small-note">
-          {defeated ? `Yenildi! Süre: ${Math.max(1, Math.round((raid.defeatedAt! - raid.opensAt) / 60_000))} dk. Herkesin hediye kutusuna 💎 30 + 🪙 200 düştü.`
+          {rich(defeated ? `Yenildi! Süre: ${Math.max(1, Math.round((raid.defeatedAt! - raid.opensAt) / 60_000))} dk. Herkesin hediye kutusuna 💎 30 + 🪙 200 düştü.`
             : raid.open ? 'Her tamamlanan bölüm vurur: 5 + 5 × yıldız hasar, boss bölümlerinde iki kat. Can: 400 + 120 × üye.'
-            : `Pencere: Cuma 20:00 – Cumartesi 20:00 (${fmtDate(raid.opensAt)}). Hazırlanın: teknolojide “Baskın Gücü” hasarı artırır.`}
+            : `Pencere: Cuma 20:00 – Cumartesi 20:00 (${fmtDate(raid.opensAt)}). Hazırlanın: teknolojide “Baskın Gücü” hasarı artırır.`)}
         </div>
-        {raid.open && !defeated && <button className="btn coral" onClick={() => nav.play(unlocked)}>⚔️ Bölüm oyna, canavara vur</button>}
+        {raid.open && !defeated && <button className="btn coral" onClick={() => nav.play(unlocked)}><Art e="⚔️" size="1.15em" className="art-inline" /> Bölüm oyna, canavara vur</button>}
       </div>
 
       <div className="card">
@@ -44,7 +45,7 @@ export function TeamRaid() {
         <b>Takımlar arası</b>
         <div className="muted small-note">Sıra: canavarı en kısa sürede yenen önde; yenemeyenler hasara göre.</div>
         {raid.ranking.length === 0 ? <div className="muted">Bu baskında henüz sıralama yok.</div> : (
-          <ol className="rank-list">{raid.ranking.slice(0, 10).map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis">{t.emblem} {t.name}</span><b>{t.timeMs != null ? `${Math.max(1, Math.round(t.timeMs / 60_000))} dk` : fmtNum(t.damage)}</b></li>)}</ol>
+          <ol className="rank-list">{raid.ranking.slice(0, 10).map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{t.timeMs != null ? `${Math.max(1, Math.round(t.timeMs / 60_000))} dk` : fmtNum(t.damage)}</b></li>)}</ol>
         )}
       </div>
     </div>

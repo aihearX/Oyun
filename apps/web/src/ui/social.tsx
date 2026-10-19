@@ -9,6 +9,7 @@ import { useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
 import { IconButton } from './Button';
 import { Icon } from './icons';
+import { Art, Glyph, Rich, rich } from './art';
 
 /** saniyelik (ya da verilen aralıkta) yeniden çizim için şimdiki zaman */
 export function useNow(ms = 1000): number {
@@ -46,7 +47,7 @@ export function itemLabel(kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass', amount
     case 'kristal': return `💎 ${fmtNum(amount)}`;
     case 'kalkan': return `🛡️ ${amount} kalkan`;
     case 'kozmetik': { const c = cosmeticById(ref ?? ''); return `${c?.kind === 'renk' ? '🎨' : '🎩'} ${c?.name ?? 'Kozmetik'}`; }
-    case 'kart': { const c = cardById(ref ?? ''); return `${c?.emoji ?? '🃏'} ${c?.title ?? 'Kulak Kartı'}`; }
+    case 'kart': { const c = cardById(ref ?? ''); return `🃏 ${c?.title ?? 'Kulak Kartı'}`; }
     case 'm5': return `⏩ ${amount} × 5 dk`;
     case 'm60': return `⏩ ${amount} × 60 dk`;
     case 's8': return `⏩ ${amount} × 8 sa`;
@@ -54,7 +55,7 @@ export function itemLabel(kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass', amount
   }
 }
 export function ItemChips({ items, small }: { items: { kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass'; amount: number; ref?: string }[]; small?: boolean }) {
-  return <span className={`chips${small ? ' small' : ''}`}>{items.map((it, i) => <span className="chip" key={i}>{itemLabel(it.kind, it.amount, it.ref)}</span>)}</span>;
+  return <span className={`chips${small ? ' small' : ''}`}>{items.map((it, i) => <span className="chip" key={i}>{rich(itemLabel(it.kind, it.amount, it.ref))}</span>)}</span>;
 }
 
 /** bağlantı noktası: yeşil bağlı, sarı bağlanıyor, gri çevrimdışı */
@@ -82,8 +83,8 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       <div className="tb-pills">
         {extra}
         {linked && <DmTopPill />}
-        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}>🪙 {fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend">⏳</i>}</span>
-        {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmtNum(kc.value)}</button>}
+        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}><Art name="coin" size={19} />{fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend"><Art name="hourglass" size={13} /></i>}</span>
+        {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={19} />{fmtNum(kc.value)}</button>}
         {linked && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>
@@ -95,7 +96,7 @@ export function OfflineCard({ what = 'Takım, sohbet ve savaş' }: { what?: stri
   const enabled = useSocial((s) => s.enabled); const st = useNet((s) => s.status);
   return (
     <div className="card offline-card fade-in">
-      <div className="ph-icon" aria-hidden>📡</div>
+      <div className="ph-icon" aria-hidden><Art name="signal" size={48} /></div>
       <h2>{enabled ? 'Sunucuya bağlanılamadı' : 'Sosyal sunucu ayarlı değil'}</h2>
       <div className="muted">{enabled ? <>Aynı Wi-Fi'da <code>npm run server</code> açık mı? {what} bağlanınca gelir; bu arada oyuna devam edebilirsin, ilerlemen kaybolmaz.</> : `${what} için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.`}</div>
       {enabled && <button className="btn" onClick={reconnect} disabled={st === 'bağlanıyor'}>{st === 'bağlanıyor' ? 'Bağlanıyor…' : 'Tekrar dene'}</button>}
@@ -108,7 +109,7 @@ export function Online({ children, what, skeleton = 4 }: { children: ReactNode; 
   const st = useNet((s) => s.status); const me = useNet((s) => s.me); const tried = useSocial((s) => s.tried); const enabled = useSocial((s) => s.enabled);
   if (st === 'bağlı' && me) return <>{children}</>;
   if (enabled && (!tried || st === 'bağlanıyor') && !me) return <Skeleton rows={skeleton} />;
-  if (me && st !== 'bağlı') return <><div className="net-banner">📡 Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>{children}</>;
+  if (me && st !== 'bağlı') return <><div className="net-banner"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>{children}</>;
   return <OfflineCard what={what} />;
 }
 
@@ -117,7 +118,7 @@ export function Skeleton({ rows = 3 }: { rows?: number }) {
 }
 
 export function Empty({ icon, title, text, children }: { icon: string; title: string; text?: string; children?: ReactNode }) {
-  return <div className="card empty"><div className="ph-icon" aria-hidden>{icon}</div><b>{title}</b>{text && <div className="muted">{text}</div>}{children}</div>;
+  return <div className="card empty"><div className="ph-icon" aria-hidden><Glyph e={icon} size={46} /></div><b><Rich text={title} /></b>{text && <div className="muted">{text}</div>}{children}</div>;
 }
 
 /** alttan açılan sayfa (onay, menü, form) */
@@ -127,7 +128,7 @@ export function Sheet({ title, onClose, children }: { title?: string; onClose: (
     <div className="sheet-wrap" onClick={onClose}>
       <div className="sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" aria-hidden />
-        {title && <div className="row between"><h2>{title}</h2><IconButton icon="close" label="Kapat" onClick={onClose} /></div>}
+        {title && <div className="row between"><h2><Rich text={title} /></h2><IconButton icon="close" label="Kapat" onClick={onClose} /></div>}
         {children}
       </div>
     </div>
@@ -142,7 +143,7 @@ export function SubTabs<T extends string>({ tabs, active, onChange }: { tabs: { 
     <div className="subtabs" ref={ref} role="tablist">
       {tabs.map((t) => (
         <button key={t.id} role="tab" aria-selected={active === t.id} className={`subtab${active === t.id ? ' on' : ''}`} onClick={() => onChange(t.id)}>
-          <span aria-hidden>{t.icon}</span> {t.label}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
+          <span aria-hidden className="st-ic"><Glyph e={t.icon} size={18} /></span> {t.label}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
         </button>
       ))}
     </div>
@@ -152,7 +153,7 @@ export function SubTabs<T extends string>({ tabs, active, onChange }: { tabs: { 
 /** "+12 yardım" gibi yükselip sönen geri bildirim */
 export function FloatBurst({ text, onDone }: { text: string; onDone: () => void }) {
   useEffect(() => { const h = setTimeout(onDone, 1400); return () => clearTimeout(h); }, [onDone]);
-  return <div className="float-burst" aria-live="polite">{text}</div>;
+  return <div className="float-burst" aria-live="polite">{rich(text)}</div>;
 }
 
 export const ROLE_LABEL = { lider: '👑 Lider', yardimci: '⭐ Yardımcı', uye: 'Üye' } as const;

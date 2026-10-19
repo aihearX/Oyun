@@ -17,6 +17,8 @@ import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
 import { mapGoals, treasureItems } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
+import { Art, Glyph, Rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 import '../map/map.css';
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
@@ -99,25 +101,25 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       <div className="map-hud" ref={hudRef}>
         <div className="mh-lvl" title={`Seviye ${lp.level}`} style={{ ['--p' as string]: `${Math.round(lp.pct * 100)}%` }}><b>{lp.level}</b><span>Sv</span></div>
         <StatusDot />
-        <span className="mh-pill" aria-label={`${totalStars} yıldız`}>⭐ {totalStars}</span>
+        <span className="mh-pill" aria-label={`${totalStars} yıldız`}><Art name="star" size={18} />{totalStars}</span>
         <span className="grow" />
-        <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${coin.value} jeton`}>🪙 {fmt(coin.value)}</span>
-        {wallet && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza">💎 {fmt(kristal.value)}</button>}
-        {wallet && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}>✉️{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
+        <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${coin.value} jeton`}><Art name="coin" size={18} />{fmt(coin.value)}</span>
+        {wallet && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} />{fmt(kristal.value)}</button>}
+        {wallet && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
       <div className="map-side-l">
         <button className={`map-today${todayHot ? ' hot' : ''}`} onClick={onToday} aria-label="Bugün: görevler ve takvim">
-          <span>☀️</span><span className="mt-t"><b>Bugün</b><small>{todayText}</small></span>
+          <span className="mt-ic"><Art name="sun" size={26} /></span><span className="mt-t"><b>Bugün</b><small><Rich text={todayText} /></small></span>
         </button>
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
       <button className="map-goal" key={gi % goals.length} onClick={() => handle.current?.focusCurrent()} aria-label={`Sıradaki hedef: ${goal.text}`}>
-        <small>Sıradaki hedef</small><span>{goal.icon} {goal.text}</span>
+        <small>Sıradaki hedef</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
       </button>
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
-      {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır ⏩</div>}
+      {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır <Art name="booster" size="1.15em" className="art-inline" /></div>}
       <div className="map-play-wrap" ref={playRef}>
-        <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done ? `👑 Bölüm ${unlocked} ▶` : `Bölüm ${unlocked} ▶`}</button>
+        <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done && <Art name="crown" size="1.1em" className="art-inline" />}Bölüm {unlocked} <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
       <MapCards card={card} stars={stars} unlocked={unlocked} onClose={() => setCard(null)} onPlay={onPlay} />
     </div>

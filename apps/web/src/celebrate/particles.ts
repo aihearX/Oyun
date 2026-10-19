@@ -2,6 +2,8 @@
  * Hafif canvas parçacık motoru: konfeti, ışıltı, nota, yıldız. 60 fps; parçacık kalmayınca döngü durur.
  * Tek tam ekran canvas (pointer-events: none); DPR'ye duyarlı; üst sınır 450 parçacık.
  */
+/** ui/art.tsx'teki notanın yolu (24×24): parçacık notaları kabukla ve oyundaki altın notayla aynı biçimde */
+const NOTE = typeof Path2D !== 'undefined' ? new Path2D('M11.4 4.2c0-.6.5-.9 1-.7 2.6 1 5.9 2.3 6.2 5.6.1.6-.6.9-1 .4-1-1.2-2.4-1.9-4-2.1v9.5a3.9 3.1 -20 1 1-2.2-2.8z') : (undefined as unknown as Path2D);
 type Shape = 'rect' | 'circle' | 'star' | 'note' | 'spark' | 'ring';
 interface P { x: number; y: number; vx: number; vy: number; rot: number; vr: number; size: number; color: string; shape: Shape; life: number; ttl: number; g: number; drag: number; wob: number; fade: boolean; grow?: number }
 
@@ -70,7 +72,7 @@ export class Particles {
         case 'circle': c.beginPath(); c.arc(0, 0, p.size / 2.4, 0, 6.283); c.fill(); break;
         case 'star': star(c, p.size / 2); break;
         case 'spark': { const s = p.size * (1 - k * 0.6); c.beginPath(); c.moveTo(0, -s); c.lineTo(s * 0.22, -s * 0.22); c.lineTo(s, 0); c.lineTo(s * 0.22, s * 0.22); c.lineTo(0, s); c.lineTo(-s * 0.22, s * 0.22); c.lineTo(-s, 0); c.lineTo(-s * 0.22, -s * 0.22); c.closePath(); c.fill(); break; }
-        case 'note': c.font = `900 ${p.size}px system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(p.size > 22 ? '♫' : '♪', 0, 0); break;
+        case 'note': { const s = p.size / 22; c.scale(s, s); c.translate(-12, -12); c.fill(NOTE); c.lineWidth = 1.2 / s; c.strokeStyle = 'rgba(138,69,0,.55)'; c.stroke(NOTE); break; } // kabuk ve oyundaki altın nota ile aynı çizim
         case 'ring': c.globalAlpha = Math.max(0, 1 - k); c.lineWidth = 6 * (1 - k) + 1; c.beginPath(); c.arc(0, 0, p.size, 0, 6.283); c.stroke(); break;
       }
       c.restore();

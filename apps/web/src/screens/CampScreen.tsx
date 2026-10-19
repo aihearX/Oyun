@@ -10,6 +10,7 @@ import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
 import { askedHelp, buildKey, celebrateBuilt, defOf, type CampActions } from '../camp/model';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
+import { Art } from '../ui/art';
 import '../camp/camp.css';
 
 type View = 'us' | 'liste';
@@ -28,8 +29,8 @@ export function CampScreen() {
 
 function ListShell({ children, setView }: { children: ReactNode; setView: (v: View) => void }) {
   return (
-    <div className="screen fade-in with-tabs">
-      <TopBar title="Kamp" extra={<button className="pill tb-pill tap" onClick={() => { audio.play('tap'); setView('us'); }} aria-label="Üs görünümü">🏕️ Üs</button>} />
+    <div className="screen fade-in with-tabs camp-list-screen">
+      <TopBar title="Kamp" extra={<button className="pill tb-pill tap ico" onClick={() => { audio.play('tap'); setView('us'); }} aria-label="Üs görünümü"><Art name="tent" size={22} /></button>} />
       {children}
     </div>
   );
@@ -40,7 +41,7 @@ function CampOffline() {
   const enabled = useSocial((s) => s.enabled); const st = useNet((s) => s.status);
   return (
     <div className="card offline-card fade-in camp-offline">
-      <div className="ph-icon" aria-hidden>🏕️</div>
+      <div className="ph-icon" aria-hidden><Art name="tent" size={48} /></div>
       <h2>Kampın sunucuda tutulur — bağlanınca görünür</h2>
       <div className="muted">{enabled ? 'Şu an sunucuya ulaşamıyoruz. Bu arada bölüm oynamaya devam edebilirsin; jetonların ve ilerlemen kaybolmaz.' : 'Kulak Kampı için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.'}</div>
       {enabled && <button className="btn" onClick={reconnect} disabled={st === 'bağlanıyor'}>{st === 'bağlanıyor' ? 'Bağlanıyor…' : 'Tekrar dene'}</button>}
@@ -81,7 +82,7 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><Skeleton rows={4} /></ListShell>;
     return <ListShell setView={setView}><CampOffline /></ListShell>;
   }
-  const banner = st !== 'bağlı' && <div className="net-banner camp-net">📡 Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
+  const banner = st !== 'bağlı' && <div className="net-banner camp-net"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
   if (!camp || !wallet) return <ListShell setView={setView}>{banner}<Skeleton rows={4} /></ListShell>;
   if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
   return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;

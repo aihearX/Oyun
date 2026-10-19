@@ -6,6 +6,7 @@ import { NetError } from '@odi/net';
 import { ItemChips, fmtLeft } from '../ui/social';
 import { srvNow } from './store';
 import { IconButton } from '../ui/Button';
+import { Art, rich, Glyph } from '../ui/art';
 
 /** Etkinlik kimlikleri ve vurgu renkleri (tema tokenları; events.css'te --ev olarak kullanılır) */
 export const EVENT_META: Record<EventKind, { name: string; icon: string; tone: string; blurb: string }> = {
@@ -34,11 +35,11 @@ export function useSrvNow(ms = 1000): number {
 export function Countdown({ to, label, urgentMs = 0 }: { to: number; label?: string; urgentMs?: number }) {
   const now = useSrvNow();
   const left = to - now;
-  return <span className={`ev-clock${urgentMs && left < urgentMs ? ' urgent' : ''}`} aria-label={`${label ?? 'Kalan'} ${fmtLeft(left)}`}>⏳ {label ? `${label} ` : ''}{fmtLeft(left)}</span>;
+  return <span className={`ev-clock${urgentMs && left < urgentMs ? ' urgent' : ''}`} aria-label={`${label ?? 'Kalan'} ${fmtLeft(left)}`}><Art e="⏳" size="1.15em" className="art-inline" /> {label ? `${label} ` : ''}{fmtLeft(left)}</span>;
 }
 
 export function Rewards({ items, label }: { items: EventReward[]; label?: string }) {
-  return <div className="ev-rewards">{label && <small>{label}</small>}<ItemChips items={items} small /></div>;
+  return <div className="ev-rewards">{label && <small>{rich(label)}</small>}<ItemChips items={items} small /></div>;
 }
 
 export function EvHead({ kind, title, onBack, right }: { kind: EventKind; title?: string; onBack: () => void; right?: ReactNode }) {
@@ -46,7 +47,7 @@ export function EvHead({ kind, title, onBack, right }: { kind: EventKind; title?
   return (
     <div className="ev-head" data-tone={m.tone}>
       <IconButton icon="back" label="Geri" onClick={onBack} />
-      <h1><span aria-hidden>{m.icon}</span> {title ?? m.name}</h1>
+      <h1><span aria-hidden className="ev-h-ic"><Glyph e={m.icon} size={26} /></span> {title ?? m.name}</h1>
       <span className="ev-head-r">{right}</span>
     </div>
   );

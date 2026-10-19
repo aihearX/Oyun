@@ -6,6 +6,7 @@ import { SubTabs, fmtNum } from '../ui/social';
 import { refreshEvents, useEvents } from './store';
 import { Countdown, Rewards, eventSpec, levelName } from './common';
 import type { PlayFn } from './EventsScreen';
+import { Art } from '../ui/art';
 
 /** Günün Meydan Okuması: herkes için aynı tuzlu zorlu bölüm, 3 deneme, en iyi skor; genel + arkadaş sıralaması */
 export function ChallengeView({ onPlay }: { onPlay: PlayFn }) {
@@ -20,9 +21,9 @@ export function ChallengeView({ onPlay }: { onPlay: PlayFn }) {
       <div className="ev-ch-hero" data-tone="coral">
         <div className="row between"><span className="ev-tag">Bugünün bölümü · tohum #{c.salt}</span><Countdown to={c.endsAt} /></div>
         <b className="ev-ch-level">{c.level}. {levelName(c.level)}</b>
-        <div className="ev-tries" aria-label={`${left} deneme kaldı`}>{Array.from({ length: c.maxTries }, (_, i) => <i key={i} className={i < c.tries ? 'used' : ''}>🎯</i>)}</div>
+        <div className="ev-tries" aria-label={`${left} deneme kaldı`}>{Array.from({ length: c.maxTries }, (_, i) => <i key={i} className={i < c.tries ? 'used' : ''}><Art e="🎯" size="1.15em" className="art-inline" /></i>)}</div>
         <div className="ev-stat-row"><span><small>En iyi skorun</small><b>{c.best != null ? fmtNum(c.best) : '—'}</b></span><span><small>Sıran</small><b data-testid="meydan-sira">{c.rank ? `${c.rank}.` : '—'}</b></span><span><small>Katılan</small><b>{fmtNum(c.total)}</b></span></div>
-        <button className="btn ev-big" data-testid="meydan-oyna" disabled={left <= 0} onClick={() => onPlay(eventSpec(c.level, c.salt), { kind: 'meydan' })}>{left > 0 ? `▶ Meydan oku (${left} deneme)` : 'Yarın yeni meydan okuma!'}</button>
+        <button className="btn ev-big" data-testid="meydan-oyna" disabled={left <= 0} onClick={() => onPlay(eventSpec(c.level, c.salt), { kind: 'meydan' })}>{left > 0 ? <><Art name="play" size="1.15em" className="art-inline" /> Meydan oku ({left} deneme)</> : 'Yarın yeni meydan okuma!'}</button>
         <small className="muted">Herkes aynı bölümü aynı tohumla, yeteneksiz (eşit şartlarda) oynar. En iyi skorun geçerli.</small>
       </div>
       {c.last && <div className="card ev-last"><b>Dünkü sonucun: {c.last.rank}. / {c.last.total}</b><span className="muted">Skor {fmtNum(c.last.score)}</span></div>}
@@ -39,7 +40,7 @@ export function Board({ rows, meId, empty }: { rows: RankRow[]; meId?: string; e
     <ol className="ev-board" data-testid="siralama">
       {rows.map((r) => (
         <li key={r.id} className={`${r.id === meId ? 'me' : ''}${r.rank <= 3 && r.score > 0 ? ` top${r.rank}` : ''}`} data-name={r.name} data-rank={r.rank}>
-          <span className="ev-rk">{r.score <= 0 ? '—' : r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</span>
+          <span className="ev-rk">{r.score <= 0 ? '—' : r.rank <= 3 ? <Art name={(['medal1', 'medal2', 'medal3'] as const)[r.rank - 1]!} size={22} /> : r.rank}</span>
           <OdiAvatar color={r.color} size={30} />
           <b className="grow ellipsis">{r.name}{r.id === meId ? ' (sen)' : ''}</b>
           <span className="qn">{fmtNum(r.score)}</span>

@@ -5,6 +5,7 @@ import { useNav } from '../nav';
 import { Empty, Sheet, Skeleton } from '../ui/social';
 import { Av, shortTime } from './common';
 import { preview, refreshFriends, refreshThreads, useFriends } from './state';
+import { Art } from '../ui/art';
 import './friends.css';
 
 /** Mesajlar (gelen kutusu): sohbet listesi — avatar, isim, son mesaj, zaman, okunmamış rozeti, çevrimiçi noktası. */
@@ -14,7 +15,7 @@ export function Messages() {
   useEffect(() => { void refreshThreads(); }, []);
   return (
     <div className="stack fr-hub">
-      <button className="card fr-newmsg" onClick={() => setPick(true)}><span className="fr-newmsg-ico" aria-hidden>✏️</span><span className="min0 grow"><b>Yeni mesaj</b><small>Arkadaşına ya da takım arkadaşına yaz</small></span><span aria-hidden>›</span></button>
+      <button className="card fr-newmsg" onClick={() => setPick(true)}><span className="fr-newmsg-ico" aria-hidden><Art e="✏️" size="1.15em" className="art-inline" /></span><span className="min0 grow"><b>Yeni mesaj</b><small>Arkadaşına ya da takım arkadaşına yaz</small></span><span aria-hidden>›</span></button>
       {!threads ? <Skeleton rows={4} /> : threads.length === 0
         ? <Empty icon="💌" title="Henüz mesajın yok" text="Bir arkadaşına “merhaba” de, yarışa çağır ya da bir Odi çıkartması gönder. Özel mesajlar arkadaşlar ve takım arkadaşları arasındadır." />
         : <div className="fr-threads" role="list">{threads.map((t) => <ThreadRow key={t.other.id} t={t} />)}</div>}
@@ -52,7 +53,7 @@ function NewMessage({ onClose }: { onClose: () => void }) {
   const open = (id: string) => { onClose(); nav.open({ name: 'dm', id }); };
   return (
     <Sheet title="Kime yazalım?" onClose={onClose}>
-      {!friends ? <Skeleton rows={2} /> : !friends.length && !mates.length ? <div className="muted">Önce bir arkadaş ekle ya da bir takıma katıl. 🌱</div> : null}
+      {!friends ? <Skeleton rows={2} /> : !friends.length && !mates.length ? <div className="muted">Önce bir arkadaş ekle ya da bir takıma katıl. <Art e="🌱" size="1.15em" className="art-inline" /></div> : null}
       {(friends ?? []).map((f) => <button key={f.id} className="fr-pick" onClick={() => open(f.id)}><Av p={f} size={40} /><b className="grow ellipsis">{f.name}</b><span aria-hidden>›</span></button>)}
       {mates.length > 0 && <div className="muted small-note">Takım arkadaşların</div>}
       {mates.map((m) => <button key={m.id} className="fr-pick" onClick={() => open(m.id)}><Av p={m} size={40} /><b className="grow ellipsis">{m.name}</b><span aria-hidden>›</span></button>)}

@@ -10,6 +10,8 @@ import { errText } from '../net';
 import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
 import './race.css';
 import { IconButton } from '../ui/Button';
+import { Art } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 type View = 'menu' | 'pick' | 'code' | 'room' | 'busy';
 
@@ -66,26 +68,26 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
   };
   const close = () => { if (roomRef.current) void leave(); onClose(); };
 
-  if (!net) return <Shell title="Canlı yarış" onBack={onClose}><div className="card race-empty"><div className="ph-icon" aria-hidden>📡</div><h2>Sunucu yok</h2><div className="muted">Canlı yarış için sosyal sunucuya bağlanmak gerekiyor.</div></div></Shell>;
-  if (!online) return <Shell title="Canlı yarış" onBack={close}><div className="card race-empty"><div className="ph-icon" aria-hidden>⏳</div><h2>Bağlanıyor…</h2><div className="muted">Bağlantı gelince yarış odaları açılır.</div></div></Shell>;
+  if (!net) return <Shell title="Canlı yarış" onBack={onClose}><div className="card race-empty"><div className="ph-icon" aria-hidden><Art e="📡" size="1.15em" className="art-inline" /></div><h2>Sunucu yok</h2><div className="muted">Canlı yarış için sosyal sunucuya bağlanmak gerekiyor.</div></div></Shell>;
+  if (!online) return <Shell title="Canlı yarış" onBack={close}><div className="card race-empty"><div className="ph-icon" aria-hidden><Art e="⏳" size="1.15em" className="art-inline" /></div><h2>Bağlanıyor…</h2><div className="muted">Bağlantı gelince yarış odaları açılır.</div></div></Shell>;
 
   if (view === 'room' && room) return <RoomView room={room} meId={meId} error={error} onLeave={leave} onBack={close} />;
 
   return (
     <Shell title="Canlı yarış" onBack={close}>
       {error && <div className="race-error" role="alert">{error}</div>}
-      {view === 'busy' && <div className="card race-empty"><div className="ph-icon race-spin" aria-hidden>🏁</div><div className="muted">Yarış odası hazırlanıyor…</div></div>}
+      {view === 'busy' && <div className="card race-empty"><div className="ph-icon race-spin" aria-hidden><Art e="🏁" size="1.15em" className="art-inline" /></div><div className="muted">Yarış odası hazırlanıyor…</div></div>}
       {view === 'menu' && (
         <>
           <div className="card race-hero">
-            <div className="race-hero-odis" aria-hidden><OdiAvatar color={me?.color ?? 0x6c4cf1} hat={me?.hat} size={56} /><span>⚡</span><OdiAvatar color={0x0e9c98} size={44} /><OdiAvatar color={0xf0567a} size={44} /></div>
+            <div className="race-hero-odis" aria-hidden><OdiAvatar color={me?.color ?? 0x6c4cf1} hat={me?.hat} size={56} /><span><Art e="⚡" size="1.15em" className="art-inline" /></span><OdiAvatar color={0x0e9c98} size={44} /><OdiAvatar color={0xf0567a} size={44} /></div>
             <h2>Arkadaşlarınla aynı anda koş!</h2>
             <div className="muted">Herkes aynı bölümü oynar, birbirinizi yarı saydam görürsünüz. Rakiplerin hepsi gerçek oyuncu.</div>
           </div>
-          <button className="btn race-big" data-testid="yaris-hizli" onClick={() => void run(async () => (await net.call('race.quick', {})).room)}>⚡ Hızlı yarış</button>
+          <button className="btn race-big" data-testid="yaris-hizli" onClick={() => void run(async () => (await net.call('race.quick', {})).room)}><Art e="⚡" size="1.15em" className="art-inline" /> Hızlı yarış</button>
           <div className="row">
-            <button className="btn ghost grow" data-testid="yaris-oda-kur" onClick={() => setView('pick')}>🏗️ Oda kur</button>
-            <button className="btn ghost grow" data-testid="yaris-kod-gir" onClick={() => setView('code')}>🔑 Kodla katıl</button>
+            <button className="btn ghost grow" data-testid="yaris-oda-kur" onClick={() => setView('pick')}><Art e="🏗️" size="1.15em" className="art-inline" /> Oda kur</button>
+            <button className="btn ghost grow" data-testid="yaris-kod-gir" onClick={() => setView('code')}><Art e="🔑" size="1.15em" className="art-inline" /> Kodla katıl</button>
           </div>
           <div className="muted small-note race-note">En çok {SOCIAL_LIMITS.raceMax} oyuncu. Herkes "Hazırım" deyince {Math.round(SOCIAL_LIMITS.raceCountdownMs / 1000)} sn içinde başlar. Derecen haftalık lig puanına eklenir.</div>
         </>
@@ -97,7 +99,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
           <div className="race-levels">
             {HUMAN_JOURNEY.levels.filter((l) => l.number <= Math.max(1, me?.highest ?? 1)).map((l) => (
               <button key={l.number} className="race-level" data-testid={`yaris-seviye-${l.number}`} onClick={() => void run(async () => (await net.call('race.create', { level: l.number })).room)}>
-                <b>{l.number}</b><small>{l.name}</small>{l.mechanic === 'boss' && <i aria-label="boss">👾</i>}
+                <b>{l.number}</b><small>{l.name}</small>{l.mechanic === 'boss' && <i aria-label="boss"><Art e="👾" size="1.15em" className="art-inline" /></i>}
               </button>
             ))}
           </div>
@@ -169,7 +171,7 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
             <OdiAvatar color={p.color} hat={p.hat} size={52} mood={p.ready ? 'wow' : 'happy'} />
             <b className="ellipsis" onClick={() => { if (p.id !== meId) openProfile(p.id); }} role={p.id !== meId ? 'button' : undefined}>{p.name}{p.id === meId ? ' (sen)' : ''}</b>
             <span className={`race-state${p.ready ? ' on' : ''}`}>{p.ready ? 'Hazır ✓' : 'Bekliyor'}</span>
-            {p.id === room.hostId && <i className="race-host" aria-label="oda kurucusu">👑</i>}
+            {p.id === room.hostId && <i className="race-host" aria-label="oda kurucusu"><Art e="👑" size="1.15em" className="art-inline" /></i>}
           </div>
         ))}
         {slots.map((_, i) => <div key={`bos-${i}`} className="race-player empty"><span aria-hidden>＋</span><small>Boş yer</small></div>)}
@@ -179,7 +181,7 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
         <div className="card race-wait" data-testid="yaris-bekleme">
           <div className="race-wait-top"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Rakip bekleniyor</b><span className="pill">{fmtClock(now - joinedAt)}</span></div>
           <div className="muted small-note">Burada yalnızca gerçek oyuncular yarışır. Biri katılınca "Hazırım" de, yarış başlasın.</div>
-          <button className="btn small" data-testid="yaris-bekleme-davet" onClick={() => setInviteOpen(true)}>👋 Arkadaşını davet et</button>
+          <button className="btn small" data-testid="yaris-bekleme-davet" onClick={() => setInviteOpen(true)}><Art e="👋" size="1.15em" className="art-inline" /> Arkadaşını davet et</button>
         </div>
       )}
       {!alone && !inviteOpen && players.length < room.max && room.status === 'lobi' && <button className="linkish" data-testid="yaris-davet-ac" onClick={() => setInviteOpen(true)}>+ Arkadaşını davet et</button>}
@@ -189,7 +191,7 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
 
       <div className="race-actions">
         {counting
-          ? <div className="race-go" role="status">🏁 Geri sayım başladı!</div>
+          ? <div className="race-go" role="status"><Art e="🏁" size="1.15em" className="art-inline" /> Geri sayım başladı!</div>
           : <button className={`btn race-big${mine?.ready ? ' ghost' : ''}`} data-testid="yaris-hazir" disabled={busy || !mine} onClick={() => void ready()}>{mine?.ready ? 'Hazırım ✓ (vazgeç)' : 'Hazırım'}</button>}
         <div className="row between">
           <span className="muted small-note">{alone ? `En az 2 oyuncu gerekli` : `${players.filter((p) => p.ready).length}/${players.length} hazır · herkes hazır olunca başlar`}</span>
@@ -223,7 +225,7 @@ function InviteList({ room, onClose }: { room: RaceRoom; onClose: () => void }) 
           <OdiAvatar color={f.color} hat={f.hat} size={36} />
           <b className="grow ellipsis">{f.name}</b>
           {sent[f.id] === 'ok'
-            ? <span className="race-state on">Gönderildi ✓</span>
+            ? <span className="race-state on">Gönderildi <Icon name="check" size="1.1em" className="ic-inline" /></span>
             : <button className="btn small" data-testid={`yaris-davet-${f.name}`} onClick={() => void invite(f)}>Davet et</button>}
           {sent[f.id] && sent[f.id] !== 'ok' && <small className="race-error-inline">{sent[f.id]}</small>}
         </div>
@@ -259,7 +261,7 @@ function RaceChat({ roomId, meId }: { roomId: string; meId: string | null }) {
   return (
     <div className="card race-chat" data-testid="yaris-sohbet">
       <div className="race-chat-list" ref={listRef} aria-live="polite">
-        {!shown.length && <div className="muted small-note">Rakiplerine bir merhaba de 👋</div>}
+        {!shown.length && <div className="muted small-note">Rakiplerine bir merhaba de <Art e="👋" size="1.15em" className="art-inline" /></div>}
         {shown.map((m) => (
           <div key={m.id} className={`race-msg${m.from === meId ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}`}>
             {m.from !== meId && <b style={{ color: hexColor(m.color), cursor: 'pointer' }} onClick={() => openProfile(m.from)}>{m.name}</b>}<span>{m.text}</span>

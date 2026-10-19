@@ -4,6 +4,8 @@ import { audio } from '@odi/audio';
 import { platform } from '../platform';
 import { pendingCount, useEvents } from './store';
 import type { EventView } from './EventsScreen';
+import { Art, Glyph, rich } from '../ui/art';
+import { Icon } from '../ui/icons';
 import './events.css';
 
 const SHOW_MS = 7000;
@@ -20,11 +22,11 @@ export function EventNoticeStrip({ onOpen }: { onOpen: (v: EventView) => void })
   return (
     <div className="ev-notice" role="alert" data-testid="ev-bildirim" data-kind={n.kind} key={n.id}>
       <button className="ev-notice-main" onClick={() => { dismiss(n.id); onOpen(n.target); }}>
-        <span className="ev-notice-i" aria-hidden>{n.icon}</span>
-        <span className="min0"><b className="ellipsis">{n.title}</b><small className="ellipsis">{n.text}</small></span>
+        <span className="ev-notice-i" aria-hidden><Glyph e={n.icon} size={28} /></span>
+        <span className="min0"><b className="ellipsis">{rich(n.title)}</b><small className="ellipsis">{rich(n.text)}</small></span>
         <span className="ev-notice-go">Git ›</span>
       </button>
-      <button className="ev-notice-x" aria-label="Bildirimi kapat" onClick={() => dismiss(n.id)}>✕</button>
+      <button className="ev-notice-x" aria-label="Bildirimi kapat" onClick={() => dismiss(n.id)}><Icon name="close" size="1.1em" className="ic-inline" /></button>
     </div>
   );
 }
@@ -37,7 +39,7 @@ export function EventsFab({ onOpen }: { onOpen: () => void }) {
   const live = (s.rally?.status === 'acik') || (s.quiz && s.quiz.phase !== 'bitti') || s.duel?.finalPush;
   return (
     <button className={`ev-fab${live ? ' live' : ''}`} data-testid="ev-fab" onClick={onOpen} aria-label={`Etkinlikler${n ? `: ${n} etkinlik seni bekliyor` : ''}`}>
-      <span className="ev-fab-i" aria-hidden>🎪</span><small>Etkinlik</small>
+      <span className="ev-fab-i" aria-hidden><Art e="🎪" size="1.15em" className="art-inline" /></span><small>Etkinlik</small>
       {n > 0 && <span className="dot">{n}</span>}
     </button>
   );

@@ -7,6 +7,8 @@ import { platform } from '../platform';
 import { TopBar, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { BuildingPanel } from './BuildingPanel';
 import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, type CampActions } from './model';
+import { Art } from '../ui/art';
+import { Icon } from '../ui/icons';
 
 export interface CampBaseProps {
   camp: CampState; wallet: Wallet; team: CampTeam | null; helpCount: number; fast: number;
@@ -78,24 +80,24 @@ export function CampBase(p: CampBaseProps) {
   return (
     <div className="camp-base">
       <div className="camp-canvas" ref={host} aria-label="Kulak Kampı üs görünümü" role="img" />
-      {!ready && <div className="camp-loading" aria-hidden><span>🏕️</span></div>}
+      {!ready && <div className="camp-loading" aria-hidden><span><Art e="🏕️" size="1.15em" className="art-inline" /></span></div>}
       <div className="camp-top">
         <TopBar title="Kamp" />
         <div className="camp-hud" aria-label="Kaynaklar">
           <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
-            🔨 {active ? <>{defOf(active.id).name.split(' ')[0]} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
+            <Art e="🔨" size="1.15em" className="art-inline" /> {active ? <>{defOf(active.id).name.split(' ')[0]} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
           </button>
-          <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}>⏩{ITEMS.map((it) => <span key={it.k} className="hs">{it.label.replace(' ', '')}<b>×{p.wallet.hizlandirici[it.k]}</b></span>)}</span>
-          {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}>🪙<b>{fmtNum(p.wallet.jeton)}</b></span>}
+          <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}><Art e="⏩" size="1.15em" className="art-inline" />{ITEMS.map((it) => <span key={it.k} className="hs">{it.label.replace(' ', '')}<b>×{p.wallet.hizlandirici[it.k]}</b></span>)}</span>
+          {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}><Art e="🪙" size="1.15em" className="art-inline" /><b>{fmtNum(p.wallet.jeton)}</b></span>}
         </div>
         {p.demo && <div className="camp-demo-tag">ÖNİZLEME · sunucuya bir şey gitmez</div>}
       </div>
 
       <div className="camp-bottom">
-        {idle && anyUpgrade && <div className="camp-hint">👷 İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
+        {idle && anyUpgrade && <div className="camp-hint"><Art e="👷" size="1.15em" className="art-inline" /> İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
         <div className="camp-actions">
-          {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()}>🤝 Herkese yardım et{` (${p.helpCount})`}</button>}
-          <button className="btn ghost camp-listbtn" onClick={() => { audio.play('tap'); p.onList(); }} aria-label="Liste görünümü">☰ Liste</button>
+          {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()}><Art e="🤝" size="1.15em" className="art-inline" /> Herkese yardım et{` (${p.helpCount})`}</button>}
+          <button className="btn ghost camp-listbtn" onClick={() => { audio.play('tap'); p.onList(); }} aria-label="Liste görünümü"><Icon name="list" size="1.1em" className="ic-inline" /> Liste</button>
         </div>
       </div>
 

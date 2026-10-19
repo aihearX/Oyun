@@ -7,6 +7,8 @@ import { platform } from '../../platform';
 import { useStore } from '../../store';
 import { useNav } from '../../nav';
 import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
+import { Art } from '../../ui/art';
+import { Icon } from '../../ui/icons';
 
 // yılan düzeni: 1 2 3 / 6 5 4 / 7 8 9 / 12 11 10 (kulaktan beyne)
 const SNAKE = [0, 1, 2, 5, 4, 3, 6, 7, 8, 11, 10, 9];
@@ -44,25 +46,25 @@ export function TeamWar() {
   return (
     <div className="stack">
       <div className="card war-head">
-        <div className="row between"><b>⚔️ Bölge Savaşı</b><span className="countdown">⏳ {fmtLeft(war.endsAt - now)}</span></div>
+        <div className="row between"><b><Art e="⚔️" size="1.15em" className="art-inline" /> Bölge Savaşı</b><span className="countdown"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(war.endsAt - now)}</span></div>
         <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen: <b>{fmtNum(war.myPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
-        <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına 💎 50 + 🪙 300.</div>
+        <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
         {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç.' : 'Liderin hedef seçmesini bekle; sohbette öner!'}</div>
-          : fit ? <button className="btn" onClick={() => nav.play(fit.number)}>▶ {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
+          : fit ? <button className="btn" onClick={() => nav.play(fit.number)}><Icon name="play" size="0.9em" className="ic-inline" /> {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
           : <div className="war-cta muted">Hedef bölgelerin henüz açmadığın biyomlarda. Haritada ilerledikçe açılır.</div>}
       </div>
 
       {canLead && (edit
         ? <div className="row"><span className="muted grow">Seç: {edit.length}/{SOCIAL_LIMITS.targetsMax}</span><button className="btn ghost small" onClick={() => setEdit(null)}>Vazgeç</button><button className="btn small" onClick={() => void save()}>Kaydet</button></div>
-        : <button className="btn ghost small" onClick={() => setEdit([...war.targets])}>🎯 Hedefleri düzenle</button>)}
+        : <button className="btn ghost small" onClick={() => setEdit([...war.targets])}><Art e="🎯" size="1.15em" className="art-inline" /> Hedefleri düzenle</button>)}
 
       <div className={`war-map${edit ? ' editing' : ''}`}>
         <svg className="war-path" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden><polyline points={PATH} /></svg>
         {ordered.map((r, i) => { const idx = SNAKE[i]!; const target = targets.includes(r.id); const ours = r.owner?.teamId === team.id; return (
           <button key={r.id} className={`region${target ? ' target' : ''}${ours ? ' ours' : ''}`} style={{ gridColumn: (Math.floor(i / 3) % 2 === 0 ? i % 3 : 2 - (i % 3)) + 1, gridRow: Math.floor(i / 3) + 1 }}
             onClick={() => (edit ? toggle(r.id) : setSel(r))} aria-pressed={edit ? target : undefined} aria-label={`${r.name}${r.owner ? `, sahibi ${r.owner.name}` : ', sahipsiz'}${target ? ', hedef' : ''}`}>
-            <span className="rg-n">{idx + 1}</span>{target && <span className="rg-t" aria-hidden>🎯</span>}
-            <span className="rg-e" aria-hidden>{r.owner?.emblem ?? '🏳️'}</span>
+            <span className="rg-n">{idx + 1}</span>{target && <span className="rg-t" aria-hidden><Art e="🎯" size="1.15em" className="art-inline" /></span>}
+            <span className="rg-e" aria-hidden>{r.owner ? <span data-ugc>{r.owner.emblem}</span> : <Art name="flag" size={26} />}</span>
             <span className="rg-name">{r.name}</span>
             <span className="rg-p">{r.owner ? fmtNum(r.owner.points) : '—'}</span>
           </button>); })}
@@ -71,18 +73,18 @@ export function TeamWar() {
       <div className="card">
         <b>Haftanın ilk 5 takımı</b>
         {top5.length === 0 ? <div className="muted">Henüz puan yazılmadı. İlk bayrağı siz dikin!</div> : (
-          <ol className="rank-list">{top5.map(([id, t], i) => <li key={id} className={id === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis">{t.emblem} {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>
+          <ol className="rank-list">{top5.map(([id, t], i) => <li key={id} className={id === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>
         )}
       </div>
 
       {sel && (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           <div className="muted">Puan yazan biyomlar: {sel.biomes.map((b) => BIOMES[b as keyof typeof BIOMES]?.name ?? b).join(', ')}</div>
-          <div className="muted">{sel.owner ? `Şu an ${sel.owner.emblem} ${sel.owner.name} önde (${fmtNum(sel.owner.points)}).` : 'Henüz sahibi yok.'} Eşitlikte mevcut sahip kalır.</div>
-          {sel.top.length > 0 && <ol className="rank-list">{sel.top.map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis">{t.emblem} {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>}
+          <div className="muted">{sel.owner ? <>Şu an <span data-ugc>{sel.owner.emblem}</span> {sel.owner.name} önde ({fmtNum(sel.owner.points)}).</> : 'Henüz sahibi yok.'} Eşitlikte mevcut sahip kalır.</div>
+          {sel.top.length > 0 && <ol className="rank-list">{sel.top.map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>}
           {canLead && <button className="btn" disabled={!war.targets.includes(sel.id) && war.targets.length >= SOCIAL_LIMITS.targetsMax}
             onClick={async () => { const next = war.targets.includes(sel.id) ? war.targets.filter((x) => x !== sel.id) : [...war.targets, sel.id]; const r = await act('war.targets', { regions: next }); if (r) { useNet.setState({ war: r.war }); setSel(null); } }}>
-            {war.targets.includes(sel.id) ? 'Hedeften çıkar' : war.targets.length >= SOCIAL_LIMITS.targetsMax ? 'En çok 3 hedef' : '🎯 Hedef yap'}</button>}
+            {war.targets.includes(sel.id) ? 'Hedeften çıkar' : war.targets.length >= SOCIAL_LIMITS.targetsMax ? 'En çok 3 hedef' : <><Art name="target" size="1.15em" className="art-inline" /> Hedef yap</>}</button>}
           <button className="btn ghost" onClick={() => setSel(null)}>Kapat</button>
         </Sheet>
       )}

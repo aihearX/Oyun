@@ -15,6 +15,7 @@ import { platform } from '../platform';
 import { useStore } from '../store';
 import { Toasts } from '../ui/Toasts';
 import { prefersReducedMotion } from '../ui/bits';
+import { Art, Glyph, Rich } from '../ui/art';
 import './celebrate.css';
 
 type Tier = 'bronz' | 'gumus' | 'altin';
@@ -35,7 +36,7 @@ export function itemView(it: RewardItem): { icon: string; name: string; amount: 
     case 'kalkan': return { icon: '🛡️', name: it.label ?? 'Kalkan', amount: it.amount, tone: 'violet' };
     case 'hizlandirici': return { icon: '⏩', name: it.label ?? 'Hızlandırıcı', amount: it.amount, tone: 'teal' };
     case 'kozmetik': { const c = cosmeticById(it.ref ?? ''); return { icon: c?.kind === 'renk' ? '🎨' : '🎩', name: it.label ?? c?.name ?? 'Kozmetik', amount: null, tone: 'coral' }; }
-    case 'kart': { const c = cardById(it.ref ?? ''); return { icon: c?.emoji ?? '🃏', name: it.label ?? c?.title ?? 'Kulak Kartı', amount: null, tone: 'lime' }; }
+    case 'kart': { const c = cardById(it.ref ?? ''); return { icon: '🃏', name: it.label ?? c?.title ?? 'Kulak Kartı', amount: null, tone: 'lime' }; }
   }
 }
 const currency = (it: RewardItem): HudKind | null => (it.kind === 'jeton' || it.kind === 'kristal' ? it.kind : null);
@@ -205,7 +206,7 @@ function Card({ it, i, show }: { it: RewardItem; i: number; show: boolean }) {
   const v = itemView(it);
   return (
     <div className={`cel-card tone-${v.tone}${show ? ' in' : ''}`} style={{ ['--i' as string]: i }}>
-      <div className="cc-icon" aria-hidden>{v.icon}</div>
+      <div className="cc-icon" aria-hidden><Glyph e={v.icon} size={46} /></div>
       {v.amount != null && <CountUp to={v.amount} run={show} prefix={it.kind === 'xp' ? '+' : '×'} />}
       <div className="cc-name">{v.name}</div>
     </div>
@@ -248,11 +249,11 @@ function LevelUpScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'levelUp' 
   return (
     <div className={`cel-stage lvl-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={`Seviye ${s.level}`}>
       <div className="lvl-rays" aria-hidden />
-      <div className="lvl-badge"><span className="lb-k">SEVİYE</span><span className="lb-n">{s.level}</span><span className="lb-star" aria-hidden>★</span></div>
+      <div className="lvl-badge"><span className="lb-k">SEVİYE</span><span className="lb-n">{s.level}</span><span className="lb-star" aria-hidden><Art name="star" size={30} /></span></div>
       <div className="cel-title big">Seviye {s.level}!</div>
       {s.unlocks.length > 0 && (
         <div className="lvl-list">
-          {s.unlocks.map((u, i) => <div key={i} className={`lvl-item${i < s.shown ? ' in' : ''}`}><span aria-hidden>🔓</span><b>{u}</b></div>)}
+          {s.unlocks.map((u, i) => <div key={i} className={`lvl-item${i < s.shown ? ' in' : ''}`}><span aria-hidden><Art name="unlock" size={20} /></span><b><Rich text={u} /></b></div>)}
         </div>
       )}
       <div className="cel-cta">{s.phase !== 'burst' && <button className="btn gold big-cta" onClick={(e) => { e.stopPropagation(); onOk(); }}>Harika!</button>}</div>

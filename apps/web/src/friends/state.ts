@@ -67,9 +67,9 @@ export function showBanner(b: Omit<Banner, 'id'>): void { set({ banner: { ...b, 
 export function preview(m: DmMessage | null, meId?: string): string {
   if (!m) return '';
   const mine = m.from === meId ? 'Sen: ' : '';
-  if (m.deleted) return `${mine}🚫 Mesaj silindi`;
-  if (m.kind === 'sticker') return `${mine}🎭 Odi çıkartması`;
-  if (m.kind === 'davet') return `${mine}${m.meta?.type === 'yaris' ? '🏁 Yarış daveti' : '📨 Davet'}`;
+  if (m.deleted) return `${mine}Mesaj silindi`;
+  if (m.kind === 'sticker') return `${mine}Odi çıkartması`;
+  if (m.kind === 'davet') return `${mine}${m.meta?.type === 'yaris' ? 'Yarış daveti' : 'Davet'}`;
   return mine + m.text.replace(/\n+/g, ' ');
 }
 

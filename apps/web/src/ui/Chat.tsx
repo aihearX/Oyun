@@ -6,6 +6,7 @@ import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
+import { Glyph, rich } from './art';
 
 const QUICK = ['👍', '❤️', '😂', '🔥', '👏', '💪', '🎉', '🙏'];
 const EMPTY: ChatMessage[] = [];
@@ -73,7 +74,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       <div className="chat-box" ref={box} onScroll={onScroll} style={{ ['--chat-off' as string]: `${offset}px` }}>
         {loading ? <Skeleton rows={3} /> : visible.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : visible.map((m, i) => {
           const prev = visible[i - 1];
-          if (m.from === 'sistem') return <div key={m.id} className={`msg-sys kind-${m.kind}`}><span aria-hidden>{sysIcon(m)}</span> {m.text}</div>;
+          if (m.from === 'sistem') return <div key={m.id} className={`msg-sys kind-${m.kind}`}><span aria-hidden><Glyph e={sysIcon(m)} size="1.2em" /></span> {rich(m.text)}</div>;
           const mine = m.from === me?.id; const head = !prev || prev.from !== m.from || m.at - prev.at > 5 * 60_000;
           return (
             <div key={m.id} className={`msg${mine ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}`}

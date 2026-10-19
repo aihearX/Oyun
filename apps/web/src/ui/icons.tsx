@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
  * Renk, ikonu taşıyan öğeden gelir (altın / turkuaz / krem); emoji yalnızca içerikte kalır (sohbet, tepkiler, ödüller).
  */
 export type IconName =
-  | 'play' | 'retry' | 'megaphone' | 'map' | 'sun' | 'tent' | 'team' | 'user' | 'friends' | 'chat' | 'inbox' | 'gem' | 'globe'
+  | 'check' | 'list' | 'smile' | 'play' | 'retry' | 'megaphone' | 'map' | 'sun' | 'tent' | 'team' | 'user' | 'friends' | 'chat' | 'inbox' | 'gem' | 'globe'
   | 'trophy' | 'cards' | 'hat' | 'bolt' | 'sliders' | 'info' | 'pencil' | 'back' | 'close' | 'dots' | 'send' | 'copy' | 'chevron';
 
 const D = (d: string, fill = false) => <path d={d} className={fill ? 'ic-fill' : undefined} />;
@@ -31,6 +31,9 @@ const P: Record<IconName, ReactNode> = {
   info: <><circle cx="12" cy="12" r="9" className="ic-fill" /><circle cx="12" cy="12" r="9" />{D('M12 11v5.5M12 7.6h.01')}</>,
   pencil: <>{D('M4 20h4L18.6 9.4a2.1 2.1 0 0 0-3-3L5 17z', true)}{D('M4 20h4L18.6 9.4a2.1 2.1 0 0 0-3-3L5 17z')}{D('M13.8 8.2l3 3')}</>,
   back: D('M15 5 8 12l7 7'),
+  check: D('M5 12.5l4.5 4.5L19 7.5'),
+  list: D('M5 7h14M5 12h14M5 17h14'),
+  smile: <><circle cx="12" cy="12" r="9" className="ic-fill" /><circle cx="12" cy="12" r="9" />{D('M8.5 14.2c.9 1.4 2.1 2.1 3.5 2.1s2.6-.7 3.5-2.1M9 9.6h.01M15 9.6h.01')}</>,
   chevron: D('M9 5l7 7-7 7'),
   close: D('M6.5 6.5l11 11M17.5 6.5l-11 11'),
   dots: <>{D('M5.5 12h.01M12 12h.01M18.5 12h.01')}</>,
@@ -38,7 +41,7 @@ const P: Record<IconName, ReactNode> = {
   copy: <><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2" className="ic-fill" /><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2" />{D('M15.5 8.5V6.2A2.2 2.2 0 0 0 13.3 4H6.2A2.2 2.2 0 0 0 4 6.2v7.1a2.2 2.2 0 0 0 2.2 2.2h2.3')}</>,
 };
 
-export function Icon({ name, size = 22, className }: { name: IconName; size?: number; className?: string }) {
+export function Icon({ name, size = 22, className }: { name: IconName; size?: number | string; className?: string }) {
   const bold = name === 'dots';
   return (
     <svg className={`ic${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"

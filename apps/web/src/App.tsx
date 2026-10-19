@@ -11,6 +11,7 @@ import { audio, type Track } from '@odi/audio';
 import { CelebrationLayer } from './celebrate/CelebrationLayer';
 import { installUiFeedback } from './ui/feedback';
 import { installViewport, scrollAppTop } from './ui/viewport';
+import { ArtDefs, ArtGallery } from './ui/art';
 import { useStore } from './store';
 import { MapScreen } from './screens/MapScreen';
 import { LevelHost } from './screens/LevelHost';
@@ -88,6 +89,7 @@ function demoResult(): Extract<Route, { name: 'result' }> | null {
 }
 
 export function App() {
+  const gallery = useMemo(() => new URLSearchParams(location.search).get('demo') === 'ikonlar', []);
   const bot = useMemo(botParams, []);
   const demo = useMemo(() => (bot ? null : demoResult()), [bot]);
   const invite = useMemo(() => (bot ? null : readInvite()), [bot]);
@@ -134,6 +136,7 @@ export function App() {
     setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills } : { name: 'level', spec, extras, skills });
   };
 
+  if (gallery) return <><ArtDefs /><ArtGallery /></>;
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
     return <LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
@@ -190,7 +193,7 @@ export function App() {
     case 'wardrobe': return <WardrobeScreen onBack={() => setRoute({ name: route.back })} />;
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
   } })();
-  return <>{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro'} /></>;
+  return <><ArtDefs />{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro'} /></>;
 }
 
 /** ekran → müzik parçası (undefined: o ekran kendi yönetir) */

@@ -13,6 +13,7 @@ import { IconButton } from '../ui/Button';
 import { Sheet, TopBar, fmtNum } from '../ui/social';
 import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
+import { Art, type ArtName } from '../ui/art';
 
 export type ProfileLink = 'achievements' | 'album' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
@@ -25,7 +26,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
   const album = albumProgress(s.meta.cards);
-  const stat = (v: string | number, k: string) => <div className="pstat"><b>{v}</b><span>{k}</span></div>;
+  const stat = (art: ArtName, v: string | number, k: string) => <div className="pstat"><Art name={art} size={26} className="ps-art" /><b>{v}</b><span>{k}</span></div>;
   const online = st === 'bağlı' && !!me;
   return (
     <div className="screen fade-in with-tabs">
@@ -36,11 +37,11 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
           <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <IconButton icon="pencil" label="Takma adı değiştir" tone="gold" small onClick={() => setRename(true)} />}</h2>
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
-          {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? ` · ${me.teamEmblem} ${me.teamName}` : ''}</div>}
+          {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? <> · <span data-ugc>{me.teamEmblem}</span> {me.teamName}</> : ''}</div>}
         </div>
       </div>
       <div className="pstats">
-        {stat(stars, 'yıldız')}{stat(s.meta.stats.clears, 'bölüm')}{stat(fmtNum(s.coins), pending > 0 && st !== 'bağlı' ? `jeton · ${pending} bekleyen` : 'jeton')}{stat(`${Math.max(s.streak, 0)} 🔥`, 'gün serisi')}{stat(wallet ? `💎 ${fmtNum(wallet.kristal)}` : `×${s.meta.stats.maxCombo}`, wallet ? 'kristal' : 'jeton serisi rekoru')}{stat(`🛡️ ${s.meta.shields}${s.teamShields ? ` +${s.teamShields}` : ''}`, s.teamShields ? 'koruyucu + kalkan' : 'koruyucu')}
+        {stat('star', stars, 'yıldız')}{stat('flag', s.meta.stats.clears, 'bölüm')}{stat('coin', fmtNum(s.coins), pending > 0 && st !== 'bağlı' ? `jeton · ${pending} bekleyen` : 'jeton')}{stat('flame', Math.max(s.streak, 0), 'gün serisi')}{wallet ? stat('crystal', fmtNum(wallet.kristal), 'kristal') : stat('bolt', `×${s.meta.stats.maxCombo}`, 'jeton serisi rekoru')}{stat('shield', `${s.meta.shields}${s.teamShields ? ` +${s.teamShields}` : ''}`, s.teamShields ? 'koruyucu + kalkan' : 'koruyucu')}
       </div>
       {online && <LeagueCard onOpen={() => onOpen('league')} />}
       <div className="menu-grid">

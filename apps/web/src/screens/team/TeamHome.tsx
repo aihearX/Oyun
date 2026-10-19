@@ -13,6 +13,7 @@ import { TeamWar } from './TeamWar';
 import { TeamRaid } from './TeamRaid';
 import { TeamEvents } from './TeamEvents';
 import { pendingCount, useEvents } from '../../events';
+import { Art } from '../../ui/art';
 
 export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik';
 let lastTab: TeamTab = 'sohbet';
@@ -54,7 +55,7 @@ export function TeamHome() {
         <span className="th-emblem" aria-hidden>{team.emblem}</span>
         <div className="grow min0">
           <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
-          <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span>👥 {team.members}/{team.max}</span><span>⚡ {fmtNum(team.power)}</span></div>
+          <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span><Art e="⚡" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
           {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
         </div>
       </div>
@@ -81,7 +82,7 @@ export function TeamHome() {
         {tab === 'etkinlik' && <TeamEvents />}
       </div>
       {menu && (
-        <Sheet title={`${team.emblem} ${team.name}`} onClose={() => setMenu(false)}>
+        <Sheet title={team.name} onClose={() => setMenu(false)}>
           {team.description && <div className="muted wrap">{team.description}</div>}
           <div className="card code-card"><span className="muted">Davet kodu</span><b className="big-code">{team.code}</b><span className="muted small-note">{team.open ? 'Herkese açık takım' : 'Yalnızca kodla katılım'}{team.minLevel > 1 ? ` · en az ${team.minLevel}. bölüm` : ''}</span></div>
           <ActionButton block icon="megaphone" onClick={() => void share()}>Davet kodunu paylaş</ActionButton>

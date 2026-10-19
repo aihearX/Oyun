@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { audio } from '@odi/audio';
+import { Glyph, Rich } from './art';
 
 /** Üstte kısa kutlama bildirimi (celebrate.banner da buraya düşer): sırayla, tek tek, sesli. Dokununca kapanır. */
 export function Toasts() {
@@ -12,8 +13,8 @@ export function Toasts() {
   return (
     <div className="toast-top" role="status" aria-live="polite" key={t.id} onClick={() => dismiss(t.id)}>
       <div className={`tt-card tone-${t.tone ?? 'accent'}`}>
-        <span className="tt-icon">{t.icon}</span>
-        <span className="tt-body"><b>{t.title}</b>{t.text && <small>{t.text}</small>}</span>
+        <span className="tt-icon"><Glyph e={t.icon} size={32} /></span>
+        <span className="tt-body"><b><Rich text={t.title} /></b>{t.text && <small><Rich text={t.text} /></small>}</span>
       </div>
     </div>
   );

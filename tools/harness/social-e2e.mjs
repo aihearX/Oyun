@@ -177,7 +177,7 @@ try {
   step('8 · A teknolojiye bağış');
   await sub(A, 'Teknoloji');
   const tech = A.locator('.tech', { hasText: 'Ortak Kazanç' });
-  await tech.getByRole('button', { name: '🪙 100' }).click();
+  await tech.getByRole('button', { name: '100', exact: true }).click();
   await tech.locator('.qn', { hasText: '100/' }).waitFor({ timeout: 8000 });
   ok('bağış ilerlemeye yazıldı (100/…)');
   await shot(A, 'A-teknoloji-bagis');
@@ -214,7 +214,7 @@ try {
   await toastGone(B);
   await A.locator('.screen-head button[aria-label="Geri"]').first().click(); // mağazadan geri
   await sub(A, 'Yardım');
-  await A.getByRole('button', { name: '🛡️ Gönder' }).click();
+  await A.locator('.help-row').getByRole('button', { name: 'Gönder', exact: true }).first().click();
   await A.getByRole('button', { name: 'Gönderildi' }).waitFor({ timeout: 8000 });
   await toastGone(A);
   await B.locator('.env .dot').waitFor({ timeout: 8000 });
