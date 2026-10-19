@@ -25,6 +25,39 @@ export interface BiomeArt {
   tono?: [number, number];
   /** suyun içinde mi (kabarcıklar, ışık huzmeleri yukarıdan) */
   underwater?: boolean;
+  /** bölüm kimliği: gökteki vurgu motifi (bkz. LEVEL_VARIANTS) */
+  skyAccent?: SkyAccent;
+}
+
+/** gökte bölüme özgü vurgu: ses halkaları, hilal ay, ufuk huzmeleri, kayan yıldızlar, nota takımyıldızı */
+export type SkyAccent = 'halkalar' | 'ay' | 'huzme' | 'kayan' | 'nota-burcu';
+
+/**
+ * Aynı biyomdaki bölümler aynı görünmesin (docs/11 §6): her bölüm, biyom paletinin bir "günün saati / ruh hali"
+ * varyantıyla ve gökte kendi vurgu motifiyle boyanır. Ağır yeni varlık yok: yalnızca palet kaydırma + birkaç gök çizimi.
+ * Zemin renkleri (oynanış okunaklılığı) değişmez; siluetler gökle uyum için hafifçe yeni göğe çekilir.
+ * Varyant kimliği doku önbelleği ve siluet tohumunu da değiştirir (tepe/ağaç dizilişi bölüme göre farklı).
+ */
+export interface LevelVariant { name: string; sky: (s: [number, number, number]) => [number, number, number]; light: (l: BiomeArt['light']) => BiomeArt['light']; accent: SkyAccent; fog?: (f: number) => number; motes?: (m: number[]) => number[] }
+export const LEVEL_VARIANTS: LevelVariant[] = [
+  { name: 'aksam', sky: (s) => s, light: (l) => l, accent: 'halkalar' },
+  { name: 'gece', sky: ([t, m, h]) => [mixC(t, 0x03020c, 0.4), mixC(m, 0x0a0a2a, 0.45), mixC(h, 0x3a3a8a, 0.55)], light: () => ({ c: 0xe4ecff, x: 0.24, y: 0.2, r: 0.34 }), accent: 'ay', fog: (f) => mixC(f, 0x8a9aff, 0.5), motes: (m) => [0xdbe8ff, ...m.slice(1)] },
+  { name: 'safak', sky: ([t, m, h]) => [mixC(t, 0x1a2a6a, 0.45), mixC(m, 0x6a5aa8, 0.35), mixC(h, 0xffd8a0, 0.6)], light: (l) => ({ c: mixC(l.c, 0xfff0c0, 0.6), x: 0.22, y: 0.8, r: 0.62 }), accent: 'huzme', fog: (f) => mixC(f, 0xffe0b8, 0.4) },
+  { name: 'mor-sis', sky: ([t, m, h]) => [mixC(t, 0x10062a, 0.3), mixC(m, 0x3a1a7a, 0.45), mixC(h, 0x7a6aff, 0.5)], light: (l) => ({ c: mixC(l.c, 0xc8b8ff, 0.5), x: 0.78, y: 0.42, r: 0.5 }), accent: 'kayan', fog: (f) => mixC(f, 0xb8a8ff, 0.5) },
+  { name: 'kizil', sky: ([t, m, h]) => [mixC(t, 0x1a0410, 0.4), mixC(m, 0x6a1430, 0.45), mixC(h, 0xff6a4a, 0.5)], light: (l) => ({ c: mixC(l.c, 0xffa070, 0.5), x: 0.55, y: 0.7, r: 0.7 }), accent: 'nota-burcu', fog: (f) => mixC(f, 0xff9a80, 0.4) },
+];
+function mixC(a: number, b: number, t: number): number { const m = (s: number) => Math.round(((a >> s) & 255) * (1 - t) + ((b >> s) & 255) * t); return (m(16) << 16) | (m(8) << 8) | m(0); }
+
+/** biyom sanatı + bölüm varyantı (0 = biyomun kendi paleti, yalnız gök motifi eklenir) */
+export function variantArt(A: BiomeArt, v: number): BiomeArt {
+  const V = LEVEL_VARIANTS[((v % LEVEL_VARIANTS.length) + LEVEL_VARIANTS.length) % LEVEL_VARIANTS.length]!;
+  if (V.name === 'aksam') return { ...A, id: `${A.id}~0`, skyAccent: V.accent };
+  const sky = V.sky(A.sky); const pull = (c: number, k: number) => mixC(c, sky[1], k);
+  return {
+    ...A, id: `${A.id}~${v}`, sky, light: V.light(A.light), skyAccent: V.accent,
+    far: pull(A.far, 0.28), midFar: pull(A.midFar, 0.2), mid: pull(A.mid, 0.14), near: pull(A.near, 0.08),
+    fog: V.fog ? V.fog(A.fog) : A.fog, motes: V.motes ? V.motes(A.motes) : A.motes,
+  };
 }
 
 export const BIOME_ART: Record<string, BiomeArt> = {

@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { AbilityId, Entity, LevelSpec, RunResult } from '@odi/shared';
 import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
-import { BIOMES, FIRSTS, tutorialKey, type BiomeDef } from '@odi/content';
+import { BIOMES, FIRSTS, journeyById, tutorialKey, type BiomeDef } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
@@ -13,6 +13,7 @@ import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
+import { liveWaves } from './play/boss';
 import { Tutorial, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
   paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
@@ -40,14 +41,15 @@ export class LevelScene extends Phaser.Scene {
   heroView!: HeroView; hud!: LevelHudView;
   private backdrop?: BiomeBackdrop; private views = new Map<number, EntityView>(); private streamAt = 0;
   private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: { update(x: number, y: number, alive: boolean): void };
-  private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0;
+  private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0; private camAnchor = 0.66;
   private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
   private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1; private praiseFree = 0; private comboShown = 0;
   private combo = 0; private comboAt = -99; private maxCombo = 0; private chain = 0; private chainAt = -99; private firstsDone: string[] = [];
   private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
-  private resultSent = false; private lastWall = 0;
+  private pendingEdges: { pressed: boolean; released: boolean; swipeDown: boolean; swipeX: number } = { pressed: false, released: false, swipeDown: false, swipeX: 0 };
+  private resultSent = false; private lastWall = 0; private chargeFrom = -1; private summaryDone = 0; private cues = new Map<number, number>(); private cueAt = -9;
   /** görsel kalite: gerçek cihazda kare hızı 2 sn boyunca ~45'in altında kalırsa 'low'a iner (bot/harness'te ölçülmez) */
   quality: 'high' | 'low' = 'high'; private perfMs = 0; private perfN = 0; private perfLast = 0;
 
@@ -82,7 +84,7 @@ export class LevelScene extends Phaser.Scene {
     this.dpr = Number(this.registry.get('dpr') ?? 1) || 1; setVisualResolution(this.dpr);
     this.cameras.main.setZoom(this.dpr).setOrigin(0, 0);
     this.quality = this.dpr > 1 ? 'high' : 'low'; setFxQuality(1);
-    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.quality);
+    this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.quality, levelVariant(this.spec));
     const terrain: TerrainRect[] = [];
     for (const e of w.ents) if (isTerrain(e)) terrain.push({ l: e.l, t: e.t, r: e.r, b: e.b, kind: e.type === 'wall' ? 'wall' : e.p.tavan ? 'ceiling' : 'platform' });
     this.terrain = makeTerrain(this, terrain, this.biome);
@@ -91,14 +93,15 @@ export class LevelScene extends Phaser.Scene {
     this.projLayer = createProjectileLayer(this, this.biome);
     if (this.sim.boss) this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome);
     this.fx = createFx(this, this.biome);
-    this.hud = createHud(this, heroColor, 0);
+    this.hud = createHud(this, heroColor, this.safeTopDesign());
     if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
     this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
+    this.input_.blockZones.push({ hit: (x, y) => this.hud.pauseHit(x, y), onTap: () => this.hud.pressPause() });
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
     if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500);
     if (this.opts.lucky && !this.opts.bot) this.armLucky();
-    this.camX = Math.max(0, w.startX - GAME_W * 0.3); this.camY = w.startY - GAME_H * 0.62;
+    this.camX = Math.max(0, w.startX - GAME_W * 0.3); this.camY = w.startY - GAME_H * this.camAnchor;
     this.syncCamera(1); this.syncViews(true); this.syncHero(); this.syncHud();
 
     this.emit({ type: 'ready' });
@@ -115,7 +118,7 @@ export class LevelScene extends Phaser.Scene {
       const go = () => { this.input_.tick(); begin(); };
       const delay = this.opts.bot ? Math.max(0, race.botDelayMs ?? 0) : 0;
       this.race.countdown(`${this.spec.number}. ${this.spec.name}\n${this.spec.objective.label}`, () => { if (delay) this.time.delayedCall(delay, go); else go(); });
-    } else if (this.opts.bot) begin(); else tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}\n\nDokun ve başla`, begin);
+    } else if (this.opts.bot) begin(); else tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}\n\nDokun ve başla`, () => { this.input_.consumeActive(); begin(); });
 
     (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = this;
     this.events.once('shutdown', () => { (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = undefined; });
@@ -136,12 +139,20 @@ export class LevelScene extends Phaser.Scene {
     if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
     const raw = this.input_.tick();
+    // tek karelik girdiler (dokunuş, kaydırma) bir sonraki sim adımına kadar bekletilir: o karede adım yoksa kaybolmasın
+    const pe = this.pendingEdges;
+    pe.pressed ||= raw.primaryPressed; pe.released ||= raw.primaryReleased; pe.swipeDown ||= raw.secondaryPressed; if (raw.swipeX) pe.swipeX = raw.swipeX;
     let first = true; let n = 0;
     while (this.acc >= DT && n < 40 && !this.sim.finished && !this.sim.failed) {
       let inp: SimInput;
       if (this.planner) { inp = this.planner.next(this.sim); this.mirrorBotInput(inp); }
       else if (this.opts.bot) inp = NO_INPUT;
-      else inp = { down: raw.primaryDown, pressed: first && raw.primaryPressed, released: first && raw.primaryReleased, swipeDown: first && raw.secondaryPressed, dash: first && !!raw.dashPressed };
+      else {
+        // yatay kaydırma: koşunun tersi → geri dön; koşu yönü → ses darbesi (yetenek açık değilse sim yok sayar)
+        const sx = first ? pe.swipeX : 0; const hd = this.sim.hero.dir;
+        inp = { down: raw.primaryDown, pressed: first && pe.pressed, released: first && pe.released, swipeDown: first && pe.swipeDown, dash: sx !== 0 && sx === hd, turn: sx !== 0 && sx !== hd };
+        if (first) { pe.pressed = false; pe.released = false; pe.swipeDown = false; pe.swipeX = 0; }
+      }
       step(this.world, this.sim, inp);
       first = false; this.acc -= DT; n++;
       this.handleEvents();
@@ -156,7 +167,7 @@ export class LevelScene extends Phaser.Scene {
     this.backdrop?.update(this.cameras.main);
     this.watchPerf();
     if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
-    this.nearMiss();
+    this.nearMiss(); this.cochleaCue();
     if (this.luckyState === 'armed') this.tickLucky();
     if (this.time.now - this.lastProgress > 500) { this.lastProgress = this.time.now; this.emit({ type: 'progress', pct: this.pct(), coins: this.sim.coins, score: this.state.score }); }
   }
@@ -177,8 +188,15 @@ export class LevelScene extends Phaser.Scene {
       case 'cling': sfx.tick(); break;
       case 'land': hv.land(Number(e.n ?? 600)); this.fx.landDust(e.x, e.y, Math.min(1, Number(e.n ?? 600) / 900)); sfx.land(); break;
       case 'slide': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'tramp-strong': sfx.bounce(); this.fx.perfectRing(e.x, e.y, 'Güçlü!'); this.emit({ type: 'haptic', kind: 'medium' }); break;
-      case 'tramp-weak': sfx.tick(); break;
+      case 'uturn': sfx.tick(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'light' }); break;
+      case 'tramp-strong': {
+        const perfect = e.s?.startsWith('perfect'); const beat = e.s?.endsWith('beat');
+        sfx.bounce(); if (perfect) sfx.perfect(beat ? 4 : 2); this.views.get(e.id ?? -1)?.poke();
+        this.fx.perfectRing(e.x, e.y, perfect ? (beat ? 'Mükemmel · Vuruşta!' : 'Mükemmel!') : beat ? 'Vuruşta!' : 'Güçlü!');
+        this.emit({ type: 'haptic', kind: perfect ? 'heavy' : 'medium' }); if (perfect) this.chainHit();
+        break;
+      }
+      case 'tramp-weak': sfx.tick(); this.views.get(e.id ?? -1)?.poke(); break;
       case 'spring': case 'launch': sfx.bounce(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'hook': sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'unhook': sfx.jump(); break;
@@ -198,7 +216,7 @@ export class LevelScene extends Phaser.Scene {
       }
       case 'fork': sfx.toneAt(tonotopyFreq(Number(e.n ?? 0.5)), 0.4); floatText(this, e.x, e.y - 30, 'Frekans ayarlandı', COLORS.accent2); break;
       case 'freqwrong': floatText(this, e.x, e.y - 60, 'Yanlış frekans!', COLORS.coral); break;
-      case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); break;
+      case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); this.sectionSummary(this.world.ents[e.id!]?.sec ?? 0); break;
       case 'hurt': this.onHurt(e); break;
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
       case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20, null); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
@@ -274,18 +292,30 @@ export class LevelScene extends Phaser.Scene {
   private syncCamera(dt: number) {
     const cam = this.cameras.main; const h = this.sim.hero;
     if (this.world.boss) { cam.setScroll(0, GROUND_Y - GAME_H + 140); return; }
-    const tx = h.x - (h.dir > 0 ? GAME_W * 0.32 : GAME_W * 0.68); const ty = h.y - GAME_H * 0.6 - (h.g < 0 ? -200 : 0);
+    const tx = h.x - (h.dir > 0 ? GAME_W * 0.32 : GAME_W * 0.68);
+    // dikey çerçeve: kahramanın ayağı ekranın ~%66'sında (alttaki toprak yerine üstteki oyun alanı görünsün).
+    // Bakış payı: tırmanış/sıçrayışta yukarıyı (%72), hızlı düşüşte ve sıvıda aşağıyı (%52) gösterir; ters yerçekiminde ayna (%34).
+    const rising = h.wallId >= 0 || h.vy * h.g < -500, falling = h.vy * h.g > 520 && !h.grounded;
+    let anchor = h.water >= 0 ? 0.52 : rising ? 0.72 : falling ? 0.52 : 0.66;
+    if (h.g < 0) anchor = 1 - anchor;
+    this.camAnchor += (anchor - this.camAnchor) * (1 - Math.pow(0.05, Math.min(0.1, dt)));
+    const ty = h.y - GAME_H * this.camAnchor;
     const k = 1 - Math.pow(0.0008, Math.min(0.1, dt)); const ky = 1 - Math.pow(0.004, Math.min(0.1, dt));
     this.camX += (tx - this.camX) * k; this.camY += (ty - this.camY) * ky;
-    this.camX = Math.max(0, Math.min(Math.max(0, this.world.worldW - GAME_W), this.camX)); this.camY = Math.max(-1200, Math.min(GROUND_Y + 700 - GAME_H, this.camY));
+    this.camX = Math.max(0, Math.min(Math.max(0, this.world.worldW - GAME_W), this.camX)); this.camY = Math.max(-1700, Math.min(GROUND_Y + 700 - GAME_H, this.camY));
     cam.setScroll(Math.round(this.camX * this.dpr) / this.dpr, Math.round(this.camY * this.dpr) / this.dpr);
   }
   private syncHero() {
     const h = this.sim.hero; const hook = h.hookId >= 0 ? this.world.ents[h.hookId]! : null;
+    // yüksek zıplama şarjı: yükselişte basılı tutuldukça dolar (tam yükseklik ≈ 0,45 sn); bırakınca / düşüşte söner
+    const charging = h.jumpRise && h.held && !h.cut && h.vy * h.g < 0 && h.hookId < 0 && h.water < 0;
+    if (charging) { if (this.chargeFrom < 0) this.chargeFrom = this.sim.t; } else if (!(h.jumpRise && h.held && !h.cut)) this.chargeFrom = -1;
+    const charge = this.chargeFrom >= 0 ? Math.min(1, (this.sim.t - this.chargeFrom) / 0.42 + 0.08) : 0;
     this.heroView.update({
       x: h.x, y: h.y, vx: h.vx, vy: h.vy, dir: h.dir, g: h.g, t: this.sim.t, grounded: h.grounded, sliding: h.slide > 0, gliding: h.glideT > 0.05, dashing: h.dash > 0, pounding: h.pound,
       hook: hook ? { x: hook.x, y: hook.y } : null, wall: h.wallId >= 0, water: h.water >= 0, invuln: h.invuln > 0.05 && !this.state.finished, hurt: this.sim.t - this.lastHurtAt < 0.35,
       win: this.state.finished && this.sim.finished, shield: this.sim.shield, breath: h.breath, breathMax: BREATH + 2 * (this.opts.skills.breath ?? 0), echo: h.echoUntil > this.sim.t,
+      charge: this.state.finished ? 0 : charge,
     });
     const esc = this.sim.escort; if (esc) { this.escortView ??= createEscortView(this, this.biome); this.escortView.update(esc.x, esc.y, esc.alive); }
   }
@@ -323,7 +353,7 @@ export class LevelScene extends Phaser.Scene {
         case 'checkpoint': V.on = s.cpX >= e.x - 1; break;
         case 'freqgate': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
         case 'fork': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
-        case 'trampoline': V.on = s.hero.tramp > 0 && s.hero.trampId === id; break;
+        case 'trampoline': V.on = s.hero.tramp > 0 && s.hero.trampId === id; V.phase = beatPhase; break;
         case 'text': V.on = !!this.tutorial; break;
         case 'hazard': {
           if (e.p.chase && !s.timers.has(id)) { V.visible = false; break; }
@@ -345,7 +375,7 @@ export class LevelScene extends Phaser.Scene {
     const list: { x: number; y: number }[] = []; const tmp: { x: number; y: number }[] = [];
     for (const id of near(this.world, L - 200, Rr + 200)) { const e = this.world.ents[id]!; if (e.cls === 'enemy' && enemyKind(e) === 'atici') { projectiles(e, t, s.killed.get(id), tmp); list.push(...tmp); } }
     this.projLayer.update(list);
-    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null, heroX: s.hero.x }, GROUND_Y); }
+    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, waves: liveWaves(b, t), warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null, heroX: s.hero.x }, GROUND_Y); }
   }
   /** varlık artık görünmeyecek mi (toplandı, öldü, kırıldı) */
   private gone(e: WEnt): boolean {
@@ -362,6 +392,7 @@ export class LevelScene extends Phaser.Scene {
     this.input_.virtual = { primaryDown: inp.down, dir: inp.dash ? 1 : 0 };
     if (inp.swipeDown) this.input_.swipeDown();
     if (inp.dash) this.input_.swipeRight();
+    if (inp.turn) this.input_.swipeLeft();
   }
   /** bot/kayıt: oyun hızı çarpanı (simülasyon, zamanlayıcı, tween ve parçacıklar birlikte). Yalnız harness ve Reels stüdyosu kullanır. */
   setTimeScale(ts: number) {
@@ -407,6 +438,28 @@ export class LevelScene extends Phaser.Scene {
         const dy = Math.min(Math.abs(hb - top), Math.abs(bot - ht));
         if (dy < 26) { this.state.score += 25; floatText(this, h.x, h.y - 76, 'Kıl payı! +25', COLORS.coral); sfx.tick(); this.emit({ type: 'haptic', kind: 'light' }); this.firstTime('kilpayi'); this.chainHit(); }
       }
+    }
+  }
+  /** bölüm-içi bölüm bitince: o kısımda kaç nota toplandı (kaçırılanı dürüstçe gösterir; baskı yok, süre yok) */
+  private sectionSummary(sec: number) {
+    for (let k = this.summaryDone; k < sec; k++) {
+      let got = 0, tot = 0;
+      for (const e of this.world.ents) { if (e.sec !== k || (e.type !== 'coin' && e.type !== 'collect')) continue; const v = e.type === 'collect' ? 5 : 1; tot += v; if (this.sim.collected.has(e.id)) got += v; }
+      if (tot > 0 && k === sec - 1) this.time.delayedCall(700, () => this.hint(got >= tot ? `Bu bölümde ${got}/${tot} nota · hepsi!` : `Bu bölümde ${got}/${tot} nota`, 2200));
+    }
+    this.summaryDone = Math.max(this.summaryDone, sec);
+  }
+  /** gizli altın koklea ipucu: dikkatli oyuncu yaklaşınca hafif bir çan sesi ve koklea yönüne süzülen kıvılcımlar (ana yolun dışında kalır) */
+  private cochleaCue() {
+    const h = this.sim.hero; if (this.sim.t - this.cueAt < 1.6) return;
+    for (const id of near(this.world, h.x - 40, h.x + 460)) {
+      const e = this.world.ents[id]!; if (e.type !== 'secret' || this.sim.collected.has(id)) continue;
+      const n = this.cues.get(id) ?? 0; if (n >= 3) continue;
+      const dx = (e.x - h.x) * h.dir; if (dx < -20 || dx > 420) continue;
+      this.cues.set(id, n + 1); this.cueAt = this.sim.t;
+      if (n === 0) { sfx.toneAt(1568, 0.09); this.time.delayedCall(110, () => sfx.toneAt(2093, 0.12)); }
+      this.fx.hintTrail(h.x, h.y - 30 * h.g, e.x, e.y);
+      return;
     }
   }
   private firstTime(id: string) {
@@ -475,6 +528,14 @@ export class LevelScene extends Phaser.Scene {
     this.time.delayedCall(this.opts.bot ? 100 : 900, () => this.emit({ type, result }));
   }
 
+  /** harness: duraklat düğmesinin sayfa (CSS px) konumu — mobil dokunuş testleri buraya dokunur */
+  pauseButtonPage(): { x: number; y: number } { const b = this.scale.canvasBounds; const c = this.hud.pauseCenter(); const k = b.width / GAME_W; return { x: b.x + c.x * k, y: b.y + c.y * k }; }
+  /** cihaz güvenli alan üst boşluğu → tasarım pikseli (tuval sığdırılıp ortalandığından tuvalin üstündeki boşluk düşülür) */
+  private safeTopDesign(): number {
+    const st = this.opts.safeTop ?? 0; if (!(st > 0)) return 0;
+    const b = this.scale.canvasBounds; if (!b || !(b.width > 0)) return 0;
+    return Math.max(0, Math.round((st - b.y) * (GAME_W / b.width)));
+  }
   private emit(e: GameEvent) { try { void this.opts.onEvent(e); } catch { /* kabuk hatası oyunu durdurmasın */ } }
   /** övgü sözleri ve altın koklea yazısı üst üste binmesin: sırayla (en az 0,8 sn arayla) */
   private praise(text: string) { this.afterPraise(() => this.hud.praise(text)); }
@@ -499,6 +560,13 @@ export class LevelScene extends Phaser.Scene {
 }
 
 // ------------------------------------------------------------------ küçük yardımcılar
+/** bölümün biyom içindeki sırası (görsel kimlik varyantı); boss arenası biyomun kendi paleti */
+function levelVariant(spec: LevelSpec): number | undefined {
+  if (spec.mechanic === 'boss') return undefined;
+  const j = journeyById(spec.journey); if (!j) return undefined;
+  const same = j.levels.filter((l) => l.biome === spec.biome && l.mechanic !== 'boss').map((l) => l.number);
+  const i = same.indexOf(spec.number); return i < 0 ? undefined : i;
+}
 /** durağan zemin (makeTerrain toptan çizer) */
 function isTerrain(e: WEnt): boolean { return (e.type === 'platform' && !e.p.boss) || e.type === 'wall'; }
 /** WEnt → dünya koordinatlı Entity (görsel seam'e verilen) */

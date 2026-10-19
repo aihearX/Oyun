@@ -4,7 +4,7 @@
  */
 export * from './types';
 export { setRenderResolution, renderResolution, THEME, FONT, tono, screenOrigin as screenOriginOf, viewTopLeft } from './util';
-export { BIOME_ART, BIOME_IDS, artOf, type BiomeArt, type Motif } from './palette';
+export { BIOME_ART, BIOME_IDS, artOf, variantArt, LEVEL_VARIANTS, type BiomeArt, type Motif, type SkyAccent } from './palette';
 export { paintBiome } from './backdrop';
 export { makeTerrain, terrainPiece, mergeRects, LIP_H } from './terrain';
 export { entitySprite, DEPTH } from './entities';

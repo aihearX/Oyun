@@ -175,6 +175,8 @@ class HeroView implements HeroVisual {
   private state: HeroPose = 'run'; private vx = 0; private vy = 0; private flip = false; private gflip = false;
   private sx = 1; private sy = 1; private blinkAt = 0; private blinkT = 0; private lastGhost = 0; private lastPuff = 0;
   private dust: Phaser.GameObjects.Particles.ParticleEmitter;
+  /** yüksek zıplama şarjı: gövdeyi saran altın parıltı + ayaktan dökülen kıvılcımlar */
+  private chargeGlow: Phaser.GameObjects.Image; private chargeSparks: Phaser.GameObjects.Particles.ParticleEmitter; private charge = 0; private chargePeak = false; private lastSpark = 0;
   private readonly onUpdate: (t: number, dt: number) => void;
   constructor(private scene: Phaser.Scene, cosmetic: HeroCosmetic) {
     const c = cosmetic.color ?? 0x6c4cf1; const s = scene; const r = 1 / R();
@@ -197,7 +199,9 @@ class HeroView implements HeroVisual {
     this.spin.add([...this.wings, ...this.feet, this.body, ...this.cheeks, ...this.sclera, ...this.pupils, this.happyEyes, this.hurtEyes, ...this.brows, ...Object.values(this.mouths)]);
     if (hk) { this.hat = I(s, hk, 0, 0); this.spin.add(this.hat); }
     this.shield = I(s, shieldTex(s), 0, CY).setBlendMode(ADD).setVisible(false);
-    this.root.add([this.halo, this.squash, this.shield]);
+    this.chargeGlow = s.add.image(0, CY, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setAlpha(0).setDisplaySize(70, 70);
+    this.root.add([this.halo, this.chargeGlow, this.squash, this.shield]);
+    this.chargeSparks = s.add.particles(0, 0, sparkTex(s), { speed: { min: 10, max: 50 }, angle: { min: 60, max: 120 }, scale: { start: 0.32, end: 0 }, alpha: { start: 0.95, end: 0 }, lifespan: { min: 260, max: 420 }, gravityY: 120, blendMode: 'ADD', tint: [THEME.gold, 0xfff1a8, 0xffffff], emitting: false }).setDepth(19);
     this.dust = s.add.particles(0, 0, puffTex(s), { speed: { min: 20, max: 70 }, angle: { min: 190, max: 350 }, scale: { start: 0.35, end: 0.05 }, alpha: { start: 0.55, end: 0 }, lifespan: 380, gravityY: -40, tint: 0xe8dcff, emitting: false }).setDepth(19);
     this.setFace('smile');
     this.blinkAt = s.time.now + 1500;
@@ -275,6 +279,11 @@ class HeroView implements HeroVisual {
     const fast = st === 'dash' ? 1 : Math.min(1, Math.max(0, (Math.hypot(this.vx, this.vy) - 260) / 500));
     this.trail.forEach((tr, i) => { const p = this.hist[Math.min(this.hist.length - 1, (i + 1) * 2)]; if (!p) return; tr.setPosition(p.x, p.y); const q = 1 - i / this.trail.length; tr.setAlpha(fast * q * 0.45 * this.root.alpha * (this.root.visible ? 1 : 0)); tr.setDisplaySize(44 * q + 8, 44 * q + 8); });
     this.halo.setDisplaySize(128 * (1 + fast * 0.15), 128 * (1 + fast * 0.15));
+    // şarj: parıltı şarjla büyür; yükselirken ayaktan kıvılcım izi (ince, yalnız basılıyken)
+    const ch = this.charge; const target = ch > 0 ? 0.25 + ch * 0.45 : 0;
+    this.chargeGlow.setAlpha(this.chargeGlow.alpha + (target - this.chargeGlow.alpha) * 0.35 * k);
+    const sz = 58 + ch * 34 + (ch >= 1 ? Math.sin(t * 22) * 4 : 0); this.chargeGlow.setDisplaySize(sz, sz);
+    if (ch > 0 && time - this.lastSpark > 45 && this.root.visible) { this.lastSpark = time; this.chargeSparks.explode(ch >= 1 ? 2 : 1, this.root.x + (Math.random() - 0.5) * 14, this.root.y - 4); }
   }
   private ghost() {
     const s = this.scene; const g = s.add.image(this.root.x, this.root.y + CY * this.sy, this.body.texture.key).setScale(this.sx / R(), this.sy / R()).setTintFill(lighten(THEME.teal, 0.3)).setAlpha(0.5).setDepth(19).setBlendMode(ADD);
@@ -290,9 +299,19 @@ class HeroView implements HeroVisual {
   setGravityFlip(flip: boolean) { this.gflip = flip; }
   setVisible(v: boolean) { this.root.setVisible(v); if (!v) this.trail.forEach((t) => t.setAlpha(0)); }
   setAlpha(a: number) { this.baseAlpha = a; this.root.setAlpha(a); }
-  setDepth(d: number) { this.root.setDepth(d); this.trail.forEach((t) => t.setDepth(d - 1)); this.dust.setDepth(d - 1); }
+  setDepth(d: number) { this.root.setDepth(d); this.trail.forEach((t) => t.setDepth(d - 1)); this.dust.setDepth(d - 1); this.chargeSparks.setDepth(d - 1); }
+  setCharge(k: number) {
+    const prev = this.charge; this.charge = k;
+    if (k <= 0) { this.chargePeak = false; return; }
+    // tam şarj anı: küçük altın halka (bir kez)
+    if (k >= 1 && prev < 1 && !this.chargePeak) {
+      this.chargePeak = true;
+      const rg = this.scene.add.image(this.root.x, this.root.y + CY, ringTex(this.scene)).setBlendMode(ADD).setTint(THEME.gold).setDepth(21).setScale(0.12);
+      this.scene.tweens.add({ targets: rg, scale: 0.55, alpha: 0, duration: 320, ease: 'Cubic.Out', onComplete: () => rg.destroy() });
+    }
+  }
   setShield(on: boolean) { this.shield.setVisible(on); if (on) this.tw(this.shield, { alpha: { from: 1, to: 0.6 }, duration: 700, yoyo: true, repeat: -1 }); }
-  destroy() { this.scene.events.off('update', this.onUpdate); this.root.destroy(); this.trail.forEach((t) => t.destroy()); this.dust.destroy(); }
+  destroy() { this.scene.events.off('update', this.onUpdate); this.root.destroy(); this.trail.forEach((t) => t.destroy()); this.dust.destroy(); this.chargeSparks.destroy(); }
 }
 
 export function createHeroVisual(scene: Phaser.Scene, cosmetic: HeroCosmetic = {}): HeroVisual { return new HeroView(scene, cosmetic); }

@@ -157,6 +157,10 @@ export function buildWorld(spec: LevelSpec, o: BuildOpts): World {
   if (mods.tersYercekimi && !isBoss) {
     for (const e of [...ents]) if (e.type === 'platform' && e.h >= 100 && e.t >= GROUND_Y - 10) { add({ type: 'platform', x: e.l, y: e.t - CEIL_GAP, w: e.r - e.l, h: 40, props: { tavan: true } }, 0, e.sec); ceilings.push({ l: e.l, r: e.r }); }
     ceilings.sort((a, b) => a.l - b.l);
+    // tavan zemindir: yerdeki dikenlerin aynası tavanda da var (tavan yolu ölü kalmasın; ters koşarken de zıplamak gerekir)
+    for (const e of [...ents]) if (e.type === 'spike' && e.b >= GROUND_Y - 2 && e.b <= GROUND_Y + 2 && ceilings.some((c) => c.l <= e.l && c.r >= e.r)) {
+      const bottom = GROUND_Y - CEIL_GAP + 40; add({ type: 'hazard', x: e.l - 5, y: bottom - 4, w: e.r - e.l + 10, h: 26, props: { kind: 'diken', tavanDiken: true } }, 0, e.sec);
+    }
   }
   // melodi notaları: x sırası
   const notes = ents.filter((e) => e.type === 'note').sort((a, b) => a.x - b.x);

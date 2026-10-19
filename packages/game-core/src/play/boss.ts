@@ -45,7 +45,7 @@ export function bossInit(w: World, s: SimState): void {
   const hp = spec?.hp ?? (kind === 'golem' ? 12 : 18);
   s.boss = {
     kind, name: spec?.name ?? (kind === 'golem' ? 'Serumen Golemi' : 'Gürültü Canavarı'), hp, maxHp: hp, phase: 1, defeated: false, defeatAt: 0,
-    mode: 'idle', until: 2.4, nextAttack: 2.4, nextBall: 6, nextDrop: 4, nextScream: kind === 'canavar' ? 7 : 1e9,
+    mode: 'idle', until: 2.4, nextAttack: kind === 'canavar' ? 1.6 : 2.4, nextBall: 6, nextDrop: 4, nextScream: kind === 'canavar' ? 7 : 1e9,
     fists: [], balls: [], drops: [], waves: [], warnWall: null, notes: [], core: null, seed: (w.spec.seed ^ 0x5bd1e995) >>> 0, lastHit: -9, respawned: false, fistIds, hits: 0,
   };
   s.hero.x = 120; s.hero.y = GROUND_Y; s.hero.dir = 1;
@@ -139,6 +139,12 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
 }
 
 // ---------------------------------------------------------------- Gürültü Canavarı
+/** faz 3 çift dalgası: ikinci dalganın (karşı duvardan) gecikmesi (sn) */
+export const PAIR_DELAY = 0.35;
+const waveSpeed = (b: BossState) => 250 + b.phase * 15;
+/** çizilecek (doğmuş) dalgalar */
+export const liveWaves = (b: BossState, t: number) => b.waves.filter((w) => w.t0 <= t);
+
 function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBox>) {
   const t = s.t; const h = s.hero;
   // çığlık: 3 nota
@@ -159,18 +165,22 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
     return;
   }
   // dalgalar
-  if (!b.warnWall && t >= b.nextAttack && (b.mode !== 'scream' || b.phase >= 2)) {
+  if (!b.warnWall && t >= b.nextAttack) {
     const kind: Wave['kind'] = b.phase === 1 ? 'low' : rnd(b) < 0.5 ? 'low' : 'high';
     b.warnWall = { side: h.dir, at: t + 0.75, kind, pair: b.phase === 3 };
   }
   if (b.warnWall && t >= b.warnWall.at) {
     const side = b.warnWall.side; const x0 = side > 0 ? ARENA_W - WALL_W - 12 : WALL_W + 12;
     b.waves.push({ x: x0, dir: (side > 0 ? -1 : 1), kind: b.warnWall.kind as Wave['kind'], t0: t });
-    if (b.warnWall.pair) b.waves.push({ x: x0 + side * 330, dir: (side > 0 ? -1 : 1), kind: b.warnWall.kind === 'low' ? 'high' : 'low', t0: t });
-    b.warnWall = null; b.nextAttack = t + (b.phase === 1 ? 2.6 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1);
+    // çift dalga: ikincisi KARŞI duvardan, ters türde ve PAIR_DELAY sn sonra doğar (doğmadan önce ne hareket eder ne vurur).
+    // Kahramanın arkasından gelir ve onu yavaşça (dalga 295 − koşu 260 px/sn) yakalar; öndekini aştıktan sonra duvarda dönünce
+    // karşısına çıkar → iki karşılaşma arası rahat. Eskiden arenanın dışında (x0 + side·330) doğup aynı karede ayıklanıyordu.
+    if (b.warnWall.pair) { const xb = side > 0 ? WALL_W + 12 : ARENA_W - WALL_W - 12; b.waves.push({ x: xb, dir: (side > 0 ? 1 : -1), kind: b.warnWall.kind === 'low' ? 'high' : 'low', t0: t + PAIR_DELAY }); }
+    b.warnWall = null; b.nextAttack = t + (b.phase === 1 ? 2.1 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1);
   }
-  const sp = 250 + b.phase * 15;
+  const sp = waveSpeed(b);
   for (const wv of b.waves) {
+    if (wv.t0 > t) continue; // henüz doğmadı (çift dalganın ikincisi)
     wv.x += wv.dir * sp * C.DT;
     const box = wv.kind === 'low' ? [wv.x - 12, GROUND_Y - 30, wv.x + 12, GROUND_Y] : [wv.x - 12, GROUND_Y - 78, wv.x + 12, GROUND_Y - 26];
     if (hit(hb, box[0]!, box[1]!, box[2]!, box[3]!)) { hurt(w, s, 'dalga', wv.x); wv.t0 = -1; }

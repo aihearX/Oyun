@@ -18,7 +18,7 @@ export const ChunkSchema = z.object({
   tags: z.array(z.string()),
   biomes: z.array(BiomeIdSchema).optional(),
   rest: z.boolean().optional(),
-  needs: z.array(z.enum(['zipla', 'kayma', 'duvar', 'suzul', 'trambolin', 'kanca', 'cakil', 'yuz', 'darbe', 'cevir'])).optional(),
+  needs: z.array(z.enum(['zipla', 'don', 'kayma', 'duvar', 'suzul', 'trambolin', 'kanca', 'cakil', 'yuz', 'darbe', 'cevir'])).optional(),
   setPiece: z.boolean().optional(),
 });
 export type ChunkInput = z.infer<typeof ChunkSchema>;

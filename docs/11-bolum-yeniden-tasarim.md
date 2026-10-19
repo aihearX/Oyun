@@ -13,6 +13,7 @@ Kullanıcı geri bildirimi: "Genel görünüm çok güzel. Ama oyun içleri çok
 | Hareket | Giriş | Açıldığı yer |
 |---|---|---|
 | Zıpla / yüksek zıpla | dokun / basılı tut | Dış Kulak (1) |
+| Geri dön | parmağı koşunun tersine kaydır (yerde, havada, suda) → Odi döner ve o yöne koşar; dünyanın başı duvardır | her zaman (öğretici an: 2. bölüm) |
 | Kayma | aşağı kaydır (yerde) | Dış Kulak (3) |
 | Duvar tırmanma + duvardan zıplama | duvara değince kısa tırmanır; dokun → karşı yöne zıplar ve koşu yönü döner | Kanal (6) |
 | Süzülme | havada basılı tut (ses dalgası kanatları) | Kulak Zarı (9) |
@@ -20,8 +21,10 @@ Kullanıcı geri bildirimi: "Genel görünüm çok güzel. Ama oyun içleri çok
 | Kancada sallanma | kancanın yakınında basılı tut → sallan, bırak → fırla | Kemikçikler (13) |
 | Yere çakılma | havada aşağı kaydır (çatlak zemini kırar, anahtarı tetikler) | Kemikçikler (15) |
 | Yüzme | sıvı bölgelerinde basılı tut → yüksel (mevcut yüzme hissi, nefes) | Koklea (21) |
-| Ses darbesi (atılma) | ileri/sağa kaydır: kısa atılma; gürültü duvarını kırar, düşmanı dağıtır, yankı yollarını görünür kılar | Sinir (31) |
+| Ses darbesi (atılma) | koşu yönüne kaydır: kısa atılma; gürültü duvarını kırar, düşmanı dağıtır, yankı yollarını görünür kılar (açılmadan önce koşu yönüne kaydırma yok sayılır) | Sinir (31) |
 | Yerçekimi çevirme | çevirici bölgelerde dokun | Beyin Sapı (35) |
+
+Yatay kaydırma sağlamdır: en az 42 tasarım px, en az 0,28 px/ms ve yatay ağırlıklı olmalı; gevşek dokunuş ya da basılı tutarken kayan parmak döndürmez. Oyun içi göstergenin duraklat düğmesine dokunmak oynanış girdisi üretmez.
 
 İlk açılışta her yetenek için 3-4 sn'lik, oynanarak öğrenilen bir "öğretici an" (ekranda büyük el işareti + yavaşlatılmış zaman, başarıyla devam).
 
@@ -44,6 +47,20 @@ Düşmanlar `enemy` props.kind: `devriye` (yürür, kenarda döner), `ucan` (sin
 - Toplanabilirler: **notalar** (her bölümde 100'e kadar), **3 altın koklea** (gizli yerlerde; eski tek "secret" yerine), Şanslı Nota.
 - Yıldız: 1★ bitir; 2★ notaların %60'ı; 3★ %90 nota **ya da** bölüm hedefi (mevcut hedef türleri korunur, `scoreRun` bu kurala göre güncellenir).
 - İçerik: biyom başına el yapımı "odalar" (chunk) + her biyomda 1-2 elle tasarlanmış "set piece" (ör. kulak zarı titreşim koridoru, koklea spiral iniş, sinirde ışık treni kaçışı). Üretici (level-gen) yetenek açıklığına ve ritim eğrisine göre dizer; her bölüm farklı hissettirir.
+
+### Tempo ve yay kuralları (v3, üretici `level-gen/pacing.ts` + `generate.ts`)
+- **Ölü yol yok**: iki girdi arasındaki sessiz yol ~820 px'i (≈3,2 sn) aşacaksa araya bir **mikro oda** (`chunks/mikro.ts`) girer:
+  tam basılı nota yayı, kıl yayı, alçak perde, zar sıçrayışı… Ölçü: planlayıcı bot 40 bölümde (salt 0-3) en çok 4 sn girdisiz kalır
+  (`play/levels-*.test.ts`). Bölüm çukursuz başlıyorsa en başa giriş çukuru konur (boşta oyuncu her bölümde düşer).
+- **Yay**: giriş (öğretir) → gelişim (birleştirir) → final + **doruk gösterisi** (her bölüm bir gösteriyle biter).
+- **Risk yolu**: her bölüm-içi bölümde isteğe bağlı, daha çok notalı daha zor bir yol (`risk` etiketli oda ya da mikro oda).
+- **Zar biyomu**: her bölümde en az 7 zar; zar zincirlerinde her blok bir öncekinden yüksek. "Mükemmel" (değme anının ±0,05 sn'si)
+  ×1,12, vuruşta nabız atan zar vuruşa denk gelince ×1,1 — yalnız tepedeki ödül notaları/koklealar için.
+- **Tırmanış**: kanal 7, 8, 17'de 6-10 duvar zıplamalık bacalar; sol duvarın tepesinde koklea rafı.
+- **Nota yayları gerçek yörüngede**: `jumpArc / flightArc / trampArc / glideArc / hookArc / launchArc` (helpers) motorla aynı fizikle
+  hesaplanır; nota sınırı aşılırsa diziler bölünmeden bütün olarak çıkarılır. Bölüm-içi bölüm sonunda "Bu bölümde x/y nota".
+- **Altın koklea**: ana yolda değil (koklealardan kaçınan bot hiçbirini almaz — `play/feel.test.ts`); yaklaşınca hafif çan ve yönünü
+  fısıldayan kıvılcımlar.
 
 ## 6. Görsel yön ("Kulak Gecesi" ile uyumlu, oynanış okunaklı)
 - Biyom başına 4-5 katmanlı, elle boyanmış görünümlü arka plan (gökyüzü/derinlik ışığı, uzak siluetler, orta katman, yakın katman, ön plan örtücüleri) — harita ekibinin `paint.ts` yaklaşımı (Canvas 2D ile bir kez çizim, gradyan, suluboya dokusu) ve kamp ekibinin ışık dili.

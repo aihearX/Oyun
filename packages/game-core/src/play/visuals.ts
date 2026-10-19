@@ -11,7 +11,8 @@ import { luckyNoteTexture } from '../art';
  *  Uygulama: görsel ekibin `render/**` modülü (biyom ressamı, zemin, öğe/düşman, Odi, efekt, HUD).
  *  LevelScene başka çizim çağırmaz; görünüm değişecekse yalnızca bu dosya (ya da render/**) değişir.
  *
- *  paintBiome(scene, biome, worldW, worldH, quality?): BiomeBackdrop   — her kare backdrop.update(cam)
+ *  paintBiome(scene, biome, worldW, worldH, quality?, variant?): BiomeBackdrop — her kare backdrop.update(cam); variant: bölümün
+ *        biyom içindeki sırası → günün saati / ruh hali paleti + gök motifi (aynı biyomdaki bölümler farklı görünür)
  *  makeTerrain(scene, rects: TerrainRect[], biome): TerrainLayer       — durağan katı zeminler (toptan); cull(L, R) ekran dışını gizler
  *  drawEntity(scene, e: Entity, biome): EntityView | null              — diğer her varlık; motor her kare view.update(v: EntityVisual),
  *        toplanınca view.collect(), kırılınca/ölünce view.shatter()
@@ -29,8 +30,8 @@ import { luckyNoteTexture } from '../art';
 
 // ---------------------------------------------------------------- arka plan
 export interface BiomeBackdrop { update(cam: Phaser.Cameras.Scene2D.Camera): void; destroy(): void; setForegroundAlpha(a: number): void; setQuality(q: 'high' | 'low'): void }
-export function paintBiome(scene: Phaser.Scene, biome: BiomeDef, worldW: number, worldH: number, quality: 'high' | 'low' = 'high'): BiomeBackdrop {
-  const bd = RD.paintBiome(scene, biome.id, worldW, worldH, { quality });
+export function paintBiome(scene: Phaser.Scene, biome: BiomeDef, worldW: number, worldH: number, quality: 'high' | 'low' = 'high', variant?: number): BiomeBackdrop {
+  const bd = RD.paintBiome(scene, biome.id, worldW, worldH, { quality, variant });
   return { update: (cam) => bd.update(cam.scrollX, cam.scrollY), destroy: () => bd.destroy(), setForegroundAlpha: (a) => bd.setForegroundAlpha(a), setQuality: (q) => bd.setQuality(q) };
 }
 
@@ -49,7 +50,7 @@ export function makeTerrain(scene: Phaser.Scene, rects: TerrainRect[], biome: Bi
 
 // ---------------------------------------------------------------- varlıklar
 export interface EntityVisual { x: number; y: number; visible: boolean; alpha: number; warn: number; on: boolean; phase: number; t: number; color: number; face: 1 | -1 }
-export interface EntityView { obj: Phaser.GameObjects.GameObject; update(v: EntityVisual): void; collect(): void; shatter(): void; destroy(): void }
+export interface EntityView { obj: Phaser.GameObjects.GameObject; update(v: EntityVisual): void; collect(): void; shatter(): void; destroy(): void; /** anlık tepki (zar: sıçrayışta esneme) */ poke(): void }
 
 const MOVERS = new Set(['moving', 'lift', 'beat', 'hazard', 'enemy', 'coin', 'note', 'collect']);
 
@@ -64,6 +65,7 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
     destroy: () => { if (!v.dead) v.destroy(); },
     collect: () => { if (!v.dead) v.collect(); },
     shatter: () => { if (!v.dead) v.shatter(); },
+    poke: () => { if (!v.dead) v.pulse(0); },
     update: (st) => {
       if (v.dead) return;
       // yalnızca yeri değişenler taşınır (notaların süzülme tween'i render'da)
@@ -78,6 +80,8 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
         case 'hazard': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
         case 'coin': case 'note': case 'collect': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } break;
         case 'fork': if (st.on !== lastOn) { v.setScale(st.on ? 1.25 : 1); lastOn = st.on; } break;
+        // vuruşta nabız atan zar: her vuruş başında esner (oyuncu vuruşu görerek okur)
+        case 'trampoline': if (e.props?.beat) { if (st.phase < lastAlpha) v.pulse(0); lastAlpha = st.phase; } break;
         case 'text': {
           // dünya tabelası ekran kenarında kesilmesin: görünürken ekran içine yaslanır, uzaklaştıkça söner; öğretici an açıkken geri çekilir
           const cam = s.cameras.main; const L = RD.viewTopLeft(cam).x; const W = cam.width / cam.zoom;
@@ -111,6 +115,8 @@ export function createProjectileLayer(s: Phaser.Scene, biome: BiomeDef): Project
 export interface HeroVisual {
   x: number; y: number; vx: number; vy: number; dir: 1 | -1; g: 1 | -1; t: number; grounded: boolean; sliding: boolean; gliding: boolean; dashing: boolean; pounding: boolean;
   hook: { x: number; y: number } | null; wall: boolean; water: boolean; invuln: boolean; hurt: boolean; win: boolean; shield: number; breath: number; breathMax: number; echo: boolean;
+  /** basılı tutulan yüksek zıplamanın şarjı 0..1 (0: basılı değil / yükselmiyor) */
+  charge?: number;
 }
 /** yarış katmanı ve araçlar kahramanın x/y'sini okur */
 export interface HeroHandle { readonly x: number; readonly y: number; readonly sprite: Phaser.GameObjects.Container }
@@ -131,6 +137,7 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
       if (p !== pose || p === 'jump' || p === 'fall' || p === 'swing' || p === 'swim') { hv.setPose(p, h.vx, h.vy); pose = p; }
       hv.setAlpha(h.invuln ? (Math.floor(h.t * 12) % 2 ? 0.4 : 1) : 1);
       if ((h.shield > 0 ? 1 : 0) !== shield) { shield = h.shield > 0 ? 1 : 0; hv.setShield(shield === 1); }
+      hv.setCharge(h.charge ?? 0);
       const cy = h.y - 24 * h.g;
       rope.clear(); if (h.hook) { rope.lineStyle(2.5, 0xfff6e5, 0.9); rope.beginPath(); rope.moveTo(h.hook.x, h.hook.y + 8); rope.lineTo(h.x, cy); rope.strokePath(); }
       breathBar.setVisible(h.water && h.breath < h.breathMax - 0.05).setPosition(h.x, cy - 40).setSize(40 * Math.max(0, h.breath / h.breathMax), 5).setFillStyle(h.breath < 2 ? 0xff5c5c : 0x2ee6d6);
@@ -159,6 +166,8 @@ export interface LevelHudView {
   toast(text: string, ms: number): void;
   setCheckpoints(pcts: number[]): void;
   onPause(cb: () => void): void;
+  /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
+  pauseHit(x: number, y: number): boolean; pressPause(): void; pauseCenter(): { x: number; y: number };
 }
 export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHudView {
   const hud = new RD.LevelHud(s, top, heroColor);
@@ -178,6 +187,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHud
     toast: (t, ms) => hud.toast(t, ms),
     setCheckpoints: (p) => hud.setCheckpoints(p),
     onPause: (cb) => hud.onPause(cb),
+    pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),
   };
 }
 

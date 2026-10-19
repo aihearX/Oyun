@@ -10,12 +10,14 @@ export interface AbilityDef {
   /** öğretici an: ekrandaki kısa yönerge */
   how: string;
   /** büyük el işaretinin hareketi */
-  gesture: 'dokun' | 'basili' | 'asagi' | 'ileri';
+  gesture: 'dokun' | 'basili' | 'asagi' | 'ileri' | 'geri';
   level: number;
 }
 
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
   zipla: { id: 'zipla', name: 'Zıpla', how: 'Dokun: zıpla · Basılı tut: daha yükseğe', gesture: 'dokun', level: 1 },
+  // yön değiştirme 1. bölümden beri çalışır; öğretici an, geri dönmenin ilk gerektiği yerde (2. bölüm) açılır
+  don: { id: 'don', name: 'Geri Dön', how: 'Parmağını koşunun tersine kaydır: Odi döner ve o yöne koşar', gesture: 'geri', level: 2 },
   kayma: { id: 'kayma', name: 'Kayma', how: 'Aşağı kaydır: engelin altından kay', gesture: 'asagi', level: 3 },
   duvar: { id: 'duvar', name: 'Duvar Zıplaması', how: 'Duvara değince dokun: karşıya zıpla', gesture: 'dokun', level: 6 },
   suzul: { id: 'suzul', name: 'Süzülme', how: 'Havada basılı tut: ses kanatlarıyla süzül', gesture: 'basili', level: 9 },
@@ -23,11 +25,11 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
   kanca: { id: 'kanca', name: 'Kanca', how: 'Kancanın yanında basılı tut: sallan · Bırak: fırla', gesture: 'basili', level: 13 },
   cakil: { id: 'cakil', name: 'Yere Çakılma', how: 'Havada aşağı kaydır: çatlak zemini kır, anahtara bas', gesture: 'asagi', level: 15 },
   yuz: { id: 'yuz', name: 'Yüzme', how: 'Sıvıda basılı tut: yüksel · Bırak: dal', gesture: 'basili', level: 21 },
-  darbe: { id: 'darbe', name: 'Ses Darbesi', how: 'İleri kaydır: atıl · Gürültü duvarını kır', gesture: 'ileri', level: 31 },
+  darbe: { id: 'darbe', name: 'Ses Darbesi', how: 'Koşu yönüne kaydır: atıl · Gürültü duvarını kır', gesture: 'ileri', level: 31 },
   cevir: { id: 'cevir', name: 'Yerçekimi Çevirme', how: 'Mor bölgede dokun: yerçekimini çevir', gesture: 'dokun', level: 35 },
 };
 
-export const ABILITY_ORDER: AbilityId[] = ['zipla', 'kayma', 'duvar', 'suzul', 'trambolin', 'kanca', 'cakil', 'yuz', 'darbe', 'cevir'];
+export const ABILITY_ORDER: AbilityId[] = ['zipla', 'don', 'kayma', 'duvar', 'suzul', 'trambolin', 'kanca', 'cakil', 'yuz', 'darbe', 'cevir'];
 
 /** bölüm numarasına göre açık yetenekler (yolculuk sırayla oynandığından bölüm numarası ilerlemeyi belirler) */
 export function abilitiesAt(level: number): AbilityId[] { return ABILITY_ORDER.filter((a) => ABILITIES[a].level <= level); }
@@ -46,7 +48,7 @@ export function entityNeeds(e: Entity): AbilityId[] {
     case 'water': case 'bubble': case 'current': return ['yuz'];
     case 'barrier': case 'echo': return ['darbe'];
     case 'gravzone': return ['cevir'];
-    case 'switch': return e.props?.by === 'darbe' ? ['darbe'] : ['cakil'];
+    case 'switch': return e.props?.by === 'darbe' ? ['darbe'] : e.props?.by === 'temas' ? ['don'] : ['cakil'];
     case 'tutor': return [String(e.props?.ability ?? 'zipla') as AbilityId];
     case 'enemy': return e.props?.kind === 'kalkanli' ? ['cakil'] : [];
     default: return [];

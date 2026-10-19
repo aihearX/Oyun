@@ -44,6 +44,8 @@ export interface HeroVisual {
   /** ters yerçekimi: baş aşağı */
   setGravityFlip(flip: boolean): void;
   setShield(on: boolean): void;
+  /** basılı tutarak yüksek zıplama: 0 (yok) … 1 (tam yükseklik) — şarj parıltısı ve kıvılcım izi */
+  setCharge(k: number): void;
   destroy(): void;
 }
 

@@ -12,8 +12,9 @@ import { bossInit, bossSolid, bossStep, cloneBoss, type BossState } from './boss
  * Girdi tek elle: dokun/basılı tut (down/pressed/released), aşağı kaydır (swipeDown), ileri kaydır (dash).
  */
 
-export interface SimInput { down: boolean; pressed: boolean; released: boolean; swipeDown: boolean; dash: boolean }
-export const NO_INPUT: SimInput = Object.freeze({ down: false, pressed: false, released: false, swipeDown: false, dash: false });
+/** turn: koşunun tersine yatay kaydırma → geri dön (1. bölümden beri; havada da, duvarda/kancada değil) */
+export interface SimInput { down: boolean; pressed: boolean; released: boolean; swipeDown: boolean; dash: boolean; turn?: boolean }
+export const NO_INPUT: SimInput = Object.freeze({ down: false, pressed: false, released: false, swipeDown: false, dash: false, turn: false });
 
 export interface HeroS {
   x: number; y: number; vx: number; vy: number; dir: 1 | -1; g: 1 | -1;
@@ -26,6 +27,7 @@ export interface HeroS {
   color: number; echoUntil: number; invuln: number; airJumps: number;
   tramp: number; trampId: number; launched: boolean; launchId: number; launchLock: number;
   glideT: number; odo: number; knock: number; poundLandT: number;
+  /** geri dönüş bekleme süresi (titreşen çift kaydırma tek dönüş sayılsın) */ turnCd: number;
 }
 
 export interface SimEvent { k: string; x: number; y: number; id?: number; s?: string; n?: number }
@@ -57,7 +59,7 @@ export function newHero(x: number, y: number): HeroS {
     wallId: -1, wallClimb: 0, wallLockId: -1, wallLock: 0, stall: 0, blockedT: 0,
     hookId: -1, hookAng: 0, hookW: 0, hookL: 0, hookLockId: -1, hookLock: 0,
     water: -1, breath: C.BREATH, grav: false, color: -1, echoUntil: -1, invuln: 0, airJumps: 0,
-    tramp: 0, trampId: -1, launched: false, launchId: -1, launchLock: 0, glideT: 0, odo: 0, knock: 0, poundLandT: -1,
+    tramp: 0, trampId: -1, launched: false, launchId: -1, launchLock: 0, glideT: 0, odo: 0, knock: 0, poundLandT: -1, turnCd: 0,
   };
 }
 
@@ -235,9 +237,9 @@ const overlap = (a: { l: number; r: number; t: number; b: number }, b: { l: numb
 function effectiveInput(w: World, s: SimState, raw: SimInput): SimInput {
   if (!w.mods.yanki) return raw;
   s.delayQ.push({ at: s.t + 0.14, inp: { ...raw } });
-  const out: SimInput = { down: s.lastDown, pressed: false, released: false, swipeDown: false, dash: false };
+  const out: SimInput = { down: s.lastDown, pressed: false, released: false, swipeDown: false, dash: false, turn: false };
   while (s.delayQ.length && s.delayQ[0]!.at <= s.t + 1e-9) {
-    const q = s.delayQ.shift()!.inp; out.down = q.down; out.pressed ||= q.pressed; out.released ||= q.released; out.swipeDown ||= q.swipeDown; out.dash ||= q.dash;
+    const q = s.delayQ.shift()!.inp; out.down = q.down; out.pressed ||= q.pressed; out.released ||= q.released; out.swipeDown ||= q.swipeDown; out.dash ||= q.dash; out.turn ||= !!q.turn;
   }
   s.lastDown = out.down;
   return out;
@@ -362,7 +364,7 @@ export function step(w: World, s: SimState, raw: SimInput): void {
   // zamanlayıcılar
   h.coyote = Math.max(0, h.coyote - dt); h.buffer = Math.max(0, h.buffer - dt); h.invuln = Math.max(0, h.invuln - dt);
   h.dashCd = Math.max(0, h.dashCd - dt); h.wallLock = Math.max(0, h.wallLock - dt); h.hookLock = Math.max(0, h.hookLock - dt); h.launchLock = Math.max(0, h.launchLock - dt);
-  h.knock = Math.max(0, h.knock - dt);
+  h.knock = Math.max(0, h.knock - dt); h.turnCd = Math.max(0, h.turnCd - dt);
   if (inp.pressed) h.buffer = C.JUMP_BUFFER;
   if (inp.released && h.jumpRise && h.vy * h.g < 0) h.cut = true;
   h.held = inp.down;
@@ -417,7 +419,7 @@ function modFlip(w: World, s: SimState) {
   const h = s.hero;
   const ceilAhead = (dist: number) => { const x0 = h.x, x1 = h.x + h.dir * dist; const lo = Math.min(x0, x1), hi = Math.max(x0, x1); return w.ceilings.some((c) => c.l <= lo && c.r >= hi); };
   if (!s.modInverted) {
-    if (s.t >= s.modNext && h.grounded && h.g > 0 && ceilAhead(420)) { s.modInverted = true; setG(h, -1); h.vy = -60; s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: -1, s: 'mod' }); }
+    if (s.t >= s.modNext && h.grounded && h.g > 0 && ceilAhead(420)) { s.modInverted = true; setG(h, -1); h.vy = -60; s.modNext = s.t + C.MOD_INV_T; ev(s, 'flip', h.x, h.y, { n: -1, s: 'mod' }); }
     else if (s.t >= s.modNext) s.modNext = s.t + 0.5;
   } else if (s.t >= s.modNext || !ceilAhead(280)) {
     s.modInverted = false; if (h.g < 0) { setG(h, 1); h.vy = 60; } s.modNext = s.t + C.MOD_FLIP_EVERY; ev(s, 'flip', h.x, h.y, { n: 1, s: 'mod' });
@@ -430,7 +432,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
   // trambolin penceresi: zara değdikten sonra kısa süre dokunuş beklenir (dokunmazsan sönük sıçrama)
   if (h.tramp > 0) {
     h.tramp -= dt; const e = w.ents[h.trampId]!;
-    if (h.buffer > 0) { h.buffer = 0; bounce(s, -Number(e.p.power ?? 1) * C.TRAMP_STRONG, e.id, 'tramp-strong'); }
+    if (h.buffer > 0) { h.buffer = 0; trampStrong(w, s, e, h.tramp >= C.TRAMP_WINDOW - C.TRAMP_PERFECT); }
     else if (h.tramp <= 0) bounce(s, -C.TRAMP_WEAK, e.id, 'tramp-weak');
     else return;
   }
@@ -449,6 +451,11 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
       else { h.vy += C.G_FALL * g * dt; if (h.vy * g > C.WALL_SLIDE_MAX) h.vy = C.WALL_SLIDE_MAX * g; }
       h.vx = h.dir * 30; // duvara yaslı kal
     }
+  }
+  // ---- geri dön (koşunun tersine kaydırma): yerde ve havada; duvarda, atılırken, çakılırken ve fırlatılmışken değil
+  if (inp.turn && h.wallId < 0 && h.dash <= 0 && !h.pound && !h.launched && h.turnCd <= 0 && h.tramp <= 0) {
+    h.dir = (h.dir === 1 ? -1 : 1); h.turnCd = 0.2; h.blockedT = 0; h.stall = 0; if (h.knock <= 0) h.vx = h.dir * run;
+    ev(s, 'uturn', h.x, h.y);
   }
   // ---- girdiler (yerde/havada)
   const hasDash = has(w, 'darbe');
@@ -534,17 +541,24 @@ function land(w: World, s: SimState, id: number, vyBefore: number, inp: SimInput
     poundImpact(w, s);
   } else if (Math.abs(vyBefore) > 300) ev(s, 'land', h.x, h.y, { n: Math.abs(vyBefore) });
   if (e.type === 'trampoline') {
-    const strong = Number(e.p.power ?? 1) * C.TRAMP_STRONG;
-    if (h.buffer > 0 || inp.pressed) { h.buffer = 0; bounce(s, -strong, id, 'tramp-strong'); }
+    if (h.buffer > 0 || inp.pressed) { const perfect = inp.pressed || h.buffer >= C.JUMP_BUFFER - C.TRAMP_PERFECT; h.buffer = 0; trampStrong(w, s, e, perfect); }
     else { h.tramp = C.TRAMP_WINDOW; h.trampId = id; }
     return;
   }
   if (e.type === 'crumble' && !s.crumble.has(id)) { s.crumble.set(id, s.t); ev(s, 'crumble', h.x, h.y, { id }); }
 }
 
-function bounce(s: SimState, v: number, id: number, kind: string) {
+/** zarın vuruş evresinde mi (props.beat): vuruş anının çevresi */
+export function trampOnBeat(w: World, s: SimState, t: number): boolean { const bt = (t + s.beatOff) / w.beatDur; const f = bt - Math.floor(bt); return f < 0.2 || f > 0.85; }
+/** güçlü zar sıçrayışı: "Mükemmel" (değme anına çok yakın dokunuş) ve vuruşa denk gelme dürüst bir yükseklik ödülü verir */
+function trampStrong(w: World, s: SimState, e: WEnt, perfect: boolean) {
+  const beatHit = !!e.p.beat && trampOnBeat(w, s, s.t);
+  const k = Number(e.p.power ?? 1) * (perfect ? C.TRAMP_PERFECT_MULT : 1) * (beatHit ? C.TRAMP_BEAT_MULT : 1);
+  bounce(s, -k * C.TRAMP_STRONG, e.id, 'tramp-strong', perfect ? (beatHit ? 'perfect-beat' : 'perfect') : beatHit ? 'beat' : undefined);
+}
+function bounce(s: SimState, v: number, id: number, kind: string, tag?: string) {
   const h = s.hero; h.grounded = false; h.groundId = -1; h.vy = v * h.g; h.jumpRise = false; h.cut = false; h.tramp = 0; h.slide = 0; h.pound = false; h.dash = 0;
-  ev(s, kind, h.x, h.y, { id });
+  ev(s, kind, h.x, h.y, tag ? { id, s: tag } : { id });
 }
 
 function poundImpact(w: World, s: SimState) {
@@ -590,13 +604,15 @@ function swimStep(w: World, s: SimState, inp: SimInput, ids: number[], waterId: 
   const target = h.held ? -C.SWIM_UP : C.SWIM_SINK;
   h.vy += (target - h.vy) * Math.min(1, dt * 6); h.vy += cvy * dt * 4;
   if (inp.pressed) ev(s, 'swim', h.x, h.y);
+  if (inp.turn && h.turnCd <= 0) { h.dir = (h.dir === 1 ? -1 : 1); h.turnCd = 0.2; h.blockedT = 0; ev(s, 'uturn', h.x, h.y); }
   // yüzeyden çık: basılıyken baş yüzeye ulaştıysa sıçra
   if (h.held && h.y - C.HERO_H * 0.7 < wz.t && h.vy < 0) { h.vy = -C.SWIM_EXIT_V; h.water = -1; h.jumpRise = true; h.cut = false; ev(s, 'jump', h.x, h.y, { s: 'su' }); }
   const m = moveHero(w, s, ids, h.vx * dt, h.vy * dt);
   h.odo += Math.abs(h.vx * dt);
   if (m.landed >= 0) { h.vy = 0; h.groundId = m.landed; } else h.groundId = -1;
   h.grounded = m.landed >= 0;
-  if (m.blocked >= 0 && Math.sign(h.vx) === h.dir) { h.blockedT += dt; if (h.blockedT > 0.6) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; ev(s, 'turn', h.x, h.y); } } else h.blockedT = 0;
+  // sıvıda duvara dayanırken basılı tutan (yükselen) oyuncu dönmez, duvar boyunca yüzeye çıkar
+  if (m.blocked >= 0 && Math.sign(h.vx) === h.dir && !h.held) { h.blockedT += dt; if (h.blockedT > 0.6) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; ev(s, 'turn', h.x, h.y); } } else h.blockedT = 0;
   if (m.bumped) h.vy = 0;
   s.lastGroundOdo = h.odo;
 }
@@ -633,7 +649,8 @@ function interact(w: World, s: SimState, ids: number[], _inp: SimInput) {
     switch (e.cls) {
       case 'pickup': {
         if (s.collected.has(id) && e.type !== 'fork') break;
-        const r = (e.type === 'secret' ? 22 : e.type === 'collect' ? 26 : 16) + (e.type === 'coin' ? magnet : 0);
+        // nota alma yarıçapı: kafanın hemen üstündeki (zemin −60) notalar koşarken alınır — görünen ile alınan aynı
+        const r = (e.type === 'secret' ? 22 : e.type === 'collect' ? 26 : 24) + (e.type === 'coin' ? magnet : 0);
         if (e.x < HB.l - r || e.x > HB.r + r || e.y < HB.t - r || e.y > HB.b + r) break;
         pickup(w, s, e);
         break;
@@ -718,7 +735,7 @@ function trigger(w: World, s: SimState, e: WEnt) {
       h.vy = vy; h.grounded = false; h.groundId = -1; h.jumpRise = false; h.pound = false; h.slide = 0; h.launchId = e.id; h.launchLock = 0.4;
       ev(s, 'launch', e.x, e.y, { id: e.id }); break;
     }
-    case 'switch': if (e.p.by === 'darbe' && h.dash > 0) triggerSwitch(s, e); break;
+    case 'switch': if ((e.p.by === 'darbe' && h.dash > 0) || (e.p.by === 'temas' && h.grounded && Math.abs(h.y - e.y) < 4)) triggerSwitch(s, e); break;
     case 'spring': if (h.vy * h.g >= -1 && h.g > 0 && h.hookId < 0) { h.y = Math.min(h.y, e.b); bounce(s, -C.SPRING_V * Number(e.p.power ?? 1), e.id, 'spring'); } break;
     case 'tutor': if (!s.collected.has(e.id)) { s.collected.add(e.id); ev(s, 'tutor', e.x, e.y, { id: e.id, s: String(e.p.ability ?? 'zipla') }); } break;
     case 'escortee': if (!s.escort && !s.collected.has(e.id)) { s.collected.add(e.id); s.escort = { x: e.x, y: e.y, alive: true }; ev(s, 'escort', e.x, e.y); } break;

@@ -1,6 +1,7 @@
 import type { AbilityId, ChunkSpec, Entity, LevelSpec, ModifierId, PlayerSkills } from '@odi/shared';
 import { mulberry32, hashString, pick, GROUND_Y } from '@odi/shared';
 import { ALL_CHUNKS, BOSSES, MODIFIERS, abilitiesAt, chunkNeeds, journeyById, newAbilitiesAt, objective, type LevelPlan } from '@odi/content';
+import { quietProfile, startsWithPit } from './pacing';
 
 export interface PlayerProfile {
   /** son 5 bölümdeki ortalama yıldız (0-3); dinamik zorluk */
@@ -28,7 +29,8 @@ export function difficultyFor(number: number, profile: PlayerProfile = DEFAULT_P
 
 function pickModifiers(plan: LevelPlan, rng: () => number): ModifierId[] {
   if (plan.number < 15 || plan.mechanic === 'boss') return [];
-  const avail = (Object.keys(MODIFIERS) as ModifierId[]).filter((m) => MODIFIERS[m].minLevel <= plan.number);
+  // ters yerçekimi değiştiricisi, yerçekimi çevirmenin kendisi açılınca (35+) karışıklık yaratır ve otomatik çevirmelerle yolu ölü bırakır
+  const avail = (Object.keys(MODIFIERS) as ModifierId[]).filter((m) => MODIFIERS[m].minLevel <= plan.number && !(m === 'ters-yercekimi' && abilitiesAt(plan.number).includes('cevir')));
   if (!avail.length) return [];
   const count = plan.number >= 30 ? (rng() < 0.5 ? 2 : 1) : rng() < 0.6 ? 1 : 0;
   const out: ModifierId[] = [];
@@ -37,6 +39,8 @@ function pickModifiers(plan: LevelPlan, rng: () => number): ModifierId[] {
 }
 
 const isTutorial = (c: ChunkSpec) => c.tags.includes('ogretici');
+const isMicro = (c: ChunkSpec) => c.tags.includes('mikro');
+const isRisk = (c: ChunkSpec) => c.tags.includes('risk');
 const isCheckpoint = (c: ChunkSpec) => !!c.rest && c.entities.some((e) => e.type === 'checkpoint');
 const hasSecret = (c: ChunkSpec) => c.entities.some((e) => e.type === 'secret');
 const fits = (c: ChunkSpec, abil: Set<AbilityId>) => chunkNeeds(c).every((a) => abil.has(a));
@@ -75,7 +79,9 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // ---- havuz: biyoma uygun, açık yeteneklerle oynanabilir parçalar
   const biomeOk = (c: ChunkSpec) => !c.biomes || c.biomes.includes(plan.biome);
   const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil));
-  const normal = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c));
+  const normal = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c));
+  const opener = pool.find((c) => c.tags.includes('giris'));
+  const micros = pool.filter((c) => isMicro(c) && !c.tags.includes('giris'));
   if (!normal.length) throw new Error(`parça yok: ${plan.biome}`);
   const focus = new Set(plan.focus ?? []);
   // bu biyomda açılan / en yeni yetenek: o yeteneği kullanan parçalar öne çıkar
@@ -99,6 +105,8 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
       const needs = chunkNeeds(c);
       if (needs.includes(latest)) w *= 2.2;
       if (c.tags.some((t) => focus.has(t))) w *= 3;
+      if (plan.biome === 'zar' && c.tags.includes('zar')) w *= 2.5; // kulak zarı: zar sıçrayışı biyomun kalbi
+      if (isRisk(c) && !chunks.slice(sectionStarts[sectionStarts.length - 1] ?? 0).some(isRisk)) w *= 1.8; // bölüm-içi bölümde risk yolu yoksa öne çıkar
       if (last && c.tags.length && last.tags[0] === c.tags[0]) w *= 0.5; // aynı tür art arda gelmesin
       if (prevIds.has(c.id)) w *= 0.1; // önceki iki bölümde vardı
       return { v: c, w };
@@ -134,8 +142,8 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const biomeLevels = journey.levels.filter((l) => l.biome === plan.biome && l.mechanic !== 'boss').map((l) => l.number);
   const idxInBiome = biomeLevels.indexOf(plan.number);
   const sets = pool.filter((c) => c.setPiece && c.biomes?.includes(plan.biome));
-  const wantSet = sets.length && (idxInBiome % 2 === 1 || idxInBiome === biomeLevels.length - 1 || plan.setPiece);
-  if (wantSet) chunks.push(sets[(Math.floor(idxInBiome / 2) + (plan.number % 2)) % sets.length]!);
+  // her bölüm bir doruk gösterisiyle biter (giriş öğretir → gelişim birleştirir → final doruk); biyomun gösterileri dönüşümlü
+  if (sets.length) chunks.push(sets[(idxInBiome + seedSalt) % sets.length]!);
 
   // ---- altın koklealar: her bölüm-içi bölümde tam bir tane; notalar en çok 100
   const sectionOf = (i: number) => (i >= sectionStarts[2]! ? 2 : i >= sectionStarts[1]! ? 1 : 0);
@@ -154,15 +162,41 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     });
     return { ...c, entities: ents };
   });
-  // nota sınırı: fazla jetonları eşit aralıkla seyrelt
+  // ---- risk yolu: her bölüm-içi bölümde en az bir isteğe bağlı zor (daha çok notalı) yol
+  const riskMicros = micros.filter(isRisk);
+  if (riskMicros.length) {
+    for (let k = 2; k >= 0; k--) {
+      const a = sectionStarts[k]!, b = k < 2 ? sectionStarts[k + 1]! : finalChunks.length;
+      if (finalChunks.slice(a, b).some(isRisk)) continue;
+      const at = Math.min(k === 2 && finalChunks[b - 1]?.setPiece ? b - 1 : b, a + 2); // doruk gösterisi en sonda kalsın
+      const m = weighted(rng, riskMicros.map((c) => ({ v: c, w: (chunkNeeds(c).includes(latest) ? 3 : 1) * (plan.biome === 'zar' && c.tags.includes('zar') ? 3 : 1) })))!;
+      finalChunks.splice(at, 0, { ...m, entities: m.entities.slice() });
+      for (let j = k + 1; j < 3; j++) sectionStarts[j]! += 1;
+    }
+  }
+  // ---- tırmanış odağı (kanal 7, 8, 17): bölümde uzun tırmanış odası yoksa gelişim bölümüne bir tane eklenir
+  if (focus.has('tirmanis') && !finalChunks.some((c) => c.tags.includes('tirmanis'))) {
+    const climb = pool.filter((c) => c.tags.includes('tirmanis') && !c.setPiece);
+    if (climb.length) { const c = climb[(plan.number + seedSalt) % climb.length]!; const at = sectionStarts[1]! + 1; finalChunks.splice(at, 0, { ...c, entities: c.entities.slice() }); sectionStarts[2]! += 1; }
+  }
+  // ---- kulak zarı: zar biyomun kalbi — bölümde en az 7 zar yoksa bölüm-içi bölüm sınırlarına zar mikro odası eklenir
+  if (plan.biome === 'zar') {
+    const tramps = () => finalChunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'trampoline').length, 0);
+    const zm = micros.filter((c) => c.tags.includes('zar') && !isRisk(c));
+    for (let k = 0; tramps() < 7 && zm.length && k < 6; k++) {
+      const sec = 1 + (k % 2); const at = sectionStarts[sec]!; const m = zm[(plan.number + k + seedSalt) % zm.length]!;
+      finalChunks.splice(at, 0, { ...m, entities: m.entities.slice() }); for (let j = sec; j < 3; j++) sectionStarts[j]! += 1;
+    }
+  }
+  // ---- tempo: iki girdi arasındaki sessiz yol PACE_LIMIT'i aşmasın — gerekirse araya mikro oda (pacing.ts)
+  const paced = paceChunks(finalChunks, sectionStarts, micros, { latest, biome: plan.biome, rng });
+  finalChunks.length = 0; finalChunks.push(...paced.chunks); sectionStarts.splice(0, 3, ...paced.sectionStarts);
+  // boşta oyuncu ölmeli: bölüm bir çukurla başlamıyorsa en başa kısa giriş çukuru (yoksa gidip-gelme odalarında sonsuza dek koşar)
+  if (opener && !startsWithPit(finalChunks[0]!)) { finalChunks.unshift({ ...opener, entities: opener.entities.slice() }); sectionStarts[1]! += 1; sectionStarts[2]! += 1; }
+  // nota sınırı: fazlası, en uzun nota dizilerinin uçlarından kırpılır (yaylar bölünmez, yalnız kısalır)
   const countNotes = () => finalChunks.reduce((a, c) => a + c.entities.reduce((b, e) => b + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0), 0);
   let notes = countNotes();
-  if (notes > MAX_NOTES) {
-    const coinsN = finalChunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'coin').length, 0);
-    const drop = notes - MAX_NOTES; const every = coinsN / drop; let k = 0, next = every / 2;
-    for (const c of finalChunks) c.entities = c.entities.filter((e) => { if (e.type !== 'coin') return true; k++; if (k >= next && notes > MAX_NOTES) { next += every; notes--; return false; } return true; });
-    notes = countNotes();
-  }
+  if (notes > MAX_NOTES) { thinNotes(finalChunks, notes - MAX_NOTES); notes = countNotes(); }
   let coinBudget = notes;
   // ---- hedefe özel: melodi notaları (yol üstündeki jetonlardan), eskort başlangıcı
   if (plan.objective === 'melody') {
@@ -193,6 +227,78 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     chunks: finalChunks, lengthPx, parTimeSec, coinsTotal: coinBudget, intro: plan.intro, tutorial: plan.tutorial || newAbilities.length > 0,
     abilities, newAbilities, sectionStarts: sectionChunkStarts, cochleasTotal: keepSecret.filter(Boolean).length,
   };
+}
+
+/** dizi: aynı odada art arda gelen ve birbirine yakın (≤ 70 px) notalar */
+function noteGroups(c: ChunkSpec): number[][] {
+  const out: number[][] = []; let cur: number[] = [];
+  c.entities.forEach((e, i) => {
+    const prev = cur.length ? c.entities[cur[cur.length - 1]!]! : null;
+    if (e.type === 'coin' && (!prev || Math.hypot(e.x - prev.x, e.y - prev.y) <= 70)) cur.push(i);
+    else { if (cur.length) out.push(cur); cur = e.type === 'coin' ? [i] : []; }
+  });
+  if (cur.length) out.push(cur);
+  return out;
+}
+/**
+ * Nota sınırı: fazlası BÜTÜN diziler halinde çıkarılır (yay bölünmez, tek tük nota kalmaz). Önce gösteri/öğretici dışındaki,
+ * en çok notası olan odaların dizileri; eşitlikte sondaki. Deterministik.
+ */
+function thinNotes(chunks: ChunkSpec[], drop: number) {
+  const gone = chunks.map(() => new Set<number>());
+  const left = chunks.map((c) => c.entities.filter((e) => e.type === 'coin').length);
+  const protectedC = (c: ChunkSpec) => !!c.setPiece || c.tags.includes('ogretici');
+  while (drop > 0) {
+    let best: { ci: number; g: number[]; key: number } | null = null;
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const c = chunks[ci]!;
+      for (const g0 of noteGroups(c)) {
+        const g = g0.filter((i) => !gone[ci]!.has(i)); if (!g.length) continue;
+        const key = (protectedC(c) ? 0 : 1000) + left[ci]! * 10 + Math.min(9, g.length) + ci * 0.001;
+        if (!best || key > best.key) best = { ci, g, key };
+      }
+    }
+    if (!best) break;
+    const b = best as { ci: number; g: number[] };
+    for (const i of b.g) gone[b.ci]!.add(i);
+    left[b.ci]! -= b.g.length; drop -= b.g.length;
+  }
+  chunks.forEach((c, ci) => { if (gone[ci]!.size) c.entities = c.entities.filter((_, i) => !gone[ci]!.has(i)); });
+}
+
+/**
+ * Tempo kuralı: kahraman START_PAD'den başlar; her odanın girdi isteyen noktaları (pacing.actionXs) arasında ve odalar
+ * arası geçişte sessiz yol PACE_LIMIT px'i (≈ 3,2 sn koşu) aşacaksa araya bir mikro oda konur. Mikro oda, bölüm-içi
+ * bölümün kontrol noktası odasından ÖNCE eklenir (bölümler kontrol noktasıyla başlamaya devam eder).
+ * Seçim: açık yeteneklere uygun; en yeni yeteneği kullanan ve biyoma yakışan (zarda zar) öne çıkar; art arda aynısı gelmez.
+ */
+export const PACE_LIMIT = 820;
+const START_QUIET = 120; // START_PAD (220) − başlangıç x'i (100)
+const END_QUIET = 110;   // END_PAD (260) − kapı payı (150)
+export function paceChunks(chunks: ChunkSpec[], sectionStarts: number[], micros: ChunkSpec[], o: { latest: AbilityId; biome: string; rng: () => number }): { chunks: ChunkSpec[]; sectionStarts: number[]; inserted: number } {
+  if (!micros.length) return { chunks, sectionStarts, inserted: 0 };
+  const out: ChunkSpec[] = []; const map: number[] = []; let inserted = 0; let lastMicro = '';
+  const pickMicro = (): ChunkSpec => {
+    const m = weighted(o.rng, micros.filter((c) => !isRisk(c)).map((c) => {
+      let w = 1;
+      if (chunkNeeds(c).includes(o.latest)) w *= 3;
+      if (o.biome === 'zar' && c.tags.includes('zar')) w *= 5;
+      if (c.id === lastMicro) w *= 0.05;
+      return { v: c, w };
+    }))!;
+    lastMicro = m.id; inserted++;
+    return { ...m, entities: m.entities.slice() };
+  };
+  let carry = START_QUIET;
+  chunks.forEach((c, i) => {
+    const p = quietProfile(c);
+    const need = p.actions.length ? p.entry : c.length + 160;
+    if (carry + need > PACE_LIMIT) { const m = pickMicro(); out.push(m); carry = quietProfile(m).exit; }
+    map[i] = out.length; out.push(c);
+    carry = p.actions.length ? p.exit : carry + c.length;
+  });
+  if (carry + END_QUIET > PACE_LIMIT) out.push(pickMicro());
+  return { chunks: out, sectionStarts: sectionStarts.map((k, i) => (i === 0 ? 0 : map[k] ?? k)), inserted };
 }
 
 export { GROUND_Y };
