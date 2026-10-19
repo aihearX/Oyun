@@ -15,6 +15,7 @@ export function startLevel(parent: HTMLElement | string, opts: LevelOptions): Le
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 1400 }, debug: false } },
     input: { activePointers: 2 }, render: { antialias: true, pixelArt: false, roundPixels: false },
     fps: { target: 60, min: opts.bot ? 10 : 30 },
+    disablePreFX: true, disablePostFX: true, // kullanılmayan FX boru hatlarının gizli çizim hedefleri (bellek)
     scene: [LevelScene],
     callbacks: { preBoot: (g) => { g.registry.set('opts', opts); g.registry.set('dpr', dpr); } },
   });

@@ -47,6 +47,7 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
     scale: { mode: Phaser.Scale.NONE, zoom: 1 / dpr },
     input: { activePointers: 3, touch: { capture: true } }, render: { antialias: true, pixelArt: false, roundPixels: false, powerPreference: 'high-performance' },
     audio: { noAudio: true }, fps: { target: 60, min: 20, limit: ACTIVE_FPS },
+    disablePreFX: true, disablePostFX: true, // kullanılmayan FX boru hatlarının gizli çizim hedefleri (bellek)
     scene: [scene],
     callbacks: { preBoot: (g) => g.registry.set('dpr', dpr) },
   });

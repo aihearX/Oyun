@@ -11,9 +11,10 @@ export { ZONE_PLACE, zoneName } from './paint';
  * Kapatınca oyun, dokular ve dinleyiciler tamamen yok edilir.
  */
 export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
-  // hafif mod: otomasyon tarayıcısı (test) ya da azaltılmış hareket (opts.light ile açıkça seçilebilir); DPI 2 ile sınırlı
+  // hafif mod: otomasyon tarayıcısı (test) ya da azaltılmış hareket (opts.light ile açıkça seçilebilir)
   const light = opts.light ?? (!!opts.reducedMotion || (typeof navigator !== 'undefined' && navigator.webdriver === true));
-  const dpr = Math.max(1, Math.min(light ? 2 : 3, window.devicePixelRatio || 1));
+  // DPI en çok 2: 3 kat çözünürlükte harita dokuları iPhone WebView'inin bellek sınırını aşıp sayfayı çökertiyordu (fark gözle seçilmiyor)
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   const size = () => ({ w: Math.max(1, Math.round(parent.clientWidth * dpr)), h: Math.max(1, Math.round(parent.clientHeight * dpr)) });
   const s0 = size();
   const game = new Phaser.Game({
@@ -21,6 +22,8 @@ export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
     scale: { mode: Phaser.Scale.NONE, zoom: 1 / dpr },
     render: { antialias: true, pixelArt: false, roundPixels: false, powerPreference: 'high-performance' },
     input: { activePointers: 1 }, fps: { target: 60, min: 20, limit: 62 }, banner: false, audio: { noAudio: true },
+    // Phaser'ın hazır FX boru hatları kullanılmıyor; açık kalırsa ekran boyutunda ~20 gizli çizim hedefi ayırıp belleği şişiriyor
+    disablePreFX: true, disablePostFX: true,
     scene: [],
     callbacks: { preBoot: (g) => { g.registry.set('mapOpts', opts); g.registry.set('dpr', dpr); g.registry.set('light', light); } },
   });
