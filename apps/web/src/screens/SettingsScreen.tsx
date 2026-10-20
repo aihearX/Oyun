@@ -20,7 +20,7 @@ function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: s
   );
 }
 
-export function SettingsScreen({ onBack, onReplay }: { onBack: () => void; onReplay?: () => void }) {
+export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => void; onReplay?: () => void; onReset?: () => void }) {
   const s = useStore();
   const lastPreview = useRef(0);
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
@@ -39,7 +39,7 @@ export function SettingsScreen({ onBack, onReplay }: { onBack: () => void; onRep
           <button className={`btn small toggle-btn${s.narratorVoice ? '' : ' ghost'}`} onClick={() => s.setNarratorVoice(!s.narratorVoice)} aria-pressed={s.narratorVoice} aria-label="Anlatıcı sesi">{s.narratorVoice ? 'Açık' : 'Kapalı'}</button></div>
         {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
       </div>
-      <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi?')) s.reset(); }}>Sıfırla</button></div>
+      <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi? Oyun baştan, hikâyeyle başlar.')) { s.reset(); onReset?.(); } }}>Sıfırla</button></div>
       <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>
     </div>
   );
