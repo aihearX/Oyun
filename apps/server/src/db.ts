@@ -2,6 +2,7 @@ import { DatabaseSync, type StatementSync, type SQLInputValue } from 'node:sqlit
 import fs from 'node:fs';
 import path from 'node:path';
 import { EVENTS_SCHEMA } from './events/schema';
+import { COMM_SCHEMA } from './comm/schema';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -107,6 +108,7 @@ export class Db {
     this.raw.exec('PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = OFF; PRAGMA busy_timeout = 2000;');
     this.raw.exec(SCHEMA);
     this.raw.exec(EVENTS_SCHEMA);
+    this.raw.exec(COMM_SCHEMA);
   }
 
   private stmt(sql: string): StatementSync {

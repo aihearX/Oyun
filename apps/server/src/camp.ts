@@ -1,5 +1,6 @@
 import { BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
+import { feedBuilding } from './comm/feed';
 import { addContrib, techBonus } from './teamextra';
 import { requireTeam } from './teams';
 import { dayKey, HOUR_MS } from './time';
@@ -44,6 +45,7 @@ export function completeDue(app: App, pid?: string): void {
     app.db.run('UPDATE buildings SET level = ?, upgrading_to = NULL, started_at = NULL, ends_at = NULL, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', r.upgrading_to!, r.player_id, r.id);
     if (r.id === 'depo' && r.level === 0) app.db.run('UPDATE players SET depot_at = ? WHERE id = ?', r.ends_at!, r.player_id);
     owners.add(r.player_id);
+    feedBuilding(app, r.player_id, r.id, r.upgrading_to!);
     if (r.help_req) { const t = app.playerOrNull(r.player_id)?.team_id; if (t) teams.add(t); }
   }
   for (const o of owners) app.emit(o, 'camp.updated', { camp: campState(app, o) });

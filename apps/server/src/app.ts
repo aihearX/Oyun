@@ -82,6 +82,8 @@ export class App {
   private weekKey: string | null = null;
   readonly weekHooks: ((oldWeek: string, newWeek: string) => void)[] = [];
   readonly disconnectHooks: ((pid: string) => void)[] = [];
+  /** sohbet odasına katılınca (ör. Günün Sorusu kartı tembel açılır) */
+  readonly chatJoinHooks: ((pid: string, room: string) => void)[] = [];
 
   constructor(cfg: ServerConfig) {
     this.cfg = cfg;

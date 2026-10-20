@@ -1,6 +1,7 @@
 import { SOCIAL_LIMITS, WAR_REGIONS, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
 import { fail, parseJson, randomCode, rid, type App, type Handlers, type PlayerRow, type TeamRow } from './app';
 import { systemMessage, teamRoom } from './chat';
+import { feedEvent, onHelpCard } from './comm';
 import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
 import { addContrib, broadcastExtra } from './teamextra';
@@ -139,7 +140,7 @@ export const teamHandlers: Handlers = {
     } else fail('GECERSIZ', 'Takım kimliği ya da davet kodu gerekli.');
     if (!t) return fail('YOK', 'Takım bulunamadı.');
     joinTeam(app, p, t, 'uye');
-    systemMessage(app, teamRoom(t.id), `${p.name} takıma katıldı.`);
+    feedEvent(app, p.id, 'uye', {}); // Takım Akışı kartı: "X takıma katıldı." (+ Hoş geldin)
     broadcastTeam(app, t.id);
     announcePresence(app, p.id, true);
     return { team: teamDetail(app, t.id)! };
@@ -191,7 +192,8 @@ export const teamHandlers: Handlers = {
     app.db.run('INSERT INTO help_requests(id, team_id, from_id, level, max, at) VALUES(?, ?, ?, ?, ?, ?)', id, t.id, p.id, level, SOCIAL_LIMITS.helpMax, app.now());
     const request = toHelp(app, app.db.get<HelpRow>('SELECT * FROM help_requests WHERE id = ?', id)!);
     for (const m of app.teamMemberIds(t.id)) app.emit(m, 'team.help', { request });
-    systemMessage(app, teamRoom(t.id), `${p.name} ${level}. bölüm için yardım istiyor.`, 'help', { requestId: id, level });
+    const card = systemMessage(app, teamRoom(t.id), `${p.name} ${level}. bölüm için yardım istiyor.`, 'help', { requestId: id, level, pid: p.id, pname: p.name, pc: p.color, ph: p.hat });
+    onHelpCard(app, id, card.id);
     return { request };
   },
   'team.help.give': (app, s, { requestId }) => {

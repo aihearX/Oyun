@@ -44,7 +44,8 @@ export interface MyProfile extends PublicProfile {
   cards: string[];
 }
 
-export type ChatKind = 'text' | 'emoji' | 'system' | 'help' | 'race' | 'war';
+/** feed: Takım Akışı kartı · hazir: hazır söz (Hızlı Sohbet) · soru: Günün Sorusu kartı (bkz. İLETİŞİM bölümü) */
+export type ChatKind = 'text' | 'emoji' | 'system' | 'help' | 'race' | 'war' | 'feed' | 'hazir' | 'soru';
 export interface ChatMessage {
   id: string;
   /** 'genel' | `takim:${teamId}` | `dm:${idA}:${idB}` (idA < idB) */
@@ -56,6 +57,14 @@ export interface ChatMessage {
   kind: ChatKind;
   at: number;
   meta?: Record<string, string | number | boolean>;
+  /** tepki kimliği (CHAT_REACTIONS) → tepki veren oyuncular */
+  reactions?: Record<string, string[]>;
+  /** bu mesaj bir kartın/mesajın konusuna (thread) yazılmış yanıtsa üst mesajın kimliği */
+  replyTo?: string;
+  /** konudaki yanıt sayısı (yalnızca üst mesajlarda) */
+  replies?: number;
+  /** konunun son yanıtları (en çok 2; geçmişte gelir) */
+  thread?: ChatMessage[];
 }
 
 export interface TeamSummary {
@@ -72,6 +81,8 @@ export interface TeamSummary {
   code: string;
   /** en az bölüm şartı */
   minLevel: number;
+  /** Çalışma Grubu modu (Günün Sorusu öğrenci düzeyinden) */
+  study?: boolean;
 }
 export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number }
 export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number }
@@ -125,7 +136,7 @@ export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
 export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: string; reason: string; at: number }
 
 // ---------- İlerleme bildirimi (her bölüm sonunda)
-export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string }
+export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number }
 export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet }
 
 
@@ -220,7 +231,8 @@ export interface OpMap {
   'friends.remove': { req: { id: string }; res: Record<string, never> };
   'chat.join': { req: { room: string }; res: { history: ChatMessage[] } };
   'chat.leave': { req: { room: string }; res: Record<string, never> };
-  'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' }; res: { msg: ChatMessage } };
+  /** kind 'hazir': text = hazır söz kimliği (QUICK_PHRASES); replyTo: bir kartın/mesajın konusuna yanıt */
+  'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' | 'hazir'; replyTo?: string }; res: { msg: ChatMessage } };
   'chat.report': { req: { msgId: string }; res: Record<string, never> };
   'chat.mute': { req: { id: string; on: boolean }; res: { muted: string[] } };
   'team.list': { req: { query?: string }; res: { teams: TeamSummary[] } };
@@ -546,7 +558,7 @@ export interface ProfileCard {
   giftedToday: boolean;
 }
 
-export type DmKind = 'text' | 'emoji' | 'sticker' | 'davet';
+export type DmKind = 'text' | 'emoji' | 'sticker' | 'davet' | 'hazir';
 export interface DmMessage {
   id: string;
   /** konuşma içi sıra (artan) */
@@ -606,3 +618,160 @@ export interface FireMap {
   'dm.typing': { to: string };
 }
 export type FireOp = keyof FireMap;
+
+// =====================================================================
+// İLETİŞİM (v3, docs/13-iletisim.md). Yalnızca EKLEME: OpMap/EvtMap aşağıda arayüz birleştirme ile genişler.
+// Dürüstlük: akış kartları yalnızca gerçek olaylardan (sunucunun gördüğü) üretilir; sahte oyuncu, sahte mesaj, sahte sayaç yok.
+// Ödüller sabit, önceden görünür ve bir kez verilir. Yeni oyuncu 10. bölüme kadar (ya da kendisi açana kadar) yalnız hazır söz yazar.
+// =====================================================================
+
+/** Takım Akışı ve sohbet tepkileri (arayüzde resimli ikon; emoji değil) */
+export const CHAT_REACTIONS = ['alkis', 'kalp', 'ates', 'yildiz', 'guc'] as const;
+export type ChatReaction = (typeof CHAT_REACTIONS)[number];
+export const REACTION_LABEL: Record<ChatReaction, string> = { alkis: 'Alkış', kalp: 'Kalp', ates: 'Ateş', yildiz: 'Yıldız', guc: 'Güç' };
+
+/** Hızlı Sohbet: hazır sözler (kimlikle gönderilir, metni sunucu yazar) */
+export type PhraseCtx = 'genel' | 'tebrik' | 'yaris' | 'ipucu' | 'tesekkur';
+export interface QuickPhrase { id: string; text: string; ctx: PhraseCtx[] }
+export const QUICK_PHRASES: QuickPhrase[] = [
+  { id: 'selam', text: 'Selam!', ctx: ['genel', 'yaris'] },
+  { id: 'nasilsin', text: 'Nasıl gidiyor?', ctx: ['genel'] },
+  { id: 'birlikte', text: 'Birlikte oynayalım mı?', ctx: ['genel'] },
+  { id: 'yardim-lazim', text: 'Yardım lazım mı?', ctx: ['genel'] },
+  { id: 'hedef', text: 'Bu hafta hedefe yetişelim!', ctx: ['genel'] },
+  { id: 'gorusuruz', text: 'Görüşürüz!', ctx: ['genel', 'yaris'] },
+  { id: 'tebrik', text: 'Tebrikler!', ctx: ['tebrik', 'genel'] },
+  { id: 'harika', text: 'Harikaydı!', ctx: ['tebrik', 'yaris'] },
+  { id: 'devam', text: 'Böyle devam!', ctx: ['tebrik'] },
+  { id: 'hosgeldin', text: 'Hoş geldin, aramıza katıldığına sevindik!', ctx: ['tebrik'] },
+  { id: 'iyi-sans', text: 'İyi şanslar!', ctx: ['yaris'] },
+  { id: 'hazirim', text: 'Hazırım!', ctx: ['yaris'] },
+  { id: 'bir-daha', text: 'Bir daha yarışalım mı?', ctx: ['yaris'] },
+  { id: 'iyi-yaris', text: 'İyi yarıştı!', ctx: ['yaris'] },
+  { id: 'az-kaldi', text: 'Az kalmıştı!', ctx: ['yaris'] },
+  { id: 'tesekkur', text: 'Teşekkürler!', ctx: ['tesekkur', 'genel'] },
+  { id: 'rica', text: 'Rica ederim, ne demek!', ctx: ['tesekkur'] },
+  { id: 'ipucu-erken', text: 'İpucu: boşluğa gelmeden hemen önce zıpla.', ctx: ['ipucu'] },
+  { id: 'ipucu-bas', text: 'İpucu: uzun zıplamak için basılı tut.', ctx: ['ipucu'] },
+  { id: 'ipucu-ritim', text: 'İpucu: acele etme, müziğin ritmini dinle.', ctx: ['ipucu'] },
+  { id: 'ipucu-kaydir', text: 'İpucu: alçak engelin altından aşağı kaydır.', ctx: ['ipucu'] },
+  { id: 'ipucu-duvar', text: 'İpucu: duvara değince dokun, karşıya sıçrarsın.', ctx: ['ipucu'] },
+  { id: 'ipucu-kalkan', text: 'İpucu: zor yerde kalkanla başla, ilk darbe sayılmaz.', ctx: ['ipucu'] },
+  { id: 'ipucu-yavas', text: 'İpucu: önce notaları değil, yolu öğren; yıldızlar sonra gelir.', ctx: ['ipucu'] },
+];
+export const phraseById = (id: string) => QUICK_PHRASES.find((p) => p.id === id);
+
+/** sabit kurallar (sunucu ve istemci aynı değeri gösterir) */
+export const COMM_RULES = {
+  /** bu bölüme ulaşana kadar serbest yazı kapalı (hazır söz/emoji açık); oyuncu kendisi açabilir */
+  freeTextLevel: 10,
+  feedMergeMs: 30 * 60_000, feedPerTeamHour: 20, threadMax: 50, threadPreview: 2, mentionsMax: 3,
+  reactMinMs: 250, reactPerMin: 60,
+  challengePerDay: 3, challengeMs: 48 * 3_600_000,
+  helpAskerJeton: 15, helpHelperJeton: 20, helpFailsToAsk: 3,
+  dqRevealHour: 20, dqCorrectJeton: 10,
+  duoInvitesPerDay: 5,
+  duoTiers: [
+    { need: 300, reward: [{ kind: 'jeton' as const, amount: 120, ref: 'ikili' }, { kind: 'kristal' as const, amount: 10, ref: 'ikili' }] },
+    { need: 800, reward: [{ kind: 'jeton' as const, amount: 200, ref: 'ikili' }, { kind: 'kristal' as const, amount: 20, ref: 'ikili' }] },
+  ],
+  /** usta: en yüksek açık bölüm ≥ 11 (10 bölüm geçmiş); çırak: en yüksek ≤ 9 */
+  mentorMinHighest: 11, apprenticeMaxHighest: 9, mentorMaxApprentices: 3, mentorOffersPerDay: 5,
+  mentorMilestones: [5, 10, 15, 20] as const,
+  mentorReward: {
+    apprentice: [{ kind: 'jeton' as const, amount: 40, ref: 'usta-cirak' }],
+    mentor: [{ kind: 'jeton' as const, amount: 30, ref: 'usta-cirak' }, { kind: 'kristal' as const, amount: 5, ref: 'usta-cirak' }],
+  },
+  streakMilestones: [3, 7, 14, 30, 60, 100] as const,
+} as const;
+
+/** Takım Akışı kartı türü (ChatMessage.kind 'feed', meta.type) */
+export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan';
+
+export interface CommSettings {
+  /** serbest yazı açık mı (kendisi açtı ya da 10. bölüme ulaştı) */
+  canFreeText: boolean;
+  /** oyuncu serbest yazıyı kendisi açtı */
+  freeText: boolean;
+  /** başarılarım Takım Akışı'nda görünsün */
+  feedShare: boolean;
+  freeTextLevel: number;
+}
+/** gerçek zamanlı iletişim bildirimi (bahsetme, teşekkür, usta/ikili davet, meydan okuma geçildi…) */
+export interface CommNotice {
+  id: string;
+  kind: 'mention' | 'thanks' | 'mentor' | 'duo' | 'challenge' | 'dq';
+  title: string; text: string;
+  from?: PublicProfile;
+  /** ilgili sohbet odası ve mesaj (yanıt için) */
+  room?: string; msgId?: string;
+  at: number;
+}
+
+// ---------- Günün Sorusu
+export interface DailyQuestion {
+  day: string; msgId: string; text: string; choices: string[];
+  level: 'merakli' | 'odyoloji';
+  revealAt: number; revealed: boolean;
+  /** açıklanınca */ answer: number | null; explain: string | null;
+  answered: number; myChoice: number | null;
+  /** açıklanınca doğru bilenler */
+  correct: { id: string; name: string }[] | null;
+}
+export interface DqBoardRow { id: string; name: string; color: number; correct: number; answered: number }
+export interface DqState { question: DailyQuestion | null; week: DqBoardRow[]; study: boolean; reward: number }
+
+// ---------- İkili Görev
+export interface DuoMember { id: string; name: string; color: number; hat: string; notes: number; online: boolean }
+export interface DuoInvite { id: string; from: PublicProfile; to: PublicProfile; at: number }
+export interface DuoState {
+  week: string; endsAt: number;
+  active: { id: string; members: DuoMember[]; progress: number; tiers: { need: number; reward: EventReward[]; reached: boolean }[] } | null;
+  incoming: DuoInvite[]; outgoing: DuoInvite[];
+  /** davet edilebilecek arkadaşlar (bu hafta görevi olmayan) */
+  candidates: PublicProfile[];
+  tiers: { need: number; reward: EventReward[] }[];
+}
+
+// ---------- Usta–Çırak
+export interface MentorLink { id: string; mentor: PublicProfile; apprentice: PublicProfile; since: number; startHighest: number; next: number | null; reached: number[] }
+export interface MentorOffer { id: string; mentor: PublicProfile; apprentice: PublicProfile; by: string; at: number }
+export interface MentorState {
+  canMentor: boolean; canBeApprentice: boolean;
+  mentor: MentorLink | null; apprentices: MentorLink[];
+  incoming: MentorOffer[]; outgoing: MentorOffer[];
+  /** teklif edilebilecek arkadaş/takım arkadaşları */
+  candidates: PublicProfile[];
+  milestones: number[];
+  rewards: { apprentice: EventReward[]; mentor: EventReward[] };
+}
+
+export interface OpMap {
+  'chat.react': { req: { msgId: string; reaction: ChatReaction | '' }; res: { msg: ChatMessage } };
+  'chat.thread': { req: { msgId: string }; res: { parent: ChatMessage; replies: ChatMessage[] } };
+  'comm.state': { req: Record<string, never>; res: { settings: CommSettings } };
+  'comm.settings': { req: { freeText?: boolean; feedShare?: boolean }; res: { settings: CommSettings } };
+  /** takıma meydan oku: sunucu oyuncunun kayıtlı en iyi skorunu kullanır */
+  'feed.challenge': { req: { level: number }; res: { msg: ChatMessage } };
+  'help.tip': { req: { requestId: string; phrase?: string; text?: string }; res: { msg: ChatMessage } };
+  'help.race': { req: { requestId: string }; res: { room: RaceRoom } };
+  'dq.state': { req: Record<string, never>; res: DqState };
+  'dq.answer': { req: { choice: number }; res: DqState };
+  'team.study': { req: { on: boolean }; res: { study: boolean } };
+  'duo.state': { req: Record<string, never>; res: { duo: DuoState } };
+  'duo.invite': { req: { friendId: string }; res: { duo: DuoState } };
+  'duo.respond': { req: { inviteId: string; accept: boolean }; res: { duo: DuoState } };
+  'mentor.state': { req: Record<string, never>; res: { mentor: MentorState } };
+  /** as: teklif edenin rolü ('usta' → karşı taraf çırak olur) */
+  'mentor.offer': { req: { id: string; as: 'usta' | 'cirak' }; res: { mentor: MentorState } };
+  'mentor.respond': { req: { offerId: string; accept: boolean }; res: { mentor: MentorState } };
+  'mentor.end': { req: { linkId: string }; res: { mentor: MentorState } };
+}
+
+export interface EvtMap {
+  /** mesaj güncellendi (tepki, akış kartı birleşmesi, yardım kartı sayaçları, soru açıklandı) */
+  'chat.updated': { msg: ChatMessage };
+  'comm.notice': { notice: CommNotice };
+  'duo.updated': { duo: DuoState };
+  'mentor.updated': { mentor: MentorState };
+}

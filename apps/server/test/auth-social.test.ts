@@ -142,7 +142,7 @@ describe('sohbet', () => {
     const t = await a.call('team.create', { name: 'Kulaklar', emblem: '👂' });
     expect((await err(c.call('chat.join', { room: teamRoom(t.team.id) }))).code).toBe('YETKI');
     await b.call('team.join', { teamId: t.team.id });
-    const joinMsg = await a.waitFor('chat', (x) => x.msg.room === teamRoom(t.team.id) && x.msg.kind === 'system' && x.msg.text.includes('Bora'));
+    const joinMsg = await a.waitFor('chat', (x) => x.msg.room === teamRoom(t.team.id) && x.msg.kind === 'feed' && x.msg.meta?.type === 'uye' && x.msg.text.includes('Bora'));
     expect(joinMsg.msg.from).toBe('sistem');
     env.clock.advance(1300);
     await b.call('chat.send', { room: teamRoom(t.team.id), text: 'takım!' });

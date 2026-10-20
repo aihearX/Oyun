@@ -1,7 +1,8 @@
-import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, type DmKind, type DmMessage, type DmThread } from '@odi/shared';
+import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmKind, type DmMessage, type DmThread } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { addReport, areFriends, dmBlockReason, hasBlocked } from './friends';
 import { maskProfanity } from './profanity';
+import { metric, requireFreeText } from './comm/settings';
 import { raceMemberIds } from './race';
 
 /**
@@ -142,7 +143,14 @@ export const dmHandlers: Handlers = {
     if (!body) fail('GECERSIZ', 'Boş mesaj gönderilemez.');
     if (kind === 'text') {
       if ([...body].length > FRIEND_LIMITS.dmMax) fail('GECERSIZ', `Mesaj en çok ${FRIEND_LIMITS.dmMax} karakter olabilir.`);
+      requireFreeText(app, p);
       body = maskProfanity(body).text;
+    } else if (kind === 'hazir') {
+      // Hızlı Sohbet: kimlikle gelir, metni sunucu yazar (yeni oyuncu için de her zaman açık)
+      const ph = phraseById(body);
+      if (!ph) fail('GECERSIZ', 'Böyle bir hazır söz yok.');
+      saveMeta = { p: ph.id };
+      body = ph.text;
     } else if (kind === 'emoji') {
       if (body.length > 32 || !EMOJI_ONLY.test(body)) fail('GECERSIZ', 'Emoji mesajı yalnızca emoji içerebilir.');
     } else if (kind === 'sticker') {
@@ -158,6 +166,7 @@ export const dmHandlers: Handlers = {
       if (typeof meta?.title === 'string') saveMeta.title = maskProfanity(cleanText(meta.title).slice(0, 40)).text;
     }
     times.set(s.pid, now);
+    metric(app, kind === 'hazir' ? 'dm.hazir' : `dm.${kind}`);
     const id = rid('d'); const pair = pairOf(s.pid, to);
     app.db.run('INSERT INTO dm(id, pair, from_id, to_id, text, kind, meta, at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, pair, s.pid, to, body, kind, saveMeta ? JSON.stringify(saveMeta) : null, now);
     const row = msgById(app, id)!;

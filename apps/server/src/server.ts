@@ -18,16 +18,17 @@ import { teamHandlers } from './teams';
 import { walletHandlers } from './wallet';
 import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
+import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
 
-const HANDLERS: Handlers = withEventHooks({
+const HANDLERS: Handlers = withCommHooks(withEventHooks({
   ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
-  ...eventHandlers,
-});
+  ...eventHandlers, ...commHandlers,
+}));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
 
@@ -67,6 +68,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   if (!cfg.eventsEpoch) cfg.eventsEpoch = cfg.now();
   const app = new App(cfg);
   app.weekHooks.push((oldWeek) => warRollover(app, oldWeek), (oldWeek) => leagueRollover(app, oldWeek));
+  installComm(app);
   const log = (...a: unknown[]) => { if (cfg.log) console.log(new Date().toISOString(), ...a); };
 
   const httpServer = http.createServer((req, res) => {
@@ -75,6 +77,12 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       const players = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM players')!.n;
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, version: cfg.version, players, online: app.online.size }));
+      return;
+    }
+    if (req.method === 'GET' && url === '/olcum') {
+      // iletişim ölçümü: yalnızca günlük toplam sayaçlar (kişisel veri yok), son 7 gün
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, days: metricsReport(app, 7) }));
       return;
     }
     if (req.method === 'GET' && url === '/') {
@@ -180,6 +188,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       app.run(() => {
         completeDue(app);
         eventsSweep(app);
+        commSweep(app);
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
       });
       sweepRaces(app);

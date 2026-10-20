@@ -14,7 +14,9 @@ export class Clock {
 const ALL_EVENTS: Evt[] = ['presence', 'chat', 'friend.updated', 'team.updated', 'team.help', 'war.updated', 'raid.updated', 'race.updated', 'race.pos', 'race.invited',
   'inbox.new', 'kicked', 'wallet.updated', 'camp.updated', 'camp.helped', 'team.extra.updated', 'team.gift', 'team.campHelpNeeded',
   // arkadaşlık + özel mesaj
-  'friend.request', 'friend.accepted', 'friend.removed', 'friend.gift', 'dm.message', 'dm.read', 'dm.typing', 'dm.reaction', 'dm.unread'];
+  'friend.request', 'friend.accepted', 'friend.removed', 'friend.gift', 'dm.message', 'dm.read', 'dm.typing', 'dm.reaction', 'dm.unread',
+  // iletişim
+  'chat.updated', 'comm.notice', 'duo.updated', 'mentor.updated', 'events.notice'];
 
 export interface TC extends NetClient {
   token: string;
@@ -57,7 +59,8 @@ export interface Env {
   srv: OdiServer;
   clock: Clock;
   clients: TC[];
-  connect(name?: string, token?: string): Promise<TC>;
+  /** safe: yeni oyuncunun güvenli varsayılanı kalsın (serbest yazı kapalı); varsayılan olarak testler serbest yazıyı açar */
+  connect(name?: string, token?: string, opts?: { safe?: boolean }): Promise<TC>;
   close(): Promise<void>;
 }
 
@@ -67,7 +70,7 @@ export async function setup(opts: ServerOptions = {}): Promise<Env> {
   const clients: TC[] = [];
   return {
     srv, clock, clients,
-    async connect(name, token = '') {
+    async connect(name, token = '', opts = {}) {
       const ref = { token };
       let queue: ProgressSubmit[] = [];
       const c = wrap(createClient({
@@ -77,6 +80,7 @@ export async function setup(opts: ServerOptions = {}): Promise<Env> {
       clients.push(c);
       c.connect();
       await waitStatus(c, 'bağlı');
+      if (!opts.safe) await c.call('comm.settings', { freeText: true });
       return c;
     },
     async close() {

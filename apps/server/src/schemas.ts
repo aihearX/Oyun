@@ -4,6 +4,7 @@ import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
 import { FRIEND_SCHEMAS } from './dm-schemas';
+import { COMM_SCHEMAS } from './comm/schemas';
 
 const id = z.string().min(1).max(40).regex(/^[A-Za-z0-9]+$/);
 const empty = z.object({});
@@ -22,14 +23,14 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'progress.submit': z.object({
     runId: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/), level, completed: z.boolean(), stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE),
     timeSec: z.number().min(MIN_TIME_SEC).max(3600), coins: z.number().int().min(0).max(MAX_COINS),
-    biome: z.enum(BIOMES), mechanic: z.enum(MECHANICS), raceId: id.optional(),
+    biome: z.enum(BIOMES), mechanic: z.enum(MECHANICS), raceId: id.optional(), cochleas: z.number().int().min(0).max(3).optional(),
   }),
   'friends.list': empty,
   'friends.add': z.object({ code: z.string().min(4).max(12) }),
   'friends.remove': z.object({ id }),
   'chat.join': z.object({ room }),
   'chat.leave': z.object({ room }),
-  'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji']).optional() }),
+  'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji', 'hazir']).optional(), replyTo: id.optional() }),
   'chat.report': z.object({ msgId: id }),
   'chat.mute': z.object({ id, on: z.boolean() }),
   'team.list': z.object({ query: z.string().max(40).optional() }),
@@ -75,6 +76,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'skills.list': empty,
   'progress.sync': z.object({ best: z.array(z.object({ level, stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE) })).max(MAX_LEVEL) }),
   ...EVENT_SCHEMAS,
+  ...COMM_SCHEMAS,
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

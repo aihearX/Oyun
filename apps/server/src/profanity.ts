@@ -8,10 +8,13 @@
 const SUBSTRING = [
   'orospu', 'orosbu', 'siktir', 'sikerim', 'sikeyim', 'sikik', 'sikis', 'yarak', 'amcik', 'aminak', 'aminako', 'gotveren', 'gotlek',
   'kahpe', 'pezevenk', 'gavat', 'kaltak', 'surtuk', 'yavsak', 'serefsiz', 'dalyarak', 'tasak', 'ibne', 'pust', 'kancik', 'godos',
+  'sikko', 'siktr', 'gerizekali', 'dangalak', 'amina', 'yarrak', 'orrospu', 'pic kurusu', 'gotos', 'kevase', 'fahise',
   'fuck', 'motherfuck', 'shit', 'bitch', 'cunt', 'pusy', 'asshole', 'bastard', 'whore', 'slut', 'retard', 'wanker', 'twat',
 ];
 /** yalnızca tam kelime olarak yakalananlar (kısa; başka kelimelerin içinde masum geçebilir) */
-const WHOLE = ['sik', 'amk', 'amq', 'aq', 'oc', 'pic', 'got', 'mk', 'sg', 'amina', 'dick', 'cock', 'fag', 'ass', 'nigga', 'nigger'];
+const WHOLE = ['sik', 'amk', 'amq', 'aq', 'oc', 'pic', 'got', 'mk', 'sg', 'amina', 'dick', 'cock', 'fag', 'ass', 'nigga', 'nigger',
+  // sohbette sık kısaltmalar
+  'skm', 'sktr', 'skrm', 'ananskm'];
 
 const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b', '9': 'g', '@': 'a', '$': 's', '!': 'i', '€': 'e' };
 const TR: Record<string, string> = { 'ı': 'i', 'i̇': 'i', 'ş': 's', 'ğ': 'g', 'ü': 'u', 'ö': 'o', 'ç': 'c', 'â': 'a', 'î': 'i', 'û': 'u' };
