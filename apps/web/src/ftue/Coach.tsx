@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
 import { Art, rich, stripEmoji, type ArtName } from '../ui/art';
@@ -61,6 +61,16 @@ function resolve(t: Target | undefined): DOMRect | null {
   } catch { return null; }
 }
 const targetEl = (t: Target | undefined): Element | null => { if (typeof t !== 'string') return null; try { return document.querySelector(t); } catch { return null; } };
+/** CSS güvenli alan değişkeninin piksel değeri (--sat/--sab; max()/env() çözülmüş) */
+export function insetPx(v: '--sat' | '--sab'): number {
+  try {
+    const d = document.createElement('div'); d.style.cssText = `position:absolute;visibility:hidden;padding-top:var(${v})`;
+    document.body.appendChild(d); const n = parseFloat(getComputedStyle(d).paddingTop) || 0; d.remove(); return n;
+  } catch { return 0; }
+}
+/** kısa ekran: anlatıcı kompakt çizilir (portre panelin içinde, yazı biraz küçük) */
+export const shortScreen = () => typeof innerHeight === 'number' && innerHeight < 720;
+
 /** hedef ekranın görünür bandında değilse (üst çubuk / alt sekme çubuğu arkasında ya da dışarıda) kaydırılabilir atasını kaydır */
 function bringIntoView(t: Target | undefined) {
   let el: Element | null = targetEl(t);
@@ -74,8 +84,9 @@ function bringIntoView(t: Target | undefined) {
   let sc: Element | null = el.parentElement;
   while (sc && !(sc.scrollHeight > sc.clientHeight + 4 && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) sc = sc.parentElement;
   if (!sc) return;
-  // hedefin üstünü ekranın ~%42'sine getir: anlatıcı paneli üst yarıya yerleşir (uzun hedefin alt ucu kırpılır, başı görünür)
-  const want = H * 0.42;
+  // hedefin üstünü üstteki anlatıcı panelinin hemen altına getir (panel üste yerleşir; uzun hedefin alt ucu kırpılır, başı görünür)
+  const ph = (document.querySelector('.coach-panel') as HTMLElement | null)?.offsetHeight ?? 190;
+  const want = Math.min(H * 0.5, insetPx('--sat') + 12 + ph + 18);
   sc.scrollBy({ top: r.top - want, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
 
@@ -93,12 +104,15 @@ export function useTypewriter(text: string, key: unknown) {
 }
 
 /** anlatıcı konuşma paneli: koyu cam, portre, daktilo yazı, İleri, Atla, ilerleme noktaları */
-export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra }: {
+export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra, compact, tuck, panelRef }: {
   text: string; typed: string; typing: boolean; place?: 'top' | 'bottom' | 'center'; index: number; total: number;
   onNext?: () => void; onSkip?: () => void; waiting?: boolean; hint?: string; mood?: 'happy' | 'wow' | 'wink'; extra?: ReactNode;
+  /** kısa ekran: küçük portre panelin içinde */ compact?: boolean;
+  /** portre panelden taşmasın (hemen üstte vurgulanan hedef var) */ tuck?: boolean;
+  panelRef?: Ref<HTMLDivElement>;
 }) {
   return (
-    <div className={`coach-panel ${place}`} role="dialog" aria-label={`${NARRATOR_NAME} anlatıyor`} data-testid="anlatici" data-say={text} onClick={(e) => e.stopPropagation()}>
+    <div ref={panelRef} className={`coach-panel ${place}${compact ? ' compact' : ''}${tuck ? ' tuck' : ''}`} role="dialog" aria-label={`${NARRATOR_NAME} anlatıyor`} data-testid="anlatici" data-say={text} onClick={(e) => e.stopPropagation()}>
       <div className="cp-portrait"><TuyDede size={84} talking={typing} mood={mood} /></div>
       <div className="cp-body">
         <div className="cp-name">{NARRATOR_NAME}</div>
@@ -182,7 +196,15 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const pad = 8;
   const hole = rect ? { x: rect.left - pad, y: rect.top - pad, w: rect.width + pad * 2, h: rect.height + pad * 2 } : null;
   const W = typeof innerWidth === 'number' ? innerWidth : 390, H = typeof innerHeight === 'number' ? innerHeight : 844;
-  const place: 'top' | 'bottom' | 'center' = st.art && !hole ? 'center' : hole && hole.y + hole.h / 2 > H * 0.52 ? 'top' : 'bottom';
+  const [insetSab] = useState(() => insetPx('--sab'));
+  // yerleşim: hedefin üstünde/altında hangi tarafta daha çok boş yer varsa panel oraya
+  const place: 'top' | 'bottom' | 'center' = st.art && !hole ? 'center' : hole && hole.y > H - (hole.y + hole.h) ? 'top' : 'bottom';
+  const compact = shortScreen();
+  // alttaki panelin taşan portresi hedefin üstüne binecekse portre panelin içine alınır
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [ph, setPh] = useState(0);
+  useLayoutEffect(() => { const h = panelRef.current?.offsetHeight ?? 0; if (h && h !== ph) setPh(h); });
+  const tuck = !compact && place === 'bottom' && !!hole && hole.y + hole.h > H - insetSab - 14 - (ph || 190) - 52;
   const onBack = () => { if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
 
   return (
@@ -200,7 +222,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
       {hole && <div className="coach-ring" style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} />}
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
-      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood}
+      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} compact={compact} tuck={tuck} panelRef={panelRef}
         waiting={wait !== 'next' && tw.done} hint={st.hint} onNext={() => { if (!tw.done) tw.finish(); else go(); }} onSkip={() => end(true)} />
     </div>
   );
