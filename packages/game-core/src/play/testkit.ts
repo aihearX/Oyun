@@ -60,6 +60,14 @@ export function playRoom(c: ChunkSpec, maxT = 40): RoomOutcome {
   while (!s.finished && !s.failed && s.t < maxT) { step(w, s, p.next(s)); for (const e of s.events!) if (e.k === 'turn') autoTurns++; s.events!.length = 0; }
   return { finished: s.finished, failed: s.failed, t: s.t, autoTurns, damage: s.damageTaken, level };
 }
+/** odanın gizli koklea adayına hedefe yönelik planlayıcıyla ulaşılabiliyor mu (ana yol oyuncusu almaz; isteyen ulaşabilmeli) */
+export function reachSecret(c: ChunkSpec, maxT = 40): { reached: boolean; t: number } {
+  const sec = c.entities.find((e) => e.type === 'secret'); if (!sec) return { reached: false, t: 0 };
+  const { w, s } = roomSetup(c); s.events = null;
+  const p = new Planner(w, { goal: { x: 220 + 200 + sec.x, y: sec.y } });
+  while (!s.cochleas && !s.failed && s.t < maxT) step(w, s, p.next(s));
+  return { reached: s.cochleas > 0, t: s.t };
+}
 /** tek odayı insan benzeri oyuncu modeliyle oyna (oda zorluk ölçümü; `k` koşu tohumu) */
 export function playRoomHuman(c: ChunkSpec, k: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun & { level: number } {
   const { w, s, level } = roomSetup(c); s.events = null;

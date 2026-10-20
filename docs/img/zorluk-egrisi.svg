@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 440" width="960" height="440" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
 <rect width="960" height="440" fill="#fcfcfb"/>
 <text x="56" y="24" font-size="17" font-weight="600" fill="#0b0b0b">Zorluk eğrisi: insan benzeri oyuncu modeliyle ölçülen bölüm puanı</text>
-<text x="56" y="43" font-size="12" fill="#52514e">puan = 3 × ortalama can kaybı (bitiremeyen 3) + yakın kaçış yoğunluğu (en çok 1) · 24 tohum/bölüm</text>
+<text x="56" y="43" font-size="12" fill="#52514e">puan = 3 × ortalama can kaybı (bitiremeyen 3) + yakın kaçış yoğunluğu (en çok 1) · 48 tohum/bölüm</text>
 <rect x="56.0" y="56" width="110.5" height="310" fill="#f1f0ec"/>
 <text x="111.3" y="400" font-size="10.5" fill="#52514e" text-anchor="middle">Dış Kulak</text>
 <text x="199.7" y="400" font-size="10.5" fill="#52514e" text-anchor="middle">Kanal</text>
@@ -41,51 +41,51 @@
 <text x="818.45" y="382" font-size="11" fill="#8a8984" text-anchor="middle">35</text>
 <text x="928.95" y="382" font-size="11" fill="#8a8984" text-anchor="middle">40</text>
 <text x="940" y="430" font-size="11" fill="#52514e" text-anchor="end">bölüm</text>
-<path d="M67.0,337.1 L89.2,329.8 L111.3,319.5 L133.3,307.1 L155.4,293.7 L177.6,316.9 L199.7,301.4 L221.8,278.2 L243.8,301.4 L265.9,286.4 L288.1,264.7 L310.1,239.4 L332.3,285.9 L354.4,279.2 L376.4,269.4 L398.6,257.5 L420.6,244.6 L442.8,230.6 L464.9,216.2 L486.9,161.9 L509.0,278.2 L531.1,249.8 L553.3,208.4 L575.4,262.7 L597.5,234.3 L619.5,192.9 L641.6,254.9 L663.8,238.4 L685.9,213.6 L708.0,185.2 L730.0,247.2 L752.1,218.8 L774.3,177.4 L796.4,239.4 L818.5,207.9 L840.5,161.9 L862.6,223.9 L884.8,189.3 L906.9,138.7 L929.0,92.2" fill="none" stroke="#8a8984" stroke-width="2" stroke-dasharray="5 4"/>
+<path d="M67.0,337.1 L89.2,329.8 L111.3,319.5 L133.3,307.1 L155.4,293.7 L177.6,316.9 L199.7,291.6 L221.8,254.9 L243.8,309.2 L265.9,290.6 L288.1,263.2 L310.1,231.7 L332.3,293.7 L354.4,285.4 L376.4,273.0 L398.6,259.1 L420.6,243.6 L442.8,226.5 L464.9,208.4 L486.9,146.4 L509.0,285.9 L531.1,248.2 L553.3,192.9 L575.4,270.4 L597.5,235.8 L619.5,185.2 L641.6,262.7 L663.8,240.4 L685.9,207.9 L708.0,169.7 L730.0,254.9 L752.1,217.2 L774.3,161.9 L796.4,247.2 L818.5,209.4 L840.5,154.2 L862.6,216.2 L884.8,184.7 L906.9,138.7 L929.0,92.2" fill="none" stroke="#8a8984" stroke-width="2" stroke-dasharray="5 4"/>
 <path d="M67.0,295.3 L89.2,241.8 L111.3,217.5 L133.3,236.1 L155.4,234.8 L177.6,140.9 L199.7,178.6 L221.8,232.7 L243.8,334.4 L265.9,303.0 L288.1,311.9 L310.1,314.7 L332.3,99.8 L354.4,211.7 L376.4,233.0 L398.6,210.1 L420.6,259.5 L442.8,224.9 L464.9,246.9 L486.9,103.6 L509.0,309.2 L531.1,260.0 L553.3,233.6 L575.4,297.9 L597.5,249.0 L619.5,189.4 L641.6,283.6 L663.8,317.6 L685.9,303.2 L708.0,276.6 L730.0,258.9 L752.1,292.1 L774.3,248.0 L796.4,226.5 L818.5,288.9 L840.5,221.6 L862.6,256.3 L884.8,291.6 L906.9,280.4 L929.0,288.5" fill="none" stroke="#eb6834" stroke-width="2" stroke-opacity="0.85"/>
-<path d="M67.0,331.0 L89.2,320.0 L111.3,327.4 L133.3,298.1 L155.4,263.2 L177.6,294.9 L199.7,223.0 L221.8,253.5 L243.8,310.7 L265.9,326.1 L288.1,279.3 L310.1,272.8 L332.3,302.3 L354.4,257.5 L376.4,282.8 L398.6,251.0 L420.6,310.0 L442.8,233.0 L464.9,219.2 L486.9,138.2 L509.0,313.3 L531.1,315.1 L553.3,170.0 L575.4,268.4 L597.5,308.5 L619.5,160.9 L641.6,242.3 L663.8,276.5 L685.9,287.0 L708.0,220.2 L730.0,270.0 L752.1,240.9 L774.3,137.8 L796.4,301.4 L818.5,273.1 L840.5,144.7 L862.6,271.5 L884.8,305.9 L906.9,162.7 L929.0,120.6" fill="none" stroke="#2a78d6" stroke-width="2.5"/>
-<circle cx="67.0" cy="331.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 1: puan 0.7, bitirme 100%, can kaybı 0.04</title></circle>
-<circle cx="89.2" cy="320.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 2: puan 0.9, bitirme 100%, can kaybı 0.13</title></circle>
-<circle cx="111.3" cy="327.4" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 3: puan 0.7, bitirme 100%, can kaybı 0.04</title></circle>
-<circle cx="133.3" cy="298.1" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 4: puan 1.3, bitirme 100%, can kaybı 0.17</title></circle>
-<circle cx="155.4" cy="263.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 5: puan 2.0, bitirme 100%, can kaybı 0.33</title></circle>
-<circle cx="177.6" cy="294.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 6: puan 1.4, bitirme 100%, can kaybı 0.25</title></circle>
-<circle cx="199.7" cy="223.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 7: puan 2.8, bitirme 92%, can kaybı 0.75</title></circle>
-<circle cx="221.8" cy="253.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 8: puan 2.2, bitirme 100%, can kaybı 0.50</title></circle>
-<circle cx="243.8" cy="310.7" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 9: puan 1.1, bitirme 96%, can kaybı 0.25</title></circle>
-<circle cx="265.9" cy="326.1" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 10: puan 0.8, bitirme 100%, can kaybı 0.13</title></circle>
-<circle cx="288.1" cy="279.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 11: puan 1.7, bitirme 100%, can kaybı 0.38</title></circle>
-<circle cx="310.1" cy="272.8" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 12: puan 1.8, bitirme 100%, can kaybı 0.42</title></circle>
-<circle cx="332.3" cy="302.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 13: puan 1.2, bitirme 100%, can kaybı 0.25</title></circle>
-<circle cx="354.4" cy="257.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 14: puan 2.1, bitirme 92%, can kaybı 0.54</title></circle>
-<circle cx="376.4" cy="282.8" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 15: puan 1.6, bitirme 100%, can kaybı 0.38</title></circle>
-<circle cx="398.6" cy="251.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 16: puan 2.2, bitirme 92%, can kaybı 0.54</title></circle>
-<circle cx="420.6" cy="310.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 17: puan 1.1, bitirme 100%, can kaybı 0.25</title></circle>
-<circle cx="442.8" cy="233.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 18: puan 2.6, bitirme 96%, can kaybı 0.63</title></circle>
-<circle cx="464.9" cy="219.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 19: puan 2.8, bitirme 96%, can kaybı 0.75</title></circle>
-<circle cx="486.9" cy="138.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 20: puan 4.4, bitirme 79%, can kaybı 1.38</title></circle>
-<circle cx="509.0" cy="313.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 21: puan 1.0, bitirme 100%, can kaybı 0.21</title></circle>
-<circle cx="531.1" cy="315.1" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 22: puan 1.0, bitirme 96%, can kaybı 0.17</title></circle>
-<circle cx="553.3" cy="170.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 23: puan 3.8, bitirme 88%, can kaybı 1.08</title></circle>
-<circle cx="575.4" cy="268.4" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 24: puan 1.9, bitirme 100%, can kaybı 0.46</title></circle>
-<circle cx="597.5" cy="308.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 25: puan 1.1, bitirme 100%, can kaybı 0.17</title></circle>
-<circle cx="619.5" cy="160.9" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 26: puan 4.0, bitirme 83%, can kaybı 1.13</title></circle>
-<circle cx="641.6" cy="242.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 27: puan 2.4, bitirme 92%, can kaybı 0.67</title></circle>
-<circle cx="663.8" cy="276.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 28: puan 1.7, bitirme 100%, can kaybı 0.38</title></circle>
-<circle cx="685.9" cy="287.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 29: puan 1.5, bitirme 96%, can kaybı 0.38</title></circle>
-<circle cx="708.0" cy="220.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 30: puan 2.8, bitirme 96%, can kaybı 0.75</title></circle>
-<circle cx="730.0" cy="270.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 31: puan 1.9, bitirme 96%, can kaybı 0.42</title></circle>
-<circle cx="752.1" cy="240.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 32: puan 2.4, bitirme 92%, can kaybı 0.63</title></circle>
-<circle cx="774.3" cy="137.8" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 33: puan 4.4, bitirme 71%, can kaybı 1.25</title></circle>
-<circle cx="796.4" cy="301.4" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 34: puan 1.3, bitirme 100%, can kaybı 0.17</title></circle>
-<circle cx="818.5" cy="273.1" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 35: puan 1.8, bitirme 100%, can kaybı 0.38</title></circle>
-<circle cx="840.5" cy="144.7" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 36: puan 4.3, bitirme 75%, can kaybı 1.25</title></circle>
-<circle cx="862.6" cy="271.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 37: puan 1.8, bitirme 96%, can kaybı 0.46</title></circle>
-<circle cx="884.8" cy="305.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 38: puan 1.2, bitirme 100%, can kaybı 0.25</title></circle>
-<circle cx="906.9" cy="162.7" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 39: puan 3.9, bitirme 83%, can kaybı 1.13</title></circle>
-<circle cx="929.0" cy="120.6" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 40: puan 4.8, bitirme 71%, can kaybı 1.58</title></circle>
-<text x="480.95" y="128.1582314129385" font-size="11" font-weight="600" fill="#0b0b0b" text-anchor="end">boss 4.4</text>
-<text x="922.95" y="110.58333333333334" font-size="11" font-weight="600" fill="#0b0b0b" text-anchor="end">boss 4.8</text>
+<path d="M67.0,325.0 L89.2,336.1 L111.3,324.6 L133.3,297.7 L155.4,281.5 L177.6,295.6 L199.7,234.7 L221.8,192.5 L243.8,341.8 L265.9,334.9 L288.1,298.7 L310.1,255.5 L332.3,296.3 L354.4,287.4 L376.4,268.5 L398.6,295.5 L420.6,237.3 L442.8,216.5 L464.9,182.5 L486.9,113.0 L509.0,320.2 L531.1,257.3 L553.3,157.0 L575.4,299.6 L597.5,265.5 L619.5,209.3 L641.6,312.0 L663.8,278.9 L685.9,267.3 L708.0,176.6 L730.0,281.9 L752.1,239.5 L774.3,132.4 L796.4,235.0 L818.5,224.7 L840.5,106.3 L862.6,250.2 L884.8,209.6 L906.9,96.2 L929.0,59.2" fill="none" stroke="#2a78d6" stroke-width="2.5"/>
+<circle cx="67.0" cy="325.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 1: puan 0.8, bitirme 100%, can kaybı 0.08</title></circle>
+<circle cx="89.2" cy="336.1" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 2: puan 0.6, bitirme 100%, can kaybı 0.02</title></circle>
+<circle cx="111.3" cy="324.6" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 3: puan 0.8, bitirme 100%, can kaybı 0.06</title></circle>
+<circle cx="133.3" cy="297.7" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 4: puan 1.3, bitirme 100%, can kaybı 0.17</title></circle>
+<circle cx="155.4" cy="281.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 5: puan 1.6, bitirme 100%, can kaybı 0.27</title></circle>
+<circle cx="177.6" cy="295.6" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 6: puan 1.4, bitirme 100%, can kaybı 0.15</title></circle>
+<circle cx="199.7" cy="234.7" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 7: puan 2.5, bitirme 90%, can kaybı 0.67</title></circle>
+<circle cx="221.8" cy="192.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 8: puan 3.4, bitirme 94%, can kaybı 0.88</title></circle>
+<circle cx="243.8" cy="341.8" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 9: puan 0.5, bitirme 100%, can kaybı 0.06</title></circle>
+<circle cx="265.9" cy="334.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 10: puan 0.6, bitirme 100%, can kaybı 0.10</title></circle>
+<circle cx="288.1" cy="298.7" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 11: puan 1.3, bitirme 100%, can kaybı 0.31</title></circle>
+<circle cx="310.1" cy="255.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 12: puan 2.1, bitirme 100%, can kaybı 0.54</title></circle>
+<circle cx="332.3" cy="296.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 13: puan 1.3, bitirme 98%, can kaybı 0.31</title></circle>
+<circle cx="354.4" cy="287.4" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 14: puan 1.5, bitirme 100%, can kaybı 0.38</title></circle>
+<circle cx="376.4" cy="268.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 15: puan 1.9, bitirme 96%, can kaybı 0.50</title></circle>
+<circle cx="398.6" cy="295.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 16: puan 1.4, bitirme 100%, can kaybı 0.31</title></circle>
+<circle cx="420.6" cy="237.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 17: puan 2.5, bitirme 98%, can kaybı 0.69</title></circle>
+<circle cx="442.8" cy="216.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 18: puan 2.9, bitirme 92%, can kaybı 0.81</title></circle>
+<circle cx="464.9" cy="182.5" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 19: puan 3.6, bitirme 79%, can kaybı 1.04</title></circle>
+<circle cx="486.9" cy="113.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 20: puan 4.9, bitirme 77%, can kaybı 1.60</title></circle>
+<circle cx="509.0" cy="320.2" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 21: puan 0.9, bitirme 100%, can kaybı 0.17</title></circle>
+<circle cx="531.1" cy="257.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 22: puan 2.1, bitirme 94%, can kaybı 0.56</title></circle>
+<circle cx="553.3" cy="157.0" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 23: puan 4.0, bitirme 85%, can kaybı 1.17</title></circle>
+<circle cx="575.4" cy="299.6" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 24: puan 1.3, bitirme 100%, can kaybı 0.31</title></circle>
+<circle cx="597.5" cy="265.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 25: puan 1.9, bitirme 98%, can kaybı 0.50</title></circle>
+<circle cx="619.5" cy="209.3" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 26: puan 3.0, bitirme 90%, can kaybı 0.83</title></circle>
+<circle cx="641.6" cy="312.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 27: puan 1.0, bitirme 100%, can kaybı 0.17</title></circle>
+<circle cx="663.8" cy="278.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 28: puan 1.7, bitirme 100%, can kaybı 0.35</title></circle>
+<circle cx="685.9" cy="267.3" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 29: puan 1.9, bitirme 96%, can kaybı 0.46</title></circle>
+<circle cx="708.0" cy="176.6" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 30: puan 3.7, bitirme 83%, can kaybı 1.04</title></circle>
+<circle cx="730.0" cy="281.9" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 31: puan 1.6, bitirme 96%, can kaybı 0.35</title></circle>
+<circle cx="752.1" cy="239.5" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 32: puan 2.4, bitirme 96%, can kaybı 0.58</title></circle>
+<circle cx="774.3" cy="132.4" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 33: puan 4.5, bitirme 77%, can kaybı 1.25</title></circle>
+<circle cx="796.4" cy="235.0" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 34: puan 2.5, bitirme 96%, can kaybı 0.60</title></circle>
+<circle cx="818.5" cy="224.7" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 35: puan 2.7, bitirme 98%, can kaybı 0.71</title></circle>
+<circle cx="840.5" cy="106.3" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 36: puan 5.0, bitirme 67%, can kaybı 1.48</title></circle>
+<circle cx="862.6" cy="250.2" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 37: puan 2.2, bitirme 96%, can kaybı 0.58</title></circle>
+<circle cx="884.8" cy="209.6" r="3" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 38: puan 3.0, bitirme 92%, can kaybı 0.81</title></circle>
+<circle cx="906.9" cy="96.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 39: puan 5.2, bitirme 73%, can kaybı 1.54</title></circle>
+<circle cx="929.0" cy="59.2" r="5" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>Bölüm 40: puan 5.9, bitirme 60%, can kaybı 1.98</title></circle>
+<text x="480.95" y="103.03421125975473" font-size="11" font-weight="600" fill="#0b0b0b" text-anchor="end">boss 4.9</text>
+<text x="922.95" y="49.22916666666663" font-size="11" font-weight="600" fill="#0b0b0b" text-anchor="end">boss 5.9</text>
 <line x1="470" x2="496" y1="54" y2="54" stroke="#2a78d6" stroke-width="2.5"/><text x="502" y="58" font-size="12" fill="#52514e">sonra (yeni eğri)</text>
 <line x1="630" x2="656" y1="54" y2="54" stroke="#eb6834" stroke-width="2.5"/><text x="662" y="58" font-size="12" fill="#52514e">önce (doğrusal)</text>
 <line x1="790" x2="816" y1="54" y2="54" stroke="#8a8984" stroke-width="2.5" stroke-dasharray="5 4"/><text x="822" y="58" font-size="12" fill="#52514e">hedef</text>

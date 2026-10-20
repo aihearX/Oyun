@@ -4,7 +4,8 @@ import { DEFAULT_SKILLS } from '@odi/content';
 import { setup } from './testkit';
 import { Planner } from './planner';
 import { step } from './sim';
-import { ARENA_W, WALL_W, liveWaves } from './boss';
+import { ARENA_W, RUN_L, RUN_R, WALL_W, liveWaves } from './boss';
+import { BOSS_LOOK_MS, humanPrefs, humanSeed, playerOf } from './human';
 
 /** Gürültü Canavarı faz 3: "Çift dalga!" gerçekten iki dalga olarak arenada görünür ve bot yine yener. */
 describe('boss: Gürültü Canavarı', () => {
@@ -28,5 +29,26 @@ describe('boss: Gürültü Canavarı', () => {
       expect(s.finished, `bitmedi: ${s.failed ?? 'süre'} hp=${s.boss?.hp}`).toBe(true);
       expect(s.boss!.defeated).toBe(true);
     }, 120_000);
+  }
+});
+
+/** Arena kapalıdır: insan modelinin kusurlu oyuncuları (saplanan yumruğun altında kalan dahil) hiçbir zaman duvarların dışına çıkmaz. */
+describe('boss: arena sınırı', () => {
+  for (const n of [20, 40]) {
+    it(`bölüm ${n}: kahraman hep iki duvarın arasında, arenadan düşmez`, () => {
+      const out: string[] = [];
+      for (let k = 0; k < 6; k++) {
+        const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
+        const { w, s } = setup(spec); s.events = [];
+        const p = new Planner(w, humanPrefs(humanSeed(n, k), { ...playerOf(k), lookMs: BOSS_LOOK_MS }));
+        while (!s.finished && !s.failed && s.t < 120) {
+          step(w, s, p.next(s));
+          if (s.hero.x < RUN_L - 0.5 || s.hero.x > RUN_R + 0.5) out.push(`k${k} t=${s.t.toFixed(2)} x=${s.hero.x.toFixed(0)}`);
+          for (const e of s.events!) if (e.k === 'hurt' && e.s === 'fall') out.push(`k${k} t=${s.t.toFixed(2)} düştü`);
+          s.events!.length = 0;
+        }
+      }
+      expect(out.slice(0, 5)).toEqual([]);
+    }, 300_000);
   }
 });

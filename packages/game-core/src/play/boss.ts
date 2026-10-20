@@ -94,6 +94,14 @@ function damageBoss(w: World, s: SimState, n: number, by: string) {
 
 export function bossStep(w: World, s: SimState): void {
   const b = s.boss!; const h = s.hero; const t = s.t;
+  // arena sınırı: saplanan yumruk kahramanın üstüne inerse çarpışma onu duvarın ötesine itebiliyordu — kahraman her zaman
+  // iki duvarın arasında kalır (yumruğun içinde kalırsa en yakın kenarına, arena içinde)
+  for (const f of b.fists) if (f.st === 'planted' && Math.abs(h.x - f.x) < 40 + C.HERO_HW && h.y > GROUND_Y - 64 + 1) {
+    const left = f.x - 40 - C.HERO_HW, right = f.x + 40 + C.HERO_HW;
+    const okL = left >= RUN_L, okR = right <= RUN_R;
+    h.x = okL && (!okR || h.x - left <= right - h.x) ? left : right;
+  }
+  if (h.x < RUN_L) h.x = RUN_L; else if (h.x > RUN_R) h.x = RUN_R;
   if (b.defeated) { if (t - b.defeatAt > 1.6) { s.finished = true; if (s.events) s.events.push({ k: 'gate', x: h.x, y: h.y }); } return; }
   if (b.respawned) { b.respawned = false; b.balls = []; b.waves = []; b.drops = []; }
   const hb = heroBox(s);

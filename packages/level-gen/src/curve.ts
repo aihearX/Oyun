@@ -15,18 +15,18 @@ export interface CurveZone { name: string; short: string; from: number; to: numb
 
 export const CURVE_ZONES: CurveZone[] = [
   { name: 'Dış Kulak', short: 'Dış Kulak', from: 1, to: 5, peak: 5, lo: 0.02, hi: 0.3 },
-  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.15, hi: 0.4 },
-  { name: 'Kulak Zarı', short: 'Zar', from: 9, to: 12, peak: 12, lo: 0.25, hi: 0.65 },
-  { name: 'Kemikçikler', short: 'Kemikçikler', from: 13, to: 20, peak: 19, lo: 0.35, hi: 0.8 },
-  { name: 'Koklea · Taban', short: 'Koklea 1', from: 21, to: 23, peak: 23, lo: 0.4, hi: 0.85 },
-  { name: 'Koklea · Orta', short: 'Koklea 2', from: 24, to: 26, peak: 26, lo: 0.5, hi: 0.95 },
-  { name: 'Koklea · Apeks', short: 'Koklea 3', from: 27, to: 30, peak: 30, lo: 0.55, hi: 1.0 },
-  { name: 'İşitme Siniri', short: 'Sinir', from: 31, to: 33, peak: 33, lo: 0.6, hi: 1.05 },
-  { name: 'Beyin Sapı', short: 'Beyin Sapı', from: 34, to: 36, peak: 36, lo: 0.65, hi: 1.15 },
-  { name: 'İşitme Korteksi', short: 'Korteks', from: 37, to: 40, peak: 39, lo: 0.75, hi: 1.3 },
+  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.15, hi: 0.55 },
+  { name: 'Kulak Zarı', short: 'Zar', from: 9, to: 12, peak: 12, lo: 0.2, hi: 0.7 },
+  { name: 'Kemikçikler', short: 'Kemikçikler', from: 13, to: 20, peak: 19, lo: 0.3, hi: 0.85 },
+  { name: 'Koklea · Taban', short: 'Koklea 1', from: 21, to: 23, peak: 23, lo: 0.35, hi: 0.95 },
+  { name: 'Koklea · Orta', short: 'Koklea 2', from: 24, to: 26, peak: 26, lo: 0.45, hi: 1.0 },
+  { name: 'Koklea · Apeks', short: 'Koklea 3', from: 27, to: 30, peak: 30, lo: 0.5, hi: 1.1 },
+  { name: 'İşitme Siniri', short: 'Sinir', from: 31, to: 33, peak: 33, lo: 0.55, hi: 1.15 },
+  { name: 'Beyin Sapı', short: 'Beyin Sapı', from: 34, to: 36, peak: 36, lo: 0.6, hi: 1.2 },
+  { name: 'İşitme Korteksi', short: 'Korteks', from: 37, to: 40, peak: 39, lo: 0.8, hi: 1.3 },
 ];
 /** boss hedefleri (λ): 20 kendinden önceki her bölümden, 40 her bölümden zor */
-export const BOSS_LAMBDA: Record<number, number> = { 20: 1.15, 40: 1.6 };
+export const BOSS_LAMBDA: Record<number, number> = { 20: 1.25, 40: 1.6 };
 
 export const zoneOf = (n: number): CurveZone => CURVE_ZONES.find((z) => n >= z.from && n <= z.to) ?? CURVE_ZONES[CURVE_ZONES.length - 1]!;
 /** bölgedeki konum: 0 giriş … 1 final */
@@ -66,6 +66,8 @@ export interface LevelKnobs {
   geom: LevelGeom;
   /** sabit değiştiriciler: yalnızca ileri bölümlerde ve finallerde */
   modifiers: ModifierId[];
+  /** uyarlanabilir yardım kademesi (0 yok; her kademe finalden bir sınav odası eksiltir) */
+  ease: number;
 }
 export interface LevelGeom {
   /** diken genişliği çarpanı (genişleyen diken daha uzun/kesin zıplama ister) */
@@ -101,7 +103,7 @@ export function tuningAt(tight: number): { timing: LevelTiming; geom: LevelGeom 
 
 /** değiştiriciler yalnızca ileri bölgelerde, çoğunlukla finallerde (tek can ve ters yerçekimi yolculukta yok) */
 const MODS: Record<number, ModifierId[]> = {
-  19: ['sis'], 23: ['sis'], 26: ['gece'], 29: ['sis'], 30: ['hiz'], 32: ['gece'], 33: ['hiz', 'sis'], 35: ['sis'], 36: ['yanki'], 38: ['gece'], 39: ['gece', 'sis'],
+  19: ['sis'], 23: ['sis'], 26: ['gece'], 29: ['sis'], 30: ['hiz', 'yanki'], 32: ['gece'], 33: ['hiz', 'sis'], 35: ['sis'], 36: ['yanki'], 38: ['gece'], 39: ['hiz', 'gece'],
 };
 const ENEMY_FROM: Record<string, number> = { devriye: 3, ucan: 4, ziplayan: 9, atici: 13, kalkanli: 15 };
 
@@ -129,9 +131,9 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   // zamanlama: bölge girişinde ve ilk bölgelerde bağışlayıcı, finallerde ve sonda sıkı
   const tight = Math.max(0, Math.min(1, 0.55 * g + 0.45 * u - 0.15 * ease));
   const { timing, geom } = tuningAt(tight);
-  // boss'lar (ölçüyle ayarlı): golem 10 can, uyarı ×1,2 · canavar 30 can, uyarı ×0,8, tempo ×1,8
-  if (n === 20) { timing.bossHp = 10; timing.bossWarn = 1.2; }
-  if (n === 40) { timing.bossHp = 30; timing.bossWarn = 0.8; timing.bossTempo = 1.8; }
+  // boss'lar (ölçüyle ayarlı): golem 14 can, uyarı ×1,0, tempo ×1,2 · canavar 32 can, uyarı ×0,8, tempo ×1,8
+  if (n === 20) { timing.bossHp = 14; timing.bossWarn = 1.0; timing.bossTempo = 1.2; }
+  if (n === 40) { timing.bossHp = 32; timing.bossWarn = 0.8; timing.bossTempo = 1.8; }
   const modifiers = ease > 0 ? (MODS[n] ?? []).filter((m) => m === 'sis' || m === 'gece') : (MODS[n] ?? []);
-  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers };
+  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease };
 }

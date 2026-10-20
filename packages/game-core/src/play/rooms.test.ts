@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_CHUNKS } from '@odi/content';
-import { playRoom } from './testkit';
+import { playRoom, reachSecret } from './testkit';
 
 /**
  * Her oda tek başına geçilebilir ve "otomatik geri dönme döngüsü" kurmaz: bot odayı, engele dayanıp kendiliğinden geri dönmeden
@@ -21,4 +21,14 @@ describe('odalar: geçilebilir, kaçınılmaz geri dönme döngüsü yok', () =>
       expect(bad).toEqual([]);
     }, 300_000);
   }
+});
+
+/** Duvar bacalarının tepesindeki koklea rafları ve fırlatıcı üstü raflar: ana yolda değil ama isteyen oyuncu ulaşabilir. */
+describe('odalar: gizli koklea rafları ulaşılabilir', () => {
+  it('duvar odaları, raflı gösteriler ve geri-anahtar odası', () => {
+    const rooms = ALL_CHUNKS.filter((c) => c.entities.some((e) => e.type === 'secret') && (c.tags.includes('duvar') || c.id === 'sn-sp-sinaps-firtinasi' || c.id === 'gn-geri-anahtar'));
+    expect(rooms.length).toBeGreaterThanOrEqual(8);
+    const bad = rooms.map((c) => ({ id: c.id, r: reachSecret(c) })).filter((x) => !x.r.reached).map((x) => x.id);
+    expect(bad).toEqual([]);
+  }, 300_000);
 });

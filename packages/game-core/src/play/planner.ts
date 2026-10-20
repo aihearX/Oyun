@@ -40,11 +40,12 @@ function inputAt(plan: Action[], i: number, out: SimInput): SimInput {
  * kadar sonra uygulanabilir, o ana dek planlanmış eylemler değişmez), `motor` yeni seçilen her eylemin elden çıkan hali
  * (zamanlama sapması, geç kalma; null = kaçan girdi).
  */
-export interface PlanPrefs { greedy?: boolean; secrets?: boolean; horizon?: number; react?: number; motor?: (a: Action, releaseOnly: boolean) => Action | null }
+export interface PlanPrefs { greedy?: boolean; secrets?: boolean; /** testler: bu noktaya (ör. gizli koklea) yaklaşmak ilerlemedir */ goal?: { x: number; y: number }; horizon?: number; react?: number; motor?: (a: Action, releaseOnly: boolean) => Action | null }
 function potential(w: World, s: SimState, pr: PlanPrefs = {}): number {
   const h = s.hero; const b = s.boss;
   let v = h.x + 0.7 * Math.max(0, GROUND_Y - h.y) + s.coins * (pr.greedy ? 160 : 40) + s.cochleas * (pr.secrets === false ? -200 : 300) + s.opened.size * 1500 + s.broken.size * 60 + s.killed.size * 30 + s.notes * 120;
   if (s.finished) v += 1e5;
+  if (pr.goal) v += (s.cochleas ? 5e4 : 0) - 3 * Math.hypot(h.x - pr.goal.x, h.y - 20 - pr.goal.y) - h.x;
   // insan: kapının rengini görür — önündeki frekans kapısının rengini taşımak ilerlemedir (bulmacanın amacı)
   if (pr.react && h.color >= 0) for (const id of near(w, h.x - 200, h.x + 900)) { const e = w.ents[id]!; if (e.type === 'freqgate' && (e.x - h.x) * h.dir > -40 && Math.abs(h.color - Number(e.p.color ?? 0)) < 0.08) { v += 700; break; } }
   // geri dönüş anahtarı: kapısı kapalıyken anahtara yakınlık ilerlemedir (oyuncu da kapıya varınca geri döner)

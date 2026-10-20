@@ -91,7 +91,10 @@ if (args.kalibre) {
   const file = await worker();
   const rows = (await runAll(file, 'kalibre', levels, ['--v', String(args.v ?? 10)], resolve(outDir, 'kalibre.part.jsonl'))).sort((a, b) => a.n - b.n);
   writeFileSync(resolve(outDir, 'kalibre.json'), JSON.stringify(rows, null, 1));
-  const pickBest = (r) => r.cands.slice().sort((a, b) => Math.abs(a.dmg - r.target) - Math.abs(b.dmg - r.target))[0];
+  // en yakın; final hedefin altında, bölge girişi hedefin üstünde kalırsa ek ceza (sıralama: final doruk, giriş nefes)
+  const { ZONES: KZ } = await bundled("export { CURVE_ZONES as ZONES } from '@odi/level-gen';", 'kz');
+  const cost = (r, c) => { const z = KZ.find((q) => r.n >= q.from && r.n <= q.to); const d = c.dmg - r.target; return Math.abs(d) + (z && r.n === z.peak && d < 0 ? -0.5 * d : 0) + (z && r.n === z.from && d > 0 ? 0.5 * d : 0); };
+  const pickBest = (r) => r.cands.slice().sort((a, b) => cost(r, a) - cost(r, b))[0];
   const chosen = new Map(keep);
   const body0 = rows.map((r) => { const b = pickBest(r); console.log(`L${String(r.n).padStart(2, '0')} hedef ${r.target.toFixed(2)} → v${b.v} (tahmin ${b.pred.toFixed(2)}, ölçülen ${b.dmg.toFixed(2)})  [${r.cands.map((c) => `v${c.v}:${c.dmg.toFixed(2)}`).join(' ')}]`); chosen.set(r.n, b.v); return null; });
   void body0;
@@ -99,6 +102,7 @@ if (args.kalibre) {
   const src = `/**
  * Bölüm kalibrasyonu — ÜRETİLMİŞ dosya: \`node tools/harness/zorluk.mjs --kalibre\`. Bölüm → üretici varyantı (0 = varsayılan).
  * Her bölüm için hedef eğriye tahminen en yakın birkaç varyant insan modeliyle ölçülür, ölçülen can kaybı hedefe en yakın olan seçilir.
+ * 12, 19, 24, 27-29, 31, 32 sonradan 48 oyunculuk ölçümle elle seçildi (docs/12 §8); \`--kalibre\` yalnız \`--levels\` ile verilen bölümleri yazar.
  */
 export const KALIBRASYON: Record<number, number> = {
 ${body}
@@ -129,20 +133,22 @@ if (args.belge) {
   const after = load(args.sonra ?? 'sonra'); const before = load(args.once ?? 'once');
   if (!after) throw new Error('önce --bolumler çalıştırın');
   const { TARGET, ZONES, knobs } = await bundled("export { TARGET_CURVE as TARGET, CURVE_ZONES as ZONES, levelKnobs as knobs } from '@odi/level-gen';", 'egri');
-  const A = Object.fromEntries(after.rows.map((r) => [r.n, scoreOf(r.runs)]));
+  // standart hata: can kaybının oyuncular arası standart sapması / √n
+  const seOf = (runs) => { const n = runs.length; const m = runs.reduce((a, r) => a + r.dmg, 0) / n; return Math.sqrt(runs.reduce((a, r) => a + (r.dmg - m) ** 2, 0) / Math.max(1, n - 1) / n); };
+  const A = Object.fromEntries(after.rows.map((r) => [r.n, { ...scoreOf(r.runs), se: seOf(r.runs) }]));
   const B = before ? Object.fromEntries(before.rows.map((r) => [r.n, scoreOf(r.runs)])) : {};
   // ---- tablo
   const zoneOf = (n) => ZONES.find((z) => n >= z.from && n <= z.to);
   const pct = (x) => `${Math.round(x * 100)}%`; const f2 = (x) => x.toFixed(2); const f1 = (x) => x.toFixed(1);
-  const lines = ['| Bölüm | Bölge | Rol | Hedef | Önce: bitirme | Önce: can kaybı | Önce: puan | Sonra: bitirme | Sonra: can kaybı | Sonra: yakın/dk | Sonra: puan |', '|---|---|---|---|---|---|---|---|---|---|---|'];
+  const lines = ['| Bölüm | Bölge | Rol | Hedef | Önce: bitirme | Önce: can kaybı | Önce: puan | Sonra: bitirme | Sonra: can kaybı ± SE | Sonra: yakın/dk | Sonra: puan ± SE |', '|---|---|---|---|---|---|---|---|---|---|---|'];
   for (let n = 1; n <= 40; n++) {
     const z = zoneOf(n); const a = A[n]; const b = B[n];
     const role = n % 20 === 0 ? '**boss**' : n === z.from ? 'giriş (nefes)' : n === z.peak ? '**final**' : '';
-    lines.push(`| ${n} | ${z.name} | ${role} | ${f1(TARGET[n - 1])} | ${b ? pct(b.fin) : '–'} | ${b ? f2(b.dmg) : '–'} | ${b ? f1(b.score) : '–'} | ${a ? pct(a.fin) : '–'} | ${a ? f2(a.dmg) : '–'} | ${a ? f1(a.nmPerMin) : '–'} | ${a ? f1(a.score) : '–'} |`);
+    lines.push(`| ${n} | ${z.name} | ${role} | ${f1(TARGET[n - 1])} | ${b ? pct(b.fin) : '–'} | ${b ? f2(b.dmg) : '–'} | ${b ? f1(b.score) : '–'} | ${a ? pct(a.fin) : '–'} | ${a ? `${f2(a.dmg)} ± ${f2(a.se)}` : '–'} | ${a ? f1(a.nmPerMin) : '–'} | ${a ? `${f1(a.score)} ± ${f1(3 * a.se)}` : '–'} |`);
   }
   const doc = resolve(root, 'docs/12-zorluk-egrisi.md');
   const md = readFileSync(doc, 'utf8');
-  const meta = `_Ölçüm: ${after.k} tohum × 40 bölüm (bölüm tuzu 0 — oyuncunun gördüğü bölüm), varsayılan profil; önce: ${before ? `${before.k} tohum, eski eğri` : '–'}._`;
+  const meta = `_Ölçüm: ${after.k} oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördüğü bölüm), varsayılan profil; önce: ${before ? `${before.k} tohum, eski eğri` : '–'}._`;
   writeFileSync(doc, md.replace(/<!-- tablo:basla -->[\s\S]*<!-- tablo:bitir -->/, `<!-- tablo:basla -->\n${meta}\n\n${lines.join('\n')}\n<!-- tablo:bitir -->`));
   // ---- düğme tablosu (varsayılan profil)
   const kl = ['| Bölüm | λ hedef | Oda | Oda puanı hedefi / tavan | Aile ≤ | Sıkılık | Diken × | Çukur × | Basamak × | Ufalanma (sn) | Zar penceresi (sn) | Düşman / platform temposu | Değiştirici |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|'];

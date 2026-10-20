@@ -123,7 +123,8 @@ function weighted<T>(rng: () => number, items: { v: T; w: number }[]): T | undef
  *  Bir önceki bölümün odaları düşük ağırlık alır: art arda bölümler farklı hissettirsin. */
 export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0, o: { variant?: number } = {}): LevelSpec {
   const prev = new Set<string>();
-  for (const k of [1, 2]) if (number > k) { try { for (const c of generateCore(journeyId, number - k, profile, seedSalt, new Set()).chunks) prev.add(c.id); } catch { /* yok */ } }
+  // önceki iki bölümün odaları (varsayılan varyantlarıyla: bir bölümün kalibrasyonu komşularını değiştirmesin)
+  for (const k of [1, 2]) if (number > k) { try { for (const c of generateCore(journeyId, number - k, profile, seedSalt, new Set(), 0).chunks) prev.add(c.id); } catch { /* yok */ } }
   return generateCore(journeyId, number, profile, seedSalt, prev, o.variant);
 }
 
@@ -159,11 +160,15 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const isExam = (c: ChunkSpec) => c.tags.includes('sinav');
   const normalAll = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c) && !isExam(c));
   const zone = zoneOf(plan.number);
-  const exams = plan.number === zone.peak ? pool.filter(isExam).sort((a, b) => predictDmg(b, knobs.tight) - predictDmg(a, knobs.tight) || a.id.localeCompare(b.id)) : [];
-  // ileri bölgelerin finali iki sınav odası ister (Koklea orta/apeks, Sinir, Korteks; Beyin Sapı'nın çevirme sınavı tek başına
-  // yeterince ağır — ölçüldü); biri tahminen en zoru, biri dönüşümlü
-  const examN = [5, 6, 7, 9].includes(CURVE_ZONES.indexOf(zone)) ? 2 : 1;
-  const picked = exams.length ? [...new Set([exams[seedSalt % exams.length]!, ...exams])].slice(0, examN) : [];
+  // son iki bölgede finalden önceki bölümler de bir "prova" sınavı alır (Beyin Sapı girişi ve Korteks'in tüm bölümleri; tahminen
+  // en ağırı): son kademeler baştan sona zorlu kalsın, final yine iki sınavla doruk
+  const zi = CURVE_ZONES.indexOf(zone); const isFinale = plan.number === zone.peak;
+  const rehearsal = !isFinale && (zi === 9 || (zi === 8 && plan.number === zone.from));
+  const exams = isFinale || rehearsal ? pool.filter(isExam).sort((a, b) => predictDmg(b, knobs.tight) - predictDmg(a, knobs.tight) || a.id.localeCompare(b.id)) : [];
+  // sınav sayısı (ölçülerek ayarlandı): Zar, Koklea Apeks, Sinir ve Korteks finalleri iki sınav ister (Beyin Sapı finali tek sınavla: girişindeki prova zaten ağır), diğerleri bir; prova bir
+  // (en hafif); biri tahminen en zoru, biri dönüşümlü
+  const examFull = rehearsal ? 1 : [2, 6, 7, 9].includes(zi) ? 2 : 1; const examN = Math.max(0, examFull - knobs.ease);
+  const picked = !exams.length || !examN ? [] : rehearsal ? exams.slice(0, 1) : [...new Set([exams[seedSalt % exams.length]!, ...exams])].slice(0, examN);
   // düğmelere uyan odalar; yetmezse kısıtlar kademeli gevşer (boşluk/iniş → aile sayısı → yalnız can kaybı tavanı)
   let normal: ChunkSpec[] = [];
   for (let strict = 0; strict <= 3 && normal.length < Math.max(6, knobs.rooms + 2); strict++) normal = normalAll.filter((c) => knobOk(c, knobs, strict));
@@ -227,7 +232,9 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // can kaybı bütçesi: hedef λ − gösteri ve öğreticilerin tahmini payı − mikro odalar için küçük pay; bölüm-içi bölümler %27 / %33 / %40
   // (oda puanı hedefi de ×0,7 / ×1 / ×1,25: her bölüm-içi bölüm bir öncekinden biraz zor, son odası kendi küçük doruğu)
   const tutorCost = pool.filter((c) => isTutorial(c) && c.entities.some((e) => e.type === 'tutor' && newAbilities.includes(String(e.props?.ability) as AbilityId))).reduce((a, c) => a + pd(c), 0);
-  const budget = Math.max(0, knobs.lambda - (setPiece ? pd(setPiece) : 0) - picked.reduce((a, c) => a + pd(c), 0) - tutorCost - 0.05);
+  // yardım kademesinde düşen sınavın payı bütçeye geri eklenmez (kolaylaştırma gerçekten kolaylaştırsın)
+  const examCost = Math.max(picked.reduce((a, c) => a + pd(c), 0), exams.slice(0, examFull).reduce((a, c) => a + pd(c), 0));
+  const budget = Math.max(0, knobs.lambda - (setPiece ? pd(setPiece) : 0) - examCost - tutorCost - 0.05);
   const shares = [0.27, 0.33, 0.4]; const secK = [0.7, 1, 1.25];
   for (let s = 0; s < 3; s++) {
     sectionStarts.push(chunks.length);
@@ -305,7 +312,13 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const paced = paceChunks(finalChunks, sectionStarts, micros, { latest, biome: plan.biome, rng });
   finalChunks.length = 0; finalChunks.push(...paced.chunks); sectionStarts.splice(0, 3, ...paced.sectionStarts);
   // boşta oyuncu ölmeli: bölüm bir çukurla başlamıyorsa en başa kısa giriş çukuru (yoksa gidip-gelme odalarında sonsuza dek koşar)
-  if (opener && !startsWithPit(finalChunks[0]!)) { finalChunks.unshift({ ...opener, entities: opener.entities.slice() }); sectionStarts[1]! += 1; sectionStarts[2]! += 1; }
+  // ilk odanın engeli hemen başlıyorsa giriş çukurunun iniş zemini uzar: çukurdan inip ikinci zıplamaya hazırlanacak yer kalsın
+  if (opener && !startsWithPit(finalChunks[0]!)) {
+    const extra = Math.max(0, 200 - quietProfile(finalChunks[0]!).entry);
+    const ents = opener.entities.map((e) => ({ ...e })); const last = ents.filter((e) => e.type === 'platform').sort((a, b) => b.x - a.x)[0];
+    if (last && extra) last.w = (last.w ?? 0) + extra;
+    finalChunks.unshift({ ...opener, length: opener.length + (last ? extra : 0), entities: ents }); sectionStarts[1]! += 1; sectionStarts[2]! += 1;
+  }
   for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
   // nota sınırı: fazlası, en uzun nota dizilerinin uçlarından kırpılır (yaylar bölünmez, yalnız kısalır)
   const countNotes = () => finalChunks.reduce((a, c) => a + c.entities.reduce((b, e) => b + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0), 0);

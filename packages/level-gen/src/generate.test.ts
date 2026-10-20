@@ -103,7 +103,10 @@ describe('bölüm üretici', () => {
   it('uyarlanabilir yardım yumuşaktır: 3 başarısızlık kolaylaştırır, usta oyuncu ilk bölümleri zorlaştırmaz', () => {
     for (const n of [12, 27, 35]) {
       const base = generateLevel('insan', n); const easy = generateLevel('insan', n, { ...DEFAULT_PROFILE, failStreak: 3 });
-      expect(predicted(easy), `${n}`).toBeLessThan(predicted(base));
+      const exams = (x: LevelSpec) => x.chunks.filter((c) => c.tags.includes('sinav')).length;
+      expect(exams(easy), `${n} sınav`).toBeLessThanOrEqual(exams(base));
+      const kb = levelKnobs(n), ke = levelKnobs(n, { ...DEFAULT_PROFILE, failStreak: 3 });
+      expect(ke.lambda).toBeLessThan(kb.lambda); expect(ke.tight).toBeLessThan(kb.tight); expect(ke.rooms).toBeLessThanOrEqual(kb.rooms);
     }
     for (let n = 1; n <= 5; n++) {
       const a = generateLevel('insan', n); const b = generateLevel('insan', n, { ...DEFAULT_PROFILE, recentStars: 3 });

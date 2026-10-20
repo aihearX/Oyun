@@ -74,13 +74,15 @@ export function quietProfile(c: Pick<ChunkSpec, 'entities' | 'length'>): QuietPr
   return { entry: a[0]!, exit: c.length - a[a.length - 1]!, inner, actions: a };
 }
 
-/** odanın İLK girdi noktası bir zemin boşluğu (çukur) mu — boşta oyuncu orada ölür (sıvı havuzu sayılmaz: yüzülür) */
+/** odanın İLK girdi noktası bir zemin boşluğu (çukur) mu — boşta oyuncu orada ölür (sıvı havuzu ve zarlı çukur sayılmaz: yüzülür / sekilir) */
 export function startsWithPit(c: Pick<ChunkSpec, 'entities' | 'length'>): boolean {
   const a = actionXs(c); if (!a.length) return false;
   const first = a[0]!;
   const floors = c.entities.filter(isFloor).map((e) => [e.x, e.x + (e.w ?? 0)] as [number, number]).sort((p, q) => p[0] - q[0]);
   if (c.entities.some((e) => e.type === 'water')) return false;
   let cover = 0;
-  for (const [l, r] of floors) { if (l - cover >= 40) return Math.abs(cover - first) <= 2; cover = Math.max(cover, r); }
+  // çukurda zar varsa boşta oyuncu orada sonsuza dek seker: ölüm çukuru sayılmaz
+  const tramp = (l: number, r: number) => c.entities.some((e) => e.type === 'trampoline' && e.x < r && e.x + (e.w ?? 0) > l);
+  for (const [l, r] of floors) { if (l - cover >= 40) return Math.abs(cover - first) <= 2 && !tramp(cover, l); cover = Math.max(cover, r); }
   return false;
 }

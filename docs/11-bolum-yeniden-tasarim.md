@@ -51,7 +51,8 @@ Düşmanlar `enemy` props.kind: `devriye` (yürür, kenarda döner), `ucan` (sin
 ### Tempo ve yay kuralları (v3, üretici `level-gen/pacing.ts` + `generate.ts`)
 - **Ölü yol yok**: iki girdi arasındaki sessiz yol ~820 px'i (≈3,2 sn) aşacaksa araya bir **mikro oda** (`chunks/mikro.ts`) girer:
   tam basılı nota yayı, kıl yayı, alçak perde, zar sıçrayışı… Ölçü: planlayıcı bot 40 bölümde (salt 0-3) en çok 4 sn girdisiz kalır
-  (`play/levels-*.test.ts`). Bölüm çukursuz başlıyorsa en başa giriş çukuru konur (boşta oyuncu her bölümde düşer).
+  (`play/levels-*.test.ts`). Bölüm çukursuz başlıyorsa (zarlı çukur sayılmaz: boşta oyuncu orada sonsuza dek seker) en başa giriş çukuru konur
+  (boşta oyuncu her bölümde düşer); ilk odanın engeli ilk 200 px'teyse giriş çukurunun iniş zemini o kadar uzar.
 - **Yay**: giriş (öğretir) → gelişim (birleştirir) → final + **doruk gösterisi** (her bölüm bir gösteriyle biter).
 - **Risk yolu**: her bölüm-içi bölümde isteğe bağlı, daha çok notalı daha zor bir yol (`risk` etiketli oda ya da mikro oda).
 - **Zar biyomu**: her bölümde en az 8 zar; zar zincirlerinde her blok bir öncekinden yüksek. "Mükemmel" (değme anının ±0,05 sn'si)
