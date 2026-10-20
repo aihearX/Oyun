@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { create } from 'zustand';
-import { Art, rich, stripEmoji, type ArtName } from '../ui/art';
+import { Art, rich, type ArtName } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { useStore } from '../store';
-import { platform } from '../platform';
+import { speakLine, stopVoice } from './voice';
 import { audio } from '@odi/audio';
 import { TuyDede, NARRATOR_NAME } from './Narrator';
 import './ftue.css';
@@ -19,6 +19,8 @@ import './ftue.css';
  */
 export type Target = string | (() => Element | DOMRect | null);
 export interface CoachStep {
+  /** satır kimliği (script.ts): kayıtlı ses dosyası bununla bulunur */
+  id?: string;
   say: string;
   target?: Target;
   wait?: 'next' | 'tap' | { el: string } | { until: () => boolean };
@@ -41,13 +43,9 @@ export const useCoach = create<CoachState>((set, get) => ({
   end(skipped) { const t = get().tour; set({ tour: null, step: 0 }); stopVoice(); if (t) { useStore.getState().ftueTourDone(t.id); t.onDone?.(skipped); } },
 }));
 
-/** sesli okuma: genel ses ve "Anlatıcı sesi" açıksa; emoji/işaretler okunmaz */
-export function sayAloud(text: string) {
-  const s = useStore.getState();
-  if (!s.sounds || !s.narratorVoice) return;
-  try { platform().speak(stripEmoji(text).replace(/[“”"]/g, ''), { rate: 0.95, pitch: 0.92 }); } catch { /* TTS yok */ }
-}
-export function stopVoice() { try { platform().stopSpeaking(); } catch { /* yok */ } }
+/** sesli okuma: kayıtlı ses (varsa) ya da cihaz sesi; genel ses ve "Anlatıcı sesi" açıksa (bkz. voice.ts) */
+export function sayAloud(text: string, id?: string) { speakLine(text, id); }
+export { stopVoice };
 
 function resolve(t: Target | undefined): DOMRect | null {
   if (!t) return null;
@@ -151,7 +149,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const go = () => { if (advanced.current) return; advanced.current = true; stopVoice(); audio.play('tap'); next(); };
 
   // ses: adım açılınca okunur, kapanınca susar
-  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } sayAloud(st.say); return () => stopVoice(); }, [tour.id, index]);
+  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } sayAloud(st.say, st.id); return () => stopVoice(); }, [tour.id, index]);
   // hedef görünmüyorsa görünür banda kaydır (küçük ekranlar)
   useEffect(() => { const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index]);
   // hedefin konumu: her karede izlenir (kaydırma, animasyon, sahne kamerası)

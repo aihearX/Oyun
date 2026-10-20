@@ -26,7 +26,7 @@ export function drawGoldNote(ctx: Ctx, x: number, y: number, s: number, halo = t
   ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#8a4500'; ctx.lineWidth = Math.max(1, s * 0.05); ctx.lineJoin = 'round'; ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(x - s * 0.27, y + s * 0.22, s * 0.08, s * 0.05, -0.5, 0, Math.PI * 2); ctx.fill();
 }
-/** altın koklea (salyangoz kabuğu spirali) */
+/** altın koklea (sarmal kıvrım) */
 export function drawGoldCochlea(ctx: Ctx, x: number, y: number, r: number, lit = true) {
   if (lit) glow(ctx, x, y, r * 1.45, THEME.gold, 0.6);
   const base = lit ? THEME.gold : 0x3a2c78;

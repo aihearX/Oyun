@@ -3,6 +3,9 @@ import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost, type BuildingId } from '@odi/shared';
 import { useStore } from '../store';
 import { useCoach, type CoachStep, type Tour } from './Coach';
+import { lineText } from './script';
+
+const line = (id: string) => ({ id, say: lineText(id) });
 import { FEATURES, clearedCount, featureById, type FeatureId } from './features';
 import { Art } from '../ui/art';
 
@@ -11,8 +14,10 @@ import { Art } from '../ui/art';
  * Ekran sakinken (takma ad penceresi, kutlama, alt sayfa yokken) tek seferde tek tur; her tur bir kez.
  */
 const tab = (t: string) => `nav.tabbar .tab[data-tab="${t}"]`;
-const tapTab = (t: string, name: string): CoachStep => ({ say: `Aşağıdaki ${name} düğmesine dokun.`, target: tab(t), wait: 'tap', hint: `${name}'e dokun` });
-const unlockCard = (id: FeatureId, say: string): CoachStep => ({ say, art: featureById(id).art, kicker: 'Yeni yer açıldı!', mood: 'wow' });
+/** alt sekmeye dokun: satır kimliği sekme-<ad>; ipucu Türkçe ek uyumuyla (Kamp'a, Profil'e) */
+const TAB_LINE: Record<string, [string, string]> = { today: ['sekme-bugun', 'Bugün’e dokun'], camp: ['sekme-kamp', 'Kamp’a dokun'], profile: ['sekme-profil', 'Profil’e dokun'], team: ['sekme-takim', 'Takım’a dokun'], map: ['sekme-harita', 'Harita’ya dokun'] };
+const tapTab = (t: string): CoachStep => { const [id, hint] = TAB_LINE[t]!; return { id, say: lineText(id), target: tab(t), wait: 'tap', hint }; };
+const unlockCard = (id: FeatureId, line: string): CoachStep => ({ id: line, say: lineText(line), art: featureById(id).art, kicker: 'Yeni yer açıldı!', mood: 'wow' });
 const exists = (sel: string) => !!document.querySelector(sel);
 /** öğe önce belirip sonra kaybolunca true (henüz belirmediyse beklemeye devam) */
 const gone = (sel: string) => { let seen = false; return () => { if (exists(sel)) seen = true; return seen && !exists(sel); }; };
@@ -49,69 +54,68 @@ export function tourFor(id: string, route: string): Tour | null {
   switch (id) {
     case 'result1':
       steps.push(
-        { say: 'Bravo! İlk bölümü geçtin. Ninni bir adım daha yol aldı.', target: '.star-row', mood: 'wow' },
-        { say: 'Yıldızlar bölümü ne kadar iyi geçtiğini gösterir: notaların çoğunu topla, hızlı ol, hiç düşme. Üç yıldız en iyisi!', target: '.star-row' },
-        { say: 'Topladığın notalar jetona dönüşür. Jetonla yetenek alır, kampını büyütürsün.', target: '.stats' },
-        { say: 'Şimdi yolculuğun haritasına bakalım. Harita düğmesine dokun.', target: '.result-actions [data-act="harita"]', wait: 'tap', hint: 'Harita’ya dokun' },
+        { id: 'sonuc-01', say: lineText('sonuc-01'), target: '.star-row', mood: 'wow' },
+        { id: 'sonuc-02', say: lineText('sonuc-02'), target: '.star-row' },
+        { id: 'sonuc-03', say: lineText('sonuc-03'), target: '.stats' },
+        { id: 'sonuc-04', say: lineText('sonuc-04'), target: '.result-actions [data-act="harita"]', wait: 'tap', hint: 'Harita’ya dokun' },
       ); break;
     case 'map':
       steps.push(
-        { say: 'İşte yolun: kulak kepçesinden beyne uzanır. Her bölüm seni biraz daha ileri götürür.' },
-        { say: 'Üstte seviyen, yıldızların ve jetonların var.', target: '.map-hud' },
-        { say: 'Aşağıdaki yerler kilitli. Bölüm geçtikçe tek tek açılır; her yenisini sana ben göstereceğim.', target: 'nav.tabbar' },
-        { say: 'Sıradaki bölüm burada. Dokun ve devam et!', target: '.map-play', wait: 'tap', hint: 'Bölüme dokun', mood: 'wink' },
+        { id: 'harita-01', say: lineText('harita-01') },
+        { id: 'harita-02', say: lineText('harita-02'), target: '.map-hud' },
+        { id: 'harita-03', say: lineText('harita-03'), target: 'nav.tabbar' },
+        { id: 'harita-04', say: lineText('harita-04'), target: '.map-play', wait: 'tap', hint: 'Bölüme dokun', mood: 'wink' },
       ); break;
     case 'today':
       steps.push(
-        unlockCard('today', 'Yeni bir yer açıldı: Bugün! Her gün uğra; takvim ödülü, üç görev ve günlük sandık seni bekler.'),
-        ...(route === 'today' ? [] : [tapTab('today', 'Bugün')]),
-        { say: 'Bugünün takvim ödülü hazır. Al’a dokun ve topla!', target: '.cal-today .btn:not(:disabled)', wait: 'tap', hint: 'Al’a dokun', optional: true },
-        { say: 'İşte ödülün! Topla’ya dokun, jetonlar cebine girsin.', target: () => document.querySelector('.cel-cta .btn') ?? document.querySelector('.cel-stage .cel-cta'), wait: { until: gone('.cel-stage') }, hint: 'Topla’ya dokun', optional: true, mood: 'wow' },
-        { say: 'Bunlar günlük görevler. Oynadıkça dolar; bitince ödülünü buradan alırsın. Üçü de bitince sandık açılır.', target: '.quests' },
+        unlockCard('today', 'bugun-01'),
+        ...(route === 'today' ? [] : [tapTab('today')]),
+        { id: 'bugun-02', say: lineText('bugun-02'), target: '.cal-today .btn:not(:disabled)', wait: 'tap', hint: 'Al’a dokun', optional: true },
+        { id: 'bugun-03', say: lineText('bugun-03'), target: () => document.querySelector('.cel-cta .btn') ?? document.querySelector('.cel-stage .cel-cta'), wait: { until: gone('.cel-stage') }, hint: 'Topla’ya dokun', optional: true, mood: 'wow' },
+        { id: 'bugun-04', say: lineText('bugun-04'), target: '.quests' },
       ); break;
     case 'camp':
       steps.push(
-        unlockCard('camp', 'Yeni bir yer açıldı: Kulak Kampı! Burada binalar kurarsın; sen oyundayken bile çalışırlar.'),
-        ...(route === 'camp' ? [] : [tapTab('camp', 'Kamp')]),
+        unlockCard('camp', 'kamp-01'),
+        ...(route === 'camp' ? [] : [tapTab('camp')]),
       ); break;
     case 'camp-build': {
       const b = campPick(); if (!b) return null;
-      const d = BUILDINGS.find((x) => x.id === b)!;
       steps.push(
-        { say: 'Burası senin kampın. Binalar jeton üretir, kalkan şansı verir, takımına güç katar.' },
-        { say: `İlk işimiz: ${d.name}. Binaya dokun.`, target: () => buildingRect(b), wait: { el: '.bp' }, hint: 'Binaya dokun', enter: () => kamp()?.focus?.(b) },
-        { say: 'Bu panelde binanın şimdi ne yaptığı ve bir sonraki seviyede ne olacağı yazar.', target: '.bp-eff' },
-        { say: 'Bedeli ve süresi burada. Şimdi düğmeye dokun ve inşaatı başlat!', target: '.bp-up .btn', wait: { el: '.bp-build' }, hint: 'Düğmeye dokun' },
-        { say: 'Harika, inşaat başladı! Süre dolunca hazır olur. Takımın olunca arkadaşların tek dokunuşla hızlandırır.', target: '.bp-build', mood: 'wink' },
+        { id: 'kamp-insa-01', say: lineText('kamp-insa-01') },
+        { ...line(b === 'depo' ? 'kamp-insa-02-depo' : 'kamp-insa-02'), target: () => buildingRect(b), wait: { el: '.bp' }, hint: 'Binaya dokun', enter: () => kamp()?.focus?.(b) },
+        { id: 'kamp-insa-03', say: lineText('kamp-insa-03'), target: '.bp-eff' },
+        { id: 'kamp-insa-04', say: lineText('kamp-insa-04'), target: '.bp-up .btn', wait: { el: '.bp-build' }, hint: 'Düğmeye dokun' },
+        { id: 'kamp-insa-05', say: lineText('kamp-insa-05'), target: '.bp-build', mood: 'wink' },
       ); break;
     }
     case 'friends':
       steps.push(
-        unlockCard('friends', 'Yeni: Arkadaşlar ve mesajlar! Arkadaşını kodla ekle, mesajlaş, her gün hediye gönder.'),
-        ...(route === 'profile' ? [] : [tapTab('profile', 'Profil')]),
-        { say: 'Arkadaşlar burada. Arkadaş kodunu paylaş; birlikte daha hızlı ilerlersiniz.', target: '.menu-tile[data-tile="friends"]' },
+        unlockCard('friends', 'arkadas-01'),
+        ...(route === 'profile' ? [] : [tapTab('profile')]),
+        { id: 'arkadas-02', say: lineText('arkadas-02'), target: '.menu-tile[data-tile="friends"]' },
       ); break;
     case 'team':
       steps.push(
-        unlockCard('team', 'Yeni: Takım! Takımda birbirinize yardım edersiniz: inşaatlar hızlanır, kalkan gelir.'),
-        ...(route === 'team' ? [] : [tapTab('team', 'Takım')]),
-        { say: 'Birlikte Bölge Savaşı’nda yer kaparsınız ve Gürültü Canavarı’na hep beraber vurursunuz.', target: '.team-hero .perks, .team-head' },
-        { say: 'Bir takıma kodla katılabilir ya da kendi takımını kurabilirsin. Karar senin!', target: '.code-join, .team-head' },
+        unlockCard('team', 'takim-01'),
+        ...(route === 'team' ? [] : [tapTab('team')]),
+        { id: 'takim-02', say: lineText('takim-02'), target: '.team-hero .perks, .team-head' },
+        { id: 'takim-03', say: lineText('takim-03'), target: '.code-join, .team-head' },
       ); break;
     case 'shop':
       steps.push(
-        unlockCard('shop', 'Yeni: Mağaza, Dolap ve Ödül kutusu! Odi’ye şapka ve renk seç, ödüllerini topla.'),
-        ...(route === 'profile' ? [] : [tapTab('profile', 'Profil')]),
-        { say: 'Dolap burada: Odi’yi istediğin gibi giydir. Kazandığın kozmetikler hep buraya gelir.', target: '.menu-tile[data-tile="wardrobe"]' },
+        unlockCard('shop', 'magaza-01'),
+        ...(route === 'profile' ? [] : [tapTab('profile')]),
+        { id: 'magaza-02', say: lineText('magaza-02'), target: '.menu-tile[data-tile="wardrobe"]' },
       ); break;
     case 'events':
       steps.push(
-        unlockCard('events', 'Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve quiz: takımca oynanır, ödülleri büyüktür.'),
-        ...(route === 'map' ? [] : [tapTab('map', 'Harita')]),
-        { say: 'Etkinlik çadırı haritanın sağında. Dokun ve bir bak!', target: '[data-testid="ev-fab"]', wait: 'tap', hint: 'Çadıra dokun' },
+        unlockCard('events', 'etkinlik-01'),
+        ...(route === 'map' ? [] : [tapTab('map')]),
+        { id: 'etkinlik-02', say: lineText('etkinlik-02'), target: '[data-testid="ev-fab"]', wait: 'tap', hint: 'Çadıra dokun' },
       ); break;
     case 'race':
-      steps.push(unlockCard('race', 'Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek?'));
+      steps.push(unlockCard('race', 'yaris-01'));
       break;
     default: return null;
   }

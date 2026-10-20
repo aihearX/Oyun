@@ -107,3 +107,4 @@
 .story .coach-panel { position:fixed; z-index:3; bottom:calc(var(--sab) + 14px); }
 @media (max-height:680px) { .scene { width:min(250px, 72vw); } .story-scene { padding-bottom:calc(var(--sab) + 190px); } }
 @media (prefers-reduced-motion: reduce) { .tuy-dede *, .coach-ring, .coach-hand, .cu-burst, .coach-unlock .art, .scene, .scene * { animation:none !important; } }
+.credit { display:block; margin-top:8px; font-size:11.5px; line-height:1.35; opacity:.8; }

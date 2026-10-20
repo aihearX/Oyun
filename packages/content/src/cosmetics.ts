@@ -42,7 +42,7 @@ export const COSMETICS: CosmeticDef[] = [
   { id: 'sapka-yok', kind: 'sapka', name: 'Şapkasız', unlock: { by: 'default' }, desc: 'Sade ve rüzgârlı.' },
   { id: 'sapka-bere', kind: 'sapka', name: 'Kulaklı Bere', hat: 'bere', unlock: { by: 'calendar', day: 3 }, desc: 'Kulaklar üşümesin.' },
   { id: 'sapka-nota', kind: 'sapka', name: 'Nota Anteni', hat: 'nota', unlock: { by: 'achievement', id: 'kombo', tier: 1 }, desc: 'Her frekansı yakalar.' },
-  { id: 'sapka-koklea', kind: 'sapka', name: 'Salyangoz Tokası', hat: 'koklea', unlock: { by: 'album', pct: 25 }, desc: 'İki buçuk tur şıklık.' },
+  { id: 'sapka-koklea', kind: 'sapka', name: 'Koklea Tokası', hat: 'koklea', unlock: { by: 'album', pct: 25 }, desc: 'İki buçuk tur şıklık.' },
   { id: 'sapka-kulaklik', kind: 'sapka', name: 'Kulaklık', hat: 'kulaklik', unlock: { by: 'treasure', level: 15 }, desc: 'Sesi kısık tut, keyfi açık.' },
   { id: 'sapka-parti', kind: 'sapka', name: 'Parti Külahı', hat: 'parti', unlock: { by: 'achievement', id: 'seri', tier: 2 }, desc: '7 günlük seriye özel.' },
   { id: 'sapka-yildiz', kind: 'sapka', name: 'Yıldız Tacı', hat: 'yildiz', unlock: { by: 'achievement', id: 'kusursuz-kulak', tier: 2 }, desc: '15 bölümde üç yıldız.' },

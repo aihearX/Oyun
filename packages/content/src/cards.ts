@@ -32,7 +32,7 @@ const RAW: Record<BiomeId, Raw[]> = {
     ['🦴', 'Yarı Kıkırdak Yarı Kemik', 'Kanalın dış üçte biri kıkırdak, iç kısmı kemiktir. Kir bezleri yalnızca dıştaki kıkırdak bölümde bulunur.'],
   ],
   'zar': [
-    ['🥁', 'İncecik Davul', 'Kulak zarı yaklaşık 0,1 mm kalınlığında ve 8-10 mm çapındadır; bir kâğıt yaprağından bile incedir.'],
+    ['🥁', 'İncecik Davul', 'Kulak zarı yaklaşık 0,1 mm kalınlığında ve 8-10 mm çapındadır; bir kâğıt yaprağı kadar incedir.'],
     ['⚛️', 'Atomdan Küçük Titreşim', 'Duyabildiğimiz en hafif seslerde kulak zarı, bir atomun çapından bile küçük bir mesafe kadar titreşir.'],
     ['🩹', 'Kendini Onaran Zar', 'Küçük kulak zarı yırtıkları çoğu zaman birkaç hafta içinde kendiliğinden iyileşir.'],
     ['✈️', 'Uçak Kulağı', 'Östaki borusu orta kulağı boğaza bağlar. Yutkunmak ya da esnemek basıncı eşitler; uçakta kulak tıkanması bu yüzden açılır.'],
@@ -46,7 +46,7 @@ const RAW: Record<BiomeId, Raw[]> = {
     ['👶', 'Doğuştan Büyük', 'Kulak kemikçikleri doğduğumuzda neredeyse yetişkin boyutundadır.'],
   ],
   'koklea-1': [
-    ['🐌', 'Salyangoz Kabuğu', 'Koklea, salyangoz kabuğuna benzer ve yaklaşık iki buçuk tur kıvrılır. Adı da Latincede "salyangoz" demektir.'],
+    ['🐌', 'Koklea Kıvrımı', 'Koklea yaklaşık iki buçuk tur kıvrılan sarmal bir kanaldır. Adı Latincede “salyangoz kabuğu” anlamına gelir.'],
     ['🌊', 'Sıvı Dalgası', 'Kokleanın içi sıvı doludur. Üzengi oval pencereyi ittiğinde bu sıvıda bir dalga yayılır.'],
     ['🎻', 'İnce Seslerin Kapısı', 'Baziler zar tabanda dar ve serttir; bu yüzden en ince (yüksek frekanslı) sesler kokleanın tabanında algılanır.'],
     ['🔊', 'Önce İnce Sesler', 'Gürültü ve yaş, ilk olarak tabandaki yüksek frekans hücrelerini etkiler; işitme kaybı bu yüzden çoğunlukla ince seslerden başlar.'],

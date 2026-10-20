@@ -1,0 +1,213 @@
+{
+ "version": 1,
+ "format": "mp3",
+ "voice": "Coqui TTS · Fatih Akademi tr common-voice glow-tts + hifigan (MIT)",
+ "style": "dede",
+ "lines": {
+  "hikaye-01": {
+   "file": "hikaye-01.mp3",
+   "hash": "8bcd3fdc",
+   "ms": 6480
+  },
+  "hikaye-02": {
+   "file": "hikaye-02.mp3",
+   "hash": "28662abf",
+   "ms": 4440
+  },
+  "hikaye-03": {
+   "file": "hikaye-03.mp3",
+   "hash": "11bc804f",
+   "ms": 8280
+  },
+  "hikaye-04": {
+   "file": "hikaye-04.mp3",
+   "hash": "9caf2f73",
+   "ms": 6048
+  },
+  "hikaye-05": {
+   "file": "hikaye-05.mp3",
+   "hash": "cbc2b4d6",
+   "ms": 7584
+  },
+  "hikaye-06": {
+   "file": "hikaye-06.mp3",
+   "hash": "d7724a4e",
+   "ms": 7968
+  },
+  "hikaye-07": {
+   "file": "hikaye-07.mp3",
+   "hash": "cd0be701",
+   "ms": 8856
+  },
+  "sonuc-01": {
+   "file": "sonuc-01.mp3",
+   "hash": "baeb4d46",
+   "ms": 4944
+  },
+  "sonuc-02": {
+   "file": "sonuc-02.mp3",
+   "hash": "4057c574",
+   "ms": 9312
+  },
+  "sonuc-03": {
+   "file": "sonuc-03.mp3",
+   "hash": "614c5852",
+   "ms": 6624
+  },
+  "sonuc-04": {
+   "file": "sonuc-04.mp3",
+   "hash": "1f4b1eae",
+   "ms": 5424
+  },
+  "harita-01": {
+   "file": "harita-01.mp3",
+   "hash": "296200c0",
+   "ms": 7200
+  },
+  "harita-02": {
+   "file": "harita-02.mp3",
+   "hash": "7c0a79f7",
+   "ms": 3816
+  },
+  "harita-03": {
+   "file": "harita-03.mp3",
+   "hash": "93b23f6d",
+   "ms": 7488
+  },
+  "harita-04": {
+   "file": "harita-04.mp3",
+   "hash": "9c28cd8e",
+   "ms": 3936
+  },
+  "sekme-bugun": {
+   "file": "sekme-bugun.mp3",
+   "hash": "38a6db96",
+   "ms": 2784
+  },
+  "sekme-kamp": {
+   "file": "sekme-kamp.mp3",
+   "hash": "69603f1f",
+   "ms": 2640
+  },
+  "sekme-profil": {
+   "file": "sekme-profil.mp3",
+   "hash": "aa0742b6",
+   "ms": 2952
+  },
+  "sekme-takim": {
+   "file": "sekme-takim.mp3",
+   "hash": "8bc3d8bc",
+   "ms": 2616
+  },
+  "sekme-harita": {
+   "file": "sekme-harita.mp3",
+   "hash": "78aaab37",
+   "ms": 2808
+  },
+  "bugun-01": {
+   "file": "bugun-01.mp3",
+   "hash": "26549000",
+   "ms": 7104
+  },
+  "bugun-02": {
+   "file": "bugun-02.mp3",
+   "hash": "3a6e6a21",
+   "ms": 4392
+  },
+  "bugun-03": {
+   "file": "bugun-03.mp3",
+   "hash": "d9408bd9",
+   "ms": 4320
+  },
+  "bugun-04": {
+   "file": "bugun-04.mp3",
+   "hash": "0bed092d",
+   "ms": 9216
+  },
+  "kamp-01": {
+   "file": "kamp-01.mp3",
+   "hash": "c89490ed",
+   "ms": 6984
+  },
+  "kamp-insa-01": {
+   "file": "kamp-insa-01.mp3",
+   "hash": "d1133010",
+   "ms": 7464
+  },
+  "kamp-insa-02-depo": {
+   "file": "kamp-insa-02-depo.mp3",
+   "hash": "81b8b400",
+   "ms": 3984
+  },
+  "kamp-insa-02": {
+   "file": "kamp-insa-02.mp3",
+   "hash": "83eb4608",
+   "ms": 3912
+  },
+  "kamp-insa-03": {
+   "file": "kamp-insa-03.mp3",
+   "hash": "5eb11089",
+   "ms": 5520
+  },
+  "kamp-insa-04": {
+   "file": "kamp-insa-04.mp3",
+   "hash": "1bf504c1",
+   "ms": 5904
+  },
+  "kamp-insa-05": {
+   "file": "kamp-insa-05.mp3",
+   "hash": "6d688016",
+   "ms": 8808
+  },
+  "arkadas-01": {
+   "file": "arkadas-01.mp3",
+   "hash": "d6fd3180",
+   "ms": 6672
+  },
+  "arkadas-02": {
+   "file": "arkadas-02.mp3",
+   "hash": "372d1072",
+   "ms": 6648
+  },
+  "takim-01": {
+   "file": "takim-01.mp3",
+   "hash": "648cef87",
+   "ms": 6432
+  },
+  "takim-02": {
+   "file": "takim-02.mp3",
+   "hash": "55dd8126",
+   "ms": 6624
+  },
+  "takim-03": {
+   "file": "takim-03.mp3",
+   "hash": "fbbbb090",
+   "ms": 6528
+  },
+  "magaza-01": {
+   "file": "magaza-01.mp3",
+   "hash": "05798b8c",
+   "ms": 6192
+  },
+  "magaza-02": {
+   "file": "magaza-02.mp3",
+   "hash": "655aed6d",
+   "ms": 7032
+  },
+  "etkinlik-01": {
+   "file": "etkinlik-01.mp3",
+   "hash": "9342bcca",
+   "ms": 7224
+  },
+  "etkinlik-02": {
+   "file": "etkinlik-02.mp3",
+   "hash": "c8cefb73",
+   "ms": 4752
+  },
+  "yaris-01": {
+   "file": "yaris-01.mp3",
+   "hash": "b21fbd87",
+   "ms": 7056
+  }
+ }
+}

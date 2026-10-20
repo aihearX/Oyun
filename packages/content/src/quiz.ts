@@ -10,7 +10,7 @@ const RAW: Raw[] = [
   ['anatomi', 'Vücudumuzun en küçük kemiği hangisidir?', 'Üzengi', 'Çekiç', 'Örs', 'Serçe parmak kemiği', 'Orta kulaktaki üzengi yaklaşık 3 mm uzunluğundadır; vücudun en küçük kemiğidir.'],
   ['anatomi', 'Orta kulakta kaç tane kemikçik vardır?', '3', '2', '4', '6', 'Çekiç, örs ve üzengi: üç küçük kemik sesi kulak zarından iç kulağa taşır.'],
   ['anatomi', 'Ses dalgalarıyla ilk titreşen ince zar hangisidir?', 'Kulak zarı', 'Oval pencere', 'Göz kapağı', 'Diyafram', 'Kulak zarı gelen sesle titreşir ve bu titreşimi kemikçiklere aktarır.'],
-  ['anatomi', 'İç kulaktaki salyangoz biçimli işitme organının adı nedir?', 'Koklea', 'Östaki borusu', 'Kulak kepçesi', 'Gırtlak', 'Koklea (salyangoz) titreşimleri sinir sinyallerine çeviren işitme organıdır.'],
+  ['anatomi', 'İç kulakta, sarmal biçimli işitme organının adı nedir?', 'Koklea', 'Östaki borusu', 'Kulak kepçesi', 'Gırtlak', 'Koklea, titreşimleri sinir sinyallerine çeviren sarmal işitme organıdır.'],
   ['anatomi', 'Kokleada sesi algılayan duyu hücrelerine ne denir?', 'Tüylü (kıl) hücreler', 'Kırmızı kan hücreleri', 'Koni hücreleri', 'Yağ hücreleri', 'Tüylü hücreler sıvıdaki titreşimle eğilir ve elektrik sinyali üretir.'],
   ['anatomi', 'Orta kulağı boğazın arkasına bağlayan kanal hangisidir?', 'Östaki borusu', 'Dış kulak yolu', 'İşitme siniri', 'Gözyaşı kanalı', 'Östaki borusu orta kulaktaki hava basıncını dışarıyla dengeler.'],
   ['saglik', 'Uçak inerken kulak tıkanırsa hangisi yardımcı olur?', 'Yutkunmak ya da esnemek', 'Kulağa pamuk itmek', 'Kulağı sertçe ovmak', 'Nefesi tutup eğilmek', 'Yutkunmak ve esnemek Östaki borusunu açar, basınç dengelenir.'],

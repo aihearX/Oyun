@@ -38,6 +38,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         <div className="row between"><div className="row" style={{ gap: 10 }}><TuyDede size={52} /><div><h2>Anlatıcı sesi</h2><div className="muted">Tüy Dede anlatırken sesli okusun (yazı hep görünür)</div></div></div>
           <button className={`btn small toggle-btn${s.narratorVoice ? '' : ' ghost'}`} onClick={() => s.setNarratorVoice(!s.narratorVoice)} aria-pressed={s.narratorVoice} aria-label="Anlatıcı sesi">{s.narratorVoice ? 'Açık' : 'Kapalı'}</button></div>
         {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
+        <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Coqui TTS, Fatih Akademi Türkçe modeli (MIT)</small>
       </div>
       <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi? Oyun baştan, hikâyeyle başlar.')) { s.reset(); onReset?.(); } }}>Sıfırla</button></div>
       <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>

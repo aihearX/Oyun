@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativePurchase } from '@/purchases';
+import { playVoice, stopVoice, voiceManifest } from '@/voice/player';
+import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativePurchase = createNativePurchase();
 
@@ -30,19 +32,33 @@ async function share(text: string): Promise<'shared' | 'copied' | 'cancelled'> {
   try { const r = await Share.share({ message: text }); return r.action === Share.sharedAction ? 'shared' : 'cancelled'; } catch { return 'cancelled'; }
 }
 
-/** Anlatıcı (Tüy Dede) sesi: cihazın Türkçe sesi; varsa "gelişmiş" kalitedeki seçilir. Ses yoksa sessizce geçer (altyazı hep var). */
-let trVoice: string | undefined | null = null;
-async function pickVoice(): Promise<string | undefined> {
-  if (trVoice !== null) return trVoice;
+/**
+ * Anlatıcı (Tüy Dede) yedek sesi: kayıtlı dosyası olmayan satırlarda cihazın Türkçe sesi. Erkek (tercihen yaşlı erkek) tr-TR ses
+ * varsa o seçilir; yoksa (iOS'ta yalnız Yelda) perde düşürülür, tempo yavaşlar. Cümleler sıraya alınır (aralarda doğal nefes).
+ */
+let trVoice: { id?: string; male: boolean } | null = null;
+async function pickVoice(): Promise<{ id?: string; male: boolean }> {
+  if (trVoice) return trVoice;
   try {
-    const all = await Speech.getAvailableVoicesAsync();
-    const tr = all.filter((v) => v.language?.toLowerCase().replace('_', '-').startsWith('tr'));
-    trVoice = (tr.find((v) => String(v.quality).toLowerCase() === 'enhanced') ?? tr[0])?.identifier;
-  } catch { trVoice = undefined; }
+    const best = pickTurkishVoice((await Speech.getAvailableVoicesAsync()).map((v) => ({ ...v, quality: String(v.quality) })));
+    trVoice = { id: best?.identifier, male: isMaleVoice(best) };
+  } catch { trVoice = { male: false }; }
   return trVoice;
 }
-async function speak(text: string, rate: number, pitch: number) {
-  try { Speech.stop(); const voice = await pickVoice(); Speech.speak(text, { language: 'tr-TR', rate, pitch, ...(voice ? { voice } : {}) }); } catch { /* TTS yok */ }
+async function speak(text: string, rate: number, pitch: number): Promise<void> {
+  try {
+    Speech.stop();
+    const v = await pickVoice();
+    const p = ttsParams(v.male, { rate, pitch });
+    const chunks = ttsChunks(text);
+    await new Promise<void>((resolve) => {
+      let left = chunks.length;
+      const guard = setTimeout(() => finish(), (text.length * 95) / p.rate + 2500); // olay gelmezse takılma
+      const finish = () => { clearTimeout(guard); resolve(); };
+      const one = () => { if (--left <= 0) finish(); };
+      for (const c of chunks) Speech.speak(c, { language: 'tr-TR', rate: p.rate, pitch: p.pitch, ...(v.id ? { voice: v.id } : {}), onDone: one, onStopped: finish, onError: one });
+    });
+  } catch { /* TTS yok */ }
 }
 async function stopSpeaking() { try { await Speech.stop(); } catch { /* yok */ } }
 
@@ -59,6 +75,9 @@ export default function Home() {
           share={share}
           speak={speak}
           stopSpeaking={stopSpeaking}
+          voiceManifest={voiceManifest}
+          playVoice={playVoice}
+          stopVoice={async () => stopVoice()}
           {...(nativePurchase ? { purchase: nativePurchase } : {})}
           canPurchase={!!nativePurchase}
           serverUrl={serverUrl()}

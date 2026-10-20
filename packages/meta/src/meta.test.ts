@@ -117,7 +117,7 @@ describe('bölüm işleme, başarımlar, albüm, kozmetik', () => {
     const m = computeMetrics(c); expect(m.stars).toBe(4); expect(m.threeStars).toBe(1); expect(m['biomeStars:dis-kulak']).toBe(4); expect(m.highest).toBe(3);
     expect(highestUnlocked(c.progress)).toBe(3);
   });
-  it('albüm yüzdesi ve kozmetik açılımı (albüm %25 → Salyangoz Tokası)', () => {
+  it('albüm yüzdesi ve kozmetik açılımı (albüm %25 → Koklea Tokası)', () => {
     const quarter = CARDS.slice(0, Math.ceil(CARDS.length / 4)).map((c) => c.id);
     expect(albumProgress(quarter).pct).toBeGreaterThanOrEqual(25);
     const c = core({ meta: { ...defaultMeta(), cards: quarter } }); const s = settle(c);
