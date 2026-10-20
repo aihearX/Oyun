@@ -131,13 +131,13 @@ export function solidAt(w: World, s: SimState, e: WEnt, t: number, out: R = TMP)
   switch (e.type) {
     case 'platform': case 'wall': case 'trampoline': return true;
     case 'moving': {
-      const per = Number(e.p.period ?? 2000) / 1000; const ph = Number(e.p.phase ?? 0);
+      const per = Number(e.p.period ?? 2000) / 1000 / tempoOf(e); const ph = Number(e.p.phase ?? 0);
       const dx = Number(e.p.dx ?? 0), dy = Number(e.p.dy ?? 0);
       const k = wave(t + ph, per), k0 = wave(t + ph - C.DT, per);
       out.l += dx * k; out.r += dx * k; out.t += dy * k; out.b += dy * k; out.dx = dx * (k - k0); out.dy = dy * (k - k0);
       return true;
     }
-    case 'crumble': { const trig = s.crumble.get(e.id); return !(trig !== undefined && t >= trig + 0.4 && t < trig + 3.4); }
+    case 'crumble': { const trig = s.crumble.get(e.id); const d = crumbleDelay(e); return !(trig !== undefined && t >= trig + d && t < trig + d + 3); }
     case 'barrier': return !s.broken.has(e.id);
     case 'door': return !(s.opened.has(e.key) !== (e.p.open === true));
     case 'freqgate': return !colorMatch(s.hero.color, Number(e.p.color ?? 0));
@@ -155,6 +155,12 @@ export function solidAt(w: World, s: SimState, e: WEnt, t: number, out: R = TMP)
   }
 }
 export const colorMatch = (a: number, b: number) => a >= 0 && Math.abs(a - b) < 0.08;
+/** ufalanan zeminin düşme gecikmesi (sn): üreticinin zorluk düğmesi `props.delay` (varsayılan 0,4) */
+export const crumbleDelay = (e: WEnt) => Number(e.p.delay ?? 0.4);
+/** zar dokunuş penceresi (sn): `props.window` (varsayılan TRAMP_WINDOW) */
+const trampWindow = (e: WEnt) => Number(e.p.window ?? C.TRAMP_WINDOW);
+/** tempo çarpanı (düşman, hareketli platform, sürüklenen tehlike): `props.tempo` (varsayılan 1) */
+const tempoOf = (e: WEnt) => Number(e.p.tempo ?? 1);
 
 /** hareketli tehlike / düşmanın t anındaki kutusu; yoksa false */
 export function hazardAt(w: World, s: SimState, e: WEnt, t: number, out: R = TMP): boolean {
@@ -163,7 +169,7 @@ export function hazardAt(w: World, s: SimState, e: WEnt, t: number, out: R = TMP
   if (e.type === 'hazard') {
     if (e.p.chase) { const t0 = s.timers.get(e.id); if (t0 === undefined) return false; const d = Math.min(Number(e.p.until ?? 2000), Number(e.p.chase) * (t - t0)); out.l += d; out.r += d; return true; }
     const per = Number(e.p.period ?? 0);
-    if (per > 0) { const k = wave(t + Number(e.p.phase ?? 0), per / 1000); const dx = Number(e.p.dx ?? 0) * k, dy = Number(e.p.dy ?? 0) * k; out.l += dx; out.r += dx; out.t += dy; out.b += dy; }
+    if (per > 0) { const k = wave(t + Number(e.p.phase ?? 0), per / 1000 / tempoOf(e)); const dx = Number(e.p.dx ?? 0) * k, dy = Number(e.p.dy ?? 0) * k; out.l += dx; out.r += dx; out.t += dy; out.b += dy; }
     const on = Number(e.p.on ?? 0), off = Number(e.p.off ?? 0);
     if (on > 0 && off > 0) { const u = (t + Number(e.p.phase ?? 0)) % (on + off); if (u >= on) return false; }
     // bağışlayıcı: görselin içinde 8 px pay
@@ -188,24 +194,24 @@ export function enemyKind(e: WEnt): EnemyKind {
 }
 /** düşmanın t anındaki ayak konumu ve uyarı durumu (telegraf) */
 export function enemyAt(e: WEnt, t: number): { x: number; y: number; face: -1 | 1; warn: number } {
-  const k = enemyKind(e); const dx = Number(e.p.dx ?? (k === 'ucan' ? 0 : 50)); const ph = Number(e.p.phase ?? 0);
+  const k = enemyKind(e); const dx = Number(e.p.dx ?? (k === 'ucan' ? 0 : 50)); const ph = Number(e.p.phase ?? 0); const tp = tempoOf(e);
   switch (k) {
     case 'ucan': {
-      const x = e.x + dx * Math.sin((t + ph) * 0.9); const y = e.y + Number(e.p.amp ?? 14) * Math.sin((t + ph) * 2.4);
-      return { x, y, face: Math.cos((t + ph) * 0.9) * dx >= 0 ? 1 : -1, warn: 0 };
+      const x = e.x + dx * Math.sin((t + ph) * 0.9 * tp); const y = e.y + Number(e.p.amp ?? 14) * Math.sin((t + ph) * 2.4 * tp);
+      return { x, y, face: Math.cos((t + ph) * 0.9 * tp) * dx >= 0 ? 1 : -1, warn: 0 };
     }
     case 'atici': {
-      const per = Number(e.p.period ?? 2.4); const u = ((t - Number(e.p.phase ?? 1)) % per + per) % per;
+      const per = Number(e.p.period ?? 2.4) / tp; const u = ((t - Number(e.p.phase ?? 1)) % per + per) % per;
       return { x: e.x, y: e.y, face: Number(e.p.dir ?? -1) >= 0 ? 1 : -1, warn: u > per - 0.55 ? (u - (per - 0.55)) / 0.55 : 0 };
     }
     case 'ziplayan': {
-      const P = Number(e.p.period ?? 1.8); const u = ((t + ph) % P + P) % P; const H = Number(e.p.hop ?? 110);
+      const P = Number(e.p.period ?? 1.8) / tp; const u = ((t + ph) % P + P) % P; const H = Number(e.p.hop ?? 110);
       if (u < 0.35) return { x: e.x, y: e.y, face: -1, warn: u / 0.35 };
       const v = (u - 0.35) / (P - 0.35); return { x: e.x, y: e.y - H * 4 * v * (1 - v), face: -1, warn: 0 };
     }
     default: {
       if (!dx) return { x: e.x, y: e.y, face: -1, warn: 0 };
-      const speed = Number(e.p.speed ?? 70); const per = (2 * Math.abs(dx)) / speed; const u = (t + ph) / per;
+      const speed = Number(e.p.speed ?? 70) * tp; const per = (2 * Math.abs(dx)) / speed; const u = (t + ph) / per;
       const f = u - Math.floor(u);
       return { x: e.x + dx * tri(u), y: e.y, face: (f < 0.5) === dx > 0 ? 1 : -1, warn: 0 };
     }
@@ -214,7 +220,7 @@ export function enemyAt(e: WEnt, t: number): { x: number; y: number; face: -1 | 
 /** atıcının mermileri (t anında); kill: öldürüldüğü an */
 export function projectiles(e: WEnt, t: number, killedAt: number | undefined, out: { x: number; y: number }[]): void {
   out.length = 0;
-  const per = Number(e.p.period ?? 2.4), ph = Number(e.p.phase ?? 1), sp = Number(e.p.speed ?? 230), range = Number(e.p.range ?? 520);
+  const per = Number(e.p.period ?? 2.4) / tempoOf(e), ph = Number(e.p.phase ?? 1), sp = Number(e.p.speed ?? 230), range = Number(e.p.range ?? 520);
   const dir = Number(e.p.dir ?? -1) >= 0 ? 1 : -1; const py = e.y - (e.p.high ? 52 : 20);
   const kmax = Math.floor((t - ph) / per);
   for (let k = kmax; k >= 0; k--) {
@@ -432,7 +438,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
   // trambolin penceresi: zara değdikten sonra kısa süre dokunuş beklenir (dokunmazsan sönük sıçrama)
   if (h.tramp > 0) {
     h.tramp -= dt; const e = w.ents[h.trampId]!;
-    if (h.buffer > 0) { h.buffer = 0; trampStrong(w, s, e, h.tramp >= C.TRAMP_WINDOW - C.TRAMP_PERFECT); }
+    if (h.buffer > 0) { h.buffer = 0; trampStrong(w, s, e, h.tramp >= trampWindow(e) - C.TRAMP_PERFECT); }
     else if (h.tramp <= 0) bounce(s, -C.TRAMP_WEAK, e.id, 'tramp-weak');
     else return;
   }
@@ -542,7 +548,7 @@ function land(w: World, s: SimState, id: number, vyBefore: number, inp: SimInput
   } else if (Math.abs(vyBefore) > 300) ev(s, 'land', h.x, h.y, { n: Math.abs(vyBefore) });
   if (e.type === 'trampoline') {
     if (h.buffer > 0 || inp.pressed) { const perfect = inp.pressed || h.buffer >= C.JUMP_BUFFER - C.TRAMP_PERFECT; h.buffer = 0; trampStrong(w, s, e, perfect); }
-    else { h.tramp = C.TRAMP_WINDOW; h.trampId = id; }
+    else { h.tramp = trampWindow(e); h.trampId = id; }
     return;
   }
   if (e.type === 'crumble' && !s.crumble.has(id)) { s.crumble.set(id, s.t); ev(s, 'crumble', h.x, h.y, { id }); }
@@ -565,7 +571,7 @@ function poundImpact(w: World, s: SimState) {
   const h = s.hero; const ids = near(w, h.x - 100, h.x + 100).slice();
   for (const id of ids) {
     const e = w.ents[id]!;
-    if (e.type === 'crumble' && h.x + C.HERO_HW > e.l && h.x - C.HERO_HW < e.r && Math.abs(e.t - h.y) < 8) { s.crumble.set(id, s.t - 0.4); ev(s, 'crumble', h.x, h.y, { id, s: 'kir' }); }
+    if (e.type === 'crumble' && h.x + C.HERO_HW > e.l && h.x - C.HERO_HW < e.r && Math.abs(e.t - h.y) < 8) { s.crumble.set(id, s.t - crumbleDelay(e)); ev(s, 'crumble', h.x, h.y, { id, s: 'kir' }); }
     if (e.type === 'switch' && e.p.by !== 'darbe' && Math.abs(e.x - h.x) < 36 && Math.abs(e.y - h.y) < 24) triggerSwitch(s, e);
     if (e.cls === 'enemy' && !s.killed.has(id)) { const p = enemyAt(e, s.t); if (Math.abs(p.x - h.x) < C.POUND_RADIUS && Math.abs(p.y - h.y) < 40) kill(s, e, 'pound'); }
   }
@@ -770,5 +776,5 @@ function dynamics(w: World, s: SimState, ids: number[]) {
       if (L.off === 0 && !on && s.t - L.lastOn > 1) s.lifts.delete(id);
     }
   }
-  for (const [id, trig] of s.crumble) if (s.t >= trig + 3.4) { const e = w.ents[id]!; const hb = heroBox(h, C.HERO_H); if (!overlap(hb, e)) s.crumble.delete(id); }
+  for (const [id, trig] of s.crumble) { const e = w.ents[id]!; if (s.t < trig + crumbleDelay(e) + 3) continue; const hb = heroBox(h, C.HERO_H); if (!overlap(hb, e)) s.crumble.delete(id); }
 }

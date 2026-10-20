@@ -54,7 +54,7 @@ Düşmanlar `enemy` props.kind: `devriye` (yürür, kenarda döner), `ucan` (sin
   (`play/levels-*.test.ts`). Bölüm çukursuz başlıyorsa en başa giriş çukuru konur (boşta oyuncu her bölümde düşer).
 - **Yay**: giriş (öğretir) → gelişim (birleştirir) → final + **doruk gösterisi** (her bölüm bir gösteriyle biter).
 - **Risk yolu**: her bölüm-içi bölümde isteğe bağlı, daha çok notalı daha zor bir yol (`risk` etiketli oda ya da mikro oda).
-- **Zar biyomu**: her bölümde en az 7 zar; zar zincirlerinde her blok bir öncekinden yüksek. "Mükemmel" (değme anının ±0,05 sn'si)
+- **Zar biyomu**: her bölümde en az 8 zar; zar zincirlerinde her blok bir öncekinden yüksek. "Mükemmel" (değme anının ±0,05 sn'si)
   ×1,12, vuruşta nabız atan zar vuruşa denk gelince ×1,1 — yalnız tepedeki ödül notaları/koklealar için.
 - **Tırmanış**: kanal 7, 8, 17'de 6-10 duvar zıplamalık bacalar; sol duvarın tepesinde koklea rafı.
 - **Nota yayları gerçek yörüngede**: `jumpArc / flightArc / trampArc / glideArc / hookArc / launchArc` (helpers) motorla aynı fizikle

@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, bank, beat, beatSlide, block, bubble, checkpoint, chunk, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
+import { G, bank, beat, beatSlide, moving, block, bubble, checkpoint, chunk, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -58,4 +58,22 @@ export const KOKLEA_CHUNKS: ChunkSpec[] = [
     bank(1460, 0 + 30, 300), ...pool(1490, 600, 300), bank(2090, 310, 300), bubble(1800, G + 220), hazard(1700, G + 60, 80, 140),
     ...coins(440, G - 500, 4, 40), ...jumpArc(720, 3, 0.15, G - 400), ...jumpArc(1010, 3, 0.15, G - 320), ...jumpArc(1300, 3, 0.15, G - 240), ...coins(1560, G + 180, 6, 44), spike(2230, 40), secret(1960, G + 250), collect(760, G - 560),
   ], { tags: ['gosteri', 'ufalanan', 'su'], biomes: [...K3], setPiece: true }),
+  // ---------------------------------------------------------------- sınav odaları (bölge finalleri, docs/12): öğrenilen her şey bir arada,
+  // daha sıkı zamanlama; her tehlike görünür ve okunur, gizli koklea ana yolda değil
+  // Taban sınavı: vuruşla beliren basamaklar havuzun üstünde; düşen yüzerek devam eder ama sıvıda balıklar ve gürültü var
+  chunk('k1-sinav-havuz', 'yuzme', 5, 1800, [
+    // geniş çukurun üstünde gidip gelen hücre köprüsü, yolunda sürüklenen gürültü; sonra balıklı havuz ve zıplayan bekçi
+    ground(0, 280), moving(300, G - 30, 120, 220, 0, 3000), hazard(500, G - 190, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1800, phase: 0.5 }), ground(760, 300),
+    ...pool(1060, 360, 200), fish(1240, G + 110, 70), bubble(1120, G + 150), bank(1420, 380, 200), hop(1600, 110), spike(1720, 40),
+    ...coins(320, G - 80, 5, 44), ...coins(1100, G + 90, 4, 44), ...jumpArc(1480, 4, 1),
+    plat(820, G - 260, 70), secret(855, G - 310),
+  ], { tags: ['su', 'hareketli', 'dusman', 'sinav'], biomes: [...KALL] }),
+  // Apeks sınavı: ufalanan aralıklı basamaklar, ağır zıplayanlar, kalkanlı bekçi ve hareketli köprü
+  chunk('k3-sinav-bas', 'yuzme', 5, 1800, [
+    // geniş çukurun üstünde gidip gelen köprü, köprünün yolunda sürüklenen gürültü; ardından ufalanan basamaklar ve ağır zıplayan
+    ground(0, 300), moving(320, G - 30, 120, 230, 0, 3200), hazard(520, G - 200, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1900 }), ground(800, 200),
+    ...crumbles(1040, 3, G, 130), ground(1430, 370), hop(1600, 140), spike(1740, 40),
+    ...coins(340, G - 80, 5, 44), ...jumpArc(975, 3, 0.15), ...jumpArc(1105, 3, 0.15), ...jumpArc(1235, 3, 0.15),
+    plat(850, G - 260, 80), secret(890, G - 310),
+  ], { tags: ['hareketli', 'ufalanan', 'dusman', 'sinav'], biomes: [...K2, ...K3] }),
 ];

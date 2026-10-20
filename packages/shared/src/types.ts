@@ -101,6 +101,9 @@ export interface BossSpec {
   hp: number;
   phases: number;
   biome: BiomeId;
+  /** zorluk düğmeleri: uyarı (telegraf) süresi çarpanı (1 = varsayılan) ve saldırı temposu çarpanı (>1 daha sık) */
+  warn?: number;
+  tempo?: number;
 }
 
 export interface LevelSpec {

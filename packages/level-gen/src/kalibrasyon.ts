@@ -1,0 +1,38 @@
+/**
+ * Bölüm kalibrasyonu — ÜRETİLMİŞ dosya: `node tools/harness/zorluk.mjs --kalibre`. Bölüm → üretici varyantı (0 = varsayılan).
+ * Her bölüm için hedef eğriye tahminen en yakın birkaç varyant insan modeliyle ölçülür, ölçülen can kaybı hedefe en yakın olan seçilir.
+ */
+export const KALIBRASYON: Record<number, number> = {
+  1: 1,
+  4: 2,
+  5: 3,
+  6: 1,
+  7: 9,
+  8: 3,
+  9: 1,
+  12: 11,
+  13: 4,
+  14: 7,
+  15: 4,
+  17: 3,
+  18: 8,
+  19: 4,
+  21: 9,
+  22: 1,
+  23: 3,
+  24: 1,
+  25: 9,
+  26: 1,
+  27: 3,
+  28: 5,
+  29: 4,
+  30: 7,
+  31: 9,
+  32: 3,
+  33: 8,
+  34: 2,
+  36: 3,
+  37: 7,
+  38: 4,
+  39: 9,
+};

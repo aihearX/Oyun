@@ -60,6 +60,14 @@ Makro eylemler (`press` + basılı süre, `swipe`, `dash`) motorun kendi adımı
 doğrulanır, hasar ya da ilerlemesizlik görülünce yeniden aranır (tek eylem → mevcut plana ek → iki eylem; çakılma hedefleri
 için yörüngeden önerilen adım). Simülasyon deterministik olduğundan kare hızından bağımsızdır.
 
+## Zorluk eğrisi ve insan benzeri oyuncu
+Zorluk düğmeleri (`level-gen/src/curve.ts`), oda ölçüleri (`level-gen/src/rooms.ts`, ölçümler `content/chunks/puanlar.ts`) ve bölüm
+kalibrasyonu (`level-gen/src/kalibrasyon.ts`) üreticinin parçasıdır; ölçüm `play/human.ts` (planlayıcının üstünde tepki gecikmesi,
+zamanlama sapması ve sınırlı ileri bakışla oynayan oyuncu kitlesi) ve `tools/harness/zorluk.mjs` ile yapılır. Ayrıntı:
+`docs/12-zorluk-egrisi.md`. Motor zamanlama düğmelerini varlık özelliklerinden okur: `crumble.props.delay`, `trampoline.props.window`,
+düşman/hareketli platform/sürüklenen tehlike `props.tempo`; boss `spec.boss.warn` ve `spec.boss.tempo`. Oda ekleyince
+`node tools/harness/zorluk.mjs --odalar --ids yeni-oda` ile ölçün.
+
 ## Boss
 `spec.boss` varsa arena tek ekran: iki yanda tırmanılabilir duvar. Golem: gölgeli yumruk (zıplayarak kaçılır), saplı yumruğa
 çakılma −2. Canavar: duvardan dalgalar (alçak: zıpla, yüksek: kay), 3 nota → kalp iner → ses darbesi/çakılma −3.

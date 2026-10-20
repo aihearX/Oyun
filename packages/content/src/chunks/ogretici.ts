@@ -66,6 +66,6 @@ export const OGRETICI_CHUNKS: ChunkSpec[] = [
   ], { tags: ['ogretici', 'darbe'] }),
   chunk('ogret-cevir', 'ruya', 1, 1300, [
     ground(0, 1300), plat(300, G - 300, 820, 40), text(150, G - 230, 'Mor bölgede dokun: yerçekimini çevir'), tutor(260, 120, 'cevir'),
-    grav(300, G - 260, 820, 260), spike(480, 120), hazard(650, G - 264, 110, 26, 'diken'), spike(820, 140), ...coins(470, G - 236, 4, 40), ...coins(650, G - 40, 3, 40), ...coins(810, G - 236, 4, 40), secret(1000, G - 240),
+    grav(300, G - 260, 820, 260), spike(480, 120), hazard(650, G - 264, 110, 26, 'diken'), spike(820, 140), ...coins(470, G - 236, 4, 40), ...coins(650, G - 40, 3, 40), ...coins(810, G - 236, 4, 40), secret(1000, G - 240), spike(1230, 30), ...jumpArc(1170, 2, 0.3),
   ], { tags: ['ogretici', 'cevir'] }),
 ];

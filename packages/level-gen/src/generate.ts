@@ -2,6 +2,9 @@ import type { AbilityId, ChunkSpec, Entity, LevelSpec, ModifierId, PlayerSkills 
 import { mulberry32, hashString, pick, GROUND_Y } from '@odi/shared';
 import { ALL_CHUNKS, BOSSES, MODIFIERS, abilitiesAt, chunkNeeds, journeyById, newAbilitiesAt, objective, type LevelPlan } from '@odi/content';
 import { quietProfile, startsWithPit } from './pacing';
+import { CURVE_ZONES, knobsFor, tuningAt, zoneOf, zonePos, type LevelKnobs } from './curve';
+import { predictDmg, roomStats } from './rooms';
+import { KALIBRASYON } from './kalibrasyon';
 
 export interface PlayerProfile {
   /** son 5 bölümdeki ortalama yıldız (0-3); dinamik zorluk */
@@ -17,25 +20,89 @@ export const DEFAULT_PROFILE: PlayerProfile = { recentStars: 2, failStreak: 0, s
 export const MAX_NOTES = 100;
 
 /**
- * Zorluk eğrisi (1..5, sürekli): bölüm 1 → 1, bölüm 40 → 5. Bölüm-içi bölümler: giriş −0,6 · gelişim 0 · final +0,5.
- * Profil: ustaysa biraz zorlaştır, takıldıysa nefes aldır.
+ * Bölümün zorluk düğmeleri (docs/12-zorluk-egrisi.md, `curve.ts`) + uyarlanabilir yardım. Profil yalnızca YUMUŞAK bir yardımdır:
+ * aynı bölümde üst üste 3 başarısızlık bir kademe, 5 başarısızlık iki kademe kolaylaştırır; usta oyuncu (son 5 bölüm ort. ≥ 2,8 yıldız)
+ * yalnızca ilk bölgeden sonra, final ve boss olmayan bölümlerde çok küçük bir ek alır — ilk bölümler asla zorlaşmaz.
  */
+export function levelKnobs(number: number, profile: PlayerProfile = DEFAULT_PROFILE): LevelKnobs {
+  const n = Math.min(40, Math.max(1, number));
+  const ease = profile.failStreak >= 5 ? 2 : profile.failStreak >= 3 ? 1 : 0;
+  const z = zoneOf(n);
+  const bonus = !ease && profile.recentStars >= 2.8 && n > 5 && n !== z.peak && n % 20 !== 0 ? 0.06 : 0;
+  return knobsFor(n, { ease, bonus });
+}
+/** geriye uyum: 1..5 ölçeğinde zorluk (hedef beklenen can kaybından) */
 export function difficultyFor(number: number, profile: PlayerProfile = DEFAULT_PROFILE): number {
-  let d = 1 + ((Math.min(40, Math.max(1, number)) - 1) * 4) / 39;
-  if (profile.recentStars >= 2.8) d += 0.5;
-  if (profile.failStreak >= 2) d -= 0.7;
-  return Math.max(1, Math.min(5, d));
+  return Math.max(1, Math.min(5, 1 + (4 * levelKnobs(number, profile).lambda) / 2.2));
 }
 
-function pickModifiers(plan: LevelPlan, rng: () => number): ModifierId[] {
-  if (plan.number < 15 || plan.mechanic === 'boss') return [];
-  // ters yerçekimi değiştiricisi, yerçekimi çevirmenin kendisi açılınca (35+) karışıklık yaratır ve otomatik çevirmelerle yolu ölü bırakır
-  const avail = (Object.keys(MODIFIERS) as ModifierId[]).filter((m) => MODIFIERS[m].minLevel <= plan.number && !(m === 'ters-yercekimi' && abilitiesAt(plan.number).includes('cevir')));
-  if (!avail.length) return [];
-  const count = plan.number >= 30 ? (rng() < 0.5 ? 2 : 1) : rng() < 0.6 ? 1 : 0;
-  const out: ModifierId[] = [];
-  while (out.length < count) { const m = pick(rng, avail); if (!out.includes(m)) out.push(m); }
-  return out;
+/** değiştiriciler artık rastgele değil: eğrinin sabit tablosu (yalnız ileri bölgeler ve finaller; `curve.ts`) */
+function pickModifiers(plan: LevelPlan, knobs: LevelKnobs): ModifierId[] {
+  if (plan.mechanic === 'boss') return [];
+  return knobs.modifiers.filter((m) => MODIFIERS[m] && !(m === 'ters-yercekimi' && abilitiesAt(plan.number).includes('cevir')));
+}
+
+/** odanın bu bölümün düğmelerine uyup uymadığı (`strict` 0 tam, 1 boşluk/iniş serbest, 2 aile serbest, 3 yalnız tavan ×1,6) */
+function knobOk(c: ChunkSpec, k: LevelKnobs, strict: number): boolean {
+  const st = roomStats(c);
+  // tek oda bölümün tahmini can kaybı hedefinin yarısından fazlasını yemesin (tek odalık ani zorluk sıçraması yok)
+  if (predictDmg(c, k.tight) > Math.max(0.07, 0.5 * k.lambda)) return false;
+  if (strict >= 3) return st.score <= k.roomMax * 1.5;
+  if (st.score > k.roomMax) return false;
+  if (!st.enemies.every((e) => k.enemies.includes(e))) return false;
+  if (strict < 2 && st.families.length > k.maxFamilies) return false;
+  if (strict < 1 && (st.maxGap > k.maxGap || st.minLanding < k.minLanding)) return false;
+  return true;
+}
+/** boşlukta durabilen (çukurun "boş" sayılmasını bozmayan) varlıklar */
+const PASSIVE = new Set(['coin', 'note', 'collect', 'secret', 'decor', 'text', 'tutor', 'powerup', 'checkpoint']);
+/**
+ * Geometri düğmeleri (oda tanımı paylaşılır: kopyala): diken genişliği, içi boş zemin çukurlarının genişliği ve dar basamakların
+ * (hareketli/ritim/ufalanan/yankı) iniş genişliği bölümün sıkılığına göre ölçeklenir. Çukur en çok 190 px (tam zıplama 221 px),
+ * basamak en az 60 px, diken en az 24 px. Genişleyen diken komşu zemine taşmaz (oda sınırı içinde kalır).
+ */
+function applyGeometry(c: ChunkSpec, k: Pick<LevelKnobs, 'geom'>): ChunkSpec {
+  const gm = k.geom; if (gm.spike === 1 && gm.gap === 1 && gm.landing === 1) return c;
+  const ents = c.entities.map((e) => ({ ...e }));
+  for (const e of ents) {
+    if (e.type === 'spike' && e.y === GROUND_Y) {
+      const w = e.w ?? 32; const nw = Math.max(24, Math.round(w * gm.spike)); const nx = Math.round(e.x - (nw - w) / 2);
+      // yalnız zemindeki diken; genişlemiş hali de tek bir zemin platformunun üstünde kalmalı
+      if (ents.some((f) => f.type === 'platform' && (f.h ?? 24) >= 100 && Math.abs(f.y - GROUND_Y) <= 2 && f.x <= nx && f.x + (f.w ?? 0) >= nx + nw)) { e.x = nx; e.w = nw; }
+    }
+    // ufalanan taşlar yalnızca daralır: genişlerse aralarındaki boşluk kapanır ve zıplamadan geçilir (tempo kuralı bozulur)
+    else if (e.type === 'moving' || e.type === 'beat' || e.type === 'crumble' || e.type === 'echo') { const w = e.w ?? 120; const k = e.type === 'crumble' ? Math.min(1, gm.landing) : gm.landing; const nw = Math.max(60, Math.round(w * k)); e.x = Math.round(e.x - (nw - w) / 2); e.w = nw; }
+  }
+  // zemin çukurları: ardışık iki zemin platformu arasındaki, içinde etkin varlık olmayan aralık; sağdaki zemin kaydırılır
+  // (duvar odalarında değil: oradaki çukur boşta oyuncu içindir, inişi doğrudan duvara dayanır)
+  if (ents.some((e) => e.type === 'wall')) return { ...c, entities: ents };
+  const floors = ents.filter((e) => e.type === 'platform' && (e.h ?? 24) >= 100 && Math.abs(e.y - GROUND_Y) <= 12).sort((a, b) => a.x - b.x);
+  for (let i = 0; i + 1 < floors.length; i++) {
+    const A = floors[i]!, B = floors[i + 1]!; const aR = A.x + (A.w ?? 0), bL = B.x; const gap = bL - aR;
+    if (gap < 60 || gap > 200) continue;
+    if (ents.some((e) => e !== A && e !== B && !PASSIVE.has(e.type) && e.x < bL + 10 && e.x + (e.w ?? 0) > aR - 10 && e.y > GROUND_Y - 260)) continue;
+    const ng = Math.max(50, Math.min(190, Math.round(gap * gm.gap))); const d = ng - gap;
+    if ((B.w ?? 0) - d < 140) continue;
+    B.x += d; B.w = (B.w ?? 0) - d;
+  }
+  return { ...c, entities: ents };
+}
+/** odaya bir sıkılık düzeyinin geometri ve zamanlama düğmelerini uygula (oda puanlama aracı da bunu kullanır) */
+export function tuneRoom(c: ChunkSpec, tight: number): ChunkSpec { const t = tuningAt(tight); return applyTiming(applyGeometry(c, t), t); }
+/** zamanlama düğmelerini odanın varlıklarına yaz (oda tanımı paylaşılır: kopyala) */
+function applyTiming(c: ChunkSpec, k: Pick<LevelKnobs, 'timing'>): ChunkSpec {
+  const tm = k.timing;
+  const ents = c.entities.map((e) => {
+    switch (e.type) {
+      case 'crumble': return { ...e, props: { ...e.props, delay: tm.crumble } };
+      case 'trampoline': return { ...e, props: { ...e.props, window: tm.tramp } };
+      case 'enemy': return tm.enemy === 1 ? e : { ...e, props: { ...e.props, tempo: tm.enemy } };
+      case 'moving': return tm.moving === 1 ? e : { ...e, props: { ...e.props, tempo: tm.moving } };
+      case 'hazard': return e.props?.period && !e.props?.on && tm.moving !== 1 ? { ...e, props: { ...e.props, tempo: tm.moving } } : e;
+      default: return e;
+    }
+  });
+  return { ...c, entities: ents };
 }
 
 const isTutorial = (c: ChunkSpec) => c.tags.includes('ogretici');
@@ -54,53 +121,82 @@ function weighted<T>(rng: () => number, items: { v: T; w: number }[]): T | undef
 
 /** Bölüm üretimi: deterministik (journey + number + seedSalt). Profil yalnızca zorluk ve parça seçimini etkiler.
  *  Bir önceki bölümün odaları düşük ağırlık alır: art arda bölümler farklı hissettirsin. */
-export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0): LevelSpec {
+export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0, o: { variant?: number } = {}): LevelSpec {
   const prev = new Set<string>();
   for (const k of [1, 2]) if (number > k) { try { for (const c of generateCore(journeyId, number - k, profile, seedSalt, new Set()).chunks) prev.add(c.id); } catch { /* yok */ } }
-  return generateCore(journeyId, number, profile, seedSalt, prev);
+  return generateCore(journeyId, number, profile, seedSalt, prev, o.variant);
 }
 
-function generateCore(journeyId: string, number: number, profile: PlayerProfile, seedSalt: number, prevIds: Set<string>): LevelSpec {
+/**
+ * Kalibrasyon varyantı: aynı düğmelerle üretilebilecek bölümler arasından, insan modeliyle ÖLÇÜLÜNCE hedef eğriye en yakın olanın
+ * numarası (`kalibrasyon.ts`, `tools/harness/zorluk.mjs --kalibre` üretir). Yalnızca yolculuğun kendi bölümleri.
+ */
+export const variantOf = (journeyId: string, number: number): number => (journeyId === 'insan' ? KALIBRASYON[number] ?? 0 : 0);
+
+function generateCore(journeyId: string, number: number, profile: PlayerProfile, seedSalt: number, prevIds: Set<string>, variantOverride?: number): LevelSpec {
   const journey = journeyById(journeyId);
   if (!journey) throw new Error(`yolculuk yok: ${journeyId}`);
   const plan = journey.levels.find((l) => l.number === number) ?? journey.levels[journey.levels.length - 1]!;
-  const seed = hashString(`${journeyId}:${number}:${seedSalt}`);
+  const variant = variantOverride ?? variantOf(journeyId, number);
+  const seed = hashString(`${journeyId}:${number}:${seedSalt}${variant ? `:v${variant}` : ''}`);
   const rng = mulberry32(seed);
-  const modifiers = pickModifiers(plan, rng);
+  const knobs = levelKnobs(plan.number, profile);
+  const modifiers = pickModifiers(plan, knobs);
   const abilities = abilitiesAt(plan.number); const abil = new Set(abilities);
   const newAbilities = newAbilitiesAt(plan.number);
 
   if (plan.mechanic === 'boss') {
     const boss = BOSSES[plan.boss ?? ''];
     if (!boss) throw new Error(`boss yok: ${plan.boss}`);
-    return { id: `${journeyId}-${number}`, number, journey: journeyId, name: plan.name, biome: plan.biome, mechanic: 'boss', objective: objective('boss'), modifiers: [], seed, chunks: [], lengthPx: 0, parTimeSec: 120, coinsTotal: 0, intro: plan.intro, boss, abilities, newAbilities: [], sectionStarts: [0], cochleasTotal: 0 };
+    const tuned = { ...boss, hp: knobs.timing.bossHp ?? boss.hp, warn: knobs.timing.bossWarn, tempo: knobs.timing.bossTempo ?? 1 };
+    return { id: `${journeyId}-${number}`, number, journey: journeyId, name: plan.name, biome: plan.biome, mechanic: 'boss', objective: objective('boss'), modifiers: [], seed, chunks: [], lengthPx: 0, parTimeSec: 120, coinsTotal: 0, intro: plan.intro, boss: tuned, abilities, newAbilities: [], sectionStarts: [0], cochleasTotal: 0 };
   }
 
   // ---- havuz: biyoma uygun, açık yeteneklerle oynanabilir parçalar
   const biomeOk = (c: ChunkSpec) => !c.biomes || c.biomes.includes(plan.biome);
   const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil));
-  const normal = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c));
+  // sınav odaları yalnızca bölge finalinde (öğrenilen her şey bir arada): final bölüm-içi bölümün son odası
+  const isExam = (c: ChunkSpec) => c.tags.includes('sinav');
+  const normalAll = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c) && !isExam(c));
+  const zone = zoneOf(plan.number);
+  const exams = plan.number === zone.peak ? pool.filter(isExam).sort((a, b) => predictDmg(b, knobs.tight) - predictDmg(a, knobs.tight) || a.id.localeCompare(b.id)) : [];
+  // ileri bölgelerin finali iki sınav odası ister (Koklea orta/apeks, Sinir, Korteks; Beyin Sapı'nın çevirme sınavı tek başına
+  // yeterince ağır — ölçüldü); biri tahminen en zoru, biri dönüşümlü
+  const examN = [5, 6, 7, 9].includes(CURVE_ZONES.indexOf(zone)) ? 2 : 1;
+  const picked = exams.length ? [...new Set([exams[seedSalt % exams.length]!, ...exams])].slice(0, examN) : [];
+  // düğmelere uyan odalar; yetmezse kısıtlar kademeli gevşer (boşluk/iniş → aile sayısı → yalnız can kaybı tavanı)
+  let normal: ChunkSpec[] = [];
+  for (let strict = 0; strict <= 3 && normal.length < Math.max(6, knobs.rooms + 2); strict++) normal = normalAll.filter((c) => knobOk(c, knobs, strict));
+  if (normal.length < 3) normal = normalAll.slice().sort((a, b) => roomStats(a).score - roomStats(b).score).slice(0, Math.max(6, knobs.rooms + 2));
   const opener = pool.find((c) => c.tags.includes('giris'));
-  const micros = pool.filter((c) => isMicro(c) && !c.tags.includes('giris'));
+  const microsAll = pool.filter((c) => isMicro(c) && !c.tags.includes('giris'));
+  // mikro odalar (tempo ve risk yolu) bütçe dışı eklenir: pahalı olanlar elenir (tahmini can kaybı ≤ max(0,03; λ/6))
+  const microsOk = microsAll.filter((c) => knobOk(c, knobs, 2) && predictDmg(c, knobs.tight) <= Math.max(0.03, knobs.lambda / 6));
+  const micros = microsOk.length >= 3 ? microsOk : microsAll;
   if (!normal.length) throw new Error(`parça yok: ${plan.biome}`);
   const focus = new Set(plan.focus ?? []);
   // bu biyomda açılan / en yeni yetenek: o yeteneği kullanan parçalar öne çıkar
   const latest = abilities[abilities.length - 1]!;
-  const base = difficultyFor(plan.number, profile);
-  const total = Math.max(6, Math.min(13, (plan.targetChunks ?? 6) + 2));
-  const counts = [Math.max(2, Math.round(total * 0.3)), Math.max(2, Math.round(total * 0.38))];
-  counts.push(Math.max(2, total - counts[0]! - counts[1]!));
+  const total = knobs.rooms;
+  const counts = [Math.max(1, Math.round(total * 0.3)), Math.max(1, Math.round(total * 0.36))];
+  counts.push(Math.max(1, total - counts[0]! - counts[1]!));
   const used = new Set<string>();
   const chunks: ChunkSpec[] = []; const sectionStarts: number[] = [];
 
-  const pickChunk = (target: number, needSecret: boolean): ChunkSpec => {
-    let cands = normal.filter((c) => !used.has(c.id) && Math.abs(c.difficulty - target) <= 1.5);
+  /**
+   * oda seçimi: bölümün can kaybı bütçesinden bu odaya düşen pay (`target`, λ birimi) — odanın bu bölümün sıkılığındaki tahmini
+   * can kaybı (ölçülen) ona yakın olan öne çıkar; eşit tahminlerde oda puanı bölümün puan hedefine yakın olan (çeşitlilik ve biyom)
+   */
+  const pd = (c: ChunkSpec) => predictDmg(c, knobs.tight);
+  const pickChunk = (target: number, scoreTarget: number, needSecret: boolean): ChunkSpec => {
+    const tol = Math.max(0.03, target * 0.5);
+    let cands = normal.filter((c) => !used.has(c.id) && Math.abs(pd(c) - target) <= tol * 3);
     if (needSecret) { const s = cands.filter(hasSecret); if (s.length) cands = s; }
-    if (!cands.length) cands = normal.filter((c) => !used.has(c.id));
+    if (cands.length < 2) cands = normal.filter((c) => !used.has(c.id));
     if (!cands.length) cands = normal;
     const last = chunks[chunks.length - 1];
     const c = weighted(rng, cands.map((c) => {
-      let w = 1 / (1 + Math.abs(c.difficulty - target) * 1.6);
+      let w = 1 / Math.pow(1 + Math.abs(pd(c) - target) / tol, 2) / (1 + Math.abs(roomStats(c).score - scoreTarget) / 2.5);
       if (c.biomes?.includes(plan.biome)) w *= 3;
       const needs = chunkNeeds(c);
       if (needs.includes(latest)) w *= 2.2;
@@ -120,7 +216,19 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     return pick(rng, own.length ? own : cps);
   };
 
-  const targets = [base - 0.6, base, base + 0.5].map((d) => Math.max(1, Math.min(5, d)));
+  // gösteri parçası (set piece): biyomun gösterilerinden; bölge girişinde en kolayı, finalde en zoru, arada dönüşümlü
+  const biomeLevels = journey.levels.filter((l) => l.biome === plan.biome && l.mechanic !== 'boss').map((l) => l.number);
+  const idxInBiome = biomeLevels.indexOf(plan.number);
+  const sets = pool.filter((c) => c.setPiece && c.biomes?.includes(plan.biome)).sort((a, b) => roomStats(a).score - roomStats(b).score);
+  const zp = zonePos(plan.number);
+  const setsOk = sets.filter((c) => predictDmg(c, knobs.tight) <= Math.max(0.08, 0.5 * knobs.lambda)).sort((a, b) => predictDmg(a, knobs.tight) - predictDmg(b, knobs.tight));
+  const sp = setsOk.length ? setsOk : sets.slice(0, 1);
+  const setPiece = !sp.length ? undefined : seedSalt ? sp[(idxInBiome + seedSalt) % sp.length]! : zp <= 0.01 || plan.number <= 3 ? sp[0]! : zp >= 0.99 ? sp[sp.length - 1]! : sp[idxInBiome % sp.length]!;
+  // can kaybı bütçesi: hedef λ − gösteri ve öğreticilerin tahmini payı − mikro odalar için küçük pay; bölüm-içi bölümler %27 / %33 / %40
+  // (oda puanı hedefi de ×0,7 / ×1 / ×1,25: her bölüm-içi bölüm bir öncekinden biraz zor, son odası kendi küçük doruğu)
+  const tutorCost = pool.filter((c) => isTutorial(c) && c.entities.some((e) => e.type === 'tutor' && newAbilities.includes(String(e.props?.ability) as AbilityId))).reduce((a, c) => a + pd(c), 0);
+  const budget = Math.max(0, knobs.lambda - (setPiece ? pd(setPiece) : 0) - picked.reduce((a, c) => a + pd(c), 0) - tutorCost - 0.05);
+  const shares = [0.27, 0.33, 0.4]; const secK = [0.7, 1, 1.25];
   for (let s = 0; s < 3; s++) {
     sectionStarts.push(chunks.length);
     const startLen = chunks.length;
@@ -132,18 +240,17 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
         if (t) { chunks.push(t); used.add(t.id); }
       }
     } else { const cp = checkpointChunk(); if (cp) chunks.push(cp); }
-    const n = counts[s]!;
+    const n = counts[s]!; let left = budget * shares[s]!;
     for (let i = 0; i < n; i++) {
       const secretSoFar = chunks.slice(startLen).some(hasSecret);
-      chunks.push(pickChunk(targets[s]! + (i === n - 1 && s === 2 ? 0.4 : 0), !secretSoFar && i === n - 1));
+      const last = i === n - 1 && n > 1;
+      const c = pickChunk(Math.max(0, left / (n - i)) * (last ? 1.3 : 1), knobs.roomTarget * secK[s]! + (last ? 0.5 : 0), !secretSoFar && i === n - 1);
+      chunks.push(c); left -= pd(c);
     }
   }
-  // gösteri parçası (set piece): biyomun bölümlerinde dönüşümlü, final bölümünün sonunda
-  const biomeLevels = journey.levels.filter((l) => l.biome === plan.biome && l.mechanic !== 'boss').map((l) => l.number);
-  const idxInBiome = biomeLevels.indexOf(plan.number);
-  const sets = pool.filter((c) => c.setPiece && c.biomes?.includes(plan.biome));
-  // her bölüm bir doruk gösterisiyle biter (giriş öğretir → gelişim birleştirir → final doruk); biyomun gösterileri dönüşümlü
-  if (sets.length) chunks.push(sets[(idxInBiome + seedSalt) % sets.length]!);
+  // bölge finali: sınav odası, ardından doruk gösterisi (her bölüm bir gösteriyle biter: giriş öğretir → gelişim birleştirir → final doruk)
+  for (const ex of picked) { chunks.push(ex); used.add(ex.id); }
+  if (setPiece) chunks.push(setPiece);
 
   // ---- altın koklealar: her bölüm-içi bölümde tam bir tane; notalar en çok 100
   const sectionOf = (i: number) => (i >= sectionStarts[2]! ? 2 : i >= sectionStarts[1]! ? 1 : 0);
@@ -163,13 +270,13 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     return { ...c, entities: ents };
   });
   // ---- risk yolu: her bölüm-içi bölümde en az bir isteğe bağlı zor (daha çok notalı) yol
-  const riskMicros = micros.filter(isRisk);
+  const riskMicros = micros.filter(isRisk).length ? micros.filter(isRisk) : microsAll.filter(isRisk).sort((a, b) => predictDmg(a, knobs.tight) - predictDmg(b, knobs.tight)).slice(0, 1);
   if (riskMicros.length) {
     for (let k = 2; k >= 0; k--) {
       const a = sectionStarts[k]!, b = k < 2 ? sectionStarts[k + 1]! : finalChunks.length;
       if (finalChunks.slice(a, b).some(isRisk)) continue;
       const at = Math.min(k === 2 && finalChunks[b - 1]?.setPiece ? b - 1 : b, a + 2); // doruk gösterisi en sonda kalsın
-      const m = weighted(rng, riskMicros.map((c) => ({ v: c, w: (chunkNeeds(c).includes(latest) ? 3 : 1) * (plan.biome === 'zar' && c.tags.includes('zar') ? 3 : 1) })))!;
+      const m = weighted(rng, riskMicros.map((c) => ({ v: c, w: (chunkNeeds(c).includes(latest) ? 3 : 1) * (plan.biome === 'zar' && c.tags.includes('zar') ? 3 : 1) / Math.pow(1 + roomStats(c).score / Math.max(0.5, knobs.roomMax), 2) })))!;
       finalChunks.splice(at, 0, { ...m, entities: m.entities.slice() });
       for (let j = k + 1; j < 3; j++) sectionStarts[j]! += 1;
     }
@@ -177,22 +284,29 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // ---- tırmanış odağı (kanal 7, 8, 17): bölümde uzun tırmanış odası yoksa gelişim bölümüne bir tane eklenir
   if (focus.has('tirmanis') && !finalChunks.some((c) => c.tags.includes('tirmanis'))) {
     const climb = pool.filter((c) => c.tags.includes('tirmanis') && !c.setPiece);
-    if (climb.length) { const c = climb[(plan.number + seedSalt) % climb.length]!; const at = sectionStarts[1]! + 1; finalChunks.splice(at, 0, { ...c, entities: c.entities.slice() }); sectionStarts[2]! += 1; }
+    if (climb.length) { const c = climb[(plan.number + seedSalt) % climb.length]!; const at = sectionStarts[1]! + 1; finalChunks.splice(at, 0, { ...c, entities: c.entities.filter((e) => e.type !== 'secret') }); sectionStarts[2]! += 1; } // koklea sayısı bölüm-içi bölümde bir kalır
   }
-  // ---- kulak zarı: zar biyomun kalbi — bölümde en az 7 zar yoksa bölüm-içi bölüm sınırlarına zar mikro odası eklenir
+  // ---- kulak zarı: zar biyomun kalbi — bölümde en az 8 zar yoksa bölüm-içi bölüm sınırlarına zar mikro odası eklenir
   if (plan.biome === 'zar') {
     const tramps = () => finalChunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'trampoline').length, 0);
     const zm = micros.filter((c) => c.tags.includes('zar') && !isRisk(c));
-    for (let k = 0; tramps() < 7 && zm.length && k < 6; k++) {
+    for (let k = 0; tramps() < 8 && zm.length && k < 6; k++) {
       const sec = 1 + (k % 2); const at = sectionStarts[sec]!; const m = zm[(plan.number + k + seedSalt) % zm.length]!;
       finalChunks.splice(at, 0, { ...m, entities: m.entities.slice() }); for (let j = sec; j < 3; j++) sectionStarts[j]! += 1;
     }
   }
+  // geometri (diken, çukur, basamak) ve zamanlama düğmeleri (ufalanma gecikmesi, zar penceresi, düşman/platform temposu)
+  // odaların varlıklarına yazılır — tempo çözümlemesi düğmeli geometriyi görsün diye ondan önce; sonradan eklenen mikro odalar
+  // ve giriş çukuru da aşağıda bir kez ayarlanır
+  const tuned = new WeakSet<ChunkSpec>();
+  const tune = (c: ChunkSpec) => { if (tuned.has(c)) return c; const t = applyTiming(applyGeometry(c, knobs), knobs); tuned.add(t); return t; };
+  for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
   // ---- tempo: iki girdi arasındaki sessiz yol PACE_LIMIT'i aşmasın — gerekirse araya mikro oda (pacing.ts)
   const paced = paceChunks(finalChunks, sectionStarts, micros, { latest, biome: plan.biome, rng });
   finalChunks.length = 0; finalChunks.push(...paced.chunks); sectionStarts.splice(0, 3, ...paced.sectionStarts);
   // boşta oyuncu ölmeli: bölüm bir çukurla başlamıyorsa en başa kısa giriş çukuru (yoksa gidip-gelme odalarında sonsuza dek koşar)
   if (opener && !startsWithPit(finalChunks[0]!)) { finalChunks.unshift({ ...opener, entities: opener.entities.slice() }); sectionStarts[1]! += 1; sectionStarts[2]! += 1; }
+  for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
   // nota sınırı: fazlası, en uzun nota dizilerinin uçlarından kırpılır (yaylar bölünmez, yalnız kısalır)
   const countNotes = () => finalChunks.reduce((a, c) => a + c.entities.reduce((b, e) => b + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0), 0);
   let notes = countNotes();

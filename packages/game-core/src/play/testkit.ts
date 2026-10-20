@@ -6,6 +6,8 @@ import { generateLevel } from '@odi/level-gen';
 import { buildWorld, type World } from './world';
 import { initState, step, NO_INPUT, type SimInput, type SimState } from './sim';
 import { Planner, type PlanPrefs } from './planner';
+import { runHuman, humanSeed, playerOf, scoreRuns, type HumanParams, type HumanRun, type LevelScore } from './human';
+import type { PlayerProfile } from '@odi/level-gen';
 
 /** Testler ve araçlar için: Phaser'sız bölüm kurulumu ve oynatma. */
 export function testSpec(entities: Entity[], o: { number?: number; abilities?: AbilityId[]; length?: number; modifiers?: LevelSpec['modifiers'] } = {}): LevelSpec {
@@ -53,13 +55,36 @@ const BIOME_LEVEL: Record<string, number> = { 'dis-kulak': 5, kanal: 8, zar: 12,
 export interface RoomOutcome { finished: boolean; failed: string | null; t: number; autoTurns: number; damage: number; level: number }
 /** tek odayı (önünde ve arkasında 200 px düz zemin) uygun bölümün yetenekleriyle planlayıcı botla oyna */
 export function playRoom(c: ChunkSpec, maxT = 40): RoomOutcome {
+  const { w, s, level } = roomSetup(c);
+  const p = new Planner(w); let autoTurns = 0;
+  while (!s.finished && !s.failed && s.t < maxT) { step(w, s, p.next(s)); for (const e of s.events!) if (e.k === 'turn') autoTurns++; s.events!.length = 0; }
+  return { finished: s.finished, failed: s.failed, t: s.t, autoTurns, damage: s.damageTaken, level };
+}
+/** tek odayı insan benzeri oyuncu modeliyle oyna (oda zorluk ölçümü; `k` koşu tohumu) */
+export function playRoomHuman(c: ChunkSpec, k: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun & { level: number } {
+  const { w, s, level } = roomSetup(c); s.events = null;
+  return { ...runHuman(w, s, humanSeed(level * 1000 + c.id.length, k * 7919 + c.id.charCodeAt(c.id.length - 1)), { maxT: o.maxT ?? 60, params: o.params ?? playerOf(k) }), level };
+}
+function roomSetup(c: ChunkSpec): { w: World; s: SimState; level: number } {
   const needLv = Math.max(1, ...chunkNeeds(c).map((a) => ABILITIES[a].level));
   const biome = (c.biomes?.[0] ?? 'dis-kulak') as LevelSpec['biome'];
   const level = Math.max(needLv, c.biomes ? BIOME_LEVEL[biome] ?? needLv : needLv);
   const pad: ChunkSpec = { id: 'pad', mechanic: 'kosu', difficulty: 1, length: 200, entities: [{ type: 'platform', x: 0, y: GROUND_Y, w: 200, h: 200 }], entryY: GROUND_Y, exitY: GROUND_Y, tags: [] };
   const spec: LevelSpec = { id: 't', number: level, journey: 'insan', name: 't', biome, mechanic: 'kosu', objective: { id: 'reach', label: '' }, modifiers: [], seed: 1, chunks: [pad, c, pad], lengthPx: c.length + 400, parTimeSec: 60, coinsTotal: 0, abilities: abilitiesAt(level), sectionStarts: [0] };
   const { w, s } = setup(spec); s.events = [];
-  const p = new Planner(w); let autoTurns = 0;
-  while (!s.finished && !s.failed && s.t < maxT) { step(w, s, p.next(s)); for (const e of s.events!) if (e.k === 'turn') autoTurns++; s.events!.length = 0; }
-  return { finished: s.finished, failed: s.failed, t: s.t, autoTurns, damage: s.damageTaken, level };
+  return { w, s, level };
+}
+
+/** bölümü insan benzeri oyuncu modeliyle oyna (play/human.ts); `k`: kitlenin k. oyuncusu (beceri k mod 4), `salt`: bölüm tuzu (oyunda 0) */
+export function playHuman(n: number, o: { k?: number; salt?: number; profile?: PlayerProfile; params?: HumanParams; maxT?: number; variant?: number } = {}): HumanRun {
+  const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0, { variant: o.variant });
+  const { w, s } = setup(spec); s.events = null;
+  return runHuman(w, s, humanSeed(n, o.k ?? 0), { maxT: o.maxT, params: o.params ?? playerOf(o.k ?? 0) });
+}
+
+/** bölümleri insan modeli kitlesinin verilen oyuncularıyla ölç (zorluk biçim testleri; docs/12) */
+export function measureLevels(levels: number[], ks: number[]): Record<number, LevelScore> {
+  const out: Record<number, LevelScore> = {};
+  for (const n of levels) out[n] = scoreRuns(ks.map((k) => { const r = playHuman(n, { k }); return { fin: r.finished, dmg: r.damage, deaths: r.deaths, nm: r.nearMisses, t: r.t }; }));
+  return out;
 }

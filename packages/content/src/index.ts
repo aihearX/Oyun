@@ -10,6 +10,7 @@ export * from './journeys';
 export * from './bosses';
 export * from './chunks';
 export * from './chunks/helpers';
+export * from './chunks/puanlar';
 export * from './rewards';
 export * from './cosmetics';
 export * from './cards';

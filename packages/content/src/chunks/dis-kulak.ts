@@ -12,6 +12,12 @@ const fly = (x: number, dx = 40) => enemy(x, G - 30, 'ucan', dx, { amp: 6 });
 const tuy = (x: number, s = 1) => decor(x, G, 'tuy', s);
 
 export const DIS_KULAK_CHUNKS: ChunkSpec[] = [
+  // ---- alıştırma odaları (bölüm 1-3, docs/12): geniş zemin, kısa çukur, alçak diken, düşman yok, tek beceri; gizli koklea
+  // yalnız raftan bilerek yapılan tam zıplamayla alınır (ana yolda değil)
+  chunk('dk-cimen', 'kosu', 1, 900, [ground(0, 900), spike(260, 32), ...jumpArc(200, 4, 0.5), plat(390, G - 110, 150), ...coins(405, G - 150, 3, 40), spike(640, 32), ...jumpArc(580, 4, 0.5), secret(465, G - 300), tuy(90), tuy(820, 0.9)], { tags: ['diken', 'jeton'], biomes: [...B] }),
+  chunk('dk-kucuk-cukur', 'kosu', 1, 1000, [ground(0, 300), ground(390, 330), ground(810, 190), ...jumpArc(252, 4, 0.6), plat(500, G - 120, 130), ...coins(510, G - 160, 3, 40), ...jumpArc(762, 4, 0.6), secret(565, G - 310), tuy(120)], { tags: ['bosluk', 'jeton'], biomes: [...B] }),
+  chunk('dk-alcak-basamak', 'kosu', 1, 950, [ground(0, 950), block(250, G - 40, 220, 40), ...coins(270, G - 80, 5, 40), block(600, G - 40, 180, 40), ...coins(615, G - 80, 4, 40), plat(330, G - 160, 110), secret(385, G - 350), tuy(860)], { tags: ['platform', 'jeton'], biomes: [...B] }),
+  chunk('dk-tuy-yolu', 'kosu', 1, 1000, [ground(0, 1000), spike(300, 36), ...jumpArc(238, 4, 0.55), plat(450, G - 110, 160), ...coins(465, G - 150, 3, 40), spike(700, 36), ...jumpArc(638, 4, 0.55), ...coins(820, G - 30, 3, 40), secret(530, G - 300), tuy(140, 1.2)], { tags: ['diken', 'platform'], biomes: [...B] }),
   // basamak: alt yolda kıl dikenleri (kısa zıplama), üst yolda notalı basamaklar (risk yolu)
   chunk('dk-basamak', 'kosu', 1, 900, [ground(0, 900), plat(200, G - 95, 170), plat(420, G - 175, 170), spike(260, 40), spike(490, 48), ...coins(215, G - 135, 4, 40), ...coins(435, G - 215, 4, 40), ...coins(640, G - 40, 3, 40), spike(780, 36), ...jumpArc(677, 4, 1), secret(510, G - 340), tuy(80)], { tags: ['platform', 'jeton', 'risk'], biomes: [...B] }),
   chunk('dk-ilk-bosluk', 'kosu', 1, 960, [ground(0, 300), ground(410, 250), ground(780, 180), ...jumpArc(244, 5, 1), ...jumpArc(615, 5, 1), tuy(140, 1.1), secret(560, G - 230), power(880, G - 60, 'magnet')], { tags: ['bosluk', 'yay-odul'], biomes: [...B] }),
@@ -39,4 +45,11 @@ export const DIS_KULAK_CHUNKS: ChunkSpec[] = [
     spike(1420, 56), ...jumpArc(1327, 5, 1), bug(1650, 40), ...jumpArc(1530, 5, 1), spike(1880, 48), ...jumpArc(1783, 5, 1), tuy(2100, 1.3),
     secret(1190, G - 560),
   ], { tags: ['gosteri', 'platform', 'yay', 'risk'], biomes: [...B], setPiece: true }),
+  // gösteri (alıştırma, bölüm 1-3): İlk Ninni Yolu — geniş kıvrımlar, kısa çukurlar, alçak basamaklar, rüzgârla tek uçuş ve nota nehri;
+  // düşman yok, her engel tek başına (en kolay gösteri: üretici bölge girişinde bunu seçer)
+  chunk('dk-sp-ilk-yol', 'kosu', 1, 2100, [
+    ground(0, 420), ground(510, 1590), spike(150, 32), ...jumpArc(92, 3, 0.5), block(620, G - 40, 160, 40), ...coins(635, G - 80, 4, 40), ...jumpArc(372, 4, 0.6),
+    spike(1150, 32), ...jumpArc(1090, 4, 0.5), launcher(1360, G, 360, -760), ...launchArc(1360, 360, -760, 6), ...coins(1700, G - 30, 5, 40), spike(1960, 32), ...jumpArc(1900, 3, 0.5),
+    plat(780, G - 150, 110), secret(835, G - 340), collect(1500, G - 260), tuy(80, 1.2), tuy(1840),
+  ], { tags: ['gosteri', 'bosluk', 'jeton'], biomes: [...B], setPiece: true }),
 ];

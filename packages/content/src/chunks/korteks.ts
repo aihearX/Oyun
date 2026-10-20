@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, barrier, beat, beatSlide, block, chunk, sw, door, launcher, coinCol, coins, collect, crumble, decor, echo, enemy, grav, ground, hazard, hook, hookArc, jumpArc, launchArc, plat, power, secret, spike, spring, trampArc, trampoline, wall } from './helpers';
+import { G, barrier, beat, beatSlide, block, chunk, moving, sw, door, launcher, coinCol, coins, collect, crumble, decor, echo, enemy, grav, ground, hazard, hook, hookArc, jumpArc, launchArc, plat, power, secret, spike, spring, trampArc, trampoline, wall } from './helpers';
 
 /**
  * İşitme Korteksi (37-39, boss 40): sesin anlama dönüştüğü rüya. Tüm yetenekler bir arada; ritim, yankı ve çevirme.
@@ -35,4 +35,20 @@ export const KORTEKS_CHUNKS: ChunkSpec[] = [
     ground(1960, 540), plat(1980, G - 300, 420, 40), grav(1980, G - 260, 420, 260), spike(2060, 110), hazard(2240, G - 264, 100, 26, 'diken'), ...coins(2070, G - 236, 3, 40), ...coins(2250, G - 40, 3, 40),
     collect(760, G - 460), secret(1850, G - 330),
   ], { tags: ['gosteri', 'zar', 'kanca', 'yanki', 'cevir'], biomes: [...B], setPiece: true, needs: ['darbe', 'cevir'] }),
+  // ---- sınav odaları (bölge finali ve son koşu): ritim, kanca, düşman ve çevirme bir arada, daha sıkı zamanlama
+  chunk('kx-sinav-ritim', 'ruya', 5, 2100, [
+    // vuruşla beliren basamaklar çukurun üstünde iki yükseklikte; çevirme koridoru; dişlili çukurda gidip gelen köprü ve zıplayan bekçi
+    ground(0, 260), beat(300, G - 40, 110, '1110'), beat(500, G - 110, 110, '1011'), beat(700, G - 40, 110, '0111'), ground(860, 560),
+    plat(980, G - 300, 380, 40), grav(980, G - 260, 380, 260), spike(1060, 90), hazard(1220, G - 264, 90, 26, 'diken'),
+    moving(1440, G - 30, 120, 220, 0, 3000), hazard(1640, G - 190, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1800, phase: 0.8 }), ground(1900, 200), enemy(2020, G, 'ziplayan', 0, { hop: 120 }),
+    ...coins(305, G - 80, 3, 36), ...coins(505, G - 150, 3, 36), ...coins(705, G - 80, 3, 36), ...coins(1070, G - 236, 3, 40), ...coins(1460, G - 80, 5, 44),
+    plat(880, G - 420, 80), secret(920, G - 470), ruya(40),
+  ], { tags: ['ritim', 'cevir', 'hareketli', 'sinav'], biomes: [...B], needs: ['cevir'] }),
+  chunk('kx-sinav-karma', 'ruya', 5, 2100, [
+    // iki kancalık zincir (tavanda gürültü), sonra dişlili çukurda gidip gelen köprü, gürültü duvarı ve mermi atan bekçi
+    ground(0, 280), hook(540, G - 280, 180), hook(900, G - 300, 180), hazard(300, G - 480, 820, 70), ...hookArc(540, G - 280, 180, 5), ground(1180, 160),
+    moving(1360, G - 30, 120, 210, 0, 3100), { type: 'gear', x: 1520, y: G - 170, props: { r: 32, speed: 1 } }, ground(1720, 380), barrier(1820, G - 170, 170), enemy(2040, G, 'atici', 0, { period: 2.0, range: 300, dir: -1 }),
+    ...coins(1380, G - 80, 4, 44), ...coins(1880, G - 60, 2, 40),
+    plat(1200, G - 330, 80), secret(1240, G - 380), ruya(60),
+  ], { tags: ['kanca', 'hareketli', 'darbe', 'sinav'], biomes: [...B], needs: ['darbe', 'kanca'] }),
 ];

@@ -11,7 +11,7 @@ import { tonotopyFreq } from './art';
 import { RaceLayer } from './race';
 import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
-import { beatState, colorMatch, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
+import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
 import { liveWaves } from './play/boss';
 import { Tutorial, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
@@ -346,7 +346,7 @@ export class LevelScene extends Phaser.Scene {
       switch (e.type) {
         case 'moving': case 'lift': solidAt(this.world, s, e, t); V.x = rectX(); V.y = rectY(); break;
         case 'beat': { const b = beatState(this.world, s, e, t); solidAt(this.world, s, e, t); V.x = rectX(); V.on = b.on; V.warn = b.warn; V.phase = beatPhase; break; }
-        case 'crumble': { const trig = s.crumble.get(id); if (trig !== undefined) { const u = t - trig; if (u < 0.4) V.warn = u / 0.4; else if (u < 3.4) V.visible = false; } break; }
+        case 'crumble': { const trig = s.crumble.get(id); if (trig !== undefined) { const u = t - trig; const d = crumbleDelay(e); if (u < d) V.warn = u / d; else if (u < d + 3) V.visible = false; } break; }
         case 'echo': V.on = t < s.hero.echoUntil; break;
         case 'door': V.on = s.opened.has(e.key) !== (e.p.open === true); break;
         case 'switch': V.on = s.opened.has(e.key); break;

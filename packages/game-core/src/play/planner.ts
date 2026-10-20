@@ -16,7 +16,7 @@ import { has } from './sim';
 
 export interface Action { at: number; kind: 'press' | 'swipe' | 'dash' | 'turn'; hold: number }
 
-const H = 114;          // ufuk (adım) ≈ 1,9 sn
+const H_DEF = 114;      // ufuk (adım) ≈ 1,9 sn
 const TAIL = 120;       // ufuk sonrası (girdisiz) yere inene kadar: yavaş süzülerek çukura düşüş de yakalansın
 const D = 3;            // karar aralığı (adım)
 const HOLDS = [2, 7, 12, 18, 26, 40, 60, 90];
@@ -34,12 +34,19 @@ function inputAt(plan: Action[], i: number, out: SimInput): SimInput {
   return out;
 }
 
-/** planlayıcı tercihleri: greedy notaları kovalar; secrets=false gizli koklealara sapmaz ("ana yol" oyuncusu, testler için) */
-export interface PlanPrefs { greedy?: boolean; secrets?: boolean }
+/**
+ * planlayıcı tercihleri: greedy notaları kovalar; secrets=false gizli koklealara sapmaz ("ana yol" oyuncusu, testler için).
+ * İnsan benzeri oyuncu (play/human.ts) için: `horizon` ileri bakış (adım), `react` tepki gecikmesi (adım; yeni karar ancak bu
+ * kadar sonra uygulanabilir, o ana dek planlanmış eylemler değişmez), `motor` yeni seçilen her eylemin elden çıkan hali
+ * (zamanlama sapması, geç kalma; null = kaçan girdi).
+ */
+export interface PlanPrefs { greedy?: boolean; secrets?: boolean; horizon?: number; react?: number; motor?: (a: Action, releaseOnly: boolean) => Action | null }
 function potential(w: World, s: SimState, pr: PlanPrefs = {}): number {
   const h = s.hero; const b = s.boss;
   let v = h.x + 0.7 * Math.max(0, GROUND_Y - h.y) + s.coins * (pr.greedy ? 160 : 40) + s.cochleas * (pr.secrets === false ? -200 : 300) + s.opened.size * 1500 + s.broken.size * 60 + s.killed.size * 30 + s.notes * 120;
   if (s.finished) v += 1e5;
+  // insan: kapının rengini görür — önündeki frekans kapısının rengini taşımak ilerlemedir (bulmacanın amacı)
+  if (pr.react && h.color >= 0) for (const id of near(w, h.x - 200, h.x + 900)) { const e = w.ents[id]!; if (e.type === 'freqgate' && (e.x - h.x) * h.dir > -40 && Math.abs(h.color - Number(e.p.color ?? 0)) < 0.08) { v += 700; break; } }
   // geri dönüş anahtarı: kapısı kapalıyken anahtara yakınlık ilerlemedir (oyuncu da kapıya varınca geri döner)
   for (const id of near(w, h.x - 900, h.x + 300)) {
     const e = w.ents[id]!; if (e.type !== 'switch' || e.p.by !== 'temas' || s.opened.has(e.key)) continue;
@@ -86,6 +93,7 @@ export function simulatePlan(w: World, s0: SimState, plan: Action[], from = 0, k
   const s = cloneState(s0); const dmg0 = s.damageTaken, sh0 = s.shield, rv0 = s.revir, esc0 = s.escort?.alive;
   const states: SimState[] | null = keep ? [] : null;
   let failAt = -1;
+  const H = pr.horizon ?? H_DEF;
   const total = H + TAIL;
   for (let i = from; i < total; i++) {
     if (keep && i < H && i % D === 0) states![i / D] = cloneState(s);
@@ -94,6 +102,7 @@ export function simulatePlan(w: World, s0: SimState, plan: Action[], from = 0, k
     if (hurtNow) { failAt = i; break; }
     if (s.finished) break;
     if (i >= H && (s.hero.grounded || s.hero.water >= 0 || s.hero.wallId >= 0)) break; // kuyruk: yere bastıysa güvenli
+    if (i >= H && pr.react && s.hero.hookId >= 0) break; // insan: ufkun sonunda bir kancada asılıysa güvenli (bırakışa o an karar verir)
   }
   const hh = s.hero;
   if (failAt < 0 && !s.finished && !hh.grounded && hh.water < 0 && hh.wallId < 0 && hh.hookId < 0 && hh.g > 0 && (hh.y > GROUND_Y + 40 || !groundBelow(w, s))) failAt = total;
@@ -156,7 +165,7 @@ export class Planner {
     if (this.greedy && r.ok && s.n - this.poorAt >= 12 && this.coinsAhead(s)) { this.poorAt = s.n; this.search(s, r); return; }
     // boss bağırırken notalar havada: koşarak yaklaşmak "ilerleme" sayılır ama nota zıplamadan alınmaz — düzenli ara
     if (r.ok && s.boss && s.boss.mode === 'scream' && s.n - this.poorAt >= 12) { this.poorAt = s.n; this.search(s, r); return; }
-    if (r.ok && (r.prog >= 150 || s.n - this.poorAt < 30)) return;
+    if (r.ok && (r.prog >= 150 || s.n - this.poorAt < (this.pr.react ? (s.hero.hookId >= 0 ? 6 : 12) : 30))) return;
     if (r.ok) this.poorAt = s.n;
     this.search(s, r);
   }
@@ -175,6 +184,10 @@ export class Planner {
   private search(s: SimState, current: SimOutcome) {
     this.stats.searches++;
     const w = this.w; const opts = this.options(s);
+    const H = this.pr.horizon ?? H_DEF;
+    // tepki gecikmesi: bu adımdan önce planlanmış eylemler (kesinleşmiş) değişmez; yeni eylem ancak R adım sonra
+    const R = this.pr.react ?? 0;
+    const committed = R > 0 ? this.plan.filter((a) => a.at < R) : [];
     let best: { plan: Action[]; r: SimOutcome } | null = null;
     const partial: { plan: Action[]; r: SimOutcome }[] = [];
     const oks: { plan: Action[]; r: SimOutcome }[] = [];
@@ -187,7 +200,7 @@ export class Planner {
     /** tabanın yörüngesindeki ara durumlardan dallanarak tek eylem ekle */
     const branch = (base: Action[], run: SimOutcome, startAt: number) => {
       const limit = run.ok ? H : Math.min(H, run.failAt + 1);
-      for (let at = Math.ceil(startAt / D) * D; at < limit; at += D) {
+      for (let at = Math.ceil(Math.max(startAt, R) / D) * D; at < limit; at += D) {
         const st = run.states?.[at / D]; if (!st) continue;
         for (const o of opts) {
           if (conflicts(base, o, at)) continue;
@@ -196,8 +209,25 @@ export class Planner {
         }
       }
     };
+    // 0) insan: süren basılı tutmanın bırakılışı (tepki süresinden sonrası) yeniden zamanlanabilir — kancada salınırken,
+    //    süzülürken parmak ne zaman kalkacağına o an karar verir
+    if (R > 0) {
+      const hold0 = committed.find((a) => a.kind === 'press' && a.at + a.hold >= R);
+      if (hold0) {
+        const vars: { plan: Action[]; r: SimOutcome; rel: number }[] = [];
+        for (let rel = Math.ceil(R / D) * D; rel <= H + 30; rel += D * 2) {
+          const hold = rel - hold0.at; if (hold === hold0.hold || hold < 2) continue;
+          const plan = committed.map((a) => (a === hold0 ? { ...a, hold } : a));
+          const r = simulatePlan(w, s, plan, 0, false, this.pr); consider(plan, r); vars.push({ plan, r, rel });
+        }
+        // en iyi birkaç bırakılışın ardından tek eylem (ör. kancadan bırak → sonraki kancaya yeniden basılı tut)
+        if (!best || (best as { r: SimOutcome }).r.prog < 150) {
+          for (const v of vars.sort((a, b) => b.r.score - a.r.score).slice(0, 3)) branch(v.plan, simulatePlan(w, s, v.plan, 0, true, this.pr), v.rel + D);
+        }
+      }
+    }
     // 1) mevcut plana tek eylem ekle  2) boş plandan tek eylem
-    const bases: Action[][] = this.plan.length ? [this.plan, []] : [[]];
+    const bases: Action[][] = this.plan.length ? (committed.length < this.plan.length ? [this.plan, committed] : [this.plan]) : [[]];
     for (const base of bases) {
       const run = simulatePlan(w, s, base, 0, true, this.pr);
       if (base !== this.plan || current.ok) consider(base, run);
@@ -221,8 +251,9 @@ export class Planner {
     if ((!best || (best as { r: SimOutcome }).r.prog < 150) && has(w, 'cakil')) {
       const targets = poundTargets(w, s);
       if (targets.length) {
-        for (let at = 0; at < H; at += D) for (const hold of [12, 26, 40]) {
-          const plan1: Action[] = [{ kind: 'press', at, hold }];
+        for (let at = Math.ceil(R / D) * D; at < H; at += D) for (const hold of [12, 26, 40]) {
+          if (conflicts(committed, { kind: 'press', hold }, at)) continue;
+          const plan1: Action[] = [...committed, { kind: 'press', at, hold }];
           const run = simulatePlan(w, s, plan1, 0, true, this.pr); this.stats.sims++;
           if (!run.states) continue;
           for (let k = Math.ceil((at + 4) / D); k < run.states.length; k++) {
@@ -237,6 +268,17 @@ export class Planner {
       }
     }
     const chosen: { plan: Action[]; r: SimOutcome } | null = best ?? partial.sort((a, b) => b.r.score - a.r.score)[0] ?? null;
-    if (chosen) { this.plan = chosen.plan; this.cursor = 0; }
+    if (chosen) {
+      let plan = chosen.plan;
+      // insan oyuncu: yeni seçilen eylemler elden "kusurlu" çıkar (eski eylemler aynı nesnelerdir, yeniden bozulmaz)
+      const motor = this.pr.motor;
+      if (motor) {
+        const old = new Set(this.plan);
+        // aynı anda başlamış eski basış: yalnız bırakılışı yeniden zamanlanmıştır (başlangıç zaten olmuş)
+        const started = (a: Action) => a.kind === 'press' && this.plan.some((o) => o.kind === 'press' && o.at === a.at && o.at < (this.pr.react ?? 0));
+        plan = plan.flatMap((a) => (old.has(a) ? [a] : (motor(a, started(a)) ?? []))).sort((a, b) => a.at - b.at);
+      }
+      this.plan = plan; this.cursor = 0;
+    }
   }
 }

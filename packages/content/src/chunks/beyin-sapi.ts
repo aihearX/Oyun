@@ -39,4 +39,12 @@ export const BEYIN_SAPI_CHUNKS: ChunkSpec[] = [
     ground(1500, 800), barrier(1640, G - 170, 170), plat(1800, G - 300, 380, 40), grav(1800, G - 260, 380, 260), spike(1880, 120), ceilSpike(2060, 80, G - 260), ...coins(1890, G - 236, 3, 40), ...coins(2070, G - 40, 2, 40),
     collect(1300, G - 420), secret(980, G - 180),
   ], { tags: ['gosteri', 'cevir', 'kanca'], biomes: [...B], setPiece: true, needs: ['cevir', 'darbe'] }),
+  // sınav (bölge finali): çevirme koridorunda devriye ve sürüklenen gürültü, ardından vuruşla beliren basamaklar ve atıcı
+  chunk('bs-sinav', 'ruya', 5, 2000, [
+    // tavanı ve zemini dönüşümlü kopuk çevirme koridoru, tavan dikenleri; ardından çukur üstünde gidip gelen köprü (yolunda gürültü) ve atıcı
+    ground(0, 420), plat(300, G - 300, 760, 40), grav(300, G - 260, 760, 260), ground(560, 200), ceilSpike(600, 90, G - 260), ground(900, 160),
+    moving(1080, G - 30, 120, 230, 0, 3000), hazard(1280, G - 190, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1800, phase: 0.3 }), ground(1560, 440), enemy(1900, G, 'atici', 0, { period: 2.1, range: 340, dir: -1 }),
+    ...coins(430, G - 236, 3, 40), ...coins(610, G - 40, 3, 40), ...coins(780, G - 236, 3, 40), ...coins(1100, G - 80, 5, 44),
+    plat(1600, G - 300, 70), secret(1635, G - 350), yon(80),
+  ], { tags: ['cevir', 'hareketli', 'dusman', 'sinav'], biomes: [...B], needs: ['cevir'] }),
 ];

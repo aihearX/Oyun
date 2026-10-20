@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { generateLevel, DEFAULT_PROFILE, MAX_NOTES } from './generate';
+import { generateLevel, levelKnobs, DEFAULT_PROFILE, MAX_NOTES } from './generate';
+import { CURVE_ZONES, targetLambda } from './curve';
+import { predictDmg, roomStats } from './rooms';
 import { validateChunks, HUMAN_JOURNEY, abilitiesAt, chunkNeeds, newAbilitiesAt } from '@odi/content';
 import type { LevelSpec } from '@odi/shared';
 
 const ALL = HUMAN_JOURNEY.levels.map((l) => generateLevel('insan', l.number));
 const normal = ALL.filter((s) => s.mechanic !== 'boss');
+/** bölümün tahmini can kaybı: odaların bu bölümün sıkılığındaki ölçülen can kayıplarının toplamı */
+const predicted = (s: LevelSpec) => s.chunks.reduce((a, c) => a + predictDmg(c, levelKnobs(s.number).tight), 0);
 const notesOf = (s: LevelSpec) => s.chunks.reduce((a, c) => a + c.entities.reduce((b, e) => b + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0), 0);
 
 describe('içerik', () => {
@@ -66,15 +70,45 @@ describe('bölüm üretici', () => {
       expect(inter / uni, `${normal[i]!.number} ~ ${normal[j]!.number}`).toBeLessThanOrEqual(0.6);
     }
   });
-  it('zorluk eğrisi yükselir', () => {
-    const avg = (from: number, to: number) => { const l = normal.filter((s) => s.number >= from && s.number <= to); const cs = l.flatMap((s) => s.chunks.filter((c) => !c.rest && !c.tags.includes('ogretici'))); return cs.reduce((a, c) => a + c.difficulty, 0) / cs.length; };
+  it('zorluk eğrisi yükselir: bölümün tahmini can kaybı (ölçülen oda puanlarından) çeyreklerde artar', () => {
+    const avg = (from: number, to: number) => { const l = normal.filter((s) => s.number >= from && s.number <= to); return l.reduce((a, s) => a + predicted(s), 0) / l.length; };
     const quarters = [avg(1, 10), avg(11, 20), avg(21, 30), avg(31, 39)];
     for (let i = 1; i < quarters.length; i++) expect(quarters[i]!).toBeGreaterThan(quarters[i - 1]!);
   });
-  it('zorluk profille değişir', () => {
-    const easy = generateLevel('insan', 27, { ...DEFAULT_PROFILE, failStreak: 3 });
-    const hard = generateLevel('insan', 27, { ...DEFAULT_PROFILE, recentStars: 3 });
-    const avg = (s: typeof easy) => s.chunks.reduce((a, c) => a + c.difficulty, 0) / s.chunks.length;
-    expect(avg(hard)).toBeGreaterThanOrEqual(avg(easy));
+  it('hedef eğri testere dişidir: bölge içinde yükselir, girişler ve finaller bölgeden bölgeye yükselir, boss doruktur', () => {
+    for (const z of CURVE_ZONES) {
+      for (let n = z.from + 1; n <= z.peak; n++) expect(targetLambda(n), `${n}`).toBeGreaterThan(targetLambda(n - 1));
+      expect(targetLambda(z.from), `${z.name} girişi bir öncekinin finalinden düşük (nefes)`).toBeLessThan(targetLambda(Math.max(1, z.from - 1)) + (z.from === 1 ? 1 : 0));
+    }
+    for (let i = 1; i < CURVE_ZONES.length; i++) {
+      expect(targetLambda(CURVE_ZONES[i]!.from)).toBeGreaterThan(targetLambda(CURVE_ZONES[i - 1]!.from));
+      expect(targetLambda(CURVE_ZONES[i]!.peak)).toBeGreaterThan(targetLambda(CURVE_ZONES[i - 1]!.peak));
+    }
+    for (let n = 1; n < 20; n++) expect(targetLambda(20)).toBeGreaterThan(targetLambda(n));
+    for (let n = 1; n < 40; n++) expect(targetLambda(40)).toBeGreaterThan(targetLambda(n));
+  });
+  it('alıştırma (1-3): düşman yok (3: yalnız kayma öğreticisindeki devriye), kısa çukur, geniş iniş, değiştirici yok', () => {
+    for (const s of normal.filter((x) => x.number <= 3)) {
+      expect(s.modifiers).toEqual([]);
+      for (const c of s.chunks) {
+        if (c.tags.includes('ogretici')) continue;
+        expect(c.entities.some((e) => e.type === 'enemy'), `${s.number}: ${c.id}`).toBe(false);
+        const st = roomStats(c); expect(st.maxGap, `${s.number}: ${c.id}`).toBeLessThanOrEqual(200);
+      }
+    }
+  });
+  it('değiştiriciler yalnızca ileri bölgelerde; tek can ve ters yerçekimi yolculukta yok', () => {
+    for (const s of ALL) { if (s.number < 19) expect(s.modifiers).toEqual([]); expect(s.modifiers).not.toContain('tek-can'); expect(s.modifiers).not.toContain('ters-yercekimi'); }
+  });
+  it('uyarlanabilir yardım yumuşaktır: 3 başarısızlık kolaylaştırır, usta oyuncu ilk bölümleri zorlaştırmaz', () => {
+    for (const n of [12, 27, 35]) {
+      const base = generateLevel('insan', n); const easy = generateLevel('insan', n, { ...DEFAULT_PROFILE, failStreak: 3 });
+      expect(predicted(easy), `${n}`).toBeLessThan(predicted(base));
+    }
+    for (let n = 1; n <= 5; n++) {
+      const a = generateLevel('insan', n); const b = generateLevel('insan', n, { ...DEFAULT_PROFILE, recentStars: 3 });
+      expect(b.chunks.map((c) => c.id)).toEqual(a.chunks.map((c) => c.id));
+    }
+    expect(levelKnobs(27, { ...DEFAULT_PROFILE, recentStars: 3 }).lambda).toBeGreaterThanOrEqual(levelKnobs(27).lambda);
   });
 });

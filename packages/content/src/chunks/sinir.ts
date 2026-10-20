@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, barrier, block, chunk, coinCol, coins, collect, decor, echo, enemy, ground, hazard, jumpArc, launchArc, launcher, moving, plat, power, secret, spike, sw, door, wall } from './helpers';
+import { G, barrier, block, chunk, crumble, coinCol, coins, collect, decor, echo, enemy, ground, hazard, jumpArc, launchArc, launcher, moving, plat, power, secret, spike, sw, door, wall } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -22,7 +22,7 @@ export const SINIR_CHUNKS: ChunkSpec[] = [
   chunk('sn-lif', 'impuls', 3, 1400, [ground(0, 300), moving(320, G - 20, 140, 280, 0, 2400), moving(800, G - 80, 140, 0, 90, 1800, 0.5), ground(1000, 400), barrier(1200, G - 170, 170), ...coins(340, G - 70, 5, 44), ...coins(810, G - 140, 3, 40), secret(560, G - 260), collect(1300, G - 60)], { tags: ['hareketli', 'darbe'], biomes: [...S], needs: ['darbe'] }),
   chunk('sn-hiz', 'impuls', 4, 1500, [ground(0, 360), launcher(330, G, 520, -760), ground(900, 600), barrier(1050, G - 170, 170), cloud(1300, G - 100), ...launchArc(330, 520, -760, 6), ...coins(1110, G - 60, 4, 40), secret(640, G - 420), echo(560, G - 330, 120)], { tags: ['hiz', 'darbe', 'firlatici'], biomes: [...S], needs: ['darbe'] }),
   chunk('sn-kapali-yol', 'impuls', 4, 1400, [ground(0, 100), ground(200, 1200), block(260, G - 100, 200, 100), sw(640, G, 'sn-k1', 'darbe'), door(900, G - 240, 240, 'sn-k1'), ...coins(560, G - 60, 3, 36), ...coins(980, G - 60, 4, 40), cloud(760, G - 100), spike(1090, 40), secret(1220, G - 240), plat(1170, G - 170, 110)], { tags: ['anahtar', 'darbe'], biomes: [...S], needs: ['darbe'] }),
-  chunk('sn-kuyu-bariyer', 'impuls', 4, 1300, [ground(0, 60), ground(170, 1130), wall(300, G - 560, 480), wall(480, G - 330, 330), plat(520, G - 330, 160), barrier(800, G - 170, 170), ...coinCol(390, G - 140, 4, 50), ...coins(540, G - 370, 3, 40), ...coins(860, G - 40, 3, 40), spike(1080, 40), ...jumpArc(979, 4, 0.6), secret(390, G - 480)], { tags: ['duvar', 'darbe'], biomes: [...S], needs: ['duvar', 'darbe'] }),
+  chunk('sn-kuyu-bariyer', 'impuls', 4, 1300, [ground(0, 60), ground(170, 1130), wall(300, G - 560, 480), wall(480, G - 330, 330), plat(520, G - 330, 160), barrier(800, G - 170, 170), ...coinCol(390, G - 140, 4, 50), ...coins(540, G - 370, 3, 40), ...coins(860, G - 40, 3, 40), spike(1080, 40), ...jumpArc(979, 4, 0.6), plat(200, G - 560, 100), wall(160, G - 680, 120), secret(240, G - 600)], { tags: ['duvar', 'darbe'], biomes: [...S], needs: ['duvar', 'darbe'] }),
   chunk('sn-sinaps', 'impuls', 3, 1400, [ground(0, 360), launcher(330, G, 420, -950), echo(700, G - 260, 140), ground(900, 500), cloud(1100, G - 110), spike(1300, 40), ...launchArc(330, 420, -950, 5), ...coins(710, G - 310, 3, 40), ...coins(960, G - 60, 3, 40), secret(770, G - 380), lif(1300)], { tags: ['firlatici', 'yanki'], biomes: [...S], needs: ['darbe'] }),
   chunk('sn-lif-demeti', 'impuls', 4, 1500, [ground(0, 1500), barrier(280, G - 170, 170), moving(520, G - 130, 120, 160, 0, 2200), shooter(1380, false, 2.2, 400), ...coins(340, G - 60, 3, 40), ...coins(530, G - 180, 3, 40), spike(1100, 48), ...coins(1080, G - 130, 3, 36, 20), secret(580, G - 300), collect(800, G - 60)], { tags: ['darbe', 'atici', 'hareketli'], biomes: [...S], needs: ['darbe'] }),
   chunk('sn-gizli-oda', 'impuls', 3, 1300, [ground(0, 1300), plat(300, G - 200, 360, 40), barrier(620, G - 160, 160), secret(560, G - 60), ...coins(330, G - 60, 6, 44), ...coins(320, G - 250, 6, 50), barrier(900, G - 170, 170), ...coins(960, G - 60, 4, 40), lif(1200)], { tags: ['gizli', 'darbe'], biomes: [...S], needs: ['darbe'] }),
@@ -38,6 +38,22 @@ export const SINIR_CHUNKS: ChunkSpec[] = [
     ground(0, 1100), barrier(300, G - 170, 170), shooter(1000, true, 2.0, 520), curtain(560, 90, 'gurultu'), ...coins(570, G - 20, 2, 40), spike(760, 48), ...jumpArc(663, 4, 1),
     echo(1130, G, 130), echo(1310, G - 50, 130), echo(1490, G, 130), ground(1650, 750), ...coins(1150, G - 40, 3, 40), ...coins(1330, G - 90, 3, 40), ...coins(1510, G - 40, 3, 40),
     launcher(1720, G, 360, -900), echo(1980, G - 260, 120), cloud(2120, G - 110), barrier(2260, G - 170, 170), ...launchArc(1720, 360, -900, 5), ...coins(1990, G - 300, 3, 36), ...coins(2300, G - 40, 2, 40),
-    collect(1420, G - 220), secret(2040, G - 420),
+    collect(1420, G - 220), plat(2150, G - 330, 80), secret(2190, G - 470),
   ], { tags: ['gosteri', 'darbe', 'yanki', 'atici'], biomes: ['sinir', 'beyin-sapi'], setPiece: true, needs: ['darbe', 'kayma'] }),
+  // sınav (bölge finali): gürültü duvarı, nabız tehlikesi, devriye, mermi atan bekçi ve yankı köprüsü art arda; her biri telgraflı
+  chunk('sn-sinav', 'impuls', 5, 1900, [
+    // darbeyle aşılamayacak kadar geniş çukur: gidip gelen lif köprüsü ve yolunda nabız; sonra gürültü duvarı, devriye, mermi atan bekçi
+    ground(0, 300), moving(320, G - 20, 130, 240, 0, 2800), pulse(560, G - 170, 80, 120, 0.9, 1.0), ground(820, 1080),
+    barrier(980, G - 170, 170), enemy(1260, G, 'devriye', 60, { speed: 90 }), shooter(1800, false, 1.9, 480), spike(1520, 48),
+    ...coins(340, G - 70, 5, 44), ...coins(1040, G - 60, 3, 40), ...coins(1230, G - 150, 3, 40, 20), ...coins(1500, G - 130, 3, 36, 20),
+    plat(860, G - 300, 80), secret(900, G - 350), lif(100),
+  ], { tags: ['darbe', 'hareketli', 'atici', 'gurultu', 'sinav'], biomes: [...S], needs: ['darbe'] }),
+  // ikinci sınav: iki gidip gelen lif köprüsü (yollarında sürüklenen gürültü), arada ufalanan basamaklar, sonda devriye
+  chunk('sn-sinav-kopru', 'impuls', 5, 2000, [
+    ground(0, 280), moving(300, G - 30, 120, 220, 0, 3000), hazard(500, G - 190, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1800, phase: 0.4 }), ground(760, 200),
+    crumble(1000, G, 90), crumble(1130, G, 90), ground(1260, 160), moving(1440, G - 30, 120, 200, 0, 2800), hazard(1620, G - 190, 60, 60, 'gurultu', { dx: 0, dy: 90, period: 1700, phase: 1.1 }),
+    ground(1860, 140), enemy(1930, G, 'devriye', 30, { speed: 80 }),
+    ...coins(320, G - 80, 5, 44), ...jumpArc(935, 3, 0.15), ...jumpArc(1065, 3, 0.15), ...coins(1460, G - 80, 4, 44),
+    plat(800, G - 280, 80), secret(840, G - 330), lif(60),
+  ], { tags: ['hareketli', 'ufalanan', 'dusman', 'sinav'], biomes: [...S] }),
 ];

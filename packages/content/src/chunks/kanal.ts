@@ -30,7 +30,7 @@ export const KANAL_CHUNKS: ChunkSpec[] = [
   // gösteri: Serumen Bacası — üç katlı duvar bacası, damlalar, tepede nota yağmuru ve rüzgârla iniş
   chunk('kn-sp-baca', 'kosu', 3, 1700, [
     ground(0, 1700), wall(240, G - 820, 730), wall(420, G - 640, 640), plat(460, G - 640, 220), ...coinCol(330, G - 140, 9, 60),
-    hazard(560, G - 760, 70, 60, 'serumen', { dx: 0, dy: 40, period: 1600 }), ...coins(480, G - 690, 5, 40), collect(640, G - 700), secret(330, G - 760),
+    hazard(560, G - 760, 70, 60, 'serumen', { dx: 0, dy: 40, period: 1600 }), ...coins(480, G - 690, 5, 40), collect(640, G - 700), plat(140, G - 820, 100), wall(100, G - 940, 160), secret(180, G - 860),
     sticky(820, 56), launcher(1050, G, 300, -700), ...launchArc(1050, 300, -700, 6), damla(900, 1.3), sticky(1250, 56), sticky(1450, 56), ...coins(1430, G - 140, 3, 36, 20),
   ], { tags: ['gosteri', 'duvar'], biomes: [...B], setPiece: true, needs: ['duvar'] }),
   // ---- tırmanış odaları (6-10 duvar zıplaması): uzun baca, baca boyunca nota sütunu, sol duvarın tepesinde koklea rafı
@@ -47,7 +47,7 @@ export const KANAL_CHUNKS: ChunkSpec[] = [
     wall(260, G - 1800, 1720), wall(440, G - 1600, 1600), plat(480, G - 1600, 220), collect(600, G - 1650),
     ...coinCol(370, G - 200, 14, 100), ...coins(500, G - 1640, 3, 40), ...flightArc(695, G - 1600, 0, 8, { landY: G, from: 0.08, to: 0.85 }),
     plat(160, G - 1800, 100), wall(120, G - 1920, 160), secret(200, G - 1840),
-    sticky(1290, 56), ...coins(1270, G - 140, 3, 36, 20), launcher(1450, G, 300, -760), ...launchArc(1450, 300, -760, 5), damla(1000, 1.3),
+    sticky(1370, 50), ...coins(1350, G - 140, 3, 36, 20), launcher(1480, G, 280, -760), ...launchArc(1480, 280, -760, 5, { to: 0.7 }), damla(1000, 1.3),
   ], { tags: ['gosteri', 'duvar', 'tirmanis'], biomes: [...B], setPiece: true, needs: ['duvar'] }),
 ];
 

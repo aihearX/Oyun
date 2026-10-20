@@ -60,6 +60,10 @@ export function bossSolid(s: SimState, e: WEnt, _t: number, out: R): boolean {
   return true;
 }
 
+/** zorluk düğmeleri (BossSpec.warn / tempo): uyarı süresi asla 0,6 katın altına inmez (dürüst telegraf) */
+const warnK = (w: World) => Math.max(0.6, w.spec.boss?.warn ?? 1);
+const tempoK = (w: World) => Math.max(0.5, w.spec.boss?.tempo ?? 1);
+
 let forecasting = false;
 /** golemin nişanı: kahraman hiçbir şey yapmazsa `dt` sn sonra nerede olur (motorun kendi adımıyla) */
 function forecastX(w: World, s: SimState, dt: number): number {
@@ -105,7 +109,7 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
     const lead = 0.95; const tx = Math.max(78, Math.min(ARENA_W - 78, forecastX(w, s, lead)));
     const targets = [tx];
     if (b.phase === 3) { let t2 = tx + (tx < ARENA_W / 2 ? 150 : -150); t2 = Math.max(78, Math.min(ARENA_W - 78, t2)); targets.push(t2); }
-    b.fists = targets.map((x, i) => ({ x, t0: t, st: 'warn', until: t + (b.phase === 3 ? 0.75 : 0.85), slot: i, hit: false }));
+    b.fists = targets.map((x, i) => ({ x, t0: t, st: 'warn', until: t + (b.phase === 3 ? 0.75 : 0.85) * warnK(w), slot: i, hit: false }));
     if (s.events) s.events.push({ k: 'bossWarn', x: tx, y: GROUND_Y });
   }
   for (const f of b.fists) {
@@ -122,17 +126,17 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
     if (b.defeated) return;
   }
   b.fists = b.fists.filter((f) => f.until >= 0);
-  if (b.mode === 'attack' && !b.fists.length) { b.mode = 'idle'; b.nextAttack = t + (b.phase === 1 ? 1.1 : b.phase === 2 ? 0.9 : 0.7); }
+  if (b.mode === 'attack' && !b.fists.length) { b.mode = 'idle'; b.nextAttack = t + (b.phase === 1 ? 1.1 : b.phase === 2 ? 0.9 : 0.7) / tempoK(w); }
   // faz 2+: yuvarlanan toplar (kahramanın koştuğu duvardan, ona doğru)
   if (b.phase >= 2) {
-    if (!b.warnWall && t >= b.nextBall) { b.warnWall = { side: h.dir, at: t + 0.7, kind: 'ball', pair: false }; }
-    if (b.warnWall && t >= b.warnWall.at) { const side = b.warnWall.side; b.balls.push({ x: side > 0 ? ARENA_W - WALL_W - 20 : WALL_W + 20, vx: -side * (190 + b.phase * 20), t0: t }); b.warnWall = null; b.nextBall = t + (b.phase === 3 ? 3.4 : 3.8); }
+    if (!b.warnWall && t >= b.nextBall) { b.warnWall = { side: h.dir, at: t + 0.7 * warnK(w), kind: 'ball', pair: false }; }
+    if (b.warnWall && t >= b.warnWall.at) { const side = b.warnWall.side; b.balls.push({ x: side > 0 ? ARENA_W - WALL_W - 20 : WALL_W + 20, vx: -side * (190 + b.phase * 20) * Math.sqrt(tempoK(w)), t0: t }); b.warnWall = null; b.nextBall = t + (b.phase === 3 ? 3.4 : 3.8) / tempoK(w); }
     for (const ball of b.balls) { ball.x += ball.vx * C.DT; if (hit(hb, ball.x - 15, GROUND_Y - 34, ball.x + 15, GROUND_Y)) { hurt(w, s, 'top', ball.x); ball.t0 = -1; } }
     b.balls = b.balls.filter((x) => x.t0 >= 0 && x.x > WALL_W && x.x < ARENA_W - WALL_W);
   }
   // faz 3: tavandan serumen damlası (gölge 0,8 sn)
   if (b.phase >= 3) {
-    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1) + (rnd(b) - 0.5) * 80)), t0: t }); b.nextDrop = t + 2.6; }
+    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1) + (rnd(b) - 0.5) * 80)), t0: t }); b.nextDrop = t + 2.6 / tempoK(w); }
     for (const d of b.drops) { const age = t - d.t0; if (age > 0.8 && age < 1.05) { const y = GROUND_Y - 300 + (age - 0.8) / 0.25 * 300; if (hit(hb, d.x - 14, y - 26, d.x + 14, y)) { hurt(w, s, 'damla', d.x); d.t0 = -9; } } }
     b.drops = b.drops.filter((d) => t - d.t0 < 1.1);
   }
@@ -141,7 +145,7 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
 // ---------------------------------------------------------------- Gürültü Canavarı
 /** faz 3 çift dalgası: ikinci dalganın (karşı duvardan) gecikmesi (sn) */
 export const PAIR_DELAY = 0.35;
-const waveSpeed = (b: BossState) => 250 + b.phase * 15;
+const waveSpeed = (b: BossState, w?: World) => (250 + b.phase * 15) * (w ? Math.sqrt(tempoK(w)) : 1);
 /** çizilecek (doğmuş) dalgalar */
 export const liveWaves = (b: BossState, t: number) => b.waves.filter((w) => w.t0 <= t);
 
@@ -167,7 +171,7 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
   // dalgalar
   if (!b.warnWall && t >= b.nextAttack) {
     const kind: Wave['kind'] = b.phase === 1 ? 'low' : rnd(b) < 0.5 ? 'low' : 'high';
-    b.warnWall = { side: h.dir, at: t + 0.75, kind, pair: b.phase === 3 };
+    b.warnWall = { side: h.dir, at: t + 0.75 * warnK(w), kind, pair: b.phase === 3 };
   }
   if (b.warnWall && t >= b.warnWall.at) {
     const side = b.warnWall.side; const x0 = side > 0 ? ARENA_W - WALL_W - 12 : WALL_W + 12;
@@ -176,9 +180,9 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
     // Kahramanın arkasından gelir ve onu yavaşça (dalga 295 − koşu 260 px/sn) yakalar; öndekini aştıktan sonra duvarda dönünce
     // karşısına çıkar → iki karşılaşma arası rahat. Eskiden arenanın dışında (x0 + side·330) doğup aynı karede ayıklanıyordu.
     if (b.warnWall.pair) { const xb = side > 0 ? WALL_W + 12 : ARENA_W - WALL_W - 12; b.waves.push({ x: xb, dir: (side > 0 ? 1 : -1), kind: b.warnWall.kind === 'low' ? 'high' : 'low', t0: t + PAIR_DELAY }); }
-    b.warnWall = null; b.nextAttack = t + (b.phase === 1 ? 2.1 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1);
+    b.warnWall = null; b.nextAttack = t + ((b.phase === 1 ? 2.1 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1)) / tempoK(w);
   }
-  const sp = waveSpeed(b);
+  const sp = waveSpeed(b, w);
   for (const wv of b.waves) {
     if (wv.t0 > t) continue; // henüz doğmadı (çift dalganın ikincisi)
     wv.x += wv.dir * sp * C.DT;
@@ -188,7 +192,7 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
   b.waves = b.waves.filter((wv) => wv.t0 >= 0 && wv.x > WALL_W - 40 && wv.x < ARENA_W - WALL_W + 40);
   // faz 2+: düşen gürültü bulutları
   if (b.phase >= 2) {
-    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1))), t0: t }); b.nextDrop = t + (b.phase === 3 ? 2.6 : 3.4); }
+    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1))), t0: t }); b.nextDrop = t + (b.phase === 3 ? 2.6 : 3.4) / tempoK(w); }
     for (const d of b.drops) { const age = t - d.t0; if (age > 0.85 && age < 1.15) { const y = GROUND_Y - 320 + (age - 0.85) / 0.3 * 320; if (hit(hb, d.x - 22, y - 30, d.x + 22, y)) { hurt(w, s, 'bulut', d.x); d.t0 = -9; } } }
     b.drops = b.drops.filter((d) => t - d.t0 < 1.2);
   }
