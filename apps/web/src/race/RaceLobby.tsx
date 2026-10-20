@@ -269,7 +269,7 @@ export function RaceChat({ roomId, meId, compact }: { roomId: string; meId: stri
           </div>
         ))}
       </div>
-      <PhraseStrip ctx={['yaris']} onPick={(id) => void send(id, 'hazir')} label="Yarış sözleri" />
+      <PhraseStrip ctx={['yaris']} ids={compact ? ['iyi-yaris', 'bir-daha', 'harika', 'az-kaldi', 'tebrik', 'gorusuruz'] : ['selam', 'iyi-sans', 'hazirim', 'harika', 'gorusuruz']} onPick={(id) => void send(id, 'hazir')} label="Yarış sözleri" />
       {!compact && <div className="race-quick">{QUICK.map((e) => <button key={e} className="race-emoji" aria-label={`${e} gönder`} onClick={() => void send(e, 'emoji')}>{e}</button>)}</div>}
       {!compact && <form className="race-chat-form" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
         <input className="race-input" data-testid="yaris-sohbet-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Mesaj yaz…" maxLength={SOCIAL_LIMITS.chatMax} />

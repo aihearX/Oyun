@@ -86,7 +86,7 @@ function DuoCard() {
         <h3 className="section-head">Arkadaşını seç</h3>
         {duo.candidates.length === 0 ? <Empty icon="👥" title="Davet edilecek arkadaş yok" text="Arkadaşlar ekranından arkadaş ekle; bu hafta görevi olmayan arkadaşların burada görünür." />
           : <div className="pick-list">{duo.candidates.map((p) => (
-            <div key={p.id} className="pick-row" data-testid="ikili-aday"><Av p={p} size={40} /><span className="grow"><b>{p.name}</b><small>{infoLine(p)}</small></span><button className="btn small" data-testid="ikili-davet-et" disabled={busy === p.id} onClick={() => void invite(p)}>Davet et</button></div>
+            <div key={p.id} className="pick-row" data-testid="ikili-aday"><Av p={p} size={40} /><span className="grow"><b>{p.name}</b><small data-ugc>{infoLine(p)}</small></span><button className="btn small" data-testid="ikili-davet-et" disabled={busy === p.id} onClick={() => void invite(p)}>Davet et</button></div>
           ))}</div>}
       </>}
     </div>
@@ -116,7 +116,8 @@ function MentorCard() {
         <span className="tg-ic"><Art name="crown" size={32} /></span>
         <div className="min0"><h2>Usta–Çırak</h2><small>{m.canMentor ? `Sen bir ustasın · ${m.apprentices.length}/${COMM_RULES.mentorMaxApprentices} çırak` : m.mentor ? `Ustan: ${m.mentor.mentor.name}` : 'Deneyimli bir arkadaş yeni başlayana yol gösterir'}</small></div>
       </div>
-      <div className="muted small-note">Çırak {COMM_RULES.mentorMilestones.join(', ')}. bölüme ulaştıkça ikiniz de ödül alırsınız (yalnız bağdan sonraki dönüm noktaları). Çırak: <ItemChips items={m.rewards.apprentice} small /> · Usta: <ItemChips items={m.rewards.mentor} small /></div>
+      <div className="muted small-note">Çırak {COMM_RULES.mentorMilestones.join(', ')}. bölüme ulaştıkça ikiniz de ödül alırsınız (yalnız bağdan sonraki dönüm noktaları).</div>
+      <div className="mt-rewards"><div><small>Her dönüm noktasında çırağa</small><ItemChips items={m.rewards.apprentice} small /></div><div><small>ustaya</small><ItemChips items={m.rewards.mentor} small /></div></div>
       {m.incoming.map((o) => {
         const who = o.by === o.mentor.id ? o.mentor : o.apprentice;
         return (
@@ -143,7 +144,7 @@ function MentorCard() {
         <h3 className="section-head">{role === 'usta' ? 'Çırak olabilecek arkadaşların' : 'Ustan olabilecek arkadaşların'}</h3>
         {m.candidates.length === 0 ? <div className="muted small-note">{role === 'usta' ? `Arkadaş ya da takım arkadaşı olan, henüz ${COMM_RULES.apprenticeMaxHighest + 1}. bölüme ulaşmamış oyuncular burada görünür.` : `En az ${COMM_RULES.mentorMinHighest - 1} bölüm geçmiş arkadaş ya da takım arkadaşları burada görünür.`}</div>
           : <div className="pick-list">{m.candidates.map((p) => (
-            <div key={p.id} className="pick-row" data-testid="usta-aday"><Av p={p} size={40} /><span className="grow"><b>{p.name}</b><small>{infoLine(p)}</small></span>
+            <div key={p.id} className="pick-row" data-testid="usta-aday"><Av p={p} size={40} /><span className="grow"><b>{p.name}</b><small data-ugc>{infoLine(p)}</small></span>
               <button className="btn small" data-testid="usta-teklif-et" disabled={busy === p.id} onClick={() => offer(p, role)}>{role === 'usta' ? 'Çırak teklif et' : 'Ustam ol'}</button></div>
           ))}</div>}
       </>}

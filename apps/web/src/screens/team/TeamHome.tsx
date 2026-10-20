@@ -74,7 +74,7 @@ export function TeamHome() {
         { id: 'baskin', icon: '👹', label: 'Baskın' },
       ]} />
       <div className="team-body" key={tab}>
-        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz… (@ ile bahset)`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
+        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
         {tab === 'uyeler' && <TeamMembers />}
         {tab === 'yardim' && <TeamHelp />}
         {tab === 'tekno' && <TeamTech />}

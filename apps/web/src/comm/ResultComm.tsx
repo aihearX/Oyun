@@ -44,7 +44,7 @@ export function ResultComm({ level, completed, demo }: { level: number; complete
       <div className="comm-result duel" data-testid="takima-meydan" onClick={(e) => e.stopPropagation()}>
         <span className="cr-ic"><Art name="finish" size={30} /></span>
         <span className="cr-t"><b>{duel === 'done' ? 'Meydan okudun!' : 'Takımına meydan oku'}</b><small>{duel === 'done' ? 'Kartın takım sohbetinde. 48 saat açık.' : 'En iyi skorun takım sohbetine kart olarak düşer; geçen olursa haber verilir.'}</small></span>
-        {duel !== 'done' && <button type="button" className="btn small coral" data-testid="takima-meydan-dugme" disabled={duel === 'busy'} onClick={() => void post()}>Meydan oku</button>}
+        {duel !== 'done' && <button type="button" className="btn small coral" data-testid="takima-meydan-dugme" disabled={duel === 'busy'} onClick={() => void post()}>Takıma gönder</button>}
       </div>
     );
   }

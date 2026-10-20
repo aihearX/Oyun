@@ -1,7 +1,7 @@
 import { SOCIAL_LIMITS, WAR_REGIONS, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
 import { fail, parseJson, randomCode, rid, type App, type Handlers, type PlayerRow, type TeamRow } from './app';
 import { systemMessage, teamRoom } from './chat';
-import { feedEvent, onHelpCard } from './comm';
+import { commTeamDeleted, feedEvent, onHelpCard } from './comm';
 import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
 import { addContrib, broadcastExtra } from './teamextra';
@@ -92,6 +92,7 @@ function deleteTeam(app: App, teamId: string): void {
   app.db.run('DELETE FROM help_requests WHERE team_id = ?', teamId);
   app.db.run('DELETE FROM team_tech WHERE team_id = ?', teamId);
   app.db.run('DELETE FROM chat WHERE room = ?', teamRoom(teamId));
+  commTeamDeleted(app, teamId);
   app.db.run('DELETE FROM war_points WHERE team_id = ? AND week = ?', teamId, week);
   const owned = app.db.all<{ region: string }>('SELECT region FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);
   app.db.run('DELETE FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);

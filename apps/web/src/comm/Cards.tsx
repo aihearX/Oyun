@@ -18,6 +18,7 @@ import './comm.css';
 export const REACTION_ART: Record<ChatReaction, ArtName> = { alkis: 'party', kalp: 'heart', ates: 'flame', yildiz: 'star', guc: 'bolt' };
 const FEED_ART: Record<string, ArtName> = { bolum: 'star', boss: 'monster', koklea: 'shell', bina: 'hammer', uye: 'users', seri: 'flame', yardim: 'help', meydan: 'finish' };
 const FEED_KICKER: Record<string, string> = { bolum: 'Bölüm geçti', boss: 'Canavar yenildi', koklea: 'Altın koklea', bina: 'Kamp', uye: 'Yeni üye', seri: 'Oyun serisi', yardim: 'Birlikte başardınız', meydan: 'Meydan okuma' };
+const cap = (t: string) => t.charAt(0).toLocaleUpperCase('tr') + t.slice(1);
 const s = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 
@@ -30,10 +31,11 @@ async function sendIn(room: string, text: string, kind: 'text' | 'hazir', replyT
 }
 
 /** Hazır sözler şeridi (yatay kaydırılır): tek dokunuşla gönderir */
-export function PhraseStrip({ ctx, onPick, className, label = 'Hazır sözler' }: { ctx: PhraseCtx[]; onPick: (id: string) => void; className?: string; label?: string }) {
+export function PhraseStrip({ ctx, ids, onPick, className, label = 'Hazır sözler' }: { ctx: PhraseCtx[]; ids?: string[]; onPick: (id: string) => void; className?: string; label?: string }) {
+  const list = ids ? ids.map((id) => QUICK_PHRASES.find((p) => p.id === id)).filter((p): p is (typeof QUICK_PHRASES)[number] => !!p) : phrasesFor(...ctx);
   return (
     <div className={`phrase-row${className ? ` ${className}` : ''}`} role="group" aria-label={label}>
-      {phrasesFor(...ctx).map((p) => <button key={p.id} type="button" className="phrase" data-phrase={p.id} onClick={() => onPick(p.id)}>{p.text}</button>)}
+      {list.map((p) => <button key={p.id} type="button" className="phrase" data-phrase={p.id} onClick={() => onPick(p.id)}>{p.text}</button>)}
     </div>
   );
 }
@@ -78,7 +80,7 @@ export function ThreadPreview({ parent, live, onOpen }: { parent: ChatMessage; l
       {last.map((r) => (
         <div key={r.id} className={`th-line${r.from === 'sistem' ? ' sys' : ''}`}>
           {r.from !== 'sistem' && <button type="button" className="th-who linkish" style={{ color: hex(r.color) }} onClick={() => openProfile(r.from)}>{r.name}</button>}
-          <span className="th-text">{r.text}</span>
+          <span className="th-text" data-ugc>{r.text}</span>
         </div>
       ))}
       {total > last.length && <button type="button" className="th-more linkish" onClick={onOpen}>{total} yanıtın tümü</button>}
@@ -106,11 +108,11 @@ export function ThreadSheet({ parent, onClose, ctx = ['tebrik', 'genel', 'tesekk
   }, [replies, live, parent.id]);
   return (
     <Sheet title="Konu" onClose={onClose}>
-      <div className="th-parent muted wrap">{parent.text}</div>
+      <div className="th-parent muted wrap" data-ugc>{parent.text}</div>
       <div className="th-list" data-testid="konu-sayfasi">
         {replies === null ? <div className="muted">Yükleniyor…</div> : all.length === 0 ? <div className="muted">İlk yanıtı sen yaz.</div> : all.map((r) => (
           <div key={r.id} className={`th-line big${r.from === 'sistem' ? ' sys' : ''}`}>
-            {r.from !== 'sistem' && <b style={{ color: hex(r.color) }}>{r.name}</b>}<span className="th-text">{r.text}</span><span className="msg-time">{fmtTime(r.at)}</span>
+            {r.from !== 'sistem' && <b style={{ color: hex(r.color) }}>{r.name}</b>}<span className="th-text" data-ugc>{r.text}</span><span className="msg-time">{fmtTime(r.at)}</span>
           </div>
         ))}
       </div>
@@ -203,9 +205,9 @@ export function HelpCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
           : expired ? <div className="muted small-note">Bu isteğin süresi doldu.</div>
             : (
               <div className="fc-actions">
-                <button type="button" className="btn small teal" data-testid="ipucu-ver" disabled={tipped} onClick={() => setTip(true)}><Art name="bulb" size={16} className="art-inline" /> {tipped ? 'İpucu verdin' : 'İpucu ver'}</button>
-                <button type="button" className="btn small" data-testid="kalkan-gonder" disabled={gave || busy === 'k' || (!!req && req.helpers.length >= req.max)} onClick={() => void shield()}><Art name="shield" size={16} className="art-inline" /> {gave ? 'Gönderildi' : 'Kalkan'}</button>
-                <button type="button" className="btn small coral" data-testid="birlikte-yaris" disabled={busy === 'y'} onClick={() => void race()}><Art name="finish" size={16} className="art-inline" /> Yarış</button>
+                <button type="button" className="btn small teal" data-testid="ipucu-ver" aria-label="İpucu ver" disabled={tipped} onClick={() => setTip(true)}><Art name="bulb" size={16} className="art-inline" /> {tipped ? 'Verdin' : 'İpucu'}</button>
+                <button type="button" className="btn small" data-testid="kalkan-gonder" aria-label="Kalkan gönder" disabled={gave || busy === 'k' || (!!req && req.helpers.length >= req.max)} onClick={() => void shield()}><Art name="shield" size={16} className="art-inline" /> {gave ? 'Gönderildi' : 'Kalkan'}</button>
+                <button type="button" className="btn small coral" data-testid="birlikte-yaris" aria-label="Birlikte yarış" disabled={busy === 'y'} onClick={() => void race()}><Art name="finish" size={16} className="art-inline" /> Yarış</button>
               </div>
             )}
       <div className="fc-foot"><ReactionBar msg={m} compact /><span className="grow" /><button type="button" className="fc-ibtn" onClick={() => setThread(true)} aria-label="Yanıtla"><Art name="chat" size={18} /></button></div>
@@ -225,7 +227,7 @@ function TipSheet({ requestId, name, level, onClose }: { requestId: string; name
   return (
     <Sheet title={`${name} için ipucu`} onClose={onClose}>
       <div className="muted small-note">{level}. bölümde işe yarayan bir ipucu seç{free ? ' ya da kendin yaz' : ''}. İpucu kartın altında görünür.</div>
-      <div className="tip-list">{phrasesFor('ipucu').map((p) => <button key={p.id} type="button" className="tip-opt" data-phrase={p.id} disabled={busy} onClick={() => void send({ phrase: p.id })}><Art name="bulb" size={18} /> {p.text.replace(/^İpucu: /, '')}</button>)}</div>
+      <div className="tip-list">{phrasesFor('ipucu').map((p) => <button key={p.id} type="button" className="tip-opt" data-phrase={p.id} disabled={busy} onClick={() => void send({ phrase: p.id })}><Art name="bulb" size={18} /> {cap(p.text.replace(/^İpucu: /, ''))}</button>)}</div>
       {free && (
         <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send({ text: text.trim() }); }}>
           <input className="input" value={text} maxLength={200} onChange={(e) => setText(e.target.value)} placeholder="Kendi ipucunu yaz…" aria-label="İpucu" />
@@ -255,7 +257,7 @@ export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] 
   return (
     <div className={`fcard t-soru${rev ? ' revealed' : ''}`} data-testid="gunun-sorusu" data-id={m.id} data-rev={rev ? '1' : '0'}>
       <div className="fc-head">
-        <span className="fc-av dede"><TuyDede size={42} mood={rev ? 'wink' : 'happy'} /></span>
+        <span className="fc-av dede"><TuyDede size={40} mood={rev ? 'wink' : 'happy'} /></span>
         <div className="fc-txt min0"><small>Günün Sorusu{s(m.meta?.lvl) === 'odyoloji' ? ' · Çalışma Grubu' : ''} · Tüy Dede</small><b>{m.text}</b></div>
       </div>
       <div className="dq-choices">
@@ -305,7 +307,7 @@ export function OnlineRow({ members }: { members: { id: string; name: string; co
   const pres = useNet((x) => x.presence); const me = useNet((x) => x.me?.id);
   const on = members.filter((m) => m.id !== me && (pres[m.id] ?? m.online));
   return (
-    <div className="online-row" data-testid="kim-cevrimici" aria-label={`Çevrimiçi: ${on.length}`}>
+    <div className={`online-row${on.length ? '' : ' none'}`} data-testid="kim-cevrimici" aria-label={`Çevrimiçi: ${on.length}`}>
       <span className="or-dot" aria-hidden /><small>{on.length ? `${on.length} çevrimiçi` : 'Şu an kimse çevrimiçi değil'}</small>
       <span className="or-avs">{on.slice(0, 8).map((m) => <button key={m.id} type="button" className="or-av" onClick={() => openProfile(m.id)} aria-label={`${m.name} çevrimiçi`} title={m.name}><OdiAvatar size={26} color={m.color} hat={hatKey(m.hat)} /></button>)}{on.length > 8 && <span className="or-more">+{on.length - 8}</span>}</span>
     </div>

@@ -11,7 +11,7 @@
 //         Expo'nun kendi sayfa iskeleti (viewport-fit yok, #root flex) ve yerel WebView'in scrollEnabled:false kilidi
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
-//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,etkinlik,sonuc]
+//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc]
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -188,6 +188,15 @@ function measureChat() {
   return { present: true, top: Math.round(r.top), bottom: Math.round(r.bottom), tabTop: tb ? Math.round(tb.top) : null, ok: r.bottom <= limit + 0.5 && r.top >= 0 && r.right <= document.documentElement.clientWidth + 1 };
 }
 
+/** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
+function rawClient(url) {
+  const ws = new WebSocket(url); let id = 0; const pend = new Map();
+  ws.onmessage = (e) => { const m = JSON.parse(String(e.data)); if (m.t === 'res') { const p = pend.get(m.id); pend.delete(m.id); if (!p) return; if (m.ok) p.res(m.data); else p.rej(new Error(`${m.code}: ${m.error}`)); } };
+  const ready = new Promise((r) => { ws.onopen = r; });
+  const call = async (op, data) => { await ready; return new Promise((res, rej) => { const i = ++id; pend.set(i, { res, rej }); ws.send(JSON.stringify({ t: 'req', id: i, op, data })); }); };
+  return { call, close: () => ws.close() };
+}
+
 // ---------------------------------------------------------------- akış
 const report = []; let failures = 0; let suiteNo = 0;
 const fail = (rec, why) => { rec.fails.push(why); failures++; };
@@ -332,6 +341,47 @@ async function suite(browserName, target, [W, H]) {
         rec.keyboard = { kb, ...r };
         if (!r || r.bottom > H - kb + 0.5 || r.top < INSET || r.box < 60) fail(rec, `klavye açıkken giriş kutusu görünmüyor: ${JSON.stringify(r)} (klavye üstü ${H - kb})`); }
       await page.evaluate(() => { document.documentElement.style.setProperty('--kb', '0px'); document.documentElement.classList.remove('kb-open'); });
+      // ---- iletişim (docs/13-iletisim.md): gerçek ikinci oyuncu (tarayıcısız istemci) takıma katılır → akış kartı, yardım kartı,
+      //      Günün Sorusu; konu / ipucu / serbest yazı sayfaları; Birlikte ekranı; özel mesajda hazır sözler
+      if (want('iletisim')) {
+        await page.getByLabel('Takım menüsü').click(); await page.locator('.sheet').waitFor();
+        const code = (await page.locator('.big-code').innerText()).trim();
+        await page.getByRole('button', { name: 'Kapat' }).click();
+        const bora = rawClient(wsUrl);
+        await bora.call('hello', { version: 1, name: `Bora${sno}` });
+        await bora.call('comm.settings', { freeText: true });
+        await bora.call('team.join', { code });
+        await bora.call('progress.submit', { runId: `u${sno}a${Date.now()}`, level: 1, completed: true, stars: 3, score: 900, timeSec: 40, coins: 60, biome: 'dis-kulak', mechanic: 'kosu', cochleas: 2 });
+        await bora.call('team.help.request', { level: 2 });
+        await page.locator('[data-testid="yardim-karti"]').first().waitFor({ timeout: 10_000 });
+        await page.locator('.subtabs .subtab', { hasText: 'Üyeler' }).first().click(); await sleep(300);
+        await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(700);
+        await check('takim-sohbet-kartlar', { chat: true });
+        await page.locator('[data-testid="akis-karti"]').last().getByRole('button', { name: 'Yanıtla' }).click();
+        await page.getByTestId('konu-sayfasi').waitFor(); await check('takim-konu-sayfasi', { scroll: false });
+        await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300);
+        await page.locator('[data-testid="yardim-karti"]').first().getByTestId('ipucu-ver').click();
+        await page.locator('.tip-opt').first().waitFor(); await check('takim-ipucu-sayfasi', { scroll: false });
+        await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300);
+        const q = page.locator('[data-testid="gunun-sorusu"] .fc-reply', { hasText: 'Haftalık tablo' });
+        if (await q.count()) { await q.first().click(); await page.locator('.sheet').waitFor(); await check('takim-haftalik-tablo', { scroll: false }); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300); }
+        // Birlikte (İkili Görev, Usta–Çırak, sohbet ayarları)
+        await tab('Profil'); await page.locator('.menu-tile[data-tile="together"]').click();
+        await page.getByTestId('birlikte').waitFor(); await sleep(500);
+        await check('birlikte');
+        await back();
+        // özel mesaj: takım arkadaşı hazır söz gönderir; panelde Hazır sözler
+        await bora.call('dm.send', { to: (await bora.call('team.detail', {})).team.roster.find((m) => !m.name.startsWith('Bora')).id, text: 'selam', kind: 'hazir' });
+        await page.locator('.menu-tile[data-tile="messages"]').click();
+        await page.locator('[data-testid="sohbet-satiri"]').first().click({ timeout: 10_000 });
+        await page.getByTestId('dm-ekrani').waitFor();
+        await page.getByRole('button', { name: 'Emoji ve çıkartmalar' }).click();
+        await page.locator('.dm-panel-tabs button', { hasText: 'Hazır sözler' }).click(); await sleep(300);
+        await check('dm-hazir-sozler', { scroll: false });
+        await back(); await back();
+        bora.close();
+        await tab('Takım');
+      }
     }
     if (want('etkinlik')) {
       await tab('Harita'); await sleep(800);

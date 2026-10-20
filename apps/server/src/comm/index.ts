@@ -69,3 +69,7 @@ export function installComm(app: App): void {
   app.chatJoinHooks.push((_pid, room) => { const t = teamOfRoom(room); if (t) ensureQuestion(app, t); });
 }
 export function commSweep(app: App): void { dqTick(app); }
+/** takım silinince iletişim kayıtlarını temizle (sohbet zaten silinir) */
+export function commTeamDeleted(app: App, teamId: string): void {
+  for (const t of ['dq', 'dq_answers', 'team_comm', 'challenges', 'feed_recent']) app.db.run(`DELETE FROM ${t} WHERE team_id = ?`, teamId);
+}

@@ -424,6 +424,48 @@ async function webSuite(bt) {
   }
 }
 
+// ---------------------------------------------------------------- 4b) FTUE: yeni iletişim yerleri Tüy Dede turuyla açılır
+const ALL_OLD_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'shop', 'events', 'race'];
+async function tourSuite(bt) {
+  const S = makeSuite(`tur-${bt}`);
+  console.log(`\n▶ tur · ${bt}`);
+  const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
+  const errors = [];
+  try {
+    for (const [cleared, done, want] of [[6, ALL_OLD_TOURS, 'akis'], [9, [...ALL_OLD_TOURS, 'akis'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'soru', 'ikili'], 'usta']]) {
+      const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 2, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
+      const progress = {}; for (let i = 1; i <= cleared; i++) progress[i] = { stars: 2, best: 800, plays: 1 };
+      await ctx.addInitScript((st) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: st, version: 3 })); } catch { /* yok */ } }, { progress, coins: 300, ftue: { v: 1, story: true, tours: done } });
+      const page = await ctx.newPage(); const p = { slug: `tur-${want}`, page };
+      page.on('pageerror', (e) => errors.push(`${want}: ${e.message}`));
+      await page.goto(base, { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Devam et|Yola çık/ }).click({ timeout: 30_000 });
+      for (let i = 0; i < 30 && !(await page.locator(`[data-testid="anlatici-tur"][data-tour="${want}"]`).count()); i++) {
+        if (await page.locator('.onboard').count()) { await page.getByRole('textbox', { name: 'Takma ad' }).fill(`Tur${want}`).catch(() => undefined); await page.getByRole('button', { name: 'Başla' }).click().catch(() => undefined); }
+        await sleep(500);
+      }
+      const tour = page.locator(`[data-testid="anlatici-tur"][data-tour="${want}"]`);
+      S.check(await tour.count() === 1, `${cleared} bölümden sonra “${want}” turu başladı`);
+      let guard = 0; let shotDone = false;
+      while (await tour.count() && guard++ < 30) {
+        if (!shotDone) { await sleep(700); await S.shot(p, `tur-${want}`); shotDone = true; }
+        const next = page.locator('[data-testid="anlatici-ileri"]');
+        if (await next.count()) { await next.click().catch(() => undefined); await sleep(450); continue; }
+        const r = await page.locator('.coach-ring').boundingBox().catch(() => null);
+        if (r) { await page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2); await sleep(900); continue; }
+        await sleep(400);
+      }
+      S.check(!(await tour.count()), `“${want}” turu bitti`);
+      await ctx.close();
+    }
+  } catch (e) {
+    failures++; S.rec.fails.push(String(e.message ?? e).split('\n')[0]); log(`✗ akış: ${String(e.message ?? e).split('\n')[0]}`);
+  } finally {
+    if (errors.length) { failures++; S.rec.fails.push(`konsol: ${errors.slice(0, 3).join(' | ')}`); }
+    await browser.close();
+  }
+}
+
 // ---------------------------------------------------------------- 5) dom (telefon paketi) akışı
 async function domSuite(bt) {
   const S = makeSuite(`dom-${bt}`);
@@ -484,7 +526,7 @@ async function domSuite(bt) {
 }
 
 try {
-  for (const t of targets) for (const b of browsers) { if (t === 'web') await webSuite(b); else await domSuite(b); }
+  for (const t of targets) for (const b of browsers) { if (t === 'web') { await webSuite(b); await tourSuite(b); } else await domSuite(b); }
 } finally {
   console.log('\n— özet —');
   for (const r of results) console.log(`  ${r.fails.length ? '✗' : '✓'} ${r.label}: ${r.checks} denetim${r.fails.length ? `, sorunlar: ${r.fails.join(' ; ')}` : ''}`);

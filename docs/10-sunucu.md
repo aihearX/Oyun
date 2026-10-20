@@ -21,6 +21,7 @@ ODİ sunucusu hazır → http://localhost:8787  (sağlık: /saglik)
 ```
 
 - `GET /saglik` → `{ ok, version, players, online }`
+- `GET /olcum` → iletişim ölçümü: son 7 günün günlük toplam sayaçları (kişisel veri yok; bkz. `docs/13-iletisim.md` §6)
 - `GET /` → kısa Türkçe açıklama
 - WebSocket: herhangi bir yol (`ws://<adres>:8787`)
 
@@ -173,3 +174,14 @@ Hepsi sunucu yetkilidir; saatler Europe/Istanbul'a göredir; ödüller ödül ku
 | Haftalık Turnuva | haftalık | 5 bölümde en iyi skorlar toplamı; 50 kişilik gruplar |
 
 Test modu: `ODI_EVENTS_FAST=1` → süreler dakikaya iner, dönemler sunucu açılışında başlar, bilgi yarışması her an açılabilir. Uçtan uca test: `node tools/harness/events-e2e.mjs`.
+
+
+## İletişim (docs/13-iletisim.md)
+
+Takım Akışı (gerçek olaylardan `feed` kartları, 30 dk birleştirme, takım başına saatte 20 kart), sohbet tepkileri (`chat.react`, 5 sabit tepki) ve konular
+(`chat.send { replyTo }`, `chat.thread`), Hızlı Sohbet (`kind: 'hazir'`, `QUICK_PHRASES`; özel mesajda da), güvenli varsayılan (en yüksek açık bölüm < 10 ve
+oyuncu açmadıysa serbest yazı `SERBEST_KAPALI`; `comm.settings { freeText, feedShare }`), @bahsetme (`comm.notice`), Yardım İste (`help.tip`, `help.race`,
+kalkan = `team.help.give`; isteyen 24 saat içinde geçince bir kez: isteyene 15, yardım edene 20 jeton), takıma meydan oku (`feed.challenge`, sunucudaki en iyi
+skor, 48 saat, günde 3), Günün Sorusu (`dq.state`, `dq.answer`, 20:00 açıklama, doğruya 10 jeton; `team.study` Çalışma Grubu), İkili Görev (`duo.*`,
+haftalık 300/800 nota), Usta–Çırak (`mentor.*`, dönüm noktaları 5/10/15/20). Tablolar `apps/server/src/comm/schema.ts`; testler `apps/server/test/comm.test.ts`;
+uçtan uca `node tools/harness/comm-e2e.mjs [--browsers chromium,webkit] [--target web|dom]`.

@@ -45,8 +45,8 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
   `seri` (sunucunun saydığı ardışık oyun günü: 3, 7, 14, 30, 60, 100), `yardim` (yardımla geçti), `meydan` (meydan okuma).
 - **Spam önleme (toplama):** aynı oyuncunun aynı türdeki kartı 30 dk içinde yeniden gelirse yeni kart açılmaz; mevcut kart
   güncellenir ("Ayşe 3 bölüm geçti: 4, 5, 6 · 8★") ve `chat.updated` yayınlanır. Takım başına saatte en çok 20 yeni kart; aşılırsa
-  yalnızca mevcut kartlar güncellenir. Oyuncu Ayarlar yerine sohbetin kendi menüsünden "Başarılarım akışta görünsün" seçeneğini
-  kapatabilir (`comm.settings { feedShare }`): kapalıyken onun hakkında kart üretilmez.
+  yalnızca mevcut kartlar güncellenir. Oyuncu Profil › Birlikte › Sohbet ayarları'ndan "Başarılarım akışta görünsün" seçeneğini
+  kapatabilir (`comm.settings { feedShare }`): kapalıyken onun hakkında kart üretilmez (yeni üye kartı hariç).
 - **Tepkiler:** `chat.react { msgId, reaction }` — sabit 5 tepki (`alkis`, `kalp`, `ates`, `yildiz`, `guc`; arayüzde resimli
   ikon), mesaj başına kişi başı bir tepki, aynısı geri alır. Takım, yarış ve genel sohbette her mesajda. Kendi kartına tepki
   verilebilir (sevinç), ama kendi kartına "Tebrik et" düğmesi görünmez.
@@ -60,7 +60,8 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
   ("Tebrik et"), yardım kartı (ipucu sözleri), usta dürtmesi.
 - **Güvenli varsayılan:** 10. bölüme ulaşmamış (en yüksek açık bölüm < 10) oyuncu serbest yazı gönderemez; hazır sözler, emoji
   ve çıkartma her zaman açık. Oyuncu istediği an `comm.settings { freeText: true }` ile serbest yazıyı açar (sohbet altındaki
-  "Serbest yazıyı aç" → kuralları özetleyen onay sayfası). Sunucu tarafında zorunludur (`SERBEST_KAPALI`).
+  "Serbest yazıyı aç" ya da giriş kutusuna dokun → kuralları özetleyen onay sayfası; Birlikte › Sohbet ayarları'ndan kapatılabilir).
+  Sunucu tarafında zorunludur (`SERBEST_KAPALI`). Test/geliştirme atlaması (`ftue.bypass`) serbest yazıyı da açar.
 
 ### 3.3 Yardım İste
 1. Sonuç ekranı: aynı bölümde art arda 3 başarısızlık (ya da `failStreak ≥ 3`) ve takımdaysa → "Takımdan yardım iste" kartı.
@@ -86,7 +87,7 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
   Soru bankası: `packages/content` QUIZ_QUESTIONS (128 soru, "Meraklı" + "Odyoloji öğrencisi" düzeyi); seçim gün + takım
   anahtarından sabit (herkese aynı, gizli olasılık yok). Çalışma Grubu modunda öğrenci düzeyinden.
 - `dq.answer { choice }` (bir kez, değiştirilemez). Açıklanmadan önce yalnızca **kaç kişinin** cevapladığı görünür.
-- Açıklama **20:00** (İstanbul; `ODI_EVENTS_FAST=1` testte soru açıldıktan 2 dk sonra): doğru şık, açıklama, doğru bilenler.
+- Açıklama **20:00** (İstanbul; 20:00'den sonra açılan soru 23:59'da; `ODI_EVENTS_FAST=1` testte soru açıldıktan 45 sn sonra): doğru şık, açıklama, doğru bilenler.
   Doğru bilene 10 jeton (ödül kutusu, günde bir). Kartın konusu tartışma alanıdır.
 - `dq.state`: bugünün sorusu, benim cevabım, haftalık takım tablosu (doğru sayısı).
 - **Çalışma Grubu:** lider/yardımcı `team.study { on }` ile açar; takım kartında "Çalışma Grubu" rozeti, sorular öğrenci düzeyinden.
@@ -106,7 +107,8 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
 
 ### 3.8 @bahsetme ve çevrimiçi
 - Takım sohbetinde `@İsim` (takım üyesi adı, büyük/küçük harf duyarsız). Mesaj başına en çok 3 kişi. Bahsedilen, gönderen onu
-  sessize almadıysa/engellemediyse `mention` olayı alır (bildirim şeridi + Takım sekmesinde "@" rozeti).
+  sessize almadıysa/engellemediyse `comm.notice` (kind `mention`) alır: bildirim şeridi ("Sohbete git"), Takım sekmesi ve Sohbet alt sekmesi
+  rozetine eklenir, mesaj altın çerçeveyle vurgulanır.
 - Takım sohbetinin üstünde "Kim çevrimiçi": çevrimiçi üyeler (gerçek bağlantı), dokununca profil kartı. Giriş kutusunda "@" yazınca
   üye önerileri.
 
