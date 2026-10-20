@@ -11,6 +11,7 @@ import './friends.css';
 import { IconButton } from '../ui/Button';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { featureOpen } from '../ftue/useFeatures';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
 const EMPTY: DmMessage[] = [];
@@ -115,7 +116,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
             <small className={`ellipsis${typing ? ' dm-typing-txt' : online ? ' fr-on' : ''}`} data-testid="dm-durum">{typing ? 'yazıyor…' : other ? lastSeenText(other, online) : ''}</small>
           </span>
         </button>
-        {isFriend && other && <button className="btn coral small icon-btn" onClick={() => void raceWith(other, nav)} aria-label={`${name} ile yarış`}><Art e="🏁" size="1.15em" className="art-inline" /></button>}
+        {isFriend && other && featureOpen('race') && <button className="btn coral small icon-btn" onClick={() => void raceWith(other, nav)} aria-label={`${name} ile yarış`}><Art e="🏁" size="1.15em" className="art-inline" /></button>}
       </header>
 
       <div className="dm-list" ref={list} onScroll={onScroll} aria-live="polite">

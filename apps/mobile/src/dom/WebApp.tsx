@@ -12,6 +12,9 @@ export type WebAppProps = {
   removeItem: (key: string) => Promise<void>;
   haptic: (kind: HapticKind) => Promise<void>;
   share: (text: string) => Promise<'shared' | 'copied' | 'cancelled'>;
+  /** anlatıcı sesi: yerel TTS (expo-speech, tr-TR) */
+  speak?: (text: string, rate: number, pitch: number) => Promise<void>;
+  stopSpeaking?: () => Promise<void>;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
   canPurchase: boolean;
@@ -42,6 +45,8 @@ export default function WebApp(p: WebAppProps) {
       storage: { getItem: (k) => p.getItem(k), setItem: (k, v) => p.setItem(k, v), removeItem: (k) => p.removeItem(k) },
       haptic: (k) => { void p.haptic(k); },
       share: (t) => p.share(t),
+      ...(p.speak ? { speak: (t: string, o?: { rate?: number; pitch?: number }) => { void p.speak!(t, o?.rate ?? 0.95, o?.pitch ?? 0.92).catch(() => undefined); } } : {}),
+      ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },

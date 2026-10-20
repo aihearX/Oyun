@@ -10,8 +10,13 @@ import type { LevelOptions } from '@odi/game-core';
 import { audio, type Track } from '@odi/audio';
 import { CelebrationLayer } from './celebrate/CelebrationLayer';
 import { installUiFeedback } from './ui/feedback';
+import { platform } from './platform';
 import { installViewport, scrollAppTop } from './ui/viewport';
 import { ArtDefs, ArtGallery } from './ui/art';
+import { CoachHost } from './ftue/Coach';
+import { FtueDirector, useLockToast } from './ftue/Director';
+import { StoryScreen } from './ftue/Story';
+import { clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
 import { useStore } from './store';
 import { MapScreen } from './screens/MapScreen';
 import { LevelHost } from './screens/LevelHost';
@@ -43,9 +48,16 @@ import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 
 type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>;
+/** yalnız test derlemesi (VITE_ODI_E2E=1): `?ftue=0` ilk deneyimi atlar (her şey açık), `?oyun-bot=1` normal akıştaki bölümleri harness botu oynar */
+declare const __ODI_E2E__: boolean | undefined;
+const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
+const E2E_Q = E2E ? new URLSearchParams(location.search) : null;
+const PLAY_BOT = !!E2E_Q && E2E_Q.get('oyun-bot') === '1';
+/** sekme → açılması gereken yer (harita hep açık) */
+const TAB_FEATURE: Partial<Record<Tab, FeatureId>> = { today: 'today', camp: 'camp', team: 'team', profile: 'profile' };
 type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'wardrobe' | 'info';
 type Route =
-  | { name: 'title' } | { name: Tab } | { name: Sub; back: Tab }
+  | { name: 'title' } | { name: Tab } | { name: Sub; back: Tab } | { name: 'story'; replay?: boolean; back?: Tab }
   | (SocialRoute & { back: Tab; key?: number })
   | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills }
   | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom }
@@ -97,6 +109,13 @@ export function App() {
   const [route, setRoute] = useState<Route>(demo ?? { name: 'title' });
   // alt ekran geçmişi (ör. Arkadaşlar → özel sohbet → geri: Arkadaşlar)
   const stack = useRef<Route[]>([]);
+  // test derlemesi: normal akıştaki bölüm botla oynanır (LevelHost bot modunda onDone çağırmaz; sonuç window.__odi'den)
+  const levelDone = useRef<((r: RunResult, room?: RaceRoom) => void) | null>(null);
+  useEffect(() => {
+    if (!PLAY_BOT || route.name !== 'level') return; const id = route.spec.id;
+    const h = setInterval(() => { const o = window.__odi; if (o?.done && o.result && o.spec?.id === id) { clearInterval(h); levelDone.current?.(o.result); } }, 250);
+    return () => clearInterval(h);
+  }, [route]);
 
   useEffect(() => {
     if (!bot) return;
@@ -107,6 +126,8 @@ export function App() {
   useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol }); }, [store.sounds, store.musicVol, store.sfxVol]);
   useEffect(() => (bot ? undefined : installUiFeedback()), [bot]);
   useEffect(() => (bot ? undefined : installViewport()), [bot]);
+  useEffect(() => { if (E2E_Q?.get('ftue') === '0' && !useStore.getState().ftue.bypass) useStore.getState().ftueBypass(); }, []);
+  const lockToast = useLockToast();
   // müzik geçişleri (crossfade): harita teması, menü, biyom tanıtımı. Bölüm/sonuç kendi müziğini yönetir (LevelScene, ResultScreen).
   // useLayoutEffect: ekranın kendi useEffect'i (ör. harita ekibinin özel parçası) bundan SONRA çalışır ve üstüne yazabilir.
   useLayoutEffect(() => { if (bot) return; const t = routeTrack(route); if (t) audio.music(t); }, [route.name, bot]);
@@ -145,25 +166,35 @@ export function App() {
   // sekme rozetleri: bekleyen (alınabilir) ödüller
   const today = dayKey(); const daily = ensureDaily(store.meta.daily, today);
   const todayBadge = daily.quests.filter((q) => questDone(q) && !q.claimed).length + (chestReady(daily) ? 1 : 0) + (store.lastDay === today && !calendarView(store, today).claimedToday ? 1 : 0);
-  const tab = (t: Tab) => { stack.current = []; setRoute({ name: t }); };
-  const curTab: Tab = 'back' in route ? route.back : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
+  const cleared = clearedCount(store.progress);
+  const tabLocked = (t: Tab) => { const f = TAB_FEATURE[t]; return f && !isOpen(f, cleared, store.ftue) ? f : null; };
+  const tab = (t: Tab) => { const f = tabLocked(t); if (f) { lockToast.show(lockText(f)); platform().haptic('light'); return; } stack.current = []; setRoute({ name: t }); };
+  /** açılış: yeni oyuncu → hikâye → doğrudan 1. bölüm; hiç bölüm geçmemişse yine tek giriş 1. bölüm */
+  const start = () => {
+    store.touchDay(); const s = useStore.getState();
+    if (!s.ftue.story && !s.ftue.bypass) { setRoute({ name: 'story' }); return; }
+    if (!s.ftue.bypass && clearedCount(s.progress) === 0) { play(1); return; }
+    setRoute({ name: 'map' });
+  };
+  const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><ProfileCardHost /><EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} /></>;
-  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><ProfileCardHost />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
   const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
 
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
   const view = (() => { switch (route.name) {
-    case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={() => { store.touchDay(); setRoute({ name: 'map' }); }} />;
-    case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} /><EventsFab onOpen={() => nav.open({ name: 'events' })} /></>);
+    case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} />;
+    case 'story': { const r = route; return <StoryScreen replay={r.replay} onDone={() => { store.ftueStoryDone(); if (r.replay) setRoute({ name: 'settings', back: r.back ?? 'profile' }); else play(1); }} />; }
+    case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} />{isOpen('events', cleared, store.ftue) && <EventsFab onOpen={() => nav.open({ name: 'events' })} />}</>);
     case 'today': return withTabs('today', <TodayScreen onInfo={() => openSub('today')('info')} />);
     case 'camp': return withTabs('camp', <CampScreen />);
     case 'team': return withTabs('team', <TeamScreen />);
     case 'profile': return withTabs('profile', <ProfileScreen onOpen={openSub('profile')} />);
-    case 'friends': return sub(<FriendsScreen onBack={back(route)} raceReady />);
+    case 'friends': return sub(<FriendsScreen onBack={back(route)} raceReady={isOpen('race', cleared, store.ftue)} />);
     case 'chat': return sub(<ChatScreen key={route.room} room={route.room} title={route.title} onBack={back(route)} />);
     case 'messages': return sub(<MessagesScreen onBack={back(route)} />);
     case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
@@ -175,8 +206,8 @@ export function App() {
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
     case 'raceResult': return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
-    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds} extras={r.extras} race={r.race}
-      onDone={(result, room) => {
+    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && !r.race} extras={r.extras} race={r.race}
+      onDone={levelDone.current = (result, room) => {
         if (r.race) {
           // yarış bölümü açık bölümlerdense ilerlemeye ve takıma sayılır (rövanşta açılmamış bölüm sayılmaz)
           if (r.spec.number <= store.highestUnlocked()) { store.completeRun(r.spec, result); submitRun(r.spec, result, r.race.id); }
@@ -187,13 +218,13 @@ export function App() {
       onQuit={() => setRoute(r.race ? { name: 'race', back: 'team', key: Date.now() } : { name: 'map' })} />; }
     case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
     case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
-    case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} />;
+    case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'album': return <AlbumScreen onBack={() => setRoute({ name: route.back })} />;
     case 'wardrobe': return <WardrobeScreen onBack={() => setRoute({ name: route.back })} />;
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
   } })();
-  return <><ArtDefs />{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro'} /></>;
+  return <><ArtDefs />{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
 
 /** ekran → müzik parçası (undefined: o ekran kendi yönetir) */

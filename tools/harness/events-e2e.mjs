@@ -93,6 +93,8 @@ const tid = (p, id) => p.page.getByTestId(id);
 
 async function player(name, slug) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
   const page = await ctx.newPage();
   const p = { name, slug, ctx, page, errors: [] };
   page.on('pageerror', (e) => p.errors.push(String(e.message ?? e)));

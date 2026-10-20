@@ -7,6 +7,7 @@ import { Av, giftFriend, lastSeenText, raceWith, requestFriend, tierLabel, useOn
 import { closeProfile, friendsNet, refreshFriends, useFriends } from './state';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { featureOpen } from '../ftue/useFeatures';
 import './friends.css';
 
 /**
@@ -75,7 +76,7 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
             {rel === 'arkadas' && (
               <div className="row">
                 <button className="btn ghost grow" disabled={busy || gifted || card.giftedToday} onClick={() => void run(() => giftFriend(p))}>{rich(gifted || card.giftedToday ? '🎁 Bugün gönderildi' : '🎁 Hediye')}</button>
-                <button className="btn coral grow" onClick={() => go(() => void raceWith(p, nav))}><Art e="🏁" size="1.15em" className="art-inline" /> Yarış</button>
+                {featureOpen('race') && <button className="btn coral grow" onClick={() => go(() => void raceWith(p, nav))}><Art e="🏁" size="1.15em" className="art-inline" /> Yarış</button>}
               </div>
             )}
             {rel === 'engelledin'

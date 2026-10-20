@@ -3,6 +3,7 @@
  * (apps/mobile, Expo DOM bileşeni içinde) çalışır. Yerel yetenekler buradan geçer.
  * Mobil kabuk `installPlatform(...)` ile kendi uygulamasını kurar; kurulmazsa tarayıcı varsayılanları kullanılır.
  */
+export interface SpeakOpts { rate?: number; pitch?: number }
 export type HapticKind = 'light' | 'medium' | 'heavy' | 'success' | 'error';
 export interface Platform {
   kind: 'web' | 'native';
@@ -19,6 +20,10 @@ export interface Platform {
    * playerId: sosyal sunucudaki oyuncu kimliği (RevenueCat kullanıcı kimliği olarak kullanılır; sunucu bu kimlikle doğrular).
    * Dönen makbuz (işlem kimliği) sunucuya 'shop.purchase' ile gönderilir; sunucu doğrular.
    */
+  /** anlatıcı sesi: Türkçe metni sesli okur (mobilde yerel TTS / expo-speech, tarayıcıda speechSynthesis); yoksa sessiz */
+  speak(text: string, opts?: SpeakOpts): void;
+  /** okumayı hemen kes (ileri/atla) */
+  stopSpeaking(): void;
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
 }
 
@@ -51,7 +56,24 @@ let current: Platform = {
   },
   serverUrl: defaultServerUrl,
   insets: { top: 0, bottom: 0 },
+  speak: webSpeak,
+  stopSpeaking() { try { window.speechSynthesis?.cancel(); } catch { /* yok */ } },
 };
+
+/** Tarayıcı TTS: tr-TR ses (varsa en doğal olanı); ses yoksa ya da API yoksa sessizce geçer */
+function webSpeak(text: string, opts: SpeakOpts = {}) {
+  try {
+    const ss = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
+    if (!ss || typeof SpeechSynthesisUtterance === 'undefined' || !text.trim()) return;
+    ss.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'tr-TR'; u.rate = opts.rate ?? 0.95; u.pitch = opts.pitch ?? 0.92;
+    const voices = ss.getVoices().filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith('tr'));
+    const best = voices.find((v) => /natural|enhanced|premium|neural/i.test(v.name)) ?? voices.find((v) => v.localService) ?? voices[0];
+    if (best) u.voice = best;
+    ss.speak(u);
+  } catch { /* TTS yok: altyazı yeter */ }
+}
 
 export function installPlatform(p: Partial<Platform>) { current = { ...current, ...p, storage: p.storage ?? current.storage }; }
 export function platform(): Platform { return current; }

@@ -2,6 +2,8 @@ import { useRef } from 'react';
 import { audio } from '@odi/audio';
 import { useStore } from '../store';
 import { ScreenHead } from '../ui/bits';
+import { TuyDede } from '../ftue/Narrator';
+import { ActionButton } from '../ui/Button';
 import { Glyph } from '../ui/art';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
@@ -18,7 +20,7 @@ function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: s
   );
 }
 
-export function SettingsScreen({ onBack }: { onBack: () => void }) {
+export function SettingsScreen({ onBack, onReplay }: { onBack: () => void; onReplay?: () => void }) {
   const s = useStore();
   const lastPreview = useRef(0);
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
@@ -31,6 +33,11 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         <Slider icon="🎵" label="Müzik ses düzeyi" value={s.musicVol} disabled={!s.sounds} onChange={(v) => s.setVolumes({ musicVol: v })} />
         <Slider icon="🔔" label="Efekt ses düzeyi" value={s.sfxVol} disabled={!s.sounds} onChange={(v) => s.setVolumes({ sfxVol: v })} onRelease={preview} />
         <div className="muted small-note">Not: Telefon sessiz moddayken de oyun sesleri çalabilir (uygulama içi tarayıcı sessiz anahtarını her zaman dikkate almaz). Sesi buradan kısabilir ya da kapatabilirsin.</div>
+      </div>
+      <div className="card vol-row">
+        <div className="row between"><div className="row" style={{ gap: 10 }}><TuyDede size={52} /><div><h2>Anlatıcı sesi</h2><div className="muted">Tüy Dede anlatırken sesli okusun (yazı hep görünür)</div></div></div>
+          <button className={`btn small toggle-btn${s.narratorVoice ? '' : ' ghost'}`} onClick={() => s.setNarratorVoice(!s.narratorVoice)} aria-pressed={s.narratorVoice} aria-label="Anlatıcı sesi">{s.narratorVoice ? 'Açık' : 'Kapalı'}</button></div>
+        {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
       </div>
       <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi?')) s.reset(); }}>Sıfırla</button></div>
       <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>

@@ -6,6 +6,7 @@ import { ChatRoom } from '../../ui/Chat';
 import { Sheet, SubTabs, fmtNum } from '../../ui/social';
 import { Bar } from '../../ui/bits';
 import { ActionButton, IconButton } from '../../ui/Button';
+import { featureOpen } from '../../ftue/useFeatures';
 import { TeamMembers } from './TeamMembers';
 import { TeamHelp } from './TeamHelp';
 import { TeamTech, TeamGifts, TeamGoals } from './TeamExtra';
@@ -61,7 +62,7 @@ export function TeamHome() {
       </div>
       <SubTabs<TeamTab> active={tab} onChange={setTab} tabs={[
         { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread },
-        { id: 'etkinlik', icon: '🎪', label: 'Etkinlikler', badge: evBadge },
+        ...(featureOpen('events') ? [{ id: 'etkinlik' as const, icon: '🎪', label: 'Etkinlikler', badge: evBadge }] : []),
         { id: 'uyeler', icon: '👥', label: 'Üyeler' },
         { id: 'yardim', icon: '🤝', label: 'Yardım', badge: campHelp.length + levelHelp },
         { id: 'tekno', icon: '🔬', label: 'Teknoloji' },

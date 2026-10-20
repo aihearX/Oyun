@@ -1,6 +1,7 @@
 import { Share, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import * as Speech from 'expo-speech';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
@@ -29,6 +30,22 @@ async function share(text: string): Promise<'shared' | 'copied' | 'cancelled'> {
   try { const r = await Share.share({ message: text }); return r.action === Share.sharedAction ? 'shared' : 'cancelled'; } catch { return 'cancelled'; }
 }
 
+/** Anlatıcı (Tüy Dede) sesi: cihazın Türkçe sesi; varsa "gelişmiş" kalitedeki seçilir. Ses yoksa sessizce geçer (altyazı hep var). */
+let trVoice: string | undefined | null = null;
+async function pickVoice(): Promise<string | undefined> {
+  if (trVoice !== null) return trVoice;
+  try {
+    const all = await Speech.getAvailableVoicesAsync();
+    const tr = all.filter((v) => v.language?.toLowerCase().replace('_', '-').startsWith('tr'));
+    trVoice = (tr.find((v) => String(v.quality).toLowerCase() === 'enhanced') ?? tr[0])?.identifier;
+  } catch { trVoice = undefined; }
+  return trVoice;
+}
+async function speak(text: string, rate: number, pitch: number) {
+  try { Speech.stop(); const voice = await pickVoice(); Speech.speak(text, { language: 'tr-TR', rate, pitch, ...(voice ? { voice } : {}) }); } catch { /* TTS yok */ }
+}
+async function stopSpeaking() { try { await Speech.stop(); } catch { /* yok */ } }
+
 export default function Home() {
   const insets = useSafeAreaInsets();
   return (
@@ -40,6 +57,8 @@ export default function Home() {
           removeItem={(k) => AsyncStorage.removeItem(k)}
           haptic={haptic}
           share={share}
+          speak={speak}
+          stopSpeaking={stopSpeaking}
           {...(nativePurchase ? { purchase: nativePurchase } : {})}
           canPurchase={!!nativePurchase}
           serverUrl={serverUrl()}

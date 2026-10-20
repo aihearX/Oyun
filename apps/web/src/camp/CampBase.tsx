@@ -51,7 +51,7 @@ export function CampBase(p: CampBaseProps) {
       onReady: () => setReady(true),
     });
     handle.current = h;
-    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id), view: () => h.view() };
+    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id), view: () => h.view(), focus: (id: BuildingId) => h.focus(id, true) };
     audio.music('menu');
     return () => { h.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
   }, []);

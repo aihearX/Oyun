@@ -803,3 +803,6 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
 .art-gallery small { font-size:10px; color:var(--text-2); font-weight:800; }
 .ev-h-ic { display:inline-flex; vertical-align:middle; line-height:0; }
 .ev-notice-i { display:flex; align-items:center; }
+.abtn .act-lock { display:inline-flex; align-items:center; gap:3px; margin-left:4px; font-size:11px; color:var(--gold); }
+.abtn.tile .act-lock { margin:2px 0 0; }
+.abtn.tile .lbl { display:flex; flex-direction:column; align-items:center; }

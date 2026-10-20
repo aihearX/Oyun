@@ -51,6 +51,8 @@ const browser = await chromium.launch({ headless: !args.has('--headed'), executa
 const errors = [];
 async function player(tag) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
   await ctx.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: `http://localhost:${wport}` }).catch(() => undefined);
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));

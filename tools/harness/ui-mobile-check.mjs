@@ -85,7 +85,8 @@ function webInsets([top, bottom]) {
 }
 /** dom hedefi: Expo DOM köprüsü + yerel scrollEnabled:false kilidi (belge kullanıcıyla kaydırılamaz) */
 function domBridge([serverUrl, top, bottom, seed]) {
-  const store = { ...(seed || {}) };
+  // ilk açılış rehberi (hikâye + anlatıcı turları + kilitler) bu denetimin konusu değil: atlanmış başlar (bkz. onboarding-e2e.mjs)
+  const store = { 'odi-v1': JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 }), ...(seed || {}) };
   window.ReactNativeWebView = {
     injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
@@ -204,7 +205,10 @@ async function suite(browserName, target, [W, H]) {
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   await page.addInitScript(paintInsets, [INSET, INSET_B]);
   if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B]);
-  else await page.addInitScript(webInsets, [INSET, INSET_B]);
+  else {
+    await page.addInitScript(webInsets, [INSET, INSET_B]);
+    await page.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
+  }
   const cdp = browserName === 'chromium' ? await ctx.newCDPSession(page) : null;
   const url = (q = '') => target === 'dom' ? domHtml + (q ? `?${q}` : '') : `${webBase}?sunucu=${encodeURIComponent(wsUrl)}${q ? `&${q}` : ''}`;
   let n = 0;
@@ -346,7 +350,7 @@ async function suite(browserName, target, [W, H]) {
     }
     if (want('giris')) {
       // geri dönen oyuncu: kayıtlı ilerleme → “Devam et”
-      const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240 }, version: 2 }) };
+      const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240, ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 }) };
       if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed]); }
       else await page.evaluate((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
       await page.goto(url(), { waitUntil: 'load' });

@@ -18,6 +18,7 @@ import { mapGoals, treasureItems } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import { Art, Glyph, Rich } from '../ui/art';
+import { useFeatures } from '../ftue/useFeatures';
 import { Icon } from '../ui/icons';
 import '../map/map.css';
 
@@ -93,6 +94,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   useEffect(() => { const t = setInterval(() => setGi((i) => i + 1), 4800); return () => clearInterval(t); }, []);
   const goal = goals[gi % goals.length]!;
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
+  const feat = useFeatures();
 
   return (
     <div className="map-screen" onPointerDown={() => audio.unlock()}>
@@ -104,18 +106,18 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         <span className="mh-pill" aria-label={`${totalStars} yıldız`}><Art name="star" size={18} />{totalStars}</span>
         <span className="grow" />
         <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${coin.value} jeton`}><Art name="coin" size={18} />{fmt(coin.value)}</span>
-        {wallet && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} />{fmt(kristal.value)}</button>}
-        {wallet && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
+        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} />{fmt(kristal.value)}</button>}
+        {wallet && feat.open('shop') && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
       <div className="map-side-l">
-        <button className={`map-today${todayHot ? ' hot' : ''}`} onClick={onToday} aria-label="Bugün: görevler ve takvim">
+        {feat.open('today') && <button className={`map-today${todayHot ? ' hot' : ''}`} onClick={onToday} aria-label="Bugün: görevler ve takvim">
           <span className="mt-ic"><Art name="sun" size={26} /></span><span className="mt-t"><b>Bugün</b><small><Rich text={todayText} /></small></span>
-        </button>
+        </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      <button className="map-goal" key={gi % goals.length} onClick={() => handle.current?.focusCurrent()} aria-label={`Sıradaki hedef: ${goal.text}`}>
+      {feat.cleared >= 1 || feat.open('today') ? <button className="map-goal" key={gi % goals.length} onClick={() => handle.current?.focusCurrent()} aria-label={`Sıradaki hedef: ${goal.text}`}>
         <small>Sıradaki hedef</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
-      </button>
+      </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
       {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır <Art name="booster" size="1.15em" className="art-inline" /></div>}
       <div className="map-play-wrap" ref={playRef}>

@@ -10,6 +10,7 @@ import { useHudCount } from '../celebrate/hud';
 import { IconButton } from './Button';
 import { Icon } from './icons';
 import { Art, Glyph, Rich, rich } from './art';
+import { useFeatures } from '../ftue/useFeatures';
 
 /** saniyelik (ya da verilen aralıkta) yeniden çizim için şimdiki zaman */
 export function useNow(ms = 1000): number {
@@ -71,7 +72,8 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
   const coins = useStore((s) => s.coins);
   const wallet = useNet((s) => s.wallet); const inbox = useNet((s) => s.inboxCount); const st = useNet((s) => s.status);
   const pending = usePending(); const nav = useNav();
-  const linked = !!wallet;
+  const feat = useFeatures();
+  const linked = !!wallet; const shopOpen = linked && feat.open('shop');
   // jeton uçuşu sırasında sayaç gerçek değerin yoldaki kadar altında görünür ve varışta sayarak artar
   const jc = useHudCount('jeton', coins); const kc = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
@@ -82,10 +84,10 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       </div>
       <div className="tb-pills">
         {extra}
-        {linked && <DmTopPill />}
+        {linked && feat.open('friends') && <DmTopPill />}
         <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}><Art name="coin" size={19} />{fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend"><Art name="hourglass" size={13} /></i>}</span>
-        {linked && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={19} />{fmtNum(kc.value)}</button>}
-        {linked && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
+        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={19} />{fmtNum(kc.value)}</button>}
+        {shopOpen && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>
   );

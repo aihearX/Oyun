@@ -86,6 +86,8 @@ const PLAYERS = [{ name: 'Ayşe', delay: 0 }, { name: 'Bora', delay: 350 }, { na
 const shot = (p, file) => p.page.screenshot({ path: resolve(outDir, file) });
 for (const pl of PLAYERS) {
   const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
   const page = await ctx.newPage();
   const p = { ...pl, ctx, page, errors: [] };
   page.on('pageerror', (e) => p.errors.push(String(e.message ?? e)));

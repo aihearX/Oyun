@@ -14,6 +14,7 @@ import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
 import { Art, Glyph, Rich } from '../ui/art';
+import { useFeatures } from '../ftue/useFeatures';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
@@ -35,6 +36,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
 export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId }: Props) {
   const store = useStore();
+  const feat = useFeatures(); const raceOpen = feat.open('race');
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
   /** önizleme bayrağı: ?demo=sonuc&kutlama=0 → seviye kutlaması açılmaz (yalnızca ekran görüntüsü için) */
@@ -215,19 +217,19 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         <div className="result-actions" onClick={(e) => e.stopPropagation()}>
           {result.completed && !last ? (
             <>
-              <ActionButton block icon="play" onClick={onNext}>Sonraki</ActionButton>
+              <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
               <div className="abtn-grid">
-                <ActionButton tone="teal" tile icon="retry" onClick={onRetry}>Tekrar</ActionButton>
-                <ActionButton tone="gold" tile icon="megaphone" onClick={share}>Meydan oku</ActionButton>
-                <ActionButton tone="plain" tile icon="map" onClick={onMap}>Harita</ActionButton>
+                <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
+                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+                <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
               </div>
             </>
           ) : (
             <>
               <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
               <div className="abtn-grid">
-                <ActionButton tone="gold" tile icon="megaphone" onClick={share}>Meydan oku</ActionButton>
-                <ActionButton tone="plain" tile icon="map" onClick={onMap}>Harita</ActionButton>
+                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+                <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
               </div>
             </>
           )}

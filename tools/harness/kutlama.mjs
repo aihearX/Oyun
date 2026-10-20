@@ -27,6 +27,8 @@ const errors = []; const shots = [];
 
 async function page(w = W, h = H) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errors.push(String(e.message ?? e)));
   p.on('console', (m) => { if (m.type() === 'error' && !/favicon|WebSocket|ws:\/\/|ERR_CONNECTION|AudioContext|vibrate/i.test(m.text())) errors.push(m.text()); });
