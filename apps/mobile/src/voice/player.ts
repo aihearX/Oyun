@@ -1,9 +1,11 @@
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+import { Asset } from 'expo-asset';
+import { File } from 'expo-file-system';
 import { VOICE_FILES } from './files';
 
 /**
- * Tüy Dede'nin kayıtlı sesleri: uygulama paketindeki dosyaları yerel oynatıcıyla çalar (WebView'in otomatik oynatma
- * kısıtlarına takılmaz). Web arayüzü (Expo DOM) köprü üzerinden ister: voiceManifest → playVoice(file) → stopVoice.
+ * Tüy Dede'nin kayıtlı sesleri: dosyalar uygulama paketinde (Metro varlığı). Yerel oynatıcı KULLANILMAZ:
+ * kabuk yalnızca dosyanın baytlarını base64 olarak köprüden verir; WebView içindeki ses motoru (WebAudio) çözer ve çalar —
+ * müzik ve efektlerin cihazda zaten çalıştığı yol. Web arayüzü sıradaki satırları önceden ister.
  */
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const MANIFEST = require('../../../web/public/voice/manifest.json') as { lines?: Record<string, unknown> };
@@ -12,38 +14,39 @@ export async function voiceManifest(): Promise<string | null> {
   try { return JSON.stringify(MANIFEST); } catch { return null; }
 }
 
-let current: { player: AudioPlayer; done: (ok: boolean) => void } | null = null;
+const cache = new Map<string, Promise<string | null>>();
 
-/** dosyayı çal; bitince (ya da kesilince) true, dosya yoksa/çalınamazsa false */
-export function playVoice(file: string, volume: number): Promise<boolean> {
-  stopVoice();
-  const src = VOICE_FILES[file];
-  if (src == null) return Promise.resolve(false);
-  return new Promise((resolve) => {
-    let settled = false;
-    const done = (ok: boolean) => {
-      if (settled) return; settled = true;
-      try { sub?.remove(); } catch { /* yok */ }
-      try { player.remove(); } catch { /* yok */ }
-      if (current?.player === player) current = null;
-      resolve(ok);
-    };
-    let player: AudioPlayer; let sub: { remove(): void } | undefined;
-    try {
-      player = createAudioPlayer(src);
-      player.volume = Math.max(0, Math.min(1, volume));
-      sub = player.addListener('playbackStatusUpdate', (st) => { if (st.didJustFinish) done(true); });
-      current = { player, done };
-      player.play();
-      // güvenlik: durum olayı hiç gelmezse (bozuk dosya) takılı kalma
-      setTimeout(() => done(true), 30_000);
-    } catch { resolve(false); }
-  });
+/** dosyanın baytları (base64); paket dışı ya da okunamazsa null */
+export function voiceData(file: string): Promise<string | null> {
+  const hit = cache.get(file); if (hit) return hit;
+  const p = readAsset(file).catch(() => null);
+  cache.set(file, p);
+  void p.then((v) => { if (!v) cache.delete(file); });
+  // önbellek küçük kalsın (base64 metinleri ~30-80 KB)
+  while (cache.size > 24) cache.delete(cache.keys().next().value!);
+  return p;
 }
 
-export function stopVoice() {
-  const c = current; current = null;
-  if (!c) return;
-  try { c.player.pause(); } catch { /* yok */ }
-  c.done(true);
+async function readAsset(file: string): Promise<string | null> {
+  const mod = VOICE_FILES[file];
+  if (mod == null) return null;
+  const asset = Asset.fromModule(mod);
+  if (!asset.localUri) await asset.downloadAsync();
+  const uri = asset.localUri ?? asset.uri;
+  if (!uri) return null;
+  try { return await new File(uri).base64(); } catch { /* yerel dosya okunamadı: indirerek dene */ }
+  const r = await fetch(uri);
+  if (!r.ok) return null;
+  return bytesToBase64(new Uint8Array(await r.arrayBuffer()));
+}
+
+const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+/** btoa'ya güvenmeden base64 (Hermes sürümlerinden bağımsız) */
+export function bytesToBase64(b: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < b.length; i += 3) {
+    const n = (b[i]! << 16) | ((b[i + 1] ?? 0) << 8) | (b[i + 2] ?? 0);
+    out += ABC[(n >> 18) & 63]! + ABC[(n >> 12) & 63]! + (i + 1 < b.length ? ABC[(n >> 6) & 63]! : '=') + (i + 2 < b.length ? ABC[n & 63]! : '=');
+  }
+  return out;
 }

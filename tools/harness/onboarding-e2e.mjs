@@ -69,17 +69,18 @@ function paintInsets([top, bottom]) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', put); else put();
 }
 /** web: köprünün güvenli alan değişkenleri + konuşma kaydı (speechSynthesis yoksa sahte) */
-function webSetup([top, bottom]) {
+function webSetup([top, bottom, maleVoice]) {
   const set = () => { const de = document.documentElement; if (!de) return false; de.style.setProperty('--safe-top', `${top}px`); de.style.setProperty('--safe-bottom', `${bottom}px`); return true; };
   if (!set()) document.addEventListener('DOMContentLoaded', set);
-  window.__spoken = []; window.__played = [];
-  // kayıtlı ses: <audio> çalmalarını kaydet (voice/<id>.mp3), çalmış gibi kısa süre sonra bitir (başsız tarayıcıda hoparlör yok)
-  const MP = HTMLMediaElement.prototype; const origPlay = MP.play;
-  MP.play = function () {
-    const src = this.src || this.currentSrc || ''; // src: yeni atanan (currentSrc yükleme başlayana dek eskisini gösterir)
-    if (/\/voice\/[^/?#]+\.mp3/.test(src)) { window.__played.push(src.split('/voice/')[1]); setTimeout(() => this.dispatchEvent(new Event('ended')), 250); return Promise.resolve(); }
-    return origPlay.call(this);
-  };
+  window.__spoken = [];
+  // kayıtlı ses GERÇEK yolla çalar (indir → WebAudio decodeAudioData → ses motoru); hangi satırların kayıttan çaldığı uygulamanın günlüğünden okunur
+  Object.defineProperty(window, '__played', { get: () => (window.__odiVoice?.log ?? []).filter((x) => x.mode === 'kayıt').map((x) => x.file) });
+  // isteğe bağlı: cihazda erkek Türkçe ses varmış gibi (yedek TTS testi). Yoksa başsız tarayıcıda Türkçe erkek ses yoktur → sessiz kalınmalı
+  if (maleVoice && window.speechSynthesis) {
+    const fake = { name: 'Microsoft Tolga - Turkish (Turkey)', lang: 'tr-TR', localService: true, default: false, voiceURI: 'tolga' };
+    window.SpeechSynthesis.prototype.getVoices = () => [fake];
+    Object.defineProperty(window.SpeechSynthesisUtterance.prototype, 'voice', { configurable: true, get() { return null; }, set() {} });
+  }
   if (typeof window.SpeechSynthesisUtterance === 'undefined') window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
   const ss = window.speechSynthesis;
   // prototip üzerinden kaydet (WebKit sarmalayıcıyı yeniden kurabilir; örnek üzerindeki yama kaybolur)
@@ -89,9 +90,10 @@ function webSetup([top, bottom]) {
 }
 /** dom: Expo DOM köprüsü (tohumlanmış kayıt + konuşma çağrıları kaydı) + yerel scrollEnabled:false kilidi */
 function domBridge([serverUrl, top, bottom, seed, manifest]) {
-  const store = { ...(seed || {}) }; window.__spoken = []; window.__played = [];
+  const store = { ...(seed || {}) }; window.__spoken = []; window.__speakArgs = [];
+  Object.defineProperty(window, '__played', { get: () => (window.__odiVoice?.log ?? []).filter((x) => x.mode === 'kayıt').map((x) => x.file) });
   window.ReactNativeWebView = {
-    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', 'speak', 'stopSpeaking', 'voiceManifest', 'playVoice', 'stopVoice'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
+    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', 'speak', 'stopSpeaking', 'voiceManifest', 'voiceData', 'clearAll', 'restartApp'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
       try {
         const m = JSON.parse(s); if (m.type !== '$$native_action') return;
@@ -99,9 +101,12 @@ function domBridge([serverUrl, top, bottom, seed, manifest]) {
         if (m.data.actionId === 'getItem') result = store[k] ?? null;
         if (m.data.actionId === 'setItem') store[k] = v;
         if (m.data.actionId === 'removeItem') delete store[k];
-        if (m.data.actionId === 'speak') window.__spoken.push(k);
+        const reply = (r) => setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result: r } } })), 0);
+        // iPhone gibi: yalnız kadın Türkçe ses var → kabuk maleOnly isteğinde okumaz (false); çağrı yine kaydedilir
+        if (m.data.actionId === 'speak') { window.__speakArgs.push(m.data.args); if (m.data.args?.[3] !== true) window.__spoken.push(k); result = false; }
         if (m.data.actionId === 'voiceManifest') result = manifest ?? null;
-        if (m.data.actionId === 'playVoice') { window.__played.push(k); result = true; }
+        // gömülü dosyanın baytları (gerçek mp3, base64) — kabuktaki expo-asset + expo-file-system okumasının yerine
+        if (m.data.actionId === 'voiceData') { void window.__nativeVoice(k).then(reply, () => reply(null)); return; }
         if (m.data.actionId === 'share') result = 'copied';
         setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
       } catch { /* yok */ }
@@ -133,15 +138,17 @@ async function suite(target, browserName, [W, H]) {
   const B = browserName === 'webkit' ? webkit : chromium;
   const browser = await B.launch({ headless: true, executablePath: browserName === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined, args: browserName === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] : [] });
   let n = 0; const errors = [];
-  async function newPage(seed, manifestOverride) {
+  async function newPage(seed, manifestOverride, maleVoice) {
     const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 3, hasTouch: true, ...(browserName === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
     await page.addInitScript(paintInsets, [INSET, INSET_B]);
-    if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, manifestOverride ?? MANIFEST]);
-    else {
-      await page.addInitScript(webSetup, [INSET, INSET_B]); if (seed) await page.addInitScript((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
+    if (target === 'dom') {
+      await ctx.exposeFunction('__nativeVoice', (f) => { const p = resolve(root, 'apps/web/public/voice', String(f).replace(/[^a-z0-9.-]/gi, '')); return existsSync(p) ? readFileSync(p).toString('base64') : null; });
+      await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, manifestOverride ?? MANIFEST]);
+    } else {
+      await page.addInitScript(webSetup, [INSET, INSET_B, !!maleVoice]); if (seed) await page.addInitScript((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
       if (manifestOverride) await page.route('**/voice/manifest.json', (r) => r.fulfill({ status: 200, contentType: 'application/json', body: manifestOverride }));
     }
     return { ctx, page };
@@ -292,17 +299,26 @@ async function suite(target, browserName, [W, H]) {
       check(played.some((f) => f.startsWith('not-')), `Tüy Dede'nin Notu seslendirildi (${played.filter((f) => f.startsWith('not-')).join(', ')})`);
       check(VOICED.length >= 30 && played.length >= 25 && !need.length, `gömülü Tüy Dede sesi çalındı (${played.length} satır${need.length ? `; eksik: ${need.join(', ')}` : ''}; çalınanlar: ${played.join(' ')})`);
       check(spoken.length === 0, `kaydı olan satırlarda cihaz sesi (TTS) kullanılmadı (${spoken.length})`);
+      const vs = await page.evaluate(() => window.__odiVoice.status());
+      check(vs.decoded >= 20 && vs.source === 'indirme', `WebAudio gerçek çözüm: ${vs.decoded} kayıt çözüldü (kaynak: ${vs.source}; son hata: ${vs.error ?? '-'})`);
       // dosyalar gerçekten sunuluyor ve tarayıcı çözebiliyor mu
       const probe = await page.evaluate(async () => { const a = new Audio('voice/hikaye-01.mp3'); const r = await new Promise((res) => { a.oncanplaythrough = () => res('ok'); a.onerror = () => res(`hata ${a.error?.code}`); setTimeout(() => res('zaman aşımı'), 8000); a.load(); }); return { r, dur: a.duration }; });
       const resp = await page.request.get(new URL('voice/hikaye-01.mp3', page.url()).href);
       check(resp.ok() && /audio\/mpeg/.test(resp.headers()['content-type'] ?? '') && (await resp.body()).length > 4000, `voice/hikaye-01.mp3 sunuluyor (${resp.status()}, ${resp.headers()['content-type']}); tarayıcı çözümü: ${probe.r}${probe.dur ? ` ${probe.dur.toFixed(1)} sn` : ''}`);
       await ctx.close();
-      // yedek: kaydı olmayan satır cihaz sesiyle okunur
+      // yedek 1: kaydı olmayan satır + cihazda erkek Türkçe ses yok → SESSİZ (kadın sesle asla konuşmaz), altyazı ekranda
       { const { page: p2, ctx: c2 } = await newPage(undefined, MANIFEST_NO_H1);
         await p2.goto(url(), { waitUntil: 'load' }); await p2.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
         await p2.locator('[data-testid="hikaye"][data-step="0"]').waitFor(); await sleep(1500);
-        const sp = await p2.evaluate(() => window.__spoken ?? []); const pl = await p2.evaluate(() => window.__played ?? []);
-        check(sp.some((t) => /Tüy Dede/.test(t)) && !pl.includes('hikaye-01.mp3'), `kaydı olmayan satır cihaz sesine düştü (TTS: “${(sp[0] ?? '').slice(0, 30)}…”)`);
+        const sp = await p2.evaluate(() => window.__spoken ?? []); const st = await p2.evaluate(() => window.__odiVoice.status());
+        check(!sp.length && st.mode === 'sessiz' && st.line === 'hikaye-01', `kaydı olmayan satır, erkek ses yokken sessiz kaldı (durum: ${st.mode}, TTS: ${sp.length})`);
+        await c2.close(); }
+      // yedek 2: cihazda erkek Türkçe ses varsa o okur
+      { const { page: p2, ctx: c2 } = await newPage(undefined, MANIFEST_NO_H1, true);
+        await p2.goto(url(), { waitUntil: 'load' }); await p2.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
+        await p2.locator('[data-testid="hikaye"][data-step="0"]').waitFor(); await sleep(1500);
+        const sp = await p2.evaluate(() => window.__spoken ?? []);
+        check(sp.some((t) => /Tüy Dede/.test(t)), `erkek Türkçe ses varken kaydı olmayan satır onunla okundu (“${(sp[0] ?? '').slice(0, 30)}…”)`);
         await c2.close(); }
     } else {
       // ---- dom: kontrol noktaları (telefon paketi: bot yok)
@@ -317,14 +333,15 @@ async function suite(target, browserName, [W, H]) {
         }
         await page.getByRole('button', { name: /Haydi/ }).click({ timeout: 20_000 });
         await page.waitForFunction(() => !!document.querySelector('canvas'), null, { timeout: 30_000 }); await sleep(1200); await shot(page, 'bolum-1');
-        const played = await page.evaluate(() => window.__played ?? []); const spoken = await page.evaluate(() => window.__spoken ?? []);
-        check(played.length >= 7 && played[0] === 'hikaye-01.mp3' && spoken.length === 0, `yerel oynatıcı köprüsü (playVoice) gömülü sesleri çaldı: ${played.slice(0, 7).join(', ')}; TTS ${spoken.length}`);
+        const played = await page.evaluate(() => window.__played ?? []); const speakArgs = await page.evaluate(() => window.__speakArgs ?? []);
+        const vs = await page.evaluate(() => window.__odiVoice.status());
+        check(played.length >= 7 && played[0] === 'hikaye-01.mp3' && speakArgs.length === 0 && vs.source === 'köprü' && vs.decoded >= 7, `köprüden gelen gerçek mp3 baytları WebView'de WebAudio ile çözülüp çalındı: ${played.slice(0, 7).join(', ')} (çözülen ${vs.decoded}; TTS çağrısı ${speakArgs.length}; hata: ${vs.error ?? '-'})`);
         await ctx.close(); }
       { const { page, ctx } = await newPage(undefined, MANIFEST_NO_H1);
         await page.goto(url(), { waitUntil: 'load' }); await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
         await page.locator('[data-testid="hikaye"][data-step="0"]').waitFor(); await sleep(1200);
-        const spoken = await page.evaluate(() => window.__spoken ?? []);
-        check(spoken.length >= 1 && TR.test(spoken[0]) && /Tüy Dede/.test(spoken[0]), `kaydı olmayan satırda yerel konuşma köprüsü (speak) Türkçe metinle çağrıldı`);
+        const args = await page.evaluate(() => window.__speakArgs ?? []); const st = await page.evaluate(() => window.__odiVoice.status());
+        check(args.length >= 1 && /Tüy Dede/.test(args[0][0]) && args.every((a) => a[3] === true) && st.mode === 'sessiz', `kaydı olmayan satırda kabuğa yalnız-erkek-ses isteği gitti; erkek ses yok → sessiz (durum: ${st.mode})`);
         await ctx.close(); }
       // telefon paketi: sesler Metro varlığı olarak gömülü mü (expo export metadata)
       { const meta = JSON.parse(readFileSync(resolve(mobileDist, 'metadata.json'), 'utf8'));

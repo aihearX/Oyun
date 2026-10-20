@@ -1,10 +1,14 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { audio } from '@odi/audio';
 import { useStore } from '../store';
 import { ScreenHead } from '../ui/bits';
 import { TuyDede } from '../ftue/Narrator';
 import { ActionButton } from '../ui/Button';
-import { Glyph } from '../ui/art';
+import { Art, Glyph } from '../ui/art';
+import { Sheet } from '../ui/social';
+import { resetEverything } from '../reset';
+import { speakLine, useVoiceStatus } from '../ftue/voice';
+import { lineText } from '../ftue/script';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
 function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: string; label: string; value: number; onChange: (v: number) => void; onRelease?: () => void; disabled?: boolean }) {
@@ -23,6 +27,8 @@ function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: s
 export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => void; onReplay?: () => void; onReset?: () => void }) {
   const s = useStore();
   const lastPreview = useRef(0);
+  const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false);
+  void onReset; // eski arayüz: sıfırlama artık uygulamayı baştan kurar
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
   return (
     <div className="screen fade-in">
@@ -38,6 +44,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         <div className="row between"><div className="row" style={{ gap: 10 }}><TuyDede size={52} /><div><h2>Anlatıcı sesi</h2><div className="muted">Tüy Dede anlatırken sesli okusun (yazı hep görünür)</div></div></div>
           <button className={`btn small toggle-btn${s.narratorVoice ? '' : ' ghost'}`} onClick={() => s.setNarratorVoice(!s.narratorVoice)} aria-pressed={s.narratorVoice} aria-label="Anlatıcı sesi">{s.narratorVoice ? 'Açık' : 'Kapalı'}</button></div>
         {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
+        <VoiceReadout />
         <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Coqui TTS, Fatih Akademi Türkçe modeli (MIT)</small>
       </div>
       <div className="card know-card" data-testid="bilgi-duzeyi">
@@ -47,8 +54,34 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           <button type="button" role="radio" aria-checked={s.knowledge === 'odyoloji'} className={s.knowledge === 'odyoloji' ? 'on' : ''} onClick={() => s.setKnowledge('odyoloji')}>Odyoloji öğrencisi</button>
         </div>
       </div>
-      <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi? Oyun baştan, hikâyeyle başlar.')) { s.reset(); onReset?.(); } }}>Sıfırla</button></div>
+      <div className="card skill"><div><h2>Her şeyi sıfırla</h2><div className="muted">Bu cihazdaki ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => setAsk(true)}>Sıfırla</button></div>
+      {ask && (
+        <Sheet title="Her şey silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
+          <div className="reset-sheet" data-testid="sifirla-onay">
+            <p className="rs-warn"><Art name="trash" size={22} /> Her şey silinecek: ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
+            <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz.</p>
+            <div className="rs-actions">
+              <button type="button" className="btn ghost" disabled={busy} onClick={() => setAsk(false)}>Vazgeç</button>
+              <button type="button" className="btn coral" data-testid="sifirla-evet" disabled={busy} onClick={() => { setBusy(true); void resetEverything(); }}>{busy ? 'Siliniyor…' : 'Her şeyi sil'}</button>
+            </div>
+          </div>
+        </Sheet>
+      )}
       <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>
+    </div>
+  );
+}
+
+/** cihazda ne olduğunu görmek için: kayıt ✓ / cihaz sesi / sessiz + son hata; "Sesi dene" bir satır çalar */
+function VoiceReadout() {
+  const v = useVoiceStatus();
+  const label = v.mode === 'kayıt' ? 'kayıt ✓' : v.mode === 'cihaz sesi' ? 'cihaz sesi (erkek)' : v.mode === 'sessiz' ? 'sessiz (erkek ses yok, yazı var)' : 'henüz konuşmadı';
+  return (
+    <div className="voice-readout" data-testid="ses-durumu" data-mode={v.mode ?? ''}>
+      <div className="row between"><span><b>Anlatıcı sesi:</b> {label}</span>
+        <button type="button" className="btn small ghost" onClick={() => speakLine(lineText('hikaye-01'), 'hikaye-01')}>Sesi dene</button></div>
+      <small className="muted">{v.source ? `kaynak: ${v.source} · ` : ''}çözülen kayıt: {v.decoded}{v.line ? ` · son satır: ${v.line}` : ''}</small>
+      {v.error && <small className="vr-err">Son hata: {v.error}</small>}
     </div>
   );
 }

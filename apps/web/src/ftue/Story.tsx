@@ -5,6 +5,7 @@ import { TuyDede } from './Narrator';
 import { SpeechPanel, sayAloud, stopVoice, useTypewriter } from './Coach';
 import { audio } from '@odi/audio';
 import { lineText } from './script';
+import { prefetchLines } from './voice';
 
 /** Hikâye girişi: kim, ne tehlike, hedef ne, kim yardım eder. Kısa (7 cümle), atlanabilir; sonunda doğrudan 1. bölüm. */
 export const STORY: { id: string; say: string; scene: () => ReactNode; mood?: 'happy' | 'wow' | 'wink'; dark?: boolean }[] = [
@@ -58,7 +59,7 @@ export function StoryScreen({ onDone, replay }: { onDone: () => void; replay?: b
   const [i, setI] = useState(0);
   const s = STORY[i]!;
   const tw = useTypewriter(s.say, i);
-  useEffect(() => { sayAloud(s.say, s.id); return () => stopVoice(); }, [i]);
+  useEffect(() => { sayAloud(s.say, s.id); prefetchLines(STORY.slice(i + 1, i + 3).map((x) => ({ id: x.id, text: x.say }))); return () => stopVoice(); }, [i]);
   useEffect(() => { audio.music('menu'); }, []);
   const next = () => { if (!tw.done) { tw.finish(); return; } stopVoice(); audio.play('tap'); if (i + 1 >= STORY.length) onDone(); else setI(i + 1); };
   return (

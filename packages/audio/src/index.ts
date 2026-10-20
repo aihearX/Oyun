@@ -30,6 +30,12 @@ export interface AudioEngine {
   duck(seconds: number, level?: number): void;
   setVolumes(v: { music?: number; sfx?: number; enabled?: boolean }): void;
   volumes(): { music: number; sfx: number; enabled: boolean };
+  /** sıkıştırılmış ses kaydını çöz (anlatıcı kayıtları) */
+  decode(data: ArrayBuffer): Promise<AudioBuffer | null>;
+  /** çözülmüş kaydı anlatıcı yolundan çal; çalınamıyorsa null */
+  voice(buf: AudioBuffer, vol?: number): { stop(): void; done: Promise<void> } | null;
+  /** ses bağlamı çalışıyor mu */
+  running(): boolean;
 }
 
 // ---- Uygulama: engine.ts (sentez araç seti synth.ts, SFX kütüphanesi sfx.ts, müzik music.ts, sıralayıcı sequencer.ts, sınırlayıcı limiter.ts).

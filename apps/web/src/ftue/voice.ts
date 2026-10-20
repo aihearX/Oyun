@@ -1,3 +1,4 @@
+import { create } from 'zustand';
 import { audio } from '@odi/audio';
 import { platform } from '../platform';
 import { useStore } from '../store';
@@ -6,14 +7,31 @@ import { textHash } from './script';
 import { NARRATOR_TTS } from './voicePick';
 
 /**
- * Tüy Dede'nin sesi. Önce uygulamaya gömülü kayıt (voice/<id>.mp3, bkz. tools/voice/), yoksa cihaz sesi (TTS).
- *  - Kayıt yalnız metin parmak izi tutuyorsa çalar (altyazıyla birebir aynı söz).
- *  - Tarayıcı: tek bir <audio> öğesi (ilk dokunuşta kilidi açılır; iOS Safari sonraki çalmalara izin verir).
- *  - Mobil (Expo DOM): yerel oynatıcı (expo-audio) köprüsü; dosyalar uygulama paketinde.
+ * Tüy Dede'nin sesi. Önce uygulamaya gömülü kayıt (voice/<id>.mp3, bkz. tools/voice/), WebAudio ile:
+ *  - Mobil (Expo DOM): yerel kabuk dosyanın baytlarını köprüden verir (base64); WebView'deki ses motorunda çözülüp çalınır
+ *    (müzik ve efektlerle aynı, cihazda çalıştığı bilinen yol). Yerel oynatıcı kullanılmaz.
+ *  - Tarayıcı: dosya indirilir, aynı motorla çözülüp çalınır.
+ *  - Kayıt metin parmak izi tutmazsa ya da çalınamazsa: yalnız ERKEK bir Türkçe cihaz sesi varsa o okur; yoksa sessiz kalır
+ *    (Tüy Dede kadın sesle konuşmaz). Altyazı her zaman ekranda.
  *  - Genel ses ve "Anlatıcı sesi" ayarına uyar, efekt ses düzeyini kullanır, konuşurken müziği kısar, ileri/atla'da susar.
+ *  - Sıradaki 1-2 satır önceden çözülür (gecikme olmasın).
+ * Ayarlar ekranı son durumu gösterir (kayıt ✓ / cihaz sesi / sessiz + son hata): cihazda ne olduğunu görmek için.
  */
 export interface VoiceManifest { version: number; format?: string; lines: Record<string, { file: string; hash: string; ms?: number }> }
 const EMPTY: VoiceManifest = { version: 1, lines: {} };
+
+// ---- durum (Ayarlar'daki küçük gösterge + test günlüğü)
+export type VoiceMode = 'kayıt' | 'cihaz sesi' | 'sessiz';
+export interface VoiceStatus { mode: VoiceMode | null; line: string | null; error: string | null; at: number; source: 'köprü' | 'indirme' | null; decoded: number }
+export const useVoiceStatus = create<VoiceStatus>()(() => ({ mode: null, line: null, error: null, at: 0, source: null, decoded: 0 }));
+type LogItem = { mode: VoiceMode; id: string | null; file: string | null; error?: string; at: number };
+const log: LogItem[] = [];
+if (typeof window !== 'undefined') (window as unknown as { __odiVoice?: unknown }).__odiVoice = { log, status: () => useVoiceStatus.getState() };
+function report(mode: VoiceMode, id: string | null, file: string | null, error?: string) {
+  log.push({ mode, id, file, ...(error ? { error } : {}), at: Date.now() }); if (log.length > 200) log.splice(0, log.length - 200);
+  useVoiceStatus.setState((s) => ({ mode, line: id, at: Date.now(), ...(error ? { error } : mode === 'kayıt' ? { error: null } : { error: s.error }) }));
+}
+const fail = (error: string) => useVoiceStatus.setState({ error, at: Date.now() });
 
 let manifestP: Promise<VoiceManifest> | null = null;
 /** gömülü ses listesi (bir kez yüklenir; yoksa boş) */
@@ -25,13 +43,13 @@ export function voiceManifest(): Promise<VoiceManifest> {
         const raw = p.voiceManifest ? await p.voiceManifest() : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
         const m = raw ? (JSON.parse(raw) as VoiceManifest) : null;
         return m && typeof m === 'object' && m.lines && typeof m.lines === 'object' ? m : EMPTY;
-      } catch { return EMPTY; }
+      } catch (e) { fail(`liste okunamadı: ${String(e).slice(0, 80)}`); return EMPTY; }
     })();
   }
   return manifestP;
 }
-/** platform değişince (mobil köprü kurulunca) listeyi yeniden oku */
-export function resetVoiceManifest() { manifestP = null; }
+/** platform değişince (mobil köprü kurulunca) / sıfırlamada önbellekleri boşalt */
+export function resetVoiceManifest() { manifestP = null; buffers.clear(); }
 
 function voiceUrl(file: string): string {
   try { return new URL(`voice/${file}`, document.baseURI).href; } catch { return `voice/${file}`; }
@@ -44,49 +62,58 @@ export async function recordedFile(id: string | undefined, text: string): Promis
   return e && e.hash === textHash(text) ? e.file : null;
 }
 
-// ---- tarayıcı oynatıcısı: tek öğe (iOS Safari yalnız dokunuşla açılmış öğeye sonradan çalma izni verir)
-let el: HTMLAudioElement | null = null;
-const SILENT = 'data:audio/wav;base64,UklGRsQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YaAAAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
-function audioEl(): HTMLAudioElement | null {
-  if (el) return el;
-  try { if (typeof Audio === 'undefined') return null; el = new Audio(); el.preload = 'auto'; return el; } catch { return null; }
-}
-let unlocked = false;
-/** ilk dokunuşta sessiz bir klip çal: sonraki anlatıcı satırları dokunuşsuz da çalabilsin */
-export function unlockVoice() {
-  if (unlocked || platform().playVoice) return;
-  const a = audioEl(); if (!a) return;
-  unlocked = true;
-  try { a.src = SILENT; a.muted = true; void a.play().then(() => { a.pause(); a.muted = false; }, () => { a.muted = false; unlocked = false; }); } catch { unlocked = false; }
-}
-if (typeof document !== 'undefined') {
-  const once = () => { unlockVoice(); if (unlocked) { document.removeEventListener('pointerdown', once, true); document.removeEventListener('touchend', once, true); } };
-  document.addEventListener('pointerdown', once, true); document.addEventListener('touchend', once, true);
+/** base64 → ArrayBuffer (köprüden gelen dosya baytları) */
+export function base64ToBytes(b64: string): ArrayBuffer {
+  const clean = b64.replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
+  const bin = atob(clean);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out.buffer;
 }
 
-function playWeb(file: string, volume: number, isLive: () => boolean): Promise<boolean> {
-  const a = audioEl(); if (!a) return Promise.resolve(false);
-  return new Promise((resolve) => {
-    let started = false; let settled = false;
-    const end = (ok: boolean) => { if (settled) return; settled = true; a.removeEventListener('ended', onEnd); a.removeEventListener('error', onErr); a.removeEventListener('pause', onPause); resolve(ok); };
-    const onEnd = () => end(true);
-    const onErr = () => end(started);
-    const onPause = () => { if (!isLive()) end(true); };
-    a.addEventListener('ended', onEnd); a.addEventListener('error', onErr); a.addEventListener('pause', onPause);
+// ---- çözülmüş kayıt önbelleği (en son kullanılan ~16 satır)
+const buffers = new Map<string, Promise<AudioBuffer | null>>();
+async function loadBytes(file: string): Promise<ArrayBuffer | null> {
+  const p = platform();
+  if (p.voiceData) {
+    useVoiceStatus.setState({ source: 'köprü' });
+    const b64 = await p.voiceData(file);
+    if (!b64) { fail(`köprü dosyayı vermedi: ${file}`); return null; }
+    return base64ToBytes(b64);
+  }
+  useVoiceStatus.setState({ source: 'indirme' });
+  const r = await fetch(voiceUrl(file));
+  if (!r.ok) { fail(`indirilemedi (${r.status}): ${file}`); return null; }
+  return r.arrayBuffer();
+}
+export function voiceBuffer(file: string): Promise<AudioBuffer | null> {
+  const hit = buffers.get(file);
+  if (hit) { buffers.delete(file); buffers.set(file, hit); return hit; }
+  const p = (async () => {
     try {
-      a.muted = false; a.volume = Math.max(0, Math.min(1, volume)); a.src = voiceUrl(file);
-      void a.play().then(() => { started = true; if (!isLive()) { a.pause(); end(true); } }, () => end(false));
-    } catch { end(false); }
-  });
+      const bytes = await loadBytes(file); if (!bytes) return null;
+      const buf = await audio.decode(bytes);
+      if (!buf) { fail(`çözülemedi: ${file}`); return null; }
+      useVoiceStatus.setState((s) => ({ decoded: s.decoded + 1 }));
+      return buf;
+    } catch (e) { fail(`yüklenemedi: ${file} · ${String(e).slice(0, 80)}`); return null; }
+  })();
+  buffers.set(file, p);
+  void p.then((b) => { if (!b) buffers.delete(file); });
+  while (buffers.size > 16) buffers.delete(buffers.keys().next().value!);
+  return p;
+}
+/** sıradaki satırları önceden çöz (anlatıcı turu / hikâye) */
+export function prefetchLines(lines: { id?: string; text: string }[]) {
+  const s = useStore.getState(); if (!s.sounds || !s.narratorVoice) return;
+  for (const l of lines) void recordedFile(l.id, l.text).then((f) => { if (f) void voiceBuffer(f); }).catch(() => undefined);
 }
 
 // ---- konuşma
 let token = 0;
-const DUCK = 0.3;
-const duckOn = () => { try { audio.duck(900, DUCK); } catch { /* yok */ } };
-const duckOff = () => { try { audio.duck(0, 1); } catch { /* yok */ } };
+let current: { stop(): void } | null = null;
 
-/** Tüy Dede bu satırı söyler (kayıt varsa kayıt, yoksa cihaz sesi). Ayar kapalıysa sessiz; altyazı her zaman ekranda.
+/** Tüy Dede bu satırı söyler (kayıt varsa kayıt, yoksa yalnız erkek cihaz sesi, o da yoksa sessiz). Ayar kapalıysa sessiz.
  *  Dönen sayı bu konuşmanın kimliğidir: stopVoiceIf(kimlik) yalnız hâlâ bu satır konuşuluyorsa susturur. */
 export function speakLine(text: string, id?: string): number {
   stopVoice();
@@ -94,20 +121,31 @@ export function speakLine(text: string, id?: string): number {
   if (!s.sounds || !s.narratorVoice) return token;
   const my = ++token; const live = () => my === token;
   const volume = Math.max(0.2, Math.min(1, s.sfxVol ?? 0.9));
-  duckOn();
+  try { audio.unlock(); } catch { /* yok */ }
   void (async () => {
-    let played = false;
+    let file: string | null = null;
     try {
-      const file = await recordedFile(id, text);
+      file = await recordedFile(id, text);
       if (!live()) return;
       if (file) {
-        const p = platform();
-        played = p.playVoice ? await p.playVoice(file, volume).catch(() => false) : await playWeb(file, volume, live);
+        const buf = await voiceBuffer(file);
+        if (!live()) return;
+        if (buf) {
+          const h = audio.voice(buf, volume);
+          if (h) {
+            current = h; report('kayıt', id ?? null, file);
+            await h.done;
+            if (current === h) current = null;
+            return;
+          }
+          fail(audio.running() ? 'kayıt çalınamadı' : 'ses kilitli: ekrana bir kez dokunun');
+        }
       }
       if (!live()) return;
-      if (!played) await platform().speak(stripEmoji(text).replace(/[“”"]/g, ''), { rate: NARRATOR_TTS.rate, pitch: NARRATOR_TTS.pitch });
-    } catch { /* ses yok: altyazı yeter */ }
-    if (live()) duckOff();
+      // yedek: yalnız erkek Türkçe cihaz sesi (yoksa sessiz — altyazı ekranda)
+      const spoken = await platform().speak(stripEmoji(text).replace(/[“”"]/g, ''), { rate: NARRATOR_TTS.rate, pitch: NARRATOR_TTS.pitch, maleOnly: true });
+      if (live()) report(spoken === false ? 'sessiz' : 'cihaz sesi', id ?? null, file);
+    } catch (e) { if (live()) report('sessiz', id ?? null, file, String(e).slice(0, 80)); }
   })();
   return my;
 }
@@ -118,9 +156,7 @@ export function stopVoiceIf(id: number) { if (id === token) stopVoice(); }
 /** hemen sus (ileri / atla / ekran değişti) */
 export function stopVoice() {
   token++;
-  try { if (el && !el.paused) el.pause(); } catch { /* yok */ }
-  const p = platform();
-  try { p.stopVoice?.(); } catch { /* yok */ }
-  try { p.stopSpeaking(); } catch { /* yok */ }
-  duckOff();
+  const c = current; current = null;
+  try { c?.stop(); } catch { /* yok */ }
+  try { platform().stopSpeaking(); } catch { /* yok */ }
 }

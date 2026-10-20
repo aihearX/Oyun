@@ -5,7 +5,7 @@
  */
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from './ftue/voicePick';
 
-export interface SpeakOpts { rate?: number; pitch?: number }
+export interface SpeakOpts { rate?: number; pitch?: number; /** yalnız erkek tr-TR ses varsa oku (Tüy Dede kadın sesle konuşmaz) */ maleOnly?: boolean }
 export type HapticKind = 'light' | 'medium' | 'heavy' | 'success' | 'error';
 export interface Platform {
   kind: 'web' | 'native';
@@ -26,15 +26,17 @@ export interface Platform {
    * anlatıcı sesi (cihaz TTS): Türkçe metni cümle cümle okur (mobilde expo-speech, tarayıcıda speechSynthesis); yoksa sessiz.
    * Erkek tr-TR ses varsa o seçilir; opts kadın/varsayılan ses için hız ve perdedir (bkz. ftue/voicePick.ts). Okuma bitince çözülür.
    */
-  speak(text: string, opts?: SpeakOpts): Promise<void> | void;
+  speak(text: string, opts?: SpeakOpts): Promise<boolean | void> | void;
   /** okumayı hemen kes (ileri/atla) */
   stopSpeaking(): void;
   /** kayıtlı anlatıcı sesleri (yalnız mobil kabuk): uygulamaya gömülü ses listesinin JSON'u (voice/manifest.json) */
   voiceManifest?: () => Promise<string | null>;
-  /** kayıtlı anlatıcı sesini yerel oynatıcıyla çal (yalnız mobil kabuk); bitince ya da kesilince true, çalınamazsa false */
-  playVoice?: (file: string, volume: number) => Promise<boolean>;
-  /** kayıtlı sesi hemen kes */
-  stopVoice?: () => void;
+  /** gömülü kaydın baytları (base64; yalnız mobil kabuk). WebView içinde WebAudio ile çözülüp çalınır. */
+  voiceData?: (file: string) => Promise<string | null>;
+  /** cihazdaki bütün kayıtları sil (mobil: AsyncStorage) */
+  clearAll?: () => Promise<void>;
+  /** arayüzü baştan kur (mobil: WebView yeniden oluşturulur); yoksa sayfa yenilenir */
+  restartApp?: () => void;
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
 }
 
@@ -75,16 +77,17 @@ let current: Platform = {
  * Tarayıcı TTS: en uygun tr-TR ses (erkek/yaşlı erkek önde), cümleler ayrı sözcelerle sıraya alınır (aralarda doğal nefes).
  * Ses ya da API yoksa sessizce geçer (altyazı yeter). Son cümle bitince (ya da güvenlik süresi dolunca) çözülür.
  */
-function webSpeak(text: string, opts: SpeakOpts = {}): Promise<void> {
+function webSpeak(text: string, opts: SpeakOpts = {}): Promise<boolean> {
   return new Promise((resolve) => {
     try {
       const ss = typeof window !== 'undefined' ? window.speechSynthesis : undefined;
-      if (!ss || typeof SpeechSynthesisUtterance === 'undefined' || !text.trim()) { resolve(); return; }
+      if (!ss || typeof SpeechSynthesisUtterance === 'undefined' || !text.trim()) { resolve(false); return; }
       ss.cancel();
       const voice = pickTurkishVoice(ss.getVoices());
+      if (opts.maleOnly && !isMaleVoice(voice)) { resolve(false); return; }
       const { rate, pitch } = ttsParams(isMaleVoice(voice), opts);
       const chunks = ttsChunks(text); let left = chunks.length; let done = false;
-      const finish = () => { if (done) return; done = true; clearTimeout(guard); resolve(); };
+      const finish = () => { if (done) return; done = true; clearTimeout(guard); resolve(true); };
       const guard = setTimeout(finish, (text.length * 95) / rate + 2500);
       for (const c of chunks) {
         const u = new SpeechSynthesisUtterance(c);
@@ -92,9 +95,18 @@ function webSpeak(text: string, opts: SpeakOpts = {}): Promise<void> {
         u.onend = u.onerror = () => { if (--left <= 0) finish(); };
         ss.speak(u);
       }
-    } catch { resolve(); }
+    } catch { resolve(false); }
   });
 }
+
+/** Sıfırlama sırasında kalıcı yazmaları durdur (silinen kayıtlar arkadan yeniden yazılmasın) */
+let frozen = false;
+export function freezeStorage() {
+  frozen = true;
+  const st = current.storage;
+  current = { ...current, storage: { getItem: (k) => st.getItem(k), setItem: async () => undefined, removeItem: (k) => st.removeItem(k) } };
+}
+export const storageFrozen = () => frozen;
 
 export function installPlatform(p: Partial<Platform>) { current = { ...current, ...p, storage: p.storage ?? current.storage }; }
 export function platform(): Platform { return current; }
@@ -102,6 +114,6 @@ export function platform(): Platform { return current; }
 /** Kalıcı depolama: her çağrıda o anki platforma gider (mobil köprü sonradan kurulsa da doğru yere yazar). */
 export const platformStorage: Platform['storage'] = {
   getItem: (k) => current.storage.getItem(k),
-  setItem: (k, v) => current.storage.setItem(k, v),
+  setItem: (k, v) => (frozen ? Promise.resolve() : current.storage.setItem(k, v)),
   removeItem: (k) => current.storage.removeItem(k),
 };

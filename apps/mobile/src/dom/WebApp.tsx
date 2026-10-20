@@ -15,12 +15,15 @@ export type WebAppProps = {
   haptic: (kind: HapticKind) => Promise<void>;
   share: (text: string) => Promise<'shared' | 'copied' | 'cancelled'>;
   /** anlatıcı sesi: yerel TTS (expo-speech, tr-TR) */
-  speak?: (text: string, rate: number, pitch: number) => Promise<void>;
+  speak?: (text: string, rate: number, pitch: number, maleOnly: boolean) => Promise<boolean>;
   stopSpeaking?: () => Promise<void>;
-  /** kayıtlı anlatıcı sesleri: gömülü liste (JSON) ve yerel oynatıcı (expo-audio) */
+  /** kayıtlı anlatıcı sesleri: gömülü liste (JSON) */
   voiceManifest?: () => Promise<string | null>;
-  playVoice?: (file: string, volume: number) => Promise<boolean>;
-  stopVoice?: () => Promise<void>;
+  /** gömülü kaydın baytları (base64): WebView'deki ses motoru çözüp çalar */
+  voiceData?: (file: string) => Promise<string | null>;
+  /** Sıfırla: cihazdaki bütün kayıtları sil ve WebView'i baştan kur */
+  clearAll?: () => Promise<void>;
+  restartApp?: () => Promise<void>;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
   canPurchase: boolean;
@@ -51,10 +54,11 @@ export default function WebApp(p: WebAppProps) {
       storage: { getItem: (k) => p.getItem(k), setItem: (k, v) => p.setItem(k, v), removeItem: (k) => p.removeItem(k) },
       haptic: (k) => { void p.haptic(k); },
       share: (t) => p.share(t),
-      ...(p.speak ? { speak: (t: string, o?: { rate?: number; pitch?: number }) => p.speak!(t, o?.rate ?? NARRATOR_TTS.rate, o?.pitch ?? NARRATOR_TTS.pitch).catch(() => undefined) } : {}),
+      ...(p.speak ? { speak: (t: string, o?: { rate?: number; pitch?: number; maleOnly?: boolean }) => p.speak!(t, o?.rate ?? NARRATOR_TTS.rate, o?.pitch ?? NARRATOR_TTS.pitch, o?.maleOnly ?? true).catch(() => false) } : {}),
       ...(p.voiceManifest ? { voiceManifest: () => p.voiceManifest!().catch(() => null) } : {}),
-      ...(p.playVoice ? { playVoice: (f: string, v: number) => p.playVoice!(f, v).catch(() => false) } : {}),
-      ...(p.stopVoice ? { stopVoice: () => { void p.stopVoice!().catch(() => undefined); } } : {}),
+      ...(p.voiceData ? { voiceData: (f: string) => p.voiceData!(f).catch(() => null) } : {}),
+      ...(p.clearAll ? { clearAll: () => p.clearAll!().catch(() => undefined) } : {}),
+      ...(p.restartApp ? { restartApp: () => { void p.restartApp!().catch(() => undefined); } } : {}),
       ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       serverUrl: () => p.serverUrl,

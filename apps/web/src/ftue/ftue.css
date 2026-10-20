@@ -146,3 +146,11 @@
 .know-card { display:flex; flex-direction:column; gap:10px; }
 .know-card .seg { align-self:flex-start; max-width:100%; }
 .know-card .seg button { padding:0 14px; }
+
+/* ---- Ayarlar: anlatıcı sesi durumu (cihazda tanı) ve sıfırlama onayı */
+.voice-readout { display:flex; flex-direction:column; gap:4px; margin-top:10px; padding:10px 12px; border-radius:14px; background:rgba(5,2,20,.35); border:1px solid var(--panel-edge); font-size:13px; }
+.voice-readout .vr-err { color:#ffb3c8; overflow-wrap:anywhere; }
+.reset-sheet { display:flex; flex-direction:column; gap:10px; }
+.reset-sheet .rs-warn { margin:0; display:flex; gap:8px; align-items:flex-start; font-weight:800; line-height:1.4; color:#ffd0dc; padding:10px 12px; border-radius:14px; background:rgba(255,92,138,.14); border:1px solid rgba(255,92,138,.4); }
+.reset-sheet .rs-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+.reset-sheet .rs-actions .btn { min-height:48px; }

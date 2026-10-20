@@ -31,8 +31,7 @@
         "expo-splash-screen",
         { "backgroundColor": "#140c35", "image": "./assets/splash-icon.png", "imageWidth": 180 }
       ],
-      "expo-status-bar",
-      ["expo-audio", { "microphonePermission": false, "recordAudioAndroid": false, "enableBackgroundPlayback": false }]
+      "expo-status-bar"
     ],
     "experiments": { "typedRoutes": true },
     "extra": { "eas": { "projectId": "" } }

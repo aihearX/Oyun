@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { Art, rich, type ArtName } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { useStore } from '../store';
-import { speakLine, stopVoice } from './voice';
+import { prefetchLines, speakLine, stopVoice } from './voice';
 import { audio } from '@odi/audio';
 import { TuyDede, NARRATOR_NAME } from './Narrator';
 import './ftue.css';
@@ -149,7 +149,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const go = () => { if (advanced.current) return; advanced.current = true; stopVoice(); audio.play('tap'); next(); };
 
   // ses: adım açılınca okunur, kapanınca susar
-  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } sayAloud(st.say, st.id); return () => stopVoice(); }, [tour.id, index]);
+  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } sayAloud(st.say, st.id); prefetchLines(tour.steps.slice(index + 1, index + 3).map((x) => ({ id: x.id, text: x.say }))); return () => stopVoice(); }, [tour.id, index]);
   // hedef görünmüyorsa görünür banda kaydır (küçük ekranlar)
   useEffect(() => { const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index]);
   // hedefin konumu: her karede izlenir (kaydırma, animasyon, sahne kamerası)

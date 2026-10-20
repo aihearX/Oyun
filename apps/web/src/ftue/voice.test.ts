@@ -57,3 +57,16 @@ describe('cihaz sesi (TTS) seçimi', () => {
     expect(ttsChunks('Kısa')).toEqual(['Kısa']);
   });
 });
+
+describe('kayıt köprüsü (base64 → bayt)', () => {
+  it('kabuktan gelen base64 baytlara doğru çözülür (data: öneki ve satır sonları dahil)', async () => {
+    const { base64ToBytes } = await import('./voice');
+    const raw = readFileSync(resolve(__dirname, '../../public/voice/hikaye-01.mp3'));
+    const b64 = raw.toString('base64');
+    const back = new Uint8Array(base64ToBytes(`data:audio/mpeg;base64,${b64.replace(/(.{76})/g, '$1\n')}`));
+    expect(back.length).toBe(raw.length);
+    expect(Buffer.from(back).equals(raw)).toBe(true);
+    // MP3 çerçevesi ya da ID3 başlığı
+    expect(back[0] === 0x49 || back[0] === 0xff).toBe(true);
+  });
+});

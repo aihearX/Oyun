@@ -58,7 +58,7 @@ export interface EngineOptions {
 
 export class Engine implements AudioEngine {
   ctx: BaseAudioContext | null = null;
-  private master!: GainNode; private comp!: DynamicsCompressorNode; private sfxBus!: GainNode; private musicBus!: GainNode; private duckGain!: GainNode; private verbIn!: GainNode;
+  private master!: GainNode; private comp!: DynamicsCompressorNode; private sfxBus!: GainNode; private musicBus!: GainNode; private duckGain!: GainNode; private verbIn!: GainNode; private voiceBus!: GainNode;
   private vol = { music: 0.6, sfx: 0.9, enabled: true };
   private unlocked = false;
   private wanted: Track | null = null;
@@ -87,6 +87,8 @@ export class Engine implements AudioEngine {
       this.musicBus = c.createGain(); this.musicBus.gain.value = this.vol.music; this.musicBus.connect(this.duckGain);
       const conv = c.createConvolver(); conv.buffer = makeImpulse(c, 1.3, 3);
       this.verbIn = c.createGain(); this.verbIn.gain.value = 0.35; this.verbIn.connect(conv); conv.connect(this.comp);
+      // anlatıcı sesi: müzikten ayrı yol (müzik kısılırken konuşma kısılmaz), ana düzey ve aç/kapa ile birlikte
+      this.voiceBus = c.createGain(); this.voiceBus.gain.value = 1; this.voiceBus.connect(this.comp);
       if (!this.o.context) {
         this.unlocked = false;
         // görünmezken (arka plan) bağlamı askıya al: pil ve CPU dostu
@@ -214,6 +216,46 @@ export class Engine implements AudioEngine {
     g.cancelScheduledValues(t); g.setTargetAtTime(Math.max(0, Math.min(1, level)), t, 0.04);
     if (seconds > 0) g.setTargetAtTime(1, t + seconds, 0.35); else g.setTargetAtTime(1, t, 0.1);
   }
+
+  /** sıkıştırılmış ses (mp3/wav) → AudioBuffer; bağlam yoksa ya da çözülemezse null (eski Safari geri çağırma biçimi de desteklenir) */
+  decode(data: ArrayBuffer): Promise<AudioBuffer | null> {
+    const c = this.ensure(); if (!c) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      let settled = false; const done = (b: AudioBuffer | null) => { if (!settled) { settled = true; resolve(b); } };
+      try {
+        const p = c.decodeAudioData(data.slice(0), (b) => done(b), () => done(null)) as Promise<AudioBuffer> | undefined;
+        if (p && typeof p.then === 'function') p.then(done, () => done(null));
+      } catch { done(null); }
+    });
+  }
+
+  /**
+   * Konuşma kaydını çal (anlatıcı). Kilit açılmadıysa ya da ses kapalıysa null. Bitince `done` çözülür; `stop()` hemen keser.
+   * Müzik konuşma boyunca kısılır (duck), bitince geri gelir.
+   */
+  voice(buf: AudioBuffer, vol = 1): { stop(): void; done: Promise<void> } | null {
+    if (!this.vol.enabled) return null;
+    const c = this.ensure(); if (!c || !this.unlocked) return null;
+    const ac = c as AudioContext;
+    // askıdaki bağlamda kaynak hiç ilerlemez (sessiz kalır): yeniden başlatmayı dene, bu satırı çalamadığını bildir
+    if (!this.o.context && ac.state !== 'running') { try { void ac.resume(); } catch { /* yok */ } return null; }
+    try {
+      const src = c.createBufferSource(); src.buffer = buf;
+      const g = c.createGain(); g.gain.value = Math.max(0, Math.min(1.5, vol)); src.connect(g); g.connect(this.voiceBus);
+      let finish: () => void = () => undefined;
+      const done = new Promise<void>((r) => { finish = r; });
+      let ended = false;
+      const end = () => { if (ended) return; ended = true; try { g.disconnect(); } catch { /* yok */ } this.duck(0, 1); finish(); };
+      src.onended = end;
+      this.duck(Math.max(1, buf.duration + 0.3), 0.3);
+      src.start(this.now() + 0.02);
+      // güvenlik: onended gelmezse (askıya alınmış bağlam) sonsuza kadar bekleme
+      setTimeout(end, (buf.duration + 1.5) * 1000);
+      return { stop: () => { try { src.stop(); } catch { /* yok */ } end(); }, done };
+    } catch { return null; }
+  }
+  /** bağlam çalışıyor mu (kilit açık ve askıda değil) */
+  running(): boolean { const c = this.ctx as AudioContext | null; return !!c && this.unlocked && (this.o.context ? true : c.state === 'running'); }
 
   setVolumes(v: { music?: number; sfx?: number; enabled?: boolean }): void {
     const clamp = (x: number) => Math.max(0, Math.min(1, x));

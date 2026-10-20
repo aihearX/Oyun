@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Share, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -7,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativePurchase } from '@/purchases';
-import { playVoice, stopVoice, voiceManifest } from '@/voice/player';
+import { voiceData, voiceManifest } from '@/voice/player';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativePurchase = createNativePurchase();
@@ -33,8 +34,8 @@ async function share(text: string): Promise<'shared' | 'copied' | 'cancelled'> {
 }
 
 /**
- * Anlatıcı (Tüy Dede) yedek sesi: kayıtlı dosyası olmayan satırlarda cihazın Türkçe sesi. Erkek (tercihen yaşlı erkek) tr-TR ses
- * varsa o seçilir; yoksa (iOS'ta yalnız Yelda) perde düşürülür, tempo yavaşlar. Cümleler sıraya alınır (aralarda doğal nefes).
+ * Anlatıcı (Tüy Dede) yedek sesi: kayıtlı dosyası çalınamayan satırlarda cihazın Türkçe sesi — yalnız ERKEK bir tr-TR ses varsa
+ * (maleOnly). iOS'ta yalnız kadın ses (Yelda) olduğundan orada sessiz kalınır; Tüy Dede kadın sesle konuşmaz. Cümleler sıraya alınır.
  */
 let trVoice: { id?: string; male: boolean } | null = null;
 async function pickVoice(): Promise<{ id?: string; male: boolean }> {
@@ -45,10 +46,11 @@ async function pickVoice(): Promise<{ id?: string; male: boolean }> {
   } catch { trVoice = { male: false }; }
   return trVoice;
 }
-async function speak(text: string, rate: number, pitch: number): Promise<void> {
+async function speak(text: string, rate: number, pitch: number, maleOnly = true): Promise<boolean> {
   try {
     Speech.stop();
     const v = await pickVoice();
+    if (maleOnly && !v.male) return false;
     const p = ttsParams(v.male, { rate, pitch });
     const chunks = ttsChunks(text);
     await new Promise<void>((resolve) => {
@@ -58,16 +60,23 @@ async function speak(text: string, rate: number, pitch: number): Promise<void> {
       const one = () => { if (--left <= 0) finish(); };
       for (const c of chunks) Speech.speak(c, { language: 'tr-TR', rate: p.rate, pitch: p.pitch, ...(v.id ? { voice: v.id } : {}), onDone: one, onStopped: finish, onError: one });
     });
-  } catch { /* TTS yok */ }
+    return true;
+  } catch { return false; /* TTS yok */ }
 }
 async function stopSpeaking() { try { await Speech.stop(); } catch { /* yok */ } }
 
+/** Sıfırla: cihazdaki bütün kayıtlar (ilerleme, oyuncu kimliği, önbellekler, ayarlar) */
+async function clearAll() { try { await AsyncStorage.clear(); } catch { /* yok */ } }
+
 export default function Home() {
   const insets = useSafeAreaInsets();
+  // sıfırlamada WebView baştan kurulur (yeni JS bağlamı: bellekte hiçbir şey kalmaz)
+  const [gen, setGen] = useState(0);
   return (
     <ErrorBoundary>
       <View style={{ flex: 1, backgroundColor: '#140c35' }} testID="odi-root">
         <WebApp
+          key={gen}
           getItem={(k) => AsyncStorage.getItem(k)}
           setItem={(k, v) => AsyncStorage.setItem(k, v)}
           removeItem={(k) => AsyncStorage.removeItem(k)}
@@ -76,8 +85,9 @@ export default function Home() {
           speak={speak}
           stopSpeaking={stopSpeaking}
           voiceManifest={voiceManifest}
-          playVoice={playVoice}
-          stopVoice={async () => stopVoice()}
+          voiceData={voiceData}
+          clearAll={clearAll}
+          restartApp={async () => setGen((g) => g + 1)}
           {...(nativePurchase ? { purchase: nativePurchase } : {})}
           canPurchase={!!nativePurchase}
           serverUrl={serverUrl()}
