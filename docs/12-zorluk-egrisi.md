@@ -32,15 +32,19 @@ finali `hi`; aradaki bölümler `lo + (hi − lo)·u^1,3` (u: bölgedeki konum, 
 | Bölge | Bölümler | Giriş λ | Final λ |
 |---|---|---|---|
 | Dış Kulak | 1-5 | 0,02 | 0,30 |
-| Kanal | 6-8 | 0,15 | 0,55 |
-| Zar | 9-12 | 0,20 | 0,70 |
-| Kemikçikler | 13-19 (+ boss 20: 1,25) | 0,30 | 0,85 |
-| Koklea Taban | 21-23 | 0,35 | 0,95 |
-| Koklea Orta | 24-26 | 0,45 | 1,00 |
-| Koklea Apeks | 27-30 | 0,50 | 1,10 |
-| Sinir | 31-33 | 0,55 | 1,15 |
-| Beyin Sapı | 34-36 | 0,60 | 1,20 |
-| Korteks | 37-39 (+ boss 40: 1,60) | 0,80 | 1,30 |
+| Kanal | 6-8 | 0,15 | 0,70 |
+| Zar | 9-12 | 0,20 | 0,85 |
+| Kemikçikler | 13-19 (+ boss 20: 1,60) | 0,30 | 1,00 |
+| Koklea Taban | 21-23 | 0,35 | 1,10 |
+| Koklea Orta | 24-26 | 0,45 | 1,20 |
+| Koklea Apeks | 27-30 | 0,50 | 1,30 |
+| Sinir | 31-33 | 0,55 | 1,40 |
+| Beyin Sapı | 34-36 | 0,60 | 1,50 |
+| Korteks | 37-39 (+ boss 40: 2,00) | 0,80 | 1,60 |
+
+**Final zinciri:** finaller 8 → 12 → 19 → 23 → 26 → 30 → 33 → 36 → 39 kesin yükselen bir zincirdir (her kademe bir öncekinden
+~0,1 can zor), boss'lar zincirin üstünde iki büyük sıçrayıştır. Üretici finalde λ'yı doğrudan kullanır; tek istisna Kanal
+finalidir (`gain: 0,65`: oda puanlarının toplamı orada zorluğu eksik tahmin ediyor, ölçülen değer hedefi aşıyordu).
 
 ## 2. Ölçüm: insan benzeri oyuncu modeli (`game-core/src/play/human.ts`)
 
@@ -83,9 +87,9 @@ yakın kaçış yoğunluğu (dakikada 20 = 1 puan, en çok 1). Tek tanım: `scor
 | Düşman temposu | devriye hızı, uçan salınımı, atıcı ve zıplayan temposu ×0,75 … ×1,15 | | yavaş | hızlı |
 | Platform temposu | hareketli platform ve sürüklenen tehlike ×0,8 … ×1,12 | | | |
 | Gösteri parçası | bölge girişinde biyomun en kolay, finalde en zor gösterisi (tahmini can kaybı ≤ λ/2) | İlk Ninni Yolu | en kolay | en zor |
-| Sınav odası | yalnız bölge finalinde, gösteriden hemen önce: Kanal `kn-damla-asansor`, Zar `zr-ritim-merdiven` + `zr-ritim-koridor`, Kemikçikler `km-disli`, Koklea `k1-sinav-havuz` / `k3-sinav-bas`, Sinir `sn-sinav` + `sn-sinav-kopru`, Beyin Sapı `bs-sinav`, Korteks `kx-sinav-karma` + `kx-sinav-ritim`. Zar, Koklea Apeks, Sinir ve Korteks finallerinde iki sınav; Beyin Sapı girişi (34) ve Korteks'in diğer bölümleri (37, 38) birer "prova" sınavı (tahminen en ağırı) alır; yardım kademesi başına bir sınav düşer | – | – | 1-2 oda |
+| Sınav odası | yalnız bölge finalinde, gösteriden hemen önce: Kanal `kn-damla-asansor`, Zar `zr-ritim-merdiven` + `zr-ritim-koridor`, Kemikçikler `km-disli`, Koklea `k1-sinav-havuz` / `k3-sinav-bas`, Sinir `sn-sinav` + `sn-sinav-kopru`, Beyin Sapı `bs-sinav`, Korteks `kx-sinav-karma` + `kx-sinav-ritim`. Zar, Koklea Orta, Koklea Apeks, Sinir, Beyin Sapı ve Korteks finallerinde iki sınav; Beyin Sapı girişi (34) ve Korteks'in diğer bölümleri (37, 38) birer "prova" sınavı (tahminen en ağırı) alır; yardım kademesi başına bir sınav düşer | – | – | 1-2 oda |
 | Kalibrasyon varyantı | aynı düğmelerle üretilebilen bölümlerden, insan modeliyle ölçülünce hedefe en yakın olanı; finalde hedefin altı, girişte üstü ek cezalı (`level-gen/src/kalibrasyon.ts`, üretilmiş). Önceki iki bölümün odalarına bakan çeşitlilik kuralı komşuların varsayılan varyantını kullanır: bir bölümün kalibrasyonu komşusunu değiştirmez | | | |
-| Değiştiriciler | yalnızca ileri bölgelerde, çoğunlukla finallerde, sabit tablo (rastgele değil); tek can ve ters yerçekimi yolculukta yok | yok | yok | 19 sis · 23 sis · 26 gece · 29 sis · 30 hız+yankı · 32 gece · 33 hız+sis · 35 sis · 36 yankı · 38 gece · 39 hız+gece |
+| Değiştiriciler | yalnızca ileri bölgelerde, çoğunlukla finallerde, sabit tablo (rastgele değil); tek can ve ters yerçekimi yolculukta yok | yok | yok | 19 sis · 23 sis · 26 gece · 29 sis · 30 hız+yankı · 32 gece · 33 hız+yankı · 35 sis · 36 yankı · 38 gece · 39 hız+gece |
 | Boss | can, uyarı (telegraf, en az ×0,6) ve saldırı temposu (mermi hızı √tempo) | | | 20: can 14, uyarı ×1,0, tempo ×1,2 · 40: can 32, uyarı ×0,8, tempo ×1,8 |
 | Kontrol noktası / güvenli zemin | her bölüm 3 bölüm-içi bölüm, 2. ve 3. kontrol noktası odasıyla başlar; düşen son güvenli zemine döner | | | |
 
@@ -100,40 +104,40 @@ Bölüm başına değerler (varsayılan profil):
 | 4 | 0.21 | 7 | 1.3 / 3.8 | 3 | 0.38 | 1.03 | 0.95 | 1.08 | 0.57 | 0.147 | 0.9 / 0.92 | – |
 | 5 | 0.30 | 8 | 1.7 / 5.2 | 9 | 0.51 | 1.13 | 1 | 1.02 | 0.53 | 0.14 | 0.95 / 0.96 | – |
 | 6 | 0.15 | 5 | 1.1 / 3.6 | 2 | 0.07 | 0.8 | 0.83 | 1.22 | 0.68 | 0.166 | 0.78 / 0.82 | – |
-| 7 | 0.31 | 7 | 1.8 / 4.3 | 3 | 0.31 | 0.98 | 0.92 | 1.11 | 0.59 | 0.151 | 0.87 / 0.9 | – |
-| 8 | 0.55 | 9 | 2.8 / 6.3 | 9 | 0.55 | 1.16 | 1.02 | 1 | 0.51 | 0.137 | 0.97 / 0.98 | – |
+| 7 | 0.37 | 7 | 2.0 / 4.5 | 3 | 0.31 | 0.98 | 0.92 | 1.11 | 0.59 | 0.151 | 0.87 / 0.9 | – |
+| 8 | 0.45 | 9 | 2.4 / 5.9 | 9 | 0.55 | 1.16 | 1.02 | 1 | 0.51 | 0.137 | 0.97 / 0.98 | – |
 | 9 | 0.20 | 6 | 1.3 / 3.8 | 3 | 0.11 | 0.83 | 0.85 | 1.2 | 0.66 | 0.163 | 0.8 / 0.84 | – |
-| 10 | 0.32 | 7 | 1.8 / 4.3 | 3 | 0.28 | 0.96 | 0.91 | 1.13 | 0.61 | 0.153 | 0.86 / 0.89 | – |
-| 11 | 0.50 | 7 | 2.6 / 5.1 | 4 | 0.44 | 1.08 | 0.98 | 1.05 | 0.55 | 0.144 | 0.93 / 0.94 | – |
-| 12 | 0.70 | 9 | 3.5 / 7.0 | 9 | 0.61 | 1.2 | 1.04 | 0.98 | 0.49 | 0.134 | 0.99 / 0.99 | – |
+| 10 | 0.36 | 7 | 2.0 / 4.5 | 3 | 0.28 | 0.96 | 0.91 | 1.13 | 0.61 | 0.153 | 0.86 / 0.89 | – |
+| 11 | 0.58 | 7 | 3.0 / 5.5 | 4 | 0.44 | 1.08 | 0.98 | 1.05 | 0.55 | 0.144 | 0.93 / 0.94 | – |
+| 12 | 0.85 | 9 | 4.1 / 7.6 | 9 | 0.61 | 1.2 | 1.04 | 0.98 | 0.49 | 0.134 | 0.99 / 0.99 | – |
 | 13 | 0.30 | 6 | 1.7 / 4.2 | 3 | 0.17 | 0.88 | 0.87 | 1.17 | 0.64 | 0.16 | 0.82 / 0.85 | – |
-| 14 | 0.35 | 7 | 2.0 / 4.5 | 4 | 0.26 | 0.94 | 0.9 | 1.13 | 0.61 | 0.155 | 0.85 / 0.88 | – |
-| 15 | 0.43 | 7 | 2.3 / 4.8 | 4 | 0.35 | 1.01 | 0.94 | 1.09 | 0.58 | 0.149 | 0.89 / 0.91 | – |
-| 16 | 0.52 | 7 | 2.7 / 5.2 | 4 | 0.44 | 1.08 | 0.97 | 1.05 | 0.55 | 0.144 | 0.92 / 0.94 | – |
-| 17 | 0.62 | 8 | 3.1 / 5.7 | 5 | 0.53 | 1.14 | 1.01 | 1.01 | 0.52 | 0.138 | 0.96 / 0.97 | – |
-| 18 | 0.73 | 8 | 3.6 / 6.1 | 5 | 0.61 | 1.21 | 1.05 | 0.97 | 0.49 | 0.133 | 1 / 1 | – |
-| 19 | 0.85 | 10 | 4.1 / 7.6 | 9 | 0.70 | 1.28 | 1.08 | 0.93 | 0.46 | 0.128 | 1.03 / 1.03 | sis |
-| 20 | 1.25 | boss | can 14, uyarı ×1, tempo ×1.2 | – | – | – | – | – | – | – | – | – |
+| 14 | 0.37 | 7 | 2.0 / 4.5 | 4 | 0.26 | 0.94 | 0.9 | 1.13 | 0.61 | 0.155 | 0.85 / 0.88 | – |
+| 15 | 0.47 | 7 | 2.5 / 5.0 | 4 | 0.35 | 1.01 | 0.94 | 1.09 | 0.58 | 0.149 | 0.89 / 0.91 | – |
+| 16 | 0.58 | 7 | 3.0 / 5.5 | 4 | 0.44 | 1.08 | 0.97 | 1.05 | 0.55 | 0.144 | 0.92 / 0.94 | – |
+| 17 | 0.71 | 8 | 3.5 / 6.0 | 5 | 0.53 | 1.14 | 1.01 | 1.01 | 0.52 | 0.138 | 0.96 / 0.97 | – |
+| 18 | 0.85 | 8 | 4.2 / 6.7 | 5 | 0.61 | 1.21 | 1.05 | 0.97 | 0.49 | 0.133 | 1 / 1 | – |
+| 19 | 1.00 | 10 | 4.8 / 8.3 | 9 | 0.70 | 1.28 | 1.08 | 0.93 | 0.46 | 0.128 | 1.03 / 1.03 | sis |
+| 20 | 1.60 | boss | can 14, uyarı ×1, tempo ×1.2 | – | – | – | – | – | – | – | – | – |
 | 21 | 0.35 | 7 | 1.9 / 4.4 | 4 | 0.28 | 0.96 | 0.91 | 1.12 | 0.6 | 0.153 | 0.86 / 0.89 | – |
-| 22 | 0.59 | 8 | 3.0 / 5.5 | 5 | 0.52 | 1.14 | 1.01 | 1.02 | 0.52 | 0.139 | 0.96 / 0.97 | – |
-| 23 | 0.95 | 10 | 4.6 / 8.1 | 9 | 0.76 | 1.32 | 1.1 | 0.91 | 0.44 | 0.124 | 1.05 / 1.04 | sis |
+| 22 | 0.65 | 8 | 3.3 / 5.8 | 5 | 0.52 | 1.14 | 1.01 | 1.02 | 0.52 | 0.139 | 0.96 / 0.97 | – |
+| 23 | 1.10 | 10 | 5.2 / 8.7 | 9 | 0.76 | 1.32 | 1.1 | 0.91 | 0.44 | 0.124 | 1.05 / 1.04 | sis |
 | 24 | 0.45 | 7 | 2.4 / 4.9 | 5 | 0.32 | 0.99 | 0.93 | 1.1 | 0.59 | 0.151 | 0.88 / 0.9 | – |
-| 25 | 0.67 | 8 | 3.4 / 5.9 | 6 | 0.56 | 1.17 | 1.03 | 1 | 0.51 | 0.136 | 0.98 / 0.98 | – |
-| 26 | 1.00 | 10 | 4.8 / 8.3 | 9 | 0.80 | 1.35 | 1.12 | 0.89 | 0.43 | 0.122 | 1.07 / 1.06 | gece |
+| 25 | 0.75 | 8 | 3.7 / 6.2 | 6 | 0.56 | 1.17 | 1.03 | 1 | 0.51 | 0.136 | 0.98 / 0.98 | – |
+| 26 | 1.20 | 10 | 5.7 / 9.2 | 9 | 0.80 | 1.35 | 1.12 | 0.89 | 0.43 | 0.122 | 1.07 / 1.06 | gece |
 | 27 | 0.50 | 8 | 2.6 / 5.1 | 5 | 0.37 | 1.02 | 0.95 | 1.09 | 0.58 | 0.148 | 0.9 / 0.92 | – |
-| 28 | 0.64 | 8 | 3.2 / 5.7 | 6 | 0.53 | 1.15 | 1.01 | 1.01 | 0.52 | 0.138 | 0.96 / 0.97 | – |
-| 29 | 0.85 | 9 | 4.2 / 6.7 | 6 | 0.69 | 1.27 | 1.08 | 0.94 | 0.46 | 0.128 | 1.03 / 1.02 | sis |
-| 30 | 1.10 | 11 | 5.2 / 8.7 | 9 | 0.86 | 1.39 | 1.14 | 0.86 | 0.41 | 0.118 | 1.09 / 1.07 | hiz, yanki |
+| 28 | 0.69 | 8 | 3.4 / 5.9 | 6 | 0.53 | 1.15 | 1.01 | 1.01 | 0.52 | 0.138 | 0.96 / 0.97 | – |
+| 29 | 0.97 | 9 | 4.7 / 7.2 | 6 | 0.69 | 1.27 | 1.08 | 0.94 | 0.46 | 0.128 | 1.03 / 1.02 | sis |
+| 30 | 1.30 | 11 | 6.1 / 9.6 | 9 | 0.86 | 1.39 | 1.14 | 0.86 | 0.41 | 0.118 | 1.09 / 1.07 | hiz, yanki |
 | 31 | 0.55 | 8 | 2.8 / 5.3 | 6 | 0.42 | 1.07 | 0.97 | 1.06 | 0.56 | 0.145 | 0.92 / 0.94 | – |
-| 32 | 0.79 | 9 | 3.9 / 6.4 | 7 | 0.66 | 1.25 | 1.06 | 0.95 | 0.47 | 0.13 | 1.01 / 1.01 | gece |
-| 33 | 1.15 | 11 | 5.5 / 9.0 | 9 | 0.90 | 1.43 | 1.16 | 0.84 | 0.39 | 0.116 | 1.11 / 1.09 | hiz, sis |
+| 32 | 0.90 | 9 | 4.3 / 6.8 | 7 | 0.66 | 1.25 | 1.06 | 0.95 | 0.47 | 0.13 | 1.01 / 1.01 | gece |
+| 33 | 1.40 | 11 | 6.6 / 10.1 | 9 | 0.90 | 1.43 | 1.16 | 0.84 | 0.39 | 0.116 | 1.11 / 1.09 | hiz, yanki |
 | 34 | 0.60 | 9 | 3.0 / 5.5 | 6 | 0.47 | 1.1 | 0.99 | 1.04 | 0.54 | 0.142 | 0.94 / 0.95 | – |
-| 35 | 0.84 | 10 | 4.1 / 6.6 | 7 | 0.70 | 1.28 | 1.08 | 0.93 | 0.46 | 0.128 | 1.03 / 1.03 | sis |
-| 36 | 1.20 | 11 | 5.7 / 9.2 | 9 | 0.94 | 1.46 | 1.18 | 0.83 | 0.38 | 0.113 | 1.13 / 1.1 | yanki |
+| 35 | 0.97 | 10 | 4.7 / 7.2 | 7 | 0.70 | 1.28 | 1.08 | 0.93 | 0.46 | 0.128 | 1.03 / 1.03 | sis |
+| 36 | 1.50 | 11 | 7.0 / 10.5 | 9 | 0.94 | 1.46 | 1.18 | 0.83 | 0.38 | 0.113 | 1.13 / 1.1 | yanki |
 | 37 | 0.80 | 9 | 3.9 / 6.4 | 7 | 0.51 | 1.13 | 1 | 1.02 | 0.53 | 0.14 | 0.95 / 0.96 | – |
-| 38 | 1.00 | 10 | 4.8 / 7.3 | 8 | 0.75 | 1.31 | 1.1 | 0.91 | 0.45 | 0.125 | 1.05 / 1.04 | gece |
-| 39 | 1.30 | 11 | 6.1 / 9.6 | 9 | 0.99 | 1.49 | 1.19 | 0.81 | 0.36 | 0.111 | 1.14 / 1.12 | hiz, gece |
-| 40 | 1.60 | boss | can 32, uyarı ×0.8, tempo ×1.8 | – | – | – | – | – | – | – | – | – |
+| 38 | 1.12 | 10 | 5.3 / 7.8 | 8 | 0.75 | 1.31 | 1.1 | 0.91 | 0.45 | 0.125 | 1.05 / 1.04 | gece |
+| 39 | 1.60 | 11 | 7.4 / 10.9 | 9 | 0.99 | 1.49 | 1.19 | 0.81 | 0.36 | 0.111 | 1.14 / 1.12 | hiz, gece |
+| 40 | 2.00 | boss | can 32, uyarı ×0.8, tempo ×1.8 | – | – | – | – | – | – | – | – | – |
 <!-- dugmeler:bitir -->
 
 ### Bölüm nasıl kurulur
@@ -190,45 +194,45 @@ _Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördü
 | Bölüm | Bölge | Rol | Hedef | Önce: bitirme | Önce: can kaybı | Önce: puan | Sonra: bitirme | Sonra: can kaybı ± SE | Sonra: yakın/dk | Sonra: puan ± SE |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Dış Kulak | giriş (nefes) | 0.6 | 100% | 0.21 | 1.4 | 100% | 0.08 ± 0.04 | 10.9 | 0.8 ± 0.1 |
-| 2 | Dış Kulak |  | 0.7 | 100% | 0.54 | 2.4 | 100% | 0.02 ± 0.02 | 10.3 | 0.6 ± 0.1 |
+| 2 | Dış Kulak |  | 0.7 | 100% | 0.54 | 2.4 | 100% | 0.06 ± 0.04 | 10.8 | 0.7 ± 0.1 |
 | 3 | Dış Kulak |  | 0.9 | 100% | 0.63 | 2.9 | 100% | 0.06 ± 0.04 | 12.3 | 0.8 ± 0.1 |
 | 4 | Dış Kulak |  | 1.1 | 96% | 0.58 | 2.5 | 100% | 0.17 ± 0.06 | 16.4 | 1.3 ± 0.2 |
-| 5 | Dış Kulak | **final** | 1.4 | 96% | 0.54 | 2.5 | 100% | 0.27 ± 0.06 | 16.5 | 1.6 ± 0.2 |
-| 6 | Kulak Kanalı | giriş (nefes) | 0.9 | 75% | 1.21 | 4.4 | 100% | 0.15 ± 0.05 | 18.5 | 1.4 ± 0.2 |
-| 7 | Kulak Kanalı |  | 1.4 | 88% | 1.00 | 3.6 | 90% | 0.67 ± 0.14 | 10.8 | 2.5 ± 0.4 |
-| 8 | Kulak Kanalı | **final** | 2.1 | 100% | 0.63 | 2.6 | 94% | 0.88 ± 0.13 | 14.7 | 3.4 ± 0.4 |
+| 5 | Dış Kulak | **final** | 1.4 | 96% | 0.54 | 2.5 | 100% | 0.29 ± 0.08 | 15.5 | 1.7 ± 0.2 |
+| 6 | Kulak Kanalı | giriş (nefes) | 0.9 | 75% | 1.21 | 4.4 | 100% | 0.29 ± 0.08 | 16.5 | 1.7 ± 0.2 |
+| 7 | Kulak Kanalı |  | 1.6 | 88% | 1.00 | 3.6 | 100% | 0.48 ± 0.10 | 13.1 | 2.1 ± 0.3 |
+| 8 | Kulak Kanalı | **final** | 2.6 | 100% | 0.63 | 2.6 | 96% | 0.71 ± 0.13 | 14.0 | 2.8 ± 0.4 |
 | 9 | Kulak Zarı | giriş (nefes) | 1.1 | 100% | 0.08 | 0.6 | 100% | 0.06 ± 0.04 | 5.6 | 0.5 ± 0.1 |
-| 10 | Kulak Zarı |  | 1.5 | 100% | 0.29 | 1.2 | 100% | 0.10 ± 0.04 | 5.8 | 0.6 ± 0.1 |
-| 11 | Kulak Zarı |  | 2.0 | 100% | 0.21 | 1.0 | 100% | 0.31 ± 0.09 | 7.3 | 1.3 ± 0.3 |
-| 12 | Kulak Zarı | **final** | 2.6 | 100% | 0.21 | 1.0 | 100% | 0.54 ± 0.09 | 10.3 | 2.1 ± 0.3 |
-| 13 | Kemikçikler | giriş (nefes) | 1.4 | 75% | 1.54 | 5.2 | 98% | 0.31 ± 0.09 | 8.2 | 1.3 ± 0.3 |
-| 14 | Kemikçikler |  | 1.6 | 88% | 0.83 | 3.0 | 100% | 0.38 ± 0.08 | 7.9 | 1.5 ± 0.2 |
-| 15 | Kemikçikler |  | 1.8 | 100% | 0.75 | 2.6 | 96% | 0.50 ± 0.12 | 7.7 | 1.9 ± 0.3 |
-| 16 | Kemikçikler |  | 2.1 | 96% | 0.79 | 3.0 | 100% | 0.31 ± 0.07 | 8.5 | 1.4 ± 0.2 |
-| 17 | Kemikçikler |  | 2.4 | 96% | 0.54 | 2.1 | 98% | 0.69 ± 0.11 | 8.6 | 2.5 ± 0.3 |
-| 18 | Kemikçikler |  | 2.7 | 96% | 0.79 | 2.7 | 92% | 0.81 ± 0.14 | 9.1 | 2.9 ± 0.4 |
-| 19 | Kemikçikler | **final** | 3.0 | 100% | 0.63 | 2.3 | 79% | 1.04 ± 0.17 | 8.5 | 3.6 ± 0.5 |
-| 20 | Kemikçikler | **boss** | 4.3 | 63% | 1.67 | 5.1 | 77% | 1.60 ± 0.15 | 1.7 | 4.9 ± 0.5 |
+| 10 | Kulak Zarı |  | 1.6 | 100% | 0.29 | 1.2 | 100% | 0.33 ± 0.08 | 5.5 | 1.3 ± 0.2 |
+| 11 | Kulak Zarı |  | 2.3 | 100% | 0.21 | 1.0 | 100% | 0.60 ± 0.10 | 7.1 | 2.2 ± 0.3 |
+| 12 | Kulak Zarı | **final** | 3.0 | 100% | 0.21 | 1.0 | 92% | 0.85 ± 0.14 | 10.0 | 3.1 ± 0.4 |
+| 13 | Kemikçikler | giriş (nefes) | 1.4 | 75% | 1.54 | 5.2 | 100% | 0.38 ± 0.09 | 9.6 | 1.6 ± 0.3 |
+| 14 | Kemikçikler |  | 1.6 | 88% | 0.83 | 3.0 | 98% | 0.46 ± 0.10 | 9.4 | 1.8 ± 0.3 |
+| 15 | Kemikçikler |  | 1.9 | 100% | 0.75 | 2.6 | 98% | 0.40 ± 0.10 | 7.2 | 1.5 ± 0.3 |
+| 16 | Kemikçikler |  | 2.3 | 96% | 0.79 | 3.0 | 98% | 0.40 ± 0.10 | 10.3 | 1.7 ± 0.3 |
+| 17 | Kemikçikler |  | 2.6 | 96% | 0.54 | 2.1 | 98% | 0.69 ± 0.12 | 9.9 | 2.6 ± 0.4 |
+| 18 | Kemikçikler |  | 3.1 | 96% | 0.79 | 2.7 | 98% | 0.56 ± 0.11 | 12.9 | 2.3 ± 0.3 |
+| 19 | Kemikçikler | **final** | 3.5 | 100% | 0.63 | 2.3 | 88% | 0.94 ± 0.15 | 8.9 | 3.3 ± 0.4 |
+| 20 | Kemikçikler | **boss** | 5.3 | 63% | 1.67 | 5.1 | 77% | 1.60 ± 0.15 | 1.7 | 4.9 ± 0.5 |
 | 21 | Koklea · Taban | giriş (nefes) | 1.6 | 100% | 0.21 | 1.1 | 100% | 0.17 ± 0.05 | 7.7 | 0.9 ± 0.2 |
-| 22 | Koklea · Taban |  | 2.3 | 100% | 0.50 | 2.1 | 94% | 0.56 ± 0.12 | 8.3 | 2.1 ± 0.4 |
-| 23 | Koklea · Taban | **final** | 3.4 | 92% | 0.58 | 2.6 | 85% | 1.17 ± 0.14 | 10.9 | 4.0 ± 0.4 |
-| 24 | Koklea · Orta | giriş (nefes) | 1.9 | 100% | 0.29 | 1.3 | 100% | 0.31 ± 0.07 | 7.0 | 1.3 ± 0.2 |
-| 25 | Koklea · Orta |  | 2.5 | 92% | 0.54 | 2.3 | 98% | 0.50 ± 0.11 | 8.9 | 1.9 ± 0.3 |
-| 26 | Koklea · Orta | **final** | 3.5 | 67% | 1.00 | 3.4 | 90% | 0.83 ± 0.14 | 10.6 | 3.0 ± 0.4 |
-| 27 | Koklea · Apeks | giriş (nefes) | 2.0 | 100% | 0.38 | 1.6 | 100% | 0.17 ± 0.05 | 10.9 | 1.0 ± 0.2 |
-| 28 | Koklea · Apeks |  | 2.4 | 100% | 0.13 | 0.9 | 100% | 0.35 ± 0.08 | 12.5 | 1.7 ± 0.2 |
-| 29 | Koklea · Apeks |  | 3.1 | 100% | 0.21 | 1.2 | 96% | 0.46 ± 0.11 | 10.7 | 1.9 ± 0.3 |
-| 30 | Koklea · Apeks | **final** | 3.8 | 100% | 0.38 | 1.7 | 83% | 1.04 ± 0.17 | 10.8 | 3.7 ± 0.5 |
-| 31 | İşitme Siniri | giriş (nefes) | 2.1 | 92% | 0.54 | 2.1 | 96% | 0.35 ± 0.11 | 11.3 | 1.6 ± 0.3 |
-| 32 | İşitme Siniri |  | 2.9 | 100% | 0.25 | 1.4 | 96% | 0.58 ± 0.13 | 14.0 | 2.4 ± 0.4 |
-| 33 | İşitme Siniri | **final** | 4.0 | 92% | 0.58 | 2.3 | 77% | 1.25 ± 0.17 | 15.4 | 4.5 ± 0.5 |
-| 34 | Beyin Sapı | giriş (nefes) | 2.3 | 96% | 0.67 | 2.7 | 96% | 0.60 ± 0.12 | 14.5 | 2.5 ± 0.4 |
-| 35 | Beyin Sapı |  | 3.0 | 100% | 0.33 | 1.5 | 98% | 0.71 ± 0.12 | 12.2 | 2.7 ± 0.3 |
-| 36 | Beyin Sapı | **final** | 4.1 | 100% | 0.67 | 2.8 | 67% | 1.48 ± 0.17 | 11.8 | 5.0 ± 0.5 |
-| 37 | İşitme Korteksi | giriş (nefes) | 2.9 | 96% | 0.54 | 2.1 | 96% | 0.58 ± 0.11 | 9.8 | 2.2 ± 0.3 |
-| 38 | İşitme Korteksi |  | 3.5 | 100% | 0.33 | 1.4 | 92% | 0.81 ± 0.14 | 11.8 | 3.0 ± 0.4 |
-| 39 | İşitme Korteksi | **final** | 4.4 | 92% | 0.38 | 1.7 | 73% | 1.54 ± 0.15 | 12.0 | 5.2 ± 0.5 |
-| 40 | İşitme Korteksi | **boss** | 5.3 | 96% | 0.50 | 1.5 | 60% | 1.98 ± 0.15 | 0.0 | 5.9 ± 0.4 |
+| 22 | Koklea · Taban |  | 2.5 | 100% | 0.50 | 2.1 | 94% | 0.56 ± 0.12 | 8.5 | 2.1 ± 0.4 |
+| 23 | Koklea · Taban | **final** | 3.8 | 92% | 0.58 | 2.6 | 85% | 1.13 ± 0.15 | 11.1 | 3.9 ± 0.5 |
+| 24 | Koklea · Orta | giriş (nefes) | 1.9 | 100% | 0.29 | 1.3 | 100% | 0.17 ± 0.05 | 7.8 | 0.9 ± 0.2 |
+| 25 | Koklea · Orta |  | 2.8 | 92% | 0.54 | 2.3 | 94% | 0.54 ± 0.13 | 9.5 | 2.1 ± 0.4 |
+| 26 | Koklea · Orta | **final** | 4.1 | 67% | 1.00 | 3.4 | 79% | 1.27 ± 0.16 | 12.2 | 4.4 ± 0.5 |
+| 27 | Koklea · Apeks | giriş (nefes) | 2.0 | 100% | 0.38 | 1.6 | 100% | 0.44 ± 0.10 | 7.6 | 1.7 ± 0.3 |
+| 28 | Koklea · Apeks |  | 2.6 | 100% | 0.13 | 0.9 | 100% | 0.40 ± 0.08 | 12.1 | 1.8 ± 0.2 |
+| 29 | Koklea · Apeks |  | 3.4 | 100% | 0.21 | 1.2 | 96% | 0.56 ± 0.11 | 10.8 | 2.2 ± 0.3 |
+| 30 | Koklea · Apeks | **final** | 4.4 | 100% | 0.38 | 1.7 | 77% | 1.38 ± 0.17 | 11.9 | 4.7 ± 0.5 |
+| 31 | İşitme Siniri | giriş (nefes) | 2.1 | 92% | 0.54 | 2.1 | 100% | 0.33 ± 0.07 | 8.8 | 1.4 ± 0.2 |
+| 32 | İşitme Siniri |  | 3.2 | 100% | 0.25 | 1.4 | 90% | 0.71 ± 0.14 | 12.5 | 2.8 ± 0.4 |
+| 33 | İşitme Siniri | **final** | 4.7 | 92% | 0.58 | 2.3 | 73% | 1.44 ± 0.17 | 14.6 | 5.0 ± 0.5 |
+| 34 | Beyin Sapı | giriş (nefes) | 2.3 | 96% | 0.67 | 2.7 | 90% | 0.65 ± 0.15 | 13.3 | 2.6 ± 0.4 |
+| 35 | Beyin Sapı |  | 3.4 | 100% | 0.33 | 1.5 | 90% | 0.90 ± 0.14 | 10.7 | 3.2 ± 0.4 |
+| 36 | Beyin Sapı | **final** | 5.0 | 100% | 0.67 | 2.8 | 71% | 1.52 ± 0.17 | 13.1 | 5.2 ± 0.5 |
+| 37 | İşitme Korteksi | giriş (nefes) | 2.9 | 96% | 0.54 | 2.1 | 94% | 0.67 ± 0.13 | 10.0 | 2.5 ± 0.4 |
+| 38 | İşitme Korteksi |  | 3.9 | 100% | 0.33 | 1.4 | 85% | 0.88 ± 0.16 | 10.4 | 3.1 ± 0.5 |
+| 39 | İşitme Korteksi | **final** | 5.3 | 92% | 0.38 | 1.7 | 67% | 1.60 ± 0.17 | 13.4 | 5.5 ± 0.5 |
+| 40 | İşitme Korteksi | **boss** | 6.5 | 96% | 0.50 | 1.5 | 60% | 1.98 ± 0.15 | 0.0 | 5.9 ± 0.4 |
 <!-- tablo:bitir -->
 
 ## 7. Komutlar
@@ -240,28 +244,29 @@ node tools/harness/zorluk.mjs --bolumler --k 48 --tag sonra   # 40 bölüm × 48
 node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki tablolar + docs/img/zorluk-egrisi.svg
 ```
 `npm test` içindeki `play/zorluk-*.test.ts`, eğrinin biçimini (alıştırma kolay, bölge finali > bölge girişi, girişler ve finaller
-yükselir, boss'lar doruk, 40 en zor ama ≥ %50 bitirilir) sabit tohumlarla ve alt örneklemle denetler.
+yükselir, final grupları zinciri (8,12) < (19,23) < (26,30) < (33,36,39), boss'lar doruk, 40 en zor ama ≥ %50 bitirilir) sabit tohumlarla ve alt örneklemle denetler.
 
 ## 8. Sonuç özeti ve bilinen sınırlar
 
 Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bölgeler arası farkları okurken SE ~0,1-0,17'dir.
 
-- **Alıştırma:** 1-3'te herkes bitirir, oyuncu başına 0,02-0,08 can (önce 0,2-0,6).
-- **Testere dişi:** her bölgenin finali o bölgenin girişinden belirgin zor; bölge girişleri bir önceki finalden belirgin
-  düşer (nefes). Finaller: 8 → 0,88 ± 0,13 · 12 → 0,54 ± 0,09 · 19 → 1,04 ± 0,17 · 23 → 1,17 ± 0,14 · 26 → 0,83 ± 0,14 ·
-  30 → 1,04 ± 0,17 · 33 → 1,25 ± 0,17 · 36 → 1,48 ± 0,17 · 39 → 1,54 ± 0,15.
-- **Boss'lar:** 20 (1,60 ± 0,15 can, %77 bitirme) kendinden önceki her bölümden zor; 40 (1,98 ± 0,15 can, %60 bitirme) oyunun
-  en zoru. Boss ve final sonrası girişler nefes bölümleridir: 21 (0,17), 24 (0,31), 27 (0,17), 31 (0,35).
-- **İkinci geçişte düzeltilen tersler:** 8 Kanal'ın doruğu (7: 0,67 → 8: 0,88); 12 (puan 2,1) 11'in (1,3) belirgin üstünde
-  (z ≈ 1,9); 17 çukuru kalktı (16: 0,31 → 17: 0,69 → 18: 0,81 → 19: 1,04); Koklea Apeks rampası 27: 0,17 → 28: 0,35 → 29: 0,46 →
-  30: 1,04 (30 > 29 z ≈ 3,0); Sinir 31: 0,35 → 32: 0,58 → 33: 1,25; Korteks 37-38 puan 2,2-3,0, 39 (5,2) ve 40'a (5,9) yükselir;
-  bölge girişleri (21, 24, 27, 31, 34, 37) kendilerinden sonraki bölümden düşük.
-- **Hâlâ zayıf sıralamalar (gürültü içinde, z ≈ 0,6-1,3):** 8 > 7, 19 > 18, 30 > 26, 29 > 28, 35 > 34, 38 > 37. 12'nin puanı
-  hedeflenen ~2,4'ün biraz altında (2,1): denenen varyantlardan bir sonraki adım 2,8 idi ve 12'yi Kemikçik finalinin (19) üstüne
-  taşıyordu. Bölgeler arası finaller tek düze yükselmez (8 > 12, 23 > 26): testere dişinin bölge içi biçimi ve boss doruğu
-  tutulur; finallerin kendi aralarındaki sıra hedef eğride de düzdür.
-- **Elle seçilen varyantlar:** `kalibrasyon.ts` içinde 12 (0), 19 (8), 24 (10), 27 (8), 28 (4), 29 (2), 31 (3) ve 32 (4) K=48
-  ölçümüyle elle seçildi; 30'a `hiz` + `yanki` değiştiricileri eklendi.
+- **Alıştırma:** 1-3'te herkes bitirir, oyuncu başına 0,06-0,08 can (önce 0,2-0,6).
+- **Final zinciri (üçüncü geçiş):** her üst kademenin finali bir öncekinden zor — 8 → 0,71 ± 0,13 · 12 → 0,85 ± 0,14 ·
+  19 → 0,94 ± 0,15 · [boss 20 → 1,60 ± 0,15, %77 bitirme] · 23 → 1,13 ± 0,15 · 26 → 1,27 ± 0,16 · 30 → 1,38 ± 0,17 ·
+  33 → 1,44 ± 0,17 · 36 → 1,52 ± 0,17 · 39 → 1,60 ± 0,17 · [boss 40 → 1,98 ± 0,15, %60 bitirme]. Ardışık finaller arası adım
+  0,06-0,19 can; 48 oyuncuda tek bir ardışık çiftin farkı gürültü düzeyindedir (z ≈ 0,3-0,9). İki kademe arayla fark belirginleşir
+  (19 → 26 z ≈ 1,5; 23 → 30 z ≈ 1,1), dört grup ortalaması (8,12) 0,78 → (19,23) 1,03 → (26,30) 1,32 → (33,36,39) 1,52 kesin yükselir
+  (`play/zorluk-4.test.ts`, 16 oyunculuk alt örneklemle; denetimler 48 oyuncunun 16'şarlık her diliminde geçer, 12'lik bir
+  dilimde Korteks grubu Sinir/Beyin Sapı grubunun altında kaldığı için test 16 oyuncu kullanır).
+- **Bölge içi rampa:** her bölgede giriş < … < final: Kanal 0,29 → 0,48 → 0,71 · Zar 0,06 → 0,33 → 0,60 → 0,85 · Koklea Taban
+  0,17 → 0,56 → 1,13 · Orta 0,17 → 0,54 → 1,27 · Sinir 0,33 → 0,71 → 1,44 · Beyin Sapı 0,65 → 0,90 → 1,52 · Korteks 0,67 → 0,88
+  → 1,60 → boss 1,98. Boss ve final sonrası girişler nefes bölümleridir: 21 (0,17), 24 (0,17), 27 (0,44), 31 (0,33).
+- **Bölge içinde gürültü düzeyinde kalan dalgalar:** Kemikçikler 17 (0,69) > 18 (0,56) (z ≈ 0,8) ve 13-16 düz (0,38-0,46);
+  Koklea Apeks 27 (0,44) ≈ 28 (0,40).
+- **Nasıl ayarlandı:** final hedefleri (λ, §1) yükseltildi; Koklea Orta ve Beyin Sapı finalleri ikinci sınav odasını aldı;
+  Sinir finali (33) `hız + yankı` aldı (`sis`/`gece` insan modelinin ölçümünü değiştirmez: model konumu kusursuz görür); Kanal
+  finali `gain 0,65` ile hafifletildi; bölüm varyantları 48 oyunculuk taramayla seçildi (`kalibrasyon.ts`: 8, 11, 12, 18, 19,
+  23-26, 30, 32, 33, 36, 39). Kalibrasyon aracının 32 oyunculuk seçimi farklı tohumlarla ölçtüğünden tek başına yetmedi.
 - **Üretici düzeltmeleri (ikinci geçiş):** zarlı çukurla başlayan bölümde boşta oyuncu sonsuza dek sekiyordu (11, 39) — zarlı çukur
   artık "ölüm çukuru" sayılmaz ve başa giriş çukuru konur; ilk odanın engeli ilk 200 px'teyse giriş çukurunun iniş zemini uzar
   (12'de planlayıcı ve insan modeli çukurdan inip hemen gelen dikene yetişemiyordu — eski 12 ölçümündeki fazla zorluğun bir kısmı
@@ -273,9 +278,9 @@ Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bö
   "gizli koklea rafları ulaşılabilir" hedefe yönelik planlayıcıyla (`reachSecret`) her duvar odasının gizlisine ulaşıldığını denetler.
 - Model, oyunu insanlardan daha iyi "görür" (konum algısı kusursuz; yalnız el ve tepki kusurlu): mutlak sayılar gerçek oyunculardan
   iyimserdir, biçim (sıralama) anlamlıdır.
-- Biçim testi (4 oyuncu) tek tek bölümleri değil, girişlerin ve finallerin ortalamalarını, boss'ları ve alıştırmayı denetler;
-  aynı denetimler 48 oyuncunun tamamında da geçer.
-- Kalibrasyon varyantları gürültülü ölçümle seçildi (32 oyuncu): içerik değişince `--kalibre` ile yenilenmeli; varyant
+- Biçim testleri (4-8 oyuncu; final zinciri 16 oyuncu) tek tek bölümleri değil, girişlerin ve finallerin ortalamalarını, final
+  gruplarını, boss'ları ve alıştırmayı denetler; aynı denetimler 48 oyuncunun tamamında da geçer.
+- Kalibrasyon varyantları gürültülü ölçümle seçildi (32-48 oyuncu): içerik değişince `--kalibre` ile yenilenmeli; varyant
   değişince bölümün odaları değişir (oyuncunun kayıtlı ilerlemesi etkilenmez).
 - Oda puanı tek başına ölçülür; odalar arka arkaya gelince geçişlerden doğan ek zorluk bölüm ölçümünde görünür. Düzeltilen beş
   odanın (`kn-sp-baca`, `sn-kuyu-bariyer`, `sn-sp-sinaps-firtinasi`, `dk-sp-ilk-yol`, `ogret-cevir`) puanları yeniden ölçüldü.

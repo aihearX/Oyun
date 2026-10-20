@@ -7,14 +7,12 @@ const P = [0, 1, 2, 3];
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 describe('zorluk eğrisi 3/3: son bölgeler ve son boss', () => {
   let s: Record<number, LevelScore> = {};
-  beforeAll(() => { s = measureLevels([23, 26, 30, 31, 33, 34, 36, 37, 39, 40], P); }, 900_000);
+  beforeAll(() => { s = measureLevels([31, 33, 34, 36, 37, 39, 40], P); }, 900_000);
   const sc = (n: number) => s[n]!.score;
   it('bölge finalleri bölge girişlerinden zor', () => {
     expect(avg([33, 36, 39].map(sc))).toBeGreaterThan(avg([31, 34, 37].map(sc)) + 0.5);
   });
-  it('kademe atlayınca zorluk artar: son üç bölgenin finalleri koklea finallerinden zor', () => {
-    expect(avg([33, 36, 39].map(sc))).toBeGreaterThan(avg([23, 26, 30].map(sc)));
-  });
+  // kademeler arası final zinciri (koklea finalleri < son üç bölgenin finalleri) zorluk-4.test.ts'te 16 oyuncuyla denetlenir
   it('Gürültü Canavarı (40) son doruk: son finallerden ve her girişten zor, yine de oyuncuların en az yarısı 3 canla yener', () => {
     expect(sc(40)).toBeGreaterThan(avg([33, 36, 39].map(sc)));
     for (const n of [31, 34, 37]) expect(sc(40), `40 > ${n}`).toBeGreaterThan(sc(n));

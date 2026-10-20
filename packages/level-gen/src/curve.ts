@@ -11,22 +11,24 @@ import type { ModifierId } from '@odi/shared';
  * Hedef birimi "beklenen can kaybı" (λ): insan benzeri oyuncu modelinin (game-core `play/human.ts`) bölümde kaybettiği
  * ortalama can (bitiremeyen 3). Grafikteki puan = 3·λ + yakın kaçış yoğunluğu (≤ 1); hedef puan ≈ 3·λ + 0,5.
  */
-export interface CurveZone { name: string; short: string; from: number; to: number; /** bölgenin finali (son normal bölüm) */ peak: number; /** giriş ve final hedefleri (λ) */ lo: number; hi: number }
+export interface CurveZone { name: string; short: string; from: number; to: number; /** bölgenin finali (son normal bölüm) */ peak: number; /** giriş ve final hedefleri (λ) */ lo: number; hi: number;
+  /** finalin üretici bütçe çarpanı (ölçülerek): oda puanlarının toplamı sınav odalı finallerin zorluğunu bölgeye göre eksik/fazla
+   *  tahmin eder; hedef (hi) değişmez, yalnız finalde üreticiye verilen λ = hi × gain */ gain?: number }
 
 export const CURVE_ZONES: CurveZone[] = [
   { name: 'Dış Kulak', short: 'Dış Kulak', from: 1, to: 5, peak: 5, lo: 0.02, hi: 0.3 },
-  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.15, hi: 0.55 },
-  { name: 'Kulak Zarı', short: 'Zar', from: 9, to: 12, peak: 12, lo: 0.2, hi: 0.7 },
-  { name: 'Kemikçikler', short: 'Kemikçikler', from: 13, to: 20, peak: 19, lo: 0.3, hi: 0.85 },
-  { name: 'Koklea · Taban', short: 'Koklea 1', from: 21, to: 23, peak: 23, lo: 0.35, hi: 0.95 },
-  { name: 'Koklea · Orta', short: 'Koklea 2', from: 24, to: 26, peak: 26, lo: 0.45, hi: 1.0 },
-  { name: 'Koklea · Apeks', short: 'Koklea 3', from: 27, to: 30, peak: 30, lo: 0.5, hi: 1.1 },
-  { name: 'İşitme Siniri', short: 'Sinir', from: 31, to: 33, peak: 33, lo: 0.55, hi: 1.15 },
-  { name: 'Beyin Sapı', short: 'Beyin Sapı', from: 34, to: 36, peak: 36, lo: 0.6, hi: 1.2 },
-  { name: 'İşitme Korteksi', short: 'Korteks', from: 37, to: 40, peak: 39, lo: 0.8, hi: 1.3 },
+  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.15, hi: 0.7, gain: 0.65 },
+  { name: 'Kulak Zarı', short: 'Zar', from: 9, to: 12, peak: 12, lo: 0.2, hi: 0.85 },
+  { name: 'Kemikçikler', short: 'Kemikçikler', from: 13, to: 20, peak: 19, lo: 0.3, hi: 1.0 },
+  { name: 'Koklea · Taban', short: 'Koklea 1', from: 21, to: 23, peak: 23, lo: 0.35, hi: 1.1 },
+  { name: 'Koklea · Orta', short: 'Koklea 2', from: 24, to: 26, peak: 26, lo: 0.45, hi: 1.2 },
+  { name: 'Koklea · Apeks', short: 'Koklea 3', from: 27, to: 30, peak: 30, lo: 0.5, hi: 1.3 },
+  { name: 'İşitme Siniri', short: 'Sinir', from: 31, to: 33, peak: 33, lo: 0.55, hi: 1.4 },
+  { name: 'Beyin Sapı', short: 'Beyin Sapı', from: 34, to: 36, peak: 36, lo: 0.6, hi: 1.5 },
+  { name: 'İşitme Korteksi', short: 'Korteks', from: 37, to: 40, peak: 39, lo: 0.8, hi: 1.6 },
 ];
 /** boss hedefleri (λ): 20 kendinden önceki her bölümden, 40 her bölümden zor */
-export const BOSS_LAMBDA: Record<number, number> = { 20: 1.25, 40: 1.6 };
+export const BOSS_LAMBDA: Record<number, number> = { 20: 1.6, 40: 2.0 };
 
 export const zoneOf = (n: number): CurveZone => CURVE_ZONES.find((z) => n >= z.from && n <= z.to) ?? CURVE_ZONES[CURVE_ZONES.length - 1]!;
 /** bölgedeki konum: 0 giriş … 1 final */
@@ -103,7 +105,7 @@ export function tuningAt(tight: number): { timing: LevelTiming; geom: LevelGeom 
 
 /** değiştiriciler yalnızca ileri bölgelerde, çoğunlukla finallerde (tek can ve ters yerçekimi yolculukta yok) */
 const MODS: Record<number, ModifierId[]> = {
-  19: ['sis'], 23: ['sis'], 26: ['gece'], 29: ['sis'], 30: ['hiz', 'yanki'], 32: ['gece'], 33: ['hiz', 'sis'], 35: ['sis'], 36: ['yanki'], 38: ['gece'], 39: ['hiz', 'gece'],
+  19: ['sis'], 23: ['sis'], 26: ['gece'], 29: ['sis'], 30: ['hiz', 'yanki'], 32: ['gece'], 33: ['hiz', 'yanki'], 35: ['sis'], 36: ['yanki'], 38: ['gece'], 39: ['hiz', 'gece'],
 };
 const ENEMY_FROM: Record<string, number> = { devriye: 3, ucan: 4, ziplayan: 9, atici: 13, kalkanli: 15 };
 
@@ -121,6 +123,7 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   let lambda = targetLambda(n) * Math.pow(0.72, ease) + (o.bonus ?? 0);
   if (n <= 3) lambda = Math.min(lambda, 0.1);
   const finale = n === z.peak; const onboarding = n <= 3;
+  if (finale && z.gain) lambda *= z.gain;
   const rooms = Math.round(Math.min(11, 3 + (n <= 2 ? n : 2 + zi * 0.45 + u * 2.2) + (finale ? 1 : 0) - ease));
   const roomTarget = Math.round((0.4 + 4.4 * lambda) * 100) / 100;
   const roomMax = onboarding ? 1.5 : Math.round((roomTarget + 2.5 + (finale ? 1 : 0)) * 100) / 100;

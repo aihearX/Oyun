@@ -165,9 +165,10 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const zi = CURVE_ZONES.indexOf(zone); const isFinale = plan.number === zone.peak;
   const rehearsal = !isFinale && (zi === 9 || (zi === 8 && plan.number === zone.from));
   const exams = isFinale || rehearsal ? pool.filter(isExam).sort((a, b) => predictDmg(b, knobs.tight) - predictDmg(a, knobs.tight) || a.id.localeCompare(b.id)) : [];
-  // sınav sayısı (ölçülerek ayarlandı): Zar, Koklea Apeks, Sinir ve Korteks finalleri iki sınav ister (Beyin Sapı finali tek sınavla: girişindeki prova zaten ağır), diğerleri bir; prova bir
-  // (en hafif); biri tahminen en zoru, biri dönüşümlü
-  const examFull = rehearsal ? 1 : [2, 6, 7, 9].includes(zi) ? 2 : 1; const examN = Math.max(0, examFull - knobs.ease);
+  // sınav sayısı (ölçülerek ayarlandı): Zar'dan sonra Koklea Taban dışındaki her final iki sınav ister (final zinciri her
+  // kademede yükselsin: Koklea Orta ve Beyin Sapı tek sınavla bir önceki finalin altında kalıyordu), diğerleri bir; prova bir
+  // (en ağır); biri tahminen en zoru, biri dönüşümlü
+  const examFull = rehearsal ? 1 : [2, 5, 6, 7, 8, 9].includes(zi) ? 2 : 1; const examN = Math.max(0, examFull - knobs.ease);
   const picked = !exams.length || !examN ? [] : rehearsal ? exams.slice(0, 1) : [...new Set([exams[seedSalt % exams.length]!, ...exams])].slice(0, examN);
   // düğmelere uyan odalar; yetmezse kısıtlar kademeli gevşer (boşluk/iniş → aile sayısı → yalnız can kaybı tavanı)
   let normal: ChunkSpec[] = [];

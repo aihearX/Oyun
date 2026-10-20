@@ -3,7 +3,8 @@ import type { LevelScore } from './human';
 import { measureLevels } from './testkit';
 
 /** Zorluk eğrisinin biçimi 2/3 (bkz. zorluk-1.test.ts): Koklea (taban, orta, apeks) ve önceki bölgenin girişi. */
-const P = [0, 1, 2, 3];
+// 8 oyuncu: 4'lük alt örneklemde koklea finallerinin birkaç ölümsüz koşusu ortalamayı girişlerin altına çekebiliyordu
+const P = [0, 1, 2, 3, 4, 5, 6, 7];
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 describe('zorluk eğrisi 2/3: koklea', () => {
   let s: Record<number, LevelScore> = {};

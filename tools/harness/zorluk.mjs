@@ -102,7 +102,7 @@ if (args.kalibre) {
   const src = `/**
  * Bölüm kalibrasyonu — ÜRETİLMİŞ dosya: \`node tools/harness/zorluk.mjs --kalibre\`. Bölüm → üretici varyantı (0 = varsayılan).
  * Her bölüm için hedef eğriye tahminen en yakın birkaç varyant insan modeliyle ölçülür, ölçülen can kaybı hedefe en yakın olan seçilir.
- * 12, 19, 24, 27-29, 31, 32 sonradan 48 oyunculuk ölçümle elle seçildi (docs/12 §8); \`--kalibre\` yalnız \`--levels\` ile verilen bölümleri yazar.
+ * 8, 11, 12, 18, 19, 23-26, 30, 32, 33, 36 ve 39 sonradan 48 oyunculuk varyant taramasıyla elle seçildi (docs/12 §8); \`--kalibre\` yalnız \`--levels\` ile verilen bölümleri yazar.
  */
 export const KALIBRASYON: Record<number, number> = {
 ${body}
