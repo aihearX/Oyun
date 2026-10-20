@@ -5,7 +5,7 @@ import type { ArtName } from '../ui/art';
  * anlatıcı (Tüy Dede) her yeni yeri gösterir. Kilitli yerler dürüstçe "Bölüm N'de açılır" yazar (sahte sayaç yok).
  * `at`: o kadar bölüm (art arda) GEÇİLİNCE açılır.
  */
-export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'team' | 'league' | 'shop' | 'events' | 'race';
+export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -15,6 +15,7 @@ export const FEATURES: FeatureDef[] = [
   { id: 'camp', at: 3, name: 'Kamp', art: 'tent', tour: true },
   { id: 'skills', at: 3, name: 'Yetenekler', art: 'bolt', tour: false },
   { id: 'friends', at: 4, name: 'Arkadaşlar ve mesajlar', art: 'users', tour: true },
+  { id: 'glossary', at: 4, name: 'Kulak Sözlüğü', art: 'bulb', tour: true },
   { id: 'team', at: 5, name: 'Takım', art: 'shield', tour: true },
   { id: 'league', at: 5, name: 'Lig', art: 'medal', tour: false },
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },

@@ -40,6 +40,13 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
         <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Coqui TTS, Fatih Akademi Türkçe modeli (MIT)</small>
       </div>
+      <div className="card know-card" data-testid="bilgi-duzeyi">
+        <div><h2>Bilgi düzeyi</h2><div className="muted">Odyoloji öğrencisiysen Tüy Dede’nin notları ayrıntılı açılır, bilgi yarışması daha teknik sorular seçer.</div></div>
+        <div className="seg" role="radiogroup" aria-label="Bilgi düzeyi">
+          <button type="button" role="radio" aria-checked={s.knowledge === 'genel'} className={s.knowledge === 'genel' ? 'on' : ''} onClick={() => s.setKnowledge('genel')}>Genel</button>
+          <button type="button" role="radio" aria-checked={s.knowledge === 'odyoloji'} className={s.knowledge === 'odyoloji' ? 'on' : ''} onClick={() => s.setKnowledge('odyoloji')}>Odyoloji öğrencisi</button>
+        </div>
+      </div>
       <div className="card skill"><div><h2>İlerlemeyi sıfırla</h2><div className="muted">Yıldızlar, jetonlar, yetenekler, başarımlar, kartlar ve kozmetikler silinir.</div></div><button className="btn coral small" onClick={() => { if (confirm('Tüm ilerleme silinsin mi? Oyun baştan, hikâyeyle başlar.')) { s.reset(); onReset?.(); } }}>Sıfırla</button></div>
       <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>
     </div>

@@ -169,6 +169,21 @@
    "hash": "372d1072",
    "ms": 6648
   },
+  "sozluk-01": {
+   "file": "sozluk-01.mp3",
+   "hash": "970d7642",
+   "ms": 8448
+  },
+  "sozluk-02": {
+   "file": "sozluk-02.mp3",
+   "hash": "ebf88e22",
+   "ms": 4800
+  },
+  "sozluk-03": {
+   "file": "sozluk-03.mp3",
+   "hash": "0d3ad5c6",
+   "ms": 8280
+  },
   "takim-01": {
    "file": "takim-01.mp3",
    "hash": "648cef87",
@@ -208,6 +223,171 @@
    "file": "yaris-01.mp3",
    "hash": "b21fbd87",
    "ms": 7056
+  },
+  "not-kepce-yon": {
+   "file": "not-kepce-yon.mp3",
+   "hash": "c26713d5",
+   "ms": 7008
+  },
+  "not-hz": {
+   "file": "not-hz.mp3",
+   "hash": "742fc2d4",
+   "ms": 6480
+  },
+  "not-db": {
+   "file": "not-db.mp3",
+   "hash": "6a2bb8c6",
+   "ms": 7104
+  },
+  "not-kanal-rezonans": {
+   "file": "not-kanal-rezonans.mp3",
+   "hash": "4d536703",
+   "ms": 6216
+  },
+  "not-serumen-temiz": {
+   "file": "not-serumen-temiz.mp3",
+   "hash": "67ca6101",
+   "ms": 5880
+  },
+  "not-gurultu-sure": {
+   "file": "not-gurultu-sure.mp3",
+   "hash": "b1f4854d",
+   "ms": 5472
+  },
+  "not-empedans": {
+   "file": "not-empedans.mp3",
+   "hash": "8337777d",
+   "ms": 7560
+  },
+  "not-timpanometri": {
+   "file": "not-timpanometri.mp3",
+   "hash": "b51719f0",
+   "ms": 6696
+  },
+  "not-ome": {
+   "file": "not-ome.mp3",
+   "hash": "64749988",
+   "ms": 6816
+  },
+  "not-akustik-refleks": {
+   "file": "not-akustik-refleks.mp3",
+   "hash": "2eb5316e",
+   "ms": 5928
+  },
+  "not-otoskleroz": {
+   "file": "not-otoskleroz.mp3",
+   "hash": "2fcc30a5",
+   "ms": 6912
+  },
+  "not-kemik-yolu": {
+   "file": "not-kemik-yolu.mp3",
+   "hash": "a2697441",
+   "ms": 8016
+  },
+  "not-dalga": {
+   "file": "not-dalga.mp3",
+   "hash": "d109f034",
+   "ms": 6696
+  },
+  "not-pil": {
+   "file": "not-pil.mp3",
+   "hash": "85c0eab1",
+   "ms": 4944
+  },
+  "not-denge": {
+   "file": "not-denge.mp3",
+   "hash": "b6f95c0d",
+   "ms": 4224
+  },
+  "not-oae-not": {
+   "file": "not-oae-not.mp3",
+   "hash": "d5802656",
+   "ms": 7248
+  },
+  "not-prestin": {
+   "file": "not-prestin.mp3",
+   "hash": "192029a1",
+   "ms": 5664
+  },
+  "not-rekrutman": {
+   "file": "not-rekrutman.mp3",
+   "hash": "d43297bc",
+   "ms": 7080
+  },
+  "not-presbiakuzi": {
+   "file": "not-presbiakuzi.mp3",
+   "hash": "ed5362b1",
+   "ms": 5016
+  },
+  "not-gurultu-centik": {
+   "file": "not-gurultu-centik.mp3",
+   "hash": "c23937ab",
+   "ms": 6168
+  },
+  "not-implant": {
+   "file": "not-implant.mp3",
+   "hash": "1bc99e1a",
+   "ms": 6312
+  },
+  "not-ototoksik": {
+   "file": "not-ototoksik.mp3",
+   "hash": "0f7bcd7e",
+   "ms": 6480
+  },
+  "not-abr-not": {
+   "file": "not-abr-not.mp3",
+   "hash": "e994a29d",
+   "ms": 7416
+  },
+  "not-kayip-turleri": {
+   "file": "not-kayip-turleri.mp3",
+   "hash": "c9b290c3",
+   "ms": 5280
+  },
+  "not-hl-spl": {
+   "file": "not-hl-spl.mp3",
+   "hash": "0a5edcef",
+   "ms": 8232
+  },
+  "not-tarama": {
+   "file": "not-tarama.mp3",
+   "hash": "7ea14475",
+   "ms": 6792
+  },
+  "not-yon": {
+   "file": "not-yon.mp3",
+   "hash": "1c65a49d",
+   "ms": 4512
+  },
+  "not-maskeleme": {
+   "file": "not-maskeleme.mp3",
+   "hash": "a7734a6d",
+   "ms": 4680
+  },
+  "not-rinne-weber": {
+   "file": "not-rinne-weber.mp3",
+   "hash": "3468e653",
+   "ms": 6192
+  },
+  "not-konusma-muzu": {
+   "file": "not-konusma-muzu.mp3",
+   "hash": "00e036d1",
+   "ms": 6528
+  },
+  "not-kokteyl": {
+   "file": "not-kokteyl.mp3",
+   "hash": "aef94bca",
+   "ms": 4488
+  },
+  "not-cihaz": {
+   "file": "not-cihaz.mp3",
+   "hash": "94616b0d",
+   "ms": 5808
+  },
+  "not-tinnitus": {
+   "file": "not-tinnitus.mp3",
+   "hash": "2064606c",
+   "ms": 6264
   }
  }
 }

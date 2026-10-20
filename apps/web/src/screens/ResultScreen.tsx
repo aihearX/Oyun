@@ -14,6 +14,8 @@ import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
 import { Art, Glyph, Rich } from '../ui/art';
+import { NoteCard, useNote } from '../ftue/Notes';
+import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
@@ -37,6 +39,8 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId }: Props) {
   const store = useStore();
   const feat = useFeatures(); const raceOpen = feat.open('race');
+  // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
+  const note = useNote(spec.biome, 'result', !demo && result.completed && spec.number >= 2 && !useCoach.getState().tour && Math.random() < (store.knowledge === 'odyoloji' ? 0.8 : 0.45), spec.number + result.score);
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
   /** önizleme bayrağı: ?demo=sonuc&kutlama=0 → seviye kutlaması açılmaz (yalnızca ekran görüntüsü için) */
@@ -234,6 +238,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             </>
           )}
         </div>
+        {done && note && <NoteCard note={note} />}
       </div>
 
       {toast && <div className="toast">{toast}</div>}

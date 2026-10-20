@@ -29,6 +29,7 @@ import { TeamScreen } from './screens/TeamScreen';
 import { ProfileScreen, type ProfileLink } from './screens/ProfileScreen';
 import { AchievementsScreen } from './screens/AchievementsScreen';
 import { AlbumScreen } from './screens/AlbumScreen';
+import { GlossaryScreen } from './screens/GlossaryScreen';
 import { WardrobeScreen } from './screens/WardrobeScreen';
 import { InfoScreen } from './screens/InfoScreen';
 import { BiomeIntro } from './screens/BiomeIntro';
@@ -55,7 +56,7 @@ const E2E_Q = E2E ? new URLSearchParams(location.search) : null;
 const PLAY_BOT = !!E2E_Q && E2E_Q.get('oyun-bot') === '1';
 /** sekme → açılması gereken yer (harita hep açık) */
 const TAB_FEATURE: Partial<Record<Tab, FeatureId>> = { today: 'today', camp: 'camp', team: 'team', profile: 'profile' };
-type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'wardrobe' | 'info';
+type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'info';
 type Route =
   | { name: 'title' } | { name: Tab } | { name: Sub; back: Tab } | { name: 'story'; replay?: boolean; back?: Tab }
   | (SocialRoute & { back: Tab; key?: number })
@@ -221,6 +222,7 @@ export function App() {
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} onReset={() => setRoute({ name: 'title' })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'album': return <AlbumScreen onBack={() => setRoute({ name: route.back })} />;
+    case 'glossary': return <GlossaryScreen onBack={() => setRoute({ name: route.back })} />;
     case 'wardrobe': return <WardrobeScreen onBack={() => setRoute({ name: route.back })} />;
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
   } })();

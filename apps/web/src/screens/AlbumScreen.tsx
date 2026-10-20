@@ -4,6 +4,7 @@ import { albumProgress, biomeHasSecret } from '@odi/meta';
 import { useStore } from '../store';
 import { Bar, ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
+import { MoreLine } from '../ftue/Notes';
 
 /** Kulak Kartları albümü: her biyomda 5 gerçek bilgi kartı; tamamlanan biyom rozet kazanır. */
 export function AlbumScreen({ onBack }: { onBack: () => void }) {
@@ -34,7 +35,7 @@ export function AlbumScreen({ onBack }: { onBack: () => void }) {
           <div className="card fact-card" role="dialog" aria-label={owned.has(open.id) ? open.title : 'Kilitli kart'}>
             <div className="fc-e">{owned.has(open.id) ? open.emoji : <Art name="lock" size={48} />}</div>
             <div className="muted">{BIOMES[open.biome].name}</div>
-            {owned.has(open.id) ? <><h2>{open.title}</h2><p className="fact-text">{open.fact}</p></> : <><h2>Kilitli kart</h2><p className="fact-text">Nasıl açılır: {cardSlotText(open.slot, biomeHasSecret(open.biome))}.</p></>}
+            {owned.has(open.id) ? <><h2>{open.title}</h2><p className="fact-text">{open.fact}</p><MoreLine text={open.tech} /></> : <><h2>Kilitli kart</h2><p className="fact-text">Nasıl açılır: {cardSlotText(open.slot, biomeHasSecret(open.biome))}.</p></>}
             <button className="btn" onClick={() => setOpen(null)}>Tamam</button>
           </div>
         </div>

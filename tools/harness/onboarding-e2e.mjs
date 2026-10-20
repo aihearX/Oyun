@@ -239,6 +239,7 @@ async function suite(target, browserName, [W, H]) {
       check(!(await page.locator('nav.tabbar').count()), 'hikâyeden sonra sekme yok: tek giriş 1. bölüm');
       // ---- 2 · 1. bölüm (biyom tanıtımı → bot)
       await page.getByRole('button', { name: /Haydi/ }).waitFor({ timeout: 20_000 }); await shot(page, 'biyom-tanitimi');
+      check(await page.locator('.biome-intro [data-testid="tuy-notu"]').count() === 1, `biyom tanıtımında Tüy Dede'nin Notu: ${await page.locator('[data-testid="tuy-notu"]').getAttribute('data-note').catch(() => '-')}`);
       await page.getByRole('button', { name: /Haydi/ }).click();
       await page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 30_000 }); await sleep(800); await shot(page, 'bolum-1');
       await waitResult(page, 1);
@@ -273,6 +274,13 @@ async function suite(target, browserName, [W, H]) {
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       await playFromMap(page, 4); await page.locator('.result-actions [data-act="harita"]').click();
       await driveTour(page, 'friends', 'arkadaslar-turu');
+      // Kulak Sözlüğü (4. bölümden sonra, arkadaşlardan hemen sonra): kutucuğa dokun → sözlük açılır → ilk terim
+      await driveTour(page, 'glossary', 'sozluk-turu');
+      check(await page.locator('[data-testid="sozluk"] .gl-term').count() >= 5, `Kulak Sözlüğü açıldı (${await page.locator('[data-testid="sozluk"] .gl-term').count()} terim)`);
+      check(await page.locator('[data-testid="sozluk"] .gl-region.locked').count() >= 5, 'ulaşılmamış bölgelerin terimleri kilitli');
+      await page.locator('[data-testid="sozluk"] .gl-term .ml-btn').first().click(); await sleep(300); await shot(page, 'sozluk-daha-fazla');
+      check(await page.locator('[data-testid="sozluk"] .ml-tech').count() >= 1, 'Daha fazla: teknik tanım açıldı');
+      await page.getByRole('button', { name: 'Geri' }).first().click();
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       check((await lockedTabs(page)).includes('team'), 'Takım hâlâ kilitli (Bölüm 5)');
       await playFromMap(page, 5); await page.locator('.result-actions [data-act="harita"]').click();
@@ -280,7 +288,8 @@ async function suite(target, browserName, [W, H]) {
       check(!(await lockedTabs(page)).length, 'bütün sekmeler açık');
       const played = await page.evaluate(() => window.__played ?? []);
       const spoken = await page.evaluate(() => window.__spoken ?? []);
-      const need = ['hikaye-01.mp3', 'sonuc-01.mp3', 'kamp-insa-02-depo.mp3', 'takim-03.mp3'].filter((f) => !played.includes(f));
+      const need = ['hikaye-01.mp3', 'sonuc-01.mp3', 'kamp-insa-02-depo.mp3', 'sozluk-03.mp3', 'takim-03.mp3'].filter((f) => !played.includes(f));
+      check(played.some((f) => f.startsWith('not-')), `Tüy Dede'nin Notu seslendirildi (${played.filter((f) => f.startsWith('not-')).join(', ')})`);
       check(VOICED.length >= 30 && played.length >= 25 && !need.length, `gömülü Tüy Dede sesi çalındı (${played.length} satır${need.length ? `; eksik: ${need.join(', ')}` : ''}; çalınanlar: ${played.join(' ')})`);
       check(spoken.length === 0, `kaydı olan satırlarda cihaz sesi (TTS) kullanılmadı (${spoken.length})`);
       // dosyalar gerçekten sunuluyor ve tarayıcı çözebiliyor mu
@@ -326,7 +335,7 @@ async function suite(target, browserName, [W, H]) {
         { cleared: 1, tours: ['result1'], tour: 'map', label: 'harita-turu' },
         { cleared: 2, tours: ['result1', 'map'], tour: 'today', label: 'bugun-turu' },
         { cleared: 3, tours: ['result1', 'map', 'today'], tour: 'camp', label: 'kamp-acilis', then: 'camp-build' },
-        { cleared: 5, tours: ['result1', 'map', 'today', 'camp', 'camp-build', 'friends'], tour: 'team', label: 'takim-turu' },
+        { cleared: 5, tours: ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary'], tour: 'team', label: 'takim-turu' },
       ];
       for (const pt of points) {
         const { page, ctx } = await newPage(seedFor(pt.cleared, pt.tours));

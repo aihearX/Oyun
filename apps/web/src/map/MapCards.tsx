@@ -11,6 +11,8 @@ import { RewardChips } from '../ui/bits';
 import { treasureItems } from './goals';
 import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { NoteCard, useNote } from '../ftue/Notes';
+import { GLOSSARY } from '@odi/content/odyoloji';
 
 export type MapCard = { kind: 'node'; n: number } | { kind: 'treasure'; n: number } | { kind: 'zone'; z: ZoneId };
 
@@ -85,6 +87,7 @@ function TreasureCard({ n, unlocked, onClose }: { n: number; unlocked: number; o
 function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: () => void }) {
   const progress = useStore((s) => s.progress); const cards = useStore((s) => s.meta.cards);
   const v = zoneVitality(z, stars);
+  const note = useNote(z === 'finale' ? null : (z as BiomeId), 'map', v > 0, Date.now() % 97);
   if (z === 'finale') {
     return (
       <Sheet onClose={onClose} tone="gold">
@@ -99,6 +102,7 @@ function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: (
   const b = BIOMES[z as BiomeId]; const ls = HUMAN_JOURNEY.levels.filter((l) => l.biome === z); const st = biomeStats(ls, progress);
   const alb = albumProgress(cards).biomes.find((x) => x.biome === z);
   const need = nextVitalityNeed(z as BiomeId, stars);
+  const terms = GLOSSARY.filter((g) => g.region === z);
   const needText = !need ? 'Bu bölge ışıl ışıl! Tüm yıldızlar senin.' : need.to === 1 ? 'Önceki bölgeyi bitirince uyanır.' : need.clears ? `${need.clears} bölüm daha geç: ${VITALITY_NAMES[need.to].toLowerCase()}.` : `${need.stars} yıldız daha: ışıl ışıl.`;
   return (
     <Sheet onClose={onClose}>
@@ -108,9 +112,11 @@ function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: (
       </div>
       <div className="mc-dim">{b.blurb}</div>
       <Vital v={v} />
+      {note && <NoteCard note={note} />}
       <div className="mc-rows">
         <div className="mc-row"><span><Art e="⭐" size="1.15em" className="art-inline" /></span><b>Yıldız</b><span className="mc-dim">{st.stars}/{st.maxStars} · {st.cleared}/{st.total} bölüm</span></div>
         {alb && <div className="mc-row"><span><Art e="🃏" size="1.15em" className="art-inline" /></span><b>Kulak Kartları</b><span className="mc-dim">{alb.owned}/{alb.total}{alb.complete ? ' · rozet!' : ''}</span></div>}
+        {terms.length > 0 && <div className="mc-row"><span><Art name="bulb" size="1.15em" className="art-inline" /></span><b>Kulak Sözlüğü</b><span className="mc-dim">{terms.map((t) => t.term.split(' (')[0]).slice(0, 3).join(', ')}{terms.length > 3 ? ` +${terms.length - 3}` : ''}</span></div>}
         <div className="mc-row"><span><Art e="🌱" size="1.15em" className="art-inline" /></span><b>Sıradaki</b><span className="mc-dim">{needText}</span></div>
       </div>
       <div className="mc-fact"><Art e="👂" size="1.15em" className="art-inline" /> {b.fact}</div>

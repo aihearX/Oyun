@@ -95,6 +95,13 @@ export function tourFor(id: string, route: string): Tour | null {
         ...(route === 'profile' ? [] : [tapTab('profile')]),
         { id: 'arkadas-02', say: lineText('arkadas-02'), target: '.menu-tile[data-tile="friends"]' },
       ); break;
+    case 'glossary':
+      steps.push(
+        unlockCard('glossary', 'sozluk-01'),
+        ...(route === 'profile' ? [] : [tapTab('profile')]),
+        { ...line('sozluk-02'), target: '.menu-tile[data-tile="glossary"]', wait: { el: '[data-testid="sozluk"]' }, hint: 'Sözlüğe dokun' },
+        { ...line('sozluk-03'), target: '.gl-term' },
+      ); break;
     case 'team':
       steps.push(
         unlockCard('team', 'takim-01'),

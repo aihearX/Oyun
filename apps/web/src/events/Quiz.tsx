@@ -6,6 +6,7 @@ import { fmtDate, fmtNum } from '../ui/social';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, hexColor, useSrvNow } from './common';
 import { Art, rich } from '../ui/art';
+import { useStore } from '../store';
 import { Icon } from '../ui/icons';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -25,7 +26,7 @@ export function QuizView() {
     if (q.phase === 'cevap' && q.question) { const ok = q.question.myChoice === q.question.answer; if (joined) { audio.play(ok ? 'perfect' : 'error', { vol: 0.7 }); platform().haptic(ok ? 'success' : 'error'); } }
   }, [key]);
   const call = async (fn: () => Promise<void>) => { setBusy(true); setErr(null); try { await fn(); } catch (e) { setErr(errText(e)); } setBusy(false); };
-  const start = () => call(async () => { const r = await evNet()!.call('quiz.start', {}); useEvents.setState({ quiz: r.quiz }); });
+  const start = () => call(async () => { const r = await evNet()!.call('quiz.start', { level: useStore.getState().knowledge }); useEvents.setState({ quiz: r.quiz }); });
   const join = () => call(async () => { const r = await evNet()!.call('quiz.join', { quizId: q!.id }); useEvents.setState({ quiz: r.quiz }); platform().haptic('medium'); });
   const go = () => call(async () => { const r = await evNet()!.call('quiz.go', { quizId: q!.id }); useEvents.setState({ quiz: r.quiz }); });
   const answer = (i: number) => call(async () => { const r = await evNet()!.call('quiz.answer', { quizId: q!.id, index: q!.question!.index, choice: i }); useEvents.setState({ quiz: r.quiz }); audio.play('tap'); });

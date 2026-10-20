@@ -30,7 +30,7 @@ ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice
 Üslup (ffmpeg): perde -2 yarım ton (biçimleyiciler korunur), tempo ×0.92, sıcak alçak orta, yumuşak tiz,
 hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, sessizlik kırpma. Adaylar: sicak, dede, derin (seçilen: **dede**).
 
-## Satırlar (41)
+## Satırlar (77)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -67,6 +67,9 @@ hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, 
 | `kamp-insa-05` | Harika, inşaat başladı! Süre dolunca hazır olur. Takımın olunca arkadaşların tek dokunuşla hızlandırır. | Kamp öğreticisi: inşaat başladı | sevinçli, göz kırpan (delighted) |
 | `arkadas-01` | Yeni: Arkadaşlar ve mesajlar! Arkadaşını kodla ekle, mesajlaş, her gün hediye gönder. | Açılış kutlaması: Arkadaşlar | coşkulu (celebratory) |
 | `arkadas-02` | Arkadaşlar burada. Arkadaş kodunu paylaş; birlikte daha hızlı ilerlersiniz. | Profil: Arkadaşlar kutucuğu vurgulanır | sıcak (warm) |
+| `sozluk-01` | Yeni: Kulak Sözlüğü! Ulaştığın her bölgenin terimleri burada: önce sade anlatım, istersen odyoloji ayrıntısı. | Açılış kutlaması: Kulak Sözlüğü | bilge, meraklandıran (wise, curious) |
+| `sozluk-02` | Sözlük burada, Profil’in içinde. Dokun ve bir bak! | Profil: Kulak Sözlüğü kutucuğu (oyuncu dokunur) | davet eden (inviting) |
+| `sozluk-03` | Her terimin sade bir tanımı var. Daha fazla’ya dokunursan odyoloji öğrencileri için ayrıntı açılır. | Kulak Sözlüğü: ilk terim kartı | öğretici, sıcak (explaining) |
 | `takim-01` | Yeni: Takım! Takımda birbirinize yardım edersiniz: inşaatlar hızlanır, kalkan gelir. | Açılış kutlaması: Takım | coşkulu (celebratory) |
 | `takim-02` | Birlikte Bölge Savaşı’nda yer kaparsınız ve Gürültü Canavarı’na hep beraber vurursunuz. | Takım: takım avantajları | heyecanlı, cesur (rousing) |
 | `takim-03` | Bir takıma kodla katılabilir ya da kendi takımını kurabilirsin. Karar senin! | Takım: kodla katıl / takım kur | göz kırpan (playful) |
@@ -75,3 +78,36 @@ hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, 
 | `etkinlik-01` | Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve quiz: takımca oynanır, ödülleri büyüktür.<br><small>okunuş: Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve kuiz: takımca oynanır, ödülleri büyüktür.</small> | Açılış kutlaması: Etkinlikler | coşkulu (celebratory) |
 | `etkinlik-02` | Etkinlik çadırı haritanın sağında. Dokun ve bir bak! | Harita: etkinlik çadırı (oyuncu dokunur) | merak uyandıran (intriguing) |
 | `yaris-01` | Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek? | Açılış kutlaması: Canlı yarış | heyecanlı, meydan okuyan (competitive) |
+| `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-kanal-rezonans` | Kulak kanalı, şişe ağzına üflemek gibi bazı sesleri kendiliğinden güçlendirir. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-serumen-temiz` | Kulak kendi kendini temizler; pamuklu çubuk kiri çoğu zaman daha derine iter. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-gurultu-sure` | Ses ne kadar yüksekse, güvenle dinleyebileceğimiz süre o kadar kısalır. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-empedans` | Orta kulak, havadaki sesi iç kulak sıvısına aktarırken onu güçlendiren bir yükseltici gibi çalışır. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-timpanometri` | Timpanometri, kulak zarının ne kadar rahat hareket ettiğini ölçen kısa ve ağrısız bir testtir. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-ome` | Çocuklarda orta kulakta sıvı birikmesi sık görülür ve işitmeyi geçici olarak azaltabilir. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-akustik-refleks` | Çok yüksek seste orta kulaktaki minik bir kas kasılır ve kulağı biraz korur. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-otoskleroz` | Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-kemik-yolu` | Sesi kafatası kemikleri yoluyla da duyarız; kendi sesimizi kayıtta farklı bulmamızın bir nedeni budur. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-dalga` | Kokleadaki dalga tabandan tepeye doğru ilerler; her ses kendi noktasında en büyük olur. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-pil` | Kokleanın içinde, küçük bir pil gibi bir elektrik gerilimi vardır. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-denge` | İç kulak yalnızca işitmez, dengemizi de sağlar. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-oae-not` | Sağlıklı bir kulak kendi çok hafif sesini üretir; bebeklerin işitmesi bununla taranabilir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-prestin` | Dış tüy hücreleri sesle birlikte dans eder ve hafif sesleri güçlendirir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-rekrutman` | İç kulak kaynaklı işitme kaybında sesler bir noktadan sonra hızla fazla yüksek gelebilir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-presbiakuzi` | Yaşla birlikte genellikle önce ince seslerin duyulması azalır. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-gurultu-centik` | Uzun süre yüksek sese maruz kalmak tüy hücrelerine kalıcı zarar verebilir. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-implant` | Koklear implant, sesi elektrik sinyaline çevirip işitme sinirini doğrudan uyarır. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-ototoksik` | Bazı ilaçlar iç kulağa zarar verebilir; bu yüzden hekim kontrolünde kullanılırlar. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-abr-not` | Uyuyan bir bebeğin bile işitmesi, beyin sapından gelen minik elektrik dalgalarıyla değerlendirilebilir. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-kayip-turleri` | İşitme kaybı, sorunun kulağın hangi bölümünde olduğuna göre adlandırılır. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-hl-spl` | Odyogramdaki 0 dB “hiç ses yok” demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.<br><small>okunuş: Odyogramdaki sıfır desibel, hiç ses yok demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.</small> | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-tarama` | Yenidoğan işitme taraması, işitme kaybını erken fark edip erken desteklemeyi sağlar. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-yon` | İki kulağımız sayesinde sesin nereden geldiğini buluruz. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-maskeleme` | Bir ses başka bir sesi bastırabilir; buna maskeleme denir. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-rinne-weber` | Diyapazon testleri, basit bir çatalla işitme kaybının türü hakkında ipucu verir. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-konusma-muzu` | Konuşma seslerinin odyogramda kapladığı alan muza benzediği için “konuşma muzu” denir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-kokteyl` | Beyin, kalabalık bir odada tek bir konuşmaya odaklanabilir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-cihaz` | İşitme cihazları sesi her frekans için ayrı ayrı ayarlayarak yükseltir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-tinnitus` | Kulak çınlaması, dışarıda bir ses yokken ses duyma hissidir ve oldukça yaygındır. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |

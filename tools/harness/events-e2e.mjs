@@ -15,7 +15,10 @@ import { chromium } from 'playwright';
 const args = new Set(process.argv.slice(2));
 const root = resolve(new URL('../..', import.meta.url).pathname);
 const webRoot = resolve(root, 'apps/web');
-const outDir = resolve(root, 'tools/harness/out/etkinlik'); mkdirSync(outDir, { recursive: true });
+// E2E_VIEW=320x640 (dar ekran) · E2E_KNOWLEDGE=odyoloji (Ayarlar › Bilgi düzeyi: quiz öğrenci sorularını öne çıkarır) · çıktı klasörü ayrı
+const [VW, VH] = (process.env.E2E_VIEW ?? '390x844').split('x').map(Number);
+const KNOW = process.env.E2E_KNOWLEDGE === 'odyoloji' ? 'odyoloji' : 'genel';
+const outDir = resolve(root, `tools/harness/out/etkinlik${process.env.E2E_VIEW || KNOW !== 'genel' ? `-${VW}-${KNOW}` : ''}`); mkdirSync(outDir, { recursive: true });
 for (const f of readdirSync(outDir)) if (f.endsWith('.png')) rmSync(resolve(outDir, f));
 const distDir = resolve(outDir, 'dist');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -92,9 +95,9 @@ const net = (p, op, data = {}) => p.page.evaluate(([o, d]) => window.__etkinlik.
 const tid = (p, id) => p.page.getByTestId(id);
 
 async function player(name, slug) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
+  const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 1), isMobile: true, hasTouch: true, locale: 'tr-TR' });
   // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
-  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
+  await ctx.addInitScript((knowledge) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true }, knowledge }, version: 3 })); } catch { /* depolama yok */ } }, KNOW);
   const page = await ctx.newPage();
   const p = { name, slug, ctx, page, errors: [] };
   page.on('pageerror', (e) => p.errors.push(String(e.message ?? e)));

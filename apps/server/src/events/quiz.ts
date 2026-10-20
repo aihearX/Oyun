@@ -115,11 +115,22 @@ function activeRow(app: App, teamId: string): QuizRow | null {
   return q;
 }
 
-function create(app: App, teamId: string, by: string, slot: string | null): QuizRow {
+/**
+ * Soru seçimi: varsayılan (genel) yalnız "Meraklı" düzeyinden; başlatan "Odyoloji öğrencisi" seçtiyse soruların yaklaşık
+ * %60'ı öğrenci düzeyinden, kalanı genelden (herkes katılabilsin diye karışık). Sabit saatli (sistem) yarışmalar hep genel.
+ */
+function pickQuestions(level: 'genel' | 'odyoloji'): number[] {
+  const idx = (l: 'merakli' | 'odyoloji') => QUIZ_QUESTIONS.flatMap((q, i) => (q.level === l ? [i] : []));
+  const take = (pool: number[], n: number) => { const out: number[] = []; while (out.length < n && pool.length) out.push(pool.splice(randomInt(0, pool.length), 1)[0]!); return out; };
+  if (level !== 'odyoloji') return take(idx('merakli'), QUIZ_COUNT);
+  const tech = Math.round(QUIZ_COUNT * 0.6);
+  const mixed = [...take(idx('odyoloji'), tech), ...take(idx('merakli'), QUIZ_COUNT - tech)];
+  return take(mixed, mixed.length); // karıştır
+}
+
+function create(app: App, teamId: string, by: string, slot: string | null, level: 'genel' | 'odyoloji' = 'genel'): QuizRow {
   const now = app.now();
-  const pool = QUIZ_QUESTIONS.map((_, i) => i);
-  const pickd: number[] = [];
-  while (pickd.length < QUIZ_COUNT) pickd.push(pool.splice(randomInt(0, pool.length), 1)[0]!);
+  const pickd = pickQuestions(level);
   const id = rid('q');
   app.db.run('INSERT INTO ev_quiz(id, team_id, day, slot, started_by, created_at, lobby_ends, questions) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, teamId, dayKey(now), slot, by, now, now + lobbyMs(app), JSON.stringify(pickd));
   const who = by === 'sistem' ? 'Sabit saat geldi' : `${app.playerOrNull(by)?.name ?? '?'} başlattı`;
@@ -163,14 +174,14 @@ function myQuiz(app: App, quizId: string, teamId: string): QuizRow {
 
 export const quizHandlers: Handlers = {
   'quiz.state': (app, s) => { const { t } = requireTeam(app, s.pid); return { quiz: teamQuiz(app, s.pid, t.id), info: quizInfo(app, s.pid, t.id) }; },
-  'quiz.start': (app, s) => {
+  'quiz.start': (app, s, { level }) => {
     const { p, t } = requireTeam(app, s.pid);
     const cur = activeRow(app, t.id);
     if (cur && !cur.finished_at) return { quiz: view(app, cur, p.id) };
     const info = quizInfo(app, p.id, t.id);
     if (info.startsLeft <= 0) fail('LIMIT', `Takım günde en çok ${QUIZ_STARTS_PER_DAY} bilgi yarışması başlatabilir.`);
     if (!info.canStart) fail('YETKI', 'Bilgi yarışmasını lider ya da yardımcı başlatabilir; ayrıca her gün 13:00 ve 20:00\'de kendiliğinden açılır.');
-    const q = create(app, t.id, p.id, null);
+    const q = create(app, t.id, p.id, null, level ?? 'genel');
     broadcast(app, q);
     return { quiz: view(app, q, p.id) };
   },

@@ -23,7 +23,8 @@ export const EVENT_SCHEMAS = {
   'relay.submit': z.object({ leg: z.number().int().min(0).max(3), ...run }),
   'hunt.state': empty,
   'quiz.state': empty,
-  'quiz.start': empty,
+  /** level: başlatanın bilgi düzeyi (Ayarlar); 'odyoloji' soruların bir kısmını öğrenci düzeyinden seçer */
+  'quiz.start': z.object({ level: z.enum(['genel', 'odyoloji']).optional() }),
   'quiz.join': z.object({ quizId: id }),
   'quiz.go': z.object({ quizId: id }),
   'quiz.answer': z.object({ quizId: id, index: z.number().int().min(0).max(19), choice: z.number().int().min(0).max(3) }),

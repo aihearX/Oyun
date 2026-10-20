@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ACHIEVEMENTS, CARDS, COSMETICS } from '@odi/content';
 import { albumProgress, levelProgress, resolveLook } from '@odi/meta';
 import { useNet } from '@odi/net/store';
@@ -15,9 +15,11 @@ import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
 import { Art, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
-import type { FeatureId } from '../ftue/features';
+import { clearedCount, type FeatureId } from '../ftue/features';
+import { GLOSSARY } from '@odi/content/odyoloji';
+import { reachedRegions } from './GlossaryScreen';
 
-export type ProfileLink = 'achievements' | 'album' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
+export type ProfileLink = 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
 export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) {
   const s = useStore(); const lp = levelProgress(s.xp); const look = resolveLook(s.meta);
@@ -28,6 +30,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
   const album = albumProgress(s.meta.cards);
+  const glossOpen = useMemo(() => { const r = reachedRegions(clearedCount(s.progress)); return GLOSSARY.filter((g) => r.has(g.region)).length; }, [s.progress]);
   const stat = (art: ArtName, v: string | number, k: string) => <div className="pstat"><Art name={art} size={26} className="ps-art" /><b>{v}</b><span>{k}</span></div>;
   const online = st === 'bağlı' && !!me;
   // ilk deneyim: henüz açılmamış yerler kilitli karo ("Bölüm N'de açılır"), dokununca kısa not
@@ -59,6 +62,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className={tileCls('friends')} data-tile="chat" onClick={guard('friends', () => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' }))}><span className="mi teal"><Icon name="globe" /></span><b>Genel sohbet</b>{lockNote('friends') ?? <span className="muted">Herkesle konuş</span>}</button>
         <button className={tileCls('album')} data-tile="achievements" onClick={guard('album', () => onOpen('achievements'))}><span className="mi gold"><Icon name="trophy" /></span><b>Başarımlar</b>{lockNote('album') ?? <span className="muted">{tiers}/{maxTiers} kademe</span>}<Bar value={tiers / maxTiers} tone="amber" label="Başarımlar" /></button>
         <button className={tileCls('album')} data-tile="album" onClick={guard('album', () => onOpen('album'))}><span className="mi teal"><Icon name="cards" /></span><b>Kulak Kartları</b>{lockNote('album') ?? <span className="muted">{album.owned}/{CARDS.length} · %{album.pct}</span>}<Bar value={album.pct / 100} tone="green" label="Albüm" /></button>
+        <button className={tileCls('glossary')} data-tile="glossary" onClick={guard('glossary', () => onOpen('glossary'))}><span className="mi teal"><Art name="bulb" size={26} /></span><b>Kulak Sözlüğü</b>{lockNote('glossary') ?? <span className="muted">{glossOpen}/{GLOSSARY.length} terim</span>}<Bar value={glossOpen / GLOSSARY.length} tone="accent" label="Sözlük" /></button>
         <button className={tileCls('shop')} data-tile="wardrobe" onClick={guard('shop', () => onOpen('wardrobe'))}><span className="mi coral"><Icon name="hat" /></span><b>Dolap</b>{lockNote('shop') ?? <span className="muted">{s.meta.cosmetics.owned.length}/{COSMETICS.length} parça</span>}<Bar value={s.meta.cosmetics.owned.length / COSMETICS.length} tone="coral" label="Dolap" /></button>
         <button className={tileCls('skills')} data-tile="skills" onClick={guard('skills', () => onOpen('skills'))}><span className="mi gold"><Icon name="bolt" /></span><b>Yetenekler</b>{lockNote('skills') ?? <span className="muted">Jetonla kalıcı güç</span>}</button>
         <button className="menu-tile" data-tile="settings" onClick={() => onOpen('settings')}><span className="mi plain"><Icon name="sliders" /></span><b>Ayarlar</b><span className="muted">Ses, kayıt</span></button>

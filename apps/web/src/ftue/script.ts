@@ -70,6 +70,11 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'arkadas-01', text: 'Yeni: Arkadaşlar ve mesajlar! Arkadaşını kodla ekle, mesajlaş, her gün hediye gönder.', context: 'Açılış kutlaması: Arkadaşlar', emotion: 'coşkulu (celebratory)' },
   { id: 'arkadas-02', text: 'Arkadaşlar burada. Arkadaş kodunu paylaş; birlikte daha hızlı ilerlersiniz.', context: 'Profil: Arkadaşlar kutucuğu vurgulanır', emotion: 'sıcak (warm)' },
 
+  // ---- Kulak Sözlüğü (4. bölümden sonra, arkadaşlardan hemen sonra)
+  { id: 'sozluk-01', text: 'Yeni: Kulak Sözlüğü! Ulaştığın her bölgenin terimleri burada: önce sade anlatım, istersen odyoloji ayrıntısı.', context: 'Açılış kutlaması: Kulak Sözlüğü', emotion: 'bilge, meraklandıran (wise, curious)' },
+  { id: 'sozluk-02', text: 'Sözlük burada, Profil’in içinde. Dokun ve bir bak!', context: 'Profil: Kulak Sözlüğü kutucuğu (oyuncu dokunur)', emotion: 'davet eden (inviting)' },
+  { id: 'sozluk-03', text: 'Her terimin sade bir tanımı var. Daha fazla’ya dokunursan odyoloji öğrencileri için ayrıntı açılır.', context: 'Kulak Sözlüğü: ilk terim kartı', emotion: 'öğretici, sıcak (explaining)' },
+
   // ---- Takım (5. bölümden sonra)
   { id: 'takim-01', text: 'Yeni: Takım! Takımda birbirinize yardım edersiniz: inşaatlar hızlanır, kalkan gelir.', context: 'Açılış kutlaması: Takım', emotion: 'coşkulu (celebratory)' },
   { id: 'takim-02', text: 'Birlikte Bölge Savaşı’nda yer kaparsınız ve Gürültü Canavarı’na hep beraber vurursunuz.', context: 'Takım: takım avantajları', emotion: 'heyecanlı, cesur (rousing)' },

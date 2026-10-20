@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { EAR_NOTES } from '../../../../packages/content/src/odyoloji';
 import { NARRATOR_LINES, lineText, textHash } from './script';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams, NARRATOR_TTS } from './voicePick';
 
@@ -13,7 +14,7 @@ describe('Tüy Dede metinleri', () => {
     for (const l of NARRATOR_LINES) { expect(l.text.length).toBeGreaterThan(8); expect(l.context).toBeTruthy(); expect(l.emotion).toBeTruthy(); expect(l.id).toMatch(/^[a-z0-9-]+$/); }
   });
   it('turlarda ve hikâyede kullanılan her kimlik tanımlı (yazım hatası yok)', () => {
-    const used = new Set([...`${src('Director.tsx')}\n${src('Story.tsx')}`.matchAll(/'((?:hikaye|sonuc|harita|sekme|bugun|kamp|kamp-insa|arkadas|takim|magaza|etkinlik|yaris)-[a-z0-9-]+)'/g)].map((m) => m[1]!));
+    const used = new Set([...`${src('Director.tsx')}\n${src('Story.tsx')}`.matchAll(/'((?:hikaye|sonuc|harita|sekme|bugun|kamp|kamp-insa|arkadas|sozluk|takim|magaza|etkinlik|yaris)-[a-z0-9-]+)'/g)].map((m) => m[1]!));
     expect(used.size).toBeGreaterThan(30);
     for (const id of used) expect(() => lineText(id)).not.toThrow();
   });
@@ -24,8 +25,9 @@ describe('Tüy Dede metinleri', () => {
   });
   it('gömülü ses listesi güncel metinlerle eşleşir (eski kayıt çalınmaz)', () => {
     const man = JSON.parse(readFileSync(resolve(__dirname, '../../public/voice/manifest.json'), 'utf8')) as { lines: Record<string, { file: string; hash: string }> };
+    const textOf = (id: string) => (id.startsWith('not-') ? EAR_NOTES.find((n) => `not-${n.id}` === id)!.plain : lineText(id));
     for (const [id, e] of Object.entries(man.lines)) {
-      expect(e.hash, id).toBe(textHash(lineText(id)));
+      expect(e.hash, id).toBe(textHash(textOf(id)));
       expect(e.file).toBe(`${id}.mp3`);
     }
   });

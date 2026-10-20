@@ -86,11 +86,12 @@ const DUCK = 0.3;
 const duckOn = () => { try { audio.duck(900, DUCK); } catch { /* yok */ } };
 const duckOff = () => { try { audio.duck(0, 1); } catch { /* yok */ } };
 
-/** Tüy Dede bu satırı söyler (kayıt varsa kayıt, yoksa cihaz sesi). Ayar kapalıysa sessiz; altyazı her zaman ekranda. */
-export function speakLine(text: string, id?: string) {
+/** Tüy Dede bu satırı söyler (kayıt varsa kayıt, yoksa cihaz sesi). Ayar kapalıysa sessiz; altyazı her zaman ekranda.
+ *  Dönen sayı bu konuşmanın kimliğidir: stopVoiceIf(kimlik) yalnız hâlâ bu satır konuşuluyorsa susturur. */
+export function speakLine(text: string, id?: string): number {
   stopVoice();
   const s = useStore.getState();
-  if (!s.sounds || !s.narratorVoice) return;
+  if (!s.sounds || !s.narratorVoice) return token;
   const my = ++token; const live = () => my === token;
   const volume = Math.max(0.2, Math.min(1, s.sfxVol ?? 0.9));
   duckOn();
@@ -108,7 +109,11 @@ export function speakLine(text: string, id?: string) {
     } catch { /* ses yok: altyazı yeter */ }
     if (live()) duckOff();
   })();
+  return my;
 }
+
+/** yalnız verilen konuşma sürüyorsa sus (bir notun kapanması sonraki anlatıcı satırını kesmesin) */
+export function stopVoiceIf(id: number) { if (id === token) stopVoice(); }
 
 /** hemen sus (ileri / atla / ekran değişti) */
 export function stopVoice() {

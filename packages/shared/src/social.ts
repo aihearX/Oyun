@@ -475,7 +475,7 @@ export interface OpMap {
   'relay.submit': { req: EventRun & { leg: number }; res: { relay: RelayState; improved: boolean } };
   'hunt.state': { req: Record<string, never>; res: { hunt: HuntState } };
   'quiz.state': { req: Record<string, never>; res: { quiz: QuizState | null; info: QuizInfo } };
-  'quiz.start': { req: Record<string, never>; res: { quiz: QuizState } };
+  'quiz.start': { req: { level?: 'genel' | 'odyoloji' }; res: { quiz: QuizState } };
   'quiz.join': { req: { quizId: string }; res: { quiz: QuizState } };
   'quiz.go': { req: { quizId: string }; res: { quiz: QuizState } };
   'quiz.answer': { req: { quizId: string; index: number; choice: number }; res: { quiz: QuizState } };

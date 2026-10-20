@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import { platform } from '../platform';
 import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { NoteCard, useNote } from '../ftue/Notes';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 /** İlk kez girilen biyom için kısa sinematik kart. Tek dokunuşla geçilir. */
 export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }) {
   const b = BIOMES[spec.biome]; const m = MECHANICS[spec.mechanic];
   const [ready, setReady] = useState(false);
+  // ekran başına en çok bir bilgi: Tüy Dede'nin Notu varsa biyom bilgisinin yerini alır
+  const note = useNote(spec.biome, 'biome', true, spec.number);
   useEffect(() => { platform().haptic('medium'); const t = setTimeout(() => setReady(true), 500); return () => clearTimeout(t); }, []);
   const dark = ['kanal', 'sinir', 'beyin-sapi'].includes(spec.biome);
   return (
@@ -19,7 +22,7 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
         <div className="bi-kicker">Yeni biyom</div>
         <h1 className="bi-title">{b.name}</h1>
         <p className="bi-blurb">{b.blurb}</p>
-        <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>
+        {note ? <NoteCard note={note} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
         <div className="bi-mech"><Glyph e={m.icon} size="1.2em" /> {m.name}: {m.hint}</div>
         <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
