@@ -5,7 +5,9 @@ import type { ArtName } from '../ui/art';
  * anlatıcı (Tüy Dede) her yeni yeri gösterir. Kilitli yerler dürüstçe "Bölüm N'de açılır" yazar (sahte sayaç yok).
  * `at`: o kadar bölüm (art arda) GEÇİLİNCE açılır.
  */
-export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race';
+export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race'
+  /** iletişim (docs/13-iletisim.md) */
+  | 'akis' | 'soru' | 'ikili' | 'usta';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -21,11 +23,16 @@ export const FEATURES: FeatureDef[] = [
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },
   { id: 'events', at: 7, name: 'Etkinlikler', art: 'bigtop', tour: true },
   { id: 'race', at: 8, name: 'Canlı yarış ve meydan okuma', art: 'finish', tour: true },
+  // iletişim: takım sohbetinden sonra, adım adım (yeni oyuncuyu boğmadan)
+  { id: 'akis', at: 6, name: 'Takım Akışı ve tepkiler', art: 'chat', tour: true },
+  { id: 'soru', at: 9, name: 'Günün Sorusu', art: 'bulb', tour: true },
+  { id: 'ikili', at: 10, name: 'İkili Görev', art: 'users', tour: true },
+  { id: 'usta', at: 11, name: 'Usta–Çırak', art: 'crown', tour: true },
 ];
 export const featureById = (id: FeatureId) => FEATURES.find((f) => f.id === id)!;
 
 /** Anlatıcı turları (yapıldıkça kaydedilir) */
-export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race'] as const;
+export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'akis', 'soru', 'ikili', 'usta'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** Kalıcı ilk deneyim durumu (odi-v1 kaydında, sürümlü) */

@@ -17,6 +17,7 @@ import { Art, Glyph, Rich } from '../ui/art';
 import { NoteCard, useNote } from '../ftue/Notes';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
+import { ResultComm } from '../comm/ResultComm';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
@@ -181,6 +182,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         </div>
 
         {runId && step >= S + 3 && <TeamContribution runId={runId} result={result} reduced={reduced} />}
+        {step >= S + 3 && <ResultComm level={spec.number} completed={result.completed} demo={demo} />}
 
         {challenge && challenge.level === spec.number && challenge.score > 0 && (
           <div className="card" style={{ width: '100%' }}>

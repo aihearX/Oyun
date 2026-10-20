@@ -9,6 +9,8 @@ export type SocialRoute =
   | { name: 'race'; inviteRoomId?: string }
   /** özel mesajlar: gelen kutusu ve birebir sohbet (id = karşı oyuncu) */
   | { name: 'messages' } | { name: 'dm'; id: string }
+  /** Birlikte: İkili Görev, Usta–Çırak, sohbet ayarları (comm/Together.tsx) */
+  | { name: 'birlikte' }
   /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
   | { name: 'events'; view?: EventView; flash?: EventFlash };
 

@@ -90,6 +90,15 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
 
   // ---- Canlı yarış (8. bölümden sonra)
   { id: 'yaris-01', text: 'Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek?', context: 'Açılış kutlaması: Canlı yarış', emotion: 'heyecanlı, meydan okuyan (competitive)' },
+
+  // ---- İletişim (docs/13-iletisim.md) — kayıtlı ses yok: tools/voice/generate.mjs ile yeniden üretilmeli (o zamana dek altyazı / cihaz sesi)
+  { id: 'akis-01', text: 'Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir.', context: 'Açılış kutlaması: Takım Akışı (6. bölümden sonra)', emotion: 'coşkulu (celebratory)' },
+  { id: 'akis-02', text: 'Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste!', context: 'Takım sohbeti: akış kartı ve hazır sözler vurgulanır', emotion: 'sıcak, cesaret veren (warm, encouraging)' },
+  { id: 'soru-01', text: 'Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın!', context: 'Açılış kutlaması: Günün Sorusu (9. bölümden sonra)', emotion: 'bilge, meraklandıran (wise, curious)' },
+  { id: 'soru-02', text: 'İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var.', context: 'Takım sohbeti: Günün Sorusu kartı vurgulanır', emotion: 'göz kırpan (playful)' },
+  { id: 'ikili-01', text: 'Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız.', context: 'Açılış kutlaması: İkili Görev (10. bölümden sonra)', emotion: 'coşkulu (celebratory)' },
+  { id: 'ikili-02', text: 'Birlikte burada, Profil’in içinde. Arkadaşını seç ve davet et.', context: 'Profil: Birlikte kutucuğu vurgulanır', emotion: 'davet eden (inviting)' },
+  { id: 'usta-01', text: 'Artık bir ustasın! Yeni başlayan bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız.', context: 'Açılış kutlaması: Usta–Çırak (11. bölümden sonra)', emotion: 'gururlu, sıcak (proud, warm)' },
 ];
 
 const BY_ID = new Map(NARRATOR_LINES.map((l) => [l.id, l]));

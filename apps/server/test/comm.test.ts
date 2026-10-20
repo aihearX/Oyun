@@ -73,10 +73,10 @@ describe('Takım Akışı', () => {
     // 2. bölüm: aynı karta birleşir (yeni kart yok)
     await a.call('progress.submit', run(2, { stars: 3 }));
     const merged = await b.waitFor('chat.updated', (x) => x.msg.id === card.id);
-    expect(merged.msg.text).toBe('Ayşe 2 bölümde ilerledi: 1, 2 · toplam 5 yıldız.');
+    expect(merged.msg.text).toBe('Ayşe 2 bölümde ilerledi (1–2) · toplam 5 yıldız.');
     // eski bölümde 3 yıldıza çıkmak da birleşir; aynı bölüm iki kez sayılmaz
     await a.call('progress.submit', run(1, { stars: 3 }));
-    expect((await b.waitFor('chat.updated', (x) => x.msg.id === card.id)).msg.text).toBe('Ayşe 2 bölümde ilerledi: 1, 2 · toplam 6 yıldız.');
+    expect((await b.waitFor('chat.updated', (x) => x.msg.id === card.id)).msg.text).toBe('Ayşe 2 bölümde ilerledi (1–2) · toplam 6 yıldız.');
     // zaten geçilmiş bölümü 3 yıldızla yeniden geçmek kart açmaz
     await a.call('progress.submit', run(2, { stars: 3 }));
     const hist = (await b.call('chat.join', { room: t.room })).history.filter((m) => m.kind === 'feed' && m.meta?.type === 'bolum');

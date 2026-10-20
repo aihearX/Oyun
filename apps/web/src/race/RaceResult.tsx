@@ -7,6 +7,7 @@ import { errText } from '../net';
 import { useNet } from '@odi/net/store';
 import { fmtSec, levelName, newerRoom, placeMedal, raceBonus, raceTimeSec, standings, useRaceNet } from './common';
 import { Art, rich, Glyph } from '../ui/art';
+import { RaceChat } from './RaceLobby';
 import './race.css';
 
 /**
@@ -85,6 +86,8 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
           <small className="muted">Bölüm ({result!.completed ? `${5 + result!.stars * 5}` : '1'}) + yarış derecesi ({raceBonus(myPlace)}). Puanı sunucu hesaplar; parayla alınamaz.</small>
         </div>
       )}
+      {/* yarış sonrası tek dokunuş: "İyi yarıştı!" (yalnızca bu odadakiler görür) */}
+      <RaceChat roomId={room.id} meId={meId} compact />
       <div className="race-actions">
         <button className="btn race-big" data-testid="yaris-rovans" disabled={busy || !net} onClick={() => void rematch()}><Art e="🔁" size="1.15em" className="art-inline" /> Rövanş</button>
         <button className="btn ghost" data-testid="yaris-lobiye" onClick={onLobby}>Lobiye dön</button>

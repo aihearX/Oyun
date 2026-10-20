@@ -16,12 +16,18 @@ const MERGE: Partial<Record<FeedType, true>> = { bolum: true, koklea: true, bina
 const UNCAPPED: Partial<Record<FeedType, true>> = { uye: true, yardim: true, meydan: true };
 const fmt = (n: number) => Math.round(n).toLocaleString('tr-TR');
 const levelName = (n: number) => HUMAN_JOURNEY.levels[n - 1]?.name ?? `${n}. bölüm`;
+/** "1–4, 6, 8–9" (art arda bölümler aralık olarak) */
+export function ranges(ns: number[]): string {
+  const out: string[] = []; const xs = [...new Set(ns)].sort((x, y) => x - y);
+  for (let i = 0; i < xs.length; i++) { let j = i; while (j + 1 < xs.length && xs[j + 1] === xs[j]! + 1) j++; out.push(j > i ? `${xs[i]}–${xs[j]}` : `${xs[i]}`); i = j; }
+  return out.join(', ');
+}
 
 function textFor(type: FeedType, name: string, d: Data): string {
   const lv = (d.levels as number[] | undefined) ?? [];
   switch (type) {
     case 'bolum':
-      if (lv.length > 1) return `${name} ${lv.length} bölümde ilerledi: ${lv.join(', ')} · toplam ${d.stars} yıldız.`;
+      if (lv.length > 1) return `${name} ${lv.length} bölümde ilerledi (${ranges(lv)}) · toplam ${d.stars} yıldız.`;
       return d.first ? `${name} ${lv[0]}. bölümü ${d.stars} yıldızla geçti.` : `${name} ${lv[0]}. bölümde 3 yıldıza ulaştı.`;
     case 'boss': return `${name}, ${d.level}. bölümün canavarını yendi: ${levelName(Number(d.level))}!`;
     case 'koklea': return lv.length > 1 ? `${name} ${d.n} altın koklea buldu (bölüm ${lv.join(', ')}).` : `${name} ${lv[0]}. bölümde ${d.n} altın koklea buldu.`;

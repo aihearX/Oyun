@@ -15,6 +15,7 @@ import { TeamRaid } from './TeamRaid';
 import { TeamEvents } from './TeamEvents';
 import { pendingCount, useEvents } from '../../events';
 import { Art } from '../../ui/art';
+import { mentionCount, useComm } from '../../comm/state';
 
 export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik';
 let lastTab: TeamTab = 'sohbet';
@@ -25,6 +26,7 @@ export function TeamHome() {
   const unread = useNet((s) => s.unread[`takim:${s.team?.id}`] ?? 0); const gifts = useNet((s) => s.giftCount); const campHelp = useNet((s) => s.campHelp);
   const [tab, setTabState] = useState<TeamTab>(lastTab);
   const evBadge = useEvents((s) => pendingCount(s, me.id));
+  const mentions = useComm((s) => mentionCount(s, `takim:${team.id}`)); const study = useComm((s) => s.dq?.study ?? false);
   const setTab = (t: TeamTab) => { lastTab = t; setTabState(t); platform().haptic('light'); };
   const [menu, setMenu] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -61,7 +63,7 @@ export function TeamHome() {
         </div>
       </div>
       <SubTabs<TeamTab> active={tab} onChange={setTab} tabs={[
-        { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread },
+        { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread + mentions },
         ...(featureOpen('events') ? [{ id: 'etkinlik' as const, icon: '🎪', label: 'Etkinlikler', badge: evBadge }] : []),
         { id: 'uyeler', icon: '👥', label: 'Üyeler' },
         { id: 'yardim', icon: '🤝', label: 'Yardım', badge: campHelp.length + levelHelp },
@@ -72,7 +74,7 @@ export function TeamHome() {
         { id: 'baskin', icon: '👹', label: 'Baskın' },
       ]} />
       <div className="team-body" key={tab}>
-        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." />}
+        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz… (@ ile bahset)`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
         {tab === 'uyeler' && <TeamMembers />}
         {tab === 'yardim' && <TeamHelp />}
         {tab === 'tekno' && <TeamTech />}
@@ -87,6 +89,7 @@ export function TeamHome() {
           {team.description && <div className="muted wrap">{team.description}</div>}
           <div className="card code-card"><span className="muted">Davet kodu</span><b className="big-code">{team.code}</b><span className="muted small-note">{team.open ? 'Herkese açık takım' : 'Yalnızca kodla katılım'}{team.minLevel > 1 ? ` · en az ${team.minLevel}. bölüm` : ''}</span></div>
           <ActionButton block icon="megaphone" onClick={() => void share()}>Davet kodunu paylaş</ActionButton>
+          {myRole !== 'uye' && featureOpen('soru') && <div className="tg-toggle"><span className="grow"><b>Çalışma Grubu</b><small>Günün Sorusu odyoloji öğrencisi düzeyinden gelir (bir sonraki sorudan itibaren).</small></span><button type="button" className="switch" role="switch" data-testid="calisma-grubu" aria-checked={study} aria-label="Çalışma Grubu" onClick={async () => { const r = await act('team.study', { on: !study }); if (r) useComm.setState((s) => (s.dq ? { dq: { ...s.dq, study: r.study } } : {})); }} /></div>}
           <ActionButton block tone="coral" onClick={() => { setMenu(false); setConfirmLeave(true); }}>Takımdan ayrıl</ActionButton>
         </Sheet>
       )}

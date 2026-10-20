@@ -14,6 +14,7 @@ import { bindEvents } from './events/store';
 import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
 import { bindFriends } from './friends/state';
+import { bindComm } from './comm/state';
 
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
@@ -175,6 +176,8 @@ export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): strin
     runId, level: spec.number, completed: r.completed, stars: r.completed ? r.stars : 0, score: Math.max(0, Math.min(50_000, Math.round(r.score))),
     timeSec: Math.max(5, Math.min(3600, Math.round(r.timeSec))), coins: Math.max(0, Math.min(400, Math.round(r.coins))),
     biome: spec.biome as ProgressSubmit['biome'], mechanic: sanitizeMechanic(spec.mechanic), ...(raceId ? { raceId } : {}),
+    // altın koklea (Takım Akışı kartı): bölümün bildirdiği sayı, 0-3
+    ...(r.completed && Number(r.extra?.cochleas) > 0 ? { cochleas: Math.max(0, Math.min(3, Math.floor(Number(r.extra?.cochleas)))) } : {}),
   };
   useSocial.setState({ lastRun: { ...base, state: client.status === 'bağlı' ? 'gonderiliyor' : 'kuyrukta' } });
   const set = (p: Partial<LastRun>) => useSocial.setState((s) => (s.lastRun?.runId === runId ? { lastRun: { ...s.lastRun, ...p } } : {}));
@@ -244,6 +247,7 @@ export function startNet(): void {
     bindNet(c);
     bindEvents(c);
     bindFriends(c); // arkadaşlık + özel mesaj olayları (istek, dm, okunmamış, bildirim şeridi)
+    bindComm(c); // iletişim: ayarlar, akış/soru güncellemeleri, bahsetme, ikili görev, usta–çırak
     c.onStatus((st) => { if (st !== 'bağlanıyor') useSocial.setState({ tried: true }); if (st === 'bağlı') void onConnected(c); });
     c.onMe((me) => applyServerItems([...me.cosmetics.map((ref) => ({ kind: 'kozmetik' as const, amount: 1, ref })), ...me.cards.map((ref) => ({ kind: 'kart' as const, amount: 1, ref }))]));
     useNet.subscribe((n, p) => { if (n.wallet !== p.wallet || n.status !== p.status) mirrorCoins(); });

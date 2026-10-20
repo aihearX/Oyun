@@ -11,6 +11,7 @@ import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
 import './race.css';
 import { IconButton } from '../ui/Button';
 import { Art } from '../ui/art';
+import { PhraseStrip } from '../comm/Cards';
 import { Icon } from '../ui/icons';
 
 type View = 'menu' | 'pick' | 'code' | 'room' | 'busy';
@@ -237,7 +238,7 @@ function InviteList({ room, onClose }: { room: RaceRoom; onClose: () => void }) 
 const QUICK = ['👋', '🔥', '😄', '🏁', '👍'];
 
 /** Odaya özel küçük sohbet: yalnızca bu yarış odasındakiler görür (takım/genel sohbetten ayrı). */
-function RaceChat({ roomId, meId }: { roomId: string; meId: string | null }) {
+export function RaceChat({ roomId, meId, compact }: { roomId: string; meId: string | null; compact?: boolean }) {
   const { net } = useRaceNet();
   const room = `race:${roomId}`;
   const [msgs, setMsgs] = useState<ChatMessage[]>([]);
@@ -252,14 +253,14 @@ function RaceChat({ roomId, meId }: { roomId: string; meId: string | null }) {
     return () => { live = false; off(); void net.call('chat.leave', { room }).catch(() => undefined); };
   }, [net, room]);
   useEffect(() => { const el = listRef.current; if (el) el.scrollTop = el.scrollHeight; }, [msgs.length]);
-  const send = async (t: string, kind: 'text' | 'emoji' = 'text') => {
+  const send = async (t: string, kind: 'text' | 'emoji' | 'hazir' = 'text') => {
     const clean = t.trim(); if (!clean || !net) return;
     setErr(null);
     try { await net.call('chat.send', { room, text: clean, kind }); if (kind === 'text') setText(''); } catch (e) { setErr(errText(e)); }
   };
   const shown = useMemo(() => msgs.slice(-30), [msgs]);
   return (
-    <div className="card race-chat" data-testid="yaris-sohbet">
+    <div className={`card race-chat${compact ? ' compact' : ''}`} data-testid={compact ? 'yaris-sonuc-sohbet' : 'yaris-sohbet'}>
       <div className="race-chat-list" ref={listRef} aria-live="polite">
         {!shown.length && <div className="muted small-note">Rakiplerine bir merhaba de <Art e="👋" size="1.15em" className="art-inline" /></div>}
         {shown.map((m) => (
@@ -268,11 +269,12 @@ function RaceChat({ roomId, meId }: { roomId: string; meId: string | null }) {
           </div>
         ))}
       </div>
-      <div className="race-quick">{QUICK.map((e) => <button key={e} className="race-emoji" aria-label={`${e} gönder`} onClick={() => void send(e, 'emoji')}>{e}</button>)}</div>
-      <form className="race-chat-form" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
+      <PhraseStrip ctx={['yaris']} onPick={(id) => void send(id, 'hazir')} label="Yarış sözleri" />
+      {!compact && <div className="race-quick">{QUICK.map((e) => <button key={e} className="race-emoji" aria-label={`${e} gönder`} onClick={() => void send(e, 'emoji')}>{e}</button>)}</div>}
+      {!compact && <form className="race-chat-form" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
         <input className="race-input" data-testid="yaris-sohbet-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Mesaj yaz…" maxLength={SOCIAL_LIMITS.chatMax} />
         <button className="btn small" data-testid="yaris-sohbet-gonder" disabled={!text.trim()}>Gönder</button>
-      </form>
+      </form>}
       {err && <small className="race-error-inline">{err}</small>}
     </div>
   );

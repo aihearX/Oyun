@@ -12,6 +12,8 @@ import { IconButton } from '../ui/Button';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
+import { FreeTextSheet, PhraseStrip } from '../comm/Cards';
+import { useCanFreeText } from '../comm/state';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
 const EMPTY: DmMessage[] = [];
@@ -49,7 +51,8 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   const vh = useViewportHeight();
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
-  const [panel, setPanel] = useState<'' | 'emoji' | 'odi'>('');
+  const [panel, setPanel] = useState<'' | 'emoji' | 'odi' | 'soz'>('');
+  const free = useCanFreeText(); const [optIn, setOptIn] = useState(false);
   const [menu, setMenu] = useState<DmMessage | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const list = useRef<HTMLDivElement>(null);
@@ -156,16 +159,18 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
               <div className="dm-panel-tabs">
                 <button className={panel === 'emoji' ? 'on' : ''} onClick={() => setPanel('emoji')}><Icon name="smile" size="1.1em" className="ic-inline" /> Emoji</button>
                 <button className={panel === 'odi' ? 'on' : ''} onClick={() => setPanel('odi')}><Art e="🫧" size="1.15em" className="art-inline" /> Odi çıkartmaları</button>
+                <button className={panel === 'soz' ? 'on' : ''} onClick={() => setPanel('soz')}><Art name="chat" size="1.15em" className="art-inline" /> Hazır sözler</button>
               </div>
-              {panel === 'emoji'
+              {panel === 'soz' ? <div className="dm-phrases"><PhraseStrip ctx={['genel', 'tebrik', 'tesekkur', 'yaris']} onPick={(pid) => { void send(pid, 'hazir'); setPanel(''); }} /></div>
+                : panel === 'emoji'
                 ? <div className="dm-emoji-grid">{EMOJIS.map((e) => <button key={e} onClick={() => pickEmoji(e)} aria-label={`Emoji ${e}`}>{e}</button>)}</div>
                 : <div className="dm-st-grid">{DM_STICKERS.map((s) => <button key={s.id} className="dm-st-btn" onClick={() => { void send(s.id, 'sticker'); setPanel(''); }} aria-label={`Çıkartma gönder: ${s.label}`}><Sticker id={s.id} color={me?.color ?? 0x8b6bff} hat={me?.hat ?? ''} size={72} /></button>)}</div>}
             </div>
           )}
           <form className="dm-compose" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
             <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar"><Icon name={panel ? 'list' : 'smile'} size={22} /></button>
-            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={`${name} kişisine yaz…`} aria-label="Mesaj" enterKeyHint="send"
-              onFocus={() => { setPanel(''); stick.current = true; }}
+            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : 'Hazır söz seç · yazmak için dokun'} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
+              onFocus={() => { if (!free) { input.current?.blur(); setPanel('soz'); setOptIn(true); return; } setPanel(''); stick.current = true; }}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
             <button className="dm-send" type="submit" disabled={!text.trim()} aria-label="Gönder"><Icon name="send" size="1.1em" className="ic-inline" /></button>
@@ -179,6 +184,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
       )}
 
       {menu && <MsgMenu m={menu} mine={menu.from === me?.id} meId={me?.id ?? ''} name={name} onClose={() => setMenu(null)} />}
+      {optIn && <FreeTextSheet onClose={() => setOptIn(false)} />}
     </div>
   );
 }

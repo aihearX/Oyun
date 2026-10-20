@@ -124,6 +124,28 @@ export function tourFor(id: string, route: string): Tour | null {
     case 'race':
       steps.push(unlockCard('race', 'yaris-01'));
       break;
+    // ---- iletişim (docs/13-iletisim.md)
+    case 'akis':
+      steps.push(
+        unlockCard('akis', 'akis-01'),
+        ...(route === 'team' ? [] : [tapTab('team')]),
+        { ...line('akis-02'), target: () => document.querySelector('[data-testid="akis-karti"]') ?? document.querySelector('.quick-line'), optional: true, mood: 'wink' },
+      ); break;
+    case 'soru':
+      steps.push(
+        unlockCard('soru', 'soru-01'),
+        ...(route === 'team' ? [] : [tapTab('team')]),
+        { ...line('soru-02'), target: '[data-testid="gunun-sorusu"]', optional: true },
+      ); break;
+    case 'ikili':
+      steps.push(
+        unlockCard('ikili', 'ikili-01'),
+        ...(route === 'profile' ? [] : [tapTab('profile')]),
+        { ...line('ikili-02'), target: '.menu-tile[data-tile="together"]' },
+      ); break;
+    case 'usta':
+      steps.push(unlockCard('usta', 'usta-01'));
+      break;
     default: return null;
   }
   return { id, steps };
