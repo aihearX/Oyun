@@ -128,6 +128,13 @@ export function tourFor(id: string, route: string): Tour | null {
     case 'yazi':
       steps.push(unlockCard('yazi', 'yazi-01'), { ...line('yazi-02'), art: 'shield', mood: 'wink' });
       break;
+    case 'siralama':
+      steps.push(
+        unlockCard('siralama', 'sira-01'),
+        ...(route === 'profile' ? [] : [tapTab('profile')]),
+        { ...line('sira-02'), target: '.menu-tile[data-tile="ranking"]', wait: { el: '[data-testid="siralama"]' }, hint: 'Sıralama’ya dokun' },
+        { ...line('sira-03'), target: () => document.querySelector('[data-testid="benim-siram"]') ?? document.querySelector('.rank-row.me'), optional: true, mood: 'wink' },
+      ); break;
     case 'akis':
       steps.push(
         unlockCard('akis', 'akis-01'),

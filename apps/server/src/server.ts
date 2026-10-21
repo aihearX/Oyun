@@ -19,6 +19,7 @@ import { walletHandlers } from './wallet';
 import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
+import { installRank, rankDayTick, rankHandlers } from './rank';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -27,7 +28,7 @@ const HANDLERS: Handlers = withCommHooks(withEventHooks({
   ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
-  ...eventHandlers, ...commHandlers,
+  ...eventHandlers, ...commHandlers, ...rankHandlers,
 }));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
@@ -70,6 +71,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   const app = new App(cfg);
   app.weekHooks.push((oldWeek) => warRollover(app, oldWeek), (oldWeek) => leagueRollover(app, oldWeek));
   installComm(app);
+  installRank(app);
   const log = (...a: unknown[]) => { if (cfg.log) console.log(new Date().toISOString(), ...a); };
 
   const httpServer = http.createServer((req, res) => {
@@ -190,6 +192,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         completeDue(app);
         eventsSweep(app);
         commSweep(app);
+        rankDayTick(app);
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
       });
       sweepRaces(app);

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { useNet } from '@odi/net/store';
 import type { ProfileCard as Card } from '@odi/shared';
 import { act, errText, toast } from '../net';
 import { useNav } from '../nav';
 import { Sheet } from '../ui/social';
-import { Av, giftFriend, lastSeenText, raceWith, requestFriend, tierLabel, useOnline } from './common';
+import { Av, giftFriend, inviteToTeam, lastSeenText, raceWith, requestFriend, tierLabel, useOnline } from './common';
 import { closeProfile, friendsNet, refreshFriends, useFriends } from './state';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
@@ -12,7 +13,7 @@ import './friends.css';
 
 /**
  * Profil kartı: herhangi bir ekrandan `openProfile(oyuncuId)` ile açılır (App bir kez <ProfileCardHost /> bağlar).
- * Avatar (Odi rengi + şapka), rozetler, aramızdaki durum ve eylemler: Arkadaş ekle / Mesaj / Hediye / Yarış / Engelle / Şikâyet.
+ * Avatar (Odi rengi + şapka), rozetler, aramızdaki durum ve eylemler: Arkadaş ekle / Mesaj / Takıma davet / Hediye / Yarış / Engelle / Şikâyet.
  */
 export function ProfileCardHost() {
   const id = useFriends((s) => s.profileId);
@@ -26,6 +27,8 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
   const [err, setErr] = useState('');
   const [mode, setMode] = useState<'main' | 'report' | 'block'>('main');
   const [busy, setBusy] = useState(false);
+  const [invited, setInvited] = useState(false);
+  const myTeam = useNet((s) => s.team);
   const gifted = useFriends((s) => s.gifted.includes(id));
   const online = useOnline(card?.profile);
   const load = () => { const c = friendsNet(); if (!c) return; c.call('profile.card', { id }).then((r) => setCard(r.card), (e) => setErr(errText(e))); };
@@ -73,6 +76,7 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
               </div>
             )}
             {card.canMessage && <button className="btn teal" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}><Art e="💬" size="1.15em" className="art-inline" /> Mesaj gönder</button>}
+            {card.canMessage && myTeam && !card.sameTeam && !p.teamName && <button className="btn ghost" data-testid="takima-davet" disabled={busy || invited} onClick={() => void run(async () => { if (await inviteToTeam(p)) setInvited(true); })}><Art name="users" size={20} className="art-inline" /> {invited ? 'Davet gönderildi' : <>Takıma davet et (<span data-ugc>{myTeam.emblem}</span> {myTeam.name})</>}</button>}
             {rel === 'arkadas' && (
               <div className="row">
                 <button className="btn ghost grow" disabled={busy || gifted || card.giftedToday} onClick={() => void run(() => giftFriend(p))}>{rich(gifted || card.giftedToday ? '🎁 Bugün gönderildi' : '🎁 Hediye')}</button>

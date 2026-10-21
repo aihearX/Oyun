@@ -68,7 +68,7 @@ export function TeamBrowse() {
               <span className="tr-emblem" aria-hidden>{t.emblem}</span>
               <div className="grow min0">
                 <b className="ellipsis">{t.name}</b>
-                <div className="tr-meta"><span><Art e="👥" size="1.15em" className="art-inline" /> {t.members}/{t.max}</span><span><Art e="⚡" size="1.15em" className="art-inline" /> {fmtNum(t.power)}</span>{t.minLevel > 1 && <span><Art e="🔓" size="1.15em" className="art-inline" /> {t.minLevel}. bölüm</span>}</div>
+                <div className="tr-meta"><span><Art e="👥" size="1.15em" className="art-inline" /> {t.members}/{t.max}</span><span title="Üyelerin toplam yıldızı"><Art e="⭐" size="1.15em" className="art-inline" /> {fmtNum(t.power)}</span>{t.minLevel > 1 && <span><Art e="🔓" size="1.15em" className="art-inline" /> {t.minLevel}. bölüm</span>}</div>
                 {t.description && <div className="muted tr-desc">{t.description}</div>}
               </div>
               <button className="btn small" disabled={locked || full || busy === t.id} onClick={() => void join(t)}>{full ? 'Dolu' : locked ? `${t.minLevel}. bölüm` : 'Katıl'}</button>

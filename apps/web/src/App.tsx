@@ -48,6 +48,7 @@ import { BUILDINGS, buildCost } from '@odi/shared';
 import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
+import { RankScreen } from './rank/RankScreen';
 import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
 
@@ -205,6 +206,7 @@ export function App() {
     case 'chat': return sub(<ChatScreen key={route.room} room={route.room} title={route.title} onBack={back(route)} />);
     case 'messages': return sub(<MessagesScreen onBack={back(route)} />);
     case 'birlikte': return sub(<TogetherScreen onBack={back(route)} />);
+    case 'siralama': return sub(<RankScreen onBack={back(route)} />);
     case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'shop': return sub(<ShopScreen onBack={back(route)} />);
     case 'inbox': return sub(<InboxScreen onBack={back(route)} />);

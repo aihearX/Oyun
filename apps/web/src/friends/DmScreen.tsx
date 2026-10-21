@@ -205,12 +205,12 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   else if (m.kind === 'sticker') body = <div className="dm-free">{sender && <Sticker id={m.text} color={sender.color} hat={sender.hat} />}{meta}</div>;
   else if (m.kind === 'emoji') body = <div className="dm-free"><span className="dm-big-emoji">{m.text}</span>{meta}</div>;
   else if (m.kind === 'davet') {
-    const yaris = m.meta?.type === 'yaris';
+    const yaris = m.meta?.type === 'yaris'; const takim = m.meta?.type === 'takim';
     body = (
       <div className="dm-invite" data-testid="davet-karti">
-        <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
+        <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : takim ? 'users' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
         <div className="dm-inv-text">{m.text}</div>
-        <button className={`btn small ${mine ? 'ghost' : ''}`} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : 'Davete git'}</button>
+        <button className={`btn small ${mine ? 'ghost' : ''}`} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : takim ? (mine ? 'Takımına git' : 'Takıma katıl') : 'Davete git'}</button>
         {meta}
       </div>
     );

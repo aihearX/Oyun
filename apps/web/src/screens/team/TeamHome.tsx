@@ -4,6 +4,7 @@ import { act, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { ChatRoom } from '../../ui/Chat';
 import { Sheet, SubTabs, fmtNum } from '../../ui/social';
+import { RankView } from '../../rank/RankScreen';
 import { Bar } from '../../ui/bits';
 import { ActionButton, IconButton } from '../../ui/Button';
 import { featureOpen } from '../../ftue/useFeatures';
@@ -17,7 +18,7 @@ import { pendingCount, useEvents } from '../../events';
 import { Art } from '../../ui/art';
 import { mentionCount, useComm } from '../../comm/state';
 
-export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik';
+export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik' | 'siralama';
 let lastTab: TeamTab = 'sohbet';
 
 /** Takım ana ekranı: başlık (amblem, seviye, üye, güç) + 8 alt sekme. */
@@ -58,7 +59,7 @@ export function TeamHome() {
         <span className="th-emblem" aria-hidden>{team.emblem}</span>
         <div className="grow min0">
           <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
-          <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span><Art e="⚡" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
+          <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span title="Üyelerin toplam yıldızı"><Art e="⭐" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
           {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
         </div>
       </div>
@@ -72,6 +73,7 @@ export function TeamHome() {
         { id: 'hedef', icon: '🎯', label: 'Hedefler', badge: claimableGoals },
         { id: 'savas', icon: '⚔️', label: 'Savaş' },
         { id: 'baskin', icon: '👹', label: 'Baskın' },
+        ...(featureOpen('siralama') ? [{ id: 'siralama' as const, icon: '🏆', label: 'Sıralama' }] : []),
       ]} />
       <div className="team-body" key={tab}>
         {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
@@ -83,6 +85,7 @@ export function TeamHome() {
         {tab === 'savas' && <TeamWar />}
         {tab === 'baskin' && <TeamRaid />}
         {tab === 'etkinlik' && <TeamEvents />}
+        {tab === 'siralama' && <RankView team />}
       </div>
       {menu && (
         <Sheet title={team.name} onClose={() => setMenu(false)}>
