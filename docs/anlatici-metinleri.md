@@ -30,7 +30,7 @@ ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice
 Üslup (ffmpeg): perde -2 yarım ton (biçimleyiciler korunur), tempo ×0.92, sıcak alçak orta, yumuşak tiz,
 hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, sessizlik kırpma. Adaylar: sicak, dede, derin (seçilen: **dede**).
 
-## Satırlar (77)
+## Satırlar (84)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -78,6 +78,13 @@ hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, 
 | `etkinlik-01` | Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve quiz: takımca oynanır, ödülleri büyüktür.<br><small>okunuş: Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve kuiz: takımca oynanır, ödülleri büyüktür.</small> | Açılış kutlaması: Etkinlikler | coşkulu (celebratory) |
 | `etkinlik-02` | Etkinlik çadırı haritanın sağında. Dokun ve bir bak! | Harita: etkinlik çadırı (oyuncu dokunur) | merak uyandıran (intriguing) |
 | `yaris-01` | Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek? | Açılış kutlaması: Canlı yarış | heyecanlı, meydan okuyan (competitive) |
+| `akis-01` | Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir. | Açılış kutlaması: Takım Akışı (6. bölümden sonra) | coşkulu (celebratory) |
+| `akis-02` | Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste! | Takım sohbeti: akış kartı ve hazır sözler vurgulanır | sıcak, cesaret veren (warm, encouraging) |
+| `soru-01` | Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın! | Açılış kutlaması: Günün Sorusu (9. bölümden sonra) | bilge, meraklandıran (wise, curious) |
+| `soru-02` | İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var. | Takım sohbeti: Günün Sorusu kartı vurgulanır | göz kırpan (playful) |
+| `ikili-01` | Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız. | Açılış kutlaması: İkili Görev (10. bölümden sonra) | coşkulu (celebratory) |
+| `ikili-02` | Birlikte burada, Profil’in içinde. Arkadaşını seç ve davet et. | Profil: Birlikte kutucuğu vurgulanır | davet eden (inviting) |
+| `usta-01` | Artık bir ustasın! Yeni başlayan bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
 | `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |

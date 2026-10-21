@@ -224,6 +224,41 @@
    "hash": "b21fbd87",
    "ms": 7056
   },
+  "akis-01": {
+   "file": "akis-01.mp3",
+   "hash": "2b47e408",
+   "ms": 8832
+  },
+  "akis-02": {
+   "file": "akis-02.mp3",
+   "hash": "82bae87a",
+   "ms": 9984
+  },
+  "soru-01": {
+   "file": "soru-01.mp3",
+   "hash": "9c906a55",
+   "ms": 10920
+  },
+  "soru-02": {
+   "file": "soru-02.mp3",
+   "hash": "762f2739",
+   "ms": 5592
+  },
+  "ikili-01": {
+   "file": "ikili-01.mp3",
+   "hash": "401aef23",
+   "ms": 9576
+  },
+  "ikili-02": {
+   "file": "ikili-02.mp3",
+   "hash": "e6cebbca",
+   "ms": 5712
+  },
+  "usta-01": {
+   "file": "usta-01.mp3",
+   "hash": "a28ee338",
+   "ms": 8016
+  },
   "not-kepce-yon": {
    "file": "not-kepce-yon.mp3",
    "hash": "c26713d5",
