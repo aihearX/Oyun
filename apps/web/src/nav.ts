@@ -11,6 +11,8 @@ export type SocialRoute =
   | { name: 'messages' } | { name: 'dm'; id: string }
   /** Birlikte: İkili Görev, Usta–Çırak, sohbet ayarları (comm/Together.tsx) */
   | { name: 'birlikte' }
+  /** Sıralama: oyuncu ve takım tabloları (rank/RankScreen.tsx) */
+  | { name: 'siralama' }
   /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
   | { name: 'events'; view?: EventView; flash?: EventFlash };
 

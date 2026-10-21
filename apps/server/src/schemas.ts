@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, SOCIAL_LIMITS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -81,6 +81,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'progress.sync': z.object({ best: z.array(z.object({ level, stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE) })).max(MAX_LEVEL) }),
   ...EVENT_SCHEMAS,
   ...COMM_SCHEMAS,
+  'rank.board': z.object({ board: z.enum(RANK_BOARDS.map((b) => b.id) as [string, ...string[]]), scope: z.enum(['herkes', 'arkadas', 'yakin']) }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

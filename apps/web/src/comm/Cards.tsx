@@ -16,8 +16,8 @@ import './comm.css';
 
 /** tepki → resimli ikon (emoji değil) */
 export const REACTION_ART: Record<ChatReaction, ArtName> = { alkis: 'party', kalp: 'heart', ates: 'flame', yildiz: 'star', guc: 'bolt' };
-const FEED_ART: Record<string, ArtName> = { bolum: 'star', boss: 'monster', koklea: 'shell', bina: 'hammer', uye: 'users', seri: 'flame', yardim: 'help', meydan: 'finish' };
-const FEED_KICKER: Record<string, string> = { bolum: 'Bölüm geçti', boss: 'Canavar yenildi', koklea: 'Altın koklea', bina: 'Kamp', uye: 'Yeni üye', seri: 'Oyun serisi', yardim: 'Birlikte başardınız', meydan: 'Meydan okuma' };
+const FEED_ART: Record<string, ArtName> = { bolum: 'star', boss: 'monster', koklea: 'shell', bina: 'hammer', uye: 'users', seri: 'flame', yardim: 'help', meydan: 'finish', sira: 'trophy' };
+const FEED_KICKER: Record<string, string> = { bolum: 'Bölüm geçti', boss: 'Canavar yenildi', koklea: 'Altın koklea', bina: 'Kamp', uye: 'Yeni üye', seri: 'Oyun serisi', yardim: 'Birlikte başardınız', meydan: 'Meydan okuma', sira: 'Sıralama' };
 const cap = (t: string) => t.charAt(0).toLocaleUpperCase('tr') + t.slice(1);
 const s = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
@@ -153,6 +153,8 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
         {!own && <button type="button" className="btn small" data-testid="meydan-oyna" disabled={level > highest} onClick={() => nav.play(level)}>{level > highest ? `${level}. bölüm kilitli` : 'Oyna'}</button>}
       </div>
     );
+  } else if (type === 'sira') {
+    body = <div className="fc-duel"><span className="fc-score"><b>{n(m.meta?.rank)}.</b><small>{fmtNum(n(m.meta?.value))} · geçen hafta</small></span><button type="button" className="btn small ghost" onClick={() => nav.open({ name: 'siralama' })}>Sıralamayı aç</button></div>;
   }
   return (
     <div className={`fcard t-${type}${own ? ' own' : ''}`} data-testid="akis-karti" data-type={type} data-id={m.id}>

@@ -80,12 +80,12 @@ describe('Bölge Savaşı', () => {
     expect(next.regions.every((r) => r.owner === null)).toBe(true);
     expect(next.myPoints).toBe(0);
     expect(next.targets).toEqual(['kepce']);
-    const inbB = (await b1.call('inbox.list', {})).items;
+    const inbB = (await b1.call('inbox.list', {})).items.filter((i) => i.ref !== 'siralama'); // haftalık sıralama ödülleri ayrı (rank.test.ts)
     expect(inbB.map((i) => [i.kind, i.amount]).sort()).toEqual([['jeton', WAR_REWARD.jeton], ['kristal', WAR_REWARD.kristal]]);
     expect(inbB[0]!.reason).toContain('Kulak Kepçesi');
     // A merkezi tuttu → iki üyeye de ödül
     expect((await a2.call('inbox.list', {})).items.filter((i) => i.reason.includes('Ninni Merkezi'))).toHaveLength(2);
-    expect((await c1.call('inbox.list', {})).items).toHaveLength(0);
+    expect((await c1.call('inbox.list', {})).items.filter((i) => i.ref !== 'siralama')).toHaveLength(0);
   });
 });
 

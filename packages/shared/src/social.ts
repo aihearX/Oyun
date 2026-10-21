@@ -699,7 +699,9 @@ export const COMM_RULES = {
 } as const;
 
 /** Takım Akışı kartı türü (ChatMessage.kind 'feed', meta.type) */
-export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan';
+export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan'
+  /** haftalık sıralama kapanışında ilk 3 (docs/14-siralama.md) */
+  | 'sira';
 
 export interface CommSettings {
   /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve emoji, açma seçeneği yok) */
@@ -786,4 +788,75 @@ export interface EvtMap {
   'comm.notice': { notice: CommNotice };
   'duo.updated': { duo: DuoState };
   'mentor.updated': { mentor: MentorState };
+}
+
+// =====================================================================
+// SIRALAMA (v4, docs/14-siralama.md). Yalnızca EKLEME. Tüm puanlar sunucunun doğruladığı olaylardan hesaplanır (istemci sayı söylemez).
+// Haftalık tablolar Pazartesi 00:00 (İstanbul) sıfırlanır; biten haftanın son sıralaması saklanır, ilk sıralara sabit ve önceden görünen ödül.
+// =====================================================================
+
+export type RankBoardId =
+  /** oyuncu: güç (formül RANK_RULES.power), haftalık yıldız, haftalık nota, haftalık Günün Sorusu doğruları, haftalık yarış galibiyeti */
+  | 'guc' | 'yildiz' | 'nota' | 'soru' | 'yaris'
+  /** takım: güç, haftalık savaş puanı, bu haftaki baskın hasarı, haftalık Günün Sorusu doğruları */
+  | 't-guc' | 't-savas' | 't-baskin' | 't-soru';
+export type RankScope = 'herkes' | 'arkadas' | 'yakin';
+
+export interface RankBoardDef { id: RankBoardId; team: boolean; weekly: boolean; name: string; unit: string; desc: string }
+export const RANK_BOARDS: RankBoardDef[] = [
+  { id: 'guc', team: false, weekly: false, name: 'Güç', unit: 'güç', desc: 'Yıldız, geçilen bölüm, kamp ve doğru cevaplardan hesaplanan toplam güç.' },
+  { id: 'yildiz', team: false, weekly: true, name: 'Haftalık yıldız', unit: 'yıldız', desc: 'Bu hafta kazanılan YENİ yıldızlar (aynı bölümü tekrar oynamak yıldız saymaz).' },
+  { id: 'nota', team: false, weekly: true, name: 'Haftalık nota', unit: 'nota', desc: 'Bu hafta bölümlerde toplanan notalar (günde en çok 2.000 sayılır).' },
+  { id: 'soru', team: false, weekly: true, name: 'Günün Sorusu', unit: 'doğru', desc: 'Bu hafta açıklanan Günün Sorusu’nda doğru cevaplar (odyoloji tablosu).' },
+  { id: 'yaris', team: false, weekly: true, name: 'Yarış galibiyeti', unit: 'galibiyet', desc: 'Bu hafta en az iki kişinin bitirdiği canlı yarışlarda birincilik (günde en çok 10).' },
+  { id: 't-guc', team: true, weekly: false, name: 'Takım gücü', unit: 'güç', desc: 'Üyelerin güç toplamı + takım teknolojisi seviyeleri × 100.' },
+  { id: 't-savas', team: true, weekly: true, name: 'Bölge Savaşı', unit: 'puan', desc: 'Bu haftaki Bölge Savaşı puanı.' },
+  { id: 't-baskin', team: true, weekly: true, name: 'Baskın', unit: 'hasar', desc: 'Bu haftaki baskında Gürültü Canavarı’na verilen toplam hasar.' },
+  { id: 't-soru', team: true, weekly: true, name: 'Bilgi', unit: 'doğru', desc: 'Üyelerin bu hafta Günün Sorusu’nda verdiği doğru cevaplar.' },
+];
+export const rankBoardById = (id: string) => RANK_BOARDS.find((b) => b.id === id);
+
+/** şeffaf kurallar (bilgi sayfasında aynen gösterilir) */
+export const RANK_RULES = {
+  /** oyuncu gücü = yıldız × 10 + geçilen bölüm × 20 + kamp binası seviyeleri toplamı × 15 + Günün Sorusu doğruları × 5 */
+  power: { star: 10, level: 20, camp: 15, dq: 5 },
+  teamTech: 100,
+  top: 100, near: 5,
+  notesPerDay: 2000, raceWinsPerDay: 10,
+  /** haftalık ödül (ödül kutusu, bir kez): oyuncu tabloları ilk 10, takım tabloları ilk 3 (takımın her üyesine) */
+  playerRewards: [
+    { upTo: 1, reward: [{ kind: 'kristal' as const, amount: 50, ref: 'siralama' }] },
+    { upTo: 2, reward: [{ kind: 'kristal' as const, amount: 30, ref: 'siralama' }] },
+    { upTo: 3, reward: [{ kind: 'kristal' as const, amount: 20, ref: 'siralama' }] },
+    { upTo: 10, reward: [{ kind: 'kristal' as const, amount: 10, ref: 'siralama' }] },
+  ],
+  teamRewards: [
+    { upTo: 1, reward: [{ kind: 'kristal' as const, amount: 20, ref: 'siralama' }] },
+    { upTo: 2, reward: [{ kind: 'kristal' as const, amount: 12, ref: 'siralama' }] },
+    { upTo: 3, reward: [{ kind: 'kristal' as const, amount: 8, ref: 'siralama' }] },
+  ],
+} as const;
+
+export interface RankRowView {
+  rank: number; id: string; name: string; value: number;
+  /** oyuncu: Odi rengi + şapka; takım: amblem */
+  color?: number; hat?: string; emblem?: string; teamName?: string | null;
+  /** gün başındaki sıraya göre değişim (+ yükseldi, − düştü; null: yeni ya da kayıt yok) */
+  delta: number | null;
+  me?: boolean;
+  /** geçen haftanın rozeti: bu tabloda ilk 3'e girdiyse sırası */
+  badge?: number;
+}
+export interface RankBoardView {
+  board: RankBoardId; scope: RankScope; rows: RankRowView[];
+  /** benim satırım (tabloda görünmese de sabitlenir) */
+  me: RankRowView | null;
+  total: number; week: string; endsAt: number | null;
+  /** geçen haftanın son sıralaması (ilk 3) — haftalık tablolarda */
+  last: { week: string; rows: RankRowView[] } | null;
+  updatedAt: number;
+}
+
+export interface OpMap {
+  'rank.board': { req: { board: RankBoardId; scope: RankScope }; res: { view: RankBoardView } };
 }

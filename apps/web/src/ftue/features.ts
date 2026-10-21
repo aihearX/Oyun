@@ -7,7 +7,9 @@ import type { ArtName } from '../ui/art';
  */
 export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race'
   /** iletişim (docs/13-iletisim.md) */
-  | 'yazi' | 'akis' | 'soru' | 'ikili' | 'usta';
+  | 'yazi' | 'akis' | 'soru' | 'ikili' | 'usta'
+  /** sıralama (docs/14-siralama.md) */
+  | 'siralama';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -20,6 +22,8 @@ export const FEATURES: FeatureDef[] = [
   { id: 'glossary', at: 4, name: 'Kulak Sözlüğü', art: 'bulb', tour: true },
   { id: 'team', at: 5, name: 'Takım', art: 'shield', tour: true },
   { id: 'league', at: 5, name: 'Lig', art: 'medal', tour: false },
+  // sıralama: takımla aynı anda (takım tablolarında yerini görsün); turu takım turundan sonra
+  { id: 'siralama', at: 5, name: 'Sıralama', art: 'trophy', tour: true },
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },
   { id: 'events', at: 7, name: 'Etkinlikler', art: 'bigtop', tour: true },
   { id: 'race', at: 8, name: 'Canlı yarış ve meydan okuma', art: 'finish', tour: true },
@@ -34,7 +38,7 @@ export const FEATURES: FeatureDef[] = [
 export const featureById = (id: FeatureId) => FEATURES.find((f) => f.id === id)!;
 
 /** Anlatıcı turları (yapıldıkça kaydedilir) */
-export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta'] as const;
+export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta', 'siralama'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** Kalıcı ilk deneyim durumu (odi-v1 kaydında, sürümlü) */

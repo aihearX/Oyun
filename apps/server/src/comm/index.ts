@@ -11,6 +11,8 @@ import { checkChallenges, feedFromRun, postChallenge, trackPlayDay } from './fee
 import { helpHandlers, recordHelp, resolveHelp } from './help';
 import { mentorEnd, mentorOffer, mentorProgress, mentorRespond, mentorState } from './mentor';
 import { commSettings, setCommSettings } from './settings';
+import { raceWinFor } from '../race';
+import { rankOnRun } from '../rank';
 
 export { COMM_SCHEMA } from './schema';
 export { COMM_SCHEMAS } from './schemas';
@@ -52,8 +54,10 @@ export function withCommHooks(h: Handlers): Handlers {
     const dup = !!app.db.get('SELECT 1 AS x FROM progress_runs WHERE player_id = ? AND run_id = ?', s.pid, d.runId);
     const prev = dup ? undefined : app.db.get<{ stars: number }>('SELECT stars FROM level_best WHERE player_id = ? AND level = ?', s.pid, d.level);
     const prevHighest = app.player(s.pid).highest;
+    // sıralama: yarış birinciliğine bağlantı tüketilmeden bakılır (progress.submit yarış derecesini bağlar)
+    const raceWin = !dup && !!d.raceId && raceWinFor(app, s.pid, d.raceId);
     const ack = submit(app, s, d) as OpMap['progress.submit']['res'];
-    if (!dup) onRun(app, s.pid, d, prev, prevHighest);
+    if (!dup) { onRun(app, s.pid, d, prev, prevHighest); rankOnRun(app, s.pid, d, raceWin); }
     return ack;
   };
   const wrappedGive: Handler<'team.help.give'> = (app, s, d) => {

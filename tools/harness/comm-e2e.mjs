@@ -428,14 +428,15 @@ async function webSuite(bt) {
 }
 
 // ---------------------------------------------------------------- 4b) FTUE: yeni iletişim yerleri Tüy Dede turuyla açılır
-const ALL_OLD_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'shop', 'events', 'race'];
+const BASE_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'shop', 'events', 'race'];
+const ALL_OLD_TOURS = [...BASE_TOURS, 'siralama'];
 async function tourSuite(bt) {
   const S = makeSuite(`tur-${bt}`);
   console.log(`\n▶ tur · ${bt}`);
   const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
   const errors = [];
   try {
-    for (const [cleared, done, want] of [[6, ALL_OLD_TOURS, 'akis'], [8, [...ALL_OLD_TOURS, 'akis'], 'yazi'], [9, [...ALL_OLD_TOURS, 'akis', 'yazi'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru', 'ikili'], 'usta']]) {
+    for (const [cleared, done, want] of [[5, BASE_TOURS.filter((t) => !['shop', 'events', 'race'].includes(t)), 'siralama'], [6, ALL_OLD_TOURS, 'akis'], [8, [...ALL_OLD_TOURS, 'akis'], 'yazi'], [9, [...ALL_OLD_TOURS, 'akis', 'yazi'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru', 'ikili'], 'usta']]) {
       const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 2, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
       const progress = {}; for (let i = 1; i <= cleared; i++) progress[i] = { stars: 2, best: 800, plays: 1 };
       await ctx.addInitScript((st) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: st, version: 3 })); } catch { /* yok */ } }, { progress, coins: 300, ftue: { v: 1, story: true, tours: done } });
@@ -534,6 +535,105 @@ async function colorSuite(bt) {
   }
 }
 
+// ---------------------------------------------------------------- 4d) Sıralama: üç oyuncu (herkes / arkadaşlar / yakınım), podyum, bilgi, satır → profil kartı → takıma davet
+async function rankSuite(bt) {
+  const S = makeSuite(`siralama-${bt}`);
+  console.log(`\n▶ sıralama · ${bt}`);
+  const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
+  const errors = [];
+  try {
+    const k = bt === 'webkit' ? 'W' : 'K';
+    const A = await newPlayer(bt, browser, `Sira${k}Ayse`, 'ayse', errors);
+    const B = await newPlayer(bt, browser, `Sira${k}Bora`, 'bora', errors);
+    const C = await newPlayer(bt, browser, `Sira${k}Cem`, 'cem', errors);
+    const me = (p) => p.page.evaluate(() => window.__etkinlik.net().me);
+    const [a, b, c] = [await me(A), await me(B), await me(C)];
+    // doğrulanmış koşular: Ayşe 7, Cem 6, Bora 5 bölüm (3 yıldız) → güç sırası Ayşe > Cem > Bora
+    await climb(A, 1, 8); await climb(C, 1, 7); await climb(B, 1, 6);
+    await net(A, 'friends.add', { code: b.friendCode }); await net(B, 'friends.add', { code: a.friendCode });
+    await net(A, 'team.create', { name: `Liderler ${k}`, emblem: '🦉' }); await syncTeam(A);
+    // Profil › Sıralama
+    await closeBanners(A); await backToTabs(A);
+    await A.page.locator('nav.tabbar .tab[data-tab="profile"]').click();
+    await A.page.locator('.menu-tile[data-tile="ranking"]').click();
+    await A.page.getByTestId('siralama').waitFor();
+    await A.page.locator('.rank[data-board="guc"][data-scope="herkes"] .rank-row.me').first().waitFor({ timeout: 15_000 });
+    const view = (p, board, scope) => net(p, 'rank.board', { board, scope }).then((r) => r.view);
+    const all = await view(A, 'guc', 'herkes');
+    const pos = (v, id) => v.rows.find((r) => r.id === id)?.rank ?? 0;
+    S.check(pos(all, a.id) > 0 && pos(all, a.id) < pos(all, c.id) && pos(all, c.id) < pos(all, b.id), `güç sırası Ayşe (${pos(all, a.id)}) < Cem (${pos(all, c.id)}) < Bora (${pos(all, b.id)})`);
+    S.check(all.rows.find((r) => r.id === a.id)?.value === 7 * 3 * 10 + 7 * 20 + 15, 'güç şeffaf formülle: 21 yıldız × 10 + 7 bölüm × 20 + kamp 1 × 15');
+    // kendi satırım: listede görünmüyorsa (ör. podyumdaysa) altta sabit; görünüyorsa tekrar edilmez
+    const mine = A.page.locator('.rank .rank-row.me');
+    S.check(await mine.count() === 1 && Number(await mine.first().getAttribute('data-rank')) === pos(all, a.id), `kendi satırım bir kez ve doğru sırada (${pos(all, a.id)}.)`);
+    S.check(await A.page.getByTestId('podyum').count() === 1, 'ilk 3 podyumda');
+    const podColors = await A.page.locator('.podium .pd .pd-face svg').count();
+    S.check(podColors >= 1, 'podyumda Odi avatarları (oyuncunun kendi rengiyle)');
+    await S.shot(A, 'herkes-podyum');
+    // bilgi sayfası: formül ve ödüller
+    await A.page.getByRole('button', { name: 'Nasıl hesaplanır?' }).click();
+    const info = await A.page.locator('.sheet').innerText();
+    S.check(/yıldız × 10/.test(info) && /bölüm × 20/.test(info) && /kristal/.test(info), 'bilgi sayfası formülü ve ödülleri gösterir');
+    await S.shot(A, 'bilgi');
+    await A.page.getByRole('button', { name: 'Anladım' }).click();
+    // arkadaşlar
+    await A.page.locator('.rank-scope button[data-scope="arkadas"]').click();
+    await A.page.locator('.rank[data-scope="arkadas"] [data-testid="sira-satiri"]').first().waitFor({ timeout: 10_000 });
+    const fr = await A.page.locator('[data-testid="sira-satiri"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-id')));
+    S.check(JSON.stringify(fr) === JSON.stringify([a.id, b.id]), 'Arkadaşlar: yalnız ben ve arkadaşım, güç sırasıyla');
+    await S.shot(A, 'arkadaslar');
+    // yakınım (±5)
+    await A.page.locator('.rank-scope button[data-scope="yakin"]').click();
+    await A.page.locator('.rank[data-scope="yakin"] [data-testid="sira-satiri"]').first().waitFor({ timeout: 10_000 });
+    const near = await view(A, 'guc', 'yakin');
+    const ar = pos(near, a.id);
+    S.check(ar > 0 && near.rows.length <= 11 && near.rows.every((r) => Math.abs(r.rank - ar) <= 5), `Yakınım: ±5 sıra (${near.rows.length} satır, benim sıram ${ar})`);
+    const bn = await view(B, 'guc', 'yakin');
+    S.check(bn.me?.id === b.id && bn.rows.some((r) => r.id === b.id), 'Bora’nın yakınım tablosunda kendisi var');
+    // satıra dokun → profil kartı → takıma davet
+    await A.page.locator('.rank-scope button[data-scope="arkadas"]').click();
+    await A.page.locator(`[data-testid="sira-satiri"][data-id="${b.id}"] button`).click();
+    await A.page.getByTestId('profil-karti').waitFor();
+    S.check(await A.page.getByTestId('takima-davet').count() === 1, 'profil kartında “Takıma davet et”');
+    await S.shot(A, 'profil-karti');
+    await A.page.getByTestId('takima-davet').click();
+    await A.page.getByTestId('takima-davet').filter({ hasText: 'Davet gönderildi' }).waitFor({ timeout: 8000 }).then(() => S.check(true, 'takım daveti gönderildi'), () => S.check(false, 'takım daveti gönderilemedi'));
+    await A.page.keyboard.press('Escape').catch(() => undefined);
+    await A.page.locator('.sheet-wrap').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
+    // Bora: Mesajlar › davet kartı › Takıma katıl
+    await closeBanners(B); await backToTabs(B);
+    await B.page.locator('nav.tabbar .tab[data-tab="profile"]').click();
+    await B.page.locator('.menu-tile[data-tile="messages"]').click();
+    await B.page.getByTestId('sohbet-satiri').first().click();
+    const card = B.page.getByTestId('davet-karti').last();
+    await card.waitFor({ timeout: 10_000 });
+    S.check(/Liderler/.test(await card.innerText()), 'davet kartında takım adı ve kodu (metni sunucu yazdı)');
+    await card.getByRole('button', { name: 'Takıma katıl' }).click();
+    await B.page.waitForFunction(() => !!window.__etkinlik.netStore.getState().team, null, { timeout: 8000 }).then(() => S.check(true, 'Bora davetle takıma katıldı'), () => S.check(false, 'Bora takıma katılamadı'));
+    // Takım › Sıralama sekmesi: takım tabloları
+    await closeBanners(A); await backToTabs(A);
+    await A.page.locator('nav.tabbar .tab[data-tab="team"]').click();
+    await A.page.locator('.team-head').waitFor({ timeout: 15_000 });
+    await A.page.locator('.subtabs .subtab', { hasText: 'Sıralama' }).first().click();
+    await A.page.locator('.rank[data-board="t-guc"]').waitFor({ timeout: 10_000 });
+    await A.page.locator('.rank .rank-row.me').first().waitFor({ timeout: 10_000 });
+    S.check(await A.page.locator('.rank .rank-row.me').count() === 1, 'kendi satırım listede görünürken altta tekrar edilmez');
+    const tv = await view(A, 't-guc', 'herkes');
+    S.check(tv.me?.name === `Liderler ${k}` && tv.me.emblem === '🦉', `Takım gücü tablosunda takımım (${tv.me?.rank}.)`);
+    S.check(tv.me?.value === all.rows.find((r) => r.id === a.id).value + all.rows.find((r) => r.id === b.id).value, 'takım gücü = üyelerin gücü toplamı (Ayşe + Bora)');
+    await S.shot(A, 'takim-siralama');
+    await A.page.locator('.rank-kind button', { hasText: 'Oyuncular' }).click();
+    await A.page.locator('.rank[data-board="guc"]').waitFor();
+    S.check(true, 'Takım sekmesinden oyuncu tablolarına geçiş');
+    for (const p of [A, B, C]) await p.ctx.close();
+  } catch (e) {
+    failures++; S.rec.fails.push(String(e.message ?? e).split('\n')[0]); log(`✗ akış: ${String(e.message ?? e).split('\n')[0]}`);
+  } finally {
+    if (errors.length) { failures++; S.rec.fails.push(`konsol: ${errors.slice(0, 3).join(' | ')}`); log(`✗ konsol: ${errors.slice(0, 3).join(' | ')}`); }
+    await browser.close();
+  }
+}
+
 // ---------------------------------------------------------------- 5) dom (telefon paketi) akışı
 async function domSuite(bt) {
   const S = makeSuite(`dom-${bt}`);
@@ -594,7 +694,7 @@ async function domSuite(bt) {
 }
 
 try {
-  for (const t of targets) for (const b of browsers) { if (t === 'web') { if (!has('only-color')) { await webSuite(b); await tourSuite(b); } await colorSuite(b); } else await domSuite(b); }
+  for (const t of targets) for (const b of browsers) { if (t === 'web') { if (has('only-rank') || has('only-tour')) { if (has('only-tour')) await tourSuite(b); if (has('only-rank')) await rankSuite(b); continue; } if (!has('only-color')) { await webSuite(b); await tourSuite(b); await rankSuite(b); } await colorSuite(b); } else await domSuite(b); }
 } finally {
   console.log('\n— özet —');
   for (const r of results) console.log(`  ${r.fails.length ? '✗' : '✓'} ${r.label}: ${r.checks} denetim${r.fails.length ? `, sorunlar: ${r.fails.join(' ; ')}` : ''}`);

@@ -2,7 +2,7 @@ import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmKind, type
 import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { addReport, areFriends, dmBlockReason, hasBlocked } from './friends';
 import { maskProfanity } from './profanity';
-import { metric, requireFreeText } from './comm/settings';
+import { canFreeText, metric, requireFreeText } from './comm/settings';
 import { raceMemberIds } from './race';
 
 /**
@@ -18,6 +18,8 @@ const STICKER_IDS = new Set(DM_STICKERS.map((x) => x.id));
 const EMOJI_ONLY = /^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\u200d|\ufe0f|\u20e3| )+$/u;
 const META_TYPE = /^[a-z]{2,16}$/;
 const ROOM_ID = /^[A-Za-z0-9]{1,40}$/;
+/** serbest yazı açılmamış oyuncunun davet metni (sunucu yazar) */
+const INVITE_TEXT: Record<string, string> = { yaris: 'Canlı yarışa gel, birlikte koşalım!', ralli: 'Takım rallisine katıl!' };
 
 /** son DM zamanı (hız sınırı) ve son "yazıyor" iletimi — yalnızca bellekte */
 const lastSend = new WeakMap<App, Map<string, number>>();
@@ -161,9 +163,19 @@ export const dmHandlers: Handlers = {
       if (type === 'yaris' && !raceMemberIds(app, roomId)?.includes(s.pid)) fail('YOK', 'Bu yarış odası artık yok; yeni bir oda kur.');
       if ([...body].length > 120) fail('GECERSIZ', 'Davet metni en çok 120 karakter olabilir.');
       body = maskProfanity(body).text;
+      // güvenli sohbet: serbest yazı açılmamışsa davet metnini de sunucu yazar
+      if (!canFreeText(app, p)) body = INVITE_TEXT[type] ?? 'Gel, birlikte oynayalım!';
       saveMeta = { type, roomId };
+      if (type === 'takim') {
+        // takım daveti (Sıralama / profil kartı): yalnızca kendi takımına, metni ve kodu sunucu yazar
+        const t = p.team_id === roomId ? app.db.get<{ name: string; emblem: string; code: string; open: number }>('SELECT name, emblem, code, open FROM teams WHERE id = ?', roomId) : undefined;
+        if (!t) fail('YETKI', 'Yalnızca kendi takımına davet edebilirsin.');
+        if (app.player(to).team_id === roomId) fail('GECERSIZ', 'Zaten takımında.');
+        body = `${t.emblem} ${t.name} takımına katılmak ister misin? Kod: ${t.code}`;
+        saveMeta.code = t.code; saveMeta.title = 'Takım daveti';
+      }
       if (typeof meta?.level === 'number' && Number.isInteger(meta.level) && meta.level > 0 && meta.level < 10_000) saveMeta.level = meta.level;
-      if (typeof meta?.title === 'string') saveMeta.title = maskProfanity(cleanText(meta.title).slice(0, 40)).text;
+      if (typeof meta?.title === 'string' && type !== 'takim') saveMeta.title = maskProfanity(cleanText(meta.title).slice(0, 40)).text;
     }
     times.set(s.pid, now);
     metric(app, kind === 'hazir' ? 'dm.hazir' : `dm.${kind}`);

@@ -294,6 +294,13 @@ async function suite(browserName, target, [W, H]) {
         await back();
         if (!(await page.locator('.menu-tile').count())) await tab('Profil');
       }
+      // sıralama: bilgi sayfası (formül + ödüller) ve takım tabloları
+      { await page.locator('.menu-tile[data-tile="ranking"]').click(); await page.getByTestId('siralama').waitFor(); await sleep(500);
+        await page.getByRole('button', { name: 'Nasıl hesaplanır?' }).click(); await page.locator('.sheet').waitFor(); await check('siralama-bilgi', { scroll: false });
+        await page.locator('.sheet').getByRole('button', { name: 'Anladım' }).click(); await sleep(300);
+        await page.locator('.rank-kind button', { hasText: 'Takımlar' }).click(); await sleep(700); await check('siralama-takimlar');
+        await page.locator('.rank-kind button', { hasText: 'Oyuncular' }).click(); await sleep(300);
+        await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       const lg = page.locator('.league-card').first();
       if (await lg.count()) { await lg.click(); await sleep(600); await check('profil-lig'); await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)

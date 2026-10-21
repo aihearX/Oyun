@@ -92,6 +92,12 @@ export function openInvite(meta: Record<string, string | number | boolean> | und
   if (!meta) return;
   if (meta.type === 'yaris' && typeof meta.roomId === 'string') { nav.open({ name: 'race', inviteRoomId: meta.roomId }); return; }
   if (meta.type === 'ralli') { nav.open({ name: 'events', view: 'ralli' }); return; }
+  if (meta.type === 'takim' && typeof meta.code === 'string') {
+    const code = meta.code;
+    if (useNet.getState().team?.id === meta.roomId) { nav.tab('team'); return; }
+    void act('team.join', { code }).then((r) => { if (r) { useNet.setState({ team: r.team }); toast('🤝', `${r.team.name} takımına katıldın`, undefined, 'green'); nav.tab('team'); } });
+    return;
+  }
   // diğer takım etkinlikleri takım ekranında
   nav.tab('team');
 }
@@ -111,4 +117,12 @@ export function shortTime(t: number): string {
   if (lbl === 'Bugün') return new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
   if (lbl === 'Dün') return 'Dün';
   return new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+}
+
+/** takıma davet (Sıralama satırı / profil kartı): metni ve kodu sunucu yazar, özel mesaj olarak gider */
+export async function inviteToTeam(p: Pick<PublicProfile, 'id' | 'name'>): Promise<boolean> {
+  const t = useNet.getState().team; if (!t) return false;
+  const r = await act('dm.send', { to: p.id, text: 'takim', kind: 'davet', meta: { type: 'takim', roomId: t.id } });
+  if (r) { platform().haptic('light'); toast('📨', `${p.name} takımına davet edildi`, 'Davet özel mesaj olarak gitti.', 'green'); }
+  return !!r;
 }

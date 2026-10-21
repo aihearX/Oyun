@@ -150,6 +150,13 @@ export function racePlaceFor(app: App, pid: string, raceId: string): number | nu
   return p.place;
 }
 
+/** sıralama (yarış galibiyeti): bu yarışı oyuncu birinci bitirdi mi ve en az iki kişi bitirdi mi — bağlantıyı tüketmeden bakar */
+export function raceWinFor(app: App, pid: string, raceId: string): boolean {
+  const r = store(app).rooms.get(raceId);
+  if (!r || r.linked.has(pid)) return false;
+  return r.players.find((x) => x.id === pid)?.place === 1 && r.players.filter((x) => x.place != null).length >= 2;
+}
+
 /** WireFire race.pos: yarışta değilse sessizce yok sayılır; 8 Hz üstü düşürülür */
 export function racePos(app: App, conn: Conn, data: { x: number; y: number; pct: number }): void {
   const pid = conn.pid;
