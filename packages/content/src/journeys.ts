@@ -20,7 +20,7 @@ export const HUMAN_JOURNEY: Journey = {
   levels: [
     L(1, 'dis-kulak', 'kosu', 'reach', 'İlk Adım', { tutorial: true, intro: 'Odi, küçük bir ses. Görevi: annenin ninnisini beyne ulaştırmak.', targetChunks: 4, focus: ['bosluk', 'jeton'] }),
     L(2, 'dis-kulak', 'kosu', 'collect-all', 'Kepçenin Kıvrımı', { targetChunks: 5, focus: ['platform', 'yay', 'jeton'] }),
-    L(3, 'dis-kulak', 'kosu', 'reach', 'Kıl Ormanı', { targetChunks: 6, focus: ['kayma', 'kil-ormani'] }),
+    L(3, 'dis-kulak', 'kosu', 'reach', 'Kulak Kılı Ormanı', { targetChunks: 6, focus: ['kayma', 'kil-ormani'] }),
     L(4, 'dis-kulak', 'kosu', 'timed', 'Rüzgârla Yarış', { targetChunks: 6, focus: ['hiz', 'firlatici', 'bosluk'] }),
     L(5, 'dis-kulak', 'kosu', 'secret', 'Gizli Kıvrım', { targetChunks: 7, focus: ['gizli', 'platform'] }),
     L(6, 'kanal', 'kosu', 'reach', 'Tünele Giriş', { intro: 'Dış kulak yolu dar ve sıcak. Serumen (kulak kiri) her yerde.', targetChunks: 6, focus: ['duvar'] }),

@@ -214,7 +214,7 @@ const disKulak: Painter = (ctx, w, h, rnd) => {
   ctx.save(); ctx.translate(90, h - 110); ctx.fillStyle = css(0x8a5a3a); ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(22, 0); ctx.lineTo(14, 10); ctx.lineTo(-14, 10); ctx.closePath(); ctx.fill(); ctx.strokeStyle = css(INK); ctx.lineWidth = 1.5; ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -30); ctx.stroke(); ctx.fillStyle = '#fff8e8'; ctx.beginPath(); ctx.moveTo(2, -28); ctx.lineTo(20, -6); ctx.lineTo(2, -6); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
   placeName(ctx, 'Ses Denizi', w * 0.62, h - 30, 15, -0.04);
-  placeName(ctx, 'Kıl Ormanı', 92, 40, 12, -0.1, 0.65);
+  placeName(ctx, 'Kulak Kılı Ormanı', 92, 40, 11, -0.1, 0.65);
   placeName(ctx, 'Konka Koyu', w * 0.52, sea * 0.58 + 70, 11, 0.05, 0.55);
 };
 

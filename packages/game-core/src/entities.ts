@@ -81,7 +81,7 @@ export function spikeTexture(s: Phaser.Scene, biome: BiomeDef, w: number): strin
   return key;
 }
 
-/** Ölümcül alan: gürültü bulutu (gri), serumen (yapışkan amber), tüy (kıl ormanı), dalga (ses). */
+/** Ölümcül alan: gürültü bulutu (gri), serumen (yapışkan amber), tüy (kulak kılı ormanı), dalga (ses). */
 export function hazardTexture(s: Phaser.Scene, biome: BiomeDef, w: number, h: number, kind: string): string {
   const key = `haz-${biome.id}-${kind}-${w}x${h}`;
   if (s.textures.exists(key)) return key;
