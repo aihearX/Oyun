@@ -6,7 +6,8 @@ Coqui TTS Türkçe modeli: tts_models/tr/common-voice/glow-tts + vocoder_models/
 
 Kullanım (tools/voice/generate.mjs çağırır):
   python render.py <iş.json> <model_klasörü> <çıktı_klasörü>
-iş.json: [{"id": "...", "spoken": "...", "hash": "..."}]  → <çıktı>/<id>.<hash>.wav (zaten varsa atlanır)
+iş.json: [{"id": "...", "spoken": "...", "hash": "...", "ls": 0.88}]  → <çıktı>/<id>.<hash>.ls<ls>.wav (zaten varsa atlanır)
+ls: modelin kendi hız ayarı (GlowTTS length_scale; <1 daha hızlı). Prozodi doğal kalır (yalnız atempo ile hızlandırmaktan iyidir).
 """
 import json
 import os
@@ -23,7 +24,8 @@ def main() -> int:
     job_path, models, out = sys.argv[1:]
     job = json.load(open(job_path, encoding='utf-8'))
     os.makedirs(out, exist_ok=True)
-    todo = [j for j in job if not os.path.exists(os.path.join(out, f"{j['id']}.{j['hash']}.wav"))]
+    name = lambda j: f"{j['id']}.{j['hash']}.ls{j.get('ls', 1.0)}.wav"
+    todo = [j for j in job if not os.path.exists(os.path.join(out, name(j)))]
     if not todo:
         print('ham ses: hepsi hazır (önbellek)')
         return 0
@@ -37,8 +39,9 @@ def main() -> int:
         use_cuda=False,
     )
     for i, j in enumerate(todo, 1):
+        syn.tts_model.length_scale = float(j.get('ls', 1.0))
         wav = syn.tts(j['spoken'])
-        syn.save_wav(wav, os.path.join(out, f"{j['id']}.{j['hash']}.wav"))
+        syn.save_wav(wav, os.path.join(out, name(j)))
         print(f"  [{i}/{len(todo)}] {j['id']}", flush=True)
     return 0
 

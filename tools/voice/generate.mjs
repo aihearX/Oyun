@@ -34,17 +34,18 @@ const has = (f) => args.includes(f);
 const val = (f) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : undefined; };
 
 /**
- * Tüy Dede üslubu (ffmpeg süzgeç zinciri). Ham ses: genç-orta yaş erkek (f0 ≈ 100-110 Hz).
- * Yaşlı dede karakteri: perde biraz aşağı (biçimleyiciler korunur → doğal tını), tempo biraz yavaş, sıcak alçak orta,
- * yumuşatılmış tiz, çok hafif vibrato + tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, baş/son sessizlik kırpılır.
+ * Tüy Dede üslubu. Ham ses: Coqui Türkçe erkek (f0 ≈ 100-110 Hz).
+ * Hız modelin kendi ayarıyla (GlowTTS length_scale < 1: doğal prozodiyle daha canlı); perde biraz aşağı (biçimleyiciler korunur;
+ * asla yukarı değil, sesin incelmesin), 80 Hz altı kesilir (boğuk/gümbür olmasın), hafif sıcaklık, ~3 kHz'te hafif netlik,
+ * cümle arası duraklamalar en çok ~0,2-0,25 sn, vibrato/tremolo yok, yankı yok ya da çok az; −16 LUFS, sınırlayıcı.
+ * Önceki "dede" üslubu (tempo ×0,92 + vibrato/tremolo) sahibine fazla yavaş ve rahatsız edici geldi; kaldırıldı.
  */
 const STYLES = {
-  sicak: { semitones: -1.5, tempo: 0.95, vib: [5.0, 0.035], trem: [4.5, 0.04], bass: 2, treble: -2, echo: '0.8:0.5:35|60:0.12|0.07' },
-  dede: { semitones: -2, tempo: 0.92, vib: [5.4, 0.05], trem: [4.8, 0.06], bass: 2.5, treble: -2.5, echo: '0.8:0.55:40|70:0.15|0.08' },
-  derin: { semitones: -3, tempo: 0.9, vib: [5.2, 0.04], trem: [4.6, 0.05], bass: 3.5, treble: -3, echo: '0.8:0.6:45|80:0.17|0.09' },
+  'dede-hizli': { ls: 0.85, semitones: -1.5, warm: 1.5, presence: 2, air: -1, echo: null, pause: 0.2 },
+  'dede-dogal': { ls: 0.9, semitones: -1.5, warm: 2, presence: 1.5, air: -1.5, echo: '0.85:0.9:18:0.035', pause: 0.25 },
 };
-/** seçilen üslup (üç aday karşılaştırıldı; bkz. docs/anlatici-metinleri.md) */
-const STYLE = val('--style') ?? 'dede';
+/** seçilen üslup: iki aday ölçüldü (konuşma hızı, f0); sahibi örnekleri dinleyip "dede-dogal"ı seçti — tüm satırlar, yeni eklenenler de, bununla */
+const STYLE = val('--style') ?? 'dede-dogal';
 const BITRATE = '48k';
 
 /** modelin okuyabildiği biçime çevir: Türkçe küçük harf, düz kesme işareti, desteklenen noktalama */
@@ -52,7 +53,9 @@ const ALLOWED = /^[abcçdefgğhıijklmnoöprsştuüvyz!'(),\-.:;? ]*$/;
 export function spokenOf(line) {
   const s = (line.spoken ?? line.text)
     .replace(/[’‘`]/g, "'").replace(/[“”"«»]/g, '').replace(/…/g, '.').replace(/\s+/g, ' ').trim()
-    .toLocaleLowerCase('tr');
+    .toLocaleLowerCase('tr')
+    // şapkalı ünlüler (şikâyet, hâlâ, millî) modelin alfabesinde yok: düz ünlüyle okunur
+    .replace(/â/g, 'a').replace(/î/g, 'i').replace(/û/g, 'u');
   if (!ALLOWED.test(s)) {
     const bad = [...new Set([...s].filter((c) => !ALLOWED.test(c)))].join(' ');
     throw new Error(`${line.id}: model bu karakterleri okuyamaz → "spoken" alanında okunduğu gibi yazın: ${bad}`);
@@ -63,13 +66,15 @@ export function spokenOf(line) {
 function filters(st) {
   const ratio = Math.pow(2, st.semitones / 12).toFixed(5);
   const trim = 'silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.04';
+  // cümle arası sessizlikler en çok st.pause sn (uzun duraklama kısaltılır, kısa olanlar olduğu gibi)
+  const pauses = `silenceremove=stop_periods=-1:stop_duration=${st.pause}:stop_threshold=-42dB:stop_silence=${st.pause}`;
   return [
-    trim, 'areverse', trim, 'areverse',
-    `rubberband=pitch=${ratio}:tempo=${st.tempo}:formant=preserved:pitchq=quality`,
-    `bass=g=${st.bass}:f=170:w=0.8`, `treble=g=${st.treble}:f=6500`,
-    `vibrato=f=${st.vib[0]}:d=${st.vib[1]}`, `tremolo=f=${st.trem[0]}:d=${st.trem[1]}`,
-    `aecho=${st.echo}`,
-    'afade=t=in:d=0.015', 'adelay=60', 'apad=pad_dur=0.15',
+    trim, 'areverse', trim, 'areverse', pauses,
+    `rubberband=pitch=${ratio}:formant=preserved:pitchq=quality`,
+    'highpass=f=80:poles=2',
+    `equalizer=f=220:t=q:w=0.9:g=${st.warm}`, `equalizer=f=3000:t=q:w=1.2:g=${st.presence}`, `treble=g=${st.air}:f=8000`,
+    ...(st.echo ? [`aecho=${st.echo}`] : []),
+    'afade=t=in:d=0.015', 'adelay=60', 'apad=pad_dur=0.12',
   ].join(',');
 }
 
@@ -117,8 +122,10 @@ python3.12 -m venv ~/odi-tts && ~/odi-tts/bin/pip install "coqui-tts[codec]" --e
 ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice/generate.mjs
 \`\`\`
 
-Üslup (ffmpeg): perde ${STYLES[STYLE].semitones} yarım ton (biçimleyiciler korunur), tempo ×${STYLES[STYLE].tempo}, sıcak alçak orta, yumuşak tiz,
-hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, sessizlik kırpma. Adaylar: ${Object.keys(STYLES).join(', ')} (seçilen: **${STYLE}**).
+Üslup: hız modelin kendi ayarıyla (length_scale ${STYLES[STYLE].ls}; doğal prozodi, sonradan yavaşlatma yok), perde ${STYLES[STYLE].semitones} yarım ton
+(biçimleyiciler korunur; hiçbir zaman yukarı değil), 80 Hz yüksek geçiren (boğukluk yok), hafif sıcaklık, ~3 kHz'te hafif netlik, cümle arası
+duraklamalar ≤ ${Math.round(STYLES[STYLE].pause * 1000)} ms, vibrato/tremolo yok, ${STYLES[STYLE].echo ? 'çok hafif yankı' : 'yankı yok'}, −16 LUFS, sessizlik kırpma.
+Adaylar: ${Object.keys(STYLES).join(', ')} (seçilen: **${STYLE}**).
 
 ## Satırlar (${NARRATOR_LINES.length})
 
@@ -171,14 +178,15 @@ function render(lines, style, outDir) {
   for (const n of ['tts_models--tr--common-voice--glow-tts', 'vocoder_models--tr--common-voice--hifigan']) {
     const link = join(flat, n); if (!existsSync(link)) execFileSync('ln', ['-s', modelDir(models, n), link]);
   }
-  const job = lines.map((l) => { const spoken = spokenOf(l); return { id: l.id, spoken, hash: textHash(spoken) }; });
+  const ls = STYLES[style].ls;
+  const job = lines.map((l) => { const spoken = spokenOf(l); return { id: l.id, spoken, hash: textHash(spoken), ls }; });
   const jobFile = join(cache, 'job.json'); writeFileSync(jobFile, JSON.stringify(job));
   console.log(`▶ Coqui TTS: ${job.length} satır (önbellek: ${cache})`);
   const r = spawnSync(py, [join(root, 'tools/voice/render.py'), jobFile, flat, join(cache, 'wav')], { stdio: 'inherit' });
   if (r.status !== 0) throw new Error('ham ses üretimi başarısız');
   const out = [];
   for (const j of job) {
-    const wav = join(cache, 'wav', `${j.id}.${j.hash}.wav`);
+    const wav = join(cache, 'wav', `${j.id}.${j.hash}.ls${j.ls}.wav`); // render.py ile aynı ad
     const mp3 = join(outDir, `${j.id}.mp3`);
     post(wav, mp3, style);
     out.push({ id: j.id, file: `${j.id}.mp3`, ms: durMs(mp3), bytes: statSync(mp3).size });

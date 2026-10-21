@@ -46,6 +46,8 @@ export const VOICE_FILES: Record<string, number> = {
   'etkinlik-01.mp3': require('../../../web/public/voice/etkinlik-01.mp3'),
   'etkinlik-02.mp3': require('../../../web/public/voice/etkinlik-02.mp3'),
   'yaris-01.mp3': require('../../../web/public/voice/yaris-01.mp3'),
+  'yazi-01.mp3': require('../../../web/public/voice/yazi-01.mp3'),
+  'yazi-02.mp3': require('../../../web/public/voice/yazi-02.mp3'),
   'akis-01.mp3': require('../../../web/public/voice/akis-01.mp3'),
   'akis-02.mp3': require('../../../web/public/voice/akis-02.mp3'),
   'soru-01.mp3': require('../../../web/public/voice/soru-01.mp3'),

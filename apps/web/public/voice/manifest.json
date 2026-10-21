@@ -2,427 +2,437 @@
  "version": 1,
  "format": "mp3",
  "voice": "Coqui TTS · Fatih Akademi tr common-voice glow-tts + hifigan (MIT)",
- "style": "dede",
+ "style": "dede-dogal",
  "lines": {
   "hikaye-01": {
    "file": "hikaye-01.mp3",
    "hash": "8bcd3fdc",
-   "ms": 6480
+   "ms": 5424
   },
   "hikaye-02": {
    "file": "hikaye-02.mp3",
    "hash": "28662abf",
-   "ms": 4440
+   "ms": 3648
   },
   "hikaye-03": {
    "file": "hikaye-03.mp3",
    "hash": "11bc804f",
-   "ms": 8280
+   "ms": 6936
   },
   "hikaye-04": {
    "file": "hikaye-04.mp3",
    "hash": "9caf2f73",
-   "ms": 6048
+   "ms": 5040
   },
   "hikaye-05": {
    "file": "hikaye-05.mp3",
    "hash": "cbc2b4d6",
-   "ms": 7584
+   "ms": 6288
   },
   "hikaye-06": {
    "file": "hikaye-06.mp3",
    "hash": "d7724a4e",
-   "ms": 7968
+   "ms": 6528
   },
   "hikaye-07": {
    "file": "hikaye-07.mp3",
    "hash": "cd0be701",
-   "ms": 8856
+   "ms": 7224
   },
   "sonuc-01": {
    "file": "sonuc-01.mp3",
    "hash": "baeb4d46",
-   "ms": 4944
+   "ms": 4104
   },
   "sonuc-02": {
    "file": "sonuc-02.mp3",
    "hash": "4057c574",
-   "ms": 9312
+   "ms": 7800
   },
   "sonuc-03": {
    "file": "sonuc-03.mp3",
    "hash": "614c5852",
-   "ms": 6624
+   "ms": 5592
   },
   "sonuc-04": {
    "file": "sonuc-04.mp3",
    "hash": "1f4b1eae",
-   "ms": 5424
+   "ms": 4392
   },
   "harita-01": {
    "file": "harita-01.mp3",
    "hash": "296200c0",
-   "ms": 7200
+   "ms": 5688
   },
   "harita-02": {
    "file": "harita-02.mp3",
    "hash": "7c0a79f7",
-   "ms": 3816
+   "ms": 3168
   },
   "harita-03": {
    "file": "harita-03.mp3",
    "hash": "93b23f6d",
-   "ms": 7488
+   "ms": 6144
   },
   "harita-04": {
    "file": "harita-04.mp3",
    "hash": "9c28cd8e",
-   "ms": 3936
+   "ms": 3168
   },
   "sekme-bugun": {
    "file": "sekme-bugun.mp3",
    "hash": "38a6db96",
-   "ms": 2784
+   "ms": 2280
   },
   "sekme-kamp": {
    "file": "sekme-kamp.mp3",
    "hash": "69603f1f",
-   "ms": 2640
+   "ms": 2160
   },
   "sekme-profil": {
    "file": "sekme-profil.mp3",
    "hash": "aa0742b6",
-   "ms": 2952
+   "ms": 2400
   },
   "sekme-takim": {
    "file": "sekme-takim.mp3",
    "hash": "8bc3d8bc",
-   "ms": 2616
+   "ms": 2184
   },
   "sekme-harita": {
    "file": "sekme-harita.mp3",
    "hash": "78aaab37",
-   "ms": 2808
+   "ms": 2352
   },
   "bugun-01": {
    "file": "bugun-01.mp3",
    "hash": "26549000",
-   "ms": 7104
+   "ms": 5952
   },
   "bugun-02": {
    "file": "bugun-02.mp3",
    "hash": "3a6e6a21",
-   "ms": 4392
+   "ms": 3696
   },
   "bugun-03": {
    "file": "bugun-03.mp3",
    "hash": "d9408bd9",
-   "ms": 4320
+   "ms": 3576
   },
   "bugun-04": {
    "file": "bugun-04.mp3",
    "hash": "0bed092d",
-   "ms": 9216
+   "ms": 7488
   },
   "kamp-01": {
    "file": "kamp-01.mp3",
    "hash": "c89490ed",
-   "ms": 6984
+   "ms": 5832
   },
   "kamp-insa-01": {
    "file": "kamp-insa-01.mp3",
    "hash": "d1133010",
-   "ms": 7464
+   "ms": 6072
   },
   "kamp-insa-02-depo": {
    "file": "kamp-insa-02-depo.mp3",
    "hash": "81b8b400",
-   "ms": 3984
+   "ms": 3240
   },
   "kamp-insa-02": {
    "file": "kamp-insa-02.mp3",
    "hash": "83eb4608",
-   "ms": 3912
+   "ms": 3240
   },
   "kamp-insa-03": {
    "file": "kamp-insa-03.mp3",
    "hash": "5eb11089",
-   "ms": 5520
+   "ms": 4584
   },
   "kamp-insa-04": {
    "file": "kamp-insa-04.mp3",
    "hash": "1bf504c1",
-   "ms": 5904
+   "ms": 4632
   },
   "kamp-insa-05": {
    "file": "kamp-insa-05.mp3",
    "hash": "6d688016",
-   "ms": 8808
+   "ms": 7176
   },
   "arkadas-01": {
    "file": "arkadas-01.mp3",
    "hash": "d6fd3180",
-   "ms": 6672
+   "ms": 5496
   },
   "arkadas-02": {
    "file": "arkadas-02.mp3",
    "hash": "372d1072",
-   "ms": 6648
+   "ms": 5448
   },
   "sozluk-01": {
    "file": "sozluk-01.mp3",
    "hash": "970d7642",
-   "ms": 8448
+   "ms": 7032
   },
   "sozluk-02": {
    "file": "sozluk-02.mp3",
    "hash": "ebf88e22",
-   "ms": 4800
+   "ms": 3960
   },
   "sozluk-03": {
    "file": "sozluk-03.mp3",
    "hash": "0d3ad5c6",
-   "ms": 8280
+   "ms": 6744
   },
   "takim-01": {
    "file": "takim-01.mp3",
    "hash": "648cef87",
-   "ms": 6432
+   "ms": 5352
   },
   "takim-02": {
    "file": "takim-02.mp3",
    "hash": "55dd8126",
-   "ms": 6624
+   "ms": 5568
   },
   "takim-03": {
    "file": "takim-03.mp3",
    "hash": "fbbbb090",
-   "ms": 6528
+   "ms": 5304
   },
   "magaza-01": {
    "file": "magaza-01.mp3",
    "hash": "05798b8c",
-   "ms": 6192
+   "ms": 5184
   },
   "magaza-02": {
    "file": "magaza-02.mp3",
    "hash": "655aed6d",
-   "ms": 7032
+   "ms": 5712
   },
   "etkinlik-01": {
    "file": "etkinlik-01.mp3",
    "hash": "9342bcca",
-   "ms": 7224
+   "ms": 6024
   },
   "etkinlik-02": {
    "file": "etkinlik-02.mp3",
    "hash": "c8cefb73",
-   "ms": 4752
+   "ms": 3864
   },
   "yaris-01": {
    "file": "yaris-01.mp3",
    "hash": "b21fbd87",
-   "ms": 7056
+   "ms": 5880
+  },
+  "yazi-01": {
+   "file": "yazi-01.mp3",
+   "hash": "62dcdbf1",
+   "ms": 4608
+  },
+  "yazi-02": {
+   "file": "yazi-02.mp3",
+   "hash": "8be48315",
+   "ms": 8208
   },
   "akis-01": {
    "file": "akis-01.mp3",
    "hash": "2b47e408",
-   "ms": 8832
+   "ms": 7344
   },
   "akis-02": {
    "file": "akis-02.mp3",
    "hash": "82bae87a",
-   "ms": 9984
+   "ms": 8280
   },
   "soru-01": {
    "file": "soru-01.mp3",
    "hash": "9c906a55",
-   "ms": 10920
+   "ms": 9096
   },
   "soru-02": {
    "file": "soru-02.mp3",
    "hash": "762f2739",
-   "ms": 5592
+   "ms": 4440
   },
   "ikili-01": {
    "file": "ikili-01.mp3",
    "hash": "401aef23",
-   "ms": 9576
+   "ms": 7896
   },
   "ikili-02": {
    "file": "ikili-02.mp3",
    "hash": "e6cebbca",
-   "ms": 5712
+   "ms": 4584
   },
   "usta-01": {
    "file": "usta-01.mp3",
    "hash": "a28ee338",
-   "ms": 8016
+   "ms": 6648
   },
   "not-kepce-yon": {
    "file": "not-kepce-yon.mp3",
    "hash": "c26713d5",
-   "ms": 7008
+   "ms": 5856
   },
   "not-hz": {
    "file": "not-hz.mp3",
    "hash": "742fc2d4",
-   "ms": 6480
+   "ms": 5376
   },
   "not-db": {
    "file": "not-db.mp3",
    "hash": "6a2bb8c6",
-   "ms": 7104
+   "ms": 5880
   },
   "not-kanal-rezonans": {
    "file": "not-kanal-rezonans.mp3",
    "hash": "4d536703",
-   "ms": 6216
+   "ms": 5160
   },
   "not-serumen-temiz": {
    "file": "not-serumen-temiz.mp3",
    "hash": "67ca6101",
-   "ms": 5880
+   "ms": 4944
   },
   "not-gurultu-sure": {
    "file": "not-gurultu-sure.mp3",
    "hash": "b1f4854d",
-   "ms": 5472
+   "ms": 4584
   },
   "not-empedans": {
    "file": "not-empedans.mp3",
    "hash": "8337777d",
-   "ms": 7560
+   "ms": 6384
   },
   "not-timpanometri": {
    "file": "not-timpanometri.mp3",
    "hash": "b51719f0",
-   "ms": 6696
+   "ms": 5544
   },
   "not-ome": {
    "file": "not-ome.mp3",
    "hash": "64749988",
-   "ms": 6816
+   "ms": 5664
   },
   "not-akustik-refleks": {
    "file": "not-akustik-refleks.mp3",
    "hash": "2eb5316e",
-   "ms": 5928
+   "ms": 4824
   },
   "not-otoskleroz": {
    "file": "not-otoskleroz.mp3",
    "hash": "2fcc30a5",
-   "ms": 6912
+   "ms": 5808
   },
   "not-kemik-yolu": {
    "file": "not-kemik-yolu.mp3",
    "hash": "a2697441",
-   "ms": 8016
+   "ms": 6696
   },
   "not-dalga": {
    "file": "not-dalga.mp3",
    "hash": "d109f034",
-   "ms": 6696
+   "ms": 5640
   },
   "not-pil": {
    "file": "not-pil.mp3",
    "hash": "85c0eab1",
-   "ms": 4944
+   "ms": 4128
   },
   "not-denge": {
    "file": "not-denge.mp3",
    "hash": "b6f95c0d",
-   "ms": 4224
+   "ms": 3480
   },
   "not-oae-not": {
    "file": "not-oae-not.mp3",
    "hash": "d5802656",
-   "ms": 7248
+   "ms": 6024
   },
   "not-prestin": {
    "file": "not-prestin.mp3",
    "hash": "192029a1",
-   "ms": 5664
+   "ms": 4728
   },
   "not-rekrutman": {
    "file": "not-rekrutman.mp3",
    "hash": "d43297bc",
-   "ms": 7080
+   "ms": 5880
   },
   "not-presbiakuzi": {
    "file": "not-presbiakuzi.mp3",
    "hash": "ed5362b1",
-   "ms": 5016
+   "ms": 4176
   },
   "not-gurultu-centik": {
    "file": "not-gurultu-centik.mp3",
    "hash": "c23937ab",
-   "ms": 6168
+   "ms": 5112
   },
   "not-implant": {
    "file": "not-implant.mp3",
    "hash": "1bc99e1a",
-   "ms": 6312
+   "ms": 5280
   },
   "not-ototoksik": {
    "file": "not-ototoksik.mp3",
    "hash": "0f7bcd7e",
-   "ms": 6480
+   "ms": 5424
   },
   "not-abr-not": {
    "file": "not-abr-not.mp3",
    "hash": "e994a29d",
-   "ms": 7416
+   "ms": 6264
   },
   "not-kayip-turleri": {
    "file": "not-kayip-turleri.mp3",
    "hash": "c9b290c3",
-   "ms": 5280
+   "ms": 4368
   },
   "not-hl-spl": {
    "file": "not-hl-spl.mp3",
    "hash": "0a5edcef",
-   "ms": 8232
+   "ms": 6816
   },
   "not-tarama": {
    "file": "not-tarama.mp3",
    "hash": "7ea14475",
-   "ms": 6792
+   "ms": 5664
   },
   "not-yon": {
    "file": "not-yon.mp3",
    "hash": "1c65a49d",
-   "ms": 4512
+   "ms": 3768
   },
   "not-maskeleme": {
    "file": "not-maskeleme.mp3",
    "hash": "a7734a6d",
-   "ms": 4680
+   "ms": 3888
   },
   "not-rinne-weber": {
    "file": "not-rinne-weber.mp3",
    "hash": "3468e653",
-   "ms": 6192
+   "ms": 5136
   },
   "not-konusma-muzu": {
    "file": "not-konusma-muzu.mp3",
    "hash": "00e036d1",
-   "ms": 6528
+   "ms": 5400
   },
   "not-kokteyl": {
    "file": "not-kokteyl.mp3",
    "hash": "aef94bca",
-   "ms": 4488
+   "ms": 3720
   },
   "not-cihaz": {
    "file": "not-cihaz.mp3",
    "hash": "94616b0d",
-   "ms": 5808
+   "ms": 4800
   },
   "not-tinnitus": {
    "file": "not-tinnitus.mp3",
    "hash": "2064606c",
-   "ms": 6264
+   "ms": 5184
   }
  }
 }

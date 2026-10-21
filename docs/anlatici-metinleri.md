@@ -27,10 +27,12 @@ python3.12 -m venv ~/odi-tts && ~/odi-tts/bin/pip install "coqui-tts[codec]" --e
 ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice/generate.mjs
 ```
 
-Üslup (ffmpeg): perde -2 yarım ton (biçimleyiciler korunur), tempo ×0.92, sıcak alçak orta, yumuşak tiz,
-hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, sessizlik kırpma. Adaylar: sicak, dede, derin (seçilen: **dede**).
+Üslup: hız modelin kendi ayarıyla (length_scale 0.9; doğal prozodi, sonradan yavaşlatma yok), perde -1.5 yarım ton
+(biçimleyiciler korunur; hiçbir zaman yukarı değil), 80 Hz yüksek geçiren (boğukluk yok), hafif sıcaklık, ~3 kHz'te hafif netlik, cümle arası
+duraklamalar ≤ 250 ms, vibrato/tremolo yok, çok hafif yankı, −16 LUFS, sessizlik kırpma.
+Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 
-## Satırlar (84)
+## Satırlar (86)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -78,6 +80,8 @@ hafif vibrato/tremolo (yaşlı ses titremesi), hafif oda yankısı, −16 LUFS, 
 | `etkinlik-01` | Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve quiz: takımca oynanır, ödülleri büyüktür.<br><small>okunuş: Yeni: Etkinlikler! Ralli, düello, bayrak yarışı ve kuiz: takımca oynanır, ödülleri büyüktür.</small> | Açılış kutlaması: Etkinlikler | coşkulu (celebratory) |
 | `etkinlik-02` | Etkinlik çadırı haritanın sağında. Dokun ve bir bak! | Harita: etkinlik çadırı (oyuncu dokunur) | merak uyandıran (intriguing) |
 | `yaris-01` | Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek? | Açılış kutlaması: Canlı yarış | heyecanlı, meydan okuyan (competitive) |
+| `yazi-01` | Sekiz bölümü geçtin! Artık sohbette kendi sözlerinle de yazabilirsin. | Açılış kutlaması: serbest yazı (8. bölümden sonra; öncesinde yalnız hazır sözler) | gururlu, sıcak (proud, warm) |
+| `yazi-02` | Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızlanır; üç kişinin şikâyet ettiği mesaj gizlenir. | Serbest yazı kuralları (bir kez gösterilir) | bilge, şefkatli (wise, caring) |
 | `akis-01` | Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir. | Açılış kutlaması: Takım Akışı (6. bölümden sonra) | coşkulu (celebratory) |
 | `akis-02` | Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste! | Takım sohbeti: akış kartı ve hazır sözler vurgulanır | sıcak, cesaret veren (warm, encouraging) |
 | `soru-01` | Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın! | Açılış kutlaması: Günün Sorusu (9. bölümden sonra) | bilge, meraklandıran (wise, curious) |
