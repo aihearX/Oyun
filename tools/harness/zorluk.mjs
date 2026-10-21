@@ -7,7 +7,7 @@
 //        her bölümü k tohumla oynar → tools/harness/out/zorluk/<tag>.json
 //   node tools/harness/zorluk.mjs --kalibre [--k 12] [--v 10] [--levels 8,12,23]
 //        bölüm başına üretici varyantı: hedefe tahminen en yakın 3 varyant ölçülür, en yakını → packages/level-gen/src/kalibrasyon.ts
-//   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra]
+//   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra] [--ilk ilk]
 //        tabloyu docs/12-zorluk-egrisi.md içine (işaretler arasına) ve grafiği docs/img/zorluk-egrisi.svg'ye yazar
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync, existsSync, rmSync, appendFileSync } from 'node:fs';
@@ -102,7 +102,8 @@ if (args.kalibre) {
   const src = `/**
  * Bölüm kalibrasyonu — ÜRETİLMİŞ dosya: \`node tools/harness/zorluk.mjs --kalibre\`. Bölüm → üretici varyantı (0 = varsayılan).
  * Her bölüm için hedef eğriye tahminen en yakın birkaç varyant insan modeliyle ölçülür, ölçülen can kaybı hedefe en yakın olan seçilir.
- * 8, 11, 12, 18, 19, 23-26, 30, 32, 33, 36 ve 39 sonradan 48 oyunculuk varyant taramasıyla elle seçildi (docs/12 §8); \`--kalibre\` yalnız \`--levels\` ile verilen bölümleri yazar.
+ * 4-8 (ilk kez oynayan kademe ve kitle), 11, 12, 18, 19, 23-26, 30, 32, 33, 36 ve 39 sonradan 48 oyunculuk varyant taramasıyla
+ * elle seçildi (docs/12 §8); \`--kalibre\` yalnız \`--levels\` ile verilen bölümleri yazar.
  */
 export const KALIBRASYON: Record<number, number> = {
 ${body}
@@ -119,7 +120,7 @@ if (args.bolumler) {
   // ağır bölümler (boss, uzun) önce: paralel kuyruk dengeli bitsin
   levels.sort((a, b) => (b % 20 === 0) - (a % 20 === 0) || b - a);
   const file = await worker();
-  const extra = []; if (args.fail) extra.push('--fail', String(args.fail)); if (args.stars) extra.push('--stars', String(args.stars)); if (args.salt) extra.push('--salt', String(args.salt)); if (args.acemi) extra.push('--acemi');
+  const extra = []; if (args.fail) extra.push('--fail', String(args.fail)); if (args.stars) extra.push('--stars', String(args.stars)); if (args.salt) extra.push('--salt', String(args.salt)); if (args.acemi) extra.push('--acemi'); if (args.ilk) extra.push('--ilk');
   const tag = args.tag ?? 'sonra';
   const rows = (await runAll(file, 'bolum', levels, extra, resolve(outDir, `${tag}.part.jsonl`))).sort((a, b) => a.n - b.n);
   writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, params: extra, rows }, null, 1));
@@ -150,6 +151,17 @@ if (args.belge) {
   const md = readFileSync(doc, 'utf8');
   const meta = `_Ölçüm: ${after.k} oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördüğü bölüm), varsayılan profil; önce: ${before ? `${before.k} tohum, eski eğri` : '–'}._`;
   writeFileSync(doc, md.replace(/<!-- tablo:basla -->[\s\S]*<!-- tablo:bitir -->/, `<!-- tablo:basla -->\n${meta}\n\n${lines.join('\n')}\n<!-- tablo:bitir -->`));
+  // ---- ilk kez oynayan kademe (1-8): eski oyun / yeni oyun (--bolumler --ilk --tag ilk; eski: ilk-once)
+  const ilk = load(args.ilk ?? 'ilk'); const ilk0 = load(args.ilkOnce ?? 'ilk-once');
+  if (ilk) {
+    const I = Object.fromEntries(ilk.rows.map((r) => [r.n, { ...scoreOf(r.runs), se: seOf(r.runs) }]));
+    const I0 = ilk0 ? Object.fromEntries(ilk0.rows.map((r) => [r.n, { ...scoreOf(r.runs), se: seOf(r.runs) }])) : {};
+    const goal = (n) => (n <= 3 ? '100%, ≤ 0,1 can' : n <= 6 ? '≥ %90' : '–');
+    const il = [`_İlk kez oynayan kademe (§2), ${ilk.k} oyuncu × bölüm; önce: aynı kademe eski oyunda (${ilk0 ? ilk0.k : '–'} oyuncu)._`, '', '| Bölüm | Hedef | Önce: bitirme | Önce: can kaybı | Sonra: bitirme | Sonra: can kaybı ± SE |', '|---|---|---|---|---|---|'];
+    for (const n of Object.keys(I).map(Number).sort((a, b) => a - b)) { const a = I[n], b = I0[n]; il.push(`| ${n} | ${goal(n)} | ${b ? pct(b.fin) : '–'} | ${b ? f2(b.dmg) : '–'} | ${pct(a.fin)} | ${f2(a.dmg)} ± ${f2(a.se)} |`); }
+    const md1 = readFileSync(doc, 'utf8');
+    writeFileSync(doc, md1.replace(/<!-- ilk:basla -->[\s\S]*<!-- ilk:bitir -->/, `<!-- ilk:basla -->\n${il.join('\n')}\n<!-- ilk:bitir -->`));
+  }
   // ---- düğme tablosu (varsayılan profil)
   const kl = ['| Bölüm | λ hedef | Oda | Oda puanı hedefi / tavan | Aile ≤ | Sıkılık | Diken × | Çukur × | Basamak × | Ufalanma (sn) | Zar penceresi (sn) | Düşman / platform temposu | Değiştirici |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|'];
   for (let n = 1; n <= 40; n++) {

@@ -3,11 +3,13 @@ import { ABILITIES } from '@odi/content';
 import type { BiomeBackdrop, HintKind, LevelHudView } from './visuals';
 
 /**
- * Öğretici an: yeni yeteneğin ilk karşılaşmasında zaman yavaşlar (×0,35) ve göstergede büyük el işareti hareketi
+ * Öğretici an: yeni yeteneğin ilk karşılaşmasında zaman yavaşlar (×0,3, en çok 8 gerçek saniye) ve göstergede büyük el işareti hareketi
  * (dokun / basılı tut / aşağı kaydır / ileri kaydır / geri kaydır) belirir. Oyuncu hareketi yaptığı an normal hıza döner ("Harika!").
  * Süre sayacı, ceza ya da sahte baskı yok; kaçırırsa oyun normal kurallarla sürer, aynı yere döndüğünde an yeniden açılır.
  */
-export const TUTORIAL_SLOW = 0.35;
+export const TUTORIAL_SLOW = 0.3;
+/** ağır çekimin en uzun süresi (gerçek sn): ilk kez oynayan oyuncu el işaretini okuyup denesin */
+export const TUTORIAL_MAX_S = 8;
 
 /** yeteneğin "başardın" sayılan sim olayı */
 export const TUTORIAL_SUCCESS: Record<AbilityId, string[]> = {

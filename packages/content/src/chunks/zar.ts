@@ -57,7 +57,7 @@ export const ZAR_CHUNKS: ChunkSpec[] = [
     beatSlide(1560, G - 140, 120, 160, '1100'), ground(1800, 600), hop(1980, 100), spike(2200, 48),
     ...coins(300, G - 40, 3, 40), ...coins(480, G - 90, 3, 40), ...trampArc(808, 4), ...trampArc(1128, 4, { power: 1.15 }), ...coins(1260, G - 420, 4, 40),
     ...glideArc(1420, 7, 380, G - 380), ...jumpArc(1860, 4, 1), ...coins(2180, G - 130, 3, 36, 20),
-    secret(1330, G - 610), collect(1600, G - 230),
+    secret(1330, G - 690), collect(1600, G - 230),
   ], { tags: ['gosteri', 'ritim', 'zar'], biomes: [...B], setPiece: true, needs: ['suzul'] }),
   // gösteri: Zar Senfonisi — dört zarlık yükselen zincir (ikisi vuruşta), en tepeden süzülerek nota nehrine iniş
   chunk('zr-sp-senfoni', 'trambolin', 3, 2300, [

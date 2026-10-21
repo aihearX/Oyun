@@ -19,8 +19,9 @@ const G = GROUND_Y;
 const isFloor = (e: Entity) => (e.type === 'platform' && (e.h ?? 24) >= 100 && Math.abs(e.y - G) <= 12) || (e.type === 'crumble' && Math.abs(e.y - G) <= 24);
 const risesFromFloor = (e: Entity) => e.type === 'platform' && (e.h ?? 24) > 32 && e.y < G - 12 && e.y + (e.h ?? 0) >= G - 12;
 
-/** odada girdi isteyen noktalar (oda içi x, sıralı) */
-export function actionXs(c: Pick<ChunkSpec, 'entities' | 'length'>): number[] {
+/** odada girdi isteyen noktalar (oda içi x, sıralı). `flight`: yay/fırlatıcının uçuşu altında kalan noktalar sayılmaz
+ *  (kahraman üstünden uçar; yavaş koşulu ilk bölümlerde bu sessizlik uzar — yalnız yardımlı bölümlerde kullanılır) */
+export function actionXs(c: Pick<ChunkSpec, 'entities' | 'length'>, o: { flight?: boolean } = {}): number[] {
   const xs: number[] = [];
   const L = c.length;
   // sıvı ve yerçekimi bölgelerinin içindeki her tehlike girdi ister (yüzerek/çevirerek kaçılır)
@@ -54,7 +55,8 @@ export function actionXs(c: Pick<ChunkSpec, 'entities' | 'length'>): number[] {
   let cover = 0;
   for (const [a, b] of floors) { if (a - cover >= 40) xs.push(cover); cover = Math.max(cover, b); }
   if (L - cover >= 40) xs.push(cover);
-  return [...new Set(xs.map((x) => Math.max(0, Math.min(L, Math.round(x)))))].sort((a, b) => a - b);
+  const flights = o.flight ? c.entities.filter((e) => e.type === 'spring' || e.type === 'launcher').map((e) => [e.x, e.x + (e.type === 'spring' ? 480 : 700)] as const) : [];
+  return [...new Set(xs.filter((x) => !flights.some(([a, b]) => x > a && x < b)).map((x) => Math.max(0, Math.min(L, Math.round(x)))))].sort((a, b) => a - b);
 }
 
 export interface QuietProfile {
@@ -67,8 +69,8 @@ export interface QuietProfile {
   actions: number[];
 }
 
-export function quietProfile(c: Pick<ChunkSpec, 'entities' | 'length'>): QuietProfile {
-  const a = actionXs(c);
+export function quietProfile(c: Pick<ChunkSpec, 'entities' | 'length'>, o: { flight?: boolean } = {}): QuietProfile {
+  const a = actionXs(c, o);
   if (!a.length) return { entry: c.length, exit: c.length, inner: c.length, actions: a };
   let inner = 0; for (let i = 1; i < a.length; i++) inner = Math.max(inner, a[i]! - a[i - 1]!);
   return { entry: a[0]!, exit: c.length - a[a.length - 1]!, inner, actions: a };

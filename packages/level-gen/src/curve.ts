@@ -1,4 +1,4 @@
-import type { ModifierId } from '@odi/shared';
+import type { LevelAssist, ModifierId } from '@odi/shared';
 
 /**
  * Zorluk eğrisi ve bölüm başına düğmeler (docs/12-zorluk-egrisi.md).
@@ -16,8 +16,8 @@ export interface CurveZone { name: string; short: string; from: number; to: numb
    *  tahmin eder; hedef (hi) değişmez, yalnız finalde üreticiye verilen λ = hi × gain */ gain?: number }
 
 export const CURVE_ZONES: CurveZone[] = [
-  { name: 'Dış Kulak', short: 'Dış Kulak', from: 1, to: 5, peak: 5, lo: 0.02, hi: 0.3 },
-  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.15, hi: 0.7, gain: 0.65 },
+  { name: 'Dış Kulak', short: 'Dış Kulak', from: 1, to: 5, peak: 5, lo: 0.01, hi: 0.2 },
+  { name: 'Kulak Kanalı', short: 'Kanal', from: 6, to: 8, peak: 8, lo: 0.08, hi: 0.55, gain: 0.65 },
   { name: 'Kulak Zarı', short: 'Zar', from: 9, to: 12, peak: 12, lo: 0.2, hi: 0.85 },
   { name: 'Kemikçikler', short: 'Kemikçikler', from: 13, to: 20, peak: 19, lo: 0.3, hi: 1.0 },
   { name: 'Koklea · Taban', short: 'Koklea 1', from: 21, to: 23, peak: 23, lo: 0.35, hi: 1.1 },
@@ -70,6 +70,11 @@ export interface LevelKnobs {
   modifiers: ModifierId[];
   /** uyarlanabilir yardım kademesi (0 yok; her kademe finalden bir sınav odası eksiltir) */
   ease: number;
+  /** ilk bölümlerin motor yardımları (koşu hızı, coyote/tampon, bedava düşüş, geri dönüş kilidi, kaydırma eşiği) */
+  assist?: LevelAssist;
+  /** ilk bölümlerin içerik kısıtları: diken/düşman/tehlike yok (1. bölümde hiç; 2-3'te öğretici odası dışında; 4-6'da kontrol noktası odalarında), en geniş çukur
+   *  (px), hareketli/ufalanan basamak yok (1-3), her odada kontrol noktası (1-8) */
+  early: { noHazards: 'hepsi' | 'ogretici-disi' | 'kontrol' | false; maxPit: number; noMoving: boolean; cpEveryRoom: boolean };
 }
 export interface LevelGeom {
   /** diken genişliği çarpanı (genişleyen diken daha uzun/kesin zıplama ister) */
@@ -109,6 +114,20 @@ const MODS: Record<number, ModifierId[]> = {
 };
 const ENEMY_FROM: Record<string, number> = { devriye: 3, ucan: 4, ziplayan: 9, atici: 13, kalkanli: 15 };
 
+/**
+ * İlk bölümlerin yardımları (gerçek cihazda ilk kez oynayan oyuncu için; docs/12 §4): koşu 190 → 260 px/sn'ye 7. bölümde
+ * ulaşır (8. bölüm 260 ama diğer yardımlar sürer); 1-3'te coyote 0,16 / tampon 0,20 sn, 4-5'te 0,13 / 0,15; 1-2. bölümlerin ilk iki, 3-8'in ilk çukuru can götürmez; 6-8'de coyote 0,12 / tampon 0,14 sn; 1-5'te geri dönüş
+ * yalnız gerektiği yerde ve yatay kaydırma eşiği 64 px.
+ */
+const EARLY_RUN: Record<number, number> = { 1: 190, 2: 205, 3: 220, 4: 235, 5: 242, 6: 248, 7: 255, 8: 260 };
+export function assistFor(n: number): LevelAssist | undefined {
+  const run = EARLY_RUN[n]; if (run === undefined) return undefined;
+  return {
+    run, coyote: n <= 3 ? 0.16 : n <= 5 ? 0.13 : 0.12, buffer: n <= 3 ? 0.2 : n <= 5 ? 0.15 : 0.14,
+    freeFalls: n <= 2 ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42,
+  };
+}
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * Math.max(0, Math.min(1, t));
 
 /**
@@ -124,7 +143,8 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   if (n <= 3) lambda = Math.min(lambda, 0.1);
   const finale = n === z.peak; const onboarding = n <= 3;
   if (finale && z.gain) lambda *= z.gain;
-  const rooms = Math.round(Math.min(11, 3 + (n <= 2 ? n : 2 + zi * 0.45 + u * 2.2) + (finale ? 1 : 0) - ease));
+  // 4-6: ilk kez oynayan için kısa bölümler (iki oda eksik)
+  const rooms = Math.round(Math.min(11, 3 + (n <= 2 ? n : 2 + zi * 0.45 + u * 2.2) + (finale ? 1 : 0) - ease - (n >= 4 && n <= 6 ? 2 : 0)));
   const roomTarget = Math.round((0.4 + 4.4 * lambda) * 100) / 100;
   const roomMax = onboarding ? 1.5 : Math.round((roomTarget + 2.5 + (finale ? 1 : 0)) * 100) / 100;
   const maxFamilies = onboarding ? 2 : finale ? 9 : Math.min(9, 2 + Math.floor(zi * 0.6 + u * 2));
@@ -138,5 +158,6 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   if (n === 20) { timing.bossHp = 14; timing.bossWarn = 1.0; timing.bossTempo = 1.2; }
   if (n === 40) { timing.bossHp = 32; timing.bossWarn = 0.8; timing.bossTempo = 1.8; }
   const modifiers = ease > 0 ? (MODS[n] ?? []).filter((m) => m === 'sis' || m === 'gece') : (MODS[n] ?? []);
-  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease };
+  const early = { noHazards: n === 1 ? 'hepsi' as const : n <= 3 ? 'ogretici-disi' as const : n <= 6 ? 'kontrol' as const : false as const, maxPit: n <= 2 ? 70 : n === 3 ? 90 : 9999, noMoving: n <= 3, cpEveryRoom: n <= 8 };
+  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease, assist: assistFor(n), early };
 }

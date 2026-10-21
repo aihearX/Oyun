@@ -37,6 +37,8 @@ export interface SafeSpot { x: number; y: number; dir: 1 | -1; odo: number }
 export interface SimState {
   t: number; n: number; hero: HeroS;
   lives: number; shield: number; revir: boolean; deaths: number; damageTaken: number;
+  /** kalan can kaybettirmeyen düşüş (ilk bölümlerin yardımı) ve öğretici odasındaki bağışlanan düşüş */ freeFalls: number; graceFalls: number;
+  /** can götürmeyen (bağışlanan) çarpma/düşüş sayısı — planlayıcı bunlardan da kaçınır */ softHits: number;
   coins: number; cochleas: number; notes: number; nextNote: number; stomps: number;
   finished: boolean; failed: string | null;
   cp: SafeSpot; cpX: number; safe: SafeSpot[]; lastGroundOdo: number;
@@ -69,7 +71,7 @@ export function initState(w: World, o: InitOpts = {}): SimState {
   const h = newHero(w.startX, w.startY);
   const spot: SafeSpot = { x: w.startX, y: w.startY, dir: 1, odo: 0 };
   const s: SimState = {
-    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0,
+    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0,
     coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,
     collected: new Set(), killed: new Map(), broken: new Set(), opened: new Set(), crumble: new Map(), timers: new Map(), lifts: new Map(),
@@ -92,10 +94,27 @@ export function cloneState(s: SimState): SimState {
 }
 
 export const has = (w: World, a: AbilityId) => w.abilities.has(a);
+/**
+ * Geri dönüş: yetenek açılmadan hiç; ilk bölümlerde (assist.turnOnlyWhenNeeded) yalnız gerektiği yerde — kapısı kapalı bir
+ * temas anahtarı yakınken (geride 900 / ileride 600 px) ya da frekans kapısı önündeyken; ileri yöne dönüş her zaman serbest.
+ * Kazara yatay kaydırma böylece yeni oyuncuyu ters yöne koşturmaz.
+ */
+export function canTurn(w: World, s: SimState): boolean {
+  if (!has(w, 'don')) return false;
+  const h = s.hero;
+  // ileri yöne geri dönmek her zaman serbest (anahtardan sonra kapıya dönüş)
+  if (!w.assist.turnGate || h.dir < 0) return true;
+  for (const id of near(w, h.x - 900, h.x + 600)) {
+    const e = w.ents[id]!;
+    if (e.type === 'switch' && e.p.by === 'temas' && !s.opened.has(e.key)) return true;
+    if (e.type === 'freqgate' && Math.abs(e.x - h.x) < 600) return true;
+  }
+  return false;
+}
 /** yerçekimi yönünü değiştir: gövde yerinde kalsın diye ayak noktası başın olduğu yere taşınır */
 function setG(h: HeroS, g: 1 | -1) { if (h.g === g) return; h.y += -h.g * (h.slide > 0 ? C.HERO_SLIDE_H : C.HERO_H); h.g = g; h.grounded = false; h.groundId = -1; }
 const breathMax = (w: World) => C.BREATH + 2 * (w.skills.breath ?? 0);
-const speedOf = (w: World, s: SimState) => (w.mods.hiz ? 1.3 : 1) * (s.speedUntil > s.t ? 1.25 : 1);
+const speedOf = (w: World, s: SimState) => w.assist.runK * (w.mods.hiz ? 1.3 : 1) * (s.speedUntil > s.t ? 1.25 : 1);
 const ev = (s: SimState, k: string, x: number, y: number, extra?: Partial<SimEvent>) => { if (s.events) s.events.push({ k, x, y, ...extra }); };
 
 // ------------------------------------------------------------------ dinamik geometri
@@ -258,6 +277,16 @@ export function hurt(w: World, s: SimState, reason: string, fromX?: number): boo
   if (s.finished || s.failed || h.invuln > 0) return false;
   if (reason !== 'fall' && s.shield > 0) { s.shield--; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'shield' }); return false; }
   if (reason !== 'fall' && s.revir) { s.revir = false; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'revir' }); return false; }
+  // ilk bölümlerin ilk çukurları ve öğretici odaları can götürmez: aynı yerden yeniden dene
+  // (öğretici odasında en çok 3 düşüş bağışlanır: boşta oyuncu orada sonsuza dek kalmasın)
+  const grace = w.assist.grace.some(([l, r]) => h.x >= l && h.x < r);
+  const graceFall = grace && s.graceFalls > 0;
+  if (reason === 'fall' && (graceFall || s.freeFalls > 0)) { if (graceFall) s.graceFalls--; else s.freeFalls--; s.softHits++; h.invuln = C.INVULN_FALL; ev(s, 'freefall', h.x, h.y, { n: s.freeFalls }); respawn(w, s, false); return false; }
+  if (grace && reason !== 'fall') {
+    s.softHits++; h.invuln = C.INVULN_HIT; ev(s, 'freefall', h.x, h.y, { n: s.freeFalls });
+    if (fromX !== undefined && h.hookId < 0) { h.knock = 0.18; h.vy = -320 * h.g; h.grounded = false; h.jumpRise = false; }
+    return false;
+  }
   s.lives--; s.damageTaken++; h.invuln = reason === 'fall' ? C.INVULN_FALL : C.INVULN_HIT;
   ev(s, 'hurt', h.x, h.y, { s: reason, n: s.lives });
   if (s.lives <= 0) { s.failed = reason; return true; }
@@ -371,7 +400,7 @@ export function step(w: World, s: SimState, raw: SimInput): void {
   h.coyote = Math.max(0, h.coyote - dt); h.buffer = Math.max(0, h.buffer - dt); h.invuln = Math.max(0, h.invuln - dt);
   h.dashCd = Math.max(0, h.dashCd - dt); h.wallLock = Math.max(0, h.wallLock - dt); h.hookLock = Math.max(0, h.hookLock - dt); h.launchLock = Math.max(0, h.launchLock - dt);
   h.knock = Math.max(0, h.knock - dt); h.turnCd = Math.max(0, h.turnCd - dt);
-  if (inp.pressed) h.buffer = C.JUMP_BUFFER;
+  if (inp.pressed) h.buffer = w.assist.buffer;
   if (inp.released && h.jumpRise && h.vy * h.g < 0) h.cut = true;
   h.held = inp.down;
 
@@ -459,7 +488,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
     }
   }
   // ---- geri dön (koşunun tersine kaydırma): yerde ve havada; duvarda, atılırken, çakılırken ve fırlatılmışken değil
-  if (inp.turn && h.wallId < 0 && h.dash <= 0 && !h.pound && !h.launched && h.turnCd <= 0 && h.tramp <= 0) {
+  if (inp.turn && canTurn(w, s) && h.wallId < 0 && h.dash <= 0 && !h.pound && !h.launched && h.turnCd <= 0 && h.tramp <= 0) {
     h.dir = (h.dir === 1 ? -1 : 1); h.turnCd = 0.2; h.blockedT = 0; h.stall = 0; if (h.knock <= 0) h.vx = h.dir * run;
     ev(s, 'uturn', h.x, h.y);
   }
@@ -509,7 +538,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
   h.odo += Math.abs(h.vx * dt);
   if (h.grounded) {
     const sup = supportUnder(w, s, ids);
-    if (sup < 0) { h.grounded = false; h.groundId = -1; h.coyote = h.jumpRise ? 0 : C.COYOTE; }
+    if (sup < 0) { h.grounded = false; h.groundId = -1; h.coyote = h.jumpRise ? 0 : w.assist.coyote; }
     else { h.groundId = sup; const ge = w.ents[sup]!; if (ge.type === 'crumble' && !s.crumble.has(sup)) { s.crumble.set(sup, s.t); ev(s, 'crumble', h.x, h.y, { id: sup }); } }
   }
   if (m.landed >= 0 && !wasGrounded) land(w, s, m.landed, vyBefore, inp);
@@ -533,7 +562,8 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
     const e = w.ents[m.blocked]!;
     if (e.type === 'barrier' && h.dash <= 0) hurt(w, s, 'gurultu', h.x + h.dir * 20);
     if (e.type === 'freqgate' && !colorMatch(h.color, Number(e.p.color ?? 0))) { ev(s, 'freqwrong', h.x, h.y, { id: e.id }); hurt(w, s, 'freq', h.x + h.dir * 20); }
-    if (h.blockedT > 0.3 && h.grounded) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; h.stall = 0; ev(s, 'turn', h.x, h.y); }
+    // ilk bölümler: basamağa takılan kahraman geri koşmaz, zıplanmayı bekler (geri koşup önceki çukura düşmesin); kapıda döner
+    if (h.blockedT > 0.3 && h.grounded && (!w.assist.turnGate || e.type === 'door')) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; h.stall = 0; ev(s, 'turn', h.x, h.y); }
   } else { h.blockedT = 0; if (h.grounded && m.blocked < 0) h.stall = 0; }
   if (h.grounded) { h.airDash = false; h.airJumps = 0; s.lastGroundOdo = h.odo; }
 }
@@ -547,7 +577,7 @@ function land(w: World, s: SimState, id: number, vyBefore: number, inp: SimInput
     poundImpact(w, s);
   } else if (Math.abs(vyBefore) > 300) ev(s, 'land', h.x, h.y, { n: Math.abs(vyBefore) });
   if (e.type === 'trampoline') {
-    if (h.buffer > 0 || inp.pressed) { const perfect = inp.pressed || h.buffer >= C.JUMP_BUFFER - C.TRAMP_PERFECT; h.buffer = 0; trampStrong(w, s, e, perfect); }
+    if (h.buffer > 0 || inp.pressed) { const perfect = inp.pressed || h.buffer >= w.assist.buffer - C.TRAMP_PERFECT; h.buffer = 0; trampStrong(w, s, e, perfect); }
     else { h.tramp = trampWindow(e); h.trampId = id; }
     return;
   }
@@ -610,7 +640,7 @@ function swimStep(w: World, s: SimState, inp: SimInput, ids: number[], waterId: 
   const target = h.held ? -C.SWIM_UP : C.SWIM_SINK;
   h.vy += (target - h.vy) * Math.min(1, dt * 6); h.vy += cvy * dt * 4;
   if (inp.pressed) ev(s, 'swim', h.x, h.y);
-  if (inp.turn && h.turnCd <= 0) { h.dir = (h.dir === 1 ? -1 : 1); h.turnCd = 0.2; h.blockedT = 0; ev(s, 'uturn', h.x, h.y); }
+  if (inp.turn && canTurn(w, s) && h.turnCd <= 0) { h.dir = (h.dir === 1 ? -1 : 1); h.turnCd = 0.2; h.blockedT = 0; ev(s, 'uturn', h.x, h.y); }
   // yüzeyden çık: basılıyken baş yüzeye ulaştıysa sıçra
   if (h.held && h.y - C.HERO_H * 0.7 < wz.t && h.vy < 0) { h.vy = -C.SWIM_EXIT_V; h.water = -1; h.jumpRise = true; h.cut = false; ev(s, 'jump', h.x, h.y, { s: 'su' }); }
   const m = moveHero(w, s, ids, h.vx * dt, h.vy * dt);

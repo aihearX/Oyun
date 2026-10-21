@@ -2,6 +2,7 @@ import type { AbilityId, Entity, EntityType, LevelSpec, PlayerSkills } from '@od
 import { GROUND_Y } from '@odi/shared';
 import { abilitiesAt } from '@odi/content';
 import { BUCKET, CEIL_GAP, END_PAD, START_PAD } from './consts';
+import * as C from './consts';
 
 /**
  * Dünya: LevelSpec → değişmez varlık listesi (dünya koordinatlarında AABB) + x kovaları (hızlı yakın sorgu).
@@ -55,6 +56,18 @@ export interface World {
   stamp: Int32Array; stampN: number;
   /** ters yerçekimi tavanlarının x aralıkları */
   ceilings: { l: number; r: number }[];
+  /** ilk bölümlerin yardımları (spec.assist; yoksa motor varsayılanları) */
+  assist: WorldAssist;
+}
+export interface WorldAssist {
+  runK: number; coyote: number; buffer: number; freeFalls: number; turnGate: boolean;
+  /** öğretici odalarının dünya x aralıkları (yardımlı bölümlerde): yeni hareketi öğrenirken can gitmez */
+  grace: [number, number][];
+}
+export function worldAssist(spec: LevelSpec): WorldAssist {
+  const a = spec.assist; const grace: [number, number][] = [];
+  if (a) { let x = START_PAD; for (const c of spec.chunks) { if (c.tags.includes('ogretici')) grace.push([x, x + c.length]); x += c.length; } }
+  return { runK: a ? a.run / C.RUN : 1, coyote: a?.coyote ?? C.COYOTE, buffer: a?.buffer ?? C.JUMP_BUFFER, freeFalls: a?.freeFalls ?? 0, turnGate: !!a?.turnOnlyWhenNeeded, grace };
 }
 
 const RECT_TYPES = new Set<EntityType>(['platform', 'moving', 'wall', 'crumble', 'barrier', 'door', 'freqgate', 'beat', 'echo', 'lift', 'water', 'gravzone', 'hazard', 'current']);
@@ -182,7 +195,7 @@ export function buildWorld(spec: LevelSpec, o: BuildOpts): World {
     abilities: new Set(spec.abilities ?? abilitiesAt(spec.number)), skills: o.skills, mods,
     beatDur: 60 / (o.bpm ?? 100), sectionX,
     notesTotal: notes.length, coinsTotal, cochleasTotal: ents.filter((e) => e.type === 'secret').length,
-    boss: isBoss, stamp: new Int32Array(ents.length + 64), stampN: 1, ceilings,
+    boss: isBoss, stamp: new Int32Array(ents.length + 64), stampN: 1, ceilings, assist: worldAssist(spec),
   };
 }
 

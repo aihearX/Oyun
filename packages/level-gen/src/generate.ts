@@ -47,12 +47,58 @@ function knobOk(c: ChunkSpec, k: LevelKnobs, strict: number): boolean {
   const st = roomStats(c);
   // tek oda bölümün tahmini can kaybı hedefinin yarısından fazlasını yemesin (tek odalık ani zorluk sıçraması yok)
   if (predictDmg(c, k.tight) > Math.max(0.07, 0.5 * k.lambda)) return false;
+  // ilk üç bölümde hareketli, ritim, ufalanan, yankı ve asansör basamağı yok (her kısıt düzeyinde)
+  if (k.early.noMoving && c.entities.some((e) => MOVING.has(e.type))) return false;
+  // ilk beş bölümde geri dönüş bulmacası yalnız öğretici odasında (normal odada dönüş gerekmez)
+  if (k.assist?.turnOnlyWhenNeeded && chunkNeeds(c).includes('don')) return false;
+  // yavaş koşulu ilk bölümler: odanın kendi sessiz yolları tempo sınırına sığmalı (mikro oda yalnız odalar ARASINA girer)
+  if (k.assist) {
+    const lim = PACE_LIMIT * (k.assist.run / 260); const q = quietProfile(applyEarly(c, k), { flight: true });
+    if (!q.actions.length || q.inner > lim || q.entry > lim - 200 || q.exit > lim - 200) return false;
+  }
   if (strict >= 3) return st.score <= k.roomMax * 1.5;
   if (st.score > k.roomMax) return false;
   if (!st.enemies.every((e) => k.enemies.includes(e))) return false;
   if (strict < 2 && st.families.length > k.maxFamilies) return false;
   if (strict < 1 && (st.maxGap > k.maxGap || st.minLanding < k.minLanding)) return false;
   return true;
+}
+const MOVING = new Set(['moving', 'beat', 'crumble', 'echo', 'lift']);
+/** ilk bölümün tehlikeleri: diken, düşman, tehlike alanı (1. bölümde hiçbiri yok) */
+const HARM = new Set(['spike', 'enemy', 'hazard', 'gear']);
+/**
+ * İlk bölümlerin içerik kısıtları (docs/12 §4): 1. bölümde (2-3'te öğretici odası dışında, 4-6'da kontrol noktası odasında)
+ * diken/düşman/tehlike alanı kaldırılır,
+ * zemindeki diken küçük çukura dönüşür (zıplama ritmi korunur); 1-3'te zemin çukurları en çok `maxPit` px'e daralır (sağdaki
+ * zemin uzar: iniş geniş kalır).
+ */
+function applyEarly(c: ChunkSpec, k: Pick<LevelKnobs, 'early'>): ChunkSpec {
+  const ea = k.early; if (!ea.noHazards && ea.maxPit >= 9999) return c;
+  let ents = c.entities.map((e) => ({ ...e }));
+  if (ea.noHazards === 'hepsi' || (ea.noHazards === 'ogretici-disi' && !isTutorial(c)) || (ea.noHazards && c.id.startsWith('cp-'))) {
+    // zemindeki diken yerine küçük çukur (odanın zıplama ritmi korunur: tempo kuralı); iki yanda en az 100 px zemin kalmalı
+    for (const sp of ents.filter((e) => e.type === 'spike' && e.y === GROUND_Y)) {
+      const pw = Math.min(ea.maxPit, Math.max(60, (sp.w ?? 32) + 28)); const cx0 = sp.x + (sp.w ?? 32) / 2;
+      const F = ents.find((f) => f.type === 'platform' && (f.h ?? 24) >= 100 && Math.abs(f.y - GROUND_Y) <= 2 && f.x <= cx0 && f.x + (f.w ?? 0) >= cx0 && (f.w ?? 0) >= 200 + pw);
+      if (!F) continue;
+      // çukur dikenin yerinde; iniş için gerekirse en çok 60 px kayar
+      const cx = Math.max(F.x + 100 + pw / 2, Math.min(F.x + (F.w ?? 0) - 100 - pw / 2, cx0)); if (Math.abs(cx - cx0) > 60) continue;
+      const l = Math.round(cx - pw / 2), r = Math.round(cx + pw / 2);
+      ents.push({ ...F, x: r, w: F.x + (F.w ?? 0) - r }); F.w = l - F.x;
+    }
+    ents = ents.filter((e) => !HARM.has(e.type));
+  }
+  if (ea.maxPit < 9999 && !ents.some((e) => e.type === 'wall')) {
+    const floors = ents.filter((e) => e.type === 'platform' && (e.h ?? 24) >= 100 && Math.abs(e.y - GROUND_Y) <= 12).sort((a, b) => a.x - b.x);
+    for (let i = 0; i + 1 < floors.length; i++) {
+      const A = floors[i]!, B = floors[i + 1]!; const aR = A.x + (A.w ?? 0); const gap = B.x - aR;
+      if (gap <= ea.maxPit || gap > 260) continue;
+      // çukurun içinde/kenarında etkin varlık (zar, diken, düşman) varsa dokunma; üstteki raf ya da nota engel değil
+      if (ents.some((e) => e !== A && e !== B && !PASSIVE.has(e.type) && e.x < B.x + 10 && e.x + (e.w ?? 0) > aR - 10 && e.y > GROUND_Y - 100)) continue;
+      const d = gap - ea.maxPit; B.x -= d; B.w = (B.w ?? 0) + d;
+    }
+  }
+  return { ...c, entities: ents };
 }
 /** boşlukta durabilen (çukurun "boş" sayılmasını bozmayan) varlıklar */
 const PASSIVE = new Set(['coin', 'note', 'collect', 'secret', 'decor', 'text', 'tutor', 'powerup', 'checkpoint']);
@@ -307,10 +353,15 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // odaların varlıklarına yazılır — tempo çözümlemesi düğmeli geometriyi görsün diye ondan önce; sonradan eklenen mikro odalar
   // ve giriş çukuru da aşağıda bir kez ayarlanır
   const tuned = new WeakSet<ChunkSpec>();
-  const tune = (c: ChunkSpec) => { if (tuned.has(c)) return c; const t = applyTiming(applyGeometry(c, knobs), knobs); tuned.add(t); return t; };
+  const tune = (c: ChunkSpec) => { if (tuned.has(c)) return c; const t = applyTiming(applyGeometry(applyEarly(c, knobs), knobs), knobs); tuned.add(t); return t; };
   for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
   // ---- tempo: iki girdi arasındaki sessiz yol PACE_LIMIT'i aşmasın — gerekirse araya mikro oda (pacing.ts)
-  const paced = paceChunks(finalChunks, sectionStarts, micros, { latest, biome: plan.biome, rng });
+  // mikro odalar da ayarlı halleriyle (ilk bölümde dikensiz kalan mikro oda girdi istemiyorsa tempo için işe yaramaz);
+  // sessiz yol sınırı koşu hızıyla ölçeklenir (yavaş koşuda aynı süre daha kısa yol)
+  // (yalnız yardımlı ilk bölümlerde; sonrakiler eskisi gibi ham mikro odayla, eklendikten sonra ayarlanır)
+  const pacedMicros = knobs.assist ? micros.map(tune).filter((c) => quietProfile(c).actions.length > 0) : [];
+  const paceLimit = Math.round(PACE_LIMIT * (knobs.assist ? knobs.assist.run / 260 : 1));
+  const paced = paceChunks(finalChunks, sectionStarts, pacedMicros.length ? pacedMicros : micros, { latest, biome: plan.biome, rng, limit: paceLimit, flight: !!knobs.assist, onInsert: pacedMicros.length ? (c) => tuned.add(c) : undefined });
   finalChunks.length = 0; finalChunks.push(...paced.chunks); sectionStarts.splice(0, 3, ...paced.sectionStarts);
   // boşta oyuncu ölmeli: bölüm bir çukurla başlamıyorsa en başa kısa giriş çukuru (yoksa gidip-gelme odalarında sonsuza dek koşar)
   // ilk odanın engeli hemen başlıyorsa giriş çukurunun iniş zemini uzar: çukurdan inip ikinci zıplamaya hazırlanacak yer kalsın
@@ -340,9 +391,14 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     const c0 = finalChunks[0]!; finalChunks[0] = { ...c0, entities: [{ type: 'escortee', x: 10, y: GROUND_Y - 40 }, ...c0.entities] };
   }
 
+  // ilk bölümlerde her odanın başında kontrol noktası: düşen yeni oyuncu az geri döner
+  if (knobs.early.cpEveryRoom) for (let i = 1; i < finalChunks.length; i++) {
+    const c = finalChunks[i]!; if (c.entities.some((e) => e.type === 'checkpoint')) continue;
+    finalChunks[i] = { ...c, entities: [{ type: 'checkpoint', x: 24, y: c.entryY ?? GROUND_Y }, ...c.entities] };
+  }
   const lengthPx = finalChunks.reduce((a, c) => a + c.length, 0) + 600;
   const melodyNotes = finalChunks.reduce((a, c) => a + c.entities.filter((e) => e.type === 'note').length, 0);
-  const speedPx = 260 * (modifiers.includes('hiz') ? 1.3 : 1);
+  const speedPx = (knobs.assist?.run ?? 260) * (modifiers.includes('hiz') ? 1.3 : 1);
   const slow = finalChunks.reduce((a, c) => a + (c.tags.includes('duvar') ? 2.5 : 0) + (c.tags.includes('su') ? 1.5 : 0) + (c.tags.includes('anahtar') ? 3 : 0), 0);
   const parTimeSec = Math.round(lengthPx / speedPx + slow + finalChunks.length * 1.5 + 6);
   const obj = plan.objective === 'collect-all' ? objective('collect-all', coinBudget)
@@ -354,6 +410,7 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     id: `${journeyId}-${number}`, number, journey: journeyId, name: plan.name, biome: plan.biome, mechanic: plan.mechanic, objective: obj, modifiers, seed,
     chunks: finalChunks, lengthPx, parTimeSec, coinsTotal: coinBudget, intro: plan.intro, tutorial: plan.tutorial || newAbilities.length > 0,
     abilities, newAbilities, sectionStarts: sectionChunkStarts, cochleasTotal: keepSecret.filter(Boolean).length,
+    ...(knobs.assist ? { assist: knobs.assist } : {}),
   };
 }
 
@@ -403,7 +460,8 @@ function thinNotes(chunks: ChunkSpec[], drop: number) {
 export const PACE_LIMIT = 820;
 const START_QUIET = 120; // START_PAD (220) − başlangıç x'i (100)
 const END_QUIET = 110;   // END_PAD (260) − kapı payı (150)
-export function paceChunks(chunks: ChunkSpec[], sectionStarts: number[], micros: ChunkSpec[], o: { latest: AbilityId; biome: string; rng: () => number }): { chunks: ChunkSpec[]; sectionStarts: number[]; inserted: number } {
+export function paceChunks(chunks: ChunkSpec[], sectionStarts: number[], micros: ChunkSpec[], o: { latest: AbilityId; biome: string; rng: () => number; limit?: number; flight?: boolean; onInsert?: (c: ChunkSpec) => void }): { chunks: ChunkSpec[]; sectionStarts: number[]; inserted: number } {
+  const LIMIT = o.limit ?? PACE_LIMIT;
   if (!micros.length) return { chunks, sectionStarts, inserted: 0 };
   const out: ChunkSpec[] = []; const map: number[] = []; let inserted = 0; let lastMicro = '';
   const pickMicro = (): ChunkSpec => {
@@ -415,17 +473,17 @@ export function paceChunks(chunks: ChunkSpec[], sectionStarts: number[], micros:
       return { v: c, w };
     }))!;
     lastMicro = m.id; inserted++;
-    return { ...m, entities: m.entities.slice() };
+    const copy = { ...m, entities: m.entities.slice() }; o.onInsert?.(copy); return copy;
   };
   let carry = START_QUIET;
   chunks.forEach((c, i) => {
-    const p = quietProfile(c);
+    const p = quietProfile(c, o);
     const need = p.actions.length ? p.entry : c.length + 160;
-    if (carry + need > PACE_LIMIT) { const m = pickMicro(); out.push(m); carry = quietProfile(m).exit; }
+    if (carry + need > LIMIT) { const m = pickMicro(); out.push(m); carry = quietProfile(m, o).exit; }
     map[i] = out.length; out.push(c);
     carry = p.actions.length ? p.exit : carry + c.length;
   });
-  if (carry + END_QUIET > PACE_LIMIT) out.push(pickMicro());
+  if (carry + END_QUIET > LIMIT) out.push(pickMicro());
   return { chunks: out, sectionStarts: sectionStarts.map((k, i) => (i === 0 ? 0 : map[k] ?? k)), inserted };
 }
 

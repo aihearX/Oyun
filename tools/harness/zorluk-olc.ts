@@ -1,10 +1,10 @@
 // Zorluk ölçümü işçisi (tools/harness/zorluk.mjs derler ve paralel çalıştırır). Phaser'sız: oynanış çekirdeği + üretici.
 //  oda <id...> --k N          → her oda için {id, dmg (acemi), h0/h1 (oyuncu kitlesi, sıkılık 0/1), hit, nm, n, level}
 //  kalibre <n...> --k N --v V  → her bölüm için V varyanttan tahmini hedefe en yakın 3'ü ölçülür: {n, cands:[{v, pred, dmg}]}
-//  bolum <n...> --k N [--salt S] [--fail F] [--stars R]  → her bölüm için {n, runs:[{fin, dmg, deaths, nm, t}]}
+//  bolum <n...> --k N [--salt S] [--fail F] [--stars R] [--ilk: ilk kez oynayan kademe]  → her bölüm için {n, runs:[{fin, dmg, deaths, nm, t}]}
 import { ALL_CHUNKS, DEFAULT_SKILLS } from '@odi/content';
 import { playHuman, playRoomHuman } from '../../packages/game-core/src/play/testkit';
-import { NOVICE } from '../../packages/game-core/src/play/human';
+import { NOVICE, firstTimerOf } from '../../packages/game-core/src/play/human';
 import { generateLevel, levelKnobs, predictDmg, tuneRoom } from '@odi/level-gen';
 
 const argv = process.argv.slice(2);
@@ -30,7 +30,7 @@ if (mode === 'oda') {
   const profile = { recentStars: opt('stars', 2), failStreak: opt('fail', 0), skills: DEFAULT_SKILLS };
   for (const s of items) {
     const n = Number(s); const runs = [];
-    for (let k = 0; k < K; k++) { const r = playHuman(n, { k, salt: opt('salt', 0), profile, params: argv.includes('--acemi') ? NOVICE : undefined }); runs.push({ fin: r.finished ? 1 : 0, dmg: r.damage, deaths: r.deaths, nm: r.nearMisses, t: Math.round(r.t * 10) / 10, why: r.failed }); }
+    for (let k = 0; k < K; k++) { const r = playHuman(n, { k, salt: opt('salt', 0), profile, params: argv.includes('--ilk') ? firstTimerOf(k) : argv.includes('--acemi') ? NOVICE : undefined }); runs.push({ fin: r.finished ? 1 : 0, dmg: r.damage, deaths: r.deaths, nm: r.nearMisses, t: Math.round(r.t * 10) / 10, why: r.failed }); }
     console.log(JSON.stringify({ n, runs }));
   }
 }

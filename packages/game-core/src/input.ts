@@ -31,6 +31,8 @@ export class TouchInput {
   private pressedQueue = 0; private releasedQueue = 0; private secondaryQueue = 0; private dashQueue = 0;
   /** bot girişleri için */
   virtual: Partial<InputState> | null = null;
+  /** yatay kaydırma eşiği (tasarım px); ilk bölümlerde daha yüksek (spec.assist.swipePx): gevşek dokunuş kaydırma sayılmasın */
+  hSwipePx = HSWIPE_PX;
   constructor(private scene: Phaser.Scene, private mirrored = false) {
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       const k0 = scene.scale.width / GAME_W; const zx = p.x / k0, zy = p.y / k0;
@@ -47,7 +49,7 @@ export class TouchInput {
       const k = scene.scale.width / GAME_W; const dx = (p.x - this.downX) / k, dy = (p.y - this.downY) / k; // tasarım pikseli
       const el = Math.max(16, tNow - this.downT);
       if (dy > SWIPE_PX && dy > Math.abs(dx)) this.swipe('down');
-      else if (Math.abs(dx) > HSWIPE_PX && Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) / el > HSWIPE_V) this.swipe((dx > 0) !== this.mirrored ? 'right' : 'left');
+      else if (Math.abs(dx) > this.hSwipePx && Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) / el > HSWIPE_V) this.swipe((dx > 0) !== this.mirrored ? 'right' : 'left');
     });
     scene.input.on('pointerup', () => {
       if (this.ignoring) { this.ignoring = false; this.resolved = true; this.pointerIsDown = false; this.state.primaryDown = false; return; }

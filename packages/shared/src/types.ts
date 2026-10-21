@@ -132,6 +132,22 @@ export interface LevelSpec {
   sectionStarts?: number[];
   /** gizli altın koklea sayısı (3) */
   cochleasTotal?: number;
+  /** ilk bölümlerin bağışlayıcılığı (docs/12 §4): yoksa motorun varsayılanları */
+  assist?: LevelAssist;
+}
+
+/** İlk bölümlerin yardımları — bölüm düğmesi; motor deterministik kalır (aynı bölüm + girdi → aynı sonuç). */
+export interface LevelAssist {
+  /** otomatik koşu hızı (px/sn; varsayılan 260) */
+  run: number;
+  /** kenardan düştükten sonra zıplanabilen süre ve erken dokunuşun saklandığı süre (sn) */
+  coyote: number; buffer: number;
+  /** can kaybettirmeyen düşüş sayısı (bölümün ilk N çukuru) */
+  freeFalls: number;
+  /** geri dönüş yalnız gerektiği yerde (kapalı kapı/anahtar ya da frekans kapısı yakınken): kazara yatay kaydırma döndürmez */
+  turnOnlyWhenNeeded: boolean;
+  /** yatay kaydırmanın sayıldığı en kısa mesafe (px; varsayılan 42) */
+  swipePx: number;
 }
 
 export interface RunResult {

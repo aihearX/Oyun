@@ -125,7 +125,8 @@ if (!isWebkit) {
   await page.addInitScript(() => { window.ReactNativeWebView = { injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl: '', insetTop: 47, insetBottom: 34 } } }), postMessage: (s) => { try { const m = JSON.parse(s); if (m.type === '$$native_action') setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result: null } } })), 0); } catch { /* yok */ } } }; });
   const r = { step: 'kaydırma', swipeTurn: false, forwardIgnored: false };
   try {
-    await page.goto(html + '?bot=1&human=1&level=1', { waitUntil: 'load' });
+    // 9. bölüm: 1-5'te kazara kaydırma döndürmesin diye geri dönüş yalnız gerektiği yerde açık (docs/12 §4); 9'da her yerde, başı düz
+    await page.goto(html + '?bot=1&human=1&level=9', { waitUntil: 'load' });
     await page.waitForFunction(() => !!globalThis.__odiScene?.hud, null, { timeout: 45_000 });
     const box = await page.locator('canvas').boundingBox();
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);

@@ -14,7 +14,7 @@ import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
 import { liveWaves } from './play/boss';
-import { Tutorial, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
+import { Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
   paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
   type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
@@ -97,6 +97,7 @@ export class LevelScene extends Phaser.Scene {
     if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
     this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
+    if (this.spec.assist) this.input_.hSwipePx = this.spec.assist.swipePx;
     this.input_.blockZones.push({ hit: (x, y) => this.hud.pauseHit(x, y), onTap: () => this.hud.pressPause() });
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
     if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500);
@@ -135,7 +136,7 @@ export class LevelScene extends Phaser.Scene {
     const realDt = Math.min(0.25 / Math.min(1, ts), this.opts.bot ? botDt : dtMs / 1000);
     const slow = this.tutorial ? TUTORIAL_SLOW : 1;
     this.acc += realDt * ts * slow;
-    if (this.tutorial) { this.tutorialT += realDt * Math.min(1, ts); if (this.tutorialT > 6) this.endTutorial(false); }
+    if (this.tutorial) { this.tutorialT += realDt * Math.min(1, ts); if (this.tutorialT > TUTORIAL_MAX_S) this.endTutorial(false); }
     if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
     const raw = this.input_.tick();
@@ -219,6 +220,7 @@ export class LevelScene extends Phaser.Scene {
       case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); this.sectionSummary(this.world.ents[e.id!]?.sec ?? 0); break;
       case 'hurt': this.onHurt(e); break;
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
+      case 'freefall': floatText(this, e.x, e.y - 160, 'Sorun değil — tekrar!', COLORS.accent2); break;
       case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20, null); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
       case 'shieldbounce': sfx.tick(); floatText(this, e.x, e.y - 50, 'Kalkanlı! Çakıl ya da atıl', COLORS.muted); break;
       case 'break': S.score += 20; sfx.hit(); this.fx.hitFlash(e.x, e.y); this.cameras.main.shake(80, 0.005); break;

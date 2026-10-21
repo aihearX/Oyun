@@ -91,7 +91,7 @@ function poundTargets(w: World, s: SimState): { x: number; y: number }[] {
 
 /** planı `s0` durumundan (plan adımı `from`) simüle et; hasar (can kaybı / kalkan / düşüş) = başarısız */
 export function simulatePlan(w: World, s0: SimState, plan: Action[], from = 0, keep = false, pr: PlanPrefs = {}): SimOutcome {
-  const s = cloneState(s0); const dmg0 = s.damageTaken, sh0 = s.shield, rv0 = s.revir, esc0 = s.escort?.alive;
+  const s = cloneState(s0); const dmg0 = s.damageTaken, sh0 = s.shield, rv0 = s.revir, esc0 = s.escort?.alive, soft0 = s.softHits;
   const states: SimState[] | null = keep ? [] : null;
   let failAt = -1;
   const H = pr.horizon ?? H_DEF;
@@ -99,7 +99,7 @@ export function simulatePlan(w: World, s0: SimState, plan: Action[], from = 0, k
   for (let i = from; i < total; i++) {
     if (keep && i < H && i % D === 0) states![i / D] = cloneState(s);
     step(w, s, inputAt(plan, i, INP));
-    const hurtNow = s.damageTaken !== dmg0 || s.shield !== sh0 || s.revir !== rv0 || !!s.failed || (esc0 && s.escort && !s.escort.alive);
+    const hurtNow = s.damageTaken !== dmg0 || s.softHits !== soft0 || s.shield !== sh0 || s.revir !== rv0 || !!s.failed || (esc0 && s.escort && !s.escort.alive);
     if (hurtNow) { failAt = i; break; }
     if (s.finished) break;
     if (i >= H && (s.hero.grounded || s.hero.water >= 0 || s.hero.wallId >= 0)) break; // kuyruk: yere bastıysa güvenli
@@ -129,6 +129,8 @@ export class Planner {
 
   private needTurn(s: SimState): boolean {
     const h = s.hero;
+    // ilk bölümler (dönüş kilitli): geriye bakan kahraman için ileri dönüş hep bir seçenek (anahtardan sonra kapıya dönüş)
+    if (this.w.assist.turnGate && h.dir < 0) return true;
     for (const id of near(this.w, h.x - 900, h.x + 600)) {
       const e = this.w.ents[id]!;
       if (e.type === 'switch' && e.p.by === 'temas' && !s.opened.has(e.key)) return true;
