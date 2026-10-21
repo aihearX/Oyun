@@ -10,7 +10,7 @@ export const COMM_SCHEMAS = {
   'chat.react': z.object({ msgId: id, reaction: z.union([z.enum(CHAT_REACTIONS), z.literal('')]) }),
   'chat.thread': z.object({ msgId: id }),
   'comm.state': empty,
-  'comm.settings': z.object({ freeText: z.boolean().optional(), feedShare: z.boolean().optional() }),
+  'comm.settings': z.object({ feedShare: z.boolean().optional() }),
   'feed.challenge': z.object({ level: z.number().int().min(1).max(40) }),
   'help.tip': z.object({ requestId: id, phrase: phrase.optional(), text: z.string().min(1).max(800).optional() }),
   'help.race': z.object({ requestId: id }),

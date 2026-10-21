@@ -314,21 +314,21 @@ export function OnlineRow({ members }: { members: { id: string; name: string; co
   );
 }
 
-/** serbest yazıyı açma sayfası (kuralları özetler) */
-export function FreeTextSheet({ onClose }: { onClose: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const on = async () => { setBusy(true); const r = await act('comm.settings', { freeText: true }); setBusy(false); if (r) { useComm.setState({ settings: r.settings }); toast('💬', 'Serbest yazı açık', 'Nazik ol; kötü söz yıldızlanır, şikâyet edilen mesaj gizlenir.', 'green'); onClose(); } };
+/** güvenli sohbet notu: serbest yazı 8 bölüm geçilene kadar kapalıdır (açma seçeneği yok) — dürüst açıklama + kurallar */
+export function SafeChatSheet({ onClose }: { onClose: () => void }) {
+  const lim = useComm((x) => x.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel);
+  const me = useNet((x) => x.me);
+  const left = Math.max(0, lim - Math.max(0, (me?.highest ?? 1) - 1));
   return (
-    <Sheet title="Serbest yazı" onClose={onClose}>
-      <div className="muted wrap">{COMM_RULES.freeTextLevel}. bölüme kadar sohbette hazır sözler ve emoji kullanılır; böylece herkes güvende başlar. İstersen şimdi kendin yazmayı açabilirsin.</div>
+    <Sheet title="Güvenli sohbet" onClose={onClose}>
+      <div className="muted wrap" data-testid="serbest-not">Serbest yazı {lim}. bölümden sonra açılır{left > 0 ? ` (${left} bölüm kaldı)` : ''}. O zamana kadar hazır sözler ve emojiyle konuşursun; böylece herkes güvende başlar.</div>
       <ul className="rules">
         <li><Art name="shield" size={18} /> Kötü sözler otomatik yıldızlanır.</li>
         <li><Art name="flag" size={18} /> Bir mesajı üç farklı kişi şikâyet ederse gizlenir, gönderen 10 dk yazamaz.</li>
         <li><Art name="mute" size={18} /> Rahatsız olduğun kişiyi sessize alabilir ya da engelleyebilirsin.</li>
         <li><Art name="lock" size={18} /> Kişisel bilgini (adres, telefon, okul) paylaşma.</li>
       </ul>
-      <button className="btn" data-testid="serbest-ac" disabled={busy} onClick={() => void on()}>Anladım, yazmayı aç</button>
-      <button className="btn ghost" onClick={onClose}>Hazır sözlerle devam</button>
+      <button className="btn" data-testid="guvenli-tamam" onClick={onClose}>Tamam, hazır sözlerle devam</button>
     </Sheet>
   );
 }

@@ -28,7 +28,7 @@ if (!args.has('--no-build') || !existsSync(resolve(root, 'apps/server/dist/serve
 
 // ---- sunucu (bellek içi, baskın sürekli açık, TEST mağazası açık)
 const sport = 8800 + Math.floor(Math.random() * 400);
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;

@@ -92,6 +92,8 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'yaris-01', text: 'Yeni: Canlı yarış ve meydan okuma! Arkadaşınla aynı bölümü aynı anda koş; kim önde bitirecek?', context: 'Açılış kutlaması: Canlı yarış', emotion: 'heyecanlı, meydan okuyan (competitive)' },
 
   // ---- İletişim (docs/13-iletisim.md) — kayıtlı ses yok: tools/voice/generate.mjs ile yeniden üretilmeli (o zamana dek altyazı / cihaz sesi)
+  { id: 'yazi-01', text: 'Sekiz bölümü geçtin! Artık sohbette kendi sözlerinle de yazabilirsin.', context: 'Açılış kutlaması: serbest yazı (8. bölümden sonra; öncesinde yalnız hazır sözler)', emotion: 'gururlu, sıcak (proud, warm)' },
+  { id: 'yazi-02', text: 'Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızlanır; üç kişinin şikâyet ettiği mesaj gizlenir.', context: 'Serbest yazı kuralları (bir kez gösterilir)', emotion: 'bilge, şefkatli (wise, caring)' },
   { id: 'akis-01', text: 'Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir.', context: 'Açılış kutlaması: Takım Akışı (6. bölümden sonra)', emotion: 'coşkulu (celebratory)' },
   { id: 'akis-02', text: 'Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste!', context: 'Takım sohbeti: akış kartı ve hazır sözler vurgulanır', emotion: 'sıcak, cesaret veren (warm, encouraging)' },
   { id: 'soru-01', text: 'Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın!', context: 'Açılış kutlaması: Günün Sorusu (9. bölümden sonra)', emotion: 'bilge, meraklandıran (wise, curious)' },

@@ -7,7 +7,6 @@ import { create } from 'zustand';
 import type { NetClient } from '@odi/net';
 import { useNet } from '@odi/net/store';
 import { COMM_RULES, type ChatMessage, type CommNotice, type CommSettings, type DqState, type DuoState, type MentorState } from '@odi/shared';
-import { useStore } from '../store';
 
 export interface CommStore {
   settings: CommSettings | null;
@@ -33,7 +32,7 @@ const set = useComm.setState;
 export function useCanFreeText(): boolean {
   const s = useComm((x) => x.settings); const me = useNet((x) => x.me);
   if (s) return s.canFreeText;
-  return (me?.highest ?? 1) >= COMM_RULES.freeTextLevel;
+  return Math.max(0, (me?.highest ?? 1) - 1) >= COMM_RULES.freeTextLevel;
 }
 
 /** mesajı listede yerinde değiştir (yoksa dokunma) — konu yanıtıysa üst mesajın önizlemesini de tazele */
@@ -70,9 +69,7 @@ export function bindComm(c: NetClient): () => void {
       if (st !== 'bağlı') return;
       void (async () => {
         try {
-          let { settings } = await c.call('comm.state', {});
-          // test/geliştirme atlaması (ftue.bypass: "her şey açık") serbest yazıyı da açar; gerçek oyuncu kendisi açar
-          if (useStore.getState().ftue.bypass && !settings.canFreeText) settings = (await c.call('comm.settings', { freeText: true })).settings;
+          const { settings } = await c.call('comm.state', {});
           set({ settings });
         } catch { /* sonra */ }
         void refreshDq(); void refreshDuo(); void refreshMentor();
@@ -95,6 +92,8 @@ export function bindComm(c: NetClient): () => void {
       set((s) => ({ notices: [notice, ...s.notices.filter((n) => n.id !== notice.id)].slice(0, 3) }));
       if (notice.kind === 'mentor') void refreshMentor();
     }),
+    // güvenli sohbet: 8. bölüm geçilince serbest yazı kendiliğinden açılır — kapalıyken her bölüm sonucunda (cüzdan değişir) yeniden sor
+    c.on('wallet.updated', () => { if (useComm.getState().settings?.canFreeText === false) void c.call('comm.state', {}).then((r) => set({ settings: r.settings })).catch(() => undefined); }),
     c.on('duo.updated', ({ duo }) => set({ duo })),
     c.on('mentor.updated', ({ mentor }) => set({ mentor })),
     c.on('team.updated', ({ team }) => { if (!team) set({ dq: null }); else if (!useComm.getState().dq) void refreshDq(); }),

@@ -9,6 +9,8 @@ import { BuildingPanel } from './BuildingPanel';
 import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, type CampActions } from './model';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { odiLook } from '../look';
+import { useStore } from '../store';
 
 export interface CampBaseProps {
   camp: CampState; wallet: Wallet; team: CampTeam | null; helpCount: number; fast: number;
@@ -38,8 +40,10 @@ export function CampBase(p: CampBaseProps) {
   useEffect(() => {
     if (!host.current) return;
     const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const heroColor = odiLook(useStore.getState()).color;
+    host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); // test kancası: kamptaki kendi Odi'nin rengi
     const h = startCamp(host.current, {
-      camp: p.camp, team: p.team, canAskHelp: canAsk, reducedMotion: reduced,
+      heroColor, camp: p.camp, team: p.team, canAskHelp: canAsk, reducedMotion: reduced,
       now: () => live.current.now(),
       onTap: (id) => { audio.play('pop'); platform().haptic('light'); setSel(id); },
       onAskHelp: (id) => { void ask(id); },

@@ -3,7 +3,7 @@ import type { BuildingId, BuildingState, CampState } from '@odi/shared';
 import { buildingCanvas, type Anchors } from './buildings';
 import { BRIDGE, GROUND_BOX, ISLAND, ROADS, STREAM_PTS, onIsland, paintGround, paintSky, shoreK } from './ground';
 import { BUILDING_ORDER, LOTS, depotStored, tierOf, zonesOpen } from './layout';
-import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold } from './props';
+import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold, worker } from './props';
 
 export interface CampTeam { emblem: string; name: string }
 export interface CampSceneOpts {
@@ -21,6 +21,8 @@ export interface CampSceneOpts {
   /** inşaat bitti (sahnede bitiş animasyonu oynadıktan hemen sonra) */
   onBuilt(id: BuildingId, level: number, tierUp: boolean): void;
   onReady?(): void;
+  /** oyuncunun Odi rengi (0xRRGGBB): ilk işçi oyuncunun kendisidir, bu renkle çizilir */
+  heroColor?: number;
 }
 
 const FONT = '"SF Pro Rounded","Segoe UI Rounded",Nunito,"Helvetica Neue",Arial,sans-serif';
@@ -37,7 +39,7 @@ interface BView {
   badge: Phaser.GameObjects.Container; badgeText: Phaser.GameObjects.Text; badgeImg: Phaser.GameObjects.Image;
   build?: { scaffold: Phaser.GameObjects.Image; crane?: Phaser.GameObjects.Image; dust: Phaser.GameObjects.Particles.ParticleEmitter; bubble: Phaser.GameObjects.Container; text: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; help: Phaser.GameObjects.Image; fast: Phaser.GameObjects.Image; to: number; tw: Phaser.Tweens.Tween[] };
 }
-interface Worker { sprite: Phaser.GameObjects.Image; hammer: Phaser.GameObjects.Image; color: number; busy: boolean; site: boolean; tw?: Phaser.Tweens.Tween; frameT: number; walking: boolean }
+interface Worker { sprite: Phaser.GameObjects.Image; hammer: Phaser.GameObjects.Image; color: number; busy: boolean; site: boolean; tw?: Phaser.Tweens.Tween; frameT: number; walking: boolean; /** kahraman işçinin ayrı dokusu (oyuncunun rengi) */ hero?: string; f: number }
 interface Hot { owner: string; x: () => number; y: () => number; r: number; act: () => void; visible: () => boolean }
 
 export class CampScene extends Phaser.Scene {
@@ -185,7 +187,7 @@ export class CampScene extends Phaser.Scene {
     for (const v of this.views.values()) { v.badge.setScale(us); if (v.build) { v.build.bubble.setScale(us); } }
     if (this.depot) this.depot.bubble.setScale(us);
     // işçi yürüme kareleri
-    for (const w of this.workers) { if (!w.walking) continue; w.frameT += delta; if (w.frameT > 170) { w.frameT = 0; const f = w.sprite.frame.name.endsWith('-0') ? 1 : 0; w.sprite.setFrame(`c-odi-${w.color}-${f}`, false, false); } }
+    for (const w of this.workers) { if (!w.walking) continue; w.frameT += delta; if (w.frameT > 170) { w.frameT = 0; this.workerFrame(w, w.f ? 0 : 1); } }
     if (time - this.lastTick > 250) { this.lastTick = time; this.tick(); }
   }
 
@@ -552,14 +554,21 @@ export class CampScene extends Phaser.Scene {
       }
     }
   }
+  private workerFrame(w: Worker, f: number) {
+    w.f = f;
+    if (w.hero) w.sprite.setTexture(`${w.hero}-${f}`); else w.sprite.setFrame(`c-odi-${w.color}-${f}`, false, false);
+  }
   private syncWorkers() {
     const want = Math.min(6, 2 + Math.floor(this.merkezLevel / 4));
     while (this.workers.length < want) {
       const i = this.workers.length; const color = i % WORKER_COLORS.length;
       const [x, y] = bez(ROADS[i % ROADS.length]!, 0.3 + Math.random() * 0.4);
-      const sprite = this.add.image(x, y, ATLAS, `c-odi-${color}-0`).setOrigin(0.5, 0.9).setScale(1 / TEX * 1.25).setDepth(y);
+      const hc = i === 0 ? this.opts.heroColor : undefined;
+      const hero = hc === undefined ? undefined : `c-hero-${hc.toString(16)}`;
+      if (hero) for (const f of [0, 1]) makeTex(this.textures, `${hero}-${f}`, 16, 20, 8, 18, (c) => worker(c, hc!, f));
+      const sprite = (hero ? this.add.image(x, y, `${hero}-0`) : this.add.image(x, y, ATLAS, `c-odi-${color}-0`)).setOrigin(0.5, 0.9).setScale(1 / TEX * 1.25).setDepth(y);
       const hammer = this.add.image(x, y, ATLAS, 'c-hammer').setOrigin(0.5, 0.9).setScale(1 / TEX * 1.25).setVisible(false);
-      const w: Worker = { sprite, hammer, color, busy: false, site: false, frameT: 0, walking: false };
+      const w: Worker = { sprite, hammer, color, busy: false, site: false, frameT: 0, walking: false, f: 0, ...(hero ? { hero } : {}) };
       this.workers.push(w);
       this.time.delayedCall(300 + i * 500, () => this.nextWalk(w));
     }
@@ -569,7 +578,7 @@ export class CampScene extends Phaser.Scene {
   private walkTo(w: Worker, x: number, y: number, then: () => void) {
     const s = w.sprite; const d = Math.hypot(x - s.x, (y - s.y) * 2);
     s.setFlipX(x < s.x); w.walking = true; w.hammer.setVisible(false);
-    w.tw = this.tweens.add({ targets: s, x, y, duration: Math.max(200, d * 45), ease: 'Linear', onUpdate: () => s.setDepth(s.y), onComplete: () => { w.walking = false; s.setFrame(`c-odi-${w.color}-0`, false, false); then(); } });
+    w.tw = this.tweens.add({ targets: s, x, y, duration: Math.max(200, d * 45), ease: 'Linear', onUpdate: () => s.setDepth(s.y), onComplete: () => { w.walking = false; this.workerFrame(w, 0); then(); } });
   }
   private nextWalk(w: Worker) {
     if (!w.sprite.active) return;

@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { SOCIAL_LIMITS, type Op } from '@odi/shared';
+import { COMM_RULES, SOCIAL_LIMITS, type Op } from '@odi/shared';
 import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type ServerConfig } from './app';
 import { campHandlers, completeDue } from './camp';
 import { chatHandlers, pruneChat } from './chat';
@@ -45,6 +45,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   o.testStore = env.ODI_TEST_STORE === '1' || env.NODE_ENV !== 'production';
   o.revenueCatKey = env.REVENUECAT_API_KEY || null;
   if (env.ODI_EVENTS_FAST) o.eventsFast = env.ODI_EVENTS_FAST === '1';
+  if (env.ODI_FREE_TEXT_AT && /^\d+$/.test(env.ODI_FREE_TEXT_AT)) o.freeTextCleared = Number(env.ODI_FREE_TEXT_AT);
   return o;
 }
 
@@ -62,7 +63,7 @@ export interface OdiServer {
 export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> {
   const cfg: ServerConfig = {
     port: 8787, host: '0.0.0.0', dbFile: ':memory:', now: () => Date.now(), raidAlways: false, testStore: false, revenueCatKey: null,
-    raceCountdownMs: SOCIAL_LIMITS.raceCountdownMs, raceFinishGraceMs: 60_000, sweepMs: 5_000, pingMs: 25_000, msgPerSec: 30, log: false, version: SERVER_VERSION, eventsFast: false, eventsEpoch: 0,
+    raceCountdownMs: SOCIAL_LIMITS.raceCountdownMs, raceFinishGraceMs: 60_000, sweepMs: 5_000, pingMs: 25_000, msgPerSec: 30, log: false, version: SERVER_VERSION, eventsFast: false, eventsEpoch: 0, freeTextCleared: COMM_RULES.freeTextLevel,
     ...Object.fromEntries(Object.entries(opts).filter(([, v]) => v !== undefined)),
   };
   if (!cfg.eventsEpoch) cfg.eventsEpoch = cfg.now();

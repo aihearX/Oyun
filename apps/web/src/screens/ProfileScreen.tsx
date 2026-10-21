@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ACHIEVEMENTS, CARDS, COSMETICS } from '@odi/content';
-import { albumProgress, levelProgress, resolveLook } from '@odi/meta';
+import { albumProgress, levelProgress } from '@odi/meta';
+import { odiLook } from '../look';
 import { useNet } from '@odi/net/store';
 import { SOCIAL_LIMITS } from '@odi/shared';
 import { useStore } from '../store';
@@ -22,7 +23,7 @@ import { reachedRegions } from './GlossaryScreen';
 export type ProfileLink = 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
 export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) {
-  const s = useStore(); const lp = levelProgress(s.xp); const look = resolveLook(s.meta);
+  const s = useStore(); const lp = levelProgress(s.xp); const look = odiLook(s);
   const me = useNet((x) => x.me); const st = useNet((x) => x.status); const inbox = useNet((x) => x.inboxCount); const wallet = useNet((x) => x.wallet);
   const pending = usePending(); const nav = useNav();
   const dms = useFriends((x) => x.dmUnread); const reqs = useFriends((x) => x.incoming.length);
@@ -42,7 +43,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
     <div className="screen fade-in with-tabs">
       <TopBar title="Profil" />
       <div className="card profile-hero">
-        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /></button>
+        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
         <div className="grow min0">
           <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <IconButton icon="pencil" label="Takma adı değiştir" tone="gold" small onClick={() => setRename(true)} />}</h2>
           <Bar value={lp.pct} label="Seviye ilerlemesi" />

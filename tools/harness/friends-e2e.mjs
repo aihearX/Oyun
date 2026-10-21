@@ -30,7 +30,7 @@ if (!args.has('--no-build') || !existsSync(resolve(root, 'apps/server/dist/serve
 const { createServer } = await import('node:net');
 const freePort = () => new Promise((res) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const { port } = s.address(); s.close(() => res(port)); }); });
 const sport = await freePort();
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_LOG: '0' }, stdio: ['ignore', 'ignore', 'inherit'] });
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'ignore', 'inherit'] });
 procs.push(server);
 for (let i = 0; ; i++) {
   try { const r = await fetch(`http://127.0.0.1:${sport}/saglik`); if (r.ok) break; } catch { /* henüz değil */ }

@@ -20,13 +20,15 @@ async function befriend(a: TC, b: TC) { await a.call('friends.add', { code: b.me
 const feedOf = (c: TC, type: string) => c.waitFor('chat', (x) => x.msg.kind === 'feed' && x.msg.meta?.type === type);
 
 describe('Hızlı Sohbet ve güvenli varsayılan', () => {
-  it('yeni oyuncu serbest yazamaz; hazır söz/emoji açık; kendisi açınca ya da 10. bölümde serbest', async () => {
-    env = await setup();
-    const a = await env!.connect('Ayşe', '', { safe: true });
-    const b = await env!.connect('Bora', '', { safe: true });
-    expect((await a.call('comm.state', {})).settings).toMatchObject({ canFreeText: false, freeText: false, feedShare: true, freeTextLevel: 10 });
+  it('güvenli sohbet ZORUNLU: 8 bölüm geçilene kadar yalnız hazır söz/emoji (açma seçeneği yok); 8 geçilince kendiliğinden açılır', async () => {
+    env = await setup({ freeTextCleared: 8 });
+    const a = await env!.connect('Ayşe');
+    const b = await env!.connect('Bora');
+    expect((await a.call('comm.state', {})).settings).toEqual({ canFreeText: false, feedShare: true, freeTextLevel: 8 });
     await a.call('chat.join', { room: 'genel' });
-    expect((await err(a.call('chat.send', { room: 'genel', text: 'merhaba' }))).code).toBe('SERBEST_KAPALI');
+    const e = await err(a.call('chat.send', { room: 'genel', text: 'merhaba' }));
+    expect(e.code).toBe('SERBEST_KAPALI');
+    expect(e.message).toContain('8. bölümden sonra');
     const h = await a.call('chat.send', { room: 'genel', text: 'tebrik', kind: 'hazir' });
     expect(h.msg).toMatchObject({ kind: 'hazir', text: 'Tebrikler!', meta: { p: 'tebrik' } });
     env!.clock.advance(1300);
@@ -40,20 +42,22 @@ describe('Hızlı Sohbet ve güvenli varsayılan', () => {
     expect(d.msg).toMatchObject({ kind: 'hazir', text: 'Selam!' });
     env!.clock.advance(700);
     expect((await err(a.call('dm.send', { to: b.me!.id, text: 'yok-boyle', kind: 'hazir' }))).code).toBe('GECERSIZ');
-    // kendisi açar
-    expect((await a.call('comm.settings', { freeText: true })).settings.canFreeText).toBe(true);
+    // eski istemcinin "aç" isteği hiçbir şey açmaz (alan şemadan atılır)
+    expect((await a.call('comm.settings', { freeText: true } as never)).settings.canFreeText).toBe(false);
     env!.clock.advance(1300);
-    expect((await a.call('chat.send', { room: 'genel', text: 'artık yazabiliyorum' })).msg.kind).toBe('text');
-    // 10. bölüme ulaşan oyuncu açmadan da yazar
-    await climb(b, 10);
-    expect((await b.call('comm.state', {})).settings).toMatchObject({ canFreeText: true, freeText: false });
+    expect((await err(a.call('chat.send', { room: 'genel', text: 'yine deniyorum' }))).code).toBe('SERBEST_KAPALI');
+    // 7 bölüm geçmiş: hâlâ kapalı; 8. bölümü geçince kendiliğinden açık
+    await climb(b, 8);
+    expect((await b.call('comm.state', {})).settings.canFreeText).toBe(false);
     await b.call('chat.join', { room: 'genel' });
-    await b.call('chat.send', { room: 'genel', text: 'ben de' });
-    const m = await env!.srv.httpUrl;
-    const olcum = await (await fetch(`${m}/olcum`)).json() as { days: Record<string, Record<string, number>> };
-    const today = Object.values(olcum.days)[0]!;
-    expect(today['msg.hazir']).toBeGreaterThanOrEqual(1);
-    expect(today['freetext.optin']).toBe(1);
+    expect((await err(b.call('chat.send', { room: 'genel', text: 'ben de' }))).code).toBe('SERBEST_KAPALI');
+    await b.call('progress.submit', run(8));
+    expect((await b.call('comm.state', {})).settings.canFreeText).toBe(true);
+    env!.clock.advance(1300);
+    expect((await b.call('chat.send', { room: 'genel', text: 'ben de' })).msg.kind).toBe('text');
+    expect((await b.call('dm.send', { to: a.me!.id, text: 'artık yazabiliyorum' })).msg.kind).toBe('text');
+    const olcum = await (await fetch(`${env!.srv.httpUrl}/olcum`)).json() as { days: Record<string, Record<string, number>> };
+    expect(Object.values(olcum.days)[0]!['msg.hazir']).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -239,8 +243,8 @@ describe('Yardım İste', () => {
   });
 
   it('kimse yardım etmediyse geçmek ödül vermez; serbest yazı ipucu kurala uyar', async () => {
-    env = await setup();
-    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora', '', { safe: true });
+    env = await setup({ freeTextCleared: 8 });
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');
     await team(a, b);
     await climb(a, 2);
     const req = (await a.call('team.help.request', { level: 2 })).request;
@@ -416,7 +420,7 @@ describe('protokol', () => {
     env = await setup();
     const a = await env!.connect('Ayşe');
     for (const [op, data] of [
-      ['chat.react', { msgId: '' }], ['chat.thread', {}], ['comm.settings', { freeText: 'evet' }], ['feed.challenge', { level: 0 }],
+      ['chat.react', { msgId: '' }], ['chat.thread', {}], ['comm.settings', { feedShare: 'evet' }], ['feed.challenge', { level: 0 }],
       ['help.tip', { requestId: 'x', phrase: 'Büyük Harf' }], ['help.race', {}], ['dq.answer', { choice: 7 }], ['team.study', {}],
       ['duo.invite', {}], ['duo.respond', { inviteId: 'x' }], ['mentor.offer', { id: 'x', as: 'kral' }], ['mentor.respond', { offerId: 'x' }], ['mentor.end', {}],
     ] as const) expect((await err(a.call(op as never, data as never))).code, op).toBe('GECERSIZ');

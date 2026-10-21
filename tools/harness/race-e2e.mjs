@@ -40,7 +40,7 @@ await run('npm', ['run', 'build', '-w', '@odi/server']);
 const srvPort = await freePort();
 
 const srv = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', resolve(root, 'apps/server/dist/server.mjs')], {
-  cwd: root, env: { ...process.env, PORT: String(srvPort), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'pipe'],
+  cwd: root, env: { ...process.env, PORT: String(srvPort), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'pipe'],
 });
 srv.stderr.on('data', (d) => { const t = String(d); if (!/ExperimentalWarning|trace-warnings/.test(t)) process.stderr.write(`[sunucu] ${t}`); });
 cleanup.push(async () => srv.kill('SIGTERM'));

@@ -40,7 +40,7 @@ const run = (cmd, a, o = {}) => new Promise((res, rej) => { const p = spawn(cmd,
 if (!has('no-build') || !existsSync(resolve(root, 'apps/server/dist/server.mjs'))) await run('npm', ['run', 'build:server', '--silent']);
 const srvPort = await freePort();
 const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], {
-  cwd: root, env: { ...process.env, PORT: String(srvPort), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_EVENTS_FAST: '1', ODI_TEST_STORE: '1', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'inherit'],
+  cwd: root, env: { ...process.env, PORT: String(srvPort), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_EVENTS_FAST: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '3' /* güvenli sohbet eşiği testte 3 bölüm: Ayşe/Bora yazar, Cem önce yalnız hazır söz */ }, stdio: ['ignore', 'pipe', 'inherit'],
 });
 cleanup.push(async () => { server.kill(); });
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
@@ -247,21 +247,20 @@ async function webSuite(bt) {
     await A.page.locator('.msg.mentioned').last().waitFor({ timeout: 8000 });
     await S.shot(A, 'bahsetme-vurgu');
 
-    // ---- güvenli varsayılan: Cem (2. bölüm) serbest yazıyı kapatır → hazır sözler; sonra kendisi açar
-    await net(C, 'comm.settings', { freeText: false });
-    await net(C, 'profile.update', { color: 0x2ee6d6 }); // profil değişince ayarlar yeniden okunur
+    // ---- güvenli sohbet ZORUNLU: Cem (1 bölüm) yalnız hazır söz/emoji; açma seçeneği yok, dürüst not
     await C.page.locator('.chat-input input[readonly]').waitFor({ timeout: 8000 });
     S.check(await C.page.locator('.quick-line .phrase-row').count() === 1, 'yeni oyuncu: hazır sözler açık, serbest yazı kapalı');
+    S.check((await C.page.getByRole('textbox', { name: 'Mesaj' }).getAttribute('placeholder')).includes('3. bölümden sonra açılır'), 'giriş kutusunda dürüst not: “Serbest yazı N. bölümden sonra açılır”');
     await S.shot(C, 'guvenli-hazir-sozler');
     await C.page.locator('.quick-line .phrase[data-phrase="selam"]').click();
     await B.page.locator('.msg.preset .bubble', { hasText: 'Selam!' }).last().waitFor({ timeout: 8000 });
     S.check(true, 'hazır söz gönderildi (Selam!)');
     await C.page.getByRole('textbox', { name: 'Mesaj' }).click();
-    await C.page.getByTestId('serbest-ac').waitFor();
-    await S.shot(C, 'serbest-yazi-onay');
-    await C.page.getByTestId('serbest-ac').click();
-    await C.page.locator('.chat-input input:not([readonly])').waitFor({ timeout: 8000 });
-    S.check(true, 'serbest yazı kendisi açınca açıldı');
+    await C.page.getByTestId('serbest-not').waitFor();
+    S.check(!(await C.page.getByTestId('serbest-ac').count()) && /3\. bölümden sonra açılır/.test(await C.page.getByTestId('serbest-not').innerText()), 'açma seçeneği yok: yalnız açıklama ve kurallar');
+    await S.shot(C, 'guvenli-sohbet-notu');
+    await C.page.getByTestId('guvenli-tamam').click();
+    S.check(await C.page.evaluate(async () => { try { await window.__etkinlik.net().call('chat.send', { room: `takim:${window.__etkinlik.netStore.getState().team.id}`, text: 'deneme' }); return false; } catch (e) { return e.code === 'SERBEST_KAPALI'; } }), 'sunucu da serbest yazıyı reddeder (SERBEST_KAPALI)');
     await toastGone(C);
 
     // ---- Yardım İste: sonuç ekranında (3 başarısızlık) → kart → ipucu / kalkan / birlikte yarış
@@ -349,6 +348,10 @@ async function webSuite(bt) {
     await toastGone(C);
     await S.shot(C, 'birlikte-ustam');
     await net(C, 'progress.submit', runOf(3)); await net(C, 'progress.submit', runOf(4));
+    // Cem artık eşiği (testte 3 bölüm) geçti: Birlikte › Sohbet ayarları'nda serbest yazı kendiliğinden açık
+    await C.page.getByTestId('serbest-durum').scrollIntoViewIfNeeded().catch(() => undefined);
+    await C.page.getByTestId('serbest-durum').locator('.pill', { hasText: 'Açık' }).waitFor({ timeout: 8000 });
+    S.check(true, 'eşik bölüm geçilince serbest yazı kendiliğinden açıldı');
     const ms = A.page.locator('[data-testid="iletisim-bildirimi"][data-kind="mentor"]');
     await ms.waitFor({ timeout: 8000 });
     S.check((await ms.innerText()).includes('Çırağın Cem 5. bölüme ulaştı'), 'ustaya dönüm noktası dürtmesi');
@@ -432,7 +435,7 @@ async function tourSuite(bt) {
   const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
   const errors = [];
   try {
-    for (const [cleared, done, want] of [[6, ALL_OLD_TOURS, 'akis'], [9, [...ALL_OLD_TOURS, 'akis'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'soru', 'ikili'], 'usta']]) {
+    for (const [cleared, done, want] of [[6, ALL_OLD_TOURS, 'akis'], [8, [...ALL_OLD_TOURS, 'akis'], 'yazi'], [9, [...ALL_OLD_TOURS, 'akis', 'yazi'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru', 'ikili'], 'usta']]) {
       const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 2, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
       const progress = {}; for (let i = 1; i <= cleared; i++) progress[i] = { stars: 2, best: 800, plays: 1 };
       await ctx.addInitScript((st) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: st, version: 3 })); } catch { /* yok */ } }, { progress, coins: 300, ftue: { v: 1, story: true, tours: done } });
@@ -458,6 +461,71 @@ async function tourSuite(bt) {
       S.check(!(await tour.count()), `“${want}” turu bitti`);
       await ctx.close();
     }
+  } catch (e) {
+    failures++; S.rec.fails.push(String(e.message ?? e).split('\n')[0]); log(`✗ akış: ${String(e.message ?? e).split('\n')[0]}`);
+  } finally {
+    if (errors.length) { failures++; S.rec.fails.push(`konsol: ${errors.slice(0, 3).join(' | ')}`); }
+    await browser.close();
+  }
+}
+
+// ---------------------------------------------------------------- 4c) Odi rengi: takma ad sayfasında seçilen renk her yerde
+async function colorSuite(bt) {
+  const S = makeSuite(`renk-${bt}`);
+  console.log(`\n▶ renk · ${bt}`);
+  const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
+  const errors = [];
+  try {
+    const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 2, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
+    await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* yok */ } });
+    const page = await ctx.newPage(); const p = { slug: 'renk', page };
+    page.on('pageerror', (e) => errors.push(e.message));
+    const PICK = 4; const HEX = 'ff4f7a'; // takma ad sayfasındaki 5. renk (pembe-kırmızı; varsayılan mor değil)
+    await page.goto(`${base}&oyun-bot=1`, { waitUntil: 'load' });
+    await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 30_000 });
+    await page.locator('.onboard').waitFor({ timeout: 20_000 });
+    await page.getByRole('textbox', { name: 'Takma ad' }).fill('Renkli Odi');
+    await page.locator('.swatch').nth(PICK).click();
+    await S.shot(p, 'takma-ad-renk');
+    await page.getByRole('button', { name: 'Başla' }).click();
+    await page.locator('.onboard').waitFor({ state: 'detached' });
+    await toastGone(p);
+    const store = () => page.evaluate(() => JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {});
+    await page.waitForFunction(() => (JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {}).odiColor != null, null, { timeout: 8000 }).catch(() => undefined);
+    S.check((await store()).odiColor === 0xff4f7a, 'seçilen renk kayıtta (tek kaynak, kalıcı)');
+    S.check(await page.evaluate(() => window.__etkinlik.net().me.color) === 0xff4f7a, 'sunucu profilinde aynı renk (arkadaşlar/takım/yarış görür)');
+    // harita
+    await page.locator('[data-odi-color]').first().waitFor({ timeout: 15_000 });
+    S.check(await page.locator('.map-screen [data-odi-color]').first().getAttribute('data-odi-color') === HEX, `haritadaki Odi seçilen renkte (#${HEX})`);
+    // profil
+    await page.locator('nav.tabbar .tab[data-tab="profile"]').click();
+    S.check(await page.getByTestId('profil-odi-renk').getAttribute('data-color') === HEX, 'Profil’deki Odi seçilen renkte');
+    await S.shot(p, 'profil-renk');
+    // Dolap: "Kendi rengin" giyili; başka renk giyip geri dönmek
+    await page.getByRole('button', { name: 'Dolabı aç' }).click();
+    await page.getByTestId('kendi-rengin').waitFor();
+    S.check(await page.getByTestId('kendi-rengin').getAttribute('aria-pressed') === 'true', 'Dolap: “Kendi rengin” giyili');
+    await page.getByRole('button', { name: 'Klasik Mor' }).click();
+    await page.waitForFunction(() => (JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {}).odiColor === 0x6c4cf1, null, { timeout: 5000 });
+    await page.waitForFunction(() => window.__etkinlik.net().me.color === 0x6c4cf1, null, { timeout: 8000 }).then(() => S.check(true, 'Dolap’ta açıkça giyilen renk sunucuya da yazıldı'), () => S.check(false, 'Dolap rengi sunucuya yazılmadı'));
+    await page.getByTestId('kendi-rengin').click();
+    await page.waitForFunction(() => (JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {}).odiColor === 0xff4f7a, null, { timeout: 5000 });
+    S.check(true, 'Dolap: kendi rengine geri dönüldü');
+    await S.shot(p, 'dolap-kendi-rengin');
+    await page.getByRole('button', { name: 'Geri' }).first().click();
+    // kamp
+    await page.locator('nav.tabbar .tab[data-tab="camp"]').click();
+    const camp = await page.locator('[data-odi-color]').first().waitFor({ timeout: 15_000 }).then(() => page.locator('[data-odi-color]').first().getAttribute('data-odi-color'), () => null);
+    S.check(camp === HEX, `kamptaki kendi Odi'n seçilen renkte (${camp})`);
+    // bölüm: harita → bölüm (bot oynar) → bölüme verilen kahraman rengi
+    await page.locator('nav.tabbar .tab[data-tab="map"]').click();
+    await page.locator('.map-play').click({ timeout: 15_000 });
+    await page.getByRole('button', { name: /Haydi|Başla|Oyna/ }).first().click({ timeout: 4000 }).catch(() => undefined);
+    await page.waitForFunction(() => !!window.__odi?.spec, null, { timeout: 30_000 });
+    const lvl = await page.evaluate(() => window.__odi.cosmetic?.color ?? null);
+    S.check(lvl === 0xff4f7a, `bölümdeki kahraman seçilen renkte (${lvl?.toString(16)})`);
+    await sleep(1500); await S.shot(p, 'bolum-kahraman');
+    await ctx.close();
   } catch (e) {
     failures++; S.rec.fails.push(String(e.message ?? e).split('\n')[0]); log(`✗ akış: ${String(e.message ?? e).split('\n')[0]}`);
   } finally {
@@ -526,7 +594,7 @@ async function domSuite(bt) {
 }
 
 try {
-  for (const t of targets) for (const b of browsers) { if (t === 'web') { await webSuite(b); await tourSuite(b); } else await domSuite(b); }
+  for (const t of targets) for (const b of browsers) { if (t === 'web') { if (!has('only-color')) { await webSuite(b); await tourSuite(b); } await colorSuite(b); } else await domSuite(b); }
 } finally {
   console.log('\n— özet —');
   for (const r of results) console.log(`  ${r.fails.length ? '✗' : '✓'} ${r.label}: ${r.checks} denetim${r.fails.length ? `, sorunlar: ${r.fails.join(' ; ')}` : ''}`);

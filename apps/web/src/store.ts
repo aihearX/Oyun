@@ -32,6 +32,11 @@ interface State extends PlayerCore {
   claimCalendar(): RewardItem[] | null;
   recordShare(): void;
   equip(id: string): void;
+  /** Odi'nin rengi (tek kaynak): takma ad sayfasında seçilen ya da Dolap'ta açıkça giyilen renk; null = Dolap varsayılanı */
+  odiColor: number | null;
+  /** takma ad sayfasında seçilen renk (Dolap'ta "Kendi rengin" olarak kalır) */
+  chosenColor: number | null;
+  setOdiColor(color: number, chosen?: boolean): void;
   markBiomeSeen(biome: string): void;
   dismissToast(id: number): void;
   buySkill(id: string): boolean;
@@ -80,7 +85,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0 };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, odiColor: null as number | null, chosenColor: null as number | null };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -117,7 +122,9 @@ export const useStore = create<State>()(persist((set, get) => {
       const today = ensureToday(); const r = claimCalendar(core(get()), today); if (!r) return null; settleAndToast(r.core); return r.applied;
     },
     recordShare() { const today = ensureToday(); const r = recordShare(core(get()), today); settleAndToast(r.core); },
-    equip(id) { set({ meta: equipCosmetic(get().meta, id) }); },
+    // Dolap'ta bir rengi açıkça giymek Odi'nin rengini de değiştirir (tek kaynak: odiColor); şapka rengi değiştirmez
+    equip(id) { const def = cosmeticById(id); const meta = equipCosmetic(get().meta, id); set({ meta, ...(def?.kind === 'renk' && meta.cosmetics.color === id && def.color != null ? { odiColor: def.color } : {}) }); },
+    setOdiColor(color, chosen) { if (!Number.isInteger(color) || color < 0 || color > 0xffffff) return; set({ odiColor: color, ...(chosen ? { chosenColor: color } : {}) }); },
     markBiomeSeen(biome) { const m = get().meta; if (!m.seenBiomes.includes(biome)) set({ meta: { ...m, seenBiomes: [...m.seenBiomes, biome] } }); },
     dismissToast(id) { set({ toasts: get().toasts.filter((t) => t.id !== id) }); },
     buySkill(id) {
@@ -143,7 +150,7 @@ export const useStore = create<State>()(persist((set, get) => {
     },
     setSounds(v) { set({ sounds: v }); },
     setVolumes(v) { set({ ...(v.musicVol != null ? { musicVol: Math.max(0, Math.min(1, v.musicVol)) } : {}), ...(v.sfxVol != null ? { sfxVol: Math.max(0, Math.min(1, v.sfxVol)) } : {}) }); },
-    reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [], meta: defaultMeta(), ftue: get().ftue.bypass ? get().ftue : { ...FRESH_FTUE } }); },
+    reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [], meta: defaultMeta(), odiColor: null, chosenColor: null, ftue: get().ftue.bypass ? get().ftue : { ...FRESH_FTUE } }); },
     ftueStoryDone() { set({ ftue: { ...get().ftue, story: true } }); },
     ftueTourDone(id) { const f = get().ftue; if (!f.tours.includes(id)) set({ ftue: { ...f, tours: [...f.tours, id] } }); },
     ftueBypass() { set({ ftue: { ...get().ftue, story: true, bypass: true } }); },
@@ -158,7 +165,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, odiColor: s.odiColor, chosenColor: s.chosenColor }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };
@@ -169,9 +176,11 @@ export const useStore = create<State>()(persist((set, get) => {
     if (!persisted || typeof persisted !== 'object') return current;
     const p = persisted as Partial<State>;
     // ftue: v3 öncesi kayıtta yok → ilerlemesi olan oyuncu hikâyeyi ve açılmış yerlerin turlarını görmüş sayılır
-    return { ...current, ...p, meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0 } as State;
+    return { ...current, ...p, meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
   },
 }));
+
+const validColor = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 0xffffff ? v : null);
 
 export function ownsSkill(skills: PlayerSkills, id: string): boolean {
   const node = SKILL_TREE.find((n) => n.id === id); if (!node) return false;

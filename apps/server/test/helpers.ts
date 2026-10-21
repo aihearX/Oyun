@@ -59,18 +59,19 @@ export interface Env {
   srv: OdiServer;
   clock: Clock;
   clients: TC[];
-  /** safe: yeni oyuncunun güvenli varsayılanı kalsın (serbest yazı kapalı); varsayılan olarak testler serbest yazıyı açar */
-  connect(name?: string, token?: string, opts?: { safe?: boolean }): Promise<TC>;
+  connect(name?: string, token?: string): Promise<TC>;
   close(): Promise<void>;
 }
 
 export async function setup(opts: ServerOptions = {}): Promise<Env> {
   const clock = new Clock();
-  const srv = await startServer({ port: 0, host: '127.0.0.1', dbFile: ':memory:', now: clock.now, testStore: true, msgPerSec: 1000, sweepMs: 60_000, ...opts });
+  const srv = await startServer({ port: 0, host: '127.0.0.1', dbFile: ':memory:', now: clock.now, testStore: true, msgPerSec: 1000, sweepMs: 60_000,
+    // güvenli sohbet (8 bölüm) kendi testlerinde (comm.test.ts) sınanır; diğer testler yeni oyuncuyla serbest yazar
+    freeTextCleared: 0, ...opts });
   const clients: TC[] = [];
   return {
     srv, clock, clients,
-    async connect(name, token = '', opts = {}) {
+    async connect(name, token = '') {
       const ref = { token };
       let queue: ProgressSubmit[] = [];
       const c = wrap(createClient({
@@ -80,7 +81,6 @@ export async function setup(opts: ServerOptions = {}): Promise<Env> {
       clients.push(c);
       c.connect();
       await waitStatus(c, 'bağlı');
-      if (!opts.safe) await c.call('comm.settings', { freeText: true });
       return c;
     },
     async close() {

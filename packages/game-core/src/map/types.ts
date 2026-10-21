@@ -43,4 +43,6 @@ export interface MapHandle {
   focusCurrent(animate?: boolean): void;
   /** dönüş sahnesini hızlandır (dokunuş) */
   speedUp(): void;
+  /** oyuncunun Odi rengi değişti: haritadaki kahraman yerinde yeniden boyanır */
+  setHeroColor(color: number): void;
 }

@@ -129,7 +129,8 @@ function cloud(ctx: Ctx, seed: number) {
 }
 
 /** işçi Odi: yuvarlak gövde, sarı baret, minik ayaklar */
-function worker(ctx: Ctx, col: number, step: number) {
+/** kamp Odi'si (yürüyen işçi); kahraman işçi oyuncunun kendi rengiyle de çizilir */
+export function worker(ctx: Ctx, col: number, step: number) {
   blobShadow(ctx, 6, 2.4, 0.3);
   ctx.fillStyle = css(shade(col, -0.4)); ctx.beginPath(); ctx.ellipse(-2.5 + step, -1, 2, 1.3, 0, 0, 7); ctx.ellipse(2.5 - step, -1, 2, 1.3, 0, 0, 7); ctx.fill();
   const g = ctx.createRadialGradient(-2.5, -10, 1, 0, -7, 8); g.addColorStop(0, css(shade(col, 0.45))); g.addColorStop(1, css(mix(col, 0x2d1d6e, 0.25)));

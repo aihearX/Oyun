@@ -125,6 +125,9 @@ export function tourFor(id: string, route: string): Tour | null {
       steps.push(unlockCard('race', 'yaris-01'));
       break;
     // ---- iletişim (docs/13-iletisim.md)
+    case 'yazi':
+      steps.push(unlockCard('yazi', 'yazi-01'), { ...line('yazi-02'), art: 'shield', mood: 'wink' });
+      break;
     case 'akis':
       steps.push(
         unlockCard('akis', 'akis-01'),

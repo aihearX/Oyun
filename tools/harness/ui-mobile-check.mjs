@@ -48,7 +48,7 @@ if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDi
   await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') });
 }
 const sport = 8800 + Math.floor(Math.random() * 400);
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
@@ -349,7 +349,6 @@ async function suite(browserName, target, [W, H]) {
         await page.getByRole('button', { name: 'Kapat' }).click();
         const bora = rawClient(wsUrl);
         await bora.call('hello', { version: 1, name: `Bora${sno}` });
-        await bora.call('comm.settings', { freeText: true });
         await bora.call('team.join', { code });
         await bora.call('progress.submit', { runId: `u${sno}a${Date.now()}`, level: 1, completed: true, stars: 3, score: 900, timeSec: 40, coins: 60, biome: 'dis-kulak', mechanic: 'kosu', cochleas: 2 });
         await bora.call('team.help.request', { level: 2 });

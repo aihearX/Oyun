@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
-import { DEFAULT_COLOR_ID, DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
+import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
 import {
-  calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, resolveLook, rollLucky, settle, xpThreshold,
+  calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
 } from '@odi/meta';
 import type { LevelOptions } from '@odi/game-core';
@@ -48,6 +48,7 @@ import { BUILDINGS, buildCost } from '@odi/shared';
 import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
+import { odiLook } from './look';
 
 type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>;
 /** yalnız test derlemesi (VITE_ODI_E2E=1): `?ftue=0` ilk deneyimi atlar (her şey açık), `?oyun-bot=1` normal akıştaki bölümleri harness botu oynar */
@@ -149,9 +150,10 @@ export function App() {
   const play = (number: number) => {
     const s = useStore.getState();
     const spec = generateLevel(s.journey, number, { recentStars: s.recentStars.length ? s.recentStars.reduce((a, b) => a + b, 0) / s.recentStars.length : 2, failStreak: s.failStreak, skills: s.skills });
-    const look = resolveLook(s.meta);
+    const look = odiLook(s);
     const extras: Extras = {
-      cosmetic: { color: look.colorId === DEFAULT_COLOR_ID ? undefined : look.color, hat: look.hat },
+      // seçilen renk her bölümde (yoksa bölüm biyomun varsayılan rengini kullanır)
+      cosmetic: { color: look.custom ? look.color : undefined, hat: look.hat },
       lucky: rollLucky(),
       firsts: Object.keys(FIRSTS).filter((f) => !s.meta.firsts.includes(f)),
     };
@@ -204,7 +206,7 @@ export function App() {
     case 'shop': return sub(<ShopScreen onBack={back(route)} />);
     case 'inbox': return sub(<InboxScreen onBack={back(route)} />);
     case 'league': return sub(<LeagueScreen onBack={back(route)} />);
-    case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: {}, race: room })} onClose={back(route)} />);
+    case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room })} onClose={back(route)} />);
     case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} onBack={back(route)} onPlay={(spec, p) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back })} />);
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
     case 'raceResult': return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
@@ -253,6 +255,9 @@ function useSocialBadges(coins: number) {
   }
   return { camp: campBadge, team: team ? unread + gifts + help + mentions : 0 };
 }
+
+/** yarışta da oyuncunun kendi Odi'si (renk + şapka); rakipler sunucu profilindeki rengi görür */
+function raceExtras(): Extras { const l = odiLook(useStore.getState()); return { cosmetic: { color: l.custom ? l.color : undefined, hat: l.hat } }; }
 
 /** bu koşunun yetenekleri: takım kalkanı varsa bir tanesi kullanılır; yoksa Atölye/Ortak Kalkan şansı (oranı Kamp'ta yazılı) */
 function runSkills(skills: PlayerSkills): PlayerSkills {

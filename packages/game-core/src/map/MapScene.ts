@@ -23,7 +23,7 @@ export class MapScene extends Phaser.Scene {
   private nodes: NodeView[] = [];
   private prog: Phaser.GameObjects.Graphics[] = [];
   private shown: StarMap = {}; private treasures = new Set<number>();
-  private odi!: Phaser.GameObjects.Container; private odiBody!: Phaser.GameObjects.Image; private odiIdle?: Phaser.Tweens.Tween;
+  private odi!: Phaser.GameObjects.Container; private odiBody!: Phaser.GameObjects.Image; private odiKey = 'map-odi'; private odiIdle?: Phaser.Tweens.Tween;
   private pulse: Phaser.GameObjects.Image[] = []; private shine?: Phaser.GameObjects.Image; private shineT?: Phaser.Tweens.Tween;
   private social: Phaser.GameObjects.GameObject[] = []; private socialTw: Phaser.Tweens.Tween[] = [];
   private viewTop = 0; private vel = 0; private drag: { y: number; t: number; moved: number; startTop: number } | null = null;
@@ -196,9 +196,10 @@ export class MapScene extends Phaser.Scene {
   // ---------------------------------------------------------------- Odi
   private makeOdi() {
     const { color, hat } = this.opts.hero; const size = Math.round(ODI * this.R);
-    heroTexture(this, 'map-odi', color, size, 'happy'); heroTexture(this, 'map-odi', color, size, 'wow');
+    this.odiKey = `map-odi-${color.toString(16)}`;
+    heroTexture(this, this.odiKey, color, size, 'happy'); heroTexture(this, this.odiKey, color, size, 'wow');
     const shadow = this.add.image(0, ODI / 2 - 2, shadowTex(this)).setScale(0.5);
-    this.odiBody = this.add.image(0, 0, 'map-odi-happy').setScale(1 / this.R);
+    this.odiBody = this.add.image(0, 0, `${this.odiKey}-happy`).setScale(1 / this.R);
     const parts: Phaser.GameObjects.GameObject[] = [shadow, this.odiBody];
     const hk = hat ? hatTexture(this, hat) : null; if (hk) parts.push(this.add.image(0, 0, hk).setScale(ODI / 48));
     this.odi = this.add.container(0, 0, parts).setDepth(9);
@@ -209,6 +210,14 @@ export class MapScene extends Phaser.Scene {
   }
   private placeOdi(_animate: boolean) {
     const p = this.odiAt(); this.odi.setPosition(p.x, p.y); this.startIdle();
+  }
+  /** oyuncu Odi rengini değiştirdi (ör. takma ad sayfası harita üstündeyken): kahramanı yerinde yeniden boya */
+  setHeroColor(color: number) {
+    if (!this.odiBody || color === this.opts.hero.color) return;
+    this.opts.hero = { ...this.opts.hero, color };
+    const size = Math.round(ODI * this.R); this.odiKey = `map-odi-${color.toString(16)}`;
+    heroTexture(this, this.odiKey, color, size, 'happy'); heroTexture(this, this.odiKey, color, size, 'wow');
+    this.odiBody.setTexture(`${this.odiKey}-happy`);
   }
   private startIdle() {
     this.odiIdle?.remove(); const y = this.odi.y; if (this.light) return;
@@ -311,10 +320,10 @@ export class MapScene extends Phaser.Scene {
     for (const [k, v] of Object.entries(target)) if (Number(k) < (to === 'finale' ? 99 : to)) this.shown[Number(k)] = Math.max(this.shown[Number(k)] ?? 0, v);
     this.syncNodes();
     const p = this.odiAt();
-    this.odiBody.setTexture('map-odi-wow');
+    this.odiBody.setTexture(`${this.odiKey}-wow`);
     await new Promise<void>((res) => this.tweens.add({ targets: this.odi, x: p.x, y: p.y, duration: 260, ease: 'Back.Out', onComplete: () => res() }));
     this.tweens.add({ targets: this.odiBody, scaleX: 1.2 / this.R, scaleY: 0.85 / this.R, duration: 90, yoyo: true });
-    this.time.delayedCall(600, () => this.odiBody.setTexture('map-odi-happy'));
+    this.time.delayedCall(600, () => this.odiBody.setTexture(`${this.odiKey}-happy`));
     this.opts.sfx?.('nodePop', { semitones: 5 }); this.opts.haptic?.('success');
     const nvTo = to === 'finale' ? null : this.nodes[to - 1]!;
     if (nvTo) { this.tweens.add({ targets: nvTo.med, scale: { from: 1.3 / this.R, to: 1 / this.R }, duration: 420, ease: 'Back.Out' }); this.burst(nvTo.n.x, nvTo.n.y, 10, nvTo.r + 26); }

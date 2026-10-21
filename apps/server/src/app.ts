@@ -29,6 +29,8 @@ export interface ServerConfig {
   eventsFast: boolean;
   /** hızlı modda etkinlik dönemlerinin başlangıç anı (varsayılan: sunucu açılışı) */
   eventsEpoch: number;
+  /** güvenli sohbet: serbest yazı için geçilmesi gereken bölüm (varsayılan COMM_RULES.freeTextLevel = 8; ODI_FREE_TEXT_AT yalnızca test) */
+  freeTextCleared: number;
 }
 
 export class OdiError extends Error {

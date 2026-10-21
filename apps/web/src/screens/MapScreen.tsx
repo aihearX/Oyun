@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BIOMES, HUMAN_JOURNEY } from '@odi/content';
-import { calendarView, chestReady, dayKey, ensureDaily, levelProgress, questDone, resolveLook } from '@odi/meta';
+import { calendarView, chestReady, dayKey, ensureDaily, levelProgress, questDone } from '@odi/meta';
+import { odiLook, useOdiLook } from '../look';
 import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
@@ -37,6 +38,9 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const stars = useMemo(() => starsOf(progress), [progress]);
   const host = useRef<HTMLDivElement>(null); const hudRef = useRef<HTMLDivElement>(null); const playRef = useRef<HTMLDivElement>(null);
   const handle = useRef<MapHandle | null>(null);
+  // Odi rengi harita açıkken değişirse (takma ad sayfası haritanın üstünde açılır) kahraman yerinde yeniden boyanır
+  const heroColor = useOdiLook().color;
+  useEffect(() => { handle.current?.setHeroColor(heroColor); if (host.current) host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); }, [heroColor]);
   const [card, setCard] = useState<MapCard | null>(null);
   const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
   const social = useMapSocial(); const socialRef = useRef(social); socialRef.current = social;
@@ -49,7 +53,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       const s = useStore.getState(); const now = starsOf(s.progress);
       const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
       if (!seenSt.init) seenSt.commit(now);
-      const look = resolveLook(s.meta);
+      const look = odiLook(s);
+      host.current.dataset.odiColor = look.color.toString(16).padStart(6, '0'); // test kancası: haritadaki Odi'nin rengi
       const hb = hudRef.current?.getBoundingClientRect().bottom ?? 70; const pb = playRef.current?.getBoundingClientRect().top ?? innerHeight - 140;
       h = startMap(host.current, {
         stars: now, seen, treasuresOpen: s.meta.treasures, hero: { color: look.color, hat: look.hat }, social: socialRef.current,

@@ -2,14 +2,19 @@ import { useEffect, useState } from 'react';
 import { ActionButton } from '../ui/Button';
 import { Art } from '../ui/art';
 import './title.css';
+import { tone, useOdiLook } from '../look';
 
 /** Odi kahraman çizimi: degrade küre, kenar ışığı, parlama, hale; gözlerde ışık; yanında ses dalgaları. */
 export function OdiHero({ size = 168 }: { size?: number }) {
+  // oyuncunun seçtiği renk (takma ad sayfası / Dolap); seçilmediyse özgün mor çizim
+  const look = useOdiLook();
+  const st = look.custom ? [tone(look.color, 0.55), tone(look.color, 0.18), tone(look.color, -0.18), tone(look.color, -0.42)] : ['#c9b8ff', '#8b6bff', '#5a36e0', '#3b1fae'];
+  const edge = look.custom ? tone(look.color, -0.55) : '#2d1a85';
   return (
-    <svg className="odi-hero" width={size} height={size} viewBox="0 0 200 200" aria-hidden>
+    <svg className="odi-hero" width={size} height={size} viewBox="0 0 200 200" aria-hidden data-odi-color={look.color.toString(16).padStart(6, '0')}>
       <defs>
         <radialGradient id="oh-body" cx="38%" cy="32%" r="72%">
-          <stop offset="0" stopColor="#c9b8ff" /><stop offset=".38" stopColor="#8b6bff" /><stop offset=".78" stopColor="#5a36e0" /><stop offset="1" stopColor="#3b1fae" />
+          <stop offset="0" stopColor={st[0]} /><stop offset=".38" stopColor={st[1]} /><stop offset=".78" stopColor={st[2]} /><stop offset="1" stopColor={st[3]} />
         </radialGradient>
         <radialGradient id="oh-halo" cx="50%" cy="50%" r="50%">
           <stop offset="0" stopColor="#ffc93c" stopOpacity=".55" /><stop offset=".45" stopColor="#8b6bff" stopOpacity=".28" /><stop offset="1" stopColor="#8b6bff" stopOpacity="0" />
@@ -28,7 +33,7 @@ export function OdiHero({ size = 168 }: { size?: number }) {
         <ellipse cx="100" cy="176" rx="40" ry="7" fill="rgba(5,2,20,.45)" />
         <circle cx="100" cy="102" r="58" fill="url(#oh-body)" />
         <circle cx="100" cy="102" r="58" fill="url(#oh-rim)" />
-        <circle cx="100" cy="102" r="57" fill="none" stroke="#2d1a85" strokeWidth="3" />
+        <circle cx="100" cy="102" r="57" fill="none" stroke={edge} strokeWidth="3" />
         <ellipse cx="76" cy="70" rx="20" ry="11" transform="rotate(-28 76 70)" fill="#fff" opacity=".55" />
         <ellipse cx="70" cy="66" rx="6" ry="3.4" transform="rotate(-28 70 66)" fill="#fff" opacity=".9" />
         <circle cx="70" cy="116" r="11" fill="url(#oh-cheek)" /><circle cx="130" cy="116" r="11" fill="url(#oh-cheek)" />

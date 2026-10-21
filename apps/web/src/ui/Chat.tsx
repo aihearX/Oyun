@@ -1,13 +1,13 @@
 import { openProfile } from '../friends/state';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
+import { COMM_RULES, SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
 import { Art, Glyph, rich } from './art';
-import { FeedCard, FreeTextSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
+import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
 import { clearMentions, useCanFreeText } from '../comm/state';
 import { featureOpen } from '../ftue/useFeatures';
 
@@ -147,12 +147,12 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       {phrases
         ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Emoji tepkilerine geç"><Art name="chat" size={20} /></button><PhraseStrip ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
         : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`Hızlı tepki ${e}`}>{e}</button>)}</div></div>}
-      {err && <div className="chat-err" role="alert">{err}{!free && /Serbest yazı/.test(err) && <> <button className="linkish" onClick={() => setOptIn(true)}>Serbest yazıyı aç</button></>}</div>}
+      {err && <div className="chat-err" role="alert">{err}</div>}
       {suggest.length > 0 && <div className="at-suggest" role="listbox" aria-label="Bahset">{suggest.map((m) => <button key={m.id} type="button" role="option" aria-selected={false} onClick={() => pickMention(m.name)}><span className="at-dot" style={{ background: hex(m.color) }} />@{m.name}</button>)}</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}
           onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } }}
-          placeholder={free ? placeholder : 'Hazır söz seç · yazmak için dokun'} aria-label="Mesaj" enterKeyHint="send" />
+          placeholder={free ? placeholder : `Serbest yazı ${COMM_RULES.freeTextLevel}. bölümden sonra açılır`} aria-label="Mesaj" enterKeyHint="send" />
         <IconButton type="submit" icon="send" label="Gönder" tone="solid" disabled={free && !text.trim()} />
       </form>
       {menu && (
@@ -168,7 +168,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
         </Sheet>
       )}
       {thread && <ThreadSheet parent={thread} onClose={() => setThread(null)} />}
-      {optIn && <FreeTextSheet onClose={() => setOptIn(false)} />}
+      {optIn && <SafeChatSheet onClose={() => setOptIn(false)} />}
     </div>
   );
 }

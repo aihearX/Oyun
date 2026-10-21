@@ -4,6 +4,7 @@ import { SOCIAL_LIMITS } from '@odi/shared';
 import { errText, getNet, toast, useSocial } from '../net';
 import { platform } from '../platform';
 import { OdiAvatar } from './OdiAvatar';
+import { useStore } from '../store';
 
 const COLORS = [0x6c4cf1, 0xff7a59, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
 export const isDefaultName = (n: string) => /^Odi\d{4}$/.test(n);
@@ -14,11 +15,11 @@ export function Onboarding() {
   const [name, setName] = useState(''); const [color, setColor] = useState<number | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   if (!me || st !== 'bağlı' || dismissed || !isDefaultName(me.name)) return null;
-  const c = color ?? me.color;
+  const c = color ?? useStore.getState().odiColor ?? me.color;
   const save = async () => {
     const n = getNet(); if (!n) return;
     setBusy(true); setErr('');
-    try { await n.call('profile.update', { name: name.trim(), color: c }); platform().haptic('success'); toast('👋', `Merhaba ${name.trim()}!`, 'Takımlar ve sohbet seni bekliyor.', 'green'); }
+    try { await n.call('profile.update', { name: name.trim(), color: c }); useStore.getState().setOdiColor(c, true); platform().haptic('success'); toast('👋', `Merhaba ${name.trim()}!`, 'Takımlar ve sohbet seni bekliyor.', 'green'); }
     catch (e) { setErr(errText(e)); platform().haptic('error'); }
     setBusy(false);
   };

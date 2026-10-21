@@ -47,6 +47,7 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `NODE_ENV` | — | `production` olduğunda test mağazası kapanır (ODI_TEST_STORE=1 değilse) |
 | `REVENUECAT_API_KEY` | — | gerçek mağaza makbuz doğrulaması; yoksa App Store / Play satın alımları **reddedilir** |
 | `ODI_LOG` | açık | `0` → bağlantı günlüğünü kapat |
+| `ODI_FREE_TEXT_AT` | `8` | yalnızca test: serbest yazı için geçilmesi gereken bölüm (güvenli sohbet; üretimde ayarlanmaz) |
 
 ## 3. İstemci (`@odi/net`)
 
@@ -179,8 +180,8 @@ Test modu: `ODI_EVENTS_FAST=1` → süreler dakikaya iner, dönemler sunucu aç�
 ## İletişim (docs/13-iletisim.md)
 
 Takım Akışı (gerçek olaylardan `feed` kartları, 30 dk birleştirme, takım başına saatte 20 kart), sohbet tepkileri (`chat.react`, 5 sabit tepki) ve konular
-(`chat.send { replyTo }`, `chat.thread`), Hızlı Sohbet (`kind: 'hazir'`, `QUICK_PHRASES`; özel mesajda da), güvenli varsayılan (en yüksek açık bölüm < 10 ve
-oyuncu açmadıysa serbest yazı `SERBEST_KAPALI`; `comm.settings { freeText, feedShare }`), @bahsetme (`comm.notice`), Yardım İste (`help.tip`, `help.race`,
+(`chat.send { replyTo }`, `chat.thread`), Hızlı Sohbet (`kind: 'hazir'`, `QUICK_PHRASES`; özel mesajda da), güvenli sohbet zorunlu (8 bölüm geçilene kadar serbest yazı `SERBEST_KAPALI`, açma seçeneği yok;
+`comm.settings { feedShare }`), @bahsetme (`comm.notice`), Yardım İste (`help.tip`, `help.race`,
 kalkan = `team.help.give`; isteyen 24 saat içinde geçince bir kez: isteyene 15, yardım edene 20 jeton), takıma meydan oku (`feed.challenge`, sunucudaki en iyi
 skor, 48 saat, günde 3), Günün Sorusu (`dq.state`, `dq.answer`, 20:00 açıklama, doğruya 10 jeton; `team.study` Çalışma Grubu), İkili Görev (`duo.*`,
 haftalık 300/800 nota), Usta–Çırak (`mentor.*`, dönüm noktaları 5/10/15/20). Tablolar `apps/server/src/comm/schema.ts`; testler `apps/server/test/comm.test.ts`;

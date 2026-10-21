@@ -18,6 +18,7 @@ import { NoteCard, useNote } from '../ftue/Notes';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
 import { ResultComm } from '../comm/ResultComm';
+import { odiLook } from '../look';
 
 interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
 
@@ -48,7 +49,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const demoNoCelebrate = !!demo && new URLSearchParams(location.search).get('kutlama') === '0';
   const S = result.stars; const FINAL = S + 4;
   const title = result.completed ? (S === 3 ? 'Mükemmel!' : S === 2 ? 'Harika!' : 'Geçtin!') : 'Bu sefer olmadı';
-  const allUnlocks = buildUnlocks(summary, store.meta.cosmetics.color);
+  const odiColor = odiLook(store).color;
+  const allUnlocks = buildUnlocks(summary, odiColor);
   const [showAll, setShowAll] = useState(false);
   const unlocks = showAll ? allUnlocks : allUnlocks.slice(0, 4); const hidden = allUnlocks.length - unlocks.length;
   const [step, setStep] = useState(reduced ? FINAL : 0);
@@ -252,7 +254,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 function StarHole() { return <svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden><path d="M12 2.6l2.75 5.6 6.15.9-4.45 4.33 1.05 6.12L12 16.65 6.5 19.55l1.05-6.12L3.1 9.1l6.15-.9z" fill="rgba(5,2,20,.5)" stroke="rgba(255,255,255,.08)" strokeWidth="1" strokeLinejoin="round" /></svg>; }
 
 interface UnlockView { icon: ReactNode; kicker: string; title: string; text?: string; chips?: RewardItem[]; tone: 'accent' | 'green' | 'gold' | 'coral' | 'silver' | 'bronze' }
-function buildUnlocks(s: RunSummary, colorId: string): UnlockView[] {
+function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
   const out: UnlockView[] = [];
   if (s.lucky) out.push({ icon: '🍀', kicker: 'Şanslı Nota', title: 'Sürpriz bonus!', chips: s.lucky, tone: 'green' });
   if (s.treasure) out.push({ icon: '🎁', kicker: 'Hazine açıldı', title: `Bölüm ${s.level} hazinesi`, chips: s.treasure, tone: 'gold' });
@@ -260,7 +262,7 @@ function buildUnlocks(s: RunSummary, colorId: string): UnlockView[] {
   const order = { card: 0, cosmetic: 1, albumBadge: 2, achievement: 3 } as const;
   for (const e of [...s.events].sort((a, b) => order[a.kind] - order[b.kind])) {
     if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ icon: '🃏', kicker: `Yeni Kulak Kartı · ${BIOMES[c.biome].name}`, title: c.title, text: c.fact, tone: 'green' }); }
-    else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); const col = cosmeticById(colorId)?.color; if (c) out.push({ icon: <OdiAvatar size={40} color={c.kind === 'renk' ? c.color : col} hat={c.hat} />, kicker: 'Dolaba yeni', title: c.name, text: c.desc, tone: 'accent' }); }
+    else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); const col = odiColor; if (c) out.push({ icon: <OdiAvatar size={40} color={c.kind === 'renk' ? c.color : col} hat={c.hat} />, kicker: 'Dolaba yeni', title: c.name, text: c.desc, tone: 'accent' }); }
     else if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }

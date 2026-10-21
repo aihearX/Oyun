@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useNet } from '@odi/net/store';
-import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, type DmMessage, type PublicProfile } from '@odi/shared';
+import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, type DmMessage, type PublicProfile } from '@odi/shared';
 import { act, errText, toast } from '../net';
 import { platform } from '../platform';
 import { useNav } from '../nav';
@@ -12,7 +12,7 @@ import { IconButton } from '../ui/Button';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
-import { FreeTextSheet, PhraseStrip } from '../comm/Cards';
+import { PhraseStrip, SafeChatSheet } from '../comm/Cards';
 import { useCanFreeText } from '../comm/state';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
@@ -169,7 +169,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           <form className="dm-compose" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
             <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar"><Icon name={panel ? 'list' : 'smile'} size={22} /></button>
-            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : 'Hazır söz seç · yazmak için dokun'} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
+            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : `Serbest yazı ${COMM_RULES.freeTextLevel}. bölümden sonra`} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
               onFocus={() => { if (!free) { input.current?.blur(); setPanel('soz'); setOptIn(true); return; } setPanel(''); stick.current = true; }}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
@@ -184,7 +184,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
       )}
 
       {menu && <MsgMenu m={menu} mine={menu.from === me?.id} meId={me?.id ?? ''} name={name} onClose={() => setMenu(null)} />}
-      {optIn && <FreeTextSheet onClose={() => setOptIn(false)} />}
+      {optIn && <SafeChatSheet onClose={() => setOptIn(false)} />}
     </div>
   );
 }

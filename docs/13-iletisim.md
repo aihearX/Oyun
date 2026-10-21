@@ -58,10 +58,12 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
   `kind: 'hazir'`, `text` = söz kimliği; sunucu kimliği doğrular, metni kendisi yazar (`meta.p` = kimlik). DM'de `dm.send kind 'hazir'`.
 - Yerler: takım sohbeti (söz şeridi), özel mesaj (söz şeridi), yarış lobisi ve yarış sonucu (yarış odası sohbeti), akış kartı
   ("Tebrik et"), yardım kartı (ipucu sözleri), usta dürtmesi.
-- **Güvenli varsayılan:** 10. bölüme ulaşmamış (en yüksek açık bölüm < 10) oyuncu serbest yazı gönderemez; hazır sözler, emoji
-  ve çıkartma her zaman açık. Oyuncu istediği an `comm.settings { freeText: true }` ile serbest yazıyı açar (sohbet altındaki
-  "Serbest yazıyı aç" ya da giriş kutusuna dokun → kuralları özetleyen onay sayfası; Birlikte › Sohbet ayarları'ndan kapatılabilir).
-  Sunucu tarafında zorunludur (`SERBEST_KAPALI`). Test/geliştirme atlaması (`ftue.bypass`) serbest yazıyı da açar.
+- **Güvenli sohbet ZORUNLU (sahibin kararı):** **8 bölüm geçilene kadar** serbest yazı yoktur — açma seçeneği de yoktur; hazır sözler,
+  emoji ve çıkartma her zaman açık. Giriş kutusu dürüstçe "Serbest yazı 8. bölümden sonra açılır" der; dokununca kalan bölüm sayısı
+  ve güvenlik kuralları gösterilir. 8. bölüm geçilince serbest yazı **kendiliğinden** açılır ve Tüy Dede kuralları bir kez anlatır
+  (FTUE özelliği `yazi`, satırlar `yazi-01`, `yazi-02`). Sunucuda zorunludur (`SERBEST_KAPALI`; `comm.settings` yalnızca `feedShare`
+  alır). Sunucu ayarı `freeTextCleared` (varsayılan `COMM_RULES.freeTextLevel` = 8); `ODI_FREE_TEXT_AT` ortam değişkeni yalnızca
+  uçtan uca testler içindir (yeni test hesapları yazabilsin; comm-e2e eşiği 3 alıp kuralı sınar).
 
 ### 3.3 Yardım İste
 1. Sonuç ekranı: aynı bölümde art arda 3 başarısızlık (ya da `failStreak ≥ 3`) ve takımdaysa → "Takımdan yardım iste" kartı.
@@ -120,7 +122,7 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
   bahsetmesi bildirim üretmez; usta/çırak ve ikili görev davetleri engelde reddedilir.
 - **Hız sınırları:** sohbet 1,2 sn (yanıtlar dahil); tepki 0,25 sn aralık + dakikada 60; meydan okuma günde 3; yardım isteği günde 3;
   ipucu istek başına 1; usta teklifi günde 5; ikili davet günde 5; akış toplama 30 dk + takım başına saatte 20 kart.
-- **Yeni oyuncu varsayılanı:** 10. bölüme kadar yalnız hazır sözler (opt-in ile serbest yazı) — sunucuda zorunlu.
+- **Yeni oyuncu kuralı (zorunlu):** 8 bölüm geçilene kadar yalnız hazır sözler ve emoji; açma seçeneği yok — sunucuda zorunlu.
 - **Sunucu doğrulaması:** her işlem zod şemasıyla; skor/ödüller sunucunun kendi kayıtlarından; ödüller idempotent (tablo birincil anahtarları).
 
 ## 5. Protokol eklemeleri (`packages/shared/src/social.ts`, yalnızca ekleme)
@@ -145,3 +147,11 @@ yardım isteklerinin ≥ %40'ı çözülür; günün sorusunu takım üyelerinin
   kartı + tepki + tebrik, yardım isteği → ipucu/kalkan → geçiş → teşekkür, usta–çırak bağı, günün sorusu cevap/açıklama, ikili görev
   ilerlemesi, bahsetme. Ekran görüntüleri `tools/harness/out/iletisim/`, en iyileri `best/`.
 - `ui-mobile-check.mjs`: yeni ekranlar 390×844 ve 320×640'ta (taşma yok, kaydırma çalışır, giriş kutusu sekme çubuğunun üstünde).
+
+## 8. Odi'nin rengi (tek kaynak)
+Takma ad sayfasında seçilen renk Odi'nin rengidir (`store.odiColor`, kalıcı; Sıfırla ile silinir) ve her yerde aynıdır: bölüm kahramanı
+(`LevelOptions.cosmetic.color`, yarış dahil), harita (renk değişince yerinde boyanır), kampta oyuncunun kendi Odi'si (ilk işçi), Profil,
+Dolap, sonuç ekranı önizlemeleri, açılış/hikâye kahramanı. Aynı renk sunucu profiline yazılır (`profile.update { color }`), böylece
+arkadaşlar, takım, akış kartları ve yarış hayaletleri aynı Odi'yi görür. Dolap'ta bir rengi **açıkça** giymek rengi değiştirir;
+"Kendi rengin" döşemesi takma adla seçilen renge geri döndürür; otomatik açılan kozmetikler rengi değiştirmez. Kod: `apps/web/src/look.ts`.
+Test: `comm-e2e.mjs` renk paketi (seçilen renk → kayıt, sunucu, harita, Profil, Dolap, kamp, bölüm kahramanı).

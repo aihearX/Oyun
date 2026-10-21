@@ -663,8 +663,8 @@ export const phraseById = (id: string) => QUICK_PHRASES.find((p) => p.id === id)
 
 /** sabit kurallar (sunucu ve istemci aynı değeri gösterir) */
 export const COMM_RULES = {
-  /** bu bölüme ulaşana kadar serbest yazı kapalı (hazır söz/emoji açık); oyuncu kendisi açabilir */
-  freeTextLevel: 10,
+  /** ZORUNLU güvenli sohbet: bu kadar bölüm GEÇİLENE kadar yalnızca hazır sözler ve emoji (açma seçeneği yok); sonra kendiliğinden açılır */
+  freeTextLevel: 8,
   feedMergeMs: 30 * 60_000, feedPerTeamHour: 20, threadMax: 50, threadPreview: 2, mentionsMax: 3,
   reactMinMs: 250, reactPerMin: 60,
   challengePerDay: 3, challengeMs: 48 * 3_600_000,
@@ -689,12 +689,11 @@ export const COMM_RULES = {
 export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan';
 
 export interface CommSettings {
-  /** serbest yazı açık mı (kendisi açtı ya da 10. bölüme ulaştı) */
+  /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve emoji, açma seçeneği yok) */
   canFreeText: boolean;
-  /** oyuncu serbest yazıyı kendisi açtı */
-  freeText: boolean;
   /** başarılarım Takım Akışı'nda görünsün */
   feedShare: boolean;
+  /** serbest yazının açılması için geçilmesi gereken bölüm sayısı */
   freeTextLevel: number;
 }
 /** gerçek zamanlı iletişim bildirimi (bahsetme, teşekkür, usta/ikili davet, meydan okuma geçildi…) */
@@ -750,7 +749,7 @@ export interface OpMap {
   'chat.react': { req: { msgId: string; reaction: ChatReaction | '' }; res: { msg: ChatMessage } };
   'chat.thread': { req: { msgId: string }; res: { parent: ChatMessage; replies: ChatMessage[] } };
   'comm.state': { req: Record<string, never>; res: { settings: CommSettings } };
-  'comm.settings': { req: { freeText?: boolean; feedShare?: boolean }; res: { settings: CommSettings } };
+  'comm.settings': { req: { feedShare?: boolean }; res: { settings: CommSettings } };
   /** takıma meydan oku: sunucu oyuncunun kayıtlı en iyi skorunu kullanır */
   'feed.challenge': { req: { level: number }; res: { msg: ChatMessage } };
   'help.tip': { req: { requestId: string; phrase?: string; text?: string }; res: { msg: ChatMessage } };

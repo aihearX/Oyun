@@ -19,7 +19,7 @@ function safeAreaTop(): number {
   return Math.max(v, native);
 }
 
-declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom } } }
+declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom; /** bölüme verilen görünüm (Odi rengi/şapka) */ cosmetic?: LevelOptions['cosmetic'] } } }
 
 /**
  * Phaser bölümünü bir div'e bağlar; olayları kabuğa ve (test için) window.__odi'ye aktarır.
@@ -35,7 +35,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   const [runKey, setRunKey] = useState(0);
   useEffect(() => {
     if (!ref.current) return;
-    const bus: NonNullable<Window['__odi']> = { events: [], spec, race }; window.__odi = bus;
+    const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic }; window.__odi = bus;
     let finished = false;
     // ---- canlı yarış bağlantısı (ağ yoksa normal bölüm olarak oynanır)
     const net = race ? getNet() : null;

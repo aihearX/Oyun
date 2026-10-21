@@ -7,7 +7,7 @@ import type { ArtName } from '../ui/art';
  */
 export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race'
   /** iletişim (docs/13-iletisim.md) */
-  | 'akis' | 'soru' | 'ikili' | 'usta';
+  | 'yazi' | 'akis' | 'soru' | 'ikili' | 'usta';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -23,6 +23,8 @@ export const FEATURES: FeatureDef[] = [
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },
   { id: 'events', at: 7, name: 'Etkinlikler', art: 'bigtop', tour: true },
   { id: 'race', at: 8, name: 'Canlı yarış ve meydan okuma', art: 'finish', tour: true },
+  // güvenli sohbet ZORUNLU: 8 bölüme kadar yalnız hazır sözler ve emoji; 8 geçilince serbest yazı kendiliğinden açılır (kurallar bir kez)
+  { id: 'yazi', at: 8, name: 'Serbest yazı', art: 'pencil', tour: true },
   // iletişim: takım sohbetinden sonra, adım adım (yeni oyuncuyu boğmadan)
   { id: 'akis', at: 6, name: 'Takım Akışı ve tepkiler', art: 'chat', tour: true },
   { id: 'soru', at: 9, name: 'Günün Sorusu', art: 'bulb', tour: true },
@@ -32,7 +34,7 @@ export const FEATURES: FeatureDef[] = [
 export const featureById = (id: FeatureId) => FEATURES.find((f) => f.id === id)!;
 
 /** Anlatıcı turları (yapıldıkça kaydedilir) */
-export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'akis', 'soru', 'ikili', 'usta'] as const;
+export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** Kalıcı ilk deneyim durumu (odi-v1 kaydında, sürümlü) */
