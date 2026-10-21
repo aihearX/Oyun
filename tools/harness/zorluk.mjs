@@ -156,7 +156,7 @@ if (args.belge) {
   if (ilk) {
     const I = Object.fromEntries(ilk.rows.map((r) => [r.n, { ...scoreOf(r.runs), se: seOf(r.runs) }]));
     const I0 = ilk0 ? Object.fromEntries(ilk0.rows.map((r) => [r.n, { ...scoreOf(r.runs), se: seOf(r.runs) }])) : {};
-    const goal = (n) => (n <= 3 ? '100%, ≤ 0,1 can' : n <= 6 ? '≥ %90' : '–');
+    const goal = (n) => (n <= 3 ? '100%, ≤ 0,1 can' : n <= 6 ? '≥ %90' : n === 7 ? '≥ %80' : n === 8 ? '≥ %70' : n <= 12 ? '≥ %65' : '–');
     const il = [`_İlk kez oynayan kademe (§2), ${ilk.k} oyuncu × bölüm; önce: aynı kademe eski oyunda (${ilk0 ? ilk0.k : '–'} oyuncu)._`, '', '| Bölüm | Hedef | Önce: bitirme | Önce: can kaybı | Sonra: bitirme | Sonra: can kaybı ± SE |', '|---|---|---|---|---|---|'];
     for (const n of Object.keys(I).map(Number).sort((a, b) => a - b)) { const a = I[n], b = I0[n]; il.push(`| ${n} | ${goal(n)} | ${b ? pct(b.fin) : '–'} | ${b ? f2(b.dmg) : '–'} | ${pct(a.fin)} | ${f2(a.dmg)} ± ${f2(a.se)} |`); }
     const md1 = readFileSync(doc, 'utf8');

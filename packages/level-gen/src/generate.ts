@@ -67,14 +67,21 @@ const MOVING = new Set(['moving', 'beat', 'crumble', 'echo', 'lift']);
 /** ilk bölümün tehlikeleri: diken, düşman, tehlike alanı (1. bölümde hiçbiri yok) */
 const HARM = new Set(['spike', 'enemy', 'hazard', 'gear']);
 /**
- * İlk bölümlerin içerik kısıtları (docs/12 §4): 1. bölümde (2-3'te öğretici odası dışında, 4-6'da kontrol noktası odasında)
+ * İlk bölümlerin içerik kısıtları (docs/12 §4): 1. bölümde (2-3'te öğretici odası dışında, 4-12'de kontrol noktası odasında)
  * diken/düşman/tehlike alanı kaldırılır,
  * zemindeki diken küçük çukura dönüşür (zıplama ritmi korunur); 1-3'te zemin çukurları en çok `maxPit` px'e daralır (sağdaki
  * zemin uzar: iniş geniş kalır).
  */
 function applyEarly(c: ChunkSpec, k: Pick<LevelKnobs, 'early'>): ChunkSpec {
-  const ea = k.early; if (!ea.noHazards && ea.maxPit >= 9999) return c;
+  const ea = k.early; if (!ea.noHazards && ea.maxPit >= 9999 && !ea.softHazards) return c;
   let ents = c.entities.map((e) => ({ ...e }));
+  if (ea.softHazards) for (const e of ents) {
+    if (e.type !== 'hazard' || e.props?.dy || e.props?.chase) continue;
+    const kind = String(e.props?.kind ?? ''); const w = e.w ?? 60, h = e.h ?? 60; const bot = e.y + h;
+    // zemindeki serumen yığını: dar ve alçak (kısa zıplama yeter); perde (altından kayılan): dar
+    if (kind === 'serumen' && Math.abs(bot - (GROUND_Y + 8)) <= 10 && h <= 80) { const nw = Math.max(36, Math.round(w * 0.7)); e.x += Math.round((w - nw) / 2); e.w = nw; e.y = bot - 52; e.h = 52; }
+    else if (h >= 120 && e.y <= GROUND_Y - 150 && bot >= GROUND_Y - 40 && bot <= GROUND_Y) { const nw = Math.max(80, Math.round(w * 0.7)); e.x += Math.round((w - nw) / 2); e.w = nw; }
+  }
   if (ea.noHazards === 'hepsi' || (ea.noHazards === 'ogretici-disi' && !isTutorial(c)) || (ea.noHazards && c.id.startsWith('cp-'))) {
     // zemindeki diken yerine küçük çukur (odanın zıplama ritmi korunur: tempo kuralı); iki yanda en az 100 px zemin kalmalı
     for (const sp of ents.filter((e) => e.type === 'spike' && e.y === GROUND_Y)) {

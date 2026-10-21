@@ -19,9 +19,9 @@ const assisted = (entities: Entity[], assist: Partial<NonNullable<LevelSpec['ass
 };
 
 describe('ilk bölümler: motor yardımları', () => {
-  it('koşu hızı bölüm düğmesidir: 1. bölüm 190, 2. 205, 3. 220 px/sn … 8. bölümde 260; 9. bölümden itibaren yardım yok', () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 8].map((n) => gen(n).assist?.run)).toEqual([190, 205, 220, 235, 242, 248, 255, 260]);
-    for (const n of [9, 12, 30]) expect(gen(n).assist).toBeUndefined();
+  it('koşu hızı bölüm düğmesidir: 1. bölüm 190, 2. 205, 3. 220 px/sn … 8-12. bölümde 260; 13. bölümden itibaren yardım yok', () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 8, 12].map((n) => gen(n).assist?.run)).toEqual([190, 205, 220, 235, 242, 248, 255, 260, 260]);
+    for (const n of [13, 19, 30]) expect(gen(n).assist).toBeUndefined();
     const { w, s } = assisted([], {}); run(w, s, 60); const x0 = s.hero.x; run(w, s, 60);
     expect(s.hero.x - x0).toBeCloseTo(190, -1);
   });

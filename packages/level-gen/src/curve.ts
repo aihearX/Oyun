@@ -72,9 +72,10 @@ export interface LevelKnobs {
   ease: number;
   /** ilk bölümlerin motor yardımları (koşu hızı, coyote/tampon, bedava düşüş, geri dönüş kilidi, kaydırma eşiği) */
   assist?: LevelAssist;
-  /** ilk bölümlerin içerik kısıtları: diken/düşman/tehlike yok (1. bölümde hiç; 2-3'te öğretici odası dışında; 4-6'da kontrol noktası odalarında), en geniş çukur
+  /** ilk bölümlerin içerik kısıtları: diken/düşman/tehlike yok (1. bölümde hiç; 2-3'te öğretici odası dışında; 4-12'de kontrol noktası odalarında), en geniş çukur
    *  (px), hareketli/ufalanan basamak yok (1-3), her odada kontrol noktası (1-8) */
-  early: { noHazards: 'hepsi' | 'ogretici-disi' | 'kontrol' | false; maxPit: number; noMoving: boolean; cpEveryRoom: boolean };
+  early: { noHazards: 'hepsi' | 'ogretici-disi' | 'kontrol' | false; maxPit: number; noMoving: boolean; cpEveryRoom: boolean;
+    /** 6-12: zemindeki serumen/perde tehlikeleri daralır (×0,7) ve serumen alçalır — ilk kez oynayanın Kanal/Zar yükü */ softHazards: boolean };
 }
 export interface LevelGeom {
   /** diken genişliği çarpanı (genişleyen diken daha uzun/kesin zıplama ister) */
@@ -119,12 +120,12 @@ const ENEMY_FROM: Record<string, number> = { devriye: 3, ucan: 4, ziplayan: 9, a
  * ulaşır (8. bölüm 260 ama diğer yardımlar sürer); 1-3'te coyote 0,16 / tampon 0,20 sn, 4-5'te 0,13 / 0,15; 1-2. bölümlerin ilk iki, 3-8'in ilk çukuru can götürmez; 6-8'de coyote 0,12 / tampon 0,14 sn; 1-5'te geri dönüş
  * yalnız gerektiği yerde ve yatay kaydırma eşiği 64 px.
  */
-const EARLY_RUN: Record<number, number> = { 1: 190, 2: 205, 3: 220, 4: 235, 5: 242, 6: 248, 7: 255, 8: 260 };
+const EARLY_RUN: Record<number, number> = { 1: 190, 2: 205, 3: 220, 4: 235, 5: 242, 6: 248, 7: 255, 8: 260, 9: 260, 10: 260, 11: 260, 12: 260 };
 export function assistFor(n: number): LevelAssist | undefined {
   const run = EARLY_RUN[n]; if (run === undefined) return undefined;
   return {
     run, coyote: n <= 3 ? 0.16 : n <= 5 ? 0.13 : 0.12, buffer: n <= 3 ? 0.2 : n <= 5 ? 0.15 : 0.14,
-    freeFalls: n <= 2 ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42,
+    freeFalls: n <= 2 || (n >= 7 && n <= 8) ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42,
   };
 }
 
@@ -154,10 +155,14 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   // zamanlama: bölge girişinde ve ilk bölgelerde bağışlayıcı, finallerde ve sonda sıkı
   const tight = Math.max(0, Math.min(1, 0.55 * g + 0.45 * u - 0.15 * ease));
   const { timing, geom } = tuningAt(tight);
+  // 9-12: zar penceresi en az 0,16 sn (ilk kez oynayan için; "Mükemmel" sıçrayış ödül olarak kalır, gerekmez)
+  if (n >= 9 && n <= 12) timing.tramp = Math.max(timing.tramp, 0.16);
+  // 6-12: zemin dikenleri en çok ×0,8 genişlik (kısa zıplama yeter)
+  if (n >= 6 && n <= 12) geom.spike = Math.min(geom.spike, 0.8);
   // boss'lar (ölçüyle ayarlı): golem 14 can, uyarı ×1,0, tempo ×1,2 · canavar 32 can, uyarı ×0,8, tempo ×1,8
   if (n === 20) { timing.bossHp = 14; timing.bossWarn = 1.0; timing.bossTempo = 1.2; }
   if (n === 40) { timing.bossHp = 32; timing.bossWarn = 0.8; timing.bossTempo = 1.8; }
   const modifiers = ease > 0 ? (MODS[n] ?? []).filter((m) => m === 'sis' || m === 'gece') : (MODS[n] ?? []);
-  const early = { noHazards: n === 1 ? 'hepsi' as const : n <= 3 ? 'ogretici-disi' as const : n <= 6 ? 'kontrol' as const : false as const, maxPit: n <= 2 ? 70 : n === 3 ? 90 : 9999, noMoving: n <= 3, cpEveryRoom: n <= 8 };
+  const early = { noHazards: n === 1 ? 'hepsi' as const : n <= 3 ? 'ogretici-disi' as const : n <= 12 ? 'kontrol' as const : false as const, maxPit: n <= 2 ? 70 : n === 3 ? 90 : 9999, noMoving: n <= 3, cpEveryRoom: n <= 12, softHazards: n >= 6 && n <= 12 };
   return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease, assist: assistFor(n), early };
 }
