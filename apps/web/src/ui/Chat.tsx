@@ -8,7 +8,7 @@ import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
 import { Art, Glyph, rich } from './art';
 import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
-import { clearMentions, useCanFreeText } from '../comm/state';
+import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { featureOpen } from '../ftue/useFeatures';
 
 const QUICK = ['👍', '❤️', '😂', '🔥', '👏', '💪', '🎉', '🙏'];
@@ -52,7 +52,7 @@ function withMentions(text: string, names: string[]): ReactNode {
 export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emptyText, members }: { room: string; offset?: number; placeholder?: string; emptyText?: string; members?: ChatMember[] }) {
   const me = useNet((s) => s.me);
   const msgs = useNet((s) => s.messages[room] ?? EMPTY);
-  const free = useCanFreeText();
+  const free = useCanFreeText(); const freeAt = useComm((s) => s.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
@@ -152,7 +152,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}
           onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } }}
-          placeholder={free ? placeholder : `Serbest yazı ${COMM_RULES.freeTextLevel}. bölümden sonra açılır`} aria-label="Mesaj" enterKeyHint="send" />
+          placeholder={free ? placeholder : `Serbest yazı ${freeAt}. bölümden sonra açılır`} aria-label="Mesaj" enterKeyHint="send" />
         <IconButton type="submit" icon="send" label="Gönder" tone="solid" disabled={free && !text.trim()} />
       </form>
       {menu && (

@@ -13,7 +13,7 @@ import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
 import { PhraseStrip, SafeChatSheet } from '../comm/Cards';
-import { useCanFreeText } from '../comm/state';
+import { useCanFreeText, useComm } from '../comm/state';
 
 const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
 const EMPTY: DmMessage[] = [];
@@ -52,7 +52,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
   const [panel, setPanel] = useState<'' | 'emoji' | 'odi' | 'soz'>('');
-  const free = useCanFreeText(); const [optIn, setOptIn] = useState(false);
+  const free = useCanFreeText(); const freeAt = useComm((s) => s.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel); const [optIn, setOptIn] = useState(false);
   const [menu, setMenu] = useState<DmMessage | null>(null);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const list = useRef<HTMLDivElement>(null);
@@ -169,7 +169,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           <form className="dm-compose" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
             <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar"><Icon name={panel ? 'list' : 'smile'} size={22} /></button>
-            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : `Serbest yazı ${COMM_RULES.freeTextLevel}. bölümden sonra`} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
+            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : `Serbest yazı ${freeAt}. bölümden sonra`} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
               onFocus={() => { if (!free) { input.current?.blur(); setPanel('soz'); setOptIn(true); return; } setPanel(''); stick.current = true; }}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
