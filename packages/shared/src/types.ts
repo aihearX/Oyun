@@ -163,6 +163,8 @@ export interface RunResult {
   secretFound: boolean;
   /** melodi/eskort gibi hedeflerin ayrıntısı */
   extra?: Record<string, number | string | boolean>;
+  /** Tedavi Odası: bu koşuda kullanılan malzemeler (LevelOptions.remedies'ten; sunucu envanterden düşer). docs/14-kamp.md */
+  remediesUsed?: { id: string; count: number }[];
 }
 
 export interface PlayerSkills {

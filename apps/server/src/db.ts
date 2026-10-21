@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { EVENTS_SCHEMA } from './events/schema';
 import { COMM_SCHEMA } from './comm/schema';
+import { CAMP_SCHEMA } from './camp-schema';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -109,6 +110,7 @@ export class Db {
     this.raw.exec(SCHEMA);
     this.raw.exec(EVENTS_SCHEMA);
     this.raw.exec(COMM_SCHEMA);
+    this.raw.exec(CAMP_SCHEMA);
   }
 
   private stmt(sql: string): StatementSync {

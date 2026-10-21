@@ -226,6 +226,13 @@ function rays(ctx: Ctx) {
   for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; const g = ctx.createLinearGradient(0, 0, Math.cos(a) * 90, Math.sin(a) * 90); g.addColorStop(0, 'rgba(255,240,180,0.9)'); g.addColorStop(1, 'rgba(255,240,180,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a - 0.09) * 90, Math.sin(a - 0.09) * 90); ctx.lineTo(Math.cos(a + 0.09) * 90, Math.sin(a + 0.09) * 90); ctx.closePath(); ctx.fill(); }
 }
 function heartTex(ctx: Ctx) { ctx.save(); ctx.shadowColor = 'rgba(255,92,138,0.9)'; ctx.shadowBlur = 4; heartShape(ctx, 0, 0, 6); ctx.fillStyle = '#ff5c8a'; ctx.fill(); ctx.restore(); ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.beginPath(); ctx.arc(-2.4, -1.6, 1.3, 0, 7); ctx.fill(); }
+/** Tedavi Odası damlası (raf baloncuğu, uçan damlalar) */
+function dropTex(ctx: Ctx) {
+  ctx.beginPath(); ctx.moveTo(0, -8); ctx.bezierCurveTo(5.5, -1, 5, 6, 0, 6.5); ctx.bezierCurveTo(-5, 6, -5.5, -1, 0, -8); ctx.closePath();
+  const g = ctx.createLinearGradient(-5, -8, 5, 6); g.addColorStop(0, '#dffffb'); g.addColorStop(0.5, '#2ee6d6'); g.addColorStop(1, '#127f8c');
+  ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#0d5a63'; ctx.lineWidth = 0.9; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(-1.8, 0.5, 1.1, 2.3, -0.4, 0, 7); ctx.fill();
+}
 function confetti(ctx: Ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(-2, -1, 4, 2); }
 function firefly(ctx: Ctx) { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 4); g.addColorStop(0, 'rgba(230,255,170,1)'); g.addColorStop(1, 'rgba(180,255,120,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 7); ctx.fill(); }
 
@@ -257,6 +264,7 @@ export function propDefs(): PropDef[] {
   [0xffffff, 0xffc93c, 0x2ee6d6, 0xff8fb1].forEach((c, i) => out.push(def(`c-note-${i}`, 18, 22, 7, 12, (x) => note(x, c))));
   out.push(def('c-glow', 64, 64, 32, 32, (x) => glow(x, 32)), def('c-ring', 100, 52, 50, 26, (x) => ring(x, 48)), def('c-arc', 24, 30, 6, 15, arcWave));
   out.push(def('c-puff', 22, 22, 11, 11, puff), def('c-rays', 184, 184, 92, 92, rays), def('c-heart', 16, 16, 8, 8, heartTex), def('c-hand', 22, 22, 11, 13, hand));
+  out.push(def('c-drop', 14, 18, 7, 9, dropTex));
   out.push(def('c-confetti', 6, 4, 3, 2, confetti), def('c-firefly', 8, 8, 4, 4, firefly), def('c-sparkle', 16, 16, 8, 8, (x) => sparkle(x, 0, 0, 6)));
   TIER_GEAR.forEach((c, i) => out.push(def(`c-gear-${i}`, 24, 24, 12, 12, (x) => gear(x, 0, 0, 11, 9, c))));
   return out;

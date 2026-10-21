@@ -9,6 +9,8 @@ export type GameEvent =
   | { type: 'haptic'; kind: 'light' | 'medium' | 'heavy' | 'success' | 'error' }
   | { type: 'levelComplete'; result: RunResult }
   | { type: 'levelFailed'; result: RunResult }
+  /** Tedavi Odası malzemesi bir patoloji engelini etkisiz kıldı (left: bu malzemeden kalan). docs/14-kamp.md */
+  | { type: 'remedy'; id: string; pathology: string; left: number }
   | { type: 'quit' };
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */
@@ -64,6 +66,12 @@ export interface LevelOptions {
   onPauseRequest?: () => void;
   /** cihazın güvenli alan üst boşluğu (CSS px; çentik/kamera/saat): oyun içi gösterge bunun altına iner */
   safeTop?: number;
+  /**
+   * Tedavi Odası'ndan çantaya konan malzemeler (bölüm kartında seçilir; kimlikler @odi/content REMEDIES). Her adet, malzemenin
+   * `counters` listesindeki bir patoloji engelini bir kez etkisiz kılar; kullanılan adetler RunResult.remediesUsed ile döner
+   * (kullanılmayan kaybolmaz). Yarışta ve etkinlikte verilmez. Sözleşme: docs/14-kamp.md.
+   */
+  remedies?: { id: string; count: number }[];
 }
 
 export interface LevelHandle {

@@ -4,7 +4,11 @@ import { buildCost, crystalsToFinish, type BuildingId, type CampState, type Wall
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canUpgrade, defOf, effect, type CampActions } from './model';
+import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canUpgrade, defOf, effect, infoOf, unlockLabel, type CampActions } from './model';
+import { nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
+import { MoreLine } from '../ftue/Notes';
+import { TedaviPanel } from './TedaviPanel';
+import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 
@@ -16,6 +20,25 @@ export function BuildingThumb({ id, level, size = 84 }: { id: BuildingId; level:
     try { const { canvas } = buildingCanvas(id, level, 1.4); const url = canvas.toDataURL('image/png'); thumbs.set(k, url); return url; } catch { return ''; }
   }, [id, level]);
   return src ? <img className="bp-thumb" src={src} alt="" style={{ height: size }} aria-hidden /> : null;
+}
+
+/** açılım çipi: kozmetik / sözlük / tarif / çanta yeri */
+export function UnlockChip({ u }: { u: CampUnlock }) {
+  const icon = u.kind === 'tarif' ? <RemedyIcon id={u.id} size={18} /> : <Art name={u.kind === 'kozmetik' ? 'hat' : u.kind === 'terim' ? 'bulb' : 'plus'} size={16} />;
+  return <span className={`bp-unlock k-${u.kind}`} data-unlock={`${u.kind}:${'id' in u ? u.id : ''}`}>{icon}{unlockLabel(u)}</span>;
+}
+/** "Odyolojide": binanın gerçek işlevi (sade + Daha fazla) ve bu binanın sıradaki açılımı */
+export function BuildingInfo({ id, level }: { id: BuildingId; level: number }) {
+  const info = infoOf(id); const next = nextCampUnlock(id, level); const now = level > 0 ? campUnlocksAt(id, level) : [];
+  return (
+    <div className="bp-info" data-testid="bina-bilgi">
+      <div className="bp-info-k"><Art name="ear" size={16} /> Odyolojide</div>
+      <p>{info.plain}</p>
+      <MoreLine text={info.tech} />
+      {now.length > 0 && <div className="bp-unlocks"><small>Sv {level} ile açıldı</small>{now.map((u, i) => <UnlockChip key={i} u={u} />)}</div>}
+      {next && <div className="bp-unlocks next"><small>Sv {next.level} açar</small>{next.items.map((u, i) => <UnlockChip key={i} u={u} />)}</div>}
+    </div>
+  );
 }
 
 /** Bina paneli: ad, seviye, etki (şimdi → sonraki), maliyet/süre, Yükselt (yetersizse nedeni), inşaat eylemleri, depo toplama. */
@@ -56,6 +79,9 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
           <div><small>Şimdi</small><b>{effect(id, b.level)}</b></div>
           {!max && <><span aria-hidden>→</span><div className="next"><small>Sv {to}</small><b>{effect(id, to)}</b></div></>}
         </div>
+
+        <BuildingInfo id={id} level={b.level} />
+        {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
 
         {depot && (
           <div className="bp-depot">

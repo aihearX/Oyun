@@ -1,4 +1,5 @@
-import { BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap } from '@odi/shared';
+import { BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap, type RemedyState } from '@odi/shared';
+import { CAMP_COSMETICS, REMEDY_INV_CAP, remedyById, remedyShelf } from '@odi/content';
 import { fail, type App, type Handlers } from './app';
 import { feedBuilding } from './comm/feed';
 import { addContrib, techBonus } from './teamextra';
@@ -30,7 +31,59 @@ export function campState(app: App, pid: string): CampState {
     const r = map.get(b.id);
     return { id: b.id, level: r?.level ?? 0, upgradingTo: r?.upgrading_to ?? null, startedAt: r?.started_at ?? null, endsAt: r?.ends_at ?? null, helpsReceived: r?.helps ?? 0 };
   });
-  return { buildings, depotStoredAt: p.depot_at, serverTime: app.now() };
+  return { buildings, depotStoredAt: p.depot_at, serverTime: app.now(), remedy: remedyState(app, pid) };
+}
+
+// ------------------------------------------------------------------ Tedavi Odası (docs/14-kamp.md)
+const levelOf = (app: App, pid: string, id: BuildingId) => app.db.get<{ level: number }>('SELECT level FROM buildings WHERE player_id = ? AND id = ?', pid, id)?.level ?? 0;
+export function remedyState(app: App, pid: string): RemedyState {
+  const prod = app.db.get<{ item: string | null; since: number }>('SELECT item, since FROM remedy_prod WHERE player_id = ?', pid);
+  const inv: Record<string, number> = {};
+  for (const r of app.db.all<{ id: string; n: number }>('SELECT id, n FROM remedy_inv WHERE player_id = ? AND n > 0', pid)) inv[r.id] = r.n;
+  return { item: prod?.item ?? null, since: prod?.since ?? 0, inv };
+}
+const invOf = (app: App, pid: string, id: string) => app.db.get<{ n: number }>('SELECT n FROM remedy_inv WHERE player_id = ? AND id = ?', pid, id)?.n ?? 0;
+function addInv(app: App, pid: string, id: string, n: number): void {
+  app.db.run('INSERT INTO remedy_inv(player_id, id, n) VALUES(?, ?, ?) ON CONFLICT(player_id, id) DO UPDATE SET n = MAX(0, n + excluded.n)', pid, id, n);
+}
+/**
+ * raftaki hazır malzemeleri çantaya al (çantaya sığdığı kadar; sığmayan rafta kalır). Zamana bağlıdır: hemen ikinci çağrı 0 alır.
+ * Dönüş: alınan adet ve rafta kalan adet.
+ */
+export function collectRemedies(app: App, pid: string): { collected: number; left: number } {
+  const prod = app.db.get<{ item: string | null; since: number }>('SELECT item, since FROM remedy_prod WHERE player_id = ?', pid);
+  const def = prod?.item ? remedyById(prod.item) : undefined;
+  if (!prod || !def) return { collected: 0, left: 0 };
+  const now = app.now(); const lv = levelOf(app, pid, 'tedavi');
+  const sh = remedyShelf(def, lv, prod.since, now);
+  if (sh.ready <= 0) return { collected: 0, left: 0 };
+  const take = Math.max(0, Math.min(sh.ready, REMEDY_INV_CAP - invOf(app, pid, def.id)));
+  const left = sh.ready - take;
+  if (take > 0) addInv(app, pid, def.id, take);
+  // kalan adetler rafta durur: sayaç, onları hâlâ "hazır" sayacak şekilde geri alınır
+  app.db.run('UPDATE remedy_prod SET since = ? WHERE player_id = ?', sh.nextSince - left * sh.periodMs, pid);
+  return { collected: take, left };
+}
+/** bölümde kullanılan malzemeler envanterden düşer (koşu kimliğiyle bir kez; fazlası sıfırda durur) */
+export function useRemedies(app: App, pid: string, runId: string, used: { id: string; count: number }[] | undefined): void {
+  if (!used?.length) return;
+  if (app.db.get('SELECT 1 AS x FROM remedy_use WHERE player_id = ? AND run_id = ?', pid, runId)) return;
+  const clean = used.filter((u) => remedyById(u.id) && u.count > 0).map((u) => ({ id: u.id, count: Math.min(9, Math.floor(u.count)) }));
+  for (const u of clean) app.db.run('UPDATE remedy_inv SET n = MAX(0, n - ?) WHERE player_id = ? AND id = ?', u.count, pid, u.id);
+  app.db.run('INSERT INTO remedy_use(player_id, run_id, used, at) VALUES(?, ?, ?, ?)', pid, runId, JSON.stringify(clean), app.now());
+  if (clean.length) app.emit(pid, 'camp.updated', { camp: campState(app, pid) });
+}
+/** bina seviyesiyle açılan kamp kozmetikleri: bir kez verilir (camp_unlocks), oyuncu profiline (me.cosmetics) yazılır */
+export function grantCampUnlocks(app: App, pid: string): string[] {
+  const lv = new Map(rows(app, pid).map((r) => [r.id, r.level]));
+  const given: string[] = [];
+  for (const c of CAMP_COSMETICS) {
+    if ((lv.get(c.building) ?? 0) < c.level) continue;
+    const ref = `kozmetik:${c.id}`;
+    if (app.db.run('INSERT OR IGNORE INTO camp_unlocks(player_id, ref, at) VALUES(?, ?, ?)', pid, ref, app.now()) === 0) continue;
+    app.grant(pid, { kind: 'kozmetik', amount: 1, ref: c.id }); given.push(c.id);
+  }
+  return given;
 }
 
 /** süresi dolan inşaatları tamamla (sorgu anında ve zamanlayıcıyla). pid verilmezse herkes için. */
@@ -48,7 +101,7 @@ export function completeDue(app: App, pid?: string): void {
     feedBuilding(app, r.player_id, r.id, r.upgrading_to!);
     if (r.help_req) { const t = app.playerOrNull(r.player_id)?.team_id; if (t) teams.add(t); }
   }
-  for (const o of owners) app.emit(o, 'camp.updated', { camp: campState(app, o) });
+  for (const o of owners) { grantCampUnlocks(app, o); app.emit(o, 'camp.updated', { camp: campState(app, o) }); }
   for (const t of teams) broadcastHelpNeeded(app, t);
 }
 
@@ -93,7 +146,26 @@ function helpOnce(app: App, helperId: string, targetId: string, building: Buildi
 }
 
 export const campHandlers: Handlers = {
-  'camp.state': (app, s) => { completeDue(app, s.pid); return { camp: campState(app, s.pid), wallet: app.wallet(s.pid) }; },
+  'camp.state': (app, s) => { completeDue(app, s.pid); grantCampUnlocks(app, s.pid); return { camp: campState(app, s.pid), wallet: app.wallet(s.pid) }; },
+  'camp.remedy.make': (app, s, { item }) => {
+    completeDue(app, s.pid);
+    const lv = levelOf(app, s.pid, 'tedavi');
+    if (lv <= 0) fail('SART', 'Önce Tedavi Odası’nı kur.');
+    const def = item ? remedyById(item) : null;
+    if (item && !def) fail('YOK', 'Bu malzeme bilinmiyor.');
+    if (def && def.level > lv) fail('SART', `${def.name} için Tedavi Odası Sv ${def.level} gerekli.`);
+    const cur = app.db.get<{ item: string | null }>('SELECT item FROM remedy_prod WHERE player_id = ?', s.pid);
+    if ((cur?.item ?? null) === (item ?? null)) return { camp: campState(app, s.pid), collected: 0 };
+    const { collected, left } = collectRemedies(app, s.pid);
+    if (left > 0) fail('DOLU', 'Raftaki malzemeler çantana sığmıyor; önce birkaçını bölümde kullan.');
+    app.db.run('INSERT INTO remedy_prod(player_id, item, since) VALUES(?, ?, ?) ON CONFLICT(player_id) DO UPDATE SET item = excluded.item, since = excluded.since', s.pid, item ?? null, app.now());
+    return { camp: campState(app, s.pid), collected };
+  },
+  'camp.remedy.collect': (app, s) => {
+    completeDue(app, s.pid);
+    const { collected } = collectRemedies(app, s.pid);
+    return { camp: campState(app, s.pid), collected };
+  },
   'camp.upgrade': (app, s, { id }) => {
     completeDue(app, s.pid);
     const all = rows(app, s.pid);
@@ -104,7 +176,7 @@ export const campHandlers: Handlers = {
     const to = r.level + 1;
     if (to > def.maxLevel) fail('MAKS', `${def.name} en yüksek seviyede.`);
     const merkez = all.find((x) => x.id === 'merkez')?.level ?? 1;
-    if (id !== 'merkez' && to > merkez) fail('SART', `Önce Kamp Merkezi'ni ${to}. seviyeye yükseltmelisin.`);
+    if (id !== 'merkez' && to > merkez) fail('SART', `Önce Odyoloji Merkezi'ni ${to}. seviyeye yükseltmelisin.`);
     const cost = buildCost(id, to);
     app.spend(s.pid, 'jeton', cost.jeton);
     const p = app.player(s.pid);

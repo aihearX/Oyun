@@ -11,8 +11,10 @@ export const LOTS: Record<BuildingId, { x: number; y: number; tiles: number }> =
   atolye: { x: -240, y: 56, tiles: 2 },
   depo: { x: 240, y: 56, tiles: 2 },
   revir: { x: 0, y: 168, tiles: 2 },
+  /** Tedavi Odası: merkezin arkasında, iki tepenin arasındaki vadide */
+  tedavi: { x: 0, y: -226, tiles: 2 },
 };
-export const BUILDING_ORDER: BuildingId[] = ['merkez', 'laboratuvar', 'kule', 'atolye', 'depo', 'revir'];
+export const BUILDING_ORDER: BuildingId[] = ['merkez', 'laboratuvar', 'kule', 'atolye', 'depo', 'revir', 'tedavi'];
 
 /** görsel kademe: 1-3 ahşap, 4-6 taş, 7-9 tuğla+bayrak, 10-12 metal+ışık, 13-15 altın süs. 0 = boş arsa */
 export const CAMP_TIER_NAMES = ['Ahşap', 'Taş', 'Tuğla', 'Metal', 'Altın'] as const;

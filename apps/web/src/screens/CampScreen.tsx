@@ -9,6 +9,7 @@ import { Skeleton, TopBar, useNow } from '../ui/social';
 import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
 import { askedHelp, buildKey, celebrateBuilt, defOf, type CampActions } from '../camp/model';
+import { sayDede } from '../camp/dede';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
 import { Art } from '../ui/art';
 import '../camp/camp.css';
@@ -74,6 +75,8 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     },
     collect: async () => { const r = await act('camp.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp, wallet: r.wallet }); return r.collected; },
     helpAll: async () => { const r = await act('team.camp.helpAll', {}); if (!r) return null; if (r.given > 0) toast('🤝', `${r.given} inşaatı hızlandırdın`, 'Her yardım takımına güç katar.', 'green'); return r.given; },
+    remedyMake: async (item) => { const r = await act('camp.remedy.make', { item }); if (!r) return false; useNet.setState({ camp: r.camp }); platform().haptic('light'); if (r.collected > 0) toast('🩹', `+${r.collected} malzeme çantana girdi`, undefined, 'green'); return true; },
+    remedyCollect: async () => { const r = await act('camp.remedy.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp }); remedyCollected(r.collected); return r.collected; },
   }), []);
   const onHelped = useCallback((fn: (b: BuildingId, s: number) => void) => { const n = getNet(); if (!n) return () => undefined; return n.on('camp.helped', ({ building, seconds }) => fn(building, seconds)); }, []);
   const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name } : null), [team?.emblem, team?.name]);
@@ -86,6 +89,14 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
   if (!camp || !wallet) return <ListShell setView={setView}>{banner}<Skeleton rows={4} /></ListShell>;
   if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
   return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;
+}
+
+/** malzemeler çantaya girdi: ilk toplamada Tüy Dede çantayı anlatır (bir kez, bu cihazda) */
+function remedyCollected(n: number) {
+  if (n <= 0) return;
+  let first = false; try { first = !localStorage.getItem('odi.kamp.ilkMalzeme'); localStorage.setItem('odi.kamp.ilkMalzeme', '1'); } catch { /* gizli mod */ }
+  if (first) sayDede('tedavi-al-01', 'Tedavi Odası');
+  else toast('🩹', `+${n} malzeme çantana girdi`, 'Bölüm kartından çantana koy.', 'green');
 }
 
 /** liste görünümünde inşaat bitince kutlama (üs görünümünde sahne kendisi kutlar) */
@@ -116,6 +127,8 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
     ask: async (id) => { const b = ref.current.camp.buildings.find((x) => x.id === id); if (b) askedHelp.add(buildKey(b)); toast('🙋', 'Önizleme', 'Gerçek oyunda takımına haber gider.', 'green'); return true; },
     collect: async () => { const r = demoReduce(ref.current, { k: 'collect' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
     helpAll: async () => { toast('🤝', 'Önizleme', 'Gerçek oyunda takım arkadaşlarının inşaatı hızlanır.', 'green'); return 2; },
+    remedyMake: async (item) => { setS((o) => demoReduce(o, { k: 'remedyMake', item })); return true; },
+    remedyCollect: async () => { const r = demoReduce(ref.current, { k: 'remedyCollect' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); remedyCollected(r.collected ?? 0); return r.collected ?? 0; },
   }), []);
   const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri' }), []);
   if (view === 'us') return <CampBase demo camp={s.camp} wallet={s.wallet} team={team} helpCount={2} fast={4} now={Date.now} actions={actions} onList={() => setView('liste')} />;

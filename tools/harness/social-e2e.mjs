@@ -146,7 +146,7 @@ try {
   await shot(B, 'B-kamp');
   await B.getByRole('button', { name: 'Liste görünümü' }).click(); // erişilebilir liste görünümü: aynı işlevler
   await B.locator('.building').first().waitFor();
-  await B.locator('.building', { hasText: 'Ses Laboratuvarı' }).getByRole('button', { name: 'Yükselt' }).click();
+  await B.locator('.building', { hasText: 'Odyometri Odası' }).getByRole('button', { name: 'Yükselt' }).click();
   await B.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
   await B.locator('.construction').waitFor();
   await toastGone(B);
@@ -169,8 +169,8 @@ try {
 
   step('7 · B\'nin süresi kısalır');
   // 60 sn'lik inşaat: bir yardım (en az 60 sn) bitirir → kart Sv 1 olur ve kutlama afişi çıkar
-  await B.locator('.building', { hasText: 'Ses Laboratuvarı' }).locator('.lvl-pill', { hasText: 'Sv 1' }).waitFor({ timeout: 12_000 });
-  ok(`süre ${leftBefore} → 0:00, Ses Laboratuvarı Sv 1`);
+  await B.locator('.building', { hasText: 'Odyometri Odası' }).locator('.lvl-pill', { hasText: 'Sv 1' }).waitFor({ timeout: 12_000 });
+  ok(`süre ${leftBefore} → 0:00, Odyometri Odası Sv 1`);
   await sleep(300);
   await shot(B, 'B-insaat-bitti');
   await toastGone(B);

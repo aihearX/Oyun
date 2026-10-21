@@ -4,6 +4,9 @@ import { buildingCanvas, type Anchors } from './buildings';
 import { BRIDGE, GROUND_BOX, ISLAND, ROADS, STREAM_PTS, onIsland, paintGround, paintSky, shoreK } from './ground';
 import { BUILDING_ORDER, LOTS, depotStored, tierOf, zonesOpen } from './layout';
 import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold, worker } from './props';
+import { MONUMENT_BOX, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
+import { remedyById, remedyShelf } from '@odi/content';
+import type { BiomeId } from '@odi/shared';
 
 export interface CampTeam { emblem: string; name: string }
 export interface CampSceneOpts {
@@ -23,12 +26,18 @@ export interface CampSceneOpts {
   onReady?(): void;
   /** oyuncunun Odi rengi (0xRRGGBB): ilk işçi oyuncunun kendisidir, bu renkle çizilir */
   heroColor?: number;
+  /** haritada ulaşılan bölgeler: her biri için ön kıyıdaki "Kulak Yolu"nda bir anıt (docs/14-kamp.md) */
+  regions?: string[];
+  /** anıta (ya da boş kaideye) dokunuldu; fresh: yeni yükselen anıtın kutlaması bitti */
+  onMonument?(region: string, fresh: boolean): void;
+  /** Tedavi Odası rafındaki hazır malzemeleri çantaya al */
+  onCollectRemedy?(): void;
 }
 
 const FONT = '"SF Pro Rounded","Segoe UI Rounded",Nunito,"Helvetica Neue",Arial,sans-serif';
 const GTEX = 1.25; // zemin dokusu çözünürlüğü
 /** bina ölçeği (arsayı dolduracak kadar) */
-const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15 };
+const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15, tedavi: 1.15 };
 const DEPTH = { sky: -2000, waves: -1500, ground: -1000, fog: 4000, fx: 4500, ui: 6000 };
 const fmtLeft = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60; return h > 0 ? `${h} sa ${String(m).padStart(2, '0')} dk` : `${m}:${String(sec).padStart(2, '0')}`; };
 const bez = (p: [number, number][], t: number): [number, number] => { const [a, b, c] = p as [[number, number], [number, number], [number, number]]; return [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1]]; };
@@ -57,6 +66,8 @@ export class CampScene extends Phaser.Scene {
   private decor: { zone: number; obj: Phaser.GameObjects.Image; shown: boolean; minMerkez?: number; maxMerkez?: number }[] = [];
   private depot?: { bubble: Phaser.GameObjects.Container; glow: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text; full: boolean };
   private teamFlag?: Phaser.GameObjects.Container;
+  private monuments = new Map<string, { img: Phaser.GameObjects.Image; built: boolean; glow?: Phaser.GameObjects.Image; tw?: Phaser.Tweens.Tween }>();
+  private remedyBubble?: { bubble: Phaser.GameObjects.Container; text: Phaser.GameObjects.Text; ready: number };
   private pointers = new Map<number, { x: number; y: number; x0: number; y0: number; t0: number }>();
   private pinch: { d: number; z: number } | null = null;
   private vel = { x: 0, y: 0 };
@@ -79,6 +90,7 @@ export class CampScene extends Phaser.Scene {
     makeTex(this.textures, 'c-ground', gb.x1 - gb.x0, gb.y1 - gb.y0, -gb.x0, -gb.y0, paintGround, GTEX);
     this.add.image(gb.x0, gb.y0, 'c-ground').setOrigin(0, 0).setScale(1 / GTEX).setDepth(DEPTH.ground);
     this.placeDecor();
+    this.placeMonuments();
     this.placeFog();
     for (const id of BUILDING_ORDER) this.makeView(id, 0);
     this.ambient();
@@ -186,6 +198,7 @@ export class CampScene extends Phaser.Scene {
     const us = this.uiScale;
     for (const v of this.views.values()) { v.badge.setScale(us); if (v.build) { v.build.bubble.setScale(us); } }
     if (this.depot) this.depot.bubble.setScale(us);
+    if (this.remedyBubble) this.remedyBubble.bubble.setScale(us);
     // işçi yürüme kareleri
     for (const w of this.workers) { if (!w.walking) continue; w.frameT += delta; if (w.frameT > 170) { w.frameT = 0; this.workerFrame(w, w.f ? 0 : 1); } }
     if (time - this.lastTick > 250) { this.lastTick = time; this.tick(); }
@@ -205,6 +218,7 @@ export class CampScene extends Phaser.Scene {
       b.help.setVisible(this.opts.canAskHelp && left > 0);
     }
     this.updateDepot(now);
+    this.updateRemedy(now);
   }
 
   // ------------------------------------------------------------------ durum
@@ -258,6 +272,7 @@ export class CampScene extends Phaser.Scene {
     this.rebuildFx(v);
     if (v.id === 'merkez') this.refreshTeamFlag();
     if (v.id === 'depo') this.ensureDepot();
+    if (v.id === 'tedavi') this.ensureRemedy();
   }
 
   /** bina efektleri: dişliler, ışıklar, duman, ses dalgası, kalp, parıltı */
@@ -440,6 +455,110 @@ export class CampScene extends Phaser.Scene {
     this.updateDepot(this.opts.now());
   }
 
+  // ------------------------------------------------------------------ Tedavi Odası rafı
+  private ensureRemedy() {
+    const v = this.views.get('tedavi'); if (!v) return;
+    if (this.remedyBubble) { this.remedyBubble.bubble.destroy(); this.remedyBubble = undefined; }
+    this.hots = this.hots.filter((h) => h.owner !== 'remedy');
+    if (v.level <= 0) return;
+    const l = LOTS.tedavi; const s = v.sprite; const topY = s.y - s.originY * s.displayHeight;
+    const bg = this.add.image(0, 0, ATLAS, 'c-bubble-s').setScale(1 / TEX).setOrigin(0.5, 1);
+    const drop = this.add.image(-5, -18, ATLAS, 'c-drop').setScale(1 / TEX * 1.05);
+    const text = this.add.text(8, -18, '', { fontFamily: FONT, fontSize: '12px', fontStyle: '900', color: '#2d1d6e' }).setOrigin(0.5).setResolution(this.dpr * 1.5);
+    const bubble = this.add.container(l.x - 8, topY - 4, [bg, drop, text]).setDepth(DEPTH.ui).setVisible(false);
+    if (!this.opts.reducedMotion) this.tweens.add({ targets: bubble, y: topY - 10, duration: 760, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    this.remedyBubble = { bubble, text, ready: 0 };
+    this.hots.push({ owner: 'remedy', x: () => bubble.x, y: () => bubble.y - 16 * this.uiScale, r: 22, act: () => this.opts.onCollectRemedy?.(), visible: () => bubble.visible });
+    this.updateRemedy(this.opts.now());
+  }
+  private updateRemedy(now: number) {
+    const rb = this.remedyBubble; if (!rb) return;
+    const v = this.views.get('tedavi')!; const r = this.opts.camp.remedy; const def = r?.item ? remedyById(r.item) : undefined;
+    const ready = def && r ? remedyShelf(def, v.level, r.since, now).ready : 0;
+    rb.ready = ready; rb.bubble.setVisible(ready > 0 && !v.build); if (ready > 0) rb.text.setText(`×${ready}`);
+  }
+  /** raftakiler toplandı: damlalar çantaya uçar */
+  remediesCollected(n: number) {
+    const l = LOTS.tedavi; const x = l.x, y = l.y - 40;
+    for (let i = 0; i < Math.min(8, 3 + n); i++) {
+      const d = this.add.image(x + (Math.random() - 0.5) * 24, y, ATLAS, 'c-drop').setScale(1 / TEX * 1.2).setDepth(DEPTH.fx);
+      this.tweens.add({ targets: d, y: y - 46 - Math.random() * 30, x: d.x + (Math.random() - 0.5) * 50, duration: 420, ease: 'Quad.Out', delay: i * 40, onComplete: () => this.tweens.add({ targets: d, alpha: 0, y: d.y - 24, duration: 360, onComplete: () => d.destroy() }) });
+    }
+    this.floatText(x, y - 36, `+${n}`, '#7df3ff', 20);
+    this.updateRemedy(this.opts.now());
+  }
+
+  // ------------------------------------------------------------------ bölge anıtları ("Kulak Yolu")
+  private monTex(region: string, built: boolean): string {
+    const key = `c-mon-${region}-${built ? 1 : 0}`;
+    const b = MONUMENT_BOX;
+    makeTex(this.textures, key, b.w, b.h, b.ox, b.oy, (c) => paintMonument(c, region as BiomeId, built));
+    return key;
+  }
+  private placeMonuments() {
+    const have = new Set(this.opts.regions ?? []);
+    for (const sp of MONUMENT_SPOTS) {
+      const built = have.has(sp.region);
+      const img = this.add.image(sp.x, sp.y, this.monTex(sp.region, built)).setScale(1 / TEX).setDepth(sp.y);
+      const src = img.texture.getSourceImage() as HTMLCanvasElement; img.setOrigin((MONUMENT_BOX.ox * TEX) / src.width, (MONUMENT_BOX.oy * TEX) / src.height);
+      if (!built) img.setAlpha(0.8);
+      const m: { img: Phaser.GameObjects.Image; built: boolean; glow?: Phaser.GameObjects.Image; tw?: Phaser.Tweens.Tween } = { img, built };
+      this.monuments.set(sp.region, m);
+      if (built) this.monGlow(sp.region);
+      this.hots.push({ owner: `mon:${sp.region}`, x: () => sp.x, y: () => sp.y - 24, r: 20, act: () => { this.bounceImg(img); this.opts.onMonument?.(sp.region, false); }, visible: () => true });
+    }
+  }
+  private monGlow(region: string) {
+    const m = this.monuments.get(region); const sp = MONUMENT_SPOTS.find((x) => x.region === region); if (!m || !sp || m.glow) return;
+    const g = this.add.image(sp.x, sp.y - 34, ATLAS, 'c-glow').setTint(MONUMENT_TINT[sp.region]).setBlendMode(Phaser.BlendModes.ADD).setScale(0.6).setAlpha(0.32).setDepth(sp.y - 0.5);
+    m.glow = g;
+    if (!this.opts.reducedMotion) m.tw = this.tweens.add({ targets: g, alpha: { from: 0.18, to: 0.42 }, scale: { from: 0.55, to: 0.68 }, duration: 1400 + Math.random() * 600, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  }
+  private bounceImg(img: Phaser.GameObjects.Image) {
+    const sx = 1 / TEX; this.tweens.killTweensOf(img); img.setScale(sx);
+    this.tweens.add({ targets: img, scaleX: sx * 1.08, scaleY: sx * 0.92, duration: 90, yoyo: true, ease: 'Quad.Out' });
+  }
+  /** ulaşılan bölgeler değişti; celebrate: yeni yükselen anıt (kamera oraya kayar, kutlama, sonra onMonument(fresh)) */
+  setRegions(regions: string[], celebrate?: string | null) {
+    this.opts.regions = regions; const have = new Set(regions);
+    for (const sp of MONUMENT_SPOTS) {
+      const m = this.monuments.get(sp.region); if (!m) continue;
+      const built = have.has(sp.region); if (built === m.built) continue;
+      m.built = built; m.img.setTexture(this.monTex(sp.region, built)).setAlpha(built ? 1 : 0.8);
+      if (!built) { m.tw?.remove(); m.glow?.destroy(); m.glow = undefined; m.tw = undefined; continue; }
+      if (sp.region === celebrate) this.raiseMonument(sp.region); else this.monGlow(sp.region);
+    }
+    if (celebrate && have.has(celebrate) && !this.raising.has(celebrate)) { const m = this.monuments.get(celebrate); if (m?.built) this.raiseMonument(celebrate); }
+  }
+  private raising = new Set<string>();
+  private raiseMonument(region: string) {
+    const m = this.monuments.get(region); const sp = MONUMENT_SPOTS.find((x) => x.region === region); if (!m || !sp) return;
+    this.raising.add(region);
+    const cam = this.cameras.main; const calm = !!this.opts.reducedMotion;
+    // anıt ekranın üst yarısına gelsin (alttaki Tüy Dede kartı örtmesin); kamera sınırının içinde
+    cam.pan(sp.x * 0.8, Math.min(sp.y + 110, ISLAND.ry * 0.85), calm ? 1 : 700, 'Sine.easeInOut');
+    const img = m.img; const sx = 1 / TEX;
+    img.setScale(sx, 0.01).setAlpha(1);
+    const cy = sp.y - 34;
+    this.time.delayedCall(calm ? 50 : 650, () => {
+      this.opts.onMonument?.(region, true);
+      this.tweens.add({ targets: img, scaleY: sx, duration: calm ? 1 : 900, ease: 'Back.Out' });
+      const dust = this.add.particles(sp.x, sp.y, ATLAS, { frame: 'c-puff', lifespan: 900, speed: { min: 10, max: 40 }, angle: { min: 190, max: 350 }, scale: { start: 0.3, end: 0.8 }, alpha: { start: 0.6, end: 0 }, tint: [0xe9d3b0, 0xd9c09a], emitting: false }).setDepth(DEPTH.fx);
+      dust.explode(calm ? 6 : 18); this.time.delayedCall(1100, () => dust.destroy());
+      const glow = this.add.image(sp.x, cy, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(MONUMENT_TINT[sp.region]).setScale(0.4).setDepth(DEPTH.fx);
+      this.tweens.add({ targets: glow, scale: 4.5, alpha: { from: 1, to: 0 }, duration: 1100, ease: 'Cubic.Out', onComplete: () => glow.destroy() });
+      const rays = this.add.image(sp.x, cy, ATLAS, 'c-rays').setBlendMode(Phaser.BlendModes.ADD).setTint(MONUMENT_TINT[sp.region]).setScale(0.25).setDepth(DEPTH.fx);
+      this.tweens.add({ targets: rays, scale: 1.2, angle: 70, alpha: { from: 1, to: 0 }, duration: 1500, ease: 'Cubic.Out', onComplete: () => rays.destroy() });
+      if (!calm) {
+        const conf = this.add.particles(sp.x, cy, ATLAS, { frame: 'c-confetti', speed: { min: 70, max: 190 }, angle: { min: 210, max: 330 }, gravityY: 240, lifespan: 1500, rotate: { min: 0, max: 360 }, scale: { start: 1.2, end: 0.6 }, alpha: { start: 1, end: 0 }, tint: [0xffc93c, 0xff5c8a, 0x2ee6d6, 0x8ef0b0, MONUMENT_TINT[sp.region]], emitting: false }).setDepth(DEPTH.fx);
+        conf.explode(60); this.time.delayedCall(1700, () => conf.destroy());
+        for (let i = 0; i < 2; i++) this.time.delayedCall(300 + i * 280, () => this.firework(sp.x + (i ? 40 : -40), cy - 50));
+      }
+      this.monGlow(region);
+      this.time.delayedCall(calm ? 200 : 1300, () => { this.raising.delete(region); });
+    });
+  }
+
   // ------------------------------------------------------------------ takım bayrağı
   private refreshTeamFlag() {
     this.teamFlag?.destroy(); this.teamFlag = undefined;
@@ -466,6 +585,7 @@ export class CampScene extends Phaser.Scene {
       for (const id of BUILDING_ORDER) { const l = LOTS[id]; const h = l.tiles * 16 + 14 + pad; if (Math.abs(x - l.x) / (h * 2) + Math.abs(y - (l.y - 10)) / (h * 1.2) <= 1) return true; }
       for (const road of ROADS) for (let t = 0; t <= 1; t += 0.05) { const [px, py] = bez(road, t); if (Math.hypot(x - px, (y - py) * 2) < 26) return true; }
       for (let i = 0; i < STREAM_PTS.length; i += 2) { const [px, py] = STREAM_PTS[i]!; if (Math.hypot(x - px, (y - py) * 1.6) < 22) return true; }
+      for (const m of MONUMENT_SPOTS) if (Math.abs(x - m.x) < 46 && y - m.y > -62 && y - m.y < 48) return true; // anıtın önü ve arkası açık kalsın
       return false;
     };
     const zoneOf = (x: number, y: number) => { const dx = x / ISLAND.rx, dy = (y - ISLAND.cy) / ISLAND.ry; const rr = Math.hypot(dx, dy); if (rr < 0.6) return 0; const a = Math.atan2(dy, dx); if (a > Math.PI * 0.28 && a < Math.PI * 0.72) return 0; if (Math.abs(a) >= Math.PI * 0.72) return 1; if (a >= -Math.PI * 0.4 && a <= Math.PI * 0.28) return 2; if (a < -Math.PI * 0.4 && a > -Math.PI * 0.72) return 4; return 3; };
@@ -512,6 +632,7 @@ export class CampScene extends Phaser.Scene {
         const a = a0 + (a1 - a0) * (i / (n - 1)) + (r.frac() - 0.5) * 0.08;
         for (const k of [0.78, 0.93]) {
           const s = shoreK(a) * k; const x = Math.cos(a) * ISLAND.rx * s, y = ISLAND.cy + Math.sin(a) * ISLAND.ry * s + 8;
+          if (BUILDING_ORDER.some((id) => Math.hypot(x - LOTS[id].x, (y - LOTS[id].y) * 1.6) < 110)) continue; // arsa sisin altında kalmasın
           const img = this.add.image(x, y, ATLAS, `c-cloud-${Math.floor(r.frac() * 4)}`).setScale((0.8 + r.frac() * 0.35) / TEX).setDepth(y + 30).setAlpha(0.86);
           if (!this.opts.reducedMotion) this.tweens.add({ targets: img, x: x + 14, duration: 4000 + r.frac() * 3000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
           this.fog.push({ zone, img });
@@ -614,6 +735,11 @@ export class CampScene extends Phaser.Scene {
     const v = this.views.get(id); if (!v) return null; const cam = this.cameras.main; const s = v.sprite;
     const wy = s.y - s.originY * s.displayHeight * 0.6;
     return { x: (s.x - cam.worldView.x) * cam.zoom, y: (wy - cam.worldView.y) * cam.zoom };
+  }
+  /** anıtın orta noktası: oyun pikseli (kanvas içi) */
+  monumentPoint(region: string): { x: number; y: number } | null {
+    const m = this.monuments.get(region); if (!m) return null; const cam = this.cameras.main;
+    return { x: (m.img.x - cam.worldView.x) * cam.zoom, y: (m.img.y - 24 - cam.worldView.y) * cam.zoom };
   }
   /** binaya kaydır; above: alttan açılan panel için binayı ekranın üst kısmına al */
   private restoreCam: { x: number; y: number } | null = null;

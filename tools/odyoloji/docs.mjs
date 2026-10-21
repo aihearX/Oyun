@@ -4,12 +4,17 @@
 //   node tools/odyoloji/docs.mjs
 import { writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const { GLOSSARY, EAR_NOTES } = await import(join(root, 'packages/content/src/odyoloji.ts'));
 const { CARDS } = await import(join(root, 'packages/content/src/cards.ts'));
 const { QUIZ_QUESTIONS } = await import(join(root, 'packages/content/src/quiz.ts'));
+// Kulak Kampı (kamp.ts başka modül içe aktardığı için esbuild ile tek parça yüklenir)
+const { build } = await import('esbuild');
+const bundled = await build({ entryPoints: [join(root, 'packages/content/src/kamp.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
+const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, REMEDIES, PATHOLOGY_NAMES, CAMP_COSMETICS } = { ...(await import('data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].text + "\nexport { REMEDIES, PATHOLOGY_NAMES } from '" + pathToFileURL(join(root, 'packages/content/src/remedies.ts')).href + "';").toString('base64'))) };
+const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
 
 const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (Corti organı)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
 const esc = (s) => String(s).replace(/\|/g, '\\|');
@@ -18,7 +23,7 @@ const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
 
 const md = `# Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`.
+> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -27,7 +32,8 @@ Sayılar yaklaşık ve aralık olarak verilir. Emin olunmayan bilgi eklenmez. He
 isteğe bağlı teknik ayrıntı ("Daha fazla").
 
 **Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${CARDS.length} Kulak Kartı ·
-${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji).
+${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji) · Kulak Kampı: ${Object.keys(BUILDING_INFO).length} bina,
+${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı.
 
 ## Kulak Sözlüğü (${GLOSSARY.length})
 
@@ -46,6 +52,39 @@ ${EAR_NOTES.map((n) => `| ${REGION[n.region]} | ${esc(n.plain)} | ${esc(n.tech)}
 | kart | başlık | sade | teknik |
 |---|---|---|---|
 ${CARDS.map((c) => `| \`${c.id}\` | ${esc(c.title)} | ${esc(c.fact)} | ${esc(c.tech ?? '')} |`).join('\n')}
+
+## Kulak Kampı (docs/14-kamp.md)
+
+Ek kaynaklar: Katz, *Handbook of Clinical Audiology* (test bataryası, saf ses ve konuşma odyometrisi, timpanometri, işitme cihazı,
+tinnitus, işitsel işlemleme ve nöropati bölümleri); Gelfand, *Essentials of Audiology*; standart KBB kitapları (Cummings
+*Otolaryngology*; Scott-Brown's *Otorhinolaryngology*: dış kulak hastalıkları, otitis media, otoskleroz, timpanoplasti, osikuloplasti);
+Jerger ve Hayes (1976) çapraz kontrol ilkesi; Clark (1981) işitme kaybı dereceleri. Malzemeler öğretmek içindir, tıbbi öneri değildir.
+
+### Binalar (${Object.keys(BUILDING_INFO).length})
+
+| bina | sade | Daha fazla | kaynak |
+|---|---|---|---|
+${Object.entries(BUILDING_INFO).map(([id, b]) => `| **${BNAME[id]}** | ${esc(b.plain)} | ${esc(b.tech)} | ${esc(b.src)} |`).join('\n')}
+
+### Kamp sözlük terimleri (${CAMP_TERMS.length})
+
+| açan bina | terim | sade | teknik | kaynak |
+|---|---|---|---|---|
+${CAMP_TERMS.map((t) => `| ${BNAME[t.building]} Sv ${t.level} | **${esc(t.term)}** | ${esc(t.plain)} | ${esc(t.tech)} | ${esc(t.src)} |`).join('\n')}
+
+### Tedavi Odası malzemeleri (${REMEDIES.length})
+
+| malzeme | terim | etkisiz kıldığı engel | sade | teknik | kaynak |
+|---|---|---|---|---|---|
+${REMEDIES.map((r) => `| **${esc(r.name)}** (Sv ${r.level}) | ${esc(r.term)} | ${r.counters.map((p) => PATHOLOGY_NAMES[p]).join(', ')} | ${esc(r.plain)} | ${esc(r.tech)} | ${esc(r.src)} |`).join('\n')}
+
+### Kampta açılan kozmetikler ve bölge anıtları
+
+${CAMP_COSMETICS.map((c) => `- \`${c.id}\` — ${BNAME[c.building]} Sv ${c.level}`).join('\n')}
+
+| bölge | anıt | açıklama |
+|---|---|---|
+${MONUMENTS.map((m) => `| ${REGION[m.region]} | **${esc(m.name)}** | ${esc(m.plain)} |`).join('\n')}
 
 ## Quiz (${QUIZ_QUESTIONS.length})
 

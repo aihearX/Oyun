@@ -22,6 +22,7 @@ import { Art, Glyph, Rich } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
 import { Icon } from '../ui/icons';
 import '../map/map.css';
+declare const __ODI_E2E__: boolean | undefined;
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
@@ -42,6 +43,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const heroColor = useOdiLook().color;
   useEffect(() => { handle.current?.setHeroColor(heroColor); if (host.current) host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); }, [heroColor]);
   const [card, setCard] = useState<MapCard | null>(null);
+  // yalnız test derlemesi: bölüm kartını aç (kamp-e2e çanta adımı)
+  useEffect(() => { if (typeof __ODI_E2E__ === 'undefined' || !__ODI_E2E__) return; (window as unknown as { __harita?: unknown }).__harita = { card: (n: number) => setCard({ kind: 'node', n }) }; return () => { delete (window as unknown as { __harita?: unknown }).__harita; }; }, []);
   const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
   const social = useMapSocial(); const socialRef = useRef(social); socialRef.current = social;
 

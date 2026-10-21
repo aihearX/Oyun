@@ -4,7 +4,7 @@
  */
 import type { BuildingId } from '@odi/shared';
 import {
-  P, box, coinPile, cone, crate, css, cyl, dome, doorOn, earGlyph, ellipseShadow, flag, gable, gear, groundShadow, hip, lantern, mix, poly3, rng, sack, shade, sparkle,
+  P, box, coinPile, cone, crate, css, cyl, dome, doorOn, earGlyph, ellipseShadow, flag, gable, gear, groundShadow, hip, lantern, mix, onFace, poly3, rng, roundRect, sack, shade, sparkle,
   windowOn, type Ctx, type FaceRef, type Mat, type Pattern, type RoofPat,
 } from './paint';
 import { tierOf } from './layout';
@@ -34,7 +34,7 @@ const TM: TierMat[] = [
 export const TIER_ACCENT = [0xb07a45, 0x9d9a92, 0xc2603c, 0x5fb6d6, 0xf5c542];
 
 /** bina kimlik renkleri */
-const ID_COLOR: Record<BuildingId, number> = { merkez: 0xff5c8a, laboratuvar: 0x2ee6d6, atolye: 0xff9f1c, depo: 0xffc93c, kule: 0x8b6bff, revir: 0x3ccf7e };
+const ID_COLOR: Record<BuildingId, number> = { merkez: 0xff5c8a, laboratuvar: 0x2ee6d6, atolye: 0xff9f1c, depo: 0xffc93c, kule: 0x8b6bff, revir: 0x3ccf7e, tedavi: 0x2fb5c4 };
 
 type Kit = ReturnType<typeof kit>;
 function kit(ctx: Ctx, t: number, seed: number) {
@@ -65,7 +65,7 @@ function bandOn(ctx: Ctx, f: FaceRef, y: number, hh: number, color: number) {
   ctx.fillStyle = g; ctx.fillRect(0, -y - hh, f.w, hh); ctx.restore();
 }
 
-// ---------------------------------------------------------------- Kamp Merkezi: kulak kepçesi çadırı → kale
+// ---------------------------------------------------------------- Odyoloji Merkezi: kulak kepçesi çadırı → kale
 function merkez(k: Kit, sub: number, a: Anchors) {
   const { ctx, t, m } = k;
   if (t === 0) {
@@ -168,7 +168,7 @@ function merkez(k: Kit, sub: number, a: Anchors) {
   a.sparkles.push(P(-40, 34, 104), P(36, 30, 90), P(0, 30, 50));
 }
 
-// ---------------------------------------------------------------- Ses Laboratuvarı: kubbe + anten + ışıklar
+// ---------------------------------------------------------------- Odyometri Odası: kubbe + anten + ışıklar
 function laboratuvar(k: Kit, sub: number, a: Anchors) {
   const { ctx, t, m } = k;
   const s = [0.78, 0.9, 1, 1.08, 1.16][t]!;
@@ -204,7 +204,7 @@ function laboratuvar(k: Kit, sub: number, a: Anchors) {
   if (sub >= 2 && t >= 1) { const [x, y] = P(-W / 2 - 6, -6, 0); lamppost(ctx, x, y, 16, t >= 3 ? 0x7df3ff : 0xffc14d); a.lights.push([x, y - 16, t >= 3 ? 0x7df3ff : 0xffc14d]); }
 }
 
-// ---------------------------------------------------------------- Atölye: baca + dişliler
+// ---------------------------------------------------------------- İşitme Cihazı Atölyesi: baca + dişliler
 function atolye(k: Kit, sub: number, a: Anchors) {
   const { ctx, t, m } = k;
   const s = [0.8, 0.9, 1, 1.08, 1.15][t]!;
@@ -266,7 +266,7 @@ function depo(k: Kit, sub: number, a: Anchors) {
   if (t === 4) a.sparkles.push(P(0, 0, H + 30), cp);
 }
 
-// ---------------------------------------------------------------- Yankı Kulesi: yüksek kule, tepede ses dalgası
+// ---------------------------------------------------------------- Timpanometri Kulesi: yüksek kule, tepede ses dalgası (prob tonu)
 function kule(k: Kit, sub: number, a: Anchors) {
   const { ctx, t, m } = k;
   if (t === 0) {
@@ -327,7 +327,7 @@ function kule(k: Kit, sub: number, a: Anchors) {
   flag(ctx, ct[0] - R - 2, ct[1] + 30, 16, 0xf5c542, { w: 12, dir: -1 });
 }
 
-// ---------------------------------------------------------------- Revir: yeşil haç, kalp
+// ---------------------------------------------------------------- Odyoloji Kliniği: yeşil haç, kalp
 function revir(k: Kit, sub: number, a: Anchors) {
   const { ctx, t, m } = k;
   if (t === 0) {
@@ -366,6 +366,146 @@ function revir(k: Kit, sub: number, a: Anchors) {
   if (sub >= 1) { const [bx, by] = P(-W / 2 - 4, D / 2 + 6, 0); planter(ctx, bx, by); }
   if (t >= 3) { const [x, y] = P(-W / 2 - 6, -2, 0); lamppost(ctx, x, y, 18, 0xb8ffd8, t === 4); a.lights.push([x, y - 18, 0xb8ffd8]); }
   if (t === 4) a.sparkles.push([cx, cy - 10]);
+}
+
+// ---------------------------------------------------------------- Tedavi Odası: ahşap tezgâh → taş eczane → cam seralı tedavi evi
+const TEAL = 0x2fb5c4;
+function tedavi(k: Kit, sub: number, a: Anchors) {
+  const { ctx, t, m } = k;
+  if (t === 0) {
+    ellipseShadow(ctx, 4, 6, 42, 18, 0.3);
+    k.plinth(-24, -18, 48, 36, 2);
+    const plank: Mat = { color: 0xd9a86a, pattern: 'plank' };
+    const f = k.house(-18, -14, 2, 36, 24, 17, plank);
+    gable(ctx, -20, -16, 40, 28, 19, 12, 0x2c9aa6, 'shingle', { axis: 'u', oh: 2, wall: plank });
+    // tezgâh penceresi + çizgili tente
+    k.win(f.left, [9], 6, 18, 8, { glow: 0xbff8ff, cross: false });
+    awning(ctx, f.left, 7, 22, 16, 5, TEAL);
+    shelfBottles(ctx, ...P(0, 10, 0), 3);
+    // önde kazan (buhar) ve tabela
+    const [px, py] = P(-26, 14, 0); potion(ctx, px, py); a.smoke.push([px, py - 8]);
+    const [sx, sy] = P(24, 14, 0); dropPost(ctx, sx, sy, 0, false);
+    const top = P(0, -2, 34); dropSign(ctx, top[0], top[1] - 2, 6, false, false);
+    if (sub >= 1) crate(ctx, 20, -12, 0, 6, 0xb7844c);
+    if (sub >= 2) { lantern(ctx, ...P(-24, -4, 0), 13); a.lights.push([P(-24, -4, 0)[0] + 3, P(-24, -4, 0)[1] - 10, 0xffc14d]); }
+    a.lights.push([P(0, 10, 12)[0], P(0, 10, 12)[1], 0x9ff6ff]);
+    return;
+  }
+  const s = [0, 0.92, 1, 1.07, 1.14][t]!;
+  const W = 44 * s, D = 34 * s, H = [0, 20, 24, 28, 30][t]!;
+  const wall: Mat = t === 1 ? { color: 0xdcd2bd, pattern: 'stone' } : t === 2 ? { color: 0xe9e2d4, pattern: 'brick', alt: 0xd7cbb5 } : m.wall;
+  groundShadow(ctx, -W / 2 - 3, -D / 2 - 3, W + 6, D + 10, H + 26);
+  k.plinth(-W / 2 - 3, -D / 2 - 3, W + 6, D + 6, 3);
+  // arka sağ: cam sera (Sv 7+) — şifalı otlar
+  if (t >= 2) glassHouse(ctx, W / 2 - 16, -D / 2 - 12, 3, 16, 14, 12 + t * 3, t);
+  const f = k.house(-W / 2, -D / 2, 3, W, D, H, wall);
+  const trim = t === 4 ? 0xf5c542 : TEAL;
+  if (t >= 2) { k.band(f.left, H - 3, 3, trim); k.band(f.right, H - 3, 3, trim); }
+  const roofC = t === 4 ? 0x7651f0 : t === 3 ? 0x1f7f8c : 0x2c9aa6;
+  if (t === 3) {
+    box(ctx, -W / 2 - 1, -D / 2 - 1, 3 + H, W + 2, D + 2, 3, { color: 0x93a8be, pattern: 'metal' });
+    // çatıda yuvarlak ışıklık
+    const top = dome(ctx, -2, -2, 3 + H + 3, 9, 0x5ce1e6, { glass: true }); a.lights.push([top[0], top[1] + 4, 0x7df3ff]);
+  } else gable(ctx, -W / 2, -D / 2, W, D, 3 + H, 14 + t * 2, roofC, t === 4 ? 'tile' : 'slate', { axis: 'u', oh: 3, wall });
+  // vitrin: geniş pencere + raf + tente; kapı
+  const glow = t === 3 ? 0x9ff6ff : 0xfff0c8;
+  k.win(f.left, [3], H * 0.3, W * 0.42, H * 0.46, { glow, cross: false });
+  awning(ctx, f.left, 1.5, W * 0.42 + 3, H * 0.3 + H * 0.46 + 4, 5, t === 4 ? 0xf5c542 : TEAL);
+  doorOn(ctx, f.left, W * 0.66, 9, Math.min(15, H - 3), t >= 3 ? 0x2f6f7c : 0x2c7a86, 0x163d44);
+  k.win(f.right, k.spread(D, 2, 5), H * 0.42, 5, H * 0.32, t === 3 ? { glow: 0x9ff6ff, cross: false } : {});
+  const shelf = P(-W / 2 + 3 + W * 0.21, D / 2, 3 + H * 0.3 + 1); shelfBottles(ctx, shelf[0], shelf[1], t >= 2 ? 4 : 3);
+  // damla tabelası: çatı üstünde (ışıklı kademe 3+, altın 4)
+  const cz = t === 3 ? 3 + H + 14 : 3 + H + 12 + t * 2;
+  const [cx, cy] = P(0, t === 3 ? 6 : D / 2 - 6, cz);
+  if (t === 3) { ctx.fillStyle = '#26364b'; ctx.fillRect(cx - 1, cy - 2, 2, 8); }
+  dropSign(ctx, cx, cy - 6, t === 4 ? 9 : 7.5, t >= 3, t === 4);
+  a.lights.push([cx, cy - 6, t === 4 ? 0xffd66b : 0x7df3ff]);
+  // önde: tabela direği, iksir kazanı (Sv 1-9), kasalar
+  const [hx, hy] = P(W / 2 + 6, D / 2 + 4, 0); dropPost(ctx, hx, hy, t, t === 4);
+  if (t <= 2) { const [px, py] = P(-W / 2 - 6, D / 2 + 6, 0); potion(ctx, px, py); a.smoke.push([px, py - 8]); }
+  if (sub >= 1) { crate(ctx, W / 2 + 2, -D / 2 + 2, 0, 6, t >= 3 ? 0x7d8da0 : 0xb7844c); }
+  if (sub >= 2) { const [bx, by] = P(-W / 2 - 2, -D / 2 + 6, 0); herbPots(ctx, bx, by); }
+  if (t >= 3) { const [x, y] = P(-W / 2 - 6, -2, 0); lamppost(ctx, x, y, 18, 0x9ff6ff, t === 4); a.lights.push([x, y - 18, 0x9ff6ff]); }
+  if (t === 4) a.sparkles.push([cx, cy - 16], shelf);
+}
+/** yüze çizgili tente (yüz uzayı: x, genişlik w, alt kenar yüksekliği y, sarkma d) */
+function awning(ctx: Ctx, f: FaceRef, x: number, w: number, y: number, d: number, color: number) {
+  onFace(ctx, f.o, f.a, f.b, () => {
+    const n = Math.max(3, Math.round(w / 4)); const sw = w / n;
+    ctx.save(); ctx.shadowColor = 'rgba(20,10,40,0.35)'; ctx.shadowBlur = 3; ctx.shadowOffsetY = 2;
+    ctx.beginPath(); ctx.moveTo(x, -(y + d)); ctx.lineTo(x + w, -(y + d));
+    for (let i = n; i > 0; i--) { const xa = x + i * sw, xb = x + (i - 1) * sw; ctx.lineTo(xa, -y); ctx.quadraticCurveTo((xa + xb) / 2, -y + 2.4, xb, -y); }
+    ctx.closePath(); ctx.fillStyle = '#fff6e5'; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.clip();
+    for (let i = 0; i < n; i += 2) { ctx.fillStyle = css(color); ctx.fillRect(x + i * sw, -(y + d) - 1, sw, d + 4); }
+    const g = ctx.createLinearGradient(0, -(y + d), 0, -y + 2); g.addColorStop(0, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(20,10,40,0.18)'); ctx.fillStyle = g; ctx.fillRect(x, -(y + d) - 1, w, d + 4);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(38,20,44,0.45)'; ctx.lineWidth = 0.6; ctx.strokeRect(x, -(y + d), w, 0.01);
+  });
+}
+/** raf + renkli şişeler (ekran noktası) */
+function shelfBottles(ctx: Ctx, x: number, y: number, n: number) {
+  const cols = [0x2ee6d6, 0xff5c8a, 0xffc93c, 0x8b6bff];
+  ctx.fillStyle = '#7a4a26'; ctx.fillRect(x - n * 2.6, y - 1, n * 5.2, 1.6);
+  for (let i = 0; i < n; i++) {
+    const bx = x - n * 2.6 + 2.6 + i * 5.2; const h = 4.5 + (i % 2) * 1.6; const c = cols[i % cols.length]!;
+    ctx.fillStyle = 'rgba(235,250,255,0.85)'; roundRect(ctx, bx - 1.7, y - 1 - h, 3.4, h, 1.2); ctx.fill();
+    ctx.save(); ctx.shadowColor = css(c, 0.9); ctx.shadowBlur = 3; ctx.fillStyle = css(c); roundRect(ctx, bx - 1.5, y - 1 - h * 0.62, 3, h * 0.62, 1); ctx.fill(); ctx.restore();
+    ctx.fillStyle = '#5b3a24'; ctx.fillRect(bx - 0.9, y - 2.4 - h, 1.8, 1.6);
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(bx - 1, y - h * 0.8, 0.6, h * 0.5);
+  }
+}
+/** damla tabelası: yuvarlak çerçeve içinde turkuaz damla */
+function dropSign(ctx: Ctx, x: number, y: number, s: number, glow: boolean, gold: boolean) {
+  ctx.save(); if (glow) { ctx.shadowColor = gold ? 'rgba(255,214,107,0.95)' : 'rgba(80,240,255,0.95)'; ctx.shadowBlur = 10; }
+  ctx.fillStyle = gold ? '#f5c542' : '#ffffff'; ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = gold ? '#a0700a' : 'rgba(20,60,70,0.55)'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.arc(x, y, s, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x, y - s * 0.72); ctx.bezierCurveTo(x + s * 0.55, y - s * 0.05, x + s * 0.48, y + s * 0.58, x, y + s * 0.6); ctx.bezierCurveTo(x - s * 0.48, y + s * 0.58, x - s * 0.55, y - s * 0.05, x, y - s * 0.72); ctx.closePath();
+  const g = ctx.createLinearGradient(x - s * 0.5, y - s * 0.6, x + s * 0.5, y + s * 0.6); g.addColorStop(0, '#bff8ff'); g.addColorStop(0.5, '#2ee6d6'); g.addColorStop(1, '#127f8c');
+  ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#0d5a63'; ctx.lineWidth = 0.6; ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(x - s * 0.16, y + s * 0.05, s * 0.1, s * 0.22, -0.4, 0, 7); ctx.fill();
+}
+/** önde tabela direği: kapsül simgeli levha */
+function dropPost(ctx: Ctx, x: number, y: number, t: number, gold: boolean) {
+  ctx.fillStyle = '#5b3a24'; ctx.fillRect(x - 0.6, y - 13, 1.2, 13);
+  ctx.fillStyle = t >= 3 ? '#1f2a3a' : '#8a5a33'; roundRect(ctx, x - 7, y - 20, 14, 8, 2); ctx.fill();
+  // kapsül
+  ctx.save(); ctx.translate(x, y - 16); ctx.rotate(-0.5);
+  ctx.fillStyle = gold ? '#f5c542' : '#ff5c8a'; roundRect(ctx, -4.4, -1.6, 4.4, 3.2, 1.6); ctx.fill();
+  ctx.fillStyle = '#fff6e5'; roundRect(ctx, 0, -1.6, 4.4, 3.2, 1.6); ctx.fill();
+  ctx.strokeStyle = 'rgba(38,20,44,0.5)'; ctx.lineWidth = 0.5; roundRect(ctx, -4.4, -1.6, 8.8, 3.2, 1.6); ctx.stroke();
+  ctx.restore();
+}
+/** iksir kazanı (buhar efekti bağlantısı ayrıca) */
+function potion(ctx: Ctx, x: number, y: number) {
+  ctx.fillStyle = 'rgba(40,20,40,0.3)'; ctx.beginPath(); ctx.ellipse(x + 1, y, 7, 2.6, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3b3f4f'; ctx.beginPath(); ctx.moveTo(x - 6, y - 7); ctx.quadraticCurveTo(x - 7, y, x, y); ctx.quadraticCurveTo(x + 7, y, x + 6, y - 7); ctx.closePath(); ctx.fill();
+  ctx.save(); ctx.shadowColor = 'rgba(46,230,214,0.9)'; ctx.shadowBlur = 6; ctx.fillStyle = '#5ff0e0'; ctx.beginPath(); ctx.ellipse(x, y - 7, 6, 1.8, 0, 0, 7); ctx.fill(); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(x - 2, y - 7.2, 0.8, 0, 7); ctx.arc(x + 1.6, y - 6.8, 0.6, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#2b2f3e'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x - 4, y); ctx.lineTo(x - 5, y + 2); ctx.moveTo(x + 4, y); ctx.lineTo(x + 5, y + 2); ctx.stroke();
+}
+/** saksıda şifalı otlar */
+function herbPots(ctx: Ctx, x: number, y: number) {
+  for (const [dx, c] of [[-3, 0x5fae4a], [3, 0x7cc35a]] as const) {
+    ctx.fillStyle = '#c2603c'; ctx.beginPath(); ctx.moveTo(x + dx - 2.4, y - 4); ctx.lineTo(x + dx + 2.4, y - 4); ctx.lineTo(x + dx + 1.8, y); ctx.lineTo(x + dx - 1.8, y); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = css(c); for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.ellipse(x + dx + (i - 1.5) * 1.2, y - 6 - (i % 2) * 1.5, 1.1, 2.2, (i - 1.5) * 0.4, 0, 7); ctx.fill(); }
+  }
+}
+/** cam sera: yarı saydam turkuaz yüzler + çerçeve (u0,v0 taban köşesi) */
+function glassHouse(ctx: Ctx, u0: number, v0: number, z0: number, w: number, d: number, h: number, t: number) {
+  const frame = t === 4 ? '#e0b030' : t === 3 ? '#4a5a6e' : '#f4efe6';
+  const u1 = u0 + w, v1 = v0 + d, z1 = z0 + h, rz = z1 + d * 0.45;
+  // içerideki bitkiler
+  for (let i = 0; i < 4; i++) { const [x, y] = P(u0 + 3 + i * (w - 6) / 3, v0 + d * 0.6, z0); ctx.fillStyle = css(i % 2 ? 0x5fae4a : 0x3f8a3e); ctx.beginPath(); ctx.ellipse(x, y - 4, 3, 4.5, 0, 0, 7); ctx.fill(); }
+  const glass = (pts: [number, number, number][], a: number) => poly3(ctx, pts, `rgba(170,240,250,${a})`, frame, 0.9);
+  glass([[u0, v1, z0], [u1, v1, z0], [u1, v1, z1], [u0, v1, z1]], 0.42);
+  glass([[u1, v1, z0], [u1, v0, z0], [u1, v0, z1], [u1, v1, z1]], 0.32);
+  // beşik cam çatı
+  glass([[u0, v1, z1], [u1, v1, z1], [u1, v0 + d / 2, rz], [u0, v0 + d / 2, rz]], 0.5);
+  glass([[u1, v1, z1], [u1, v0, z1], [u1, v0 + d / 2, rz]], 0.36);
+  ctx.strokeStyle = frame; ctx.lineWidth = 0.6;
+  for (let i = 1; i < 4; i++) { const u = u0 + (w * i) / 4; ctx.beginPath(); ctx.moveTo(...P(u, v1, z0)); ctx.lineTo(...P(u, v1, z1)); ctx.lineTo(...P(u, v0 + d / 2, rz)); ctx.stroke(); }
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; const [hx, hy] = P(u0 + w * 0.3, v1, z1 - 2); ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(hx, hy - 6, 1.4, 6); ctx.restore();
 }
 
 // ---------------------------------------------------------------- küçük çizim parçaları
@@ -508,7 +648,7 @@ function emptyLot(ctx: Ctx, half: number) {
 }
 
 // ---------------------------------------------------------------- dışa açık
-const PAINTERS: Record<BuildingId, (k: Kit, sub: number, a: Anchors) => void> = { merkez, laboratuvar, atolye, depo, kule, revir };
+const PAINTERS: Record<BuildingId, (k: Kit, sub: number, a: Anchors) => void> = { merkez, laboratuvar, atolye, depo, kule, revir, tedavi };
 /** boyama kutusu (dünya birimi): tuval bu kutuyu kaplar, sonra boş kenarlar kırpılır */
 export const PAINT_BOX: Record<BuildingId, { x0: number; y0: number; x1: number; y1: number }> = {
   merkez: { x0: -150, y0: -250, x1: 170, y1: 80 },
@@ -517,6 +657,7 @@ export const PAINT_BOX: Record<BuildingId, { x0: number; y0: number; x1: number;
   atolye: { x0: -110, y0: -170, x1: 120, y1: 70 },
   depo: { x0: -110, y0: -150, x1: 120, y1: 70 },
   revir: { x0: -110, y0: -150, x1: 120, y1: 70 },
+  tedavi: { x0: -110, y0: -160, x1: 120, y1: 70 },
 };
 
 /** binayı verilen bağlama boyar (orijin = arsa merkezi). Bağlantı noktalarını döndürür. */

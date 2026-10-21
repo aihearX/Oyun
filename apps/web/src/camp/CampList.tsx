@@ -4,6 +4,8 @@ import { depotStored } from '@odi/game-core';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, effect, type CampActions } from './model';
+import { TedaviPanel } from './TedaviPanel';
+import { DedeCard } from './dede';
 import { Art, rich, Glyph } from '../ui/art';
 
 /** Liste görünümü (erişilebilirlik): binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
@@ -23,6 +25,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
 
   return (
     <div className="stack">
+      <DedeCard className="dede-list" />
       {active && <Construction b={active} sNow={sNow} wallet={wallet} team={team} actions={actions} />}
       {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
         <div className="card idle-card"><span aria-hidden><Art e="👷" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
@@ -40,7 +43,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
           <span className="muted small-note">Kamp + takım etkilerin</span>
           <div className="bonus-row">
-            <span><b>+%{bonuses.coinPct}</b><Art e="🪙" size="1.15em" className="art-inline" /> jeton</span><span><b>%{bonuses.shieldChancePct}</b><Art e="🛡️" size="1.15em" className="art-inline" /> kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b><Art e="💚" size="1.15em" className="art-inline" /> revir</span><span><b>+%{bonuses.warPct}</b><Art e="⚔️" size="1.15em" className="art-inline" /> savaş</span><span><b>+%{bonuses.raidPct}</b><Art e="👹" size="1.15em" className="art-inline" /> baskın</span>
+            <span><b>+%{bonuses.coinPct}</b><Art e="🪙" size="1.15em" className="art-inline" /> jeton</span><span><b>%{bonuses.shieldChancePct}</b><Art e="🛡️" size="1.15em" className="art-inline" /> kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b><Art e="💚" size="1.15em" className="art-inline" /> klinik</span><span><b>+%{bonuses.warPct}</b><Art e="⚔️" size="1.15em" className="art-inline" /> savaş</span><span><b>+%{bonuses.raidPct}</b><Art e="👹" size="1.15em" className="art-inline" /> baskın</span>
           </div>
         </div>)}
 
@@ -50,13 +53,14 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
           <div className={`card building${b.upgradingTo ? ' building-now' : ''}`} key={d.id}>
             <div className="row">
               <span className="b-i" aria-hidden><Glyph e={d.emoji} size={32} /></span>
-              <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div></div>
+              <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div><div className="b-desc">{d.desc}</div></div>
             </div>
             {!max && <div className="row b-up">
               <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {fmtDur(dur(cost.seconds))}</span>
               <button className="btn small" disabled={busy || blocked || poor} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : blocked ? `Merkez ${to}` : 'Yükselt'}</button>
             </div>}
             {max && <div className="muted">En yüksek seviye.</div>}
+            {d.id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} compact />}
           </div>); })}
 
       {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); return (

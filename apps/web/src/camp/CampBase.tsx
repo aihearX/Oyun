@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BuildingId, CampState, Wallet } from '@odi/shared';
 import { startCamp, type CampHandle, type CampTeam } from '@odi/game-core';
 import { audio } from '@odi/audio';
@@ -6,7 +6,12 @@ import { celebrate } from '../celebrate';
 import { platform } from '../platform';
 import { TopBar, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { BuildingPanel } from './BuildingPanel';
-import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, type CampActions } from './model';
+import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, shortOf, type CampActions } from './model';
+import { BIOMES, monumentOf } from '@odi/content';
+import type { BiomeId } from '@odi/shared';
+import { clearedCount } from '../ftue/features';
+import { DedeCard, sayDede, showDede } from './dede';
+import { markSeen, monumentToCelebrate, regionsNow } from './anit';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { odiLook } from '../look';
@@ -31,10 +36,14 @@ export function CampBase(p: CampBaseProps) {
   const [ready, setReady] = useState(false);
   const now = useNow(500); const sNow = p.now();
   void now;
-  const live = useRef(p); live.current = p;
+  const live = useRef({ ...p, regions: [] as string[] }); live.current = { ...p, regions: live.current.regions };
   const active = p.camp.buildings.find((b) => b.upgradingTo && b.endsAt);
   const canAsk = !!(p.team && active && !askedHelp.has(buildKey(active)));
   const [askTick, setAskTick] = useState(0);
+  // bölge anıtları: haritada ulaşılan bölgeler; görülmemiş en ileri anıt sahne hazır olunca kutlanır (kamp öğreticisi bittiyse)
+  const progress = useStore((s) => s.progress);
+  const regions = useMemo(() => regionsNow(clearedCount(progress)), [progress]);
+  const celebrateRef = useRef<string | null>(null);
 
   // sahne: bir kez kurulur, ekrandan çıkınca yok edilir
   useEffect(() => {
@@ -42,8 +51,20 @@ export function CampBase(p: CampBaseProps) {
     const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
     const heroColor = odiLook(useStore.getState()).color;
     host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); // test kancası: kamptaki kendi Odi'nin rengi
+    const st = useStore.getState(); const tutorialDone = !!st.ftue.bypass || st.ftue.tours.includes('camp-build');
+    const fresh = tutorialDone ? monumentToCelebrate(regions) : null; celebrateRef.current = fresh;
     const h = startCamp(host.current, {
       heroColor, camp: p.camp, team: p.team, canAskHelp: canAsk, reducedMotion: reduced,
+      regions: regions.filter((r) => r !== fresh),
+      onMonument: (region, isNew) => {
+        const m = monumentOf(region); if (!m) return;
+        const name = BIOMES[region as BiomeId]?.name ?? region;
+        if (isNew) { audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
+        audio.play('pop');
+        if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`);
+        else showDede(`${name} bölgesine ulaşınca burada ${m.name} yükselecek.`, 'Kulak Yolu');
+      },
+      onCollectRemedy: () => { void collectRemedy(); },
       now: () => live.current.now(),
       onTap: (id) => { audio.play('pop'); platform().haptic('light'); setSel(id); },
       onAskHelp: (id) => { void ask(id); },
@@ -52,14 +73,22 @@ export function CampBase(p: CampBaseProps) {
       onBuilt: (id, level, tierUp) => {
         celebrateBuilt(id, level, tierUp && level > 1);
       },
-      onReady: () => setReady(true),
+      onReady: () => {
+        setReady(true);
+        // yeni anıt: kamp yerine oturduktan sonra yükselir
+        if (fresh) setTimeout(() => { if (handle.current === h) { h.update({ regions, celebrate: fresh }); markSeen(regions); } }, 900);
+        else if (tutorialDone) markSeen(regions);
+      },
     });
     handle.current = h;
-    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id), view: () => h.view(), focus: (id: BuildingId) => h.focus(id, true) };
+    (window as unknown as { __kamp?: unknown }).__kamp = { pos: (id: BuildingId) => h.screenPos(id), view: () => h.view(), focus: (id: BuildingId) => h.focus(id, true), monument: (r: string) => h.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current };
     audio.music('menu');
     return () => { h.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
   }, []);
+  live.current.regions = regions;
   useEffect(() => { handle.current?.update({ camp: p.camp }); }, [p.camp]);
+  const regionsInit = useRef(false);
+  useEffect(() => { if (!regionsInit.current) { regionsInit.current = true; return; } handle.current?.update({ regions }); }, [regions.join()]);
   useEffect(() => { handle.current?.update({ team: p.team }); }, [p.team?.emblem, p.team?.name]);
   useEffect(() => { handle.current?.update({ canAskHelp: canAsk }); }, [canAsk, askTick]);
   useEffect(() => p.onHelped?.((building, seconds) => { handle.current?.helped(building, seconds); audio.play('pop', { semitones: 7 }); platform().haptic('light'); }), [p.onHelped]);
@@ -74,7 +103,13 @@ export function CampBase(p: CampBaseProps) {
     const n = await live.current.actions.collect();
     if (n && n > 0) { handle.current?.collected(n); audio.play('coinBurst'); platform().haptic('success'); void celebrate.coins({ amount: n, from, kind: 'jeton' }); }
   }
-  const actions: CampActions = { ...p.actions, ask: async (id) => { const ok = await p.actions.ask(id); if (ok) setAskTick((n) => n + 1); return ok; }, collect: async () => { await collect(); return 0; } };
+  async function collectRemedy() {
+    audio.play('tap');
+    const n = await live.current.actions.remedyCollect();
+    if (n && n > 0) { handle.current?.remediesCollected(n); audio.play('coinBurst', { semitones: 5 }); platform().haptic('success'); }
+    return n;
+  }
+  const actions: CampActions = { ...p.actions, ask: async (id) => { const ok = await p.actions.ask(id); if (ok) setAskTick((n) => n + 1); return ok; }, collect: async () => { await collect(); return 0; }, remedyCollect: collectRemedy };
 
   useEffect(() => { if (sel) handle.current?.focus(sel, true); else handle.current?.unfocus(); }, [sel]);
   const helpAll = async () => { audio.play('tap'); const n = await p.actions.helpAll(); if (n) { audio.play('coinBurst', { semitones: 4 }); platform().haptic('success'); } };
@@ -89,7 +124,7 @@ export function CampBase(p: CampBaseProps) {
         <TopBar title="Kamp" />
         <div className="camp-hud" aria-label="Kaynaklar">
           <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
-            <Art e="🔨" size="1.15em" className="art-inline" /> {active ? <>{defOf(active.id).name.split(' ')[0]} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
+            <Art e="🔨" size="1.15em" className="art-inline" /> {active ? <>{shortOf(active.id)} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
           </button>
           <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}><Art e="⏩" size="1.15em" className="art-inline" />{ITEMS.map((it) => <span key={it.k} className="hs">{it.label.replace(' ', '')}<b>×{p.wallet.hizlandirici[it.k]}</b></span>)}</span>
           {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}><Art e="🪙" size="1.15em" className="art-inline" /><b>{fmtNum(p.wallet.jeton)}</b></span>}
@@ -98,6 +133,7 @@ export function CampBase(p: CampBaseProps) {
       </div>
 
       <div className="camp-bottom">
+        <DedeCard className="dede-camp" />
         {idle && anyUpgrade && <div className="camp-hint"><Art e="👷" size="1.15em" className="art-inline" /> İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
         <div className="camp-actions">
           {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()}><Art e="🤝" size="1.15em" className="art-inline" /> Herkese yardım et{` (${p.helpCount})`}</button>}

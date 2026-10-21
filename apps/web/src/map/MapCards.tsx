@@ -13,6 +13,7 @@ import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { NoteCard, useNote } from '../ftue/Notes';
 import { GLOSSARY } from '@odi/content/odyoloji';
+import { RemedyPicker } from '../camp/RemedyPicker';
 
 export type MapCard = { kind: 'node'; n: number } | { kind: 'treasure'; n: number } | { kind: 'zone'; z: ZoneId };
 
@@ -60,6 +61,7 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
         {boss && <div className="mc-row"><span><Art e="👹" size="1.15em" className="art-inline" /></span><b>{boss.name}</b><span className="mc-dim">{boss.hp} can · {boss.phases} evre</span></div>}
         {p && p.best > 0 && <div className="mc-row"><span><Art e="🏅" size="1.15em" className="art-inline" /></span><b>En iyi skor</b><span className="mc-dim">{p.best.toLocaleString('tr-TR')}</span></div>}
         {tr && <div className="mc-row"><span><Art e="🎁" size="1.15em" className="art-inline" /></span><b>Hazine</b><RewardChips items={tr.reward} small /></div>}
+        {!locked && <RemedyPicker region={l.biome} />}
       </div>
       {locked
         ? <button className="map-btn locked" disabled><Art e="🔒" size="1.15em" className="art-inline" /> {n - 1}. bölümü geç</button>

@@ -19,14 +19,14 @@ function safeAreaTop(): number {
   return Math.max(v, native);
 }
 
-declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom; /** bölüme verilen görünüm (Odi rengi/şapka) */ cosmetic?: LevelOptions['cosmetic'] } } }
+declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom; /** bölüme verilen görünüm (Odi rengi/şapka) */ cosmetic?: LevelOptions['cosmetic']; /** bölüme verilen Tedavi Odası malzemeleri (test kancası) */ remedies?: LevelOptions['remedies'] } } }
 
 /**
  * Phaser bölümünü bir div'e bağlar; olayları kabuğa ve (test için) window.__odi'ye aktarır.
  * `race` verilirse canlı yarış: rakip hayaletleri + üst şerit + sunucu saatine hizalı geri sayım; bölüm bitince
  * `race.finish` gönderilir ve onDone(sonuç, güncel oda) çağrılır. `raceBotDelayMs` yalnızca test harness'i içindir (bot ile).
  */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   const [runKey, setRunKey] = useState(0);
   useEffect(() => {
     if (!ref.current) return;
-    const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic }; window.__odi = bus;
+    const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic, remedies: race ? undefined : extras?.remedies }; window.__odi = bus;
     let finished = false;
     // ---- canlı yarış bağlantısı (ağ yoksa normal bölüm olarak oynanır)
     const net = race ? getNet() : null;
@@ -66,7 +66,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       catch { return latest; } // yarış zaten bitmiş (süre doldu) ya da bağlantı yok: son bilinen oda
     };
     const h = startLevel(ref.current, {
-      spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt } : {}),
+      spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
       // çentik/kamera/saat: oyun içi gösterge güvenli alanın altına iner
       safeTop: safeAreaTop(),
       // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü

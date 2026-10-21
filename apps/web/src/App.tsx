@@ -49,8 +49,9 @@ import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
 import { odiLook } from './look';
+import { takeRemedies } from './camp/bag';
 
-type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts'>;
+type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>;
 /** yalnız test derlemesi (VITE_ODI_E2E=1): `?ftue=0` ilk deneyimi atlar (her şey açık), `?oyun-bot=1` normal akıştaki bölümleri harness botu oynar */
 declare const __ODI_E2E__: boolean | undefined;
 const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
@@ -156,6 +157,8 @@ export function App() {
       cosmetic: { color: look.custom ? look.color : undefined, hat: look.hat },
       lucky: rollLucky(),
       firsts: Object.keys(FIRSTS).filter((f) => !s.meta.firsts.includes(f)),
+      // Tedavi Odası çantası (bölüm kartında seçilen; kullanılan adet sonuçla sunucuya gider)
+      remedies: takeRemedies(),
     };
     const skills = runSkills(s.skills);
     setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills } : { name: 'level', spec, extras, skills });

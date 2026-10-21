@@ -418,6 +418,21 @@ async function suite(browserName, target, [W, H]) {
         if (bad.length) fail(rec, `sonuç düğmeleri görünüm dışında: ${JSON.stringify(bad)}`);
       }
     }
+    if (want('kamp') && target === 'web') {
+      // Kulak Kampı önizlemesi (yalnız yerel): Tedavi Odası paneli (tarifler, çanta) ve liste görünümündeki üretim kartı
+      await page.goto(url('demo=kamp&seviye=10'), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);
+      const ub = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub.count()) await ub.click(); // son görünüm hatırlanır
+      await page.locator('.camp-base').waitFor({ timeout: 20_000 }); await sleep(1500); await toastGone();
+      await page.locator('.sr-only button', { hasText: 'Tedavi Odası' }).evaluate((el) => el.click()); await page.locator('.bp').waitFor(); await sleep(700);
+      await check('kamp-tedavi-paneli', { scroll: false });
+      await page.locator('.tp-info').scrollIntoViewIfNeeded(); await sleep(300);
+      await check('kamp-tedavi-tarif', { scroll: false });
+      await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300);
+      await page.getByRole('button', { name: 'Liste görünümü' }).click(); await sleep(600);
+      await page.locator('[data-testid="tedavi-panel"]').scrollIntoViewIfNeeded(); await check('kamp-liste-tedavi');
+    }
   } catch (e) {
     const rec = { screen: 'akış', fails: [] }; fail(rec, String(e.message ?? e).split('\n')[0]); recs.push(rec);
     await page.screenshot({ path: resolve(dir, `${String(++n).padStart(2, '0')}-HATA.png`) }).catch(() => undefined);

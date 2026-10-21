@@ -1,5 +1,8 @@
 import { achievementById } from './achievements';
 
+/** kilit metni için bina adları (@odi/shared BUILDINGS ile aynı; içerik paketi değer içe aktarmaz) */
+const CAMP_BUILDING_NAMES: Record<string, string> = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
+
 /**
  * Odi kozmetikleri: yalnızca görünüm, oyun gücü yok. Çoğu oynayarak açılır;
  * mağaza paketlerindeki iki kimlik (social.ts SHOP: 'sapka-kasif', 'kostum-altin') burada da tanımlıdır.
@@ -12,7 +15,9 @@ export type CosmeticUnlock =
   | { by: 'album'; pct: number }
   | { by: 'calendar'; day: number }
   | { by: 'treasure'; level: number }
-  | { by: 'shop'; product: string };
+  | { by: 'shop'; product: string }
+  /** Kulak Kampı: binanın bu seviyesinde açılır (sunucu verir; kamp.ts CAMP_COSMETICS) */
+  | { by: 'camp'; building: string; level: number };
 
 export interface CosmeticDef {
   id: string;
@@ -37,6 +42,14 @@ export const COSMETICS: CosmeticDef[] = [
   { id: 'renk-nane', kind: 'renk', name: 'Nane', color: 0x22a565, unlock: { by: 'calendar', day: 7 }, desc: 'Yedi günlük takvimin büyük ödülü.' },
   { id: 'renk-gece', kind: 'renk', name: 'Gece Mavisi', color: 0x2b3a8c, unlock: { by: 'treasure', level: 20 }, desc: 'Serumen Golemi\'nin hazinesinden.' },
   { id: 'renk-pembe', kind: 'renk', name: 'Korteks Pembesi', color: 0xff6f9f, unlock: { by: 'album', pct: 50 }, desc: 'Albümün yarısını dolduranlara.' },
+  // Kulak Kampı açılımları (bina seviyesi; docs/14-kamp.md)
+  { id: 'renk-sol-kulak', kind: 'renk', name: 'Sol Kulak Mavisi', color: 0x2f6fe0, unlock: { by: 'camp', building: 'laboratuvar', level: 3 }, desc: 'Odyogramda sol kulak mavi çarpıyla işaretlenir.' },
+  { id: 'renk-sag-kulak', kind: 'renk', name: 'Sağ Kulak Kırmızısı', color: 0xe0413a, unlock: { by: 'camp', building: 'laboratuvar', level: 6 }, desc: 'Odyogramda sağ kulak kırmızı daireyle işaretlenir.' },
+  { id: 'renk-klinik', kind: 'renk', name: 'Klinik Yeşili', color: 0x2f9e7e, unlock: { by: 'camp', building: 'revir', level: 4 }, desc: 'Odyoloji Kliniği’nin önlük rengi.' },
+  { id: 'renk-tip-a', kind: 'renk', name: 'Tip A Turkuazı', color: 0x1fb5c4, unlock: { by: 'camp', building: 'kule', level: 5 }, desc: 'Timpanogramda tepeli, normal eğri Tip A’dır.' },
+  { id: 'kostum-koruyucu', kind: 'renk', name: 'Kulak Koruyucu Kostümü', color: 0xf08a1c, hat: 'kulaklik', unlock: { by: 'camp', building: 'tedavi', level: 3 }, desc: 'Gürültülü yerde kulak koruyucu takan bir Odi.' },
+  { id: 'kostum-diyapazon', kind: 'renk', name: 'Diyapazon Kostümü', color: 0x9aa6c4, hat: 'nota', unlock: { by: 'camp', building: 'merkez', level: 8 }, desc: 'Rinne ve Weber testlerinin diyapazonu gibi parlak.' },
+  { id: 'kostum-implant', kind: 'renk', name: 'İmplant Ustası Kostümü', color: 0x5b6bd8, hat: 'koklea', unlock: { by: 'camp', building: 'atolye', level: 9 }, desc: 'Başındaki mıknatıslı bobin, koklear implantın dış parçasına benzer.' },
   { id: 'kostum-altin', kind: 'renk', name: 'Altın Koklea Kostümü', color: 0xd9a400, hat: 'altin', unlock: { by: 'shop', product: 'odi.pass' }, desc: 'Sezon Kartı kostümü (yalnızca görünüm).' },
   // şapkalar
   { id: 'sapka-yok', kind: 'sapka', name: 'Şapkasız', unlock: { by: 'default' }, desc: 'Sade ve rüzgârlı.' },
@@ -64,5 +77,6 @@ export function cosmeticUnlockText(u: CosmeticUnlock): string {
     case 'calendar': return `Giriş takvimi ${u.day}. gün`;
     case 'treasure': return `Hazine: Bölüm ${u.level}`;
     case 'shop': return 'Mağaza paketinde';
+    case 'camp': return `Kamp: ${CAMP_BUILDING_NAMES[u.building] ?? 'bina'} Sv ${u.level}`;
   }
 }

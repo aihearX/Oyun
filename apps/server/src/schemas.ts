@@ -13,6 +13,7 @@ const MECHANICS = ['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'bo
 const building = z.enum(BUILDINGS.map((b) => b.id) as [string, ...string[]]);
 const level = z.number().int().min(1).max(MAX_LEVEL);
 const room = z.string().min(1).max(80);
+const remedyId = z.string().min(1).max(40).regex(/^[a-z0-9-]+$/);
 
 /** her op için giriş şeması; bilinmeyen alanlar atılır */
 export const SCHEMAS: Record<Op, z.ZodType> = {
@@ -24,6 +25,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
     runId: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/), level, completed: z.boolean(), stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE),
     timeSec: z.number().min(MIN_TIME_SEC).max(3600), coins: z.number().int().min(0).max(MAX_COINS),
     biome: z.enum(BIOMES), mechanic: z.enum(MECHANICS), raceId: id.optional(), cochleas: z.number().int().min(0).max(3).optional(),
+    remediesUsed: z.array(z.object({ id: remedyId, count: z.number().int().min(1).max(9) })).max(12).optional(),
   }),
   'friends.list': empty,
   'friends.add': z.object({ code: z.string().min(4).max(12) }),
@@ -63,6 +65,8 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'camp.help.request': z.object({ id: building }),
   'team.camp.help': z.object({ playerId: id, building }),
   'team.camp.helpAll': empty,
+  'camp.remedy.make': z.object({ item: remedyId.nullable() }),
+  'camp.remedy.collect': empty,
   'team.extra': empty,
   'team.donate': z.object({ tech: z.enum(TEAM_TECH.map((t) => t.id) as [string, ...string[]]), jeton: z.number().int().min(1).max(1_000_000) }),
   'team.gift.claim': z.object({ giftId: id }),

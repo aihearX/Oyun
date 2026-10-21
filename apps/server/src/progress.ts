@@ -1,6 +1,6 @@
 import { leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
-import { completeDue } from './camp';
+import { completeDue, useRemedies } from './camp';
 import { addLeaguePoints } from './league';
 import { racePlaceFor } from './race';
 import { raidHit } from './raid';
@@ -91,6 +91,9 @@ export const progressHandlers: Handlers = {
       addGoalProgress(app, teamId, 'baskin', raidDamage);
       broadcastExtra(app, teamId);
     }
+
+    // Tedavi Odası: bölümde kullanılan malzemeler çantadan düşer (yarışta malzeme verilmez)
+    if (!d.raceId) useRemedies(app, s.pid, d.runId, d.remediesUsed);
 
     const after = app.player(s.pid);
     const ack = {

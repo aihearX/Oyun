@@ -136,7 +136,7 @@ export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
 export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: string; reason: string; at: number }
 
 // ---------- İlerleme bildirimi (her bölüm sonunda)
-export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number }
+export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[] }
 export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet }
 
 
@@ -148,15 +148,17 @@ export interface ProgressAck { highest: number; stars: number; warPoints: number
 export interface Wallet { jeton: number; kristal: number; hizlandirici: { m5: number; m60: number; s8: number } }
 
 // ---------- Kulak Kampı (kişisel üs; süreli inşaat, takım yardımıyla hızlanır)
-export type BuildingId = 'merkez' | 'laboratuvar' | 'atolye' | 'depo' | 'kule' | 'revir';
-export interface BuildingDef { id: BuildingId; name: string; emoji: string; desc: string; maxLevel: number }
+// Kimlikler kalıcıdır (kayıtlar ve sunucu satırları bunlara bağlı); adlar ve açıklamalar odyoloji temasına göre (docs/14-kamp.md).
+export type BuildingId = 'merkez' | 'laboratuvar' | 'atolye' | 'depo' | 'kule' | 'revir' | 'tedavi';
+export interface BuildingDef { id: BuildingId; name: string; emoji: string; desc: string; maxLevel: number; /** dar yerlerde (üst gösterge) kısa ad */ short?: string }
 export const BUILDINGS: BuildingDef[] = [
-  { id: 'merkez', name: 'Kamp Merkezi', emoji: '🏕️', desc: 'Diğer binaların en yüksek seviyesini belirler.', maxLevel: 15 },
-  { id: 'laboratuvar', name: 'Ses Laboratuvarı', emoji: '🔬', desc: 'Bölüm jetonlarını artırır (+%3/seviye).', maxLevel: 15 },
-  { id: 'atolye', name: 'Atölye', emoji: '🛠️', desc: 'Her bölüme ek kalkan şansı (+%4/seviye).', maxLevel: 15 },
-  { id: 'depo', name: 'Kulak Deposu', emoji: '📦', desc: 'Saatlik pasif jeton üretir (seviye × 20/saat, 8 saatte dolar).', maxLevel: 15 },
-  { id: 'kule', name: 'Yankı Kulesi', emoji: '🗼', desc: 'Savaş puanını artırır (+%2/seviye).', maxLevel: 15 },
-  { id: 'revir', name: 'Revir', emoji: '💚', desc: 'Bölümde ilk hasarı yok sayma şansı (+%3/seviye).', maxLevel: 15 },
+  { id: 'merkez', name: 'Odyoloji Merkezi', short: 'Merkez', emoji: '🏕️', desc: 'Kampın kalbi: diğer binaların en yüksek seviyesini belirler.', maxLevel: 15 },
+  { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 15 },
+  { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 15 },
+  { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 15 },
+  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Zarın titreşimini yoklar, takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 15 },
+  { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 15 },
+  { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 15 },
 ];
 /** inşaat maliyeti ve süresi (sn): seviyeyle üstel büyür; şeffaf formül */
 export function buildCost(id: BuildingId, toLevel: number): { jeton: number; seconds: number } {
@@ -164,7 +166,14 @@ export function buildCost(id: BuildingId, toLevel: number): { jeton: number; sec
   return { jeton: Math.round(80 * base * Math.pow(toLevel, 1.9)), seconds: Math.round(60 * base * Math.pow(toLevel, 2.2)) };
 }
 export interface BuildingState { id: BuildingId; level: number; upgradingTo: number | null; startedAt: number | null; endsAt: number | null; helpsReceived: number }
-export interface CampState { buildings: BuildingState[]; depotStoredAt: number; serverTime: number }
+/** Tedavi Odası üretimi ve çanta (sunucu yetkili; kurallar @odi/content remedies.ts) */
+export interface RemedyState {
+  /** şu an hazırlanan malzeme (yoksa null) ve sayacın başladığı an */
+  item: string | null; since: number;
+  /** envanter: malzeme kimliği → adet */
+  inv: Record<string, number>;
+}
+export interface CampState { buildings: BuildingState[]; depotStoredAt: number; serverTime: number; /** Tedavi Odası (eski sunucularda yok) */ remedy?: RemedyState }
 /** takım yardımı: her yardım kalan sürenin %1'i, en az 60 sn; inşaat başına en çok helpMax(takım tekno ile artar) */
 export function helpReductionSec(remainingSec: number): number { return Math.max(60, Math.round(remainingSec * 0.01)); }
 
@@ -265,6 +274,10 @@ export interface OpMap {
   'camp.help.request': { req: { id: BuildingId }; res: { camp: CampState } };
   'team.camp.help': { req: { playerId: string; building: BuildingId }; res: { given: number } };
   'team.camp.helpAll': { req: Record<string, never>; res: { given: number } };
+  /** Tedavi Odası: hazırlanacak malzemeyi seç (rafta biriken önce çantaya alınır; null = dur) */
+  'camp.remedy.make': { req: { item: string | null }; res: { camp: CampState; collected: number } };
+  /** Tedavi Odası: raftakileri çantaya al (zamana bağlı; ikinci çağrı 0 alır) */
+  'camp.remedy.collect': { req: Record<string, never>; res: { camp: CampState; collected: number } };
   'team.extra': { req: Record<string, never>; res: { extra: TeamExtra } };
   'team.donate': { req: { tech: TechId; jeton: number }; res: { extra: TeamExtra; wallet: Wallet } };
   'team.gift.claim': { req: { giftId: string }; res: { extra: TeamExtra; wallet: Wallet } };

@@ -17,3 +17,5 @@ export * from './cards';
 export * from './achievements';
 export * from './daily';
 export * from './quiz';
+export * from './remedies';
+export * from './kamp';

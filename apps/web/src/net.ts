@@ -8,8 +8,8 @@
 import { create } from 'zustand';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { WAR_REGIONS, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
-import { COSMETICS, SKILL_TREE, CARDS } from '@odi/content';
+import { WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { COSMETICS, SKILL_TREE, CARDS, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
@@ -166,6 +166,13 @@ export function applyServerItems(items: Pick<InboxItem, 'kind' | 'amount' | 'ref
   useStore.getState().applyServerMeta({ cosmetics: [...owned], cards: [...cards], teamShields: shields });
 }
 
+/** kamp bina seviyesiyle açılan kozmetikler (sunucu da profiline yazar; burada beklemeden yerel Dolap'a eklenir) */
+function syncCampUnlocks(camp: CampState): void {
+  const lv = (b: string) => camp.buildings.find((x) => x.id === b)?.level ?? 0;
+  const ids = earnedCampCosmetics(lv); const s = useStore.getState();
+  if (ids.some((id) => !s.meta.cosmetics.owned.includes(id))) s.applyServerMeta({ cosmetics: ids, cards: [], teamShields: s.teamShields });
+}
+
 // ------------------------------------------------------------------ bölüm sonu
 const sanitizeMechanic = (m: string) => (MECHANICS.has(m) ? m : 'kosu') as ProgressSubmit['mechanic'];
 /** Her koşu sunucuya gider (çevrimdışıysa kalıcı kuyruğa). Dönen runId sonuç ekranında katkı satırlarını eşler. */
@@ -179,6 +186,8 @@ export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): strin
     biome: spec.biome as ProgressSubmit['biome'], mechanic: sanitizeMechanic(spec.mechanic), ...(raceId ? { raceId } : {}),
     // altın koklea (Takım Akışı kartı): bölümün bildirdiği sayı, 0-3
     ...(r.completed && Number(r.extra?.cochleas) > 0 ? { cochleas: Math.max(0, Math.min(3, Math.floor(Number(r.extra?.cochleas)))) } : {}),
+    // Tedavi Odası: bölümde kullanılan malzemeler (sunucu envanterden bir kez düşer); yarışta malzeme yok
+    ...(!raceId && r.remediesUsed?.length ? { remediesUsed: r.remediesUsed.filter((u) => u.count > 0).slice(0, 12).map((u) => ({ id: u.id, count: Math.min(9, Math.floor(u.count)) })) } : {}),
   };
   useSocial.setState({ lastRun: { ...base, state: client.status === 'bağlı' ? 'gonderiliyor' : 'kuyrukta' } });
   const set = (p: Partial<LastRun>) => useSocial.setState((s) => (s.lastRun?.runId === runId ? { lastRun: { ...s.lastRun, ...p } } : {}));
@@ -254,6 +263,7 @@ export function startNet(): void {
     c.onMe((me) => applyServerItems([...me.cosmetics.map((ref) => ({ kind: 'kozmetik' as const, amount: 1, ref })), ...me.cards.map((ref) => ({ kind: 'kart' as const, amount: 1, ref }))]));
     useNet.subscribe((n, p) => { if (n.wallet !== p.wallet || n.status !== p.status) mirrorCoins(); });
     c.on('camp.updated', () => { void c.call('me.bonuses', {}).then((b) => useSocial.setState({ bonuses: b })).catch(() => undefined); });
+    useNet.subscribe((n, p) => { if (n.camp && n.camp !== p.camp) syncCampUnlocks(n.camp); }); // kampta açılan kozmetikler hemen Dolap'a
     c.on('team.extra.updated', () => { void c.call('me.bonuses', {}).then((b) => useSocial.setState({ bonuses: b })).catch(() => undefined); });
     c.on('team.updated', ({ team }) => { if (team) void c.call('war.state', {}).then((w) => useNet.setState({ war: w.war })).catch(() => undefined); });
     c.on('team.help', ({ request }) => useNet.setState((s) => (s.team ? { team: { ...s.team, help: [request, ...s.team.help.filter((h) => h.id !== request.id)] } } : {})));

@@ -28,6 +28,18 @@ export const ROADS: [number, number][][] = [
   ...BUILDING_ORDER.filter((id) => id !== 'merkez').map((id) => { const l = LOTS[id]; return [[0, 30], [l.x * 0.45, l.y * 0.45 + 34], [l.x, l.y + (l.tiles * 16) + 6]] as [number, number][]; }),
   [[0, 60], [10, 230], [-40, 300]],
 ];
+/**
+ * "Kulak Yolu": ön kıyı boyunca bölge anıtlarının yerleri (soldan sağa kulaktan beyne). İskele yolu ortada boş kalır;
+ * anıtlar zikzak iki sırada durur (arka sıra biraz yukarıda) ki ekrana sığsın ve birbirini örtmesin. Hep açık bölgede (sis yok).
+ */
+export const KULAK_YOLU_REGIONS = ['dis-kulak', 'kanal', 'zar', 'kemikcikler', 'koklea-1', 'koklea-2', 'koklea-3', 'sinir', 'beyin-sapi', 'korteks'] as const;
+const KY_X = [-236, -192, -148, -104, -60, 30, 80, 130, 180, 230];
+export const KULAK_YOLU: { region: (typeof KULAK_YOLU_REGIONS)[number]; x: number; y: number }[] = KULAK_YOLU_REGIONS.map((region, i) => {
+  const x = KY_X[i]!; const k = i % 2 ? 0.71 : 0.8;
+  const t = Math.min(0.99, Math.abs(x) / (ISLAND.rx * k));
+  return { region, x, y: Math.round(ISLAND.cy + ISLAND.ry * k * Math.sqrt(1 - t * t)) };
+});
+
 /** dere: arka sol tepelerden çıkıp sol ön kıyıya akan ses dalgası */
 export const STREAM: [number, number][] = [[-330, -250], [-300, -170], [-370, -90], [-330, -10], [-400, 60], [-360, 140], [-430, 210], [-470, 270]];
 function streamPoints(): [number, number][] {
@@ -95,6 +107,20 @@ export function paintGround(ctx: Ctx) {
     const [a, b, c] = pts as [[number, number], [number, number], [number, number]];
     const x = (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], y = (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1];
     for (let k = 0; k < 2; k++) { ctx.fillStyle = css(r() < 0.5 ? 0xc9a36c : 0xf3dcae, 0.8); ctx.beginPath(); ctx.ellipse(x + (r() - 0.5) * 14, y + (r() - 0.5) * 7, 1.8 + r() * 1.6, 1 + r(), 0, 0, 7); ctx.fill(); }
+  }
+  // ---- Kulak Yolu: anıtları birleştiren ince taş patika + her anıtın altında küçük yuvarlak döşeme
+  const ky = KULAK_YOLU;
+  const trail = (pts: { x: number; y: number }[]) => { ctx.beginPath(); ctx.moveTo(pts[0]!.x, pts[0]!.y + 4); for (let i = 1; i < pts.length; i++) { const a = pts[i - 1]!, b = pts[i]!; ctx.quadraticCurveTo(a.x, a.y + 4, (a.x + b.x) / 2, (a.y + b.y) / 2 + 4); } const z = pts[pts.length - 1]!; ctx.lineTo(z.x, z.y + 4); };
+  for (const half of [ky.slice(0, 5), ky.slice(5)]) {
+    trail(half); ctx.strokeStyle = 'rgba(70,40,20,0.3)'; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+    trail(half); ctx.strokeStyle = '#dcbf8e'; ctx.lineWidth = 8; ctx.stroke();
+    trail(half); ctx.strokeStyle = 'rgba(255,240,210,0.55)'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 5]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  for (const m of ky) {
+    ctx.beginPath(); ctx.ellipse(m.x, m.y + 2, 30, 15, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(70,40,20,0.28)'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(m.x, m.y + 1, 27, 13.5, 0, 0, Math.PI * 2); ctx.fillStyle = '#d9c3a0'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,240,210,0.6)'; ctx.lineWidth = 1.2; ctx.stroke();
+    for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; ctx.fillStyle = css(shade(0xcdb08a, (r() - 0.5) * 0.2)); ctx.beginPath(); ctx.ellipse(m.x + Math.cos(a) * 21, m.y + 1 + Math.sin(a) * 10.5, 3, 1.6, 0, 0, 7); ctx.fill(); }
   }
   // ---- merkez meydanı (arnavut kaldırımı)
   ctx.save(); ctx.beginPath(); ctx.ellipse(0, 6, 170, 86, 0, 0, Math.PI * 2); ctx.fillStyle = 'rgba(70,40,20,0.3)'; ctx.fill();

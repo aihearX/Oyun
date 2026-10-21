@@ -4,6 +4,7 @@ import { CampScene, type CampSceneOpts, type CampTeam } from './CampScene';
 
 export type { CampSceneOpts as CampOptions, CampTeam } from './CampScene';
 export { buildingCanvas, PAINT_BOX, TIER_ACCENT } from './buildings';
+export { MONUMENT_ORDER, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
 export { BUILDING_ORDER, LOTS, CAMP_TIER_NAMES, ZONE_LEVELS, DEPOT_CAP_H, DEPOT_RATE, activeBuild, depotStored, levelOf, tierChanged, tierOf, zonesOpen } from './layout';
 
 /** etkileşimde 60 fps; 6 sn dokunuş yoksa 30 fps (animasyonlar sürer, işlemci yarıya iner) */
@@ -11,7 +12,11 @@ const ACTIVE_FPS = 61, IDLE_FPS = 30, IDLE_AFTER_MS = 6000;
 
 export interface CampHandle {
   /** canlı güncelleme: kamp durumu, takım, yardım istenebilirliği */
-  update(p: { camp?: CampState; team?: CampTeam | null; canAskHelp?: boolean }): void;
+  update(p: { camp?: CampState; team?: CampTeam | null; canAskHelp?: boolean; /** ulaşılan bölgeler (anıtlar) ve kutlanacak yeni anıt */ regions?: string[]; celebrate?: string | null }): void;
+  /** Tedavi Odası rafı toplandı: damlalar uçar */
+  remediesCollected(n: number): void;
+  /** anıtın ekrandaki noktası (CSS px, sayfa koordinatı; test ve kutlama) */
+  monumentPos(region: string): { x: number; y: number } | null;
   /** takım arkadaşı yardım etti (camp.helped) */
   helped(id: BuildingId, seconds: number): void;
   /** depo toplandı: jeton fışkırması */
@@ -62,12 +67,20 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
   const boost = (ms = 0) => { lastActive = Math.max(lastActive, performance.now() + ms); setRate(ACTIVE_FPS); };
   const onInput = () => boost();
   for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.addEventListener(ev, onInput, { passive: true });
+  // dokunuş koordinatları: tuval sayfada kaydıysa (ekran geçişi, üst şerit) Phaser'ın önbellekli sınırları eskir → dokunuştan hemen önce tazele
+  const onDown = () => { try { if (game.isBooted) game.scale.updateBounds(); } catch { /* yok */ } };
+  for (const ev of ['pointerdown', 'touchstart', 'mousedown'] as const) parent.addEventListener(ev, onDown, { capture: true, passive: true });
   const idleTimer = setInterval(() => { if (performance.now() - lastActive > IDLE_AFTER_MS) setRate(IDLE_FPS); }, 1000);
   const onVis = () => { if (!game.loop) return; if (document.hidden) game.loop.sleep(); else { game.loop.wake(); boost(); } };
   document.addEventListener('visibilitychange', onVis);
   let dead = false;
   return {
-    update: (p) => run(() => { if (p.camp) boost(4000); if (p.team !== undefined) scene.setTeam(p.team); if (p.canAskHelp !== undefined) scene.setCanAskHelp(p.canAskHelp); if (p.camp) scene.applyState(p.camp); }),
+    update: (p) => run(() => { if (p.camp) boost(4000); if (p.team !== undefined) scene.setTeam(p.team); if (p.canAskHelp !== undefined) scene.setCanAskHelp(p.canAskHelp); if (p.camp) scene.applyState(p.camp); if (p.regions) { boost(4000); scene.setRegions(p.regions, p.celebrate); } }),
+    remediesCollected: (n) => run(() => { boost(3000); scene.remediesCollected(n); }),
+    monumentPos: (region) => {
+      if (!scene.ready || !game.canvas) return null; const p = scene.monumentPoint(region); if (!p) return null;
+      const r = game.canvas.getBoundingClientRect(); return { x: r.left + p.x / dpr, y: r.top + p.y / dpr };
+    },
     helped: (id, seconds) => run(() => { boost(3000); scene.helped(id, seconds); }),
     collected: (n) => run(() => { boost(3000); scene.collected(n); }),
     screenPos: (id) => {
@@ -79,6 +92,6 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
     unfocus: () => run(() => { boost(1200); scene.unfocus(); }),
     focus: (id, above) => run(() => { boost(1500); scene.focus(id, above); }),
     sleep: (on) => { if (!game.loop) return; if (on) game.loop.sleep(); else { game.loop.wake(); boost(); } },
-    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); clearInterval(idleTimer); document.removeEventListener('visibilitychange', onVis); for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.removeEventListener(ev, onInput); try { game.destroy(true); } catch { /* yok */ } },
+    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); clearInterval(idleTimer); document.removeEventListener('visibilitychange', onVis); for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.removeEventListener(ev, onInput); for (const ev of ['pointerdown', 'touchstart', 'mousedown'] as const) parent.removeEventListener(ev, onDown, { capture: true }); try { game.destroy(true); } catch { /* yok */ } },
   };
 }
