@@ -1,0 +1,103 @@
+/* Takım rekabeti: Takım Yarışı lobisi, yarış içi takım şeridi ve tepkiler, sonuç ekranı, Takım Ligi. "Kulak Gecesi" koyu cam dili. */
+.tr, .tl { display:flex; flex-direction:column; gap:10px; min-width:0; }
+.tr h3, .tl h3 { margin:6px 2px 0; font-size:15px; }
+.tr-hero, .tl-head { display:flex; align-items:center; gap:10px; min-width:0; }
+.tr-hero-ic { width:52px; height:52px; flex:none; border-radius:16px; display:grid; place-items:center; background:linear-gradient(180deg, rgba(46,230,214,.22), rgba(255,92,138,.18)); }
+.tr-hero b, .tl-head b { display:block; font-size:16px; }
+.tr-hero small, .tl-head small { display:block; color:var(--text-2); font-weight:700; font-size:12.5px; line-height:1.35; }
+.tr-open { display:flex; flex-direction:column; gap:8px; }
+.tr-open .row { gap:8px; flex-wrap:wrap; }
+.tr-open .btn { min-width:0; }
+.tr-empty { display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px; padding:18px 14px; }
+.tr-live { display:flex; flex-direction:column; gap:4px; border-color:color-mix(in srgb, var(--coral) 55%, transparent); }
+
+.tr-lobby { display:flex; flex-direction:column; gap:10px; min-width:0; }
+.tr-st { display:inline-flex; align-items:center; gap:6px; font-weight:900; font-size:12.5px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.08); }
+.tr-st.ariyor { background:rgba(255,92,138,.18); color:#ffd0dd; }
+.tr-st.eslesti { background:rgba(142,240,176,.18); color:#d9ffe6; }
+.tr-pulse { width:8px; height:8px; border-radius:50%; background:var(--coral); animation:tr-pulse 1.2s ease-in-out infinite; }
+@keyframes tr-pulse { 50% { opacity:.3; transform:scale(.7); } }
+@media (prefers-reduced-motion: reduce) { .tr-pulse { animation:none; } }
+.tr-slots { display:grid; grid-template-columns:repeat(auto-fill, minmax(78px, 1fr)); gap:8px; }
+.tr-slot { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; border-radius:16px; border:1.5px solid var(--panel-edge); background:rgba(5,2,20,.3); min-width:0; text-align:center; }
+.tr-slot b { max-width:100%; font-size:12.5px; }
+.tr-slot small { font-size:11px; font-weight:800; color:var(--text-2); }
+.tr-slot.ready { border-color:color-mix(in srgb, var(--lime) 70%, transparent); background:rgba(142,240,176,.1); }
+.tr-slot.ready small { color:var(--lime); }
+.tr-slot.off { opacity:.55; }
+.tr-slot.me b { color:#fff3b0; }
+.tr-slot.empty { border-style:dashed; justify-content:center; min-height:86px; }
+.tr-plus { font-size:24px; font-weight:900; color:var(--text-2); line-height:1; }
+.tr-note { font-weight:800; font-size:13px; padding:8px 10px; border-radius:12px; background:rgba(255,201,60,.1); border:1.5px solid rgba(255,201,60,.35); color:#fff3b0; }
+.tr-inv { display:flex; align-items:center; gap:8px; min-width:0; padding:8px 10px; border-radius:14px; background:rgba(46,230,214,.1); border:1.5px solid rgba(46,230,214,.35); }
+.tr-inv.out { background:rgba(255,255,255,.05); border-color:var(--panel-edge); }
+.tr-inv small { display:block; font-size:11.5px; color:var(--text-2); font-weight:700; }
+.tr-inv .btn { flex:none; }
+.tr-emb { flex:none; width:36px; height:36px; display:grid; place-items:center; border-radius:12px; background:rgba(255,255,255,.08); font-size:20px; line-height:1; }
+.tr-emb.big { width:56px; height:56px; font-size:32px; border-radius:18px; }
+.tr-actions { display:flex; flex-direction:column; gap:8px; }
+.tr-actions .row { justify-content:space-between; gap:8px; flex-wrap:wrap; }
+
+.tr-recent { display:flex; flex-direction:column; gap:6px; }
+.tr-res { display:flex; align-items:center; gap:8px; min-width:0; padding:8px 10px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); }
+.tr-res small { display:block; font-size:11.5px; }
+.tr-res-o { flex:none; font-size:11.5px; font-weight:900; padding:3px 8px; border-radius:999px; background:rgba(255,255,255,.08); }
+.tr-res.win .tr-res-o { background:rgba(142,240,176,.2); color:#d9ffe6; }
+.tr-res.lose .tr-res-o { background:rgba(255,92,138,.18); color:#ffd0dd; }
+.tr-res .btn { flex:none; }
+.tr-pick { display:flex; flex-direction:column; gap:6px; max-height:46vh; overflow-y:auto; }
+.tr-pick-row { appearance:none; display:flex; align-items:center; gap:10px; min-height:52px; padding:6px 10px; border-radius:14px; border:1.5px solid var(--panel-edge); background:rgba(5,2,20,.3); color:var(--text); font:inherit; text-align:left; cursor:pointer; min-width:0; }
+.tr-pick-row small { display:block; font-size:11.5px; color:var(--text-2); font-weight:700; }
+
+/* yarış içi: üstte ince takım şeridi, sağda tepkiler (oyuna dokunuşu kapatmaz) */
+.tr-hud { position:fixed; inset:0; pointer-events:none; z-index:30; }
+.tr-bar { position:absolute; left:50%; transform:translateX(-50%); top:calc(var(--sat) + 178px); display:flex; align-items:center; gap:8px; padding:4px 10px; border-radius:999px; background:rgba(8,4,26,.62); border:1.5px solid rgba(255,255,255,.14); width:min(260px, calc(100vw - 120px)); }
+.tr-side { flex:none; display:inline-flex; align-items:center; gap:4px; font-size:14px; }
+.tr-side.us b { color:var(--teal); } .tr-side.them b { color:var(--coral); }
+.tr-track { flex:1; position:relative; height:8px; border-radius:999px; background:rgba(255,255,255,.12); overflow:hidden; min-width:0; }
+.tr-track i { position:absolute; top:0; bottom:0; transition:width .4s; }
+.tr-track i.us { left:0; background:var(--teal); } .tr-track i.them { right:0; background:var(--coral); }
+.tr-reacts { position:absolute; right:8px; top:calc(var(--sat) + 230px); display:flex; flex-direction:column; gap:6px; pointer-events:auto; }
+.tr-reacts button { appearance:none; width:40px; height:40px; border-radius:50%; border:1.5px solid rgba(255,255,255,.18); background:rgba(8,4,26,.55); font-size:20px; line-height:1; cursor:pointer; }
+.tr-reacts button:active { transform:scale(.88); }
+.tr-floats { position:absolute; left:12px; top:calc(var(--sat) + 230px); display:flex; flex-direction:column; gap:6px; }
+.tr-float { font-weight:900; font-size:13px; color:#fff; padding:4px 10px; border-radius:999px; background:rgba(46,230,214,.32); animation:tr-float 2.6s ease-out forwards; }
+.tr-float b { font-size:18px; }
+@keyframes tr-float { 0% { opacity:0; transform:translateY(8px); } 12% { opacity:1; transform:none; } 80% { opacity:1; } 100% { opacity:0; transform:translateY(-10px); } }
+@media (prefers-reduced-motion: reduce) { .tr-float { animation:none; } .tr-track i { transition:none; } }
+
+/* sonuç */
+.tr-result { display:flex; flex-direction:column; gap:12px; padding-bottom:calc(var(--sab) + 16px); }
+.tr-result-top { text-align:center; }
+.tr-result-top h1 { margin:4px 0; }
+.tr-score { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:6px; }
+.tr-ts { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; text-align:center; }
+.tr-ts b { max-width:100%; font-size:13.5px; }
+.tr-ts strong { font-size:34px; line-height:1; }
+.tr-ts.us strong { color:var(--teal); } .tr-ts.them strong { color:var(--coral); }
+.tr-ts small { font-size:11.5px; font-weight:900; color:var(--text-2); }
+.tr-vs { font-size:22px; font-weight:900; color:var(--text-2); }
+.tr-rows { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.tr-row { display:flex; align-items:center; gap:8px; min-width:0; padding:6px 10px; border-radius:14px; background:rgba(5,2,20,.3); border-left:4px solid var(--teal); }
+.tr-row.them { border-left-color:var(--coral); }
+.tr-row.me { background:rgba(255,201,60,.1); }
+.tr-row small { display:block; font-size:11.5px; }
+.tr-place { flex:none; width:22px; text-align:center; }
+.tr-pts { flex:none; color:var(--gold); }
+
+/* Takım Ligi */
+.tl-emb { flex:none; display:grid; place-items:center; border-radius:30%; border:3px solid; background:rgba(255,255,255,.06); line-height:1; }
+.tl-rows { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px; }
+.tl-row { display:flex; align-items:center; gap:8px; min-width:0; min-height:48px; padding:5px 10px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); }
+.tl-row.up { border-color:color-mix(in srgb, var(--lime) 55%, transparent); }
+.tl-row.down { border-color:color-mix(in srgb, var(--coral) 55%, transparent); }
+.tl-row.me { background:linear-gradient(90deg, rgba(255,201,60,.18), rgba(255,201,60,.04)); }
+.tl-rank { flex:none; width:24px; text-align:center; }
+.tl-zone { flex:none; display:inline-flex; }
+.tl-pts { flex:none; color:var(--gold); }
+.tl-mine { display:flex; flex-direction:column; gap:8px; }
+.tl-src { display:flex; align-items:center; gap:8px; min-width:0; }
+.tl-src small { display:block; font-size:11.5px; color:var(--text-2); font-weight:700; }
+.tl-hist { display:flex; flex-direction:column; gap:6px; }
+.tl-h { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; min-width:0; }
+.tl-h small { flex:none; color:var(--text-2); }

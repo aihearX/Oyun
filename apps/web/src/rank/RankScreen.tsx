@@ -15,7 +15,7 @@ import './rank.css';
  * Sıralama: oyuncu ve takım tabloları (sunucu yetkili). Podyum (ilk 3, herkesin kendi Odi rengiyle), ▲▼ gün başına göre değişim,
  * kendi satırım sabit, geçen haftanın ilk 3'ü, şeffaf formül ve ödüller bilgi sayfasında. Satıra dokun → profil kartı.
  */
-const BOARD_ART: Record<RankBoardId, ArtName> = { guc: 'bolt', yildiz: 'star', nota: 'note', soru: 'bulb', yaris: 'finish', 't-guc': 'shield', 't-savas': 'swords', 't-baskin': 'monster', 't-soru': 'bulb' };
+const BOARD_ART: Record<RankBoardId, ArtName> = { guc: 'bolt', yildiz: 'star', nota: 'note', soru: 'bulb', yaris: 'finish', 't-guc': 'shield', 't-savas': 'swords', 't-baskin': 'monster', 't-soru': 'bulb', 't-lig': 'medal' };
 const SCOPES: { id: RankScope; label: string }[] = [{ id: 'herkes', label: 'Herkes' }, { id: 'arkadas', label: 'Arkadaşlar' }, { id: 'yakin', label: 'Yakınım' }];
 let last: { team: boolean; board: Record<'p' | 't', RankBoardId>; scope: RankScope } = { team: false, board: { p: 'guc', t: 't-guc' }, scope: 'herkes' };
 

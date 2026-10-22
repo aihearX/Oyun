@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { SOCIAL_LIMITS, type RacePlayer, type RaceRoom } from '@odi/shared';
+import { SOCIAL_LIMITS, type RacePlayer, type RaceRoom, type TeamRaceInfo, type TeamRaceSideId } from '@odi/shared';
 import { fail, rid, type App, type Conn, type Handlers } from './app';
 import { areFriends } from './chat';
 import { isBlocked } from './friends';
@@ -8,7 +8,7 @@ import { isBlocked } from './friends';
  * Canlı yarış odaları yalnızca bellekte tutulur: sunucu yeniden başlarsa açık odalar kaybolur.
  * Yalnızca gerçek oyuncular; bot ya da sahte rakip yok.
  */
-interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null }
+interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null; /** takım yarışı: yarış bitince (bir kez) */ onEnd?: (room: RaceRoom) => void }
 /** son biten yarışın rakipleri: rövanş daveti (arkadaş olmasalar da) ve aynı bölümde yeniden oda kurma için */
 interface Recent { rivals: Set<string>; level: number; until: number }
 interface RaceStore { rooms: Map<string, Room>; byPlayer: Map<string, string>; recent: Map<string, Recent> }
@@ -28,7 +28,7 @@ function store(app: App): RaceStore {
   return s;
 }
 
-const view = (r: Room): RaceRoom => ({ id: r.id, hostId: r.hostId, level: r.level, salt: r.salt, status: r.status, startsAt: r.startsAt, players: r.players.map((p) => ({ ...p })), max: r.max, createdAt: r.createdAt });
+const view = (r: Room): RaceRoom => ({ id: r.id, hostId: r.hostId, level: r.level, salt: r.salt, status: r.status, startsAt: r.startsAt, players: r.players.map((p) => ({ ...p })), max: r.max, createdAt: r.createdAt, ...(r.team ? { team: { ...r.team, a: { ...r.team.a }, b: { ...r.team.b } } } : {}) });
 const active = (r: Room) => r.players.filter((p) => !p.left);
 
 function broadcast(app: App, r: Room): void {
@@ -59,6 +59,7 @@ function finishRace(app: App, r: Room): void {
   for (const id of ids) recent.set(id, { rivals: new Set(ids.filter((x) => x !== id)), level: r.level, until: now + RECENT_TTL_MS });
   setTimer(app, r, DONE_TTL_MS, () => deleteRoom(app, r));
   broadcast(app, r);
+  if (r.onEnd) { const f = r.onEnd; r.onEnd = undefined; try { f(view(r)); } catch (e) { if (app.cfg.log) console.error('[takim-yarisi]', e); } }
 }
 
 /** zamana bağlı geçişler (zamanlayıcıdan ya da bir istek sırasında tembel olarak) */
@@ -81,6 +82,7 @@ function startCountdown(app: App, r: Room): void {
 }
 
 function maybeStart(app: App, r: Room): void {
+  if (r.team) return; // takım yarışı geri sayımla kurulur; ayrılan olursa iptal olmaz (bitiremedi sayılır)
   const act = active(r);
   if (r.status === 'lobi' && act.length >= 2 && act.every((p) => p.ready)) startCountdown(app, r);
   else if (r.status === 'geri-sayim' && (act.length < 2 || !act.every((p) => p.ready))) {
@@ -96,10 +98,10 @@ export function leaveRace(app: App, pid: string): void {
   s.byPlayer.delete(pid);
   const r = s.rooms.get(roomId);
   if (!r) return;
-  if (r.status === 'lobi' || r.status === 'geri-sayim') r.players = r.players.filter((p) => p.id !== pid);
+  if ((r.status === 'lobi' || r.status === 'geri-sayim') && !r.team) r.players = r.players.filter((p) => p.id !== pid);
   else { const p = r.players.find((x) => x.id === pid); if (p) p.left = true; }
   const act = active(r);
-  if (!act.length) { deleteRoom(app, r); return; }
+  if (!act.length) { if (r.team && r.status !== 'bitti') finishRace(app, r); deleteRoom(app, r); return; }
   if (r.hostId === pid) r.hostId = act[0]!.id;
   maybeStart(app, r);
   tick(app, r);
@@ -138,6 +140,34 @@ function myRoom(app: App, pid: string): Room {
   if (!r) return fail('YOK', 'Bir yarış odasında değilsin.');
   tick(app, r);
   return r;
+}
+
+/**
+ * Takım yarışı odası: iki takımın hazır üyeleri doğrudan geri sayımla başlar (lobi yok). Herkes aynı bölümü (aynı tuz) koşar.
+ * Bağlantısı kopan oyuncu graceMs içinde dönmezse ayrılmış (bitiremedi) sayılır.
+ */
+export function createTeamRaceRoom(app: App, o: { level: number; players: { id: string; side: TeamRaceSideId }[]; team: TeamRaceInfo; onEnd: (room: RaceRoom) => void }): RaceRoom {
+  for (const p of o.players) leaveRace(app, p.id);
+  const r: Room = {
+    id: rid('r'), hostId: o.players[0]!.id, level: o.level, salt: randomInt(1, 1000), status: 'lobi', startsAt: null,
+    players: o.players.map((x) => ({ ...playerEntry(app, x.id), ready: true, side: x.side })), max: o.players.length, createdAt: app.now(),
+    timers: [], linked: new Set(), firstFinishAt: null, team: o.team, onEnd: o.onEnd,
+  };
+  const s = store(app);
+  s.rooms.set(r.id, r);
+  for (const p of o.players) s.byPlayer.set(p.id, r.id);
+  startCountdown(app, r);
+  broadcast(app, r);
+  return view(r);
+}
+export function raceRoomView(app: App, id: string): RaceRoom | null { const r = store(app).rooms.get(id); if (!r) return null; tick(app, r); return view(r); }
+
+/** bağlantı koptu: takım yarışında kısa bir bekleme (aynı oyuncu dönerse yarış sürer), diğerlerinde hemen çıkış */
+export function raceDisconnect(app: App, pid: string, graceMs: number): void {
+  const id = store(app).byPlayer.get(pid);
+  const r = id ? store(app).rooms.get(id) : undefined;
+  if (!r || !r.team || r.status === 'bitti') { leaveRace(app, pid); return; }
+  setTimer(app, r, graceMs, () => { if (!app.online.has(pid) && store(app).byPlayer.get(pid) === r.id) leaveRace(app, pid); });
 }
 
 /** progress.submit: yarış derecesini bir kez bağla */

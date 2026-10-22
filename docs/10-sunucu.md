@@ -194,3 +194,18 @@ tabloları; kapsam herkes (ilk 100) / arkadaşlar / yakınım (±5). Puanlar yal
 `rank_day`); gün başı sıraları `rank_snap` (▲▼); hafta kapanışı (Pazartesi 00:00 İstanbul) `rank_final` + bir kez ödül `rank_rewards` + takım
 sohbetine duyuru. Takıma davet: `dm.send { kind: 'davet', meta: { type: 'takim', roomId: <takım> } }` (yalnız kendi takımına; metni ve kodu sunucu
 yazar). Serbest yazısı açılmamış oyuncunun davet metinlerini de sunucu yazar. Testler `apps/server/test/rank.test.ts`.
+
+## Takım rekabeti (docs/16-takim-rekabeti.md)
+
+**Canlı Takım Yarışı** (`trace.*`)
+- Lobi bellekte tutulur. Eşleşme takım gücüyle olur ve pencere 20 sn'de bir genişler.
+- Dostluk daveti 10 dk geçerlidir.
+- Yarış odası `race.ts`'teki takım odasıdır (`createTeamRaceRoom`). Bağlantı koparsa `teamRaceGraceMs` beklenir; varsayılan 20 sn, testte kısa.
+- Sonuç bir kez yazılır (`tr_match`, yıldızlar `tr_star`).
+
+**Takım Ligi** (`tlig.state`)
+- 2 haftalık sezon; tablolar `tl_*`.
+- Puan sunucu kayıtlarından hesaplanır.
+- Sezon kapanışı ve ödül bir kez işlenir.
+
+Birim testleri: `apps/server/test/teamrace.test.ts`.

@@ -13,6 +13,7 @@ import { fail, type App, type Handlers } from '../app';
 import { postCard, systemMessage, teamRoom } from '../chat';
 import { dayKey, weekInfo, DAY_MS, WEEK_MS } from '../time';
 import { feedShareOn, metric } from '../comm/settings';
+import { seasonTable } from '../teamrace/league';
 
 export const RANK_SCHEMA = `
 CREATE TABLE IF NOT EXISTS rank_level(player_id TEXT NOT NULL, level INTEGER NOT NULL, stars INTEGER NOT NULL, PRIMARY KEY(player_id, level));
@@ -68,6 +69,7 @@ function teamEntries(app: App, board: RankBoardId, week: string): Entry[] {
       LEFT JOIN (SELECT team_id, SUM(level) AS lv FROM team_tech GROUP BY team_id) k ON k.team_id = t.id`;
   else if (board === 't-savas') { sql = 'SELECT team_id AS id, points AS v FROM team_week WHERE week = ?'; args.push(week); }
   else if (board === 't-baskin') { sql = 'SELECT team_id AS id, SUM(damage) AS v FROM raid_damage WHERE raid_id = ? GROUP BY team_id'; args.push(week); }
+  else if (board === 't-lig') return seasonTable(app).filter((x) => x.value > 0);
   else if (board === 't-soru') { sql = `SELECT a.team_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? GROUP BY a.team_id`; args.push(week); }
   return app.db.all<TRow>(`SELECT t.id, t.name, t.emblem, x.v FROM (${sql}) x JOIN teams t ON t.id = x.id WHERE x.v > 0`, ...args)
     .map((r) => ({ id: r.id, value: r.v, name: r.name, emblem: r.emblem }));
@@ -84,6 +86,8 @@ function ranked(app: App, board: RankBoardId, week = app.week().key): Ranked[] {
   return list;
 }
 export const rankInvalidate = (app: App) => cache.get(app)?.clear();
+/** tek bir oyuncu/takımın tablodaki değeri (önbellekten; takım yarışı eşleşmesi gücü bununla kıyaslar) */
+export const boardValue = (app: App, board: RankBoardId, id: string): number => ranked(app, board).find((r) => r.id === id)?.value ?? 0;
 
 // ------------------------------------------------------------------ olaylar (yalnızca doğrulanmış)
 /** progress.submit (aynı runId ikinci kez gelmez): doğrulanmış bölüm/yıldız, haftalık yeni yıldız, nota (günlük sınır), yarış birinciliği */

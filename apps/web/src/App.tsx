@@ -45,7 +45,8 @@ import { NavContext, type Nav, type SocialRoute } from './nav';
 import { startNet, submitRun, toast, useSocial } from './net';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
-import { RaceLobby, RaceResult, RaceInviteBanner } from './race';
+import { RaceLobby, RaceResult, RaceInviteBanner, raceSpec } from './race';
+import { TeamRaceMatchWatcher, TeamRaceResultScreen } from './teamrace';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
 import { RankScreen } from './rank/RankScreen';
@@ -58,6 +59,8 @@ declare const __ODI_E2E__: boolean | undefined;
 const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
 const E2E_Q = E2E ? new URLSearchParams(location.search) : null;
 const PLAY_BOT = !!E2E_Q && E2E_Q.get('oyun-bot') === '1';
+/** test: bot hız çarpanı (`&oyun-hiz=3`; yavaş test makinesinde çok oyunculu yarış zaman sınırına takılmasın) */
+const BOT_SPEED = PLAY_BOT ? Math.min(4, Math.max(1, Number(E2E_Q!.get('oyun-hiz')) || 1)) : 1;
 /** sekme → açılması gereken yer (harita hep açık) */
 const TAB_FEATURE: Partial<Record<Tab, FeatureId>> = { today: 'today', camp: 'camp', team: 'team', profile: 'profile' };
 type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'info';
@@ -117,7 +120,7 @@ export function App() {
   // test derlemesi: normal akıştaki bölüm botla oynanır (LevelHost bot modunda onDone çağırmaz; sonuç window.__odi'den)
   const levelDone = useRef<((r: RunResult, room?: RaceRoom) => void) | null>(null);
   useEffect(() => {
-    if (!PLAY_BOT || route.name !== 'level') return; const id = route.spec.id;
+    if (!PLAY_BOT || route.name !== 'level' || route.race) return; const id = route.spec.id; // yarışta LevelHost kendisi bitirir
     const h = setInterval(() => { const o = window.__odi; if (o?.done && o.result && o.spec?.id === id) { clearInterval(h); levelDone.current?.(o.result); } }, 250);
     return () => clearInterval(h);
   }, [route]);
@@ -187,7 +190,7 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => setRoute({ name: 'level', spec: raceSpec(room), extras: raceExtras(), race: room })} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
@@ -214,9 +217,9 @@ export function App() {
     case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room })} onClose={back(route)} />);
     case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} onBack={back(route)} onPlay={(spec, p) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back })} />);
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
-    case 'raceResult': return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
+    case 'raceResult': if (route.room.team) return sub(<TeamRaceResultScreen room={route.room} result={route.result} />); return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
-    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && !r.race} extras={r.extras} race={r.race}
+    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={r.extras} race={r.race}
       onDone={levelDone.current = (result, room) => {
         if (r.race) {
           // yarış bölümü açık bölümlerdense ilerlemeye ve takıma sayılır (rövanşta açılmamış bölüm sayılmaz)
@@ -225,7 +228,7 @@ export function App() {
         }
         const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result); setRoute({ name: 'result', spec: r.spec, result, summary, runId });
       }}
-      onQuit={() => setRoute(r.race ? { name: 'race', back: 'team', key: Date.now() } : { name: 'map' })} />; }
+      onQuit={() => setRoute(r.race ? (r.race.team ? { name: 'team' } : { name: 'race', back: 'team', key: Date.now() }) : { name: 'map' })} />; }
     case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
     case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} onReset={() => setRoute({ name: 'title' })} />;

@@ -18,7 +18,7 @@ export interface ChatMember { id: string; name: string; color: number; hat: stri
 function sysIcon(m: ChatMessage): string {
   const ev = m.meta?.event;
   if (ev === 'ralli') return '⚔️'; if (ev === 'duello') return '🥊'; if (ev === 'bayrak') return '🚩'; if (ev === 'quiz') return '🧠'; if (ev === 'avi') return '🎵';
-  if (ev === 'meydan' || ev === 'yaris') return '🏁'; if (ev === 'calisma') return '💡'; if (ev === 'sira') return '🏆';
+  if (ev === 'meydan' || ev === 'yaris') return '🏁'; if (ev === 'calisma') return '💡'; if (ev === 'sira') return '🏆'; if (ev === 'tyaris') return '🏁'; if (ev === 'tlig') return '🛡️';
   if (m.kind === 'war') return '⚔️';
   if (m.kind === 'help') return '🙋';
   if (m.kind === 'race') return '🏁';

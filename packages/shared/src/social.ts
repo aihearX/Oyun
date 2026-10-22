@@ -124,8 +124,8 @@ export interface RaidState {
 
 // ---------- Canlı yarış
 export type RaceStatus = 'lobi' | 'geri-sayim' | 'yarista' | 'bitti';
-export interface RacePlayer { id: string; name: string; color: number; hat: string; ready: boolean; pct: number; finishedAt: number | null; place: number | null; score: number | null; left: boolean }
-export interface RaceRoom { id: string; hostId: string; level: number; salt: number; status: RaceStatus; startsAt: number | null; players: RacePlayer[]; max: number; createdAt: number }
+export interface RacePlayer { id: string; name: string; color: number; hat: string; ready: boolean; pct: number; finishedAt: number | null; place: number | null; score: number | null; left: boolean; /** takım yarışı: taraf (docs/16-takim-rekabeti.md) */ side?: TeamRaceSideId }
+export interface RaceRoom { id: string; hostId: string; level: number; salt: number; status: RaceStatus; startsAt: number | null; players: RacePlayer[]; max: number; createdAt: number; /** takım yarışı ise iki takım */ team?: TeamRaceInfo }
 export interface RacePos { id: string; x: number; y: number; pct: number; at: number }
 
 // ---------- Lig (haftalık, 30 kişilik grup)
@@ -701,7 +701,9 @@ export const COMM_RULES = {
 /** Takım Akışı kartı türü (ChatMessage.kind 'feed', meta.type) */
 export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan'
   /** haftalık sıralama kapanışında ilk 3 (docs/15-siralama.md) */
-  | 'sira';
+  | 'sira'
+  /** Takım Yarışı sonucu (docs/16-takim-rekabeti.md) */
+  | 'tyaris';
 
 export interface CommSettings {
   /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve emoji, açma seçeneği yok) */
@@ -799,7 +801,9 @@ export type RankBoardId =
   /** oyuncu: güç (formül RANK_RULES.power), haftalık yıldız, haftalık nota, haftalık Günün Sorusu doğruları, haftalık yarış galibiyeti */
   | 'guc' | 'yildiz' | 'nota' | 'soru' | 'yaris'
   /** takım: güç, haftalık savaş puanı, bu haftaki baskın hasarı, haftalık Günün Sorusu doğruları */
-  | 't-guc' | 't-savas' | 't-baskin' | 't-soru';
+  | 't-guc' | 't-savas' | 't-baskin' | 't-soru'
+  /** takım ligi: bu sezonun lig puanı (docs/16-takim-rekabeti.md) */
+  | 't-lig';
 export type RankScope = 'herkes' | 'arkadas' | 'yakin';
 
 export interface RankBoardDef { id: RankBoardId; team: boolean; weekly: boolean; name: string; unit: string; desc: string }
@@ -813,6 +817,7 @@ export const RANK_BOARDS: RankBoardDef[] = [
   { id: 't-savas', team: true, weekly: true, name: 'Bölge Savaşı', unit: 'puan', desc: 'Bu haftaki Bölge Savaşı puanı.' },
   { id: 't-baskin', team: true, weekly: true, name: 'Baskın', unit: 'hasar', desc: 'Bu haftaki baskında Gürültü Canavarı’na verilen toplam hasar.' },
   { id: 't-soru', team: true, weekly: true, name: 'Bilgi', unit: 'doğru', desc: 'Üyelerin bu hafta Günün Sorusu’nda verdiği doğru cevaplar.' },
+  { id: 't-lig', team: true, weekly: false, name: 'Takım Ligi', unit: 'lig puanı', desc: 'Bu sezon (2 hafta) kazanılan takım ligi puanı: Bölge Savaşı, Baskın, Bilgi, Düello ve Takım Yarışı.' },
 ];
 export const rankBoardById = (id: string) => RANK_BOARDS.find((b) => b.id === id);
 
@@ -860,3 +865,135 @@ export interface RankBoardView {
 export interface OpMap {
   'rank.board': { req: { board: RankBoardId; scope: RankScope }; res: { view: RankBoardView } };
 }
+
+
+// =====================================================================
+// TAKIM REKABETİ (v5, docs/16-takim-rekabeti.md): Canlı Takım Yarışı ve Takım Ligi. Yalnızca EKLEME.
+// Sahte takım / rakip yok: eşleşecek takım yoksa açıkça söylenir. Zamanlama ve sonuçlar sunucuda.
+// =====================================================================
+
+export type TeamRaceSideId = 'a' | 'b';
+export type TeamRaceSize = 3 | 5;
+/** yarış odasındaki bir takım (oda görünümünde) */
+export interface TeamRaceSide { teamId: string; name: string; emblem: string; /** yarışa katılan üye sayısı */ n: number; /** denge çarpanı (az kişili takımın ham puanı bununla çarpılır) */ mult: number }
+export interface TeamRaceInfo { matchId: string; size: TeamRaceSize; a: TeamRaceSide; b: TeamRaceSide; friendly: boolean }
+
+/** şeffaf kurallar (bilgi sayfasında aynen gösterilir) */
+export const TEAM_RACE_RULES = {
+  sizes: [3, 5] as const,
+  /** en az bu kadar hazır üye (az kişiyle de yarışılır; denge çarpanı) */
+  minPlayers: 2,
+  /** genel bitiş sırasına göre puan: 1. 10, 2. 8, 3. 6, 4. 5, 5. 4, 6. 3, 7. 2, 8+ 1 */
+  placePoints: [10, 8, 6, 5, 4, 3, 2, 1] as const,
+  /** bitirenin her yıldızı */
+  starPoints: 2,
+  /** eşleşme: güç farkı en çok %25 (ya da 300); her 20 sn'de genişler, 60 sn sonra her takım */
+  powerWindowPct: 25, powerWindowMin: 300, widenMs: 20_000,
+  /** arama en çok 3 dk sürer */
+  searchMaxMs: 180_000,
+  /** dostluk daveti 10 dk geçerli */
+  challengeMs: 600_000,
+  /** bağlantısı kopan oyuncu bu kadar süre içinde dönmezse bitiremedi sayılır */
+  graceMs: 20_000,
+  /** yıldızların gelmesi için yarış bitiminden sonra en çok bu kadar beklenir */
+  starWaitMs: 15_000,
+  /** takım başına günde en çok arama / dostluk daveti */
+  searchesPerDay: 40, challengesPerDay: 10,
+  /** ödül (ödül kutusu): kazanan takımın katılımcılarına; berabere; kaybeden takımda bitirenlere. Oyuncu başına günde en çok 5 ödüllü yarış */
+  rewards: { win: { jeton: 60, kristal: 3 }, draw: { jeton: 30, kristal: 0 }, lose: { jeton: 20, kristal: 0 } },
+  rewardRacesPerDay: 5,
+  /** takım ligi puanı (takım başına günde en çok 10 yarış sayılır) */
+  league: { win: 20, draw: 8, lose: 4 }, leagueRacesPerDay: 10,
+} as const;
+
+export type TeamRaceLobbyStatus = 'toplaniyor' | 'ariyor' | 'eslesti';
+export interface TeamRaceMember { id: string; name: string; color: number; hat: string; ready: boolean; online: boolean }
+export interface TeamRaceChallenge { teamId: string; name: string; emblem: string; size: TeamRaceSize; until: number }
+export interface TeamRaceLobby {
+  teamId: string; size: TeamRaceSize; status: TeamRaceLobbyStatus; openedBy: string; members: TeamRaceMember[];
+  /** arama başladıysa */
+  searchingSince: number | null;
+  /** eşleşti: yarış odası */
+  raceId: string | null;
+  /** gelen dostluk davetleri / bizim gönderdiğimiz */
+  incoming: TeamRaceChallenge[]; outgoing: TeamRaceChallenge | null;
+  /** dürüst durum notu (ör. "Şu an arayan başka takım yok") */
+  note: string | null;
+}
+export interface TeamRaceRow { id: string; name: string; color: number; hat: string; side: TeamRaceSideId; place: number | null; timeSec: number | null; stars: number; points: number; left: boolean }
+export interface TeamRaceSideResult extends TeamRaceSide { raw: number; score: number }
+export interface TeamRaceResult {
+  matchId: string; size: TeamRaceSize; level: number; friendly: boolean; a: TeamRaceSideResult; b: TeamRaceSideResult;
+  winner: TeamRaceSideId | null; rows: TeamRaceRow[]; endedAt: number;
+  /** bu sonuç takım ligine sayıldı mı (günlük sınır) */
+  counted: boolean;
+}
+export interface TeamRaceState {
+  lobby: TeamRaceLobby | null;
+  /** takımımızın süren yarışı */
+  live: RaceRoom | null;
+  /** son sonuçlar (en yeni önce) */
+  recent: TeamRaceResult[];
+  /** şu an arayan diğer takım sayısı (dürüst bilgi) */
+  searching: number;
+  /** ben açabilir / arayabilir miyim (lider/yardımcı) */
+  canLead: boolean;
+}
+
+// ---------- Takım Ligi (2 haftalık sezon, kademeli gruplar)
+export type TeamLeagueTier = 'bronz' | 'gumus' | 'altin' | 'platin' | 'koklea';
+export const TEAM_LEAGUE_TIERS: { id: TeamLeagueTier; name: string; color: number }[] = [
+  { id: 'bronz', name: 'Bronz', color: 0xe0a06a }, { id: 'gumus', name: 'Gümüş', color: 0xc9cfe0 }, { id: 'altin', name: 'Altın', color: 0xffc93c },
+  { id: 'platin', name: 'Platin', color: 0x8fe3ff }, { id: 'koklea', name: 'Koklea', color: 0xff8fd8 },
+];
+export const TEAM_LEAGUE_RULES = {
+  seasonWeeks: 2, groupSize: 15,
+  /** grupta en az 6 takım varsa ilk 3 yükselir, son 3 düşer; daha küçük grupta üçte biri (en az 1, puanı 0 olan yükselmez) */
+  promote: 3, demote: 3,
+  /** kaynaklar (sezon içinde, sunucu kayıtlarından): haftalık üst sınırlarla */
+  sources: {
+    war: { per: 100, capWeek: 60, label: 'Bölge Savaşı', desc: 'her 100 savaş puanı 1 (haftada en çok 60)' },
+    raid: { per: 200, capWeek: 40, label: 'Baskın', desc: 'her 200 hasar 1 (haftada en çok 40)' },
+    quiz: { per: 1, capWeek: 30, label: 'Bilgi', desc: 'Günün Sorusu’nda her doğru 1 (haftada en çok 30)' },
+    duel: { win: 40, draw: 15, lose: 5, label: 'Düello', desc: 'kazanma 40, beraberlik 15, kayıp 5' },
+    race: { label: 'Takım Yarışı', desc: 'kazanma 20, beraberlik 8, kayıp 4 (günde en çok 10 yarış)' },
+  },
+  /** sezon ödülü (üye başına, bir kez): kademe tabanı × (1. 3, 2. 2, 3. 1.5, diğer puanı olan 1) kristal */
+  rewardBase: { bronz: 5, gumus: 8, altin: 12, platin: 16, koklea: 20 },
+} as const;
+export interface TeamLeagueRow { rank: number; teamId: string; name: string; emblem: string; points: number; me?: boolean }
+export interface TeamLeagueBreakdown { war: number; raid: number; quiz: number; duel: number; race: number; total: number }
+export interface TeamLeagueHistory { season: string; no: number; tier: TeamLeagueTier; rank: number; groupSize: number; outcome: 'yukseldi' | 'kaldi' | 'dustu'; points: number }
+export interface TeamLeagueState {
+  season: { key: string; no: number; startsAt: number; endsAt: number };
+  tier: TeamLeagueTier; groupId: string; rows: TeamLeagueRow[]; mine: TeamLeagueBreakdown;
+  promoteTop: number; demoteBottom: number; history: TeamLeagueHistory[];
+  /** son sezonun rozeti (amblem çerçevesi) */
+  badge: { tier: TeamLeagueTier; no: number; rank: number } | null;
+}
+
+export interface OpMap {
+  'trace.state': { req: Record<string, never>; res: { state: TeamRaceState } };
+  'trace.open': { req: { size: TeamRaceSize }; res: { lobby: TeamRaceLobby } };
+  'trace.join': { req: Record<string, never>; res: { lobby: TeamRaceLobby } };
+  'trace.leave': { req: Record<string, never>; res: { lobby: TeamRaceLobby | null } };
+  'trace.ready': { req: { ready: boolean }; res: { lobby: TeamRaceLobby } };
+  'trace.search': { req: { on: boolean }; res: { lobby: TeamRaceLobby } };
+  'trace.close': { req: Record<string, never>; res: Record<string, never> };
+  'trace.challenge': { req: { teamId: string }; res: { lobby: TeamRaceLobby } };
+  'trace.accept': { req: { teamId: string }; res: { lobby: TeamRaceLobby } };
+  'trace.decline': { req: { teamId: string }; res: { lobby: TeamRaceLobby | null } };
+  'trace.rematch': { req: { matchId: string }; res: { lobby: TeamRaceLobby } };
+  'trace.result': { req: { matchId: string }; res: { result: TeamRaceResult | null } };
+  'trace.react': { req: { emoji: string }; res: Record<string, never> };
+  'tlig.state': { req: Record<string, never>; res: { state: TeamLeagueState } };
+}
+export interface EvtMap {
+  'trace.updated': { lobby: TeamRaceLobby | null };
+  'trace.matched': { room: RaceRoom };
+  'trace.result': { result: TeamRaceResult };
+  'trace.reaction': { from: string; name: string; emoji: string; side: TeamRaceSideId };
+  'trace.challenged': { challenge: TeamRaceChallenge };
+}
+/** yarış içi hızlı tepkiler (takım arkadaşlarına) */
+export const TEAM_RACE_REACTIONS = ['🔥', '💪', '👏', '🏁', '😅'] as const;

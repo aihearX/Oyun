@@ -9,7 +9,7 @@ import { dmHandlers, dmTyping } from './dm';
 import { leagueHandlers, leagueRollover } from './league';
 import { announcePresence, playerHandlers } from './players';
 import { progressHandlers, pruneRuns } from './progress';
-import { leaveRace, raceHandlers, racePos, raceShutdown, sweepRaces } from './race';
+import { raceHandlers, racePos, raceShutdown, sweepRaces } from './race';
 import { raidHandlers } from './raid';
 import { firePosSchema, schemaError, SCHEMAS } from './schemas';
 import { shopHandlers } from './shop';
@@ -20,16 +20,17 @@ import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 import { installRank, rankDayTick, rankHandlers } from './rank';
+import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
 
-const HANDLERS: Handlers = withCommHooks(withEventHooks({
+const HANDLERS: Handlers = withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
-  ...eventHandlers, ...commHandlers, ...rankHandlers,
-}));
+  ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers,
+})));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
 
@@ -158,7 +159,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         for (const r of [...c.rooms]) app.unsubscribe(pid, r);
         app.db.run('UPDATE players SET last_seen = ? WHERE id = ?', app.now(), pid);
         announcePresence(app, pid, false);
-        leaveRace(app, pid);
+        teamRaceDisconnect(app, pid); // takım yarışında kısa bekleme; diğer yarışlarda hemen çıkış
         for (const h of app.disconnectHooks) h(pid);
       });
     } catch (e) { console.error('[bağlantı kapanışı]', e); }
@@ -196,6 +197,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
       });
       sweepRaces(app);
+      teamRaceSweep(app);
     } catch (e) { console.error('[zamanlayıcı]', e); }
   };
   const sweeper = setInterval(sweep, cfg.sweepMs);
@@ -213,6 +215,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     close: async () => {
       clearInterval(pinger); clearInterval(sweeper);
       raceShutdown(app);
+      teamRaceShutdown(app);
       eventsShutdown(app);
       for (const c of conns) { c.pid = null; c.ws.terminate(); }
       await new Promise<void>((r) => wss.close(() => r()));

@@ -16,7 +16,9 @@ const ALL_EVENTS: Evt[] = ['presence', 'chat', 'friend.updated', 'team.updated',
   // arkadaşlık + özel mesaj
   'friend.request', 'friend.accepted', 'friend.removed', 'friend.gift', 'dm.message', 'dm.read', 'dm.typing', 'dm.reaction', 'dm.unread',
   // iletişim
-  'chat.updated', 'comm.notice', 'duo.updated', 'mentor.updated', 'events.notice'];
+  'chat.updated', 'comm.notice', 'duo.updated', 'mentor.updated', 'events.notice',
+  // takım rekabeti
+  'trace.updated', 'trace.matched', 'trace.result', 'trace.reaction', 'trace.challenged'];
 
 export interface TC extends NetClient {
   token: string;

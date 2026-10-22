@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -82,6 +82,14 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   ...EVENT_SCHEMAS,
   ...COMM_SCHEMAS,
   'rank.board': z.object({ board: z.enum(RANK_BOARDS.map((b) => b.id) as [string, ...string[]]), scope: z.enum(['herkes', 'arkadas', 'yakin']) }),
+  // takım rekabeti (docs/16-takim-rekabeti.md)
+  'trace.state': empty, 'trace.join': empty, 'trace.leave': empty, 'trace.close': empty, 'tlig.state': empty,
+  'trace.open': z.object({ size: z.union([z.literal(3), z.literal(5)]) }),
+  'trace.ready': z.object({ ready: z.boolean() }),
+  'trace.search': z.object({ on: z.boolean() }),
+  'trace.challenge': z.object({ teamId: id }), 'trace.accept': z.object({ teamId: id }), 'trace.decline': z.object({ teamId: id }),
+  'trace.rematch': z.object({ matchId: id }), 'trace.result': z.object({ matchId: id }),
+  'trace.react': z.object({ emoji: z.enum(TEAM_RACE_REACTIONS as unknown as [string, ...string[]]) }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

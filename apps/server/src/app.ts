@@ -31,6 +31,8 @@ export interface ServerConfig {
   eventsEpoch: number;
   /** güvenli sohbet: serbest yazı için geçilmesi gereken bölüm (varsayılan COMM_RULES.freeTextLevel = 8; ODI_FREE_TEXT_AT yalnızca test) */
   freeTextCleared: number;
+  /** takım yarışı: bağlantısı kopanın dönmesi için bekleme (varsayılan TEAM_RACE_RULES.graceMs; testte kısa) */
+  teamRaceGraceMs?: number;
 }
 
 export class OdiError extends Error {

@@ -4,6 +4,7 @@ import { platform } from '../platform';
 import { audio } from '@odi/audio';
 import { getNet, useSocial } from '../net';
 import { newerRoom } from '../race/common';
+import { TeamRaceHud, teamGhost } from '../teamrace/TeamRace';
 import { sayPathology } from '../ftue/pathology';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
 
@@ -54,7 +55,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       }));
       raceOpt = {
         meId: net.me?.id ?? '',
-        players: race.players.filter((p) => !p.left).map(({ id, name, color, hat }) => ({ id, name, color, hat })),
+        // takım yarışı: kendi takımım turkuaz, rakip pembe, adın başında amblem
+        players: race.players.filter((p) => !p.left).map((p) => teamGhost(race, net.me?.id ?? '', p)),
         // Başlama anı: sunucunun startsAt'i, istemcinin sunucu saat farkıyla (hello yanıtındaki serverTime → net.serverNow())
         // yerel performance.now() tabanına çevrilir; böylece herkesin "Başla!"sı aynı ana denk gelir.
         startAt: race.startsAt != null ? performance.now() + (race.startsAt - net.serverNow()) : 0,
@@ -103,6 +105,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   return (
     <>
       <div className="level-host" ref={ref} />
+      {race?.team && <TeamRaceHud room={race} />}
       {paused && (
         // koyu duraklatma menüsü (açık temadan bağımsız: oyunun gece paletiyle)
         <div className="overlay pause-menu" role="dialog" aria-label="Duraklatıldı" style={PAUSE_BG}><div className="card" style={PAUSE_CARD}>

@@ -5,6 +5,7 @@ import { platform } from '../../platform';
 import { ChatRoom } from '../../ui/Chat';
 import { Sheet, SubTabs, fmtNum } from '../../ui/social';
 import { RankView } from '../../rank/RankScreen';
+import { TeamLeagueView, TeamRaceView, useTeamRace } from '../../teamrace';
 import { Bar } from '../../ui/bits';
 import { ActionButton, IconButton } from '../../ui/Button';
 import { featureOpen } from '../../ftue/useFeatures';
@@ -18,7 +19,7 @@ import { pendingCount, useEvents } from '../../events';
 import { Art } from '../../ui/art';
 import { mentionCount, useComm } from '../../comm/state';
 
-export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik' | 'siralama';
+export type TeamTab = 'sohbet' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik' | 'siralama' | 'tyaris' | 'lig';
 let lastTab: TeamTab = 'sohbet';
 
 /** Takım ana ekranı: başlık (amblem, seviye, üye, güç) + 8 alt sekme. */
@@ -33,6 +34,8 @@ export function TeamHome() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const myRole = team.roster.find((m) => m.id === me.id)?.role ?? 'uye';
   const levelHelp = team.help.filter((h) => h.from !== me.id && !h.helpers.includes(me.id) && h.helpers.length < h.max && h.expiresAt > Date.now()).length;
+  // Takım Yarışı rozeti: açık lobi (ben içinde değilsem) ya da gelen dostluk daveti
+  const raceBadge = useTeamRace((x) => { const l = x.state?.lobby; const me = useNet.getState().me?.id; return (l && l.status !== 'eslesti' && !l.members.some((m) => m.id === me) ? 1 : 0) + (l?.incoming.length ?? 0); });
   const claimableGoals = extra ? extra.goals.reduce((a, g) => a + g.tiers.filter((t, i) => g.progress >= t.need && !g.claimedTiers.includes(i)).length, 0) : 0;
 
   useEffect(() => {
@@ -73,6 +76,8 @@ export function TeamHome() {
         { id: 'hedef', icon: '🎯', label: 'Hedefler', badge: claimableGoals },
         { id: 'savas', icon: '⚔️', label: 'Savaş' },
         { id: 'baskin', icon: '👹', label: 'Baskın' },
+        ...(featureOpen('tyaris') ? [{ id: 'tyaris' as const, icon: '🏁', label: 'Takım Yarışı', badge: raceBadge }] : []),
+        ...(featureOpen('tlig') ? [{ id: 'lig' as const, icon: '🛡️', label: 'Lig' }] : []),
         ...(featureOpen('siralama') ? [{ id: 'siralama' as const, icon: '🏆', label: 'Sıralama' }] : []),
       ]} />
       <div className="team-body" key={tab}>
@@ -86,6 +91,8 @@ export function TeamHome() {
         {tab === 'baskin' && <TeamRaid />}
         {tab === 'etkinlik' && <TeamEvents />}
         {tab === 'siralama' && <RankView team />}
+        {tab === 'tyaris' && <TeamRaceView />}
+        {tab === 'lig' && <TeamLeagueView />}
       </div>
       {menu && (
         <Sheet title={team.name} onClose={() => setMenu(false)}>

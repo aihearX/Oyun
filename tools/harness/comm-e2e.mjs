@@ -429,14 +429,14 @@ async function webSuite(bt) {
 
 // ---------------------------------------------------------------- 4b) FTUE: yeni iletişim yerleri Tüy Dede turuyla açılır
 const BASE_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'shop', 'events', 'race'];
-const ALL_OLD_TOURS = [...BASE_TOURS, 'siralama'];
+const ALL_OLD_TOURS = [...BASE_TOURS, 'siralama', 'tlig', 'tyaris'];
 async function tourSuite(bt) {
   const S = makeSuite(`tur-${bt}`);
   console.log(`\n▶ tur · ${bt}`);
   const browser = await (bt === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: bt === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || undefined : undefined, args: bt === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] : [] });
   const errors = [];
   try {
-    for (const [cleared, done, want] of [[5, BASE_TOURS.filter((t) => !['shop', 'events', 'race'].includes(t)), 'siralama'], [6, ALL_OLD_TOURS, 'akis'], [8, [...ALL_OLD_TOURS, 'akis'], 'yazi'], [9, [...ALL_OLD_TOURS, 'akis', 'yazi'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru', 'ikili'], 'usta']]) {
+    for (const [cleared, done, want] of [[5, BASE_TOURS.filter((t) => !['shop', 'events', 'race'].includes(t)), 'siralama'], [6, [...BASE_TOURS, 'siralama'], 'tlig'], [9, [...BASE_TOURS, 'siralama', 'tlig', 'akis', 'yazi'], 'tyaris'], [6, ALL_OLD_TOURS, 'akis'], [8, [...ALL_OLD_TOURS, 'akis'], 'yazi'], [9, [...ALL_OLD_TOURS, 'akis', 'yazi'], 'soru'], [10, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru'], 'ikili'], [11, [...ALL_OLD_TOURS, 'akis', 'yazi', 'soru', 'ikili'], 'usta']]) {
       const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 2, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
       const progress = {}; for (let i = 1; i <= cleared; i++) progress[i] = { stars: 2, best: 800, plays: 1 };
       await ctx.addInitScript((st) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: st, version: 3 })); } catch { /* yok */ } }, { progress, coins: 300, ftue: { v: 1, story: true, tours: done } });

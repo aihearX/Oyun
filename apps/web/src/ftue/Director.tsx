@@ -135,6 +135,18 @@ export function tourFor(id: string, route: string): Tour | null {
         { ...line('sira-02'), target: '.menu-tile[data-tile="ranking"]', wait: { el: '[data-testid="siralama"]' }, hint: 'Sıralama’ya dokun' },
         { ...line('sira-03'), target: () => document.querySelector('[data-testid="benim-siram"]') ?? document.querySelector('.rank-row.me'), optional: true, mood: 'wink' },
       ); break;
+    case 'tlig':
+      steps.push(
+        unlockCard('tlig', 'tlig-01'),
+        ...(route === 'team' ? [] : [tapTab('team')]),
+        { ...line('tlig-02'), target: () => [...document.querySelectorAll('.subtabs .subtab')].find((e) => /\bLig\b/.test(e.textContent ?? '')) ?? document.querySelector('.team-hero, .team-head'), optional: true, mood: 'wink' },
+      ); break;
+    case 'tyaris':
+      steps.push(
+        unlockCard('tyaris', 'tyaris-01'),
+        ...(route === 'team' ? [] : [tapTab('team')]),
+        { ...line('tyaris-02'), target: () => [...document.querySelectorAll('.subtabs .subtab')].find((e) => /Takım Yarışı/.test(e.textContent ?? '')) ?? document.querySelector('.team-hero, .team-head'), optional: true },
+      ); break;
     case 'akis':
       steps.push(
         unlockCard('akis', 'akis-01'),

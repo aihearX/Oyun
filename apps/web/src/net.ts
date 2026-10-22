@@ -15,6 +15,7 @@ import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
 import { bindFriends } from './friends/state';
 import { bindComm } from './comm/state';
+import { bindTeamRace } from './teamrace/state';
 import { bindOdiColor } from './look';
 
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
@@ -259,6 +260,7 @@ export function startNet(): void {
     bindFriends(c); // arkadaşlık + özel mesaj olayları (istek, dm, okunmamış, bildirim şeridi)
     bindOdiColor(c); // Odi rengi: yerel tek kaynak ↔ sunucu profili
     bindComm(c); // iletişim: ayarlar, akış/soru güncellemeleri, bahsetme, ikili görev, usta–çırak
+    bindTeamRace(c); // takım rekabeti: Takım Yarışı lobisi/eşleşme/sonuç, Takım Ligi
     c.onStatus((st) => { if (st !== 'bağlanıyor') useSocial.setState({ tried: true }); if (st === 'bağlı') void onConnected(c); });
     c.onMe((me) => applyServerItems([...me.cosmetics.map((ref) => ({ kind: 'kozmetik' as const, amount: 1, ref })), ...me.cards.map((ref) => ({ kind: 'kart' as const, amount: 1, ref }))]));
     useNet.subscribe((n, p) => { if (n.wallet !== p.wallet || n.status !== p.status) mirrorCoins(); });

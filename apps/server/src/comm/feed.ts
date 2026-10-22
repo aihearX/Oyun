@@ -37,6 +37,7 @@ function textFor(type: FeedType, name: string, d: Data): string {
     case 'yardim': return `${name} ${d.level}. bölümü takımının yardımıyla geçti! Teşekkürler: ${d.helpers}.`;
     case 'meydan': return `${name} ${d.level}. bölümde ${fmt(Number(d.score))} puanla meydan okuyor. Geçebilir misin?`;
     case 'sira': return `${name} geçen haftanın sıralamasında ${d.rank}. oldu!`;
+    case 'tyaris': return `${name} Takım Yarışında koştu.`;
   }
 }
 function metaFor(type: FeedType, p: PlayerRow, d: Data): Meta {

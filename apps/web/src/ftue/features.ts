@@ -9,7 +9,9 @@ export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'fri
   /** iletişim (docs/13-iletisim.md) */
   | 'yazi' | 'akis' | 'soru' | 'ikili' | 'usta'
   /** sıralama (docs/15-siralama.md) */
-  | 'siralama';
+  | 'siralama'
+  /** takım rekabeti (docs/16-takim-rekabeti.md): Takım Ligi, Canlı Takım Yarışı */
+  | 'tlig' | 'tyaris';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -24,6 +26,9 @@ export const FEATURES: FeatureDef[] = [
   { id: 'league', at: 5, name: 'Lig', art: 'medal', tour: false },
   // sıralama: takımla aynı anda (takım tablolarında yerini görsün); turu takım turundan sonra
   { id: 'siralama', at: 5, name: 'Sıralama', art: 'trophy', tour: true },
+  // takım rekabeti: lig takımla birlikte görünür (6), canlı takım yarışı tek kişilik yarıştan sonra (9)
+  { id: 'tlig', at: 6, name: 'Takım Ligi', art: 'shield', tour: true },
+  { id: 'tyaris', at: 9, name: 'Canlı Takım Yarışı', art: 'flag', tour: true },
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },
   { id: 'events', at: 7, name: 'Etkinlikler', art: 'bigtop', tour: true },
   { id: 'race', at: 8, name: 'Canlı yarış ve meydan okuma', art: 'finish', tour: true },
@@ -38,7 +43,7 @@ export const FEATURES: FeatureDef[] = [
 export const featureById = (id: FeatureId) => FEATURES.find((f) => f.id === id)!;
 
 /** Anlatıcı turları (yapıldıkça kaydedilir) */
-export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta', 'siralama'] as const;
+export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta', 'siralama', 'tlig', 'tyaris'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** Kalıcı ilk deneyim durumu (odi-v1 kaydında, sürümlü) */
