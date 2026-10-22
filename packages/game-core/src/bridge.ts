@@ -13,7 +13,23 @@ export type GameEvent =
   | { type: 'remedy'; id: string; pathology: string; left: number }
   /** bölge patolojisi bu koşuda ilk kez görüldü (first: oyuncu onu ilk kez görüyor; Tüy Dede'nin cümlesi gösterildi). content/src/patolojiler.ts */
   | { type: 'pathology'; id: string; first: boolean }
+  /**
+   * Bölüm içi ipucu/öğretici yazısı ekranda göründü (kabuk seçtiklerini seslendirebilir). id: HINT_IDS'teki sabit kimlikler,
+   * öğretici anlar `ogret-<yetenek>` (zipla, kayma, duvar, suzul, trambolin, kanca, cakil, yuz, darbe, cevir), patoloji
+   * cümleleri `patoloji:<kimlik>`, boss evresi `boss-faz-2` / `boss-faz-3`. text: ekrandaki yazı.
+   */
+  | { type: 'hint'; id: string; text: string }
   | { type: 'quit' };
+
+/** 'hint' olayının sabit kimlikleri (öğretici `ogret-*`, `patoloji:*` ve `boss-faz-*` dışında) */
+export const HINT_IDS = {
+  'tazele-kayma': '5. bölümün kayma tazeleme anı (ilk perdeden önce)',
+  'perde-kay': 'kıl perdesi önünde "aşağı kaydır" ipucu (3-8, ilk üç perde)',
+  giris: 'bölümün giriş cümlesi',
+  'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
+  eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
+  'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm sonu nota özeti',
+} as const;
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */
 export interface RaceGhostInfo { id: string; name: string; color: number; hat: string }

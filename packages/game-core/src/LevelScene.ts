@@ -107,7 +107,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.spec.assist) this.input_.hSwipePx = this.spec.assist.swipePx;
     this.input_.blockZones.push({ hit: (x, y) => this.hud.pauseHit(x, y), onTap: () => this.hud.pressPause() });
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
-    if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500);
+    if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500, undefined, 'mod-cihaz-kapali');
     if (this.opts.lucky && !this.opts.bot) this.armLucky();
     this.camX = Math.max(0, w.startX - GAME_W * 0.3); this.camY = w.startY - GAME_H * this.camAnchor;
     this.syncCamera(1); this.syncViews(true); this.syncHero(); this.syncHud();
@@ -116,9 +116,9 @@ export class LevelScene extends Phaser.Scene {
     music(track);
     const begin = () => {
       unlock(); music(track); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' });
-      if (this.spec.intro) this.hint(this.spec.intro, 3200);
+      if (this.spec.intro) this.hint(this.spec.intro, 3200, undefined, 'giris');
       if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, '🍀 Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200));
-      if (this.spec.modifiers.includes('ters-yercekimi')) this.hint('Ters yerçekimi: tavanlı yerlerde zaman zaman yön değişir', 3000);
+      if (this.spec.modifiers.includes('ters-yercekimi')) this.hint('Ters yerçekimi: tavanlı yerlerde zaman zaman yön değişir', 3000, undefined, 'mod-ters-yercekimi');
     };
     if (this.opts.race) {
       const race = this.opts.race;
@@ -244,18 +244,18 @@ export class LevelScene extends Phaser.Scene {
       case 'crumble': if (e.s === 'kir') sfx.hit(); else sfx.tick(); break;
       case 'switch': sfx.power(); floatText(this, e.x, e.y - 60, 'Kapı açıldı!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'tutor': this.startTutorial(e); break;
-      case 'escort': this.hint('Fısıltı seni izliyor. Onu düşmanlardan koru!', 2500); break;
-      case 'escortLost': this.hint('Fısıltı yaralandı… hedef kaçtı', 2000); break;
-      case 'chase': this.hint('Işık treni geliyor! Durma, atıl!', 2200); this.cameras.main.shake(200, 0.006); break;
+      case 'escort': this.hint('Fısıltı seni izliyor. Onu düşmanlardan koru!', 2500, undefined, 'eskort'); break;
+      case 'escortLost': this.hint('Fısıltı yaralandı… hedef kaçtı', 2000, undefined, 'eskort-kayip'); break;
+      case 'chase': this.hint('Işık treni geliyor! Durma, atıl!', 2200, undefined, 'kovalama'); this.cameras.main.shake(200, 0.006); break;
       case 'nefes': floatText(this, e.x, e.y - 60, 'Nefes!', COLORS.coral); break;
       case 'bubble': sfx.tick(); break;
       case 'bossWarn': sfx.tick(); break;
       case 'bossSlam': this.cameras.main.shake(160, 0.014); sfx.hit(); break;
       case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
-      case 'bossPhase': this.hint(this.sim.boss?.kind === 'golem' ? (e.n === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!') : (e.n === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!'), 2600); sfx.toneAt(110, 0.5); break;
-      case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
+      case 'bossPhase': this.hint(this.sim.boss?.kind === 'golem' ? (e.n === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!') : (e.n === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!'), 2600, undefined, `boss-faz-${e.n}`); sfx.toneAt(110, 0.5); break;
+      case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `♪ ${e.n}/3`, COLORS.accent); break;
-      case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200); sfx.power(); break;
+      case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200, undefined, 'boss-sersem'); sfx.power(); break;
       case 'bossDown': flash(this, 0xffffff, 0.5); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
         floatText(this, GAME_W / 2, GROUND_Y - 220, this.sim.boss?.kind === 'canavar' ? 'Ninni beyne ulaştı' : 'Kanal açıldı!', COLORS.accent); break;
@@ -295,10 +295,12 @@ export class LevelScene extends Phaser.Scene {
     if (ent?.p.refresher) {
       // tazeleme: bu koşuda bir kez; oyuncu iki perdeyi başarıyla geçtiyse (kalıcı anahtar) hiç
       if (this.opts.race || this.refresherShown || this.firstsDone.includes(REFRESH_KEY) || (this.opts.firsts !== undefined && !this.opts.firsts.includes(REFRESH_KEY))) return;
-      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT); this.tutorialT = 0; return;
+      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT); this.tutorialT = 0;
+      this.emit({ type: 'hint', id: REFRESH_KEY, text: REFRESH_TEXT }); return;
     }
     if (!this.showTutorial(a)) return;
     this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop); this.tutorialT = 0; this.tutorAbilities.add(a);
+    this.emit({ type: 'hint', id: tutorialKey(a), text: this.tutorial.text });
   }
   /** kıl perdesi ipucu (3-8) ve 5'teki başarılı geçiş sayımı */
   private curtainWatch() {
@@ -306,7 +308,9 @@ export class LevelScene extends Phaser.Scene {
     const h = this.sim.hero;
     for (const id of near(this.world, h.x - 40, h.x + 360)) {
       const e = this.world.ents[id]!; if (!e.p.curtain) continue;
-      if (!this.curtainHinted.has(id) && e.l - h.x < 320 && e.l > h.x && this.curtainHinted.size < 3 && !this.tutorial) { this.curtainHinted.add(id); this.hint('Aşağı kaydır: altından kay', 1600, 'swipeDown'); }
+      // 5'te ilk perdenin önündeki tazeleme anı ipucunun yerini tutar (iki yazı üst üste gelmesin)
+      const refresherAhead = n === 5 && !this.refresherShown && this.world.ents.some((t) => t.type === 'tutor' && t.p.refresher && t.l > h.x && t.l < e.l);
+      if (!refresherAhead && !this.curtainHinted.has(id) && e.l - h.x < 320 && e.l > h.x && this.curtainHinted.size < 3 && !this.tutorial) { this.curtainHinted.add(id); this.hint('Aşağı kaydır: altından kay', 1600, 'swipeDown', 'perde-kay'); }
       if (!this.curtainPassed.has(id) && h.x > e.r) { this.curtainPassed.add(id); if (n === 5 && h.invuln <= 0) { this.curtainSlides++; if (this.curtainSlides >= 2 && !this.firstsDone.includes(REFRESH_KEY)) this.firstsDone.push(REFRESH_KEY); } }
     }
   }
@@ -324,7 +328,7 @@ export class LevelScene extends Phaser.Scene {
       const e = this.world.ents[q.id]!; const key = patolojiKey(P.id);
       const first = !this.firstsDone.includes(key) && (this.opts.firsts === undefined || this.opts.firsts.includes(key));
       pathologyLabel(this, Math.max(e.l + 40, Math.min(e.r - 40, (e.l + e.r) / 2)), Math.min(e.t, GROUND_Y - 30) - 70, P.ad, FONT);
-      if (first) { this.firstsDone.push(key); this.hint(`Tüy Dede: ${P.sade}`, 3600); this.patLineAt = this.sim.t; }
+      if (first) { this.firstsDone.push(key); this.hint(`Tüy Dede: ${P.sade}`, 3600, undefined, key); this.patLineAt = this.sim.t; }
       this.emit({ type: 'pathology', id: P.id, first });
     }
   }
@@ -502,7 +506,7 @@ export class LevelScene extends Phaser.Scene {
     for (let k = this.summaryDone; k < sec; k++) {
       let got = 0, tot = 0;
       for (const e of this.world.ents) { if (e.sec !== k || (e.type !== 'coin' && e.type !== 'collect')) continue; const v = e.type === 'collect' ? 5 : 1; tot += v; if (this.sim.collected.has(e.id)) got += v; }
-      if (tot > 0 && k === sec - 1) this.time.delayedCall(700, () => this.hint(got >= tot ? `Bu bölümde ${got}/${tot} nota · hepsi!` : `Bu bölümde ${got}/${tot} nota`, 2200));
+      if (tot > 0 && k === sec - 1) this.time.delayedCall(700, () => this.hint(got >= tot ? `Bu bölümde ${got}/${tot} nota · hepsi!` : `Bu bölümde ${got}/${tot} nota`, 2200, undefined, 'bolum-nota'));
     }
     this.summaryDone = Math.max(this.summaryDone, sec);
   }
@@ -602,7 +606,9 @@ export class LevelScene extends Phaser.Scene {
     if (at <= now) f(); else this.time.delayedCall(at - now, f);
   }
   /** ekranda kısa ipucu; `kind` verilirse göstergenin el işaretiyle (dokun / basılı / aşağı / ileri) */
-  hint(text: string, ms = 2500, kind?: HintKind) {
+  /** ipucu yazısı; id verilirse kabuğa 'hint' olayı gider (seslendirme için; kimlikler bridge.ts → HINT_IDS) */
+  hint(text: string, ms = 2500, kind?: HintKind, id?: string) {
+    if (id) this.emit({ type: 'hint', id, text });
     if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
     this.hud.toast(text, ms);
   }

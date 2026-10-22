@@ -24,9 +24,12 @@ export const gestureHint = (a: AbilityId): HintKind => GESTURE[ABILITIES[a].gest
 export const REFRESH_KEY = 'tazele-kayma';
 export const REFRESH_TEXT = 'Aşağı kaydır: perdenin altından kay!';
 export class Tutorial {
+  /** ekranda gösterilen yazı (kabuk seslendirmesi için 'hint' olayıyla gider) */
+  readonly text: string;
   constructor(public ability: AbilityId, public tutorId: number, private hud: LevelHudView, private backdrop?: BiomeBackdrop, text?: string) {
     const def = ABILITIES[ability];
-    hud.showHint(gestureHint(ability), text ?? `Yeni: ${def.name}\n${def.how}`);
+    this.text = text ?? `Yeni: ${def.name}\n${def.how}`;
+    hud.showHint(gestureHint(ability), this.text);
     backdrop?.setForegroundAlpha(0.35);
   }
   done() { this.hud.hideHint(); this.backdrop?.setForegroundAlpha(1); }
