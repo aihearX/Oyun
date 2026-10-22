@@ -3,6 +3,7 @@ import type { AbilityId } from '@odi/shared';
 import * as C from './consts';
 import { near, type WEnt, type World } from './world';
 import { bossInit, bossSolid, bossStep, cloneBoss, type BossState } from './boss';
+import { initRemedies, remedyFor, REMEDY_MAX_USES, usedTotal, type RemedyIn } from './remedy';
 
 /**
  * Deterministik oynanış adımı (Phaser'sız). `step(world, state, input)` durumu 1/60 sn ilerletir.
@@ -40,6 +41,8 @@ export interface SimState {
   /** kalan can kaybettirmeyen düşüş (ilk bölümlerin yardımı) ve öğretici odasındaki bağışlanan düşüş */ freeFalls: number; graceFalls: number;
   /** can götürmeyen (bağışlanan) çarpma/düşüş sayısı — planlayıcı bunlardan da kaçınır */ softHits: number;
   /** dikene ilk değişi bağışlanan son oda (spikeGrace) */ spikeRoom: number;
+  /** Tedavi Odası malzemeleri (remedy.ts): kalan ve kullanılan adetler, etkisiz kılınan patoloji engelleri */
+  rem: Record<string, number>; remUsed: Record<string, number>; cured: Set<number>;
   coins: number; cochleas: number; notes: number; nextNote: number; stomps: number;
   finished: boolean; failed: string | null;
   cp: SafeSpot; cpX: number; safe: SafeSpot[]; lastGroundOdo: number;
@@ -66,13 +69,14 @@ export function newHero(x: number, y: number): HeroS {
   };
 }
 
-export interface InitOpts { lives?: number; shield?: number; revir?: boolean }
+export interface InitOpts { lives?: number; shield?: number; revir?: boolean; /** Tedavi Odası çantası (LevelOptions.remedies) */ remedies?: RemedyIn[] }
 
 export function initState(w: World, o: InitOpts = {}): SimState {
   const h = newHero(w.startX, w.startY);
   const spot: SafeSpot = { x: w.startX, y: w.startY, dir: 1, odo: 0 };
   const s: SimState = {
     t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
+    rem: initRemedies(o.remedies), remUsed: {}, cured: new Set(),
     coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,
     collected: new Set(), killed: new Map(), broken: new Set(), opened: new Set(), crumble: new Map(), timers: new Map(), lifts: new Map(),
@@ -89,7 +93,7 @@ export function cloneState(s: SimState): SimState {
   return {
     ...s, hero: { ...s.hero }, cp: s.cp, safe: s.safe.slice(-8),
     collected: new Set(s.collected), killed: new Map(s.killed), broken: new Set(s.broken), opened: new Set(s.opened),
-    crumble: new Map(s.crumble), timers: new Map(s.timers), lifts: new Map([...s.lifts].map(([k, v]) => [k, { ...v }])),
+    crumble: new Map(s.crumble), timers: new Map(s.timers), rem: { ...s.rem }, remUsed: { ...s.remUsed }, cured: new Set(s.cured), lifts: new Map([...s.lifts].map(([k, v]) => [k, { ...v }])),
     escort: s.escort ? { ...s.escort } : null, delayQ: s.delayQ.slice(), boss: s.boss ? cloneBoss(s.boss) : null, events: null,
   };
 }
@@ -274,6 +278,16 @@ function effectiveInput(w: World, s: SimState, raw: SimInput): SimInput {
 
 // ------------------------------------------------------------------ hasar / yeniden doğma
 
+/** patoloji engeline uygun malzeme varsa bir adet harca ve engeli etkisiz kıl (docs/14-kamp.md §4) */
+export function useRemedy(w: World, s: SimState, e: WEnt): boolean {
+  const p = typeof e.p.patoloji === 'string' ? e.p.patoloji : '';
+  if (!p || s.cured.has(e.id) || usedTotal(s.remUsed) >= REMEDY_MAX_USES) return false;
+  const id = remedyFor(s.rem, p); if (!id) return false;
+  s.rem[id] = s.rem[id]! - 1; s.remUsed[id] = (s.remUsed[id] ?? 0) + 1; s.cured.add(e.id);
+  ev(s, 'remedy', s.hero.x, s.hero.y, { id: e.id, s: `${id}|${p}`, n: s.rem[id] });
+  return true;
+}
+
 export function hurt(w: World, s: SimState, reason: string, fromX?: number): boolean {
   const h = s.hero;
   if (s.finished || s.failed || h.invuln > 0) return false;
@@ -284,6 +298,11 @@ export function hurt(w: World, s: SimState, reason: string, fromX?: number): boo
   const grace = w.assist.grace.some(([l, r]) => h.x >= l && h.x < r);
   const graceFall = grace && s.graceFalls > 0;
   if (reason === 'fall' && (graceFall || s.freeFalls > 0)) { if (graceFall) s.graceFalls--; else s.freeFalls--; s.softHits++; h.invuln = C.INVULN_FALL; ev(s, 'freefall', h.x, h.y, { n: s.freeFalls }); respawn(w, s, false); return false; }
+  // patoloji çukuruna düşüş (zarın deliği, kopuk zincir, seyrek basamak…): uygun malzeme varsa can gitmez
+  if (reason === 'fall') {
+    const z = w.patZones.find((q) => h.x >= q.l - 60 && h.x <= q.r + 200 && !s.cured.has(q.eid));
+    if (z && useRemedy(w, s, w.ents[z.eid]!)) { h.invuln = C.INVULN_FALL; respawn(w, s, false); return false; }
+  }
   // 6-12: odada dikene ilk değiş yalnız geri iter
   if (reason === 'diken' && w.assist.spikeGrace && !grace) {
     let room = 0; while (room + 1 < w.assist.roomX.length && w.assist.roomX[room + 1]! <= h.x) room++;
@@ -572,6 +591,7 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
     if (h.grounded) { h.stall += dt; h.blockedT += dt; } else h.blockedT += dt * 0.5;
     const e = w.ents[m.blocked]!;
     if (e.type === 'barrier' && h.dash <= 0) hurt(w, s, 'gurultu', h.x + h.dir * 20);
+    if (e.type === 'door' && e.p.open !== true && !s.opened.has(e.key) && useRemedy(w, s, e)) { s.opened.add(e.key); ev(s, 'switch', e.x, e.y, { id: e.id, s: e.key }); }
     if (e.type === 'freqgate' && !colorMatch(h.color, Number(e.p.color ?? 0))) { ev(s, 'freqwrong', h.x, h.y, { id: e.id }); hurt(w, s, 'freq', h.x + h.dir * 20); }
     // ilk bölümler: basamağa takılan kahraman geri koşmaz, zıplanmayı bekler (geri koşup önceki çukura düşmesin); kapıda döner
     if (h.blockedT > 0.3 && h.grounded && (!w.assist.turnGate || e.type === 'door')) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; h.stall = 0; ev(s, 'turn', h.x, h.y); }
@@ -708,6 +728,7 @@ function interact(w: World, s: SimState, ids: number[], _inp: SimInput) {
         if (!hazardAt(w, s, e, t)) break;
         if (!overlap(HB, TMP)) break;
         if (h.dash > 0 && e.p.dash) { s.broken.add(id); ev(s, 'break', e.x, e.y, { id, s: 'dagit' }); break; }
+        if (s.cured.has(id) || useRemedy(w, s, e)) break;
         hurt(w, s, e.type === 'spike' ? 'diken' : 'gurultu', (TMP.l + TMP.r) / 2);
         break;
       }

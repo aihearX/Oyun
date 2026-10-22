@@ -1,6 +1,6 @@
 # Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge `node tools/odyoloji/docs.mjs` ile üretilir; kaynak dosyalar: `packages/content/src/odyoloji.ts`, `cards.ts`, `quiz.ts`, `kamp.ts`, `remedies.ts`.
+> Bu belge `node tools/odyoloji/docs.mjs` ile üretilir; kaynak dosyalar: `packages/content/src/odyoloji.ts`, `cards.ts`, `quiz.ts`, `kamp.ts`, `remedies.ts`, `patolojiler.ts`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -10,7 +10,8 @@ isteğe bağlı teknik ayrıntı ("Daha fazla").
 
 **Sayılar:** 39 sözlük terimi · 33 Tüy Dede notu · 50 Kulak Kartı ·
 128 quiz sorusu (66 Meraklı, 62 Odyoloji) · Kulak Kampı: 7 bina,
-14 kamp terimi, 11 Tedavi Odası malzemesi, 10 bölge anıtı.
+14 kamp terimi, 11 Tedavi Odası malzemesi, 10 bölge anıtı ·
+18 bölge patolojisi (15 tanesi bölümlerde).
 
 ## Kulak Sözlüğü (39)
 
@@ -225,6 +226,41 @@ Jerger ve Hayes (1976) çapraz kontrol ilkesi; Clark (1981) işitme kaybı derec
 | İşitme siniri | **Sinir Lifi Feneri** | İşitme siniri sinyali binlerce lifle beyin sapına taşır. |
 | Beyin sapı | **İki Kulak Kavşağı** | İki kulağın sesi beyin sapında buluşur; sesin yönü böyle bulunur. |
 | İşitsel korteks | **Heschl Işığı** | İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. |
+
+## Bölge patolojileri (18)
+
+Kaynak: `packages/content/src/patolojiler.ts` (kimlikler kamp ekibinin `remedies.ts` → `PATHOLOGY_IDS` listesiyle aynı). Odi'nin
+geçtiği bölgeye özgü kulak hastalıkları, bölgenin VAR OLAN engelleri olarak oynanır (`level-gen/src/patoloji.ts` yalnız etiket
+ekler; geometri ve zorluk eğrisi değişmez). İlk görüşte engelin üstünde adı (✚) ve iltihaplı görünüm, oyuncunun ilk karşılaşmasında
+Tüy Dede'nin sade cümlesi çıkar (kalıcı anahtar `patoloji:<kimlik>`). Tedavi Odası malzemesi o patolojinin ilk karşılaşmasını bir
+kez etkisiz kılar (docs/14-kamp.md §4). Dil eğitseldir, tıbbi öneri değildir: tanı ve tedaviyi hekim ve odyolog birlikte koyar.
+Kaynaklar ders kitabı düzeyindedir (Katz, *Handbook of Clinical Audiology*; Gelfand, *Essentials of Audiology*; Cummings
+*Otolaryngology*; Scott-Brown's *Otorhinolaryngology*).
+
+| ilk görüş (6. bölüm, kanal kemik çıkıntısı) | malzeme etkisi (21. bölüm, kulak tıkacı gürültü bulutunu söndürdü) |
+|---|---|
+| ![ilk görüş](img/patoloji-ilk-gorus.png) | ![malzeme](img/patoloji-malzeme.png) |
+
+| kimlik | ad | terim | bölge | ilk bölüm | oyundaki karşılığı | Tüy Dede (sade) | teknik | işe yarayan malzeme | kaynak |
+|---|---|---|---|---|---|---|---|---|---|
+| `serumen-tikaci` | **Kulak kiri tıkacı** | Serumen tıkacı (buşon) | Dış kulak yolu | 6 | Zeminde kehribar renkli kir yığını: kısa bir zıplamayla aşılır. | Kulak kiri normalde kendiliğinden dışarı çıkar; birikip tıkaç olursa sesin yolunu kapatır. Üstünden atla! | Kanalı tıkayan serumen iletim tipi hafif-orta işitme kaybı yapabilir; temizliği hekim yapar, pamuklu çubuk iteleyebilir. | Kulak kiri yumuşatıcı damla | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Gelfand, Essentials of Audiology |
+| `otitis-eksterna` | **Dış kulak iltihabı** | Otitis eksterna | Dış kulak yolu | 7 | Tavandan sarkan şişkin doku perdesi: aşağı kaydırıp altından kayılır. | İltihaplanan kanal derisi şişer ve geçit daralır. Altından kayarak geç! | Çoğunlukla bakteriyel; kanal ödemi ve ağrı yapar, sık "yüzücü kulağı" olarak görülür; tedavisi hekimle. | Dış kulak damlası | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `eksostoz` | **Kanal kemik çıkıntısı** | Eksostoz ("sörfçü kulağı") | Dış kulak yolu | 6 | Kanal tabanındaki kırmızı, sivri kemik çıkıntısı (diken): zıplayarak aşılır; 6-12. bölümlerde odadaki ilk değiş can götürmez. | Soğuk suyla sık karşılaşan kanalda küçük kemik çıkıntıları büyüyebilir. Sivri çıkıntının üstünden zıpla! | Dış kulak yolu kemik duvarında iyi huylu, geniş tabanlı çıkıntılar; büyürse kir ve su tutulmasını kolaylaştırır. | Kulak tıkacı | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `perforasyon` | **Kulak zarı deliği** | Timpanik membran perforasyonu | Kulak zarı ve orta kulak | 9 | Zarın yırtık kenarlı boşluğu: sekmez, düşülür; zıplayarak aşılır. | Zarda delik olursa orası titreşmez: deliğin üstünden zıplayıp karşıya geç! | Enfeksiyon, basınç ya da travmayla oluşur; çoğu kendiliğinden kapanır, kapanmazsa onarılabilir (timpanoplasti). | Zar yaması | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Katz, Handbook of Clinical Audiology |
+| `timpanoskleroz` | **Zar sertleşmesi** | Timpanoskleroz | Kulak zarı ve orta kulak | — | Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır). | Zarda beyaz, tebeşir gibi plaklar oluşursa zar sertleşir ve daha az titreşir. | Geçirilmiş orta kulak iltihaplarından sonra zar ve orta kulakta hiyalin/kalsiyum birikimi; çoğu zaman az kayıp yapar. | İşitme cihazı | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `retraksiyon` | **Zar çekilmesi** | Retraksiyon cebi | Kulak zarı ve orta kulak | — | Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır). | Orta kulak basıncı düşük kalırsa zar içeri doğru çekilip bir cep oluşturabilir. | Kronik Östaki işlev bozukluğunda zarın gevşek bölümü içe çöker; izlenmesi gerekir. | Ventilasyon tüpü | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `otitis-media` | **Orta kulakta sıvı** | Seröz otitis media | Kemikçikler | — | Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır). | Orta kulakta sıvı birikirse kemikçikler rahat titreşemez; çocuklarda sık görülür ve çoğu kendiliğinden geçer. | Efüzyonlu otitis media iletim tipi kayıp yapar; uzun sürerse ventilasyon tüpü düşünülebilir. | Ventilasyon tüpü | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Katz, Handbook of Clinical Audiology |
+| `ostaki` | **Östaki borusu tıkanıklığı** | Östaki tüpü disfonksiyonu | Kemikçikler | 13 | Kapalı basınç kapısı: geri dönüp anahtara dokununca açılır. | Östaki borusu yutkununca açılır ve basıncı eşitler. Geçit kapalıysa "yutkunma" anahtarına dokun! | Boru açılamazsa orta kulakta negatif basınç, kulak dolgunluğu ve sıvı birikimi olabilir. | Ventilasyon tüpü | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Gelfand, Essentials of Audiology |
+| `otoskleroz` | **Üzengi kemiği takılması** | Otoskleroz | Kemikçikler | 15 | Takılı kapı: çakılma anahtarıyla açılır. | Üzengi kemiği oval pencerede takılırsa titreşim iç kulağa geçmez. Yere çakılıp serbest bırak! | Otik kapsülde anormal kemik yapımı üzengi tabanını sabitler; işitme cihazı ya da stapedotomi seçenektir. | Stapes protezi | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Katz, Handbook of Clinical Audiology |
+| `zincir-kopuk` | **Kemikçik zinciri kopukluğu** | Kemikçik zinciri diskontinüitesi | Kemikçikler | 19 | Hareketli köprülü boşluk: köprü gelince üstüne at. | Kemikçiklerden biri ayrılırsa titreşim zincirden geçmez. Gidip gelen köprüyle boşluğu aş! | Travma ya da kronik iltihapla örs-üzengi eklemi ayrılabilir; büyük iletim tipi kayıp yapar, cerrahiyle onarılabilir. | Kemikçik protezi | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `gurultu-hasari` | **Gürültü hasarı** | Gürültüye bağlı işitme kaybı | Koklea (giriş), Koklea (Corti organı), Koklea (tonotopi) | 21 | Durgun gürültü bulutu: üstünden atla ya da altından kay. | Çok yüksek ses tüy hücrelerini yorar. Gürültü bulutuna değmeden geç! | Kalıcı hasar çoğunlukla 3-6 kHz bölgesinde ("4 kHz çentiği") başlar; korunmanın yolu sesi kısmak ve süreyi azaltmak. | Kulak tıkacı | Katz, Handbook of Clinical Audiology; Gelfand, Essentials of Audiology |
+| `presbiakuzi` | **Yaşa bağlı işitme kaybı** | Presbiakuzi | Koklea (giriş), Koklea (Corti organı), Koklea (tonotopi) | 21 | Basınca ufalanan seyrek basamaklar: hızla geç. | Yıllar geçtikçe kokleanın tabanındaki (tiz sesler) tüy hücreleri seyrelir. Seyrek basamaklarda oyalanma! | Yaşla birlikte çoğunlukla iki kulakta simetrik, tiz frekanslardan başlayan sensörinöral kayıp. | İşitme cihazı, Koklear implant | Katz, Handbook of Clinical Audiology; Gelfand, Essentials of Audiology |
+| `ototoksisite` | **İlaca bağlı iç kulak hasarı** | Ototoksisite | Koklea (giriş), Koklea (Corti organı), Koklea (tonotopi) | 23 | Gidip gelen zehirli damlalar: arasındaki boşluktan geç. | Bazı ilaçlar iç kulağa zarar verebilir; bu yüzden hekimler izler. Düşen zehirli damlalardan kaç! | Aminoglikozitler ve sisplatin gibi ilaçlarda tiz frekanslardan başlayan kayıp izlenir (odyolojik izlem). | Koklear implant | Katz, Handbook of Clinical Audiology; Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `meniere` | **Meniere hastalığı** | Endolenfatik hidrops | Koklea (giriş), Koklea (Corti organı), Koklea (tonotopi) | 23 | Yalpalayan, gidip gelen platformlar ve asansörler: doğru anda üstüne bin. | İç kulakta sıvı fazlalaşınca denge ve işitme dalgalanır; bu zemin yalpalıyor, zamanla bin! | Ataklar hâlinde baş dönmesi, dalgalı alçak frekans kaybı, çınlama ve dolgunlukla seyreder. | — (hekim süreci) | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Katz, Handbook of Clinical Audiology |
+| `noroma` | **İşitme siniri tümörü** | Vestibüler schwannom (akustik nörinom) | İşitme siniri | 31 | Yolu kapatan doku duvarı: ses darbesiyle (ileri kaydır) kırılır. | İşitme sinirinde yavaş büyüyen, iyi huylu bir doku yolu daraltabilir. Ses darbesiyle geçidi aç! | Tek taraflı sensörinöral kayıp ve çınlamada MR ile araştırılır; izlem, radyocerrahi ya da cerrahi seçenektir. | — (hekim süreci) | Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology; Katz, Handbook of Clinical Audiology |
+| `noropati` | **İşitsel nöropati** | İşitsel nöropati spektrum bozukluğu | İşitme siniri, Beyin sapı | 35 | Ritim basamakları: belirdiğinde bas (müziğe değil görüntüye güven). | Ses kulağa ulaşır ama sinirde zamanlaması bozulur. Basamaklar ritimden kayıyor: gözünle izle! | Otoakustik emisyonlar var ama işitsel beyin sapı yanıtı bozuk; konuşmayı anlamak işitme eşiğinden daha zordur. | Uzaktan mikrofon | Katz, Handbook of Clinical Audiology; Gelfand, Essentials of Audiology |
+| `tinnitus` | **Kulak çınlaması** | Tinnitus | İşitsel korteks | 37 | Nabızlı (zamanlı) bulut: parlayıp titreyerek uyarır, sonra yanar; söndüğünde geçilir. | Çınlama, dışarıda olmayan bir sesi duymaktır. Bu bulut aralıklarla çınlıyor: sustuğu anda geç! | Çoğu zaman işitme kaybına eşlik eder; ses terapisi ve danışmanlıkla yönetilir, kaynağı hekimle araştırılır. | Ses üreteci | Katz, Handbook of Clinical Audiology; Cummings Otolaryngology; Scott-Brown's Otorhinolaryngology |
+| `merkezi` | **İşitsel işlemleme bozukluğu** | Merkezi işitsel işlemleme bozukluğu | İşitsel korteks | 37 | Yankı basamakları: ancak ses darbesinden sonra katılaşır. | Kulak iyi duysa da beyin sesi düzenlemekte zorlanabilir. Yankı yolu karışık: her basamağı ses darbesiyle uyandır! | Gürültüde konuşmayı anlama ve ses sıralamada güçlük; odyolojik test bataryasıyla değerlendirilir. | Uzaktan mikrofon | Katz, Handbook of Clinical Audiology; Gelfand, Essentials of Audiology |
 
 ## Quiz (128)
 

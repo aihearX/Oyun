@@ -11,6 +11,8 @@ export type GameEvent =
   | { type: 'levelFailed'; result: RunResult }
   /** Tedavi Odası malzemesi bir patoloji engelini etkisiz kıldı (left: bu malzemeden kalan). docs/14-kamp.md */
   | { type: 'remedy'; id: string; pathology: string; left: number }
+  /** bölge patolojisi bu koşuda ilk kez görüldü (first: oyuncu onu ilk kez görüyor; Tüy Dede'nin cümlesi gösterildi). content/src/patolojiler.ts */
+  | { type: 'pathology'; id: string; first: boolean }
   | { type: 'quit' };
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */

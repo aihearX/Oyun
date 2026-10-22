@@ -5,6 +5,7 @@ import { quietProfile, startsWithPit } from './pacing';
 import { CURVE_ZONES, knobsFor, tuningAt, zoneOf, zonePos, type LevelKnobs } from './curve';
 import { predictDmg, roomStats } from './rooms';
 import { KALIBRASYON } from './kalibrasyon';
+import { tagPathologies } from './patoloji';
 
 export interface PlayerProfile {
   /** son 5 bölümdeki ortalama yıldız (0-3); dinamik zorluk */
@@ -543,7 +544,7 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const sectionChunkStarts = sectionStarts.slice();
   return {
     id: `${journeyId}-${number}`, number, journey: journeyId, name: plan.name, biome: plan.biome, mechanic: plan.mechanic, objective: obj, modifiers, seed,
-    chunks: finalChunks, lengthPx, parTimeSec, coinsTotal: coinBudget, intro: plan.intro, tutorial: plan.tutorial || newAbilities.length > 0,
+    chunks: tagPathologies(finalChunks, plan.biome), lengthPx, parTimeSec, coinsTotal: coinBudget, intro: plan.intro, tutorial: plan.tutorial || newAbilities.length > 0,
     abilities, newAbilities, sectionStarts: sectionChunkStarts, cochleasTotal: keepSecret.filter(Boolean).length,
     ...(knobs.assist ? { assist: knobs.assist } : {}),
   };

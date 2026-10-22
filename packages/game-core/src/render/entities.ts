@@ -10,6 +10,7 @@ import { EntityView } from './view';
 import { num, buildBarrier, buildBigNote, buildBubble, buildBullet, buildCochlea, buildCoin, buildCurtain, buildFork, buildHazardCloud, buildMine, buildNote, buildPowerup, buildSpike } from './items';
 import { buildBeat, buildCheckpoint, buildCrumble, buildCurrent, buildDecor, buildDoor, buildEcho, buildEscortee, buildFlip, buildFreqGate, buildGate, buildGear, buildGravZone, buildHook, buildLauncher, buildMoving, buildPlatform, buildSpring, buildSwitch, buildText, buildTrampoline, buildWall, buildWater } from './mech';
 import { buildEnemy } from './enemies';
+import { markPathology } from './patoloji';
 
 /** önerilen derinlikler (motor isterse değiştirir) */
 export const DEPTH = { region: 3, decor: 4, platform: 5, hazard: 6, item: 8, enemy: 9, text: 15, hero: 20, fx: 30, foreground: 60, hud: 100 } as const;
@@ -54,9 +55,11 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'checkpoint': buildCheckpoint(v); v.setDepth(DEPTH.decor); if (p.active === true) v.setOpen(true); break;
     case 'gate': buildGate(v, A); v.setDepth(DEPTH.decor); break;
     case 'escortee': buildEscortee(v); v.setDepth(DEPTH.item); break;
-    case 'decor': buildDecor(v, A, String(p.kind ?? 'ot'), num(p.scale, 1)); v.setDepth(DEPTH.decor); break;
+    case 'decor': if (p.kind !== 'patoloji') buildDecor(v, A, String(p.kind ?? 'ot'), num(p.scale, 1)); v.setDepth(DEPTH.decor); break;
     case 'text': buildText(v, String(p.text ?? '')); v.setDepth(DEPTH.text); break;
     default: buildNote(v); v.setAlpha(0.4); break;
   }
+  // bölge patolojisi (level-gen/src/patoloji.ts): iltihaplı örtü + ilk görüşte tıbbi artı rozeti
+  if (typeof p.patoloji === 'string') markPathology(v, e.type, w || (e.type === 'spike' ? 32 : 110), h);
   return v;
 }

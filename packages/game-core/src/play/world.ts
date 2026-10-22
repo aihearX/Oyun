@@ -58,6 +58,8 @@ export interface World {
   ceilings: { l: number; r: number }[];
   /** ilk bölümlerin yardımları (spec.assist; yoksa motor varsayılanları) */
   assist: WorldAssist;
+  /** patoloji düşme bölgeleri (decor kind 'patoloji'; level-gen/src/patoloji.ts): malzeme düşüşü bağışlar (sim.ts → hurt) */
+  patZones: { l: number; r: number; id: string; eid: number }[];
 }
 export interface WorldAssist {
   runK: number; coyote: number; buffer: number; freeFalls: number; turnGate: boolean;
@@ -199,6 +201,7 @@ export function buildWorld(spec: LevelSpec, o: BuildOpts): World {
     beatDur: 60 / (o.bpm ?? 100), sectionX,
     notesTotal: notes.length, coinsTotal, cochleasTotal: ents.filter((e) => e.type === 'secret').length,
     boss: isBoss, stamp: new Int32Array(ents.length + 64), stampN: 1, ceilings, assist: worldAssist(spec),
+    patZones: ents.filter((e) => e.type === 'decor' && e.p.kind === 'patoloji' && typeof e.p.patoloji === 'string').map((e) => ({ l: e.x, r: e.x + e.w, id: String(e.p.patoloji), eid: e.id })),
   };
 }
 

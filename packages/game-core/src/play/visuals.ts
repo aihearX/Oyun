@@ -50,7 +50,7 @@ export function makeTerrain(scene: Phaser.Scene, rects: TerrainRect[], biome: Bi
 
 // ---------------------------------------------------------------- varlıklar
 export interface EntityVisual { x: number; y: number; visible: boolean; alpha: number; warn: number; on: boolean; phase: number; t: number; color: number; face: 1 | -1 }
-export interface EntityView { obj: Phaser.GameObjects.GameObject; update(v: EntityVisual): void; collect(): void; shatter(): void; destroy(): void; /** anlık tepki (zar: sıçrayışta esneme) */ poke(): void }
+export interface EntityView { obj: Phaser.GameObjects.GameObject; update(v: EntityVisual): void; collect(): void; shatter(): void; destroy(): void; /** anlık tepki (zar: sıçrayışta esneme) */ poke(): void; /** bölge patolojisi: ilk görüş rozeti / malzemeyle etkisiz */ patho(state: 'sighted' | 'cured'): void }
 
 const MOVERS = new Set(['moving', 'lift', 'beat', 'hazard', 'enemy', 'coin', 'note', 'collect']);
 
@@ -66,6 +66,7 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
     collect: () => { if (!v.dead) v.collect(); },
     shatter: () => { if (!v.dead) v.shatter(); },
     poke: () => { if (!v.dead) v.pulse(0); },
+    patho: (st) => { if (!v.dead) { if (st === 'sighted') v.h.sighted?.(); else v.h.cured?.(); } },
     update: (st) => {
       if (v.dead) return;
       // yalnızca yeri değişenler taşınır (notaların süzülme tween'i render'da)

@@ -1,4 +1,5 @@
 import { R, type Reward } from './rewards';
+import { PATOLOJI_IDS, PATOLOJILER, patolojiKey } from './patolojiler';
 
 /**
  * Günlük görevler, 7 günlük giriş takvimi ve harita hazineleri. Hepsinin ödülü önceden görünür; rastgele sandık yok.
@@ -61,4 +62,6 @@ export const FIRSTS: Record<string, string> = {
   'ogret-cakil': 'Yeni yetenek: Yere Çakılma!', 'ogret-yuz': 'Yeni yetenek: Yüzme!', 'ogret-darbe': 'Yeni yetenek: Ses Darbesi!', 'ogret-cevir': 'Yeni yetenek: Yerçekimi Çevirme!',
   // 5. bölümün kayma tazeleme anı: iki perde başarıyla geçilince kalıcı olarak kapanır (kutlama gösterilmez)
   'tazele-kayma': 'Kayma tazelendi!',
+  // bölge patolojisiyle ilk karşılaşma (Tüy Dede'nin cümlesi bir kez; kutlama gösterilmez). patolojiler.ts
+  ...Object.fromEntries(PATOLOJI_IDS.map((id) => [patolojiKey(id), `Tanıştın: ${PATOLOJILER[id].ad}`])),
 };

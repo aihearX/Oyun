@@ -14,6 +14,8 @@ const { QUIZ_QUESTIONS } = await import(join(root, 'packages/content/src/quiz.ts
 const { build } = await import('esbuild');
 const bundled = await build({ entryPoints: [join(root, 'packages/content/src/kamp.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
 const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, REMEDIES, PATHOLOGY_NAMES, CAMP_COSMETICS } = { ...(await import('data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].text + "\nexport { REMEDIES, PATHOLOGY_NAMES } from '" + pathToFileURL(join(root, 'packages/content/src/remedies.ts')).href + "';").toString('base64'))) };
+// Bölge patolojileri (oyun ekibi): yalnız tür içe aktarır
+const { PATOLOJI_IDS, PATOLOJILER } = await import(join(root, 'packages/content/src/patolojiler.ts'));
 const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
 
 const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (Corti organı)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
@@ -23,7 +25,7 @@ const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
 
 const md = `# Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`.
+> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -33,7 +35,8 @@ isteğe bağlı teknik ayrıntı ("Daha fazla").
 
 **Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${CARDS.length} Kulak Kartı ·
 ${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji) · Kulak Kampı: ${Object.keys(BUILDING_INFO).length} bina,
-${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı.
+${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı ·
+${PATOLOJI_IDS.length} bölge patolojisi (${PATOLOJI_IDS.filter((id) => PATOLOJILER[id].ilkBolum > 0).length} tanesi bölümlerde).
 
 ## Kulak Sözlüğü (${GLOSSARY.length})
 
@@ -85,6 +88,24 @@ ${CAMP_COSMETICS.map((c) => `- \`${c.id}\` — ${BNAME[c.building]} Sv ${c.level
 | bölge | anıt | açıklama |
 |---|---|---|
 ${MONUMENTS.map((m) => `| ${REGION[m.region]} | **${esc(m.name)}** | ${esc(m.plain)} |`).join('\n')}
+
+## Bölge patolojileri (${PATOLOJI_IDS.length})
+
+Kaynak: \`packages/content/src/patolojiler.ts\` (kimlikler kamp ekibinin \`remedies.ts\` → \`PATHOLOGY_IDS\` listesiyle aynı). Odi'nin
+geçtiği bölgeye özgü kulak hastalıkları, bölgenin VAR OLAN engelleri olarak oynanır (\`level-gen/src/patoloji.ts\` yalnız etiket
+ekler; geometri ve zorluk eğrisi değişmez). İlk görüşte engelin üstünde adı (✚) ve iltihaplı görünüm, oyuncunun ilk karşılaşmasında
+Tüy Dede'nin sade cümlesi çıkar (kalıcı anahtar \`patoloji:<kimlik>\`). Tedavi Odası malzemesi o patolojinin ilk karşılaşmasını bir
+kez etkisiz kılar (docs/14-kamp.md §4). Dil eğitseldir, tıbbi öneri değildir: tanı ve tedaviyi hekim ve odyolog birlikte koyar.
+Kaynaklar ders kitabı düzeyindedir (Katz, *Handbook of Clinical Audiology*; Gelfand, *Essentials of Audiology*; Cummings
+*Otolaryngology*; Scott-Brown's *Otorhinolaryngology*).
+
+| ilk görüş (6. bölüm, kanal kemik çıkıntısı) | malzeme etkisi (21. bölüm, kulak tıkacı gürültü bulutunu söndürdü) |
+|---|---|
+| ![ilk görüş](img/patoloji-ilk-gorus.png) | ![malzeme](img/patoloji-malzeme.png) |
+
+| kimlik | ad | terim | bölge | ilk bölüm | oyundaki karşılığı | Tüy Dede (sade) | teknik | işe yarayan malzeme | kaynak |
+|---|---|---|---|---|---|---|---|---|---|
+${PATOLOJI_IDS.map((id) => { const p = PATOLOJILER[id]; const rs = REMEDIES.filter((r) => r.counters.includes(id)).map((r) => r.name).join(', ') || '— (hekim süreci)'; return `| \`${id}\` | **${esc(p.ad)}** | ${esc(p.terim)} | ${p.bolge.map((b) => REGION[b]).join(', ')} | ${p.ilkBolum || '—'} | ${esc(p.mekanik)} | ${esc(p.sade)} | ${esc(p.teknik)} | ${esc(rs)} | ${esc(p.kaynak)} |`; }).join('\n')}
 
 ## Quiz (${QUIZ_QUESTIONS.length})
 

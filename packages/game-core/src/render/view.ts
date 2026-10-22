@@ -5,6 +5,8 @@ import type { EntityApi } from './types';
 export type Handlers = Partial<{
   open(o: boolean): void; pulse(p: number): void; solid(s: boolean): void; reveal(a: number): void; crack(t: number): void;
   telegraph(): void; collect(): void; shatter(): void; facing(d: 1 | -1): void;
+  /** bölge patolojisi (render/patoloji.ts): ilk görüşte rozet; malzemeyle etkisiz kalınca sönükleşir */
+  sighted(): void; cured(): void;
 }>;
 
 export class EntityView extends Phaser.GameObjects.Container implements EntityApi {

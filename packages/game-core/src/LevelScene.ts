@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import type { AbilityId, Entity, LevelSpec, RunResult } from '@odi/shared';
 import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
-import { BIOMES, FIRSTS, journeyById, tutorialKey, type BiomeDef } from '@odi/content';
+import { BIOMES, FIRSTS, PATOLOJILER, journeyById, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
-import { flash, floatText, tapToStart, COLORS, banner, endCard } from './ui';
+import { flash, floatText, tapToStart, COLORS, banner, endCard, FONT } from './ui';
+import { remedyName } from './play/remedy';
+import { pathologyLabel } from './render/patoloji';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
 import { tonotopyFreq } from './art';
 import { RaceLayer } from './race';
@@ -50,6 +52,8 @@ export class LevelScene extends Phaser.Scene {
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
   /** kıl perdeleri: 3-8'de ilk üç perdeden önce "aşağı kaydır" ipucu; 5'te tazeleme anı bir kez, iki başarılı geçişten sonra hiç */
   private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false;
+  /** bölge patolojileri: x sırasıyla işaretli öğeler, bu koşuda görülenler, rozetli öğeler, son Tüy Dede cümlesinin anı */
+  private patList: { id: number; x: number; pat: string }[] = []; private patIdx = 0; private patSeen = new Set<string>(); private patSighted = new Set<number>(); private patLineAt = -99;
   private pendingEdges: { pressed: boolean; released: boolean; swipeDown: boolean; swipeX: number } = { pressed: false, released: false, swipeDown: false, swipeX: 0 };
   private resultSent = false; private lastWall = 0; private chargeFrom = -1; private summaryDone = 0; private cues = new Map<number, number>(); private cueAt = -9;
   /** görsel kalite: gerçek cihazda kare hızı 2 sn boyunca ~45'in altında kalırsa 'low'a iner (bot/harness'te ölçülmez) */
@@ -75,7 +79,8 @@ export class LevelScene extends Phaser.Scene {
     // ---- simülasyon
     this.world = buildWorld(this.spec, { skills: this.opts.skills, bpm });
     const revirPct = this.opts.firstHitIgnorePct ?? 0;
-    this.sim = initState(this.world, { lives: this.opts.lives, revir: !this.opts.bot && revirPct > 0 && Math.random() * 100 < revirPct });
+    this.sim = initState(this.world, { lives: this.opts.lives, revir: !this.opts.bot && revirPct > 0 && Math.random() * 100 < revirPct, remedies: this.opts.race ? undefined : this.opts.remedies });
+    this.patList = this.world.ents.filter((e) => typeof e.p.patoloji === 'string').map((e) => ({ id: e.id, x: e.l, pat: String(e.p.patoloji) })).sort((a, b) => a.x - b.x);
     this.sim.events = [];
     if (this.opts.bot && !this.opts.botIdle) this.planner = new Planner(this.world);
     this.state = { started: false, finished: false, lives: this.sim.lives, coins: 0, score: 0, timeSec: 0, deaths: 0, damageTaken: 0, shield: this.sim.shield, custom: {} };
@@ -141,7 +146,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.tutorial) { this.tutorialT += realDt * Math.min(1, ts); if (this.tutorialT > TUTORIAL_MAX_S) this.endTutorial(false); }
     if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
-    this.curtainWatch();
+    this.curtainWatch(); this.pathologyWatch();
     const raw = this.input_.tick();
     // tek karelik girdiler (dokunuş, kaydırma) bir sonraki sim adımına kadar bekletilir: o karede adım yoksa kaybolmasın
     const pe = this.pendingEdges;
@@ -225,6 +230,14 @@ export class LevelScene extends Phaser.Scene {
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
       case 'freefall': floatText(this, e.x, e.y - 160, 'Sorun değil — tekrar!', COLORS.accent2); break;
       case 'spikegrace': floatText(this, e.x, e.y - 160, 'Dikkat, diken!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'light' }); break;
+      case 'remedy': {
+        // Tedavi Odası malzemesi patoloji engelini etkisiz kıldı (docs/14-kamp.md §4)
+        const [rid = '', pat = ''] = String(e.s ?? '').split('|');
+        this.views.get(e.id ?? -1)?.patho('cured'); sfx.power(); this.fx.perfectRing(e.x, e.y - 30, null);
+        banner(this, `💊 ${remedyName(rid)} korudu!`, 0x1b8f52, 1600);
+        this.emit({ type: 'remedy', id: rid, pathology: pat, left: Number(e.n ?? 0) }); this.emit({ type: 'haptic', kind: 'success' });
+        break;
+      }
       case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20, null); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
       case 'shieldbounce': sfx.tick(); floatText(this, e.x, e.y - 50, 'Kalkanlı! Çakıl ya da atıl', COLORS.muted); break;
       case 'break': S.score += 20; sfx.hit(); this.fx.hitFlash(e.x, e.y); this.cameras.main.shake(80, 0.005); break;
@@ -297,6 +310,24 @@ export class LevelScene extends Phaser.Scene {
       if (!this.curtainPassed.has(id) && h.x > e.r) { this.curtainPassed.add(id); if (n === 5 && h.invuln <= 0) { this.curtainSlides++; if (this.curtainSlides >= 2 && !this.firstsDone.includes(REFRESH_KEY)) this.firstsDone.push(REFRESH_KEY); } }
     }
   }
+  /** bölge patolojisi ilk görüş: adı (✚), öğede rozet; oyuncunun ilk karşılaşmasında Tüy Dede'nin cümlesi (kalıcı: patoloji:<id>) */
+  private pathologyWatch() {
+    if (this.opts.race || this.state.finished) return;
+    const h = this.sim.hero;
+    while (this.patIdx < this.patList.length) {
+      const q = this.patList[this.patIdx]!; if (q.x - h.x > 250) break;
+      const P = PATOLOJILER[q.pat as PatolojiId];
+      if (!P || this.patSeen.has(q.pat)) { this.patIdx++; continue; }
+      // öğretici an ya da az önceki Tüy Dede cümlesi sürerken bekle (üst üste yazı yok)
+      if (this.tutorial || this.sim.t - this.patLineAt < 3.8) break;
+      this.patIdx++; this.patSeen.add(q.pat); this.patSighted.add(q.id); this.views.get(q.id)?.patho('sighted');
+      const e = this.world.ents[q.id]!; const key = patolojiKey(P.id);
+      const first = !this.firstsDone.includes(key) && (this.opts.firsts === undefined || this.opts.firsts.includes(key));
+      pathologyLabel(this, Math.max(e.l + 40, Math.min(e.r - 40, (e.l + e.r) / 2)), Math.min(e.t, GROUND_Y - 30) - 70, P.ad, FONT);
+      if (first) { this.firstsDone.push(key); this.hint(`Tüy Dede: ${P.sade}`, 3600); this.patLineAt = this.sim.t; }
+      this.emit({ type: 'pathology', id: P.id, first });
+    }
+  }
   private endTutorial(success: boolean) {
     const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done();
     if (success) {
@@ -345,15 +376,17 @@ export class LevelScene extends Phaser.Scene {
   private syncHud() {
     this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, lives: this.sim.lives, pct: this.pct() });
   }
+  /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
+  private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
   private syncViews(initial: boolean) {
     const cam = this.cameras.main; const L = cam.scrollX, Rr = cam.scrollX + GAME_W; const s = this.sim; const t = s.t;
     if (initial || this.time.now - this.streamAt > 150) {
       this.streamAt = this.time.now;
       for (const id of near(this.world, L - 300, Rr + STREAM_AHEAD)) {
         const e = this.world.ents[id]!; if (this.views.has(id) || isTerrain(e) || this.gone(e)) continue;
-        const v = drawEntity(this, worldEntity(e), this.biome); if (v) this.views.set(id, v);
+        const v = drawEntity(this, worldEntity(e), this.biome); if (v) { this.views.set(id, v); this.patState(id, v); }
       }
-      for (const e of this.world.ents) if ((e.cls === 'none') && !this.views.has(e.id) && e.x > L - 300 && e.x < Rr + STREAM_AHEAD) { const v = drawEntity(this, worldEntity(e), this.biome); if (v) this.views.set(e.id, v); }
+      for (const e of this.world.ents) if ((e.cls === 'none') && !this.views.has(e.id) && e.x > L - 300 && e.x < Rr + STREAM_AHEAD) { const v = drawEntity(this, worldEntity(e), this.biome); if (v) { this.views.set(e.id, v); this.patState(e.id, v); } }
       for (const [id, v] of this.views) { const e = this.world.ents[id]!; if (e.sr < L - STREAM_KEEP || e.sl > Rr + STREAM_KEEP) { v.destroy(); this.views.delete(id); if (id === this.luckyId) this.luckyGlowImg?.setVisible(false); } }
       this.terrain.cull(L, Rr);
     }
@@ -382,6 +415,7 @@ export class LevelScene extends Phaser.Scene {
           if (e.p.chase && !s.timers.has(id)) { V.visible = false; break; }
           if (hazardAt(this.world, s, e, t)) { V.x = rectX() - 8; V.y = rectY() - 8; } else if (Number(e.p.on ?? 0) > 0) { V.alpha = 0.3; }
           V.warn = hazardWarn(e, t);
+          if (s.cured.has(id)) V.alpha = Math.min(V.alpha, 0.35);
           break;
         }
         case 'enemy': { const p = enemyAt(e, t); V.x = p.x; V.y = p.y; V.face = p.face; V.warn = p.warn; break; }
@@ -451,7 +485,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.sim.t - this.lastHurtAt < 0.6) return;
     const h = this.sim.hero; const hl = h.x - HERO_HW, ht = h.y - HERO_H, hb = h.y;
     for (const id of near(this.world, h.x - 80, h.x + 10)) {
-      const e = this.world.ents[id]!; if (this.nearMissed.has(id)) continue;
+      const e = this.world.ents[id]!; if (this.nearMissed.has(id) || this.sim.cured.has(id)) continue;
       let r: number, top: number, bot: number;
       if (e.cls === 'hazard') { if (!hazardAt(this.world, this.sim, e, this.sim.t)) continue; const R = solidRect(); r = R.r; top = R.t; bot = R.b; }
       else if (e.cls === 'enemy' && !this.sim.killed.has(id)) { const p = enemyAt(e, this.sim.t); r = p.x + 15; top = p.y - 28; bot = p.y; }
@@ -529,7 +563,8 @@ export class LevelScene extends Phaser.Scene {
     const extra: Record<string, number | string | boolean> = { ...r.extra, maxCombo: this.maxCombo };
     if (this.luckyState === 'got') extra.luckyNote = true;
     if (this.firstsDone.length) extra.firsts = this.firstsDone.join(',');
-    return { ...r, extra };
+    const used = Object.entries(this.sim.remUsed).filter(([, n]) => n > 0).map(([id, count]) => ({ id, count }));
+    return { ...r, extra, ...(used.length ? { remediesUsed: used } : {}) };
   }
   finish() {
     if (this.state.finished || !this.state.started) return; this.state.finished = true; this.sim.finished = true;
