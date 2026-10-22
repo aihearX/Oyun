@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import type { BuildingId, CampState, Wallet } from '@odi/shared';
-import { tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { act, getNet, reconnect, toast, useSocial } from '../net';
 import { platform } from '../platform';
 import { Skeleton, TopBar, useNow } from '../ui/social';
 import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
-import { askedHelp, buildKey, celebrateBuilt, defOf, type CampActions } from '../camp/model';
+import { askedHelp, buildKey, defOf, type CampActions } from '../camp/model';
+import { useBuiltCelebration } from '../camp/built';
 import { sayDede } from '../camp/dede';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
 import { Art } from '../ui/art';
@@ -63,7 +63,8 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
   // süre dolunca sunucudan tazele (5 sn'lik zamanlayıcıyı beklemeden)
   const active = camp?.buildings.find((b) => b.upgradingTo && b.endsAt);
   useEffect(() => { if (active?.endsAt && active.endsAt <= sNow + 500) { const h = setTimeout(() => void getNet()?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp })).catch(() => undefined), 800); return () => clearTimeout(h); } }, [active?.endsAt, Math.floor(sNow / 1000)]);
-  useListCelebration(view === 'liste' ? camp : null);
+  // inşaat bitti: her seviye bir kez kutlanır (üs görünümünde iskelenin düşüşüyle aynı anda)
+  useBuiltCelebration(me?.id, camp, view === 'us' ? 420 : 0);
 
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { const r = await act('camp.upgrade', { id }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); audio.play('whoosh'); toast('🏗️', `${defOf(id).name} inşaatı başladı`, useNet.getState().team ? 'Takımından yardım iste, süre kısalsın.' : undefined); return true; },
@@ -99,20 +100,6 @@ function remedyCollected(n: number) {
   else toast('🩹', `+${n} malzeme çantana girdi`, 'Bölüm kartından çantana koy.', 'green');
 }
 
-/** liste görünümünde inşaat bitince kutlama (üs görünümünde sahne kendisi kutlar) */
-function useListCelebration(camp: CampState | null) {
-  const prev = useRef<CampState | null>(null);
-  useEffect(() => {
-    if (camp && prev.current) for (const b of camp.buildings) {
-      const o = prev.current.buildings.find((x) => x.id === b.id);
-      if (o && b.level > o.level) {
-        celebrateBuilt(b.id, b.level, o.level > 0 && tierOf(o.level) !== tierOf(b.level));
-      }
-    }
-    prev.current = camp;
-  }, [camp]);
-}
-
 /** önizleme: yerel sahte kamp (sunucusuz; hiçbir şey gönderilmez) */
 function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v: View) => void }) {
   const [s, setRaw] = useState<{ camp: CampState; wallet: Wallet }>(() => demoCamp(p));
@@ -120,7 +107,7 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
   const setS = (f: (o: typeof s) => typeof s) => { ref.current = f(ref.current); setRaw(ref.current); };
   const nowMs = useNow();
   useEffect(() => { const b = s.camp.buildings.find((x) => x.endsAt && x.endsAt <= nowMs); if (b) setS((o) => demoReduce(o, { k: 'complete' })); }, [nowMs]);
-  useListCelebration(view === 'liste' ? s.camp : null);
+  useBuiltCelebration('onizleme', s.camp, view === 'us' ? 420 : 0);
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { setS((o) => demoReduce(o, { k: 'upgrade', id })); audio.play('whoosh'); return true; },
     speed: async (id, item) => { setS((o) => demoReduce(o, { k: 'speed', id, item })); return true; },

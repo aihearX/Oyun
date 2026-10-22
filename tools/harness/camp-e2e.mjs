@@ -9,7 +9,9 @@
 //    → Oyna → LevelOptions.remedies test kancasında (window.__odi.remedies) → sunucusuz nazik kart.
 // C) Anıt: haritada 12 bölüm geçilmiş (tohumlanmış ilerleme) → kamp açılınca Kemikçikler anıtı yükselir + Tüy Dede satırı; anıta dokununca bilgi.
 // D) dom hedefi (Expo DOM telefon paketi, Chromium): anıt kutlaması + Tedavi Odası paneli.
-// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom] [--browsers chromium,webkit] [--headed]
+// E) Yükseltme kutlaması (Chromium + WebKit + dom): kristalle (panel açıkken) / süre dolunca / takım yardımıyla biten inşaat →
+//    "<Bina> Sv N!" afişi ve Tüy Dede kartı tam bir kez; kristalle bitince panel kendiliğinden kapanır.
+// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom|kutlama] [--browsers chromium,webkit] [--headed]
 // Çıktı: tools/harness/out/kamp/<takım>/*.png
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -115,7 +117,8 @@ async function tapBuilding(page, id) {
 }
 async function openPanel(page, id) {
   for (let i = 0; i < 3; i++) { await tapBuilding(page, id); if (await page.locator('.bp').waitFor({ timeout: 4000 }).then(() => true, () => false)) return; await sleep(800); }
-  throw new Error(`panel açılmadı: ${id}`);
+  await page.screenshot({ path: resolve(outRoot, `HATA-panel-${id}.png`) }).catch(() => undefined);
+  throw new Error(`panel açılmadı: ${id} (bkz. ${resolve(outRoot, `HATA-panel-${id}.png`).replace(root + '/', '')})`);
 }
 const closePanel = async (page) => { if (await page.locator('.bp-x').count()) await page.locator('.bp-x').click(); await page.locator('.bp').waitFor({ state: 'detached', timeout: 5000 }).catch(() => undefined); };
 const builderLeft = async (page) => { const t = (await page.locator('.hud-chip.builder b').innerText().catch(() => '')).trim(); const m = t.match(/(?:(\d+) sa )?(\d+)(?::| dk)(\d+)?/); if (!m) return null; return t.includes('sa') ? Number(m[1]) * 3600 + Number(m[2]) * 60 : Number(m[2]) * 60 + Number(m[3] ?? 0); };
@@ -132,6 +135,60 @@ async function upgradeNow(page, id, pid) {
   await closePanel(page);
   for (let i = 0; i < 40 && lvlOf(pid, id) <= before; i++) await sleep(250);
   check(lvlOf(pid, id) === before + 1, `${id}: Sv ${before} → Sv ${before + 1}`);
+}
+
+/** Expo DOM telefon paketi (apps/mobile/dist): yoksa ya da --build-dom verildiyse derlenir */
+async function domBundle() {
+  const mobileDist = resolve(root, 'apps/mobile/dist');
+  if ((args.has('--build-dom') && !domBuilt) || !existsSync(resolve(mobileDist, 'www.bundle'))) { rmSync(mobileDist, { recursive: true, force: true }); await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist', '--clear'], { cwd: resolve(root, 'apps/mobile') }); domBuilt = true; }
+  const dir = resolve(mobileDist, 'www.bundle'); return pathToFileURL(resolve(dir, readdirSync(dir).find((f) => f.endsWith('.html')))).href;
+}
+let domBuilt = false;
+/** dom hedefi bağlamı: sahte ReactNativeWebView köprüsü (depolama, haptik), 8 bölüm geçilmiş, görülen anıtlar */
+async function domContext(browser, seen) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'tr-TR', reducedMotion: 'reduce' });
+  await ctx.addInitScript(([serverUrl, seenRegions]) => {
+    const progress = {}; for (let i = 1; i <= 8; i++) progress[i] = { stars: 3, best: 1000, plays: 1 };
+    const store = { 'odi-v1': JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true }, progress }, version: 3 }) };
+    window.ReactNativeWebView = {
+      injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: 47, insetBottom: 34 } } }),
+      postMessage: (s) => {
+        try {
+          const m = JSON.parse(s); if (m.type !== '$$native_action') return;
+          const [k, v] = m.data.args ?? []; let result = null;
+          if (m.data.actionId === 'getItem') result = store[k] ?? null;
+          if (m.data.actionId === 'setItem') store[k] = v;
+          if (m.data.actionId === 'removeItem') delete store[k];
+          setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
+        } catch { /* yok */ }
+      },
+    };
+    try { localStorage.setItem('odi.kamp.anitlar', JSON.stringify(seenRegions)); } catch { /* file:// */ }
+    const lock = () => { const st = document.createElement('style'); st.textContent = 'html{overflow:hidden!important}'; document.head.appendChild(st); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lock); else lock();
+  }, [wsUrl, seen]);
+  return ctx;
+}
+/** sayfaya eklenen her bildirim afişi (.toast-top), kutlama sahnesi (.cel-root) ve Tüy Dede kartı kaydedilir: "tam bir kez" denetimi */
+const OLAY_SAYACI = () => {
+  const o = { toast: [], dede: [], cel: 0 }; window.__olay = o;
+  const scan = (n) => {
+    if (!(n instanceof Element)) return;
+    for (const t of [n, ...n.querySelectorAll('.toast-top')]) if (t.matches('.toast-top')) o.toast.push(t.querySelector('b')?.textContent ?? '');
+    for (const d of [n, ...n.querySelectorAll('[data-testid="kamp-dede"]')]) if (d.matches('[data-testid="kamp-dede"]')) o.dede.push(d.getAttribute('data-line') ?? '');
+    for (const c of [n, ...n.querySelectorAll('.cel-root')]) if (c.matches('.cel-root')) o.cel++;
+  };
+  const start = () => new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) scan(n); }).observe(document.documentElement, { childList: true, subtree: true });
+  if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
+};
+
+/** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
+function rawClient(url) {
+  const ws = new WebSocket(url); let id = 0; const pend = new Map();
+  ws.onmessage = (e) => { const m = JSON.parse(String(e.data)); if (m.t === 'res') { const p = pend.get(m.id); pend.delete(m.id); if (!p) return; if (m.ok) p.res(m.data); else p.rej(new Error(`${m.code}: ${m.error}`)); } };
+  const ready = new Promise((r) => { ws.onopen = r; });
+  const call = async (op, data) => { await ready; return new Promise((res, rej) => { const i = ++id; pend.set(i, { res, rej }); ws.send(JSON.stringify({ t: 'req', id: i, op, data })); }); };
+  return { call, close: () => ws.close() };
 }
 
 try {
@@ -377,32 +434,10 @@ try {
   // ======================================================================== D) dom hedefi (Expo DOM telefon paketi)
   if (want('dom') && browsers.includes('chromium')) {
     step('D · dom hedefi: anıt kutlaması + Tedavi Odası paneli (telefon paketi)');
-    const mobileDist = resolve(root, 'apps/mobile/dist');
-    if (args.has('--build-dom') || !existsSync(resolve(mobileDist, 'www.bundle'))) { rmSync(mobileDist, { recursive: true, force: true }); await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') }); }
-    const dir = resolve(mobileDist, 'www.bundle'); const domHtml = pathToFileURL(resolve(dir, readdirSync(dir).find((f) => f.endsWith('.html')))).href;
+    const domHtml = await domBundle();
     const browser = await launch('chromium');
     const shot = suite('dom-chromium');
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'tr-TR', reducedMotion: 'reduce' });
-    await ctx.addInitScript(([serverUrl]) => {
-      const progress = {}; for (let i = 1; i <= 8; i++) progress[i] = { stars: 3, best: 1000, plays: 1 };
-      const store = { 'odi-v1': JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true }, progress }, version: 3 }) };
-      window.ReactNativeWebView = {
-        injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: 47, insetBottom: 34 } } }),
-        postMessage: (s) => {
-          try {
-            const m = JSON.parse(s); if (m.type !== '$$native_action') return;
-            const [k, v] = m.data.args ?? []; let result = null;
-            if (m.data.actionId === 'getItem') result = store[k] ?? null;
-            if (m.data.actionId === 'setItem') store[k] = v;
-            if (m.data.actionId === 'removeItem') delete store[k];
-            setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
-          } catch { /* yok */ }
-        },
-      };
-      try { localStorage.setItem('odi.kamp.anitlar', JSON.stringify(['dis-kulak', 'kanal'])); } catch { /* file:// */ }
-      const lock = () => { const st = document.createElement('style'); st.textContent = 'html{overflow:hidden!important}'; document.head.appendChild(st); };
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', lock); else lock();
-    }, [wsUrl]);
+    const ctx = await domContext(browser, ['dis-kulak', 'kanal']);
     const D = await ctx.newPage();
     D.on('pageerror', (e) => errors.push(`dom: ${e.message}`));
     await D.goto(domHtml, { waitUntil: 'load' });
@@ -431,6 +466,89 @@ try {
     check(await D.locator('[data-making="serumen-damlasi"]').count() === 1, 'dom: Tedavi Odası paneli (Kulak kiri yumuşatıcı damla hazırlanıyor)');
     await shot(D, 'dom-panel-tedavi', 900);
     await browser.close();
+  }
+
+  // ======================================================================== E) yükseltme kutlaması: kristalle / süre dolunca / takım yardımıyla biten inşaat
+  //    → afiş ("<Bina> Sv N!") ve Tüy Dede kartı TAM BİR KEZ (aynı bitiş istemciye işlem yanıtı + camp.updated itmesiyle birden çok kez gelir)
+  if (want('kutlama')) {
+    const targets = [...browsers.map((bt) => ({ bt, dom: false })), ...(browsers.includes('chromium') ? [{ bt: 'chromium', dom: true }] : [])];
+    let idx = 0;
+    for (const { bt, dom } of targets) {
+      const tg = dom ? 'dom' : bt; idx++;
+      const browser = await launch(bt);
+      const shot = suite(`kutlama-${tg}`);
+      const seen = ['dis-kulak', 'kanal', 'zar'];
+      step(`E1 · [${tg}] oyuncu + tarayıcısız takım arkadaşı`);
+      let K;
+      if (dom) { const ctx = await domContext(browser, seen); K = await ctx.newPage(); K.on('pageerror', (e) => errors.push(`kutlama-dom: ${e.message}`)); }
+      else K = await player(browser, bt, `kutlama-${tg}`, SEED(8, seen));
+      await K.addInitScript(OLAY_SAYACI);
+      const nm = `Kutlu${idx}${Date.now() % 100}`;
+      await K.goto(dom ? await domBundle() : base, { waitUntil: 'load' });
+      await K.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await K.locator('.onboard').waitFor({ timeout: 20_000 });
+      await K.getByRole('textbox', { name: 'Takma ad' }).fill(nm);
+      await K.getByRole('button', { name: 'Başla' }).click();
+      await K.locator('.onboard').waitFor({ state: 'detached' }); await settle(K);
+      let kId = null; for (let i = 0; i < 40 && !(kId = pidOf(nm)); i++) await sleep(250);
+      check(!!kId, `${nm} sunucuda`);
+      const ece = rawClient(wsUrl);
+      await ece.call('hello', { version: 1, name: `Ece${idx}${Date.now() % 100}` });
+      const { team } = await ece.call('team.create', { name: `Kutlama ${tg}`, emblem: '🐚' });
+      await tab(K, 'Takım'); await K.getByLabel('Takım davet kodu').fill(team.code);
+      await K.locator('.code-join').getByRole('button', { name: 'Katıl' }).click();
+      await K.locator('.team-head').waitFor(); await toastGone(K);
+      ok(`takım ${team.code}: ${nm} + tarayıcısız takım arkadaşı`);
+      for (const [b, l] of [['merkez', 5], ['atolye', 2], ['kule', 2], ['revir', 2]]) db.run('UPDATE buildings SET level = ? WHERE player_id = ? AND id = ?', l, kId, b);
+      db.run('UPDATE players SET jeton = 50000, kristal = 2000 WHERE id = ?', kId); srv.app.walletChanged(kId);
+      await tab(K, 'Kamp'); await campReady(K); await sleep(1200); await settle(K);
+      const hush = async () => { await K.locator('.dede-card .en-x').click({ timeout: 1000 }).catch(() => undefined); };
+      /** afiş ve Tüy Dede kartı tam bir kez: ilk göründükten sonra ~7 sn kuyruk boşaltılır (ikinci bir kopya varsa bu arada çıkar) */
+      const once = async (id, name, level, how) => {
+        const title = `${name} Sv ${level}!`; const line = `kamp-sv-${id}-${((level - 1) % 3) + 1}`;
+        const card = K.locator(`[data-testid="kamp-dede"][data-line="${line}"]`);
+        await card.waitFor({ timeout: 20_000 });
+        check(await card.isVisible() && await K.locator('.bp').count() === 0, `[${tg}] ${how}: Tüy Dede kartı görünür (panel açık değil)`);
+        await sleep(500); await shot(K, `${id}-${how}`, 0);
+        for (let i = 0; i < 14; i++) { await toastGone(K); await sleep(500); }
+        const o = await K.evaluate(() => window.__olay);
+        const nT = o.toast.filter((t) => t.includes(title)).length; const nD = o.dede.filter((d) => d === line).length;
+        check(nT === 1 && nD === 1, `[${tg}] ${how}: "${title}" afişi ×${nT}, Tüy Dede ${line} ×${nD} (beklenen 1 / 1)`);
+        check(lvlOf(kId, id) === level, `[${tg}] sunucu: ${id} Sv ${level}`);
+        await hush();
+      };
+      const start = async (id) => {
+        await K.evaluate((b) => window.__kamp.focus(b), id); await sleep(1200); // bina ekranın dışında kalmasın
+        await openPanel(K, id);
+        await K.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click();
+        await K.locator('.bp-build').waitFor({ timeout: 8000 });
+      };
+
+      step(`E2 · [${tg}] kristalle bitir (panel açıkken) → panel kapanır, kutlama bir kez`);
+      await start('atolye');
+      await K.locator('.bp').getByRole('button', { name: /ile bitir/ }).click();
+      await K.locator('.bp').waitFor({ state: 'detached', timeout: 8000 });
+      ok(`[${tg}] inşaat bitince panel kendiliğinden kapandı`);
+      await once('atolye', 'İşitme Cihazı Atölyesi', 3, 'kristal');
+
+      step(`E3 · [${tg}] süre dolunca (sunucu itmesi + istemci tazelemesi) → kutlama bir kez`);
+      await start('kule'); await closePanel(K);
+      db.run("UPDATE buildings SET started_at = ?, ends_at = ? WHERE player_id = ? AND id = 'kule'", Date.now() - 60_000, Date.now() + 12_000, kId);
+      await reopenCamp(K);
+      await once('kule', 'Timpanometri Kulesi', 3, 'sure');
+
+      step(`E4 · [${tg}] takım yardımıyla biter (art arda iki camp.updated) → kutlama bir kez`);
+      await start('revir');
+      await K.locator('.bp').getByRole('button', { name: /Takımdan yardım iste/ }).click();
+      await K.locator('.bp').getByRole('button', { name: /Yardım istendi/ }).waitFor({ timeout: 8000 });
+      await closePanel(K); await toastGone(K);
+      db.run("UPDATE buildings SET ends_at = ? WHERE player_id = ? AND id = 'revir'", Date.now() + 40_000, kId);
+      const { given } = await ece.call('team.camp.helpAll', {});
+      check(given === 1, `[${tg}] takım arkadaşı yardım etti (${given})`);
+      await once('revir', 'Odyoloji Kliniği', 3, 'yardim');
+      ece.close();
+      await browser.close();
+    }
   }
 } catch (e) {
   failed = true;

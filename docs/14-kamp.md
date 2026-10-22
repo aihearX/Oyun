@@ -60,6 +60,13 @@ Bina panelinde "Odyolojide" kutusu: sade cümle + "Daha fazla" teknik satır + k
 - **Pasif güç**: bilinçli olarak yeni yüzde eklenmedi (mevcut bina etkileri zaten pasif güç). Tek ek: çanta yeri 2 → 3 (Tedavi
   Odası Sv 6) → 4 (Merkez Sv 12). Bir malzeme bir engeli bir kez aşar; bölüm zorluğu ölçümlerini bozmaz.
 - Bina panelinde "Sv N ile açıldı" ve "Sv N açar" çipleri; yükseltme kutlamasında açılanlar afişte yazılı.
+- **Yükseltme kutlaması** (afiş "<Bina> Sv N!", görsel kademe değişince Sv 4/7/10/13'te büyük "Seviye" anı; ikisinde de Tüy Dede
+  satırı): her bina seviyesi oyuncu başına **tam bir kez** (`apps/web/src/camp/built.ts`). Aynı bitiş istemciye birkaç yoldan gelir
+  (kristalle bitirmede işlem yanıtı + `camp.updated` itmesi; takım yardımında art arda iki itme; süre dolunca itme + istemcinin
+  tazelemesi); kutlama gelen seviyeleri oyuncunun gördüğü seviyelerle karşılaştırır, Phaser sahnesinin saatine ve görünüme (üs/liste)
+  bağlı değildir. Taban oturumun ilk kamp durumudur; kamp dışındayken biten inşaat kampa dönülünce kutlanır; yalnız +1 seviye
+  kutlanır. Açık paneldeki inşaat bitince panel kapanır (kutlama, sahnedeki yükseliş ve Tüy Dede kartı görünsün); sırada bekleyen
+  "inşaatı başladı" bildirimi düşer.
 
 ## 3. Tedavi Odası ve malzemeler
 
@@ -146,5 +153,6 @@ bitmeden kutlama yapılmaz. Anıta dokununca sessiz bilgi kartı (ad + bölge + 
 
 - Birim: `apps/server/test/kamp-tedavi.test.ts` (üretim zamanı, raf/çanta sınırı, idempotent toplama ve kullanım, açılım bir kez,
   göç), `packages/content/src/kamp.test.ts` (içerik eşsizliği ve Türkçe denetimi, kurallar, açılım tablosu), `apps/web/src/ftue/kamp-lines.test.ts`.
-- Uçtan uca: `node tools/harness/camp-e2e.mjs` (önizleme; Chromium + WebKit gerçek akış; anıt; dom hedefi) ve
+- Uçtan uca: `node tools/harness/camp-e2e.mjs` (önizleme; Chromium + WebKit gerçek akış; anıt; dom hedefi; `--only kutlama`:
+  kristal / süre / takım yardımıyla biten inşaatta afiş ve Tüy Dede kartı tam bir kez, Chromium + WebKit + dom) ve
   `node tools/harness/ui-mobile-check.mjs --only kamp` (Tedavi Odası paneli 390×844 ve 320×640).

@@ -6,7 +6,7 @@ import { celebrate } from '../celebrate';
 import { platform } from '../platform';
 import { TopBar, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { BuildingPanel } from './BuildingPanel';
-import { ITEMS, askedHelp, buildKey, canUpgrade, celebrateBuilt, defOf, shortOf, type CampActions } from './model';
+import { ITEMS, askedHelp, buildKey, canUpgrade, defOf, shortOf, type CampActions } from './model';
 import { BIOMES, monumentOf } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
 import { clearedCount } from '../ftue/features';
@@ -70,9 +70,8 @@ export function CampBase(p: CampBaseProps) {
       onAskHelp: (id) => { void ask(id); },
       onSpeedup: (id) => { audio.play('tap'); setSel(id); },
       onCollect: () => { void collect(); },
-      onBuilt: (id, level, tierUp) => {
-        celebrateBuilt(id, level, tierUp && level > 1);
-      },
+      // inşaat bitişi sahnede görsel (iskele düşer, konfeti); afiş + Tüy Dede satırı kamp ekranında bir kez (camp/built.ts)
+      onBuilt: () => undefined,
       onReady: () => {
         setReady(true);
         // yeni anıt: kamp yerine oturduktan sonra yükselir
@@ -112,6 +111,14 @@ export function CampBase(p: CampBaseProps) {
   const actions: CampActions = { ...p.actions, ask: async (id) => { const ok = await p.actions.ask(id); if (ok) setAskTick((n) => n + 1); return ok; }, collect: async () => { await collect(); return 0; }, remedyCollect: collectRemedy };
 
   useEffect(() => { if (sel) handle.current?.focus(sel, true); else handle.current?.unfocus(); }, [sel]);
+  // açık paneldeki inşaat bitti (kristal, hızlandırıcı, süre, takım yardımı): panel kapanır ki kutlama, sahnedeki yükseliş ve Tüy Dede görünsün
+  const selLevel = sel ? p.camp.buildings.find((b) => b.id === sel)?.level ?? 0 : -1;
+  const selSeen = useRef<{ id: BuildingId; level: number } | null>(null);
+  useEffect(() => {
+    const was = selSeen.current;
+    selSeen.current = sel ? { id: sel, level: selLevel } : null;
+    if (sel && was?.id === sel && selLevel > was.level) setSel(null);
+  }, [sel, selLevel]);
   const helpAll = async () => { audio.play('tap'); const n = await p.actions.helpAll(); if (n) { audio.play('coinBurst', { semitones: 4 }); platform().haptic('success'); } };
   const idle = !active;
   const anyUpgrade = idle && p.camp.buildings.some((b) => canUpgrade(p.camp, p.wallet, b.id).ok);

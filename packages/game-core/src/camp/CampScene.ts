@@ -43,7 +43,7 @@ const fmtLeft = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); c
 const bez = (p: [number, number][], t: number): [number, number] => { const [a, b, c] = p as [[number, number], [number, number], [number, number]]; return [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1]]; };
 
 interface BView {
-  id: BuildingId; level: number; key: string; sprite: Phaser.GameObjects.Image; anchors: Anchors;
+  id: BuildingId; level: number; /** kutlaması sürüyor: varılacak seviye (setLevel'e kadar) */ goal?: number; key: string; sprite: Phaser.GameObjects.Image; anchors: Anchors;
   fx: Phaser.GameObjects.GameObject[]; tweens: Phaser.Tweens.Tween[]; timers: Phaser.Time.TimerEvent[];
   badge: Phaser.GameObjects.Container; badgeText: Phaser.GameObjects.Text; badgeImg: Phaser.GameObjects.Image;
   build?: { scaffold: Phaser.GameObjects.Image; crane?: Phaser.GameObjects.Image; dust: Phaser.GameObjects.Particles.ParticleEmitter; bubble: Phaser.GameObjects.Container; text: Phaser.GameObjects.Text; bar: Phaser.GameObjects.Graphics; help: Phaser.GameObjects.Image; fast: Phaser.GameObjects.Image; to: number; tw: Phaser.Tweens.Tween[] };
@@ -228,8 +228,10 @@ export class CampScene extends Phaser.Scene {
     const zonesBefore = zonesOpen(this.merkezLevel); this.merkezLevel = merkez;
     for (const st of camp.buildings) {
       const v = this.views.get(st.id); if (!v) continue;
-      if (st.level !== v.level) {
-        const up = !initial && st.level > v.level; const from = v.level;
+      // aynı bitiş art arda birkaç durumla gelebilir (işlem yanıtı + camp.updated itmesi): kutlanmakta olan seviye tekrar kutlanmaz
+      const cur = v.goal ?? v.level;
+      if (st.level !== cur) {
+        const up = !initial && st.level > cur; const from = cur;
         if (up) this.celebrateBuilt(v, st, from); else this.setLevel(v, st.level);
       }
       this.syncBuild(v, st);
@@ -265,7 +267,7 @@ export class CampScene extends Phaser.Scene {
 
   private setLevel(v: BView, level: number) {
     const t = this.texFor(v.id, level);
-    v.level = level; v.key = t.key; v.anchors = t.anchors;
+    v.level = level; v.goal = undefined; v.key = t.key; v.anchors = t.anchors;
     v.sprite.setTexture(t.key); const src = v.sprite.texture.getSourceImage() as HTMLCanvasElement; v.sprite.setOrigin(t.ox / src.width, t.oy / src.height);
     const tier = tierOf(level);
     v.badge.setVisible(level > 0); v.badgeImg.setFrame(`c-badge-${Math.max(0, tier)}`); v.badgeText.setText(String(level));
@@ -373,9 +375,11 @@ export class CampScene extends Phaser.Scene {
   /** inşaat bitti: iskele düşer, bina "pop" ile büyür, ışık patlaması, konfeti */
   private celebrateBuilt(v: BView, st: BuildingState, from: number) {
     const tierUp = tierOf(from) !== tierOf(st.level);
+    v.goal = st.level;
     this.removeBuild(v, true);
     const l = LOTS[v.id];
     this.time.delayedCall(380, () => {
+      if (v.goal !== st.level) return; // bu arada başka bir seviyeye geçildi
       this.setLevel(v, st.level);
       const s = v.sprite; const sx = BS[v.id] / TEX;
       s.setScale(sx * 0.55, sx * 0.4);
