@@ -80,9 +80,6 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
           {!max && <><span aria-hidden>→</span><div className="next"><small>Sv {to}</small><b>{effect(id, to)}</b></div></>}
         </div>
 
-        <BuildingInfo id={id} level={b.level} />
-        {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
-
         {depot && (
           <div className="bp-depot">
             <div className="row between"><b>Depoda</b><span className="qn"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(depot.stored)} / {fmtNum(depot.max)}</span></div>
@@ -113,6 +110,10 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
             {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
           </div>
         )}
+
+        {/* Tedavi Odası üretimi ve odyolojik bilgi: birincil eylemin (Kur/Yükselt) altında kalsın ki küçük ekranda düğme görünür olsun */}
+        {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
+        <BuildingInfo id={id} level={b.level} />
       </div>
     </div>,
     document.body,
