@@ -6,7 +6,7 @@ import { getNet, useSocial } from '../net';
 import { newerRoom } from '../race/common';
 import { TeamRaceHud, teamGhost } from '../teamrace/TeamRace';
 import { sayPathology } from '../ftue/pathology';
-import { sayHint } from '../ftue/hints';
+import { sayHint, saidSoFar } from '../ftue/hints';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
@@ -42,6 +42,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
     let finished = false;
     /** bölüm içinde Tüy Dede'nin söylediği / sıraya aldığı cümleler: bölümden çıkınca susar */
     const talks: { cancel(): void }[] = [];
+    /** bölüm başında Tüy Dede'nin söylemiş olduğu ipucu satırları ("önceki bölümde söylendi" kuralı) */
+    const saidBefore = saidSoFar();
     // ---- canlı yarış bağlantısı (ağ yoksa normal bölüm olarak oynanır)
     const net = race ? getNet() : null;
     let latest = race; const offs: (() => void)[] = [];
@@ -86,8 +88,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
         if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
         // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
         if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
-        // seçilmiş bölüm içi ipuçları (ilk öğretici anlar, kayma tazelemesi, ilk kıl perdesi): oyuncu başına bir kez
-        if (e.type === 'hint' && !race) { const t = sayHint(e.id); if (t) talks.push(t); }
+        // seçilmiş bölüm içi ipuçları (ilk öğretici anlar, kayma tazelemesi, kayma öğrenildikten sonraki ilk kıl perdesi): oyuncu başına bir kez
+        if (e.type === 'hint' && !race) { const t = sayHint(e.id, saidBefore); if (t) talks.push(t); }
         if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
           finished = true; bus.result = e.result;
           // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)

@@ -98,13 +98,22 @@ describe('Tüy Dede: bölüm içi cümleler başka satırın üstüne binmez', (
     expect(isVoicedHint('giris')).toBe(false); expect(isVoicedHint('boss-bagir')).toBe(false); expect(isVoicedHint('patoloji:eksostoz')).toBe(false);
     expect(sayHint('giris')).toBeNull();
     useStore.setState({ narratorVoice: false });
-    expect(sayHint('perde-kay')).toBeNull(); expect(useStore.getState().ftue.said ?? []).toEqual([]);
+    expect(sayHint('ogret-kayma')).toBeNull(); expect(useStore.getState().ftue.said ?? []).toEqual([]);
     useStore.setState({ narratorVoice: true });
-    expect(sayHint('perde-kay')).not.toBeNull(); await settle();
-    expect(sayHint('perde-kay')).toBeNull();
-    expect(useStore.getState().ftue.said).toEqual(['ipucu-perde-kay']);
-    expect(requests().filter((r) => r.id === 'ipucu-perde-kay').map((r) => r.outcome)).toEqual(['hemen']);
+    // 3. bölüm gibi: bölüm başında kayma satırı söylenmemiş → perde ipucu bu bölümde hiç seslenmez (işaretlenmez)
+    const l3 = [] as string[];
+    expect(sayHint('perde-kay', l3)).toBeNull();
+    expect(sayHint('ogret-kayma', l3)).not.toBeNull(); await settle();
+    expect(sayHint('perde-kay', l3)).toBeNull();
+    expect(sayHint('ogret-kayma', l3)).toBeNull();
+    stopVoice();
+    // sonraki bölüm: kayma önceden söylendi → ilk perdede bir kez
+    const l4 = [...(useStore.getState().ftue.said ?? [])];
+    expect(sayHint('perde-kay', l4)).not.toBeNull(); await settle();
+    expect(sayHint('perde-kay', l4)).toBeNull();
+    expect(useStore.getState().ftue.said).toEqual(['ipucu-ogret-kayma', 'ipucu-perde-kay']);
+    expect(requests().filter((r) => r.id.startsWith('ipucu-')).map((r) => `${r.id}:${r.outcome}`)).toEqual(['ipucu-ogret-kayma:hemen', 'ipucu-perde-kay:hemen']);
     // kayıtta kalır
-    expect(normalizeFtue(JSON.parse(JSON.stringify(useStore.getState().ftue)), {}).said).toEqual(['ipucu-perde-kay']);
+    expect(normalizeFtue(JSON.parse(JSON.stringify(useStore.getState().ftue)), {}).said).toEqual(['ipucu-ogret-kayma', 'ipucu-perde-kay']);
   });
 });
