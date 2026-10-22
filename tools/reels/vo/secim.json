@@ -1,0 +1,417 @@
+{
+ "kulak-yolculugu": {
+  "k1": {
+   "key": "cffc99e7b2ad",
+   "text": "Kokleanın içinde koşan bir oyun hiç gördün mü?",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kokleanın içinde koşan bir oyun hiç gördün mü?",
+   "gap": 0.11,
+   "tempo": 1.125,
+   "dur": 2.9,
+   "sps": 5.51
+  },
+  "k2": {
+   "key": "597ff3364b68",
+   "text": "Ses, kulak kepçesinden yola çıkar,",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Ses, kulak kepçesinden yola çıkar.",
+   "gap": 0.13,
+   "tempo": 1.196,
+   "dur": 2.02,
+   "sps": 5.46
+  },
+  "k3": {
+   "key": "df67692f6c40",
+   "text": "daracık kanaldan geçer,",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "daracık kanaldan geçer,",
+   "gap": 0.11,
+   "tempo": 1.22,
+   "dur": 1.51,
+   "sps": 5.29
+  },
+  "k4": {
+   "key": "311ee2b1e10c",
+   "text": "kulak zarında zıplar,",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Kulak zarında zıplar,",
+   "gap": 0.06,
+   "tempo": 1.138,
+   "dur": 1.3,
+   "sps": 5.4
+  },
+  "k5": {
+   "key": "c1738568edf6",
+   "text": "üç minik kemikle iç kulağa uçar.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Üç minik kemikle iç kulağa uçar.",
+   "gap": 0.08,
+   "tempo": 1.052,
+   "dur": 2.21,
+   "sps": 5.43
+  },
+  "k6": {
+   "key": "77e346fa77c0",
+   "text": "Kokleanın içinde her frekansın kendi adresi var.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kokleanın içinde her frekansın kendi adresi var.",
+   "gap": 0.08,
+   "tempo": 1.08,
+   "dur": 3.1,
+   "sps": 5.49
+  },
+  "k7": {
+   "key": "8f657ef18e7b",
+   "text": "Sinirden ışık hızıyla beyne!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sinirden ışık hızıyla beyne.",
+   "gap": 0.06,
+   "tempo": 1.029,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "k8": {
+   "key": "01af4f579740",
+   "text": "İki kulak burada buluşur,",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "İki kulak burada buluşur.",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 1.7,
+   "sps": 5.87
+  },
+  "k9": {
+   "key": "6748ce1fd471",
+   "text": "ve ses, anlama dönüşür.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ve ses anlama dönüşür.",
+   "gap": 0.16,
+   "tempo": 1.22,
+   "dur": 1.56,
+   "sps": 5.13
+  },
+  "k10": {
+   "key": "2c6e6630bf3d",
+   "text": "Odi: Sesin Yolu. Çok yakında! Takip et, ilk duyan sen ol.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu çok yakında, takip et, ilk duyan sen ol.",
+   "gap": 0.21,
+   "tempo": 1.22,
+   "dur": 3.29,
+   "sps": 5.47
+  }
+ },
+ "odyoloji-ogrencileri": {
+  "l1": {
+   "key": "ca68052f859e",
+   "text": "Be tipi timpanogram ne anlatır?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "B tipi timpanogram ne anlatır?",
+   "gap": 0.08,
+   "tempo": 1.033,
+   "dur": 2.02,
+   "sps": 5.46
+  },
+  "l3": {
+   "key": "6f65efee6c0e",
+   "text": "Odyoloji öğrencileri, bu oyun tam size göre!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Odyoloji öğrencileri bu oyun tam size göre.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 2.74,
+   "sps": 6.21
+  },
+  "l4": {
+   "key": "84e44342494c",
+   "text": "On sekiz gerçek kulak patolojisi var ve hepsini bölümlerde oynayarak tanıyorsun.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "18 gerçek kulak patolojisi var ve hepsini bölümlerde oynayarak tanıyorsun.",
+   "gap": 0.29,
+   "tempo": 1.0,
+   "dur": 5.04,
+   "sps": 5.75
+  },
+  "l6": {
+   "key": "e8f83e65f401",
+   "text": "Tedavi Odası'nda malzemeni hazırla, engeli etkisiz kıl.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Tedavi odasında malzemeni hazırla, engeli etkisiz kıl.",
+   "gap": 0.32,
+   "tempo": 1.028,
+   "dur": 3.79,
+   "sps": 5.54
+  },
+  "l7": {
+   "key": "4497d4a670a0",
+   "text": "Sözlükte önce sade, sonra derin anlatım.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sözlükte önce sade, sonra derin anlatım.",
+   "gap": 0.39,
+   "tempo": 1.22,
+   "dur": 2.76,
+   "sps": 5.07
+  },
+  "l9": {
+   "key": "7a4229958b9d",
+   "text": "Cevap: Be tipi, yani düz timpanogram.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Cevap B tipi yani düz timpanogram.",
+   "gap": 0.14,
+   "tempo": 1.156,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "l10": {
+   "key": "3f3d0cdc52ad",
+   "text": "Sıvı mı, delik mi? Kanal hacmine bak!",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Sıvı mı? Delik mi? Kanal hacmine bak.",
+   "gap": 0.31,
+   "tempo": 1.156,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "l11": {
+   "key": "5722daec7153",
+   "text": "Odi: Sesin Yolu. Çok yakında!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu, çok yakında.",
+   "gap": 0.14,
+   "tempo": 1.22,
+   "dur": 1.85,
+   "sps": 5.41
+  }
+ },
+ "takimini-kur": {
+  "t1": {
+   "key": "99cc63f2d720",
+   "text": "Sınıfınla takım kurup yarışsanız?",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "sınıfınla takım kurup yarışsanız,",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.16,
+   "sps": 5.56
+  },
+  "t2": {
+   "key": "a0c6f7b1ed26",
+   "text": "Canlı takım yarışı: aynı bölüm, aynı anda!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Canlı takım yarışı aynı bölüm aynı anda.",
+   "gap": 0.11,
+   "tempo": 1.08,
+   "dur": 2.71,
+   "sps": 5.53
+  },
+  "t3": {
+   "key": "eec0e1ce7139",
+   "text": "Önde bitir, takımına puan kazandır!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Önde bitir, takımına puan kazandır.",
+   "gap": 0.29,
+   "tempo": 1.136,
+   "dur": 2.38,
+   "sps": 5.47
+  },
+  "t4": {
+   "key": "8d22fa2c2195",
+   "text": "Ligde Bronz'dan en üst kademeye tırman.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Ligde bronzdan en üst kademeye tırman.",
+   "gap": 0.08,
+   "tempo": 1.171,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "t5": {
+   "key": "ddad4b2c2f0d",
+   "text": "Günün Sorusu'yla birlikte çalışın.",
+   "seed": 1,
+   "wer": 0.5,
+   "asr": "Günün sorusu ile birlikte çalışın.",
+   "gap": 0.08,
+   "tempo": 1.0,
+   "dur": 1.97,
+   "sps": 6.1
+  },
+  "t6": {
+   "key": "83b084491348",
+   "text": "Yeni başlayana ustalık et.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Yeni başlayana ustalık et.",
+   "gap": 0.09,
+   "tempo": 1.208,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "t7": {
+   "key": "f4e2fbf56faf",
+   "text": "Bölgeleri birlikte fethedin,",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "bölgeleri birlikte fethedin,",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.68,
+   "sps": 5.95
+  },
+  "t8": {
+   "key": "23bd2b74802b",
+   "text": "canavarı hep beraber yenin!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Canavarı hep beraber yenin.",
+   "gap": 0.11,
+   "tempo": 1.0,
+   "dur": 1.7,
+   "sps": 5.87
+  },
+  "t9": {
+   "key": "7b1c5bd9646e",
+   "text": "Odi: Sesin Yolu. Yakında! Takımını şimdiden topla.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "''Odi, sesin yolu, yakında, takımını şimdiden topla.''",
+   "gap": 0.3,
+   "tempo": 1.179,
+   "dur": 3.26,
+   "sps": 5.51
+  }
+ },
+ "tuy-dede": {
+  "d1": {
+   "key": "785dafa75ba9",
+   "text": "Bu dede aslında bir tüy hücresi!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bu dede aslında bir tüy hücresi.",
+   "gap": 0.06,
+   "tempo": 1.115,
+   "dur": 2.02,
+   "sps": 5.46
+  },
+  "d2": {
+   "key": "aa48004da2a4",
+   "text": "Adı Tüy Dede; başındaki altın tüyler, stereosilya.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Adı Tüy Dede. Başındaki altın tüyler stereosilya.",
+   "gap": 0.34,
+   "tempo": 1.199,
+   "dur": 3.26,
+   "sps": 5.51
+  },
+  "d3": {
+   "key": "541400497feb",
+   "text": "Bu da Odi: minik bir ses.",
+   "seed": 2,
+   "wer": 0.17,
+   "asr": "Bu da ODI minik bir ses.",
+   "gap": 0.13,
+   "tempo": 1.22,
+   "dur": 1.63,
+   "sps": 4.9
+  },
+  "d4": {
+   "key": "38a6e52ba628",
+   "text": "Görevi, annesinin ninnisini beyne taşımak.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Görevi annesinin ninnisini beyne taşımak.",
+   "gap": 0.07,
+   "tempo": 1.046,
+   "dur": 2.9,
+   "sps": 5.51
+  },
+  "d5": {
+   "key": "a7e2bc88c059",
+   "text": "Ama yolda Serumen Golemi var,",
+   "seed": 2,
+   "wer": 0.2,
+   "asr": "Ama yolda serümen golemi var.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.87,
+   "sps": 5.88
+  },
+  "d6": {
+   "key": "bd5e048bfd92",
+   "text": "ve kulağın ışıklarını söndüren Gürültü Canavarı!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "ve kulağın ışıklarını söndüren gürültü canavarı.",
+   "gap": 0.11,
+   "tempo": 1.0,
+   "dur": 3.05,
+   "sps": 6.23
+  },
+  "d7": {
+   "key": "86df8dde3355",
+   "text": "Her yeni bölgeye ulaşınca kampında bir anıt yükselir.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Her yeni bölgeye ulaşınca kampında bir anıt yükselir.",
+   "gap": 0.04,
+   "tempo": 1.0,
+   "dur": 3.31,
+   "sps": 5.74
+  },
+  "d8": {
+   "key": "e539ba80c740",
+   "text": "Kulak kepçesinden kortekse, tam on anıt.",
+   "seed": 1,
+   "wer": 0.17,
+   "asr": "Kulak kepçesinden kortekse tam 10 anıt.",
+   "gap": 0.29,
+   "tempo": 1.22,
+   "dur": 2.52,
+   "sps": 5.16
+  },
+  "d9": {
+   "key": "c873df8e491c",
+   "text": "Yalnız değilsin: Tüy Dede ve takımın hep yanında.",
+   "seed": 2,
+   "wer": 0.25,
+   "asr": "Yalnız değilsin, TÜİDE'de ve takımın hep yanında.",
+   "gap": 0.3,
+   "tempo": 1.22,
+   "dur": 3.0,
+   "sps": 5.33
+  },
+  "d10": {
+   "key": "5722daec7153",
+   "text": "Odi: Sesin Yolu. Çok yakında!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu, çok yakında.",
+   "gap": 0.14,
+   "tempo": 1.22,
+   "dur": 1.85,
+   "sps": 5.41
+  }
+ }
+}

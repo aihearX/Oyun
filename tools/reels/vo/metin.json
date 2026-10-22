@@ -1,0 +1,51 @@
+{
+  "_aciklama": "Reels anlatıcı metinleri (erkek anlatıcı). Üretim: tools/reels/vo.py (Chatterbox Multilingual, MIT). text: okunan metin (gerekirse okunuşa göre yazılır), sub: ekrandaki altyazı, asr: Whisper denetimi için beklenen yazım. Sahne yerleşimi: tools/reels/teasers.mjs (vo).",
+  "voice": { "ref": "ref-tr-erkek.wav", "lang": "tr", "exaggeration": 0.8, "cfg_weight": 0.3, "temperature": 0.8, "seeds": [1, 2, 3, 4], "target_sps": 5.6, "max_tempo": 1.22 },
+  "lines": {
+    "kulak-yolculugu": [
+      { "id": "k1", "text": "Kokleanın içinde koşan bir oyun hiç gördün mü?" },
+      { "id": "k2", "text": "Ses, kulak kepçesinden yola çıkar," },
+      { "id": "k3", "text": "daracık kanaldan geçer," },
+      { "id": "k4", "text": "kulak zarında zıplar," },
+      { "id": "k5", "text": "üç minik kemikle iç kulağa uçar." },
+      { "id": "k6", "text": "Kokleanın içinde her frekansın kendi adresi var." },
+      { "id": "k7", "text": "Sinirden ışık hızıyla beyne!" },
+      { "id": "k8", "text": "İki kulak burada buluşur," },
+      { "id": "k9", "text": "ve ses, anlama dönüşür." },
+      { "id": "k10", "text": "Odi: Sesin Yolu. Çok yakında! Takip et, ilk duyan sen ol.", "sub": "ODİ: Sesin Yolu. Çok yakında! Takip et, ilk duyan sen ol." }
+    ],
+    "odyoloji-ogrencileri": [
+      { "id": "l1", "text": "Be tipi timpanogram ne anlatır?", "sub": "B tipi timpanogram ne anlatır?", "asr": "B tipi timpanogram ne anlatır" },
+      { "id": "l3", "text": "Odyoloji öğrencileri, bu oyun tam size göre!" },
+      { "id": "l4", "text": "On sekiz gerçek kulak patolojisi var ve hepsini bölümlerde oynayarak tanıyorsun.", "sub": "18 gerçek kulak patolojisi var ve hepsini bölümlerde oynayarak tanıyorsun.", "asr": "18 gerçek kulak patolojisi var ve hepsini bölümlerde oynayarak tanıyorsun" },
+      { "id": "l6", "text": "Tedavi Odası'nda malzemeni hazırla, engeli etkisiz kıl." },
+      { "id": "l7", "text": "Sözlükte önce sade, sonra derin anlatım." },
+      { "id": "l9", "text": "Cevap: Be tipi, yani düz timpanogram.", "sub": "Cevap: B tipi, yani düz timpanogram.", "asr": "Cevap B tipi yani düz timpanogram" },
+      { "id": "l10", "text": "Sıvı mı, delik mi? Kanal hacmine bak!" },
+      { "id": "l11", "text": "Odi: Sesin Yolu. Çok yakında!", "sub": "ODİ: Sesin Yolu. Çok yakında!" }
+    ],
+    "takimini-kur": [
+      { "id": "t1", "text": "Sınıfınla takım kurup yarışsanız?" },
+      { "id": "t2", "text": "Canlı takım yarışı: aynı bölüm, aynı anda!" },
+      { "id": "t3", "text": "Önde bitir, takımına puan kazandır!" },
+      { "id": "t4", "text": "Ligde Bronz'dan en üst kademeye tırman." },
+      { "id": "t5", "text": "Günün Sorusu'yla birlikte çalışın." },
+      { "id": "t6", "text": "Yeni başlayana ustalık et." },
+      { "id": "t7", "text": "Bölgeleri birlikte fethedin," },
+      { "id": "t8", "text": "canavarı hep beraber yenin!" },
+      { "id": "t9", "text": "Odi: Sesin Yolu. Yakında! Takımını şimdiden topla.", "sub": "ODİ: Sesin Yolu. Yakında! Takımını şimdiden topla." }
+    ],
+    "tuy-dede": [
+      { "id": "d1", "text": "Bu dede aslında bir tüy hücresi!" },
+      { "id": "d2", "text": "Adı Tüy Dede; başındaki altın tüyler, stereosilya." },
+      { "id": "d3", "text": "Bu da Odi: minik bir ses." },
+      { "id": "d4", "text": "Görevi, annesinin ninnisini beyne taşımak." },
+      { "id": "d5", "text": "Ama yolda Serumen Golemi var," },
+      { "id": "d6", "text": "ve kulağın ışıklarını söndüren Gürültü Canavarı!" },
+      { "id": "d7", "text": "Her yeni bölgeye ulaşınca kampında bir anıt yükselir." },
+      { "id": "d8", "text": "Kulak kepçesinden kortekse, tam on anıt." },
+      { "id": "d9", "text": "Yalnız değilsin: Tüy Dede ve takımın hep yanında." },
+      { "id": "d10", "text": "Odi: Sesin Yolu. Çok yakında!", "sub": "ODİ: Sesin Yolu. Çok yakında!" }
+    ]
+  }
+}

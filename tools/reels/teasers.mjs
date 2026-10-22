@@ -7,8 +7,10 @@
  *   clip: temiz oynanış klibi (tools/reels/capture.mjs, bot gerçekten oynar; fromT: tools/reels/zaman.mjs saniyesi)
  *   frame: oyun kadrajı (oyun pikseli): top = üstten kırpılan, zoom = 1 → 390 piksel genişlik
  * Katman koordinatları 1080×1920; güvenli alan: yazılar y 230–1530, sağdaki platform düğmelerinden uzak.
- * voice: [{ id, scene, at, from?, to?, gain?, subs: [[t0, t1, metin]] }] — at: sahne başından sn; from/to: kaydın içinden kesit;
- *   subs: kesitin başından sn (kayıttaki duraklamalara göre bölündü; işitme engelli izleyici için altyazı her zaman ekranda)
+ * vo: [{ id, scene, at, nosub? }] — erkek anlatıcı satırları (metin: tools/reels/vo/metin.json, ses: tools/reels/vo/<reels>/<id>.mp3,
+ *   üretim: tools/reels/vo.py). at: sahne başından sn. Sahneler satırlar sığacak biçimde uzatılır (record.mjs fitReel). Her satır
+ *   altyazılıdır (işitme engelli izleyici için); bitiş kartındaki satır ekranda zaten yazılı olduğundan nosub.
+ * voice: [{ id, scene, at, from?, to?, subs }] — (eski) uygulamadaki Tüy Dede kayıtları; artık kullanılmıyor, araç destekler.
  */
 
 /** Tip A (tepeli) ve Tip B (düz) timpanogram çizimi (şematik; eksen: basınç daPa, admitans) */
@@ -89,9 +91,11 @@ const kulakYolculugu = {
     ] },
     endCard(),
   ],
-  voice: [
-    { id: 'hikaye-03', scene: 'aurikula', at: 0.15, subs: [[0, 2.25, 'Ninni kulaktan girer, kanalı geçer,'], [2.25, 4.3, 'kulak zarına ve kemikçiklere ulaşır;'], [4.3, 6.9, 'kokleadan işitme siniriyle beyne gider.']] },
-    { id: 'anit-koklea-3', scene: 'baz', at: 0.1, from: 1.8, to: 5.38, subs: [[0, 1.62, 'Kokleanın tabanı ince seslere,'], [1.62, 3.58, 'tepesi kalın seslere yanıt verir.']] },
+  vo: [
+    { id: 'k1', scene: 'kanca', at: 0.1 }, { id: 'k2', scene: 'aurikula', at: 0.1 }, { id: 'k3', scene: 'kanal', at: 0.1 },
+    { id: 'k4', scene: 'zar', at: 0.1 }, { id: 'k5', scene: 'malleus', at: 0.1 }, { id: 'k6', scene: 'baz', at: 0.1 },
+    { id: 'k7', scene: 'sinir', at: 0.1 }, { id: 'k8', scene: 'beyinsapi', at: 0.1 }, { id: 'k9', scene: 'korteks', at: 0.1 },
+    { id: 'k10', scene: 'son', at: 0.3, nosub: true },
   ],
   cover: { clip: clip(22, 60.0), t: 1.2, layers: [
     { kind: 'html', cls: 'chip gold', html: '<b>▶</b>Kulaktan beyne', y: 520 },
@@ -128,8 +132,8 @@ const odyolojiOgrencileri = {
     { id: 'tinnitus', dur: 1.4, bg: 'clip', clip: clip(37, 17.75, { dur: 1.9 }), shade: 'top', layers: [term('Tinnitus', 'kulak çınlaması', { tcls: 'crg', y: 330 })] },
     { id: 'tedavi', dur: 2.6, bg: 'night', flash: true, layers: [
       chip('Kamp · <span class="tl">Tedavi Odası</span>', { y: 250, cls: 'gold' }),
-      still(T('kamp/60-tedavi-paneli.jpg'), [20, 1080, 740, 560], { y: 370, w: 860 }),
-      { kind: 'html', cls: 'pills', html: '<span>Ventilasyon tüpü</span><span class="g">Stapes protezi</span><span>Kemikçik protezi</span><span class="c">Koklear implant</span><span>Uzaktan mikrofon</span>', y: 1110, at: 0.35, anim: 'rise' },
+      still(T('kamp/60-tedavi-paneli.jpg'), [20, 1080, 740, 560], { y: 370, w: 800 }),
+      { kind: 'html', cls: 'pills', html: '<span>Ventilasyon tüpü</span><span class="g">Stapes protezi</span><span>Kemikçik protezi</span><span class="c">Koklear implant</span><span>Uzaktan mikrofon</span>', y: 1010, at: 0.35, anim: 'rise' },
     ] },
     { id: 'sozluk', dur: 2.0, bg: 'night', layers: [
       chip('Kulak Sözlüğü · “Daha fazla”', { y: 250 }),
@@ -147,7 +151,11 @@ const odyolojiOgrencileri = {
     ] },
     endCard({ note: 'Eğitsel içerik; tanı ve tedavi için hekim ve odyolog.' }),
   ],
-  voice: [{ id: 'kamp-sv-kule-2', scene: 'cevap', at: 0.3, from: 0, to: 3.95, subs: [[0, 3.95, 'Düz bir timpanogram çoğu zaman orta kulakta sıvıyı düşündürür.']] }],
+  vo: [
+    { id: 'l1', scene: 'kanca', at: 0.15 }, { id: 'l3', scene: 'sayi', at: 0.1 }, { id: 'l4', scene: 'serumen', at: 0.1 },
+    { id: 'l6', scene: 'tedavi', at: 0.1 }, { id: 'l7', scene: 'sozluk', at: 0.1 }, { id: 'l9', scene: 'cevap', at: 0.15 },
+    { id: 'l10', scene: 'cevap', at: 2.3 }, { id: 'l11', scene: 'son', at: 0.3, nosub: true },
+  ],
   cover: { clip: clip(10, 23.9), t: 1.0, layers: [
     { kind: 'html', cls: 'chip coral', html: 'Odyoloji öğrencileri', y: 500 },
     { kind: 'html', cls: 'hook', html: 'Timpanogram <em>Tip B</em> ne anlatır? 🤔', y: 620 },
@@ -203,9 +211,10 @@ const takiminiKur = {
     ] },
     endCard({ a: 'Takımını şimdiden topla 🤝', b: 'Sınıf arkadaşını etiketle 👇' }),
   ],
-  voice: [
-    { id: 'tyaris-01', scene: 'yaris', at: 0.1, subs: [[0, 2.04, 'Yeni: Canlı Takım Yarışı!'], [2.04, 4.15, 'İki takım aynı bölümü aynı anda koşar;'], [4.15, 6.9, 'bitiş sıran ve yıldızların takımına puan olur.']] },
-    { id: 'takim-02', scene: 'savas', at: 0.1, subs: [[0, 2.98, 'Birlikte Bölge Savaşı’nda yer kaparsınız'], [2.98, 5.5, 've Gürültü Canavarı’na hep beraber vurursunuz.']] },
+  vo: [
+    { id: 't1', scene: 'kanca', at: 0.1 }, { id: 't2', scene: 'yaris', at: 0.1 }, { id: 't3', scene: 'sonuc', at: 0.1 },
+    { id: 't4', scene: 'lig', at: 0.1 }, { id: 't5', scene: 'soru', at: 0.1 }, { id: 't6', scene: 'usta', at: 0.1 },
+    { id: 't7', scene: 'savas', at: 0.1 }, { id: 't8', scene: 'canavar', at: 0.1 }, { id: 't9', scene: 'son', at: 0.3, nosub: true },
   ],
   cover: { clip: clip(40, 26.8, { dur: 2.9 }), t: 1.0, layers: [
     { kind: 'html', cls: 'chip gold', html: 'Canlı Takım Yarışı · Takım Ligi', y: 500 },
@@ -223,10 +232,10 @@ const takiminiKur = {
 const tuyDede = {
   slug: 'tuy-dede', title: 'Tüy Dede’yle tanışın', bpm: 96, style: 'masal',
   scenes: [
-    { id: 'merhaba', dur: 5.8, bg: 'night', ringY: 780, layers: [
+    { id: 'merhaba', dur: 4.8, bg: 'night', ringY: 780, layers: [
       hook('Bu dede bir <em>tüy hücresi!</em> 👀', { y: 250, cls: 'small' }),
       { kind: 'dede', size: 600, y: 440, at: 0.1, anim: 'zoom', bob: 2.2, bobAmp: 12 },
-      fact('Başındaki altın tüyler: basamak basamak dizilmiş <b>stereosilya</b>', { y: 1080, at: 2.6 }),
+      fact('Başındaki altın tüyler: basamak basamak dizilmiş <b>stereosilya</b>', { y: 1080, at: 2.3 }),
     ] },
     { id: 'odi', dur: 1.9, bg: 'night', ringY: 700, flash: true, layers: [
       chip('Bu <span style="color:var(--gold)">Odi</span>: minik bir ses', { y: 250 }),
@@ -256,12 +265,11 @@ const tuyDede = {
     ] },
     endCard({ dede: true, a: 'Takip et, ilk duyan sen ol 🔔', b: 'Tüy Dede’ye selam yaz 👇' }),
   ],
-  voice: [
-    { id: 'hikaye-01', scene: 'merhaba', at: 0.35, subs: [[0, 1.83, 'Merhaba! Ben Tüy Dede,'], [1.83, 3.86, 'iç kulağın en yaşlı tüy hücresiyim.'], [3.86, 5.4, 'Seni bekliyordum.']] },
-    { id: 'hikaye-02', scene: 'odi', at: 0.05, subs: [[0, 1.6, 'Bu Odi: minik bir ses.'], [1.6, 3.6, 'Annesinin ninnisini taşıyor.']] },
-    { id: 'hikaye-04', scene: 'golem', at: 0.1, subs: [[0, 1.84, 'Ama Büyük Sessizlik geliyor!'], [1.84, 5.0, 'Gürültü canavarları kulağın ışıklarını söndürüyor.']] },
-    { id: 'anit-koklea-2', scene: 'anit', at: 0.1, to: 5.75, subs: [[0, 1.61, 'Tüy hücresi anıtı geldi!'], [1.61, 5.75, 'Benim akrabalarım: sesle eğilir ve elektrik sinyalini başlatırlar.']] },
-    { id: 'hikaye-06', scene: 'birlikte', at: 0.1, to: 3.42, subs: [[0, 3.42, 'Yalnız değilsin: arkadaşların ve takımın yardım eder.']] },
+  vo: [
+    { id: 'd1', scene: 'merhaba', at: 0.2 }, { id: 'd2', scene: 'merhaba', at: 2.3 }, { id: 'd3', scene: 'odi', at: 0.1 },
+    { id: 'd4', scene: 'kosu', at: 0.1 }, { id: 'd5', scene: 'golem', at: 0.1 }, { id: 'd6', scene: 'canavar', at: 0.05 },
+    { id: 'd7', scene: 'anit', at: 0.1 }, { id: 'd8', scene: 'kamp', at: 0.1 }, { id: 'd9', scene: 'birlikte', at: 0.1 },
+    { id: 'd10', scene: 'son', at: 0.3, nosub: true },
   ],
   cover: { bg: 'night', layers: [
     { kind: 'html', cls: 'chip gold', html: 'Tanışın 👋', y: 420 },
