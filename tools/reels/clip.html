@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<title>ODİ Reels: temiz oynanış çekimi</title>
+<style>
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { width:390px; height:780px; overflow:hidden; background:#140c35; }
+  #game { position:absolute; inset:0; width:390px; height:780px; border:0; }
+</style>
+</head>
+<body>
+<iframe id="game" allow="autoplay"></iframe>
+<script>
+/**
+ * Temiz oynanış çekimi (yazısız, kare kare, sanal saat).
+ * Yazılım GL'de oyun makine yüküne göre 1-8 kare/sn çizer; gerçek zamanlı kayıt takılır. Burada oyunun döngüsü uyutulur ve
+ * iframe'in `performance.now`'u sanal bir saate bağlanır: her çıktı karesinde saat tam 1/fps ilerler, oyun bir adım güncellenip
+ * çizilir ve tuval aynı görevde JPEG olarak okunur. Sonuç makine yükünden bağımsız, kusursuz akıcı 30 kare/sn.
+ * Bot aynı deterministik simülasyonu oynar (simülasyon saniyesi = tools/reels/zaman.mjs saniyesi).
+ */
+window.clip = { ready: false, error: null };
+let G = null, S = null, W = null, vt = 0;
+window.startClip = (sc) => {
+  const f = document.getElementById('game');
+  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 3}`;
+  const poll = setInterval(() => {
+    try {
+      const w = f.contentWindow; const scn = w && w.__odiScene;
+      if (!(w && w.__odi && w.__odi.events.some((e) => e.type === 'started') && scn && scn.sim)) return;
+      clearInterval(poll);
+      W = w; S = scn; G = scn.game;
+      // oyunun alt bilgi balonu (Tüy Dede ipuçları, değiştirici yazıları) temiz çekimde gizlenir; yazıyı Reels katmanı verir
+      try { S.hint = () => {}; } catch { /* yok */ }
+      G.loop.sleep();
+      vt = w.performance.now(); const realNow = w.performance.now.bind(w.performance);
+      w.performance.now = () => vt; void realNow;
+      // hedefe çizmeden yaklaş: hızlı (ts 4: güncelleme başına ~0,67 oyun sn), sonra normal adımlarla tam fromT − pre
+      const from = Math.max(0, (sc.fromT ?? 0) - (sc.pre ?? 0.2));
+      S.setTimeScale(4);
+      let guard = 0;
+      while (S.sim.t < from - 1 && !S.sim.finished && guard++ < 2000) { vt += 250; G.scene.update(vt, 250); }
+      S.setTimeScale(1);
+      while (S.sim.t < from && !S.sim.finished && guard++ < 6000) { vt += 1000 / 60; G.scene.update(vt, 1000 / 60); }
+      window.clip.ready = true;
+    } catch (e) { window.clip.error = String(e && e.stack || e); clearInterval(poll); }
+  }, 30);
+};
+/** bir çıktı karesi: saati 1000/fps ms ilerlet, oyunu güncelle + çiz, tuvali oku */
+window.frame = (fps = 30, quality = 0.92) => {
+  vt += 1000 / fps; G.step(vt, 1000 / fps);
+  return { t: S.sim.t, done: !!(S.sim.finished || S.sim.failed), data: G.canvas.toDataURL('image/jpeg', quality) };
+};
+</script>
+</body>
+</html>

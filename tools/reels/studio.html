@@ -5,45 +5,59 @@
 <meta name="viewport" content="width=540, initial-scale=1" />
 <title>ODİ Reels Stüdyosu</title>
 <style>
-  :root { --accent:#6c4cf1; --coral:#f0567a; --text:#13162a; --muted:#5d6378; }
+  /* "Kulak Gecesi" teması: koyu mor gece, altın, mercan, turkuaz, krem */
+  :root { --k:1; --bg0:#140c35; --bg1:#1f1452; --bg2:#2d1d6e; --gold:#ffc93c; --gold2:#ff9f1c; --coral:#ff5c8a; --teal:#2ee6d6; --cream:#fff6e5; --lav:#c9c1ff; }
   * { box-sizing:border-box; margin:0; padding:0; }
-  html, body { width:540px; height:960px; overflow:hidden; font-family:"Inter","SF Pro Rounded","Segoe UI",Arial,sans-serif; color:var(--text); }
-  body { background:radial-gradient(120% 80% at 50% 0%, #efe9ff 0%, #ffffff 55%, #ffe8ef 100%); }
-  #stage { position:absolute; left:30px; top:0; width:480px; height:960px; overflow:hidden; border-radius:0; background:#000; }
-  #stage iframe { width:480px; height:960px; border:0; display:block; }
+  html, body { width:540px; height:960px; overflow:hidden; font-family:"Nunito","SF Pro Rounded","Segoe UI Rounded","Segoe UI",Arial,sans-serif; color:var(--cream); }
+  body { background:radial-gradient(120% 80% at 50% 0%, var(--bg2) 0%, var(--bg1) 45%, var(--bg0) 100%); }
+  /* oyun tam kadraj: 390×780 oyun 540 genişliğe ölçeklenir (540×1080), alttaki toprak kısmı kırpılır */
+  #stage { position:absolute; left:0; top:0; width:540px; height:960px; overflow:hidden; background:var(--bg0); }
+  #stage iframe { width:540px; height:1080px; border:0; display:block; }
+  #stage::after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, rgba(20,12,53,0) 78%, rgba(20,12,53,.55) 100%); }
   #slides { position:absolute; inset:0; display:none; align-items:center; justify-content:center; }
-  .phone { position:absolute; width:400px; height:797px; top:150px; left:70px; border-radius:46px; background:#13162a; padding:12px; box-shadow:0 30px 80px rgba(60,40,140,.35); }
-  .phone .screen { width:100%; height:100%; border-radius:36px; overflow:hidden; position:relative; background:#fff; }
+  #slides::before { content:''; position:absolute; inset:0; background:radial-gradient(60% 40% at 50% 55%, rgba(255,201,60,.18), rgba(255,201,60,0) 70%); }
+  .phone { position:absolute; width:400px; height:797px; top:150px; left:70px; border-radius:46px; background:linear-gradient(160deg, #3a2788, #140c35); padding:12px; box-shadow:0 30px 80px rgba(0,0,0,.55), 0 0 0 2px rgba(255,201,60,.55), 0 0 60px rgba(139,107,255,.35); }
+  .phone .screen { width:100%; height:100%; border-radius:36px; overflow:hidden; position:relative; background:var(--bg0); }
   .phone img { position:absolute; inset:0; width:100%; height:auto; opacity:0; transition:opacity .35s ease, transform 2.2s ease-out; transform:scale(1.04); }
   .phone img.on { opacity:1; transform:scale(1); }
-  /* yazılar */
-  .cap { position:absolute; left:50%; transform:translate(-50%, 0) scale(.6); opacity:0; transition:opacity .22s ease, transform .35s cubic-bezier(.2,1.6,.4,1); text-align:center; z-index:20; pointer-events:none; }
+  /* yazılar: koyu cam + altın kenar */
+  .cap { position:absolute; left:50%; transform:translate(-50%, 0) scale(.6); opacity:0; transition:opacity calc(.22s * var(--k)) ease, transform calc(.35s * var(--k)) cubic-bezier(.2,1.6,.4,1); text-align:center; z-index:20; pointer-events:none; }
   .cap.on { opacity:1; transform:translate(-50%, 0) scale(1); }
-  .cap.top { top:108px; width:470px; font-size:33px; line-height:1.15; font-weight:900; letter-spacing:-.5px; color:#fff; background:linear-gradient(135deg, #6c4cf1, #9b5cf6); padding:16px 20px 18px; border-radius:26px; box-shadow:0 14px 36px rgba(108,76,241,.45); }
+  .cap.top { top:96px; width:510px; font-size:30px; line-height:1.15; font-weight:900; letter-spacing:-.4px; color:var(--cream);
+    background:linear-gradient(180deg, rgba(58,39,136,.94), rgba(26,16,70,.94)); padding:15px 20px 17px; border-radius:26px;
+    border:2.5px solid var(--gold); box-shadow:0 14px 36px rgba(5,0,25,.6), inset 0 1px 0 rgba(255,255,255,.18), 0 0 26px rgba(255,201,60,.28); text-shadow:0 3px 0 rgba(20,12,53,.6); }
+  .cap.top em { font-style:normal; color:var(--gold); }
   body.slides .cap.top { top:26px; }
-  .cap.top.coral { background:linear-gradient(135deg, #f0567a, #ff8a5c); box-shadow:0 14px 36px rgba(240,86,122,.45); }
-  .cap.bottom { bottom:54px; width:460px; font-size:27px; line-height:1.2; font-weight:800; background:rgba(255,255,255,.97); padding:16px 18px; border-radius:22px; box-shadow:0 12px 30px rgba(19,22,42,.28); border:3px solid #6c4cf1; }
-  .cap.bottom b { color:var(--coral); }
+  .cap.top.coral { border-color:var(--coral); box-shadow:0 14px 36px rgba(5,0,25,.6), inset 0 1px 0 rgba(255,255,255,.18), 0 0 26px rgba(255,92,138,.35); }
+  .cap.top .n { display:inline-block; min-width:44px; height:44px; line-height:44px; margin-right:10px; border-radius:50%; background:linear-gradient(180deg,#fff3b0,var(--gold) 55%,var(--gold2)); color:var(--bg0); font-size:27px; vertical-align:3px; box-shadow:0 3px 0 rgba(138,69,0,.6); text-shadow:none; }
+  .cap.top.coral .n { background:linear-gradient(180deg,#ffd0de,var(--coral)); }
+  .cap.bottom { bottom:40px; width:480px; font-size:27px; line-height:1.22; font-weight:800; color:var(--cream);
+    background:linear-gradient(180deg, rgba(42,27,99,.95), rgba(20,12,53,.95)); padding:15px 18px; border-radius:22px;
+    border:2.5px solid var(--teal); box-shadow:0 12px 30px rgba(5,0,25,.6), 0 0 22px rgba(46,230,214,.25); }
+  .cap.bottom b { color:var(--gold); }
+  .cap.bottom i { font-style:normal; color:var(--teal); font-weight:900; }
   /* parmak */
   #touch { position:absolute; inset:0; z-index:15; pointer-events:none; }
-  .ripple { position:absolute; width:90px; height:90px; margin:-45px 0 0 -45px; border-radius:50%; border:6px solid rgba(255,255,255,.95); background:rgba(108,76,241,.35); box-shadow:0 0 0 4px rgba(108,76,241,.5); animation:rip .5s ease-out forwards; }
+  .ripple { position:absolute; width:90px; height:90px; margin:-45px 0 0 -45px; border-radius:50%; border:6px solid rgba(255,246,229,.95); background:rgba(255,201,60,.32); box-shadow:0 0 0 4px rgba(255,201,60,.5), 0 0 24px rgba(255,201,60,.6); animation:rip calc(.5s * var(--k)) ease-out forwards; }
   @keyframes rip { from { transform:scale(.4); opacity:1; } to { transform:scale(1.5); opacity:0; } }
-  .hold { position:absolute; left:-200px; top:-200px; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; background:rgba(108,76,241,.45); border:6px solid #fff; box-shadow:0 0 0 6px rgba(108,76,241,.4); display:none; }
-  .hold.on { display:block; animation:pulse .6s ease-in-out infinite alternate; }
+  .hold { position:absolute; left:-200px; top:-200px; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; background:rgba(255,201,60,.38); border:6px solid var(--cream); box-shadow:0 0 0 6px rgba(255,201,60,.4), 0 0 30px rgba(255,201,60,.6); display:none; }
+  .hold.on { display:block; animation:pulse calc(.6s * var(--k)) ease-in-out infinite alternate; }
   @keyframes pulse { from { transform:scale(.92); } to { transform:scale(1.06); } }
-  .swipe { position:absolute; font-size:64px; margin:-40px 0 0 -32px; animation:sw .55s ease-in forwards; filter:drop-shadow(0 4px 8px rgba(0,0,0,.35)); }
-  @keyframes sw { from { transform:translateY(-30px); opacity:1; } to { transform:translateY(60px); opacity:0; } }
-  .finger { position:absolute; font-size:58px; margin:-20px 0 0 -10px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.35)); transition:opacity .2s; }
+  .swipe { position:absolute; font-size:64px; margin:-40px 0 0 -32px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.45)) drop-shadow(0 0 10px rgba(46,230,214,.8)); }
+  .swipe.down { animation:swd calc(.55s * var(--k)) ease-in forwards; }
+  .swipe.right { animation:swr calc(.55s * var(--k)) ease-in forwards; }
+  @keyframes swd { from { transform:translateY(-30px); opacity:1; } to { transform:translateY(60px); opacity:0; } }
+  @keyframes swr { from { transform:translateX(-40px); opacity:1; } to { transform:translateX(70px); opacity:0; } }
   /* kartlar */
   #card { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:22px; text-align:center; padding:40px; z-index:30;
-    background:radial-gradient(120% 90% at 50% 10%, #8a6bff 0%, #6c4cf1 45%, #3d2a9e 100%); color:#fff; }
-  #card .logo { width:210px; height:210px; animation:bob 1.6s ease-in-out infinite alternate; }
+    background:radial-gradient(90% 60% at 50% 38%, rgba(255,201,60,.22) 0%, rgba(255,201,60,0) 60%), radial-gradient(120% 90% at 50% 10%, var(--bg2) 0%, var(--bg1) 45%, var(--bg0) 100%); color:var(--cream); }
+  #card .logo { width:210px; height:210px; filter:drop-shadow(0 0 30px rgba(139,107,255,.7)); animation:bob 1.6s ease-in-out infinite alternate; }
   @keyframes bob { from { transform:translateY(-6px) rotate(-3deg); } to { transform:translateY(8px) rotate(3deg); } }
-  #card h1 { font-size:76px; font-weight:900; letter-spacing:-2px; line-height:1; }
-  #card h1 span { color:#ffd166; }
-  #card .sub { font-size:30px; font-weight:800; opacity:.95; }
-  #card .line { font-size:34px; font-weight:900; background:#fff; color:var(--accent); padding:12px 24px; border-radius:999px; }
-  #card .small { font-size:22px; font-weight:700; opacity:.85; }
+  #card h1 { font-size:80px; font-weight:900; letter-spacing:-2px; line-height:1; text-shadow:0 5px 0 rgba(20,12,53,.7), 0 0 30px rgba(255,201,60,.35); }
+  #card h1 span { color:var(--gold); }
+  #card .sub { font-size:30px; font-weight:800; color:var(--lav); }
+  #card .line { font-size:32px; font-weight:900; background:linear-gradient(180deg,#fff3b0,var(--gold) 55%,var(--gold2)); color:var(--bg0); padding:12px 26px; border-radius:999px; box-shadow:0 6px 0 rgba(138,69,0,.55), 0 0 30px rgba(255,201,60,.45); }
+  #card .small { font-size:22px; font-weight:800; color:var(--teal); }
   .in { animation:inn .5s cubic-bezier(.2,1.6,.4,1) both; }
   @keyframes inn { from { transform:scale(.5); opacity:0; } to { transform:none; opacity:1; } }
 </style>
@@ -56,9 +70,12 @@
 <div id="capBottom" class="cap bottom"></div>
 <div id="card"></div>
 <script>
-const ODI = '<svg class="logo" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#fff"/><circle cx="32" cy="32" r="26" fill="#6c4cf1"/><circle cx="24" cy="28" r="5" fill="#fff"/><circle cx="40" cy="28" r="5" fill="#fff"/><circle cx="25" cy="29" r="2.5" fill="#13162a"/><circle cx="41" cy="29" r="2.5" fill="#13162a"/><path d="M22 40q10 10 20 0" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/></svg>';
+const ODI = '<svg class="logo" viewBox="0 0 64 64"><defs><radialGradient id="g" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#b9a6ff"/><stop offset=".55" stop-color="#6c4cf1"/><stop offset="1" stop-color="#3a2788"/></radialGradient></defs><circle cx="32" cy="32" r="30" fill="#ffc93c"/><circle cx="32" cy="32" r="27" fill="url(#g)"/><ellipse cx="22" cy="18" rx="6" ry="3.4" fill="#fff" opacity=".7" transform="rotate(-30 22 18)"/><ellipse cx="24" cy="29" rx="5" ry="6" fill="#fff"/><ellipse cx="40" cy="29" rx="5" ry="6" fill="#fff"/><circle cx="25.5" cy="30" r="2.8" fill="#140c35"/><circle cx="41.5" cy="30" r="2.8" fill="#140c35"/><path d="M23 41q9 8 18 0" stroke="#fff6e5" stroke-width="3.6" fill="none" stroke-linecap="round"/></svg>';
 const $ = (id) => document.getElementById(id);
 window.studio = { readyAt: 0, error: null };
+/** ağır çekim kayıt: oyun ts hızında oynar, birleştirmede 1/ts hızlandırılır; stüdyo zamanlamaları K = 1/ts ile uzar */
+let K = 1;
+const later = (fn, ms) => setTimeout(fn, ms * K);
 
 function caption(el, html, cls) {
   el.className = 'cap ' + (el.id === 'capTop' ? 'top' : 'bottom') + (cls ? ' ' + cls : '');
@@ -67,8 +84,8 @@ function caption(el, html, cls) {
 function hide(el) { el.classList.remove('on'); }
 function schedule(caps) {
   for (const c of caps) {
-    setTimeout(() => caption(c.pos === 'top' ? $('capTop') : $('capBottom'), c.text, c.cls), c.at);
-    if (c.until) setTimeout(() => hide(c.pos === 'top' ? $('capTop') : $('capBottom')), c.until);
+    later(() => caption(c.pos === 'top' ? $('capTop') : $('capBottom'), c.text, c.cls), c.at);
+    if (c.until) later(() => hide(c.pos === 'top' ? $('capTop') : $('capBottom')), c.until);
   }
 }
 
@@ -76,21 +93,18 @@ function schedule(caps) {
 function wireTouch(win) {
   const sc = win.__odiScene; if (!sc) return false;
   const inp = sc.input_;
-  // yakınlaştırılmış belgede getBoundingClientRect ölçeklenmiş döner; sahne sabit: sol 30, genişlik 480 (CSS px)
-  const stage = { left: 30, width: 480 };
-  const posFor = () => {
-    const d = inp.virtual && typeof inp.virtual.dir === 'number' ? inp.virtual.dir : 0;
-    return { x: stage.left + (d > 0 ? stage.width * 0.78 : d < 0 ? stage.width * 0.22 : stage.width * 0.5), y: 745 };
-  };
-  const origSwipe = inp.swipeDown.bind(inp);
-  inp.swipeDown = () => { const p = posFor(); const s = document.createElement('div'); s.className = 'swipe'; s.textContent = '👇'; s.style.left = p.x + 'px'; s.style.top = p.y + 'px'; $('touch').appendChild(s); setTimeout(() => s.remove(), 600); return origSwipe(); };
+  // parmak göstergesi sol-altta (başparmak bölgesi): kahramanın koştuğu şeridi örtmez
+  const pos = () => ({ x: 82, y: 735 });
+  const fx = (cls, glyph) => { const p = pos(); const s = document.createElement('div'); s.className = 'swipe ' + cls; s.textContent = glyph; s.style.left = p.x + 'px'; s.style.top = p.y + 'px'; $('touch').appendChild(s); later(() => s.remove(), 600); };
+  const origDown = inp.swipeDown.bind(inp); inp.swipeDown = () => { fx('down', '👇'); return origDown(); };
+  const origRight = inp.swipeRight.bind(inp); inp.swipeRight = () => { fx('right', '👉'); return origRight(); };
   let down = false, downAt = 0;
   const hold = $('hold');
   const loop = () => {
     const now = performance.now();
     const isDown = !!(inp.state.primaryDown || (inp.virtual && inp.virtual.primaryDown));
-    if (isDown && !down) { downAt = now; const p = posFor(); const r = document.createElement('div'); r.className = 'ripple'; r.style.left = p.x + 'px'; r.style.top = p.y + 'px'; $('touch').appendChild(r); setTimeout(() => r.remove(), 520); hold.style.left = p.x + 'px'; hold.style.top = p.y + 'px'; }
-    if (isDown && now - downAt > 140) hold.classList.add('on'); else hold.classList.remove('on');
+    if (isDown && !down) { downAt = now; const p = pos(); const r = document.createElement('div'); r.className = 'ripple'; r.style.left = p.x + 'px'; r.style.top = p.y + 'px'; $('touch').appendChild(r); later(() => r.remove(), 520); hold.style.left = p.x + 'px'; hold.style.top = p.y + 'px'; }
+    if (isDown && now - downAt > 140 * K) hold.classList.add('on'); else hold.classList.remove('on');
     down = isDown;
     requestAnimationFrame(loop);
   };
@@ -98,22 +112,30 @@ function wireTouch(win) {
   return true;
 }
 
+/** sc.fromT: sahne, simülasyon bu saniyeye gelince başlar (kare hızından bağımsız, aynı an yakalanır) */
 function playLevel(sc) {
   const f = $('game');
-  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}`;
+  K = 1 / (sc.ts ?? 1); document.documentElement.style.setProperty('--k', String(K));
+  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 2}`;
+  let wired = false;
   const poll = setInterval(() => {
     try {
       const w = f.contentWindow;
-      if (w && w.__odi && w.__odi.events.some((e) => e.type === 'started') && w.__odiScene) {
-        clearInterval(poll);
+      if (!wired && w && w.__odi && w.__odi.events.some((e) => e.type === 'started') && w.__odiScene) {
+        wired = true;
         wireTouch(w);
-        // oyunun kendi alt ipucu yazısını gizle (stüdyo kendi yazısını gösterir)
-        try { const s = w.__odiScene; const orig = s.hint.bind(s); s.hint = () => {}; void orig; } catch { /* yok */ }
+        // oyunun kendi alt bilgi şeridini gizle (stüdyo kendi yazısını gösterir)
+        try { const s = w.__odiScene; s.hint = () => {}; } catch { /* yok */ }
+      }
+      if (wired && (w.__odiScene ? w.__odiScene.sim.t >= (sc.fromT ?? 0) : true)) {
+        clearInterval(poll);
+        // sahne anına normal hızda gelinir; kayıt ağır çekimde sürer
+        try { if ((sc.ts ?? 1) !== 1) w.__odiScene.setTimeScale(sc.ts); } catch { /* yok */ }
         window.studio.readyAt = performance.now();
-        setTimeout(() => schedule(sc.caps), (sc.skip ?? 0) * 1000);
+        later(() => schedule(sc.caps), (sc.skip ?? 0) * 1000);
       }
     } catch (e) { window.studio.error = String(e); }
-  }, 30);
+  }, 20);
 }
 
 function playSlides(sc) {
