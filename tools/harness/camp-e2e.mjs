@@ -250,14 +250,15 @@ try {
     db.run("UPDATE buildings SET level = 3 WHERE player_id = ? AND id = 'depo'", bId);
     db.run('UPDATE players SET depot_at = ? WHERE id = ?', Date.now() - 9 * 3_600_000, bId);
     await reopenCamp(B);
-    const coinsBefore = (await B.locator('.tb-pill[data-hud="jeton"]').innerText()).trim();
+    const hudJeton = async () => Number(await B.locator('.tb-pill[data-hud="jeton"]').getAttribute('data-value'));
+    const coinsBefore = await hudJeton();
     await openPanel(B, 'depo');
     const j0 = db.get('SELECT jeton FROM players WHERE id = ?', bId).jeton;
     await B.locator('.bp').getByRole('button', { name: /Topla \+/ }).click();
     for (let i = 0; i < 30 && db.get('SELECT jeton FROM players WHERE id = ?', bId).jeton === j0; i++) await sleep(200);
     check(db.get('SELECT jeton FROM players WHERE id = ?', bId).jeton > j0, 'sunucu: depo jetonu cüzdana girdi');
     let coinsAfter = coinsBefore;
-    for (let i = 0; i < 25 && coinsAfter === coinsBefore; i++) { await sleep(200); coinsAfter = (await B.locator('.tb-pill[data-hud="jeton"]').innerText()).trim(); }
+    for (let i = 0; i < 25 && coinsAfter === coinsBefore; i++) { await sleep(200); coinsAfter = await hudJeton(); }
     check(coinsAfter !== coinsBefore, `jeton: ${coinsBefore} → ${coinsAfter}`);
     await closePanel(B);
 

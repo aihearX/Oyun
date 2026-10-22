@@ -392,7 +392,7 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
 /* ===================================================================== sosyal katman (takım, kamp, sohbet, mağaza) */
 .topbar2 { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:16px; min-height:60px; }
 .tb-title { display:flex; align-items:center; gap:6px; min-width:0; }
-.tb-title h1 { font-size:26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tb-title h1 { font-size:26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:2.6em; }
 .tb-pills { display:flex; gap:6px; align-items:center; flex:none; }
 .tb-pill { position:relative; font-size:14px; padding:0 10px; height:36px; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--text); font-family:inherit; }
 .tb-pill.tap { cursor:pointer; min-width:40px; justify-content:center; }
@@ -698,6 +698,8 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
 :root .race-actions { background:linear-gradient(to top, var(--bg-0) 75%, rgba(20,12,53,0)); }
 :root .race-state { background:rgba(5,2,20,.45); } :root .race-state.on { background:#3fcf7a; color:#05332f; }
 
+/* telefon genişliği: üst çubuk hapları biraz sıkışır ki ekran başlığı kesilmesin */
+@media (max-width:420px) { .tb-pills { gap:5px; } .tb-pill { padding:0 8px; } }
 /* dar ekranlar */
 @media (max-width:360px) {
   .screen { padding-left:12px; padding-right:12px; }
@@ -711,6 +713,7 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
   .tb-pill.ico { width:34px; padding:0; }
   .tb-pill.ico .ic { width:18px; height:18px; }
   .tb-pills { gap:4px; }
+  .tb-pill [class*="art-"] { width:17px; height:17px; }
   .net-dot { width:8px; height:8px; }
   .subtabs { margin:0 -12px; padding-left:12px; padding-right:12px; }
   .tab .tl { font-size:11px; }
@@ -786,6 +789,9 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
 .pstat b { line-height:1.1; }
 .mh-pill .art, .tb-pill .art { flex:none; }
 .tb-pill { gap:4px; }
+/* üst çubuk sayıları: dar ekranda kısa biçim (4,3B), başlık okunur kalsın; haplar biraz sıkışır */
+.tb-pill .hn-d { display:none; }
+@media (max-width:360px) { .tb-pill .hn-w { display:none; } .tb-pill .hn-d { display:inline; } .tb-pill { gap:2px; padding:0 6px; } }
 .chip .art-inline { margin:0 .12em 0 0; }
 .ph-icon { display:flex; justify-content:center; }
 .sc-flame .art { filter:drop-shadow(0 0 12px rgba(255,159,28,.7)); }

@@ -48,7 +48,9 @@ if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDi
   await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') });
 }
 const sport = 8800 + Math.floor(Math.random() * 400);
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
+// sunucu veritabanı geçici bir dosyada: "büyük cüzdan" denetimi oyuncunun cüzdanını doğrudan yazar
+const dbFile = resolve(outRoot, 'sunucu.db'); for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) rmSync(f, { force: true });
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: dbFile, ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
@@ -313,6 +315,17 @@ async function suite(browserName, target, [W, H]) {
       if (await b.count()) { await b.evaluate((el) => el.click()); await sleep(600); await check('kamp-bina', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300); }
       const l = page.getByRole('button', { name: 'Liste görünümü' });
       if (await l.count()) { await l.click(); await sleep(600); await check('kamp-liste'); await back(); }
+      // büyük cüzdan (5 basamak jeton + 4 basamak kristal): ekran başlığı "K…" diye kesilmemeli (kısa sayı: 98B; ≤360 px'te kristal de 4,3B)
+      const { DatabaseSync } = await import('node:sqlite');
+      const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000'); sq.prepare('UPDATE players SET jeton = 98765, kristal = 4321').run(); sq.close();
+      await tab('Harita'); await tab('Kamp'); await sleep(1500); await toastGone();
+      const ub = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub.count()) { await ub.click(); await sleep(1200); }
+      const rec = await check('kamp-buyuk-cuzdan', { scroll: false });
+      const hud = await page.evaluate(() => ({ title: document.querySelector('.tb-title h1')?.textContent ?? '', j: document.querySelector('.tb-pill[data-hud="jeton"]')?.innerText ?? '', k: document.querySelector('.tb-pill[data-hud="kristal"]')?.innerText ?? '', w: [...document.querySelectorAll('.topbar2 .tb-title h1, .topbar2 .tb-pills > *')].map((e) => Math.round(e.getBoundingClientRect().width)) }));
+      rec.hud = hud;
+      if (hud.j.trim() !== '98B' || hud.k.trim() !== (W <= 360 ? '4,3B' : '4.321')) fail(rec, `büyük cüzdan görünmedi: ${JSON.stringify(hud)}`);
+      // aynı cüzdanla diğer sekme başlıkları da okunur kalmalı
+      for (const t of ['Bugün', 'Profil', 'Harita']) { await tab(t); await sleep(900); await toastGone(); await check(`buyuk-cuzdan-${t.toLocaleLowerCase('tr').replace('ü', 'u')}`, { scroll: false }); }
     }
     if (want('takim')) {
       await tab('Takım');

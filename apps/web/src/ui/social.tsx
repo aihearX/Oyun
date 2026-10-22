@@ -36,6 +36,20 @@ export function fmtDur(sec: number): string {
   return `${s} sn`;
 }
 export const fmtNum = (n: number) => Math.round(n).toLocaleString('tr-TR');
+/** üst çubuk hapları için kısa sayı (haritayla aynı dil): 9.999'a kadar tam, sonra 49B (bin, aşağı yuvarlanır), 1,2M.
+ *  dar: dar ekranlarda (≤360 px) 1.000'den sonra kısalt (4,3B). Tam değer title/aria'da. */
+export const fmtHud = (n: number, dar = false) => {
+  const v = Math.max(0, Math.round(n));
+  if (v < (dar ? 1000 : 10_000)) return v.toLocaleString('tr-TR');
+  if (v < 10_000) return `${(Math.floor(v / 100) / 10).toLocaleString('tr-TR')}B`;
+  if (v < 1_000_000) return `${Math.floor(v / 1000)}B`;
+  return `${(Math.floor(v / 100_000) / 10).toLocaleString('tr-TR')}M`;
+};
+/** hap sayısı: geniş ve dar biçim farklıysa ikisi de yazılır, CSS ekran genişliğine göre birini gösterir */
+function HudNum({ v }: { v: number }) {
+  const a = fmtHud(v); const b = fmtHud(v, true);
+  return a === b ? <>{a}</> : <><span className="hn-w">{a}</span><span className="hn-d">{b}</span></>;
+}
 export const fmtTry = (n: number) => `${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
 export const fmtTime = (t: number) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 export const fmtDate = (t: number) => new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' ' + fmtTime(t);
@@ -85,8 +99,8 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       <div className="tb-pills">
         {extra}
         {linked && feat.open('friends') && <DmTopPill />}
-        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" title={pending > 0 && st !== 'bağlı' ? `${pending} jeton bağlanınca hesaba geçecek` : 'Jeton'}><Art name="coin" size={19} />{fmtNum(jc.value)}{pending > 0 && st !== 'bağlı' && <i className="pend"><Art name="hourglass" size={13} /></i>}</span>
-        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={19} />{fmtNum(kc.value)}</button>}
+        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" data-value={Math.round(jc.value)} aria-label={`Jeton: ${fmtNum(jc.value)}`} title={pending > 0 && st !== 'bağlı' ? `${fmtNum(jc.value)} jeton · ${pending} jeton bağlanınca hesaba geçecek` : `${fmtNum(jc.value)} jeton`}><Art name="coin" size={19} /><HudNum v={jc.value} />{pending > 0 && st !== 'bağlı' && <i className="pend"><Art name="hourglass" size={13} /></i>}</span>
+        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => nav.open({ name: 'shop' })} aria-label={`Kristal ve mağaza: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
         {shopOpen && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>
