@@ -201,7 +201,9 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   // alttaki panelin taşan portresi hedefin üstüne binecekse portre panelin içine alınır
   const panelRef = useRef<HTMLDivElement>(null);
   const [ph, setPh] = useState(0);
-  useLayoutEffect(() => { const h = panelRef.current?.offsetHeight ?? 0; if (h && h !== ph) setPh(h); });
+  // yükseklik yalnızca portre DIŞARIDAYKEN ölçülür: içeri alınınca panel kısalır; o ölçüm karara geri beslenirse
+  // tuck ↔ tuck'sız arasında sonsuz döngü olur (React #185; Sıralama turunda ekranın ortasındaki "benim satırım")
+  useLayoutEffect(() => { const el = panelRef.current; if (!el || el.classList.contains('tuck')) return; const h = el.offsetHeight; if (h && h !== ph) setPh(h); });
   const tuck = !compact && place === 'bottom' && !!hole && hole.y + hole.h > H - insetSab - 14 - (ph || 190) - 52;
   const onBack = () => { if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
 
