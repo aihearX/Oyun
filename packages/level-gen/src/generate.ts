@@ -7,6 +7,12 @@ import { predictDmg, roomStats } from './rooms';
 import { KALIBRASYON } from './kalibrasyon';
 import { tagPathologies } from './patoloji';
 
+/**
+ * İmza gösterileri: bölümün kendine ait doruğu (tag 'imza'; döngüdeki gösterilerden çıkarılır). 4 "Rüzgârla Yarış" → rüzgâr
+ * kapılarıyla bayrak yarışı; 8 "Damlalar" (Kanal finali) → Damla Sınavı (docs/12 §8).
+ */
+export const SIGNATURE: Record<number, string> = { 4: 'dk-sp-ruzgar-yarisi', 8: 'kn-sp-damla-sinavi' };
+
 export interface PlayerProfile {
   /** son 5 bölümdeki ortalama yıldız (0-3); dinamik zorluk */
   recentStars: number;
@@ -310,7 +316,8 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
 
   // ---- havuz: biyoma uygun, açık yeteneklerle oynanabilir parçalar
   const biomeOk = (c: ChunkSpec) => !c.biomes || c.biomes.includes(plan.biome);
-  const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil));
+  // imza gösterisi yalnız kendi bölümünün havuzunda (öteki bölümlerin oda seçimi ve rastgele sırası değişmesin)
+  const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil) && (!c.tags.includes('imza') || SIGNATURE[plan.number] === c.id));
   // sınav odaları yalnızca bölge finalinde (öğrenilen her şey bir arada): final bölüm-içi bölümün son odası
   const isExam = (c: ChunkSpec) => c.tags.includes('sinav');
   const normalAll = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c) && !isExam(c));
@@ -380,11 +387,12 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // gösteri parçası (set piece): biyomun gösterilerinden; bölge girişinde en kolayı, finalde en zoru, arada dönüşümlü
   const biomeLevels = journey.levels.filter((l) => l.biome === plan.biome && l.mechanic !== 'boss').map((l) => l.number);
   const idxInBiome = biomeLevels.indexOf(plan.number);
-  const sets = pool.filter((c) => c.setPiece && c.biomes?.includes(plan.biome)).sort((a, b) => roomStats(a).score - roomStats(b).score);
+  const sets = pool.filter((c) => c.setPiece && !c.tags.includes('imza') && c.biomes?.includes(plan.biome)).sort((a, b) => roomStats(a).score - roomStats(b).score);
   const zp = zonePos(plan.number);
   const setsOk = sets.filter((c) => predictDmg(c, knobs.tight) <= Math.max(0.08, 0.5 * knobs.lambda)).sort((a, b) => predictDmg(a, knobs.tight) - predictDmg(b, knobs.tight));
   const sp = setsOk.length ? setsOk : sets.slice(0, 1);
-  const setPiece = !sp.length ? undefined : seedSalt ? sp[(idxInBiome + seedSalt) % sp.length]! : zp <= 0.01 || plan.number <= 3 ? sp[0]! : zp >= 0.99 ? sp[sp.length - 1]! : sp[idxInBiome % sp.length]!;
+  const signature = SIGNATURE[plan.number] ? pool.find((c) => c.id === SIGNATURE[plan.number]) : undefined;
+  const setPiece = signature ? signature : !sp.length ? undefined : seedSalt ? sp[(idxInBiome + seedSalt) % sp.length]! : zp <= 0.01 || plan.number <= 3 ? sp[0]! : zp >= 0.99 ? sp[sp.length - 1]! : sp[idxInBiome % sp.length]!;
   // can kaybı bütçesi: hedef λ − gösteri ve öğreticilerin tahmini payı − mikro odalar için küçük pay; bölüm-içi bölümler %27 / %33 / %40
   // (oda puanı hedefi de ×0,7 / ×1 / ×1,25: her bölüm-içi bölüm bir öncekinden biraz zor, son odası kendi küçük doruğu)
   const tutorCost = pool.filter((c) => isTutorial(c) && c.entities.some((e) => e.type === 'tutor' && newAbilities.includes(String(e.props?.ability) as AbilityId))).reduce((a, c) => a + pd(c), 0);

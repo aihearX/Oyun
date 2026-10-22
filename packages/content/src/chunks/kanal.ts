@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, block, chunk, coinCol, coins, collect, decor, enemy, flightArc, ground, hazard, launchArc, launcher, moving, plat, power, secret, wall } from './helpers';
+import { G, block, chunk, coinCol, coins, collect, decor, enemy, flightArc, ground, hazard, launchArc, launcher, moving, plat, power, secret, text, wall } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -49,5 +49,16 @@ export const KANAL_CHUNKS: ChunkSpec[] = [
     plat(160, G - 1800, 100), wall(120, G - 1920, 160), secret(200, G - 1840),
     sticky(1370, 50), ...coins(1350, G - 140, 3, 36, 20), launcher(1480, G, 280, -760), ...launchArc(1480, 280, -760, 5, { to: 0.7 }), damla(1000, 1.3),
   ], { tags: ['gosteri', 'duvar', 'tirmanis'], biomes: [...B], setPiece: true, needs: ['duvar'] }),
+  // imza gösterisi (yalnız 8. bölüm "Damlalar", Kanal finali; level-gen → SIGNATURE): Damla Sınavı — Kanal'ın üç becerisi art arda:
+  // kir yığınından zıpla, iltihaplı perdenin altından kay; sonra tavandan inip kalkan dört serumen damlası (dalga gibi sırayla,
+  // 1,6 sn'lik ritimle; yukarıdayken altından koşulur) ve damlalı kısa duvar kuyusu. Her parça tek başına okunur, zorluk zamanlamada.
+  chunk('kn-sp-damla-sinavi', 'kosu', 3, 2000, [
+    ground(0, 2000), text(140, G - 240, 'Kanal sınavı: zıpla, kay, damlayı bekle!'),
+    sticky(300, 56), ...coins(280, G - 140, 3, 36, 20), curtain(560, 150), ...coins(575, G - 20, 3, 40),
+    hazard(840, G - 330, 60, 60, 'serumen', { dy: 260, period: 1600 }), hazard(1000, G - 330, 60, 60, 'serumen', { dy: 260, period: 1600, phase: 0.4 }),
+    hazard(1160, G - 330, 60, 60, 'serumen', { dy: 260, period: 1600, phase: 0.8 }), hazard(1320, G - 330, 60, 60, 'serumen', { dy: 260, period: 1600, phase: 1.2 }),
+    ...coins(920, G - 40, 2, 40), ...coins(1080, G - 40, 2, 40), ...coins(1240, G - 40, 2, 40), damla(780, 1.2),
+    ...shaft(1420, 280), hazard(1760, G - 520, 50, 50, 'serumen', { dy: 120, period: 1800 }), collect(1830, G - 340), secret(1630, G - 600), damla(1940, 1.1),
+  ], { tags: ['gosteri', 'sinav', 'duvar', 'imza'], biomes: [...B], setPiece: true, needs: ['duvar'] }),
 ];
 

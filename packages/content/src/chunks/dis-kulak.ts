@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, block, chunk, coins, collect, decor, enemy, flightArc, ground, hazard, jumpArc, launchArc, launcher, moving, plat, power, secret, spike, spring } from './helpers';
+import { G, block, chunk, coins, collect, decor, enemy, flightArc, ground, hazard, jumpArc, launchArc, launcher, moving, plat, power, secret, spike, spring, text } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -52,4 +52,15 @@ export const DIS_KULAK_CHUNKS: ChunkSpec[] = [
     spike(1150, 32), ...jumpArc(1090, 4, 0.5), launcher(1360, G, 360, -760), ...launchArc(1360, 360, -760, 6), ...coins(1700, G - 30, 5, 40), spike(1960, 32), ...jumpArc(1900, 3, 0.5),
     plat(780, G - 150, 110), secret(835, G - 340), collect(1500, G - 260), tuy(80, 1.2), tuy(1840),
   ], { tags: ['gosteri', 'bosluk', 'jeton'], biomes: [...B], setPiece: true }),
+  // imza gösterisi (yalnız 4. bölüm "Rüzgârla Yarış", level-gen → SIGNATURE): Rüzgâr Bayrak Yarışı — kepçeye giren esinti üç
+  // rüzgâr kapısıyla Odi'yi çukurların üstünden taşır; her kapı bayrak gibi bir sonrakine atar, son kapı dikine fırlatıp nota
+  // yağmurunun içinden geçirir. Kapıya basmak yeter; geniş iniş zeminlerinde birer alçak basamak (zıpla, bayrağı devral).
+  chunk('dk-sp-ruzgar-yarisi', 'kosu', 2, 2500, [
+    ground(0, 420), text(150, G - 230, 'Rüzgâr kapısına bas, esinti taşısın!'), tuy(60, 1.3), ...coins(120, G - 30, 3, 40),
+    launcher(300, G, 520, -900), ...launchArc(300, 520, -900, 7),
+    ground(820, 440), block(960, G - 40, 60, 40), ...coins(950, G - 80, 3, 30), tuy(1240, 1.1),
+    launcher(1120, G, 520, -900), ...launchArc(1120, 520, -900, 7), secret(1390, G - 470),
+    ground(1640, 860), block(1760, G - 40, 60, 40), ...coins(1750, G - 80, 3, 30),
+    launcher(1940, G, 220, -1150), ...launchArc(1940, 220, -1150, 6, { to: 0.5 }), collect(2060, G - 470), block(2380, G - 40, 60, 40), ...coins(2370, G - 80, 3, 30), tuy(2470, 1.2),
+  ], { tags: ['gosteri', 'firlatici', 'imza'], biomes: [...B], setPiece: true }),
 ];
