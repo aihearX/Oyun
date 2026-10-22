@@ -607,6 +607,8 @@ function land(w: World, s: SimState, id: number, vyBefore: number, inp: SimInput
     h.pound = false; h.poundLandT = s.t; ev(s, 'poundland', h.x, h.y, { id });
     poundImpact(w, s);
   } else if (Math.abs(vyBefore) > 300) ev(s, 'land', h.x, h.y, { n: Math.abs(vyBefore) });
+  // patoloji zemini (plaklı zar, çöken zar cebi): uygun malzeme ilk değişte etkisiz kılar
+  if (e.p.plak && !s.cured.has(id)) useRemedy(w, s, e);
   if (e.type === 'trampoline') {
     if (h.buffer > 0 || inp.pressed) { const perfect = inp.pressed || h.buffer >= w.assist.buffer - C.TRAMP_PERFECT; h.buffer = 0; trampStrong(w, s, e, perfect); }
     else { h.tramp = trampWindow(e); h.trampId = id; }
@@ -620,7 +622,9 @@ export function trampOnBeat(w: World, s: SimState, t: number): boolean { const b
 /** güçlü zar sıçrayışı: "Mükemmel" (değme anına çok yakın dokunuş) ve vuruşa denk gelme dürüst bir yükseklik ödülü verir */
 function trampStrong(w: World, s: SimState, e: WEnt, perfect: boolean) {
   const beatHit = !!e.p.beat && trampOnBeat(w, s, s.t);
-  const k = Number(e.p.power ?? 1) * (perfect ? C.TRAMP_PERFECT_MULT : 1) * (beatHit ? C.TRAMP_BEAT_MULT : 1);
+  // zar sertleşmesi (timpanoskleroz, props.plak): plaklı zar daha az sektirir; işitme cihazı (malzeme) plağı etkisiz kılar
+  const plak = e.p.plak && !s.cured.has(e.id) ? C.PLAK_K : 1;
+  const k = Number(e.p.power ?? 1) * plak * (perfect ? C.TRAMP_PERFECT_MULT : 1) * (beatHit ? C.TRAMP_BEAT_MULT : 1);
   bounce(s, -k * C.TRAMP_STRONG, e.id, 'tramp-strong', perfect ? (beatHit ? 'perfect-beat' : 'perfect') : beatHit ? 'beat' : undefined);
 }
 function bounce(s: SimState, v: number, id: number, kind: string, tag?: string) {
@@ -833,7 +837,12 @@ function dynamics(w: World, s: SimState, ids: number[]) {
       let L = s.lifts.get(id); const on = h.grounded && h.groundId === id;
       if (!L) { if (!on) continue; L = { off: 0, lastOn: s.t, prev: 0 }; s.lifts.set(id, L); }
       L.prev = L.off; const max = Number(e.p.dy ?? 200);
-      if (on) { L.lastOn = s.t; L.off = Math.min(max, L.off + 260 * C.DT); }
+      if (e.p.sag) {
+        if (on && !s.cured.has(id)) useRemedy(w, s, e);
+        // zar çekilmesi (retraksiyon): üstünde durana çöker (aşağı), inince yavaşça toparlanır; malzemeyle etkisiz
+        if (on && !s.cured.has(id)) { L.lastOn = s.t; L.off = Math.max(-max, L.off - C.SAG_V * C.DT); }
+        else if (!on || s.cured.has(id)) { if (on) L.lastOn = s.t; if (s.t - L.lastOn > 0.6 || s.cured.has(id)) L.off = Math.min(0, L.off + 140 * C.DT); }
+      } else if (on) { L.lastOn = s.t; L.off = Math.min(max, L.off + 260 * C.DT); }
       else if (s.t - L.lastOn > 0.8) L.off = Math.max(0, L.off - 140 * C.DT);
       if (L.off === 0 && !on && s.t - L.lastOn > 1) s.lifts.delete(id);
     }

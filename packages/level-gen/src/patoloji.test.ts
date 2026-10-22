@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ChunkSpec } from '@odi/shared';
 import { HUMAN_JOURNEY, PATHOLOGY_IDS, PATOLOJILER, PATOLOJI_IDS, REGION_PATHOLOGIES, remediesFor } from '@odi/content';
 import { generateLevel } from './generate';
-import { pathologiesIn, PATOLOJI_ZONE, tagPathologies } from './patoloji';
+import { PATHOLOGY_ROOMS, pathologiesIn, PATOLOJI_ZONE, tagPathologies } from './patoloji';
 
 /** Bölge patolojileri (content/src/patolojiler.ts, level-gen/src/patoloji.ts; docs/odyoloji-icerik.md "Bölge patolojileri"). */
 const levels = HUMAN_JOURNEY.levels.map((l) => generateLevel('insan', l.number));
@@ -29,12 +29,11 @@ describe('bölge patolojileri', () => {
       expect(PATOLOJI_IDS.filter((id) => (PATOLOJILER[id].bolge as string[]).includes(region)).sort(), region).toEqual([...ids].sort());
     }
   });
-  it('bölümlerde 10-15 patoloji görünür; her birinin ilk bölümü kayıttaki ilkBolum', () => {
+  it('bölümlerde 18 patolojinin hepsi görünür; her birinin ilk bölümü kayıttaki ilkBolum', () => {
     const first: Record<string, number> = {};
     for (const sp of levels) for (const p of pathologiesIn(sp.chunks)) first[p] ??= sp.number;
     const seen = Object.keys(first);
-    expect(seen.length).toBeGreaterThanOrEqual(10);
-    expect(seen.length).toBeLessThanOrEqual(15);
+    expect(seen.length).toBe(PATOLOJI_IDS.length);
     for (const id of seen) expect(PATOLOJI_IDS as readonly string[], id).toContain(id);
     for (const id of PATOLOJI_IDS) expect(first[id] ?? 0, id).toBe(PATOLOJILER[id].ilkBolum);
   });
@@ -56,6 +55,12 @@ describe('bölge patolojileri', () => {
     for (const sp of levels) for (const c of sp.chunks) for (const e of c.entities) if (e.props?.kind === PATOLOJI_ZONE) {
       expect(['perforasyon', 'zincir-kopuk', 'presbiakuzi', 'noropati', 'merkezi']).toContain(e.props.patoloji);
       expect(e.w ?? 0).toBeGreaterThanOrEqual(40);
+    }
+  });
+  it('patoloji odaları yalnız kendi bölümünde (10 plaklı zar, 11 zar cebi, 14 orta kulak sıvısı)', () => {
+    for (const sp of levels) {
+      const ids = sp.chunks.map((c) => c.id).filter((id) => ['zr-plak', 'zr-cep', 'km-sivi'].includes(id));
+      expect(ids, `${sp.number}`).toEqual(PATHOLOGY_ROOMS[sp.number] ?? []);
     }
   });
   it('Meniere ve akustik nörom için bilerek malzeme yok (hekim süreci); bölümde görünen öteki patolojilerin malzemesi var', () => {

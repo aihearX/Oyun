@@ -15,6 +15,19 @@ const hop = (x: number, hop = 100) => enemy(x, G, 'ziplayan', 0, { hop });
 const ot = (x: number, s = 1) => decor(x, G, 'ot', s);
 
 export const ZAR_CHUNKS: ChunkSpec[] = [
+  // ---- bölge patolojisi odaları (yalnız level-gen PATHOLOGY_ROOMS'taki bölümde; normal havuzda yok). patolojiler.ts
+  // Zar sertleşmesi (timpanoskleroz, 10): beyaz plaklı zar daha az sektirir (güçlü sıçrayış ×0,8) — alçak blok yine aşılır, üst
+  // nota rafı yalnız sağlam sıçrayışla (ya da işitme cihazıyla) alınır.
+  chunk('zr-plak', 'trambolin', 2, 1150, [
+    ground(0, 300), zar(400, 200, 1, { plak: true }), ...trampArc(345, 4, { to: 0.3 }), block(500, G - 150, 300, 350), ...coins(520, G - 190, 5, 44),
+    plat(560, G - 340, 170), ...coins(575, G - 380, 4, 40), collect(645, G - 430), ground(800, 350), ot(1000), ...coins(900, G - 30, 3, 40),
+  ], { tags: ['zar', 'patoloji-oda'], biomes: [...B] }),
+  // Zar çekilmesi (retraksiyon, 11): çukurun üstündeki gevşek zar cebi üstünde durana çöker (en çok 120 px); cebin dibindeki
+  // notalar için çökmesini bekle, sonra zıplayıp çık. Altı çanak (taban G+140): düşürmez, yalnız aşağı çeker.
+  chunk('zr-cep', 'trambolin', 2, 1250, [
+    ground(0, 320), { type: 'lift', x: 320, y: G, w: 240, h: 20, props: { dy: 120, sag: true } }, ground(320, 240, G + 140), ...coins(360, G - 30, 4, 44), ground(560, 220),
+    { type: 'lift', x: 780, y: G, w: 260, h: 20, props: { dy: 120, sag: true } }, ground(780, 260, G + 140), ...coins(820, G + 70, 4, 44), ground(1040, 210), ot(1150), ...coins(1060, G - 30, 3, 40),
+  ], { tags: ['zar', 'patoloji-oda'], biomes: [...B] }),
   chunk('zr-davul', 'trambolin', 1, 1100, [ground(0, 60), ground(170, 130), zar(400, 200), block(500, G - 230, 300, 430), ...trampArc(345, 5), ...coins(540, G - 280, 5, 44), ground(800, 300), spike(950, 40), ...jumpArc(849, 4, 0.6), secret(420, G - 480), ot(100)], { tags: ['zar'], biomes: [...B] }),
   chunk('zr-ritim', 'trambolin', 2, 1150, [ground(0, 300), beat(330, G, 140, '1110'), beat(530, G, 140, '0111'), beat(730, G, 140, '1011'), ground(900, 250), ...coins(340, G - 40, 3, 40), ...coins(540, G - 40, 3, 40), ...coins(740, G - 40, 3, 40), spike(1030, 36), secret(600, G - 240)], { tags: ['ritim'], biomes: [...B] }),
   chunk('zr-suzul-genis', 'trambolin', 2, 1200, [ground(0, 320), ...glideArc(300, 7, 380), ground(700, 140), ...glideArc(820, 5, 240), ground(1060, 140), secret(530, G - 330), hazard(420, G - 470, 200, 60)], { tags: ['suzul', 'bosluk'], biomes: [...B], needs: ['suzul'] }),

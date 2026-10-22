@@ -13,6 +13,13 @@ const gear = (x: number, y: number, r = 34) => ({ type: 'gear' as const, x, y, p
 const shield = (x: number, dx = 40) => enemy(x, G, 'kalkanli', dx);
 
 export const KEMIKCIKLER_CHUNKS: ChunkSpec[] = [
+  // ---- bölge patolojisi odası (yalnız level-gen PATHOLOGY_ROOMS'taki bölümde). Orta kulakta sıvı (seröz otitis media, 14):
+  // alçak çanakta sıvı düzeni yükselip çekilir (nabızlı: 0,65 sn önce parlayıp kabarır); çekilince çanaktan geç, ya da üstteki
+  // kemik rafından atla. Ventilasyon tüpü sıvıyı bir kez boşaltır.
+  chunk('km-sivi', 'makine', 2, 1300, [
+    ground(0, 320), ground(320, 360, G + 70), hazard(320, G - 30, 360, 110, 'sivi', { on: 1.6, off: 2.4 }), plat(420, G - 170, 160), ...coins(435, G - 210, 3, 40),
+    ...coins(350, G + 40, 6, 52), ground(680, 620), ...coins(760, G - 30, 3, 40), bones(1100),
+  ], { tags: ['patoloji-oda'], biomes: [...B] }),
   chunk('km-kanca', 'makine', 2, 1300, [ground(0, 300), hook(600, G - 290, 190), hazard(330, G - 470, 540, 70), ...hookArc(600, G - 290, 190, 6), ground(870, 430), spike(1060, 40), ...jumpArc(959, 4, 0.7), bones(1200), secret(600, G - 380)], { tags: ['kanca', 'bosluk'], biomes: [...B] }),
   chunk('km-kanca-zincir', 'makine', 3, 1700, [ground(0, 280), hook(560, G - 280, 180), hook(930, G - 300, 180), hazard(300, G - 480, 900, 70), ...hookArc(560, G - 280, 180, 5), ...hookArc(930, G - 300, 180, 5), ground(1240, 460), collect(750, G - 330), spike(1340, 40), secret(1470, G - 210), plat(1420, G - 140, 110), spike(1560, 40)], { tags: ['kanca', 'bosluk', 'risk'], biomes: [...B] }),
   chunk('km-kanca-yukari', 'makine', 3, 1300, [ground(0, 400), hook(560, G - 300, 190), block(760, G - 120, 540, 320), ...hookArc(560, G - 300, 190, 4, -0.7, 0.5), ...coins(780, G - 170, 6, 44), secret(1120, G - 300), plat(1060, G - 230, 120), spike(1180, 48, G - 120), ...coins(1160, G - 250, 3, 36, 20)], { tags: ['kanca'], biomes: [...B] }),

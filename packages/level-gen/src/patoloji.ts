@@ -9,14 +9,21 @@ import { GROUND_Y } from '@odi/shared';
  *
  * Eşleme (bölge → engel → patoloji):
  * - kanal: serumen yığını → serumen-tikaci · kıl perdesi → otitis-eksterna · diken → eksostoz (kemik çıkıntısı)
- * - zar: zemindeki çukur → perforasyon (zarın deliği; düşme bölgesi)
+ * - zar: zemindeki çukur → perforasyon (zarın deliği; düşme bölgesi) · plaklı zar → timpanoskleroz · çöken cep → retraksiyon
  * - kemikcikler: temas anahtarlı kapı → ostaki · çakılma anahtarlı kapı → otoskleroz · hareketli köprülü çukur → zincir-kopuk
+ *   · yükselip çekilen sıvı → otitis-media
  * - koklea-1/2/3: durgun gürültü bulutu → gurultu-hasari · inip kalkan damla → ototoksisite · ufalanan basamak → presbiakuzi
  *   · hareketli platform ve asansör → meniere
  * - sinir: gürültü duvarı → noroma · ritim basamağı → noropati; beyin-sapi: ritim basamağı → noropati
  * - korteks: yankı basamağı → merkezi · nabızlı (zamanlı) bulut → tinnitus
  */
 export const PATOLOJI_ZONE = 'patoloji';
+
+/**
+ * Bölge patolojisi odaları (tag 'patoloji-oda'; normal oda havuzunda yok): yalnız burada adı geçen bölümde, gelişim bölüm-içi
+ * bölümünün ikinci odası olarak eklenir. Zar sertleşmesi (plaklı zar) 10, zar çekilmesi (çöken cep) 11, orta kulakta sıvı 14.
+ */
+export const PATHOLOGY_ROOMS: Record<number, string[]> = { 10: ['zr-plak'], 11: ['zr-cep'], 14: ['km-sivi'] };
 
 const tag = (e: Entity, id: string): Entity => ({ ...e, props: { ...(e.props ?? {}), patoloji: id } });
 const zone = (x: number, w: number, id: string): Entity => ({ type: 'decor', x, y: GROUND_Y, w, props: { kind: PATOLOJI_ZONE, patoloji: id } });
@@ -45,8 +52,12 @@ function tagChunk(c: ChunkSpec, biome: string): ChunkSpec {
       if (isCurtain(e)) set(i, 'otitis-eksterna');
       else if (e.type === 'hazard' && e.props?.kind === 'serumen') set(i, 'serumen-tikaci');
       else if (e.type === 'spike') set(i, 'eksostoz');
+    } else if (biome === 'zar') {
+      if (e.type === 'trampoline' && e.props?.plak) set(i, 'timpanoskleroz');
+      else if (e.type === 'lift' && e.props?.sag) set(i, 'retraksiyon');
     } else if (biome === 'kemikcikler') {
-      if (e.type === 'door' && e.props?.open !== true) {
+      if (e.type === 'hazard' && e.props?.kind === 'sivi') set(i, 'otitis-media');
+      else if (e.type === 'door' && e.props?.open !== true) {
         const sw = ents.find((s) => s.type === 'switch' && s.props?.id === e.props?.id);
         if (sw?.props?.by === 'temas') set(i, 'ostaki'); else if (sw?.props?.by === 'cakil') set(i, 'otoskleroz');
       }

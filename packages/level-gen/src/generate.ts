@@ -5,7 +5,7 @@ import { quietProfile, startsWithPit } from './pacing';
 import { CURVE_ZONES, knobsFor, tuningAt, zoneOf, zonePos, type LevelKnobs } from './curve';
 import { predictDmg, roomStats } from './rooms';
 import { KALIBRASYON } from './kalibrasyon';
-import { tagPathologies } from './patoloji';
+import { PATHOLOGY_ROOMS, tagPathologies } from './patoloji';
 
 /**
  * İmza gösterileri: bölümün kendine ait doruğu (tag 'imza'; döngüdeki gösterilerden çıkarılır). 4 "Rüzgârla Yarış" → rüzgâr
@@ -317,7 +317,7 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // ---- havuz: biyoma uygun, açık yeteneklerle oynanabilir parçalar
   const biomeOk = (c: ChunkSpec) => !c.biomes || c.biomes.includes(plan.biome);
   // imza gösterisi yalnız kendi bölümünün havuzunda (öteki bölümlerin oda seçimi ve rastgele sırası değişmesin)
-  const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil) && (!c.tags.includes('imza') || SIGNATURE[plan.number] === c.id));
+  const pool = ALL_CHUNKS.filter((c) => biomeOk(c) && fits(c, abil) && !c.tags.includes('patoloji-oda') && (!c.tags.includes('imza') || SIGNATURE[plan.number] === c.id));
   // sınav odaları yalnızca bölge finalinde (öğrenilen her şey bir arada): final bölüm-içi bölümün son odası
   const isExam = (c: ChunkSpec) => c.tags.includes('sinav');
   const normalAll = pool.filter((c) => !c.rest && !c.setPiece && !isTutorial(c) && !isMicro(c) && !isExam(c));
@@ -465,6 +465,11 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
       const sec = 1 + (k % 2); const at = sectionStarts[sec]!; const m = zm[(plan.number + k + seedSalt) % zm.length]!;
       finalChunks.splice(at, 0, { ...m, entities: m.entities.slice() }); for (let j = sec; j < 3; j++) sectionStarts[j]! += 1;
     }
+  }
+  // ---- bölge patolojisi odası (patoloji.ts → PATHOLOGY_ROOMS): gelişim bölüm-içi bölümünün ikinci odası
+  for (const id of PATHOLOGY_ROOMS[plan.number] ?? []) {
+    const c = ALL_CHUNKS.find((q) => q.id === id); if (!c || !fits(c, abil)) continue;
+    finalChunks.splice(sectionStarts[1]! + 1, 0, { ...c, entities: c.entities.filter((e) => e.type !== 'secret') }); sectionStarts[2]! += 1;
   }
   // geometri (diken, çukur, basamak) ve zamanlama düğmeleri (ufalanma gecikmesi, zar penceresi, düşman/platform temposu)
   // odaların varlıklarına yazılır — tempo çözümlemesi düğmeli geometriyi görsün diye ondan önce; sonradan eklenen mikro odalar

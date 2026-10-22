@@ -66,22 +66,22 @@ export const PATOLOJILER: Record<PatolojiId, Patoloji> = {
     mekanik: 'Zarın yırtık kenarlı boşluğu: sekmez, düşülür; zıplayarak aşılır.', kaynak: `${K.kbb}; ${K.katz}`,
   },
   timpanoskleroz: {
-    id: 'timpanoskleroz', ad: 'Zar sertleşmesi', terim: 'Timpanoskleroz', bolge: ['zar'], ilkBolum: 0,
+    id: 'timpanoskleroz', ad: 'Zar sertleşmesi', terim: 'Timpanoskleroz', bolge: ['zar'], ilkBolum: 10,
     sade: 'Zarda beyaz, tebeşir gibi plaklar oluşursa zar sertleşir ve daha az titreşir.',
     teknik: 'Geçirilmiş orta kulak iltihaplarından sonra zar ve orta kulakta hiyalin/kalsiyum birikimi; çoğu zaman az kayıp yapar.',
-    mekanik: 'Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır).', kaynak: K.kbb,
+    mekanik: 'Beyaz plaklı zar: güçlü sıçrayış ×0,8 — alçak blok yine aşılır, üst nota rafı yalnız sağlam zarla ya da işitme cihazıyla.', kaynak: K.kbb,
   },
   retraksiyon: {
-    id: 'retraksiyon', ad: 'Zar çekilmesi', terim: 'Retraksiyon cebi', bolge: ['zar'], ilkBolum: 0,
+    id: 'retraksiyon', ad: 'Zar çekilmesi', terim: 'Retraksiyon cebi', bolge: ['zar'], ilkBolum: 11,
     sade: 'Orta kulak basıncı düşük kalırsa zar içeri doğru çekilip bir cep oluşturabilir.',
     teknik: 'Kronik Östaki işlev bozukluğunda zarın gevşek bölümü içe çöker; izlenmesi gerekir.',
-    mekanik: 'Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır).', kaynak: K.kbb,
+    mekanik: 'Çukurun üstündeki gevşek zar cebi üstünde durana çöker (en çok 120 px); düşürmez, zıplayarak çıkılır.', kaynak: K.kbb,
   },
   'otitis-media': {
-    id: 'otitis-media', ad: 'Orta kulakta sıvı', terim: 'Seröz otitis media', bolge: ['kemikcikler'], ilkBolum: 0,
+    id: 'otitis-media', ad: 'Orta kulakta sıvı', terim: 'Seröz otitis media', bolge: ['kemikcikler'], ilkBolum: 14,
     sade: 'Orta kulakta sıvı birikirse kemikçikler rahat titreşemez; çocuklarda sık görülür ve çoğu kendiliğinden geçer.',
     teknik: 'Efüzyonlu otitis media iletim tipi kayıp yapar; uzun sürerse ventilasyon tüpü düşünülebilir.',
-    mekanik: 'Henüz bölümlerde yok (kamp malzemesi kartlarında anlatılır).', kaynak: `${K.kbb}; ${K.katz}`,
+    mekanik: 'Alçak çanakta yükselip çekilen sıvı (nabızlı; 0,65 sn önce parlar): çekilince çanaktan geç ya da üstteki raftan atla.', kaynak: `${K.kbb}; ${K.katz}`,
   },
   ostaki: {
     id: 'ostaki', ad: 'Östaki borusu tıkanıklığı', terim: 'Östaki tüpü disfonksiyonu', bolge: ['kemikcikler'], ilkBolum: 13,

@@ -6,6 +6,7 @@
  */
 import Phaser from 'phaser';
 import { softGlowTex } from './tex';
+import { viewTopLeft } from './util';
 import type { EntityView } from './view';
 
 const ADD = Phaser.BlendModes.ADD;
@@ -75,8 +76,51 @@ export function pathologyLabel(s: Phaser.Scene, x: number, y: number, text: stri
     .setOrigin(0.5).setDepth(150).setScale(0.6).setAlpha(0);
   // ekranın içinde kalsın (öğe ekranın kenarındayken yazı kesilmesin)
   const cam = s.cameras.main; const half = t.width / 2 + 10;
-  const follow = () => { const v = cam.worldView; if (v.width > 2 * half) t.x = Math.max(v.x + half, Math.min(v.right - half, x)); };
+  const follow = () => { const L = viewTopLeft(cam).x; const W = cam.width / cam.zoom; if (W > 2 * half) t.x = Math.max(L + half, Math.min(L + W - half, x)); };
   follow(); s.events.on('update', follow); t.once('destroy', () => s.events.off('update', follow));
   s.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
   s.tweens.add({ targets: t, y: y - 40, alpha: 0, delay: 1900, duration: 600, ease: 'Cubic.In', onComplete: () => t.destroy() });
+}
+
+/** zar sertleşmesi: zarın üstünde beyaz, tebeşirimsi plaklar (kap kökeni zarın ortası, y zar tabanı) */
+export function markPlaque(v: EntityView, w: number) {
+  const s = v.scene; const g = s.add.graphics();
+  const spots = [-0.32, -0.08, 0.18, 0.36];
+  spots.forEach((f, i) => {
+    const x = f * w, rw = 16 + (i % 2) * 8;
+    g.fillStyle(0xf6f1e4, 0.92).fillEllipse(x, -15, rw, 7);
+    g.fillStyle(0xd9d2c0, 0.9).fillEllipse(x + 3, -14, rw * 0.5, 3);
+  });
+  v.add(g);
+}
+
+/** orta kulakta sıvı: saman renkli seröz sıvı çanağı; düzeyi yükselip çekilir (reveal: 1 kabarık, <1 çekilmiş), kabarmadan önce kaynar */
+export function buildFluid(v: EntityView, w: number, h: number) {
+  const s = v.scene;
+  const glowI = s.add.image(w / 2, h, softGlowTex(s)).setBlendMode(ADD).setTint(0xffd27a).setDisplaySize(w * 1.2, h * 0.9).setAlpha(0.35);
+  const body = s.add.container(0, h); const g = s.add.graphics(); body.add(g);
+  // yarı saydam saman sarısı sıvı: aşağı doğru koyulaşan katmanlar, yüzeyde dalga, içinde ışık çizgileri (katı blok gibi okunmasın)
+  for (let k = 0; k < 4; k++) g.fillStyle(0xf2c25a, 0.16 + k * 0.07).fillRect(0, -h + (k * h) / 4, w, h / 4 + 1);
+  g.fillStyle(0xfff1b8, 0.7);
+  for (let x = 0; x < w; x += 22) g.fillEllipse(x + 11, -h, 24, 7);
+  g.lineStyle(2, 0xfff6d5, 0.95).lineBetween(0, -h + 1, w, -h + 1);
+  g.lineStyle(2, 0xffffff, 0.22);
+  for (let k = 1; k < 4; k++) for (let x = 10 + (k * 37) % 50; x < w - 30; x += 90) g.lineBetween(x, -h + k * (h / 4), x + 34, -h + k * (h / 4));
+  const bubbles: Phaser.GameObjects.Arc[] = [];
+  for (let i = 0; i < Math.max(3, Math.round(w / 60)); i++) { const b = s.add.circle(20 + ((i * 53) % Math.max(30, w - 40)), -10 - ((i * 29) % Math.max(20, h - 20)), 4 + (i % 3), 0xfff6d5, 0.7); bubbles.push(b); body.add(b); }
+  v.add([glowI, body]);
+  v.tw({ targets: g, x: 6, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  bubbles.forEach((b, i) => v.tw({ targets: b, y: b.y - 18, alpha: 0.15, duration: 900 + i * 130, repeat: -1, ease: 'Sine.In' }));
+  body.scaleY = 0.25; let level = 0.25;
+  v.h.reveal = (a: number) => { const to = a >= 1 ? 1 : 0.25; if (to === level) return; level = to; v.tw({ targets: body, scaleY: to, duration: to > 0.5 ? 380 : 700, ease: to > 0.5 ? 'Back.Out' : 'Sine.InOut' }); };
+  v.h.telegraph = () => { v.tw({ targets: body, scaleY: 0.55, duration: 600, ease: 'Sine.InOut' }); v.tw({ targets: glowI, alpha: 0.85, duration: 300, yoyo: true, repeat: 1 }); };
+}
+
+/** zar çekilmesi: gevşek cep — pembe zar dokusu ve aşağı oklar (asansörün yukarı oklarının tersi: "seni aşağı çeker") */
+export function markSag(v: EntityView, w: number) {
+  const s = v.scene; const g = s.add.graphics();
+  g.fillStyle(0xffb3c7, 0.55).fillRoundedRect(0, 0, w, 18, 8);
+  g.lineStyle(3, 0x8a2a4a, 0.9);
+  for (let x = w / 2 - 36; x <= w / 2 + 36; x += 24) { g.beginPath(); g.moveTo(x - 7, 26); g.lineTo(x, 33); g.lineTo(x + 7, 26); g.strokePath(); }
+  v.add(g);
 }

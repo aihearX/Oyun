@@ -10,7 +10,7 @@ import { EntityView } from './view';
 import { num, buildBarrier, buildBigNote, buildBubble, buildBullet, buildCochlea, buildCoin, buildCurtain, buildFork, buildHazardCloud, buildMine, buildNote, buildPowerup, buildSpike } from './items';
 import { buildBeat, buildCheckpoint, buildCrumble, buildCurrent, buildDecor, buildDoor, buildEcho, buildEscortee, buildFlip, buildFreqGate, buildGate, buildGear, buildGravZone, buildHook, buildLauncher, buildMoving, buildPlatform, buildSpring, buildSwitch, buildText, buildTrampoline, buildWall, buildWater } from './mech';
 import { buildEnemy } from './enemies';
-import { markPathology } from './patoloji';
+import { buildFluid, markPathology, markPlaque, markSag } from './patoloji';
 
 /** önerilen derinlikler (motor isterse değiştirir) */
 export const DEPTH = { region: 3, decor: 4, platform: 5, hazard: 6, item: 8, enemy: 9, text: 15, hero: 20, fx: 30, foreground: 60, hud: 100 } as const;
@@ -22,13 +22,13 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
   switch (e.type) {
     case 'platform': buildPlatform(v, A, e.x, e.y, w || 128, h || 24); v.setDepth(DEPTH.platform); break;
     case 'moving': buildMoving(v, A, e.x, e.y, w || 120, h || 24, false); v.setDepth(DEPTH.platform); break;
-    case 'lift': buildMoving(v, A, e.x, e.y, w || 110, h || 24, true); v.setDepth(DEPTH.platform); break;
+    case 'lift': buildMoving(v, A, e.x, e.y, w || 110, h || 24, !p.sag); if (p.sag) markSag(v, w || 110); v.setDepth(DEPTH.platform); break;
     case 'wall': buildWall(v, A, e.x, e.y, w || 40, h || 220); v.setDepth(DEPTH.platform); break;
     case 'crumble': buildCrumble(v, A, e.x, e.y, w || 110, h || 24); v.setDepth(DEPTH.platform); break;
     case 'beat': buildBeat(v, w || 110, h || 24, String(p.pattern ?? '1010'), A); v.setDepth(DEPTH.platform); break;
     case 'echo': buildEcho(v, w || 110, h || 24); v.setDepth(DEPTH.platform); break;
     case 'spike': buildSpike(v, A, w || 32); v.setDepth(DEPTH.hazard); break;
-    case 'hazard': if (p.curtain) buildCurtain(v, String(p.kind ?? 'tuy'), w || 100, h || 140, Math.max(0, GROUND_Y - (e.y + (h || 140)))); else buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80); v.setDepth(DEPTH.hazard); break;
+    case 'hazard': if (p.kind === 'sivi') buildFluid(v, w || 300, h || 100); else if (p.curtain) buildCurtain(v, String(p.kind ?? 'tuy'), w || 100, h || 140, Math.max(0, GROUND_Y - (e.y + (h || 140)))); else buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80); v.setDepth(DEPTH.hazard); break;
     case 'barrier': buildBarrier(v, w || 34, h || 160); v.setDepth(DEPTH.hazard); break;
     case 'lane': buildMine(v); v.setDepth(DEPTH.hazard); break;
     case 'projectile': case 'bullet': buildBullet(v); v.setDepth(DEPTH.enemy); break;
@@ -41,7 +41,7 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'fork': buildFork(v, num(p.color, 0.5)); v.setDepth(DEPTH.item); break;
     case 'enemy': buildEnemy(v, p.kind); v.setDepth(DEPTH.enemy); break;
     case 'spring': buildSpring(v); v.setDepth(DEPTH.item); break;
-    case 'trampoline': buildTrampoline(v, w || 96); v.setDepth(DEPTH.platform); break;
+    case 'trampoline': buildTrampoline(v, w || 96); if (p.plak) markPlaque(v, w || 96); v.setDepth(DEPTH.platform); break;
     case 'gear': buildGear(v, num(p.r, 40), num(p.speed, 1), num(p.dir, 1)); v.setDepth(DEPTH.platform); break;
     case 'current': buildCurrent(v, w || 160, h || 80, num(p.vx, 120), num(p.vy, 0)); v.setDepth(DEPTH.region); break;
     case 'flip': buildFlip(v); v.setDepth(DEPTH.item); break;

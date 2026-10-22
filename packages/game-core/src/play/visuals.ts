@@ -78,7 +78,7 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
         case 'crumble': { const c = !st.visible ? 1 : st.warn; if (c !== lastCrack) { if (c === 0) v.crack(0); else v.crack(c); lastCrack = c; } break; }
         case 'door': case 'freqgate': case 'switch': case 'checkpoint': if (st.on !== lastOn) { v.setOpen(st.on); lastOn = st.on; } break;
         case 'enemy': if (st.face !== lastFace) { v.setFacing(st.face); lastFace = st.face; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
-        case 'hazard': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
+        case 'hazard': if (st.alpha !== lastAlpha) { if (e.props?.kind === 'sivi') v.reveal(st.alpha); else v.setAlpha(st.alpha); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
         case 'coin': case 'note': case 'collect': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } break;
         case 'fork': if (st.on !== lastOn) { v.setScale(st.on ? 1.25 : 1); lastOn = st.on; } break;
         // vuruşta nabız atan zar: her vuruş başında esner (oyuncu vuruşu görerek okur)

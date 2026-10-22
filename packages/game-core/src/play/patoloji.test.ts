@@ -77,6 +77,36 @@ describe('patoloji engeli ve Tedavi Odası malzemesi', () => {
     runFor(b.w, b.s, 240);
     expect(b.s.opened.has('k')).toBe(false); expect(b.s.hero.x).toBeLessThan(700);
   });
+  it('plaklı zar (timpanoskleroz) daha az sektirir; işitme cihazı plağı etkisiz kılar', () => {
+    const peak = (plak: boolean, rem?: RemedyIn[]) => {
+      const a = world([{ type: 'trampoline', x: 260, y: G + 60, w: 400, props: { power: 1, ...(plak ? { plak: true, patoloji: 'timpanoskleroz' } : {}) } }], rem);
+      a.s.hero.x = 160; a.s.hero.y = G - 60; a.s.hero.grounded = false; let top = Infinity, bounced = false;
+      for (let i = 0; i < 90; i++) {
+        step(a.w, a.s, { ...NO_INPUT, down: true, pressed: a.s.hero.vy > 0 && a.s.hero.y > G + 10 });
+        if (a.s.events!.some((e) => e.k === 'tramp-strong')) bounced = true;
+        if (bounced) top = Math.min(top, a.s.hero.y);
+      }
+      return { rise: G + 40 - top, used: a.s.remUsed };
+    };
+    const n = peak(false), p = peak(true), c = peak(true, [{ id: 'isitme-cihazi', count: 1 }]);
+    expect(p.rise).toBeLessThan(n.rise * 0.75); expect(p.rise).toBeGreaterThan(n.rise * 0.5);
+    expect(c.rise).toBeCloseTo(n.rise, 0); expect(c.used).toEqual({ 'isitme-cihazi': 1 });
+  });
+  it('zar cebi (retraksiyon) üstünde durana çöker; ventilasyon tüpü cebi etkisiz kılar', () => {
+    const ents: Entity[] = [{ type: 'lift', x: 0, y: G, w: 3000, h: 20, props: { dy: 120, sag: true, patoloji: 'retraksiyon' } }];
+    const onLift = (q: { w: World; s: SimState }) => { q.s.hero.x = q.w.ents.find((e) => e.type === 'lift')!.l + 100; q.s.hero.y = G - 2; q.s.hero.grounded = false; return q; };
+    const a = onLift(world(ents)); runFor(a.w, a.s, 75);
+    expect(a.s.hero.y).toBeGreaterThan(G + 100); expect(a.s.damageTaken).toBe(0);
+    const b = onLift(world(ents, [{ id: 'ventilasyon-tupu', count: 1 }])); runFor(b.w, b.s, 75);
+    expect(b.s.hero.y).toBeLessThan(G + 5); expect(b.s.remUsed).toEqual({ 'ventilasyon-tupu': 1 });
+  });
+  it('orta kulak sıvısı (otitis media) kabarıkken yakar; ventilasyon tüpü bir kez boşaltır', () => {
+    const fluid: Entity = { type: 'hazard', x: 500, y: G - 60, w: 300, h: 70, props: { kind: 'sivi', on: 5, off: 1, patoloji: 'otitis-media' } };
+    const a = world([floor, fluid], [{ id: 'ventilasyon-tupu', count: 1 }]);
+    expect(firstHit(a.w, a.s)).toBe('remedy'); runFor(a.w, a.s, 120); expect(a.s.damageTaken).toBe(0);
+    const b = world([floor, fluid]);
+    expect(firstHit(b.w, b.s)).toBe('hurt');
+  });
   it('planlayıcı kopyası malzemeyi kendi sayar (asıl durumu değiştirmez)', () => {
     const a = world([floor, cloud(500, 'gurultu-hasari')], [{ id: 'kulak-tikaci', count: 1 }]);
     const c = cloneState(a.s); firstHit(a.w, c);

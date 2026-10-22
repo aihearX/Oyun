@@ -38,6 +38,10 @@ export const GLIDE_FALL = 115;
 /** trambolin: değme anında (±pencere) dokununca güçlü, yoksa sönük sıçrama */
 export const TRAMP_STRONG = 1080;
 export const TRAMP_WEAK = 560;
+/** zar sertleşmesi (plaklı zar): güçlü sıçrayış çarpanı */
+export const PLAK_K = 0.8;
+/** zar çekilmesi (çöken cep): çökme hızı (px/sn) */
+export const SAG_V = 110;
 export const TRAMP_WINDOW = 0.12;
 /** "Mükemmel" zar sıçrayışı: değme anının ±0,05 sn içinde dokunuş → güç ×1,12 (yalnız ustalık ödülü; geçmek için gerekmez) */
 export const TRAMP_PERFECT = 0.05;
