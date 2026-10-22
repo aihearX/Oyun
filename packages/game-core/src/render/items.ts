@@ -227,6 +227,43 @@ export function buildHazardCloud(v: EntityView, kind: string, w: number, h: numb
   v.tw({ targets: z, alpha: { from: 1, to: 0.3 }, scaleY: { from: z.scaleY, to: z.scaleY * 0.5 }, duration: 140, yoyo: true, repeat: -1, repeatDelay: 120 });
   v.tw({ targets: [cl, eyes], y: '-=4', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   v.h.shatter = () => { burst(v, hot, 12); };
+  // nabız tehlikesi açılmadan önce (0,65 sn): parlama yükselir, bulut titrer (gürleme)
+  v.h.telegraph = () => {
+    v.tw({ targets: g, alpha: { from: 0.45, to: 0.95 }, duration: 650, ease: 'Quad.In' });
+    v.tw({ targets: [cl, z], x: { from: cx - 2.5, to: cx + 2.5 }, duration: 45, yoyo: true, repeat: 6 });
+  };
+}
+/**
+ * Kıl perdesi (altından kayılan asılı tehlike): asılı saçak/tül, alt kenarı zeminden belirgin yukarıda; altında aydınlık açıklık
+ * ve aşağı oklar ("kay"). Gürültü bulutunun gözleri ve şimşeği yok: okunuşu "alçak geçit — altından kay".
+ */
+export function buildCurtain(v: EntityView, kind: string, w: number, h: number, gap: number) {
+  const s = v.scene;
+  const base = kind === 'serumen' ? 0xe0913a : kind === 'gurultu' ? 0xb05ad8 : 0xf2c6dc;
+  const deep = darken(base, 0.45), lite = lighten(base, 0.35);
+  // açıklık: zemine kadar aydınlık bant (geçilecek yer)
+  const lit = s.add.image(w / 2, h + gap / 2, softGlowTex(s)).setBlendMode(ADD).setTint(0xfff3b0).setDisplaySize(w * 1.3, Math.max(26, gap * 2.2)).setAlpha(0.55); v.add(lit);
+  const body = s.add.graphics(); v.add(body);
+  // tutturma çubuğu ve tül
+  body.fillStyle(deep, 0.95); body.fillRoundedRect(-6, -4, w + 12, 10, 5);
+  body.fillStyle(base, 0.82); body.fillRect(0, 4, w, h - 14);
+  // dalgalı alt kenar (saçak)
+  const n = Math.max(3, Math.round(w / 22)); const sw = w / n;
+  for (let i = 0; i < n; i++) body.fillTriangle(i * sw, h - 10, (i + 1) * sw, h - 10, (i + 0.5) * sw, h);
+  // dikey kıl çizgileri
+  const strands = s.add.graphics(); v.add(strands);
+  strands.lineStyle(2, lite, 0.75); for (let x = 6; x < w - 2; x += 9) { strands.beginPath(); strands.moveTo(x, 6); strands.lineTo(x + 2, h - 12); strands.strokePath(); }
+  // alt kenar vurgusu: perdenin bittiği yer net görünsün
+  const edge = s.add.graphics(); v.add(edge); edge.lineStyle(3, 0xffffff, 0.9); edge.lineBetween(2, h - 1, w - 2, h - 1);
+  // aşağı oklar + "kay"
+  const ar = s.add.graphics(); v.add(ar);
+  const cx = w / 2, ay = h + Math.max(6, gap * 0.3);
+  ar.lineStyle(3, 0xfff3b0, 1); for (const dy of [0, 7]) { ar.beginPath(); ar.moveTo(cx - 8, ay + dy); ar.lineTo(cx, ay + dy + 6); ar.lineTo(cx + 8, ay + dy); ar.strokePath(); }
+  const tx = s.add.text(cx, Math.max(14, h - 26), 'KAY ↓', { fontFamily: 'system-ui, sans-serif', fontSize: '13px', fontStyle: '700', color: '#3a1030' }).setOrigin(0.5).setAlpha(0.85); v.add(tx);
+  v.tw({ targets: ar, y: { from: -2, to: 3 }, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  v.tw({ targets: lit, alpha: { from: 0.35, to: 0.7 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  v.tw({ targets: strands, x: { from: -1.5, to: 1.5 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  v.h.shatter = () => { burst(v, base, 10); };
 }
 export function buildBarrier(v: EntityView, w: number, h: number) {
   const s = v.scene;

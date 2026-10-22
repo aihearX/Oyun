@@ -148,6 +148,8 @@ export interface LevelAssist {
   turnOnlyWhenNeeded: boolean;
   /** yatay kaydırmanın sayıldığı en kısa mesafe (px; varsayılan 42) */
   swipePx: number;
+  /** her odada dikene ilk değiş can götürmez (geri iter) */
+  spikeGrace?: boolean;
 }
 
 export interface RunResult {

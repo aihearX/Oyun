@@ -59,4 +59,6 @@ export const FIRSTS: Record<string, string> = {
   'ogret-zipla': 'Yeni yetenek: Zıpla!', 'ogret-kayma': 'Yeni yetenek: Kayma!', 'ogret-duvar': 'Yeni yetenek: Duvar Zıplaması!',
   'ogret-suzul': 'Yeni yetenek: Süzülme!', 'ogret-trambolin': 'Yeni yetenek: Zar Sıçrayışı!', 'ogret-kanca': 'Yeni yetenek: Kanca!',
   'ogret-cakil': 'Yeni yetenek: Yere Çakılma!', 'ogret-yuz': 'Yeni yetenek: Yüzme!', 'ogret-darbe': 'Yeni yetenek: Ses Darbesi!', 'ogret-cevir': 'Yeni yetenek: Yerçekimi Çevirme!',
+  // 5. bölümün kayma tazeleme anı: iki perde başarıyla geçilince kalıcı olarak kapanır (kutlama gösterilmez)
+  'tazele-kayma': 'Kayma tazelendi!',
 };

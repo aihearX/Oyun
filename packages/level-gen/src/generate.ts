@@ -140,6 +140,107 @@ function applyGeometry(c: ChunkSpec, k: Pick<LevelKnobs, 'geom'>): ChunkSpec {
   }
   return { ...c, entities: ents };
 }
+/**
+ * Diken seyrekliği: oyuncu "yerden çıkan kırmızı dikenleri" en zor şey olarak gördü. `knobs.spikes`:
+ *  'yok' (1-5): hiç diken kalmaz · 'bolum' (6-12): bölüm-içi bölüm başına en çok `perSection` diken; kontrol noktası ve geri
+ *  dönüş odalarında, inişten (zemin başlangıcı, platform kenarı) sonraki 160 px'te hiç · 'seyrek' (13+): sıradaki her beş
+ *  dikenden ikisi kalır (kontrol noktası odasında hiç). Kalkan zemin dikeni, iki yanda en az 100 px zemin kalıyorsa 60-110 px'lik çukura döner.
+ */
+function capSpikes(chunks: ChunkSpec[], starts: number[], k: Pick<LevelKnobs, 'spikes' | 'early'>, done: WeakSet<ChunkSpec> = new WeakSet()): void {
+  const sp = k.spikes; if (sp.mode === 'serbest') return;
+  const secOf = (i: number) => Math.max(0, starts.filter((st) => i >= st).length - 1);
+  // önceki geçişte işlenmiş odalarda kalan dikenler sayılır (ikinci geçiş yalnız sonradan eklenen mikro odalara bakar)
+  const kept = [0, 0, 0]; let idx = 0;
+  chunks.forEach((c, i) => { if (done.has(c)) kept[secOf(i)]! += c.entities.filter((e) => e.type === 'spike').length; });
+  chunks.forEach((c, i) => {
+    if (done.has(c)) return;
+    if (!c.entities.some((e) => e.type === 'spike')) { done.add(c); return; }
+    const sec = secOf(i);
+    const ents = c.entities.map((e) => ({ ...e }));
+    const floors = ents.filter((e) => e.type === 'platform' && (e.h ?? 24) >= 100 && Math.abs(e.y - GROUND_Y) <= 2);
+    const ledges = ents.filter((e) => e.type === 'platform' && e.y < GROUND_Y - 12);
+    const calm = c.id.startsWith('cp-') || c.tags.includes('geri') || c.tags.includes('anahtar');
+    const goodSpot = (e: Entity) => {
+      const F = floors.find((f) => f.x <= e.x && f.x + (f.w ?? 0) >= e.x + (e.w ?? 32));
+      if (!F || e.x - F.x < 160) return false;
+      return !ledges.some((l) => l.x + (l.w ?? 0) <= e.x && l.x + (l.w ?? 0) > e.x - 160);
+    };
+    const drop: Entity[] = [];
+    for (const e of ents.filter((q) => q.type === 'spike').sort((a, b) => a.x - b.x)) {
+      let keep = false;
+      if (sp.mode === 'bolum') { keep = !calm && kept[sec]! < sp.perSection && e.y === GROUND_Y && goodSpot(e); if (keep) kept[sec]! += 1; }
+      else if (sp.mode === 'seyrek') {
+        // su altındaki diken (havuz tabanı) yüzme sınavının parçası: kalır (yerden çıkan diken değil; tempo da onunla tutulur)
+        const wet = ents.some((w) => w.type === 'water' && e.x >= w.x && e.x <= w.x + (w.w ?? 0) && e.y >= w.y);
+        const m = wet ? 0 : idx++ % 5; keep = wet || ((m === 0 || m === 2) && !c.id.startsWith('cp-'));
+      }
+      if (!keep) drop.push(e);
+    }
+    if (!drop.length) return;
+    const pits = new Set<Entity>();
+    for (const e of drop) {
+      // anahtar ve kapının 200 px yakınında çukur açılmaz (dönüş yolunda sürpriz çukur olmasın): diken yalnız kalkar
+      if (e.y !== GROUND_Y || ents.some((q) => q.type === 'wall')) continue;
+      if (ents.some((q) => (q.type === 'switch' || q.type === 'door') && Math.abs(q.x - e.x) < 200)) continue;
+      const pw = Math.min(k.early.maxPit, 110, Math.max(60, (e.w ?? 32) + 28)); const cx0 = e.x + (e.w ?? 32) / 2;
+      const F = ents.find((f) => f.type === 'platform' && (f.h ?? 24) >= 100 && Math.abs(f.y - GROUND_Y) <= 2 && f.x <= cx0 && f.x + (f.w ?? 0) >= cx0 && (f.w ?? 0) >= 200 + pw);
+      if (!F) continue;
+      const cx = Math.max(F.x + 100 + pw / 2, Math.min(F.x + (F.w ?? 0) - 100 - pw / 2, cx0)); if (Math.abs(cx - cx0) > 60) continue;
+      if (ents.some((q) => q !== e && q.type !== 'coin' && q.type !== 'note' && q.type !== 'decor' && !(q.type === 'platform' && q.y < GROUND_Y - 12) && q.x < cx + pw / 2 && q.x + (q.w ?? 0) > cx - pw / 2 && q !== F && q.type !== 'spike')) continue;
+      const l = Math.round(cx - pw / 2), r = Math.round(cx + pw / 2);
+      ents.push({ ...F, x: r, w: F.x + (F.w ?? 0) - r }); F.w = l - F.x; pits.add(e);
+    }
+    // çukura dönüşemeyen diken, kalkınca odada zorunlu engeller arasında 480 px'ten uzun (≈ 1,8 sn) boşluk bırakıyorsa kalır
+    // (13+; isteğe bağlı basamaklar/yankı merdiveni zorunlu sayılmaz: ana yol oyuncusu onlara basmadan geçer)
+    let out = ents.filter((e) => !pits.has(e));
+    const base = mandatoryGap({ ...c, entities: out });
+    for (const e of drop.filter((d) => !pits.has(d))) {
+      const trial = out.filter((q) => q !== e);
+      if (sp.mode === 'seyrek' && mandatoryGap({ ...c, entities: trial }) > Math.max(480, base)) continue;
+      out = trial;
+    }
+    chunks[i] = { ...c, entities: out }; done.add(chunks[i]!);
+  });
+}
+/**
+ * Kıl perdesi (altından kayılan asılı tehlike): `props.curtain` ile işaretlenir (ayrı görsel: asılı perde, aydınlık açıklık,
+ * aşağı ok). Belirsiz "neredeyse aşılır" yükseklik kalmasın: üstünde yer varsa perde G-290'a kadar uzar (zıplayarak aşılamaz,
+ * tam zıplama 163 px); yardımlı bölümlerde (1-12) alt kenar G-27 (kayan kahramanla 17 px pay — eskiden 14 —, ayaktaki kahraman
+ * yine değer).
+ */
+function markCurtains(c: ChunkSpec, assisted: boolean): ChunkSpec {
+  const isCurtain = (e: Entity) => e.type === 'hazard' && !e.props?.dx && !e.props?.dy && !e.props?.period && !e.props?.on && !e.props?.chase
+    && (e.h ?? 0) >= 120 && e.y <= GROUND_Y - 140 && e.y + (e.h ?? 0) >= GROUND_Y - 40 && e.y + (e.h ?? 0) <= GROUND_Y - 10;
+  if (!c.entities.some(isCurtain)) return c;
+  const ents = c.entities.map((e) => ({ ...e }));
+  for (const e of ents) {
+    if (!isCurtain(e)) continue;
+    const w = e.w ?? 100; const bot = assisted ? GROUND_Y - 27 : e.y + (e.h ?? 0);
+    const roof = ents.some((q) => q !== e && (q.type === 'platform' || q.type === 'wall' || q.type === 'hazard' || q.type === 'spike' || q.type === 'moving') && q.x < e.x + w + 20 && q.x + (q.w ?? 0) > e.x - 20 && q.y < e.y && q.y + (q.h ?? 24) > GROUND_Y - 300);
+    const top = roof ? e.y : GROUND_Y - 290;
+    e.y = top; e.h = bot - top; e.props = { ...e.props, curtain: true };
+  }
+  return { ...c, entities: ents };
+}
+/** odada zorunlu engeller (zemin dikeni, zemin çukuru, zemindeki düşman/tehlike, duvar, bariyer, kapı, zeminden yükselen
+ *  blok) arasındaki en uzun boşluk (oda girişi ve çıkışı dahil, px) */
+function mandatoryGap(c: ChunkSpec): number {
+  const xs: number[] = [0, c.length];
+  for (const e of c.entities) {
+    const h = e.h ?? 0;
+    if (e.type === 'spike' || e.type === 'wall' || e.type === 'barrier' || e.type === 'door' || e.type === 'freqgate') xs.push(e.x);
+    else if (e.type === 'enemy' && e.y >= GROUND_Y - 60) xs.push(e.x);
+    else if (e.type === 'hazard' && e.y + h >= GROUND_Y - 30 && e.y <= GROUND_Y + 10) xs.push(e.x);
+    else if (e.type === 'platform' && h > 32 && e.y < GROUND_Y - 12 && e.y + h >= GROUND_Y - 12) xs.push(e.x);
+  }
+  const floors = c.entities.filter((e) => e.type === 'platform' && (e.h ?? 24) >= 100 && Math.abs(e.y - GROUND_Y) <= 12).map((e) => [e.x, e.x + (e.w ?? 0)] as [number, number]).sort((a, b) => a[0] - b[0]);
+  let cover = 0; for (const [a, b] of floors) { if (a - cover >= 40) xs.push(cover); cover = Math.max(cover, b); }
+  xs.sort((a, b) => a - b); let g = 0; for (let i = 1; i < xs.length; i++) g = Math.max(g, xs[i]! - xs[i - 1]!); return g;
+}
+/** tek odanın bütün dikenleri (çukura döner ya da kalkar): ilk bölümlerin tempo mikro odaları için */
+function despike(c: ChunkSpec, k: Pick<LevelKnobs, 'early'>): ChunkSpec {
+  const one = [c]; capSpikes(one, [0], { early: k.early, spikes: { mode: 'yok', perSection: 0 } }); return one[0]!;
+}
 /** odaya bir sıkılık düzeyinin geometri ve zamanlama düğmelerini uygula (oda puanlama aracı da bunu kullanır) */
 export function tuneRoom(c: ChunkSpec, tight: number): ChunkSpec { const t = tuningAt(tight); return applyTiming(applyGeometry(c, t), t); }
 /** zamanlama düğmelerini odanın varlıklarına yaz (oda tanımı paylaşılır: kopyala) */
@@ -360,13 +461,21 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   // odaların varlıklarına yazılır — tempo çözümlemesi düğmeli geometriyi görsün diye ondan önce; sonradan eklenen mikro odalar
   // ve giriş çukuru da aşağıda bir kez ayarlanır
   const tuned = new WeakSet<ChunkSpec>();
-  const tune = (c: ChunkSpec) => { if (tuned.has(c)) return c; const t = applyTiming(applyGeometry(applyEarly(c, knobs), knobs), knobs); tuned.add(t); return t; };
+  const tune = (c: ChunkSpec) => { if (tuned.has(c)) return c; const t = applyTiming(applyGeometry(applyEarly(markCurtains(c, !!knobs.assist), knobs), knobs), knobs); tuned.add(t); return t; };
   for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
+  // diken seyrekliği (docs/12 §4): 1-5'te hiç, 6-12'de bölüm-içi bölüm başına en çok bir, 13+'da yaklaşık %40'ı kalır;
+  // kalkan diken zeminde küçük çukura döner. Tempo kuralı dikensiz hâli görsün diye mikro odalardan ÖNCE; sonradan eklenen
+  // mikro odalar aşağıda ikinci geçişte (ilk bölümlerde mikro odalar baştan dikensiz)
+  const spiked = new WeakSet<ChunkSpec>();
+  capSpikes(finalChunks, sectionStarts, knobs, spiked);
+  for (const c of finalChunks) tuned.add(c);
   // ---- tempo: iki girdi arasındaki sessiz yol PACE_LIMIT'i aşmasın — gerekirse araya mikro oda (pacing.ts)
   // mikro odalar da ayarlı halleriyle (ilk bölümde dikensiz kalan mikro oda girdi istemiyorsa tempo için işe yaramaz);
   // sessiz yol sınırı koşu hızıyla ölçeklenir (yavaş koşuda aynı süre daha kısa yol)
   // (yalnız yardımlı ilk bölümlerde; sonrakiler eskisi gibi ham mikro odayla, eklendikten sonra ayarlanır)
-  const pacedMicros = knobs.assist ? micros.map(tune).filter((c) => quietProfile(c).actions.length > 0) : [];
+  const noSpikeMicros = knobs.spikes.mode === 'yok' || knobs.spikes.mode === 'bolum';
+  const pacedMicros = knobs.assist ? micros.map(tune).map((c) => (noSpikeMicros ? despike(c, knobs) : c)).filter((c) => quietProfile(c).actions.length > 0) : [];
+  for (const c of pacedMicros) tuned.add(c);
   const paceLimit = Math.round(PACE_LIMIT * (knobs.assist ? knobs.assist.run / 260 : 1));
   const paced = paceChunks(finalChunks, sectionStarts, pacedMicros.length ? pacedMicros : micros, { latest, biome: plan.biome, rng, limit: paceLimit, flight: !!knobs.assist, onInsert: pacedMicros.length ? (c) => tuned.add(c) : undefined });
   finalChunks.length = 0; finalChunks.push(...paced.chunks); sectionStarts.splice(0, 3, ...paced.sectionStarts);
@@ -379,6 +488,25 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     finalChunks.unshift({ ...opener, length: opener.length + (last ? extra : 0), entities: ents }); sectionStarts[1]! += 1; sectionStarts[2]! += 1;
   }
   for (let i = 0; i < finalChunks.length; i++) finalChunks[i] = tune(finalChunks[i]!);
+  capSpikes(finalChunks, sectionStarts, knobs, spiked);
+  // 5. bölüm: ilk kıl perdesinden önce kayma tazeleme anı (3. bölümdeki dersin aynısı; daha önce öğrenilmiş olsa da)
+  if (plan.number === 5) {
+    if (!finalChunks.some((c) => c.entities.some((e) => e.props?.curtain))) {
+      // perdesiz çıkan 5. bölüme kısa bir perde odası (tazeleme anı için), ilk bölüm-içi bölümün ikinci odası olarak
+      const m = pool.find((c) => c.id === 'mk-perde');
+      if (m) { finalChunks.splice(Math.min(2, finalChunks.length), 0, tune({ ...m, entities: m.entities.slice() })); for (let j = 1; j < sectionStarts.length; j++) sectionStarts[j]! += 1; }
+    }
+    const ci = finalChunks.findIndex((c) => c.entities.some((e) => e.props?.curtain));
+    if (ci >= 0) {
+      let c = finalChunks[ci]!; let cx = Math.min(...c.entities.filter((e) => e.props?.curtain).map((e) => e.x));
+      // uzun koşu payı: perde odanın başına yakınsa oda öne doğru uzar (baştaki zemin genişler)
+      if (cx < 300) {
+        const d = 300 - cx;
+        c = { ...c, length: c.length + d, entities: c.entities.map((e) => (e.x === 0 && e.type === 'platform' && Math.abs(e.y - GROUND_Y) <= 2 ? { ...e, w: (e.w ?? 0) + d } : { ...e, x: e.x + d })) }; cx += d;
+      }
+      finalChunks[ci] = { ...c, entities: [{ type: 'tutor', x: cx - 260, y: GROUND_Y, w: 110, props: { ability: 'kayma', refresher: true } }, ...c.entities] };
+    }
+  }
   // nota sınırı: fazlası, en uzun nota dizilerinin uçlarından kırpılır (yaylar bölünmez, yalnız kısalır)
   const countNotes = () => finalChunks.reduce((a, c) => a + c.entities.reduce((b, e) => b + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0), 0);
   let notes = countNotes();

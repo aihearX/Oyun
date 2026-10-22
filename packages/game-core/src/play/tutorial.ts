@@ -20,10 +20,13 @@ export const TUTORIAL_SUCCESS: Record<AbilityId, string[]> = {
 const GESTURE: Record<'dokun' | 'basili' | 'asagi' | 'ileri' | 'geri', HintKind> = { dokun: 'tap', basili: 'hold', asagi: 'swipeDown', ileri: 'swipeRight', geri: 'swipeLeft' };
 export const gestureHint = (a: AbilityId): HintKind => GESTURE[ABILITIES[a].gesture];
 
+/** 5. bölümün kayma tazeleme anı (öğrenilmiş olsa da gösterilir; iki başarılı perde geçişinden sonra bir daha gösterilmez) */
+export const REFRESH_KEY = 'tazele-kayma';
+export const REFRESH_TEXT = 'Aşağı kaydır: perdenin altından kay!';
 export class Tutorial {
-  constructor(public ability: AbilityId, public tutorId: number, private hud: LevelHudView, private backdrop?: BiomeBackdrop) {
+  constructor(public ability: AbilityId, public tutorId: number, private hud: LevelHudView, private backdrop?: BiomeBackdrop, text?: string) {
     const def = ABILITIES[ability];
-    hud.showHint(gestureHint(ability), `Yeni: ${def.name}\n${def.how}`);
+    hud.showHint(gestureHint(ability), text ?? `Yeni: ${def.name}\n${def.how}`);
     backdrop?.setForegroundAlpha(0.35);
   }
   done() { this.hud.hideHint(); this.backdrop?.setForegroundAlpha(1); }

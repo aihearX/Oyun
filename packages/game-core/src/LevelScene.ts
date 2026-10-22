@@ -14,7 +14,7 @@ import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
 import { liveWaves } from './play/boss';
-import { Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
+import { REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
   paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
   type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
@@ -48,6 +48,8 @@ export class LevelScene extends Phaser.Scene {
   private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
+  /** kıl perdeleri: 3-8'de ilk üç perdeden önce "aşağı kaydır" ipucu; 5'te tazeleme anı bir kez, iki başarılı geçişten sonra hiç */
+  private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false;
   private pendingEdges: { pressed: boolean; released: boolean; swipeDown: boolean; swipeX: number } = { pressed: false, released: false, swipeDown: false, swipeX: 0 };
   private resultSent = false; private lastWall = 0; private chargeFrom = -1; private summaryDone = 0; private cues = new Map<number, number>(); private cueAt = -9;
   /** görsel kalite: gerçek cihazda kare hızı 2 sn boyunca ~45'in altında kalırsa 'low'a iner (bot/harness'te ölçülmez) */
@@ -139,6 +141,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.tutorial) { this.tutorialT += realDt * Math.min(1, ts); if (this.tutorialT > TUTORIAL_MAX_S) this.endTutorial(false); }
     if (this.comboShown && this.sim.t - this.comboAt > 1.4) { this.comboShown = 0; this.hud.setCombo(0, 1); }
     this.beatSync();
+    this.curtainWatch();
     const raw = this.input_.tick();
     // tek karelik girdiler (dokunuş, kaydırma) bir sonraki sim adımına kadar bekletilir: o karede adım yoksa kaybolmasın
     const pe = this.pendingEdges;
@@ -221,6 +224,7 @@ export class LevelScene extends Phaser.Scene {
       case 'hurt': this.onHurt(e); break;
       case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
       case 'freefall': floatText(this, e.x, e.y - 160, 'Sorun değil — tekrar!', COLORS.accent2); break;
+      case 'spikegrace': floatText(this, e.x, e.y - 160, 'Dikkat, diken!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'kill': S.score += 50; sfx.bounce(); this.fx.perfectRing(e.x, e.y - 20, null); floatText(this, e.x, e.y - 40, e.s === 'stomp' ? '+50 ezme!' : '+50', COLORS.accent2); this.emit({ type: 'haptic', kind: 'medium' }); this.firstTime('ezme'); this.chainHit(); break;
       case 'shieldbounce': sfx.tick(); floatText(this, e.x, e.y - 50, 'Kalkanlı! Çakıl ya da atıl', COLORS.muted); break;
       case 'break': S.score += 20; sfx.hit(); this.fx.hitFlash(e.x, e.y); this.cameras.main.shake(80, 0.005); break;
@@ -247,7 +251,7 @@ export class LevelScene extends Phaser.Scene {
   }
   private onHurt(e: SimEvent) {
     if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan kırıldı', COLORS.accent); return; }
-    if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, '💚 Revir korudu!', COLORS.accent2); return; }
+    if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, '💚 Klinik korudu!', COLORS.accent2); return; }
     this.lastHurtAt = this.sim.t;
     sfx.hit(); this.fx.hitFlash(); this.cameras.main.shake(160, 0.01); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
   }
@@ -273,8 +277,25 @@ export class LevelScene extends Phaser.Scene {
     return this.opts.firsts === undefined || this.opts.firsts.includes(key);
   }
   private startTutorial(e: SimEvent) {
-    const a = e.s as AbilityId; if (!a || this.tutorial || !this.showTutorial(a)) return;
+    const a = e.s as AbilityId; if (!a || this.tutorial) return;
+    const ent = e.id !== undefined ? this.world.ents[e.id] : undefined;
+    if (ent?.p.refresher) {
+      // tazeleme: bu koşuda bir kez; oyuncu iki perdeyi başarıyla geçtiyse (kalıcı anahtar) hiç
+      if (this.opts.race || this.refresherShown || this.firstsDone.includes(REFRESH_KEY) || (this.opts.firsts !== undefined && !this.opts.firsts.includes(REFRESH_KEY))) return;
+      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT); this.tutorialT = 0; return;
+    }
+    if (!this.showTutorial(a)) return;
     this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop); this.tutorialT = 0; this.tutorAbilities.add(a);
+  }
+  /** kıl perdesi ipucu (3-8) ve 5'teki başarılı geçiş sayımı */
+  private curtainWatch() {
+    const n = this.spec.number; if (n < 3 || n > 8 || this.opts.race) return;
+    const h = this.sim.hero;
+    for (const id of near(this.world, h.x - 40, h.x + 360)) {
+      const e = this.world.ents[id]!; if (!e.p.curtain) continue;
+      if (!this.curtainHinted.has(id) && e.l - h.x < 320 && e.l > h.x && this.curtainHinted.size < 3 && !this.tutorial) { this.curtainHinted.add(id); this.hint('Aşağı kaydır: altından kay', 1600, 'swipeDown'); }
+      if (!this.curtainPassed.has(id) && h.x > e.r) { this.curtainPassed.add(id); if (n === 5 && h.invuln <= 0) { this.curtainSlides++; if (this.curtainSlides >= 2 && !this.firstsDone.includes(REFRESH_KEY)) this.firstsDone.push(REFRESH_KEY); } }
+    }
   }
   private endTutorial(success: boolean) {
     const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done();
@@ -287,7 +308,7 @@ export class LevelScene extends Phaser.Scene {
   /** düşüp geri dönen oyuncu öğretici anı yeniden yaşar (başaramadıysa) */
   private resetTutorTrigger() {
     if (this.tutorial) { const id = this.tutorial.tutorId; this.endTutorial(false); if (id >= 0) this.sim.collected.delete(id); }
-    for (const e of this.world.ents) if (e.type === 'tutor' && this.sim.collected.has(e.id) && !this.firstsDone.includes(tutorialKey(String(e.p.ability) as AbilityId)) && e.l > this.sim.hero.x) this.sim.collected.delete(e.id);
+    for (const e of this.world.ents) if (e.type === 'tutor' && !e.p.refresher && this.sim.collected.has(e.id) && !this.firstsDone.includes(tutorialKey(String(e.p.ability) as AbilityId)) && e.l > this.sim.hero.x) this.sim.collected.delete(e.id);
   }
 
   // ------------------------------------------------------------------ çizim eşitleme

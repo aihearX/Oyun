@@ -39,6 +39,7 @@ export interface SimState {
   lives: number; shield: number; revir: boolean; deaths: number; damageTaken: number;
   /** kalan can kaybettirmeyen düşüş (ilk bölümlerin yardımı) ve öğretici odasındaki bağışlanan düşüş */ freeFalls: number; graceFalls: number;
   /** can götürmeyen (bağışlanan) çarpma/düşüş sayısı — planlayıcı bunlardan da kaçınır */ softHits: number;
+  /** dikene ilk değişi bağışlanan son oda (spikeGrace) */ spikeRoom: number;
   coins: number; cochleas: number; notes: number; nextNote: number; stomps: number;
   finished: boolean; failed: string | null;
   cp: SafeSpot; cpX: number; safe: SafeSpot[]; lastGroundOdo: number;
@@ -71,7 +72,7 @@ export function initState(w: World, o: InitOpts = {}): SimState {
   const h = newHero(w.startX, w.startY);
   const spot: SafeSpot = { x: w.startX, y: w.startY, dir: 1, odo: 0 };
   const s: SimState = {
-    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0,
+    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
     coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,
     collected: new Set(), killed: new Map(), broken: new Set(), opened: new Set(), crumble: new Map(), timers: new Map(), lifts: new Map(),
@@ -198,11 +199,12 @@ export function hazardAt(w: World, s: SimState, e: WEnt, t: number, out: R = TMP
   return true;
 }
 
-/** nabız tehlikesi uyarısı (0..1): açılmadan önceki 0,45 sn */
+/** nabız tehlikesi uyarısı (0..1): açılmadan önceki 0,65 sn (parlama + titreme) */
+export const HAZARD_WARN_S = 0.65;
 export function hazardWarn(e: WEnt, t: number): number {
   const on = Number(e.p.on ?? 0), off = Number(e.p.off ?? 0); if (!(on > 0 && off > 0)) return 0;
   const u = (t + Number(e.p.phase ?? 0)) % (on + off); const left = on + off - u;
-  return u >= on && left < 0.45 ? 1 - left / 0.45 : 0;
+  return u >= on && left < HAZARD_WARN_S ? 1 - left / HAZARD_WARN_S : 0;
 }
 
 export type EnemyKind = 'devriye' | 'ucan' | 'atici' | 'ziplayan' | 'kalkanli';
@@ -282,6 +284,15 @@ export function hurt(w: World, s: SimState, reason: string, fromX?: number): boo
   const grace = w.assist.grace.some(([l, r]) => h.x >= l && h.x < r);
   const graceFall = grace && s.graceFalls > 0;
   if (reason === 'fall' && (graceFall || s.freeFalls > 0)) { if (graceFall) s.graceFalls--; else s.freeFalls--; s.softHits++; h.invuln = C.INVULN_FALL; ev(s, 'freefall', h.x, h.y, { n: s.freeFalls }); respawn(w, s, false); return false; }
+  // 6-12: odada dikene ilk değiş yalnız geri iter
+  if (reason === 'diken' && w.assist.spikeGrace && !grace) {
+    let room = 0; while (room + 1 < w.assist.roomX.length && w.assist.roomX[room + 1]! <= h.x) room++;
+    if (room > s.spikeRoom) {
+      s.spikeRoom = room; s.softHits++; h.invuln = C.INVULN_HIT; ev(s, 'spikegrace', h.x, h.y);
+      if (fromX !== undefined && h.hookId < 0) { h.knock = 0.18; h.vy = -320 * h.g; h.grounded = false; h.jumpRise = false; }
+      return false;
+    }
+  }
   if (grace && reason !== 'fall') {
     s.softHits++; h.invuln = C.INVULN_HIT; ev(s, 'freefall', h.x, h.y, { n: s.freeFalls });
     if (fromX !== undefined && h.hookId < 0) { h.knock = 0.18; h.vy = -320 * h.g; h.grounded = false; h.jumpRise = false; }

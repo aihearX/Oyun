@@ -63,11 +63,13 @@ export interface WorldAssist {
   runK: number; coyote: number; buffer: number; freeFalls: number; turnGate: boolean;
   /** öğretici odalarının dünya x aralıkları (yardımlı bölümlerde): yeni hareketi öğrenirken can gitmez */
   grace: [number, number][];
+  /** odaların dünya başlangıç x'leri ve dikene ilk değişin bağışlanması (spec.assist.spikeGrace) */
+  roomX: number[]; spikeGrace: boolean;
 }
 export function worldAssist(spec: LevelSpec): WorldAssist {
-  const a = spec.assist; const grace: [number, number][] = [];
-  if (a) { let x = START_PAD; for (const c of spec.chunks) { if (c.tags.includes('ogretici')) grace.push([x, x + c.length]); x += c.length; } }
-  return { runK: a ? a.run / C.RUN : 1, coyote: a?.coyote ?? C.COYOTE, buffer: a?.buffer ?? C.JUMP_BUFFER, freeFalls: a?.freeFalls ?? 0, turnGate: !!a?.turnOnlyWhenNeeded, grace };
+  const a = spec.assist; const grace: [number, number][] = []; const roomX: number[] = [];
+  { let x = START_PAD; for (const c of spec.chunks) { roomX.push(x); if (a && c.tags.includes('ogretici')) grace.push([x, x + c.length]); x += c.length; } }
+  return { runK: a ? a.run / C.RUN : 1, coyote: a?.coyote ?? C.COYOTE, buffer: a?.buffer ?? C.JUMP_BUFFER, freeFalls: a?.freeFalls ?? 0, turnGate: !!a?.turnOnlyWhenNeeded, grace, roomX, spikeGrace: !!a?.spikeGrace };
 }
 
 const RECT_TYPES = new Set<EntityType>(['platform', 'moving', 'wall', 'crumble', 'barrier', 'door', 'freqgate', 'beat', 'echo', 'lift', 'water', 'gravzone', 'hazard', 'current']);
@@ -95,7 +97,8 @@ function rect(e: Entity, x: number): { l: number; t: number; r: number; b: numbe
     return { l: x, t: y, r: x + w, b: y + h };
   }
   switch (e.type) {
-    case 'spike': { const w = e.w ?? 32; return { l: x + 5, t: y - 16, r: x + w - 5, b: y }; }
+    // diken: görselin (34 px) ortadaki %60'ı ve uç bandı; kenara değen ya da üstünden sıyıran kahraman yanmaz
+    case 'spike': { const w = e.w ?? 32; const k = Math.max(5, Math.round(w * 0.2)); return { l: x + k, t: y - 16, r: x + w - k, b: y - 4 }; }
     case 'trampoline': { const w = e.w ?? 128; return { l: x - w / 2, t: y - 20, r: x + w / 2, b: y }; }
     case 'spring': return { l: x - 18, t: y - 30, r: x + 18, b: y };
     case 'launcher': return { l: x - 26, t: y - 26, r: x + 26, b: y };

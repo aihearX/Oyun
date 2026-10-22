@@ -70,10 +70,47 @@ describe('ilk bölümler: motor yardımları', () => {
     const late = setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }])); run(late.w, late.s, 10);
     step(late.w, late.s, press({ turn: true })); expect(late.s.hero.dir).toBe(-1);
   });
+  it('6-12: odada dikene ilk değiş can götürmez (geri iter), aynı odada ikincisi götürür; sonraki odada yine bağışlanır', () => {
+    const spec = testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, { type: 'spike', x: 300, y: G, w: 40 }, { type: 'spike', x: 900, y: G, w: 40 }], { number: 7 });
+    spec.assist = { ...gen(7).assist! }; expect(spec.assist.spikeGrace).toBe(true);
+    const { w, s } = setup(spec); run(w, s, 60 * 8);
+    expect(s.lives).toBe(2); expect(s.softHits).toBe(1);
+  });
+  it('diken vuruş kutusu görselin ortadaki %60ı: kenarına değen kahraman yanmaz', () => {
+    const { w } = setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, { type: 'spike', x: 300, y: G, w: 40 }]));
+    const e = w.ents.find((q) => q.type === 'spike')!;
+    expect(e.r - e.l).toBeLessThanOrEqual(30); expect(e.b).toBeLessThan(G);
+  });
   it('ilk bölümlerde basamağa takılan kahraman geri koşmaz, zıplamayı bekler', () => {
     const { w, s } = assisted([{ type: 'platform', x: 400, y: G - 60, w: 200, h: 60 }], {}, { number: 3 });
     run(w, s, 60 * 6);
     expect(s.hero.dir).toBe(1); expect(s.hero.x).toBeGreaterThan(C.START_PAD + 360);
+  });
+});
+
+describe('kıl perdesi: okunur "altından kay" engeli', () => {
+  it('5. bölümde ilk perdeden önce kayma tazeleme anı (aynı odada, perdeden en az 200 px önce)', () => {
+    for (const salt of [0, 1, 2, 3]) {
+      const sp = gen(5, salt); const ci = sp.chunks.findIndex((c) => c.entities.some((e) => e.props?.curtain));
+      expect(ci, `5/${salt} perde`).toBeGreaterThanOrEqual(0);
+      const c = sp.chunks[ci]!; const cx = Math.min(...c.entities.filter((e) => e.props?.curtain).map((e) => e.x));
+      const t = c.entities.find((e) => e.type === 'tutor' && e.props?.refresher);
+      expect(t, `5/${salt} tazeleme`).toBeDefined(); expect(t!.props!.ability).toBe('kayma'); expect(cx - t!.x).toBeGreaterThanOrEqual(200);
+    }
+  });
+  it('perdeler (1-12): alt kenar G-27; ya zıplanamayacak kadar uzun (G-280 üstü) ya da üstü kapalı', () => {
+    for (let n = 3; n <= 12; n++) for (const c of gen(n, 0).chunks) for (const e of c.entities) if (e.props?.curtain) {
+      expect(e.y + (e.h ?? 0), `${n} ${c.id}`).toBe(G - 27);
+      if (e.y > G - 280) expect(c.entities.some((q) => q !== e && q.y < e.y && q.x < e.x + (e.w ?? 0) + 20 && q.x + (q.w ?? 0) > e.x - 20), `${n} ${c.id} belirsiz yükseklik`).toBe(true);
+    }
+  });
+  it('kayan kahraman perdenin altından geçer, ayaktaki çarpar', () => {
+    const curtain: Entity = { type: 'hazard', x: 400, y: G - 290, w: 100, h: 263, props: { kind: 'tuy', curtain: true } };
+    const mk = () => setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, curtain], { number: 5 }));
+    const a = mk(); run(a.w, a.s, 60 * 4); expect(a.s.damageTaken).toBe(1);
+    const b = mk(); let slid = false;
+    for (let i = 0; i < 60 * 4; i++) { const near = !slid && b.s.hero.x > C.START_PAD + 400 - 90; step(b.w, b.s, press({ swipeDown: near })); if (near) slid = true; }
+    expect(b.s.damageTaken).toBe(0);
   });
 });
 

@@ -54,8 +54,8 @@ describe('bölüm üretici', () => {
       const fresh = newAbilitiesAt(s.number); expect(s.newAbilities).toEqual(fresh);
       const tutors = s.chunks.slice(0, s.sectionStarts![1]).flatMap((c) => c.entities.filter((e) => e.type === 'tutor').map((e) => e.props?.ability));
       for (const a of fresh) expect(tutors, `${s.number}`).toContain(a);
-      // eski yeteneğin öğretici anı tekrar tetiklenmez
-      for (const c of s.chunks) for (const e of c.entities) if (e.type === 'tutor') expect(fresh).toContain(e.props?.ability);
+      // eski yeteneğin öğretici anı tekrar tetiklenmez (5. bölümün kayma tazeleme anı dışında)
+      for (const c of s.chunks) for (const e of c.entities) if (e.type === 'tutor' && !e.props?.refresher) expect(fresh).toContain(e.props?.ability);
     }
   });
   it('her biyomda en az bir gösteri parçası kullanılır', () => {

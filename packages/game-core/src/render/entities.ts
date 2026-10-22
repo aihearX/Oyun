@@ -3,10 +3,11 @@
  * Dönen kap EntityView'dir: setOpen / pulse / setSolid / reveal / crack / telegraph / collect / shatter / setFacing.
  */
 import type Phaser from 'phaser';
+import { GROUND_Y } from '@odi/shared';
 import type { RenderEntity } from './types';
 import { artOf } from './palette';
 import { EntityView } from './view';
-import { num, buildBarrier, buildBigNote, buildBubble, buildBullet, buildCochlea, buildCoin, buildFork, buildHazardCloud, buildMine, buildNote, buildPowerup, buildSpike } from './items';
+import { num, buildBarrier, buildBigNote, buildBubble, buildBullet, buildCochlea, buildCoin, buildCurtain, buildFork, buildHazardCloud, buildMine, buildNote, buildPowerup, buildSpike } from './items';
 import { buildBeat, buildCheckpoint, buildCrumble, buildCurrent, buildDecor, buildDoor, buildEcho, buildEscortee, buildFlip, buildFreqGate, buildGate, buildGear, buildGravZone, buildHook, buildLauncher, buildMoving, buildPlatform, buildSpring, buildSwitch, buildText, buildTrampoline, buildWall, buildWater } from './mech';
 import { buildEnemy } from './enemies';
 
@@ -26,7 +27,7 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'beat': buildBeat(v, w || 110, h || 24, String(p.pattern ?? '1010'), A); v.setDepth(DEPTH.platform); break;
     case 'echo': buildEcho(v, w || 110, h || 24); v.setDepth(DEPTH.platform); break;
     case 'spike': buildSpike(v, A, w || 32); v.setDepth(DEPTH.hazard); break;
-    case 'hazard': buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80); v.setDepth(DEPTH.hazard); break;
+    case 'hazard': if (p.curtain) buildCurtain(v, String(p.kind ?? 'tuy'), w || 100, h || 140, Math.max(0, GROUND_Y - (e.y + (h || 140)))); else buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80); v.setDepth(DEPTH.hazard); break;
     case 'barrier': buildBarrier(v, w || 34, h || 160); v.setDepth(DEPTH.hazard); break;
     case 'lane': buildMine(v); v.setDepth(DEPTH.hazard); break;
     case 'projectile': case 'bullet': buildBullet(v); v.setDepth(DEPTH.enemy); break;

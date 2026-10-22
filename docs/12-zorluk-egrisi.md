@@ -197,6 +197,38 @@ bölge finalleri için **sınav odaları** `k1-sinav-havuz`, `k3-sinav-bas`, `sn
 - Yavaş koşuda tempo kuralı aynı süreyi tutar: sessiz yol sınırı koşu hızıyla ölçeklenir, yayın/fırlatıcının uçuşu altında kalan
   diken girdi sayılmaz, odanın kendi sessiz yolları sınırı aşan odalar ilk bölümlerde seçilmez.
 
+**Diken seyrekliği (altıncı geçiş; oyuncu: "yerden çıkan kırmızı dikenler oyunu çok zorlaştırıyor"):** oyuncunun "yerden
+çıkan diken" diye gördüğü öğe kırmızı parlayan `spike` (zemin ve platform dikeni, havuz tabanı dikeni); serumen yığını ve
+gürültü bulutları gözlü bulut olarak çizilir, nabız (zamanlı) tehlikeler yalnız Sinir/Beyin Sapı/Korteks odalarında var.
+Üretici (`generate.ts` → `capSpikes`) tempo kuralından önce uygular, sonradan eklenen mikro odalara ikinci kez:
+
+| Bölümler | Önce: diken (1000 px başına) | Sonra | Kural |
+|---|---|---|---|
+| 1-5 | 34 (0,59) | 0 | hiç diken yok: zemindeki diken 60-110 px'lik çukura döner, yükseltideki kalkar |
+| 6-12 | 93 (0,94) | 18 (0,18) | bölüm-içi bölüm başına en çok bir, yalnız zeminde; kontrol noktası ve geri dönüş odasında, inişten sonraki 160 px'te hiç |
+| 13-19 | 137 (1,31) | 56 (0,54) | her beş dikenden ikisi kalır (kontrol noktası odasında hiç); havuz tabanı dikeni kalır |
+| 21-30 | 225 (1,26) | 98 (0,56) | 〃 |
+| 31-39 | 181 (0,95) | 75 (0,39) | 〃 |
+
+Kalkan zemin dikeni, iki yanda en az 100 px zemin kalıyorsa çukura döner (zıplama ritmi ve tempo kuralı korunur; anahtar ve
+kapının 200 px yakınında çukur açılmaz); dönüşemeyen diken, kalkınca odada zorunlu engeller arasında 480 px'ten uzun boşluk
+bırakacaksa kalır. Kalan dikenler daha bağışlayıcı: vuruş kutusu görselin ortadaki %60'ı ve uç bandı (eskiden genişliğin
+tamamı), 6-12'de her odada dikene ilk değiş yalnız geri iter ("Dikkat, diken!"). Nabız tehlikesi açılmadan 0,65 sn önce
+parlar ve titrer (eskiden 0,45 sn, görsel uyarı yoktu). Denetim: `level-gen/src/diken.test.ts`.
+
+**Kıl perdesi okunur hâle geldi (oyuncu: "5. bölümdeki içinde şimşek olan bulut ne, nasıl geçilir?"):** altından kayılan
+asılı tehlike (`curtain`: G-170'ten G-24'e) genel gürültü bulutuyla (şimşek, kızgın gözler) aynı çiziliyordu. Artık
+`props.curtain` ile işaretlenir ve ayrı çizilir (`render/items.ts` → `buildCurtain`): tutturma çubuğundan sarkan tül, net
+beyaz alt kenar, altında aydınlık açıklık ve aşağı oklar, "KAY ↓" yazısı. Geometri belirsiz değil: üstünde yer varsa perde
+G-290'a uzar (tam zıplama 163 px: aşılamaz), 1-12'de alt kenar G-27 (kayan kahramanla 17 px pay; ayaktaki kahraman değer).
+3-8'de bölümün ilk üç perdesinden ~320 px önce el işaretli "Aşağı kaydır: altından kay" ipucu çıkar. **5. bölümde kayma
+tazelenir:** ilk perdeden 260 px önce (önünde kontrol noktası, en az 300 px koşu payı) 3. bölümdeki dersin aynısı —
+ağır çekim, büyük aşağı kaydırma eli, "Aşağı kaydır: perdenin altından kay!". Ders önceden tamamlanmış olsa da gösterilir,
+bir koşuda bir kez (yeniden doğunca tekrar açılmaz); oyuncu 5. bölümde iki perdeyi hasarsız geçince kalıcı olarak kapanır
+(`tazele-kayma` anahtarı). Öncesi / sonrası:
+
+![Perde önce](img/perde-once.png) ![Perde sonra](img/perde-sonra.png)
+
 **Uyarlanabilir yardım (profil):**
 
 Profil artık yalnızca **yumuşak bir yardım**dır (`generateLevel` → `levelKnobs`):
@@ -210,7 +242,7 @@ Profil artık yalnızca **yumuşak bir yardım**dır (`generateLevel` → `level
 - Fizik 13. bölümden itibaren sabittir (koşu 260 px/sn, coyote 0,1 sn, tampon 0,12 sn); ilk on iki bölümün yardımları (§4) bölüm
   düğmesidir ve motor deterministik kalır: zorluk hissi değil, içerik ve pencere genişliği değişir.
 - Bağışlayıcı vuruş kutuları korunur (tehlike görselin 8 px içi, nota yarıçapı geniş). Her tehlike görünür ve uyarılıdır:
-  nabız tehlikesi 0,45 sn, atıcı 0,55 sn önce titrer; boss uyarıları en az ×0,6 (≥ 0,45 sn, tepki süresinin iki katı).
+  nabız tehlikesi 0,65 sn (parlama + titreme), atıcı 0,55 sn önce titrer; boss uyarıları en az ×0,6 (≥ 0,45 sn, tepki süresinin iki katı).
 - Kör zıplama yok: çukur en çok 190 px (tam zıplama 221 px), geometri düğmeleri duvar odalarına ve içinde etkin öğe olan
   çukurlara dokunmaz; tek oda bölümün can bütçesinin yarısını aşamaz.
 - Mükemmel planlayıcı bot 40 bölümün hepsini bitirir; dokunmayan oyuncu hiçbirini bitiremez (kabul ölçütü değişmedi).
@@ -234,15 +266,15 @@ _İlk kez oynayan kademe (§2), 48 oyuncu × bölüm; önce: aynı kademe eski o
 | 1 | 100%, ≤ 0,1 can | 94% | 0.67 | 100% | 0.00 ± 0.00 |
 | 2 | 100%, ≤ 0,1 can | 90% | 0.88 | 100% | 0.00 ± 0.00 |
 | 3 | 100%, ≤ 0,1 can | 88% | 1.10 | 100% | 0.04 ± 0.04 |
-| 4 | ≥ %90 | 71% | 1.52 | 100% | 0.60 ± 0.10 |
-| 5 | ≥ %90 | 44% | 2.44 | 94% | 0.94 ± 0.13 |
-| 6 | ≥ %90 | 60% | 2.00 | 100% | 0.67 ± 0.10 |
-| 7 | ≥ %80 | 46% | 2.23 | 90% | 1.35 ± 0.14 |
-| 8 | ≥ %70 | 38% | 2.46 | 75% | 1.46 ± 0.15 |
-| 9 | ≥ %65 | 94% | 0.81 | 96% | 0.42 ± 0.11 |
-| 10 | ≥ %65 | 90% | 1.00 | 98% | 0.52 ± 0.11 |
-| 11 | ≥ %65 | 46% | 2.15 | 88% | 1.00 ± 0.14 |
-| 12 | ≥ %65 | 40% | 2.40 | 73% | 1.40 ± 0.16 |
+| 4 | ≥ %90 | 71% | 1.52 | 100% | 0.15 ± 0.05 |
+| 5 | ≥ %90 | 44% | 2.44 | 100% | 0.56 ± 0.10 |
+| 6 | ≥ %90 | 60% | 2.00 | 100% | 0.29 ± 0.08 |
+| 7 | ≥ %80 | 46% | 2.23 | 85% | 1.21 ± 0.15 |
+| 8 | ≥ %70 | 38% | 2.46 | 85% | 1.21 ± 0.15 |
+| 9 | ≥ %65 | 94% | 0.81 | 100% | 0.10 ± 0.05 |
+| 10 | ≥ %65 | 90% | 1.00 | 96% | 0.35 ± 0.11 |
+| 11 | ≥ %65 | 46% | 2.15 | 94% | 0.67 ± 0.14 |
+| 12 | ≥ %65 | 40% | 2.40 | 73% | 1.50 ± 0.17 |
 <!-- ilk:bitir -->
 
 **Oyuncu kitlesi (40 bölüm):**
@@ -253,44 +285,44 @@ _Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördü
 | Bölüm | Bölge | Rol | Hedef | Önce: bitirme | Önce: can kaybı | Önce: puan | Sonra: bitirme | Sonra: can kaybı ± SE | Sonra: yakın/dk | Sonra: puan ± SE |
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | Dış Kulak | giriş (nefes) | 0.5 | 100% | 0.21 | 1.4 | 100% | 0.00 ± 0.00 | 6.6 | 0.3 ± 0.0 |
-| 2 | Dış Kulak |  | 0.6 | 100% | 0.54 | 2.4 | 100% | 0.00 ± 0.00 | 7.6 | 0.4 ± 0.0 |
+| 2 | Dış Kulak |  | 0.6 | 100% | 0.54 | 2.4 | 100% | 0.00 ± 0.00 | 8.3 | 0.4 ± 0.0 |
 | 3 | Dış Kulak |  | 0.8 | 100% | 0.63 | 2.9 | 100% | 0.00 ± 0.00 | 7.6 | 0.4 ± 0.0 |
-| 4 | Dış Kulak |  | 0.9 | 96% | 0.58 | 2.5 | 100% | 0.17 ± 0.05 | 14.0 | 1.2 ± 0.2 |
-| 5 | Dış Kulak | **final** | 1.1 | 96% | 0.54 | 2.5 | 100% | 0.31 ± 0.07 | 15.8 | 1.7 ± 0.2 |
-| 6 | Kulak Kanalı | giriş (nefes) | 0.7 | 75% | 1.21 | 4.4 | 100% | 0.15 ± 0.05 | 10.5 | 1.0 ± 0.2 |
-| 7 | Kulak Kanalı |  | 1.3 | 88% | 1.00 | 3.6 | 100% | 0.27 ± 0.08 | 10.5 | 1.3 ± 0.2 |
-| 8 | Kulak Kanalı | **final** | 2.1 | 100% | 0.63 | 2.6 | 100% | 0.27 ± 0.08 | 10.8 | 1.4 ± 0.2 |
-| 9 | Kulak Zarı | giriş (nefes) | 1.1 | 100% | 0.08 | 0.6 | 100% | 0.04 ± 0.03 | 5.4 | 0.4 ± 0.1 |
-| 10 | Kulak Zarı |  | 1.6 | 100% | 0.29 | 1.2 | 100% | 0.15 ± 0.05 | 5.6 | 0.7 ± 0.2 |
-| 11 | Kulak Zarı |  | 2.3 | 100% | 0.21 | 1.0 | 100% | 0.17 ± 0.06 | 7.1 | 0.9 ± 0.2 |
-| 12 | Kulak Zarı | **final** | 3.0 | 100% | 0.21 | 1.0 | 98% | 0.58 ± 0.11 | 9.5 | 2.2 ± 0.3 |
-| 13 | Kemikçikler | giriş (nefes) | 1.4 | 75% | 1.54 | 5.2 | 98% | 0.40 ± 0.09 | 10.5 | 1.7 ± 0.3 |
-| 14 | Kemikçikler |  | 1.6 | 88% | 0.83 | 3.0 | 98% | 0.46 ± 0.10 | 9.4 | 1.8 ± 0.3 |
-| 15 | Kemikçikler |  | 1.9 | 100% | 0.75 | 2.6 | 100% | 0.48 ± 0.09 | 7.4 | 1.8 ± 0.3 |
-| 16 | Kemikçikler |  | 2.3 | 96% | 0.79 | 3.0 | 98% | 0.40 ± 0.10 | 10.3 | 1.7 ± 0.3 |
-| 17 | Kemikçikler |  | 2.6 | 96% | 0.54 | 2.1 | 98% | 0.69 ± 0.12 | 9.9 | 2.6 ± 0.4 |
-| 18 | Kemikçikler |  | 3.1 | 96% | 0.79 | 2.7 | 98% | 0.56 ± 0.11 | 12.9 | 2.3 ± 0.3 |
-| 19 | Kemikçikler | **final** | 3.5 | 100% | 0.63 | 2.3 | 88% | 0.94 ± 0.15 | 8.9 | 3.3 ± 0.4 |
+| 4 | Dış Kulak |  | 0.9 | 96% | 0.58 | 2.5 | 100% | 0.04 ± 0.03 | 12.6 | 0.8 ± 0.1 |
+| 5 | Dış Kulak | **final** | 1.1 | 96% | 0.54 | 2.5 | 100% | 0.15 ± 0.05 | 13.4 | 1.1 ± 0.2 |
+| 6 | Kulak Kanalı | giriş (nefes) | 0.7 | 75% | 1.21 | 4.4 | 100% | 0.06 ± 0.04 | 8.7 | 0.6 ± 0.1 |
+| 7 | Kulak Kanalı |  | 1.3 | 88% | 1.00 | 3.6 | 100% | 0.15 ± 0.06 | 9.7 | 0.9 ± 0.2 |
+| 8 | Kulak Kanalı | **final** | 2.1 | 100% | 0.63 | 2.6 | 100% | 0.13 ± 0.06 | 10.7 | 0.9 ± 0.2 |
+| 9 | Kulak Zarı | giriş (nefes) | 1.1 | 100% | 0.08 | 0.6 | 100% | 0.00 ± 0.00 | 5.4 | 0.3 ± 0.0 |
+| 10 | Kulak Zarı |  | 1.6 | 100% | 0.29 | 1.2 | 100% | 0.00 ± 0.00 | 5.4 | 0.3 ± 0.0 |
+| 11 | Kulak Zarı |  | 2.3 | 100% | 0.21 | 1.0 | 100% | 0.08 ± 0.05 | 5.1 | 0.5 ± 0.2 |
+| 12 | Kulak Zarı | **final** | 3.0 | 100% | 0.21 | 1.0 | 100% | 0.21 ± 0.07 | 6.7 | 1.0 ± 0.2 |
+| 13 | Kemikçikler | giriş (nefes) | 1.4 | 75% | 1.54 | 5.2 | 100% | 0.29 ± 0.08 | 7.0 | 1.2 ± 0.2 |
+| 14 | Kemikçikler |  | 1.6 | 88% | 0.83 | 3.0 | 96% | 0.52 ± 0.12 | 8.6 | 2.0 ± 0.4 |
+| 15 | Kemikçikler |  | 1.9 | 100% | 0.75 | 2.6 | 98% | 0.31 ± 0.09 | 6.4 | 1.3 ± 0.3 |
+| 16 | Kemikçikler |  | 2.3 | 96% | 0.79 | 3.0 | 94% | 0.42 ± 0.11 | 7.8 | 1.6 ± 0.3 |
+| 17 | Kemikçikler |  | 2.6 | 96% | 0.54 | 2.1 | 94% | 0.77 ± 0.13 | 9.2 | 2.8 ± 0.4 |
+| 18 | Kemikçikler |  | 3.1 | 96% | 0.79 | 2.7 | 92% | 0.73 ± 0.13 | 10.2 | 2.7 ± 0.4 |
+| 19 | Kemikçikler | **final** | 3.5 | 100% | 0.63 | 2.3 | 88% | 0.98 ± 0.15 | 10.3 | 3.5 ± 0.4 |
 | 20 | Kemikçikler | **boss** | 5.3 | 63% | 1.67 | 5.1 | 77% | 1.60 ± 0.15 | 1.7 | 4.9 ± 0.5 |
-| 21 | Koklea · Taban | giriş (nefes) | 1.6 | 100% | 0.21 | 1.1 | 100% | 0.33 ± 0.09 | 8.5 | 1.4 ± 0.3 |
-| 22 | Koklea · Taban |  | 2.5 | 100% | 0.50 | 2.1 | 94% | 0.56 ± 0.12 | 8.5 | 2.1 ± 0.4 |
-| 23 | Koklea · Taban | **final** | 3.8 | 92% | 0.58 | 2.6 | 85% | 1.13 ± 0.15 | 11.1 | 3.9 ± 0.5 |
-| 24 | Koklea · Orta | giriş (nefes) | 1.9 | 100% | 0.29 | 1.3 | 100% | 0.17 ± 0.05 | 7.8 | 0.9 ± 0.2 |
-| 25 | Koklea · Orta |  | 2.8 | 92% | 0.54 | 2.3 | 94% | 0.54 ± 0.13 | 9.5 | 2.1 ± 0.4 |
-| 26 | Koklea · Orta | **final** | 4.1 | 67% | 1.00 | 3.4 | 79% | 1.27 ± 0.16 | 12.2 | 4.4 ± 0.5 |
-| 27 | Koklea · Apeks | giriş (nefes) | 2.0 | 100% | 0.38 | 1.6 | 100% | 0.44 ± 0.10 | 7.6 | 1.7 ± 0.3 |
-| 28 | Koklea · Apeks |  | 2.6 | 100% | 0.13 | 0.9 | 100% | 0.40 ± 0.08 | 12.1 | 1.8 ± 0.2 |
-| 29 | Koklea · Apeks |  | 3.4 | 100% | 0.21 | 1.2 | 96% | 0.56 ± 0.11 | 10.8 | 2.2 ± 0.3 |
-| 30 | Koklea · Apeks | **final** | 4.4 | 100% | 0.38 | 1.7 | 77% | 1.38 ± 0.17 | 11.9 | 4.7 ± 0.5 |
-| 31 | İşitme Siniri | giriş (nefes) | 2.1 | 92% | 0.54 | 2.1 | 100% | 0.33 ± 0.08 | 8.9 | 1.4 ± 0.2 |
-| 32 | İşitme Siniri |  | 3.2 | 100% | 0.25 | 1.4 | 90% | 0.71 ± 0.14 | 12.5 | 2.8 ± 0.4 |
-| 33 | İşitme Siniri | **final** | 4.7 | 92% | 0.58 | 2.3 | 73% | 1.44 ± 0.17 | 14.6 | 5.0 ± 0.5 |
-| 34 | Beyin Sapı | giriş (nefes) | 2.3 | 96% | 0.67 | 2.7 | 90% | 0.65 ± 0.15 | 13.3 | 2.6 ± 0.4 |
-| 35 | Beyin Sapı |  | 3.4 | 100% | 0.33 | 1.5 | 90% | 0.90 ± 0.14 | 10.7 | 3.2 ± 0.4 |
-| 36 | Beyin Sapı | **final** | 5.0 | 100% | 0.67 | 2.8 | 71% | 1.52 ± 0.17 | 13.1 | 5.2 ± 0.5 |
-| 37 | İşitme Korteksi | giriş (nefes) | 2.9 | 96% | 0.54 | 2.1 | 94% | 0.67 ± 0.13 | 10.0 | 2.5 ± 0.4 |
-| 38 | İşitme Korteksi |  | 3.9 | 100% | 0.33 | 1.4 | 85% | 0.88 ± 0.16 | 10.4 | 3.1 ± 0.5 |
-| 39 | İşitme Korteksi | **final** | 5.3 | 92% | 0.38 | 1.7 | 67% | 1.60 ± 0.17 | 13.4 | 5.5 ± 0.5 |
+| 21 | Koklea · Taban | giriş (nefes) | 1.6 | 100% | 0.21 | 1.1 | 100% | 0.25 ± 0.07 | 6.5 | 1.1 ± 0.2 |
+| 22 | Koklea · Taban |  | 2.5 | 100% | 0.50 | 2.1 | 100% | 0.42 ± 0.08 | 6.7 | 1.6 ± 0.2 |
+| 23 | Koklea · Taban | **final** | 3.8 | 92% | 0.58 | 2.6 | 92% | 1.10 ± 0.13 | 9.7 | 3.8 ± 0.4 |
+| 24 | Koklea · Orta | giriş (nefes) | 1.9 | 100% | 0.29 | 1.3 | 98% | 0.38 ± 0.10 | 6.5 | 1.5 ± 0.3 |
+| 25 | Koklea · Orta |  | 2.8 | 92% | 0.54 | 2.3 | 90% | 0.65 ± 0.15 | 7.2 | 2.3 ± 0.4 |
+| 26 | Koklea · Orta | **final** | 4.1 | 67% | 1.00 | 3.4 | 77% | 1.23 ± 0.17 | 9.9 | 4.2 ± 0.5 |
+| 27 | Koklea · Apeks | giriş (nefes) | 2.0 | 100% | 0.38 | 1.6 | 100% | 0.17 ± 0.06 | 6.0 | 0.8 ± 0.2 |
+| 28 | Koklea · Apeks |  | 2.6 | 100% | 0.13 | 0.9 | 98% | 0.31 ± 0.09 | 9.6 | 1.4 ± 0.3 |
+| 29 | Koklea · Apeks |  | 3.4 | 100% | 0.21 | 1.2 | 94% | 0.63 ± 0.13 | 8.6 | 2.3 ± 0.4 |
+| 30 | Koklea · Apeks | **final** | 4.4 | 100% | 0.38 | 1.7 | 75% | 1.35 ± 0.17 | 10.0 | 4.6 ± 0.5 |
+| 31 | İşitme Siniri | giriş (nefes) | 2.1 | 92% | 0.54 | 2.1 | 100% | 0.31 ± 0.09 | 8.0 | 1.3 ± 0.3 |
+| 32 | İşitme Siniri |  | 3.2 | 100% | 0.25 | 1.4 | 98% | 0.33 ± 0.10 | 10.0 | 1.5 ± 0.3 |
+| 33 | İşitme Siniri | **final** | 4.7 | 92% | 0.58 | 2.3 | 71% | 1.42 ± 0.18 | 13.0 | 4.9 ± 0.5 |
+| 34 | Beyin Sapı | giriş (nefes) | 2.3 | 96% | 0.67 | 2.7 | 96% | 0.44 ± 0.11 | 12.3 | 1.9 ± 0.3 |
+| 35 | Beyin Sapı |  | 3.4 | 100% | 0.33 | 1.5 | 90% | 0.90 ± 0.15 | 8.8 | 3.1 ± 0.4 |
+| 36 | Beyin Sapı | **final** | 5.0 | 100% | 0.67 | 2.8 | 67% | 1.58 ± 0.17 | 12.0 | 5.4 ± 0.5 |
+| 37 | İşitme Korteksi | giriş (nefes) | 2.9 | 96% | 0.54 | 2.1 | 96% | 0.50 ± 0.12 | 7.9 | 1.9 ± 0.4 |
+| 38 | İşitme Korteksi |  | 3.9 | 100% | 0.33 | 1.4 | 90% | 0.75 ± 0.14 | 8.9 | 2.7 ± 0.4 |
+| 39 | İşitme Korteksi | **final** | 5.3 | 92% | 0.38 | 1.7 | 63% | 1.65 ± 0.18 | 8.6 | 5.4 ± 0.5 |
 | 40 | İşitme Korteksi | **boss** | 6.5 | 96% | 0.50 | 1.5 | 60% | 1.98 ± 0.15 | 0.0 | 5.9 ± 0.4 |
 <!-- tablo:bitir -->
 
@@ -310,36 +342,45 @@ yükselir, final grupları zinciri (8,12) < (19,23) < (26,30) < (33,36,39), boss
 
 Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bölgeler arası farkları okurken SE ~0,1-0,17'dir.
 
-- **İlk kez oynayan oyuncu (dördüncü geçiş, gerçek cihaz geri bildirimi):** 1-3'te herkes bitirir ve oyuncu başına 0,00-0,04
-  can kaybeder (eski oyunda aynı kademe %88-94 bitirip 0,67-1,10 can kaybediyordu); 4-6'da %94-100 bitirir (eskisi %44-71).
-  Beşinci geçişte Kanal ve Zar da yumuşadı: 7 → %90 (eskisi %46), 8 (Kanal finali) → %75 (eskisi %38), 9-12 → %73-98
-  (eskisi %40-94; Zar finali 12: %40 → %73). Kanal/Zar için: serumen yığını dar ve alçak, perde dar, diken en çok ×0,8, zar
-  penceresi en az 0,16 sn ("Mükemmel" ödül olarak kalır), kontrol noktası odaları güvenli, her odada kontrol noktası, 7-8'de iki
-  bedava düşüş, 9-12'de bir.
+- **Diken ve perde geçişi (altıncı geçiş, oyuncu geri bildirimi: "yerden çıkan kırmızı dikenler çok zorlaştırıyor"; "5. bölümdeki
+  şimşekli bulut nedir, nasıl geçilir?"):** diken sayısı 1-5'te 34 → 0, 6-12'de 93 → 18 (bölüm-içi bölüm başına en çok bir,
+  kontrol noktası odasında ve inişin/dönüşün hemen ardında hiç), 13+'da 1000 px başına ~1,2 → ~0,5 (§4 tablosu); kalkan dikenin
+  yerini çoğunlukla aynı yerde dar bir çukur alır. Kalan dikenin vuruş kutusu her yandan %20 içeride; 6-12'de her odadaki ilk
+  diken teması can götürmez, geri iter ("Dikkat, diken!"). Nabızlı (zamanlı) tehlike ilk iki bölgede (1-8) yok, uyarısı 0,65 sn.
+  Kıl perdesi artık "altından kay" diye okunur: asılı tül, aydınlık boşluk, aşağı oklar, "KAY ↓"; 3-12'de alt kenarı kahramanın
+  ayakta geçemeyeceği, kayarak rahat geçeceği yükseklikte ve üstünden atlanamayacak kadar uzun (ya da tavana değer); 3-8'de ilk
+  üç perdeden önce aşağı kaydırma ipucu. 5. bölümün ilk perdesinden önce uzun koşu yolu ve kayma tazeleme dersi (yavaşlama + el +
+  "Aşağı kaydır: perdenin altından kay!"; koşu başına bir kez, 5'te iki başarılı kaymadan sonra bir daha yok).
+  `level-gen/src/diken.test.ts` diken üst sınırlarını, `play/ilk-bolumler.test.ts` diken affını, vuruş kutusunu, perde boşluğunu
+  ve 5'teki tazeleme dersini denetler.
+- **İlk kez oynayan oyuncu:** 1-6'da herkes bitirir (can kaybı 0,00-0,56; eski oyunda %44-94 bitirip 0,67-2,44 can); 7 ve 8
+  (Kanal finali) → %85 (eskisi %46 ve %38), 9-12 → %73-100 (Zar finali 12: %40 → %73, 1,50 can). Kanal/Zar için: serumen yığını
+  dar ve alçak, perde dar, diken seyrek ve affedici, zar penceresi en az 0,16 sn ("Mükemmel" ödül olarak kalır), kontrol noktası
+  odaları güvenli, her odada kontrol noktası, 7-8'de iki bedava düşüş, 9-12'de bir.
   Ne değişti: §4'teki yardımlar (yavaş koşu, uzun coyote/tampon, bedava ilk düşüşler, öğretici odasında can kaybı yok,
-  kazara dönüşün kilidi, basamakta geri koşmama, her odada kontrol noktası), 1. bölümde diken/düşman yok, 1-3'te küçük çukurlar;
+  kazara dönüşün kilidi, basamakta geri koşmama, her odada kontrol noktası), 1-5'te diken yok, 1-3'te küçük çukurlar;
   ilk iki bölge bir kademe aşağı, 4-6 iki oda kısa. Eski oyunda ilk kez oynayanın en büyük kaybı açılış çukurlarıydı: 2.
   bölümde anahtara dönen kahraman geri koşup başlangıç çukuruna düşüyordu (ileri dönüş artık her zaman serbest).
-- **Alıştırma (kitle):** 1-3'te herkes bitirir, can kaybı 0; 4 → 0,17 · 5 → 0,31 (Dış Kulak finali) · Kanal 6 → 0,15 ·
-  7 → 0,27 · 8 → 0,27 ± 0,08 (Kanal finali, önce 0,71) · Zar 9 → 0,04 · 10 → 0,15 · 11 → 0,17 · 12 → 0,58 ± 0,11 (Zar finali).
-  **Bilinen sınır:** Kanal'da 7 ile final 8 kitle için eşit (0,27); ilk kez oynayan hedefini (%70) tutan 8 varyantlarının hiçbiri
-  kitle için 7'den belirgin zor değildi. Kanal rampası kitle için 6 → 7'de yükselir, 7 → 8'de düzdür.
-- **Final zinciri (üçüncü geçiş):** her üst kademenin finali bir öncekinden zor — 8 → 0,27 ± 0,08 · 12 → 0,58 ± 0,11 ·
-  19 → 0,94 ± 0,15 · [boss 20 → 1,60 ± 0,15, %77 bitirme] · 23 → 1,13 ± 0,15 · 26 → 1,27 ± 0,16 · 30 → 1,38 ± 0,17 ·
-  33 → 1,44 ± 0,17 · 36 → 1,52 ± 0,17 · 39 → 1,60 ± 0,17 · [boss 40 → 1,98 ± 0,15, %60 bitirme]. Ardışık finaller arası adım
-  0,06-0,36 can; 48 oyuncuda tek bir ardışık çiftin farkı gürültü düzeyindedir (z ≈ 0,3-0,9). İki kademe arayla fark belirginleşir
-  (19 → 26 z ≈ 1,5; 23 → 30 z ≈ 1,1), dört grup ortalaması (8,12) 0,43 → (19,23) 1,03 → (26,30) 1,32 → (33,36,39) 1,52 kesin yükselir
-  (`play/zorluk-4.test.ts`, 16 oyunculuk alt örneklemle; denetimler 48 oyuncunun 16'şarlık her diliminde geçer, 12'lik bir
-  dilimde Korteks grubu Sinir/Beyin Sapı grubunun altında kaldığı için test 16 oyuncu kullanır).
-- **Bölge içi rampa:** her bölgede giriş < … < final (Kanal 7 = 8 dışında): Kanal 0,15 → 0,27 → 0,27 · Zar 0,04 → 0,15 → 0,17 → 0,58 · Koklea Taban
-  0,17 → 0,56 → 1,13 · Orta 0,17 → 0,54 → 1,27 · Sinir 0,33 → 0,71 → 1,44 · Beyin Sapı 0,65 → 0,90 → 1,52 · Korteks 0,67 → 0,88
-  → 1,60 → boss 1,98. Boss ve final sonrası girişler nefes bölümleridir: 21 (0,33), 24 (0,17), 27 (0,44), 31 (0,33).
-- **Bölge içinde gürültü düzeyinde kalan dalgalar:** Kemikçikler 17 (0,69) > 18 (0,56) (z ≈ 0,8) ve 13-16 düz (0,40-0,48);
-  Koklea Apeks 27 (0,44) ≈ 28 (0,40).
+- **Alıştırma (kitle):** 1-3'te herkes bitirir, can kaybı 0; 4 → 0,04 · 5 → 0,15 (Dış Kulak finali) · Kanal 6 → 0,06 ·
+  7 → 0,15 · 8 → 0,13 ± 0,06 (Kanal finali) · Zar 9 → 0,00 · 10 → 0,00 · 11 → 0,08 · 12 → 0,21 ± 0,07 (Zar finali).
+  **Bilinen sınır:** Kanal'da 7 ile final 8 hem kitle (0,15 / 0,13) hem ilk kez oynayan (1,21 / 1,21) için eşittir; ilk kez
+  oynayan hedefini tutan 8 varyantlarının hiçbiri 7'den belirgin zor değildi. Kanal rampası 6 → 7'de yükselir, 7 → 8'de düzdür.
+- **Final zinciri (diken geçişinden sonra yeniden ayarlandı):** her üst kademenin finali bir öncekinden zor — 8 → 0,13 ± 0,06 ·
+  12 → 0,21 ± 0,07 · 19 → 0,98 ± 0,15 · [boss 20 → 1,60 ± 0,15, %77 bitirme] · 23 → 1,10 ± 0,13 · 26 → 1,23 ± 0,17 ·
+  30 → 1,35 ± 0,17 · 33 → 1,42 ± 0,18 · 36 → 1,58 ± 0,17 · 39 → 1,65 ± 0,18 · [boss 40 → 1,98 ± 0,15, %60 bitirme]. Diken
+  seyrekleşince 13+'nın zorluğunu taşıyan dikenler değil sınav odaları ve hareketli engellerdi; finallerin çoğu yerinde kaldı,
+  zincirdeki dalgalar (23 ≈ 26, 30 < 26, 39 < 36) bölüm varyantlarıyla düzeltildi. Ardışık finaller arası adım 0,07-0,77 can;
+  48 oyuncuda tek bir ardışık çiftin farkı gürültü düzeyindedir. Dört grup ortalaması (8,12) 0,17 → (19,23) 1,04 → (26,30) 1,29
+  → (33,36,39) 1,55 kesin yükselir (`play/zorluk-4.test.ts`, sabit 16 oyunculuk alt örneklemle).
+- **Bölge içi rampa:** her bölgede giriş < … < final (Kanal 7 ≈ 8 dışında): Kemikçikler 0,29 → 0,52 → … → 0,98 · Koklea Taban
+  0,25 → 0,42 → 1,10 · Orta 0,38 → 0,65 → 1,23 · Apeks 0,17 → 0,31 → 0,63 → 1,35 · Sinir 0,31 → 0,33 → 1,42 · Beyin Sapı
+  0,44 → 0,90 → 1,58 · Korteks 0,50 → 0,75 → 1,65 → boss 1,98. Bölge girişleri (13, 27, 37) artık ardından gelen bölümden
+  kolaydır (önce 13 = 0,56, 27 = 0,67, 37 = 0,85 idi).
+- **Bölge içinde gürültü düzeyinde kalan dalgalar:** Kemikçikler 14 (0,52) > 15 (0,31) ve 17 (0,77) ≈ 18 (0,73).
 - **Nasıl ayarlandı:** final hedefleri (λ, §1) yükseltildi; Koklea Orta ve Beyin Sapı finalleri ikinci sınav odasını aldı;
   Sinir finali (33) `hız + yankı` aldı (`sis`/`gece` insan modelinin ölçümünü değiştirmez: model konumu kusursuz görür); Kanal
-  finali `gain 0,65` ile hafifletildi; bölüm varyantları 48 oyunculuk taramayla seçildi (`kalibrasyon.ts`: 8, 11, 12, 18, 19,
-  23-26, 30, 32, 33, 36, 39). Kalibrasyon aracının 32 oyunculuk seçimi farklı tohumlarla ölçtüğünden tek başına yetmedi.
+  finali `gain 0,65` ile hafifletildi; bölüm varyantları 48 oyunculuk taramayla seçildi (`kalibrasyon.ts`: 8, 11-13, 18, 19,
+  22-27, 30, 32-34, 36, 37, 39). Kalibrasyon aracının 32 oyunculuk seçimi farklı tohumlarla ölçtüğünden tek başına yetmedi.
 - **Üretici düzeltmeleri (ikinci geçiş):** zarlı çukurla başlayan bölümde boşta oyuncu sonsuza dek sekiyordu (11, 39) — zarlı çukur
   artık "ölüm çukuru" sayılmaz ve başa giriş çukuru konur; ilk odanın engeli ilk 200 px'teyse giriş çukurunun iniş zemini uzar
   (12'de planlayıcı ve insan modeli çukurdan inip hemen gelen dikene yetişemiyordu — eski 12 ölçümündeki fazla zorluğun bir kısmı

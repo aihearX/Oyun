@@ -76,6 +76,8 @@ export interface LevelKnobs {
    *  (px), hareketli/ufalanan basamak yok (1-3), her odada kontrol noktası (1-8) */
   early: { noHazards: 'hepsi' | 'ogretici-disi' | 'kontrol' | false; maxPit: number; noMoving: boolean; cpEveryRoom: boolean;
     /** 6-12: zemindeki serumen/perde tehlikeleri daralır (×0,7) ve serumen alçalır — ilk kez oynayanın Kanal/Zar yükü */ softHazards: boolean };
+  /** diken seyrekliği (generate.ts → capSpikes): 1-5 hiç, 6-12 bölüm-içi bölüm başına en çok bir, 13+ yaklaşık %40'ı */
+  spikes: { mode: 'yok' | 'bolum' | 'seyrek' | 'serbest'; perSection: number };
 }
 export interface LevelGeom {
   /** diken genişliği çarpanı (genişleyen diken daha uzun/kesin zıplama ister) */
@@ -125,7 +127,7 @@ export function assistFor(n: number): LevelAssist | undefined {
   const run = EARLY_RUN[n]; if (run === undefined) return undefined;
   return {
     run, coyote: n <= 3 ? 0.16 : n <= 5 ? 0.13 : 0.12, buffer: n <= 3 ? 0.2 : n <= 5 ? 0.15 : 0.14,
-    freeFalls: n <= 2 || (n >= 7 && n <= 8) ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42,
+    freeFalls: n <= 2 || (n >= 7 && n <= 8) ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42, spikeGrace: n >= 6,
   };
 }
 
@@ -164,5 +166,6 @@ export function knobsFor(n: number, o: { ease?: number; bonus?: number } = {}): 
   if (n === 40) { timing.bossHp = 32; timing.bossWarn = 0.8; timing.bossTempo = 1.8; }
   const modifiers = ease > 0 ? (MODS[n] ?? []).filter((m) => m === 'sis' || m === 'gece') : (MODS[n] ?? []);
   const early = { noHazards: n === 1 ? 'hepsi' as const : n <= 3 ? 'ogretici-disi' as const : n <= 12 ? 'kontrol' as const : false as const, maxPit: n <= 2 ? 70 : n === 3 ? 90 : 9999, noMoving: n <= 3, cpEveryRoom: n <= 12, softHazards: n >= 6 && n <= 12 };
-  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease, assist: assistFor(n), early };
+  const spikes = { mode: n % 20 === 0 ? 'serbest' as const : n <= 5 ? 'yok' as const : n <= 12 ? 'bolum' as const : 'seyrek' as const, perSection: 1 };
+  return { lambda, roomTarget, rooms, roomMax, maxFamilies, enemies, maxGap, minLanding, tight, timing, geom, modifiers, ease, assist: assistFor(n), early, spikes };
 }
