@@ -18,3 +18,12 @@ await build({
   banner: { js: "import { createRequire as __odiCreateRequire } from 'node:module'; const require = __odiCreateRequire(import.meta.url);" },
   logLevel: 'info',
 });
+// kod yönetimi aracı (npm run kod -- …)
+await build({
+  entryPoints: [path.join(here, 'src/kod-cli.ts')],
+  outfile: path.join(here, 'dist/kod.mjs'),
+  bundle: true, platform: 'node', target: 'node22', format: 'esm',
+  external: ['bufferutil', 'utf-8-validate'],
+  banner: { js: "import { createRequire as __odiCreateRequire } from 'node:module'; const require = __odiCreateRequire(import.meta.url);" },
+  logLevel: 'warning',
+});

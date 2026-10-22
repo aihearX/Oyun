@@ -18,6 +18,7 @@ import { Art, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
 import { clearedCount, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
+import { CodeSheet } from '../codes/Codes';
 import { reachedRegions } from './GlossaryScreen';
 
 export type ProfileLink = 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
@@ -27,7 +28,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const me = useNet((x) => x.me); const st = useNet((x) => x.status); const inbox = useNet((x) => x.inboxCount); const wallet = useNet((x) => x.wallet);
   const pending = usePending(); const nav = useNav();
   const dms = useFriends((x) => x.dmUnread); const reqs = useFriends((x) => x.incoming.length);
-  const [rename, setRename] = useState(false);
+  const [rename, setRename] = useState(false); const [codeSheet, setCodeSheet] = useState(false);
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
   const album = albumProgress(s.meta.cards);
@@ -70,9 +71,11 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className={tileCls('skills')} data-tile="skills" onClick={guard('skills', () => onOpen('skills'))}><span className="mi gold"><Icon name="bolt" /></span><b>Yetenekler</b>{lockNote('skills') ?? <span className="muted">Jetonla kalıcı güç</span>}</button>
         <button className="menu-tile" data-tile="settings" onClick={() => onOpen('settings')}><span className="mi plain"><Icon name="sliders" /></span><b>Ayarlar</b><span className="muted">Ses, kayıt</span></button>
         <button className="menu-tile" data-tile="info" onClick={() => onOpen('info')}><span className="mi plain"><Icon name="info" /></span><b>Nasıl çalışır?</b><span className="muted">Ödüller, ihtimaller</span></button>
+        <button className="menu-tile" data-tile="kod" onClick={() => setCodeSheet(true)}><span className="mi gold"><Art name="key" size={26} /></span><b>Kod gir</b><span className="muted">Sürpriz ödül kodları</span></button>
       </div>
       {note && <div className="lock-toast" role="status"><Art name="lock" size={18} /> {note}</div>}
       {rename && me && <Rename current={me.name} onClose={() => setRename(false)} />}
+      {codeSheet && <CodeSheet onClose={() => setCodeSheet(false)} />}
     </div>
   );
 }

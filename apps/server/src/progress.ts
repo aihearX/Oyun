@@ -1,5 +1,6 @@
 import { leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
+import { isAdmin, isAdminOn } from './codes';
 import { completeDue, useRemedies } from './camp';
 import { addLeaguePoints } from './league';
 import { racePlaceFor } from './race';
@@ -42,7 +43,9 @@ export const progressHandlers: Handlers = {
     const prev = app.db.get<{ ack: string }>('SELECT ack FROM progress_runs WHERE player_id = ? AND run_id = ?', s.pid, d.runId);
     if (prev) return parseJson(prev.ack, null) ?? fail('SUNUCU', 'Kayıtlı yanıt okunamadı.');
     const p = app.player(s.pid);
-    if (d.level > p.highest + 1) fail('GECERSIZ', 'Bu bölüm henüz açılmamış.');
+    // yönetici hesabı (Kod Gir): tüm bölümler oynanabilir ama gerçek ilerleme (highest) ileri atlamaz; rekabet puanı kazanmaz
+    const admin = isAdmin(app, s.pid); const adminOn = admin && isAdminOn(app, s.pid);
+    if (d.level > p.highest + 1 && !adminOn) fail('GECERSIZ', 'Bu bölüm henüz açılmamış.');
     if (!d.completed && d.stars > 0) fail('GECERSIZ', 'Tamamlanmayan bölüm yıldız veremez.');
     completeDue(app, s.pid);
     const teamId = p.team_id;
@@ -62,27 +65,27 @@ export const progressHandlers: Handlers = {
       app.db.run(`INSERT INTO level_best(player_id, level, stars, score) VALUES(?, ?, ?, ?)
         ON CONFLICT(player_id, level) DO UPDATE SET stars = MAX(stars, excluded.stars), score = MAX(score, excluded.score)`, s.pid, d.level, d.stars, score);
     }
-    const highest = d.completed ? Math.max(p.highest, Math.min(MAX_LEVEL, d.level + 1)) : p.highest;
+    const highest = d.completed && d.level <= p.highest + (adminOn ? 0 : 1) ? Math.max(p.highest, Math.min(MAX_LEVEL, d.level + 1)) : p.highest;
     const run = { completed: d.completed, stars: d.stars, secretFound: false } as RunResult;
     const xp = p.xp + xpForRun(run);
     app.db.run('UPDATE players SET highest = ?, stars = stars + ?, xp = ? WHERE id = ?', highest, starGain, xp, s.pid);
 
     // savaş puanı (parayla alınamaz: yalnızca oynayarak)
     const warMul = 1 + bonus.warPct / 100;
-    const warPoints = Math.round(warPointsFor(d) * warMul);
+    const warPoints = admin ? 0 : Math.round(warPointsFor(d) * warMul);
     addWarPoints(app, s.pid, teamId, d.biome, warPoints);
 
     // baskın
-    const raidRaw = Math.round(raidDamageFor(d) * (1 + bonus.raidPct / 100));
+    const raidRaw = admin ? 0 : Math.round(raidDamageFor(d) * (1 + bonus.raidPct / 100));
     const raidDamage = raidHit(app, s.pid, teamId, raidRaw);
 
     // lig
     const place = d.raceId ? racePlaceFor(app, s.pid, d.raceId) : null;
-    const leaguePoints = leaguePointsFor(d, place);
+    const leaguePoints = admin ? 0 : leaguePointsFor(d, place);
     addLeaguePoints(app, s.pid, leaguePoints);
 
     // takım katkısı ve hedefler
-    if (teamId) {
+    if (teamId && !admin) {
       const stars = d.completed ? d.stars : 0;
       addContrib(app, teamId, s.pid, { stars });
       addTeamXp(app, teamId, stars * 2);

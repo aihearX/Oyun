@@ -1,5 +1,6 @@
 import type { CommNotice, CommSettings } from '@odi/shared';
 import { fail, rid, type App, type PlayerRow } from '../app';
+import { isAdminOn } from '../codes';
 import { dayKey } from '../time';
 
 /**
@@ -11,7 +12,8 @@ interface SetRow { feed_share: number }
 const row = (app: App, pid: string): SetRow => app.db.get<SetRow>('SELECT feed_share FROM comm_settings WHERE player_id = ?', pid) ?? { feed_share: 1 };
 /** geçilen bölüm sayısı: en yüksek açık bölüm − 1 (sunucu bölümleri sırayla açar) */
 const cleared = (p: PlayerRow) => Math.max(0, p.highest - 1);
-export const canFreeText = (app: App, p: PlayerRow) => cleared(p) >= app.cfg.freeTextCleared;
+/** yönetici modu (Kod Gir) her özelliği açar; serbest yazı da */
+export const canFreeText = (app: App, p: PlayerRow) => cleared(p) >= app.cfg.freeTextCleared || isAdminOn(app, p.id);
 
 export function commSettings(app: App, pid: string): CommSettings {
   const p = app.player(pid);

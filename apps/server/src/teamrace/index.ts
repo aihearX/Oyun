@@ -15,6 +15,7 @@ import { createTeamRaceRoom, raceDisconnect, raceRoomView } from '../race';
 import { boardValue } from '../rank';
 import { dayKey } from '../time';
 import { leagueState, recordRaceLeague, requireTeamId, ensureSeason } from './league';
+import { isAdmin } from '../codes';
 
 export { TLIG_SCHEMA, ensureSeason, seasonTable } from './league';
 
@@ -180,16 +181,19 @@ export function finalize(app: App, matchId: string): TeamRaceResult | null {
     // sayılma: en az bir bitiren olmalı; aynı iki takım günde en çok 2 kez sayılır
     const finishers = rows.filter((r) => r.place != null).length;
     const pairToday = app.db.get<{ n: number }>(`SELECT COUNT(*) AS n FROM tl_race WHERE team_id = ? AND rival_id = ? AND day = ? AND counted = 1`, m.team_a, m.team_b, day)!.n;
-    const allowed = finishers > 0 && pairToday < 2;
+    // yönetici hesabı katıldıysa yarış lige sayılmaz (adil rekabet); diğerlerinin ödülü sürer
+    const anyAdmin = rows.some((r) => isAdmin(app, r.id));
+    const allowed = finishers > 0 && pairToday < 2 && !anyAdmin;
+    const rewardable = finishers > 0 && pairToday < 2;
     const outcome = (k: TeamRaceSideId) => (winner == null ? 'draw' : winner === k ? 'win' : 'lose') as 'win' | 'draw' | 'lose';
     const ca = recordRaceLeague(app, matchId, m.team_a, m.team_b, R.league[outcome('a')], day, allowed);
     const cb = recordRaceLeague(app, matchId, m.team_b, m.team_a, R.league[outcome('b')], day, allowed);
     const result: TeamRaceResult = { matchId, size: m.size, level: m.level, friendly: !!m.friendly, a: A, b: B, winner, rows, endedAt: m.ended_at, counted: ca || cb };
     app.db.run('UPDATE tr_match SET result = ? WHERE id = ?', JSON.stringify(result), matchId);
     // ödüller: sayılan yarışlarda; kazanan/berabere: katılan (ayrılmayan) herkes, kaybeden: bitirenler
-    if (allowed) {
+    if (rewardable) {
       for (const r of rows) {
-        const o = outcome(r.side); if (r.left || (o === 'lose' && r.place == null)) continue;
+        const o = outcome(r.side); if (r.left || (o === 'lose' && r.place == null) || isAdmin(app, r.id)) continue;
         if (app.dailyCount(r.id, day, 'tyaris_odul') >= R.rewardRacesPerDay) continue;
         app.dailyInc(r.id, day, 'tyaris_odul');
         const g = R.rewards[o]; const why = `Takım Yarışı ${o === 'win' ? 'kazanıldı' : o === 'draw' ? 'berabere' : 'katılım'}: ${A.emblem} ${A.score} – ${B.score} ${B.emblem}`;

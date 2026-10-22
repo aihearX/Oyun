@@ -177,7 +177,7 @@ const TAB_ROUTES = ['map', 'today', 'camp', 'team', 'profile'];
 
 /** bir sonraki tur: sıra önemli (önce sonuç → harita → açılımlar) */
 function nextTour(route: string): string | null {
-  const s = useStore.getState(); const f = s.ftue; if (f.bypass) return null;
+  const s = useStore.getState(); const f = s.ftue; if (f.bypass || f.admin) return null;
   const done = (id: string) => f.tours.includes(id);
   const cleared = clearedCount(s.progress);
   if (route === 'result') {

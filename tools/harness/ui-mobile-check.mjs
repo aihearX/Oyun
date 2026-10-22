@@ -13,6 +13,7 @@
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
 //           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc]
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
+import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -50,7 +51,10 @@ if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDi
 const sport = 8800 + Math.floor(Math.random() * 400);
 // sunucu veritabanı geçici bir dosyada: "büyük cüzdan" denetimi oyuncunun cüzdanını doğrudan yazar
 const dbFile = resolve(outRoot, 'sunucu.db'); for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) rmSync(f, { force: true });
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: dbFile, ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
+// Kod Gir: test yönetici kodu (gerçek yönetici kodu depoda yoktur); sunucu bu özetle doğrular
+const TEST_ADMIN_CODE = 'TESTYONETICI';
+const TEST_ADMIN_HASH = (() => { const salt = randomBytes(16).toString('hex'); return `scrypt:${salt}:${scryptSync(TEST_ADMIN_CODE, salt, 32, { N: 16384, r: 8, p: 1 }).toString('hex')}`; })();
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: dbFile, ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */, ODI_ADMIN_CODE_HASH: TEST_ADMIN_HASH /* test yönetici kodu (gerçeği değil) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
@@ -292,7 +296,9 @@ async function suite(browserName, target, [W, H]) {
       const tiles = await page.locator('.menu-tile').evaluateAll((els) => els.map((e) => e.querySelector('b')?.textContent ?? ''));
       for (const t of tiles) {
         await page.locator('.menu-tile', { hasText: t }).first().click(); await sleep(600);
-        await check(`profil-${t.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`, { chat: t === 'Genel sohbet' });
+        await check(`profil-${t.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`, { chat: t === 'Genel sohbet', scroll: !(await page.locator('.sheet-wrap').count()) });
+        // sayfa (alt sayfa) açan karolar: Escape ile kapanır
+        if (await page.locator('.sheet-wrap').count()) { await page.keyboard.press('Escape'); await sleep(300); }
         await back();
         if (!(await page.locator('.menu-tile').count())) await tab('Profil');
       }
@@ -308,6 +314,19 @@ async function suite(browserName, target, [W, H]) {
       // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)
       const rn = page.getByRole('button', { name: 'Takma adı değiştir' });
       if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).click(); }
+      // Kod Gir: yanlış kod mesajı; test yönetici kodu → Ayarlar'da yönetici kutusu ve kod paneli
+      { await page.locator('.menu-tile[data-tile="kod"]').click(); await page.getByTestId('kod-sayfasi').waitFor();
+        await page.getByTestId('kod-girdi').fill('yanlis kod'); await page.getByTestId('kod-kullan').click(); await page.getByTestId('kod-sonuc').waitFor();
+        await check('kod-sayfasi-hata', { scroll: false });
+        await page.getByTestId('kod-girdi').fill(TEST_ADMIN_CODE.toLowerCase()); await page.getByTestId('kod-kullan').click(); await page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici modu' }).waitFor();
+        await page.keyboard.press('Escape'); await sleep(300);
+        await page.locator('.menu-tile[data-tile="settings"]').click(); await page.getByTestId('yonetici-rozet').waitFor();
+        await page.getByTestId('kod-ayar').scrollIntoViewIfNeeded(); await check('ayarlar-yonetici');
+        await page.getByTestId('kod-paneli-ac').click(); await page.getByTestId('kod-paneli').waitFor(); await sleep(400); await check('kod-paneli', { scroll: false });
+        await page.keyboard.press('Escape'); await sleep(300);
+        // yönetici modunu kapat (diğer ekranlar gerçek ilerlemeyle denetlensin)
+        await page.getByTestId('yonetici-anahtar').click(); await page.locator('[data-testid="yonetici-rozet"]', { hasText: 'kapalı' }).waitFor();
+        await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
     }
     if (want('kamp')) {
       await tab('Kamp'); await sleep(1200); await check('kamp', { scroll: false });

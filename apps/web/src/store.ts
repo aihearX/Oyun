@@ -102,7 +102,8 @@ export const useStore = create<State>()(persist((set, get) => {
       settleAndToast({ ...c, meta: { ...c.meta, daily } }, t ? [t] : []);
       return event;
     },
-    highestUnlocked() { return highestUnlocked(get().progress, HUMAN_JOURNEY.levels.length); },
+    // yönetici modu (Kod Gir, sunucu doğruladı): tüm bölümler oynanabilir; yıldız/ilerleme gerçek kalır
+    highestUnlocked() { return get().ftue.admin ? HUMAN_JOURNEY.levels.length : highestUnlocked(get().progress, HUMAN_JOURNEY.levels.length); },
     completeRun(spec, r) {
       const today = ensureToday(); const s = get();
       const { core: c, summary } = processRun(core(s), spec, r, today);

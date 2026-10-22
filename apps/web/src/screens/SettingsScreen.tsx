@@ -8,6 +8,7 @@ import { Art, Glyph } from '../ui/art';
 import { Sheet } from '../ui/social';
 import { resetEverything } from '../reset';
 import { speakLine, useVoiceStatus } from '../ftue/voice';
+import { CodeSettingsCard } from '../codes/Codes';
 import { lineText } from '../ftue/script';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
@@ -54,6 +55,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           <button type="button" role="radio" aria-checked={s.knowledge === 'odyoloji'} className={s.knowledge === 'odyoloji' ? 'on' : ''} onClick={() => s.setKnowledge('odyoloji')}>Odyoloji öğrencisi</button>
         </div>
       </div>
+      <CodeSettingsCard />
       <div className="card skill"><div><h2>Her şeyi sıfırla</h2><div className="muted">Bu cihazdaki ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => setAsk(true)}>Sıfırla</button></div>
       {ask && (
         <Sheet title="Her şey silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>

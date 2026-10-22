@@ -1,0 +1,24 @@
+/* Kod Gir: koyu cam sayfa, yönetici kutusu ve kod paneli */
+.code-sheet { display:flex; flex-direction:column; gap:10px; }
+.code-form { display:flex; gap:8px; min-width:0; }
+.code-input { flex:1; min-width:0; text-transform:uppercase; letter-spacing:.12em; font-weight:900; font-size:18px; text-align:center; }
+.code-input::placeholder { letter-spacing:.2em; opacity:.5; }
+.code-form .btn { flex:none; }
+.code-msg { font-weight:800; font-size:14px; padding:10px 12px; border-radius:14px; }
+.code-msg.err { background:rgba(255,92,138,.14); border:1.5px solid rgba(255,92,138,.45); color:#ffd0dd; }
+.code-msg.ok { background:rgba(142,240,176,.14); border:1.5px solid rgba(142,240,176,.45); color:#d9ffe6; }
+.code-card { display:flex; flex-direction:column; gap:10px; }
+.code-card h2 { margin:0; }
+.admin-box { display:flex; flex-direction:column; gap:8px; padding:10px 12px; border-radius:16px; background:rgba(255,201,60,.08); border:1.5px solid rgba(255,201,60,.35); }
+.admin-pill { display:inline-flex; align-items:center; gap:6px; font-weight:900; font-size:13px; padding:5px 10px; border-radius:999px; background:rgba(255,255,255,.08); }
+.admin-pill.on { background:linear-gradient(180deg, rgba(255,201,60,.35), rgba(255,159,28,.2)); color:#fff3b0; }
+.admin-panel { display:flex; flex-direction:column; gap:10px; }
+.admin-panel h3 { margin:6px 0 0; }
+.panel-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+.panel-grid .input { min-width:0; width:100%; }
+.code-list { display:flex; flex-direction:column; gap:6px; }
+.code-row { display:flex; align-items:center; gap:8px; min-width:0; padding:8px 10px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); }
+.code-row small { display:block; font-size:11.5px; }
+.code-row.off { opacity:.55; }
+.code-row .btn { flex:none; }
+.code-card .row .btn { flex:none; white-space:nowrap; }

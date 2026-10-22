@@ -54,6 +54,8 @@ export async function refreshDq(): Promise<void> {
   const c = client; if (!c || c.status !== 'bağlı' || !useNet.getState().team) return;
   try { set({ dq: await c.call('dq.state', {}) }); } catch { /* sonra */ }
 }
+/** sohbet ayarlarını yeniden al (ör. yönetici modu değişince serbest yazı) */
+export async function refreshComm(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ settings: (await c.call('comm.state', {})).settings }); } catch { /* sonra */ } }
 export async function refreshDuo(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ duo: (await c.call('duo.state', {})).duo }); } catch { /* sonra */ } }
 export async function refreshMentor(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ mentor: (await c.call('mentor.state', {})).mentor }); } catch { /* sonra */ } }
 

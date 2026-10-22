@@ -48,6 +48,7 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `REVENUECAT_API_KEY` | — | gerçek mağaza makbuz doğrulaması; yoksa App Store / Play satın alımları **reddedilir** |
 | `ODI_LOG` | açık | `0` → bağlantı günlüğünü kapat |
 | `ODI_FREE_TEXT_AT` | `8` | yalnızca test: serbest yazı için geçilmesi gereken bölüm (güvenli sohbet; üretimde ayarlanmaz) |
+| `ODI_ADMIN_CODE_HASH` | depodaki varsayılan özet | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur) |
 
 ## 3. İstemci (`@odi/net`)
 
@@ -209,3 +210,50 @@ yazar). Serbest yazısı açılmamış oyuncunun davet metinlerini de sunucu yaz
 - Sezon kapanışı ve ödül bir kez işlenir.
 
 Birim testleri: `apps/server/test/teamrace.test.ts`.
+
+## Kodlar (Kod Gir)
+
+Profil › **Kod gir** ve Ayarlar › **Kod gir**: oyuncu bir kod yazar, sunucu doğrular (`code.redeem`). İstemci kodu boşluksuz ve Türkçe güvenli büyük
+harfe çevirir (i/ı/İ → I); geçerli biçim A–Z, 0–9, Ç Ğ Ö Ş Ü ve tire, 3–32 karakter.
+
+**Ödül kodları** (`promo_codes`, kullanım `promo_uses`, her deneme `promo_log`):
+- Her oyuncu bir kodu **bir kez** kullanır (`promo_uses` birincil anahtarı). Toplam kullanım sınırı koşullu artışla korunur, aynı anda iki istek sınırı aşamaz.
+- Başlangıç ve bitiş tarihi isteğe bağlıdır; kod kapatılabilir.
+- Ödüller mevcut yollardan gelir: jeton, kristal, kalkan ve kozmetik ödül kutusuna, hızlandırıcılar sunucu cüzdanına.
+- Hata yanıtları dürüsttür: "Kod geçersiz.", "Bu kodu zaten kullandın.", "Bu kodun süresi dolmuş.", "Bu kodun kullanım hakkı doldu.",
+  "Bu kod henüz geçerli değil.". Bunlar istek hatası değil sonuç olarak döner, böylece deneme kaydı geri alınmaz.
+- Yanlış deneme sınırı: oyuncu başına 10 dakikada 5, aynı IP için 20 (`CODE_RULES`).
+- Kayıt: bilinmeyen kodun metni yazılmaz.
+
+**Komut satırı** (sunucu makinesinde; veritabanı `ODI_DB`, yoksa `apps/server/data/odi.sqlite`):
+
+```
+npm run kod -- ekle ODIYAKINDA --jeton 500 --kristal 20 --max 1000 --bitis 2026-12-31 --not "Yakında!"
+npm run kod -- ekle KAMPCI --kalkan 1 --m5 2 --kozmetik sapka-kasif --baslangic 2026-11-01
+npm run kod -- liste
+npm run kod -- kapat ODIYAKINDA      # ya da: ac ODIYAKINDA
+```
+
+Tarihler İstanbul saatine göredir ve bitiş günü dahildir. **Uygulama içi panel** de aynı işlemleri yapar (`code.create`, `code.list`, `code.close`):
+Ayarlar › Kod gir › Kod paneli. Panel yalnızca yönetici modu açıkken çalışır.
+
+**Yönetici kodu.** Doğru girilince hesap sunucuda **yönetici** olarak işaretlenir (`player_flags.admin`, kalıcı) ve yönetici modu açılır (`admin_on`).
+
+Yönetici modunda:
+- Tüm bölümler oynanabilir ve FTUE ile açılan tüm yerler açılır. Sunucu da modu tanır: bölüm sınırı ve serbest yazı açıktır.
+- Gerçek ilerleme (`highest`) ileri atlamaz ve yıldızlar sahte değildir.
+
+Ayarlar'da "Yönetici modu açık" rozeti ve bir anahtar vardır (`admin.set`):
+- Anahtar kapatılınca bölümler gerçek ilerlemeye göre yeniden kilitlenir.
+- Yeniden açmak kod gerektirmez.
+
+Mod yerelde tutulur, çevrimdışı da sürer; bağlanınca sunucunun durumu esas alınır. Sıfırla yerel durumu siler.
+
+Yönetici hesabı **adil rekabetten çıkarılır**:
+- Sıralama tablolarına girmez: oyuncu tablolarında görünmez, takım gücüne, baskın ve bilgi toplamlarına sayılmaz.
+- Savaş, baskın ve oyuncu ligi puanı kazanmaz; takıma katkısı yoktur.
+- Haftalık sıralama ödülü ve Takım Ligi sezon ödülü almaz.
+- Takım Yarışı ödülü almaz. Katıldığı takım yarışı lige sayılmaz.
+
+Testlerde gerçek kod kullanılmaz; sunucu, test kodunun özetiyle kurulur (`apps/server/test/codes.test.ts`, `tools/harness/codes-e2e.mjs`).
+

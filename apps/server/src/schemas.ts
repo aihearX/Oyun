@@ -90,6 +90,16 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'trace.challenge': z.object({ teamId: id }), 'trace.accept': z.object({ teamId: id }), 'trace.decline': z.object({ teamId: id }),
   'trace.rematch': z.object({ matchId: id }), 'trace.result': z.object({ matchId: id }),
   'trace.react': z.object({ emoji: z.enum(TEAM_RACE_REACTIONS as unknown as [string, ...string[]]) }),
+  // kodlar
+  'code.redeem': z.object({ code: z.string().min(1).max(64) }),
+  'admin.state': empty, 'admin.set': z.object({ on: z.boolean() }), 'code.list': empty,
+  'code.create': z.object({
+    code: z.string().min(3).max(64), note: z.string().max(60).optional(),
+    rewards: z.object({ jeton: z.number().int().min(0).max(100_000).optional(), kristal: z.number().int().min(0).max(10_000).optional(), kalkan: z.number().int().min(0).max(50).optional(),
+      kozmetik: z.array(z.string().max(40)).max(10).optional(), hizlandirici: z.object({ m5: z.number().int().min(0).max(100).optional(), m60: z.number().int().min(0).max(100).optional(), s8: z.number().int().min(0).max(100).optional() }).optional() }),
+    maxUses: z.number().int().min(1).max(10_000_000).nullable().optional(), startsAt: z.number().int().nullable().optional(), endsAt: z.number().int().nullable().optional(),
+  }),
+  'code.close': z.object({ code: z.string().min(1).max(64), active: z.boolean().optional() }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

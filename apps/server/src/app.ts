@@ -33,6 +33,8 @@ export interface ServerConfig {
   freeTextCleared: number;
   /** takım yarışı: bağlantısı kopanın dönmesi için bekleme (varsayılan TEAM_RACE_RULES.graceMs; testte kısa) */
   teamRaceGraceMs?: number;
+  /** yönetici kodunun tuzlu özeti (scrypt:tuz:özet); yoksa codes.ts'teki varsayılan. Düz metin hiçbir yerde tutulmaz. */
+  adminCodeHash?: string;
 }
 
 export class OdiError extends Error {
@@ -49,6 +51,8 @@ export interface Conn {
   refillAt: number;
   alive: boolean;
   lastPosAt: number;
+  /** bağlantının IP'si (kod denemesi sınırı) */
+  ip?: string;
 }
 
 export interface Session { conn: Conn; pid: string }

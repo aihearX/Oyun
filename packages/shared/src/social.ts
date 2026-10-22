@@ -999,3 +999,48 @@ export interface EvtMap {
 }
 /** yarış içi hızlı tepkiler (takım arkadaşlarına) */
 export const TEAM_RACE_REACTIONS = ['🔥', '💪', '👏', '🏁', '😅'] as const;
+
+// =====================================================================
+// KOD GİR (v6, docs/10-sunucu.md "Kodlar"): sürpriz ödül kodları ve yönetici kodu. Yalnızca EKLEME. Tüm doğrulama sunucuda;
+// yönetici kodunun kendisi istemcide ve depoda yoktur (sunucu yalnızca tuzlu özetini bilir).
+// =====================================================================
+
+/** kod biçimi: boşluklar atılır, Türkçe güvenli büyük harf (i/ı/İ → I), yalnızca A–Z, 0–9, Ç Ğ Ö Ş Ü ve tire; 3–32 karakter */
+export function normalizeCode(raw: string): string {
+  return raw.normalize('NFKC').replace(/\s+/g, '').replace(/[ıİi]/g, 'I').toUpperCase();
+}
+export const CODE_PATTERN = /^[A-Z0-9ÇĞÖŞÜ-]{3,32}$/;
+
+/** bir kodun verdiği ödüller (hepsi isteğe bağlı) */
+export interface PromoReward {
+  jeton?: number; kristal?: number; kalkan?: number;
+  /** kozmetik kimlikleri */
+  kozmetik?: string[];
+  hizlandirici?: { m5?: number; m60?: number; s8?: number };
+}
+export interface PromoCodeView {
+  code: string; rewards: PromoReward; maxUses: number | null; uses: number;
+  startsAt: number | null; endsAt: number | null; active: boolean; note: string; createdAt: number;
+}
+/** kullanım sonucu: ödül (ödül kutusuna + hızlandırıcılar cüzdana) ya da yönetici modu */
+export type CodeRedeemResult =
+  | { kind: 'odul'; code: string; title: string; rewards: PromoReward }
+  | { kind: 'yonetici'; admin: AdminState }
+  /** dürüst hata (deneme sayılır ve kaydedilir; istek hatası değil) */
+  | { kind: 'hata'; error: CodeError; message: string };
+export type CodeError = 'gecersiz' | 'kullanildi' | 'suresi' | 'tukendi' | 'baslamadi' | 'cok';
+export interface AdminState { isAdmin: boolean; on: boolean }
+export const CODE_RULES = {
+  /** oyuncu başına 10 dakikada en çok 5 yanlış deneme; aynı IP için 20 */
+  wrongPerPlayer: 5, wrongPerIp: 20, windowMs: 600_000,
+} as const;
+
+export interface OpMap {
+  'code.redeem': { req: { code: string }; res: { result: CodeRedeemResult } };
+  'admin.state': { req: Record<string, never>; res: { admin: AdminState } };
+  'admin.set': { req: { on: boolean }; res: { admin: AdminState } };
+  /** yönetici paneli (yalnızca yönetici modu açıkken) */
+  'code.list': { req: Record<string, never>; res: { codes: PromoCodeView[] } };
+  'code.create': { req: { code: string; rewards: PromoReward; maxUses?: number | null; startsAt?: number | null; endsAt?: number | null; note?: string }; res: { code: PromoCodeView } };
+  'code.close': { req: { code: string; active?: boolean }; res: { code: PromoCodeView } };
+}

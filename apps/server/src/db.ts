@@ -6,6 +6,7 @@ import { COMM_SCHEMA } from './comm/schema';
 import { CAMP_SCHEMA } from './camp-schema';
 import { RANK_SCHEMA } from './rank';
 import { TLIG_SCHEMA, TRACE_SCHEMA } from './teamrace';
+import { CODES_SCHEMA } from './codes';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -116,6 +117,7 @@ export class Db {
     this.raw.exec(RANK_SCHEMA);
     this.raw.exec(TRACE_SCHEMA);
     this.raw.exec(TLIG_SCHEMA);
+    this.raw.exec(CODES_SCHEMA);
   }
 
   private stmt(sql: string): StatementSync {

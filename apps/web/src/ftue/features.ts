@@ -55,6 +55,8 @@ export interface FtueState {
   tours: string[];
   /** test/geliştirme: her şey açık, tur yok (yalnızca test derlemesinde ?ftue=0 ya da tohumlanmış kayıt) */
   bypass?: boolean;
+  /** yönetici modu (Kod Gir; sunucu doğruladı): tüm yerler ve bölümler açık, tur yok. Sıfırlamada silinir. */
+  admin?: boolean;
   /** Tüy Dede'nin bölüm içinde bir kez söylediği ipucu satırları (ftue/hints.ts; oyuncu başına bir kez) */
   said?: string[];
 }
@@ -73,7 +75,7 @@ export function normalizeFtue(raw: unknown, progress: Record<number, { stars: nu
   const r = raw && typeof raw === 'object' ? raw as Partial<FtueState> : null;
   if (r && r.v === 1) {
     const said = Array.isArray(r.said) ? r.said.filter((t) => typeof t === 'string') : [];
-    return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}), ...(said.length ? { said } : {}) };
+    return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}), ...(r.admin ? { admin: true } : {}), ...(said.length ? { said } : {}) };
   }
   const cleared = clearedCount(progress);
   if (cleared === 0 && !Object.keys(progress).length) return { ...FRESH_FTUE };
@@ -89,7 +91,7 @@ export function veteranTours(cleared: number): string[] {
 
 /** bir yer açık mı (test atlaması her şeyi açar) */
 export function isOpen(id: FeatureId, cleared: number, ftue: FtueState): boolean {
-  return !!ftue.bypass || cleared >= featureById(id).at;
+  return !!ftue.bypass || !!ftue.admin || cleared >= featureById(id).at;
 }
 export const lockText = (id: FeatureId) => `Bölüm ${featureById(id).at}'${suffix(featureById(id).at)} açılır`;
 /** Türkçe bulunma eki (son rakama göre): 1'de 2'de 3'te 4'te 5'te 6'da 7'de 8'de 9'da 10'da */

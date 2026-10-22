@@ -20,6 +20,7 @@ import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 import { installRank, rankDayTick, rankHandlers } from './rank';
+import { codeHandlers } from './codes';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 
 export const SERVER_VERSION = '0.1.0';
@@ -29,7 +30,7 @@ const HANDLERS: Handlers = withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
-  ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers,
+  ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
 })));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
@@ -48,6 +49,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   o.revenueCatKey = env.REVENUECAT_API_KEY || null;
   if (env.ODI_EVENTS_FAST) o.eventsFast = env.ODI_EVENTS_FAST === '1';
   if (env.ODI_FREE_TEXT_AT && /^\d+$/.test(env.ODI_FREE_TEXT_AT)) o.freeTextCleared = Number(env.ODI_FREE_TEXT_AT);
+  if (env.ODI_ADMIN_CODE_HASH) o.adminCodeHash = env.ODI_ADMIN_CODE_HASH;
   return o;
 }
 
@@ -166,8 +168,9 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     log('ayrıldı', pid);
   }
 
-  wss.on('connection', (ws: WebSocket) => {
-    const c: Conn = { id: nextConnId++, ws, pid: null, rooms: new Set(), tokens: cfg.msgPerSec, refillAt: Date.now(), alive: true, lastPosAt: 0 };
+  wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+    const fwd = String(req.headers['x-forwarded-for'] ?? '').split(',')[0]?.trim();
+    const c: Conn = { id: nextConnId++, ws, pid: null, rooms: new Set(), tokens: cfg.msgPerSec, refillAt: Date.now(), alive: true, lastPosAt: 0, ip: fwd || req.socket.remoteAddress || '' };
     conns.add(c);
     ws.on('pong', () => { c.alive = true; });
     ws.on('message', (data, isBinary) => {

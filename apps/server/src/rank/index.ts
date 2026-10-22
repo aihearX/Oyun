@@ -14,6 +14,7 @@ import { postCard, systemMessage, teamRoom } from '../chat';
 import { dayKey, weekInfo, DAY_MS, WEEK_MS } from '../time';
 import { feedShareOn, metric } from '../comm/settings';
 import { seasonTable } from '../teamrace/league';
+import { ADMIN_IDS_SQL, isAdmin } from '../codes';
 
 export const RANK_SCHEMA = `
 CREATE TABLE IF NOT EXISTS rank_level(player_id TEXT NOT NULL, level INTEGER NOT NULL, stars INTEGER NOT NULL, PRIMARY KEY(player_id, level));
@@ -39,7 +40,7 @@ function rankList(list: Entry[]): Ranked[] {
 const P = RANK_RULES.power;
 interface PRow { id: string; name: string; color: number; hat: string; team_id: string | null; tname: string | null; v: number }
 const playerRows = (app: App, sql: string, ...args: (string | number)[]) =>
-  app.db.all<PRow>(`SELECT p.id, p.name, p.color, p.hat, p.team_id, t.name AS tname, x.v FROM (${sql}) x JOIN players p ON p.id = x.id LEFT JOIN teams t ON t.id = p.team_id WHERE x.v > 0`, ...args)
+  app.db.all<PRow>(`SELECT p.id, p.name, p.color, p.hat, p.team_id, t.name AS tname, x.v FROM (${sql}) x JOIN players p ON p.id = x.id LEFT JOIN teams t ON t.id = p.team_id WHERE x.v > 0 AND p.id NOT IN (${ADMIN_IDS_SQL})`, ...args)
     .map((r): Entry => ({ id: r.id, value: r.v, name: r.name, color: r.color, hat: r.hat, teamId: r.team_id, teamName: r.tname }));
 
 /** oyuncu gücü (şeffaf formül): doğrulanmış yıldız/bölüm + kamp seviyeleri + açıklanmış Günün Sorusu doğruları */
@@ -48,7 +49,7 @@ const POWER_SQL = `SELECT p.id, (COALESCE(l.st, 0) * ${P.star} + COALESCE(l.n, 0
   JOIN (SELECT player_id, SUM(stars) AS st, COUNT(*) AS n FROM rank_level GROUP BY player_id) l ON l.player_id = p.id
   LEFT JOIN (SELECT player_id, SUM(level) AS camp FROM buildings GROUP BY player_id) b ON b.player_id = p.id
   LEFT JOIN (SELECT a.player_id, SUM(a.correct) AS dq FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 GROUP BY a.player_id) q ON q.player_id = p.id`;
-const DQ_WEEK_SQL = `SELECT a.player_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? GROUP BY a.player_id`;
+const DQ_WEEK_SQL = `SELECT a.player_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? AND a.player_id NOT IN (${ADMIN_IDS_SQL}) GROUP BY a.player_id`;
 
 function compute(app: App, board: RankBoardId, week: string): Entry[] {
   switch (board) {
@@ -65,12 +66,12 @@ function teamEntries(app: App, board: RankBoardId, week: string): Entry[] {
   let sql = '';
   const args: (string | number)[] = [];
   if (board === 't-guc') sql = `SELECT t.id, COALESCE(m.v, 0) + COALESCE(k.lv, 0) * ${RANK_RULES.teamTech} AS v FROM teams t
-      LEFT JOIN (SELECT p.team_id, SUM(x.v) AS v FROM (${POWER_SQL}) x JOIN players p ON p.id = x.id WHERE p.team_id IS NOT NULL GROUP BY p.team_id) m ON m.team_id = t.id
+      LEFT JOIN (SELECT p.team_id, SUM(x.v) AS v FROM (${POWER_SQL}) x JOIN players p ON p.id = x.id WHERE p.team_id IS NOT NULL AND p.id NOT IN (${ADMIN_IDS_SQL}) GROUP BY p.team_id) m ON m.team_id = t.id
       LEFT JOIN (SELECT team_id, SUM(level) AS lv FROM team_tech GROUP BY team_id) k ON k.team_id = t.id`;
   else if (board === 't-savas') { sql = 'SELECT team_id AS id, points AS v FROM team_week WHERE week = ?'; args.push(week); }
-  else if (board === 't-baskin') { sql = 'SELECT team_id AS id, SUM(damage) AS v FROM raid_damage WHERE raid_id = ? GROUP BY team_id'; args.push(week); }
+  else if (board === 't-baskin') { sql = `SELECT team_id AS id, SUM(damage) AS v FROM raid_damage WHERE raid_id = ? AND player_id NOT IN (${ADMIN_IDS_SQL}) GROUP BY team_id`; args.push(week); }
   else if (board === 't-lig') return seasonTable(app).filter((x) => x.value > 0);
-  else if (board === 't-soru') { sql = `SELECT a.team_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? GROUP BY a.team_id`; args.push(week); }
+  else if (board === 't-soru') { sql = `SELECT a.team_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? AND a.player_id NOT IN (${ADMIN_IDS_SQL}) GROUP BY a.team_id`; args.push(week); }
   return app.db.all<TRow>(`SELECT t.id, t.name, t.emblem, x.v FROM (${sql}) x JOIN teams t ON t.id = x.id WHERE x.v > 0`, ...args)
     .map((r) => ({ id: r.id, value: r.v, name: r.name, emblem: r.emblem }));
 }
@@ -92,6 +93,7 @@ export const boardValue = (app: App, board: RankBoardId, id: string): number => 
 // ------------------------------------------------------------------ olaylar (yalnızca doğrulanmış)
 /** progress.submit (aynı runId ikinci kez gelmez): doğrulanmış bölüm/yıldız, haftalık yeni yıldız, nota (günlük sınır), yarış birinciliği */
 export function rankOnRun(app: App, pid: string, d: { level: number; completed: boolean; stars: number; coins: number }, raceWin: boolean): void {
+  if (isAdmin(app, pid)) return; // yönetici hesabı rekabet tablolarına girmez
   const week = app.week().key; const day = dayKey(app.now());
   let starGain = 0;
   if (d.completed && d.stars > 0) {
@@ -132,6 +134,7 @@ export function rankWeekClose(app: App, oldWeek: string): void {
       const why = `Sıralama: ${b.name} · geçen hafta ${r.rank}.`;
       const pids = b.team ? app.teamMemberIds(r.id) : [r.id];
       for (const pid of pids) {
+        if (isAdmin(app, pid)) continue; // yönetici hesabı haftalık ödül almaz
         if (!app.db.run('INSERT OR IGNORE INTO rank_rewards(week, board, player_id, rank, at) VALUES(?, ?, ?, ?, ?)', oldWeek, b.id, pid, r.rank, app.now())) continue;
         for (const g of reward) app.addInbox(pid, { kind: g.kind, amount: g.amount, ref: g.ref }, why);
         metric(app, 'rank.reward');
