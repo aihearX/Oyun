@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EAR_NOTES } from '../../../../packages/content/src/odyoloji';
+import { PATOLOJILER, type PatolojiId } from '../../../../packages/content/src/patolojiler';
 import { NARRATOR_LINES, lineText, textHash } from './script';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams, NARRATOR_TTS } from './voicePick';
 
@@ -25,7 +26,7 @@ describe('Tüy Dede metinleri', () => {
   });
   it('gömülü ses listesi güncel metinlerle eşleşir (eski kayıt çalınmaz)', () => {
     const man = JSON.parse(readFileSync(resolve(__dirname, '../../public/voice/manifest.json'), 'utf8')) as { lines: Record<string, { file: string; hash: string }> };
-    const textOf = (id: string) => (id.startsWith('not-') ? EAR_NOTES.find((n) => `not-${n.id}` === id)!.plain : lineText(id));
+    const textOf = (id: string) => (id.startsWith('not-') ? EAR_NOTES.find((n) => `not-${n.id}` === id)!.plain : id.startsWith('pat-') ? PATOLOJILER[id.slice(4) as PatolojiId].sade : lineText(id));
     for (const [id, e] of Object.entries(man.lines)) {
       expect(e.hash, id).toBe(textHash(textOf(id)));
       expect(e.file).toBe(`${id}.mp3`);

@@ -32,7 +32,7 @@ ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice
 duraklamalar ≤ 250 ms, vibrato/tremolo yok, çok hafif yankı, −16 LUFS, sessizlik kırpma.
 Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 
-## Satırlar (121)
+## Satırlar (139)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -157,3 +157,21 @@ Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 | `not-kokteyl` | Beyin, kalabalık bir odada tek bir konuşmaya odaklanabilir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-cihaz` | İşitme cihazları sesi her frekans için ayrı ayrı ayarlayarak yükseltir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-tinnitus` | Kulak çınlaması, dışarıda bir ses yokken ses duyma hissidir ve oldukça yaygındır. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
+| `pat-serumen-tikaci` | Kulak kiri normalde kendiliğinden dışarı çıkar; birikip tıkaç olursa sesin yolunu kapatır. Üstünden atla! | Bölümde ilk karşılaşma: Kulak kiri tıkacı (Serumen tıkacı (buşon)) · 6. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-otitis-eksterna` | İltihaplanan kanal derisi şişer ve geçit daralır. Altından kayarak geç! | Bölümde ilk karşılaşma: Dış kulak iltihabı (Otitis eksterna) · 7. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-eksostoz` | Soğuk suyla sık karşılaşan kanalda küçük kemik çıkıntıları büyüyebilir. Sivri çıkıntının üstünden zıpla! | Bölümde ilk karşılaşma: Kanal kemik çıkıntısı (Eksostoz ("sörfçü kulağı")) · 6. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-perforasyon` | Zarda delik olursa orası titreşmez: deliğin üstünden zıplayıp karşıya geç! | Bölümde ilk karşılaşma: Kulak zarı deliği (Timpanik membran perforasyonu) · 9. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-timpanoskleroz` | Zarda beyaz, tebeşir gibi plaklar oluşursa zar sertleşir ve daha az titreşir. | Bölümde ilk karşılaşma: Zar sertleşmesi (Timpanoskleroz) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-retraksiyon` | Orta kulak basıncı düşük kalırsa zar içeri doğru çekilip bir cep oluşturabilir. | Bölümde ilk karşılaşma: Zar çekilmesi (Retraksiyon cebi) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-otitis-media` | Orta kulakta sıvı birikirse kemikçikler rahat titreşemez; çocuklarda sık görülür ve çoğu kendiliğinden geçer. | Bölümde ilk karşılaşma: Orta kulakta sıvı (Seröz otitis media) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-ostaki` | Östaki borusu yutkununca açılır ve basıncı eşitler. Geçit kapalıysa "yutkunma" anahtarına dokun! | Bölümde ilk karşılaşma: Östaki borusu tıkanıklığı (Östaki tüpü disfonksiyonu) · 13. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-otoskleroz` | Üzengi kemiği oval pencerede takılırsa titreşim iç kulağa geçmez. Yere çakılıp serbest bırak! | Bölümde ilk karşılaşma: Üzengi kemiği takılması (Otoskleroz) · 15. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-zincir-kopuk` | Kemikçiklerden biri ayrılırsa titreşim zincirden geçmez. Gidip gelen köprüyle boşluğu aş! | Bölümde ilk karşılaşma: Kemikçik zinciri kopukluğu (Kemikçik zinciri diskontinüitesi) · 19. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-gurultu-hasari` | Çok yüksek ses tüy hücrelerini yorar. Gürültü bulutuna değmeden geç! | Bölümde ilk karşılaşma: Gürültü hasarı (Gürültüye bağlı işitme kaybı) · 21. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-presbiakuzi` | Yıllar geçtikçe kokleanın tabanındaki (tiz sesler) tüy hücreleri seyrelir. Seyrek basamaklarda oyalanma! | Bölümde ilk karşılaşma: Yaşa bağlı işitme kaybı (Presbiakuzi) · 21. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-ototoksisite` | Bazı ilaçlar iç kulağa zarar verebilir; bu yüzden hekimler izler. Düşen zehirli damlalardan kaç! | Bölümde ilk karşılaşma: İlaca bağlı iç kulak hasarı (Ototoksisite) · 23. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-meniere` | İç kulakta sıvı fazlalaşınca denge ve işitme dalgalanır; bu zemin yalpalıyor, zamanla bin! | Bölümde ilk karşılaşma: Meniere hastalığı (Endolenfatik hidrops) · 23. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-noroma` | İşitme sinirinde yavaş büyüyen, iyi huylu bir doku yolu daraltabilir. Ses darbesiyle geçidi aç! | Bölümde ilk karşılaşma: İşitme siniri tümörü (Vestibüler schwannom (akustik nörinom)) · 31. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-noropati` | Ses kulağa ulaşır ama sinirde zamanlaması bozulur. Basamaklar ritimden kayıyor: gözünle izle! | Bölümde ilk karşılaşma: İşitsel nöropati (İşitsel nöropati spektrum bozukluğu) · 35. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-tinnitus` | Çınlama, dışarıda olmayan bir sesi duymaktır. Bu bulut aralıklarla çınlıyor: sustuğu anda geç! | Bölümde ilk karşılaşma: Kulak çınlaması (Tinnitus) · 37. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-merkezi` | Kulak iyi duysa da beyin sesi düzenlemekte zorlanabilir. Yankı yolu karışık: her basamağı ses darbesiyle uyandır! | Bölümde ilk karşılaşma: İşitsel işlemleme bozukluğu (Merkezi işitsel işlemleme bozukluğu) · 37. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |

@@ -26,7 +26,14 @@ export interface VoiceStatus { mode: VoiceMode | null; line: string | null; erro
 export const useVoiceStatus = create<VoiceStatus>()(() => ({ mode: null, line: null, error: null, at: 0, source: null, decoded: 0 }));
 type LogItem = { mode: VoiceMode; id: string | null; file: string | null; error?: string; at: number };
 const log: LogItem[] = [];
-if (typeof window !== 'undefined') (window as unknown as { __odiVoice?: unknown }).__odiVoice = { log, status: () => useVoiceStatus.getState() };
+/** sıraya alınabilen istekler (bölüm içi patoloji cümlesi): ne olduğu — test günlüğü */
+export type RequestOutcome = 'hemen' | 'sırada' | 'çalındı' | 'atlandı (eski)' | 'atlandı (sıra dolu)' | 'iptal' | 'kapalı';
+type RequestItem = { id: string; outcome: RequestOutcome; at: number };
+const requests: RequestItem[] = [];
+/** son istekler (en çok 100; test / tanı) */
+export const voiceRequests = (): RequestItem[] => requests;
+const request = (id: string, outcome: RequestOutcome) => { requests.push({ id, outcome, at: Date.now() }); if (requests.length > 100) requests.splice(0, requests.length - 100); };
+if (typeof window !== 'undefined') (window as unknown as { __odiVoice?: unknown }).__odiVoice = { log, requests, status: () => useVoiceStatus.getState() };
 function report(mode: VoiceMode, id: string | null, file: string | null, error?: string) {
   log.push({ mode, id, file, ...(error ? { error } : {}), at: Date.now() }); if (log.length > 200) log.splice(0, log.length - 200);
   useVoiceStatus.setState((s) => ({ mode, line: id, at: Date.now(), ...(error ? { error } : mode === 'kayıt' ? { error: null } : { error: s.error }) }));
@@ -114,17 +121,21 @@ export function prefetchLines(lines: { id?: string; text: string }[]) {
 // ---- konuşma
 let token = 0;
 let current: { stop(): void } | null = null;
+/** süren konuşma (yükleme dahil); bitince ya da kesilince null */
+let active: Promise<void> | null = null;
+/** şu an Tüy Dede konuşuyor mu (ya da satırı yükleniyor mu) */
+export function voiceBusy(): boolean { return active !== null; }
 
 /** Tüy Dede bu satırı söyler (kayıt varsa kayıt, yoksa yalnız erkek cihaz sesi, o da yoksa sessiz). Ayar kapalıysa sessiz.
  *  Dönen sayı bu konuşmanın kimliğidir: stopVoiceIf(kimlik) yalnız hâlâ bu satır konuşuluyorsa susturur. */
 export function speakLine(text: string, id?: string): number {
-  stopVoice();
+  halt();
   const s = useStore.getState();
   if (!s.sounds || !s.narratorVoice) return token;
   const my = ++token; const live = () => my === token;
   const volume = Math.max(0.2, Math.min(1, s.sfxVol ?? 0.9));
   try { audio.unlock(); } catch { /* yok */ }
-  void (async () => {
+  const run = (async () => {
     let file: string | null = null;
     try {
       file = await recordedFile(id, text);
@@ -149,15 +160,50 @@ export function speakLine(text: string, id?: string): number {
       if (live()) report(spoken === false ? 'sessiz' : 'cihaz sesi', id ?? null, file);
     } catch (e) { if (live()) report('sessiz', id ?? null, file, String(e).slice(0, 80)); }
   })();
+  active = run;
+  void run.finally(() => { if (active === run) { active = null; pump(); } });
   return my;
 }
 
-/** yalnız verilen konuşma sürüyorsa sus (bir notun kapanması sonraki anlatıcı satırını kesmesin) */
-export function stopVoiceIf(id: number) { if (id === token) stopVoice(); }
+// ---- sıra: bölüm içindeki cümleler (patoloji) başka bir anlatıcı satırının üstüne binmez
+type Queued = { text: string; id: string; at: number; maxWaitMs: number; started?: number; cancelled?: boolean };
+const queue: Queued[] = [];
+/** bekleyen satırların üst sınırı: üçüncüsü gelirse en eskisi atlanır (bölüm içinde konuşma birikmesin) */
+const QUEUE_MAX = 2;
+function pump() {
+  while (!active && queue.length) {
+    const q = queue.shift()!;
+    if (q.cancelled) continue;
+    if (Date.now() - q.at > q.maxWaitMs) { request(q.id, 'atlandı (eski)'); continue; }
+    q.started = speakLine(q.text, q.id); request(q.id, 'çalındı');
+  }
+}
+/**
+ * Tüy Dede bu satırı BOŞTAYKEN söyler: başka bir satır sürüyorsa sıraya girer (en çok `maxWaitMs` bekler, sonra atlanır);
+ * hiçbir satırı kesmez. Ayar kapalıysa hiç çalmaz. Dönen `cancel()` sıradaysa çıkarır, konuşuyorsa susturur.
+ */
+export function speakWhenFree(text: string, id: string, maxWaitMs = 6000): { cancel(): void } {
+  const s = useStore.getState();
+  const q: Queued = { text, id, at: Date.now(), maxWaitMs };
+  const handle = { cancel() { if (q.cancelled) return; q.cancelled = true; if (q.started != null) stopVoiceIf(q.started); else if (queue.includes(q)) request(id, 'iptal'); } };
+  if (!s.sounds || !s.narratorVoice) { request(id, 'kapalı'); q.cancelled = true; return handle; }
+  if (!active && !queue.length) { q.started = speakLine(text, id); request(id, 'hemen'); return handle; }
+  queue.push(q); request(id, 'sırada');
+  while (queue.length > QUEUE_MAX) { const old = queue.shift()!; if (!old.cancelled) request(old.id, 'atlandı (sıra dolu)'); }
+  return handle;
+}
+
+/** yalnız verilen konuşma sürüyorsa sus (bir notun kapanması sonraki anlatıcı satırını kesmesin); sıradaki satır varsa o başlar */
+export function stopVoiceIf(id: number) { if (id === token) { halt(); pump(); } }
 
 /** hemen sus (ileri / atla / ekran değişti) */
 export function stopVoice() {
-  token++;
+  queue.length = 0;
+  halt();
+}
+/** süren satırı kes (sıra kalır: speakLine yeni satıra geçerken) */
+function halt() {
+  token++; active = null;
   const c = current; current = null;
   try { c?.stop(); } catch { /* yok */ }
   try { platform().stopSpeaking(); } catch { /* yok */ }

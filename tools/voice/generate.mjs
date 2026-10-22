@@ -22,10 +22,13 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const { NARRATOR_LINES: SCRIPT_LINES, VOICE_DIRECTION, textHash } = await import(join(root, 'apps/web/src/ftue/script.ts'));
 const { EAR_NOTES } = await import(join(root, 'packages/content/src/odyoloji.ts'));
-/** seslendirilen her şey: anlatıcı satırları + Tüy Dede'nin Notu'nun sade cümleleri (teknik satırlar yalnız yazılı) */
+const { PATOLOJILER, PATOLOJI_IDS } = await import(join(root, 'packages/content/src/patolojiler.ts'));
+/** seslendirilen her şey: anlatıcı satırları + Tüy Dede'nin Notu'nun sade cümleleri (teknik satırlar yalnız yazılı) +
+ *  bölge patolojilerinin ilk karşılaşma cümleleri (`pat-<kimlik>`; kabuk `pathology` olayında çalar: apps/web/src/ftue/pathology.ts) */
 const NARRATOR_LINES = [
   ...SCRIPT_LINES,
   ...EAR_NOTES.map((n) => ({ id: `not-${n.id}`, text: n.plain, spoken: n.spoken, context: `Tüy Dede'nin Notu · ${n.region}`, emotion: 'bilge, sıcak, merak uyandıran (wise, warm)' })),
+  ...PATOLOJI_IDS.map((k) => { const P = PATOLOJILER[k]; return { id: `pat-${k}`, text: P.sade, context: `Bölümde ilk karşılaşma: ${P.ad} (${P.terim})${P.ilkBolum ? ` · ${P.ilkBolum}. bölüm` : ' · henüz bölümlerde yok'}`, emotion: 'bilge, sakin, yol gösteren (wise, calm, guiding)' }; }),
 ];
 const OUT = join(root, 'apps/web/public/voice');
 const MOBILE_MAP = join(root, 'apps/mobile/src/voice/files.ts');

@@ -608,6 +608,96 @@
    "file": "not-tinnitus.mp3",
    "hash": "2064606c",
    "ms": 5184
+  },
+  "pat-serumen-tikaci": {
+   "file": "pat-serumen-tikaci.mp3",
+   "hash": "4e87d8c3",
+   "ms": 7296
+  },
+  "pat-otitis-eksterna": {
+   "file": "pat-otitis-eksterna.mp3",
+   "hash": "f3a5f521",
+   "ms": 4992
+  },
+  "pat-eksostoz": {
+   "file": "pat-eksostoz.mp3",
+   "hash": "7ad36a7a",
+   "ms": 7344
+  },
+  "pat-perforasyon": {
+   "file": "pat-perforasyon.mp3",
+   "hash": "bd4e7b09",
+   "ms": 5136
+  },
+  "pat-timpanoskleroz": {
+   "file": "pat-timpanoskleroz.mp3",
+   "hash": "d42efb42",
+   "ms": 5448
+  },
+  "pat-retraksiyon": {
+   "file": "pat-retraksiyon.mp3",
+   "hash": "c001a4b0",
+   "ms": 5088
+  },
+  "pat-otitis-media": {
+   "file": "pat-otitis-media.mp3",
+   "hash": "1c939954",
+   "ms": 7128
+  },
+  "pat-ostaki": {
+   "file": "pat-ostaki.mp3",
+   "hash": "6c727928",
+   "ms": 6600
+  },
+  "pat-otoskleroz": {
+   "file": "pat-otoskleroz.mp3",
+   "hash": "4b3a4a3a",
+   "ms": 6504
+  },
+  "pat-zincir-kopuk": {
+   "file": "pat-zincir-kopuk.mp3",
+   "hash": "90c8a716",
+   "ms": 6528
+  },
+  "pat-gurultu-hasari": {
+   "file": "pat-gurultu-hasari.mp3",
+   "hash": "9b2ecdfb",
+   "ms": 4848
+  },
+  "pat-presbiakuzi": {
+   "file": "pat-presbiakuzi.mp3",
+   "hash": "23932cff",
+   "ms": 7296
+  },
+  "pat-ototoksisite": {
+   "file": "pat-ototoksisite.mp3",
+   "hash": "c05d6f15",
+   "ms": 6864
+  },
+  "pat-meniere": {
+   "file": "pat-meniere.mp3",
+   "hash": "9064b718",
+   "ms": 6120
+  },
+  "pat-noroma": {
+   "file": "pat-noroma.mp3",
+   "hash": "2ab06420",
+   "ms": 6744
+  },
+  "pat-noropati": {
+   "file": "pat-noropati.mp3",
+   "hash": "9c6e63b9",
+   "ms": 6744
+  },
+  "pat-tinnitus": {
+   "file": "pat-tinnitus.mp3",
+   "hash": "8ba3afb1",
+   "ms": 6360
+  },
+  "pat-merkezi": {
+   "file": "pat-merkezi.mp3",
+   "hash": "2a549292",
+   "ms": 7680
   }
  }
 }

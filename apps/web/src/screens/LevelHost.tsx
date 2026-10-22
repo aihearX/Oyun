@@ -4,6 +4,7 @@ import { platform } from '../platform';
 import { audio } from '@odi/audio';
 import { getNet, useSocial } from '../net';
 import { newerRoom } from '../race/common';
+import { sayPathology } from '../ftue/pathology';
 import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
@@ -37,6 +38,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
     if (!ref.current) return;
     const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic, remedies: race ? undefined : extras?.remedies }; window.__odi = bus;
     let finished = false;
+    /** bölüm içinde Tüy Dede'nin söylediği / sıraya aldığı cümleler: bölümden çıkınca susar */
+    const talks: { cancel(): void }[] = [];
     // ---- canlı yarış bağlantısı (ağ yoksa normal bölüm olarak oynanır)
     const net = race ? getNet() : null;
     let latest = race; const offs: (() => void)[] = [];
@@ -78,6 +81,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
         if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));
         if (e.type === 'damage') setLives(e.lives);
         if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
+        // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
+        if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
         if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
           finished = true; bus.result = e.result;
           // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)
@@ -87,7 +92,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       },
     });
     handle.current = h;
-    return () => { for (const o of offs) o(); h.destroy(); handle.current = null; };
+    return () => { for (const o of offs) o(); for (const t of talks) t.cancel(); h.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir
   const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.duck(0); } else { handle.current?.pause(); setPaused(true); audio.duck(3600, 0.25); } };
