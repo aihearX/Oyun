@@ -81,6 +81,7 @@ async function player(browser, bt, tag, seed = null, reduced = false) {
     } catch { /* depolama yok */ }
   }, [seed]);
   const page = await ctx.newPage();
+  await page.addInitScript(OLAY_SAYACI); // görünen afiş / Tüy Dede kartı kaydı (kısa süre görünenler de)
   page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket connection|ERR_CONNECTION|Failed to load resource|manifest/i.test(m.text())) errors.push(`${tag}: ${m.text()}`); });
   return page;
@@ -99,7 +100,8 @@ function suite(name) {
   };
 }
 const tab = (page, label) => page.locator('nav.tabbar .tab', { hasText: label }).click();
-const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
+// bildirimi öğenin kendisine tıklayarak kapat (konumla tıklama, bildirim tam o an kaybolursa alttaki üst çubuk düğmesine — ör. Mesajlar — düşer)
+const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().evaluate((el) => el.click(), undefined, { timeout: 500 }).catch(() => undefined); await sleep(150); } };
 async function settle(page) {
   for (let i = 0; i < 10; i++) {
     if (!(await page.locator('.cel-root.on').count())) break;
@@ -110,9 +112,17 @@ async function settle(page) {
   await toastGone(page);
 }
 const campReady = async (page) => { await page.locator('.camp-base').waitFor({ timeout: 25_000 }); await page.waitForFunction(() => !!window.__kamp && !!window.__kamp.pos('merkez'), null, { timeout: 25_000 }); await page.locator('.camp-loading').waitFor({ state: 'detached', timeout: 25_000 }); };
-/** binaya kanvas üzerinden dokun (gerçek dokunuş) */
+/** binaya kanvas üzerinden dokun (gerçek dokunuş). Önce kamera binaya odaklanır ve dokunulacak nokta gerçekten kanvas olmalı:
+ *  bina üst göstergenin (ör. Mesajlar düğmesi) ya da alt kartların altında kalırsa dokunuş o düğmeye gider. */
 async function tapBuilding(page, id) {
-  const p = await page.evaluate((b) => window.__kamp.pos(b), id);
+  await page.waitForFunction((b) => !!window.__kamp?.pos(b), id, { timeout: 25_000 }).catch(async (e) => {
+    const d = await page.evaluate(() => ({ kamp: !!window.__kamp, base: !!document.querySelector('.camp-base') }));
+    await page.screenshot({ path: resolve(outRoot, `HATA-konum-${id}.png`) }).catch(() => undefined);
+    throw new Error(`${e.message.split('\n')[0]} · ${id} konumu yok: ${JSON.stringify(d)}`);
+  });
+  await page.evaluate((b) => window.__kamp.focus(b), id); await sleep(1100);
+  const p = await page.evaluate((b) => { const q = window.__kamp.pos(b); if (!q) return null; const el = document.elementFromPoint(q.x, q.y + 10); return { ...q, free: el instanceof HTMLCanvasElement }; }, id);
+  if (!p?.free) { console.log(`  · ${id}: dokunulacak nokta kanvas değil, yeniden denenecek (${JSON.stringify(p)})`); return; }
   await page.touchscreen.tap(p.x, p.y + 10);
 }
 async function openPanel(page, id) {
@@ -120,7 +130,14 @@ async function openPanel(page, id) {
   await page.screenshot({ path: resolve(outRoot, `HATA-panel-${id}.png`) }).catch(() => undefined);
   throw new Error(`panel açılmadı: ${id} (bkz. ${resolve(outRoot, `HATA-panel-${id}.png`).replace(root + '/', '')})`);
 }
-const closePanel = async (page) => { if (await page.locator('.bp-x').count()) await page.locator('.bp-x').click(); await page.locator('.bp').waitFor({ state: 'detached', timeout: 5000 }).catch(() => undefined); };
+/** paneli kapat: inşaat bitince panel kendiliğinden de kapanır (yarış: düğme tıklanmadan kaybolabilir) */
+const closePanel = async (page) => {
+  for (let i = 0; i < 4 && await page.locator('.bp').count(); i++) {
+    await page.locator('.bp-x').first().evaluate((el) => el.click(), undefined, { timeout: 1000 }).catch(() => undefined);
+    await page.locator('.bp').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
+  }
+  if (await page.locator('.bp').count()) throw new Error('panel kapanmadı');
+};
 const builderLeft = async (page) => { const t = (await page.locator('.hud-chip.builder b').innerText().catch(() => '')).trim(); const m = t.match(/(?:(\d+) sa )?(\d+)(?::| dk)(\d+)?/); if (!m) return null; return t.includes('sa') ? Number(m[1]) * 3600 + Number(m[2]) * 60 : Number(m[2]) * 60 + Number(m[3] ?? 0); };
 const lvlOf = (pid, id) => db.get('SELECT level FROM buildings WHERE player_id = ? AND id = ?', pid, id)?.level ?? 0;
 /** kamp yeniden okunsun (sekme değiştir) */
@@ -371,7 +388,8 @@ try {
     const inv = db.get("SELECT n FROM remedy_inv WHERE player_id = ? AND id = 'kulak-tikaci'", bId)?.n;
     check(inv === 2, `sunucu envanteri: ${inv}`);
     await closePanel(B);
-    await B.locator('[data-testid="kamp-dede"][data-line="tedavi-al-01"]').waitFor({ timeout: 8000 }).then(() => ok('Tüy Dede: tedavi-al-01 (ilk toplama)'), () => soft(false, 'Tüy Dede: tedavi-al-01'));
+    // kart kendiliğinden kapanır (11 sn): görünür kalmasını değil, gösterildiğini denetle
+    await B.waitForFunction(() => window.__olay?.dede.includes('tedavi-al-01'), null, { timeout: 8000 }).then(() => ok('Tüy Dede: tedavi-al-01 (ilk toplama)'), () => soft(false, 'Tüy Dede: tedavi-al-01'));
     await shot(B, 'B-tedavi-topla-dede', 400);
 
     step(`B9 · [${bt}] Bölüm kartı → Çanta'ya Kulak tıkacı → Oyna → LevelOptions.remedies`);
