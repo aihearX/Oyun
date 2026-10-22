@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS rank_rewards(week TEXT NOT NULL, board TEXT NOT NULL,
 `;
 
 interface Entry { id: string; value: number; name: string; color?: number; hat?: string; emblem?: string; teamId?: string | null; teamName?: string | null }
-interface Ranked extends Entry { rank: number }
+interface Ranked extends Entry { rank: number; /** kapsam içi sıralamada genel sıra */ global?: number }
 
 /** standart yarışma sırası: eşit puan eşit sıra (1, 2, 2, 4) */
 function rankList(list: Entry[]): Ranked[] {
@@ -166,6 +166,7 @@ function view(app: App, pid: string, board: RankBoardId, scope: RankScope): Rank
     if (r.emblem) v.emblem = r.emblem;
     if (!def.team) v.teamName = r.teamName ?? null;
     if (r.id === myId) v.me = true;
+    if (r.global != null) v.global = r.global;
     const bd = badges.get(r.id); if (bd) v.badge = bd;
     return v;
   };
@@ -178,13 +179,18 @@ function view(app: App, pid: string, board: RankBoardId, scope: RankScope): Rank
       for (const id of ids) { const t = app.playerOrNull(id)?.team_id; if (t) teams.add(t); }
       rows = list.filter((r) => teams.has(r.id));
     } else { ids.add(pid); rows = list.filter((r) => ids.has(r.id)); }
-    rows = rows.slice(0, RANK_RULES.top);
+    // kapsam içi sıra (1, 2, …; eşit puan eşit sıra); genel sıra ayrıca gösterilir
+    rows = rows.slice(0, RANK_RULES.top).map((r, i, a) => ({ ...r, rank: i > 0 && a[i - 1]!.value === r.value ? 0 : i + 1, global: r.rank }));
+    rows.forEach((r, i) => { if (r.rank === 0) r.rank = rows[i - 1]!.rank; });
   } else if (scope === 'yakin') rows = mine < 0 ? list.slice(-RANK_RULES.near) : list.slice(Math.max(0, mine - RANK_RULES.near), mine + RANK_RULES.near + 1);
   else rows = list.slice(0, RANK_RULES.top);
   const lastRows = def.weekly ? app.db.all<{ id: string; rank: number; value: number; name: string; color: number | null; hat: string | null; emblem: string | null }>(
     'SELECT * FROM rank_final WHERE week = ? AND board = ? AND rank <= 3 ORDER BY rank, name', lastWeek, board) : [];
   return {
-    board, scope, rows: rows.map(toView), me: mine >= 0 ? toView(list[mine]!) : null, total: list.length,
+    board, scope, rows: rows.map(toView),
+    // arkadaşlar kapsamında benim satırım ve toplam da kapsam içinden (gösterilen satırlarla tutarlı)
+    me: scope === 'arkadas' ? (() => { const x = rows.find((r) => r.id === myId); return x ? toView(x) : null; })() : mine >= 0 ? toView(list[mine]!) : null,
+    total: scope === 'arkadas' ? rows.length : list.length,
     week: w.key, endsAt: def.weekly ? w.endsAt : null,
     last: lastRows.length ? { week: lastWeek, rows: lastRows.map((r) => ({ rank: r.rank, id: r.id, name: r.name, value: r.value, delta: null, ...(r.color != null ? { color: r.color } : {}), ...(r.hat ? { hat: r.hat } : {}), ...(r.emblem ? { emblem: r.emblem } : {}) })) } : null,
     updatedAt: app.now(),

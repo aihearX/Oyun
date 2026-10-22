@@ -851,6 +851,8 @@ export interface RankRowView {
   me?: boolean;
   /** geçen haftanın rozeti: bu tabloda ilk 3'e girdiyse sırası */
   badge?: number;
+  /** arkadaşlar kapsamında: genel sıralamadaki yeri (rank kapsam içi sıradır) */
+  global?: number;
 }
 export interface RankBoardView {
   board: RankBoardId; scope: RankScope; rows: RankRowView[];

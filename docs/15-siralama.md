@@ -25,7 +25,7 @@ Not: takım başlığındaki ⭐ sayısı (`TeamSummary.power`) üyelerin toplam
 ## 2. Kapsamlar ve görünüm
 
 - **Herkes**: ilk 100 (ilk 3 podyumda, her oyuncunun kendi Odi rengi ve şapkasıyla; takımlarda amblem).
-- **Arkadaşlar**: ben + arkadaşlarım (takım tablolarında: benim ve arkadaşlarımın takımları).
+- **Arkadaşlar**: ben + arkadaşlarım (takım tablolarında: benim ve arkadaşlarımın takımları). Sıra kapsam içidir (1, 2, …); genel sıra satırda küçük etiketle ("Genel: 3."), alt bilgideki sayı gösterilen satırlarla aynı.
 - **Yakınım**: benim satırımın önündeki ve arkasındaki 5'er satır (eşit puanlar aynı sırayı paylaşır).
 - **Benim satırım** listede görünmüyorsa altta sabit durur. Eşit puan eşit sıra (1, 2, 2, 4).
 - **▲▼**: gün başındaki (İstanbul günü) sıraya göre değişim; ilk erişimde günün sırası kaydedilir (`rank_snap`, 3 gün saklanır).

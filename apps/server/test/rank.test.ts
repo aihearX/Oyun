@@ -58,7 +58,14 @@ describe('Sıralama', () => {
     const near = await board(me, 'guc', 'yakin');
     expect(near.rows.map((r) => r.rank)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     await me.call('friends.add', { code: ps[0]!.me!.friendCode }); await ps[0]!.call('friends.add', { code: me.me!.friendCode });
-    expect((await board(me, 'guc', 'arkadas')).rows.map((r) => r.name)).toEqual(['Oyuncu06', 'Oyuncu00']);
+    const fr = await board(me, 'guc', 'arkadas');
+    expect(fr.rows.map((r) => r.name)).toEqual(['Oyuncu06', 'Oyuncu00']);
+    // kapsam içi sıra 1, 2; genel sıra ayrıca; toplam gösterilen satırlarla aynı; benim satırım da kapsam içi
+    expect(fr.rows.map((r) => [r.rank, r.global])).toEqual([[1, 8], [2, 14]]);
+    expect(fr.total).toBe(2);
+    expect(fr.me).toMatchObject({ rank: 1, global: 8 });
+    // herkes ve yakınım kapsamında genel sıra (ek alan yok)
+    expect(all.rows.every((r) => r.global === undefined)).toBe(true);
     // gün içinde Oyuncu00 iki sıra atlar: ▲ +? (gün başı kaydına göre)
     for (let l = 2; l <= 9; l++) await ps[0]!.call('progress.submit', run(l, { stars: 3 }));
     const after = (await board(ps[0]!, 'guc')).me!;

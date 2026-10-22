@@ -51,7 +51,9 @@ export function RankView({ team: teamStart }: { team?: boolean }) {
   }, [cur, scope, status]);
   const pick = (b: RankBoardId) => { platform().haptic('light'); setBoard((x) => ({ ...x, [team ? 't' : 'p']: b })); };
 
-  const rows = view?.rows ?? [];
+  // yalnızca seçili tablo ve kapsamın yanıtı çizilir: kapsam değişirken eski liste bir an bile görünmez
+  const shown = view && view.board === cur && view.scope === scope ? view : null;
+  const rows = shown?.rows ?? [];
   const podium = scope === 'herkes' && rows.length >= 1 ? rows.slice(0, 3) : [];
   const rest = podium.length ? rows.slice(podium.length) : rows;
   // kendi satırım listede zaten görünüyorsa altta tekrar sabitlenmez (podyumdaysa sabit satır sırayı ve değişimi gösterir)
@@ -76,24 +78,24 @@ export function RankView({ team: teamStart }: { team?: boolean }) {
         {SCOPES.map((s) => <button key={s.id} role="tab" aria-selected={scope === s.id} className={scope === s.id ? 'on' : ''} data-scope={s.id} onClick={() => setScope(s.id)}>{s.label}</button>)}
       </div>
       {err && <div className="chat-err" role="alert">{err}</div>}
-      {!view ? <Skeleton rows={4} /> : rows.length === 0 ? (
+      {!shown ? <Skeleton rows={4} /> : rows.length === 0 ? (
         <div className="card rank-empty"><Art name="trophy" size={44} /><b>{scope === 'arkadas' ? 'Arkadaşların henüz bu tabloda değil' : 'Bu tablo henüz boş'}</b><small className="muted">{def.weekly ? 'Haftanın ilk puanları gelince burası dolar.' : 'Bölüm geçtikçe güç kazanırsın.'}</small></div>
       ) : (
         <>
           {podium.length > 0 && <Podium rows={podium} team={team} />}
-          <ol className="rank-list" aria-label={`${def.name} sıralaması`}>{rest.map((r) => <Row key={r.id} r={r} team={team} unit={def.unit} />)}</ol>
-          <div className="muted small-note rank-total">{view.total} {team ? 'takım' : 'oyuncu'} sıralamada · güncellendi</div>
+          <ol className="rank-list" data-board={shown.board} data-scope={shown.scope} aria-label={`${def.name} sıralaması`}>{rest.map((r) => <Row key={r.id} r={r} team={team} unit={def.unit} />)}</ol>
+          <div className="muted small-note rank-total" data-testid="sira-toplam">{shown.scope === 'arkadas' ? `${shown.total} ${team ? 'takım' : 'kişi'} bu tabloda (sen ve arkadaşların${team ? 'ın takımları' : ''})` : `${shown.total} ${team ? 'takım' : 'oyuncu'} sıralamada`} · güncellendi</div>
         </>
       )}
-      {view?.last && view.last.rows.length > 0 && (
+      {shown?.last && shown.last.rows.length > 0 && (
         <div className="card rank-last" data-testid="gecen-hafta">
           <small>Geçen haftanın ilk 3'ü</small>
-          <div className="rl-row">{view.last.rows.map((r) => <span key={r.id} className="rl-p"><Art name={(['medal1', 'medal2', 'medal3'] as const)[r.rank - 1] ?? 'medal'} size={20} /><b className="ellipsis">{r.name}</b><small>{fmtNum(r.value)}</small></span>)}</div>
+          <div className="rl-row">{shown.last.rows.map((r) => <span key={r.id} className="rl-p"><Art name={(['medal1', 'medal2', 'medal3'] as const)[r.rank - 1] ?? 'medal'} size={20} /><b className="ellipsis">{r.name}</b><small>{fmtNum(r.value)}</small></span>)}</div>
         </div>
       )}
-      {view && !meInList && (
+      {shown && !meInList && (
         <div className="rank-me" data-testid="benim-siram">
-          {view.me ? <Row r={view.me} team={team} unit={def.unit} pinned /> : <div className="rank-row pinned none"><span className="rr-rank">–</span><span className="grow">{team ? 'Takımın henüz bu tabloda değil' : 'Henüz bu tabloda değilsin'}</span><small className="muted">{def.weekly ? 'bu hafta oyna, katıl' : 'bir bölüm geç'}</small></div>}
+          {shown.me ? <Row r={shown.me} team={team} unit={def.unit} pinned /> : <div className="rank-row pinned none"><span className="rr-rank">–</span><span className="grow">{team ? 'Takımın henüz bu tabloda değil' : 'Henüz bu tabloda değilsin'}</span><small className="muted">{def.weekly ? 'bu hafta oyna, katıl' : 'bir bölüm geç'}</small></div>}
         </div>
       )}
       {info && <InfoSheet onClose={() => setInfo(false)} team={team} />}
@@ -141,7 +143,7 @@ function Row({ r, team, unit, pinned }: { r: RankRowView; team: boolean; unit: s
         <span className="rr-rank">{r.rank}</span>
         <Delta d={r.delta} />
         <span className="rr-face"><Face r={r} team={team} size={34} /></span>
-        <span className="grow min0 rr-who"><b className="ellipsis">{r.name}{r.me ? ' (sen)' : ''}{r.badge ? <span className="rr-badge" title={`Geçen hafta ${r.badge}.`}><Art name="crown" size={14} /></span> : null}</b>{!team && r.teamName ? <small className="ellipsis">{r.teamName}</small> : null}</span>
+        <span className="grow min0 rr-who"><b className="ellipsis">{r.name}{r.me ? ' (sen)' : ''}{r.badge ? <span className="rr-badge" title={`Geçen hafta ${r.badge}.`}><Art name="crown" size={14} /></span> : null}</b>{!team && r.teamName || r.global != null ? <small className="ellipsis">{r.global != null ? <span className="rr-global" data-testid="genel-sira">Genel: {r.global}.</span> : null}{r.global != null && !team && r.teamName ? ' · ' : ''}{!team ? r.teamName : null}</small> : null}</span>
         <span className="rr-val"><b>{fmtNum(r.value)}</b><small>{unit}</small></span>
       </button>
     </li>

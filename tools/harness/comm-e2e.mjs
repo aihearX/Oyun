@@ -557,7 +557,10 @@ async function rankSuite(bt) {
     await A.page.locator('nav.tabbar .tab[data-tab="profile"]').click();
     await A.page.locator('.menu-tile[data-tile="ranking"]').click();
     await A.page.getByTestId('siralama').waitFor();
-    await A.page.locator('.rank[data-board="guc"][data-scope="herkes"] .rank-row.me').first().waitFor({ timeout: 15_000 });
+    // kapsam/tablo değişimi bitti: liste o kapsamın yanıtıyla çizildi (data-scope listede)
+    const listed = (board, scope) => A.page.locator(`.rank-list[data-board="${board}"][data-scope="${scope}"]`).waitFor({ state: 'attached', timeout: 15_000 });
+    await listed('guc', 'herkes');
+    await A.page.locator('.rank .rank-row.me').first().waitFor({ timeout: 15_000 });
     const view = (p, board, scope) => net(p, 'rank.board', { board, scope }).then((r) => r.view);
     const all = await view(A, 'guc', 'herkes');
     const pos = (v, id) => v.rows.find((r) => r.id === id)?.rank ?? 0;
@@ -578,13 +581,16 @@ async function rankSuite(bt) {
     await A.page.getByRole('button', { name: 'Anladım' }).click();
     // arkadaşlar
     await A.page.locator('.rank-scope button[data-scope="arkadas"]').click();
-    await A.page.locator('.rank[data-scope="arkadas"] [data-testid="sira-satiri"]').first().waitFor({ timeout: 10_000 });
-    const fr = await A.page.locator('[data-testid="sira-satiri"]').evaluateAll((els) => els.map((e) => e.getAttribute('data-id')));
-    S.check(JSON.stringify(fr) === JSON.stringify([a.id, b.id]), 'Arkadaşlar: yalnız ben ve arkadaşım, güç sırasıyla');
+    await listed('guc', 'arkadas');
+    const fr = await A.page.locator('.rank-list[data-scope="arkadas"] [data-testid="sira-satiri"]').evaluateAll((els) => els.map((e) => [e.getAttribute('data-id'), e.getAttribute('data-rank')]));
+    S.check(JSON.stringify(fr) === JSON.stringify([[a.id, '1'], [b.id, '2']]), 'Arkadaşlar: yalnız ben ve arkadaşım, kapsam içi sıra 1, 2');
+    const gen = await A.page.locator(`.rank-list [data-testid="sira-satiri"][data-id="${b.id}"] [data-testid="genel-sira"]`).innerText().catch(() => '');
+    S.check(gen === `Genel: ${pos(all, b.id)}.`, `genel sıra ayrıca küçük etiketle (“${gen}”)`);
+    S.check(/^2 kişi bu tabloda/.test(await A.page.getByTestId('sira-toplam').innerText()), 'alt bilgi gösterilen satır sayısıyla aynı (2 kişi)');
     await S.shot(A, 'arkadaslar');
     // yakınım (±5)
     await A.page.locator('.rank-scope button[data-scope="yakin"]').click();
-    await A.page.locator('.rank[data-scope="yakin"] [data-testid="sira-satiri"]').first().waitFor({ timeout: 10_000 });
+    await listed('guc', 'yakin');
     const near = await view(A, 'guc', 'yakin');
     const ar = pos(near, a.id);
     // ±5 satır (eşit puanlar aynı sırayı paylaşır; komşuluk satır sayısıyla): benden önce ve sonra en çok 5 satır
@@ -594,7 +600,8 @@ async function rankSuite(bt) {
     S.check(bn.me?.id === b.id && bn.rows.some((r) => r.id === b.id), 'Bora’nın yakınım tablosunda kendisi var');
     // satıra dokun → profil kartı → takıma davet
     await A.page.locator('.rank-scope button[data-scope="arkadas"]').click();
-    await A.page.locator(`[data-testid="sira-satiri"][data-id="${b.id}"] button`).click();
+    await listed('guc', 'arkadas');
+    await A.page.locator(`.rank-list [data-testid="sira-satiri"][data-id="${b.id}"] button`).click();
     await A.page.getByTestId('profil-karti').waitFor();
     S.check(await A.page.getByTestId('takima-davet').count() === 1, 'profil kartında “Takıma davet et”');
     await S.shot(A, 'profil-karti');
@@ -617,7 +624,7 @@ async function rankSuite(bt) {
     await A.page.locator('nav.tabbar .tab[data-tab="team"]').click();
     await A.page.locator('.team-head').waitFor({ timeout: 15_000 });
     await A.page.locator('.subtabs .subtab', { hasText: 'Sıralama' }).first().click();
-    await A.page.locator('.rank[data-board="t-guc"]').waitFor({ timeout: 10_000 });
+    await A.page.locator('.rank-list[data-board="t-guc"]').waitFor({ state: 'attached', timeout: 10_000 });
     await A.page.locator('.rank .rank-row.me').first().waitFor({ timeout: 10_000 });
     S.check(await A.page.locator('.rank .rank-row.me').count() === 1, 'kendi satırım listede görünürken altta tekrar edilmez');
     const tv = await view(A, 't-guc', 'herkes');
