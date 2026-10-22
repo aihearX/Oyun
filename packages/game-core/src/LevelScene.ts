@@ -51,7 +51,7 @@ export class LevelScene extends Phaser.Scene {
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
   /** kıl perdeleri: 3-8'de ilk üç perdeden önce "aşağı kaydır" ipucu; 5'te tazeleme anı bir kez, iki başarılı geçişten sonra hiç */
-  private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false;
+  private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false; private curtainHintId = -1; private curtainHintAt = -9;
   /** bölge patolojileri: x sırasıyla işaretli öğeler, bu koşuda görülenler, rozetli öğeler, son Tüy Dede cümlesinin anı */
   private patList: { id: number; x: number; pat: string }[] = []; private patIdx = 0; private patSeen = new Set<string>(); private patSighted = new Set<number>(); private patLineAt = -99;
   private pendingEdges: { pressed: boolean; released: boolean; swipeDown: boolean; swipeX: number } = { pressed: false, released: false, swipeDown: false, swipeX: 0 };
@@ -306,11 +306,19 @@ export class LevelScene extends Phaser.Scene {
   private curtainWatch() {
     const n = this.spec.number; if (n < 3 || n > 8 || this.opts.race) return;
     const h = this.sim.hero;
+    // ipucu yalnız perdenin zemin yolunda koşarken (kahramanın ayağı perdenin alt kenarının hemen altında; havada, rüzgâr kapısı
+    // uçuşunda ya da zar sıçrayışında değil); perde geçilince ya da kahraman perdenin üstüne çıkınca kalkar
+    const onPath = (e: WEnt) => h.grounded && !h.launched && h.y >= e.b && h.y - e.b < 70;
+    if (this.curtainHintId >= 0) {
+      const c = this.world.ents[this.curtainHintId]!;
+      if (this.sim.t - this.curtainHintAt > 1.7) this.curtainHintId = -1; // süresi doldu, kendi kendine kalktı
+      else if (h.x > c.r || h.launched || h.y < c.b - 90) { if (!this.tutorial) { this.hintTimer?.remove(); this.hud.hideHint(); } this.curtainHintId = -1; }
+    }
     for (const id of near(this.world, h.x - 40, h.x + 360)) {
       const e = this.world.ents[id]!; if (!e.p.curtain) continue;
-      // 5'te ilk perdenin önündeki tazeleme anı ipucunun yerini tutar (iki yazı üst üste gelmesin)
-      const refresherAhead = n === 5 && !this.refresherShown && this.world.ents.some((t) => t.type === 'tutor' && t.p.refresher && t.l > h.x && t.l < e.l);
-      if (!refresherAhead && !this.curtainHinted.has(id) && e.l - h.x < 320 && e.l > h.x && this.curtainHinted.size < 3 && !this.tutorial) { this.curtainHinted.add(id); this.hint('Aşağı kaydır: altından kay', 1600, 'swipeDown', 'perde-kay'); }
+      // önünde kayma öğretici anı (3'teki yeni yetenek ya da 5'teki tazeleme) varsa ipucu onun yerini tutmaz (iki yazı üst üste gelmesin)
+      const tutorAhead = this.world.ents.some((t) => t.type === 'tutor' && t.p.ability === 'kayma' && t.r > h.x && t.l < e.l && (t.p.refresher ? n === 5 && !this.refresherShown : this.showTutorial('kayma')));
+      if (onPath(e) && !tutorAhead && !this.curtainHinted.has(id) && e.l - h.x < 320 && e.l > h.x && this.curtainHinted.size < 3 && !this.tutorial) { this.curtainHinted.add(id); this.curtainHintId = id; this.curtainHintAt = this.sim.t; this.hint('Aşağı kaydır: altından kay', 1600, 'swipeDown', 'perde-kay'); }
       if (!this.curtainPassed.has(id) && h.x > e.r) { this.curtainPassed.add(id); if (n === 5 && h.invuln <= 0) { this.curtainSlides++; if (this.curtainSlides >= 2 && !this.firstsDone.includes(REFRESH_KEY)) this.firstsDone.push(REFRESH_KEY); } }
     }
   }
