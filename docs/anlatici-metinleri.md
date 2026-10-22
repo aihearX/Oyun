@@ -32,7 +32,7 @@ ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice
 duraklamalar ≤ 250 ms, vibrato/tremolo yok, çok hafif yankı, −16 LUFS, sessizlik kırpma.
 Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 
-## Satırlar (139)
+## Satırlar (156)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -87,6 +87,10 @@ Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 | `sira-01` | Yeni: Sıralama! En güçlü oyuncular ve takımlar burada sıralanır; her pazartesi yeni bir hafta başlar. | Açılış kutlaması: Sıralama (5. bölümden sonra) | heyecanlı, meydan okuyan (competitive) |
 | `sira-02` | Profildeki Sıralama’ya dokun. Puanlar yalnızca gerçekten oynadığın bölümlerden gelir; nasıl hesaplandığını soru işaretinde anlatırım. | Profil: Sıralama kutucuğu vurgulanır | sıcak, açıklayıcı (warm, explaining) |
 | `sira-03` | Senin satırın hep en altta durur. Oklar dünden beri kaç sıra yükseldiğini gösterir; haftanın ilk sıralarına kristal var! | Sıralama: kendi satırı vurgulanır | göz kırpan, cesaret veren (playful, encouraging) |
+| `tlig-01` | Yeni: Takım Ligi! Takımın iki haftalık sezonlarda benzer takımlarla bir grupta yarışır. İlk üç bir üst kademeye çıkar. | Açılış kutlaması: Takım Ligi (6. bölümden sonra) | heyecanlı (excited) |
+| `tlig-02` | Lig puanı savaştan, baskından, bilgi sorularından, düellodan ve takım yarışından gelir. Takım sekmesindeki Lig’e bak. | Takım: Lig sekmesi vurgulanır | açıklayıcı, sıcak (explaining, warm) |
+| `tyaris-01` | Yeni: Canlı Takım Yarışı! İki takım aynı bölümü aynı anda koşar; bitiş sıran ve yıldızların takımına puan olur. | Açılış kutlaması: Canlı Takım Yarışı (9. bölümden sonra) | coşkulu, meydan okuyan (celebratory, competitive) |
+| `tyaris-02` | Lider lobi açar, sen katılıp Hazırım dersin. Rakip takımlar gerçek oyunculardır; kimse yoksa bunu açıkça söylerim. | Takım: Takım Yarışı sekmesi vurgulanır | bilge, dürüst (wise, honest) |
 | `soru-01` | Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın! | Açılış kutlaması: Günün Sorusu (9. bölümden sonra) | bilge, meraklandıran (wise, curious) |
 | `soru-02` | İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var. | Takım sohbeti: Günün Sorusu kartı vurgulanır | göz kırpan (playful) |
 | `ikili-01` | Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız. | Açılış kutlaması: İkili Görev (10. bölümden sonra) | coşkulu (celebratory) |
@@ -124,6 +128,19 @@ Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 | `anit-sinir` | İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar. | Kamp: bölge anıtı yükseldi (Sinir) | heyecanlı (excited) |
 | `anit-beyin-sapi` | Beyin Sapı anıtı kuruldu! İki kulaktan gelen sesler burada buluşur; sesin yönünü böyle buluruz. | Kamp: bölge anıtı yükseldi (Beyin Sapı) | bilge (wise) |
 | `anit-korteks` | Korteks anıtı tamam! İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. | Kamp: bölge anıtı yükseldi (Korteks) | duygulu, gururlu (touched, proud) |
+| `ipucu-tazele-kayma` | Hatırla: aşağı kaydır, perdenin altından kay! | 5. bölüm: kayma tazeleme anı (ilk perdeden önce, bir kez) | sıcak, hatırlatan (warm, reminding) |
+| `ipucu-perde-kay` | Kıl perdesi alçak. Aşağı kaydır, altından kay! | 3-8. bölüm: ilk kıl perdesinin önünde (oyuncu başına bir kez) | sakin, yol gösteren (calm, guiding) |
+| `ipucu-ogret-zipla` | Ekrana dokun, zıpla! Basılı tutarsan daha yükseğe çıkarsın. | 1. bölüm: Zıpla öğretici anı | neşeli, cesaret veren (cheerful, encouraging) |
+| `ipucu-ogret-don` | Geri dönmek için parmağını koşunun tersine kaydır. | 2. bölüm: Geri Dön öğretici anı | sakin, yol gösteren (calm, guiding) |
+| `ipucu-ogret-kayma` | Aşağı kaydır: alçak engelin altından kayarsın! | 3. bölüm: Kayma öğretici anı | neşeli, yol gösteren (cheerful, guiding) |
+| `ipucu-ogret-duvar` | Duvara değdiğin an dokun: karşı duvara zıplarsın! | 6. bölüm: Duvar Zıplaması öğretici anı | heyecanlı (excited) |
+| `ipucu-ogret-suzul` | Havada basılı tut: ses kanatlarınla süzülürsün. | 9. bölüm: Süzülme öğretici anı | yumuşak, hayran (soft, admiring) |
+| `ipucu-ogret-trambolin` | Zara değdiğin an dokun: güçlü bir sıçrayış! | 9. bölüm: Zar Sıçrayışı öğretici anı | heyecanlı (excited) |
+| `ipucu-ogret-kanca` | Kancanın yanında basılı tut ve sallan; bırakınca fırlarsın! | 13. bölüm: Kanca öğretici anı | heyecanlı, yol gösteren (excited, guiding) |
+| `ipucu-ogret-cakil` | Havada aşağı kaydır: çatlak zemini kır, anahtara bas! | 15. bölüm: Yere Çakılma öğretici anı | kararlı (determined) |
+| `ipucu-ogret-yuz` | Sıvıda basılı tut, yüksel; bırakınca dalarsın. | 21. bölüm: Yüzme öğretici anı | sakin (calm) |
+| `ipucu-ogret-darbe` | Koşu yönüne kaydır: ses darbesiyle gürültü duvarını kır! | 31. bölüm: Ses Darbesi öğretici anı | güçlü, coşkulu (strong, rousing) |
+| `ipucu-ogret-cevir` | Mor bölgede dokun: yerçekimi ters döner! | 35. bölüm: Yerçekimi Çevirme öğretici anı | gizemli, heyecanlı (mysterious, excited) |
 | `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
@@ -161,9 +178,9 @@ Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 | `pat-otitis-eksterna` | İltihaplanan kanal derisi şişer ve geçit daralır. Altından kayarak geç! | Bölümde ilk karşılaşma: Dış kulak iltihabı (Otitis eksterna) · 7. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
 | `pat-eksostoz` | Soğuk suyla sık karşılaşan kanalda küçük kemik çıkıntıları büyüyebilir. Sivri çıkıntının üstünden zıpla! | Bölümde ilk karşılaşma: Kanal kemik çıkıntısı (Eksostoz ("sörfçü kulağı")) · 6. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
 | `pat-perforasyon` | Zarda delik olursa orası titreşmez: deliğin üstünden zıplayıp karşıya geç! | Bölümde ilk karşılaşma: Kulak zarı deliği (Timpanik membran perforasyonu) · 9. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
-| `pat-timpanoskleroz` | Zarda beyaz, tebeşir gibi plaklar oluşursa zar sertleşir ve daha az titreşir. | Bölümde ilk karşılaşma: Zar sertleşmesi (Timpanoskleroz) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
-| `pat-retraksiyon` | Orta kulak basıncı düşük kalırsa zar içeri doğru çekilip bir cep oluşturabilir. | Bölümde ilk karşılaşma: Zar çekilmesi (Retraksiyon cebi) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
-| `pat-otitis-media` | Orta kulakta sıvı birikirse kemikçikler rahat titreşemez; çocuklarda sık görülür ve çoğu kendiliğinden geçer. | Bölümde ilk karşılaşma: Orta kulakta sıvı (Seröz otitis media) · henüz bölümlerde yok | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-timpanoskleroz` | Zarda beyaz, tebeşir gibi plaklar oluşursa zar sertleşir ve daha az titreşir. | Bölümde ilk karşılaşma: Zar sertleşmesi (Timpanoskleroz) · 10. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-retraksiyon` | Orta kulak basıncı düşük kalırsa zar içeri doğru çekilip bir cep oluşturabilir. | Bölümde ilk karşılaşma: Zar çekilmesi (Retraksiyon cebi) · 11. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
+| `pat-otitis-media` | Orta kulakta sıvı birikirse kemikçikler rahat titreşemez; çocuklarda sık görülür ve çoğu kendiliğinden geçer. | Bölümde ilk karşılaşma: Orta kulakta sıvı (Seröz otitis media) · 14. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
 | `pat-ostaki` | Östaki borusu yutkununca açılır ve basıncı eşitler. Geçit kapalıysa "yutkunma" anahtarına dokun! | Bölümde ilk karşılaşma: Östaki borusu tıkanıklığı (Östaki tüpü disfonksiyonu) · 13. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
 | `pat-otoskleroz` | Üzengi kemiği oval pencerede takılırsa titreşim iç kulağa geçmez. Yere çakılıp serbest bırak! | Bölümde ilk karşılaşma: Üzengi kemiği takılması (Otoskleroz) · 15. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |
 | `pat-zincir-kopuk` | Kemikçiklerden biri ayrılırsa titreşim zincirden geçmez. Gidip gelen köprüyle boşluğu aş! | Bölümde ilk karşılaşma: Kemikçik zinciri kopukluğu (Kemikçik zinciri diskontinüitesi) · 19. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |

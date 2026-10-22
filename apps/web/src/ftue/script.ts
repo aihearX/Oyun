@@ -143,11 +143,27 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'anit-sinir', text: 'İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar.', context: 'Kamp: bölge anıtı yükseldi (Sinir)', emotion: 'heyecanlı (excited)' },
   { id: 'anit-beyin-sapi', text: 'Beyin Sapı anıtı kuruldu! İki kulaktan gelen sesler burada buluşur; sesin yönünü böyle buluruz.', context: 'Kamp: bölge anıtı yükseldi (Beyin Sapı)', emotion: 'bilge (wise)' },
   { id: 'anit-korteks', text: 'Korteks anıtı tamam! İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür.', context: 'Kamp: bölge anıtı yükseldi (Korteks)', emotion: 'duygulu, gururlu (touched, proud)' },
+  // ---- Bölüm içi (GameEvent 'hint'; ftue/hints.ts): yalnız seçilmiş ipuçları, oyuncu başına bir kez — ekrandaki yazıyla aynı anlamda kısa cümle
+  { id: 'ipucu-tazele-kayma', text: 'Hatırla: aşağı kaydır, perdenin altından kay!', context: '5. bölüm: kayma tazeleme anı (ilk perdeden önce, bir kez)', emotion: 'sıcak, hatırlatan (warm, reminding)' },
+  { id: 'ipucu-perde-kay', text: 'Kıl perdesi alçak. Aşağı kaydır, altından kay!', context: '3-8. bölüm: ilk kıl perdesinin önünde (oyuncu başına bir kez)', emotion: 'sakin, yol gösteren (calm, guiding)' },
+  { id: 'ipucu-ogret-zipla', text: 'Ekrana dokun, zıpla! Basılı tutarsan daha yükseğe çıkarsın.', context: '1. bölüm: Zıpla öğretici anı', emotion: 'neşeli, cesaret veren (cheerful, encouraging)' },
+  { id: 'ipucu-ogret-don', text: 'Geri dönmek için parmağını koşunun tersine kaydır.', context: '2. bölüm: Geri Dön öğretici anı', emotion: 'sakin, yol gösteren (calm, guiding)' },
+  { id: 'ipucu-ogret-kayma', text: 'Aşağı kaydır: alçak engelin altından kayarsın!', context: '3. bölüm: Kayma öğretici anı', emotion: 'neşeli, yol gösteren (cheerful, guiding)' },
+  { id: 'ipucu-ogret-duvar', text: 'Duvara değdiğin an dokun: karşı duvara zıplarsın!', context: '6. bölüm: Duvar Zıplaması öğretici anı', emotion: 'heyecanlı (excited)' },
+  { id: 'ipucu-ogret-suzul', text: 'Havada basılı tut: ses kanatlarınla süzülürsün.', context: '9. bölüm: Süzülme öğretici anı', emotion: 'yumuşak, hayran (soft, admiring)' },
+  { id: 'ipucu-ogret-trambolin', text: 'Zara değdiğin an dokun: güçlü bir sıçrayış!', context: '9. bölüm: Zar Sıçrayışı öğretici anı', emotion: 'heyecanlı (excited)' },
+  { id: 'ipucu-ogret-kanca', text: 'Kancanın yanında basılı tut ve sallan; bırakınca fırlarsın!', context: '13. bölüm: Kanca öğretici anı', emotion: 'heyecanlı, yol gösteren (excited, guiding)' },
+  { id: 'ipucu-ogret-cakil', text: 'Havada aşağı kaydır: çatlak zemini kır, anahtara bas!', context: '15. bölüm: Yere Çakılma öğretici anı', emotion: 'kararlı (determined)' },
+  { id: 'ipucu-ogret-yuz', text: 'Sıvıda basılı tut, yüksel; bırakınca dalarsın.', context: '21. bölüm: Yüzme öğretici anı', emotion: 'sakin (calm)' },
+  { id: 'ipucu-ogret-darbe', text: 'Koşu yönüne kaydır: ses darbesiyle gürültü duvarını kır!', context: '31. bölüm: Ses Darbesi öğretici anı', emotion: 'güçlü, coşkulu (strong, rousing)' },
+  { id: 'ipucu-ogret-cevir', text: 'Mor bölgede dokun: yerçekimi ters döner!', context: '35. bölüm: Yerçekimi Çevirme öğretici anı', emotion: 'gizemli, heyecanlı (mysterious, excited)' },
 ];
 
 const BY_ID = new Map(NARRATOR_LINES.map((l) => [l.id, l]));
 
 /** satırın metni (bilinmeyen kimlik bir yazım hatasıdır: hemen fark edilsin) */
+/** bu kimlikte bir satır var mı */
+export const hasLine = (id: string): boolean => BY_ID.has(id);
 export function lineText(id: string): string {
   const l = BY_ID.get(id);
   if (!l) throw new Error(`Tüy Dede satırı yok: ${id}`);

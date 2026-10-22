@@ -55,6 +55,8 @@ export interface FtueState {
   tours: string[];
   /** test/geliştirme: her şey açık, tur yok (yalnızca test derlemesinde ?ftue=0 ya da tohumlanmış kayıt) */
   bypass?: boolean;
+  /** Tüy Dede'nin bölüm içinde bir kez söylediği ipucu satırları (ftue/hints.ts; oyuncu başına bir kez) */
+  said?: string[];
 }
 export const FRESH_FTUE: FtueState = { v: 1, story: false, tours: [] };
 
@@ -69,7 +71,10 @@ export function clearedCount(progress: Record<number, { stars: number } | undefi
  */
 export function normalizeFtue(raw: unknown, progress: Record<number, { stars: number } | undefined>): FtueState {
   const r = raw && typeof raw === 'object' ? raw as Partial<FtueState> : null;
-  if (r && r.v === 1) return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}) };
+  if (r && r.v === 1) {
+    const said = Array.isArray(r.said) ? r.said.filter((t) => typeof t === 'string') : [];
+    return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}), ...(said.length ? { said } : {}) };
+  }
   const cleared = clearedCount(progress);
   if (cleared === 0 && !Object.keys(progress).length) return { ...FRESH_FTUE };
   return { v: 1, story: true, tours: veteranTours(cleared) };

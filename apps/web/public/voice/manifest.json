@@ -259,6 +259,26 @@
    "hash": "3ba62422",
    "ms": 8184
   },
+  "tlig-01": {
+   "file": "tlig-01.mp3",
+   "hash": "9dbb5319",
+   "ms": 7992
+  },
+  "tlig-02": {
+   "file": "tlig-02.mp3",
+   "hash": "a188060e",
+   "ms": 8088
+  },
+  "tyaris-01": {
+   "file": "tyaris-01.mp3",
+   "hash": "62a3d317",
+   "ms": 6912
+  },
+  "tyaris-02": {
+   "file": "tyaris-02.mp3",
+   "hash": "fc161e77",
+   "ms": 7608
+  },
   "soru-01": {
    "file": "soru-01.mp3",
    "hash": "9c906a55",
@@ -443,6 +463,71 @@
    "file": "anit-korteks.mp3",
    "hash": "65b59585",
    "ms": 5736
+  },
+  "ipucu-tazele-kayma": {
+   "file": "ipucu-tazele-kayma.mp3",
+   "hash": "a4c42839",
+   "ms": 3168
+  },
+  "ipucu-perde-kay": {
+   "file": "ipucu-perde-kay.mp3",
+   "hash": "f6845c87",
+   "ms": 3720
+  },
+  "ipucu-ogret-zipla": {
+   "file": "ipucu-ogret-zipla.mp3",
+   "hash": "a011834f",
+   "ms": 4056
+  },
+  "ipucu-ogret-don": {
+   "file": "ipucu-ogret-don.mp3",
+   "hash": "cd67eb4f",
+   "ms": 3096
+  },
+  "ipucu-ogret-kayma": {
+   "file": "ipucu-ogret-kayma.mp3",
+   "hash": "f36146e6",
+   "ms": 3192
+  },
+  "ipucu-ogret-duvar": {
+   "file": "ipucu-ogret-duvar.mp3",
+   "hash": "8060023d",
+   "ms": 3120
+  },
+  "ipucu-ogret-suzul": {
+   "file": "ipucu-ogret-suzul.mp3",
+   "hash": "7a26ca0a",
+   "ms": 3240
+  },
+  "ipucu-ogret-trambolin": {
+   "file": "ipucu-ogret-trambolin.mp3",
+   "hash": "b7dbc1b7",
+   "ms": 3144
+  },
+  "ipucu-ogret-kanca": {
+   "file": "ipucu-ogret-kanca.mp3",
+   "hash": "8ee5818d",
+   "ms": 3864
+  },
+  "ipucu-ogret-cakil": {
+   "file": "ipucu-ogret-cakil.mp3",
+   "hash": "addbe9e8",
+   "ms": 3600
+  },
+  "ipucu-ogret-yuz": {
+   "file": "ipucu-ogret-yuz.mp3",
+   "hash": "03bcd8fd",
+   "ms": 3192
+  },
+  "ipucu-ogret-darbe": {
+   "file": "ipucu-ogret-darbe.mp3",
+   "hash": "9273e57e",
+   "ms": 3672
+  },
+  "ipucu-ogret-cevir": {
+   "file": "ipucu-ogret-cevir.mp3",
+   "hash": "8fc5d113",
+   "ms": 2928
   },
   "not-kepce-yon": {
    "file": "not-kepce-yon.mp3",

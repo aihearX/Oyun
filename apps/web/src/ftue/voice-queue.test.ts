@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PATOLOJILER, PATOLOJI_IDS } from '@odi/content';
+import { ABILITY_ORDER, PATOLOJILER, PATOLOJI_IDS, tutorialKey } from '@odi/content';
 
 // ses motoru: her kayıt elle bitirilen sahte bir çalma
 const plays: { file: number; end(): void; stopped: boolean }[] = [];
@@ -23,11 +23,15 @@ const { useStore } = await import('../store');
 const { textHash } = await import('./script');
 const { speakLine, speakWhenFree, stopVoice, voiceBusy, resetVoiceManifest, voiceRequests } = await import('./voice');
 const { sayPathology, pathologyLineId } = await import('./pathology');
+const { sayHint, hintLineId, isVoicedHint } = await import('./hints');
+const { lineText } = await import('./script');
+const { FRESH_FTUE, normalizeFtue } = await import('./features');
 
 const lines: Record<string, { file: string; hash: string }> = {};
 const add = (id: string, text: string) => { lines[id] = { file: `${id}.mp3`, hash: textHash(text) }; };
 add('a', 'Birinci satır.'); add('b', 'İkinci satır.'); add('c', 'Üçüncü satır.');
 for (const k of PATOLOJI_IDS) add(pathologyLineId(k), PATOLOJILER[k].sade);
+for (const h of ['tazele-kayma', 'perde-kay', ...ABILITY_ORDER.map(tutorialKey)]) add(hintLineId(h), lineText(hintLineId(h)));
 installPlatform({ voiceManifest: async () => JSON.stringify({ version: 1, lines }), voiceData: async () => 'AAAA', speak: async () => false, stopSpeaking: () => undefined });
 
 const settle = () => new Promise((r) => setTimeout(r, 5));
@@ -86,5 +90,21 @@ describe('Tüy Dede: bölüm içi cümleler başka satırın üstüne binmez', (
     expect(plays.length).toBe(1);
     expect(requests().at(-1)).toMatchObject({ id: 'pat-serumen-tikaci', outcome: 'hemen' });
     expect(sayPathology('yok-boyle')).toBeNull();
+  });
+
+  it('ipuçları: yalnız seçki, oyuncu başına bir kez, ayar kapalıysa işaretlenmez', async () => {
+    useStore.setState({ ftue: { ...FRESH_FTUE } });
+    for (const a of ABILITY_ORDER) expect(isVoicedHint(tutorialKey(a)), a).toBe(true);
+    expect(isVoicedHint('giris')).toBe(false); expect(isVoicedHint('boss-bagir')).toBe(false); expect(isVoicedHint('patoloji:eksostoz')).toBe(false);
+    expect(sayHint('giris')).toBeNull();
+    useStore.setState({ narratorVoice: false });
+    expect(sayHint('perde-kay')).toBeNull(); expect(useStore.getState().ftue.said ?? []).toEqual([]);
+    useStore.setState({ narratorVoice: true });
+    expect(sayHint('perde-kay')).not.toBeNull(); await settle();
+    expect(sayHint('perde-kay')).toBeNull();
+    expect(useStore.getState().ftue.said).toEqual(['ipucu-perde-kay']);
+    expect(requests().filter((r) => r.id === 'ipucu-perde-kay').map((r) => r.outcome)).toEqual(['hemen']);
+    // kayıtta kalır
+    expect(normalizeFtue(JSON.parse(JSON.stringify(useStore.getState().ftue)), {}).said).toEqual(['ipucu-perde-kay']);
   });
 });
