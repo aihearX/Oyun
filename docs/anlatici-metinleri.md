@@ -32,7 +32,7 @@ ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice
 duraklamalar ≤ 250 ms, vibrato/tremolo yok, çok hafif yankı, −16 LUFS, sessizlik kırpma.
 Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 
-## Satırlar (86)
+## Satırlar (121)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -84,11 +84,46 @@ Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
 | `yazi-02` | Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızlanır; üç kişinin şikâyet ettiği mesaj gizlenir. | Serbest yazı kuralları (bir kez gösterilir) | bilge, şefkatli (wise, caring) |
 | `akis-01` | Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir. | Açılış kutlaması: Takım Akışı (6. bölümden sonra) | coşkulu (celebratory) |
 | `akis-02` | Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste! | Takım sohbeti: akış kartı ve hazır sözler vurgulanır | sıcak, cesaret veren (warm, encouraging) |
+| `sira-01` | Yeni: Sıralama! En güçlü oyuncular ve takımlar burada sıralanır; her pazartesi yeni bir hafta başlar. | Açılış kutlaması: Sıralama (5. bölümden sonra) | heyecanlı, meydan okuyan (competitive) |
+| `sira-02` | Profildeki Sıralama’ya dokun. Puanlar yalnızca gerçekten oynadığın bölümlerden gelir; nasıl hesaplandığını soru işaretinde anlatırım. | Profil: Sıralama kutucuğu vurgulanır | sıcak, açıklayıcı (warm, explaining) |
+| `sira-03` | Senin satırın hep en altta durur. Oklar dünden beri kaç sıra yükseldiğini gösterir; haftanın ilk sıralarına kristal var! | Sıralama: kendi satırı vurgulanır | göz kırpan, cesaret veren (playful, encouraging) |
 | `soru-01` | Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın! | Açılış kutlaması: Günün Sorusu (9. bölümden sonra) | bilge, meraklandıran (wise, curious) |
 | `soru-02` | İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var. | Takım sohbeti: Günün Sorusu kartı vurgulanır | göz kırpan (playful) |
 | `ikili-01` | Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız. | Açılış kutlaması: İkili Görev (10. bölümden sonra) | coşkulu (celebratory) |
 | `ikili-02` | Birlikte burada, Profil’in içinde. Arkadaşını seç ve davet et. | Profil: Birlikte kutucuğu vurgulanır | davet eden (inviting) |
 | `usta-01` | Artık bir ustasın! Yeni başlayan bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
+| `kamp-sv-merkez-1` | Merkez büyüdükçe kampın da büyür. Odyolojide tek bir test yetmez; testler birbirini doğrular. | Kamp: Odyoloji Merkezi yükseldi (Sv 1, 4, 7, 10, 13) | gururlu, bilge (proud, wise) |
+| `kamp-sv-merkez-2` | Bir odyolog işitmeyi de dengeyi de değerlendirir. Merkezin artık diğer binalara daha yüksek kat açıyor. | Kamp: Odyoloji Merkezi yükseldi (Sv 2, 5, 8, 11, 14) | sıcak, öğretici (warm, explaining) |
+| `kamp-sv-merkez-3` | Erken tanı, erken destek demektir. Merkezin büyüdü; şimdi diğer binaları da yükseltebilirsin. | Kamp: Odyoloji Merkezi yükseldi (Sv 3, 6, 9, 12, 15) | cesaret veren (encouraging) |
+| `kamp-sv-laboratuvar-1` | Odyometride her frekansta duyabildiğin en hafif sesi ararız. Ölçtükçe daha çok öğrenir, daha çok jeton kazanırsın. | Kamp: Odyometri Odası yükseldi (Sv 1, 4, 7, 10, 13) | neşeli, öğretici (cheerful, explaining) |
+| `kamp-sv-laboratuvar-2` | Kulaklıkla verilen ses hava yolunu, kulağın arkasındaki titreşim kemik yolunu ölçer. | Kamp: Odyometri Odası yükseldi (Sv 2, 5, 8, 11, 14) | öğretici (explaining) |
+| `kamp-sv-laboratuvar-3` | Ses geçirmez kabin, dışarının gürültüsü testi bozmasın diye vardır. Odan bir kat daha iyi ölçüyor! | Kamp: Odyometri Odası yükseldi (Sv 3, 6, 9, 12, 15) | gururlu (proud) |
+| `kamp-sv-atolye-1` | İşitme cihazı sesi her frekansta ayrı ayrı güçlendirir. İyi ayarlanmış cihaz, zor anda kalkan gibi destek olur. | Kamp: İşitme Cihazı Atölyesi yükseldi (Sv 1, 4, 7, 10, 13) | sıcak, öğretici (warm, explaining) |
+| `kamp-sv-atolye-2` | Cihaz ayarı odyograma göre yapılır; kazanç, her frekansta kaybın derecesine göre seçilir. | Kamp: İşitme Cihazı Atölyesi yükseldi (Sv 2, 5, 8, 11, 14) | öğretici (explaining) |
+| `kamp-sv-atolye-3` | Kulak kalıbı cihazın sesini kanala taşır ve o tiz ıslığı, yani geri beslemeyi azaltır. | Kamp: İşitme Cihazı Atölyesi yükseldi (Sv 3, 6, 9, 12, 15) | göz kırpan (playful) |
+| `kamp-sv-depo-1` | Kulak kiri kendiliğinden birikir ve kendiliğinden dışarı taşınır. Deponda da jeton böyle kendiliğinden birikir. | Kamp: Kulak Deposu yükseldi (Sv 1, 4, 7, 10, 13) | göz kırpan (playful) |
+| `kamp-sv-depo-2` | Kulak kiri kanalı korur ve nemli tutar. Kulağını pamuklu çubukla kurcalama; deponu ise sık sık topla! | Kamp: Kulak Deposu yükseldi (Sv 2, 5, 8, 11, 14) | şefkatli, şakacı (caring, playful) |
+| `kamp-sv-depo-3` | Kanal derisi içten dışa doğru yavaşça kayar ve kiri dışarı taşır. Deponun kapasitesi arttı. | Kamp: Kulak Deposu yükseldi (Sv 3, 6, 9, 12, 15) | öğretici (explaining) |
+| `kamp-sv-kule-1` | Timpanometri, kanaldaki basıncı değiştirip kulak zarının ne kadar rahat hareket ettiğini ölçer. | Kamp: Timpanometri Kulesi yükseldi (Sv 1, 4, 7, 10, 13) | öğretici, merak uyandıran (curious) |
+| `kamp-sv-kule-2` | Düz bir timpanogram çoğu zaman orta kulakta sıvıyı düşündürür. Kulen artık takımının sesini daha uzağa taşıyor. | Kamp: Timpanometri Kulesi yükseldi (Sv 2, 5, 8, 11, 14) | kararlı (determined) |
+| `kamp-sv-kule-3` | Çok yüksek seste minicik stapedius kası kasılır. Bu akustik refleks de aynı cihazla ölçülür. | Kamp: Timpanometri Kulesi yükseldi (Sv 3, 6, 9, 12, 15) | hayranlık (wonder) |
+| `kamp-sv-revir-1` | Klinikte ilk iş, ışıklı bir aletle kanala ve kulak zarına bakmaktır. Erken fark edilen sorun kolay atlatılır. | Kamp: Odyoloji Kliniği yükseldi (Sv 1, 4, 7, 10, 13) | şefkatli (caring) |
+| `kamp-sv-revir-2` | Yenidoğan işitme taraması, işitme kaybını erken bulup erken desteklemeyi sağlar. | Kamp: Odyoloji Kliniği yükseldi (Sv 2, 5, 8, 11, 14) | sıcak, öğretici (warm, explaining) |
+| `kamp-sv-revir-3` | Klinik büyüdü! İlk darbeyi yok sayma şansın arttı; tıpkı erken tanının koruması gibi. | Kamp: Odyoloji Kliniği yükseldi (Sv 3, 6, 9, 12, 15) | gururlu (proud) |
+| `kamp-sv-tedavi-1` | Tedavi Odası koruma ve tedavi malzemesi hazırlar. Bir tarif seç; raf dolunca topla. | Kamp: Tedavi Odası yükseldi (Sv 1, 4, 7, 10, 13) | neşeli, yönlendiren (cheerful, guiding) |
+| `kamp-sv-tedavi-2` | Yeni bir tarif açılmış olabilir! Malzemeyi bölüme yanında götür; uygun engeli bir kez etkisiz kılar. | Kamp: Tedavi Odası yükseldi (Sv 2, 5, 8, 11, 14) | heyecanlı (excited) |
+| `kamp-sv-tedavi-3` | Unutma: gerçek hayatta tedaviyi hekim ve odyolog birlikte seçer. Burada ise oynayarak öğreniriz. | Kamp: Tedavi Odası yükseldi (Sv 3, 6, 9, 12, 15) | bilge, şefkatli (wise, caring) |
+| `tedavi-al-01` | Malzemelerin çantanda! Haritada bir bölüm kartı aç, Çanta’ya dokun ve götürmek istediklerini seç. Kullanmadığın kaybolmaz. | Kamp: Tedavi Odası rafı ilk kez toplandı | sıcak, yönlendiren (warm, guiding) |
+| `anit-dis-kulak` | Dış Kulak anıtı kampına geldi! Kulak kepçesi sesi toplar ve kanala yönlendirir. | Kamp: bölge anıtı yükseldi (Dış Kulak) | coşkulu (celebratory) |
+| `anit-kanal` | Kanal anıtı yükseldi! Kulak kanalı bazı sesleri, şişe ağzına üflemek gibi güçlendirir. | Kamp: bölge anıtı yükseldi (Kanal) | coşkulu (celebratory) |
+| `anit-zar` | Kulak Zarı anıtı geldi! Zar, gelen sesle titreşir ve titreşimi kemikçiklere verir. | Kamp: bölge anıtı yükseldi (Zar) | coşkulu (celebratory) |
+| `anit-kemikcikler` | Kemikçikler anıtı kuruldu: çekiç, örs ve üzengi! Vücudumuzun en küçük kemikleri. | Kamp: bölge anıtı yükseldi (Kemikçikler) | hayranlık (wonder) |
+| `anit-koklea-1` | Koklea anıtı parlıyor! Salyangoz biçimli koklea, titreşimi sinir sinyaline hazırlar. | Kamp: bölge anıtı yükseldi (Koklea 1) | hayranlık (wonder) |
+| `anit-koklea-2` | Tüy hücresi anıtı geldi! Benim akrabalarım: sesle eğilir ve elektrik sinyalini başlatırlar. | Kamp: bölge anıtı yükseldi (Koklea 2) | gururlu, duygulu (proud, touched) |
+| `anit-koklea-3` | Tonotopi anıtı kuruldu! Kokleanın tabanı ince seslere, tepesi kalın seslere yanıt verir. | Kamp: bölge anıtı yükseldi (Koklea 3) | öğretici, coşkulu (explaining, celebratory) |
+| `anit-sinir` | İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar. | Kamp: bölge anıtı yükseldi (Sinir) | heyecanlı (excited) |
+| `anit-beyin-sapi` | Beyin Sapı anıtı kuruldu! İki kulaktan gelen sesler burada buluşur; sesin yönünü böyle buluruz. | Kamp: bölge anıtı yükseldi (Beyin Sapı) | bilge (wise) |
+| `anit-korteks` | Korteks anıtı tamam! İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. | Kamp: bölge anıtı yükseldi (Korteks) | duygulu, gururlu (touched, proud) |
 | `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |

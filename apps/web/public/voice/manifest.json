@@ -244,6 +244,21 @@
    "hash": "82bae87a",
    "ms": 8280
   },
+  "sira-01": {
+   "file": "sira-01.mp3",
+   "hash": "502a6026",
+   "ms": 6408
+  },
+  "sira-02": {
+   "file": "sira-02.mp3",
+   "hash": "2c0f86d4",
+   "ms": 9168
+  },
+  "sira-03": {
+   "file": "sira-03.mp3",
+   "hash": "3ba62422",
+   "ms": 8184
+  },
   "soru-01": {
    "file": "soru-01.mp3",
    "hash": "9c906a55",
@@ -268,6 +283,166 @@
    "file": "usta-01.mp3",
    "hash": "a28ee338",
    "ms": 6648
+  },
+  "kamp-sv-merkez-1": {
+   "file": "kamp-sv-merkez-1.mp3",
+   "hash": "39f092ea",
+   "ms": 6504
+  },
+  "kamp-sv-merkez-2": {
+   "file": "kamp-sv-merkez-2.mp3",
+   "hash": "9440679a",
+   "ms": 7008
+  },
+  "kamp-sv-merkez-3": {
+   "file": "kamp-sv-merkez-3.mp3",
+   "hash": "e22c1766",
+   "ms": 6744
+  },
+  "kamp-sv-laboratuvar-1": {
+   "file": "kamp-sv-laboratuvar-1.mp3",
+   "hash": "7f8d240c",
+   "ms": 7560
+  },
+  "kamp-sv-laboratuvar-2": {
+   "file": "kamp-sv-laboratuvar-2.mp3",
+   "hash": "9d51f951",
+   "ms": 5256
+  },
+  "kamp-sv-laboratuvar-3": {
+   "file": "kamp-sv-laboratuvar-3.mp3",
+   "hash": "66bfb607",
+   "ms": 6840
+  },
+  "kamp-sv-atolye-1": {
+   "file": "kamp-sv-atolye-1.mp3",
+   "hash": "ba1eee52",
+   "ms": 7920
+  },
+  "kamp-sv-atolye-2": {
+   "file": "kamp-sv-atolye-2.mp3",
+   "hash": "086ad5dc",
+   "ms": 5712
+  },
+  "kamp-sv-atolye-3": {
+   "file": "kamp-sv-atolye-3.mp3",
+   "hash": "de474a79",
+   "ms": 5448
+  },
+  "kamp-sv-depo-1": {
+   "file": "kamp-sv-depo-1.mp3",
+   "hash": "4ab1b1a8",
+   "ms": 7344
+  },
+  "kamp-sv-depo-2": {
+   "file": "kamp-sv-depo-2.mp3",
+   "hash": "8cff5c4e",
+   "ms": 6792
+  },
+  "kamp-sv-depo-3": {
+   "file": "kamp-sv-depo-3.mp3",
+   "hash": "f93c4007",
+   "ms": 6240
+  },
+  "kamp-sv-kule-1": {
+   "file": "kamp-sv-kule-1.mp3",
+   "hash": "486a47f5",
+   "ms": 5544
+  },
+  "kamp-sv-kule-2": {
+   "file": "kamp-sv-kule-2.mp3",
+   "hash": "d73068c1",
+   "ms": 7464
+  },
+  "kamp-sv-kule-3": {
+   "file": "kamp-sv-kule-3.mp3",
+   "hash": "f198efec",
+   "ms": 6720
+  },
+  "kamp-sv-revir-1": {
+   "file": "kamp-sv-revir-1.mp3",
+   "hash": "e570c6b8",
+   "ms": 7536
+  },
+  "kamp-sv-revir-2": {
+   "file": "kamp-sv-revir-2.mp3",
+   "hash": "5035c699",
+   "ms": 5280
+  },
+  "kamp-sv-revir-3": {
+   "file": "kamp-sv-revir-3.mp3",
+   "hash": "46b9f980",
+   "ms": 5472
+  },
+  "kamp-sv-tedavi-1": {
+   "file": "kamp-sv-tedavi-1.mp3",
+   "hash": "d6368099",
+   "ms": 6240
+  },
+  "kamp-sv-tedavi-2": {
+   "file": "kamp-sv-tedavi-2.mp3",
+   "hash": "f980721c",
+   "ms": 6288
+  },
+  "kamp-sv-tedavi-3": {
+   "file": "kamp-sv-tedavi-3.mp3",
+   "hash": "8518a2be",
+   "ms": 6504
+  },
+  "tedavi-al-01": {
+   "file": "tedavi-al-01.mp3",
+   "hash": "3fb716cf",
+   "ms": 8256
+  },
+  "anit-dis-kulak": {
+   "file": "anit-dis-kulak.mp3",
+   "hash": "7ffb8ca8",
+   "ms": 5040
+  },
+  "anit-kanal": {
+   "file": "anit-kanal.mp3",
+   "hash": "5895671a",
+   "ms": 5424
+  },
+  "anit-zar": {
+   "file": "anit-zar.mp3",
+   "hash": "c0b87d8f",
+   "ms": 5328
+  },
+  "anit-kemikcikler": {
+   "file": "anit-kemikcikler.mp3",
+   "hash": "15fca15d",
+   "ms": 5328
+  },
+  "anit-koklea-1": {
+   "file": "anit-koklea-1.mp3",
+   "hash": "eea36bf6",
+   "ms": 5448
+  },
+  "anit-koklea-2": {
+   "file": "anit-koklea-2.mp3",
+   "hash": "b6c1e292",
+   "ms": 5976
+  },
+  "anit-koklea-3": {
+   "file": "anit-koklea-3.mp3",
+   "hash": "87672089",
+   "ms": 5616
+  },
+  "anit-sinir": {
+   "file": "anit-sinir.mp3",
+   "hash": "2a026870",
+   "ms": 4752
+  },
+  "anit-beyin-sapi": {
+   "file": "anit-beyin-sapi.mp3",
+   "hash": "d5d452d5",
+   "ms": 6288
+  },
+  "anit-korteks": {
+   "file": "anit-korteks.mp3",
+   "hash": "65b59585",
+   "ms": 5736
   },
   "not-kepce-yon": {
    "file": "not-kepce-yon.mp3",
