@@ -108,8 +108,11 @@ async function suite(target) {
   };
   const storage = async () => (target === 'dom' ? Object.fromEntries(native) : await page.evaluate(() => Object.fromEntries(Object.keys(localStorage).map((k) => [k, localStorage.getItem(k)]))));
   try {
+    // web: rehber atlanmış kayıt uygulama açılmadan yazılır. (Önceden yüklemeden SONRA yazılıp sayfa yenileniyordu: uygulamanın
+    // açılıştaki kendi kalıcı yazması — ör. bağlanınca kuyruk/jeton aynası — araya girip kaydı ezebiliyor, sayfa hikâyeyle açılıyordu.)
+    // window.name yalnız ilk açılışta tohumlar; Sıfırla'dan sonraki yeniden yükleme tohumlanmaz.
+    if (target === 'web') await page.addInitScript((sd) => { if (window.name !== 'odi-tohum') { window.name = 'odi-tohum'; localStorage.setItem('odi-v1', sd); } }, BYPASS);
     await page.goto(url, { waitUntil: 'load' });
-    if (target === 'web') { await page.evaluate((sd) => localStorage.setItem('odi-v1', sd), BYPASS); await page.reload({ waitUntil: 'load' }); }
     // WebView/tarayıcının kendi önbellekleri de (kamp görünümü vb.) silinmeli
     await page.evaluate(() => { localStorage.setItem('odi.kamp.gorunum', 'liste'); sessionStorage.setItem('odi-test', '1'); });
     await page.getByRole('button', { name: /Yola çık|Devam et/ }).first().click({ timeout: 45_000 });

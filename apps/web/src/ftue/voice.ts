@@ -40,7 +40,9 @@ export function voiceManifest(): Promise<VoiceManifest> {
     manifestP = (async () => {
       try {
         const p = platform();
-        const raw = p.voiceManifest ? await p.voiceManifest() : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
+        // telefon paketi (file://) dosyayı yalnız köprüden okur: köprü yoksa indirme denenmez (file:// isteği konsol hatası verir)
+        const fileUrl = typeof location !== 'undefined' && location.protocol === 'file:';
+        const raw = p.voiceManifest ? await p.voiceManifest() : fileUrl ? null : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
         const m = raw ? (JSON.parse(raw) as VoiceManifest) : null;
         return m && typeof m === 'object' && m.lines && typeof m.lines === 'object' ? m : EMPTY;
       } catch (e) { fail(`liste okunamadı: ${String(e).slice(0, 80)}`); return EMPTY; }
