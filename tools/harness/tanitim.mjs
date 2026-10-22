@@ -56,6 +56,7 @@ const SECTIONS = [
   { id: 'harita', title: 'Yaşayan Kulak Haritası', intro: 'Yolculuk haritası ilerledikçe canlanır: geçilen bölgeler renklenir, hazineler açılır, sonunda Ninni Merkezi ışıl ışıl yanar.' },
   { id: 'kamp', title: 'Kulak Kampı', intro: 'Odyoloji temalı yedi binalık kamp: her bina gerçek bir odyolojik işlevi temsil eder, Tedavi Odası bölümlere götürülen malzemeler üretir, haritada ulaşılan her bölge kampa bir anıt getirir.' },
   { id: 'etkinlik', title: 'Etkinlikler', intro: 'Takımla ve tek başına oynanan, sunucunun yönettiği dürüst etkinlikler: canlı ralli, düello, bayrak yarışı, ortak melodi, bilgi yarışması, günlük görevler, meydan okuma, turnuva, bölge savaşı ve baskın.' },
+  { id: 'takim', title: 'Takım rekabeti: Canlı Takım Yarışı ve Takım Ligi', intro: 'İki gerçek takım aynı bölümü aynı anda koşar: güçle eşleşme, dürüst arama notu, dostluk daveti, takım renginde hayaletler, şeffaf puan ve denge çarpanı. Takım Ligi iki haftalık sezonlarla Bronz\'dan Koklea\'ya yükselme ve düşme.' },
   { id: 'sosyal', title: 'Birlikte oynamak', intro: 'Gerçek olaylardan oluşan takım akışı, yardımlaşma, Günün Sorusu, ikili görev, usta–çırak, güvenli özel mesajlar, canlı yarış, lig ve sıralama.' },
   { id: 'ogrenme', title: 'Oynarken öğrenmek', intro: 'Kulak Sözlüğü, Kulak Kartları, Tüy Dede\'nin notları ve açıklamalı sorular: odyoloji öğrencisi düzeyine kadar inen, kaynaklı içerik.' },
   { id: 'magaza', title: 'Mağaza, Dolap, Ödül kutusu ve Profil', intro: 'Dürüst mağaza (test modunda para çekmez), Odi\'nin renkleri ve şapkaları, ödül kutusu ve oyuncu profili.' },
@@ -85,8 +86,11 @@ async function group(id, section, fn) {
     async shot(page, nn, slug, meta, o = {}) {
       const rel = `img/${section}/${String(nn).padStart(2, '0')}-${slug}.jpg`;
       const file = resolve(OUT, rel);
-      if (!o.keepToasts) await toastGone(page).catch(() => undefined);
       if (o.wait !== 0) await sleep(o.wait ?? 450);
+      // tohumlamanın yol açtığı üst bildirimler (ör. "Bugünkü ödül sınırı doldu") karede kalmasın: çekimden hemen önce kapat
+      if (!o.keepToasts && await page.locator('.toast-top').count().catch(() => 0)) { await toastGone(page).catch(() => undefined); await sleep(350); }
+      // tohumlamanın yol açtığı "Bugünkü ödül sınırı doldu" bildirimi (yerel ödül defteri bir anda dolduğu için) karede gizlenir
+      await page.evaluate(() => { for (const el of document.querySelectorAll('.toast-top')) if (/ödül sınırı doldu/i.test(el.textContent ?? '')) el.style.visibility = 'hidden'; }).catch(() => undefined);
       const png = await page.screenshot({ type: 'png', ...(o.clip ? { clip: o.clip } : {}), ...(o.fullPage ? { fullPage: true } : {}) });
       const q = encode(png, file);
       items.push({ file: rel, ...meta, ...(o.order != null ? { order: o.order } : {}) });
@@ -216,8 +220,9 @@ const canvasClip = (page) => page.evaluate(() => { const c = document.querySelec
 function rulesFor(n) {
   const L = LV(n); const R = [];
   for (const a of L.newAbilities) R.push({ id: `tutor-${a.id}`, k: 'tutor', s: a.id, d: 0.8, slow: 0.0001, kind: 'ogretici', ability: a });
-  R.push({ id: 'patoloji', k: '@pathology', d: 1.0, kind: 'patoloji' });
+  R.push({ id: 'patoloji', k: '@pathology', d: 1.0, kind: 'patoloji', ...(PATHO_PREF[n] ? { pat: PATHO_PREF[n], d: 1.6 } : {}) });
   if (REMEDY_FOR[n]) R.push({ id: 'tedavi', k: 'remedy', d: 1.1, kind: 'tedavi' });
+  for (const sp of SETPIECES[n] ?? []) R.push({ id: `gosteri-${sp.dx}`, k: '@chunk', d: 0.2, slow: 0.3, kind: 'gosteri', ...sp });
   if (L.boss) {
     R.push({ id: 'arena', k: '@time', at: 2.2, d: 0, kind: 'boss' });
     if (n === 40) R.push({ id: 'ciglik', k: 'bossScream', d: 0.9, slow: 0.5, kind: 'boss' });
@@ -256,7 +261,7 @@ function installCapture([rules, cap, gap, remedies]) {
   const T = window.__tan = { tl: [], fired: {}, queue: [], paused: null, shots: 0, lastAt: -99, base: sc.opts.timeScale ?? 1, seenPat: 0, groupsDone: {} };
   if (remedies) { for (const [k, v] of Object.entries(remedies)) sc.sim.rem[k] = v; }
   const ok = (r) => !T.fired[r.id] && !T.queue.some((q) => q.r.id === r.id) && !(r.group && (T.groupsDone[r.group] || T.queue.some((q) => q.r.group === r.group))) && (r.after == null || sc.sim.t >= r.after);
-  const strong = (r) => r.k.startsWith('boss') || r.k === 'tutor' || r.k === '@pathology' || r.k === '@time' || r.k === 'remedy';
+  const strong = (r) => r.k.startsWith('boss') || r.k === 'tutor' || r.k === '@pathology' || r.k === '@time' || r.k === 'remedy' || r.k === '@chunk';
   const intro = (r) => r.kind === 'ogretici' || r.kind === 'patoloji';
   const arm = (r, info) => {
     if (T.shots + T.queue.length >= cap) return;
@@ -285,9 +290,14 @@ function installCapture([rules, cap, gap, remedies]) {
     const evs = window.__odi?.events ?? [];
     for (; T.seenPat < evs.length; T.seenPat++) {
       const e = evs[T.seenPat]; if (e.type !== 'pathology' || !e.first) continue;
-      const r = rules.find((x) => x.k === '@pathology'); if (r && ok(r)) arm(r, { pathology: e.id });
+      const r = rules.find((x) => x.k === '@pathology'); if (r && ok(r) && (!r.pat || r.pat === e.id)) arm(r, { pathology: e.id });
     }
     for (const r of rules) if (r.k === '@time' && ok(r) && sc.sim.t >= r.at) arm(r, {});
+    for (const r of rules) {
+      if (r.k !== '@chunk' || !ok(r)) continue;
+      if (r.x0 == null) { let x = 220; r.x0 = -1; for (const c of window.__odi?.spec?.chunks ?? []) { if (c.id === r.chunk) { r.x0 = x; break; } x += c.length; } }
+      if (r.x0 >= 0 && sc.sim.hero.x >= r.x0 + r.dx) arm(r, { chunk: r.chunk });
+    }
     const now = sc.time.now; const i = T.queue.findIndex((q) => q.at <= now);
     if (i < 0) return;
     const { r, info, also } = T.queue.splice(i, 1)[0];
@@ -315,6 +325,10 @@ function levelCaption(n, p) {
   if (p.kind === 'patoloji') {
     const P = PAT(p.info?.pathology);
     return { title: `İlk karşılaşma: ${P.ad}`, caption: `${head}: bölgenin kulak hastalığı ilk görüldüğünde adıyla etiketlenir ve Tüy Dede tek cümleyle anlatır: "${P.sade}"` };
+  }
+  if (p.kind === 'gosteri') {
+    const sp = (SETPIECES[n] ?? []).find((x) => `gosteri-${x.dx}` === p.id) ?? (SETPIECES[n] ?? [])[0];
+    return { title: sp.title, caption: `${head}: ${sp.caption}` };
   }
   if (p.kind === 'tedavi') {
     const [rid = '', pid = ''] = String(p.info?.s ?? '').split('|'); const R = DATA.remedies.find((x) => x.id === rid);
@@ -392,7 +406,16 @@ async function captureLevel(n) {
 const slugify = (s) => String(s).toLocaleLowerCase('tr').replace(/[âà]/g, 'a').replace(/[îì]/g, 'i').replace(/[ûù]/g, 'u').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const modName = (m) => ({ sis: 'sis', gece: 'gece', hiz: 'hız', yanki: 'yankı', ayna: 'ayna', 'tek-can': 'tek can', 'ters-yercekimi': 'ters yerçekimi', 'cihaz-kapali': 'cihaz kapalı' })[m] ?? m;
 /** Tedavi Odası malzemesinin bölümdeki etkisi: botun koşusunda (bot modunda çanta verilmez) sim durumuna malzeme konur */
-const REMEDY_FOR = { 7: { 'kulak-tikaci': 2, 'serumen-damlasi': 2, 'dis-kulak-damlasi': 2 }, 22: { 'kulak-tikaci': 2, 'isitme-cihazi': 2 } };
+/** imza odaları (yalnız kendi bölümünde): odanın başından dx px sonra çekilir */
+const SETPIECES = {
+  4: [{ chunk: 'dk-sp-ruzgar-yarisi', dx: 330, title: 'İmza oda: Rüzgâr Bayrak Yarışı', caption: 'bölümün doruk gösterisi: "Rüzgâr kapısına bas, esinti taşısın!" Üç rüzgâr kapısı Odi\'yi çukurların üstünden bayrak gibi birbirine atar.' },
+    { chunk: 'dk-sp-ruzgar-yarisi', dx: 2100, title: 'Rüzgâr kapısı: nota yağmuru', caption: 'son rüzgâr kapısı Odi\'yi dikine fırlatır; nota yağmurunun içinden geçilir.' }],
+  8: [{ chunk: 'kn-sp-damla-sinavi', dx: 430, title: 'İmza oda: Damla Sınavı', caption: 'Kanal finali "Damla Sınavı": Kanal\'ın üç becerisi art arda; önce kir yığınından zıpla, iltihaplı perdenin altından kay.' },
+    { chunk: 'kn-sp-damla-sinavi', dx: 760, title: 'Damla Sınavı: serumen damlaları', caption: 'tavandan dalga gibi sırayla inip kalkan dört serumen damlası: damla yukarıdayken altından koşulur, ardından damlalı kısa duvar kuyusu.' }],
+};
+/** bölümde yeni tanıtılan patoloji ilk görülen değilse: çekilecek olan */
+const PATHO_PREF = { 10: 'timpanoskleroz', 11: 'retraksiyon', 14: 'otitis-media' };
+const REMEDY_FOR = { 7: { 'kulak-tikaci': 2, 'serumen-damlasi': 2, 'dis-kulak-damlasi': 2 }, 14: { 'ventilasyon-tupu': 2 }, 22: { 'kulak-tikaci': 2, 'isitme-cihazi': 2 } };
 
 // ================================================================ A · açılış ve ilk deneyim
 const stepLog = {};
@@ -429,7 +452,7 @@ async function waitResult(page) {
   for (let i = 0; i < 400 && !(await page.locator('.result-actions').count()); i++) { const h = page.getByRole('button', { name: /Haydi/ }); if (await h.count()) await h.click().catch(() => undefined); await sleep(500); }
   await page.locator('.result-actions').waitFor({ timeout: 5000 });
 }
-const TOURS_BEFORE = (id) => { const order = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'siralama', 'shop', 'akis', 'events', 'race', 'yazi', 'soru', 'ikili', 'usta']; return order.slice(0, order.indexOf(id)); };
+const TOURS_BEFORE = (id) => { const order = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'siralama', 'shop', 'akis', 'events', 'race', 'yazi', 'soru', 'ikili', 'usta', 'tlig', 'tyaris']; return order.slice(0, order.indexOf(id)); };
 
 async function sectionAcilis() {
   const S = await server('normal');
@@ -482,6 +505,8 @@ async function sectionAcilis() {
     ['soru', 9, 90, { 0: ['gunun-sorusu-acildi', 'Yeni: Günün Sorusu'] }],
     ['ikili', 10, 93, { 0: ['ikili-gorev-acildi', 'Yeni: İkili Görev'] }],
     ['usta', 11, 96, { 0: ['usta-cirak-acildi', 'Yeni: Usta–Çırak'] }],
+    ['tlig', 11, 97, { 0: ['takim-ligi-acildi', 'Yeni: Takım Ligi'] }],
+    ['tyaris', 11, 97.5, { 0: ['takim-yarisi-acildi', 'Yeni: Canlı Takım Yarışı'] }],
   ];
   for (const [tourId, cleared, nn, shots, then, thenShots] of points) {
     await group(`acilis-tur-${tourId}`, 'acilis', async (G) => {
@@ -501,7 +526,7 @@ async function sectionAcilis() {
   }
   // ---- 3) Ayarlar: Anlatıcı sesi, Bilgi düzeyi, Sıfırla
   await group('acilis-ayarlar', 'acilis', async (G) => {
-    const { ctx, page } = await newPage({ seed: save({ cleared: 12, tours: TOURS_BEFORE('usta').concat('usta') }) });
+    const { ctx, page } = await newPage({ seed: save({ cleared: 12, tours: ALL_TOURS }) });
     await page.goto(url(S.url), { waitUntil: 'load' });
     await page.getByRole('button', { name: /Devam et/ }).click({ timeout: 45_000 });
     await page.locator('nav.tabbar').waitFor({ timeout: 20_000 }); await nickname(page, 'Ayarcı'); await settle(page);
@@ -544,7 +569,7 @@ async function openMap(S, seedOpts, seen, q = 'harita=tam') {
   await nickname(page, `Gezgin${seedOpts.cleared}`);
   return { ctx, page };
 }
-const ALL_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'siralama', 'shop', 'akis', 'events', 'race', 'yazi', 'soru', 'ikili', 'usta'];
+const ALL_TOURS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'siralama', 'shop', 'akis', 'events', 'race', 'yazi', 'soru', 'ikili', 'usta', 'tlig', 'tyaris'];
 async function sectionHarita() {
   const S = await server('normal');
   await group('harita-erken', 'harita', async (G) => {
@@ -736,11 +761,25 @@ async function sectionKamp() {
     await page.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click(); await page.locator('.bp-build').waitFor({ timeout: 8000 }); await sleep(700);
     await G.shot(page, 71, 'insaat-basladi', { kind: 'kamp-panel', title: 'Yükseltme sürüyor', caption: 'İnşaat başlar: kalan süre, takımdan yardım isteme, hızlandırıcılar ve kristalle bitirme seçenekleri.' });
     await page.locator('.bp').getByRole('button', { name: /ile bitir/ }).click(); await closePanel(page);
-    let cel = false; for (let i = 0; i < 30 && !(cel = !!(await page.locator('.cel-root.on').count())); i++) await sleep(300);
-    if (cel) { await sleep(1800); await G.shot(page, 72, 'yukseltme-kutlamasi', { kind: 'kamp', title: 'Yükseltme kutlaması', caption: 'Bina seviye atlayınca kutlama afişinde o seviyenin açtıkları yazar: Odyometri Odası Sv 3 → bölüm jetonu +%9 ve Dolap\'a Sol Kulak Mavisi.' }, { wait: 0 }); }
+    // her bitişte tam bir kez: üstte "… Sv 3!" bildirimi (açılanlarla) + kamp ekranının altında Tüy Dede kartı
+    // bitişte tam bir kez: üstte "Sv 3!" afişi / "Dolaba yeni" bildirimi, sahnede "Sv 3!" yazısı ve altta Tüy Dede kartı — kart belirir belirmez çek
+    let got = false;
+    for (let i = 0; i < 60 && !got; i++) {
+      if (await page.locator('[data-testid="kamp-dede"]').count()) { got = true; await sleep(250);
+        await G.shot(page, 72, 'yukseltme-kutlamasi', { kind: 'kamp', title: 'Yükseltme bitti: Sv 3!', caption: 'Yükseltme bitince binanın üstünde "Sv 3!" yükselir, üstte açılan şey bildirilir (Dolap\'a Sol Kulak Mavisi) ve altta Tüy Dede binanın gerçek odyolojik işlevini bir cümleyle anlatır.' }, { wait: 0, keepToasts: true }); }
+      if (i % 4 === 0) await page.screenshot({ path: resolve(ADAY, `kamp-kutlama-${pad2(i)}.png`) }).catch(() => undefined);
+      await sleep(200);
+    }
+    if (!got) warn('kamp-acilim: "Sv 3" bildirimi görülmedi');
+    await toastGone(page); await sleep(800);
+    if (await page.locator('[data-testid="kamp-dede"]').count()) await G.shot(page, 73, 'tuy-dede-kamp-satiri', { kind: 'kamp', title: 'Tüy Dede kampta', caption: 'Kamp ekranının altındaki kartta Tüy Dede, yükseltilen binanın odyolojik işlevini anlatır; kayıtlı sesle okunur (ayar kapalıysa sessiz).' }, { wait: 0 });
+    // Merkez Sv 4: büyük kademe (Sv 4/7/10/13) tam ekran kutlamayla gelir
+    await openPanel(page, 'merkez');
+    await page.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click(); await page.locator('.bp-build').waitFor({ timeout: 8000 });
+    await page.locator('.bp').getByRole('button', { name: /ile bitir/ }).click(); await closePanel(page);
+    if (await page.locator('.cel-root.on').waitFor({ timeout: 15_000 }).then(() => true, () => false)) { await sleep(2200);
+      await G.shot(page, 76, 'merkez-sv4-kutlamasi', { kind: 'kamp', title: 'Odyoloji Merkezi Sv 4!', caption: 'Büyük kademelerde (Sv 4, 7, 10, 13) bina yeni görünüme geçer ve tam ekran kutlama açılanları sayar: yeni görünüm, diğer binalar için yeni üst sınır ve Sözlük terimi.' }, { wait: 0 }); }
     await settle(page);
-    const dede = page.locator('[data-testid="kamp-dede"]');
-    if (await dede.waitFor({ timeout: 8000 }).then(() => true, () => false)) { await sleep(1200); await G.shot(page, 73, 'tuy-dede-kamp-satiri', { kind: 'kamp', title: 'Tüy Dede kampta', caption: 'Kamp ekranının altındaki kartta Tüy Dede, yükseltilen binanın gerçek odyolojik işlevini bir cümleyle anlatır.' }); }
     await tab(page, 'profile'); await page.locator('[data-tile="wardrobe"]').click();
     const tile = page.getByRole('button', { name: 'Sol Kulak Mavisi', exact: true }); await tile.waitFor({ timeout: 10_000 }).catch(() => undefined);
     await tile.scrollIntoViewIfNeeded().catch(() => undefined); await sleep(700);
@@ -1147,6 +1186,84 @@ async function groupYaris(S) {
   });
 }
 
+// ================================================================ T · takım rekabeti (teamrace-e2e.mjs akışları)
+async function teamTabT(p, sub) {
+  await closeBanners(p.page); await toastGone(p.page);
+  for (let i = 0; i < 4 && !(await p.page.locator('nav.tabbar').count()); i++) { await p.page.getByRole('button', { name: /Geri|Takıma dön/ }).first().click({ timeout: 3000 }).catch(() => undefined); await sleep(350); }
+  await tab(p.page, 'team'); await p.page.locator('.team-head').waitFor({ timeout: 15_000 });
+  const t = p.page.locator('.subtabs .subtab', { hasText: sub }).first(); await t.scrollIntoViewIfNeeded().catch(() => undefined); await t.click(); await sleep(700);
+}
+async function sectionTakim() {
+  const S = await server('normal');
+  await group('takim-yarisi', 'takim', async (G) => {
+    const q = 'oyun-bot=1&oyun-hiz=2';
+    const A = [await netPlayer(S, 'Ayşe', { cleared: 12, q, color: 0xff4f7a }), await netPlayer(S, 'Ali', { cleared: 12, q, color: 0x5b8def }), await netPlayer(S, 'Asya', { cleared: 12, q, color: 0x22a565 })];
+    const B = [await netPlayer(S, 'Bora', { cleared: 12, q, color: 0x2ec4b6 }), await netPlayer(S, 'Banu', { cleared: 12, q, color: 0xffb347 })];
+    const ta = (await net(A[0], 'team.create', { name: 'Koklea Kartalları', emblem: '🦅', description: 'Her gün biraz, hep birlikte.' })).team;
+    const tb = (await net(B[0], 'team.create', { name: 'Yunuslar', emblem: '🐬', description: 'Dalgayı birlikte yakalarız.' })).team;
+    for (const p of A.slice(1)) await net(p, 'team.join', { teamId: ta.id }); await net(B[1], 'team.join', { teamId: tb.id });
+    for (const p of [...A, ...B]) await syncTeam(p);
+    // ligde başka gerçek takımlar da olsun (tarayıcısız oyuncular, gerçek bölüm sonuçlarıyla)
+    const extra = [];
+    for (const [nm, tn, em] of [['Deniz', 'Bas Baykuşları', '🦉'], ['Elif', 'Tiz Serçeler', '🐦'], ['Kerem', 'Sarmal Ekip', '🐚']]) { const c = await rawPlayer(S.url, nm, 10, 0x9b7bff); await c.call('team.create', { name: tn, emblem: em }).catch(() => undefined); extra.push(c); }
+    await step('lobi', async () => {
+      await teamTabT(A[0], 'Takım Yarışı'); await A[0].page.getByTestId('takim-yarisi').waitFor({ timeout: 10_000 });
+      await G.shot(A[0].page, 1, 'takim-yarisi', { kind: 'takim-yarisi', title: 'Canlı Takım Yarışı', caption: 'Takım › Takım Yarışı: lider ya da yardımcı 3\'e 3 ya da 5\'e 5 lobi açar; kurallar ve puanlama aynı ekranda açıkça yazar.' });
+      await A[0].page.getByTestId('tr-ac-3').click(); await A[0].page.getByTestId('tr-lobi').waitFor();
+      for (const p of A.slice(1)) { await teamTabT(p, 'Takım Yarışı'); await p.page.getByTestId('tr-katil').click(); await p.page.getByTestId('tr-hazir').click(); }
+      await A[0].page.getByTestId('tr-hazir').click(); await A[0].page.locator('[data-testid="tr-uye"][data-ready="1"]').nth(2).waitFor({ timeout: 10_000 }); await sleep(600);
+      await G.shot(A[0].page, 2, 'lobi-hazir', { kind: 'takim-yarisi', title: 'Takım lobisi', caption: 'Üyeler lobiye katılıp "Hazırım" der; lobi canlı güncellenir (hazır, bekliyor, çevrimdışı). Takım sohbetine duyuru düşer.' });
+    });
+    await step('arama', async () => {
+      await A[0].page.getByTestId('tr-ara').click(); await A[0].page.locator('[data-testid="tr-durum"]', { hasText: 'Rakip aranıyor' }).waitFor({ timeout: 8000 }); await sleep(800);
+      await G.shot(A[0].page, 3, 'rakip-araniyor', { kind: 'takim-yarisi', title: 'Rakip aranıyor (dürüst not)', caption: 'Rakip araması benzer takım gücüyle eşleştirir; arayan başka takım yoksa not bunu açıkça söyler. Sahte rakip yok.' });
+      await A[0].page.getByTestId('tr-meydan').click(); await A[0].page.getByTestId('tr-takimlar').waitFor({ timeout: 8000 }); await sleep(700);
+      await G.shot(A[0].page, 4, 'takima-meydan-oku', { kind: 'takim-yarisi', title: 'Takıma meydan oku', caption: 'Dostluk daveti: lider belirli bir takıma meydan okur; davet 10 dakika geçerli, karşı takımın sohbetine düşer.' });
+      await A[0].page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click().catch(() => undefined); await sleep(400);
+    });
+    await step('yaris', async () => {
+      await teamTabT(B[0], 'Takım Yarışı'); await B[0].page.getByTestId('tr-ac-3').click();
+      await teamTabT(B[1], 'Takım Yarışı'); await B[1].page.getByTestId('tr-katil').click(); await B[1].page.getByTestId('tr-hazir').click();
+      await B[0].page.getByTestId('tr-hazir').click(); await B[0].page.locator('[data-testid="tr-uye"][data-ready="1"]').nth(1).waitFor({ timeout: 10_000 });
+      await B[0].page.getByTestId('tr-ara').click();
+      for (const p of [...A, ...B]) await p.page.waitForFunction(() => !!window.__odi?.race?.team, null, { timeout: 60_000 });
+      await A[1].page.getByTestId('tr-hud').waitFor({ timeout: 15_000 });
+      await A[0].page.waitForFunction(() => (window.__odi?.events ?? []).some((e) => e.type === 'started'), null, { timeout: 30_000 }).catch(() => undefined);
+      await sleep(2500);
+      await A[1].page.locator('.tr-reacts button').first().click().catch(() => undefined); await sleep(500);
+      await G.shot(A[0].page, 10, 'yaris-ici', { kind: 'takim-yarisi', title: 'Takım yarışı sürüyor', caption: 'İki takım aynı bölümü koşar: kendi takımın turkuaz, rakip takım pembe hayalet; üstte iki takımın ilerlemesi ve sıra puanları, sağda yalnız takım arkadaşlarının gördüğü hızlı tepkiler.' }, { wait: 0 });
+      await G.shot(B[0].page, 11, 'yaris-ici-rakip', { kind: 'takim-yarisi', title: 'Rakip takımın ekranı', caption: 'Aynı an rakip takımdan: takım şeridi iki takımın canlı puanını gösterir; 3\'e 2 eşleşmede az kişili takımın toplamı denge çarpanıyla (×1,5) ölçeklenir.' }, { wait: 0 });
+      for (const p of [A[0], B[1]]) await p.page.locator('[data-testid="tr-sonuc-ekrani"]:not([data-outcome="bekliyor"])').waitFor({ timeout: 240_000 });
+      await sleep(1500);
+      await G.shot(A[0].page, 20, 'sonuc', { kind: 'takim-yarisi', title: 'Takım yarışı sonucu', caption: 'Sonuç: iki takımın skoru ve her oyuncunun bireysel puanı (bitiş sırası + yıldız). Ödül ve Takım Ligi puanı sunucuda bir kez yazılır.' });
+      await G.shot(B[1].page, 21, 'sonuc-rakip', { kind: 'takim-yarisi', title: 'Sonuç: rakip takım', caption: 'Rakip takım aynı skoru görür; bitiren her üye kaybetse de küçük bir ödül alır.' });
+    });
+    await step('akis', async () => {
+      await A[0].page.getByTestId('tr-takima-don').click().catch(() => undefined); await teamTabT(A[0], 'Sohbet');
+      const c = A[0].page.locator('[data-testid="akis-karti"][data-type="tyaris"]').first(); await c.waitFor({ state: 'attached', timeout: 12_000 }); await c.scrollIntoViewIfNeeded(); await sleep(600);
+      await G.shot(A[0].page, 30, 'akis-karti-rovans', { kind: 'takim-yarisi', title: 'Akış kartı ve Rövanş', caption: 'Sonuç iki takımın akışına kart olarak düşer; kartta skor ve "Rövanş" düğmesi.' });
+    });
+    await step('lig', async () => {
+      for (let i = 0; i < 4; i++) await net(A[i % 3], 'progress.submit', runOf(1 + i, { coins: 60 })).catch(() => undefined);
+      await teamTabT(A[0], 'Lig'); await A[0].page.getByTestId('takim-ligi').waitFor({ timeout: 10_000 }); await sleep(800);
+      await G.shot(A[0].page, 40, 'takim-ligi', { kind: 'takim-ligi', title: 'Takım Ligi: grup sıralaması', caption: 'İki haftalık sezon, Bronz → Gümüş → Altın → Platin → Koklea kademeleri; grupta en çok 15 takım. Yükselme ve düşme bölgeleri okla işaretli.' });
+      await A[0].page.getByTestId('tl-puanlarimiz').scrollIntoViewIfNeeded(); await sleep(500);
+      await G.shot(A[0].page, 41, 'takim-ligi-puanlar', { kind: 'takim-ligi', title: 'Puanlarımız', caption: 'Lig puanı yalnızca sunucu kayıtlarından ve haftalık üst sınırlarla: Bölge Savaşı, Baskın, Bilgi, Düello ve Takım Yarışı (kazanma 20, beraberlik 8, kayıp 4).' });
+      await A[0].page.getByRole('button', { name: 'Takım Ligi kuralları' }).click(); await A[0].page.locator('.sheet').waitFor(); await sleep(600);
+      await G.shot(A[0].page, 42, 'takim-ligi-kurallar', { kind: 'takim-ligi', title: 'Takım Ligi nasıl işler?', caption: 'Kurallar sayfası sabitleri aynen gösterir: sezon süresi, kademeler, puan kaynakları, yükselme/düşme ve üye başına bir kez verilen sezon ödülü.' });
+      await A[0].page.locator('.sheet').getByRole('button', { name: 'Anladım' }).click().catch(() => undefined);
+    });
+    await step('siralama-lig', async () => {
+      await tab(A[0].page, 'profile'); await A[0].page.locator('.menu-tile[data-tile="ranking"]').click(); await A[0].page.getByTestId('siralama').waitFor();
+      await A[0].page.locator('.rank-kind button', { hasText: 'Takımlar' }).click(); await sleep(600);
+      await A[0].page.locator('.rank-chip[data-board="t-lig"]').click(); await sleep(1500);
+      await G.shot(A[0].page, 43, 'siralama-takim-ligi', { kind: 'takim-ligi', title: 'Sıralama › Takım Ligi', caption: 'Sıralama\'daki "Takım Ligi" tablosu: bu sezon kazanılan takım ligi puanına göre bütün takımlar.' });
+    });
+    for (const c of extra) c.close();
+    for (const p of [...A, ...B]) await p.ctx.close();
+  });
+}
+
 // ================================================================ G · öğrenme ve H · mağaza/dolap/ödül kutusu/profil
 /** zengin oyuncu kaydı: 26 bölüm, kartlar, başarımlar, kozmetikler */
 function richMeta(cleared) {
@@ -1286,6 +1403,7 @@ try {
   if (want('harita')) await sectionHarita();
   if (want('kamp')) await sectionKamp();
   if (want('etkinlik')) await sectionEtkinlik();
+  if (want('takim')) await sectionTakim();
   if (want('sosyal')) await sectionSosyal();
   if (want('ogrenme')) await sectionOgrenme();
   if (want('magaza')) await sectionMagaza();
