@@ -8,7 +8,7 @@ import type { ArtName } from '../ui/art';
 export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'friends' | 'glossary' | 'team' | 'league' | 'shop' | 'events' | 'race'
   /** iletişim (docs/13-iletisim.md) */
   | 'yazi' | 'akis' | 'soru' | 'ikili' | 'usta'
-  /** sıralama (docs/14-siralama.md) */
+  /** sıralama (docs/15-siralama.md) */
   | 'siralama';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 

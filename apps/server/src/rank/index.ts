@@ -1,5 +1,5 @@
 /**
- * Sıralama (docs/14-siralama.md): oyuncu ve takım tabloları. Puanların HEPSİ sunucunun doğruladığı olaylardan gelir:
+ * Sıralama (docs/15-siralama.md): oyuncu ve takım tabloları. Puanların HEPSİ sunucunun doğruladığı olaylardan gelir:
  *  - bölüm/yıldız yalnızca progress.submit doğrulamasından geçen koşulardan (rank_level; çevrimdışı eşitleme progress.sync SAYILMAZ),
  *  - haftalık yıldız = o hafta kazanılan YENİ yıldız (tekrar oynamak saymaz), nota günlük üst sınırlı, yarış galibiyeti en az iki
  *    kişinin bitirdiği yarışlarda ve günlük üst sınırlı, Günün Sorusu günde bir.

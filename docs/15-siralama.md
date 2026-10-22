@@ -1,4 +1,4 @@
-# 14 · Sıralama: en güçlü oyuncular ve takımlar
+# 15 · Sıralama: en güçlü oyuncular ve takımlar
 
 Sahibin isteği: "Bir yerde en güçlü takımlar ve en güçlü oyuncular sıralı gösterilsin ki rekabet artsın." Kurucu ilke aynen geçerli:
 **dürüst tasarım** — sahte oyuncu, sahte puan ya da uydurma geri sayım yok; her sayı sunucunun doğruladığı olaylardan gelir ve nasıl

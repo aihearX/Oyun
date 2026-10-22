@@ -700,7 +700,7 @@ export const COMM_RULES = {
 
 /** Takım Akışı kartı türü (ChatMessage.kind 'feed', meta.type) */
 export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | 'yardim' | 'meydan'
-  /** haftalık sıralama kapanışında ilk 3 (docs/14-siralama.md) */
+  /** haftalık sıralama kapanışında ilk 3 (docs/15-siralama.md) */
   | 'sira';
 
 export interface CommSettings {
@@ -791,7 +791,7 @@ export interface EvtMap {
 }
 
 // =====================================================================
-// SIRALAMA (v4, docs/14-siralama.md). Yalnızca EKLEME. Tüm puanlar sunucunun doğruladığı olaylardan hesaplanır (istemci sayı söylemez).
+// SIRALAMA (v4, docs/15-siralama.md). Yalnızca EKLEME. Tüm puanlar sunucunun doğruladığı olaylardan hesaplanır (istemci sayı söylemez).
 // Haftalık tablolar Pazartesi 00:00 (İstanbul) sıfırlanır; biten haftanın son sıralaması saklanır, ilk sıralara sabit ve önceden görünen ödül.
 // =====================================================================
 

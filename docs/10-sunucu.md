@@ -187,7 +187,7 @@ skor, 48 saat, günde 3), Günün Sorusu (`dq.state`, `dq.answer`, 20:00 açıkl
 haftalık 300/800 nota), Usta–Çırak (`mentor.*`, dönüm noktaları 5/10/15/20). Tablolar `apps/server/src/comm/schema.ts`; testler `apps/server/test/comm.test.ts`;
 uçtan uca `node tools/harness/comm-e2e.mjs [--browsers chromium,webkit] [--target web|dom]`.
 
-## Sıralama (docs/14-siralama.md)
+## Sıralama (docs/15-siralama.md)
 
 `rank.board { board, scope }`: oyuncu (güç, haftalık yıldız/nota/Günün Sorusu/yarış galibiyeti) ve takım (güç, Bölge Savaşı, Baskın, Bilgi)
 tabloları; kapsam herkes (ilk 100) / arkadaşlar / yakınım (±5). Puanlar yalnızca doğrulanmış olaylardan (`rank_level`, `rank_week`, günlük sınırlar
