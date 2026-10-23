@@ -13,6 +13,7 @@ import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
 import { sayDede } from './dede';
+import { lastBuiltAt } from './built';
 import type { ArtName } from '../ui/art';
 
 const seen = new Map<string, number>();
@@ -50,15 +51,22 @@ export function useCampLevelCelebration(owner: string | null | undefined, camp: 
   useEffect(() => {
     if (!owner || !camp) return;
     const levels = takeCampLevels(owner, camp);
-    if (!levels.length) return;
+    // çok büyük sıçrama (ör. yönetici/eşitleme) bir kutlama değil, eşitlemedir: sessizce görülmüş sayılır (built.ts ile aynı ilke)
+    if (!levels.length || levels.length > 5) return;
     const top = levels[levels.length - 1]!;
-    const rewards = levels.flatMap((l) => campLevelRewards(l));
-    const land = rewards.find((r) => r.kind === 'arazi');
+    const all = levels.flatMap((l) => campLevelRewards(l));
+    // önemli ödüller önce (arazi, bina, kozmetik, çanta), en çok 6 satır; kalanı panelde
+    const order = { arazi: 0, bina: 1, kozmetik: 2, canta: 3, yer: 4, sus: 5, unvan: 6 } as const;
+    const sorted = [...all].sort((a, b) => order[a.kind] - order[b.kind]);
+    const rewards = sorted.slice(0, 6);
+    const land = all.find((r) => r.kind === 'arazi');
     setTimeout(() => {
       platform().haptic('success'); audio.play('fanfare');
-      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: [`Unvan: ${campTitle(top)}`, ...rewards.filter((r) => r.kind !== 'unvan').map(rewardLabel)] });
-      if (land && land.kind === 'arazi') sayDede(`kamp-bolge-${land.district}`, `Yeni arazi · ${districtById(land.district)?.name ?? ''}`, districtById(land.district)?.plain);
-      else sayDede('kamp-seviye-up', `Kamp Seviyesi ${top}`);
+      const more = all.filter((r) => r.kind !== 'unvan').length - rewards.filter((r) => r.kind !== 'unvan').length;
+      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: [`Unvan: ${campTitle(top)}`, ...rewards.filter((r) => r.kind !== 'unvan').map(rewardLabel), ...(more > 0 ? [`ve ${more} ödül daha (Kamp Seviyesi panelinde)`] : [])] });
+      // aynı anda bir bina da bittiyse Tüy Dede önce binanın satırını bitirsin
+      const dede = () => { if (land && land.kind === 'arazi') sayDede(`kamp-bolge-${land.district}`, `Yeni arazi · ${districtById(land.district)?.name ?? ''}`, districtById(land.district)?.plain); else sayDede('kamp-seviye-up', `Kamp Seviyesi ${top}`); };
+      if (Date.now() - lastBuiltAt < 4000) setTimeout(dede, 9000); else dede();
     }, delayMs);
   }, [owner, camp]);
 }

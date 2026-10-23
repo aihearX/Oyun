@@ -904,7 +904,7 @@ export class CampScene extends Phaser.Scene {
       if (!v) {
         const img = this.add.image(0, 0, this.decorTex(p.id)); v = { img, id: p.id, gx: p.gx, gy: p.gy, flip: p.flip }; this.decorViews.set(p.uid, v);
         this.placeDecorImg(img, p.id, p.gx, p.gy, p.flip);
-        if (!this.opts.reducedMotion && this.ready) { const sc = img.scaleY; img.setScale(img.scaleX * 0.3, sc * 0.3); this.tweens.add({ targets: img, scaleX: (p.flip ? 1 : 1) / TEX, scaleY: sc, duration: 420, ease: 'Back.Out' }); }
+        if (!this.opts.reducedMotion && this.ready) { const sc = img.scaleY; img.setScale(img.scaleX * 0.3, sc * 0.3); this.tweens.add({ targets: img, scaleX: 1 / TEX, scaleY: sc, duration: 420, ease: 'Back.Out' }); }
       } else if (v.gx !== p.gx || v.gy !== p.gy || v.flip !== p.flip) { v.gx = p.gx; v.gy = p.gy; v.flip = p.flip; this.placeDecorImg(v.img, p.id, p.gx, p.gy, p.flip); }
       v.img.setVisible(!(this.ghostV?.uid === p.uid));
     }

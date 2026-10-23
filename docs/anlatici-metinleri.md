@@ -35,7 +35,7 @@ Ayarlar: exaggeration 0.8, cfg_weight 0.3, temperature 0.8. "Dede" efekti yok (p
 yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.2 hece/sn altındaysa en çok
 ×1.2 hızlandırma, 60 Hz altı temizlik, −16 LUFS, mono 56k MP3. Yedek motor: `--engine coqui` (Coqui TTS, Fatih Akademi, MIT).
 
-## Satırlar (183)
+## Satırlar (207)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -158,6 +158,30 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `kg-h9-son` | Kokleanın sırlarını öğrendin! Az kaldı, büyük kamp seni bekliyor. | Kampın Hikâyesi 9. bölüm tamamlandı | hayran (wonder) |
 | `kg-h10-giris` | Son bölüm: Büyük Kamp! Merkezini ve kliniğini en ileri seviyelere taşı. | Kampın Hikâyesi 10. bölüm: Büyük Kamp | coşkulu (rousing) |
 | `kg-h10-son` | Başardın! Bu kamp artık bütün kulak yolculuğunun kalbi. Seninle gurur duyuyorum. | Kampın Hikâyesi 10. bölüm tamamlandı (son) | duygulu, gururlu (touched, proud) |
+| `kamp-seviye-01` | Kampındaki her emek Kamp Seviyeni yükseltir. Her seviyede yeni bir ödül var: arazi, bina, süs, kostüm. | Kamp: Kamp Seviyesi göstergesi ilk kez görünür | gururlu, sıcak (proud, warm) |
+| `kamp-seviye-up` | Kamp Seviyen yükseldi! Ödülüne bak; belki yeni bir süs, belki yepyeni bir arazi seni bekliyor. | Kamp: Kamp Seviyesi atladı (ödül afişiyle) | coşkulu (celebratory) |
+| `kamp-bolge-koru` | Sessiz Koru açıldı! Ağaçlar sesi yutar; en hafif sesi ancak sessizlikte duyarız. Akustik Kabin’i burada kur. | Kamp: Sessiz Koru bölgesi açıldı | hayranlık, sakin (wonder, calm) |
+| `kamp-bolge-koy` | Koklea Koyu açıldı! Lagünü iki buçuk tur döner, tıpkı koklea gibi. Yenidoğan Tarama Birimi burada. | Kamp: Koklea Koyu bölgesi açıldı | heyecanlı (excited) |
+| `kamp-bolge-tepe` | Denge Tepesi açıldı! Üç patikası, iç kulaktaki üç yarım daire kanalı gibi birbirine diktir. | Kamp: Denge Tepesi bölgesi açıldı | merak uyandıran (curious) |
+| `kamp-bolge-yerleske` | Araştırma Yerleşkesi açıldı! İyi bir odyolog okur, sorar ve kanıta bakar. Kütüphaneni burada kur. | Kamp: Araştırma Yerleşkesi bölgesi açıldı | bilge, gururlu (wise, proud) |
+| `kamp-bolge-orman` | Kulak Kılı Ormanı açıldı! Kanalın girişindeki kıllar tozu tutar. Burada süslerin için upuzun bir alan var. | Kamp: Kulak Kılı Ormanı bölgesi açıldı | neşeli (cheerful) |
+| `kamp-sus-01` | Süslemeler kampını senin yapar. Bir süs seç, sürükleyip yerine koy; istediğin an taşıyabilir ya da kaldırabilirsin. | Kamp: süsleme kipi ilk kez açıldı | sıcak, yönlendiren (warm, guiding) |
+| `kamp-ziyaret-01` | Arkadaşının kampındasın! Gez, beğen ve bir alkış bırak. Alkış ikinize de Kamp Seviyesi kazandırır. | Kamp: bir arkadaşın kampı ilk kez geziliyor | neşeli, sıcak (cheerful, warm) |
+| `kamp-sv-kabin-1` | Akustik kabin, dışarıdaki gürültü testi bozmasın diye yapılır. Sessizlikte daha çok öğrenirsin. | Kamp: Akustik Kabin yükseldi (Sv 1, 4, 7…) | sakin, öğretici (calm, explaining) |
+| `kamp-sv-kabin-2` | Gürültü bir sesi örtebilir; buna maskeleme denir. Kabinin duvarları kalınlaştı, ölçüm daha doğru! | Kamp: Akustik Kabin yükseldi (Sv 2, 5, 8…) | öğretici (explaining) |
+| `kamp-sv-kabin-3` | Kabinin içindeki köpük, sesi yansıtmadan yutar. Kampın da her emekte biraz daha büyüyor. | Kamp: Akustik Kabin yükseldi (Sv 3, 6, 9…) | gururlu (proud) |
+| `kamp-sv-tarama-1` | Yenidoğan taramasında bebek uyurken kulağına birkaç dakika bakılır; hiç acıtmaz. | Kamp: Yenidoğan Tarama Birimi yükseldi (Sv 1, 4, 7…) | şefkatli (tender) |
+| `kamp-sv-tarama-2` | Erken tanı, erken destek demektir. Tedavi Odan da artık daha hızlı hazırlıyor. | Kamp: Yenidoğan Tarama Birimi yükseldi (Sv 2, 5, 8…) | sıcak, öğretici (warm, explaining) |
+| `kamp-sv-tarama-3` | Taramayı geçemeyen bebek hemen işitme kaybı var demek değildir; ayrıntılı testlere yönlendirilir. | Kamp: Yenidoğan Tarama Birimi yükseldi (Sv 3, 6, 9…) | bilge, güven veren (wise, reassuring) |
+| `kamp-sv-park-1` | İşitsel rehabilitasyonda önce sesi fark etmeyi, sonra ayırt etmeyi, en sonunda anlamayı öğreniriz. | Kamp: İşitsel Rehabilitasyon Parkı yükseldi (Sv 1, 4, 7…) | öğretici, sıcak (explaining, warm) |
+| `kamp-sv-park-2` | Parkın büyüdü! Kampa yeni süs yerleri açıldı ve tüy hücresi yardımcıların çoğaldı. | Kamp: İşitsel Rehabilitasyon Parkı yükseldi (Sv 2, 5, 8…) | neşeli (cheerful) |
+| `kamp-sv-park-3` | Düzenli dinleme alıştırması, gürültüde konuşmayı anlamayı kolaylaştırabilir. | Kamp: İşitsel Rehabilitasyon Parkı yükseldi (Sv 3, 6, 9…) | cesaret veren (encouraging) |
+| `kamp-sv-denge-1` | İç kulak yalnız duymaz, dengemizi de korur. Göz hareketlerine bakarak denge sistemini ölçeriz. | Kamp: Vestibüler Laboratuvar yükseldi (Sv 1, 4, 7…) | merak uyandıran (curious) |
+| `kamp-sv-denge-2` | Üç yarım daire kanalı başın dönüşünü algılar. Deponun dolma süresi uzadı; kampın dengede! | Kamp: Vestibüler Laboratuvar yükseldi (Sv 2, 5, 8…) | öğretici (explaining) |
+| `kamp-sv-denge-3` | Baş çevirince gelen kısa baş dönmesinde, iç kulaktaki kristaller yerinden oynamış olabilir. | Kamp: Vestibüler Laboratuvar yükseldi (Sv 3, 6, 9…) | bilge (wise) |
+| `kamp-sv-kutuphane-1` | Kütüphanende okudukça kampın büyür. Okuma köşesindeki birikimi arada bir topla. | Kamp: Odyoloji Kütüphanesi yükseldi (Sv 1, 4, 7…) | sıcak, yönlendiren (warm, guiding) |
+| `kamp-sv-kutuphane-2` | İyi bir karar; araştırmaya, deneyime ve kişinin isteğine birlikte bakarak verilir. | Kamp: Odyoloji Kütüphanesi yükseldi (Sv 2, 5, 8…) | bilge (wise) |
+| `kamp-sv-kutuphane-3` | Her soru yeni bir kapı açar. Rafların doldu, okuma köşen daha çabuk birikiyor! | Kamp: Odyoloji Kütüphanesi yükseldi (Sv 3, 6, 9…) | neşeli, gururlu (cheerful, proud) |
 | `ipucu-tazele-kayma` | Hatırla: aşağı kaydır, perdenin altından kay! | 5. bölüm: kayma tazeleme anı (ilk perdeden önce, bir kez) | sıcak, hatırlatan (warm, reminding) |
 | `ipucu-perde-kay` | Kıl perdesi alçak. Aşağı kaydır, altından kay! | 3-8. bölüm: ilk kıl perdesinin önünde (oyuncu başına bir kez) | sakin, yol gösteren (calm, guiding) |
 | `ipucu-ogret-zipla` | Ekrana dokun, zıpla! Basılı tutarsan daha yükseğe çıkarsın. | 1. bölüm: Zıpla öğretici anı | neşeli, cesaret veren (cheerful, encouraging) |

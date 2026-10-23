@@ -50,6 +50,8 @@ export interface CampHandle {
   districtPos(id: string): { x: number; y: number } | null;
   focusDistrict(id: string): void;
   openDistricts(): string[];
+  /** doku belleği (test): doku sayısı ve kaba toplam (MB, RGBA) */
+  mem(): { textures: number; mb: number };
   /** döngüyü uyut/uyandır (ekranda değilken) */
   sleep(on: boolean): void;
   destroy(): void;
@@ -123,6 +125,11 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
     districtPos: (id) => page(scene.ready ? scene.districtPoint(id) : null),
     focusDistrict: (id) => run(() => { boost(1500); scene.focusDistrict(id); }),
     openDistricts: () => (scene.ready ? scene.openDistricts() : []),
+    mem: () => {
+      let bytes = 0, n = 0;
+      for (const key of game.textures.getTextureKeys()) { const t = game.textures.get(key); for (const src of t.source) { bytes += (src.width || 0) * (src.height || 0) * 4; } n++; }
+      return { textures: n, mb: Math.round((bytes / 1048576) * 10) / 10 };
+    },
     view: () => { if (!scene.ready) return null; const c = scene.cameras.main; return { x: c.midPoint.x, y: c.midPoint.y, zoom: scene.userZoom }; },
     unfocus: () => run(() => { boost(1200); scene.unfocus(); }),
     focus: (id, above) => run(() => { boost(1500); scene.focus(id, above); }),

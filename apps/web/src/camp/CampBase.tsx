@@ -116,7 +116,7 @@ export function CampBase(p: CampBaseProps) {
     handle.current = h;
     (window as unknown as { __kamp?: unknown }).__kamp = {
       pos: (id: BuildingId) => h.screenPos(id), view: () => h.view(), focus: (id: BuildingId) => h.focus(id, true), monument: (r: string) => h.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
-      decor: (uid: number) => h.decorPos(uid), ghost: () => h.ghostPos(), ghostState: () => h.ghostState(), district: (id: string) => h.districtPos(id), focusDistrict: (id: string) => h.focusDistrict(id), districts: () => h.openDistricts(),
+      decor: (uid: number) => h.decorPos(uid), ghost: () => h.ghostPos(), ghostState: () => h.ghostState(), district: (id: string) => h.districtPos(id), focusDistrict: (id: string) => h.focusDistrict(id), districts: () => h.openDistricts(), mem: () => h.mem(), moveGhost: (gx: number, gy: number) => h.moveGhost(gx, gy),
     };
     if (!visit) audio.music('menu');
     return () => { h.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
@@ -203,7 +203,7 @@ export function CampBase(p: CampBaseProps) {
         ) : (<>
           {idle && anyUpgrade && <div className="camp-hint"><Art e="👷" size="1.15em" className="art-inline" /> İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
           <div className="camp-actions">
-            {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()}><Art e="🤝" size="1.15em" className="art-inline" /> Herkese yardım et{` (${p.helpCount})`}</button>}
+            {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()} aria-label={`Herkese yardım et (${p.helpCount})`}><Art e="🤝" size="1.15em" className="art-inline" /> {p.camp.decor ? 'Yardım et' : 'Herkese yardım et'}{` (${p.helpCount})`}</button>}
             {p.camp.decor && <button className="btn camp-susle" data-testid="susle" onClick={() => { audio.play('tap'); setEdit(true); }} aria-label={`Süsle${invCount ? `, envanterde ${invCount} süs` : ''}`}><Art name="palette" size={18} /> Süsle{invCount > 0 && <i className="cnt-badge">{invCount}</i>}</button>}
             <button className="btn ghost camp-listbtn" onClick={() => { audio.play('tap'); p.onList(); }} aria-label="Liste görünümü"><Icon name="list" size="1.1em" className="ic-inline" /> Liste</button>
           </div>

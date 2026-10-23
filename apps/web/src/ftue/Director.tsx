@@ -33,7 +33,7 @@ function campPick(): BuildingId | null {
   const { camp, wallet } = useNet.getState(); if (!camp || !wallet) return null;
   if (camp.buildings.some((b) => b.upgradingTo)) return null;
   const merkez = camp.buildings.find((b) => b.id === 'merkez')?.level ?? 1;
-  const ok = camp.buildings.filter((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= wallet.jeton; });
+  const ok = camp.buildings.filter((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (!d.campLevel || (camp.xp?.level ?? 1) >= d.campLevel) && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= wallet.jeton; });
   if (!ok.length) return null;
   return (ok.find((b) => b.id === 'depo' && b.level === 0) ?? ok.sort((a, b) => buildCost(a.id, a.level + 1).jeton - buildCost(b.id, b.level + 1).jeton)[0]!).id;
 }

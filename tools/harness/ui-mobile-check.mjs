@@ -330,6 +330,17 @@ async function suite(browserName, target, [W, H]) {
     }
     if (want('kamp')) {
       await tab('Kamp'); await sleep(1200); await check('kamp', { scroll: false });
+      // kamp büyümesi: Kamp Seviyesi paneli ve süsleme kipi (gerçek sunucu: Sv 1 ödülü iki süs)
+      const ks = page.getByTestId('kamp-seviye');
+      if (await ks.count()) { await ks.click(); await page.locator('.ks-panel').waitFor(); await sleep(600); await check('kamp-seviye-paneli', { scroll: false }); await page.locator('.ks-panel .bp-x').click(); await sleep(300); }
+      const su = page.getByTestId('susle');
+      if (await su.count()) {
+        await su.click(); await page.getByTestId('sus-panel').waitFor(); await sleep(500); await page.locator('.dede-card .en-x').click({ timeout: 800 }).catch(() => undefined);
+        await check('kamp-susle', { scroll: false });
+        const card = page.locator('.sus-card').first();
+        if (await card.count()) { await card.click(); await sleep(900); await check('kamp-susle-hayalet', { scroll: false }); }
+        await page.locator('.sus-done').click(); await sleep(400);
+      }
       const b = page.locator('.sr-only button').first();
       if (await b.count()) { await b.evaluate((el) => el.click()); await sleep(600); await check('kamp-bina', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300); }
       const l = page.getByRole('button', { name: 'Liste görünümü' });
@@ -553,6 +564,23 @@ async function suite(browserName, target, [W, H]) {
       await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300);
       await page.getByRole('button', { name: 'Liste görünümü' }).click(); await sleep(600);
       await page.locator('[data-testid="tedavi-panel"]').scrollIntoViewIfNeeded(); await check('kamp-liste-tedavi');
+      // kamp büyümesi (önizleme, Kamp Sv 22): üst gösterge, seviye paneli, süsleme kipi (seçili süs), bölge binası paneli
+      await page.goto(url('demo=kamp&seviye=20&kampsv=22'), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);
+      const ub2 = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub2.count()) await ub2.click();
+      await page.locator('.camp-base').waitFor({ timeout: 20_000 }); await sleep(1800); await toastGone();
+      await check('kamp-sv22', { scroll: false });
+      await page.getByTestId('kamp-seviye').click(); await page.locator('.ks-panel').waitFor(); await sleep(600); await check('kamp-sv22-seviye-paneli', { scroll: false });
+      await page.locator('.ks-panel .bp-x').click(); await sleep(300);
+      await page.getByTestId('susle').click(); await page.getByTestId('sus-panel').waitFor(); await sleep(400); await page.locator('.dede-card .en-x').click({ timeout: 800 }).catch(() => undefined);
+      await check('kamp-sv22-susle', { scroll: false });
+      const dp = await page.evaluate(() => window.__kamp?.decor(1));
+      if (dp) { await page.mouse.click(dp.x, dp.y); await sleep(600); await check('kamp-sv22-susle-secili', { scroll: false }); }
+      await page.locator('.sus-done').click(); await sleep(400);
+      await page.locator('.sr-only button', { hasText: 'Odyoloji Kütüphanesi' }).evaluate((el) => el.click()); await page.locator('.bp').waitFor(); await sleep(700);
+      await check('kamp-kutuphane-paneli', { scroll: false });
+      await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300);
     }
   } catch (e) {
     const rec = { screen: 'akış', fails: [] }; fail(rec, String(e.message ?? e).split('\n')[0]); recs.push(rec);

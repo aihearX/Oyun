@@ -27,6 +27,8 @@ export function campBaseline(owner: string | null | undefined, camp: CampState |
 useNet.subscribe((s) => campBaseline(s.me?.id, s.camp));
 
 export interface Built { id: BuildingId; level: number; bigTier: boolean }
+/** son bina kutlamasının zamanı (Kamp Seviyesi kutlaması Tüy Dede'nin bina satırını kesmesin diye bekler) */
+export let lastBuiltAt = 0;
 /** gelen durumdaki yeni seviyeleri "görüldü" yapar ve kutlanacakları döndürür (aynı seviye ikinci kez dönmez) */
 export function takeBuilt(owner: string, camp: CampState): Built[] {
   const prev = seen.get(owner);
@@ -51,6 +53,7 @@ export function useBuiltCelebration(owner: string | null | undefined, camp: Camp
     const started = new Set(list.map((x) => `${defOf(x.id).name} inşaatı başladı`));
     useStore.setState((s) => ({ toasts: s.toasts.filter((t) => !started.has(t.title)) }));
     // bilerek temizlenmez: hemen ardından gelen ikinci durum (itme + yanıt) kutlamayı iptal etmemeli
+    lastBuiltAt = Date.now();
     setTimeout(() => { for (const x of list) celebrateBuilt(x.id, x.level, x.bigTier); }, delayMs);
   }, [owner, camp]);
 }

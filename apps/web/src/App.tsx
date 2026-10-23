@@ -264,7 +264,7 @@ function useSocialBadges(coins: number) {
   let campBadge = 0;
   if (camp && !camp.buildings.some((b) => b.upgradingTo)) {
     const merkez = camp.buildings.find((b) => b.id === 'merkez')?.level ?? 1;
-    campBadge = camp.buildings.some((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= coins; }) ? 1 : 0;
+    campBadge = camp.buildings.some((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (!d.campLevel || (camp.xp?.level ?? 1) >= d.campLevel) && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= coins; }) ? 1 : 0;
   }
   return { camp: campBadge, team: team ? unread + gifts + help + mentions + apps : 0 };
 }

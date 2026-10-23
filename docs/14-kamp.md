@@ -159,6 +159,13 @@ bitmeden kutlama yapılmaz. Anıta dokununca sessiz bilgi kartı (ad + bölge + 
 - Uçtan uca: `node tools/harness/camp-e2e.mjs` (önizleme; Chromium + WebKit gerçek akış; anıt; dom hedefi; `--only kutlama`:
   kristal / süre / takım yardımıyla biten inşaatta afiş ve Tüy Dede kartı tam bir kez, Chromium + WebKit + dom) ve
   `node tools/harness/ui-mobile-check.mjs --only kamp` (Tedavi Odası paneli 390×844 ve 320×640).
+- Kamp büyümesi: `apps/server/test/kamp-buyume.test.ts` (XP ve ref ile bir kez, seviye ödülleri bir kez, Akustik Kabin bonusu,
+  geriye dönük tohum ve anıt XP'si, eski istemci, süs yerleştir/taşı/kaldır/çakışma/sınır, `grantDecoration`, Kütüphane, depo süresi,
+  güç tavanı, ziyaret izinleri ve günde bir alkış, göç iki kez), `packages/content/src/kamp-buyume.test.ts` (seviye ödülleri tutarlı,
+  bölgeler çakışmaz, arsalar kendi bölgesinde, ızgara kuralları, süslemeler Türkçe), `apps/web/src/ftue/kamp-lines.test.ts`
+  (bölge/seviye/süs/ziyaret satırları; yeni satırlarda "jeton" yok). Uçtan uca: `node tools/harness/camp-e2e.mjs --only buyume`
+  (önizleme Kamp Sv 1/9/30; gerçek akış: Kamp Seviyesi kutlaması tam bir kez, süsleme, Sessiz Koru açılır, ziyaret + alkış, eski
+  istemci; dom: Kamp Sv 30'da doku belleği < 140 MB). Görünüm: `node tools/harness/kamp-sheet.mjs` (§11).
 
 ## 8. Kamp Seviyesi ve Kamp XP (kamp büyümesi)
 
@@ -191,3 +198,131 @@ campXpOf(app, pid) → CampXpState     campLevelOf(app, pid) → number
 diğer süsleri de verebilir.
 
 Protokol (yalnız ekleme): `CampState.xp?: { level, total, into, need }`, `CampState.decor?`, `CampState.libAt?`, `CampState.cheers?`.
+
+### Seviye ödülleri (önceden yazılı; `CAMP_LEVEL_REWARDS`)
+
+| Kamp Sv | ödül |
+|---|---|
+| 1 | unvan **Kamp Çırağı**, Diyapazon Heykeli, Odyogram Çiçek Tarhı |
+| 2 | Odyogram Çiçek Tarhı ×2, +2 süs yeri |
+| 3 | **arazi: Sessiz Koru** + **bina: Akustik Kabin**, Stereosilya Çimi ×2 |
+| 4 | Kemikçik Bankı ×2, +1 yer |
+| 5 | unvan **Kulak Kaşifi**, Otoskop Lambası ×2, +2 yer |
+| 6 | **arazi: Koklea Koyu** + **bina: Yenidoğan İşitme Tarama Birimi**, Ses Dalgası Çiti ×3 |
+| 7 | Dolap: **Sessiz Koru Yeşili**, Kulaklık Salıncağı |
+| 8 | Koklea Çeşmesi, +2 yer |
+| 9 | **bina: İşitsel Rehabilitasyon Parkı** (Koklea Koyu), Stereosilya Çimi ×2 |
+| 10 | unvan **Odyoloji Gönüllüsü**, Kulak Kepçesi Çardağı, +2 yer |
+| 11 | İşitme Cihazı Saksısı ×3 |
+| 12 | **arazi: Denge Tepesi** + **bina: Vestibüler Laboratuvar**, Yarım Daire Kanalları Heykeli |
+| 13 | Dolap: **Koklea Koyu Mavisi**, Tüy Hücresi Lambası ×2 |
+| 14 | **çanta**: bir malzemeden en çok 12, Kulak Tıkacı Pufu ×2, +1 yer |
+| 15 | unvan **Ses Ustası**, Ses Dalgası Havuzu, +2 yer |
+| 16 | **arazi: Araştırma Yerleşkesi** + **bina: Odyoloji Kütüphanesi**, Desibel Sütunları ×2 |
+| 17–19 | İmplant Bobini Heykeli; Tonotopi Ağacı ×2; Östaki Kemeri ×2; +3 yer |
+| 20 | **arazi: Kulak Kılı Ormanı**, unvan **Koklea Bilgesi**, Işık Üçgeni Feneri ×2, +3 yer |
+| 21–23 | Altın Diyapazon; Dolap: **Kamp Rehberi Kostümü**; Koklea Çeşmesi; +3 yer |
+| 24 | **çanta**: en çok 15, Yarım Daire Kanalları Heykeli |
+| 25 | unvan **Kulak Adası Rehberi**, Altın Kulak Heykeli, +2 yer |
+| 26–29 | Kemikçik Bankı ×2; Tüy Hücresi Lambası ×3; Ses Dalgası Çiti ×4; Kulak Kepçesi Çardağı; +3 yer |
+| 30 | unvan **Kulak Adası Efsanesi**, Altın Kulak Heykeli, +3 yer |
+
+Çanta yeri (bölüme götürülen en çok 4 malzeme) değişmedi: oyun ekibiyle sözleşme (§4) bölüm başına en çok 4 adet der; Kamp
+Seviyesi yalnız envanter sınırını (bir malzemeden en çok 9 → 12 → 15) büyütür.
+
+**Kutlama**: Kamp Seviyesi atlaması oyuncu başına **tam bir kez** kutlanır (`apps/web/src/camp/seviye.ts`, `built.ts` ile aynı ilke:
+gelen seviye "görülen" seviyeyle karşılaştırılır; taban oturumun ilk kamp durumu). Büyük "KAMP · Kamp Seviyesi N!" anı, yazılı
+ödüller; arazi açıldıysa Tüy Dede o bölgeyi anlatır (`kamp-bolge-<bölge>`), yoksa `kamp-seviye-up`. Sahnede açılan bölge sisten
+çıkar (ışık, konfeti, havai fişek, kamera bölgeye kayar). Kamp sekmesinin üstünde rozet + XP çubuğu + unvan; dokununca seviye paneli.
+
+## 9. Arazi: ana ada ve Kamp Seviyesiyle açılan bölgeler
+
+Ana adanın çevresinde beş uydu ada (`packages/content/src/kamp-arazi.ts` `DISTRICTS`; geometri saf, sunucu süs yerleşimini aynı
+kuralla doğrular). Kilitli bölge sisli, soluk bir siluettir; üstünde "<ad> · Kamp Sv N" tabelası (dokununca bilgi). Açılınca köprü
+kurulur, bölge zemini, kenar ağaçları ve bina arsası görünür.
+
+| bölge | Kamp Sv | bina(lar) | zemin |
+|---|---|---|---|
+| Sessiz Koru (`koru`) | 3 | Akustik Kabin | çam korusu, sessiz gölet ve basamak taşları |
+| Koklea Koyu (`koy`) | 6 | Yenidoğan İşitme Tarama Birimi (Sv 6), İşitsel Rehabilitasyon Parkı (Sv 9) | kumsal, 2,5 tur dönen sarmal lagün |
+| Denge Tepesi (`tepe`) | 12 | Vestibüler Laboratuvar | tepe basamakları, birbirine dik üç patika (yarım daire kanalları) |
+| Araştırma Yerleşkesi (`yerleske`) | 16 | Odyoloji Kütüphanesi | taş döşeli meydan |
+| Kulak Kılı Ormanı (`orman`) | 20 | — (geniş süs alanı) | kıl ağaçları, yaprak örtüsü, orman patikası |
+
+Kamera bütün takımadayı gezer (kilitli bölgeler de görünür ki hedef belli olsun); yakınlaştırma 0,2–1,8.
+
+## 10. Yeni binalar (bölgelerde; etkiler ekonomi / üretim / bilgi / süs — bölüm gücü değil)
+
+| kimlik | ad | Kamp Sv | etki | odyolojik karşılık |
+|---|---|---|---|---|
+| `kabin` | **Akustik Kabin** | 3 | Kamp XP +%3/Sv | sessiz oda, ortam gürültüsü (ANSI S3.1), maskeleme |
+| `tarama` | **Yenidoğan İşitme Tarama Birimi** | 6 | Tedavi Odası hazırlık süresi −%2/Sv (en çok −%40) | OAE / AABR taraması, 1-3-6 hedefi |
+| `park` | **İşitsel Rehabilitasyon Parkı** | 9 | +2 süs yeri/Sv, gezen tüy hücresi yardımcıları | Erber basamakları, işitsel eğitim |
+| `denge` | **Vestibüler Laboratuvar** | 12 | depo dolma süresi 8 sa + 0,5 sa/Sv | VNG, kalorik test, vHIT, VEMP, BPPV / Epley |
+| `kutuphane` | **Odyoloji Kütüphanesi** | 16 | okuma köşesi: saatte Sv × 2 Kamp XP (12 saatte dolar, dokununca toplanır) | kanıta dayalı uygulama, kanıt düzeyleri, PICO |
+
+En yüksek Sv 20. Her birinde `BUILDING_INFO` (sade + Daha fazla + kaynak), iki Kulak Sözlüğü terimi (`ortam-gurultusu`,
+`tarama-136`, `aabr`, `isitsel-egitim`, `vng`, `bppv`, `kanit`) ve Tüy Dede'nin üç satırı (`kamp-sv-<bina>-1..3`).
+Eski binalar Sv 25'e çıktı; **bina gücü (jeton, kalkan, ilk hasar, savaş yüzdeleri) Sv 15'te tavan yapar** (`CAMP_POWER_LEVEL`;
+sunucu `bonusesFor` ve panel metni). Sv 16–25 maliyeti yumuşak doğrusal büyür (en uzun inşaat ~13 sa, Merkez ~18 sa; takım
+yardımı ve hızlandırıcılar geçerli, depo/raf/okuma köşesi çevrimdışı birikir).
+
+**Eski istemciler**: `hello.campV` göndermeyen bağlantıya `camp.state` yalnız eski 7 binayı, takım yardım listesi yalnız eski
+binaların isteklerini gönderir (`LEGACY_BUILDINGS`); yeni alanlar isteğe bağlıdır. Göç yalnız ekler (`INSERT OR IGNORE`, iki kez açılış testi).
+
+## 11. Her adım büyük: seviye seviye görünüm
+
+- Kademeler: 1–3 Ahşap, 4–6 Taş, 7–9 Tuğla, 10–12 Metal, 13–15 Altın, **16–20 Kristal**, **21–25 Efsane** (kademe değişince büyük
+  "Seviye" anı). Kristal: köşelerde her seviye bir kristal sütun daha, zeminde ışık halkası, Sv 20 süzülen kristal; Efsane: gökkuşağı
+  flamalar (21), altın kulak (22), altın kanatlar (23), nota çemberi (24), taç ve ışık (25).
+- Sv 2–15 her seviye binanın önüne görünür bir ekleme koyar (saksı, fener, bank, çiçek tarhı, bayrak, çalı, tabela, lamba, heykel,
+  flama, fener çifti, çeşme, çiçek kemeri, altın bayrak; `buildings2.ts › garnish`).
+- **Odyoloji Merkezi her seviyede kendi büyük parçasını alır** (birikir, o anki kademenin malzemesiyle çizilir):
+
+| Sv | Merkez'e eklenen | Sv | Merkez'e eklenen |
+|---|---|---|---|
+| 1 | kulak kepçesi çadırı | 14 | gözlem kubbesi |
+| 2 | odyogram panosu (kırmızı O, mavi X) | 15 | tüy hücresi ekibi heykelleri |
+| 3 | diyapazon kulesi | 16 | kristal dikilitaşlar |
+| 4 | taş merkez (kademe) | 17 | süzülen kristal halka |
+| 5 | kulak çeşmesi | 18 | iki kuleden göğe ışık sütunları |
+| 6 | sol kanat | 19 | kristal küre |
+| 7 | tuğla kale (kademe) | 20 | dev kristal kule |
+| 8 | odyogram kadranlı saat kulesi | 21 | altın kulak kolossu |
+| 9 | flamalı giriş kapısı | 22 | gökkuşağı kemeri |
+| 10 | metal merkez (kademe) | 23 | altın kanatlar |
+| 11 | sağ kanat | 24 | altın nota çemberi |
+| 12 | ABR çanak anten direği | 25 | işitme feneri: ışık ve taç |
+| 13 | altın saray (kademe) | | |
+
+- Denetim: `node tools/harness/kamp-sheet.mjs` her binayı Sv 1..en yüksek yan yana tek PNG'ye çizer
+  (`tools/harness/out/kamp-sayfa/<bina>.png`, süsler `susler.png`) ve ardışık seviyeler arası piksel farkını ölçer: Merkez ≥ %3,
+  diğerleri ≥ %1 (altında kalırsa çıkış kodu 1).
+- Sahnede: Kamp Seviyesi ve Park büyüdükçe gezen "tüy hücresi" yardımcılar çoğalır (1 + Sv/3 + Park/4, en çok 10); durup dinler, nota çıkarır.
+- Bellek: her bina seviyesi ayrı bir tuval dokusudur; yükselince önceki seviyenin dokusu bırakılır. Bölge zemini yalnız açılınca
+  tam çözünürlükte boyanır (kilitliyken 0,3 ölçekli siluet). Oyun: DPR ≤ 2, `disablePreFX/PostFX`.
+
+## 12. Süslemeler
+
+24 odyoloji temalı süs (`kamp-susler.ts`; çizimler `game-core/camp/decor.ts`): Diyapazon Heykeli, Odyogram Çiçek Tarhı,
+Stereosilya Çimi, Kemikçik Bankı, Otoskop Lambası, Ses Dalgası Çiti, Koklea Çeşmesi, Kulaklık Salıncağı, Kulak Kepçesi Çardağı (2×2),
+İşitme Cihazı Saksısı, Yarım Daire Kanalları Heykeli, Tüy Hücresi Lambası, Kulak Tıkacı Pufu, Ses Dalgası Havuzu (2×2), Desibel
+Sütunları, İmplant Bobini Heykeli, Tonotopi Ağacı, Östaki Kemeri, Işık Üçgeni Feneri, Altın Diyapazon, Altın Kulak Heykeli (2×2),
+Heschl Işık Kemeri (2×2) ve görevlere özel Vaka Panosu, Tüy Dede Bankı. Her birinde kısa, doğru bir bilgi (dokununca Tüy Dede kartı).
+
+- Kaynaklar: Kamp Seviyesi ödülleri, bölge anıtları (`MONUMENT_DECOR`, bölgeye ulaşınca bir kez), kamp görevleri (`grantDecoration`).
+- Yerleşim: izometrik ızgara (hücre 16 birim; `cellPoint`/`pointCell`), açık arazide, bina arsalarının ve anıtların dışında, başka
+  süsle çakışmadan (`cellFree` + kapladığı hücreler). Aynı anda en çok `decorSlots` süs (4 + seviye ödülleri + Park 2/Sv); envanterde
+  bir süsten en çok 20. Sunucu her yerleşimi doğrular (`YER`, `DOLU`, `YOK`).
+- Süsleme kipi (Kamp → **Süsle**): alt panelde envanter; bir süse dokun → kampta hayaleti belirir (yeşil taban: konabilir, kırmızı:
+  konamaz) → sürükle ya da yere dokun → **Yerleştir**. Yerleşik süse dokun → **Taşı / Çevir / Depoya**. 320 px'te çalışır.
+  Süsün altında kalan ağaç/çiçekler gizlenir. Bir süs türünü ilk kez yerleştirmek 5 Kamp XP.
+- İşlemler: `camp.decor.place {id, gx, gy, flip?}`, `camp.decor.move {uid, gx, gy, flip?}`, `camp.decor.store {uid}`.
+
+## 13. Kamp ziyareti ve alkış
+
+Arkadaşın ya da takım arkadaşının profil kartında **Kampını gez** (Kamp açıksa): salt okunur kamp (binalar, süsler, bölgeler,
+anıtlar; inşaat ve toplama düğmeleri yok). Altta dört hazır tepki (serbest yazı yok): "Alkış!", "Kampın çok güzel!", "İlham verdin!",
+"Süslemeler harika!" — kişi başına günde bir. Bırakan 2 Kamp XP (günde en çok 5 kez), alan 5 Kamp XP (günde en çok 10 kez) ve
+`camp.cheered` bildirimi alır. Gizlilik: yalnız arkadaş ya da aynı takım; engel varsa görünmez (`camp.visit`, `camp.cheer`;
+hata `YETKI`, `TEKRAR`). İlk ziyarette Tüy Dede `kamp-ziyaret-01`.

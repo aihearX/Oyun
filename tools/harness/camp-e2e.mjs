@@ -11,7 +11,11 @@
 // D) dom hedefi (Expo DOM telefon paketi, Chromium): anıt kutlaması + Tedavi Odası paneli.
 // E) Yükseltme kutlaması (Chromium + WebKit + dom): kristalle (panel açıkken) / süre dolunca / takım yardımıyla biten inşaat →
 //    "<Bina> Sv N!" afişi ve Tüy Dede kartı tam bir kez; kristalle bitince panel kendiliğinden kapanır.
-// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom|kutlama] [--browsers chromium,webkit] [--headed]
+// G) Kamp büyümesi (Chromium + WebKit + dom; docs/14-kamp.md §8–13): Kamp Seviyesi atlaması tam bir kez kutlanır → süsleme kipi
+//    (hayalet sürükle, Yerleştir, yeniden açınca yerinde, Taşı, Depoya) → Kamp Sv 3'te Sessiz Koru açılır (Tüy Dede bölge satırı,
+//    Akustik Kabin kurulur) → arkadaş profil kartından "Kampını gez" → alkış (günde bir; sahibine bildirim) → eski istemci yalnız
+//    eski binaları alır; önizlemede Kamp Sv 1 / 9 / 30 ekran görüntüleri; dom: yüksek seviyeli kampta doku belleği sınırı.
+// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom|kutlama|buyume] [--browsers chromium,webkit] [--headed]
 // Çıktı: tools/harness/out/kamp/<takım>/*.png
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -188,12 +192,13 @@ async function domContext(browser, seen) {
 }
 /** sayfaya eklenen her bildirim afişi (.toast-top), kutlama sahnesi (.cel-root) ve Tüy Dede kartı kaydedilir: "tam bir kez" denetimi */
 const OLAY_SAYACI = () => {
-  const o = { toast: [], dede: [], cel: 0 }; window.__olay = o;
+  const o = { toast: [], dede: [], cel: 0, titles: [] }; window.__olay = o;
   const scan = (n) => {
     if (!(n instanceof Element)) return;
     for (const t of [n, ...n.querySelectorAll('.toast-top')]) if (t.matches('.toast-top')) o.toast.push(t.querySelector('b')?.textContent ?? '');
     for (const d of [n, ...n.querySelectorAll('[data-testid="kamp-dede"]')]) if (d.matches('[data-testid="kamp-dede"]')) o.dede.push(d.getAttribute('data-line') ?? '');
     for (const c of [n, ...n.querySelectorAll('.cel-root')]) if (c.matches('.cel-root')) o.cel++;
+    for (const c of [n, ...n.querySelectorAll('.lvl-stage')]) if (c.matches('.lvl-stage')) o.titles.push(c.querySelector('.cel-title')?.textContent ?? '');
   };
   const start = () => new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) scan(n); }).observe(document.documentElement, { childList: true, subtree: true });
   if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
@@ -240,7 +245,7 @@ try {
     await P.getByRole('button', { name: /Yola çık|Devam/ }).first().click(); await tab(P, 'Kamp'); await campReady(P); await settle(P);
     await shot(P, 'onizleme-insaat-kule', 1600);
     await P.getByRole('button', { name: 'Liste görünümü' }).click(); await P.locator('.building').first().waitFor();
-    check(await P.locator('.building').count() === 7, '7 bina kartı (Tedavi Odası dahil)');
+    check(await P.locator('.building').count() === 12, '12 bina kartı (Tedavi Odası + 5 bölge binası; kilitliler "Kamp Sv N")');
     await P.locator('[data-testid="tedavi-panel"]').scrollIntoViewIfNeeded();
     await shot(P, 'liste-tedavi', 400);
     await browser.close();
@@ -565,6 +570,198 @@ try {
       check(given === 1, `[${tg}] takım arkadaşı yardım etti (${given})`);
       await once('revir', 'Odyoloji Kliniği', 3, 'yardim');
       ece.close();
+      await browser.close();
+    }
+  }
+
+  // ======================================================================== G) kamp büyümesi
+  if (want('buyume')) {
+    // önizleme: kamp seviye seviye büyür (erken / orta / en yüksek; uzaktan bütün takımada)
+    {
+      const browser = await launch('chromium');
+      const shot = suite('buyume-onizleme');
+      step('G0 · Önizleme: Kamp Sv 1 / 9 / 30 — takımada büyür');
+      const all = ['dis-kulak', 'kanal', 'zar', 'kemikcikler', 'koklea-1', 'koklea-2', 'koklea-3', 'sinir', 'beyin-sapi', 'korteks'];
+      const P = await player(browser, 'chromium', 'büyüme-önizleme', SEED(39, all));
+      await P.addInitScript(() => { try { for (const k of ['seviyeTanitim', 'susTanitim']) localStorage.setItem('odi.kamp.' + k, '1'); } catch { /* yok */ } });
+      for (const [L, K] of [[1, 1], [8, 9], [25, 30]]) {
+        await P.goto(`${host}/?demo=kamp&seviye=${L}&kampsv=${K}&sunucu=${encodeURIComponent('ws://127.0.0.1:5')}`, { waitUntil: 'load' });
+        await P.getByRole('button', { name: /Yola çık|Devam/ }).first().click(); await tab(P, 'Kamp'); await campReady(P); await settle(P);
+        check(Number(await P.getByTestId('kamp-seviye').getAttribute('data-level')) === K, `önizleme: Kamp Sv ${K} göstergesi`);
+        await shot(P, `kamp-sv${String(K).padStart(2, '0')}-yakin`, 1400);
+        await P.mouse.move(195, 360); for (let i = 0; i < 14; i++) { await P.mouse.wheel(0, 120); await sleep(50); }
+        await shot(P, `kamp-sv${String(K).padStart(2, '0')}-uzak`, 1800);
+        const open = await P.evaluate(() => window.__kamp.districts());
+        check(open.length === [3, 6, 12, 16, 20].filter((l) => K >= l).length, `Kamp Sv ${K}: açık bölgeler ${open.join(', ') || '—'}`);
+      }
+      await browser.close();
+    }
+    for (const bt of browsers) {
+      const browser = await launch(bt);
+      const shot = suite(`buyume-${bt}`);
+      step(`G1 · [${bt}] oyuncu → Kamp Seviyesi 2 (inşaat XP'si) → kutlama tam bir kez`);
+      const G = await player(browser, bt, `G-${bt}`);
+      await G.addInitScript(OLAY_SAYACI);
+      const nm = `Gezgin${bt[0]}${Date.now() % 1000}`;
+      await G.goto(base, { waitUntil: 'load' });
+      await G.getByRole('button', { name: /Yola çık/ }).click();
+      await G.locator('.onboard').waitFor({ timeout: 20_000 });
+      await G.getByRole('textbox', { name: 'Takma ad' }).fill(nm);
+      await G.getByRole('button', { name: 'Başla' }).click();
+      await G.locator('.onboard').waitFor({ state: 'detached' }); await settle(G);
+      let gId = null; for (let i = 0; i < 40 && !(gId = pidOf(nm)); i++) await sleep(250);
+      check(!!gId, `${nm} sunucuda`);
+      db.run('UPDATE players SET jeton = 80000, kristal = 3000 WHERE id = ?', gId); srv.app.walletChanged(gId);
+      await tab(G, 'Kamp'); await campReady(G); await sleep(800); await settle(G);
+      check(Number(await G.getByTestId('kamp-seviye').getAttribute('data-level')) === 1, 'Kamp Seviyesi 1 göstergesi');
+      db.run('UPDATE camp_xp SET xp = 55 WHERE player_id = ?', gId);
+      await reopenCamp(G); await settle(G);
+      await upgradeNow(G, 'depo', gId);
+      await G.getByTestId('kamp-seviye').and(G.locator('[data-level="2"]')).waitFor({ timeout: 15_000 });
+      await G.locator('.cel-root.on', { hasText: 'Kamp Seviyesi 2' }).waitFor({ timeout: 15_000 });
+      await shot(G, 'G-kamp-seviye-2', 600);
+      await settle(G); for (let i = 0; i < 12; i++) { await toastGone(G); await sleep(1000); }
+      const o1 = await G.evaluate(() => window.__olay);
+      const nK = o1.titles.filter((t) => t.includes('Kamp Seviyesi 2')).length;
+      check(nK === 1, `[${bt}] "Kamp Seviyesi 2!" kutlaması ×${nK} (beklenen 1)`);
+      check(o1.dede.filter((d) => d === 'kamp-seviye-up').length === 1, `[${bt}] Tüy Dede kamp-seviye-up ×${o1.dede.filter((d) => d === 'kamp-seviye-up').length}`);
+      check(o1.dede.some((d) => d.startsWith('kamp-sv-depo-')), `[${bt}] bina satırı da söylendi (Kamp Seviyesi satırı onu kesmedi)`);
+      await G.locator('.dede-card .en-x').click({ timeout: 1000 }).catch(() => undefined);
+
+      step(`G2 · [${bt}] Süsle: hayaleti sürükle → Yerleştir → yeniden açınca yerinde → Taşı → Depoya`);
+      if (await G.locator('.bp').count()) await closePanel(G); // kutlamayı geçen dokunuş bir binaya denk gelmiş olabilir
+      await G.getByTestId('susle').click(); await G.getByTestId('sus-panel').waitFor();
+      await G.locator('.dede-card .en-x').click({ timeout: 1500 }).catch(() => undefined);
+      const inv0 = await G.locator('.sus-card').count(); check(inv0 >= 2, `envanterde ${inv0} süs türü (Sv 1–2 ödülleri)`);
+      await G.locator('.sus-card').first().click(); await sleep(900);
+      const gp = await G.evaluate(() => window.__kamp.ghost()); const gs0 = await G.evaluate(() => window.__kamp.ghostState());
+      check(!!gp && !!gs0, `hayalet süs belirdi (${gs0?.id}, ${gs0?.ok ? 'konabilir' : 'konamaz'})`);
+      // dokunmatik sürükleme (Chromium: CDP; WebKit: fare)
+      if (bt === 'chromium') {
+        const cdp = await G.context().newCDPSession(G);
+        const tp = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+        await tp('touchStart', gp.x, gp.y); for (let i = 1; i <= 10; i++) { await tp('touchMove', gp.x + i * 6, gp.y + i * 2); await sleep(40); } await tp('touchEnd');
+      } else { await G.mouse.move(gp.x, gp.y); await G.mouse.down(); for (let i = 1; i <= 10; i++) { await G.mouse.move(gp.x + i * 6, gp.y + i * 2); await sleep(40); } await G.mouse.up(); }
+      await sleep(500);
+      const gs1 = await G.evaluate(() => window.__kamp.ghostState());
+      check(gs1.gx !== gs0.gx || gs1.gy !== gs0.gy, `sürükleme hayaleti taşıdı: (${gs0.gx},${gs0.gy}) → (${gs1.gx},${gs1.gy})`);
+      if (!gs1.ok) { // sürükleme bir arsaya denk geldiyse yakındaki boş hücreye al (dokunmatik taşıma yukarıda sınandı)
+        await G.evaluate(([x, y]) => { for (let r = 1; r < 8; r++) for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) { const g = window.__kamp.moveGhost(x + i, y + j); if (g?.ok) return; } }, [gs1.gx, gs1.gy]);
+      }
+      const gs2 = await G.evaluate(() => window.__kamp.ghostState()); Object.assign(gs1, gs2);
+      await shot(G, 'G-susle-hayalet', 200);
+      await G.getByTestId('sus-yerlestir').click();
+      for (let i = 0; i < 30 && !db.get('SELECT 1 AS x FROM decor_placed WHERE player_id = ?', gId); i++) await sleep(200);
+      const row = db.get('SELECT uid, id, gx, gy FROM decor_placed WHERE player_id = ?', gId);
+      check(!!row && row.gx === gs1.gx && row.gy === gs1.gy, `sunucuda yerleşik: ${row?.id} (${row?.gx},${row?.gy})`);
+      await shot(G, 'G-susle-yerlesti', 700);
+      await G.locator('.sus-done').click(); await G.getByTestId('sus-panel').waitFor({ state: 'detached' });
+      await reopenCamp(G);
+      check(!!(await G.evaluate((u) => window.__kamp.decor(u), row.uid)), 'kamp yeniden açılınca süs yerinde');
+      await G.getByTestId('susle').click(); await G.getByTestId('sus-panel').waitFor();
+      const dp = await G.evaluate((u) => window.__kamp.decor(u), row.uid);
+      await G.mouse.click(dp.x, dp.y); await G.getByTestId('sus-tasi').waitFor({ timeout: 6000 });
+      await G.getByTestId('sus-tasi').click(); await sleep(700);
+      const g2 = await G.evaluate(() => window.__kamp.ghostState());
+      // boş bir yere dokun: hayalet oraya gider
+      const gp2 = await G.evaluate(() => window.__kamp.ghost());
+      await G.mouse.click(gp2.x - 64, gp2.y + 20); await sleep(500);
+      const g3 = await G.evaluate(() => window.__kamp.ghostState());
+      check(g3.gx !== g2.gx || g3.gy !== g2.gy, `dokunulan yere taşındı (${g3.gx},${g3.gy}; ${g3.ok ? 'konabilir' : 'konamaz'})`);
+      if (g3.ok) { await G.getByTestId('sus-yerlestir').click(); for (let i = 0; i < 20 && db.get('SELECT gx FROM decor_placed WHERE uid = ?', row.uid).gx !== g3.gx; i++) await sleep(200); check(db.get('SELECT gx, gy FROM decor_placed WHERE uid = ?', row.uid).gx === g3.gx, 'sunucu: süs taşındı'); }
+      else await G.getByRole('button', { name: 'Vazgeç' }).click();
+      const dp2 = await G.evaluate((u) => window.__kamp.decor(u), row.uid);
+      await G.mouse.click(dp2.x, dp2.y); await G.getByTestId('sus-kaldir').waitFor({ timeout: 6000 });
+      await shot(G, 'G-susle-secili', 300);
+      await G.getByTestId('sus-kaldir').click();
+      for (let i = 0; i < 20 && db.get('SELECT 1 AS x FROM decor_placed WHERE uid = ?', row.uid); i++) await sleep(200);
+      check(!db.get('SELECT 1 AS x FROM decor_placed WHERE uid = ?', row.uid), 'depoya kaldırıldı (envantere döndü)');
+      await G.locator('.sus-done').click();
+
+      step(`G3 · [${bt}] Kamp Sv 3 → Sessiz Koru açılır (Tüy Dede bölge satırı) → Akustik Kabin kurulur`);
+      const total3 = db.get('SELECT xp FROM camp_xp WHERE player_id = ?', gId).xp;
+      db.run('UPDATE camp_xp SET xp = ? WHERE player_id = ?', Math.max(total3, 160), gId);
+      await reopenCamp(G); await settle(G); if (await G.locator('.bp').count()) await closePanel(G);
+      await upgradeNow(G, 'laboratuvar', gId);
+      await G.waitForFunction(() => window.__kamp.districts().includes('koru'), null, { timeout: 15_000 });
+      ok('sahnede Sessiz Koru açık');
+      await G.locator('[data-testid="kamp-dede"][data-line="kamp-bolge-koru"]').waitFor({ timeout: 25_000 });
+      await settle(G); if (await G.locator('.bp').count()) await closePanel(G);
+      await G.evaluate(() => window.__kamp.focusDistrict('koru')); await G.waitForFunction(() => Math.abs(window.__kamp.view().x + 780) < 60, null, { timeout: 20_000 });
+      await shot(G, 'G-sessiz-koru', 900);
+      await upgradeNow(G, 'kabin', gId);
+      check(lvlOf(gId, 'kabin') === 1, 'Akustik Kabin Sv 1');
+      for (let i = 0; i < 10; i++) { await toastGone(G); await sleep(800); }
+      const o3 = await G.evaluate(() => window.__olay);
+      check(o3.dede.filter((d) => d === 'kamp-bolge-koru').length === 1, `[${bt}] Tüy Dede kamp-bolge-koru ×${o3.dede.filter((d) => d === 'kamp-bolge-koru').length} (beklenen 1)`);
+
+      step(`G4 · [${bt}] arkadaş profil kartından "Kampını gez" → alkış (günde bir) → sahibine bildirim`);
+      const H = await player(browser, bt, `H-${bt}`);
+      const hn = `Konuk${bt[0]}${Date.now() % 1000}`;
+      await H.goto(base, { waitUntil: 'load' });
+      await H.getByRole('button', { name: /Yola çık/ }).click();
+      await H.locator('.onboard').waitFor({ timeout: 20_000 });
+      await H.getByRole('textbox', { name: 'Takma ad' }).fill(hn);
+      await H.getByRole('button', { name: 'Başla' }).click();
+      await H.locator('.onboard').waitFor({ state: 'detached' }); await settle(H);
+      let hId = null; for (let i = 0; i < 40 && !(hId = pidOf(hn)); i++) await sleep(250);
+      for (const [a, b] of [[gId, hId], [hId, gId]]) db.run('INSERT OR IGNORE INTO friends(a, b, at) VALUES(?, ?, ?)', a, b, Date.now());
+      await tab(H, 'Profil'); await H.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click(); await H.locator('.fr-mycode').waitFor();
+      await H.getByRole('button', { name: `${nm} profili` }).click({ timeout: 10_000 });
+      await H.locator('[data-testid="profil-karti"]').waitFor();
+      await H.getByTestId('kampini-gez').click();
+      await H.locator('.camp-base.visiting').waitFor({ timeout: 20_000 });
+      await H.waitForFunction(() => !!window.__kamp?.pos('merkez'), null, { timeout: 25_000 });
+      check((await H.locator('.visit-bar h1').innerText()).includes(nm), `ziyaret: ${nm} kampı (salt okunur)`);
+      check(await H.locator('[data-testid="susle"]').count() === 0 && await H.locator('.camp-helpall').count() === 0, 'ziyarette süsleme ve inşaat düğmesi yok');
+      await H.locator('[data-testid="kamp-dede"][data-line="kamp-ziyaret-01"]').waitFor({ timeout: 10_000 }).catch(() => undefined);
+      await shot(H, 'H-ziyaret', 900);
+      await G.evaluate(() => { window.__olay.toast = []; });
+      await H.getByTestId('alkis').getByRole('button', { name: 'Alkış!' }).click();
+      await H.locator('.cheer-done').waitFor({ timeout: 8000 });
+      check(db.get('SELECT COUNT(*) AS n FROM camp_cheers WHERE from_id = ? AND to_id = ?', hId, gId).n === 1, 'sunucu: bir alkış');
+      await G.waitForFunction(() => window.__olay.toast.some((t) => t.includes('kampına tepki bıraktı')), null, { timeout: 10_000 });
+      ok('kamp sahibine "kampına tepki bıraktı" bildirimi');
+      await shot(H, 'H-alkis', 400);
+      await H.context().close();
+
+      step(`G5 · eski istemci (campV yok) yalnız eski 7 binayı alır`);
+      const old = rawClient(wsUrl); await old.call('hello', { version: 1, name: `Eski${bt[0]}${Date.now() % 1000}` });
+      const st = await old.call('camp.state', {});
+      check(st.camp.buildings.length === 7 && st.camp.buildings.every((b) => ['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi'].includes(b.id)), `eski istemci: ${st.camp.buildings.length} bina`);
+      old.close();
+      await browser.close();
+    }
+  }
+  // dom hedefi: yüksek seviyeli kamp (Kamp Sv 30, binalar Sv 25/20) — doku belleği sınırı ve görüntü (--only buyume-dom tek başına)
+  if (want('buyume') || only === 'buyume-dom') {
+    if (browsers.includes('chromium')) {
+      step('G6 · [dom] yüksek seviyeli kamp: bütün bölgeler açık, doku belleği sınırda');
+      const browser = await launch('chromium');
+      const shot = suite('buyume-dom');
+      const ctx = await domContext(browser, ['dis-kulak', 'kanal', 'zar']);
+      const D = await ctx.newPage(); D.on('pageerror', (e) => errors.push(`buyume-dom: ${e.message}`));
+      const nm = `Usta${Date.now() % 1000}`;
+      await D.goto(await domBundle(), { waitUntil: 'load' });
+      await D.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await D.locator('.onboard').waitFor({ timeout: 20_000 });
+      await D.getByRole('textbox', { name: 'Takma ad' }).fill(nm);
+      await D.getByRole('button', { name: 'Başla' }).click();
+      await D.locator('.onboard').waitFor({ state: 'detached' }); await settle(D);
+      let dId = null; for (let i = 0; i < 40 && !(dId = pidOf(nm)); i++) await sleep(250);
+      for (const b of ['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi']) db.run('UPDATE buildings SET level = 25 WHERE player_id = ? AND id = ?', dId, b);
+      for (const b of ['kabin', 'tarama', 'park', 'denge', 'kutuphane']) db.run('UPDATE buildings SET level = 20 WHERE player_id = ? AND id = ?', dId, b);
+      // en yüksek Kamp Seviyesi (eğrinin toplamı; kamp açılırken ödüller bir kez verilir)
+      let need30 = 0; for (let l = 1; l < 30; l++) need30 += Math.round(30 * Math.pow(l, 1.4)) + 30;
+      db.run('INSERT INTO camp_xp(player_id, xp, lib_at) VALUES(?, ?, ?) ON CONFLICT(player_id) DO UPDATE SET xp = excluded.xp', dId, need30, Date.now() - 4 * 3_600_000);
+      await tab(D, 'Kamp'); await campReady(D); await sleep(1500); await settle(D);
+      const m = await D.evaluate(() => window.__kamp.mem());
+      check(Number(await D.getByTestId('kamp-seviye').getAttribute('data-level')) === 30, 'Kamp Sv 30');
+      check((await D.evaluate(() => window.__kamp.districts())).length === 5, 'beş bölge açık');
+      check(m.mb < 140, `doku belleği ${m.mb} MB (${m.textures} doku; sınır 140 MB)`);
+      await shot(D, 'dom-kamp-sv30', 600);
+      await D.mouse.move(195, 360); for (let i = 0; i < 14; i++) { await D.mouse.wheel(0, 120); await sleep(50); }
+      await shot(D, 'dom-kamp-sv30-uzak', 1500);
       await browser.close();
     }
   }
