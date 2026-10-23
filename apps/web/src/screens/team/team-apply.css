@@ -1,0 +1,70 @@
+/* Takım bulma ve başvuru: keşif satırı, filtreler, başvurularım, takım profili, başvuru sayfası, Başvurular (lider/yardımcı) */
+
+/* keşif satırı: sol tarafı profil açar, sağda katıl/başvur düğmesi */
+.team-row { gap:10px; }
+.tr-main { appearance:none; font:inherit; color:inherit; background:none; border:0; padding:0; text-align:left; display:flex; align-items:center; gap:12px; flex:1; min-width:0; cursor:pointer; }
+.tr-main:focus-visible { outline:3px solid var(--teal); outline-offset:3px; border-radius:12px; }
+.tr-body { display:flex; flex-direction:column; gap:1px; }
+.tr-emblem { position:relative; }
+.tr-emblem.sm { width:38px; height:38px; font-size:22px; border-radius:12px; }
+.tr-rank { position:absolute; right:-6px; bottom:-6px; min-width:20px; height:20px; padding:0 5px; border-radius:999px; font-style:normal; font-size:11px; font-weight:900; line-height:16px; text-align:center;
+  background:linear-gradient(180deg,#ffe08a,var(--gold)); color:#5a3000; border:2px solid var(--panel); }
+.tr-meta .ta-mode { margin:0; }
+
+.ta-filters { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px 0; -webkit-overflow-scrolling:touch; }
+.ta-filters::-webkit-scrollbar { display:none; }
+
+.ta-mode { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:900; line-height:1; padding:3px 8px 3px 6px; border-radius:999px; white-space:nowrap;
+  background:rgba(46,230,214,.14); color:#aaf7ef; border:1.5px solid rgba(46,230,214,.35); }
+.ta-mode.basvuru { background:rgba(139,107,255,.22); color:#e2dbff; border-color:rgba(169,147,255,.45); }
+
+.ta-join { flex:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; max-width:44%; white-space:normal; line-height:1.15; text-align:center; }
+.ta-join.block { max-width:none; width:100%; }
+.ta-join.s-gonderildi:disabled { filter:none; opacity:1; background:rgba(5,2,20,.45); color:var(--text-2); box-shadow:inset 0 0 0 2px rgba(255,255,255,.14); text-shadow:none; }
+.ta-join.s-gonderildi::after { display:none; }
+@media (max-width:360px) { .ta-join { padding:9px 10px; font-size:13px; } .team-row { padding:10px; } .tr-main { gap:10px; } }
+
+/* başvurularım */
+.ta-mine { display:flex; flex-direction:column; gap:8px; }
+.ta-mine-row { display:flex; align-items:center; gap:8px; }
+.ta-st { font-size:12px; font-weight:800; color:var(--text-2); line-height:1.3; }
+.ta-mine-row.st-bekliyor .ta-st { color:#aaf7ef; }
+.ta-mine-row.st-red .ta-st, .ta-mine-row.st-sure .ta-st { color:#ffc7d6; }
+
+/* takım profili */
+.ta-profile { display:flex; flex-direction:column; gap:10px; }
+.ta-hero { display:flex; align-items:center; gap:12px; }
+.ta-emblem { flex:none; width:64px; height:64px; border-radius:18px; font-size:38px; display:flex; align-items:center; justify-content:center; background:rgba(5,2,20,.4); border:2px solid rgba(255,255,255,.14); }
+.ta-hero h2 { font-size:20px; }
+.ta-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
+.ta-desc { font-size:14px; line-height:1.35; }
+.ta-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+.ta-stats > span { display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 4px; border-radius:14px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); min-width:0; text-align:center; }
+.ta-stats b { font-size:15px; font-variant-numeric:tabular-nums; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ta-stats small { font-size:11px; color:var(--text-2); font-weight:800; }
+@media (max-width:360px) { .ta-stats { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.ta-action { display:flex; flex-direction:column; gap:8px; }
+.ta-roster { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.ta-mem { appearance:none; font:inherit; color:inherit; width:100%; display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:12px; border:0; background:rgba(5,2,20,.25); cursor:pointer; text-align:left; font-weight:800; }
+.ta-mem .role-badge { display:inline-flex; align-items:center; gap:3px; }
+.ta-lvl { flex:none; font-size:12px; }
+
+/* başvuru sayfası */
+.ta-apply { display:flex; flex-direction:column; gap:10px; }
+.ta-notes, .ta-reasons { display:flex; flex-direction:column; gap:6px; }
+.ta-note { text-align:left; padding:8px 12px; display:flex; align-items:center; gap:6px; line-height:1.3; }
+.ta-text { resize:none; min-height:72px; font:inherit; }
+.ta-free-note { display:flex; align-items:flex-start; gap:6px; }
+
+/* Başvurular (lider/yardımcı) */
+.ta-app { display:flex; flex-direction:column; gap:8px; padding:12px; }
+.ta-app-note { font-size:14px; line-height:1.35; padding:8px 10px; border-radius:12px; background:rgba(5,2,20,.35); overflow-wrap:anywhere; }
+.ta-app-note.free { border-left:3px solid var(--teal); }
+.ta-app-acts { display:flex; gap:8px; }
+.ta-app-acts .btn { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.ta-warn { display:flex; align-items:center; gap:8px; font-weight:800; font-size:13px; background:rgba(255,92,138,.14); border-color:rgba(255,92,138,.4); }
+.ta-head-pill { appearance:none; font:inherit; display:inline-flex; align-items:center; gap:5px; margin:2px 0 4px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:900; cursor:pointer;
+  background:linear-gradient(180deg,#ffe08a,var(--gold)); color:#5a3000; border:0; box-shadow:0 2px 0 var(--gold-edge); }
+
+/* takım menüsü: katılım ayarı */
+.ta-settings { display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:16px; background:rgba(5,2,20,.3); border:2px solid rgba(255,255,255,.08); font-weight:800; }

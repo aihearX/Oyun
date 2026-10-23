@@ -347,9 +347,21 @@ async function suite(browserName, target, [W, H]) {
       for (const t of ['Bugün', 'Profil', 'Harita']) { await tab(t); await sleep(900); await toastGone(); await check(`buyuk-cuzdan-${t.toLocaleLowerCase('tr').replace('ü', 'u')}`, { scroll: false }); }
     }
     if (want('takim')) {
+      // takım bulma ve başvuru (docs/16-takim-rekabeti.md §5): gerçek ikinci oyuncu başvuruyla üye alan bir takım kurar
+      const komsu = rawClient(wsUrl); await komsu.call('hello', { version: 1, name: `Komşu${sno}` });
+      const komsuTeam = (await komsu.call('team.create', { name: `Komşu Kepçe ${sno}`, emblem: '🐚', description: 'Başvuruyla üye alıyoruz; her akşam birlikte koşuyoruz.', open: false })).team;
       await tab('Takım');
       await page.locator('.team-hero').waitFor({ timeout: 10_000 });
       await check('takim-kesif');
+      await page.locator('.ta-filters [data-filter="basvuru"]').click(); await page.locator(`[data-testid="takim-satiri"][data-team="${komsuTeam.id}"]`).waitFor({ timeout: 10_000 });
+      await page.locator(`[data-testid="takim-satiri"][data-team="${komsuTeam.id}"]`).scrollIntoViewIfNeeded(); await check('takim-kesif-basvuruyla', { scroll: false });
+      await page.locator(`[data-testid="takim-satiri"][data-team="${komsuTeam.id}"] .tr-main`).click(); await page.getByTestId('takim-profili').waitFor({ timeout: 10_000 });
+      await check('takim-profili', { scroll: false });
+      await page.locator('[data-testid="takim-profili"] [data-testid="takim-katil"]').click(); await page.getByTestId('basvuru-sayfasi').waitFor();
+      await check('takim-basvuru-sayfasi', { scroll: false });
+      await page.keyboard.press('Escape'); await sleep(300); if (await page.locator('.sheet-wrap').count()) { await page.keyboard.press('Escape'); await sleep(300); }
+      await page.locator('.ta-filters [data-filter="hepsi"]').click(); await sleep(300);
+      komsu.close();
       await page.getByRole('button', { name: '＋ Takım kur' }).first().click();
       await page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20));
       await page.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her gün biraz, hep birlikte; kulaktan beyne kadar birlikte koşuyoruz ve hiç durmuyoruz.');
@@ -360,6 +372,15 @@ async function suite(browserName, target, [W, H]) {
       const msgs = ['Merhaba takım! Bu hafta kepçeyi alalım mı? Herkes en az iki bölüm oynasın, savaş hedefini birlikte seçelim.', 'Çokuzunbirkelimeiçerenmesajbölünmedenekranıntaşmamasıgerekiyorçünküsağtarafgörünmüyordu', 'Tamam 👍'];
       for (const m of msgs) { await page.getByRole('textbox', { name: 'Mesaj' }).fill(m); await page.getByRole('button', { name: 'Gönder', exact: true }).click(); await sleep(1300); }
       await check('takim-sohbet', { chat: true });
+      // başvuru: lider ekranında rozet + Başvurular sekmesi (aşağıdaki alt sekme turunda denetlenir); katılım başvuruyla
+      { const myTeam = `Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
+        const aday = rawClient(wsUrl); await aday.call('hello', { version: 1, name: `Aday${sno}` });
+        const t = (await aday.call('team.list', { query: myTeam })).teams.find((x) => x.name === myTeam);
+        if (t?.open) { await page.getByLabel('Takım menüsü').click(); await page.locator('[data-testid="katilim-ayari"] [role="radio"]', { hasText: 'Başvuruyla' }).click(); await sleep(500); await page.getByRole('button', { name: 'Kapat' }).click(); }
+        if (!t) throw new Error(`başvuru denetimi: takım listede yok (${myTeam})`);
+        await aday.call('team.apply', { teamId: t.id, noteId: 'savas' });
+        await page.getByTestId('basvuru-rozeti').waitFor({ timeout: 10_000 }).catch(() => undefined);
+        aday.close(); }
       const subs = await page.locator('.subtabs .subtab').evaluateAll((els) => els.map((e) => e.textContent.replace(/\d+$/, '').trim()));
       for (const s of subs.slice(1)) {
         await page.locator('.subtabs .subtab', { hasText: s.replace(/^\S+\s/, '') }).first().click(); await sleep(700);

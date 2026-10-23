@@ -94,6 +94,10 @@ export class App {
   readonly disconnectHooks: ((pid: string) => void)[] = [];
   /** sohbet odasına katılınca (ör. Günün Sorusu kartı tembel açılır) */
   readonly chatJoinHooks: ((pid: string, room: string) => void)[] = [];
+  /** oyuncu bir takıma girdi (kurma, doğrudan katılma, kod, başvuru kabulü) — aynı işlem içinde */
+  readonly teamJoinHooks: ((pid: string, teamId: string) => void)[] = [];
+  /** takım silindi (son üye ayrıldı) — aynı işlem içinde */
+  readonly teamDeleteHooks: ((teamId: string) => void)[] = [];
 
   constructor(cfg: ServerConfig) {
     this.cfg = cfg;

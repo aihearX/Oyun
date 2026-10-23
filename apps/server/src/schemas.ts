@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, CAMP_CHEERS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, CAMP_CHEERS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -35,7 +35,14 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji', 'hazir']).optional(), replyTo: id.optional() }),
   'chat.report': z.object({ msgId: id }),
   'chat.mute': z.object({ id, on: z.boolean() }),
-  'team.list': z.object({ query: z.string().max(40).optional() }),
+  'team.list': z.object({ query: z.string().max(40).optional(), filter: z.enum(['hepsi', 'acik', 'basvuru', 'uygun']).optional(), offset: z.number().int().min(0).max(100_000).optional(), limit: z.number().int().min(1).max(TEAM_APPLY_RULES.pageMax).optional() }),
+  'team.profile': z.object({ teamId: id }),
+  'team.apply': z.object({ teamId: id, noteId: z.string().max(20).regex(/^[a-z0-9-]+$/).optional(), note: z.string().max(TEAM_APPLY_RULES.noteMax * 4).optional() }),
+  'team.apply.cancel': z.object({ applicationId: id }),
+  'team.apply.mine': z.object({ seen: z.boolean().optional() }),
+  'team.applications': empty,
+  'team.apply.decide': z.object({ applicationId: id, accept: z.boolean(), reason: z.string().max(20).regex(/^[a-z0-9-]*$/).optional() }),
+  'team.settings': z.object({ joinMode: z.enum(['acik', 'basvuru']).optional(), minLevel: level.optional() }),
   'team.create': z.object({ name: z.string().max(60), emblem: z.string().min(1).max(16), description: z.string().max(140).optional(), open: z.boolean().optional(), minLevel: level.optional() }),
   'team.join': z.object({ teamId: id.optional(), code: z.string().max(12).optional() }),
   'team.leave': empty,

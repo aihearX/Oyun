@@ -18,15 +18,17 @@ describe('takım', () => {
     expect(t.roster[0]!.role).toBe('lider');
     expect((await err(b.call('team.create', { name: 'KULAKLAR', emblem: '🦻' }))).code).toBe('ISIM');
     const closed = (await b.call('team.create', { name: 'Gizli Kulüp', emblem: '🎧', open: false })).team;
-    // liste yalnızca açık takımlar, güç sırası
+    // liste: tüm takımlar (açık + başvuruyla), takım gücü sırası; davet kodu üye olmayana gösterilmez
     await a.call('progress.submit', run(1));
     const list = (await d.call('team.list', {})).teams;
-    expect(list.map((x) => x.name)).toEqual(['Kulaklar']);
+    expect(list.map((x) => x.name)).toEqual(['Kulaklar', 'Gizli Kulüp']);
     expect(list[0]!.power).toBe(3);
+    expect(list.map((x) => x.joinMode)).toEqual(['acik', 'basvuru']);
+    expect(list.every((x) => x.code === '')).toBe(true);
     expect((await d.call('team.list', { query: 'kula' })).teams).toHaveLength(1);
     expect((await d.call('team.list', { query: 'yok' })).teams).toHaveLength(0);
-    // kapalı takıma id ile girilemez, kodla girilir
-    expect((await err(d.call('team.join', { teamId: closed.id }))).code).toBe('KAPALI');
+    // başvuruyla üye alan takıma id ile doğrudan girilemez, kodla girilir
+    expect((await err(d.call('team.join', { teamId: closed.id }))).code).toBe('BASVURU');
     const viaCode = await d.call('team.join', { code: closed.code.toLowerCase() });
     expect(viaCode.team.members).toBe(2);
     await d.call('team.leave', {});

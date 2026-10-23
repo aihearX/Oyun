@@ -16,6 +16,7 @@ import { firePosSchema, schemaError, SCHEMAS } from './schemas';
 import { shopHandlers } from './shop';
 import { extraHandlers } from './teamextra';
 import { teamHandlers } from './teams';
+import { expireApplications, installTeamApply, teamApplyHandlers } from './teamapply';
 import { walletHandlers } from './wallet';
 import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
@@ -29,7 +30,7 @@ export const MAX_MESSAGE_BYTES = 8 * 1024;
 
 const HANDLERS: Handlers = withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
-  ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
+  ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...teamApplyHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
 })));
@@ -76,6 +77,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   app.weekHooks.push((oldWeek) => warRollover(app, oldWeek), (oldWeek) => leagueRollover(app, oldWeek));
   installComm(app);
   installRank(app);
+  installTeamApply(app);
   const log = (...a: unknown[]) => { if (cfg.log) console.log(new Date().toISOString(), ...a); };
 
   const httpServer = http.createServer((req, res) => {
@@ -198,6 +200,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         eventsSweep(app);
         commSweep(app);
         rankDayTick(app);
+        expireApplications(app);
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
       });
       sweepRaces(app);

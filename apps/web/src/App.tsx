@@ -46,6 +46,8 @@ import { startNet, submitRun, toast, useSocial } from './net';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
 import { RaceLobby, RaceResult, RaceInviteBanner, raceSpec } from './race';
+import { TeamProfileHost } from './screens/team/TeamProfile';
+import { useTeamApply } from './screens/team/apply';
 import { TeamRaceMatchWatcher, TeamRaceResultScreen } from './teamrace';
 import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
 import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
@@ -190,7 +192,7 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => setRoute({ name: 'level', spec: raceSpec(room), extras: raceExtras(), race: room })} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => setRoute({ name: 'level', spec: raceSpec(room), extras: raceExtras(), race: room })} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
@@ -256,12 +258,13 @@ function useSocialBadges(coins: number) {
   const camp = useNet((s) => s.camp); const team = useNet((s) => s.team); const gifts = useNet((s) => s.giftCount); const help = useNet((s) => s.campHelp.length);
   const unread = useNet((s) => (s.team ? s.unread[`takim:${s.team.id}`] ?? 0 : 0));
   const mentions = useComm((s) => mentionCount(s, team ? `takim:${team.id}` : null));
+  const apps = useTeamApply((s) => s.pending?.length ?? 0); // lider/yardımcı: bekleyen başvurular
   let campBadge = 0;
   if (camp && !camp.buildings.some((b) => b.upgradingTo)) {
     const merkez = camp.buildings.find((b) => b.id === 'merkez')?.level ?? 1;
     campBadge = camp.buildings.some((b) => { const d = BUILDINGS.find((x) => x.id === b.id)!; const to = b.level + 1; return to <= d.maxLevel && (b.id === 'merkez' || to <= merkez) && buildCost(b.id, to).jeton <= coins; }) ? 1 : 0;
   }
-  return { camp: campBadge, team: team ? unread + gifts + help + mentions : 0 };
+  return { camp: campBadge, team: team ? unread + gifts + help + mentions + apps : 0 };
 }
 
 /** yarışta da oyuncunun kendi Odi'si (renk + şapka); rakipler sunucu profilindeki rengi görür */

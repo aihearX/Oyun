@@ -39,6 +39,10 @@ const seasonByKey = (key: string): Season => seasonInfo(EPOCH + (Number(key.slic
 const TIERS = TEAM_LEAGUE_TIERS.map((t) => t.id);
 const tierName = (t: TeamLeagueTier) => TEAM_LEAGUE_TIERS.find((x) => x.id === t)!.name;
 const tierOf = (app: App, teamId: string): TeamLeagueTier => (app.db.get<{ tier: TeamLeagueTier }>('SELECT tier FROM tl_team WHERE team_id = ?', teamId)?.tier ?? 'bronz');
+/** takımın şu anki lig kademesi (salt okunur: bu sezonun grubu, yoksa kayıtlı kademe; gruba yerleştirmez) */
+export function currentTier(app: App, teamId: string): TeamLeagueTier {
+  return app.db.get<{ tier: TeamLeagueTier }>('SELECT tier FROM tl_member WHERE season = ? AND team_id = ?', seasonInfo(app.now()).key, teamId)?.tier ?? tierOf(app, teamId);
+}
 
 /** takımın sezon puanı (kaynak kaynak, haftalık sınırlarla) */
 export function seasonPoints(app: App, teamId: string, s: Season): TeamLeagueBreakdown {

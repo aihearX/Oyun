@@ -60,12 +60,15 @@ export function requireTeam(app: App, pid: string): { p: PlayerRow; t: TeamRow }
   return { p, t };
 }
 
-function joinTeam(app: App, p: PlayerRow, t: TeamRow, role: TeamRole): void {
+/** takıma al (tek işlem içinde: üye sayısı ve şart burada yeniden denetlenir, iki kabul takımı taşıramaz); bekleyen başvurular kancayla düşer */
+export function joinTeam(app: App, p: PlayerRow, t: TeamRow, role: TeamRole): void {
   if (p.team_id) fail('TAKIMDA', 'Zaten bir takımdasın; önce ayrılmalısın.');
   const n = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM players WHERE team_id = ?', t.id)!.n;
   if (n >= SOCIAL_LIMITS.teamMax) fail('DOLU', 'Takım dolu.');
   if (p.highest < t.min_level) fail('SART', `Bu takıma katılmak için en az ${t.min_level}. bölüme ulaşmalısın.`);
-  app.db.run('UPDATE players SET team_id = ?, team_role = ?, team_joined_at = ? WHERE id = ?', t.id, role, app.now(), p.id);
+  // koşullu yazım: oyuncu bu arada başka takıma girdiyse hiçbir şey değişmez
+  if (!app.db.run('UPDATE players SET team_id = ?, team_role = ?, team_joined_at = ? WHERE id = ? AND team_id IS NULL', t.id, role, app.now(), p.id)) fail('TAKIMDA', 'Zaten bir takımdasın; önce ayrılmalısın.');
+  for (const h of app.teamJoinHooks) h(p.id, t.id);
 }
 
 /** üyeyi takımdan çıkar: lider ayrılırsa en kıdemli yardımcıya, yoksa en kıdemli üyeye devreder; son kişi çıkarsa takım silinir */
@@ -93,6 +96,7 @@ function deleteTeam(app: App, teamId: string): void {
   app.db.run('DELETE FROM team_tech WHERE team_id = ?', teamId);
   app.db.run('DELETE FROM chat WHERE room = ?', teamRoom(teamId));
   commTeamDeleted(app, teamId);
+  for (const h of app.teamDeleteHooks) h(teamId);
   app.db.run('DELETE FROM war_points WHERE team_id = ? AND week = ?', teamId, week);
   const owned = app.db.all<{ region: string }>('SELECT region FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);
   app.db.run('DELETE FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);
@@ -100,13 +104,7 @@ function deleteTeam(app: App, teamId: string): void {
 }
 
 export const teamHandlers: Handlers = {
-  'team.list': (app, _s, { query }) => {
-    const q = query ? teamNameKey(query).replace(/[%_\\]/g, (c) => '\\' + c) : '';
-    const rows = app.db.all<TeamRow>(
-      `SELECT t.* FROM teams t LEFT JOIN players p ON p.team_id = t.id WHERE t.open = 1 ${q ? "AND t.name_key LIKE ? ESCAPE '\\'" : ''}
-       GROUP BY t.id ORDER BY COALESCE(SUM(p.stars), 0) DESC, t.created_at LIMIT 50`, ...(q ? [`%${q}%`] : []));
-    return { teams: rows.map((t) => teamSummary(app, t)) };
-  },
+  // 'team.list' (tüm takımlar, filtre, sayfalama) teamapply.ts'tedir
   'team.create': (app, s, { name, emblem, description, open, minLevel }) => {
     const p = app.player(s.pid);
     if (p.team_id) fail('TAKIMDA', 'Zaten bir takımdasın; önce ayrılmalısın.');
@@ -137,7 +135,7 @@ export const teamHandlers: Handlers = {
     if (code) t = app.db.get<TeamRow>('SELECT * FROM teams WHERE code = ?', code.trim().toUpperCase()) ?? null;
     else if (teamId) {
       t = app.team(teamId);
-      if (t && !t.open) fail('KAPALI', 'Bu takım yalnızca davet koduyla katılım kabul ediyor.');
+      if (t && !t.open) fail('BASVURU', 'Bu takım başvuruyla üye alıyor; takım profilinden başvurabilirsin.');
     } else fail('GECERSIZ', 'Takım kimliği ya da davet kodu gerekli.');
     if (!t) return fail('YOK', 'Takım bulunamadı.');
     joinTeam(app, p, t, 'uye');
@@ -152,8 +150,11 @@ export const teamHandlers: Handlers = {
     return {};
   },
   'team.detail': (app, s, { teamId }) => {
-    const id = teamId ?? app.player(s.pid).team_id;
-    return { team: id ? teamDetail(app, id) : null };
+    const mine = app.player(s.pid).team_id;
+    const id = teamId ?? mine;
+    const d = id ? teamDetail(app, id) : null;
+    // davet kodu yalnızca üyelere: kod, başvuruyla üye alan takıma doğrudan katılım kısayoludur
+    return { team: d && d.id !== mine ? { ...d, code: '' } : d };
   },
   'team.kick': (app, s, { id }) => {
     const { p, t } = requireTeam(app, s.pid);

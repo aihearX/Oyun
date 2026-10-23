@@ -106,3 +106,91 @@ Satırların kayıtlı sesi yok; `tools/voice/generate.mjs` ile üretilmeli (o z
 - Uçtan uca testler:
   - `node tools/harness/teamrace-e2e.mjs [--browsers chromium,webkit] [--target web|dom|both]`: beş tarayıcı oyuncusu ve iki takım (3'e 2). Akış: lobi → arama → eşleşme → yarış (bot, `&oyun-hiz=3`) → sonuç → akış kartı → lig puanı. dom'da telefon lideri lobi açar.
   - Turlar: `comm-e2e.mjs --only-tour`.
+
+## 5. Takım bulma ve başvuru
+
+Sahibin isteği: takımlar yalnızca kodla bulunmasın; **her takım listede** görünsün, oyuncu doğrudan katılabilsin ya da başvurabilsin, başvuruyu takım yönetimi onaylasın.
+
+### Keşif ve profil
+
+- **Takım sekmesi (takımsızken).** Sıralama düzeni Sıralama'daki "Takım gücü" tablosuyla aynıdır. Puanı olmayan takımlar sonda yer alır: önce kalabalık olanlar, sonra eski olanlar.
+  - Arama, sayfa başına 20 takım ("Daha fazla göster"; 50 sınırı yok).
+  - Filtreler: **Hepsi**, **Doğrudan katıl**, **Başvuruyla**, **Bana uygun** (bölüm şartı tutan ve dolu olmayan takımlar).
+  - Satır: amblem, sıra rozeti, ad, üye/30, takım gücü, katılım modu, bölüm şartı.
+  - Satırdaki düğme sunucunun hesapladığı duruma göre değişir: **Katıl**, **Başvur**, **Başvuru gönderildi**, **Dolu**, **N. bölümden sonra**, bekleme süresi ("… sonra") ya da başvuru sınırı.
+- **Takım profili (salt okunur).** Keşif satırına ya da **Sıralama › Takımlar** tablosundaki bir satıra dokununca açılır (`openTeamProfile`).
+  - İçerik: açıklama, üyeler ve rolleri, sıra, takım gücü, lig kademesi, katılım düğmesi.
+  - Başvuru bekliyorsa "Başvuruyu geri çek" düğmesi de görünür.
+- **Davet kodu.** Yalnızca üyelere gösterilir: `team.list`, `team.profile` ve başkasının `team.detail` sonucunda boştur. Geçerli kod, başvuruyla üye alan takıma da doğrudan katılır.
+- **Başvurularım.** Bekleyen başvurular (geri çekilebilir, düşme süresi görünür) ve son 7 günün kararları (red gerekçesiyle).
+
+### Katılım modları ve geçiş
+
+- `teams.open = 1` → **Açık**; `teams.open = 0` → **Başvuruyla**.
+- Eski "yalnızca kodla" takımlar veri değişmeden başvuruya geçer: yeni bir sütun yok, eski istemciler `open` alanını aynen okur.
+- Yeni tablo `team_apps` (`apps/server/src/teamapply-schema.ts`) `IF NOT EXISTS` ile kurulur. Bu yüzden aynı veritabanı defalarca açılabilir.
+- Takım kurarken iki mod da seçilebilir. Lider takım menüsünden modu ve en az bölüm şartını değiştirir (`team.settings`); değişiklik takım sohbetine sistem mesajı olarak düşer.
+
+### Başvuru kuralları (`TEAM_APPLY_RULES`, sunucu yetkili)
+
+| Kural | Değer |
+|---|---|
+| Onaylayan roller | `approvers = ['lider', 'yardimci']` (tek sabit; ilk sürümde yalnızca lider, sahibin isteğiyle yardımcı eklendi) |
+| Oyuncu başına bekleyen başvuru | en çok 3 |
+| Takım başına bekleyen başvuru | 1 (kısmi benzersiz dizin `team_apps_one`) |
+| Red sonrası aynı takıma | 24 saat bekleme |
+| Geri çekme sonrası aynı takıma | 10 dk bekleme (bildirim yağmuru olmasın) |
+| Başvuru ömrü | 7 gün; sonra `sure` (zamanlayıcı + tembel denetim) |
+| Günlük başvuru | en çok 10 (İstanbul günü) |
+| Not | hazır notlar (`TEAM_APPLY_NOTES`); serbest yazı yalnızca güvenli sohbet kuralı açıkken (sohbetle aynı `canFreeText`: 8 bölüm geçilmiş ya da yönetici modu), en çok 120 karakter, küfür süzgecinden geçmezse reddedilir |
+| Red gerekçesi | yalnızca hazır liste (`TEAM_REJECT_REASONS`) ya da gerekçesiz |
+
+- **Kabul anında yeniden denetim.** Takım doluysa (`DOLU`), oyuncu başka takımdaysa (`TAKIMDA`) ya da bölüm şartını karşılamıyorsa (`SART`) kabul olmaz.
+- **Yarış güvenliği.** Her karar tek işlemde yürür (`BEGIN IMMEDIATE`):
+  - Durum koşullu yazımla (`status = 'bekliyor'`) değişir. İki onaylayan aynı anda basarsa ilki geçer, ikincisi `KARAR` "zaten karara bağlandı" alır.
+  - Üye sayısı `joinTeam` içinde yeniden sayılır, oyuncu da koşullu güncellenir (`team_id IS NULL`). Böylece iki kabul, ya da bir kabul ile bir kodla katılım, takımı 30'un üstüne çıkaramaz.
+- **Kendiliğinden iptal.** Oyuncu herhangi bir yoldan takıma girince (kurma, doğrudan katılma, kod, kabul) diğer bekleyen başvuruları `otomatik` olur. Girdiği takıma bekleyen başvurusu varsa o başvuru `kabul` sayılır. Takım silinirse bekleyen başvurular `iptal` olur.
+- **Karar veren kaydedilir** (`decided_by`, görünümde `decidedBy`). Takım sohbetine sistem mesajı düşer: "X, Y adlı oyuncunun başvurusunu kabul etti / kabul etmedi". Kabulde ayrıca Takım Akışı kartı çıkar: "Y takıma katıldı."
+- **Yönetici hesapları** takıma başvurabilir ve katılabilir. Sıralama ve lig dışlamaları değişmez: takım gücü tablosu yönetici gücünü saymaz.
+
+### Bildirimler
+
+- **Onaylayanlar** (lider ve yardımcılar):
+  - Gerçek zamanlı `team.applications` olayı ile "Yeni başvuru" bildirimi.
+  - Takım sekmesi rozetine bekleyen sayısı eklenir.
+  - Takım başlığında "N yeni başvuru" düğmesi ve **Başvurular** alt sekmesi (kabul, hazır gerekçeyle ret).
+- **Başvuran:**
+  - Karar `team.apply.updated` ile gelir: kabulde yeşil, retteki gerekçeyle ya da süre dolunca bronz bildirim.
+  - Kararlar "Başvurularım"da kalır.
+  - Çevrimdışıyken verilen karar bir sonraki bağlanışta bir kez bildirilir (`seen`).
+- **Takım:** sohbette karar mesajı ve Akış kartı.
+
+### Protokol ve testler
+
+- Protokol (`social.ts`, TAKIM BAŞVURUSU bölümü; yalnızca ekleme):
+  - `team.list` isteğine `filter`, `offset`, `limit`; yanıtına `next`, `total` ve satır alanları (`TeamBrowseRow`: `joinMode`, `rank`, `rankPower`, `leagueTier`, `state`, `until`, `applicationId`).
+  - Yeni işlemler: `team.profile`, `team.apply` {teamId, noteId?, note?}, `team.apply.cancel`, `team.apply.mine` {seen?}, `team.applications`, `team.apply.decide` {applicationId, accept, reason?}, `team.settings`.
+  - Olaylar: `team.applications`, `team.apply.updated`.
+  - Eski istemci başvuruyla takıma `team.join` {teamId} gönderirse anlaşılır bir `BASVURU` hatası alır.
+- Sunucu: `apps/server/src/teamapply.ts`. İstemci: `apps/web/src/screens/team/` (`TeamBrowse`, `TeamProfile`, `TeamApplications`, `apply.ts`).
+- Birim testleri: `apps/server/test/team-apply.test.ts`. Kapsadıkları:
+  - liste, filtre, sayfalama, kodun gizlenmesi
+  - kabul ve ret akışı
+  - lider ile yardımcının onay yetkisi; üyenin onaylayamaması
+  - eşzamanlı iki karar
+  - sınırlar: 3 bekleyen, 24 saat, 10 dk, 7 gün, günlük, bölüm şartı
+  - dolu takım ve eşzamanlı kabuller
+  - kendiliğinden iptal
+  - 8 bölüm not kuralı
+  - yönetici hesabı
+  - eski veritabanı geçişi (iki kez açma)
+- Uçtan uca test: `node tools/harness/team-apply-e2e.mjs [--browsers chromium,webkit] [--target web|dom|both] [--build-dom]`. Akış:
+  - Başvuruyla takım kurulur, yardımcı kodla katılır.
+  - Başvuran takımı listede ve Sıralama'da bulur, profilden başvurur.
+  - Lider rozeti görür ve kabul eder.
+  - Yardımcı bir başvuruyu gerekçeyle reddeder, birini kabul eder.
+  - Bir oyuncu açık takıma doğrudan katılır.
+  - dom'da telefon başvuran olur.
+- Ekran denetimi: `ui-mobile-check.mjs --only takim` keşif filtrelerini, takım profilini, başvuru sayfasını ve Başvurular sekmesini de görüntüler.
+- Bilinen not: Tüy Dede'nin `takim-03` satırı ("Bir takıma kodla katılabilir…") kayıtlı ses olduğu için değişmedi; kodla katılım hâlâ doğru, liste ve başvuru ekranda görünür.
+

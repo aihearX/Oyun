@@ -9,6 +9,7 @@ import { Art, type ArtName } from '../ui/art';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { hatKey } from '../screens/team/TeamMembers';
 import { openProfile } from '../friends/state';
+import { openTeamProfile } from '../screens/team/apply';
 import './rank.css';
 
 /**
@@ -118,7 +119,8 @@ function Delta({ d }: { d: number | null }) {
   return <span className={`rr-delta ${d > 0 ? 'up' : 'down'}`} aria-label={d > 0 ? `${d} sıra yükseldi` : `${-d} sıra düştü`}><Art name={d > 0 ? 'up' : 'down'} size={14} />{Math.abs(d)}</span>;
 }
 
-const tap = (r: RankRowView, team: boolean) => { if (!team && !r.me) openProfile(r.id); };
+/** satıra dokun: oyuncu → profil kartı; takım → salt okunur takım profili (katıl / başvur) */
+const tap = (r: RankRowView, team: boolean) => { if (team) openTeamProfile(r.id); else if (!r.me) openProfile(r.id); };
 
 function Podium({ rows, team }: { rows: RankRowView[]; team: boolean }) {
   const order = [rows[1], rows[0], rows[2]];

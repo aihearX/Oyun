@@ -276,7 +276,8 @@ export interface OpMap {
   'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' | 'hazir'; replyTo?: string }; res: { msg: ChatMessage } };
   'chat.report': { req: { msgId: string }; res: Record<string, never> };
   'chat.mute': { req: { id: string; on: boolean }; res: { muted: string[] } };
-  'team.list': { req: { query?: string }; res: { teams: TeamSummary[] } };
+  /** v7: tüm takımlar (açık + başvuruyla), takım gücüne göre; filtre ve sayfalama isteğe bağlı (bkz. TAKIM BAŞVURUSU) */
+  'team.list': { req: { query?: string; filter?: TeamListFilter; offset?: number; limit?: number }; res: { teams: TeamBrowseRow[]; next?: number | null; total?: number } };
   'team.create': { req: { name: string; emblem: string; description?: string; open?: boolean; minLevel?: number }; res: { team: TeamDetail } };
   'team.join': { req: { teamId?: string; code?: string }; res: { team: TeamDetail } };
   'team.leave': { req: Record<string, never>; res: Record<string, never> };
@@ -1122,4 +1123,111 @@ export interface OpMap {
 export interface EvtMap {
   /** biri kampına tepki bıraktı */
   'camp.cheered': { from: string; name: string; kind: CheerKind };
+}
+
+// =====================================================================
+// TAKIM BAŞVURUSU (v7, docs/16-takim-rekabeti.md "Takım bulma ve başvuru"). Yalnızca EKLEME.
+// Her takım listede ve Sıralama'da görünür. Katılım modu: 'acik' (doğrudan katıl) ya da 'basvuru' (lider ya da yardımcı onaylar).
+// Davet kodu her iki modda da doğrudan katılım kısayoludur (kod yalnızca üyelere gösterilir).
+// Eski alan eşlemesi: TeamSummary.open === true ↔ 'acik', false ↔ 'basvuru' (eski "yalnızca kodla" takımlar başvuruya geçti).
+// =====================================================================
+
+export type TeamJoinMode = 'acik' | 'basvuru';
+export const joinModeOf = (t: { open: boolean }): TeamJoinMode => (t.open ? 'acik' : 'basvuru');
+/** keşif filtresi: hepsi · doğrudan katıl · başvuruyla · bana uygun (bölüm şartı tutuyor, dolu değil) */
+export type TeamListFilter = 'hepsi' | 'acik' | 'basvuru' | 'uygun';
+/** bekliyor · kabul · red · iptal (başvuran geri çekti / takım silindi) · sure (7 gün doldu) · otomatik (başka takıma katıldı) */
+export type TeamApplyStatus = 'bekliyor' | 'kabul' | 'red' | 'iptal' | 'sure' | 'otomatik';
+export interface TeamApplyPreset { id: string; text: string }
+/** hazır başvuru notları (serbest yazı COMM_RULES.freeTextLevel bölüm geçilince açılır) */
+export const TEAM_APPLY_NOTES: TeamApplyPreset[] = [
+  { id: 'merhaba', text: 'Merhaba! Takımınıza katılmak isterim.' },
+  { id: 'hergun', text: 'Her gün oynuyorum.' },
+  { id: 'savas', text: 'Bölge Savaşı ve Baskın’a katkı veririm.' },
+  { id: 'yardim', text: 'Yardımlaşmayı severim; inşaatlara yardım ederim.' },
+  { id: 'soru', text: 'Günün Sorusu’nu kaçırmam.' },
+  { id: 'arkadas', text: 'Arkadaşlarım bu takımda.' },
+];
+/** hazır red gerekçeleri (serbest metin yok) */
+export const TEAM_REJECT_REASONS: TeamApplyPreset[] = [
+  { id: 'dolu', text: 'Takım şu an dolu.' },
+  { id: 'aktif', text: 'Şimdilik daha sık oynayan oyuncular arıyoruz.' },
+  { id: 'bolum', text: 'Biraz daha bölüm geçince yeniden başvur.' },
+  { id: 'tanidik', text: 'Şimdilik yalnızca tanıdıklarımızı alıyoruz.' },
+  { id: 'ara', text: 'Şu an yeni üye almıyoruz.' },
+];
+export const applyNoteText = (id: string) => TEAM_APPLY_NOTES.find((n) => n.id === id)?.text ?? '';
+export const rejectReasonText = (id: string) => TEAM_REJECT_REASONS.find((n) => n.id === id)?.text ?? '';
+export const TEAM_APPLY_RULES = {
+  /** oyuncu başına aynı anda en çok bekleyen başvuru */
+  maxPending: 3,
+  /** red sonrası aynı takıma yeniden başvuru beklemesi */
+  cooldownMs: 24 * 3_600_000,
+  /** başvuru bu sürede karar verilmezse düşer */
+  ttlMs: 7 * 24 * 3_600_000,
+  /** geri çekilen başvurudan sonra aynı takıma yeniden başvuru beklemesi (bildirim yağmuru olmasın) */
+  recancelMs: 10 * 60_000,
+  /** oyuncu başına günde en çok başvuru (İstanbul günü) */
+  perDay: 10,
+  noteMax: 120,
+  /** başvuruyu onaylayabilen/reddedebilen roller (tek yerden değişir): lider ve yardımcılar; aynı anda iki karar gelirse ilki geçerlidir */
+  approvers: ['lider', 'yardimci'] as readonly TeamRole[],
+  pageSize: 20, pageMax: 50,
+} as const;
+export const canApprove = (role: TeamRole | null | undefined) => !!role && (TEAM_APPLY_RULES.approvers as readonly string[]).includes(role);
+
+export interface TeamApplication {
+  id: string; teamId: string; teamName: string; teamEmblem: string;
+  /** başvuran (lider görünümünde güncel profil) */
+  player: PublicProfile;
+  /** noteKind 'hazir': TEAM_APPLY_NOTES kimliği · 'serbest': süzülmüş metin · 'yok': not yok */
+  note: string; noteKind: 'hazir' | 'serbest' | 'yok';
+  status: TeamApplyStatus;
+  /** red gerekçesi (TEAM_REJECT_REASONS kimliği) ya da '' */
+  reason: string;
+  at: number; expiresAt: number; decidedAt: number | null;
+  /** karara bağlayan (lider ya da yardımcı); başvurana ve takıma gösterilir */
+  decidedBy?: { id: string; name: string } | null;
+  /** karar başvurana gösterildi mi (rozet) */
+  seen: boolean;
+}
+/** keşif listesinde bakan oyuncuya göre düğme: Katıl · Başvur · Başvuru gönderildi · Dolu · N. bölümden sonra · yeniden başvuru beklemesi ·
+ *  bekleyen başvuru sınırı · bu takımın üyesisin · zaten bir takımdasın */
+export type TeamJoinState = 'katil' | 'basvur' | 'gonderildi' | 'dolu' | 'seviye' | 'bekle' | 'sinir' | 'uye' | 'takimda';
+export interface TeamBrowseRow extends TeamSummary {
+  joinMode?: TeamJoinMode;
+  /** Sıralama "Takım gücü" tablosundaki yeri (puanı yoksa null) ve değeri */
+  rank?: number | null; rankPower?: number;
+  leagueTier?: TeamLeagueTier;
+  state?: TeamJoinState;
+  /** state 'bekle': yeniden başvurulabilecek an */
+  until?: number;
+  /** state 'gonderildi': bekleyen başvurunun kimliği */
+  applicationId?: string;
+}
+export interface TeamProfile extends TeamBrowseRow {
+  /** üyeler (rol, bu haftaki savaş puanı) */
+  roster: TeamMember[];
+  weekPoints: number; createdAt: number;
+}
+
+export interface OpMap {
+  /** salt okunur takım profili (keşif listesi ve Sıralama'dan) */
+  'team.profile': { req: { teamId: string }; res: { team: TeamProfile } };
+  /** başvuru: noteId hazır not, note serbest yazı (yalnızca serbest yazı açıksa) */
+  'team.apply': { req: { teamId: string; noteId?: string; note?: string }; res: { application: TeamApplication } };
+  'team.apply.cancel': { req: { applicationId: string }; res: { application: TeamApplication } };
+  /** kendi başvurularım (bekleyen + son 7 günün kararları); seen: kararları görüldü say */
+  'team.apply.mine': { req: { seen?: boolean }; res: { applications: TeamApplication[] } };
+  /** takımın bekleyen başvuruları (yalnızca onaylayabilenler: TEAM_APPLY_RULES.approvers) */
+  'team.applications': { req: Record<string, never>; res: { applications: TeamApplication[] } };
+  'team.apply.decide': { req: { applicationId: string; accept: boolean; reason?: string }; res: { application: TeamApplication; applications: TeamApplication[]; team: TeamDetail } };
+  /** takım ayarları (lider): katılım modu, en az bölüm */
+  'team.settings': { req: { joinMode?: TeamJoinMode; minLevel?: number }; res: { team: TeamDetail } };
+}
+export interface EvtMap {
+  /** onaylayana: takımın bekleyen başvuruları değişti */
+  'team.applications': { teamId: string; applications: TeamApplication[] };
+  /** başvurana: başvurusu karara bağlandı / düştü / otomatik iptal */
+  'team.apply.updated': { application: TeamApplication };
 }

@@ -87,6 +87,10 @@ function ranked(app: App, board: RankBoardId, week = app.week().key): Ranked[] {
   return list;
 }
 export const rankInvalidate = (app: App) => cache.get(app)?.clear();
+/** "Takım gücü" tablosu: takım → sıra ve güç (puanı olmayan takım yok; yönetici dışlamaları tablodaki gibi) */
+export function teamPowerRanks(app: App): Map<string, { rank: number; value: number; pos: number }> {
+  return new Map(ranked(app, 't-guc').map((r, pos) => [r.id, { rank: r.rank, value: r.value, pos }]));
+}
 /** tek bir oyuncu/takımın tablodaki değeri (önbellekten; takım yarışı eşleşmesi gücü bununla kıyaslar) */
 export const boardValue = (app: App, board: RankBoardId, id: string): number => ranked(app, board).find((r) => r.id === id)?.value ?? 0;
 
