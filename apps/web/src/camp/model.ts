@@ -1,7 +1,7 @@
 /**
  * Kulak Kampı arayüz modeli: etki metinleri, yükseltme uygunluğu (nedeniyle), hızlandırıcılar, eylemler (gerçek/demo).
  */
-import { BUILDINGS, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
+import { BUILDINGS, CAMP_POWER_LEVEL, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
 import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { BUILDING_INFO, CAMP_TERMS, districtOfBuilding, LIB_CAP_HOURS, LIB_XP_PER_LEVEL_HOUR, campUnlocksAt, cosmeticById, depotCapHours, kabinXpPct, levelLineId, parkDecorSlots, remediesAt, remedyById, remedyShelfCap, taramaFactor, type CampUnlock } from '@odi/content';
@@ -11,15 +11,19 @@ import { sayDede } from './dede';
 
 export { DEPOT_CAP_H, DEPOT_RATE };
 const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toLocaleString('tr-TR', { maximumFractionDigits: 1 }));
+/** bina gücü Sv 15'te tavan yapar (sunucu ile aynı) */
+const P = (l: number) => Math.min(CAMP_POWER_LEVEL, l);
+/** gücü olan (yüzde veren) binalar */
+export const POWER_BUILDINGS: BuildingId[] = ['laboratuvar', 'atolye', 'kule', 'revir'];
 export const defOf = (id: BuildingId): BuildingDef => BUILDINGS.find((b) => b.id === id)!;
 export function effect(id: BuildingId, l: number): string {
   switch (id) {
     case 'merkez': return l ? `Diğer binalar en çok Sv ${l}` : 'Kamp kurulmadı';
-    case 'laboratuvar': return `Bölüm jetonu +%${l * 3}`;
-    case 'atolye': return `Bölüm başında kalkan şansı %${l * 4}`;
+    case 'laboratuvar': return `Bölüm jetonu +%${P(l) * 3}`;
+    case 'atolye': return `Bölüm başında kalkan şansı %${P(l) * 4}`;
     case 'depo': return l ? `${l * DEPOT_RATE} jeton/saat (${DEPOT_CAP_H} saatte dolar)` : 'Pasif jeton üretimi yok';
-    case 'kule': return `Savaş puanı +%${l * 2}`;
-    case 'revir': return `İlk hasarı yok sayma şansı %${l * 3}`;
+    case 'kule': return `Savaş puanı +%${P(l) * 2}`;
+    case 'revir': return `İlk hasarı yok sayma şansı %${P(l) * 3}`;
     case 'tedavi': return l ? `${remediesAt(l).length} tarif · rafta en çok ${remedyShelfCap(l)}` : 'Malzeme hazırlanmıyor';
     case 'kabin': return l ? `Kamp XP +%${kabinXpPct(l)}` : 'Kamp XP bonusu yok';
     case 'tarama': return l ? `Tedavi Odası hazırlık süresi −%${Math.round((1 - taramaFactor(l)) * 100)}` : 'Hazırlık süresi bonusu yok';
@@ -76,6 +80,12 @@ export interface CampActions {
   remedyMake(item: string | null): Promise<boolean>;
   /** Tedavi Odası: raftakileri çantaya al; alınan adet (başarısızsa null) */
   remedyCollect(): Promise<number | null>;
+  /** süs yerleştir / taşı-çevir (yeni kamp durumu; başarısızsa null) / depoya kaldır */
+  decorPlace(id: string, gx: number, gy: number, flip: boolean): Promise<CampState | null>;
+  decorMove(uid: number, gx: number, gy: number, flip: boolean): Promise<CampState | null>;
+  decorStore(uid: number): Promise<boolean>;
+  /** Kütüphane okuma köşesi: alınan Kamp XP (başarısızsa null) */
+  libCollect(): Promise<number | null>;
 }
 
 /** inşaat bitti: her zaman fanfar + afiş (açılımlar yazılı); görsel kademe değiştiyse (Sv 4, 7, 10, 13) büyük "seviye" anı.

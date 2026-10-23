@@ -5,8 +5,11 @@ import { BRIDGE, GROUND_BOX, ISLAND, ROADS, STREAM_PTS, onIsland, paintGround, p
 import { BUILDING_ORDER, LOTS, MAIN_BUILDINGS, depotStored, tierOf, zonesOpen } from './layout';
 import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold, worker } from './props';
 import { MONUMENT_BOX, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
-import { remedyById, remedyShelf } from '@odi/content';
-import type { BiomeId } from '@odi/shared';
+import { DISTRICTS, cellFree, depotCapHours, cellPoint, decorById, footprint, inDistrict, libStored, pointCell, remedyById, remedyShelf, taramaFactor, type District } from '@odi/content';
+import type { BiomeId, DecorPlaced } from '@odi/shared';
+import { bridgeBox, districtBox, paintBridge, paintDistrict, paintDistrictLocked } from './districts';
+import { DECOR_BOX, paintDecor } from './decor';
+import { HELPER_COLORS } from './props';
 
 export interface CampTeam { emblem: string; name: string }
 export interface CampSceneOpts {
@@ -32,13 +35,34 @@ export interface CampSceneOpts {
   onMonument?(region: string, fresh: boolean): void;
   /** Tedavi Odası rafındaki hazır malzemeleri çantaya al */
   onCollectRemedy?(): void;
+  /** salt okunur (başka oyuncunun kampını gezme): inşaat düğmeleri, toplama baloncukları yok */
+  readOnly?: boolean;
+  /** yerleştirilmiş süse dokunuldu (normal kipte: bilgi) */
+  onDecor?(id: string, uid: number): void;
+  /** süsleme kipinde dokunuş: süs (uid) ya da boş yer (null) */
+  onEditTap?(uid: number | null, cell: [number, number]): void;
+  /** süsleme kipinde hayalet süs taşındı */
+  onGhost?(g: { gx: number; gy: number; ok: boolean }): void;
+  /** Kütüphane okuma köşesindeki Kamp XP'yi al */
+  onCollectLib?(): void;
+  /** kilitli bölgenin tabelasına dokunuldu */
+  onDistrict?(id: string): void;
 }
+interface DView { d: District; open: boolean; img?: Phaser.GameObjects.Image; key?: string; fog: Phaser.GameObjects.Image[]; sign?: Phaser.GameObjects.Container; bridge?: Phaser.GameObjects.Image; scatter: Phaser.GameObjects.Image[] }
+interface Ghost { img: Phaser.GameObjects.Image; foot: Phaser.GameObjects.Graphics; id: string; gx: number; gy: number; flip: boolean; uid?: number; ok: boolean }
+interface Helper { sprite: Phaser.GameObjects.Image; c: number; f: number; t: number; walking: boolean; tw?: Phaser.Tweens.Tween }
 
 const FONT = '"SF Pro Rounded","Segoe UI Rounded",Nunito,"Helvetica Neue",Arial,sans-serif';
 const GTEX = 1.25; // zemin dokusu çözünürlüğü
 /** bina ölçeği (arsayı dolduracak kadar) */
 const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15, tedavi: 1.15, kabin: 1.15, tarama: 1.15, park: 1.15, denge: 1.15, kutuphane: 1.15 };
 const DEPTH = { sky: -2000, waves: -1500, ground: -1000, fog: 4000, fx: 4500, ui: 6000 };
+/** kameranın gezebileceği dünya (ana ada + bütün bölgeler; kilitliler de görünür ki hedef belli olsun) */
+const WORLD = (() => {
+  let x0 = -ISLAND.rx, x1 = ISLAND.rx, y0 = ISLAND.cy - ISLAND.ry, y1 = ISLAND.cy + ISLAND.ry;
+  for (const d of DISTRICTS) { x0 = Math.min(x0, d.cx - d.rx); x1 = Math.max(x1, d.cx + d.rx); y0 = Math.min(y0, d.cy - d.ry); y1 = Math.max(y1, d.cy + d.ry); }
+  return { x0: x0 * 0.85, x1: x1 * 0.85, y0: y0 * 0.85 - 40, y1: y1 * 0.85 };
+})();
 const fmtLeft = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60; return h > 0 ? `${h} sa ${String(m).padStart(2, '0')} dk` : `${m}:${String(sec).padStart(2, '0')}`; };
 const bez = (p: [number, number][], t: number): [number, number] => { const [a, b, c] = p as [[number, number], [number, number], [number, number]]; return [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1]]; };
 
@@ -63,7 +87,16 @@ export class CampScene extends Phaser.Scene {
   private sky!: Phaser.GameObjects.Image;
   private waves!: Phaser.GameObjects.Graphics;
   private fog: { zone: number; img: Phaser.GameObjects.Image }[] = [];
-  private decor: { zone: number; obj: Phaser.GameObjects.Image; shown: boolean; minMerkez?: number; maxMerkez?: number }[] = [];
+  private decor: { zone: number; obj: Phaser.GameObjects.Image; shown: boolean; minMerkez?: number; maxMerkez?: number; covered?: boolean }[] = [];
+  private campLevel = 1;
+  private dviews = new Map<string, DView>();
+  private decorViews = new Map<number, { img: Phaser.GameObjects.Image; id: string; gx: number; gy: number; flip: boolean }>();
+  private edit = false;
+  private ghostV?: Ghost;
+  private dragGhost = false;
+  private selRing?: Phaser.GameObjects.Graphics;
+  private helpers: Helper[] = [];
+  private libBubble?: { bubble: Phaser.GameObjects.Container; text: Phaser.GameObjects.Text };
   private depot?: { bubble: Phaser.GameObjects.Container; glow: Phaser.GameObjects.Image; label: Phaser.GameObjects.Text; full: boolean };
   private teamFlag?: Phaser.GameObjects.Container;
   private monuments = new Map<string, { img: Phaser.GameObjects.Image; built: boolean; glow?: Phaser.GameObjects.Image; tw?: Phaser.Tweens.Tween }>();
@@ -89,10 +122,13 @@ export class CampScene extends Phaser.Scene {
     const gb = GROUND_BOX;
     makeTex(this.textures, 'c-ground', gb.x1 - gb.x0, gb.y1 - gb.y0, -gb.x0, -gb.y0, paintGround, GTEX);
     this.add.image(gb.x0, gb.y0, 'c-ground').setOrigin(0, 0).setScale(1 / GTEX).setDepth(DEPTH.ground);
+    this.campLevel = this.opts.camp.xp?.level ?? 1;
     this.placeDecor();
+    this.placeDistricts();
     this.placeMonuments();
     this.placeFog();
     for (const id of MAIN_BUILDINGS) this.makeView(id, 0);
+    this.ensureViews();
     this.ambient();
     this.applyState(this.opts.camp, true);
     this.setupInput();
@@ -116,14 +152,14 @@ export class CampScene extends Phaser.Scene {
   }
   private clampCam() {
     const cam = this.cameras.main; const cx = cam.scrollX + cam.width / 2, cy = cam.scrollY + cam.height / 2;
-    const nx = Phaser.Math.Clamp(cx, -ISLAND.rx * 0.8, ISLAND.rx * 0.8), ny = Phaser.Math.Clamp(cy, -ISLAND.ry * 0.85, ISLAND.ry * 0.85);
+    const B = WORLD; const nx = Phaser.Math.Clamp(cx, B.x0, B.x1), ny = Phaser.Math.Clamp(cy, B.y0, B.y1);
     if (nx !== cx || ny !== cy) { cam.scrollX += nx - cx; cam.scrollY += ny - cy; this.vel.x = 0; this.vel.y = 0; }
   }
   /** ekran noktası (oyun pikseli) sabit kalacak şekilde yakınlaştır */
   private zoomAt(z: number, sx: number, sy: number) {
     // dünya noktasını analitik hesapla (getWorldPoint önceki karenin matrisini kullanır; bir karede çok hareket gelebilir)
     const cam = this.cameras.main; const before = { x: cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / cam.zoom, y: cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / cam.zoom };
-    this.userZoom = Phaser.Math.Clamp(z, 0.42, 1.8);
+    this.userZoom = Phaser.Math.Clamp(z, 0.2, 1.8);
     cam.setZoom(this.dpr * this.userZoom);
     cam.scrollX = before.x - cam.width / 2 - (sx - cam.width / 2) / cam.zoom;
     cam.scrollY = before.y - cam.height / 2 - (sy - cam.height / 2) / cam.zoom;
@@ -137,6 +173,8 @@ export class CampScene extends Phaser.Scene {
     inp.on('pointerdown', (p: Phaser.Input.Pointer) => {
       this.pointers.set(p.id, { x: p.x, y: p.y, x0: p.x, y0: p.y, t0: this.time.now });
       this.vel.x = 0; this.vel.y = 0;
+      // süsleme kipi: hayalet süsün üstünden başlayan sürükleme süsü taşır (kamera kaymaz)
+      if (this.edit && this.ghostV && this.pointers.size === 1) { const w = this.cameras.main.getWorldPoint(p.x, p.y); const [gx, gy] = this.ghostCenter(); this.dragGhost = Math.hypot(w.x - gx, (w.y - (gy - 12)) * 1.2) < 34 * this.uiScale; }
       if (this.pointers.size === 1) this.moved = 0;
       if (this.pointers.size === 2) { const [a, b] = [...this.pointers.values()] as unknown as [{ x: number; y: number }, { x: number; y: number }]; this.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), z: this.userZoom }; this.moved = 99; }
     });
@@ -152,11 +190,13 @@ export class CampScene extends Phaser.Scene {
         return;
       }
       this.moved = Math.max(this.moved, Math.hypot(p.x - s.x0, p.y - s.y0));
+      if (this.dragGhost && this.ghostV) { const w = cam.getWorldPoint(p.x, p.y); const [gx, gy] = pointCell(w.x, w.y + 8); const sz = decorById(this.ghostV.id)?.size ?? 1; this.moveGhost(gx - (sz - 1), gy); return; }
       if (this.moved > 6 * this.dpr) { this.restoreCam = null; cam.scrollX -= dx / cam.zoom; cam.scrollY -= dy / cam.zoom; this.vel.x = dx / cam.zoom; this.vel.y = dy / cam.zoom; this.clampCam(); }
     });
     const up = (p: Phaser.Input.Pointer) => {
       const s = this.pointers.get(p.id); this.pointers.delete(p.id);
       if (this.pointers.size < 2) this.pinch = null;
+      if (this.dragGhost) { this.dragGhost = false; this.moved = 99; return; }
       if (this.pointers.size === 1) { const o = [...this.pointers.values()][0]!; o.x0 = o.x; o.y0 = o.y; }
       if (s && this.pointers.size === 0 && this.moved <= 8 * this.dpr && this.time.now - s.t0 < 600) { this.vel.x = 0; this.vel.y = 0; this.tap(p.x, p.y); }
     };
@@ -166,9 +206,23 @@ export class CampScene extends Phaser.Scene {
 
   private tap(sx: number, sy: number) {
     const w = this.cameras.main.getWorldPoint(sx, sy);
+    if (this.edit) { const uid = this.hitDecor(w.x, w.y); this.opts.onEditTap?.(uid, pointCell(w.x, w.y + 8)); return; }
     for (const h of [...this.hots].reverse()) if (h.visible() && Math.hypot(w.x - h.x(), w.y - h.y()) < h.r * this.uiScale) { h.act(); return; }
+    const uid = this.hitDecor(w.x, w.y);
     const hit = this.hitBuilding(w.x, w.y);
+    if (uid != null && (!hit || (this.decorViews.get(uid)!.img.depth > this.views.get(hit)!.sprite.depth))) { const d = this.decorViews.get(uid)!; this.bounceImg(d.img); this.opts.onDecor?.(d.id, uid); return; }
     if (hit) { this.bounce(hit); this.opts.onTap(hit); }
+  }
+  /** dokunulan süs (piksel saydamlığına göre; en öndeki) */
+  hitDecor(wx: number, wy: number): number | null {
+    const order = [...this.decorViews.entries()].filter(([, d]) => d.img.visible).sort((a, b) => b[1].img.depth - a[1].img.depth);
+    for (const [uid, d] of order) {
+      const s = d.img; const tex = s.texture.getSourceImage() as HTMLCanvasElement;
+      let lx = (wx - s.x) / Math.abs(s.scaleX) + s.originX * tex.width; const ly = (wy - s.y) / s.scaleY + s.originY * tex.height;
+      if (s.flipX) lx = tex.width - lx;
+      if (lx >= 0 && ly >= 0 && lx < tex.width && ly < tex.height && (this.textures.getPixelAlpha(Math.floor(lx), Math.floor(ly), s.texture.key) ?? 0) > 30) return uid;
+    }
+    return null;
   }
   hitBuilding(wx: number, wy: number): BuildingId | null {
     const order = [...this.views.values()].sort((a, b) => b.sprite.depth - a.sprite.depth);
@@ -193,12 +247,16 @@ export class CampScene extends Phaser.Scene {
       const t = ((time / 5200) + i / 3) % 1; const k = 1.04 + t * 0.32;
       g.lineStyle(3 - t * 2, 0x9fe8ff, (1 - t) * 0.28);
       g.beginPath(); for (let j = 0; j <= 72; j++) { const a = (j / 72) * Math.PI * 2; const s = shoreK(a) * k; const x = ISLAND.cx + Math.cos(a) * ISLAND.rx * s, y = ISLAND.cy + 30 + Math.sin(a) * ISLAND.ry * s; if (j) g.lineTo(x, y); else g.moveTo(x, y); } g.strokePath();
+      for (const dv of this.dviews.values()) { if (!dv.open || i > 1) continue; const d = dv.d; g.lineStyle(2.5 - t * 1.6, 0x9fe8ff, (1 - t) * 0.24); g.strokeEllipse(d.cx, d.cy + 24, d.rx * 2 * k, d.ry * 2 * k); }
     }
     // arayüz ölçeği (ekranda sabit boy)
     const us = this.uiScale;
     for (const v of this.views.values()) { v.badge.setScale(us); if (v.build) { v.build.bubble.setScale(us); } }
     if (this.depot) this.depot.bubble.setScale(us);
     if (this.remedyBubble) this.remedyBubble.bubble.setScale(us);
+    if (this.libBubble) this.libBubble.bubble.setScale(us);
+    for (const dv of this.dviews.values()) dv.sign?.setScale(us);
+    for (const h of this.helpers) { if (!h.walking) continue; h.t += delta; if (h.t > 200) { h.t = 0; h.f = h.f ? 0 : 1; h.sprite.setFrame(`c-tuy-${h.c}-${h.f}`, false, false); } }
     // işçi yürüme kareleri
     for (const w of this.workers) { if (!w.walking) continue; w.frameT += delta; if (w.frameT > 170) { w.frameT = 0; this.workerFrame(w, w.f ? 0 : 1); } }
     if (time - this.lastTick > 250) { this.lastTick = time; this.tick(); }
@@ -215,10 +273,11 @@ export class CampScene extends Phaser.Scene {
       b.text.setText(left > 0 ? fmtLeft(left) : 'Bitiyor…');
       b.bar.clear(); b.bar.fillStyle(0x2d1d6e, 0.18); b.bar.fillRoundedRect(-30, -9, 60, 5, 2.5);
       b.bar.fillStyle(0x3ccf7e, 1); b.bar.fillRoundedRect(-30, -9, Math.max(5, 60 * Phaser.Math.Clamp(1 - left / total, 0, 1)), 5, 2.5);
-      b.help.setVisible(this.opts.canAskHelp && left > 0);
+      b.help.setVisible(!this.opts.readOnly && this.opts.canAskHelp && left > 0);
     }
     this.updateDepot(now);
     this.updateRemedy(now);
+    this.updateLib(now);
   }
 
   // ------------------------------------------------------------------ durum
@@ -237,7 +296,12 @@ export class CampScene extends Phaser.Scene {
       this.syncBuild(v, st);
     }
     this.updateZones(zonesBefore, initial);
+    const lvBefore = this.campLevel; this.campLevel = camp.xp?.level ?? this.campLevel;
+    if (this.campLevel !== lvBefore) this.updateDistricts(initial);
+    this.ensureViews();
+    this.syncDecor(camp.decor?.placed ?? []);
     this.syncWorkers();
+    this.syncHelpers();
     this.tick();
   }
   setTeam(team: CampTeam | null) { this.opts.team = team; this.refreshTeamFlag(); }
@@ -266,15 +330,19 @@ export class CampScene extends Phaser.Scene {
   }
 
   private setLevel(v: BView, level: number) {
-    const t = this.texFor(v.id, level);
+    const t = this.texFor(v.id, level); const old = v.key;
     v.level = level; v.goal = undefined; v.key = t.key; v.anchors = t.anchors;
     v.sprite.setTexture(t.key); const src = v.sprite.texture.getSourceImage() as HTMLCanvasElement; v.sprite.setOrigin(t.ox / src.width, t.oy / src.height);
+    // bellek: önceki seviyenin dokusu artık kullanılmıyorsa bırakılır (her seviye ayrı bir tuvaldir)
+    if (old !== t.key && this.textures.exists(old) && ![...this.views.values()].some((x) => x.key === old)) { this.textures.remove(old); this.texMeta.delete(old); }
     const tier = tierOf(level);
     v.badge.setVisible(level > 0); v.badgeImg.setFrame(`c-badge-${Math.max(0, tier)}`); v.badgeText.setText(String(level));
     this.rebuildFx(v);
     if (v.id === 'merkez') this.refreshTeamFlag();
     if (v.id === 'depo') this.ensureDepot();
     if (v.id === 'tedavi') this.ensureRemedy();
+    if (v.id === 'kutuphane') this.ensureLib();
+    if (v.id === 'park') this.syncHelpers();
   }
 
   /** bina efektleri: dişliler, ışıklar, duman, ses dalgası, kalp, parıltı */
@@ -286,7 +354,7 @@ export class CampScene extends Phaser.Scene {
     const k = BS[v.id]; const at = (p: [number, number]) => [l.x + p[0] * k, l.y + p[1] * k] as const;
     for (const [gx, gy, r] of a.gears) {
       const [x, y] = at([gx, gy]);
-      const g = this.add.image(x, y, ATLAS, `c-gear-${tier}`).setScale((r * k / 11) / TEX, (r * k / 11) / TEX * 0.82).setDepth(l.y + 0.5);
+      const g = this.add.image(x, y, ATLAS, `c-gear-${Math.min(4, tier)}`).setScale((r * k / 11) / TEX, (r * k / 11) / TEX * 0.82).setDepth(l.y + 0.5);
       v.fx.push(g); if (!calm) v.tweens.push(this.tweens.add({ targets: g, angle: 360 * (r > 6 ? 1 : -1), duration: 2600 + r * 300, repeat: -1 }));
     }
     for (const [lx, ly, c] of a.lights) {
@@ -313,6 +381,11 @@ export class CampScene extends Phaser.Scene {
       const [x, y] = at(a.heart);
       const h = this.add.image(x, y, ATLAS, 'c-heart').setScale(0.8).setDepth(l.y + 0.8);
       v.fx.push(h); if (!calm) v.tweens.push(this.tweens.add({ targets: h, y: y - 5, scale: 0.95, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
+    }
+    // Kristal (Sv 16+) ve Efsane (Sv 21+): binanın altında nabız gibi atan ışık halkası
+    if (tier >= 5) {
+      const ring = this.add.image(l.x, l.y + 2, ATLAS, 'c-ring').setTint(tier >= 6 ? 0xffd66b : 0xb49bff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9 * l.tiles / 2 * k).setAlpha(0.5).setDepth(l.y - 1);
+      v.fx.push(ring); if (!calm) v.tweens.push(this.tweens.add({ targets: ring, alpha: { from: 0.25, to: 0.7 }, scale: { from: 0.85 * l.tiles / 2 * k, to: 1.05 * l.tiles / 2 * k }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
     }
     if (!calm) for (const s of a.sparkles) {
       const [x, y] = at(s);
@@ -354,6 +427,7 @@ export class CampScene extends Phaser.Scene {
     v.build = { scaffold: sc, crane, dust, bubble, text, bar, help, fast, to: st.upgradingTo!, tw };
     const id = v.id;
     const owner = `build:${id}`;
+    if (this.opts.readOnly) { help.setVisible(false); fast.setVisible(false); this.syncWorkers(); return; }
     this.hots.push({ owner, x: () => bubble.x - 50 * this.uiScale, y: () => bubble.y - 16 * this.uiScale, r: 18, act: () => this.opts.onAskHelp(id), visible: () => help.visible });
     this.hots.push({ owner, x: () => bubble.x + 50 * this.uiScale, y: () => bubble.y - 16 * this.uiScale, r: 18, act: () => this.opts.onSpeedup(id), visible: () => true });
     this.hots.push({ owner, x: () => bubble.x, y: () => bubble.y - 18 * this.uiScale, r: 30, act: () => { this.bounce(id); this.opts.onTap(id); }, visible: () => true });
@@ -426,7 +500,7 @@ export class CampScene extends Phaser.Scene {
     const v = this.views.get('depo'); if (!v) return;
     if (this.depot) { this.depot.bubble.destroy(); this.depot.glow.destroy(); this.depot = undefined; }
     this.hots = this.hots.filter((h) => h.owner !== 'depot');
-    if (v.level <= 0) return;
+    if (v.level <= 0 || this.opts.readOnly) return;
     const l = LOTS.depo; const s = v.sprite; const topY = s.y - s.originY * s.displayHeight;
     const bg = this.add.image(0, 0, ATLAS, 'c-bubble-s').setScale(1 / TEX).setOrigin(0.5, 1);
     const coin = this.add.image(0, -18, ATLAS, 'c-coin').setScale(1 / TEX * 1.1);
@@ -442,7 +516,7 @@ export class CampScene extends Phaser.Scene {
   }
   private updateDepot(now: number) {
     const d = this.depot; if (!d) return;
-    const v = this.views.get('depo')!; const st = depotStored(v.level, this.opts.camp.depotStoredAt, now);
+    const v = this.views.get('depo')!; const st = depotStored(v.level, this.opts.camp.depotStoredAt, now, depotCapHours(this.opts.camp.buildings.find((b) => b.id === 'denge')?.level ?? 0));
     const show = st.stored >= Math.max(1, st.max * 0.1) && !v.build;
     d.bubble.setVisible(show); d.glow.setVisible(st.ratio >= 0.5); d.full = st.ratio >= 1; d.label.setVisible(d.full);
   }
@@ -464,7 +538,7 @@ export class CampScene extends Phaser.Scene {
     const v = this.views.get('tedavi'); if (!v) return;
     if (this.remedyBubble) { this.remedyBubble.bubble.destroy(); this.remedyBubble = undefined; }
     this.hots = this.hots.filter((h) => h.owner !== 'remedy');
-    if (v.level <= 0) return;
+    if (v.level <= 0 || this.opts.readOnly) return;
     const l = LOTS.tedavi; const s = v.sprite; const topY = s.y - s.originY * s.displayHeight;
     const bg = this.add.image(0, 0, ATLAS, 'c-bubble-s').setScale(1 / TEX).setOrigin(0.5, 1);
     const drop = this.add.image(-5, -18, ATLAS, 'c-drop').setScale(1 / TEX * 1.05);
@@ -478,7 +552,8 @@ export class CampScene extends Phaser.Scene {
   private updateRemedy(now: number) {
     const rb = this.remedyBubble; if (!rb) return;
     const v = this.views.get('tedavi')!; const r = this.opts.camp.remedy; const def = r?.item ? remedyById(r.item) : undefined;
-    const ready = def && r ? remedyShelf(def, v.level, r.since, now).ready : 0;
+    const tarama = this.opts.camp.buildings.find((b) => b.id === 'tarama')?.level ?? 0;
+    const ready = def && r ? remedyShelf(def, v.level, r.since, now, taramaFactor(tarama)).ready : 0;
     rb.ready = ready; rb.bubble.setVisible(ready > 0 && !v.build); if (ready > 0) rb.text.setText(`×${ready}`);
   }
   /** raftakiler toplandı: damlalar çantaya uçar */
@@ -652,7 +727,7 @@ export class CampScene extends Phaser.Scene {
       else if (!f.img.visible && should) f.img.setVisible(true).setAlpha(0.86);
     }
     for (const d of this.decor) {
-      const show = d.zone < Math.max(1, open) && (d.minMerkez == null || this.merkezLevel >= d.minMerkez) && (d.maxMerkez == null || this.merkezLevel <= d.maxMerkez);
+      const show = !d.covered && d.zone < Math.max(1, open) && (d.minMerkez == null || this.merkezLevel >= d.minMerkez) && (d.maxMerkez == null || this.merkezLevel <= d.maxMerkez);
       if (show === d.shown) continue;
       d.shown = show;
       if (show && !initial && open > before && d.obj.blendMode !== Phaser.BlendModes.ADD) { const sc = d.obj.scaleX; d.obj.setVisible(true).setScale(0); this.tweens.add({ targets: d.obj, scale: sc, duration: 500, delay: 600 + Math.random() * 900, ease: 'Back.Out' }); }
@@ -726,6 +801,252 @@ export class CampScene extends Phaser.Scene {
     this.tweens.add({ targets: s, scaleY: { from: s.scaleY, to: s.scaleY * 0.92 }, duration: 180, yoyo: true, repeat: -1, repeatDelay: 220 });
   }
 
+  // ------------------------------------------------------------------ bölgeler (Kamp Seviyesiyle açılan uydu adalar)
+  private placeDistricts() { for (const d of DISTRICTS) { const dv: DView = { d, open: false, fog: [], scatter: [] }; this.dviews.set(d.id, dv); this.renderDistrict(dv, this.campLevel >= d.level, true); } }
+  private updateDistricts(initial: boolean) { for (const dv of this.dviews.values()) { const open = this.campLevel >= dv.d.level; if (open !== dv.open) this.renderDistrict(dv, open, initial); } }
+  private renderDistrict(dv: DView, open: boolean, initial: boolean) {
+    const d = dv.d; const b = districtBox(d); const wasLocked = !dv.open && !!dv.img;
+    // eski görünümü kaldır (kilitli doku bellekten de çıkar)
+    const oldImg = dv.img, oldKey = dv.key, oldFog = dv.fog, oldSign = dv.sign;
+    dv.fog = []; dv.sign = undefined; this.hots = this.hots.filter((h) => h.owner !== `dist:${d.id}`);
+    dv.open = open;
+    if (open) {
+      const q = 1; // bölge zemini çözünürlüğü (bellek: en büyük bölge ~2 MB)
+      const key = makeTex(this.textures, `c-dist-${d.id}`, b.x1 - b.x0, b.y1 - b.y0, -b.x0, -b.y0, (c) => paintDistrict(c, d), q);
+      dv.key = key; dv.img = this.add.image(b.x0, b.y0, key).setOrigin(0, 0).setScale(1 / q).setDepth(DEPTH.ground + 1);
+      const bb = bridgeBox(d); const bk = makeTex(this.textures, `c-bridge-${d.id}`, bb.x1 - bb.x0, bb.y1 - bb.y0, -bb.x0, -bb.y0, (c) => paintBridge(c, d), 1.5);
+      dv.bridge = this.add.image(bb.x0, bb.y0, bk).setOrigin(0, 0).setScale(1 / 1.5).setDepth(DEPTH.ground + 2);
+      this.scatterDistrict(dv);
+      if (!initial && wasLocked) {
+        dv.img.setAlpha(0); this.tweens.add({ targets: dv.img, alpha: 1, duration: 1200, ease: 'Sine.Out' });
+        dv.bridge.setAlpha(0).setY(bb.y0 + 30); this.tweens.add({ targets: dv.bridge, alpha: 1, y: bb.y0, duration: 900, delay: 500, ease: 'Back.Out' });
+        this.celebrateLand(d);
+      }
+    } else {
+      const q = 0.3;
+      const key = makeTex(this.textures, `c-dist-${d.id}-l`, b.x1 - b.x0, b.y1 - b.y0, -b.x0, -b.y0, (c) => paintDistrictLocked(c, d), q);
+      dv.key = key; dv.img = this.add.image(b.x0, b.y0, key).setOrigin(0, 0).setScale(1 / q).setDepth(DEPTH.ground + 1).setAlpha(0.92);
+      const r = Phaser.Math.RND; r.sow([`sis-${d.id}`]);
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + r.frac() * 0.4; const x = d.cx + Math.cos(a) * d.rx * 0.45, y = d.cy + Math.sin(a) * d.ry * 0.45;
+        const img = this.add.image(x, y, ATLAS, `c-cloud-${Math.floor(r.frac() * 4)}`).setScale((1 + r.frac() * 0.4) / TEX).setDepth(y + 40).setAlpha(0.88);
+        if (!this.opts.reducedMotion) this.tweens.add({ targets: img, x: x + 16, duration: 4500 + r.frac() * 3000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+        dv.fog.push(img);
+      }
+      const lock = this.add.image(0, 0, ATLAS, 'c-lock').setScale(1 / TEX);
+      const label = this.add.text(0, -46, `${d.name}\nKamp Sv ${d.level}`, { fontFamily: FONT, fontSize: '13px', fontStyle: '900', color: '#ffffff', align: 'center', stroke: '#2d1d6e', strokeThickness: 4 }).setOrigin(0.5, 1).setResolution(this.dpr * 1.5);
+      dv.sign = this.add.container(d.cx, d.cy + 10, [lock, label]).setDepth(DEPTH.fog + 5);
+      this.hots.push({ owner: `dist:${d.id}`, x: () => d.cx, y: () => d.cy - 10, r: 40, act: () => this.opts.onDistrict?.(d.id), visible: () => true });
+    }
+    if (oldImg) oldImg.destroy();
+    if (oldKey && oldKey !== dv.key && this.textures.exists(oldKey)) this.textures.remove(oldKey);
+    for (const f of oldFog) { if (initial) f.destroy(); else this.tweens.add({ targets: f, alpha: 0, y: f.y - 40, scale: f.scale * 1.6, duration: 1400 + Math.random() * 500, ease: 'Sine.In', onComplete: () => f.destroy() }); }
+    oldSign?.destroy();
+  }
+  /** bölgenin iç alanına birkaç süs (ağaç/çiçek/çalı); yerleştirilen süsün altında kalanlar gizlenir */
+  private scatterDistrict(dv: DView) {
+    for (const o of dv.scatter) o.destroy(); dv.scatter = [];
+    const d = dv.d; const r = Phaser.Math.RND; r.sow([`dagit-${d.id}`]);
+    const n = d.id === 'orman' ? 46 : 24;
+    for (let i = 0; i < n * 3 && dv.scatter.length < n; i++) {
+      const x = d.cx + (r.frac() - 0.5) * d.rx * 1.7, y = d.cy + (r.frac() - 0.5) * d.ry * 1.7;
+      if (!inDistrict(d, x, y, 0.8)) continue;
+      if (d.buildings.some((id) => { const l = LOTS[id]; return Math.abs(x - l.x) < 90 && y > l.y - 110 && y < l.y + 46; })) continue;
+      if (d.id === 'koy' && Math.hypot(x - (d.cx - 10), (y - (d.cy + 100)) * 2) < 74) continue; // lagün
+      const roll = r.frac();
+      const key = d.id === 'orman' ? (roll < 0.7 ? `c-hair-${Math.floor(r.frac() * 4)}` : `c-flower-${Math.floor(r.frac() * 4)}`) : d.id === 'koru' ? (roll < 0.45 ? `c-pine-${Math.floor(r.frac() * 2)}` : roll < 0.75 ? `c-bush-${Math.floor(r.frac() * 2)}` : `c-flower-${Math.floor(r.frac() * 4)}`) : roll < 0.25 ? `c-tree-${Math.floor(r.frac() * 5)}` : roll < 0.75 ? `c-flower-${Math.floor(r.frac() * 4)}` : `c-rock-${Math.floor(r.frac() * 2)}`;
+      dv.scatter.push(this.add.image(x, y, ATLAS, key).setScale((key.startsWith('c-tree') || key.startsWith('c-hair') || key.startsWith('c-pine') ? 0.85 + r.frac() * 0.3 : 1) / TEX).setDepth(y));
+    }
+    this.coverScatter();
+  }
+  /** yeni bölge açıldı: ışık, konfeti, havai fişek; kamera bölgeye kayar */
+  private celebrateLand(d: District) {
+    const calm = !!this.opts.reducedMotion; const cam = this.cameras.main;
+    if (!this.opts.readOnly) cam.pan(d.cx, d.cy - 20, calm ? 1 : 900, 'Sine.easeInOut', true);
+    this.time.delayedCall(calm ? 50 : 700, () => {
+      const glow = this.add.image(d.cx, d.cy - 20, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0b0).setScale(0.6).setDepth(DEPTH.fx);
+      this.tweens.add({ targets: glow, scale: 9, alpha: { from: 1, to: 0 }, duration: 1300, ease: 'Cubic.Out', onComplete: () => glow.destroy() });
+      const rays = this.add.image(d.cx, d.cy - 20, ATLAS, 'c-rays').setBlendMode(Phaser.BlendModes.ADD).setScale(0.4).setDepth(DEPTH.fx);
+      this.tweens.add({ targets: rays, scale: 2.2, angle: 70, alpha: { from: 1, to: 0 }, duration: 1600, ease: 'Cubic.Out', onComplete: () => rays.destroy() });
+      if (!calm) {
+        const conf = this.add.particles(d.cx, d.cy - 30, ATLAS, { frame: 'c-confetti', speed: { min: 90, max: 260 }, angle: { min: 200, max: 340 }, gravityY: 240, lifespan: 1700, rotate: { min: 0, max: 360 }, scale: { start: 1.3, end: 0.6 }, alpha: { start: 1, end: 0 }, tint: [0xffc93c, 0xff5c8a, 0x2ee6d6, 0x8ef0b0, 0x8b6bff], emitting: false }).setDepth(DEPTH.fx);
+        conf.explode(110); this.time.delayedCall(1900, () => conf.destroy());
+        for (let i = 0; i < 4; i++) this.time.delayedCall(300 + i * 260, () => this.firework(d.cx + (i - 1.5) * 70, d.cy - 80 - (i % 2) * 20));
+      }
+    });
+  }
+  /** açık bölgelerin binaları için görünüm (kilitliler çizilmez) */
+  private ensureViews() {
+    for (const dv of this.dviews.values()) {
+      if (!dv.open) continue;
+      for (const id of dv.d.buildings) if (!this.views.has(id)) { this.makeView(id, 0); const st = this.opts.camp.buildings.find((b) => b.id === id); if (st) { this.setLevel(this.views.get(id)!, st.level); this.syncBuild(this.views.get(id)!, st); } }
+    }
+  }
+  /** bölgenin orta noktası (oyun pikseli) */
+  districtPoint(id: string): { x: number; y: number } | null { const dv = this.dviews.get(id); if (!dv) return null; const cam = this.cameras.main; return { x: (dv.d.cx - cam.worldView.x) * cam.zoom, y: (dv.d.cy - 20 - cam.worldView.y) * cam.zoom }; }
+  focusDistrict(id: string) { const dv = this.dviews.get(id); if (dv) this.cameras.main.pan(dv.d.cx, dv.d.cy - 20, 600, 'Sine.easeInOut', true); }
+  openDistricts(): string[] { return [...this.dviews.values()].filter((d) => d.open).map((d) => d.d.id); }
+
+  // ------------------------------------------------------------------ süslemeler
+  private decorTex(id: string): string {
+    const sz = decorById(id)?.size ?? 1; const b = DECOR_BOX[sz];
+    return makeTex(this.textures, `c-dec-${id}`, b.w, b.h, b.ox, b.oy, (c) => paintDecor(c, id));
+  }
+  private decorPos(id: string, gx: number, gy: number): [number, number] { const sz = decorById(id)?.size ?? 1; return cellPoint(gx + (sz - 1) / 2, gy + (sz - 1) / 2); }
+  private placeDecorImg(img: Phaser.GameObjects.Image, id: string, gx: number, gy: number, flip: boolean) {
+    const sz = decorById(id)?.size ?? 1; const b = DECOR_BOX[sz]; const [x, y] = this.decorPos(id, gx, gy);
+    img.setPosition(x, y).setOrigin(b.ox / b.w, b.oy / b.h).setScale(1 / TEX).setFlipX(flip).setDepth(y + 0.2);
+  }
+  syncDecor(placed: DecorPlaced[]) {
+    const seen = new Set<number>();
+    for (const p of placed) {
+      seen.add(p.uid); let v = this.decorViews.get(p.uid);
+      if (!v) {
+        const img = this.add.image(0, 0, this.decorTex(p.id)); v = { img, id: p.id, gx: p.gx, gy: p.gy, flip: p.flip }; this.decorViews.set(p.uid, v);
+        this.placeDecorImg(img, p.id, p.gx, p.gy, p.flip);
+        if (!this.opts.reducedMotion && this.ready) { const sc = img.scaleY; img.setScale(img.scaleX * 0.3, sc * 0.3); this.tweens.add({ targets: img, scaleX: (p.flip ? 1 : 1) / TEX, scaleY: sc, duration: 420, ease: 'Back.Out' }); }
+      } else if (v.gx !== p.gx || v.gy !== p.gy || v.flip !== p.flip) { v.gx = p.gx; v.gy = p.gy; v.flip = p.flip; this.placeDecorImg(v.img, p.id, p.gx, p.gy, p.flip); }
+      v.img.setVisible(!(this.ghostV?.uid === p.uid));
+    }
+    for (const [uid, v] of this.decorViews) if (!seen.has(uid)) { v.img.destroy(); this.decorViews.delete(uid); }
+    this.coverScatter();
+  }
+  /** yerleştirilen süslerin altında kalan ağaç/çiçekleri gizle */
+  private coverScatter() {
+    const spots = [...this.decorViews.values()].map((v) => { const [x, y] = this.decorPos(v.id, v.gx, v.gy); return { x, y, r: (decorById(v.id)?.size ?? 1) * 22 }; });
+    const hit = (x: number, y: number) => spots.some((p) => Math.hypot(x - p.x, (y - p.y) * 1.6) < p.r);
+    for (const d of this.decor) { if (d.minMerkez != null || d.obj.blendMode === Phaser.BlendModes.ADD) continue; d.covered = hit(d.obj.x, d.obj.y); }
+    this.updateZones(zonesOpen(this.merkezLevel), true);
+    for (const dv of this.dviews.values()) for (const o of dv.scatter) o.setVisible(!hit(o.x, o.y));
+  }
+  /** süsleme kipi (hayalet süs, seçili süs halkası) */
+  setEdit(on: boolean) { this.edit = on; if (!on) { this.setGhost(null); this.selectDecor(null); } }
+  /** seçili süsün altına halka */
+  selectDecor(uid: number | null) {
+    this.selRing?.destroy(); this.selRing = undefined; if (uid == null) return;
+    const v = this.decorViews.get(uid); if (!v) return; const sz = decorById(v.id)?.size ?? 1; const [x, y] = this.decorPos(v.id, v.gx, v.gy);
+    const g = this.add.graphics().setDepth(v.img.depth - 0.1); g.lineStyle(2.5, 0xffc93c, 1); g.strokeEllipse(x, y, 34 * sz, 17 * sz); g.lineStyle(1, 0xffffff, 0.8); g.strokeEllipse(x, y, 40 * sz, 20 * sz);
+    if (!this.opts.reducedMotion) this.tweens.add({ targets: g, alpha: { from: 1, to: 0.45 }, duration: 600, yoyo: true, repeat: -1 });
+    this.selRing = g;
+  }
+  /** bu hücreler boş mu (arazi, arsa, başka süs; taşınan süs kendisini saymaz) */
+  decorFits(id: string, gx: number, gy: number, except?: number): boolean {
+    const sz = decorById(id)?.size ?? 1; const taken = new Set<string>();
+    for (const [uid, v] of this.decorViews) { if (uid === except) continue; for (const [x, y] of footprint(v.gx, v.gy, decorById(v.id)?.size ?? 1)) taken.add(`${x},${y}`); }
+    return footprint(gx, gy, sz).every(([x, y]) => cellFree(x, y, this.campLevel) && !taken.has(`${x},${y}`));
+  }
+  private ghostCenter(): [number, number] { const g = this.ghostV; if (!g) return [0, 0]; return this.decorPos(g.id, g.gx, g.gy); }
+  /** hayalet süs: yeni yerleştirme ya da taşıma (uid). Hücre verilmezse ekran ortasına en yakın boş hücre. */
+  setGhost(g: { id: string; flip: boolean; uid?: number; gx?: number; gy?: number } | null): { gx: number; gy: number; ok: boolean } | null {
+    if (this.ghostV) { const old = this.ghostV; old.img.destroy(); old.foot.destroy(); if (old.uid != null) this.decorViews.get(old.uid)?.img.setVisible(true); this.ghostV = undefined; }
+    if (!g) return null;
+    let gx = g.gx, gy = g.gy;
+    if (gx == null || gy == null) {
+      // alt panel ekranın alt yarısını örter: hayalet ekranın üst üçte birine yakın bir boş hücreye konur
+      const cam = this.cameras.main; const [cx, cy] = pointCell(cam.midPoint.x, cam.midPoint.y - (cam.height / cam.zoom) * 0.12); gx = cx; gy = cy;
+      outer: for (let r = 0; r < 14; r++) for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) { if (Math.max(Math.abs(i), Math.abs(j)) !== r) continue; if (this.decorFits(g.id, cx + i, cy + j, g.uid)) { gx = cx + i; gy = cy + j; break outer; } }
+    }
+    const img = this.add.image(0, 0, this.decorTex(g.id)).setAlpha(0.85);
+    const foot = this.add.graphics();
+    this.ghostV = { img, foot, id: g.id, gx, gy, flip: g.flip, uid: g.uid, ok: false };
+    if (g.uid != null) this.decorViews.get(g.uid)?.img.setVisible(false);
+    if (!this.opts.reducedMotion) this.tweens.add({ targets: img, alpha: { from: 0.95, to: 0.65 }, duration: 700, yoyo: true, repeat: -1 });
+    const r = this.moveGhost(gx, gy, true);
+    const [px, py] = this.decorPos(g.id, gx, gy); const cam = this.cameras.main; this.restoreCam = null;
+    cam.pan(px, py + (cam.height / cam.zoom) * 0.14, this.opts.reducedMotion ? 1 : 350, 'Sine.easeInOut', true);
+    return r;
+  }
+  /** hayaleti hücreye taşı (geçerliyse yeşil, değilse kırmızı taban) */
+  moveGhost(gx: number, gy: number, force = false): { gx: number; gy: number; ok: boolean } | null {
+    const g = this.ghostV; if (!g) return null;
+    if (!force && g.gx === gx && g.gy === gy) return { gx, gy, ok: g.ok };
+    g.gx = gx; g.gy = gy; g.ok = this.decorFits(g.id, gx, gy, g.uid);
+    this.placeDecorImg(g.img, g.id, gx, gy, g.flip); g.img.setDepth(DEPTH.ui - 20);
+    const f = g.foot; f.clear(); f.setDepth(DEPTH.ui - 21);
+    const sz = decorById(g.id)?.size ?? 1; const col = g.ok ? 0x3ccf7e : 0xff5c5c;
+    // çevre ızgarası (yakın hücreler soluk) + kapladığı hücreler renkli
+    f.lineStyle(1, 0xffffff, 0.22);
+    for (let i = -2; i < sz + 2; i++) for (let j = -2; j < sz + 2; j++) { const [x, y] = cellPoint(gx + i, gy + j); f.strokePoints([{ x, y: y - 8 }, { x: x + 16, y }, { x, y: y + 8 }, { x: x - 16, y }], true); }
+    for (const [cx, cy] of footprint(gx, gy, sz)) { const [x, y] = cellPoint(cx, cy); f.fillStyle(col, 0.45); f.fillPoints([{ x, y: y - 8 }, { x: x + 16, y }, { x, y: y + 8 }, { x: x - 16, y }], true); f.lineStyle(1.6, col, 1); f.strokePoints([{ x, y: y - 8 }, { x: x + 16, y }, { x, y: y + 8 }, { x: x - 16, y }], true); }
+    this.opts.onGhost?.({ gx, gy, ok: g.ok });
+    return { gx, gy, ok: g.ok };
+  }
+  /** hayaleti çevir */
+  flipGhost(): boolean { const g = this.ghostV; if (!g) return false; g.flip = !g.flip; g.img.setFlipX(g.flip); return g.flip; }
+  ghostState(): { id: string; gx: number; gy: number; flip: boolean; ok: boolean; uid?: number } | null { const g = this.ghostV; return g ? { id: g.id, gx: g.gx, gy: g.gy, flip: g.flip, ok: g.ok, ...(g.uid != null ? { uid: g.uid } : {}) } : null; }
+  /** süsün ekran noktası (oyun pikseli) */
+  decorPoint(uid: number): { x: number; y: number } | null { const v = this.decorViews.get(uid); if (!v) return null; const cam = this.cameras.main; const [x, y] = this.decorPos(v.id, v.gx, v.gy); return { x: (x - cam.worldView.x) * cam.zoom, y: (y - 12 - cam.worldView.y) * cam.zoom }; }
+  /** hayaletin ekran noktası */
+  ghostPoint(): { x: number; y: number } | null { if (!this.ghostV) return null; const cam = this.cameras.main; const [x, y] = this.ghostCenter(); return { x: (x - cam.worldView.x) * cam.zoom, y: (y - 12 - cam.worldView.y) * cam.zoom }; }
+  /** yeni süs yerleşti: parıltı */
+  decorPlaced(uid: number) { const v = this.decorViews.get(uid); if (!v) return; const [x, y] = this.decorPos(v.id, v.gx, v.gy); const p = this.add.particles(x, y - 14, ATLAS, { frame: 'c-sparkle', speed: { min: 30, max: 90 }, lifespan: 700, scale: { start: 0.5, end: 0 }, blendMode: 'ADD', tint: [0xffc93c, 0x8ef0b0, 0xffffff], emitting: false }).setDepth(DEPTH.fx); p.explode(this.opts.reducedMotion ? 6 : 18); this.time.delayedCall(800, () => p.destroy()); this.bounceImg(v.img); }
+
+  // ------------------------------------------------------------------ tüy hücresi yardımcıları (Kamp Seviyesi ve Park ile çoğalır)
+  private syncHelpers() {
+    const park = this.opts.camp.buildings.find((b) => b.id === 'park')?.level ?? 0;
+    const want = Math.min(10, 1 + Math.floor(this.campLevel / 3) + Math.floor(park / 4));
+    while (this.helpers.length < want) {
+      const i = this.helpers.length; const [x, y] = this.landPoint();
+      const sprite = this.add.image(x, y, ATLAS, `c-tuy-${i % HELPER_COLORS.length}-0`).setOrigin(0.5, 0.9).setScale(1 / TEX * 1.15).setDepth(y);
+      const h: Helper = { sprite, c: i % HELPER_COLORS.length, f: 0, t: 0, walking: false };
+      this.helpers.push(h); this.time.delayedCall(400 + i * 350, () => this.helperWalk(h));
+    }
+  }
+  /** açık arazide rastgele bir nokta (arsalar dışında) */
+  private landPoint(): [number, number] {
+    const open = [...this.dviews.values()].filter((d) => d.open).map((d) => d.d);
+    for (let k = 0; k < 30; k++) {
+      const useD = open.length && Math.random() < 0.35 ? open[Math.floor(Math.random() * open.length)]! : null;
+      const x = useD ? useD.cx + (Math.random() - 0.5) * useD.rx * 1.4 : (Math.random() - 0.5) * ISLAND.rx * 1.5;
+      const y = useD ? useD.cy + (Math.random() - 0.5) * useD.ry * 1.4 : ISLAND.cy + (Math.random() - 0.5) * ISLAND.ry * 1.4;
+      const ok = useD ? inDistrict(useD, x, y, 0.75) : onIsland(x, y, 0.8);
+      if (ok && !BUILDING_ORDER.some((id) => { const l = LOTS[id]; return Math.abs(x - l.x) < 70 && Math.abs(y - l.y) < 40; })) return [x, y];
+    }
+    return [0, 60];
+  }
+  private helperWalk(h: Helper) {
+    if (!h.sprite.active) return;
+    const s = h.sprite; let [x, y] = this.landPoint();
+    // yakın bir hedef (aynı kara parçasında kalsın): uzaksa yarı yola
+    if (Math.hypot(x - s.x, y - s.y) > 260) { x = s.x + (x - s.x) * 0.3; y = s.y + (y - s.y) * 0.3; if (!onIsland(x, y, 0.85) && ![...this.dviews.values()].some((d) => d.open && inDistrict(d.d, x, y, 0.8))) { x = s.x; y = s.y; } }
+    s.setFlipX(x < s.x); h.walking = true;
+    h.tw = this.tweens.add({ targets: s, x, y, duration: Math.max(400, Math.hypot(x - s.x, (y - s.y) * 2) * 55), onUpdate: () => s.setDepth(s.y), onComplete: () => {
+      h.walking = false; s.setFrame(`c-tuy-${h.c}-0`, false, false);
+      // durup dinler: tüyleri titrer, bazen nota çıkar
+      if (!this.opts.reducedMotion && Math.random() < 0.4) { const n = this.add.image(s.x, s.y - 18, ATLAS, `c-note-${Math.floor(Math.random() * 4)}`).setScale(0.4).setDepth(DEPTH.fx); this.tweens.add({ targets: n, y: n.y - 26, alpha: { from: 1, to: 0 }, duration: 1600, onComplete: () => n.destroy() }); }
+      h.tw = this.tweens.add({ targets: s, scaleY: s.scaleY * 0.92, duration: 260, yoyo: true, repeat: 2, onComplete: () => this.helperWalk(h) });
+    } });
+  }
+
+  // ------------------------------------------------------------------ Kütüphane okuma köşesi (Kamp XP)
+  private ensureLib() {
+    const v = this.views.get('kutuphane');
+    if (this.libBubble) { this.libBubble.bubble.destroy(); this.libBubble = undefined; }
+    this.hots = this.hots.filter((h) => h.owner !== 'lib');
+    if (!v || v.level <= 0 || this.opts.readOnly) return;
+    const l = LOTS.kutuphane; const s = v.sprite; const topY = s.y - s.originY * s.displayHeight;
+    const bg = this.add.image(0, 0, ATLAS, 'c-bubble-s').setScale(1 / TEX).setOrigin(0.5, 1);
+    const icon = this.add.image(-6, -18, ATLAS, 'c-book').setScale(1 / TEX * 1.1);
+    const text = this.add.text(9, -18, '', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#2d1d6e' }).setOrigin(0.5).setResolution(this.dpr * 1.5);
+    const bubble = this.add.container(l.x + 8, topY - 4, [bg, icon, text]).setDepth(DEPTH.ui).setVisible(false);
+    if (!this.opts.reducedMotion) this.tweens.add({ targets: bubble, y: topY - 10, duration: 720, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    this.libBubble = { bubble, text };
+    this.hots.push({ owner: 'lib', x: () => bubble.x, y: () => bubble.y - 16 * this.uiScale, r: 22, act: () => this.opts.onCollectLib?.(), visible: () => bubble.visible });
+    this.updateLib(this.opts.now());
+  }
+  private updateLib(now: number) {
+    const lb = this.libBubble; if (!lb) return; const v = this.views.get('kutuphane'); if (!v) return;
+    const st = libStored(v.level, this.opts.camp.libAt ?? 0, now);
+    lb.bubble.setVisible(st.stored >= Math.max(1, st.max * 0.1) && !v.build); lb.text.setText(`+${st.stored}`);
+  }
+  /** Kütüphane toplandı: XP notaları uçar */
+  libCollected(n: number) {
+    const l = LOTS.kutuphane; const x = l.x, y = l.y - 40;
+    for (let i = 0; i < Math.min(10, 3 + Math.round(n / 6)); i++) { const d = this.add.image(x + (Math.random() - 0.5) * 24, y, ATLAS, 'c-book').setScale(1 / TEX).setDepth(DEPTH.fx); this.tweens.add({ targets: d, y: y - 50 - Math.random() * 30, x: d.x + (Math.random() - 0.5) * 50, alpha: { from: 1, to: 0 }, duration: 900, delay: i * 50, ease: 'Quad.Out', onComplete: () => d.destroy() }); }
+    this.floatText(x, y - 36, `+${n} XP`, '#c8b6ff', 20);
+    this.updateLib(this.opts.now());
+  }
+
   // ------------------------------------------------------------------ dış yardımcılar
   bounce(id: BuildingId) {
     const v = this.views.get(id); if (!v) return; const s = v.sprite; const sx = BS[id] / TEX;
@@ -752,10 +1073,10 @@ export class CampScene extends Phaser.Scene {
     if (above && !this.restoreCam) this.restoreCam = { x: cam.midPoint.x, y: cam.midPoint.y };
     const midY = v ? v.sprite.y - v.sprite.originY * v.sprite.displayHeight * 0.5 : l.y - 30;
     const viewH = cam.height / cam.zoom;
-    cam.pan(l.x, above ? midY + viewH * 0.2 : midY, 450, 'Sine.easeInOut');
+    cam.pan(l.x, above ? midY + viewH * 0.2 : midY, 450, 'Sine.easeInOut', true);
   }
   unfocus() {
     const r = this.restoreCam; this.restoreCam = null; if (!r) return;
-    this.cameras.main.pan(r.x, r.y, 400, 'Sine.easeInOut');
+    this.cameras.main.pan(r.x, r.y, 400, 'Sine.easeInOut', true);
   }
 }

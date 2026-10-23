@@ -5,7 +5,8 @@ import { CampScene, type CampSceneOpts, type CampTeam } from './CampScene';
 export type { CampSceneOpts as CampOptions, CampTeam } from './CampScene';
 export { buildingCanvas, PAINT_BOX, TIER_ACCENT } from './buildings';
 export { MONUMENT_ORDER, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
-export { BUILDING_ORDER, LOTS, CAMP_TIER_NAMES, ZONE_LEVELS, DEPOT_CAP_H, DEPOT_RATE, activeBuild, depotStored, levelOf, tierChanged, tierOf, zonesOpen } from './layout';
+export { decorCanvas, DECOR_BOX } from './decor';
+export { BUILDING_ORDER, MAIN_BUILDINGS, DISTRICT_BUILDINGS, LOTS, CAMP_TIER_NAMES, ZONE_LEVELS, DEPOT_CAP_H, DEPOT_RATE, activeBuild, depotStored, levelOf, tierChanged, tierOf, zonesOpen } from './layout';
 
 /** etkileşimde 60 fps; 6 sn dokunuş yoksa 30 fps (animasyonlar sürer, işlemci yarıya iner) */
 const ACTIVE_FPS = 61, IDLE_FPS = 30, IDLE_AFTER_MS = 6000;
@@ -30,6 +31,25 @@ export interface CampHandle {
   view(): { x: number; y: number; zoom: number } | null;
   /** panel kapanınca kamerayı önceki yerine döndür */
   unfocus(): void;
+  /** Kütüphane okuma köşesi toplandı */
+  libCollected(n: number): void;
+  /** süsleme kipi aç/kapat */
+  setEdit(on: boolean): void;
+  /** hayalet süs (yeni yerleştirme ya da uid ile taşıma); null kaldırır. Dönüş: hücre ve uygunluk */
+  setGhost(g: { id: string; flip: boolean; uid?: number; gx?: number; gy?: number } | null): { gx: number; gy: number; ok: boolean } | null;
+  flipGhost(): boolean;
+  /** hayaleti hücreye taşı (dokunulan yere) */
+  moveGhost(gx: number, gy: number): { gx: number; gy: number; ok: boolean } | null;
+  ghostState(): { id: string; gx: number; gy: number; flip: boolean; ok: boolean; uid?: number } | null;
+  selectDecor(uid: number | null): void;
+  /** yeni yerleşen süse parıltı */
+  decorPlaced(uid: number): void;
+  /** süsün / hayaletin / bölgenin ekrandaki noktası (CSS px, sayfa koordinatı; test) */
+  decorPos(uid: number): { x: number; y: number } | null;
+  ghostPos(): { x: number; y: number } | null;
+  districtPos(id: string): { x: number; y: number } | null;
+  focusDistrict(id: string): void;
+  openDistricts(): string[];
   /** döngüyü uyut/uyandır (ekranda değilken) */
   sleep(on: boolean): void;
   destroy(): void;
@@ -74,6 +94,8 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
   const onVis = () => { if (!game.loop) return; if (document.hidden) game.loop.sleep(); else { game.loop.wake(); boost(); } };
   document.addEventListener('visibilitychange', onVis);
   let dead = false;
+  /** oyun pikseli → sayfa CSS pikseli */
+  const page = (p: { x: number; y: number } | null) => { if (!p || !game.canvas) return null; const r = game.canvas.getBoundingClientRect(); return { x: r.left + p.x / dpr, y: r.top + p.y / dpr }; };
   return {
     update: (p) => run(() => { if (p.camp) boost(4000); if (p.team !== undefined) scene.setTeam(p.team); if (p.canAskHelp !== undefined) scene.setCanAskHelp(p.canAskHelp); if (p.camp) scene.applyState(p.camp); if (p.regions) { boost(4000); scene.setRegions(p.regions, p.celebrate); } }),
     remediesCollected: (n) => run(() => { boost(3000); scene.remediesCollected(n); }),
@@ -88,6 +110,19 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
       const r = game.canvas.getBoundingClientRect(); return { x: r.left + p.x / dpr, y: r.top + p.y / dpr };
     },
     bounce: (id) => run(() => scene.bounce(id)),
+    libCollected: (n) => run(() => { boost(3000); scene.libCollected(n); }),
+    setEdit: (on) => run(() => { boost(2000); scene.setEdit(on); }),
+    setGhost: (g) => { if (!scene.ready) return null; boost(3000); return scene.setGhost(g); },
+    flipGhost: () => { if (!scene.ready) return false; boost(1000); return scene.flipGhost(); },
+    moveGhost: (gx, gy) => { if (!scene.ready) return null; boost(1500); return scene.moveGhost(gx, gy); },
+    ghostState: () => (scene.ready ? scene.ghostState() : null),
+    selectDecor: (uid) => run(() => { boost(1500); scene.selectDecor(uid); }),
+    decorPlaced: (uid) => run(() => { boost(2000); scene.decorPlaced(uid); }),
+    decorPos: (uid) => page(scene.ready ? scene.decorPoint(uid) : null),
+    ghostPos: () => page(scene.ready ? scene.ghostPoint() : null),
+    districtPos: (id) => page(scene.ready ? scene.districtPoint(id) : null),
+    focusDistrict: (id) => run(() => { boost(1500); scene.focusDistrict(id); }),
+    openDistricts: () => (scene.ready ? scene.openDistricts() : []),
     view: () => { if (!scene.ready) return null; const c = scene.cameras.main; return { x: c.midPoint.x, y: c.midPoint.y, zoom: scene.userZoom }; },
     unfocus: () => run(() => { boost(1200); scene.unfocus(); }),
     focus: (id, above) => run(() => { boost(1500); scene.focus(id, above); }),

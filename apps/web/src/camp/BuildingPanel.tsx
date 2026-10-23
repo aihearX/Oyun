@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
+import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
 import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canUpgrade, defOf, effect, infoOf, unlockLabel, type CampActions } from './model';
-import { nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
+import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, askedHelp, buildKey, canUpgrade, defOf, effect, infoOf, unlockLabel, type CampActions } from './model';
+import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
 import { RemedyIcon } from './remedyArt';
@@ -59,7 +59,8 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, [onClose]);
   const run = async (f: () => Promise<unknown>) => { if (busy) return; setBusy(true); audio.play('tap'); try { await f(); } finally { setBusy(false); } };
   const tierNext = !max && tierOf(to) !== tierOf(b.level);
-  const depot = id === 'depo' && b.level > 0 ? depotStored(b.level, camp.depotStoredAt, sNow) : null;
+  const depot = id === 'depo' && b.level > 0 ? depotStored(b.level, camp.depotStoredAt, sNow, depotCapHours(camp.buildings.find((x) => x.id === 'denge')?.level ?? 0)) : null;
+  const lib = id === 'kutuphane' && b.level > 0 ? libStored(b.level, camp.libAt ?? 0, sNow) : null;
 
   // üs görünümü sabit konumlu bir katman: panel sekme çubuğunun üstünde kalsın diye body'ye taşınır
   return createPortal(
@@ -90,6 +91,15 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
           </div>
         )}
 
+        {lib && (
+          <div className="bp-depot bp-lib">
+            <div className="row between"><b>Okuma köşesi</b><span className="qn"><Art name="xp" size={18} className="art-inline" /> {fmtNum(lib.stored)} / {fmtNum(lib.max)} XP</span></div>
+            <div className="bp-bar"><i style={{ width: `${Math.round(lib.ratio * 100)}%` }} className={lib.ratio >= 1 ? 'full' : ''} /></div>
+            <div className="row between"><span className="bp-note">{lib.ratio >= 1 ? 'Raflar dolu! Topla ki okuma sürsün.' : `Saatte ${b.level * 2} Kamp XP`}</span>
+              <button className="btn small gold" disabled={busy || lib.stored < 1} onClick={() => void run(async () => { await actions.libCollect(); })}>Topla{lib.stored >= 1 ? ` +${fmtNum(lib.stored)}` : ''}</button></div>
+          </div>
+        )}
+
         {building ? (
           <div className="bp-build">
             <div className="row between"><b><Art e="🏗️" size="1.15em" className="art-inline" /> Sv {b.upgradingTo} yapılıyor</b><span className="countdown big-count" aria-live="off">{left > 0 ? fmtLeft(left) : 'Bitiyor…'}</span></div>
@@ -106,7 +116,8 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
         ) : max ? <div className="bp-note">En yüksek seviyede. Tebrikler!</div> : (
           <div className="bp-up">
             <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
-            {tierNext && <div className="bp-next"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: yeni görünüm!</b><br />{CAMP_TIER_NAMES[tierOf(to)]} {b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}</span></div>}
+            <div className="bp-next" data-testid="sonraki-gorunum"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: {tierNext ? 'yeni görünüm!' : 'yeni bir ekleme'}</b><br />{tierNext ? `${CAMP_TIER_NAMES[tierOf(to)]} ${b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}` : id === 'merkez' ? 'Merkez her seviyede yeni bir parça kazanır' : 'Binanın çevresi süslenir'}</span></div>
+            {POWER_BUILDINGS.includes(id) && to > CAMP_POWER_LEVEL && <div className="bp-note">Bina gücü Sv {CAMP_POWER_LEVEL}’te tavan yapar; sonraki seviyeler yeni görünüm ve Kamp XP’si verir.</div>}
             <button className="btn" disabled={busy || !verdict.ok} onClick={() => void run(() => actions.upgrade(id))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
             {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
           </div>

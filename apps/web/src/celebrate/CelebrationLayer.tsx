@@ -21,7 +21,7 @@ import './celebrate.css';
 type Tier = 'bronz' | 'gumus' | 'altin';
 type Scene =
   | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number }
-  | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number }
+  | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
   | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number };
 
 interface Job { run: () => Promise<void>; done: () => void }
@@ -130,10 +130,10 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await sleep(reduced.current ? 0 : 150);
   };
 
-  const runLevelUp = async (o: { level: number; unlocks?: string[] }) => {
+  const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string }) => {
     const unlocks = o.unlocks ?? [];
     audio.duck(3, 0.3);
-    setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'burst', shown: 0 });
+    setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'burst', shown: 0, title: o.title, kicker: o.kicker });
     audio.play('levelUp'); platform().haptic('success');
     const cx = window.innerWidth / 2, cy = window.innerHeight * 0.38;
     P()?.ring(cx, cy, '#ffc93c', 40); P()?.confetti(cx, cy, 120, 1.2); setTimeout(() => P()?.rain(60), 300);
@@ -247,10 +247,10 @@ function ChestScene({ s, chestRef, cardsRef, onTap, onCollect }: { s: Extract<Sc
 
 function LevelUpScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'levelUp' }>; onTap: () => void; onOk: () => void }) {
   return (
-    <div className={`cel-stage lvl-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={`Seviye ${s.level}`}>
+    <div className={`cel-stage lvl-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={s.title ?? `Seviye ${s.level}`}>
       <div className="lvl-rays" aria-hidden />
-      <div className="lvl-badge"><span className="lb-k">SEVİYE</span><span className="lb-n">{s.level}</span><span className="lb-star" aria-hidden><Art name="star" size={30} /></span></div>
-      <div className="cel-title big">Seviye {s.level}!</div>
+      <div className="lvl-badge"><span className="lb-k">{s.kicker ?? 'SEVİYE'}</span><span className="lb-n">{s.level}</span><span className="lb-star" aria-hidden><Art name="star" size={30} /></span></div>
+      <div className="cel-title big">{s.title ?? `Seviye ${s.level}!`}</div>
       {s.unlocks.length > 0 && (
         <div className="lvl-list">
           {s.unlocks.map((u, i) => <div key={i} className={`lvl-item${i < s.shown ? ' in' : ''}`}><span aria-hidden><Art name="unlock" size={20} /></span><b><Rich text={u} /></b></div>)}

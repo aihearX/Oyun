@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState, type Wallet } from '@odi/shared';
 import { depotStored } from '@odi/game-core';
+import { depotCapHours } from '@odi/content';
+import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, effect, type CampActions } from './model';
@@ -20,7 +22,8 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   const active = camp.buildings.find((b) => b.upgradingTo && b.endsAt);
   const lv = (id: string) => camp.buildings.find((b) => b.id === id)?.level ?? 0;
   const merkez = lv('merkez'); const depot = lv('depo');
-  const { stored, max: depotMax } = depotStored(depot, camp.depotStoredAt, sNow);
+  const { stored, max: depotMax } = depotStored(depot, camp.depotStoredAt, sNow, depotCapHours(lv('denge')));
+  const [levelPanel, setLevelPanel] = useState(false);
   const upgrade = async (d: BuildingDef) => { setConfirm(null); await actions.upgrade(d.id); };
   const collect = async () => { const n = await actions.collect(); if (n) setBurst(`+${fmtNum(n)} 🪙`); };
 
@@ -29,6 +32,8 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
       <DedeCard className="dede-list" />
       <div className="kg-list-chips"><GorevChips /></div>
       <GorevHost />
+      {camp.xp && <div className="card ks-card"><CampLevelChip xp={camp.xp} onOpen={() => setLevelPanel(true)} /></div>}
+      {levelPanel && <CampLevelPanel camp={camp} onClose={() => setLevelPanel(false)} />}
       {active && <Construction b={active} sNow={sNow} wallet={wallet} team={team} actions={actions} />}
       {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
         <div className="card idle-card"><span aria-hidden><Art e="👷" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
@@ -51,7 +56,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         </div>)}
 
       {BUILDINGS.map((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; const cost = buildCost(d.id, to); const max = b.level >= d.maxLevel;
-        const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active; const poor = wallet.jeton < cost.jeton;
+        const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active; const poor = wallet.jeton < cost.jeton; const locked = !!d.campLevel && (camp.xp?.level ?? 1) < d.campLevel;
         return (
           <div className={`card building${b.upgradingTo ? ' building-now' : ''}`} key={d.id}>
             <div className="row">
@@ -60,7 +65,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
             </div>
             {!max && <div className="row b-up">
               <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {fmtDur(dur(cost.seconds))}</span>
-              <button className="btn small" disabled={busy || blocked || poor} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : blocked ? `Merkez ${to}` : 'Yükselt'}</button>
+              <button className="btn small" disabled={busy || blocked || poor || locked} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : locked ? `Kamp Sv ${d.campLevel}` : blocked ? `Merkez ${to}` : b.level === 0 ? 'Kur' : 'Yükselt'}</button>
             </div>}
             {max && <div className="muted">En yüksek seviye.</div>}
             {d.id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} compact />}

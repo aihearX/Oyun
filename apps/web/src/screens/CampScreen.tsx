@@ -9,6 +9,7 @@ import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
 import { askedHelp, buildKey, defOf, type CampActions } from '../camp/model';
 import { useBuiltCelebration } from '../camp/built';
+import { useCampLevelCelebration } from '../camp/seviye';
 import { sayDede } from '../camp/dede';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
 import { Art } from '../ui/art';
@@ -65,6 +66,8 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
   useEffect(() => { if (active?.endsAt && active.endsAt <= sNow + 500) { const h = setTimeout(() => void getNet()?.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp })).catch(() => undefined), 800); return () => clearTimeout(h); } }, [active?.endsAt, Math.floor(sNow / 1000)]);
   // inşaat bitti: her seviye bir kez kutlanır (üs görünümünde iskelenin düşüşüyle aynı anda)
   useBuiltCelebration(me?.id, camp, view === 'us' ? 420 : 0);
+  // Kamp Seviyesi atladı: bir kez kutlanır (inşaat afişinden sonra gelsin)
+  useCampLevelCelebration(me?.id, camp, view === 'us' ? 1600 : 900);
 
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { const r = await act('camp.upgrade', { id }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); audio.play('whoosh'); toast('🏗️', `${defOf(id).name} inşaatı başladı`, useNet.getState().team ? 'Takımından yardım iste, süre kısalsın.' : undefined); return true; },
@@ -78,6 +81,10 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     helpAll: async () => { const r = await act('team.camp.helpAll', {}); if (!r) return null; if (r.given > 0) toast('🤝', `${r.given} inşaatı hızlandırdın`, 'Her yardım takımına güç katar.', 'green'); return r.given; },
     remedyMake: async (item) => { const r = await act('camp.remedy.make', { item }); if (!r) return false; useNet.setState({ camp: r.camp }); platform().haptic('light'); if (r.collected > 0) toast('🩹', `+${r.collected} malzeme çantana girdi`, undefined, 'green'); return true; },
     remedyCollect: async () => { const r = await act('camp.remedy.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp }); remedyCollected(r.collected); return r.collected; },
+    decorPlace: async (id, gx, gy, flip) => { const r = await act('camp.decor.place', { id, gx, gy, flip }); if (!r) return null; useNet.setState({ camp: r.camp }); return r.camp; },
+    decorMove: async (uid, gx, gy, flip) => { const r = await act('camp.decor.move', { uid, gx, gy, flip }); if (!r) return null; useNet.setState({ camp: r.camp }); return r.camp; },
+    decorStore: async (uid) => { const r = await act('camp.decor.store', { uid }); if (!r) return false; useNet.setState({ camp: r.camp }); return true; },
+    libCollect: async () => { const r = await act('camp.lib.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp }); return r.xp; },
   }), []);
   const onHelped = useCallback((fn: (b: BuildingId, s: number) => void) => { const n = getNet(); if (!n) return () => undefined; return n.on('camp.helped', ({ building, seconds }) => fn(building, seconds)); }, []);
   const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name } : null), [team?.emblem, team?.name]);
@@ -108,6 +115,7 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
   const nowMs = useNow();
   useEffect(() => { const b = s.camp.buildings.find((x) => x.endsAt && x.endsAt <= nowMs); if (b) setS((o) => demoReduce(o, { k: 'complete' })); }, [nowMs]);
   useBuiltCelebration('onizleme', s.camp, view === 'us' ? 420 : 0);
+  useCampLevelCelebration('onizleme', s.camp, view === 'us' ? 1600 : 900);
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { setS((o) => demoReduce(o, { k: 'upgrade', id })); audio.play('whoosh'); return true; },
     speed: async (id, item) => { setS((o) => demoReduce(o, { k: 'speed', id, item })); return true; },
@@ -116,6 +124,10 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
     helpAll: async () => { toast('🤝', 'Önizleme', 'Gerçek oyunda takım arkadaşlarının inşaatı hızlanır.', 'green'); return 2; },
     remedyMake: async (item) => { setS((o) => demoReduce(o, { k: 'remedyMake', item })); return true; },
     remedyCollect: async () => { const r = demoReduce(ref.current, { k: 'remedyCollect' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); remedyCollected(r.collected ?? 0); return r.collected ?? 0; },
+    decorPlace: async (id, gx, gy, flip) => { const r = demoReduce(ref.current, { k: 'decorPlace', id, gx, gy, flip }); if (r.error) { toast('🙈', 'Buraya konamaz', 'Boş ve açık bir yer seç.'); return null; } setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.camp; },
+    decorMove: async (uid, gx, gy, flip) => { const r = demoReduce(ref.current, { k: 'decorMove', uid, gx, gy, flip }); if (r.error) { toast('🙈', 'Buraya konamaz', 'Boş ve açık bir yer seç.'); return null; } setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.camp; },
+    decorStore: async (uid) => { const r = demoReduce(ref.current, { k: 'decorStore', uid }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return true; },
+    libCollect: async () => { const r = demoReduce(ref.current, { k: 'lib' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
   }), []);
   const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri' }), []);
   if (view === 'us') return <CampBase demo camp={s.camp} wallet={s.wallet} team={team} helpCount={2} fast={4} now={Date.now} actions={actions} onList={() => setView('liste')} />;

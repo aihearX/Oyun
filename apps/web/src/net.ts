@@ -8,8 +8,8 @@
 import { create } from 'zustand';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
-import { COSMETICS, SKILL_TREE, CARDS, earnedCampCosmetics } from '@odi/content';
+import { CAMP_CHEERS, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { COSMETICS, SKILL_TREE, CARDS, campLevelCosmetics, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
@@ -173,7 +173,8 @@ export function applyServerItems(items: Pick<InboxItem, 'kind' | 'amount' | 'ref
 /** kamp bina seviyesiyle açılan kozmetikler (sunucu da profiline yazar; burada beklemeden yerel Dolap'a eklenir) */
 function syncCampUnlocks(camp: CampState): void {
   const lv = (b: string) => camp.buildings.find((x) => x.id === b)?.level ?? 0;
-  const ids = earnedCampCosmetics(lv); const s = useStore.getState();
+  // bina seviyesiyle ve Kamp Seviyesiyle açılan kozmetikler (sunucu verir; burada Dolap'a hemen yansır)
+  const ids = [...earnedCampCosmetics(lv), ...campLevelCosmetics(camp.xp?.level ?? 0)]; const s = useStore.getState();
   if (ids.some((id) => !s.meta.cosmetics.owned.includes(id))) s.applyServerMeta({ cosmetics: ids, cards: [], teamShields: s.teamShields });
 }
 
@@ -276,6 +277,7 @@ export function startNet(): void {
     c.on('team.updated', ({ team }) => { if (team) void c.call('war.state', {}).then((w) => useNet.setState({ war: w.war })).catch(() => undefined); });
     c.on('team.help', ({ request }) => useNet.setState((s) => (s.team ? { team: { ...s.team, help: [request, ...s.team.help.filter((h) => h.id !== request.id)] } } : {})));
     c.on('camp.helped', ({ name, seconds }) => toast('🤝', `${name} inşaatını hızlandırdı`, `−${fmtShort(seconds)}`, 'green'));
+    c.on('camp.cheered', ({ name, kind }) => toast('👏', `${name} kampına tepki bıraktı`, CAMP_CHEERS.find((x) => x.id === kind)?.text, 'green'));
     c.on('team.gift', ({ gift }) => toast('🎁', 'Takım hediyesi geldi!', gift.reason, 'gold'));
     useStore.subscribe((n, p) => { if (n.meta.ledger !== p.meta.ledger) scanLedger(); });
     scanLedger();

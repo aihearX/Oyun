@@ -233,10 +233,35 @@ function dropTex(ctx: Ctx) {
   ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#0d5a63'; ctx.lineWidth = 0.9; ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(-1.8, 0.5, 1.1, 2.3, -0.4, 0, 7); ctx.fill();
 }
+/** "tüy hücresi" yardımcısı: armut gövde, tepede basamaklı stereosilya, iki göz; iki adım karesi */
+export function hairHelper(ctx: Ctx, col: number, step: number) {
+  blobShadow(ctx, 5, 2, 0.3);
+  ctx.fillStyle = css(shade(col, -0.45)); ctx.beginPath(); ctx.ellipse(-2 + step, -0.8, 1.6, 1, 0, 0, 7); ctx.ellipse(2 - step, -0.8, 1.6, 1, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-4.2, -1.5); ctx.bezierCurveTo(-5.6, -8, -4.6, -13, 0, -14); ctx.bezierCurveTo(4.6, -13, 5.6, -8, 4.2, -1.5); ctx.closePath();
+  const g = ctx.createLinearGradient(-5, 0, 5, 0); g.addColorStop(0, css(shade(col, 0.45))); g.addColorStop(1, css(mix(col, 0x2d1d6e, 0.2))); ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(38,20,44,0.5)'; ctx.lineWidth = 0.5; ctx.stroke();
+  for (let i = 0; i < 4; i++) { ctx.strokeStyle = css(shade(col, 0.6)); ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-2.4 + i * 1.6, -13.6); ctx.lineTo(-2.2 + i * 1.6 + (step ? 0.4 : -0.2), -16 - i * 1.3); ctx.stroke(); }
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-1.6, -8.5, 1.3, 0, 7); ctx.arc(1.8, -8.5, 1.3, 0, 7); ctx.fill();
+  ctx.fillStyle = '#13162a'; ctx.beginPath(); ctx.arc(-1.4, -8.3, 0.65, 0, 7); ctx.arc(2, -8.3, 0.65, 0, 7); ctx.fill();
+}
+/** kilit tabelası (kilitli bölge) */
+function lockSign(ctx: Ctx) {
+  ctx.fillStyle = '#5b3a24'; ctx.fillRect(-1, -18, 2, 18);
+  roundRect(ctx, -12, -32, 24, 16, 3); ctx.fillStyle = '#c98e55'; ctx.fill(); ctx.strokeStyle = '#5b3a24'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.strokeStyle = '#fff6e5'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, -26.5, 3, Math.PI, 0); ctx.stroke(); ctx.fillStyle = '#fff6e5'; roundRect(ctx, -4, -26.5, 8, 6.5, 1); ctx.fill();
+}
+/** Kütüphane baloncuğu simgesi: açık kitap */
+function bookIcon(ctx: Ctx) {
+  ctx.beginPath(); ctx.moveTo(0, 4); ctx.quadraticCurveTo(-4, 2, -8, 3); ctx.lineTo(-8, -5); ctx.quadraticCurveTo(-4, -6, 0, -4); ctx.closePath(); ctx.fillStyle = '#fffaf0'; ctx.fill(); ctx.strokeStyle = '#8a5a33'; ctx.lineWidth = 0.8; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 4); ctx.quadraticCurveTo(4, 2, 8, 3); ctx.lineTo(8, -5); ctx.quadraticCurveTo(4, -6, 0, -4); ctx.closePath(); ctx.fillStyle = '#f3ead8'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#8b6bff'; ctx.font = '900 6px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('XP', -4, 1.5);
+}
 function confetti(ctx: Ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(-2, -1, 4, 2); }
 function firefly(ctx: Ctx) { const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 4); g.addColorStop(0, 'rgba(230,255,170,1)'); g.addColorStop(1, 'rgba(180,255,120,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 4, 0, 7); ctx.fill(); }
 
 export const WORKER_COLORS = [0x8b6bff, 0x2ee6d6, 0xff5c8a, 0xff9f1c, 0x6c4cf1];
+/** tüy hücresi yardımcılarının renkleri */
+export const HELPER_COLORS = [0xfff0a0, 0xffd0e0, 0xc8f5ff, 0xd8ffc0];
 export const TREE_COLORS = [0x5fae4a, 0x7cc35a, 0x4f9a5e, 0xe0a24a, 0xd9705a];
 export const TIER_GEAR = [0x8a8274, 0x9a9a9a, 0xb87333, 0x9fb0c4, 0xf5c542];
 
@@ -257,7 +282,9 @@ export function propDefs(): PropDef[] {
   for (let i = 0; i < 4; i++) out.push(def(`c-cloud-${i}`, 150, 90, 75, 50, (x) => cloud(x, i * 17 + 3)));
   WORKER_COLORS.forEach((c, i) => { out.push(def(`c-odi-${i}-0`, 16, 20, 8, 18, (x) => worker(x, c, 0)), def(`c-odi-${i}-1`, 16, 20, 8, 18, (x) => worker(x, c, 1))); });
   out.push(def('c-hammer', 8, 14, 4, 12, hammer), def('c-crane', 100, 126, 34, 122, crane));
-  [0xb07a45, 0x9d9a92, 0xc2603c, 0x3a9fc4, 0xe0a81a].forEach((c, i) => out.push(def(`c-badge-${i}`, 22, 24, 11, 11.5, (x) => badge(x, c))));
+  [0xb07a45, 0x9d9a92, 0xc2603c, 0x3a9fc4, 0xe0a81a, 0x8b6bff, 0xff5c8a].forEach((c, i) => out.push(def(`c-badge-${i}`, 22, 24, 11, 11.5, (x) => badge(x, c))));
+  HELPER_COLORS.forEach((c, i) => { out.push(def(`c-tuy-${i}-0`, 14, 22, 7, 20, (x) => hairHelper(x, c, 0)), def(`c-tuy-${i}-1`, 14, 22, 7, 20, (x) => hairHelper(x, c, 1))); });
+  out.push(def('c-lock', 30, 36, 15, 34, lockSign), def('c-book', 20, 14, 10, 7, bookIcon));
   out.push(def('c-bubble', 76, 32, 38, 31, (x) => bubble(x, 74, 30)), def('c-bubble-s', 40, 32, 20, 31, (x) => bubble(x, 38, 30)));
   out.push(def('c-btn-help', 30, 30, 15, 15, (x) => { roundBtn(x, 0x3ccf7e); hand(x); }), def('c-btn-fast', 30, 30, 15, 15, (x) => { roundBtn(x, 0x8b6bff); ffwd(x); }));
   out.push(def('c-coin', 20, 20, 10, 10, (x) => coin(x, 8)), def('c-coin-s', 12, 12, 6, 6, (x) => coin(x, 5)));

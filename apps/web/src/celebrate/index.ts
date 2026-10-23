@@ -9,7 +9,8 @@ export interface ScreenPoint { x: number; y: number }
 type Impl = {
   chest(o: { title: string; items: RewardItem[]; tier?: 'bronz' | 'gumus' | 'altin' }): Promise<void>;
   coins(o: { amount: number; from?: ScreenPoint; kind?: 'jeton' | 'kristal' }): Promise<void>;
-  levelUp(o: { level: number; unlocks?: string[] }): Promise<void>;
+  /** title/kicker: başka bir seviye türü (ör. Kamp Seviyesi) için başlık ve rozet yazısı */
+  levelUp(o: { level: number; unlocks?: string[]; title?: string; kicker?: string }): Promise<void>;
   biomeRestored(o: { biome: string; name: string; reward?: RewardItem[] }): Promise<void>;
   banner(o: { icon: string; title: string; body?: string; tone?: 'accent' | 'gold' | 'green' | 'coral' }): void;
 };

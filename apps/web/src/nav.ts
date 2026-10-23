@@ -13,6 +13,8 @@ export type SocialRoute =
   | { name: 'birlikte' }
   /** Sıralama: oyuncu ve takım tabloları (rank/RankScreen.tsx) */
   | { name: 'siralama' }
+  /** arkadaşın ya da takım arkadaşının kampı (salt okunur, hazır tepki; camp/Ziyaret.tsx) */
+  | { name: 'kamp'; id: string }
   /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
   | { name: 'events'; view?: EventView; flash?: EventFlash };
 

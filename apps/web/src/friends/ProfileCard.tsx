@@ -76,6 +76,7 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
               </div>
             )}
             {card.canMessage && <button className="btn teal" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}><Art e="💬" size="1.15em" className="art-inline" /> Mesaj gönder</button>}
+            {(rel === 'arkadas' || card.sameTeam) && featureOpen('camp') && <button className="btn ghost" data-testid="kampini-gez" onClick={() => go(() => nav.open({ name: 'kamp', id: p.id }))}><Art name="tent" size={20} className="art-inline" /> Kampını gez</button>}
             {card.canMessage && myTeam && !card.sameTeam && !p.teamName && <button className="btn ghost" data-testid="takima-davet" disabled={busy || invited} onClick={() => void run(async () => { if (await inviteToTeam(p)) setInvited(true); })}><Art name="users" size={20} className="art-inline" /> {invited ? 'Davet gönderildi' : <>Takıma davet et (<span data-ugc>{myTeam.emblem}</span> {myTeam.name})</>}</button>}
             {rel === 'arkadas' && (
               <div className="row">

@@ -24,12 +24,12 @@ export function zonesOpen(merkez: number): number { return ZONE_LEVELS.filter((l
 export const DEPOT_RATE = 20;
 export const DEPOT_CAP_H = 8;
 const HOUR = 3_600_000;
-/** depodaki jeton (sunucu kuralının aynısı) */
-export function depotStored(level: number, storedAt: number, now: number): { stored: number; max: number; ratio: number } {
+/** depodaki jeton (sunucu kuralının aynısı). capH: dolma süresi (8 sa + Vestibüler Laboratuvar 0,5 sa/Sv) */
+export function depotStored(level: number, storedAt: number, now: number, capH = DEPOT_CAP_H): { stored: number; max: number; ratio: number } {
   if (level <= 0) return { stored: 0, max: 0, ratio: 0 };
-  const max = level * DEPOT_RATE * DEPOT_CAP_H;
-  const stored = Math.floor((Math.min(Math.max(0, now - storedAt), DEPOT_CAP_H * HOUR) / HOUR) * level * DEPOT_RATE);
-  return { stored, max, ratio: max ? stored / max : 0 };
+  const max = Math.floor(level * DEPOT_RATE * capH);
+  const stored = Math.floor((Math.min(Math.max(0, now - storedAt), capH * HOUR) / HOUR) * level * DEPOT_RATE);
+  return { stored, max, ratio: max ? Math.min(1, stored / max) : 0 };
 }
 
 export const levelOf = (camp: CampState | null | undefined, id: BuildingId) => camp?.buildings.find((b) => b.id === id)?.level ?? 0;

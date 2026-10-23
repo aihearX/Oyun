@@ -36,6 +36,7 @@ import { BiomeIntro } from './screens/BiomeIntro';
 import { TabBar, type Tab } from './ui/TabBar';
 import { readInvite } from './invite';
 import { CampScreen } from './screens/CampScreen';
+import { CampVisitScreen } from './camp/Ziyaret';
 import { ChatScreen, DmRouteScreen, FriendsScreen, MessagesScreen } from './screens/FriendsScreen';
 import { FriendBanner, ProfileCardHost, useSocialUnread } from './friends';
 import { ShopScreen } from './screens/ShopScreen';
@@ -212,6 +213,7 @@ export function App() {
     case 'messages': return sub(<MessagesScreen onBack={back(route)} />);
     case 'birlikte': return sub(<TogetherScreen onBack={back(route)} />);
     case 'siralama': return sub(<RankScreen onBack={back(route)} />);
+    case 'kamp': return sub(<CampVisitScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'shop': return sub(<ShopScreen onBack={back(route)} />);
     case 'inbox': return sub(<InboxScreen onBack={back(route)} />);
