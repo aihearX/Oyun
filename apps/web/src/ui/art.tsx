@@ -406,6 +406,8 @@ export const EMOJI_ART: Record<string, ArtName> = {
   '➕': 'plus', '▶': 'play', '▶️': 'play', '🩹': 'heal', '💥': 'boom', '💨': 'wind', '🌬️': 'wind', '🟢': 'online', '🏷️': 'tag', '⬜': 'empty',
   '🙈': 'cross', '😴': 'moon', '🎭': 'spark', '↩️': 'refresh', '🏰': 'flag', '👏': 'party', '💪': 'bolt', '🙏': 'heart', '👍': 'check',
   '🌍': 'compass', '🎚️': 'gear', '🎛️': 'gear', '🎺': 'megaphone', '🥁': 'note', '🫧': 'spark', '🌊': 'wind', '🪶': 'wind', '🛤️': 'map', '🧹': 'spark', '🗼': 'signal', '🧞': 'monster', '👻': 'monster', '🟤': 'monster', '◻️': 'empty', '◻': 'empty',
+  // kamp bölge binaları (docs/14-kamp.md §10)
+  '👶': 'sprout', '🌳': 'clover', '🌀': 'compass', '📚': 'card',
 };
 
 /** Emoji ve ardından gelen değişken seçicileri / ZWJ dizilerini bütün olarak yakalar */
