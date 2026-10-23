@@ -16,6 +16,7 @@ import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { odiLook } from '../look';
 import { useStore } from '../store';
+import { GorevChips, GorevHost } from './gorev/Kanca';
 
 export interface CampBaseProps {
   camp: CampState; wallet: Wallet; team: CampTeam | null; helpCount: number; fast: number;
@@ -137,6 +138,7 @@ export function CampBase(p: CampBaseProps) {
           {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}><Art e="🪙" size="1.15em" className="art-inline" /><b>{fmtNum(p.wallet.jeton)}</b></span>}
         </div>
         {p.demo && <div className="camp-demo-tag">ÖNİZLEME · sunucuya bir şey gitmez</div>}
+        {!p.demo && <div className="camp-hud kg-row"><GorevChips /></div>}
       </div>
 
       <div className="camp-bottom">
@@ -153,6 +155,7 @@ export function CampBase(p: CampBaseProps) {
         {p.camp.buildings.map((b) => <button key={b.id} onClick={() => setSel(b.id)}>{defOf(b.id).name}, Sv {b.level}{b.upgradingTo ? `, Sv ${b.upgradingTo} yapılıyor` : ''}</button>)}
       </div>
 
+      {!p.demo && <GorevHost />}
       {sel && <BuildingPanel id={sel} camp={p.camp} wallet={p.wallet} team={!!p.team} fast={p.fast} sNow={sNow} actions={actions} onClose={() => { audio.play('tap'); setSel(null); }} />}
     </div>
   );

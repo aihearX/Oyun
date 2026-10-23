@@ -19,6 +19,7 @@ import { bindTeamRace } from './teamrace/state';
 import { bindCodes } from './codes/Codes';
 import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
+import { bindKg } from './camp/gorev/state';
 
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
@@ -265,6 +266,7 @@ export function startNet(): void {
     bindTeamRace(c); // takım rekabeti: Takım Yarışı lobisi/eşleşme/sonuç, Takım Ligi
     bindCodes(c); // Kod Gir: yönetici modu sunucu durumuyla eşitlenir
     bindTeamApply(c); // takım başvuruları: lider/yardımcı rozeti, karar bildirimi
+    bindKg(c); // Kamp Görevleri: hikâye, günlük görevler, vakalar, kamp oyunları (docs/17-kamp-gorevleri.md)
     c.onStatus((st) => { if (st !== 'bağlanıyor') useSocial.setState({ tried: true }); if (st === 'bağlı') void onConnected(c); });
     c.onMe((me) => applyServerItems([...me.cosmetics.map((ref) => ({ kind: 'kozmetik' as const, amount: 1, ref })), ...me.cards.map((ref) => ({ kind: 'kart' as const, amount: 1, ref }))]));
     useNet.subscribe((n, p) => { if (n.wallet !== p.wallet || n.status !== p.status) mirrorCoins(); });

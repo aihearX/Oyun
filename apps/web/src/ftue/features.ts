@@ -1,4 +1,5 @@
 import type { ArtName } from '../ui/art';
+import { KG_ACILIS } from '@odi/content';
 
 /**
  * İlk deneyim (FTUE): yeni oyuncuda her şey bir anda açık olmaz; yerler bölüm geçtikçe tek tek açılır ve
@@ -11,7 +12,9 @@ export type FeatureId = 'profile' | 'today' | 'album' | 'camp' | 'skills' | 'fri
   /** sıralama (docs/15-siralama.md) */
   | 'siralama'
   /** takım rekabeti (docs/16-takim-rekabeti.md): Takım Ligi, Canlı Takım Yarışı */
-  | 'tlig' | 'tyaris';
+  | 'tlig' | 'tyaris'
+  /** kamp görevleri ve etkinlikleri (docs/17-kamp-gorevleri.md): Görevler, kamp oyunları, Hasta Vakaları */
+  | 'gorev' | 'kampoyun' | 'vaka';
 export interface FeatureDef { id: FeatureId; at: number; name: string; art: ArtName; /** anlatıcıyla duyurulur mu (sessizler yalnızca kilidi kalkar) */ tour: boolean }
 
 export const FEATURES: FeatureDef[] = [
@@ -39,11 +42,15 @@ export const FEATURES: FeatureDef[] = [
   { id: 'soru', at: 9, name: 'Günün Sorusu', art: 'bulb', tour: true },
   { id: 'ikili', at: 10, name: 'İkili Görev', art: 'users', tour: true },
   { id: 'usta', at: 11, name: 'Usta–Çırak', art: 'crown', tour: true },
+  // kamp görevleri: kamp öğreticisinden sonra adım adım (görevler → oyunlar → vakalar); bölüm sayıları @odi/content KG_ACILIS
+  { id: 'gorev', at: KG_ACILIS.gorev, name: 'Kamp Görevleri', art: 'check', tour: true },
+  { id: 'kampoyun', at: KG_ACILIS.oyun, name: 'Kamp oyunları', art: 'sound', tour: true },
+  { id: 'vaka', at: KG_ACILIS.vaka, name: 'Hasta Vakaları', art: 'heal', tour: true },
 ];
 export const featureById = (id: FeatureId) => FEATURES.find((f) => f.id === id)!;
 
 /** Anlatıcı turları (yapıldıkça kaydedilir) */
-export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta', 'siralama', 'tlig', 'tyaris'] as const;
+export const TOUR_IDS = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'team', 'shop', 'events', 'race', 'yazi', 'akis', 'soru', 'ikili', 'usta', 'siralama', 'tlig', 'tyaris', 'gorev', 'kampoyun', 'vaka'] as const;
 export type TourId = (typeof TOUR_IDS)[number];
 
 /** Kalıcı ilk deneyim durumu (odi-v1 kaydında, sürümlü) */

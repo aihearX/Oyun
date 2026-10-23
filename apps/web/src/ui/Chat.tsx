@@ -8,6 +8,7 @@ import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
 import { Art, Glyph, rich } from './art';
 import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
+import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { featureOpen } from '../ftue/useFeatures';
 
@@ -120,6 +121,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   const render = (m: ChatMessage, i: number) => {
     const prev = top[i - 1];
     const live = repliesOf.get(m.id) ?? EMPTY;
+    if (m.kind === 'feed' && m.meta?.type === 'konsultasyon' && team && richFeed) return <KonsultCard key={m.id} m={m} live={live} />;
     if (m.kind === 'feed') return <FeedCard key={m.id} m={m} live={live} rich={richFeed} />;
     if (m.kind === 'help' && team) return <HelpCard key={m.id} m={m} live={live} />;
     if (m.kind === 'soru') return <QuestionCard key={m.id} m={m} live={live} />;

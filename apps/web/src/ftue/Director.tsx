@@ -168,12 +168,32 @@ export function tourFor(id: string, route: string): Tour | null {
     case 'usta':
       steps.push(unlockCard('usta', 'usta-01'));
       break;
+    // ---- kamp görevleri (docs/17-kamp-gorevleri.md): kısa turlar, kampın üst göstergesindeki düğmeleri gösterir
+    case 'gorev':
+      steps.push(
+        unlockCard('gorev', 'kg-tur-01'),
+        ...(route === 'camp' ? [] : [tapTab('camp')]),
+        { ...line('kg-tur-02'), target: '[data-testid="kg-btn"]', wait: { el: '[data-testid="kg-panel"]' }, hint: 'Görevler’e dokun', optional: true, mood: 'wink' },
+      ); break;
+    case 'kampoyun':
+      steps.push(
+        unlockCard('kampoyun', 'kg-oyun-01'),
+        ...(route === 'camp' ? [] : [tapTab('camp')]),
+        { ...line('kg-oyun-02'), target: '[data-testid="kg-btn"]', optional: true, mood: 'wink' },
+      ); break;
+    case 'vaka':
+      steps.push(
+        unlockCard('vaka', 'kg-vaka-01'),
+        ...(route === 'camp' ? [] : [tapTab('camp')]),
+        { ...line('kg-vaka-02'), target: () => document.querySelector('[data-testid="klinik-btn"]') ?? document.querySelector('[data-testid="kg-btn"]'), optional: true },
+      ); break;
     default: return null;
   }
   return { id, steps };
 }
 
 const TAB_ROUTES = ['map', 'today', 'camp', 'team', 'profile'];
+const CAMP_TOURS = new Set<string>(['gorev', 'kampoyun', 'vaka']);
 
 /** bir sonraki tur: sıra önemli (önce sonuç → harita → açılımlar) */
 function nextTour(route: string): string | null {
@@ -186,7 +206,8 @@ function nextTour(route: string): string | null {
   }
   if (!TAB_ROUTES.includes(route)) return null;
   if (cleared >= 1 && !done('map')) return route === 'map' && exists('.map-play') ? 'map' : null;
-  for (const ft of FEATURES) if (ft.tour && cleared >= ft.at && !done(ft.id)) return ft.id;
+  // kamp görevleri turları yalnız kamptayken başlar (oyuncu kampa döndüğünde; başka bir akışı bölmez)
+  for (const ft of FEATURES) if (ft.tour && cleared >= ft.at && !done(ft.id) && (!CAMP_TOURS.has(ft.id) || (route === 'camp' && exists('.camp-base, .camp-list-screen')))) return ft.id;
   if (route === 'camp' && done('camp') && !done('camp-build') && exists('.camp-base') && campPick() && buildingVisible(campPick()!)) return 'camp-build';
   return null;
 }

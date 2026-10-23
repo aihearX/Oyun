@@ -35,7 +35,7 @@ Ayarlar: exaggeration 0.8, cfg_weight 0.3, temperature 0.8. "Dede" efekti yok (p
 yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.2 hece/sn altındaysa en çok
 ×1.2 hızlandırma, 60 Hz altı temizlik, −16 LUFS, mono 56k MP3. Yedek motor: `--engine coqui` (Coqui TTS, Fatih Akademi, MIT).
 
-## Satırlar (156)
+## Satırlar (183)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -131,6 +131,33 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `anit-sinir` | İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar. | Kamp: bölge anıtı yükseldi (Sinir) | heyecanlı (excited) |
 | `anit-beyin-sapi` | Beyin Sapı anıtı kuruldu! İki kulaktan gelen sesler burada buluşur; sesin yönünü böyle buluruz. | Kamp: bölge anıtı yükseldi (Beyin Sapı) | bilge (wise) |
 | `anit-korteks` | Korteks anıtı tamam! İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. | Kamp: bölge anıtı yükseldi (Korteks) | duygulu, gururlu (touched, proud) |
+| `kg-tur-01` | Yeni: Kamp Görevleri! Kampın hikâyesini birlikte yazacağız; her gün de üç küçük görev var. | Açılış kutlaması: Kamp Görevleri (4. bölümden sonra) | coşkulu, sıcak (celebratory, warm) |
+| `kg-tur-02` | Görevler burada. Ödülü hazır görevlerin sayısı düğmenin üstünde yazar. | Kamp: Görevler düğmesi vurgulanır (oyuncu dokunur) | yönlendiren (guiding) |
+| `kg-oyun-01` | Yeni: Kamp oyunları! Odyometri Odası’nda Ton Avı, kulede Timpanogram Eşleştir seni bekliyor. | Açılış kutlaması: kamp oyunları (6. bölümden sonra) | neşeli (cheerful) |
+| `kg-oyun-02` | Ton Avı bir işitme testi değil, kulağını eğlendiren bir oyundur. Günde beş tur ödüllü, gerisi eğlencesine. | Kamp: Görevler düğmesi; oyunların dürüst kuralı | göz kırpan, dürüst (playful, honest) |
+| `kg-vaka-01` | Yeni: Hasta Vakaları! Odyoloji Kliniği’ne her gün yeni hastalar gelir; testleri sen seçersin. | Açılış kutlaması: Hasta Vakaları (7. bölümden sonra) | coşkulu, merak uyandıran (celebratory, curious) |
+| `kg-vaka-02` | Kliniğe buradan girersin. Acele yok, hastalar seni bekler. Unutma: bu vakalar kurgusal, gerçek bir tıbbi öneri değil. | Kamp: Klinik düğmesi vurgulanır | bilge, şefkatli (wise, caring) |
+| `kg-vaka-ilk` | İlk vakanı çözdün! Her vaka Vaka Defteri’ne yazılır. Daha az testle doğru karar, daha çok yıldız demek. | Klinik: ilk vaka çözüldü | gururlu (proud) |
+| `kg-h1-giris` | Kampın hikâyesi başlıyor! Önce Kulak Deposu’nu kur, biriken ödülünü topla ve merkezini büyüt. | Kampın Hikâyesi 1. bölüm açıldı: Kampa Hoş Geldin | sıcak, heyecanlı (warm, excited) |
+| `kg-h1-son` | Harika bir başlangıç! Kampın artık nefes alıyor. Sıradaki durak: klinik. | Kampın Hikâyesi 1. bölüm tamamlandı | gururlu (proud) |
+| `kg-h2-giris` | Bir odyoloji kampının kalbi kliniğidir. Kliniği, Odyometri Odası’nı ve Timpanometri Kulesi’ni kur. | Kampın Hikâyesi 2. bölüm: Klinik Açılıyor | kararlı (determined) |
+| `kg-h2-son` | Klinik açıldı! Kapına bir vaka panosu astım; yakında ilk hastalar gelecek. | Kampın Hikâyesi 2. bölüm tamamlandı | neşeli (cheerful) |
+| `kg-h3-giris` | Ölçmeyi öğrenelim: odyometri odasında Ton Avı, kulede Timpanogram Eşleştir oyna. | Kampın Hikâyesi 3. bölüm: Ölçmeyi Öğren | merak uyandıran (curious) |
+| `kg-h3-son` | Kulakların keskin, gözün eğride! Ölçmek, anlamanın ilk adımıdır. | Kampın Hikâyesi 3. bölüm tamamlandı | hayran (admiring) |
+| `kg-h4-giris` | İlk hastaların bekleme salonunda. Önce dinle, sonra doğru testi seç. | Kampın Hikâyesi 4. bölüm: İlk Hastalar | şefkatli, öğretici (caring, explaining) |
+| `kg-h4-son` | İlk vakaların defterde! Bir odyolog gibi düşünmeye başladın. | Kampın Hikâyesi 4. bölüm tamamlandı | gururlu (proud) |
+| `kg-h5-giris` | Korumak, tedavi etmekten kolaydır. Tedavi Odası’nı kur ve malzeme hazırla. | Kampın Hikâyesi 5. bölüm: Koruma Sanatı | bilge (wise) |
+| `kg-h5-son` | Çantan hazır! Bölümlerde malzemeyle engelleri aşabilirsin. | Kampın Hikâyesi 5. bölüm tamamlandı | neşeli (cheerful) |
+| `kg-h6-giris` | Bir kampı takım büyütür. Takımına katıl, yardım et, zor vakada danış. | Kampın Hikâyesi 6. bölüm: Takım Ruhu | sıcak (warm) |
+| `kg-h6-son` | Takım ruhu tamam! Birlikte düşünen klinik daha doğru karar verir. | Kampın Hikâyesi 6. bölüm tamamlandı | gururlu, sıcak (proud, warm) |
+| `kg-h7-giris` | Kampını güzelleştirme zamanı: bir dekor yerleştir ve bir arkadaşının kampını ziyaret et. | Kampın Hikâyesi 7. bölüm: Kampını Güzelleştir | neşeli (cheerful) |
+| `kg-h7-son` | Ne güzel bir kamp oldu! Gelen herkes gülümseyecek. | Kampın Hikâyesi 7. bölüm tamamlandı | sevinçli (delighted) |
+| `kg-h8-giris` | Kliniğini büyüt: zor vakalar uzman ister. Az testle doğru tanıya ulaşmayı dene. | Kampın Hikâyesi 8. bölüm: Uzman Klinik | kararlı (determined) |
+| `kg-h8-son` | Artık uzman bir klinisyensin! Yıldızların defterini süslüyor. | Kampın Hikâyesi 8. bölüm tamamlandı | gururlu (proud) |
+| `kg-h9-giris` | Kulağın derinliklerine iniyoruz: kokleaya ulaş, kuleni büyüt, farklı patolojileri tanı. | Kampın Hikâyesi 9. bölüm: Kulağın Derinlikleri | gizemli, heyecanlı (mysterious, excited) |
+| `kg-h9-son` | Kokleanın sırlarını öğrendin! Az kaldı, büyük kamp seni bekliyor. | Kampın Hikâyesi 9. bölüm tamamlandı | hayran (wonder) |
+| `kg-h10-giris` | Son bölüm: Büyük Kamp! Merkezini ve kliniğini en ileri seviyelere taşı. | Kampın Hikâyesi 10. bölüm: Büyük Kamp | coşkulu (rousing) |
+| `kg-h10-son` | Başardın! Bu kamp artık bütün kulak yolculuğunun kalbi. Seninle gurur duyuyorum. | Kampın Hikâyesi 10. bölüm tamamlandı (son) | duygulu, gururlu (touched, proud) |
 | `ipucu-tazele-kayma` | Hatırla: aşağı kaydır, perdenin altından kay! | 5. bölüm: kayma tazeleme anı (ilk perdeden önce, bir kez) | sıcak, hatırlatan (warm, reminding) |
 | `ipucu-perde-kay` | Kıl perdesi alçak. Aşağı kaydır, altından kay! | 3-8. bölüm: ilk kıl perdesinin önünde (oyuncu başına bir kez) | sakin, yol gösteren (calm, guiding) |
 | `ipucu-ogret-zipla` | Ekrana dokun, zıpla! Basılı tutarsan daha yükseğe çıkarsın. | 1. bölüm: Zıpla öğretici anı | neşeli, cesaret veren (cheerful, encouraging) |

@@ -11,6 +11,7 @@ import { TedaviPanel } from './TedaviPanel';
 import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { KgBinaKanca } from './gorev/Kanca';
 
 /** binanın görünümü (önbellekli küçük resim) */
 const thumbs = new Map<string, string>();
@@ -113,6 +114,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
 
         {/* Tedavi Odası üretimi ve odyolojik bilgi: birincil eylemin (Kur/Yükselt) altında kalsın ki küçük ekranda düğme görünür olsun */}
         {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
+        {b.level > 0 && <KgBinaKanca id={id} onClose={onClose} />}
         <BuildingInfo id={id} level={b.level} />
       </div>
     </div>,

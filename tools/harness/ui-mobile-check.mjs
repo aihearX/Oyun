@@ -11,7 +11,7 @@
 //         Expo'nun kendi sayfa iskeleti (viewport-fit yok, #root flex) ve yerel WebView'in scrollEnabled:false kilidi
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
-//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc]
+//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -440,6 +440,67 @@ async function suite(browserName, target, [W, H]) {
         await back(); await back();
         bora.close();
         await tab('Takım');
+      }
+    }
+    if (want('gorev')) {
+      // Kamp Görevleri (docs/17-kamp-gorevleri.md): Görevler paneli (4 sekme), Klinik, vaka akışı (odyogram, timpanogram, otoskopi,
+      // sonuç), Vaka Defteri, odyoloji düzeyi, Ton Avı, Timpanogram Eşleştir, takım akışında Konsültasyon kartı
+      const { DatabaseSync } = await import('node:sqlite');
+      const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000');
+      const pid = sq.prepare('SELECT id FROM players ORDER BY created_at DESC LIMIT 1').get().id;
+      sq.prepare('UPDATE players SET highest = 11 WHERE id = ?').run(pid);
+      for (const [b, l] of [['merkez', 4], ['depo', 2], ['revir', 4], ['laboratuvar', 2], ['kule', 2], ['tedavi', 1]]) sq.prepare('UPDATE buildings SET level = ? WHERE player_id = ? AND id = ?').run(l, pid, b);
+      sq.close();
+      await tab('Harita'); await tab('Kamp'); await sleep(1200); await toastGone();
+      const ub = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub.count()) { await ub.click(); await sleep(1200); }
+      await page.evaluate(() => window.__kg?.refresh()); await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); await sleep(800); await toastGone();
+      await check('gorev-kamp-dugmeleri', { scroll: false });
+      await page.getByTestId('kg-btn').click(); await page.getByTestId('kg-panel').waitFor();
+      for (const t of ['hikaye', 'gunluk', 'etkinlik', 'basari']) { await page.locator(`.kg-tabs [data-tab="${t}"]`).click(); await sleep(500); await check(`gorev-${t}`, { scroll: false }); }
+      await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
+      await page.getByTestId('klinik-btn').click(); await page.getByTestId('klinik-panel').waitFor(); await sleep(400);
+      await check('gorev-klinik-salon', { scroll: false });
+      const vaka = async (label) => {
+        await page.locator('.kg-hasta-kart').first().click(); await page.getByTestId('hasta-adim').waitFor(); await check(`${label}-hasta`, { scroll: false });
+        await page.getByTestId('testlere-gec').click();
+        for (const tt of ['otoskopi', 'odyometri', 'timpanometri', 'refleks']) await page.locator(`.kg-test[data-test="${tt}"]`).click();
+        await sleep(300); await check(`${label}-testler`, { scroll: false });
+        for (const tt of ['odyometri', 'timpanometri', 'otoskopi']) { await page.locator(`[data-sonuc="${tt}"]`).scrollIntoViewIfNeeded(); await sleep(250); await check(`${label}-${tt}`, { scroll: false }); }
+      };
+      await vaka('gorev-vaka');
+      if (await page.getByTestId('konsult-iste').count()) { await page.getByTestId('konsult-iste').click(); await page.getByTestId('konsult-durum').waitFor({ timeout: 8000 }); }
+      await page.getByTestId('karara-gec').click(); await page.getByTestId('tani-adim').waitFor();
+      await check('gorev-vaka-karar', { scroll: false });
+      await page.locator('.kg-opt[data-dx]').first().click(); await page.locator('.kg-opt[data-mg]').first().click();
+      await page.getByTestId('karar-gonder').click(); await page.getByTestId('vaka-sonuc').waitFor(); await sleep(900); await toastGone();
+      await check('gorev-vaka-sonuc', { scroll: false });
+      await page.locator('.cel-root.on').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
+      await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
+      await page.getByTestId('klinik-btn').click(); await page.getByTestId('defter-tab').click(); await page.getByTestId('vaka-defteri').waitFor();
+      await check('gorev-vaka-defteri', { scroll: false });
+      await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
+      // oyunlar
+      for (const g of ['ton', 'timpano']) {
+        await page.getByTestId('kg-btn').click(); await page.locator('.kg-tabs [data-tab="etkinlik"]').click(); await page.getByTestId(`etk-${g}`).click();
+        await page.getByTestId(`oyun-${g}`).waitFor(); await check(`gorev-${g}-giris`, { scroll: false });
+        await page.getByTestId('oyun-basla').click(); await page.getByTestId(`${g}-tur`).waitFor(); await sleep(g === 'ton' ? 2600 : 600);
+        await check(`gorev-${g}-tur`, { scroll: false });
+        await page.locator('.kg-sheet .bp-x').click(); await sleep(400);
+      }
+      // odyoloji düzeyi (Ayarlar › Bilgi düzeyi): sayılar ve dört seçenek
+      await tab('Profil'); await page.locator('.menu-tile[data-tile="settings"]').click(); await sleep(500);
+      await page.getByRole('radio', { name: 'Odyoloji öğrencisi' }).click(); await back();
+      await tab('Kamp'); await sleep(1200); await toastGone();
+      await page.getByTestId('klinik-btn').click(); await page.getByTestId('klinik-panel').waitFor();
+      await vaka('gorev-odyoloji');
+      await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
+      await tab('Profil'); await page.locator('.menu-tile[data-tile="settings"]').click(); await sleep(500);
+      await page.getByRole('radio', { name: 'Genel' }).click(); await back();
+      // takım akışındaki Konsültasyon kartı (takım varsa)
+      if (want('takim')) {
+        await tab('Takım'); await sleep(900);
+        const kc = page.getByTestId('konsult-karti').last();
+        if (await kc.count()) { await kc.scrollIntoViewIfNeeded(); await sleep(300); await check('gorev-konsult-karti', { chat: true, scroll: false }); }
       }
     }
     if (want('etkinlik')) {

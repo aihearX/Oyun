@@ -4,6 +4,9 @@ Kamp artık süs değil, kulak/odyoloji yolculuğunun bir parçası: her bina ge
 oynanışa ve bilgiye dönük şeyler açar, Tedavi Odası bölümlere götürülen koruma/tedavi malzemesi üretir, haritada ulaşılan her
 bölge kampa bir anıt getirir. Tasarım dürüst: gizli şans yok, sahte baskı yok; malzemeler öğretmek içindir, tıbbi öneri değildir.
 
+> **Kamp Görevleri ve kamp etkinlikleri** (Hasta Vakaları / Odyoloji Kliniği, Vaka Defteri, Kampın Hikâyesi, günlük ve haftalık
+> kamp görevleri, başarılar, Ton Avı, Timpanogram Eşleştir, Konsültasyon): ayrı belge [17-kamp-gorevleri.md](17-kamp-gorevleri.md).
+
 Kod: `packages/content/src/kamp.ts` (bina açıklamaları, açılım tablosu, kamp terimleri, anıtlar), `packages/content/src/remedies.ts`
 (malzeme kaydı ve üretim kuralları), `apps/server/src/camp.ts` + `camp-schema.ts` (sunucu), `packages/game-core/src/camp/**`
 (sahne: Tedavi Odası binası, Kulak Yolu anıtları), `apps/web/src/camp/**` (paneller, çanta, Tüy Dede kartı).
