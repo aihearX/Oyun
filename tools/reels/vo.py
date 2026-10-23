@@ -16,6 +16,8 @@ Kullanım (kökten; ağır iş: başka üretim varsa `nice -n 5`):
 Girdi: tools/reels/vo/metin.json (metinler + ses ayarları). Çıktı: tools/reels/vo/<reels>/<id>.mp3 (işlenmiş, yerleştirmeye hazır)
 ve tools/reels/vo/secim.json (seçilen çekim, tohum, ölçümler). Çekimler önbellekte: tools/harness/out/reels/vo-uretim/.
 Metni değişmeyen satır yeniden üretilmez (metin özeti secim.json'da).
+Satıra özel ses ayarı: "v": {"exaggeration", "cfg_weight", "temperature", "target_sps", "max_tempo", "max_gap", "seeds"} (aynı anlatıcı,
+farklı okuma: ör. fragman için ağır ve tok, panik için hızlı). "asr" bir liste de olabilir (Whisper'ın olası yazımları; en düşük hata alınır).
 """
 import hashlib, json, os, re, subprocess, sys, time
 
@@ -50,7 +52,14 @@ def wer(ref, hyp):
     return d[-1, -1] / max(1, len(r))
 
 
-def key(line): return hashlib.sha1(json.dumps([line['text'], V], sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+def voice(line):
+    """satırın ses ayarları: genel ayarlar + satıra özel `v` (ör. fragman için daha ağır, panik için daha coşkulu okuma)"""
+    return {**V, **line.get('v', {})}
+
+
+def key(line):
+    # `v` olmayan satırların anahtarı eskisiyle aynı kalır (yeniden üretilmez)
+    return hashlib.sha1(json.dumps([line['text'], voice(line) if 'v' in line else V], sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
 
 
 todo = []
@@ -83,29 +92,29 @@ def analyse(path, ln):
     dur = len(yt) / 16000
     peak = float(np.abs(librosa.load(path, sr=None)[0]).max())
     return {'dur': round(dur, 2), 'sps': round(syl(ln['text']) / max(dur, .1), 2), 'gap': round(longest * 0.01, 2),
-            'wer': round(wer(ln.get('asr', ln['text']), hyp), 2), 'asr': hyp, 'peak': round(peak, 2), 'trim': [s0 / 16000, s1 / 16000]}
+            'wer': round(min(wer(x, hyp) for x in (ln['asr'] if isinstance(ln.get('asr'), list) else [ln.get('asr', ln['text'])])), 2), 'asr': hyp, 'peak': round(peak, 2), 'trim': [s0 / 16000, s1 / 16000]}
 
 
-def score(m): return m['wer'] * 10 + max(0, m['gap'] - 0.35) * 3 + max(0, V['target_sps'] - 0.4 - m['sps']) * 0.8 + (2 if m['peak'] > 0.98 else 0)
+def score(m, Vl=V): return m['wer'] * 10 + max(0, m['gap'] - Vl.get('max_gap', 0.35)) * 3 + max(0, Vl['target_sps'] - 0.4 - m['sps']) * 0.8 + (2 if m['peak'] > 0.98 else 0)
 
 
 for slug, ln in todo:
-    k = key(ln); cdir = os.path.join(CACHE, slug); os.makedirs(cdir, exist_ok=True); cands = []
-    for sd in V['seeds']:
+    k = key(ln); Vl = voice(ln); cdir = os.path.join(CACHE, slug); os.makedirs(cdir, exist_ok=True); cands = []
+    for sd in Vl['seeds']:
         wav = os.path.join(cdir, f"{ln['id']}-{k}-s{sd}.wav"); mj = wav[:-4] + '.json'
         if os.path.exists(mj): m = json.load(open(mj))
         else:
             t0 = time.time(); torch.manual_seed(sd)
-            w = tts.generate(ln['text'], language_id=V['lang'], audio_prompt_path=REF, exaggeration=V['exaggeration'], cfg_weight=V['cfg_weight'], temperature=V['temperature'])
+            w = tts.generate(ln['text'], language_id=V['lang'], audio_prompt_path=REF, exaggeration=Vl['exaggeration'], cfg_weight=Vl['cfg_weight'], temperature=Vl['temperature'])
             ta.save(wav, w, SR); m = analyse(wav, ln); m['seed'] = sd; m['sec'] = round(time.time() - t0)
             json.dump(m, open(mj, 'w'), ensure_ascii=False)
-        m['file'] = wav; m['score'] = round(score(m), 2); cands.append(m)
+        m['file'] = wav; m['score'] = round(score(m, Vl), 2); cands.append(m)
         print(json.dumps({'slug': slug, 'id': ln['id'], **{x: m[x] for x in ('seed', 'dur', 'sps', 'gap', 'wer', 'score', 'asr')}}, ensure_ascii=False), flush=True)
-        if m['wer'] == 0 and m['gap'] <= 0.35 and m['sps'] >= V['target_sps'] - 1.0: break  # atempo (≤ ×1,22) farkı kapatır
+        if m['wer'] == 0 and m['gap'] <= Vl.get('max_gap', 0.35) and m['sps'] >= Vl['target_sps'] - 1.0: break  # atempo (≤ ×1,22) farkı kapatır
     b = min(cands, key=lambda m: m['score'])
     # işle: kırp, gerekirse hızlandır, kenarları yumuşat → mp3
     s0, s1 = b['trim']; dur = (s1 + 0.08) - max(0, s0 - 0.03)
-    tempo = min(V['max_tempo'], max(1.0, V['target_sps'] / (syl(ln['text']) / dur)))
+    tempo = min(Vl['max_tempo'], max(1.0, Vl['target_sps'] / (syl(ln['text']) / dur)))
     out = os.path.join(VO, slug, f"{ln['id']}.mp3"); os.makedirs(os.path.dirname(out), exist_ok=True)
     subprocess.run(['ffmpeg', '-y', '-v', 'error', '-ss', f'{max(0, s0 - 0.03):.3f}', '-to', f'{s1 + 0.08:.3f}', '-i', b['file'],
                     '-af', f'atempo={tempo:.3f},afade=t=in:d=0.02,areverse,afade=t=in:d=0.06,areverse,aresample=48000',

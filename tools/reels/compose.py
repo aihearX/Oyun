@@ -6,6 +6,9 @@ Teaser:   python3 tools/reels/compose.py --reel <slug|all> [--out marketing/reel
   ölçeklenir) + saydam yazı/kart katmanı. Ses: özgün müzik (music.py, sahne kesmelerine göre) + Tüy Dede'nin kayıtları
   (müzik ses altında kısılır) → sıkıştırma + kazanç + tepe sınırlayıcı, −14 LUFS. Çıktı: <out>/<slug>.mp4 (H.264 + AAC, 30 kare/sn, faststart)
   ve <out>/<slug>-kapak.png (1080×1920).
+Reklam:   plan.ad (tools/reels/reklamlar.mjs) → render_video_ad: hız rampalı/ağır çekim klip, alt-piksel kamera (yakınlaşma, darbe),
+  son işlem (sinema şeritleri, renk, vinyet, sarsıntı, RGB kayması, bozulma, gren, parlama); ses: reklam_ses.py bölümlü müzik +
+  efekt izi + anlatıcı ('trailer': tok, yankılı). --audio-only: görüntüyü yeniden çizmeden yalnız sesi karıştırır.
 Eski:     python3 tools/reels/compose.py [<çıktı.mp4>]   (record.mjs bayraksız: "Nasıl oynanır?" Reels'i)
 """
 import bisect, json, os, subprocess, sys, wave
@@ -97,11 +100,203 @@ def render_cover(plan, png_out):
         from PIL import ImageFilter, ImageEnhance
         c = Clip(cv['clip']); im = base_frame(c, cv['clip']['fromT'] + float(cv.get('t', 1)), cv.get('frame'), {})
         # kapakta yazı öne çıksın: oynanış hafif bulanık ve koyu (küçük resimde de okunur)
-        im = ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(3))).enhance(0.62)
+        im = ImageEnhance.Brightness(im.filter(ImageFilter.GaussianBlur(cv.get('blur') if cv.get('blur') is not None else 3))).enhance(cv.get('dim') or 0.62)
     else:
         im = Image.new('RGB', (W, H), BG)
     out = im.convert('RGBA'); out.alpha_composite(Image.open(cv['png']).convert('RGBA'))
     out.convert('RGB').save(png_out, optimize=True)
+
+
+# ------------------------------------------------------------------ reklam: kamera, hız rampası, son işlem
+def clamp(x, a=0.0, b=1.0): return max(a, min(b, x))
+
+
+def ease(p, k='io'):
+    if k == 'lin': return p
+    if k == 'out': return 1 - (1 - p) ** 3
+    if k == 'in': return p ** 3
+    return 3 * p * p - 2 * p * p * p  # io
+
+
+def clip_time(speed, lt):
+    """hız rampası: sayı ya da [[yerel sn, hız], ...] → klipte geçen simülasyon süresi (record.mjs clipTime ile aynı)"""
+    if not isinstance(speed, list): return lt * float(speed or 1)
+    def at(x):
+        if x <= speed[0][0]: return speed[0][1]
+        for i in range(1, len(speed)):
+            if x <= speed[i][0]:
+                (a, va), (b, vb) = speed[i - 1], speed[i]; return va + (vb - va) * (x - a) / (b - a)
+        return speed[-1][1]
+    n = max(1, int(np.ceil(lt / 0.01))); h = lt / n
+    return sum(at((i + 0.5) * h) * h for i in range(n))
+
+
+def cam_frame(sc, lt):
+    """sahne kamerası: frame + cam { z: [z0, z1], x: [..], top: [..], ease, T, punch: [[at, miktar, süre]] }"""
+    fr = dict(sc.get('frame') or {}); cam = sc.get('cam')
+    if not cam: return fr
+    p = ease(clamp(lt / float(cam.get('T', sc['dur']))), cam.get('ease', 'io'))
+    for ks, kd in (('z', 'zoom'), ('x', 'x'), ('top', 'top')):
+        if ks in cam:
+            v = cam[ks]; fr[kd] = v[0] + (v[1] - v[0]) * p if isinstance(v, list) else v
+    for at, amt, dur in cam.get('punch', []):
+        if lt >= at: fr['zoom'] = fr.get('zoom', 1.0) * (1 + amt * np.exp(-(lt - at) / max(0.02, dur)))
+    return fr
+
+
+def frame_boxf(img_w, img_h, fr):
+    s = img_w / 390.0; fr = fr or {}
+    zoom = float(fr.get('zoom', 1.0)); top = float(fr.get('top', 100)); x = float(fr.get('x', 0))
+    gw = 390.0 / zoom; gh = gw * H / W
+    top = max(0.0, min(top, 780.0 - gh)); left = max(0.0, min(195.0 + x - gw / 2, 390.0 - gw))
+    return (left * s, top * s, (left + gw) * s, (top + gh) * s)
+
+
+def ad_base(clip, sc, lt, cache):
+    """reklam karesi: hız rampalı simülasyon saniyesi, alt-piksel kamera (EXTENT), istenirse iki kare harmanı (ağır çekim)"""
+    from PIL import Image
+    st = sc['clip']['fromT'] + float(sc.get('skip') or 0) + clip_time(sc.get('speed', 1), lt)
+    fr = cam_frame(sc, lt)
+    def load(f):
+        if f not in cache:
+            if len(cache) > 6: cache.pop(next(iter(cache)))
+            cache[f] = Image.open(os.path.join(clip.dir, f)).convert('RGB')
+        return cache[f]
+    if sc.get('blend'):
+        i = bisect.bisect_right(clip.ts, st) - 1; i = max(0, min(i, len(clip.ts) - 2))
+        a, b = clip.ts[i], clip.ts[i + 1]; w = clamp((st - a) / max(1e-6, b - a))
+        im0 = load(clip.frames[i]['f']); im = im0 if w < 0.02 else Image.blend(im0, load(clip.frames[i + 1]['f']), w)
+    else:
+        im = load(clip.at(st))
+    return im.transform((W, H), Image.EXTENT, frame_boxf(im.width, im.height, fr), Image.BICUBIC)
+
+
+def _noise(t, k): return np.sin(t * 61.7 + k * 3.1) * 0.5 + np.sin(t * 37.3 + k * 7.7) * 0.35 + np.sin(t * 93.1 + k) * 0.15
+
+
+def _active(lst, lt):
+    for it in lst or []:
+        at, dur = it[0], it[1]
+        if at <= lt < at + dur: yield it, (lt - at) / max(1e-6, dur)
+
+
+VIG = None
+def post_fx(img, fx, lt, t):
+    """sahne son işlemi (yerel zaman lt): zoom/sarsıntı, renk, vinyet, RGB kayması, bozulma, grenlilik, parlama, karartma, sinema şeritleri"""
+    from PIL import Image
+    global VIG
+    if not fx: return img
+    z = 1.0 + float(fx.get('push', 0)) * clamp(lt / max(0.01, float(fx.get('pushT', 3.0)))); dx = dy = 0.0
+    for (at, dur, amt), p in _active(fx.get('zoom'), lt): z *= 1 + amt * (1 - p) ** 2
+    for (at, dur, amp), p in _active(fx.get('shake'), lt):
+        k = (1 - p) ** 1.5; dx += _noise(t, 1) * amp * k; dy += _noise(t + 2.1, 2) * amp * k
+    if fx.get('jitter'): dx += _noise(t, 5) * fx['jitter']; dy += _noise(t + 1.3, 6) * fx['jitter']
+    if z != 1.0 or dx or dy:
+        z = max(z, 1 + 2.2 * max(abs(dx), abs(dy)) / W)
+        gw, gh = W / z, H / z; cx, cy = W / 2 - dx / z, H / 2 - dy / z
+        img = img.transform((W, H), Image.EXTENT, (cx - gw / 2, cy - gh / 2, cx + gw / 2, cy + gh / 2), Image.BICUBIC)
+    a = None
+    def arr():
+        nonlocal a
+        if a is None: a = np.asarray(img, dtype=np.float32)
+        return a
+    g = fx.get('grade')
+    if g and lt >= float(fx.get('gradeFrom', -1)) and lt < float(fx.get('gradeUntil', 1e9)):
+        x = arr(); lum = (x[..., 0] * 0.299 + x[..., 1] * 0.587 + x[..., 2] * 0.114)[..., None]
+        amt = float(fx.get('gradeAmt', 1.0))
+        if g == 'bw': y = np.repeat(lum, 3, axis=2); y = (y - 128) * 1.18 + 128
+        elif g == 'teal':
+            w = lum / 255.0; tint = (1 - w) * np.array([0.82, 1.0, 1.18], np.float32) + w * np.array([1.12, 1.0, 0.86], np.float32)
+            y = lum + (x - lum) * 0.8; y = ((y - 128) * 1.15 + 128) * tint
+        elif g == 'amber': y = (lum + (x - lum) * 1.1) * np.array([1.15, 1.0, 0.72], np.float32)
+        elif g == 'cold': y = (lum + (x - lum) * 0.55) * np.array([0.85, 0.97, 1.18], np.float32)
+        elif g == 'red': y = (lum + (x - lum) * 0.4) * np.array([1.35, 0.7, 0.75], np.float32)
+        elif g == 'dark': y = x * 0.55
+        else: y = x
+        a = x * (1 - amt) + y * amt
+    if fx.get('vignette'):
+        if VIG is None:
+            yy, xx = np.mgrid[0:H, 0:W].astype(np.float32); r = np.sqrt(((xx - W / 2) / (W * 0.62)) ** 2 + ((yy - H / 2) / (H * 0.6)) ** 2)
+            VIG = np.clip(1 - np.clip(r - 0.55, 0, None) ** 1.6 * 1.6, 0, 1)[..., None]
+        v = float(fx['vignette']); a = arr() * (1 - v + v * VIG)
+    for (at, dur, px), p in _active(fx.get('rgb'), lt):
+        x = arr(); s = int(round(px * (1 - p))); 
+        if s: a = x.copy(); a[:, s:, 0] = x[:, :-s, 0]; a[:, :-s, 2] = x[:, s:, 2]
+    for (at, dur, amt), p in _active(fx.get('glitch'), lt):
+        x = arr().copy(); r = np.random.default_rng(int(t * 30))
+        for _ in range(int(6 * amt)):
+            y0 = int(r.integers(0, H - 40)); h = int(r.integers(12, 120)); sft = int(r.integers(-80, 80) * amt)
+            x[y0:y0 + h] = np.roll(x[y0:y0 + h], sft, axis=1)
+        a = x
+    if fx.get('grain'):
+        r = np.random.default_rng(int(t * 30) + 7); a = arr() + r.normal(0, 255 * fx['grain'], (H // 2, W // 2, 1)).astype(np.float32).repeat(2, 0).repeat(2, 1)
+    for it, p in _active(fx.get('flash'), lt):
+        col = np.array(it[2] if len(it) > 2 else [255, 246, 229], np.float32); o = (1 - p) ** 2 * (it[3] if len(it) > 3 else 1.0)
+        a = arr() * (1 - o) + col * o
+    for it, p in _active(fx.get('black'), lt): a = arr() * 0.0
+    if fx.get('fadeIn'):
+        o = clamp(lt / fx['fadeIn']); a = arr() * o
+    if fx.get('fadeOut'):
+        T0, d = fx['fadeOut']; o = 1 - clamp((lt - T0) / d); a = arr() * o
+    if fx.get('bars'):
+        b = int(fx['bars']); x = arr().copy(); x[:b] = 0; x[H - b:] = 0; a = x
+    if a is None: return img
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def render_video_ad(plan, video_path):
+    from PIL import Image
+    n = int(round(plan['total'] * FPS))
+    clips = {sc['clip']['dir']: Clip(sc['clip']) for sc in plan['scenes'] if sc.get('clip')}
+    bg = Image.new('RGB', (W, H), (0, 0, 0))
+    enc = subprocess.Popen(['ffmpeg', '-y', '-v', 'error', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', f'{W}x{H}', '-r', str(FPS), '-i', '-',
+                            '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-maxrate', '4200k', '-bufsize', '8400k', '-pix_fmt', 'yuv420p',
+                            '-profile:v', 'high', '-level', '4.1', '-r', str(FPS), '-movflags', '+faststart', video_path], stdin=subprocess.PIPE)
+    caches = {}; ovl_cache = {}
+    starts = [sc['start'] for sc in plan['scenes']]
+    for i in range(n):
+        t = i / FPS
+        si = max(0, bisect.bisect_right(starts, t + 1e-6) - 1); sc = plan['scenes'][si]; lt = t - sc['start']
+        im = ad_base(clips[sc['clip']['dir']], sc, lt, caches.setdefault(sc['clip']['dir'], {})) if sc.get('clip') else bg
+        op = os.path.join(plan['overlay'], f'o{i + 1:05d}.png'); ino = os.stat(op).st_ino
+        if ino not in ovl_cache: ovl_cache.clear(); ovl_cache[ino] = Image.open(op).convert('RGBA')
+        out = im.convert('RGBA'); out.alpha_composite(ovl_cache[ino]); out = out.convert('RGB')
+        out = post_fx(out, sc.get('fx'), lt, t)
+        enc.stdin.write(out.tobytes())
+        if i % 150 == 0: print(f'  kare {i}/{n}', flush=True)
+    enc.stdin.close(); enc.wait()
+    if enc.returncode != 0: raise SystemExit('ffmpeg kodlama hatası')
+
+
+def mix_audio_ad(plan, out_wav):
+    """reklam sesi: bölümlü özgün müzik (anlatıcı altında kısılır) + efekt izi + anlatıcı (satıra göre: 'trailer' = tok, yankılı)"""
+    sys.path.insert(0, os.path.dirname(__file__)); import reklam_ses as RS
+    total = plan['total']; n = int((total + 0.05) * SR)
+    secs = [(sc['start'], sc['mus']) for sc in plan['scenes'] if sc.get('mus')]
+    mus = RS.music(plan['style'], plan['bpm'], total + 0.6, secs)[:, :n]; mus = np.pad(mus, ((0, 0), (0, max(0, n - mus.shape[1]))))
+    fx = RS.sfx_track(plan.get('sfx', []), total + 0.6)[:, :n]; fx = np.pad(fx, ((0, 0), (0, max(0, n - fx.shape[1]))))
+    v = np.zeros(n); vrev = np.zeros(n)
+    for vo in plan['voice']:
+        x = read_audio(vo['file'], vo.get('from') or 0, vo.get('to'))
+        fade = int(0.012 * SR); x[:fade] *= np.linspace(0, 1, fade); x[-fade:] *= np.linspace(1, 0, fade)
+        x = x / max(1e-6, np.sqrt(np.mean(x[np.abs(x) > 0.01] ** 2))) * 0.12  # satırlar arası eşit düzey
+        send = 0.04
+        if vo.get('fx') == 'trailer':  # fragman sesi: aynı anlatıcı; alt frekans dolgunluğu + hafif salon yankısı
+            x = RS.fftfilt(x, peak=(110, 5, 1.6)); x = RS.fftfilt(x, peak=(3200, 2, 1.2)); send = 0.22
+        i = int(vo['at'] * SR); j = min(n, i + len(x)); v[i:j] += x[: j - i] * float(vo.get('gain', 1)); vrev[i:j] += x[: j - i] * send
+    vr = RS.reverb(vrev, 1.8, 5000, 3)
+    act = (np.abs(v) > 0.004).astype(float); k = int(0.2 * SR); act = np.convolve(act, np.ones(k) / k, mode='same') > 0
+    look = int(0.08 * SR); act = np.concatenate([act[look:], np.zeros(look, dtype=bool)])
+    dec = act[::64].astype(float); e = smooth_env(dec, 0.05 * 64, 0.4 * 64); e = np.repeat(e, 64)[:n]; e = np.pad(e, (0, n - len(e)))
+    duck = plan.get('duck') or {}
+    gm = 1 - (1 - 10 ** (duck.get('music', -10) / 20)) * e; gf = 1 - (1 - 10 ** (duck.get('sfx', -4) / 20)) * e
+    rms = lambda z: np.sqrt(np.mean(z ** 2)) + 1e-9
+    mus = mus / rms(mus) * 0.05 * float(duck.get('musicGain', 1.0)); fx = fx / max(1e-9, np.max(np.abs(fx))) * 0.55 * float(duck.get('sfxGain', 1.0))
+    L = mus[0] * gm + fx[0] * gf + v + vr; R = mus[1] * gm + fx[1] * gf + v + vr
+    y = np.stack([L, R]); y = np.tanh(y * 1.4) / 1.4
+    pcm = (np.clip(y.T, -1, 1) * 32767).astype('<i2')
+    with wave.open(out_wav, 'wb') as w:
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes(pcm.tobytes())
 
 
 # ------------------------------------------------------------------ ses
@@ -169,7 +364,9 @@ def compose_reel(slug, out_dir):
     plan = json.load(open(os.path.join(work, 'plan.json')))
     os.makedirs(out_dir, exist_ok=True)
     print(f'🎞  {slug}: {plan["total"]:.1f} sn')
-    video = os.path.join(work, 'video.mp4'); render_video(plan, video)
+    video = os.path.join(work, 'video.mp4')
+    if plan.get('ad'): return compose_ad(plan, work, out_dir, video)
+    render_video(plan, video)
     # müzik işaretleri: kesmeler (parlamalı sahneler), vurgular (her kesme), bitiş kartı
     cues = {'style': plan['style'], 'bpm': plan['bpm'],
             'cuts': [sc['start'] for sc in plan['scenes'] if sc.get('flash')],
@@ -191,6 +388,21 @@ def compose_reel(slug, out_dir):
     render_cover(plan, os.path.join(out_dir, f'{slug}-kapak.png'))
     size = os.path.getsize(final) / 1e6
     print(f'✅ {final} ({plan["total"]:.1f} sn, {size:.1f} MB)')
+
+
+def compose_ad(plan, work, out_dir, video):
+    slug = plan['slug']
+    if '--audio-only' not in sys.argv: render_video_ad(plan, video)
+    raw = os.path.join(work, 'mix-ham.wav'); mix_audio_ad(plan, raw)
+    mixed = os.path.join(work, 'mix.wav')
+    sh(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', 'acompressor=threshold=-18dB:ratio=3:attack=5:release=120:makeup=2dB', mixed])
+    ln = loudness_chain(mixed)
+    final = os.path.join(out_dir, f'{slug}.mp4')
+    sh(['ffmpeg', '-y', '-v', 'error', '-i', video, '-i', mixed, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
+        '-af', f'{ln},aresample=48000,afade=t=in:d=0.02,afade=t=out:st={max(0, plan["total"] - 0.3):.2f}:d=0.3',
+        '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', final])
+    render_cover(plan, os.path.join(out_dir, f'{slug}-kapak.png'))
+    print(f'✅ {final} ({plan["total"]:.1f} sn, {os.path.getsize(final) / 1e6:.1f} MB)')
 
 
 # ------------------------------------------------------------------ eski

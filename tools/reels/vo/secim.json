@@ -413,5 +413,442 @@
    "dur": 1.85,
    "sps": 5.41
   }
+ },
+ "fragman": {
+  "f1": {
+   "key": "a36e647025f4",
+   "text": "Bir ses, kulağa girdi.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir ses kulağa girdi.",
+   "gap": 0.11,
+   "tempo": 1.08,
+   "dur": 1.63,
+   "sps": 4.29
+  },
+  "f2": {
+   "key": "3d1385e3ac4b",
+   "text": "Ve geri dönmedi.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Ve geri dönmedi.",
+   "gap": 0.05,
+   "tempo": 1.014,
+   "dur": 1.32,
+   "sps": 4.55
+  },
+  "f3": {
+   "key": "fbb2771c805f",
+   "text": "Büyük Sessizlik geliyor.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Büyük sessizlik geliyor.",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 1.63,
+   "sps": 4.9
+  },
+  "f4": {
+   "key": "5cb00388c528",
+   "text": "Kanalın sonunda bir dev bekliyor.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kanalın sonunda bir dev bekliyor.",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.18,
+   "sps": 5.04
+  },
+  "f5": {
+   "key": "936e8c25d05b",
+   "text": "Derinlerde, on sekiz patoloji.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Derinlerde 18 patoloji.",
+   "gap": 0.3,
+   "tempo": 1.0,
+   "dur": 2.28,
+   "sps": 4.82
+  },
+  "f6": {
+   "key": "ab4808f57747",
+   "text": "Ve en dipte, Gürültü Canavarı.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ve en dipte gürültü canavarı.",
+   "gap": 0.08,
+   "tempo": 1.0,
+   "dur": 1.97,
+   "sps": 5.59
+  },
+  "f7": {
+   "key": "966cd6ad57de",
+   "text": "Kulağın tek bir umudu var.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Kulağın tek bir umudu var.",
+   "gap": 0.1,
+   "tempo": 1.0,
+   "dur": 1.68,
+   "sps": 5.36
+  },
+  "f8": {
+   "key": "32082aba6b02",
+   "text": "Odi. Sesin Yolu.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu.",
+   "gap": 0.23,
+   "tempo": 1.08,
+   "dur": 1.42,
+   "sps": 4.24
+  },
+  "f9": {
+   "key": "31a66747e747",
+   "text": "Yakında. Kulağına çok yakın bir yerde.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Yakında, kulağına çok yakın bir yerde.",
+   "gap": 0.31,
+   "tempo": 1.0,
+   "dur": 2.64,
+   "sps": 4.92
+  }
+ },
+ "serumen": {
+  "s1": {
+   "key": "a3873d2d4890",
+   "text": "Kulak kiri.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Kulak kiri.",
+   "gap": 0.08,
+   "tempo": 1.184,
+   "dur": 0.74,
+   "sps": 5.38
+  },
+  "s2": {
+   "key": "e65eadbf27dc",
+   "text": "Herkeste var. Kimse konuşmuyor.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Herkeste var. Kimse konuşmuyor.",
+   "gap": 0.14,
+   "tempo": 1.173,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "s3": {
+   "key": "3bd6a7994ad7",
+   "text": "Konuşalım.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Konuşalım.",
+   "gap": 0.07,
+   "tempo": 1.005,
+   "dur": 0.74,
+   "sps": 5.38
+  },
+  "s4": {
+   "key": "f3021a8ed869",
+   "text": "Aslında o bir kahraman: kanalı korur.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Aslında o bir kahraman kanalı korur.",
+   "gap": 0.08,
+   "tempo": 1.205,
+   "dur": 2.38,
+   "sps": 5.47
+  },
+  "s5": {
+   "key": "d41df0be2a22",
+   "text": "Kulak onu kendisi dışarı taşır.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kulak onu kendisi dışarı taşır.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 2.09,
+   "sps": 5.75
+  },
+  "s6": {
+   "key": "c47119e72933",
+   "text": "Ama birikirse?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ama birikirse...",
+   "gap": 0.07,
+   "tempo": 1.029,
+   "dur": 1.1,
+   "sps": 5.43
+  },
+  "s7": {
+   "key": "c6bb30f42dd5",
+   "text": "Kirden bir dev!",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Kirden bir dev.",
+   "gap": 0.06,
+   "tempo": 1.22,
+   "dur": 1.03,
+   "sps": 3.88
+  },
+  "s8": {
+   "key": "adb492dd147a",
+   "text": "Pamuklu çubuk mu? Asla! Kiri daha derine iter.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Pamuklu çubuk mu? Asla kiri daha derine iter.",
+   "gap": 0.15,
+   "tempo": 1.059,
+   "dur": 3.07,
+   "sps": 5.53
+  },
+  "s9": {
+   "key": "965e66b5a20f",
+   "text": "Oyunda, kampta damlanı hazırla.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Oyunda, kampta damlanı hazırla.",
+   "gap": 0.09,
+   "tempo": 1.099,
+   "dur": 2.02,
+   "sps": 5.46
+  },
+  "s10": {
+   "key": "4fde3c919009",
+   "text": "Gerçekte mi? Temizliği hekim yapar.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Gerçekte mi? Temizliği hekim yapar.",
+   "gap": 0.25,
+   "tempo": 1.156,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "s11": {
+   "key": "8b78ddad1096",
+   "text": "Kulağını rahat bırak. Golemi bize bırak.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kulağını rahat bırak, golemi bize bırak.",
+   "gap": 0.31,
+   "tempo": 1.104,
+   "dur": 2.71,
+   "sps": 5.53
+  },
+  "s12": {
+   "key": "aac90185f024",
+   "text": "Odi: Sesin Yolu. Yakında!",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu yakında.",
+   "gap": 0.71,
+   "tempo": 1.22,
+   "dur": 2.28,
+   "sps": 3.95
+  }
+ },
+ "sinav-gecesi": {
+  "n1": {
+   "key": "c7e246d01d7d",
+   "text": "Gece üç. Sınav sabah dokuzda.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Gece 3 sınav sabah 9'da.",
+   "gap": 0.07,
+   "tempo": 1.208,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "n2": {
+   "key": "b36b05b3b987",
+   "text": "Örs mü, çekiç mi? Korti nerede?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Örs mü? Çekiç mi? Korti nerede?",
+   "gap": 0.21,
+   "tempo": 1.25,
+   "dur": 1.87,
+   "sps": 5.34
+  },
+  "n3": {
+   "key": "8c7400fbeb70",
+   "text": "Tonotopi neydi?",
+   "seed": 5,
+   "wer": 0.0,
+   "asr": "Tonotopi neydi?",
+   "gap": 0.07,
+   "tempo": 1.07,
+   "dur": 1.03,
+   "sps": 5.81
+  },
+  "n4": {
+   "key": "9d3542eda469",
+   "text": "Ya oynayarak öğrenseydin?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ya oynayarak öğrenseydin,",
+   "gap": 0.07,
+   "tempo": 1.164,
+   "dur": 1.66,
+   "sps": 5.43
+  },
+  "n5": {
+   "key": "d0914e8d6c94",
+   "text": "Çekiç, örs, üzengi: zıpla, sallan, çakıl!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Çekiç, örs, üzengi, zıpla, sallan, çakıl.",
+   "gap": 0.14,
+   "tempo": 1.25,
+   "dur": 2.78,
+   "sps": 4.31
+  },
+  "n6": {
+   "key": "adcb0879bad9",
+   "text": "Her terim önce sade, sonra derin.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Her terim önce sade, sonra derin.",
+   "gap": 0.21,
+   "tempo": 1.22,
+   "dur": 2.02,
+   "sps": 5.46
+  },
+  "n7": {
+   "key": "e856be7aa92d",
+   "text": "Elli kulak kartı topla.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "50 kulak kartı topla.",
+   "gap": 0.07,
+   "tempo": 1.107,
+   "dur": 1.49,
+   "sps": 5.38
+  },
+  "n8": {
+   "key": "fdb457f12d88",
+   "text": "Yüz yirmi sekiz soruyla kendini sına.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "128 soruyla kendini sına.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 2.21,
+   "sps": 5.89
+  },
+  "n9": {
+   "key": "a6c78a44dab7",
+   "text": "Sabah dokuz. Korti mi? Eski dost.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sabah dokuz korti mi? Eski dost.",
+   "gap": 0.26,
+   "tempo": 1.22,
+   "dur": 1.94,
+   "sps": 5.14
+  },
+  "n10": {
+   "key": "aac90185f024",
+   "text": "Odi: Sesin Yolu. Yakında!",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu yakında.",
+   "gap": 0.71,
+   "tempo": 1.22,
+   "dur": 2.28,
+   "sps": 3.95
+  }
+ },
+ "takim-macera": {
+  "m1": {
+   "key": "b92c91bac669",
+   "text": "Üç! İki! Bir!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "3, 2, 1.",
+   "gap": 0.08,
+   "tempo": 1.25,
+   "dur": 1.15,
+   "sps": 3.47
+  },
+  "m2": {
+   "key": "7815f60a2f9c",
+   "text": "Aynı bölüm. Aynı anda. Takımınla!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Aynı bölüm aynı anda takımınla.",
+   "gap": 0.22,
+   "tempo": 1.143,
+   "dur": 2.06,
+   "sps": 5.81
+  },
+  "m3": {
+   "key": "1d36ddbdc05e",
+   "text": "Önde bitir, yıldızları kap!",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Önde bitir. Yıldızları kap.",
+   "gap": 0.21,
+   "tempo": 1.25,
+   "dur": 1.58,
+   "sps": 5.68
+  },
+  "m4": {
+   "key": "d5853e305016",
+   "text": "Bronzdan Koklea ligine tırman!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bronz'dan Koklea Ligi'ne tırman.",
+   "gap": 0.07,
+   "tempo": 1.25,
+   "dur": 1.94,
+   "sps": 5.14
+  },
+  "m5": {
+   "key": "2591862b53e4",
+   "text": "Sıralamada adını yukarı taşı!",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Sıralamada adını yukarı taşı.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 1.92,
+   "sps": 6.77
+  },
+  "m6": {
+   "key": "4e41fa3ee1df",
+   "text": "Canavarı hep beraber devirin!",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Canavarı hep beraber devirin.",
+   "gap": 0.1,
+   "tempo": 1.0,
+   "dur": 1.78,
+   "sps": 6.19
+  },
+  "m7": {
+   "key": "8dd1c79d73f1",
+   "text": "Odi: Sesin Yolu. Takımın seni bekliyor.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Odi, sesin yolu, takımın seni bekliyor.",
+   "gap": 0.22,
+   "tempo": 1.144,
+   "dur": 2.38,
+   "sps": 5.89
+  },
+  "m8": {
+   "key": "15fc50dbf7c8",
+   "text": "Kim daha hızlı duyar? Arkadaşını etiketle!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kim daha hızlı duyar? Arkadaşını etiketle.",
+   "gap": 0.18,
+   "tempo": 1.049,
+   "dur": 2.71,
+   "sps": 5.9
+  }
  }
 }

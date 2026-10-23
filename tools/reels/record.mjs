@@ -2,7 +2,7 @@
 /**
  * ODİ Reels kaydı.
  *
- * 1) Teaser Reels (tools/reels/teasers.mjs):  node tools/reels/record.mjs --reel <slug|all> [--no-build] [--force-clips] [--no-overlay] [--clips-only]
+ * 1) Teaser ve reklam Reels'leri (tools/reels/teasers.mjs, tools/reels/reklamlar.mjs):  node tools/reels/record.mjs --reel <slug|all> [--no-build] [--force-clips] [--no-overlay] [--clips-only]
  *    a. temiz oynanış klipleri: bot gerçekten oynar, sanal saatle kare kare (capture.mjs + clip.html) → out/reels/clips/<id>/
  *    b. yazı/kart katmanı: overlay.html sanal zamanla kare kare saydam PNG → out/reels/<slug>/ovl/
  *    c. plan.json (sahne zamanları, klipler, anlatıcı sesi, kesmeler)
@@ -28,14 +28,14 @@ const opt = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
 
 /* ============================================================ teaser */
 async function teasers(which) {
-  const { REELS } = await import('./teasers.mjs');
+  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS };
   const slugs = which === 'all' ? Object.keys(REELS) : which.split(',');
   for (const s of slugs) if (!REELS[s]) throw new Error(`bilinmeyen Reels: ${s} (${Object.keys(REELS).join(', ')})`);
   if (flag('--zaman')) {  // yalnız zaman çizelgesi: sahneler (anlatıcıya göre uzatılmış) ve anlatıcı satırları
     for (const s of slugs) {
       const r = fitReel(REELS[s]); let t = 0;
       console.log(`\n${s}: ${r.scenes.reduce((a, x) => a + x.dur, 0).toFixed(2)} sn`);
-      for (const sc of r.scenes) { console.log(`  ${t.toFixed(2).padStart(6)}–${(t + sc.dur).toFixed(2).padStart(6)} ${sc.id}${sc.clip ? ` (L${sc.clip.level} @${sc.clip.fromT}, klip ${sc.clip.dur})` : ''}`); t += sc.dur; }
+      for (const sc of r.scenes) { console.log(`  ${t.toFixed(2).padStart(6)}–${(t + sc.dur).toFixed(2).padStart(6)} ${sc.id}${sc.clip ? ` (L${sc.clip.level} @${sc.clip.fromT}, klip ${sc.clip.dur})` : ''}${sc.mus ? ` ♪${sc.mus}` : ''}`); t += sc.dur; }
       for (const v of r.vo) console.log(`  🎙 ${v.start.toFixed(2)}–${(v.start + v.dur).toFixed(2)} ${v.id}: ${v.text}`);
     }
     return;
@@ -97,9 +97,11 @@ function fitReel(r0) {
     for (let guard = 0; guard < 4; guard++) {
       const st = starts(); const v = vo[i]; const si = idx(v.scene); if (si < 0) throw new Error(`sahne yok: ${v.scene}`);
       v.start = st[si] + (v.at ?? 0);
-      const prevEnd = i ? vo[i - 1].start + vo[i - 1].dur + 0.12 : 0;
+      const prevEnd = i ? vo[i - 1].start + vo[i - 1].dur + (r0.voGap ?? 0.12) : 0;
       if (v.start >= prevEnd - 1e-6) break;
-      const delta = +(prevEnd - v.start + 0.001).toFixed(3);
+      let delta = +(prevEnd - v.start + 0.001).toFixed(3);
+      // reklam: sahneler vuruş ızgarasında kalsın (uzatma tam vuruş katı; kesmeler müziğin vuruşuna düşer)
+      if (r0.snap) delta = +(Math.ceil(delta / r0.snap - 1e-6) * r0.snap).toFixed(3);
       const grow = vo[i - 1] && idx(vo[i - 1].scene) === si ? si : Math.max(0, si - 1);
       if (grow === si) v.at = (v.at ?? 0) + delta;
       r.scenes[grow].dur = +(r.scenes[grow].dur + delta).toFixed(3);
@@ -107,11 +109,19 @@ function fitReel(r0) {
   }
   const st = starts(); for (const v of vo) v.start = st[idx(v.scene)] + (v.at ?? 0);
   const total = st.at(-1) + r.scenes.at(-1).dur;
-  const last = vo.at(-1); if (last && last.start + last.dur + 0.25 > total) r.scenes.at(-1).dur = +(r.scenes.at(-1).dur + last.start + last.dur + 0.25 - total).toFixed(3);
-  for (const sc of r.scenes) if (sc.clip && sc.dur * (sc.speed ?? 1) + 0.12 > sc.clip.dur) sc.clip = { ...sc.clip, dur: Math.ceil((sc.dur * (sc.speed ?? 1) + 0.25) * 2) / 2 };
+  const last = vo.at(-1); if (last && last.start + last.dur + (r0.tail ?? 0.25) > total) r.scenes.at(-1).dur = +(r.scenes.at(-1).dur + last.start + last.dur + (r0.tail ?? 0.25) - total).toFixed(3);
+  for (const sc of r.scenes) if (sc.clip && clipNeed(sc) + 0.12 > sc.clip.dur) sc.clip = { ...sc.clip, dur: Math.ceil((clipNeed(sc) + 0.25) * 2) / 2 };
   r.vo = vo;
   return r;
 }
+
+/** hız rampası: speed bir sayı ya da [[yerel sn, hız], ...] (doğrusal); klipte geçen simülasyon süresi */
+function clipTime(speed, lt) {
+  if (!Array.isArray(speed)) return lt * (speed ?? 1);
+  const at = (x) => { if (x <= speed[0][0]) return speed[0][1]; for (let i = 1; i < speed.length; i++) if (x <= speed[i][0]) { const [a, va] = speed[i - 1], [b, vb] = speed[i]; return va + (vb - va) * (x - a) / (b - a); } return speed.at(-1)[1]; };
+  let s = 0; const n = Math.max(1, Math.ceil(lt / 0.01)); const h = lt / n; for (let i = 0; i < n; i++) s += at((i + 0.5) * h) * h; return s;
+}
+const clipNeed = (sc) => (sc.skip ?? 0) + clipTime(sc.speed, sc.dur);
 
 async function renderReel(r, browser, port, log) {
   const fps = 30;
@@ -120,7 +130,7 @@ async function renderReel(r, browser, port, log) {
   // sahne başlangıçları (kesme: sert, ritme göre)
   let t = 0; const scenes = r.scenes.map((sc) => { const o = { ...sc, start: +t.toFixed(3) }; t += sc.dur; return o; }); const total = +t.toFixed(3);
   const byId = Object.fromEntries(scenes.map((s) => [s.id, s]));
-  const stage = (L) => (L.kind === 'still' ? { ...L, src: stageImage(L.src) } : L);
+  const stage = (L) => (L.kind === 'still' || L.kind === 'phone' ? { ...L, src: stageImage(L.src) } : L);
   // Tüy Dede kayıtları: mutlak zaman, altyazılar, ağız zarfı
   const voice = (r.voice ?? []).map((v) => {
     const file = path.join(root, 'apps/web/public/voice', `${v.id}.mp3`);
@@ -129,19 +139,22 @@ async function renderReel(r, browser, port, log) {
   });
   const subs = voice.flatMap((v) => (v.subs ?? []).map(([a, b, text]) => ({ kind: 'html', cls: 'sub', html: `<span class="who">Tüy Dede</span>${text}`, y: 1360, at: +(v.at + a).toFixed(3), until: +(v.at + b + 0.12).toFixed(3), anim: 'fade' })));
   // anlatıcı (erkek VO): satır başına bir altyazı, etiketsiz; bitiş kartında yazı zaten ekranda (nosub). Ağız oynatma yok.
-  const narr = (r.vo ?? []).map((v) => ({ id: v.id, file: v.file, at: +v.start.toFixed(3), from: 0, to: null, gain: v.gain ?? 1 }));
-  for (const v of r.vo ?? []) if (!v.nosub) subs.push({ kind: 'html', cls: 'sub', html: v.text, y: v.subY ?? 1360, at: +v.start.toFixed(3), until: +(v.start + v.dur + 0.15).toFixed(3), anim: 'fade' });
+  const narr = (r.vo ?? []).map((v) => ({ id: v.id, file: v.file, at: +v.start.toFixed(3), from: 0, to: null, gain: v.gain ?? 1, fx: v.fx ?? r.vofx ?? null }));
+  for (const v of r.vo ?? []) if (!v.nosub) subs.push({ kind: 'html', cls: `sub ${r.subCls ?? ''}`, html: v.text, y: v.subY ?? r.subY ?? 1360, at: +v.start.toFixed(3), until: +(v.start + v.dur + 0.15).toFixed(3), anim: 'fade' });
+  // reklam: ses efektleri (sahne içi [at, tür, kazanç]) mutlak zamana
+  const sfx = scenes.flatMap((sc) => (sc.sfx ?? []).map(([at, k, g, o]) => ({ t: +(sc.start + at).toFixed(3), k, g: g ?? 1, ...(o ?? {}) }))).sort((a, b) => a.t - b.t);
   const payload = {
     scenes: [...scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, ringY: sc.ringY, shade: sc.shade, flash: sc.flash, layers: (sc.layers ?? []).map(stage) })),
       { id: 'altyazi', start: 0, dur: total, bg: 'none', layers: subs }],
     voice: voice.filter((v) => v.lipsync !== false).map((v) => ({ at: v.at, fps, env: v.env })),
   };
   const plan = {
-    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post,
+    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post, ad: !!r.ad, sfx, duck: r.duck ?? null,
     scenes: scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, frame: sc.frame ?? null, speed: sc.speed ?? 1,
-      clip: sc.clip ? { ...sc.clip, dir: clipDir(sc.clip) } : null, boss: !!sc.boss, flash: !!sc.flash })),
+      clip: sc.clip ? { ...sc.clip, dir: clipDir(sc.clip) } : null, boss: !!sc.boss, flash: !!sc.flash,
+      cam: sc.cam ?? null, fx: sc.fx ?? null, blend: !!sc.blend, mus: sc.mus ?? null, skip: sc.skip ?? 0 })),
     voice: [...voice.map((v) => ({ id: v.id, file: v.file, at: v.at, from: v.from ?? 0, to: v.to ?? null, gain: v.gain ?? 1 })), ...narr],
-    cover: r.cover ? { clip: r.cover.clip ? { ...r.cover.clip, dir: clipDir(r.cover.clip) } : null, t: r.cover.t ?? 1, frame: r.cover.frame ?? null, png: path.join(dir, 'kapak-katman.png') } : null,
+    cover: r.cover ? { clip: r.cover.clip ? { ...r.cover.clip, dir: clipDir(r.cover.clip) } : null, t: r.cover.t ?? 1, frame: r.cover.frame ?? null, dim: r.cover.dim ?? null, blur: r.cover.blur ?? null, png: path.join(dir, 'kapak-katman.png') } : null,
     overlay: ovl,
   };
   if (flag('--no-overlay')) { fs.writeFileSync(path.join(dir, 'plan.json'), JSON.stringify(plan, null, 1)); return; }

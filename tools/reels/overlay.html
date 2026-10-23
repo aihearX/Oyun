@@ -108,6 +108,74 @@
   .cta .a { font:900 52px/1.15 var(--ui); color:var(--cream); }
   .cta .b { font:900 44px/1.15 var(--ui); color:var(--teal); }
   .note { font:800 30px/1.3 var(--ui); color:var(--lav); text-align:center; margin:0 120px; }
+
+  /* ===== Reklam (TV reklamı tarzı) eklentileri: kinetik yazı, arka planlar, telefon kartı, saat, sızıntı ===== */
+  .bg-black { position:absolute; inset:0; background:#000; }
+  .bg-void { position:absolute; inset:0; background:radial-gradient(60% 40% at 50% 45%, #1d1240 0%, #07040f 70%, #000 100%); }
+  .bg-goo { position:absolute; inset:0; background:radial-gradient(80% 50% at 50% 40%, #ffcf5a 0%, #e89a1c 45%, #7a3d05 100%); }
+  .bg-desk { position:absolute; inset:0; background:radial-gradient(55% 32% at 30% 18%, rgba(255,214,140,.38), rgba(255,214,140,0) 70%), linear-gradient(180deg, #0b1030 0%, #070a1f 60%, #04050f 100%); }
+  .bg-red { position:absolute; inset:0; background:radial-gradient(70% 45% at 50% 45%, #6b0f22 0%, #2a0510 70%, #0d0206 100%); }
+  .bg-stadium { position:absolute; inset:0; background:radial-gradient(90% 40% at 50% 100%, #3a1a7a 0%, #160b38 55%, #07031a 100%); overflow:hidden; }
+  .bg-stadium .beam { position:absolute; bottom:-200px; width:260px; height:2600px; transform-origin:50% 100%; background:linear-gradient(0deg, rgba(255,240,200,.0) 0%, rgba(255,240,200,.28) 40%, rgba(255,240,200,0) 100%); filter:blur(18px); }
+  .bg-stadium .crowd { position:absolute; left:-40px; right:-40px; bottom:0; height:330px; background:
+      radial-gradient(38px 46px at 40px 60px, #05020f 98%, transparent 100%) 0 0/86px 120px repeat-x,
+      radial-gradient(40px 50px at 20px 90px, #0a0520 98%, transparent 100%) 30px 70px/92px 130px repeat-x,
+      linear-gradient(0deg, #05020f 0 140px, transparent 140px); }
+  .bg-stadium .lights { position:absolute; inset:0; background-image:radial-gradient(3px 3px at 10% 70%, #fff 50%, transparent 55%), radial-gradient(3px 3px at 30% 74%, #ffe7a8 50%, transparent 55%), radial-gradient(3px 3px at 52% 69%, #fff 50%, transparent 55%), radial-gradient(3px 3px at 74% 73%, #c9fff9 50%, transparent 55%), radial-gradient(3px 3px at 90% 71%, #fff 50%, transparent 55%); }
+  .kt { text-align:center; font:800 150px/0.94 var(--disp); letter-spacing:-1px; text-transform:uppercase; color:#fff; padding:0 40px;
+    text-shadow:0 7px 0 rgba(10,5,30,.55), 0 0 40px rgba(10,5,30,.65); }
+  .kt.gold { background:linear-gradient(180deg, #fff9e0 0%, #ffe27a 38%, #ffc93c 58%, #ff9f1c 100%); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 7px 0 #8a3f00) drop-shadow(0 0 30px rgba(14,8,40,.85)); }
+  .kt.teal { background:linear-gradient(180deg, #e9fffc 0%, #7ff3e8 40%, #2ee6d6 65%, #12a89e 100%); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 7px 0 #0b5f5a) drop-shadow(0 0 30px rgba(14,8,40,.85)); }
+  .kt.coral, .kt.red { background:linear-gradient(180deg, #ffe3ec 0%, #ff9bb8 35%, #ff5c8a 65%, #d93a6a 100%); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 7px 0 #7a1838) drop-shadow(0 0 30px rgba(14,8,40,.85)); }
+  .kt.amber { background:linear-gradient(180deg, #fff4c9 0%, #ffd36a 35%, #e69a1a 70%, #9c5a06 100%); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 8px 0 #4a2600) drop-shadow(0 0 34px rgba(40,18,0,.8)); }
+  .kt.ink { color:#14082e; text-shadow:none; }
+  .kt.box { display:inline-block; padding:18px 44px 8px; background:var(--gold); color:#14082e; border-radius:22px; text-shadow:none; box-shadow:0 14px 0 rgba(90,40,0,.55), 0 20px 50px rgba(0,0,0,.5); }
+  .kt.box.coral { background:var(--coral); color:#fff; box-shadow:0 14px 0 rgba(90,10,40,.6), 0 20px 50px rgba(0,0,0,.5); }
+  .kt.box.teal { background:var(--teal); color:#062a28; box-shadow:0 14px 0 rgba(5,70,66,.6), 0 20px 50px rgba(0,0,0,.5); }
+  .kt.box.white { background:#fff6e5; color:#14082e; box-shadow:0 14px 0 rgba(60,40,90,.6), 0 20px 50px rgba(0,0,0,.5); }
+  .kt.sm { font-size:96px; } .kt.md { font-size:120px; } .kt.lg { font-size:190px; } .kt.xl { font-size:260px; } .kt.xxl { font-size:520px; line-height:.86; }
+  .kt .lo { text-transform:none; }
+  /* fragman başlık kartı: geniş aralıklı, gümüş */
+  .tt { text-align:center; font:900 74px/1.15 var(--ui); letter-spacing:16px; text-transform:uppercase; padding:0 60px;
+    background:linear-gradient(180deg, #ffffff 0%, #d9d4ef 45%, #8f88b8 55%, #f3f0ff 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 0 18px rgba(170,150,255,.45)); }
+  .tt.gold { background:linear-gradient(180deg, #fff9e0 0%, #ffe27a 45%, #c98a12 55%, #fff1b8 100%); -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 22px rgba(255,180,60,.5)); }
+  .tt.sm { font-size:52px; letter-spacing:12px; } .tt.lg { font-size:104px; letter-spacing:20px; }
+  .tsub { padding:0 90px; font:900 40px/1.25 var(--ui); letter-spacing:6px; text-transform:uppercase; color:#cfc8f0; text-align:center; text-shadow:0 0 18px rgba(0,0,0,.9); }
+  .lbl { position:relative; padding:16px 30px 12px; background:#fff6e5; color:#14082e; border-radius:18px; font:900 46px/1.05 var(--ui); text-transform:uppercase; letter-spacing:1px;
+    box-shadow:0 10px 0 rgba(20,8,46,.55), 0 18px 40px rgba(0,0,0,.45); border:5px solid #14082e; }
+  .lbl small { display:block; font:800 30px/1.15 var(--ui); text-transform:none; letter-spacing:0; color:#5a3fb0; margin-top:4px; }
+  .lbl.coral { background:var(--coral); color:#fff; } .lbl.gold { background:var(--gold); } .lbl.teal { background:var(--teal); }
+  .lbl.coral small { color:#ffe3ec; }
+  .lbl .arr { position:absolute; width:0; height:0; border:22px solid transparent; }
+  .lbl .arr.d { left:50%; bottom:-44px; margin-left:-22px; border-top-color:#14082e; }
+  .lbl .arr.u { left:50%; top:-44px; margin-left:-22px; border-bottom-color:#14082e; }
+  .note-card { padding:22px 34px 16px; background:#fff3b0; color:#2a1650; border-radius:10px; font:800 58px/1 var(--disp); box-shadow:0 18px 30px rgba(0,0,0,.5); white-space:nowrap; }
+  .note-card.p { background:#ffd1e0; } .note-card.b { background:#c9f3ff; } .note-card.g { background:#d6ffc9; } .note-card.l { background:#e3dcff; }
+  .note-card small { display:block; font:800 28px/1.1 var(--ui); color:#6b4ea8; margin-top:6px; }
+  .clock { font:800 300px/1 var(--disp); letter-spacing:4px; color:#ff4766; text-shadow:0 0 30px rgba(255,40,80,.85), 0 0 90px rgba(255,40,80,.45); font-variant-numeric:tabular-nums; }
+  .clock.calm { color:#7ff3e8; text-shadow:0 0 30px rgba(46,230,214,.8), 0 0 90px rgba(46,230,214,.4); }
+  .phone { position:relative; border-radius:64px; padding:18px; background:linear-gradient(160deg,#3b2c78,#120a30 60%,#2a1f60); box-shadow:0 0 0 4px rgba(255,255,255,.12) inset, 0 40px 90px rgba(0,0,0,.65), 0 0 80px rgba(139,107,255,.35); }
+  .phone .scr { position:relative; overflow:hidden; border-radius:48px; background:#140c35; }
+  .phone .scr img { position:absolute; left:0; top:0; transform-origin:50% 0; }
+  .phone .glare { position:absolute; inset:18px; border-radius:48px; background:linear-gradient(115deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 32%); pointer-events:none; }
+  .speed { width:2400px; height:2400px; margin-top:-1200px; border-radius:50%; background:repeating-conic-gradient(from 0deg, rgba(255,255,255,.0) 0deg 5deg, rgba(255,255,255,.16) 5.6deg 6.4deg, rgba(255,255,255,0) 7deg 11deg);
+    -webkit-mask-image:radial-gradient(circle, transparent 0 260px, #000 560px); mask-image:radial-gradient(circle, transparent 0 260px, #000 560px); }
+  .spot { width:1000px; height:1000px; margin-top:-500px; border-radius:50%; background:radial-gradient(circle, rgba(255,240,200,.42) 0%, rgba(255,240,200,.12) 40%, rgba(255,240,200,0) 70%); }
+  .goo svg { display:block; }
+  .tiers { display:flex; flex-direction:column; align-items:center; gap:18px; }
+  .tier { display:inline-flex; align-items:center; gap:22px; padding:14px 44px 10px; border-radius:999px; font:800 86px/1 var(--disp); text-transform:uppercase; color:#14082e; box-shadow:0 10px 0 rgba(0,0,0,.35), 0 20px 50px rgba(0,0,0,.45); }
+  .tier.br { background:linear-gradient(180deg,#ffd2a8,#c9783a); } .tier.sv { background:linear-gradient(180deg,#ffffff,#a9b4c8); } .tier.au { background:linear-gradient(180deg,#fff3b0,#ffc93c 55%,#ff9f1c); }
+  .tier.pt { background:linear-gradient(180deg,#e9fffc,#8fd8ff 60%,#6aa9ff); } .tier.kk { background:linear-gradient(180deg,#ffe3ec,#ff5c8a 55%,#8b6bff); color:#fff; text-shadow:0 4px 0 rgba(60,0,40,.5); }
+  .ctaBig { text-align:center; font:900 54px/1.18 var(--ui); color:var(--cream); padding:22px 40px; margin:0 110px 0 90px; border-radius:34px; background:rgba(16,9,46,.82); border:5px solid var(--teal); box-shadow:0 0 34px rgba(46,230,214,.35); }
+  .ctaBig b { color:var(--gold); }
+  .sub.tr { background:none; box-shadow:none; font:900 46px/1.3 var(--ui); letter-spacing:5px; text-transform:uppercase; color:#efeaff; text-shadow:0 0 18px #000, 0 0 8px #000, 0 3px 0 #000; }
+  .sub.big { font-size:50px; background:rgba(10,6,32,.86); border:4px solid rgba(255,201,60,.55); }
+  .tsub.lo { text-transform:none; letter-spacing:1px; font-size:46px; }
+  .tsub.xl { font-size:60px; }
+  .band { width:100%; display:flex; justify-content:center; padding:22px 0 18px; background:linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(4,2,14,.72) 18%, rgba(4,2,14,.72) 82%, rgba(0,0,0,0) 100%); }
+  .clock.sm { font-size:150px; } .clock.md { font-size:210px; }
+  .swab { display:flex; justify-content:center; }
   .art { display:flex; justify-content:center; }
   .art svg { overflow:visible; }
 </style>
@@ -151,6 +219,17 @@ const DEDE = (size, id = 'd') => {
 <g transform="translate(118 150) scale(1.1)"><circle cx="8" cy="8" r="10" fill="#2a1b63" stroke="#ffc93c" stroke-width="2"/><path d="M7 3.5v8.2a2.4 2 -20 1 1-1.6-1.8V3.5c2 .7 4.2 1.6 4.4 3.8-.7-.8-1.7-1.3-2.8-1.4z" fill="url(#${id}g)"/></g></g></svg>`;
 };
 
+/* reklam arka planları */
+const BGS = {
+  black: '<div class="bg-black"></div>',
+  void: '<div class="bg-void"></div><div class="stars" style="opacity:.3"></div>',
+  goo: '<div class="bg-goo"></div>',
+  desk: '<div class="bg-desk"></div><div class="stars" style="opacity:.18"></div>',
+  red: '<div class="bg-red"></div>',
+  stadium: '<div class="bg-stadium">' + [[-80, -22], [180, -9], [540, 0], [900, 9], [1160, 22]].map(([x, r]) => `<div class="beam" style="left:${x - 130}px" data-r="${r}"></div>`).join('') + '<div class="lights"></div><div class="crowd"></div></div>',
+};
+const noise = (t, k) => Math.sin(t * 61.7 + k * 3.1) * 0.5 + Math.sin(t * 37.3 + k * 7.7) * 0.35 + Math.sin(t * 93.1 + k) * 0.15;
+
 /* ---------- zamanlama yardımcıları ---------- */
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
 const easeOut = (x) => 1 - Math.pow(1 - x, 3);
@@ -168,6 +247,7 @@ window.setupReel = async (reel) => {
   const root = document.getElementById('root'); root.innerHTML = '';
   SCENES = reel.scenes.map((sc, si) => {
     const d = document.createElement('div'); d.className = 'scene';
+    if (BGS[sc.bg]) d.innerHTML = BGS[sc.bg];
     if (sc.bg === 'night') d.innerHTML = `<div class="bg-night"></div><div class="stars"></div><div class="ring" style="top:${sc.ringY ?? 760}px;width:900px;height:900px"></div><div class="ring" style="top:${sc.ringY ?? 760}px;width:1300px;height:1300px;opacity:.6"></div>`;
     if (sc.shade === 'top' || sc.shade === 'both') d.insertAdjacentHTML('beforeend', '<div class="shade-top"></div>');
     if (sc.shade === 'bot' || sc.shade === 'both') d.insertAdjacentHTML('beforeend', '<div class="shade-bot"></div>');
@@ -188,6 +268,25 @@ window.setupReel = async (reel) => {
       } else if (k === 'odi') { inner.className = 'art'; inner.innerHTML = ODI(L.size ?? 300, `o${si}_${li}`); }
       else if (k === 'dede') { inner.className = 'art'; inner.innerHTML = DEDE(L.size ?? 300, `d${si}_${li}`); L._mouth = inner.querySelector('.mouth'); }
       else if (k === 'count') { inner.className = 'count'; inner.textContent = String(L.from ?? 0); }
+      else if (k === 'phone') {
+        // telefon kartı: ekran görüntüsü, eğik (3B) duruş; crop: 780 genişlikli görüntüde [x, y, w, h]
+        const [cx, cy, cw, ch0] = L.crop ?? [0, 0, 780, 1688]; const w = L.w ?? 620; const s = w / cw;
+        const maxH = L.maxH ?? 1180; const ch = Math.min(ch0, maxH / s); const h = Math.round(ch * s);
+        inner.className = 'phone ' + (L.cls || ''); inner.innerHTML = `<div class="scr" style="width:${w}px;height:${h}px"></div><div class="glare"></div>`;
+        const img = new Image(); img.src = L.src; img.style.width = Math.round((L.imgW ?? 780) * s) + 'px'; img.style.left = -cx * s + 'px'; img.style.top = -cy * s + 'px';
+        inner.querySelector('.scr').appendChild(img); L._img = img; L._phone = inner;
+      }
+      else if (k === 'clock') { inner.className = 'clock ' + (L.cls || ''); }
+      else if (k === 'speed') { inner.className = 'speed'; e.style.left = '-660px'; e.style.right = '-660px'; }
+      else if (k === 'spot') { inner.className = 'spot'; }
+      else if (k === 'goo') {
+        // kehribar sızıntı: üst şerit + uzayan damlalar (serumen kancası)
+        const n = L.n ?? 9; let g = '';
+        for (let i = 0; i < n; i++) { const x = 40 + i * (1000 / (n - 1)) + ((i * 37) % 23) - 11; const wd = 46 + ((i * 53) % 30); g += `<g class="drip" data-i="${i}"><rect x="${x - wd / 2}" y="60" width="${wd}" height="10" rx="${wd / 2}" fill="url(#gooG)"/><circle cx="${x}" cy="70" r="${wd / 2 + 6}" fill="url(#gooG)"/><ellipse cx="${x - wd / 5}" cy="70" rx="${wd / 7}" ry="${wd / 4}" fill="#fff6d0" opacity=".55"/></g>`; }
+        inner.className = 'goo'; inner.innerHTML = `<svg width="1080" height="1400" viewBox="0 0 1080 1400"><defs><linearGradient id="gooG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b86a08"/><stop offset=".45" stop-color="#ffcf5a"/><stop offset="1" stop-color="#c97a0c"/></linearGradient></defs>
+          <path d="M0 0H1080V90C1000 120 940 70 860 105S720 80 640 112 500 78 420 110 280 76 200 104 60 82 0 100Z" fill="url(#gooG)"/>${g}</svg>`;
+        L._drips = [...inner.querySelectorAll('.drip')].map((el, i) => ({ el, r: el.querySelector('rect'), c: el.querySelector('circle'), hl: el.querySelector('ellipse'), sp: 260 + ((i * 97) % 180), max: 260 + ((i * 131) % 520), d: ((i * 71) % 40) / 100 }));
+      }
       else if (k === 'journey') {
         inner.className = 'journey'; inner.style.width = '100%'; inner.style.display = 'flex';
         const n = L.n; let h = '<div class="track"><div class="fill"></div>';
@@ -195,18 +294,21 @@ window.setupReel = async (reel) => {
         h += `<div class="odi">${ODI(74, `j${si}_${li}`)}</div></div>`; inner.innerHTML = h;
         e.style.left = '0'; e.style.right = '0';
       }
+      if (L.anim === 'type') L._text = inner.textContent;
+      if (L.z != null) e.style.zIndex = L.z;
       e.appendChild(inner); d.appendChild(e);
       return { L, e, inner };
     });
     if (sc.flash) d.insertAdjacentHTML('beforeend', '<div class="flash" style="opacity:0"></div>');
     root.appendChild(d);
-    return { sc, d, layers, flash: d.querySelector('.flash') };
+    return { sc, d, layers, flash: d.querySelector('.flash'), beams: [...d.querySelectorAll('.beam')] };
   });
   await document.fonts.ready;
   await Promise.all([...document.images].map((i) => (i.decode ? i.decode().catch(() => undefined) : undefined)));
   return true;
 };
 
+const li0 = (L) => (L._k ??= Math.random() * 10);
 /** sesin o anki genliği (0..1): Tüy Dede'nin ağzı */
 function voiceAt(t) { for (const v of VOICE) { const i = Math.floor((t - v.at) * v.fps); if (i >= 0 && i < v.env.length) return v.env[i]; } return 0; }
 
@@ -218,23 +320,54 @@ window.seek = (t) => {
     S.d.classList.toggle('on', on); if (!on) continue;
     sig += sc.id + '|';
     if (S.flash) { const o = clamp(1 - lt / 0.18) * 0.5; S.flash.style.opacity = o.toFixed(3); sig += o.toFixed(2); }
+    if (S.beams.length) S.beams.forEach((b, i) => { const r = Number(b.dataset.r) + 12 * Math.sin(t * 1.3 + i * 1.7); b.style.transform = `rotate(${r.toFixed(2)}deg)`; sig += r.toFixed(1); });
     for (const { L, e, inner } of S.layers) {
       const at = L.at ?? 0, until = L.until ?? sc.dur; const a = lt - at;
       if (a < 0 || lt >= until) { e.style.opacity = '0'; sig += '0,'; continue; }
       const anim = L.anim || 'pop';
-      let op = 1, sc2 = 1, dy = 0;
+      let op = 1, sc2 = 1, dy = 0, dx = (L.dx ?? 0) + (L.x != null ? L.x - 540 : 0), rot = L.rot ?? 0, sk = 0;
       if (anim === 'pop') { const p = clamp(a / 0.32); sc2 = 0.62 + 0.38 * backOut(p); op = clamp(a / 0.12); }
       else if (anim === 'rise') { const p = easeOut(clamp(a / 0.4)); dy = 70 * (1 - p); op = clamp(a / 0.2); }
-      else if (anim === 'fade') { op = clamp(a / 0.25); }
+      else if (anim === 'fade') { op = clamp(a / (L.fadeT ?? 0.25)); }
       else if (anim === 'zoom') { const p = easeOut(clamp(a / 0.45)); sc2 = 1.35 - 0.35 * p; op = clamp(a / 0.15); }
-      const out = until - lt; if (out < 0.16 && until < sc.dur) op *= clamp(out / 0.16);
+      // TV reklamı: yazı ekrana çarpar (büyükten), damga, savrulma, düşme, titreşerek yanma, daktilo, uçuş
+      else if (anim === 'slam') { const T = L.slamT ?? 0.13, f = L.slamFrom ?? 2.4, p = clamp(a / T); sc2 = p < 1 ? f - (f - 1) * p * p : 1 + 0.07 * Math.exp(-(a - T) * 16) * Math.cos((a - T) * 42); op = clamp(a / 0.04); }
+      else if (anim === 'stamp') { const T = 0.15, p = clamp(a / T); sc2 = p < 1 ? 2.1 - 1.1 * p * p : 1 + 0.05 * Math.exp(-(a - T) * 18); rot += (1 - p) * -10; op = clamp(a / 0.04); }
+      else if (anim === 'whipL' || anim === 'whipR') { const g = anim === 'whipL' ? -1 : 1, p = easeOut(clamp(a / 0.2)); dx += g * 1300 * (1 - p); sk = -g * 26 * (1 - p); op = clamp(a / 0.05); }
+      else if (anim === 'drop') { const p = clamp(a / 0.4); dy = -900 * (1 - backOut(p)); op = clamp(a / 0.06); }
+      else if (anim === 'flicker') { const pat = [1, 0, 0, 1, 0, 1, 1, 0, 1, 1]; const i = Math.floor(a / 0.04); op = i < pat.length ? pat[i] : 1; }
+      else if (anim === 'type') { const n = Math.min(L._text.length, Math.floor(a * (L.cps ?? 20)) + 1); inner.textContent = L._text.slice(0, n); sig += n; }
+      else if (anim === 'fly') { const fd = L.flyDur ?? 0.45, p = easeOut(clamp(a / fd)); const [fx, fy, fr] = L.from ?? [0, -1400, 0]; dx += fx * (1 - p); dy += fy * (1 - p); rot += fr * (1 - p); op = clamp(a / 0.04); }
+      else if (anim === 'grow') { const p = easeOut(clamp(a / (L.growT ?? 0.6))); sc2 = (L.growFrom ?? 0.2) + (1 - (L.growFrom ?? 0.2)) * p; op = clamp(a / 0.08); }
+      const out = until - lt;
+      if (L.out === 'whip' && out < 0.14) { const q = 1 - out / 0.14; dx += 1300 * q * q; sk -= 20 * q; }
+      else if (L.out === 'zoom' && out < 0.14) { const q = 1 - out / 0.14; sc2 *= 1 + 1.4 * q; op *= 1 - q; }
+      else if (L.out === 'drop' && out < 0.18) { const q = 1 - out / 0.18; dy += 1400 * q * q; rot += 25 * q; }
+      else if (L.out !== 'cut' && out < 0.16 && until < sc.dur) op *= clamp(out / 0.16);
       if (L.bob) dy += Math.sin((t + (L.phase ?? 0)) * 2 * Math.PI / (L.bob)) * (L.bobAmp ?? 10);
-      const dx = L.dx ?? 0;
+      if (L.spin) rot += L.spin * a;
+      if (L.sway) rot += Math.sin(t * 2 * Math.PI / (L.swayT ?? 1.6)) * L.sway;
+      if (L.jitter) { dx += noise(t, li0(L)) * L.jitter; dy += noise(t + 3.3, li0(L)) * L.jitter; }
+      if (L.pulse) { const ph = ((t - (L.pulseAt ?? 0)) * L.pulse / 60) % 1; sc2 *= 1 + (L.pulseAmt ?? 0.06) * Math.max(0, 1 - ph * 4); }
       if (L.drift) sc2 *= 1 + L.drift * clamp(a / Math.max(0.01, until - at));
       e.style.opacity = op.toFixed(3);
-      e.style.transform = `translate(${dx}px, ${dy.toFixed(1)}px) scale(${sc2.toFixed(4)})`;
+      e.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) skewX(${sk.toFixed(2)}deg) scale(${sc2.toFixed(4)})`;
       e.style.transformOrigin = `50% ${L.origin ?? 50}%`;
-      sig += `${op.toFixed(2)}:${sc2.toFixed(3)}:${dy.toFixed(0)},`;
+      sig += `${op.toFixed(2)}:${sc2.toFixed(3)}:${dy.toFixed(0)}:${dx.toFixed(0)}:${rot.toFixed(1)}:${sk.toFixed(1)},`;
+      if (L._phone) {
+        const p = easeOut(clamp(a / Math.max(0.01, (L.tiltT ?? (until - at))))); const [r0, r1] = L.ry ?? [0, 0]; const [x0, x1] = L.rx ?? [0, 0];
+        const tf = `perspective(2400px) rotateY(${(r0 + (r1 - r0) * p).toFixed(2)}deg) rotateX(${(x0 + (x1 - x0) * p).toFixed(2)}deg) rotateZ(${(L.rz ?? 0).toFixed(2)}deg)`;
+        L._phone.style.transform = tf; sig += tf;
+      }
+      if (L.kind === 'clock') {
+        const [h0, m0] = L.from ?? [3, 0]; const mins = h0 * 60 + m0 + Math.floor(a * (L.rate ?? 0)); const hh = Math.floor(mins / 60) % 24, mm = mins % 60;
+        const colon = !L.blink || Math.floor(a * 2) % 2 === 0 ? ':' : '<span style="opacity:.15">:</span>';
+        const txt = `${String(hh).padStart(2, '0')}${colon}${String(mm).padStart(2, '0')}`; if (inner.innerHTML !== txt) inner.innerHTML = txt; sig += txt;
+      }
+      if (L.kind === 'speed') { const r = (L.spinSpeed ?? 40) * a; inner.style.transform = `rotate(${r.toFixed(2)}deg)`; sig += r.toFixed(1); }
+      if (L._drips) for (const D of L._drips) {
+        const len = Math.max(0, Math.min(D.max, (a - D.d) * D.sp)); D.r.setAttribute('height', (10 + len).toFixed(1)); D.c.setAttribute('cy', (70 + len).toFixed(1)); D.hl.setAttribute('cy', (66 + len).toFixed(1)); sig += len.toFixed(0);
+      }
       if (L._img) {
         const p = clamp(a / Math.max(0.01, until - at)); const [s0, s1] = L.kb ?? [1.0, 1.08]; const [p0, p1] = L.pan ?? [0, 0];
         const s = s0 + (s1 - s0) * p; L._img.style.transform = `translateY(${(p0 + (p1 - p0) * p).toFixed(1)}px) scale(${s.toFixed(4)})`; sig += s.toFixed(4);

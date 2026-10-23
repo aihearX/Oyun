@@ -46,6 +46,53 @@
       { "id": "d8", "text": "Kulak kepçesinden kortekse, tam on anıt." },
       { "id": "d9", "text": "Yalnız değilsin: Tüy Dede ve takımın hep yanında." },
       { "id": "d10", "text": "Odi: Sesin Yolu. Çok yakında!", "sub": "ODİ: Sesin Yolu. Çok yakında!" }
+    ],
+    "fragman": [
+      { "id": "f1", "text": "Bir ses, kulağa girdi.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f2", "text": "Ve geri dönmedi.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f3", "text": "Büyük Sessizlik geliyor.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f4", "text": "Kanalın sonunda bir dev bekliyor.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f5", "text": "Derinlerde, on sekiz patoloji.", "sub": "Derinlerde, 18 patoloji.", "asr": ["Derinlerde on sekiz patoloji", "Derinlerde 18 patoloji"], "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f6", "text": "Ve en dipte, Gürültü Canavarı.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f7", "text": "Kulağın tek bir umudu var.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f8", "text": "Odi. Sesin Yolu.", "sub": "ODİ: Sesin Yolu.", "asr": ["Odi sesin yolu", "Odi. Sesin yolu"], "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } },
+      { "id": "f9", "text": "Yakında. Kulağına çok yakın bir yerde.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.7, "max_tempo": 1.08, "max_gap": 0.6 } }
+    ],
+    "serumen": [
+      { "id": "s1", "text": "Kulak kiri.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s2", "text": "Herkeste var. Kimse konuşmuyor.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s3", "text": "Konuşalım.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s4", "text": "Aslında o bir kahraman: kanalı korur.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s5", "text": "Kulak onu kendisi dışarı taşır.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s6", "text": "Ama birikirse?", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s7", "text": "Kirden bir dev!", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s8", "text": "Pamuklu çubuk mu? Asla! Kiri daha derine iter.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s9", "text": "Oyunda, kampta damlanı hazırla.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s10", "text": "Gerçekte mi? Temizliği hekim yapar.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s11", "text": "Kulağını rahat bırak. Golemi bize bırak.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "s12", "text": "Odi: Sesin Yolu. Yakında!", "sub": "ODİ: Sesin Yolu. Yakında!", "asr": ["Odi sesin yolu yakında"] }
+    ],
+    "sinav-gecesi": [
+      { "id": "n1", "text": "Gece üç. Sınav sabah dokuzda.", "asr": ["Gece üç sınav sabah dokuzda", "Gece 3 sınav sabah 9'da", "Gece 3 sınav sabah dokuzda"] },
+      { "id": "n2", "text": "Örs mü, çekiç mi? Korti nerede?", "sub": "Örs mü, çekiç mi? Corti nerede?", "asr": ["Örs mü çekiç mi Korti nerede", "Örs mü çekiç mi Corti nerede"], "v": { "exaggeration": 1.15, "cfg_weight": 0.35, "temperature": 0.85, "target_sps": 6.2, "max_tempo": 1.25 } },
+      { "id": "n3", "text": "Tonotopi neydi?", "v": { "exaggeration": 1.0, "cfg_weight": 0.4, "temperature": 0.75, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [5, 6, 7, 8, 9, 10] } },
+      { "id": "n4", "text": "Ya oynayarak öğrenseydin?" },
+      { "id": "n5", "text": "Çekiç, örs, üzengi: zıpla, sallan, çakıl!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "n6", "text": "Her terim önce sade, sonra derin." },
+      { "id": "n7", "text": "Elli kulak kartı topla.", "sub": "50 Kulak Kartı topla.", "asr": ["Elli kulak kartı topla", "50 kulak kartı topla"] },
+      { "id": "n8", "text": "Yüz yirmi sekiz soruyla kendini sına.", "sub": "128 soruyla kendini sına.", "asr": ["Yüz yirmi sekiz soruyla kendini sına", "128 soruyla kendini sına"] },
+      { "id": "n9", "text": "Sabah dokuz. Korti mi? Eski dost.", "sub": "Sabah dokuz. Corti mi? Eski dost.", "asr": ["Sabah dokuz Korti mi eski dost", "Sabah dokuz Corti mi eski dost", "Sabah 9 Corti mi eski dost", "Sabah 9 Korti mi eski dost"], "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "n10", "text": "Odi: Sesin Yolu. Yakında!", "sub": "ODİ: Sesin Yolu. Yakında!", "asr": ["Odi sesin yolu yakında"] }
+    ],
+    "takim-macera": [
+      { "id": "m1", "text": "Üç! İki! Bir!", "asr": ["Üç iki bir", "3 2 1"], "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m2", "text": "Aynı bölüm. Aynı anda. Takımınla!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m3", "text": "Önde bitir, yıldızları kap!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m4", "text": "Bronzdan Koklea ligine tırman!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m5", "text": "Sıralamada adını yukarı taşı!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m6", "text": "Canavarı hep beraber devirin!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m7", "text": "Odi: Sesin Yolu. Takımın seni bekliyor.", "sub": "ODİ: Sesin Yolu. Takımın seni bekliyor.", "asr": ["Odi sesin yolu takımın seni bekliyor"], "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "m8", "text": "Kim daha hızlı duyar? Arkadaşını etiketle!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } }
     ]
   }
 }
