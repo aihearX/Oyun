@@ -18,8 +18,8 @@ export interface NarratorLine {
 
 /** seslendirme yönergesi (oyuncuya / TTS hizmetine) */
 export const VOICE_DIRECTION =
-  'Tüy Dede: iç kulağın en yaşlı tüy hücresi. 65-75 yaşlarında, bilge, sıcak, şefkatli bir dede sesi; ' +
-  'hafif boğuk ve derin, acelesiz (normalden biraz yavaş), gülümseyerek konuşur. Çocuklara (7-12 yaş) masal anlatır gibi; ' +
+  'Tüy Dede: iç kulağın en yaşlı tüy hücresi; bilge, sıcak, şefkatli bir erkek anlatıcı. Akıcı ve doğal hızda ' +
+  '(yavaş değil), gülümseyerek konuşur; sesi yaşlandırılmaz (titreme, boğukluk yok). Çocuklara (7-12 yaş) masal anlatır gibi; ' +
   'heyecanlı yerlerde canlanır ama asla bağırmaz. Noktalama işaretlerinde doğal duraklar. Türkçe, İstanbul ağzı, net diksiyon.';
 
 export const NARRATOR_LINES: readonly NarratorLine[] = [

@@ -5,32 +5,35 @@
 
 ## Seslendirme yönergesi
 
-Tüy Dede: iç kulağın en yaşlı tüy hücresi. 65-75 yaşlarında, bilge, sıcak, şefkatli bir dede sesi; hafif boğuk ve derin, acelesiz (normalden biraz yavaş), gülümseyerek konuşur. Çocuklara (7-12 yaş) masal anlatır gibi; heyecanlı yerlerde canlanır ama asla bağırmaz. Noktalama işaretlerinde doğal duraklar. Türkçe, İstanbul ağzı, net diksiyon.
+Tüy Dede: iç kulağın en yaşlı tüy hücresi; bilge, sıcak, şefkatli bir erkek anlatıcı. Akıcı ve doğal hızda (yavaş değil), gülümseyerek konuşur; sesi yaşlandırılmaz (titreme, boğukluk yok). Çocuklara (7-12 yaş) masal anlatır gibi; heyecanlı yerlerde canlanır ama asla bağırmaz. Noktalama işaretlerinde doğal duraklar. Türkçe, İstanbul ağzı, net diksiyon.
 
-Dosyalar `apps/web/public/voice/<id>.mp3` adıyla konur (mono, ~48 kbps MP3, −16 LUFS). Uygulama bir satırı yalnızca
+Dosyalar `apps/web/public/voice/<id>.mp3` adıyla konur (mono, ~56kbps MP3, −16 LUFS). Uygulama bir satırı yalnızca
 kayıt metni ekrandaki altyazıyla aynıysa çalar (manifest'teki parmak izi); kaydı olmayan satırda cihazın sesi (TTS) devreye girer.
 
-## Ses lisansı
+## Ses lisansı ve emeği geçenler
 
-- Üretim: **Coqui TTS** (MPL-2.0 kitaplık; yalnız geliştirici makinesinde çalışır, uygulamaya girmez).
-- Model: `tts_models/tr/common-voice/glow-tts` + `vocoder_models/tr/common-voice/hifigan` — yazar **Fatih Akademi**, lisans **MIT**;
-  eğitim verisi Mozilla **Common Voice** Türkçe (CC0). Model dosyaları:
-  https://github.com/coqui-ai/TTS/releases/tag/v0.6.1_models
-- Uygulamada anma: Ayarlar › "Anlatıcı sesi: Coqui TTS, Fatih Akademi Türkçe modeli (MIT)".
-- Üretilen ses dosyaları bu projenin parçasıdır; model MIT olduğundan ticari kullanım serbesttir (MIT bildirimi yukarıdadır).
+- Ses: **Chatterbox Multilingual** (Resemble AI, **MIT** lisansı; `chatterbox-tts` 0.1.7, `language_id='tr'`).
+  Model: https://huggingface.co/ResembleAI/chatterbox
+- Erkek anlatıcı tınısı: `tools/voice/ref-tr-erkek.flac` — sentetik bir temel ses (**Kokoro-82M**, hexgrad, **Apache-2.0**)
+  Chatterbox ile Türkçeye taşındı; gerçek bir kişinin sesi değildir (reels ekibiyle aynı onaylı ses).
+- Seçim: satır başına en çok 3 deneme (sabit tohumlar 1-3); **Whisper large-v3-turbo** (OpenAI, MIT) dökümüyle en iyisi seçilir:
+  önce anlaşılırlık (WER), sonra uzun duraksama, sonra hız.
+- Filigran: Chatterbox her çıktıya duyulmayan **Perth** filigranı ekler (Resemble AI; sentetik sesin izlenebilirliği için).
+- Uygulamada anma: Ayarlar › "Anlatıcı sesi: Chatterbox Multilingual (Resemble AI, MIT) · temel tını Kokoro-82M (Apache-2.0)".
+- Üretilen ses dosyaları bu projenin parçasıdır; MIT ve Apache-2.0 ticari kullanıma izin verir (bildirimler yukarıda).
 
 ## Üretim
 
 ```
-python3.12 -m venv ~/odi-tts && ~/odi-tts/bin/pip install "coqui-tts[codec]" --extra-index-url https://download.pytorch.org/whl/cpu
-# modeller (bir kez): yukarıdaki iki zip'i indirip bir klasöre açın
-ODI_TTS_PY=~/odi-tts/bin/python ODI_TTS_MODELS=~/odi-tts/models node tools/voice/generate.mjs
+python3.11 -m venv ~/odi-cb
+~/odi-cb/bin/pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+~/odi-cb/bin/pip install chatterbox-tts==0.1.7 transformers librosa
+ODI_CB_PY=~/odi-cb/bin/python ODI_CB_CACHE=~/odi-cb/cache node tools/voice/generate.mjs   # yarıda kalırsa aynı komut sürdürür
 ```
 
-Üslup: hız modelin kendi ayarıyla (length_scale 0.9; doğal prozodi, sonradan yavaşlatma yok), perde -1.5 yarım ton
-(biçimleyiciler korunur; hiçbir zaman yukarı değil), 80 Hz yüksek geçiren (boğukluk yok), hafif sıcaklık, ~3 kHz'te hafif netlik, cümle arası
-duraklamalar ≤ 250 ms, vibrato/tremolo yok, çok hafif yankı, −16 LUFS, sessizlik kırpma.
-Adaylar: dede-hizli, dede-dogal (seçilen: **dede-dogal**).
+Ayarlar: exaggeration 0.8, cfg_weight 0.3, temperature 0.8. "Dede" efekti yok (perde, titreme, yankı
+yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.2 hece/sn altındaysa en çok
+×1.2 hızlandırma, 60 Hz altı temizlik, −16 LUFS, mono 56k MP3. Yedek motor: `--engine coqui` (Coqui TTS, Fatih Akademi, MIT).
 
 ## Satırlar (156)
 
