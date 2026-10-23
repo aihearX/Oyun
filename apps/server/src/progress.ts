@@ -1,4 +1,4 @@
-import { leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type RunResult } from '@odi/shared';
+import { CAMP_POWER_LEVEL, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
 import { completeDue, useRemedies } from './camp';
@@ -23,7 +23,8 @@ export interface Bonuses { coinPct: number; shieldChancePct: number; firstHitIgn
 export function bonusesFor(app: App, pid: string): Bonuses {
   const teamId = app.player(pid).team_id;
   const bld = new Map(app.db.all<{ id: string; level: number }>('SELECT id, level FROM buildings WHERE player_id = ?', pid).map((b) => [b.id, b.level]));
-  const lv = (id: string) => bld.get(id) ?? 0;
+  // bina gücü Sv 15'te tavan yapar (Sv 16–25: görünüm, bilgi, süs; zorluk eğrisi korunur)
+  const lv = (id: string) => Math.min(CAMP_POWER_LEVEL, bld.get(id) ?? 0);
   return {
     coinPct: lv('laboratuvar') * LAB_PCT_PER_LEVEL + techBonus(app, teamId, 'jeton'),
     shieldChancePct: lv('atolye') * ATOLYE_PCT_PER_LEVEL + techBonus(app, teamId, 'kalkan'),

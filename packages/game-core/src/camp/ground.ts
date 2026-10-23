@@ -3,7 +3,7 @@
  * yollar, ses dalgası deresi, arsalar, uçurum kenarı ve sığ su halesi. Tek seferlik Canvas 2D boyaması.
  */
 import { P, css, mix, rng, shade, soft, type Ctx } from './paint';
-import { LOTS, BUILDING_ORDER } from './layout';
+import { LOTS, MAIN_BUILDINGS } from './layout';
 
 /** zemin dokusunun kapsadığı dünya kutusu */
 export const GROUND_BOX = { x0: -760, y0: -500, x1: 760, y1: 470 };
@@ -25,7 +25,7 @@ function shorePath(ctx: Ctx, k = 1, dy = 0) {
 
 /** yollar: merkez meydanından her binaya ve iskeleye (bezier) */
 export const ROADS: [number, number][][] = [
-  ...BUILDING_ORDER.filter((id) => id !== 'merkez').map((id) => { const l = LOTS[id]; return [[0, 30], [l.x * 0.45, l.y * 0.45 + 34], [l.x, l.y + (l.tiles * 16) + 6]] as [number, number][]; }),
+  ...MAIN_BUILDINGS.filter((id) => id !== 'merkez').map((id) => { const l = LOTS[id]; return [[0, 30], [l.x * 0.45, l.y * 0.45 + 34], [l.x, l.y + (l.tiles * 16) + 6]] as [number, number][]; }),
   [[0, 60], [10, 230], [-40, 300]],
 ];
 /**
@@ -129,7 +129,7 @@ export function paintGround(ctx: Ctx) {
   ctx.restore();
   ctx.beginPath(); ctx.ellipse(0, 4, 164, 82, 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(255,240,210,0.6)'; ctx.lineWidth = 2; ctx.stroke();
   // ---- arsalar (taş döşeme)
-  for (const id of BUILDING_ORDER) {
+  for (const id of MAIN_BUILDINGS) {
     if (id === 'merkez') continue;
     const l = LOTS[id]; const h = l.tiles * 16 + 4;
     const pts: [number, number][] = [P(-h, -h), P(h, -h), P(h, h), P(-h, h)].map(([x, y]) => [x + l.x, y + l.y]);

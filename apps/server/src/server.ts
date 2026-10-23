@@ -3,6 +3,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { COMM_RULES, SOCIAL_LIMITS, type Op } from '@odi/shared';
 import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type ServerConfig } from './app';
 import { campHandlers, completeDue } from './camp';
+import { campGrowthHandlers } from './camp-buyume';
 import { chatHandlers, pruneChat } from './chat';
 import { friendHandlers } from './friends';
 import { dmHandlers, dmTyping } from './dm';
@@ -28,7 +29,7 @@ export const MAX_MESSAGE_BYTES = 8 * 1024;
 
 const HANDLERS: Handlers = withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
-  ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers,
+  ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
 })));

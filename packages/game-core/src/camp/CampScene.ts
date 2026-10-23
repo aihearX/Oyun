@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { BuildingId, BuildingState, CampState } from '@odi/shared';
 import { buildingCanvas, type Anchors } from './buildings';
 import { BRIDGE, GROUND_BOX, ISLAND, ROADS, STREAM_PTS, onIsland, paintGround, paintSky, shoreK } from './ground';
-import { BUILDING_ORDER, LOTS, depotStored, tierOf, zonesOpen } from './layout';
+import { BUILDING_ORDER, LOTS, MAIN_BUILDINGS, depotStored, tierOf, zonesOpen } from './layout';
 import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold, worker } from './props';
 import { MONUMENT_BOX, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
 import { remedyById, remedyShelf } from '@odi/content';
@@ -37,7 +37,7 @@ export interface CampSceneOpts {
 const FONT = '"SF Pro Rounded","Segoe UI Rounded",Nunito,"Helvetica Neue",Arial,sans-serif';
 const GTEX = 1.25; // zemin dokusu çözünürlüğü
 /** bina ölçeği (arsayı dolduracak kadar) */
-const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15, tedavi: 1.15 };
+const BS: Record<BuildingId, number> = { merkez: 1.25, laboratuvar: 1.15, kule: 1.12, atolye: 1.15, depo: 1.15, revir: 1.15, tedavi: 1.15, kabin: 1.15, tarama: 1.15, park: 1.15, denge: 1.15, kutuphane: 1.15 };
 const DEPTH = { sky: -2000, waves: -1500, ground: -1000, fog: 4000, fx: 4500, ui: 6000 };
 const fmtLeft = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60; return h > 0 ? `${h} sa ${String(m).padStart(2, '0')} dk` : `${m}:${String(sec).padStart(2, '0')}`; };
 const bez = (p: [number, number][], t: number): [number, number] => { const [a, b, c] = p as [[number, number], [number, number], [number, number]]; return [(1 - t) ** 2 * a[0] + 2 * (1 - t) * t * b[0] + t * t * c[0], (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * b[1] + t * t * c[1]]; };
@@ -92,7 +92,7 @@ export class CampScene extends Phaser.Scene {
     this.placeDecor();
     this.placeMonuments();
     this.placeFog();
-    for (const id of BUILDING_ORDER) this.makeView(id, 0);
+    for (const id of MAIN_BUILDINGS) this.makeView(id, 0);
     this.ambient();
     this.applyState(this.opts.camp, true);
     this.setupInput();
@@ -178,7 +178,7 @@ export class CampScene extends Phaser.Scene {
       if (lx >= 0 && ly >= 0 && lx < tex.width && ly < tex.height) { const a = this.textures.getPixelAlpha(Math.floor(lx), Math.floor(ly), v.key); if ((a ?? 0) > 20) return v.id; }
     }
     // arsa elmasına dokunuş
-    for (const id of BUILDING_ORDER) { const l = LOTS[id]; const h = l.tiles * 16 + 4; if (Math.abs(wx - l.x) / (h * 2) + Math.abs(wy - l.y) / h <= 1) return id; }
+    for (const id of this.views.keys()) { const l = LOTS[id]; const h = l.tiles * 16 + 4; if (Math.abs(wx - l.x) / (h * 2) + Math.abs(wy - l.y) / h <= 1) return id; }
     return null;
   }
 

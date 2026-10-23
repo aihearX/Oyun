@@ -2,7 +2,7 @@
  * ODİ ağ istemcisi: tarayıcı ve React Native'de çalışır (yalnızca standart WebSocket).
  * React'e bağımlı değildir; React yardımcıları için bkz. ./store.ts
  */
-import { PROTOCOL_VERSION, type Evt, type EvtMap, type FireMap, type FireOp, type MyProfile, type Op, type OpMap, type ProgressSubmit } from '@odi/shared';
+import { CAMP_V, PROTOCOL_VERSION, type Evt, type EvtMap, type FireMap, type FireOp, type MyProfile, type Op, type OpMap, type ProgressSubmit } from '@odi/shared';
 
 export type NetStatus = 'kapalı' | 'bağlanıyor' | 'bağlı' | 'çevrimdışı';
 
@@ -159,7 +159,7 @@ export function createClient(opts: ClientOptions): NetClient {
   async function hello(): Promise<void> {
     const token = (await opts.getToken()) || undefined;
     try {
-      const res = await rawSend('hello', { token, name: opts.name, version: PROTOCOL_VERSION }) as OpMap['hello']['res'];
+      const res = await rawSend('hello', { token, name: opts.name, version: PROTOCOL_VERSION, campV: CAMP_V }) as OpMap['hello']['res'];
       offset = res.serverTime - Date.now();
       if (res.me.token) await opts.saveToken(res.me.token);
       setMe(res.me);
@@ -168,7 +168,7 @@ export function createClient(opts: ClientOptions): NetClient {
       if (e instanceof NetError && e.code === 'TOKEN') {
         // sunucu bu anahtarı tanımıyor (ör. veritabanı sıfırlandı): yeni hesapla devam
         await opts.saveToken('');
-        const res = await rawSend('hello', { name: opts.name, version: PROTOCOL_VERSION }) as OpMap['hello']['res'];
+        const res = await rawSend('hello', { name: opts.name, version: PROTOCOL_VERSION, campV: CAMP_V }) as OpMap['hello']['res'];
         offset = res.serverTime - Date.now();
         if (res.me.token) await opts.saveToken(res.me.token);
         setMe(res.me);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, CAMP_CHEERS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -18,7 +18,7 @@ const remedyId = z.string().min(1).max(40).regex(/^[a-z0-9-]+$/);
 /** her op için giriş şeması; bilinmeyen alanlar atılır */
 export const SCHEMAS: Record<Op, z.ZodType> = {
   ...FRIEND_SCHEMAS,
-  'hello': z.object({ token: z.string().max(200).optional(), name: z.string().max(40).optional(), version: z.number().int() }),
+  'hello': z.object({ token: z.string().max(200).optional(), name: z.string().max(40).optional(), version: z.number().int(), campV: z.number().int().min(0).max(1000).optional() }),
   'profile.update': z.object({ name: z.string().max(40).optional(), color: z.number().int().min(0).max(0xffffff).optional(), hat: z.string().max(32).regex(/^[a-z0-9-]*$/).optional() }),
   'profile.get': z.object({ id }),
   'progress.submit': z.object({
@@ -67,6 +67,13 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'team.camp.helpAll': empty,
   'camp.remedy.make': z.object({ item: remedyId.nullable() }),
   'camp.remedy.collect': empty,
+  // kamp büyümesi (docs/14-kamp.md §8–12)
+  'camp.decor.place': z.object({ id: z.string().regex(/^[a-z0-9-]{1,40}$/), gx: z.number().int().min(-200).max(200), gy: z.number().int().min(-200).max(200), flip: z.boolean().optional() }),
+  'camp.decor.move': z.object({ uid: z.number().int().min(1), gx: z.number().int().min(-200).max(200), gy: z.number().int().min(-200).max(200), flip: z.boolean().optional() }),
+  'camp.decor.store': z.object({ uid: z.number().int().min(1) }),
+  'camp.lib.collect': empty,
+  'camp.visit': z.object({ playerId: id }),
+  'camp.cheer': z.object({ playerId: id, kind: z.enum(CAMP_CHEERS.map((c) => c.id) as [string, ...string[]]) }),
   'team.extra': empty,
   'team.donate': z.object({ tech: z.enum(TEAM_TECH.map((t) => t.id) as [string, ...string[]]), jeton: z.number().int().min(1).max(1_000_000) }),
   'team.gift.claim': z.object({ giftId: id }),

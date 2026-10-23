@@ -48,6 +48,26 @@ export const BUILDING_INFO: Record<BuildingId, BuildingInfo> = {
     plain: 'Koruma ve tedavi yöntemlerini öğrendiğin oda: kulak tıkacından koklear implanta kadar.',
     tech: 'Tedavi; sorunun yerine göre seçilir: dış ve orta kulak sorunları çoğu zaman tıbbi ya da cerrahi yolla düzelir (iletim tipi), iç kulak ve sinir kaynaklı kayıplar ise cihaz, implant ve işitsel rehabilitasyonla desteklenir (sensörinöral). Kararı hekim ve odyolog birlikte verir.',
     src: `${E}; ${G}` },
+  kabin: {
+    plain: 'Akustik kabin, dışarıdaki gürültünün testi bozmaması için yapılmış sessiz bir odadır; en hafif sesler ancak sessizlikte ölçülür.',
+    tech: 'Kabin çift duvarlı ve yalıtımlıdır; içindeki ortam gürültüsü, test edilen frekanslarda eşiği maskelemeyecek kadar düşük olmalıdır (ANSI S3.1 en yüksek izin verilen ortam gürültüsü düzeyleri). Gürültülü odada ölçülen eşikler gerçekte olduğundan kötü görünür.',
+    src: `${K}, test ortamı ve kalibrasyon` },
+  tarama: {
+    plain: 'Yenidoğan işitme taramasında bebeğin kulağı, o uyurken birkaç dakikada ağrısızca kontrol edilir.',
+    tech: 'Tarama otoakustik emisyon (OAE) ya da otomatik ABR (AABR) ile yapılır; yoğun bakımda kalan bebeklerde işitme sinirine kadar yolu da gördüğü için AABR önerilir. “1-3-6” hedefi: 1. ayda tarama, 3. ayda tanı, 6. ayda müdahale (JCIH).',
+    src: `${K}, yenidoğan işitme taraması; JCIH 2019` },
+  park: {
+    plain: 'İşitsel rehabilitasyon, cihaz ya da implantla gelen sesleri anlamlandırmayı oyunla ve alıştırmayla öğretir.',
+    tech: 'İşitsel eğitim sesi fark etmeden (algılama) ayırt etmeye, tanımaya ve anlamaya doğru basamaklanır. Koklear implantlı çocuklarda düzenli terapi ve ailenin katılımı dil gelişimini destekler; yetişkinlerde de dinleme alıştırmaları gürültüde anlamayı iyileştirebilir.',
+    src: `${K}, işitsel rehabilitasyon ve eğitim` },
+  denge: {
+    plain: 'Vestibüler laboratuvarda baş dönmesinin ve dengesizliğin kaynağı, gözün ve iç kulağın birlikte çalışmasına bakılarak araştırılır.',
+    tech: 'Videonistagmografide (VNG) göz hareketleri kızılötesi kamerayla kaydedilir; kalorik test her iki yanı ayrı ayrı uyarır, video baş itme testi (vHIT) yarım daire kanallarını, VEMP ise otolit organlarını (sakkül ve utrikül) değerlendirir. BPPV’de Dix-Hallpike ile tanı konur, Epley manevrasıyla tedavi edilir.',
+    src: `${K}, vestibüler değerlendirme` },
+  kutuphane: {
+    plain: 'Odyoloji bilgisi araştırmayla büyür: iyi bir uygulama kanıta, yani dikkatle yapılmış çalışmalara dayanır.',
+    tech: 'Kanıta dayalı uygulamada klinik karar; en iyi araştırma kanıtı, klinisyenin deneyimi ve hastanın tercihleri birlikte düşünülerek verilir. Sistematik derlemeler ve randomize kontrollü çalışmalar kanıt düzeyinin üst basamaklarındadır.',
+    src: `${K}, kanıta dayalı uygulama; ${G}` },
 };
 
 // ---------------------------------------------------------------- Kulak Sözlüğü: kampta açılan terimler
@@ -111,6 +131,35 @@ export const CAMP_TERMS: CampTerm[] = [
     plain: 'Otosklerozda sertleşen üzengi tabanına küçük bir delik açılıp piston protez yerleştirilmesi.',
     tech: 'Örse asılan ince piston, titreşimi oval pencereden iç kulak sıvısına iletir; amaç hava–kemik aralığını kapatmaktır. Ameliyat öncesi odyogramda iletim tipi kayıp ve sıklıkla Carhart çentiği, timpanometride As tipi eğri ve akustik refleks yokluğu görülebilir.',
     src: `${E}, otoskleroz cerrahisi; ${K}` },
+  // ---- yeni bölgelerin binaları (docs/14-kamp.md §9)
+  { id: 'ortam-gurultusu', term: 'Ortam gürültüsü ve maskeleme', region: 'kanal', art: 'shield', building: 'kabin', level: 2,
+    plain: 'Bir ses başka bir sesi bastırabilir; gürültülü odada hafif tonlar duyulmaz olur.',
+    tech: 'Maskeleme, bir sesin başka bir sesin eşiğini yükseltmesidir. Test odasının gürültüsü eşikleri yapay olarak kötüleştirir; bu yüzden kabinin gürültüsü standart sınırların altında tutulur. Klinikte maskeleme bilerek de kullanılır: test edilmeyen kulağa gürültü verilerek çapraz duyma önlenir.',
+    src: `${K}, maskeleme` },
+  { id: 'tarama-136', term: 'Yenidoğan taramasında 1-3-6 hedefi', region: 'koklea-2', art: 'target', building: 'tarama', level: 2,
+    plain: 'Bebeğin işitmesi 1. ayda taranır, gerekirse 3. ayda tanı konur, 6. aya kadar destek başlar.',
+    tech: 'JCIH’in 1-3-6 hedefi erken müdahalenin dil gelişimine etkisine dayanır; birçok program bugün 1-2-3 aylık daha erken hedefler önerir. Taramayı geçemeyen bebek “işitme kaybı var” demek değildir, ayrıntılı tanısal değerlendirmeye yönlendirilir.',
+    src: `${K}; JCIH 2019` },
+  { id: 'aabr', term: 'Otomatik ABR (AABR) taraması', region: 'beyin-sapi', art: 'signal', building: 'tarama', level: 6,
+    plain: 'Uyuyan bebeğin kafasına yapıştırılan küçük elektrotlarla, sese karşı beyin sapı yanıtına otomatik olarak bakılır.',
+    tech: 'AABR, ABR’nin tarama sürümüdür: cihaz yanıtı istatistiksel olarak değerlendirip “geçti” ya da “ileri değerlendirme” der. OAE’nin aksine işitme siniri yolunu da kapsadığı için yenidoğan yoğun bakımında kalan bebeklerde tercih edilir (işitsel nöropati riski).',
+    src: `${K}, yenidoğan işitme taraması` },
+  { id: 'isitsel-egitim', term: 'İşitsel eğitim basamakları', region: 'korteks', art: 'chat', building: 'park', level: 2,
+    plain: 'Önce sesi fark etmek, sonra iki sesi ayırmak, sonra tanımak ve en sonunda anlamak öğrenilir.',
+    tech: 'Erber’in basamakları: algılama (ses var mı), ayırt etme (aynı mı farklı mı), tanıma (hangisi) ve anlama (ne demek). Terapi dinleme güçlüğüne göre bu basamaklarda ilerler ve günlük yaşamdaki dinleme ortamlarıyla desteklenir.',
+    src: `${K}, işitsel eğitim` },
+  { id: 'vng', term: 'Videonistagmografi (VNG)', region: 'koklea-1', art: 'search', building: 'denge', level: 2,
+    plain: 'Göz hareketleri kamerayla izlenir; iç kulaktaki denge organları gözü refleksle hareket ettirir.',
+    tech: 'Vestibülo-oküler refleks, baş hareketinde bakışı sabit tutar. VNG’de spontan ve pozisyonel nistagmus aranır; kalorik testte kulak kanalına sıcak ve soğuk hava ya da su verilerek her iki yanın yanıtı karşılaştırılır (yan farkı tek taraflı zayıflığı düşündürür).',
+    src: `${K}, vestibüler değerlendirme` },
+  { id: 'bppv', term: 'BPPV ve Epley manevrası', region: 'koklea-1', art: 'wind', building: 'denge', level: 6,
+    plain: 'Baş belli yöne dönünce kısa süren baş dönmesi; iç kulakta yerinden oynamış küçük kristallerden kaynaklanır.',
+    tech: 'Benign paroksismal pozisyonel vertigoda otokonyalar çoğunlukla arka yarım daire kanalına kaçar. Dix-Hallpike testinde karakteristik nistagmus görülür; Epley yeniden konumlandırma manevrası kristalleri utriküle geri taşır ve çoğu hastada hızla düzelme sağlar.',
+    src: `${K}; ${E}, vertigo` },
+  { id: 'kanit', term: 'Kanıta dayalı uygulama', region: 'korteks', art: 'bulb', building: 'kutuphane', level: 2,
+    plain: 'Bir tedaviyi seçerken araştırma sonuçlarına, deneyime ve kişinin isteğine birlikte bakmak.',
+    tech: 'Kanıt düzeyleri: sistematik derleme ve meta-analiz, randomize kontrollü çalışma, kohort ve vaka-kontrol çalışmaları, vaka serileri ve uzman görüşü. Klinik soru PICO biçiminde (hasta, müdahale, karşılaştırma, sonuç) sorulur.',
+    src: `${K}, kanıta dayalı uygulama` },
 ];
 
 // ---------------------------------------------------------------- Odi kozmetikleri (kampta açılır; tanımları cosmetics.ts'te)
@@ -143,7 +192,7 @@ export function campUnlocksAt(building: BuildingId, level: number): CampUnlock[]
   return out;
 }
 /** bu binada şimdiki seviyeden sonra gelen ilk açılım (panelde "sıradaki ödül") */
-export function nextCampUnlock(building: BuildingId, level: number, max = 15): { level: number; items: CampUnlock[] } | null {
+export function nextCampUnlock(building: BuildingId, level: number, max = 25): { level: number; items: CampUnlock[] } | null {
   for (let l = level + 1; l <= max; l++) { const items = campUnlocksAt(building, l); if (items.length) return { level: l, items }; }
   return null;
 }

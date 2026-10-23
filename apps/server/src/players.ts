@@ -80,7 +80,7 @@ export function attach(app: App, conn: Conn, pid: string): void {
 }
 
 export const playerHandlers: Handlers = {
-  'hello': (app, s, { token, name, version }) => {
+  'hello': (app, s, { token, name, version, campV }) => {
     if (version !== PROTOCOL_VERSION) fail('SURUM', 'Uygulama sürümü sunucuyla uyumsuz; lütfen uygulamayı güncelle.');
     if (s.conn.pid) fail('GECERSIZ', 'Bu bağlantıda oturum zaten açık.');
     let row: PlayerRow; let newToken: string | undefined;
@@ -91,6 +91,7 @@ export const playerHandlers: Handlers = {
     } else {
       const c = createPlayer(app, name); row = c.row; newToken = c.token;
     }
+    s.conn.campV = campV ?? 0;
     attach(app, s.conn, row.id);
     passDaily(app, row.id);
     const me = app.myProfile(app.player(row.id));

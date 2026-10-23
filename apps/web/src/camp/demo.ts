@@ -24,6 +24,7 @@ export function demoCamp(p: DemoParams, now = Date.now()): { camp: CampState; wa
   const L = p.level;
   const lv: Record<BuildingId, number> = {
     merkez: L, laboratuvar: L, depo: L, kule: Math.max(L === 1 ? 0 : 1, L - 1), atolye: Math.max(L === 1 ? 0 : 1, L - 1), revir: Math.max(0, L - 2), tedavi: Math.max(0, L - 1),
+    kabin: 0, tarama: 0, park: 0, denge: 0, kutuphane: 0,
   };
   const camp: CampState = {
     serverTime: now, depotStoredAt: now - 9 * 3_600_000,

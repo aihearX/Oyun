@@ -20,3 +20,6 @@ export * from './quiz';
 export * from './remedies';
 export * from './patolojiler';
 export * from './kamp';
+export * from './kamp-arazi';
+export * from './kamp-seviye';
+export * from './kamp-susler';

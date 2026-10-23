@@ -156,3 +156,35 @@ bitmeden kutlama yapılmaz. Anıta dokununca sessiz bilgi kartı (ad + bölge + 
 - Uçtan uca: `node tools/harness/camp-e2e.mjs` (önizleme; Chromium + WebKit gerçek akış; anıt; dom hedefi; `--only kutlama`:
   kristal / süre / takım yardımıyla biten inşaatta afiş ve Tüy Dede kartı tam bir kez, Chromium + WebKit + dom) ve
   `node tools/harness/ui-mobile-check.mjs --only kamp` (Tedavi Odası paneli 390×844 ve 320×640).
+
+## 8. Kamp Seviyesi ve Kamp XP (kamp büyümesi)
+
+Kamptaki her emek **Kamp XP** verir; XP **Kamp Seviyesi**ni (1–30) yükseltir, her seviyenin önceden yazılı ve görünür bir ödülü
+vardır. Formüller şeffaftır (`packages/content/src/kamp-seviye.ts`); para ile XP alınmaz, sahte sayaç yoktur.
+
+- Seviye eğrisi: `campXpNeed(L) = round(30 · L^1,4) + 30` (Sv 1→2: 60 XP, Sv 10→11: 783, Sv 29→30: ~3400). `campXpState(total)`.
+- Kaynaklar (`CAMP_XP`): inşaat bitişi `20 + 10 × Sv` (merkez ×1,5; `bina:<id>:<Sv>` ile bir kez), Tedavi Odası rafından malzeme
+  başına 3, depo toplama (her 40 jetona 1, en çok 20), bölge anıtı 40 (`anit:<bölge>` bir kez), bir süs türünü ilk kez yerleştirme 5,
+  ziyarette tepki bırakma 2 (günde 5 kez) / alma 5 (günde 10 kez), Odyoloji Kütüphanesi okuma köşesi, kamp görevleri.
+- **Akustik Kabin** her kaynaktan gelen XP'ye +%3/Sv ekler.
+- Eski oyuncular: ilk okumada XP, var olan bina seviyelerinden geriye dönük tohumlanır (`ensureCampXp`); ulaşılmış bölgelerin anıt
+  XP'si ve anıt süsü de bir kez verilir (`syncCampRewards`, `camp.state` içinde).
+
+### Dışa açık API (görev sistemi ve diğerleri)
+
+Sunucu (`apps/server/src/camp-xp.ts`), çağıranın işleminde (`app.run`) çalışır; seviye ödüllerini bir kez verir, işlem bitince
+`camp.updated` iter (`opts.silent` ile kapatılır):
+
+```ts
+grantCampXp(app, pid, amount, reason, ref?, opts?) → { gained, level, levelsUp }
+//   amount: taban XP (Akustik Kabin bonusu eklenir); ref (ör. 'gorev:<id>') verilirse aynı ref ikinci kez XP vermez
+grantDecoration(app, pid, id, n = 1, ref?, opts?) → eklenen adet
+//   id: DECORATIONS kimliği (bilinmeyen → 0); envanterde bir süsten en çok 20; ref verilirse bir kez
+campXpOf(app, pid) → CampXpState     campLevelOf(app, pid) → number
+```
+
+İçerik (`@odi/content`): `campXpState`, `campXpNeed`, `campXpTotalFor`, `CAMP_XP`, `CAMP_LEVEL_REWARDS`, `campLevelRewards(L)`,
+`campTitle(L)`, `DECORATIONS`, `decorById(id)`. Görevlere özel süsler (`from: ['gorev']`): `vaka-panosu`, `dede-banki`; görevler
+diğer süsleri de verebilir.
+
+Protokol (yalnız ekleme): `CampState.xp?: { level, total, into, need }`, `CampState.decor?`, `CampState.libAt?`, `CampState.cheers?`.

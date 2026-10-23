@@ -53,6 +53,8 @@ export interface Conn {
   lastPosAt: number;
   /** bağlantının IP'si (kod denemesi sınırı) */
   ip?: string;
+  /** istemcinin anladığı kamp sürümü (hello.campV; yoksa 0 = eski istemci, yalnız eski binalar) */
+  campV?: number;
 }
 
 export interface Session { conn: Conn; pid: string }

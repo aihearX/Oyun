@@ -124,14 +124,14 @@ export const REMEDY_DISCLAIMER = 'Oyundaki malzemeler öğretmek içindir, tıbb
 
 // ---------------------------------------------------------------- kurallar (sunucu ve istemci aynı formülü kullanır)
 
-/** bir adetin hazırlanma süresi (ms): her seviye %3 kısaltır, en çok %45 */
-export function remedyPeriodMs(def: Pick<RemedyDef, 'minutes'>, level: number): number {
+/** bir adetin hazırlanma süresi (ms): her seviye %3 kısaltır, en çok %45. factor: Yenidoğan Tarama Birimi çarpanı (kamp-seviye.ts taramaFactor) */
+export function remedyPeriodMs(def: Pick<RemedyDef, 'minutes'>, level: number, factor = 1): number {
   const k = Math.max(0.55, 1 - 0.03 * Math.max(0, level - 1));
-  return Math.round(def.minutes * k) * 60_000;
+  return Math.max(1, Math.round(def.minutes * k * Math.min(1, Math.max(0.5, factor)))) * 60_000;
 }
 /** rafta bekleyebilecek en çok adet (toplanmazsa üretim durur): 2 + seviye/3 */
 export function remedyShelfCap(level: number): number { return level <= 0 ? 0 : 2 + Math.floor(level / 3); }
-/** çantada (envanterde) bir malzemeden en çok */
+/** çantada (envanterde) bir malzemeden en çok (taban; Kamp Seviyesiyle artar: kamp-seviye.ts remedyInvCap) */
 export const REMEDY_INV_CAP = 9;
 /** Tedavi Odası seviyesinde hazırlanabilen malzemeler */
 export const remediesAt = (level: number): RemedyDef[] => REMEDIES.filter((r) => r.level <= level);
@@ -140,8 +140,8 @@ export const remediesAt = (level: number): RemedyDef[] => REMEDIES.filter((r) =>
  * rafta biriken adet (saf): since anından bu yana tamamlanan adetler, raf sınırıyla.
  * nextSince: toplandıktan sonra sayacın yeni başlangıcı (yarım kalan adet korunur; raf doluysa şimdi).
  */
-export function remedyShelf(def: Pick<RemedyDef, 'minutes'>, level: number, since: number, now: number): { ready: number; cap: number; nextSince: number; progress: number; periodMs: number } {
-  const cap = remedyShelfCap(level); const periodMs = remedyPeriodMs(def, level);
+export function remedyShelf(def: Pick<RemedyDef, 'minutes'>, level: number, since: number, now: number, factor = 1): { ready: number; cap: number; nextSince: number; progress: number; periodMs: number } {
+  const cap = remedyShelfCap(level); const periodMs = remedyPeriodMs(def, level, factor);
   if (cap <= 0 || periodMs <= 0) return { ready: 0, cap, nextSince: now, progress: 0, periodMs };
   const elapsed = Math.max(0, now - since); const done = Math.floor(elapsed / periodMs);
   const ready = Math.min(cap, done);

@@ -24,7 +24,7 @@ describe('Tedavi Odası (Kulak Kampı)', () => {
     env = await setup();
     const a = await env.connect('Ayşe');
     const s = await a.call('camp.state', {});
-    expect(s.camp.buildings.map((b) => b.id)).toEqual(['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi']);
+    expect(s.camp.buildings.map((b) => b.id).slice(0, 7)).toEqual(['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi']);
     expect(lvl(s.camp, 'tedavi')).toBe(0);
     expect(s.camp.remedy).toEqual({ item: null, since: 0, inv: {} });
     expect((await err(a.call('camp.remedy.make', { item: 'kulak-tikaci' }))).code).toBe('SART');
@@ -124,7 +124,7 @@ describe('Tedavi Odası (Kulak Kampı)', () => {
     setLevels(env, pid, { revir: 4 });
     await a.call('camp.state', {}); await a.call('camp.state', {});
     expect(cos().filter((c) => c === 'renk-klinik')).toHaveLength(1);
-    expect(db.all('SELECT ref FROM camp_unlocks WHERE player_id = ?', pid).length).toBe(2);
+    expect(db.all("SELECT ref FROM camp_unlocks WHERE player_id = ? AND ref LIKE 'kozmetik:%'", pid).length).toBe(2);
   });
 });
 
@@ -144,7 +144,7 @@ describe('Kamp göçü (var olan veritabanı)', () => {
         const rows = srv.app.db.all<{ id: string; level: number }>('SELECT id, level FROM buildings WHERE player_id = ? ORDER BY id', id);
         expect(rows.find((r) => r.id === 'tedavi')).toEqual({ id: 'tedavi', level: 0 });
         expect(rows.find((r) => r.id === 'merkez')!.level).toBe(4); // var olan satırlara dokunulmaz
-        expect(rows).toHaveLength(7);
+        expect(rows).toHaveLength(12); // 7 eski + 5 bölge binası (kamp büyümesi)
         for (const t of ['remedy_inv', 'remedy_prod', 'remedy_use', 'camp_unlocks']) expect(srv.app.db.get('SELECT name FROM sqlite_master WHERE type = ? AND name = ?', 'table', t)).toBeTruthy();
         await srv.close();
       }

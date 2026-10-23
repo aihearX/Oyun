@@ -8,6 +8,7 @@ import {
   windowOn, type Ctx, type FaceRef, type Mat, type Pattern, type RoofPat,
 } from './paint';
 import { tierOf } from './layout';
+import { denge, garnish, kabin, kutuphane, merkezExtras, park, prestigeGround, prestigeTop, tarama } from './buildings2';
 
 /** efekt bağlantı noktaları (arsa merkezine göre, ekran birimi) */
 export interface Anchors {
@@ -34,9 +35,9 @@ const TM: TierMat[] = [
 export const TIER_ACCENT = [0xb07a45, 0x9d9a92, 0xc2603c, 0x5fb6d6, 0xf5c542];
 
 /** bina kimlik renkleri */
-const ID_COLOR: Record<BuildingId, number> = { merkez: 0xff5c8a, laboratuvar: 0x2ee6d6, atolye: 0xff9f1c, depo: 0xffc93c, kule: 0x8b6bff, revir: 0x3ccf7e, tedavi: 0x2fb5c4 };
+const ID_COLOR: Record<BuildingId, number> = { merkez: 0xff5c8a, laboratuvar: 0x2ee6d6, atolye: 0xff9f1c, depo: 0xffc93c, kule: 0x8b6bff, revir: 0x3ccf7e, tedavi: 0x2fb5c4, kabin: 0x6c7cff, tarama: 0xff9fc2, park: 0x5fc46a, denge: 0x7df3ff, kutuphane: 0xc98e55 };
 
-type Kit = ReturnType<typeof kit>;
+export type Kit = ReturnType<typeof kit>;
 function kit(ctx: Ctx, t: number, seed: number) {
   const m = TM[t]!; const r = rng(seed);
   const win = (f: FaceRef, xs: number[], y: number, w: number, h: number, o: Parameters<typeof windowOn>[6] = {}) => { for (const x of xs) windowOn(ctx, f, x, y, w, h, { frame: m.frame, glow: m.glow, arch: t === 2 || t === 4, sill: t >= 1, ...o }); };
@@ -648,25 +649,37 @@ function emptyLot(ctx: Ctx, half: number) {
 }
 
 // ---------------------------------------------------------------- dışa açık
-const PAINTERS: Record<BuildingId, (k: Kit, sub: number, a: Anchors) => void> = { merkez, laboratuvar, atolye, depo, kule, revir, tedavi };
+const PAINTERS: Record<BuildingId, (k: Kit, sub: number, a: Anchors) => void> = { merkez, laboratuvar, atolye, depo, kule, revir, tedavi, kabin, tarama, park, denge, kutuphane };
 /** boyama kutusu (dünya birimi): tuval bu kutuyu kaplar, sonra boş kenarlar kırpılır */
 export const PAINT_BOX: Record<BuildingId, { x0: number; y0: number; x1: number; y1: number }> = {
-  merkez: { x0: -150, y0: -250, x1: 170, y1: 80 },
+  merkez: { x0: -190, y0: -330, x1: 190, y1: 110 },
   laboratuvar: { x0: -110, y0: -170, x1: 120, y1: 70 },
   kule: { x0: -100, y0: -240, x1: 110, y1: 60 },
   atolye: { x0: -110, y0: -170, x1: 120, y1: 70 },
   depo: { x0: -110, y0: -150, x1: 120, y1: 70 },
   revir: { x0: -110, y0: -150, x1: 120, y1: 70 },
   tedavi: { x0: -110, y0: -160, x1: 120, y1: 70 },
+  kabin: { x0: -110, y0: -170, x1: 120, y1: 70 },
+  tarama: { x0: -110, y0: -170, x1: 120, y1: 70 },
+  park: { x0: -120, y0: -170, x1: 130, y1: 70 },
+  denge: { x0: -110, y0: -190, x1: 120, y1: 70 },
+  kutuphane: { x0: -120, y0: -200, x1: 130, y1: 70 },
 };
 
 /** binayı verilen bağlama boyar (orijin = arsa merkezi). Bağlantı noktalarını döndürür. */
 export function paintBuilding(ctx: Ctx, id: BuildingId, level: number, half = 32): Anchors {
   const a = newAnchors();
   if (level <= 0) { emptyLot(ctx, half - 6); return a; }
-  const t = tierOf(level); const sub = (level - 1) % 3;
+  // Sv 16–25 (Kristal, Efsane) en üst malzeme kademesini kullanır; üstüne kristal/efsane süsleri eklenir
+  const t = Math.min(4, tierOf(level)); const sub = level <= 15 ? (level - 1) % 3 : 2;
   ctx.save(); ctx.lineJoin = 'round';
-  PAINTERS[id](kit(ctx, t, level * 101 + id.length * 7), sub, a);
+  const k = kit(ctx, t, level * 101 + id.length * 7);
+  prestigeGround(ctx, level, half);
+  // Merkez: her seviyede kendi büyük parçası (Sv 2–25); diğer binalar: her seviyede küçük bir ekleme
+  if (id === 'merkez') merkezExtras(k, level, a, true); else garnish(ctx, level, half, a, false);
+  PAINTERS[id](k, sub, a);
+  if (id === 'merkez') merkezExtras(k, level, a, false); else garnish(ctx, level, half, a, true);
+  prestigeTop(ctx, level, half, a, id === 'merkez' ? 150 : id === 'kule' ? 172 : id === 'park' ? 50 : 80);
   ctx.restore();
   return a;
 }
@@ -691,3 +704,4 @@ export function buildingCanvas(id: BuildingId, level: number, scale = 2): { canv
   return { canvas: out, ox: -b.x0 * scale - minX, oy: -b.y0 * scale - minY, anchors };
 }
 export { ID_COLOR, mix as mixColor, sparkle as paintSparkle, gear as paintGear, heartShape };
+export { antenna, banner, colonnade, crystal, dish, glassHouse, goldTip, lamppost, logs, planter, signPost };

@@ -1,7 +1,8 @@
 import { achievementById } from './achievements';
 
 /** kilit metni için bina adları (@odi/shared BUILDINGS ile aynı; içerik paketi değer içe aktarmaz) */
-const CAMP_BUILDING_NAMES: Record<string, string> = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
+const CAMP_BUILDING_NAMES: Record<string, string> = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası',
+  kabin: 'Akustik Kabin', tarama: 'Yenidoğan İşitme Tarama Birimi', park: 'İşitsel Rehabilitasyon Parkı', denge: 'Vestibüler Laboratuvar', kutuphane: 'Odyoloji Kütüphanesi' };
 
 /**
  * Odi kozmetikleri: yalnızca görünüm, oyun gücü yok. Çoğu oynayarak açılır;
@@ -17,7 +18,9 @@ export type CosmeticUnlock =
   | { by: 'treasure'; level: number }
   | { by: 'shop'; product: string }
   /** Kulak Kampı: binanın bu seviyesinde açılır (sunucu verir; kamp.ts CAMP_COSMETICS) */
-  | { by: 'camp'; building: string; level: number };
+  | { by: 'camp'; building: string; level: number }
+  /** Kulak Kampı: Kamp Seviyesiyle açılır (sunucu verir; kamp-seviye.ts CAMP_LEVEL_REWARDS) */
+  | { by: 'kamp'; level: number };
 
 export interface CosmeticDef {
   id: string;
@@ -50,6 +53,9 @@ export const COSMETICS: CosmeticDef[] = [
   { id: 'kostum-koruyucu', kind: 'renk', name: 'Kulak Koruyucu Kostümü', color: 0xf08a1c, hat: 'kulaklik', unlock: { by: 'camp', building: 'tedavi', level: 3 }, desc: 'Gürültülü yerde kulak koruyucu takan bir Odi.' },
   { id: 'kostum-diyapazon', kind: 'renk', name: 'Diyapazon Kostümü', color: 0x9aa6c4, hat: 'nota', unlock: { by: 'camp', building: 'merkez', level: 8 }, desc: 'Rinne ve Weber testlerinin diyapazonu gibi parlak.' },
   { id: 'kostum-implant', kind: 'renk', name: 'İmplant Ustası Kostümü', color: 0x5b6bd8, hat: 'koklea', unlock: { by: 'camp', building: 'atolye', level: 9 }, desc: 'Başındaki mıknatıslı bobin, koklear implantın dış parçasına benzer.' },
+  { id: 'renk-koru', kind: 'renk', name: 'Sessiz Koru Yeşili', color: 0x3f8a5c, unlock: { by: 'kamp', level: 7 }, desc: 'Sesi yutan ağaçların derin yeşili.' },
+  { id: 'renk-koy', kind: 'renk', name: 'Koklea Koyu Mavisi', color: 0x1d8fb0, unlock: { by: 'kamp', level: 13 }, desc: 'Sarmal lagünün berrak suyu.' },
+  { id: 'kostum-rehber', kind: 'renk', name: 'Kamp Rehberi Kostümü', color: 0x2f7d6b, hat: 'bere', unlock: { by: 'kamp', level: 22 }, desc: 'Kulak Adası’nı karış karış bilen bir rehber.' },
   { id: 'kostum-altin', kind: 'renk', name: 'Altın Koklea Kostümü', color: 0xd9a400, hat: 'altin', unlock: { by: 'shop', product: 'odi.pass' }, desc: 'Sezon Kartı kostümü (yalnızca görünüm).' },
   // şapkalar
   { id: 'sapka-yok', kind: 'sapka', name: 'Şapkasız', unlock: { by: 'default' }, desc: 'Sade ve rüzgârlı.' },
@@ -78,5 +84,6 @@ export function cosmeticUnlockText(u: CosmeticUnlock): string {
     case 'treasure': return `Hazine: Bölüm ${u.level}`;
     case 'shop': return 'Mağaza paketinde';
     case 'camp': return `Kamp: ${CAMP_BUILDING_NAMES[u.building] ?? 'bina'} Sv ${u.level}`;
+    case 'kamp': return `Kamp Seviyesi ${u.level}`;
   }
 }

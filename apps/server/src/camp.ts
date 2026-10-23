@@ -1,5 +1,6 @@
-import { BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap, type RemedyState } from '@odi/shared';
-import { CAMP_COSMETICS, REMEDY_INV_CAP, remedyById, remedyShelf } from '@odi/content';
+import { BUILDINGS, CAMP_V, LEGACY_BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap, type RemedyState } from '@odi/shared';
+import { CAMP_COSMETICS, CAMP_XP, buildingOpen, depotCapHours, remedyById, remedyInvCap, remedyShelf, taramaFactor } from '@odi/content';
+import { campLevelOf, campVOf, campXpOf, cheersOf, decorState, ensureCampXp, grantCampXp, libAtOf, onCampChanged, syncCampRewards } from './camp-xp';
 import { fail, type App, type Handlers } from './app';
 import { feedBuilding } from './comm/feed';
 import { addContrib, techBonus } from './teamextra';
@@ -11,6 +12,8 @@ export const CAMP_HELP_REWARD = 2;
 export const CAMP_HELP_REWARD_DAILY = 30;
 export const DEPOT_PER_LEVEL_HOUR = 20;
 export const DEPOT_CAP_HOURS = 8;
+/** depo dolma süresi: 8 sa + Vestibüler Laboratuvar 0,5 sa/Sv */
+const depotCapH = (app: App, pid: string) => depotCapHours(levelOf(app, pid, 'denge'));
 
 interface BRow { player_id: string; id: BuildingId; level: number; upgrading_to: number | null; started_at: number | null; ends_at: number | null; helps: number; help_req: number }
 
@@ -27,12 +30,16 @@ export const helpsMax = (app: App, teamId: string | null) => SOCIAL_LIMITS.helpM
 export function campState(app: App, pid: string): CampState {
   const p = app.player(pid);
   const map = new Map(rows(app, pid).map((r) => [r.id, r]));
-  const buildings: BuildingState[] = BUILDINGS.map((b) => {
+  // eski istemciler (campV < 2) yeni bina kimliklerini tanımaz: onlara yalnız eski binalar gider
+  const full = campVOf(app, pid) >= CAMP_V;
+  const buildings: BuildingState[] = BUILDINGS.filter((b) => full || LEGACY_BUILDINGS.includes(b.id)).map((b) => {
     const r = map.get(b.id);
     return { id: b.id, level: r?.level ?? 0, upgradingTo: r?.upgrading_to ?? null, startedAt: r?.started_at ?? null, endsAt: r?.ends_at ?? null, helpsReceived: r?.helps ?? 0 };
   });
-  return { buildings, depotStoredAt: p.depot_at, serverTime: app.now(), remedy: remedyState(app, pid) };
+  return { buildings, depotStoredAt: p.depot_at, serverTime: app.now(), remedy: remedyState(app, pid),
+    xp: campXpOf(app, pid), decor: decorState(app, pid), libAt: libAtOf(app, pid), cheers: cheersOf(app, pid) };
 }
+onCampChanged((app, pid) => app.emit(pid, 'camp.updated', { camp: campState(app, pid) }));
 
 // ------------------------------------------------------------------ Tedavi Odası (docs/14-kamp.md)
 const levelOf = (app: App, pid: string, id: BuildingId) => app.db.get<{ level: number }>('SELECT level FROM buildings WHERE player_id = ? AND id = ?', pid, id)?.level ?? 0;
@@ -55,13 +62,14 @@ export function collectRemedies(app: App, pid: string): { collected: number; lef
   const def = prod?.item ? remedyById(prod.item) : undefined;
   if (!prod || !def) return { collected: 0, left: 0 };
   const now = app.now(); const lv = levelOf(app, pid, 'tedavi');
-  const sh = remedyShelf(def, lv, prod.since, now);
+  const sh = remedyShelf(def, lv, prod.since, now, taramaFactor(levelOf(app, pid, 'tarama')));
   if (sh.ready <= 0) return { collected: 0, left: 0 };
-  const take = Math.max(0, Math.min(sh.ready, REMEDY_INV_CAP - invOf(app, pid, def.id)));
+  const take = Math.max(0, Math.min(sh.ready, remedyInvCap(campLevelOf(app, pid)) - invOf(app, pid, def.id)));
   const left = sh.ready - take;
   if (take > 0) addInv(app, pid, def.id, take);
   // kalan adetler rafta durur: sayaç, onları hâlâ "hazır" sayacak şekilde geri alınır
   app.db.run('UPDATE remedy_prod SET since = ? WHERE player_id = ?', sh.nextSince - left * sh.periodMs, pid);
+  if (take > 0) grantCampXp(app, pid, take * CAMP_XP.remedy, 'Tedavi Odası', undefined, { silent: true });
   return { collected: take, left };
 }
 /** bölümde kullanılan malzemeler envanterden düşer (koşu kimliğiyle bir kez; fazlası sıfırda durur) */
@@ -95,8 +103,11 @@ export function completeDue(app: App, pid?: string): void {
   const teams = new Set<string>();
   const owners = new Set<string>();
   for (const r of due) {
+    ensureCampXp(app, r.player_id); // geriye dönük tohum yeni seviyeden önce (iki kez sayılmasın)
     app.db.run('UPDATE buildings SET level = ?, upgrading_to = NULL, started_at = NULL, ends_at = NULL, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', r.upgrading_to!, r.player_id, r.id);
     if (r.id === 'depo' && r.level === 0) app.db.run('UPDATE players SET depot_at = ? WHERE id = ?', r.ends_at!, r.player_id);
+    if (r.id === 'kutuphane' && r.level === 0) app.db.run('UPDATE camp_xp SET lib_at = ? WHERE player_id = ?', r.ends_at!, r.player_id);
+    grantCampXp(app, r.player_id, CAMP_XP.build(r.id, r.upgrading_to!), `İnşaat: ${r.id} Sv ${r.upgrading_to}`, `bina:${r.id}:${r.upgrading_to}`, { silent: true });
     owners.add(r.player_id);
     feedBuilding(app, r.player_id, r.id, r.upgrading_to!);
     if (r.help_req) { const t = app.playerOrNull(r.player_id)?.team_id; if (t) teams.add(t); }
@@ -117,7 +128,8 @@ export function campHelpList(app: App, teamId: string, viewer?: string): HelpNee
     .map((r) => ({ playerId: r.player_id, name: r.name, building: r.id, endsAt: r.ends_at!, helpsReceived: r.helps, helpsMax: max }));
 }
 export function broadcastHelpNeeded(app: App, teamId: string): void {
-  app.emitEach(app.teamMemberIds(teamId), 'team.campHelpNeeded', (pid) => ({ requests: campHelpList(app, teamId, pid) }));
+  // eski istemciler yeni bina kimliklerini tanımaz: onlara yalnız eski binaların istekleri gider
+  app.emitEach(app.teamMemberIds(teamId), 'team.campHelpNeeded', (pid) => ({ requests: campHelpList(app, teamId, pid).filter((r) => campVOf(app, pid) >= CAMP_V || LEGACY_BUILDINGS.includes(r.building)) }));
 }
 
 /** tek bir yardım; uygun değilse hata fırlatır */
@@ -140,13 +152,13 @@ function helpOnce(app: App, helperId: string, targetId: string, building: Buildi
   const day = dayKey(now);
   if (app.dailyInc(helperId, day, 'camp_help') <= CAMP_HELP_REWARD_DAILY) { app.addCurrency(helperId, 'jeton', CAMP_HELP_REWARD); app.walletChanged(helperId); }
   addContrib(app, h.team_id!, helperId, { helps: 1 });
-  app.emit(targetId, 'camp.helped', { from: helperId, name: h.name, building, seconds });
+  if (campVOf(app, targetId) >= CAMP_V || LEGACY_BUILDINGS.includes(building)) app.emit(targetId, 'camp.helped', { from: helperId, name: h.name, building, seconds });
   completeDue(app, targetId);
   app.emit(targetId, 'camp.updated', { camp: campState(app, targetId) });
 }
 
 export const campHandlers: Handlers = {
-  'camp.state': (app, s) => { completeDue(app, s.pid); grantCampUnlocks(app, s.pid); return { camp: campState(app, s.pid), wallet: app.wallet(s.pid) }; },
+  'camp.state': (app, s) => { completeDue(app, s.pid); grantCampUnlocks(app, s.pid); syncCampRewards(app, s.pid); return { camp: campState(app, s.pid), wallet: app.wallet(s.pid) }; },
   'camp.remedy.make': (app, s, { item }) => {
     completeDue(app, s.pid);
     const lv = levelOf(app, s.pid, 'tedavi');
@@ -176,6 +188,7 @@ export const campHandlers: Handlers = {
     const to = r.level + 1;
     if (to > def.maxLevel) fail('MAKS', `${def.name} en yüksek seviyede.`);
     const merkez = all.find((x) => x.id === 'merkez')?.level ?? 1;
+    if (def.campLevel && !buildingOpen(id, campLevelOf(app, s.pid))) fail('SART', `${def.name} için Kamp Seviyesi ${def.campLevel} gerekli.`);
     if (id !== 'merkez' && to > merkez) fail('SART', `Önce Odyoloji Merkezi'ni ${to}. seviyeye yükseltmelisin.`);
     const cost = buildCost(id, to);
     app.spend(s.pid, 'jeton', cost.jeton);
@@ -214,11 +227,13 @@ export const campHandlers: Handlers = {
     if (level <= 0) app.db.run('UPDATE players SET depot_at = ? WHERE id = ?', now, s.pid);
     else {
       const rate = level * DEPOT_PER_LEVEL_HOUR; // jeton/saat
-      const capMs = DEPOT_CAP_HOURS * HOUR_MS;
+      const capMs = depotCapH(app, s.pid) * HOUR_MS;
       const elapsed = Math.max(0, now - p.depot_at);
       collected = Math.floor((Math.min(elapsed, capMs) / HOUR_MS) * rate);
       const nextAt = elapsed >= capMs ? now : p.depot_at + Math.round((collected / rate) * HOUR_MS);
       app.db.run('UPDATE players SET depot_at = ?, jeton = jeton + ? WHERE id = ?', nextAt, collected, s.pid);
+      const xp = Math.min(CAMP_XP.depotMax, Math.floor(collected / CAMP_XP.depotPer));
+      if (xp > 0) grantCampXp(app, s.pid, xp, 'Kulak Deposu', undefined, { silent: true });
     }
     return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), collected };
   },

@@ -4,12 +4,13 @@
 import { BUILDINGS, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
 import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core';
 import { audio } from '@odi/audio';
-import { BUILDING_INFO, CAMP_TERMS, campUnlocksAt, cosmeticById, levelLineId, remediesAt, remedyById, remedyShelfCap, type CampUnlock } from '@odi/content';
+import { BUILDING_INFO, CAMP_TERMS, districtOfBuilding, LIB_CAP_HOURS, LIB_XP_PER_LEVEL_HOUR, campUnlocksAt, cosmeticById, depotCapHours, kabinXpPct, levelLineId, parkDecorSlots, remediesAt, remedyById, remedyShelfCap, taramaFactor, type CampUnlock } from '@odi/content';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
 import { sayDede } from './dede';
 
 export { DEPOT_CAP_H, DEPOT_RATE };
+const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toLocaleString('tr-TR', { maximumFractionDigits: 1 }));
 export const defOf = (id: BuildingId): BuildingDef => BUILDINGS.find((b) => b.id === id)!;
 export function effect(id: BuildingId, l: number): string {
   switch (id) {
@@ -20,6 +21,11 @@ export function effect(id: BuildingId, l: number): string {
     case 'kule': return `Savaş puanı +%${l * 2}`;
     case 'revir': return `İlk hasarı yok sayma şansı %${l * 3}`;
     case 'tedavi': return l ? `${remediesAt(l).length} tarif · rafta en çok ${remedyShelfCap(l)}` : 'Malzeme hazırlanmıyor';
+    case 'kabin': return l ? `Kamp XP +%${kabinXpPct(l)}` : 'Kamp XP bonusu yok';
+    case 'tarama': return l ? `Tedavi Odası hazırlık süresi −%${Math.round((1 - taramaFactor(l)) * 100)}` : 'Hazırlık süresi bonusu yok';
+    case 'park': return l ? `+${parkDecorSlots(l)} süs yeri` : 'Ek süs yeri yok';
+    case 'denge': return `Depo ${fmtH(depotCapHours(l))} saatte dolar`;
+    case 'kutuphane': return l ? `Saatte ${l * LIB_XP_PER_LEVEL_HOUR} Kamp XP (${LIB_CAP_HOURS} saatte dolar)` : 'Okuma köşesi yok';
   }
 }
 /** binanın gerçek hayattaki karşılığı (sade + "Daha fazla") */
@@ -49,6 +55,7 @@ export function canUpgrade(camp: CampState, wallet: Wallet, id: BuildingId): Ver
   const merkez = camp.buildings.find((x) => x.id === 'merkez')?.level ?? 1;
   const busy = camp.buildings.find((x) => x.upgradingTo && x.endsAt);
   if (to > d.maxLevel) return { ok: false, reason: 'En yüksek seviyede.', short: 'En yüksek' };
+  if (d.campLevel && (camp.xp?.level ?? 1) < d.campLevel) return { ok: false, reason: `Kamp Seviyesi ${d.campLevel} gerekli: ${districtOfBuilding(id)?.name ?? 'bölge'} açılınca kurulur.`, short: `Kamp Sv ${d.campLevel}` };
   if (busy) return { ok: false, reason: busy.id === id ? 'İnşaat sürüyor.' : `İnşaatçı meşgul: ${defOf(busy.id).name} yapılıyor. Aynı anda bir inşaat yapılır.`, short: busy.id === id ? 'Yapılıyor' : 'İnşaatçı meşgul' };
   if (id !== 'merkez' && to > merkez) return { ok: false, reason: `Önce Odyoloji Merkezi'ni Sv ${to} yap.`, short: `Merkez Sv ${to}` };
   const cost = buildCost(id, to).jeton;

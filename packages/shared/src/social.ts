@@ -149,20 +149,40 @@ export interface Wallet { jeton: number; kristal: number; hizlandirici: { m5: nu
 
 // ---------- Kulak Kampı (kişisel üs; süreli inşaat, takım yardımıyla hızlanır)
 // Kimlikler kalıcıdır (kayıtlar ve sunucu satırları bunlara bağlı); adlar ve açıklamalar odyoloji temasına göre (docs/14-kamp.md).
-export type BuildingId = 'merkez' | 'laboratuvar' | 'atolye' | 'depo' | 'kule' | 'revir' | 'tedavi';
-export interface BuildingDef { id: BuildingId; name: string; emoji: string; desc: string; maxLevel: number; /** dar yerlerde (üst gösterge) kısa ad */ short?: string }
+export type BuildingId = 'merkez' | 'laboratuvar' | 'atolye' | 'depo' | 'kule' | 'revir' | 'tedavi'
+  /** Kamp Seviyesiyle açılan bölgelerdeki binalar (docs/14-kamp.md §8). Yalnız `hello.campV ≥ 2` gönderen istemcilere gönderilir. */
+  | 'kabin' | 'tarama' | 'park' | 'denge' | 'kutuphane';
+export interface BuildingDef {
+  id: BuildingId; name: string; emoji: string; desc: string; maxLevel: number; /** dar yerlerde (üst gösterge) kısa ad */ short?: string;
+  /** kurulabilmesi için gereken Kamp Seviyesi (bölgesi o seviyede açılır); yoksa baştan açık */
+  campLevel?: number;
+}
 export const BUILDINGS: BuildingDef[] = [
-  { id: 'merkez', name: 'Odyoloji Merkezi', short: 'Merkez', emoji: '🏕️', desc: 'Kampın kalbi: diğer binaların en yüksek seviyesini belirler.', maxLevel: 15 },
-  { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 15 },
-  { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 15 },
-  { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 15 },
-  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Zarın titreşimini yoklar, takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 15 },
-  { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 15 },
-  { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 15 },
+  { id: 'merkez', name: 'Odyoloji Merkezi', short: 'Merkez', emoji: '🏕️', desc: 'Kampın kalbi: diğer binaların en yüksek seviyesini belirler.', maxLevel: 25 },
+  { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 25 },
+  { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 25 },
+  { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 25 },
+  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Zarın titreşimini yoklar, takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 25 },
+  { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 25 },
+  { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 25 },
+  // ---- Kamp Seviyesiyle açılan bölgeler (docs/14-kamp.md §8–9): etkiler ekonomi, üretim, bilgi ve süs üzerinedir; bölüm gücü değil
+  { id: 'kabin', name: 'Akustik Kabin', short: 'Kabin', emoji: '🎧', desc: 'Sessizlikte en hafif ses duyulur: kazandığın Kamp XP +%3/seviye.', maxLevel: 20, campLevel: 3 },
+  { id: 'tarama', name: 'Yenidoğan İşitme Tarama Birimi', short: 'Tarama', emoji: '👶', desc: 'Erken tanı, erken destek: Tedavi Odası hazırlık süresi −%2/seviye.', maxLevel: 20, campLevel: 6 },
+  { id: 'park', name: 'İşitsel Rehabilitasyon Parkı', short: 'Park', emoji: '🌳', desc: 'Dinleyerek öğrenilen park: kampa +2 süs yeri/seviye ve gezen yardımcılar.', maxLevel: 20, campLevel: 9 },
+  { id: 'denge', name: 'Vestibüler Laboratuvar', short: 'Denge', emoji: '🌀', desc: 'Denge sistemini ölçer; kamp da dengede kalır: depo dolma süresi +30 dk/seviye.', maxLevel: 20, campLevel: 12 },
+  { id: 'kutuphane', name: 'Odyoloji Kütüphanesi', short: 'Kütüphane', emoji: '📚', desc: 'Okudukça kamp büyür: okuma köşesinde saatte seviye × 2 Kamp XP birikir.', maxLevel: 20, campLevel: 16 },
 ];
+/** campV < 2 istemcilerin bildiği binalar (eski istemciler yalnız bunları alır) */
+export const LEGACY_BUILDINGS: BuildingId[] = ['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi'];
+/** istemcinin anladığı kamp sürümü: hello.campV (yeni binalar, Kamp Seviyesi, süsler, ziyaret) */
+export const CAMP_V = 2;
+/** bina gücü (jeton/kalkan/ilk hasar/savaş yüzdeleri) bu seviyede tavan yapar; ötesi görünüm, bilgi ve süs (zorluk eğrisi korunur) */
+export const CAMP_POWER_LEVEL = 15;
 /** inşaat maliyeti ve süresi (sn): seviyeyle üstel büyür; şeffaf formül */
 export function buildCost(id: BuildingId, toLevel: number): { jeton: number; seconds: number } {
   const base = id === 'merkez' ? 1.4 : 1;
+  // Sv 15'e kadar eski formül (değişmedi); sonrası yumuşak doğrusal: her seviye Sv 15 maliyetinin +%15'i, süresinin +%10'u (en uzun ~13 sa, merkez ~18 sa)
+  if (toLevel > 15) { const k = toLevel - 15; return { jeton: Math.round(80 * base * Math.pow(15, 1.9) * (1 + 0.15 * k)), seconds: Math.round(60 * base * Math.pow(15, 2.2) * (1 + 0.1 * k)) }; }
   return { jeton: Math.round(80 * base * Math.pow(toLevel, 1.9)), seconds: Math.round(60 * base * Math.pow(toLevel, 2.2)) };
 }
 export interface BuildingState { id: BuildingId; level: number; upgradingTo: number | null; startedAt: number | null; endsAt: number | null; helpsReceived: number }
@@ -173,7 +193,18 @@ export interface RemedyState {
   /** envanter: malzeme kimliği → adet */
   inv: Record<string, number>;
 }
-export interface CampState { buildings: BuildingState[]; depotStoredAt: number; serverTime: number; /** Tedavi Odası (eski sunucularda yok) */ remedy?: RemedyState }
+export interface CampState {
+  buildings: BuildingState[]; depotStoredAt: number; serverTime: number; /** Tedavi Odası (eski sunucularda yok) */ remedy?: RemedyState;
+  /** Kamp Seviyesi ve XP (campV ≥ 2; eski sunucularda yok) */ xp?: CampXpState;
+  /** süsleme envanteri ve yerleşim (campV ≥ 2) */ decor?: CampDecorState;
+  /** Kütüphane okuma köşesi sayacının başladığı an (Kamp XP birikir) */ libAt?: number;
+  /** bugüne dek alınan alkış sayısı (ziyaretçilerden) */ cheers?: number;
+}
+/** Kamp Seviyesi: total toplam XP; into bu seviyede biriken; need sonraki seviye için gereken (en yüksek seviyede 0) */
+export interface CampXpState { level: number; total: number; into: number; need: number }
+/** yerleştirilmiş süs: izometrik ızgara hücresi (gx, gy; 16 birim) ve yatay çevirme */
+export interface DecorPlaced { uid: number; id: string; gx: number; gy: number; flip: boolean }
+export interface CampDecorState { inv: Record<string, number>; placed: DecorPlaced[]; /** aynı anda yerleştirilebilecek süs sayısı */ cap: number }
 /** takım yardımı: her yardım kalan sürenin %1'i, en az 60 sn; inşaat başına en çok helpMax(takım tekno ile artar) */
 export function helpReductionSec(remainingSec: number): number { return Math.max(60, Math.round(remainingSec * 0.01)); }
 
@@ -230,7 +261,8 @@ export interface SpendState { monthTry: number; limitTry: number; purchases: Pur
 
 // ---------- İstek/yanıt sözleşmesi
 export interface OpMap {
-  'hello': { req: { token?: string; name?: string; version: number }; res: { me: MyProfile; serverTime: number } };
+  /** campV: istemcinin anladığı kamp sürümü (CAMP_V); yoksa eski istemci sayılır ve yalnız eski binalar gönderilir */
+  'hello': { req: { token?: string; name?: string; version: number; campV?: number }; res: { me: MyProfile; serverTime: number } };
   'profile.update': { req: { name?: string; color?: number; hat?: string }; res: { me: MyProfile } };
   'profile.get': { req: { id: string }; res: { profile: PublicProfile } };
   'progress.submit': { req: ProgressSubmit; res: ProgressAck };
@@ -1043,4 +1075,51 @@ export interface OpMap {
   'code.list': { req: Record<string, never>; res: { codes: PromoCodeView[] } };
   'code.create': { req: { code: string; rewards: PromoReward; maxUses?: number | null; startsAt?: number | null; endsAt?: number | null; note?: string }; res: { code: PromoCodeView } };
   'code.close': { req: { code: string; active?: boolean }; res: { code: PromoCodeView } };
+}
+
+// =====================================================================
+// KAMP BÜYÜMESİ (docs/14-kamp.md §8–12). Yalnızca EKLEME: Kamp Seviyesi + XP, yeni bölgeler ve binalar, süslemeler, kamp ziyareti.
+// Eski istemciler (hello.campV yok) yeni binaları ve alanları almaz; yeni alanlar isteğe bağlıdır.
+// =====================================================================
+
+/** ziyarette bırakılabilen hazır tepkiler (serbest yazı yok) */
+export type CheerKind = 'alkis' | 'guzel' | 'ilham' | 'sus';
+export const CAMP_CHEERS: { id: CheerKind; text: string }[] = [
+  { id: 'alkis', text: 'Alkış!' },
+  { id: 'guzel', text: 'Kampın çok güzel!' },
+  { id: 'ilham', text: 'İlham verdin!' },
+  { id: 'sus', text: 'Süslemeler harika!' },
+];
+/** başka bir oyuncunun kampı (yalnız arkadaş ya da takım arkadaşı; salt okunur) */
+export interface CampVisit {
+  id: string; name: string; color: number; hat: string;
+  relation: 'arkadas' | 'takim';
+  xp: CampXpState;
+  buildings: { id: BuildingId; level: number }[];
+  decor: DecorPlaced[];
+  /** en yüksek geçilen bölüm (anıtlar buna göre) */
+  highest: number;
+  /** bugüne dek aldığı alkış */
+  cheers: number;
+  /** bugün senin bıraktığın tepki (günde bir) */
+  cheeredToday: CheerKind | null;
+  team: { name: string; emblem: string } | null;
+}
+export interface OpMap {
+  /** envanterdeki süsü ızgaraya yerleştir (hücre boş ve arazi açık olmalı; yer sınırı cap) */
+  'camp.decor.place': { req: { id: string; gx: number; gy: number; flip?: boolean }; res: { camp: CampState } };
+  /** yerleştirilmiş süsü taşı / çevir */
+  'camp.decor.move': { req: { uid: number; gx: number; gy: number; flip?: boolean }; res: { camp: CampState } };
+  /** süsü envantere geri kaldır */
+  'camp.decor.store': { req: { uid: number }; res: { camp: CampState } };
+  /** Kütüphane okuma köşesinde biriken Kamp XP'yi al (zamana bağlı; hemen ikinci çağrı 0) */
+  'camp.lib.collect': { req: Record<string, never>; res: { camp: CampState; xp: number } };
+  /** arkadaşın ya da takım arkadaşının kampını gez (salt okunur) */
+  'camp.visit': { req: { playerId: string }; res: { visit: CampVisit } };
+  /** ziyarette hazır tepki bırak (kişi başına günde bir); iki tarafa da küçük Kamp XP */
+  'camp.cheer': { req: { playerId: string; kind: CheerKind }; res: { visit: CampVisit; xp: number } };
+}
+export interface EvtMap {
+  /** biri kampına tepki bıraktı */
+  'camp.cheered': { from: string; name: string; kind: CheerKind };
 }
