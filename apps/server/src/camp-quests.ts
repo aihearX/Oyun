@@ -306,6 +306,8 @@ export function withKgHooks(h: Handlers): Handlers {
     kgDirty(app, pid);
   });
   for (const op of ['team.join', 'team.create', 'team.leave', 'progress.sync', 'code.redeem', 'admin.set'] as const) wrap(op, (app, pid) => kgDirty(app, pid));
+  // başvurusu kabul edilen oyuncu takıma girdi: "takıma katıl" adımı ona hemen yansır
+  wrap('team.apply.decide', (app, _pid, _d, r) => { if (r.application.status === 'kabul') kgDirty(app, r.application.player.id); });
   // kamp büyümesi işlemleri (varsa): dekor yerleştirme, kamp ziyareti
   for (const [op, metric] of Object.entries(GROWTH_OP_METRICS)) {
     const inner = (h as Record<string, AnyHandler | undefined>)[op]; if (!inner) continue;

@@ -217,6 +217,17 @@ describe('Hasta Vakaları', () => {
     expect(kgCount(env.srv.app, b.me!.id, 'konsult')).toBe(1);
   });
 
+  it('başvurusu kabul edilen oyuncuya görev durumu hemen gider (takıma katıl adımı)', async () => {
+    env = await setup();
+    const lead = await player(env, 'Lider', 7); const b = await player(env, 'Bora', 7);
+    const t = (await lead.call('team.create', { name: 'Kepçe', emblem: '🐚', open: false })).team;
+    await b.call('kg.state', {});
+    const ap = (await b.call('team.apply', { teamId: t.id })).application;
+    const seen = b.waitFor('kg.updated', () => true);
+    expect((await lead.call('team.apply.decide', { applicationId: ap.id, accept: true })).application.status).toBe('kabul');
+    expect((await seen).state.open.gorev).toBe(true);
+  });
+
   it('takım kliniği: yönetici hesaplarının vakaları sayılmaz ve yönetici ödül alamaz', async () => {
     env = await setup();
     const a = await player(env, 'Ayşe', 10, { revir: 7 }); const adm = await player(env, 'Yönetici', 10, { revir: 7 });
