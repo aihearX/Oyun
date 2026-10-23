@@ -1231,3 +1231,96 @@ export interface EvtMap {
   /** başvurana: başvurusu karara bağlandı / düştü / otomatik iptal */
   'team.apply.updated': { application: TeamApplication };
 }
+
+// =====================================================================
+// KAMP GÖREVLERİ VE KAMP ETKİNLİKLERİ (v7, docs/17-kamp-gorevleri.md). Yalnızca EKLEME.
+// Hasta Vakaları (Odyoloji Kliniği), Kampın Hikâyesi (Tüy Dede), günlük/haftalık kamp görevleri, başarılar, Ton Avı,
+// Timpanogram Eşleştir, Konsültasyon. İlerleme ve ödül tamamen sunucuda; her ödül bir kez alınır (ref ile).
+// Dürüstlük: sahte aciliyet yok (vakalar takvimle gelir ve bekler), ödüller önceden görünür, oyun ödülleri günlük sınırlı.
+// =====================================================================
+
+/** kamp görevi ödülü (hepsi isteğe bağlı) */
+export interface KampOdul {
+  jeton?: number; kristal?: number;
+  /** Kamp XP (kamp büyümesi sistemi) */
+  kampXp?: number;
+  m5?: number; m60?: number;
+  /** dekor kimliği (kamp büyümesi sistemi kataloğu) */
+  dekor?: string;
+  /** Tedavi Odası malzemesi (çantaya) */
+  malzeme?: string; malzemeN?: number;
+}
+/** bir görev/adım satırı */
+export interface KgGorev {
+  /** ödül anahtarı (alınabilir satırlarda; adımlarda boş) */
+  ref: string;
+  id: string; text: string; art: string; need: number; progress: number; done: boolean; claimed: boolean;
+  reward: KampOdul | null;
+  /** kilitliyse dürüst neden ("Odyometri Odası’nı kur", "Bölüm 7’de açılır") */
+  locked: string | null;
+}
+export interface KgBolum { no: number; title: string; intro: string; outro: string; steps: KgGorev[]; reward: KampOdul; done: boolean; claimed: boolean; ref: string }
+export interface KgBasamak { need: number; reward: KampOdul; reached: boolean; claimed: boolean; ref: string }
+export interface KgHafta { id: string; text: string; art: string; progress: number; tiers: KgBasamak[] }
+export interface KgBasari { id: string; title: string; text: string; art: string; progress: number; tiers: KgBasamak[]; locked: string | null }
+export interface KgOyunGun { oyun: 'ton' | 'timpano'; played: number; rewarded: number; cap: number; open: boolean; locked: string | null }
+export interface KgTakim { need: number; progress: number; reward: KampOdul; reached: boolean; claimed: boolean; contributed: boolean; ref: string }
+export interface KgState {
+  day: string; dayEndsAt: number; week: string; weekEndsAt: number;
+  /** özellik açık mı (sunucu: geçilen bölüm sayısı; yönetici modunda hepsi) */
+  open: { gorev: boolean; oyun: boolean; vaka: boolean };
+  story: { chapter: KgBolum | null; next: { no: number; title: string } | null; claimed: number; total: number };
+  daily: { tasks: KgGorev[]; rerollLeft: number };
+  weekly: KgHafta | null;
+  achievements: KgBasari[];
+  oyun: KgOyunGun[];
+  takim: KgTakim | null;
+  vaka: { open: boolean; waiting: number; locked: string | null };
+  /** alınmayı bekleyen ödül sayısı (Görevler düğmesindeki rozet) */
+  claimable: number;
+  /** kamp büyümesi sistemi (Kamp XP, dekor) bağlı mı; değilse bu ödüller bekleyen ödül olarak saklanır */
+  growth: boolean;
+  /** bekleyen (henüz uygulanamamış) Kamp XP ve dekorlar */
+  pending: { kampXp: number; dekor: string[] };
+}
+
+/** Vaka Defteri kaydı */
+export interface VakaKayit { id: string; stars: number; plays: number; solvedAt: number | null; tests: number }
+export interface VakaKonsult { msgId: string; caseId: string; votes: number[]; n: number; done: boolean }
+export interface VakaState {
+  open: boolean; locked: string | null;
+  /** açık en yüksek kademe (Odyoloji Kliniği seviyesine göre) */
+  tier: number; klinikSv: number;
+  /** bekleme salonundaki hastalar (vaka kimlikleri, geliş sırasıyla) */
+  waiting: string[];
+  /** bugün gelen yeni hasta sayısı ve bir sonraki gelişin zamanı (yarın 00:00 İstanbul; salon doluysa null) */
+  arrivedToday: number; nextArrivalAt: number | null;
+  book: VakaKayit[];
+  total: number;
+  /** benim açık konsültasyonlarım (vaka başına) */
+  konsult: VakaKonsult[];
+  konsultLeft: number;
+}
+export interface VakaCevap { caseId: string; /** istemci deneme kimliği (aynı deneme iki kez sayılmaz) */ attempt: string; tests: string[]; dx: string; mg: string }
+export interface VakaSonuc {
+  caseId: string; stars: number; best: number; dxOk: boolean; mgOk: boolean; efficient: boolean;
+  /** ilk kez çözüldü mü */ first: boolean; newStars: number; reward: KampOdul;
+  correctDx: string; correctMg: string;
+}
+export interface KampOyunTur { id: string; oyun: 'ton' | 'timpano'; seed: number; duzey: 'genel' | 'odyoloji'; rewarded: boolean; left: number }
+
+export interface OpMap {
+  'kg.state': { req: Record<string, never>; res: { state: KgState } };
+  'kg.claim': { req: { ref: string }; res: { state: KgState; reward: KampOdul; wallet: Wallet } };
+  'kg.reroll': { req: { id: string }; res: { state: KgState } };
+  'vaka.state': { req: Record<string, never>; res: { vaka: VakaState } };
+  'vaka.answer': { req: VakaCevap; res: { vaka: VakaState; result: VakaSonuc; wallet: Wallet } };
+  'vaka.konsult': { req: { caseId: string }; res: { vaka: VakaState } };
+  'vaka.oy': { req: { msgId: string; choice: number }; res: { reward: KampOdul; wallet: Wallet } };
+  'koyun.start': { req: { oyun: 'ton' | 'timpano'; duzey: 'genel' | 'odyoloji' }; res: { round: KampOyunTur } };
+  'koyun.finish': { req: { id: string; answers: number[] }; res: { score: number; total: number; reward: KampOdul; state: KgState; wallet: Wallet } };
+}
+export interface EvtMap {
+  'kg.updated': { state: KgState };
+  'vaka.updated': { vaka: VakaState };
+}

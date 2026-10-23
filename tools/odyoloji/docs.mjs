@@ -14,6 +14,9 @@ const { QUIZ_QUESTIONS } = await import(join(root, 'packages/content/src/quiz.ts
 const { build } = await import('esbuild');
 const bundled = await build({ entryPoints: [join(root, 'packages/content/src/kamp.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
 const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, REMEDIES, PATHOLOGY_NAMES, CAMP_COSMETICS } = { ...(await import('data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].text + "\nexport { REMEDIES, PATHOLOGY_NAMES } from '" + pathToFileURL(join(root, 'packages/content/src/remedies.ts')).href + "';").toString('base64'))) };
+// Hasta Vakaları (Kamp Kliniği, docs/17-kamp-gorevleri.md): tek parça yüklenir
+const vb = await build({ entryPoints: [join(root, 'packages/content/src/kamp-gorev.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
+const KG = await import('data:text/javascript;base64,' + Buffer.from(vb.outputFiles[0].text).toString('base64'));
 // Bölge patolojileri (oyun ekibi): yalnız tür içe aktarır
 const { PATOLOJI_IDS, PATOLOJILER } = await import(join(root, 'packages/content/src/patolojiler.ts'));
 const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
@@ -25,7 +28,7 @@ const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
 
 const md = `# Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`.
+> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`, \`kamp-gorev-vakalar.ts\`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -36,7 +39,7 @@ isteğe bağlı teknik ayrıntı ("Daha fazla").
 **Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${CARDS.length} Kulak Kartı ·
 ${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji) · Kulak Kampı: ${Object.keys(BUILDING_INFO).length} bina,
 ${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı ·
-${PATOLOJI_IDS.length} bölge patolojisi (${PATOLOJI_IDS.filter((id) => PATOLOJILER[id].ilkBolum > 0).length} tanesi bölümlerde).
+${PATOLOJI_IDS.length} bölge patolojisi (${PATOLOJI_IDS.filter((id) => PATOLOJILER[id].ilkBolum > 0).length} tanesi bölümlerde) · ${KG.VAKALAR.length} kurgusal hasta vakası (Kamp Kliniği).
 
 ## Kulak Sözlüğü (${GLOSSARY.length})
 
@@ -106,6 +109,25 @@ Kaynaklar ders kitabı düzeyindedir (Katz, *Handbook of Clinical Audiology*; Ge
 | kimlik | ad | terim | bölge | ilk bölüm | oyundaki karşılığı | Tüy Dede (sade) | teknik | işe yarayan malzeme | kaynak |
 |---|---|---|---|---|---|---|---|---|---|
 ${PATOLOJI_IDS.map((id) => { const p = PATOLOJILER[id]; const rs = REMEDIES.filter((r) => r.counters.includes(id)).map((r) => r.name).join(', ') || '— (hekim süreci)'; return `| \`${id}\` | **${esc(p.ad)}** | ${esc(p.terim)} | ${p.bolge.map((b) => REGION[b]).join(', ')} | ${p.ilkBolum || '—'} | ${esc(p.mekanik)} | ${esc(p.sade)} | ${esc(p.teknik)} | ${esc(rs)} | ${esc(p.kaynak)} |`; }).join('\n')}
+
+## Hasta Vakaları — Kamp Kliniği (${KG.VAKALAR.length}, docs/17-kamp-gorevleri.md)
+
+Kaynak: \`packages/content/src/kamp-gorev-vakalar.ts\` (vakalar), \`kamp-gorev-vaka.ts\` (model, sınıflama, puanlama, tutarlılık denetimi).
+Vakalar KURGUSALDIR (çizim karakterler; gerçek kişi değildir) ve eğitim içindir; oyuncuya ya da gerçek bir kişiye tıbbi öneri
+değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konuşma testi tanısıyla tutarlıdır: \`vakaTutarsizliklari\`
+(ASHA odyogram kuralı: hava–kemik aralığı ≥15 dB en az iki frekansta = iletim bileşeni; kemik yolu >25 dB HL = koklear bileşen;
+Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
+ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv 1 / 4 / 7.
+Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
+
+| # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (teknik) | sözlük | kaynak |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+${KG.VAKALAR.map((v) => {
+  const T = v.testler; const o = KG.isYok(T.odyometri) ? null : T.odyometri; const tp = KG.isYok(T.timpanometri) ? null : T.timpanometri;
+  const ody = o ? ['R', 'L'].map((e) => `${e === 'R' ? 'Sağ' : 'Sol'} ${Math.round(KG.pta3(o.ac[e]))} dB (${v.kayip?.[e] ?? KG.kayipTipi(o, e)})`).join('; ') : '—';
+  const tim = tp ? ['R', 'L'].map((e) => (tp[e] ? `${e === 'R' ? 'Sağ' : 'Sol'} ${tp[e].tip} (${tp[e].hacim} ml)` : `${e === 'R' ? 'Sağ' : 'Sol'} —`)).join('; ') : '—';
+  return `| \`${v.id}\` | ${v.kademe} | **${esc(v.baslik)}** | ${esc(v.hasta.ad)}, ${esc(v.hasta.yas)} | ${v.kat} | ${esc(KG.taniById(v.tani.dogru).teknik)} | ${v.anahtar.join(', ')} | ${esc(ody)} | ${esc(tim)} | ${esc(v.yonetim[0].sade)} | ${esc(v.aciklama.teknik)} | \`${v.terim}\` | ${esc(v.kaynak)} |`;
+}).join('\n')}
 
 ## Quiz (${QUIZ_QUESTIONS.length})
 

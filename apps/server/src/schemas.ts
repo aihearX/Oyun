@@ -5,6 +5,7 @@ import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
 import { FRIEND_SCHEMAS } from './dm-schemas';
 import { COMM_SCHEMAS } from './comm/schemas';
+import { KG_SCHEMAS } from './camp-quests-schemas';
 
 const id = z.string().min(1).max(40).regex(/^[A-Za-z0-9]+$/);
 const empty = z.object({});
@@ -18,6 +19,7 @@ const remedyId = z.string().min(1).max(40).regex(/^[a-z0-9-]+$/);
 /** her op için giriş şeması; bilinmeyen alanlar atılır */
 export const SCHEMAS: Record<Op, z.ZodType> = {
   ...FRIEND_SCHEMAS,
+  ...KG_SCHEMAS,
   'hello': z.object({ token: z.string().max(200).optional(), name: z.string().max(40).optional(), version: z.number().int(), campV: z.number().int().min(0).max(1000).optional() }),
   'profile.update': z.object({ name: z.string().max(40).optional(), color: z.number().int().min(0).max(0xffffff).optional(), hat: z.string().max(32).regex(/^[a-z0-9-]*$/).optional() }),
   'profile.get': z.object({ id }),

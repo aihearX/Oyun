@@ -24,16 +24,20 @@ import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } fr
 import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers } from './codes';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
+import { kgHandlers, withKgHooks } from './camp-quests';
+import { vakaHandlers } from './camp-quests-vaka';
+import { oyunHandlers } from './camp-quests-oyun';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
 
-const HANDLERS: Handlers = withTeamRaceHooks(withCommHooks(withEventHooks({
+const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...teamApplyHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
-})));
+  ...kgHandlers, ...vakaHandlers, ...oyunHandlers,
+}))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase']);
 
