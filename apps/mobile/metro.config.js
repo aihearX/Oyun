@@ -33,4 +33,8 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   return (baseResolve ?? context.resolveRequest)(context, moduleName, platform);
 };
 
+// Dönüşüm önbelleği (os.tmpdir()/metro-cache) aynı makinedeki tüm kopyalarca paylaşılır; DOM bileşeni girişi mutlak yola
+// göre üretildiği için başka bir çalışma ağacının sonucu dönebiliyordu. Önbellek anahtarına bu kopyanın yolu eklenir.
+config.cacheVersion = `odi:${workspaceRoot}`;
+
 module.exports = config;
