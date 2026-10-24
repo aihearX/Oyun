@@ -41,6 +41,20 @@ function createPlayer(app: App, wantName: string | undefined): { row: PlayerRow;
   return { row: app.player(id), token };
 }
 
+/** IP başına saatlik yeni hesap sınırı (ODI_NEW_PER_IP_HOUR; isteğe bağlı, varsayılan kapalı). Bellekte, saat penceresi kayan. */
+const newByIp = new WeakMap<App, Map<string, number[]>>();
+export function allowNewAccount(app: App, ip: string): boolean {
+  const limit = app.cfg.newAccountsPerIpHour ?? 0;
+  if (!limit || !ip) return true;
+  let m = newByIp.get(app); if (!m) { m = new Map(); newByIp.set(app, m); }
+  const now = app.now();
+  const list = (m.get(ip) ?? []).filter((t) => now - t < 3_600_000);
+  if (list.length >= limit) { m.set(ip, list); return false; }
+  list.push(now); m.set(ip, list);
+  if (m.size > 50_000) for (const [k, v] of m) if (!v.some((t) => now - t < 3_600_000)) m.delete(k); // bellek sınırı
+  return true;
+}
+
 /** arkadaşlar + takım arkadaşları (presence alıcıları) */
 export function circleOf(app: App, pid: string): string[] {
   const ids = new Set(app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid).map((r) => r.b));
@@ -89,6 +103,7 @@ export const playerHandlers: Handlers = {
       if (!r) return fail('TOKEN', 'Oturum anahtarı tanınmadı; yeni hesapla devam etmek için anahtarsız bağlan.');
       row = r;
     } else {
+      if (!allowNewAccount(app, s.conn.ip ?? '')) fail('HIZ', 'Bu bağlantıdan kısa sürede çok fazla yeni hesap açıldı. Biraz sonra yeniden dene.');
       const c = createPlayer(app, name); row = c.row; newToken = c.token;
     }
     s.conn.campV = campV ?? 0;

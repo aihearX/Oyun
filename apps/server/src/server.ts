@@ -78,6 +78,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   // üretimde depodaki (herkese açık) varsayılan özet kullanılmaz: yönetici kodu yalnızca ODI_ADMIN_CODE_HASH ile açılır
   else if (env.NODE_ENV === 'production') o.adminCodeHash = ADMIN_DISABLED;
   if (env.ODI_TRUST_PROXY && /^\d+$/.test(env.ODI_TRUST_PROXY)) o.trustProxy = Number(env.ODI_TRUST_PROXY);
+  if (env.ODI_NEW_PER_IP_HOUR && /^\d+$/.test(env.ODI_NEW_PER_IP_HOUR)) o.newAccountsPerIpHour = Number(env.ODI_NEW_PER_IP_HOUR);
   if (env.ODI_BACKUP_DIR) o.backupDir = env.ODI_BACKUP_DIR;
   if (env.ODI_BACKUP_HOURS && Number(env.ODI_BACKUP_HOURS) > 0) o.backupHours = Number(env.ODI_BACKUP_HOURS);
   if (env.ODI_BACKUP_KEEP && /^\d+$/.test(env.ODI_BACKUP_KEEP)) o.backupKeep = Number(env.ODI_BACKUP_KEEP);

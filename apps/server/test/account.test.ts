@@ -59,3 +59,25 @@ describe('hesabı silme (account.delete)', () => {
     expect(env.srv.app.db.get('SELECT 1 AS x FROM teams WHERE id = ?', t.id)).toBeUndefined();
   });
 });
+
+describe('IP başına yeni hesap sınırı (ODI_NEW_PER_IP_HOUR)', () => {
+  it('kapalıyken sınırsız; açıkken saatte N yeni hesap, sonra HIZ; anahtarlı giriş etkilenmez; saat geçince açılır', async () => {
+    const { allowNewAccount } = await import('../src/players');
+    env = await setup({ newAccountsPerIpHour: 2 });
+    const a = await env.connect('Ayşe'); await env.connect('Bora');
+    // üçüncü anahtarsız hello (aynı IP: 127.0.0.1) reddedilir
+    const ws = new WebSocket(env.srv.url);
+    await new Promise((r) => ws.addEventListener('open', r));
+    const res = await new Promise<{ ok: boolean; code?: string }>((r) => { ws.addEventListener('message', (m) => r(JSON.parse(String(m.data)))); ws.send(JSON.stringify({ t: 'req', id: 1, op: 'hello', data: { version: 1, name: 'Cem' } })); });
+    ws.close();
+    expect(res).toMatchObject({ ok: false, code: 'HIZ' });
+    // var olan hesap anahtarıyla girer
+    const again = await env.connect(undefined, a.token);
+    expect(again.me!.name).toBe('Ayşe');
+    env.clock.advance(3_600_000);
+    expect(allowNewAccount(env.srv.app, '127.0.0.1')).toBe(true);
+    // farklı IP ayrı sayılır; sınır kapalıyken hep açık
+    expect(allowNewAccount(env.srv.app, '10.0.0.9')).toBe(true);
+    expect(allowNewAccount({ cfg: {}, now: () => 0 } as never, '1.1.1.1')).toBe(true);
+  });
+});

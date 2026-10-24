@@ -37,6 +37,8 @@ export interface ServerConfig {
   adminCodeHash?: string;
   /** sunucunun önündeki güvenilir vekil sayısı (ODI_TRUST_PROXY); 0/yok = X-Forwarded-For yok sayılır */
   trustProxy?: number;
+  /** IP başına saatte en çok yeni hesap (ODI_NEW_PER_IP_HOUR); 0/yok = sınırsız. IP için ODI_TRUST_PROXY doğru ayarlanmalı. */
+  newAccountsPerIpHour?: number;
   /** yedek klasörü (ODI_BACKUP_DIR); yoksa yedek alınmaz */
   backupDir?: string;
   /** yedek aralığı, saat (ODI_BACKUP_HOURS, varsayılan 6) */

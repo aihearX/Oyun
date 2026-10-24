@@ -52,6 +52,7 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `ODI_BACKUP_DIR` | — | veritabanı yedek klasörü; verilirse açılışta ve her `ODI_BACKUP_HOURS` saatte `VACUUM INTO` ile kopya (bkz. "Yedek") |
 | `ODI_BACKUP_HOURS` | `6` | yedek aralığı (saat) |
 | `ODI_BACKUP_KEEP` | `28` | tutulan en yeni yedek sayısı (6 saatte bir → 7 gün) |
+| `ODI_NEW_PER_IP_HOUR` | kapalı | IP başına saatte en çok yeni hesap (anahtarsız `hello`); aşılınca `HIZ`. Yalnızca `ODI_TRUST_PROXY` doğru ayarlıyken açın: vekil arkasında yanlış ayarda tüm oyuncular tek IP görünür. Öneri: 20 |
 | `ODI_TRUST_PROXY` | `0` | sunucunun önündeki güvenilir vekil sayısı. `0`: `X-Forwarded-For` yok sayılır, soket adresi kullanılır. Render gibi tek vekil: `1` (başlığın en sağdaki girdisi; soldakileri istemci yazabilir). Kod denemesi IP sınırı bu adresi kullanır |
 
 ## 3. İstemci (`@odi/net`)
@@ -224,6 +225,21 @@ Birim testleri: `apps/server/test/teamrace.test.ts`.
   indirme ya da nesne depolama) sahibin kararıdır.
 - Geri yükleme: sunucuyu durdur → `ODI_DB` dosyasını ve yanındaki `-wal`/`-shm` dosyalarını kenara al → yedeği `ODI_DB` adıyla
   kopyala → sunucuyu başlat. Şema yalnızca `CREATE TABLE IF NOT EXISTS` ile ilerlediği için eski yedek yeni sürümde açılır.
+
+## Şema sürümü ve göçler
+
+Tablolar her açılışta `CREATE TABLE IF NOT EXISTS` ile kurulur (yeni tablo eklemek için bu yeterli). **Var olan tabloya sütun
+eklemek ya da veriyi dönüştürmek** için `apps/server/src/migrations.ts` içindeki `MIGRATIONS` listesinin **sonuna** bir göç eklenir:
+
+```ts
+{ name: 'oyuncu-dil', up: (db) => addColumn(db, 'players', 'lang', "TEXT NOT NULL DEFAULT 'tr'") },
+```
+
+- `PRAGMA user_version` uygulanan göç sayısıdır; açılışta bekleyen göçler sırayla, her biri kendi işleminde uygulanır.
+- Bir göç hata verirse geri alınır, sürüm ilerlemez ve sunucu açılmaz (yarım şemayla çalışmaz). Hata iletisinde göçün numarası ve adı yazar.
+- Var olan göçü değiştirmeyin, silmeyin; her göç tekrar çalışsa da güvenli olsun (`addColumn` sütun varsa dokunmaz).
+- Veritabanı koddan yeniyse (sürüm geri alındıysa) göç yapılmaz, yalnız uyarı yazılır: eklenen sütunlar varsayılan değerli olduğu için eski kod çalışır.
+- Göç eklemeden önce yedek alın (`ODI_BACKUP_DIR`, açılışta otomatik). Test: `apps/server/test/migrations.test.ts`.
 
 ## Hesabı silme (`account.delete`)
 
