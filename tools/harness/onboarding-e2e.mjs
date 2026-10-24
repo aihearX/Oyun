@@ -5,6 +5,7 @@
 //   (binaya dokun, panel, gerçek inşaat başlar) → 4. bölüm → Arkadaşlar → 5. bölüm → Takım açılır (tur).
 // Her adımda: kilit durumları, anlatıcı metni (Türkçe) ve konuşma köprüsünün Türkçe metinle çağrıldığı denetlenir;
 // her anlatıcı adımının ekran görüntüsü alınır (çentik 47 px bandı işaretli).
+//   web Chromium: 6–10. bölüm de oynanır; her açılım turu yürütülür, bölüm başına tur sayısı (anlatıcı yükü) raporlanır.
 // Hedefler: web (Chromium + WebKit, test derlemesi VITE_ODI_E2E=1: `?oyun-bot=1` bölümleri harness botu oynar)
 //           dom (Expo DOM telefon paketi: bot yok → kayıt tohumlanmış kontrol noktaları: hikâye+1. bölüm başlangıcı,
 //                harita turu, Bugün, Kamp öğreticisi (gerçek inşaat), Takım)
@@ -210,6 +211,26 @@ async function suite(target, browserName, [W, H]) {
       await sleep(500);
     }
   }
+  /** sırada bekleyen anlatıcı turlarını (hangisi gelirse) sonuna kadar yürüt; gelen tur kimliklerini döndür */
+  async function drainTours(page, label) {
+    const seen = [];
+    for (let k = 0; k < 12; k++) {
+      const t = page.locator('[data-testid="anlatici-tur"]').first();
+      try { await t.waitFor({ timeout: 5000 }); } catch { break; }
+      const id = await t.getAttribute('data-tour');
+      if (!id) break;
+      seen.push(id); await driveTour(page, id, `${label}-${id}`);
+      await dismissCel(page);
+      // tur bir alt sayfa/panel açık bıraktıysa kapat (Görevler paneli vb.)
+      if (await page.locator('.sheet-wrap, [data-testid="kg-panel"]').count()) { await page.keyboard.press('Escape').catch(() => undefined); await sleep(400); }
+    }
+    return seen;
+  }
+  /** tur bir alt ekranda bıraktıysa (ör. Sıralama) Geri ile sekmelere dön, sonra haritaya geç */
+  async function toMap(page) {
+    for (let i = 0; i < 4 && !(await page.locator('nav.tabbar').isVisible().catch(() => false)); i++) { await page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined); await sleep(500); }
+    await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor({ timeout: 20_000 });
+  }
   const lockedTabs = (page) => page.locator('nav.tabbar .tab.locked').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
   async function playFromMap(page, lv) {
     await page.locator('.map-play').click();
@@ -293,6 +314,27 @@ async function suite(target, browserName, [W, H]) {
       await playFromMap(page, 5); await page.locator('.result-actions [data-act="harita"]').click();
       await driveTour(page, 'team', 'takim-turu');
       check(!(await lockedTabs(page)).length, 'bütün sekmeler açık');
+      // ---- 7 · 6–10. bölüm: her açılım tek tek, anlatıcı yükü ölçülür (yalnız Chromium; WebKit aynı turları 1–5'te denetler)
+      if (browserName === 'chromium') {
+        const perLevel = { 5: await drainTours(page, 'b5') };
+        for (let lv = 6; lv <= 10; lv++) {
+          await toMap(page);
+          await playFromMap(page, lv); await page.locator('.result-actions [data-act="harita"]').click();
+          await dismissCel(page);
+          perLevel[lv] = await drainTours(page, `b${lv}`);
+        }
+        // kamp turları yalnız kampta başlar
+        await toMap(page); await page.locator('nav.tabbar .tab[data-tab="camp"]').click(); await sleep(1500); await dismissCel(page);
+        perLevel.kamp = await drainTours(page, 'kamp');
+        ok(`anlatıcı turları (bölüm → turlar): ${Object.entries(perLevel).map(([k, v]) => `${k}: ${v.join('+') || '-'}`).join(' · ')}`);
+        const most = Math.max(...Object.values(perLevel).map((v) => v.length));
+        ok(`bir bölümde en çok ${most} tur art arda`);
+        const tours = await page.evaluate(() => JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.ftue?.tours ?? []);
+        const want = ['siralama', 'tlig', 'shop', 'akis', 'events', 'race', 'yazi', 'tyaris', 'soru', 'ikili', 'gorev', 'kampoyun', 'vaka'];
+        const miss = want.filter((t) => !tours.includes(t));
+        check(!miss.length, `10. bölüme kadar bütün açılım turları görüldü${miss.length ? `; eksik: ${miss.join(', ')}` : ''}`);
+        check(!(await page.locator('[data-testid="anlatici-tur"]').count()), '10. bölümden sonra bekleyen tur kalmadı');
+      }
       const played = await page.evaluate(() => window.__played ?? []);
       const spoken = await page.evaluate(() => window.__spoken ?? []);
       const need = ['hikaye-01.mp3', 'sonuc-01.mp3', 'kamp-insa-02-depo.mp3', 'sozluk-03.mp3', 'takim-03.mp3'].filter((f) => !played.includes(f));
