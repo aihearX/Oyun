@@ -167,23 +167,23 @@ function koklea2(ctx: Ctx) {
 function koklea3(ctx: Ctx) {
   const [x, y] = top();
   ctx.save(); ctx.translate(x, y);
-  // çerçeve: alt kiriş + kavisli üst kol + ön sütun
+  // çerçeve: alt kiriş + soldan (taban) sağa (tepe) yükselen üst kol + iki sütun
   const fg = ctx.createLinearGradient(-16, -50, 16, 0); fg.addColorStop(0, '#e4dcff'); fg.addColorStop(0.5, '#8b6bff'); fg.addColorStop(1, '#4a2fb8');
   ctx.strokeStyle = fg; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-15, -3); ctx.lineTo(15, -3); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-15, -3); ctx.lineTo(-15, -18); ctx.bezierCurveTo(-8, -50, 10, -44, 15, -20); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(15, -3); ctx.lineTo(15, -20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-15, -3); ctx.lineTo(-15, -12); ctx.bezierCurveTo(-6, -15, 6, -30, 15, -46); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(15, -3); ctx.lineTo(15, -46); ctx.stroke();
   // tellerin arkasında yarı saydam zar (baziler membran gibi: tabanda dar, tepede geniş)
-  ctx.beginPath(); ctx.moveTo(-13, -4.5); ctx.lineTo(-13, -19); ctx.bezierCurveTo(-7, -46, 9, -41, 13.5, -21); ctx.lineTo(13.5, -4.5); ctx.closePath();
+  ctx.beginPath(); ctx.moveTo(-13, -4.5); ctx.lineTo(-13, -12); ctx.bezierCurveTo(-5, -15, 5, -29, 13.5, -43); ctx.lineTo(13.5, -4.5); ctx.closePath();
   const mg = ctx.createLinearGradient(-13, 0, 13, 0); mg.addColorStop(0, 'rgba(46,230,214,0.28)'); mg.addColorStop(1, 'rgba(255,92,138,0.28)'); ctx.fillStyle = mg; ctx.fill();
-  // teller: soldan sağa uzayan, renk turkuaz → pembe (frekans haritası)
+  // teller: tabanda (solda) kısa = tiz, tepede (sağda) uzun = pes; renk turkuaz → pembe (frekans haritası)
   for (let i = 0; i < 8; i++) {
     const t = i / 7; const sx = -11 + t * 22;
-    const topY = sx < -8 ? -19 - (sx + 13) * 2 : -19 - Math.sin(((sx + 13) / 26.5) * Math.PI) * 23 + t * 2;
+    const topY = -12.5 - Math.pow(t, 1.25) * 29;
     ctx.strokeStyle = css(shade(mix(0x2ee6d6, 0xff5c8a, t), 0.25)); ctx.lineWidth = 1.3; ctx.beginPath(); ctx.moveTo(sx, -4.5); ctx.lineTo(sx, topY + 1.5); ctx.stroke();
   }
   // nota süsü
-  ctx.fillStyle = '#ffc93c'; ctx.beginPath(); ctx.ellipse(-12, -40, 2.4, 1.8, -0.4, 0, 7); ctx.fill(); ctx.strokeStyle = '#a35a00'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-9.8, -40.5); ctx.lineTo(-9.8, -47); ctx.stroke();
+  ctx.fillStyle = '#ffc93c'; ctx.beginPath(); ctx.ellipse(-11, -24, 2.4, 1.8, -0.4, 0, 7); ctx.fill(); ctx.strokeStyle = '#a35a00'; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-8.8, -24.5); ctx.lineTo(-8.8, -31); ctx.stroke();
   ctx.restore();
 }
 /** Sinir: parlayan nöron feneri (gövde, dendritler, akson kaideye iner) */

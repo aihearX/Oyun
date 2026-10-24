@@ -115,8 +115,8 @@ export function OtoskopSvg({ f, ear, size = 120 }: { f: Otoskopi; ear: 'R' | 'L'
         ? <circle cx="50" cy="50" r="40" fill="none" stroke="#e05a5a" strokeWidth="22" opacity=".9" />
         : <circle cx="50" cy="50" r="32" fill={drum} stroke="#8d96b4" strokeWidth="2" opacity={f === 'serumen' ? 0.4 : 1} />}
       {f !== 'serumen' && f !== 'odem' && <>
-        {/* çekiç sapı ve umbo */}
-        <path d={`M${50 - 8 * s} 24 L50 50`} stroke={f === 'icecekik' ? '#fff' : '#e9ecf5'} strokeWidth={f === 'icecekik' ? 4 : 3} strokeLinecap="round" />
+        {/* çekiç sapı ve umbo: kısa çıkıntı ön-üstte (sağ kulakta saat 1, solda 11), ışık üçgeniyle aynı (ön) tarafta */}
+        <path d={`M${50 + 8 * s} 24 L50 50`} stroke={f === 'icecekik' ? '#fff' : '#e9ecf5'} strokeWidth={f === 'icecekik' ? 4 : 3} strokeLinecap="round" />
         <circle cx="50" cy="50" r="2.4" fill="#e9ecf5" />
         {/* ışık üçgeni */}
         {f !== 'efuzyon' && f !== 'perforasyon' && <path d={f === 'icecekik' ? `M${50 + 4 * s} 54 l${8 * s} 6 l${-2 * s} 3z` : `M${50 + 4 * s} 54 l${18 * s} 14 l${-8 * s} 6z`} fill="#fffbe6" opacity=".9" />}

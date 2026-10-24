@@ -6,6 +6,8 @@ import { derece, gaps, hacimSinifi, isYok, kayipTipi, pta3, type Abr, type Bilgi
 
 export const KULAK: Record<Ear, string> = { R: 'Sağ', L: 'Sol' };
 const n1 = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** admitans iki basamak: 0,25 ml (Tip As) yuvarlanıp 0,3 ml (normal sınır) görünmesin */
+const n2 = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
 export const OTOSKOPI_ADI: Record<Otoskopi, { sade: string; teknik: string }> = {
   normal: { sade: 'Kanal temiz, zar inci grisi ve parlak', teknik: 'Normal: zar yarı saydam, ışık refleksi var' },
@@ -30,7 +32,7 @@ export function odyoSatir(o: Odyogram, e: Ear, duzey: BilgiDuzeyi): string {
 export function timpSatir(t: Timp | null, e: Ear, duzey: BilgiDuzeyi, grup: Vaka['hasta']['grup']): string {
   if (!t) return `${KULAK[e]}: ölçülmedi`;
   const h = hacimSinifi(t.hacim, grup);
-  if (duzey === 'odyoloji') return `${KULAK[e]}: ${t.basinc === null ? 'tepe yok' : `tepe ${t.basinc} daPa`} · admitans ${n1(t.uyum)} ml · kanal hacmi ${n1(t.hacim)} ml`;
+  if (duzey === 'odyoloji') return `${KULAK[e]}: ${t.basinc === null ? 'tepe yok' : `tepe ${t.basinc} daPa`} · admitans ${n2(t.uyum)} ml · kanal hacmi ${n1(t.hacim)} ml`;
   const hs = h === 'buyuk' ? ' · kanal hacmi büyük' : h === 'kucuk' ? ' · kanal hacmi küçük' : '';
   switch (t.tip) {
     case 'A': return `${KULAK[e]}: zar rahat hareket ediyor (tepeli eğri)`;
