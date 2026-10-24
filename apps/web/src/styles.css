@@ -814,3 +814,9 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
 .abtn .act-lock { display:inline-flex; align-items:center; gap:3px; margin-left:4px; font-size:11px; color:var(--gold); }
 .abtn.tile .act-lock { margin:2px 0 0; }
 .abtn.tile .lbl { display:flex; flex-direction:column; align-items:center; }
+/* Ayarlar › Gizlilik ve hakkında */
+.legal-sheet { display:flex; flex-direction:column; gap:12px; max-height:min(64vh, 560px); overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
+.legal-sheet h3 { margin:0 0 4px; font-size:15px; }
+.legal-sheet ul { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:4px; font-size:14px; line-height:1.4; color:var(--text); }
+.legal-draft { margin:0; padding:8px 12px; border-radius:12px; background:rgba(255,193,60,.16); border:2px solid rgba(255,193,60,.5); font-weight:800; font-size:13px; }
+

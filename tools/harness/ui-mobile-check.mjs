@@ -331,6 +331,10 @@ async function suite(browserName, target, [W, H]) {
         await page.keyboard.press('Escape'); await sleep(300);
         // yönetici modunu kapat (diğer ekranlar gerçek ilerlemeyle denetlensin)
         await page.getByTestId('yonetici-anahtar').click(); await page.locator('[data-testid="yonetici-rozet"]', { hasText: 'kapalı' }).waitFor();
+        // Gizlilik ve hakkında (TASLAK metin alt sayfası)
+        await page.getByTestId('gizlilik-ac').scrollIntoViewIfNeeded(); await page.getByTestId('gizlilik-ac').click(); await page.getByTestId('gizlilik-taslak').waitFor(); await sleep(400);
+        await check('ayarlar-gizlilik', { scroll: false });
+        await page.keyboard.press('Escape'); await sleep(300);
         await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
     }
     if (want('kamp')) {

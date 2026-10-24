@@ -10,6 +10,8 @@ import { resetEverything } from '../reset';
 import { speakLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { lineText } from '../ftue/script';
+import { LegalSheet } from './LegalSheet';
+import { APP_VERSION } from '../legal';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
 function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: string; label: string; value: number; onChange: (v: number) => void; onRelease?: () => void; disabled?: boolean }) {
@@ -28,7 +30,7 @@ function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: s
 export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => void; onReplay?: () => void; onReset?: () => void }) {
   const s = useStore();
   const lastPreview = useRef(0);
-  const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false);
+  const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false); const [legal, setLegal] = useState(false);
   void onReset; // eski arayüz: sıfırlama artık uygulamayı baştan kurar
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
   return (
@@ -69,7 +71,9 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           </div>
         </Sheet>
       )}
-      <div className="muted">ODİ: Sesin Yolu · sürüm 0.1 · Faz 1</div>
+      <div className="card skill"><div><h2>Gizlilik ve hakkında</h2><div className="muted">Hangi veriyi neden tuttuğumuz, silme hakkın ve sürüm bilgisi.</div></div><button className="btn small ghost" data-testid="gizlilik-ac" onClick={() => setLegal(true)}>Oku</button></div>
+      {legal && <LegalSheet onClose={() => setLegal(false)} />}
+      <div className="muted">ODİ: Sesin Yolu · sürüm {APP_VERSION}</div>
     </div>
   );
 }
