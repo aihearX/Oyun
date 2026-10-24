@@ -557,6 +557,150 @@
    "src": "65b59585",
    "ms": 5880
   },
+  "kamp-seviye-01": {
+   "file": "kamp-seviye-01.mp3",
+   "hash": "8e0a8f42",
+   "src": "8e0a8f42",
+   "ms": 6648
+  },
+  "kamp-seviye-up": {
+   "file": "kamp-seviye-up.mp3",
+   "hash": "b1a53bd2",
+   "src": "b1a53bd2",
+   "ms": 6264
+  },
+  "kamp-bolge-koru": {
+   "file": "kamp-bolge-koru.mp3",
+   "hash": "57f99908",
+   "src": "8c0cd846",
+   "ms": 7440
+  },
+  "kamp-bolge-koy": {
+   "file": "kamp-bolge-koy.mp3",
+   "hash": "e0a9af92",
+   "src": "e0a9af92",
+   "ms": 6816
+  },
+  "kamp-bolge-tepe": {
+   "file": "kamp-bolge-tepe.mp3",
+   "hash": "cdf0d3cb",
+   "src": "cdf0d3cb",
+   "ms": 6048
+  },
+  "kamp-bolge-yerleske": {
+   "file": "kamp-bolge-yerleske.mp3",
+   "hash": "08932e2d",
+   "src": "08932e2d",
+   "ms": 6384
+  },
+  "kamp-bolge-orman": {
+   "file": "kamp-bolge-orman.mp3",
+   "hash": "47abf431",
+   "src": "47abf431",
+   "ms": 6384
+  },
+  "kamp-sus-01": {
+   "file": "kamp-sus-01.mp3",
+   "hash": "de4bbc44",
+   "src": "de4bbc44",
+   "ms": 7344
+  },
+  "kamp-ziyaret-01": {
+   "file": "kamp-ziyaret-01.mp3",
+   "hash": "6c817859",
+   "src": "6c817859",
+   "ms": 6576
+  },
+  "kamp-sv-kabin-1": {
+   "file": "kamp-sv-kabin-1.mp3",
+   "hash": "27f30a0b",
+   "src": "27f30a0b",
+   "ms": 6504
+  },
+  "kamp-sv-kabin-2": {
+   "file": "kamp-sv-kabin-2.mp3",
+   "hash": "bee026b7",
+   "src": "bee026b7",
+   "ms": 6120
+  },
+  "kamp-sv-kabin-3": {
+   "file": "kamp-sv-kabin-3.mp3",
+   "hash": "14ae5afd",
+   "src": "14ae5afd",
+   "ms": 5664
+  },
+  "kamp-sv-tarama-1": {
+   "file": "kamp-sv-tarama-1.mp3",
+   "hash": "97a9c8ad",
+   "src": "97a9c8ad",
+   "ms": 4752
+  },
+  "kamp-sv-tarama-2": {
+   "file": "kamp-sv-tarama-2.mp3",
+   "hash": "20b65e30",
+   "src": "20b65e30",
+   "ms": 4752
+  },
+  "kamp-sv-tarama-3": {
+   "file": "kamp-sv-tarama-3.mp3",
+   "hash": "a7b5dcaa",
+   "src": "a7b5dcaa",
+   "ms": 6096
+  },
+  "kamp-sv-park-1": {
+   "file": "kamp-sv-park-1.mp3",
+   "hash": "ebe78fcd",
+   "src": "ebe78fcd",
+   "ms": 6912
+  },
+  "kamp-sv-park-2": {
+   "file": "kamp-sv-park-2.mp3",
+   "hash": "438211ec",
+   "src": "438211ec",
+   "ms": 5688
+  },
+  "kamp-sv-park-3": {
+   "file": "kamp-sv-park-3.mp3",
+   "hash": "11a84607",
+   "src": "11a84607",
+   "ms": 4704
+  },
+  "kamp-sv-denge-1": {
+   "file": "kamp-sv-denge-1.mp3",
+   "hash": "a9f377bf",
+   "src": "a9f377bf",
+   "ms": 6480
+  },
+  "kamp-sv-denge-2": {
+   "file": "kamp-sv-denge-2.mp3",
+   "hash": "b488c93e",
+   "src": "b488c93e",
+   "ms": 5856
+  },
+  "kamp-sv-denge-3": {
+   "file": "kamp-sv-denge-3.mp3",
+   "hash": "61c4de5b",
+   "src": "61c4de5b",
+   "ms": 6096
+  },
+  "kamp-sv-kutuphane-1": {
+   "file": "kamp-sv-kutuphane-1.mp3",
+   "hash": "b953bedc",
+   "src": "b953bedc",
+   "ms": 4944
+  },
+  "kamp-sv-kutuphane-2": {
+   "file": "kamp-sv-kutuphane-2.mp3",
+   "hash": "ab784cd4",
+   "src": "ab784cd4",
+   "ms": 5472
+  },
+  "kamp-sv-kutuphane-3": {
+   "file": "kamp-sv-kutuphane-3.mp3",
+   "hash": "2cef4e91",
+   "src": "2cef4e91",
+   "ms": 5280
+  },
   "ipucu-tazele-kayma": {
    "file": "ipucu-tazele-kayma.mp3",
    "hash": "a4c42839",
