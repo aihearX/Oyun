@@ -557,6 +557,168 @@
    "src": "65b59585",
    "ms": 5880
   },
+  "kg-tur-01": {
+   "file": "kg-tur-01.mp3",
+   "hash": "356b7939",
+   "src": "356b7939",
+   "ms": 5904
+  },
+  "kg-tur-02": {
+   "file": "kg-tur-02.mp3",
+   "hash": "22a254a0",
+   "src": "22a254a0",
+   "ms": 4968
+  },
+  "kg-oyun-01": {
+   "file": "kg-oyun-01.mp3",
+   "hash": "a81402ba",
+   "src": "48fa5b14",
+   "ms": 6456
+  },
+  "kg-oyun-02": {
+   "file": "kg-oyun-02.mp3",
+   "hash": "5a9b0ce4",
+   "src": "5a9b0ce4",
+   "ms": 6480
+  },
+  "kg-vaka-01": {
+   "file": "kg-vaka-01.mp3",
+   "hash": "37f25c8a",
+   "src": "2ae1b770",
+   "ms": 5664
+  },
+  "kg-vaka-02": {
+   "file": "kg-vaka-02.mp3",
+   "hash": "9e19971b",
+   "src": "9e19971b",
+   "ms": 7440
+  },
+  "kg-vaka-ilk": {
+   "file": "kg-vaka-ilk.mp3",
+   "hash": "c77e00c0",
+   "src": "72ea6c7e",
+   "ms": 6504
+  },
+  "kg-h1-giris": {
+   "file": "kg-h1-giris.mp3",
+   "hash": "cd45538f",
+   "src": "5ee208d5",
+   "ms": 6048
+  },
+  "kg-h1-son": {
+   "file": "kg-h1-son.mp3",
+   "hash": "4edd89d8",
+   "src": "4edd89d8",
+   "ms": 4704
+  },
+  "kg-h2-giris": {
+   "file": "kg-h2-giris.mp3",
+   "hash": "96075329",
+   "src": "a9bb4591",
+   "ms": 6792
+  },
+  "kg-h2-son": {
+   "file": "kg-h2-son.mp3",
+   "hash": "0ff21af2",
+   "src": "0ff21af2",
+   "ms": 5112
+  },
+  "kg-h3-giris": {
+   "file": "kg-h3-giris.mp3",
+   "hash": "0dae7168",
+   "src": "0dae7168",
+   "ms": 5496
+  },
+  "kg-h3-son": {
+   "file": "kg-h3-son.mp3",
+   "hash": "8463df3a",
+   "src": "8463df3a",
+   "ms": 4368
+  },
+  "kg-h4-giris": {
+   "file": "kg-h4-giris.mp3",
+   "hash": "0772e715",
+   "src": "0772e715",
+   "ms": 4200
+  },
+  "kg-h4-son": {
+   "file": "kg-h4-son.mp3",
+   "hash": "47c32a05",
+   "src": "47c32a05",
+   "ms": 3936
+  },
+  "kg-h5-giris": {
+   "file": "kg-h5-giris.mp3",
+   "hash": "47dc916e",
+   "src": "5c4f047c",
+   "ms": 4752
+  },
+  "kg-h5-son": {
+   "file": "kg-h5-son.mp3",
+   "hash": "76b66c11",
+   "src": "76b66c11",
+   "ms": 3768
+  },
+  "kg-h6-giris": {
+   "file": "kg-h6-giris.mp3",
+   "hash": "6a57e987",
+   "src": "6a57e987",
+   "ms": 4536
+  },
+  "kg-h6-son": {
+   "file": "kg-h6-son.mp3",
+   "hash": "cc7053ee",
+   "src": "cc7053ee",
+   "ms": 3792
+  },
+  "kg-h7-giris": {
+   "file": "kg-h7-giris.mp3",
+   "hash": "d8f137d9",
+   "src": "d8f137d9",
+   "ms": 6096
+  },
+  "kg-h7-son": {
+   "file": "kg-h7-son.mp3",
+   "hash": "861238a1",
+   "src": "861238a1",
+   "ms": 2544
+  },
+  "kg-h8-giris": {
+   "file": "kg-h8-giris.mp3",
+   "hash": "7df8c683",
+   "src": "7df8c683",
+   "ms": 5520
+  },
+  "kg-h8-son": {
+   "file": "kg-h8-son.mp3",
+   "hash": "2300905c",
+   "src": "2300905c",
+   "ms": 3984
+  },
+  "kg-h9-giris": {
+   "file": "kg-h9-giris.mp3",
+   "hash": "5656eae0",
+   "src": "5656eae0",
+   "ms": 5352
+  },
+  "kg-h9-son": {
+   "file": "kg-h9-son.mp3",
+   "hash": "ef770d1b",
+   "src": "ef770d1b",
+   "ms": 4344
+  },
+  "kg-h10-giris": {
+   "file": "kg-h10-giris.mp3",
+   "hash": "77d45015",
+   "src": "77d45015",
+   "ms": 4704
+  },
+  "kg-h10-son": {
+   "file": "kg-h10-son.mp3",
+   "hash": "eb83454c",
+   "src": "eb83454c",
+   "ms": 5136
+  },
   "kamp-seviye-01": {
    "file": "kamp-seviye-01.mp3",
    "hash": "8e0a8f42",
