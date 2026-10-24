@@ -289,29 +289,42 @@ export function prestigeGround(ctx: Ctx, level: number, half: number) {
   ctx.strokeStyle = epic ? 'rgba(255,214,107,0.8)' : 'rgba(180,150,255,0.75)'; ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]);
   ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.52, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]);
 }
-/** binanın üstüne: Sv 16–19 köşelerde birer kristal sütun daha, Sv 20 süzülen kristal; Efsane (21–25): flamalar, altın kulak, kanatlar, notalar, taç */
+/** köşe kristalleri: Sv 16–19 her seviyede bir tane daha; Efsane'de (21+) altına döner */
+export function prestigeCorners(ctx: Ctx, level: number, half: number, a: Anchors) {
+  if (level < 16) return;
+  const epic = level >= 21; const n = Math.min(4, level - 15);
+  const spots: [number, number][] = [[-1.1, 1.1], [1.1, -1.1], [1.25, 1.25], [-1.25, -1.25]];
+  for (let i = 0; i < n; i++) { const [u, v] = spots[i]!; const [x, y] = P(u * half, v * half, 0); crystal(ctx, x, y, 6 + Math.min(4, level - 16) * 0.5, epic); crystal(ctx, x - 5, y + 2, 3, epic); if (i < 2) a.lights.push([x, y - 8, epic ? 0xffd66b : 0xb49bff]); }
+}
+/** altın kulak amblemi (Efsane): sade, büyük; Sv 24'te defne çelengi, Sv 25'te yumuşak ışık */
+function emblem(ctx: Ctx, x: number, y: number, level: number) {
+  if (level >= 25) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x, y, 3, x, y, 30); g.addColorStop(0, 'rgba(255,236,170,0.55)'); g.addColorStop(1, 'rgba(255,200,100,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 30, 0, 7); ctx.fill(); ctx.restore(); }
+  // ince altın disk + kulak
+  ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); const d = ctx.createRadialGradient(x - 3, y - 4, 1, x, y, 11); d.addColorStop(0, '#5a3fc0'); d.addColorStop(1, '#2d1d6e'); ctx.fillStyle = d; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = '#f5c542'; ctx.stroke();
+  earGlyph(ctx, x, y, 15, 0xf5c542, 0xfff3b0, 0.8);
+  if (level >= 24) for (const [t0, t1] of [[Math.PI * 0.5, Math.PI * 1.0], [0, Math.PI * 0.5]] as const) { // defne çelengi: iki yay, az ve iri yaprak
+    ctx.strokeStyle = '#d9a400'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y + 1, 15, t0 + 0.08, t1 - 0.08); ctx.stroke();
+    for (let i = 0; i < 4; i++) { const t = t0 + ((i + 0.5) / 4) * (t1 - t0); ctx.save(); ctx.translate(x + Math.cos(t) * 15, y + 1 + Math.sin(t) * 15); ctx.rotate(t + Math.PI / 2); ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.ellipse(0, 0, 3.6, 1.5, 0, 0, 7); ctx.fill(); ctx.restore(); }
+  }
+}
+/**
+ * binanın üstüne (Merkez dışı): Sv 16–19 köşe kristalleri, Sv 20 süzülen kristal ve halkası.
+ * Efsane (21–25) sade ve büyük: 21 kristaller altına döner, 22 süzülen kristalin yerini altın kulak amblemi alır,
+ * 23 önde iki altın fener, 24 amblemin çevresinde defne çelengi, 25 amblemde yumuşak ışık.
+ */
 export function prestigeTop(ctx: Ctx, level: number, half: number, a: Anchors, topZ = 78) {
   if (level < 16) return;
   const epic = level >= 21;
-  const n = Math.min(4, level - 15);
-  const spots: [number, number][] = [[-1.1, 1.1], [1.1, -1.1], [1.25, 1.25], [-1.25, -1.25]];
-  for (let i = 0; i < n; i++) { const [u, v] = spots[i]!; const [x, y] = P(u * half, v * half, 0); crystal(ctx, x, y, 6 + (level - 16) * 0.5); crystal(ctx, x - 5, y + 2, 3); if (i < 2) a.lights.push([x, y - 8, epic ? 0xffd66b : 0xb49bff]); }
+  prestigeCorners(ctx, level, half, a);
   const [tx, ty] = P(0, 0, topZ);
-  if (level >= 20) { // süzülen kristal + halkası
-    ctx.save(); ctx.shadowColor = 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 12; crystal(ctx, tx, ty, 9); ctx.restore();
-    ctx.strokeStyle = 'rgba(216,200,255,0.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(tx, ty - 4, 16, 5, 0, 0, 7); ctx.stroke(); a.lights.push([tx, ty - 6, 0xb49bff]);
+  if (level >= 20 && level < 22) { // süzülen kristal + ince halka (Sv 21'de altın)
+    ctx.save(); ctx.shadowColor = epic ? 'rgba(255,214,107,0.9)' : 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 12; crystal(ctx, tx, ty, 9, epic); ctx.restore();
+    ctx.strokeStyle = epic ? 'rgba(255,224,140,0.9)' : 'rgba(216,200,255,0.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(tx, ty - 4, 16, 5, 0, 0, 7); ctx.stroke(); a.lights.push([tx, ty - 6, epic ? 0xffd66b : 0xb49bff]);
   }
-  if (level >= 21) { // flamalar
-    const [x0, y0] = P(-half * 1.2, half * 1.2, 22), [x1, y1] = P(half * 1.2, -half * 1.2, 22);
-    ctx.strokeStyle = 'rgba(80,50,30,0.7)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 + 30, x1, y1); ctx.stroke();
-    const cols = [0xff5c8a, 0xff9f1c, 0xffc93c, 0x3ccf7e, 0x2ee6d6, 0x8b6bff];
-    for (let i = 1; i < 14; i++) { const tt = i / 14; const x = (1 - tt) ** 2 * x0 + 2 * (1 - tt) * tt * ((x0 + x1) / 2) + tt * tt * x1, y = (1 - tt) ** 2 * y0 + 2 * (1 - tt) * tt * ((y0 + y1) / 2 + 30) + tt * tt * y1; ctx.fillStyle = css(cols[i % cols.length]!); ctx.beginPath(); ctx.moveTo(x - 2.4, y); ctx.lineTo(x + 2.4, y); ctx.lineTo(x, y + 5); ctx.closePath(); ctx.fill(); }
-  }
-  if (level >= 22) { ctx.save(); ctx.shadowColor = 'rgba(255,214,107,0.8)'; ctx.shadowBlur = 6; earGlyph(ctx, tx, ty - 22, 14, 0xf5c542, 0xb8860b, 0.7); ctx.restore(); }
-  if (level >= 23) for (const s of [-1, 1] as const) { const [x, y] = P(s < 0 ? -half * 1.3 : half * 0.2, s < 0 ? half * 0.2 : -half * 1.3, 30); ctx.save(); ctx.translate(x, y); ctx.scale(s * 0.7, 0.7); ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(10, -8, 22, -22, 30, -36); ctx.bezierCurveTo(20, -30, 14, -28, 6, -24); ctx.bezierCurveTo(14, -20, 18, -14, 20, -8); ctx.bezierCurveTo(12, -8, 6, -4, 0, 0); const g = ctx.createLinearGradient(0, 0, 30, -36); g.addColorStop(0, '#fff3b0'); g.addColorStop(1, '#d9a400'); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = 'rgba(120,80,0,0.6)'; ctx.lineWidth = 0.6; ctx.stroke(); ctx.restore(); }
-  if (level >= 24) for (let i = 0; i < 4; i++) { const t = (i / 4) * Math.PI * 2 + 0.4; const nx = tx + Math.cos(t) * 24, ny = ty - 20 + Math.sin(t) * 7; ctx.fillStyle = '#ffd24a'; ctx.beginPath(); ctx.ellipse(nx, ny, 2.4, 1.8, -0.4, 0, 7); ctx.fill(); ctx.fillRect(nx + 1.8, ny - 7, 1, 7); }
-  if (level >= 25) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(tx, ty - 50, 2, tx, ty - 50, 18); g.addColorStop(0, 'rgba(255,240,170,0.7)'); g.addColorStop(1, 'rgba(255,200,100,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(tx, ty - 50, 18, 0, 7); ctx.fill(); ctx.restore(); ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.moveTo(tx - 9, ty - 46); ctx.lineTo(tx - 9, ty - 54); ctx.lineTo(tx - 4, ty - 50); ctx.lineTo(tx, ty - 57); ctx.lineTo(tx + 4, ty - 50); ctx.lineTo(tx + 9, ty - 54); ctx.lineTo(tx + 9, ty - 46); ctx.closePath(); ctx.fill(); }
-  if (epic) for (let i = 0; i < level - 20; i++) a.sparkles.push(P((i % 2 ? 1 : -1) * half * 0.5, (i % 3 - 1) * half * 0.4, 30 + i * 4));
+  if (level >= 22) { emblem(ctx, tx, ty - 10, level); a.lights.push([tx, ty - 10, 0xffd66b]); }
+  if (level >= 23) for (const [u, v] of [[-0.25, 1.45], [1.45, -0.25]] as const) { const [x, y] = P(u * half, v * half, 0); lamppost(ctx, x, y, 38, 0xffd66b, true); a.lights.push([x, y - 38, 0xffd66b]); }
+  if (epic) a.sparkles.push(P(0, 0, topZ + 18));
 }
 
 
@@ -401,7 +414,8 @@ const mxObservatory: MX = (k, a) => {
   a.lights.push([top[0], top[1] + 6, 0x9ff6ff]);
 };
 /** tüy hücresi ekibi heykelleri (en sağ): üç tüy hücresi, basamaklı tüyleriyle */
-const mxStaff: MX = (k, a) => {
+const mxStaff: MX = (k, a, level) => {
+  if (level >= 23) return; // Efsane: yerini tek büyük altın heykel alır (mxStatue)
   const { ctx } = k;
   for (let i = 0; i < 3; i++) {
     const [x0, y0] = at(30 + i * 9, 88 - i * 3);
@@ -415,33 +429,68 @@ const mxStaff: MX = (k, a) => {
   }
   a.sparkles.push(at(64, -46, 24));
 };
-/** Kristal: ön köşelerde kristal dikilitaşlar */
-const mxObelisk: MX = (k, a) => { const { ctx } = k; for (const [u, v] of [[16, 98], [98, 16]] as const) { const [x, y] = at(u, v); crystal(ctx, x, y - 4, 14); crystal(ctx, x - 8, y + 1, 7); crystal(ctx, x + 8, y + 1, 6); a.lights.push([x, y - 12, 0xb49bff]); } };
-/** Kristal: çatının üstünde süzülen kristal halka */
-const mxRing: MX = (k, a) => { const { ctx } = k; const [x, y] = at(0, 0, 150); ctx.save(); ctx.shadowColor = 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 12; ctx.strokeStyle = '#d8c8ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 30, 9, 0, 0, 7); ctx.stroke(); ctx.restore(); for (let i = 0; i < 6; i++) { const t = (i / 6) * Math.PI * 2; crystal(ctx, x + Math.cos(t) * 30, y + Math.sin(t) * 9 + 3, 2.2); } a.lights.push([x, y, 0xb49bff]); };
-/** Kristal: iki kulenin tepesinden göğe ışık sütunları */
-const mxBeams: MX = (k, a) => { const { ctx } = k; ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (const [u, v, z] of [[-58, -10, 100], [-10, -60, 112]] as const) { const [x, y] = at(u, v, z); const g = ctx.createLinearGradient(0, y, 0, y - 90); g.addColorStop(0, 'rgba(125,243,255,0.55)'); g.addColorStop(1, 'rgba(125,243,255,0)'); ctx.fillStyle = g; ctx.fillRect(x - 4, y - 90, 8, 90); a.lights.push([x, y - 6, 0x7df3ff]); } ctx.restore(); };
-/** Kristal: çanak antenin yerinde kristal küre */
-const mxOrb: MX = (k, a) => { const { ctx } = k; const [x, y] = at(-84, -24, 150); ctx.save(); ctx.shadowColor = 'rgba(180,140,255,1)'; ctx.shadowBlur = 16; const g = ctx.createRadialGradient(x - 6, y - 6, 1, x, y, 20); g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#b49bff'); g.addColorStop(1, '#6c4cf1'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 18, 0, 7); ctx.fill(); ctx.restore(); ctx.strokeStyle = 'rgba(216,200,255,0.9)'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.ellipse(x, y, 28, 8, -0.3, 0, 7); ctx.stroke(); a.lights.push([x, y, 0xb49bff]); a.sparkles.push([x + 8, y - 10]); };
-/** Kristal: arkada dev kristal sivri kule */
-const mxCrystalSpire: MX = (k, a) => { const { ctx } = k; const [x, y] = at(-24, -100, 0); crystal(ctx, x, y - 40, 34); crystal(ctx, x - 22, y - 10, 16); crystal(ctx, x + 20, y - 8, 14); a.lights.push([x, y - 50, 0xb49bff]); a.sparkles.push([x, y - 66]); };
-/** Efsane: en arkada altın kulak kolossu */
-const mxColossus: MX = (k, a) => { const { ctx } = k; const [x, y] = at(-112, -36, 0); ctx.save(); ctx.shadowColor = 'rgba(255,214,107,0.9)'; ctx.shadowBlur = 14; ctx.translate(x, y - 60); ctx.scale(2.5, 2.5); earGlyph(ctx, 0, 0, 20, 0xf5c542, 0xb8860b, 0.5); ctx.restore(); a.sparkles.push([x - 20, y - 110], [x + 18, y - 90]); a.lights.push([x, y - 74, 0xffd66b]); };
-/** Efsane: kapının üstünde gökkuşağı kemeri */
-const mxRainbow: MX = (k) => { const { ctx } = k; const [x0, y0] = at(54, 76), [x1, y1] = at(76, 54); const cols = ['#ff5c8a', '#ff9f1c', '#ffc93c', '#3ccf7e', '#2ee6d6', '#8b6bff']; cols.forEach((c, i) => { ctx.beginPath(); ctx.moveTo(x0 - 40 + i * 4, y0 + 4); ctx.quadraticCurveTo((x0 + x1) / 2, (y0 + y1) / 2 - 120 + i * 4.5, x1 + 40 - i * 4, y1 + 4); ctx.strokeStyle = c; ctx.lineWidth = 4.4; ctx.stroke(); }); };
-/** Efsane: iki kanadın üstünde altın kanatlar (kulak kepçesi kıvrımlı) */
-const mxGoldWings: MX = (k, a) => { const { ctx } = k; for (const [u, v, s] of [[-26, 70, -1], [70, -26, 1]] as const) { const [x, y] = at(u, v, 44); ctx.save(); ctx.translate(x, y); ctx.scale(s * 2, 2); ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(10, -8, 22, -22, 30, -36); ctx.bezierCurveTo(20, -30, 14, -28, 6, -24); ctx.bezierCurveTo(14, -20, 18, -14, 20, -8); ctx.bezierCurveTo(12, -8, 6, -4, 0, 0); const g = ctx.createLinearGradient(0, 0, 30, -36); g.addColorStop(0, '#fff3b0'); g.addColorStop(1, '#d9a400'); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = 'rgba(120,80,0,0.6)'; ctx.lineWidth = 0.7; ctx.stroke(); ctx.restore(); a.sparkles.push([x + s * 48, y - 60]); } };
-/** Efsane: tepede dönen altın notalar çemberi */
-const mxNotes: MX = (k, a) => { const { ctx } = k; const [x, y] = at(0, 0, 120); for (let i = 0; i < 8; i++) { const t = (i / 8) * Math.PI * 2; const nx = x + Math.cos(t) * 78, ny = y + Math.sin(t) * 24; ctx.save(); ctx.shadowColor = 'rgba(255,214,107,0.9)'; ctx.shadowBlur = 8; ctx.fillStyle = '#ffd24a'; ctx.beginPath(); ctx.ellipse(nx, ny, 5.2, 4, -0.4, 0, 7); ctx.fill(); ctx.fillRect(nx + 4, ny - 16, 2, 16); ctx.beginPath(); ctx.moveTo(nx + 6, ny - 16); ctx.quadraticCurveTo(nx + 13, ny - 12, nx + 11, ny - 6); ctx.lineWidth = 1.6; ctx.strokeStyle = '#ffd24a'; ctx.stroke(); ctx.restore(); } a.lights.push([x, y, 0xffd66b]); };
-/** Efsane: işitme feneri — dev ışık hüzmesi ve taç */
-const mxBeacon: MX = (k, a) => { const { ctx } = k; const [x, y] = at(0, 0, 168); ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x, y, 2, x, y, 48); g.addColorStop(0, 'rgba(255,240,170,0.8)'); g.addColorStop(1, 'rgba(255,200,100,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 48, 0, 7); ctx.fill(); ctx.restore(); ctx.fillStyle = '#f5c542'; ctx.beginPath(); ctx.moveTo(x - 12, y + 6); ctx.lineTo(x - 12, y - 4); ctx.lineTo(x - 6, y); ctx.lineTo(x, y - 8); ctx.lineTo(x + 6, y); ctx.lineTo(x + 12, y - 4); ctx.lineTo(x + 12, y + 6); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#a87a00'; ctx.lineWidth = 0.8; ctx.stroke(); a.lights.push([x, y, 0xffe680]); a.sparkles.push([x, y - 14]); };
+/** Kristal: ön köşelerde kristal dikilitaşlar (Efsane'de altın) */
+const mxObelisk: MX = (k, a, level) => { const { ctx } = k; const g = level >= 21; for (const [u, v] of [[16, 98], [98, 16]] as const) { const [x, y] = at(u, v); crystal(ctx, x, y - 4, 14, g); crystal(ctx, x - 8, y + 1, 7, g); crystal(ctx, x + 8, y + 1, 6, g); a.lights.push([x, y - 12, g ? 0xffd66b : 0xb49bff]); } };
+/** Kristal: çatının üstünde süzülen kristal halka (Efsane'de yerini altın kubbe iğnesi alır) */
+const mxRing: MX = (k, a, level) => { if (level >= 21) return; const { ctx } = k; const [x, y] = at(0, 0, 150); ctx.save(); ctx.shadowColor = 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 12; ctx.strokeStyle = '#d8c8ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, y, 30, 9, 0, 0, 7); ctx.stroke(); ctx.restore(); for (let i = 0; i < 6; i++) { const t = (i / 6) * Math.PI * 2; crystal(ctx, x + Math.cos(t) * 30, y + Math.sin(t) * 9 + 3, 2.2); } a.lights.push([x, y, 0xb49bff]); };
+/** Kristal: iki kulenin tepesinden göğe ışık sütunları (Sv 24'te sıcak altın ve daha uzun) */
+const mxBeams: MX = (k, a, level) => { const { ctx } = k; const g = level >= 24; const h = g ? 120 : 90; ctx.save(); ctx.globalCompositeOperation = 'lighter'; for (const [u, v, z] of [[-58, -10, 100], [-10, -60, 112]] as const) { const [x, y] = at(u, v, z); const gr = ctx.createLinearGradient(0, y, 0, y - h); gr.addColorStop(0, g ? 'rgba(255,214,107,0.6)' : 'rgba(125,243,255,0.55)'); gr.addColorStop(1, 'rgba(255,214,107,0)'); ctx.fillStyle = gr; ctx.fillRect(x - (g ? 5 : 4), y - h, g ? 10 : 8, h); a.lights.push([x, y - 6, g ? 0xffd66b : 0x7df3ff]); } ctx.restore(); };
+/** Kristal: kapının kemerinin üstünde kristal taç (ortada en büyüğü) */
+const mxCrystalArch: MX = (k, a, level) => {
+  const { ctx } = k; const [x0, y0] = at(54, 76), [x1, y1] = at(76, 54); const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const g = level >= 25; const pts = 9;
+  // kemerin iki ayağında kristal kümeler, üstünde ortaya doğru büyüyen kristal taç
+  for (const [x, y] of [[x0, y0], [x1, y1]] as const) { crystal(ctx, x - 5, y + 2, 7, g); crystal(ctx, x + 5, y + 3, 6, g); }
+  for (let i = 0; i < pts; i++) { const t = i / (pts - 1); const x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * mx + t * t * x1, y = (1 - t) ** 2 * (y0 - 30) + 2 * (1 - t) * t * (my - 50) + t * t * (y1 - 30); const s = 4 + 9 * Math.sin(Math.PI * t) ** 2; crystal(ctx, x, y - 2, s, g); }
+  a.lights.push([mx, my - 60, g ? 0xffd66b : 0xb49bff]); a.sparkles.push([mx, my - 72]);
+};
+/** Kristal: arkada dev kristal sivri kule (Sv 24'te altın) */
+const mxCrystalSpire: MX = (k, a, level) => { const { ctx } = k; const g = level >= 24; const [x, y] = at(-24, -100, 0); crystal(ctx, x, y - 40, 34, g); crystal(ctx, x - 22, y - 10, 16, g); crystal(ctx, x + 20, y - 8, 14, g); a.lights.push([x, y - 50, g ? 0xffd66b : 0xb49bff]); a.sparkles.push([x, y - 66]); };
+/** Efsane: kubbenin tepesinde ince altın iğne (kürecik + kulak tepeliği); Sv 25'te yumuşak fener ışığı */
+const mxGoldSpire: MX = (k, a, level) => {
+  const { ctx } = k; const [x, y0] = at(0, 0, 88); const base = y0 - 22, tip = y0 - 80;
+  if (level >= 25) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const gl = ctx.createRadialGradient(x, tip - 6, 2, x, tip - 6, 30); gl.addColorStop(0, 'rgba(255,238,180,0.6)'); gl.addColorStop(1, 'rgba(255,200,100,0)'); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, tip - 6, 30, 0, 7); ctx.fill(); ctx.restore(); }
+  ctx.beginPath(); ctx.ellipse(x, base, 6, 2.2, 0, 0, 7); ctx.fillStyle = '#d9a400'; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x - 3.6, base); ctx.lineTo(x, tip); ctx.lineTo(x + 3.6, base); ctx.closePath();
+  const g = ctx.createLinearGradient(x - 4, 0, x + 4, 0); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.5, '#f5c542'); g.addColorStop(1, '#a87a00'); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = 'rgba(120,80,0,0.55)'; ctx.lineWidth = 0.5; ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, base - 22, 4, 0, 7); const b = ctx.createRadialGradient(x - 1.4, base - 23.4, 0.5, x, base - 22, 4); b.addColorStop(0, '#fffbe0'); b.addColorStop(1, '#d9a400'); ctx.fillStyle = b; ctx.fill();
+  earGlyph(ctx, x, tip - 6, 11, 0xf5c542, 0xfff3b0, 0.7);
+  a.lights.push([x, tip - 6, 0xffe680]); a.sparkles.push([x, tip - 14]);
+};
+/** Efsane: meydanda altın koklea mozaiği (zemine işlenmiş 2,5 tur sarmal) */
+const mxMosaic: MX = (k, a) => {
+  const { ctx } = k; const [cx, cy] = at(84, 84); const R = 34;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.5);
+  ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, 7); ctx.fillStyle = 'rgba(28,12,48,0.22)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -2, R, 0, 7); const m = ctx.createRadialGradient(-8, -10, 2, 0, 0, R); m.addColorStop(0, '#fffaf0'); m.addColorStop(1, '#e7dcc6'); ctx.fillStyle = m; ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = '#f5c542'; ctx.stroke(); ctx.lineWidth = 1; ctx.strokeStyle = '#a87a00'; ctx.beginPath(); ctx.arc(0, -2, R - 4, 0, 7); ctx.stroke();
+  ctx.beginPath(); for (let i = 0; i <= 120; i++) { const t = (i / 120) * Math.PI * 5; const r = 3 + (R - 9) * (i / 120); const px = Math.cos(t) * r, py = -2 + Math.sin(t) * r; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+  ctx.strokeStyle = '#d9a400'; ctx.lineWidth = 3.4; ctx.lineCap = 'round'; ctx.stroke(); ctx.strokeStyle = '#fff3b0'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.restore(); a.sparkles.push([cx, cy - 6]);
+};
+/** Efsane: tek, büyük altın tüy hücresi heykeli (kaide üstünde, basamaklı tüyleriyle) */
+const mxStatue: MX = (k, a) => {
+  const { ctx } = k; box(ctx, 30, 78, 0, 18, 18, 8, { color: 0xf3ead8, pattern: 'plain' }); box(ctx, 29, 77, 8, 20, 20, 2, { color: 0xf5c542, pattern: 'plain' });
+  const [x0, y0] = at(39, 87, 10); ctx.save(); ctx.translate(x0, y0); ctx.scale(2.6, 2.6);
+  ctx.beginPath(); ctx.moveTo(-4, 0); ctx.bezierCurveTo(-6, -10, -5, -18, 0, -20); ctx.bezierCurveTo(5, -18, 6, -10, 4, 0); ctx.closePath();
+  const g = ctx.createLinearGradient(-5, 0, 5, 0); g.addColorStop(0, '#fff3b0'); g.addColorStop(0.55, '#f5c542'); g.addColorStop(1, '#a87a00'); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = 'rgba(120,80,0,0.6)'; ctx.lineWidth = 0.4; ctx.stroke();
+  for (let j = 0; j < 4; j++) { ctx.strokeStyle = '#ffe9a0'; ctx.lineWidth = 0.9; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-3 + j * 2, -19); ctx.lineTo(-2.6 + j * 2, -22 - j * 1.6); ctx.stroke(); }
+  ctx.restore(); a.lights.push([x0, y0 - 40, 0xffd66b]);
+};
+/** Efsane Sv 24: yaldız — ışık sütunları ve kristal kule altına döner (mxBeams, mxCrystalSpire) */
+const mxGild: MX = () => undefined;
+/** Efsane Sv 25: kanatların önünde iki uzun altın direkli sancak (fener ışığı mxGoldSpire'da) */
+const mxStandards: MX = (k, a) => {
+  const { ctx } = k;
+  for (const [u, v] of [[-40, 90], [90, -40]] as const) { const [x, y] = at(u, v); ellipseShadow(ctx, x, y + 1, 8, 3.2, 0.25); ctx.fillStyle = '#d9a400'; ctx.fillRect(x - 1.6, y - 92, 3.2, 92); goldTip(ctx, x, y - 92); banner(ctx, x, y - 88, 20, 42, 0x5b3fc4, 0xf5c542); a.lights.push([x, y - 98, 0xffd66b]); }
+};
 /** Sv → parça ve katman (arka: binanın arkasında kalan, önce boyanır) */
 const MERKEZ_EXTRAS: Record<number, { f: MX; back: boolean }> = {
   2: { f: mxBoard, back: false }, 3: { f: mxSpire, back: true }, 5: { f: mxFountain, back: false }, 6: { f: mxWingL, back: false },
   8: { f: mxClock, back: true }, 9: { f: mxGate, back: false }, 11: { f: mxWingR, back: false }, 12: { f: mxDish, back: true },
   14: { f: mxObservatory, back: false }, 15: { f: mxStaff, back: false }, 16: { f: mxObelisk, back: false }, 17: { f: mxRing, back: false },
-  18: { f: mxBeams, back: true }, 19: { f: mxOrb, back: true }, 20: { f: mxCrystalSpire, back: true }, 21: { f: mxColossus, back: true },
-  22: { f: mxRainbow, back: false }, 23: { f: mxGoldWings, back: false }, 24: { f: mxNotes, back: false }, 25: { f: mxBeacon, back: false },
+  18: { f: mxBeams, back: true }, 19: { f: mxCrystalArch, back: false }, 20: { f: mxCrystalSpire, back: true }, 21: { f: mxGoldSpire, back: false },
+  22: { f: mxMosaic, back: true }, 23: { f: mxStatue, back: false }, 24: { f: mxGild, back: false }, 25: { f: mxStandards, back: false },
 };
 /** Merkez'in seviye parçaları (birikir). Kademe değişen seviyeler (4, 7, 10, 13) mimariyi değiştirir. */
 export function merkezExtras(k: Kit, level: number, a: Anchors, back: boolean) {

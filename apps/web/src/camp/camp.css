@@ -10,12 +10,14 @@
 .camp-top > * { pointer-events:auto; }
 .camp-top .topbar2 { padding-top:calc(var(--sat) + 12px); min-height:54px; }
 .camp-top .topbar2 h1 { color:#fff6e5; text-shadow:0 2px 0 rgba(20,12,53,.6); }
-.camp-hud { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px 0; }
+.camp-hud { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:2px 0; max-width:100%; }
+.camp-hud > * { max-width:100%; }
 .camp-hud::-webkit-scrollbar { display:none; }
 .hud-chip { appearance:none; font:inherit; flex:none; display:inline-flex; align-items:center; gap:3px; padding:5px 9px; border-radius:999px; font-size:12px; font-weight:800; color:#fff6e5; background:rgba(20,12,53,.72); border:1px solid rgba(255,201,60,.35); box-shadow:0 2px 6px rgba(10,6,30,.35); white-space:nowrap; font-variant-numeric:tabular-nums; }
 .hud-chip b { color:var(--gold,#ffc93c); font-weight:900; }
-.hud-chip.speed { gap:6px; }
-.hud-chip .hs { display:inline-flex; gap:1px; }
+.hud-chip.speed { gap:7px; }
+.hud-chip .hs { display:inline-flex; align-items:baseline; gap:2px; }
+.hud-chip .hs small { font-size:10px; font-weight:800; color:#cfc3ff; }
 .hud-chip.builder { cursor:pointer; border-color:rgba(46,230,214,.45); }
 .hud-chip.builder.on { border-color:var(--teal,#2ee6d6); box-shadow:0 0 0 2px rgba(46,230,214,.25), 0 2px 8px rgba(10,6,30,.4); }
 .hud-chip.builder.on b { color:var(--teal,#2ee6d6); }
@@ -168,7 +170,7 @@ button.bag-row { box-shadow:inset 0 0 0 1.5px rgba(46,170,180,.45); background:r
 
 /* ---- kamp büyümesi: Kamp Seviyesi göstergesi, seviye paneli, süsleme kipi, ziyaret (docs/14-kamp.md §8–12) */
 .bp-tier.t5 { background:linear-gradient(90deg,#8b6bff,#c8b6ff); } .bp-tier.t6 { background:linear-gradient(90deg,#ff5c8a,#ffc93c,#2ee6d6); color:#2d1d6e; }
-.kamp-sv { appearance:none; font:inherit; flex:none; display:inline-flex; align-items:center; gap:7px; padding:3px 10px 3px 3px; border-radius:999px; color:#fff6e5; background:rgba(20,12,53,.78); border:1px solid rgba(200,182,255,.5); box-shadow:0 2px 8px rgba(10,6,30,.4); cursor:pointer; min-width:0; max-width:220px; }
+.kamp-sv { appearance:none; font:inherit; flex:0 1 auto; display:inline-flex; align-items:center; gap:7px; padding:3px 10px 3px 3px; border-radius:999px; color:#fff6e5; background:rgba(20,12,53,.78); border:1px solid rgba(200,182,255,.5); box-shadow:0 2px 8px rgba(10,6,30,.4); cursor:pointer; min-width:0; max-width:220px; }
 .ks-badge { flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:12px; background:linear-gradient(160deg,#c8b6ff,#6c4cf1 60%,#3b2a8e); box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 2px 6px rgba(10,6,30,.5); line-height:1; }
 .ks-badge small { font-size:8px; font-weight:900; letter-spacing:.5px; color:#efe8ff; margin-top:3px; }
 .ks-badge b { font-size:17px; font-weight:900; color:#fff; margin-bottom:3px; }

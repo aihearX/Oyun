@@ -182,12 +182,12 @@ export function CampBase(p: CampBaseProps) {
           {!visit && <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
             <Art e="🔨" size="1.15em" className="art-inline" /> {active ? <>{shortOf(active.id)} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
           </button>}
-          {!visit && <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}><Art e="⏩" size="1.15em" className="art-inline" />{ITEMS.map((it) => <span key={it.k} className="hs">{it.label.replace(' ', '')}<b>×{p.wallet.hizlandirici[it.k]}</b></span>)}</span>}
+          {!visit && ITEMS.some((it) => p.wallet.hizlandirici[it.k] > 0) && <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}><Art e="⏩" size="1.15em" className="art-inline" />{ITEMS.filter((it) => p.wallet.hizlandirici[it.k] > 0).map((it) => <span key={it.k} className="hs"><small>{it.label.replace(' ', '')}</small><b>{p.wallet.hizlandirici[it.k]}</b></span>)}</span>}
           {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}><Art e="🪙" size="1.15em" className="art-inline" /><b>{fmtNum(p.wallet.jeton)}</b></span>}
           {visit && <span className="hud-chip" aria-label={`${visit.cheers} alkış`}><Art name="heart" size={16} /> <b>{visit.cheers}</b> alkış</span>}
+          {!p.demo && !visit && <GorevChips />}
         </div>
         {p.demo && <div className="camp-demo-tag">ÖNİZLEME · sunucuya bir şey gitmez</div>}
-        {!p.demo && !visit && <div className="camp-hud kg-row"><GorevChips /></div>}
       </div>
 
       <div className="camp-bottom">

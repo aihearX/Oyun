@@ -159,6 +159,10 @@ bitmeden kutlama yapılmaz. Anıta dokununca sessiz bilgi kartı (ad + bölge + 
 - Uçtan uca: `node tools/harness/camp-e2e.mjs` (önizleme; Chromium + WebKit gerçek akış; anıt; dom hedefi; `--only kutlama`:
   kristal / süre / takım yardımıyla biten inşaatta afiş ve Tüy Dede kartı tam bir kez, Chromium + WebKit + dom) ve
   `node tools/harness/ui-mobile-check.mjs --only kamp` (Tedavi Odası paneli 390×844 ve 320×640).
+- Üst bant: kamp başlığının altındaki gösterge çipleri (Kamp Seviyesi, İnşaatçı, hızlandırıcılar, Görevler/Klinik, ziyaretteki
+  alkış sayısı) sığmazsa alt satıra geçer; hiçbiri kırpılmaz, yatay kaydırma yok. Hızlandırıcı çipi yalnız eldeki türleri gösterir
+  (hiç yoksa çip görünmez). `tools/harness/hud-fit.mjs` bunu ölçer:
+  ui-mobile-check her ekranda (boşta, inşaat sürerken, görev çipleriyle; `--only kamp,gorev`), camp-e2e ziyaret kipinde 390 ve 320 px'te.
 - Kamp büyümesi: `apps/server/test/kamp-buyume.test.ts` (XP ve ref ile bir kez, seviye ödülleri bir kez, Akustik Kabin bonusu,
   geriye dönük tohum ve anıt XP'si, eski istemci, süs yerleştir/taşı/kaldır/çakışma/sınır, `grantDecoration`, Kütüphane, depo süresi,
   güç tavanı, ziyaret izinleri ve günde bir alkış, göç iki kez), `packages/content/src/kamp-buyume.test.ts` (seviye ödülleri tutarlı,
@@ -273,8 +277,10 @@ binaların isteklerini gönderir (`LEGACY_BUILDINGS`); yeni alanlar isteğe bağ
 ## 11. Her adım büyük: seviye seviye görünüm
 
 - Kademeler: 1–3 Ahşap, 4–6 Taş, 7–9 Tuğla, 10–12 Metal, 13–15 Altın, **16–20 Kristal**, **21–25 Efsane** (kademe değişince büyük
-  "Seviye" anı). Kristal: köşelerde her seviye bir kristal sütun daha, zeminde ışık halkası, Sv 20 süzülen kristal; Efsane: gökkuşağı
-  flamalar (21), altın kulak (22), altın kanatlar (23), nota çemberi (24), taç ve ışık (25).
+  "Seviye" anı). Kristal: köşelerde her seviye bir kristal sütun daha, zeminde ışık halkası, Sv 20 süzülen kristal. Efsane sade ve
+  büyük parçalarla ilerler (az ama iri, birbirini örtmeyen; oyuncak gibi duran gökkuşağı, gezegen, nota yağmuru yok): kristaller
+  altına döner (21), süzülen kristalin yerini altın kulak amblemi alır (22), önde iki altın fener (23), amblemde defne çelengi (24),
+  amblemde yumuşak ışık (25).
 - Sv 2–15 her seviye binanın önüne görünür bir ekleme koyar (saksı, fener, bank, çiçek tarhı, bayrak, çalı, tabela, lamba, heykel,
   flama, fener çifti, çeşme, çiçek kemeri, altın bayrak; `buildings2.ts › garnish`).
 - **Odyoloji Merkezi her seviyede kendi büyük parçasını alır** (birikir, o anki kademenin malzemesiyle çizilir):
@@ -284,15 +290,15 @@ binaların isteklerini gönderir (`LEGACY_BUILDINGS`); yeni alanlar isteğe bağ
 | 1 | kulak kepçesi çadırı | 14 | gözlem kubbesi |
 | 2 | odyogram panosu (kırmızı O, mavi X) | 15 | tüy hücresi ekibi heykelleri |
 | 3 | diyapazon kulesi | 16 | kristal dikilitaşlar |
-| 4 | taş merkez (kademe) | 17 | süzülen kristal halka |
+| 4 | taş merkez (kademe) | 17 | süzülen kristal halka (Efsane'de kalkar) |
 | 5 | kulak çeşmesi | 18 | iki kuleden göğe ışık sütunları |
-| 6 | sol kanat | 19 | kristal küre |
+| 6 | sol kanat | 19 | kapı kemerinde kristal taç |
 | 7 | tuğla kale (kademe) | 20 | dev kristal kule |
-| 8 | odyogram kadranlı saat kulesi | 21 | altın kulak kolossu |
-| 9 | flamalı giriş kapısı | 22 | gökkuşağı kemeri |
-| 10 | metal merkez (kademe) | 23 | altın kanatlar |
-| 11 | sağ kanat | 24 | altın nota çemberi |
-| 12 | ABR çanak anten direği | 25 | işitme feneri: ışık ve taç |
+| 8 | odyogram kadranlı saat kulesi | 21 | kubbede altın iğne; dikilitaşlar altına döner |
+| 9 | flamalı giriş kapısı | 22 | meydanda altın koklea mozaiği |
+| 10 | metal merkez (kademe) | 23 | tek büyük altın tüy hücresi heykeli (üç küçük heykelin yerine) |
+| 11 | sağ kanat | 24 | yaldız: ışık sütunları ve kristal kule altına döner |
+| 12 | ABR çanak anten direği | 25 | iki altın direkli sancak, iğnenin ucunda fener ışığı |
 | 13 | altın saray (kademe) | | |
 
 - Denetim: `node tools/harness/kamp-sheet.mjs` her binayı Sv 1..en yüksek yan yana tek PNG'ye çizer
