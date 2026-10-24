@@ -125,7 +125,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `anit-kanal` | Kanal anıtı yükseldi! Kulak kanalı bazı sesleri, şişe ağzına üflemek gibi güçlendirir. | Kamp: bölge anıtı yükseldi (Kanal) | coşkulu (celebratory) |
 | `anit-zar` | Kulak Zarı anıtı geldi! Zar, gelen sesle titreşir ve titreşimi kemikçiklere verir. | Kamp: bölge anıtı yükseldi (Zar) | coşkulu (celebratory) |
 | `anit-kemikcikler` | Kemikçikler anıtı kuruldu: çekiç, örs ve üzengi! Vücudumuzun en küçük kemikleri. | Kamp: bölge anıtı yükseldi (Kemikçikler) | hayranlık (wonder) |
-| `anit-koklea-1` | Koklea anıtı parlıyor! Salyangoz biçimli koklea, titreşimi sinir sinyaline hazırlar. | Kamp: bölge anıtı yükseldi (Koklea 1) | hayranlık (wonder) |
+| `anit-koklea-1` | Koklea anıtı parlıyor! Sarmal koklea, titreşimi sinir sinyaline hazırlar. | Kamp: bölge anıtı yükseldi (Koklea 1) | hayranlık (wonder) |
 | `anit-koklea-2` | Tüy hücresi anıtı geldi! Benim akrabalarım: sesle eğilir ve elektrik sinyalini başlatırlar. | Kamp: bölge anıtı yükseldi (Koklea 2) | gururlu, duygulu (proud, touched) |
 | `anit-koklea-3` | Tonotopi anıtı kuruldu! Kokleanın tabanı ince seslere, tepesi kalın seslere yanıt verir. | Kamp: bölge anıtı yükseldi (Koklea 3) | öğretici, coşkulu (explaining, celebratory) |
 | `anit-sinir` | İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar. | Kamp: bölge anıtı yükseldi (Sinir) | heyecanlı (excited) |
