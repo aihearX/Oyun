@@ -27,6 +27,8 @@ describe('hesabı silme (account.delete)', () => {
     c.drain();
 
     expect(await a.call('account.delete', {})).toEqual({ deleted: true });
+    // aynı bağlantıyla silinen hesap adına işlem yapılamaz
+    await expect(a.call('wallet.get', {})).rejects.toMatchObject({ code: 'OTURUM' });
 
     // takım: Bora kaldı ve lider oldu
     const team = (await b.call('team.detail', {})).team!;

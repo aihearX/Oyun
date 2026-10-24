@@ -38,5 +38,15 @@ export function deleteAccount(app: App, pid: string): void {
 }
 
 export const accountHandlers: Handlers = {
-  'account.delete': (app, s) => { deleteAccount(app, s.pid); return { deleted: true as const }; },
+  'account.delete': (app, s) => {
+    deleteAccount(app, s.pid);
+    // bu bağlantı artık hiçbir hesaba bağlı değil: silinen hesapla işlem yapılamaz (yanıt yine gider)
+    const pid = s.pid; const conn = s.conn;
+    app.after(() => {
+      if (app.online.get(pid) === conn) app.online.delete(pid);
+      for (const r of [...conn.rooms]) app.unsubscribe(pid, r);
+      conn.pid = null;
+    });
+    return { deleted: true as const };
+  },
 };
