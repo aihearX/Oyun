@@ -385,7 +385,7 @@ export class CampScene extends Phaser.Scene {
     // Kristal (Sv 16+) ve Efsane (Sv 21+): binanın altında nabız gibi atan ışık halkası
     if (tier >= 5) {
       const ring = this.add.image(l.x, l.y + 2, ATLAS, 'c-ring').setTint(tier >= 6 ? 0xffd66b : 0xb49bff).setBlendMode(Phaser.BlendModes.ADD).setScale(0.9 * l.tiles / 2 * k).setAlpha(0.5).setDepth(l.y - 1);
-      v.fx.push(ring); if (!calm) v.tweens.push(this.tweens.add({ targets: ring, alpha: { from: 0.25, to: 0.7 }, scale: { from: 0.85 * l.tiles / 2 * k, to: 1.05 * l.tiles / 2 * k }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
+      v.fx.push(ring); if (!calm) v.tweens.push(this.tweens.add({ targets: ring, alpha: { from: 0.2, to: tier >= 6 ? 0.5 : 0.7 }, scale: { from: 0.85 * l.tiles / 2 * k, to: 1.05 * l.tiles / 2 * k }, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.InOut' }));
     }
     if (!calm) for (const s of a.sparkles) {
       const [x, y] = at(s);

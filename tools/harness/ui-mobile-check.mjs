@@ -19,6 +19,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
+import { measureHudFit } from './hud-fit.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -251,6 +252,8 @@ async function suite(browserName, target, [W, H]) {
     // ekran başlığı kesilmemeli (üst çubuk hapları başlığı “T…” yapmasın)
     const cut = await page.evaluate(() => [...document.querySelectorAll('.tb-title h1, .screen-head h1')].filter((h) => h.getBoundingClientRect().width > 0 && h.scrollWidth > h.clientWidth + 1).map((h) => h.textContent));
     if (cut.length) fail(rec, `başlık kesildi: ${cut.join(', ')}`);
+    // kamp üst bandı: her gösterge çipi ekranın içinde, kırpılmadan (Kamp Seviyesi, İnşaatçı, hızlandırıcılar, Görevler/Klinik, ziyaret)
+    const hf = await page.evaluate(measureHudFit); if (hf.present) { rec.hud = hf; if (hf.offenders.length) fail(rec, `kamp üst bandı taşıyor: ${hf.offenders.slice(0, 3).join(' | ')}`); }
     if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {
@@ -466,6 +469,18 @@ async function suite(browserName, target, [W, H]) {
       const ub = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub.count()) { await ub.click(); await sleep(1200); }
       await page.evaluate(() => window.__kg?.refresh()); await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); await sleep(800); await toastGone();
       await check('gorev-kamp-dugmeleri', { scroll: false });
+      // görev çipleri + süren inşaat aynı bantta (en kalabalık üst bant)
+      { const sq2 = new DatabaseSync(dbFile); sq2.exec('PRAGMA busy_timeout = 3000'); const t0 = Date.now();
+        sq2.prepare('UPDATE buildings SET upgrading_to = 5, started_at = ?, ends_at = ? WHERE player_id = ? AND id = ?').run(t0, t0 + 3 * 3600_000 + 25 * 60_000, pid, 'merkez'); sq2.close();
+        await tab('Harita'); await tab('Kamp'); await sleep(1200); await toastGone();
+        const u = page.getByRole('button', { name: 'Üs görünümü' }); if (await u.count()) { await u.click(); await sleep(1200); }
+        await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); await page.locator('.hud-chip.builder.on').waitFor({ timeout: 10_000 }); await sleep(600);
+        await check('gorev-kamp-insaat', { scroll: false });
+        const sq3 = new DatabaseSync(dbFile); sq3.exec('PRAGMA busy_timeout = 3000');
+        sq3.prepare('UPDATE buildings SET upgrading_to = NULL, started_at = NULL, ends_at = NULL WHERE player_id = ? AND id = ?').run(pid, 'merkez'); sq3.close();
+        await tab('Harita'); await tab('Kamp'); await sleep(1200); await toastGone();
+        const u2 = page.getByRole('button', { name: 'Üs görünümü' }); if (await u2.count()) { await u2.click(); await sleep(1200); }
+        await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); }
       await page.getByTestId('kg-btn').click(); await page.getByTestId('kg-panel').waitFor();
       for (const t of ['hikaye', 'gunluk', 'etkinlik', 'basari']) { await page.locator(`.kg-tabs [data-tab="${t}"]`).click(); await sleep(500); await check(`gorev-${t}`, { scroll: false }); }
       await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
@@ -571,6 +586,18 @@ async function suite(browserName, target, [W, H]) {
       const ub2 = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub2.count()) await ub2.click();
       await page.locator('.camp-base').waitFor({ timeout: 20_000 }); await sleep(1800); await toastGone();
       await check('kamp-sv22', { scroll: false });
+      // inşaat sürerken üst bant (İnşaatçı çipi uzun: "Merkez 2sa 10dk")
+      await page.goto(url('demo=kamp&seviye=20&kampsv=22&insaat=merkez'), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);
+      { const u = page.getByRole('button', { name: 'Üs görünümü' }); if (await u.count()) await u.click(); }
+      await page.locator('.hud-chip.builder.on').waitFor({ timeout: 20_000 }); await sleep(1200); await toastGone();
+      await check('kamp-sv22-insaat', { scroll: false });
+      await page.goto(url('demo=kamp&seviye=20&kampsv=22'), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
+      await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);
+      { const u = page.getByRole('button', { name: 'Üs görünümü' }); if (await u.count()) await u.click(); }
+      await page.locator('.camp-base').waitFor({ timeout: 20_000 }); await sleep(1500); await toastGone();
       await page.getByTestId('kamp-seviye').click(); await page.locator('.ks-panel').waitFor(); await sleep(600); await check('kamp-sv22-seviye-paneli', { scroll: false });
       await page.locator('.ks-panel .bp-x').click(); await sleep(300);
       await page.getByTestId('susle').click(); await page.getByTestId('sus-panel').waitFor(); await sleep(400); await page.locator('.dede-card .en-x').click({ timeout: 800 }).catch(() => undefined);

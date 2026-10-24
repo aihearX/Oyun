@@ -8,7 +8,7 @@ import {
   windowOn, type Ctx, type FaceRef, type Mat, type Pattern, type RoofPat,
 } from './paint';
 import { tierOf } from './layout';
-import { denge, garnish, kabin, kutuphane, merkezExtras, park, prestigeGround, prestigeTop, tarama } from './buildings2';
+import { denge, garnish, kabin, kutuphane, merkezExtras, park, prestigeCorners, prestigeGround, prestigeTop, tarama } from './buildings2';
 
 /** efekt bağlantı noktaları (arsa merkezine göre, ekran birimi) */
 export interface Anchors {
@@ -563,10 +563,13 @@ function horn(ctx: Ctx, x: number, y: number, s: number, color: number) {
   ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = css(shade(color, -0.5)); ctx.lineWidth = 0.7; ctx.stroke();
   ctx.beginPath(); ctx.ellipse(x + s * 0.5, y, s * 0.18, s * 0.55, 0, 0, Math.PI * 2); ctx.fillStyle = css(shade(color, -0.45)); ctx.fill();
 }
-function crystal(ctx: Ctx, x: number, y: number, s: number) {
-  ctx.save(); ctx.shadowColor = 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 10;
+/** kristal; gold = Efsane kademesinin altın kristali */
+function crystal(ctx: Ctx, x: number, y: number, s: number, gold = false) {
+  ctx.save(); ctx.shadowColor = gold ? 'rgba(255,214,107,0.85)' : 'rgba(180,140,255,0.95)'; ctx.shadowBlur = 10;
   ctx.beginPath(); ctx.moveTo(x, y - s * 1.6); ctx.lineTo(x + s * 0.6, y - s * 0.4); ctx.lineTo(x, y + s * 0.3); ctx.lineTo(x - s * 0.6, y - s * 0.4); ctx.closePath();
-  const g = ctx.createLinearGradient(x - s, y - s, x + s, y); g.addColorStop(0, '#f2e8ff'); g.addColorStop(0.5, '#b49bff'); g.addColorStop(1, '#6c4cf1'); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+  const g = ctx.createLinearGradient(x - s, y - s, x + s, y);
+  if (gold) { g.addColorStop(0, '#fff8dc'); g.addColorStop(0.5, '#f5c542'); g.addColorStop(1, '#b07d0c'); } else { g.addColorStop(0, '#f2e8ff'); g.addColorStop(0.5, '#b49bff'); g.addColorStop(1, '#6c4cf1'); }
+  ctx.fillStyle = g; ctx.fill(); ctx.restore();
   ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(x, y - s * 1.6); ctx.lineTo(x, y + s * 0.3); ctx.stroke();
 }
 function campfire(ctx: Ctx, x: number, y: number) {
@@ -679,7 +682,9 @@ export function paintBuilding(ctx: Ctx, id: BuildingId, level: number, half = 32
   if (id === 'merkez') merkezExtras(k, level, a, true); else garnish(ctx, level, half, a, false);
   PAINTERS[id](k, sub, a);
   if (id === 'merkez') merkezExtras(k, level, a, false); else garnish(ctx, level, half, a, true);
-  prestigeTop(ctx, level, half, a, id === 'merkez' ? 150 : id === 'kule' ? 172 : id === 'park' ? 50 : 80);
+  // Merkez'in Kristal/Efsane tepesi kendi seviye parçalarıdır (MERKEZ_EXTRAS); burada yalnız köşe kristalleri
+  if (id === 'merkez') prestigeCorners(ctx, level, half, a);
+  else prestigeTop(ctx, level, half, a, id === 'kule' ? 172 : id === 'park' ? 50 : 80);
   ctx.restore();
   return a;
 }

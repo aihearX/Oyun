@@ -24,6 +24,7 @@ import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
 import { build } from 'esbuild';
 import { chromium, webkit } from 'playwright';
+import { measureHudFit } from './hud-fit.mjs';
 
 const argv = process.argv.slice(2); const args = new Set(argv);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
@@ -716,6 +717,14 @@ try {
       check(await H.locator('[data-testid="susle"]').count() === 0 && await H.locator('.camp-helpall').count() === 0, 'ziyarette süsleme ve inşaat düğmesi yok');
       await H.locator('[data-testid="kamp-dede"][data-line="kamp-ziyaret-01"]').waitFor({ timeout: 10_000 }).catch(() => undefined);
       await shot(H, 'H-ziyaret', 900);
+      // ziyaret kipinde üst bant 390 ve 320 px'te ekrana sığar
+      for (const [w, h] of [[390, 844], [320, 640]]) {
+        await H.setViewportSize({ width: w, height: h }); await sleep(400);
+        const hf = await H.evaluate(measureHudFit);
+        check(hf.present && hf.offenders.length === 0, `ziyaret üst bandı ${w} px'te sığıyor${hf.offenders.length ? ': ' + hf.offenders.join(' | ') : ''}`);
+      }
+      await shot(H, 'H-ziyaret-320', 300);
+      await H.setViewportSize({ width: 390, height: 844 }); await sleep(300);
       await G.evaluate(() => { window.__olay.toast = []; });
       await H.getByTestId('alkis').getByRole('button', { name: 'Alkış!' }).click();
       await H.locator('.cheer-done').waitFor({ timeout: 8000 });
