@@ -1,4 +1,4 @@
-# ODİ: Sesin Yolu — mobil kabuk (Expo SDK 57)
+# ODİ: Sesin Yolu — mobil kabuk (Expo SDK 58)
 
 Phaser 3 bölümleri bir **Expo DOM bileşeni** (`'use dom'`, WebView) içinde çalışır; harita, sonuç, yetenekler ve ayarlar
 React Native ekranlarıdır (expo-router). Bölüm üretimi (`@odi/level-gen`) native tarafta yapılır, `LevelSpec` JSON olarak
@@ -17,7 +17,7 @@ apps/mobile/
   __tests__/            jest-expo duman testi (harita)
 ```
 
-## Windows'ta çalıştırma (iPhone + Expo Go SDK 57)
+## Windows'ta çalıştırma (iPhone + Expo Go SDK 58)
 ```bat
 cd C:\Users\sebah\Desktop\Oyun
 git pull
@@ -25,7 +25,8 @@ npm install --legacy-peer-deps
 cd apps\mobile
 npx expo start
 ```
-- Telefonda **Expo Go (SDK 57)** ile QR kodu okut. Telefon ve bilgisayar **aynı Wi-Fi**'da olmalı.
+- Telefonda **Expo Go (SDK 58)** ile QR kodu okut. Expo Go yalnız kendi SDK'sındaki projeyi açar: telefondaki Expo Go
+  SDK 58 ise proje de SDK 58 olmalı (SDK yükseltmesinden sonra `node_modules` silinip yeniden kurulmalı, Metro `-c` ile başlatılmalı). Telefon ve bilgisayar **aynı Wi-Fi**'da olmalı.
 - QR açılmıyorsa / "yükleniyor" takılıyorsa: `npx expo start --tunnel` (ngrok; ilk seferde paket kurar, biraz yavaştır).
 - Önbellek sorunu: `npx expo start -c`.
 - İlk bölüm açılışında WebView Phaser paketini (≈1,5 MB) bilgisayardan çeker: 10-20 sn normaldir. 30 sn'de hazır olmazsa
@@ -50,13 +51,14 @@ npx expo start
 4. Mağaza gönderimi: `eas submit --platform ios` (`eas.json > submit.production.ios` alanlarını doldur).
 5. Android: `eas build --platform android --profile preview` → APK/AAB.
 - Android `preview` profili doğrudan kurulabilen **APK** üretir (`buildType: apk`); `production` mağaza için **AAB** üretir.
+- Expo SDK 58 için Node 22.13+ gerekir; `eas.json` bütün profillerde bulut derlemesinin Node sürümünü `22.22.0`'a sabitler (`base` profili).
 - Monorepo notu: EAS kökü workspace olarak algılar; kökteki `.npmrc` (`legacy-peer-deps=true`) bulut derlemesinde `npm install`'ın React sürüm uyarısında durmamasını sağlar.
 - IAP / push gibi native modüller Expo Go'da yok; onlar geldiğinde `eas build --profile development` (dev client) kullanılacak.
 
 ## Bilinen sınırlar
-- `react` sürümü: kök `apps/web` React 19.3 kullanır; Expo SDK 57 React 19.2.3 ister. npm bunu `apps/mobile/node_modules/react`
-  altında ayrı tutar; `metro.config.js` (`nodeModulesPaths` + `disableHierarchicalLookup`) ve jest `moduleNameMapper` tek kopya
-  kullanılmasını sağlar. Kökte `npm install` çalıştırırken `--legacy-peer-deps` zorunlu.
+- `react` sürümü: Expo SDK 58 (React Native 0.88) tam olarak React 19.3.0 ister; `apps/web` de aynı tam sürüme (19.3.0) sabitlenmiştir,
+  böylece ağaçta tek `react` / `react-dom` kopyası kök `node_modules` altında durur (DOM paketi, native paket ve jest aynı kopyayı
+  kullanır). Sürümleri yükseltirken iki uygulamayı birlikte değiştir. Kökte `npm install` çalıştırırken `--legacy-peer-deps` zorunlu.
 - DOM bileşeni ↔ native köprüsü eşzamansızdır; `progress` olayı 500 ms'de bir gelir (bant genişliği için yeterli).
 - Phaser WebView'da WebGL ile çalışır; eski/az bellekli cihazlarda ilk açılış yavaş olabilir. Ses, ilk dokunuşla açılır (iOS kuralı).
 - Expo Go'da paylaşım (`Share`), haptik ve AsyncStorage çalışır; IAP, push ve derin link doğrulaması Faz 2 (dev client).

@@ -8,7 +8,6 @@
     "scheme": "odi",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#140c35",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.aiheartech.odi",

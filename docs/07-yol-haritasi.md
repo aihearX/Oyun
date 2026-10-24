@@ -22,7 +22,7 @@ Kodda hazır ve otomatik oyuncuyla doğrulanmış olanlar:
 - **Parça kütüphanesi**: koşu 38, yüzme 25, trambolin 17, makine 17, impuls 18, rüya 18 parça; deterministik üretici, ritim eğrisi, dinamik zorluk.
 - **Juice**: parçacıklar, iniş tozu, jeton serisi, kıl payı bonusu, ilerleme çubuğu, titreşim, tonotopi renkleri ve sesleri.
 - **Web kabuğu**: açılış, harita, sonuç ve paylaşım, yetenek ağacı, ayarlar, gün sayacı, PWA.
-- **Mobil kabuk (Expo SDK 57)**: aynı motor DOM bileşeninde; Expo Go ile iPhone'da çalışır.
+- **Mobil kabuk (Expo SDK 58)**: aynı motor DOM bileşeninde; Expo Go ile iPhone'da çalışır.
 - **Bot harness**: 40 bölümün hepsi Chromium'da botla tamamlanıyor; her mekanikten bir bölüm ve iki boss WebKit'te de geçiyor.
 
 Faz 1'de kalanlar: web davet linki (hayalet yarışı Faz 2 ile birlikte), 20 kişilik kapalı test ve ölçüm.

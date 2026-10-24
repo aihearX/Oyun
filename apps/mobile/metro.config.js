@@ -10,12 +10,12 @@ const config = getDefaultConfig(projectRoot);
 // Kök ve paket klasörlerini izle (değişiklikler sıcak yüklenir).
 config.watchFolders = [workspaceRoot];
 
-// Tek bir react / react-native kopyası: önce uygulamanın, sonra kökün node_modules'ı.
+// Önce uygulamanın, sonra kökün node_modules'ı. react / react-dom / react-native tek kopya olarak kökte
+// (apps/web de aynı tam sürümü kullanır); hiyerarşik arama Expo varsayılanında (açık) kalır.
 config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, 'node_modules'),
   path.resolve(workspaceRoot, 'node_modules'),
 ];
-config.resolver.disableHierarchicalLookup = true;
 
 // @odi/* → packages/*/src (workspace sembolik bağlantısına gerek kalmadan, deterministik).
 const pkgs = ['game-core', 'content', 'level-gen', 'shared', 'net', 'meta', 'audio'];
