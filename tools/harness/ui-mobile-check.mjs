@@ -195,6 +195,8 @@ function measureChat() {
   return { present: true, top: Math.round(r.top), bottom: Math.round(r.bottom), tabTop: tb ? Math.round(tb.top) : null, ok: r.bottom <= limit + 0.5 && r.top >= 0 && r.right <= document.documentElement.clientWidth + 1 };
 }
 
+/** sayfadaki oyuncunun takma adı (sunucu veritabanında bu oyuncuyu bulmak için; yardımcı istemciler Bora/Komşu/Aday) */
+const PAGE_NAME = 'Kulakçı Ayşegül1';
 /** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
 function rawClient(url) {
   const ws = new WebSocket(url); let id = 0; const pend = new Map();
@@ -286,7 +288,7 @@ async function suite(browserName, target, [W, H]) {
     await check('giris', { scroll: false });
     await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
     await page.locator('.onboard').waitFor({ timeout: 15_000 });
-    await page.getByRole('textbox', { name: 'Takma ad' }).fill('Kulakçı Ayşegül1');
+    await page.getByRole('textbox', { name: 'Takma ad' }).fill(PAGE_NAME);
     await page.getByRole('button', { name: 'Başla' }).click();
     await page.locator('.onboard').waitFor({ state: 'detached' });
     await toastGone();
@@ -461,7 +463,7 @@ async function suite(browserName, target, [W, H]) {
       // sonuç), Vaka Defteri, odyoloji düzeyi, Ton Avı, Timpanogram Eşleştir, takım akışında Konsültasyon kartı
       const { DatabaseSync } = await import('node:sqlite');
       const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000');
-      const pid = sq.prepare('SELECT id FROM players ORDER BY created_at DESC LIMIT 1').get().id;
+      const pid = sq.prepare('SELECT id FROM players WHERE name = ? ORDER BY created_at DESC LIMIT 1').get(PAGE_NAME).id; // sayfadaki oyuncu (Bora/Komşu/Aday değil)
       sq.prepare('UPDATE players SET highest = 11 WHERE id = ?').run(pid);
       for (const [b, l] of [['merkez', 4], ['depo', 2], ['revir', 4], ['laboratuvar', 2], ['kule', 2], ['tedavi', 1]]) sq.prepare('UPDATE buildings SET level = ? WHERE player_id = ? AND id = ?').run(l, pid, b);
       sq.close();
@@ -512,7 +514,7 @@ async function suite(browserName, target, [W, H]) {
       await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
       // oyunlar
       // Timpanogram Eşleştir: her soru biçimi görünsün diye destenin başı belirlenir (sunucu destesi: ko_deck)
-      const deste = (duzey, ids) => { const d = new DatabaseSync(dbFile); d.exec('PRAGMA busy_timeout = 3000'); const p = d.prepare('SELECT id FROM players ORDER BY created_at DESC LIMIT 1').get().id; d.prepare('INSERT INTO ko_deck(player_id, duzey, deck, pos) VALUES(?, ?, ?, 0) ON CONFLICT(player_id, duzey) DO UPDATE SET deck = excluded.deck, pos = 0').run(p, duzey, JSON.stringify(ids)); d.close(); };
+      const deste = (duzey, ids) => { const d = new DatabaseSync(dbFile); d.exec('PRAGMA busy_timeout = 3000'); const p = d.prepare('SELECT id FROM players WHERE name = ? ORDER BY created_at DESC LIMIT 1').get(PAGE_NAME).id; d.prepare('INSERT INTO ko_deck(player_id, duzey, deck, pos) VALUES(?, ?, ?, 0) ON CONFLICT(player_id, duzey) DO UPDATE SET deck = excluded.deck, pos = 0').run(p, duzey, JSON.stringify(ids)); d.close(); };
       const timpanoTuru = async (label) => {
         for (let k = 0; k < 5; k++) {
           await page.locator(`[data-testid="timpano-tur"][data-bulmaca="${k}"] .kg-opt:not([disabled])`).first().waitFor({ timeout: 10_000 }); await sleep(300);

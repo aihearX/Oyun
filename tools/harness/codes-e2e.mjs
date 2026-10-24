@@ -275,6 +275,9 @@ async function domSuite(bt) {
 
 try {
   for (const t of targets) for (const b of browsers) { if (t === 'web') await webSuite(b); else if (b === browsers[0]) await domSuite(b); }
+} catch (e) {
+  // tarayıcı açılamadı ya da akış dışı hata: başarı sayılmasın (önceden finally içindeki çıkış hatayı yutuyordu)
+  failures++; console.log(`✗ beklenmeyen hata: ${String(e?.message ?? e).split('\n')[0]}`);
 } finally {
   console.log('\n— özet —');
   for (const r of results) console.log(`  ${r.fails.length ? '✗' : '✓'} ${r.label}: ${r.checks} denetim${r.fails.length ? `, sorunlar: ${r.fails.join(' ; ')}` : ''}`);

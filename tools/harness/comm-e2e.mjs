@@ -704,6 +704,9 @@ async function domSuite(bt) {
 
 try {
   for (const t of targets) for (const b of browsers) { if (t === 'web') { if (has('only-rank') || has('only-tour')) { if (has('only-tour')) await tourSuite(b); if (has('only-rank')) await rankSuite(b); continue; } if (!has('only-color')) { await webSuite(b); await tourSuite(b); await rankSuite(b); } await colorSuite(b); } else await domSuite(b); }
+} catch (e) {
+  // tarayıcı açılamadı ya da akış dışı hata: başarı sayılmasın (önceden finally içindeki çıkış hatayı yutuyordu)
+  failures++; console.log(`✗ beklenmeyen hata: ${String(e?.message ?? e).split('\n')[0]}`);
 } finally {
   console.log('\n— özet —');
   for (const r of results) console.log(`  ${r.fails.length ? '✗' : '✓'} ${r.label}: ${r.checks} denetim${r.fails.length ? `, sorunlar: ${r.fails.join(' ; ')}` : ''}`);

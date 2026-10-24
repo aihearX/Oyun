@@ -45,6 +45,18 @@ const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning',
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
+/** sunucuya ayrı bir oyuncu olarak bağlan ve takım listesini al (sunucu tarafı doğrulama; Node 22 yerleşik WebSocket) */
+async function serverTeams(query) {
+  const ws = new WebSocket(wsUrl);
+  const pending = new Map(); let id = 0;
+  ws.addEventListener('message', (m) => { const d = JSON.parse(String(m.data)); if (d.t === 'res') pending.get(d.id)?.(d); });
+  await new Promise((r, j) => { ws.addEventListener('open', r); ws.addEventListener('error', j); });
+  const call = (op, data) => new Promise((r) => { const n = ++id; pending.set(n, r); ws.send(JSON.stringify({ t: 'req', id: n, op, data })); });
+  await call('hello', { version: 1, name: 'Denetçi' });
+  const res = await call('team.list', { query });
+  ws.close();
+  return res.ok ? res.data.teams.map((t) => t.name) : null;
+}
 let webBase = '';
 if (targets.includes('web')) {
   const wport = 6300 + Math.floor(Math.random() * 300);
@@ -138,6 +150,8 @@ async function suite(target) {
     await page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
     await page.locator('.team-head').waitFor({ timeout: 20_000 });
     ok('takım kuruldu');
+    const teamName = `Sıfır ${target === 'dom' ? 'Telefon' : 'Web'}`;
+    check((await serverTeams(teamName))?.includes(teamName), 'sunucuda takım listede');
     await toastGone(); await shot('takim');
     const before = await storage();
     const tokenBefore = before['odi.net.token'];
@@ -163,6 +177,8 @@ async function suite(target) {
     check(!Object.keys(st.progress ?? {}).length && !((st.coins ?? 0) > 100) && !st.ftue?.story && !st.ftue?.bypass && (st.knowledge ?? 'genel') === 'genel' && st.narratorVoice !== false, `ana kayıt sıfır: ilerleme, jeton, rehber, ayarlar (${JSON.stringify({ p: Object.keys(st.progress ?? {}).length, c: st.coins ?? 0, f: st.ftue ?? null, k: st.knowledge ?? null })})`);
     const emptyList = (v) => !v || (Array.isArray(JSON.parse(v)) && !JSON.parse(v).length);
     check(!after['odi-map-seen'] && emptyList(after['odi.net.queue']) && emptyList(after['odi.net.outbox']), `harita kaydı silindi, ağ kuyrukları boş (${['odi-map-seen', 'odi.net.queue', 'odi.net.outbox'].map((k) => `${k}=${after[k] ?? '-'}`).join(' ')})`);
+    // sunucudaki hesap da silindi (account.delete): tek üyeli takım kalmadı
+    check(Array.isArray(await serverTeams(teamName)) && !(await serverTeams(teamName)).includes(teamName), 'sunucudaki hesap silindi: eski takım listede yok');
     check(after['odi.net.token'] !== tokenBefore, `oyuncu kimliği silindi (önceki jeton ${after['odi.net.token'] ? 'yerine yenisi geldi' : 'yok'})`);
     const webStores = await page.evaluate(() => ({ ls: Object.keys(localStorage).filter((k) => k !== 'odi-v1'), ss: sessionStorage.length }));
     check(target === 'web' ? !webStores.ls.includes('odi.kamp.gorunum') && webStores.ss === 0 : webStores.ls.length === 0 && webStores.ss === 0, `${target === 'dom' ? 'WebView' : 'tarayıcı'} depoları temiz (${JSON.stringify(webStores)})`);
