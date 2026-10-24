@@ -1,5 +1,7 @@
 # Durum Panosu (Proje Yöneticisi)
 
+> **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
+
 **Son tur:** 1. tur · 2026-10-24 · başlangıç `origin/main` 744ae7e.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md).
 
