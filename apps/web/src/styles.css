@@ -765,6 +765,8 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
   .team-screen:has(.team-body > .chat) .team-head { padding:8px 10px; gap:10px; }
   .team-screen:has(.team-body > .chat) .th-emblem { width:44px; height:44px; font-size:26px; border-radius:14px; }
   .team-screen:has(.team-body > .chat) .th-xp { display:none; }
+  /* başvuru şeridi: "Başvurular" sekmesindeki rozet aynı sayıyı gösterir; kısa ekranda giriş kutusunu sekme çubuğunun altına itmesin */
+  .team-screen:has(.team-body > .chat) .ta-head-pill { display:none; }
   .team-screen:has(.team-body > .chat) .topbar2 { min-height:52px; padding-top:10px; }
   .screen.chat-screen .chat-box, .team-body > .chat .chat-box { min-height:120px; }
 }
