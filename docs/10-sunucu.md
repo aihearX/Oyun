@@ -48,7 +48,8 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `REVENUECAT_API_KEY` | — | gerçek mağaza makbuz doğrulaması; yoksa App Store / Play satın alımları **reddedilir** |
 | `ODI_LOG` | açık | `0` → bağlantı günlüğünü kapat |
 | `ODI_FREE_TEXT_AT` | `8` | yalnızca test: serbest yazı için geçilmesi gereken bölüm (güvenli sohbet; üretimde ayarlanmaz) |
-| `ODI_ADMIN_CODE_HASH` | depodaki varsayılan özet | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur) |
+| `ODI_ADMIN_CODE_HASH` | geliştirmede depodaki varsayılan özet; **üretimde (`NODE_ENV=production`) yok = yönetici kodu kapalı** | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur). Depo herkese açık olduğundan varsayılan özet üretimde kullanılmaz; üretim için yeni ve uzun bir kod seçilip özeti burada verilmelidir |
+| `ODI_TRUST_PROXY` | `0` | sunucunun önündeki güvenilir vekil sayısı. `0`: `X-Forwarded-For` yok sayılır, soket adresi kullanılır. Render gibi tek vekil: `1` (başlığın en sağdaki girdisi; soldakileri istemci yazabilir). Kod denemesi IP sınırı bu adresi kullanır |
 
 ## 3. İstemci (`@odi/net`)
 
@@ -222,7 +223,7 @@ harfe çevirir (i/ı/İ → I); geçerli biçim A–Z, 0–9, Ç Ğ Ö Ş Ü ve 
 - Ödüller mevcut yollardan gelir: jeton, kristal, kalkan ve kozmetik ödül kutusuna, hızlandırıcılar sunucu cüzdanına.
 - Hata yanıtları dürüsttür: "Kod geçersiz.", "Bu kodu zaten kullandın.", "Bu kodun süresi dolmuş.", "Bu kodun kullanım hakkı doldu.",
   "Bu kod henüz geçerli değil.". Bunlar istek hatası değil sonuç olarak döner, böylece deneme kaydı geri alınmaz.
-- Yanlış deneme sınırı: oyuncu başına 10 dakikada 5, aynı IP için 20 (`CODE_RULES`).
+- Yanlış deneme sınırı: oyuncu başına 10 dakikada 5, aynı IP için 20 (`CODE_RULES`). Ayrıca sunucu genelinde 10 dakikada en çok 60 bilinmeyen kod yönetici özetiyle sınanır (`ADMIN_CHECKS_PER_WINDOW`): yeni hesap açmak ya da IP değiştirmek kaba kuvveti hızlandırmaz, pahalı scrypt hesabı sunucuyu meşgul edemez. Bütçe dolunca ödül kodları çalışmaya devam eder (önce ödül kodu tablosuna bakılır, scrypt'e girilmez).
 - Kayıt: bilinmeyen kodun metni yazılmaz.
 
 **Komut satırı** (sunucu makinesinde; veritabanı `ODI_DB`, yoksa `apps/server/data/odi.sqlite`):

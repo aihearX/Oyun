@@ -30,6 +30,23 @@ import { oyunHandlers } from './camp-quests-oyun';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
+/** geçersiz özet biçimi: hiçbir kod yönetici yapmaz (üretimde ODI_ADMIN_CODE_HASH verilmediyse) */
+export const ADMIN_DISABLED = 'kapali';
+
+/**
+ * İstemci IP'si. trustProxy = sunucunun önündeki güvenilir vekil sayısı (ODI_TRUST_PROXY; Render gibi tek vekil: 1).
+ * X-Forwarded-For'un soldaki girdileri istemcinin kendisi yazabilir; yalnızca güvenilir vekillerin sağdan eklediği girdi kullanılır.
+ * 0 (varsayılan): başlık yok sayılır, soket adresi kullanılır (doğrudan açık sunucu; başlık sahte olabilir).
+ */
+export function clientIp(xff: string | string[] | undefined, socketAddr: string | undefined, trustProxy: number): string {
+  const raw = Array.isArray(xff) ? xff.join(',') : (xff ?? '');
+  if (trustProxy > 0 && raw) {
+    const hops = raw.split(',').map((x) => x.trim()).filter(Boolean);
+    const ip = hops[hops.length - trustProxy] ?? hops[0];
+    if (ip) return ip;
+  }
+  return socketAddr ?? '';
+}
 
 const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEventHooks({
   ...dmHandlers,
@@ -56,6 +73,9 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   if (env.ODI_EVENTS_FAST) o.eventsFast = env.ODI_EVENTS_FAST === '1';
   if (env.ODI_FREE_TEXT_AT && /^\d+$/.test(env.ODI_FREE_TEXT_AT)) o.freeTextCleared = Number(env.ODI_FREE_TEXT_AT);
   if (env.ODI_ADMIN_CODE_HASH) o.adminCodeHash = env.ODI_ADMIN_CODE_HASH;
+  // üretimde depodaki (herkese açık) varsayılan özet kullanılmaz: yönetici kodu yalnızca ODI_ADMIN_CODE_HASH ile açılır
+  else if (env.NODE_ENV === 'production') o.adminCodeHash = ADMIN_DISABLED;
+  if (env.ODI_TRUST_PROXY && /^\d+$/.test(env.ODI_TRUST_PROXY)) o.trustProxy = Number(env.ODI_TRUST_PROXY);
   return o;
 }
 
@@ -176,8 +196,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   }
 
   wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-    const fwd = String(req.headers['x-forwarded-for'] ?? '').split(',')[0]?.trim();
-    const c: Conn = { id: nextConnId++, ws, pid: null, rooms: new Set(), tokens: cfg.msgPerSec, refillAt: Date.now(), alive: true, lastPosAt: 0, ip: fwd || req.socket.remoteAddress || '' };
+    const ip = clientIp(req.headers['x-forwarded-for'], req.socket.remoteAddress, cfg.trustProxy ?? 0);
+    const c: Conn = { id: nextConnId++, ws, pid: null, rooms: new Set(), tokens: cfg.msgPerSec, refillAt: Date.now(), alive: true, lastPosAt: 0, ip };
     conns.add(c);
     ws.on('pong', () => { c.alive = true; });
     ws.on('message', (data, isBinary) => {

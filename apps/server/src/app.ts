@@ -35,6 +35,8 @@ export interface ServerConfig {
   teamRaceGraceMs?: number;
   /** yönetici kodunun tuzlu özeti (scrypt:tuz:özet); yoksa codes.ts'teki varsayılan. Düz metin hiçbir yerde tutulmaz. */
   adminCodeHash?: string;
+  /** sunucunun önündeki güvenilir vekil sayısı (ODI_TRUST_PROXY); 0/yok = X-Forwarded-For yok sayılır */
+  trustProxy?: number;
 }
 
 export class OdiError extends Error {

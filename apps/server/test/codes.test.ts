@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
 import { setup, run, type Env, type TC } from './helpers';
-import { DEFAULT_ADMIN_CODE_HASH, checkAdminCode, hashAdminCode } from '../src/codes';
+import { ADMIN_CHECKS_PER_WINDOW, DEFAULT_ADMIN_CODE_HASH, checkAdminCode, hashAdminCode, redeem as redeemDirect } from '../src/codes';
+import { ADMIN_DISABLED, clientIp, configFromEnv } from '../src/server';
 
 let env: Env | undefined;
 afterEach(async () => { await env?.close(); env = undefined; });
@@ -66,6 +67,37 @@ describe('Kod Gir: ödül kodları', () => {
     for (const p of ps) for (let i = 0; i < 5; i++) await redeem(p, `HATALI${i}`);
     const late = await env.connect('Geç');
     expect(await redeem(late, 'DOGRU')).toMatchObject({ kind: 'hata', error: 'cok' });
+  });
+
+  it('kaba kuvvete karşı: sunucu genelinde yönetici sınama bütçesi (yeni hesap / IP değiştirmek aşamaz), ödül kodları etkilenmez', async () => {
+    env = await adminEnv();
+    const app = env.srv.app;
+    const adm = await makeAdmin(env, 'Yönetici');
+    await adm.call('code.create', { code: 'BAHAR', rewards: { jeton: 10 } });
+    const tryCode = (pid: string, ip: string, code: string) => app.run(() => redeemDirect(app, pid, ip, code));
+    // her biri farklı hesap ve IP: oyuncu/IP sınırına takılmadan bütçe tükenir
+    for (let i = 0; i < ADMIN_CHECKS_PER_WINDOW - 1; i++) expect(tryCode(`p-kaba-${i}`, `10.0.${i >> 8}.${i & 255}`, `TAHMIN${i}`).kind).toBe('hata');
+    // bütçe doldu: doğru yönetici kodu bile yönetici yapmaz (bekler)
+    expect(tryCode('p-yeni', '10.9.9.9', TEST_ADMIN)).toMatchObject({ kind: 'hata', error: 'gecersiz' });
+    // ödül kodu çalışmaya devam eder (scrypt'e hiç girmez)
+    expect(tryCode('p-odul', '10.9.9.8', 'bahar').kind).toBe('odul');
+    env.clock.advance(600_000);
+    expect(tryCode('p-yeni', '10.9.9.9', TEST_ADMIN).kind).toBe('yonetici');
+  });
+
+  it('IP: X-Forwarded-For yalnızca güvenilir vekil sayısı kadar sağdan okunur; üretimde varsayılan özet kullanılmaz', () => {
+    // vekilsiz: başlık sahte olabilir, soket adresi
+    expect(clientIp('1.2.3.4', '9.9.9.9', 0)).toBe('9.9.9.9');
+    // tek vekil (Render): istemcinin yazdığı soldaki girdiler yok sayılır
+    expect(clientIp('6.6.6.6, 5.5.5.5', '10.0.0.1', 1)).toBe('5.5.5.5');
+    expect(clientIp('5.5.5.5', '10.0.0.1', 1)).toBe('5.5.5.5');
+    expect(clientIp(undefined, '10.0.0.1', 1)).toBe('10.0.0.1');
+    expect(clientIp('7.7.7.7, 5.5.5.5, 172.16.0.2', '10.0.0.1', 2)).toBe('5.5.5.5');
+    expect(configFromEnv({ ODI_TRUST_PROXY: '1' }).trustProxy).toBe(1);
+    expect(configFromEnv({ NODE_ENV: 'production' }).adminCodeHash).toBe(ADMIN_DISABLED);
+    expect(checkAdminCode({ cfg: { adminCodeHash: ADMIN_DISABLED } } as never, 'HERHANGI')).toBe(false);
+    expect(configFromEnv({ NODE_ENV: 'production', ODI_ADMIN_CODE_HASH: 'scrypt:aa:bb' }).adminCodeHash).toBe('scrypt:aa:bb');
+    expect(configFromEnv({}).adminCodeHash).toBeUndefined();
   });
 
   it('istek doğrulama ve yetki: panel yalnızca yönetici modunda', async () => {

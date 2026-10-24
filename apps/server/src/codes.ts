@@ -5,7 +5,7 @@
  * - Yönetici kodu: düz metni hiçbir yerde yok; sunucu yalnızca tuzlu scrypt özetini bilir (ODI_ADMIN_CODE_HASH, varsayılan aşağıda).
  *   Doğru girilince hesap yönetici olarak işaretlenir (player_flags.admin = 1, kalıcı) ve yönetici modu açılır (admin_on; kapatılabilir).
  *   Yönetici hesapları adil rekabetten çıkarılır (Sıralama, Takım Ligi, takım yarışı ödülü, haftalık ödüller, savaş/baskın/lig puanı).
- * - Yanlış denemeler sınırlı (oyuncu 5, IP 20 / 10 dk) ve her deneme kaydedilir (promo_log; bilinmeyen kodun metni kaydedilmez).
+ * - Yanlış denemeler sınırlı (oyuncu 5, IP 20 / 10 dk; sunucu genelinde en çok ADMIN_CHECKS_PER_WINDOW yönetici sınaması / 10 dk) ve her deneme kaydedilir (promo_log; bilinmeyen kodun metni kaydedilmez).
  */
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import {
@@ -55,6 +55,18 @@ function recent(app: App, key: string): number[] {
   m.set(key, list);
   return list;
 }
+/**
+ * Sunucu genelinde yönetici kodu sınama bütçesi: 10 dakikada en çok bu kadar bilinmeyen kod yönetici özetiyle sınanır.
+ * Oyuncu/IP sınırı yeni hesap açarak ya da IP değiştirerek aşılsa bile kaba kuvvet denemesi pratikte imkânsız kalır
+ * ve pahalı scrypt hesabı sunucuyu meşgul edemez. Bütçe dolunca ödül kodları çalışmaya devam eder; yalnızca yönetici sınaması bekler.
+ */
+export const ADMIN_CHECKS_PER_WINDOW = 60;
+const adminBudget = (app: App): boolean => {
+  const list = recent(app, 'yonetici-sinama');
+  if (list.length >= ADMIN_CHECKS_PER_WINDOW) return false;
+  list.push(app.now());
+  return true;
+};
 const limited = (app: App, pid: string, ip: string) => recent(app, `p:${pid}`).length >= CODE_RULES.wrongPerPlayer || (!!ip && recent(app, `i:${ip}`).length >= CODE_RULES.wrongPerIp);
 function countWrong(app: App, pid: string, ip: string): void { recent(app, `p:${pid}`).push(app.now()); if (ip) recent(app, `i:${ip}`).push(app.now()); }
 
@@ -97,14 +109,15 @@ export function redeem(app: App, pid: string, ip: string, raw: string): CodeRede
   if (limited(app, pid, ip)) return bad('cok');
   const code = normalizeCode(raw);
   if (!CODE_PATTERN.test(code)) { countWrong(app, pid, ip); return bad('gecersiz'); }
-  if (checkAdminCode(app, code)) {
+  const r = app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code);
+  // ödül kodu tablosunda yoksa yönetici kodu olabilir (ödül kodu yönetici koduyla aynı olamaz: createCode); sınama bütçeyle sınırlı
+  if (!r && adminBudget(app) && checkAdminCode(app, code)) {
     app.db.run(`INSERT INTO player_flags(player_id, admin, admin_on, admin_at) VALUES(?, 1, 1, ?)
       ON CONFLICT(player_id) DO UPDATE SET admin = 1, admin_on = 1, admin_at = COALESCE(admin_at, excluded.admin_at)`, pid, now);
     log('', 'yonetici');
     app.after(() => rankInvalidate(app)); // Sıralama önbelleği: yönetici hemen tablolardan çıkar
     return { kind: 'yonetici', admin: adminState(app, pid) };
   }
-  const r = app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code);
   // bilinmeyen kodun metni kaydedilmez (yanlış yazılmış yönetici kodu da olabilir)
   if (!r) { countWrong(app, pid, ip); return bad('gecersiz'); }
   if (!r.active || (r.ends_at != null && now >= r.ends_at)) return bad('suresi', code);
