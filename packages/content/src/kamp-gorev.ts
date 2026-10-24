@@ -10,9 +10,11 @@
 import type { BuildingId, KampOdul } from '@odi/shared';
 import { VAKALAR } from './kamp-gorev-vakalar';
 import { decorById } from './kamp-susler';
-import { type BilgiDuzeyi, type Timp, type TipTimp } from './kamp-gorev-vaka';
+import { type BilgiDuzeyi } from './kamp-gorev-vaka';
+import { timpBulmaca, timpSoruById, timpanoSecimi, type TimpanoBulmaca } from './kamp-gorev-timpano';
 
 export * from './kamp-gorev-vaka';
+export * from './kamp-gorev-timpano';
 export * from './kamp-gorev-vakalar';
 
 // ---------------------------------------------------------------- açılış ve kurallar
@@ -259,49 +261,17 @@ export function tonPuani(d: TonDeneme[], cevap: number[]): number {
 }
 
 // ---------------------------------------------------------------- Timpanogram Eşleştir (Timpanometri Kulesi)
+// Soru bankası ve tur kurma: ./kamp-gorev-timpano. Sunucu her tur için oyuncunun destesinden soru kimliklerini seçer (tekrar yok).
 
-export type EgriTur = 'A' | 'As' | 'Ad' | 'B-normal' | 'B-buyuk' | 'B-kucuk' | 'C';
-export const EGRI_ADI: Record<EgriTur, { sade: string; teknik: string }> = {
-  'A': { sade: 'Normal: zar rahat hareket ediyor', teknik: 'Tip A' },
-  'As': { sade: 'Sert zar ya da takılı kemikçik', teknik: 'Tip As (sığ)' },
-  'Ad': { sade: 'Çok gevşek zar ya da kopuk zincir', teknik: 'Tip Ad (çok yüksek)' },
-  'B-normal': { sade: 'Orta kulakta sıvı', teknik: 'Tip B, normal hacim' },
-  'B-buyuk': { sade: 'Zarda delik ya da açık tüp', teknik: 'Tip B, büyük hacim' },
-  'B-kucuk': { sade: 'Kanal tıkalı (kir)', teknik: 'Tip B, küçük hacim' },
-  'C': { sade: 'Basınç düşük (Östaki borusu)', teknik: 'Tip C' },
-};
-export const egriTipi = (e: EgriTur): TipTimp => (e.startsWith('B') ? 'B' : e as TipTimp);
-export interface TimpanoBulmaca { egri: EgriTur; timp: Timp; secenek: EgriTur[]; dogru: number }
-const GENEL_EGRI: EgriTur[] = ['A', 'B-normal', 'C', 'B-buyuk'];
-const TUM_EGRI: EgriTur[] = ['A', 'As', 'Ad', 'B-normal', 'B-buyuk', 'B-kucuk', 'C'];
-/** eğri türünden geçerli bir yetişkin timpanogramı (değerler timpHatasi denetiminden geçer) */
-export function egriUret(e: EgriTur, r: () => number): Timp {
-  const p = -40 + Math.round(r() * 8) * 10; // −40…+40 daPa
-  switch (e) {
-    case 'A': return { tip: 'A', basinc: p, uyum: +(0.5 + r() * 0.8).toFixed(2), hacim: +(0.9 + r() * 0.5).toFixed(1) };
-    case 'As': return { tip: 'As', basinc: p, uyum: +(0.12 + r() * 0.14).toFixed(2), hacim: +(0.9 + r() * 0.5).toFixed(1) };
-    case 'Ad': return { tip: 'Ad', basinc: p, uyum: +(2.0 + r() * 1.0).toFixed(2), hacim: +(0.9 + r() * 0.5).toFixed(1) };
-    case 'B-normal': return { tip: 'B', basinc: null, uyum: 0.1, hacim: +(0.9 + r() * 0.5).toFixed(1) };
-    case 'B-buyuk': return { tip: 'B', basinc: null, uyum: 0.1, hacim: +(2.5 + r() * 1.5).toFixed(1) };
-    case 'B-kucuk': return { tip: 'B', basinc: null, uyum: 0.05, hacim: +(0.2 + r() * 0.3).toFixed(1) };
-    case 'C': return { tip: 'C', basinc: -150 - Math.round(r() * 15) * 10, uyum: +(0.4 + r() * 0.6).toFixed(2), hacim: +(0.9 + r() * 0.5).toFixed(1) };
-  }
-}
-/** tohumdan bir tur: 5 bulmaca; her birinde 4 seçenek (genel düzeyde yalnız A, B-normal, C, B-büyük) */
-export function timpanoTuru(seed: number, duzey: BilgiDuzeyi): TimpanoBulmaca[] {
-  const r = kgRng(seed); const havuz = duzey === 'genel' ? GENEL_EGRI : TUM_EGRI; const out: TimpanoBulmaca[] = [];
-  for (let i = 0; i < KG_KURAL.timpanoBulmaca; i++) {
-    const egri = havuz[Math.floor(r() * havuz.length)]!;
-    const diger = kgKaristir(havuz.filter((x) => x !== egri), r).slice(0, 3);
-    const secenek = kgKaristir([egri, ...diger], r);
-    out.push({ egri, timp: egriUret(egri, r), secenek, dogru: secenek.indexOf(egri) });
-  }
-  return out;
+/** bir tur: verilen soru kimlikleri (sunucu destesi) ya da tohumdan seçim; seçenek sırası tohumla karışır */
+export function timpanoTuru(seed: number, duzey: BilgiDuzeyi, ids?: readonly string[]): TimpanoBulmaca[] {
+  const secim = ids?.length ? ids : timpanoSecimi(seed, duzey, KG_KURAL.timpanoBulmaca);
+  return secim.map((id) => timpSoruById(id)).filter((d): d is NonNullable<typeof d> => !!d).map((d) => timpBulmaca(d, seed));
 }
 export function timpanoPuani(b: TimpanoBulmaca[], cevap: number[]): number { return b.reduce((n, x, i) => n + (x.dogru === cevap[i] ? 1 : 0), 0); }
 
 export type KampOyun = 'ton' | 'timpano';
 export const KAMP_OYUN: Record<KampOyun, { ad: string; bina: BuildingId; art: KgArt; denemeler: number; plain: string }> = {
   ton: { ad: 'Ton Avı', bina: 'laboratuvar', art: 'ton', denemeler: KG_KURAL.tonDeneme, plain: 'Kısa bir dinleme oyunu: ses var mı, hangisi daha ince? Bir işitme testi değildir.' },
-  timpano: { ad: 'Timpanogram Eşleştir', bina: 'kule', art: 'timpano', denemeler: KG_KURAL.timpanoBulmaca, plain: 'Eğriye bak, anlamını bul: zar rahat mı, sıvı mı, delik mi?' },
+  timpano: { ad: 'Timpanogram Eşleştir', bina: 'kule', art: 'timpano', denemeler: KG_KURAL.timpanoBulmaca, plain: 'Eğrilere, sayılara ve kısa vakalara bak: zar rahat mı hareket ediyor, hareketsiz mi, basınç negatif mi?' },
 };

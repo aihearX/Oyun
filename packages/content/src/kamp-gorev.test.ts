@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AC_HZ, EGRI_ADI, KAMP_OYUN, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_SAYACLAR,
-  TANILAR, VAKALAR, VAKA_TESTLERI, egriTipi, egriUret, isYok, kayipTipi, kgRng, odulMetni, taniSecenekleri, timpHatasi, timpanoPuani, timpanoTuru,
+  EGRI_ACIKLAMA, TANILAR, TIMP_SORULAR, VAKALAR, VAKA_TESTLERI, egriSinifi, isYok, kayipTipi, odulMetni, taniSecenekleri, timpBulmaca, timpSoruHatalari,
+  timpanoDestesi, timpanoHavuzu, timpanoPuani, timpanoTuru,
   tonPuani, tonTuru, vakaKademesi, vakaPuanla, vakaTutarsizliklari, yonetimSecenekleri, type Vaka,
 } from './kamp-gorev';
 import { PATHOLOGY_IDS, REMEDIES } from './remedies';
@@ -184,19 +185,57 @@ describe('Kamp oyunları', () => {
     expect(ratio(tonTuru(7, 'genel'))).toBeGreaterThan(1.45);
     expect(ratio(tonTuru(7, 'odyoloji'))).toBeLessThan(1.3);
   });
-  it('Timpanogram Eşleştir: üretilen bütün eğriler Jerger değerleriyle tutarlı; 4 seçenek, doğru içinde', () => {
-    const r = kgRng(1);
-    for (const e of Object.keys(EGRI_ADI) as (keyof typeof EGRI_ADI)[]) for (let i = 0; i < 30; i++) {
-      const t = egriUret(e, r); expect(timpHatasi(t, 'yetiskin'), `${e} ${JSON.stringify(t)}`).toBeNull(); expect(t.tip).toBe(egriTipi(e));
+  it('Timpanogram Eşleştir: soru bankası tıbben tutarlı, yeterince büyük ve çeşitli', () => {
+    expect(timpSoruHatalari()).toEqual([]);
+    expect(TIMP_SORULAR.length).toBeGreaterThanOrEqual(80);
+    expect(new Set(TIMP_SORULAR.map((q) => q.id)).size).toBe(TIMP_SORULAR.length);
+    const bicim = new Set(TIMP_SORULAR.map((q) => q.bicim));
+    for (const b of ['egri-bulgu', 'bulgu-egri', 'sayi-tip', 'vinyet', 'sag-sol', 'bilgi']) expect(bicim.has(b as never), b).toBe(true);
+    expect(timpanoHavuzu('genel').length).toBeGreaterThanOrEqual(30);
+    expect(timpanoHavuzu('odyoloji').length).toBe(TIMP_SORULAR.length);
+    // çocuk normları da var; bebekte 226 Hz eğrisi soru yapılmaz (timpSoruHatalari denetler)
+    expect(TIMP_SORULAR.some((q) => q.grup === 'cocuk')).toBe(true);
+    for (const q of TIMP_SORULAR) {
+      const b = timpBulmaca(q, 11);
+      expect(b.dogru).toBeGreaterThanOrEqual(0); expect(b.dogru).toBeLessThan(b.secenek.length);
+      expect(new Set(b.secenek.map((o) => o.anahtar)).size).toBe(b.secenek.length);
+      sane(b.soru, q.id); sane(b.aciklama, q.id); sane(b.kaynak, q.id); if (b.hikaye) sane(b.hikaye, q.id);
+      for (const o of b.secenek) if (o.metin) sane(o.metin, q.id);
+      // cevap değerlerle tutarlı: eğri → bulgu ve sayılar → tip doğru seçeneği eğrinin sınıfıdır
+      if ((q.bicim === 'egri-bulgu' || q.bicim === 'sayi-tip')) expect(b.secenek[b.dogru]!.anahtar, q.id).toBe(egriSinifi(q.egri, q.grup ?? 'yetiskin'));
+      if (q.bicim === 'bulgu-egri') expect(egriSinifi(b.secenek[b.dogru]!.egri!, q.grup ?? 'yetiskin'), q.id).toBe(q.bulgu);
     }
-    for (const duzey of ['genel', 'odyoloji'] as const) for (let s = 1; s < 40; s++) {
+  });
+  it('Timpanogram: timpanogram tek başına tanı koydurmaz (bulgu cevaplarında sıvı/efüzyon/tanı adı yok)', () => {
+    const tani = /sıvı|efüzyon|efuzyon|otit|otoskleroz|kopuk|perforasyon|Östaki|serumen|kir\b/i;
+    for (const [k, v] of Object.entries(EGRI_ADI)) { expect(v.sade, k).not.toMatch(tani); expect(v.teknik, k).not.toMatch(tani); sane(v.sade, k); sane(v.teknik, k); }
+    // olası neden yalnız cevap sonrası açıklamada ve olasılık diliyle
+    expect(EGRI_ACIKLAMA['B-normal']).toMatch(/olabilir/); expect(EGRI_ACIKLAMA['B-normal']).toMatch(/otoskopi/);
+    for (const q of TIMP_SORULAR) if (q.bicim === 'egri-bulgu' || q.bicim === 'sayi-tip') {
+      for (const o of timpBulmaca(q, 3).secenek) expect(`${o.metin} ${o.teknik ?? ''}`, q.id).not.toMatch(/sıvı|efüzyon/i);
+    }
+    // tanı düzeyinde cevap yalnız otoskopi ya da öykü verilen kısa vakada
+    for (const q of TIMP_SORULAR) if (q.bicim === 'vinyet') expect(q.hikaye.length).toBeGreaterThan(30);
+  });
+  it('Timpanogram Eşleştir: tur 5 soru, aynı tohum aynı tur (istemci = sunucu), seçenek sırası karışır, deste tekrar etmez', () => {
+    for (const duzey of ['genel', 'odyoloji'] as const) for (let s = 1; s < 30; s++) {
       const tur = timpanoTuru(s, duzey);
       expect(tur.length).toBe(KG_KURAL.timpanoBulmaca);
-      for (const b of tur) { expect(b.secenek.length).toBe(4); expect(new Set(b.secenek).size).toBe(4); expect(b.secenek[b.dogru]).toBe(b.egri); }
+      expect(new Set(tur.map((b) => b.id)).size).toBe(tur.length);
       expect(timpanoPuani(tur, tur.map((b) => b.dogru))).toBe(tur.length);
+      if (duzey === 'genel') for (const b of tur) expect(TIMP_SORULAR.find((q) => q.id === b.id)!.duzey).toBe('genel');
     }
-    expect(timpanoTuru(5, 'genel')).toEqual(timpanoTuru(5, 'genel'));
-    for (const k of Object.values(EGRI_ADI)) { sane(k.sade, 'egri'); sane(k.teknik, 'egri'); }
+    expect(KG_KURAL.timpanoBulmaca).toBe(5);
+    const ids = ['te01', 'tk03', 'tv01', 'tb01', 'ts01'];
+    expect(timpanoTuru(5, 'genel', ids)).toEqual(timpanoTuru(5, 'genel', ids));
+    expect(timpanoTuru(5, 'genel', ids).map((b) => b.id)).toEqual(ids);
+    // seçenek sırası tohuma göre değişir (doğru hep ilk sırada değil)
+    const yer = new Set<number>(); for (let s = 1; s < 40; s++) yer.add(timpanoTuru(s, 'genel', ['te04'])[0]!.dogru);
+    expect(yer.size).toBeGreaterThan(2);
+    // deste: havuzun tamamı, tekrar yok; son görülenler sona
+    const d = timpanoDestesi('odyoloji', 9, ['te01', 'te02']);
+    expect(new Set(d).size).toBe(timpanoHavuzu('odyoloji').length);
+    expect(d.slice(-2).sort()).toEqual(['te01', 'te02']);
     for (const o of Object.values(KAMP_OYUN)) { sane(o.ad, 'oyun'); sane(o.plain, 'oyun'); }
     expect(KAMP_OYUN.ton.plain).toMatch(/işitme testi değildir/);
   });

@@ -96,7 +96,7 @@ export const VAKALAR: Vaka[] = [
       { id: 'tup', sade: 'Hemen ventilasyon tüpü takılmasını iste.', teknik: 'İzlem süresi beklenmeden timpanostomi.' },
     ],
     aciklama: {
-      sade: 'İki kulakta da zarın arkasında sıvı var; timpanogram düz ama kanal hacmi normal: delik yok, orta kulak sıvıyla dolu. Bu hafif iletim tipi kayıp yapar. Çocuklarda sık görülür ve çoğu kendiliğinden geçer; hekim izler, uzarsa ventilasyon tüpü düşünülebilir.',
+      sade: 'Otoskopide iki zarın arkasında da sıvı görülüyor; timpanogram düz, kanal hacmi normal (zarda açıklık beklenmez). Otoskopiyle birlikte bu tablo orta kulakta sıvıyla uyumlu. Bu hafif iletim tipi kayıp yapar. Çocuklarda sık görülür ve çoğu kendiliğinden geçer; hekim izler, uzarsa ventilasyon tüpü düşünülebilir.',
       teknik: 'AAO-HNS OME kılavuzu (2016): risk taşımayan çocukta efüzyon 3 ay izlenir; ≥3 ay süren efüzyonda işitme değerlendirilir. Tip B + normal eşdeğer hacim efüzyonu; Tip B + büyük hacim perforasyonu ya da açık tüpü düşündürür.',
     },
     terim: 'timpanometri', kaynak: `AAO-HNS Efüzyonlu Otitis Media Klinik Kılavuzu (2016); ${K}, timpanometri`,
@@ -590,7 +590,7 @@ export const VAKALAR: Vaka[] = [
     ],
     aciklama: {
       sade: 'Sağ kanalı dolduran kir hem cihazın sesini kesiyor hem de var olan iç kulak kaybının üstüne iletim tipi kayıp ekliyor. İşitme cihazı kullananlarda kanalda kir daha kolay birikir. Temizlikten sonra işitme ve cihaz ayarı yeniden kontrol edilir.',
-      teknik: 'İşitme cihazı ve kulak içi kalıplar epitel göçünü engelleyerek serumen birikimini artırır; AAO-HNS (2017) cihaz kullananlarda düzenli kontrol önerir. Tip B + küçük hacim kanal tıkanıklığını gösterir; temizlik sonrası hava–kemik aralığının kapanması beklenir.',
+      teknik: 'İşitme cihazı ve kulak içi kalıplar epitel göçünü engelleyerek serumen birikimini artırır; AAO-HNS (2017) cihaz kullananlarda düzenli kontrol önerir. Tip B + küçük hacim, otoskopide görülen serumen tıkacıyla uyumludur (prob duvara dayanınca da benzer eğri çıkabilir); temizlik sonrası hava–kemik aralığının kapanması beklenir.',
     },
     terim: 'epitel-gocu', kaynak: `AAO-HNS Serumen Klinik Kılavuzu (2017); ${K}, işitme cihazı bakımı`,
   },
@@ -801,7 +801,7 @@ export const VAKALAR: Vaka[] = [
       { id: 'tup', sade: 'Ventilasyon tüpü yeter; başka inceleme gerekmez.', teknik: 'Yalnız timpanostomi.' },
     ],
     aciklama: {
-      sade: 'Sol orta kulakta sıvı var (Tip B, normal kanal hacmi). Çocuklarda sık ve çoğu zaman zararsızdır; ama yetişkinde tek taraflı, nedeni belirsiz sıvı ile burun tıkanıklığı ve kanaması, hekimin burnun arkasını muayene etmesini gerektirir. Bu yüzden “bekleyelim” yerine yönlendirme doğru seçimdir.',
+      sade: 'Otoskopide sol zarın arkasında sıvı görülüyor; timpanogram düz, kanal hacmi normal (Tip B). İkisi birlikte orta kulakta sıvıyla uyumlu. Çocuklarda sık ve çoğu zaman zararsızdır; ama yetişkinde tek taraflı, nedeni belirsiz sıvı ile burun tıkanıklığı ve kanaması, hekimin burnun arkasını muayene etmesini gerektirir. Bu yüzden “bekleyelim” yerine yönlendirme doğru seçimdir.',
       teknik: 'Yetişkinde tek taraflı kalıcı efüzyon, Östaki borusunu tıkayan bir nazofarenks kitlesinin belirtisi olabilir; endoskopik nazofarenks muayenesi önerilir. Pediatrik OME’deki bekle-izle yaklaşımı bu duruma uygulanmaz.',
     },
     terim: 'ostaki', kaynak: `${E}, yetişkinde efüzyonlu otitis media ve nazofarenks değerlendirmesi`,

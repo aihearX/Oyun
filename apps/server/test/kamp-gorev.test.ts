@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { KgState } from '@odi/shared';
-import { KG_KURAL, KG_ODUL, VAKALAR, konsultSecenekleri, timpanoTuru, tonTuru, vakaById } from '@odi/content';
+import { KG_KURAL, KG_ODUL, VAKALAR, konsultSecenekleri, timpanoHavuzu, timpanoTuru, tonTuru, vakaById } from '@odi/content';
 import type { NetError } from '@odi/net';
 import { kgBump, kgCount } from '../src/camp-quests';
 import { CAMP_GROWTH, applyPending, giveCampXp, setGrowth } from '../src/camp-quests-adapter';
@@ -279,11 +279,34 @@ describe('Kamp oyunları', () => {
     env = await setup();
     const a = await player(env, 'Ayşe', 6, { kule: 1 });
     const { round } = await a.call('koyun.start', { oyun: 'timpano', duzey: 'odyoloji' });
-    const tur = timpanoTuru(round.seed, 'odyoloji');
+    expect(round.items).toHaveLength(KG_KURAL.timpanoBulmaca);
+    const tur = timpanoTuru(round.seed, 'odyoloji', round.items);
     env.clock.advance(KG_KURAL.oyunEnAzMs.timpano);
-    const res = await a.call('koyun.finish', { id: round.id, answers: tur.map((b, i) => (i < 3 ? b.dogru : (b.dogru + 1) % 4)) });
+    const res = await a.call('koyun.finish', { id: round.id, answers: tur.map((b, i) => (i < 3 ? b.dogru : (b.dogru + 1) % b.secenek.length)) });
     expect(res.score).toBe(3); expect(res.total).toBe(5);
     expect((await err(a.call('koyun.finish', { id: round.id, answers: [0, 0, 0] }))).code).toBe('TEKRAR');
+  });
+  it('Timpanogram Eşleştir: kişisel deste — havuz bitmeden aynı soru tekrar gelmez; yeni deste son görülenlerle başlamaz', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 6, { kule: 1 });
+    const havuz = timpanoHavuzu('genel'); const per = KG_KURAL.timpanoBulmaca;
+    const rounds = Math.floor(havuz.length / per);
+    const seen: string[] = [];
+    for (let k = 0; k < rounds; k++) {
+      const { round } = await a.call('koyun.start', { oyun: 'timpano', duzey: 'genel' });
+      for (const id of round.items!) expect(havuz).toContain(id);
+      seen.push(...round.items!);
+    }
+    expect(new Set(seen).size).toBe(seen.length); // tekrar yok
+    const last = seen.slice(-per);
+    const { round: next } = await a.call('koyun.start', { oyun: 'timpano', duzey: 'genel' });
+    expect(new Set(next.items).size).toBe(per);
+    for (const id of next.items!) expect(last).not.toContain(id);
+    // odyoloji destesi ayrı tutulur; puanlama turun sorularıyla yapılır (istemciyle aynı)
+    const { round: o } = await a.call('koyun.start', { oyun: 'timpano', duzey: 'odyoloji' });
+    env.clock.advance(KG_KURAL.oyunEnAzMs.timpano);
+    const tur = timpanoTuru(o.seed, 'odyoloji', o.items);
+    expect((await a.call('koyun.finish', { id: o.id, answers: tur.map((b) => b.dogru) })).score).toBe(per);
   });
 });
 
