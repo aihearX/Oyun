@@ -10,6 +10,7 @@ import { CODES_SCHEMA } from './codes';
 import { TEAM_APPLY_SCHEMA } from './teamapply-schema';
 import { KG_SCHEMA } from './camp-quests-schema';
 import { ACCOUNT_SCHEMA } from './account-schema';
+import { runMigrations } from './migrations';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -124,6 +125,9 @@ export class Db {
     this.raw.exec(TEAM_APPLY_SCHEMA); // takım başvuruları (yalnızca yeni tablo; eski open = 0 takımlar veri değişmeden 'basvuru' sayılır)
     this.raw.exec(KG_SCHEMA);
     this.raw.exec(ACCOUNT_SCHEMA); // silinen hesaplar (yalnızca yeni tablo)
+    // var olan tablolara sütun ekleme / veri dönüştürme: sıralı göçler (migrations.ts, PRAGMA user_version)
+    const m = runMigrations(this.raw);
+    if (m.warning) console.warn(`[şema] ${m.warning}`);
   }
 
   private stmt(sql: string): StatementSync {
