@@ -22,7 +22,7 @@ import { warHandlers, warRollover } from './war';
 import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './events';
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 import { installRank, rankDayTick, rankHandlers } from './rank';
-import { codeHandlers } from './codes';
+import { codeHandlers, prunePromoLog } from './codes';
 import { backupNow } from './backup';
 import { accountHandlers } from './account';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
@@ -231,7 +231,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); }
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

@@ -21,7 +21,7 @@ ODİ: Sesin Yolu hesap açarken **ad-soyad, e-posta, telefon, konum, rehber, rek
 | Takım, arkadaşlık, engelleme, şikâyet kayıtları | Sunucu | Sosyal özellikler ve güvenlik | Hesap silinene kadar |
 | Takım/genel sohbet mesajları | Sunucu | Sohbet | 30 gün |
 | Özel mesajlar | Sunucu | Mesajlaşma | Konuşma başına son 500 mesaj; hesap silinene kadar |
-| Kod denemeleri (zaman, oyuncu kimliği, IP adresi) | Sunucu | Kötüye kullanımı önlemek | [süre — öneri: 90 gün] |
+| Kod denemeleri (zaman, oyuncu kimliği, IP adresi) | Sunucu | Kötüye kullanımı önlemek | 90 gün (sonra otomatik silinir) |
 | Satın alma makbuzu (Apple / Google üzerinden) | Sunucu + [RevenueCat] | Satın almayı doğrulamak | Yasal saklama süresi |
 | Bağlantı kayıtları (bağlandı/ayrıldı, hata) | Sunucu günlüğü | İşletim ve hata ayıklama | [süre — öneri: 14 gün] |
 

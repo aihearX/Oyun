@@ -18,7 +18,7 @@ export const PRIVACY_SECTIONS: { title: string; items: string[] }[] = [
     'Takma adın, rengin, arkadaş kodun; bölüm sonuçların, yıldızların ve cüzdanın.',
     'Takım, arkadaşlık, engelleme ve şikâyet kayıtları.',
     'Genel ve takım sohbeti mesajları (30 gün), özel mesajlar (konuşma başına son 500).',
-    'Kod denemeleri (zaman, oyuncu kimliği, IP adresi): kötüye kullanımı önlemek için.',
+    'Kod denemeleri (zaman, oyuncu kimliği, IP adresi; 90 gün): kötüye kullanımı önlemek için.',
     'Satın almalar Apple ya da Google üzerinden yapılır; kart bilgin bize hiç gelmez.',
   ] },
   { title: 'Silme hakkın', items: [

@@ -48,6 +48,10 @@ export function adminState(app: App, pid: string): AdminState {
   return { isAdmin: !!r?.admin, on: !!r?.admin && !!r.admin_on };
 }
 
+/** kod deneme kaydı (IP içerir) 90 gün tutulur; sonra silinir (gizlilik: en az veri, en kısa süre) */
+export const PROMO_LOG_RETAIN_MS = 90 * 24 * 3_600_000;
+export function prunePromoLog(app: App): void { app.db.run('DELETE FROM promo_log WHERE at < ?', app.now() - PROMO_LOG_RETAIN_MS); }
+
 // ------------------------------------------------------------------ deneme sınırı (bellek)
 const wrong = new WeakMap<App, Map<string, number[]>>();
 function recent(app: App, key: string): number[] {

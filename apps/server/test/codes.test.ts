@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
 import { setup, run, type Env, type TC } from './helpers';
-import { ADMIN_CHECKS_PER_WINDOW, DEFAULT_ADMIN_CODE_HASH, checkAdminCode, hashAdminCode, redeem as redeemDirect } from '../src/codes';
+import { ADMIN_CHECKS_PER_WINDOW, DEFAULT_ADMIN_CODE_HASH, PROMO_LOG_RETAIN_MS, checkAdminCode, hashAdminCode, prunePromoLog, redeem as redeemDirect } from '../src/codes';
 import { ADMIN_DISABLED, clientIp, configFromEnv } from '../src/server';
 
 let env: Env | undefined;
@@ -83,6 +83,17 @@ describe('Kod Gir: ödül kodları', () => {
     expect(tryCode('p-odul', '10.9.9.8', 'bahar').kind).toBe('odul');
     env.clock.advance(600_000);
     expect(tryCode('p-yeni', '10.9.9.9', TEST_ADMIN).kind).toBe('yonetici');
+  }, 30_000); // 60+ scrypt hesabı: yüklü makinede 5 sn'lik varsayılanı aşabilir
+
+  it('kod deneme kaydı (IP içerir) 90 gün sonra silinir', async () => {
+    env = await adminEnv();
+    const app = env.srv.app;
+    app.run(() => redeemDirect(app, 'p-eski', '10.1.1.1', 'YOKBOYLE'));
+    env.clock.advance(PROMO_LOG_RETAIN_MS - 1000);
+    app.run(() => redeemDirect(app, 'p-yeni', '10.1.1.2', 'YOKBOYLE2'));
+    env.clock.advance(2000);
+    prunePromoLog(app);
+    expect(app.db.all<{ player_id: string }>('SELECT player_id FROM promo_log').map((r) => r.player_id)).toEqual(['p-yeni']);
   });
 
   it('IP: X-Forwarded-For yalnızca güvenilir vekil sayısı kadar sağdan okunur; üretimde varsayılan özet kullanılmaz', () => {
