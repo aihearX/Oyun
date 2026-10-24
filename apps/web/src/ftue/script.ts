@@ -137,7 +137,7 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'anit-kanal', text: 'Kanal anıtı yükseldi! Kulak kanalı bazı sesleri, şişe ağzına üflemek gibi güçlendirir.', context: 'Kamp: bölge anıtı yükseldi (Kanal)', emotion: 'coşkulu (celebratory)' },
   { id: 'anit-zar', text: 'Kulak Zarı anıtı geldi! Zar, gelen sesle titreşir ve titreşimi kemikçiklere verir.', context: 'Kamp: bölge anıtı yükseldi (Zar)', emotion: 'coşkulu (celebratory)' },
   { id: 'anit-kemikcikler', text: 'Kemikçikler anıtı kuruldu: çekiç, örs ve üzengi! Vücudumuzun en küçük kemikleri.', context: 'Kamp: bölge anıtı yükseldi (Kemikçikler)', emotion: 'hayranlık (wonder)' },
-  { id: 'anit-koklea-1', text: 'Koklea anıtı parlıyor! Salyangoz biçimli koklea, titreşimi sinir sinyaline hazırlar.', context: 'Kamp: bölge anıtı yükseldi (Koklea 1)', emotion: 'hayranlık (wonder)' },
+  { id: 'anit-koklea-1', text: 'Koklea anıtı parlıyor! Sarmal koklea, titreşimi sinir sinyaline hazırlar.', context: 'Kamp: bölge anıtı yükseldi (Koklea 1)', emotion: 'hayranlık (wonder)' },
   { id: 'anit-koklea-2', text: 'Tüy hücresi anıtı geldi! Benim akrabalarım: sesle eğilir ve elektrik sinyalini başlatırlar.', context: 'Kamp: bölge anıtı yükseldi (Koklea 2)', emotion: 'gururlu, duygulu (proud, touched)' },
   { id: 'anit-koklea-3', text: 'Tonotopi anıtı kuruldu! Kokleanın tabanı ince seslere, tepesi kalın seslere yanıt verir.', context: 'Kamp: bölge anıtı yükseldi (Koklea 3)', emotion: 'öğretici, coşkulu (explaining, celebratory)' },
   { id: 'anit-sinir', text: 'İşitme siniri anıtı yandı! Sinyaller binlerce lifle beyin sapına koşar.', context: 'Kamp: bölge anıtı yükseldi (Sinir)', emotion: 'heyecanlı (excited)' },
