@@ -1,5 +1,5 @@
 import type { ArtName } from '../ui/art';
-import { KG_ACILIS } from '@odi/content';
+import { KG_ACILIS } from '@odi/content/kamp-gorev-acilis';
 
 /**
  * İlk deneyim (FTUE): yeni oyuncuda her şey bir anda açık olmaz; yerler bölüm geçtikçe tek tek açılır ve

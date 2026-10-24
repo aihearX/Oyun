@@ -1,7 +1,7 @@
 /** Haritanın "Sıradaki hedef" rozeti ve kart metinleri: gerçek ilerlemeden, dürüst sayılar. */
 import { BIOME_ORDER, BIOMES, HUMAN_JOURNEY, treasureAt, type RewardItem } from '@odi/content';
 import { nextTreasure, type MetaState } from '@odi/meta';
-import { nextVitalityNeed, vitalityOf, type StarMap } from '@odi/game-core';
+import { nextVitalityNeed, vitalityOf, type StarMap } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 
 export interface Goal { icon: string; text: string }

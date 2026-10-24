@@ -19,9 +19,9 @@ export * from './kamp-gorev-vakalar';
 
 // ---------------------------------------------------------------- açılış ve kurallar
 
-/** özelliklerin açıldığı geçilen bölüm sayısı (apps/web/src/ftue/features.ts bu sayıları kullanır; sunucu da aynısını uygular) */
-export const KG_ACILIS = { gorev: 4, oyun: 6, vaka: 7 } as const;
-export type KgOzellik = keyof typeof KG_ACILIS;
+/** özelliklerin açıldığı geçilen bölüm sayısı: ./kamp-gorev-acilis.ts */
+import type { KgOzellik } from './kamp-gorev-acilis';
+export { KG_ACILIS, type KgOzellik } from './kamp-gorev-acilis';
 
 export const KG_KURAL = {
   /** her gün kliniğe gelen yeni hasta (bekleme salonu dolu değilse) ve salonun alabileceği en çok hasta */

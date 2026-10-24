@@ -3,7 +3,7 @@
  * Yalnızca localhost/127.0.0.1 (geliştirme, önizleme) üzerinde etkindir; üretim alan adında yok sayılır. Hiçbir şey kaydedilmez/gönderilmez.
  */
 import { BUILDINGS, buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
-import { depotStored } from '@odi/game-core';
+import { depotStored } from '@odi/game-core/lite';
 import { CAMP_LEVEL_MAX, CAMP_XP, REMEDY_INV_CAP, campLevelRewards, campXpNeed, campXpState, campXpTotalFor, cellFree, decorById, decorSlots, footprint, libStored, pointCell, remedyById, remedyShelf } from '@odi/content';
 import type { DecorPlaced } from '@odi/shared';
 

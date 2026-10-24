@@ -3,7 +3,7 @@
  * "Görüldü" listesi bu cihazda tutulur (kolaylık; kaybolursa en ileri anıt bir kez daha kutlanır). Bir ziyarette en çok bir kutlama:
  * görülmemişlerin en ilerisi; diğerleri sessizce görülmüş sayılır.
  */
-import { MONUMENT_ORDER } from '@odi/game-core';
+import { MONUMENT_ORDER } from '@odi/game-core/lite';
 import { reachedRegions } from '../screens/GlossaryScreen';
 
 const KEY = 'odi.kamp.anitlar';
