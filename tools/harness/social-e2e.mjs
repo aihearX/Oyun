@@ -146,7 +146,7 @@ try {
   await shot(B, 'B-kamp');
   await B.getByRole('button', { name: 'Liste görünümü' }).click(); // erişilebilir liste görünümü: aynı işlevler
   await B.locator('.building').first().waitFor();
-  await B.locator('.building', { hasText: 'Odyometri Odası' }).getByRole('button', { name: 'Yükselt' }).click();
+  await B.locator('.building', { hasText: 'Odyometri Odası' }).getByRole('button', { name: /^(Kur|Yükselt)$/ }).click(); // Sv 0 binada etiket "Kur" (80c3641)
   await B.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
   await B.locator('.construction').waitFor();
   await toastGone(B);
