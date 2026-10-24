@@ -216,7 +216,7 @@ export function App() {
   const returning = Object.keys(store.progress).length > 0;
   useEffect(() => {
     if (bot) return; const list = preloadFor(route.name, returning); if (!list.length) return;
-    return whenIdle(() => { for (const f of list) void f().catch(() => undefined); }, route.name === 'title' ? 900 : 400);
+    return whenIdle(() => { for (const f of list) void f().catch(() => undefined); }, route.name === 'title' ? 300 : 400);
   }, [route.name, returning, bot]);
 
   const play = (number: number) => {

@@ -65,6 +65,18 @@ npx expo start
 - `expo-router` typed routes `.expo/types` altına yazılır; `tsc` bunlar olmadan da temizdir.
 - Simülatör/cihaz bu ortamda yok; doğrulama `expo export` + `tools/domcheck.mjs` (gerçek www.bundle, stub köprü) ile yapılır.
 
+## Paket bölme (DOM bileşeni)
+Web arayüzü ekranları ve Phaser sahnelerini `import()` ile yükler (`apps/web/src/App.tsx` `React.lazy`, `apps/web/src/engine.ts`).
+Vite (web) bunları ayrı parçalara böler. DOM paketinde durum şöyle:
+- **Dışa aktarma (`expo export`, EAS update, EAS build'deki `export:embed`) tek paket üretir.** `metro.config.js`
+  `EXPO_NO_BUNDLE_SPLITTING=1` koyar. Sebep: Expo'nun DOM bileşeni dışa aktarımı (SDK 57 ve 58) parçaları md5 adıyla yeniden
+  adlandırıyor, ana paketteki parça yolları eski adda kalıyor → `expo export` "Asset not found: _expo/static/js/web/__common-….js"
+  hatasıyla duruyor. Tek pakette `import()` aynı dosyanın içinde çözülür; modüller yine ilk kullanıldıkları anda çalışır
+  (başlık ekranında Phaser ve sahneler çalıştırılmaz), yalnız JS ayrıştırması tek dosyada kalır.
+- **Geliştirme sunucusu (`expo start`, Expo Go)** DOM bileşenini `lazy=true` ile sunar: `import()` parçayı Metro'dan ayrıca ister
+  (Expo'nun desteklediği yol, ek ayar gerekmez).
+- Expo bu hatayı düzeltirse `metro.config.js`'teki satırı kaldırmak yeterli; sonra `expo export` + `domcheck` ile doğrula.
+
 ## Uygulama içi satın alma (gerçek para)
 
 Gerçek ödeme yalnızca **App Store / Google Play** üzerinden ve **mağaza derlemesinde** (EAS build) çalışır. Expo Go'da gerçek ödeme yoktur; geliştirmede oyun sunucusunun açıkça **TEST MAĞAZASI** etiketli test satın almaları kullanılır (para çekilmez).

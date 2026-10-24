@@ -1,8 +1,8 @@
 /**
  * Phaser sahneleri isteğe bağlı yüklenir: ilk açılış (başlık + hikâye) Phaser'ı hiç ayrıştırmaz.
- * Her sahne (bölüm, harita, kamp) ayrı bir parça; Phaser bunların ortak parçasıdır. `import()` hem Vite'ta hem
- * Expo DOM (Metro) paketinde çalışır: Metro'da ayrı parça ya da (EXPO_NO_BUNDLE_SPLITTING=1) aynı paketin içinde
- * ertelenmiş modül olarak (bkz. apps/mobile/README.md "Paket bölme").
+ * Her sahne (bölüm, harita, kamp) ayrı bir parça; Phaser bunların ortak parçasıdır (Vite). Expo DOM paketinde dışa aktarma
+ * tek pakettir (EXPO_NO_BUNDLE_SPLITTING=1): `import()` aynı paketin içinde çözülür, modül yine ilk kullanımda çalışır
+ * (bkz. apps/mobile/README.md "Paket bölme").
  * Yükleme bir kez yapılır; hata olursa söz sıfırlanır ve bir sonraki deneme yeniden ister.
  */
 function memo<T>(load: () => Promise<T>): () => Promise<T> {
