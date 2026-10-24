@@ -15,6 +15,9 @@ services:
         value: production
       - key: ODI_DB
         value: /app/data/odi.sqlite
+      # Kalıcı disk eklenince (ücretli plan): ODI_DB ve yedek klasörü diske, ör. /var/data/odi.sqlite ve /var/data/yedek
+      # - key: ODI_BACKUP_DIR
+      #   value: /var/data/yedek
       # Gerçek mağaza makbuz doğrulaması için (yoksa App Store / Play satın alımları reddedilir)
       - key: REVENUECAT_API_KEY
         sync: false

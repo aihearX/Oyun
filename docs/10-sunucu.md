@@ -49,6 +49,9 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `ODI_LOG` | açık | `0` → bağlantı günlüğünü kapat |
 | `ODI_FREE_TEXT_AT` | `8` | yalnızca test: serbest yazı için geçilmesi gereken bölüm (güvenli sohbet; üretimde ayarlanmaz) |
 | `ODI_ADMIN_CODE_HASH` | geliştirmede depodaki varsayılan özet; **üretimde (`NODE_ENV=production`) yok = yönetici kodu kapalı** | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur). Depo herkese açık olduğundan varsayılan özet üretimde kullanılmaz; üretim için yeni ve uzun bir kod seçilip özeti burada verilmelidir |
+| `ODI_BACKUP_DIR` | — | veritabanı yedek klasörü; verilirse açılışta ve her `ODI_BACKUP_HOURS` saatte `VACUUM INTO` ile kopya (bkz. "Yedek") |
+| `ODI_BACKUP_HOURS` | `6` | yedek aralığı (saat) |
+| `ODI_BACKUP_KEEP` | `28` | tutulan en yeni yedek sayısı (6 saatte bir → 7 gün) |
 | `ODI_TRUST_PROXY` | `0` | sunucunun önündeki güvenilir vekil sayısı. `0`: `X-Forwarded-For` yok sayılır, soket adresi kullanılır. Render gibi tek vekil: `1` (başlığın en sağdaki girdisi; soldakileri istemci yazabilir). Kod denemesi IP sınırı bu adresi kullanır |
 
 ## 3. İstemci (`@odi/net`)
@@ -211,6 +214,16 @@ yazar). Serbest yazısı açılmamış oyuncunun davet metinlerini de sunucu yaz
 - Sezon kapanışı ve ödül bir kez işlenir.
 
 Birim testleri: `apps/server/test/teamrace.test.ts`.
+
+## Yedek
+
+`ODI_BACKUP_DIR` verilirse sunucu açılışta ve her `ODI_BACKUP_HOURS` saatte bir `VACUUM INTO` ile tutarlı bir kopya yazar
+(`odi-yedek-YYYYMMDD-HHMMSS.sqlite`, WAL açıkken de güvenli), en yeni `ODI_BACKUP_KEEP` dosyayı tutar.
+- Yedek klasörü kalıcı diskte olmalı (Render: ücretli plan + disk, ör. `ODI_DB=/var/data/odi.sqlite`, `ODI_BACKUP_DIR=/var/data/yedek`).
+- Aynı diskteki kopya bozulmaya ve hatalı sürüme karşı korur, diskin kaybına karşı korumaz: makine dışı kopya (ör. haftalık
+  indirme ya da nesne depolama) sahibin kararıdır.
+- Geri yükleme: sunucuyu durdur → `ODI_DB` dosyasını ve yanındaki `-wal`/`-shm` dosyalarını kenara al → yedeği `ODI_DB` adıyla
+  kopyala → sunucuyu başlat. Şema yalnızca `CREATE TABLE IF NOT EXISTS` ile ilerlediği için eski yedek yeni sürümde açılır.
 
 ## Hesabı silme (`account.delete`)
 

@@ -23,6 +23,7 @@ import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './ev
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers } from './codes';
+import { backupNow } from './backup';
 import { accountHandlers } from './account';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 import { kgHandlers, withKgHooks } from './camp-quests';
@@ -77,6 +78,9 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   // üretimde depodaki (herkese açık) varsayılan özet kullanılmaz: yönetici kodu yalnızca ODI_ADMIN_CODE_HASH ile açılır
   else if (env.NODE_ENV === 'production') o.adminCodeHash = ADMIN_DISABLED;
   if (env.ODI_TRUST_PROXY && /^\d+$/.test(env.ODI_TRUST_PROXY)) o.trustProxy = Number(env.ODI_TRUST_PROXY);
+  if (env.ODI_BACKUP_DIR) o.backupDir = env.ODI_BACKUP_DIR;
+  if (env.ODI_BACKUP_HOURS && Number(env.ODI_BACKUP_HOURS) > 0) o.backupHours = Number(env.ODI_BACKUP_HOURS);
+  if (env.ODI_BACKUP_KEEP && /^\d+$/.test(env.ODI_BACKUP_KEEP)) o.backupKeep = Number(env.ODI_BACKUP_KEEP);
   return o;
 }
 
@@ -233,6 +237,13 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     } catch (e) { console.error('[zamanlayıcı]', e); }
   };
   const sweeper = setInterval(sweep, cfg.sweepMs);
+  // veritabanı yedeği: açılışta bir kez, sonra her backupHours saatte
+  const backup = () => {
+    if (!cfg.backupDir || cfg.dbFile === ':memory:') return;
+    try { const f = backupNow(app, cfg.backupDir, cfg.backupKeep ?? 28); log('yedek alındı', f); } catch (e) { console.error('[yedek]', e); }
+  };
+  backup();
+  const backuper = cfg.backupDir ? setInterval(backup, (cfg.backupHours ?? 6) * 3_600_000) : null;
 
   await new Promise<void>((resolve, reject) => {
     httpServer.once('error', reject);
@@ -245,7 +256,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   return {
     app, port, url: `ws://127.0.0.1:${port}`, httpUrl: `http://127.0.0.1:${port}`, sweep,
     close: async () => {
-      clearInterval(pinger); clearInterval(sweeper);
+      clearInterval(pinger); clearInterval(sweeper); if (backuper) clearInterval(backuper);
       raceShutdown(app);
       teamRaceShutdown(app);
       eventsShutdown(app);

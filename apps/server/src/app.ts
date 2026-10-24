@@ -37,6 +37,12 @@ export interface ServerConfig {
   adminCodeHash?: string;
   /** sunucunun önündeki güvenilir vekil sayısı (ODI_TRUST_PROXY); 0/yok = X-Forwarded-For yok sayılır */
   trustProxy?: number;
+  /** yedek klasörü (ODI_BACKUP_DIR); yoksa yedek alınmaz */
+  backupDir?: string;
+  /** yedek aralığı, saat (ODI_BACKUP_HOURS, varsayılan 6) */
+  backupHours?: number;
+  /** tutulacak yedek sayısı (ODI_BACKUP_KEEP, varsayılan 28 = 6 saatte bir 7 gün) */
+  backupKeep?: number;
 }
 
 export class OdiError extends Error {
