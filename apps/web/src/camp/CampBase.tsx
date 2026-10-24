@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BuildingId, CampState, CheerKind, Wallet } from '@odi/shared';
 import { CAMP_CHEERS } from '@odi/shared';
 import type { CampHandle, CampTeam } from '@odi/game-core/lite';
-import { loadCamp } from '../engine';
+import { chunkFailed, loadCamp } from '../engine';
 import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
@@ -73,7 +73,7 @@ export function CampBase(p: CampBaseProps) {
     if (!host.current) return;
     const el = host.current; let dead = false; let h: CampHandle | null = null;
     // Phaser kamp sahnesi ayrı parça; yüklenene kadar .camp-loading görünür (ready)
-    void loadCamp().catch(() => loadCamp()).then(({ startCamp }) => {
+    void loadCamp().then(({ startCamp }) => {
       if (dead) return;
       const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
       const heroColor = visit ? visit.heroColor : odiLook(useStore.getState()).color;
@@ -126,7 +126,7 @@ export function CampBase(p: CampBaseProps) {
         pos: (id: BuildingId) => cur.screenPos(id), view: () => cur.view(), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
         decor: (uid: number) => cur.decorPos(uid), ghost: () => cur.ghostPos(), ghostState: () => cur.ghostState(), district: (id: string) => cur.districtPos(id), focusDistrict: (id: string) => cur.focusDistrict(id), districts: () => cur.openDistricts(), mem: () => cur.mem(), moveGhost: (gx: number, gy: number) => cur.moveGhost(gx, gy),
       };
-    });
+    }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
     if (!visit) audio.music('menu');
     return () => { dead = true; h?.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
   }, []);

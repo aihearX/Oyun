@@ -8,7 +8,7 @@ import { TeamRaceHud, teamGhost } from '../teamrace/TeamRace';
 import { sayPathology } from '../ftue/pathology';
 import { sayHint, saidSoFar } from '../ftue/hints';
 import type { GameEvent, LevelHandle, LevelOptions, RaceOptions } from '@odi/game-core/lite';
-import { loadLevel } from '../engine';
+import { chunkFailed, loadLevel } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
@@ -108,8 +108,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       });
       handle.current = h;
     };
-    // yükleme hatası (ör. parça indirilemedi): bir kez daha denenir, olmazsa haritaya dönülür
-    loadLevel().catch(() => loadLevel()).then(start, () => { if (!dead) onQuit(); });
+    // parça indirilemezse bölümden çıkılır (web'de sayfa yenilenir: engine.ts chunkFailed)
+    loadLevel().then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
     return () => { dead = true; for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir

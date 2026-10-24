@@ -40,7 +40,7 @@ import { CommBanner } from './comm/CommBanner';
 import { mentionCount, useComm } from './comm/state';
 import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
-import { loadLevel, loadMap } from './engine';
+import { chunkFailed, loadLevel, loadMap } from './engine';
 import { EngineLoading, ScreenLoading } from './ui/Loading';
 
 /**
@@ -49,7 +49,7 @@ import { EngineLoading, ScreenLoading } from './ui/Loading';
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ekranların prop tipleri farklı; lazy bileşen tipi korunur
 function screen<M extends Record<K, ComponentType<any>>, K extends keyof M & string>(load: () => Promise<M>, name: K) {
-  return lazy(() => load().then((m) => ({ default: m[name] })));
+  return lazy(() => load().then((m) => ({ default: m[name] }), chunkFailed));
 }
 const load = {
   map: () => import('./screens/MapScreen'), level: () => import('./screens/LevelHost'), result: () => import('./screens/ResultScreen'),

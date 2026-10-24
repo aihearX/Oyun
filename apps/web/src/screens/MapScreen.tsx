@@ -6,7 +6,7 @@ import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
 import type { MapHandle, MapSocial, ZoneId } from '@odi/game-core/lite';
-import { loadMap } from '../engine';
+import { chunkFailed, loadMap } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
 import { getNet, useSocial } from '../net';
@@ -55,7 +55,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   useEffect(() => {
     let dead = false; let h: MapHandle | null = null; let started = false;
     // Phaser haritası ayrı parça: kayıt okunurken birlikte yüklenir (çoğu zaman başlık ekranında önceden yüklenmiştir)
-    void Promise.all([loadMapSeen(), loadMap().catch(() => loadMap())]).then(([, { startMap }]) => {
+    void Promise.all([loadMapSeen(), loadMap()]).then(([, { startMap }]) => {
       if (dead || !host.current) return;
       const s = useStore.getState(); const now = starsOf(s.progress);
       const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
@@ -82,7 +82,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onCurrentVisible: (v, d) => setAway(v ? null : d),
       });
       handle.current = h; setStage(true);
-    });
+    }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
     // sahne yarıda bırakılırsa (ör. hemen bölüme geçildi) bir dahaki açılışta tekrar oynamasın
     return () => { dead = true; if (started) useMapSeen.getState().commit(starsOf(useStore.getState().progress)); h?.destroy(); handle.current = null; };
   }, []);
