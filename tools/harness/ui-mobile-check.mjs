@@ -465,6 +465,11 @@ async function suite(browserName, target, [W, H]) {
       await tab('Harita'); await tab('Kamp'); await sleep(1200); await toastGone();
       const ub = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub.count()) { await ub.click(); await sleep(1200); }
       await page.evaluate(() => window.__kg?.refresh()); await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); await sleep(800); await toastGone();
+      // kamp büyümesi kutlaması (Kamp Seviyesi atladıysa) düğmeleri örtmesin
+      for (let i = 0; i < 6; i++) {
+        const ok = page.locator('.cel-cta .btn'); if (await ok.count()) { await ok.first().click().catch(() => undefined); await sleep(600); continue; }
+        if (!(await page.locator('.cel-title').count())) break; await page.mouse.click(10, 300); await sleep(700);
+      }
       await check('gorev-kamp-dugmeleri', { scroll: false });
       await page.getByTestId('kg-btn').click(); await page.getByTestId('kg-panel').waitFor();
       for (const t of ['hikaye', 'gunluk', 'etkinlik', 'basari']) { await page.locator(`.kg-tabs [data-tab="${t}"]`).click(); await sleep(500); await check(`gorev-${t}`, { scroll: false }); }
