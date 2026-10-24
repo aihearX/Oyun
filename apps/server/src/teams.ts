@@ -72,7 +72,7 @@ export function joinTeam(app: App, p: PlayerRow, t: TeamRow, role: TeamRole): vo
 }
 
 /** üyeyi takımdan çıkar: lider ayrılırsa en kıdemli yardımcıya, yoksa en kıdemli üyeye devreder; son kişi çıkarsa takım silinir */
-function removeMember(app: App, pid: string, how: 'ayrildi' | 'atildi'): void {
+export function removeMember(app: App, pid: string, how: 'ayrildi' | 'atildi'): void {
   const p = app.player(pid);
   const teamId = p.team_id;
   if (!teamId) return;

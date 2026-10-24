@@ -9,6 +9,7 @@ import { TLIG_SCHEMA, TRACE_SCHEMA } from './teamrace';
 import { CODES_SCHEMA } from './codes';
 import { TEAM_APPLY_SCHEMA } from './teamapply-schema';
 import { KG_SCHEMA } from './camp-quests-schema';
+import { ACCOUNT_SCHEMA } from './account-schema';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS meta(k TEXT PRIMARY KEY, v TEXT NOT NULL);
@@ -122,6 +123,7 @@ export class Db {
     this.raw.exec(CODES_SCHEMA);
     this.raw.exec(TEAM_APPLY_SCHEMA); // takım başvuruları (yalnızca yeni tablo; eski open = 0 takımlar veri değişmeden 'basvuru' sayılır)
     this.raw.exec(KG_SCHEMA);
+    this.raw.exec(ACCOUNT_SCHEMA); // silinen hesaplar (yalnızca yeni tablo)
   }
 
   private stmt(sql: string): StatementSync {

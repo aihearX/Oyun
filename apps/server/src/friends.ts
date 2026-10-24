@@ -132,7 +132,7 @@ function ensureKeyFn(app: App): void {
 }
 const likeEsc = (s: string) => s.replace(/[%_\\]/g, (c) => '\\' + c);
 /** varsayılan isimli ve hiç oynamamış hesaplar aramada/öneride çıkmaz (gerçek, etkin oyuncular) */
-const isGhost = (p: PlayerRow) => /^Odi\d{4}$/.test(p.name) && p.stars === 0 && p.xp === 0;
+const isGhost = (p: PlayerRow) => (/^Odi\d{4}$/.test(p.name) && p.stars === 0 && p.xp === 0) || p.token_hash.startsWith('silindi:');
 
 // ------------------------------------------------------------------ şikâyet birikimi (sohbet şikâyetiyle aynı eşik ve süre)
 export function addReport(app: App, target: string, reporter: string, msgId: string, reason: string): void {
@@ -261,6 +261,7 @@ export const friendHandlers: Handlers = {
       `SELECT * FROM players WHERE id != ? AND (odi_key(name) LIKE ? ESCAPE '\\' OR friend_code = ?)
          AND id NOT IN (SELECT b FROM blocks WHERE a = ?) AND id NOT IN (SELECT a FROM blocks WHERE b = ?)
          AND NOT (name GLOB 'Odi[0-9][0-9][0-9][0-9]' AND stars = 0 AND xp = 0)
+         AND id NOT IN (SELECT player_id FROM deleted_players)
        ORDER BY (friend_code = ?) DESC, (odi_key(name) = ?) DESC, (odi_key(name) LIKE ? ESCAPE '\\') DESC, stars DESC, last_seen DESC
        LIMIT ? OFFSET ?`,
       s.pid, `%${likeEsc(key)}%`, code, s.pid, s.pid, code, key, `${likeEsc(key)}%`, per + 1, pg * per);

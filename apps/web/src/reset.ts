@@ -8,11 +8,18 @@ import { resetVoiceManifest, stopVoice } from './ftue/voice';
  *    mobilde AsyncStorage.clear(), web'de localStorage
  *  - WebView/tarayıcı önbellekleri: localStorage, sessionStorage, IndexedDB, Cache Storage
  *  - bellekteki önbellekler: sayfa / WebView yeniden kurulduğu için kendiliğinden gider
- * Sunucudaki veriye dokunulmaz; oyuncu kimliği silindiği için sunucu bir sonraki bağlantıda yeni bir oyuncu görür.
+ *  - sunucudaki hesap: bağlantı varsa önce `account.delete` (ad anonim, takım üyeliği, arkadaşlar, özel mesajlar, sohbet
+ *    mesajları silinir; KVKK/GDPR silme hakkı). Bağlantı yoksa en çok birkaç saniye beklenir; olmazsa yalnızca cihaz silinir.
+ * Oyuncu kimliği silindiği için sunucu bir sonraki bağlantıda yeni bir oyuncu görür.
  */
 export async function resetEverything(): Promise<void> {
-  // 1) yazmaları ve sesi durdur, bağlantıyı kapat (silinenler arkadan geri yazılmasın)
   try { stopVoice(); } catch { /* yok */ }
+  // 0) sunucudaki hesabı sil (bağlanıyorsa çağrı bağlantıyı bekler; en çok 6 sn)
+  try {
+    const net = getNet();
+    if (net && net.status !== 'kapalı') await Promise.race([net.call('account.delete', {}), new Promise((r) => setTimeout(r, 6000))]);
+  } catch { /* çevrimdışı: yalnızca cihaz silinir */ }
+  // 1) yazmaları durdur, bağlantıyı kapat (silinenler arkadan geri yazılmasın)
   freezeStorage();
   try { getNet()?.close(); } catch { /* yok */ }
   resetVoiceManifest();

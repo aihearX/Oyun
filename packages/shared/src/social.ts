@@ -1326,3 +1326,12 @@ export interface EvtMap {
   'kg.updated': { state: KgState };
   'vaka.updated': { vaka: VakaState };
 }
+
+// ------------------------------------------------------------------ hesabı silme (KVKK/GDPR silme hakkı; Ayarlar › Her şeyi sıfırla)
+/** Silinen hesabın herkese görünen adı (takım akışı, eski sıralama kayıtları gibi yerlerde) */
+export const DELETED_PLAYER_NAME = 'Silinmiş Oyuncu';
+export interface OpMap {
+  /** sunucudaki hesabı kalıcı olarak siler: takımdan çıkar, arkadaşlıklar/istekler/engeller/özel mesajlar/sohbet mesajları silinir,
+   *  ad anonimleşir, oturum anahtarı geçersizleşir, rekabet tablolarından çıkar. Geri alınamaz. */
+  'account.delete': { req: Record<string, never>; res: { deleted: true } };
+}

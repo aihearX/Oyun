@@ -48,6 +48,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'team.create': z.object({ name: z.string().max(60), emblem: z.string().min(1).max(16), description: z.string().max(140).optional(), open: z.boolean().optional(), minLevel: level.optional() }),
   'team.join': z.object({ teamId: id.optional(), code: z.string().max(12).optional() }),
   'team.leave': empty,
+  'account.delete': empty,
   'team.detail': z.object({ teamId: id.optional() }),
   'team.kick': z.object({ id }),
   'team.role': z.object({ id, role: z.enum(['lider', 'yardimci', 'uye']) }),

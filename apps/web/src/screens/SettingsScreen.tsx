@@ -56,12 +56,12 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         </div>
       </div>
       <CodeSettingsCard />
-      <div className="card skill"><div><h2>Her şeyi sıfırla</h2><div className="muted">Bu cihazdaki ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => setAsk(true)}>Sıfırla</button></div>
+      <div className="card skill"><div><h2>Her şeyi sıfırla</h2><div className="muted">Bu cihazdaki ilerleme, jetonlar ve ayarlar ile sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => setAsk(true)}>Sıfırla</button></div>
       {ask && (
         <Sheet title="Her şey silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
           <div className="reset-sheet" data-testid="sifirla-onay">
             <p className="rs-warn"><Art name="trash" size={22} /> Her şey silinecek: ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
-            <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz.</p>
+            <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.</p>
             <div className="rs-actions">
               <button type="button" className="btn ghost" disabled={busy} onClick={() => setAsk(false)}>Vazgeç</button>
               <button type="button" className="btn coral" data-testid="sifirla-evet" disabled={busy} onClick={() => { setBusy(true); void resetEverything(); }}>{busy ? 'Siliniyor…' : 'Her şeyi sil'}</button>

@@ -212,6 +212,18 @@ yazar). Serbest yazısı açılmamış oyuncunun davet metinlerini de sunucu yaz
 
 Birim testleri: `apps/server/test/teamrace.test.ts`.
 
+## Hesabı silme (`account.delete`)
+
+Ayarlar › **Her şeyi sıfırla**, cihazı silmeden önce sunucudaki hesabı siler (KVKK m.7 / GDPR m.17 silme hakkı; App Store 5.1.1(v)).
+Bağlantı yoksa istemci en çok 6 sn bekler; olmazsa yalnızca cihaz silinir (onay sayfası bunu açıkça söyler).
+- Takımdan çıkar (lider ise liderlik devreder; son üyeyse takım silinir), arkadaşlıklar (karşı tarafa `friend.removed`), istekler,
+  engeller, oyuncunun dahil olduğu özel mesaj konuşmaları, tepkiler/okundu bilgisi, genel/takım sohbet mesajları, bekleyen takım
+  başvuruları, bölüm yardımı istekleri ve bu haftanın lig grubu kaydı silinir.
+- Oyuncu satırı kalır (geçmiş savaş/baskın/lig kayıtları kimliğe bağlı) ama ad `Silinmiş Oyuncu` olur, oturum anahtarı özeti
+  hiçbir anahtarla eşleşmeyecek biçimde değişir, arkadaş kodu yenilenir; hesap `deleted_players` tablosuna yazılır.
+- Silinmiş hesaplar yönetici hesaplarıyla aynı yoldan (`ADMIN_IDS_SQL`) rekabet tablolarından ve ödüllerden çıkarılır; arama ve
+  öneri listelerinde görünmez. Geri alınamaz.
+
 ## Kodlar (Kod Gir)
 
 Profil › **Kod gir** ve Ayarlar › **Kod gir**: oyuncu bir kod yazar, sunucu doğrular (`code.redeem`). İstemci kodu boşluksuz ve Türkçe güvenli büyük
