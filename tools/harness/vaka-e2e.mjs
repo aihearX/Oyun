@@ -257,12 +257,22 @@ try {
     await A.locator('[data-testid="kg-btn"]').click(); await A.locator('[data-tab="etkinlik"]').click();
     await A.locator('[data-testid="etk-ton"]').click();
     await A.locator('[data-testid="oyun-ton"]').waitFor();
+    // yalnız ses: ses kapalıyken tur başlamaz, sesi açma kartı çıkar
+    await A.evaluate(() => window.__kg.ses(false));
+    await A.locator('[data-testid="ton-ses-kapali"]').waitFor({ timeout: 5000 });
+    check(await A.locator('[data-testid="oyun-basla"]').count() === 0, 'Ton Avı: ses kapalıyken Başla yok, sesi aç kartı var');
+    await shot(A, 'ton-ses-kapali', 200);
+    await A.locator('[data-testid="ton-sesi-ac"]').click();
+    await A.locator('[data-testid="oyun-basla"]').waitFor({ timeout: 5000 });
     await shot(A, 'ton-giris', 300);
     await A.locator('[data-testid="oyun-basla"]').click();
     await A.locator('[data-testid="ton-tur"]').waitFor();
     for (let i = 0; i < 8; i++) {
       await A.locator(`[data-testid="ton-tur"][data-deneme="${i}"][data-faz="cevap"]`).waitFor({ timeout: 10_000 });
-      if (i === 0) await shot(A, 'ton-deneme', 0);
+      if (i === 0) {
+        await shot(A, 'ton-deneme', 0);
+        check(await A.locator('.kg-toggle, .gorsel, .kg-perde-bar').count() === 0, 'Ton Avı: görsel ipucu yok (yalnız ses)');
+      }
       await A.locator('[data-testid="ton-tur"] [data-cevap="1"]').click();
     }
     await A.locator('[data-testid="oyun-sonuc"]').waitFor({ timeout: 10_000 });
@@ -272,11 +282,17 @@ try {
     await A.locator('[data-testid="kg-btn"]').click(); await A.locator('[data-tab="etkinlik"]').click();
     await A.locator('[data-testid="etk-timpano"]').click();
     await A.locator('[data-testid="oyun-basla"]').click();
+    const items = JSON.parse(db.get("SELECT items FROM ko_items ORDER BY rowid DESC LIMIT 1").items);
+    check(items.length === 5 && new Set(items).size === 5, `Timpanogram: sunucu destesinden 5 farklı soru (${items.join(', ')})`);
     for (let i = 0; i < 5; i++) {
       await A.locator(`[data-testid="timpano-tur"][data-bulmaca="${i}"] .kg-opt:not([disabled])`).first().waitFor({ timeout: 10_000 });
-      if (i === 0) await shot(A, 'timpano-bulmaca', 200);
+      check(await A.locator('[data-testid="timpano-tur"]').getAttribute('data-soru') === items[i], `soru ${i + 1}: ${items[i]}`);
+      const bicim = await A.locator('[data-testid="timpano-tur"]').getAttribute('data-bicim');
+      await shot(A, `timpano-${i + 1}-${bicim}`, 200);
       await A.locator('[data-testid="timpano-tur"] .kg-opt').first().click();
-      await sleep(1700);
+      await A.locator('[data-testid="timp-aciklama"]').waitFor({ timeout: 5000 });
+      if (i === 0) await shot(A, 'timpano-aciklama', 100);
+      await A.locator('[data-testid="timp-ileri"]').click();
     }
     await A.locator('[data-testid="oyun-sonuc"]').waitFor({ timeout: 10_000 });
     check(db.get("SELECT COUNT(*) AS n FROM ko_round WHERE player_id = ? AND game = 'timpano' AND done = 1", aId).n === 1, 'Timpanogram Eşleştir turu sunucuda bitti');

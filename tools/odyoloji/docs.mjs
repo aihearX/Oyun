@@ -129,6 +129,17 @@ ${KG.VAKALAR.map((v) => {
   return `| \`${v.id}\` | ${v.kademe} | **${esc(v.baslik)}** | ${esc(v.hasta.ad)}, ${esc(v.hasta.yas)} | ${v.kat} | ${esc(KG.taniById(v.tani.dogru).teknik)} | ${v.anahtar.join(', ')} | ${esc(ody)} | ${esc(tim)} | ${esc(v.yonetim[0].sade)} | ${esc(v.aciklama.teknik)} | \`${v.terim}\` | ${esc(v.kaynak)} |`;
 }).join('\n')}
 
+## Timpanogram Eşleştir — soru bankası (${KG.TIMP_SORULAR.length}, docs/17-kamp-gorevleri.md)
+
+Kaynak: \`packages/content/src/kamp-gorev-timpano.ts\`. Timpanogram tek başına tanı koydurmaz: "eğri → bulgu" cevapları yalnız eğrinin
+gösterdiğini söyler; olası nedenler cevaptan sonraki açıklamada olasılık diliyle geçer. Tanı düzeyinde cevap yalnız otoskopi ya da öykü
+verilen kısa vakalarda. Değerler 226 Hz prob tonu; yetişkin ve çocuk kanal hacmi normlarıyla \`timpHatasi\` denetiminden geçer.
+Genel havuz ${KG.timpanoHavuzu('genel').length} soru, odyoloji havuzu ${KG.timpanoHavuzu('odyoloji').length} soru; oyuncu başına sunucu destesi.
+
+| # | düzey | biçim | yaş | soru / eğri | doğru cevap | kaynak |
+|---|---|---|---|---|---|---|
+${KG.TIMP_SORULAR.map((q) => { const b = KG.timpBulmaca(q, 1); const d = b.secenek[b.dogru]; const cev = d.egri ? `${d.egri.tip} (${d.egri.basinc ?? '—'} daPa, ${d.egri.uyum} ml, ${d.egri.hacim} ml)` : (d.teknik ? `${d.teknik}: ${d.metin}` : d.metin); const eg = b.egri ? ` · ${b.egri.tip} (${b.egri.basinc ?? '—'} daPa, ${b.egri.uyum} ml, ${b.egri.hacim} ml)` : b.sag ? ` · Sağ ${b.sag.tip} ${b.sag.hacim} ml / Sol ${b.sol.tip} ${b.sol.hacim} ml` : ''; return `| \`${q.id}\` | ${q.duzey === 'genel' ? 'Genel' : 'Odyoloji'} | ${KG.TIMP_BICIM_ADI[q.bicim]} | ${q.yas ?? 'yetişkin'} | ${esc((b.hikaye ? b.hikaye + ' ' : '') + b.soru + (b.bulgu ? ' ' + KG.EGRI_ADI[b.bulgu].sade : '') + eg)} | ${esc(cev)} | ${esc(q.kaynak)} |`; }).join('\n')}
+
 ## Quiz (${QUIZ_QUESTIONS.length})
 
 Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi yukarıdaki ders kitaplarının ilgili bölümleri.

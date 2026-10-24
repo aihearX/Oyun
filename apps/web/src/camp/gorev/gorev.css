@@ -171,21 +171,16 @@ small.kg-uyari { margin-left:0; justify-content:center; }
 .kg-ton-sahne small { font-weight:800; color:var(--text-2); }
 .kg-nabiz { width:96px; height:96px; border-radius:999px; display:grid; place-items:center; background:rgba(255,255,255,.07); border:2px solid rgba(255,255,255,.2); transition:transform .15s; }
 .kg-nabiz.dinle { animation:kgListen 1.2s ease-in-out infinite; }
-.kg-ton-sahne.gorsel .kg-nabiz.on { transform:scale(1.15); box-shadow:0 0 0 10px rgba(46,230,214,.35), 0 0 30px rgba(46,230,214,.6); border-color:#2ee6d6; }
 @keyframes kgListen { 50% { border-color:rgba(255,201,60,.6); } }
 @media (prefers-reduced-motion: reduce) { .kg-nabiz.dinle { animation:none; } }
 .kg-perde { display:flex; gap:28px; align-items:stretch; height:110px; }
 .kg-perde-col { position:relative; width:56px; border-radius:14px; background:rgba(255,255,255,.06); border:1px solid var(--panel-edge); display:flex; align-items:flex-end; justify-content:center; padding-bottom:4px; }
 .kg-perde-col b { font-size:18px; }
 .kg-perde-col.on { border-color:var(--gold); background:rgba(255,201,60,.15); }
-.kg-perde-bar { position:absolute; left:8px; right:8px; height:6px; border-radius:999px; background:transparent; }
-.kg-ton-sahne.gorsel .kg-perde-col.on .kg-perde-bar { background:#2ee6d6; box-shadow:0 0 10px #2ee6d6; }
 .kg-cevap { display:flex; gap:8px; flex-wrap:wrap; }
 .kg-cevap .btn { flex:1; min-width:120px; }
 .kg-cevap .btn.small { flex-basis:100%; }
-.kg-toggle { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-2); font-weight:700; }
-.kg-toggle input { width:18px; height:18px; }
-.kg-geri { font-size:13px; font-weight:800; padding:6px 10px; border-radius:12px; } .kg-geri.ok { background:rgba(142,240,176,.15); color:#8ef0b0; } .kg-geri.no { background:rgba(255,92,138,.14); color:#ffd3df; }
+.kg-geri { font-size:13px; font-weight:600; line-height:1.45; padding:8px 10px; border-radius:12px; } .kg-geri.ok { background:rgba(142,240,176,.15); color:#8ef0b0; } .kg-geri.no { background:rgba(255,92,138,.14); color:#ffd3df; }
 
 /* takım akışı: konsültasyon kartı */
 .fcard.t-konsult { border-color:rgba(139,107,255,.55); }
@@ -197,3 +192,26 @@ small.kg-uyari { margin-left:0; justify-content:center; }
 .kg-ks-fill { position:absolute; left:0; top:0; bottom:0; background:rgba(139,107,255,.28); }
 .kg-ks-opt.mine { border-color:var(--gold, #ffc93c); } .kg-ks-opt.ok { border-color:#5fe39a; }
 .kg-ks-opt:disabled { cursor:default; }
+
+/* Ton Avı: ses kapalıyken başlatma yerine kart (yalnız sesle oynanır) */
+.kg-ses-kapali { display:flex; flex-direction:column; gap:8px; padding:12px 14px; border-radius:16px; border:1.5px solid rgba(255,201,60,.55); background:rgba(255,201,60,.1); }
+.kg-ses-kapali b { display:flex; align-items:center; gap:6px; font-size:14px; }
+.kg-ses-kapali span { font-size:12.5px; color:var(--text-2); }
+/* Timpanogram Eşleştir: soru biçimleri */
+.kg-bicim { font-size:11.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:#8ef0b0; }
+.kg-vinyet { margin:0; font-size:13.5px; line-height:1.45; color:var(--text-2); }
+.kg-bulgu { margin:0; padding:8px 10px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid var(--panel-edge); font-size:13.5px; }
+.kg-vinyet-row { display:flex; align-items:center; gap:8px; }
+.kg-vinyet-row > svg { flex:1 1 auto; min-width:0; }
+.kg-vinyet-oto { margin:0; display:flex; flex-direction:column; align-items:center; gap:2px; flex:0 0 auto; font-size:11px; color:var(--text-2); }
+.kg-sayilar { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+.kg-sayilar span { display:flex; flex-direction:column; gap:2px; padding:8px; border-radius:12px; background:rgba(255,255,255,.06); border:1px solid var(--panel-edge); text-align:center; }
+.kg-sayilar small { font-size:11px; color:var(--text-2); }
+.kg-sayilar b { font-size:15px; }
+.kg-opts.egri { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.kg-opt-egri { display:flex; flex-direction:column; gap:2px; }
+.kg-opt-egri small, .kg-opt-txt small { font-size:11.5px; font-weight:600; color:var(--text-2); }
+.kg-opt-txt { display:flex; flex-direction:column; gap:2px; }
+.kg-timp.mini { width:100%; height:auto; }
+.kg-geri .kg-kaynak { display:block; margin-top:4px; font-size:11px; opacity:.75; font-weight:600; }
+.kg-geri .btn { margin-top:8px; width:100%; }

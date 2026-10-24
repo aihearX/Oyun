@@ -97,10 +97,21 @@ anahtarıyla **tam bir kez**; ikinci istek `TEKRAR`. İstemcide düğme istek s�
 ## 5. Kamp oyunları (günde 5 ödüllü tur, sonrası eğlence)
 
 - **Ton Avı** (Odyometri Odası): 8 deneme — "Ses var mı?" (rahat düzeyde bir ton çalar ya da çalmaz) ve "Hangisi daha ince?" (genel
-  düzeyde büyük, odyoloji düzeyinde küçük perde farkı). **Bir işitme testi değildir** (ekranda, oyun girişinde ve Tüy Dede'nin
-  sözünde). Ses kapalıysa / isteyene **görsel ipucu** (nabız halkası, perde yüksekliği).
-- **Timpanogram Eşleştir** (Timpanometri Kulesi): 5 eğri, 4 seçenek; genel düzeyde A / B-normal / C / B-büyük, odyoloji düzeyinde 7 tür
-  (As, Ad, B-küçük dahil) ve sayısal değerler. Her cevaptan sonra kısa açıklama.
+  düzeyde büyük, odyoloji düzeyinde küçük perde farkı). **Bir işitme testi değildir** (ekranda "BU BİR İŞİTME TESTİ DEĞİLDİR", oyun
+  girişinde ve Tüy Dede'nin sözünde). **Yalnız sesle oynanır**: ekranda sesin çalıp çalmadığını ya da hangi sesin daha ince olduğunu ele
+  veren hiçbir ipucu yoktur (dinleme penceresi her denemede aynıdır; "hangisi daha ince"de yalnız 1./2. sesin sırası yanar). Eski "görsel
+  ipucu" seçeneği kaldırıldı (kayıtlı `odi.kg.gorsel` değeri bir kez silinir). Oyun sesi kapalı ya da efekt sesi ~0 ise tur başlamaz;
+  "Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)" kartı ve **Sesi aç** düğmesi çıkar; kulaklık önerilir.
+- **Timpanogram Eşleştir** (Timpanometri Kulesi): turda 5 soru; sorular `kamp-gorev-timpano.ts` bankasından (88 soru; genel havuz 36,
+  odyoloji/öğrenci havuzu hepsi). Biçimler: eğri → bulgu, bulgu → eğri (3–4 küçük eğriden biri, aynı ölçekte), sayılar → Jerger tipi,
+  kısa vaka (öykü + eğri, gerekirse otoskopi çizimi), sağ/sol karşılaştırma, bilgi (226 / 1000 Hz prob tonu, yaşa göre kanal hacmi,
+  tüp, prob duvarda, akustik refleks). **Timpanogram tek başına tanı koydurmaz**: eğri → bulgu cevapları yalnız eğrinin gösterdiğini
+  söyler (hareketlilik, tepe basıncı, admitans, kanal hacmi); olası nedenler (ör. "en sık nedeni orta kulakta sıvı olabilir, otoskopi
+  ile doğrulanır") yalnız cevaptan sonraki açıklamada. Tanı düzeyinde cevap yalnız otoskopi/öykü verilen kısa vakada. Her sorudan sonra
+  açıklama + kaynak; oyuncu "Sonraki soru" ile ilerler.
+  **Tekrar yok**: sunucu her oyuncu ve düzey için karıştırılmış bir deste tutar (`ko_deck`: deste + imleç); tur destenin sıradaki 5
+  sorusunu alır (`ko_items`), deste bitince yeni deste kurulur ve son görülenler yeni destenin sonuna konur. Seçenek sırası tur tohumu
+  ile karışır; puanlama sunucuda aynı `timpanoTuru(seed, duzey, items)` ile yapılır.
 - Tur tohumu sunucuda üretilir, cevaplar sunucuda puanlanır; tur en az 9,6 / 7,5 sn sürer; ödül tur başına 4 jeton + 5 Kamp XP.
 
 ## 6. Ödül ekonomisi ve sınırlar

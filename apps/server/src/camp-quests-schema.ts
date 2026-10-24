@@ -25,4 +25,7 @@ CREATE TABLE IF NOT EXISTS kv_team_week(team_id TEXT NOT NULL, week TEXT NOT NUL
 -- kamp oyunları (Ton Avı, Timpanogram Eşleştir): tur başı tohum sunucuda; sonuç bir kez
 CREATE TABLE IF NOT EXISTS ko_round(id TEXT PRIMARY KEY, player_id TEXT NOT NULL, game TEXT NOT NULL, seed INTEGER NOT NULL, duzey TEXT NOT NULL, started_at INTEGER NOT NULL, done INTEGER NOT NULL DEFAULT 0, score INTEGER);
 CREATE INDEX IF NOT EXISTS ko_round_player ON ko_round(player_id, started_at);
+-- Timpanogram Eşleştir: turun soruları ve oyuncunun kişisel destesi (karıştırılmış havuz + imleç; deste bitince yeni deste)
+CREATE TABLE IF NOT EXISTS ko_items(round_id TEXT PRIMARY KEY, items TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ko_deck(player_id TEXT NOT NULL, duzey TEXT NOT NULL, deck TEXT NOT NULL, pos INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(player_id, duzey));
 `;

@@ -1307,7 +1307,9 @@ export interface VakaSonuc {
   /** ilk kez çözüldü mü */ first: boolean; newStars: number; reward: KampOdul;
   correctDx: string; correctMg: string;
 }
-export interface KampOyunTur { id: string; oyun: 'ton' | 'timpano'; seed: number; duzey: 'genel' | 'odyoloji'; rewarded: boolean; left: number }
+export interface KampOyunTur { id: string; oyun: 'ton' | 'timpano'; seed: number; duzey: 'genel' | 'odyoloji'; rewarded: boolean; left: number;
+  /** Timpanogram Eşleştir: bu turun soru kimlikleri (oyuncunun destesinden; havuzun çoğu görülmeden tekrar gelmez) */
+  items?: string[] }
 
 export interface OpMap {
   'kg.state': { req: Record<string, never>; res: { state: KgState } };

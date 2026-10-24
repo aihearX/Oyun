@@ -38,7 +38,7 @@ export const BUILDING_INFO: Record<BuildingId, BuildingInfo> = {
     src: `${K}, dış kulak ve otoskopi; ${E}` },
   kule: {
     plain: 'Timpanometri, kanaldaki basıncı değiştirip kulak zarının ne kadar rahat hareket ettiğini ölçer.',
-    tech: 'Prob, 226 Hz’lik bir ton verirken kanal basıncını yaklaşık +200 ile −400 daPa arasında değiştirir; admitansın basınçla değişimi timpanogramı çizer. Tip A normal, Tip B düz (sıvı ya da delik; kanal hacmine bakılır), Tip C negatif basınç (Östaki borusu yetersizliği). Aynı cihazla akustik refleks de ölçülür.',
+    tech: 'Prob, 226 Hz’lik bir ton verirken kanal basıncını yaklaşık +200 ile −400 daPa arasında değiştirir; admitansın basınçla değişimi timpanogramı çizer. Tip A normal, Tip B düz (olası nedenler sıvı, delik ya da tıkaç; kanal hacmi ve otoskopiyle ayırt edilir), Tip C negatif basınç (çoğu zaman Östaki borusu yetersizliğiyle ilişkili). Aynı cihazla akustik refleks de ölçülür.',
     src: `${K}, timpanometri ve akustik refleks` },
   revir: {
     plain: 'Klinikte sorunu erken fark etmek, onu kolay atlatmanın ilk adımıdır.',
@@ -105,7 +105,7 @@ export const CAMP_TERMS: CampTerm[] = [
     src: `${E}, dış kulak fizyolojisi` },
   { id: 'timpanogram-tipleri', term: 'Timpanogram tipleri (A, B, C)', region: 'zar', art: 'signal', building: 'kule', level: 2,
     plain: 'Timpanometri sonucu çizilen eğrinin biçimi: tepeli (normal), düz ya da sola kaymış.',
-    tech: 'Jerger sınıflaması: Tip A normal basınçta tepe; As sığ (ör. otoskleroz), Ad çok yüksek (ör. zincir kopukluğu ya da gevşek zar); Tip B düz (sıvı, tıkaç ya da delik; kanal hacmine bakılır); Tip C belirgin negatif basınçta tepe (Östaki borusu yetersizliği).',
+    tech: 'Jerger sınıflaması: Tip A normal basınçta tepe; As sığ (ör. otoskleroz), Ad çok yüksek (ör. zincir kopukluğu ya da gevşek zar); Tip B düz (olası nedenler sıvı, tıkaç ya da delik; kanal hacmi ve otoskopiyle ayırt edilir); Tip C belirgin negatif basınçta tepe (çoğu zaman Östaki borusu yetersizliğiyle ilişkili).',
     src: `${K}, timpanometri` },
   { id: 'kanal-hacmi', term: 'Eşdeğer kulak kanalı hacmi', region: 'zar', art: 'target', building: 'kule', level: 6,
     plain: 'Timpanometrede prob ile zar arasındaki havanın hacmi; deliği ya da açık bir tüpü gösterebilir.',

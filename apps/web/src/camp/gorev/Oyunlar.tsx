@@ -1,27 +1,34 @@
 /**
  * Kamp oyunları. Ton Avı (Odyometri Odası): "ses var mı?" ve "hangisi daha ince?" denemeleri; sesler rahat bir düzeyde çalınır,
- * eşik aranmaz — BİR İŞİTME TESTİ DEĞİLDİR (ekranda yazar). Ses kapalıysa ya da isteyene görsel ipucu: aynı oyun görerek oynanır.
- * Timpanogram Eşleştir (Timpanometri Kulesi): eğriye bak, anlamını seç. Tur tohumu ve puanlama sunucudadır; günde 5 tur ödüllü.
+ * eşik aranmaz — BİR İŞİTME TESTİ DEĞİLDİR (ekranda yazar). Yalnız sesle oynanır: ekranda sesin çalıp çalmadığını ya da hangisinin
+ * daha ince olduğunu ele veren hiçbir ipucu yoktur. Oyun sesi kapalıysa tur başlamaz; sesi açmayı öneren bir kart çıkar.
+ * Timpanogram Eşleştir (Timpanometri Kulesi): 5 soruluk tur; sorular büyük bir bankadan, oyuncunun sunucudaki destesinden gelir
+ * (eğri → bulgu, bulgu → eğri, sayılar → tip, kısa vaka, sağ/sol, bilgi). Tur tohumu ve puanlama sunucudadır; günde 5 tur ödüllü.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import type { KampOdul, KampOyunTur } from '@odi/shared';
-import { EGRI_ADI, KAMP_OYUN, KG_KURAL, egriTipi, timpanoTuru, tonTuru, type TimpanoBulmaca, type TonDeneme } from '@odi/content';
+import { EGRI_ADI, KAMP_OYUN, KG_KURAL, TIMP_BICIM_ADI, timpanoTuru, tonTuru, type TimpanoBulmaca, type TimpSecenek, type TonDeneme } from '@odi/content';
 import { audio } from '@odi/audio';
 import { act } from '../../net';
 import { useStore } from '../../store';
 import { Art } from '../../ui/art';
-import { TimpanogramSvg } from './charts';
+import { OtoskopSvg, TimpanogramSvg } from './charts';
 import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { OdulChips } from './GorevPanel';
 import { celebrateReward, openPanel, useKg } from './state';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const GORSEL = 'odi.kg.gorsel';
-function useGorsel(): [boolean, (v: boolean) => void] {
-  const [v, setV] = useState(() => { try { const s = localStorage.getItem(GORSEL); if (s) return s === '1'; } catch { /* yok */ } return !audio.volumes().enabled || audio.volumes().sfx < 0.05; });
-  return [v, (n) => { setV(n); try { localStorage.setItem(GORSEL, n ? '1' : '0'); } catch { /* gizli mod */ } }];
+// eski "görsel ipucu" ayarı kaldırıldı: kayıtlı değeri bir kez temizle
+try { localStorage.removeItem('odi.kg.gorsel'); } catch { /* gizli mod */ }
+
+const sesAcikSimdi = () => { const st = useStore.getState(); return st.sounds && (st.sfxVol ?? 0) >= 0.05; };
+/** Ton Avı yalnız sesle oynanır: oyun sesi açık ve efekt düzeyi duyulur olmalı */
+function useSesAcik(): [boolean, () => void] {
+  const sounds = useStore((s) => s.sounds); const sfx = useStore((s) => s.sfxVol);
+  const ac = () => { const st = useStore.getState(); st.setSounds(true); if ((st.sfxVol ?? 0) < 0.3) st.setVolumes({ sfxVol: 0.8 }); try { audio.unlock(); } catch { /* yok */ } };
+  return [sounds && (sfx ?? 0) >= 0.05, ac];
 }
 
 export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
@@ -29,9 +36,10 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
   const gun = kg?.oyun.find((g) => g.oyun === oyun);
   const [round, setRound] = useState<KampOyunTur | null>(null);
   const [sonuc, setSonuc] = useState<{ score: number; total: number; reward: KampOdul } | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false); const [sesAcik, acSes] = useSesAcik();
   const close = () => { audio.play('tap'); audio.music('menu'); openPanel(null); };
   const start = async () => {
+    if (oyun === 'ton' && !sesAcikSimdi()) return;
     setBusy(true); const r = await act('koyun.start', { oyun, duzey }); setBusy(false);
     if (!r) return; audio.unlock(); if (oyun === 'ton') audio.music(null); setSonuc(null); setRound(r.round);
   };
@@ -51,10 +59,16 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
           {sonuc && <div className="kg-oyun-sonuc" data-testid="oyun-sonuc" data-score={sonuc.score}><b>{sonuc.score}/{sonuc.total}</b><span>{sonuc.score === sonuc.total ? 'Kusursuz!' : sonuc.score >= sonuc.total * 0.6 ? 'Güzel tur!' : 'Bir tur daha dene!'}</span>
             {Object.keys(sonuc.reward).length ? <OdulChips r={sonuc.reward} /> : <small>Bu tur ödülsüz (bugünün ödüllü turları bitti).</small>}</div>}
           <p>{def.plain}</p>
-          {oyun === 'ton' && <ul className="kg-kural"><li>“Ses var mı?” denemesinde dinle; sonra ses olup olmadığını seç.</li><li>“Hangisi daha ince?” denemesinde iki ses çalar; daha ince (tiz) olanı seç.</li><li className="kg-uyari"><Art name="ear" size={16} /> Bu bir işitme testi değildir. Sesler rahat bir düzeyde çalınır. İşitmenle ilgili bir kaygın varsa bir odyoloğa ya da hekime danış.</li></ul>}
-          {oyun === 'timpano' && <ul className="kg-kural"><li>Her turda {KG_KURAL.timpanoBulmaca} eğri gelir; eğrinin anlamını seç.</li><li>{duzey === 'genel' ? 'İpucu: tepeli eğri zarın rahat hareket ettiğini, düz eğri hareket etmediğini gösterir.' : 'Tepe basıncına, yüksekliğine ve düz eğride kanal hacmine bak (Jerger).'}</li></ul>}
+          {oyun === 'ton' && <ul className="kg-kural"><li>“Ses var mı?” denemesinde dinle; sonra ses olup olmadığını seç.</li><li>“Hangisi daha ince?” denemesinde iki ses çalar; daha ince (tiz) olanı seç.</li><li>Yalnız sesle oynanır; kulaklık önerilir.</li><li className="kg-uyari"><Art name="ear" size={16} /> Bu bir işitme testi değildir. Sesler rahat bir düzeyde çalınır. İşitmenle ilgili bir kaygın varsa bir odyoloğa ya da hekime danış.</li></ul>}
+          {oyun === 'timpano' && <ul className="kg-kural"><li>Her turda {KG_KURAL.timpanoBulmaca} soru gelir: eğriler, sayılar, kısa vakalar ve bilgi soruları. Sorular büyük bir bankadan gelir; çoğunu görmeden tekrar gelmez.</li><li>Timpanogram tek başına tanı koydurmaz: eğrinin ne gösterdiğini seç.</li><li>{duzey === 'genel' ? 'İpucu: tepeli eğri zarın rahat hareket ettiğini, düz eğri hareket etmediğini gösterir.' : 'Tepe basıncına, yüksekliğine ve düz eğride kanal hacmine bak (Jerger).'}</li></ul>}
           {gun && <small className="kg-note" data-testid="oyun-gun">{gun.rewarded < gun.cap ? `Bugün ödüllü tur: ${gun.rewarded}/${gun.cap}` : `Bugünün ödüllü turları bitti (${gun.cap}/${gun.cap}); dilediğin kadar eğlence için oynayabilirsin.`}</small>}
-          <button className="btn" data-testid="oyun-basla" disabled={busy || (gun ? !gun.open : false)} onClick={() => void start()}>{sonuc ? 'Bir tur daha' : 'Başla'}</button>
+          {oyun === 'ton' && !sesAcik ? (
+            <div className="kg-ses-kapali" data-testid="ton-ses-kapali" role="note">
+              <b><Art name="ear" size={18} /> Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)</b>
+              <span>Oyun sesi kapalı ya da çok kısık. Kulaklıkla oynamanı öneririz.</span>
+              <button className="btn" data-testid="ton-sesi-ac" onClick={() => { acSes(); audio.play('tap'); }}>Sesi aç</button>
+            </div>
+          ) : <button className="btn" data-testid="oyun-basla" disabled={busy || (gun ? !gun.open : false)} onClick={() => void start()}>{sonuc ? 'Bir tur daha' : 'Başla'}</button>}
           {gun && !gun.open && <small className="kg-kilit"><Art name="lock" size={14} /> {gun.locked}</small>}
         </div>
       )}
@@ -62,26 +76,27 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
   );
 }
 
-// ------------------------------------------------------------------ Ton Avı
+// ------------------------------------------------------------------ Ton Avı (yalnız ses; ekranda cevabı ele veren ipucu yok)
 function TonTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[]) => void }) {
   const trials = useRef<TonDeneme[]>(tonTuru(round.seed, round.duzey)).current;
-  const [gorsel, setGorsel] = useGorsel();
   const [i, setI] = useState(0); const [faz, setFaz] = useState<'dinle' | 'cevap' | 'geri'>('dinle');
-  const [isik, setIsik] = useState<0 | 1 | 2 | 3>(0); // 0 yok, 1 ses (var), 2 ilk ses, 3 ikinci ses
+  /** "hangisi daha ince" denemesinde şu an kaçıncı ses çalıyor (1/2): sıra bilgisidir, perdeyi göstermez */
+  const [sira, setSira] = useState<0 | 1 | 2>(0);
   const [dogru, setDogru] = useState<boolean | null>(null); const [tekrar, setTekrar] = useState(false);
-  const answers = useRef<number[]>([]); const alive = useRef(true); const gorselRef = useRef(gorsel); gorselRef.current = gorsel;
+  const answers = useRef<number[]>([]); const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
   const t = trials[i]!;
   const play = async (d: TonDeneme) => {
-    setFaz('dinle'); setIsik(0);
+    setFaz('dinle'); setSira(0);
     if (d.tur === 'var') {
+      // dinleme penceresi her denemede aynı uzunlukta: ses olsa da olmasa da ekran aynı kalır
       await wait(d.at); if (!alive.current) return;
-      if (d.var) { audio.tone(d.hz, 0.4, 0.09); if (gorselRef.current) setIsik(1); }
-      await wait(Math.max(300, 1900 - d.at)); setIsik(0);
+      if (d.var) audio.tone(d.hz, 0.4, 0.09);
+      await wait(Math.max(300, 1900 - d.at));
     } else {
       await wait(250); if (!alive.current) return;
-      audio.tone(d.a, 0.45, 0.09); setIsik(2); await wait(650); setIsik(0); await wait(150);
-      audio.tone(d.b, 0.45, 0.09); setIsik(3); await wait(650); setIsik(0);
+      setSira(1); audio.tone(d.a, 0.45, 0.09); await wait(650); setSira(0); await wait(150);
+      setSira(2); audio.tone(d.b, 0.45, 0.09); await wait(650); setSira(0);
     }
     if (alive.current) setFaz('cevap');
   };
@@ -92,16 +107,14 @@ function TonTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[]) =
     await wait(650); if (!alive.current) return; setDogru(null);
     if (i + 1 >= trials.length) onDone(answers.current); else setI(i + 1);
   };
-  // görsel ipucu: perde yüksekliği dikey konum (log ölçek), "var" denemesinde nabız halkası
-  const yuk = (hz: number) => Math.round(((Math.log2(hz) - Math.log2(300)) / (Math.log2(7000) - Math.log2(300))) * 100);
   return (
     <div className="kg-ton" data-testid="ton-tur" data-deneme={i} data-tur={t.tur} data-faz={faz}>
       <div className="kg-dots">{trials.map((_, k) => <i key={k} className={k < i ? 'on' : k === i ? 'cur' : ''} />)}</div>
       <h3>{t.tur === 'var' ? 'Ses var mı?' : 'Hangisi daha ince?'}</h3>
-      <div className={`kg-ton-sahne${gorsel ? ' gorsel' : ''}`} aria-live="polite">
+      <div className="kg-ton-sahne" aria-live="polite">
         {t.tur === 'var'
-          ? <div className={`kg-nabiz${isik === 1 ? ' on' : ''}${faz === 'dinle' ? ' dinle' : ''}`}><Art name="ear" size={46} /></div>
-          : <div className="kg-perde">{[2, 3].map((k) => { const hz = k === 2 ? t.a : t.b; return <div key={k} className={`kg-perde-col${isik === k ? ' on' : ''}`}><span className="kg-perde-bar" style={{ bottom: gorsel && isik === k ? `${yuk(hz)}%` : undefined }} /><b>{k - 1}</b></div>; })}</div>}
+          ? <div className={`kg-nabiz${faz === 'dinle' ? ' dinle' : ''}`}><Art name="ear" size={46} /></div>
+          : <div className="kg-perde">{[1, 2].map((k) => <div key={k} className={`kg-perde-col${sira === k ? ' on' : ''}`}><b>{k}</b></div>)}</div>}
         <small>{faz === 'dinle' ? 'Dinle…' : faz === 'cevap' ? 'Seçimini yap' : dogru ? 'Doğru!' : 'Olmadı'}</small>
       </div>
       {t.tur === 'var' ? (
@@ -110,33 +123,53 @@ function TonTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[]) =
         <div className="kg-cevap"><button className="btn" data-cevap="0" disabled={faz !== 'cevap'} onClick={() => void cevap(0)}>1. daha ince</button><button className="btn" data-cevap="1" disabled={faz !== 'cevap'} onClick={() => void cevap(1)}>2. daha ince</button>
           <button className="btn ghost small" disabled={faz !== 'cevap' || tekrar} onClick={() => { setTekrar(true); void play(t); }}>Bir daha dinle</button></div>
       )}
-      <label className="kg-toggle"><input type="checkbox" checked={gorsel} onChange={(e) => setGorsel(e.target.checked)} /> Görsel ipucu (ses kapalıysa)</label>
-      <small className="kg-uyari"><Art name="ear" size={14} /> Bu bir oyundur, işitme testi değildir.</small>
+      <small className="kg-uyari"><Art name="ear" size={14} /> BU BİR İŞİTME TESTİ DEĞİLDİR. Bu bir dinleme oyunudur; kulaklık önerilir.</small>
     </div>
   );
 }
 
 // ------------------------------------------------------------------ Timpanogram Eşleştir
+const n1 = (v: number) => v.toLocaleString('tr-TR');
+function Secenek({ o, genel, sec }: { o: TimpSecenek; genel: boolean; sec: string }) {
+  if (o.egri) return <span className="kg-opt-egri"><TimpanogramSvg tek={o.egri} mini title="Seçenek eğrisi" /><small>{genel ? `kanal hacmi ${n1(o.egri.hacim)} ml` : `${o.egri.basinc === null ? 'tepe yok' : `${o.egri.basinc} daPa`} · ${n1(o.egri.uyum)} ml · hacim ${n1(o.egri.hacim)} ml`}</small></span>;
+  if (o.teknik && !genel) return <span className="kg-opt-txt"><b>{o.teknik}</b><small>{o.metin}</small></span>;
+  return <span className="kg-opt-txt" data-sec={sec}>{o.metin}</span>;
+}
 function TimpanoTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[]) => void }) {
-  const tur = useRef<TimpanoBulmaca[]>(timpanoTuru(round.seed, round.duzey)).current;
+  const tur = useRef<TimpanoBulmaca[]>(timpanoTuru(round.seed, round.duzey, round.items)).current;
   const [i, setI] = useState(0); const [secim, setSecim] = useState<number | null>(null);
   const answers = useRef<number[]>([]);
   const b = tur[i]!; const genel = round.duzey === 'genel';
-  const sec = (k: number) => {
-    if (secim !== null) return;
-    setSecim(k); answers.current.push(k); audio.play(k === b.dogru ? 'coin' : 'tap');
-    setTimeout(() => { setSecim(null); if (i + 1 >= tur.length) onDone(answers.current); else setI(i + 1); }, 1500);
-  };
+  const sec = (k: number) => { if (secim !== null) return; setSecim(k); answers.current.push(k); audio.play(k === b.dogru ? 'coin' : 'tap'); };
+  const ileri = () => { setSecim(null); if (i + 1 >= tur.length) onDone(answers.current); else setI(i + 1); };
+  const egriSecenek = b.bicim === 'bulgu-egri';
   return (
-    <div className="kg-timpano" data-testid="timpano-tur" data-bulmaca={i}>
+    <div className="kg-timpano" data-testid="timpano-tur" data-bulmaca={i} data-soru={b.id} data-bicim={b.bicim}>
       <div className="kg-dots">{tur.map((_, k) => <i key={k} className={k < i ? 'on' : k === i ? 'cur' : ''} />)}</div>
-      <h3>Bu eğri ne anlatıyor?</h3>
-      <TimpanogramSvg tek={b.timp} values title="Bulmaca timpanogramı" />
-      {!genel && <small className="kg-note">{b.timp.basinc === null ? 'Tepe yok' : `Tepe ${b.timp.basinc} daPa`} · admitans {b.timp.uyum.toLocaleString('tr-TR')} ml · kanal hacmi {b.timp.hacim.toLocaleString('tr-TR')} ml</small>}
-      <div className="kg-opts">
-        {b.secenek.map((e, k) => <button key={e} className={`kg-opt${secim === null ? '' : k === b.dogru ? ' ok' : k === secim ? ' no' : ' dim'}`} data-egri={e} data-secenek={k} disabled={secim !== null} onClick={() => sec(k)}>{genel ? EGRI_ADI[e].sade : `${EGRI_ADI[e].teknik} · ${EGRI_ADI[e].sade}`}</button>)}
+      <small className="kg-bicim">{TIMP_BICIM_ADI[b.bicim]}{b.yas ? ` · ${b.yas}` : ''}</small>
+      <h3>{b.soru}</h3>
+      {b.hikaye && <p className="kg-vinyet">{b.hikaye}</p>}
+      {b.bulgu && <p className="kg-bulgu"><b>{genel ? EGRI_ADI[b.bulgu].sade : `${EGRI_ADI[b.bulgu].teknik}: ${EGRI_ADI[b.bulgu].sade}`}</b></p>}
+      {b.sayilar && b.egri && <div className="kg-sayilar" data-testid="timp-sayilar"><span><small>Tepe basıncı</small><b>{b.egri.basinc === null ? 'tepe yok' : `${b.egri.basinc} daPa`}</b></span><span><small>Admitans</small><b>{n1(b.egri.uyum)} ml</b></span><span><small>Kanal hacmi</small><b>{n1(b.egri.hacim)} ml</b></span></div>}
+      {!b.sayilar && b.egri && (
+        <div className={b.otoskopi ? 'kg-vinyet-row' : undefined}>
+          <TimpanogramSvg tek={b.egri} values title="Soru timpanogramı" />
+          {b.otoskopi && <figure className="kg-vinyet-oto"><OtoskopSvg f={b.otoskopi} ear="R" size={92} /><figcaption>Otoskopi</figcaption></figure>}
+        </div>
+      )}
+      {(b.sag || b.sol) && <TimpanogramSvg R={b.sag} L={b.sol} title="Sağ ve sol timpanogram" />}
+      {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı düz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {n1(b.sag.hacim)} ml, sol {n1(b.sol.hacim)} ml</small>}
+      {!genel && b.egri && !b.sayilar && <small className="kg-note">{b.egri.basinc === null ? 'Tepe yok' : `Tepe ${b.egri.basinc} daPa`} · admitans {n1(b.egri.uyum)} ml · kanal hacmi {n1(b.egri.hacim)} ml</small>}
+      <div className={`kg-opts${egriSecenek ? ' egri' : ''}`}>
+        {b.secenek.map((o, k) => <button key={o.anahtar} className={`kg-opt${secim === null ? '' : k === b.dogru ? ' ok' : k === secim ? ' no' : ' dim'}`} data-secenek={k} data-anahtar={o.anahtar} disabled={secim !== null} onClick={() => sec(k)}><Secenek o={o} genel={genel} sec={o.anahtar} /></button>)}
       </div>
-      {secim !== null && <div className={`kg-geri ${secim === b.dogru ? 'ok' : 'no'}`}>{secim === b.dogru ? 'Doğru! ' : 'Doğrusu: '}{EGRI_ADI[b.egri].sade} (Tip {egriTipi(b.egri)}).</div>}
+      {secim !== null && (
+        <div className={`kg-geri ${secim === b.dogru ? 'ok' : 'no'}`} data-testid="timp-aciklama">
+          <b>{secim === b.dogru ? 'Doğru!' : 'Doğrusu işaretli.'}</b> {b.aciklama}
+          <small className="kg-kaynak">Kaynak: {b.kaynak}</small>
+          <button className="btn small" data-testid="timp-ileri" onClick={ileri}>{i + 1 >= tur.length ? 'Turu bitir' : 'Sonraki soru'}</button>
+        </div>
+      )}
     </div>
   );
 }

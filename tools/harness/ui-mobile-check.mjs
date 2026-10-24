@@ -496,11 +496,29 @@ async function suite(browserName, target, [W, H]) {
       await check('gorev-vaka-defteri', { scroll: false });
       await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
       // oyunlar
+      // Timpanogram Eşleştir: her soru biçimi görünsün diye destenin başı belirlenir (sunucu destesi: ko_deck)
+      const deste = (duzey, ids) => { const d = new DatabaseSync(dbFile); d.exec('PRAGMA busy_timeout = 3000'); const p = d.prepare('SELECT id FROM players ORDER BY created_at DESC LIMIT 1').get().id; d.prepare('INSERT INTO ko_deck(player_id, duzey, deck, pos) VALUES(?, ?, ?, 0) ON CONFLICT(player_id, duzey) DO UPDATE SET deck = excluded.deck, pos = 0').run(p, duzey, JSON.stringify(ids)); d.close(); };
+      const timpanoTuru = async (label) => {
+        for (let k = 0; k < 5; k++) {
+          await page.locator(`[data-testid="timpano-tur"][data-bulmaca="${k}"] .kg-opt:not([disabled])`).first().waitFor({ timeout: 10_000 }); await sleep(300);
+          const bicim = await page.getByTestId('timpano-tur').getAttribute('data-bicim');
+          await check(`${label}-${k + 1}-${bicim}`);
+          await page.locator('[data-testid="timpano-tur"] .kg-opt').first().click(); await page.getByTestId('timp-aciklama').waitFor(); await sleep(250);
+          if (k === 0) await check(`${label}-aciklama`);
+          await page.getByTestId('timp-ileri').click();
+        }
+        await page.getByTestId('oyun-sonuc').waitFor({ timeout: 10_000 });
+      };
       for (const g of ['ton', 'timpano']) {
         await page.getByTestId('kg-btn').click(); await page.locator('.kg-tabs [data-tab="etkinlik"]').click(); await page.getByTestId(`etk-${g}`).click();
         await page.getByTestId(`oyun-${g}`).waitFor(); await check(`gorev-${g}-giris`, { scroll: false });
+        if (g === 'ton') {
+          await page.evaluate(() => window.__kg.ses(false)); await page.getByTestId('ton-ses-kapali').waitFor(); await check('gorev-ton-ses-kapali', { scroll: false });
+          await page.getByTestId('ton-sesi-ac').click(); await page.getByTestId('oyun-basla').waitFor();
+        }
+        if (g === 'timpano') deste('genel', ['te04', 'tb04', 'tv01', 'ts02', 'tk03']);
         await page.getByTestId('oyun-basla').click(); await page.getByTestId(`${g}-tur`).waitFor(); await sleep(g === 'ton' ? 2600 : 600);
-        await check(`gorev-${g}-tur`, { scroll: false });
+        if (g === 'ton') await check('gorev-ton-tur', { scroll: false }); else await timpanoTuru('gorev-timpano');
         await page.locator('.kg-sheet .bp-x').click(); await sleep(400);
       }
       // odyoloji düzeyi (Ayarlar › Bilgi düzeyi): sayılar ve dört seçenek
@@ -509,6 +527,10 @@ async function suite(browserName, target, [W, H]) {
       await tab('Kamp'); await sleep(1200); await toastGone();
       await page.getByTestId('klinik-btn').click(); await page.getByTestId('klinik-panel').waitFor();
       await vaka('gorev-odyoloji');
+      await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
+      deste('odyoloji', ['tn04', 'tb07', 'tv07', 'ts06', 'te16']);
+      await page.getByTestId('kg-btn').click(); await page.locator('.kg-tabs [data-tab="etkinlik"]').click(); await page.getByTestId('etk-timpano').click();
+      await page.getByTestId('oyun-basla').click(); await page.getByTestId('timpano-tur').waitFor(); await timpanoTuru('gorev-odyoloji-timpano');
       await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
       await tab('Profil'); await page.locator('.menu-tile[data-tile="settings"]').click(); await sleep(500);
       await page.getByRole('radio', { name: 'Genel' }).click(); await back();

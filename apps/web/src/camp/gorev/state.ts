@@ -12,6 +12,7 @@ import { audio } from '@odi/audio';
 import { celebrate, type RewardItem } from '../../celebrate';
 import { platform } from '../../platform';
 import { act } from '../../net';
+import { useStore } from '../../store';
 
 export type GorevSekme = 'hikaye' | 'gunluk' | 'etkinlik' | 'basari';
 export type KgPanel =
@@ -82,4 +83,5 @@ export function bindKg(c: NetClient): void {
 }
 
 /** test kancası */
-if (typeof window !== 'undefined') (window as unknown as { __kg?: unknown }).__kg = { state: () => useKg.getState(), open: openPanel, refresh: refreshKg, celebrations: () => celebrations };
+if (typeof window !== 'undefined') (window as unknown as { __kg?: unknown }).__kg = { state: () => useKg.getState(), open: openPanel, refresh: refreshKg, celebrations: () => celebrations,
+  /** denetim aracı: oyun sesini aç/kapat (Ton Avı ses kapalı kartı) */ ses: (on: boolean) => useStore.getState().setSounds(on) };
