@@ -49,7 +49,8 @@ npx expo start
    Apple Developer hesabı gerekir; sertifika ve profil EAS tarafından bulutta üretilir, Mac gerekmez.
 4. Mağaza gönderimi: `eas submit --platform ios` (`eas.json > submit.production.ios` alanlarını doldur).
 5. Android: `eas build --platform android --profile preview` → APK/AAB.
-- Monorepo notu: EAS kökü workspace olarak algılar; `npm install --legacy-peer-deps` için kökte `.npmrc` içine `legacy-peer-deps=true` eklemek gerekebilir (kök dosyalarına dokunulmadığı için şimdilik elle).
+- Android `preview` profili doğrudan kurulabilen **APK** üretir (`buildType: apk`); `production` mağaza için **AAB** üretir.
+- Monorepo notu: EAS kökü workspace olarak algılar; kökteki `.npmrc` (`legacy-peer-deps=true`) bulut derlemesinde `npm install`'ın React sürüm uyarısında durmamasını sağlar.
 - IAP / push gibi native modüller Expo Go'da yok; onlar geldiğinde `eas build --profile development` (dev client) kullanılacak.
 
 ## Bilinen sınırlar
