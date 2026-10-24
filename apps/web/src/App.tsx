@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
@@ -44,23 +44,34 @@ import { chunkFailed, loadLevel, loadMap } from './engine';
 import { EngineLoading, ScreenLoading } from './ui/Loading';
 
 /**
- * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem React.lazy'ye hem
- * önden yüklemeye (preloadFor) verilir; modül bir kez indirilir.
+ * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem ekrana hem önden
+ * yüklemeye (preloadFor) verilir; modül bir kez indirilir. Önden yüklenmiş ekran ilk çizimde askıya alınmaz (React.lazy her
+ * zaman en az bir kez bekler; o arada eski ekran gizli olarak DOM'da kalır): yüklüyse doğrudan çizilir.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ekranların prop tipleri farklı; lazy bileşen tipi korunur
-function screen<M extends Record<K, ComponentType<any>>, K extends keyof M & string>(load: () => Promise<M>, name: K) {
-  return lazy(() => load().then((m) => ({ default: m[name] }), chunkFailed));
+type Loader<M> = (() => Promise<M>) & { value?: M };
+function mod<M>(f: () => Promise<M>): Loader<M> {
+  const l: Loader<M> = () => f().then((m) => (l.value = m));
+  return l;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ekranların prop tipleri farklı; her ekranın kendi prop tipi korunur
+function screen<M extends Record<K, ComponentType<any>>, K extends keyof M & string>(load: Loader<M>, name: K) {
+  const Lazy = lazy(() => load().then((m) => ({ default: m[name] }), chunkFailed));
+  return function Screen(props: ComponentProps<M[K]>) {
+    // seçim bağlanırken bir kez yapılır (sonradan değişirse ekran baştan kurulurdu)
+    const [C] = useState(() => (load.value?.[name] ?? Lazy) as ComponentType<ComponentProps<M[K]>>);
+    return <C {...props} />;
+  };
 }
 const load = {
-  map: () => import('./screens/MapScreen'), level: () => import('./screens/LevelHost'), result: () => import('./screens/ResultScreen'),
-  intro: () => import('./screens/BiomeIntro'), today: () => import('./screens/TodayScreen'), camp: () => import('./screens/CampScreen'),
-  team: () => import('./screens/TeamScreen'), profile: () => import('./screens/ProfileScreen'), friends: () => import('./screens/FriendsScreen'),
-  skills: () => import('./screens/SkillsScreen'), settings: () => import('./screens/SettingsScreen'), achievements: () => import('./screens/AchievementsScreen'),
-  album: () => import('./screens/AlbumScreen'), glossary: () => import('./screens/GlossaryScreen'), wardrobe: () => import('./screens/WardrobeScreen'),
-  info: () => import('./screens/InfoScreen'), visit: () => import('./camp/Ziyaret'), shop: () => import('./screens/ShopScreen'),
-  inbox: () => import('./screens/InboxScreen'), raceLobby: () => import('./race/RaceLobby'), raceResult: () => import('./race/RaceResult'),
-  teamRace: () => import('./teamrace/TeamRace'), events: () => import('./events/EventsScreen'), eventLevel: () => import('./events/EventLevel'),
-  together: () => import('./comm/Together'), rank: () => import('./rank/RankScreen'), gallery: () => import('./ui/art'),
+  map: mod(() => import('./screens/MapScreen')), level: mod(() => import('./screens/LevelHost')), result: mod(() => import('./screens/ResultScreen')),
+  intro: mod(() => import('./screens/BiomeIntro')), today: mod(() => import('./screens/TodayScreen')), camp: mod(() => import('./screens/CampScreen')),
+  team: mod(() => import('./screens/TeamScreen')), profile: mod(() => import('./screens/ProfileScreen')), friends: mod(() => import('./screens/FriendsScreen')),
+  skills: mod(() => import('./screens/SkillsScreen')), settings: mod(() => import('./screens/SettingsScreen')), achievements: mod(() => import('./screens/AchievementsScreen')),
+  album: mod(() => import('./screens/AlbumScreen')), glossary: mod(() => import('./screens/GlossaryScreen')), wardrobe: mod(() => import('./screens/WardrobeScreen')),
+  info: mod(() => import('./screens/InfoScreen')), visit: mod(() => import('./camp/Ziyaret')), shop: mod(() => import('./screens/ShopScreen')),
+  inbox: mod(() => import('./screens/InboxScreen')), raceLobby: mod(() => import('./race/RaceLobby')), raceResult: mod(() => import('./race/RaceResult')),
+  teamRace: mod(() => import('./teamrace/TeamRace')), events: mod(() => import('./events/EventsScreen')), eventLevel: mod(() => import('./events/EventLevel')),
+  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), gallery: mod(() => import('./ui/art')),
 };
 const MapScreen = screen(load.map, 'MapScreen');
 const LevelHost = screen(load.level, 'LevelHost');
@@ -101,7 +112,8 @@ function preloadFor(route: string, returning: boolean): (() => Promise<unknown>)
     case 'title': return returning ? [load.map, loadMap] : [load.intro, load.level, loadLevel];
     case 'story': return [load.intro, load.level, loadLevel, load.result];
     case 'intro': return [load.level, loadLevel];
-    case 'map': return [load.level, loadLevel, load.intro, load.result];
+    // harita açıldıktan sonra sekme ekranları da (küçük parçalar): ilk geçişte iskelet görünmesin
+    case 'map': return [load.level, loadLevel, load.intro, load.result, load.today, load.profile, load.camp, load.team];
     case 'level': return [load.result];
     case 'result': return [load.map, loadMap, load.level, loadLevel];
     default: return [];
