@@ -850,5 +850,499 @@
    "dur": 2.71,
    "sps": 5.9
   }
+ },
+ "cadirdan-kaleye": {
+  "c1": {
+   "key": "847858f32e23",
+   "text": "Bir çadırla başladı.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir çadırla başladı.",
+   "gap": 0.07,
+   "tempo": 1.086,
+   "dur": 1.3,
+   "sps": 5.4
+  },
+  "c2": {
+   "key": "2a54bfa2174f",
+   "text": "Sonra bir kale oldu.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sonra bir kale oldu.",
+   "gap": 0.06,
+   "tempo": 1.138,
+   "dur": 1.3,
+   "sps": 5.4
+  },
+  "c3": {
+   "key": "47270b61ef92",
+   "text": "Sonra bir kampüs.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Sonra bir kampüs.",
+   "gap": 0.06,
+   "tempo": 1.22,
+   "dur": 1.2,
+   "sps": 4.17
+  },
+  "c4": {
+   "key": "e10d090c3c21",
+   "text": "Ve sonunda, bir efsane!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ve sonunda bir efsane.",
+   "gap": 0.2,
+   "tempo": 1.22,
+   "dur": 1.56,
+   "sps": 5.13
+  },
+  "c5": {
+   "key": "9ca1597e1bf7",
+   "text": "Köprüleri kur, beş bölgeyi aç.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Köprüleri kur, beş bölgeyi aç.",
+   "gap": 0.27,
+   "tempo": 1.22,
+   "dur": 1.97,
+   "sps": 5.08
+  },
+  "c6": {
+   "key": "0bc7ad762492",
+   "text": "Süsle, arkadaşına kampını gezdir.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Süsle arkadaşına kampını gezdir.",
+   "gap": 0.19,
+   "tempo": 1.22,
+   "dur": 2.21,
+   "sps": 5.43
+  },
+  "c7": {
+   "key": "ea24972c1634",
+   "text": "Kampını büyüt. Odi: Sesin Yolu. Yakında!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kampını büyüt. Odi sesin yolu yakında.",
+   "gap": 0.23,
+   "tempo": 1.158,
+   "dur": 2.54,
+   "sps": 5.5
+  }
+ },
+ "fark-ettin-mi": {
+  "d1": {
+   "key": "891cdecee8df",
+   "text": "Bu detayları sadece odyologlar fark eder.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Bu detayları sadece odyologlar fark eder.",
+   "gap": 0.13,
+   "tempo": 1.018,
+   "dur": 3.05,
+   "sps": 4.92
+  },
+  "d2": {
+   "key": "ddf17b78ee26",
+   "text": "Sağ kulak kırmızı daire, sol kulak mavi çarpı.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sağ kulak kırmızı daire, sol kulak mavi çarpı.",
+   "gap": 0.26,
+   "tempo": 1.12,
+   "dur": 3.31,
+   "sps": 4.83
+  },
+  "d3": {
+   "key": "a82ba2e17d6e",
+   "text": "Kemik yolu işaretleri bile yerli yerinde.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kemik yolu işaretleri bile yerli yerinde.",
+   "gap": 0.09,
+   "tempo": 1.0,
+   "dur": 2.4,
+   "sps": 6.67
+  },
+  "d4": {
+   "key": "8f2db92c8ad5",
+   "text": "Koklea, tam iki buçuk tur döner.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Koklea tam iki buçuk tur döner.",
+   "gap": 0.21,
+   "tempo": 1.097,
+   "dur": 2.26,
+   "sps": 4.88
+  },
+  "d5": {
+   "key": "c1035a497010",
+   "text": "Stereosilyalar basamak basamak dizilir.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Stereosilyalar basamak basamak dizilir.",
+   "gap": 0.08,
+   "tempo": 1.0,
+   "dur": 2.59,
+   "sps": 5.79
+  },
+  "d6": {
+   "key": "bb42e7173c40",
+   "text": "Kıllar ve kulak kiri: kanalın dış kısmında.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kıllar ve kulak kiri kanalın dış kısmında.",
+   "gap": 0.35,
+   "tempo": 1.12,
+   "dur": 3.1,
+   "sps": 4.52
+  },
+  "d7": {
+   "key": "b4ce38e13661",
+   "text": "Bebeklerde prob tonu: bin hertz.",
+   "seed": 1,
+   "wer": 0.2,
+   "asr": "Bebeklerde prop tonu 1000 Hz.",
+   "gap": 0.17,
+   "tempo": 1.12,
+   "dur": 2.5,
+   "sps": 3.61
+  },
+  "d8": {
+   "key": "aa1a8cbf660b",
+   "text": "Ve yolun sonu: işitme korteksi.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ve yolun sonu, işitme korteksi.",
+   "gap": 0.22,
+   "tempo": 1.039,
+   "dur": 2.26,
+   "sps": 4.88
+  },
+  "d9": {
+   "key": "715e386d17aa",
+   "text": "Detaylar bizden. Merak senden.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Detaylar bizden, merak senden.",
+   "gap": 0.32,
+   "tempo": 1.12,
+   "dur": 2.02,
+   "sps": 4.46
+  }
+ },
+ "vaka-saati": {
+  "v1": {
+   "key": "abfbaf9044ab",
+   "text": "Yeni bir vaka. Dört ipucu. Tanı ne?",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Yeni bir vaka, dört ipucu, tanı ne?",
+   "gap": 0.15,
+   "tempo": 1.0,
+   "dur": 2.38,
+   "sps": 5.05
+  },
+  "v2": {
+   "key": "5050f72d0d19",
+   "text": "Otuz üç yaşında. Doğumdan sonra işitmesi yavaş yavaş azalmış.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "33 yaşında. Doğumdan sonra işitmesi yavaş yavaş azalmış.",
+   "gap": 0.51,
+   "tempo": 1.05,
+   "dur": 4.44,
+   "sps": 4.95
+  },
+  "v3": {
+   "key": "3387e4038bfd",
+   "text": "Garip ama, gürültüde daha iyi duyuyor.",
+   "seed": 1,
+   "wer": 0.33,
+   "asr": "Garip ama gürültü de daha iyi duyuyor.",
+   "gap": 0.21,
+   "tempo": 1.0,
+   "dur": 2.64,
+   "sps": 5.68
+  },
+  "v4": {
+   "key": "ddd6b33e1f6e",
+   "text": "Annesinde de işitme kaybı var.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Annesinde de işitme kaybı var.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 1.99,
+   "sps": 5.52
+  },
+  "v5": {
+   "key": "47a3373912eb",
+   "text": "İpucu bir: zar normal görünüyor.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "ipucu bir zar normal görünüyor.",
+   "gap": 0.07,
+   "tempo": 1.01,
+   "dur": 2.26,
+   "sps": 4.88
+  },
+  "v6": {
+   "key": "efb588a50832",
+   "text": "İpucu iki: timpanogram sığ, refleks yok.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "İpucu 2, timpanogram sığ, refleks yok.",
+   "gap": 0.65,
+   "tempo": 1.12,
+   "dur": 4.25,
+   "sps": 3.06
+  },
+  "v7": {
+   "key": "8496e9c7024a",
+   "text": "İpucu üç: kemik yolu iyi, hava yolu düşük.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "İpucu 3. Kemik yolu iyi, hava yolu düşük.",
+   "gap": 0.13,
+   "tempo": 1.044,
+   "dur": 3.26,
+   "sps": 4.9
+  },
+  "v8": {
+   "key": "7993cca2a86b",
+   "text": "İpucu dört: iki kilohertzde, kemik yolunda bir çentik.",
+   "seed": 2,
+   "wer": 0.12,
+   "asr": "İpucu 4. 2 kHz'de kemik yolunda bir çentik.",
+   "gap": 0.34,
+   "tempo": 1.035,
+   "dur": 3.65,
+   "sps": 4.93
+  },
+  "v9": {
+   "key": "cf2e21d696e0",
+   "text": "Tanı ne? Cevabını yorumlara yaz.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Tanı ne? Cevabını yorumlara yaz.",
+   "gap": 0.38,
+   "tempo": 1.099,
+   "dur": 2.42,
+   "sps": 4.95
+  },
+  "v10": {
+   "key": "1674a675effa",
+   "text": "Cevap oyunda. Odi: Sesin Yolu. Yakında.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Cevap oyunda. Odi sesin yolu yakında.",
+   "gap": 0.28,
+   "tempo": 1.12,
+   "dur": 2.95,
+   "sps": 4.74
+  }
+ },
+ "egri-yarismasi": {
+  "e1": {
+   "key": "7acbbb51e6b8",
+   "text": "Üç saniyede söyle: bu eğri ne anlatıyor?",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "3 saniyede söyle, bu eğri ne anlatıyor?",
+   "gap": 0.16,
+   "tempo": 1.068,
+   "dur": 2.54,
+   "sps": 5.9
+  },
+  "e2": {
+   "key": "6af43538b395",
+   "text": "Tepe sıfıra yakın: zar rahat hareket ediyor.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Tepe sıfıra yakın, zar rahat hareket ediyor.",
+   "gap": 0.29,
+   "tempo": 1.145,
+   "dur": 2.71,
+   "sps": 5.9
+  },
+  "e3": {
+   "key": "f5a52499cd94",
+   "text": "Dümdüz! Zar hareket etmiyor, kanal hacmi normal.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Dümdüz, zar hareket etmiyor, kanal hacmi normal.",
+   "gap": 0.3,
+   "tempo": 1.25,
+   "dur": 2.83,
+   "sps": 5.3
+  },
+  "e4": {
+   "key": "2b69a5562f60",
+   "text": "Tepe eksi tarafta: orta kulak basıncı düşük.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Tepe eksi tarafta, orta kulak basıncı düşük.",
+   "gap": 0.21,
+   "tempo": 1.181,
+   "dur": 2.71,
+   "sps": 5.9
+  },
+  "e5": {
+   "key": "a807e4a73321",
+   "text": "Yine düz, ama bu kez kanal hacmi büyük!",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Yine düz ama bu kez kanal hacmi büyük.",
+   "gap": 0.12,
+   "tempo": 1.25,
+   "dur": 2.26,
+   "sps": 5.76
+  },
+  "e6": {
+   "key": "cb48e64dd835",
+   "text": "Eğri ipucu verir. Tanıyı bütün testler birlikte koyar.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Eğri ipucu verir, tanıyı bütün testler birlikte koyar.",
+   "gap": 0.25,
+   "tempo": 1.126,
+   "dur": 3.22,
+   "sps": 5.91
+  },
+  "e7": {
+   "key": "90cdc0e5ef34",
+   "text": "Timpanogram Eşleştir. Kulede seni bekliyor!",
+   "seed": 4,
+   "wer": 0.4,
+   "asr": "Timpanogram eşleştir. Kule de seni bekliyor.",
+   "gap": 0.23,
+   "tempo": 1.068,
+   "dur": 2.54,
+   "sps": 5.9
+  }
+ },
+ "kulakligini-tak": {
+  "k1": {
+   "key": "b6a69499a42e",
+   "text": "Kulaklığını tak.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kulaklığını tak.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.22,
+   "sps": 4.9
+  },
+  "k2": {
+   "key": "cc66d575f7c8",
+   "text": "Birinci soru: ses var mı? Dinle.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Birinci soru, ses var mı? Dinle.",
+   "gap": 0.2,
+   "tempo": 1.12,
+   "dur": 2.18,
+   "sps": 4.58
+  },
+  "k3": {
+   "key": "ae08c2284915",
+   "text": "Cevap: vardı.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cevap vardı.",
+   "gap": 0.11,
+   "tempo": 1.12,
+   "dur": 1.01,
+   "sps": 3.97
+  },
+  "k4": {
+   "key": "7ab558c08c1c",
+   "text": "İkinci soru: hangisi daha ince?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "İkinci soru hangisi daha ince?",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "k5": {
+   "key": "a4464751d423",
+   "text": "Cevap: ikincisi.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cevap ikincisi.",
+   "gap": 0.14,
+   "tempo": 1.12,
+   "dur": 1.3,
+   "sps": 4.63
+  },
+  "k6": {
+   "key": "a6795f40f177",
+   "text": "Üçüncü soru: ses var mı?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Üçüncü soru, ses var mı?",
+   "gap": 0.09,
+   "tempo": 1.069,
+   "dur": 1.66,
+   "sps": 4.83
+  },
+  "k7": {
+   "key": "8f29baca8a9c",
+   "text": "Bu sefer yoktu. Sessizliği duymak da önemli.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bu sefer yoktu. Sessizliği duymak da önemli.",
+   "gap": 0.45,
+   "tempo": 1.103,
+   "dur": 3.05,
+   "sps": 4.92
+  },
+  "k8": {
+   "key": "d2ba06ab5c35",
+   "text": "Son soru, biraz daha zor: hangisi daha ince?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Son soru biraz daha zor. Hangisi daha ince?",
+   "gap": 0.26,
+   "tempo": 1.071,
+   "dur": 3.05,
+   "sps": 4.92
+  },
+  "k9": {
+   "key": "b848bbe69877",
+   "text": "Cevap: birincisi.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cevap birincisi.",
+   "gap": 0.14,
+   "tempo": 1.105,
+   "dur": 1.25,
+   "sps": 4.81
+  },
+  "k10": {
+   "key": "ea1611ed0afb",
+   "text": "Kaç tane bildin? Yorumlara yaz.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Kaç tane bildin? Yorumlara yaz.",
+   "gap": 0.31,
+   "tempo": 1.12,
+   "dur": 2.23,
+   "sps": 4.48
+  },
+  "k11": {
+   "key": "e141ff764f8e",
+   "text": "Ton Avı kampta seni bekliyor. Bu bir oyun, işitme testi değil.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Ton avı kampta seni bekliyor. Bu bir oyun işitme testi değil.",
+   "gap": 0.45,
+   "tempo": 1.001,
+   "dur": 4.22,
+   "sps": 4.97
+  }
  }
 }

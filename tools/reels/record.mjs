@@ -28,7 +28,7 @@ const opt = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
 
 /* ============================================================ teaser */
 async function teasers(which) {
-  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS };
+  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS, ...(await import('./reklamlar3.mjs')).REELS };
   const slugs = which === 'all' ? Object.keys(REELS) : which.split(',');
   for (const s of slugs) if (!REELS[s]) throw new Error(`bilinmeyen Reels: ${s} (${Object.keys(REELS).join(', ')})`);
   if (flag('--zaman')) {  // yalnız zaman çizelgesi: sahneler (anlatıcıya göre uzatılmış) ve anlatıcı satırları
@@ -52,7 +52,7 @@ async function teasers(which) {
       for (const s of slugs) {
         const r = fitReel(REELS[s]);
         const clips = [...r.scenes.filter((x) => x.clip).map((x) => x.clip), ...(r.cover?.clip ? [r.cover.clip] : [])];
-        for (const c of clips) { const id = clipDir(c); if (seen.has(id)) continue; seen.add(id); await captureClip(browser, pv.port, c, { force: flag('--force-clips'), log }); }
+        for (const c of clips) { if (c.dir) continue; const id = clipDir(c); if (seen.has(id)) continue; seen.add(id); await captureClip(browser, pv.port, c, { force: flag('--force-clips'), log }); }  // c.dir: hazır kare dizisi (kamp-cekim.mjs + hazirla3.py)
       }
     }
     if (flag('--clips-only')) return;
@@ -110,7 +110,7 @@ function fitReel(r0) {
   const st = starts(); for (const v of vo) v.start = st[idx(v.scene)] + (v.at ?? 0);
   const total = st.at(-1) + r.scenes.at(-1).dur;
   const last = vo.at(-1); if (last && last.start + last.dur + (r0.tail ?? 0.25) > total) r.scenes.at(-1).dur = +(r.scenes.at(-1).dur + last.start + last.dur + (r0.tail ?? 0.25) - total).toFixed(3);
-  for (const sc of r.scenes) if (sc.clip && clipNeed(sc) + 0.12 > sc.clip.dur) sc.clip = { ...sc.clip, dur: Math.ceil((clipNeed(sc) + 0.25) * 2) / 2 };
+  for (const sc of r.scenes) if (sc.clip && !sc.clip.dir && clipNeed(sc) + 0.12 > sc.clip.dur) sc.clip = { ...sc.clip, dur: Math.ceil((clipNeed(sc) + 0.25) * 2) / 2 };
   r.vo = vo;
   return r;
 }
@@ -130,7 +130,7 @@ async function renderReel(r, browser, port, log) {
   // sahne başlangıçları (kesme: sert, ritme göre)
   let t = 0; const scenes = r.scenes.map((sc) => { const o = { ...sc, start: +t.toFixed(3) }; t += sc.dur; return o; }); const total = +t.toFixed(3);
   const byId = Object.fromEntries(scenes.map((s) => [s.id, s]));
-  const stage = (L) => (L.kind === 'still' || L.kind === 'phone' ? { ...L, src: stageImage(L.src) } : L);
+  const stage = (L) => (['still', 'phone', 'full', 'lens', 'evid'].includes(L.kind) ? { ...L, src: stageImage(L.src) } : L);
   // Tüy Dede kayıtları: mutlak zaman, altyazılar, ağız zarfı
   const voice = (r.voice ?? []).map((v) => {
     const file = path.join(root, 'apps/web/public/voice', `${v.id}.mp3`);
@@ -143,18 +143,20 @@ async function renderReel(r, browser, port, log) {
   for (const v of r.vo ?? []) if (!v.nosub) subs.push({ kind: 'html', cls: `sub ${r.subCls ?? ''}`, html: v.text, y: v.subY ?? r.subY ?? 1360, at: +v.start.toFixed(3), until: +(v.start + v.dur + 0.15).toFixed(3), anim: 'fade' });
   // reklam: ses efektleri (sahne içi [at, tür, kazanç]) mutlak zamana
   const sfx = scenes.flatMap((sc) => (sc.sfx ?? []).map(([at, k, g, o]) => ({ t: +(sc.start + at).toFixed(3), k, g: g ?? 1, ...(o ?? {}) }))).sort((a, b) => a.t - b.t);
+  // Ton Avı tonları (kulakligini-tak): ayrı iz, sabit ve ılımlı düzey (compose.py › mix_audio_ad)
+  const tones = scenes.flatMap((sc) => (sc.tones ?? []).map(([at, f, d]) => ({ t: +(sc.start + at).toFixed(3), f, d })));
   const payload = {
     scenes: [...scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, ringY: sc.ringY, shade: sc.shade, flash: sc.flash, layers: (sc.layers ?? []).map(stage) })),
       { id: 'altyazi', start: 0, dur: total, bg: 'none', layers: subs }],
     voice: voice.filter((v) => v.lipsync !== false).map((v) => ({ at: v.at, fps, env: v.env })),
   };
   const plan = {
-    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post, ad: !!r.ad, sfx, duck: r.duck ?? null,
+    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post, ad: !!r.ad, sfx, tones, duck: r.duck ?? null, limit: r.limit ?? 0.75,
     scenes: scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, frame: sc.frame ?? null, speed: sc.speed ?? 1,
-      clip: sc.clip ? { ...sc.clip, dir: clipDir(sc.clip) } : null, boss: !!sc.boss, flash: !!sc.flash,
+      clip: sc.clip ? { ...sc.clip, dir: sc.clip.dir ?? clipDir(sc.clip) } : null, boss: !!sc.boss, flash: !!sc.flash,
       cam: sc.cam ?? null, fx: sc.fx ?? null, blend: !!sc.blend, mus: sc.mus ?? null, skip: sc.skip ?? 0 })),
     voice: [...voice.map((v) => ({ id: v.id, file: v.file, at: v.at, from: v.from ?? 0, to: v.to ?? null, gain: v.gain ?? 1 })), ...narr],
-    cover: r.cover ? { clip: r.cover.clip ? { ...r.cover.clip, dir: clipDir(r.cover.clip) } : null, t: r.cover.t ?? 1, frame: r.cover.frame ?? null, dim: r.cover.dim ?? null, blur: r.cover.blur ?? null, png: path.join(dir, 'kapak-katman.png') } : null,
+    cover: r.cover ? { clip: r.cover.clip ? { ...r.cover.clip, dir: r.cover.clip.dir ?? clipDir(r.cover.clip) } : null, t: r.cover.t ?? 1, frame: r.cover.frame ?? null, dim: r.cover.dim ?? null, blur: r.cover.blur ?? null, png: path.join(dir, 'kapak-katman.png') } : null,
     overlay: ovl,
   };
   if (flag('--no-overlay')) { fs.writeFileSync(path.join(dir, 'plan.json'), JSON.stringify(plan, null, 1)); return; }
@@ -169,8 +171,10 @@ async function renderReel(r, browser, port, log) {
   for (let i = 0; i < n; i++) {
     const sig = await page.evaluate((tt) => window.seek(tt), i / fps);
     const file = path.join(ovl, `o${String(i + 1).padStart(5, '0')}.png`);
+    // opak arka planlı sahnede (gece, stüdyo, pano…) saydamlık gerekmez: JPEG (disk ~5 kat az); compose.py biçimi içerikten tanır
+    const scNow = scenes.find((x) => i / fps >= x.start - 1e-6 && i / fps < x.start + x.dur - 1e-6); const opaque = r.jpegOpaque && scNow && scNow.bg && !['clip', 'none'].includes(scNow.bg);
     if (sig === prev && prevFile) fs.linkSync(prevFile, file);
-    else { await page.screenshot({ path: file, omitBackground: true }); shots++; }
+    else { await page.screenshot(opaque ? { path: file, type: 'jpeg', quality: 93 } : { path: file, omitBackground: true }); shots++; }
     prev = sig; prevFile = file;
     if (i % 150 === 0) log(`🖼  ${r.slug}: ${i}/${n} kare`);
   }

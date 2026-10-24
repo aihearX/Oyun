@@ -362,3 +362,6 @@ const takim = {
 };
 
 export const REELS = Object.fromEntries([fragman, serumen, sinav, takim].map((r) => [r.slug, r]));
+
+/** 3. dalga (reklamlar3.mjs) aynı katman yardımcılarını kullanır */
+export const YARDIMCI = { grid, T, clip, LOGO, kt, tt, ttb, tsub, lbl, fact, phone, odi, endLayers };

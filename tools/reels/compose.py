@@ -46,7 +46,7 @@ def frame_box(img_w, img_h, fr):
     fr = fr or {}
     zoom = float(fr.get('zoom', 1.0)); top = float(fr.get('top', 100)); x = float(fr.get('x', 0))
     gw = 390.0 / zoom; gh = gw * H / W
-    top = max(0.0, min(top, 780.0 - gh))
+    top = max(0.0, min(top, img_h / s - gh))
     left = max(0.0, min(195.0 + x - gw / 2, 390.0 - gw))
     return (round(left * s), round(top * s), round((left + gw) * s), round((top + gh) * s))
 
@@ -139,16 +139,19 @@ def cam_frame(sc, lt):
     for ks, kd in (('z', 'zoom'), ('x', 'x'), ('top', 'top')):
         if ks in cam:
             v = cam[ks]; fr[kd] = v[0] + (v[1] - v[0]) * p if isinstance(v, list) else v
+    z0 = fr.get('zoom', 1.0)
     for at, amt, dur in cam.get('punch', []):
         if lt >= at: fr['zoom'] = fr.get('zoom', 1.0) * (1 + amt * np.exp(-(lt - at) / max(0.02, dur)))
+    if cam.get('anchor') and fr.get('zoom', 1.0) != z0:  # darbe yakınlaşması bu noktaya doğru (oyun px; ör. Merkez binası)
+        ay = cam['anchor'][1]; k = fr['zoom'] / z0; fr['top'] = ay - (ay - fr.get('top', 100)) / k
     return fr
 
 
 def frame_boxf(img_w, img_h, fr):
     s = img_w / 390.0; fr = fr or {}
     zoom = float(fr.get('zoom', 1.0)); top = float(fr.get('top', 100)); x = float(fr.get('x', 0))
-    gw = 390.0 / zoom; gh = gw * H / W
-    top = max(0.0, min(top, 780.0 - gh)); left = max(0.0, min(195.0 + x - gw / 2, 390.0 - gw))
+    gw = 390.0 / zoom; gh = gw * H / W; ih = img_h / s  # oyun klibi: 780; hazır 9:16 kare dizisi: ≈693
+    top = max(0.0, min(top, ih - gh)); left = max(0.0, min(195.0 + x - gw / 2, 390.0 - gw))
     return (left * s, top * s, (left + gw) * s, (top + gh) * s)
 
 
@@ -258,6 +261,7 @@ def render_video_ad(plan, video_path):
         t = i / FPS
         si = max(0, bisect.bisect_right(starts, t + 1e-6) - 1); sc = plan['scenes'][si]; lt = t - sc['start']
         im = ad_base(clips[sc['clip']['dir']], sc, lt, caches.setdefault(sc['clip']['dir'], {})) if sc.get('clip') else bg
+        if (sc.get('fx') or {}).get('base'): im = post_fx(im, sc['fx']['base'], lt, t)  # yalnız alttaki görüntüye (ör. donup griye dönme; büyüteç renkli kalır)
         op = os.path.join(plan['overlay'], f'o{i + 1:05d}.png'); ino = os.stat(op).st_ino
         if ino not in ovl_cache: ovl_cache.clear(); ovl_cache[ino] = Image.open(op).convert('RGBA')
         out = im.convert('RGBA'); out.alpha_composite(ovl_cache[ino]); out = out.convert('RGB')
@@ -292,7 +296,11 @@ def mix_audio_ad(plan, out_wav):
     gm = 1 - (1 - 10 ** (duck.get('music', -10) / 20)) * e; gf = 1 - (1 - 10 ** (duck.get('sfx', -4) / 20)) * e
     rms = lambda z: np.sqrt(np.mean(z ** 2)) + 1e-9
     mus = mus / rms(mus) * 0.05 * float(duck.get('musicGain', 1.0)); fx = fx / max(1e-9, np.max(np.abs(fx))) * 0.55 * float(duck.get('sfxGain', 1.0))
-    L = mus[0] * gm + fx[0] * gf + v + vr; R = mus[1] * gm + fx[1] * gf + v + vr
+    # Ton Avı tonları: saf sinüs, anlatıcının ~16 dB altında sabit düzey (sıkıştırma/sınırlayıcıya takılmaz; ani yüksek ses yok)
+    tn = np.zeros(n)
+    for ev in plan.get('tones') or []:
+        x = RS.sfx('tone', ev.get('d', 0.45), f=ev['f']) * 0.028 * float(ev.get('g', 1)); i = int(ev['t'] * SR); j = min(n, i + len(x)); tn[i:j] += x[: j - i]
+    L = mus[0] * gm + fx[0] * gf + v + vr + tn; R = mus[1] * gm + fx[1] * gf + v + vr + tn
     y = np.stack([L, R]); y = np.tanh(y * 1.4) / 1.4
     pcm = (np.clip(y.T, -1, 1) * 32767).astype('<i2')
     with wave.open(out_wav, 'wb') as w:
@@ -349,11 +357,11 @@ def measure_i(wav):
     txt = r.stderr; return float(json.loads(txt[txt.rindex('{'):txt.rindex('}') + 1])['input_i'])
 
 
-def loudness_chain(wav, target=-14.0):
-    """hedef bütünleşik ses yüksekliği için kazanç + tepe sınırlayıcı (−1,9 dBFS); iki ölçümle"""
+def loudness_chain(wav, target=-14.0, limit=0.75):
+    """hedef bütünleşik ses yüksekliği için kazanç + tepe sınırlayıcı (varsayılan 0,75 ≈ −2,5 dBFS); iki ölçümle"""
     gain = target - measure_i(wav)
     tmp = wav.replace('.wav', '-dene.wav')
-    chain = lambda g: f'volume={g:.2f}dB,alimiter=limit=0.75:attack=2:release=80:level=0'
+    chain = lambda g: f'volume={g:.2f}dB,alimiter=limit={limit}:attack=2:release=80:level=0'
     sh(['ffmpeg', '-y', '-v', 'error', '-i', wav, '-af', chain(gain), tmp])
     gain += target - measure_i(tmp)
     return chain(gain)
@@ -396,7 +404,7 @@ def compose_ad(plan, work, out_dir, video):
     raw = os.path.join(work, 'mix-ham.wav'); mix_audio_ad(plan, raw)
     mixed = os.path.join(work, 'mix.wav')
     sh(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', 'acompressor=threshold=-18dB:ratio=3:attack=5:release=120:makeup=2dB', mixed])
-    ln = loudness_chain(mixed)
+    ln = loudness_chain(mixed, limit=plan.get('limit', 0.75))  # 3. dalga: 0,6 (parlak çan/glokenşpil geçişleri AAC'de gerçek tepeyi aşmasın)
     final = os.path.join(out_dir, f'{slug}.mp4')
     sh(['ffmpeg', '-y', '-v', 'error', '-i', video, '-i', mixed, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
         '-af', f'{ln},aresample=48000,afade=t=in:d=0.02,afade=t=out:st={max(0, plan["total"] - 0.3):.2f}:d=0.3',

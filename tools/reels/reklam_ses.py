@@ -11,8 +11,14 @@ Müzik stilleri ve bölüm türleri (sahnelerin `mus` alanı; bölüm o sahnenin
   komedi  (oyunbaz, Fa majör, tuba + pizzicato): off · bouncy · bright · tension · boss · end
   panik   (sınav gecesi; gergin 16'lıklar → neşeli groove): off · tick · panic · groove · end
   spor    (stadyum marşı, Mi minör): off · drums · count · drop · break · end
+  kur     (kamp büyümesi, Re majör): off · intro · grow · lift · wide · end
+  detay   (fark ettin mi, La minör/Do majör): off · soft · full · end
+  gizem   (vaka saati, La minör gerilim): off · tick · pulse · rise · hit · end
+  yarisma (eğri yarışması, Si bemol majör): off · fanfar · think · reveal · end
+  sessiz  (kulaklık; ton anlarında 'off'): off · amb · pulse · end
 Efektler (sfx): boom, braam, hit, taiko, whoosh, swish, riser, reverse, downer, subdrop, heartbeat, tick, tock, scratch, boing,
-  squish, cricket, pop, ding, buzzer, whistle, crowd, cheer, horn, beep, glitch, snap, stamp, paper, gulp, sparkle, thud
+  squish, cricket, pop, ding, buzzer, whistle, crowd, cheer, horn, beep, glitch, snap, stamp, paper, gulp, sparkle, thud,
+  chime (n), lens, tone (f; Ton Avı tonu — ayrı, sınırlı düzeyli izde karışır), flash, drumroll, type
 """
 import json, sys, wave
 import numpy as np
@@ -315,6 +321,22 @@ def sfx(kind, d=None, **o):
     if kind == 'paper':  # uçuşan not kâğıdı
         d = d or 0.35; t = T(d); x = fftfilt(noise(d), lo=1200, hi=8000) * (0.6 + 0.4 * np.sign(np.sin(2 * np.pi * 37 * t)))
         return x * np.sin(np.pi * t / d) ** 2 * 0.6
+    if kind == 'chime':  # seviye çanı: perde n (MIDI), parlak ve kısa
+        nt = o.get('n', 86); d = d or 0.9; return glock(nt, d, 1.0) + 0.5 * bell(nt - 12, d, 0.6) + 0.25 * pluck(nt + 12, d, 0.6, 9)
+    if kind == 'lens':  # büyüteç: cam "tın" + kısa sıyırma
+        d = d or 0.6; t = T(d); x = 0.5 * np.sin(2 * np.pi * 2637 * t) * np.exp(-t * 9) + 0.35 * np.sin(2 * np.pi * 3951 * t) * np.exp(-t * 14)
+        return x + 0.3 * fftfilt(noise(d), lo=3000) * np.exp(-t * 40)
+    if kind == 'tone':  # Ton Avı tonu: saf sinüs, 20 ms yumuşak giriş/çıkış (patlama yok); düzey karışımda ayarlanır
+        d = d or 0.45; t = T(d); n = len(t); r = min(n // 2, int(0.02 * SR)); e = np.ones(n); e[:r] = np.sin(np.linspace(0, np.pi / 2, r)) ** 2; e[n - r:] = e[:r][::-1]
+        return np.sin(2 * np.pi * o.get('f', 1000) * t) * e
+    if kind == 'flash':  # fotoğraf flaşı: "pıt" + şarj vızıltısı
+        d = 0.5; t = T(d); return fftfilt(noise(d), lo=2500) * np.exp(-t * 60) + 0.2 * np.sin(2 * np.pi * np.cumsum(3000 + 4000 * t) / SR) * np.exp(-t * 6)
+    if kind == 'drumroll':
+        d = d or 1.2; out = np.zeros(int(d * SR)); tt = 0.0
+        while tt < d - 0.05: p = tt / d; b = snare(0.25 + 0.5 * p, 0.12); i = int(tt * SR); out[i:i + len(b)] += b[: len(out) - i]; tt += 0.045
+        return out
+    if kind == 'type':  # daktilo tuşu
+        d = 0.08; t = T(d); return fftfilt(noise(d), lo=1500, hi=7000) * np.exp(-t * 80) + 0.3 * np.sin(2 * np.pi * 1800 * t) * np.exp(-t * 120)
     raise ValueError(f'bilinmeyen efekt: {kind}')
 
 
@@ -539,6 +561,120 @@ def music(style, bpm, total, sections):
                 bus.add(supersaw([40, 47, 52, 55, 59, 64], dd, 0.11, cut=4000, a=0.01, rel=1.4), a, rev=0.5); bus.add(sub(28, dd, 0.32), a, rev=0)
                 bus.add(sfx('horn') * 0.25, a, rev=0.4); bus.add(taiko(1.0, 60), a, rev=0.4)
         return bus.render(2.0, 5000)
+
+    if style == 'kur':  # kamp büyümesi (Re majör, 120 BPM): pırıltılı arpej + dört vuruş; seviye çanları efekt izinde
+        prog = [(38, [62, 66, 69]), (35, [62, 66, 71]), (31, [62, 67, 71]), (33, [61, 64, 69])]
+        for a, e, k in secs:
+            if k == 'off': continue
+            if k == 'intro':
+                dd = e - a + 0.6; bus.add(pad([50, 57, 62, 66], dd, 0.07, a=0.3, cut=1800), a, rev=0.4)
+                for i, t in beats(a, e, 0.5): bus.add(pluck([74, 78, 81, 86][i % 4], 0.5, 0.08, 6), t, pan=0.3 if i % 2 else -0.3, rev=0.35)
+            if k in ('grow', 'lift'):
+                big = k == 'lift'
+                for i, t in beats(a, e, 1):
+                    root, tri = prog[(i // 4) % 4]; pos = i % 4
+                    bus.add(kick(0.75 if big else 0.6, 0.9), t, rev=0)
+                    if pos in (1, 3): bus.add(clap(0.28), t, rev=0.2)
+                    bus.add(hat(0.06, open_=big), t + B / 2, pan=0.3, rev=0.05)
+                    bus.add(sub(root, B * 0.45, 0.22), t, rev=0); bus.add(sawbass(root + 12, B * 0.4, 0.16, cut=800), t + B / 2, rev=0)
+                    for q in range(4): bus.add(pluck(tri[(q + i) % 3] + 12, 0.4, 0.07, 7), t + q * B / 4, pan=0.35 if q % 2 else -0.35, rev=0.3)
+                    if big and pos == 0: bus.add(supersaw([x + 12 for x in tri], B * 3.8, 0.05, cut=4000, a=0.02, rel=0.3), t, rev=0.35); bus.add(brass([root + 24, root + 31], B * 1.5, 0.08, cut=2200), t, rev=0.3)
+            if k == 'wide':
+                dd = e - a + 1.0
+                bus.add(pad([50, 57, 62, 66, 69], dd, 0.12, a=0.25, cut=3500), a, rev=0.6); bus.add(sub(38, dd, 0.25), a, rev=0)
+                bus.add(choir([62, 66, 69], dd, 0.05, a=0.4), a, rev=0.6)
+                for i, t in beats(a, e, 0.5): bus.add(glock([86, 90, 93, 98][i % 4], 0.8, 0.06), t, pan=0.4 if i % 2 else -0.4, rev=0.5)
+                for i, t in beats(a, e, 1): bus.add(kick(0.45, 0.6), t, rev=0)
+            if k == 'end':
+                dd = e - a + 2.0
+                bus.add(supersaw([50, 57, 62, 66, 69], dd, 0.09, cut=3500, a=0.01, rel=1.2), a, rev=0.45); bus.add(sub(38, dd, 0.3), a, rev=0)
+                bus.add(kick(0.8), a); bus.add(brass([62, 66, 69, 74], dd * 0.6, 0.1, cut=2400), a, rev=0.4)
+                for q, nt in enumerate((86, 90, 93, 98)): bus.add(bell(nt, 2.0, 0.07), a + 0.08 * q, rev=0.5)
+        return bus.render(2.0, 5000)
+
+    if style == 'detay':  # "fark ettin mi" (La minör → Do majör, 100 BPM): meraklı pizzicato + glokenşpil, yumuşak nabız
+        prog = [(33, [57, 60, 64]), (29, [57, 60, 65]), (36, [55, 60, 64]), (31, [55, 59, 62])]
+        mot = [76, 79, 81, 79, 84, 81, 79, 76]
+        for a, e, k in secs:
+            if k == 'off': continue
+            if k in ('soft', 'full'):
+                for i, t in beats(a, e, 0.5):
+                    root, tri = prog[(i // 8) % 4]
+                    bus.add(pizz([root + 24, tri[0] + 12, tri[1] + 12, tri[2] + 12][i % 4], 0.12), t, pan=0.25 if i % 2 else -0.25, rev=0.2)
+                    if i % 4 == 0: bus.add(glock(mot[(i // 4) % 8], 0.9, 0.07), t, pan=0.3, rev=0.45)
+                for i, t in beats(a, e, 1):
+                    root, tri = prog[(i // 4) % 4]
+                    if i % 4 == 0: bus.add(pad([x for x in tri], B * 4.2, 0.05, a=0.3, cut=1500), t, rev=0.5); bus.add(sub(root + 12, B * 3.8, 0.16), t, rev=0)
+                    if k == 'full':
+                        bus.add(kick(0.5, 0.6) if i % 2 == 0 else snare(0.12, 0.15), t, rev=0.15); bus.add(shaker(0.04), t + B / 2, rev=0.05)
+            if k == 'end':
+                dd = e - a + 1.8
+                bus.add(pad([48, 55, 60, 64, 67], dd, 0.1, a=0.05, cut=2600), a, rev=0.5); bus.add(sub(36, dd, 0.25), a, rev=0)
+                for q, nt in enumerate((72, 76, 79, 84)): bus.add(glock(nt + 12, 1.4, 0.09), a + 0.1 * q, rev=0.5)
+        return bus.render(2.2, 5000)
+
+    if style == 'gizem':  # vaka saati (La minör gerilim, 84 BPM): saat tikleri, pizzicato ostinato, tremolo, vuruşlu ipucu
+        for a, e, k in secs:
+            if k == 'off': continue
+            if k in ('tick', 'pulse', 'rise'):
+                dd = e - a + 0.5
+                bus.add(pad([33, 40, 45], dd, 0.12, a=0.6, cut=420), a, rev=0.4); bus.add(sub(33, dd, 0.16) * env(int(dd * SR), 0.5, 0.1, 1, 0.5), a, rev=0)
+                for i, t in beats(a, e, 1): bus.add(sfx('tick' if i % 2 == 0 else 'tock') * 0.4, t, pan=0.3, rev=0.25)
+            if k in ('pulse', 'rise'):
+                for i, t in beats(a, e, 0.5): bus.add(pizz([45, 52, 48, 52, 45, 53, 52, 48][i % 8], 0.2, 0.35), t, pan=-0.2, rev=0.25)
+                for i, t in beats(a, e, 2): bus.add(sfx('heartbeat') * 0.3, t, rev=0.1)
+            if k == 'rise':
+                dd = e - a; tt = T(dd)
+                bus.add(pad([57, 60, 64, 65], dd, 0.08, a=dd * 0.6, cut=3500, trem=11) * (tt / dd) ** 1.3, a, rev=0.35)
+            if k == 'hit':
+                bus.add(sub(33, min(3.5, e - a + 1.5), 0.3), a, rev=0); bus.add(brass([45, 48, 52, 56], min(3, e - a + 1), 0.14, cut=1200), a, rev=0.5)
+            if k == 'end':
+                dd = e - a + 2.0
+                bus.add(pad([45, 52, 57, 60, 64], dd, 0.11, a=0.05, cut=1800), a, rev=0.55); bus.add(sub(33, dd, 0.28), a, rev=0)
+                bus.add(bell(81, 2.5, 0.07), a, rev=0.6); bus.add(bell(76, 2.5, 0.05), a + 0.25, rev=0.6)
+        return bus.render(2.6, 3800)
+
+    if style == 'yarisma':  # eğri yarışması (Si bemol majör yarışma programı, 128 BPM): bakır fanfar, "düşünme" saati, parlak dönüş
+        prog = [(34, [58, 62, 65]), (39, [58, 63, 67]), (41, [57, 60, 65]), (34, [58, 62, 65])]
+        for a, e, k in secs:
+            if k == 'off': continue
+            if k == 'fanfar':
+                for q, (nt, d0) in enumerate([(70, 0.5), (70, 0.25), (74, 0.25), (77, 1.0), (82, 1.5)]):
+                    t = a + sum(x[1] for x in [(70, 0.5), (70, 0.25), (74, 0.25), (77, 1.0), (82, 1.5)][:q]) * B
+                    if t < e: bus.add(brass([nt - 12, nt], min(d0 * B, e - t) * 0.95, 0.16, cut=3000), t, rev=0.3)
+                for i, t in beats(a, e, 1): bus.add(taiko(0.6, 75), t, rev=0.3); bus.add(sub(34, B * 0.9, 0.25), t, rev=0)
+            if k == 'think':  # sorudan sonra: tik-tak + yumuşak bas (anlatıcıya ve sayaca yer)
+                for i, t in beats(a, e, 1):
+                    bus.add(sfx('tick' if i % 2 == 0 else 'tock') * 0.55, t, pan=0.3, rev=0.15)
+                    if i % 2 == 0: bus.add(sub(34 + (5 if (i // 4) % 2 else 0), B * 0.8, 0.18), t, rev=0)
+                    bus.add(pizz([70, 74, 77, 74][i % 4], 0.1, 0.3), t + B / 2, pan=-0.3, rev=0.2)
+            if k == 'reveal':
+                for i, t in beats(a, e, 1):
+                    root, tri = prog[(i // 4) % 4]; pos = i % 4
+                    bus.add(kick(0.8, 1.0), t, rev=0)
+                    if pos in (1, 3): bus.add(clap(0.35), t, rev=0.2)
+                    bus.add(hat(0.08, open_=True), t + B / 2, rev=0.05); bus.add(hat(0.04), t + B / 4, pan=0.3); bus.add(hat(0.04), t + 3 * B / 4, pan=-0.3)
+                    bus.add(sawbass(root + 12, B * 0.4, 0.24, cut=900), t + B / 2, rev=0); bus.add(sub(root, B * 0.45, 0.22), t, rev=0)
+                    if pos in (0, 2): bus.add(brass([x + 12 for x in tri], B * 0.35, 0.09, cut=3200), t + B / 2, rev=0.25)
+            if k == 'end':
+                dd = e - a + 2.0
+                bus.add(brass([46, 53, 58, 62, 65], dd * 0.7, 0.18, cut=2600), a, rev=0.4); bus.add(sub(34, dd, 0.3), a, rev=0); bus.add(taiko(1.0, 65), a, rev=0.4)
+                bus.add(sfx('cheer', 2.0) * 0.15, a, rev=0.3)
+        return bus.render(1.8, 5000)
+
+    if style == 'sessiz':  # kulaklık meydan okuması (Fa majör, 90 BPM): çok yumuşak; ton anlarında müzik SUSAR ('off')
+        for a, e, k in secs:
+            if k == 'off': continue
+            if k in ('amb', 'pulse'):
+                dd = e - a + 0.4
+                bus.add(pad([53, 60, 65, 69], dd, 0.06, a=0.4, r=0.35, cut=1400), a, rev=0.5)
+                if k == 'pulse':
+                    for i, t in beats(a, e, 1): bus.add(sub(41, B * 0.5, 0.12), t, rev=0); bus.add(glock([77, 81, 84, 81][i % 4], 0.6, 0.035), t, pan=0.3, rev=0.4)
+            if k == 'end':
+                dd = e - a + 1.8
+                bus.add(pad([41, 48, 53, 57, 60, 65], dd, 0.1, a=0.05, cut=2400), a, rev=0.5); bus.add(sub(41, dd, 0.22), a, rev=0)
+                for q, nt in enumerate((77, 81, 84, 89)): bus.add(glock(nt, 1.4, 0.07), a + 0.1 * q, rev=0.5)
+        return bus.render(2.2, 4500)
     raise ValueError(style)
 
 

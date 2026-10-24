@@ -93,6 +93,60 @@
       { "id": "m6", "text": "Canavarı hep beraber devirin!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
       { "id": "m7", "text": "Odi: Sesin Yolu. Takımın seni bekliyor.", "sub": "ODİ: Sesin Yolu. Takımın seni bekliyor.", "asr": ["Odi sesin yolu takımın seni bekliyor"], "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
       { "id": "m8", "text": "Kim daha hızlı duyar? Arkadaşını etiketle!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } }
+    ],
+    "cadirdan-kaleye": [
+      { "id": "c1", "text": "Bir çadırla başladı.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c2", "text": "Sonra bir kale oldu.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c3", "text": "Sonra bir kampüs.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c4", "text": "Ve sonunda, bir efsane!", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c5", "text": "Köprüleri kur, beş bölgeyi aç.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c6", "text": "Süsle, arkadaşına kampını gezdir.", "v": { "exaggeration": 0.9, "temperature": 0.8 } },
+      { "id": "c7", "text": "Kampını büyüt. Odi: Sesin Yolu. Yakında!", "v": { "exaggeration": 0.9, "temperature": 0.8 }, "sub": "Kampını büyüt. ODİ: Sesin Yolu. Yakında!", "asr": ["Kampını büyüt. Odi, Sesin Yolu. Yakında", "Kampını büyüt Odi sesin yolu yakında"] }
+    ],
+    "fark-ettin-mi": [
+      { "id": "d1", "text": "Bu detayları sadece odyologlar fark eder.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d2", "text": "Sağ kulak kırmızı daire, sol kulak mavi çarpı.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d3", "text": "Kemik yolu işaretleri bile yerli yerinde.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d4", "text": "Koklea, tam iki buçuk tur döner.", "asr": ["Koklea tam iki buçuk tur döner", "Koklea tam 2,5 tur döner", "Koklea tam 2.5 tur döner"], "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d5", "text": "Stereosilyalar basamak basamak dizilir.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d6", "text": "Kıllar ve kulak kiri: kanalın dış kısmında.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d7", "text": "Bebeklerde prob tonu: bin hertz.", "sub": "Bebeklerde prob tonu: 1000 Hz.", "asr": ["Bebeklerde prob tonu bin hertz", "Bebeklerde prob tonu 1000 Hz", "Bebeklerde prob tonu 1000 hertz", "Bebeklerde probe tonu 1000 Hz"], "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d8", "text": "Ve yolun sonu: işitme korteksi.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "d9", "text": "Detaylar bizden. Merak senden.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } }
+    ],
+    "vaka-saati": [
+      { "id": "v1", "text": "Yeni bir vaka. Dört ipucu. Tanı ne?", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "v2", "text": "Otuz üç yaşında. Doğumdan sonra işitmesi yavaş yavaş azalmış.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "sub": "33 yaşında. Doğumdan sonra işitmesi yavaş yavaş azalmış.", "asr": ["Otuz üç yaşında doğumdan sonra işitmesi yavaş yavaş azalmış", "33 yaşında doğumdan sonra işitmesi yavaş yavaş azalmış"] },
+      { "id": "v3", "text": "Garip ama, gürültüde daha iyi duyuyor.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "v4", "text": "Annesinde de işitme kaybı var.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "v5", "text": "İpucu bir: zar normal görünüyor.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "asr": ["İpucu bir zar normal görünüyor", "İpucu 1 zar normal görünüyor"] },
+      { "id": "v6", "text": "İpucu iki: timpanogram sığ, refleks yok.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "asr": ["İpucu iki timpanogram sığ refleks yok", "İpucu 2 timpanogram sığ refleks yok"] },
+      { "id": "v7", "text": "İpucu üç: kemik yolu iyi, hava yolu düşük.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "asr": ["İpucu üç kemik yolu iyi hava yolu düşük", "İpucu 3 kemik yolu iyi hava yolu düşük"] },
+      { "id": "v8", "text": "İpucu dört: iki kilohertzde, kemik yolunda bir çentik.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "sub": "İpucu dört: 2 kHz’te, kemik yolunda bir çentik.", "asr": ["İpucu dört iki kilohertzde kemik yolunda bir çentik", "İpucu 4 2 kilohertzde kemik yolunda bir çentik", "İpucu dört 2 kHz de kemik yolunda bir çentik"] },
+      { "id": "v9", "text": "Tanı ne? Cevabını yorumlara yaz.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "v10", "text": "Cevap oyunda. Odi: Sesin Yolu. Yakında.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 }, "sub": "Cevap oyunda. ODİ: Sesin Yolu. Yakında.", "asr": ["Cevap oyunda. Odi, Sesin Yolu. Yakında", "Cevap oyunda Odi sesin yolu yakında"] }
+    ],
+    "egri-yarismasi": [
+      { "id": "e1", "text": "Üç saniyede söyle: bu eğri ne anlatıyor?", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 }, "asr": ["Üç saniyede söyle bu eğri ne anlatıyor", "3 saniyede söyle bu eğri ne anlatıyor"] },
+      { "id": "e2", "text": "Tepe sıfıra yakın: zar rahat hareket ediyor.", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "e3", "text": "Dümdüz! Zar hareket etmiyor, kanal hacmi normal.", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "e4", "text": "Tepe eksi tarafta: orta kulak basıncı düşük.", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "e5", "text": "Yine düz, ama bu kez kanal hacmi büyük!", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "e6", "text": "Eğri ipucu verir. Tanıyı bütün testler birlikte koyar.", "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } },
+      { "id": "e7", "text": "Timpanogram Eşleştir. Kulede seni bekliyor!", "asr": ["Timpanogram Eşleştir. Kulede seni bekliyor", "Timpanogram eşleştir. Kule de seni bekliyor"], "v": { "exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25 } }
+    ],
+    "kulakligini-tak": [
+      { "id": "k1", "text": "Kulaklığını tak.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k2", "text": "Birinci soru: ses var mı? Dinle.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 }, "asr": ["Birinci soru ses var mı dinle", "1. soru ses var mı dinle"] },
+      { "id": "k3", "text": "Cevap: vardı.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k4", "text": "İkinci soru: hangisi daha ince?", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 }, "asr": ["İkinci soru hangisi daha ince", "2. soru hangisi daha ince"] },
+      { "id": "k5", "text": "Cevap: ikincisi.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k6", "text": "Üçüncü soru: ses var mı?", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 }, "asr": ["Üçüncü soru ses var mı", "3. soru ses var mı"] },
+      { "id": "k7", "text": "Bu sefer yoktu. Sessizliği duymak da önemli.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k8", "text": "Son soru, biraz daha zor: hangisi daha ince?", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k9", "text": "Cevap: birincisi.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k10", "text": "Kaç tane bildin? Yorumlara yaz.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
+      { "id": "k11", "text": "Ton Avı kampta seni bekliyor. Bu bir oyun, işitme testi değil.", "asr": ["Ton Avı kampta seni bekliyor. Bu bir oyun, işitme testi değil", "Ton avı kampta seni bekliyor bu bir oyun işitme testi değil"], "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } }
     ]
   }
 }
