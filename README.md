@@ -14,8 +14,18 @@ Bu repo, aiHear'ın bağımsız oyun projesidir. aihearX süper uygulamasındaki
 | [`docs/06-teknik-mimari.md`](docs/06-teknik-mimari.md) | 100 kişilik ekip disipliniyle mimari: modüller, sunucu, canlı veri, test, dağıtım |
 | [`docs/07-yol-haritasi.md`](docs/07-yol-haritasi.md) | Fazlar, kilometre taşları, ölçütler |
 | [`docs/08-onay-sorulari.md`](docs/08-onay-sorulari.md) | Başlamadan önce karar verilmesi gereken sorular |
-
 | [`docs/09-motor-rehberi.md`](docs/09-motor-rehberi.md) | Geliştirici rehberi: mekanik, parça, boss, harness |
+| [`docs/10-sunucu.md`](docs/10-sunucu.md) | Sosyal sunucu, ortam değişkenleri, protokol kuralları, yedek, hesap silme, kodlar |
+| [`docs/11-bolum-yeniden-tasarim.md`](docs/11-bolum-yeniden-tasarim.md) | Bölümlerin yeniden tasarımı (v2) |
+| [`docs/12-zorluk-egrisi.md`](docs/12-zorluk-egrisi.md) | Ölçülen zorluk eğrisi |
+| [`docs/13-iletisim.md`](docs/13-iletisim.md) | Oyuncu iletişimi: takım akışı, hazır sözler, güvenli sohbet |
+| [`docs/14-kamp.md`](docs/14-kamp.md) | Kulak Kampı: binalar, Tedavi Odası, kamp seviyesi, bölgeler |
+| [`docs/15-siralama.md`](docs/15-siralama.md) | Sıralama: oyuncular ve takımlar |
+| [`docs/16-takim-rekabeti.md`](docs/16-takim-rekabeti.md) | Canlı Takım Yarışı, Takım Ligi, takım bulma ve başvuru |
+| [`docs/17-kamp-gorevleri.md`](docs/17-kamp-gorevleri.md) | Kamp Görevleri: Hasta Vakaları, Ton Avı, Timpanogram Eşleştir |
+| [`docs/odyoloji-icerik.md`](docs/odyoloji-icerik.md) | Odyoloji içeriği (uzman incelemesi için) |
+| [`docs/anlatici-metinleri.md`](docs/anlatici-metinleri.md) | Tüy Dede anlatıcı metinleri |
+| [`docs/yonetim/durum.md`](docs/yonetim/durum.md) | Proje yöneticisi: güncel durum, test sonuçları, sahip kararları ([iş listesi](docs/yonetim/is-listesi.md)) |
 
 Durum: **Faz 1 (dikey dilim) geliştirmede.** Kod bu repoda; aşağıdaki komutlarla çalışır.
 
