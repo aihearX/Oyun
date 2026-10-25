@@ -35,7 +35,7 @@ const wsUrl = `ws://127.0.0.1:${sport}`;
 
 // ---- web önizleme
 const wport = 5300 + Math.floor(Math.random() * 400);
-const preview = spawn('npx', ['vite', 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32' });
+const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' }); // npx değil: npx alt süreci kill() ile kapanmıyordu (artık vite preview kalıyordu)
 procs.push(preview);
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://localhost:${wport}/`)).ok) break; } catch { /* henüz değil */ } await sleep(200); }
 const base = `http://localhost:${wport}/?sunucu=${encodeURIComponent(wsUrl)}`;

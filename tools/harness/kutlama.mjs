@@ -19,7 +19,7 @@ const run = (cmd, a, opts = {}) => new Promise((res, rej) => { const p = spawn(c
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (!argv.includes('--no-build') || !existsSync(resolve(dist, 'index.html'))) await run('npx', ['vite', 'build', '--outDir', dist, '--emptyOutDir', '--logLevel', 'warn'], { cwd: resolve(root, 'apps/web') });
 const port = 6100 + Math.floor(Math.random() * 400);
-const preview = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--outDir', dist], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' });
+const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(port), '--strictPort', '--outDir', dist], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' });
 await sleep(1800);
 const base = `http://localhost:${port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
