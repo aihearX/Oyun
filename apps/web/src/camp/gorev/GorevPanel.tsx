@@ -54,13 +54,27 @@ export function GorevPanel({ tab }: { tab: GorevSekme }) {
   );
 }
 
+function Ilerleme({ progress, need, locked }: { progress: number; need: number; locked: string | null }) {
+  return locked ? <small className="kg-kilit"><Art name="lock" size={14} /> {locked}</small>
+    : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.round((progress / need) * 100)}%` }} /></div><small>{progress}/{need}</small></div>;
+}
+/** hikâye adımı; takıma bağlı adımda "ya da" satırı (takımsız eşdeğeri): ikisinden biri adımı tamamlar */
 function Adim({ t }: { t: KgGorev }) {
+  const ya = t.ya;
+  // adım "ya da" yoluyla bittiyse ana yolun boş çubuğu gösterilmez (tamamlanan satır "ya da"dır)
+  const ana = !(ya?.done && t.progress < t.need);
   return (
-    <div className={`kg-adim${t.done ? ' done' : ''}${t.locked ? ' locked' : ''}`} data-adim={t.id}>
+    <div className={`kg-adim${t.done ? ' done' : ''}${t.locked && !ya ? ' locked' : ''}${ya ? ' has-ya' : ''}`} data-adim={t.id}>
       <span className="kg-adim-ic"><KgIcon name={t.art} size={26} /></span>
       <div className="grow min0"><b>{t.text}</b>
-        {t.locked ? <small className="kg-kilit"><Art name="lock" size={14} /> {t.locked}</small>
-          : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.round((t.progress / t.need) * 100)}%` }} /></div><small>{t.progress}/{t.need}</small></div>}
+        {ana && <Ilerleme progress={t.progress} need={t.need} locked={t.locked} />}
+        {ya && (
+          <div className={`kg-ya${ya.done ? ' done' : ''}`} data-ya={ya.id}>
+            <small className="kg-ya-etiket">ya da</small>
+            <b>{ya.text}</b>
+            <Ilerleme progress={ya.progress} need={ya.need} locked={ya.locked} />
+          </div>
+        )}
       </div>
       {t.done && <Art name="check" size={22} />}
     </div>

@@ -28,7 +28,7 @@ takımsız ve takımlı: altı profil. İlk ölçüm (6c1f4ac) oyun kodunu deği
    - Bölüm 40'a 6 oturumla 2. gün, 3 oturumla 3. gün, 1 oturumla 9. gün varılıyor.
    - Sonrası tekrar oynama: 6 oturumda günde ~2.000 jeton yalnız tekrardan geliyor.
    - İkinci haftada depo en büyük kaynak oluyor (3-6 oturumda 14. gün 2.200-2.880 jeton/gün).
-4. **Takımsız oyuncunun hikâyesi 5. bölümde duruyor.**
+4. **Takımsız oyuncunun hikâyesi 5. bölümde duruyor.** _(Ö2 ile giderildi: takımsız 14 günde 8-9/10, §7.)_
    - Kampın Hikâyesi sıralı ilerliyor ve 6. bölüm takıma katılmayı istiyor. Takımsız profiller 14 günde 5/10'da kalıyor; takımlılar 9/10'a ulaşıyor.
    - Kaybedilen ödüller: 6-10. bölümlerin 43 kristali, 1.220 Kamp XP'si, 5 × 60 dk hızlandırıcı ve 3 süsü.
 5. **Klinikte boş günler var.** _(Ö4 ile giderildi, §7.)_
@@ -110,7 +110,7 @@ bölüm bittiğinde yıldız, hazine ve açılım işlenir. 40'tan sonra 1-40 s�
 | A11 | Kombo-10 ve meydan okuma görevi | sayılmaz (0) | İnsan modeli kombo ölçmez. Alt sınır |
 | A12 | Takımlı profiller: takım | 10 üye, teknoloji Sv 0. Takım günlük görevlerinden 2/3, Ses Avı 6/8 kademe. Haftalık hedefler: Yıldız 2, Bölüm 2, Canavar 1 kademe. Düello 1 galibiyet + 1 yenilgi; baskın canavarı yenilir; bayrak parkuru biter; bölge sahibi değil | "Orta takım". Turnuva, meydan okuma sıralaması, İkili Görev ve mağaza hediyesi dışarıda |
 | A13 | Takımlı profiller: oyuncu | ralli (kazanılan) ve bilgi yarışması günde 0 / 1 / 2 (1 / 3 / 6 oturum), 7/10 doğru. Günün Sorusu %70 doğru. Oturum başına 3 inşaat yardımı. Kendi inşaatına 5 yardım hemen gelir. Oturum başına 1 konsültasyon oyu, günde 1 soru. 3 arkadaşla hediyeleşme. Günde 1 alkış ver/al, 1 bölüm yardımı | Etkinlik saatleri: bilgi yarışması 13:00 / 20:00 |
-| A14 | Takımsız profiller | takım, arkadaş, ziyaret yok | — |
+| A14 | Takımsız profiller | takım, arkadaş, ziyaret yok. Hikâye 6–7'de "ya da" adımlarını yapar; adım Vaka Defteri'nden yeniden çözme isterse oturumda 1 vaka yeniden çözülür (yeni yıldız sayılmaz) | Ö2 (§7): oyuncu ekrandaki adıma yönelir |
 | A15 | Dışarıda | promosyon kodları, mağaza ve Sezon Kartı (gerçek para), yönetici modu | İş emri |
 
 ### 2.3 Gelir ve harcama kaynakları (formül → dosya:satır)
@@ -127,10 +127,10 @@ bölüm bittiğinde yıldız, hazine ve açılım işlenir. 40'tan sonra 1-40 s�
 | Başarımlar | Bronz 15 / Gümüş 40 / Altın 100 jeton. Ölçülen ölçütler: bitirme, yıldız, nota, oyun, görev, sandık, takvim, seri, gün, en yüksek bölüm, XP, 3★, hasarsız, par, boss, yetenek, koruyucu, biyom yıldızı | `packages/content/src/achievements.ts:15`, `:33-67` |
 | Yerel ödül sınırı | günlük 1.500 jeton (yukarıdaki yedi kaynak; Ö1 öncesi 600) | `packages/shared/src/social.ts` (`LOCAL_JETON_DAILY_MAX`), uygulama `apps/server/src/wallet.ts:37-38` |
 | Depo | `floor(min(geçen, dolma) / 1 sa × Sv × 20)`; dolma `8 + 0,5 × Denge Sv` sa; her 40 jetona 1 Kamp XP (en çok 20) | `apps/server/src/camp.ts:13`, `:229-236`; `packages/content/src/kamp-seviye.ts:46`, `:29` |
-| Kamp Görevleri | günlük 3 × (15 jeton + 15 XP); haftalık 40 jeton / 3 kristal / 5 kristal + 60 dk | `packages/content/src/kamp-gorev.ts:50`, `:169-173` |
-| Kampın Hikâyesi | 10 bölüm, sıralı (ilk alınmamış bölüm) | `packages/content/src/kamp-gorev.ts:86-139`; `apps/server/src/camp-quests.ts:155` |
-| Kamp başarıları | 12 başarı, basamaklarda jeton, kristal, XP, süs | `packages/content/src/kamp-gorev.ts:179-204` |
-| Hasta Vakaları | gün başına en çok 3 hasta, salon 6; kademe Klinik Sv 1/2/3 (Ö4 öncesi 1/4/7). İlk çözüm `10 + 5×yıldız` jeton, `15 + 5×yıldız` XP | `apps/server/src/camp-quests-vaka.ts:33-35`, `:83`; `packages/content/src/kamp-gorev.ts:26-30`, `:45-48`, `:221` |
+| Kamp Görevleri | günlük 3 × (15 jeton + 15 XP); haftalık 40 jeton / 3 kristal / 5 kristal + 60 dk | `packages/content/src/kamp-gorev.ts:50`, `:183-187` |
+| Kampın Hikâyesi | 10 bölüm, sıralı (ilk alınmamış bölüm) | `packages/content/src/kamp-gorev.ts:96-153` (6–7. bölümde "ya da" adımları, Ö2); `apps/server/src/camp-quests.ts:157-180` |
+| Kamp başarıları | 12 başarı, basamaklarda jeton, kristal, XP, süs | `packages/content/src/kamp-gorev.ts:193-218` |
+| Hasta Vakaları | gün başına en çok 3 hasta, salon 6; kademe Klinik Sv 1/2/3 (Ö4 öncesi 1/4/7). İlk çözüm `10 + 5×yıldız` jeton, `15 + 5×yıldız` XP | `apps/server/src/camp-quests-vaka.ts:33-35`, `:83`; `packages/content/src/kamp-gorev.ts:26-30`, `:45-48`, `:235` |
 | Kamp oyunları | tur başına 4 jeton + 5 XP, günde 5 ödüllü tur | `packages/content/src/kamp-gorev.ts:32`, `:49`; `apps/server/src/camp-quests-oyun.ts:84` |
 | Konsültasyon, takım kliniği | oy 5 jeton + 3 XP (günde 5); soran 5 + 3; takım kliniği 3 kristal + 40 XP/hafta | `packages/content/src/kamp-gorev.ts:51-53` |
 | İnşaat yardımı | yardım edene 2 jeton (günde 30); her yardım `max(60, %1 kalan)` sn; inşaat başına 5 | `apps/server/src/camp.ts:11-12`, `:153`; `packages/shared/src/social.ts:209`, `:364` |
@@ -202,9 +202,9 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 
 | Profil | Bölüm 40 bitti (gün) | İlk duvar günü | İnşaatsız gün | Taşkın günü | Yeni hasta gelen gün / vaka açık gün (boş gün, vaka bitmeden) | Kuyruk dolu / boş: jeton yok / boş: oyuncu yok (%) | Sıradaki bina = kaç günlük gelir (14. gün) | 14. gün cüzdan | 14. gün kristal | Kamp Sv | Hikâye bölümü | Anlamlı gün |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 oturum, takımsız | 9 | yok | 0 | 13 | 8/12 (4) | %0 / %0 / %100 | 0,65 | 3.847 | 49 | 11 | 5/10 | 14/14 |
-| 3 oturum, takımsız | 3 | yok | 0 | 2 | 11/14 (1) | %2 / %23 / %75 | 0,52 | 1.171 | 88 | 15 | 5/10 | 14/14 |
-| 6 oturum, takımsız | 2 | yok | 0 | 0 | 11/14 (0) | %4 / %83 / %13 | 0,50 | 638 | 100 | 16 | 5/10 | 14/14 |
+| 1 oturum, takımsız | 9 | yok | 0 | 13 | 10/12 (2) | %0 / %0 / %100 | 0,08 | 1.881 | 94 | 13 | 8/10 | 14/14 |
+| 3 oturum, takımsız | 3 | yok | 0 | 0 | 11/14 (1) | %2 / %50 / %48 | 0,55 | 1.871 | 122 | 16 | 9/10 | 14/14 |
+| 6 oturum, takımsız | 2 | yok | 0 | 0 | 11/14 (0) | %4 / %80 / %16 | 0,50 | 2.206 | 134 | 17 | 9/10 | 14/14 |
 | 1 oturum, takımlı | 9 | yok | 0 | 12 | 11/12 (1) | %1 / %0 / %99 | 0,06 | 2.343 | 584 | 13 | 9/10 | 14/14 |
 | 3 oturum, takımlı | 3 | yok | 0 | 3 | 11/14 (1) | %2 / %41 / %56 | 0,41 | 828 | 754 | 17 | 9/10 | 14/14 |
 | 6 oturum, takımlı | 2 | yok | 0 | 1 | 11/14 (0) | %5 / %82 / %13 | 0,39 | 942 | 914 | 18 | 9/10 | 14/14 |
@@ -213,9 +213,9 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 
 | Profil | Kamp Görevleri | Vakalar (Klinik kurulu) | Tedavi Odası | Kamp Sv 3 (Sessiz Koru) | Akustik Kabin | Kamp Sv 6 (Koklea Koyu) | Tarama Birimi | Kamp Sv 9 (Park) | Kamp Sv 12 (Denge Tepesi) | Merkez Sv 5 | Merkez Sv 8 |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 oturum, takımsız | 1 | 3 | 5 | 2 | 5 | 4 | 6 | 7 | – | – | – |
-| 3 oturum, takımsız | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 4 | 8 | 12 | – |
-| 6 oturum, takımsız | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 6 | 8 | – |
+| 1 oturum, takımsız | 1 | 3 | 5 | 2 | 5 | 4 | 6 | 7 | 12 | – | – |
+| 3 oturum, takımsız | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 4 | 6 | 12 | – |
+| 6 oturum, takımsız | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 5 | 8 | – |
 | 1 oturum, takımlı | 1 | 3 | 4 | 2 | 5 | 4 | 5 | 7 | 10 | 13 | – |
 | 3 oturum, takımlı | 1 | 1 | 2 | 1 | 2 | 2 | 2 | 3 | 6 | 7 | – |
 | 6 oturum, takımlı | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 4 | 7 | – |
@@ -224,9 +224,9 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 
 | Profil | Bölüm | Yerel (görev, takvim, sandık, hazine, başarım) | Depo | Kamp Görevleri ve vakalar | Takım ve arkadaş | Toplam | Harcanan: bina | Harcanan: yetenek | Kristal geliri | Yerel sınırda kırpılan |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 1 oturum, takımsız | 4.557 | 4.166 | 3.360 | 1.697 | 0 | **13.780** | 7.312 | 2.720 | 49 | 0 |
-| 3 oturum, takımsız | 14.033 | 5.352 | 17.406 | 2.161 | 0 | **38.952** | 35.160 | 2.720 | 88 | 0 |
-| 6 oturum, takımsız | 28.545 | 5.675 | 24.756 | 2.393 | 0 | **61.369** | 58.111 | 2.720 | 100 | 0 |
+| 1 oturum, takımsız | 4.530 | 4.166 | 3.200 | 1.817 | 0 | **13.713** | 9.212 | 2.720 | 94 | 0 |
+| 3 oturum, takımsız | 13.959 | 5.352 | 16.856 | 2.161 | 0 | **38.328** | 33.836 | 2.720 | 122 | 0 |
+| 6 oturum, takımsız | 28.425 | 5.675 | 24.036 | 2.393 | 0 | **60.530** | 55.703 | 2.720 | 134 | 0 |
 | 1 oturum, takımlı | 4.547 | 4.166 | 2.080 | 2.062 | 6.133 | **18.988** | 14.025 | 2.720 | 584 | 0 |
 | 3 oturum, takımlı | 14.050 | 5.352 | 17.986 | 2.486 | 9.388 | **49.262** | 45.813 | 2.720 | 754 | 0 |
 | 6 oturum, takımlı | 28.697 | 5.675 | 26.166 | 2.863 | 12.720 | **76.121** | 72.559 | 2.720 | 914 | 0 |
@@ -243,12 +243,12 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 | 6 | 29 | 810 (285 / 252 / 160 / 113 / 0) | 3 | 598 | 1.074 | Odyometri 2, Atölye 2 | 0,1 / 0,0 / 23,8 | Depo 2 (299; 0,32) | 7 | 3 vaka |
 | 7 | 34 | 1.315 (363 / 494 / 160 / 298 / 0) | 11 | 379 | 2.010 | Park 1, Depo 2 | 0,1 / 0,0 / 23,8 | Kule 2 (299; 0,29) | 9 | Kamp Sv 8; Kamp Sv 9; hikâye 3; hikâye 4; hikâye 5; 1 vaka |
 | 8 | 37 | 846 (242 / 231 / 320 / 53 / 0) | 0 | 598 | 2.258 | Kule 2, Klinik 2 | 0,1 / 0,0 / 23,8 | Tedavi 2 (299; 0,30) | 9 | – |
-| 9 | 40 | 1.357 (297 / 587 / 320 / 153 / 0) | 3 | 598 | 3.017 | Tedavi 2, Kabin 2 | 0,1 / 0,0 / 23,8 | Tarama 2 (299; 0,25) | 10 | Kamp Sv 10; 3 vaka |
-| 10 | 40 | 1.136 (467 / 236 / 320 / 113 / 0) | 13 | 598 | 3.555 | Tarama 2, Park 2 | 0,1 / 0,0 / 23,8 | Merkez 3 (903; 0,81) | 10 | 3 vaka |
-| 11 | 40 | 818 (254 / 101 / 320 / 143 / 0) | 5 | 1.548 | 2.825 | Merkez 3, Odyometri 3 | 0,2 / 0,0 / 23,6 | Atölye 3 (645; 0,58) | 11 | Kamp Sv 11; 3 vaka |
-| 12 | 40 | 1.006 (414 / 120 / 320 / 153 / 0) | 0 | 645 | 3.186 | Atölye 3 | 0,0 / 0,0 / 23,8 | Depo 3 (645; 0,65) | 11 | 3 vaka |
-| 13 | 40 | 738 (259 / 66 / 320 / 93 / 0) | 0 | 645 | 3.280 | Depo 3 | 0,0 / 0,0 / 23,8 | Kule 3 (645; 0,76) | 11 | – |
-| 14 | 40 | 1.213 (288 / 392 / 480 / 53 / 0) | 0 | 645 | 3.847 | Kule 3 | 0,0 / 0,0 / 23,8 | Klinik 3 (645; 0,65) | 11 | – |
+| 9 | 40 | 1.357 (297 / 587 / 320 / 153 / 0) | 14 | 598 | 3.017 | Tedavi 2, Kabin 2 | 0,1 / 0,0 / 23,8 | Tarama 2 (299; 0,25) | 10 | Kamp Sv 10; hikâye 6; 3 vaka |
+| 10 | 40 | 1.136 (467 / 236 / 320 / 113 / 0) | 18 | 1.548 | 2.605 | Merkez 3, Klinik 3 | 0,2 / 0,0 / 23,6 | Tarama 2 (299; 0,27) | 11 | Kamp Sv 11; hikâye 7; 3 vaka |
+| 11 | 40 | 818 (254 / 101 / 320 / 143 / 0) | 5 | 1.560 | 1.863 | Merkez 4 | 0,3 / 0,0 / 23,5 | Tarama 2 (299; 0,27) | 11 | 3 vaka |
+| 12 | 40 | 995 (402 / 120 / 320 / 153 / 0) | 0 | 1.114 | 1.744 | Klinik 4 | 0,2 / 0,0 / 23,6 | Denge 1 (80; 0,08) | 12 | Kamp Sv 12: Denge Tepesi; 3 vaka |
+| 13 | 40 | 791 (252 / 66 / 320 / 153 / 0) | 21 | 645 | 1.890 | Kule 3 | 0,0 / 0,0 / 23,8 | Denge 1 (80; 0,09) | 12 | hikâye 8; 3 vaka |
+| 14 | 40 | 1.105 (280 / 392 / 320 / 113 / 0) | 8 | 1.114 | 1.881 | Kule 4 | 0,2 / 0,0 / 23,6 | Denge 1 (80; 0,08) | 13 | Kamp Sv 13; 3 vaka |
 
 ### Gün gün: 3 oturum, takımsız
 
@@ -257,17 +257,17 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 | 1 | 15 | 2.210 (1.122 / 723 / 236 / 129 / 0) | 0 | 2.188 | 122 | Depo 1, Odyometri 1, Merkez 2, Klinik 1, Kule 1 | 0,1 / 0,0 / 15,4 | Atölye 1 (80; 0,04) | 4 | Bugün (bölüm 2); Kamp (bölüm 3); Yetenekler (bölüm 3); Kamp Görevleri (bölüm 4); Takım (bölüm 5); Kamp oyunları (bölüm 6); Kamp Sv 2; Hasta Vakaları (bölüm 7); Kamp Sv 3: Sessiz Koru; Kamp Sv 4; hikâye 1 |
 | 2 | 29 | 2.054 (859 / 626 / 400 / 169 / 0) | 3 | 1.738 | 438 | Atölye 1, Tedavi 1, Kabin 1, Odyometri 2, Tarama 1, Atölye 2 | 0,2 / 0,0 / 23,3 | Depo 2 (299; 0,14) | 6 | Kamp Sv 5; Kamp Sv 6: Koklea Koyu; hikâye 2; 3 vaka |
 | 3 | 40 | 2.998 (902 / 1.107 / 640 / 349 / 0) | 17 | 2.244 | 1.192 | Depo 2, Kule 2, Klinik 2, Tedavi 2, Kabin 2, Tarama 2 | 0,2 / 0,0 / 23,3 | Merkez 3 (903; 0,37) | 8 | Kamp Sv 7; Kamp Sv 8; hikâye 3; hikâye 4; hikâye 5; 3 vaka |
-| 4 | 40 | 2.340 (1.134 / 167 / 800 / 239 / 0) | 8 | 2.572 | 961 | Park 1, Park 2, Merkez 3, Odyometri 3, Atölye 3 | 0,3 / 0,0 / 23,2 | Depo 3 (645; 0,26) | 10 | Kamp Sv 9; Kamp Sv 10; 3 vaka |
-| 5 | 40 | 2.342 (897 / 236 / 1.040 / 169 / 0) | 3 | 1.935 | 1.367 | Depo 3, Kule 3, Klinik 3 | 0,1 / 0,0 / 23,4 | Tedavi 3 (645; 0,25) | 10 | 3 vaka |
-| 6 | 40 | 2.691 (1.004 / 318 / 1.200 / 169 / 0) | 10 | 1.935 | 2.124 | Tedavi 3, Kabin 3, Tarama 3 | 0,1 / 0,0 / 23,4 | Park 3 (645; 0,26) | 11 | Kamp Sv 11; 3 vaka |
-| 7 | 40 | 2.773 (1.044 / 400 / 1.200 / 129 / 0) | 0 | 3.319 | 1.577 | Park 3, Merkez 4, Odyometri 4 | 0,5 / 0,0 / 23,0 | Atölye 4 (1.114; 0,43) | 11 | 3 vaka |
-| 8 | 40 | 2.586 (960 / 297 / 1.200 / 129 / 0) | 0 | 2.138 | 2.025 | Denge 1, Denge 2, Denge 3, Atölye 4 | 0,3 / 0,0 / 23,2 | Depo 4 (1.114; 0,42) | 12 | Kamp Sv 12: Denge Tepesi; 3 vaka |
-| 9 | 40 | 3.013 (1.064 / 249 / 1.530 / 169 / 0) | 0 | 3.342 | 1.696 | Depo 4, Kule 4, Klinik 4 | 0,6 / 0,0 / 22,9 | Tedavi 4 (1.114; 0,40) | 12 | 3 vaka |
-| 10 | 40 | 3.070 (974 / 247 / 1.720 / 129 / 0) | 30 | 3.342 | 1.424 | Tedavi 4, Kabin 4, Tarama 4 | 0,6 / 0,0 / 22,9 | Park 4 (1.114; 0,39) | 13 | Kamp Sv 13; 3 vaka |
-| 11 | 40 | 3.109 (993 / 268 / 1.720 / 129 / 0) | 5 | 2.228 | 2.305 | Park 4, Denge 4 | 0,4 / 10,5 / 12,6 | Merkez 5 (2.384; 0,78) | 14 | Kamp Sv 14; 3 vaka |
-| 12 | 40 | 3.076 (1.068 / 134 / 1.760 / 114 / 0) | 12 | 4.087 | 1.295 | Merkez 5, Odyometri 5 | 1,2 / 18,1 / 4,2 | Atölye 5 (1.703; 0,55) | 14 | 2 vaka |
-| 13 | 40 | 2.931 (990 / 112 / 1.760 / 69 / 0) | 0 | 3.406 | 820 | Atölye 5, Depo 5 | 0,8 / 22,7 / 0,0 | Kule 5 (1.703; 0,56) | 15 | Kamp Sv 15 |
-| 14 | 40 | 3.757 (1.021 / 467 / 2.200 / 69 / 0) | 0 | 3.406 | 1.171 | Kule 5, Klinik 5 | 1,0 / 22,5 / 0,0 | Tedavi 5 (1.703; 0,52) | 15 | – |
+| 4 | 40 | 2.329 (1.123 / 167 / 800 / 239 / 0) | 24 | 2.572 | 949 | Park 1, Park 2, Merkez 3, Klinik 3, Odyometri 3 | 0,3 / 0,0 / 23,2 | Atölye 3 (645; 0,26) | 10 | Kamp Sv 9; Kamp Sv 10; hikâye 6; hikâye 7; 3 vaka |
+| 5 | 40 | 2.242 (897 / 236 / 940 / 169 / 0) | 3 | 1.935 | 1.256 | Atölye 3, Depo 3, Kule 3 | 0,1 / 0,0 / 23,4 | Tedavi 3 (645; 0,26) | 11 | Kamp Sv 11; 3 vaka |
+| 6 | 40 | 2.691 (1.004 / 318 / 1.200 / 169 / 0) | 18 | 3.868 | 79 | Merkez 4, Klinik 4, Denge 1, Kule 4 | 0,9 / 10,1 / 12,5 | Denge 2 (299; 0,12) | 12 | Kamp Sv 12: Denge Tepesi; hikâye 8; 3 vaka |
+| 7 | 40 | 2.803 (1.044 / 400 / 1.230 / 129 / 0) | 0 | 2.234 | 648 | Denge 2, Tedavi 3, Kabin 3, Tarama 3 | 0,2 / 19,5 / 3,8 | Park 3 (645; 0,25) | 12 | 3 vaka |
+| 8 | 40 | 2.620 (934 / 297 / 1.260 / 129 / 0) | 0 | 2.404 | 864 | Park 3, Denge 3, Odyometri 4 | 0,2 / 3,6 / 19,6 | Atölye 4 (1.114; 0,41) | 13 | Kamp Sv 13; 3 vaka |
+| 9 | 40 | 2.913 (1.064 / 249 / 1.430 / 169 / 0) | 0 | 3.342 | 435 | Atölye 4, Depo 4, Tedavi 4 | 0,7 / 22,8 / 0,0 | Kabin 4 (1.114; 0,40) | 13 | 3 vaka |
+| 10 | 40 | 3.070 (974 / 247 / 1.720 / 129 / 0) | 30 | 3.342 | 163 | Kabin 4, Tarama 4, Park 4 | 0,9 / 22,6 / 0,0 | Denge 4 (1.114; 0,39) | 14 | Kamp Sv 14; 3 vaka |
+| 11 | 40 | 3.109 (993 / 268 / 1.720 / 129 / 0) | 5 | 1.114 | 2.158 | Denge 4 | 0,4 / 23,1 / 0,0 | Merkez 5 (2.384; 0,79) | 14 | 3 vaka |
+| 12 | 40 | 3.065 (1.057 / 134 / 1.760 / 114 / 0) | 22 | 4.087 | 1.136 | Merkez 5, Kule 5 | 1,2 / 18,1 / 4,2 | Odyometri 5 (1.703; 0,55) | 15 | Kamp Sv 15; hikâye 9; 2 vaka |
+| 13 | 40 | 2.906 (965 / 112 / 1.760 / 69 / 0) | 0 | 3.406 | 636 | Klinik 5, Odyometri 5 | 0,8 / 22,7 / 0,0 | Atölye 5 (1.703; 0,56) | 15 | – |
+| 14 | 40 | 3.317 (1.021 / 467 / 1.760 / 69 / 0) | 0 | 2.082 | 1.871 | Atölye 5, Kütüphane 1, Kütüphane 2 | 0,7 / 19,1 / 3,8 | Depo 5 (1.703; 0,55) | 16 | Kamp Sv 16: Araştırma Yerleşkesi |
 
 ### Gün gün: 6 oturum, takımsız
 
@@ -275,18 +275,18 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 |---|---|---|---|---|---|---|---|---|---|---|
 | 1 | 29 | 3.750 (1.981 / 1.270 / 286 / 213 / 0) | 3 | 3.506 | 343 | Depo 1, Odyometri 1, Merkez 2, Klinik 1, Kule 1, Atölye 1, Tedavi 1, Kabin 1, Odyometri 2, Atölye 2, Tarama 1 | 0,3 / 0,0 / 14,7 | Depo 2 (299; 0,08) | 6 | Bugün (bölüm 2); Kamp (bölüm 3); Yetenekler (bölüm 3); Kamp Görevleri (bölüm 4); Takım (bölüm 5); Kamp oyunları (bölüm 6); Kamp Sv 2; Hasta Vakaları (bölüm 7); Kamp Sv 3: Sessiz Koru; Kamp Sv 4; Kamp Sv 5; Kamp Sv 6: Koklea Koyu; hikâye 1; hikâye 2; 3 vaka |
 | 2 | 40 | 4.225 (2.037 / 934 / 740 / 515 / 0) | 14 | 4.141 | 428 | Depo 2, Kule 2, Klinik 2, Tedavi 2, Kabin 2, Tarama 2, Merkez 3, Odyometri 3, Park 1, Park 2 | 0,6 / 6,2 / 16,3 | Atölye 3 (645; 0,16) | 9 | Kamp Sv 7; Kamp Sv 8; Kamp Sv 9; hikâye 3; hikâye 4; hikâye 5; 3 vaka |
-| 3 | 40 | 3.580 (1.901 / 364 / 1.130 / 185 / 0) | 6 | 3.870 | 138 | Atölye 3, Depo 3, Kule 3, Klinik 3, Tedavi 3, Kabin 3 | 0,6 / 19,6 / 2,8 | Tarama 3 (645; 0,17) | 10 | Kamp Sv 10; 3 vaka |
+| 3 | 40 | 3.580 (1.901 / 364 / 1.130 / 185 / 0) | 22 | 3.870 | 138 | Atölye 3, Depo 3, Klinik 3, Kule 3, Tedavi 3, Kabin 3 | 0,6 / 19,6 / 2,8 | Tarama 3 (645; 0,17) | 10 | Kamp Sv 10; hikâye 6; hikâye 7; 3 vaka |
 | 4 | 40 | 3.900 (1.978 / 386 / 1.350 / 185 / 0) | 8 | 3.300 | 737 | Tarama 3, Park 3, Merkez 4 | 0,4 / 20,6 / 2,0 | Odyometri 4 (1.114; 0,29) | 11 | Kamp Sv 11; 3 vaka |
-| 5 | 40 | 3.897 (2.031 / 261 / 1.460 / 145 / 0) | 10 | 4.456 | 178 | Odyometri 4, Atölye 4, Depo 4, Kule 4 | 1,1 / 21,9 / 0,0 | Klinik 4 (1.114; 0,29) | 11 | 3 vaka |
-| 6 | 40 | 4.236 (2.050 / 242 / 1.800 / 145 / 0) | 6 | 4.366 | 49 | Denge 1, Denge 2, Denge 3, Klinik 4, Tedavi 4, Kabin 4 | 0,8 / 22,2 / 0,0 | Tarama 4 (1.114; 0,28) | 12 | Kamp Sv 12: Denge Tepesi; 3 vaka |
-| 7 | 40 | 4.403 (1.959 / 379 / 1.920 / 145 / 0) | 0 | 3.342 | 1.110 | Tarama 4, Park 4, Denge 4 | 0,7 / 22,3 / 0,0 | Merkez 5 (2.384; 0,57) | 13 | Kamp Sv 13; 3 vaka |
-| 8 | 40 | 4.445 (2.058 / 322 / 1.920 / 145 / 0) | 0 | 4.087 | 1.468 | Merkez 5, Odyometri 5 | 1,2 / 19,6 / 2,2 | Atölye 5 (1.703; 0,39) | 13 | 3 vaka |
-| 9 | 40 | 4.685 (2.079 / 271 / 2.150 / 185 / 0) | 29 | 5.109 | 1.044 | Atölye 5, Depo 5, Kule 5 | 1,6 / 21,4 / 0,0 | Klinik 5 (1.703; 0,38) | 14 | Kamp Sv 14; 3 vaka |
-| 10 | 40 | 4.788 (1.974 / 269 / 2.400 / 145 / 0) | 3 | 5.109 | 723 | Klinik 5, Tedavi 5, Kabin 5 | 1,4 / 21,6 / 0,0 | Tarama 5 (1.703; 0,37) | 15 | Kamp Sv 15; 3 vaka |
-| 11 | 40 | 5.006 (2.183 / 294 / 2.400 / 130 / 0) | 17 | 5.109 | 620 | Tarama 5, Park 5, Denge 5 | 1,2 / 21,8 / 0,0 | Merkez 6 (3.371; 0,70) | 15 | 2 vaka |
-| 12 | 40 | 4.802 (2.159 / 158 / 2.400 / 85 / 0) | 4 | 3.841 | 1.581 | Kütüphane 1, Kütüphane 2, Kütüphane 3, Kütüphane 4, Kütüphane 5 | 0,9 / 22,1 / 0,0 | Merkez 6 (3.371; 0,69) | 16 | Kamp Sv 16: Araştırma Yerleşkesi |
-| 13 | 40 | 4.592 (1.974 / 134 / 2.400 / 85 / 0) | 0 | 5.779 | 394 | Merkez 6, Odyometri 6 | 1,1 / 19,3 / 2,6 | Atölye 6 (2.408; 0,50) | 16 | – |
-| 14 | 40 | 5.059 (2.182 / 392 / 2.400 / 85 / 0) | 0 | 4.816 | 638 | Atölye 6, Depo 6 | 1,4 / 21,6 / 0,0 | Kule 6 (2.408; 0,50) | 16 | – |
+| 5 | 40 | 3.740 (1.984 / 261 / 1.350 / 145 / 0) | 18 | 4.366 | 112 | Klinik 4, Denge 1, Denge 2, Denge 3, Kule 4, Odyometri 4 | 1,0 / 19,4 / 2,6 | Atölye 4 (1.114; 0,30) | 12 | Kamp Sv 12: Denge Tepesi; hikâye 8; 3 vaka |
+| 6 | 40 | 4.046 (2.050 / 242 / 1.610 / 145 / 0) | 6 | 3.342 | 816 | Atölye 4, Depo 4, Tedavi 4 | 1,1 / 21,9 / 0,0 | Kabin 4 (1.114; 0,29) | 13 | Kamp Sv 13; 3 vaka |
+| 7 | 40 | 4.403 (1.959 / 379 / 1.920 / 145 / 0) | 0 | 4.456 | 763 | Kabin 4, Tarama 4, Park 4, Denge 4 | 1,1 / 21,9 / 0,0 | Merkez 5 (2.384; 0,59) | 13 | 3 vaka |
+| 8 | 40 | 4.428 (2.041 / 322 / 1.920 / 145 / 0) | 10 | 4.087 | 1.104 | Merkez 5, Kule 5 | 1,2 / 19,8 / 2,0 | Odyometri 5 (1.703; 0,40) | 14 | Kamp Sv 14; hikâye 9; 3 vaka |
+| 9 | 40 | 4.430 (2.054 / 271 / 1.920 / 185 / 0) | 29 | 5.109 | 425 | Klinik 5, Odyometri 5, Atölye 5 | 1,4 / 21,6 / 0,0 | Depo 5 (1.703; 0,39) | 15 | Kamp Sv 15; 3 vaka |
+| 10 | 40 | 4.598 (1.974 / 269 / 2.210 / 145 / 0) | 3 | 3.406 | 1.617 | Depo 5, Tedavi 5 | 1,0 / 22,0 / 0,0 | Kabin 5 (1.703; 0,38) | 15 | 3 vaka |
+| 11 | 40 | 5.006 (2.183 / 294 / 2.400 / 130 / 0) | 17 | 5.544 | 1.079 | Kütüphane 1, Kütüphane 2, Kütüphane 3, Kütüphane 4, Kabin 5, Tarama 5 | 1,1 / 13,7 / 8,2 | Park 5 (1.703; 0,36) | 16 | Kamp Sv 16: Araştırma Yerleşkesi; 2 vaka |
+| 12 | 40 | 4.802 (2.159 / 158 / 2.400 / 85 / 0) | 4 | 5.109 | 772 | Park 5, Denge 5, Kütüphane 5 | 1,4 / 21,6 / 0,0 | Merkez 6 (3.371; 0,70) | 17 | Kamp Sv 17 |
+| 13 | 40 | 4.592 (1.974 / 134 / 2.400 / 85 / 0) | 0 | 3.371 | 1.994 | Merkez 6 | 0,2 / 20,2 / 2,6 | Odyometri 6 (2.408; 0,50) | 17 | – |
+| 14 | 40 | 5.029 (2.151 / 392 / 2.400 / 85 / 0) | 0 | 4.816 | 2.206 | Klinik 6, Odyometri 6 | 1,6 / 21,4 / 0,0 | Atölye 6 (2.408; 0,50) | 17 | – |
 
 ### Gün gün: 1 oturum, takımlı
 
@@ -349,47 +349,50 @@ _Bitirme: docs/12 §6 (1-12 ilk kez oynayan, 13-40 oyuncu kitlesi; 48 oyuncu). S
 
 _Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla yeniden kurar. Yerel talep: sınır olmasa o gün istenecek en yüksek yerel ödül jetonu._
 
-| Değişiklik | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Kristal geliri | Kırpılan yerel jeton (ilk 3 gün) | Kırpılan yerel jeton (14 gün) | En yoğun gün yerel talep | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 1 oturum, takımsız | 13.780 | 24 | 3.847 | 13 | 11 | 49 | 0 | 0 | 587 | 8/12 → 8/12 | 4 |
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 3 oturum, takımsız | 38.284 → **38.952** | 49 | 504 → **1.171** | 3 → **2** | 15 | 88 | 656 → **0** | 656 → **0** | 1.107 | 11/14 → 11/14 | 1 |
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 6 oturum, takımsız | 59.963 → **61.369** | 62 → **63** | 1.640 → **638** | 0 | 16 | 100 | 1.003 → **0** | 1.003 → **0** | 1.270 | 11/14 → 11/14 | 0 |
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 1 oturum, takımlı | 18.988 | 22 | 2.343 | 12 | 13 | 584 | 0 | 0 | 587 | 11/12 → 11/12 | 1 |
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 3 oturum, takımlı | 48.049 → **49.262** | 56 → **58** | 1.354 → **828** | 2 → **3** | 16 → **17** | 754 | 656 → **0** | 656 → **0** | 1.007 | 11/14 → 11/14 | 1 |
-| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 6 oturum, takımlı | 74.824 → **76.121** | 68 → **69** | 2.052 → **942** | 0 → **1** | 18 | 914 | 1.003 → **0** | 1.003 → **0** | 1.270 | 11/14 → 11/14 | 0 |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 1 oturum, takımsız | 13.540 → **13.780** | 24 | 3.607 → **3.847** | 13 | 11 | 39 → **49** | 0 | 0 | 587 | 4/12 → **8/12** | 8 → **4** |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 3 oturum, takımsız | 38.882 → **38.952** | 49 | 1.101 → **1.171** | 2 | 14 → **15** | 55 → **88** | 0 | 0 | 1.107 | 8/14 → **11/14** | 6 → **1** |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 6 oturum, takımsız | 61.254 → **61.369** | 59 → **63** | 1.955 → **638** | 0 | 15 → **16** | 67 → **100** | 0 | 0 | 1.270 | 8/14 → **11/14** | 6 → **0** |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 1 oturum, takımlı | 18.793 → **18.988** | 22 | 2.148 → **2.343** | 12 | 13 | 563 → **584** | 0 | 0 | 587 | 8/12 → **11/12** | 4 → **1** |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 3 oturum, takımlı | 49.287 → **49.262** | 54 → **58** | 1.323 → **828** | 3 | 15 → **17** | 713 → **754** | 0 | 0 | 1.007 | 8/14 → **11/14** | 6 → **1** |
-| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 6 oturum, takımlı | 75.716 → **76.121** | 69 | 537 → **942** | 1 | 17 → **18** | 881 → **914** | 0 | 0 | 1.270 | 8/14 → **11/14** | 6 → **0** |
-| Ö1 + Ö4 ikisi birlikte | 1 oturum, takımsız | 13.540 → **13.780** | 24 | 3.607 → **3.847** | 13 | 11 | 39 → **49** | 0 | 0 | 587 | 4/12 → **8/12** | 8 → **4** |
-| Ö1 + Ö4 ikisi birlikte | 3 oturum, takımsız | 38.174 → **38.952** | 49 | 394 → **1.171** | 4 → **2** | 14 → **15** | 55 → **88** | 656 → **0** | 656 → **0** | 1.107 | 8/14 → **11/14** | 6 → **1** |
-| Ö1 + Ö4 ikisi birlikte | 6 oturum, takımsız | 59.937 → **61.369** | 59 → **63** | 1.088 → **638** | 0 | 15 → **16** | 67 → **100** | 1.003 → **0** | 1.003 → **0** | 1.270 | 8/14 → **11/14** | 6 → **0** |
-| Ö1 + Ö4 ikisi birlikte | 1 oturum, takımlı | 18.793 → **18.988** | 22 | 2.148 → **2.343** | 12 | 13 | 563 → **584** | 0 | 0 | 587 | 8/12 → **11/12** | 4 → **1** |
-| Ö1 + Ö4 ikisi birlikte | 3 oturum, takımlı | 48.034 → **49.262** | 54 → **58** | 1.739 → **828** | 2 → **3** | 15 → **17** | 713 → **754** | 656 → **0** | 656 → **0** | 1.007 | 8/14 → **11/14** | 6 → **1** |
-| Ö1 + Ö4 ikisi birlikte | 6 oturum, takımlı | 74.609 → **76.121** | 68 → **69** | 1.837 → **942** | 0 → **1** | 17 → **18** | 881 → **914** | 1.003 → **0** | 1.003 → **0** | 1.270 | 8/14 → **11/14** | 6 → **0** |
+| Değişiklik | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Hikâye | Kristal geliri | Kırpılan yerel jeton (ilk 3 gün) | Kırpılan yerel jeton (14 gün) | En yoğun gün yerel talep | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 1 oturum, takımsız | 13.713 | 23 | 1.881 | 13 | 13 | 8 | 94 | 0 | 0 | 587 | 10/12 → 10/12 | 2 |
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 3 oturum, takımsız | 37.463 → **38.328** | 50 | 1.007 → **1.871** | 3 → **0** | 16 | 9 | 122 | 656 → **0** | 656 → **0** | 1.107 | 11/14 → 11/14 | 1 |
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 6 oturum, takımsız | 59.137 → **60.530** | 62 | 1.263 → **2.206** | 0 | 17 | 9 | 134 | 1.003 → **0** | 1.003 → **0** | 1.270 | 11/14 → 11/14 | 0 |
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 1 oturum, takımlı | 18.988 | 22 | 2.343 | 12 | 13 | 9 | 584 | 0 | 0 | 587 | 11/12 → 11/12 | 1 |
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 3 oturum, takımlı | 48.049 → **49.262** | 56 → **58** | 1.354 → **828** | 2 → **3** | 16 → **17** | 9 | 754 | 656 → **0** | 656 → **0** | 1.007 | 11/14 → 11/14 | 1 |
+| Ö1 Yerel ödül sınırı 600 → 1.500 jeton/gün | 6 oturum, takımlı | 74.824 → **76.121** | 68 → **69** | 2.052 → **942** | 0 → **1** | 18 | 9 | 914 | 1.003 → **0** | 1.003 → **0** | 1.270 | 11/14 → 11/14 | 0 |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 1 oturum, takımsız | 13.540 → **13.713** | 24 → **23** | 3.607 → **1.881** | 13 | 11 → **13** | 5 → **8** | 39 → **94** | 0 | 0 | 587 | 4/12 → **10/12** | 8 → **2** |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 3 oturum, takımsız | 37.275 → **38.328** | 48 → **50** | 1.198 → **1.871** | 0 | 15 → **16** | 9 | 89 → **122** | 0 | 0 | 1.107 | 8/14 → **11/14** | 6 → **1** |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 6 oturum, takımsız | 60.326 → **60.530** | 62 | 2.002 → **2.206** | 0 | 16 → **17** | 9 | 101 → **134** | 0 | 0 | 1.270 | 8/14 → **11/14** | 6 → **0** |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 1 oturum, takımlı | 18.793 → **18.988** | 22 | 2.148 → **2.343** | 12 | 13 | 9 | 563 → **584** | 0 | 0 | 587 | 8/12 → **11/12** | 4 → **1** |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 3 oturum, takımlı | 49.287 → **49.262** | 54 → **58** | 1.323 → **828** | 3 | 15 → **17** | 9 | 713 → **754** | 0 | 0 | 1.007 | 8/14 → **11/14** | 6 → **1** |
+| Ö4 Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3 | 6 oturum, takımlı | 75.716 → **76.121** | 69 | 537 → **942** | 1 | 17 → **18** | 9 | 881 → **914** | 0 | 0 | 1.270 | 8/14 → **11/14** | 6 → **0** |
+| Ö1 + Ö4 ikisi birlikte | 1 oturum, takımsız | 13.540 → **13.713** | 24 → **23** | 3.607 → **1.881** | 13 | 11 → **13** | 5 → **8** | 39 → **94** | 0 | 0 | 587 | 4/12 → **10/12** | 8 → **2** |
+| Ö1 + Ö4 ikisi birlikte | 3 oturum, takımsız | 37.226 → **38.328** | 48 → **50** | 1.148 → **1.871** | 2 → **0** | 15 → **16** | 9 | 89 → **122** | 656 → **0** | 656 → **0** | 1.107 | 8/14 → **11/14** | 6 → **1** |
+| Ö1 + Ö4 ikisi birlikte | 6 oturum, takımsız | 58.868 → **60.530** | 62 | 994 → **2.206** | 0 | 16 → **17** | 9 | 101 → **134** | 1.003 → **0** | 1.003 → **0** | 1.270 | 8/14 → **11/14** | 6 → **0** |
+| Ö1 + Ö4 ikisi birlikte | 1 oturum, takımlı | 18.793 → **18.988** | 22 | 2.148 → **2.343** | 12 | 13 | 9 | 563 → **584** | 0 | 0 | 587 | 8/12 → **11/12** | 4 → **1** |
+| Ö1 + Ö4 ikisi birlikte | 3 oturum, takımlı | 48.034 → **49.262** | 54 → **58** | 1.739 → **828** | 2 → **3** | 15 → **17** | 9 | 713 → **754** | 656 → **0** | 656 → **0** | 1.007 | 8/14 → **11/14** | 6 → **1** |
+| Ö1 + Ö4 ikisi birlikte | 6 oturum, takımlı | 74.609 → **76.121** | 68 → **69** | 1.837 → **942** | 0 → **1** | 17 → **18** | 9 | 881 → **914** | 1.003 → **0** | 1.003 → **0** | 1.270 | 8/14 → **11/14** | 6 → **0** |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 1 oturum, takımsız | 13.780 → **13.713** | 24 → **23** | 3.847 → **1.881** | 13 | 11 → **13** | 5 → **8** | 49 → **94** | 0 | 0 | 587 | 8/12 → **10/12** | 4 → **2** |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 3 oturum, takımsız | 38.952 → **38.328** | 49 → **50** | 1.171 → **1.871** | 2 → **0** | 15 → **16** | 5 → **9** | 88 → **122** | 0 | 0 | 1.107 | 11/14 → 11/14 | 1 |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 6 oturum, takımsız | 61.369 → **60.530** | 63 → **62** | 638 → **2.206** | 0 | 16 → **17** | 5 → **9** | 100 → **134** | 0 | 0 | 1.270 | 11/14 → 11/14 | 0 |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 1 oturum, takımlı | 18.988 | 22 | 2.343 | 12 | 13 | 9 | 584 | 0 | 0 | 587 | 11/12 → 11/12 | 1 |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 3 oturum, takımlı | 49.262 | 58 | 828 | 3 | 17 | 9 | 754 | 0 | 0 | 1.007 | 11/14 → 11/14 | 1 |
+| Ö2 Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı | 6 oturum, takımlı | 76.121 | 69 | 942 | 1 | 18 | 9 | 914 | 0 | 0 | 1.270 | 11/14 → 11/14 | 0 |
 
 ### Öneri denemeleri (14 gün; temel → öneriyle)
 
 | Öneri | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Hikâye | Kristal geliri | Kırpılan yerel jeton | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| Ö2 Takımsız oyuncuya hikâye 6–7 için tek kişilik adım | 1 oturum, takımsız | 13.780 → **12.843** | 24 → **25** | 3.847 → **632** | 13 → **11** | 11 → **13** | 5 → **8** | 49 → **94** | 0 | 8 → **11** | 4 → **1** |
-| Ö2 Takımsız oyuncuya hikâye 6–7 için tek kişilik adım | 3 oturum, takımsız | 38.952 → **37.910** | 49 → **50** | 1.171 → **1.453** | 2 → **0** | 15 → **16** | 5 → **9** | 88 → **122** | 0 | 11 | 1 |
-| Ö2 Takımsız oyuncuya hikâye 6–7 için tek kişilik adım | 6 oturum, takımsız | 61.369 → **60.444** | 63 | 638 → **582** | 0 | 16 → **17** | 5 → **9** | 100 → **134** | 0 | 11 | 0 |
-| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 1 oturum, takımsız | 13.780 → **15.464** | 24 → **33** | 3.847 → **173** | 13 → **1** | 11 → **13** | 5 | 49 → **82** | 0 | 8 → **11** | 4 → **1** |
-| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 3 oturum, takımsız | 38.952 → **41.552** | 49 → **51** | 1.171 → **1.636** | 2 → **0** | 15 | 5 | 88 | 0 | 11 | 1 → **0** |
-| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 6 oturum, takımsız | 61.369 → **62.801** | 63 → **64** | 638 → **931** | 0 | 16 | 5 | 100 | 0 | 11 | 0 |
+| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 1 oturum, takımsız | 13.713 → **15.494** | 23 → **33** | 1.881 → **203** | 13 → **1** | 13 | 8 → **7** | 94 → **98** | 0 | 10 → **11** | 2 → **1** |
+| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 3 oturum, takımsız | 38.328 → **40.368** | 50 → **54** | 1.871 → **556** | 0 | 16 | 9 | 122 | 0 | 11 | 1 → **0** |
+| Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 6 oturum, takımsız | 60.530 → **61.606** | 62 → **64** | 2.206 → **37** | 0 | 17 | 9 | 134 | 0 | 11 | 0 |
 | Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 1 oturum, takımlı | 18.988 → **22.658** | 22 → **39** | 2.343 → **233** | 12 → **0** | 13 → **14** | 9 → **8** | 584 → **586** | 0 | 11 | 1 |
 | Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 3 oturum, takımlı | 49.262 → **52.383** | 58 → **60** | 828 → **145** | 3 → **0** | 17 | 9 | 754 | 0 | 11 | 1 → **0** |
 | Ö3 Bir inşaat sıraya alınabilsin (parası peşin) | 6 oturum, takımlı | 76.121 → **77.739** | 69 → **70** | 942 → **1.722** | 1 → **0** | 18 | 9 | 914 | 0 | 11 | 0 |
-| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 1 oturum, takımsız | 13.780 → **15.460** | 24 | 3.847 → **5.527** | 13 | 11 | 5 | 49 | 0 | 8 | 4 |
-| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 3 oturum, takımsız | 38.952 → **41.472** | 49 → **51** | 1.171 → **286** | 2 → **6** | 15 | 5 | 88 | 0 | 11 | 1 |
-| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 6 oturum, takımsız | 61.369 → **61.898** | 63 | 638 → **1.166** | 0 | 16 | 5 | 100 | 0 | 11 | 0 |
+| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 1 oturum, takımsız | 13.713 → **15.313** | 23 | 1.881 → **3.481** | 13 | 13 | 8 | 94 | 0 | 10 | 2 |
+| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 3 oturum, takımsız | 38.328 → **40.076** | 50 → **52** | 1.871 → **1.272** | 0 → **2** | 16 | 9 | 122 | 0 | 11 | 1 |
+| Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 6 oturum, takımsız | 60.530 → **60.786** | 62 → **63** | 2.206 → **505** | 0 | 17 | 9 | 134 | 0 | 11 | 0 |
 | Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 1 oturum, takımlı | 18.988 → **20.020** | 22 → **23** | 2.343 → **3** | 12 → **13** | 13 → **14** | 9 | 584 | 0 | 11 | 1 |
 | Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 3 oturum, takımlı | 49.262 → **51.564** | 58 | 828 → **1.463** | 3 | 17 | 9 | 754 | 0 | 11 | 1 |
 | Ö5 (denendi, önerilmez) Depo dolma süresi 8 → 12 sa | 6 oturum, takımlı | 76.121 → **76.339** | 69 | 942 → **1.610** | 1 | 18 | 9 | 914 | 0 | 11 | 0 |
-| Ö4b (denendi) Vaka kademeleri Klinik Sv 1/1/2 | 1 oturum, takımsız | 13.780 → **13.900** | 24 → **25** | 3.847 → **4.233** | 13 | 11 → **13** | 5 | 49 → **82** | 0 | 8 → **11** | 4 → **1** |
+| Ö4b (denendi) Vaka kademeleri Klinik Sv 1/1/2 | 1 oturum, takımsız | 13.713 → **13.793** | 23 | 1.881 → **1.961** | 13 | 13 | 8 | 94 → **106** | 0 | 10 → **11** | 2 → **1** |
 | Ö4b (denendi) Vaka kademeleri Klinik Sv 1/1/2 | 1 oturum, takımlı | 18.988 → **19.008** | 22 | 2.343 → **2.363** | 12 | 13 → **14** | 9 | 584 → **596** | 0 | 11 | 1 |
 
 <!-- simule:bitir -->
@@ -419,7 +422,7 @@ _Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla ye
 - Klinikte boşluklar var: 1. kademenin 10 vakası 3-4 günde bitiyor.
   - 1 oturum takımsız, Klinik Sv 4'e 14 günde varamıyor; bu yüzden 8-14. günlerde yeni hasta yok.
   - 3-6 oturumda 2. kademe de Klinik Sv 7'den önce tükeniyor, ör. 6 oturum takımsızda 11-14. gün.
-- Takımsız oyuncunun hikâyesi 3. (6 oturum: 2.) günden sonra kilitli.
+- Takımsız oyuncunun hikâyesi 3. (6 oturum: 2.) günden sonra kilitliydi. _(Ö2 ile giderildi, §7.)_
 
 **Duvar ya da taşkın var mı?**
 - 14 günde duvar yok. Sıradaki bina hiçbir profilde 1 günlük gelirden pahalı değil: 14. gün 0,06-0,82.
@@ -430,11 +433,11 @@ _Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla ye
 - Dürüst. Tüm ödüller önceden yazılı, şans yok, süre baskısı yok, kristal yalnız süre kısaltıyor (pay-to-win yok).
 - İki istisna dürüstlükle ilgili:
   - Yerel ödül sınırı: gösterilen ödül, dürüst oyunda 3 gün boyunca kesiliyor.
-  - Takımsız oyuncunun hikâyesi: 6. bölüm "Takım Ruhu" sosyal adım olmadan geçilemiyor. Sahte aciliyet değil ama zorunlu sosyalleşme.
+  - Takımsız oyuncunun hikâyesi: 6. bölüm "Takım Ruhu" sosyal adım olmadan geçilemiyor. Sahte aciliyet değil ama zorunlu sosyalleşme. _(Ö2 ile giderildi, §7.)_
 - Çekicilik: ilk gün çok yoğun, 6 oturumda 15 açılış ve olay, Kamp Sv 1 → 6. İkinci haftada tempo yumuşuyor: 1-2 günde bir Kamp Sv, her gün 2-3 inşaat.
   - Uzun hedefler (Merkez Sv 8, hikâye 10, Denge Tepesi) 14 günde 1 oturumlu oyuncuya uzak.
 
-## 6. Öneriler (ilk ölçüm; Ö1 ve Ö4 uygulandı, §7. Ö2, Ö3, Ö5 sahibin kararında; sayısal etki §3 "Öneri denemeleri" tablosunda)
+## 6. Öneriler (ilk ölçüm; Ö1, Ö2 ve Ö4 uygulandı, §7. Ö3, Ö5 sahibin kararında; sayısal etki §3 "Öneri denemeleri" tablosunda)
 
 Öneriler yalnız simülasyon kancalarıyla denendi (`simule(P, H)`); oyun kodu değişmedi.
 
@@ -443,7 +446,7 @@ _Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla ye
 - Toplam gelir %1-3 artar; taşkın günü 3 oturum takımsızda 4 → 1.
 - Sınır hâlâ sahte istemciye karşı koruyor (1000 jeton ≈ yarım günlük oyun).
 
-**Ö2 · Takımsız oyuncuya hikâye 6-7 için tek kişilik eşdeğer adım** (ör. "takıma katıl" yerine "3 vaka çöz" ya da "Kamp Sv 4").
+**Ö2 · (uygulandı, §7) Takımsız oyuncuya hikâye 6-7 için tek kişilik eşdeğer adım** (ör. "takıma katıl" yerine "3 vaka çöz" ya da "Kamp Sv 4").
 Takım yolu açık kalır; bu yalnız zorunlu sosyalleşmeyi kaldırır.
 - Etki: takımsız profillerde hikâye 5/10 → 8-9/10, kristal +34 (39 → 73, 55 → 89, 67 → 101), Kamp Sv +1.
 
@@ -473,7 +476,7 @@ Takım yolu açık kalır; bu yalnız zorunlu sosyalleşmeyi kaldırır.
 - İçerik büyümezse, tekrar oynamanın jetonu 40. bölümden sonra ekonominin en büyük ikinci kaynağı olarak kalır.
 - Yetenek ağacı (2.720 jeton) çoğu profilde 2-5. günde bitiyor; sonrası için jeton çukuru yalnız inşaat ve takım teknolojisi.
 
-## 7. Uygulandı: Ö1, Ö4
+## 7. Uygulandı: Ö1, Ö4, Ö2
 
 Yenilenen insan ölçümüyle (`--olc --k 16`; af0dd99'daki yüzme 2★ kuralıyla 21, 22, 24, 26-28. bölümlerde bitirenin ortalama
 yıldızı 1,1-1,7 → 1,7-2,0; süre, nota ve bitirme değişmedi) ve bugünkü kodla. Ayrıntı §3 "Uygulanan değişiklikler" tablosunda: "eski"
@@ -512,3 +515,34 @@ salon 6 ve Bilgi düzeyi kuralları değişmedi; vakalar yine kademe sırasıyla
   seslendirilmiş satır değişmedi. Hikâyenin "Klinik Sv 4" (8. bölüm) ve "Klinik Sv 7" (10. bölüm) adımları hikâye hedefidir,
   değişmedi. Testler: `packages/content/src/kamp-gorev.test.ts`, `apps/server/test/kamp-gorev.test.ts` (kademe 1 bitince ertesi
   gün Sv 2 ile 2. kademeden 3 hasta).
+
+**Ö2 · Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı** (`KgAdim.ya`, `packages/content/src/kamp-gorev.ts` `KG_HIKAYE`;
+sunucu `storyAlt`, `apps/server/src/camp-quests.ts`). Takım yolu aynı kaldı; adım iki yoldan biriyle biter. "Ya da" adımı bölüm
+açıldıktan sonra yapılanı sayar (sunucu bölüm açılınca sayacın değerini bir kez saklar, `kg_story_base`): eskiden biriken sayaç adımı
+kendiliğinden bitirmez.
+
+| Bölüm | Takım yolu (aynı) | ya da (takımsız) |
+|---|---|---|
+| 6 Takım Ruhu | Bir takıma katıl | Bu bölümde klinikte 3 vaka çöz (yeni ya da Vaka Defteri’nden) |
+| 6 | Takım arkadaşlarının inşaatına 3 yardım et | Bu bölümde kamp oyunlarında 3 tur oyna |
+| 6 | Bir konsültasyon iste ya da görüş bildir | Bu bölümde Vaka Defteri’nden bir vakayı yeniden çöz |
+| 7 Kampını Güzelleştir | Bir arkadaşının ya da takım arkadaşının kampını ziyaret et | Bu bölümde kampında 2 inşaat başlat |
+
+8–10. bölümlerde takıma bağlı adım yok. Emek: takım yolu bir oturumda biter; takımsız yol 1 oturumda 1-2 gün (yeni hasta günde 3 gelir,
+ödüllü oyun turu oturum başına 2), 3-6 oturumda aynı ya da ertesi gün. Modelde oyuncu "ya da" adımı Vaka Defteri'nden yeniden çözme
+isterse bir vakayı yeniden çözer (yeni yıldız sayılmaz).
+
+| Profil | Hikâye (14 gün) | 6. / 7. bölüm biten gün | Kristal (14 gün) | Kamp Sv |
+|---|---|---|---|---|
+| 1 oturum, takımsız | 5 → **8** | – → 9. / 10. gün | 49 → **94** | 11 → **13** |
+| 3 oturum, takımsız | 5 → **9** | – → 4. / 4. gün | 88 → **122** | 15 → **16** |
+| 6 oturum, takımsız | 5 → **9** | – → 3. / 3. gün | 100 → **134** | 16 → **17** |
+| takımlı (1, 3, 6 oturum) | 9 (değişmedi) | 7. / 3. / 2. gün (değişmedi) | değişmedi | değişmedi |
+
+- Takımsız oyuncu 10. bölüme yine ulaşamıyor: Merkez Sv 8 14 günde hiçbir profilde yok (takımlı da 9/10).
+- Takımsız 14. gün cüzdanı 1 oturumda 3.847 → 1.881: hikâyenin 8. bölümü Klinik Sv 4 istediği için jeton binaya gidiyor.
+- Bölüm 6–7'de ortadayken sürüm gelen oyuncu: takım yolundaki ilerlemesi olduğu gibi kalır; "ya da" adımının tabanı ilk bakışta
+  yazılır (o andan sonra yapılan sayılır). Bitmiş ve ödülü alınmış bölümler değişmez. Testler: `apps/server/test/kamp-gorev.test.ts`
+  ("ya da" yolu, idempotent taban, eski kayıt göçü, takım yolu), `packages/content/src/kamp-gorev.test.ts`.
+- Seslendirilmiş satırlar değişmedi. `kg-h6-giris` ("Takımına katıl, yardım et, zor vakada danış.") takım yolunu söylüyor; ekranda
+  "ya da" satırları yazılı. Yeni satır önerisi sahipte (rapor).

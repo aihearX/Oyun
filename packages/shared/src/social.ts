@@ -1258,7 +1258,13 @@ export interface KgGorev {
   reward: KampOdul | null;
   /** kilitliyse dürüst neden ("Odyometri Odası’nı kur", "Bölüm 7’de açılır") */
   locked: string | null;
+  /**
+   * hikâye adımının takımsız eşdeğeri ("ya da"; bölüm açıldıktan sonra yapılanı sayar). Varsa adımın done'ı ikisinden biri;
+   * progress/need/locked ana adımındır.
+   */
+  ya?: KgGorevYa;
 }
+export interface KgGorevYa { id: string; text: string; art: string; need: number; progress: number; done: boolean; locked: string | null }
 export interface KgBolum { no: number; title: string; intro: string; outro: string; steps: KgGorev[]; reward: KampOdul; done: boolean; claimed: boolean; ref: string }
 export interface KgBasamak { need: number; reward: KampOdul; reached: boolean; claimed: boolean; ref: string }
 export interface KgHafta { id: string; text: string; art: string; progress: number; tiers: KgBasamak[] }

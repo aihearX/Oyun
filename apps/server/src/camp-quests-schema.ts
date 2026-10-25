@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS kg_seen(player_id TEXT NOT NULL, key TEXT NOT NULL, a
 CREATE TABLE IF NOT EXISTS kg_claim(player_id TEXT NOT NULL, ref TEXT NOT NULL, at INTEGER NOT NULL, reward TEXT NOT NULL, PRIMARY KEY(player_id, ref));
 -- günün görevleri (gün başında seçilir, gün içinde değişmez) ve haftanın hedefi
 CREATE TABLE IF NOT EXISTS kg_daily(player_id TEXT NOT NULL, day TEXT NOT NULL, tasks TEXT NOT NULL, rerolls INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(player_id, day));
+-- hikâyenin "ya da" adımları: bölüm açıldığında sayacın değeri (bir kez yazılır; adım bundan sonra yapılanı sayar)
+CREATE TABLE IF NOT EXISTS kg_story_base(player_id TEXT NOT NULL, chapter INTEGER NOT NULL, metric TEXT NOT NULL, n INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, chapter, metric));
 CREATE TABLE IF NOT EXISTS kg_week(player_id TEXT NOT NULL, week TEXT NOT NULL, goal TEXT NOT NULL, PRIMARY KEY(player_id, week));
 -- kamp büyümesi sistemine (Kamp XP, dekor) gidecek ödüller: sistem yokken bekler, gelince bir kez uygulanır
 CREATE TABLE IF NOT EXISTS kg_pending(player_id TEXT NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL, amount INTEGER NOT NULL, item TEXT, at INTEGER NOT NULL, applied INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(player_id, kind, ref));
