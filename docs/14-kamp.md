@@ -332,3 +332,39 @@ anıtlar; inşaat ve toplama düğmeleri yok). Altta dört hazır tepki (serbest
 "Süslemeler harika!" — kişi başına günde bir. Bırakan 2 Kamp XP (günde en çok 5 kez), alan 5 Kamp XP (günde en çok 10 kez) ve
 `camp.cheered` bildirimi alır. Gizlilik: yalnız arkadaş ya da aynı takım; engel varsa görünmez (`camp.visit`, `camp.cheer`;
 hata `YETKI`, `TEKRAR`). İlk ziyarette Tüy Dede `kamp-ziyaret-01`.
+
+## 14. İnşaat sırası (MK-011, ekonomi önerisi Ö3)
+
+Aynı anda yine tek inşaat yapılır; ek olarak **bir sonraki inşaat sıraya alınabilir**. Amaç: günde bir kez oynayan oyuncunun kampı o
+yokken boş beklemesin (ölçüm: `docs/yonetim/ekonomi-olcum.md` §7; günde 1 oturum takımsız taşkın günü 13 → 1).
+
+- **Bedel peşin**: sıraya alırken jeton düşer, sonradan sürpriz maliyet yok. **Sıradan çıkar** bedelin tamamını geri verir.
+- **Kendiliğinden başlar**: süren inşaat bitince sunucu sıradakini öncekinin bittiği anda başlatır (`completeDue`; sorgu anında ve
+  5 sn'lik zamanlayıcıyla). Oyuncu çevrimdışıyken ya da sunucu kapalıyken iki inşaatın süresi de dolduysa açılışta/ilk sorguda ikisi
+  de biter. Başlarken bina seviyesi değişmişse (ör. yönetici ayarı) inşaat başlamaz, bedel geri verilir.
+- **Tek sıra yeri**. Süren binanın kendisi sıraya alınamaz (`MESGUL`); sıra doluysa `DOLU`.
+- **Kurallar sıraya alırken denetlenir**: en yüksek seviye (`MAKS`), bölgenin Kamp Seviyesi ve Merkez sınırı (`SART`). Merkez sınırı
+  süren inşaat bittikten sonraki Merkez seviyesine göre: Merkez 1 → 2 yapılırken Odyometri Sv 2 sıraya alınabilir.
+- **Hızlandırıcı, kristal ve takım yardımı yalnız süren inşaata.** Sıradaki inşaat başlayınca normal inşaat olur (yardım isteği
+  sıfırdan; "Hızlı İnşaat" teknolojisi başlama anındaki takıma göre). Hızlandırıcının artan süresi sıradakine taşmaz: hızlandırılan
+  inşaat en erken "şimdi" biter.
+- Kamp Görevleri: "Kampta bir inşaat başlat" sıradaki inşaat **başlayınca** sayılır (sıraya alıp çıkarmak sayılmaz).
+- Sahte aciliyet yok: sıra bir hatırlatma ya da geri sayım baskısı göstermez; "Sırada: X" yalnız bilgi.
+
+**Arayüz.** Başka bir bina yapılırken bina panelinde "Kur/Yükselt" yerine **Sıraya al · <jeton> bedel** (altında "X bitince
+kendiliğinden başlar; bedel şimdi ödenir, sıradan çıkarırsan tamamı geri gelir"). Sıradaki binanın panelinde "Sırada · Sv N ·
+<jeton> ödendi" ve **Sıradan çıkar · <jeton> geri**; süren inşaatın panelinde "Sırada: X Sv N · bu bitince başlar". Liste
+görünümünde bina kartlarında "Sıraya al" / "Sıradan çıkar", inşaat kartında sıradaki satırı. Üs görünümünün üst bandında kısa
+**Sırada: X** çipi (dokununca sıradaki binanın paneli açılır); 320 px'te sığmazsa alt satıra geçer, kırpılmaz. İkonlar resimli
+(`hourglass`, `coin`); emoji yok. Kamp öğreticisi (`camp-build`) değişmedi: öğretici yalnız boştaki inşaatçıyla başlar, o anda sıra
+düğmesi görünmez.
+
+**Protokol.** `camp.queue { id }` → `{ camp, wallet, started }` (süren inşaat yoksa hemen başlar, `started: true`),
+`camp.unqueue {}` → `{ camp, wallet, refunded }`. `CampState.queued?: { id, toLevel, jeton, at } | null` yalnız `hello.campV ≥ 3`
+(`CAMP_V_SIRA`) gönderen istemciye gider; eski istemci alanı görmez, sıradaki inşaat başladığında onu süren inşaat olarak görür
+(`camp.upgrade` yine `MESGUL`). Bina listesi süzgeci `CAMP_V_BOLGE = 2` ile değişmedi. Tablo: `camp_queue` (`camp-schema.ts`, yeni
+tablo; göç gerekmez). Önizleme: `?demo=kamp&insaat=<bina>&sira=<bina>`.
+
+**Doğrulama.** `apps/server/test/camp-queue.test.ts` (sıraya alma, peşin bedel, tek yer, süren binayla aynı olamaz, Merkez ve
+Kamp Seviyesi kuralı, zamanlayıcıyla kendiliğinden başlama ve başlama anı, sunucu kapalıyken iki inşaatın bitmesi, sıradan çıkarınca
+tam iade, hızlandırıcı/yardım yalnız süren inşaata, görev sayacı, eski istemci, seviye değişince iade); `node tools/ekonomi/simule.mjs`.

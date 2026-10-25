@@ -214,6 +214,8 @@ function simule(P, H = {}) {
   // ---------------------------------------------------------------- yerel ödüller (istemci → wallet.local, günlük sınır LOCAL_JETON_DAILY_MAX)
   let yerelBugun = 0;
   const YEREL = H.yerelSinir ?? F.LOCAL_JETON_DAILY_MAX;
+  /** inşaat sırası (Ö3, MK-011; camp.ts `camp.queue`): bugünkü kural; `H.sira: false` eski kuralı (tek inşaat, sıra yok) kurar */
+  const SIRA = H.sira ?? true;
   const yerel = (j) => { const c = Math.min(j, YEREL - yerelBugun); yerelBugun += c; s.jeton += c; G.gelir.yerel += c; G.yerelKirpilan += j - c; };
   /** meta ödülü (applyGrant + resolveReward kuralı): kopya kozmetik/kart ve taşan koruyucu jetona döner */
   const metaOdul = (items) => {
@@ -263,10 +265,12 @@ function simule(P, H = {}) {
 
   // ---------------------------------------------------------------- inşaat
   const adaylar = () => F.BUILDINGS.filter((b) => {
-    if (b.id === s.q?.id || b.id === s.qNext?.id) return false; // süren inşaat (camp.ts: aynı anda tek inşaat)
+    if (b.id === s.q?.id || b.id === s.qNext?.id) return false; // süren ve sıradaki bina (camp.ts: aynı anda tek inşaat + tek sıra yeri)
     const to = s.L[b.id] + 1; if (to > b.maxLevel) return false;
     if (b.campLevel && !F.buildingOpen(b.id, s.kampSv)) return false;
-    return b.id === 'merkez' || to <= s.L.merkez;
+    // Merkez sınırı: sıraya alırken süren Merkez inşaatı bittikten sonraki seviyeye göre (camp.ts queueTarget)
+    const merkez = SIRA && s.q?.id === 'merkez' ? s.q.to : s.L.merkez;
+    return b.id === 'merkez' || to <= merkez;
   }).map((b) => ({ id: b.id, to: s.L[b.id] + 1, ...F.buildCost(b.id, s.L[b.id] + 1) }));
   /**
    * inşaat sırası: önce hikâyenin şu anki bölümünün bina adımı (gerekirse Merkez), sonra ucuzdan pahalıya. Oyuncu bu sıradaki
@@ -289,25 +293,27 @@ function simule(P, H = {}) {
       if (id === 'depo' && to === 1) s.depotAt = ends;
       if (id === 'tedavi' && to === 1) s.remedy.since = ends;
       kampXp(F.CAMP_XP.build(id, to));
-      if (s.qNext) { s.q = { id: s.qNext.id, to: s.qNext.to, ends: ends + s.qNext.sec / 60 }; s.qNext = null; } // öneri: sıradaki inşaat kendiliğinden başlar
+      // sıradaki inşaat öncekinin bittiği anda kendiliğinden başlar (camp.ts startQueued); "inşaat başlat" görevi başlayınca sayılır
+      if (s.qNext) { s.q = { id: s.qNext.id, to: s.qNext.to, ends: ends + s.qNext.sec / 60 }; s.qNext = null; s.k.insaat++; }
     }
   };
   const hizlandir = (t) => {
     if (!s.q) return;
     for (const k of ['s8', 'm60', 'm5']) while (s.boost[k] > 0 && s.q && (s.q.ends - t) * 60 >= F.SPEEDUP_SEC[k]) { s.boost[k]--; s.q.ends -= F.SPEEDUP_SEC[k] / 60; bitir(t); }
   };
-  const sureOf = (c) => {
+  /** süre: takım teknolojisi; takım yardımı yalnız süren inşaata (sıradaki, oyuncu yokken başladığı için yardım istenmemiş sayılır) */
+  const sureOf = (c, yardim = true) => {
     let sec = Math.max(1, Math.round(c.seconds * (1 - (s.team ? T.tekno * 2 : 0) / 100)));
-    if (s.team) for (let i = 0; i < Math.min(T.aldigiYardim, F.SOCIAL_LIMITS.helpMax); i++) sec -= Math.min(sec, F.helpReductionSec(sec));
+    if (s.team && yardim) for (let i = 0; i < Math.min(T.aldigiYardim, F.SOCIAL_LIMITS.helpMax); i++) sec -= Math.min(sec, F.helpReductionSec(sec));
     return sec;
   };
   const insaEt = (t) => {
     bitir(t);
     if (s.q) {
       hizlandir(t);
-      if (H.sira && s.q && !s.qNext) { // öneri: bir inşaat sıraya alınabilir (parası şimdi ödenir)
+      if (SIRA && s.q && !s.qNext) { // bir inşaat sıraya alınır (parası şimdi ödenir; hızlandırıcı ve yardım yalnız süren inşaata)
         const c = sira().find((x) => x.id !== s.q.id && x.jeton <= s.jeton);
-        if (c) { s.jeton -= c.jeton; G.harcama.bina += c.jeton; s.k.insaat++; s.qNext = { id: c.id, to: c.to, sec: sureOf(c) }; G.insaat.push(`${bDef(c.id).short ?? c.id} ${c.to}`); }
+        if (c) { s.jeton -= c.jeton; G.harcama.bina += c.jeton; s.qNext = { id: c.id, to: c.to, sec: sureOf(c, false) }; G.insaat.push(`${bDef(c.id).short ?? c.id} ${c.to}`); }
       }
       return;
     }
@@ -318,7 +324,7 @@ function simule(P, H = {}) {
     s.q = { id: c.id, to: c.to, ends: t + sureOf(c) / 60 };
     G.insaat.push(`${bDef(c.id).short ?? c.id} ${c.to}`);
     bitir(t); hizlandir(t);
-    if (H.sira) insaEt(t);
+    if (SIRA) insaEt(t);
   };
   const yetenekAl = () => {
     if (!ac('skills')) return;
@@ -533,7 +539,8 @@ function simule(P, H = {}) {
         gorevSistemi(); haftalik(d); insaEt(t2); yetenekAl();
         G.oturumKamp++; if (!s.q && G.duvarAn) G.oturumDuvar++;
         const nx = siradaki();
-        prevEnd = { t: t2, busyUntil: s.q ? s.q.ends : null, yeter: nx ? s.jeton >= nx.jeton : true };
+        // sıradaki inşaat da kuyruğu doldurur
+        prevEnd = { t: t2, busyUntil: s.q ? s.q.ends + (s.qNext ? s.qNext.sec / 60 : 0) : null, yeter: nx ? s.jeton >= nx.jeton : true };
       } else if (son) takimGunluk(d, true);
     });
     G.vakaDefter = s.vakaBook.size;
@@ -632,11 +639,11 @@ const UYGULANAN = [
   { id: 'Ö1', ad: `Yerel ödül sınırı 600 → ${tr(F.LOCAL_JETON_DAILY_MAX)} jeton/gün`, H: { yerelSinir: 600 } },
   { id: 'Ö4', ad: `Vaka kademeleri Klinik Sv 1/4/7 → ${F.KG_KURAL.kademeSv.join('/')}`, H: { vakaKademe: ESKI_KADEME } },
   { id: 'Ö1 + Ö4', ad: 'ikisi birlikte', H: { yerelSinir: 600, vakaKademe: ESKI_KADEME } },
+  { id: 'Ö3', ad: 'Bir inşaat sıraya alınabilir (parası peşin; MK-011)', H: { sira: false } },
 ];
 // --- öneri denemeleri (yalnız simülasyonda; oyun kodu değişmedi)
 const ONERILER = [
   { id: 'Ö2', ad: 'Takımsız oyuncuya hikâye 6–7 için tek kişilik adım', H: { soloHikaye: true } },
-  { id: 'Ö3', ad: 'Bir inşaat sıraya alınabilsin (parası peşin)', H: { sira: true } },
   { id: 'Ö5', ad: '(denendi, önerilmez) Depo dolma süresi 8 → 12 sa', H: { depoSaat: (dl) => 12 + 0.5 * dl } },
   { id: 'Ö4b', ad: '(denendi) Vaka kademeleri Klinik Sv 1/1/2', H: { vakaKademe: (sv) => (sv >= 2 ? 3 : sv >= 1 ? 2 : 0) } },
 ];

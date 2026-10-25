@@ -90,6 +90,7 @@
 .bp-qline b { color:#cfc3ff; }
 .card.building.building-queued { border-color:rgba(139,107,255,.5); }
 .card.construction .q-line { align-items:center; gap:6px; flex-wrap:wrap; font-size:13px; }
+.card.construction .q-line > span { flex:1 1 12em; }
 .card.construction .q-line b { color:#cfc3ff; }
 .bp-why { font-size:13px; font-weight:700; color:#ffb3c8; background:rgba(255,92,138,.14); border:1px solid rgba(255,92,138,.35); border-radius:12px; padding:8px 10px; }
 
