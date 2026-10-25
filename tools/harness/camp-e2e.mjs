@@ -137,11 +137,16 @@ async function openPanel(page, id) {
 }
 /** paneli kapat: inşaat bitince panel kendiliğinden de kapanır (yarış: düğme tıklanmadan kaybolabilir) */
 const closePanel = async (page) => {
-  for (let i = 0; i < 4 && await page.locator('.bp').count(); i++) {
+  // sabit deneme sayısı değil süre: yüklü makinede (DOM WebView) panelin kapanması 12 sn'yi aşabiliyordu (YN-027)
+  const until = Date.now() + 25_000;
+  while (await page.locator('.bp').count() && Date.now() < until) {
     await page.locator('.bp-x').first().evaluate((el) => el.click(), undefined, { timeout: 1000 }).catch(() => undefined);
     await page.locator('.bp').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
   }
-  if (await page.locator('.bp').count()) throw new Error('panel kapanmadı');
+  if (await page.locator('.bp').count()) {
+    await page.screenshot({ path: resolve(outRoot, 'HATA-panel-kapanmadi.png') }).catch(() => undefined);
+    throw new Error('panel kapanmadı (bkz. HATA-panel-kapanmadi.png)');
+  }
 };
 const builderLeft = async (page) => { const t = (await page.locator('.hud-chip.builder b').innerText().catch(() => '')).trim(); const m = t.match(/(?:(\d+) sa )?(\d+)(?::| dk)(\d+)?/); if (!m) return null; return t.includes('sa') ? Number(m[1]) * 3600 + Number(m[2]) * 60 : Number(m[2]) * 60 + Number(m[3] ?? 0); };
 const lvlOf = (pid, id) => db.get('SELECT level FROM buildings WHERE player_id = ? AND id = ?', pid, id)?.level ?? 0;
