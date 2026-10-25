@@ -60,16 +60,44 @@ export function canUpgrade(camp: CampState, wallet: Wallet, id: BuildingId): Ver
   const busy = camp.buildings.find((x) => x.upgradingTo && x.endsAt);
   if (to > d.maxLevel) return { ok: false, reason: 'En yüksek seviyede.', short: 'En yüksek' };
   if (d.campLevel && (camp.xp?.level ?? 1) < d.campLevel) return { ok: false, reason: `Kamp Seviyesi ${d.campLevel} gerekli: ${districtOfBuilding(id)?.name ?? 'bölge'} açılınca kurulur.`, short: `Kamp Sv ${d.campLevel}` };
-  if (busy) return { ok: false, reason: busy.id === id ? 'İnşaat sürüyor.' : `İnşaatçı meşgul: ${defOf(busy.id).name} yapılıyor. Aynı anda bir inşaat yapılır.`, short: busy.id === id ? 'Yapılıyor' : 'İnşaatçı meşgul' };
+  if (busy) return { ok: false, reason: busy.id === id ? 'İnşaat sürüyor.' : `İnşaatçı meşgul: ${defOf(busy.id).name} yapılıyor. Aynı anda bir inşaat yapılır${queueSupported(camp) ? '; bir sonrakini sıraya alabilirsin' : ''}.`, short: busy.id === id ? 'Yapılıyor' : 'İnşaatçı meşgul' };
   if (id !== 'merkez' && to > merkez) return { ok: false, reason: `Önce Odyoloji Merkezi'ni Sv ${to} yap.`, short: `Merkez Sv ${to}` };
   const cost = buildCost(id, to).jeton;
   if (wallet.jeton < cost) return { ok: false, reason: `Jeton yetersiz: ${Math.round(cost - wallet.jeton).toLocaleString('tr-TR')} jeton daha gerekli. Bölüm oyna, görev bitir.`, short: 'Jeton yetersiz' };
   return { ok: true };
 }
 
+/** süren inşaat (yoksa undefined) */
+export const activeOf = (camp: CampState) => camp.buildings.find((x) => x.upgradingTo && x.endsAt);
+/** sunucu inşaat sırasını biliyor mu (eski sunucuda `queued` alanı hiç yok) */
+export const queueSupported = (camp: CampState) => camp.queued !== undefined;
+/**
+ * sıraya alınabilir mi (docs/14-kamp.md "İnşaat sırası"): bir inşaat sürüyor, sıra boş, bu bina süren bina değil; Merkez sınırı
+ * süren inşaat bittikten sonraki seviyeye göre (sunucu ile aynı kural). Süren inşaat yoksa sıra yok: doğrudan Yükselt.
+ */
+export function canQueue(camp: CampState, wallet: Wallet, id: BuildingId): Verdict {
+  const d = defOf(id); const b = camp.buildings.find((x) => x.id === id)!; const to = b.level + 1;
+  const busy = activeOf(camp);
+  if (!queueSupported(camp) || !busy) return { ok: false, reason: '', short: '' };
+  if (busy.id === id) return { ok: false, reason: 'İnşaat sürüyor.', short: 'Yapılıyor' };
+  if (camp.queued) return camp.queued.id === id ? { ok: false, reason: 'Sırada.', short: 'Sırada' } : { ok: false, reason: `Sırada zaten ${defOf(camp.queued.id).name} var. Sıraya tek bina alınır.`, short: 'Sıra dolu' };
+  if (to > d.maxLevel) return { ok: false, reason: 'En yüksek seviyede.', short: 'En yüksek' };
+  if (d.campLevel && (camp.xp?.level ?? 1) < d.campLevel) return { ok: false, reason: `Kamp Seviyesi ${d.campLevel} gerekli: ${districtOfBuilding(id)?.name ?? 'bölge'} açılınca kurulur.`, short: `Kamp Sv ${d.campLevel}` };
+  const m = camp.buildings.find((x) => x.id === 'merkez');
+  const merkez = m?.upgradingTo ?? m?.level ?? 1;
+  if (id !== 'merkez' && to > merkez) return { ok: false, reason: `Önce Odyoloji Merkezi'ni Sv ${to} yap.`, short: `Merkez Sv ${to}` };
+  const cost = buildCost(id, to).jeton;
+  if (wallet.jeton < cost) return { ok: false, reason: `Jeton yetersiz: ${Math.round(cost - wallet.jeton).toLocaleString('tr-TR')} jeton daha gerekli.`, short: 'Jeton yetersiz' };
+  return { ok: true };
+}
+
 /** kamp eylemleri: gerçek (sunucu) ya da demo (yerel) */
 export interface CampActions {
   upgrade(id: BuildingId): Promise<boolean>;
+  /** sıraya al (bedel şimdi düşer; süren inşaat bitince kendiliğinden başlar) */
+  queue(id: BuildingId): Promise<boolean>;
+  /** sıradan çıkar (bedel tamamen geri) */
+  unqueue(): Promise<boolean>;
   speed(id: BuildingId, item: SpeedItem): Promise<boolean>;
   ask(id: BuildingId): Promise<boolean>;
   /** toplanan jeton; başarısızsa null */

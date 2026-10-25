@@ -9,7 +9,7 @@ import './camp.css';
 
 /** başkasının kampında hiçbir eylem yapılmaz (salt okunur) */
 const NO_ACTIONS: CampActions = {
-  upgrade: async () => false, speed: async () => false, ask: async () => false, collect: async () => null, helpAll: async () => null,
+  upgrade: async () => false, queue: async () => false, unqueue: async () => false, speed: async () => false, ask: async () => false, collect: async () => null, helpAll: async () => null,
   remedyMake: async () => false, remedyCollect: async () => null, decorPlace: async () => null, decorMove: async () => null, decorStore: async () => false, libCollect: async () => null,
 };
 /** ziyaret bilgisinden sahnenin anladığı kamp durumu */

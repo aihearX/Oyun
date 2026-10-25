@@ -24,4 +24,6 @@ INSERT OR IGNORE INTO buildings(player_id, id, level) SELECT id, 'tarama', 0 FRO
 INSERT OR IGNORE INTO buildings(player_id, id, level) SELECT id, 'park', 0 FROM players;
 INSERT OR IGNORE INTO buildings(player_id, id, level) SELECT id, 'denge', 0 FROM players;
 INSERT OR IGNORE INTO buildings(player_id, id, level) SELECT id, 'kutuphane', 0 FROM players;
+-- inşaat sırası (docs/14-kamp.md "İnşaat sırası"): oyuncu başına tek yer; bedel sıraya alınırken ödenir (jeton = geri verilecek tutar)
+CREATE TABLE IF NOT EXISTS camp_queue(player_id TEXT PRIMARY KEY, id TEXT NOT NULL, to_level INTEGER NOT NULL, jeton INTEGER NOT NULL, at INTEGER NOT NULL);
 `;

@@ -191,6 +191,9 @@ export function CampBase(p: CampBaseProps) {
           {!visit && <button className={`hud-chip builder${active ? ' on' : ''}`} onClick={() => { if (active) { setSel(active.id); } }} aria-label={active ? `İnşaat: ${defOf(active.id).name}, kalan ${fmtLeft((active.endsAt ?? 0) - sNow)}` : 'İnşaatçı boşta'}>
             <Art e="🔨" size="1.15em" className="art-inline" /> {active ? <>{shortOf(active.id)} <b>{fmtLeft(Math.max(0, (active.endsAt ?? 0) - sNow))}</b></> : 'Boşta'}
           </button>}
+          {!visit && p.camp.queued && <button className="hud-chip queued" data-testid="sirada-cip" onClick={() => { audio.play('tap'); setSel(p.camp.queued!.id); }} aria-label={`Sırada: ${defOf(p.camp.queued.id).name} Sv ${p.camp.queued.toLevel}; süren inşaat bitince başlar`}>
+            <Art name="hourglass" size={15} className="art-inline" /> Sırada: <b>{shortOf(p.camp.queued.id)}</b>
+          </button>}
           {!visit && ITEMS.some((it) => p.wallet.hizlandirici[it.k] > 0) && <span className="hud-chip speed" aria-label={`Hızlandırıcılar: ${ITEMS.map((it) => `${it.label} ${p.wallet.hizlandirici[it.k]} adet`).join(', ')}`}><Art e="⏩" size="1.15em" className="art-inline" />{ITEMS.filter((it) => p.wallet.hizlandirici[it.k] > 0).map((it) => <span key={it.k} className="hs"><small>{it.label.replace(' ', '')}</small><b>{p.wallet.hizlandirici[it.k]}</b></span>)}</span>}
           {p.demo && <span className="hud-chip" aria-label={`Jeton: ${fmtNum(p.wallet.jeton)}`}><Art e="🪙" size="1.15em" className="art-inline" /><b>{fmtNum(p.wallet.jeton)}</b></span>}
           {visit && <span className="hud-chip" aria-label={`${visit.cheers} alkış`}><Art name="heart" size={16} /> <b>{visit.cheers}</b> alkış</span>}
@@ -221,7 +224,7 @@ export function CampBase(p: CampBaseProps) {
 
       {/* ekran okuyucu / klavye için binalar */}
       <div className="sr-only">
-        {p.camp.buildings.map((b) => <button key={b.id} onClick={() => (visit ? undefined : setSel(b.id))}>{defOf(b.id).name}, Sv {b.level}{b.upgradingTo ? `, Sv ${b.upgradingTo} yapılıyor` : ''}</button>)}
+        {p.camp.buildings.map((b) => <button key={b.id} onClick={() => (visit ? undefined : setSel(b.id))}>{defOf(b.id).name}, Sv {b.level}{b.upgradingTo ? `, Sv ${b.upgradingTo} yapılıyor` : p.camp.queued?.id === b.id ? `, Sv ${p.camp.queued.toLevel} sırada` : ''}</button>)}
       </div>
 
       {!p.demo && !visit && <GorevHost />}

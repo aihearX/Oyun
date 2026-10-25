@@ -4,7 +4,7 @@ import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type Ca
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
 import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, askedHelp, buildKey, canUpgrade, defOf, effect, infoOf, unlockLabel, type CampActions } from './model';
+import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, queueSupported, shortOf, unlockLabel, type CampActions } from './model';
 import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
@@ -51,6 +51,10 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
   const cost = buildCost(id, Math.min(to, d.maxLevel)); const seconds = Math.max(1, Math.round(cost.seconds * (1 - fast / 100)));
   const verdict = canUpgrade(camp, wallet, id);
   const building = !!(b.upgradingTo && b.endsAt);
+  // inşaat sırası: başka bina yapılırken bu bina sıraya alınabilir (bedel peşin; süren bitince kendiliğinden başlar)
+  const other = activeOf(camp); const inQueue = camp.queued?.id === id;
+  const queueMode = queueSupported(camp) && !!other && other.id !== id;
+  const qv = canQueue(camp, wallet, id);
   const left = Math.max(0, (b.endsAt ?? 0) - sNow); const total = Math.max(1, (b.endsAt ?? 0) - (b.startedAt ?? 0));
   const crystals = crystalsToFinish(Math.ceil(left / 1000));
   const [asked, setAsked] = useState(() => askedHelp.has(buildKey(b)));
@@ -112,14 +116,27 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
             </div>
             <button className="btn finish" disabled={busy || wallet.kristal < crystals} onClick={() => void run(() => actions.speed(id, 'kristal'))}><Art e="💎" size="1.15em" className="art-inline" /> {crystals} ile bitir</button>
             <div className="bp-note">Kristal: kalan her dakika için 1 (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
+            {camp.queued && <div className="bp-qline" data-testid="sirada-sonraki"><Art name="hourglass" size={18} className="art-inline" /><span className="grow min0">Sırada: <b>{shortOf(camp.queued.id)} Sv {camp.queued.toLevel}</b> · bu bitince başlar</span></div>}
           </div>
         ) : max ? <div className="bp-note">En yüksek seviyede. Tebrikler!</div> : (
           <div className="bp-up">
             <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
             <div className="bp-next" data-testid="sonraki-gorunum"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: {tierNext ? 'yeni görünüm!' : 'yeni bir ekleme'}</b><br />{tierNext ? `${CAMP_TIER_NAMES[tierOf(to)]} ${b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}` : id === 'merkez' ? 'Merkez her seviyede yeni bir parça kazanır' : 'Binanın çevresi süslenir'}</span></div>
             {POWER_BUILDINGS.includes(id) && to > CAMP_POWER_LEVEL && <div className="bp-note">Bina gücü Sv {CAMP_POWER_LEVEL}’te tavan yapar; sonraki seviyeler yeni görünüm ve Kamp XP’si verir.</div>}
-            <button className="btn" disabled={busy || !verdict.ok} onClick={() => void run(() => actions.upgrade(id))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
-            {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
+            {inQueue ? (
+              <div className="bp-queued" data-testid="sirada">
+                <div className="row between"><b><Art name="hourglass" size={18} className="art-inline" /> Sırada · Sv {camp.queued!.toLevel}</b><span className="qn"><Art name="coin" size={16} className="art-inline" /> {fmtNum(camp.queued!.jeton)} ödendi</span></div>
+                <div className="bp-note">{other ? `${shortOf(other.id)} bitince kendiliğinden başlar.` : 'Birazdan başlar.'} Hızlandırıcı ve takım yardımı inşaat başlayınca kullanılır.</div>
+                <button className="btn ghost" disabled={busy} onClick={() => void run(() => actions.unqueue())}>Sıradan çıkar · <Art name="coin" size={16} className="art-inline" /> {fmtNum(camp.queued!.jeton)} geri</button>
+              </div>
+            ) : queueMode ? (<>
+              <button className="btn" data-testid="siraya-al" disabled={busy || !qv.ok} onClick={() => void run(() => actions.queue(id))}>Sıraya al · <Art name="coin" size={16} className="art-inline" /> {fmtNum(cost.jeton)}</button>
+              {qv.ok ? <div className="bp-note">{shortOf(other!.id)} bitince kendiliğinden başlar. Bedel şimdi ödenir; sıradan çıkarırsan tamamı geri gelir.</div>
+                : <div className="bp-why" role="status">{qv.reason}</div>}
+            </>) : (<>
+              <button className="btn" disabled={busy || !verdict.ok} onClick={() => void run(() => actions.upgrade(id))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
+              {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
+            </>)}
           </div>
         )}
 

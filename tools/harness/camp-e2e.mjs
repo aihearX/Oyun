@@ -316,6 +316,23 @@ try {
     await shot(B, 'B-yardim-sonrasi', 300);
     await tab(A, 'Bugün'); // A'nın sahnesi kapanır
 
+    step(`B4b · [${bt}] İnşaat sırası: Kulak Deposu sıraya (bedel peşin) → Sıradan çıkar (tam iade) → yeniden sıraya → "Sırada" çipi`);
+    const jetonOf = () => db.get('SELECT jeton FROM players WHERE id = ?', bId).jeton;
+    const queueOf = () => db.get('SELECT id, jeton FROM camp_queue WHERE player_id = ?', bId);
+    const jq0 = jetonOf();
+    await openPanel(B, 'depo');
+    await B.getByTestId('siraya-al').click(); await B.getByTestId('sirada').waitFor({ timeout: 8000 });
+    const q1 = queueOf();
+    check(q1?.id === 'depo' && jetonOf() === jq0 - q1.jeton, `sunucu: Kulak Deposu sırada, bedel peşin (${q1?.jeton} jeton)`);
+    await shot(B, 'B-sira-paneli', 400);
+    await B.getByTestId('sirada').getByRole('button', { name: /Sıradan çıkar/ }).click(); await B.getByTestId('siraya-al').waitFor({ timeout: 8000 });
+    check(!queueOf() && jetonOf() === jq0, 'Sıradan çıkar: bedel tamamen geri');
+    await B.getByTestId('siraya-al').click(); await B.getByTestId('sirada').waitFor({ timeout: 8000 });
+    await closePanel(B); await toastGone(B);
+    await B.getByTestId('sirada-cip').waitFor({ timeout: 8000 });
+    ok('üst bantta "Sırada: Depo" çipi');
+    await shot(B, 'B-sirada-cip', 300);
+
     step(`B5 · [${bt}] Kristalle bitir → Odyoloji Merkezi Sv 2 + Tüy Dede satırı`);
     await openPanel(B, 'merkez');
     await B.locator('.bp').getByRole('button', { name: /ile bitir/ }).click();
@@ -325,6 +342,19 @@ try {
     await settle(B);
     await shot(B, 'B-bitis-dede', 300);
     check(lvlOf(bId, 'merkez') === 2, 'Odyoloji Merkezi Sv 2');
+
+    step(`B5b · [${bt}] Sıradaki Kulak Deposu kendiliğinden başladı → kristalle bitir`);
+    for (let i = 0; i < 20 && queueOf(); i++) await sleep(250);
+    check(!queueOf() && db.get("SELECT upgrading_to FROM buildings WHERE player_id = ? AND id = 'depo'", bId).upgrading_to === 1, 'sunucu: Kulak Deposu Sv 1 inşaatı başladı, sıra boş');
+    await B.locator('.hud-chip.builder.on').waitFor({ timeout: 8000 });
+    check(!(await B.getByTestId('sirada-cip').count()), '"Sırada" çipi kalktı');
+    await openPanel(B, 'depo'); await B.locator('.bp-build').waitFor({ timeout: 8000 });
+    await B.locator('.bp').getByRole('button', { name: /ile bitir/ }).click();
+    await closePanel(B);
+    for (let i = 0; i < 40 && lvlOf(bId, 'depo') < 1; i++) await sleep(250);
+    check(lvlOf(bId, 'depo') === 1, 'Kulak Deposu Sv 1');
+    await B.locator('[data-testid="kamp-dede"][data-line^="kamp-sv-depo-"]').waitFor({ timeout: 15_000 }).catch(() => undefined);
+    await settle(B);
 
     step(`B6 · [${bt}] Depo dolu → Topla`);
     db.run("UPDATE buildings SET level = 3 WHERE player_id = ? AND id = 'depo'", bId);

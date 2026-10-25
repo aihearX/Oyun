@@ -628,13 +628,26 @@ async function suite(browserName, target, [W, H]) {
       const ub2 = page.getByRole('button', { name: 'Üs görünümü' }); if (await ub2.count()) await ub2.click();
       await page.locator('.camp-base').waitFor({ timeout: 20_000 }); await sleep(1800); await toastGone();
       await check('kamp-sv22', { scroll: false });
-      // inşaat sürerken üst bant (İnşaatçı çipi uzun: "Merkez 2sa 10dk")
-      await page.goto(url('demo=kamp&seviye=20&kampsv=22&insaat=merkez'), { waitUntil: 'load' });
+      // inşaat sürerken üst bant (İnşaatçı çipi uzun: "Merkez 2sa 10dk") + inşaat sırası çipi (en uzun kısa ad: "Sırada: Kütüphane")
+      await page.goto(url('demo=kamp&seviye=20&kampsv=22&insaat=merkez&sira=kutuphane'), { waitUntil: 'load' });
       await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
       await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);
       { const u = page.getByRole('button', { name: 'Üs görünümü' }); if (await u.count()) await u.click(); }
-      await page.locator('.hud-chip.builder.on').waitFor({ timeout: 20_000 }); await sleep(1200); await toastGone();
+      await page.locator('.hud-chip.builder.on').waitFor({ timeout: 20_000 }); await page.getByTestId('sirada-cip').waitFor({ timeout: 10_000 }); await sleep(1200); await toastGone();
       await check('kamp-sv22-insaat', { scroll: false });
+      // inşaat sırası (docs/14-kamp.md §14): sıradaki binanın paneli → Sıradan çıkar → aynı panelde "Sıraya al"; süren inşaatın paneli
+      await page.getByTestId('sirada-cip').click(); await page.getByTestId('sirada').waitFor(); await sleep(700);
+      await page.getByTestId('sirada').scrollIntoViewIfNeeded(); await check('kamp-sira-paneli', { scroll: false });
+      await page.getByTestId('sirada').getByRole('button', { name: /Sıradan çıkar/ }).click(); await page.getByTestId('siraya-al').waitFor(); await sleep(500);
+      await check('kamp-siraya-al', { scroll: false });
+      await page.getByTestId('siraya-al').click(); await page.getByTestId('sirada').waitFor(); await sleep(300);
+      await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300);
+      await page.locator('.sr-only button', { hasText: 'Odyoloji Merkezi' }).evaluate((el) => el.click()); await page.getByTestId('sirada-sonraki').waitFor(); await sleep(600);
+      await page.getByTestId('sirada-sonraki').scrollIntoViewIfNeeded(); await check('kamp-sira-suren', { scroll: false });
+      await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300);
+      await page.getByRole('button', { name: 'Liste görünümü' }).click(); await sleep(600);
+      await page.getByTestId('sirada-sonraki').waitFor(); await check('kamp-liste-sira'); // kaydırılmış görüntüde sıra satırı görünür
+      await page.getByRole('button', { name: 'Üs görünümü' }).click(); await sleep(600);
       await page.goto(url('demo=kamp&seviye=20&kampsv=22'), { waitUntil: 'load' });
       await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
       await page.locator('nav.tabbar .tab', { hasText: 'Kamp' }).click(); await sleep(800);

@@ -12,7 +12,7 @@ import {
 import { fail, type App, type Handler, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
 import { GROWTH_OP_METRICS, campLevel, decorCount, giveCampXp, giveDecoration, growthOn, pendingOf } from './camp-quests-adapter';
-import { campState } from './camp';
+import { campState, onQueuedStart } from './camp';
 import { dayBounds } from './events/common';
 import { dayKey } from './time';
 
@@ -309,6 +309,8 @@ export function withKgHooks(h: Handlers): Handlers {
   wrap('camp.remedy.collect', (app, pid, _d, r) => { if (r.collected > 0) kgBump(app, pid, 'malzeme', r.collected); });
   wrap('camp.remedy.make', (app, pid, _d, r) => { if (r.collected > 0) kgBump(app, pid, 'malzeme', r.collected); else kgDirty(app, pid); });
   wrap('camp.upgrade', (app, pid) => { kgBump(app, pid, 'insaat'); });
+  // sıraya alınan inşaat başladığında sayılır (sıraya alıp çıkarmak sayacı artırmaz)
+  onQueuedStart((app, pid) => { kgBump(app, pid, 'insaat'); });
   wrap('camp.speedup', (app, pid) => { kgDirty(app, pid); });
   wrap('camp.state', (app, pid) => { kgDirty(app, pid); });
   wrap('team.camp.help', (app, pid, _d, r) => { kgBump(app, pid, 'yardim', r.given); });

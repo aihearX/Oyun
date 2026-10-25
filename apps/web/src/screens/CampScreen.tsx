@@ -71,6 +71,13 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
 
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { const r = await act('camp.upgrade', { id }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); audio.play('whoosh'); toast('🏗️', `${defOf(id).name} inşaatı başladı`, useNet.getState().team ? 'Takımından yardım iste, süre kısalsın.' : undefined); return true; },
+    queue: async (id) => {
+      const r = await act('camp.queue', { id }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('medium'); audio.play('whoosh');
+      if (r.started) toast('🏗️', `${defOf(id).name} inşaatı başladı`);
+      else toast('⏳', `${defOf(id).name} sıraya alındı`, 'Süren inşaat bitince kendiliğinden başlar.');
+      return true;
+    },
+    unqueue: async () => { const r = await act('camp.unqueue', {}); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('light'); toast('🪙', 'Sıradan çıkarıldı', `${r.refunded.toLocaleString('tr-TR')} jeton geri geldi.`, 'green'); return true; },
     speed: async (id, item) => { const r = await act('camp.speedup', { id, item, count: 1 }); if (!r) return false; useNet.setState({ camp: r.camp, wallet: r.wallet }); platform().haptic('light'); return true; },
     ask: async (id) => {
       const r = await act('camp.help.request', { id }); if (!r) return false;
@@ -118,6 +125,8 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
   useCampLevelCelebration('onizleme', s.camp, view === 'us' ? 1600 : 900);
   const actions = useMemo<CampActions>(() => ({
     upgrade: async (id) => { setS((o) => demoReduce(o, { k: 'upgrade', id })); audio.play('whoosh'); return true; },
+    queue: async (id) => { setS((o) => demoReduce(o, { k: 'queue', id })); audio.play('whoosh'); return true; },
+    unqueue: async () => { setS((o) => demoReduce(o, { k: 'unqueue' })); return true; },
     speed: async (id, item) => { setS((o) => demoReduce(o, { k: 'speed', id, item })); return true; },
     ask: async (id) => { const b = ref.current.camp.buildings.find((x) => x.id === id); if (b) askedHelp.add(buildKey(b)); toast('🙋', 'Önizleme', 'Gerçek oyunda takımına haber gider.', 'green'); return true; },
     collect: async () => { const r = demoReduce(ref.current, { k: 'collect' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
