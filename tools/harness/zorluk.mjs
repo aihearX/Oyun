@@ -9,6 +9,8 @@
 //        bölüm başına üretici varyantı: hedefe tahminen en yakın 3 varyant ölçülür, en yakını → packages/level-gen/src/kalibrasyon.ts
 //   node tools/harness/zorluk.mjs --sure [--k 48]
 //        süreli bölümlerin 3★/2★ süre oranları (bitirenlerin süre dilimlerinden) → packages/level-gen/src/sure.ts
+//   node tools/harness/zorluk.mjs --yildiz [--levels 21,22,27,28] [--k 48] [--tag yildiz] [--once yildiz-once] [--ilk]
+//        bölümleri oyundaki yıldız kuralıyla (scoreRun) oynar: bitirenlerin nota oranı ve yıldız dağılımı; --once ile önce/sonra tablosu
 //   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra] [--ilk ilk]
 //        tabloyu docs/12-zorluk-egrisi.md içine (işaretler arasına) ve grafiği docs/img/zorluk-egrisi.svg'ye yazar
 import { spawn } from 'node:child_process';
@@ -147,6 +149,26 @@ if (args.bolumler) {
   writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, params: extra, rows }, null, 1));
   rmSync(resolve(outDir, `${tag}.part.jsonl`), { force: true });
   for (const r of rows) { const s = scoreOf(r.runs); console.log(`L${String(r.n).padStart(2, '0')} bitirme ${(s.fin * 100).toFixed(0).padStart(3)}%  can kaybı ${s.dmg.toFixed(2)}  düşme ${s.deaths.toFixed(2)}  yakın/dk ${s.nmPerMin.toFixed(1).padStart(4)}  puan ${s.score.toFixed(2)}`); }
+  console.log(`→ tools/harness/out/zorluk/${tag}.json`);
+}
+
+if (args.yildiz) {
+  // yıldızlar (docs/12 §6, MK-008): oran = bitirenler içinde; "≥ %x" sütunları 2★ nota eşiği x olsaydı bitirenlerin kaçı alırdı
+  const levels = String(args.levels ?? '21,22,27,28').split(',').flatMap((p) => { const [a, b] = p.split('-').map(Number); return Array.from({ length: (b ?? a) - a + 1 }, (_, i) => a + i); });
+  const file = await worker(); const tag = args.tag ?? 'yildiz';
+  const rows = (await runAll(file, 'yildiz', levels, args.ilk ? ['--ilk'] : [], resolve(outDir, `${tag}.part.jsonl`))).sort((a, b) => a.n - b.n);
+  writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, rows }, null, 1));
+  rmSync(resolve(outDir, `${tag}.part.jsonl`), { force: true });
+  const pc = (x) => `${Math.round(x * 100)}%`;
+  const stat = (r) => { const f = r.runs.filter((x) => x.fin); const n = Math.max(1, f.length); const rs = f.map((x) => x.r).sort((a, b) => a - b);
+    return { fin: f.length / r.runs.length, med: rs.length ? rs[Math.floor((rs.length - 1) / 2)] : 0, s2: f.filter((x) => x.s >= 2).length / n, s3: f.filter((x) => x.s === 3).length / n, at: (q) => f.filter((x) => x.r >= q - 1e-9).length / n }; };
+  for (const r of rows) { const a = stat(r); console.log(`L${r.n} notalar ${r.total}  bitirme ${pc(a.fin)}  nota medyanı ${pc(a.med)}  bitirenlerde ★≥2 ${pc(a.s2)} ★3 ${pc(a.s3)}  (≥%45 ${pc(a.at(0.45))} · ≥%50 ${pc(a.at(0.5))} · ≥%55 ${pc(a.at(0.55))} · ≥%60 ${pc(a.at(0.6))})`); }
+  const of = args.once && resolve(outDir, `${args.once}.json`);
+  if (of && existsSync(of)) {
+    const B = Object.fromEntries(JSON.parse(readFileSync(of, 'utf8')).rows.map((r) => [r.n, stat(r)]));
+    console.log(`\n| Bölüm | Bitirme | Bitirenlerin nota medyanı | Önce: ★≥2 / ★3 (bitirenler) | Sonra: ★≥2 / ★3 (bitirenler) |\n|---|---|---|---|---|`);
+    for (const r of rows) { const a = stat(r), b = B[r.n]; console.log(`| ${r.n} | ${pc(a.fin)} | ${pc(a.med)} | ${b ? `${pc(b.s2)} / ${pc(b.s3)}` : '–'} | ${pc(a.s2)} / ${pc(a.s3)} |`); }
+  }
   console.log(`→ tools/harness/out/zorluk/${tag}.json`);
 }
 

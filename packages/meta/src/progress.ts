@@ -1,4 +1,4 @@
-import { STAR2_NOTE_RATIO, STAR3_NOTE_RATIO, levelFromXp, type BiomeId, type LevelSpec, type RunResult } from '@odi/shared';
+import { levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type RunResult } from '@odi/shared';
 import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TREASURES, cosmeticById, type HatId, type Reward } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
@@ -22,12 +22,18 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
   }
   if (spec.coinsTotal <= 0) {
     if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
-  } else if (r.stars === 1) {
-    const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR2_NOTE_RATIO) - r.coins);
-    const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
-    return { kind: 'yildiz', text: t2 ? `2. yıldız için ${need} nota daha ya da ${t2} saniyede bitir` : `2. yıldız için ${need} nota daha` };
-  } else if (r.stars === 2) {
-    const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR3_NOTE_RATIO) - r.coins);
+  } else if (r.stars < 3) {
+    // eşikler yıldız kuralıyla aynı yerden (shared economy.ts → noteThresholds; yüzmede 2★ %45 nota)
+    const th = noteThresholds(spec); const needAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9) - r.coins;
+    if (r.stars === 1) {
+      const need = Math.max(1, needAt(th.star2));
+      const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
+      return { kind: 'yildiz', text: t2 ? `2. yıldız için ${need} nota daha ya da ${t2} saniyede bitir` : `2. yıldız için ${need} nota daha` };
+    }
+    // yüzmede 2★ %60'tan az notayla gelebilir; hedefle 3★ için yine %60 nota gerekir → eksik notayı da söyle (tümünü toplama hariç)
+    const needObj = th.star3Objective ? needAt(th.star3Objective) : 0;
+    if (needObj > 0 && spec.objective.id !== 'collect-all') return { kind: 'yildiz', text: `3. yıldız için ${needObj} nota daha ve: ${spec.objective.label}` };
+    const need = Math.max(1, needAt(th.star3));
     return { kind: 'yildiz', text: spec.objective.id === 'reach' ? `3. yıldız için ${need} nota daha` : `3. yıldız için ${need} nota daha ya da: ${spec.objective.label}` };
   }
   const t = nextTreasure(spec.number + 1, progress);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { scoreRun } from './economy';
+import { noteThresholds, scoreRun } from './economy';
 import type { LevelSpec, ObjectiveId, RunResult } from './types';
 
 const spec = (obj: ObjectiveId, coinsTotal = 100): LevelSpec => ({ id: 'x', number: 5, journey: 'insan', name: 'x', biome: 'dis-kulak', mechanic: 'kosu', objective: { id: obj, label: 'Hedef' }, modifiers: [], seed: 1, chunks: [], lengthPx: 5000, parTimeSec: 60, coinsTotal });
@@ -27,6 +27,21 @@ describe('yıldız kuralı (docs/11 §5)', () => {
     expect(scoreRun(t(), run({ coins: 90, timeSec: 120 })).stars).toBe(3);
     // eski kayıt (target2 yok): 2★ yalnız notayla
     expect(scoreRun({ ...t(), objective: { id: 'timed', target: 80, label: '' } }, run({ coins: 40, timeSec: 90 })).stars).toBe(1);
+  });
+  it('yüzme bölümü (MK-008): 2★ %45 notayla; 3★ eşikleri değişmez (%90 nota ya da %60 nota + hedef)', () => {
+    const sw = (obj: ObjectiveId): LevelSpec => ({ ...spec(obj), mechanic: 'yuzme' });
+    expect(noteThresholds(sw('reach')).star2).toBe(0.45); expect(noteThresholds(spec('reach')).star2).toBe(0.6);
+    expect(scoreRun(sw('reach'), run({ coins: 44 })).stars).toBe(1);
+    expect(scoreRun(sw('reach'), run({ coins: 45 })).stars).toBe(2);
+    expect(scoreRun(sw('reach'), run({ coins: 89 })).stars).toBe(2);
+    expect(scoreRun(sw('reach'), run({ coins: 90 })).stars).toBe(3);
+    // hedefle 3★ yine %60 nota ister: eskortu kurtaran ama %50 nota toplayan 2★ kalır
+    expect(scoreRun(sw('escort'), run({ coins: 50, objectiveMet: true })).stars).toBe(2);
+    expect(scoreRun(sw('escort'), run({ coins: 60, objectiveMet: true })).stars).toBe(3);
+    // süreli yüzme: süre kuralı aynen; nota yolu %45
+    const t: LevelSpec = { ...sw('timed'), objective: { id: 'timed', target: 80, target2: 95, label: '' } };
+    expect(scoreRun(t, run({ coins: 45, timeSec: 120 })).stars).toBe(2);
+    expect(scoreRun(t, run({ coins: 30, timeSec: 79, objectiveMet: true })).stars).toBe(3);
   });
   it('notasız boss: hasarsız 3★, 1 hasar 2★', () => {
     expect(scoreRun(spec('boss', 0), run({ objectiveMet: true })).stars).toBe(3);
