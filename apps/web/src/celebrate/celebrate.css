@@ -18,7 +18,7 @@
 @keyframes ctaIn { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:none; } }
 /* parıltı (konum/ölçek değişmez → dokunma hedefi sabit) */
 @keyframes ctaGlow { 50% { filter:brightness(1.12) drop-shadow(0 0 14px rgba(255,201,60,.75)); } }
-.cel-hint { font-weight:800; font-size:13px; color:var(--text-2); opacity:.75; }
+.cel-hint { font-weight:800; font-size:0.8125rem; color:var(--text-2); opacity:.75; }
 
 /* ---------------------------------------------------------------- sandık */
 .cel-chest { position:relative; width:200px; height:170px; margin-top:12px; --c1:#e7a466; --c2:#a5602b; --c3:#6e3a14; --band:#7b4a24; --stud:#ffd28a; }
@@ -68,8 +68,8 @@
 .cel-card.tone-coral { border-color:#ffd0de; background:linear-gradient(180deg,#fff6f9,#ffd9e5); }
 .cel-card.tone-lime { border-color:#d2ffe1; background:linear-gradient(180deg,#f6fff9,#d2f8df); }
 .cc-icon { font-size:40px; line-height:1.1; display:flex; justify-content:center; filter:drop-shadow(0 3px 0 rgba(0,0,0,.18)); }
-.cc-amt { font-weight:900; font-size:22px; font-variant-numeric:tabular-nums; color:var(--ink); }
-.cc-name { font-weight:900; font-size:12px; color:var(--ink-2); line-height:1.15; overflow-wrap:anywhere; text-align:center; }
+.cc-amt { font-weight:900; font-size:1.375rem; font-variant-numeric:tabular-nums; color:var(--ink); }
+.cc-name { font-weight:900; font-size:0.75rem; color:var(--ink-2); line-height:1.15; overflow-wrap:anywhere; text-align:center; }
 .ph-out .cel-card.in { animation:cardOut .45s ease-in forwards; animation-delay:calc(var(--i) * 60ms); }
 @keyframes cardOut { to { opacity:0; transform:translateY(-120px) scale(.5); } }
 
@@ -83,13 +83,13 @@
 .lvl-rays { position:absolute; left:50%; top:36%; width:150vmax; height:150vmax; margin:-75vmax; background:repeating-conic-gradient(from 0deg, rgba(255,214,110,.22) 0deg 8deg, rgba(255,214,110,0) 8deg 20deg); -webkit-mask:radial-gradient(closest-side, #000 15%, transparent 70%); mask:radial-gradient(closest-side, #000 15%, transparent 70%); animation:raySpin 14s linear infinite, celFade .5s ease-out both; pointer-events:none; }
 .lvl-badge { position:relative; width:170px; height:170px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at 40% 30%, #fff3b0 0 12%, var(--gold) 45%, var(--gold-2) 80%, #c96f00 100%); border:6px solid #fff6d0; box-shadow:0 8px 0 #a85600, 0 0 0 10px rgba(255,201,60,.25), 0 0 60px rgba(255,201,60,.7); color:var(--gold-ink); animation:badgeIn .7s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes badgeIn { 0% { transform:scale(0) rotate(-180deg); } 70% { transform:scale(1.15) rotate(8deg); } 100% { transform:none; } }
-.lb-k { font-weight:900; font-size:15px; letter-spacing:2px; }
+.lb-k { font-weight:900; font-size:0.9375rem; letter-spacing:2px; }
 .lb-n { font-weight:900; font-size:72px; line-height:.95; text-shadow:0 3px 0 rgba(255,255,255,.55); }
 .lb-star { position:absolute; top:-26px; line-height:0; filter:drop-shadow(0 0 14px rgba(255,236,170,.9)); animation:pop .5s .5s cubic-bezier(.2,1.6,.4,1) both; }
 .lvl-list { display:flex; flex-direction:column; gap:8px; width:100%; max-width:320px; }
 .lvl-item { display:flex; gap:10px; align-items:center; background:linear-gradient(180deg,#fffdf6,var(--cream)); color:var(--ink); border:3px solid #fff; border-radius:16px; padding:10px 14px; text-align:left; box-shadow:0 4px 0 rgba(0,0,0,.28); opacity:0; transform:translateX(-40px); }
 .lvl-item.in { animation:itemIn .45s cubic-bezier(.2,1.4,.4,1) forwards; }
-.lvl-item b { font-weight:900; font-size:15px; overflow-wrap:anywhere; }
+.lvl-item b { font-weight:900; font-size:0.9375rem; overflow-wrap:anywhere; }
 @keyframes itemIn { to { opacity:1; transform:none; } }
 
 /* ---------------------------------------------------------------- biyom canlandı */

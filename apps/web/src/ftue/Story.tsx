@@ -47,7 +47,7 @@ function JourneyScene() {
       </svg>
       {stops.map(([label, x, y, art], i) => (
         <span key={label} className="sc-a float" style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)', animationDelay: `${-i}s`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <Art name={art} size={44} /><small style={{ fontWeight: 900, fontSize: 11, color: 'var(--text-2)' }}>{label}</small>
+          <Art name={art} size={44} /><small style={{ fontWeight: 900, fontSize: '0.6875rem', color: 'var(--text-2)' }}>{label}</small>
         </span>
       ))}
       <span className="sc-a" style={{ left: '24%', top: '56%' }}><OdiHero size={46} /></span>

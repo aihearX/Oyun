@@ -207,6 +207,8 @@ export function App() {
   useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol }); }, [store.sounds, store.musicVol, store.sfxVol]);
   useEffect(() => (bot ? undefined : installUiFeedback()), [bot]);
   useEffect(() => (bot ? undefined : installViewport()), [bot]);
+  // Büyük yazı (Ayarlar): kök yazı ölçeği; yazı boyutları rem olduğundan menü ve sohbet metni birlikte büyür (Phaser göstergeleri değil)
+  useEffect(() => { document.documentElement.classList.toggle('buyuk-yazi', store.bigText); }, [store.bigText]);
   useEffect(() => { if (E2E_Q?.get('ftue') === '0' && !useStore.getState().ftue.bypass) useStore.getState().ftueBypass(); }, []);
   const lockToast = useLockToast();
   // müzik geçişleri (crossfade): harita teması, menü, biyom tanıtımı. Bölüm/sonuç kendi müziğini yönetir (LevelScene, ResultScreen).

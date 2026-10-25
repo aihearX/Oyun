@@ -50,6 +50,10 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         <VoiceReadout />
         <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Chatterbox Multilingual (Resemble AI, MIT) · temel tını Kokoro-82M (Apache-2.0) · sentetik ses, Perth filigranlı</small>
       </div>
+      <div className="card vol-row" data-testid="buyuk-yazi-ayar">
+        <div className="row between"><div><h2>Büyük yazı</h2><div className="muted">Menülerde ve sohbette yazılar daha büyük görünür (oyun içi göstergeler değişmez)</div></div>
+          <button type="button" className={`btn small toggle-btn${s.bigText ? '' : ' ghost'}`} data-testid="buyuk-yazi" onClick={() => s.setBigText(!s.bigText)} aria-pressed={s.bigText} aria-label="Büyük yazı">{s.bigText ? 'Açık' : 'Kapalı'}</button></div>
+      </div>
       <div className="card know-card" data-testid="bilgi-duzeyi">
         <div><h2>Bilgi düzeyi</h2><div className="muted">Odyoloji öğrencisiysen Tüy Dede’nin notları ayrıntılı açılır, bilgi yarışması daha teknik sorular seçer.</div></div>
         <div className="seg" role="radiogroup" aria-label="Bilgi düzeyi">

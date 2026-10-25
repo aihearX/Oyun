@@ -40,12 +40,12 @@
   background:linear-gradient(180deg, #fff9e0 0%, #ffe27a 38%, #ffc93c 58%, #ff9f1c 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
   filter:drop-shadow(0 3px 0 #b85c00) drop-shadow(0 10px 22px rgba(255,159,28,.35)); text-shadow:none; }
 .ts-word span { background:linear-gradient(180deg, #e9fffc 0%, #2ee6d6 60%, #12a89e 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.ts-tag { display:flex; align-items:center; gap:10px; font-weight:900; font-size:15px; letter-spacing:4px; text-transform:uppercase; color:var(--cream); opacity:.92; }
+.ts-tag { display:flex; align-items:center; gap:10px; font-weight:900; font-size:0.9375rem; letter-spacing:4px; text-transform:uppercase; color:var(--cream); opacity:.92; }
 .ts-tag i { width:28px; height:2px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold)); }
 .ts-tag i:last-child { background:linear-gradient(90deg, var(--gold), transparent); }
-.ts-story { max-width:310px; margin:0; color:var(--text-2); font-weight:800; font-size:15.5px; line-height:1.45; }
+.ts-story { max-width:310px; margin:0; color:var(--text-2); font-weight:800; font-size:0.96875rem; line-height:1.45; }
 .ts-invite { width:100%; max-width:340px; display:flex; flex-direction:column; gap:8px; text-align:center; }
-.ts-invite h2 { font-size:18px; }
+.ts-invite h2 { font-size:1.125rem; }
 .ts-cta { width:100%; max-width:340px; opacity:0; transform:translateY(10px); transition:opacity .35s, transform .35s; }
 .ts-cta.on { opacity:1; transform:none; }
 @media (max-height:680px) { .ts-hero .odi-hero { width:128px; height:128px; } .title-screen { gap:12px; } }
