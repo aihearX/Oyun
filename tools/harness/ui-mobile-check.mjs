@@ -324,7 +324,7 @@ function contrastRects(ids) {
     if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) return false;
     const painted = cs.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) || (cs.backdropFilter && cs.backdropFilter !== 'none');
     const r = e.getBoundingClientRect(); return painted && r.width * r.height > 0 && r.width * r.height < W * H * 0.6;
-  }).map((e) => ({ el: e, r: e.getBoundingClientRect() }));
+  }).map((e) => ({ el: e, r: e.getBoundingClientRect(), z: Number(getComputedStyle(e).zIndex) || 0 }));
   for (const id of ids) {
     const n = window.__kNodes?.[id]; if (!n || !n.isConnected) { out[id] = null; continue; }
     const el = n.nodeType === 3 ? n.parentElement : n;
@@ -365,7 +365,10 @@ function contrastRects(ids) {
     for (let q = el; q && q !== document.body; q = q.parentElement) { const ps = getComputedStyle(q).position; if (ps === 'sticky') sticky = true; if (ps === 'fixed' || ps === 'sticky') pinned = true; }
     // akıştaki metin, sabit/yapışkan bir şeridin (sekme çubuğu, üst çubuk) altına girdiyse örtülüdür; şeridin boşlukları
     // pointer-events:none olabildiğinden isabet testi yetmez → kutu kesişimi
-    if (inView && !covered && !pinned) for (const b of overlays()) if (!b.el.contains(el) && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = 'serit'; break; }
+    // sabit/yapışkan bir kabın içindeki metin (alt sayfa) için yalnız daha üstteki katman (z-index büyük: ör. bildirim) örter
+    const zOf = (e) => { let z = 0; for (let q = e; q && q !== document.body; q = q.parentElement) { const cs = getComputedStyle(q); if (cs.position === 'fixed' || cs.position === 'sticky') { z = Number(cs.zIndex) || 0; } } return z; };
+    const zEl = pinned ? zOf(el) : -Infinity;
+    if (inView && !covered) for (const b of overlays()) if (!b.el.contains(el) && !el.contains(b.el) && b.z > zEl && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = pinned ? true : 'serit'; break; }
     out[id] = { inView, covered, sticky, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
   }
   return out;
@@ -417,12 +420,13 @@ function sampleContrast(img, rects, fg, alpha) {
   let area = 0; for (const [, , w, h] of rects) area += w * h;
   const step = Math.max(1, Math.sqrt(area / 1200));
   let worstBg = null, worst = Infinity;
-  for (const [l, t, w, h] of rects) for (let y = t + step / 2; y < t + h; y += step) for (let x = l + step / 2; x < l + w; x += step) {
+  // satır kutusunun üst/alt boşluğu (yarım satır aralığı) harf değildir: kutunun dikeyde ortadaki %70'i örneklenir
+  for (const [l, t0, w, h0] of rects) { const t = t0 + h0 * 0.15, h = h0 * 0.7; for (let y = t + step / 2; y < t + h; y += step) for (let x = l + step / 2; x < l + w; x += step) {
     const xi = Math.min(img.w - 1, Math.max(0, Math.floor(x))), yi = Math.min(img.h - 1, Math.max(0, Math.floor(y))); const o = (yi * img.w + xi) * img.ch;
     const bg = [img.px[o] / 255, img.px[o + 1] / 255, img.px[o + 2] / 255];
     const tx = [0, 1, 2].map((i) => fg[i] * alpha + bg[i] * (1 - alpha));
     const r = kRatio(tx, bg); rs.push([r, bg, tx]); if (r < worst) { worst = r; worstBg = bg; }
-  }
+  } }
   if (!rs.length) return null;
   rs.sort((a, b) => a[0] - b[0]);
   const [r, bg, tx] = rs[Math.floor(rs.length * 0.1)];
