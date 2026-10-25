@@ -46,6 +46,8 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       <div className="card vol-row">
         <div className="row between"><div className="row" style={{ gap: 10 }}><TuyDede size={52} /><div><h2>Anlatıcı sesi</h2><div className="muted">Tüy Dede anlatırken sesli okusun (yazı hep görünür)</div></div></div>
           <button className={`btn small toggle-btn${s.narratorVoice ? '' : ' ghost'}`} onClick={() => s.setNarratorVoice(!s.narratorVoice)} aria-pressed={s.narratorVoice} aria-label="Anlatıcı sesi">{s.narratorVoice ? 'Açık' : 'Kapalı'}</button></div>
+        {/* anlatıcının kendi düzeyi (efekt kaydırıcısından bağımsız); konuşurken de anında değişir */}
+        <Slider icon="💬" label="Anlatıcı ses düzeyi" value={s.voiceVol} disabled={!s.sounds || !s.narratorVoice} onChange={(v) => s.setVolumes({ voiceVol: v })} />
         {onReplay && <ActionButton tone="teal" icon="play" onClick={onReplay}>Hikâyeyi yeniden izle</ActionButton>}
         <VoiceReadout />
         <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Chatterbox Multilingual (Resemble AI, MIT) · temel tını Kokoro-82M (Apache-2.0) · sentetik ses, Perth filigranlı</small>

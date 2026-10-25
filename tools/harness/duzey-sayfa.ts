@@ -10,7 +10,8 @@ import { TRACKS } from '../../packages/audio/src/music';
 import type { Sfx, Track } from '../../packages/audio/src/index';
 
 const SR = 48000;
-/** oyuncunun varsayılan ayarları (apps/web/src/store.ts INITIAL): müzik 0,6, efekt 0,9; anlatıcı kazancı = efekt düzeyi (ftue/voice.ts) */
+/** oyuncunun varsayılan ayarları (apps/web/src/store.ts INITIAL): müzik 0,6, efekt 0,9; anlatıcı 0,9 (MK-023'ten beri kendi
+ *  kaydırıcısı store.voiceVol; eski kayıtta efekt düzeyinden [0,2..1] türetilir). Burada anlatıcı düzeyi `sfx`'ten alınır: aynı çarpım. */
 export interface Vols { music: number; sfx: number }
 const DEFAULT: Vols = { music: 0.6, sfx: 0.9 };
 
@@ -56,7 +57,7 @@ const api = {
     const seconds = loopSeconds(name);
     const { ctx, eng } = make(seconds, v);
     eng.music(name as Track, { fade: 0.05 });
-    if (duck != null) eng.duck(3600, duck, 0);
+    if (duck != null) eng.duck('olcum', 3600, duck, 0);
     eng.tick(seconds + 1);
     return { seconds, wav: wav(await ctx.startRendering()) };
   },
@@ -67,7 +68,7 @@ const api = {
     eng.play(name as Sfx);
     return { seconds, wav: wav(await ctx.startRendering()) };
   },
-  /** anlatıcı satırı oyundaki gibi: audio.voice(buf, efekt düzeyi [0,2..1]); `extra`: satır başı kazanç denemesi (öneri sınaması) */
+  /** anlatıcı satırı oyundaki gibi: kayıt × anlatıcı düzeyi (oyunda veriyolu kazancı, burada voice() kazancı — aynı çarpım); `extra`: satır başı kazanç denemesi (öneri sınaması) */
   async voice(b64: string, v: Vols = DEFAULT, withTrack?: string, extra = 1) {
     const buf = await decode(b64);
     const seconds = buf.duration + 0.6;

@@ -112,11 +112,11 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
     loadLevel().then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
     return () => { dead = true; for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
-  // duraklatınca müzik kısılır (durmaz), devam edince geri gelir
-  const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.duck(0); } else { handle.current?.pause(); setPaused(true); audio.duck(3600, 0.25); } };
-  const restart = () => { setPaused(false); setLives(null); audio.duck(0); setRunKey((k) => k + 1); };
+  // duraklatınca müzik kısılır (durmaz), devam edince geri gelir — yalnız duraklatmanın kısması kalkar (anlatıcı/kutlama sürer)
+  const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.unduck('duraklat'); } else { handle.current?.pause(); setPaused(true); audio.duck('duraklat', 3600, 0.25); } };
+  const restart = () => { setPaused(false); setLives(null); audio.unduck('duraklat'); setRunKey((k) => k + 1); };
   pauseRef.current = () => { if (!paused) togglePause(); };
-  useEffect(() => () => audio.duck(0), []);
+  useEffect(() => () => audio.unduck('duraklat'), []);
   const leaveRace = () => { const net = getNet(); if (net) void net.call('race.leave', {}).catch(() => undefined); onQuit(); };
   return (
     <>

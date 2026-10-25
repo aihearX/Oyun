@@ -26,10 +26,17 @@ export interface AudioEngine {
   tone(freq: number, dur?: number, vol?: number): void;
   /** müzik: null → durdur; aynı parça çalıyorsa yeniden başlatmaz; fade sn */
   music(track: Track | null, opts?: { fade?: number }): void;
-  /** kısa süre müziği kıs (ödül fanfarı vb. için) */
-  duck(seconds: number, level?: number): void;
-  setVolumes(v: { music?: number; sfx?: number; enabled?: boolean }): void;
-  volumes(): { music: number; sfx: number; enabled: boolean };
+  /**
+   * Müziği `owner` adına `seconds` sn `level`'e (varsayılan 0,3) kıs. Sahipler: `ses` (anlatıcı, motor kendisi),
+   * `efekt:<ad>` (ödül efektleri, motor kendisi), `duraklat`, `kutlama`. Etkin düzey süresi dolmamış sahiplerin en düşüğü;
+   * aynı sahip yeniden çağırırsa öncekinin yerine geçer; `seconds` ≤ 0 → `unduck(owner)`.
+   */
+  duck(owner: string, seconds: number, level?: number): void;
+  /** yalnız bu sahibin kısmasını kaldır (ötekiler sürer) */
+  unduck(owner: string): void;
+  /** 0..1 düzeyler: müzik, efekt, anlatıcı (voice) ve genel aç/kapa */
+  setVolumes(v: { music?: number; sfx?: number; voice?: number; enabled?: boolean }): void;
+  volumes(): { music: number; sfx: number; voice: number; enabled: boolean };
   /** sıkıştırılmış ses kaydını çöz (anlatıcı kayıtları) */
   decode(data: ArrayBuffer): Promise<AudioBuffer | null>;
   /** çözülmüş kaydı anlatıcı yolundan çal; çalınamıyorsa null */
@@ -44,4 +51,5 @@ export interface AudioEngine {
 import { Engine } from './engine';
 export { Engine, type EngineOptions } from './engine';
 export { TRACKS, resolveTrack } from './music';
+export { duckLevelAt, duckPlan, type DuckClaim, type DuckStep } from './duck';
 export const audio: AudioEngine & { playing(): string | null; beatClock(): { now: number; startAt: number; beatDur: number; track: string } | null } = new Engine();

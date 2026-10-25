@@ -7,6 +7,7 @@ import { VoiceLimiter } from './limiter';
 import { alignStart, Sequencer } from './sequencer';
 import { barEvents, resolveTrack, type NoteEv, type TrackDef } from './music';
 import { AUTO_DUCK, SFX, sfxRule } from './sfx';
+import { duckLevelAt, duckPlan, pruneDucks, type DuckClaim } from './duck';
 import { bell, brass, clap, cymbal, drop, hat, kick, makeImpulse, marimba, mtof, pad, pluck, riser, shaker, snare, tom, tone, wood, type Kit } from './synth';
 
 /** müzik enstrümanları (parça olaylarını sese çevirir) */
@@ -59,7 +60,11 @@ export interface EngineOptions {
 export class Engine implements AudioEngine {
   ctx: BaseAudioContext | null = null;
   private master!: GainNode; private comp!: DynamicsCompressorNode; private sfxBus!: GainNode; private musicBus!: GainNode; private duckGain!: GainNode; private verbIn!: GainNode; private voiceBus!: GainNode;
-  private vol = { music: 0.6, sfx: 0.9, enabled: true };
+  private vol = { music: 0.6, sfx: 0.9, voice: 1, enabled: true };
+  /** müzik kısma sahipleri (duck.ts): etkin düzey süresi dolmamışların en düşüğü */
+  private ducks = new Map<string, DuckClaim>();
+  /** anlatıcı çalmalarının sırası: eski bir satırın bitişi yenisinin kısmasını kaldırmasın */
+  private voiceSeq = 0;
   private unlocked = false;
   private wanted: Track | null = null;
   private live: Live[] = [];
@@ -88,7 +93,7 @@ export class Engine implements AudioEngine {
       const conv = c.createConvolver(); conv.buffer = makeImpulse(c, 1.3, 3);
       this.verbIn = c.createGain(); this.verbIn.gain.value = 0.35; this.verbIn.connect(conv); conv.connect(this.comp);
       // anlatıcı sesi: müzikten ayrı yol (müzik kısılırken konuşma kısılmaz), ana düzey ve aç/kapa ile birlikte
-      this.voiceBus = c.createGain(); this.voiceBus.gain.value = 1; this.voiceBus.connect(this.comp);
+      this.voiceBus = c.createGain(); this.voiceBus.gain.value = this.vol.voice; this.voiceBus.connect(this.comp);
       if (!this.o.context) {
         this.unlocked = false;
         // görünmezken (arka plan) bağlamı askıya al: pil ve CPU dostu
@@ -122,7 +127,7 @@ export class Engine implements AudioEngine {
     if (gain <= 0) return;
     const out = c.createGain(); out.gain.value = Math.max(0, Math.min(1.5, (opts.vol ?? 1) * gain)); out.connect(this.sfxBus);
     const end = design(this.kit(out), t, Math.pow(2, (opts.semitones ?? 0) / 12), 1);
-    const dk = AUTO_DUCK[name]; if (dk) this.duck(dk, 0.35, t);
+    const dk = AUTO_DUCK[name]; if (dk) this.duck(`efekt:${name}`, dk, 0.35, t);
     this.cleanup(out, end);
   }
 
@@ -210,11 +215,43 @@ export class Engine implements AudioEngine {
   }
   private stopTimer() { if (this.timer) { clearInterval(this.timer); this.timer = null; } }
 
-  duck(seconds: number, level = 0.3, at?: number): void {
+  /**
+   * `owner` adına müziği `seconds` sn `level`'e kıs (`at`: başlangıç, bağlam saati; verilmezse şimdi).
+   * Aynı sahip yeniden çağırırsa öncekinin yerine geçer; `seconds` ≤ 0 → `unduck(owner)`.
+   * Etkin düzey, süresi dolmamış sahiplerin en düşüğüdür (bkz. duck.ts).
+   */
+  duck(owner: string, seconds: number, level = 0.3, at?: number): void {
     if (!this.ctx) return;
-    const g = this.duckGain.gain; const t = at ?? this.now();
-    g.cancelScheduledValues(t); g.setTargetAtTime(Math.max(0, Math.min(1, level)), t, 0.04);
-    if (seconds > 0) g.setTargetAtTime(1, t + seconds, 0.35); else g.setTargetAtTime(1, t, 0.1);
+    if (!(seconds > 0)) { this.unduck(owner); return; }
+    const t = at ?? this.now(); const before = duckLevelAt(this.ducks.values(), this.now());
+    this.ducks.set(owner, { level: Math.max(0, Math.min(1, level)), from: t, until: t + seconds });
+    this.applyDuck(before, false);
+  }
+
+  /** yalnız bu sahibin kısmasını kaldır (ötekiler sürer) */
+  unduck(owner: string): void {
+    if (!this.ctx || !this.ducks.has(owner)) return;
+    const before = duckLevelAt(this.ducks.values(), this.now());
+    this.ducks.delete(owner);
+    this.applyDuck(before, true);
+  }
+
+  /** kısma planını kazanç olaylarına çevir: inişte hızlı (0,04), süre dolunca yumuşak (0,35), elle kaldırınca 0,1 */
+  private applyDuck(before: number, released: boolean): void {
+    const now = this.now(); const g = this.duckGain.gain;
+    pruneDucks(this.ducks, now);
+    g.cancelScheduledValues(now);
+    let prev = before;
+    duckPlan(this.ducks.values(), now).forEach((st, i) => {
+      const tau = st.level < prev ? 0.04 : i === 0 && released ? 0.1 : 0.35;
+      g.setTargetAtTime(st.level, st.at, tau); prev = st.level;
+    });
+  }
+
+  /** şimdiki kısma sahipleri ve düzeyleri (tanı / test) */
+  duckOwners(): Record<string, { level: number; until: number }> {
+    pruneDucks(this.ducks, this.now());
+    return Object.fromEntries([...this.ducks].map(([o, c]) => [o, { level: c.level, until: c.until }]));
   }
 
   /** sıkıştırılmış ses (mp3/wav) → AudioBuffer; bağlam yoksa ya da çözülemezse null (eski Safari geri çağırma biçimi de desteklenir) */
@@ -231,7 +268,8 @@ export class Engine implements AudioEngine {
 
   /**
    * Konuşma kaydını çal (anlatıcı). Kilit açılmadıysa ya da ses kapalıysa null. Bitince `done` çözülür; `stop()` hemen keser.
-   * Müzik konuşma boyunca kısılır (duck), bitince geri gelir.
+   * Müzik konuşma boyunca kısılır (sahip `ses`), bitince yalnız bu kısma kalkar (duraklatma / kutlama kısması sürer).
+   * Ses düzeyi: `vol` × anlatıcı veriyolu (`setVolumes({ voice })`, oyuncunun "Anlatıcı sesi" ayarı).
    */
   voice(buf: AudioBuffer, vol = 1): { stop(): void; done: Promise<void> } | null {
     if (!this.vol.enabled) return null;
@@ -245,9 +283,10 @@ export class Engine implements AudioEngine {
       let finish: () => void = () => undefined;
       const done = new Promise<void>((r) => { finish = r; });
       let ended = false;
-      const end = () => { if (ended) return; ended = true; try { g.disconnect(); } catch { /* yok */ } this.duck(0, 1); finish(); };
+      const seq = ++this.voiceSeq;
+      const end = () => { if (ended) return; ended = true; try { g.disconnect(); } catch { /* yok */ } if (seq === this.voiceSeq) this.unduck('ses'); finish(); };
       src.onended = end;
-      this.duck(Math.max(1, buf.duration + 0.3), 0.3);
+      this.duck('ses', Math.max(1, buf.duration + 0.3), 0.3);
       src.start(this.now() + 0.02);
       // güvenlik: onended gelmezse (askıya alınmış bağlam) sonsuza kadar bekleme
       setTimeout(end, (buf.duration + 1.5) * 1000);
@@ -257,15 +296,17 @@ export class Engine implements AudioEngine {
   /** bağlam çalışıyor mu (kilit açık ve askıda değil) */
   running(): boolean { const c = this.ctx as AudioContext | null; return !!c && this.unlocked && (this.o.context ? true : c.state === 'running'); }
 
-  setVolumes(v: { music?: number; sfx?: number; enabled?: boolean }): void {
+  setVolumes(v: { music?: number; sfx?: number; voice?: number; enabled?: boolean }): void {
     const clamp = (x: number) => Math.max(0, Math.min(1, x));
     if (v.music != null) this.vol.music = clamp(v.music);
     if (v.sfx != null) this.vol.sfx = clamp(v.sfx);
+    if (v.voice != null) this.vol.voice = clamp(v.voice);
     if (v.enabled != null) this.vol.enabled = v.enabled;
     if (!this.ctx) return;
     const t = this.now();
     this.musicBus.gain.setTargetAtTime(this.vol.music, t, 0.05);
     this.sfxBus.gain.setTargetAtTime(this.vol.sfx, t, 0.05);
+    this.voiceBus.gain.setTargetAtTime(this.vol.voice, t, 0.05);
     this.master.gain.setTargetAtTime(this.vol.enabled ? (this.o.masterGain ?? 0.9) : 0, t, 0.05);
   }
   volumes() { return { ...this.vol }; }
