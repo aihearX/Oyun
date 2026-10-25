@@ -12,7 +12,7 @@
 import { useEffect } from 'react';
 import { useNet } from '@odi/net/store';
 import type { BuildingId, CampState } from '@odi/shared';
-import { tierOf } from '@odi/game-core';
+import { tierOf } from '@odi/game-core/lite';
 import { useStore } from '../store';
 import { celebrateBuilt, defOf } from './model';
 

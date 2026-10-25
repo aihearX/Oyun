@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { BIOMES, BOSSES, HUMAN_JOURNEY, MECHANICS, treasureAt } from '@odi/content';
 import { generateLevel } from '@odi/level-gen';
 import { albumProgress, biomeStats } from '@odi/meta';
-import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMap, type ZoneId } from '@odi/game-core';
+import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMap, type ZoneId } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
 import { RewardChips } from '../ui/bits';

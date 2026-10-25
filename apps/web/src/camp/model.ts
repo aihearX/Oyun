@@ -2,7 +2,7 @@
  * Kulak Kampı arayüz modeli: etki metinleri, yükseltme uygunluğu (nedeniyle), hızlandırıcılar, eylemler (gerçek/demo).
  */
 import { BUILDINGS, CAMP_POWER_LEVEL, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
-import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core';
+import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
 import { BUILDING_INFO, CAMP_TERMS, districtOfBuilding, LIB_CAP_HOURS, LIB_XP_PER_LEVEL_HOUR, campUnlocksAt, cosmeticById, depotCapHours, kabinXpPct, levelLineId, parkDecorSlots, remediesAt, remedyById, remedyShelfCap, taramaFactor, type CampUnlock } from '@odi/content';
 import { celebrate } from '../celebrate';

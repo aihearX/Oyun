@@ -7,7 +7,9 @@ import { newerRoom } from '../race/common';
 import { TeamRaceHud, teamGhost } from '../teamrace/TeamRace';
 import { sayPathology } from '../ftue/pathology';
 import { sayHint, saidSoFar } from '../ftue/hints';
-import { startLevel, type GameEvent, type LevelHandle, type LevelOptions, type RaceOptions } from '@odi/game-core';
+import type { GameEvent, LevelHandle, LevelOptions, RaceOptions } from '@odi/game-core/lite';
+import { chunkFailed, loadLevel } from '../engine';
+import { EngineLoading } from '../ui/Loading';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
 const PAUSE_CARD = { background: 'linear-gradient(180deg, #2a1b63, #170d40)', border: '2px solid rgba(255,255,255,.14)', borderRadius: 22, padding: '22px 18px', boxShadow: '0 12px 40px rgba(0,0,0,.55)', color: '#fff6e5' } as const;
@@ -36,8 +38,11 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   const pauseRef = useRef<() => void>(() => undefined);
   /** "Yeniden başla": bölüm aynı ayarlarla baştan kurulur */
   const [runKey, setRunKey] = useState(0);
+  /** Phaser parçası yüklenene kadar (ilk bölümde; sonra önbellekte) sakin bir yükleniyor göstergesi */
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (!ref.current) return;
+    const el = ref.current; let dead = false; let h: LevelHandle | null = null;
     const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic, remedies: race ? undefined : extras?.remedies }; window.__odi = bus;
     let finished = false;
     /** bölüm içinde Tüy Dede'nin söylediği / sıraya aldığı cümleler: bölümden çıkınca susar */
@@ -73,33 +78,39 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       try { return (await net.call('race.finish', { completed: r.completed, score: Math.max(0, Math.min(50_000, Math.round(r.score))), timeSec: Math.max(0, Math.min(3600, r.timeSec)) })).room; }
       catch { return latest; } // yarış zaten bitmiş (süre doldu) ya da bağlantı yok: son bilinen oda
     };
-    const h = startLevel(ref.current, {
-      spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
-      // çentik/kamera/saat: oyun içi gösterge güvenli alanın altına iner
-      safeTop: safeAreaTop(),
-      // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
-      onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
-      // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
-      firstHitIgnorePct: bot || raceOpt ? 0 : (useSocial.getState().bonuses?.firstHitIgnorePct ?? 0),
-      onEvent: (e) => {
-        bus.events.push(e);
-        if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));
-        if (e.type === 'damage') setLives(e.lives);
-        if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
-        // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
-        if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
-        // seçilmiş bölüm içi ipuçları (ilk öğretici anlar, kayma tazelemesi, kayma öğrenildikten sonraki ilk kıl perdesi): oyuncu başına bir kez
-        if (e.type === 'hint' && !race) { const t = sayHint(e.id, saidBefore); if (t) talks.push(t); }
-        if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
-          finished = true; bus.result = e.result;
-          // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)
-          if (race) void finishRace(e.result).then((room) => { latest = newerRoom(latest, room); bus.race = latest; bus.done = true; setTimeout(() => onDone(e.result, latest), 200); });
-          else { bus.done = true; if (!bot) setTimeout(() => onDone(e.result), 200); }
-        }
-      },
-    });
-    handle.current = h;
-    return () => { for (const o of offs) o(); for (const t of talks) t.cancel(); h.destroy(); handle.current = null; };
+    const start = ({ startLevel }: Awaited<ReturnType<typeof loadLevel>>) => {
+      if (dead) return;
+      setLoading(false);
+      h = startLevel(el, {
+        spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
+        // çentik/kamera/saat: oyun içi gösterge güvenli alanın altına iner
+        safeTop: safeAreaTop(),
+        // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
+        onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
+        // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
+        firstHitIgnorePct: bot || raceOpt ? 0 : (useSocial.getState().bonuses?.firstHitIgnorePct ?? 0),
+        onEvent: (e) => {
+          bus.events.push(e);
+          if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));
+          if (e.type === 'damage') setLives(e.lives);
+          if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
+          // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
+          if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
+          // seçilmiş bölüm içi ipuçları (ilk öğretici anlar, kayma tazelemesi, kayma öğrenildikten sonraki ilk kıl perdesi): oyuncu başına bir kez
+          if (e.type === 'hint' && !race) { const t = sayHint(e.id, saidBefore); if (t) talks.push(t); }
+          if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
+            finished = true; bus.result = e.result;
+            // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)
+            if (race) void finishRace(e.result).then((room) => { latest = newerRoom(latest, room); bus.race = latest; bus.done = true; setTimeout(() => onDone(e.result, latest), 200); });
+            else { bus.done = true; if (!bot) setTimeout(() => onDone(e.result), 200); }
+          }
+        },
+      });
+      handle.current = h;
+    };
+    // parça indirilemezse bölümden çıkılır (web'de sayfa yenilenir: engine.ts chunkFailed)
+    loadLevel().then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
+    return () => { dead = true; for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir
   const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.duck(0); } else { handle.current?.pause(); setPaused(true); audio.duck(3600, 0.25); } };
@@ -110,6 +121,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   return (
     <>
       <div className="level-host" ref={ref} />
+      {loading && <EngineLoading />}
       {race?.team && <TeamRaceHud room={race} />}
       {paused && (
         // koyu duraklatma menüsü (açık temadan bağımsız: oyunun gece paletiyle)

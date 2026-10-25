@@ -5,6 +5,14 @@ const path = require('node:path');
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, '../..');
 
+// DOM bileşeni (WebApp, 'use dom') tek paket olarak dışa aktarılır. Web arayüzü ekranları ve Phaser sahnelerini `import()` ile
+// yükler (apps/web/src/engine.ts, App.tsx). Expo'nun paket bölmesi (splitChunks) DOM bileşenlerinde `expo export` ile bozuk:
+// parçalar md5 adıyla yeniden adlandırılıyor, ana paketteki yollar eski adda kalıyor ("Asset not found: _expo/static/js/web/__common-…").
+// Bölme kapalıyken `import()` aynı paketin içinde çözülür: modüller yine ilk kullanıldıkları anda çalıştırılır (Phaser başlıkta
+// çalışmaz), yalnız ayrıştırma tek dosyada kalır. Bu ayar CLI'nin her dışa aktarımında (yerel, EAS build export:embed, EAS update)
+// okunur; yalnız dışa aktarmayı etkiler (geliştirme sunucusu zaten bölmez). Ayrıntı: README "Paket bölme".
+process.env.EXPO_NO_BUNDLE_SPLITTING ??= '1';
+
 const config = getDefaultConfig(projectRoot);
 
 // Kök ve paket klasörlerini izle (değişiklikler sıcak yüklenir).

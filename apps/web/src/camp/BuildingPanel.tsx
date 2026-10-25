@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
-import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core';
+import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
 import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, askedHelp, buildKey, canUpgrade, defOf, effect, infoOf, unlockLabel, type CampActions } from './model';

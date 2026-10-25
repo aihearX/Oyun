@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState, type Wallet } from '@odi/shared';
-import { depotStored } from '@odi/game-core';
+import { depotStored } from '@odi/game-core/lite';
 import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';

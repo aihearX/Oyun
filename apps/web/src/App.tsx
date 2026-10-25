@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
@@ -6,55 +6,125 @@ import {
   calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
 } from '@odi/meta';
-import type { LevelOptions } from '@odi/game-core';
+import type { LevelOptions } from '@odi/game-core/lite';
 import { audio, type Track } from '@odi/audio';
 import { CelebrationLayer } from './celebrate/CelebrationLayer';
 import { installUiFeedback } from './ui/feedback';
 import { platform } from './platform';
 import { installViewport, scrollAppTop } from './ui/viewport';
-import { ArtDefs, ArtGallery } from './ui/art';
+import { ArtDefs } from './ui/art';
 import { CoachHost } from './ftue/Coach';
 import { FtueDirector, useLockToast } from './ftue/Director';
 import { StoryScreen } from './ftue/Story';
 import { clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
 import { useStore } from './store';
-import { MapScreen } from './screens/MapScreen';
-import { LevelHost } from './screens/LevelHost';
-import { ResultScreen } from './screens/ResultScreen';
-import { SkillsScreen } from './screens/SkillsScreen';
-import { SettingsScreen } from './screens/SettingsScreen';
 import { TitleScreen } from './screens/TitleScreen';
-import { TodayScreen } from './screens/TodayScreen';
-import { TeamScreen } from './screens/TeamScreen';
-import { ProfileScreen, type ProfileLink } from './screens/ProfileScreen';
-import { AchievementsScreen } from './screens/AchievementsScreen';
-import { AlbumScreen } from './screens/AlbumScreen';
-import { GlossaryScreen } from './screens/GlossaryScreen';
-import { WardrobeScreen } from './screens/WardrobeScreen';
-import { InfoScreen } from './screens/InfoScreen';
-import { BiomeIntro } from './screens/BiomeIntro';
+import type { ProfileLink } from './screens/ProfileScreen';
 import { TabBar, type Tab } from './ui/TabBar';
 import { readInvite } from './invite';
-import { CampScreen } from './screens/CampScreen';
-import { CampVisitScreen } from './camp/Ziyaret';
-import { ChatScreen, DmRouteScreen, FriendsScreen, MessagesScreen } from './screens/FriendsScreen';
-import { FriendBanner, ProfileCardHost, useSocialUnread } from './friends';
-import { ShopScreen } from './screens/ShopScreen';
-import { InboxScreen, LeagueScreen } from './screens/InboxScreen';
+import { FriendBanner, useSocialUnread } from './friends/Banner';
+import { ProfileCardHost } from './friends/ProfileCard';
 import { Onboarding } from './ui/Onboarding';
 import { NavContext, type Nav, type SocialRoute } from './nav';
 import { startNet, submitRun, toast, useSocial } from './net';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
-import { RaceLobby, RaceResult, RaceInviteBanner, raceSpec } from './race';
+import { RaceInviteBanner } from './race/useRaceInvites';
+import { raceSpec } from './race/common';
 import { TeamProfileHost } from './screens/team/TeamProfile';
 import { useTeamApply } from './screens/team/apply';
-import { TeamRaceMatchWatcher, TeamRaceResultScreen } from './teamrace';
-import { EventLevel, EventNoticeStrip, EventsFab, EventsScreen, type EventPlay } from './events';
-import { CommBanner, TogetherScreen, mentionCount, useComm } from './comm';
-import { RankScreen } from './rank/RankScreen';
+import { TeamRaceMatchWatcher } from './teamrace/Watcher';
+import type { EventPlay } from './events/EventLevel';
+import { EventNoticeStrip, EventsFab } from './events/Notices';
+import { CommBanner } from './comm/CommBanner';
+import { mentionCount, useComm } from './comm/state';
 import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
+import { chunkFailed, loadLevel, loadMap } from './engine';
+import { EngineLoading, ScreenLoading } from './ui/Loading';
+
+/**
+ * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem ekrana hem önden
+ * yüklemeye (preloadFor) verilir; modül bir kez indirilir. Önden yüklenmiş ekran ilk çizimde askıya alınmaz (React.lazy her
+ * zaman en az bir kez bekler; o arada eski ekran gizli olarak DOM'da kalır): yüklüyse doğrudan çizilir.
+ */
+type Loader<M> = (() => Promise<M>) & { value?: M };
+function mod<M>(f: () => Promise<M>): Loader<M> {
+  const l: Loader<M> = () => f().then((m) => (l.value = m));
+  return l;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ekranların prop tipleri farklı; her ekranın kendi prop tipi korunur
+function screen<M extends Record<K, ComponentType<any>>, K extends keyof M & string>(load: Loader<M>, name: K) {
+  const Lazy = lazy(() => load().then((m) => ({ default: m[name] }), chunkFailed));
+  return function Screen(props: ComponentProps<M[K]>) {
+    // seçim bağlanırken bir kez yapılır (sonradan değişirse ekran baştan kurulurdu)
+    const [C] = useState(() => (load.value?.[name] ?? Lazy) as ComponentType<ComponentProps<M[K]>>);
+    return <C {...props} />;
+  };
+}
+const load = {
+  map: mod(() => import('./screens/MapScreen')), level: mod(() => import('./screens/LevelHost')), result: mod(() => import('./screens/ResultScreen')),
+  intro: mod(() => import('./screens/BiomeIntro')), today: mod(() => import('./screens/TodayScreen')), camp: mod(() => import('./screens/CampScreen')),
+  team: mod(() => import('./screens/TeamScreen')), profile: mod(() => import('./screens/ProfileScreen')), friends: mod(() => import('./screens/FriendsScreen')),
+  skills: mod(() => import('./screens/SkillsScreen')), settings: mod(() => import('./screens/SettingsScreen')), achievements: mod(() => import('./screens/AchievementsScreen')),
+  album: mod(() => import('./screens/AlbumScreen')), glossary: mod(() => import('./screens/GlossaryScreen')), wardrobe: mod(() => import('./screens/WardrobeScreen')),
+  info: mod(() => import('./screens/InfoScreen')), visit: mod(() => import('./camp/Ziyaret')), shop: mod(() => import('./screens/ShopScreen')),
+  inbox: mod(() => import('./screens/InboxScreen')), raceLobby: mod(() => import('./race/RaceLobby')), raceResult: mod(() => import('./race/RaceResult')),
+  teamRace: mod(() => import('./teamrace/TeamRace')), events: mod(() => import('./events/EventsScreen')), eventLevel: mod(() => import('./events/EventLevel')),
+  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), gallery: mod(() => import('./ui/art')),
+};
+const MapScreen = screen(load.map, 'MapScreen');
+const LevelHost = screen(load.level, 'LevelHost');
+const ResultScreen = screen(load.result, 'ResultScreen');
+const BiomeIntro = screen(load.intro, 'BiomeIntro');
+const TodayScreen = screen(load.today, 'TodayScreen');
+const CampScreen = screen(load.camp, 'CampScreen');
+const TeamScreen = screen(load.team, 'TeamScreen');
+const ProfileScreen = screen(load.profile, 'ProfileScreen');
+const FriendsScreen = screen(load.friends, 'FriendsScreen');
+const ChatScreen = screen(load.friends, 'ChatScreen');
+const MessagesScreen = screen(load.friends, 'MessagesScreen');
+const DmRouteScreen = screen(load.friends, 'DmRouteScreen');
+const SkillsScreen = screen(load.skills, 'SkillsScreen');
+const SettingsScreen = screen(load.settings, 'SettingsScreen');
+const AchievementsScreen = screen(load.achievements, 'AchievementsScreen');
+const AlbumScreen = screen(load.album, 'AlbumScreen');
+const GlossaryScreen = screen(load.glossary, 'GlossaryScreen');
+const WardrobeScreen = screen(load.wardrobe, 'WardrobeScreen');
+const InfoScreen = screen(load.info, 'InfoScreen');
+const CampVisitScreen = screen(load.visit, 'CampVisitScreen');
+const ShopScreen = screen(load.shop, 'ShopScreen');
+const InboxScreen = screen(load.inbox, 'InboxScreen');
+const LeagueScreen = screen(load.inbox, 'LeagueScreen');
+const RaceLobby = screen(load.raceLobby, 'RaceLobby');
+const RaceResult = screen(load.raceResult, 'RaceResult');
+const TeamRaceResultScreen = screen(load.teamRace, 'TeamRaceResultScreen');
+const EventsScreen = screen(load.events, 'EventsScreen');
+const EventLevel = screen(load.eventLevel, 'EventLevel');
+const TogetherScreen = screen(load.together, 'TogetherScreen');
+const RankScreen = screen(load.rank, 'RankScreen');
+const ArtGallery = screen(load.gallery, 'ArtGallery');
+
+/** bu ekrandan sonra büyük olasılıkla açılacak parçalar (boşta, arka planda; Phaser dahil) */
+function preloadFor(route: string, returning: boolean): (() => Promise<unknown>)[] {
+  switch (route) {
+    // yeni oyuncu: başlık → hikâye → biyom tanıtımı → 1. bölüm; dönen oyuncu: başlık → harita
+    case 'title': return returning ? [load.map, loadMap] : [load.intro, load.level, loadLevel];
+    case 'story': return [load.intro, load.level, loadLevel, load.result];
+    case 'intro': return [load.level, loadLevel];
+    // harita açıldıktan sonra sekme ekranları da (küçük parçalar): ilk geçişte iskelet görünmesin
+    case 'map': return [load.level, loadLevel, load.intro, load.result, load.today, load.profile, load.camp, load.team];
+    case 'level': return [load.result];
+    case 'result': return [load.map, loadMap, load.level, loadLevel];
+    default: return [];
+  }
+}
+/** tarayıcı boşta kalınca çalıştır (ilk çizimi ve dokunmayı geciktirmesin); dönüş: iptal */
+function whenIdle(fn: () => void, delay: number): () => void {
+  let idle = 0; const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (h: number) => void };
+  const t = setTimeout(() => { idle = w.requestIdleCallback ? w.requestIdleCallback(fn, { timeout: 2000 }) : (fn(), 0); }, delay);
+  return () => { clearTimeout(t); if (idle) w.cancelIdleCallback?.(idle); };
+}
 
 type Extras = Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>;
 /** yalnız test derlemesi (VITE_ODI_E2E=1): `?ftue=0` ilk deneyimi atlar (her şey açık), `?oyun-bot=1` normal akıştaki bölümleri harness botu oynar */
@@ -154,6 +224,12 @@ export function App() {
   const dmBadge = useSocialUnread();
   // ekran değişince en üstten başla (harita kendi kaydırmasını yapar)
   useEffect(() => { if (route.name !== 'level' && route.name !== 'map') scrollAppTop(); }, [route.name, 'room' in route ? route.room : '']);
+  // sıradaki ekranın parçaları (ve Phaser) boşta önden yüklenir; başlıkta ilk çizim ve dokunma önce gelsin diye biraz beklenir
+  const returning = Object.keys(store.progress).length > 0;
+  useEffect(() => {
+    if (bot) return; const list = preloadFor(route.name, returning); if (!list.length) return;
+    return whenIdle(() => { for (const f of list) void f().catch(() => undefined); }, route.name === 'title' ? 300 : 400);
+  }, [route.name, returning, bot]);
 
   const play = (number: number) => {
     const s = useStore.getState();
@@ -171,10 +247,10 @@ export function App() {
     setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills } : { name: 'level', spec, extras, skills });
   };
 
-  if (gallery) return <><ArtDefs /><ArtGallery /></>;
+  if (gallery) return <><ArtDefs /><Suspense fallback={null}><ArtGallery /></Suspense></>;
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
-    return <LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} />;
+    return <Suspense fallback={<EngineLoading />}><LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} /></Suspense>;
   }
 
   // sekme rozetleri: bekleyen (alınabilir) ödüller
@@ -194,14 +270,14 @@ export function App() {
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
   const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => setRoute({ name: 'level', spec: raceSpec(room), extras: raceExtras(), race: room })} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
-  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}<TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
-  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}{el}</NavContext.Provider>;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading tabs />}>{el}</Suspense><TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
+  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading />}>{el}</Suspense></NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
   const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
 
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
   const view = (() => { switch (route.name) {
-    case 'title': return <TitleScreen returning={Object.keys(store.progress).length > 0} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} />;
+    case 'title': return <TitleScreen returning={returning} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} />;
     case 'story': { const r = route; return <StoryScreen replay={r.replay} onDone={() => { store.ftueStoryDone(); if (r.replay) setRoute({ name: 'settings', back: r.back ?? 'profile' }); else play(1); }} />; }
     case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} />{isOpen('events', cleared, store.ftue) && <EventsFab onOpen={() => nav.open({ name: 'events' })} />}</>);
     case 'today': return withTabs('today', <TodayScreen onInfo={() => openSub('today')('info')} />);
@@ -242,7 +318,9 @@ export function App() {
     case 'wardrobe': return <WardrobeScreen onBack={() => setRoute({ name: route.back })} />;
     case 'info': return <InfoScreen onBack={() => setRoute({ name: route.back })} />;
   } })();
-  return <><ArtDefs />{view}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
+  const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
+  return <><ArtDefs /><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading />}>{view}</Suspense><CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
 
 /** ekran → müzik parçası (undefined: o ekran kendi yönetir) */

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { CampState, CampXpState } from '@odi/shared';
 import { CAMP_LEVEL_MAX, CAMP_XP, DISTRICTS, campLevelRewards, campTitle, decorById, decorSlots } from '@odi/content';
-import { decorCanvas } from '@odi/game-core';
+import { decorCanvas } from '@odi/game-core/lite';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { fmtNum } from '../ui/social';

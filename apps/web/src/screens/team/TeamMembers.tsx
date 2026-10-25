@@ -4,7 +4,7 @@ import type { TeamMember, TeamRole } from '@odi/shared';
 import { act, toast } from '../../net';
 import { OdiAvatar } from '../../ui/OdiAvatar';
 import { ROLE_LABEL, Sheet, fmtNum } from '../../ui/social';
-import { openProfile } from '../../friends';
+import { openProfile } from '../../friends/state';
 import { Art, rich } from '../../ui/art';
 
 const HATS: Record<string, string> = { 'sapka-bere': 'bere', 'sapka-nota': 'nota', 'sapka-koklea': 'koklea', 'sapka-kulaklik': 'kulaklik', 'sapka-parti': 'parti', 'sapka-yildiz': 'yildiz', 'sapka-dalgic': 'dalgic', 'sapka-tac': 'tac', 'sapka-kasif': 'kasif' };

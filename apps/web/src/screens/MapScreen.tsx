@@ -5,7 +5,9 @@ import { odiLook, useOdiLook } from '../look';
 import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
-import { startMap, type MapHandle, type MapSocial, type ZoneId } from '@odi/game-core';
+import type { MapHandle, MapSocial, ZoneId } from '@odi/game-core/lite';
+import { chunkFailed, loadMap } from '../engine';
+import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
 import { getNet, useSocial } from '../net';
 import { useNav } from '../nav';
@@ -47,11 +49,13 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   useEffect(() => { if (typeof __ODI_E2E__ === 'undefined' || !__ODI_E2E__) return; (window as unknown as { __harita?: unknown }).__harita = { card: (n: number) => setCard({ kind: 'node', n }) }; return () => { delete (window as unknown as { __harita?: unknown }).__harita; }; }, []);
   const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
   const social = useMapSocial(); const socialRef = useRef(social); socialRef.current = social;
+  const [stage, setStage] = useState(false);
 
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
     let dead = false; let h: MapHandle | null = null; let started = false;
-    void loadMapSeen().then(() => {
+    // Phaser haritası ayrı parça: kayıt okunurken birlikte yüklenir (çoğu zaman başlık ekranında önceden yüklenmiştir)
+    void Promise.all([loadMapSeen(), loadMap()]).then(([, { startMap }]) => {
       if (dead || !host.current) return;
       const s = useStore.getState(); const now = starsOf(s.progress);
       const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
@@ -77,8 +81,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onSequence: (p) => { setSeq(p === 'start'); if (p === 'start') started = true; if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
       });
-      handle.current = h;
-    });
+      handle.current = h; setStage(true);
+    }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
     // sahne yarıda bırakılırsa (ör. hemen bölüme geçildi) bir dahaki açılışta tekrar oynamasın
     return () => { dead = true; if (started) useMapSeen.getState().commit(starsOf(useStore.getState().progress)); h?.destroy(); handle.current = null; };
   }, []);
@@ -107,6 +111,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   return (
     <div className="map-screen" onPointerDown={() => audio.unlock()}>
       <div className="map-stage" ref={host} aria-label="Yolculuk haritası" role="img" />
+      {!stage && <EngineLoading inStage />}
       <MapFrame />
       <div className="map-hud" ref={hudRef}>
         <div className="mh-lvl" title={`Seviye ${lp.level}`} style={{ ['--p' as string]: `${Math.round(lp.pct * 100)}%` }}><b>{lp.level}</b><span>Sv</span></div>

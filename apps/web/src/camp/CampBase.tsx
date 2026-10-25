@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BuildingId, CampState, CheerKind, Wallet } from '@odi/shared';
 import { CAMP_CHEERS } from '@odi/shared';
-import { startCamp, type CampHandle, type CampTeam } from '@odi/game-core';
+import type { CampHandle, CampTeam } from '@odi/game-core/lite';
+import { chunkFailed, loadCamp } from '../engine';
 import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
@@ -59,6 +60,7 @@ export function CampBase(p: CampBaseProps) {
   const visit = p.visit;
   const active = p.camp.buildings.find((b) => b.upgradingTo && b.endsAt);
   const canAsk = !visit && !!(p.team && active && !askedHelp.has(buildKey(active)));
+  const canAskRef = useRef(canAsk); canAskRef.current = canAsk;
   const [askTick, setAskTick] = useState(0);
   // bölge anıtları: haritada ulaşılan bölgeler; görülmemiş en ileri anıt sahne hazır olunca kutlanır (kamp öğreticisi bittiyse)
   const progress = useStore((s) => s.progress);
@@ -69,57 +71,64 @@ export function CampBase(p: CampBaseProps) {
   // sahne: bir kez kurulur, ekrandan çıkınca yok edilir
   useEffect(() => {
     if (!host.current) return;
-    const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const heroColor = visit ? visit.heroColor : odiLook(useStore.getState()).color;
-    host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); // test kancası: kamptaki kendi Odi'nin rengi
-    const st = useStore.getState(); const tutorialDone = !!st.ftue.bypass || st.ftue.tours.includes('camp-build');
-    const fresh = tutorialDone && !visit ? monumentToCelebrate(regions) : null; celebrateRef.current = fresh;
-    const h = startCamp(host.current, {
-      heroColor, camp: p.camp, team: p.team, canAskHelp: canAsk, reducedMotion: reduced, readOnly: !!visit,
-      regions: regions.filter((r) => r !== fresh),
-      onMonument: (region, isNew) => {
-        const m = monumentOf(region); if (!m) return;
-        const name = BIOMES[region as BiomeId]?.name ?? region;
-        if (isNew) { audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
-        audio.play('pop');
-        if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`);
-        else showDede(`${name} bölgesine ulaşınca burada ${m.name} yükselecek.`, 'Kulak Yolu');
-      },
-      onCollectRemedy: () => { void collectRemedy(); },
-      onCollectLib: () => { void collectLib(); },
-      onDecor: (id) => { const d = decorById(id); if (!d) return; audio.play('pop'); showDede(d.plain, d.name); },
-      onDistrict: (id) => { const d = districtById(id); if (!d) return; audio.play('tap'); showDede(`${d.plain} Kamp Seviyesi ${d.level} ile açılır.`, `${d.name} · kilitli`); },
-      onEditTap: (uid, cell) => {
-        const s = susRef.current;
-        if (s && (s.k === 'yeni' || s.k === 'tasi')) { if (uid == null || uid === (s.k === 'tasi' ? s.uid : -1)) { const g = handle.current?.moveGhost(cell[0], cell[1]); if (g) setSusSel({ ...s, ok: g.ok }); } return; }
-        if (uid == null) { handle.current?.selectDecor(null); setSusSel(null); return; }
-        audio.play('pop'); platform().haptic('light'); handle.current?.selectDecor(uid); setSusSel({ k: 'secili', uid });
-      },
-      onGhost: (g) => { const s = susRef.current; if (s && (s.k === 'yeni' || s.k === 'tasi') && s.ok !== g.ok) setSusSel({ ...s, ok: g.ok }); },
-      now: () => live.current.now(),
-      onTap: (id) => { audio.play('pop'); platform().haptic('light'); if (live.current.visit) { const b = live.current.camp.buildings.find((x) => x.id === id); showDede(`${defOf(id).desc}`, `${defOf(id).name} · Sv ${b?.level ?? 0}`); return; } setSel(id); },
-      onAskHelp: (id) => { void ask(id); },
-      onSpeedup: (id) => { audio.play('tap'); setSel(id); },
-      onCollect: () => { void collect(); },
-      // inşaat bitişi sahnede görsel (iskele düşer, konfeti); afiş + Tüy Dede satırı kamp ekranında bir kez (camp/built.ts)
-      onBuilt: () => undefined,
-      onReady: () => {
-        setReady(true);
-        // yeni anıt: kamp yerine oturduktan sonra yükselir
-        if (fresh) setTimeout(() => { if (handle.current === h) { h.update({ regions, celebrate: fresh }); markSeen(regions); } }, 900);
-        else if (tutorialDone && !visit) markSeen(regions);
-        // Kamp Seviyesi tanıtımı (bir kez; kamp öğreticisi bittikten sonra, anıt kutlaması yoksa)
-        if (visit) { if (once('odi.kamp.ziyaretTanitim')) setTimeout(() => sayDede('kamp-ziyaret-01', 'Kamp ziyareti'), 700); }
-        else if (tutorialDone && !fresh && p.camp.xp && once('odi.kamp.seviyeTanitim')) setTimeout(() => sayDede('kamp-seviye-01', 'Kamp Seviyesi'), 900);
-      },
-    });
-    handle.current = h;
-    (window as unknown as { __kamp?: unknown }).__kamp = {
-      pos: (id: BuildingId) => h.screenPos(id), view: () => h.view(), focus: (id: BuildingId) => h.focus(id, true), monument: (r: string) => h.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
-      decor: (uid: number) => h.decorPos(uid), ghost: () => h.ghostPos(), ghostState: () => h.ghostState(), district: (id: string) => h.districtPos(id), focusDistrict: (id: string) => h.focusDistrict(id), districts: () => h.openDistricts(), mem: () => h.mem(), moveGhost: (gx: number, gy: number) => h.moveGhost(gx, gy),
-    };
+    const el = host.current; let dead = false; let h: CampHandle | null = null;
+    // Phaser kamp sahnesi ayrı parça; yüklenene kadar .camp-loading görünür (ready)
+    void loadCamp().then(({ startCamp }) => {
+      if (dead) return;
+      const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const heroColor = visit ? visit.heroColor : odiLook(useStore.getState()).color;
+      el.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); // test kancası: kamptaki kendi Odi'nin rengi
+      const st = useStore.getState(); const tutorialDone = !!st.ftue.bypass || st.ftue.tours.includes('camp-build');
+      // yükleme sürerken gelen değişiklikler kaybolmasın: sahne en güncel kamp/takım/bölge ile kurulur
+      const { camp, team, regions } = live.current;
+      const fresh = tutorialDone && !visit ? monumentToCelebrate(regions) : null; celebrateRef.current = fresh;
+      const cur = startCamp(el, {
+        heroColor, camp, team, canAskHelp: canAskRef.current, reducedMotion: reduced, readOnly: !!visit,
+        regions: regions.filter((r) => r !== fresh),
+        onMonument: (region, isNew) => {
+          const m = monumentOf(region); if (!m) return;
+          const name = BIOMES[region as BiomeId]?.name ?? region;
+          if (isNew) { audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
+          audio.play('pop');
+          if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`);
+          else showDede(`${name} bölgesine ulaşınca burada ${m.name} yükselecek.`, 'Kulak Yolu');
+        },
+        onCollectRemedy: () => { void collectRemedy(); },
+        onCollectLib: () => { void collectLib(); },
+        onDecor: (id) => { const d = decorById(id); if (!d) return; audio.play('pop'); showDede(d.plain, d.name); },
+        onDistrict: (id) => { const d = districtById(id); if (!d) return; audio.play('tap'); showDede(`${d.plain} Kamp Seviyesi ${d.level} ile açılır.`, `${d.name} · kilitli`); },
+        onEditTap: (uid, cell) => {
+          const s = susRef.current;
+          if (s && (s.k === 'yeni' || s.k === 'tasi')) { if (uid == null || uid === (s.k === 'tasi' ? s.uid : -1)) { const g = handle.current?.moveGhost(cell[0], cell[1]); if (g) setSusSel({ ...s, ok: g.ok }); } return; }
+          if (uid == null) { handle.current?.selectDecor(null); setSusSel(null); return; }
+          audio.play('pop'); platform().haptic('light'); handle.current?.selectDecor(uid); setSusSel({ k: 'secili', uid });
+        },
+        onGhost: (g) => { const s = susRef.current; if (s && (s.k === 'yeni' || s.k === 'tasi') && s.ok !== g.ok) setSusSel({ ...s, ok: g.ok }); },
+        now: () => live.current.now(),
+        onTap: (id) => { audio.play('pop'); platform().haptic('light'); if (live.current.visit) { const b = live.current.camp.buildings.find((x) => x.id === id); showDede(`${defOf(id).desc}`, `${defOf(id).name} · Sv ${b?.level ?? 0}`); return; } setSel(id); },
+        onAskHelp: (id) => { void ask(id); },
+        onSpeedup: (id) => { audio.play('tap'); setSel(id); },
+        onCollect: () => { void collect(); },
+        // inşaat bitişi sahnede görsel (iskele düşer, konfeti); afiş + Tüy Dede satırı kamp ekranında bir kez (camp/built.ts)
+        onBuilt: () => undefined,
+        onReady: () => {
+          setReady(true);
+          // yeni anıt: kamp yerine oturduktan sonra yükselir
+          if (fresh) setTimeout(() => { if (handle.current === cur) { cur.update({ regions, celebrate: fresh }); markSeen(regions); } }, 900);
+          else if (tutorialDone && !visit) markSeen(regions);
+          // Kamp Seviyesi tanıtımı (bir kez; kamp öğreticisi bittikten sonra, anıt kutlaması yoksa)
+          if (visit) { if (once('odi.kamp.ziyaretTanitim')) setTimeout(() => sayDede('kamp-ziyaret-01', 'Kamp ziyareti'), 700); }
+          else if (tutorialDone && !fresh && camp.xp && once('odi.kamp.seviyeTanitim')) setTimeout(() => sayDede('kamp-seviye-01', 'Kamp Seviyesi'), 900);
+        },
+      });
+      h = cur; handle.current = cur;
+      (window as unknown as { __kamp?: unknown }).__kamp = {
+        pos: (id: BuildingId) => cur.screenPos(id), view: () => cur.view(), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
+        decor: (uid: number) => cur.decorPos(uid), ghost: () => cur.ghostPos(), ghostState: () => cur.ghostState(), district: (id: string) => cur.districtPos(id), focusDistrict: (id: string) => cur.focusDistrict(id), districts: () => cur.openDistricts(), mem: () => cur.mem(), moveGhost: (gx: number, gy: number) => cur.moveGhost(gx, gy),
+      };
+    }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
     if (!visit) audio.music('menu');
-    return () => { h.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
+    return () => { dead = true; h?.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
   }, []);
   live.current.regions = regions;
   useEffect(() => { handle.current?.update({ camp: p.camp }); }, [p.camp]);
