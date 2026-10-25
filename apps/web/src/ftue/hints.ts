@@ -37,3 +37,15 @@ export function sayHint(hintId: string, before?: readonly string[]): { cancel():
   useStore.setState({ ftue: { ...st.ftue, said: [...said, id] } });
   return speakWhenFree(lineText(id), id, 6000);
 }
+
+/**
+ * Tek seferlik anlatıcı anı (bölüm dışı; ör. kampta "Sıraya al" düğmesi ilk kez görününce `kamp-sira-01`): bu oyuncu satırı daha
+ * önce görmediyse FTUE kaydına (`said`) yazar ve true döner; görmüşse false. Kayıt kalıcıdır (yeniden açılışta tekrar gelmez),
+ * Sıfırla siler. Ses ayarından bağımsız sayılır: kart yazılı görünür, ses "Anlatıcı sesi" ayarına uyar.
+ */
+export function claimOnce(lineId: string): boolean {
+  const st = useStore.getState(); const said = st.ftue.said ?? [];
+  if (said.includes(lineId)) return false;
+  useStore.setState({ ftue: { ...st.ftue, said: [...said, lineId] } });
+  return true;
+}

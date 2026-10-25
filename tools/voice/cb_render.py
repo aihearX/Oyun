@@ -66,23 +66,26 @@ def lev(a, b):
     return d[-1]
 
 
-def same(a, b):
+def same(a, b, strict=()):
     # terimler (koklea, odyogram, timpanogram...) dökümde farklı yazılabilir: 7+ harfli sözcükte ~%25'e kadar harf farkı eşleşme sayılır (kısa sözcük ve ekler birebir)
+    # strict: bu köklerle başlayan sözcükler birebir duyulmalı (ör. "jeton": "yetonun"/"cetonun" yanlış okunuştur)
+    if any(a.startswith(k) for k in strict):
+        return a == b
     return a == b or (min(len(a), len(b)) >= 7 and lev(a, b) <= max(1, round(0.25 * max(len(a), len(b)))))
 
 
-def wer(ref, hyp):
+def wer(ref, hyp, strict=()):
     r, h = norm(ref), norm(hyp)
     d = np.zeros((len(r) + 1, len(h) + 1), int)
     d[:, 0] = range(len(r) + 1)
     d[0, :] = range(len(h) + 1)
     for i in range(1, len(r) + 1):
         for j in range(1, len(h) + 1):
-            d[i, j] = min(d[i - 1, j] + 1, d[i, j - 1] + 1, d[i - 1, j - 1] + (not same(r[i - 1], h[j - 1])))
+            d[i, j] = min(d[i - 1, j] + 1, d[i, j - 1] + 1, d[i - 1, j - 1] + (not same(r[i - 1], h[j - 1], strict)))
     return d[-1, -1] / max(1, len(r))
 
 
-def analyse(y, text, refs):
+def analyse(y, text, refs, strict=()):
     y16 = librosa.resample(y, orig_sr=SR, target_sr=16000)
     yt, (a, b) = librosa.effects.trim(y16, top_db=38)
     dur = len(yt) / 16000
@@ -98,7 +101,7 @@ def analyse(y, text, refs):
     f0 = f0[~np.isnan(f0)]
     return {
         'dur': round(dur, 2), 'sps': round(syl(text) / max(dur, .1), 2), 'gap': round(longest * 0.01, 2),
-        'wer': round(min(wer(r, hyp) for r in refs), 3), 'asr': hyp,
+        'wer': round(min(wer(r, hyp, strict) for r in refs), 3), 'asr': hyp,
         'f0': round(float(np.median(f0))) if len(f0) else 0, 'peak': round(float(np.abs(y).max()), 3),
         # tail: metin bitti ama ses sürüyor mu (Chatterbox ara sıra sonda mırıldanır) → ASR fazladan sözcük
         'extra': max(0, len(norm(hyp)) - len(norm(text))),
@@ -114,12 +117,13 @@ def score(m):
 def takes_of(ln):
     base = os.path.join(out, f"{ln['id']}.{ln['hash']}")
     refs = ln.get('refs') or [ln['text']]
+    strict = tuple(ln.get('strict') or ())
     got = []
     for sd in SEEDS:
         wav_p, js_p = f'{base}.s{sd}.wav', f'{base}.s{sd}.json'
         if os.path.exists(js_p) and os.path.exists(wav_p):
             m = json.load(open(js_p, encoding='utf-8'))
-            m['wer'] = round(min(wer(r, m['asr']) for r in refs), 3)
+            m['wer'] = round(min(wer(r, m['asr'], strict) for r in refs), 3)
             m['score'] = round(score(m), 3)
             m['file'] = wav_p
             got.append(m)
@@ -174,7 +178,7 @@ for n, ln in enumerate(todo, 1):
             wav = tts.generate(ln['text'], language_id='tr', audio_prompt_path=job['ref'], exaggeration=S.get('exaggeration', 0.8),
                                cfg_weight=S.get('cfg_weight', 0.3), temperature=S.get('temperature', 0.8))
             y = wav.squeeze(0).numpy().astype(np.float32)
-            m = analyse(y, ln['text'], refs)
+            m = analyse(y, ln['text'], refs, tuple(ln.get('strict') or ()))
             m.update({'seed': sd, 'sec': round(time.time() - t0)})
             m['score'] = round(score(m), 3)
             ta.save(wav_p, wav, SR)

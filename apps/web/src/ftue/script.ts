@@ -161,7 +161,7 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'kg-h4-son', text: 'İlk vakaların defterde! Bir odyolog gibi düşünmeye başladın.', context: 'Kampın Hikâyesi 4. bölüm tamamlandı', emotion: 'gururlu (proud)' },
   { id: 'kg-h5-giris', text: 'Korumak, tedavi etmekten kolaydır. Tedavi Odası’nı kur ve malzeme hazırla.', context: 'Kampın Hikâyesi 5. bölüm: Koruma Sanatı', emotion: 'bilge (wise)' },
   { id: 'kg-h5-son', text: 'Çantan hazır! Bölümlerde malzemeyle engelleri aşabilirsin.', context: 'Kampın Hikâyesi 5. bölüm tamamlandı', emotion: 'neşeli (cheerful)' },
-  { id: 'kg-h6-giris', text: 'Bir kampı takım büyütür. Takımına katıl, yardım et, zor vakada danış.', context: 'Kampın Hikâyesi 6. bölüm: Takım Ruhu', emotion: 'sıcak (warm)' },
+  { id: 'kg-h6-giris', text: 'Bir kampı birlikte çalışmak büyütür. Takımınla ya da kendi başına: yardım et, öğren, zor vakada danış.', context: 'Kampın Hikâyesi 6. bölüm: Takım Ruhu', emotion: 'sıcak (warm)' },
   { id: 'kg-h6-son', text: 'Takım ruhu tamam! Birlikte düşünen klinik daha doğru karar verir.', context: 'Kampın Hikâyesi 6. bölüm tamamlandı', emotion: 'gururlu, sıcak (proud, warm)' },
   { id: 'kg-h7-giris', text: 'Kampını güzelleştirme zamanı: bir dekor yerleştir ve bir arkadaşının kampını ziyaret et.', context: 'Kampın Hikâyesi 7. bölüm: Kampını Güzelleştir', emotion: 'neşeli (cheerful)' },
   { id: 'kg-h7-son', text: 'Ne güzel bir kamp oldu! Gelen herkes gülümseyecek.', context: 'Kampın Hikâyesi 7. bölüm tamamlandı', emotion: 'sevinçli (delighted)' },
@@ -181,6 +181,10 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'kamp-bolge-orman', text: 'Kulak Kılı Ormanı açıldı! Kanalın girişindeki kıllar tozu tutar. Burada süslerin için upuzun bir alan var.', context: 'Kamp: Kulak Kılı Ormanı bölgesi açıldı', emotion: 'neşeli (cheerful)' },
   { id: 'kamp-sus-01', text: 'Süslemeler kampını senin yapar. Bir süs seç, sürükleyip yerine koy; istediğin an taşıyabilir ya da kaldırabilirsin.', context: 'Kamp: süsleme kipi ilk kez açıldı', emotion: 'sıcak, yönlendiren (warm, guiding)' },
   { id: 'kamp-ziyaret-01', text: 'Arkadaşının kampındasın! Gez, beğen ve bir alkış bırak. Alkış ikinize de Kamp Seviyesi kazandırır.', context: 'Kamp: bir arkadaşın kampı ilk kez geziliyor', emotion: 'neşeli, sıcak (cheerful, warm)' },
+  { id: 'kamp-sira-01', text: 'Yapı ustası tek elle iki iş tutmaz ama sırayı bilir: bir sonrakini şimdi seç, bedelini öde; bu bitince kendiliğinden başlar. Vazgeçersen jetonun geri gelir.', context: 'Kamp: bir inşaat sürerken “Sıraya al” düğmesi ilk kez görünür (bina paneli ya da liste)', emotion: 'bilge, göz kırpan (wise, playful)',
+    // okunuş: tam satırda "jetonun" Whisper'da "yetonun/cetonun" duyuluyordu (16 deneme: virgül, kesme, büyük harf, nokta, "jeeton");
+    // virgüllü duraklama + "jöton'un" yazımı "jetonun" olarak duyuldu (yalnız sese verilen metin; ekranda onaylı yazı)
+    spoken: 'Yapı ustası tek elle iki iş tutmaz ama sırayı bilir: bir sonrakini şimdi seç, bedelini öde; bu bitince kendiliğinden başlar. Vazgeçersen, jöton\'un geri gelir.' },
   { id: 'kamp-sv-kabin-1', text: 'Akustik kabin, dışarıdaki gürültü testi bozmasın diye yapılır. Sessizlikte daha çok öğrenirsin.', context: 'Kamp: Akustik Kabin yükseldi (Sv 1, 4, 7…)', emotion: 'sakin, öğretici (calm, explaining)' },
   { id: 'kamp-sv-kabin-2', text: 'Gürültü bir sesi örtebilir; buna maskeleme denir. Kabinin duvarları kalınlaştı, ölçüm daha doğru!', context: 'Kamp: Akustik Kabin yükseldi (Sv 2, 5, 8…)', emotion: 'öğretici (explaining)' },
   { id: 'kamp-sv-kabin-3', text: 'Kabinin içindeki köpük, sesi yansıtmadan yutar. Kampın da her emekte biraz daha büyüyor.', context: 'Kamp: Akustik Kabin yükseldi (Sv 3, 6, 9…)', emotion: 'gururlu (proud)' },

@@ -10,7 +10,7 @@ describe('Tüy Dede: Kulak Kampı satırları', () => {
     for (const m of MONUMENTS) expect(() => lineText(m.line), m.region).not.toThrow();
     expect(() => lineText('tedavi-al-01')).not.toThrow();
     for (const d of DISTRICTS) expect(() => lineText(`kamp-bolge-${d.id}`), d.id).not.toThrow();
-    for (const id of ['kamp-seviye-01', 'kamp-seviye-up', 'kamp-sus-01', 'kamp-ziyaret-01']) expect(() => lineText(id), id).not.toThrow();
+    for (const id of ['kamp-seviye-01', 'kamp-seviye-up', 'kamp-sus-01', 'kamp-ziyaret-01', 'kamp-sira-01']) expect(() => lineText(id), id).not.toThrow();
   });
   it('kamp satırları kısa, tek düşünce, Türkçe (kayıt için bağlam ve duygu yazılı)', () => {
     const camp = NARRATOR_LINES.filter((l) => /^(kamp-sv-|anit-|tedavi-|kamp-bolge-|kamp-seviye|kamp-sus|kamp-ziyaret)/.test(l.id));

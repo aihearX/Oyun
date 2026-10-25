@@ -66,7 +66,8 @@ const CB = { exaggeration: 0.8, cfg_weight: 0.3, temperature: 0.8, seeds: [1, 2,
 const CB_REF = join(root, 'tools/voice/ref-tr-erkek.flac');
 /**
  * Chatterbox'ın yanlış okuduğu terimler için okunuş (Whisper ile denendi; her tohumda doğru duyuldu). Yalnız sese verilen metni
- * değiştirir; ekrandaki yazı ve parmak izi aynı kalır. "jeton" için işe yarar bir yazım bulunamadı (j → c gibi duyulabiliyor).
+ * değiştirir; ekrandaki yazı ve parmak izi aynı kalır. "jeton" için genel bir yazım yok (j → c/y duyulabiliyor); satır bazında
+ * `spoken` ile önünde virgüllü duraklama ve "jöton'un" yazımı tam satırda "jetonun" duyuldu (kamp-sira-01).
  */
 const CB_PRON = [
   [/(?<!\p{L})Koklear(?!\p{L})/gu, 'Kokle-ar'], [/(?<!\p{L})koklear(?!\p{L})/gu, 'kokle-ar'],
@@ -252,8 +253,11 @@ function renderCoqui(lines, style, outDir) {
 
 // ---------------------------------------------------------------- Chatterbox (varsayılan motor)
 const cbCache = () => process.env.ODI_CB_CACHE ?? join(tmpdir(), 'odi-voice-cb');
+/** Whisper'ın birebir duyması gereken sözcük kökleri: seçimde bu köklerle başlayan sözcüklere harf farkı payı tanınmaz
+ *  ("yetonun"/"cetonun" doğru sayılmaz, yeni deneme yapılır). Yalnız seçimi etkiler; önbellek anahtarı değişmez. */
+const CB_STRICT = ['jeton'];
 function cbJob(lines) {
-  return lines.map((l) => { const text = cbText(l); return { id: l.id, hash: textHash(text), text, refs: [...new Set([text, l.text])] }; });
+  return lines.map((l) => { const text = cbText(l); const strict = CB_STRICT.filter((k) => new RegExp(k, 'i').test(l.text)); return { id: l.id, hash: textHash(text), text, refs: [...new Set([text, l.text])], ...(strict.length ? { strict } : {}) }; });
 }
 /** seçilmiş ham kayıt → MP3: kırp, uzun duraksamayı kısalt, yavaşsa en çok ×1,2 hızlandır, 60 Hz altı temizle, −16 LUFS */
 function postCb(wav, metrics, mp3) {

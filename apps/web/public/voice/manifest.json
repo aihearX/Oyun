@@ -661,9 +661,9 @@
   },
   "kg-h6-giris": {
    "file": "kg-h6-giris.mp3",
-   "hash": "6a57e987",
-   "src": "6a57e987",
-   "ms": 4536
+   "hash": "82160ecd",
+   "src": "82160ecd",
+   "ms": 6696
   },
   "kg-h6-son": {
    "file": "kg-h6-son.mp3",
@@ -772,6 +772,12 @@
    "hash": "6c817859",
    "src": "6c817859",
    "ms": 6576
+  },
+  "kamp-sira-01": {
+   "file": "kamp-sira-01.mp3",
+   "hash": "1feccc0c",
+   "src": "180e0b90",
+   "ms": 10032
   },
   "kamp-sv-kabin-1": {
    "file": "kamp-sv-kabin-1.mp3",

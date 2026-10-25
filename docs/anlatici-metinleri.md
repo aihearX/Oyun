@@ -35,7 +35,7 @@ Ayarlar: exaggeration 0.8, cfg_weight 0.3, temperature 0.8. "Dede" efekti yok (p
 yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.2 hece/sn altındaysa en çok
 ×1.2 hızlandırma, 60 Hz altı temizlik, −16 LUFS, mono 56k MP3. Yedek motor: `--engine coqui` (Coqui TTS, Fatih Akademi, MIT).
 
-## Satırlar (207)
+## Satırlar (208)
 
 | id | metin | bağlam | duygu |
 |---|---|---|---|
@@ -148,7 +148,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `kg-h4-son` | İlk vakaların defterde! Bir odyolog gibi düşünmeye başladın. | Kampın Hikâyesi 4. bölüm tamamlandı | gururlu (proud) |
 | `kg-h5-giris` | Korumak, tedavi etmekten kolaydır. Tedavi Odası’nı kur ve malzeme hazırla. | Kampın Hikâyesi 5. bölüm: Koruma Sanatı | bilge (wise) |
 | `kg-h5-son` | Çantan hazır! Bölümlerde malzemeyle engelleri aşabilirsin. | Kampın Hikâyesi 5. bölüm tamamlandı | neşeli (cheerful) |
-| `kg-h6-giris` | Bir kampı takım büyütür. Takımına katıl, yardım et, zor vakada danış. | Kampın Hikâyesi 6. bölüm: Takım Ruhu | sıcak (warm) |
+| `kg-h6-giris` | Bir kampı birlikte çalışmak büyütür. Takımınla ya da kendi başına: yardım et, öğren, zor vakada danış. | Kampın Hikâyesi 6. bölüm: Takım Ruhu | sıcak (warm) |
 | `kg-h6-son` | Takım ruhu tamam! Birlikte düşünen klinik daha doğru karar verir. | Kampın Hikâyesi 6. bölüm tamamlandı | gururlu, sıcak (proud, warm) |
 | `kg-h7-giris` | Kampını güzelleştirme zamanı: bir dekor yerleştir ve bir arkadaşının kampını ziyaret et. | Kampın Hikâyesi 7. bölüm: Kampını Güzelleştir | neşeli (cheerful) |
 | `kg-h7-son` | Ne güzel bir kamp oldu! Gelen herkes gülümseyecek. | Kampın Hikâyesi 7. bölüm tamamlandı | sevinçli (delighted) |
@@ -167,6 +167,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `kamp-bolge-orman` | Kulak Kılı Ormanı açıldı! Kanalın girişindeki kıllar tozu tutar. Burada süslerin için upuzun bir alan var. | Kamp: Kulak Kılı Ormanı bölgesi açıldı | neşeli (cheerful) |
 | `kamp-sus-01` | Süslemeler kampını senin yapar. Bir süs seç, sürükleyip yerine koy; istediğin an taşıyabilir ya da kaldırabilirsin. | Kamp: süsleme kipi ilk kez açıldı | sıcak, yönlendiren (warm, guiding) |
 | `kamp-ziyaret-01` | Arkadaşının kampındasın! Gez, beğen ve bir alkış bırak. Alkış ikinize de Kamp Seviyesi kazandırır. | Kamp: bir arkadaşın kampı ilk kez geziliyor | neşeli, sıcak (cheerful, warm) |
+| `kamp-sira-01` | Yapı ustası tek elle iki iş tutmaz ama sırayı bilir: bir sonrakini şimdi seç, bedelini öde; bu bitince kendiliğinden başlar. Vazgeçersen jetonun geri gelir.<br><small>okunuş: Yapı ustası tek elle iki iş tutmaz ama sırayı bilir: bir sonrakini şimdi seç, bedelini öde; bu bitince kendiliğinden başlar. Vazgeçersen, jöton'un geri gelir.</small> | Kamp: bir inşaat sürerken “Sıraya al” düğmesi ilk kez görünür (bina paneli ya da liste) | bilge, göz kırpan (wise, playful) |
 | `kamp-sv-kabin-1` | Akustik kabin, dışarıdaki gürültü testi bozmasın diye yapılır. Sessizlikte daha çok öğrenirsin. | Kamp: Akustik Kabin yükseldi (Sv 1, 4, 7…) | sakin, öğretici (calm, explaining) |
 | `kamp-sv-kabin-2` | Gürültü bir sesi örtebilir; buna maskeleme denir. Kabinin duvarları kalınlaştı, ölçüm daha doğru! | Kamp: Akustik Kabin yükseldi (Sv 2, 5, 8…) | öğretici (explaining) |
 | `kamp-sv-kabin-3` | Kabinin içindeki köpük, sesi yansıtmadan yutar. Kampın da her emekte biraz daha büyüyor. | Kamp: Akustik Kabin yükseldi (Sv 3, 6, 9…) | gururlu (proud) |

@@ -130,6 +130,7 @@ export const VOICE_FILES: Record<string, number> = {
   'kamp-bolge-orman.mp3': require('../../../web/public/voice/kamp-bolge-orman.mp3'),
   'kamp-sus-01.mp3': require('../../../web/public/voice/kamp-sus-01.mp3'),
   'kamp-ziyaret-01.mp3': require('../../../web/public/voice/kamp-ziyaret-01.mp3'),
+  'kamp-sira-01.mp3': require('../../../web/public/voice/kamp-sira-01.mp3'),
   'kamp-sv-kabin-1.mp3': require('../../../web/public/voice/kamp-sv-kabin-1.mp3'),
   'kamp-sv-kabin-2.mp3': require('../../../web/public/voice/kamp-sv-kabin-2.mp3'),
   'kamp-sv-kabin-3.mp3': require('../../../web/public/voice/kamp-sv-kabin-3.mp3'),
