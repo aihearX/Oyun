@@ -55,6 +55,12 @@ export function firstTimerOf(k: number): HumanParams {
 const F = 1000 / 60;
 /** boss arenasında ileri bakış (ms): en kısa uyarı süresi kadar */
 export const BOSS_LOOK_MS = 600;
+/**
+ * sulu bölümlerde en kısa ileri bakış (ms): planlayıcının ufku hem görüşü hem planı temsil eder; 0,9 sn'lik ufukla (ilk kez oynayan)
+ * su altındaki planlayıcı yüzeyi/çıkışı "göremeyip" boğuluyordu (21'in yüzme öğreticisinde bile) — oysa insan suyun yüzeyini ve
+ * çıkışını ekranda görür. Kitlenin ufku (1,2-1,4 sn) zaten bunun üstünde; yalnız ilk kez oynayan kademeyi etkiler (1-12'de su yok).
+ */
+export const SWIM_LOOK_MS = 1200;
 /** ölçümde başlangıç evresinin yayıldığı süre (sn) */
 export const PHASE_SPAN = 12;
 
@@ -89,6 +95,8 @@ export interface HumanRun {
   /** tehlikeye/düşmana 8 px'ten yakın geçiş (hasarsız) + kenara 10 px'ten yakın iniş */
   nearMisses: number;
   searches: number;
+  /** toplanan nota (yıldız ölçümü için) */
+  coins: number;
 }
 
 /** kahraman kutusu ile dikdörtgen arasındaki boşluk (px; çakışmada 0) */
@@ -98,7 +106,8 @@ const gap = (hl: number, ht: number, hr: number, hb: number, l: number, t: numbe
 export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun {
   // boss arenasında saldırıların yönü/türü önceden bilinemez: oyuncu ancak uyarıyı (telegraf) görünce plan yapabilir —
   // ileri bakış uyarı süresiyle sınırlı (planlayıcı geleceği "bilmesin")
-  const base = o.params ?? HUMAN; const params = w.boss ? { ...base, lookMs: Math.min(base.lookMs, BOSS_LOOK_MS) } : base;
+  const base = o.params ?? HUMAN;
+  const params = w.boss ? { ...base, lookMs: Math.min(base.lookMs, BOSS_LOOK_MS) } : w.ents.some((e) => e.type === 'water') ? { ...base, lookMs: Math.max(base.lookMs, SWIM_LOOK_MS) } : base;
   const ctl = humanControl(seed, params); const p = new Planner(w, ctl.prefs); const maxT = (o.maxT ?? 300);
   // öğretici an (LevelScene): yeni yeteneğin ilk karşılaşmasında oyun ×0,3 yavaşlar, oyuncu hareketi yapınca (ya da 8 gerçek sn
   // sonra) normale döner — ilk kez oynayan oyuncu o an bolca zaman bulur
@@ -138,7 +147,7 @@ export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number
     wasGrounded = h.grounded;
   }
   if (ownEvents) s.events = null;
-  return { finished: s.finished, failed: s.failed, t: s.t - t0, damage: s.finished ? s.damageTaken : Math.max(s.damageTaken, 3), deaths: s.deaths, nearMisses, searches: p.stats.searches };
+  return { finished: s.finished, failed: s.failed, t: s.t - t0, damage: s.finished ? s.damageTaken : Math.max(s.damageTaken, 3), deaths: s.deaths, nearMisses, searches: p.stats.searches, coins: s.coins };
 }
 
 /** tohum: bölüm + koşu numarası */

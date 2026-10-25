@@ -6,7 +6,8 @@ export const objectiveCountsForStar = (spec: Pick<LevelSpec, 'objective'>) => sp
 
 /**
  * Yıldız kuralı (docs/11 §5): 1★ bitir · 2★ notaların %60'ı · 3★ (2★ üstüne) notaların %90'ı YA DA bölüm hedefi.
- * Notasız bölümlerde (boss) 2★ en çok 1 hasar, 3★ hasarsız.
+ * Notasız bölümlerde (boss) 2★ en çok 1 hasar, 3★ hasarsız. Süreli bölümde yıldız süreyle de gelir (notadan bağımsız; docs/12 §6):
+ * 2★ `target2` saniyede, 3★ hedef süresinde (`target`) bitir — eşikler insan modeliyle ölçülür.
  * Skor: mesafe + nota + süre bonusu − hasar + altın koklealar + hedef.
  */
 export function scoreRun(spec: LevelSpec, r: Omit<RunResult, 'score' | 'stars'>): Pick<RunResult, 'score' | 'stars'> {
@@ -22,6 +23,8 @@ export function scoreRun(spec: LevelSpec, r: Omit<RunResult, 'score' | 'stars'>)
     const ratio = r.coins / spec.coinsTotal;
     if (ratio >= STAR2_NOTE_RATIO - 1e-9) stars = 2;
     if (stars === 2 && (ratio >= STAR3_NOTE_RATIO - 1e-9 || (r.objectiveMet && objectiveCountsForStar(spec)))) stars = 3;
+    const o = spec.objective;
+    if (o.id === 'timed') { if (r.objectiveMet) stars = 3; else if (o.target2 && r.timeSec <= o.target2) stars = Math.max(stars, 2) as 2 | 3; }
   }
   return { score: Math.max(0, score), stars };
 }

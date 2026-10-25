@@ -24,7 +24,7 @@ export const KALIBRASYON: Record<number, number> = {
   19: 6,
   21: 9,
   22: 7,
-  23: 4,
+  23: 17,
   24: 2,
   25: 7,
   26: 5,

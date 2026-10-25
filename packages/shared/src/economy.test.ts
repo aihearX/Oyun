@@ -18,6 +18,16 @@ describe('yıldız kuralı (docs/11 §5)', () => {
     expect(scoreRun(spec('no-damage'), run({ coins: 40, objectiveMet: true })).stars).toBe(1);
     expect(scoreRun(spec('reach'), run({ coins: 70, objectiveMet: true })).stars).toBe(2);
   });
+  it('süreli bölüm: 2★ target2 saniyede, 3★ hedef süresinde — notadan bağımsız; yavaş ama biten 1★', () => {
+    const t = (): LevelSpec => ({ ...spec('timed'), objective: { id: 'timed', target: 80, target2: 95, label: '80 saniyede bitir' } });
+    expect(scoreRun(t(), run({ coins: 40, timeSec: 120 })).stars).toBe(1);
+    expect(scoreRun(t(), run({ coins: 40, timeSec: 94.9 })).stars).toBe(2);
+    expect(scoreRun(t(), run({ coins: 40, timeSec: 79.5, objectiveMet: true })).stars).toBe(3);
+    expect(scoreRun(t(), run({ coins: 60, timeSec: 120 })).stars).toBe(2);
+    expect(scoreRun(t(), run({ coins: 90, timeSec: 120 })).stars).toBe(3);
+    // eski kayıt (target2 yok): 2★ yalnız notayla
+    expect(scoreRun({ ...t(), objective: { id: 'timed', target: 80, label: '' } }, run({ coins: 40, timeSec: 90 })).stars).toBe(1);
+  });
   it('notasız boss: hasarsız 3★, 1 hasar 2★', () => {
     expect(scoreRun(spec('boss', 0), run({ objectiveMet: true })).stars).toBe(3);
     expect(scoreRun(spec('boss', 0), run({ objectiveMet: true, damageTaken: 1 })).stars).toBe(2);

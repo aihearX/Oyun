@@ -45,7 +45,7 @@ Düşmanlar `enemy` props.kind: `devriye` (yürür, kenarda döner), `ucan` (sin
 ## 5. Bölüm yapısı
 - Her bölüm 3 bölüm-içi bölümden oluşur (giriş → gelişim → final), sonunda kapı. Arada kontrol noktaları.
 - Toplanabilirler: **notalar** (her bölümde 100'e kadar), **3 altın koklea** (gizli yerlerde; eski tek "secret" yerine), Şanslı Nota.
-- Yıldız: 1★ bitir; 2★ notaların %60'ı; 3★ %90 nota **ya da** bölüm hedefi (mevcut hedef türleri korunur, `scoreRun` bu kurala göre güncellenir).
+- Yıldız: 1★ bitir; 2★ notaların %60'ı; 3★ %90 nota **ya da** bölüm hedefi (mevcut hedef türleri korunur, `scoreRun` bu kurala göre güncellenir). Süreli bölümde süre de yıldız verir: 2★ ölçülen 2★ süresinde, 3★ hedef süresinde bitir (nota şartı olmadan; docs/12 §6).
 - İçerik: biyom başına el yapımı "odalar" (chunk) + her biyomda 1-2 elle tasarlanmış "set piece" (ör. kulak zarı titreşim koridoru, koklea spiral iniş, sinirde ışık treni kaçışı). Üretici (level-gen) yetenek açıklığına ve ritim eğrisine göre dizer; her bölüm farklı hissettirir.
 
 ### Tempo ve yay kuralları (v3, üretici `level-gen/pacing.ts` + `generate.ts`)

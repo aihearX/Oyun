@@ -1,5 +1,5 @@
 import type { AbilityId, ChunkSpec, Entity, LevelSpec, PlayerSkills } from '@odi/shared';
-import { GROUND_Y } from '@odi/shared';
+import { GROUND_Y, scoreRun } from '@odi/shared';
 import { ABILITIES, abilitiesAt, chunkNeeds, DEFAULT_SKILLS } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import { generateLevel } from '@odi/level-gen';
@@ -88,6 +88,20 @@ export function playHuman(n: number, o: { k?: number; salt?: number; profile?: P
   const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0, { variant: o.variant });
   const { w, s } = setup(spec); s.events = null;
   return runHuman(w, s, humanSeed(n, o.k ?? 0), { maxT: o.maxT, params: o.params ?? playerOf(o.k ?? 0) });
+}
+
+/**
+ * bölümü insan modeliyle oyna ve oyundaki gibi yıldız ver (LevelScene → scoreRun; süreli hedef: oyun saati ≤ hedef). Yalnız
+ * hedefi süre/nota/hasar olan bölümler için (eskort, melodi, gizli hedefleri burada sayılmaz → nota yolu).
+ */
+export function playHumanStars(n: number, o: { k?: number; params?: HumanParams } = {}): HumanRun & { stars: number; spec: LevelSpec } {
+  const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, 0);
+  const { w, s } = setup(spec); s.events = null;
+  const r = runHuman(w, s, humanSeed(n, o.k ?? 0), { params: o.params ?? playerOf(o.k ?? 0) });
+  const ob = spec.objective; const t = Math.round(r.t * 10) / 10;
+  const met = r.finished && (ob.id === 'timed' ? r.t <= (ob.target ?? spec.parTimeSec) : ob.id === 'collect-all' ? r.coins >= spec.coinsTotal : ob.id === 'no-damage' ? s.damageTaken === 0 : ob.id === 'reach');
+  const { stars } = scoreRun(spec, { levelId: spec.id, completed: r.finished, coins: r.coins, timeSec: t, deaths: r.deaths, damageTaken: s.damageTaken, objectiveMet: met, secretFound: false });
+  return { ...r, stars, spec };
 }
 
 /** bölümleri insan modeli kitlesinin verilen oyuncularıyla ölç (zorluk biçim testleri; docs/12) */

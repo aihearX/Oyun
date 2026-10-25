@@ -7,6 +7,8 @@
 //        her bölümü k tohumla oynar → tools/harness/out/zorluk/<tag>.json
 //   node tools/harness/zorluk.mjs --kalibre [--k 12] [--v 10] [--levels 8,12,23]
 //        bölüm başına üretici varyantı: hedefe tahminen en yakın 3 varyant ölçülür, en yakını → packages/level-gen/src/kalibrasyon.ts
+//   node tools/harness/zorluk.mjs --sure [--k 48]
+//        süreli bölümlerin 3★/2★ süre oranları (bitirenlerin süre dilimlerinden) → packages/level-gen/src/sure.ts
 //   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra] [--ilk ilk]
 //        tabloyu docs/12-zorluk-egrisi.md içine (işaretler arasına) ve grafiği docs/img/zorluk-egrisi.svg'ye yazar
 import { spawn } from 'node:child_process';
@@ -112,6 +114,25 @@ ${body}
   writeFileSync(resolve(root, 'packages/level-gen/src/kalibrasyon.ts'), src);
   rmSync(resolve(outDir, 'kalibre.part.jsonl'), { force: true });
   console.log('→ packages/level-gen/src/kalibrasyon.ts');
+}
+
+if (args.sure) {
+  // süreli bölümlerin yıldız süreleri. Otomatik koşuda süre çoğunlukla düşüş ve geri dönüşle uzar (bitirenlerin süreleri birkaç
+  // saniyelik bir bantta toplanır), bu yüzden dilim değil "temiz koşu" ölçüsü: bitirenlerin en hızlı %10'unun süresi (T10);
+  // 3★ = T10 × 1,06 (temiz ya da tek takılmalı koşu), 2★ = T10 × 1,2 (birkaç düşüşlü koşu). Par'a oranla yazılır (yardım
+  // kademesi bölümü kısaltınca süreler de kısalır)
+  const SURE_CLEAN = 0.1, SURE_3 = 1.06, SURE_2 = 1.2;
+  const { PLAN } = await bundled("import { HUMAN_JOURNEY } from '@odi/content'; export const PLAN = HUMAN_JOURNEY.levels.map((l) => ({ n: l.number, o: l.objective }));", 'plan');
+  const levels = PLAN.filter((l) => l.o === 'timed').map((l) => l.n);
+  const file = await worker();
+  const rows = (await runAll(file, 'sure', levels, [], resolve(outDir, 'sure.part.jsonl'))).sort((a, b) => a.n - b.n);
+  const q = (xs, p) => { const s = xs.slice().sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.max(0, Math.ceil(p * s.length) - 1))]; };
+  const up = (x) => Math.ceil(x * 100 - 1e-6) / 100; // yukarı yuvarla: dilimdeki oyuncu eşiğin içinde kalsın
+  const body = rows.map((r) => { const t = r.runs.filter((x) => x.fin).map((x) => x.t); const clean = q(t, SURE_CLEAN); const a = up((clean * SURE_3) / r.par), b = up(Math.max((clean * SURE_2) / r.par, a + 0.03)); console.log(`L${r.n} par ${r.par} bitiren ${t.length}/${r.runs.length}, temiz koşu ${clean} sn → 3★ ${Math.round(r.par * a)} sn (${a}), 2★ ${Math.round(r.par * b)} sn (${b})`); return `  ${r.n}: [${a}, ${b}],`; }).join('\n');
+  const sfile = resolve(root, 'packages/level-gen/src/sure.ts');
+  writeFileSync(sfile, readFileSync(sfile, 'utf8').replace(/= \{[\s\S]*\};/, `= {\n${body}\n};`));
+  rmSync(resolve(outDir, 'sure.part.jsonl'), { force: true });
+  console.log('→ packages/level-gen/src/sure.ts');
 }
 
 if (args.bolumler) {

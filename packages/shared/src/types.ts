@@ -90,8 +90,10 @@ export interface LevelSection { name: string; start: number; end: number }
 
 export interface ObjectiveSpec {
   id: ObjectiveId;
-  /** timed: saniye; collect-all: jeton sayısı; melody: nota sayısı */
+  /** timed: saniye (3★ süresi); collect-all: jeton sayısı; melody: nota sayısı */
   target?: number;
+  /** timed: 2★ süresi (sn; ölçülen, `target`tan uzun) */
+  target2?: number;
   label: string;
 }
 
