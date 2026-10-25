@@ -512,7 +512,6 @@ async function suite(browserName, target, [W, H]) {
     const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]);
     const ids = items.map((i) => i.id);
     await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
-    let unmeasured = 0;
     try {
       let pos = await page.evaluate(contrastRects, ids); let img = null, imgBuf = null; const done = new Set();
       for (let round = 0; round < 30; round++) {
@@ -548,11 +547,11 @@ async function suite(browserName, target, [W, H]) {
         if (!pos[next.id]?.inView) { done.add(next.id); next.unmeasured = true; next.why = `${JSON.stringify(pos[next.id]?.rects?.[0]?.map(Math.round))} ${dbg}`; }
       }
       for (const i of items) if (i.sample && !i.sampled && !i.covered && !i.unmeasured) i.unmeasured = true;
-      unmeasured = items.filter((i) => i.unmeasured).length;
     } finally { await page.evaluate(contrastHide, false); await page.evaluate(scrollSave, true); }
+    const unmeasured = items.filter((i) => i.unmeasured).length;
     const live = items.filter((i) => !i.covered && !i.unmeasured);
     const low = live.filter((i) => i.ratio < i.need);
-    const strip = ({ fgRaw, opAll, inView, id, ...x }) => ({ ...x, rect: x.rect?.map(Math.round) });
+    const strip = ({ fgRaw: _f, opAll: _o, inView: _v, id: _i, ...x }) => ({ ...x, rect: x.rect?.map(Math.round) });
     // istisnanın kendi alt eşiği varsa (ör. grafik simgesi 3:1) ona göre: low zaten i.need'e göre süzüldü
     const viol = low.filter((i) => (!i.istisna || i.istisnaMin) && !i.bekleyen).map(strip); const exc = low.filter((i) => i.istisna && !i.istisnaMin).map(strip); const pend = low.filter((i) => i.bekleyen).map(strip);
     rec.contrast = { n: live.length, sampled: live.filter((i) => i.sampled).length, covered: items.filter((i) => i.covered).length, unmeasured, violations: viol, exceptions: exc, pending: pend,
