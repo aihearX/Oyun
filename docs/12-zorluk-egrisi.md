@@ -63,6 +63,16 @@ Planlayıcı botun (`play/planner.ts`) "niyeti" + insan eli, aynı deterministik
 - **Kare-mükemmel numara yok:** sapma, dar pencereli her çözümü doğal olarak cezalandırır.
 - **Kitle:** her koşu (tohum) bir oyuncudur; beceri dört kademede ustadan (σ 60 ms, tepki 200 ms) acemiye (σ 100 ms, tepki 260 ms)
   döner — ortalama tepki ~230 ms, sapma ~80 ms. Gizli koklealara sapmaz (ana yol oyuncusu), notalara gider.
+- **Notaya dalan kademe (`notaciOf`, MK-015):** kitle notayı ancak yolunun üstündeyse alır (planlayıcıda nota 40 değerinde ve
+  plan ancak ilerleme zayıflayınca yeniden aranır), yüzme odalarında su altındaki notalara dalmaz. Bu kademe meraklı, orta
+  becerili oyuncudur: eli kitlenin ortası (beceri 0,2-0,8 → tepki 212-248 ms, sapma σ 68-92 ms, kusurlar aynı), ekranında
+  (`viewPx` 300 px ileri) **güvenli** nota gördükçe planını 0,2 sn'de bir yeniden arar ve güvenli notaya 40'a ek `value`
+  120-240 (ilerleme pikseli) değer verir; büyük nota (5 nota sayılır) iki katı. **Risk tartar:** notanın tehlikeye (diken,
+  gürültü, düşman; hareket kapsamı dahil) uzaklığı `riskPx`'ten (50-90 px) azsa ek değer doğrusal azalır, `riskPx / 2`'den
+  azsa yoktur — oyuncu o notadan vazgeçer, ancak yolu üstündeyse alır. Her oyuncu aralıklardan tohumla çekilir (deterministik);
+  gizli koklealara sapmaz. Tanım `play/human.ts → notaciOf`, niyet `play/planner.ts → NoteSeek / noteWeights`; var olan
+  kademelerin tercihlerinde nota niyeti yoktur (ölçümleri değişmez). Model konumu kusursuz gördüğü için mutlak toplama
+  oranları gerçek oyuncudan iyimserdir; odalar arası sıralama anlamlıdır.
 - **İlk kez oynayan kademe (`firstTimerOf`):** gerçek cihaz geri bildirimi ("ilk bölümler hâlâ çok zor") modelin ilk
   oyuncuyu fazla becerikli saydığını gösterdi. İlk bölümlerin hedefleri artık bu kademeyle ölçülür: tepki 320-450 ms, sapma σ
   120-160 ms, girdilerin %10-15'i 100-250 ms geç, %4-6'sı kaçar, %2-4'ü dokunuş yerine kazara yatay kaydırma olur (zıplama
@@ -444,6 +454,70 @@ paylaşılan odaları, oda puanlarını ve bölüm seçimlerini değiştirir (b�
 - Test: `play/zorluk-yuzme.test.ts` (8 oyuncu: 21/22/27/28'de bitirenlerin ≥ %40'ı 2★, herkes değil; 3★ ≤ %25 ve 3★ alan ≥ %60 nota),
   `shared/economy.test.ts`, `meta/meta.test.ts`.
 
+**Notaya dalan oyuncu ve yüzme odaları (MK-014, MK-015).** 4. tur oda ölçümünde kitle üç yüzme odasında notaların çok azını
+topluyordu (k1-havuz, k3-derin, k1-kabarcik); notalar yüzme yolunun 60-300 px altında. Kitle notaya dalmadığı için bunun oda
+sorunu mu model sınırı mı olduğu bilinmiyordu. Yeni kademe (§2, `notaciOf`) ile 22 yüzme odası (mekanik `yuzme`) 48'er kez,
+aynı tohumlarla ölçüldü (`zorluk.mjs --odalar --notaci --k 48`). Toplama = toplanan / odanın notası (oyundaki gibi büyük nota 5
+sayılır; 4. tur ölçümü varlık sayıyordu, bu yüzden büyük notalı k3-derin ve k1-kabarcik'te kitle sayıları %15 / %26 yerine %9 / %15).
+
+| Oda | Nota | Kitle (ana yol): toplama | Notaya dalan: toplama | Kitle: can kaybı | Notaya dalan: bitirme / can kaybı |
+|---|---|---|---|---|---|
+| ogret-yuz | 10 | %55 | %78 | 0,00 | %100 / 0,02 |
+| gn-havuz | 9 | %71 | %78 | 0,00 | %100 / 0,02 |
+| **k1-havuz** | 7 | %6 | **%78** | 0,00 | %100 / 0,02 |
+| k1-adalar | 9 | %55 | %91 | 0,00 | %100 / 0,02 |
+| **k1-kabarcik** | 12 | %15 | **%70** | 0,02 | %100 / 0,00 |
+| k1-akinti | 8 | %80 | %82 | 0,00 | %100 / 0,00 |
+| k1-zar-havuz | 16 | %59 | %68 | 0,00 | %100 / 0,02 |
+| k1-ince-ses | 9 | %69 | %87 | 0,04 | %100 / 0,02 |
+| k2-frekans | 12 | %69 | %78 | 0,08 | %100 / 0,02 |
+| k2-frekans-su | 12 | %67 | %84 | 0,02 | %100 / 0,00 |
+| k2-tuylu-hucre | 6 | %83 | %97 | 0,02 | %100 / 0,17 |
+| k2-konusma | 12 | %71 | %76 | 0,00 | %100 / 0,02 |
+| k3-spiral | 17 | %79 | %83 | 0,00 | %100 / 0,04 |
+| **k3-derin** | 13 | %9 | **%42** | 0,02 | %100 / 0,00 |
+| k3-bas | 12 | %46 | %58 | 0,02 | %100 / 0,08 |
+| k3-ufalanan-su | 10 | %60 | %74 | 0,00 | %100 / 0,00 |
+| k3-yay-kule | 16 | %63 | %68 | 0,00 | %100 / 0,02 |
+| k1-sp-oval-pencere | 22 | %40 | %67 | 0,06 | %100 / 0,04 |
+| k2-sp-labirent | 20 | %62 | %79 | 0,02 | %100 / 0,00 |
+| k3-sp-spiral-inis | 24 | %49 | %69 | 0,00 | %100 / 0,12 |
+| k1-sinav-havuz | 13 | %66 | %70 | 0,44 | %100 / 0,44 |
+| k3-sinav-bas | 14 | %73 | %82 | 0,71 | %90 / 0,81 |
+
+- **Üç oda da notaya dalan kitlede %30'un üstünde:** k1-havuz %6 → %78, k1-kabarcik %15 → %71, k3-derin %9 → %43. Notalar
+  ulaşılabilir ve okunur; düşük oran ana yol oyuncusunun dalmamasındandı, oda tasarımından değil. **Hiçbir oda değiştirilmedi**
+  (`koklea.ts`, `puanlar.ts`, süreli bölüm süreleri aynı; MK-014 kapanabilir). En düşük k3-derin (%43): büyük nota (5) havuzun
+  dibinde, akıntının ve balığın yanında; risk tartan oyuncuların bir kısmı vazgeçiyor — amaçlanan meydan okuma.
+- Notaya dalmanın bedeli küçük ve gerçekçi: çoğu odada can kaybı 0,00-0,04, k2-tuylu-hucre 0,17, k3-sp-spiral-inis 0,13 (nota
+  ritimli/ufalanan basamağın yanında). Sınav odalarında (k1-sinav-havuz, k3-sinav-bas) zorluk notadan değil odanın kendisinden.
+
+**Yıldızlar, notaya dalan kitle (21-30).** `zorluk.mjs --yildiz --levels 21-30 --k 48 --notaci` (oyundaki `scoreRun`, yüzdeler
+bitirenlere göre); kitle sütunları MK-008 tablosundan (kitle değişmedi). Eller farklı dağıldığından (notaya dalan: orta beceri)
+bitirme oranları birebir karşılaştırılmaz; ölçülen şey nota oranı ve yıldızdır.
+
+| Bölüm | Kitle: bitirme / nota medyanı / ★≥2 / ★3 | Notaya dalan: bitirme / nota medyanı / ★≥2 / ★3 | Notaya dalan: ≥ %60 nota |
+|---|---|---|---|
+| 21 Suya Dalış | %100 / %46 / %56 / %0 | %100 / %76 / **%100** / %2 | %98 |
+| 22 İnce Sesler | %100 / %53 / %90 / %0 | %98 / %81 / **%100** / %0 | %96 |
+| 23 Akıntı (süreli) | %81 / %53 / %100 / %54 | %92 / %72 / %100 / %70 | %95 |
+| 24 Konuşma Kıvrımı | %98 / %63 / %100 / %0 | %100 / %85 / %100 / %13 | %100 |
+| 25 Tüy Hücresi Tarlası (koşu) | %90 / %61 / %60 / %47 | %98 / %78 / %100 / %60 | %100 |
+| 26 Derin Kıvrım | %77 / %63 / %100 / %0 | %69 / %80 / %100 / %0 | %100 |
+| 27 Bas Diyarı | %100 / %56 / %96 / %0 | %100 / %76 / **%100** / %0 | %98 |
+| 28 Ninni Derinlerde | %98 / %50 / %91 / %0 | %96 / %74 / **%100** / %0 | %100 |
+| 29 Apeks Sıçrayışı (trambolin) | %94 / %76 / %100 / %0 | %92 / %80 / %100 / %5 | %100 |
+| 30 Son Kıvrım (süreli) | %75 / %50 / %100 / %53 | %73 / %78 / %100 / %74 | %100 |
+
+- Notaya dalan oyuncu 21-30'da notaların %72-85'ini topluyor; bitirenlerin hepsi 2★ alıyor. 3★ süresiz yüzme bölümlerinde
+  yine zor (%0-13; %90 nota ister), süreli finallerde (23, 30) %70-74 (süre ya da nota).
+- **2★ kuralı değişmedi (öneri):** yüzmede %45 eşiği ana yol oyuncusu için gerekli (21'de bitirenlerin %56'sı); notaya dalan için
+  eşik bağlayıcı değil — %60 olsaydı da bitirenlerin %95-100'ü 2★ alırdı. Yani %45 kuralı notaya çabalayan oyuncuyu ucuz
+  yıldızla ödüllendirmiyor, yalnız ana yol oyuncusunu dışarıda bırakmıyor. Eşiği yükseltmek ana yol oyuncusunun 2★'ını 21 ve
+  28'de %2-9'a düşürür (MK-008 ölçümü); bu yüzden değiştirme önerilmez. 3★ (%90) iki kitle için de iyi oyun ister.
+- Test: `play/notaci.test.ts` (deterministik ve belgelenen aralıkta; kitle tercihlerinde nota niyeti yok; tehlikeye yakın notanın
+  ek değeri yok; 8 oyuncuyla üç odada notaya dalan ≥ %30 toplar, kitleden belirgin çok, herkes bitirir).
+
 ## 7. Komutlar
 
 ```bash
@@ -453,6 +527,8 @@ node tools/harness/zorluk.mjs --sure --k 48              # süreli bölümlerin 
 node tools/harness/zorluk.mjs --bolumler --k 48 --tag sonra   # 40 bölüm × 48 oyuncu (~30 dk)
 node tools/harness/zorluk.mjs --bolumler --levels 1-12 --k 48 --ilk 1 --tag ilk   # ilk kez oynayan kademe (1-12)
 node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --tag yildiz-sonra --once yildiz-once   # bitirenlerin nota oranı ve yıldızları (oyundaki scoreRun; ~8 dk)
+node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --notaci --tag yildiz-notaci   # aynısı notaya dalan kademeyle (MK-015)
+node tools/harness/zorluk.mjs --odalar --notaci --k 48 [--ids a,b]   # odaların toplanan nota oranı: kitle ve notaya dalan (varsayılan: 22 yüzme odası; puanlar.ts'e dokunmaz)
 node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki tablolar + docs/img/zorluk-egrisi.svg (ilk.json varsa ilk kez oynayan tablosu da)
 ```
 `npm test` içindeki `play/zorluk-*.test.ts`, eğrinin biçimini (alıştırma kolay, bölge finali > bölge girişi, girişler ve finaller

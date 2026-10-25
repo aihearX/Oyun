@@ -40,10 +40,40 @@ function inputAt(plan: Action[], i: number, out: SimInput): SimInput {
  * kadar sonra uygulanabilir, o ana dek planlanmış eylemler değişmez), `motor` yeni seçilen her eylemin elden çıkan hali
  * (zamanlama sapması, geç kalma; null = kaçan girdi).
  */
-export interface PlanPrefs { greedy?: boolean; secrets?: boolean; /** testler: bu noktaya (ör. gizli koklea) yaklaşmak ilerlemedir */ goal?: { x: number; y: number }; horizon?: number; react?: number; motor?: (a: Action, releaseOnly: boolean) => Action | null }
+export interface PlanPrefs { greedy?: boolean; secrets?: boolean; /** testler: bu noktaya (ör. gizli koklea) yaklaşmak ilerlemedir */ goal?: { x: number; y: number }; horizon?: number; react?: number; motor?: (a: Action, releaseOnly: boolean) => Action | null; /** notaya dalan oyuncu (play/human.ts → NOTACI) */ notes?: NoteSeek }
+
+/**
+ * Notaya dalan oyuncunun niyeti (play/human.ts → `notaciOf`; docs/12 §2). Görünen (`viewPx` ileride, ekranın sağ kenarı) her
+ * GÜVENLİ nota için plan ararken ana yoldan sapmayı tartar: nota ana yol oyuncusunun 40'ına ek `value` değerindedir (ilerleme
+ * pikseli cinsinden; koşu başına bir kez). Tehlikeye (diken, gürültü, düşman; hareket kapsamı dahil) `riskPx`'ten yakın nota için
+ * ek değer azalır, `riskPx / 2`'den yakında hiç yoktur: oyuncu o notadan vazgeçer, ancak yolu üstündeyse alır.
+ */
+export interface NoteSeek { value: number; riskPx: number; viewPx: number }
+const noteCache = new WeakMap<NoteSeek, { w: World; m: Map<number, number> }>();
+/** nota (varlık kimliği) → notaya dalan oyuncunun ek değeri (yalnız > 0 olanlar) */
+export function noteWeights(w: World, ns: NoteSeek): Map<number, number> {
+  const c = noteCache.get(ns); if (c && c.w === w) return c.m;
+  const danger: { l: number; t: number; r: number; b: number }[] = [];
+  for (const e of w.ents) {
+    if (e.cls === 'hazard') { const dy = Math.abs(Number(e.p.dy ?? 0)); danger.push({ l: e.sl, t: e.t - dy, r: e.sr, b: e.b + dy }); }
+    else if (e.cls === 'enemy') { const a = Math.abs(Number(e.p.amp ?? 0)); danger.push({ l: e.sl, t: e.t - a, r: e.sr, b: e.b + a }); }
+  }
+  const m = new Map<number, number>();
+  for (const e of w.ents) {
+    if (e.type !== 'coin' && e.type !== 'collect') continue;
+    let d = Infinity;
+    for (const q of danger) d = Math.min(d, Math.hypot(Math.max(0, q.l - e.x, e.x - q.r), Math.max(0, q.t - e.y, e.y - q.b)));
+    const k = Math.max(0, Math.min(1, (d - ns.riskPx / 2) / (ns.riskPx / 2)));
+    // büyük nota (5 nota sayılır) daha çekici, ama beş katı değil: oyuncu tek ödül görür
+    if (k > 0) m.set(e.id, ns.value * k * (e.type === 'collect' ? 2 : 1));
+  }
+  noteCache.set(ns, { w, m });
+  return m;
+}
 function potential(w: World, s: SimState, pr: PlanPrefs = {}): number {
   const h = s.hero; const b = s.boss;
   let v = h.x + 0.7 * Math.max(0, GROUND_Y - h.y) + s.coins * (pr.greedy ? 160 : 40) + s.cochleas * (pr.secrets === false ? -200 : 300) + s.opened.size * 1500 + s.broken.size * 60 + s.killed.size * 30 + s.notes * 120;
+  if (pr.notes) { const m = noteWeights(w, pr.notes); for (const id of s.collected) v += m.get(id) ?? 0; }
   if (s.finished) v += 1e5;
   if (pr.goal) v += (s.cochleas ? 5e4 : 0) - 3 * Math.hypot(h.x - pr.goal.x, h.y - 20 - pr.goal.y) - h.x;
   // insan: kapının rengini görür — önündeki frekans kapısının rengini taşımak ilerlemedir (bulmacanın amacı)
@@ -140,8 +170,10 @@ export class Planner {
   }
   /** ufukta (ileride ~600 px) alınmamış nota var mı */
   private coinsAhead(s: SimState): boolean {
-    const h = s.hero;
-    for (const id of near(this.w, h.x - 40, h.x + 640)) { const e = this.w.ents[id]!; if ((e.type === 'coin' || e.type === 'collect') && !s.collected.has(id) && (e.x - h.x) * h.dir > -30) return true; }
+    const h = s.hero; const ns = this.pr.notes; const m = ns ? noteWeights(this.w, ns) : null;
+    // notaya dalan oyuncu: yalnız ekranda görünen, vazgeçmediği (güvenli) notalar
+    const x0 = ns ? Math.min(h.x - 40, h.x + h.dir * ns.viewPx) : h.x - 40, x1 = ns ? Math.max(h.x + 40, h.x + h.dir * ns.viewPx) : h.x + 640;
+    for (const id of near(this.w, x0, x1)) { const e = this.w.ents[id]!; if ((e.type === 'coin' || e.type === 'collect') && !s.collected.has(id) && (e.x - h.x) * h.dir > -30 && (!m || m.has(id))) return true; }
     return false;
   }
 
@@ -165,7 +197,7 @@ export class Planner {
     this.rebase();
     const r = simulatePlan(this.w, s, this.plan, 0, false, this.pr); this.stats.sims++;
     this.stats.steps += r.end.n - s.n;
-    if (this.greedy && r.ok && s.n - this.poorAt >= 12 && this.coinsAhead(s)) { this.poorAt = s.n; this.search(s, r); return; }
+    if ((this.greedy || this.pr.notes) && r.ok && s.n - this.poorAt >= 12 && this.coinsAhead(s)) { this.poorAt = s.n; this.search(s, r); return; }
     // boss bağırırken notalar havada: koşarak yaklaşmak "ilerleme" sayılır ama nota zıplamadan alınmaz — düzenli ara
     if (r.ok && s.boss && s.boss.mode === 'scream' && s.n - this.poorAt >= 12) { this.poorAt = s.n; this.search(s, r); return; }
     if (r.ok && (r.prog >= 150 || s.n - this.poorAt < (this.pr.react ? (s.hero.hookId >= 0 ? 6 : 12) : 30))) return;

@@ -1,7 +1,7 @@
 import { GROUND_Y, hashString, mulberry32, type AbilityId } from '@odi/shared';
 import { TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './tutorial';
 import * as C from './consts';
-import { Planner, type Action, type PlanPrefs } from './planner';
+import { Planner, type Action, type NoteSeek, type PlanPrefs } from './planner';
 import { enemyAt, hazardAt, lastRect, projectiles, solidAt, step, type SimState } from './sim';
 import { near, type World } from './world';
 
@@ -24,6 +24,8 @@ export interface HumanParams {
   swipeP?: number;
   /** geç kalmanın en çok süresi (ms; varsayılan 200) */
   lapseMaxMs?: number;
+  /** notaya dalan oyuncu: görünen güvenli notaya yönelir (yalnız `notaciOf`; planner.ts → NoteSeek) */
+  notes?: NoteSeek;
 }
 /** kitlenin usta ucu */
 export const USTA: HumanParams = { reactMs: 200, lookMs: 1400, jitterMs: 60, holdJitter: 0.15, lapseP: 0.04, missP: 0.01 };
@@ -50,6 +52,25 @@ export const ILK_HI: HumanParams = { reactMs: 450, lookMs: 900, jitterMs: 160, h
 export function firstTimerOf(k: number): HumanParams {
   const r = mulberry32(hashString(`ilk:${k}`) >>> 0); const l = (a: number, b: number) => a + (b - a) * r();
   return { reactMs: l(ILK_LO.reactMs, ILK_HI.reactMs), lookMs: 900, jitterMs: l(ILK_LO.jitterMs, ILK_HI.jitterMs), holdJitter: l(0.3, 0.35), lapseP: l(0.1, 0.15), missP: l(0.04, 0.06), swipeP: l(0.02, 0.04), lapseMaxMs: 250 };
+}
+
+/**
+ * NOTAYA DALAN (meraklı) oyuncu (MK-015; docs/12 §2): ana yol oyuncusu notayı ancak yolunun üstündeyse alır; bu kademe ekranda
+ * gördüğü notaya yönelir (su altına dalar, yoldan sapar), ama tehlikeye yakın notadan vazgeçer. Eli kitlenin ortasıdır (beceri
+ * 0,2-0,8: tepki 212-248 ms, sapma σ 68-92 ms; kusursuz bot değil). Her oyuncu aralıklardan tohumla çekilir:
+ *  - `value` 120-240: güvenli notanın ek değeri (ilerleme pikseli; kitle her notaya 40, kovalayan bot 160 verir),
+ *  - `riskPx` 50-90: notanın tehlikeye (hareket kapsamı dahil) uzaklığı bundan azsa ek değer azalır, yarısından azsa yoktur,
+ *  - `viewPx` 300: görüş (390 px'lik dikey ekranda kahramanın önü); bu menzilde güvenli nota varken plan 0,2 sn'de bir yeniden aranır.
+ * Gizli koklealara sapmaz (ana yol oyuncusu gibi).
+ */
+export const NOTACI_LO = { skill: 0.2, value: 120, riskPx: 50 };
+export const NOTACI_HI = { skill: 0.8, value: 240, riskPx: 90 };
+export const NOTACI_VIEW_PX = 300;
+/** notaya dalan kademenin k. oyuncusu (aralıklardan tohumla; deterministik) */
+export function notaciOf(k: number): HumanParams {
+  const r = mulberry32(hashString(`notaci:${k}`) >>> 0); const l = (a: number, b: number) => a + (b - a) * r();
+  const hand = playerAt(l(NOTACI_LO.skill, NOTACI_HI.skill));
+  return { ...hand, notes: { value: Math.round(l(NOTACI_LO.value, NOTACI_HI.value)), riskPx: Math.round(l(NOTACI_LO.riskPx, NOTACI_HI.riskPx)), viewPx: NOTACI_VIEW_PX } };
 }
 
 const F = 1000 / 60;
@@ -85,6 +106,7 @@ export function humanControl(seed: number, p: HumanParams = HUMAN): { prefs: Pla
     return { ...a, at, hold };
   };
   const prefs: PlanPrefs = { secrets: false, horizon: Math.round(p.lookMs / F), react: Math.round(p.reactMs / F), motor };
+  if (p.notes) prefs.notes = p.notes;
   return { prefs, slow: (k: number) => { tk = k; prefs.react = Math.max(1, Math.round((p.reactMs * k) / F)); } };
 }
 
