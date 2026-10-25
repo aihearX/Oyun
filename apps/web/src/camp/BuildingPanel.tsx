@@ -8,6 +8,7 @@ import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQ
 import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
+import { SiraIpucu } from './SiraIpucu';
 import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
@@ -120,6 +121,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
           </div>
         ) : max ? <div className="bp-note">En yüksek seviyede. Tebrikler!</div> : (
           <div className="bp-up">
+            <SiraIpucu on={queueMode && !inQueue} className="bp-sira-ipucu" />
             <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
             <div className="bp-next" data-testid="sonraki-gorunum"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: {tierNext ? 'yeni görünüm!' : 'yeni bir ekleme'}</b><br />{tierNext ? `${CAMP_TIER_NAMES[tierOf(to)]} ${b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}` : id === 'merkez' ? 'Merkez her seviyede yeni bir parça kazanır' : 'Binanın çevresi süslenir'}</span></div>
             {POWER_BUILDINGS.includes(id) && to > CAMP_POWER_LEVEL && <div className="bp-note">Bina gücü Sv {CAMP_POWER_LEVEL}’te tavan yapar; sonraki seviyeler yeni görünüm ve Kamp XP’si verir.</div>}

@@ -357,7 +357,10 @@ kendiliğinden başlar; bedel şimdi ödenir, sıradan çıkarırsan tamamı ger
 görünümünde bina kartlarında "Sıraya al" / "Sıradan çıkar", inşaat kartında sıradaki satırı. Üs görünümünün üst bandında kısa
 **Sırada: X** çipi (dokununca sıradaki binanın paneli açılır); 320 px'te sığmazsa alt satıra geçer, kırpılmaz. İkonlar resimli
 (`hourglass`, `coin`); emoji yok. Kamp öğreticisi (`camp-build`) değişmedi: öğretici yalnız boştaki inşaatçıyla başlar, o anda sıra
-düğmesi görünmez.
+düğmesi görünmez. **Tüy Dede** (`kamp-sira-01`, sahip onayı): "Sıraya al" düğmesi ilk kez görününce (bina panelinde düğmenin
+üstünde, liste görünümünde inşaat kartının altında) bir kez yazılı kart + ses: "Yapı ustası tek elle iki iş tutmaz ama sırayı bilir…".
+Oyuncu başına bir kez (FTUE `said`, kalıcı; Sıfırla siler); bir anlatıcı turu sürerken beklemez, tur bitince gelir; açılım turu
+sayılmaz (MK-007 sayacı değişmez). Kod: `apps/web/src/camp/SiraIpucu.tsx`; test: `apps/web/src/ftue/sira-ipucu.test.ts`, camp-e2e B4b.
 
 **Protokol.** `camp.queue { id }` → `{ camp, wallet, started }` (süren inşaat yoksa hemen başlar, `started: true`),
 `camp.unqueue {}` → `{ camp, wallet, refunded }`. `CampState.queued?: { id, toLevel, jeton, at } | null` yalnız `hello.campV ≥ 3`

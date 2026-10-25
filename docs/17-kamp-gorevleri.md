@@ -90,8 +90,8 @@ yazı yok; kartın konusunda güvenli sohbet kuralı: 8. bölüme kadar yalnız 
   "Ya da" adımı **bölüm açıldıktan sonra yapılanı** sayar: sunucu bölüm açıkken ilk durum okumasında sayacın değerini bir kez saklar
   (`kg_story_base`, INSERT OR IGNORE) ve ilerleme = sayaç − taban; eskiden biriken sayaç adımı kendiliğinden bitirmez. Bölüm 6–7'de
   ortadayken sürüm gelen oyuncunun takım yolundaki ilerlemesi kalır, tabanı ilk bakışta yazılır; bitmiş bölümler değişmez. Panelde
-  "ya da" satırı ana adımın altında kendi çubuğu ve kilidiyle yazılır. Tüy Dede'nin seslendirilmiş satırları değişmedi
-  (`kg-h6-giris` takım yolunu söyler). Ölçüm: `docs/yonetim/ekonomi-olcum.md` Ö2 (takımsız 14 günde 5/10 → 8-9/10).
+  "ya da" satırı ana adımın altında kendi çubuğu ve kilidiyle yazılır. Tüy Dede'nin 6. bölüm girişi (`kg-h6-giris`, sahip onayı)
+  iki yolu da söyler: "Bir kampı birlikte çalışmak büyütür. Takımınla ya da kendi başına: yardım et, öğren, zor vakada danış." Ölçüm: `docs/yonetim/ekonomi-olcum.md` Ö2 (takımsız 14 günde 5/10 → 8-9/10).
 - **Günlük**: her gün 3 görev (havuzdan oyuncunun açık binalarına göre sabit tohumla; gün içinde değişmez), **bir kez değiştirme**;
   görev başına 15 jeton + 15 Kamp XP. **Haftalık kamp hedefi** (günlük görev / vaka / oyun / malzeme; 3 basamak: jeton+XP, kristal+XP,
   kristal+XP+hızlandırıcı).

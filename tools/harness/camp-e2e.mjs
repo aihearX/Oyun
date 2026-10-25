@@ -321,6 +321,14 @@ try {
     const queueOf = () => db.get('SELECT id, jeton FROM camp_queue WHERE player_id = ?', bId);
     const jq0 = jetonOf();
     await openPanel(B, 'depo');
+    // Tüy Dede: "Sıraya al" ilk kez görününce kamp-sira-01 bir kez (panelin içinde, kayıtta `said`)
+    await B.getByTestId('siraya-al').waitFor({ timeout: 8000 });
+    await B.locator('.bp [data-testid="sira-ipucu"][data-line="kamp-sira-01"]').waitFor({ timeout: 8000 });
+    check(await B.locator('[data-testid="sira-ipucu"]').count() === 1, 'Tüy Dede sıra satırı (kamp-sira-01) panelde bir kez');
+    const saidSira = () => B.evaluate(() => { try { return (JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.ftue?.said ?? []).filter((x) => x === 'kamp-sira-01').length; } catch { return -1; } });
+    for (let i = 0; i < 20 && (await saidSira()) !== 1; i++) await sleep(150);
+    check((await saidSira()) === 1, 'kamp-sira-01 kalıcı kayıtta (FTUE said) bir kez');
+    await shot(B, 'B-sira-ipucu', 600);
     await B.getByTestId('siraya-al').click(); await B.getByTestId('sirada').waitFor({ timeout: 8000 });
     const q1 = queueOf();
     check(q1?.id === 'depo' && jetonOf() === jq0 - q1.jeton, `sunucu: Kulak Deposu sırada, bedel peşin (${q1?.jeton} jeton)`);
@@ -328,6 +336,10 @@ try {
     await B.getByTestId('sirada').getByRole('button', { name: /Sıradan çıkar/ }).click(); await B.getByTestId('siraya-al').waitFor({ timeout: 8000 });
     check(!queueOf() && jetonOf() === jq0, 'Sıradan çıkar: bedel tamamen geri');
     await B.getByTestId('siraya-al').click(); await B.getByTestId('sirada').waitFor({ timeout: 8000 });
+    check(await B.locator('[data-testid="sira-ipucu"]').count() <= 1, 'sıraya al / çıkar: sıra satırı ikinci kez gelmez');
+    await closePanel(B); await toastGone(B);
+    await openPanel(B, 'laboratuvar'); await B.getByTestId('siraya-al').waitFor({ timeout: 8000 }); await sleep(600);
+    check(await B.locator('[data-testid="sira-ipucu"]').count() === 0, 'başka binanın panelinde "Sıraya al" yine görünür, sıra satırı bir daha gelmez');
     await closePanel(B); await toastGone(B);
     await B.getByTestId('sirada-cip').waitFor({ timeout: 8000 });
     ok('üst bantta "Sırada: Depo" çipi');

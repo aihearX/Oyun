@@ -545,8 +545,8 @@ isterse bir vakayı yeniden çözer (yeni yıldız sayılmaz).
 - Bölüm 6–7'de ortadayken sürüm gelen oyuncu: takım yolundaki ilerlemesi olduğu gibi kalır; "ya da" adımının tabanı ilk bakışta
   yazılır (o andan sonra yapılan sayılır). Bitmiş ve ödülü alınmış bölümler değişmez. Testler: `apps/server/test/kamp-gorev.test.ts`
   ("ya da" yolu, idempotent taban, eski kayıt göçü, takım yolu), `packages/content/src/kamp-gorev.test.ts`.
-- Seslendirilmiş satırlar değişmedi. `kg-h6-giris` ("Takımına katıl, yardım et, zor vakada danış.") takım yolunu söylüyor; ekranda
-  "ya da" satırları yazılı. Yeni satır önerisi sahipte (rapor).
+- Seslendirilmiş satırlar o turda değişmedi. `kg-h6-giris` ("Takımına katıl, yardım et, zor vakada danış.") takım yolunu söylüyordu;
+  sonra sahibin onayladığı satırla iki yolu da söyler ("Takımınla ya da kendi başına: yardım et, öğren, zor vakada danış."), yeniden seslendirildi.
 
 **Ö3 · İnşaat sırası** (MK-011; `camp.queue` / `camp.unqueue`, `apps/server/src/camp.ts`; tablo `camp_queue`; kurallar
 docs/14-kamp.md §14). Süren inşaata ek olarak bir sonraki inşaat sıraya alınır; bedeli o an düşer, sıradan çıkarılınca tamamı geri

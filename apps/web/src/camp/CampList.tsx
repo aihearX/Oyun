@@ -8,6 +8,7 @@ import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canQueue, effect, queueSupported, shortOf, type CampActions } from './model';
 import { TedaviPanel } from './TedaviPanel';
 import { DedeCard } from './dede';
+import { SiraIpucu } from './SiraIpucu';
 import { Art, rich, Glyph } from '../ui/art';
 import { GorevChips, GorevHost } from './gorev/Kanca';
 
@@ -36,6 +37,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
       {camp.xp && <div className="card ks-card"><CampLevelChip xp={camp.xp} onOpen={() => setLevelPanel(true)} /></div>}
       {levelPanel && <CampLevelPanel camp={camp} onClose={() => setLevelPanel(false)} />}
       {active && <Construction b={active} sNow={sNow} wallet={wallet} team={team} actions={actions} queued={camp.queued ?? null} />}
+      {qOn && <SiraIpucu on={BUILDINGS.some((d) => canQueue(camp, wallet, d.id).ok)} className="dede-list" />}
       {!active && (() => { const can = BUILDINGS.some((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; return to <= d.maxLevel && (d.id === 'merkez' || to <= merkez) && buildCost(d.id, to).jeton <= wallet.jeton; }); return (
         <div className="card idle-card"><span aria-hidden><Art e="👷" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>İnşaatçı boşta</b><div className="muted">{can ? 'Bir bina seç ve yükselt. Aynı anda bir inşaat yapılır.' : 'Yükseltme için jeton biriktir: bölüm oyna, görevleri bitir, takım hediyelerini al.'}</div></div></div>); })()}
 

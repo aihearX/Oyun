@@ -150,6 +150,8 @@
 /* ---- Tüy Dede (kamp) */
 .dede-camp { margin:0; max-width:none; animation-delay:0s; }
 .dede-list { margin:0 auto; animation-delay:0s; }
+/* inşaat sırası satırı (SiraIpucu): panelin içinde, düğmenin üstünde */
+.bp-sira-ipucu { margin:0; max-width:none; animation-delay:.1s; }
 
 /* ---- Çanta (bölüm kartı; krem sayfa) */
 .bag { display:flex; flex-direction:column; gap:6px; }
