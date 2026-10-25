@@ -494,6 +494,15 @@ async function suite(browserName, target, [W, H]) {
         await page.getByTestId('kg-btn').waitFor({ timeout: 10_000 }); }
       await page.getByTestId('kg-btn').click(); await page.getByTestId('kg-panel').waitFor();
       for (const t of ['hikaye', 'gunluk', 'etkinlik', 'basari']) { await page.locator(`.kg-tabs [data-tab="${t}"]`).click(); await sleep(500); await check(`gorev-${t}`, { scroll: false }); }
+      // Kampın Hikâyesi 6. bölüm: takıma bağlı adımların altında takımsız "ya da" satırları (Ö2; dar ekranda taşma yok)
+      { const sq4 = new DatabaseSync(dbFile); sq4.exec('PRAGMA busy_timeout = 3000');
+        for (let i = 1; i <= 5; i++) sq4.prepare("INSERT OR IGNORE INTO kg_claim(player_id, ref, at, reward) VALUES(?, ?, ?, '{}')").run(pid, `hikaye:${i}`, Date.now());
+        sq4.close();
+        await page.evaluate(() => window.__kg?.refresh()); await page.locator('.kg-tabs [data-tab="hikaye"]').click();
+        await page.locator('[data-testid="kg-story"][data-bolum="6"] .kg-ya').first().waitFor({ timeout: 10_000 }); await sleep(500);
+        await check('gorev-hikaye-ya-da', { scroll: false });
+        await page.locator('[data-adim="konsult-1"]').scrollIntoViewIfNeeded(); await sleep(300);
+        await check('gorev-hikaye-ya-da-alt', { scroll: false }); }
       await page.locator('.kg-sheet .bp-x').click(); await sleep(300);
       await page.getByTestId('klinik-btn').click(); await page.getByTestId('klinik-panel').waitFor(); await sleep(400);
       await check('gorev-klinik-salon', { scroll: false });
