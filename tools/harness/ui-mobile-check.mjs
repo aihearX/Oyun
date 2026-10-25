@@ -16,6 +16,7 @@
 //           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
 //           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
+//           [--dist-ek ad] (web ve dom derlemesi dist-<ad> klasörlerinde: aynı ağaçta iki koşu ayrı derlemeyle)
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -53,13 +54,15 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { cleanup(); proc
 const run = (cmd, a, o = {}) => new Promise((res, rej) => { const p = spawn(cmd, a, { cwd: root, stdio: 'inherit', ...o }); p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`${cmd} ${a.join(' ')} → ${c}`)))); });
 
 // ---------------------------------------------------------------- derleme + sunucu
-const distDir = resolve(root, 'tools/harness/out/ui-mobile/dist');
+// --dist-ek <ad>: derleme klasörlerine ek (ör. aynı ağaçta "önce" koşusu sürerken "sonra" derlemesi ayrı klasörde)
+const DIST_EK = opt('dist-ek', '') ? `-${opt('dist-ek')}` : '';
+const distDir = resolve(root, `tools/harness/out/ui-mobile/dist${DIST_EK}`);
 if (targets.includes('web') && (!has('no-build') || !existsSync(resolve(distDir, 'index.html')))) await run('npx', ['vite', 'build', '--outDir', distDir, '--emptyOutDir', '--logLevel', 'warn'], { cwd: resolve(root, 'apps/web') });
 if (!existsSync(resolve(root, 'apps/server/dist/server.mjs')) || (!has('no-build') && targets.includes('web'))) await run('npm', ['run', 'build:server', '--silent']);
-const mobileDist = resolve(root, 'apps/mobile/dist');
+const mobileDist = resolve(root, `apps/mobile/dist${DIST_EK}`);
 if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDist, 'www.bundle')))) {
   rmSync(mobileDist, { recursive: true, force: true });
-  await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') });
+  await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', `dist${DIST_EK}`], { cwd: resolve(root, 'apps/mobile') });
 }
 const sport = 8800 + Math.floor(Math.random() * 400);
 // sunucu veritabanı geçici bir dosyada: "büyük cüzdan" denetimi oyuncunun cüzdanını doğrudan yazar
@@ -340,8 +343,12 @@ function contrastRects(ids) {
     const inView = parts.length > 0 && vis >= all * 0.4;
     rects = parts.length ? parts : rects;
     // üstü açık mı: metin kutusunun ortasında en üstteki öğe metnin kendisi (ya da atası/çocuğu) olmalı; açık alt sayfanın örttüğü ekran sayılmaz
+    // sabit bir şerit / açılır pencere metnin bir kısmını örtüyorsa (kaydırınca metin altına girer) bu konumda ölçülmez
     let covered = false;
-    if (inView) { const q = rects[0]; const hit = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); covered = !!hit && !(hit === el || el.contains(hit) || hit.contains(el)); }
+    if (inView) for (const q of rects.slice(0, 3)) for (const fx of [0.1, 0.5, 0.9]) {
+      const hit = document.elementFromPoint(q.left + q.width * fx, q.top + q.height / 2);
+      if (hit && !(hit === el || el.contains(hit) || hit.contains(el))) covered = true;
+    }
     out[id] = { inView, covered, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
   }
   return out;
@@ -503,29 +510,35 @@ async function suite(browserName, target, [W, H]) {
     await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
     let unmeasured = 0;
     try {
-      let pos = await page.evaluate(contrastRects, ids); let img = null; const done = new Set();
+      let pos = await page.evaluate(contrastRects, ids); let img = null, imgBuf = null; const done = new Set();
       for (let round = 0; round < 30; round++) {
         const now = items.filter((i) => !done.has(i.id) && pos[i.id]?.inView);
         if (now.some((i) => i.sample && !pos[i.id].covered)) {
-          const buf = await page.screenshot({ scale: 'css' }); img = decodePng(buf);
+          const buf = await page.screenshot({ scale: 'css' }); img = decodePng(buf); imgBuf = buf;
           if (process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), buf);
         }
+        let bad = false;
         for (const i of now) {
+          // örtülü: bir kez başka konumda (metin üstte) yeniden denenir, yine örtülüyse sayılmaz
+          if (pos[i.id].covered) { if (i.sample && !i.retried) { i.retried = true; continue; } done.add(i.id); i.covered = true; continue; }
           done.add(i.id);
-          if (pos[i.id].covered) { i.covered = true; continue; }
           if (!i.sample) continue;
           const sm = sampleContrast(img, pos[i.id].rects, i.fgRaw, i.fgRaw[3] * i.opAll);
           if (sm) Object.assign(i, { ratio: sm.ratio, bg: sm.bg, tx: sm.tx, min: sm.min, minBg: sm.minBg, sampled: true });
+          if (sm && sm.ratio < i.need && !i.istisna && !i.bekleyen) bad = true;
         }
+        // örneklenen bir ihlal varsa yazıları gizlenmiş görüntü kanıt olarak kalır (…-kontrastN.png)
+        if (bad && imgBuf && !process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), imgBuf);
         for (const i of items) if (!done.has(i.id) && !pos[i.id]) done.add(i.id); // kayboldu
         const next = items.find((i) => !done.has(i.id) && i.sample);
         if (!next) break;
-        const dbg = await page.evaluate((id) => {
+        const block = next.retried ? 'start' : 'center';
+        const dbg = await page.evaluate(([id, block]) => {
           const n = window.__kNodes[id]; const el = n.nodeType === 3 ? n.parentElement : n; const sc = [];
           for (let q = el.parentElement; q; q = q.parentElement) if (q.scrollHeight > q.clientHeight + 1 || q.scrollWidth > q.clientWidth + 1) sc.push([q, q.scrollTop, q.scrollLeft]);
-          el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+          el.scrollIntoView({ block, inline: 'center', behavior: 'instant' });
           return sc.map(([q, t, l]) => `${q.tagName.toLowerCase()}.${String(q.className).split(' ')[0]} ${t},${l}→${q.scrollTop},${q.scrollLeft} (${q.scrollHeight}/${q.clientHeight})`).join(' ; ');
-        }, next.id);
+        }, [next.id, block]);
         await sleep(120);
         pos = await page.evaluate(contrastRects, ids.filter((id) => !done.has(id)));
         if (!pos[next.id]?.inView) { done.add(next.id); next.unmeasured = true; next.why = `${JSON.stringify(pos[next.id]?.rects?.[0]?.map(Math.round))} ${dbg}`; }
