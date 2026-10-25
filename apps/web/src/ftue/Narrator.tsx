@@ -1,3 +1,4 @@
+import './ftue.css'; // Tüy Dede stili (td-*): dev yarış sayfası gibi Coach'suz girişlerde de yüklü (YN-026)
 /**
  * Tüy Dede: iç kulağın en yaşlı tüy hücresi. Başındaki altın tüycükler (stereosilya) basamak basamak dizilir,
  * yuvarlak altın gözlük, kar beyazı kaşlar ve bıyık; konuşurken ağzı oynar, boşta hafifçe sallanır.

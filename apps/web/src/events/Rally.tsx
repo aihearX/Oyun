@@ -12,6 +12,7 @@ import type { PlayFn } from './EventsScreen';
 import { MonsterArt } from './MonsterArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
+import '../race/race.css'; // race-dots / race-live / race-actions: yarış ekranları açılmadan da stilli (YN-026)
 
 /** Ralli odası: canavar seçimi → canlı can barı, katılımcılar, hasar akışı, geri sayım, sonuç kutlaması */
 export function RallyView({ onPlay }: { onPlay: PlayFn }) {
