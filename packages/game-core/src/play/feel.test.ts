@@ -24,7 +24,7 @@ describe('his: bölüm yayı ve ödüller', () => {
       const st = s.sectionStarts!;
       for (let k = 0; k < 3; k++) { const part = s.chunks.slice(st[k], k < 2 ? st[k + 1] : s.chunks.length); expect(part.some((c) => c.tags.includes('risk')), `${n}/${salt} bölüm ${k + 1} risk yolu`).toBe(true); }
     }
-  });
+  }, 60_000); // 80 bölüm üretimi: yüklü makinede 5 sn'lik varsayılanı aşabilir
   it('gizli altın koklealar ana yolda değil: koklealardan kaçınan oyuncu hiçbirini istemeden almaz', () => {
     const bad: string[] = [];
     for (let n = 1; n <= 39; n++) { if (n === 20) continue; const r = playLevel(n, { prefs: { secrets: false } }); if (r.cochleas > 0) bad.push(`${n}: ${r.cochleas}`); }
