@@ -316,6 +316,15 @@ function measureContrast([ISTISNA, BEKLEYEN]) {
 /** örneklenecek metinlerin güncel konumu ve üstünün açık olup olmadığı (kaydırmadan sonra yeniden okunur) */
 function contrastRects(ids) {
   const W = innerWidth, H = innerHeight; const out = {};
+  let ov = null;
+  // boyalı sabit/yapışkan şeritler (ekranın %60'ından küçük; tam ekran katmanlar ve test bantları sayılmaz)
+  const overlays = () => ov ??= [...document.querySelectorAll('body *')].filter((e) => {
+    if (e.id === '__inset_top' || e.id === '__inset_bottom') return false;
+    const cs = getComputedStyle(e); if (cs.position !== 'fixed' && cs.position !== 'sticky') return false;
+    if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) return false;
+    const painted = cs.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) || (cs.backdropFilter && cs.backdropFilter !== 'none');
+    const r = e.getBoundingClientRect(); return painted && r.width * r.height > 0 && r.width * r.height < W * H * 0.6;
+  }).map((e) => ({ el: e, r: e.getBoundingClientRect() }));
   for (const id of ids) {
     const n = window.__kNodes?.[id]; if (!n || !n.isConnected) { out[id] = null; continue; }
     const el = n.nodeType === 3 ? n.parentElement : n;
@@ -347,11 +356,17 @@ function contrastRects(ids) {
     // üstü açık mı: metin kutusunun ortasında en üstteki öğe metnin kendisi (ya da atası/çocuğu) olmalı; açık alt sayfanın örttüğü ekran sayılmaz
     // sabit bir şerit / açılır pencere metnin bir kısmını örtüyorsa (kaydırınca metin altına girer) bu konumda ölçülmez
     let covered = false;
-    if (inView) for (const q of rects.slice(0, 3)) for (const fx of [0.1, 0.5, 0.9]) {
-      const hit = document.elementFromPoint(q.left + q.width * fx, q.top + q.height / 2);
+    if (inView) for (const q of rects.slice(0, 3)) for (const fx of [0.1, 0.5, 0.9]) for (const fy of [0.2, 0.5, 0.85]) {
+      const hit = document.elementFromPoint(q.left + q.width * fx, q.top + q.height * fy);
       if (hit && !(hit === el || el.contains(hit) || hit.contains(el))) covered = true;
     }
-    out[id] = { inView, covered, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
+    // yapışkan (sticky) öğe kaydırınca yer değiştirir: yalnız ilk konumunda ölçülür
+    let sticky = false, pinned = false;
+    for (let q = el; q && q !== document.body; q = q.parentElement) { const ps = getComputedStyle(q).position; if (ps === 'sticky') sticky = true; if (ps === 'fixed' || ps === 'sticky') pinned = true; }
+    // akıştaki metin, sabit/yapışkan bir şeridin (sekme çubuğu, üst çubuk) altına girdiyse örtülüdür; şeridin boşlukları
+    // pointer-events:none olabildiğinden isabet testi yetmez → kutu kesişimi
+    if (inView && !covered && !pinned) for (const b of overlays()) if (!b.el.contains(el) && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = 'serit'; break; }
+    out[id] = { inView, covered, sticky, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
   }
   return out;
 }
@@ -515,6 +530,8 @@ async function suite(browserName, target, [W, H]) {
     try {
       let pos = await page.evaluate(contrastRects, ids); let img = null, imgBuf = null; const done = new Set();
       for (let round = 0; round < 30; round++) {
+        // ilk turdan sonra yapışkan öğeler ölçülmez (kaydırma onları başka öğelerin üstüne/altına taşır)
+        if (round > 0) for (const i of items) if (!done.has(i.id) && pos[i.id]?.sticky) { done.add(i.id); if (i.sample) i.unmeasured = true; }
         const now = items.filter((i) => !done.has(i.id) && pos[i.id]?.inView);
         if (now.some((i) => i.sample && !pos[i.id].covered)) {
           const buf = await page.screenshot({ scale: 'css' }); img = decodePng(buf); imgBuf = buf;
@@ -523,6 +540,8 @@ async function suite(browserName, target, [W, H]) {
         let bad = false;
         for (const i of now) {
           // örtülü: bir kez başka konumda (metin üstte) yeniden denenir, yine örtülüyse sayılmaz
+          // hesapla ölçülen (örneklenmeyen) metin şerit altında kalsa da ölçülmüş sayılır: zinciri konumdan bağımsız
+          if (pos[i.id].covered === 'serit' && !i.sample) { done.add(i.id); continue; }
           if (pos[i.id].covered) { if (i.sample && !i.retried) { i.retried = true; continue; } done.add(i.id); i.covered = true; continue; }
           done.add(i.id);
           if (!i.sample) continue;
