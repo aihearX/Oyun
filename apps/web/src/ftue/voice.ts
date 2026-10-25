@@ -13,7 +13,8 @@ import { NARRATOR_TTS } from './voicePick';
  *  - Tarayıcı: dosya indirilir, aynı motorla çözülüp çalınır.
  *  - Kayıt metin parmak izi tutmazsa ya da çalınamazsa: yalnız ERKEK bir Türkçe cihaz sesi varsa o okur; yoksa sessiz kalır
  *    (Tüy Dede kadın sesle konuşmaz). Altyazı her zaman ekranda.
- *  - Genel ses ve "Anlatıcı sesi" ayarına uyar, efekt ses düzeyini kullanır, konuşurken müziği kısar, ileri/atla'da susar.
+ *  - Genel ses ve "Anlatıcı sesi" ayarına uyar; düzeyi kendi kaydırıcısından (store.voiceVol → motorun anlatıcı veriyolu,
+ *    App.tsx setVolumes), efekt düzeyinden bağımsız. Konuşurken müziği kısar (sahip `ses`), ileri/atla'da susar.
  *  - Sıradaki 1-2 satır önceden çözülür (gecikme olmasın).
  * Ayarlar ekranı son durumu gösterir (kayıt ✓ / cihaz sesi / sessiz + son hata): cihazda ne olduğunu görmek için.
  */
@@ -133,7 +134,6 @@ export function speakLine(text: string, id?: string): number {
   const s = useStore.getState();
   if (!s.sounds || !s.narratorVoice) return token;
   const my = ++token; const live = () => my === token;
-  const volume = Math.max(0.2, Math.min(1, s.sfxVol ?? 0.9));
   try { audio.unlock(); } catch { /* yok */ }
   const run = (async () => {
     let file: string | null = null;
@@ -144,7 +144,7 @@ export function speakLine(text: string, id?: string): number {
         const buf = await voiceBuffer(file);
         if (!live()) return;
         if (buf) {
-          const h = audio.voice(buf, volume);
+          const h = audio.voice(buf);
           if (h) {
             current = h; report('kayıt', id ?? null, file);
             await h.done;

@@ -204,7 +204,7 @@ export function App() {
     setRoute({ name: 'level', spec, extras: {} });
   }, [bot, store.journey]);
   // ses: oyuncu ayarları (kalıcı) → motor; ilk dokunuşta kilit açma + global düğme sesleri
-  useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol }); }, [store.sounds, store.musicVol, store.sfxVol]);
+  useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol, voice: store.voiceVol }); }, [store.sounds, store.musicVol, store.sfxVol, store.voiceVol]);
   useEffect(() => (bot ? undefined : installUiFeedback()), [bot]);
   useEffect(() => (bot ? undefined : installViewport()), [bot]);
   // Büyük yazı (Ayarlar): kök yazı ölçeği; yazı boyutları rem olduğundan menü ve sohbet metni birlikte büyür (Phaser göstergeleri değil)

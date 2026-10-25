@@ -16,9 +16,9 @@ export interface Toast { id: number; icon: string; title: string; text?: string;
 
 interface State extends PlayerCore {
   journey: string; progress: Record<number, LevelProgress>; sounds: boolean; recentStars: number[];
-  /** ses düzeyleri (0-1): müzik ve efekt ayrı; kalıcı */
-  musicVol: number; sfxVol: number;
-  setVolumes(v: { musicVol?: number; sfxVol?: number }): void;
+  /** ses düzeyleri (0-1): müzik, efekt ve anlatıcı (Tüy Dede) ayrı; kalıcı */
+  musicVol: number; sfxVol: number; voiceVol: number;
+  setVolumes(v: { musicVol?: number; sfxVol?: number; voiceVol?: number }): void;
   toasts: Toast[];
   /** gün sayacı: ardışık günlerde açılışta artar; kaçırılan gün seri koruyucuyla korunur; suçlama yok */
   touchDay(): StreakEvent;
@@ -88,7 +88,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, bigText: false, odiColor: null as number | null, chosenColor: null as number | null };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, bigText: false, odiColor: null as number | null, chosenColor: null as number | null };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -153,7 +153,7 @@ export const useStore = create<State>()(persist((set, get) => {
       settleAndToast({ ...core(get()), meta: { ...m, cards: [...m.cards, ...newCards], cosmetics: { ...m.cosmetics, owned: [...m.cosmetics.owned, ...newCos] } } }, extra);
     },
     setSounds(v) { set({ sounds: v }); },
-    setVolumes(v) { set({ ...(v.musicVol != null ? { musicVol: Math.max(0, Math.min(1, v.musicVol)) } : {}), ...(v.sfxVol != null ? { sfxVol: Math.max(0, Math.min(1, v.sfxVol)) } : {}) }); },
+    setVolumes(v) { set({ ...(v.musicVol != null ? { musicVol: Math.max(0, Math.min(1, v.musicVol)) } : {}), ...(v.sfxVol != null ? { sfxVol: Math.max(0, Math.min(1, v.sfxVol)) } : {}), ...(v.voiceVol != null ? { voiceVol: Math.max(0, Math.min(1, v.voiceVol)) } : {}) }); },
     reset() { set({ progress: {}, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS }, failStreak: 0, recentStars: [], meta: defaultMeta(), odiColor: null, chosenColor: null, ftue: get().ftue.bypass ? get().ftue : { ...FRESH_FTUE } }); },
     ftueStoryDone() { set({ ftue: { ...get().ftue, story: true } }); },
     ftueTourDone(id) { const f = get().ftue; if (!f.tours.includes(id)) set({ ftue: { ...f, tours: [...f.tours, id] } }); },
@@ -170,7 +170,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, odiColor: s.odiColor, chosenColor: s.chosenColor }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, odiColor: s.odiColor, chosenColor: s.chosenColor }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };
@@ -181,9 +181,16 @@ export const useStore = create<State>()(persist((set, get) => {
     if (!persisted || typeof persisted !== 'object') return current;
     const p = persisted as Partial<State>;
     // ftue: v3 öncesi kayıtta yok → ilerlemesi olan oyuncu hikâyeyi ve açılmış yerlerin turlarını görmüş sayılır
-    return { ...current, ...p, meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
+    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
   },
 }));
+
+/** anlatıcı düzeyi: eski kayıtta yok → o güne kadar duyduğu düzey (anlatıcı efekt düzeyini izliyordu, 0,2'nin altına inmezdi) */
+export function migrateVoiceVol(p: { voiceVol?: unknown; sfxVol?: unknown }): number {
+  if (typeof p.voiceVol === 'number' && Number.isFinite(p.voiceVol)) return Math.max(0, Math.min(1, p.voiceVol));
+  const sfx = typeof p.sfxVol === 'number' && Number.isFinite(p.sfxVol) ? p.sfxVol : INITIAL.sfxVol;
+  return Math.max(0.2, Math.min(1, sfx));
+}
 
 const validColor = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 0xffffff ? v : null);
 

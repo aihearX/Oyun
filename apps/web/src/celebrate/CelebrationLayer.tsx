@@ -112,7 +112,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     const items = o.items; const tier = o.tier ?? 'bronz';
     for (const it of items) { const k = currency(it); if (k) hud.hold(k, it.amount); }
     const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0 };
-    audio.duck(6, 0.35);
+    audio.duck('kutlama', 6, 0.35);
     setScene({ ...base, phase: 'drop' }); audio.play('whoosh', { vol: 0.8 }); await wait(700);
     for (let i = 0; i < 3; i++) { setScene({ ...base, phase: 'shake', shake: i + 1 }); audio.play('chestShake', { semitones: i * 2 }); platform().haptic(i === 2 ? 'heavy' : 'medium'); await wait(560); }
     setScene({ ...base, phase: 'open', shake: 3 }); audio.play('chestOpen'); platform().haptic('success');
@@ -132,7 +132,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
 
   const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string }) => {
     const unlocks = o.unlocks ?? [];
-    audio.duck(3, 0.3);
+    audio.duck('kutlama', 3, 0.3);
     setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'burst', shown: 0, title: o.title, kicker: o.kicker });
     audio.play('levelUp'); platform().haptic('success');
     const cx = window.innerWidth / 2, cy = window.innerHeight * 0.38;
@@ -148,7 +148,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     const reward = o.reward ?? [];
     for (const it of reward) { const k = currency(it); if (k) hud.hold(k, it.amount); }
     const base = { kind: 'biome' as const, biome: o.biome, name: o.name, reward, shown: 0 };
-    audio.duck(5, 0.3);
+    audio.duck('kutlama', 5, 0.3);
     setScene({ ...base, phase: 'rise' }); audio.play('biomeAwaken'); platform().haptic('medium');
     const cx = window.innerWidth / 2;
     await wait(900);

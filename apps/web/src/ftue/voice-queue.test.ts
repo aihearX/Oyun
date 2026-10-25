@@ -15,6 +15,7 @@ vi.mock('@odi/audio', () => ({
       return { done, stop: () => { p.stopped = true; end(); } };
     },
     duck: () => undefined,
+    unduck: () => undefined,
   },
 }));
 
