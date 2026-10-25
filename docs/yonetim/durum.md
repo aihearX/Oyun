@@ -2,8 +2,8 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 2. tur · 2026-10-25 · başlangıç b630a2d → tur sonu 375562e.
-Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md).
+**Son tur:** 3. tur · 2026-10-25 · başlangıç b1ec20c → tur sonu 6e6c63d (+ bu belge).
+Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md).
 
 ## Genel hazırlık
 
@@ -11,34 +11,30 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 |---|---|---|
 | **İç test** (aynı Wi-Fi, Expo Go SDK 58) | Hazır | — |
 | **Kapalı beta** (TestFlight / APK, 20-50 kişi) | 4 eksik | Kalıcı diskli herkese açık sunucu (YN-006), derlemede sunucu adresi (YN-007), yeni yönetici kodu (YN-002), ilk EAS derlemesinin denenmesi (YN-024) |
-| **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009; uygulama içi TASLAK hazır), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
+| **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
 
-## Test sonuçları (2. tur, PY çalıştırdı; tur sonu kodu)
+## Test sonuçları (3. tur, PY çalıştırdı)
 
 | Takım | Sonuç | Not |
 |---|---|---|
-| typecheck / lint / mobil tsc | geçti | |
-| `vitest run` | 60 dosya / 410 test geçti | |
-| mobil `jest`, `expo-doctor` | 2/2, 20/20 | SDK 58 |
-| `bot.mjs` 1-40 + boşta | 40/40; boşta 0/40 (doğru) | zorluk değişikliğiyle; WebKit 18–23 + 38–40 9/9 |
-| `domcheck` | geçti | |
-| `reset`, `social`, `codes`, `camp`, `vaka` -e2e | geçti | web + dom |
-| `team-apply`, `teamrace`, `comm` -e2e (dom) | geçti | SDK 58 doğrulaması |
-| `onboarding-e2e` | web Chromium 390/320 (1–10. bölüm) + WebKit 390/320 + dom Chromium/WebKit: 0 sorun | bölüm başına en çok 2 açılım turu |
-| `ui-mobile-check` web Chromium + WebKit | 488 ekran, 0 sorun | WebKit'te bulunan stilsiz kart düzeltildikten sonra (YN-026) |
-| `ui-mobile-check` dom | 451 ekran, 0 sorun | son bileşim zaman aşımına kadar; çalışan raporu 224/0 |
+| typecheck / lint | geçti | her çalışan commit'inde |
+| `vitest run` | 62 dosya / 421 test geçti (6e6c63d) | yük altında ağır zorluk testleri bir kez zaman aşımına düştü, tek başına geçti (MK-013) |
+| `ui-mobile-check` web + dom × Chromium + WebKit × 390 + 320 | **940 ekran, 0 sorun** (d73aa0a) | ilk tam ve temiz koşu |
+| bot 21–28 Chromium + WebKit | 8/8 + 8/8 (af0dd99) | yüzme yıldızları |
+| camp, vaka, teamrace, race, reset, social, domcheck | geçti | |
+| onboarding WebKit 390 + 320 | 0 sorun (d73aa0a) | |
+| `simule.mjs` | iki koşu bayt bayt aynı; yerel ödül kaybı 656/1.003 → 0 | |
 
 ## Bu tur yapılanlar (main'de)
-- **Çalışanlar (PY doğruladı, kabul):** 61e30f4 Expo SDK 58 (YN-022) · 2483961 bölge finalleri ve süreli bölüm yıldızları (MK-003, MK-004) · 6e3debf paket bölme ve hızlı ilk açılış (YN-016, MK-002)
-- **PY:** fd68fbc şema sürümü ve göçler (YN-014) · 88f2313 IP başına yeni hesap sınırı (YN-015) · 05ecdd3 Ayarlar › Gizlilik ve hakkında, TASLAK (YN-017) · 3f5b653 kod deneme kaydı 90 gün · d15a497 + 2347e6f FTUE testi 10. bölüme, bölüm başına en çok 2 tur (MK-005, MK-007) · 375562e paket bölme sonrası stilsiz sonuç kartı (YN-026'nın ilk parçası)
+- **Çalışanlar (PY doğruladı, kabul):** 6c1f4ac ekonomi ölçümü (MK-001) · af0dd99 yüzmede 2★ %45 nota (MK-008) · d73aa0a eksik CSS yüklemeleri + kalıcı statik test (YN-026) · 6e6c63d yerel ödül sınırı 1.500 ve vaka kademeleri Sv 1/2/3 (MK-009, MK-010)
+- **PY:** aebd450 `npm run kabul` tek komutla kabul takımı; artık süreç sızıntısı giderildi (YN-023)
 
 ## Sürüyor
-- Yok (üç çalışan bitti). Sonraki emirler raporda.
+- Yok. Sonraki emirler raporda (Ö3 inşaat sırası, Büyük yazı, takımsız hikâye).
 
-## Sonraki tur (3. tur) planı
-1. Yeni çalışanların sonuçlarını doğrula (MK-008 yüzme yıldızları, MK-001 ekonomi ölçümü, kabul takımı / YN-026 CSS).
-2. PY: YN-026 statik CSS testi (çalışana verilmezse), YN-025 risk izleme, kalan P2'ler.
-3. Sahip kararları gelirse: YN-006/007 (sunucu adresi → `eas.json` env).
+## Sonraki tur (4. tur) planı
+1. Yeni çalışanları doğrula (`npm run kabul` alt kümeleriyle).
+2. PY: MK-013 (ağır testler) çalışana verilmezse; YN-025 risk izleme; sahip kararları gelirse uygula.
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
@@ -62,3 +58,4 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | 9 | **Bölge giriş bölümleri de kademe kademe zorlaşsın mı?** (zorluk çalışanı bulgusu) | Bugünkü gibi kalsın: giriş bölümleri bilinçli "nefes" bölümüdür, bölge finali doruk; yalnız Apeks girişinin ortalaması Koklea Orta'nınkinin altında kalmasın diye o tek girişe küçük bir artış yeterli. Ölçüm docs/12 §6'da. | a) Olduğu gibi · b) Yalnız Apeks girişi biraz zorlaşsın (önerim) · c) Bütün girişler kademeli artsın (erken bölümler sertleşir, yeni oyuncu kaybı riski) |
 | 10 | **Kristale güç vermeyen bir harcama yeri** (ekonomi Ö5) | Takımlı oyuncu 14 günde 563-881 kristal biriktiriyor, tek harcama yeri hızlandırma. Önerim: yalnız görünüş/kişiselleştirme harcaması (kamp süsü, Odi kostümü renk varyantı, takım amblemi çerçevesi); güç ya da sıralama etkisi yok, pay-to-win yok. | a) Süs ve kostüm (önerim) · b) Takım için ortak süs/anıt bağışı · c) Şimdilik yok (kristal birikir) |
 | 11 | **İçerik derinliği: 40 bölüm ~69 dakika** (ekonomi ölçümü) | 40. bölüme 6 oturumla 2., 1 oturumla 9. günde varılıyor; sonrası tekrar ve depo. Önerim (b) + (a) sırayla: önce günlük meydan okuma, sonra yeni bölge. | a) Yeni bölge/yolculuk (+10 bölüm, yeni biyom ve boss; ~1–2 hafta çalışan işi + odyoloji içeriği sizin onayınızla) · b) Günlük/haftalık meydan okuma modu: üretilmiş bölüm, herkese aynı tohum, takım sıralaması (~3–5 gün; dürüst, sahte sayaç yok) · c) Sonsuz mod (artan zorluklu üretilmiş parkur, kişisel rekor; ~3–4 gün) · d) Bölüm düzenleyici (oyuncu bölümü; moderasyon ister, ~2 hafta + risk) |
+| 12 | **Klinik: kademeler daha erken mi, vaka sayısı artsın mı?** (MK-010 sonrası) | Kademeler Sv 1/2/3 yapıldı; 32 vakayla günde 3 hasta 14 günde en çok 11 gün yeni hasta demek. Önerim: (b) yeni vakaları siz onaylayarak ekleyelim (odyoloji içeriği sizin uzmanlık alanınız); (a) yalnız boşlukları biraz daha kapatır. | a) Ö4b: kademeler Sv 1/1/2 (yeni içerik yok, ilk haftada daha çok hasta) · b) +16–24 yeni vaka (taslağı biz hazırlarız, tıbbi doğruluk sizin onayınızla) · c) Olduğu gibi |
