@@ -5,6 +5,7 @@ import { quietProfile, startsWithPit } from './pacing';
 import { CURVE_ZONES, knobsFor, tuningAt, zoneOf, zonePos, type LevelKnobs } from './curve';
 import { predictDmg, roomStats } from './rooms';
 import { KALIBRASYON } from './kalibrasyon';
+import { SURE_ORANI } from './sure';
 import { PATHOLOGY_ROOMS, tagPathologies } from './patoloji';
 
 /**
@@ -551,7 +552,7 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
   const slow = finalChunks.reduce((a, c) => a + (c.tags.includes('duvar') ? 2.5 : 0) + (c.tags.includes('su') ? 1.5 : 0) + (c.tags.includes('anahtar') ? 3 : 0), 0);
   const parTimeSec = Math.round(lengthPx / speedPx + slow + finalChunks.length * 1.5 + 6);
   const obj = plan.objective === 'collect-all' ? objective('collect-all', coinBudget)
-    : plan.objective === 'timed' ? objective('timed', Math.max(25, Math.round(parTimeSec * 0.95)))
+    : plan.objective === 'timed' ? timedObjective(journeyId === 'insan' ? SURE_ORANI[plan.number] : undefined, parTimeSec)
     : plan.objective === 'melody' ? objective('melody', melodyNotes || 5)
     : objective(plan.objective);
   const sectionChunkStarts = sectionStarts.slice();
@@ -561,6 +562,12 @@ function generateCore(journeyId: string, number: number, profile: PlayerProfile,
     abilities, newAbilities, sectionStarts: sectionChunkStarts, cochleasTotal: keepSecret.filter(Boolean).length,
     ...(knobs.assist ? { assist: knobs.assist } : {}),
   };
+}
+
+/** süreli hedef: 3★ ve 2★ süreleri (ölçülen oran × par; ölçüm yoksa eski 0,95 ve 1,1) */
+export function timedObjective(ratio: [number, number] | undefined, parTimeSec: number) {
+  const t3 = Math.max(25, Math.round(parTimeSec * (ratio?.[0] ?? 0.95)));
+  return objective('timed', t3, Math.max(t3 + 3, Math.round(parTimeSec * (ratio?.[1] ?? 1.1))));
 }
 
 /** dizi: aynı odada art arda gelen ve birbirine yakın (≤ 70 px) notalar */

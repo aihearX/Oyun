@@ -280,7 +280,7 @@ _İlk kez oynayan kademe (§2), 48 oyuncu × bölüm; önce: aynı kademe eski o
 **Oyuncu kitlesi (40 bölüm):**
 
 <!-- tablo:basla -->
-_Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördüğü bölüm), varsayılan profil; önce: 24 tohum, eski eğri._
+_Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördüğü bölüm), varsayılan profil; önce: 24 tohum, eski eğri. 23 sekizinci geçişte (§6, MK-003) v4 → v17 ile yeniden ölçüldü; diğer satırlar bu geçişin denetiminde aynen tekrarlandı (ölçüm deterministik)._
 
 | Bölüm | Bölge | Rol | Hedef | Önce: bitirme | Önce: can kaybı | Önce: puan | Sonra: bitirme | Sonra: can kaybı ± SE | Sonra: yakın/dk | Sonra: puan ± SE |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -306,7 +306,7 @@ _Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördü
 | 20 | Kemikçikler | **boss** | 5.3 | 63% | 1.67 | 5.1 | 77% | 1.60 ± 0.15 | 1.7 | 4.9 ± 0.5 |
 | 21 | Koklea · Taban | giriş (nefes) | 1.6 | 100% | 0.21 | 1.1 | 100% | 0.25 ± 0.07 | 6.5 | 1.1 ± 0.2 |
 | 22 | Koklea · Taban |  | 2.5 | 100% | 0.50 | 2.1 | 100% | 0.42 ± 0.08 | 6.7 | 1.6 ± 0.2 |
-| 23 | Koklea · Taban | **final** | 3.8 | 92% | 0.58 | 2.6 | 92% | 1.10 ± 0.13 | 9.7 | 3.8 ± 0.4 |
+| 23 | Koklea · Taban | **final** | 3.8 | 92% | 0.58 | 2.6 | 81% | 1.27 ± 0.16 | 9.6 | 4.3 ± 0.5 |
 | 24 | Koklea · Orta | giriş (nefes) | 1.9 | 100% | 0.29 | 1.3 | 98% | 0.38 ± 0.10 | 6.5 | 1.5 ± 0.3 |
 | 25 | Koklea · Orta |  | 2.8 | 92% | 0.54 | 2.3 | 90% | 0.65 ± 0.15 | 7.2 | 2.3 ± 0.4 |
 | 26 | Koklea · Orta | **final** | 4.1 | 67% | 1.00 | 3.4 | 77% | 1.23 ± 0.17 | 9.9 | 4.2 ± 0.5 |
@@ -326,11 +326,94 @@ _Ölçüm: 48 oyuncu (tohum) × 40 bölüm (bölüm tuzu 0 — oyuncunun gördü
 | 40 | İşitme Korteksi | **boss** | 6.5 | 96% | 0.50 | 1.5 | 60% | 1.98 ± 0.15 | 0.0 | 5.9 ± 0.4 |
 <!-- tablo:bitir -->
 
+### Bölge finalleri denetimi ve süreli bölümlerin yıldızları (sekizinci geçiş; MK-003, MK-004)
+
+Gözlem: planlayıcı bot 20. bölümün boss'unu 21 sn'de hasarsız ⭐3 bitirdi (19: 77,8 sn); "bölge finali en zor yer değil mi?"
+Bot kusursuz oyuncudur (her bölümü hasarsız bitirmesi kabul ölçütüdür), zorluğu insan modeli ölçer. Bütün bölge finalleri ve
+boss'lar kitle modeliyle (48 oyuncu) şu ölçülerle denetlendi: bitirme (3 canla), can kaybı, düşme (yeniden doğma), deneme
+(beklenen deneme sayısı = 1 / bitirme), süre (bitirenler ve bitiremeyenler, oyun saati). Rakip: bölgenin finalden sonraki en zor
+bölümü. Ölçüm aracı: `zorluk.mjs --bolumler --k 48` ile aynı oyuncular.
+
+| Bölge | Final | Bitirme | Can kaybı | Düşme | Deneme | Süre (sn) | Bölgenin en zor diğer bölümü (bitirme · can · düşme · süre) | Sonuç |
+|---|---|---|---|---|---|---|---|---|
+| Dış Kulak | 5 | %100 | 0,19 | 0,19 | 1,00 | 45 | 4: %100 · 0,06 · 0,08 · 47 | doruk (süre hariç) |
+| Kanal | 8 | %100 | 0,25 | 0,27 | 1,00 | 84 | 7: %100 · 0,15 · 0,02 · 63 | doruk |
+| Zar | 12 | %100 | 0,21 | 0,48 | 1,00 | 80 | 11: %100 · 0,04 · 0,17 · 62 | doruk |
+| Kemikçikler | 19 | %88 | 0,98 | 0,71 | 1,14 | 91 | 17: %94 · 0,77 · 0,48 · 69 | doruk |
+| ↳ boss | 20 | %77 | 1,60 | 0,02 | 1,30 | 22 | 19: %88 · 0,98 · 0,71 · 91 | doruk (düşme ve süre hariç: tek ekran arena, çukur yok) |
+| Koklea Taban | 23 önce (v4) | %92 | 1,10 | 0,67 | 1,09 | 90 | 22: %100 · 0,42 · 0,17 · 85 | bölgede doruk; **kademe adımında 19'dan kolay** (bitirme, düşme, deneme) |
+| Koklea Taban | **23 sonra (v17)** | **%81** | **1,27** | **0,92** | **1,23** | 83 | 〃 | doruk; bitirme ve denemede 19 < 23 < 26 |
+| Koklea Orta | 26 | %77 | 1,23 | 0,81 | 1,30 | 95 | 25: %90 · 0,65 · 0,48 · 68 | doruk |
+| Koklea Apeks | 30 | %75 | 1,35 | 0,92 | 1,33 | 80 | 29: %94 · 0,63 · 0,46 · 64 | doruk (27: 89 sn daha uzun) |
+| Sinir | 33 | %71 | 1,42 | 0,81 | 1,41 | 72 | 32: %98 · 0,33 · 0,21 · 64 | doruk (31: 77 sn daha uzun) |
+| Beyin Sapı | 36 | %67 | 1,58 | 1,06 | 1,50 | 94 | 35: %90 · 0,90 · 0,54 · 81 | doruk |
+| Korteks | 39 | %63 | 1,65 | 1,15 | 1,60 | 85 | 38: %90 · 0,75 · 0,54 · 103 | doruk (süre hariç) |
+| ↳ boss | 40 | %60 | 1,98 | 0,00 | 1,66 | 52 | 39: %63 · 1,65 · 1,15 · 85 | doruk (düşme ve süre hariç) |
+
+- **Her final bölgesinin doruğudur** bitirme, can kaybı, deneme ve (boss dışında) düşmede; boss'lar finalden zor. **Süre** zorluk
+  ölçüsü sayılmadı: süreli finaller (23, 30, 33, 39) hız bölümüdür, 38 ve 31 gibi uzun keşif bölümleri daha uzun sürer; boss tek
+  ekranda biter. 20'nin 22 sn sürmesi kolaylık değil, biçimdir: insan modelinde 20 bütün kemikçik bölümlerinden zordur
+  (%77 bitirme, 1,60 can, 1,30 deneme).
+- **Boss 20 denendi, değiştirilmedi:** golemin canı 14 → 16-20 ve temposu ×0,9-1,2 (96 oyuncu, iki tohum kümesi) savaşı 25-34 sn'ye
+  uzatıyor ama can kaybını 1,7-2,0'a çıkarıyor (bitirme %58-72): 20 bu durumda 33-39 finallerinden, hatta 40'tan zor olur ("üst
+  kademe daha zor" bozulur). Can 16 / tempo ×1,1 bile 1,75 can (39: 1,65). Ölçüm gürültüsü yüksek (tempo saldırı sırasını da değiştirir).
+- **Kademe adımı (finalden finale):** 13+ zinciri 19 → 23 → 26 → 30 → 33 → 36 → 39 can kaybında yükseliyordu, ama 23 bitirmede ve
+  denemede 19'dan kolaydı (%92 / %88). 23'ün varyantı 14 aday arasından (24 + 24 oyuncu, adaylar ek 48 oyuncuyla) **v4 → v17**:
+  %81 bitirme, 1,27 can, 0,92 düşme, 1,23 deneme. 96 oyuncuda 19 %86 · 1,07 · 0,73, 26 %79 · 1,20 · 0,83, 23 (v17) %82 · 1,36 ·
+  0,95: bitirme ve denemede 19 < 23 < 26 zinciri kesin; can kaybında 23 artık 26 ile başa baş (fark ~1 SE). Tempo kuralını
+  (en çok 4 sn girdisiz, tuz 0-3) yalnız v4, v8, v14 ve v17 geçiyor: ölçümde daha dengeli görünen v9 (%83 · 1,13) ve v13 tuz 1/3'te
+  4,1-4,4 sn ölü yol bırakıyordu; v14 (%77 · 1,30) 26'dan bitirmede de zor, v8 eskisinden kolay.
+  1-12 kademesi ilk kez oynayanla ölçülür (§2): 5 → 8 → 12 bitirme %98 → %79 → %73; kitlede 8 ile 12'nin can kaybı (0,25 / 0,21)
+  gürültü düzeyinde, düşmede 12 (0,48) 8'den (0,27) zor — ilk bölümlerin yardımlarına dokunulmadı.
+- **Sahibe bilgi (değiştirilmedi):** bölge girişleri "nefes"tir ve kademe kademe yükselmez (24: 0,38 → 27: 0,17 → 31: 0,31); bölge
+  ortalamaları Koklea Orta (0,75) → Apeks (0,62) iner. 27/28 için daha zor varyantlar ölçüldü (27 v3: 0,65 · 28 v5: 0,62) ama Apeks
+  rampasını düzleştiriyor ve Sinir'in (ortalama 0,69) üstüne çıkarıyor — giriş zincirini istiyorsak bu bir tasarım kararı.
+- **İlk kez oynayan (24 oyuncu, 1-12):** 5 → 8 → 12 bitirme %96 → %92 → %67, puan 2,5 → 4,7 → 5,3; her final bölgesinde en düşük
+  bitirme. Dış Kulak'ta 4 (Rüzgâr Bayrak Yarışı) can kaybında 5'e eşit (0,67 / 0,58 ± 0,15) — gürültü düzeyi, yardımlara dokunulmadı.
+- Testler: `play/zorluk-final.test.ts` (12 oyuncu: her final ve boss bölgesinin en zor diğer bölümünden puanda zor, bitirmede
+  kolay değil; 23 > 19 puanda ve bitirmede — diğer final adımları tek tek 48 oyuncuda ayrışır, grupları `zorluk-4.test.ts`),
+  `play/zorluk-ilk.test.ts` (5 → 8 → 12 ve bölge dorukları ilk kez oynayanla).
+
+**Süreli bölümlerin yıldızları (MK-004).** Yıldız kuralı (docs/11 §5): 1★ bitir, 2★ %60 nota, 3★ %90 nota ya da hedef (2★
+üstüne). Süreli bölümde hedef "par × 0,95 saniyede bitir" idi: ölçünce **süre her bitirene yetiyordu** (23'te hedef 121 sn, bitirenlerin
+en yavaş çeyreği 93 sn), asıl kapı nota oranıydı ve yüzmede bitirenlerin yarısı ancak %48-50 nota topluyor → 23'te bitirenlerin
+%9'u, 30'da %3'ü 2★ alabiliyordu (bot da %59 notayla ⭐1). Otomatik koşuda süreler birkaç saniyelik bir bantta toplanır, uzatan
+düşüş ve geri dönüştür; yeni kural süreyi doğrudan ödüllendirir (`economy.ts → scoreRun`, eşikler `level-gen/src/sure.ts`, ölçülen):
+
+- **1★:** bitir (süre şartı yok). **2★:** %60 nota **ya da** temiz koşu × 1,2 saniyede bitir (birkaç düşüşle). **3★:** %90 nota
+  **ya da** hedef: temiz koşu × 1,06 saniyede bitir (düşmeden ya da bir takılmayla; artık %60 nota şartı yok).
+- **Temiz koşu** = kitlenin bitirenlerinin en hızlı %10'unun süresi; eşikler par'a oran olarak saklanır (yardım kademesi bölümü
+  kısaltınca süre de kısalır). `node tools/harness/zorluk.mjs --sure --k 48` yeniden ölçer.
+- Sonuç ekranındaki "sıradaki yıldız" metni 1★'da süreyi de söyler ("2. yıldız için 8 nota daha ya da 104 saniyede bitir").
+
+| Bölüm | Eski hedef (3★) | Yeni 3★ / 2★ | Bot (sn, ⭐) | Kitle önce: ★≥2 / ★3 | Kitle sonra: bitirme / ★≥2 / ★3 | ★3 usta → acemi (sonra, dört kademe) | İlk kez oynayan sonra: bitirme / ★≥1 / ★≥2 / ★3 |
+|---|---|---|---|---|---|---|---|
+| **23 Akıntı (yüzme)** | 121 sn | **88 / 100 sn** | 85,6 · ⭐1 → 83,1 · ⭐3 | %8 / %8 | %81 / %81 / %44 | %83 → %50 → %25 → %17 | %29 / %29 / %27 / %8 |
+| **30 Son Kıvrım (yüzme)** | 117 sn | **86 / 97 sn** | 75,9 · ⭐1 → ⭐3 | %2 / %2 | %75 / %67 / %40 | %75 → %58 → %25 → %0 | %4 / %4 / %0 / %0 |
+| 4 Rüzgârla Yarış | 70 sn | 50 / 56 sn | 47,2 · ⭐3 | %100 / %100 | %100 / %100 / %100 | %100 → %100 → %100 → %100 | %100 / %100 / %100 / %98 |
+| 11 Rezonans | 84 sn | 64 / 72 sn | 60,4 · ⭐3 | %17 / %17 | %100 / %100 / %85 | %83 → %92 → %100 → %67 | %92 / %92 / %60 / %25 |
+| 18 Kemik Trambolini | 89 sn | 64 / 72 sn | 58,4 · ⭐3 | %90 / %90 | %92 / %92 / %48 | %75 → %42 → %42 → %33 | – |
+| 33 Işık Hızı | 113 sn | 76 / 87 sn | 71,8 · ⭐3 | %71 / %71 | %71 / %71 / %35 | %75 → %42 → %25 → %0 | – |
+| 39 Son Koşu | 115 sn | 85 / 96 sn | 78,4 · ⭐3 | %35 / %35 | %63 / %60 / %29 | %42 → %42 → %33 → %0 | – |
+
+_Yüzdeler bütün oyunculara göredir (bitiremeyen 0★); 48 kitle oyuncusu, 48 ilk kez oynayan. 23'ün "önce"si v4, "sonra"sı v17._
+
+- **1★ ilk kez oynayana açık:** bitiren her ilk kez oynayan en az 1★ alır (23'te bitiren 14 kişiden 13'ü 2★). Bitirme oranları
+  düşüktür (23: %29, 30: %4) çünkü bu kademe 1-12 için tasarlandı; 20. bölüme gelen oyuncu artık ilk kez oynayan değildir.
+- **Model düzeltmesi (ölçüm, oyun değil):** ilk kez oynayan kademe 0,9 sn ileri bakışla 21'in yüzme öğreticisinde bile boğuluyordu
+  (%0 bitirme; planlayıcının ufku su yüzeyini göremiyor, insan ise ekranda görür). Sulu bölümlerde ileri bakış en az 1,2 sn
+  (`human.ts → SWIM_LOOK_MS`; kitle zaten 1,2-1,4 sn, 1-12'de su yok → önceki ölçümler değişmez): 21 → %69, 23 → %29, 30 → %4.
+- **3★ iyi oyun ister, ulaşılır:** yüzme finallerinde bitirenlerin %53-54'ü (ustaların %75-83'ü, acemilerin %0-17'si). 33 ve 39'da eskiden süre
+  her bitirene 3★ veriyordu (%71 / %35 → %35 / %29); 4 ve 11 ilk bölümler olarak kolay kalır (11'de ilk kez oynayanın %25'i 3★).
+- Testler: `play/zorluk-sure.test.ts` (eşikler eski hedefin altında, bitiren herkese ≥ 1★ ve ilk kez oynayan yüzme finalini
+  bitirebilir, 3★ ustalara ulaşılır ama herkese değil, 2★ bitirenlerin çoğuna), `shared/economy.test.ts`, `meta/meta.test.ts`.
+
 ## 7. Komutlar
 
 ```bash
 node tools/harness/zorluk.mjs --odalar --k 16            # oda ölçümü → packages/content/src/chunks/puanlar.ts (~12 dk, 4 çekirdek; --ids a,b yalnız yeni odalar)
 node tools/harness/zorluk.mjs --kalibre --k 16 --v 10    # bölüm başına varyant → packages/level-gen/src/kalibrasyon.ts (~40 dk; --levels 8,12 kısmi)
+node tools/harness/zorluk.mjs --sure --k 48              # süreli bölümlerin 3★/2★ süreleri → packages/level-gen/src/sure.ts (varyant/oda değişince yenileyin)
 node tools/harness/zorluk.mjs --bolumler --k 48 --tag sonra   # 40 bölüm × 48 oyuncu (~30 dk)
 node tools/harness/zorluk.mjs --bolumler --levels 1-12 --k 48 --ilk 1 --tag ilk   # ilk kez oynayan kademe (1-12)
 node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki tablolar + docs/img/zorluk-egrisi.svg (ilk.json varsa ilk kez oynayan tablosu da)
@@ -376,15 +459,15 @@ Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bö
 - **Alıştırma (kitle):** 1-3'te herkes bitirir, can kaybı 0; 4 → 0,06 · 5 → 0,19 (Dış Kulak finali) · Kanal 6 → 0,06 ·
   7 → 0,15 · 8 → 0,25 ± 0,08 (Kanal finali; önce 0,13 ile 7'ye eşitti) · Zar 9 → 0,00 · 10 → 0,00 · 11 → 0,04 · 12 → 0,21 ± 0,07
   (Zar finali). Kanal artık iki kitle için de 8'de doruk yapar (kitle 0,15 → 0,25; ilk kez oynayan 1,21 → 1,50 can).
-- **Final zinciri (diken geçişinden sonra yeniden ayarlandı):** her üst kademenin finali bir öncekinden zor — 8 → 0,25 ± 0,08 ·
-  12 → 0,21 ± 0,07 · 19 → 0,98 ± 0,15 · [boss 20 → 1,60 ± 0,15, %77 bitirme] · 23 → 1,10 ± 0,13 · 26 → 1,23 ± 0,17 ·
+- **Final zinciri (diken geçişinden sonra yeniden ayarlandı; 23 sekizinci geçişte v17):** her üst kademenin finali bir öncekinden zor — 8 → 0,25 ± 0,08 ·
+  12 → 0,21 ± 0,07 · 19 → 0,98 ± 0,15 · [boss 20 → 1,60 ± 0,15, %77 bitirme] · 23 → 1,27 ± 0,16 (%81 bitirme) · 26 → 1,23 ± 0,17 ·
   30 → 1,35 ± 0,17 · 33 → 1,42 ± 0,18 · 36 → 1,58 ± 0,17 · 39 → 1,65 ± 0,18 · [boss 40 → 1,98 ± 0,15, %60 bitirme]. Diken
   seyrekleşince 13+'nın zorluğunu taşıyan dikenler değil sınav odaları ve hareketli engellerdi; finallerin çoğu yerinde kaldı,
   zincirdeki dalgalar (23 ≈ 26, 30 < 26, 39 < 36) bölüm varyantlarıyla düzeltildi. Ardışık finaller arası adım 0,07-0,77 can;
-  48 oyuncuda tek bir ardışık çiftin farkı gürültü düzeyindedir. Dört grup ortalaması (8,12) 0,23 → (19,23) 1,04 → (26,30) 1,29
+  48 oyuncuda tek bir ardışık çiftin farkı gürültü düzeyindedir. Dört grup ortalaması (8,12) 0,23 → (19,23) 1,13 → (26,30) 1,29
   → (33,36,39) 1,55 kesin yükselir (`play/zorluk-4.test.ts`, sabit 16 oyunculuk alt örneklemle).
 - **Bölge içi rampa:** her bölgede giriş < … < final: Kanal 0,06 → 0,15 → 0,25 · Kemikçikler 0,29 → 0,60 → … → 0,98 · Koklea Taban
-  0,25 → 0,42 → 1,10 · Orta 0,38 → 0,65 → 1,23 · Apeks 0,17 → 0,31 → 0,63 → 1,35 · Sinir 0,31 → 0,33 → 1,42 · Beyin Sapı
+  0,25 → 0,42 → 1,27 · Orta 0,38 → 0,65 → 1,23 · Apeks 0,17 → 0,31 → 0,63 → 1,35 · Sinir 0,31 → 0,33 → 1,42 · Beyin Sapı
   0,44 → 0,90 → 1,58 · Korteks 0,50 → 0,75 → 1,65 → boss 1,98. Bölge girişleri (13, 27, 37) artık ardından gelen bölümden
   kolaydır (önce 13 = 0,56, 27 = 0,67, 37 = 0,85 idi).
 - **Bölge içinde gürültü düzeyinde kalan dalgalar:** Kemikçikler 14 (0,60; orta kulak sıvısı odası) > 15 (0,31) ve 17 (0,77) ≈ 18 (0,73).

@@ -24,7 +24,8 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
   } else if (r.stars === 1) {
     const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR2_NOTE_RATIO) - r.coins);
-    return { kind: 'yildiz', text: `2. yıldız için ${need} nota daha` };
+    const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
+    return { kind: 'yildiz', text: t2 ? `2. yıldız için ${need} nota daha ya da ${t2} saniyede bitir` : `2. yıldız için ${need} nota daha` };
   } else if (r.stars === 2) {
     const need = Math.max(1, Math.ceil(spec.coinsTotal * STAR3_NOTE_RATIO) - r.coins);
     return { kind: 'yildiz', text: spec.objective.id === 'reach' ? `3. yıldız için ${need} nota daha` : `3. yıldız için ${need} nota daha ya da: ${spec.objective.label}` };

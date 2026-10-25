@@ -140,6 +140,9 @@ describe('ilerleme geri bildirimi', () => {
     expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha');
     expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toContain('2. yıldız için');
     expect(nextGoal(spec(3), run({ stars: 3, coins: 30 })).text).toContain('hazine');
+    const timed = { ...spec(23), objective: { id: 'timed' as const, target: 80, target2: 95, label: '80 saniyede bitir' } };
+    expect(nextGoal(timed, run({ stars: 1, coins: 10, objectiveMet: false })).text).toBe('2. yıldız için 8 nota daha ya da 95 saniyede bitir');
+    expect(nextGoal(timed, run({ stars: 2, coins: 10, objectiveMet: false })).text).toBe('3. yıldız için 17 nota daha ya da: 80 saniyede bitir');
   });
   it('sıradaki hazine ve yenilik duyuruları', () => {
     expect(nextTreasure(3, {})).toMatchObject({ level: 5, remaining: 3 });

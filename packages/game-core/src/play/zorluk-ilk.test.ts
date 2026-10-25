@@ -28,4 +28,14 @@ describe('ilk kez oynayan oyuncu: ilk bölümler', () => {
     expect(s[8]!.fin, '8 bitirme').toBeGreaterThanOrEqual(0.7);
     for (const n of [9, 10, 11, 12]) expect(s[n]!.fin, `${n} bitirme`).toBeGreaterThanOrEqual(0.65);
   });
+  // kademe adımı ve bölge doruğu ilk bölgelerde bu kademeyle ölçülür (docs/12 §6; MK-003): kitlede 8 ile 12'nin can kaybı
+  // gürültü düzeyinde. 4 (Rüzgâr Bayrak Yarışı) bu kademede can kaybında 5'e eşit (0,67 / 0,58 ± 0,15): 5 bitirmede doruk.
+  it('bölge finalleri 5 → 8 → 12 kademe kademe zor; her final bölgesinde en düşük bitirme, girişlerden yüksek puan', () => {
+    expect(s[8]!.fin, '8 < 5').toBeLessThan(s[5]!.fin); expect(s[12]!.fin, '12 < 8').toBeLessThan(s[8]!.fin);
+    expect(s[8]!.score, '8 > 5').toBeGreaterThan(s[5]!.score); expect(s[12]!.score, '12 > 8').toBeGreaterThan(s[8]!.score);
+    for (const [f, zone, easier] of [[5, [1, 2, 3, 4], [1, 2, 3]], [8, [6, 7], [6, 7]], [12, [9, 10, 11], [9, 10, 11]]] as const) {
+      for (const n of zone) expect(s[f]!.fin, `${f} bitirme ≤ ${n}`).toBeLessThanOrEqual(s[n]!.fin);
+      for (const n of easier) expect(s[f]!.score, `${f} > ${n}`).toBeGreaterThan(s[n]!.score);
+    }
+  });
 });
