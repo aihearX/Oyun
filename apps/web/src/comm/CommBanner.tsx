@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import './comm.css'; // paket bölme: bu bileşen Cards.tsx olmadan da çizilir (sonuç ekranı), stili kendisi yüklesin
 import { useNav } from '../nav';
 import { platform } from '../platform';
 import { act, toast } from '../net';

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import './comm.css'; // paket bölme: bu bileşen Cards.tsx olmadan da çizilir (sonuç ekranı), stili kendisi yüklesin
 import { useNet } from '@odi/net/store';
 import { COMM_RULES, type MentorLink, type PublicProfile } from '@odi/shared';
 import { act, toast } from '../net';
