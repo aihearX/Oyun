@@ -16,6 +16,7 @@ export function scrollAppTop(): void {
 /**
  * Klavye: görsel görünüm küçülünce kapanan alt pay --kb (px) olarak yazılır, 80 px'ten büyükse html.kb-open.
  * iOS klavye açarken belgeyi kaydırabilir (yerel kaydırma kilitliyken bile); sabit düzen kaymasın diye geri alınır.
+ * Kullanıcı yakınlaştırmışken (visualViewport.scale > 1) hiçbir şey yapılmaz: küçülen görünüm klavye değildir.
  */
 export function installViewport(): () => void {
   if (typeof window === 'undefined') return () => undefined;
@@ -23,6 +24,8 @@ export function installViewport(): () => void {
   if (!vv) return () => undefined;
   let last = -1;
   const on = () => {
+    // iki parmakla yakınlaştırma (web'de açık) da görsel görünümü küçültür: klavye sanılmasın, kaydırma geri alınmasın
+    if (vv.scale > 1.01) return;
     const kb = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
     if (kb !== last) {
       last = kb;

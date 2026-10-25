@@ -12,6 +12,7 @@
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
 //           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
+//           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -32,6 +33,9 @@ const sizes = opt('sizes', '390x844,320x640').split(',').map((s) => s.split('x')
 const INSET = Number(opt('inset', 47)), INSET_B = 34;
 const only = opt('only', '') ? opt('only').split(',') : null;
 const want = (k) => !only || only.includes(k);
+// Büyük yazı kipi: oyuncu kaydı bigText:true ile tohumlanır; her ekranda kök yazı ölçeği de denetlenir
+const BIG = has('buyuk-yazi');
+const BASE_STATE = { ftue: { v: 1, story: true, tours: [], bypass: true }, ...(BIG ? { bigText: true } : {}) };
 const outRoot = resolve(root, 'tools/harness/out/ui-mobile', tag); mkdirSync(outRoot, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const procs = [];
@@ -91,9 +95,9 @@ function webInsets([top, bottom]) {
   if (!set()) document.addEventListener('DOMContentLoaded', set);
 }
 /** dom hedefi: Expo DOM köprüsü + yerel scrollEnabled:false kilidi (belge kullanıcıyla kaydırılamaz) */
-function domBridge([serverUrl, top, bottom, seed]) {
+function domBridge([serverUrl, top, bottom, seed, base]) {
   // ilk açılış rehberi (hikâye + anlatıcı turları + kilitler) bu denetimin konusu değil: atlanmış başlar (bkz. onboarding-e2e.mjs)
-  const store = { 'odi-v1': JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 }), ...(seed || {}) };
+  const store = { 'odi-v1': JSON.stringify({ state: base, version: 3 }), ...(seed || {}) };
   window.ReactNativeWebView = {
     injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
@@ -159,6 +163,21 @@ function measureEmoji() {
   }
   return [...hits.keys()].slice(0, 20);
 }
+/** kırpılan yazı: düğme, sekme, hap ve başlıklarda metin kutusundan taşıp gizleniyor mu (ellipsis/line-clamp bilinçli kısaltmadır, sayılmaz) */
+function measureClip() {
+  const out = [];
+  for (const el of document.querySelectorAll('button, .btn, .tab, .pill, h1, h2, h3, label')) {
+    if (el.closest('.cel-root, .map-stage, .camp-canvas, .level-host, .sr-only, #__inset_top, #__inset_bottom')) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom < 0 || r.top > innerHeight) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) continue;
+    if (cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none')) continue;
+    const hx = /(hidden|clip)/.test(cs.overflowX), hy = /(hidden|clip)/.test(cs.overflowY);
+    if (!((hx && el.scrollWidth > el.clientWidth + 1) || (hy && el.scrollHeight > el.clientHeight + 2))) continue;
+    if (!(el.textContent || '').trim()) continue;
+    out.push(`${el.tagName.toLowerCase()}${typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : ''} “${(el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24)}” ${el.scrollWidth}×${el.scrollHeight} > ${el.clientWidth}×${el.clientHeight}`);
+  }
+  return out.slice(0, 10);
+}
 /** kaydırılabilir mi: ekran içeriği görünümden uzun mu + toplam kaydırma konumu */
 function scrollState() {
   const scr = document.querySelector('.screen');
@@ -222,10 +241,10 @@ async function suite(browserName, target, [W, H]) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   await page.addInitScript(paintInsets, [INSET, INSET_B]);
-  if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B]);
+  if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, null, BASE_STATE]);
   else {
     await page.addInitScript(webInsets, [INSET, INSET_B]);
-    await page.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
+    await page.addInitScript((base) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: base, version: 3 })); } catch { /* depolama yok */ } }, BASE_STATE);
   }
   const cdp = browserName === 'chromium' ? await ctx.newCDPSession(page) : null;
   const url = (q = '') => target === 'dom' ? domHtml + (q ? `?${q}` : '') : `${webBase}?sunucu=${encodeURIComponent(wsUrl)}${q ? `&${q}` : ''}`;
@@ -256,6 +275,9 @@ async function suite(browserName, target, [W, H]) {
     if (cut.length) fail(rec, `başlık kesildi: ${cut.join(', ')}`);
     // kamp üst bandı: her gösterge çipi ekranın içinde, kırpılmadan (Kamp Seviyesi, İnşaatçı, hızlandırıcılar, Görevler/Klinik, ziyaret)
     const hf = await page.evaluate(measureHudFit); if (hf.present) { rec.hud = hf; if (hf.offenders.length) fail(rec, `kamp üst bandı taşıyor: ${hf.offenders.slice(0, 3).join(' | ')}`); }
+    // kırpılan yazı: düğme/sekme/başlık metni kutusuna sığmıyor (taşan kısım gizli; üç nokta ya da satır sınırı bilinçli değilse)
+    const clip = await page.evaluate(measureClip); rec.clip = clip; if (clip.length) fail(rec, `yazı kırpıldı: ${clip.slice(0, 3).join(' | ')}`);
+    if (BIG) { const fs = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize); rec.rootFont = fs; if (fs !== '18.4px') fail(rec, `büyük yazı uygulanmadı: kök ${fs}`); }
     if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {
@@ -318,7 +340,7 @@ async function suite(browserName, target, [W, H]) {
       if (await lg.count()) { await lg.click(); await sleep(600); await check('profil-lig'); await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)
       const rn = page.getByRole('button', { name: 'Takma adı değiştir' });
-      if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).click(); }
+      if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); }
       // Kod Gir: yanlış kod mesajı; test yönetici kodu → Ayarlar'da yönetici kutusu ve kod paneli
       { await page.locator('.menu-tile[data-tile="kod"]').click(); await page.getByTestId('kod-sayfasi').waitFor();
         await page.getByTestId('kod-girdi').fill('yanlis kod'); await page.getByTestId('kod-kullan').click(); await page.getByTestId('kod-sonuc').waitFor();
@@ -396,7 +418,7 @@ async function suite(browserName, target, [W, H]) {
       { const myTeam = `Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
         const aday = rawClient(wsUrl); await aday.call('hello', { version: 1, name: `Aday${sno}` });
         const t = (await aday.call('team.list', { query: myTeam })).teams.find((x) => x.name === myTeam);
-        if (t?.open) { await page.getByLabel('Takım menüsü').click(); await page.locator('[data-testid="katilim-ayari"] [role="radio"]', { hasText: 'Başvuruyla' }).click(); await sleep(500); await page.getByRole('button', { name: 'Kapat' }).click(); }
+        if (t?.open) { await page.getByLabel('Takım menüsü').click(); await page.locator('[data-testid="katilim-ayari"] [role="radio"]', { hasText: 'Başvuruyla' }).click(); await sleep(500); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); }
         if (!t) throw new Error(`başvuru denetimi: takım listede yok (${myTeam})`);
         await aday.call('team.apply', { teamId: t.id, noteId: 'savas' });
         await page.getByTestId('basvuru-rozeti').waitFor({ timeout: 10_000 }).catch(() => undefined);
@@ -408,7 +430,7 @@ async function suite(browserName, target, [W, H]) {
       }
       await page.getByLabel('Takım menüsü').click(); await page.locator('.sheet').waitFor();
       await check('takim-menu-sayfasi', { scroll: false });
-      await page.getByRole('button', { name: 'Kapat' }).click();
+      await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
       await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(500);
       // klavye: giriş odaklanınca kutu yine görünür (görsel görünüm küçülünce)
       await page.getByRole('textbox', { name: 'Mesaj' }).focus();
@@ -426,7 +448,7 @@ async function suite(browserName, target, [W, H]) {
       if (want('iletisim')) {
         await page.getByLabel('Takım menüsü').click(); await page.locator('.sheet').waitFor();
         const code = (await page.locator('.big-code').innerText()).trim();
-        await page.getByRole('button', { name: 'Kapat' }).click();
+        await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
         const bora = rawClient(wsUrl);
         await bora.call('hello', { version: 1, name: `Bora${sno}` });
         await bora.call('team.join', { code });
@@ -588,8 +610,8 @@ async function suite(browserName, target, [W, H]) {
     }
     if (want('giris')) {
       // geri dönen oyuncu: kayıtlı ilerleme → “Devam et”
-      const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240, ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 }) };
-      if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed]); }
+      const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240, ...BASE_STATE }, version: 3 }) };
+      if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, BASE_STATE]); }
       else await page.evaluate((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
       await page.goto(url(), { waitUntil: 'load' });
       await page.getByRole('button', { name: /Devam et/ }).waitFor({ timeout: 45_000 }); await sleep(700);

@@ -59,6 +59,23 @@ oyun/
 - Aynı oyun çekirdeği; davet linki ilk 3 bölümü tarayıcıda açar; sonra uygulamaya yönlendirir ve ilerlemeyi hesapla taşır.
 - Paylaşım kart sayfaları (OG görselleri) WhatsApp ve Instagram önizlemesi için.
 
+### Erişilebilirlik (web ve telefon aynı arayüz)
+- **Büyük yazı** (Ayarlar): `store.bigText` (kalıcı) → `App.tsx` kök öğeye `html.buyuk-yazi` koyar → `font-size:115%`. Arayüzdeki
+  yazı boyutları `rem` olduğundan (24 px'e kadar olanlar; daha büyük başlık/süs/ikon boyutları px kalır) menü, sohbet, kamp
+  panelleri birlikte 1,15 büyür. Phaser tuvali (bölüm göstergeleri, harita, kamp) değişmez. Yeni CSS'te metin boyutu `rem` yazılır.
+- **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır).
+- **Yakınlaştırma (web):** `index.html`'de `user-scalable=no` yok; tarayıcıda iki parmakla yakınlaştırılabilir. Çift dokunuşla
+  yakınlaştırma `html { touch-action:manipulation }` ile kapalı (hızlı dokunuşlar sayfayı büyütmesin); bölüm ekranı
+  (`.level-host`), harita ve kamp tuvali `touch-action:none` (oyun içinde tarayıcı hareketi yok; Phaser dokunuşları zaten yakalar).
+  `ui/viewport.ts` yakınlaştırılmış görünümü (`visualViewport.scale > 1`) klavye sanmaz. Yazı girişleri ≥ 16 px: iOS odakta
+  sayfayı kendiliğinden büyütmez.
+- **Yakınlaştırma (telefon kabuğu):** Expo'nun DOM sayfası `user-scalable=no` ile gelir ve bırakılır: WebView'in yerel kaydırması
+  kapalı (`scrollEnabled:false`, kaydırma #root kabında), yakınlaştırılan sayfa kaydırılamazdı. Telefonda yol: Büyük yazı +
+  sistemin büyüteci (iOS Büyüteç/Zoom, Android Büyütme). Android WebView'de `textZoom` verilmez; sistem yazı boyutu varsayılan
+  davranışla uygulanır (gerçek cihazda bakılmalı).
+- Denetim: `node tools/harness/ui-mobile-check.mjs --target both --buyuk-yazi --tag buyuk` (320 ve 390 px; taşma, kırpılan yazı,
+  sohbet girişi sekme çubuğunun üstünde, kök yazı 18,4 px).
+
 ## 8. Analitik ve deney
 - PostHog: olaylar (bölüm başladı/bitti, ölüm nedeni, satın alma, davet), huniler, tutma, A/B deneyleri (zorluk, ödül, bildirim metni).
 - Haftalık "oyuncu sağlığı" raporu: en çok takılınan bölümler, bırakma noktaları, ekonomi dengesi.
