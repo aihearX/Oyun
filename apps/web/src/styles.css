@@ -10,7 +10,9 @@
   /* krem ödül kartları */
   --cream:#fff6e5; --cream-2:#ffe9c2; --ink:#22153f; --ink-2:#5a4a86;
   /* metin */
-  --text:#ffffff; --text-2:#c9c1ff;
+  /* metin tonları (WCAG AA, MK-017: koyu mor zeminlerde ≥ 4,5:1; ui-mobile-check kontrast ölçümü):
+     --text-2 ikincil metin, --text-3 soluk metin (yer tutucu), --coral-text mercan vurgulu yazı (geri sayım; dolgu rengi --coral değişmez) */
+  --text:#ffffff; --text-2:#d3ccff; --text-3:#aea7e0; --coral-text:#ff85a8;
   /* vurgu */
   --gold:#ffc93c; --gold-2:#ff9f1c; --gold-ink:#3b2200; --gold-edge:#c96f00;
   --coral:#ff5c8a; --teal:#2ee6d6; --lime:#8ef0b0; --violet:#8b6bff; --danger:#ff4d4d;
@@ -453,7 +455,7 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 
 /* form */
 .input { width:100%; min-width:0; font:inherit; font-size:1rem; font-weight:800; color:var(--text); background:rgba(5,2,20,.45); border:2px solid rgba(255,255,255,.14); border-radius:14px; padding:11px 14px; min-height:44px; -webkit-user-select:text; user-select:text; box-shadow:inset 0 2px 4px rgba(0,0,0,.35); }
-.input::placeholder { color:rgba(201,193,255,.6); }
+.input::placeholder { color:var(--text-3); }
 .input:focus { outline:none; border-color:var(--teal); box-shadow:inset 0 2px 4px rgba(0,0,0,.35), 0 0 0 3px rgba(46,230,214,.2); }
 .field { display:flex; flex-direction:column; gap:6px; font-weight:900; font-size:0.875rem; }
 .field.row { flex-direction:row; }
@@ -550,7 +552,7 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 
 /* savaş */
 .war-head { display:flex; flex-direction:column; gap:8px; }
-.countdown { font-weight:900; font-size:0.8125rem; color:var(--coral); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.countdown { font-weight:900; font-size:0.8125rem; color:var(--coral-text); font-variant-numeric:tabular-nums; white-space:nowrap; }
 .war-stats { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:0.8125rem; font-weight:800; color:var(--text-2); }
 .war-stats b { color:var(--text); }
 .war-cta { font-size:0.8125rem; }

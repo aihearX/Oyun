@@ -75,6 +75,15 @@ oyun/
   davranışla uygulanır (gerçek cihazda bakılmalı).
 - Denetim: `node tools/harness/ui-mobile-check.mjs --target both --buyuk-yazi --tag buyuk` (320 ve 390 px; taşma, kırpılan yazı,
   sohbet girişi sekme çubuğunun üstünde, kök yazı 18,4 px).
+- **Metin kontrastı (WCAG AA, MK-017):** normal yazı ≥ 4,5:1, büyük yazı (≥ 24 px ya da ≥ 18,66 px kalın) ≥ 3:1; Büyük yazı kipinde de.
+  `ui-mobile-check` her ekranda ölçer (`measureContrast`): yazı rengi + ata zincirinin zemin renkleri saydamlık ve opacity
+  gruplarıyla birleştirilir; zincirde gradyan/resim zemin varsa (gece gradyanı, cam paneller, tuval üstü göstergeler) zemin, yazılar
+  gizlenmiş ekran görüntüsünden örneklenir (metin kutusundaki piksellerin %10'luk alt dilimi). Özet `out/ui-mobile/<tag>/kontrast.json`.
+  Sayılmayanlar: devre dışı denetimler ve gerekçeli istisnalar (`KONTRAST_ISTISNA`: logo), görünmeyen/örtülen metin, Phaser tuvali
+  (DOM değil). `KONTRAST_BEKLEYEN`: düzeltmesi dolgu rengini değiştirdiği için sahip kararı bekleyenler (Ö1–Ö7; koşuyu düşürmez).
+- Metin tonu belirteçleri (`styles.css :root`): `--text-2` ikincil metin, `--text-3` soluk metin (yer tutucu), `--coral-text` mercan
+  vurgulu yazı. Yeni soluk yazıda `opacity` ya da `rgba` yerine bu belirteçler kullanılır; marka/vurgu dolguları (`--violet`, `--coral`,
+  `--gold`) değişmez.
 
 ## 8. Analitik ve deney
 - PostHog: olaylar (bölüm başladı/bitti, ölüm nedeni, satın alma, davet), huniler, tutma, A/B deneyleri (zorluk, ödül, bildirim metni).

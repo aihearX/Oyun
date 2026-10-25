@@ -182,7 +182,7 @@
 .dm-emo-btn.on { border-color:var(--gold); }
 .dm-input { flex:1; min-width:0; resize:none; max-height:120px; min-height:44px; field-sizing:content; font:inherit; font-size:1rem; font-weight:700; color:var(--text); line-height:1.35;
   background:rgba(5,2,20,.5); border:2px solid rgba(255,255,255,.14); border-radius:22px; padding:10px 14px; -webkit-user-select:text; user-select:text; }
-.dm-input::placeholder { color:color-mix(in srgb, var(--text-2) 65%, transparent); }
+.dm-input::placeholder { color:var(--text-3); }
 .dm-input:focus { outline:none; border-color:var(--teal); }
 .dm-send { flex:none; width:44px; height:44px; border-radius:50%; border:0; cursor:pointer; font-size:1.1875rem; font-weight:900; color:var(--gold-ink);
   background:linear-gradient(180deg, var(--gold), var(--gold-2)); box-shadow:0 3px 0 var(--gold-edge); transition:transform .08s, filter .15s; }
