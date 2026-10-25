@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
-import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
 import {
   calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rollLucky, settle, xpThreshold,
@@ -40,7 +39,7 @@ import { CommBanner } from './comm/CommBanner';
 import { mentionCount, useComm } from './comm/state';
 import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
-import { chunkFailed, loadLevel, loadMap } from './engine';
+import { chunkFailed, loadLevel, loadLevelGen, loadMap, type LevelGen } from './engine';
 import { EngineLoading, ScreenLoading } from './ui/Loading';
 
 /**
@@ -109,13 +108,14 @@ const ArtGallery = screen(load.gallery, 'ArtGallery');
 function preloadFor(route: string, returning: boolean): (() => Promise<unknown>)[] {
   switch (route) {
     // yeni oyuncu: başlık → hikâye → biyom tanıtımı → 1. bölüm; dönen oyuncu: başlık → harita
-    case 'title': return returning ? [load.map, loadMap] : [load.intro, load.level, loadLevel];
-    case 'story': return [load.intro, load.level, loadLevel, load.result];
+    // bölüm üreticisi (loadLevelGen) Phaser bölüm sahnesiyle aynı anda; harita parçası onu zaten durağan içe aktarır
+    case 'title': return returning ? [load.map, loadMap] : [load.intro, load.level, loadLevelGen, loadLevel];
+    case 'story': return [load.intro, load.level, loadLevelGen, loadLevel, load.result];
     case 'intro': return [load.level, loadLevel];
     // harita açıldıktan sonra sekme ekranları da (küçük parçalar): ilk geçişte iskelet görünmesin
-    case 'map': return [load.level, loadLevel, load.intro, load.result, load.today, load.profile, load.camp, load.team];
+    case 'map': return [load.level, loadLevelGen, loadLevel, load.intro, load.result, load.today, load.profile, load.camp, load.team];
     case 'level': return [load.result];
-    case 'result': return [load.map, loadMap, load.level, loadLevel];
+    case 'result': return [load.map, loadMap, load.level, loadLevelGen, loadLevel];
     default: return [];
   }
 }
@@ -138,7 +138,7 @@ const BOT_SPEED = PLAY_BOT ? Math.min(4, Math.max(1, Number(E2E_Q!.get('oyun-hiz
 const TAB_FEATURE: Partial<Record<Tab, FeatureId>> = { today: 'today', camp: 'camp', team: 'team', profile: 'profile' };
 type Sub = 'skills' | 'settings' | 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'info';
 type Route =
-  | { name: 'title' } | { name: Tab } | { name: Sub; back: Tab } | { name: 'story'; replay?: boolean; back?: Tab }
+  | { name: 'title' } | { name: 'wait' } | { name: Tab } | { name: Sub; back: Tab } | { name: 'story'; replay?: boolean; back?: Tab }
   | (SocialRoute & { back: Tab; key?: number })
   | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills }
   | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom }
@@ -159,7 +159,8 @@ function botParams() {
  * Sonuç ekranını sahte bir çekirdek üzerinde gösterir; kayda hiçbir şey yazmaz (üretimde zararsız).
  * `&katki=1`: takım katkısı satırlarını örnek bir sunucu onayıyla gösterir (yalnızca görünüm; sunucuya bir şey gitmez).
  */
-function demoResult(): Extract<Route, { name: 'result' }> | null {
+const wantsDemoResult = () => new URLSearchParams(location.search).get('demo') === 'sonuc';
+function demoResult({ generateLevel }: LevelGen): Extract<Route, { name: 'result' }> | null {
   const q = new URLSearchParams(location.search); if (q.get('demo') !== 'sonuc') return null;
   const stars = Math.max(0, Math.min(3, Number(q.get('yildiz') ?? 3))) as 0 | 1 | 2 | 3; const score = Math.max(0, Number(q.get('skor') ?? 1234));
   const n = Math.max(1, Math.min(HUMAN_JOURNEY.levels.length, Number(q.get('bolum') ?? 8)));
@@ -184,10 +185,15 @@ function demoResult(): Extract<Route, { name: 'result' }> | null {
 export function App() {
   const gallery = useMemo(() => new URLSearchParams(location.search).get('demo') === 'ikonlar', []);
   const bot = useMemo(botParams, []);
-  const demo = useMemo(() => (bot ? null : demoResult()), [bot]);
+  // sonuç önizlemesi bölüm üreticisini bekler (tembel parça); o arada koyu zeminde halka
+  const [demo, setDemo] = useState<Extract<Route, { name: 'result' }> | null>(null);
   const invite = useMemo(() => (bot ? null : readInvite()), [bot]);
   const store = useStore();
-  const [route, setRoute] = useState<Route>(demo ?? { name: 'title' });
+  const [route, setRoute] = useState<Route>(() => (!bot && wantsDemoResult() ? { name: 'wait' } : { name: 'title' }));
+  useEffect(() => {
+    if (bot || !wantsDemoResult()) return;
+    void loadLevelGen().then((lg) => { const d = demoResult(lg); if (d) { setDemo(d); setRoute(d); } }, chunkFailed);
+  }, [bot]);
   // alt ekran geçmişi (ör. Arkadaşlar → özel sohbet → geri: Arkadaşlar)
   const stack = useRef<Route[]>([]);
   // test derlemesi: normal akıştaki bölüm botla oynanır (LevelHost bot modunda onDone çağırmaz; sonuç window.__odi'den)
@@ -199,9 +205,13 @@ export function App() {
   }, [route]);
 
   useEffect(() => {
-    if (!bot) return;
-    const spec = generateLevel(store.journey, bot.level, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, bot.salt);
-    setRoute({ name: 'level', spec, extras: {} });
+    if (!bot) return; let dead = false;
+    void loadLevelGen().then(({ generateLevel }) => {
+      if (dead) return;
+      const spec = generateLevel(store.journey, bot.level, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, bot.salt);
+      setRoute({ name: 'level', spec, extras: {} });
+    }, chunkFailed);
+    return () => { dead = true; };
   }, [bot, store.journey]);
   // ses: oyuncu ayarları (kalıcı) → motor; ilk dokunuşta kilit açma + global düğme sesleri
   useEffect(() => { audio.setVolumes({ enabled: store.sounds, music: store.musicVol, sfx: store.sfxVol, voice: store.voiceVol }); }, [store.sounds, store.musicVol, store.sfxVol, store.voiceVol]);
@@ -233,7 +243,24 @@ export function App() {
     return whenIdle(() => { for (const f of list) void f().catch(() => undefined); }, route.name === 'title' ? 300 : 400);
   }, [route.name, returning, bot]);
 
+  /**
+   * Bölümü başlat. Bölüm üreticisi tembel parça: önden yüklendiyse (hikâye, harita, sonuç ekranı) her şey aynı tikte olur;
+   * yüklenmediyse yüklenince oyuncu durumu o anki hâliyle okunur. Bekleme sırasında ekran yerinde kalır, üstünde (gecikmeli) koyu
+   * halka dokunuşları tutar; art arda iki istekten yalnız sonuncusu geçerli (çanta ve kalkan bir kez alınır).
+   */
+  const [starting, setStarting] = useState(false);
+  const playSeq = useRef(0);
   const play = (number: number) => {
+    const seq = ++playSeq.current;
+    const lg = loadLevelGen.value;
+    if (lg) { setStarting(false); startLevel(lg, number); return; }
+    setStarting(true);
+    loadLevelGen().then((m) => { if (seq !== playSeq.current) return; setStarting(false); startLevel(m, number); }, (e: unknown) => {
+      if (seq === playSeq.current) setStarting(false);
+      try { chunkFailed(e); } catch { /* yenileniyor ya da çevrimdışı: ekran yerinde kalır */ }
+    });
+  };
+  const startLevel = ({ generateLevel }: LevelGen, number: number) => {
     const s = useStore.getState();
     const spec = generateLevel(s.journey, number, { recentStars: s.recentStars.length ? s.recentStars.reduce((a, b) => a + b, 0) / s.recentStars.length : 2, failStreak: s.failStreak, skills: s.skills });
     const look = odiLook(s);
@@ -250,6 +277,8 @@ export function App() {
   };
 
   if (gallery) return <><ArtDefs /><Suspense fallback={null}><ArtGallery /></Suspense></>;
+  // bot: bölüm üreticisi yüklenene kadar koyu zeminde halka (başlık hiç çizilmez)
+  if (bot && route.name !== 'level') return <><ArtDefs /><EngineLoading /></>;
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
     return <Suspense fallback={<EngineLoading />}><LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} /></Suspense>;
@@ -271,7 +300,7 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => setRoute({ name: 'level', spec: raceSpec(room), extras: raceExtras(), race: room })} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => { void raceSpec(room).then((spec) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room }), chunkFailed); }} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading tabs />}>{el}</Suspense><TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading />}>{el}</Suspense></NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
@@ -279,6 +308,7 @@ export function App() {
 
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
   const view = (() => { switch (route.name) {
+    case 'wait': return <EngineLoading />;
     case 'title': return <TitleScreen returning={returning} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} />;
     case 'story': { const r = route; return <StoryScreen replay={r.replay} onDone={() => { store.ftueStoryDone(); if (r.replay) setRoute({ name: 'settings', back: r.back ?? 'profile' }); else play(1); }} />; }
     case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} />{isOpen('events', cleared, store.ftue) && <EventsFab onOpen={() => nav.open({ name: 'events' })} />}</>);
@@ -322,15 +352,18 @@ export function App() {
   } })();
   // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
   const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
-  return <><ArtDefs /><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading />}>{view}</Suspense><CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  return <><ArtDefs /><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading />}>{view}</Suspense>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
+
+/** bölüm üreticisi yüklenirken ekranın üstü: dokunuşları tutar, halka gecikmeli belirir (hızlı yüklemede hiç görünmez) */
+const STARTING = { position: 'fixed', inset: 0, zIndex: 95 } as const;
 
 /** ekran → müzik parçası (undefined: o ekran kendi yönetir) */
 function routeTrack(r: Route): Track | undefined {
   switch (r.name) {
     case 'title': case 'map': return 'harita';
     case 'intro': return `biyom:${r.spec.biome}`;
-    case 'level': case 'result': case 'eventLevel': return undefined;
+    case 'level': case 'result': case 'eventLevel': case 'wait': return undefined;
     default: return 'menu';
   }
 }

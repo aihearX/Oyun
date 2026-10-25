@@ -8,6 +8,7 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
 import { errText } from '../net';
 import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
+import { chunkFailed, loadLevelGen } from '../engine';
 import './race.css';
 import { IconButton } from '../ui/Button';
 import { Art } from '../ui/art';
@@ -29,6 +30,9 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
   const [code, setCode] = useState('');
   const played = useRef<string | null>(null);
   const roomRef = useRef<RaceRoom | null>(null); roomRef.current = room;
+  // bölüm üreticisi lobide önden yüklenir: geri sayım başlayınca bölüm beklemeden kurulur
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; void loadLevelGen().catch(() => undefined); return () => { alive.current = false; }; }, []);
 
   const enter = (r: RaceRoom) => { setRoom(r); setView('room'); setError(null); };
   const run = async (fn: () => Promise<RaceRoom | null>) => {
@@ -59,7 +63,11 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
     if (!room.players.some((p) => p.id === meId && !p.left)) return;
     played.current = room.id;
     platform().haptic('heavy');
-    onPlay(raceSpec(room), room);
+    const r = room;
+    raceSpec(r).then((spec) => { if (alive.current) onPlay(spec, r); }, (e: unknown) => {
+      played.current = null; if (alive.current) setError('Bölüm yüklenemedi; bağlantını kontrol et.');
+      try { chunkFailed(e); } catch { /* yenileniyor ya da çevrimdışı */ }
+    });
   }, [room?.status, room?.id]);
 
   const leave = async () => {
