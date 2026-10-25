@@ -296,7 +296,7 @@ function measureContrast([ISTISNA, BEKLEYEN]) {
     // (aria-hidden kendiliğinden istisna sayılmaz: gören oyuncu o yazıyı okur)
     const dis = el.closest('button:disabled, input:disabled, select:disabled, textarea:disabled, fieldset:disabled, [aria-disabled="true"]');
     if (!item.istisna && dis) item.istisna = 'devre dışı denetim (WCAG 1.4.3: etkisiz arayüz öğesi)';
-    if (!item.istisna) for (const [sel, why] of ISTISNA) if (el.closest(sel)) { item.istisna = why; break; }
+    if (!item.istisna) for (const [sel, why, min] of ISTISNA) if (el.closest(sel)) { item.istisna = why; if (min) { item.need = min; item.istisnaMin = min; } break; }
     if (!item.istisna) for (const [sel, why] of BEKLEYEN) if (el.closest(sel)) { item.bekleyen = why; break; }
     item.inView = r.top >= -1 && r.left >= -1 && r.bottom <= H + 1 && r.right <= W + 1;
     item.rect = [r.left, r.top, r.width, r.height];
@@ -330,7 +330,9 @@ function contrastRects(ids) {
     if (!rects.length) { out[id] = null; continue; }
     // görünür alan: görünüm ∩ kırpan/kaydıran ataların kutusu (alt sayfanın kaydırılmış dışı, yatay şeritlerin gizli kısmı)
     let cl = [0, 0, W, H];
-    for (let q = el.parentElement; q && q !== document.documentElement; q = q.parentElement) {
+    // position:fixed öğe (alt sayfa, Tüy Dede kartı) görünüme göre konumlanır: üstündeki kaydırma kapları onu kırpmaz
+    for (let c = el, q = el.parentElement; q && q !== document.documentElement; c = q, q = q.parentElement) {
+      if (getComputedStyle(c).position === 'fixed') break;
       const qs = getComputedStyle(q); if (qs.overflowX === 'visible' && qs.overflowY === 'visible') continue;
       const b = q.getBoundingClientRect(); cl = [Math.max(cl[0], b.left), Math.max(cl[1], b.top), Math.min(cl[2], b.right), Math.min(cl[3], b.bottom)];
     }
@@ -426,6 +428,7 @@ const KONTRAST_BEKLEYEN = [
 /** WCAG'nin izin verdiği, gerekçeli kontrast istisnaları (seçici → gerekçe); rapor bunları ayrıca listeler */
 const KONTRAST_ISTISNA = [
   ['.ts-logo', 'logo (WCAG 1.4.3: logotip) — açılış ekranındaki ODİ yazı markası, gradyan dolgulu'],
+  ['.kg-legend b.r, .kg-legend b.l', 'odyogram işareti (“<”, “[”: grafikteki maskeleme simgesinin glifi, sözcük değil) — WCAG 1.4.11 grafik nesne, eşik 3:1; renk grafikteki sağ/sol kulak rengiyle aynı kalmalı', 3],
 ];
 
 /** sayfadaki oyuncunun takma adı (sunucu veritabanında bu oyuncuyu bulmak için; yardımcı istemciler Bora/Komşu/Aday) */
@@ -505,6 +508,7 @@ async function suite(browserName, target, [W, H]) {
     await page.evaluate(() => Promise.race([
       Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => undefined))),
       new Promise((r) => setTimeout(r, 2500))]));
+    await sleep(150); // animasyon bitişinden sonraki kare (WebKit yükte geç boyar)
     const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]);
     const ids = items.map((i) => i.id);
     await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
@@ -549,7 +553,8 @@ async function suite(browserName, target, [W, H]) {
     const live = items.filter((i) => !i.covered && !i.unmeasured);
     const low = live.filter((i) => i.ratio < i.need);
     const strip = ({ fgRaw, opAll, inView, id, ...x }) => ({ ...x, rect: x.rect?.map(Math.round) });
-    const viol = low.filter((i) => !i.istisna && !i.bekleyen).map(strip); const exc = low.filter((i) => i.istisna).map(strip); const pend = low.filter((i) => i.bekleyen).map(strip);
+    // istisnanın kendi alt eşiği varsa (ör. grafik simgesi 3:1) ona göre: low zaten i.need'e göre süzüldü
+    const viol = low.filter((i) => (!i.istisna || i.istisnaMin) && !i.bekleyen).map(strip); const exc = low.filter((i) => i.istisna && !i.istisnaMin).map(strip); const pend = low.filter((i) => i.bekleyen).map(strip);
     rec.contrast = { n: live.length, sampled: live.filter((i) => i.sampled).length, covered: items.filter((i) => i.covered).length, unmeasured, violations: viol, exceptions: exc, pending: pend,
       unmeasuredItems: items.filter((i) => i.unmeasured).slice(0, 12).map((i) => `${i.sel} “${i.text}” ${i.rect?.map(Math.round).join(',')}${i.why ? ' · ' + i.why : ''}`) };
     if (viol.length) fail(rec, `kontrast (${viol.length}): ${viol.slice(0, 3).map((x) => `${x.sel.split(' > ').pop()} “${x.text.slice(0, 18)}” ${x.ratio}<${x.need}`).join(' | ')}`);
