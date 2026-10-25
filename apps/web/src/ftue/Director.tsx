@@ -195,6 +195,22 @@ export function tourFor(id: string, route: string): Tour | null {
 const TAB_ROUTES = ['map', 'today', 'camp', 'team', 'profile'];
 const CAMP_TOURS = new Set<string>(['gorev', 'kampoyun', 'vaka']);
 
+/**
+ * Anlatıcı yükü: bir bölüm geçişinden sonra en çok bu kadar açılım turu art arda gelir; fazlası bir sonraki bölüme kalır
+ * (6. bölümde 3, kampa dönüşte 3 tur birikiyordu — docs/yonetim/is-listesi.md MK-007). Hikâye, sonuç, harita ve kamp
+ * öğreticisi bu sayıya girmez. Sayaç bellektedir: uygulama yeniden açılınca sıfırlanır (bekleyen turlar kaybolmaz).
+ */
+export const MAX_UNLOCK_TOURS_PER_LEVEL = 2;
+/** kamp turları (yalnız kampta başlar) ve diğerleri ayrı sayılır: biri ötekini aç bırakmasın */
+const unlockTours = { cleared: -1, genel: 0, kamp: 0 };
+const groupOf = (id: string) => (CAMP_TOURS.has(id) ? 'kamp' : 'genel');
+function countUnlockTour(id: string, cleared: number): void {
+  if (!FEATURES.some((f) => f.id === id && f.tour)) return;
+  if (unlockTours.cleared !== cleared) { unlockTours.cleared = cleared; unlockTours.genel = 0; unlockTours.kamp = 0; }
+  unlockTours[groupOf(id)]++;
+}
+const groupFull = (id: string, cleared: number) => unlockTours.cleared === cleared && unlockTours[groupOf(id)] >= MAX_UNLOCK_TOURS_PER_LEVEL;
+
 /** bir sonraki tur: sıra önemli (önce sonuç → harita → açılımlar) */
 function nextTour(route: string): string | null {
   const s = useStore.getState(); const f = s.ftue; if (f.bypass || f.admin) return null;
@@ -207,7 +223,7 @@ function nextTour(route: string): string | null {
   if (!TAB_ROUTES.includes(route)) return null;
   if (cleared >= 1 && !done('map')) return route === 'map' && exists('.map-play') ? 'map' : null;
   // kamp görevleri turları yalnız kamptayken başlar (oyuncu kampa döndüğünde; başka bir akışı bölmez)
-  for (const ft of FEATURES) if (ft.tour && cleared >= ft.at && !done(ft.id) && (!CAMP_TOURS.has(ft.id) || (route === 'camp' && exists('.camp-base, .camp-list-screen')))) return ft.id;
+  for (const ft of FEATURES) if (ft.tour && !groupFull(ft.id, cleared) && cleared >= ft.at && !done(ft.id) && (!CAMP_TOURS.has(ft.id) || (route === 'camp' && exists('.camp-base, .camp-list-screen')))) return ft.id;
   if (route === 'camp' && done('camp') && !done('camp-build') && exists('.camp-base') && campPick() && buildingVisible(campPick()!)) return 'camp-build';
   return null;
 }
@@ -220,7 +236,8 @@ export function FtueDirector({ route }: { route: string }) {
     const h = setInterval(() => {
       if (useCoach.getState().tour || !quiet()) return;
       const id = nextTour(route); if (!id) return;
-      const t = tourFor(id, route); if (t) useCoach.getState().start(t); else useStore.getState().ftueTourDone(id);
+      const t = tourFor(id, route);
+      if (t) { countUnlockTour(id, clearedCount(useStore.getState().progress)); useCoach.getState().start(t); } else useStore.getState().ftueTourDone(id);
     }, 500);
     return () => clearInterval(h);
   }, [route, active, bypass]);

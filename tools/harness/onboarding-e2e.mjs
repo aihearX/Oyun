@@ -227,9 +227,16 @@ async function suite(target, browserName, [W, H]) {
     return seen;
   }
   /** tur bir alt ekranda bıraktıysa (ör. Sıralama) Geri ile sekmelere dön, sonra haritaya geç */
-  async function toMap(page) {
-    for (let i = 0; i < 4 && !(await page.locator('nav.tabbar').isVisible().catch(() => false)); i++) { await page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined); await sleep(500); }
+  async function toMap(page, seen = [], label = 'gecis') {
+    for (let i = 0; i < 4 && !(await page.locator('nav.tabbar').isVisible().catch(() => false)); i++) {
+      if (await page.locator('[data-testid="anlatici-tur"]').count()) seen.push(...await drainTours(page, label));
+      await page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined); await sleep(500);
+    }
+    // gecikmeli başlayan tur (yönetmen 0,5 sn'de bir bakar) sekme dokunuşunu örtmesin: önce onu yürüt
+    await sleep(1200); if (await page.locator('[data-testid="anlatici-tur"]').count()) seen.push(...await drainTours(page, label));
     await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor({ timeout: 20_000 });
+    seen.push(...await drainTours(page, label));
+    return seen;
   }
   const lockedTabs = (page) => page.locator('nav.tabbar .tab.locked').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
   async function playFromMap(page, lv) {
@@ -318,17 +325,19 @@ async function suite(target, browserName, [W, H]) {
       if (browserName === 'chromium') {
         const perLevel = { 5: await drainTours(page, 'b5') };
         for (let lv = 6; lv <= 10; lv++) {
-          await toMap(page);
+          await toMap(page, perLevel[`${lv - 1}-kamp`] ?? perLevel[lv - 1], `b${lv - 1}-gecis`);
           await playFromMap(page, lv); await page.locator('.result-actions [data-act="harita"]').click();
           await dismissCel(page);
           perLevel[lv] = await drainTours(page, `b${lv}`);
+          // bir tur alt ekranda bitince (ör. Etkinlik çadırı) haritaya dönüşte sıradaki tur başlayabilir
+          await toMap(page, perLevel[lv], `b${lv}-harita`);
+          // kamp turları yalnız kampta başlar: oyuncu gibi her bölümden sonra kampa uğra
+          await page.locator('nav.tabbar .tab[data-tab="camp"]').click(); await sleep(1500); await dismissCel(page);
+          perLevel[`${lv}-kamp`] = await drainTours(page, `b${lv}-kamp`);
         }
-        // kamp turları yalnız kampta başlar
-        await toMap(page); await page.locator('nav.tabbar .tab[data-tab="camp"]').click(); await sleep(1500); await dismissCel(page);
-        perLevel.kamp = await drainTours(page, 'kamp');
         ok(`anlatıcı turları (bölüm → turlar): ${Object.entries(perLevel).map(([k, v]) => `${k}: ${v.join('+') || '-'}`).join(' · ')}`);
         const most = Math.max(...Object.values(perLevel).map((v) => v.length));
-        ok(`bir bölümde en çok ${most} tur art arda`);
+        check(most <= 2, `bir bölümde en çok ${most} açılım turu art arda (sınır 2; fazlası sonraki bölüme)`);
         const tours = await page.evaluate(() => JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.ftue?.tours ?? []);
         const want = ['siralama', 'tlig', 'shop', 'akis', 'events', 'race', 'yazi', 'tyaris', 'soru', 'ikili', 'gorev', 'kampoyun', 'vaka'];
         const miss = want.filter((t) => !tours.includes(t));
@@ -409,6 +418,8 @@ async function suite(target, browserName, [W, H]) {
     }
   } catch (e) {
     fail(`akış: ${String(e.message ?? e).split('\n')[0]}`);
+    // hata anının ekran görüntüsü (açık sayfa varsa)
+    for (const c of browser.contexts()) for (const pg of c.pages()) await pg.screenshot({ path: resolve(dir, 'HATA.png') }).catch(() => undefined);
   }
   if (errors.length) fail(`konsol: ${errors.slice(0, 3).join(' | ')}`);
   report.push({ run: name, log });
