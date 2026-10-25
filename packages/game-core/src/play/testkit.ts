@@ -8,6 +8,7 @@ import { initState, step, NO_INPUT, type SimInput, type SimState } from './sim';
 import { Planner, type PlanPrefs } from './planner';
 import { runHuman, humanSeed, playerOf, scoreRuns, type HumanParams, type HumanRun, type LevelScore } from './human';
 import type { PlayerProfile } from '@odi/level-gen';
+import { olcumOnbellek } from './olcum-onbellek';
 
 /** Testler ve araçlar için: Phaser'sız bölüm kurulumu ve oynatma. */
 export function testSpec(entities: Entity[], o: { number?: number; abilities?: AbilityId[]; length?: number; modifiers?: LevelSpec['modifiers'] } = {}): LevelSpec {
@@ -32,6 +33,9 @@ export interface PlayOutcome {
 }
 /** bölümü planlayıcı bot (ya da boşta) ile oynat; `prefs`: planlayıcı tercihleri (ör. gizli koklealara sapmayan "ana yol" oyuncusu) */
 export function playLevel(n: number, o: { idle?: boolean; salt?: number; maxT?: number; prefs?: PlanPrefs } = {}): PlayOutcome {
+  return olcumOnbellek('playLevel', [n, o], () => playLevelNow(n, o));
+}
+function playLevelNow(n: number, o: { idle?: boolean; salt?: number; maxT?: number; prefs?: PlanPrefs }): PlayOutcome {
   const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0);
   const { w, s } = setup(spec); s.events = [];
   const p = o.idle ? null : new Planner(w, o.prefs ?? false); const maxT = o.maxT ?? 300;
@@ -85,9 +89,12 @@ function roomSetup(c: ChunkSpec): { w: World; s: SimState; level: number } {
 
 /** bölümü insan benzeri oyuncu modeliyle oyna (play/human.ts); `k`: kitlenin k. oyuncusu (beceri k mod 4), `salt`: bölüm tuzu (oyunda 0) */
 export function playHuman(n: number, o: { k?: number; salt?: number; profile?: PlayerProfile; params?: HumanParams; maxT?: number; variant?: number } = {}): HumanRun {
-  const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0, { variant: o.variant });
-  const { w, s } = setup(spec); s.events = null;
-  return runHuman(w, s, humanSeed(n, o.k ?? 0), { maxT: o.maxT, params: o.params ?? playerOf(o.k ?? 0) });
+  // deterministik: vitest'te sonuç simülasyon kodunun özetiyle önbelleğe alınır (olcum-onbellek.ts)
+  return olcumOnbellek('playHuman', [n, o], () => {
+    const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0, { variant: o.variant });
+    const { w, s } = setup(spec); s.events = null;
+    return runHuman(w, s, humanSeed(n, o.k ?? 0), { maxT: o.maxT, params: o.params ?? playerOf(o.k ?? 0) });
+  });
 }
 
 /**
@@ -96,11 +103,14 @@ export function playHuman(n: number, o: { k?: number; salt?: number; profile?: P
  */
 export function playHumanStars(n: number, o: { k?: number; params?: HumanParams } = {}): HumanRun & { stars: number; spec: LevelSpec } {
   const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, 0);
-  const { w, s } = setup(spec); s.events = null;
-  const r = runHuman(w, s, humanSeed(n, o.k ?? 0), { params: o.params ?? playerOf(o.k ?? 0) });
+  // koşu önbellekten (deterministik); yıldız her seferinde güncel kuralla hesaplanır
+  const { r, damageTaken } = olcumOnbellek('playHumanStars', [n, o], () => {
+    const { w, s } = setup(spec); s.events = null;
+    return { r: runHuman(w, s, humanSeed(n, o.k ?? 0), { params: o.params ?? playerOf(o.k ?? 0) }), damageTaken: s.damageTaken };
+  });
   const ob = spec.objective; const t = Math.round(r.t * 10) / 10;
-  const met = r.finished && (ob.id === 'timed' ? r.t <= (ob.target ?? spec.parTimeSec) : ob.id === 'collect-all' ? r.coins >= spec.coinsTotal : ob.id === 'no-damage' ? s.damageTaken === 0 : ob.id === 'reach');
-  const { stars } = scoreRun(spec, { levelId: spec.id, completed: r.finished, coins: r.coins, timeSec: t, deaths: r.deaths, damageTaken: s.damageTaken, objectiveMet: met, secretFound: false });
+  const met = r.finished && (ob.id === 'timed' ? r.t <= (ob.target ?? spec.parTimeSec) : ob.id === 'collect-all' ? r.coins >= spec.coinsTotal : ob.id === 'no-damage' ? damageTaken === 0 : ob.id === 'reach');
+  const { stars } = scoreRun(spec, { levelId: spec.id, completed: r.finished, coins: r.coins, timeSec: t, deaths: r.deaths, damageTaken, objectiveMet: met, secretFound: false });
   return { ...r, stars, spec };
 }
 

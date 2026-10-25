@@ -458,6 +458,15 @@ node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki
 `npm test` içindeki `play/zorluk-*.test.ts`, eğrinin biçimini (alıştırma kolay, bölge finali > bölge girişi, girişler ve finaller
 yükselir, final grupları zinciri (8,12) < (19,23) < (26,30) < (33,36,39), boss'lar doruk, 40 en zor ama ≥ %50 bitirilir) sabit tohumlarla ve alt örneklemle denetler.
 
+**Ölçüm önbelleği (testler).** Zorluk testleri yüzlerce bölümü insan modeliyle ve planlayıcı botla oynatır (boşta ~10 dk, yük
+altında 20-35 dk). Sonuç deterministik olduğu için vitest'te `playHuman`, `playHumanStars` ve `playLevel` sonuçları önbelleğe alınır
+(`packages/game-core/src/play/olcum-onbellek.ts`). Anahtar simülasyonun çalışan kodudur: `testkit.ts` girişinden esbuild ile kurulan
+paketin (ağaç sallanmış, yorumsuz) SHA-256'sı + Node sürümü + çağrı girdisi. Bölüm üretimi, içerik parçaları, insan modeli, fizik ya da
+yıldız kuralı değişirse anahtar değişir ve her şey yeniden ölçülür; kamp metni, sunucu ya da arayüz değişikliği ölçümü yeniden
+yaptırmaz. Önbellek makinenin geçici klasöründedir (`/tmp/odi-olcum/<özet>/`, içerik adresli; çalışma ağaçları arasında güvenle
+paylaşılır). Girdide işlev varsa (planlayıcı `motor`) önbellek atlanır. Tam ölçüm: `ODI_OLCUM_ONBELLEK=0 npx vitest run`.
+Ölçüm (4. tur, yük 10-13): `packages/game-core/src/play` soğuk 2.198 sn → sıcak 114 sn.
+
 ## 8. Sonuç özeti ve bilinen sınırlar
 
 Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bölgeler arası farkları okurken SE ~0,1-0,17'dir.
