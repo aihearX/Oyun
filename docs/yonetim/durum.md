@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 3. tur · 2026-10-25 · başlangıç b1ec20c → tur sonu 6e6c63d (+ bu belge).
+**Son tur:** 4. tur · 2026-10-25 · başlangıç 1487c8c → tur sonu 9ad19a6 (+ bu belge).
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md).
 
 ## Genel hazırlık
@@ -13,28 +13,24 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | **Kapalı beta** (TestFlight / APK, 20-50 kişi) | 4 eksik | Kalıcı diskli herkese açık sunucu (YN-006), derlemede sunucu adresi (YN-007), yeni yönetici kodu (YN-002), ilk EAS derlemesinin denenmesi (YN-024) |
 | **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
 
-## Test sonuçları (3. tur, PY çalıştırdı)
+## Test sonuçları (4. tur, PY çalıştırdı)
 
 | Takım | Sonuç | Not |
 |---|---|---|
-| typecheck / lint | geçti | her çalışan commit'inde |
-| `vitest run` | 62 dosya / 421 test geçti (6e6c63d) | yük altında ağır zorluk testleri bir kez zaman aşımına düştü, tek başına geçti (MK-013) |
-| `ui-mobile-check` web + dom × Chromium + WebKit × 390 + 320 | **940 ekran, 0 sorun** (d73aa0a) | ilk tam ve temiz koşu |
-| bot 21–28 Chromium + WebKit | 8/8 + 8/8 (af0dd99) | yüzme yıldızları |
-| camp, vaka, teamrace, race, reset, social, domcheck | geçti | |
-| onboarding WebKit 390 + 320 | 0 sorun (d73aa0a) | |
-| `simule.mjs` | iki koşu bayt bayt aynı; yerel ödül kaybı 656/1.003 → 0 | |
+| typecheck / lint / vitest | geçti (63 dosya / 422+ test) | tam vitest artık ~2 dk (ölçüm önbelleği, MK-013); soğuk 2.198 sn → sıcak 114 sn (game-core) |
+| simule | takımsız hikâye 5 → 7–9/10; 1 oturum taşkın 13 → 2 (takımsız), 12 → 0 (takımlı) | |
+| camp (sıra adımlarıyla), social, reset, domcheck, vaka | geçti (3a0e159) | camp kutlama yükte düşmesi giderildi (YN-027), 2/2 |
+| ui-mobile gorev web + dom × 320/390 × Chromium/WebKit | 320 ekran, 0 sorun (bbb47ad) | |
+| ui-mobile tam (iki hedef, normal + büyük yazı) | erisim indikten sonra (5. tur başı) | |
 
 ## Bu tur yapılanlar (main'de)
-- **Çalışanlar (PY doğruladı, kabul):** 6c1f4ac ekonomi ölçümü (MK-001) · af0dd99 yüzmede 2★ %45 nota (MK-008) · d73aa0a eksik CSS yüklemeleri + kalıcı statik test (YN-026) · 6e6c63d yerel ödül sınırı 1.500 ve vaka kademeleri Sv 1/2/3 (MK-009, MK-010)
-- **PY:** aebd450 `npm run kabul` tek komutla kabul takımı; artık süreç sızıntısı giderildi (YN-023)
+- **Çalışanlar (PY doğruladı, kabul):** 368f7d9 + bbb47ad takımsız hikâye "ya da" adımları (MK-012) · 3a0e159 inşaat sırası (MK-011)
+- **PY:** 0223e3c ölçüm önbelleği (MK-013) · 0a47931 camp-e2e yük dayanıklılığı (YN-027) · MK-014 ölçüldü (değişiklik yok; MK-015'e bağlandı)
+- **Sahip kararları:** 13 ve 14 onaylandı (iki anlatıcı satırı) → ses2 çalışanı
 
 ## Sürüyor
-- Yok. Sonraki emirler raporda (Ö3 inşaat sırası, Büyük yazı, takımsız hikâye).
-
-## Sonraki tur (4. tur) planı
-1. Yeni çalışanları doğrula (`npm run kabul` alt kümeleriyle).
-2. PY: MK-013 (ağır testler) çalışana verilmezse; YN-025 risk izleme; sahip kararları gelirse uygula.
+- **erisim** (YN-018 / MK-006 Büyük yazı): çalışanın son doğrulaması sürüyor, main'e inmedi. İnince PY: ui-mobile iki hedef, normal + büyük yazı.
+- **ses2** (YN-028, iki onaylı satırın seslendirmesi ve `kamp-sira-01` ipucu). İnince PY: `generate.mjs --check`, kamp/onboarding e2e, dosyaları dinle.
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
