@@ -12,6 +12,9 @@ import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { KgBinaKanca } from './gorev/Kanca';
+import { useKg } from './gorev/state';
+import { KgIcon } from './gorev/art';
+import { hikayeBinasi } from './hikaye-bina';
 
 /** binanın görünümü (önbellekli küçük resim) */
 const thumbs = new Map<string, string>();
@@ -53,6 +56,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
   const building = !!(b.upgradingTo && b.endsAt);
   // inşaat sırası: başka bina yapılırken bu bina sıraya alınabilir (bedel peşin; süren bitince kendiliğinden başlar)
   const other = activeOf(camp); const inQueue = camp.queued?.id === id;
+  const story = hikayeBinasi(useKg((st) => st.kg)); // hikâyenin istediği bina: sırayı seçerken yol göstersin (MK-016)
   const queueMode = queueSupported(camp) && !!other && other.id !== id;
   const qv = canQueue(camp, wallet, id);
   const left = Math.max(0, (b.endsAt ?? 0) - sNow); const total = Math.max(1, (b.endsAt ?? 0) - (b.startedAt ?? 0));
@@ -77,6 +81,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
             <h2>{d.name}</h2>
             <div className="bp-lv"><span className={`bp-tier t${Math.max(0, tierOf(b.level))}`}>{b.level > 0 ? `Sv ${b.level} · ${CAMP_TIER_NAMES[tierOf(b.level)]}` : 'Kurulmadı'}</span><span className="bp-max">en çok Sv {d.maxLevel}</span></div>
             <div className="bp-desc">{d.desc}</div>
+            {story && story.id === id && b.level < story.need && <div className="bp-desc" data-testid="hikaye-ipucu"><KgIcon name="bolum" size="1.1em" className="art-inline" /> Kampın Hikâyesi (“{story.bolum}”) bu binayı Sv {story.need} istiyor</div>}
           </div>
           <button className="bp-x" onClick={onClose} aria-label="Kapat"><Icon name="close" size="1.1em" className="ic-inline" /></button>
         </div>

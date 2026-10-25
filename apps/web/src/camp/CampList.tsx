@@ -6,6 +6,9 @@ import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canQueue, effect, queueSupported, shortOf, type CampActions } from './model';
+import { useKg } from './gorev/state';
+import { KgIcon } from './gorev/art';
+import { hikayeBinasi } from './hikaye-bina';
 import { TedaviPanel } from './TedaviPanel';
 import { DedeCard } from './dede';
 import { Art, rich, Glyph } from '../ui/art';
@@ -26,6 +29,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   const [levelPanel, setLevelPanel] = useState(false);
   const upgrade = async (d: BuildingDef) => { setConfirm(null); if (active && queueSupported(camp)) await actions.queue(d.id); else await actions.upgrade(d.id); };
   const qOn = !!active && queueSupported(camp);
+  const story = hikayeBinasi(useKg((st) => st.kg)); // hikâyenin istediği bina (MK-016)
   const collect = async () => { const n = await actions.collect(); if (n) setBurst(`+${fmtNum(n)} 🪙`); };
 
   return (
@@ -71,6 +75,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
                 : qv ? <button className="btn small" disabled={!qv.ok} onClick={() => setConfirm(d)}>{qv.ok ? 'Sıraya al' : qv.short}</button>
                 : <button className="btn small" disabled={busy || blocked || poor || locked} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : locked ? `Kamp Sv ${d.campLevel}` : blocked ? `Merkez ${to}` : b.level === 0 ? 'Kur' : 'Yükselt'}</button>}
             </div>}
+            {story && story.id === d.id && b.level < story.need && <div className="muted small-note" data-testid="hikaye-ipucu"><KgIcon name="bolum" size={16} className="art-inline" /> Kampın Hikâyesi bu binayı Sv {story.need} istiyor</div>}
             {inQueue && <div className="muted small-note"><Art name="hourglass" size={16} className="art-inline" /> Sırada: Sv {camp.queued!.toLevel} · {active ? `${shortOf(active.id)} bitince başlar` : 'birazdan başlar'} · bedel ödendi</div>}
             {max && <div className="muted">En yüksek seviye.</div>}
             {d.id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} compact />}
