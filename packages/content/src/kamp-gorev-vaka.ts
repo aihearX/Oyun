@@ -111,7 +111,7 @@ export interface YonetimSecenek { id: string; sade: string; teknik?: string }
 export interface Vaka {
   /** kalıcı kimlik (Vaka Defteri kayıtları buna bağlı) */
   id: string;
-  /** zorluk kademesi: Odyoloji Kliniği Sv 1 / 4 / 7 ile açılır */
+  /** zorluk kademesi: Odyoloji Kliniği Sv 1 / 2 / 3 ile açılır (KG_KURAL.kademeSv) */
   kademe: 1 | 2 | 3;
   kat: VakaKategori;
   baslik: string;

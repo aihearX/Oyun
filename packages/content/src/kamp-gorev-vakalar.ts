@@ -5,7 +5,7 @@
  * `vakaTutarsizliklari` ile her vaka için test edilir (kamp-gorev.test.ts).
  *
  * Kimlikler kalıcıdır (Vaka Defteri kayıtları bunlara bağlı); yeni vaka yalnız SONA eklenir. Sıra, kliniğe geliş sırasıdır.
- * Kademe: 1 = Odyoloji Kliniği Sv 1, 2 = Sv 4, 3 = Sv 7. Değerler ders kitabı örnekleridir (Katz; Gelfand; Jerger 1970; ASHA).
+ * Kademe: 1 = Odyoloji Kliniği Sv 1, 2 = Sv 2, 3 = Sv 3 (KG_KURAL.kademeSv). Değerler ders kitabı örnekleridir (Katz; Gelfand; Jerger 1970; ASHA).
  */
 import type { Odyogram, Timp, Vaka, YokTest } from './kamp-gorev-vaka';
 
@@ -282,7 +282,7 @@ export const VAKALAR: Vaka[] = [
     terim: 'timpanik-membran', kaynak: `${K}, timpanometri; ${E}, zar perforasyonu`,
   },
 
-  // ======================================================== Kademe 2 (Odyoloji Kliniği Sv 4)
+  // ======================================================== Kademe 2 (Odyoloji Kliniği Sv 2)
   {
     id: 'kv11', kademe: 2, kat: 'otoskleroz', baslik: 'Gürültüde daha iyi duyan anne',
     hasta: { ad: 'Elif', yas: '33 yaş', grup: 'yetiskin', gorunum: { ten: 1, sac: 'kahve' } },
@@ -595,7 +595,7 @@ export const VAKALAR: Vaka[] = [
     terim: 'epitel-gocu', kaynak: `AAO-HNS Serumen Klinik Kılavuzu (2017); ${K}, işitme cihazı bakımı`,
   },
 
-  // ======================================================== Kademe 3 (Odyoloji Kliniği Sv 7)
+  // ======================================================== Kademe 3 (Odyoloji Kliniği Sv 3)
   {
     id: 'kv23', kademe: 3, kat: 'noroma', baslik: 'Tek kulakta çınlama',
     hasta: { ad: 'Murat', yas: '50 yaş', grup: 'yetiskin', gorunum: { ten: 2, sac: 'gri' } },

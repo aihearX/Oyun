@@ -23,15 +23,19 @@ describe('yerel ödül cüzdanı (wallet.local)', () => {
     expect(again.wallet.jeton).toBe(140);
   });
 
-  it('günlük üst sınır 600 jeton (İstanbul günü); ertesi gün yenilenir', async () => {
+  it('günlük üst sınır (İstanbul günü); ertesi gün yenilenir', async () => {
+    // dürüst oyunun ölçülen en yoğun gününün üstünde (1.270: 6 oturum, 1. gün; ekonomi-olcum Ö1), sahte istemciyi yine durdurur
+    expect(LOCAL_JETON_DAILY_MAX).toBeGreaterThanOrEqual(1270);
+    expect(LOCAL_JETON_DAILY_MAX).toBeLessThanOrEqual(2000);
     env = await setup();
     const a = await env.connect('Ayşe');
-    expect((await a.call('wallet.local', { ledgerId: 'a1', jeton: 500, reason: 'takvim:7' })).credited).toBe(500);
+    const ilk = LOCAL_JETON_DAILY_MAX - 100;
+    expect((await a.call('wallet.local', { ledgerId: 'a1', jeton: ilk, reason: 'takvim:7' })).credited).toBe(ilk);
     const capped = await a.call('wallet.local', { ledgerId: 'a2', jeton: 250, reason: 'gunluk-sandik' });
     expect(capped.credited).toBe(100);
     expect(capped.dailyLeft).toBe(0);
     expect((await a.call('wallet.local', { ledgerId: 'a3', jeton: 10, reason: 'sansli-nota' })).credited).toBe(0);
-    expect((await a.call('wallet.get', {})).wallet.jeton).toBe(100 + 600);
+    expect((await a.call('wallet.get', {})).wallet.jeton).toBe(100 + LOCAL_JETON_DAILY_MAX);
     env.clock.advance(24 * 3600_000);
     expect((await a.call('wallet.local', { ledgerId: 'a4', jeton: 30, reason: 'gorev:x' })).credited).toBe(30);
   });

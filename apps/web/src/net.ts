@@ -8,7 +8,7 @@
 import { create } from 'zustand';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { CAMP_CHEERS, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { CAMP_CHEERS, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { COSMETICS, SKILL_TREE, CARDS, campLevelCosmetics, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
@@ -111,7 +111,7 @@ async function flushOutbox(): Promise<void> {
         if (item.k === 'local') {
           const r = await client.call('wallet.local', { ledgerId: item.ledgerId, jeton: item.jeton, reason: item.reason });
           if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); }
-          else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır 600. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
+          else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır ${LOCAL_JETON_DAILY_MAX}. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
         } else {
           const r = await client.call('wallet.spend', { jeton: item.jeton, reason: item.reason });
           applyServerSkills(r.skills);

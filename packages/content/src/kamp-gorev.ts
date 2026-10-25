@@ -26,8 +26,11 @@ export { KG_ACILIS, type KgOzellik } from './kamp-gorev-acilis';
 export const KG_KURAL = {
   /** her gün kliniğe gelen yeni hasta (bekleme salonu dolu değilse) ve salonun alabileceği en çok hasta */
   vakaGunluk: 3, vakaSalon: 6,
-  /** zorluk kademesinin açıldığı Odyoloji Kliniği seviyesi */
-  kademeSv: [1, 4, 7] as const,
+  /**
+   * zorluk kademesinin açıldığı Odyoloji Kliniği seviyesi. Ölçüm (docs/yonetim/ekonomi-olcum.md, Ö4): Sv 1/4/7 ile 1. kademenin
+   * 10 vakası 3-4 günde bitiyor ve Klinik Sv 4'e dek salon boş kalıyordu; Sv 1/2/3 ile kademeler kliniğin ilk adımlarında açılır.
+   */
+  kademeSv: [1, 2, 3] as const,
   /** kamp oyunlarında günde ödüllü tur (sonrası yalnız eğlence) */
   oyunOdulluTur: 5,
   /** bir oyun turu en az bu kadar sürer (ms; sunucu daha kısa turu kabul etmez) */
