@@ -116,7 +116,8 @@ describe('Hasta Vakaları: içerik', () => {
     expect(AC_HZ.length).toBe(8);
   });
   it('kademe Odyoloji Kliniği seviyesine bağlı', () => {
-    expect([0, 1, 3, 4, 6, 7, 15].map(vakaKademesi)).toEqual([0, 1, 1, 2, 2, 3, 3]);
+    expect([0, 1, 2, 3, 4, 7, 15].map(vakaKademesi)).toEqual([0, 1, 2, 3, 3, 3, 3]);
+    expect(KG_KURAL.kademeSv).toEqual([1, 2, 3]); // ölçüm Ö4 (docs/yonetim/ekonomi-olcum.md): klinikte boş gün kalmasın
   });
 });
 

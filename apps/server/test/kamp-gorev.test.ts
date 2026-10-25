@@ -163,11 +163,31 @@ describe('Hasta Vakaları', () => {
     env.clock.advance(DAY_MS);
     v = (await a.call('vaka.state', {})).vaka;
     expect(v.waiting).toHaveLength(KG_KURAL.vakaSalon);
-    // 1. kademe bitince Klinik Sv 4 olmadan 2. kademe gelmez
+    // 1. kademe bitince Klinik Sv 2 olmadan 2. kademe gelmez
     const all1 = VAKALAR.filter((x) => x.kademe === 1).map((x) => x.id);
     expect(v.waiting.every((id) => all1.includes(id))).toBe(true);
+    expect(v.tier).toBe(1);
     expect(kgCount(env.srv.app, pid, 'vaka')).toBe(2);
     expect(kgCount(env.srv.app, pid, 'vaka-3yildiz')).toBe(1);
+  });
+
+  it('kademeler Klinik Sv 1 / 2 / 3 ile açılır; 1. kademe bitince ertesi gün 2. kademeden hasta gelir (boş gün yok)', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 7, { revir: 1 }); const pid = a.me!.id;
+    expect((await a.call('vaka.state', {})).vaka.tier).toBe(1);
+    // 1. kademenin hepsi çözülmüş, salon boş
+    const all1 = VAKALAR.filter((x) => x.kademe === 1).map((x) => x.id);
+    env.srv.app.db.run('DELETE FROM kv_queue WHERE player_id = ?', pid);
+    for (const id of all1) env.srv.app.db.run('INSERT INTO kv_book(player_id, case_id, stars, plays, solved_at, tests) VALUES(?, ?, 1, 1, ?, 0)', pid, id, env.clock.t);
+    setLevels(env, pid, { revir: 2 });
+    env.clock.advance(DAY_MS);
+    let v = (await a.call('vaka.state', {})).vaka;
+    expect(v.tier).toBe(2);
+    expect(v.waiting).toHaveLength(KG_KURAL.vakaGunluk);
+    expect(v.waiting.every((id) => vakaById(id)!.kademe === 2)).toBe(true);
+    setLevels(env, pid, { revir: 3 });
+    v = (await a.call('vaka.state', {})).vaka;
+    expect(v.tier).toBe(3);
   });
 
   it('ilk çözümde 2+ yıldızla vakanın patolojisine uygun malzeme çantaya (bir kez)', async () => {

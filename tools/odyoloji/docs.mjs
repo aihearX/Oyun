@@ -117,7 +117,7 @@ Vakalar KURGUSALDIR (çizim karakterler; gerçek kişi değildir) ve eğitim iç
 değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konuşma testi tanısıyla tutarlıdır: \`vakaTutarsizliklari\`
 (ASHA odyogram kuralı: hava–kemik aralığı ≥15 dB en az iki frekansta = iletim bileşeni; kemik yolu >25 dB HL = koklear bileşen;
 Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
-ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv 1 / 4 / 7.
+ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv ${KG.KG_KURAL.kademeSv.join(' / ')}.
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
 
 | # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (teknik) | sözlük | kaynak |

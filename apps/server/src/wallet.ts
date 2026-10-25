@@ -1,14 +1,14 @@
 import { SKILL_TREE } from '@odi/content';
+import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
 import { MAX_LEVEL } from './progress';
 import { dayKey } from './time';
 
 /**
- * Yerel meta ödülleri (günlük görev, takvim, sandık, hazine, Şanslı Nota, başarım) istemcide hesaplanır;
- * jeton kısmı buradan hesaba yazılır. ledgerId ile idempotent; günlük üst sınır dürüst oyunda aşılmaz,
- * ama sahte istemcinin sınırsız jeton basmasını engeller.
+ * Yerel meta ödülleri (görev, takvim, sandık, hazine, Şanslı Nota, başarım) istemcide hesaplanır, jetonu buradan yazılır (ledgerId ile idempotent). Günlük üst sınır sunucuda uygulanır, sahte istemcinin sınırsız jeton basmasını engeller.
+ * Değer ölçüldü (tools/ekonomi/simule.mjs, docs/yonetim/ekonomi-olcum.md Ö1): dürüst oyunun en yoğun günü 1.270 jeton (6 oturum, 1. gün), altı profilin hiçbiri sınıra çarpmaz; eski 600 dürüst oyunu kesiyordu.
  */
-export const LOCAL_JETON_DAILY_MAX = 600;
+export { LOCAL_JETON_DAILY_MAX };
 /** Hesap ilk kez açılırken cihazdaki çevrimdışı jetonun devri: hesap başına bir kez, ilk 24 saatte, en çok bu kadar (günlük sınırdan ayrı) */
 export const DEVIR_MAX = 3000;
 const DEVIR_WINDOW_MS = 24 * 3_600_000;

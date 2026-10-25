@@ -211,7 +211,7 @@ function simule(P, H = {}) {
   const kampAcik = () => s.cleared >= opened('camp');
   const ac = (f) => s.cleared >= (f in F.KG_ACILIS ? F.KG_ACILIS[f] : opened(f));
 
-  // ---------------------------------------------------------------- yerel ödüller (istemci → wallet.local, günlük 600 sınırı)
+  // ---------------------------------------------------------------- yerel ödüller (istemci → wallet.local, günlük sınır LOCAL_JETON_DAILY_MAX)
   let yerelBugun = 0;
   const YEREL = H.yerelSinir ?? F.LOCAL_JETON_DAILY_MAX;
   const yerel = (j) => { const c = Math.min(j, YEREL - yerelBugun); yerelBugun += c; s.jeton += c; G.gelir.yerel += c; G.yerelKirpilan += j - c; };
@@ -536,6 +536,7 @@ function simule(P, H = {}) {
         prevEnd = { t: t2, busyUntil: s.q ? s.q.ends : null, yeter: nx ? s.jeton >= nx.jeton : true };
       } else if (son) takimGunluk(d, true);
     });
+    G.vakaDefter = s.vakaBook.size;
     G.cleared = s.cleared; G.cuzdan = Math.floor(s.jeton); G.kristalStok = s.kristal; G.kampSv = s.kampSv; G.kampXp = s.xp; G.binalar = { ...s.L };
     const nx = siradaki(); G.sonrakiMaliyet = nx ? nx.jeton : null; G.sonraki = nx ? `${bDef(nx.id).short ?? nx.id} ${nx.to}` : 'yok (Merkez inşaatta)';
     { const son3 = gunler.slice(-3); const gelir = son3.reduce((a, g) => a + sum(g.gelir), 0) / son3.length; G.sonrakiGun = nx && gelir ? nx.jeton / gelir : null; }
@@ -567,11 +568,17 @@ w(`| **1-40** | | | | | | **${tr(topSure / 60, 1)} dk** | **${tr(topNota)}** | |
 w();
 
 // --- özet
+/** vaka günleri: yeni hasta gelen, vaka açık (Klinik kurulu ve bölüm eşiği), boş (açık, hasta gelmedi, 32 vaka henüz bitmemişti) */
+const vakaGunleri = (r) => {
+  const acik = r.gunler.filter((g) => g.cleared >= F.KG_ACILIS.vaka && g.binalar.revir >= 1);
+  const bos = acik.filter((g) => !g.vaka && (r.gunler[g.gun - 2]?.vakaDefter ?? 0) < F.VAKALAR.length);
+  return { gelen: r.gunler.filter((g) => g.vaka > 0).length, acik: acik.length, bos: bos.length };
+};
 const ilkGun = (r, f) => { const g = r.gunler.find(f); return g ? g.gun : null; };
 const binaGunu = (r, id, lv = 1) => ilkGun(r, (g) => g.binalar[id] >= lv);
 w('### Profil özeti (14 gün)');
 w();
-w('| Profil | Bölüm 40 bitti (gün) | İlk duvar günü | İnşaatsız gün | Taşkın günü | Yeni hasta gelen gün / vaka açık gün | Kuyruk dolu / boş: jeton yok / boş: oyuncu yok (%) | Sıradaki bina = kaç günlük gelir (14. gün) | 14. gün cüzdan | 14. gün kristal | Kamp Sv | Hikâye bölümü | Anlamlı gün |');
+w('| Profil | Bölüm 40 bitti (gün) | İlk duvar günü | İnşaatsız gün | Taşkın günü | Yeni hasta gelen gün / vaka açık gün (boş gün, vaka bitmeden) | Kuyruk dolu / boş: jeton yok / boş: oyuncu yok (%) | Sıradaki bina = kaç günlük gelir (14. gün) | 14. gün cüzdan | 14. gün kristal | Kamp Sv | Hikâye bölümü | Anlamlı gün |');
 w('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const r of sonuclar) {
   const g14 = r.gunler.at(-1); const saat = r.gunler.reduce((a, g) => ({ dolu: a.dolu + g.saat.dolu, yok: a.yok + g.saat.jetonYok, cd: a.cd + g.saat.cevrimdisi }), { dolu: 0, yok: 0, cd: 0 });
@@ -583,8 +590,8 @@ for (const r of sonuclar) {
   const insaatsiz = kampli.filter((g) => !g.insaat.length).length;
   const taskin = kampli.filter((g) => g.sonrakiMaliyet && g.cuzdan >= 2 * g.sonrakiMaliyet).length;
   const pct = (x) => tr(tum ? (x / tum) * 100 : 0);
-  const vakaAcik = r.gunler.filter((g) => g.cleared >= F.KG_ACILIS.vaka && g.binalar.revir >= 1).length;
-  w(`| ${r.P.ad} | ${tr(ilkGun(r, (g) => g.cleared >= 40))} | ${duvar ?? 'yok'} | ${insaatsiz} | ${taskin} | ${r.gunler.filter((g) => g.vaka > 0).length}/${vakaAcik} | %${pct(saat.dolu)} / %${pct(saat.yok)} / %${pct(saat.cd)} | ${tr(g14.sonrakiGun, 2)} | ${tr(g14.cuzdan)} | ${tr(g14.kristalStok)} | ${g14.kampSv} | ${g14.hikayeToplam}/10 | ${anlamli}/14 |`);
+  const vk = vakaGunleri(r);
+  w(`| ${r.P.ad} | ${tr(ilkGun(r, (g) => g.cleared >= 40))} | ${duvar ?? 'yok'} | ${insaatsiz} | ${taskin} | ${vk.gelen}/${vk.acik} (${vk.bos}) | %${pct(saat.dolu)} / %${pct(saat.yok)} / %${pct(saat.cd)} | ${tr(g14.sonrakiGun, 2)} | ${tr(g14.cuzdan)} | ${tr(g14.kristalStok)} | ${g14.kampSv} | ${g14.hikayeToplam}/10 | ${anlamli}/14 |`);
 }
 w();
 w('### Açılış günleri (gün; – = 14 günde yok)');
@@ -619,28 +626,48 @@ for (const r of sonuclar) {
   }
   w();
 }
+// --- uygulanan değişiklikler: eski kural (simülasyon kancasıyla) → bugünkü kod (aynı ölçüm, aynı model)
+const ESKI_KADEME = (sv) => (sv >= 7 ? 3 : sv >= 4 ? 2 : sv >= 1 ? 1 : 0); // Klinik Sv 1/4/7 (Ö4 öncesi)
+const UYGULANAN = [
+  { id: 'Ö1', ad: `Yerel ödül sınırı 600 → ${tr(F.LOCAL_JETON_DAILY_MAX)} jeton/gün`, H: { yerelSinir: 600 } },
+  { id: 'Ö4', ad: `Vaka kademeleri Klinik Sv 1/4/7 → ${F.KG_KURAL.kademeSv.join('/')}`, H: { vakaKademe: ESKI_KADEME } },
+  { id: 'Ö1 + Ö4', ad: 'ikisi birlikte', H: { yerelSinir: 600, vakaKademe: ESKI_KADEME } },
+];
 // --- öneri denemeleri (yalnız simülasyonda; oyun kodu değişmedi)
 const ONERILER = [
-  { id: 'Ö1', ad: 'Yerel ödül sınırı 600 → 1000 jeton/gün', H: { yerelSinir: 1000 } },
   { id: 'Ö2', ad: 'Takımsız oyuncuya hikâye 6–7 için tek kişilik adım', H: { soloHikaye: true } },
   { id: 'Ö3', ad: 'Bir inşaat sıraya alınabilsin (parası peşin)', H: { sira: true } },
-  { id: 'Ö4', ad: 'Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3', H: { vakaKademe: (sv) => Math.min(3, Math.max(0, sv)) } },
   { id: 'Ö5', ad: '(denendi, önerilmez) Depo dolma süresi 8 → 12 sa', H: { depoSaat: (dl) => 12 + 0.5 * dl } },
+  { id: 'Ö4b', ad: '(denendi) Vaka kademeleri Klinik Sv 1/1/2', H: { vakaKademe: (sv) => (sv >= 2 ? 3 : sv >= 1 ? 2 : 0) } },
 ];
 const ozet = (r) => {
-  const g14 = r.gunler.at(-1); const sm = (f) => r.gunler.reduce((a, g) => a + f(g), 0);
+  const g14 = r.gunler.at(-1); const sm = (f) => r.gunler.reduce((a, g) => a + f(g), 0); const vk = vakaGunleri(r);
   return { insaat: sm((g) => g.insaat.length), cuzdan: g14.cuzdan, kampSv: g14.kampSv, hikaye: g14.hikayeToplam, kristal: sm((g) => g.kristal),
-    kirp: sm((g) => g.yerelKirpilan), vakaGun: r.gunler.filter((g) => g.vaka > 0).length, gelir: sm((g) => sum(g.gelir)), taskin: r.gunler.filter((g) => g.oturumKamp > 0 && g.sonrakiMaliyet && g.cuzdan >= 2 * g.sonrakiMaliyet).length };
+    kirp: sm((g) => g.yerelKirpilan), kirp3: r.gunler.slice(0, 3).reduce((a, g) => a + g.yerelKirpilan, 0), yerelEnCok: Math.max(...r.gunler.map((g) => g.gelir.yerel + g.yerelKirpilan)),
+    vakaGun: vk.gelen, vakaAcik: vk.acik, vakaBos: vk.bos, gelir: sm((g) => sum(g.gelir)),
+    taskin: r.gunler.filter((g) => g.oturumKamp > 0 && g.sonrakiMaliyet && g.cuzdan >= 2 * g.sonrakiMaliyet).length };
 };
+w('### Uygulanan değişiklikler (14 gün; eski kural → bugünkü kod)');
+w();
+w('_Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla yeniden kurar. Yerel talep: sınır olmasa o gün istenecek en yüksek yerel ödül jetonu._');
+w();
+w('| Değişiklik | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Kristal geliri | Kırpılan yerel jeton (ilk 3 gün) | Kırpılan yerel jeton (14 gün) | En yoğun gün yerel talep | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |');
+w('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+for (const o of UYGULANAN) for (const [i, P] of PROFILLER.entries()) {
+  const a = ozet(simule(P, o.H)); const b = ozet(sonuclar[i]);
+  const c = (k, d = 0) => (a[k] === b[k] ? tr(a[k], d) : `${tr(a[k], d)} → **${tr(b[k], d)}**`);
+  w(`| ${o.id} ${o.ad} | ${P.ad} | ${c('gelir')} | ${c('insaat')} | ${c('cuzdan')} | ${c('taskin')} | ${c('kampSv')} | ${c('kristal')} | ${c('kirp3')} | ${c('kirp')} | ${tr(b.yerelEnCok)} | ${a.vakaGun}/${a.vakaAcik} → ${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'}${b.vakaGun}/${b.vakaAcik}${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'} | ${c('vakaBos')} |`);
+}
+w();
 w('### Öneri denemeleri (14 gün; temel → öneriyle)');
 w();
-w('| Öneri | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Hikâye | Kristal geliri | Kırpılan yerel jeton | Yeni hasta gelen gün |');
-w('|---|---|---|---|---|---|---|---|---|---|---|');
+w('| Öneri | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Hikâye | Kristal geliri | Kırpılan yerel jeton | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |');
+w('|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const o of ONERILER) for (const [i, P] of PROFILLER.entries()) {
   const a = ozet(sonuclar[i]); const b = ozet(simule(P, o.H));
   if (JSON.stringify(a) === JSON.stringify(b)) continue;
   const c = (k, d = 0) => (a[k] === b[k] ? tr(a[k], d) : `${tr(a[k], d)} → **${tr(b[k], d)}**`);
-  w(`| ${o.id} ${o.ad} | ${P.ad} | ${c('gelir')} | ${c('insaat')} | ${c('cuzdan')} | ${c('taskin')} | ${c('kampSv')} | ${c('hikaye')} | ${c('kristal')} | ${c('kirp')} | ${c('vakaGun')} |`);
+  w(`| ${o.id} ${o.ad} | ${P.ad} | ${c('gelir')} | ${c('insaat')} | ${c('cuzdan')} | ${c('taskin')} | ${c('kampSv')} | ${c('hikaye')} | ${c('kristal')} | ${c('kirp')} | ${c('vakaGun')} | ${c('vakaBos')} |`);
 }
 w();
 const md = out.join('\n');
