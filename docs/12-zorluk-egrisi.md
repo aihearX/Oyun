@@ -408,6 +408,42 @@ _Yüzdeler bütün oyunculara göredir (bitiremeyen 0★); 48 kitle oyuncusu, 48
 - Testler: `play/zorluk-sure.test.ts` (eşikler eski hedefin altında, bitiren herkese ≥ 1★ ve ilk kez oynayan yüzme finalini
   bitirebilir, 3★ ustalara ulaşılır ama herkese değil, 2★ bitirenlerin çoğuna), `shared/economy.test.ts`, `meta/meta.test.ts`.
 
+**Süresiz yüzme bölümlerinin yıldızları (MK-008).** Ölçüm: 21, 22, 27, 28'de herkes ya da neredeyse herkes bitiriyor (%98-100),
+ama bitirenlerin nota medyanı %46-56: su altındaki ve kabarcıklı odalardaki notalar zor toplanıyor (21'de `k1-kabarcik`'in 10
+notasından 8'ini 24 oyuncunun hiçbiri alamadı). Notaları kovalayan planlayıcı %73-87 topluyor — notalar ulaşılmaz değil, zor.
+%60 eşiğiyle bitirenlerin yalnız %2-27'si 2★ alıyordu. Seçenekler ölçüldü (bitirenlerin ★≥2 oranı, eşik → 21 / 22 / 27 / 28):
+%50 → 31 / 69 / 85 / 40 (21 hedefin altında), %48 → 48 / 77 / 88 / 62 (21'de pay 48 oyuncuda ~1 SE), **%45 → 56 / 90 / 96 / 91**.
+Süreyle 2★ (b) süresiz bölümde hedef olarak görünmüyor ve 23'te bitirenlerin hepsine 2★ veriyordu; nota yerleşimini değiştirmek (c)
+paylaşılan odaları, oda puanlarını ve bölüm seçimlerini değiştirir (bütün ölçümler yeniden). En küçük değişiklik (a) seçildi:
+
+- **Yüzme bölümünde (mekanik `yuzme`: 21-24, 26-28, 30) 2★ notaların %45'i.** 3★ değişmez: %90 nota **ya da** %60 nota + bölüm
+  hedefi (hedefle 3★ yine %60 nota ister; eşik düşünce eskort/melodi/gizli hedefi 3★'ı kolaylaştırmasın). Süreli yüzme
+  bölümlerinde (23, 30) süre kuralı aynen; nota yolu %45. Kural tek yerde: `shared/economy.ts → noteThresholds` (`scoreRun` ve
+  sonuç ekranının ipucu `meta/progress.ts → nextGoal` aynı eşikleri kullanır). İpucu: "2. yıldız için 4 nota daha"; %60'ın
+  altında 2★ alan eskort oyuncusuna "3. yıldız için 3 nota daha ve: Fısıltıyı sağ salim kapıya götür".
+- Ölçüm: `node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --tag yildiz-sonra --once yildiz-once` (48 kitle oyuncusu,
+  oyundaki gibi `scoreRun`; yüzdeler bitirenlere göre). 3★ sütunu hiçbir bölümde değişmedi; 25 ve 29 yüzme değil (kontrol).
+
+| Bölüm | Bitirme | Bitirenlerin nota medyanı | Önce: ★≥2 / ★3 | Sonra: ★≥2 / ★3 |
+|---|---|---|---|---|
+| **21 Suya Dalış** | %100 | %46 | %2 / %0 | **%56** / %0 |
+| **22 İnce Sesler** | %100 | %53 | %23 / %0 | **%90** / %0 |
+| 23 Akıntı (süreli) | %81 | %53 | %100 / %54 | %100 / %54 |
+| 24 Konuşma Kıvrımı | %98 | %63 | %64 / %0 | %100 / %0 |
+| 25 Tüy Hücresi Tarlası (koşu) | %90 | %61 | %60 / %47 | %60 / %47 |
+| 26 Derin Kıvrım | %77 | %63 | %65 / %0 | %100 / %0 |
+| **27 Bas Diyarı** | %100 | %56 | %27 / %0 | **%96** / %0 |
+| **28 Ninni Derinlerde** | %98 | %50 | %9 / %0 | **%91** / %0 |
+| 29 Apeks Sıçrayışı (trambolin) | %94 | %76 | %100 / %0 | %100 / %0 |
+| 30 Son Kıvrım (süreli) | %75 | %50 | %89 / %53 | %100 / %53 |
+
+- Kitle modeli notaya az değer verir (planlayıcıda nota başına 40, kovalayan botta 160); notaya çabalayan oyuncu daha çok toplar.
+  Süresiz yüzme bölümlerinde 3★ %0: model eskortu/melodiyi `playHumanStars`'ta saymaz ve %90 notaya ulaşmaz — 3★ hâlâ iyi oyun ister.
+- 24 ve 26 (melodi, gizli) zaten %64-65'teydi; aynı kuralla 2★ bitirenlerin hepsine çıktı (bitirme %77-98; yüzme kuralı mekaniğe
+  bağlı, oyuncuya tutarlı). Bölüm üretimi, zorluk ve bitirme ölçümleri değişmedi (yalnız yıldız kuralı).
+- Test: `play/zorluk-yuzme.test.ts` (8 oyuncu: 21/22/27/28'de bitirenlerin ≥ %40'ı 2★, herkes değil; 3★ ≤ %25 ve 3★ alan ≥ %60 nota),
+  `shared/economy.test.ts`, `meta/meta.test.ts`.
+
 ## 7. Komutlar
 
 ```bash
@@ -416,6 +452,7 @@ node tools/harness/zorluk.mjs --kalibre --k 16 --v 10    # bölüm başına vary
 node tools/harness/zorluk.mjs --sure --k 48              # süreli bölümlerin 3★/2★ süreleri → packages/level-gen/src/sure.ts (varyant/oda değişince yenileyin)
 node tools/harness/zorluk.mjs --bolumler --k 48 --tag sonra   # 40 bölüm × 48 oyuncu (~30 dk)
 node tools/harness/zorluk.mjs --bolumler --levels 1-12 --k 48 --ilk 1 --tag ilk   # ilk kez oynayan kademe (1-12)
+node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --tag yildiz-sonra --once yildiz-once   # bitirenlerin nota oranı ve yıldızları (oyundaki scoreRun; ~8 dk)
 node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki tablolar + docs/img/zorluk-egrisi.svg (ilk.json varsa ilk kez oynayan tablosu da)
 ```
 `npm test` içindeki `play/zorluk-*.test.ts`, eğrinin biçimini (alıştırma kolay, bölge finali > bölge girişi, girişler ve finaller
