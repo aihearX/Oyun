@@ -1,6 +1,7 @@
 /* Takım rekabeti: Takım Yarışı lobisi, yarış içi takım şeridi ve tepkiler, sonuç ekranı, Takım Ligi. "Kulak Gecesi" koyu cam dili. */
-.tr, .tl { display:flex; flex-direction:column; gap:10px; min-width:0; }
-.tr h3, .tl h3 { margin:6px 2px 0; font-size:15px; }
+/* kapsayıcılar: .tr / .tl değil (YN-026: sekme etiketi .tab .tl ve harita köşeleri .mf-corner.tl/.tr ile çakışıyordu) */
+.tyar, .tlig { display:flex; flex-direction:column; gap:10px; min-width:0; }
+.tyar h3, .tlig h3 { margin:6px 2px 0; font-size:15px; }
 .tr-hero, .tl-head { display:flex; align-items:center; gap:10px; min-width:0; }
 .tr-hero-ic { width:52px; height:52px; flex:none; border-radius:16px; display:grid; place-items:center; background:linear-gradient(180deg, rgba(46,230,214,.22), rgba(255,92,138,.18)); }
 .tr-hero b, .tl-head b { display:block; font-size:16px; }

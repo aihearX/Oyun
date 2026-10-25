@@ -13,6 +13,7 @@ import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { hatKey } from '../screens/team/TeamMembers';
 import { levelName } from '../race/common';
 import { refreshLeague, refreshTeamRace, trNet, useTeamRace } from './state';
+import '../race/race.css'; // race-big / race-dots / race-live / race-actions: yarış ekranları açılmadan da stilli (YN-026)
 import './teamrace.css';
 
 /**
@@ -33,7 +34,7 @@ export function TeamRaceView() {
   const run = async (f: () => Promise<unknown>) => { setBusy(true); try { await f(); } finally { setBusy(false); void refreshTeamRace(); } };
   const live = s.live;
   return (
-    <div className="tr" data-testid="takim-yarisi" data-status={l?.status ?? 'yok'}>
+    <div className="tyar" data-testid="takim-yarisi" data-status={l?.status ?? 'yok'}>
       <div className="card tr-hero">
         <span className="tr-hero-ic"><Art name="finish" size={34} /></span>
         <span className="grow min0"><b>Canlı Takım Yarışı</b><small>İki takım aynı bölümü aynı anda koşar. Bitiş sırası ve yıldızlar takım puanına eklenir.</small></span>
@@ -276,7 +277,7 @@ export function TeamLeagueView() {
   const t = tierDef(s.tier); const n = s.rows.length;
   const S = TEAM_LEAGUE_RULES.sources;
   return (
-    <div className="tl" data-testid="takim-ligi" data-tier={s.tier}>
+    <div className="tlig" data-testid="takim-ligi" data-tier={s.tier}>
       <div className="card tl-head">
         <TierEmblem emblem={team?.emblem ?? '🛡️'} tier={s.tier} size={56} />
         <span className="grow min0"><b>{t.name} kademesi · {s.season.no}. sezon</b><small>{fmtLeft(s.season.endsAt - now)} kaldı · grupta {n} takım{s.badge ? ` · geçen sezon ${s.badge.rank}. 🏅` : ''}</small></span>

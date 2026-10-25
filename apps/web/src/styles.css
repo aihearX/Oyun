@@ -125,7 +125,7 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
 .skill { display:flex; justify-content:space-between; align-items:center; gap:10px; }
 .skill.owned { opacity:.7; }
 .row { display:flex; gap:10px; align-items:center; }
-.grow { flex:1; }
+.grow { flex:1; min-width:0; }
 .tabs { position:sticky; bottom:0; display:flex; gap:6px; background:rgba(20,12,53,.9); padding:10px 0 4px; border-top:1px solid var(--line); margin-top:auto; }
 .tabs .btn { flex:1; }
 /* ekran geçişi: kısa kayma + solma */
@@ -559,7 +559,7 @@ h2 { font-size:20px; margin:0; line-height:1.2; font-weight:900; }
 .region.ours { background:linear-gradient(160deg, #1f6b62, var(--panel)); }
 .war-map.editing .region { border-style:dashed; border-color:rgba(201,193,255,.5); }
 .war-map.editing .region.target { border-style:solid; border-color:var(--coral); }
-.rank-list { list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.rank-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
 .rank-list li { display:flex; gap:8px; align-items:center; padding:6px 8px; border-radius:10px; font-weight:800; font-size:14px; min-width:0; }
 .rank-list li.me { background:rgba(255,201,60,.16); }
 .rk { width:22px; text-align:center; font-weight:900; color:var(--text-2); flex:none; }

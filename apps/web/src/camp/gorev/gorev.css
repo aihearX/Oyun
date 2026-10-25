@@ -145,7 +145,7 @@
 .kg-opt { appearance:none; font:inherit; color:#fff; text-align:left; padding:10px 12px; border-radius:14px; border:1.5px solid var(--panel-edge); background:rgba(255,255,255,.05); font-weight:700; font-size:13.5px; cursor:pointer; line-height:1.35; }
 .kg-opt.on { border-color:var(--gold); background:rgba(255,201,60,.14); }
 .kg-opt.ok { border-color:#8ef0b0; background:rgba(142,240,176,.16); } .kg-opt.no { border-color:#ff5c8a; background:rgba(255,92,138,.14); } .kg-opt.dim { opacity:.5; }
-.row.gap { gap:8px; } .grow { flex:1; min-width:0; }
+.row.gap { gap:8px; }
 .kg-sonuc-top { display:flex; flex-direction:column; align-items:center; gap:4px; }
 .kg-sonuc-top b { font-size:18px; }
 .kg-check { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:13px; }

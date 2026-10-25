@@ -5,6 +5,7 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
 import { levelName } from './common';
 import { Icon } from '../ui/icons';
+import './invite.css'; // davet kartı giriş paketinde çizilir; race.css yarış parçasıyla gelir (YN-026)
 
 /** davet bu kadar süre sonra kendiliğinden düşer (oda başlamış olabilir) */
 const INVITE_TTL_MS = 90_000;
