@@ -174,8 +174,15 @@ export const BUILDINGS: BuildingDef[] = [
 ];
 /** campV < 2 istemcilerin bildiği binalar (eski istemciler yalnız bunları alır) */
 export const LEGACY_BUILDINGS: BuildingId[] = ['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi'];
-/** istemcinin anladığı kamp sürümü: hello.campV (yeni binalar, Kamp Seviyesi, süsler, ziyaret) */
-export const CAMP_V = 2;
+/**
+ * istemcinin anladığı kamp sürümü: hello.campV. 2: yeni binalar, Kamp Seviyesi, süsler, ziyaret (CAMP_V_BOLGE).
+ * 3: inşaat sırası (`CampState.queued`, `camp.queue` / `camp.unqueue`; CAMP_V_SIRA). Eski istemci eksik alanları almaz.
+ */
+export const CAMP_V = 3;
+/** bu sürümden küçük istemciye yalnız eski binalar (LEGACY_BUILDINGS) gider */
+export const CAMP_V_BOLGE = 2;
+/** bu sürümden küçük istemciye `CampState.queued` gönderilmez (sıradaki inşaat yine sunucuda kendiliğinden başlar) */
+export const CAMP_V_SIRA = 3;
 /** bina gücü (jeton/kalkan/ilk hasar/savaş yüzdeleri) bu seviyede tavan yapar; ötesi görünüm, bilgi ve süs (zorluk eğrisi korunur) */
 export const CAMP_POWER_LEVEL = 15;
 /** inşaat maliyeti ve süresi (sn): seviyeyle üstel büyür; şeffaf formül */
@@ -193,7 +200,13 @@ export interface RemedyState {
   /** envanter: malzeme kimliği → adet */
   inv: Record<string, number>;
 }
+/**
+ * sıraya alınmış inşaat (docs/14-kamp.md "İnşaat sırası"): bedeli sıraya alınırken ödendi (`jeton`); süren inşaat bitince sunucu
+ * kendiliğinden başlatır. Tek yer. Sıradan çıkarılınca `jeton` tamamen geri verilir.
+ */
+export interface QueuedBuild { id: BuildingId; toLevel: number; /** ödenen bedel (geri verilecek tutar) */ jeton: number; /** sıraya alındığı an */ at: number }
 export interface CampState {
+  /** sıradaki inşaat (campV ≥ 3; yoksa null; eski sunucu/istemcide alan yok) */ queued?: QueuedBuild | null;
   buildings: BuildingState[]; depotStoredAt: number; serverTime: number; /** Tedavi Odası (eski sunucularda yok) */ remedy?: RemedyState;
   /** Kamp Seviyesi ve XP (campV ≥ 2; eski sunucularda yok) */ xp?: CampXpState;
   /** süsleme envanteri ve yerleşim (campV ≥ 2) */ decor?: CampDecorState;
@@ -302,6 +315,13 @@ export interface OpMap {
   'wallet.get': { req: Record<string, never>; res: { wallet: Wallet } };
   'camp.state': { req: Record<string, never>; res: { camp: CampState; wallet: Wallet } };
   'camp.upgrade': { req: { id: BuildingId }; res: { camp: CampState; wallet: Wallet } };
+  /**
+   * bir sonraki inşaatı sıraya al (campV ≥ 3): bedel şimdi düşer, süren inşaat bitince kendiliğinden başlar. Tek yer; süren binayla
+   * aynı bina olamaz; Merkez sınırı süren inşaat bittikten sonraki seviyeye göre. Süren inşaat yoksa hemen başlar (`started: true`).
+   */
+  'camp.queue': { req: { id: BuildingId }; res: { camp: CampState; wallet: Wallet; started: boolean } };
+  /** sıradaki inşaatı çıkar: ödenen bedel tamamen geri verilir */
+  'camp.unqueue': { req: Record<string, never>; res: { camp: CampState; wallet: Wallet; refunded: number } };
   'camp.speedup': { req: { id: BuildingId; item: 'm5' | 'm60' | 's8' | 'kristal'; count?: number }; res: { camp: CampState; wallet: Wallet } };
   'camp.collect': { req: Record<string, never>; res: { camp: CampState; wallet: Wallet; collected: number } };
   'camp.help.request': { req: { id: BuildingId }; res: { camp: CampState } };

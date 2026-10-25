@@ -21,6 +21,9 @@
 .hud-chip.builder { cursor:pointer; border-color:rgba(46,230,214,.45); }
 .hud-chip.builder.on { border-color:var(--teal,#2ee6d6); box-shadow:0 0 0 2px rgba(46,230,214,.25), 0 2px 8px rgba(10,6,30,.4); }
 .hud-chip.builder.on b { color:var(--teal,#2ee6d6); }
+/* inşaat sırası: "Sırada: X" (kısa ad; 320 px'te alt satıra geçer, kırpılmaz) */
+.hud-chip.queued { cursor:pointer; border-color:rgba(139,107,255,.55); }
+.hud-chip.queued b { color:#cfc3ff; }
 .camp-demo-tag { margin-top:6px; display:inline-block; font-size:11px; font-weight:900; letter-spacing:.4px; color:#2d1d6e; background:var(--gold,#ffc93c); border-radius:999px; padding:2px 8px; }
 .camp-demo-tag.static { align-self:flex-start; }
 
@@ -80,6 +83,14 @@
 .bp-next b { color:var(--gold); }
 .bp-next .bp-thumb { max-width:80px; }
 @media (max-width:360px) { .bp-head .bp-thumb { max-width:84px; height:64px !important; } .bp-head h2 { font-size:19px; } .bp-desc { font-size:12.5px; } }
+/* inşaat sırası (docs/14-kamp.md "İnşaat sırası") */
+.bp-queued { display:flex; flex-direction:column; gap:8px; background:rgba(139,107,255,.12); border:1px solid rgba(139,107,255,.4); border-radius:16px; padding:10px 12px; }
+.bp-queued .row { flex-wrap:wrap; gap:4px 8px; }
+.bp-qline { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-2); border-top:1px dashed var(--panel-edge); padding-top:8px; }
+.bp-qline b { color:#cfc3ff; }
+.card.building.building-queued { border-color:rgba(139,107,255,.5); }
+.card.construction .q-line { align-items:center; gap:6px; flex-wrap:wrap; font-size:13px; }
+.card.construction .q-line b { color:#cfc3ff; }
 .bp-why { font-size:13px; font-weight:700; color:#ffb3c8; background:rgba(255,92,138,.14); border:1px solid rgba(255,92,138,.35); border-radius:12px; padding:8px 10px; }
 
 .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }

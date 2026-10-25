@@ -1,4 +1,4 @@
-import { BUILDINGS, CAMP_V, LEGACY_BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap, type RemedyState } from '@odi/shared';
+import { BUILDINGS, CAMP_V_BOLGE, CAMP_V_SIRA, LEGACY_BUILDINGS, buildCost, crystalsToFinish, helpReductionSec, SOCIAL_LIMITS, type BuildingId, type BuildingState, type CampState, type EvtMap, type QueuedBuild, type RemedyState } from '@odi/shared';
 import { CAMP_COSMETICS, CAMP_XP, buildingOpen, depotCapHours, remedyById, remedyInvCap, remedyShelf, taramaFactor } from '@odi/content';
 import { campLevelOf, campVOf, campXpOf, cheersOf, decorState, ensureCampXp, grantCampXp, libAtOf, onCampChanged, syncCampRewards } from './camp-xp';
 import { fail, type App, type Handlers } from './app';
@@ -31,13 +31,16 @@ export function campState(app: App, pid: string): CampState {
   const p = app.player(pid);
   const map = new Map(rows(app, pid).map((r) => [r.id, r]));
   // eski istemciler (campV < 2) yeni bina kimliklerini tanımaz: onlara yalnız eski binalar gider
-  const full = campVOf(app, pid) >= CAMP_V;
+  const v = campVOf(app, pid); const full = v >= CAMP_V_BOLGE;
   const buildings: BuildingState[] = BUILDINGS.filter((b) => full || LEGACY_BUILDINGS.includes(b.id)).map((b) => {
     const r = map.get(b.id);
     return { id: b.id, level: r?.level ?? 0, upgradingTo: r?.upgrading_to ?? null, startedAt: r?.started_at ?? null, endsAt: r?.ends_at ?? null, helpsReceived: r?.helps ?? 0 };
   });
-  return { buildings, depotStoredAt: p.depot_at, serverTime: app.now(), remedy: remedyState(app, pid),
+  const out: CampState = { buildings, depotStoredAt: p.depot_at, serverTime: app.now(), remedy: remedyState(app, pid),
     xp: campXpOf(app, pid), decor: decorState(app, pid), libAt: libAtOf(app, pid), cheers: cheersOf(app, pid) };
+  // inşaat sırası yalnız onu anlayan istemciye (campV ≥ 3); eski istemci alanı hiç görmez
+  if (v >= CAMP_V_SIRA) out.queued = queuedOf(app, pid);
+  return out;
 }
 onCampChanged((app, pid) => app.emit(pid, 'camp.updated', { camp: campState(app, pid) }));
 
@@ -94,24 +97,85 @@ export function grantCampUnlocks(app: App, pid: string): string[] {
   return given;
 }
 
-/** süresi dolan inşaatları tamamla (sorgu anında ve zamanlayıcıyla). pid verilmezse herkes için. */
+// ------------------------------------------------------------------ inşaat sırası (docs/14-kamp.md "İnşaat sırası")
+interface QRow { player_id: string; id: BuildingId; to_level: number; jeton: number; at: number }
+const qRow = (app: App, pid: string) => app.db.get<QRow>('SELECT * FROM camp_queue WHERE player_id = ?', pid);
+export function queuedOf(app: App, pid: string): QueuedBuild | null {
+  const q = qRow(app, pid);
+  return q ? { id: q.id, toLevel: q.to_level, jeton: q.jeton, at: q.at } : null;
+}
+/** sıradaki inşaat kendiliğinden başladı bildirimi (camp-quests.ts kurar: "inşaat başlat" sayacı) */
+let queuedStarted: (app: App, pid: string, id: BuildingId) => void = () => undefined;
+export function onQueuedStart(fn: (app: App, pid: string, id: BuildingId) => void): void { queuedStarted = fn; }
+
+/** inşaatı başlat (bedel ödendi): "Hızlı İnşaat" teknolojisi başlama anındaki takıma göre; yardım sayaçları sıfırdan */
+function startBuild(app: App, pid: string, id: BuildingId, to: number, at: number): void {
+  const cost = buildCost(id, to);
+  const seconds = Math.max(1, Math.round(cost.seconds * (1 - techBonus(app, app.player(pid).team_id, 'insaat') / 100)));
+  app.db.run('UPDATE buildings SET upgrading_to = ?, started_at = ?, ends_at = ?, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', to, at, at + seconds * 1000, pid, id);
+}
+
+/**
+ * kuyruk kuralı (sıraya alırken): bina var, en yüksek seviyede değil, bölgesi açık, süren binayla aynı değil, Merkez sınırı süren
+ * inşaat bittikten SONRAKİ Merkez seviyesine göre. Dönüş: hedef seviye.
+ */
+function queueTarget(all: BRow[], app: App, pid: string, id: BuildingId): number {
+  const r = all.find((x) => x.id === id);
+  const def = BUILDINGS.find((b) => b.id === id)!;
+  if (!r) return fail('YOK', 'Bina bulunamadı.');
+  if (r.upgrading_to) fail('MESGUL', `${def.name} zaten yapılıyor; bitince yeniden yükseltebilirsin.`);
+  const to = r.level + 1;
+  if (to > def.maxLevel) fail('MAKS', `${def.name} en yüksek seviyede.`);
+  if (def.campLevel && !buildingOpen(id, campLevelOf(app, pid))) fail('SART', `${def.name} için Kamp Seviyesi ${def.campLevel} gerekli.`);
+  const m = all.find((x) => x.id === 'merkez');
+  const merkez = m?.upgrading_to ?? m?.level ?? 1; // süren inşaat Merkez'se, bittiğindeki seviye
+  if (id !== 'merkez' && to > merkez) fail('SART', `Önce Odyoloji Merkezi'ni ${to}. seviyeye yükseltmelisin.`);
+  return to;
+}
+
+/**
+ * süren inşaat bitti: sıradaki inşaat, öncekinin bittiği anda (çevrimdışı ya da sunucu kapalıyken de) başlar. Seviye bu arada
+ * değiştiyse (ör. yönetici ayarı) ya da bina meşgulse inşaat başlamaz, bedel tamamen geri verilir.
+ */
+function startQueued(app: App, pid: string, at: number): void {
+  const q = qRow(app, pid); if (!q) return;
+  const all = rows(app, pid);
+  if (all.some((x) => x.upgrading_to)) return; // hâlâ süren bir inşaat var
+  app.db.run('DELETE FROM camp_queue WHERE player_id = ?', pid);
+  const r = all.find((x) => x.id === q.id); const def = BUILDINGS.find((b) => b.id === q.id);
+  if (!r || !def || r.level + 1 !== q.to_level || q.to_level > def.maxLevel) {
+    app.addCurrency(pid, 'jeton', q.jeton); app.walletChanged(pid);
+    return;
+  }
+  startBuild(app, pid, q.id, q.to_level, at);
+  queuedStarted(app, pid, q.id);
+}
+
+/** süresi dolan inşaatları tamamla (sorgu anında ve zamanlayıcıyla). pid verilmezse herkes için. Sıradaki inşaat kendiliğinden başlar. */
 export function completeDue(app: App, pid?: string): void {
   const now = app.now();
-  const due = pid
-    ? app.db.all<BRow>('SELECT * FROM buildings WHERE player_id = ? AND ends_at IS NOT NULL AND ends_at <= ?', pid, now)
-    : app.db.all<BRow>('SELECT * FROM buildings WHERE ends_at IS NOT NULL AND ends_at <= ? LIMIT 500', now);
   const teams = new Set<string>();
   const owners = new Set<string>();
-  for (const r of due) {
-    ensureCampXp(app, r.player_id); // geriye dönük tohum yeni seviyeden önce (iki kez sayılmasın)
-    app.db.run('UPDATE buildings SET level = ?, upgrading_to = NULL, started_at = NULL, ends_at = NULL, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', r.upgrading_to!, r.player_id, r.id);
-    if (r.id === 'depo' && r.level === 0) app.db.run('UPDATE players SET depot_at = ? WHERE id = ?', r.ends_at!, r.player_id);
-    if (r.id === 'kutuphane' && r.level === 0) app.db.run('UPDATE camp_xp SET lib_at = ? WHERE player_id = ?', r.ends_at!, r.player_id);
-    grantCampXp(app, r.player_id, CAMP_XP.build(r.id, r.upgrading_to!), `İnşaat: ${r.id} Sv ${r.upgrading_to}`, `bina:${r.id}:${r.upgrading_to}`, { silent: true });
-    owners.add(r.player_id);
-    feedBuilding(app, r.player_id, r.id, r.upgrading_to!);
-    if (r.help_req) { const t = app.playerOrNull(r.player_id)?.team_id; if (t) teams.add(t); }
+  // 2. tur: sıradan başlayan inşaatın süresi de dolduysa (uzun çevrimdışı, sunucu kapalıydı) o da aynı çağrıda biter
+  for (let pass = 0; pass < 2; pass++) {
+    const due = pid
+      ? app.db.all<BRow>('SELECT * FROM buildings WHERE player_id = ? AND ends_at IS NOT NULL AND ends_at <= ?', pid, now)
+      : app.db.all<BRow>('SELECT * FROM buildings WHERE ends_at IS NOT NULL AND ends_at <= ? LIMIT 500', now);
+    if (!due.length) break;
+    for (const r of due) {
+      ensureCampXp(app, r.player_id); // geriye dönük tohum yeni seviyeden önce (iki kez sayılmasın)
+      app.db.run('UPDATE buildings SET level = ?, upgrading_to = NULL, started_at = NULL, ends_at = NULL, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', r.upgrading_to!, r.player_id, r.id);
+      if (r.id === 'depo' && r.level === 0) app.db.run('UPDATE players SET depot_at = ? WHERE id = ?', r.ends_at!, r.player_id);
+      if (r.id === 'kutuphane' && r.level === 0) app.db.run('UPDATE camp_xp SET lib_at = ? WHERE player_id = ?', r.ends_at!, r.player_id);
+      grantCampXp(app, r.player_id, CAMP_XP.build(r.id, r.upgrading_to!), `İnşaat: ${r.id} Sv ${r.upgrading_to}`, `bina:${r.id}:${r.upgrading_to}`, { silent: true });
+      owners.add(r.player_id);
+      feedBuilding(app, r.player_id, r.id, r.upgrading_to!);
+      if (r.help_req) { const t = app.playerOrNull(r.player_id)?.team_id; if (t) teams.add(t); }
+      startQueued(app, r.player_id, r.ends_at!);
+    }
   }
+  // boşta kalmış sıra (süren inşaat dışarıdan silindiyse, ör. yönetici ayarı): şimdi başlar
+  if (pid && !owners.has(pid) && qRow(app, pid) && !rows(app, pid).some((x) => x.upgrading_to)) { startQueued(app, pid, now); owners.add(pid); }
   for (const o of owners) { grantCampUnlocks(app, o); app.emit(o, 'camp.updated', { camp: campState(app, o) }); }
   for (const t of teams) broadcastHelpNeeded(app, t);
 }
@@ -129,7 +193,7 @@ export function campHelpList(app: App, teamId: string, viewer?: string): HelpNee
 }
 export function broadcastHelpNeeded(app: App, teamId: string): void {
   // eski istemciler yeni bina kimliklerini tanımaz: onlara yalnız eski binaların istekleri gider
-  app.emitEach(app.teamMemberIds(teamId), 'team.campHelpNeeded', (pid) => ({ requests: campHelpList(app, teamId, pid).filter((r) => campVOf(app, pid) >= CAMP_V || LEGACY_BUILDINGS.includes(r.building)) }));
+  app.emitEach(app.teamMemberIds(teamId), 'team.campHelpNeeded', (pid) => ({ requests: campHelpList(app, teamId, pid).filter((r) => campVOf(app, pid) >= CAMP_V_BOLGE || LEGACY_BUILDINGS.includes(r.building)) }));
 }
 
 /** tek bir yardım; uygun değilse hata fırlatır */
@@ -152,7 +216,7 @@ function helpOnce(app: App, helperId: string, targetId: string, building: Buildi
   const day = dayKey(now);
   if (app.dailyInc(helperId, day, 'camp_help') <= CAMP_HELP_REWARD_DAILY) { app.addCurrency(helperId, 'jeton', CAMP_HELP_REWARD); app.walletChanged(helperId); }
   addContrib(app, h.team_id!, helperId, { helps: 1 });
-  if (campVOf(app, targetId) >= CAMP_V || LEGACY_BUILDINGS.includes(building)) app.emit(targetId, 'camp.helped', { from: helperId, name: h.name, building, seconds });
+  if (campVOf(app, targetId) >= CAMP_V_BOLGE || LEGACY_BUILDINGS.includes(building)) app.emit(targetId, 'camp.helped', { from: helperId, name: h.name, building, seconds });
   completeDue(app, targetId);
   app.emit(targetId, 'camp.updated', { camp: campState(app, targetId) });
 }
@@ -181,7 +245,7 @@ export const campHandlers: Handlers = {
   'camp.upgrade': (app, s, { id }) => {
     completeDue(app, s.pid);
     const all = rows(app, s.pid);
-    if (all.some((r) => r.upgrading_to)) fail('MESGUL', 'Aynı anda yalnızca bir inşaat yapılabilir.');
+    if (all.some((r) => r.upgrading_to)) fail('MESGUL', 'Aynı anda yalnızca bir inşaat yapılabilir; bir sonrakini sıraya alabilirsin.');
     const r = all.find((x) => x.id === id);
     const def = BUILDINGS.find((b) => b.id === id)!;
     if (!r) return fail('YOK', 'Bina bulunamadı.');
@@ -190,13 +254,35 @@ export const campHandlers: Handlers = {
     const merkez = all.find((x) => x.id === 'merkez')?.level ?? 1;
     if (def.campLevel && !buildingOpen(id, campLevelOf(app, s.pid))) fail('SART', `${def.name} için Kamp Seviyesi ${def.campLevel} gerekli.`);
     if (id !== 'merkez' && to > merkez) fail('SART', `Önce Odyoloji Merkezi'ni ${to}. seviyeye yükseltmelisin.`);
-    const cost = buildCost(id, to);
-    app.spend(s.pid, 'jeton', cost.jeton);
-    const p = app.player(s.pid);
-    const seconds = Math.max(1, Math.round(cost.seconds * (1 - techBonus(app, p.team_id, 'insaat') / 100)));
-    const now = app.now();
-    app.db.run('UPDATE buildings SET upgrading_to = ?, started_at = ?, ends_at = ?, helps = 0, help_req = 0 WHERE player_id = ? AND id = ?', to, now, now + seconds * 1000, s.pid, id);
+    app.spend(s.pid, 'jeton', buildCost(id, to).jeton);
+    startBuild(app, s.pid, id, to, app.now());
     return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid) };
+  },
+  'camp.queue': (app, s, { id }) => {
+    completeDue(app, s.pid);
+    const all = rows(app, s.pid);
+    // süren inşaat yoksa sıra beklemez: hemen başlar (aynı kurallar, aynı bedel)
+    if (!all.some((r) => r.upgrading_to)) {
+      const to = queueTarget(all, app, s.pid, id);
+      app.spend(s.pid, 'jeton', buildCost(id, to).jeton);
+      startBuild(app, s.pid, id, to, app.now());
+      queuedStarted(app, s.pid, id);
+      return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), started: true };
+    }
+    if (qRow(app, s.pid)) fail('DOLU', 'Sırada zaten bir inşaat var; önce onu sıradan çıkar.');
+    const to = queueTarget(all, app, s.pid, id);
+    const jeton = buildCost(id, to).jeton;
+    app.spend(s.pid, 'jeton', jeton);
+    app.db.run('INSERT INTO camp_queue(player_id, id, to_level, jeton, at) VALUES(?, ?, ?, ?, ?)', s.pid, id, to, jeton, app.now());
+    return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), started: false };
+  },
+  'camp.unqueue': (app, s) => {
+    completeDue(app, s.pid);
+    const q = qRow(app, s.pid);
+    if (!q) return fail('YOK', 'Sırada bir inşaat yok.');
+    app.db.run('DELETE FROM camp_queue WHERE player_id = ?', s.pid);
+    app.addCurrency(s.pid, 'jeton', q.jeton);
+    return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), refunded: q.jeton };
   },
   'camp.speedup': (app, s, { id, item, count }) => {
     completeDue(app, s.pid);
@@ -212,7 +298,8 @@ export const campHandlers: Handlers = {
       const remaining = Math.ceil((r.ends_at! - now) / 1000);
       const useful = Math.min(n, Math.ceil(remaining / SPEEDUP_SEC[item]));
       app.spend(s.pid, item, useful);
-      app.db.run('UPDATE buildings SET ends_at = ends_at - ? WHERE player_id = ? AND id = ?', useful * SPEEDUP_SEC[item] * 1000, s.pid, id);
+      // en erken "şimdi" biter: artan süre sıradaki inşaata (ya da yeni deponun üretimine) taşmaz
+      app.db.run('UPDATE buildings SET ends_at = MAX(?, ends_at - ?) WHERE player_id = ? AND id = ?', now, useful * SPEEDUP_SEC[item] * 1000, s.pid, id);
     }
     completeDue(app, s.pid);
     if (r.help_req) { const t = app.player(s.pid).team_id; if (t) broadcastHelpNeeded(app, t); }

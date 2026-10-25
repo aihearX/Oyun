@@ -1,5 +1,5 @@
 /**
- * Geliştirme önizlemesi: `?demo=kamp&seviye=1..25[&kampsv=1..30][&insaat=<bina>]` — kampı sunucusuz, yerel sahte durumla gösterir.
+ * Geliştirme önizlemesi: `?demo=kamp&seviye=1..25[&kampsv=1..30][&insaat=<bina>][&sira=<bina>]` — kampı sunucusuz, yerel sahte durumla gösterir.
  * Yalnızca localhost/127.0.0.1 (geliştirme, önizleme) üzerinde etkindir; üretim alan adında yok sayılır. Hiçbir şey kaydedilmez/gönderilmez.
  */
 import { BUILDINGS, buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
@@ -7,7 +7,7 @@ import { depotStored } from '@odi/game-core/lite';
 import { CAMP_LEVEL_MAX, CAMP_XP, REMEDY_INV_CAP, campLevelRewards, campXpNeed, campXpState, campXpTotalFor, cellFree, decorById, decorSlots, footprint, libStored, pointCell, remedyById, remedyShelf } from '@odi/content';
 import type { DecorPlaced } from '@odi/shared';
 
-export interface DemoParams { level: number; build: BuildingId | null; campLevel: number }
+export interface DemoParams { level: number; build: BuildingId | null; campLevel: number; /** sıradaki inşaat (insaat ile birlikte) */ queue?: BuildingId | null }
 export function demoParams(): DemoParams | null {
   try {
     const q = new URLSearchParams(location.search);
@@ -17,7 +17,8 @@ export function demoParams(): DemoParams | null {
     const level = Math.max(1, Math.min(25, Math.round(Number(q.get('seviye') ?? 5)) || 5));
     const b = q.get('insaat'); const build = BUILDINGS.some((x) => x.id === b) ? (b as BuildingId) : null;
     const campLevel = Math.max(1, Math.min(CAMP_LEVEL_MAX, Math.round(Number(q.get('kampsv') ?? Math.ceil(level * 1.2))) || 1));
-    return { level, build, campLevel };
+    const sq = q.get('sira'); const queue = build && sq !== build && BUILDINGS.some((x) => x.id === sq) ? (sq as BuildingId) : null;
+    return { level, build, campLevel, queue };
   } catch { return null; }
 }
 
@@ -43,6 +44,7 @@ export function demoCamp(p: DemoParams, now = Date.now()): { camp: CampState; wa
   }
   const camp: CampState = {
     serverTime: now, depotStoredAt: now - 9 * 3_600_000,
+    queued: p.queue ? { id: p.queue, toLevel: lv[p.queue] + 1, jeton: buildCost(p.queue, lv[p.queue] + 1).jeton, at: now } : null,
     xp, decor: { inv, placed, cap: decorSlots(p.campLevel, lv.park) }, libAt: now - 5 * 3_600_000, cheers: p.campLevel * 3,
     remedy: lv.tedavi > 0 ? { item: lv.tedavi >= 4 ? 'ventilasyon-tupu' : 'kulak-tikaci', since: now - 3 * 3_600_000, inv: lv.tedavi >= 4 ? { 'kulak-tikaci': 3, 'serumen-damlasi': 2, 'zar-yamasi': 1 } : { 'kulak-tikaci': 1 } } : { item: null, since: now, inv: {} },
     buildings: BUILDINGS.map((b) => {
@@ -55,7 +57,7 @@ export function demoCamp(p: DemoParams, now = Date.now()): { camp: CampState; wa
 }
 
 /** yerel eylemler: sunucu kurallarının sade bir kopyası (yalnızca önizleme) */
-export type DemoOp = { k: 'upgrade'; id: BuildingId } | { k: 'speed'; id: BuildingId; item: 'm5' | 'm60' | 's8' | 'kristal' } | { k: 'collect' } | { k: 'complete' } | { k: 'remedyMake'; item: string | null } | { k: 'remedyCollect' }
+export type DemoOp = { k: 'upgrade'; id: BuildingId } | { k: 'queue'; id: BuildingId } | { k: 'unqueue' } | { k: 'speed'; id: BuildingId; item: 'm5' | 'm60' | 's8' | 'kristal' } | { k: 'collect' } | { k: 'complete' } | { k: 'remedyMake'; item: string | null } | { k: 'remedyCollect' }
   | { k: 'decorPlace'; id: string; gx: number; gy: number; flip: boolean } | { k: 'decorMove'; uid: number; gx: number; gy: number; flip: boolean } | { k: 'decorStore'; uid: number } | { k: 'lib' };
 /** önizlemede süs yeri uygun mu (sunucu kuralının aynısı) */
 function demoFits(camp: CampState, id: string, gx: number, gy: number, except?: number): boolean {
@@ -87,9 +89,16 @@ export function demoReduce(s: { camp: CampState; wallet: Wallet }, op: DemoOp, n
     if (op.k === 'remedyMake') { r.item = op.item; r.since = now; }
     return { camp, wallet, collected };
   }
+  const start = (id: BuildingId, at: number) => { const b = camp.buildings.find((x) => x.id === id)!; const c = buildCost(id, b.level + 1); b.upgradingTo = b.level + 1; b.startedAt = at; b.endsAt = at + Math.min(c.seconds, 90) * 1000; b.helpsReceived = 0; };
   if (op.k === 'upgrade') {
-    const b = camp.buildings.find((x) => x.id === op.id)!; const c = buildCost(op.id, b.level + 1);
-    wallet.jeton -= c.jeton; b.upgradingTo = b.level + 1; b.startedAt = now; b.endsAt = now + Math.min(c.seconds, 90) * 1000; b.helpsReceived = 0;
+    const b = camp.buildings.find((x) => x.id === op.id)!; wallet.jeton -= buildCost(op.id, b.level + 1).jeton; start(op.id, now);
+  } else if (op.k === 'queue') {
+    const b = camp.buildings.find((x) => x.id === op.id)!; const c = buildCost(op.id, b.level + 1).jeton; wallet.jeton -= c;
+    if (camp.buildings.some((x) => x.upgradingTo)) camp.queued = { id: op.id, toLevel: b.level + 1, jeton: c, at: now }; else start(op.id, now);
+    return { camp, wallet };
+  } else if (op.k === 'unqueue') {
+    if (camp.queued) { wallet.jeton += camp.queued.jeton; camp.queued = null; }
+    return { camp, wallet };
   } else if (op.k === 'speed') {
     const b = camp.buildings.find((x) => x.id === op.id)!; if (!b.endsAt) return s;
     if (op.item === 'kristal') { wallet.kristal -= crystalsToFinish(Math.ceil((b.endsAt - now) / 1000)); b.endsAt = now; }
@@ -99,6 +108,6 @@ export function demoReduce(s: { camp: CampState; wallet: Wallet }, op: DemoOp, n
     wallet.jeton += st.stored; camp.depotStoredAt = now;
     return { camp, wallet, collected: st.stored };
   }
-  for (const b of camp.buildings) if (b.upgradingTo && b.endsAt && b.endsAt <= now) { if (b.id === 'depo' && b.level === 0) camp.depotStoredAt = now; if (camp.xp) camp.xp = campXpState(camp.xp.total + CAMP_XP.build(b.id, b.upgradingTo)); b.level = b.upgradingTo; b.upgradingTo = null; b.startedAt = null; b.endsAt = null; b.helpsReceived = 0; }
+  for (const b of camp.buildings) if (b.upgradingTo && b.endsAt && b.endsAt <= now) { if (b.id === 'depo' && b.level === 0) camp.depotStoredAt = now; if (camp.xp) camp.xp = campXpState(camp.xp.total + CAMP_XP.build(b.id, b.upgradingTo)); b.level = b.upgradingTo; b.upgradingTo = null; b.startedAt = null; b.endsAt = null; b.helpsReceived = 0; if (camp.queued) { start(camp.queued.id, now); camp.queued = null; } }
   return { camp, wallet };
 }

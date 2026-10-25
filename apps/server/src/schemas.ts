@@ -70,6 +70,8 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'wallet.get': empty,
   'camp.state': empty,
   'camp.upgrade': z.object({ id: building }),
+  'camp.queue': z.object({ id: building }),
+  'camp.unqueue': empty,
   'camp.speedup': z.object({ id: building, item: z.enum(['m5', 'm60', 's8', 'kristal']), count: z.number().int().min(1).max(1000).optional() }),
   'camp.collect': empty,
   'camp.help.request': z.object({ id: building }),
