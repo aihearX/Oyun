@@ -3,14 +3,18 @@
  * Yalnızca gerçek oyuncular: sahte rakip/bot yok (bot yalnızca test harness'inde, kullanıcıya hiç gösterilmez).
  */
 import type { LevelSpec, RacePlayer, RaceRoom } from '@odi/shared';
-import { generateLevel, DEFAULT_PROFILE } from '@odi/level-gen';
 import { HUMAN_JOURNEY } from '@odi/content';
 import { useNet } from '@odi/net/store';
 import type { NetClient } from '@odi/net';
 import { getNet } from '../net';
+import { loadLevelGen } from '../engine';
 
-/** Yarış bölümü: herkes için aynı (aynı yolculuk + bölüm + varsayılan profil + odanın tuzu). */
-export function raceSpec(room: Pick<RaceRoom, 'level' | 'salt'>): LevelSpec {
+/**
+ * Yarış bölümü: herkes için aynı (aynı yolculuk + bölüm + varsayılan profil + odanın tuzu). Bölüm üreticisi tembel yüklenir
+ * (engine.ts loadLevelGen; yarış lobisi açılınca önden yüklenir).
+ */
+export async function raceSpec(room: Pick<RaceRoom, 'level' | 'salt'>): Promise<LevelSpec> {
+  const { generateLevel, DEFAULT_PROFILE } = await loadLevelGen();
   return generateLevel('insan', room.level, DEFAULT_PROFILE, room.salt);
 }
 
