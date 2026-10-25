@@ -9,8 +9,12 @@
 //        bölüm başına üretici varyantı: hedefe tahminen en yakın 3 varyant ölçülür, en yakını → packages/level-gen/src/kalibrasyon.ts
 //   node tools/harness/zorluk.mjs --sure [--k 48]
 //        süreli bölümlerin 3★/2★ süre oranları (bitirenlerin süre dilimlerinden) → packages/level-gen/src/sure.ts
-//   node tools/harness/zorluk.mjs --yildiz [--levels 21,22,27,28] [--k 48] [--tag yildiz] [--once yildiz-once] [--ilk]
-//        bölümleri oyundaki yıldız kuralıyla (scoreRun) oynar: bitirenlerin nota oranı ve yıldız dağılımı; --once ile önce/sonra tablosu
+//   node tools/harness/zorluk.mjs --odalar --notaci [--ids a,b] [--k 48] [--tag oda-nota] [--once oda-nota-once]
+//        odaların (varsayılan: bütün yüzme odaları) toplanan nota oranı: ana yol kitlesi ve notaya dalan kademe (MK-015);
+//        puanlar.ts'e dokunmaz → tools/harness/out/zorluk/<tag>.json
+//   node tools/harness/zorluk.mjs --yildiz [--levels 21,22,27,28] [--k 48] [--tag yildiz] [--once yildiz-once] [--ilk | --notaci]
+//        bölümleri oyundaki yıldız kuralıyla (scoreRun) oynar: bitirenlerin nota oranı ve yıldız dağılımı; --once ile önce/sonra tablosu;
+//        --notaci: notaya dalan kademe (human.ts → notaciOf)
 //   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra] [--ilk ilk]
 //        tabloyu docs/12-zorluk-egrisi.md içine (işaretler arasına) ve grafiği docs/img/zorluk-egrisi.svg'ye yazar
 import { spawn } from 'node:child_process';
@@ -57,7 +61,22 @@ async function runAll(file, mode, items, extra = [], part = null) {
 /** bölüm zorluk puanı: game-core play/human.ts `scoreRuns` (tek tanım) */
 const { scoreRuns: scoreOf } = await bundled("export { scoreRuns } from './packages/game-core/src/play/human';", 'puan');
 
-if (args.odalar) {
+if (args.odalar && args.notaci) {
+  // MK-015: odaların nota toplama oranı, iki kitle (puanlar.ts değişmez)
+  const { SWIM } = await bundled("import { ALL_CHUNKS } from '@odi/content'; export const SWIM = ALL_CHUNKS.filter((c) => c.mechanic === 'yuzme').map((c) => c.id);", 'yuzme');
+  const ids = args.ids ? String(args.ids).split(',') : SWIM;
+  const file = await worker(); const tag = args.tag ?? 'oda-nota';
+  const rows = (await runAll(file, 'odanota', ids, [], resolve(outDir, `${tag}.part.jsonl`))).sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+  writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, rows }, null, 1));
+  rmSync(resolve(outDir, `${tag}.part.jsonl`), { force: true });
+  const of = args.once && resolve(outDir, `${args.once}.json`); const B = of && existsSync(of) ? Object.fromEntries(JSON.parse(readFileSync(of, 'utf8')).rows.map((r) => [r.id, r])) : {};
+  const pc = (x) => `${Math.round(x * 100)}%`; const f2 = (x) => x.toFixed(2);
+  console.log(`| Oda | Nota | Kitle: toplama | Notacı: toplama | Notacı: bitirme / can kaybı |${of ? ' Önce notacı: toplama |' : ''}\n|---|---|---|---|---|${of ? '---|' : ''}`);
+  for (const r of rows) console.log(`| ${r.id} | ${r.total} | ${pc(r.kitle.col)} | ${pc(r.notaci.col)} | ${pc(r.notaci.fin)} / ${f2(r.notaci.dmg)} |${of ? ` ${B[r.id] ? pc(B[r.id].notaci.col) : '–'} |` : ''}`);
+  console.log(`→ tools/harness/out/zorluk/${tag}.json`);
+}
+
+if (args.odalar && !args.notaci) {
   const { ALL_CHUNKS } = await bundled("export { ALL_CHUNKS } from '@odi/content';", 'chunks');
   const file = await worker();
   const ids = ALL_CHUNKS.map((c) => c.id);
@@ -156,7 +175,7 @@ if (args.yildiz) {
   // yıldızlar (docs/12 §6, MK-008): oran = bitirenler içinde; "≥ %x" sütunları 2★ nota eşiği x olsaydı bitirenlerin kaçı alırdı
   const levels = String(args.levels ?? '21,22,27,28').split(',').flatMap((p) => { const [a, b] = p.split('-').map(Number); return Array.from({ length: (b ?? a) - a + 1 }, (_, i) => a + i); });
   const file = await worker(); const tag = args.tag ?? 'yildiz';
-  const rows = (await runAll(file, 'yildiz', levels, args.ilk ? ['--ilk'] : [], resolve(outDir, `${tag}.part.jsonl`))).sort((a, b) => a.n - b.n);
+  const rows = (await runAll(file, 'yildiz', levels, args.ilk ? ['--ilk'] : args.notaci ? ['--notaci'] : [], resolve(outDir, `${tag}.part.jsonl`))).sort((a, b) => a.n - b.n);
   writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, rows }, null, 1));
   rmSync(resolve(outDir, `${tag}.part.jsonl`), { force: true });
   const pc = (x) => `${Math.round(x * 100)}%`;

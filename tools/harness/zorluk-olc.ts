@@ -2,11 +2,12 @@
 //  oda <id...> --k N          → her oda için {id, dmg (acemi), h0/h1 (oyuncu kitlesi, sıkılık 0/1), hit, nm, n, level}
 //  kalibre <n...> --k N --v V  → her bölüm için V varyanttan tahmini hedefe en yakın 3'ü ölçülür: {n, cands:[{v, pred, dmg}]}
 //  sure <n...> --k N                      → süreli bölüm: {n, par, runs:[{fin, t}]} (oyuncu kitlesi; yıldız süreleri için)
-//  yildiz <n...> --k N [--ilk]           → bölüm: {n, total, runs:[{fin, r (nota oranı), s (yıldız), t}]} (oyundaki gibi scoreRun)
+//  yildiz <n...> --k N [--ilk|--notaci]  → bölüm: {n, total, runs:[{fin, r (nota oranı), s (yıldız), t}]} (oyundaki gibi scoreRun)
+//  odanota <id...> --k N                 → oda: {id, total, kitle:{col, fin, dmg}, notaci:{col, fin, dmg}} (toplanan nota oranı; MK-015)
 //  bolum <n...> --k N [--salt S] [--fail F] [--stars R] [--ilk: ilk kez oynayan kademe]  → her bölüm için {n, runs:[{fin, dmg, deaths, nm, t}]}
 import { ALL_CHUNKS, DEFAULT_SKILLS } from '@odi/content';
 import { playHuman, playHumanStars, playRoomHuman } from '../../packages/game-core/src/play/testkit';
-import { NOVICE, firstTimerOf } from '../../packages/game-core/src/play/human';
+import { NOVICE, firstTimerOf, notaciOf, playerOf } from '../../packages/game-core/src/play/human';
 import { generateLevel, levelKnobs, predictDmg, tuneRoom } from '@odi/level-gen';
 
 const argv = process.argv.slice(2);
@@ -49,7 +50,7 @@ if (mode === 'yildiz') {
   for (const s of items) {
     const n = Number(s); const runs = []; let total = 0;
     for (let k = 0; k < K; k++) {
-      const r = playHumanStars(n, { k, params: argv.includes('--ilk') ? firstTimerOf(k) : undefined }); total = r.spec.coinsTotal;
+      const r = playHumanStars(n, { k, params: argv.includes('--ilk') ? firstTimerOf(k) : argv.includes('--notaci') ? notaciOf(k) : undefined }); total = r.spec.coinsTotal;
       runs.push({ fin: r.finished ? 1 : 0, r: total > 0 ? Math.round((r.coins / total) * 1000) / 1000 : 0, s: r.stars, t: Math.round(r.t * 10) / 10 });
     }
     console.log(JSON.stringify({ n, total, runs }));
@@ -66,5 +67,20 @@ if (mode === 'kalibre') {
       return { ...c, dmg: dmg / K };
     });
     console.log(JSON.stringify({ n, target, cands }));
+  }
+}
+
+if (mode === 'odanota') {
+  // odanın notalarının ne kadarı toplanıyor: ana yol kitlesi ve notaya dalan kademe aynı tohumlarla (nota 1, büyük nota 5 sayılır)
+  for (const id of items) {
+    const c = ALL_CHUNKS.find((x) => x.id === id); if (!c) continue;
+    const total = c.entities.reduce((a, e) => a + (e.type === 'coin' ? 1 : e.type === 'collect' ? 5 : 0), 0);
+    const row: Record<string, unknown> = { id, total };
+    for (const [name, of] of [['kitle', playerOf], ['notaci', notaciOf]] as const) {
+      let col = 0, fin = 0, dmg = 0;
+      for (let k = 0; k < K; k++) { const r = playRoomHuman(c, k, { params: of(k) }); col += total ? r.coins / total : 0; fin += r.finished ? 1 : 0; dmg += r.damage; }
+      row[name] = { col: col / K, fin: fin / K, dmg: dmg / K };
+    }
+    console.log(JSON.stringify(row));
   }
 }

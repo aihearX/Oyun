@@ -63,6 +63,16 @@ Planlayıcı botun (`play/planner.ts`) "niyeti" + insan eli, aynı deterministik
 - **Kare-mükemmel numara yok:** sapma, dar pencereli her çözümü doğal olarak cezalandırır.
 - **Kitle:** her koşu (tohum) bir oyuncudur; beceri dört kademede ustadan (σ 60 ms, tepki 200 ms) acemiye (σ 100 ms, tepki 260 ms)
   döner — ortalama tepki ~230 ms, sapma ~80 ms. Gizli koklealara sapmaz (ana yol oyuncusu), notalara gider.
+- **Notaya dalan kademe (`notaciOf`, MK-015):** kitle notayı ancak yolunun üstündeyse alır (planlayıcıda nota 40 değerinde ve
+  plan ancak ilerleme zayıflayınca yeniden aranır), yüzme odalarında su altındaki notalara dalmaz. Bu kademe meraklı, orta
+  becerili oyuncudur: eli kitlenin ortası (beceri 0,2-0,8 → tepki 212-248 ms, sapma σ 68-92 ms, kusurlar aynı), ekranında
+  (`viewPx` 300 px ileri) **güvenli** nota gördükçe planını 0,2 sn'de bir yeniden arar ve güvenli notaya 40'a ek `value`
+  120-240 (ilerleme pikseli) değer verir; büyük nota (5 nota sayılır) iki katı. **Risk tartar:** notanın tehlikeye (diken,
+  gürültü, düşman; hareket kapsamı dahil) uzaklığı `riskPx`'ten (50-90 px) azsa ek değer doğrusal azalır, `riskPx / 2`'den
+  azsa yoktur — oyuncu o notadan vazgeçer, ancak yolu üstündeyse alır. Her oyuncu aralıklardan tohumla çekilir (deterministik);
+  gizli koklealara sapmaz. Tanım `play/human.ts → notaciOf`, niyet `play/planner.ts → NoteSeek / noteWeights`; var olan
+  kademelerin tercihlerinde nota niyeti yoktur (ölçümleri değişmez). Model konumu kusursuz gördüğü için mutlak toplama
+  oranları gerçek oyuncudan iyimserdir; odalar arası sıralama anlamlıdır.
 - **İlk kez oynayan kademe (`firstTimerOf`):** gerçek cihaz geri bildirimi ("ilk bölümler hâlâ çok zor") modelin ilk
   oyuncuyu fazla becerikli saydığını gösterdi. İlk bölümlerin hedefleri artık bu kademeyle ölçülür: tepki 320-450 ms, sapma σ
   120-160 ms, girdilerin %10-15'i 100-250 ms geç, %4-6'sı kaçar, %2-4'ü dokunuş yerine kazara yatay kaydırma olur (zıplama
@@ -453,6 +463,8 @@ node tools/harness/zorluk.mjs --sure --k 48              # süreli bölümlerin 
 node tools/harness/zorluk.mjs --bolumler --k 48 --tag sonra   # 40 bölüm × 48 oyuncu (~30 dk)
 node tools/harness/zorluk.mjs --bolumler --levels 1-12 --k 48 --ilk 1 --tag ilk   # ilk kez oynayan kademe (1-12)
 node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --tag yildiz-sonra --once yildiz-once   # bitirenlerin nota oranı ve yıldızları (oyundaki scoreRun; ~8 dk)
+node tools/harness/zorluk.mjs --yildiz --levels 21-30 --k 48 --notaci --tag yildiz-notaci   # aynısı notaya dalan kademeyle (MK-015)
+node tools/harness/zorluk.mjs --odalar --notaci --k 48 [--ids a,b]   # odaların toplanan nota oranı: kitle ve notaya dalan (varsayılan: 22 yüzme odası; puanlar.ts'e dokunmaz)
 node tools/harness/zorluk.mjs --belge --once once --sonra sonra   # bu belgedeki tablolar + docs/img/zorluk-egrisi.svg (ilk.json varsa ilk kez oynayan tablosu da)
 ```
 `npm test` içindeki `play/zorluk-*.test.ts`, eğrinin biçimini (alıştırma kolay, bölge finali > bölge girişi, girişler ve finaller
