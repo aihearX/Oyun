@@ -83,6 +83,15 @@ yazı yok; kartın konusunda güvenli sohbet kuralı: 8. bölüme kadar yalnız 
   bölümde malzeme kullan) · 6 Takım Ruhu (takıma katıl, 3 yardım, konsültasyon) · 7 Kampını Güzelleştir (süs yerleştir, kamp ziyareti,
   Kamp Seviyesi 3) · 8 Uzman Klinik (Klinik Sv 4, 12 vaka, 5 kez 3★) · 9 Kulağın Derinlikleri (Koklea bölgesi, Kule Sv 5, 10 patoloji)
   · 10 Büyük Kamp (Merkez Sv 8, Klinik Sv 7, 25 vaka). Adımlar gerçek kamp eylemleri ve anlık durumla dolar; bölüm ödülü bir kez.
+  **Takımsız yol ("ya da")**: takıma bağlı adımın yanında aynı emekte takımsız bir adım durur; ikisinden biri adımı tamamlar, takım
+  yolu aynıdır (`KgAdim.ya`). 6. bölüm: takıma katıl *ya da* bu bölümde klinikte 3 vaka çöz (yeni ya da Vaka Defteri'nden) · 3 yardım
+  *ya da* bu bölümde kamp oyunlarında 3 tur · konsültasyon *ya da* bu bölümde Vaka Defteri'nden bir vakayı yeniden çöz. 7. bölüm:
+  arkadaş/takım arkadaşı kampı ziyareti *ya da* bu bölümde kampında 2 inşaat başlat. 8–10. bölümlerde takıma bağlı adım yok.
+  "Ya da" adımı **bölüm açıldıktan sonra yapılanı** sayar: sunucu bölüm açıkken ilk durum okumasında sayacın değerini bir kez saklar
+  (`kg_story_base`, INSERT OR IGNORE) ve ilerleme = sayaç − taban; eskiden biriken sayaç adımı kendiliğinden bitirmez. Bölüm 6–7'de
+  ortadayken sürüm gelen oyuncunun takım yolundaki ilerlemesi kalır, tabanı ilk bakışta yazılır; bitmiş bölümler değişmez. Panelde
+  "ya da" satırı ana adımın altında kendi çubuğu ve kilidiyle yazılır. Tüy Dede'nin seslendirilmiş satırları değişmedi
+  (`kg-h6-giris` takım yolunu söyler). Ölçüm: `docs/yonetim/ekonomi-olcum.md` Ö2 (takımsız 14 günde 5/10 → 8-9/10).
 - **Günlük**: her gün 3 görev (havuzdan oyuncunun açık binalarına göre sabit tohumla; gün içinde değişmez), **bir kez değiştirme**;
   görev başına 15 jeton + 15 Kamp XP. **Haftalık kamp hedefi** (günlük görev / vaka / oyun / malzeme; 3 basamak: jeton+XP, kristal+XP,
   kristal+XP+hızlandırıcı).
@@ -135,7 +144,7 @@ Takım sohbetinde Konsültasyon kartı (`camp/gorev/KonsultCard.tsx`). Test kanc
 - Birim: `packages/content/src/kamp-gorev.test.ts` (≥30 vaka, kapsam, **tıbbi tutarlılık**, denetleyicinin bozuk vakayı yakalaması,
   Türkçe metin, seçenekler, puanlama, odyogram sınıflaması, görev/ödül tanımları, günlük jeton tavanı, oyun turları ve Jerger
   değerleri), `apps/server/test/kamp-gorev.test.ts` (kilit, hikâye ödülü bir kez, günlük görev/değiştirme, idempotent sayaçlar,
-  haftalık/başarı basamakları, vaka takvimi ve kademe, malzeme ödülü, konsültasyon, **yönetici hariç** takım kliniği, oyunların
+  haftalık/başarı basamakları, hikâyenin takımsız "ya da" yolu (taban bir kez, eski kayıt göçü), vaka takvimi ve kademe, malzeme ödülü, konsültasyon, **yönetici hariç** takım kliniği, oyunların
   sunucu puanı/hız/günlük sınırı, kamp büyümesi bağlantısı), `apps/web/src/ftue/kamp-gorev-lines.test.ts` (Tüy Dede satırları ve turlar).
 - Uçtan uca: `node tools/harness/vaka-e2e.mjs` (Chromium + WebKit: takım, depo toplama → hikâye ödülü iki dokunuşta bir kez + bir
   kutlama, günlük görev + değiştirme, vaka çözümü (odyogram sembolleri) → 3★ + Vaka Defteri, konsültasyon (B hazır seçenekle oy verir,

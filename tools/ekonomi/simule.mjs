@@ -199,8 +199,8 @@ function simule(P, H = {}) {
     m: { clears: 0, stars: 0, coins: 0, plays: 0, quests: 0, chests: 0, calendar: 0, maxStreak: 0, days: 0, highest: 1, xp: 0, threeStars: 0, noDamage: 0, underPar: 0, bosses: 0, skills: 0, shieldsEarned: 0 },
     biomeStars: {}, ach: {}, shields: 0, cosmetics: new Set(), cards: new Set(), streak: 0,
     // kamp görevleri sayaçları
-    k: { 'depo-topla': 0, malzeme: 0, 'malzeme-kullan': 0, insaat: 0, yardim: 0, vaka: 0, ton: 0, timpano: 0, konsult: 0, 'dekor-yerlestir': 0, ziyaret: 0, gunluk: 0, 'vaka-3yildiz': 0 },
-    hikaye: 0, kgAch: {}, vakaQ: [], vakaBook: new Map(), vakaGun: null, hafta: {}, takimKlinikHafta: {},
+    k: { 'depo-topla': 0, malzeme: 0, 'malzeme-kullan': 0, insaat: 0, yardim: 0, vaka: 0, ton: 0, timpano: 0, konsult: 0, 'dekor-yerlestir': 0, ziyaret: 0, gunluk: 0, 'vaka-3yildiz': 0, 'vaka-tekrar': 0 },
+    hikaye: 0, yaTaban: {}, kgAch: {}, vakaQ: [], vakaBook: new Map(), vakaGun: null, hafta: {}, takimKlinikHafta: {},
   };
   const gunler = []; let G; // o günün satırı
   const yeniGun = (d) => {
@@ -421,6 +421,8 @@ function simule(P, H = {}) {
         kgOdul({ jeton: F.KG_ODUL.vakaTaban.jeton + F.KG_ODUL.vakaYildiz.jeton * y, kampXp: F.KG_ODUL.vakaTaban.kampXp + F.KG_ODUL.vakaYildiz.kampXp * y, ...(y >= 2 ? { malzeme: 'x', malzemeN: 1 } : {}) });
         s.takimKlinikHafta[Math.floor(d / 7)] = true;
       }
+      // hikâyenin "ya da" adımı Vaka Defteri'nden bir vakayı yeniden çözmeyi istiyorsa bir vaka yeniden çözülür (yeni yıldız yok sayılır)
+      if (s.vakaBook.size && yaGerekli('vaka-tekrar')) { s.k['vaka-tekrar']++; s.k.vaka++; }
     }
     // kamp oyunları (camp-quests-oyun.ts; günde 5 ödüllü tur)
     if (ac('oyun')) for (const [g, b] of [['ton', 'laboratuvar'], ['timpano', 'kule']]) {
@@ -449,16 +451,31 @@ function simule(P, H = {}) {
       case 'hikaye': return s.hikaye;
       case 'kamp-sv': return s.kampSv;
       case 'dekor': return s.placedN;
+      case 'oyun': return s.k.ton + s.k.timpano;
       default: return s.k[o] ?? 0;
     }
+  };
+  /**
+   * hikâyenin "ya da" adımı (takımsız eşdeğeri; camp-quests.ts storyAlt): bölüm açılınca sayacın değeri taban olur, adım bundan
+   * sonra yapılanı sayar. H.eskiHikaye: Ö2 öncesi kural ("ya da" yok; takımsız oyuncu 6. bölümde durur).
+   */
+  const yaIlerleme = (ch, y) => {
+    const t = (s.yaTaban[ch.no] ??= {}); t[y.olcut] ??= olcut(y.olcut);
+    return olcut(y.olcut) - t[y.olcut];
+  };
+  const yaTamam = (ch, st) => !H.eskiHikaye && !!st.ya && yaIlerleme(ch, st.ya) >= st.ya.need;
+  /** şu anki hikâye bölümünde ana yolu ve "ya da"sı bitmemiş, ölçütü o olan "ya da" adımı var mı (oyuncu ona yönelir) */
+  const yaGerekli = (o) => {
+    if (H.eskiHikaye || !ac('gorev')) return false; const ch = F.KG_HIKAYE[s.hikaye];
+    return !!ch?.steps.some((st) => st.ya?.olcut === o && olcut(st.olcut) < st.need && !yaTamam(ch, st));
   };
   const sartTamam = (sart) => !sart || ((!sart.ozellik || ac(sart.ozellik)) && (!sart.bina || s.L[sart.bina[0]] >= sart.bina[1]) && (!sart.takim || s.team));
   const gorevSistemi = () => {
     if (!ac('gorev')) return;
     for (;;) { // hikâye sırayla (camp-quests.ts story: ilk alınmamış bölüm)
       const ch = F.KG_HIKAYE[s.hikaye];
-      const tamam = (st) => olcut(st.olcut) >= st.need || (H.soloHikaye && !s.team && ['takim', 'yardim', 'konsult', 'ziyaret'].includes(st.olcut));
-      if (!ch || !ch.steps.every(tamam)) break;
+      if (ch) for (const st of ch.steps) if (st.ya) yaIlerleme(ch, st.ya); // taban bölüm açılınca bir kez (sunucu: ilk durum okuması)
+      if (!ch || !ch.steps.every((st) => olcut(st.olcut) >= st.need || yaTamam(ch, st))) break;
       s.hikaye++; G.hikaye.push(ch.no); kgOdul(ch.reward);
     }
     for (const a of F.KG_BASARI) {
@@ -632,10 +649,10 @@ const UYGULANAN = [
   { id: 'Ö1', ad: `Yerel ödül sınırı 600 → ${tr(F.LOCAL_JETON_DAILY_MAX)} jeton/gün`, H: { yerelSinir: 600 } },
   { id: 'Ö4', ad: `Vaka kademeleri Klinik Sv 1/4/7 → ${F.KG_KURAL.kademeSv.join('/')}`, H: { vakaKademe: ESKI_KADEME } },
   { id: 'Ö1 + Ö4', ad: 'ikisi birlikte', H: { yerelSinir: 600, vakaKademe: ESKI_KADEME } },
+  { id: 'Ö2', ad: 'Hikâye 6–7: takıma bağlı adımlara takımsız "ya da" adımı', H: { eskiHikaye: true } },
 ];
 // --- öneri denemeleri (yalnız simülasyonda; oyun kodu değişmedi)
 const ONERILER = [
-  { id: 'Ö2', ad: 'Takımsız oyuncuya hikâye 6–7 için tek kişilik adım', H: { soloHikaye: true } },
   { id: 'Ö3', ad: 'Bir inşaat sıraya alınabilsin (parası peşin)', H: { sira: true } },
   { id: 'Ö5', ad: '(denendi, önerilmez) Depo dolma süresi 8 → 12 sa', H: { depoSaat: (dl) => 12 + 0.5 * dl } },
   { id: 'Ö4b', ad: '(denendi) Vaka kademeleri Klinik Sv 1/1/2', H: { vakaKademe: (sv) => (sv >= 2 ? 3 : sv >= 1 ? 2 : 0) } },
@@ -651,12 +668,12 @@ w('### Uygulanan değişiklikler (14 gün; eski kural → bugünkü kod)');
 w();
 w('_Aynı ölçüm ve model; "eski" sütunu eski kuralı simülasyon kancasıyla yeniden kurar. Yerel talep: sınır olmasa o gün istenecek en yüksek yerel ödül jetonu._');
 w();
-w('| Değişiklik | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Kristal geliri | Kırpılan yerel jeton (ilk 3 gün) | Kırpılan yerel jeton (14 gün) | En yoğun gün yerel talep | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |');
-w('|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+w('| Değişiklik | Profil | Gelir (jeton) | Başlatılan inşaat | 14. gün cüzdan | Taşkın günü | Kamp Sv | Hikâye | Kristal geliri | Kırpılan yerel jeton (ilk 3 gün) | Kırpılan yerel jeton (14 gün) | En yoğun gün yerel talep | Yeni hasta gelen gün | Boş klinik günü (vaka bitmeden) |');
+w('|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
 for (const o of UYGULANAN) for (const [i, P] of PROFILLER.entries()) {
   const a = ozet(simule(P, o.H)); const b = ozet(sonuclar[i]);
   const c = (k, d = 0) => (a[k] === b[k] ? tr(a[k], d) : `${tr(a[k], d)} → **${tr(b[k], d)}**`);
-  w(`| ${o.id} ${o.ad} | ${P.ad} | ${c('gelir')} | ${c('insaat')} | ${c('cuzdan')} | ${c('taskin')} | ${c('kampSv')} | ${c('kristal')} | ${c('kirp3')} | ${c('kirp')} | ${tr(b.yerelEnCok)} | ${a.vakaGun}/${a.vakaAcik} → ${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'}${b.vakaGun}/${b.vakaAcik}${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'} | ${c('vakaBos')} |`);
+  w(`| ${o.id} ${o.ad} | ${P.ad} | ${c('gelir')} | ${c('insaat')} | ${c('cuzdan')} | ${c('taskin')} | ${c('kampSv')} | ${c('hikaye')} | ${c('kristal')} | ${c('kirp3')} | ${c('kirp')} | ${tr(b.yerelEnCok)} | ${a.vakaGun}/${a.vakaAcik} → ${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'}${b.vakaGun}/${b.vakaAcik}${b.vakaGun === a.vakaGun && b.vakaAcik === a.vakaAcik ? '' : '**'} | ${c('vakaBos')} |`);
 }
 w();
 w('### Öneri denemeleri (14 gün; temel → öneriyle)');

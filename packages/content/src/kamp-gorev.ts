@@ -72,7 +72,16 @@ export const KG_BUYUME_OLCUT: KgOlcut[] = ['dekor-yerlestir', 'ziyaret', 'kamp-s
 export interface KgSart { bina?: [BuildingId, number]; takim?: true; ozellik?: KgOzellik }
 /** resimli simge adı (apps/web/src/camp/gorev/art.tsx) */
 export type KgArt = 'depo' | 'insaat' | 'klinik' | 'defter' | 'ton' | 'timpano' | 'malzeme' | 'takim' | 'harita' | 'yildiz' | 'dekor' | 'ziyaret' | 'kamp' | 'gorev' | 'bolum';
-export interface KgAdim { id: string; text: string; olcut: KgOlcut; need: number; art: KgArt; sart?: KgSart }
+export interface KgAdim {
+  id: string; text: string; olcut: KgOlcut; need: number; art: KgArt; sart?: KgSart;
+  /** hikâyede takıma bağlı adımın takımsız eşdeğeri ("ya da"): ikisinden biri adımı tamamlar (docs/17 §4) */
+  ya?: KgYaAdim;
+}
+/**
+ * "ya da" adımı: bölüm açıldıktan sonra yapılanı sayar (sunucu bölüm açılınca sayacın değerini bir kez saklar: kg_story_base).
+ * Böylece eskiden biriken sayaç adımı kendiliğinden bitirmez; emek takım yoluyla yaklaşık eşit kalır.
+ */
+export interface KgYaAdim { id: string; text: string; olcut: KgSayac; need: number; art: KgArt; sart?: KgSart }
 
 // ---------------------------------------------------------------- Kampın Hikâyesi (Tüy Dede)
 
@@ -82,6 +91,7 @@ export interface KgBolumDef {
   intro: string; outro: string;
   steps: KgAdim[]; reward: KampOdul;
 }
+const VAKA_SART: KgSart = { ozellik: 'vaka', bina: ['revir', 1] };
 const B = (id: BuildingId, need: number, text: string, art: KgArt = 'insaat'): KgAdim => ({ id: `${id}-${need}`, text, olcut: `bina:${id}`, need, art });
 export const KG_HIKAYE: KgBolumDef[] = [
   { no: 1, title: 'Kampa Hoş Geldin', intro: 'kg-h1-giris', outro: 'kg-h1-son', reward: { jeton: 80, kampXp: 60, m5: 2 },
@@ -108,14 +118,18 @@ export const KG_HIKAYE: KgBolumDef[] = [
     ] },
   { no: 6, title: 'Takım Ruhu', intro: 'kg-h6-giris', outro: 'kg-h6-son', reward: { kristal: 5, kampXp: 160, dekor: 'kulaklik-salincak' },
     steps: [
-      { id: 'takim', text: 'Bir takıma katıl', olcut: 'takim', need: 1, art: 'takim' },
-      { id: 'yardim-3', text: 'Takım arkadaşlarının inşaatına 3 yardım et', olcut: 'yardim', need: 3, art: 'takim', sart: { takim: true } },
-      { id: 'konsult-1', text: 'Bir konsültasyon iste ya da görüş bildir', olcut: 'konsult', need: 1, art: 'klinik', sart: { takim: true, ozellik: 'vaka' } },
+      { id: 'takim', text: 'Bir takıma katıl', olcut: 'takim', need: 1, art: 'takim',
+        ya: { id: 'ya-vaka-3', text: 'Bu bölümde klinikte 3 vaka çöz (yeni ya da Vaka Defteri’nden)', olcut: 'vaka', need: 3, art: 'klinik', sart: VAKA_SART } },
+      { id: 'yardim-3', text: 'Takım arkadaşlarının inşaatına 3 yardım et', olcut: 'yardim', need: 3, art: 'takim', sart: { takim: true },
+        ya: { id: 'ya-oyun-3', text: 'Bu bölümde kamp oyunlarında 3 tur oyna', olcut: 'oyun', need: 3, art: 'ton', sart: { ozellik: 'oyun', bina: ['laboratuvar', 1] } } },
+      { id: 'konsult-1', text: 'Bir konsültasyon iste ya da görüş bildir', olcut: 'konsult', need: 1, art: 'klinik', sart: { takim: true, ozellik: 'vaka' },
+        ya: { id: 'ya-vaka-tekrar', text: 'Bu bölümde Vaka Defteri’nden bir vakayı yeniden çöz', olcut: 'vaka-tekrar', need: 1, art: 'defter', sart: VAKA_SART } },
     ] },
   { no: 7, title: 'Kampını Güzelleştir', intro: 'kg-h7-giris', outro: 'kg-h7-son', reward: { kristal: 5, kampXp: 180, m60: 2 },
     steps: [
       { id: 'dekor-yerlestir', text: 'Kampına bir süs yerleştir', olcut: 'dekor-yerlestir', need: 1, art: 'dekor' },
-      { id: 'ziyaret', text: 'Bir arkadaşının ya da takım arkadaşının kampını ziyaret et', olcut: 'ziyaret', need: 1, art: 'ziyaret' },
+      { id: 'ziyaret', text: 'Bir arkadaşının ya da takım arkadaşının kampını ziyaret et', olcut: 'ziyaret', need: 1, art: 'ziyaret',
+        ya: { id: 'ya-insaat-2', text: 'Bu bölümde kampında 2 inşaat başlat', olcut: 'insaat', need: 2, art: 'insaat' } },
       { id: 'kamp-sv-3', text: 'Kamp Seviyesi 3’e ulaş', olcut: 'kamp-sv', need: 3, art: 'kamp' },
     ] },
   { no: 8, title: 'Uzman Klinik', intro: 'kg-h8-giris', outro: 'kg-h8-son', reward: { kristal: 8, kampXp: 220, dekor: 'odyogram-tarhi' },

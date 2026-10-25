@@ -133,6 +133,22 @@ describe('Kamp Görevleri: tanımlar', () => {
       expect(dupes(c.steps.map((s) => s.id))).toEqual([]);
       for (const s of c.steps) { sane(s.text, `${c.no}.${s.id}`); expect(s.need).toBeGreaterThan(0); }
     }
+    // takıma bağlı her hikâye adımının takımsız "ya da" eşdeğeri var (Ö2: takımsız oyuncu 5. bölümde durmasın); "ya da" adımı
+    // sayaçtır (bölüm açıldıktan sonra yapılanı sayar), kendisi takım istemez, kimliği bölümde eşsiz, metni Türkçe
+    const TAKIM_OLCUT = ['takim', 'yardim', 'konsult', 'ziyaret'];
+    for (const c of KG_HIKAYE) for (const s of c.steps) {
+      const takimli = TAKIM_OLCUT.includes(s.olcut) || !!s.sart?.takim;
+      expect(!!s.ya, `${c.no}.${s.id}: takımsız "ya da"`).toBe(takimli);
+      if (!s.ya) continue;
+      sane(s.ya.text, `${c.no}.${s.ya.id}`);
+      expect(KG_SAYACLAR).toContain(s.ya.olcut);
+      expect(TAKIM_OLCUT).not.toContain(s.ya.olcut);
+      expect(s.ya.sart?.takim).toBeUndefined();
+      expect(s.ya.need).toBeGreaterThan(0);
+      expect(s.ya.text.startsWith('Bu bölümde')).toBe(true); // dürüst: önceki birikim sayılmaz
+      expect(dupes([...c.steps.map((x) => x.id), ...c.steps.flatMap((x) => (x.ya ? [x.ya.id] : []))])).toEqual([]);
+    }
+    expect(KG_HIKAYE.filter((c) => c.steps.some((s) => s.ya)).map((c) => c.no)).toEqual([6, 7]);
     // büyüme sistemine bağlı adımı olmayan bölümler büyüme olmadan da bitirilebilir
     expect(KG_HIKAYE.filter((c) => c.steps.every((s) => KG_BUYUME_OLCUT.includes(s.olcut))).length).toBe(1);
   });

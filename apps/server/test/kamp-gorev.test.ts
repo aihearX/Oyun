@@ -1,8 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import type { KgState } from '@odi/shared';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { BUILDINGS, type KgState } from '@odi/shared';
 import { KG_KURAL, KG_ODUL, VAKALAR, konsultSecenekleri, timpanoHavuzu, timpanoTuru, tonTuru, vakaById } from '@odi/content';
 import type { NetError } from '@odi/net';
-import { kgBump, kgCount } from '../src/camp-quests';
+import { kgBump, kgCount, kgState } from '../src/camp-quests';
+import { startServer } from '../src/server';
 import { CAMP_GROWTH, applyPending, giveCampXp, setGrowth } from '../src/camp-quests-adapter';
 import { campXpOf } from '../src/camp-xp';
 import { DAY_MS } from '../src/time';
@@ -366,5 +370,113 @@ describe('Kamp büyümesi bağlantısı (adaptör)', () => {
     await b.call('team.join', { teamId: t.id });
     await b.call('camp.visit', { playerId: pid });
     expect(kgCount(app, b.me!.id, 'ziyaret')).toBe(1);
+  });
+});
+
+describe('Kampın Hikâyesi: takımsız "ya da" yolu (Ö2)', () => {
+  const claimUpTo = (e: Env, pid: string, n: number) => { for (let i = 1; i <= n; i++) e.srv.app.db.run("INSERT OR IGNORE INTO kg_claim(player_id, ref, at, reward) VALUES(?, ?, ?, '{}')", pid, `hikaye:${i}`, e.clock.t); };
+  const adim = (s: KgState, id: string) => s.story.chapter!.steps.find((x) => x.id === id)!;
+
+  it('6. ve 7. bölüm takımsız biter: "ya da" adımı bölüm açıldıktan sonra yapılanı sayar; taban bir kez yazılır; ödül bir kez', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 10, { revir: 1, laboratuvar: 1, kule: 1 }); const pid = a.me!.id; const app = env.srv.app;
+    claimUpTo(env, pid, 4);
+    // 5. bölüm açıkken iki vaka çözülür: 6. bölümün "3 vaka" adımına sayılmaz
+    const w0 = (await a.call('vaka.state', {})).vaka.waiting;
+    expect(w0.length).toBe(KG_KURAL.vakaGunluk);
+    for (const id of w0.slice(0, 2)) expect((await a.call('vaka.answer', perfect(id, `ilk-${id}`))).result.stars).toBe(3);
+    bump(env, pid, 'ton', 7);
+    claimUpTo(env, pid, 5);
+    const s0 = (await a.call('kg.state', {})).state;
+    expect(s0.story.chapter?.no).toBe(6);
+    expect(s0.story.chapter!.steps.map((x) => [x.id, x.ya?.id])).toEqual([['takim', 'ya-vaka-3'], ['yardim-3', 'ya-oyun-3'], ['konsult-1', 'ya-vaka-tekrar']]);
+    for (const t of s0.story.chapter!.steps) expect(t.ya).toMatchObject({ progress: 0, done: false, locked: null });
+    expect(adim(s0, 'yardim-3').locked).toBe('Bir takıma katıl'); // takım yolu dürüstçe kilitli, "ya da" açık
+    expect((await err(a.call('kg.claim', { ref: 'hikaye:6' }))).code).toBe('BITMEDI');
+    // salondaki 3. hasta (yeni) + Vaka Defteri'nden bir vakayı yeniden çöz
+    await a.call('vaka.answer', perfect(w0[2]!, `yeni-${w0[2]}`));
+    await a.call('vaka.answer', perfect(w0[0]!, `tekrar-${w0[0]}`));
+    const s1 = (await a.call('kg.state', {})).state;
+    expect(adim(s1, 'takim').ya).toMatchObject({ progress: 2, done: false });
+    expect(adim(s1, 'konsult-1')).toMatchObject({ done: true, progress: 0, locked: null, ya: { progress: 1, done: true } });
+    // durum okuması tabanı değiştirmez; gün dönse de ilerleme kalır (toplam sayaç)
+    env.clock.advance(DAY_MS);
+    for (let i = 0; i < 2; i++) expect(adim((await a.call('kg.state', {})).state, 'takim').ya!.progress).toBe(2);
+    expect(app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM kg_story_base WHERE player_id = ? AND chapter = 6', pid)!.n).toBe(3);
+    await a.call('vaka.answer', perfect(w0[1]!, `tekrar-${w0[1]}`));
+    bump(env, pid, 'timpano', 2); bump(env, pid, 'ton', 1); // kamp oyunlarında 3 tur (Ton Avı + Timpanogram Eşleştir)
+    const s2 = (await a.call('kg.state', {})).state;
+    expect(s2.story.chapter!.steps.map((x) => x.done)).toEqual([true, true, true]);
+    expect(s2.story.chapter!.done).toBe(true);
+    const got = await a.call('kg.claim', { ref: 'hikaye:6' });
+    expect(got.reward).toMatchObject({ kristal: 5, kampXp: 160, dekor: 'kulaklik-salincak' });
+    expect((await err(a.call('kg.claim', { ref: 'hikaye:6' }))).code).toBe('TEKRAR');
+    // 7. bölüm: ziyaret ya da 2 inşaat (bölüm açıldıktan sonra)
+    bump(env, pid, 'insaat', 5); // 7. bölümün tabanı ödül alma yanıtındaki durumda yazıldı: bu 5 inşaat sayılır
+    let s3 = (await a.call('kg.state', {})).state;
+    expect(s3.story.chapter?.no).toBe(7);
+    expect(adim(s3, 'ziyaret')).toMatchObject({ progress: 0, done: true, ya: { id: 'ya-insaat-2', progress: 2, done: true } });
+    bump(env, pid, 'dekor-yerlestir', 1);
+    app.run(() => giveCampXp(app, pid, 20_000, 'test:kamp-sv'));
+    s3 = (await a.call('kg.state', {})).state;
+    expect(s3.story.chapter!.done).toBe(true);
+    await a.call('kg.claim', { ref: 'hikaye:7' });
+    const s4 = (await a.call('kg.state', {})).state;
+    expect(s4.story.chapter?.no).toBe(8);
+    expect(s4.story.chapter!.steps.every((x) => !x.ya)).toBe(true); // 8–10: takıma bağlı adım yok
+  });
+
+  it('takım yolu aynı: takıma katıl, 3 yardım, konsültasyon; "ya da" gerekmez', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 10, { revir: 1, laboratuvar: 1 }); const b = await player(env, 'Bora', 10); const pid = a.me!.id;
+    claimUpTo(env, pid, 5);
+    const t = (await b.call('team.create', { name: 'Kepçe', emblem: '🐚' })).team;
+    await a.call('team.join', { teamId: t.id });
+    bump(env, pid, 'yardim', 3); bump(env, pid, 'konsult', 1);
+    const s = (await a.call('kg.state', {})).state;
+    expect(s.story.chapter!.steps.map((x) => [x.id, x.done, x.progress, x.ya!.done])).toEqual([['takim', true, 1, false], ['yardim-3', true, 3, false], ['konsult-1', true, 1, false]]);
+    expect((await a.call('kg.claim', { ref: 'hikaye:6' })).reward).toMatchObject({ kristal: 5 });
+  });
+
+  it('eski kayıt göçü: 6. bölümün ortasındaki oyuncu ilerlemesini kaybetmez; bitmiş bölümler değişmez; iki kez açmak bir şey değiştirmez', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'odi-hikaye-')); const file = join(dir, 'odi.db');
+    const opts = { port: 0, host: '127.0.0.1', dbFile: file, testStore: true, sweepMs: 60_000 } as const;
+    const ins = (srv: Awaited<ReturnType<typeof startServer>>, id: string, code: string, claims: number, team: string | null) => {
+      srv.app.db.run(`INSERT INTO players(id, token_hash, name, color, friend_code, jeton, depot_at, created_at, last_seen) VALUES(?, ?, ?, 1, ?, 0, 0, 0, 0)`, id, `h-${id}`, id, code);
+      srv.app.db.run('UPDATE players SET highest = 11, team_id = ? WHERE id = ?', team, id);
+      for (const bid of BUILDINGS.map((x) => x.id)) srv.app.db.run('INSERT OR IGNORE INTO buildings(player_id, id, level) VALUES(?, ?, ?)', id, bid, bid === 'merkez' ? 3 : 1);
+      for (let i = 1; i <= claims; i++) srv.app.db.run("INSERT INTO kg_claim(player_id, ref, at, reward) VALUES(?, ?, 0, '{}')", id, `hikaye:${i}`);
+    };
+    const st = (srv: Awaited<ReturnType<typeof startServer>>, id: string) => srv.app.run(() => kgState(srv.app, id)).story;
+    try {
+      // sürüm öncesi kayıt: "ya da" tablosu yok; 6. bölümün ortasında takımlı (takıma katıldı, 2 yardım) ve eski sayaçlar dolu
+      let srv = await startServer(opts);
+      ins(srv, 'porta', 'ESKI61', 5, 'takimX'); ins(srv, 'pbitti', 'ESKI62', 10, null); ins(srv, 'psekiz', 'ESKI63', 7, null);
+      srv.app.run(() => { kgBump(srv.app, 'porta', 'yardim', 2); kgBump(srv.app, 'porta', 'vaka', 20); kgBump(srv.app, 'porta', 'vaka-tekrar', 4); kgBump(srv.app, 'porta', 'ton', 9); });
+      srv.app.db.raw.exec('DROP TABLE kg_story_base;');
+      await srv.close();
+      for (let i = 0; i < 2; i++) {
+        srv = await startServer(opts);
+        expect(srv.app.db.get('SELECT name FROM sqlite_master WHERE type = ? AND name = ?', 'table', 'kg_story_base')).toBeTruthy();
+        const s = st(srv, 'porta');
+        expect(s.claimed).toBe(5);
+        expect(s.chapter?.no).toBe(6);
+        // takım yolu ilerlemesi olduğu gibi; eski sayaçlar "ya da" adımını kendiliğinden bitirmez (taban ilk bakışta yazılır)
+        expect(s.chapter!.steps.map((x) => [x.id, x.progress, x.done, x.ya!.progress])).toEqual([['takim', 1, true, 0], ['yardim-3', 2, false, i], ['konsult-1', 0, false, 0]]);
+        srv.app.run(() => kgBump(srv.app, 'porta', 'ton', 1)); // açılışlar arasında 1 tur: ikinci açılışta 1/3 (taban değişmedi)
+        expect(st(srv, 'pbitti')).toMatchObject({ chapter: null, claimed: 10 });
+        const s8 = st(srv, 'psekiz');
+        expect(s8.chapter?.no).toBe(8);
+        expect(s8.chapter!.steps.some((x) => x.ya)).toBe(false);
+        await srv.close();
+      }
+      // ortadaki oyuncu "ya da" ile bitirir: yeniden çözme (konsültasyon yerine) + 1 yardım (takım yolu)
+      srv = await startServer(opts);
+      srv.app.run(() => { kgBump(srv.app, 'porta', 'vaka-tekrar', 1); kgBump(srv.app, 'porta', 'yardim', 1); });
+      const s = st(srv, 'porta');
+      expect(s.chapter!.done).toBe(true);
+      expect(srv.app.db.get<{ n: number }>("SELECT COUNT(*) AS n FROM kg_story_base WHERE player_id IN ('pbitti', 'psekiz')")!.n).toBe(0);
+      await srv.close();
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });

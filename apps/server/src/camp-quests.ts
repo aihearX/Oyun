@@ -3,11 +3,11 @@
  * vaka, kamp oyunları, bölüm sonucu) sayaçları artırır — her olay bir kez (kg_seen); görev/hikâye/başarı ilerlemesi sayaçlardan ve
  * anlık durumdan (bina seviyeleri, Vaka Defteri, bölge) hesaplanır. Her ödül tam bir kez alınır (kg_claim birincil anahtarı).
  */
-import { BUILDINGS, type BuildingId, type KampOdul, type KgBasamak, type KgBolum, type KgGorev, type KgHafta, type KgState, type OpMap } from '@odi/shared';
+import { BUILDINGS, type BuildingId, type KampOdul, type KgBasamak, type KgBolum, type KgGorev, type KgGorevYa, type KgHafta, type KgState, type OpMap } from '@odi/shared';
 import {
   HUMAN_JOURNEY, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_ODUL, KG_SAYACLAR,
   PATHOLOGY_IDS, REMEDY_INV_CAP, VAKALAR, kgHash, kgRng, remedyById,
-  type KgAdim, type KgOlcut, type KgOzellik, type KgSart, type KgSayac,
+  type KgAdim, type KgOlcut, type KgOzellik, type KgSart, type KgSayac, type KgYaAdim,
 } from '@odi/content';
 import { fail, type App, type Handler, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
@@ -149,6 +149,18 @@ function weeklyGoal(app: App, pid: string): KgHafta | null {
   const tiers: KgBasamak[] = def.tiers.map((need, i) => { const ref = `hafta:${week}:${i}`; return { need, reward: KG_HAFTA_ODUL[i]!, reached: progress >= need, claimed: claimed(app, pid, ref), ref }; });
   return { id: def.id, text: def.text, art: def.art, progress, tiers };
 }
+/**
+ * hikâye adımının takımsız eşdeğeri ("ya da"): bölüm açıkken ilk bakışta sayacın değeri saklanır (INSERT OR IGNORE, bir kez) ve
+ * adım bundan sonra yapılanı sayar. Sayaçlar azalmaz: biten "ya da" adımı bitmiş kalır. Bölüm 6–7'de ortadayken sürüm gelen oyuncunun
+ * tabanı ilk bakışta yazılır; takım yolundaki ilerlemesi olduğu gibi kalır.
+ */
+function storyAlt(app: App, pid: string, chapter: number, y: KgYaAdim): KgGorevYa {
+  const now = kgCount(app, pid, y.olcut);
+  app.db.run('INSERT OR IGNORE INTO kg_story_base(player_id, chapter, metric, n, at) VALUES(?, ?, ?, ?, ?)', pid, chapter, y.olcut, now, app.now());
+  const base = app.db.get<{ n: number }>('SELECT n FROM kg_story_base WHERE player_id = ? AND chapter = ? AND metric = ?', pid, chapter, y.olcut)?.n ?? now;
+  const progress = Math.min(y.need, Math.max(0, now - base));
+  return { id: y.id, text: y.text, art: y.art, need: y.need, progress, done: progress >= y.need, locked: progress >= y.need ? null : sartKilit(app, pid, y.sart) };
+}
 function story(app: App, pid: string): KgState['story'] {
   const total = KG_HIKAYE.length;
   const done = KG_HIKAYE.filter((c) => claimed(app, pid, `hikaye:${c.no}`)).length;
@@ -156,7 +168,9 @@ function story(app: App, pid: string): KgState['story'] {
   if (!cur) return { chapter: null, next: null, claimed: done, total };
   const steps: KgGorev[] = cur.steps.filter((s) => !(isGrowth(s.olcut) && !growthOn())).map((s) => {
     const progress = Math.min(s.need, metricValue(app, pid, s.olcut));
-    return { ref: '', id: s.id, text: s.text, art: s.art, need: s.need, progress, done: progress >= s.need, claimed: false, reward: null, locked: progress >= s.need ? null : sartKilit(app, pid, s.sart) };
+    const ya = s.ya ? storyAlt(app, pid, cur.no, s.ya) : undefined;
+    const done = progress >= s.need || !!ya?.done;
+    return { ref: '', id: s.id, text: s.text, art: s.art, need: s.need, progress, done, claimed: false, reward: null, locked: done ? null : sartKilit(app, pid, s.sart), ...(ya ? { ya } : {}) };
   });
   const ref = `hikaye:${cur.no}`;
   const chapter: KgBolum = { no: cur.no, title: cur.title, intro: cur.intro, outro: cur.outro, steps, reward: cur.reward, done: steps.every((s) => s.done), claimed: false, ref };
