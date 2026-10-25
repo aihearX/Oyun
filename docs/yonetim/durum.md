@@ -2,8 +2,8 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 4. tur · 2026-10-25 · başlangıç 1487c8c → tur sonu 9ad19a6 (+ bu belge).
-Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md).
+**Son tur:** 5. tur · 2026-10-25 · başlangıç fda8179 → tur sonu 2a93b80 + PY kayıtları (bu belge).
+Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
 
@@ -13,28 +13,37 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | **Kapalı beta** (TestFlight / APK, 20-50 kişi) | 4 eksik | Kalıcı diskli herkese açık sunucu (YN-006), derlemede sunucu adresi (YN-007), yeni yönetici kodu (YN-002), ilk EAS derlemesinin denenmesi (YN-024) |
 | **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
 
-## Test sonuçları (4. tur, PY çalıştırdı)
+## Test sonuçları (5. tur, PY çalıştırdı; makine yükü 14–40, 4 çekirdek)
 
 | Takım | Sonuç | Not |
 |---|---|---|
-| typecheck / lint / vitest | geçti (63 dosya / 422+ test) | tam vitest artık ~2 dk (ölçüm önbelleği, MK-013); soğuk 2.198 sn → sıcak 114 sn (game-core) |
-| simule | takımsız hikâye 5 → 7–9/10; 1 oturum taşkın 13 → 2 (takımsız), 12 → 0 (takımlı) | |
-| camp (sıra adımlarıyla), social, reset, domcheck, vaka | geçti (3a0e159) | camp kutlama yükte düşmesi giderildi (YN-027), 2/2 |
-| ui-mobile gorev web + dom × 320/390 × Chromium/WebKit | 320 ekran, 0 sorun (bbb47ad) | |
-| ui-mobile tam (iki hedef, normal + büyük yazı) | erisim indikten sonra (5. tur başı) | |
+| typecheck / lint / mobil-tsc / dom-paketi / domcheck | geçti (cdce437) | |
+| vitest | geçti; `feel.test` yükte 5 sn'yi aştı → açık süre (f9124c1) | `codes.test` de yükte aşıyor (notaci) → MK-020 |
+| `generate.mjs --check` | 208 satır güncel (26851fb) | |
+| ui-mobile **normal**, web 320/390 × Chromium/WebKit | 4 × 128 ekran, 0 sorun (9a1fb11) | WebKit'te 12 alt sayfanın ilk karesi boş: ekran girişi animasyonu yükte geç başlıyor (ölçüldü, ≤ 1 sn'de görünür) → harness animasyonu beklemeli (MK-020) |
+| ui-mobile **normal**, DOM (telefon kabuğu) | WebKit 320 ve 390 tam geçti; Chromium 320/390 kamp adımında 30 sn tıklama/görüntü zaman aşımı (yük 30–40) | aynı adım başka koşuda geçti → yük kaynaklı; yük düşünce yeniden (MK-020) |
+| ui-mobile **büyük yazı**, web | 512 ekran (Chromium + WebKit × 320/390), 0 sorun | 320'de sonuç ekranının yapışkan düğmeleri ekranın ~%45'i (kaydırılabilir, kusur değil) |
+| ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Çalışanlar (PY doğruladı, kabul):** 368f7d9 + bbb47ad takımsız hikâye "ya da" adımları (MK-012) · 3a0e159 inşaat sırası (MK-011)
-- **PY:** 0223e3c ölçüm önbelleği (MK-013) · 0a47931 camp-e2e yük dayanıklılığı (YN-027) · MK-014 ölçüldü (değişiklik yok; MK-015'e bağlandı)
-- **Sahip kararları:** 13 ve 14 onaylandı (iki anlatıcı satırı) → ses2 çalışanı
+- **Çalışanlar (PY doğruladı):**
+  - cdce437 Büyük yazı + web yakınlaştırma (YN-018/MK-006), kabul edildi. Normal + büyük yazı, iki hedef, 1.484 ekran.
+  - 26851fb iki onaylı satır + `kamp-sira-01` ipucu (YN-028); kabul edildi. Sahibin dinlemesi bekleniyor: son MP3'te Whisper "jetonun"u "cetonun" duyuyor.
+  - 9a1fb11 notaya dalan oyuncu modeli (MK-015), kabul edildi. MK-014 kapandı: tasarım sorunu yok, 3 oda %43–78.
+  - 2a93b80 ses düzeyi ölçümü (MK-018), kabul edildi. Karışım dengeli; duck çakışması bulundu → MK-023.
+- **PY:**
+  - fc57e96 hikâyenin istediği bina notu (MK-016).
+  - f9124c1 feel.test süresi.
+  - b17cbca iş listesi: MK-019 sunucu yeniden başlarken oyuncu, MK-020 yükte kırılgan testler, MK-021 k3-derin, MK-022 mağaza ekran görüntüleri, MK-023 duck.
 
 ## Sürüyor
-- **erisim** (YN-018 / MK-006 Büyük yazı): çalışanın son doğrulaması sürüyor, main'e inmedi. İnince PY: ui-mobile iki hedef, normal + büyük yazı.
-- **ses2** (YN-028, iki onaylı satırın seslendirmesi ve `kamp-sira-01` ipucu). İnince PY: `generate.mjs --check`, kamp/onboarding e2e, dosyaları dinle.
+- **kontrast** (MK-017): metin kontrastı ölçümü.
+- **tembel** (YN-025): level-gen tembel yükleme.
+- **kisma** (MK-023): duck sahipli + "Anlatıcı sesi" kaydırıcısı.
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
-- Disk dar (~4–5 GB). Harness çıktıları (`tools/harness/out/<takım>`) koşu bitince silinmeli.
+- Disk dar (5. turda bir ara 557 MB'a indi). Harness çıktıları (`tools/harness/out/<takım>`) koşu bitince silinmeli.
 - `node_modules`: `cp -al /home/user/oyun/node_modules` (+ `apps/mobile/node_modules`, `apps/web/node_modules`); ana kopya SDK 58.
 - `social-e2e` önizleme sürecini kapatmıyor (YN-023) — koşudan sonra kendi PID'ini kapatın.
 - Uzak depoda kalan yedek dalları (silinemedi, vekil 403; zararsız): wip-kamp-buyume, wip-kamp-gorev, wip-oynanis, wip-perf, wip-pm, wip-sdk58, wip-siralama, wip-yedek, wip-zorluk.
@@ -57,3 +66,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | 12 | **Klinik: kademeler daha erken mi, vaka sayısı artsın mı?** (MK-010 sonrası) | Kademeler Sv 1/2/3 yapıldı; 32 vakayla günde 3 hasta 14 günde en çok 11 gün yeni hasta demek. Önerim: (b) yeni vakaları siz onaylayarak ekleyelim (odyoloji içeriği sizin uzmanlık alanınız); (a) yalnız boşlukları biraz daha kapatır. | a) Ö4b: kademeler Sv 1/1/2 (yeni içerik yok, ilk haftada daha çok hasta) · b) +16–24 yeni vaka (taslağı biz hazırlarız, tıbbi doğruluk sizin onayınızla) · c) Olduğu gibi |
 | 13 | ~~`kg-h6-giris` yeni metin~~ | **KARAR (sahip): ONAYLANDI** — "Bir kampı birlikte çalışmak büyütür. Takımınla ya da kendi başına: yardım et, öğren, zor vakada danış." Seslendirme: çalışan ses2 (YN-028). | — |
 | 14 | ~~`kamp-sira-01` satırı~~ | **KARAR (sahip): ONAYLANDI** (önerimin aksine; sahip satırı istedi) — "Yapı ustası tek elle iki iş tutmaz ama sırayı bilir: bir sonrakini şimdi seç, bedelini öde; bu bitince kendiliğinden başlar. Vazgeçersen jetonun geri gelir." "Sıraya al" ilk görününce bir kez. Seslendirme + bağlama: ses2 (YN-028). | — |
+| 15 | **`kamp-sira-01` ve `kg-h6-giris` seslendirmesini dinleyin** (YN-028) | Ekranda onaylı metin aynen var. Seste "jetonun" okunuşu sınırda: Whisper "cetonun" duyuyor. Kulağa doğru geliyorsa kalsın. | a) Kalsın · b) Yeniden seslendir · c) Seste "jetonun" yerine "ödediğin geri gelir" (yazı değişmez) |
+| 16 | **15 kısa satırın ses düzeyi** (ses-duzeyi.md) | 15 satır (çoğu 3 sn'den kısa) 2–8 LU sessiz. Önerim: yalnız kazanç (ses aynı, sadece yükseltme); dosya içeriği ve tını değişmez. | a) Yalnız kazanç (önerim) · b) Oyunda satır başı kazanç tablosu (dosya değişmez) · c) Olduğu gibi |
+| 17 | **Anlatım sırasında müzik ne kadar kısılsın?** | Bugün 0.3 (−10 dB). Ölçüm dengeli diyor; değiştirmeyin. Dinleyip "müzik çok kayboluyor" derseniz 0.45. | a) 0.3 kalsın (önerim) · b) 0.45–0.5 |
+
