@@ -359,14 +359,6 @@ export type WireRes = { t: 'res'; id: number; ok: true; data: unknown } | { t: '
 export type WireEvt = { t: 'evt'; ev: Evt; data: unknown };
 
 /** Sabitler (sunucu ve istemci aynı değeri kullanır) */
-/**
- * Yerel meta ödüllerinin (`wallet.local`: günlük görev, takvim, sandık, hazine, Şanslı Nota, başarım) İstanbul günü başına jeton
- * üst sınırı. Sunucu uygular (apps/server/src/wallet.ts); istemci yalnız bildirimde gösterir. Gerekçe: ölçülen en yoğun dürüst gün
- * 1.270 jeton (günde 6 oturum, 1. gün: ilk başarım ve hazine patlaması; docs/yonetim/ekonomi-olcum.md, Ö1) + Şanslı Nota ve
- * oturum uzunluğu sapması için pay. Eski sınır 600, 3 ve 6 oturumlu dürüst oyuncunun ilk 3 gününde 616 / 963 jetonunu kesiyordu.
- */
-export const LOCAL_JETON_DAILY_MAX = 1500;
-
 export const SOCIAL_LIMITS = {
   nameMin: 3, nameMax: 16, chatMax: 200, chatCooldownMs: 1200, teamMax: 30, teamNameMax: 20, targetsMax: 3,
   helpMax: 5, raceMax: 4, raceCountdownMs: 4000, racePosHz: 8, historySize: 50,
@@ -1343,3 +1335,11 @@ export interface OpMap {
    *  ad anonimleşir, oturum anahtarı geçersizleşir, rekabet tablolarından çıkar. Geri alınamaz. */
   'account.delete': { req: Record<string, never>; res: { deleted: true } };
 }
+
+/**
+ * Yerel meta ödüllerinin (`wallet.local`: günlük görev, takvim, sandık, hazine, Şanslı Nota, başarım) İstanbul günü başına jeton
+ * üst sınırı. Sunucu uygular (apps/server/src/wallet.ts); istemci yalnız bildirimde gösterir. Gerekçe: ölçülen en yoğun dürüst gün
+ * 1.270 jeton (günde 6 oturum, 1. gün: ilk başarım ve hazine patlaması; docs/yonetim/ekonomi-olcum.md, Ö1) + Şanslı Nota ve
+ * oturum uzunluğu sapması için pay. Eski sınır 600, 3 ve 6 oturumlu dürüst oyuncunun ilk 3 gününde 616 / 963 jetonunu kesiyordu.
+ */
+export const LOCAL_JETON_DAILY_MAX = 1500;
