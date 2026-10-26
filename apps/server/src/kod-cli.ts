@@ -3,14 +3,18 @@
  *   ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"]
  *   liste
  *   kapat KOD | ac KOD
- *   ozet            → yönetici kodu için yeni özet üretir (kodu standart girdiden okur; ODI_ADMIN_CODE_HASH'e yazılır)
+ *   ozet [--denetle] → yönetici kodu için yeni özet üretir (kodu standart girdiden okur; ODI_ADMIN_CODE_HASH'e yazılır).
+ *                     Kod 16–32 karakter, harf/rakam/tire olmalı; --denetle yalnız uygunluğu söyler.
  * Veritabanı: ODI_DB (yoksa apps/server/data/odi.sqlite). Tarihler İstanbul saatiyle; bitiş günü dahildir.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { COMM_RULES, SOCIAL_LIMITS } from '@odi/shared';
+import { CODE_PATTERN, COMM_RULES, normalizeCode, SOCIAL_LIMITS } from '@odi/shared';
 import { App, OdiError, type ServerConfig } from './app';
 import { createCode, hashAdminCode, listCodes, rewardText, setCodeActive } from './codes';
+
+/** üretim yönetici kodu için en kısa uzunluk (docs/18-sunucu-kurulum.md) */
+const ADMIN_CODE_MIN = 16;
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -31,6 +35,11 @@ async function main(): Promise<void> {
     const chunks: Buffer[] = []; for await (const c of process.stdin) chunks.push(c as Buffer);
     const code = Buffer.concat(chunks).toString('utf8').trim();
     if (!code) throw new Error('kodu standart girdiden ver: ör. `read -s K; printf %s "$K" | npm run kod -- ozet`');
+    // oyunda "Kod gir" yalnız CODE_PATTERN'e uyan kodu kabul eder: uymayan kodun özeti hiç açılmayan bir yönetici kodu olurdu
+    const norm = normalizeCode(code);
+    if (!CODE_PATTERN.test(norm)) throw new Error('yönetici kodu en çok 32 karakter olmalı ve yalnız harf (A–Z, Ç Ğ İ Ö Ş Ü), rakam ve tire içermeli (boşluklar yok sayılır)');
+    if (norm.length < ADMIN_CODE_MIN) throw new Error(`yönetici kodu en az ${ADMIN_CODE_MIN} karakter olmalı (boşluklar sayılmaz)`);
+    if (argv.includes('--denetle')) { console.log('uygun'); return; }
     console.log(hashAdminCode(code));
     return;
   }

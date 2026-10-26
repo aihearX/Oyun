@@ -1,0 +1,35 @@
+#!/bin/bash
+# DuckDNS adresini bu sunucunun IP'sine günceller (docs/18-sunucu-kurulum.md).
+# systemd zamanlayıcısı (odi-duckdns.timer) 5 dakikada bir çalıştırır (yetkisiz root, salt okunur sistem); token
+# /etc/odi/duckdns.token'dan (0600 root) okunur.
+# Token hiçbir komutun argümanına girmez: curl adresi standart girdiden okur (-K -). Çıktıda token yoktur.
+# Başarılıysa "OK <ip> <UPDATED|NOCHANGE>" yazar ve 0 döner.
+set -euo pipefail
+export LC_ALL=C.UTF-8
+
+conf=/etc/odi/kurulum.conf
+alan=
+while IFS= read -r satir || [ -n "$satir" ]; do
+  case $satir in ODI_DUCK=*) alan=${satir#*=} ;; esac
+done < "$conf"
+[[ $alan =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]] || { echo "DuckDNS adı $conf içinde bulunamadı" >&2; exit 1; }
+
+tok=''
+IFS= read -r tok < /etc/odi/duckdns.token || true
+[ -n "$tok" ] || { echo "DuckDNS token'ı okunamadı" >&2; exit 1; }
+
+# ip= boş: DuckDNS isteğin geldiği adresi yazar (Oracle'da genel IP). verbose=true: yazılan IP'yi döndürür.
+if ! yanit=$(printf 'url = "https://www.duckdns.org/update?domains=%s&token=%s&ip=&verbose=true"\n' "$alan" "$tok" \
+  | curl -fsS --max-time 30 --retry 2 -K - 2>&1); then
+  echo "DuckDNS'e ulaşılamadı: ${yanit//"$tok"/***}" >&2
+  tok=
+  exit 1
+fi
+tok=
+mapfile -t satirlar <<< "$yanit"
+if [ "${satirlar[0]:-}" = OK ]; then
+  echo "OK ${satirlar[1]:-?} ${satirlar[3]:-}"
+else
+  echo "DuckDNS güncellemeyi reddetti (KO): ad ya da token yanlış" >&2
+  exit 1
+fi

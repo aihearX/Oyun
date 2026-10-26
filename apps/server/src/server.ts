@@ -23,7 +23,7 @@ import { eventHandlers, eventsShutdown, eventsSweep, withEventHooks } from './ev
 import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } from './comm';
 import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers, prunePromoLog } from './codes';
-import { backupNow } from './backup';
+import { backupNow, newestBackupAge, STARTUP_BACKUP_MIN_GAP_MS } from './backup';
 import { accountHandlers } from './account';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 import { kgHandlers, withKgHooks } from './camp-quests';
@@ -239,11 +239,13 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   };
   const sweeper = setInterval(sweep, cfg.sweepMs);
   // veritabanı yedeği: açılışta bir kez, sonra her backupHours saatte
-  const backup = () => {
+  const backup = (startup = false) => {
     if (!cfg.backupDir || cfg.dbFile === ':memory:') return;
+    const age = startup ? newestBackupAge(cfg.backupDir) : null;
+    if (age !== null && age < STARTUP_BACKUP_MIN_GAP_MS) { log('açılış yedeği atlandı: son yedek', Math.round(age / 1000), 'sn önce'); return; }
     try { const f = backupNow(app, cfg.backupDir, cfg.backupKeep ?? 28); log('yedek alındı', f); } catch (e) { console.error('[yedek]', e); }
   };
-  backup();
+  backup(true);
   const backuper = cfg.backupDir ? setInterval(backup, (cfg.backupHours ?? 6) * 3_600_000) : null;
 
   await new Promise<void>((resolve, reject) => {

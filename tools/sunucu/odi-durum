@@ -1,0 +1,78 @@
+#!/bin/bash
+# odi-durum: sunucunun durumu tek ekranda (docs/18-sunucu-kurulum.md).
+#   sudo odi-durum             servis, süre, disk, bellek, sürüm, son yedek, sertifika, son 50 günlük satırı
+#   sudo odi-durum --kisa      günlük satırları olmadan
+set -uo pipefail
+# shellcheck source=tools/sunucu/ortak.sh
+. /usr/local/lib/odi/ortak.sh
+root_gerek odi-durum
+KISA=0; [ "${1:-}" = --kisa ] && KISA=1
+
+DUCK=$(conf_oku ODI_DUCK); ALAN=${DUCK:+$DUCK.duckdns.org}
+
+baslik "Servisler"
+for s in odi caddy odi-duckdns.timer; do
+  d=$(systemctl is-active "$s" 2>/dev/null); [ -n "$d" ] || d=yok
+  if [ "$d" = active ]; then tamam "$s: çalışıyor"; else hata "$s: $d"; fi
+done
+printf '  odi açılış: %s · yeniden başlama sayısı: %s · bellek: %s\n' \
+  "$(systemctl show odi -p ActiveEnterTimestamp --value 2>/dev/null)" \
+  "$(systemctl show odi -p NRestarts --value 2>/dev/null)" \
+  "$(systemctl show odi -p MemoryCurrent --value 2>/dev/null | awk '{ if ($1 ~ /^[0-9]+$/) printf "%.0f MB", $1/1048576; else print "?" }')"
+SAG=$(curl -fsS --max-time 3 "http://$ODI_HOST:$ODI_PORT/saglik" 2>/dev/null || true)
+if [ -n "$SAG" ]; then tamam "Sağlık: $SAG"; else hata "Sağlık: yanıt yok (http://$ODI_HOST:$ODI_PORT/saglik)"; fi
+printf '  Sürüm: %s\n' "$(surum_bilgisi "$(readlink -f "$ODI_GUNCEL" 2>/dev/null)")"
+printf '  Node: %s\n' "$(node -v 2>/dev/null || echo yok)"
+
+baslik "Üretim ayarları ($ODI_ENV, $(stat -c '%a %U:%G' "$ODI_ENV" 2>/dev/null))"
+for k in NODE_ENV HOST PORT ODI_TRUST_PROXY ODI_TEST_STORE ODI_NEW_PER_IP_HOUR ODI_BACKUP_HOURS ODI_BACKUP_KEEP; do
+  printf '  %s=%s\n' "$k" "$(env_oku "$k")"
+done
+if [ -n "$(env_oku ODI_ADMIN_CODE_HASH)" ]; then tamam "Yönetici kodu: ayarlı (yalnız tuzlu özet)"; else uyari "Yönetici kodu: kapalı (sudo odi-kod-degistir)"; fi
+for k in ODI_RAID_ALWAYS ODI_FREE_TEXT_AT ODI_EVENTS_FAST; do
+  [ -z "$(env_oku "$k")" ] || uyari "$k ayarlı: üretimde olmamalı (test bayrağı)"
+done
+[ "$(env_oku NODE_ENV)" = production ] || uyari "NODE_ENV production değil"
+[ "$(env_oku ODI_TEST_STORE)" != 1 ] || uyari "ODI_TEST_STORE=1: test mağazası açık"
+
+baslik "Makine"
+printf '  Açık kalma: %s\n' "$(uptime -p 2>/dev/null)"
+printf '  Yük: %s\n' "$(cut -d' ' -f1-3 /proc/loadavg)"
+free -h | awk 'NR==1{print "  "$0} NR==2{print "  "$0}'
+df -h / "$ODI_VERI" 2>/dev/null | awk '!seen[$0]++ {print "  "$0}'
+
+baslik "Veri ve yedek"
+[ -f "$ODI_DB" ] && printf '  Veritabanı: %s (%s)\n' "$ODI_DB" "$(du -h "$ODI_DB" | cut -f1)"
+Y=$(son_yedek)
+if [ -n "$Y" ]; then
+  yas=$(( ( $(date +%s) - $(stat -c %Y "$Y") ) / 60 ))
+  sayi=$(find "$ODI_YEDEK" -maxdepth 1 -name 'odi-yedek-*.sqlite' | wc -l)
+  msj="Son yedek: $(basename "$Y") · $((yas / 60)) sa $((yas % 60)) dk önce · $(du -h "$Y" | cut -f1) · toplam $sayi yedek"
+  if [ "$yas" -le 420 ]; then tamam "$msj"; else uyari "$msj (6 saatten eski!)"; fi
+else
+  uyari "Yedek yok ($ODI_YEDEK)."
+fi
+
+baslik "Adres ve sertifika"
+if [ -n "$ALAN" ]; then
+  printf '  Adres: https://%s  ·  wss://%s\n' "$ALAN" "$ALAN"
+  printf '  DNS: %s\n' "$(getent ahostsv4 "$ALAN" 2>/dev/null | awk 'NR==1{print $1}')"
+  printf '  DuckDNS son güncelleme: %s\n' "$(journalctl -u odi-duckdns -n 1 -o cat --no-pager 2>/dev/null | tail -n 1)"
+  BITIS=$(echo | timeout 10 openssl s_client -connect 127.0.0.1:443 -servername "$ALAN" 2>/dev/null | openssl x509 -noout -enddate -issuer 2>/dev/null)
+  if [ -n "$BITIS" ]; then
+    son=$(sed -n 's/^notAfter=//p' <<< "$BITIS"); veren=$(sed -n 's/^issuer=//p' <<< "$BITIS")
+    gun=$(( ( $(date -d "$son" +%s) - $(date +%s) ) / 86400 ))
+    msj="Sertifika: $gun gün kaldı ($son) · $veren"
+    if [ "$gun" -ge 30 ]; then tamam "$msj"; else uyari "$msj (Caddy 30 gün kala kendisi yeniler)"; fi
+  else
+    uyari "Sertifika okunamadı (Caddy henüz almamış olabilir)."
+  fi
+fi
+
+baslik "Dinlenen portlar"
+if command -v ss >/dev/null 2>&1; then ss -tlnH | awk '{print "  "$4}' | sort -u | tr '\n' ' '; echo; else echo '  (ss yok: sudo apt install iproute2)'; fi
+
+if [ $KISA -eq 0 ]; then
+  baslik "Son 50 günlük satırı (journalctl -u odi)"
+  journalctl -u odi -n 50 --no-pager -o short-iso 2>/dev/null
+fi

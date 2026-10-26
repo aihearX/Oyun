@@ -53,6 +53,11 @@ npx expo start
 - Android `preview` profili doğrudan kurulabilen **APK** üretir (`buildType: apk`); `production` mağaza için **AAB** üretir.
 - Expo SDK 58 için Node 22.13+ gerekir; `eas.json` bütün profillerde bulut derlemesinin Node sürümünü `22.22.0`'a sabitler (`base` profili).
 - Monorepo notu: EAS kökü workspace olarak algılar; kökteki `.npmrc` (`legacy-peer-deps=true`) bulut derlemesinde `npm install`'ın React sürüm uyarısında durmamasını sağlar.
+- **Sunucu adresi (`EXPO_PUBLIC_ODI_SERVER`):** `eas.json`'daki `preview` ve `production` profillerinde değer şimdilik
+  bilerek geçersiz bir yer tutucudur: `wss://SUNUCU-ADRESI-YAZILACAK.invalid` (`.invalid` hiçbir zaman çözülmez; bu hâliyle
+  derlenen uygulama sosyal sunucuya bağlanamaz). Sunucu kurulunca (docs/18-sunucu-kurulum.md, "Hazır: wss://…" satırı) iki
+  profilde de gerçek adresle değiştirilir. Depo herkese açık: adres gizli değildir ama gerçek ad ancak sahip onayıyla yazılır.
+  Expo Go'da aynı ayar: `npm run oyna -- --tunnel --sunucu wss://<ad>.duckdns.org`.
 - IAP / push gibi native modüller Expo Go'da yok; onlar geldiğinde `eas build --profile development` (dev client) kullanılacak.
 
 ## Bilinen sınırlar

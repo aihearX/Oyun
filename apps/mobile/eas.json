@@ -3,8 +3,8 @@
   "build": {
     "base": { "node": "22.22.0" },
     "development": { "extends": "base", "developmentClient": true, "distribution": "internal", "ios": { "simulator": true } },
-    "preview": { "extends": "base", "distribution": "internal", "android": { "buildType": "apk" } },
-    "production": { "extends": "base", "autoIncrement": true, "android": { "buildType": "app-bundle" } }
+    "preview": { "extends": "base", "distribution": "internal", "android": { "buildType": "apk" }, "env": { "EXPO_PUBLIC_ODI_SERVER": "wss://SUNUCU-ADRESI-YAZILACAK.invalid" } },
+    "production": { "extends": "base", "autoIncrement": true, "android": { "buildType": "app-bundle" }, "env": { "EXPO_PUBLIC_ODI_SERVER": "wss://SUNUCU-ADRESI-YAZILACAK.invalid" } }
   },
   "submit": { "production": { "ios": { "appleId": "", "ascAppId": "", "appleTeamId": "" } } }
 }

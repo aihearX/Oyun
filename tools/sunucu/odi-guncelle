@@ -1,0 +1,89 @@
+#!/bin/bash
+# odi-guncelle: GitHub'daki son sürümü çeker, derler, sunucu testlerini çalıştırır; hepsi geçerse yeni sürüme geçer
+# ve servisi yeniden başlatır. Derleme ya da testlerden biri düşerse servise DOKUNULMAZ: çalışan sürüm devam eder.
+# Yeni sürüm açılmazsa önceki sürüme kendiliğinden geri döner. (docs/18-sunucu-kurulum.md)
+#
+#   sudo odi-guncelle              kayıtlı dal (varsayılan main)
+#   sudo odi-guncelle --dal DAL    başka bir dalı dene
+#   sudo odi-guncelle --hizli      birim testlerini atla (yalnız açılış denetimi; acil düzeltme için)
+#   sudo odi-guncelle --yeniden    aynı commit olsa da yeniden derle
+set -euo pipefail
+# shellcheck source=tools/sunucu/ortak.sh
+. /usr/local/lib/odi/ortak.sh
+
+DAL=; HIZLI=0; YENIDEN=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    --dal) DAL=${2:-}; shift ;;
+    --hizli) HIZLI=1 ;;
+    --yeniden) YENIDEN=1 ;;
+    -h|--yardim|--help) sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) olum "Bilinmeyen seçenek: $1" ;;
+  esac
+  shift
+done
+root_gerek odi-guncelle
+DAL=${DAL:-$(conf_oku ODI_DAL)}; DAL=${DAL:-main}
+[[ $DAL =~ ^[A-Za-z0-9._/-]+$ ]] || olum "Geçersiz dal adı: $DAL"
+
+exec 9> /run/odi-guncelle.kilit
+flock -n 9 || olum "Başka bir odi-guncelle çalışıyor."
+
+ESKI=$(readlink -f "$ODI_GUNCEL" 2>/dev/null || true)
+ESKI_BILGI=$(surum_bilgisi "$ESKI")
+ESKI_SHA=$(sed -n 's/^commit=//p' "$ESKI/SURUM" 2>/dev/null || true)
+
+vazgec() {
+  hata "$1"
+  hata "Yeniden başlatılmadı: çalışan sürüm ($ESKI_BILGI) değişmeden devam ediyor."
+  exit 1
+}
+
+baslik "Kaynak ($DAL)"
+SHA=$(kaynak_guncelle "$DAL") || vazgec "Depo güncellenemedi."
+bilgi "Çalışan: $ESKI_BILGI  ·  Gelen: ${SHA:0:8}"
+if [ "$SHA" = "$ESKI_SHA" ] && [ $YENIDEN -eq 0 ]; then tamam "Zaten güncel."; exit 0; fi
+
+baslik "Derleme"
+bagimlilik_kur || vazgec "Bağımlılıklar kurulamadı."
+derle || vazgec "Derleme başarısız."
+tamam "Derlendi."
+
+if [ $HIZLI -eq 1 ]; then
+  uyari "Birim testleri atlandı (--hizli)."
+else
+  baslik "Testler"
+  birim_testleri || vazgec "Sunucu testleri geçmedi."
+  tamam "Sunucu testleri geçti."
+fi
+
+baslik "Açılış denetimi"
+surum_hazirla "$SHA" "$DAL"
+YENI=$ODI__YENI_SURUM
+duman_testi "$YENI" || { rm -rf "$YENI"; vazgec "Yeni sürüm açılış denetiminden geçmedi."; }
+tamam "Yeni sürüm geçici örnekte açıldı (son yedeğin kopyasıyla)."
+
+baslik "Geçiş"
+if Y=$(anlik_yedek); then [ -n "$Y" ] && tamam "Geçiş öncesi yedek: $(basename "$Y")"; else uyari "Geçiş öncesi yedek alınamadı (son otomatik yedek: $(basename "$(son_yedek)"))."; fi
+surume_gec "$YENI"
+systemctl restart odi
+if saglik_bekle 60; then
+  tamam "Yeni sürüm çalışıyor: $(surum_bilgisi "$YENI")"
+else
+  hata "Yeni sürüm servis olarak açılmadı; önceki sürüme dönülüyor."
+  journalctl -u odi -n 30 --no-pager >&2 || true
+  if [ -n "$ESKI" ] && [ -d "$ESKI" ]; then
+    surume_gec "$ESKI"; systemctl restart odi
+    if saglik_bekle 60; then hata "Önceki sürüm ($ESKI_BILGI) yeniden çalışıyor."; else hata "Önceki sürüm de açılmadı: sudo odi-durum"; fi
+  fi
+  exit 1
+fi
+eski_surumleri_sil
+
+# yardımcı komutlar yeni sürümden kurulur
+install -m 0644 "$ODI_KAYNAK/tools/sunucu/ortak.sh" "$ODI_LIB/ortak.sh"
+install -m 0755 "$ODI_KAYNAK/tools/sunucu/duckdns-guncelle" "$ODI_LIB/duckdns-guncelle"
+for k in odi-guncelle odi-durum odi-kod-degistir odi-yedek-geri; do install -m 0755 "$ODI_KAYNAK/tools/sunucu/$k" "$ODI_BIN/$k"; done
+if [ -n "$ESKI_SHA" ] && ! odi_olarak git -C "$ODI_KAYNAK" diff --quiet "$ESKI_SHA" "$SHA" -- tools/sunucu/kur.sh tools/sunucu/ortak.sh 2>/dev/null; then
+  uyari "Kurulum betiği değişti (Caddy/systemd ayarları). Uygulamak için: sudo bash $ODI_KAYNAK/tools/sunucu/kur.sh"
+fi

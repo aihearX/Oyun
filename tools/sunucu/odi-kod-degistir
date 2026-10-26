@@ -1,0 +1,33 @@
+#!/bin/bash
+# odi-kod-degistir: yeni yönetici kodu (gizli giriş, iki kez). Kodun yalnız tuzlu özeti /etc/odi/odi.env'e yazılır,
+# sonra servis yeniden başlatılır. Kod ekrana, günlüğe ya da komut argümanlarına yazılmaz. (docs/18-sunucu-kurulum.md)
+#   sudo odi-kod-degistir            yeni kod
+#   sudo odi-kod-degistir --kapat    yönetici kodunu kapat (özet silinir; üretimde yönetici modu kapanır)
+set -euo pipefail
+# shellcheck source=tools/sunucu/ortak.sh
+. /usr/local/lib/odi/ortak.sh
+root_gerek odi-kod-degistir
+[ -f "$ODI_ENV" ] || olum "$ODI_ENV yok: önce kur.sh çalıştırılmalı."
+
+if [ "${1:-}" = --kapat ]; then
+  gecici=$(mktemp "$ODI_ENV.XXXXXX"); chmod 0600 "$gecici"
+  grep -v '^ODI_ADMIN_CODE_HASH=' "$ODI_ENV" > "$gecici" || true
+  mv -f "$gecici" "$ODI_ENV"
+  systemctl restart odi
+  if saglik_bekle 60; then tamam "Yönetici kodu kapatıldı; servis çalışıyor."; else olum "Servis açılmadı: sudo odi-durum"; fi
+  exit 0
+fi
+
+ODI__KOD=; ODI__OZET=
+kod_sor
+until kod_ozetle "$ODI_GUNCEL/sunucu/kod.mjs"; do ODI__KOD=; kod_sor; done
+ODI__KOD=
+anahtar_ayarla "$ODI_ENV" ODI_ADMIN_CODE_HASH "$ODI__OZET"
+ODI__OZET=
+chown root:root "$ODI_ENV"; chmod 0600 "$ODI_ENV"
+systemctl restart odi
+if saglik_bekle 60; then
+  tamam "Yeni yönetici kodu geçerli (eski kod artık çalışmaz). Oyunda: Ayarlar › Kod gir."
+else
+  olum "Servis açılmadı: sudo odi-durum"
+fi

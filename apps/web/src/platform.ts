@@ -54,6 +54,9 @@ function defaultServerUrl(): string {
     if (typeof __ODI_SERVER__ !== 'undefined' && __ODI_SERVER__) return __ODI_SERVER__;
     if (location.protocol === 'file:') return '';
     const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    // varsayılan portta (80/443) yayın = Caddy arkasında aynı adres (tools/sunucu/kur.sh): WebSocket aynı kökene bağlanır,
+    // sunucu adresi için yeniden derleme gerekmez. Geliştirme sunucuları (vite :5173 vb.) portlu açılır → ayrı oyun sunucusu :8787.
+    if (!location.port) return `${proto}://${location.host}`;
     return `${proto}://${location.hostname}:8787`;
   } catch { return ''; }
 }

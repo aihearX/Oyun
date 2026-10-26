@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
-import { backupNow } from '../src/backup';
+import { backupNow, newestBackupAge, STARTUP_BACKUP_MIN_GAP_MS } from '../src/backup';
 import { configFromEnv, startServer, type OdiServer } from '../src/server';
 
 let srv: OdiServer | undefined;
@@ -25,6 +25,13 @@ describe('veritabanı yedeği', () => {
     const copy = new DatabaseSync(last, { readOnly: true });
     expect(copy.prepare("SELECT v FROM meta WHERE k = 'yedek-deneme'").get()).toEqual({ v: 'evet' });
     copy.close();
+    // art arda yeniden açılış (çökme döngüsü) yeni açılış yedeği yazmaz: eski yedekler korunur
+    await srv.close();
+    srv = await startServer({ port: 0, host: '127.0.0.1', dbFile: path.join(tmp, 'odi.sqlite'), backupDir: dir, backupKeep: 2 });
+    expect(fs.readdirSync(dir).sort()).toContain(path.basename(last));
+    expect(fs.readdirSync(dir).length).toBe(2);
+    expect(newestBackupAge(dir)).toBeLessThan(STARTUP_BACKUP_MIN_GAP_MS);
+    expect(newestBackupAge(path.join(tmp, 'yok'))).toBeNull();
     expect(configFromEnv({ ODI_BACKUP_DIR: '/veri/yedek', ODI_BACKUP_HOURS: '12', ODI_BACKUP_KEEP: '10' })).toMatchObject({ backupDir: '/veri/yedek', backupHours: 12, backupKeep: 10 });
   });
 });

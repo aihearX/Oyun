@@ -40,7 +40,7 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | Değişken | Varsayılan | Açıklama |
 |---|---|---|
 | `PORT` | `8787` | HTTP + WebSocket portu |
-| `HOST` | `0.0.0.0` | dinlenen arayüz |
+| `HOST` | `0.0.0.0` | dinlenen arayüz (Oracle kurulumunda `127.0.0.1`: yalnız önündeki Caddy erişir) |
 | `ODI_DB` | `apps/server/data/odi.sqlite` | sqlite dosyası (`:memory:` = bellek içi) |
 | `ODI_RAID_ALWAYS` | kapalı | `1` → baskın tüm hafta açık (test) |
 | `ODI_TEST_STORE` | — | `1` → TEST mağazası açık. `NODE_ENV` `production` değilse zaten açıktır |
@@ -48,7 +48,7 @@ Testler: `npm test` (sunucu testleri `apps/server/test/*.test.ts`; her test sunu
 | `REVENUECAT_API_KEY` | — | gerçek mağaza makbuz doğrulaması; yoksa App Store / Play satın alımları **reddedilir** |
 | `ODI_LOG` | açık | `0` → bağlantı günlüğünü kapat |
 | `ODI_FREE_TEXT_AT` | `8` | yalnızca test: serbest yazı için geçilmesi gereken bölüm (güvenli sohbet; üretimde ayarlanmaz) |
-| `ODI_ADMIN_CODE_HASH` | geliştirmede depodaki varsayılan özet; **üretimde (`NODE_ENV=production`) yok = yönetici kodu kapalı** | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur). Depo herkese açık olduğundan varsayılan özet üretimde kullanılmaz; üretim için yeni ve uzun bir kod seçilip özeti burada verilmelidir |
+| `ODI_ADMIN_CODE_HASH` | geliştirmede depodaki varsayılan özet; **üretimde (`NODE_ENV=production`) yok = yönetici kodu kapalı** | yönetici kodunun tuzlu scrypt özeti (`scrypt:tuz:özet`). Kodun düz metni hiçbir yerde tutulmaz; yeni özet: `npm run kod -- ozet` (kodu standart girdiden okur; kod 16–32 karakter, harf/rakam/tire olmalı, `--denetle` yalnız uygunluğu söyler; sunucuda `sudo odi-kod-degistir`). Depo herkese açık olduğundan varsayılan özet üretimde kullanılmaz; üretim için yeni ve uzun bir kod seçilip özeti burada verilmelidir |
 | `ODI_BACKUP_DIR` | — | veritabanı yedek klasörü; verilirse açılışta ve her `ODI_BACKUP_HOURS` saatte `VACUUM INTO` ile kopya (bkz. "Yedek") |
 | `ODI_BACKUP_HOURS` | `6` | yedek aralığı (saat) |
 | `ODI_BACKUP_KEEP` | `28` | tutulan en yeni yedek sayısı (6 saatte bir → 7 gün) |
@@ -157,6 +157,9 @@ Web/mobil arayüz (`apps/web/src/net.ts`): bağlıyken sunucu cüzdanı tek doğ
 - Gerçek mağaza akışında harcama sınırı, ödeme ekranı açılmadan önce istemci tarafından `shop.list` ile kontrol edilmelidir (sözleşmede "satın alma niyeti" işlemi yok).
 
 ## 6. Render.com'a dağıtım (ücretsiz web servisi)
+> Önerilen üretim kurulumu artık **Oracle Cloud Always Free + DuckDNS + Caddy**: [`docs/18-sunucu-kurulum.md`](18-sunucu-kurulum.md)
+> (`tools/sunucu/kur.sh`; kalıcı disk, otomatik yedek, HTTPS, web sürümü aynı adreste). Render aşağıda seçenek olarak duruyor.
+
 1. Depoyu GitHub'a gönder. Render → **New → Blueprint** → depoyu seç; kökteki `render.yaml` okunur (Docker: `apps/server/Dockerfile`, bağlam depo kökü, sağlık yolu `/saglik`).
 2. `REVENUECAT_API_KEY` değerini panelden gir (gerçek satın alma doğrulaması için; boş kalırsa gerçek satın alımlar reddedilir). Test dağıtımında web TEST mağazası isteniyorsa `ODI_TEST_STORE=1`.
 3. Dağıtım bitince adres `https://odi-sunucu.onrender.com` gibi olur; istemci `wss://odi-sunucu.onrender.com` ile bağlanır. Render `PORT` değişkenini kendisi verir.
@@ -220,10 +223,13 @@ Birim testleri: `apps/server/test/teamrace.test.ts`.
 
 `ODI_BACKUP_DIR` verilirse sunucu açılışta ve her `ODI_BACKUP_HOURS` saatte bir `VACUUM INTO` ile tutarlı bir kopya yazar
 (`odi-yedek-YYYYMMDD-HHMMSS.sqlite`, WAL açıkken de güvenli), en yeni `ODI_BACKUP_KEEP` dosyayı tutar.
+Son yedek 15 dakikadan yeniyse açılış yedeği atlanır: sunucu art arda yeniden başlarsa (çökme döngüsü) eski yedekler
+kısa sürede silinmesin. (Oracle kurulumunda `odi-guncelle` sürüm geçişinden hemen önce ayrıca anlık bir yedek alır.)
 - Yedek klasörü kalıcı diskte olmalı (Render: ücretli plan + disk, ör. `ODI_DB=/var/data/odi.sqlite`, `ODI_BACKUP_DIR=/var/data/yedek`).
 - Aynı diskteki kopya bozulmaya ve hatalı sürüme karşı korur, diskin kaybına karşı korumaz: makine dışı kopya (ör. haftalık
   indirme ya da nesne depolama) sahibin kararıdır.
-- Geri yükleme: sunucuyu durdur → `ODI_DB` dosyasını ve yanındaki `-wal`/`-shm` dosyalarını kenara al → yedeği `ODI_DB` adıyla
+- Oracle kurulumunda: `sudo odi-yedek-geri` (listeler, denetler, güvenli geri yükler; bkz. [`docs/18-sunucu-kurulum.md`](18-sunucu-kurulum.md)).
+- Geri yükleme (elle): sunucuyu durdur → `ODI_DB` dosyasını ve yanındaki `-wal`/`-shm` dosyalarını kenara al → yedeği `ODI_DB` adıyla
   kopyala → sunucuyu başlat. Şema yalnızca `CREATE TABLE IF NOT EXISTS` ile ilerlediği için eski yedek yeni sürümde açılır.
 
 ## Şema sürümü ve göçler

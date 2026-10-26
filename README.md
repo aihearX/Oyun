@@ -23,6 +23,7 @@ Bu repo, aiHear'ın bağımsız oyun projesidir. aihearX süper uygulamasındaki
 | [`docs/15-siralama.md`](docs/15-siralama.md) | Sıralama: oyuncular ve takımlar |
 | [`docs/16-takim-rekabeti.md`](docs/16-takim-rekabeti.md) | Canlı Takım Yarışı, Takım Ligi, takım bulma ve başvuru |
 | [`docs/17-kamp-gorevleri.md`](docs/17-kamp-gorevleri.md) | Kamp Görevleri: Hasta Vakaları, Ton Avı, Timpanogram Eşleştir |
+| [`docs/18-sunucu-kurulum.md`](docs/18-sunucu-kurulum.md) | Sunucu kurulumu: Oracle Always Free + DuckDNS + Caddy, `kur.sh`, güncelleme, yedekten geri yükleme |
 | [`docs/odyoloji-icerik.md`](docs/odyoloji-icerik.md) | Odyoloji içeriği (uzman incelemesi için) |
 | [`docs/anlatici-metinleri.md`](docs/anlatici-metinleri.md) | Tüy Dede anlatıcı metinleri |
 | [`docs/yonetim/durum.md`](docs/yonetim/durum.md) | Proje yöneticisi: güncel durum, test sonuçları, sahip kararları ([iş listesi](docs/yonetim/is-listesi.md)) |
@@ -42,7 +43,7 @@ node tools/harness/race-e2e.mjs     # üç oyunculu canlı yarış testi
 npm run kabul                       # bütün kabul takımı tek komutla (sırayla; çıktıları siler; özet tools/harness/out/kabul/ozet.json)
 npm run kabul -- --yalniz vitest,social   # yalnız seçilen takımlar (--liste: hepsi)
 ```
-Arkadaşların başka ağlardan bağlanacaksa sunucuyu internete açmak gerekir: `docs/10-sunucu.md` (Render.com adımları).
+Arkadaşların başka ağlardan bağlanacaksa sunucuyu internete açmak gerekir: `docs/18-sunucu-kurulum.md` (Oracle Always Free, tek komutla kurulum; Expo Go için `npm run oyna -- --tunnel --sunucu wss://<adres>`). Render.com seçeneği: `docs/10-sunucu.md`.
 
 ## Yapı
 - `packages/shared` tipler, sosyal protokol (`social.ts`), ekonomi formülleri
