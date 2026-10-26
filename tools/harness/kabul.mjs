@@ -59,7 +59,8 @@ const STEPS = [
   { ad: 'race', cmd: node(`${H}/race-e2e.mjs`), sure: 1200, cikti: ['yaris'] },
   // MK-019: oturum ortasında sunucu yeniden başlatma (aynı veritabanı; Chromium + WebKit)
   { ad: 'kopma', cmd: node(`${H}/kopma-e2e.mjs`), sure: 2400, cikti: ['kopma'] },
-  { ad: 'camp', cmd: node(`${H}/camp-e2e.mjs`), sure: 2400, dom: true, cikti: ['kamp'] },
+  // camp: yükte (bot 1-40 ×2 + ui-mobile, yük ~19) ölçülen 2193 sn; sınır ≈ 1,6 kat (MK-020)
+  { ad: 'camp', cmd: node(`${H}/camp-e2e.mjs`), sure: 3600, dom: true, cikti: ['kamp'] },
   { ad: 'vaka', cmd: node(`${H}/vaka-e2e.mjs`), sure: 1500, dom: true, cikti: ['vaka'] },
   // süre sınırı ölçülen süreden: UIM_SURE (aşağıda)
   { ad: 'ui-mobile', cmd: node(`${H}/ui-mobile-check.mjs`, '--target', 'both', '--tag', 'kabul', ...(kontrastYok ? ['--kontrast-yok'] : [])), sure: kontrastYok ? UIM_SURE.kontrastsiz : UIM_SURE.kontrastli, dom: true, cikti: ['ui-mobile/kabul', 'ui-mobile/dist'] },
