@@ -527,7 +527,7 @@ async function suite(browserName, target, [W, H]) {
   }
   /** metin kontrastı (measureContrast): animasyonlar biter, metinler ölçülür; resim/gradyan zeminliler yazılar gizlenmiş ekran
    *  görüntüsünden örneklenir (görünüm dışındakiler sırayla görünüme kaydırılır, sonra kaydırma konumları geri yüklenir) */
-  async function contrast(rec, file) {
+  async function contrast(rec, file, label = '') {
     // solma/kayma animasyonu sürerken ölçülen yarı saydam metin yanlış ihlal olur (WebKit 320'de boş görüntü notu): sonlu animasyonlar bitsin
     await page.evaluate(() => Promise.race([
       Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => undefined))),
@@ -568,6 +568,7 @@ async function suite(browserName, target, [W, H]) {
         if (bad && imgBuf && !process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), imgBuf);
         for (const i of items) if (!done.has(i.id) && !pos[i.id]) done.add(i.id); // kayboldu
         const next = items.find((i) => !done.has(i.id) && i.sample);
+        if (process.env.KONTRAST_IZ) console.error(`    [kontrast] ${label} tur ${round}: ${done.size}/${items.length} bitti, sıradaki ${next ? next.sel.split(' > ').pop() + ' “' + next.text.slice(0, 16) + '”' : '-'}`);
         if (!next) break;
         const block = next.retried ? 'start' : 'center';
         const dbg = await page.evaluate(([id, block]) => {
@@ -610,7 +611,11 @@ async function suite(browserName, target, [W, H]) {
     const clip = await page.evaluate(measureClip); rec.clip = clip; if (clip.length) fail(rec, `yazı kırpıldı: ${clip.slice(0, 3).join(' | ')}`);
     if (BIG) { const fs = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize); rec.rootFont = fs; if (fs !== '18.4px') fail(rec, `büyük yazı uygulanmadı: kök ${fs}`); }
     if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
-    if (KONTRAST) await contrast(rec, file);
+    if (KONTRAST) {
+      // takılan ölçüm koşuyu durdurmasın: 120 sn sınır; aşılırsa ekran "kontrast ölçülemedi" diye düşer
+      let to; const limit = new Promise((_, rej) => { to = setTimeout(() => rej(new Error('kontrast ölçümü 120 sn içinde bitmedi')), 120_000); });
+      try { await Promise.race([contrast(rec, file, label), limit]); } catch (e) { fail(rec, String(e.message ?? e).split('\n')[0]); await page.evaluate(contrastHide, false).catch(() => undefined); } finally { clearTimeout(to); }
+    }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {
       await page.evaluate(resetScroll);
