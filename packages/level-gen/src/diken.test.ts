@@ -20,7 +20,8 @@ const spikesOf = (n: number, salt: number) => {
   return { all, per, calm, len: sp.chunks.reduce((a, c) => a + c.length, 0), sp };
 };
 
-describe('diken seyrekliği', () => {
+// MK-020: her test 40 bölüm üretir (CPU 0,37–0,70 sn); yük 30'da (nice 5) duvar 1,3–4,4 sn, 5 sn'lik varsayılana dayanıyordu
+describe('diken seyrekliği', { timeout: 20_000 }, () => {
   it('1-5: hiç diken yok', () => {
     for (let n = 1; n <= 5; n++) for (const salt of salts) expect(spikesOf(n, salt).all, `${n}/${salt}`).toBe(0);
   });

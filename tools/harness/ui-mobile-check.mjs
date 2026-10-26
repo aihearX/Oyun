@@ -24,6 +24,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { inflateSync } from 'node:zlib';
+import { createServer } from 'node:net';
 import { chromium, webkit } from 'playwright';
 import { measureHudFit } from './hud-fit.mjs';
 
@@ -64,7 +65,9 @@ if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDi
   rmSync(mobileDist, { recursive: true, force: true });
   await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', `dist${DIST_EK}`], { cwd: resolve(root, 'apps/mobile') });
 }
-const sport = 8800 + Math.floor(Math.random() * 400);
+/** işletim sisteminin verdiği boş port (rastgele aralık, aynı anda koşan başka ağaçların sunucu/önizlemesiyle çakışabiliyordu) */
+const freePort = () => new Promise((res, rej) => { const s = createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
+const sport = await freePort();
 // sunucu veritabanı geçici bir dosyada: "büyük cüzdan" denetimi oyuncunun cüzdanını doğrudan yazar
 const dbFile = resolve(outRoot, 'sunucu.db'); for (const f of [dbFile, `${dbFile}-wal`, `${dbFile}-shm`]) rmSync(f, { force: true });
 // Kod Gir: test yönetici kodu (gerçek yönetici kodu depoda yoktur); sunucu bu özetle doğrular
@@ -76,7 +79,7 @@ await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d
 const wsUrl = `ws://127.0.0.1:${sport}`;
 let webBase = '';
 if (targets.includes('web')) {
-  const wport = 5300 + Math.floor(Math.random() * 400);
+  const wport = await freePort();
   // vite doğrudan node ile: kapanışta öksüz önizleme sunucusu kalmasın (npx sarmalayıcısı çocuğunu öldürmez)
   const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' });
   procs.push(preview);
@@ -231,6 +234,14 @@ function measureChat() {
  *  Node tarafı yazılar gizlenmiş bir görüntüde metin kutusunun piksellerini okur). Eşik: normal 4,5:1; büyük (≥ 24 px ya da ≥ 18,66 px
  *  ve kalın) 3:1. WCAG'nin saydığı istisnalar (etkisiz/devre dışı denetim, salt süs, logo) ayrı listelenir; görünmeyenler (opacity ~0,
  *  sr-only, açık alt sayfanın örttüğü ekran) sayılmaz. Phaser tuvalindeki yazılar DOM'da olmadığı için ölçülmez. */
+/** süren sonlu animasyonlar bitsin (en çok `max` ms); `name` verilirse yalnız o CSS animasyonu (ör. ekran girişi `screenIn`).
+ *  Sonsuz döngüler (nabız, parıltı) beklenmez. Bitince bir kare daha beklenir ki son hâl boyansın. */
+function animasyonBekle(page, { name = null, max = 2500 } = {}) {
+  return page.evaluate(([name, max]) => Promise.race([
+    Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime) && (!name || a.animationName === name); }).map((a) => a.finished.catch(() => undefined))),
+    new Promise((r) => setTimeout(r, max))]).then(() => new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); setTimeout(r, 1000); })), [name, max]);
+}
+
 function measureContrast([ISTISNA, BEKLEYEN]) {
   const parse = (s) => {
     if (!s || s === 'transparent') return [0, 0, 0, 0];
@@ -518,6 +529,13 @@ async function suite(browserName, target, [W, H]) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   await page.addInitScript(paintInsets, [INSET, INSET_B]);
+  // KARE_OLC=1: kare aralığı (rAF) ve uzun görevler (ana iş parçacığı > 50 ms) ölçülür, her ekranda yazılır (MK-020 tanı: donma mı, yük mü)
+  if (process.env.KARE_OLC) await page.addInitScript(() => {
+    const k = window.__kare = { n: 0, max: 0, uzun: 0, last: 0, lt: 0, ltMax: 0, ltSum: 0 };
+    const f = (t) => { if (k.last) { const d = t - k.last; if (d > k.max) k.max = d; if (d > 1000) k.uzun++; } k.last = t; k.n++; requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+    try { new PerformanceObserver((l) => { for (const e of l.getEntries()) { k.lt++; k.ltSum += e.duration; if (e.duration > k.ltMax) k.ltMax = e.duration; } }).observe({ type: 'longtask', buffered: true }); } catch { /* WebKit: longtask yok */ }
+  });
   if (EK_CSS) await page.addInitScript((css) => { const put = () => { const st = document.createElement('style'); st.id = '__ek_css'; st.textContent = css; document.head.appendChild(st); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', put); else put(); }, EK_CSS);
   if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, null, BASE_STATE]);
   else {
@@ -543,9 +561,7 @@ async function suite(browserName, target, [W, H]) {
    *  görüntüsünden örneklenir (görünüm dışındakiler sırayla görünüme kaydırılır, sonra kaydırma konumları geri yüklenir) */
   async function contrast(rec, file, label = '') {
     // solma/kayma animasyonu sürerken ölçülen yarı saydam metin yanlış ihlal olur (WebKit 320'de boş görüntü notu): sonlu animasyonlar bitsin
-    await page.evaluate(() => Promise.race([
-      Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => undefined))),
-      new Promise((r) => setTimeout(r, 2500))]));
+    await animasyonBekle(page, { max: 2500 });
     await sleep(150); // animasyon bitişinden sonraki kare (WebKit yükte geç boyar)
     // kaydırma dursun (scrollIntoViewIfNeeded WebKit'te yumuşak kayabilir; animasyon listesinde görünmez): 3 kare aynı konum, en çok 1,5 sn
     await page.evaluate(() => new Promise((res) => {
@@ -632,6 +648,9 @@ async function suite(browserName, target, [W, H]) {
     await sleep(350);
     const rec = { screen: label, fails: [] };
     const file = resolve(dir, `${String(++n).padStart(2, '0')}-${label}.png`);
+    // ekran girişi (screenIn: saydamdan belirir) bitmeden çekilen görüntü boş kalıyordu (WebKit'te yükte 12 alt sayfa); en çok 3 sn
+    await animasyonBekle(page, { name: 'screenIn', max: 3000 });
+    if (process.env.KARE_OLC) { const k = await page.evaluate(() => { const k = window.__kare; if (!k) return null; const r = { ...k }; Object.assign(k, { n: 0, max: 0, uzun: 0, lt: 0, ltMax: 0, ltSum: 0 }); return r; }); if (k) console.log(`  ⏱ ${label}: ${k.n} kare, en uzun kare aralığı ${Math.round(k.max)} ms, >1 sn: ${k.uzun}; uzun görev ${k.lt} (en uzun ${Math.round(k.ltMax)} ms, toplam ${Math.round(k.ltSum)} ms)`); }
     await page.screenshot({ path: file }); rec.shot = file.replace(root + '/', '');
     const ov = await page.evaluate(measureOverflow); rec.overflow = ov;
     if (ov.count > 0 || ov.docScrollW > 0) fail(rec, `yatay taşma: ${ov.offenders.slice(0, 3).join(' | ')}${ov.docScrollW > 0 ? ` (belge +${ov.docScrollW}px)` : ''}`);

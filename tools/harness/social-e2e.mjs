@@ -8,6 +8,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createServer } from 'node:net';
 import { chromium } from 'playwright';
 
 const args = new Set(process.argv.slice(2));
@@ -27,14 +28,16 @@ if (!args.has('--no-build') || !existsSync(resolve(distDir, 'index.html'))) awai
 if (!args.has('--no-build') || !existsSync(resolve(root, 'apps/server/dist/server.mjs'))) await run('npm', ['run', 'build:server', '--silent']);
 
 // ---- sunucu (bellek içi, baskın sürekli açık, TEST mağazası açık)
-const sport = 8800 + Math.floor(Math.random() * 400);
+/** işletim sisteminin verdiği boş port (rastgele aralık, aynı anda koşan başka ağaçların sunucu/önizlemesiyle çakışabiliyordu) */
+const freePort = () => new Promise((res, rej) => { const s = createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
+const sport = await freePort();
 const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: ':memory:', ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
 
 // ---- web önizleme
-const wport = 5300 + Math.floor(Math.random() * 400);
+const wport = await freePort();
 const preview = spawn(process.execPath, [resolve(root, 'node_modules/vite/bin/vite.js'), 'preview', '--port', String(wport), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore' }); // npx değil: npx alt süreci kill() ile kapanmıyordu (artık vite preview kalıyordu)
 procs.push(preview);
 for (let i = 0; i < 100; i++) { try { if ((await fetch(`http://localhost:${wport}/`)).ok) break; } catch { /* henüz değil */ } await sleep(200); }

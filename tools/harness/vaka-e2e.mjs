@@ -44,7 +44,7 @@ if (!args.has('--no-build') || !existsSync(resolve(distDir, 'index.html'))) {
 const srvFile = resolve(outRoot, 'server-inproc.mjs');
 await build({ entryPoints: [resolve(root, 'apps/server/src/server.ts')], outfile: srvFile, bundle: true, platform: 'node', target: 'node22', format: 'esm', external: ['bufferutil', 'utf-8-validate'], banner: { js: "import { createRequire as __r } from 'node:module'; const require = __r(import.meta.url);" }, logLevel: 'warning' });
 const { startServer, configFromEnv } = await import(pathToFileURL(srvFile).href);
-const srv = await startServer({ ...configFromEnv({ ODI_DB: ':memory:', ODI_TEST_STORE: '1', NODE_ENV: 'test' }), port: 8800 + Math.floor(Math.random() * 400), host: '127.0.0.1', log: false, sweepMs: 1000 });
+const srv = await startServer({ ...configFromEnv({ ODI_DB: ':memory:', ODI_TEST_STORE: '1', NODE_ENV: 'test' }), port: 0, host: '127.0.0.1', log: false, sweepMs: 1000 });
 const db = srv.app.db;
 const pidOf = (name) => db.get('SELECT id FROM players WHERE name = ?', name)?.id;
 const wsUrl = srv.url;

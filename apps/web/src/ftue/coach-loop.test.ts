@@ -53,5 +53,6 @@ describe('anlatıcı paneli (Coach)', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
     expect(document.querySelector('.coach-panel')!.className).toBe(cls);
     await act(async () => { useCoach.getState().end(true); });
-  });
+  }, 30_000); // MK-020: süreyi Coach ağacının test içindeki ilk içe aktarımı (vite dönüşümü, ana süreçte) belirler: işçide CPU 0,36 sn,
+  // yük 15'te duvar 3,5 sn (oran ≈ 10); yük 28+'da 5 sn'lik varsayılan aşıldı. Döngü denetimi (React #185) aynı kalır.
 });

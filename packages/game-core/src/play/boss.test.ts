@@ -28,7 +28,7 @@ describe('boss: Gürültü Canavarı', () => {
       expect(pairSeen, 'faz 3 çift dalga hiç görünmedi').toBeGreaterThan(0);
       expect(s.finished, `bitmedi: ${s.failed ?? 'süre'} hp=${s.boss?.hp}`).toBe(true);
       expect(s.boss!.defeated).toBe(true);
-    }, 120_000);
+    }, 400_000); // MK-020: CPU 15–18,5 sn; yük 15'te duvar 40–62 sn; 120 sn yük 28+'da yetmiyordu (sınır ≈ CPU × 20)
   }
 });
 
@@ -49,6 +49,6 @@ describe('boss: arena sınırı', () => {
         }
       }
       expect(out.slice(0, 5)).toEqual([]);
-    }, 300_000);
+    }, 450_000); // MK-020: bölüm 40 CPU 21,5 sn (yük 15'te duvar 62 sn), bölüm 20 CPU 13 sn; sınır ≈ CPU × 20
   }
 });

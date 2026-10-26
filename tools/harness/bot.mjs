@@ -6,6 +6,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { createServer } from 'node:net';
 import { chromium, webkit } from 'playwright';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a, i, arr) => a.startsWith('--') ? [a.slice(2), arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : '1'] : []).filter(Boolean));
@@ -23,10 +24,21 @@ const distDir = resolve(outDir, 'dist');
 const run = (cmd, a, opts = {}) => new Promise((res, rej) => { const p = spawn(cmd, a, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32', ...opts }); p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`${cmd} ${a.join(' ')} → ${c}`)))); });
 
 if (!args['no-build'] || !existsSync(resolve(distDir, 'index.html'))) await run('npx', ['vite', 'build', '--outDir', distDir, '--emptyOutDir'], { cwd: resolve(root, 'apps/web') });
-const port = 4173 + Math.floor(Math.random() * 500);
+// boş bir port (işletim sistemi verir): aynı anda koşan başka ağaçların önizlemeleriyle çakışmasın
+const port = await new Promise((res, rej) => { const s = createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const preview = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32', detached: process.platform !== 'win32' });
-await new Promise((r) => setTimeout(r, 1500));
 const base = `http://localhost:${port}`;
+// önizleme yanıt verene kadar bekle (sabit süre değil: yüklü makinede npx + vite açılışı 1,5 sn'yi aşıp "connection refused" veriyordu)
+{
+  let exited = null; preview.once('exit', (c) => { exited = c ?? 'sinyal'; });
+  const until = Date.now() + 90_000;
+  for (;;) {
+    if (exited !== null) throw new Error(`vite preview kapandı (çıkış ${exited}) · port ${port}`);
+    if (await fetch(base, { signal: AbortSignal.timeout(3000) }).then((r) => r.ok, () => false)) break;
+    if (Date.now() > until) { try { process.kill(-preview.pid); } catch { preview.kill(); } throw new Error(`vite preview 90 sn içinde yanıt vermedi · ${base}`); }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+}
 
 const exe = browserName === 'webkit' ? undefined : process.env.PLAYWRIGHT_CHROMIUM;
 const browser = await (browserName === 'webkit' ? webkit : chromium).launch({ headless: true, executablePath: exe, args: browserName === 'webkit' ? [] : ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });

@@ -4,6 +4,11 @@ import { setup, run, type Env, type TC } from './helpers';
 import { ADMIN_CHECKS_PER_WINDOW, DEFAULT_ADMIN_CODE_HASH, PROMO_LOG_RETAIN_MS, checkAdminCode, hashAdminCode, prunePromoLog, redeem as redeemDirect } from '../src/codes';
 import { ADMIN_DISABLED, clientIp, configFromEnv } from '../src/server';
 
+/**
+ * Süre sınırları (MK-020): yönetici kodu sınaması scrypt'tir (N=16384; bir özet ≈ 35 ms CPU). Bu dosyada scrypt çağıran her testin sınırı
+ * açıktır: ölçülen CPU × ~20, en az 15 sn. Ölçüm (yük ≈ 15, nice 5, tam vitest): duvar süresi CPU'nun 3–10 katı; yük 28–40'ta 5 sn'lik
+ * varsayılan "yanlış deneme sınırı" testinde (CPU 0,95 sn, duvar 5,1 sn) aşıldı. Sınır yalnız süredir; davranış denetimi değişmez.
+ */
 let env: Env | undefined;
 afterEach(async () => { await env?.close(); env = undefined; });
 const err = async (p: Promise<unknown>): Promise<NetError> => { try { await p; } catch (e) { return e as NetError; } throw new Error('hata bekleniyordu'); };
@@ -51,7 +56,7 @@ describe('Kod Gir: ödül kodları', () => {
     expect(log.filter((l) => l.result === 'odul').length).toBe(3);
     expect(log.find((l) => l.result === 'gecersiz')).toEqual({ code: '', result: 'gecersiz' });
     expect(log.some((l) => l.code.includes('YONETICI') || l.code.includes('YÖNETICI'))).toBe(false);
-  });
+  }, 15_000); // CPU 0,44 sn (yönetici özeti + sınama, ödül kodları)
 
   it('yanlış deneme sınırı: oyuncu başına 5 / 10 dk (doğru kod bile beklemeli), IP başına 20', async () => {
     env = await adminEnv();
@@ -67,7 +72,7 @@ describe('Kod Gir: ödül kodları', () => {
     for (const p of ps) for (let i = 0; i < 5; i++) await redeem(p, `HATALI${i}`);
     const late = await env.connect('Geç');
     expect(await redeem(late, 'DOGRU')).toMatchObject({ kind: 'hata', error: 'cok' });
-  });
+  }, 30_000); // CPU 0,95 sn (≈ 27 scrypt: 5 + 20 yanlış deneme)
 
   it('kaba kuvvete karşı: sunucu genelinde yönetici sınama bütçesi (yeni hesap / IP değiştirmek aşamaz), ödül kodları etkilenmez', async () => {
     env = await adminEnv();
@@ -83,7 +88,7 @@ describe('Kod Gir: ödül kodları', () => {
     expect(tryCode('p-odul', '10.9.9.8', 'bahar').kind).toBe('odul');
     env.clock.advance(600_000);
     expect(tryCode('p-yeni', '10.9.9.9', TEST_ADMIN).kind).toBe('yonetici');
-  }, 30_000); // 60+ scrypt hesabı: yüklü makinede 5 sn'lik varsayılanı aşabilir
+  }, 60_000); // CPU 2,8 sn (60+ scrypt); yük 15'te duvar 11,4 sn
 
   it('kod deneme kaydı (IP içerir) 90 gün sonra silinir', async () => {
     env = await adminEnv();
@@ -94,7 +99,7 @@ describe('Kod Gir: ödül kodları', () => {
     env.clock.advance(2000);
     prunePromoLog(app);
     expect(app.db.all<{ player_id: string }>('SELECT player_id FROM promo_log').map((r) => r.player_id)).toEqual(['p-yeni']);
-  });
+  }, 15_000); // CPU 0,15 sn (özet + 2 yanlış kod sınaması)
 
   it('IP: X-Forwarded-For yalnızca güvenilir vekil sayısı kadar sağdan okunur; üretimde varsayılan özet kullanılmaz', () => {
     // vekilsiz: başlık sahte olabilir, soket adresi
@@ -119,7 +124,7 @@ describe('Kod Gir: ödül kodları', () => {
     expect((await err(a.call('admin.set', { on: true }))).code).toBe('YETKI');
     expect((await err(a.call('code.redeem', { code: '' }))).code).toBe('GECERSIZ');
     expect(await redeem(a, 'a!')).toMatchObject({ kind: 'hata', error: 'gecersiz' });
-  });
+  }, 15_000); // CPU 0,06 sn (yönetici özeti)
 });
 
 describe('Kod Gir: yönetici kodu', () => {
@@ -137,7 +142,7 @@ describe('Kod Gir: yönetici kodu', () => {
     const a = await env.connect('Ayşe');
     expect((await redeem(a, 'YONETICI')).kind).toBe('hata');
     expect((await a.call('admin.state', {})).admin).toEqual({ isAdmin: false, on: false });
-  });
+  }, 15_000); // CPU 0,19 sn (özet + yanlış/doğru sınamalar)
 
   it('yönetici modu: tüm bölümler oynanabilir ama gerçek ilerleme atlamaz; kapatınca kilit geri; serbest yazı açık; rekabetten ve ödüllerden çıkar', async () => {
     env = await setup({ adminCodeHash: hashAdminCode(TEST_ADMIN), freeTextCleared: 8 });
@@ -178,7 +183,7 @@ describe('Kod Gir: yönetici kodu', () => {
     // kapalıyken de rekabetten çıkarılmış kalır (bayrak kalıcı)
     await a.call('admin.set', { on: false });
     expect((await a.call('rank.board', { board: 'guc', scope: 'herkes' })).view.rows.some((r) => r.name === 'Ayşe')).toBe(false);
-  });
+  }, 15_000); // CPU 0,15 sn
 
   it('Takım Ligi sezon ödülü yöneticiye gitmez (takım arkadaşı alır)', async () => {
     env = await setup({ adminCodeHash: hashAdminCode(TEST_ADMIN), raceCountdownMs: 50 });
@@ -192,5 +197,5 @@ describe('Kod Gir: yönetici kodu', () => {
     const lig = async (c: TC) => (await c.call('inbox.list', {})).items.filter((i) => i.ref === 'takim-ligi');
     expect(await lig(a)).toEqual([]);
     expect((await lig(b)).length).toBe(1);
-  });
+  }, 15_000); // CPU 0,14 sn
 });

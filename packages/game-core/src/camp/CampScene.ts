@@ -171,7 +171,8 @@ export class CampScene extends Phaser.Scene {
     const inp = this.input;
     inp.addPointer(1);
     inp.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      this.pointers.set(p.id, { x: p.x, y: p.y, x0: p.x, y0: p.y, t0: this.time.now });
+      // basış süresi DOM olay zamanlarıyla ölçülür (time.now son karenin zamanıdır: kare geç gelirse kısa dokunuş "uzun bası" sayılıp yutulurdu)
+      this.pointers.set(p.id, { x: p.x, y: p.y, x0: p.x, y0: p.y, t0: p.downTime });
       this.vel.x = 0; this.vel.y = 0;
       // süsleme kipi: hayalet süsün üstünden başlayan sürükleme süsü taşır (kamera kaymaz)
       if (this.edit && this.ghostV && this.pointers.size === 1) { const w = this.cameras.main.getWorldPoint(p.x, p.y); const [gx, gy] = this.ghostCenter(); this.dragGhost = Math.hypot(w.x - gx, (w.y - (gy - 12)) * 1.2) < 34 * this.uiScale; }
@@ -198,7 +199,7 @@ export class CampScene extends Phaser.Scene {
       if (this.pointers.size < 2) this.pinch = null;
       if (this.dragGhost) { this.dragGhost = false; this.moved = 99; return; }
       if (this.pointers.size === 1) { const o = [...this.pointers.values()][0]!; o.x0 = o.x; o.y0 = o.y; }
-      if (s && this.pointers.size === 0 && this.moved <= 8 * this.dpr && this.time.now - s.t0 < 600) { this.vel.x = 0; this.vel.y = 0; this.tap(p.x, p.y); }
+      if (s && this.pointers.size === 0 && this.moved <= 8 * this.dpr && p.upTime - s.t0 < 600) { this.vel.x = 0; this.vel.y = 0; this.tap(p.x, p.y); }
     };
     inp.on('pointerup', up); inp.on('pointerupoutside', up);
     inp.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => this.zoomAt(this.userZoom * (dy > 0 ? 0.9 : 1.1), p.x, p.y));
@@ -1056,6 +1057,8 @@ export class CampScene extends Phaser.Scene {
     this.tweens.add({ targets: gl, scale: 0.9 * (LOTS[id].tiles / 2), alpha: { from: 1, to: 0 }, duration: 500, onComplete: () => gl.destroy() });
   }
   /** binanın tepe noktası: oyun pikseli (kanvas içi) */
+  /** kamera duruyor mu: odak/bölge geçişi ve kaydırma ataleti bitti (ekran konumları artık kaymaz) */
+  camStill(): boolean { return !this.cameras.main.panEffect.isRunning && this.pointers.size === 0 && Math.abs(this.vel.x) <= 0.05 && Math.abs(this.vel.y) <= 0.05; }
   screenPoint(id: BuildingId): { x: number; y: number } | null {
     const v = this.views.get(id); if (!v) return null; const cam = this.cameras.main; const s = v.sprite;
     const wy = s.y - s.originY * s.displayHeight * 0.6;

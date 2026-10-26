@@ -69,7 +69,7 @@ describe('takım', () => {
     for (let i = 0; i < 29; i++) { const c = await env.connect(`Üye ${i}`); await c.call('team.join', { teamId: t.id }); }
     const late = await env.connect('Geç Kalan');
     expect((await err(late.call('team.join', { teamId: t.id }))).code).toBe('DOLU');
-  });
+  }, 20_000); // MK-020: 31 bağlantı (CPU 0,38–0,40 sn); yük 30'da duvar 2,3 sn
 
   it('bölüm yardımı: kalkan ödül kutusuna, yardım edene 5 jeton, günde 3 istek', async () => {
     env = await setup();

@@ -56,8 +56,8 @@ if (!args.has('--no-build') || !existsSync(resolve(distDir, 'index.html'))) {
 const srvFile = resolve(outRoot, 'server-inproc.mjs');
 await build({ entryPoints: [resolve(root, 'apps/server/src/server.ts')], outfile: srvFile, bundle: true, platform: 'node', target: 'node22', format: 'esm', external: ['bufferutil', 'utf-8-validate'], banner: { js: "import { createRequire as __r } from 'node:module'; const require = __r(import.meta.url);" }, logLevel: 'warning' });
 const { startServer, configFromEnv } = await import(pathToFileURL(srvFile).href);
-const sport = 8800 + Math.floor(Math.random() * 400);
-const srv = await startServer({ ...configFromEnv({ ODI_DB: ':memory:', ODI_TEST_STORE: '1', NODE_ENV: 'test' }), port: sport, host: '127.0.0.1', log: false, sweepMs: 1000 });
+// port 0: işletim sistemi boş port verir (rastgele aralıkta aynı anda koşan başka bir ağacın sunucusuyla çakışmasın)
+const srv = await startServer({ ...configFromEnv({ ODI_DB: ':memory:', ODI_TEST_STORE: '1', NODE_ENV: 'test' }), port: 0, host: '127.0.0.1', log: false, sweepMs: 1000 });
 const db = srv.app.db;
 /** test yardımcısı: oyuncuyu adıyla bul, alanlarını doğrudan yaz */
 const pidOf = (name) => db.get('SELECT id FROM players WHERE name = ?', name)?.id;
@@ -119,14 +119,18 @@ async function settle(page) {
 const campReady = async (page) => { await page.locator('.camp-base').waitFor({ timeout: 25_000 }); await page.waitForFunction(() => !!window.__kamp && !!window.__kamp.pos('merkez'), null, { timeout: 25_000 }); await page.locator('.camp-loading').waitFor({ state: 'detached', timeout: 25_000 }); };
 /** binaya kanvas üzerinden dokun (gerçek dokunuş). Önce kamera binaya odaklanır ve dokunulacak nokta gerçekten kanvas olmalı:
  *  bina üst göstergenin (ör. Mesajlar düğmesi) ya da alt kartların altında kalırsa dokunuş o düğmeye gider. */
+/** kamera odak geçişi bitene kadar bekle: geçiş oyun saatiyle (kare başına en çok 50 ms) ilerler; yükte kare seyrekleşince 450 ms'lik geçiş
+ *  saniyelerce sürer ve sabit beklemeden sonra okunan konum eskir (dokunuş binayı ıskalar ya da nokta ekran dışında kalır; MK-020) */
+const camStill = (page) => page.waitForFunction(() => window.__kamp?.still?.() ?? true, null, { timeout: 30_000, polling: 100 });
 async function tapBuilding(page, id) {
   await page.waitForFunction((b) => !!window.__kamp?.pos(b), id, { timeout: 25_000 }).catch(async (e) => {
     const d = await page.evaluate(() => ({ kamp: !!window.__kamp, base: !!document.querySelector('.camp-base') }));
     await page.screenshot({ path: resolve(outRoot, `HATA-konum-${id}.png`) }).catch(() => undefined);
     throw new Error(`${e.message.split('\n')[0]} · ${id} konumu yok: ${JSON.stringify(d)}`);
   });
-  await page.evaluate((b) => window.__kamp.focus(b), id); await sleep(1100);
-  const p = await page.evaluate((b) => { const q = window.__kamp.pos(b); if (!q) return null; const el = document.elementFromPoint(q.x, q.y + 10); return { ...q, free: el instanceof HTMLCanvasElement }; }, id);
+  await page.evaluate((b) => window.__kamp.focus(b), id);
+  await camStill(page);
+  const p = await page.evaluate((b) => { const q = window.__kamp.pos(b); if (!q) return null; const el = document.elementFromPoint(q.x, q.y + 10); const ust = el && !(el instanceof HTMLCanvasElement) ? [`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`, el.closest('[data-testid]')?.getAttribute('data-testid'), String(el.closest('.bp-wrap, .toast-top, .dede-card, .cel-root, .camp-top, .camp-bottom, .sira-ipucu')?.className ?? '').slice(0, 40)].filter(Boolean).join(' < ') : undefined; return { ...q, free: el instanceof HTMLCanvasElement, ust }; }, id);
   if (!p?.free) { console.log(`  · ${id}: dokunulacak nokta kanvas değil, yeniden denenecek (${JSON.stringify(p)})`); return; }
   await page.touchscreen.tap(p.x, p.y + 10);
 }
@@ -589,7 +593,7 @@ try {
         await hush();
       };
       const start = async (id) => {
-        await K.evaluate((b) => window.__kamp.focus(b), id); await sleep(1200); // bina ekranın dışında kalmasın
+        await K.evaluate((b) => window.__kamp.focus(b), id); await camStill(K); // bina ekranın dışında kalmasın
         await openPanel(K, id);
         await K.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click();
         await K.locator('.bp-build').waitFor({ timeout: 8000 });
@@ -666,8 +670,13 @@ try {
       await reopenCamp(G); await settle(G);
       await upgradeNow(G, 'depo', gId);
       await G.getByTestId('kamp-seviye').and(G.locator('[data-level="2"]')).waitFor({ timeout: 15_000 });
-      await G.locator('.cel-root.on', { hasText: 'Kamp Seviyesi 2' }).waitFor({ timeout: 15_000 });
-      await shot(G, 'G-kamp-seviye-2', 600);
+      // kutlama kendiliğinden kapanır (dokunuş beklemesi en çok 7 sn, duvar saati): yükte Playwright adımları saniyeler sürünce o an
+      // görünür olmasını beklemek pencereyi kaçırabiliyordu. Kanıt: sahneye eklendiği an OLAY_SAYACI kaydeder (MK-020).
+      await G.waitForFunction(() => window.__olay.titles.some((t) => t.includes('Kamp Seviyesi 2')), null, { timeout: 30_000, polling: 100 })
+        .catch(async (e) => { throw new Error(`${e.message.split('\n')[0]} · kutlamalar: ${JSON.stringify(await G.evaluate(() => window.__olay).catch(() => null))}`); });
+      ok(`[${bt}] "Kamp Seviyesi 2" kutlaması sahnede`);
+      if (await G.locator('.cel-root.on', { hasText: 'Kamp Seviyesi 2' }).count()) await shot(G, 'G-kamp-seviye-2', 600);
+      else console.log('  · kutlama görüntü alınmadan kapandı (yük); sayım aşağıda denetlenir');
       await settle(G); for (let i = 0; i < 12; i++) { await toastGone(G); await sleep(1000); }
       const o1 = await G.evaluate(() => window.__olay);
       const nK = o1.titles.filter((t) => t.includes('Kamp Seviyesi 2')).length;

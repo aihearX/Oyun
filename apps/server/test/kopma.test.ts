@@ -36,7 +36,7 @@ describe('chat.send tekrar koruması (cid)', () => {
     expect(other.msg.id).not.toBe(first.msg.id);
     // geçersiz cid reddedilir
     await expect(a.call('chat.send', { room, text: 'x', cid: 'kısa' })).rejects.toMatchObject({ code: 'GECERSIZ' });
-  });
+  }, 20_000); // MK-020: CPU 0,08 sn ama sunucu + bağlantılar; yük 30'da duvar 2,3 sn
 
   it('cid başka oyuncunun ya da başka odanın iletisini döndürmez; hesap silinince cid kayıtları da silinir', async () => {
     env = await setup();

@@ -123,7 +123,7 @@ export function CampBase(p: CampBaseProps) {
       });
       h = cur; handle.current = cur;
       (window as unknown as { __kamp?: unknown }).__kamp = {
-        pos: (id: BuildingId) => cur.screenPos(id), view: () => cur.view(), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
+        pos: (id: BuildingId) => cur.screenPos(id), still: () => cur.still(), view: () => cur.view(), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
         decor: (uid: number) => cur.decorPos(uid), ghost: () => cur.ghostPos(), ghostState: () => cur.ghostState(), district: (id: string) => cur.districtPos(id), focusDistrict: (id: string) => cur.focusDistrict(id), districts: () => cur.openDistricts(), mem: () => cur.mem(), moveGhost: (gx: number, gy: number) => cur.moveGhost(gx, gy),
       };
     }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });

@@ -309,7 +309,7 @@ describe('takım bulma ve başvuru', () => {
     await lead.call('team.apply.decide', { applicationId: ap.id, accept: true });
     await adm.call('progress.submit', run(1));
     expect((await rowOf(adm, 'Karma')).rankPower).toBe(before);
-  });
+  }, 15_000); // MK-020: yönetici özeti + sınaması iki scrypt (CPU 0,16 sn, yük 15'te duvar 0,2–1 sn); yük 28+'da 5 sn'lik varsayılan aşıldı
 
   it('geçiş: eski veritabanındaki "yalnızca kodla" (open = 0) takımlar başvuruya geçer; iki kez açmak güvenli', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'odi-basvuru-'));

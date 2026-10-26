@@ -72,7 +72,7 @@ describe('Sıralama', () => {
     expect(after.rank).toBeLessThan(14);
     // önbellek 15 sn: değişim ancak tazelenince görünür; delta = gün başı sırası − şimdiki sıra
     expect(after.delta).toBe(14 - after.rank);
-  });
+  }, 20_000); // MK-020: CPU 0,35–0,43 sn; yük 30'da duvar 2,8 sn
 
   it('hafta kapanınca son sıralama saklanır, ödüller bir kez verilir, takıma duyurulur; geçen haftanın rozeti', async () => {
     env = await setup();

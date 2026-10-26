@@ -33,5 +33,5 @@ describe('veritabanı yedeği', () => {
     expect(newestBackupAge(dir)).toBeLessThan(STARTUP_BACKUP_MIN_GAP_MS);
     expect(newestBackupAge(path.join(tmp, 'yok'))).toBeNull();
     expect(configFromEnv({ ODI_BACKUP_DIR: '/veri/yedek', ODI_BACKUP_HOURS: '12', ODI_BACKUP_KEEP: '10' })).toMatchObject({ backupDir: '/veri/yedek', backupHours: 12, backupKeep: 10 });
-  });
+  }, 20_000); // MK-020: 2,2 sn bilinçli bekleme + iki sunucu açılışı ve yedek yazımı (disk); yük 30'da duvar 4,3 sn (CPU 0,08 sn)
 });
