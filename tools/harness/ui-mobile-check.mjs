@@ -373,7 +373,8 @@ function contrastRects(ids) {
     const zOf = (e) => { let z = 0; for (let q = e; q && q !== document.body; q = q.parentElement) { const cs = getComputedStyle(q); if (cs.position === 'fixed' || cs.position === 'sticky') { z = Number(cs.zIndex) || 0; } } return z; };
     const zEl = pinned ? zOf(el) : -Infinity; const rootEl = fixedRoot(el);
     if (inView && !covered) for (const b of overlays()) if (!b.el.contains(el) && !el.contains(b.el) && ((b.sticky && b.root === rootEl) || b.z > zEl) && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = pinned ? true : 'serit'; break; }
-    out[id] = { inView, covered, sticky, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
+    let op = 1; for (let q = el; q; q = q.parentElement) op *= Number(getComputedStyle(q).opacity);
+    out[id] = { inView, covered, sticky, op: Math.round(op * 100) / 100, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
   }
   return out;
 }
@@ -541,9 +542,14 @@ async function suite(browserName, target, [W, H]) {
         // ilk turdan sonra yapışkan öğeler ölçülmez (kaydırma onları başka öğelerin üstüne/altına taşır)
         if (round > 0) for (const i of items) if (!done.has(i.id) && pos[i.id]?.sticky) { done.add(i.id); if (i.sample) i.unmeasured = true; }
         const now = items.filter((i) => !done.has(i.id) && pos[i.id]?.inView);
+        let moved = new Set();
         if (now.some((i) => i.sample && !pos[i.id].covered)) {
           const buf = await page.screenshot({ scale: 'css' }); img = decodePng(buf); imgBuf = buf;
           if (process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), buf);
+          // görüntü alınırken kapanan / kayan / solan öğe (Tüy Dede kartı, bildirim): bu turdaki örnek geçersiz, bir kez daha denenir
+          const sIds = now.filter((i) => i.sample && !pos[i.id].covered).map((i) => i.id);
+          const after = await page.evaluate(contrastRects, sIds);
+          for (const id of sIds) { const a = after[id], b = pos[id]; if (!a || JSON.stringify(a.rects) !== JSON.stringify(b.rects) || Math.abs(a.op - b.op) > 0.02) moved.add(id); }
         }
         let bad = false;
         for (const i of now) {
@@ -551,6 +557,7 @@ async function suite(browserName, target, [W, H]) {
           // hesapla ölçülen (örneklenmeyen) metin şerit altında kalsa da ölçülmüş sayılır: zinciri konumdan bağımsız
           if (pos[i.id].covered === 'serit' && !i.sample) { done.add(i.id); continue; }
           if (pos[i.id].covered) { if (i.sample && !i.retried) { i.retried = true; continue; } done.add(i.id); i.covered = true; continue; }
+          if (moved.has(i.id)) { if (i.moves = (i.moves ?? 0) + 1, i.moves < 2) continue; done.add(i.id); i.unmeasured = true; i.why = 'görüntü alınırken kayboldu/kaydı'; continue; }
           done.add(i.id);
           if (!i.sample) continue;
           const sm = sampleContrast(img, pos[i.id].rects, i.fgRaw, i.fgRaw[3] * i.opAll);
