@@ -85,7 +85,7 @@ const harita: TrackDef = {
 // ------------------------------------------------------------------ menü (aynı ton/tempo: haritayla yumuşak geçiş)
 const M_P: Ch[] = [{ b: 36, t: [60, 64, 67] }, { b: 45, t: [60, 64, 69] }, { b: 41, t: [60, 65, 69] }, { b: 43, t: [59, 62, 67] }];
 const menu: TrackDef = {
-  id: 'menu', desc: 'Do majör · 104 BPM · C-Am-F-G · marimba arpejleri, yumuşak pad, ninni başı çanda', bpm: 104, bars: 8, gain: 0.8, verb: 1,
+  id: 'menu', desc: 'Do majör · 104 BPM · C-Am-F-G · marimba arpejleri, yumuşak pad, ninni başı çanda', bpm: 104, bars: 8, gain: 1.1, verb: 1, // MK-023: 0,8 → 1,1 (+2,8 dB, ölçümde en kısık parça; ses-duzeyi.md öneri 5)
   bar(i, loop, r) {
     const c = M_P[i % 4]!; const o: NoteEv[] = [];
     o.push(...padCh(c, 0.6));
@@ -123,7 +123,7 @@ const disKulak: TrackDef = {
 };
 
 const kanal: TrackDef = {
-  id: 'biyom:kanal', desc: 'Mi minör · 90 BPM · Em-C-G-D · boğuk tünel: kalp atışı davul, derin sub bas, yankılı damlalar', bpm: 90, bars: 8, gain: 1, verb: 1.3, busLp: 1700,
+  id: 'biyom:kanal', desc: 'Mi minör · 90 BPM · Em-C-G-D · boğuk tünel: kalp atışı davul, derin sub bas, yankılı damlalar', bpm: 90, bars: 8, gain: 0.84, verb: 1.3, busLp: 1700, // MK-023: 1 → 0,84 (−1,5 dB, en yüksek parça)
   bar(i, loop, r) {
     const P: Ch[] = [{ b: 40, t: [52, 55, 59] }, { b: 36, t: [52, 55, 60] }, { b: 43, t: [50, 55, 59] }, { b: 38, t: [50, 54, 57] }];
     const c = P[i % 4]!; const o: NoteEv[] = [];
@@ -203,7 +203,7 @@ const koklea3 = kokleaTrack('biyom:koklea-3', 'Fa majör · 86 BPM · F-C-Dm-Bb 
   [{ b: 29 + 12, t: [53, 57, 60, 65] }, { b: 36, t: [52, 55, 60, 64] }, { b: 38, t: [50, 53, 57, 62] }, { b: 34 + 12, t: [50, 53, 58, 62] }], 0, false, 0.95);
 
 const sinir: TrackDef = {
-  id: 'biyom:sinir', desc: 'La minör · 124 BPM · Am-F-C-G · elektronik nabız: 16\'lık kare dalga arpej + açılan filtre, dört vuruş kick', bpm: 124, bars: 8, gain: 0.8, verb: 0.6,
+  id: 'biyom:sinir', desc: 'La minör · 124 BPM · Am-F-C-G · elektronik nabız: 16\'lık kare dalga arpej + açılan filtre, dört vuruş kick', bpm: 124, bars: 8, gain: 1.1, verb: 0.6, // MK-023: 0,8 → 1,1 (+2,8 dB)
   bar(i, loop, r) {
     const P: Ch[] = [{ b: 45, t: [57, 60, 64] }, { b: 41, t: [57, 60, 65] }, { b: 36, t: [55, 60, 64] }, { b: 43, t: [55, 59, 62] }];
     const c = P[i % 4]!; const o: NoteEv[] = [];
