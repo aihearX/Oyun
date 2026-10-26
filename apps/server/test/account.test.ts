@@ -58,6 +58,18 @@ describe('hesabı silme (account.delete)', () => {
     await a.call('account.delete', {});
     expect(env.srv.app.db.get('SELECT 1 AS x FROM teams WHERE id = ?', t.id)).toBeUndefined();
   });
+
+  it('/saglik players silinen hesabı saymaz (uzak denetim D5: sayı başlangıçtaki değere döner)', async () => {
+    env = await setup();
+    const saglik = async () => (await (await fetch(env!.srv.httpUrl + '/saglik')).json()) as { players: number };
+    const a = await env.connect('Ayşe');
+    const b = await env.connect('Bora');
+    expect((await saglik()).players).toBe(2);
+    await b.call('account.delete', {});
+    expect((await saglik()).players).toBe(1);
+    await a.call('account.delete', {});
+    expect((await saglik()).players).toBe(0);
+  });
 });
 
 describe('IP başına yeni hesap sınırı (ODI_NEW_PER_IP_HOUR)', () => {

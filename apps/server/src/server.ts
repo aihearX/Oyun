@@ -113,7 +113,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   const httpServer = http.createServer((req, res) => {
     const url = (req.url ?? '/').split('?')[0];
     if (req.method === 'GET' && url === '/saglik') {
-      const players = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM players')!.n;
+      // silinen hesaplar (account.delete) sayılmaz: oyuncu satırı anonim kalır ama hesap yoktur (uzak denetim D5 bu sayıya bakar)
+      const players = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM players WHERE id NOT IN (SELECT player_id FROM deleted_players)')!.n;
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, version: cfg.version, players, online: app.online.size }));
       return;

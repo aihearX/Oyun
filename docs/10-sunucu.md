@@ -20,7 +20,7 @@ ODİ sunucusu hazır → http://localhost:8787  (sağlık: /saglik)
   Aynı Wi-Fi'daki telefondan: ws://192.168.1.23:8787
 ```
 
-- `GET /saglik` → `{ ok, version, players, online }`
+- `GET /saglik` → `{ ok, version, players, online }` (`players`: silinmemiş hesap sayısı; `account.delete` ile silinen hesap sayılmaz)
 - `GET /olcum` → iletişim ölçümü: son 7 günün günlük toplam sayaçları (kişisel veri yok; bkz. `docs/13-iletisim.md` §6)
 - `GET /` → kısa Türkçe açıklama
 - WebSocket: herhangi bir yol (`ws://<adres>:8787`)
