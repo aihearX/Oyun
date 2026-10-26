@@ -29,10 +29,10 @@ import { luckyNoteTexture } from '../art';
  */
 
 // ---------------------------------------------------------------- arka plan
-export interface BiomeBackdrop { update(cam: Phaser.Cameras.Scene2D.Camera): void; destroy(): void; setForegroundAlpha(a: number): void; setQuality(q: 'high' | 'low'): void }
+export interface BiomeBackdrop { update(cam: Phaser.Cameras.Scene2D.Camera): void; destroy(): void; setForegroundAlpha(a: number): void; setQuality(q: 'high' | 'low'): void; /** görünüm boyutu değişti (tasarım px) */ resize(w: number, h: number): void }
 export function paintBiome(scene: Phaser.Scene, biome: BiomeDef, worldW: number, worldH: number, quality: 'high' | 'low' = 'high', variant?: number): BiomeBackdrop {
   const bd = RD.paintBiome(scene, biome.id, worldW, worldH, { quality, variant });
-  return { update: (cam) => bd.update(cam.scrollX, cam.scrollY), destroy: () => bd.destroy(), setForegroundAlpha: (a) => bd.setForegroundAlpha(a), setQuality: (q) => bd.setQuality(q) };
+  return { update: (cam) => bd.update(cam.scrollX, cam.scrollY), destroy: () => bd.destroy(), setForegroundAlpha: (a) => bd.setForegroundAlpha(a), setQuality: (q) => bd.setQuality(q), resize: (w, h) => bd.resize(w, h) };
 }
 
 // ---------------------------------------------------------------- zemin
@@ -169,6 +169,8 @@ export interface LevelHudView {
   onPause(cb: () => void): void;
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
   pauseHit(x: number, y: number): boolean; pressPause(): void; pauseCenter(): { x: number; y: number };
+  /** görünüm boyutu / güvenli alan inişi değişti (tasarım px) */
+  resize(w: number, h: number, top: number): void;
 }
 export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHudView {
   const hud = new RD.LevelHud(s, top, heroColor);
@@ -189,6 +191,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHud
     setCheckpoints: (p) => hud.setCheckpoints(p),
     onPause: (cb) => hud.onPause(cb),
     pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),
+    resize: (w, h, top) => hud.resize(w, h, top),
   };
 }
 
@@ -204,7 +207,7 @@ export interface BossVisual {
   /** gözler kahramanı izler (yalnız görsel) */
   heroX?: number;
 }
-export interface BossView { update(b: BossVisual, groundY: number): void; destroy(): void }
+export interface BossView { update(b: BossVisual, groundY: number): void; destroy(): void; /** ekran-sabit can çubuğu: görünüm genişliği ve gösterge inişi (tasarım px) */ layout?(viewW: number, top: number): void }
 /** Boss ve saldırıları: render/boss.ts (boyalı kukla, telegraf, vuruş flaşı, faz dönüşümü, yenilgi patlaması, can çubuğu). */
 export function createBossView(s: Phaser.Scene, kind: 'golem' | 'canavar', name: string, groundY: number, biome: BiomeDef): BossView {
   return RD.createBossArt(s, kind, name, groundY, biome.id);

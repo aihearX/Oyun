@@ -24,7 +24,7 @@ Komutlar (kökten): `npm run typecheck`, `npm run lint`, `npm test`, `npm run bu
 (`--idle 1`: boşta oyuncu; hiçbir bölüm bitmemeli).
 
 ## Koordinatlar
-- Ekran 390×780. Zemin `GROUND_Y = 640`. Kahraman ayak noktası (x, y); gövde 30×42 (kayarken 22).
+- Ekran (oyun alanı) 390×780. Uzun ya da geniş telefonda görünüm uzar (`game-core/src/view.ts`: en çok 450×940; kamera koşu yönünde yine 265 px önü gösterir, fazlası arkada / göstergenin güvenli alan inişinde / zeminin altında kalır); simülasyon görünümü hiç okumaz. Tuval cihaz piksel oranında, tasarım pikseli başına en çok 2 (bellek); `renderScale` / `?hd=3` yalnız çekim. Zemin `GROUND_Y = 640`. Kahraman ayak noktası (x, y); gövde 30×42 (kayarken 22).
 - Dünya: `START_PAD 220` + odalar + `END_PAD 260`; kapı sona eklenir; sol sınır duvarı. Düşme: y > 640 + 420.
 - Yazım kuralı (oda içi x): dikdörtgenler sol-üst (platform, wall, crumble, barrier, door, freqgate, beat, echo, lift, water,
   gravzone, hazard, current); ayaklılar x orta / y taban (enemy, spring, trampoline, launcher, switch, checkpoint, gate);

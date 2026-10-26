@@ -45,7 +45,9 @@ export class LevelScene extends Phaser.Scene {
   private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: { update(x: number, y: number, alive: boolean): void };
   private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0; private camAnchor = 0.66;
   private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
-  private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1; private praiseFree = 0; private comboShown = 0;
+  private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1;
+  /** görünüm (tasarım px; en az 390×780 — uzun/geniş ekranda fazlası: view.ts) ve oyun içi göstergenin güvenli alan inişi (tasarım px) */
+  private vw = GAME_W; private vh = GAME_H; private hudTop = 0; private praiseFree = 0; private comboShown = 0;
   private combo = 0; private comboAt = -99; private maxCombo = 0; private chain = 0; private chainAt = -99; private firstsDone: string[] = [];
   private nearMissed = new Set<number>(); private lastHurtAt = -99;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
@@ -90,6 +92,7 @@ export class LevelScene extends Phaser.Scene {
     // keskinlik: oyun cihaz piksel oranında boyutlanır, kamera aynı oranda yakınlaşır (köşe kökenli: tasarım birimi = 390×780)
     this.dpr = Number(this.registry.get('dpr') ?? 1) || 1; setVisualResolution(this.dpr);
     this.cameras.main.setZoom(this.dpr).setOrigin(0, 0);
+    this.measureView();
     this.quality = this.dpr > 1 ? 'high' : 'low'; setFxQuality(1);
     this.backdrop = paintBiome(this, this.biome, w.worldW, GROUND_Y + 1200, this.quality, levelVariant(this.spec));
     const terrain: TerrainRect[] = [];
@@ -98,9 +101,9 @@ export class LevelScene extends Phaser.Scene {
     const heroColor = this.opts.cosmetic?.color ?? (this.spec.biome.startsWith('koklea') ? 0x0e9c98 : 0x6c4cf1);
     this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, heroColor);
     this.projLayer = createProjectileLayer(this, this.biome);
-    if (this.sim.boss) this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome);
+    if (this.sim.boss) { this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome); this.bossView.layout?.(this.vw, this.hudTop); }
     this.fx = createFx(this, this.biome);
-    this.hud = createHud(this, heroColor, this.safeTopDesign());
+    this.hud = createHud(this, heroColor, this.hudTop);
     if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
     this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
@@ -109,7 +112,7 @@ export class LevelScene extends Phaser.Scene {
     if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
     if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500, undefined, 'mod-cihaz-kapali');
     if (this.opts.lucky && !this.opts.bot) this.armLucky();
-    this.camX = Math.max(0, w.startX - GAME_W * 0.3); this.camY = w.startY - GAME_H * this.camAnchor;
+    this.camX = Math.max(0, w.startX - GAME_W * 0.3 - (this.vw - GAME_W)); this.camY = w.startY - GAME_H * this.camAnchor - this.camUp();
     this.syncCamera(1); this.syncViews(true); this.syncHero(); this.syncHud();
 
     this.emit({ type: 'ready' });
@@ -122,7 +125,7 @@ export class LevelScene extends Phaser.Scene {
     };
     if (this.opts.race) {
       const race = this.opts.race;
-      this.race = new RaceLayer({ scene: this, hero: this.hero, gateX: w.gateX, startX: w.startX, startY: w.startY, timeScale: ts, haptic: (k) => this.emit({ type: 'haptic', kind: k }), live: () => this.state.started && !this.state.finished, heroColor }, race);
+      this.race = new RaceLayer({ scene: this, hero: this.hero, gateX: w.gateX, startX: w.startX, startY: w.startY, timeScale: ts, top: this.hudTop, haptic: (k) => this.emit({ type: 'haptic', kind: k }), live: () => this.state.started && !this.state.finished, heroColor }, race);
       const go = () => { this.input_.tick(); begin(); };
       const delay = this.opts.bot ? Math.max(0, race.botDelayMs ?? 0) : 0;
       this.race.countdown(`${this.spec.number}. ${this.spec.name}\n${this.spec.objective.label}`, () => { if (delay) this.time.delayedCall(delay, go); else go(); });
@@ -357,18 +360,21 @@ export class LevelScene extends Phaser.Scene {
   // ------------------------------------------------------------------ çizim eşitleme
   private syncCamera(dt: number) {
     const cam = this.cameras.main; const h = this.sim.hero;
-    if (this.world.boss) { cam.setScroll(0, GROUND_Y - GAME_H + 140); return; }
-    const tx = h.x - (h.dir > 0 ? GAME_W * 0.32 : GAME_W * 0.68);
+    // boss arenası (390) görünümde ortalı; fazladan yükseklik zeminin altını gösterir
+    if (this.world.boss) { cam.setScroll(-(this.vw - GAME_W) / 2, GROUND_Y - GAME_H + 140 - this.camUp()); return; }
+    // yatay: koşu yönünde görünen mesafe (390 × 0,68) her ekranda aynı; geniş ekranın fazlası kahramanın arkasında kalır
+    const tx = h.x - (h.dir > 0 ? this.vw - GAME_W * 0.68 : GAME_W * 0.68);
     // dikey çerçeve: kahramanın ayağı ekranın ~%66'sında (alttaki toprak yerine üstteki oyun alanı görünsün).
     // Bakış payı: tırmanış/sıçrayışta yukarıyı (%72), hızlı düşüşte ve sıvıda aşağıyı (%52) gösterir; ters yerçekiminde ayna (%34).
     const rising = h.wallId >= 0 || h.vy * h.g < -500, falling = h.vy * h.g > 520 && !h.grounded;
     let anchor = h.water >= 0 ? 0.52 : rising ? 0.72 : falling ? 0.52 : 0.66;
     if (h.g < 0) anchor = 1 - anchor;
     this.camAnchor += (anchor - this.camAnchor) * (1 - Math.pow(0.05, Math.min(0.1, dt)));
-    const ty = h.y - GAME_H * this.camAnchor;
+    const up = this.camUp(); const ty = h.y - GAME_H * this.camAnchor - up;
     const k = 1 - Math.pow(0.0008, Math.min(0.1, dt)); const ky = 1 - Math.pow(0.004, Math.min(0.1, dt));
     this.camX += (tx - this.camX) * k; this.camY += (ty - this.camY) * ky;
-    this.camX = Math.max(0, Math.min(Math.max(0, this.world.worldW - GAME_W), this.camX)); this.camY = Math.max(-1700, Math.min(GROUND_Y + 700 - GAME_H, this.camY));
+    // dikey sınır: eski 390×780 çerçevesi aynı aralıkta; uzun görünümün alt kenarı zemin gövdesinin (GROUND_Y + 760) üstünde kalır
+    this.camX = Math.max(0, Math.min(Math.max(0, this.world.worldW - this.vw), this.camX)); this.camY = Math.max(-1700 - up, Math.min(GROUND_Y + 700 - GAME_H - up, GROUND_Y + 740 - this.vh, this.camY));
     cam.setScroll(Math.round(this.camX * this.dpr) / this.dpr, Math.round(this.camY * this.dpr) / this.dpr);
   }
   private syncHero() {
@@ -391,7 +397,7 @@ export class LevelScene extends Phaser.Scene {
   /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
   private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
   private syncViews(initial: boolean) {
-    const cam = this.cameras.main; const L = cam.scrollX, Rr = cam.scrollX + GAME_W; const s = this.sim; const t = s.t;
+    const cam = this.cameras.main; const L = cam.scrollX, Rr = cam.scrollX + this.vw; const s = this.sim; const t = s.t;
     if (initial || this.time.now - this.streamAt > 150) {
       this.streamAt = this.time.now;
       for (const id of near(this.world, L - 300, Rr + STREAM_AHEAD)) {
@@ -599,12 +605,33 @@ export class LevelScene extends Phaser.Scene {
   }
 
   /** harness: duraklat düğmesinin sayfa (CSS px) konumu — mobil dokunuş testleri buraya dokunur */
-  pauseButtonPage(): { x: number; y: number } { const b = this.scale.canvasBounds; const c = this.hud.pauseCenter(); const k = b.width / GAME_W; return { x: b.x + c.x * k, y: b.y + c.y * k }; }
+  pauseButtonPage(): { x: number; y: number } { const b = this.scale.canvasBounds; const c = this.hud.pauseCenter(); const k = b.width / this.vw; return { x: b.x + c.x * k, y: b.y + c.y * k }; }
   /** cihaz güvenli alan üst boşluğu → tasarım pikseli (tuval sığdırılıp ortalandığından tuvalin üstündeki boşluk düşülür) */
   private safeTopDesign(): number {
-    const st = this.opts.safeTop ?? 0; if (!(st > 0)) return 0;
+    const st = this.opts.safeTopNow?.() ?? this.opts.safeTop ?? 0; if (!(st > 0)) return 0;
     const b = this.scale.canvasBounds; if (!b || !(b.width > 0)) return 0;
-    return Math.max(0, Math.round((st - b.y) * (GAME_W / b.width)));
+    return Math.max(0, Math.round((st - b.y) * (this.vw / b.width)));
+  }
+  /** görünüm boyutu ve gösterge inişi (açılışta ve boyut değişiminde) */
+  private measureView() {
+    const cam = this.cameras.main; this.vw = cam.width / cam.zoom; this.vh = cam.height / cam.zoom;
+    this.hudTop = this.safeTopDesign(); this.registry.set('hudTop', this.hudTop);
+  }
+  /** uzun görünümün üst payı: göstergenin güvenli alan inişi kadar (oyun alanı göstergenin altında eski yerinde); kalanı altta */
+  private camUp(): number { return Math.min(Math.max(0, this.vh - GAME_H), this.hudTop); }
+  /** boot.ts: ebeveyn boyutu değişti, oyun boyutu yeniden ayarlandı → gösterge, arka plan, efekt, kamera yeni görünüme (duraklatılmışken de) */
+  onViewResize() {
+    if (!this.hud || !this.sim) return;
+    const ow = this.vw, oh = this.vh, oTop = this.hudTop, oUp = this.camUp();
+    this.measureView();
+    if (this.vw === ow && this.vh === oh && this.hudTop === oTop) return;
+    this.hud.resize(this.vw, this.vh, this.hudTop); this.fx.resize(this.vw, this.vh); this.backdrop?.resize(this.vw, this.vh);
+    this.bossView?.layout?.(this.vw, this.hudTop); this.race?.relayout(this.hudTop);
+    // kamera hedefindeki görünüm payı kadar kaydır (yumuşak izleme durumu korunur), sınırla, çiz
+    if (this.sim.hero.dir > 0) this.camX -= this.vw - ow;
+    this.camY -= this.camUp() - oUp;
+    this.syncCamera(0); this.backdrop?.update(this.cameras.main); this.syncViews(true);
+    if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
   }
   private emit(e: GameEvent) { try { void this.opts.onEvent(e); } catch { /* kabuk hatası oyunu durdurmasın */ } }
   /** övgü sözleri ve altın koklea yazısı üst üste binmesin: sırayla (en az 0,8 sn arayla) */

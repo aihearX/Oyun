@@ -14,6 +14,7 @@ import { RaceInviteBanner } from '../useRaceInvites';
  *  - `?ad=Ayşe`          → bağlanınca takma adı ayarla
  *  - `?yaris-bot=1`      → bölümü harness botu oynar (yalnızca bu sayfada; uygulamada etkisiz, kullanıcıya hiç gösterilmez)
  *  - `&bot-gecikme=700`  → bot "Başla!"dan bu kadar ms sonra başlar (testte bitiş sırası ve hayaletler ayrışsın diye)
+ *  - `&hd=3`             → bot kipinde de tuval bu piksel oranında çizilir (vitrin: keskin yarış içi kare; yoksa bot 1x)
  *  - `?sunucu=ws://…`    → sosyal sunucu adresi (platform.ts)
  * Uygulamadaki (App.tsx) bağlama bunun aynısıdır.
  */
@@ -21,6 +22,7 @@ const q = new URLSearchParams(location.search);
 const BOT = q.get('yaris-bot') === '1';
 const BOT_DELAY = Math.max(0, Number(q.get('bot-gecikme') ?? 0) || 0);
 const NAME = (q.get('ad') ?? '').trim();
+const HD = Math.max(0, Math.min(3, Number(q.get('hd') ?? 0) || 0));
 
 type Route =
   | { name: 'lobby'; inviteRoomId?: string; key: number }
@@ -44,7 +46,7 @@ export function RaceDevApp() {
       <RaceInviteBanner onAccept={(id) => lobby(id)} />
       <RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, room })} onClose={() => lobby()} />
     </>;
-    case 'level': return <LevelHost spec={route.spec} skills={DEFAULT_SKILLS} sounds={!BOT} bot={BOT} race={route.room} raceBotDelayMs={BOT_DELAY}
+    case 'level': return <LevelHost spec={route.spec} skills={DEFAULT_SKILLS} sounds={!BOT} bot={BOT} race={route.room} raceBotDelayMs={BOT_DELAY} renderScale={HD || undefined}
       onDone={(result, room) => setRoute({ name: 'result', room: room ?? route.room, result })} onQuit={() => lobby()} />;
     case 'result': return <>
       <RaceInviteBanner onAccept={(id) => lobby(id)} />

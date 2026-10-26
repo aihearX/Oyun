@@ -26,7 +26,7 @@ export interface BossArtState {
   warnWall: { side: -1 | 1; kind: string } | null; notes: { x: number; y: number; got: boolean }[]; core: { x: number } | null;
   heroX?: number;
 }
-export interface BossArt { update(b: BossArtState, groundY: number): void; destroy(): void }
+export interface BossArt { update(b: BossArtState, groundY: number): void; destroy(): void; /** can çubuğu: görünüm genişliğinde ortalı, oyun içi göstergenin inişi kadar aşağıda (tasarım px) */ layout(viewW: number, top: number): void }
 
 // ================================================================ boyama yardımcıları
 type Sil = (c: Ctx) => void;
@@ -375,6 +375,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
   // ---- can çubuğu (ekran-sabit)
   const cam = s.cameras.main; const O = screenOrigin(cam);
   const bar = add(s.add.container(O.x + 195, O.y + 124).setScrollFactor(0).setDepth(102));
+  const layout = (viewW: number, top: number) => { const o = screenOrigin(cam); bar.setPosition(o.x + viewW / 2, o.y + 124 + top); };
   const barBg = img(barPanelTex(s)); const fillKey = barFillTex(s);
   const trail = img(fillKey, -102, 7).setOrigin(0, 0.5).setTintFill(0xffffff).setAlpha(0.85);
   const fill = img(fillKey, -102, 7).setOrigin(0, 0.5);
@@ -549,7 +550,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
       dropUpdate(b, t, gy, 0.8, 0.25, 300, golemDripTex(s), 0xff9f1c, (x) => { fx.puffs.setParticleTint(0xffc25c); fx.puffs.explode(q(8), x, gy - 4); fx.chips.setTexture(chipKeys[0]!); fx.chips.explode(q(5), x, gy - 6); ring(x, gy - 4, 0xffc25c, 0.1, 0.8, 360, 0.3); });
       lastMode = b.mode;
     };
-    return { update, destroy };
+    return { update, destroy, layout };
   }
 
   // ============================================================ CANAVAR
@@ -674,7 +675,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
     // --- gürültü bulutları
     dropUpdate(b, t, gy, 0.85, 0.3, 320, cloudTex(s), 0x8b3dff, (x) => { fx.puffs.setParticleTint(0xb069ff); fx.puffs.explode(q(10), x, gy - 6); ring(x, gy - 4, 0xff4fd8, 0.1, 0.9, 380, 0.3); });
   };
-  return { update, destroy };
+  return { update, destroy, layout };
 
   // ============================================================ yardımcılar (kapanış)
   function wallUpdate(b: BossArtState, t: number, gy: number, color: number, y: number, hgt: number, ball: boolean) {

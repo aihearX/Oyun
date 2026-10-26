@@ -68,7 +68,8 @@ export interface LevelOptions {
   sounds?: boolean;
   /** bölüm başı can (varsayılan 3) */
   lives?: number;
-  /** harness/pazarlama çekimi: tuval piksel oranını zorla (1–3). Yoksa bot 1, oyuncu cihaz oranı (en çok 2). Yalnız görsel. */
+  /** harness/pazarlama çekimi: tuvalin CSS pikseli başına piksel oranını zorla (1–3; ör. 3 → 440 CSS px genişlikte 1320 px tuval).
+   *  Yoksa bot 1, oyuncu cihaz piksel oranı (bellek için en çok 2). Yalnız görsel. */
   renderScale?: number;
   /** bot: hız çarpanı (test süresini kısaltmak için) */
   timeScale?: number;
@@ -84,6 +85,8 @@ export interface LevelOptions {
   onPauseRequest?: () => void;
   /** cihazın güvenli alan üst boşluğu (CSS px; çentik/kamera/saat): oyun içi gösterge bunun altına iner */
   safeTop?: number;
+  /** güvenli alan üst boşluğunu yeniden ölç (CSS px; görünüm boyutu değişince — döndürme, geç gelen yerel inset); verilirse safeTop yerine */
+  safeTopNow?: () => number;
   /**
    * Tedavi Odası'ndan çantaya konan malzemeler (bölüm kartında seçilir; kimlikler @odi/content REMEDIES). Her adet, malzemenin
    * `counters` listesindeki bir patoloji engelini bir kez etkisiz kılar; kullanılan adetler RunResult.remediesUsed ile döner
