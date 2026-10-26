@@ -12,7 +12,7 @@ Plan: [ODİ Sunucu Planı](https://claude.ai/artifact/5iDRnp4HPDQtEAjkLVbhfr). H
 
 | Ne | Kim | Durum |
 |---|---|---|
-| `tools/sunucu/kur.sh`, yardımcı komutlar, `oyna --sunucu`, `eas.json` ortam yeri, aynı kökenden web | sunucu çalışanı | sürüyor |
+| `tools/sunucu/kur.sh`, yardımcı komutlar, `oyna --sunucu`, `eas.json` ortam yeri, aynı kökenden web | sunucu çalışanı | tamam (4901df5; x86_64 Ubuntu 24.04 kabında baştan sona denendi) |
 | MK-019 `kopma-e2e` (oturum ortasında yeniden başlatma) | kopma çalışanı | sırada |
 | MK-024 uzak denetim araçları: `uzak-duman.mjs` ve `yuk.mjs` (aşağıda) | çalışan (uzak) | sırada |
 | Kurulum (Adım 1–5), "Hazır" satırı | sahip | bekliyor |
@@ -33,6 +33,12 @@ Bunun yerine:
   Sonunda her hesabı `account.delete` ile siler. Hiçbir adım veritabanına doğrudan dokunmaz. Web ve DOM hedefi, Chromium ve WebKit.
 - **`tools/sunucu/yuk.mjs`.** Sanal oyuncu sayısı ve süre parametre. Bağlanır, kimlik doğrular, takım sohbeti ve kamp işlemleri yapar, düzenli ping atar. p50/p95 yanıt süresini ve hata sayısını yazar. Sunucunun **kendisinde**, geçici ikinci bir örneğe karşı koşar (`ODI_DB` geçici dosya, ayrı port); üretim verisine dokunmaz, IP sınırına takılmaz. Aynı araçla Caddy üzerinden 5 sanal oyunculuk kısa bir koşu da yapılır.
 
+## İlk gerçek kurulumda ilk bakılacaklar
+Kapta denenmeyenler: ARM, gerçek DuckDNS, Let's Encrypt, Oracle Security List, telefonda Expo Go `--sunucu`.
+
+- `npm ci --ignore-scripts` ARM'de yerel ikilileri bulur mu? Kilit dosyasında `@esbuild/linux-arm64`, `@rolldown/binding-linux-arm64-gnu` ve `lightningcss-linux-arm64-gnu` girdileri var; kurulum günlüğünde `npm ci` ve derleme adımı denetlenir.
+- Sertifika ilk denemede alınamazsa Security List'te 80/443 açık mı bakılır (docs/18 §7).
+
 ## Denetimler
 
 | # | Denetim | Nasıl | Geçme ölçütü |
@@ -48,7 +54,7 @@ Bunun yerine:
 | D9 | Yedek | `odi-durum` son yedek; `odi-yedek-geri` ile **ayrı klasöre** geri yükleme; `PRAGMA integrity_check` | Yedek 6 saatte bir; en çok 28 kopya; geri yüklenen dosya `ok`, oyuncu sayısı tutarlı |
 | D10 | Yük | `yuk.mjs` sunucunun kendisinde: 50 sanal oyuncu, 10 dk | İşlemci < %50, p95 < 200 ms, 0 kopma, bellek sabit |
 | D11 | Uzun bağlantı | 1 istemci 10 dk boşta (Caddy ile WebSocket) | Kopmaz ya da kendiliğinden yeniden bağlanır |
-| D12 | Portlar | Sunucuda `sudo ss -tlnp` + `sudo ufw status`; Oracle Security List; mümkünse dışarıdan `nc -zv <adres> 8787` | Dışarıya yalnız 22, 80, 443; 8787 yalnız 127.0.0.1 |
+| D12 | Portlar | Sunucuda `sudo ss -tlnp` + `sudo iptables -S INPUT` (Oracle görüntüsü ufw değil iptables kullanır); Oracle Security List; mümkünse dışarıdan `nc -zv <adres> 8787` | Dışarıya yalnız 22, 80, 443; 8787 yalnız 127.0.0.1 |
 | D13 | Yönetici kodu sınırı | Test hesabıyla 6 yanlış deneme | 6. deneme beklemeye düşer. Sunucu geneli bütçe (60) tüketilmez: sahibin kodunu kilitlemesin |
 | D14 | Vekil IP | `X-Forwarded-For: 1.2.3.4` sahte başlığıyla hesap açma ve yanlış kod denemesi | Sınır gerçek IP'ye uygulanır; sahte başlık aşamaz (`ODI_TRUST_PROXY=1`, Caddy en sağa ekler) |
 | D15 | Günlükler | `journalctl -u odi --since -1h` | Yönetici kodu, token, IP dışı kişisel veri yok; günlük döndürme açık |
