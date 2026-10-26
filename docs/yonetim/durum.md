@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 5. tur · 2026-10-25 · başlangıç fda8179 → tur sonu 2a93b80 + PY kayıtları (bu belge).
+**Son tur:** 6. tur · 2026-10-26 · başlangıç b39a8a1 → tur sonu 3e69e07 (+ bu belge).
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,20 +26,20 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Çalışanlar (PY doğruladı):**
-  - cdce437 Büyük yazı + web yakınlaştırma (YN-018/MK-006), kabul edildi. Normal + büyük yazı, iki hedef, 1.484 ekran.
-  - 26851fb iki onaylı satır + `kamp-sira-01` ipucu (YN-028); kabul edildi. Sahibin dinlemesi bekleniyor: son MP3'te Whisper "jetonun"u "cetonun" duyuyor.
-  - 9a1fb11 notaya dalan oyuncu modeli (MK-015), kabul edildi. MK-014 kapandı: tasarım sorunu yok, 3 oda %43–78.
-  - 2a93b80 ses düzeyi ölçümü (MK-018), kabul edildi. Karışım dengeli; duck çakışması bulundu → MK-023.
-- **PY:**
-  - fc57e96 hikâyenin istediği bina notu (MK-016).
-  - f9124c1 feel.test süresi.
-  - b17cbca iş listesi: MK-019 sunucu yeniden başlarken oyuncu, MK-020 yükte kırılgan testler, MK-021 k3-derin, MK-022 mağaza ekran görüntüleri, MK-023 duck.
+- **Sahip kararı:** sunucu Oracle Cloud Always Free + DuckDNS + Caddy (karar 1–2). Doğrulama planı: [`sunucu-dogrulama.md`](sunucu-dogrulama.md), D1–D16.
+- **Çalışanlar (PY doğruladı, kabul):**
+  - 4901df5 sunucu kurulum betikleri (YN-006 hazırlığı, YN-007 yer tutucu).
+  - e6dbe34 + 62844a8 sahipli duck + "Anlatıcı ses düzeyi" + müzik parça kazancı (MK-023).
+  - a913ee4 level-gen tembel yükleme (YN-025): ilk JS 710 → 611 KB.
+  - b6278fd uzak denetim araçları (MK-024): yerel üretim sunucusunda PY koştu, 0 hata, hesaplar silindi.
+- **PY:** c0a2d2f doğrulama planı ve MK-024 · iş listesi: YN-029 hesap silmede artık satırlar (P1, KVKK/mağaza), YN-030 IP başına hesap sınırı (P3).
 
 ## Sürüyor
-- **kontrast** (MK-017): metin kontrastı ölçümü.
-- **tembel** (YN-025): level-gen tembel yükleme.
-- **kisma** (MK-023): duck sahipli + "Anlatıcı sesi" kaydırıcısı.
+- **kontrast** (MK-017)
+- **kopma** (MK-019)
+- **vitrin** (MK-022)
+- **Sırada:** saglam (MK-020, kontrast inince) → hesapsil (YN-029, kopma inince) → derin (MK-021).
+- **Sahipte:** Oracle kurulumu (Adım 1–5), Expo hesabı, kararlar 15–18 (dinleme).
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
