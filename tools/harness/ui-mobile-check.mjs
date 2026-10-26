@@ -4,7 +4,8 @@
 //   · dokunmatik kaydırma (Chromium: CDP dokunma hareketi, WebKit: tekerlek) → kaydırma konumu değişmeli,
 //   · yatay taşma: her öğenin sağ kenarı görünüm genişliği içinde (html/body/#root/.screen kırpması sayılmaz),
 //   · sohbet giriş kutusu alt sekme çubuğunun üstünde ve görünür,
-//   · üst güvenli alan (varsayılan 47 px): üst çubuk / ekran başlığı / sonuç üst satırı / alt sayfa çentiğin altında.
+//   · üst güvenli alan (varsayılan 47 px): üst çubuk / ekran başlığı / sonuç üst satırı / alt sayfa çentiğin altında,
+//   · metin kontrastı (WCAG AA: normal 4,5:1, büyük 3:1; measureContrast, MK-017).
 // Hedefler:
 //   web — apps/web derlemesi (vite preview); güvenli alan payları köprünün yaptığı gibi --safe-top/--safe-bottom ile verilir.
 //   dom — Expo DOM paketi (apps/mobile/dist/www.bundle): gerçek WebApp köprüsü (insetTop/insetBottom prop'ları),
@@ -13,12 +14,16 @@
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
 //           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
 //           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
+//           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
+//           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
+//           [--dist-ek ad] (web ve dom derlemesi dist-<ad> klasörlerinde: aynı ağaçta iki koşu ayrı derlemeyle)
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { inflateSync } from 'node:zlib';
 import { chromium, webkit } from 'playwright';
 import { measureHudFit } from './hud-fit.mjs';
 
@@ -35,6 +40,10 @@ const only = opt('only', '') ? opt('only').split(',') : null;
 const want = (k) => !only || only.includes(k);
 // Büyük yazı kipi: oyuncu kaydı bigText:true ile tohumlanır; her ekranda kök yazı ölçeği de denetlenir
 const BIG = has('buyuk-yazi');
+// metin kontrastı (MK-017, WCAG AA) her ekranda ölçülür; --kontrast-yok ile kapanır
+const KONTRAST = !has('kontrast-yok');
+// --ek-css <dosya>: her sayfaya ek stil (sahibe görsel öneri: aynı ekranların önce/sonra görüntüsü; ör. kontrast önerileri)
+const EK_CSS = opt('ek-css', '') ? readFileSync(resolve(process.cwd(), opt('ek-css')), 'utf8') : '';
 const BASE_STATE = { ftue: { v: 1, story: true, tours: [], bypass: true }, ...(BIG ? { bigText: true } : {}) };
 const outRoot = resolve(root, 'tools/harness/out/ui-mobile', tag); mkdirSync(outRoot, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -45,13 +54,15 @@ for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => { cleanup(); proc
 const run = (cmd, a, o = {}) => new Promise((res, rej) => { const p = spawn(cmd, a, { cwd: root, stdio: 'inherit', ...o }); p.on('exit', (c) => (c === 0 ? res() : rej(new Error(`${cmd} ${a.join(' ')} → ${c}`)))); });
 
 // ---------------------------------------------------------------- derleme + sunucu
-const distDir = resolve(root, 'tools/harness/out/ui-mobile/dist');
+// --dist-ek <ad>: derleme klasörlerine ek (ör. aynı ağaçta "önce" koşusu sürerken "sonra" derlemesi ayrı klasörde)
+const DIST_EK = opt('dist-ek', '') ? `-${opt('dist-ek')}` : '';
+const distDir = resolve(root, `tools/harness/out/ui-mobile/dist${DIST_EK}`);
 if (targets.includes('web') && (!has('no-build') || !existsSync(resolve(distDir, 'index.html')))) await run('npx', ['vite', 'build', '--outDir', distDir, '--emptyOutDir', '--logLevel', 'warn'], { cwd: resolve(root, 'apps/web') });
 if (!existsSync(resolve(root, 'apps/server/dist/server.mjs')) || (!has('no-build') && targets.includes('web'))) await run('npm', ['run', 'build:server', '--silent']);
-const mobileDist = resolve(root, 'apps/mobile/dist');
+const mobileDist = resolve(root, `apps/mobile/dist${DIST_EK}`);
 if (targets.includes('dom') && (has('build-dom') || !existsSync(resolve(mobileDist, 'www.bundle')))) {
   rmSync(mobileDist, { recursive: true, force: true });
-  await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', 'dist'], { cwd: resolve(root, 'apps/mobile') });
+  await run('npx', ['expo', 'export', '--platform', 'ios', '--output-dir', `dist${DIST_EK}`], { cwd: resolve(root, 'apps/mobile') });
 }
 const sport = 8800 + Math.floor(Math.random() * 400);
 // sunucu veritabanı geçici bir dosyada: "büyük cüzdan" denetimi oyuncunun cüzdanını doğrudan yazar
@@ -214,6 +225,250 @@ function measureChat() {
   return { present: true, top: Math.round(r.top), bottom: Math.round(r.bottom), tabTop: tb ? Math.round(tb.top) : null, ok: r.bottom <= limit + 0.5 && r.top >= 0 && r.right <= document.documentElement.clientWidth + 1 };
 }
 
+/** metin kontrastı (WCAG 2.x AA, 1.4.3; MK-017): görünen her metin düğümü (ve dolu yazı kutusu) için yazı rengi ile arkasındaki zemin.
+ *  Zemin ata zincirinden hesaplanır: her öğenin zemin rengi (saydamlığıyla) ve opacity grubu iç içe birleştirilir. Zincirde resim /
+ *  gradyan zemin varsa (gövdenin gece gradyanı, cam paneller, tuval üstü göstergeler) zemin ekran görüntüsünden örneklenir (sample:true;
+ *  Node tarafı yazılar gizlenmiş bir görüntüde metin kutusunun piksellerini okur). Eşik: normal 4,5:1; büyük (≥ 24 px ya da ≥ 18,66 px
+ *  ve kalın) 3:1. WCAG'nin saydığı istisnalar (etkisiz/devre dışı denetim, salt süs, logo) ayrı listelenir; görünmeyenler (opacity ~0,
+ *  sr-only, açık alt sayfanın örttüğü ekran) sayılmaz. Phaser tuvalindeki yazılar DOM'da olmadığı için ölçülmez. */
+function measureContrast([ISTISNA, BEKLEYEN]) {
+  const parse = (s) => {
+    if (!s || s === 'transparent') return [0, 0, 0, 0];
+    let m = s.match(/^rgba?\(([^)]+)\)/);
+    if (m) { const p = m[1].split(/[\s,/]+/).filter(Boolean).map((x) => (x.endsWith('%') ? parseFloat(x) / 100 : Number(x))); return [p[0] / 255, p[1] / 255, p[2] / 255, p.length > 3 ? p[3] : 1]; }
+    m = s.match(/^color\(srgb\s+([^)]+)\)/);
+    if (m) { const p = m[1].split(/[\s/]+/).filter(Boolean).map((x) => (x.endsWith('%') ? parseFloat(x) / 100 : Number(x))); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+    return null;
+  };
+  const cache = new Map();
+  const st = (el) => { let c = cache.get(el); if (!c) { const cs = getComputedStyle(el); c = { cs, bg: parse(cs.backgroundColor) ?? [0, 0, 0, 0], img: cs.backgroundImage !== 'none', op: Number(cs.opacity), filter: cs.filter !== 'none' ? cs.filter : '' }; cache.set(el, c); } return c; };
+  const pm = (c) => [c[0] * c[3], c[1] * c[3], c[2] * c[3], c[3]];
+  const over = (t, b) => [t[0] + b[0] * (1 - t[3]), t[1] + b[1] * (1 - t[3]), t[2] + b[2] * (1 - t[3]), t[3] + b[3] * (1 - t[3])];
+  const scale = (c, k) => c.map((v) => v * k);
+  const un = (c) => (c[3] > 0 ? [c[0] / c[3], c[1] / c[3], c[2] / c[3]] : [0, 0, 0]);
+  // opacity grupları iç içe: grup(i) = opacity_i × (grup(i+1) ⊕ zemin_i); en içte yazı katmanı (ya da boş)
+  const composite = (chain, text) => {
+    let g = text ? pm(text) : [0, 0, 0, 0];
+    for (let i = chain.length - 1; i >= 0; i--) { const s = st(chain[i]); g = scale(over(g, pm(s.bg)), s.op); }
+    return un(over(g, [1, 1, 1, 1]));
+  };
+  const lin = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const lum = (c) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const hex = (c) => '#' + c.slice(0, 3).map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0')).join('');
+  const desc = (el) => { const parts = []; for (let q = el, k = 0; q && q !== document.body && k < 3; q = q.parentElement, k++) { const c = typeof q.className === 'string' && q.className.trim() ? '.' + q.className.trim().split(/\s+/).slice(0, 2).join('.') : ''; parts.unshift(q.tagName.toLowerCase() + c); } return parts.join(' > '); };
+  const W = innerWidth, H = innerHeight;
+  const items = []; const nodes = []; const seen = new Set();
+  const add = (el, textNode, text, colorStr) => {
+    if (seen.has(textNode)) return; seen.add(textNode);
+    if (el.closest('#__inset_top, #__inset_bottom, script, style, noscript, .sr-only')) return;
+    const s = st(el); const cs = s.cs;
+    if (cs.visibility === 'hidden' || cs.display === 'none') return;
+    let r;
+    if (textNode.nodeType === 3) { const rg = document.createRange(); rg.selectNodeContents(textNode); r = rg.getBoundingClientRect(); } else r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return;
+    const chain = []; for (let q = el; q; q = q.parentElement) chain.unshift(q);
+    let opAll = 1; for (const q of chain) opAll *= st(q).op;
+    if (opAll < 0.1) return; // görünmez (solma ya da gizli öğe)
+    // gizli kırpma: overflow kabının dışında kalan metin (ör. kapalı akordeon); kaydırma kabının görünmeyen kısmı sayılır (kaydırılınca görünür)
+    for (const q of chain) { if (q === el) break; const qs = st(q).cs; if (/(hidden|clip)/.test(qs.overflow) && (q.clientHeight === 0 || q.clientWidth === 0)) return; }
+    // SVG yazısı (grafik eksenleri): rengi fill (+ fill-opacity), boyutu çizim ölçeğiyle; arkası SVG şekilleri olabilir → hep örneklenir
+    const svg = el instanceof SVGElement;
+    let fg = parse(colorStr ?? (svg ? cs.fill : cs.color)) ?? (svg ? null : [1, 1, 1, 1]);
+    if (!fg) return; // fill:none / url(...) dolgu
+    if (svg) fg = [fg[0], fg[1], fg[2], fg[3] * Number(cs.fillOpacity || 1)];
+    const fill = !svg && cs.webkitTextFillColor ? parse(cs.webkitTextFillColor) : null;
+    let fs = parseFloat(cs.fontSize); const fw = Number(cs.fontWeight) || 400;
+    if (svg) { const m = el.getScreenCTM?.(); if (m) fs *= Math.hypot(m.a, m.b); }
+    const large = fs >= 24 || (fs >= 18.66 && fw >= 700);
+    const need = large ? 3 : 4.5;
+    // örnekleme gerekir mi: zemin rengi tamamen örten en içteki katmanın üstünde resim/gradyan zemin var mı (ya da örten katmanı opacity delerse)
+    let k = -1; for (let i = chain.length - 1; i >= 0; i--) { const z = st(chain[i]); if (z.bg[3] >= 0.999 && !z.img) { k = i; break; } }
+    let opBelow = 1; for (let i = 0; i <= k; i++) opBelow *= st(chain[i]).op;
+    let sample = svg || k < 0 || opBelow < 0.999; for (let i = Math.max(0, k + 1); i < chain.length && !sample; i++) if (st(chain[i]).img) sample = true;
+    const filt = chain.map((q) => st(q).filter).filter(Boolean)[0] || '';
+    const bg = composite(chain, null); const tx = composite(chain, fg);
+    const item = { id: nodes.length, text: text.trim().replace(/\s+/g, ' ').slice(0, 40), sel: desc(el), fs: Math.round(fs * 10) / 10, fw, large, need,
+      fg: hex(fg), fgA: Math.round(fg[3] * opAll * 100) / 100, tx: hex(tx), bg: hex(bg), ratio: Math.round(ratio(tx, bg) * 100) / 100, sample, filter: filt || undefined,
+      fgRaw: fg, opAll };
+    for (const [sel, why, min] of ISTISNA) if (el.closest(sel)) { item.istisna = why; if (min) { item.need = min; item.istisnaMin = min; } break; }
+    if (!item.istisna && fill && fill[3] < 0.05 && cs.backgroundClip === 'text') item.istisna = 'gradyan metin (background-clip:text) — elle bakılmalı';
+    // WCAG 1.4.3 istisnaları: etkisiz (devre dışı) denetimin parçası; salt süs ve logo yalnız KONTRAST_ISTISNA'daki gerekçeli seçicilerle
+    // (aria-hidden kendiliğinden istisna sayılmaz: gören oyuncu o yazıyı okur)
+    const dis = el.closest('button:disabled, input:disabled, select:disabled, textarea:disabled, fieldset:disabled, [aria-disabled="true"]');
+    if (!item.istisna && dis) item.istisna = 'devre dışı denetim (WCAG 1.4.3: etkisiz arayüz öğesi)';
+    if (!item.istisna) for (const [sel, why] of BEKLEYEN) if (el.closest(sel)) { item.bekleyen = why; break; }
+    item.inView = r.top >= -1 && r.left >= -1 && r.bottom <= H + 1 && r.right <= W + 1;
+    item.rect = [r.left, r.top, r.width, r.height];
+    nodes.push(textNode); items.push(item);
+  };
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) { if (!n.nodeValue.trim()) continue; const el = n.parentElement; if (el) add(el, n, n.nodeValue); }
+  // yazı kutuları: girilen değer (yer tutucu değil: boşsa ::placeholder rengi)
+  for (const el of document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=radio]):not([type=range]), textarea')) {
+    const v = el.value || ''; const ph = el.getAttribute('placeholder') || '';
+    if (v.trim()) add(el, el, v);
+    else if (ph.trim()) { let c = null; try { c = getComputedStyle(el, '::placeholder').color; } catch { /* yok */ } add(el, el, ph, c && c !== getComputedStyle(el).color ? c : undefined); }
+  }
+  window.__kNodes = nodes;
+  return items;
+}
+/** örneklenecek metinlerin güncel konumu ve üstünün açık olup olmadığı (kaydırmadan sonra yeniden okunur) */
+function contrastRects(ids) {
+  const W = innerWidth, H = innerHeight; const out = {};
+  let ov = null;
+  // boyalı sabit/yapışkan şeritler (ekranın %60'ından küçük; tam ekran katmanlar ve test bantları sayılmaz)
+  const overlays = () => ov ??= [...document.querySelectorAll('body *')].filter((e) => {
+    if (e.id === '__inset_top' || e.id === '__inset_bottom') return false;
+    const cs = getComputedStyle(e); if (cs.position !== 'fixed' && cs.position !== 'sticky') return false;
+    if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) return false;
+    const paints = (x) => { const s = getComputedStyle(x); return s.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(s.backgroundColor) || (s.backdropFilter && s.backdropFilter !== 'none'); };
+    // kabın kendisi boyasızsa (bildirim kabı) boyalı ilk çocuğu sayılır
+    const painted = paints(e) || [...e.children].some(paints);
+    const r = e.getBoundingClientRect(); return painted && r.width * r.height > 0 && r.width * r.height < W * H * 0.6;
+  }).map((e) => ({ el: e, r: e.getBoundingClientRect(), z: Number(getComputedStyle(e).zIndex) || 0, sticky: getComputedStyle(e).position === 'sticky', root: fixedRoot(e.parentElement) }));
+  function paintsVisibly(e) {
+    if (e.id === '__inset_top' || e.id === '__inset_bottom') return false;
+    const s = getComputedStyle(e); const a = (s.backgroundColor.match(/[\d.]+/g) ?? []).map(Number);
+    const paints = s.backgroundImage !== 'none' || (a.length === 4 ? a[3] > 0.05 : a.length === 3) || (s.backdropFilter && s.backdropFilter !== 'none');
+    if (!paints) return false;
+    let op = 1; for (let q = e; q; q = q.parentElement) op *= Number(getComputedStyle(q).opacity);
+    return op > 0.1;
+  }
+  /** en dıştaki position:fixed ata (yoksa null): aynı sabit kabın içindeki yapışkan başlık, kabın içeriğini örter */
+  function fixedRoot(e) { let f = null; for (let q = e; q && q !== document.body; q = q.parentElement) if (getComputedStyle(q).position === 'fixed') f = q; return f; }
+  for (const id of ids) {
+    const n = window.__kNodes?.[id]; if (!n || !n.isConnected) { out[id] = null; continue; }
+    const el = n.nodeType === 3 ? n.parentElement : n;
+    let rects;
+    if (n.nodeType === 3) { const rg = document.createRange(); rg.selectNodeContents(n); rects = [...rg.getClientRects()].filter((q) => q.width >= 1 && q.height >= 1); }
+    else {
+      // yazı kutusu: kenarlık ve iç boşluk dışındaki içerik alanı (odak çerçevesi zemin sayılmasın)
+      const b = el.getBoundingClientRect(); const cs = getComputedStyle(el); const px = (k) => parseFloat(cs[k]) || 0;
+      const l = b.left + px('borderLeftWidth') + px('paddingLeft'), t = b.top + px('borderTopWidth') + Math.max(px('paddingTop'), 2), r = b.right - px('borderRightWidth') - px('paddingRight'), bt = b.bottom - px('borderBottomWidth') - Math.max(px('paddingBottom'), 2);
+      rects = [{ left: l, top: t, right: r, bottom: bt, width: r - l, height: bt - t }];
+    }
+    if (!rects.length) { out[id] = null; continue; }
+    // görünür alan: görünüm ∩ kırpan/kaydıran ataların kutusu (alt sayfanın kaydırılmış dışı, yatay şeritlerin gizli kısmı)
+    let cl = [0, 0, W, H];
+    // position:fixed öğe (alt sayfa, Tüy Dede kartı) görünüme göre konumlanır: üstündeki kaydırma kapları onu kırpmaz
+    for (let c = el, q = el.parentElement; q && q !== document.documentElement; c = q, q = q.parentElement) {
+      if (getComputedStyle(c).position === 'fixed') break;
+      const qs = getComputedStyle(q); if (qs.overflowX === 'visible' && qs.overflowY === 'visible') continue;
+      const b = q.getBoundingClientRect(); cl = [Math.max(cl[0], b.left), Math.max(cl[1], b.top), Math.min(cl[2], b.right), Math.min(cl[3], b.bottom)];
+    }
+    // görünen parça: kırpılmış dikdörtgenler; üç noktayla kısaltılan (kabından taşan) yazıda taşan kısım hiç görünmez → en az %40'ı görünüyorsa ölçülür
+    let all = 0, vis = 0; const parts = [];
+    for (const q of rects) {
+      const l = Math.max(q.left, cl[0]), t = Math.max(q.top, cl[1]), r = Math.min(q.right, cl[2]), b = Math.min(q.bottom, cl[3]);
+      // satırın çoğu kırpılmışsa (kabın kenarında kalan ince şerit) o satır okunmaz: örneğe girmez
+      all += q.width * q.height; if (r - l >= 1 && b - t >= 1 && (r - l) * (b - t) >= q.width * q.height * 0.4) { vis += (r - l) * (b - t); parts.push({ left: l, top: t, width: r - l, height: b - t, right: r, bottom: b }); }
+    }
+    const inView = parts.length > 0 && vis >= all * 0.4;
+    rects = parts.length ? parts : rects;
+    // üstü açık mı: metin kutusunun ortasında en üstteki öğe metnin kendisi (ya da atası/çocuğu) olmalı; açık alt sayfanın örttüğü ekran sayılmaz
+    // sabit bir şerit / açılır pencere metnin bir kısmını örtüyorsa (kaydırınca metin altına girer) bu konumda ölçülmez
+    let covered = false;
+    // isabet yığını (yukarıdan aşağı): metnin kendisine/atasına varmadan boyalı ve görünür bir öğe gelirse örtülü. Ölçüm sırasında
+    // bütün öğeler pointer-events:auto (contrastHide): pointer-events:none üst katmanlar (kamp üst bandı) da yakalanır
+    if (inView) for (const q of rects.slice(0, 3)) for (const fx of [0.1, 0.5, 0.9]) for (const fy of [0.2, 0.5, 0.85]) {
+      for (const hit of document.elementsFromPoint(q.left + q.width * fx, q.top + q.height * fy)) {
+        if (hit === el || el.contains(hit) || hit.contains(el)) break;
+        if (paintsVisibly(hit)) { covered = true; break; }
+      }
+      if (covered) break;
+    }
+    // yapışkan (sticky) öğe kaydırınca yer değiştirir: yalnız ilk konumunda ölçülür
+    let sticky = false, pinned = false;
+    for (let q = el; q && q !== document.body; q = q.parentElement) { const ps = getComputedStyle(q).position; if (ps === 'sticky') sticky = true; if (ps === 'fixed' || ps === 'sticky') pinned = true; }
+    // akıştaki metin, sabit/yapışkan bir şeridin (sekme çubuğu, üst çubuk) altına girdiyse örtülüdür; şeridin boşlukları
+    // pointer-events:none olabildiğinden isabet testi yetmez → kutu kesişimi
+    // sabit/yapışkan bir kabın içindeki metin (alt sayfa) için yalnız daha üstteki katman (z-index büyük: ör. bildirim) örter
+    const zOf = (e) => { let z = 0; for (let q = e; q && q !== document.body; q = q.parentElement) { const cs = getComputedStyle(q); if (cs.position === 'fixed' || cs.position === 'sticky') { z = Number(cs.zIndex) || 0; } } return z; };
+    const zEl = pinned ? zOf(el) : -Infinity; const rootEl = fixedRoot(el);
+    if (inView && !covered) for (const b of overlays()) if (!b.el.contains(el) && !el.contains(b.el) && ((b.sticky && b.root === rootEl) || b.z > zEl) && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = pinned ? true : 'serit'; break; }
+    let op = 1; for (let q = el; q; q = q.parentElement) op *= Number(getComputedStyle(q).opacity);
+    out[id] = { inView, covered, sticky, op: Math.round(op * 100) / 100, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
+  }
+  return out;
+}
+function contrastHide(on) {
+  let s = document.getElementById('__kontrast');
+  if (!on) { s?.remove(); return; }
+  if (!s) { s = document.createElement('style'); s.id = '__kontrast'; document.head.appendChild(s); }
+  s.textContent = '*,*::before,*::after,::placeholder{-webkit-text-fill-color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;caret-color:transparent!important;transition:none!important}svg text,svg tspan{fill:transparent!important;stroke:transparent!important}input,textarea{color:transparent!important}*{pointer-events:auto!important}#__inset_top,#__inset_bottom{display:none!important}';
+}
+function scrollSave(restore) {
+  if (restore) {
+    const saved = new Map((window.__kScroll ?? []).map(([el, t, l]) => [el, [t, l]]));
+    for (const el of document.querySelectorAll('html, body, body *')) if (el.scrollTop || el.scrollLeft || saved.has(el)) { const [t, l] = saved.get(el) ?? [0, 0]; el.scrollTop = t; el.scrollLeft = l; }
+    window.__kScroll = null; return;
+  }
+  window.__kScroll = [...document.querySelectorAll('html, body, body *')].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [el, el.scrollTop, el.scrollLeft]);
+}
+
+/** PNG çözücü (dış paket yok): 8 bit RGB/RGBA, taramasız (Playwright ekran görüntüleri) → { w, h, ch, px } */
+function decodePng(buf) {
+  let p = 8; const idat = []; let w = 0, h = 0, ct = 0;
+  while (p < buf.length) {
+    const len = buf.readUInt32BE(p); const type = buf.toString('ascii', p + 4, p + 8); const data = buf.subarray(p + 8, p + 8 + len);
+    if (type === 'IHDR') { w = data.readUInt32BE(0); h = data.readUInt32BE(4); ct = data[9]; if (data[8] !== 8 || data[12] !== 0 || (ct !== 2 && ct !== 6)) throw new Error(`PNG biçimi desteklenmiyor (bit ${data[8]}, renk ${ct})`); }
+    else if (type === 'IDAT') idat.push(data); else if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  const raw = inflateSync(Buffer.concat(idat)); const ch = ct === 6 ? 4 : 3; const stride = w * ch; const px = Buffer.alloc(h * stride);
+  for (let y = 0; y < h; y++) {
+    const f = raw[y * (stride + 1)]; const src = y * (stride + 1) + 1; const o = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const a = x >= ch ? px[o + x - ch] : 0, b = y ? px[o - stride + x] : 0, c = x >= ch && y ? px[o - stride + x - ch] : 0; let v = raw[src + x];
+      if (f === 1) v += a; else if (f === 2) v += b; else if (f === 3) v += (a + b) >> 1;
+      else if (f === 4) { const pp = a + b - c, pa = Math.abs(pp - a), pb = Math.abs(pp - b), pc = Math.abs(pp - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? b : c; }
+      px[o + x] = v & 255;
+    }
+  }
+  return { w, h, ch, px };
+}
+const kLin = (v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+const kLum = (c) => 0.2126 * kLin(c[0]) + 0.7152 * kLin(c[1]) + 0.0722 * kLin(c[2]);
+const kRatio = (a, b) => { const x = kLum(a), y = kLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+const kHex = (c) => '#' + c.slice(0, 3).map((v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0')).join('');
+/** örneklenen zemin: metin kutularının pikselleri (yazılar gizli); yazı rengi (saydamlığıyla) her piksele bindirilir.
+ *  Sonuç oranı: piksellerin %10'luk alt dilimi (tek tük yıldız ya da kenar çizgisi sonucu bozmasın, gradyanın kötü yarısı sayılsın) */
+function sampleContrast(img, rects, fg, alpha) {
+  const rs = [];
+  let area = 0; for (const [, , w, h] of rects) area += w * h;
+  const step = Math.max(1, Math.sqrt(area / 1200));
+  let worstBg = null, worst = Infinity;
+  // satır kutusunun üst/alt boşluğu (yarım satır aralığı) harf değildir: kutunun dikeyde ortadaki %70'i örneklenir
+  for (const [l, t0, w, h0] of rects) { const t = t0 + h0 * 0.15, h = h0 * 0.7; for (let y = t + step / 2; y < t + h; y += step) for (let x = l + step / 2; x < l + w; x += step) {
+    const xi = Math.min(img.w - 1, Math.max(0, Math.floor(x))), yi = Math.min(img.h - 1, Math.max(0, Math.floor(y))); const o = (yi * img.w + xi) * img.ch;
+    const bg = [img.px[o] / 255, img.px[o + 1] / 255, img.px[o + 2] / 255];
+    const tx = [0, 1, 2].map((i) => fg[i] * alpha + bg[i] * (1 - alpha));
+    const r = kRatio(tx, bg); rs.push([r, bg, tx]); if (r < worst) { worst = r; worstBg = bg; }
+  } }
+  if (!rs.length) return null;
+  rs.sort((a, b) => a[0] - b[0]);
+  const [r, bg, tx] = rs[Math.floor(rs.length * 0.1)];
+  return { ratio: Math.round(r * 100) / 100, bg: kHex(bg), tx: kHex(tx), min: Math.round(worst * 100) / 100, minBg: kHex(worstBg), n: rs.length };
+}
+/** sahip kararı bekleyen kontrast açıkları (MK-017): düzeltmesi dolgu rengini (marka/vurgu rengi) ya da görünümü değiştirdiği için
+ *  uygulanmadı; öneri ve önce/sonra görüntüleri tools/harness/out/kontrast-oneri/ (oneri.css, Ö1–Ö7). Koşuyu düşürmez, ayrı sayılır
+ *  ve listelenir. Sahip bir öneriyi kabul edince satırı silinir (ölçüm o zaman gerçekten 4,5:1'i arar). */
+const KONTRAST_BEKLEYEN = [
+  ['.dot, .sbadge, .kg-badge:not(.teal), .cnt-badge, .tag-populer .ribbon', 'Ö1 bildirim rozeti: beyaz sayı mercan dolguda (2,94:1)'],
+  ['.btn.ghost, .seg button.on, .msg.mine .bubble, .race-msg.mine, .ribbon', 'Ö2 mor dolgu: beyaz yazı açık mor degradede'],
+  ['.btn.coral, .ev-mon-card .btn, .fc-actions .btn, .badge-record', 'Ö3 mercan dolgu: beyaz yazı açık mercan degradede'],
+  ['.ks-badge, .mh-lvl', 'Ö4 seviye rozeti: küçük etiket açık mor degradede'],
+  ['.camp-susle', 'Ö5 Süsle düğmesi: koyu yazı açık mor degradede'],
+  ['.bp-tier, .kg-tier, .kg-badge.teal', 'Ö6 kademe çipi: beyaz yazı malzeme renginde'],
+  ['.ev-band, .map-goal', 'Ö7 etkinlik şeridi / hedef bayrağı: açık degrade'],
+];
+/** WCAG'nin izin verdiği, gerekçeli kontrast istisnaları (seçici → gerekçe); rapor bunları ayrıca listeler */
+const KONTRAST_ISTISNA = [
+  ['.ts-logo', 'logo (WCAG 1.4.3: logotip) — açılış ekranındaki ODİ yazı markası, gradyan dolgulu'],
+  ['.kg-legend b.r, .kg-legend b.l', 'odyogram işareti (“<”, “[”: grafikteki maskeleme simgesinin glifi, sözcük değil) — WCAG 1.4.11 grafik nesne, eşik 3:1; renk grafikteki sağ/sol kulak rengiyle aynı kalmalı', 3],
+];
+
 /** sayfadaki oyuncunun takma adı (sunucu veritabanında bu oyuncuyu bulmak için; yardımcı istemciler Bora/Komşu/Aday) */
 const PAGE_NAME = 'Kulakçı Ayşegül1';
 /** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
@@ -227,6 +482,28 @@ function rawClient(url) {
 
 // ---------------------------------------------------------------- akış
 const report = []; let failures = 0; let suiteNo = 0;
+function writeReports() {
+  writeFileSync(resolve(outRoot, 'rapor.json'), JSON.stringify(report, null, 2));
+  if (KONTRAST) writeFileSync(resolve(outRoot, 'kontrast.json'), JSON.stringify(contrastSummary(), null, 2));
+}
+/** bütün koşuların kontrast bulguları, aynı seçici + renk çiftine göre gruplanmış (belirteç düzeltmesi için) */
+function contrastSummary() {
+  const groups = new Map(), exc = new Map(), pen = new Map(); let measured = 0, unmeasured = 0, violations = 0, exceptions = 0, pending = 0;
+  const put = (m, x, where) => {
+    const key = `${x.sel}|${x.tx}|${x.sampled ? 'örnek' : x.bg}|${x.need}`;
+    const g = m.get(key) ?? { sel: x.sel, text: x.text, tx: x.tx, bg: x.bg, fs: x.fs, fw: x.fw, need: x.need, ratio: x.ratio, sampled: !!x.sampled, istisna: x.istisna, bekleyen: x.bekleyen, count: 0, screens: [] };
+    g.count++; if (x.ratio < g.ratio) { g.ratio = x.ratio; g.bg = x.bg; g.text = x.text; } if (!g.screens.includes(where)) g.screens.push(where); m.set(key, g);
+  };
+  for (const r of report) for (const sc of r.screens) {
+    const c = sc.contrast; if (!c) continue; measured += c.n; unmeasured += c.unmeasured;
+    for (const v of c.violations) { violations++; put(groups, v, `${r.run}/${sc.screen}`); }
+    for (const v of c.exceptions) { exceptions++; put(exc, v, `${r.run}/${sc.screen}`); }
+    for (const v of c.pending ?? []) { pending++; put(pen, v, `${r.run}/${sc.screen}`); }
+  }
+  const sort = (m) => [...m.values()].sort((a, b) => b.count - a.count || a.ratio - b.ratio);
+  const byNote = {}; for (const g of pen.values()) byNote[g.bekleyen] = (byNote[g.bekleyen] ?? 0) + g.count;
+  return { measured, unmeasured, violations, exceptions, pending, pendingByProposal: byNote, groups: sort(groups), exceptionGroups: sort(exc), pendingGroups: sort(pen) };
+}
 const fail = (rec, why) => { rec.fails.push(why); failures++; };
 
 async function suite(browserName, target, [W, H]) {
@@ -241,6 +518,7 @@ async function suite(browserName, target, [W, H]) {
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   await page.addInitScript(paintInsets, [INSET, INSET_B]);
+  if (EK_CSS) await page.addInitScript((css) => { const put = () => { const st = document.createElement('style'); st.id = '__ek_css'; st.textContent = css; document.head.appendChild(st); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', put); else put(); }, EK_CSS);
   if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, null, BASE_STATE]);
   else {
     await page.addInitScript(webInsets, [INSET, INSET_B]);
@@ -261,6 +539,94 @@ async function suite(browserName, target, [W, H]) {
     } else { await page.mouse.move(W / 2, H * 0.5); await page.mouse.wheel(0, Math.round(H * 0.45)); }
     await sleep(500);
   }
+  /** metin kontrastı (measureContrast): animasyonlar biter, metinler ölçülür; resim/gradyan zeminliler yazılar gizlenmiş ekran
+   *  görüntüsünden örneklenir (görünüm dışındakiler sırayla görünüme kaydırılır, sonra kaydırma konumları geri yüklenir) */
+  async function contrast(rec, file, label = '') {
+    // solma/kayma animasyonu sürerken ölçülen yarı saydam metin yanlış ihlal olur (WebKit 320'de boş görüntü notu): sonlu animasyonlar bitsin
+    await page.evaluate(() => Promise.race([
+      Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => undefined))),
+      new Promise((r) => setTimeout(r, 2500))]));
+    await sleep(150); // animasyon bitişinden sonraki kare (WebKit yükte geç boyar)
+    // kaydırma dursun (scrollIntoViewIfNeeded WebKit'te yumuşak kayabilir; animasyon listesinde görünmez): 3 kare aynı konum, en çok 1,5 sn
+    await page.evaluate(() => new Promise((res) => {
+      const snap = () => [...document.querySelectorAll('html, body, body *')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => `${e.scrollTop},${e.scrollLeft}`).join(';');
+      let last = snap(), same = 0; const t0 = performance.now();
+      const tick = () => { const now = snap(); same = now === last ? same + 1 : 0; last = now; if (same >= 3 || performance.now() - t0 > 1500) res(); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
+    const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]);
+    const ids = items.map((i) => i.id);
+    await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
+    try {
+      let pos = await page.evaluate(contrastRects, ids); let img = null, imgBuf = null; const done = new Set();
+      for (let round = 0; round < 30; round++) {
+        // ilk turdan sonra yapışkan öğeler ölçülmez (kaydırma onları başka öğelerin üstüne/altına taşır)
+        if (round > 0) for (const i of items) if (!done.has(i.id) && pos[i.id]?.sticky) { done.add(i.id); if (i.sample) i.unmeasured = true; }
+        const now = items.filter((i) => !done.has(i.id) && pos[i.id]?.inView);
+        let moved = new Set();
+        if (now.some((i) => i.sample && !pos[i.id].covered)) {
+          const buf = await page.screenshot({ scale: 'css' }); img = decodePng(buf); imgBuf = buf;
+          if (process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), buf);
+          // görüntü alınırken kapanan / kayan / solan öğe (Tüy Dede kartı, bildirim): bu turdaki örnek geçersiz, bir kez daha denenir
+          const sIds = now.filter((i) => i.sample && !pos[i.id].covered).map((i) => i.id);
+          const after = await page.evaluate(contrastRects, sIds);
+          for (const id of sIds) { const a = after[id], b = pos[id]; if (!a || JSON.stringify(a.rects) !== JSON.stringify(b.rects) || Math.abs(a.op - b.op) > 0.02) moved.add(id); }
+        }
+        let bad = false;
+        for (const i of now) {
+          // örtülü: bir kez başka konumda (metin üstte) yeniden denenir, yine örtülüyse sayılmaz
+          // hesapla ölçülen (örneklenmeyen) metin şerit altında kalsa da ölçülmüş sayılır: zinciri konumdan bağımsız
+          if (pos[i.id].covered === 'serit' && !i.sample) { done.add(i.id); continue; }
+          if (pos[i.id].covered) { if (i.sample && !i.retried) { i.retried = true; continue; } done.add(i.id); i.covered = true; continue; }
+          if (moved.has(i.id)) { if (i.moves = (i.moves ?? 0) + 1, i.moves < 2) continue; done.add(i.id); i.unmeasured = true; i.why = 'görüntü alınırken kayboldu/kaydı'; continue; }
+          done.add(i.id);
+          if (!i.sample) continue;
+          const sm = sampleContrast(img, pos[i.id].rects, i.fgRaw, i.fgRaw[3] * i.opAll);
+          if (sm) Object.assign(i, { ratio: sm.ratio, bg: sm.bg, tx: sm.tx, min: sm.min, minBg: sm.minBg, sampled: true });
+          if (sm && sm.ratio < i.need && !i.istisna && !i.bekleyen) {
+            // doğrulama: yükte (özellikle WebKit) stil değişikliğinden sonraki ilk kare eksik boyanabiliyor → bir kare sonra yeniden örnekle
+            await sleep(300);
+            const buf2 = await page.screenshot({ scale: 'css' }); const pos2 = (await page.evaluate(contrastRects, [i.id]))[i.id];
+            const sm2 = pos2?.inView && !pos2.covered ? sampleContrast(decodePng(buf2), pos2.rects, i.fgRaw, i.fgRaw[3] * i.opAll) : null;
+            if (sm2 && sm2.ratio >= i.need) { Object.assign(i, { ratio: sm2.ratio, bg: sm2.bg, tx: sm2.tx, min: sm2.min, minBg: sm2.minBg, resampled: sm.ratio }); continue; }
+            imgBuf = buf2;
+            if (process.env.KONTRAST_IZ) { const im = decodePng(buf2); const [l, t, w, h] = pos[i.id].rects[pos[i.id].rects.length - 1]; const x = Math.floor(l + w / 2), y = Math.floor(t + h / 2), o = (y * im.w + x) * im.ch; console.error(`    [kontrast] ihlal ${i.text.slice(0, 20)} img ${im.w}x${im.h}/${im.ch} (${x},${y}) = ${im.px[o]},${im.px[o + 1]},${im.px[o + 2]} rects=${JSON.stringify(pos[i.id].rects)} sm=${JSON.stringify(sm)} sm2=${JSON.stringify(sm2)} pos2=${JSON.stringify(pos2)}`); }
+            bad = true;
+            // tanı: metin kutusunun ortasındaki isabet yığını (örtme algılanamadıysa nedenini görmek için)
+            const [l, t, w, h] = pos[i.id].rects[0];
+            i.stack = await page.evaluate(([x, y]) => document.elementsFromPoint(x, y).slice(0, 6).map((e) => `${e.tagName.toLowerCase()}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}`).join(' › '), [l + w / 2, t + h / 2]);
+            i.sampleRect = pos[i.id].rects.map((q) => q.map(Math.round));
+          }
+        }
+        // örneklenen bir ihlal varsa yazıları gizlenmiş görüntü kanıt olarak kalır (…-kontrastN.png)
+        if (bad && imgBuf && !process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), imgBuf);
+        for (const i of items) if (!done.has(i.id) && !pos[i.id]) done.add(i.id); // kayboldu
+        const next = items.find((i) => !done.has(i.id) && i.sample);
+        if (process.env.KONTRAST_IZ) console.error(`    [kontrast] ${label} tur ${round}: ${done.size}/${items.length} bitti, sıradaki ${next ? next.sel.split(' > ').pop() + ' “' + next.text.slice(0, 16) + '”' : '-'}`);
+        if (!next) break;
+        const block = next.retried ? 'start' : 'center';
+        const dbg = await page.evaluate(([id, block]) => {
+          const n = window.__kNodes[id]; const el = n.nodeType === 3 ? n.parentElement : n; const sc = [];
+          for (let q = el.parentElement; q; q = q.parentElement) if (q.scrollHeight > q.clientHeight + 1 || q.scrollWidth > q.clientWidth + 1) sc.push([q, q.scrollTop, q.scrollLeft]);
+          el.scrollIntoView({ block, inline: 'center', behavior: 'instant' });
+          return sc.map(([q, t, l]) => `${q.tagName.toLowerCase()}.${String(q.className).split(' ')[0]} ${t},${l}→${q.scrollTop},${q.scrollLeft} (${q.scrollHeight}/${q.clientHeight})`).join(' ; ');
+        }, [next.id, block]);
+        await sleep(120);
+        pos = await page.evaluate(contrastRects, ids.filter((id) => !done.has(id)));
+        if (!pos[next.id]?.inView) { done.add(next.id); next.unmeasured = true; next.why = `${JSON.stringify(pos[next.id]?.rects?.[0]?.map(Math.round))} ${dbg}`; }
+      }
+      for (const i of items) if (i.sample && !i.sampled && !i.covered && !i.unmeasured) i.unmeasured = true;
+    } finally { await page.evaluate(contrastHide, false); await page.evaluate(scrollSave, true); }
+    const unmeasured = items.filter((i) => i.unmeasured).length;
+    const live = items.filter((i) => !i.covered && !i.unmeasured);
+    const low = live.filter((i) => i.ratio < i.need);
+    const strip = ({ fgRaw: _f, opAll: _o, inView: _v, id: _i, ...x }) => ({ ...x, rect: x.rect?.map(Math.round) });
+    // istisnanın kendi alt eşiği varsa (ör. grafik simgesi 3:1) ona göre: low zaten i.need'e göre süzüldü
+    const viol = low.filter((i) => (!i.istisna || i.istisnaMin) && !i.bekleyen).map(strip); const exc = low.filter((i) => i.istisna && !i.istisnaMin).map(strip); const pend = low.filter((i) => i.bekleyen).map(strip);
+    rec.contrast = { n: live.length, sampled: live.filter((i) => i.sampled).length, covered: items.filter((i) => i.covered).length, unmeasured, violations: viol, exceptions: exc, pending: pend,
+      unmeasuredItems: items.filter((i) => i.unmeasured).slice(0, 12).map((i) => `${i.sel} “${i.text}” ${i.rect?.map(Math.round).join(',')}${i.why ? ' · ' + i.why : ''}`) };
+    if (viol.length) fail(rec, `kontrast (${viol.length}): ${viol.slice(0, 3).map((x) => `${x.sel.split(' > ').pop()} “${x.text.slice(0, 18)}” ${x.ratio}<${x.need}`).join(' | ')}`);
+  }
   /** bir ekranı denetle: görüntü, taşma, üst pay, (uzunsa) kaydırma; opsiyonel sohbet kontrolü */
   async function check(label, { scroll = true, chat = false, top = true, emoji = true } = {}) {
     await sleep(350);
@@ -279,6 +645,11 @@ async function suite(browserName, target, [W, H]) {
     const clip = await page.evaluate(measureClip); rec.clip = clip; if (clip.length) fail(rec, `yazı kırpıldı: ${clip.slice(0, 3).join(' | ')}`);
     if (BIG) { const fs = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize); rec.rootFont = fs; if (fs !== '18.4px') fail(rec, `büyük yazı uygulanmadı: kök ${fs}`); }
     if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
+    if (KONTRAST) {
+      // takılan ölçüm koşuyu durdurmasın: 120 sn sınır; aşılırsa ekran "kontrast ölçülemedi" diye düşer
+      let to; const limit = new Promise((_, rej) => { to = setTimeout(() => rej(new Error('kontrast ölçümü 120 sn içinde bitmedi')), 120_000); });
+      try { await Promise.race([contrast(rec, file, label), limit]); } catch (e) { fail(rec, String(e.message ?? e).split('\n')[0]); await page.evaluate(contrastHide, false).catch(() => undefined); } finally { clearTimeout(to); }
+    }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {
       await page.evaluate(resetScroll);
@@ -693,15 +1064,23 @@ async function suite(browserName, target, [W, H]) {
   }
   if (errors.length) { const rec = { screen: 'konsol', fails: [] }; fail(rec, errors.slice(0, 4).join(' | ')); recs.push(rec); console.log(`  ✗ ${name} · konsol — ${errors.slice(0, 2).join(' | ')}`); }
   report.push({ run: name, screens: recs });
+  writeReports(); // her koşudan sonra: uzun bir çalışma yarıda kesilse de biten koşuların raporu kalır
   await browser.close();
 }
 
 try {
   for (const target of targets) for (const b of browsers) for (const s of sizes) { console.log(`\n▶ ${target} · ${b} · ${s.join('×')}`); await suite(b, target, s); }
 } finally {
-  writeFileSync(resolve(outRoot, 'rapor.json'), JSON.stringify(report, null, 2));
+  writeReports();
   cleanup();
 }
 const total = report.reduce((a, r) => a + r.screens.length, 0);
+if (KONTRAST) {
+  const k = contrastSummary();
+  console.log(`\nKontrast (WCAG AA): ${k.violations} ihlal (${k.groups.length} kural), ${k.exceptions} istisna (${k.exceptionGroups.length} kural), ${k.pending} sahip kararı bekliyor, ${k.unmeasured} ölçülemedi · ${k.measured} metin ölçüldü`);
+  for (const [note, nn] of Object.entries(k.pendingByProposal)) console.log(`  … bekliyor ${nn}× ${note}`);
+  for (const g of k.groups.slice(0, 30)) console.log(`  ✗ ${g.ratio}<${g.need} ${g.sel} · ${g.tx} / ${g.bg}${g.sampled ? ' (örnek)' : ''} “${g.text}” — ${g.count}× (${g.screens.slice(0, 4).join(', ')}${g.screens.length > 4 ? '…' : ''})`);
+  for (const g of k.exceptionGroups.slice(0, 15)) console.log(`  · istisna ${g.ratio}<${g.need} ${g.sel} “${g.text}” — ${g.istisna}`);
+}
 console.log(`\n${failures ? '✗' : '✓'} ${total} ekran denetlendi, ${failures} sorun · çıktı: ${outRoot.replace(root + '/', '')}`);
 process.exit(failures ? 1 : 0);

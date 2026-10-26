@@ -62,10 +62,10 @@
 .kg-basari small { display:block; color:var(--text-2); font-size:0.75rem; }
 .kg-adim.done, .kg-gorev.done { border-color:rgba(142,240,176,.55); background:rgba(142,240,176,.08); }
 .kg-gorev.claimed { opacity:.7; }
-.kg-adim.locked, .kg-basari.locked { opacity:.78; }
+.kg-adim.locked, .kg-basari.locked { opacity:.88; } /* kilitli adım soluk ama okunur (yazı ≥ 4,5:1, MK-017) */
 /* hikâye adımının takımsız eşdeğeri: "ya da" ayracı ve ikinci yol (ikisinden biri adımı tamamlar) */
 .kg-ya { margin-top:6px; padding-top:6px; border-top:1px dashed rgba(255,255,255,.22); }
-.kg-ya-etiket { display:inline-block; margin-bottom:2px; padding:1px 8px; border-radius:999px; background:rgba(255,255,255,.1); color:var(--text-2); font-size:0.71875rem; font-weight:900; letter-spacing:.02em; }
+.kg-ya-etiket { display:inline-block; margin-bottom:2px; padding:1px 8px; border-radius:999px; background:rgba(255,255,255,.1); color:var(--text); font-size:0.71875rem; font-weight:900; letter-spacing:.02em; } /* beyaz: alt sayfanın açık üst ucunda da ≥ 4,5:1 (MK-017) */
 .kg-basari.ready { border-color:var(--gold); background:rgba(255,201,60,.1); }
 .kg-adim-ic { flex:none; width:40px; height:40px; display:grid; place-items:center; border-radius:12px; background:rgba(255,255,255,.07); }
 .kg-claim-row { display:flex; align-items:center; gap:10px; }
