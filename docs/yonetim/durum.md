@@ -10,7 +10,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | Aşama | Durum | Eksik |
 |---|---|---|
 | **İç test** (aynı Wi-Fi, Expo Go SDK 58) | Hazır | — |
-| **Kapalı beta** (TestFlight / APK, 20-50 kişi) | 4 eksik | Kalıcı diskli herkese açık sunucu (YN-006), derlemede sunucu adresi (YN-007), yeni yönetici kodu (YN-002), ilk EAS derlemesinin denenmesi (YN-024) |
+| **Kapalı beta** (web + APK, 20-50 kişi) | 4 eksik (3'ü yolda) | Oracle sunucusu: karar verildi, betik hazırlanıyor, kurulum sahipte, sonra D1–D16 (YN-006) · derlemede sunucu adresi (YN-007, sürüyor) · yeni yönetici kodu (YN-002, kurulumda) · ilk EAS derlemesi (YN-024; ücretsiz Expo hesabı sahipte) |
 | **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
 
 ## Test sonuçları (5. tur, PY çalıştırdı; makine yükü 14–40, 4 çekirdek)
@@ -52,9 +52,9 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 
 | # | Karar | Öneri | Seçenekler |
 |---|---|---|---|
-| 1 | **Sunucu barındırma** (YN-006) | Render "Starter" (aylık ~7 $) + 1 GB kalıcı disk (~0,25 $/ay); `render.yaml` hazır, yalnız plan ve disk eklenecek, `ODI_BACKUP_DIR` diske. | a) Render ücretli + disk (en az iş) · b) VPS (Hetzner / DigitalOcean, ~5 €/ay, Docker; bakım bizde) · c) Ücretsiz plan: her dağıtımda veri silinir — beta için uygun değil |
-| 2 | **Alan adı** (YN-007) | `api.<alan-adı>` → sunucu (`wss://`); gizlilik sayfası aynı alan adında | Geçici olarak Render'ın `*.onrender.com` adresi de çalışır |
-| 3 | **Yönetici kodunu yenile** (YN-002) | Depo herkese açık; en az 16 karakterlik yeni kodu yalnız siz bilin, özetini sunucuya ortam değişkeni olarak verin (`npm run kod -- ozet`) | Depoyu gizli yapmak riski azaltır ama eski özet git geçmişinde kalır |
+| 1 | ~~Sunucu barındırma~~ (YN-006) | **KARAR (sahip): Oracle Cloud Always Free** (Ubuntu 24.04 ARM 2 OCPU / 12 GB, DuckDNS, Caddy HTTPS, web aynı sunucuda; Pay As You Go + 1 $ bütçe alarmı önerildi). Hazırlık: sunucu çalışanı; doğrulama planı [`sunucu-dogrulama.md`](sunucu-dogrulama.md). | — |
+| 2 | ~~Alan adı~~ (YN-007) | **KARAR: DuckDNS alt alan adı** (beta için); mağaza öncesi kendi alan adı önerilir (~10 $/yıl). | — |
+| 3 | **Yönetici kodunu yenile** (YN-002) | Kurulumda çözülür: `kur.sh` kodu gizli girişle sorar, yalnız özeti yazar. Kodu kimseye yazmayın. | — |
 | 4 | **Apple / Google geliştirici hesapları** | Apple Developer (yıllık 99 $), Google Play Console (bir kez 25 $), aiHear şirketi adına | Bireysel hesap da olur; mağazada satıcı olarak kişi adı görünür |
 | 5 | **Gizlilik / KVKK metni** (YN-009) | TASLAK'ı avukata verin; sunucu ülkesine göre yurt dışı aktarım dayanağını netleştirin | — |
 | 6 | **İkon ve açılış görseli** (YN-010) | Odi karakterli çizilmiş tek ikon (1024 px) — tasarımcı/çizer | Mevcut ikon geometrik yer tutucu |
