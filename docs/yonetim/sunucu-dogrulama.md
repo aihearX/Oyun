@@ -13,7 +13,7 @@ Plan: [ODİ Sunucu Planı](https://claude.ai/artifact/5iDRnp4HPDQtEAjkLVbhfr). H
 | Ne | Kim | Durum |
 |---|---|---|
 | `tools/sunucu/kur.sh`, yardımcı komutlar, `oyna --sunucu`, `eas.json` ortam yeri, aynı kökenden web | sunucu çalışanı | tamam (4901df5; x86_64 Ubuntu 24.04 kabında baştan sona denendi) |
-| MK-019 `kopma-e2e` (oturum ortasında yeniden başlatma) | kopma çalışanı | sırada (uzak çalıştırma kancası: aşağıda "Uzak araçlar" › MK-019) |
+| MK-019 `kopma-e2e` (oturum ortasında yeniden başlatma) | kopma çalışanı | tamam (e64a49c, yerel); uzak kancası MK-032 |
 | MK-024 uzak denetim araçları: `uzak-duman.mjs` ve `yuk.mjs` (aşağıda) | çalışan (uzak) | tamam (yerel üretim bayraklı sunucuda denendi; aşağıda "Yerel deneme") |
 | Kurulum (Adım 1–5), "Hazır" satırı | sahip | bekliyor |
 
