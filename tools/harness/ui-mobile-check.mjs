@@ -327,6 +327,14 @@ function contrastRects(ids) {
     const painted = paints(e) || [...e.children].some(paints);
     const r = e.getBoundingClientRect(); return painted && r.width * r.height > 0 && r.width * r.height < W * H * 0.6;
   }).map((e) => ({ el: e, r: e.getBoundingClientRect(), z: Number(getComputedStyle(e).zIndex) || 0, sticky: getComputedStyle(e).position === 'sticky', root: fixedRoot(e.parentElement) }));
+  function paintsVisibly(e) {
+    if (e.id === '__inset_top' || e.id === '__inset_bottom') return false;
+    const s = getComputedStyle(e); const a = (s.backgroundColor.match(/[\d.]+/g) ?? []).map(Number);
+    const paints = s.backgroundImage !== 'none' || (a.length === 4 ? a[3] > 0.05 : a.length === 3) || (s.backdropFilter && s.backdropFilter !== 'none');
+    if (!paints) return false;
+    let op = 1; for (let q = e; q; q = q.parentElement) op *= Number(getComputedStyle(q).opacity);
+    return op > 0.1;
+  }
   /** en dıştaki position:fixed ata (yoksa null): aynı sabit kabın içindeki yapışkan başlık, kabın içeriğini örter */
   function fixedRoot(e) { let f = null; for (let q = e; q && q !== document.body; q = q.parentElement) if (getComputedStyle(q).position === 'fixed') f = q; return f; }
   for (const id of ids) {
@@ -353,16 +361,22 @@ function contrastRects(ids) {
     let all = 0, vis = 0; const parts = [];
     for (const q of rects) {
       const l = Math.max(q.left, cl[0]), t = Math.max(q.top, cl[1]), r = Math.min(q.right, cl[2]), b = Math.min(q.bottom, cl[3]);
-      all += q.width * q.height; if (r - l >= 1 && b - t >= 1) { vis += (r - l) * (b - t); parts.push({ left: l, top: t, width: r - l, height: b - t, right: r, bottom: b }); }
+      // satırın çoğu kırpılmışsa (kabın kenarında kalan ince şerit) o satır okunmaz: örneğe girmez
+      all += q.width * q.height; if (r - l >= 1 && b - t >= 1 && (r - l) * (b - t) >= q.width * q.height * 0.4) { vis += (r - l) * (b - t); parts.push({ left: l, top: t, width: r - l, height: b - t, right: r, bottom: b }); }
     }
     const inView = parts.length > 0 && vis >= all * 0.4;
     rects = parts.length ? parts : rects;
     // üstü açık mı: metin kutusunun ortasında en üstteki öğe metnin kendisi (ya da atası/çocuğu) olmalı; açık alt sayfanın örttüğü ekran sayılmaz
     // sabit bir şerit / açılır pencere metnin bir kısmını örtüyorsa (kaydırınca metin altına girer) bu konumda ölçülmez
     let covered = false;
+    // isabet yığını (yukarıdan aşağı): metnin kendisine/atasına varmadan boyalı ve görünür bir öğe gelirse örtülü. Ölçüm sırasında
+    // bütün öğeler pointer-events:auto (contrastHide): pointer-events:none üst katmanlar (kamp üst bandı) da yakalanır
     if (inView) for (const q of rects.slice(0, 3)) for (const fx of [0.1, 0.5, 0.9]) for (const fy of [0.2, 0.5, 0.85]) {
-      const hit = document.elementFromPoint(q.left + q.width * fx, q.top + q.height * fy);
-      if (hit && !(hit === el || el.contains(hit) || hit.contains(el))) covered = true;
+      for (const hit of document.elementsFromPoint(q.left + q.width * fx, q.top + q.height * fy)) {
+        if (hit === el || el.contains(hit) || hit.contains(el)) break;
+        if (paintsVisibly(hit)) { covered = true; break; }
+      }
+      if (covered) break;
     }
     // yapışkan (sticky) öğe kaydırınca yer değiştirir: yalnız ilk konumunda ölçülür
     let sticky = false, pinned = false;
@@ -382,7 +396,7 @@ function contrastHide(on) {
   let s = document.getElementById('__kontrast');
   if (!on) { s?.remove(); return; }
   if (!s) { s = document.createElement('style'); s.id = '__kontrast'; document.head.appendChild(s); }
-  s.textContent = '*,*::before,*::after,::placeholder{-webkit-text-fill-color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;caret-color:transparent!important;transition:none!important}svg text,svg tspan{fill:transparent!important;stroke:transparent!important}input,textarea{color:transparent!important}#__inset_top,#__inset_bottom{display:none!important}';
+  s.textContent = '*,*::before,*::after,::placeholder{-webkit-text-fill-color:transparent!important;text-shadow:none!important;-webkit-text-stroke:0!important;caret-color:transparent!important;transition:none!important}svg text,svg tspan{fill:transparent!important;stroke:transparent!important}input,textarea{color:transparent!important}*{pointer-events:auto!important}#__inset_top,#__inset_bottom{display:none!important}';
 }
 function scrollSave(restore) {
   if (restore) {
@@ -533,6 +547,13 @@ async function suite(browserName, target, [W, H]) {
       Promise.all(document.getAnimations().filter((a) => { const t = a.effect?.getComputedTiming?.(); return a.playState === 'running' && t && Number.isFinite(t.endTime); }).map((a) => a.finished.catch(() => undefined))),
       new Promise((r) => setTimeout(r, 2500))]));
     await sleep(150); // animasyon bitişinden sonraki kare (WebKit yükte geç boyar)
+    // kaydırma dursun (scrollIntoViewIfNeeded WebKit'te yumuşak kayabilir; animasyon listesinde görünmez): 3 kare aynı konum, en çok 1,5 sn
+    await page.evaluate(() => new Promise((res) => {
+      const snap = () => [...document.querySelectorAll('html, body, body *')].filter((e) => e.scrollTop || e.scrollLeft).map((e) => `${e.scrollTop},${e.scrollLeft}`).join(';');
+      let last = snap(), same = 0; const t0 = performance.now();
+      const tick = () => { const now = snap(); same = now === last ? same + 1 : 0; last = now; if (same >= 3 || performance.now() - t0 > 1500) res(); else requestAnimationFrame(tick); };
+      requestAnimationFrame(tick);
+    }));
     const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]);
     const ids = items.map((i) => i.id);
     await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
@@ -562,7 +583,20 @@ async function suite(browserName, target, [W, H]) {
           if (!i.sample) continue;
           const sm = sampleContrast(img, pos[i.id].rects, i.fgRaw, i.fgRaw[3] * i.opAll);
           if (sm) Object.assign(i, { ratio: sm.ratio, bg: sm.bg, tx: sm.tx, min: sm.min, minBg: sm.minBg, sampled: true });
-          if (sm && sm.ratio < i.need && !i.istisna && !i.bekleyen) bad = true;
+          if (sm && sm.ratio < i.need && !i.istisna && !i.bekleyen) {
+            // doğrulama: yükte (özellikle WebKit) stil değişikliğinden sonraki ilk kare eksik boyanabiliyor → bir kare sonra yeniden örnekle
+            await sleep(300);
+            const buf2 = await page.screenshot({ scale: 'css' }); const pos2 = (await page.evaluate(contrastRects, [i.id]))[i.id];
+            const sm2 = pos2?.inView && !pos2.covered ? sampleContrast(decodePng(buf2), pos2.rects, i.fgRaw, i.fgRaw[3] * i.opAll) : null;
+            if (sm2 && sm2.ratio >= i.need) { Object.assign(i, { ratio: sm2.ratio, bg: sm2.bg, tx: sm2.tx, min: sm2.min, minBg: sm2.minBg, resampled: sm.ratio }); continue; }
+            imgBuf = buf2;
+            if (process.env.KONTRAST_IZ) { const im = decodePng(buf2); const [l, t, w, h] = pos[i.id].rects[pos[i.id].rects.length - 1]; const x = Math.floor(l + w / 2), y = Math.floor(t + h / 2), o = (y * im.w + x) * im.ch; console.error(`    [kontrast] ihlal ${i.text.slice(0, 20)} img ${im.w}x${im.h}/${im.ch} (${x},${y}) = ${im.px[o]},${im.px[o + 1]},${im.px[o + 2]} rects=${JSON.stringify(pos[i.id].rects)} sm=${JSON.stringify(sm)} sm2=${JSON.stringify(sm2)} pos2=${JSON.stringify(pos2)}`); }
+            bad = true;
+            // tanı: metin kutusunun ortasındaki isabet yığını (örtme algılanamadıysa nedenini görmek için)
+            const [l, t, w, h] = pos[i.id].rects[0];
+            i.stack = await page.evaluate(([x, y]) => document.elementsFromPoint(x, y).slice(0, 6).map((e) => `${e.tagName.toLowerCase()}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''}`).join(' › '), [l + w / 2, t + h / 2]);
+            i.sampleRect = pos[i.id].rects.map((q) => q.map(Math.round));
+          }
         }
         // örneklenen bir ihlal varsa yazıları gizlenmiş görüntü kanıt olarak kalır (…-kontrastN.png)
         if (bad && imgBuf && !process.env.KONTRAST_DEBUG) writeFileSync(file.replace(/\.png$/, `-kontrast${round}.png`), imgBuf);
