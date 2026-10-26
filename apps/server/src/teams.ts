@@ -1,7 +1,8 @@
 import { SOCIAL_LIMITS, WAR_REGIONS, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
 import { fail, parseJson, randomCode, rid, type App, type Handlers, type PlayerRow, type TeamRow } from './app';
 import { systemMessage, teamRoom } from './chat';
-import { commTeamDeleted, feedEvent, onHelpCard } from './comm';
+import { feedEvent, onHelpCard } from './comm';
+import { veriyiTemizle } from './account-veri';
 import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
 import { addContrib, broadcastExtra } from './teamextra';
@@ -89,14 +90,12 @@ export function removeMember(app: App, pid: string, how: 'ayrildi' | 'atildi'): 
   broadcastTeam(app, teamId);
 }
 
+/** Son üye ayrıldı: takım ve takıma bağlı veri `account-veri.ts` sınıflandırmasına göre silinir (ev_*, sohbet, hediye …). */
 function deleteTeam(app: App, teamId: string): void {
   const week = app.week().key;
-  app.db.run('DELETE FROM teams WHERE id = ?', teamId);
-  app.db.run('DELETE FROM help_requests WHERE team_id = ?', teamId);
-  app.db.run('DELETE FROM team_tech WHERE team_id = ?', teamId);
-  app.db.run('DELETE FROM chat WHERE room = ?', teamRoom(teamId));
-  commTeamDeleted(app, teamId);
-  for (const h of app.teamDeleteHooks) h(teamId);
+  for (const h of app.teamDeleteHooks) h(teamId); // ör. bekleyen başvurular "takım dağıldı" ile kapanır (satırlar silinmeden önce)
+  veriyiTemizle(app.db, 'takim', teamId);
+  // savaş: bu haftanın puanı ve bölge sahipliği silinir, harita yeniden hesaplanır (geçmiş haftalar: VERI_SINIFI war_*)
   app.db.run('DELETE FROM war_points WHERE team_id = ? AND week = ?', teamId, week);
   const owned = app.db.all<{ region: string }>('SELECT region FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);
   app.db.run('DELETE FROM war_owner WHERE team_id = ? AND week = ?', teamId, week);

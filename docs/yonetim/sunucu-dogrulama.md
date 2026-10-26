@@ -84,11 +84,13 @@ deseni) ve yeniden başlatmayı PY elle yapar (`sudo systemctl restart odi`, D6)
 **Veritabanında kalan iz** (koşu öncesi/sonrası tablo satır sayıları, salt okunur): test hesaplarının adı, oturum anahtarı,
 takımı, sohbet mesajları, arkadaşlıkları ve istekleri kalmaz (`teams`, `chat`, `friends`, `friend_requests`, `dm` değişmez).
 `account.delete`'in tasarımı gereği (YN-004) kalanlar: hesap başına anonim oyuncu satırı ("Silinmiş Oyuncu") +
-`deleted_players` işareti; `promo_log` (D13 denemeleri, IP ile, 90 gün; güvenlik kaydı). `account.delete`'in silmediği oyun
-durumu satırları da kalır: bir `uzak-duman` koşusunda `buildings` 36, `decor_inv` 9, `camp_unlocks` 6, `camp_xp` 3,
-`camp_xp_log` 3, `kg_daily` 3, `kg_week` 3, `daily` 1, `ev_tourney` 2 (+1 `ev_tourney_group`); silinen test takımına bağlı
-`ev_duel`, `ev_relay`, `ev_hunt`, `ev_tquest` birer satır. Bunlarda ad ya da iletişim yok, ama sahipsiz satırlar birikir
-(öneri: `account.delete` ve takım silme bunları da temizlesin; ayrı iş). `/olcum` günlük sayaçları (ör. `msg.hazir`) de artar.
+`deleted_players` işareti; `promo_log` (D13 denemeleri, IP ile, 90 gün; güvenlik kaydı). `/olcum` günlük sayaçları (ör. `msg.hazir`) de artar.
+
+YN-029 (hesapsil) sonrası yerel deneme (2026-10-26, üretim bayraklı yerel sunucu, `uzak-duman` 0 hata): sınıflandırmadaki
+(`apps/server/src/account-veri.ts`) 96 oyuncu "sil" kuralında test hesaplarının satırı 0; 32 takım "sil" sütununda sahipsiz takım satırı 0 (`ev_duel`,
+`ev_relay`, `ev_hunt`, `ev_tquest` dahil); koşu öncesi → sonrası tablo farkı yalnız `players` +3 (anonim), `deleted_players` +3,
+`promo_log` +6, `comm_metrics` +2, `ev_tourney_group` +1 (kimliksiz grup satırı). Test hesaplarının adı hiçbir sütunda geçmiyor;
+sunucu yeniden açılınca silinen hesaplara kamp binası eklenmiyor.
 
 ## İlk gerçek kurulumda ilk bakılacaklar
 Kapta denenmeyenler: ARM, gerçek DuckDNS, Let's Encrypt, Oracle Security List, telefonda Expo Go `--sunucu`.

@@ -5,6 +5,7 @@
  * Kurallar: yalnızca sona ekle, var olan göçü değiştirme ya da silme; her göç tekrar çalışsa da güvenli olsun (addColumn gibi).
  */
 import type { DatabaseSync } from 'node:sqlite';
+import { silinmisArtiklariTemizle } from './account-veri';
 
 export interface Migration { name: string; up: (db: DatabaseSync) => void }
 
@@ -14,9 +15,13 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
   if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
-/** Uygulamanın göçleri. 1: taban sürüm (2026-10-24 itibarıyla tüm tablolar CREATE ile; veri değişikliği yok). */
+/**
+ * Uygulamanın göçleri. 1: taban sürüm (2026-10-24 itibarıyla tüm tablolar CREATE ile; veri değişikliği yok).
+ * 2: YN-029 — sınıflandırmadan (account-veri.ts) önce silinmiş hesapların ve silinmiş takımların artık satırları temizlenir.
+ */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
+  { name: 'silinmis-hesap-artiklari', up: (db) => { silinmisArtiklariTemizle(db); } },
 ];
 
 export const userVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;

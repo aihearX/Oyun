@@ -17,13 +17,32 @@ ODİ: Sesin Yolu hesap açarken **ad-soyad, e-posta, telefon, konum, rehber, rek
 | Oyun ilerlemesi, ayarlar, ses tercihleri | Cihazınızda | Oyunun çalışması | Siz silene kadar (Ayarlar › Her şeyi sıfırla) |
 | Rastgele oyuncu kimliği ve gizli anahtar (sunucuda yalnızca anahtarın özeti) | Cihaz + sunucu | Hesabınızı tanımak | Hesap silinene kadar |
 | Oyuncu adı (takma ad), renk, şapka, arkadaş kodu | Sunucu | Takım, arkadaş, sıralama | Hesap silinene kadar |
-| Bölüm sonuçları, yıldız, puan, XP, cüzdan (jeton, kristal) | Sunucu | İlerleme, sıralama, ödüller | Hesap silinene kadar; bölüm kayıtları 30 gün |
-| Takım, arkadaşlık, engelleme, şikâyet kayıtları | Sunucu | Sosyal özellikler ve güvenlik | Hesap silinene kadar |
-| Takım/genel sohbet mesajları | Sunucu | Sohbet | 30 gün |
+| Bölüm sonuçları, yıldız, puan, XP, cüzdan (jeton, kristal), kamp, görevler, etkinlik katılımı | Sunucu | İlerleme, sıralama, ödüller | Hesap silinene kadar; bölüm kayıtları 30 gün |
+| Takım, arkadaşlık, engelleme kayıtları | Sunucu | Sosyal özellikler ve güvenlik | Hesap silinene kadar |
+| Şikâyet kayıtları (şikâyet eden, şikâyet edilen, neden) | Sunucu | Güvenlik, moderasyon | Hesap silindikten sonra 90 gün |
+| Takım/genel sohbet mesajları | Sunucu | Sohbet | 30 gün; hesap silinince sizin yazdıklarınız hemen |
 | Özel mesajlar | Sunucu | Mesajlaşma | Konuşma başına son 500 mesaj; hesap silinene kadar |
 | Kod denemeleri (zaman, oyuncu kimliği, IP adresi) | Sunucu | Kötüye kullanımı önlemek | 90 gün (sonra otomatik silinir) |
-| Satın alma makbuzu (Apple / Google üzerinden) | Sunucu + [RevenueCat] | Satın almayı doğrulamak | Yasal saklama süresi |
+| Satın alma makbuzu (Apple / Google üzerinden) | Sunucu + [RevenueCat] | Satın almayı doğrulamak, yasal yükümlülük | Yasal saklama süresi [hukuk danışmanı; ör. TTK m.82: 10 yıl]; hesap silinince makbuzdaki oyuncu kimliği "silinmiş" işaretiyle değişir |
+| Veritabanı yedekleri | Sunucu | Veri kaybına karşı geri yükleme | 6 saatte bir, en çok 28 kopya (7 gün) |
 | Bağlantı kayıtları (bağlandı/ayrıldı, hata) | Sunucu günlüğü | İşletim ve hata ayıklama | [süre — öneri: 14 gün] |
+
+### Hesabınızı silince sunucuda ne olur
+Hangi kaydın silindiği, anonimleştiği ya da gerekçeyle tutulduğu kodda tek bir tabloda yazılıdır (`apps/server/src/account-veri.ts`);
+yeni bir kayıt türü eklenince karar vermeden geçilemez (otomatik test). Silme tek işlemde, hemen yapılır:
+- **Silinir:** ilerleme, cüzdan, kamp (binalar, süsler, Kamp XP'si), görevler ve vakalar, etkinlik ve turnuva kayıtlarınız, sıralama
+  ve lig satırlarınız, ödül kutunuz, arkadaşlıklarınız, istekleriniz, engellemeleriniz, özel mesajlarınız, sohbette yazdıklarınız ve
+  sizin hakkınızdaki takım kartları, yardım istekleriniz, takım başvurularınız, ayarlarınız. Takımın son üyesiyseniz takım ve takıma
+  ait bütün kayıtlar da silinir.
+- **Anonimleşir** (yalnız başkalarının verisi bozulmasın diye): takımınızın toplam puanını oluşturan katkılarınız (düello puanı, takım
+  yarışı yıldızı, ralli katılımı, takım kliniği), geçen haftanın son sıralamasındaki yeriniz, takıma gönderdiğiniz hediye. Bu
+  kayıtlar artık hiçbir anahtarla eşleşmeyen anonim bir kimliğe bağlıdır; adınız her yerde "Silinmiş Oyuncu" olur. Sistem
+  iletilerinde ve başkalarının ödül kutusundaki notlarda geçen adınız da silinir.
+- **Gerekçeyle tutulur:** satın alma makbuzu (yasal saklama; oyuncu kimliği yerine "silinmiş" işareti), şikâyet kayıtları
+  (moderasyon; 90 gün), kod denemeleri (güvenlik; 90 gün), hesabın silindiği bilgisi (kimlik + zaman; silinen hesabın sıralama
+  ve aramada görünmemesi için).
+- **Yedekler:** yedeklerdeki eski kopyalar tek tek silinmez; yedekler 7 günde döndüğü için silinen hesabın verisi en geç 7 gün
+  sonra yedeklerden de çıkar.
 
 Kart ödeme bilgileriniz bize hiç gelmez; ödemeyi Apple veya Google alır.
 
@@ -42,14 +61,14 @@ kullanılır. Küfür filtresi, engelleme ve şikâyet vardır. [13 yaş altı i
 
 ## 6. Haklarınız (KVKK m.11 / GDPR m.15–22)
 Verilerinize erişme, düzeltme, silme, işlemeye itiraz etme ve şikâyet hakkınız vardır.
-- **Hesabı silme:** [Ayarlar › Hesabımı sil — henüz yok, bkz. is-listesi.md YN-004]. Silme isteğinden sonra sunucudaki
-  adınız, arkadaşlıklarınız, takım üyeliğiniz ve özel mesajlarınız [N] gün içinde silinir.
+- **Hesabı silme:** Ayarlar › Her şeyi sıfırla. Cihazdaki veriyle birlikte sunucudaki hesabınız hemen silinir (§2 "Hesabınızı
+  silince sunucuda ne olur"); yedeklerdeki kopyalar en geç 7 gün içinde döner.
 - Başvuru: [kvkk@… e-posta]. 30 gün içinde yanıtlanır.
 - Kişisel Verileri Koruma Kurulu'na şikâyet hakkınız saklıdır.
 
 ## 7. Güvenlik
-Bağlantı [wss:// (TLS)] ile şifrelenir. Sunucuda gizli anahtarın yalnızca özeti tutulur. Veritabanı yedekleri [şifreli,
-N gün] saklanır.
+Bağlantı [wss:// (TLS)] ile şifrelenir. Sunucuda gizli anahtarın yalnızca özeti tutulur. Veritabanı yedekleri 7 gün saklanır
+[şifreleme: sahip/hukuk danışmanı belirler].
 
 ## 8. Değişiklikler
 Bu metin değişirse oyunda duyurulur; yürürlük tarihi güncellenir.

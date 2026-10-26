@@ -1,41 +1,38 @@
 /**
  * Hesabı silme (KVKK m.7 / GDPR m.17 silme hakkı). İstemci "Her şeyi sıfırla"da, cihazı silmeden önce çağırır.
- * Satırlar fiziksel olarak silinir ya da anonimleşir; oyuncu satırı kalır (eski kayıtlar — savaş, baskın, lig — kimliğe bağlı,
- * kırılmasın), ama adı "Silinmiş Oyuncu" olur, oturum anahtarı hiçbir anahtarla eşleşmez ve rekabet tablolarından çıkar.
- * Yalnızca yeni tablo (deleted_players): mevcut veritabanında güvenle açılır.
+ * Hangi tablonun silindiği, anonimleştiği ya da gerekçeyle tutulduğu TEK yerde yazılıdır: `account-veri.ts` (VERI_SINIFI).
+ * Oyuncu satırı anonim kalır (başkalarının geçmiş kayıtları — düello puanı, yarış yıldızı — bu kimliğe bağlı, kırılmasın): adı
+ * "Silinmiş Oyuncu" olur, oturum anahtarı hiçbir anahtarla eşleşmez, ilerleme ve cüzdan sıfırlanır, rekabet tablolarından çıkar.
  */
-import { randomBytes } from 'node:crypto';
 import { DELETED_PLAYER_NAME } from '@odi/shared';
 import type { App, Handlers } from './app';
 import { removeMember } from './teams';
 import { rankInvalidate } from './rank';
+import { anonimOyuncu, REPORT_RETAIN_AFTER_DELETE_MS, veriyiTemizle } from './account-veri';
 
 export const isDeleted = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM deleted_players WHERE player_id = ?', pid);
 
 export function deleteAccount(app: App, pid: string): void {
-  const p = app.player(pid);
-  if (p.team_id) removeMember(app, pid, 'ayrildi');
-  // arkadaşlar: karşı tarafın listesinden düşsün
-  for (const r of app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid)) app.emit(r.b, 'friend.removed', { id: pid });
-  app.db.run('DELETE FROM friends WHERE a = ? OR b = ?', pid, pid);
-  app.db.run('DELETE FROM friend_requests WHERE from_id = ? OR to_id = ?', pid, pid);
-  app.db.run('DELETE FROM blocks WHERE a = ? OR b = ?', pid, pid);
-  // özel mesajlar: oyuncunun dahil olduğu konuşmalar (yazdıkları kişisel veridir), tepkiler ve okundu bilgisi
-  app.db.run('DELETE FROM dm_reactions WHERE player_id = ? OR msg_id IN (SELECT id FROM dm WHERE from_id = ? OR to_id = ?)', pid, pid, pid);
-  app.db.run('DELETE FROM dm_reads WHERE player_id = ? OR other_id = ?', pid, pid);
-  app.db.run('DELETE FROM dm WHERE from_id = ? OR to_id = ?', pid, pid);
-  // sohbet (genel/takım) mesajları ve bekleyen takım başvuruları, bölüm yardımı istekleri
-  app.db.run('DELETE FROM chat WHERE from_id = ?', pid);
-  app.db.run('DELETE FROM chat_cid WHERE player_id = ?', pid);
-  app.db.run("DELETE FROM team_apps WHERE player_id = ? AND status = 'bekliyor'", pid);
-  app.db.run('DELETE FROM help_requests WHERE from_id = ?', pid);
-  // bu haftanın lig grubundan çık (geçmiş haftalar kimliğe bağlı kalır, ad anonim)
-  app.db.run('DELETE FROM league WHERE player_id = ? AND week = ?', pid, app.week().key);
-  // kimlik: ad anonim, anahtar hiçbir zaman eşleşmez (özetler 64 haneli onaltılık), arkadaş kodu yenilenir
-  app.db.run(`UPDATE players SET name = ?, token_hash = ?, friend_code = ?, hat = '', muted = '[]' WHERE id = ?`,
-    DELETED_PLAYER_NAME, `silindi:${pid}`, `X${randomBytes(8).toString('hex').toUpperCase()}`, pid);
-  app.db.run('INSERT OR IGNORE INTO deleted_players(player_id, at) VALUES(?, ?)', pid, app.now());
+  app.db.tx(() => {
+    const p = app.player(pid);
+    // önce ad anonim: takımdan ayrılma iletisi ve sonraki kartlar adı taşımasın
+    app.db.run('UPDATE players SET name = ? WHERE id = ?', DELETED_PLAYER_NAME, pid);
+    if (p.team_id) removeMember(app, pid, 'ayrildi'); // son üyeyse takım silinir (teams.ts deleteTeam → takım verisi)
+    // arkadaşlar: karşı tarafın listesinden düşsün
+    for (const r of app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid)) app.emit(r.b, 'friend.removed', { id: pid });
+    // sınıflandırmaya göre: sil / anonimleştir / gerekçeyle tut (account-veri.ts)
+    veriyiTemizle(app.db, 'oyuncu', pid, { ad: p.name, createdAt: p.created_at });
+    anonimOyuncu(app.db, pid, app.now());
+  });
   app.after(() => rankInvalidate(app)); // Sıralama önbelleği: hesap hemen tablolardan çıkar
+}
+
+/** Moderasyon kayıtları (şikâyetler) silinen hesaptan sonra 90 gün tutulur, sonra silinir (gizlilik taslağı §2). */
+export function pruneDeletedReports(app: App): void {
+  const before = app.now() - REPORT_RETAIN_AFTER_DELETE_MS;
+  const old = 'SELECT player_id FROM deleted_players WHERE at < ?';
+  app.db.run(`DELETE FROM player_reports WHERE target IN (${old}) OR reporter IN (${old})`, before, before);
+  app.db.run(`DELETE FROM chat_reports WHERE reporter IN (${old})`, before);
 }
 
 export const accountHandlers: Handlers = {
