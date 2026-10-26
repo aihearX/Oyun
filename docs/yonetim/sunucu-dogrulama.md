@@ -13,7 +13,7 @@ Plan: [ODİ Sunucu Planı](https://claude.ai/artifact/5iDRnp4HPDQtEAjkLVbhfr). H
 | Ne | Kim | Durum |
 |---|---|---|
 | `tools/sunucu/kur.sh`, yardımcı komutlar, `oyna --sunucu`, `eas.json` ortam yeri, aynı kökenden web | sunucu çalışanı | tamam (4901df5; x86_64 Ubuntu 24.04 kabında baştan sona denendi) |
-| MK-019 `kopma-e2e` (oturum ortasında yeniden başlatma) | kopma çalışanı | tamam (e64a49c, yerel); uzak kancası MK-032 |
+| MK-019 `kopma-e2e` (oturum ortasında yeniden başlatma) | kopma çalışanı | tamam (e64a49c, yerel); yarış içi MK-031, uzak ölçüm MK-032 (`uzak-duman --kopma`, aşağıda) |
 | MK-024 uzak denetim araçları: `uzak-duman.mjs` ve `yuk.mjs` (aşağıda) | çalışan (uzak) | tamam (yerel üretim bayraklı sunucuda denendi; aşağıda "Yerel deneme") |
 | Kurulum (Adım 1–5), "Hazır" satırı | sahip | bekliyor |
 
@@ -59,11 +59,21 @@ p50/p95/p99 yanıt süresi (işlem başına da), hata, oyun kuralı gereği bekl
 - `--bosta 600`: yük yerine tek istemci 10 dk boşta kalır (yalnız sunucunun 25 sn'lik WebSocket ping'leri); kopma olursa
   gerçek istemci gibi aynı anahtarla yeniden bağlanır ve bunu raporlar; sonda bir istek atar ve hesabı siler.
 
-### MK-019 (`kopma-e2e`) uzak çalıştırma kancası
-MK-024 kapanırken `tools/harness/kopma-e2e.mjs` main'de değildi. Yapılacak (TODO, MK-019 inince): senaryolar
-`--sunucu wss://<adres>` ile çalışan sunucuya karşı koşabilmeli; o kipte kendi sunucusunu açmaz, test bayrağı istemez,
-hesaplarını `tools/sunucu/istemci.mjs` ile açıp sonunda `account.delete` ile siler (uzak-duman'daki `hesapAc` / `temizle`
-deseni) ve yeniden başlatmayı PY elle yapar (`sudo systemctl restart odi`, D6).
+### D6 kopma ölçümü: `uzak-duman --kopma` (MK-032)
+`kopma-e2e` (MK-019, MK-031) kendi sunucusunu ve TCP aracısını kurar, SQLite'ı okur; uzakta bunlar yok. Uzak sunucuda D6'yı
+`uzak-duman.mjs --kopma` ölçer (test bayrağı yok, veritabanına dokunmaz, hesaplar sonunda `account.delete` ile silinir):
+- kurulum: üç test hesabı, A Chromium'da (B WebKit'te) arayüzden takım kurar/katılır, C protokolle katılır; sohbette hazır söz;
+- A Takım › Sohbet'te ve C bağlıyken araç `Şimdi sunucuyu yeniden başlatın: sudo systemctl restart odi` yazar, en çok 5 dk bekler;
+- kopmayı kendisi algılar: C'nin bağlantısı düşer ya da `/saglik` yanıt vermez. Sunucunun dönüşü: `/saglik`'in yeniden yanıt verdiği an;
+- ölçer: A'da (ve B'de) "Bağlantı koptu" şeridi; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanma (bağlantı noktası
+  yeniden yeşil); C'nin cüzdanı, kampı ve takımı kopmadan önce ve sonra protokolden okunur ve eşittir; A'nın şerit görünür
+  görünmez (kopukken) bastığı hazır söz ("Nasıl gidiyor?") bağlanınca bir kez gider (`cid`): sunucu geçmişinde, A'nın ve B'nin ekranında tek;
+- `--kopma`'da arkadaşlık, kamp, yarış daveti, D13 ve D14 atlanır (D5 koşusunda sınanır).
+- `--kopma-kendim "<komut>"` yalnız yerel denemede: yeniden başlatmayı araç bu kabuk komutuyla kendisi yapar. Üretimde kullanılmaz.
+
+Yarışın içinde yeniden başlatma (MK-031) yerelde `kopma-e2e --only yaris-ici` ile sınanır: başlamış yarışlar `race_room`
+tablosuna yazılır, yeniden başlatmada geri gelir; yarışçılar bitirir, sıra her istemcide aynı, ödül/XP/lig bir kez; dönmeyen
+yarışçı 30 sn sonra "ayrıldı" sayılır. Lobi (başlamamış oda) yeniden başlatmada kapanır (açık ileti).
 
 ### Yerel deneme (2026-10-26, MK-024)
 Üretim bayraklı yerel sunucu: `NODE_ENV=production`, `HOST=127.0.0.1`, test bayrağı yok (`ODI_TEST_STORE=0`), yönetici
@@ -80,6 +90,9 @@ deseni) ve yeniden başlatmayı PY elle yapar (`sudo systemctl restart odi`, D6)
 | `yuk --sunucu ws://… --oyuncu 5 --sure 30` (üretim bayraklı sunucu) | p95 7,2 ms, 0 hata; 5 hesap silindi; `--oyuncu 6` kullanım hatasıyla reddedildi; SIGINT'te de 5/5 silindi |
 | `yuk --sunucu ws://… --bosta 600` | 600 sn boşta: 0 kopma, sonraki istek 2,0 ms. `D11 GEÇTİ` |
 | `yuk --bosta 40`, 10. sn'de sunucu yeniden başlatıldı | 1 kopma, 3 sn sonra aynı anahtarla yeniden bağlandı. `D11 GEÇTİ` |
+| MK-032: `uzak-duman --kopma --kopma-kendim "<sarmalayıcı> restart"` (Chromium A + WebKit B; sarmalayıcı systemd gibi: SIGTERM, çıkışı bekle, aynı veritabanıyla aç) | 0 hata. Kopma C'nin bağlantısından algılandı; `/saglik` 1,9 sn yanıt vermedi; A ve B'de şerit; sunucu döndükten 1,3 / 1,4 sn sonra bağlandı; C'nin cüzdan/kamp/takımı önce = sonra; kopukken basılan hazır söz sunucuda, A'da ve B'de 1 kez; üç hesap silindi, `/saglik` 0 → 0 |
+| MK-032: `uzak-duman --kopma --tarayici chromium` (araç "Şimdi sunucuyu yeniden başlatın" yazdı, 7 sn sonra elle yeniden başlatıldı) | 0 hata; bekleme ve algılama PY akışıyla aynı; bağlanma 1,2–1,3 sn |
+| MK-031: `kopma-e2e --only yaris-ici` (3 oyuncu, ilki yarı yolda; SIGTERM ve SIGKILL; Chromium + WebKit) | 115 + 115 denetim geçti: herkes bitirdi, sıra üç istemcide aynı, ödül/XP/lig/jeton bir kez, derece lig puanına bağlandı, hayaletler gizliyken yeni yerine geçti; sunucu döndükten sonra bağlanma 0,2–10,6 sn (kabul koşuları dahil; üst uç makine yükteyken, istemcinin yeniden deneme aralığı) |
 
 **Veritabanında kalan iz** (koşu öncesi/sonrası tablo satır sayıları, salt okunur): test hesaplarının adı, oturum anahtarı,
 takımı, sohbet mesajları, arkadaşlıkları ve istekleri kalmaz (`teams`, `chat`, `friends`, `friend_requests`, `dm` değişmez).
@@ -107,7 +120,7 @@ Kapta denenmeyenler: ARM, gerçek DuckDNS, Let's Encrypt, Oracle Security List, 
 | D3 | Üretim bayrakları | `odi-durum` + davranış: test mağazası satın alımı reddedilir, baskın her zaman açık değil, yeni hesap serbest yazamaz | `ODI_TEST_STORE` / `ODI_RAID_ALWAYS` / `ODI_FREE_TEXT_AT=0` yok; `NODE_ENV=production`; varsayılan özet kapalı |
 | D4 | Web aynı kökenden | Tarayıcıda `https://<adres>`: başlık, bölüm 1, ses dosyası (`/voice/*.mp3`, `audio/mpeg`), Phaser parçası | Açılır, oynanır; Takım sekmesi "bağlı"; konsolda hata yok |
 | D5 | Uzak duman | PY bilgisayarında: `node tools/harness/uzak-duman.mjs --sunucu wss://<adres> --web https://<adres>` (yukarıda) | Son satır `✓ 0 hata`; temizlikte üç hesap "silindi (account.delete)" ve `/saglik players başlangıçtaki değere döndü`. Sınır 20 iken D14 uyarısı beklenir |
-| D6 | Kopma | Oyun sürerken `sudo systemctl restart odi` (MK-019 senaryoları: inşaat, sonuç ödülü, sohbet, yarış) | ≤ 15 sn'de kendiliğinden bağlanır; ödül tek; veri kaybı yok |
+| D6 | Kopma | PY bilgisayarında: `node tools/harness/uzak-duman.mjs --sunucu wss://<adres> --web https://<adres> --kopma`; araç `Şimdi sunucuyu yeniden başlatın` yazınca sunucuda: `sudo systemctl restart odi` (5 dk içinde). Senaryoların yerel karşılığı: `kopma-e2e` (inşaat, sonuç ödülü, sohbet, yarış odası, yarış içi) | Son satır `✓ 0 hata`: A'da "Bağlantı koptu" şeridi; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlandı; cüzdan, kamp ve takım önce/sonra aynı; kopukken yazılan hazır söz bir kez; temizlikte üç hesap silindi, `/saglik players` başlangıçtaki değere döndü |
 | D7 | Yeniden açılış | `sudo reboot` | Servis, Caddy ve DuckDNS güncelleyici kendiliğinden kalkar; D1 geçer |
 | D8 | Güncelleme | `sudo odi-guncelle`: (a) normal; (b) bilerek düşen test içeren bir dal | (a) yeni sürüm, kısa kopma; (b) yeniden başlatmaz, eski sürüm çalışmaya devam eder |
 | D9 | Yedek | `odi-durum` son yedek; `odi-yedek-geri` ile **ayrı klasöre** geri yükleme; `PRAGMA integrity_check` | Yedek 6 saatte bir; en çok 28 kopya; geri yüklenen dosya `ok`, oyuncu sayısı tutarlı |
