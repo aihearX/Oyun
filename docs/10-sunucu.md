@@ -254,11 +254,19 @@ eklemek ya da veriyi dönüştürmek** için `apps/server/src/migrations.ts` iç
 
 Ayarlar › **Her şeyi sıfırla**, cihazı silmeden önce sunucudaki hesabı siler (KVKK m.7 / GDPR m.17 silme hakkı; App Store 5.1.1(v)).
 Bağlantı yoksa istemci en çok 6 sn bekler; olmazsa yalnızca cihaz silinir (onay sayfası bunu açıkça söyler).
-- Takımdan çıkar (lider ise liderlik devreder; son üyeyse takım silinir), arkadaşlıklar (karşı tarafa `friend.removed`), istekler,
-  engeller, oyuncunun dahil olduğu özel mesaj konuşmaları, tepkiler/okundu bilgisi, genel/takım sohbet mesajları, bekleyen takım
-  başvuruları, bölüm yardımı istekleri ve bu haftanın lig grubu kaydı silinir.
-- Oyuncu satırı kalır (geçmiş savaş/baskın/lig kayıtları kimliğe bağlı) ama ad `Silinmiş Oyuncu` olur, oturum anahtarı özeti
-  hiçbir anahtarla eşleşmeyecek biçimde değişir, arkadaş kodu yenilenir; hesap `deleted_players` tablosuna yazılır.
+- Hangi tablonun **silindiği**, **anonimleştiği** (yalnız başkasının verisi bozulmasın diye: takım toplamını oluşturan düello puanı,
+  takım yarışı yıldızı, ralli katılımı, takım kliniği; geçen haftanın son sıralaması) ya da **gerekçeyle tutulduğu** (makbuz, şikâyet
+  90 gün, kod denemeleri 90 gün, `deleted_players`) tek tabloda yazılıdır: `apps/server/src/account-veri.ts` (`VERI_SINIFI`).
+  Silme tek işlemde: önce ad anonimleşir, takımdan çıkar (lider ise liderlik devreder; son üyeyse takım silme yolu takıma bağlı
+  bütün satırları — `ev_*` dahil — aynı tabloya göre siler), arkadaşlara `friend.removed`, sonra sınıflandırma uygulanır.
+  Sistem iletilerinde, başkalarının ödül kutusu notlarında ve takım hediyesinde geçen ad "Silinmiş Oyuncu" olur.
+- Yeni tablo ya da kimlik/ad sütunu (`*_id`, `*_by`, `a`/`b`, `*name` …) ekleyen `VERI_SINIFI`'na karar yazmak zorundadır:
+  `apps/server/test/account.test.ts` şemayı `sqlite_master`'dan okur ve eksik kararla düşer.
+- Oyuncu satırı kalır (anonim kayıtlar bu kimliğe bağlı) ama ad `Silinmiş Oyuncu` olur, oturum anahtarı özeti hiçbir anahtarla
+  eşleşmeyecek biçimde değişir, arkadaş kodu yenilenir, ilerleme/cüzdan/kozmetik sıfırlanır; hesap `deleted_players`'a yazılır.
+  Kamp şemasının açılıştaki tohumları (`buildings`) silinen hesapları atlar.
+- Göç 2 (`silinmis-hesap-artiklari`): bu sınıflandırmadan önce silinmiş hesapların (`deleted_players`) ve silinmiş takımların artık
+  satırlarını bir kez temizler.
 - Silinmiş hesaplar yönetici hesaplarıyla aynı yoldan (`ADMIN_IDS_SQL`) rekabet tablolarından ve ödüllerden çıkarılır; arama ve
   öneri listelerinde görünmez. Geri alınamaz.
 

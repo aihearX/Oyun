@@ -218,11 +218,11 @@ describe('veri sınıflandırması (YN-029, account-veri.ts)', () => {
     const z = await env.connect(AD); const b = await env.connect('Bora'); const c = await env.connect('Cem'); const d = await env.connect('Derya');
     const zid = z.me!.id;
     // gerçek akış: ilerleme, takım, sohbet, yardım isteği, arkadaşlık, hediye, özel mesaj, kamp
+    const t = (await z.call('team.create', { name: 'Kulaklar', emblem: '👂' })).team;
+    await b.call('team.join', { teamId: t.id });
     for (const lv of [1, 2, 3]) await z.call('progress.submit', run(lv, { stars: 3 }));
     await b.call('progress.submit', run(1, { stars: 2 }));
     await c.call('progress.submit', run(1, { stars: 1 }));
-    const t = (await z.call('team.create', { name: 'Kulaklar', emblem: '👂' })).team;
-    await b.call('team.join', { teamId: t.id });
     await z.call('chat.send', { room: `takim:${t.id}`, text: 'takıma selam' });
     await z.call('team.help.request', { level: 2 });
     await befriend(z, c); await befriend(c, d);
@@ -234,7 +234,9 @@ describe('veri sınıflandırması (YN-029, account-veri.ts)', () => {
     yapayVeri(raw, 'oyuncu', zid, AD);
     const bagli = bagliKimlikler(raw, 'oyuncu', zid);
     const sira = async () => (await c.call('rank.board', { board: 'guc', scope: 'herkes' })).view.rows.map((r) => [r.name, r.value]);
-    const once = { team: (await b.call('team.detail', {})).team!, sira: (await sira()).filter(([n]) => n !== AD) };
+    const takimXp = () => (raw.prepare('SELECT xp FROM teams WHERE id = ?').get(t.id) as { xp: number }).xp;
+    const once = { xp: takimXp(), sira: (await sira()).filter(([n]) => n !== AD) };
+    expect(once.xp).toBeGreaterThan(0);
     expect(say(raw, 'SELECT 1 FROM buildings WHERE player_id = ?', zid)).toBeGreaterThan(1);
 
     expect(await z.call('account.delete', {})).toEqual({ deleted: true });
@@ -244,7 +246,7 @@ describe('veri sınıflandırması (YN-029, account-veri.ts)', () => {
     // takım arkadaşı: takım, lider, takım XP'si ve düello toplamı aynı
     const sonra = (await b.call('team.detail', {})).team!;
     expect(sonra.roster.map((m) => [m.id, m.role])).toEqual([[b.me!.id, 'lider']]);
-    expect(sonra.xp).toBe(once.team.xp);
+    expect(takimXp()).toBe(once.xp);
     expect(raw.prepare("SELECT SUM(points) AS p FROM ev_duel_pts WHERE period = 'P1' AND team_id = ?").get(t.id)).toEqual({ p: 50 });
     // arkadaş: Cem'in listesinde Derya kaldı
     expect((await c.call('friends.list', {})).friends.map((f) => f.id)).toEqual([d.me!.id]);
