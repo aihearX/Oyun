@@ -24,7 +24,7 @@ import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } fr
 import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers, prunePromoLog } from './codes';
 import { backupNow, newestBackupAge, STARTUP_BACKUP_MIN_GAP_MS } from './backup';
-import { accountHandlers } from './account';
+import { accountHandlers, pruneDeletedReports } from './account';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 import { kgHandlers, withKgHooks } from './camp-quests';
 import { vakaHandlers } from './camp-quests-vaka';
@@ -232,7 +232,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); }
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneDeletedReports(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

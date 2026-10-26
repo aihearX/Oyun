@@ -116,6 +116,7 @@ export class Db {
     if (file !== ':memory:') this.raw.exec('PRAGMA journal_mode = WAL;');
     this.raw.exec('PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = OFF; PRAGMA busy_timeout = 2000;');
     this.raw.exec(SCHEMA);
+    this.raw.exec(ACCOUNT_SCHEMA); // silinen hesaplar (yalnızca yeni tablo); kamp tohumları silinen hesapları atlar, önce kurulur
     this.raw.exec(EVENTS_SCHEMA);
     this.raw.exec(COMM_SCHEMA);
     this.raw.exec(CAMP_SCHEMA);
@@ -125,7 +126,6 @@ export class Db {
     this.raw.exec(CODES_SCHEMA);
     this.raw.exec(TEAM_APPLY_SCHEMA); // takım başvuruları (yalnızca yeni tablo; eski open = 0 takımlar veri değişmeden 'basvuru' sayılır)
     this.raw.exec(KG_SCHEMA);
-    this.raw.exec(ACCOUNT_SCHEMA); // silinen hesaplar (yalnızca yeni tablo)
     // var olan tablolara sütun ekleme / veri dönüştürme: sıralı göçler (migrations.ts, PRAGMA user_version)
     const m = runMigrations(this.raw);
     if (m.warning) console.warn(`[şema] ${m.warning}`);
