@@ -154,7 +154,7 @@ async function newPage({ seed = null, ls = {} } = {}) {
 const url = (q = '') => `${HOST}?sunucu=${encodeURIComponent(S.url)}${q ? `&${q}` : ''}`;
 const tab = (page, id) => page.locator(`nav.tabbar .tab[data-tab="${id}"]`).click();
 const toastGone = async (page) => { for (let i = 0; i < 10 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().click({ timeout: 500 }).catch(() => undefined); await sleep(200); } };
-const closeBanners = async (page) => { for (let i = 0; i < 6 && await page.locator('.fr-banner-x').count(); i++) await page.locator('.fr-banner-x').first().click({ timeout: 800 }).catch(() => undefined); };
+const closeBanners = async (page) => { for (const sel of ['.fr-banner-x', '.ev-notice-x']) for (let i = 0; i < 6 && await page.locator(sel).count(); i++) await page.locator(sel).first().click({ timeout: 800 }).catch(() => undefined); };
 /** kutlamalar kuyruk halinde gelir: 1,6 sn boyunca yeni kutlama çıkmayana dek kapat; sonra bildirimleri kapat */
 async function settle(page) {
   let quiet = 0;
