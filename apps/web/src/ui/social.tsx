@@ -123,9 +123,9 @@ export function OfflineCard({ what = 'Takım, sohbet ve savaş' }: { what?: stri
 /** sosyal ekranların ortak kapısı: bağlıysa içerik, bağlanıyorsa iskelet, değilse çevrimdışı kartı */
 export function Online({ children, what, skeleton = 4 }: { children: ReactNode; what?: string; skeleton?: number }) {
   const st = useNet((s) => s.status); const me = useNet((s) => s.me); const tried = useSocial((s) => s.tried); const enabled = useSocial((s) => s.enabled);
-  if (st === 'bağlı' && me) return <>{children}</>;
-  if (enabled && (!tried || st === 'bağlanıyor') && !me) return <Skeleton rows={skeleton} />;
-  if (me && st !== 'bağlı') return <><div className="net-banner"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>{children}</>;
+  // bağlıyken de kopukken de aynı ağaç (şerit yuvası sabit): kopup gelince ekran baştan kurulmaz, yazılan metin ve bekleyen işlem kaybolmaz
+  if (me) return <>{st !== 'bağlı' && <div className="net-banner"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>}{children}</>;
+  if (enabled && (!tried || st === 'bağlanıyor')) return <Skeleton rows={skeleton} />;
   return <OfflineCard what={what} />;
 }
 

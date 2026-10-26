@@ -22,7 +22,7 @@ function useCount(to: number, reduced: boolean, delay = 0): number {
 /** Sonuç ekranında takım katkısı: "Takımına katkın: +24 savaş puanı → Koklea Tabanı", baskın, lig, jeton (sunucu onayından). */
 export function TeamContribution({ runId, result, reduced }: { runId: string; result: RunResult; reduced: boolean }) {
   const run = useSocial((s) => (s.lastRun?.runId === runId ? s.lastRun : null));
-  const team = useNet((s) => s.team); const war = useNet((s) => s.war); const raid = useNet((s) => s.raid);
+  const team = useNet((s) => s.team); const war = useNet((s) => s.war); const raid = useNet((s) => s.raid); const st = useNet((s) => s.status); const hasMe = useNet((s) => !!s.me);
   const ack = run?.ack;
   const war$ = useCount(ack?.warPoints ?? 0, reduced, 0);
   const raid$ = useCount(ack?.raidDamage ?? 0, reduced, 140);
@@ -30,6 +30,8 @@ export function TeamContribution({ runId, result, reduced }: { runId: string; re
   const jet$ = useCount(ack?.jeton ?? 0, reduced, 420);
   const nav = useNav();
   if (!run || run.state === 'yok') return null;
+  // gönderilirken bağlantı koptu (sunucu yeniden başlıyor): sonuç kaybolmaz, bağlanınca aynı kimlikle bir kez yazılır (MK-019)
+  if ((run.state === 'gonderiliyor' || run.state === 'kuyrukta') && st !== 'bağlı' && hasMe) return <div className="team-contrib"><div className="net-banner" role="status" data-testid="sonuc-kopuk"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… Sonucun kayıtlı; bağlanınca takımına ve ligine yazılır.</div></div>;
   if (run.state === 'kuyrukta') return <div className="team-contrib"><div className="tc-line muted"><Art name="signal" size={20} /> Çevrimdışısın: sonucun kuyrukta. Bağlanınca takımına ve ligine yazılır.</div></div>;
   if (run.state === 'gonderiliyor') return <div className="team-contrib"><div className="tc-line muted"><Art name="users" size={20} /> Takımına yazılıyor…</div></div>;
   if (run.state === 'hata' || !ack) return <div className="team-contrib"><div className="tc-line muted">Sunucu bu sonucu saymadı: {run.error}</div></div>;

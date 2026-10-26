@@ -32,6 +32,8 @@ export interface ClientOptions {
   WebSocketImpl?: typeof WebSocket;
   /** istek zaman aşımı (ms), varsayılan 10 000 */
   timeoutMs?: number;
+  /** bağlı değilken yapılan isteğin bağlantıyı bekleme süresi (ms), varsayılan timeoutMs (sunucu yeniden başlarken işlem kaybolmasın) */
+  offlineWaitMs?: number;
   /** yeniden bağlanma bekleme üst sınırı (ms), varsayılan 15 000 */
   maxBackoffMs?: number;
 }
@@ -43,6 +45,8 @@ export class NetError extends Error {
 export interface NetClient {
   connect(): void;
   close(): void;
+  /** bekleyen yeniden bağlanma süresini beklemeden şimdi dene (bekleyen istekler ve kuyruk korunur); bağlıysa ya da bağlanıyorsa bir şey yapmaz */
+  retryNow(): void;
   readonly status: NetStatus;
   readonly me: MyProfile | null;
   /** sunucu saati tahmini (ms) */
@@ -69,6 +73,7 @@ const OPEN = 1;
 export function createClient(opts: ClientOptions): NetClient {
   const timeoutMs = opts.timeoutMs ?? 10_000;
   const maxBackoff = opts.maxBackoffMs ?? 15_000;
+  const offlineWait = opts.offlineWaitMs ?? timeoutMs;
   const WS = opts.WebSocketImpl ?? (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
 
   let status: NetStatus = 'kapalı';
@@ -246,6 +251,12 @@ export function createClient(opts: ClientOptions): NetClient {
       try { s?.close(); } catch {}
       setStatus('kapalı');
     },
+    retryNow() {
+      if (!wanted || status === 'bağlı' || status === 'bağlanıyor') return;
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      attempt = 0;
+      open();
+    },
     get status() { return status; },
     get me() { return me; },
     serverNow: () => Date.now() + offset,
@@ -265,7 +276,7 @@ export function createClient(opts: ClientOptions): NetClient {
         const w: Waiting = { op, data, resolve: resolve as (v: unknown) => void, reject, timer: setTimeout(() => {
           const i = waiting.indexOf(w); if (i >= 0) waiting.splice(i, 1);
           reject(new NetError('CEVRIMDISI', 'Sunucuya bağlanılamadı.'));
-        }, timeoutMs) };
+        }, offlineWait) };
         waiting.push(w);
       });
     },

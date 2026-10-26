@@ -26,6 +26,7 @@ export function deleteAccount(app: App, pid: string): void {
   app.db.run('DELETE FROM dm WHERE from_id = ? OR to_id = ?', pid, pid);
   // sohbet (genel/takım) mesajları ve bekleyen takım başvuruları, bölüm yardımı istekleri
   app.db.run('DELETE FROM chat WHERE from_id = ?', pid);
+  app.db.run('DELETE FROM chat_cid WHERE player_id = ?', pid);
   app.db.run("DELETE FROM team_apps WHERE player_id = ? AND status = 'bekliyor'", pid);
   app.db.run('DELETE FROM help_requests WHERE from_id = ?', pid);
   // bu haftanın lig grubundan çık (geçmiş haftalar kimliğe bağlı kalır, ad anonim)

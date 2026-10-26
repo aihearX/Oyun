@@ -149,7 +149,10 @@ export function pruneChat(app: App): void {
   app.db.run('DELETE FROM chat WHERE at < ?', app.now() - RETAIN_MS);
   app.db.run('DELETE FROM chat_reactions WHERE msg_id NOT IN (SELECT id FROM chat)');
   app.db.run('DELETE FROM chat_thread WHERE parent_id NOT IN (SELECT id FROM chat)');
+  app.db.run('DELETE FROM chat_cid WHERE at < ?', app.now() - CID_RETAIN_MS);
 }
+/** gönderim kimliği yalnız yeniden deneme penceresi için tutulur */
+const CID_RETAIN_MS = 86_400_000;
 
 /** takım sohbetinde @İsim: mesajda geçen takım üyeleri (en çok 3; sınırda harf/rakam olmamalı) */
 function mentionsIn(app: App, p: PlayerRow, teamId: string, text: string): PlayerRow[] {
@@ -240,9 +243,15 @@ export const chatHandlers: Handlers = {
     return { history: history(app, s.pid, room) };
   },
   'chat.leave': (app, s, { room }) => { app.unsubscribe(s.pid, room); return {}; },
-  'chat.send': (app, s, { room, text, kind, replyTo }) => {
+  'chat.send': (app, s, { room, text, kind, replyTo, cid }) => {
     checkRoom(app, s.pid, room);
+    // tekrar koruması (MK-019): yanıt gelmeden bağlantı koptuysa istemci aynı cid ile yeniden gönderir; ileti bir kez yazılır
+    if (cid) {
+      const prev = app.db.get<ChatRow>('SELECT c.* FROM chat_cid k JOIN chat c ON c.id = k.msg_id WHERE k.player_id = ? AND k.cid = ?', s.pid, cid);
+      if (prev && prev.room === room) return { msg: decorate(app, s.pid, toMsg(prev)) };
+    }
     const msg = sendAs(app, app.player(s.pid), room, text, kind ?? 'text', replyTo);
+    if (cid) app.db.run('INSERT OR REPLACE INTO chat_cid(player_id, cid, msg_id, at) VALUES(?, ?, ?, ?)', s.pid, cid, msg.id, app.now());
     return { msg };
   },
   'chat.react': (app, s, { msgId, reaction }) => {

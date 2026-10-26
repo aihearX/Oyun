@@ -2,7 +2,8 @@ import { openProfile } from '../friends/state';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { COMM_RULES, SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
-import { act, errText, getNet, toast } from '../net';
+import { newRunId } from '@odi/net';
+import { act, callSafe, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
@@ -71,6 +72,11 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   const names = useMemo(() => (members ?? []).filter((m) => m.id !== me?.id).map((m) => m.name), [members, me?.id]);
 
   useEffect(() => { setPhrases(!free); }, [free]);
+  // odaya katıl + geçmiş; bağlantı kopup geri gelince yeniden (sunucu yeniden başladıysa abonelik ve aradaki mesajlar)
+  const st = useNet((s) => s.status);
+  const [joins, setJoins] = useState(0);
+  const wasDown = useRef(false);
+  useEffect(() => { if (st !== 'bağlı') { wasDown.current = true; return; } if (wasDown.current) { wasDown.current = false; setJoins((n) => n + 1); } }, [st]);
   useEffect(() => {
     const c = getNet(); if (!c) return;
     let alive = true;
@@ -80,12 +86,13 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       if (!alive) return;
       useNet.setState((s) => {
         const live = (s.messages[room] ?? []).filter((m) => !history.some((h) => h.id === m.id));
-        return { messages: { ...s.messages, [room]: [...history, ...live].slice(-SOCIAL_LIMITS.historySize * 2) } };
+        return { messages: { ...s.messages, [room]: [...history, ...live].sort((a, b) => a.at - b.at).slice(-SOCIAL_LIMITS.historySize * 2) } };
       });
       setLoading(false);
+      if (joins > 0) setErr((e) => (e && /bağlı değilsin|koptu/i.test(e) ? '' : e));
     }, (e) => { if (alive) { setLoading(false); setErr(errText(e)); } });
     return () => { alive = false; if (useNet.getState().activeRoom === room) useNet.getState().setActiveRoom(null); if (room === 'genel') void c.call('chat.leave', { room }).catch(() => undefined); };
-  }, [room]);
+  }, [room, joins]);
   useEffect(() => { clearMentions(room); }, [msgs.length]);
 
   // konu yanıtları üst mesajın altında; üst mesaj listede yoksa tek başına (yanıt etiketiyle) görünür
@@ -104,11 +111,22 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
   const onScroll = () => { const b = box.current; if (b) stick.current = b.scrollHeight - b.scrollTop - b.clientHeight < 60; };
 
+  // gönderim kimliği (cid): aynı ileti yeniden denenirse sunucu bir kez yazar (kopukken / yanıt gelmeden kopunca)
+  const cid = useRef<{ key: string; id: string } | null>(null);
+  const [sending, setSending] = useState(false);
   const send = async (t: string, kind: 'text' | 'emoji' | 'hazir' = 'text') => {
     const c = getNet(); const clean = t.trim(); if (!c || !clean) return;
-    setErr('');
-    try { await c.call('chat.send', { room, text: clean, kind }); if (kind === 'text') setText(''); stick.current = true; platform().haptic('light'); }
-    catch (e) { setErr(errText(e)); }
+    const key = `${kind}:${clean}`;
+    if (cid.current?.key !== key) cid.current = { key, id: newRunId() };
+    setErr(''); setSending(true);
+    try {
+      const { msg } = await callSafe('chat.send', { room, text: clean, kind, cid: cid.current.id });
+      cid.current = null;
+      // kendi iletin (yeniden denemede yayın tekrarlanmaz): listede yoksa ekle
+      useNet.setState((s) => { const list = s.messages[room] ?? []; return list.some((m) => m.id === msg.id) ? {} : { messages: { ...s.messages, [room]: [...list, msg].slice(-SOCIAL_LIMITS.historySize * 2) } }; });
+      if (kind === 'text') setText(''); stick.current = true; platform().haptic('light');
+    } catch (e) { setErr(errText(e)); }
+    finally { setSending(false); }
   };
   const startPress = (m: ChatMessage) => { if (m.from === 'sistem') return; press.current = setTimeout(() => { platform().haptic('medium'); setMenu(m); }, 480); };
   const endPress = () => { if (press.current) clearTimeout(press.current); press.current = null; };
@@ -150,6 +168,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
         ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Emoji tepkilerine geç"><Art name="chat" size={20} /></button><PhraseStrip ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
         : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`Hızlı tepki ${e}`}>{e}</button>)}</div></div>}
       {err && <div className="chat-err" role="alert">{err}</div>}
+      {sending && st !== 'bağlı' && <div className="net-banner chat-wait" role="status" data-testid="sohbet-bekliyor">Bağlantı bekleniyor; iletin bağlanınca gönderilecek.</div>}
       {suggest.length > 0 && <div className="at-suggest" role="listbox" aria-label="Bahset">{suggest.map((m) => <button key={m.id} type="button" role="option" aria-selected={false} onClick={() => pickMention(m.name)}><span className="at-dot" style={{ background: hex(m.color) }} />@{m.name}</button>)}</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}

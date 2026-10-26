@@ -21,6 +21,9 @@ import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
 
+declare const __ODI_E2E__: boolean | undefined;
+/** yalnız uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemci durumunu okur (kopma-e2e) */
+const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
 const NET_CODES = new Set(['CEVRIMDISI', 'ZAMAN_ASIMI', 'KOPTU', 'HIZ', 'KAPALI']);
@@ -55,11 +58,21 @@ export function toast(icon: string, title: string, text?: string, tone: Toast['t
 /** Türkçe hata metni */
 export function errText(e: unknown): string {
   if (e instanceof NetError) {
-    if (e.code === 'CEVRIMDISI' || e.code === 'KOPTU' || e.code === 'KAPALI') return 'Sunucuya bağlı değilsin. Bağlantı gelince tekrar dene.';
+    if (e.code === 'CEVRIMDISI' || e.code === 'KAPALI') return 'Sunucuya bağlı değilsin. Bağlantı gelince tekrar dene.';
+    // istek gitti ama yanıt gelmeden bağlantı koptu: sunucu işlemi yapmış olabilir; bağlanınca durum kendiliğinden yenilenir
+    if (e.code === 'KOPTU') return 'Bağlantı koptu. Yeniden bağlanınca son durumu göreceksin; olmadıysa bir daha dene.';
     if (e.code === 'ZAMAN_ASIMI') return 'Sunucu geç yanıt verdi; bir daha dener misin?';
     return e.message;
   }
   return 'Bir şeyler ters gitti; bir daha dener misin?';
+}
+/**
+ * Tekrar korumalı istek (aynı istek kimliği sunucuda bir kez işlenir: chat.send cid, progress.submit runId, wallet.local ledgerId):
+ * yanıt gelmeden bağlantı koparsa (KOPTU) bir kez daha gönderilir; istemci bağlantı gelene kadar (zaman aşımına dek) bekler.
+ */
+export async function callSafe<O extends keyof OpMap>(op: O, data: OpMap[O]['req']): Promise<OpMap[O]['res']> {
+  const c = client; if (!c) throw new NetError('KAPALI', 'Sunucu adresi yok.');
+  try { return await c.call(op, data); } catch (e) { if (e instanceof NetError && e.code === 'KOPTU') return c.call(op, data); throw e; }
 }
 /** isteği çalıştır, hata olursa nazik bir bildirim göster; başarısızsa null */
 export async function act<O extends keyof OpMap>(op: O, data: OpMap[O]['req']): Promise<OpMap[O]['res'] | null> {
@@ -253,6 +266,10 @@ export function startNet(): void {
     useSocial.setState({ outbox });
     client = createClient({
       url,
+      // sunucu yeniden başlarken (güncelleme, yeniden açılış) bekleme en çok 8 sn: sunucu döndükten sonra ≤ 8 sn'de bağlanır (MK-019)
+      maxBackoffMs: 8_000,
+      // kopukken basılan işlem (sohbet iletisi, kamp) bağlantıyı 20 sn bekler: kısa yeniden başlatmada kaybolmaz, uzun kopuklukta açık hata
+      offlineWaitMs: 20_000,
       getToken: () => store().getItem(K.token),
       saveToken: (t) => (t ? store().setItem(K.token, t) : store().removeItem(K.token)),
       getQueue: () => readJson<ProgressSubmit[]>(K.queue, []),
@@ -281,15 +298,23 @@ export function startNet(): void {
     c.on('team.gift', ({ gift }) => toast('🎁', 'Takım hediyesi geldi!', gift.reason, 'gold'));
     useStore.subscribe((n, p) => { if (n.meta.ledger !== p.meta.ledger) scanLedger(); });
     scanLedger();
+    // ağ geri gelince ya da uygulama öne gelince beklemeden dene (bekleyen istekler korunur)
+    if (typeof window !== 'undefined') {
+      window.addEventListener('online', () => c.retryNow());
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') c.retryNow(); });
+    }
+    if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client };
     c.connect();
   })();
 }
 
-/** bağlantıyı baştan dene (bekleme süresini sıfırlar) */
+/** bağlantıyı şimdi dene (bekleme süresini sıfırlar; bekleyen istekler ve kuyruk korunur) */
 export function reconnect(): void {
   if (!client) { started = false; startNet(); return; }
+  if (client.status === 'bağlı' || client.status === 'bağlanıyor') return;
   useSocial.setState({ tried: false });
-  client.close(); client.connect();
+  if (client.status === 'kapalı') { client.close(); client.connect(); return; }
+  client.retryNow();
 }
 
 /** ödül kutusundan al: cüzdan sunucudan yansır; kozmetik/kart/kalkan yerel meta'ya da işlenir */

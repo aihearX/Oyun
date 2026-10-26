@@ -6,7 +6,8 @@ import { HUMAN_JOURNEY } from '@odi/content';
 import { useNet } from '@odi/net/store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
-import { errText } from '../net';
+import { newRunId } from '@odi/net';
+import { callSafe, errText } from '../net';
 import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
 import { chunkFailed, loadLevelGen } from '../engine';
 import './race.css';
@@ -41,11 +42,29 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
     try { const r = await fn(); if (r) enter(r); else setView('menu'); } catch (e) { setError(errText(e)); setView(roomRef.current ? 'room' : 'menu'); }
   };
 
-  // davetle gelindiyse odaya katıl (zaten odadaysa sunucu aynı odayı döndürür)
+  // davetle gelindiyse odaya katıl (zaten odadaysa sunucu aynı odayı döndürür); bir kez
+  const invited = useRef(false);
   useEffect(() => {
-    if (!inviteRoomId || !online || !net) return;
+    if (!inviteRoomId || !online || !net || invited.current) return;
+    invited.current = true;
     void run(async () => (await net.call('race.join', { roomId: inviteRoomId })).room);
   }, [inviteRoomId, online]);
+
+  // bağlantı koptu (sunucu yeniden başladı ya da ağ gitti): sunucu kopan oyuncuyu odadan çıkarır. Geri gelince odaya yeniden
+  // katılmayı dener; oda artık yoksa (sunucu yeniden başladıysa odalar silinir) açıkça söyler ve menüye döner (MK-019)
+  const lostRoom = useRef<string | null>(null);
+  useEffect(() => {
+    if (!net) return;
+    if (!online) { if (roomRef.current && roomRef.current.status !== 'bitti') lostRoom.current = roomRef.current.id; return; }
+    const id = lostRoom.current; if (!id) return;
+    lostRoom.current = null;
+    setView('busy'); setError(null);
+    net.call('race.join', { roomId: id }).then((r) => { if (alive.current) enter(r.room); }, () => {
+      if (!alive.current) return;
+      setRoom(null); setView('menu');
+      setError('Bağlantı koptuğu sırada yarış odası kapandı. Yeni bir oda kurabilir ya da hızlı yarışa girebilirsin.');
+    });
+  }, [online]);
 
   // oda güncellemeleri
   useEffect(() => {
@@ -78,7 +97,13 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
   const close = () => { if (roomRef.current) void leave(); onClose(); };
 
   if (!net) return <Shell title="Canlı yarış" onBack={onClose}><div className="card race-empty"><div className="ph-icon" aria-hidden><Art e="📡" size="1.15em" className="art-inline" /></div><h2>Sunucu yok</h2><div className="muted">Canlı yarış için sosyal sunucuya bağlanmak gerekiyor.</div></div></Shell>;
-  if (!online) return <Shell title="Canlı yarış" onBack={close}><div className="card race-empty"><div className="ph-icon" aria-hidden><Art e="⏳" size="1.15em" className="art-inline" /></div><h2>Bağlanıyor…</h2><div className="muted">Bağlantı gelince yarış odaları açılır.</div></div></Shell>;
+  if (!online) return (
+    <Shell title="Canlı yarış" onBack={close}>
+      {(room || me) && <div className="net-banner" role="status" data-testid="yaris-kopuk"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor…</div>}
+      <div className="card race-empty"><div className="ph-icon" aria-hidden><Art e="⏳" size="1.15em" className="art-inline" /></div><h2>Bağlanıyor…</h2>
+        <div className="muted">{room ? `Bağlanınca ${room.id} odasına yeniden katılmayı deneyeceğiz.` : 'Bağlantı gelince yarış odaları açılır.'}</div></div>
+    </Shell>
+  );
 
   if (view === 'room' && room) return <RoomView room={room} meId={meId} error={error} onLeave={leave} onBack={close} />;
 
@@ -264,7 +289,7 @@ export function RaceChat({ roomId, meId, compact }: { roomId: string; meId: stri
   const send = async (t: string, kind: 'text' | 'emoji' | 'hazir' = 'text') => {
     const clean = t.trim(); if (!clean || !net) return;
     setErr(null);
-    try { await net.call('chat.send', { room, text: clean, kind }); if (kind === 'text') setText(''); } catch (e) { setErr(errText(e)); }
+    try { await callSafe('chat.send', { room, text: clean, kind, cid: newRunId() }); if (kind === 'text') setText(''); } catch (e) { setErr(errText(e)); }
   };
   const shown = useMemo(() => msgs.slice(-30), [msgs]);
   return (
