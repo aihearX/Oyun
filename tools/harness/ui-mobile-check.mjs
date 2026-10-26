@@ -291,12 +291,12 @@ function measureContrast([ISTISNA, BEKLEYEN]) {
     const item = { id: nodes.length, text: text.trim().replace(/\s+/g, ' ').slice(0, 40), sel: desc(el), fs: Math.round(fs * 10) / 10, fw, large, need,
       fg: hex(fg), fgA: Math.round(fg[3] * opAll * 100) / 100, tx: hex(tx), bg: hex(bg), ratio: Math.round(ratio(tx, bg) * 100) / 100, sample, filter: filt || undefined,
       fgRaw: fg, opAll };
-    if (fill && fill[3] < 0.05 && cs.backgroundClip === 'text') item.istisna = 'gradyan metin (background-clip:text) — elle bakılmalı';
+    for (const [sel, why, min] of ISTISNA) if (el.closest(sel)) { item.istisna = why; if (min) { item.need = min; item.istisnaMin = min; } break; }
+    if (!item.istisna && fill && fill[3] < 0.05 && cs.backgroundClip === 'text') item.istisna = 'gradyan metin (background-clip:text) — elle bakılmalı';
     // WCAG 1.4.3 istisnaları: etkisiz (devre dışı) denetimin parçası; salt süs ve logo yalnız KONTRAST_ISTISNA'daki gerekçeli seçicilerle
     // (aria-hidden kendiliğinden istisna sayılmaz: gören oyuncu o yazıyı okur)
     const dis = el.closest('button:disabled, input:disabled, select:disabled, textarea:disabled, fieldset:disabled, [aria-disabled="true"]');
     if (!item.istisna && dis) item.istisna = 'devre dışı denetim (WCAG 1.4.3: etkisiz arayüz öğesi)';
-    if (!item.istisna) for (const [sel, why, min] of ISTISNA) if (el.closest(sel)) { item.istisna = why; if (min) { item.need = min; item.istisnaMin = min; } break; }
     if (!item.istisna) for (const [sel, why] of BEKLEYEN) if (el.closest(sel)) { item.bekleyen = why; break; }
     item.inView = r.top >= -1 && r.left >= -1 && r.bottom <= H + 1 && r.right <= W + 1;
     item.rect = [r.left, r.top, r.width, r.height];
