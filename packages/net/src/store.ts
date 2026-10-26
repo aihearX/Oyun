@@ -79,9 +79,12 @@ export function bindNet(client: NetClient): () => void {
   offs.push(client.on('presence', ({ id, online }) => set((s) => ({ presence: { ...s.presence, [id]: online } }))));
   offs.push(client.on('kicked', ({ reason }) => set({ kickedReason: reason })));
   offs.push(client.on('chat', ({ msg }) => set((s) => {
-    const list = [...(s.messages[msg.room] ?? []), msg].slice(-MAX_MSGS);
+    const cur = s.messages[msg.room] ?? [];
+    // aynı ileti iki kez gelirse (yanıtla birlikte eklenmiş, yeniden katılım) yerinde güncellenir
+    const dup = cur.some((m) => m.id === msg.id);
+    const list = (dup ? cur.map((m) => (m.id === msg.id ? msg : m)) : [...cur, msg]).slice(-MAX_MSGS);
     const mine = msg.from === s.me?.id;
-    const unread = s.activeRoom === msg.room || mine ? s.unread : { ...s.unread, [msg.room]: (s.unread[msg.room] ?? 0) + 1 };
+    const unread = dup || s.activeRoom === msg.room || mine ? s.unread : { ...s.unread, [msg.room]: (s.unread[msg.room] ?? 0) + 1 };
     return { messages: { ...s.messages, [msg.room]: list }, unread };
   })));
   if (client.status === 'bağlı') void refresh();

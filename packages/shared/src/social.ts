@@ -285,8 +285,9 @@ export interface OpMap {
   'friends.remove': { req: { id: string }; res: Record<string, never> };
   'chat.join': { req: { room: string }; res: { history: ChatMessage[] } };
   'chat.leave': { req: { room: string }; res: Record<string, never> };
-  /** kind 'hazir': text = hazır söz kimliği (QUICK_PHRASES); replyTo: bir kartın/mesajın konusuna yanıt */
-  'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' | 'hazir'; replyTo?: string }; res: { msg: ChatMessage } };
+  /** kind 'hazir': text = hazır söz kimliği (QUICK_PHRASES); replyTo: bir kartın/mesajın konusuna yanıt
+   *  cid (isteğe bağlı, MK-019): istemcinin gönderim kimliği; aynı oyuncu aynı cid'i yeniden gönderirse ileti bir kez yazılır, ilk ileti döner */
+  'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' | 'hazir'; replyTo?: string; cid?: string }; res: { msg: ChatMessage } };
   'chat.report': { req: { msgId: string }; res: Record<string, never> };
   'chat.mute': { req: { id: string; on: boolean }; res: { muted: string[] } };
   /** v7: tüm takımlar (açık + başvuruyla), takım gücüne göre; filtre ve sayfalama isteğe bağlı (bkz. TAKIM BAŞVURUSU) */

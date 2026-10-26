@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, QUICK_PHRASES, REACTION_LABEL, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
-import { act, errText, getNet, toast } from '../net';
+import { newRunId } from '@odi/net';
+import { act, callSafe, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { useNav } from '../nav';
 import { useStore } from '../store';
@@ -26,7 +27,8 @@ export const phrasesFor = (...ctx: PhraseCtx[]) => QUICK_PHRASES.filter((p) => p
 
 async function sendIn(room: string, text: string, kind: 'text' | 'hazir', replyTo?: string): Promise<boolean> {
   const c = getNet(); if (!c) return false;
-  try { await c.call('chat.send', { room, text, kind, ...(replyTo ? { replyTo } : {}) }); platform().haptic('light'); return true; }
+  // cid: yanıt gelmeden bağlantı koparsa bir kez yeniden denenir, sunucu bir kez yazar (MK-019)
+  try { await callSafe('chat.send', { room, text, kind, cid: newRunId(), ...(replyTo ? { replyTo } : {}) }); platform().haptic('light'); return true; }
   catch (e) { toast('🙈', 'Gönderilemedi', errText(e), 'bronze'); return false; }
 }
 

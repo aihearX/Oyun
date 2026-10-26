@@ -34,7 +34,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'friends.remove': z.object({ id }),
   'chat.join': z.object({ room }),
   'chat.leave': z.object({ room }),
-  'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji', 'hazir']).optional(), replyTo: id.optional() }),
+  'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji', 'hazir']).optional(), replyTo: id.optional(), cid: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional() }),
   'chat.report': z.object({ msgId: id }),
   'chat.mute': z.object({ id, on: z.boolean() }),
   'team.list': z.object({ query: z.string().max(40).optional(), filter: z.enum(['hepsi', 'acik', 'basvuru', 'uygun']).optional(), offset: z.number().int().min(0).max(100_000).optional(), limit: z.number().int().min(1).max(TEAM_APPLY_RULES.pageMax).optional() }),

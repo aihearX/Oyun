@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ODİ kabul takımı: bir turun bütün denetimlerini tek komutla, sırayla çalıştırır.
 //   typecheck, lint, vitest, ses denetimi, mobil tsc/jest/expo-doctor, DOM paketi (bir kez), domcheck,
-//   bot 1-40 + boşta oyuncu, bütün *-e2e.mjs (web + dom), ui-mobile-check (web + dom).
+//   bot 1-40 + boşta oyuncu, bütün *-e2e.mjs (web + dom; kopma: sunucu oturum ortasında yeniden başlar), ui-mobile-check (web + dom).
 // Her takım: `nice -n 5`, kendi zaman sınırı, süreç grubu olarak çalışır (sınır aşılınca hepsi kapanır).
 // Düşen takım bir kez tek başına yeniden koşulur: ikinci koşu geçerse "tekrarda geçti (yük/zaman kaynaklı olabilir)",
 // yine düşerse "gerçek". Her takımdan sonra o takımın yazdığı çıktı klasörleri (tools/harness/out/<x>, apps/mobile/tools/out)
@@ -51,6 +51,8 @@ const STEPS = [
   { ad: 'friends', cmd: node(`${H}/friends-e2e.mjs`), sure: 1200 },
   { ad: 'events', cmd: node(`${H}/events-e2e.mjs`), sure: 1500 },
   { ad: 'race', cmd: node(`${H}/race-e2e.mjs`), sure: 1200 },
+  // MK-019: oturum ortasında sunucu yeniden başlatma (aynı veritabanı; Chromium + WebKit)
+  { ad: 'kopma', cmd: node(`${H}/kopma-e2e.mjs`), sure: 2400 },
   { ad: 'camp', cmd: node(`${H}/camp-e2e.mjs`), sure: 2400, dom: true },
   { ad: 'vaka', cmd: node(`${H}/vaka-e2e.mjs`), sure: 1500, dom: true },
   { ad: 'ui-mobile', cmd: node(`${H}/ui-mobile-check.mjs`, '--target', 'both', '--tag', 'kabul'), sure: 4800, dom: true },
