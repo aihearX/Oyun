@@ -10,7 +10,7 @@ import { dmHandlers, dmTyping } from './dm';
 import { leagueHandlers, leagueRollover } from './league';
 import { announcePresence, playerHandlers } from './players';
 import { progressHandlers, pruneRuns } from './progress';
-import { raceHandlers, racePos, raceShutdown, sweepRaces } from './race';
+import { raceHandlers, racePos, raceShutdown, restoreRaces, sweepRaces } from './race';
 import { raidHandlers } from './raid';
 import { firePosSchema, schemaError, SCHEMAS } from './schemas';
 import { shopHandlers } from './shop';
@@ -25,7 +25,7 @@ import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers, prunePromoLog } from './codes';
 import { backupNow, newestBackupAge, STARTUP_BACKUP_MIN_GAP_MS } from './backup';
 import { accountHandlers, pruneDeletedReports } from './account';
-import { teamRaceDisconnect, teamRaceHandlers, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
+import { teamRaceDisconnect, teamRaceHandlers, teamRaceRestoredEnd, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 import { kgHandlers, withKgHooks } from './camp-quests';
 import { vakaHandlers } from './camp-quests-vaka';
 import { oyunHandlers } from './camp-quests-oyun';
@@ -108,6 +108,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
   installComm(app);
   installRank(app);
   installTeamApply(app);
+  // sunucu yarış sürerken yeniden başladıysa (güncelleme, çökme) başlamış yarışlar geri gelir (MK-031)
+  restoreRaces(app, { teamEnd: teamRaceRestoredEnd });
   const log = (...a: unknown[]) => { if (cfg.log) console.log(new Date().toISOString(), ...a); };
 
   const httpServer = http.createServer((req, res) => {

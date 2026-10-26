@@ -310,6 +310,8 @@ export interface OpMap {
   'race.ready': { req: { ready: boolean }; res: { room: RaceRoom } };
   'race.leave': { req: Record<string, never>; res: Record<string, never> };
   'race.finish': { req: { completed: boolean; score: number; timeSec: number }; res: { room: RaceRoom } };
+  /** odanın güncel hâli (katılmadan; yeniden bağlanınca). Oda yoksa ya da oyuncu bu odada hiç olmadıysa 'YOK' (MK-031) */
+  'race.state': { req: { roomId: string }; res: { room: RaceRoom } };
   'league.state': { req: Record<string, never>; res: { league: LeagueState } };
   'inbox.list': { req: Record<string, never>; res: { items: InboxItem[] } };
   'inbox.claim': { req: { id: string }; res: { item: InboxItem; wallet: Wallet } };

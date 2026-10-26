@@ -33,6 +33,8 @@ export interface ServerConfig {
   freeTextCleared: number;
   /** takım yarışı: bağlantısı kopanın dönmesi için bekleme (varsayılan TEAM_RACE_RULES.graceMs; testte kısa) */
   teamRaceGraceMs?: number;
+  /** canlı yarış: yarış sürerken kopanın (ve sunucu yeniden başlayınca herkesin) dönmesi için bekleme (varsayılan race.ts RACE_REJOIN_MS) */
+  raceRejoinMs?: number;
   /** yönetici kodunun tuzlu özeti (scrypt:tuz:özet); yoksa codes.ts'teki varsayılan. Düz metin hiçbir yerde tutulmaz. */
   adminCodeHash?: string;
   /** sunucunun önündeki güvenilir vekil sayısı (ODI_TRUST_PROXY); 0/yok = X-Forwarded-For yok sayılır */

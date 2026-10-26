@@ -64,6 +64,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'race.ready': z.object({ ready: z.boolean() }),
   'race.leave': empty,
   'race.finish': z.object({ completed: z.boolean(), score: z.number().min(0).max(MAX_SCORE), timeSec: z.number().min(0).max(3600) }),
+  'race.state': z.object({ roomId: id }),
   'league.state': empty,
   'inbox.list': empty,
   'inbox.claim': z.object({ id }),

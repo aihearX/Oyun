@@ -190,10 +190,10 @@ async function home(P) {
   }
 }
 const toastGone = async (P) => { for (let i = 0; i < 8 && await P.page.locator('.toast-top').count(); i++) { await P.page.locator('.toast-top').first().evaluate((el) => el.click(), undefined, { timeout: 500 }).catch(() => undefined); await sleep(150); } };
-const status = (P) => P.page.evaluate(() => window.__etkinlik?.netStore?.getState().status ?? window.__ag?.net()?.status ?? null).catch(() => null);
+const status = (P) => P.page.evaluate(() => window.__etkinlik?.netStore?.getState().status ?? window.__ag?.net()?.status ?? window.__yaris?.net()?.status ?? null).catch(() => null);
 const call = (P, op, data) => P.page.evaluate(([o, d]) => window.__ag.net().call(o, d), [op, data]);
 async function waitOnline(P, ms = 25_000) {
-  await P.page.waitForFunction(() => (window.__etkinlik?.netStore?.getState().status ?? window.__ag?.net()?.status) === 'bağlı', null, { timeout: ms, polling: 100 });
+  await P.page.waitForFunction(() => (window.__etkinlik?.netStore?.getState().status ?? window.__ag?.net()?.status ?? window.__yaris?.net()?.status) === 'bağlı', null, { timeout: ms, polling: 100 });
   return Date.now();
 }
 const banner = (P) => P.page.locator('.net-banner', { hasText: 'Bağlantı koptu' }).first();
@@ -516,6 +516,181 @@ async function suiteYaris(A, B) {
   return { yeniden: t1, ag: ta ? ta - tPass : null };
 }
 
+/**
+ * Hayalet örnekleyici (sayfada): her karede rakip hayaletlerinin konumu ve saydamlığı. Dönüşte "sıçrama" ölçülür: donmuş
+ * hayaletin ilk hareketi ya gizliyken (saydamlık < 0,3) olur ya da küçük bir adımdır; görünürken hiçbir karede hız sınırı aşılmaz.
+ */
+const HAYALET_ORNEK = () => {
+  const o = { frames: [], on: true }; window.__hayalet = o;
+  const loop = () => {
+    if (!o.on) return;
+    const r = globalThis.__odiScene?.race;
+    if (r?.ghosts) {
+      const t = performance.now();
+      for (const g of r.ghosts.values()) o.frames.push([t, g.info.name, Math.round(g.x), Math.round(g.y), Math.round(g.body.alpha * 100) / 100, g.body.visible ? 1 : 0]);
+      if (o.frames.length > 60_000) o.frames.splice(0, 20_000);
+    }
+    requestAnimationFrame(loop);
+  };
+  requestAnimationFrame(loop);
+};
+/** görünür sayılan saydamlık; hayalet normalde 0,5, bayatlayınca/gizliyken daha az */
+const GORUNUR = 0.3;
+/** görünürken iki kare arasında izin verilen en büyük hız (px/sn): en hızlı gerçek hareket düşüş (MAX_FALL 1000) + ara değerleme payı */
+const HAYALET_HIZ = 2200;
+/** hız ölçüm aralığı (ms): bir konum paketinden (8 Hz) biraz kısa */
+const HIZ_PENCERE = 100;
+/** dönüşte görünürken ilk adım bundan büyükse sıçrama sayılır (px) */
+const HAYALET_ADIM = 48;
+function hayaletAnaliz(frames, tDown) {
+  const by = new Map();
+  for (const f of frames) { const [t, name, x, y, a, v] = f; if (!by.has(name)) by.set(name, []); by.get(name).push({ t, x, y, a: v ? a : 0 }); }
+  const out = [];
+  for (const [name, fs] of by) {
+    // kopukluk: kopmadan sonra hayaletin en uzun durduğu (konumu gelmeyen) aralık → ondan sonraki ilk hareket
+    let resume = null; let runStart = null; let best = 0;
+    for (let i = 1; i < fs.length; i++) {
+      const p = fs[i - 1], c = fs[i];
+      if (c.t < tDown) continue;
+      const moved = Math.hypot(c.x - p.x, c.y - p.y) > 2;
+      if (!moved) { if (runStart == null) runStart = p; continue; }
+      if (runStart && c.t - runStart.t > best && c.t - runStart.t >= 1500) { best = c.t - runStart.t; resume = { t: c.t, d: Math.round(Math.hypot(c.x - p.x, c.y - p.y)), a: c.a, gizli: c.a < GORUNUR, durduMs: Math.round(best) }; }
+      runStart = null;
+    }
+    // dönüşten sonraki 3 sn: görünürken en yüksek hız, en az HIZ_PENCERE ms'lik aralıklarla (örnekleyicinin karesi Phaser'ın
+    // güncellemesiyle aynı anda değil: tek kare çifti iki güncellemeyi kapsayabilir). Yeniden doğmadaki kısa kayma dışarıda kalsın diye yalnız bu pencere.
+    let maxV = 0; let worst = null;
+    if (resume) for (let i = 1, j = 0; i < fs.length; i++) {
+      const c = fs[i]; if (c.t < resume.t || c.t > resume.t + 3000) continue;
+      while (j < i && fs[j + 1].t <= c.t - HIZ_PENCERE) j++;
+      const p = fs[j]; if (p.t < resume.t || c.t - p.t < HIZ_PENCERE) continue;
+      if (fs.slice(j, i + 1).some((f) => f.a < GORUNUR)) continue;
+      const dt = (c.t - p.t) / 1000; const d = Math.hypot(c.x - p.x, c.y - p.y);
+      const v = d / dt; if (v > maxV) { maxV = v; worst = { d: Math.round(d), dtMs: Math.round(dt * 1000) }; }
+    }
+    out.push({ name, maxV: Math.round(maxV), worst, resume: resume && { ...resume, t: undefined }, frames: fs.length });
+  }
+  return out;
+}
+
+/** ilk yarış sonrası (bölüm 1) ödül/XP/lig durumu: SQLite'tan */
+function odulDurumu(pid) {
+  return {
+    xp: q1('SELECT xp FROM players WHERE id = ?', pid).xp, jeton: q1('SELECT jeton FROM players WHERE id = ?', pid).jeton,
+    lig: q1('SELECT COALESCE(SUM(points), 0) AS s FROM league WHERE player_id = ?', pid).s,
+    runs: q1('SELECT COUNT(*) AS n FROM progress_runs WHERE player_id = ?', pid).n,
+    grants: q1('SELECT COALESCE(SUM(credited), 0) AS s FROM local_grants WHERE player_id = ?', pid).s,
+  };
+}
+const ligPuani = (completed, stars, place) => (!completed ? 1 : 5 + stars * 5 + (place == null ? 0 : place === 1 ? 30 : place === 2 ? 15 : place === 3 ? 8 : 3));
+const xpPuani = (completed, stars) => (completed ? 20 + stars * 10 : 5);
+
+/**
+ * (e) Yarışın içinde yeniden başlatma (MK-031): 3 oyuncu canlı yarışta, ilki yarı yoldayken sunucu yeniden başlar (SIGTERM ya da SIGKILL).
+ * Bağlanınca herkes yarışı bitirir ya da açık bir iletiyle menüye döner; bitiş sırası her istemcide aynı; ödül ve XP bir kez yazılır;
+ * hayaletler dönüşte sıçramaz (ya akarak sürer ya gizlenip yeni yerinde belirir).
+ */
+async function suiteYarisIci(players, sig) {
+  const [A, B, C] = players;
+  const label = `yaris-ici-${sig === 'SIGKILL' ? 'kill' : 'term'}`;
+  step(`(e) Yarışın içinde sunucu yeniden başlar (${sig}): 3 oyuncu, ilki yarı yoldayken`);
+  const DELAY = { A: 0, B: 350, C: 700 };
+  for (const P of players) {
+    await P.page.goto(`${host}/${RACE_PAGE}?ad=${encodeURIComponent(P.name)}&yaris-bot=1&bot-gecikme=${DELAY[P.tag]}&ilerleme=1&sunucu=${encodeURIComponent(P.proxy.url)}`, { waitUntil: 'load' });
+    await P.page.waitForFunction((n) => window.__yaris?.net()?.status === 'bağlı' && window.__yaris.net().me?.name === n, P.name, { timeout: 25_000 });
+    if (!P.pid) { for (let i = 0; i < 50 && !P.pid; i++) { P.pid = q1('SELECT id FROM players WHERE name = ?', P.name)?.id ?? null; if (!P.pid) await sleep(200); } check(!!P.pid, `${P.tag} sunucuda (${P.name})`); }
+  }
+  const tid = (P, id) => P.page.getByTestId(id);
+  await tid(A, 'yaris-oda-kur').click(); await tid(A, 'yaris-seviye-1').click();
+  await tid(A, 'yaris-kod').waitFor({ timeout: 10_000 });
+  const code = await tid(A, 'yaris-kod').getAttribute('data-code');
+  for (const P of [B, C]) { await tid(P, 'yaris-kod-gir').click(); await tid(P, 'yaris-kod-input').fill(code); await tid(P, 'yaris-kod-katil').click(); }
+  for (const P of players) await P.page.waitForFunction(() => document.querySelectorAll('[data-testid="yaris-oyuncu"]').length === 3, null, { timeout: 10_000 });
+  const once = Object.fromEntries(players.map((P) => [P.tag, odulDurumu(P.pid)]));
+  for (const P of players) await tid(P, 'yaris-hazir').click();
+  for (const P of players) await P.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 30_000 });
+  ok(`oda ${code}: 3 oyuncu yarışta`);
+  for (const P of players) await P.page.evaluate(HAYALET_ORNEK);
+  // ilki yarı yolda
+  const pctOf = (P) => P.page.evaluate(() => (window.__odi?.events ?? []).filter((e) => e.type === 'progress').pop()?.pct ?? 0);
+  let pa = 0; for (let i = 0; i < 600 && pa < 0.5; i++) { pa = await pctOf(A); if (pa < 0.5) await sleep(200); }
+  check(pa >= 0.5, `A yarı yolda (%${Math.round(pa * 100)})`);
+  const pcts = await Promise.all(players.map(pctOf));
+  check(pcts.every((x) => x < 0.999), `kimse bitirmedi (%${pcts.map((x) => Math.round(x * 100)).join(' / %')})`);
+  const pDown = await Promise.all(players.map((P) => P.page.evaluate(() => performance.now())));
+  const t = await outage(label, { sig, players, bannerOf: (P) => P.page.getByTestId('yaris-ici-kopuk'),
+    whileDown: async () => { await sleep(1500); } });
+
+  // herkes ya sonucu görür ya da açık iletiyle menüye döner (takılı kalan yok)
+  const son = {};
+  for (const P of players) {
+    const r = await Promise.race([
+      P.page.locator('[data-testid="yaris-sonuc"][data-status="bitti"]').waitFor({ timeout: 150_000 }).then(() => 'sonuc'),
+      P.page.locator('[data-testid="yaris-kapandi"]').waitFor({ timeout: 150_000 }).then(() => 'kapandi'),
+    ]).catch(() => null);
+    if (!r) await shot(P, `${label}-takildi`);
+    const ekran = await P.page.evaluate(() => ({ route: window.__yaris?.route, status: document.querySelector('[data-testid="yaris-sonuc"]')?.getAttribute('data-status') ?? null, alert: document.querySelector('[role="alert"]')?.textContent ?? null })).catch(() => null);
+    check(!!r, `${P.tag}: yarış ${r === 'sonuc' ? 'bitti, sonuç ekranı' : r === 'kapandi' ? 'kapandı, açık ileti' : 'TAKILDI'} (${JSON.stringify(ekran)})`);
+    son[P.tag] = r;
+  }
+  for (const P of players) await shot(P, `${label}-son`);
+  if (players.every((P) => son[P.tag] === 'sonuc')) {
+    ok('herkes yarışı bitirdi (sunucu yeniden başlasa da yarış sürdü)');
+    await sleep(800);
+    const orders = [];
+    for (const P of players) orders.push(await P.page.$$eval('[data-testid="yaris-sonuc-sira"]', (els) => els.map((e) => `${e.getAttribute('data-place') || '-'}:${e.getAttribute('data-name')}`)));
+    check(orders.every((o) => JSON.stringify(o) === JSON.stringify(orders[0])), `bitiş sırası üç istemcide aynı: ${orders.map((o) => o.join(',')).join(' | ')}`);
+    check(orders[0].filter((x) => !x.startsWith('-')).length >= 2, `en az iki derece var (${orders[0].join(', ')})`);
+  } else {
+    // menüye dönenler: açık ileti
+    for (const P of players) if (son[P.tag] === 'kapandi') {
+      const msg = await tid(P, 'yaris-kapandi').innerText();
+      check(/yarış/i.test(msg) && /(kapandı|yeniden başla|düştün)/i.test(msg), `${P.tag}: açık ileti "${msg.replace(/\s+/g, ' ').trim()}"`);
+    }
+  }
+
+  // ödül ve XP: sunucuda bir kez (progress_runs +1; XP, lig ve jeton tek sefer; derece lig puanına bağlandı)
+  for (const P of players) {
+    if (son[P.tag] !== 'sonuc') continue;
+    let n = 0; for (let i = 0; i < 100 && n <= once[P.tag].runs; i++) { n = odulDurumu(P.pid).runs; if (n <= once[P.tag].runs) await sleep(200); }
+    check(n === once[P.tag].runs + 1, `${P.tag}: sonuç sunucuya bir kez yazıldı (progress_runs +${n - once[P.tag].runs})`);
+  }
+  // ağ bir kez daha kopar (yeniden gönderim fırsatı): hiçbir şey ikinci kez yazılmamalı
+  for (const P of players) P.proxy.drop();
+  for (const P of players) await waitOnline2(P);
+  await sleep(2500);
+  for (const P of players) {
+    if (son[P.tag] !== 'sonuc') continue;
+    const s = odulDurumu(P.pid); const o = once[P.tag];
+    const run = await P.page.evaluate(() => window.__odi?.result && { completed: window.__odi.result.completed, stars: window.__odi.result.stars });
+    const place = await P.page.locator('[data-testid="yaris-sonuc-sira"].me').getAttribute('data-place').then((x) => (x ? Number(x) : null));
+    const ack = JSON.parse(q1('SELECT ack FROM progress_runs WHERE player_id = ? ORDER BY at DESC LIMIT 1', P.pid).ack);
+    check(s.runs - o.runs === 1, `${P.tag}: ağ kopmasından sonra da progress_runs tek (+${s.runs - o.runs})`);
+    check(s.xp - o.xp === xpPuani(run.completed, run.stars), `${P.tag}: XP bir kez (+${s.xp - o.xp}; beklenen +${xpPuani(run.completed, run.stars)})`);
+    check(s.lig - o.lig === ack.leaguePoints, `${P.tag}: lig puanı bir kez (+${s.lig - o.lig} = yanıt ${ack.leaguePoints})`);
+    check(ack.leaguePoints === ligPuani(run.completed, run.stars, place), `${P.tag}: yarış derecesi (${place ?? '-'}.) lig puanına bağlandı: ${ack.leaguePoints} (beklenen ${ligPuani(run.completed, run.stars, place)})`);
+    check(s.jeton - o.jeton === ack.jeton + (s.grants - o.grants), `${P.tag}: jeton bir kez (+${s.jeton - o.jeton} = bölüm ${ack.jeton} + yerel ödül defteri ${s.grants - o.grants})`);
+  }
+
+  // hayaletler: dönüşte sıçrama yok
+  for (let i = 0; i < players.length; i++) {
+    const P = players[i];
+    const frames = await P.page.evaluate(() => { const o = window.__hayalet; if (!o) return []; o.on = false; return o.frames; }).catch(() => []);
+    const an = hayaletAnaliz(frames, pDown[i]);
+    console.log(`    · ${P.tag} hayaletleri: ${JSON.stringify(an)}`);
+    check(an.length === 2, `${P.tag}: iki rakip hayaleti örneklendi`);
+    for (const g of an) {
+      check(!!g.resume, `${P.tag}: ${g.name} hayaleti kopuklukta durdu ve döndü`);
+      check(g.maxV <= HAYALET_HIZ, `${P.tag}: ${g.name} hayaleti dönüşten sonra görünürken sıçramadı (en yüksek ${g.maxV} px/sn ≤ ${HAYALET_HIZ}${g.worst ? `; ${g.worst.d} px / ${g.worst.dtMs} ms` : ''})`);
+      check(g.resume.gizli || g.resume.d <= HAYALET_ADIM, `${P.tag}: ${g.name} dönüşte ${g.resume.gizli ? 'gizliyken yeni yerine geçti' : `${g.resume.d} px adımla sürdü`} (${JSON.stringify(g.resume)})`);
+    }
+  }
+  return t;
+}
+async function waitOnline2(P) {
+  await P.page.waitForFunction(() => window.__yaris?.net()?.status === 'bağlı', null, { timeout: RECONNECT_MAX_MS + 10_000, polling: 100 }).catch(() => undefined);
+}
+
 // ======================================================================== koşu
 const sure = {};
 // yarıda kesilirse (kabul zaman sınırı, Ctrl+C) sunucu süreci kalmasın
@@ -532,18 +707,19 @@ try {
     const browser = await launch(bt);
     const A = await newPlayer(browser, bt, 'A', `Ayşe${bt[0]}`); const B = await newPlayer(browser, bt, 'B', `Bora${bt[0]}`);
     const S = sure[bt] = {};
-    const section = async (name, fn) => {
+    let C = null;
+    const section = async (name, fn, bolum = name) => {
       if (!want(name)) return;
-      cur = { bt, bolum: name };
+      cur = { bt, bolum };
       try {
-        if (!srv) await startSrv(); A.proxy.mode = 'pass'; B.proxy.mode = 'pass';
-        if (name !== 'yaris') for (const P of [A, B]) { await waitOnline(P).catch(() => undefined); await home(P); }
-        S[name] = await fn();
+        if (!srv) await startSrv(); for (const P of [A, B, C].filter(Boolean)) P.proxy.mode = 'pass';
+        if (!name.startsWith('yaris')) for (const P of [A, B]) { await waitOnline(P).catch(() => undefined); await home(P); }
+        S[bolum] = await fn();
       }
       catch (e) {
-        if (!results.some((r) => r.bt === bt && r.bolum === name && !r.ok)) { failed++; results.push({ ...cur, ok: false, msg: String(e.message ?? e).split('\n')[0] }); }
-        console.log(`  ✗ ${name}: ${String(e.message ?? e).split('\n')[0]}`);
-        await shot(A, `${name}-HATA`); await shot(B, `${name}-HATA`);
+        if (!results.some((r) => r.bt === bt && r.bolum === bolum && !r.ok)) { failed++; results.push({ ...cur, ok: false, msg: String(e.message ?? e).split('\n')[0] }); }
+        console.log(`  ✗ ${bolum}: ${String(e.message ?? e).split('\n')[0]}`);
+        for (const P of [A, B, C].filter(Boolean)) await shot(P, `${bolum}-HATA`);
       }
     };
     step('Kurulum: A ve B takma ad, aynı takım');
@@ -558,10 +734,13 @@ try {
     await section('sohbet', () => suiteSohbet(A, B));
     await section('etkinlik', () => suiteEtkinlik(A));
     await section('yaris', () => suiteYaris(A, B));
+    if (want('yaris-ici')) C = await newPlayer(browser, bt, 'C', `Cem${bt[0]}`);
+    await section('yaris-ici', () => suiteYarisIci([A, B, C], 'SIGTERM'), 'yaris-ici/SIGTERM');
+    await section('yaris-ici', () => suiteYarisIci([A, B, C], 'SIGKILL'), 'yaris-ici/SIGKILL');
     cur = { bt, bolum: 'sayfa' };
-    for (const P of [A, B]) { const e = [...new Set(P.errors)]; try { check(!e.length, `${P.tag}: sayfa hatası yok${e.length ? ` — ${e.slice(0, 3).join(' | ')}` : ''}`); } catch { /* kayıtlı */ } }
+    for (const P of [A, B, C].filter(Boolean)) { const e = [...new Set(P.errors)]; try { check(!e.length, `${P.tag}: sayfa hatası yok${e.length ? ` — ${e.slice(0, 3).join(' | ')}` : ''}`); } catch { /* kayıtlı */ } }
     await browser.close();
-    for (const P of [A, B]) await P.proxy.close();
+    for (const P of [A, B, C].filter(Boolean)) await P.proxy.close();
     await stopSrv('SIGTERM');
     db.close(); db = null;
   }

@@ -1,9 +1,14 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { NetError } from '@odi/net';
-import { setup, run, sleep, type Env } from './helpers';
+import { createClient, type NetError } from '@odi/net';
+import type { ProgressSubmit } from '@odi/shared';
+import { startServer, type OdiServer } from '../src/server';
+import { setup, run, sleep, waitStatus, wrap, type Env, type TC } from './helpers';
 
 let env: Env;
-afterEach(async () => { await env?.close(); });
+afterEach(async () => { const e = env; env = undefined!; await e?.close(); });
 const err = async (p: Promise<unknown>): Promise<NetError> => { try { await p; } catch (e) { return e as NetError; } throw new Error('hata bekleniyordu'); };
 
 describe('canlı yarış', () => {
@@ -199,4 +204,105 @@ describe('canlı yarış', () => {
     const j = await a.call('race.join', { roomId: re.id });
     expect(j.room.players.map((p) => p.name)).toEqual(['Bora', 'Ayşe']);
   });
+});
+
+describe('canlı yarış kaydı (race_room)', () => {
+  it('lobi yazılmaz; başlamış yarış yazılır; yarış sürerken hesabını silenin adı kayıtta kalmaz', async () => {
+    env = await setup({ raceCountdownMs: 50, raceFinishGraceMs: 60_000 });
+    const [a, b] = [await env.connect('Ayşe'), await env.connect('Borakqx')];
+    const db = env.srv.app.db;
+    const room = (await a.call('race.create', { level: 1 })).room;
+    await b.call('race.join', { roomId: room.id });
+    await a.call('race.ready', { ready: true });
+    expect(db.get<{ n: number }>('SELECT COUNT(*) AS n FROM race_room')!.n).toBe(0);
+    await b.call('race.ready', { ready: true });
+    env.clock.advance(50);
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 2000);
+    expect(db.get<{ data: string }>('SELECT data FROM race_room WHERE id = ?', room.id)!.data).toContain('Borakqx');
+    await b.call('account.delete', {});
+    await a.call('race.finish', { completed: true, score: 900, timeSec: 40 });
+    await sleep(50);
+    const kayit = db.get<{ data: string }>('SELECT data FROM race_room WHERE id = ?', room.id)!.data;
+    expect(kayit).not.toContain('Borakqx');
+    expect(JSON.parse(kayit).players.map((p: { place: number | null }) => p.place)).toEqual([1, null]);
+  });
+});
+
+// MK-031: sunucu yarış sürerken yeniden başlar (güncelleme, çökme). Uçtan uca tarayıcı testi: tools/harness/kopma-e2e.mjs --only yaris-ici
+describe('canlı yarış: sunucu yarış sürerken yeniden başlar', () => {
+  let srv: OdiServer | null = null; let dir = '';
+  const tcs: TC[] = [];
+  afterEach(async () => { for (const c of tcs.splice(0)) c.close(); await srv?.close(); srv = null; if (dir) rmSync(dir, { recursive: true, force: true }); dir = ''; });
+  // raceRejoinMs: yeniden başlatmadan sonra dönmeyenin "ayrıldı" sayılması (testte kısa; yük altında bağlanma payı)
+  const opts = (port: number, dbFile: string, raceRejoinMs = 4000) => ({ port, host: '127.0.0.1', dbFile, testStore: true, msgPerSec: 1000, freeTextCleared: 0, raceCountdownMs: 50, raceFinishGraceMs: 60_000, raceRejoinMs });
+  const connect = async (port: number, name: string, token = ''): Promise<TC> => {
+    const ref = { token }; let queue: ProgressSubmit[] = [];
+    const c = wrap(createClient({ url: `ws://127.0.0.1:${port}`, name, getToken: () => ref.token, saveToken: (t) => { ref.token = t; }, getQueue: () => queue, saveQueue: (q) => { queue = q; }, maxBackoffMs: 200 }), ref);
+    tcs.push(c); c.connect(); await waitStatus(c, 'bağlı'); return c;
+  };
+
+  it('başlamış yarış kayıttan geri gelir: süren oyuncular bitirir, sıra ve derece bağlantısı korunur; dönmeyen ayrılmış sayılır; lobi kapanır', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'odi-yaris-'));
+    const dbFile = join(dir, 'odi.sqlite');
+    srv = await startServer(opts(0, dbFile));
+    const port = srv.port;
+    const [a, b, c, d, e] = [await connect(port, 'Ayşe'), await connect(port, 'Bora'), await connect(port, 'Cem'), await connect(port, 'Deniz'), await connect(port, 'Ece')];
+    const room = (await a.call('race.create', { level: 1 })).room;
+    for (const p of [b, c, d]) await p.call('race.join', { roomId: room.id });
+    for (const p of [a, b, c, d]) await p.call('race.ready', { ready: true });
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 8000);
+    // a bitirir ve derecesini lig puanına bağlar (yeniden başlatmadan önce)
+    expect((await a.call('race.finish', { completed: true, score: 900, timeSec: 40 })).room.players.find((p) => p.id === a.me!.id)!.place).toBe(1);
+    expect((await a.call('progress.submit', run(1, { raceId: room.id }))).leaguePoints).toBe(5 + 15 + 30);
+    // ayrı bir lobi (başlamamış): yeniden başlatmada kapanır
+    const lobby = (await e.call('race.create', { level: 1 })).room;
+
+    // sunucu kapanır (yarış sürüyor), d hiç dönmez
+    d.close();
+    await srv.close(); srv = null;
+    for (const p of [a, b, c]) await waitStatus(p, 'çevrimdışı', 3000).catch(() => undefined);
+    srv = await startServer(opts(port, dbFile));
+    for (const p of [a, b, c, e]) { p.retryNow(); await waitStatus(p, 'bağlı', 5000); }
+
+    const back = (await b.call('race.state', { roomId: room.id })).room;
+    expect(back.status).toBe('yarista');
+    expect(back.players.map((p) => [p.name, p.place, p.left])).toEqual([['Ayşe', 1, false], ['Bora', null, false], ['Cem', null, false], ['Deniz', null, false]]);
+    // derece bağlantısı kayıttan: a'nın ikinci gönderimi yarış bonusu almaz
+    expect((await a.call('progress.submit', run(1, { raceId: room.id }))).leaguePoints).toBe(5 + 15);
+    // b ve c bitirir (sunucu sırasıyla); d dönmediği için bekleme sonunda ayrılmış sayılır ve yarış biter
+    expect((await b.call('race.finish', { completed: true, score: 800, timeSec: 45 })).room.players.find((p) => p.id === b.me!.id)!.place).toBe(2);
+    await c.call('race.finish', { completed: true, score: 700, timeSec: 50 });
+    const end = await b.waitFor('race.updated', (x) => x.room.status === 'bitti', 12_000);
+    expect(end.room.players.map((p) => [p.name, p.place, p.left])).toEqual([['Ayşe', 1, false], ['Bora', 2, false], ['Cem', 3, false], ['Deniz', null, true]]);
+    expect((await b.call('progress.submit', run(1, { raceId: room.id }))).leaguePoints).toBe(5 + 15 + 15);
+    // aynı bitiş ikinci kez yazılmaz; bitmiş oda okunabilir
+    expect((await err(c.call('race.finish', { completed: true, score: 1, timeSec: 1 }))).code).toBe('GECERSIZ');
+    expect((await c.call('race.state', { roomId: room.id })).room.status).toBe('bitti');
+    // lobi kapandı (açık ileti için 'YOK'); odada hiç olmayan oyuncu okuyamaz
+    expect((await err(e.call('race.join', { roomId: lobby.id }))).code).toBe('YOK');
+    expect((await err(e.call('race.state', { roomId: room.id }))).code).toBe('YOK');
+    // bitmiş oda bir kez daha yeniden başlatmada da (10 dk) okunur, lobi satırı yok
+    expect(srv.app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM race_room')!.n).toBe(1);
+  }, 40_000);
+
+  it('yarış sürerken kısa ağ kopması dereceyi silmez; bekleme süresi geçerse ayrılmış sayılır', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'odi-yaris-'));
+    srv = await startServer(opts(0, join(dir, 'odi.sqlite'), 1500));
+    const [a, b, c] = [await connect(srv.port, 'Ayşe'), await connect(srv.port, 'Bora'), await connect(srv.port, 'Cem')];
+    const room = (await a.call('race.create', { level: 1 })).room;
+    for (const p of [b, c]) await p.call('race.join', { roomId: room.id });
+    for (const p of [a, b, c]) await p.call('race.ready', { ready: true });
+    await a.waitFor('race.updated', (x) => x.room.status === 'yarista', 8000);
+    // b'nin bağlantısı kısa süre kopar (aynı anahtarla döner): yarışta kalır, bitirir
+    const bId = b.me!.id; const cId = c.me!.id;
+    b.close();
+    await sleep(150);
+    const b2 = await connect(srv.port, 'Bora', b.token);
+    expect(b2.me!.id).toBe(bId);
+    // c kopar ve dönmez: bekleme (1,5 sn) sonunda ayrıldı
+    c.close();
+    const left = await a.waitFor('race.updated', (x) => x.room.players.some((p) => p.id === cId && p.left), 5000);
+    expect(left.room.players.find((p) => p.id === bId)!.left).toBe(false);
+    expect((await b2.call('race.finish', { completed: true, score: 800, timeSec: 45 })).room.players.find((p) => p.id === bId)!.place).toBe(1);
+  }, 15_000);
 });

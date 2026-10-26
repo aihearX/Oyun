@@ -415,6 +415,8 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .net-dot.wait { background:var(--gold); animation:pulse 1.2s ease-in-out infinite; }
 .net-banner { background:rgba(255,201,60,.14); border:2px solid rgba(255,201,60,.4); border-radius:14px; padding:8px 12px; font-weight:800; font-size:0.8125rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .net-banner .linkish { padding:0; font-size:0.8125rem; }
+/* canlı yarışta (oyun ekranının üstünde) bağlantı şeridi: oyun sürer (MK-031) */
+.net-banner.race-net { position:fixed; z-index:40; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top, 0px) + 124px); width:max-content; max-width:calc(100vw - 32px); background:rgba(36,24,6,.9); color:#fff6e5; pointer-events:none; }
 .offline-card, .empty { display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center; padding:24px 16px; }
 .offline-card code { background:rgba(5,2,20,.45); border:1px solid var(--line); border-radius:6px; padding:1px 5px; font-size:0.8125rem; }
 .empty .ph-icon { font-size:40px; }

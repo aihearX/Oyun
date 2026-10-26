@@ -9,6 +9,11 @@ import { sfx, unlock } from './audio';
 const TELEPORT_PX = 480;
 /** bu kadar süredir konum gelmeyen (bitirmemiş) rakip soluklaşır: bağlantısı kopmuş ya da ayrılmış olabilir */
 const STALE_MS = 4000;
+/**
+ * Soluklaşmış (konumu gelmeyen) hayaletin konumu dönünce bundan uzaktaysa kaymaz: görünmezken yeni yerine geçer, sonra belirir.
+ * Sunucu yeniden başlarken ya da ağ koparken rakip koşmaya devam eder; dönüşte hızla kayan bir hayalet "sıçrama" gibi görünür (MK-031).
+ */
+const RESUME_SLIDE_PX = 24;
 /** sıralama bildirimleri seyrek: en az bu aralıkla ve sıra bu kadar süre değişmeden kalınca */
 const NOTICE_COOLDOWN_MS = 4500;
 const RANK_STABLE_MS = 700;
@@ -93,15 +98,39 @@ export class RaceLayer {
     const g = this.ghosts.get(p.id); if (!g) return;
     const now = performance.now();
     const gap = g.lastAt ? now - g.lastAt : 1000 / SOCIAL_LIMITS.racePosHz;
+    const wasStale = g.stale || (g.seen && !g.done && gap > STALE_MS);
     g.lastAt = now; g.seen = true; g.pct = clamp01(p.pct);
-    if (Math.hypot(p.x - g.x, p.y - g.y) > TELEPORT_PX) {
+    const dist = Math.hypot(p.x - g.x, p.y - g.y);
+    if (dist > TELEPORT_PX || (wasStale && dist > RESUME_SLIDE_PX)) {
+      // ışınlanma (yeniden doğma) ya da uzun aradan sonra dönüş: görünmezken yeni yerine geç, sonra belir (sıçrama görünmez)
       g.x = g.fromX = g.toX = p.x; g.y = g.fromY = g.toY = p.y; g.t0 = now; g.dur = 1;
-      this.host.scene.tweens.add({ targets: [g.body, g.hat].filter(Boolean), alpha: { from: 0, to: GHOST_ALPHA }, duration: 220 });
+      this.reappear(g);
     } else {
       // bir sonraki paket gelene kadar mevcut görünür konumdan yeni hedefe doğrusal geçiş (≈ bir paket gecikmeli, takılmasız)
-      g.fromX = g.x; g.fromY = g.y; g.toX = p.x; g.toY = p.y; g.t0 = now; g.dur = Math.max(70, Math.min(320, gap));
+      // geçiş en az bir paket aralığı sürer: art arda (yığılmış) gelen paketlerde hayalet hızla atılmaz
+      g.fromX = g.x; g.fromY = g.y; g.toX = p.x; g.toY = p.y; g.t0 = now; g.dur = Math.max(1000 / SOCIAL_LIMITS.racePosHz, Math.min(320, gap));
+      if (wasStale) this.setFaded(g, false);
     }
     if (g.pct >= 0.999 && !g.done) { g.done = true; g.label.setText(`🏁 ${g.info.name}`); }
+  }
+
+  /** soluk (konumu gelmiyor) ya da normal görünüm */
+  private setFaded(g: Ghost, stale: boolean) {
+    g.stale = stale; const a = stale ? 0.18 : GHOST_ALPHA;
+    this.host.scene.tweens.killTweensOf([g.body, g.hat, g.label].filter(Boolean));
+    g.body.setAlpha(a); g.hat?.setAlpha(a); g.label.setAlpha(stale ? 0.45 : 0.9); g.dot.setAlpha(stale ? 0.4 : 1);
+  }
+
+  /** aynı karede görünmez olur (konum değişimi görünmesin), sonra belirir */
+  private reappear(g: Ghost) {
+    const { scene } = this.host;
+    g.stale = false;
+    const parts = [g.body, g.hat].filter(Boolean) as Phaser.GameObjects.Image[];
+    scene.tweens.killTweensOf([...parts, g.label]);
+    for (const o of parts) o.setAlpha(0);
+    g.label.setAlpha(0); g.dot.setAlpha(1);
+    scene.tweens.add({ targets: parts, alpha: GHOST_ALPHA, duration: 240 });
+    scene.tweens.add({ targets: g.label, alpha: 0.9, duration: 240 });
   }
 
   // ------------------------------------------------------------ üst şerit
@@ -148,8 +177,8 @@ export class RaceLayer {
       const k = Math.min(1, (now - g.t0) / g.dur);
       g.x = g.fromX + (g.toX - g.fromX) * k; g.y = g.fromY + (g.toY - g.fromY) * k;
       g.body.setPosition(g.x, g.y); g.hat?.setPosition(g.x, g.y - HERO_SIZE / 2); g.label.setPosition(g.x, g.y - g.labelDy);
-      const stale = g.seen && !g.done && now - g.lastAt > STALE_MS;
-      if (stale !== g.stale) { g.stale = stale; const a = stale ? 0.18 : GHOST_ALPHA; g.body.setAlpha(a); g.hat?.setAlpha(a); g.label.setAlpha(stale ? 0.45 : 0.9); g.dot.setAlpha(stale ? 0.4 : 1); }
+      // yalnız soluklaşma burada; dönüş onPos'ta (uzaksa görünmezken yeni yerine geçer)
+      if (!g.stale && g.seen && !g.done && now - g.lastAt > STALE_MS) this.setFaded(g, true);
     }
     const { rank, list } = this.drawStrip();
     this.notices(now, rank, list);

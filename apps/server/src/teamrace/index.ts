@@ -154,6 +154,8 @@ function onRaceEnd(app: App, matchId: string, room: RaceRoom): void {
   if (allStars(app, matchId)) finalize(app, matchId);
   else { const h = setTimeout(() => { st(app).timers.delete(h); try { finalize(app, matchId); } catch (e) { if (app.cfg.log) console.error('[takim-yarisi]', e); } }, R.starWaitMs); st(app).timers.add(h); }
 }
+/** sunucu takım yarışı sürerken yeniden başladıysa (race.ts restoreRaces): geri yüklenen yarışın sonucu yine bir kez yazılır */
+export function teamRaceRestoredEnd(app: App, room: RaceRoom): void { if (room.team) onRaceEnd(app, room.team.matchId, room); }
 function allStars(app: App, matchId: string): boolean {
   const m = app.db.get<{ room: string | null }>('SELECT room FROM tr_match WHERE id = ?', matchId);
   const room = m?.room ? parseJson<RaceRoom | null>(m.room, null) : null; if (!room) return false;

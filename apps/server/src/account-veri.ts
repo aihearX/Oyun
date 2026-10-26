@@ -374,6 +374,10 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   tl_history: { takim: { team_id: SIL } },
   tl_rewards: { oyuncu: { player_id: SIL }, takim: { team_id: SIL } },
   tl_race: { takim: { team_id: SIL, rival_id: { karar: 'tut', neden: RAKIP_GECMISI, sure: 'süresiz' } }, degil: ['match_id'] },
+  race_room: {
+    oyuncu: { data: { karar: 'anonim', neden: 'Başlamış canlı yarış odası (MK-031: sunucu yarış sürerken yeniden başlarsa yarış sürsün). Öbür yarışçıların derecesi bozulmasın diye satır kalır; oda kaydındaki oyuncu adı ve şapkası silinir. Satır yarış bitince en geç 10 dk sonra silinir.', kosul: `instr(data, '"id":"' || ? || '"') > 0`, jsonOyuncular: 'data' } },
+    degil: ['id'],
+  },
   tr_match: {
     oyuncu: { room: { karar: 'anonim', neden: 'Takım yarışının sonucu (iki takımın geçmişi); oda kaydındaki oyuncu adı ve şapkası silinir.', kosul: `instr(room, '"id":"' || ? || '"') > 0`, jsonOyuncular: 'room' } },
     takim: {

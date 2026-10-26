@@ -3,6 +3,9 @@ import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { platform } from '../platform';
 import { audio } from '@odi/audio';
 import { getNet, useSocial } from '../net';
+import { useNet } from '@odi/net/store';
+import type { NetClient } from '@odi/net';
+import { Art } from '../ui/art';
 import { newerRoom } from '../race/common';
 import { TeamRaceHud, teamGhost } from '../teamrace/TeamRace';
 import { sayPathology } from '../ftue/pathology';
@@ -35,7 +38,9 @@ declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunR
 export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
-  const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<string | null>(null);
+  const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<{ title: string; text: string; closed?: boolean } | null>(null);
+  // canlı yarışta bağlantı koptu mu (sunucu yeniden başlıyor ya da ağ gitti): oyun sürer, üstte şerit (MK-031)
+  const netStatus = useNet((s) => s.status);
   const pauseRef = useRef<() => void>(() => undefined);
   /** "Yeniden başla": bölüm aynı ayarlarla baştan kurulur */
   const [runKey, setRunKey] = useState(0);
@@ -55,12 +60,27 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
     let latest = race; const offs: (() => void)[] = [];
     let raceOpt: RaceOptions | undefined;
     if (race && net) {
-      offs.push(net.on('race.updated', ({ room }) => {
+      const onRoom = (room: RaceRoom) => {
         if (room.id !== race.id) return;
         latest = newerRoom(latest, room); bus.race = latest;
-        if (room.status === 'lobi' && !finished) setRaceNote('Yarış iptal oldu: rakip geri sayımda ayrıldı.');
+        if (room.status === 'lobi' && !finished) setRaceNote({ title: 'Yarış iptal', text: 'Yarış iptal oldu: rakip geri sayımda ayrıldı.' });
         // sunucu yarışı bitirdi (süre doldu ya da ilk bitirenden sonra bekleme süresi geçti) ama ben hâlâ koşuyorum: koşu biter, sonuç gösterilir
         if (room.status === 'bitti' && !finished) setTimeout(() => { if (!finished) handle.current?.end('yaris-bitti'); }, 1200);
+        // bağlantım uzun süre koptu: sunucu beni yarıştan çıkardı
+        if (room.players.some((p) => p.id === net.me?.id && p.left) && !finished) setRaceNote({ title: 'Yarıştan düştün', text: 'Bağlantın uzun süre koptuğu için yarıştan düştün. Yeni bir yarışa girebilirsin.', closed: true });
+      };
+      offs.push(net.on('race.updated', ({ room }) => onRoom(room)));
+      // bağlantı dönünce (sunucu yeniden başladıysa oda kayıttan geri gelir): kopukken kaçan güncellemeler için odanın son hâli.
+      // Oda artık yoksa açık ileti ve lobi (ekranda takılı kalınmaz).
+      let wasOffline = false;
+      offs.push(net.onStatus((st) => {
+        if (st !== 'bağlı') { wasOffline = true; return; }
+        if (!wasOffline || dead) return;
+        wasOffline = false;
+        net.call('race.state', { roomId: race.id }).then(({ room }) => { if (!dead) onRoom(room); }, (e: unknown) => {
+          if (dead || finished || (e as { code?: string }).code !== 'YOK') return;
+          setRaceNote({ title: 'Yarış kapandı', text: 'Bağlantı koptuğu sırada yarış odası kapandı (sunucu yeniden başlamış olabilir). Yeni bir yarışa girebilirsin.', closed: true });
+        });
       }));
       raceOpt = {
         meId: net.me?.id ?? '',
@@ -76,8 +96,16 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
     }
     const finishRace = async (r: RunResult): Promise<RaceRoom | undefined> => {
       if (!race || !net) return latest;
-      try { return (await net.call('race.finish', { completed: r.completed, score: Math.max(0, Math.min(50_000, Math.round(r.score))), timeSec: Math.max(0, Math.min(3600, r.timeSec)) })).room; }
-      catch { return latest; } // yarış zaten bitmiş (süre doldu) ya da bağlantı yok: son bilinen oda
+      const req = { completed: r.completed, score: Math.max(0, Math.min(50_000, Math.round(r.score))), timeSec: Math.max(0, Math.min(3600, r.timeSec)) };
+      // bağlantı yokken ya da yanıt gelmeden koptuysa: bağlanınca yeniden (sunucu yeniden başlıyorsa oda geri gelir; bitiş bir kez yazılır)
+      for (let i = 0; i < 6 && !dead; i++) {
+        try { return (await net.call('race.finish', req)).room; } catch (e) {
+          if (!['CEVRIMDISI', 'KOPTU', 'ZAMAN_ASIMI', 'HIZ'].includes((e as { code?: string }).code ?? '')) break;
+          await online(net, 30_000);
+        }
+      }
+      // bitiş zaten kayıtlı (yanıt kaybolmuştu), yarış bitti ya da oda yok: odanın son hâli; o da yoksa son bilinen (sonuç ekranı ayrıca sorar)
+      try { return (await net.call('race.state', { roomId: race.id })).room; } catch { return latest; }
     };
     const start = ({ startLevel }: Awaited<ReturnType<typeof loadLevel>>) => {
       if (dead) return;
@@ -119,11 +147,13 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
   pauseRef.current = () => { if (!paused) togglePause(); };
   useEffect(() => () => audio.unduck('duraklat'), []);
   const leaveRace = () => { const net = getNet(); if (net) void net.call('race.leave', {}).catch(() => undefined); onQuit(); };
+  const raceOffline = !!race && !!getNet() && netStatus !== 'bağlı' && !raceNote;
   return (
     <>
       <div className="level-host" ref={ref} />
       {loading && <EngineLoading />}
       {race?.team && <TeamRaceHud room={race} />}
+      {raceOffline && <div className="net-banner race-net" role="status" data-testid="yaris-ici-kopuk"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… Koşmaya devam et.</div>}
       {paused && (
         // koyu duraklatma menüsü (açık temadan bağımsız: oyunun gece paletiyle)
         <div className="overlay pause-menu" role="dialog" aria-label="Duraklatıldı" style={PAUSE_BG}><div className="card" style={PAUSE_CARD}>
@@ -142,11 +172,20 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
         </div></div>
       )}
       {raceNote && (
-        <div className="overlay"><div className="card">
-          <h2>Yarış iptal</h2><div className="muted">{raceNote}</div>
+        <div className="overlay"><div className="card" role="alert" data-testid={raceNote.closed ? 'yaris-kapandi' : 'yaris-iptal'}>
+          <h2>{raceNote.title}</h2><div className="muted">{raceNote.text}</div>
           <button className="btn" onClick={leaveRace}>Lobiye dön</button>
         </div></div>
       )}
     </>
   );
+}
+
+/** bağlantı gelene kadar (en çok ms) bekle */
+function online(net: NetClient, ms: number): Promise<void> {
+  if (net.status === 'bağlı') return Promise.resolve();
+  return new Promise((resolve) => {
+    const t = setTimeout(() => { off(); resolve(); }, ms);
+    const off = net.onStatus((st) => { if (st === 'bağlı') { clearTimeout(t); off(); resolve(); } });
+  });
 }

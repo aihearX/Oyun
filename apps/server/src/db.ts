@@ -82,6 +82,8 @@ CREATE TABLE IF NOT EXISTS inbox(id TEXT PRIMARY KEY, player_id TEXT NOT NULL, k
 CREATE INDEX IF NOT EXISTS inbox_player ON inbox(player_id, claimed);
 CREATE TABLE IF NOT EXISTS purchases(id TEXT PRIMARY KEY, player_id TEXT NOT NULL, product_id TEXT NOT NULL, at INTEGER NOT NULL, store TEXT NOT NULL, amount_try REAL NOT NULL, receipt TEXT UNIQUE);
 CREATE INDEX IF NOT EXISTS purchases_player ON purchases(player_id, at);
+-- başlamış canlı yarış odaları (MK-031): sunucu yarış sürerken yeniden başlarsa oda geri yüklenir; bitince en çok 10 dk kalır
+CREATE TABLE IF NOT EXISTS race_room(id TEXT PRIMARY KEY, data TEXT NOT NULL, at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS progress_runs(player_id TEXT NOT NULL, run_id TEXT NOT NULL, ack TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));
 CREATE INDEX IF NOT EXISTS progress_runs_at ON progress_runs(at);
 CREATE TABLE IF NOT EXISTS local_grants(player_id TEXT NOT NULL, ledger_id TEXT NOT NULL, jeton INTEGER NOT NULL, credited INTEGER NOT NULL, reason TEXT NOT NULL, day TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, ledger_id));

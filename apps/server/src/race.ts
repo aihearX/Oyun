@@ -1,14 +1,16 @@
 import { randomInt } from 'node:crypto';
-import { SOCIAL_LIMITS, type RacePlayer, type RaceRoom, type TeamRaceInfo, type TeamRaceSideId } from '@odi/shared';
-import { fail, rid, type App, type Conn, type Handlers } from './app';
+import { DELETED_PLAYER_NAME, SOCIAL_LIMITS, type RacePlayer, type RaceRoom, type TeamRaceInfo, type TeamRaceSideId } from '@odi/shared';
+import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { areFriends } from './chat';
 import { isBlocked } from './friends';
 
 /**
- * Canlı yarış odaları yalnızca bellekte tutulur: sunucu yeniden başlarsa açık odalar kaybolur.
+ * Canlı yarış odaları bellekte yaşar. Başlamış yarışlar (geri sayım, yarış, bitti) ayrıca `race_room` tablosuna yazılır
+ * (MK-031): sunucu yarış sürerken yeniden başlarsa (güncelleme, çökme) oda aynı durumla geri gelir; oyuncular bağlanınca
+ * yarışı bitirir, derece ve lig puanı bir kez bağlanır. Lobi (başlamamış oda) yazılmaz: yeniden başlatmada kapanır.
  * Yalnızca gerçek oyuncular; bot ya da sahte rakip yok.
  */
-interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null; /** takım yarışı: yarış bitince (bir kez) */ onEnd?: (room: RaceRoom) => void }
+interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null; /** bitti anı (sunucu saati) */ endedAt?: number | null; /** takım yarışı: yarış bitince (bir kez) */ onEnd?: (room: RaceRoom) => void }
 /** son biten yarışın rakipleri: rövanş daveti (arkadaş olmasalar da) ve aynı bölümde yeniden oda kurma için */
 interface Recent { rivals: Set<string>; level: number; until: number }
 interface RaceStore { rooms: Map<string, Room>; byPlayer: Map<string, string>; recent: Map<string, Recent> }
@@ -20,6 +22,11 @@ export const RACE_MAX_MS = 3 * 60_000;
 /** rövanş hakkı süresi */
 const RECENT_TTL_MS = 30 * 60_000;
 const POS_MIN_INTERVAL_MS = Math.floor(1000 / SOCIAL_LIMITS.racePosHz) - 10;
+/**
+ * Yarış sürerken bağlantısı kopan oyuncunun dönmesi için bekleme (sunucu yeniden başlayınca da herkes için). İstemci sunucu
+ * döndükten sonra ≤ 15 sn'de bağlanır (MK-019); yeniden başlatmanın açılış süresi için pay.
+ */
+export const RACE_REJOIN_MS = 30_000;
 
 const stores = new WeakMap<App, RaceStore>();
 function store(app: App): RaceStore {
@@ -32,8 +39,58 @@ const view = (r: Room): RaceRoom => ({ id: r.id, hostId: r.hostId, level: r.leve
 const active = (r: Room) => r.players.filter((p) => !p.left);
 
 function broadcast(app: App, r: Room): void {
+  save(app, r);
   const v = view(r);
   for (const p of active(r)) app.emit(p.id, 'race.updated', { room: v });
+}
+
+// ------------------------------------------------------------------ kalıcılık (MK-031)
+/** yazılan biçim: odanın görünümü (players üst düzeyde; hesap silme oda kaydındaki adı account-veri.ts jsonOyuncular ile siler) + iç alanlar */
+type Saved = RaceRoom & { linked: string[]; firstFinishAt: number | null; endedAt: number | null }
+/** başlamış yarışı yaz (lobi yazılmaz; geri dönen oda siliniyorsa satır da silinir). Her yayında ve derece bağlanınca çağrılır. */
+function save(app: App, r: Room): void {
+  try {
+    if (r.status === 'lobi' || store(app).rooms.get(r.id) !== r) { app.db.run('DELETE FROM race_room WHERE id = ?', r.id); return; }
+    // yarış sürerken hesabını silen oyuncunun adı kayda (ve odaya) geri yazılmaz (hesap silme kaydı anonimleştirir: account-veri.ts)
+    for (const p of r.players) if (p.name !== DELETED_PLAYER_NAME && app.playerOrNull(p.id)?.name === DELETED_PLAYER_NAME) { p.name = DELETED_PLAYER_NAME; p.hat = ''; }
+    const d: Saved = { ...view(r), linked: [...r.linked], firstFinishAt: r.firstFinishAt, endedAt: r.endedAt ?? null };
+    app.db.run('INSERT INTO race_room(id, data, at) VALUES(?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, at = excluded.at', r.id, JSON.stringify(d), app.now());
+  } catch (e) { if (app.cfg.log) console.error('[yaris kayıt]', e); }
+}
+
+/**
+ * Açılışta yazılı yarışları geri yükle: zamanlayıcılar sunucu saatine göre yeniden kurulur, süresi geçen geçişler hemen yapılır.
+ * Kimse bağlı değil: her yarışçıya RACE_REJOIN_MS bekleme (dönmeyen "ayrıldı" sayılır, yarış sürer).
+ */
+export function restoreRaces(app: App, o: { /** takım yarışının sonucu (onEnd kapanışı yeniden başlatmada kaybolur; teamrace verir) */ teamEnd?: (app: App, room: RaceRoom) => void } = {}): number {
+  const rejoinMs = app.cfg.raceRejoinMs ?? RACE_REJOIN_MS;
+  const s = store(app); const now = app.now(); let n = 0;
+  // süren yarışlar önce: oyuncu hem bitmiş hem süren bir odadaysa süren odaya bağlanır
+  const order = { 'geri-sayim': 0, 'yarista': 0, 'lobi': 1, 'bitti': 1 } as const;
+  const rows = app.db.all<{ id: string; data: string }>('SELECT id, data FROM race_room').map((row) => ({ row, d: parseJson<Saved | null>(row.data, null) }))
+    .sort((a, b) => (a.d ? order[a.d.status] ?? 2 : 2) - (b.d ? order[b.d.status] ?? 2 : 2));
+  for (const { row, d } of rows) {
+    const ended = d?.status === 'bitti' ? (d.endedAt ?? now) : null;
+    if (!d || !Array.isArray(d.players) || d.status === 'lobi' || d.id !== row.id || s.rooms.has(d.id) || (ended != null && now >= ended + DONE_TTL_MS)) { app.db.run('DELETE FROM race_room WHERE id = ?', row.id); continue; }
+    const { linked, firstFinishAt, endedAt, ...room } = d;
+    const r: Room = { ...room, players: room.players.map((p) => ({ ...p })), timers: [], linked: new Set(linked ?? []), firstFinishAt: firstFinishAt ?? null, endedAt: endedAt ?? null };
+    if (r.team && o.teamEnd && r.status !== 'bitti') { const f = o.teamEnd; r.onEnd = (v) => f(app, v); }
+    s.rooms.set(r.id, r); n++;
+    for (const p of r.players) if (!p.left && !s.byPlayer.has(p.id)) s.byPlayer.set(p.id, r.id);
+    if (r.status === 'bitti') {
+      const ids = r.players.map((p) => p.id); const until = (ended ?? now) + RECENT_TTL_MS;
+      for (const id of ids) if (!s.recent.has(id)) s.recent.set(id, { rivals: new Set(ids.filter((x) => x !== id)), level: r.level, until });
+      setTimer(app, r, (ended ?? now) + DONE_TTL_MS - now, () => deleteRoom(app, r));
+      continue;
+    }
+    const at = r.startsAt ?? now;
+    if (r.status === 'geri-sayim') setTimer(app, r, at - now, () => tick(app, r));
+    setTimer(app, r, at + RACE_MAX_MS - now, () => tick(app, r));
+    if (r.firstFinishAt != null) setTimer(app, r, r.firstFinishAt + app.cfg.raceFinishGraceMs - now, () => tick(app, r));
+    for (const p of active(r)) setTimer(app, r, rejoinMs, () => { if (!app.online.has(p.id) && s.byPlayer.get(p.id) === r.id) leaveRace(app, p.id); });
+    tick(app, r);
+  }
+  return n;
 }
 
 function clearTimers(r: Room): void { for (const t of r.timers) clearTimeout(t); r.timers = []; }
@@ -47,6 +104,7 @@ function deleteRoom(app: App, r: Room): void {
   const s = store(app);
   s.rooms.delete(r.id);
   for (const p of r.players) if (s.byPlayer.get(p.id) === r.id) s.byPlayer.delete(p.id);
+  try { app.db.run('DELETE FROM race_room WHERE id = ?', r.id); } catch { /* kapanışta veritabanı kapalı olabilir */ }
 }
 
 function finishRace(app: App, r: Room): void {
@@ -54,6 +112,7 @@ function finishRace(app: App, r: Room): void {
   r.status = 'bitti';
   clearTimers(r);
   const now = app.now(); const recent = store(app).recent;
+  r.endedAt = now;
   for (const [k, v] of recent) if (v.until <= now) recent.delete(k);
   const ids = r.players.map((p) => p.id);
   for (const id of ids) recent.set(id, { rivals: new Set(ids.filter((x) => x !== id)), level: r.level, until: now + RECENT_TTL_MS });
@@ -162,12 +221,17 @@ export function createTeamRaceRoom(app: App, o: { level: number; players: { id: 
 }
 export function raceRoomView(app: App, id: string): RaceRoom | null { const r = store(app).rooms.get(id); if (!r) return null; tick(app, r); return view(r); }
 
-/** bağlantı koptu: takım yarışında kısa bir bekleme (aynı oyuncu dönerse yarış sürer), diğerlerinde hemen çıkış */
+/**
+ * Bağlantı koptu. Takım yarışında ve süren yarışta kısa bir bekleme: aynı oyuncu dönerse yarışı sürdürür (MK-031: kısa ağ
+ * kopması derecesini silmez). Lobide, normal yarışın geri sayımında ve bitmiş yarışta hemen çıkış.
+ */
 export function raceDisconnect(app: App, pid: string, graceMs: number): void {
   const id = store(app).byPlayer.get(pid);
   const r = id ? store(app).rooms.get(id) : undefined;
-  if (!r || !r.team || r.status === 'bitti') { leaveRace(app, pid); return; }
-  setTimer(app, r, graceMs, () => { if (!app.online.has(pid) && store(app).byPlayer.get(pid) === r.id) leaveRace(app, pid); });
+  const wait = r && r.status !== 'bitti' && (r.team || r.status === 'yarista');
+  if (!r || !wait) { leaveRace(app, pid); return; }
+  const ms = r.team ? graceMs : (app.cfg.raceRejoinMs ?? RACE_REJOIN_MS);
+  setTimer(app, r, ms, () => { if (!app.online.has(pid) && store(app).byPlayer.get(pid) === r.id) leaveRace(app, pid); });
 }
 
 /** progress.submit: yarış derecesini bir kez bağla */
@@ -177,6 +241,7 @@ export function racePlaceFor(app: App, pid: string, raceId: string): number | nu
   const p = r.players.find((x) => x.id === pid);
   if (!p || p.place == null) return null;
   r.linked.add(pid);
+  save(app, r);
   return p.place;
 }
 
@@ -277,6 +342,13 @@ export const raceHandlers: Handlers = {
     return { room: view(r) };
   },
   'race.leave': (app, s) => { leaveRace(app, s.pid); return {}; },
+  /** yeniden bağlanınca odanın güncel hâli (katılmaz; ayrılmış ya da bitmiş yarışçı da okuyabilir) */
+  'race.state': (app, s, { roomId }) => {
+    const r = store(app).rooms.get(roomId);
+    if (!r || !r.players.some((p) => p.id === s.pid)) return fail('YOK', 'Yarış odası kapandı.');
+    tick(app, r);
+    return { room: view(r) };
+  },
   'race.finish': (app, s, { completed, score }) => {
     const r = myRoom(app, s.pid);
     if (r.status !== 'yarista') fail('GECERSIZ', r.status === 'bitti' ? 'Yarış bitti.' : 'Yarış henüz başlamadı.');

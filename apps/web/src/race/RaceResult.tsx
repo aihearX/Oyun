@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { RaceRoom, RunResult } from '@odi/shared';
 import { leaguePointsFor } from '@odi/shared';
 import { OdiAvatar } from '../ui/OdiAvatar';
@@ -24,7 +24,20 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState<Record<string, number>>({});
   const [err, setErr] = useState<string | null>(null);
+  /** oda sunucuda yok (sunucu yeniden başlarken kayboldu ya da süresi doldu): sonuç alınamaz, açık ileti (MK-031) */
+  const [lost, setLost] = useState(false);
+  const netStatus = useNet((s) => s.status);
   useEffect(() => { setRoom(initial); }, [initial]);
+  // açılışta ve her yeniden bağlanışta (kopukken kaçan güncellemeler): yarış bitmediyse odanın son hâlini sor
+  const doneRef = useRef(false); doneRef.current = newerRoom(local, stored)?.status === 'bitti';
+  useEffect(() => {
+    if (!net || netStatus !== 'bağlı' || doneRef.current) return;
+    let live = true;
+    net.call('race.state', { roomId: initial.id }).then(({ room: r }) => { if (live) { setLost(false); setRoom((cur) => newerRoom(cur, r) ?? r); } }, (e: unknown) => {
+      if (live && (e as { code?: string }).code === 'YOK') setLost(true);
+    });
+    return () => { live = false; };
+  }, [net, netStatus, initial.id]);
   useEffect(() => {
     if (!net) return;
     const offs = [
@@ -35,12 +48,13 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
     return () => { for (const o of offs) o(); };
   }, [net, initial.id]);
   const done = room.status === 'bitti';
+  const closed = lost && !done;
   useEffect(() => { if (done) platform().haptic('success'); }, [done]);
 
   const order = standings(room);
   const me = room.players.find((p) => p.id === meId);
   const myPlace = me?.place ?? null;
-  const headline = myPlace === 1 ? '🏆 Birinci oldun!' : myPlace === 2 ? '🥈 İkinci oldun!' : myPlace === 3 ? '🥉 Üçüncü oldun!' : myPlace != null ? `${myPlace}. oldun!` : result && !result.completed ? 'Bu sefer olmadı' : 'Yarış bitti';
+  const headline = closed ? 'Yarış kapandı' : myPlace === 1 ? '🏆 Birinci oldun!' : myPlace === 2 ? '🥈 İkinci oldun!' : myPlace === 3 ? '🥉 Üçüncü oldun!' : myPlace != null ? `${myPlace}. oldun!` : result && !result.completed ? 'Bu sefer olmadı' : 'Yarış bitti';
   const myLeague = result ? leaguePointsFor({ completed: result.completed, stars: result.stars }, myPlace) : null;
   const rivals = room.players.filter((p) => p.id !== meId);
 
@@ -56,17 +70,18 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
   };
 
   return (
-    <div className="screen fade-in race-screen race-result" data-testid="yaris-sonuc" data-status={room.status}>
+    <div className="screen fade-in race-screen race-result" data-testid="yaris-sonuc" data-status={closed ? 'kapandi' : room.status}>
       <div className="race-result-top">
         <div className="muted small-note">{room.level}. {levelName(room.level)} · canlı yarış</div>
-        <h1>{done ? rich(headline) : me?.finishedAt != null ? 'Bitirdin!' : 'Yarış sürüyor'}</h1>
-        {!done && <div className="muted race-live"><span className="race-dots" aria-hidden><i /><i /><i /></span> Diğerleri bitiriyor…</div>}
+        <h1>{done || closed ? rich(headline) : me?.finishedAt != null ? 'Bitirdin!' : 'Yarış sürüyor'}</h1>
+        {!done && !closed && <div className="muted race-live"><span className="race-dots" aria-hidden><i /><i /><i /></span> Diğerleri bitiriyor…</div>}
       </div>
+      {closed && <div className="race-error" role="alert" data-testid="yaris-kapandi">Bağlantı koptuğu sırada yarış odası kapandı (sunucu yeniden başlamış olabilir); bu yarışın sıralaması alınamadı. Yeni bir yarışa girebilirsin.</div>}
       {err && <div className="race-error" role="alert">{err}</div>}
       <ol className="race-standings" aria-label="Sıralama">
         {order.map((p, i) => {
           const t = raceTimeSec(room, p);
-          const status = p.place != null ? (t != null ? fmtSec(t) : 'Bitirdi') : p.left ? 'Ayrıldı' : p.finishedAt != null ? 'Bitiremedi' : done ? 'Bitiremedi' : `Yarışta · %${Math.round(Math.max(p.pct, live[p.id] ?? 0) * 100)}`;
+          const status = p.place != null ? (t != null ? fmtSec(t) : 'Bitirdi') : p.left ? 'Ayrıldı' : p.finishedAt != null ? 'Bitiremedi' : done ? 'Bitiremedi' : closed ? '—' : `Yarışta · %${Math.round(Math.max(p.pct, live[p.id] ?? 0) * 100)}`;
           return (
             <li key={p.id} className={`race-row${p.id === meId ? ' me' : ''}${p.place === 1 ? ' first' : ''}`} data-testid="yaris-sonuc-sira" data-name={p.name} data-place={p.place ?? ''}>
               <span className="race-rank">{p.place != null ? <>{placeMedal(p.place) ? <Glyph e={placeMedal(p.place)} size={20} /> : null}<b>{p.place}.</b></> : <b>{done ? '–' : `${i + 1}`}</b>}</span>

@@ -130,7 +130,7 @@ function yapayVeri(db: DatabaseSync, tur: Tur, id: string, ad: string): void {
     const ozel: Record<string, SQLInputValue> = {};
     if (t === 'chat' && c === 'meta') ozel.meta = JSON.stringify({ type: 'yardim', pid: id, pname: ad });
     else if (t === 'chat' && c === 'room') ozel.room = `takim:${id}`;
-    else if (t === 'tr_match' && c === 'room') ozel.room = JSON.stringify({ players: [{ id, name: ad, hat: 'tac' }, { id: 'baska', name: 'Başka', hat: '' }] });
+    else if (k.jsonOyuncular === c) ozel[c] = JSON.stringify({ players: [{ id, name: ad, hat: 'tac' }, { id: 'baska', name: 'Başka', hat: '' }] }); // tr_match.room, race_room.data
     else ozel[c] = id;
     for (const x of Object.keys(k.degistir ?? {})) if (VERI_SINIFI[t]!.adKopyasi?.[x]) ozel[x] = ad;
     ekle(t, ozel);
