@@ -69,4 +69,4 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | 15 | **`kamp-sira-01` ve `kg-h6-giris` seslendirmesini dinleyin** (YN-028) | Ekranda onaylı metin aynen var. Seste "jetonun" okunuşu sınırda: Whisper "cetonun" duyuyor. Kulağa doğru geliyorsa kalsın. | a) Kalsın · b) Yeniden seslendir · c) Seste "jetonun" yerine "ödediğin geri gelir" (yazı değişmez) |
 | 16 | **15 kısa satırın ses düzeyi** (ses-duzeyi.md) | 15 satır (çoğu 3 sn'den kısa) 2–8 LU sessiz. Önerim: yalnız kazanç (ses aynı, sadece yükseltme); dosya içeriği ve tını değişmez. | a) Yalnız kazanç (önerim) · b) Oyunda satır başı kazanç tablosu (dosya değişmez) · c) Olduğu gibi |
 | 17 | **Anlatım sırasında müzik ne kadar kısılsın?** | Bugün 0.3 (−10 dB). Ölçüm dengeli diyor; değiştirmeyin. Dinleyip "müzik çok kayboluyor" derseniz 0.45. | a) 0.3 kalsın (önerim) · b) 0.45–0.5 |
-
+| 18 | **Müzik parçaları arası düzey** (MK-023, 62844a8) | Menü ve Sinir müziği +2,8 dB, Kanal −1,5 dB yapıldı (parçalar arası fark 5,8 → 2,6 LU). Ölçüm iyi; kulakla dinleyip onaylayın, beğenmezseniz bu commit tek başına geri alınır. | a) Kalsın (önerim) · b) Geri al |
