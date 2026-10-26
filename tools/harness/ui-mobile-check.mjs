@@ -322,9 +322,13 @@ function contrastRects(ids) {
     if (e.id === '__inset_top' || e.id === '__inset_bottom') return false;
     const cs = getComputedStyle(e); if (cs.position !== 'fixed' && cs.position !== 'sticky') return false;
     if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) return false;
-    const painted = cs.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor) || (cs.backdropFilter && cs.backdropFilter !== 'none');
+    const paints = (x) => { const s = getComputedStyle(x); return s.backgroundImage !== 'none' || !/rgba\(0, 0, 0, 0\)|transparent/.test(s.backgroundColor) || (s.backdropFilter && s.backdropFilter !== 'none'); };
+    // kabın kendisi boyasızsa (bildirim kabı) boyalı ilk çocuğu sayılır
+    const painted = paints(e) || [...e.children].some(paints);
     const r = e.getBoundingClientRect(); return painted && r.width * r.height > 0 && r.width * r.height < W * H * 0.6;
-  }).map((e) => ({ el: e, r: e.getBoundingClientRect(), z: Number(getComputedStyle(e).zIndex) || 0 }));
+  }).map((e) => ({ el: e, r: e.getBoundingClientRect(), z: Number(getComputedStyle(e).zIndex) || 0, sticky: getComputedStyle(e).position === 'sticky', root: fixedRoot(e.parentElement) }));
+  /** en dıştaki position:fixed ata (yoksa null): aynı sabit kabın içindeki yapışkan başlık, kabın içeriğini örter */
+  function fixedRoot(e) { let f = null; for (let q = e; q && q !== document.body; q = q.parentElement) if (getComputedStyle(q).position === 'fixed') f = q; return f; }
   for (const id of ids) {
     const n = window.__kNodes?.[id]; if (!n || !n.isConnected) { out[id] = null; continue; }
     const el = n.nodeType === 3 ? n.parentElement : n;
@@ -367,8 +371,8 @@ function contrastRects(ids) {
     // pointer-events:none olabildiğinden isabet testi yetmez → kutu kesişimi
     // sabit/yapışkan bir kabın içindeki metin (alt sayfa) için yalnız daha üstteki katman (z-index büyük: ör. bildirim) örter
     const zOf = (e) => { let z = 0; for (let q = e; q && q !== document.body; q = q.parentElement) { const cs = getComputedStyle(q); if (cs.position === 'fixed' || cs.position === 'sticky') { z = Number(cs.zIndex) || 0; } } return z; };
-    const zEl = pinned ? zOf(el) : -Infinity;
-    if (inView && !covered) for (const b of overlays()) if (!b.el.contains(el) && !el.contains(b.el) && b.z > zEl && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = pinned ? true : 'serit'; break; }
+    const zEl = pinned ? zOf(el) : -Infinity; const rootEl = fixedRoot(el);
+    if (inView && !covered) for (const b of overlays()) if (!b.el.contains(el) && !el.contains(b.el) && ((b.sticky && b.root === rootEl) || b.z > zEl) && rects.some((q) => q.left < b.r.right && q.right > b.r.left && q.top < b.r.bottom && q.bottom > b.r.top)) { covered = pinned ? true : 'serit'; break; }
     out[id] = { inView, covered, sticky, rects: rects.slice(0, 4).map((q) => [q.left, q.top, q.width, q.height]) };
   }
   return out;

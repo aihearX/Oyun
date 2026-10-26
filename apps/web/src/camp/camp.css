@@ -134,7 +134,7 @@
 .tp-tile.on { background:linear-gradient(180deg, rgba(46,230,214,.24), rgba(46,230,214,.06)); border-color:var(--teal); }
 .tp-tile.on::after { content:'Hazırlanıyor'; position:absolute; top:-7px; left:50%; transform:translateX(-50%); font-size:0.5625rem; font-weight:900; color:#0b3a40; background:var(--teal); padding:1px 6px; border-radius:999px; white-space:nowrap; }
 .tp-tile.locked { opacity:.8; filter:saturate(.4); } /* kilitli tarif: soluk ama okunur (yazı ≥ 4,5:1, MK-017) */
-.tp-have { position:absolute; top:4px; right:5px; font-style:normal; font-size:0.65625rem; font-weight:900; color:var(--gold); }
+.tp-have { position:absolute; top:4px; right:5px; font-style:normal; font-size:0.65625rem; font-weight:900; color:#ffe08a; } /* açık altın yazı tonu: simgenin renkli kenarı üstünde de ≥ 4,5:1 (MK-017) */
 .tp-info { display:flex; flex-direction:column; gap:5px; background:rgba(12,6,36,.35); border:1px solid var(--panel-edge); border-radius:14px; padding:10px 12px; }
 .tp-info-head { display:flex; flex-direction:column; gap:1px; } .tp-info-head b { font-size:0.9375rem; color:#fff; } .tp-term { font-size:0.75rem; color:var(--teal); font-weight:800; }
 .tp-plain { margin:0; font-size:0.84375rem; font-weight:700; line-height:1.4; color:#fff; }
