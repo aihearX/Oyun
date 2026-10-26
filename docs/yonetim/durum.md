@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 6. tur · 2026-10-26 · başlangıç b39a8a1 → tur sonu 3e69e07 (+ bu belge).
+**Son tur:** 7. tur · 2026-10-26 · başlangıç 494aaaf → tur sonu de13ff8 (+ bu belge).
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,20 +26,17 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Sahip kararı:** sunucu Oracle Cloud Always Free + DuckDNS + Caddy (karar 1–2). Doğrulama planı: [`sunucu-dogrulama.md`](sunucu-dogrulama.md), D1–D16.
 - **Çalışanlar (PY doğruladı, kabul):**
-  - 4901df5 sunucu kurulum betikleri (YN-006 hazırlığı, YN-007 yer tutucu).
-  - e6dbe34 + 62844a8 sahipli duck + "Anlatıcı ses düzeyi" + müzik parça kazancı (MK-023).
-  - a913ee4 level-gen tembel yükleme (YN-025): ilk JS 710 → 611 KB.
-  - b6278fd uzak denetim araçları (MK-024): yerel üretim sunucusunda PY koştu, 0 hata, hesaplar silindi.
-- **PY:** c0a2d2f doğrulama planı ve MK-024 · iş listesi: YN-029 hesap silmede artık satırlar (P1, KVKK/mağaza), YN-030 IP başına hesap sınırı (P3).
+  - 7ee2350 mağaza ekran görüntüleri aracı (MK-022): 30 PNG, sahip seçecek. Zayıf yerler MK-025–029.
+  - e64a49c sunucu yeniden başlarken oyuncu (MK-019): 9 bulgu düzeltildi, yeniden bağlanma ≤ 7,3 sn.
+  - c85a1bc metin kontrastı ölçümü ve metin tonları (MK-017): ihlal 0; dolgu önerileri sahip kararı 19.
+- **PY:** MK-030 kodla incelenip kapandı (yalnız tohum kaydı) · MK-031 yarış içi yeniden başlatma · MK-032 uzak kopma kancası.
 
 ## Sürüyor
-- **kontrast** (MK-017)
-- **kopma** (MK-019)
-- **vitrin** (MK-022)
-- **Sırada:** saglam (MK-020, kontrast inince) → hesapsil (YN-029, kopma inince) → derin (MK-021).
-- **Sahipte:** Oracle kurulumu (Adım 1–5), Expo hesabı, kararlar 15–18 (dinleme).
+- **hesapsil** (YN-029)
+- **saglam** (MK-020)
+- **Sırada:** kopma2 (MK-031 + MK-032) → derin (MK-021) → görsel işler (MK-025–029).
+- **Sahipte:** Oracle kurulumu, Expo hesabı, vitrin seçimi, kararlar 15–19.
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
