@@ -172,3 +172,18 @@ Bu işin değişiklik ölçütleri (anlatıcının müzikle maskelenmesi ya da b
 4. **Kısma derinliği (dinleyerek karar).** Konuşmada 0,3 (−10,5 dB) müziği neredeyse siliyor (anlatıcı 17–23 LU üstte). 0,45–0,5 (−6…−7 dB) ile fark 14–20 LU olur, müzik sürekliliği korunur; anlaşılırlık için yine bol pay. Ölçütte sorun olmadığından değiştirilmedi; sahip kulakla seçmeli.
 5. **Parçalar arası denge.** `menu` ve `biyom:sinir`'in `gain` değerleri ~+3 dB (ör. 0,8 → 1,1), `biyom:kanal` ~−1,5 dB alınırsa parçalar ortanca −23 LUFS'un ±1,5 LU'su içine girer. Önce tek tek dinlenmeli (karakter farkı kasıtlı olabilir).
 6. **Araç rutin olsun.** Ses içeriği (yeni satır, yeni parça, efekt tasarımı) değiştiğinde `node tools/voice/duzey.mjs` (dosyalar, ~15 sn) koşulsun; dosya I'sı −17,5 LUFS'un altında kalan yeni satır üretimde düzeltilsin.
+
+## 5. Uygulananlar (MK-023, 2026-10-26)
+
+- **Öneri 3 (kısma sahipliği): yapıldı.** `duck(owner, saniye, düzey)` / `unduck(owner)`; etkin düzey süresi dolmamış sahiplerin en düşüğü (`packages/audio/src/duck.ts`, birim testli). Sahipler: `ses` (anlatıcı), `efekt:<ad>`, `duraklat`, `kutlama`. Bulgu 5'teki iki çakışma giderildi. Kısma derinliği (0,3) değişmedi (öneri 4 sahip kararı).
+- **Öneri 2 (anlatıcı düzeyi): yapıldı.** Ayarlar → Anlatıcı sesi kartında ayrı kaydırıcı (`store.voiceVol` → motorun anlatıcı veriyolu). Efekt kaydırıcısı artık anlatıcıyı etkilemez. Eski kayıtta o güne kadar duyulan düzey türetilir (efekt düzeyi, en az 0,2); yeni oyuncu 0,9. Varsayılan ayarlarda duyulan değişmedi (anlatıcı ortancası yine −13,7 LUFS).
+- **Öneri 5 (parçalar arası denge): yapıldı.** `menu` ve `biyom:sinir` kazancı 0,8 → 1,1 (+2,8 dB), `biyom:kanal` 1 → 0,84 (−1,5 dB). Yeniden ölçüm (`--oyun`, varsayılan ayarlar):
+
+  | Parça | Önce I | Sonra I | Sonra kısık I | Sonra TP |
+  |---|---|---|---|---|
+  | menu | −26,6 | **−23,9** | −34,3 | −9,8 |
+  | biyom:sinir | −26,0 | **−23,2** | −33,6 | −8,6 |
+  | biyom:kanal | −20,8 | **−22,3** | −32,6 | −8,3 |
+
+  Parçalar arası açıklık 5,8 LU → **2,6 LU** (−24,1 … −21,5); hepsi ortanca −23'ün ±1,5 LU'su içinde. Anlatıcı kısık müziğin 18–21 LU üstünde; karışım ölçümleri değişmedi. Kulakla beğenilmezse yalnız `music.ts`'teki üç `gain` geri alınır.
+- Öneri 1 (kısa satırlar) ve 4 (kısma derinliği) sahip kararında; dokunulmadı.
