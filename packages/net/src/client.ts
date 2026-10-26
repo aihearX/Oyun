@@ -34,6 +34,11 @@ export interface ClientOptions {
   timeoutMs?: number;
   /** bağlı değilken yapılan isteğin bağlantıyı bekleme süresi (ms), varsayılan timeoutMs (sunucu yeniden başlarken işlem kaybolmasın) */
   offlineWaitMs?: number;
+  /**
+   * saniyede en çok gönderilen ileti (jeton kovası; 0/yok = sınırsız). Sunucu bağlantı başına 30/sn üstünü 'HIZ' ile reddeder:
+   * bağlanınca uygulamanın tüm yenilemeleri bir anda gider; fazlası reddedilmesin diye kısa süre sıraya alınır.
+   */
+  maxPerSec?: number;
   /** yeniden bağlanma bekleme üst sınırı (ms), varsayılan 15 000 */
   maxBackoffMs?: number;
 }
@@ -74,6 +79,7 @@ export function createClient(opts: ClientOptions): NetClient {
   const timeoutMs = opts.timeoutMs ?? 10_000;
   const maxBackoff = opts.maxBackoffMs ?? 15_000;
   const offlineWait = opts.offlineWaitMs ?? timeoutMs;
+  const rate = opts.maxPerSec ?? 0;
   const WS = opts.WebSocketImpl ?? (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
 
   let status: NetStatus = 'kapalı';
@@ -119,13 +125,32 @@ export function createClient(opts: ClientOptions): NetClient {
   /** kalıcı kuyruğu yaz (kayıtlı kuyruk okunmadan yazılmaz; aksi halde eski kayıtlar silinebilirdi) */
   const persistQueue = () => { if (!queueReady) return; try { void opts.saveQueue?.(queue.map((q) => q.data)); } catch {} };
 
+  // gönderim hızı (maxPerSec): jeton kovası; kova boşsa ileti kısa süre bekler (sıra korunur)
+  let tokens = rate; let refillAt = 0;
+  const outq: (() => void)[] = [];
+  let pumpTimer: ReturnType<typeof setTimeout> | null = null;
+  const take = (): boolean => {
+    if (!rate) return true;
+    const t = Date.now(); tokens = Math.min(rate, tokens + ((t - refillAt) / 1000) * rate); refillAt = t;
+    if (tokens < 1) return false;
+    tokens -= 1; return true;
+  };
+  const schedulePump = () => { if (!pumpTimer && outq.length) pumpTimer = setTimeout(pump, Math.max(5, Math.ceil(((1 - tokens) / rate) * 1000))); };
+  function pump(): void { pumpTimer = null; while (outq.length && take()) outq.shift()!(); schedulePump(); }
+  const paced = (fn: () => void) => { if (!outq.length && take()) fn(); else { outq.push(fn); schedulePump(); } };
+
   function rawSend(op: Op, data: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       if (!ws || ws.readyState !== OPEN) { reject(new NetError('CEVRIMDISI', 'Sunucuya bağlı değilsin.')); return; }
-      const id = nextId++;
-      const timer = setTimeout(() => { pending.delete(id); reject(new NetError('ZAMAN_ASIMI', 'Sunucu zamanında yanıt vermedi.')); }, timeoutMs);
-      pending.set(id, { resolve, reject, timer, op });
-      ws.send(JSON.stringify({ t: 'req', id, op, data }));
+      const sock = ws;
+      paced(() => {
+        // sırada beklerken bağlantı koptuysa hiç gönderilmedi
+        if (ws !== sock || sock.readyState !== OPEN) { reject(new NetError('CEVRIMDISI', 'Sunucuya bağlı değilsin.')); return; }
+        const id = nextId++;
+        const timer = setTimeout(() => { pending.delete(id); reject(new NetError('ZAMAN_ASIMI', 'Sunucu zamanında yanıt vermedi.')); }, timeoutMs);
+        pending.set(id, { resolve, reject, timer, op });
+        sock.send(JSON.stringify({ t: 'req', id, op, data }));
+      });
     });
   }
 
@@ -146,7 +171,11 @@ export function createClient(opts: ClientOptions): NetClient {
           item.resolve?.(res);
         } catch (e) {
           // bağlantı koptuysa kuyrukta kalır; sunucu reddettiyse (geçersiz kayıt) atılır
-          if (e instanceof NetError && (e.code === 'CEVRIMDISI' || e.code === 'ZAMAN_ASIMI' || e.code === 'KOPTU' || e.code === 'HIZ')) break;
+          if (e instanceof NetError && (e.code === 'CEVRIMDISI' || e.code === 'ZAMAN_ASIMI' || e.code === 'KOPTU' || e.code === 'HIZ')) {
+            // bağlıyken geçici ret (hız sınırı, geç yanıt): kayıt runId ile tek, kısa süre sonra yeniden denenir (bir sonraki bağlanışı beklemez)
+            if ((e.code === 'HIZ' || e.code === 'ZAMAN_ASIMI') && status === 'bağlı') setTimeout(() => { if (status === 'bağlı') void flushQueue(); }, 1500);
+            break;
+          }
           queue.shift(); persistQueue();
           item.reject?.(e);
         }
@@ -282,6 +311,7 @@ export function createClient(opts: ClientOptions): NetClient {
     },
     fire(op, data) {
       if (status !== 'bağlı' || !ws || ws.readyState !== OPEN) return;
+      if (rate && !take()) tokens -= 1; // anlık ileti beklemez ama kovadan düşer (sunucu da sayar)
       ws.send(JSON.stringify({ t: 'fire', op, data }));
     },
     on(ev, cb) {

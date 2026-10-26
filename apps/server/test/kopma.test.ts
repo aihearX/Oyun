@@ -51,6 +51,20 @@ describe('chat.send tekrar koruması (cid)', () => {
 });
 
 describe('istemci: sunucu yeniden başlarken', () => {
+  it('maxPerSec: bağlanınca giden istek fırtınası sunucunun hız sınırına (30/sn) takılmaz, sıra korunur', { timeout: 20_000 }, async () => {
+    srv = await startServer({ port: 0, host: '127.0.0.1', msgPerSec: 30 });
+    let token = '';
+    const c = createClient({ url: srv.url, name: 'Fırtına', getToken: () => token, saveToken: (t) => { token = t; }, maxPerSec: 20 });
+    clients.push(c);
+    c.connect();
+    await waitStatus(c, 'bağlı');
+    const t0 = Date.now();
+    const results = await Promise.allSettled(Array.from({ length: 45 }, () => c.call('wallet.get', {})));
+    expect(results.filter((r) => r.status === 'rejected')).toHaveLength(0);
+    // 20 hemen, kalan 25 saniyede 20 hızla: ~1,2 sn
+    expect(Date.now() - t0).toBeGreaterThan(900);
+  });
+
   it('kopukken yapılan istek bağlantıyı offlineWaitMs kadar bekler; retryNow beklemeyi kısaltır; aynı veritabanıyla yeniden açılınca oturum sürer', { timeout: 30_000 }, async () => {
     const dir = mkdtempSync(join(tmpdir(), 'odi-kopma-'));
     const dbFile = join(dir, 'odi.sqlite');

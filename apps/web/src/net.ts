@@ -130,7 +130,11 @@ async function flushOutbox(): Promise<void> {
           applyServerSkills(r.skills);
         }
       } catch (e) {
-        if (e instanceof NetError && NET_CODES.has(e.code)) break;
+        if (e instanceof NetError && NET_CODES.has(e.code)) {
+          // bağlıyken geçici ret (hız sınırı, geç yanıt): ledgerId ile tek; kısa süre sonra yeniden (yoksa bir sonraki bağlanışa dek takılı kalırdı)
+          if ((e.code === 'HIZ' || e.code === 'ZAMAN_ASIMI') && client?.status === 'bağlı') setTimeout(() => void flushOutbox(), 1500);
+          break;
+        }
         // sunucu reddettiyse (ör. zaten alınmış yetenek) kayıt atılır; kuyruk takılmaz
       }
       const rest = useSocial.getState().outbox.slice(1);
@@ -270,6 +274,8 @@ export function startNet(): void {
       maxBackoffMs: 8_000,
       // kopukken basılan işlem (sohbet iletisi, kamp) bağlantıyı 20 sn bekler: kısa yeniden başlatmada kaybolmaz, uzun kopuklukta açık hata
       offlineWaitMs: 20_000,
+      // sunucu bağlantı başına 30 ileti/sn; bağlanınca giden ~35 yenileme isteğinin fazlası 'HIZ' ile düşmesin (MK-019)
+      maxPerSec: 20,
       getToken: () => store().getItem(K.token),
       saveToken: (t) => (t ? store().setItem(K.token, t) : store().removeItem(K.token)),
       getQueue: () => readJson<ProgressSubmit[]>(K.queue, []),
@@ -298,6 +304,8 @@ export function startNet(): void {
     c.on('team.gift', ({ gift }) => toast('🎁', 'Takım hediyesi geldi!', gift.reason, 'gold'));
     useStore.subscribe((n, p) => { if (n.meta.ledger !== p.meta.ledger) scanLedger(); });
     scanLedger();
+    // güvenlik ağı: bağlıyken bekleyen ödül/harcama kalmışsa (geçici ret, yarış) kısa aralıkla yeniden dene; ledgerId ile tek yazılır
+    setInterval(() => { if (useSocial.getState().outbox.length && c.status === 'bağlı') void flushOutbox(); }, 10_000);
     // ağ geri gelince ya da uygulama öne gelince beklemeden dene (bekleyen istekler korunur)
     if (typeof window !== 'undefined') {
       window.addEventListener('online', () => c.retryNow());

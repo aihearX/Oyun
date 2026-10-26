@@ -120,18 +120,23 @@ function frames(pair, chunk) {
   return out;
 }
 async function makeProxy(name) {
-  const px = { name, mode: 'pass', holdOp: null, held: null, pairs: new Set(), port: 0 };
+  const px = { name, mode: 'pass', holdOp: null, held: null, pairs: new Set(), port: 0, hiz: 0, reqs: [], errs: [] };
   const server = net.createServer((down) => {
     if (px.mode === 'refuse') { down.destroy(); return; }
     const up = net.connect(SRV_PORT, '127.0.0.1');
     down.setNoDelay(true); up.setNoDelay(true);
-    const pair = { down, up, hold: false, buf: Buffer.alloc(0), hdrDone: false };
+    const pair = { down, up, hold: false, buf: Buffer.alloc(0), hdrDone: false, back: { buf: Buffer.alloc(0), hdrDone: false } };
     px.pairs.add(pair);
     const end = () => { px.pairs.delete(pair); down.destroy(); up.destroy(); };
     for (const s of [up, down]) { s.on('error', end); s.on('close', end); }
-    up.on('data', (d) => { if (!pair.hold) down.write(d); }); // tutulan yanıt hiç iletilmez (sunucu kapanınca atılır)
+    up.on('data', (d) => {
+      // tanı: sunucunun reddettiği istekler (ör. HIZ: bağlantı başına 30 ileti/sn)
+      for (const t of frames(pair.back, d)) { const m = /"ok":false,"code":"([A-Z_]+)"/.exec(t); if (m) { px.errs.push({ at: Date.now(), code: m[1] }); if (m[1] === 'HIZ') px.hiz++; } }
+      if (!pair.hold) down.write(d); // tutulan yanıt hiç iletilmez (sunucu kapanınca atılır)
+    });
     down.on('data', (d) => {
       for (const t of frames(pair, d)) {
+        px.reqs.push({ at: Date.now(), op: /"op":"([^"]+)"/.exec(t)?.[1] ?? '?' });
         if (px.holdOp && t.includes(`"op":"${px.holdOp}"`)) { pair.hold = true; px.holdOp = null; px.held?.(t); }
       }
       up.write(d);
@@ -199,6 +204,7 @@ const banner = (P) => P.page.locator('.net-banner', { hasText: 'Bağlantı koptu
  */
 async function outage(label, { sig = 'SIGTERM', downMs = 3000, players, whileDown, bannerOf = banner } = {}) {
   const tKill = Date.now();
+  const hiz0 = Object.fromEntries(players.map((P) => [P.tag, P.proxy.hiz]));
   await stopSrv(sig);
   for (const P of players) {
     const seen = await bannerOf(P).waitFor({ state: 'visible', timeout: 8000 }).then(() => true, () => false);
@@ -215,6 +221,11 @@ async function outage(label, { sig = 'SIGTERM', downMs = 3000, players, whileDow
     const after = t ? t - tUp : null;
     check(t != null && after <= RECONNECT_MAX_MS, `${P.tag}: sunucu döndükten ${after != null ? (after / 1000).toFixed(1) : '—'} sn sonra kendiliğinden bağlandı (≤ 15 sn; kopukluk ${((tUp - tKill) / 1000).toFixed(1)} sn)`);
     out[P.tag] = after;
+  }
+  await sleep(2500);
+  for (const P of players) {
+    const n = P.proxy.reqs.filter((r) => r.at >= tUp && r.at <= tUp + RECONNECT_MAX_MS).length;
+    console.log(`    · ${P.tag}: bağlanınca ${n} istek, hız sınırı (HIZ) yanıtı ${P.proxy.hiz - hiz0[P.tag]}`);
   }
   return out;
 }
@@ -262,13 +273,20 @@ function diffs(c, s) {
   return d;
 }
 async function consistent(P, label, ms = 15_000) {
-  let d;
+  let d; let first = null; const t0 = Date.now();
   for (const until = Date.now() + ms; ;) {
     d = diffs(await clientState(P), serverState(P.pid));
+    if (d.length && !first) first = { d, outbox: await P.page.evaluate(() => window.__ag.social.getState().outbox).catch(() => null) };
     if (!d.length || Date.now() > until) break;
     await sleep(300);
   }
-  if (d.length) await shot(P, `${label}-tutarsiz`);
+  // tanı: tutarlılık geç geldiyse ilk farkı yaz (geçti ama nedenini görmek için)
+  if (!d.length && Date.now() - t0 > 5000) console.log(`    tanı: ${label} ${((Date.now() - t0) / 1000).toFixed(1)} sn'de tutarlı oldu; ilk fark ${first?.d.join('; ')}; outbox ${JSON.stringify(first?.outbox)}; sunucu retleri ${JSON.stringify(P.proxy.errs.slice(-6))}`);
+  if (d.length) {
+    await shot(P, `${label}-tutarsiz`);
+    const o = await P.page.evaluate(() => window.__ag.social.getState().outbox).catch(() => null);
+    console.log(`    tanı: outbox ${JSON.stringify(o)}; sunucu retleri ${JSON.stringify(P.proxy.errs.slice(-10))}; son istekler ${P.proxy.reqs.slice(-12).map((r) => r.op).join(',')}`);
+  }
   check(!d.length, `${P.tag}: cüzdan, kamp ve ilerleme sunucu ile aynı (${label})${d.length ? ` — ${d.join('; ')}` : ''}`);
 }
 const toastsSince = (P, t) => P.page.evaluate((s) => window.__kopma.toasts.filter((x) => x.at >= s).map((x) => x.text), t);
