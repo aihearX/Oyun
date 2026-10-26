@@ -296,6 +296,6 @@ export class LevelHud {
     const c = this.hint; this.hint = undefined; if (!c) return;
     this.scene.tweens.add({ targets: c, alpha: 0, duration: 180, onComplete: () => c.destroy() });
   }
-  resize(w: number, h: number) { this.w = w; this.h = h; const O = screenOrigin(this.scene.cameras.main); this.root.setPosition(O.x, O.y); this.layout(); }
+  resize(w: number, h: number, top = this.top) { this.w = w; this.h = h; this.top = top; const O = screenOrigin(this.scene.cameras.main); this.root.setPosition(O.x, O.y); this.layout(); }
   destroy() { this.hideHint(); this.root.destroy(); }
 }

@@ -115,8 +115,10 @@ export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 18
   const w = viewW(scene); const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
   const bw = Math.min(w - 32, t.width + 32), bh = 34;
   const r = scene.add.graphics(); r.fillStyle(bg, 0.96); r.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
-  const c = scene.add.container(w / 2, 96, [r, t]).setScrollFactor(0).setDepth(170).setAlpha(0);
-  const y0 = 128;
+  // bölümde oyun içi gösterge güvenli alan kadar iner (LevelScene 'hudTop'); şerit onun altında kalsın
+  const top = Number(scene.registry?.get('hudTop')) || 0;
+  const c = scene.add.container(w / 2, 96 + top, [r, t]).setScrollFactor(0).setDepth(170).setAlpha(0);
+  const y0 = 128 + top;
   scene.tweens.add({ targets: c, y: y0, alpha: 1, duration: 220, ease: 'Back.Out' });
   scene.tweens.add({ targets: c, alpha: 0, y: y0 - 16, delay: ms, duration: 260, onComplete: () => c.destroy() });
   return c;

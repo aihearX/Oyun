@@ -15,10 +15,11 @@ const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
 const PAUSE_CARD = { background: 'linear-gradient(180deg, #2a1b63, #170d40)', border: '2px solid rgba(255,255,255,.14)', borderRadius: 22, padding: '22px 18px', boxShadow: '0 12px 40px rgba(0,0,0,.55)', color: '#fff6e5' } as const;
 const PAUSE_GHOST = { color: '#fff6e5', borderColor: 'rgba(255,255,255,.28)', background: 'rgba(255,255,255,.06)' } as const;
 /** cihazın güvenli alan üst boşluğu (CSS px; iOS çentik / Dinamik Ada / saat): yerel kabuğun bildirdiği inset (Expo DOM
- *  bileşeninin içinde env() 0 döner) ile tarayıcının env(safe-area-inset-top) değerinin büyüğü */
+ *  bileşeninin içinde env() 0 döner), kabuğun CSS değişkeni (--sat = max(--safe-top, env(safe-area-inset-top)); styles.css) ve
+ *  tarayıcının env(safe-area-inset-top) değerinin büyüğü */
 function safeAreaTop(): number {
   if (typeof document === 'undefined') return 0;
-  const d = document.createElement('div'); d.style.cssText = 'position:fixed;top:0;left:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+  const d = document.createElement('div'); d.style.cssText = 'position:fixed;top:0;left:0;height:0;visibility:hidden;padding-top:max(var(--sat, 0px), env(safe-area-inset-top, 0px))';
   document.body.appendChild(d); const v = parseFloat(getComputedStyle(d).paddingTop) || 0; d.remove();
   let native = 0; try { native = platform().insets?.top ?? 0; } catch { /* yok */ }
   return Math.max(v, native);
@@ -84,7 +85,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       h = startLevel(el, {
         spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
         // çentik/kamera/saat: oyun içi gösterge güvenli alanın altına iner
-        safeTop: safeAreaTop(),
+        safeTop: safeAreaTop(), safeTopNow: safeAreaTop,
         // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
         onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
         // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı

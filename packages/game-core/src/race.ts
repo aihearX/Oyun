@@ -42,6 +42,8 @@ export interface RaceHost {
   live(): boolean;
   /** kendi Odi rengim (şeritteki işaret için; yoksa varsayılan mor) */
   heroColor?: number;
+  /** oyun içi göstergenin güvenli alan inişi (tasarım px): şerit onun altında kalır */
+  top?: number;
 }
 
 /**
@@ -53,7 +55,7 @@ export class RaceLayer {
   private ghosts = new Map<string, Ghost>();
   private unsub: () => void;
   private meDot!: Phaser.GameObjects.Image; private meRing!: Phaser.GameObjects.Graphics; private rankText!: Phaser.GameObjects.Text; private leadBadge!: Phaser.GameObjects.Text;
-  private x0 = 0; private x1 = 0; private stripY = 101;
+  private x0 = 0; private x1 = 0; private stripY = 101; private stripObjs: Phaser.GameObjects.GameObject[] = [];
   private rank = 0; private pendingRank = 0; private pendingSince = 0; private lastNoticeAt = -1e9;
   private lastSentAt = -1e9; private myFinal: number | null = null;
   // geri sayım
@@ -63,6 +65,7 @@ export class RaceLayer {
   constructor(private host: RaceHost, private opts: RaceOptions) {
     const { scene } = host;
     const others = opts.players.filter((p) => p.id !== opts.meId);
+    this.stripY = 101 + (host.top ?? 0);
     this.buildStrip();
     others.forEach((p, i) => this.ghosts.set(p.id, this.makeGhost(p, i)));
     this.unsub = opts.subscribe((p) => this.onPos(p));
@@ -104,6 +107,7 @@ export class RaceLayer {
   // ------------------------------------------------------------ üst şerit
   private buildStrip() {
     const { scene } = this.host; const w = viewW(scene); const y = this.stripY;
+    for (const o of this.stripObjs) o.destroy(); this.stripObjs = [];
     const bg = scene.add.graphics().setScrollFactor(0).setDepth(104);
     // sağdaki seri rozetiyle (LevelHud) çakışmasın diye şerit sola yaslı ve koyu cam görünümünde
     const right = w - 132;
@@ -112,13 +116,20 @@ export class RaceLayer {
     this.x0 = 64; this.x1 = right - 30;
     const track = scene.add.graphics().setScrollFactor(0).setDepth(104);
     track.lineStyle(3, 0x6a5fb0, 1); track.lineBetween(this.x0, y, this.x1, y);
-    scene.add.text(this.x1 + 14, y, '🏁', { fontFamily: FONT, fontSize: '15px' }).setOrigin(0.5).setScrollFactor(0).setDepth(105);
+    const flag = scene.add.text(this.x1 + 14, y, '🏁', { fontFamily: FONT, fontSize: '15px' }).setOrigin(0.5).setScrollFactor(0).setDepth(105);
     this.meRing = scene.add.graphics().setScrollFactor(0).setDepth(106);
     this.meRing.lineStyle(2.5, 0x6c4cf1, 1); this.meRing.strokeCircle(0, 0, 12);
     const meColor = this.host.heroColor ?? 0x6c4cf1;
     this.meDot = scene.add.image(this.x0, y, heroTexture(scene, `odi-g${(meColor & 0xffffff).toString(16)}`, meColor, HERO_SIZE, 'happy')).setScale(0.42).setScrollFactor(0).setDepth(107);
     this.leadBadge = scene.add.text(this.x0, y - 15, '1.', { fontFamily: FONT, fontSize: '11px', fontStyle: '800', color: '#13162a', backgroundColor: '#ffc25c', padding: { x: 4, y: 1 } })
       .setOrigin(0.5, 1).setScrollFactor(0).setDepth(108).setVisible(false);
+    this.stripObjs.push(bg, this.rankText, track, flag, this.meRing, this.meDot, this.leadBadge);
+  }
+  /** görünüm boyutu / gösterge inişi değişti: şerit yeniden kurulur, rakip işaretleri yeni hizaya (LevelScene.onViewResize) */
+  relayout(top: number) {
+    this.stripY = 101 + top; this.buildStrip();
+    for (const g of this.ghosts.values()) g.dot.setY(this.stripY);
+    this.drawStrip();
   }
 
   private myPct(): number { return this.myFinal ?? clamp01(this.host.hero.x / this.host.gateX); }
@@ -139,8 +150,14 @@ export class RaceLayer {
       g.body.setPosition(g.x, g.y); g.hat?.setPosition(g.x, g.y - HERO_SIZE / 2); g.label.setPosition(g.x, g.y - g.labelDy);
       const stale = g.seen && !g.done && now - g.lastAt > STALE_MS;
       if (stale !== g.stale) { g.stale = stale; const a = stale ? 0.18 : GHOST_ALPHA; g.body.setAlpha(a); g.hat?.setAlpha(a); g.label.setAlpha(stale ? 0.45 : 0.9); g.dot.setAlpha(stale ? 0.4 : 1); }
-      g.dot.setX(this.x0 + (this.x1 - this.x0) * g.pct);
     }
+    const { rank, list } = this.drawStrip();
+    this.notices(now, rank, list);
+  }
+
+  /** şeritteki işaretler, sıra yazısı ve önde rozeti (hayalet gövdeleri ayrı: update) */
+  private drawStrip() {
+    for (const g of this.ghosts.values()) g.dot.setX(this.x0 + (this.x1 - this.x0) * g.pct);
     const mx = this.x0 + (this.x1 - this.x0) * this.myPct();
     this.meDot.setX(mx); this.meRing.setPosition(mx, this.stripY);
     const list = this.standings();
@@ -150,7 +167,7 @@ export class RaceLayer {
     const leaderX = leader.id === this.opts.meId ? mx : this.ghosts.get(leader.id)!.dot.x;
     // yarış başlamadan (herkes 0'da) rozet yok
     this.leadBadge.setVisible(this.started && leader.pct > 0.02).setX(leaderX);
-    this.notices(now, rank, list);
+    return { rank, list };
   }
 
   private notices(now: number, rank: number, list: { id: string; name: string; pct: number }[]) {

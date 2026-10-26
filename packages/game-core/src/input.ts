@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import type { InputState } from '@odi/shared';
-import { GAME_W } from '@odi/shared';
 
 /** dokunuştan bu kadar ms sonra (parmak kaymadıysa) basış kesinleşir: kaydırma ile zıplama karışmasın */
 const PRESS_DELAY = 70;
@@ -35,7 +34,7 @@ export class TouchInput {
   hSwipePx = HSWIPE_PX;
   constructor(private scene: Phaser.Scene, private mirrored = false) {
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      const k0 = scene.scale.width / GAME_W; const zx = p.x / k0, zy = p.y / k0;
+      const k0 = scene.cameras.main.zoom; const zx = p.x / k0, zy = p.y / k0; // tasarım pikseli (görünüm genişliği ekrana göre değişir)
       const z = this.blockZones.find((b) => b.hit(zx, zy));
       if (z) { this.pointerIsDown = false; this.resolved = true; z.onTap(); return; }
       this.downAt = scene.time.now; this.downT = p.downTime || performance.now(); this.downY = p.y; this.downX = p.x; this.pointerIsDown = true; this.resolved = false;
@@ -46,7 +45,7 @@ export class TouchInput {
       this.state.pointerX = p.x / scene.scale.width;
       // kaydırma zamanlaması DOM olay zamanlarından (kare takılsa bile hız doğru ölçülür)
       const tNow = p.moveTime || performance.now(); if (tNow - this.downT > SWIPE_MS) return;
-      const k = scene.scale.width / GAME_W; const dx = (p.x - this.downX) / k, dy = (p.y - this.downY) / k; // tasarım pikseli
+      const k = scene.cameras.main.zoom; const dx = (p.x - this.downX) / k, dy = (p.y - this.downY) / k; // tasarım pikseli
       const el = Math.max(16, tNow - this.downT);
       if (dy > SWIPE_PX && dy > Math.abs(dx)) this.swipe('down');
       else if (Math.abs(dx) > this.hSwipePx && Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) / el > HSWIPE_V) this.swipe((dx > 0) !== this.mirrored ? 'right' : 'left');
