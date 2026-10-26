@@ -56,7 +56,7 @@ const log = (...a) => console.log(`[vitrin ${String(Math.round((Date.now() - t0)
 const shots = []; const problems = [];
 
 // ---------------------------------------------------------------- oyuncu adları (kurgusal, oyun temalı; gerçek kişi adı değil)
-const AD = { ben: 'Nota Avcısı', zar: 'Zar Ustası', ors: 'Örs Kaptan', sal: 'Salyangoz', kem: 'Kemikçik', yol: 'Yolcu Odi' };
+const AD = { ben: 'Nota Avcısı', zar: 'Zar Ustası', ors: 'Örs Kaptan', sal: 'Koklea Yolcusu', kem: 'Kemikçik', yol: 'Yolcu Odi' };
 const TEAM = { name: 'Koklea Kaşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' };
 
 // ---------------------------------------------------------------- içerik verisi (bölümler, kartlar, kamp seviyeleri)

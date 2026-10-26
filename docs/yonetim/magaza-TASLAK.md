@@ -44,7 +44,7 @@ Odi bir ses parçacığı. Görevi, her sesi kulağın girişinden beyne kadar t
 ## Ekran görüntüleri (aday set, MK-022)
 Aday kareler `tools/harness/vitrin.mjs` ile gerçek oyun durumundan çekilir. Araç gerçek sunucuyu ve web test derlemesini kullanır.
 Tohumlama ui-mobile-check ile aynı yoldan yapılır. Yönetici kipi ve önizleme sayfası (`?demo=`) kullanılmaz. Oyuncu adları oyun
-temalı kurgusal takma adlardır (Nota Avcısı, Zar Ustası, Örs Kaptan, Salyangoz). Hasta vakaları içerikteki kurgusal hastalardır.
+temalı kurgusal takma adlardır (Nota Avcısı, Zar Ustası, Örs Kaptan, Koklea Yolcusu). Hasta vakaları içerikteki kurgusal hastalardır.
 
 - **Boyutlar:**
   - iOS 6,9": 1320×2868;
