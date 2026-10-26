@@ -499,8 +499,9 @@ await step('yaris', async () => {
   const yurl = (name, delay, hd) => `${HOST}src/race/dev/yaris.html?ad=${encodeURIComponent(name)}&yaris-bot=1&bot-gecikme=${delay}${hd ? `&hd=${hd}` : ''}&sunucu=${encodeURIComponent(S.url)}`;
   const ps = [];
   try {
-    // çekilen oyuncu (A) en son çıkar: rakipler önünde, kameranın gördüğü yerde koşar (0,18 / 0,7 sn ≈ 180 / 100 px önde); A'nın tuvali 3x
-    for (const [name, delay, col, hd] of [[AD.ben, 700, 0x2ee6d6, DSF], [AD.zar, 0, 0xff4f7a, 0], [AD.ors, 300, 0xffb347, 0]]) {
+    // botlar aynı anda çıkar (bot gecikmesi sahne saatiyle sayılır, düşük kare hızında saniyelerce uzar); yalnız A'nın tuvali 3x —
+    // rakiplerin A'nın önünde kalması aşağıda (11) sahne saatleri eşitlenerek sağlanır
+    for (const [name, delay, col, hd] of [[AD.ben, 0, 0x2ee6d6, DSF], [AD.zar, 0, 0xff4f7a, 0], [AD.ors, 0, 0xffb347, 0]]) {
       const { ctx, page } = await newPage({ seed: save(14, { extra: { odiColor: col, chosenColor: col } }) });
       await page.goto(yurl(name, delay, hd), { waitUntil: 'load' });
       await page.waitForFunction((nm) => window.__yaris?.net()?.me?.name === nm, name, { timeout: 30_000 });
@@ -522,19 +523,51 @@ await step('yaris', async () => {
     await A.page.waitForFunction(() => document.querySelectorAll('[data-testid="yaris-oyuncu"]').length === 3 && /2\/3 hazır/.test(document.body.innerText), null, { timeout: 15_000 }).catch(() => undefined);
     await sleep(800); await settle(A.page);
     await shoot(A.page, '06', 'yaris', { title: 'Canlı yarış odası', players: ps.map((p) => p.name) }, { prep: async (p) => { await p.evaluate(() => { document.scrollingElement?.scrollTo(0, 0); for (const el of document.querySelectorAll('.screen, #root')) el.scrollTop = 0; }); } });
-    // 11 · yarış içi: A da hazır → geri sayım → üç bot koşar. Rakip hayaletlerinin ikisi de kahramanla aynı karede, kahraman yerdeyken
-    // A'nın sahnesi durur (rakiplerin sayfaları koşmaya devam eder; durmuş sahne yeni konumları çizmez).
+    // 11 · yarış içi: A da hazır → geri sayım → üç bot koşar. A'nın tuvali 3x çizilir (yazılım GL'de yavaş): rakip botlar A'nın
+    // simülasyon saatinin biraz önünde tutulur (önde olan rakip A yetişene dek ağır çekimde koşar; konumları gerçek yarış akışıyla gelir),
+    // böylece hayaletler kadrajda kalır. Rakiplerin ikisi de kahramanla aynı karede, kahraman yerdeyken A'nın sahnesi durur.
     await A.page.getByTestId('yaris-hazir').click();
-    await A.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 60_000 });
-    const moment = await A.page.waitForFunction(() => {
-      const sc = globalThis.__odiScene; const r = sc?.race; if (!sc?.sim || !r?.started || sc.state.finished) return false;
-      const cam = sc.cameras.main; const L = cam.scrollX, R = L + cam.width / cam.zoom; const h = sc.sim.hero; const gs = [...r.ghosts.values()];
-      if (sc.sim.t < 2.5 || !h.grounded || h.invuln > 0 || gs.length < 2) return false;
-      if (!gs.every((g) => g.seen && !g.stale && g.x > L + 40 && g.x < R - 40 && Math.abs(g.y - h.y) < 260 && Math.abs(g.x - h.x) > 36)) return false;
-      sc.scene.pause(); try { cam.shakeEffect.reset(); cam.flashEffect.reset(); } catch { /* yok */ }
-      return { t: Math.round(sc.sim.t * 10) / 10, x: Math.round(h.x), ghosts: gs.map((g) => Math.round(g.x - h.x)) };
-    }, null, { timeout: 120_000, polling: 100 }).then((hh) => hh.jsonValue());
-    log(`yarış içi an: t=${moment.t} sn, x=${moment.x}, rakipler ${moment.ghosts.join(', ')} px`);
+    await A.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 240_000 }).catch(async (e) => {
+      const st = await Promise.all(ps.map((P) => P.page.evaluate(() => ({ route: window.__yaris?.route, events: (window.__odi?.events ?? []).map((x) => x.type).filter((x) => x !== 'progress' && x !== 'haptic').slice(0, 8), frame: globalThis.__odiScene?.game?.loop?.frame })).catch(() => null)));
+      throw new Error(`yarış başlamadı: ${JSON.stringify(st)} (${String(e.message).split('\n')[0]})`);
+    });
+    // an aranırken A'nın kamerası çizilmez (3x tuval yazılım GL'de kare başına saniyeler sürer, yarış 3 dk ile sınırlı); an bulununca
+    // sahne durur, kamera açılır ve kare o durumda çizilir
+    await A.page.evaluate(() => { globalThis.__odiScene?.cameras?.main?.setVisible(false); });
+    // bekletme sahneyi durdurmaz (konum akışı sürsün, hayalet soluklaşmasın): botun zaman çarpanı küçülür (LevelScene her kare okur)
+    const hold = (P, on) => P.page.evaluate((v) => { const sc = globalThis.__odiScene; if (sc?.opts) sc.opts.timeScale = v ? 0.02 : 1; }, on).catch(() => undefined);
+    // rakip, A'nın ekranında görünen hayaleti kahramanın bu kadar önündeyken ağır çekime geçer (px; konum akışının gecikmesi dahil)
+    const LEAD = [[B, AD.zar, 190], [C, AD.ors, 100]];
+    let moment = null; let diag = null; const t0m = Date.now(); let lastLog = Date.now();
+    while (!moment && Date.now() - t0m < 420_000) {
+      const r = await A.page.evaluate((need) => {
+        const sc = globalThis.__odiScene; const rc = sc?.race; if (!sc?.sim || !rc?.started || sc.state.finished) return { bitti: true };
+        // kameranın oturacağı kadraj (LevelScene.syncCamera hedefi; ağır çekimde kamera geride kalabilir — durunca oturtulur)
+        const cam = sc.cameras.main; const vw = cam.width / cam.zoom; const h = sc.sim.hero; const gs = [...rc.ghosts.values()];
+        const L = h.x - (h.dir > 0 ? vw - 390 * 0.68 : 390 * 0.68), R = L + vw;
+        const inView = gs.filter((g) => g.seen && !g.stale && g.x > L + 70 && g.x < R - 70 && Math.abs(g.y - h.y) < 260 && g.x - h.x > 50);
+        const d = { t: Math.round(sc.sim.t * 10) / 10, x: Math.round(h.x), g: gs.map((q) => ({ ad: q.info.name, dx: Math.round(q.x - h.x), dy: Math.round(q.y - h.y), stale: q.stale })) };
+        if (sc.sim.t < 2 || !h.grounded || h.invuln > 0 || inView.length < need) return { d };
+        sc.scene.pause(); try { cam.shakeEffect.reset(); cam.flashEffect.reset(); } catch { /* yok */ }
+        for (let i = 0; i < 40; i++) sc.syncCamera(0.1);
+        sc.backdrop?.update(cam); sc.syncViews(true); cam.setVisible(true);
+        return { ok: { t: d.t, x: d.x, ghosts: inView.map((g) => Math.round(g.x - h.x)) } };
+      }, Date.now() - t0m > 300_000 ? 1 : 2).catch(() => null);
+      if (r?.ok) { moment = r.ok; break; }
+      // A ağır çekimdeyken an denetimi yine her turda yapılır (sahne durunca zaman çarpanı geri alınır)
+      if (!r || r.bitti) break;
+      diag = r.d;
+      // önde olan rakip ağır çekimde bekler; rakip geride kalırsa A bekler (kamerası çizilmediği için A rakiplerden hızlı koşar)
+      let behind = false;
+      for (const [P, ad, ahead] of LEAD) { const g = r.d.g.find((q) => q.ad === ad); await hold(P, !!g && g.dx > ahead); if (g && g.dx < ahead - 60) behind = true; }
+      await hold(A, behind);
+      if (Date.now() - lastLog > 30_000) { lastLog = Date.now(); log(`  yarış: ${JSON.stringify(diag)}`); }
+      await sleep(120);
+    }
+    for (const P of ps) await hold(P, false);
+    await A.page.evaluate(() => { globalThis.__odiScene?.cameras?.main?.setVisible(true); }).catch(() => undefined);
+    if (!moment) throw new Error(`yarış içi an bulunamadı (son: ${JSON.stringify(diag)})`);
+    log(`yarış içi an: t=${moment.t} sn, x=${moment.x}, rakipler ${moment.ghosts.join(', ')} px önde`);
     await shoot(A.page, '11', 'yaris-ici', { title: 'Canlı yarış', players: ps.map((p) => p.name), moment }, { settleMs: 1500 });
   } finally { for (const P of ps) await P.ctx.close().catch(() => undefined); }
 });

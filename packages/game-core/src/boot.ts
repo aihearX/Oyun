@@ -35,7 +35,8 @@ export function startLevel(parent: HTMLElement | string, opts: LevelOptions): Le
   // güvenli alan payı da değişmiş olabilir (geç gelen yerel inset): sahne kendisi bakar, değişen yoksa bir şey yapmaz
   const relayout = () => {
     const c = css(); const v = levelView(c.w, c.h);
-    if (v.w !== view.w || v.h !== view.h) { const g = px(v); try { game.scale.setGameSize(g.w, g.h); view = v; } catch { return; } }
+    // Phaser ebeveyn ölçüsünü kendi adımında (en geç 0,5 sn) yeniler; setGameSize eski ölçüyle sığdırmasın diye önce okunur
+    if (v.w !== view.w || v.h !== view.h) { const g = px(v); try { game.scale.getParentBounds(); game.scale.setGameSize(g.w, g.h); view = v; } catch { return; } }
     const s = game.scene.getScene('level') as LevelScene | null; s?.onViewResize?.();
   };
   let ro: ResizeObserver | null = null;
