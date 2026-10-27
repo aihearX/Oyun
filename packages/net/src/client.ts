@@ -28,8 +28,13 @@ export interface ClientOptions {
   /** çevrimdışı ilerleme kuyruğu için kalıcı depolama (ör. localStorage / AsyncStorage) */
   getQueue?: () => MaybePromise<ProgressSubmit[] | null | undefined>;
   saveQueue?: (queue: ProgressSubmit[]) => MaybePromise<void>;
-  /** kuyruktaki progress.submit çağrısı yanıtsız bitti ve kayıt kuyrukta kaldı (bağlantı, geçici ret): `submitting()` false oldu. Yanıtla ya da kalıcı retle bitişte kayıt düşer ve saveQueue çağrılır. */
+  /** kuyruktaki progress.submit çağrısı yanıtsız bitti ve kayıt kuyrukta kaldı (bağlantı, geçici ret). Yanıtla ya da kalıcı retle bitişte kayıt düşer ve saveQueue çağrılır. */
   onSubmitSettled?: () => void;
+  /**
+   * progress.submit yanıtı geldi; kayıt kuyruktan düşmeden (saveQueue'dan) hemen önce çağrılır. Yeniden gönderilen runId'de yanıt sunucunun
+   * kayıtlı (eski) yanıtıdır: içindeki cüzdan eski olabilir, `jeton` (bu koşunun hesaba geçen jetonu) her zaman doğrudur (MK-038).
+   */
+  onSubmitAck?: (data: ProgressSubmit, res: OpMap['progress.submit']['res']) => void;
   /** test/özel ortam için WebSocket sınıfı (varsayılan: globalThis.WebSocket) */
   WebSocketImpl?: typeof WebSocket;
   /** istek zaman aşımı (ms), varsayılan 10 000 */
@@ -68,8 +73,10 @@ export interface NetClient {
   /** gönderilmeyi bekleyen ilerleme kayıtları */
   queued(): number;
   /**
-   * Kuyruktaki bir progress.submit yanıt bekliyor mu. Sunucu wallet.updated olayını yanıttan ÖNCE yollar: bu arada "yeni cüzdan + hâlâ
-   * kuyruktaki aynı bölüm jetonu" bir ödül fazla olur. Çağıran bu sürede cüzdandan türetilen göstergeyi güncellemez (MK-036).
+   * Kuyrukta sunucuya gitmiş olabilecek ama yanıtı alınmamış bir progress.submit var mı: çağrı yanıt beklerken, zaman aşımından ya da
+   * kopmadan sonra yeniden gönderilip yanıt gelene dek (sunucu işlemiş olabilir), önceki oturumdan kalan kayıtlarda da. Sunucu
+   * wallet.updated olayını yanıttan ÖNCE yollar; bu sürede "cüzdan + hâlâ kuyruktaki aynı bölüm jetonu" bir ödül fazla olabilir.
+   * Çağıran bu sürede cüzdandan türetilen göstergeyi cüzdandan değil kendi tahmininden yürütür (MK-036, MK-038).
    */
   submitting(): boolean;
   /** progress.submit kısayolu: runId verilmezse üretilir; kuyruk üzerinden gider */
@@ -78,7 +85,8 @@ export interface NetClient {
 
 interface Pending { resolve: (v: unknown) => void; reject: (e: unknown) => void; timer: ReturnType<typeof setTimeout>; op: Op }
 interface Waiting { op: Op; data: unknown; resolve: (v: unknown) => void; reject: (e: unknown) => void; timer: ReturnType<typeof setTimeout> }
-interface QueueItem { data: ProgressSubmit; resolve?: (v: OpMap['progress.submit']['res']) => void; reject?: (e: unknown) => void }
+/** sent: sunucuya gitmiş olabilir, yanıtı alınmadı (yanıt ya da kalıcı ret gelene dek kalır) */
+interface QueueItem { data: ProgressSubmit; resolve?: (v: OpMap['progress.submit']['res']) => void; reject?: (e: unknown) => void; sent?: boolean }
 
 const OPEN = 1;
 
@@ -104,7 +112,6 @@ export function createClient(opts: ClientOptions): NetClient {
   const meCbs = new Set<(m: MyProfile) => void>();
   let queue: QueueItem[] = [];
   let flushing = false;
-  let submitting = false;
 
   const setStatus = (s: NetStatus) => {
     if (s === status) return;
@@ -123,7 +130,8 @@ export function createClient(opts: ClientOptions): NetClient {
     if (!loadP) loadP = (async () => {
       try {
         const saved = (await opts.getQueue?.()) ?? [];
-        queue = [...saved.map((data) => ({ data: withRunId(data) })), ...queue];
+        // önceki oturumdan kalan kayıt gönderilmiş ve yanıtı kaybolmuş olabilir
+        queue = [...saved.map((data) => ({ data: withRunId(data), sent: true })), ...queue];
       } catch {}
       queueReady = true;
       persistQueue();
@@ -173,15 +181,17 @@ export function createClient(opts: ClientOptions): NetClient {
       await loadQueue();
       while (queue.length && status === 'bağlı') {
         const item = queue[0]!;
+        const wasSent = !!item.sent;
         try {
-          submitting = true;
+          item.sent = true;
           const res = await rawSend('progress.submit', item.data) as OpMap['progress.submit']['res'];
-          // önce bayrak: saveQueue (persistQueue) içinde yeniden hesaplanan gösterge kaydı kuyruktan düşmüş görür
-          submitting = false;
+          try { opts.onSubmitAck?.(item.data, res); } catch {}
+          // kayıt kuyruktan düşer: saveQueue (persistQueue) içinde yeniden hesaplanan gösterge onu artık bekleyen saymaz
           queue.shift(); persistQueue();
           item.resolve?.(res);
         } catch (e) {
-          submitting = false;
+          // hiç gitmedi (CEVRIMDISI) ya da sunucu işlemeden reddetti (HIZ): önceki durum; zaman aşımı/kopma: sunucu işlemiş olabilir, yanıt gelene dek gönderilmiş sayılır
+          if (e instanceof NetError && (e.code === 'CEVRIMDISI' || e.code === 'HIZ')) item.sent = wasSent;
           // bağlantı koptuysa kuyrukta kalır; sunucu reddettiyse (geçersiz kayıt) atılır
           if (e instanceof NetError && (e.code === 'CEVRIMDISI' || e.code === 'ZAMAN_ASIMI' || e.code === 'KOPTU' || e.code === 'HIZ')) {
             // bağlıyken geçici ret (hız sınırı, geç yanıt): kayıt runId ile tek, kısa süre sonra yeniden denenir (bir sonraki bağlanışı beklemez)
@@ -336,7 +346,7 @@ export function createClient(opts: ClientOptions): NetClient {
     onStatus(cb) { statusCbs.add(cb); return () => { statusCbs.delete(cb); }; },
     onMe(cb) { meCbs.add(cb); return () => { meCbs.delete(cb); }; },
     queued: () => queue.length,
-    submitting: () => submitting,
+    submitting: () => queue.some((q) => q.sent),
     submitProgress: (p) => client.call('progress.submit', withRunId(p as ProgressSubmit)),
   };
   return client;

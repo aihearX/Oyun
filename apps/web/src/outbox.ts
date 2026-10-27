@@ -32,6 +32,8 @@ export interface OutboxDeps {
   onWallet?: (wallet: Wallet) => void;
   onLocal?: (item: Extract<OutItem, { k: 'local' }>, res: OpMap['wallet.local']['res']) => void;
   onSpend?: (item: Extract<OutItem, { k: 'spend' }>, res: OpMap['wallet.spend']['res']) => void;
+  /** yanıt geldi; kayıt silinmeden (save'den) hemen önce: hesaba geçen jeton (harcamada eksi) (MK-038) */
+  onAck?: (item: OutItem, jeton: number) => void;
   /** çağrı yanıtsız sonlandı (bağlantı, geçici ret): `busy()` bitti, üst çubuk yeniden hesaplanabilir */
   onSettled?: () => void;
   /** tur outbox boşken bitti ve bu turda en az bir kayıt gitti (uzlaşma için) */
@@ -49,6 +51,11 @@ export interface Outbox {
    * "yeni cüzdan + hâlâ bekleyen aynı kayıt" (fazla) gösterir. Çağıran bu sürede üst çubuğu güncellemez; yanıt cüzdanı getirir.
    */
   busy(): boolean;
+  /**
+   * Sunucuya gitmiş olabilecek ama yanıtı alınmamış kayıt var mı: `busy()` ile aynı, ayrıca zaman aşımı/kopma/SUNUCU hatasından sonra
+   * yeniden gönderilip yanıt gelene dek (sunucu yazmış olabilir; bu arada gelen cüzdan o kaydı içerebilir) (MK-038).
+   */
+  unanswered(): boolean;
   stats(): OutboxStats;
 }
 
@@ -61,6 +68,8 @@ export function createOutbox(d: OutboxDeps): Outbox {
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
   let serverFails = 0;
   let inflight = false;
+  /** gönderilmiş, yanıtı alınmamış kayıt (yanıt ya da kalıcı ret gelene dek) */
+  let unsure: OutItem | null = null;
   const st: OutboxStats = { runs: 0, again: 0, reruns: 0, retries: 0, sent: 0, dropped: 0 };
   const live = () => { const c = d.client(); return c && c.status === 'bağlı' ? c : null; };
   const retryLater = (ms: number) => {
@@ -75,21 +84,28 @@ export function createOutbox(d: OutboxDeps): Outbox {
       const c = live(); if (!c) return { end: 'kopuk', sent };
       const item = d.items()[0]; if (!item) return { end: 'bos', sent };
       let done: (() => void) | null = null;
-      inflight = true;
+      let credited = 0;
+      const wasUnsure = unsure === item;
+      inflight = true; unsure = item;
       try {
         if (item.k === 'local') {
           const r = await c.call('wallet.local', { ledgerId: item.ledgerId, jeton: item.jeton, reason: item.reason });
+          credited = r.credited;
           done = () => { d.onWallet?.(r.wallet); d.onLocal?.(item, r); };
         } else {
           const r = await c.call('wallet.spend', { jeton: item.jeton, reason: item.reason });
+          credited = -item.jeton;
           done = () => { d.onWallet?.(r.wallet); d.onSpend?.(item, r); };
         }
         serverFails = 0;
-        inflight = false;
+        inflight = false; unsure = null;
       } catch (e) {
         inflight = false;
-        try { d.onSettled?.(); } catch { /* tanı */ }
         const code = e instanceof NetError ? e.code : '';
+        // hiç gitmedi (CEVRIMDISI, KAPALI) ya da sunucu işlemeden reddetti (HIZ): önceki durum; öteki hatalarda sunucu yazmış olabilir
+        if (code === 'CEVRIMDISI' || code === 'KAPALI' || code === 'HIZ') { if (!wasUnsure) unsure = null; }
+        else if (!OFFLINE.has(code) && !TRANSIENT.has(code) && code !== SERVER) unsure = null; // kalıcı ret: kayıt atılır
+        try { d.onSettled?.(); } catch { /* tanı */ }
         if (OFFLINE.has(code)) return { end: 'kopuk', sent };
         if (TRANSIENT.has(code)) { retryLater(retryMs); return { end: 'bekle', sent }; }
         if (code === SERVER) { serverFails++; retryLater(Math.min(SERVER_RETRY_MAX_MS, retryMs * 2 ** (serverFails - 1))); return { end: 'bekle', sent }; }
@@ -97,6 +113,7 @@ export function createOutbox(d: OutboxDeps): Outbox {
         st.dropped++;
       }
       // önce kayıt silinir, sonra yanıttaki cüzdan uygulanır (ikisi aynı anda: üst çubuk ara değer göstermez)
+      if (done) { try { d.onAck?.(item, credited); } catch { /* tanı */ } }
       d.save(d.items().filter((x) => x !== item));
       if (done) { sent++; st.sent++; done(); }
     }
@@ -122,7 +139,7 @@ export function createOutbox(d: OutboxDeps): Outbox {
     return running;
   }
 
-  return { flush, busy: () => inflight, stats: () => ({ ...st }) };
+  return { flush, busy: () => inflight, unanswered: () => inflight || (unsure != null && d.items().includes(unsure)), stats: () => ({ ...st }) };
 }
 
 /**
@@ -132,4 +149,37 @@ export function createOutbox(d: OutboxDeps): Outbox {
 export function reconcileCoins({ shown, server, pending }: { shown: number; server: number; pending: number }): { coins: number; diff: number } {
   const coins = Math.max(0, server + pending);
   return { coins, diff: shown - coins };
+}
+
+/**
+ * Üst çubuk tahmini (MK-038). Sunucuya gitmiş ama yanıtı alınmamış bir kayıt varken (`unanswered`: bekleyen çağrı, zaman aşımı, kopma
+ * ve yeniden bağlanma boyunca) gelen cüzdan o kaydı içerebilir; "cüzdan + bekleyen" bir ödül fazla olur. Bu sürede değer cüzdandan değil,
+ * son gösterilenden yürür: bekleyenlerdeki değişim (yeni ödül, harcama) hemen eklenir; yanıtı gelen kaydın yerine sunucunun hesaba
+ * geçirdiği jeton (`credit`) konur; "cüzdan + bekleyen"in üstüne hiç çıkmaz (harcama hemen düşer). Yanıtsız kayıt kalmayınca yeniden
+ * "cüzdan + bekleyen".
+ */
+export interface CoinEstimate {
+  /** yanıtı gelen kaydın hesaba geçen jetonu (harcamada eksi); kayıt bekleyenlerden düşmeden önce */
+  credit(jeton: number): void;
+  /** gösterilecek değer; `current` ilk tahmin için şu an gösterilen */
+  next(x: { wallet: number; pending: number; unanswered: boolean; current: number }): number;
+  /** uzlaşma gibi kesin bir değer yazıldı */
+  set(coins: number, pending: number): void;
+}
+export function createCoinEstimate(): CoinEstimate {
+  let shown: number | null = null; let pend = 0; let credited = 0;
+  return {
+    credit(j) { credited += j; },
+    next({ wallet, pending, unanswered, current }) {
+      const fromWallet = Math.max(0, wallet + pending);
+      let coins = fromWallet;
+      if (unanswered) {
+        if (shown == null) { shown = current; pend = pending; credited = 0; }
+        coins = Math.max(0, Math.min(fromWallet, shown + (pending - pend) + credited));
+      }
+      shown = coins; pend = pending; credited = 0;
+      return coins;
+    },
+    set(coins, pending) { shown = coins; pend = pending; credited = 0; },
+  };
 }

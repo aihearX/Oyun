@@ -18,6 +18,7 @@
 //               SUNUCU yanıtı enjekte eder ya da isteği yanıtsız bırakır; wallet.updated olayı kaybolur. Her birinde: outbox ≤ 2 sn'de boşalır
 //               (yanıtsız istekte istemci zaman aşımından sonra), ödül sunucuda tek, üst çubuk bağlıyken hiçbir örnekte eksik/fazla değil.
 //               bolum (MK-036): bölüm sonu progress.submit yanıtı geciktirilir (olay önce gelir); üst çubuk bir ödül fazla göstermez.
+//               bolum-kopma / bolum-zaman (MK-038): yanıt kaybolur + yeniden bağlanma / zaman aşımı; fazla yok, ödül düşmez, donma ≤ 100 ms.
 //   etkinlik    etkinlik merkezi açıkken yeniden başlatma: şerit, bağlanınca içerik yeniden yüklenir.
 //   yaris   (d) yarış odasında: sunucu yeniden başlarsa oda silinir → açık ileti + menü, yeni oda kurulur; yalnız ağ kopması
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
@@ -38,7 +39,7 @@ const browsers = opt('browsers', 'chromium,webkit').split(',').filter(Boolean);
 const only = opt('only', null)?.split(',');
 const want = (s) => !only || only.includes(s);
 // --cuzdan k1,k2: cuzdan bölümünden yalnız bu senaryolar (varsayılan hepsi)
-const CUZDAN = opt('cuzdan', 'yanit-ag,yanit-kill,hiz,zaman,sunucu,yanitsiz,olay,bolum').split(',').filter(Boolean);
+const CUZDAN = opt('cuzdan', 'yanit-ag,yanit-kill,hiz,zaman,sunucu,yanitsiz,olay,bolum,bolum-kopma,bolum-zaman').split(',').filter(Boolean);
 const root = resolve(new URL('../..', import.meta.url).pathname);
 const webRoot = resolve(root, 'apps/web');
 const outRoot = resolve(root, 'tools/harness/out/kopma'); mkdirSync(outRoot, { recursive: true });
@@ -458,11 +459,18 @@ async function suiteKamp(A) {
 }
 
 // ---------------------------------------------------------------- (f) cüzdan: görev/başarım jetonu outbox'ı (MK-035)
-/** üst çubuk jetonunu sayfada 25 ms'de bir örnekler: [an, jeton, bağlı mı, outbox] (kısa süreli fazlalık/eksiklik de görünsün) */
+/** üst çubuk jetonunu sayfada 25 ms'de bir örnekler: [an, jeton, bağlı mı, outbox, kuyruk, kuyruktaki jeton, yanıtsız kayıt var mı, örneklemeden beri yerel defter jetonu] (kısa süreli fazlalık/eksiklik de görünsün) */
 const JETON_ORNEK = () => {
   if (window.__cz) window.__cz.on = false;
-  const o = { s: [], on: true }; window.__cz = o;
-  const tick = () => { if (!o.on) return; const a = window.__ag; o.s.push([Date.now(), a.store.getState().coins, a.net()?.status === 'bağlı' ? 1 : 0, a.social.getState().outbox.length]); setTimeout(tick, 25); };
+  const o = { s: [], on: true, t0: Date.now() }; window.__cz = o;
+  // örneklemeden sonra yerel deftere yazılan görev/başarım/hazine jetonu (bölüm jetonu hariç: o progress.submit ile gider)
+  const yerel = (st) => st.meta.ledger.filter((g) => g.at >= o.t0 && !g.reason.startsWith('bolum:') && !g.reason.startsWith('sunucu:'))
+    .reduce((a, g) => a + g.items.filter((i) => i.kind === 'jeton').reduce((b, i) => b + i.amount, 0), 0);
+  const tick = () => {
+    if (!o.on) return; const a = window.__ag; const so = a.social.getState(); const st = a.store.getState();
+    o.s.push([Date.now(), st.coins, a.net()?.status === 'bağlı' ? 1 : 0, so.outbox.length, so.queued, so.queuedCoins, a.cuzdan?.().bekliyor ? 1 : 0, yerel(st)]);
+    setTimeout(tick, 25);
+  };
   tick();
 };
 const sJeton = (pid) => q1('SELECT jeton FROM players WHERE id = ?', pid).jeton;
@@ -506,6 +514,91 @@ async function cuzdanDenetle(P, label, { ids, w0, x, g0, t0, tG, sinir }) {
 }
 const notOnline = async (P) => { for (let i = 0; i < 100 && (await status(P)) === 'bağlı'; i++) await sleep(50); };
 
+/**
+ * Bölüm sonu jetonu (MK-036, MK-038). Bot gerçek bir bölüm oynar; sunucu wallet.updated olayını progress.submit yanıtından ÖNCE yollar.
+ * - bolum:        yanıt 700 ms gecikir (yük);
+ * - bolum-kopma:  yanıt kaybolur, olay gelmiştir; ağ kopar, istemci yeniden bağlanır ve aynı runId'yi yeniden yollar (kayıtlı yanıt);
+ * - bolum-zaman:  yanıt kaybolur, bağlantı açık kalır; istemci zaman aşımından (10 sn) sonra yeniden yollar.
+ * Üst çubuk 25 ms'de bir örneklenir. Bağlıyken hiçbir örnek sunucunun son değerinin üstünde değil (fazla) ve bölüm bitip kayıt kuyruğa
+ * girdikten sonra hiçbir örnek "başlangıç + bölüm jetonu"nun altında değil (ödül kaybolmuş gibi). Donma: kayıt kuyruğa girdikten sonra
+ * ödülün üst çubukta görünmesi ve sunucu yanıtı geldikten sonra son değere oturması en çok DONMA_MS.
+ */
+const DONMA_MS = 100;
+async function bolumSonu(A, kind, { w0, g0 }) {
+  const KIP = { bolum: ['yanıt 700 ms gecikir (yük)', 700], 'bolum-kopma': ['yanıt kaybolur + ağ kopar, yeniden bağlanınca aynı runId', 60_000], 'bolum-zaman': ['yanıt kaybolur, bağlantı açık (zaman aşımı + yeniden deneme)', 60_000] }[kind];
+  if (!KIP) throw new Error(`bilinmeyen cuzdan senaryosu: ${kind}`);
+  const [ad, LATE] = KIP;
+  step(`(f) Bölüm sonu jetonu: sunucu wallet.updated olayını progress.submit yanıtından önce yollar; ${ad}`);
+  const r = A.proxy.lateRes('progress.submit', LATE, 'wallet.updated');
+  const n0 = q1('SELECT COUNT(*) AS n FROM progress_runs WHERE player_id = ?', A.pid).n;
+  await tab(A, 'Harita');
+  await A.page.locator('.map-play').click({ timeout: 20_000 });
+  const tG = Date.now();
+  for (let i = 0; i < 750 && !r.res.length; i++) { if (i % 3 === 0 && !(await A.page.evaluate(() => !!window.__odi?.spec))) { const h = A.page.getByRole('button', { name: /Haydi/ }); if (await h.count()) await h.click().catch(() => undefined); } await sleep(kind === 'bolum' ? 400 : 100); }
+  check(r.res.length === 1, `bölüm bitti, progress.submit yanıtı aracıda ${kind === 'bolum' ? 'geciktirildi' : 'tutuldu'}`);
+  check(r.evs.length >= 1 && r.evs[0] <= r.res[0], `sunucu wallet.updated olayını yanıttan önce yolladı (olay yanıttan ${r.evs.length ? r.res[0] - r.evs[0] : '—'} ms önce)`);
+  let tKop = null; let tOn = null;
+  if (kind === 'bolum-kopma') {
+    await sleep(500); // olay gelmiş, yanıt yok: istemci bekliyor
+    tKop = Date.now(); A.proxy.drop();
+    await notOnline(A);
+    tOn = await waitOnline(A, RECONNECT_MAX_MS + 10_000);
+  }
+  await A.page.locator('.result-actions').waitFor({ timeout: 20_000 }).catch(() => undefined);
+  // yanıt beklenirken üst çubuk sessizce donmaz: Bugün ekranında jetonun yanında kum saati ("Kaydediliyor…"), onaydan sonra kalkar
+  let isaret = null;
+  if (kind === 'bolum-zaman') {
+    await home(A); await tab(A, 'Bugün');
+    const m = A.page.locator('[data-hud="jeton"] [data-testid="jeton-kaydediliyor"]');
+    isaret = await m.waitFor({ state: 'visible', timeout: 4000 }).then(() => true, () => false);
+    const title = await A.page.locator('[data-hud="jeton"]').getAttribute('title').catch(() => null);
+    // görüntü için üstteki bildirim şeritleri gizlenir (üst çubuğun önünü kapatıyorlar); denetimi etkilemez
+    await A.page.evaluate(() => window.__ag.store.setState({ toasts: [] })).catch(() => undefined);
+    await A.page.addStyleTag({ content: '.toast-top, .ev-notice, .fr-banner { display: none !important; }' }).catch(() => undefined);
+    await sleep(300);
+    await shot(A, 'cuzdan-kaydediliyor');
+    check(isaret && /Kaydediliyor…/.test(title ?? ''), `yanıt beklenirken üst çubukta "Kaydediliyor…" işareti var (${title})`);
+  }
+  const t = await bosaldi(A, kind === 'bolum-zaman' ? 20_000 : 12_000);
+  if (isaret) {
+    const gone = await A.page.locator('[data-testid="jeton-kaydediliyor"]').waitFor({ state: 'detached', timeout: 2000 }).then(() => true, () => false);
+    check(gone, 'sunucu onaylayınca "Kaydediliyor…" işareti kalktı');
+  }
+  await sleep(300);
+  const s = await A.page.evaluate(() => { const o = window.__cz; o.on = false; return o.s; });
+  const runs = qa('SELECT ack FROM progress_runs WHERE player_id = ? ORDER BY rowid', A.pid).slice(n0).map((x) => JSON.parse(x.ack));
+  const wEnd = sJeton(A.pid); const dG = grantsSum(A.pid) - g0; const c = runs.reduce((a, x) => a + x.jeton, 0);
+  const on = s.filter(([at, , b]) => b && at >= tG);
+  // bölüm jetonu (istemcinin kuyruktaki tahmini) ve kaydın kuyruğa girdiği an
+  const cLocal = Math.max(0, ...s.map((x) => x[5] ?? 0));
+  const iQ = s.findIndex((x) => x[4] > 0); const tQ = iQ >= 0 ? s[iQ][0] : null;
+  const fazla = on.filter(([, x]) => x > wEnd);
+  // alt sınır: başlangıç + o ana dek yerelde kazanılan görev/hazine jetonu (sunucunun hesaba geçirdiğinden çok değil) + kuyruğa girdiyse bölüm jetonu
+  const alt = ([at, , , , , , , g]) => w0 + Math.min(g ?? 0, dG) + (tQ != null && at >= tQ ? cLocal : 0);
+  const eksik = on.filter((x) => x[1] < alt(x));
+  // donma 1: kayıt kuyruğa girdikten sonra ödül üst çubukta ne zaman göründü
+  const gor = tQ == null ? null : s.slice(iQ).find((x) => x[1] >= alt(x));
+  const gorunme = gor ? gor[0] - tQ : null;
+  // donma 2: kuyruk boşaldıktan (sunucu yanıtı geldikten) sonra üst çubuk son değere ne zaman oturdu
+  let iBos = -1; for (let i = s.length - 1; i >= 0; i--) { if (s[i][4] > 0) { iBos = i + 1; break; } }
+  const son = iBos > 0 && iBos < s.length ? s.slice(iBos).find((x) => x[1] === wEnd) : null;
+  const oturma = son ? son[0] - s[iBos][0] : null;
+  const bekle = s.filter((x) => x[6]); const bekleMs = bekle.length ? bekle.at(-1)[0] - bekle[0][0] : 0;
+  const win = kind === 'bolum' ? on.filter(([at]) => at >= r.res[0] && at <= r.res[0] + LATE) : on.filter(([at]) => at >= r.res[0]);
+  const diag = await A.page.evaluate(() => window.__ag.cuzdan?.() ?? null).catch(() => null);
+  console.log(`    · ${kind}: jeton +${c} (bölüm; istemci tahmini ${cLocal}) +${dG} (yerel defter); w0 ${w0}, son ${wEnd}; örnek ${on.length} (yanıt beklenirken ${win.length}: ${[...new Set(win.map(([, x]) => x))].join('/')}), fazla ${fazla.length}${fazla.length ? ` (en büyük ${Math.max(...fazla.map(([, x]) => x))})` : ''}, eksik ${eksik.length}${eksik.length ? ` (en küçük ${Math.min(...eksik.map(([, x]) => x))})` : ''}; görünme ${gorunme ?? '—'} ms, oturma ${oturma ?? '—'} ms, "kaydediliyor" ${bekleMs} ms${tKop ? `; kopma→bağlanma ${tOn - tKop} ms` : ''}; tanı ${JSON.stringify(diag)}`);
+  if (t == null || fazla.length || eksik.length) await shot(A, `cuzdan-${kind}`);
+  check(runs.length === 1 && c > 0, `bölüm ödülü sunucuda tek ve jeton verdi (${runs.length} kayıt, ${c} jeton)`);
+  check(t != null, 'yanıttan sonra üst çubuk ve cüzdan = sunucu, kuyruk boş');
+  check(wEnd - w0 === c + dG, `sunucu cüzdanı bölüm + yerel defter kadar arttı (+${wEnd - w0} = ${c} + ${dG})`);
+  check(win.length >= 5, `yanıt beklenirken örneklendi (${win.length} örnek)`);
+  check(!fazla.length, `${kind}: üst çubuk bağlıyken hiçbir örnekte fazla değil (${on.length} örnek${fazla.length ? `; ${fazla.length} fazla, ör. ${fazla[0][1]} > ${wEnd}` : ''})`);
+  check(!eksik.length, `${kind}: kazanılan ödül üst çubukta hiçbir örnekte eksik değil (${eksik.length ? `${eksik.length} eksik, ör. ${eksik[0][1]} < ${alt(eksik[0])}` : `≥ ${w0} + yerel + ${cLocal}`})`);
+  check(gorunme != null && gorunme <= DONMA_MS, `${kind}: bölüm jetonu üst çubukta ${gorunme ?? '—'} ms'de göründü (≤ ${DONMA_MS} ms)`);
+  check(oturma != null && oturma <= DONMA_MS, `${kind}: sunucu yanıtından sonra üst çubuk ${oturma ?? '—'} ms'de son değere oturdu (≤ ${DONMA_MS} ms)`);
+  if (!isaret) await A.page.locator('.result-actions [data-act="harita"]').click().catch(() => undefined);
+}
+
 async function suiteCuzdan(A, kind) {
   const bt = cur.bt;
   A.proxy.inject.length = 0; A.proxy.dropEv.length = 0; A.proxy.late.length = 0; // önceki senaryonun kuralı kalmasın
@@ -542,37 +635,7 @@ async function suiteCuzdan(A, kind) {
     check(r.seen.length === 1, 'aracı wallet.updated olayını yuttu (senaryo gerçekleşti)');
     return;
   }
-  if (kind === 'bolum') {
-    step('(f) Bölüm sonu jetonu: sunucu wallet.updated olayını progress.submit yanıtından önce yollar, yanıt 700 ms gecikir (yük)');
-    const LATE = 700;
-    const r = A.proxy.lateRes('progress.submit', LATE, 'wallet.updated');
-    const n0 = q1('SELECT COUNT(*) AS n FROM progress_runs WHERE player_id = ?', A.pid).n;
-    await tab(A, 'Harita');
-    await A.page.locator('.map-play').click({ timeout: 20_000 });
-    const tG = Date.now();
-    for (let i = 0; i < 750 && !r.res.length; i++) { if (i % 3 === 0 && !(await A.page.evaluate(() => !!window.__odi?.spec))) { const h = A.page.getByRole('button', { name: /Haydi/ }); if (await h.count()) await h.click().catch(() => undefined); } await sleep(400); }
-    check(r.res.length === 1, 'bölüm bitti, progress.submit yanıtı aracıda geciktirildi');
-    check(r.evs.length >= 1 && r.evs[0] <= r.res[0], `sunucu wallet.updated olayını yanıttan önce yolladı (olay yanıttan ${r.evs.length ? r.res[0] - r.evs[0] : '—'} ms önce, yanıt +${LATE} ms)`);
-    await A.page.locator('.result-actions').waitFor({ timeout: 20_000 }).catch(() => undefined);
-    const t = await bosaldi(A, 12_000);
-    await sleep(300);
-    const s = await A.page.evaluate(() => { const o = window.__cz; o.on = false; return o.s; });
-    const runs = qa('SELECT ack FROM progress_runs WHERE player_id = ? ORDER BY rowid', A.pid).slice(n0).map((x) => JSON.parse(x.ack));
-    const wEnd = sJeton(A.pid); const dG = grantsSum(A.pid) - g0; const c = runs.reduce((a, x) => a + x.jeton, 0);
-    const on = s.filter(([at, , b]) => b && at >= tG);
-    const bad = on.filter(([, x]) => x < w0 || x > wEnd);
-    const win = on.filter(([at]) => at >= r.res[0] && at <= r.res[0] + LATE);
-    const diag = await A.page.evaluate(() => window.__ag.cuzdan?.() ?? null).catch(() => null);
-    console.log(`    · bölüm sonu: jeton +${c} (bölüm) +${dG} (yerel defter); örnek ${on.length} (gecikme penceresinde ${win.length}: ${[...new Set(win.map(([, x]) => x))].join('/')}; w0 ${w0}, son ${wEnd}), sapma ${bad.length}${bad.length ? ` (en büyük ${Math.max(...bad.map(([, x]) => x))}; beklenen ${w0}…${wEnd})` : ''}; tanı ${JSON.stringify(diag)}`);
-    if (t == null || bad.length) await shot(A, 'cuzdan-bolum');
-    check(runs.length === 1 && c > 0, `bölüm ödülü sunucuda tek ve jeton verdi (${runs.length} kayıt, ${c} jeton)`);
-    check(t != null, 'yanıttan sonra üst çubuk ve cüzdan = sunucu, kuyruk boş');
-    check(wEnd - w0 === c + dG, `sunucu cüzdanı bölüm + yerel defter kadar arttı (+${wEnd - w0} = ${c} + ${dG})`);
-    check(win.length >= 5, `gecikme penceresi örneklendi (${win.length} örnek)`);
-    check(!bad.length, `bölüm sonu: üst çubuk bağlıyken hiçbir örnekte eksik/fazla değil (${on.length} örnek${bad.length ? `; ${bad.length} sapma, ör. ${bad[0][1]} ∉ [${w0}, ${wEnd}]` : ''})`);
-    await A.page.locator('.result-actions [data-act="harita"]').click().catch(() => undefined);
-    return;
-  }
+  if (kind.startsWith('bolum')) return bolumSonu(A, kind, { w0, g0 });
   // geçici ret: aracı isteği sunucuya iletmez, yerine ret yanıtı yazar (code null: yanıtsız → istemcide ZAMAN_ASIMI)
   const RET = { hiz: ['HIZ', 2], zaman: ['ZAMAN_ASIMI', 1], sunucu: ['SUNUCU', 1], yanitsiz: [null, 1] }[kind];
   step(`(f) Görev jetonu: ${RET[0] ? `${RET[1]} kez ${RET[0]} yanıtı` : 'istek yanıtsız kalır (bağlantı açık)'}, sonra başarı`);

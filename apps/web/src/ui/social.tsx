@@ -81,6 +81,13 @@ export function StatusDot() {
   return <span className={`net-dot ${cls}`} role="img" aria-label={label} title={label} />;
 }
 
+/** `on` en az `ms` sürdüyse true (kısa beklemede gösterge yanıp sönmesin) */
+function useLasting(on: boolean, ms: number): boolean {
+  const [late, setLate] = useState(false);
+  useEffect(() => { if (!on) { setLate(false); return; } const h = setTimeout(() => setLate(true), ms); return () => clearTimeout(h); }, [on, ms]);
+  return on && late;
+}
+
 /** Sekme ekranlarının üst çubuğu: başlık + bağlantı noktası + jeton/kristal/ödül kutusu */
 export function TopBar({ title, brand, extra }: { title?: string; brand?: boolean; extra?: ReactNode }) {
   const coins = useStore((s) => s.coins);
@@ -88,6 +95,10 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
   const pending = usePending(); const nav = useNav();
   const feat = useFeatures();
   const linked = !!wallet; const shopOpen = linked && feat.open('shop');
+  // bağlıyken yanıtı beklenen ödül/harcama (bölüm sonu, görev jetonu): jeton tahmindir, sunucu onaylayınca kum saati kalkar (MK-038)
+  const waiting = useSocial((s) => s.queued > 0 || s.outbox.length > 0);
+  const saving = useLasting(linked && st === 'bağlı' && waiting, 400);
+  const offPend = pending > 0 && st !== 'bağlı';
   // jeton uçuşu sırasında sayaç gerçek değerin yoldaki kadar altında görünür ve varışta sayarak artar
   const jc = useHudCount('jeton', coins); const kc = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
@@ -99,7 +110,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
       <div className="tb-pills">
         {extra}
         {linked && feat.open('friends') && <DmTopPill />}
-        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" data-value={Math.round(jc.value)} aria-label={`Jeton: ${fmtNum(jc.value)}`} title={pending > 0 && st !== 'bağlı' ? `${fmtNum(jc.value)} jeton · ${pending} jeton bağlanınca hesaba geçecek` : `${fmtNum(jc.value)} jeton`}><Art name="coin" size={19} /><HudNum v={jc.value} />{pending > 0 && st !== 'bağlı' && <i className="pend"><Art name="hourglass" size={13} /></i>}</span>
+        <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" data-value={Math.round(jc.value)} aria-label={`Jeton: ${fmtNum(jc.value)}${saving ? ', kaydediliyor' : ''}`} title={offPend ? `${fmtNum(jc.value)} jeton · ${pending} jeton bağlanınca hesaba geçecek` : saving ? `${fmtNum(jc.value)} jeton · Kaydediliyor…` : `${fmtNum(jc.value)} jeton`}><Art name="coin" size={19} /><HudNum v={jc.value} />{(offPend || saving) && <i className={`pend${saving ? ' kayit' : ''}`} data-testid={saving ? 'jeton-kaydediliyor' : undefined}><Art name="hourglass" size={13} /></i>}</span>
         {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => nav.open({ name: 'shop' })} aria-label={`Kristal ve mağaza: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
         {shopOpen && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>

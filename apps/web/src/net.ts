@@ -20,7 +20,7 @@ import { bindCodes } from './codes/Codes';
 import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
-import { createOutbox, reconcileCoins, type OutItem } from './outbox';
+import { createCoinEstimate, createOutbox, reconcileCoins, type OutItem } from './outbox';
 
 declare const __ODI_E2E__: boolean | undefined;
 /** yalnız uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemci durumunu okur (kopma-e2e) */
@@ -85,13 +85,18 @@ function pendingJeton(): number {
   const s = useSocial.getState();
   return s.queuedCoins + s.outbox.reduce((a, o) => a + (o.k === 'local' ? o.jeton : -o.jeton), 0);
 }
+/**
+ * Üst çubuk = sunucu cüzdanı + bekleyenler. Outbox ya da bölüm sonu (progress.submit) kaydı sunucuya gitmiş ama yanıtı alınmamışken
+ * (sunucunun olayı yanıttan önce gelir; zaman aşımı, kopma ve yeniden bağlanma boyunca) gelen cüzdan o kaydı içerebilir: değer
+ * cüzdandan değil, tahminden yürür (ayrıntı: outbox.ts `createCoinEstimate`; MK-035, MK-036, MK-038). Bu sürede üst çubuktaki kum
+ * saati "Kaydediliyor…" der (ui/social.tsx).
+ */
+const tahmin = createCoinEstimate();
+const unanswered = () => outbox_.unanswered() || !!client?.submitting();
 function mirrorCoins(): void {
   const n = useNet.getState();
   if (n.status !== 'bağlı' || !n.wallet) return;
-  // outbox ya da bölüm sonu (progress.submit) çağrısı yanıt beklerken (sunucunun olayı yanıttan önce gelir) üst çubuk bir an bir ödül
-  // fazla göstermesin; yanıt gelince (kayıt kuyruktan düşünce) ya da çağrı yanıtsız bitince güncellenir (MK-035, MK-036)
-  if (outbox_.busy() || client?.submitting()) return;
-  const coins = Math.max(0, n.wallet.jeton + pendingJeton());
+  const coins = tahmin.next({ wallet: n.wallet.jeton, pending: pendingJeton(), unanswered: unanswered(), current: useStore.getState().coins });
   if (useStore.getState().coins !== coins) useStore.setState({ coins });
 }
 export const usePending = () => useSocial((s) => s.queuedCoins + s.outbox.reduce((a, o) => a + (o.k === 'local' ? o.jeton : -o.jeton), 0));
@@ -129,6 +134,7 @@ const outbox_ = createOutbox({
     else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır ${LOCAL_JETON_DAILY_MAX}. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
   },
   onSpend: (_, r) => applyServerSkills(r.skills),
+  onAck: (_, jeton) => tahmin.credit(jeton),
   onSettled: () => mirrorCoins(),
   onDrained: () => void reconcile(),
 });
@@ -156,6 +162,7 @@ async function reconcile(): Promise<void> {
       console.warn(`[cüzdan] uzlaşma: üst çubuk ${shown}, istemcideki cüzdan ${known ?? '-'}, sunucu ${wallet.jeton}; sunucu değeri alındı`);
     }
     useNet.setState({ wallet });
+    tahmin.set(coins, pendingJeton());
     if (useStore.getState().coins !== coins) useStore.setState({ coins });
   } catch { /* bağlantı koptu: bir sonraki bağlanışta */ } finally { reconciling = false; }
 }
@@ -296,6 +303,8 @@ export function startNet(): void {
       getQueue: () => readJson<ProgressSubmit[]>(K.queue, []),
       saveQueue: (q) => { useSocial.setState({ queued: q.length, queuedCoins: q.reduce((a, x) => a + (x.coins ?? 0), 0) }); writeJson(K.queue, q); mirrorCoins(); },
       onSubmitSettled: () => mirrorCoins(),
+      // yanıt gelen koşunun hesaba geçen jetonu (yeniden gönderimde kayıtlı yanıt: cüzdanı eski olabilir, jetonu doğru)
+      onSubmitAck: (_, ack) => tahmin.credit(ack.jeton),
     });
     const c = client;
     // bağlanınca İLK istek outbox: yanıtı kaybolmuş (sunucuda yazılmış) ödül, yenilemenin getirdiği cüzdandan önce kapanır;
@@ -330,7 +339,7 @@ export function startNet(): void {
       window.addEventListener('online', () => c.retryNow());
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') c.retryNow(); });
     }
-    if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client, cuzdan: () => ({ ...outbox_.stats(), uzlasma: { ...uzlasma } }) };
+    if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client, cuzdan: () => ({ ...outbox_.stats(), uzlasma: { ...uzlasma }, bekliyor: unanswered() }) };
     c.connect();
   })();
 }
