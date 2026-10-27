@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 7. tur · 2026-10-26 · başlangıç 494aaaf → tur sonu de13ff8 (+ bu belge).
+**Son tur:** 9. tur (hafif) · 2026-10-27 · main e049fe4.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,17 +26,19 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Çalışanlar (PY doğruladı, kabul):**
-  - 7ee2350 mağaza ekran görüntüleri aracı (MK-022): 30 PNG, sahip seçecek. Zayıf yerler MK-025–029.
-  - e64a49c sunucu yeniden başlarken oyuncu (MK-019): 9 bulgu düzeltildi, yeniden bağlanma ≤ 7,3 sn.
-  - c85a1bc metin kontrastı ölçümü ve metin tonları (MK-017): ihlal 0; dolgu önerileri sahip kararı 19.
-- **PY:** MK-030 kodla incelenip kapandı (yalnız tohum kaydı) · MK-031 yarış içi yeniden başlatma · MK-032 uzak kopma kancası.
+- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 492/492 ilk denemede):**
+  - 7868c61 bölüm/yarış görselleri (MK-025–027).
+  - c1181d5 + c55ddd8 yük altında kırılgan testler (MK-020; artıklar MK-034).
+  - f896cee yarış sürerken yeniden başlatma (MK-031) · 9c47603 `uzak-duman --kopma` (MK-032).
+  - 1203531 kamp yakınlaştırma + sohbet (MK-028/029).
+  - f539935 MK-021 ertelendi, MK-033 eklendi.
+  - 67c56e0 yüzde eki ("%6'sını").
+  - Reels 4. dalga (2b7a064 … e049fe4).
+- **Ortam riski (YN-031):** scratchpad silindi; ses araçları yeni satırdan önce yeniden kurulmalı.
 
 ## Sürüyor
-- **hesapsil** (YN-029)
-- **saglam** (MK-020)
-- **Sırada:** kopma2 (MK-031 + MK-032) → derin (MK-021) → görsel işler (MK-025–029).
-- **Sahipte:** Oracle kurulumu, Expo hesabı, vitrin seçimi, kararlar 15–19.
+- Çalışan yok (koordinatöre göre). Sıradaki emirler: cuzdan (MK-035, P1), saglam2 (MK-034).
+- **Sahipte:** Oracle kurulumu, Expo hesabı, vitrin seçimi (kareler yeniden çekilmeli), kararlar 4–12 ve 15–19.
 
 ## Not (çalışanlar için)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
