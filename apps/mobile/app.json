@@ -18,8 +18,10 @@
     "android": {
       "package": "com.aiheartech.odi",
       "adaptiveIcon": {
-        "backgroundColor": "#7658F5",
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "backgroundColor": "#140c35",
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundImage": "./assets/adaptive-background.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
@@ -28,7 +30,7 @@
       "expo-router",
       [
         "expo-splash-screen",
-        { "backgroundColor": "#140c35", "image": "./assets/splash-icon.png", "imageWidth": 180 }
+        { "backgroundColor": "#140c35", "image": "./assets/splash-icon.png", "imageWidth": 200 }
       ],
       "expo-status-bar"
     ],

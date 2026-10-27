@@ -115,7 +115,7 @@ async function uretim() {
   kaydet('apps/web/public/icons/icon-180.png', rgbPng(await svgPng(tam, 180)), '180 apple-touch, tam dolu');
   for (const n of [192, 512]) kaydet(`apps/web/public/icons/icon-${n}.png`, await svgPng(kavramSvg(k, { kose: KOSE }), n, true), `${n} any, yuvarlatılmış`);
   kaydet('apps/web/public/icons/icon-maskable-512.png', rgbPng(await svgPng(kavramSvg(k, { olcek: MASKABLE_GUVENLI / k.yaricap }), 512)), '512 maskable, tam dolu');
-  kaydet('marketing/magaza/play-ikon-512.png', rgbPng(await svgPng(tam, 512)), '512 Play ikonu');
+  kaydet('marketing/magaza/play-ikon-512.png', await svgPng(tam, 512), '512 Play ikonu (32 bit, tam dolu)'); // Play Console 32 bit PNG ister
   kaydet('marketing/magaza/play-tanitim-1024x500.png', rgbPng(await tara(tanitimHtml(), 1024, 500)), '1024×500 öne çıkan görsel');
 }
 
@@ -126,7 +126,7 @@ function tanitimHtml() {
   const font = `'SF Pro Rounded','Nunito','Inter','Segoe UI',sans-serif`; // tek tırnak: style="" içinde
   return `<div style="position:absolute;inset:0;overflow:hidden;font-family:${font}">
   <img src="${dataUri(zemin)}" style="position:absolute;left:0;top:-262px;width:1024px;height:1024px">
-  ${[150, 230, 320].map((r, i) => `<div style="position:absolute;left:${286 - r}px;top:${250 - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;border:2px solid ${['rgba(255,201,60,.30)', 'rgba(46,230,214,.22)', 'rgba(139,107,255,.26)'][i]}"></div>`).join('')}
+  ${[255, 345, 450].map((r, i) => `<div style="position:absolute;left:${286 - r}px;top:${250 - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;border:2px solid ${['rgba(255,201,60,.22)', 'rgba(46,230,214,.16)', 'rgba(139,107,255,.2)'][i]}"></div>`).join('')}
   <img src="${dataUri(odiSvg)}" style="position:absolute;left:46px;top:10px;width:480px;height:480px">
   <div style="position:absolute;left:520px;right:40px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px">
     <div lang="tr" style="font-size:150px;line-height:1;font-weight:900;letter-spacing:4px;background:linear-gradient(180deg,#fff9e0 0%,#ffe27a 38%,#ffc93c 58%,#ff9f1c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 5px 0 #b85c00) drop-shadow(0 14px 26px rgba(255,159,28,.35))">OD<span style="background:linear-gradient(180deg,#e9fffc 0%,#2ee6d6 60%,#12a89e 100%);-webkit-background-clip:text;background-clip:text">İ</span></div>

@@ -12,7 +12,7 @@ apps/mobile/
   src/dom/LevelDom.tsx  'use dom' bileşeni: startLevel(...) → Phaser; window.__odi test köprüsü
   src/store/          zustand + persist(AsyncStorage): progress, coins, xp, skills, sounds, haptics, failStreak, recentStars, streak
   src/ui/             tema (apps/web/styles.css ile aynı renkler) ve küçük bileşenler + ErrorBoundary
-  tools/make-icons.mjs  ikon/splash üretimi (saf JS PNG yazıcı, bağımlılık yok)
+  (ikon/açılış görseli: kökte `tools/ikon-uret.mjs`, `npm run icons` aynı betiği çağırır)
   tools/domcheck.mjs    www.bundle DOM sayfasını Playwright'ta stub köprüyle açıp 1. bölümü botla oynatır
   __tests__/            jest-expo duman testi (harita)
 ```

@@ -184,8 +184,8 @@ simgeler) ilk açılışta önbelleğe alır, anlatıcı kayıtlarını (`voice/
 `/olcum`'a dokunmaz. `odi-guncelle`den sonra: açılışta önce sunucudaki `index.html` istenir (5 sn'de gelmezse önbellekteki),
 yani oyuncu uygulamayı yeniden açtığında yeni sürümü görür; açık oyun ortasında sayfa yenilenmez, yeni service worker
 bir sonraki açılışta etkinleşip eski önbelleği siler. `sw.js` Caddy'de `no-cache` ile sunulur (yukarıdaki "her şey" kuralı).
-Simgeleri yenilemek (sahip yeni simge verince): `node tools/ikon-uret.mjs --kaynak yeni.svg [--zemin '#6c4cf1']` →
-`apps/web/public/icons/*.png`. Test: `node tools/harness/pwa-e2e.mjs` (Chromium + WebKit).
+Simgeleri yenilemek: `node tools/ikon-uret.mjs` (kaynak `tools/ikon/kavramlar.mjs`, seçilen kavram A · Odi, YN-010) →
+`apps/web/public/icons/*.png`, `favicon.svg`, mobil ikon/açılış görselleri ve mağaza görselleri. Test: `node tools/harness/pwa-e2e.mjs` (Chromium + WebKit).
 
 ## 6. Sorun giderme
 

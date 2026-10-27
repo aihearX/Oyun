@@ -153,7 +153,7 @@ export const koklea = {
   ad: 'koklea', baslik: 'C · Koklea yolu', aciklama: 'Koklea’nın 2,5 turu oyunun yolu olarak (tonotopik renkler); yolun ilk dönemecinde Odi, tepede altın parıltı.',
   yaricap: 420,
   zemin: (s = {}) => gece(s),
-  ozne: ({ sade = false } = {}) => ({
+  ozne: () => ({
     defs: `<radialGradient id="c-odi" cx="38%" cy="30%" r="74%"><stop offset="0" stop-color="#d6c9ff"/><stop offset=".36" stop-color="#8b6bff"/><stop offset=".78" stop-color="#5a36e0"/><stop offset="1" stop-color="#3b1fae"/></radialGradient>
 <radialGradient id="c-tepe" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff3b0" stop-opacity=".95"/><stop offset=".35" stop-color="#ffc93c" stop-opacity=".55"/><stop offset="1" stop-color="#ff9f1c" stop-opacity="0"/></radialGradient>`,
     body: `<g opacity=".55" transform="translate(0 14)">${kokleaYol(true).replace(/stroke="#fff"/g, 'stroke="#0a0520"')}</g>

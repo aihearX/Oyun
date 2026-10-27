@@ -173,9 +173,9 @@ for (const bn of browsers) {
         const nat = await page.evaluate((src) => new Promise((ok) => { const im = new Image(); im.onload = () => ok([im.naturalWidth, im.naturalHeight]); im.onerror = () => ok(null); im.src = src; }), ic.src);
         beklenen(nat && nat[0] === w && nat[1] === h, `${ic.src}: tarayıcıda ${nat}`);
         if (ic.purpose === 'maskable' || ic.purpose === 'apple-touch-icon') {
-          // güvenli alan dışı (köşeler) mor zeminle dolu olmalı: saydam ya da beyaz köşe = kırpılınca boşluk
+          // güvenli alan dışı (köşeler) koyu mor gece zeminiyle dolu olmalı (YN-010 ikonu): saydam ya da beyaz köşe = kırpılınca boşluk
           const { px, bpp, w: W } = pngCoz(await r.body());
-          for (const [x, y] of [[1, 1], [W - 2, 1], [1, W - 2], [W - 2, W - 2]]) { const i = (y * W + x) * bpp; beklenen((bpp === 3 || px[i + 3] === 255) && px[i] < 140 && px[i + 2] > 180, `${ic.src}: köşe (${x},${y}) mor değil`); }
+          for (const [x, y] of [[1, 1], [W - 2, 1], [1, W - 2], [W - 2, W - 2]]) { const i = (y * W + x) * bpp; beklenen((bpp === 3 || px[i + 3] === 255) && Math.max(px[i], px[i + 1], px[i + 2]) < 140 && px[i + 2] > px[i + 1], `${ic.src}: köşe (${x},${y}) koyu mor değil: ${[...px.subarray(i, i + bpp)]}`); }
         }
         notlar.push(`${ic.src.split('/').pop()} ${w}×${h}`);
       }

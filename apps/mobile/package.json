@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "export:ios": "expo export --platform ios --output-dir dist",
     "domcheck": "node tools/domcheck.mjs",
-    "icons": "node tools/make-icons.mjs",
+    "icons": "node ../../tools/ikon-uret.mjs --yalniz uretim",
     "test": "jest",
     "build:ios": "eas build --platform ios --profile production",
     "build:preview": "eas build --platform ios --profile preview",
