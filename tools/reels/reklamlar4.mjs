@@ -168,16 +168,16 @@ const qb = grid(140); // 0,4286 sn
 const F3 = 10 / 3; const FH = F3 / 2; // her bilgi 3,33 sn (iki kesme); üç bilgi tam 10,00 sn
 const KART = (f) => C4(`kart/${f}`);
 /** Kulak Kartları penceresi (oyunun kendi kartı): 1170 px genişlikli ekran görüntüsünden kırpılmış */
-const kartL = (f, crop, o = {}) => ({ kind: 'still', src: KART(f), crop, imgW: 1170, w: o.w ?? 880, y: o.y ?? 560, at: o.at ?? 0, anim: o.anim ?? 'pop', cls: 'plain', kb: [1.0, 1.05], maxBottom: 1340 });
+const kartL = (f, crop, o = {}) => ({ kind: 'still', src: KART(f), crop, imgW: 1170, w: o.w ?? 800, y: o.y ?? 720, at: o.at ?? 0, anim: o.anim ?? 'pop', cls: 'plain', kb: [1.0, 1.05], maxBottom: 1340 });
 const anitL = (r, o = {}) => { const src = C3(`anit/anit-${r}.png`); const [w, h] = dims(src); return { kind: 'still', src, crop: o.crop ?? [0, 0, w, h], imgW: w, w: o.w ?? 640, y: o.y ?? 520, at: 0, anim: 'zoom', cls: 'bare', kb: [1.0, 1.1], maxBottom: 1330 }; };
-const timerL = (from, o = {}) => ({ kind: 'timer', cls: 'sm', from, y: o.y ?? 215, at: 0, anim: 'none', ...o });
+const timerL = (from, o = {}) => ({ kind: 'timer', cls: 'sm', from, y: o.y ?? 255, at: 0, anim: 'none', ...o });
 const bilgi = (no, head, a, b, o = {}) => [
   { id: `b${no}a`, dur: FH, bg: 'night', ringY: 900, ...(no === 1 ? { mus: 'go' } : {}), fx: { flash: [[0, 0.1]], push: 0.04, pushT: FH }, sfx: [[0, 'hit', 0.5], [0, 'swish', 0.4]], layers: [
-    timerL(10 - (no - 1) * F3), { kind: 'html', cls: 'numtag', html: `${no}/3`, y: 365, at: 0, anim: 'stamp', rot: -3 },
-    kt(head, { c: 'sm', y: 455, at: 0.03, slamFrom: 1.6 }), ...a ] },
-  { id: `b${no}b`, dur: FH, bg: o.bgB ?? 'night', ringY: 900, ...(o.clipB ? { clip: o.clipB, cam: o.camB, speed: o.speedB ?? 1 } : {}), fx: { push: 0.04, pushT: FH }, sfx: [[0, 'swish', 0.35]], layers: [
-    timerL(10 - (no - 1) * F3 - FH), { kind: 'html', cls: 'numtag', html: `${no}/3`, y: 365, at: 0, anim: 'none', rot: -3 },
-    kt(head, { c: 'sm', y: 455, at: 0, anim: 'none' }), ...b ] },
+    timerL(10 - (no - 1) * F3), { kind: 'html', cls: 'numtag', html: `${no}/3`, y: 395, at: 0, anim: 'stamp', rot: -3 },
+    kt(head, { c: 'sm', y: 485, at: 0.03, slamFrom: 1.6 }), ...a ] },
+  { id: `b${no}b`, dur: FH, bg: o.bgB ?? 'night', ringY: 900, ...(o.clipB ? { clip: o.clipB, cam: o.camB, speed: o.speedB ?? 1, shade: 'top' } : {}), fx: { push: 0.04, pushT: FH }, sfx: [[0, 'swish', 0.35]], layers: [
+    timerL(10 - (no - 1) * F3 - FH), { kind: 'html', cls: 'numtag', html: `${no}/3`, y: 395, at: 0, anim: 'none', rot: -3 },
+    kt(head, { c: 'sm', y: 485, at: 0, anim: 'none' }), ...b ] },
 ];
 const onSaniye = {
   slug: '10-saniyede', title: '10 saniyede 3 kulak bilgisi', ad: true, limit: 0.6, jpegOpaque: true, bpm: 140, snap: qb(1), style: 'hizli', subY: 1395, subCls: 'big', voGap: 0.08, tail: 0.6,
@@ -189,16 +189,16 @@ const onSaniye = {
       tsub('Hazır mısın?', { y: 1010, at: 0.8, c: 'lo xl' }),
     ] },
     ...bilgi(1, 'En küçük kemik:<br>üzengi', [anitL('kemikcikler', { y: 700, w: 560 }), lbl('Üç Kemikçik anıtı<small>Kamp · Kulak Yolu</small>', { c: 'teal lo', y: 1250, at: 0.3, rot: -2 })],
-      [kartL('kart-kemikcikler-yildiz.png', [66, 786, 1035, 640], { y: 760 })]),
-    ...bilgi(2, 'En küçük iskelet kası:<br>stapedius', [kartL('kart-kemikcikler-sandik.png', [66, 750, 1035, 640], { y: 760 })],
+      [kartL('kart-kemikcikler-yildiz.png', [66, 800, 1035, 600])]),
+    ...bilgi(2, 'En küçük iskelet kası:<br>stapedius', [kartL('kart-kemikcikler-sandik.png', [66, 770, 1035, 690])],
       [lbl('15. bölüm «Üzengi»<small>stapedius üzengiye bağlıdır</small>', { c: 'gold lo', y: 1230, at: 0.15, rot: 2 })],
-      { bgB: 'clip', clipB: clip(15, 34.3, 2.0), camB: { z: [1.15, 1.22], top: [140, 150] } }),
-    ...bilgi(3, 'Sağlıklı kulak<br>kendi sesini üretir', [kartL('kart-koklea-2-ozel.png', [66, 750, 1035, 640], { y: 760 })],
+      { bgB: 'clip', clipB: clip(15, 34.3, 2.0), camB: { z: [1.3, 1.36], top: [215, 225] } }),
+    ...bilgi(3, 'Sağlıklı kulak<br>kendi sesini üretir', [kartL('kart-koklea-2-ozel.png', [66, 770, 1035, 690])],
       [anitL('koklea-2', { y: 700, w: 520 }), lbl('Tüy Hücresi Demeti anıtı<small>otoakustik emisyon: dış tüy hücreleri</small>', { c: 'teal lo', y: 1250, at: 0.2, rot: -2 })]),
     { id: 'son', dur: qb(9), bg: 'night', ringY: 900, mus: 'end', fx: { flash: [[0, 0.15]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'buzzer', 0.5], [0.15, 'boom', 0.5], [0.3, 'sparkle', 0.5]], layers: [
-      { kind: 'timer', cls: 'sm', from: 0, rate: 0, redZero: true, y: 215, at: 0, anim: 'stamp' },
-      kt('Daha fazlası<br>oyunda!', { c: 'md gold', y: 380, at: 0.1 }),
-      phone(KART('album-kemikcikler.png'), [0, 300, 1170, 2050], { imgW: 1170, w: 520, y: 690, maxH: 520, ry: [-10, 4] }),
+      { kind: 'timer', cls: 'sm', from: 0, rate: 0, redZero: true, y: 255, at: 0, anim: 'stamp' },
+      kt('Daha fazlası<br>oyunda!', { c: 'md gold', y: 410, at: 0.1 }),
+      phone(KART('album-kemikcikler.png'), [0, 300, 1170, 2050], { imgW: 1170, w: 560, y: 720, maxH: 470, ry: [-10, 4] }),
       { kind: 'html', cls: 'soon', html: 'Yakında', y: 1250, at: 0.6, anim: 'stamp', rot: -3 },
     ] },
   ],
@@ -209,8 +209,8 @@ const onSaniye = {
   cover: { bg: 'night', layers: [
     { kind: 'timer', from: 10, rate: 0, y: 230 },
     { kind: 'html', cls: 'kt md gold', html: '10 saniyede<br>3 kulak bilgisi', y: 560 },
-    anitL('kemikcikler', { y: 900, w: 420 }),
-    { kind: 'html', cls: 'logo sm', html: LOGO, y: 1330 },
+    anitL('kemikcikler', { y: 830, w: 360 }),
+    { kind: 'html', cls: 'logo sm', html: LOGO, y: 1340 },
   ] },
   post: {
     caption: '10 saniyede 3 kulak bilgisi ⏱️ 1) Vücudun en küçük kemiği kulakta: üzengi (yaklaşık 3 mm). 2) En küçük iskelet kası da orada: üzengiye bağlı stapedius. 3) Sağlıklı kulak kendi çok hafif sesini üretir; bebeklerin işitmesi bununla taranabilir.\nDaha fazlası oyunda: ODİ: Sesin Yolu, Kulak Kartları. Yakında! Hangisini biliyordun? 👇',
