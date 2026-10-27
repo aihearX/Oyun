@@ -164,7 +164,7 @@ başlatır. Eski kod hemen geçersiz olur. `--kapat`: yönetici kodunu kapatır 
 |---|---|
 | Web | `https://<ad>.duckdns.org` (aynı kökenden bağlanır, ayar gerekmez) |
 | Expo Go | `npm run oyna -- --tunnel --sunucu wss://<ad>.duckdns.org` (yerel sunucu açılmaz; `EXPO_PUBLIC_ODI_SERVER` verilir; adres değişince Expo önbelleği kendiliğinden temizlenir). Tarayıcıda: `npm run oyna -- --web --sunucu wss://…` |
-| EAS (APK / mağaza) | `apps/mobile/eas.json` → `preview` ve `production` profillerinde `env.EXPO_PUBLIC_ODI_SERVER`. Şimdilik bilerek geçersiz yer tutucu: `wss://SUNUCU-ADRESI-YAZILACAK.invalid`. Sunucu "Hazır" deyince gerçek adresle değiştirilir |
+| EAS (APK / mağaza) | Depoya yazılmaz: EAS ortam değişkeni. `eas env:create --environment preview --environment production --name EXPO_PUBLIC_ODI_SERVER --value wss://<adres> --visibility plaintext` (`apps/mobile/eas.json` profilleri `environment: preview/production` ile bu değeri alır; ayrıntı `apps/mobile/README.md` "Mağaza derlemesi") |
 
 ### iPhone'da ana ekrana ekleme
 

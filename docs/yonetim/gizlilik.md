@@ -21,7 +21,7 @@
 
 [`apps/web/src/yasal/ayar.json`](../../apps/web/src/yasal/ayar.json): `{YAYINCI}` (varsayılan "aiHear"), `{YAYINCI_UNVAN}`
 (boşsa YAYINCI), `{YAYINCI_ADRES}`, `{ILETISIM_EPOSTA}`, `{SUNUCU_BOLGESI}`, `{YURURLUK}`. Boş alan sayfada açıkça
-"[… eklenecek]" yazar ve e-postasız `mailto:` bağlantısı düz yazı olur. Sahip değerleri verince ajan doldurur;
+"‹… eklenecek›" yazar ve e-postasız `mailto:` bağlantısı düz yazı olur. Sahip değerleri verince ajan doldurur;
 `node tools/magaza/denetle.mjs` boş alan kalırsa mağaza gönderimini durdurur.
 
 ## Saklama süreleri (karar)

@@ -1,0 +1,41 @@
+{
+  "_not": "Mağaza liste metinleri (yapıştırmaya hazır). Karakter sınırları: node tools/magaza/denetle.mjs. {ILETISIM_EPOSTA} ve <adres> yükleme sırasında doldurulur (apps/web/src/yasal/ayar.json; gerçek alan adı depoya yazılmaz).",
+  "google": {
+    "tr-TR": {
+      "title": "ODİ: Sesin Yolu",
+      "shortDescription": "Sesi kulaktan beyne taşı: takımını kur, kampını büyüt, kulağın sırlarını öğren.",
+      "fullDescription": "Odi küçük bir ses parçacığı. Görevi, her sesi kulağın girişinden beyne kadar taşımak.\n\nKULAĞIN İÇİNDEN 40 BÖLÜM\nKulak kepçesinden kulak kanalına, kulak zarından kokleaya ve beyne uzanan yolda koş, zıpla, yüz. Trambolin, makine, sinir impulsu ve rüya bölümleri; iki büyük boss: Serumen Golemi ve Gürültü Canavarı. Her bölümde notaları topla, üç yıldızın peşine düş.\n\nTAKIMINLA OYNA\nTakım kur ya da bir takıma katıl. Bölge Savaşı, haftalık Baskın, canlı Takım Yarışı ve Takım Ligi'nde birlikte puan topla. Arkadaşlarınla canlı yarış odası aç.\n\nKULAK KAMPI\nBinalarını kur, kampını büyüt, takım arkadaşlarının inşaatına yardım et. Kamp Görevleri'nde kurgusal hasta vakalarını çöz, Ton Avı'nda yalnız sesle doğru tonu bul, Timpanogram Eşleştir'de grafik oku.\n\nGERÇEK KULAK BİLGİSİ\nTüy Dede'nin notları ve Kulak Sözlüğü, oyunun geçtiği her yeri gerçek kulak bilgisiyle anlatır. İçerikler odyoloji kaynaklarına göre hazırlandı. Oyun tanı koymaz, tıbbi tavsiye yerine geçmez.\n\nADİL VE GÜVENLİ\n• Reklam yok.\n• Ganimet kutusu yok: mağazadaki her ürünün içeriği önceden yazılı, şans yok.\n• Savaş ya da lig puanı satılmaz; bütün bölümler satın almadan oynanır.\n• Aylık harcama sınırı: varsayılan 1000 TL; düşürmek hemen, yükseltmek 24 saat sonra geçerli.\n• Güvenli sohbet: 8 bölüm geçilene kadar yalnız hazır sözler ve emoji; küfür süzgeci, şikâyet ve engelleme.\n• Kayıt formu yok: ad, e-posta ya da telefon istemez. Hesabını oyunun içinden istediğin an silebilirsin.\n\nBölümler internetsiz de oynanır; takım, sohbet ve yarış için internet gerekir. Oyun Türkçedir ve 13 yaş ve üzeri içindir.\n\nUygulama içi satın alma: kristal paketleri, kamp hızlandırıcıları ve Odi Sezon Kartı (isteğe bağlı).\n\nGizlilik: <adres>/gizlilik · Hesap silme: <adres>/hesap-sil · İletişim: {ILETISIM_EPOSTA}"
+    },
+    "en-US": {
+      "title": "ODİ: Sesin Yolu",
+      "shortDescription": "Carry sound from ear to brain: build a team, grow your camp, learn how ears work",
+      "fullDescription": "Odi is a tiny particle of sound. Its job: carry every sound from the entrance of the ear all the way to the brain.\n\nThe game is currently in Turkish.\n\n40 LEVELS INSIDE THE EAR\nRun, jump and swim from the outer ear through the ear canal, the eardrum and the cochlea to the brain. Trampoline, machine, nerve impulse and dream levels, and two big bosses: the Earwax Golem and the Noise Monster. Collect the notes and chase three stars.\n\nPLAY WITH YOUR TEAM\nCreate or join a team. Earn points together in Territory War, the weekly Raid, live Team Race and the Team League. Open a live race room with friends.\n\nEAR CAMP\nBuild and upgrade your camp and help your teammates' construction. In Camp Quests, solve fictional patient cases, find the right tone by ear alone in Tone Hunt, and read graphs in Tympanogram Match.\n\nREAL EAR KNOWLEDGE\nTüy Dede's notes and the Ear Glossary explain every place in the game with real hearing science, prepared from audiology sources. The game does not diagnose and is not medical advice.\n\nFAIR AND SAFE\n• No ads.\n• No loot boxes: every shop item lists its exact contents, no chance involved.\n• No war or league points for sale; every level can be played without buying anything.\n• Monthly spending limit: 1000 TRY by default; lowering applies at once, raising after 24 hours.\n• Safe chat: only preset phrases and emoji until 8 levels are cleared; profanity filter, reporting and blocking.\n• No sign-up form: no name, e-mail or phone number needed. Delete your account in the game at any time.\n\nLevels can be played offline; teams, chat and races need an internet connection. For ages 13 and up.\n\nIn-app purchases: crystal packs, camp boosters and the Odi Season Card (optional).\n\nPrivacy: <adres>/en/privacy · Account deletion: <adres>/hesap-sil · Contact: {ILETISIM_EPOSTA}"
+    }
+  },
+  "apple": {
+    "tr": {
+      "name": "ODİ: Sesin Yolu",
+      "subtitle": "Kulağın içinde takım macerası",
+      "promotionalText": "Kulağın içinden 40 bölüm, takımınla Bölge Savaşı ve canlı yarış. Reklam yok, ganimet kutusu yok; sohbet 8. bölüme kadar yalnız hazır sözlerle.",
+      "keywords": "kulak,işitme,odyoloji,koşu,platform,ses,eğitici,beyin,kamp,yarış,koklea,nota,arkadaş",
+      "description": "@google.tr-TR.fullDescription",
+      "supportUrl": "https://<adres>/gizlilik#sorumlu",
+      "privacyPolicyUrl": "https://<adres>/gizlilik",
+      "marketingUrl": ""
+    },
+    "en-US": {
+      "name": "ODİ: Sesin Yolu",
+      "subtitle": "Team adventure inside the ear",
+      "promotionalText": "40 levels inside the ear, Territory War and live races with your team. No ads, no loot boxes; chat is preset phrases only until level 8. In Turkish.",
+      "keywords": "hearing,audiology,runner,platformer,sound,educational,brain,camp,race,cochlea,friends,turkish,notes",
+      "description": "@google.en-US.fullDescription",
+      "supportUrl": "https://<adres>/en/privacy#controller",
+      "privacyPolicyUrl": "https://<adres>/en/privacy",
+      "marketingUrl": ""
+    }
+  },
+  "sinirlar": {
+    "google": { "title": 30, "shortDescription": 80, "fullDescription": 4000 },
+    "apple": { "name": 30, "subtitle": 30, "promotionalText": 170, "keywords": 100, "description": 4000 }
+  }
+}

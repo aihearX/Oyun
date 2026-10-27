@@ -48,17 +48,50 @@ npx expo start
 2. `apps/mobile` içinde `eas init` → `app.json > extra.eas.projectId` dolar.
 3. iOS: `eas build --platform ios --profile preview` (dahili dağıtım / cihaz kaydı) veya `--profile production` (TestFlight).
    Apple Developer hesabı gerekir; sertifika ve profil EAS tarafından bulutta üretilir, Mac gerekmez.
-4. Mağaza gönderimi: `eas submit --platform ios` (`eas.json > submit.production.ios` alanlarını doldur).
-5. Android: `eas build --platform android --profile preview` → APK/AAB.
-- Android `preview` profili doğrudan kurulabilen **APK** üretir (`buildType: apk`); `production` mağaza için **AAB** üretir.
+4. Android: `eas build --platform android --profile preview` → APK; `--profile production` → mağaza için AAB.
 - Expo SDK 58 için Node 22.13+ gerekir; `eas.json` bütün profillerde bulut derlemesinin Node sürümünü `22.22.0`'a sabitler (`base` profili).
 - Monorepo notu: EAS kökü workspace olarak algılar; kökteki `.npmrc` (`legacy-peer-deps=true`) bulut derlemesinde `npm install`'ın React sürüm uyarısında durmamasını sağlar.
-- **Sunucu adresi (`EXPO_PUBLIC_ODI_SERVER`):** `eas.json`'daki `preview` ve `production` profillerinde değer şimdilik
-  bilerek geçersiz bir yer tutucudur: `wss://SUNUCU-ADRESI-YAZILACAK.invalid` (`.invalid` hiçbir zaman çözülmez; bu hâliyle
-  derlenen uygulama sosyal sunucuya bağlanamaz). Sunucu kurulunca (docs/18-sunucu-kurulum.md, "Hazır: wss://…" satırı) iki
-  profilde de gerçek adresle değiştirilir. Depo herkese açık: adres gizli değildir ama gerçek ad ancak sahip onayıyla yazılır.
-  Expo Go'da aynı ayar: `npm run oyna -- --tunnel --sunucu wss://<ad>.duckdns.org`.
-- IAP / push gibi native modüller Expo Go'da yok; onlar geldiğinde `eas build --profile development` (dev client) kullanılacak.
+
+### Mağaza derlemesi: ortam değişkenleri (depoya yazılmaz)
+Depo herkese açık: sunucu adresi ve anahtarlar `eas.json`a yazılmaz. Derleme profilleri `environment` alanıyla EAS ortam
+değişkenlerini alır (`development`, `preview`, `production`). Bir kez tanımlanır:
+
+```bash
+cd apps/mobile
+# oyun sunucusu (Caddy arkasındaki adres; bkz. docs/18-sunucu-kurulum.md "Hazır: wss://…")
+eas env:create --environment preview --environment production --name EXPO_PUBLIC_ODI_SERVER --value "wss://<adres>" --visibility plaintext
+# RevenueCat herkese açık SDK anahtarları (RevenueCat › Project settings › API keys: appl_…, goog_…)
+eas env:create --environment preview --environment production --name EXPO_PUBLIC_REVENUECAT_IOS --value "appl_…" --visibility plaintext
+eas env:create --environment preview --environment production --name EXPO_PUBLIC_REVENUECAT_ANDROID --value "goog_…" --visibility plaintext
+eas env:list --environment production   # derlemeden önce denetim: üç değişken de görünmeli
+```
+
+- `EXPO_PUBLIC_*` değerleri uygulama paketine gömülür (gizli değildir); yine de depoya yazılmaz. RevenueCat'in **gizli** anahtarı
+  (`sk_…`) uygulamaya hiç girmez: yalnız sunucuda `/etc/odi/odi.env` → `REVENUECAT_API_KEY`.
+- `EXPO_PUBLIC_ODI_SERVER` yoksa mağaza uygulaması sosyal sunucuya bağlanamaz (yalnız tek başına oyun); `EXPO_PUBLIC_REVENUECAT_*`
+  yoksa gerçek satın alma açılmaz. Önceki `eas.json` yer tutucusu (`wss://SUNUCU-ADRESI-YAZILACAK.invalid`) kaldırıldı:
+  `eas.json`daki `env` EAS ortam değişkenini ezerdi.
+
+### Mağazaya gönderim (`eas submit`)
+`eas.json > submit.production` anahtar dosyalarını ve kimlikleri **ortam değişkeninden** okur (`$AD` sözdizimi; eas-cli
+`ascApiKeyPath`, `ascApiKeyId`, `ascApiKeyIssuerId`, `serviceAccountKeyPath` alanlarında değişkeni açar). Değişken tanımlı
+değilse alan boş kalır ve `eas submit` açık bir hatayla durur (yanlış hesaba gönderim olmaz).
+
+| Değişken (gönderimi yapan makinede) | Ne | Nereden |
+|---|---|---|
+| `ODI_ASC_API_KEY_PATH` | App Store Connect API anahtarı dosyası (`AuthKey_XXXX.p8`) | App Store Connect › Kullanıcılar ve Erişim › Entegrasyonlar › App Store Connect API (rol: App Manager) |
+| `ODI_ASC_API_KEY_ID` | Anahtar kimliği (10 karakter) | aynı sayfa |
+| `ODI_ASC_API_KEY_ISSUER_ID` | Issuer ID (UUID) | aynı sayfa |
+| `ODI_PLAY_SERVICE_ACCOUNT_KEY_PATH` | Google Cloud hizmet hesabı JSON anahtarı | Play Console › Kullanıcılar ve izinler'de bu hesaba "Sürüm yönetimi" izinleri |
+
+- `ascAppId` alanında bilerek geçersiz yer tutucu var (`ASC-UYGULAMA-NO-YAZILACAK`): eas-cli bu alanı ortamdan okumaz; App Store
+  Connect'te uygulama kaydı açılınca gönderimi yapan ajan yerel kopyada sayıyla değiştirir (eas-cli rakam dışı değeri reddeder,
+  yanlış uygulamaya gönderim olmaz). Değer gizli değildir (mağaza adresinde görünür).
+- Anahtar dosyaları depo dışında, `chmod 600` bir klasörde durur (ör. `~/.odi-magaza/`); `.gitignore` bunları zaten dışarıda bırakır
+  ama klasör depo içinde olmamalı.
+- Android'de ilk AAB Play Console'a **elle** yüklenir (Google API ilk sürümü kabul etmez); sonra `eas submit -p android` iç test
+  kanalına taslak olarak gönderir (`track: internal`, `releaseStatus: draft`).
+- Sıra ve sahip/ajan işbölümü: `marketing/magaza/YAYIN-LISTESI.md`.
 
 ## Bilinen sınırlar
 - `react` sürümü: Expo SDK 58 (React Native 0.88) tam olarak React 19.3.0 ister; `apps/web` de aynı tam sürüme (19.3.0) sabitlenmiştir,
@@ -89,7 +122,7 @@ Gerçek ödeme yalnızca **App Store / Google Play** üzerinden ve **mağaza der
 Kurulum (bir kez):
 1. App Store Connect'te (ve Google Play Console'da) tüketilebilir ürünleri oluştur; kimlikler `packages/shared/src/social.ts` içindeki `SHOP` ile aynı olmalı: `odi.baslangic`, `odi.kristal.1`, `odi.kristal.2`, `odi.kristal.3`, `odi.hiz.1`, `odi.hiz.2`, `odi.pass`.
 2. RevenueCat'te proje aç, iOS/Android uygulamalarını bağla, ürünleri içe aktar.
-3. Mobil derleme için anahtarlar (EAS ortam değişkeni ya da `.env`): `EXPO_PUBLIC_REVENUECAT_IOS`, `EXPO_PUBLIC_REVENUECAT_ANDROID` (RevenueCat "public SDK key").
+3. Mobil derleme için anahtarlar (EAS ortam değişkeni, yukarıda "Mağaza derlemesi: ortam değişkenleri"): `EXPO_PUBLIC_REVENUECAT_IOS`, `EXPO_PUBLIC_REVENUECAT_ANDROID` (RevenueCat "public SDK key"). Ürün kataloğu ve inceleme riskleri: `marketing/magaza/iap-urunler.md`.
 4. Oyun sunucusuna gizli anahtar: `REVENUECAT_API_KEY` (RevenueCat "secret API key"). Sunucu her satın almayı RevenueCat'ten doğrular; doğrulanmayan makbuz kabul edilmez.
 5. `npm run build:preview -w @odi/mobile` (TestFlight) ile sandbox hesabında dene.
 

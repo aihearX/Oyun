@@ -28,7 +28,9 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     for (const b of tum) for (const dil of ['tr', 'en'] as const) expect(() => belgeDoldur({ ...b, dil }, AYAR, '0.1.0')).not.toThrow();
     expect(() => doldur('{YOK_BOYLE}', degerler('tr'))).toThrow(/bilinmeyen/);
     const bos = duzMetin(belgeDoldur(GIZLILIK_TR, { ...doluAyar, ILETISIM_EPOSTA: '', YAYINCI_UNVAN: '' }));
-    expect(bos).toContain('[iletişim e-postası eklenecek]');
+    expect(bos).toContain('‹iletişim e-postası eklenecek›');
+    // boş e-postanın bağlantısı düz yazı olur (ham [..](mailto:..) sayfaya çıkmaz)
+    expect(bos).not.toMatch(/\]\(mailto:/);
     expect(bos).toContain('Veri sorumlusu: aiHear');
     const dolu = belgeDoldur(HESAP_SIL, doluAyar);
     expect(duzMetin(dolu)).toContain('destek@ornek.invalid');

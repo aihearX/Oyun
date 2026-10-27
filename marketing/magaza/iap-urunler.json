@@ -1,0 +1,65 @@
+{
+  "_not": "Uygulama içi ürün kataloğu. Kimlikler ve içerik packages/shared/src/social.ts SHOP ile aynı olmalı (tools/magaza/denetle.mjs karşılaştırır). Tür: hepsi tüketilebilir (Apple: Consumable, Google: tek seferlik ürün / consumable). Gerekçe ve riskler: iap-urunler.md.",
+  "urunler": [
+    {
+      "id": "odi.baslangic",
+      "tur": "consumable",
+      "fiyatTry": 49.99,
+      "sinir": 1,
+      "tr": { "ad": "Başlangıç Paketi", "aciklama": "300 kristal, 10 hızlandırıcı, Kaşif şapkası", "uzun": "300 kristal, 10 adet 5 dakikalık hızlandırıcı ve Kaşif şapkası. Hesap başına bir kez alınabilir. Takımındaki herkese küçük bir hediye gider." },
+      "en": { "ad": "Starter Pack", "aciklama": "300 crystals, 10 boosters, Explorer hat", "uzun": "300 crystals, 10 five-minute boosters and the Explorer hat. Can be bought once per account. Everyone in your team receives a small gift." }
+    },
+    {
+      "id": "odi.kristal.1",
+      "tur": "consumable",
+      "fiyatTry": 29.99,
+      "sinir": 0,
+      "tr": { "ad": "Avuç Kristal", "aciklama": "120 kristal", "uzun": "120 kristal. Kristalle kamp inşaatları hemen biter (kalan her dakika 1 kristal)." },
+      "en": { "ad": "Handful of Crystals", "aciklama": "120 crystals", "uzun": "120 crystals. Crystals finish camp construction instantly (1 crystal per remaining minute)." }
+    },
+    {
+      "id": "odi.kristal.2",
+      "tur": "consumable",
+      "fiyatTry": 149.99,
+      "sinir": 0,
+      "tr": { "ad": "Kese Kristal", "aciklama": "650 kristal", "uzun": "650 kristal (Avuç Kristal'e göre %8 fazla). Takımındaki herkese küçük bir hediye gider." },
+      "en": { "ad": "Pouch of Crystals", "aciklama": "650 crystals", "uzun": "650 crystals (8% more than the Handful). Everyone in your team receives a small gift." }
+    },
+    {
+      "id": "odi.kristal.3",
+      "tur": "consumable",
+      "fiyatTry": 299.99,
+      "sinir": 0,
+      "tr": { "ad": "Sandık Kristal", "aciklama": "1400 kristal", "uzun": "1400 kristal (Avuç Kristal'e göre %17 fazla). Takımındaki herkese küçük bir hediye gider." },
+      "en": { "ad": "Chest of Crystals", "aciklama": "1400 crystals", "uzun": "1400 crystals (17% more than the Handful). Everyone in your team receives a small gift." }
+    },
+    {
+      "id": "odi.hiz.1",
+      "tur": "consumable",
+      "fiyatTry": 79.99,
+      "sinir": 0,
+      "tr": { "ad": "İnşaatçı Paketi", "aciklama": "10 × 60 dk ve 20 × 5 dk hızlandırıcı", "uzun": "Kamp inşaatları için 10 adet 60 dakikalık ve 20 adet 5 dakikalık hızlandırıcı. Takımındaki herkese küçük bir hediye gider." },
+      "en": { "ad": "Builder Pack", "aciklama": "10 × 60 min and 20 × 5 min boosters", "uzun": "Ten 60-minute and twenty 5-minute boosters for camp construction. Everyone in your team receives a small gift." }
+    },
+    {
+      "id": "odi.hiz.2",
+      "tur": "consumable",
+      "fiyatTry": 199.99,
+      "sinir": 0,
+      "tr": { "ad": "Usta İnşaatçı", "aciklama": "5 × 8 saat ve 20 × 60 dk hızlandırıcı", "uzun": "Kamp inşaatları için 5 adet 8 saatlik ve 20 adet 60 dakikalık hızlandırıcı. Takımındaki herkese küçük bir hediye gider." },
+      "en": { "ad": "Master Builder", "aciklama": "5 × 8 h and 20 × 60 min boosters", "uzun": "Five 8-hour and twenty 60-minute boosters for camp construction. Everyone in your team receives a small gift." }
+    },
+    {
+      "id": "odi.pass",
+      "tur": "consumable",
+      "fiyatTry": 99.99,
+      "sinir": 1,
+      "tr": { "ad": "Odi Sezon Kartı", "aciklama": "28 gün her gün 30 kristal + kostüm", "uzun": "28 gün boyunca her günün ilk girişinde ödül kutuna 30 kristal (toplam 840) ve hemen Altın Koklea kostümü. Otomatik yenilenmez, hesap başına bir kez. Takımına küçük bir hediye gider." },
+      "en": { "ad": "Odi Season Card", "aciklama": "30 crystals a day for 28 days + costume", "uzun": "30 crystals in your inbox on your first visit each day for 28 days (840 in total) and the Golden Cochlea costume right away. Does not renew; once per account. Your team gets a small gift." }
+    }
+  ],
+  "sinirlar": {
+    "apple": { "ad": 30, "aciklama": 45 },
+    "google": { "ad": 55, "uzun": 200 }
+  }
+}

@@ -5,7 +5,7 @@
  *  - herkese açık durağan sayfalar (/gizlilik, /en/privacy, /hesap-sil; mağaza listelerindeki adresler): `sayfa.ts`,
  *    `vite build` sırasında üretilir (apps/web/vite.config.ts → odiYasalSayfalar), service worker önden önbelleğe alır.
  *
- * Yer tutucular (`{YAYINCI}`, `{ILETISIM_EPOSTA}` …) `ayar.json`dan doldurulur. Boş alan sayfada açıkça "eklenecek" yazar;
+ * Yer tutucular (`{YAYINCI}`, `{ILETISIM_EPOSTA}` …) `ayar.json`dan doldurulur. Boş alan sayfada açıkça "‹… eklenecek›" yazar;
  * mağazaya gönderimden önce `node tools/magaza/denetle.mjs` boş alan bırakmaz (marketing/magaza/YAYIN-LISTESI.md).
  */
 import ayarDosyasi from './ayar.json';
@@ -65,9 +65,10 @@ export function tarihYaz(iso: string, dil: Dil): string {
   return dil === 'tr' ? `${Number(m[3])} ${ay} ${m[1]}` : `${ay} ${Number(m[3])}, ${m[1]}`;
 }
 
+/** boş alanın sayfadaki yazısı (köşeli ayraç yok: satır içi bağlantı sözdizimiyle karışmasın) */
 const EKSIK: Record<Dil, Record<string, string>> = {
-  tr: { YAYINCI_ADRES: '[adres eklenecek]', ILETISIM_EPOSTA: '[iletişim e-postası eklenecek]', SUNUCU_BOLGESI: '[bölge eklenecek]' },
-  en: { YAYINCI_ADRES: '[address to be added]', ILETISIM_EPOSTA: '[contact e-mail to be added]', SUNUCU_BOLGESI: '[region to be added]' },
+  tr: { YAYINCI_ADRES: '‹adres eklenecek›', ILETISIM_EPOSTA: '‹iletişim e-postası eklenecek›', SUNUCU_BOLGESI: '‹bölge eklenecek›' },
+  en: { YAYINCI_ADRES: '‹address to be added›', ILETISIM_EPOSTA: '‹contact e-mail to be added›', SUNUCU_BOLGESI: '‹region to be added›' },
 };
 
 /** yer tutucu → değer (boş alan için "eklenecek" yazısı; YAYINCI_UNVAN boşsa YAYINCI) */
@@ -95,7 +96,7 @@ export type Parca = { t: 'yazi'; x: string } | { t: 'kalin'; x: string } | { t: 
 /** satır içi biçim: **kalın** ve [metin](adres). Adresi geçersiz bağlantı (ör. e-postası boş mailto:) düz yazı olur. */
 export function satirParcala(s: string): Parca[] {
   const out: Parca[] = [];
-  const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)\s]+)\)/g;
+  const re = /\*\*([^*]+)\*\*|\[([^\]]+)\]\(([^)]+)\)/g;
   let i = 0;
   for (let m = re.exec(s); m; m = re.exec(s)) {
     if (m.index > i) out.push({ t: 'yazi', x: s.slice(i, m.index) });

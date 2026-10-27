@@ -58,7 +58,7 @@ export function LegalSheet({ sayfa: ilk, onClose, onDelete }: { sayfa: YasalSayf
       <div className="legal-sheet" data-testid={`yasal-${sayfa}`} lang={belge.dil}>
         {sayfa === 'hesap-sil' && (
           <div className="legal-not legal-me" data-testid="hesap-sil-kimlik">
-            {me ? <>Arkadaş kodun: <b className="mono">{me.friendCode}</b>. Oyunu açamadığın bir gün e-postayla silme istersen bu kodu yaz.</> : <>Sunucuya bağlı değilsin: hesabını silmek için internete bağlan.</>}
+            <span>{me ? <>Arkadaş kodun: <b className="mono">{me.friendCode}</b>. Oyunu açamadığın bir gün e-postayla silme istersen bu kodu yaz.</> : <>Sunucuya bağlı değilsin: hesabını silmek için internete bağlan.</>}</span>
             {onDelete && <button type="button" className="btn coral small" data-testid="hesap-sil-git" onClick={onDelete}>Hesabı sil</button>}
           </div>
         )}
