@@ -4,10 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#6c4cf1" />
+    <!-- koyu zemin CSS dosyası gelmeden önce de (açılışta beyaz parlama yok); renk styles.css --bg-0 ve manifest background_color ile aynı -->
+    <style>html,body{background:#140c35}</style>
+    <meta name="theme-color" content="#140c35" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="description" content="Odi küçük bir ses. Ninniyi kulaktan beyne ulaştır. Kulağın içinde sonsuz bir yolculuk." />
+    <!-- iPhone "Ana Ekrana Ekle": tam ekran, durum çubuğu oyunun üstünde saydam (güvenli alan payları styles.css'te) -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ODİ" />
+    <link rel="apple-touch-icon" href="/icons/icon-180.png" />
     <title>ODİ: Sesin Yolu</title>
   </head>
   <body>

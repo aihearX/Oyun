@@ -6,7 +6,8 @@ import { resetVoiceManifest, stopVoice } from './ftue/voice';
  * Sıfırla: cihazdaki HER ŞEY silinir ve arayüz baştan kurulur (açılış ekranı → hikâye).
  *  - kalıcı depolar: ana kayıt (ilerleme, jeton, ayarlar, rehber), harita, ağ kimliği (oyuncu jetonu) ve kuyruklar —
  *    mobilde AsyncStorage.clear(), web'de localStorage
- *  - WebView/tarayıcı önbellekleri: localStorage, sessionStorage, IndexedDB, Cache Storage
+ *  - WebView/tarayıcı önbellekleri: localStorage, sessionStorage, IndexedDB, Cache Storage (web uygulama kabuğu `odi-kabuk-*`
+ *    hariç: oyuncu verisi taşımaz, service worker'ındır; silinirse bağlantı yokken sıfırlanan oyun bir daha açılmaz)
  *  - bellekteki önbellekler: sayfa / WebView yeniden kurulduğu için kendiliğinden gider
  *  - sunucudaki hesap: bağlantı varsa önce `account.delete` (ad anonim, takım üyeliği, arkadaşlar, özel mesajlar, sohbet
  *    mesajları silinir; KVKK/GDPR silme hakkı). Bağlantı yoksa en çok birkaç saniye beklenir; olmazsa yalnızca cihaz silinir.
@@ -34,7 +35,7 @@ export async function resetEverything(): Promise<void> {
       const dbs = (await idb.databases?.()) ?? [];
       await Promise.all(dbs.map((d) => (d.name ? new Promise<void>((r) => { const q = idb.deleteDatabase(d.name!); q.onsuccess = q.onerror = q.onblocked = () => r(); }) : Promise.resolve())));
     } catch { /* yok */ }
-    try { if (typeof caches !== 'undefined') for (const k of await caches.keys()) await caches.delete(k); } catch { /* yok */ }
+    try { if (typeof caches !== 'undefined') for (const k of await caches.keys()) if (!k.startsWith('odi-kabuk-')) await caches.delete(k); } catch { /* yok */ }
   };
   await wipe();
   await new Promise((r) => setTimeout(r, 250));
