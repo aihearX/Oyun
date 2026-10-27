@@ -6,11 +6,13 @@
 // Düşen takım bir kez tek başına yeniden koşulur: ikinci koşu geçerse "tekrarda geçti (yük/zaman kaynaklı olabilir)",
 // yine düşerse "gerçek". Düşen her denemenin son 40 satırı ekrana yazılır (--sakla olmadan da). Her takımdan sonra yalnız o takımın
 // kendi çıktı klasörleri (STEPS[].cikti) silinir (--sakla ile korunur; aynı ağaçta aynı anda koşan başka işlerin çıktılarına dokunulmaz)
-// ve takımın bıraktığı vite preview / sunucu süreçleri kapatılır.
+// ve takımın bıraktığı süreçler (vite preview, oyun sunucusu, tarayıcı) kapatılır: yalnız bu koşunun o takım için başlattıkları
+// (ortam değişkeninde koşu kimliği ODI_KABUL_RUN taşıyanlar); aynı ağaçta aynı anda koşan başka bir kabulün süreçlerine dokunulmaz.
 // Kullanım: node tools/harness/kabul.mjs [--yalniz a,b] [--atla a,b] [--sakla] [--liste] [--kontrast-yok]
 // Çıktı: tools/harness/out/kabul/ozet.json, tools/harness/out/kabul/<takım>.log ve ekranda Türkçe özet tablo.
 import { spawn, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, createWriteStream } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync, createWriteStream } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 import { resolve, join } from 'node:path';
 
 const root = resolve(new URL('../..', import.meta.url).pathname);
@@ -83,15 +85,29 @@ mkdirSync(kabulDir, { recursive: true });
 
 // ---------------------------------------------------------------- yardımcılar
 const sh = (cmd, a) => { try { return execFileSync(cmd, a, { encoding: 'utf8' }); } catch { return ''; } };
-/** bu depodan başlatılmış, artık kalabilen süreçler (vite preview, oyun sunucusu) */
-function leftovers() {
+/**
+ * Koşu kimliği (MK-036): her takım denemesi ortamına `ODI_KABUL_RUN=<koşu>.<takım>.<deneme>` alır; alt süreçler (vite preview, oyun
+ * sunucusu, tarayıcı) ortamı miras alır. Takım bitince yalnız bu kimliği taşıyan süreçler kapatılır. Önceden "takım süresince bu ağaçta
+ * yeni açılan her vite preview / sunucu" kapatılıyordu: aynı ağaçta koşan ikinci kabulün süreçleri de gidiyordu.
+ */
+const RUN = `${process.pid}-${Date.now().toString(36)}-${randomBytes(4).toString('hex')}`;
+const RUN_ENV = 'ODI_KABUL_RUN';
+/** `etiket`li takım denemesinin hâlâ yaşayan süreçleri (takımın kendisi çıktıktan sonra kalanlar) */
+function leftovers(etiket) {
   if (win) return [];
-  return sh('ps', ['-eo', 'pid=,args=']).split('\n').map((l) => l.trim()).filter(Boolean)
-    .map((l) => ({ pid: Number(l.split(/\s+/)[0]), args: l.slice(l.indexOf(' ') + 1) }))
-    .filter((p) => /vite(\.js)? preview|apps\/server\/dist\/server\.mjs/.test(p.args) && p.pid !== process.pid)
-    // sunucu göreli yolla başlar: süreç bu depodan mı, çalışma klasörüne de bak
-    // (yalnız bu kopya: /home/user/oyun, /home/user/oyun-x'i kapsamasın diye yol + '/')
-    .filter((p) => { if (p.args.includes(root + '/')) return true; try { const c = realpathSync(`/proc/${p.pid}/cwd`); return c === root || c.startsWith(root + '/'); } catch { return false; } });
+  const want = `${RUN_ENV}=${etiket}`;
+  const has = (env) => env.split('\0').includes(want);
+  if (existsSync('/proc/self/environ')) {
+    const out = [];
+    for (const d of readdirSync('/proc')) {
+      const pid = Number(d); if (!pid || pid === process.pid) continue;
+      try { if (has(readFileSync(`/proc/${pid}/environ`, 'latin1'))) out.push({ pid }); } catch { /* süreç bitti ya da okunamıyor (başkasının) */ }
+    }
+    return out;
+  }
+  // /proc yoksa (macOS): `ps e` komut satırının ardına ortamı yazar
+  return sh('ps', ['axeww', '-o', 'pid=,command=']).split('\n').map((l) => l.trim()).filter((l) => l.split(/\s+/).includes(want))
+    .map((l) => ({ pid: Number(l.split(/\s+/)[0]) })).filter((p) => p.pid && p.pid !== process.pid);
 }
 /** bu ağaçta, kabul dışında koşan süreçler (aynı betiği elle ya da başka bir kabul koşusu çalıştırıyor olabilir) */
 function othersInTree() {
@@ -138,9 +154,9 @@ function runStep(s, deneme) {
     const log = resolve(kabulDir, `${s.ad}${deneme > 1 ? `-${deneme}` : ''}.log`);
     const ws = createWriteStream(log);
     const t0 = Date.now();
-    const before = new Set(leftovers().map((p) => p.pid));
+    const etiket = `${RUN}.${s.ad}.${deneme}`;
     const [cmd, ...a] = win ? s.cmd : ['nice', '-n', '5', ...s.cmd];
-    const p = spawn(cmd, a, { cwd: resolve(root, s.cwd ?? '.'), env: process.env, stdio: ['ignore', 'pipe', 'pipe'], detached: !win, shell: win });
+    const p = spawn(cmd, a, { cwd: resolve(root, s.cwd ?? '.'), env: { ...process.env, [RUN_ENV]: etiket }, stdio: ['ignore', 'pipe', 'pipe'], detached: !win, shell: win });
     let tail = '';
     // son satırlar: düşen takımda ekrana yazılır (--sakla olmadan da hangi testin düştüğü görünsün)
     const take = (d) => { ws.write(d); tail = (tail + d).slice(-40_000); };
@@ -149,11 +165,12 @@ function runStep(s, deneme) {
     const timer = setTimeout(() => { zaman = true; try { if (win) p.kill(); else process.kill(-p.pid, 'SIGKILL'); } catch { /* yok */ } }, s.sure * 1000);
     p.on('exit', (code) => {
       clearTimeout(timer); ws.end();
-      // takımın bıraktığı vite preview / sunucu süreçleri
-      for (const q of leftovers()) if (!before.has(q.pid)) { try { process.kill(q.pid, 'SIGKILL'); } catch { /* yok */ } }
+      // takımın bıraktığı süreçler (sunucu, tarayıcı, kendi süreç grubunu kuran bot vite preview'ı): yalnız bu denemenin kimliğini taşıyanlar
+      const kalan = leftovers(etiket);
+      for (const q of kalan) { try { process.kill(q.pid, 'SIGKILL'); } catch { /* yok */ } }
       let ok = code === 0 && !zaman;
       if (ok && s.beklenen && !s.beklenen.test(tail)) ok = false;
-      done({ ok, code, zaman, sn: Math.round((Date.now() - t0) / 1000), log: log.replace(root + '/', ''), lines: tail.split('\n').map((l) => l.replace(RENK, '').trimEnd()).filter(Boolean).slice(-SON_SATIR).map((l) => (l.length > 400 ? `${l.slice(0, 400)}…` : l)), son: tail.split('\n').filter((l) => /✗|FAIL|Error|hata|sorun|geçti|passed|tamamlandı/i.test(l)).slice(-3).join(' | ').slice(0, 300) });
+      done({ ok, code, zaman, kalan: kalan.length, sn: Math.round((Date.now() - t0) / 1000), log: log.replace(root + '/', ''), lines: tail.split('\n').map((l) => l.replace(RENK, '').trimEnd()).filter(Boolean).slice(-SON_SATIR).map((l) => (l.length > 400 ? `${l.slice(0, 400)}…` : l)), son: tail.split('\n').filter((l) => /✗|FAIL|Error|hata|sorun|geçti|passed|tamamlandı/i.test(l)).slice(-3).join(' | ').slice(0, 300) });
     });
   });
 }
