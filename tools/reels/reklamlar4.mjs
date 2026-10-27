@@ -121,7 +121,7 @@ const basaramadin = {
       meme('Son can…', { c: 'sm', y: 260, at: 0.05, anim: 'pop' }),
     ] },
     { id: 'olmadi', dur: fb4(5), bg: 'night', ringY: 900, sfx: [[0, 'whoosh', 0.4]], layers: [
-      phone(C4('sonuc/L04-basarisiz.png'), [0, 190, 1170, 1790], { imgW: 1170, w: 600, y: 330, maxH: 980, ry: [-10, 4] }),
+      phone(C4('sonuc/L04-basarisiz.png'), [0, 190, 1170, 1720], { imgW: 1170, w: 720, y: 290, maxH: 1000, ry: [-8, 3] }),
     ] },
     { id: 'dede', dur: fb4(7), bg: 'night', ringY: 1050, mus: 'tension', fx: { zoom: [[0, 0.3, 0.04]] }, sfx: [[0, 'pop', 0.5], [0.15, 'sparkle', 0.4]], layers: [
       { kind: 'html', cls: 'bubble', html: '<small>Tüy Dede</small>Kıl perdesi alçak.<br>Aşağı kaydır, altından kay!', y: 300, at: 0.15, anim: 'pop' },
@@ -139,7 +139,7 @@ const basaramadin = {
       meme('Akış modu', { c: 'sm', y: 260, at: 0.05, anim: 'pop' }),
     ] },
     { id: 'yildiz', dur: fb4(6), bg: 'night', ringY: 900, fx: { flash: [[0, 0.15]] }, sfx: [[0, 'ding', 0.5], [0.1, 'sparkle', 0.6], [0.15, 'cheer', 0.25, { d: 1.6 }]], layers: [
-      phone(C4('sonuc/L04-3yildiz.png'), [0, 190, 1170, 1790], { imgW: 1170, w: 600, y: 330, maxH: 980, ry: [10, -4] }),
+      phone(C4('sonuc/L04-3yildiz.png'), [0, 190, 1170, 1720], { imgW: 1170, w: 720, y: 290, maxH: 1000, ry: [8, -3] }),
     ] },
     { id: 'son', dur: fb4(7), bg: 'night', ringY: 640, mus: 'end', fx: { flash: [[0, 0.15]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.6]], layers: [
       kt('Her kulak<br>bir gün duyar.', { c: 'md gold', y: 260, at: 0.05 }),

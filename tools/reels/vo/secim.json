@@ -1526,15 +1526,15 @@
    "sps": 5.32
   },
   "z4": {
-   "key": "17c08859a722",
-   "text": "Tüy Dede diyor ki: kıl perdesi alçak. Aşağı kaydır, altından kay!",
-   "seed": 4,
-   "wer": 0.18,
-   "asr": "Tüly de diyor ki kıl perdesi alçak aşağı kaydır altından kay.",
-   "gap": 0.08,
-   "tempo": 1.19,
-   "dur": 3.79,
-   "sps": 5.54
+   "key": "d3b19ba8e9f4",
+   "text": "Sonra bir ipucu geldi: kıl perdesi alçak. Aşağı kaydır, altından kay!",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Sonra bir ipucu geldi, kıl perdesi alçak. Aşağı kaydır, altından kay.",
+   "gap": 0.3,
+   "tempo": 1.2,
+   "dur": 4.18,
+   "sps": 5.51
   },
   "z5": {
    "key": "62f3c7ecf266",
@@ -1614,6 +1614,208 @@
    "tempo": 1.198,
    "dur": 1.82,
    "sps": 6.03
+  }
+ },
+ "mit-mi-gercek-mi": {
+  "m1": {
+   "key": "67debcd800e3",
+   "text": "Mit mi, gerçek mi? Hadi bakalım!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Mit mi? Gerçek mi? Hadi bakalım.",
+   "gap": 0.22,
+   "tempo": 1.22,
+   "dur": 2.09,
+   "sps": 4.79
+  },
+  "m2": {
+   "key": "eea4b3b570d8",
+   "text": "Kulak, yüksek sese alışır.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Kulak yüksek sese alışır.",
+   "gap": 0.17,
+   "tempo": 1.22,
+   "dur": 1.63,
+   "sps": 5.51
+  },
+  "m3": {
+   "key": "6e2fb349d7be",
+   "text": "Mit! Yüksek ses, tüy hücrelerine kalıcı zarar verebilir.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Mit, yüksek ses, tüy hücrelerine kalıcı zarar verebilir.",
+   "gap": 0.42,
+   "tempo": 1.22,
+   "dur": 3.48,
+   "sps": 5.46
+  },
+  "m4": {
+   "key": "cc060911accf",
+   "text": "İşitme kaybı sadece yaşlılarda olur.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "İşitme kaybı sadece yaşlılarda olur.",
+   "gap": 0.2,
+   "tempo": 1.133,
+   "dur": 2.47,
+   "sps": 5.66
+  },
+  "m5": {
+   "key": "38b643e38f21",
+   "text": "Mit! Her yaşta görülebilir; bu yüzden yenidoğanlar bile taranır.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Mit her yaşta görülebilir, bu yüzden yeni doğanlar bile taranır.",
+   "gap": 0.24,
+   "tempo": 1.084,
+   "dur": 3.84,
+   "sps": 5.73
+  },
+  "m6": {
+   "key": "5dd3a189803a",
+   "text": "Bebekler, anne karnında duymaya başlar.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bebekler anne karnında duymaya başlar.",
+   "gap": 0.21,
+   "tempo": 1.22,
+   "dur": 2.47,
+   "sps": 5.26
+  },
+  "m7": {
+   "key": "043c3a6c67b0",
+   "text": "Gerçek! Gebeliğin son aylarında annenin sesini duyabilirler.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Gerçek, gebeliğin son aylarında annenin sesini duyabilirler.",
+   "gap": 0.35,
+   "tempo": 1.05,
+   "dur": 3.84,
+   "sps": 5.73
+  },
+  "m8": {
+   "key": "ac1842e07463",
+   "text": "Kulak çınlaması önemsizdir.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kulak çınlaması önemsizdir.",
+   "gap": 0.06,
+   "tempo": 1.047,
+   "dur": 1.78,
+   "sps": 5.63
+  },
+  "m9": {
+   "key": "ec11d9acf1bf",
+   "text": "Mit! Çınlama bir belirtidir; sürerse bir uzmana danış.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Mit, çınlama bir belirtidir, sürerse bir uzmana danış.",
+   "gap": 0.35,
+   "tempo": 1.22,
+   "dur": 3.38,
+   "sps": 5.32
+  },
+  "m10": {
+   "key": "3ebffcd0d39e",
+   "text": "Kaçını bildin? Yorumlara yaz!",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kaçını bildin? Yorumlara yaz.",
+   "gap": 0.24,
+   "tempo": 1.215,
+   "dur": 1.78,
+   "sps": 5.63
+  }
+ },
+ "takimini-topla": {
+  "h1": {
+   "key": "f33b40cecc99",
+   "text": "Bir plan. Beş oyuncu. Tek hedef: Gürültü Canavarı.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Bir plan, beş oyuncu. Tek hedef, gürültü canavarı.",
+   "gap": 0.31,
+   "tempo": 1.15,
+   "dur": 3.38,
+   "sps": 4.73
+  },
+  "h2": {
+   "key": "f1c063bf1f4a",
+   "text": "Önce ekibini bul.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Önce ekibini bul.",
+   "gap": 0.05,
+   "tempo": 1.009,
+   "dur": 1.39,
+   "sps": 5.03
+  },
+  "h3": {
+   "key": "d967859548fc",
+   "text": "Lider. Yardımcı. Hızlı olan. Usta. Ve bir çaylak.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "LİDER Yardımcı, hızlı olan, usta ve bir çaylak.",
+   "gap": 0.32,
+   "tempo": 1.15,
+   "dur": 3.48,
+   "sps": 4.31
+  },
+  "h4": {
+   "key": "ea82b2c1ddb3",
+   "text": "Planı sohbette kurun.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Planı sohbette kurun.",
+   "gap": 0.07,
+   "tempo": 1.009,
+   "dur": 1.37,
+   "sps": 5.12
+  },
+  "h5": {
+   "key": "79242454114f",
+   "text": "Canlı takım yarışında ısının.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Canlı takım yarışında ısının.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 1.87,
+   "sps": 5.88
+  },
+  "h6": {
+   "key": "93912b86a53a",
+   "text": "Baskında, hep birlikte!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Baskında hep birlikte.",
+   "gap": 0.1,
+   "tempo": 1.15,
+   "dur": 1.58,
+   "sps": 4.42
+  },
+  "h7": {
+   "key": "0dfa92fc8ff2",
+   "text": "Ve büyük vurgun: Gürültü Canavarı!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "ve büyük vurgun gürültü canavarı.",
+   "gap": 0.14,
+   "tempo": 1.0,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "h8": {
+   "key": "7c1b0e28b364",
+   "text": "Takımını topla. Yakında.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Takımını topla yakında.",
+   "gap": 0.15,
+   "tempo": 1.099,
+   "dur": 1.78,
+   "sps": 5.07
   }
  }
 }
