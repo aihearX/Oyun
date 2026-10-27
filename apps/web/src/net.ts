@@ -20,15 +20,15 @@ import { bindCodes } from './codes/Codes';
 import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
+import { createOutbox, reconcileCoins, type OutItem } from './outbox';
 
 declare const __ODI_E2E__: boolean | undefined;
 /** yalnız uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemci durumunu okur (kopma-e2e) */
 const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
 const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
-const NET_CODES = new Set(['CEVRIMDISI', 'ZAMAN_ASIMI', 'KOPTU', 'HIZ', 'KAPALI']);
-
-type OutItem = { k: 'local'; ledgerId: string; jeton: number; reason: string } | { k: 'spend'; id: string; jeton: number; reason: string };
+/** wallet.local şeması: tek kayıtta en çok bu kadar jeton (apps/server/src/schemas.ts); devir zaten DEVIR_MAX (3000) ile sınırlı */
+const LOCAL_JETON_PER_CALL = 10_000;
 
 export interface LastRun { runId: string; state: 'gonderiliyor' | 'kuyrukta' | 'tamam' | 'hata' | 'yok'; ack?: ProgressAck; error?: string; biome: string; level: number; completed: boolean }
 interface SocialState {
@@ -88,6 +88,8 @@ function pendingJeton(): number {
 function mirrorCoins(): void {
   const n = useNet.getState();
   if (n.status !== 'bağlı' || !n.wallet) return;
+  // outbox çağrısı yanıt beklerken (sunucunun olayı yanıttan önce gelir) üst çubuk bir an fazla göstermesin; yanıt gelince güncellenir
+  if (outbox_.busy()) return;
   const coins = Math.max(0, n.wallet.jeton + pendingJeton());
   if (useStore.getState().coins !== coins) useStore.setState({ coins });
 }
@@ -110,38 +112,51 @@ function scanLedger(): void {
   writeJson(K.sent, [...sent].slice(-300));
   setOutbox([...useSocial.getState().outbox, ...add]);
 }
-function setOutbox(outbox: OutItem[]): void { useSocial.setState({ outbox }); writeJson(K.outbox, outbox); mirrorCoins(); void flushOutbox(); }
+function setOutbox(outbox: OutItem[]): void { useSocial.setState({ outbox }); writeJson(K.outbox, outbox); mirrorCoins(); void outbox_.flush(); }
 
-let flushing = false;
-async function flushOutbox(): Promise<void> {
-  if (flushing || !client || client.status !== 'bağlı') return;
-  flushing = true;
+/**
+ * Outbox (MK-035, ayrıntı: outbox.ts): tur sürerken gelen tetik kaybolmaz; bağlantı kaynaklı hata kaydı bir sonraki bağlanışa,
+ * geçici ret (HIZ, ZAMAN_ASIMI, SUNUCU) kısa süre sonraya bırakır; yanıttaki cüzdan uygulanır (olay kaybolsa da üst çubuk doğru).
+ */
+const outbox_ = createOutbox({
+  client: () => client,
+  items: () => useSocial.getState().outbox,
+  save: (outbox) => { useSocial.setState({ outbox }); writeJson(K.outbox, outbox); mirrorCoins(); },
+  onWallet: (wallet) => useNet.setState({ wallet }),
+  onLocal: (item, r) => {
+    if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); }
+    else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır ${LOCAL_JETON_DAILY_MAX}. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
+  },
+  onSpend: (_, r) => applyServerSkills(r.skills),
+  onSettled: () => mirrorCoins(),
+  onDrained: () => void reconcile(),
+});
+const flushOutbox = () => outbox_.flush();
+
+/**
+ * Uzlaşma: outbox ve ilerleme kuyruğu boşken (bağlanınca ve outbox boşalınca) sunucu cüzdanı okunur; üst çubuk = sunucu + bekleyen
+ * değilse sunucu kazanır ve tanı yazılır (yalnız sayılar; kişisel veri yok).
+ */
+const uzlasma = { runs: 0, fixes: 0, last: null as null | { shown: number; server: number; known: number | null } };
+let reconciling = false;
+async function reconcile(): Promise<void> {
+  const c = client;
+  const idle = () => { const s = useSocial.getState(); return !s.outbox.length && !s.queued; };
+  if (!c || c.status !== 'bağlı' || reconciling || !idle()) return;
+  reconciling = true;
   try {
-    while (client.status === 'bağlı') {
-      const item = useSocial.getState().outbox[0];
-      if (!item) break;
-      try {
-        if (item.k === 'local') {
-          const r = await client.call('wallet.local', { ledgerId: item.ledgerId, jeton: item.jeton, reason: item.reason });
-          if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); }
-          else if (r.credited < item.jeton) toast('🪙', 'Bugünkü ödül sınırı doldu', `Görev ve sandık jetonlarında günlük üst sınır ${LOCAL_JETON_DAILY_MAX}. ${item.jeton - r.credited} jeton hesaba eklenmedi.`, 'bronze');
-        } else {
-          const r = await client.call('wallet.spend', { jeton: item.jeton, reason: item.reason });
-          applyServerSkills(r.skills);
-        }
-      } catch (e) {
-        if (e instanceof NetError && NET_CODES.has(e.code)) {
-          // bağlıyken geçici ret (hız sınırı, geç yanıt): ledgerId ile tek; kısa süre sonra yeniden (yoksa bir sonraki bağlanışa dek takılı kalırdı)
-          if ((e.code === 'HIZ' || e.code === 'ZAMAN_ASIMI') && client?.status === 'bağlı') setTimeout(() => void flushOutbox(), 1500);
-          break;
-        }
-        // sunucu reddettiyse (ör. zaten alınmış yetenek) kayıt atılır; kuyruk takılmaz
-      }
-      const rest = useSocial.getState().outbox.slice(1);
-      useSocial.setState({ outbox: rest }); writeJson(K.outbox, rest);
-      mirrorCoins();
+    const { wallet } = await c.call('wallet.get', {});
+    if (c.status !== 'bağlı' || !idle()) return; // arada yeni kayıt geldi: bir sonraki boşalmada
+    uzlasma.runs++;
+    const shown = useStore.getState().coins; const known = useNet.getState().wallet?.jeton ?? null;
+    const { coins, diff } = reconcileCoins({ shown, server: wallet.jeton, pending: pendingJeton() });
+    if (diff !== 0 || known !== wallet.jeton) {
+      uzlasma.fixes++; uzlasma.last = { shown, server: wallet.jeton, known };
+      console.warn(`[cüzdan] uzlaşma: üst çubuk ${shown}, istemcideki cüzdan ${known ?? '-'}, sunucu ${wallet.jeton}; sunucu değeri alındı`);
     }
-  } finally { flushing = false; }
+    useNet.setState({ wallet });
+    if (useStore.getState().coins !== coins) useStore.setState({ coins });
+  } catch { /* bağlantı koptu: bir sonraki bağlanışta */ } finally { reconciling = false; }
 }
 
 /** sunucudaki yetenekleri yerel yetenek ağacına işle (yalnızca ekler) */
@@ -233,7 +248,6 @@ async function onConnected(c: NetClient): Promise<void> {
   const best = Object.entries(s.progress).filter(([, p]) => p.stars > 0).map(([lvl, p]) => ({ level: Number(lvl), stars: p.stars, score: Math.min(50_000, p.best) }));
   const localTop = best.reduce((a, b) => Math.max(a, b.level), 0);
   if (me && localTop + 1 > me.highest && best.length) void c.call('progress.sync', { best: best.slice(0, 40) }).catch(() => undefined);
-  void flushOutbox();
   try {
     const [sk, bonuses, camp] = await Promise.all([c.call('skills.list', {}), c.call('me.bonuses', {}), c.call('camp.state', {})]);
     applyServerSkills(sk.skills);
@@ -264,7 +278,7 @@ export function startNet(): void {
       for (const g of st.meta.ledger) sent.add(ledgerKey(g.at, g.reason));
       writeJson(K.sent, [...sent].slice(-300));
       outbox = outbox.filter((o) => !(o.k === 'local' && o.reason === 'devir'));
-      if (st.coins > 0) outbox = [{ k: 'local', ledgerId: `devir-${Date.now().toString(36)}`, jeton: Math.round(st.coins), reason: 'devir' }, ...outbox];
+      if (st.coins > 0) outbox = [{ k: 'local', ledgerId: `devir-${Date.now().toString(36)}`, jeton: Math.min(LOCAL_JETON_PER_CALL, Math.round(st.coins)), reason: 'devir' }, ...outbox];
       writeJson(K.outbox, outbox);
     }
     useSocial.setState({ outbox });
@@ -282,6 +296,9 @@ export function startNet(): void {
       saveQueue: (q) => { useSocial.setState({ queued: q.length, queuedCoins: q.reduce((a, x) => a + (x.coins ?? 0), 0) }); writeJson(K.queue, q); mirrorCoins(); },
     });
     const c = client;
+    // bağlanınca İLK istek outbox: yanıtı kaybolmuş (sunucuda yazılmış) ödül, yenilemenin getirdiği cüzdandan önce kapanır;
+    // aksi halde üst çubuk bir an "cüzdan + aynı ödül" (fazla) gösterir. Sonra uzlaşma (MK-035).
+    c.onStatus((st) => { if (st === 'bağlı') void flushOutbox().then(reconcile); });
     bindNet(c);
     bindEvents(c);
     bindFriends(c); // arkadaşlık + özel mesaj olayları (istek, dm, okunmamış, bildirim şeridi)
@@ -311,7 +328,7 @@ export function startNet(): void {
       window.addEventListener('online', () => c.retryNow());
       document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') c.retryNow(); });
     }
-    if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client };
+    if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client, cuzdan: () => ({ ...outbox_.stats(), uzlasma: { ...uzlasma } }) };
     c.connect();
   })();
 }

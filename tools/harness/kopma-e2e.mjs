@@ -14,12 +14,15 @@
 //               anında başlar; sonra kopukken "kristalle bitir" → bağlanınca bir kez işlenir.
 //   sohbet  (c) takım sohbetine kopukken yazılan ileti bağlanınca bir kez gider; yanıtı kaybolan ileti aynı cid ile yeniden
 //               denenir (tek kayıt); kopukken başkasının yazdığı ileti yeniden katılımda gelir; uzun kopuklukta açık hata, metin kutuda kalır.
+//   cuzdan  (f) görev/başarım jetonu outbox'ı (MK-035): wallet.local yanıtı kaybolur + ağ kopar / sunucu çöker; aracı HIZ, ZAMAN_ASIMI,
+//               SUNUCU yanıtı enjekte eder ya da isteği yanıtsız bırakır; wallet.updated olayı kaybolur. Her birinde: outbox ≤ 2 sn'de boşalır
+//               (yanıtsız istekte istemci zaman aşımından sonra), ödül sunucuda tek, üst çubuk bağlıyken hiçbir örnekte eksik/fazla değil.
 //   etkinlik    etkinlik merkezi açıkken yeniden başlatma: şerit, bağlanınca içerik yeniden yüklenir.
 //   yaris   (d) yarış odasında: sunucu yeniden başlarsa oda silinir → açık ileti + menü, yeni oda kurulur; yalnız ağ kopması
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
 // Her kopmada: "Bağlantı koptu" şeridi görünür; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanır; cüzdan, kamp, ilerleme
 // sunucu (SQLite) ve istemcide aynı; bekleyen kuyruk/outbox boş.
-// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,sohbet,etkinlik,yaris] [--no-build] [--headed]
+// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,yaris,yaris-ici] [--no-build] [--headed]
 // Çıktı: tools/harness/out/kopma/<tarayıcı>/*.png, sonuc.json
 import { spawn } from 'node:child_process';
 import net from 'node:net';
@@ -100,11 +103,15 @@ const q1 = (sql, ...a) => db.prepare(sql).get(...a);
 const qa = (sql, ...a) => db.prepare(sql).all(...a);
 const dbRun = (sql, ...a) => db.prepare(sql).run(...a);
 
-// ---------------------------------------------------------------- aracı (Caddy yerine): geçir / reddet / yanıtları tut
-/** istemci → sunucu WebSocket çerçevelerinden metin iletilerini çıkarır (ws sunucusu sıkıştırma açmaz) */
-function frames(pair, chunk) {
-  let b = pair.buf.length ? Buffer.concat([pair.buf, chunk]) : chunk;
-  if (!pair.hdrDone) { const i = b.indexOf('\r\n\r\n'); if (i < 0) { pair.buf = Buffer.from(b); return []; } pair.hdrDone = true; b = b.subarray(i + 4); }
+// ---------------------------------------------------------------- aracı (Caddy yerine): geçir / reddet / yanıtları tut / yanıt enjekte et
+/**
+ * WebSocket akışını çerçevelere böler (ws sunucusu sıkıştırma açmaz). Yalnız TAM çerçeveler (ve el sıkışma başlığı) döner; yarım
+ * çerçeve bir sonraki parçayı bekler. Aracı her yöne yalnız tam çerçeve yazar: araya enjekte edilen yanıt bir çerçeveyi bölmez.
+ */
+function split(st, chunk) {
+  let b = st.buf.length ? Buffer.concat([st.buf, chunk]) : chunk;
+  let head = null;
+  if (!st.hdrDone) { const i = b.indexOf('\r\n\r\n'); if (i < 0) { st.buf = Buffer.from(b); return { head, frames: [] }; } st.hdrDone = true; head = Buffer.from(b.subarray(0, i + 4)); b = b.subarray(i + 4); }
   const out = [];
   for (;;) {
     if (b.length < 2) break;
@@ -113,14 +120,21 @@ function frames(pair, chunk) {
     const mk = masked ? 4 : 0; if (b.length < off + mk + len) break;
     const payload = Buffer.from(b.subarray(off + mk, off + mk + len));
     if (masked) { const m = b.subarray(off, off + 4); for (let i = 0; i < payload.length; i++) payload[i] ^= m[i & 3]; }
-    if (op === 1) out.push(payload.toString('utf8'));
+    out.push({ text: op === 1 ? payload.toString('utf8') : null, raw: Buffer.from(b.subarray(0, off + mk + len)) });
     b = b.subarray(off + mk + len);
   }
-  pair.buf = Buffer.from(b);
-  return out;
+  st.buf = Buffer.from(b);
+  return { head, frames: out };
+}
+/** sunucudan istemciye giden (maskesiz) metin çerçevesi */
+function textFrame(text) {
+  const p = Buffer.from(text, 'utf8');
+  const h = p.length < 126 ? Buffer.from([0x81, p.length]) : p.length < 65536 ? Buffer.from([0x81, 126, p.length >> 8, p.length & 0xff]) : null;
+  if (!h) throw new Error('enjekte yanıt çok uzun');
+  return Buffer.concat([h, p]);
 }
 async function makeProxy(name) {
-  const px = { name, mode: 'pass', holdOp: null, held: null, pairs: new Set(), port: 0, hiz: 0, reqs: [], errs: [] };
+  const px = { name, mode: 'pass', holdOp: null, held: null, pairs: new Set(), port: 0, hiz: 0, reqs: [], errs: [], inject: [], dropEv: [] };
   const server = net.createServer((down) => {
     if (px.mode === 'refuse') { down.destroy(); return; }
     const up = net.connect(SRV_PORT, '127.0.0.1');
@@ -130,16 +144,36 @@ async function makeProxy(name) {
     const end = () => { px.pairs.delete(pair); down.destroy(); up.destroy(); };
     for (const s of [up, down]) { s.on('error', end); s.on('close', end); }
     up.on('data', (d) => {
+      const { head, frames } = split(pair.back, d);
       // tanı: sunucunun reddettiği istekler (ör. HIZ: bağlantı başına 30 ileti/sn)
-      for (const t of frames(pair.back, d)) { const m = /"ok":false,"code":"([A-Z_]+)"/.exec(t); if (m) { px.errs.push({ at: Date.now(), code: m[1] }); if (m[1] === 'HIZ') px.hiz++; } }
-      if (!pair.hold) down.write(d); // tutulan yanıt hiç iletilmez (sunucu kapanınca atılır)
+      for (const f of frames) { const m = f.text && /"ok":false,"code":"([A-Z_]+)"/.exec(f.text); if (m) { px.errs.push({ at: Date.now(), code: m[1] }); if (m[1] === 'HIZ') px.hiz++; } }
+      if (pair.hold) return; // tutulan yanıt hiç iletilmez (sunucu kapanınca atılır)
+      // olay kaybı: istenen sunucu olayı (ör. wallet.updated) istemciye iletilmez
+      const keep = frames.filter((f) => { const r = f.text && px.dropEv.find((x) => x.n > 0 && f.text.includes(`"ev":"${x.ev}"`)); if (r) { r.n--; r.seen.push(Date.now()); } return !r; });
+      const w = [head, ...keep.map((f) => f.raw)].filter(Boolean);
+      if (w.length) down.write(w.length === 1 ? w[0] : Buffer.concat(w));
     });
     down.on('data', (d) => {
-      for (const t of frames(pair, d)) {
-        px.reqs.push({ at: Date.now(), op: /"op":"([^"]+)"/.exec(t)?.[1] ?? '?' });
-        if (px.holdOp && t.includes(`"op":"${px.holdOp}"`)) { pair.hold = true; px.holdOp = null; px.held?.(t); }
+      const { head, frames } = split(pair, d);
+      const fwd = head ? [head] : [];
+      for (const f of frames) {
+        const t = f.text;
+        if (t != null) {
+          const op = /"op":"([^"]+)"/.exec(t)?.[1] ?? '?';
+          px.reqs.push({ at: Date.now(), op });
+          // enjeksiyon: istek sunucuya hiç gitmez; aracı yerine ret yanıtı yazar (code yoksa yanıtsız kalır → istemcide ZAMAN_ASIMI)
+          const rule = px.inject.find((r) => r.op === op && r.n > 0);
+          if (rule) {
+            rule.n--; rule.seen.push(Date.now());
+            const id = JSON.parse(t).id;
+            if (rule.code && !pair.hold) down.write(textFrame(JSON.stringify({ t: 'res', id, ok: false, code: rule.code, error: `aracı: ${rule.code}` })));
+            continue;
+          }
+          if (px.holdOp && t.includes(`"op":"${px.holdOp}"`)) { pair.hold = true; px.holdOp = null; px.held?.(t); }
+        }
+        fwd.push(f.raw);
       }
-      up.write(d);
+      if (fwd.length) up.write(fwd.length === 1 ? fwd[0] : Buffer.concat(fwd));
     });
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -147,6 +181,10 @@ async function makeProxy(name) {
   px.url = `ws://127.0.0.1:${px.port}`;
   /** bu istek görülünce sunucunun yanıtlarını tut; dönen söz istek görülünce çözülür */
   px.holdOn = (op) => new Promise((r) => { px.holdOp = op; px.held = (t) => { px.held = null; r(t); }; });
+  /** sonraki n `op` isteğini sunucuya iletme; `code` verilirse aracı o kodla ret yanıtı yazar (HIZ, ZAMAN_ASIMI, SUNUCU…), yoksa yanıtsız bırakır */
+  px.injectOn = (op, code, n = 1) => { const r = { op, code, n, seen: [] }; px.inject.push(r); return r; };
+  /** sonraki n `ev` olayını istemciye iletme (olay kaybı) */
+  px.dropEvent = (ev, n = 1) => { const r = { ev, n, seen: [] }; px.dropEv.push(r); return r; };
   px.drop = () => { for (const p of [...px.pairs]) { p.down.destroy(); p.up.destroy(); } };
   px.close = () => new Promise((r) => { px.drop(); server.close(() => r()); });
   return px;
@@ -391,6 +429,103 @@ async function suiteKamp(A) {
   await consistent(A, 'kamp/kristal');
   await shot(A, 'kamp-sonra');
   return { ...t1, kristal: t2[A.tag] };
+}
+
+// ---------------------------------------------------------------- (f) cüzdan: görev/başarım jetonu outbox'ı (MK-035)
+/** üst çubuk jetonunu sayfada 25 ms'de bir örnekler: [an, jeton, bağlı mı, outbox] (kısa süreli fazlalık/eksiklik de görünsün) */
+const JETON_ORNEK = () => {
+  if (window.__cz) window.__cz.on = false;
+  const o = { s: [], on: true }; window.__cz = o;
+  const tick = () => { if (!o.on) return; const a = window.__ag; o.s.push([Date.now(), a.store.getState().coins, a.net()?.status === 'bağlı' ? 1 : 0, a.social.getState().outbox.length]); setTimeout(tick, 25); };
+  tick();
+};
+const sJeton = (pid) => q1('SELECT jeton FROM players WHERE id = ?', pid).jeton;
+const grantOf = (pid, ledgerId) => q1('SELECT COUNT(*) AS n, COALESCE(SUM(credited), 0) AS c FROM local_grants WHERE player_id = ? AND ledger_id = ?', pid, ledgerId);
+const grantsSum = (pid) => q1('SELECT COALESCE(SUM(credited), 0) AS s FROM local_grants WHERE player_id = ?', pid).s;
+/** yerel görev ödülü (tek ödül kapısı store.grant → defter → outbox → wallet.local); dönüş: ledgerId */
+const odulVer = (P, amount, tag) => P.page.evaluate(([n, t]) => {
+  window.__ag.store.getState().grant([{ kind: 'jeton', amount: n }], `gorev:${t}`);
+  const g = window.__ag.store.getState().meta.ledger.at(-1);
+  return `${g.at}:${g.reason}`.replace(/[^A-Za-z0-9_.:-]/g, '_').slice(0, 80);
+}, [amount, tag]);
+/** outbox boşalıp üst çubuk ve cüzdan = sunucu (SQLite) olana dek bekle; dönüş: o an ya da null */
+async function bosaldi(P, ms) {
+  for (const until = Date.now() + ms; ;) {
+    const c = await clientState(P); const j = sJeton(P.pid);
+    if (c && c.status === 'bağlı' && !c.outbox && !c.queued && c.coins === j && c.wallet?.jeton === j) return Date.now();
+    if (Date.now() > until) return null;
+    await sleep(50);
+  }
+}
+/** sunucu ledgerId kaydını yazana dek bekle */
+async function yazildi(P, id) { for (let i = 0; i < 100; i++) { if (grantOf(P.pid, id).n) return true; await sleep(100); } return false; }
+/**
+ * Ortak denetim: t0'dan (yeniden bağlanma ya da son geçici ret) sonra en çok `sinir` ms'de outbox boş ve üst çubuk = sunucu; her ödül
+ * sunucuda bir kez; sunucu cüzdanı yalnız yerel ödül defteri kadar arttı; bağlıyken alınan HİÇBİR örnekte üst çubuk eksik ya da fazla değil.
+ */
+async function cuzdanDenetle(P, label, { ids, w0, x, g0, t0, tG, sinir }) {
+  const t = await bosaldi(P, Math.max(0, t0 + sinir - Date.now()) + 12_000);
+  const ms = t == null ? null : t - t0;
+  const s = await P.page.evaluate(() => { const o = window.__cz; o.on = false; return o.s; });
+  const wEnd = sJeton(P.pid);
+  const on = s.filter(([at, , b]) => b && at >= tG);
+  const bad = on.filter(([, c]) => c < w0 + x || c > wEnd);
+  const diag = await P.page.evaluate(() => window.__ag.cuzdan?.() ?? null).catch(() => null);
+  console.log(`    · ${label}: boşalma ${ms ?? '—'} ms; örnek ${on.length}, sapma ${bad.length}${bad.length ? ` (en büyük ${Math.max(...bad.map(([, c]) => c))}, en küçük ${Math.min(...bad.map(([, c]) => c))}; beklenen ${w0 + x}…${wEnd})` : ''}; tanı ${JSON.stringify(diag)}; retler ${JSON.stringify(P.proxy.errs.slice(-4))}`);
+  if (t == null || bad.length) await shot(P, `cuzdan-${label.replace(/[^a-z0-9]+/gi, '-')}`);
+  check(ms != null && ms <= sinir, `${label}: outbox ${ms != null ? `${(ms / 1000).toFixed(2)} sn'de boşaldı` : 'BOŞALMADI'}, üst çubuk = sunucu (≤ ${sinir / 1000} sn)`);
+  for (const [id, n] of ids) { const g = grantOf(P.pid, id); check(g.n === 1 && g.c === n, `${label}: ödül sunucuya bir kez yazıldı (${g.n} kayıt, ${g.c}/${n} jeton)`); }
+  check(wEnd - w0 === grantsSum(P.pid) - g0 && wEnd - w0 >= x, `${label}: sunucu cüzdanı yalnız yerel ödül defteri kadar arttı (+${wEnd - w0}, defter +${grantsSum(P.pid) - g0})`);
+  check(!bad.length, `${label}: üst çubuk bağlıyken hiçbir örnekte eksik/fazla değil (${on.length} örnek${bad.length ? `; ${bad.length} sapma, ör. ${bad[0][1]} ∉ [${w0 + x}, ${wEnd}]` : ''})`);
+}
+const notOnline = async (P) => { for (let i = 0; i < 100 && (await status(P)) === 'bağlı'; i++) await sleep(50); };
+
+async function suiteCuzdan(A, kind) {
+  const bt = cur.bt;
+  A.proxy.inject.length = 0; A.proxy.dropEv.length = 0; // önceki senaryonun kuralı kalmasın
+  const w0 = sJeton(A.pid); const g0 = grantsSum(A.pid);
+  await A.page.evaluate(JETON_ORNEK);
+  if (kind === 'yanit-ag' || kind === 'yanit-kill') {
+    const sig = kind === 'yanit-ag' ? null : 'SIGKILL';
+    step(`(f) Görev jetonu gönderilirken yanıt kaybolur, ${sig ? 'sunucu çöker (SIGKILL) ve kopukken yeni ödül gelir' : 'ağ kopar (sunucu açık)'}`);
+    const held = A.proxy.holdOn('wallet.local');
+    const id = await odulVer(A, 30, `cz-${kind}-${bt}`); const tG = Date.now();
+    const raw = await Promise.race([held, sleep(10_000).then(() => null)]);
+    check(!!raw && raw.includes(id), 'wallet.local sunucuya gitti, yanıt tutuluyor');
+    check(await yazildi(A, id), 'sunucu ödülü yazdı (istemci yanıtı almadı)');
+    const ids = [[id, 30]]; let x = 30; let tFrom = tG;
+    if (!sig) A.proxy.drop();
+    else {
+      await stopSrv(sig);
+      await notOnline(A);
+      // kopukken kazanılan ödül: outbox'ta bekler
+      ids.push([await odulVer(A, 15, `cz-kopuk-${bt}`), 15]); x += 15; tFrom = Date.now();
+      await sleep(1500);
+      await startSrv();
+    }
+    await notOnline(A);
+    const tOn = await waitOnline(A, RECONNECT_MAX_MS + 10_000);
+    await cuzdanDenetle(A, sig ? 'yanıt kaybı + çökme' : 'yanıt kaybı + ağ kopması', { ids, w0, x, g0, t0: tOn, tG: tFrom, sinir: 2000 });
+    return;
+  }
+  if (kind === 'olay') {
+    step('(f) Görev jetonu yazılır ama wallet.updated olayı kaybolur (yanıt gelir)');
+    const r = A.proxy.dropEvent('wallet.updated', 1);
+    const id = await odulVer(A, 25, `cz-olay-${bt}`); const tG = Date.now();
+    await cuzdanDenetle(A, 'olay kaybı', { ids: [[id, 25]], w0, x: 25, g0, t0: tG, tG, sinir: 2000 });
+    check(r.seen.length === 1, 'aracı wallet.updated olayını yuttu (senaryo gerçekleşti)');
+    return;
+  }
+  // geçici ret: aracı isteği sunucuya iletmez, yerine ret yanıtı yazar (code null: yanıtsız → istemcide ZAMAN_ASIMI)
+  const RET = { hiz: ['HIZ', 2], zaman: ['ZAMAN_ASIMI', 1], sunucu: ['SUNUCU', 1], yanitsiz: [null, 1] }[kind];
+  step(`(f) Görev jetonu: ${RET[0] ? `${RET[1]} kez ${RET[0]} yanıtı` : 'istek yanıtsız kalır (bağlantı açık)'}, sonra başarı`);
+  const r = A.proxy.injectOn('wallet.local', RET[0], RET[1]);
+  const id = await odulVer(A, 20, `cz-${kind}-${bt}`); const tG = Date.now();
+  for (let i = 0; i < 100 && r.seen.length < RET[1]; i++) await sleep(100);
+  check(r.seen.length === RET[1], `aracı ${RET[1]} wallet.local isteğini ${RET[0] ?? 'yanıtsız bıraktı'}`);
+  // yanıtsız istek: istemci 10 sn sonra ZAMAN_ASIMI der; süre oradan sayılır
+  const t0 = RET[0] ? r.seen.at(-1) : r.seen.at(-1) + 10_000;
+  await cuzdanDenetle(A, RET[0] ? `${RET[0]} ×${RET[1]}` : 'yanıtsız istek', { ids: [[id, 20]], w0, x: 20, g0, t0, tG, sinir: 2000 });
 }
 
 async function suiteSohbet(A, B) {
@@ -731,6 +866,7 @@ try {
 
     await section('odul', () => suiteOdul(A));
     await section('kamp', () => suiteKamp(A));
+    for (const k of ['yanit-ag', 'yanit-kill', 'hiz', 'zaman', 'sunucu', 'yanitsiz', 'olay']) await section('cuzdan', () => suiteCuzdan(A, k), `cuzdan/${k}`);
     await section('sohbet', () => suiteSohbet(A, B));
     await section('etkinlik', () => suiteEtkinlik(A));
     await section('yaris', () => suiteYaris(A, B));
