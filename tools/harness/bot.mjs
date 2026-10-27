@@ -28,6 +28,17 @@ if (!args['no-build'] || !existsSync(resolve(distDir, 'index.html'))) await run(
 const port = await new Promise((res, rej) => { const s = createServer(); s.on('error', rej); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => res(p)); }); });
 const preview = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--outDir', distDir], { cwd: resolve(root, 'apps/web'), stdio: 'ignore', shell: process.platform === 'win32', detached: process.platform !== 'win32' });
 const base = `http://localhost:${port}`;
+// önizleme her çıkış yolunda kapanır (MK-036): tarayıcı açılamazsa (ör. PLAYWRIGHT_CHROMIUM yanlış), beklenmeyen hata, Ctrl+C / SIGTERM.
+// Önizleme kendi süreç grubunda (detached) koşar; bu süreç ölse de yaşar, bu yüzden grup olarak kapatılır. SIGKILL ile öldürülürsek
+// (ör. kabul zaman sınırı) bunu kabul.mjs'in koşu kimliğiyle yaptığı temizlik kapatır.
+let previewUp = true;
+function stopPreview() {
+  if (!previewUp) return;
+  previewUp = false;
+  try { if (process.platform !== 'win32') process.kill(-preview.pid, 'SIGKILL'); else preview.kill(); } catch { try { preview.kill('SIGKILL'); } catch { /* zaten kapalı */ } }
+}
+process.on('exit', stopPreview);
+for (const [sig, n] of [['SIGINT', 2], ['SIGTERM', 15], ['SIGHUP', 1]]) process.once(sig, () => { stopPreview(); process.exit(128 + n); });
 // önizleme yanıt verene kadar bekle (sabit süre değil: yüklü makinede npx + vite açılışı 1,5 sn'yi aşıp "connection refused" veriyordu)
 {
   let exited = null; preview.once('exit', (c) => { exited = c ?? 'sinyal'; });
@@ -35,7 +46,7 @@ const base = `http://localhost:${port}`;
   for (;;) {
     if (exited !== null) throw new Error(`vite preview kapandı (çıkış ${exited}) · port ${port}`);
     if (await fetch(base, { signal: AbortSignal.timeout(3000) }).then((r) => r.ok, () => false)) break;
-    if (Date.now() > until) { try { process.kill(-preview.pid); } catch { preview.kill(); } throw new Error(`vite preview 90 sn içinde yanıt vermedi · ${base}`); }
+    if (Date.now() > until) throw new Error(`vite preview 90 sn içinde yanıt vermedi · ${base}`);
     await new Promise((r) => setTimeout(r, 250));
   }
 }
@@ -71,7 +82,7 @@ const results = [];
 const queue = [...levels];
 await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, async () => { while (queue.length) { const n = queue.shift(); const r = await playLevel(n); results.push(r); const s = r.spec ?? {}; console.log(`L${String(n).padStart(2, '0')} ${(s.mechanic ?? '?').padEnd(9)} ${(s.biome ?? '?').padEnd(12)} ${(s.objective ?? '?').padEnd(11)} ${r.result ? (r.result.completed ? `OK ⭐${r.result.stars}` : 'FAIL  ') : 'TIMEOUT'} prog ${(r.progress * 100).toFixed(0).padStart(3)}% coins ${r.result?.coins ?? 0}/${s.coins ?? '?'} dmg ${r.result?.damageTaken ?? '-'} fall ${r.result?.deaths ?? '-'} ${r.result?.extra?.reason ?? ''} t=${r.result?.timeSec ?? '-'}s fps ${r.fps} wall ${r.wall}s${r.errors.length ? ' ERR: ' + r.errors.join(' | ').slice(0, 300) : ''}`); } }));
 results.sort((a, b) => a.n - b.n);
-await browser.close(); try { if (process.platform !== 'win32') process.kill(-preview.pid); else preview.kill(); } catch { preview.kill(); }
+await browser.close(); stopPreview();
 const failed = results.filter((r) => !r.result?.completed);
 const errored = results.filter((r) => r.errors.length);
 console.log(`\n${results.length} bölüm · ${results.length - failed.length} tamamlandı · ${failed.length} başarısız/timeout · ${errored.length} hatalı`);
