@@ -747,10 +747,14 @@ async function suite(browserName, target, [W, H]) {
         await page.keyboard.press('Escape'); await sleep(300);
         // yönetici modunu kapat (diğer ekranlar gerçek ilerlemeyle denetlensin)
         await page.getByTestId('yonetici-anahtar').click(); await page.locator('[data-testid="yonetici-rozet"]', { hasText: 'kapalı' }).waitFor();
-        // Gizlilik ve hakkında (TASLAK metin alt sayfası)
-        await page.getByTestId('gizlilik-ac').scrollIntoViewIfNeeded(); await page.getByTestId('gizlilik-ac').click(); await page.getByTestId('gizlilik-taslak').waitFor(); await sleep(400);
-        await check('ayarlar-gizlilik', { scroll: false });
-        await page.keyboard.press('Escape'); await sleep(300);
+        // Gizlilik ve hesap (YN-009, YN-017): kart (üç bağlantı + sürüm) ve üç alt sayfa
+        await page.getByTestId('gizlilik-hesap').scrollIntoViewIfNeeded(); await page.getByTestId('surum').scrollIntoViewIfNeeded(); await sleep(300);
+        await check('ayarlar-gizlilik-hesap');
+        for (const [ac, sayfa, ad] of [['gizlilik-ac', 'yasal-gizlilik', 'ayarlar-gizlilik'], ['hesap-sil-ac', 'yasal-hesap-sil', 'ayarlar-hesap-silme'], ['hakkinda-ac', 'yasal-hakkinda', 'ayarlar-hakkinda']]) {
+          await page.getByTestId(ac).scrollIntoViewIfNeeded(); await page.getByTestId(ac).click(); await page.getByTestId(sayfa).waitFor(); await sleep(400);
+          await check(ad, { scroll: false });
+          await page.keyboard.press('Escape'); await sleep(300);
+        }
         await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
     }
     if (want('kamp')) {

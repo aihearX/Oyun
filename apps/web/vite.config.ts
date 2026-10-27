@@ -3,6 +3,43 @@ import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { build as esbuild } from 'esbuild';
+
+/**
+ * Herkese açık yasal sayfalar (YN-009): /gizlilik, /en/privacy, /hesap-sil (mağaza listelerindeki gizlilik ve hesap silme
+ * adresleri). Metin src/yasal/metin.ts'ten (oyun içindeki sayfalarla aynı kaynak) durağan HTML olarak dist'e yazılır
+ * (gizlilik.html, en/privacy.html, hesap-sil.html); service worker önden önbelleğe alır. Sunucu /gizlilik → gizlilik.html
+ * (Caddy try_files {path}.html, vite preview); eski Caddyfile'da index.html'deki küçük yönlendirme aynı dosyayı açar.
+ * Metin modülü (TypeScript) esbuild ile o anda paketlenip yüklenir: yapılandırma dosyası uygulama kaynağını doğrudan içe aktarmaz.
+ */
+interface YasalModul { YASAL_SAYFALAR: { yol: string; dosya: string }[]; sayfaHtml(b: unknown): string }
+async function yasalYukle(): Promise<YasalModul> {
+  const r = await esbuild({ entryPoints: [path.resolve(import.meta.dirname, 'src/yasal/sayfa.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent' });
+  return import(`data:text/javascript;base64,${Buffer.from(r.outputFiles[0]!.text).toString('base64')}`) as Promise<YasalModul>;
+}
+function odiYasalSayfalar(): Plugin {
+  return {
+    name: 'odi-yasal-sayfalar',
+    // geliştirme sunucusu: aynı sayfalar bellekten (her istekte metin.ts'in son hâli)
+    configureServer(server) {
+      const YOLLAR = new Set(['/gizlilik', '/en/privacy', '/hesap-sil']);
+      server.middlewares.use((req, res, next) => {
+        const yol = (req.url ?? '').split(/[?#]/)[0]!.replace(/\/+$/, '').replace(/\.html$/, '');
+        if (!YOLLAR.has(yol)) return next();
+        yasalYukle().then((m) => {
+          const b = m.YASAL_SAYFALAR.find((x) => x.yol === yol);
+          if (!b) return next();
+          res.setHeader('content-type', 'text/html; charset=utf-8');
+          res.end(m.sayfaHtml(b));
+        }, next);
+      });
+    },
+    async generateBundle() {
+      const m = await yasalYukle();
+      for (const b of m.YASAL_SAYFALAR) this.emitFile({ type: 'asset', fileName: b.dosya, source: m.sayfaHtml(b) });
+    },
+  };
+}
 
 /**
  * Service worker (MK-037): derleme bitince dist/sw.js'i sw/sw.js kalıbından yazar. Sürüm = dist'teki bütün dosyaların
@@ -36,7 +73,7 @@ function odiServiceWorker(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), odiServiceWorker()],
+  plugins: [react(), odiYasalSayfalar(), odiServiceWorker()],
   // sosyal sunucu adresi derleme zamanında verilebilir: VITE_ODI_SERVER=wss://... npm run build:web
   define: { __ODI_SERVER__: JSON.stringify(process.env.VITE_ODI_SERVER ?? ''), __ODI_E2E__: JSON.stringify(process.env.VITE_ODI_E2E === '1') },
   resolve: {

@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <!-- koyu zemin CSS dosyası gelmeden önce de (açılışta beyaz parlama yok); renk styles.css --bg-0 ve manifest background_color ile aynı -->
     <style>html,body{background:#140c35}</style>
+    <!-- yasal sayfalar (/gizlilik, /en/privacy, /hesap-sil) durağan dosyadır; sunucu oyunu açtıysa (eski Caddyfile) o dosyaya geç -->
+    <script>(function(){var p=location.pathname.replace(/\/+$/,'');if(p==='/gizlilik'||p==='/en/privacy'||p==='/hesap-sil')location.replace(p+'.html'+location.hash);})();</script>
     <meta name="theme-color" content="#140c35" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="description" content="Odi küçük bir ses. Ninniyi kulaktan beyne ulaştır. Kulağın içinde sonsuz bir yolculuk." />

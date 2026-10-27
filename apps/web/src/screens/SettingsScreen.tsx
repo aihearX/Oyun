@@ -10,8 +10,10 @@ import { resetEverything } from '../reset';
 import { speakLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { lineText } from '../ftue/script';
-import { LegalSheet } from './LegalSheet';
+import { LegalSheet, type YasalSayfa } from './LegalSheet';
 import { APP_VERSION } from '../legal';
+import { AYAR } from '../yasal/yasal';
+import { useNet } from '@odi/net/store';
 
 /** 0-1 kaydırıcı (yüzde gösterir); dolgu rengi CSS değişkeniyle */
 function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: string; label: string; value: number; onChange: (v: number) => void; onRelease?: () => void; disabled?: boolean }) {
@@ -30,7 +32,8 @@ function Slider({ icon, label, value, onChange, onRelease, disabled }: { icon: s
 export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => void; onReplay?: () => void; onReset?: () => void }) {
   const s = useStore();
   const lastPreview = useRef(0);
-  const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false); const [legal, setLegal] = useState(false);
+  const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false); const [legal, setLegal] = useState<YasalSayfa | null>(null);
+  const me = useNet((x) => x.me);
   void onReset; // eski arayüz: sıfırlama artık uygulamayı baştan kurar
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
   return (
@@ -64,12 +67,12 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         </div>
       </div>
       <CodeSettingsCard />
-      <div className="card skill"><div><h2>Her şeyi sıfırla</h2><div className="muted">Bu cihazdaki ilerleme, jetonlar ve ayarlar ile sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => setAsk(true)}>Sıfırla</button></div>
+      <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => { setLegal(null); setAsk(true); }}>Hesabı sil</button></div>
       {ask && (
-        <Sheet title="Her şey silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
+        <Sheet title="Hesabın silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
           <div className="reset-sheet" data-testid="sifirla-onay">
-            <p className="rs-warn"><Art name="trash" size={22} /> Her şey silinecek: ilerleme, jetonlar, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
-            <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.</p>
+            <p className="rs-warn"><Art name="trash" size={22} /> Her şey silinecek: hesabın, ilerleme, jetonlar, satın aldıkların, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
+            <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.{me ? <> O durumda silmeyi e-postayla isteyebilmek için arkadaş kodunu not al: <b className="mono">{me.friendCode}</b>.</> : null}</p>
             <div className="rs-actions">
               <button type="button" className="btn ghost" disabled={busy} onClick={() => setAsk(false)}>Vazgeç</button>
               <button type="button" className="btn coral" data-testid="sifirla-evet" disabled={busy} onClick={() => { setBusy(true); void resetEverything(); }}>{busy ? 'Siliniyor…' : 'Her şeyi sil'}</button>
@@ -77,9 +80,15 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           </div>
         </Sheet>
       )}
-      <div className="card skill"><div><h2>Gizlilik ve hakkında</h2><div className="muted">Hangi veriyi neden tuttuğumuz, silme hakkın ve sürüm bilgisi.</div></div><button className="btn small ghost" data-testid="gizlilik-ac" onClick={() => setLegal(true)}>Oku</button></div>
-      {legal && <LegalSheet onClose={() => setLegal(false)} />}
-      <div className="muted">ODİ: Sesin Yolu · sürüm {APP_VERSION}</div>
+      <div className="card legal-card" data-testid="gizlilik-hesap"><div><h2>Gizlilik ve hesap</h2><div className="muted">Hangi veriyi neden tuttuğumuz, hesabını nasıl sileceğin, bize nasıl ulaşacağın.</div></div>
+        <div className="legal-nav">
+          <button type="button" className="btn small ghost" data-testid="gizlilik-ac" onClick={() => setLegal('gizlilik')}>Gizlilik</button>
+          <button type="button" className="btn small ghost" data-testid="hesap-sil-ac" onClick={() => setLegal('hesap-sil')}>Hesap silme</button>
+          <button type="button" className="btn small ghost" data-testid="hakkinda-ac" onClick={() => setLegal('hakkinda')}>Hakkında / iletişim</button>
+        </div>
+      </div>
+      {legal && <LegalSheet sayfa={legal} onClose={() => setLegal(null)} onDelete={() => { setLegal(null); setAsk(true); }} />}
+      <div className="muted" data-testid="surum">ODİ: Sesin Yolu · sürüm {APP_VERSION} · {AYAR.YAYINCI}</div>
     </div>
   );
 }

@@ -155,6 +155,7 @@ başlatır. Eski kod hemen geçersiz olur. `--kapat`: yönetici kodunu kapatır 
 - Caddy: `sudo systemctl reload caddy` · günlük: `sudo journalctl -u caddy -n 100`
 - DuckDNS'i hemen güncelle: `sudo systemctl start odi-duckdns` · sonuç: `sudo journalctl -u odi-duckdns -n 5`
 - Kodlar (Kod Gir): `sudo -u odi env ODI_DB=/var/lib/odi/odi.sqlite node /opt/odi/guncel/sunucu/kod.mjs liste`
+- Hesap silme isteği ve şikâyetler (`hesap`, `hesap-sil`, `sikayetler`, `sustur`): aynı komut, bkz. docs/10-sunucu.md "Hesap ve şikâyet".
   (yazma işlemleri için önce `sudo systemctl stop odi`; bkz. docs/10-sunucu.md "Kodlar")
 
 ## 5. Uygulamayı sunucuya bağlamak

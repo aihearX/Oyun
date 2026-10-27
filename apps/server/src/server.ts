@@ -8,7 +8,7 @@ import { chatHandlers, pruneChat } from './chat';
 import { friendHandlers } from './friends';
 import { dmHandlers, dmTyping } from './dm';
 import { leagueHandlers, leagueRollover } from './league';
-import { announcePresence, playerHandlers } from './players';
+import { announcePresence, playerHandlers, pruneNewAccountIps } from './players';
 import { progressHandlers, pruneRuns } from './progress';
 import { raceHandlers, racePos, raceShutdown, restoreRaces, sweepRaces } from './race';
 import { raidHandlers } from './raid';
@@ -24,7 +24,7 @@ import { commHandlers, commSweep, installComm, metricsReport, withCommHooks } fr
 import { installRank, rankDayTick, rankHandlers } from './rank';
 import { codeHandlers, prunePromoLog } from './codes';
 import { backupNow, newestBackupAge, STARTUP_BACKUP_MIN_GAP_MS } from './backup';
-import { accountHandlers, pruneDeletedReports } from './account';
+import { accountHandlers, pruneDeletedReports, prunePurchases, pruneReports } from './account';
 import { teamRaceDisconnect, teamRaceHandlers, teamRaceRestoredEnd, teamRaceShutdown, teamRaceSweep, withTeamRaceHooks } from './teamrace';
 import { kgHandlers, withKgHooks } from './camp-quests';
 import { vakaHandlers } from './camp-quests-vaka';
@@ -234,7 +234,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneDeletedReports(app); }
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

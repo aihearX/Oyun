@@ -11,6 +11,8 @@
 //       açılış da v2'yi açar.
 //   (d) açılışta beyaz kare yok: ilk çizilen kareler (Chromium: CDP screencast, gerçek kareler; WebKit: art arda ekran
 //       görüntüsü) koyu; CSS dosyası gelmeden önceki zemin (satır içi stil) koyu; çevrimdışı açılışın ilk karesi de koyu.
+//   (e) yasal sayfalar (/gizlilik, /en/privacy, /hesap-sil; YN-009): çevrimiçi ve bağlantısızken (service worker önbelleği) açılır,
+//       koyu zemin, yatay taşma yok, dış istek yok.
 // Kullanım: node tools/harness/pwa-e2e.mjs [--browsers chromium,webkit] [--no-build]
 // Çıktı: tools/harness/out/pwa/ (v1, v2, yayin, ekran görüntüleri)
 import { spawn } from 'node:child_process';
@@ -286,6 +288,34 @@ for (const bn of browsers) {
       const gercek = hatalar.filter((h) => !(bn === 'webkit' && dusen.length && NET.test(h)));
       beklenen(!gercek.length, `sayfa hatası: ${gercek.join(' | ')}`);
       return `${n} dosya önbellekte; çevrimdışı 1. bölüm ⭐${r.stars}, ${r.timeSec} sn; önbellekte olmayan ${new Set(dusen).size} ses kaydı çalınamadı (beklenen)`;
+    } finally { await ctx.close(); }
+  });
+
+  // (e) yasal sayfalar (/gizlilik, /en/privacy, /hesap-sil): açılır, koyu, yatay taşma yok; bağlantısızken önbellekten açılır
+  await adim(bn, '(e) yasal sayfalar + çevrimdışı', async () => {
+    const ctx = await yeniBaglam(browser); const page = await ctx.newPage(); const hatalar = []; hataDinle(page, hatalar);
+    const SAYFA = [['/gizlilik', 'tr', /Gizlilik Politikası/], ['/en/privacy', 'en', /Privacy Policy/], ['/hesap-sil', 'tr', /Hesap silme/]];
+    const dis = []; page.on('request', (r) => { if (!r.url().startsWith(base)) dis.push(r.url()); });
+    const denetle = async (yol, dil, baslik, ne) => {
+      await page.goto(`${base}${yol}`, { waitUntil: 'load' });
+      await page.waitForSelector('h1', { timeout: 15_000 });
+      const d = await page.evaluate(() => ({ h1: document.querySelector('h1')?.textContent ?? '', lang: document.documentElement.lang, yol: location.pathname,
+        tasma: document.documentElement.scrollWidth - innerWidth, zemin: getComputedStyle(document.body).backgroundColor, oyun: !!document.querySelector('#root') }));
+      beklenen(baslik.test(d.h1) && d.lang === dil && !d.oyun, `${ne} ${yol}: ${JSON.stringify(d)}`);
+      beklenen(d.tasma <= 0 && renkKoyu(d.zemin), `${ne} ${yol}: yatay taşma ${d.tasma} px / zemin ${d.zemin}`);
+      return d.yol;
+    };
+    try {
+      await page.goto(`${base}/`); await page.waitForSelector('.title-screen', { timeout: 30_000 });
+      await kabukHazir(page, S1);
+      const yollar = [];
+      for (const [yol, dil, baslik] of SAYFA) yollar.push(await denetle(yol, dil, baslik, 'çevrimiçi'));
+      await ctx.setOffline(true);
+      for (const [yol, dil, baslik] of SAYFA) await denetle(yol, dil, baslik, 'çevrimdışı');
+      await shot(page, 'yasal-hesap-sil-cevrimdisi');
+      beklenen(!dis.length, `dış istek: ${dis.join(', ')}`);
+      beklenen(!hatalar.length, `sayfa hatası: ${hatalar.join(' | ')}`);
+      return `3 sayfa çevrimiçi ve çevrimdışı açıldı (${yollar.join(', ')})`;
     } finally { await ctx.close(); }
   });
 

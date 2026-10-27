@@ -51,8 +51,14 @@ export function allowNewAccount(app: App, ip: string): boolean {
   const list = (m.get(ip) ?? []).filter((t) => now - t < 3_600_000);
   if (list.length >= limit) { m.set(ip, list); return false; }
   list.push(now); m.set(ip, list);
-  if (m.size > 50_000) for (const [k, v] of m) if (!v.some((t) => now - t < 3_600_000)) m.delete(k); // bellek sınırı
+  if (m.size > 50_000) pruneNewAccountIps(app); // bellek sınırı
   return true;
+}
+/** saati dolmuş IP kayıtlarını bellekten atar (saatlik bakımda da çağrılır: IP en çok ~2 saat bellekte kalır; gizlilik metni §3) */
+export function pruneNewAccountIps(app: App): void {
+  const m = newByIp.get(app); if (!m) return;
+  const now = app.now();
+  for (const [k, v] of m) if (!v.some((t) => now - t < 3_600_000)) m.delete(k);
 }
 
 /** arkadaşlar + takım arkadaşları (presence alıcıları) */

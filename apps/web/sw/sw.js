@@ -7,6 +7,8 @@
  *  - /assets/* (parmak izli) ve kabuk dosyaları: önce önbellek.
  *  - Sayfa açılışı (index.html): önce ağ (en çok AG_SURE ms), olmazsa önbellekteki index.html → `odi-guncelle`den sonra
  *    oyuncu eski sürümde takılmaz; bağlantı yokken oyun yine açılır.
+ *  - Yasal sayfalar (/gizlilik, /en/privacy, /hesap-sil → gizlilik.html …; vite.config.ts odiYasalSayfalar): aynı kural, ama
+ *    bağlantı yokken önbellekteki kendi dosyaları açılır (oyunun index.html'i değil).
  *  - /voice/*.mp3: çalındıkça önbelleğe girer.
  *  - WebSocket (service worker'a hiç gelmez), /saglik, /olcum ve diğer her şey: dokunulmaz (önbellek yok).
  *  - Güncelleme: yeni sürüm kurulur ve BEKLER (skipWaiting yok); eski sürümün açık sayfası kalmayınca, yani bir sonraki
@@ -46,7 +48,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || DOKUNMA.test(url.pathname)) return;
-  if (req.mode === 'navigate') { e.respondWith(acilis(req)); return; }
+  if (req.mode === 'navigate') { e.respondWith(acilis(req, url.pathname)); return; }
   if (req.headers.has('range')) return;
   if (url.pathname.startsWith('/assets/') || KABUK.has(url.pathname)) { e.respondWith(onceOnbellek(e)); return; }
   if (SES.test(url.pathname)) e.respondWith(onceOnbellek(e));
@@ -58,23 +60,30 @@ async function temiz(r) {
   return new Response(await r.blob(), { status: r.status, statusText: r.statusText, headers: r.headers });
 }
 
-async function acilis(req) {
+async function acilis(req, yol) {
   try {
     const r = await new Promise((ok, no) => {
       const t = setTimeout(() => no(new Error('zaman aşımı')), AG_SURE);
       fetch(req).then((x) => { clearTimeout(t); ok(x); }, (err) => { clearTimeout(t); no(err); });
     });
     if (r.status < 500) return r;
-    return (await kayitliSayfa()) ?? r;
+    return (await kayitliSayfa(yol)) ?? r;
   } catch (err) {
-    const k = await kayitliSayfa();
+    const k = await kayitliSayfa(yol);
     if (k) return k;
     throw err;
   }
 }
-/** bu sürümün index.html'i (kendi /assets dosyalarıyla tutarlı); yoksa herhangi bir sürümünki */
-async function kayitliSayfa() {
-  return (await (await caches.open(CACHE)).match('/index.html')) ?? (await caches.match('/index.html')) ?? null;
+/** önbellekteki durağan sayfa (/gizlilik → /gizlilik.html) ya da bu sürümün index.html'i (kendi /assets dosyalarıyla
+ *  tutarlı); yoksa herhangi bir sürümünki */
+async function kayitliSayfa(yol) {
+  const c = await caches.open(CACHE);
+  const sade = yol.replace(/\/+$/, '').replace(/\.html$/, '');
+  if (sade && KABUK.has(sade + '.html')) {
+    const s = (await c.match(sade + '.html')) ?? (await caches.match(sade + '.html'));
+    if (s) return s;
+  }
+  return (await c.match('/index.html')) ?? (await caches.match('/index.html')) ?? null;
 }
 
 async function onceOnbellek(e) {

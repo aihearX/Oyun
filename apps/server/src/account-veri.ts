@@ -10,7 +10,7 @@
  * `account.ts` (hesap silme), `teams.ts` (takım silme) ve göç (`migrations.ts`, önceden silinmiş hesapların artıkları) bu tabloyla
  * çalışır. `test/account.test.ts` şemayı `sqlite_master`'dan okur: tabloda olmayan bir tablo ya da kimlik benzeri sütun (`*_id`,
  * `*_by`, `a`/`b`, `*name` …) eklenirse test düşer; yeni tablo ekleyen karar vermek zorunda kalır. Gizlilik taslağındaki saklama
- * tablosu (docs/yonetim/gizlilik-TASLAK.md §2) bu dosyaya göre yazılır.
+ * tablosu (apps/web/src/yasal/metin.ts §3 ve docs/yonetim/gizlilik.md) bu dosyaya göre yazılır.
  */
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
@@ -65,6 +65,10 @@ const TAKIM_SOHBET = `SELECT id FROM chat WHERE room = 'takim:' || ?`;
 
 /** moderasyon kayıtlarının silinen hesaptan sonra saklanma süresi (pruneDeletedReports) */
 export const REPORT_RETAIN_AFTER_DELETE_MS = 90 * 24 * 3_600_000;
+/** şikâyet kayıtlarının saklanma süresi (pruneReports; gizlilik metni §3) */
+export const REPORT_RETAIN_MS = 90 * 24 * 3_600_000;
+/** satın alma kayıtlarının saklanma süresi: işlem yılının sonundan başlayarak (prunePurchases; VUK m.253, TTK m.82) */
+export const PURCHASE_RETAIN_YEARS = 10;
 
 const ANONIM_TAKIM_TOPLAMI = 'Takımın toplamı bu satırların toplamı; silinirse takım arkadaşlarının puanı düşer. Kimlik anonim oyuncu satırına işaret eder.';
 const RAKIP_GECMISI = 'Rakip takımın geçmişi (düello/yarış/lig kaydı); kişisel veri yok, yalnız takım kimliği.';
@@ -90,7 +94,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   },
   promo_uses: { oyuncu: { player_id: SIL } },
   purchases: {
-    oyuncu: { player_id: { karar: 'tut', neden: 'Satın alma makbuzu: yasal saklama (ticari defter/vergi) ve aynı makbuzun ikinci kez kullanılmasını önleme. Oyuncu kimliği yerine "silinmis" işareti yazılır.', sure: 'yasal saklama süresi (hukuk danışmanı belirler; TTK m.82: 10 yıl)', degistir: { player_id: 'silinmis' } } },
+    oyuncu: { player_id: { karar: 'tut', neden: 'Satın alma makbuzu: yasal saklama (ticari defter/vergi) ve aynı makbuzun ikinci kez kullanılmasını önleme. Oyuncu kimliği yerine "silinmis" işareti yazılır.', sure: '10 yıl, işlem yılının sonundan başlayarak (VUK m.253, TTK m.82), sonra otomatik silinir (prunePurchases)', degistir: { player_id: 'silinmis' } } },
     degil: ['id', 'product_id'],
   },
 
@@ -191,15 +195,15 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     degil: ['msg_id', 'parent_id'],
   },
   chat_reports: {
-    oyuncu: { reporter: { karar: 'tut', neden: 'Moderasyon: başka oyuncunun iletisi hakkındaki şikâyet (gizleme eşiği, kötüye kullanım incelemesi).', sure: 'hesap silindikten sonra 90 gün (pruneDeletedReports)' } },
+    oyuncu: { reporter: { karar: 'tut', neden: 'Moderasyon: başka oyuncunun iletisi hakkındaki şikâyet (gizleme eşiği, kötüye kullanım incelemesi).', sure: 'şikâyetten 90 gün sonra otomatik silinir (pruneReports; silinen hesapta da en çok 90 gün)' } },
     bagli: [{ tur: 'oyuncu', sutun: 'msg_id', kaynak: OYUNCU_SOHBET }],
     degil: ['msg_id'],
     not: 'Silinen oyuncunun iletileri hakkındaki şikâyetler ileti silindiği için anlamsız kalır: silinir.',
   },
   player_reports: {
     oyuncu: {
-      target: { karar: 'tut', neden: 'Moderasyon: şikâyet edilen hesabın kaydı (kötüye kullanım incelemesi, hukuki talep).', sure: 'hesap silindikten sonra 90 gün (pruneDeletedReports)' },
-      reporter: { karar: 'tut', neden: 'Moderasyon: başka oyuncu hakkındaki şikâyet (otomatik susturma eşiği).', sure: 'hesap silindikten sonra 90 gün (pruneDeletedReports)' },
+      target: { karar: 'tut', neden: 'Moderasyon: şikâyet edilen hesabın kaydı (kötüye kullanım incelemesi, hukuki talep).', sure: 'şikâyetten 90 gün sonra otomatik silinir (pruneReports; silinen hesapta da en çok 90 gün)' },
+      reporter: { karar: 'tut', neden: 'Moderasyon: başka oyuncu hakkındaki şikâyet (otomatik susturma eşiği).', sure: 'şikâyetten 90 gün sonra otomatik silinir (pruneReports; silinen hesapta da en çok 90 gün)' },
     },
     degil: ['msg_id'],
   },

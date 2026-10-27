@@ -252,7 +252,8 @@ eklemek ya da veriyi dönüştürmek** için `apps/server/src/migrations.ts` iç
 
 ## Hesabı silme (`account.delete`)
 
-Ayarlar › **Her şeyi sıfırla**, cihazı silmeden önce sunucudaki hesabı siler (KVKK m.7 / GDPR m.17 silme hakkı; App Store 5.1.1(v)).
+Profil › Ayarlar › **Hesabı sil** (eski adı "Her şeyi sıfırla"), cihazı silmeden önce sunucudaki hesabı siler (KVKK m.7 / GDPR m.17
+silme hakkı; App Store 5.1.1(v)). Oyuncuya anlatılan hâli: `/hesap-sil` ve `/gizlilik` §7 (`apps/web/src/yasal/metin.ts`).
 Bağlantı yoksa istemci en çok 6 sn bekler; olmazsa yalnızca cihaz silinir (onay sayfası bunu açıkça söyler).
 - Hangi tablonun **silindiği**, **anonimleştiği** (yalnız başkasının verisi bozulmasın diye: takım toplamını oluşturan düello puanı,
   takım yarışı yıldızı, ralli katılımı, takım kliniği; geçen haftanın son sıralaması) ya da **gerekçeyle tutulduğu** (makbuz, şikâyet
@@ -269,6 +270,24 @@ Bağlantı yoksa istemci en çok 6 sn bekler; olmazsa yalnızca cihaz silinir (o
   satırlarını bir kez temizler.
 - Silinmiş hesaplar yönetici hesaplarıyla aynı yoldan (`ADMIN_IDS_SQL`) rekabet tablolarından ve ödüllerden çıkarılır; arama ve
   öneri listelerinde görünmez. Geri alınamaz.
+- Saklama bakımı (saatlik): sohbet 30 gün (`pruneChat`), bölüm gönderim kayıtları 30 gün (`pruneRuns`), kod denemeleri 90 gün
+  (`prunePromoLog`), şikâyetler 90 gün (`pruneReports`), satın alma kayıtları işlem yılının sonundan 10 yıl (`prunePurchases`),
+  hesap açma sınırının bellekteki IP kayıtları (`pruneNewAccountIps`). Süreler gizlilik metniyle aynıdır (`apps/web/src/legal.test.ts`).
+
+## Hesap ve şikâyet (işletmen araçları)
+
+Sunucu makinesinde, ağdan erişilemeyen komutlar: geliştirmede `npm run kod -- …`; Oracle kurulumunda
+`sudo -u odi env ODI_DB=/var/lib/odi/odi.sqlite node /opt/odi/guncel/sunucu/kod.mjs …` (docs/18-sunucu-kurulum.md "Kodlar" ile aynı).
+Kod: `apps/server/src/yonetim.ts`, test `apps/server/test/yonetim.test.ts`.
+
+- `hesap ARKADAŞ-KODU`: ad, açılış ve son bağlantı, takım, son 90 günde şikâyet eden kişi sayısı, susturma.
+- `hesap-sil ARKADAŞ-KODU --onay`: uygulama dışından (e-postayla, `/hesap-sil` sayfası) gelen silme isteği. Hesaplarda e-posta ya
+  da şifre olmadığından, başkası birinin adına silme isteyemesin diye yalnız **son 14 gün bağlanmamış** hesap silinir
+  (`HESAP_SIL_BEKLEME_GUN`); silme `account.delete` ile aynı işlemdir. `--zorla` bekleme şartını kaldırır: yalnız yasal
+  zorunlulukta ya da hesabın sahibi başka yoldan kanıtlandığında. İsteğe 30 gün içinde yanıt verilir (KVKK m.13).
+- `sikayetler [--gun 7]`: şikâyet edilen oyuncular (farklı şikâyetçi sayısı, nedenler, gizlenen iletiler). App Store 1.2 gereği
+  şikâyetler düzenli (öneri: her gün) gözden geçirilir.
+- `sustur ARKADAŞ-KODU --gun N`: sohbet ve özel mesajı N gün kapatır (`--gun 0` kaldırır). Oyuncu "N gün mesaj gönderemezsin" görür.
 
 ## Kodlar (Kod Gir)
 

@@ -35,7 +35,7 @@ export function bonusesFor(app: App, pid: string): Bonuses {
 }
 
 /** aynı runId için kayıtlı yanıt (idempotent gönderim) */
-const RUN_RETAIN_MS = 30 * 86_400_000;
+export const RUN_RETAIN_MS = 30 * 86_400_000;
 export function pruneRuns(app: App): void { app.db.run('DELETE FROM progress_runs WHERE at < ?', app.now() - RUN_RETAIN_MS); }
 
 export const progressHandlers: Handlers = {

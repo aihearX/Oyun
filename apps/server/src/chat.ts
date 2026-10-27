@@ -6,8 +6,12 @@ import { raceMemberIds } from './race';
 import { DAY_MS } from './time';
 
 const MUTE_MS = 10 * 60_000;
+/** susturma iletisi (kısa susturma dakika, işletmenin uzun susturması gün olarak) */
+export function susturmaMetni(kalanMs: number): string {
+  return kalanMs > DAY_MS ? `Şikâyetler nedeniyle ${Math.ceil(kalanMs / DAY_MS)} gün mesaj gönderemezsin.` : `Şikâyetler nedeniyle ${Math.ceil(kalanMs / 60_000)} dakika mesaj gönderemezsin.`;
+}
 const REPORTS_TO_HIDE = 3;
-const RETAIN_MS = 30 * DAY_MS;
+export const CHAT_RETAIN_MS = 30 * DAY_MS;
 
 type Meta = Record<string, string | number | boolean>;
 interface ChatRow { id: string; room: string; from_id: string; name: string; color: number; text: string; kind: ChatKind; at: number; meta: string | null; hidden: number }
@@ -146,7 +150,7 @@ export function history(app: App, pid: string, room: string): ChatMessage[] {
 }
 
 export function pruneChat(app: App): void {
-  app.db.run('DELETE FROM chat WHERE at < ?', app.now() - RETAIN_MS);
+  app.db.run('DELETE FROM chat WHERE at < ?', app.now() - CHAT_RETAIN_MS);
   app.db.run('DELETE FROM chat_reactions WHERE msg_id NOT IN (SELECT id FROM chat)');
   app.db.run('DELETE FROM chat_thread WHERE parent_id NOT IN (SELECT id FROM chat)');
   app.db.run('DELETE FROM chat_cid WHERE at < ?', app.now() - CID_RETAIN_MS);
@@ -204,7 +208,7 @@ export function chatBody(app: App, p: PlayerRow, text: string, kind: 'text' | 'e
 /** oyuncunun bir odaya mesajı (sohbet, yanıt, ipucu): susturma, hız, tür kuralları, bahsetme */
 export function sendAs(app: App, p: PlayerRow, room: string, text: string, kind: 'text' | 'emoji' | 'hazir', replyTo?: string, extra: Meta = {}): ChatMessage {
   const now = app.now();
-  if (p.chat_muted_until > now) fail('SUSTURULDU', `Şikâyetler nedeniyle ${Math.ceil((p.chat_muted_until - now) / 60_000)} dakika mesaj gönderemezsin.`);
+  if (p.chat_muted_until > now) fail('SUSTURULDU', susturmaMetni(p.chat_muted_until - now));
   const body = chatBody(app, p, text, kind);
   if (now - p.last_chat_at < SOCIAL_LIMITS.chatCooldownMs) fail('HIZ', 'Biraz yavaş: mesajlar arasında kısa bir süre beklemelisin.');
   let parent: ChatRow | undefined;

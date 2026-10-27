@@ -1,15 +1,92 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { APP_VERSION, PRIVACY_DRAFT, PRIVACY_SECTIONS } from './legal';
+import { COMM_RULES, FRIEND_LIMITS } from '@odi/shared';
+import { APP_VERSION } from './legal';
+import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
+import { sayfaHtml } from './yasal/sayfa';
+import { AYAR, belgeDoldur, degerler, doldur, duzMetin, gecerliAdres, satirParcala, type Belge, type YasalAyar } from './yasal/yasal';
+import { CHAT_RETAIN_MS } from '../../server/src/chat';
+import { RUN_RETAIN_MS } from '../../server/src/progress';
+import { PROMO_LOG_RETAIN_MS } from '../../server/src/codes';
+import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS } from '../../server/src/account-veri';
+import { DEFAULT_SPEND_LIMIT_TRY, LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
+import { HESAP_SIL_BEKLEME_GUN } from '../../server/src/yonetim';
 
-describe('Gizlilik ve hakkında', () => {
-  it('sürüm mobil app.json ile aynı; hukuk onayına kadar taslak; Türkçe karakterler doğru', () => {
-    const app = JSON.parse(readFileSync(resolve(__dirname, '../../mobile/app.json'), 'utf8'));
+const DAY = 86_400_000;
+const root = resolve(__dirname, '../../..');
+const tum: Belge[] = [GIZLILIK_TR, GIZLILIK_EN, HESAP_SIL, HAKKINDA];
+const doluAyar: YasalAyar = { YAYINCI: 'aiHear', YAYINCI_UNVAN: 'Örnek Ltd. Şti.', YAYINCI_ADRES: 'Örnek Mah. 1, İstanbul', ILETISIM_EPOSTA: 'destek@ornek.invalid', SUNUCU_BOLGESI: 'Frankfurt, Almanya', YURURLUK: '2026-10-27' };
+
+describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
+  it('sürüm mobil app.json ile aynı', () => {
+    const app = JSON.parse(readFileSync(resolve(root, 'apps/mobile/app.json'), 'utf8'));
     expect(APP_VERSION).toBe(app.expo.version);
-    expect(PRIVACY_DRAFT).toBe(true);
-    const all = PRIVACY_SECTIONS.flatMap((s) => [s.title, ...s.items]).join(' ');
-    expect(all).not.toMatch(/\b(icin|degil|sifirla|sohbeti mesajlari|ozet)\b/i);
-    expect(all).toContain('Her şeyi sıfırla');
+  });
+
+  it('bütün yer tutucular tanınıyor; boş ayar sayfada "eklenecek" yazar, dolu ayar yerine geçer', () => {
+    for (const b of tum) for (const dil of ['tr', 'en'] as const) expect(() => belgeDoldur({ ...b, dil }, AYAR, '0.1.0')).not.toThrow();
+    expect(() => doldur('{YOK_BOYLE}', degerler('tr'))).toThrow(/bilinmeyen/);
+    const bos = duzMetin(belgeDoldur(GIZLILIK_TR, { ...doluAyar, ILETISIM_EPOSTA: '', YAYINCI_UNVAN: '' }));
+    expect(bos).toContain('[iletişim e-postası eklenecek]');
+    expect(bos).toContain('Veri sorumlusu: aiHear');
+    const dolu = belgeDoldur(HESAP_SIL, doluAyar);
+    expect(duzMetin(dolu)).toContain('destek@ornek.invalid');
+    expect(duzMetin(dolu)).not.toMatch(/\{[A-Z_]+\}/);
+    // e-posta yoksa mailto bağlantısı düz yazıya döner (kırık bağlantı yok)
+    expect(satirParcala('[x](mailto:?subject=a)')).toEqual([{ t: 'yazi', x: 'x' }]);
+    expect(gecerliAdres('mailto:destek@ornek.invalid?subject=Hesap%20silme')).toBe(true);
+    expect(gecerliAdres('http://dis.example')).toBe(false);
+  });
+
+  it('sayılar sunucu sabitleriyle aynı (kod değişirse metin de değişmeli)', () => {
+    expect(CHAT_RETAIN_MS).toBe(30 * DAY);
+    expect(RUN_RETAIN_MS).toBe(30 * DAY);
+    expect(REPORT_RETAIN_MS).toBe(90 * DAY);
+    expect(PROMO_LOG_RETAIN_MS).toBe(90 * DAY);
+    expect(PURCHASE_RETAIN_YEARS).toBe(10);
+    expect(FRIEND_LIMITS.dmKeep).toBe(500);
+    expect(FRIEND_LIMITS.reportsToMute).toBe(3);
+    expect(COMM_RULES.freeTextLevel).toBe(8);
+    expect(DEFAULT_SPEND_LIMIT_TRY).toBe(1000);
+    expect(LIMIT_RAISE_DELAY_MS).toBe(DAY);
+    expect(HESAP_SIL_BEKLEME_GUN).toBe(14);
+    const ortak = readFileSync(resolve(root, 'tools/sunucu/ortak.sh'), 'utf8');
+    expect(ortak).toMatch(/^ODI_BACKUP_HOURS=6$/m);
+    expect(ortak).toMatch(/^ODI_BACKUP_KEEP=28$/m);
+    expect(ortak).toMatch(/^MaxRetentionSec=30day$/m);
+    expect(ortak).toContain('try_files {path} {path}.html /index.html');
+    const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN); const hs = duzMetin(HESAP_SIL);
+    for (const s of ['30 gün', '90 gün', 'son 500 mesaj', '8 bölüm', '10 yıl', '28 kopya (7 gün)', '1000 TL', '24 saat']) expect(tr).toContain(s);
+    for (const s of ['30 days', '90 days', 'Last 500 messages', '8 levels', '10 years', '28 copies (7 days)', '1000 TRY', '24 hours']) expect(en).toContain(s);
+    expect(hs).toContain(`son ${HESAP_SIL_BEKLEME_GUN} gün`);
+    expect(hs).toContain(`${HESAP_SIL_BEKLEME_GUN} days`);
+  });
+
+  it('oyun içi yol ile metin aynı: Profil › Ayarlar › Hesabı sil, Her şeyi sil', () => {
+    const ayarlar = readFileSync(resolve(root, 'apps/web/src/screens/SettingsScreen.tsx'), 'utf8');
+    expect(ayarlar).toContain('<h2>Hesabı sil</h2>');
+    expect(ayarlar).toContain("'Her şeyi sil'");
+    expect(duzMetin(HESAP_SIL)).toContain('Hesabı sil');
+    expect(duzMetin(HESAP_SIL)).toContain('Her şeyi sil');
+    expect(duzMetin(GIZLILIK_TR)).toContain('Profil › Ayarlar › Hesabı sil');
+  });
+
+  it('Türkçe karakterler doğru (ASCII yazım yok)', () => {
+    const all = [GIZLILIK_TR, HESAP_SIL, HAKKINDA].map(duzMetin).join(' ');
+    expect(all).not.toMatch(/\b(icin|degil|sifirla|silinir mi|ozet|gizlilik politikasi|kisisel|sikayet)\b/i);
+  });
+
+  it('herkese açık sayfalar: dış kaynak, betik, izleyici yok; dil ve başlık var; bağlantılar geçerli', () => {
+    expect(YASAL_SAYFALAR.map((b) => [b.yol, b.dosya])).toEqual([['/gizlilik', 'gizlilik.html'], ['/en/privacy', 'en/privacy.html'], ['/hesap-sil', 'hesap-sil.html']]);
+    for (const b of YASAL_SAYFALAR) {
+      const html = sayfaHtml(b, doluAyar);
+      expect(html.startsWith('<!doctype html>')).toBe(true);
+      expect(html).toContain(`<html lang="${b.dil}">`);
+      expect(html).not.toMatch(/<script|<iframe|<img|@import|url\(|https?:\/\//i);
+      for (const [, href] of html.matchAll(/href="([^"]+)"/g)) expect(gecerliAdres(href!.replace(/&amp;/g, '&')), href).toBe(true);
+      // iç bağlantılar var olan sayfalara gider
+      for (const [, href] of html.matchAll(/href="(\/[^"#]*)/g)) expect(['/', '/favicon.svg', ...YASAL_SAYFALAR.map((x) => x.yol)]).toContain(href);
+    }
   });
 });

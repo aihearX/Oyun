@@ -5,6 +5,10 @@
  *   kapat KOD | ac KOD
  *   ozet [--denetle] → yönetici kodu için yeni özet üretir (kodu standart girdiden okur; ODI_ADMIN_CODE_HASH'e yazılır).
  *                     Kod 16–32 karakter, harf/rakam/tire olmalı; --denetle yalnız uygunluğu söyler.
+ *   hesap ARKADAŞ-KODU                     → hesabın özeti (ad, son bağlantı, takım, şikâyet)
+ *   hesap-sil ARKADAŞ-KODU --onay [--zorla] → uygulama dışı silme isteği (/hesap-sil): yalnız 14 gündür bağlanmamış hesap
+ *   sikayetler [--gun 7]                   → son günlerin şikâyetleri (oyuncu başına, gizlenen iletilerle)
+ *   sustur ARKADAŞ-KODU --gun N            → sohbet ve özel mesajı N gün kapatır (0: kaldırır)
  * Veritabanı: ODI_DB (yoksa apps/server/data/odi.sqlite). Tarihler İstanbul saatiyle; bitiş günü dahildir.
  */
 import path from 'node:path';
@@ -12,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { CODE_PATTERN, COMM_RULES, normalizeCode, SOCIAL_LIMITS } from '@odi/shared';
 import { App, OdiError, type ServerConfig } from './app';
 import { createCode, hashAdminCode, listCodes, rewardText, setCodeActive } from './codes';
+import { HESAP_SIL_BEKLEME_GUN, hesapBul, hesapSilIstegi, sikayetler, sustur, type HesapOzeti } from './yonetim';
 
 /** üretim yönetici kodu için en kısa uzunluk (docs/18-sunucu-kurulum.md) */
 const ADMIN_CODE_MIN = 16;
@@ -29,6 +34,11 @@ const day = (k: string, end = false) => {
   return end ? t + 86_400_000 : t;
 };
 const fmt = (t: number | null) => (t == null ? '—' : new Date(t).toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }));
+const hesapYaz = (h: HesapOzeti) => console.log([
+  `${h.ad} · arkadaş kodu ${h.arkadasKodu}${h.silindi ? ' · SİLİNMİŞ' : ''}`,
+  `  açılış ${fmt(h.acilis)} · son bağlantı ${fmt(h.sonBaglanti)} · takım ${h.takim ?? '—'}`,
+  `  son 90 günde şikâyet eden ${h.sikayet90} kişi · mesaj kapalı: ${h.susturmaBitis > Date.now() ? `${fmt(h.susturmaBitis)}'e kadar` : 'hayır'}`,
+].join('\n'));
 
 async function main(): Promise<void> {
   if (cmd === 'ozet') {
@@ -63,8 +73,30 @@ async function main(): Promise<void> {
       const code = argv[1]; if (!code) throw new Error('kod adı eksik');
       const v = app.run(() => setCodeActive(app, code, cmd === 'ac'));
       console.log(`✓ ${v.code} ${v.active ? 'açıldı' : 'kapatıldı'}`);
+    } else if (cmd === 'hesap') {
+      const h = hesapBul(app, argv[1] ?? ''); if (!h) throw new Error('bu arkadaş koduyla hesap yok');
+      hesapYaz(h);
+    } else if (cmd === 'hesap-sil') {
+      const kod = argv[1] ?? ''; const h = hesapBul(app, kod); if (!h) throw new Error('bu arkadaş koduyla hesap yok');
+      hesapYaz(h);
+      if (!argv.includes('--onay')) { console.log('Silmek için --onay ekleyin (geri alınamaz).'); return; }
+      const r = hesapSilIstegi(app, kod, { zorla: argv.includes('--zorla') });
+      if (r.ok) console.log(`✓ ${r.ad} silindi (account.delete ile aynı işlem; yedeklerden en geç 7 günde çıkar)`);
+      else if (r.neden === 'etkin') throw new Error(`hesap ${r.gun} gün önce bağlandı: ${HESAP_SIL_BEKLEME_GUN} gün bağlanmamış olmalı (oyuncuya oyun içindeki Ayarlar › Hesabı sil yolunu yazın)`);
+      else throw new Error(r.neden === 'silinmis' ? 'hesap zaten silinmiş' : 'bu arkadaş koduyla hesap yok');
+    } else if (cmd === 'sikayetler') {
+      const list = sikayetler(app, num('gun') ?? 7);
+      if (!list.length) console.log('(şikâyet yok)');
+      for (const r of list) {
+        console.log(`${String(r.kisi).padStart(3)} kişi  ${r.arkadasKodu.padEnd(10)} ${r.ad}  [${r.nedenler.join(', ')}]  son ${fmt(r.son)}${r.susturmaBitis > Date.now() ? `  · mesaj kapalı ${fmt(r.susturmaBitis)}'e kadar` : ''}`);
+        for (const t of r.gizlenen) console.log(`        gizlenen: «${t}»`);
+      }
+    } else if (cmd === 'sustur') {
+      const g = num('gun'); if (g == null) throw new Error('--gun N eksik (0: susturmayı kaldırır)');
+      const h = sustur(app, argv[1] ?? '', g); if (!h) throw new Error('bu arkadaş koduyla (silinmemiş) hesap yok');
+      hesapYaz(h);
     } else {
-      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet');
+      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet | hesap ARKADAŞ-KODU | hesap-sil ARKADAŞ-KODU --onay | sikayetler [--gun 7] | sustur ARKADAŞ-KODU --gun N');
     }
   } finally { app.close(); }
 }

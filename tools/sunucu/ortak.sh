@@ -438,7 +438,8 @@ $1 {
 	handle {
 		root * $ODI_GUNCEL/web
 		header Cache-Control "no-cache"
-		try_files {path} /index.html
+		# /gizlilik → gizlilik.html (yasal sayfalar, vite.config.ts odiYasalSayfalar); bilinmeyen yol → oyun
+		try_files {path} {path}.html /index.html
 		file_server
 	}
 }

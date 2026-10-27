@@ -8,7 +8,7 @@ import { DELETED_PLAYER_NAME } from '@odi/shared';
 import type { App, Handlers } from './app';
 import { removeMember } from './teams';
 import { rankInvalidate } from './rank';
-import { anonimOyuncu, REPORT_RETAIN_AFTER_DELETE_MS, veriyiTemizle } from './account-veri';
+import { anonimOyuncu, PURCHASE_RETAIN_YEARS, REPORT_RETAIN_AFTER_DELETE_MS, REPORT_RETAIN_MS, veriyiTemizle } from './account-veri';
 
 export const isDeleted = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM deleted_players WHERE player_id = ?', pid);
 
@@ -27,7 +27,22 @@ export function deleteAccount(app: App, pid: string): void {
   app.after(() => rankInvalidate(app)); // Sıralama önbelleği: hesap hemen tablolardan çıkar
 }
 
-/** Moderasyon kayıtları (şikâyetler) silinen hesaptan sonra 90 gün tutulur, sonra silinir (gizlilik taslağı §2). */
+/** Şikâyet kayıtları 90 gün tutulur, sonra silinir (gizlilik metni §3; hesap silinse de silinmese de). */
+export function pruneReports(app: App): void {
+  const before = app.now() - REPORT_RETAIN_MS;
+  app.db.run('DELETE FROM player_reports WHERE at < ?', before);
+  app.db.run('DELETE FROM chat_reports WHERE at < ?', before);
+}
+
+/** Satın alma kayıtları: işlem yılının sonundan başlayarak 10 yıl (VUK m.253, TTK m.82), sonra silinir (gizlilik metni §3). */
+export function prunePurchases(app: App): void {
+  const y = Number(new Date(app.now() + 3 * 3_600_000).toISOString().slice(0, 4)); // İstanbul (UTC+3) takvim yılı
+  // y - PURCHASE_RETAIN_YEARS yılının başından önceki işlemlerin yılı, en az 10 yıl önce bitti
+  const cutoff = Date.UTC(y - PURCHASE_RETAIN_YEARS, 0, 1) - 3 * 3_600_000;
+  app.db.run('DELETE FROM purchases WHERE at < ?', cutoff);
+}
+
+/** Moderasyon kayıtları (şikâyetler) silinen hesaptan sonra en çok 90 gün tutulur (pruneReports zaten daha önce siler). */
 export function pruneDeletedReports(app: App): void {
   const before = app.now() - REPORT_RETAIN_AFTER_DELETE_MS;
   const old = 'SELECT player_id FROM deleted_players WHERE at < ?';

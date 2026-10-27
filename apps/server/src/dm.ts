@@ -1,6 +1,7 @@
 import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmKind, type DmMessage, type DmThread } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { addReport, areFriends, dmBlockReason, hasBlocked } from './friends';
+import { susturmaMetni } from './chat';
 import { maskProfanity } from './profanity';
 import { canFreeText, metric, requireFreeText } from './comm/settings';
 import { raceMemberIds } from './race';
@@ -137,7 +138,7 @@ export const dmHandlers: Handlers = {
     if (why) fail(why.startsWith('Oyuncu') ? 'YOK' : hasBlocked(app, to, s.pid) || hasBlocked(app, s.pid, to) ? 'ENGEL' : 'YETKI', why);
     const p = app.player(s.pid);
     const now = app.now();
-    if (p.chat_muted_until > now) fail('SUSTURULDU', `Şikâyetler nedeniyle ${Math.ceil((p.chat_muted_until - now) / 60_000)} dakika mesaj gönderemezsin.`);
+    if (p.chat_muted_until > now) fail('SUSTURULDU', susturmaMetni(p.chat_muted_until - now));
     let times = lastSend.get(app); if (!times) { times = new Map(); lastSend.set(app, times); }
     if (now - (times.get(s.pid) ?? -Infinity) < FRIEND_LIMITS.dmCooldownMs) fail('HIZ', 'Biraz yavaş: mesajlar arasında kısa bir süre beklemelisin.');
     let body = cleanText(text);
