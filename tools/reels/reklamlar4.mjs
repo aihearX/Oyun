@@ -121,7 +121,8 @@ const basaramadin = {
       meme('Son can…', { c: 'sm', y: 260, at: 0.05, anim: 'pop' }),
     ] },
     { id: 'olmadi', dur: fb4(5), bg: 'night', ringY: 900, sfx: [[0, 'whoosh', 0.4]], layers: [
-      phone(C4('sonuc/L04-basarisiz.png'), [0, 190, 1170, 1720], { imgW: 1170, w: 720, y: 290, maxH: 1000, ry: [-8, 3] }),
+      // oyunun teşvik satırı da görünsün ("Yolun %6'sını geçtin…"): satıra kaydırılmış kare (cekim4.mjs › -alt)
+      phone(C4('sonuc/L04-basarisiz-alt.png'), [0, 120, 1170, 1825], { imgW: 1170, w: 680, y: 270, maxH: 1070, ry: [-8, 3], kb: [1.0, 1.0] }),  // iç yakınlaşma yok: alt satır kesilmesin (kart yine döner, sahne iter)
     ] },
     { id: 'dede', dur: fb4(7), bg: 'night', ringY: 1050, mus: 'tension', fx: { zoom: [[0, 0.3, 0.04]] }, sfx: [[0, 'pop', 0.5], [0.15, 'sparkle', 0.4]], layers: [
       { kind: 'html', cls: 'bubble', html: '<small>Tüy Dede</small>Kıl perdesi alçak.<br>Aşağı kaydır, altından kay!', y: 300, at: 0.15, anim: 'pop' },
@@ -148,9 +149,10 @@ const basaramadin = {
       { kind: 'html', cls: 'soon', html: 'Yakında', y: 1220, at: 0.7, anim: 'stamp', rot: -3 },
     ] },
   ],
+  // z4: "kaydır" (satırda 2,68–3,38 sn; Whisper) son r'si 15,00'teki kesmenin (parlak düzen + savrulma) altında kalmasın: yalnız o kelimede müzik ve efektler −5 dB, 1–5 kHz'de −6 dB
   vo: [
     { id: 'z1', scene: 'kanca', at: 0.75, nosub: true }, { id: 'z2', scene: 'ipucu-yok', at: 1.3 }, { id: 'z3', scene: 'olmadi', at: 0.3 },
-    { id: 'z4', scene: 'dede', at: 0.4 }, { id: 'z5', scene: 'yildiz', at: 0.35 }, { id: 'z6', scene: 'son', at: 0.6, nosub: true },
+    { id: 'z4', scene: 'dede', at: 0.4, dip: [[2.62, 3.45, -5, -6]] }, { id: 'z5', scene: 'yildiz', at: 0.35 }, { id: 'z6', scene: 'son', at: 0.6, nosub: true },
   ],
   cover: { clip: Z(15.25, 1.6), t: 0.38, frame: { zoom: 1.2, top: 180 }, dim: 0.7, blur: 0.6, bg: 'none', layers: [
     { kind: 'html', cls: 'meme', html: 'Ben,<br>4. bölüm,<br>14. deneme', y: 250 },
