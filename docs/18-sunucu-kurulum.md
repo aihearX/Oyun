@@ -165,6 +165,28 @@ başlatır. Eski kod hemen geçersiz olur. `--kapat`: yönetici kodunu kapatır 
 | Expo Go | `npm run oyna -- --tunnel --sunucu wss://<ad>.duckdns.org` (yerel sunucu açılmaz; `EXPO_PUBLIC_ODI_SERVER` verilir; adres değişince Expo önbelleği kendiliğinden temizlenir). Tarayıcıda: `npm run oyna -- --web --sunucu wss://…` |
 | EAS (APK / mağaza) | `apps/mobile/eas.json` → `preview` ve `production` profillerinde `env.EXPO_PUBLIC_ODI_SERVER`. Şimdilik bilerek geçersiz yer tutucu: `wss://SUNUCU-ADRESI-YAZILACAK.invalid`. Sunucu "Hazır" deyince gerçek adresle değiştirilir |
 
+### iPhone'da ana ekrana ekleme
+
+iPhone oyuncuları betaya web sürümüyle girer. Oyunculara gönderilecek metin (`<ad>` yerine sunucu adını yazın):
+
+> **ODİ'yi iPhone'una kur (1 dakika):**
+> 1. iPhone'da **Safari** ile `https://<ad>.duckdns.org` adresini aç (Chrome ya da başka bir tarayıcıyla olmaz).
+> 2. Alttaki **Paylaş** düğmesine (yukarı ok çıkan kare) dokun, listeyi kaydırıp **Ana Ekrana Ekle**'yi seç.
+> 3. Sağ üstte **Ekle**'ye dokun. Artık ODİ ana ekranında: oradan aç. İnternet yokken de açılır ve oynanır
+>    (arkadaşlar, takım ve sohbet için bağlantı gerekir).
+
+Android'de Chrome adres çubuğunda ya da menüde **Uygulamayı yükle** önerir; aynı adres yeterlidir.
+
+Nasıl çalışır (MK-037): `apps/web/public/manifest.webmanifest` (simgeler, koyu açılış zemini `#140c35`), `index.html`
+(`apple-touch-icon`, saydam durum çubuğu, ana ekran adı "ODİ") ve derlemede yazılan `sw.js` service worker'ı
+(kalıbı `apps/web/sw/sw.js`, kaydı `apps/web/src/sw-kayit.ts`). Service worker oyunun kabuğunu (index.html, `/assets/*`,
+simgeler) ilk açılışta önbelleğe alır, anlatıcı kayıtlarını (`voice/*.mp3`) çalındıkça ekler; WebSocket, `/saglik` ve
+`/olcum`'a dokunmaz. `odi-guncelle`den sonra: açılışta önce sunucudaki `index.html` istenir (5 sn'de gelmezse önbellekteki),
+yani oyuncu uygulamayı yeniden açtığında yeni sürümü görür; açık oyun ortasında sayfa yenilenmez, yeni service worker
+bir sonraki açılışta etkinleşip eski önbelleği siler. `sw.js` Caddy'de `no-cache` ile sunulur (yukarıdaki "her şey" kuralı).
+Simgeleri yenilemek (sahip yeni simge verince): `node tools/ikon-uret.mjs --kaynak yeni.svg [--zemin '#6c4cf1']` →
+`apps/web/public/icons/*.png`. Test: `node tools/harness/pwa-e2e.mjs` (Chromium + WebKit).
+
 ## 6. Sorun giderme
 
 kur.sh "Hazır" diyemezse olası nedenleri sırayla yazar:
