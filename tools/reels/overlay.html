@@ -249,6 +249,36 @@
   .bg-plan .grid2 { position:absolute; inset:0; opacity:.12; background-image:linear-gradient(rgba(140,190,255,.9) 2px, transparent 2px), linear-gradient(90deg, rgba(140,190,255,.9) 2px, transparent 2px); background-size:300px 300px; }
   .bg-plan .arc { position:absolute; border:4px dashed rgba(255,201,60,.22); border-radius:50%; }
   .bg-quiz .q { position:absolute; font:800 520px/1 var(--disp); color:rgba(255,255,255,.035); }
+
+  /* ===== 5. dalga (lansman): uygulama simgesi, yayında rozeti, mağaza satırı, indir düğmesi, kontrol listesi, ders programı, ışın zemini ===== */
+  .bg-launch { position:absolute; inset:0; background:radial-gradient(60% 32% at 50% 30%, rgba(255,201,60,.30), rgba(255,201,60,0) 70%), radial-gradient(120% 85% at 50% 15%, #3b2496 0%, #1f1452 45%, #0a0624 100%); overflow:hidden; }
+  .bg-launch .ray { position:absolute; left:50%; top:30%; width:3200px; height:3200px; margin:-1600px 0 0 -1600px; border-radius:50%; background:repeating-conic-gradient(from 0deg, rgba(255,214,90,.12) 0deg 7deg, rgba(255,214,90,0) 7deg 18deg); -webkit-mask-image:radial-gradient(circle, #000 0 30%, transparent 62%); mask-image:radial-gradient(circle, #000 0 30%, transparent 62%); }
+  .still.appicon { border:none; border-radius:22.5%; background:none; box-shadow:0 34px 70px rgba(0,0,0,.6), 0 0 0 5px rgba(255,255,255,.14), 0 0 110px rgba(255,201,60,.5); }
+  .live { display:inline-flex; align-items:center; gap:22px; padding:22px 50px 18px 40px; border-radius:999px; font:800 74px/1 var(--disp); color:var(--bg0); text-transform:uppercase; letter-spacing:2px;
+    background:linear-gradient(180deg,#fff3b0,var(--gold) 55%,var(--gold2)); box-shadow:0 10px 0 rgba(138,69,0,.6), 0 0 60px rgba(255,201,60,.55); }
+  .live b { width:34px; height:34px; border-radius:50%; background:#ff3b5c; box-shadow:0 0 0 7px rgba(255,59,92,.28), 0 0 20px rgba(255,59,92,.9); margin-top:-6px; }
+  .store { font:900 50px/1.2 var(--ui); color:#fff6e5; letter-spacing:1px; text-align:center; padding:0 90px; text-shadow:0 3px 0 rgba(10,5,30,.7), 0 0 20px rgba(10,5,30,.9); }
+  .dl { display:inline-flex; align-items:center; gap:24px; padding:26px 58px 22px; border-radius:999px; font:900 62px/1 var(--ui); color:#062a28;
+    background:linear-gradient(180deg,#e9fffc,#2ee6d6 60%,#12a89e); box-shadow:0 10px 0 rgba(5,70,66,.65), 0 0 56px rgba(46,230,214,.55); }
+  .dl i { width:30px; height:30px; border-right:10px solid #062a28; border-bottom:10px solid #062a28; transform:translateY(-8px) rotate(45deg); }
+  .chk { display:inline-flex; align-items:center; gap:26px; padding:20px 44px 16px 22px; border-radius:30px; background:rgba(16,9,46,.9); border:5px solid var(--gold);
+    font:800 70px/1 var(--disp); color:#fff; text-transform:uppercase; box-shadow:0 14px 40px rgba(0,0,0,.55), 0 0 40px rgba(255,201,60,.3); white-space:nowrap; }
+  .chk .bx { flex:none; width:92px; height:92px; border-radius:22px; background:linear-gradient(180deg,#e9fffc,#2ee6d6 60%,#12a89e); display:grid; place-items:center; box-shadow:0 6px 0 rgba(5,70,66,.7); margin-top:-4px; }
+  .chk.sm { font-size:54px; padding:12px 30px 10px 14px; border-width:4px; border-radius:24px; } .chk.sm .bx { width:68px; height:68px; border-radius:16px; }
+  .chk.off { opacity:.45; border-color:rgba(201,193,255,.4); } .chk.off .bx { background:rgba(255,255,255,.12); box-shadow:none; }
+  .clist { display:flex; flex-direction:column; align-items:flex-start; gap:18px; }
+  .week { display:flex; gap:14px; }
+  .week span { padding:14px 22px 10px; border-radius:16px; font:900 38px/1 var(--ui); letter-spacing:2px; color:#cfc8f0; background:rgba(16,9,46,.85); border:4px solid rgba(201,193,255,.35); text-transform:uppercase; }
+  .week span.on { color:#14082e; background:var(--gold); border-color:#fff3b0; box-shadow:0 0 30px rgba(255,201,60,.6); }
+  .week span.done { color:#062a28; background:#2ee6d6; border-color:#bff8f2; text-decoration:line-through; text-decoration-thickness:4px; }
+  .day { padding:22px 46px 16px; background:#fff6e5; color:#14082e; border-radius:20px; border:6px solid #14082e; text-align:center; box-shadow:0 12px 0 rgba(20,8,46,.55), 0 24px 50px rgba(0,0,0,.45); }
+  .day b { display:block; font:900 34px/1 var(--ui); letter-spacing:10px; color:#7b5ce0; margin-bottom:8px; }
+  .day span { font:800 92px/1 var(--disp); text-transform:uppercase; }
+  .day small { display:block; font:800 32px/1.2 var(--ui); color:#5a3fb0; margin-top:6px; }
+  .bignum { font:800 560px/0.8 var(--disp); padding-top:40px; background:linear-gradient(180deg, #fff9e0 0%, #ffe27a 38%, #ffc93c 58%, #ff9f1c 100%); -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 12px 0 #8a3f00) drop-shadow(0 0 60px rgba(14,8,40,.9)); }
+  .move { text-align:center; } .move b { display:block; font:800 150px/0.95 var(--disp); text-transform:uppercase; color:#fff; text-shadow:0 8px 0 rgba(10,5,30,.6), 0 0 40px rgba(10,5,30,.8); }
+  .move span { display:inline-block; margin-top:10px; padding:12px 28px 10px; border-radius:18px; font:900 40px/1 var(--ui); color:#14082e; background:var(--teal); box-shadow:0 8px 0 rgba(5,70,66,.6); }
 </style>
 </head>
 <body>
@@ -318,6 +348,7 @@ const BGS = {
   calm: '<div class="bg-calm"></div><div class="stars" style="opacity:.25"></div>',
   plan: '<div class="bg-plan"><div class="grid"></div><div class="grid2"></div><div class="arc" style="left:-200px;top:300px;width:900px;height:900px"></div><div class="arc" style="right:-260px;top:1100px;width:700px;height:700px"></div></div>',
   quiz: '<div class="bg-quiz"><div class="q" style="left:-40px;top:120px;transform:rotate(-12deg)">?</div><div class="q" style="right:-30px;top:1080px;transform:rotate(14deg)">?</div></div><div class="stars" style="opacity:.2"></div>',
+  launch: '<div class="bg-launch"><div class="ray"></div></div><div class="stars" style="opacity:.35"></div>',
   stadium: '<div class="bg-stadium">' + [[-80, -22], [180, -9], [540, 0], [900, 9], [1160, 22]].map(([x, r]) => `<div class="beam" style="left:${x - 130}px" data-r="${r}"></div>`).join('') + '<div class="lights"></div><div class="crowd"></div></div>',
 };
 const noise = (t, k) => Math.sin(t * 61.7 + k * 3.1) * 0.5 + Math.sin(t * 37.3 + k * 7.7) * 0.35 + Math.sin(t * 93.1 + k) * 0.15;
@@ -410,6 +441,7 @@ window.setupReel = async (reel) => {
         h += `<div class="odi">${ODI(74, `j${si}_${li}`)}</div></div>`; inner.innerHTML = h;
         e.style.left = '0'; e.style.right = '0';
       }
+      if (k === 'html' && inner.querySelector('.draw')) L._draws = [...inner.querySelectorAll('.draw')];
       if (L.anim === 'type') L._text = inner.textContent;
       if (L.z != null) e.style.zIndex = L.z;
       e.appendChild(inner); d.appendChild(e);
@@ -515,6 +547,7 @@ window.seek = (t) => {
         const cx = c0[0] + (c1[0] - c0[0]) * p, cy = c0[1] + (c1[1] - c0[1]) * p; const m = (L.mag ?? 2) * (1 + (L.magGrow ?? 0) * p);
         img.style.transform = `translate(${(r - cx * m).toFixed(1)}px, ${(r - cy * m).toFixed(1)}px) scale(${m.toFixed(4)})`; sig += `${cx.toFixed(1)}:${m.toFixed(3)}`;
       }
+      if (L._draws) { const p = clamp((a - (L.drawAt ?? 0)) / (L.draw ?? 0.25)); L._draws.forEach((el) => { el.style.strokeDashoffset = (1 - easeOut(p)).toFixed(3); }); sig += 'd' + p.toFixed(2); }
       if (L._tp) { const p = clamp(a / (L.draw ?? 0.8)); L._tp.style.strokeDashoffset = (1 - p).toFixed(3); sig += p.toFixed(3); }
       if (L._ring) { const n = L.from ?? 3, d = L.dur ?? 3; const left = Math.max(0, d - a); const num = Math.max(1, Math.ceil(left / (d / n))); L._ring.arc.style.strokeDashoffset = (1 - left / d).toFixed(3); const txt = left <= 0 ? (L.zero ?? '!') : String(num); if (L._ring.b.textContent !== txt) L._ring.b.textContent = txt; sig += txt + left.toFixed(2); }
       if (L._pr) { (L.pulses ?? []).forEach(([p0, pd]) => { const q = (lt - p0) / pd; L._pr.forEach((el, j) => { const qq = q - j * 0.35; if (qq >= 0 && qq <= 1) { el.style.opacity = (1 - qq).toFixed(2); el.style.transform = `scale(${(1 + 1.4 * qq).toFixed(3)})`; sig += qq.toFixed(2); } }); }); if (!(L.pulses ?? []).some(([p0, pd]) => lt >= p0 && lt <= p0 + pd * 1.4)) L._pr.forEach((el) => { el.style.opacity = '0'; }); }

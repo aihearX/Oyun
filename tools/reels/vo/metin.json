@@ -199,6 +199,50 @@
       { "id": "q3", "text": "İki: en küçük iskelet kası da orada. Stapedius!", "sub": "2: En küçük iskelet kası da orada. Stapedius!", "asr": ["İki en küçük iskelet kası da orada stapedius", "2 en küçük iskelet kası da orada stapedius", "İki en küçük iskelet kası da orada stapedyus"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
       { "id": "q4", "text": "Üç: sağlıklı kulak, kendi çok hafif sesini üretir!", "sub": "3: Sağlıklı kulak, kendi çok hafif sesini üretir!", "asr": ["Üç sağlıklı kulak kendi çok hafif sesini üretir", "3 sağlıklı kulak kendi çok hafif sesini üretir"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
       { "id": "q5", "text": "Daha fazlası oyunda! Yakında.", "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } }
+    ],
+    "simdi-yayinda": [
+      {"id": "y1", "text": "Bekleyiş bitti.", "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "y2", "text": "Bir ses, beyne ulaşmak için yola çıkıyor.", "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "y3", "text": "Kırk bölüm. Kulaktan beyne.", "sub": "40 bölüm. Kulaktan beyne.", "asr": ["Kırk bölüm kulaktan beyne", "40 bölüm kulaktan beyne"], "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "y4", "text": "Ve yolun sonunda: Gürültü Canavarı.", "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "y5", "text": "ODİ: Sesin Yolu. Şimdi yayında.", "asr": ["ODİ Sesin Yolu şimdi yayında", "Odi sesin yolu şimdi yayında"], "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "y6", "text": "Hemen indir.", "v": {"exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6, "seeds": [1, 2, 3, 4, 5, 6]}}
+    ],
+    "geri-sayim": [
+      {"id": "g1", "text": "Beş: zıpla!", "asr": ["Beş zıpla", "5 zıpla"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g2", "text": "Dört: altından kay!", "asr": ["Dört altından kay", "4 altından kay"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g3", "text": "Üç: havada süzül!", "asr": ["Üç havada süzül", "3 havada süzül"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g4", "text": "İki: yere çakıl!", "asr": ["İki yere çakıl", "2 yere çakıl"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g5", "text": "Bir: ileri atıl!", "asr": ["Bir ileri atıl", "1 ileri atıl"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g6", "text": "ODİ yayında! Hemen oyna!", "asr": ["ODİ yayında hemen oyna", "Odi yayında hemen oyna"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}}
+    ],
+    "ilk-gun": [
+      {"id": "i1", "text": "İlk gün seni neler bekliyor?", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i2", "text": "Kırk bölüm.", "sub": "40 bölüm.", "asr": ["Kırk bölüm", "40 bölüm"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i3", "text": "Kokleanın içinde yüzmek.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i4", "text": "Büyüyen bir kamp.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i5", "text": "Takımınla canlı yarış.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i6", "text": "Timpanogram Eşleştir.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i7", "text": "Ve hasta vakaları.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i8", "text": "Hepsi ilk günden. Hemen indir!", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
+    ],
+    "sinav-haftasi": [
+      {"id": "s1", "text": "Sınav haftası mı? ODİ yanında.", "asr": ["Sınav haftası mı ODİ yanında", "Sınav haftası mı Odi yanında"], "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s2", "text": "Pazartesi anatomi: çekiç, örs, üzengi.", "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s3", "text": "Salı fizyoloji: koklea tabanı ince sesleri algılar.", "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s4", "text": "Çarşamba timpanometri: eğriyi oku, bulguyu söyle.", "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s5", "text": "Perşembe klinik: otuz iki kurgusal vaka.", "sub": "Perşembe klinik: 32 kurgusal vaka.", "asr": ["Perşembe klinik otuz iki kurgusal vaka", "Perşembe klinik 32 kurgusal vaka"], "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s6", "text": "Cuma tekrar: elli Kulak Kartı.", "sub": "Cuma tekrar: 50 Kulak Kartı.", "asr": ["Cuma tekrar elli kulak kartı", "Cuma tekrar 50 kulak kartı"], "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "s7", "text": "ODİ: Sesin Yolu yayında. Sınavdan önce bir tur at.", "asr": ["ODİ Sesin Yolu yayında sınavdan önce bir tur at", "Odi sesin yolu yayında sınavdan önce bir tur at"], "v": {"exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55, "seeds": [1, 2, 3, 4, 5, 6]}}
+    ],
+    "ilk-takim": [
+      {"id": "t1", "text": "Her arkadaş grubunda bir tane vardır.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t2", "text": "Hep önden koşan,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t3", "text": "her notayı toplayan,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t4", "text": "aynı yerde takılıp kalan,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t5", "text": "ve herkesi toplayan.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t6", "text": "Hepsini takımına al: canlı yarış, baskın, hep birlikte.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "t7", "text": "ODİ yayında. Takımını kur, ilk sen ol!", "asr": ["ODİ yayında takımını kur ilk sen ol", "Odi yayında takımını kur ilk sen ol"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
     ]
   }
 }

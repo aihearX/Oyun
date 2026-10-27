@@ -1817,5 +1817,29 @@
    "dur": 1.78,
    "sps": 5.07
   }
+ },
+ "simdi-yayinda": {
+  "y1": {
+   "key": "3bfeb7f48ca7",
+   "text": "Bekleyiş bitti.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bekleyiş bitti.",
+   "gap": 0.09,
+   "tempo": 1.1,
+   "dur": 1.1,
+   "sps": 4.53
+  },
+  "y2": {
+   "key": "036eaa17b9c1",
+   "text": "Bir ses, beyne ulaşmak için yola çıkıyor.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir ses, beyne ulaşmak için yola çıkıyor.",
+   "gap": 0.23,
+   "tempo": 1.0,
+   "dur": 2.93,
+   "sps": 4.78
+  }
  }
 }
