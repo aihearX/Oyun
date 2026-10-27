@@ -39,7 +39,7 @@ export async function launch(chromium) {
   return chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling'] });
 }
 
-export const clipId = (c) => `L${String(c.level).padStart(2, '0')}${c.salt ? `-s${c.salt}` : ''}-t${c.fromT}-d${c.dur}${c.fps && c.fps !== 30 ? `-f${c.fps}` : ''}`;
+export const clipId = (c) => `L${String(c.level).padStart(2, '0')}${c.salt ? `-s${c.salt}` : ''}${c.mode ? `-m${c.mode}` : ''}${c.hints ? '-h' : ''}-t${c.fromT}-d${c.dur}${c.fps && c.fps !== 30 ? `-f${c.fps}` : ''}`;
 export const clipDir = (c) => path.join(outRoot, 'clips', clipId(c));
 
 /**

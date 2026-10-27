@@ -76,6 +76,7 @@
   /* ekran görüntüsü kartı */
   .still { position:relative; overflow:hidden; border-radius:46px; border:6px solid var(--gold); background:var(--bg0);
     box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 3px rgba(20,12,53,.9), 0 0 70px rgba(139,107,255,.45); }
+  .still.bare { background:none; border:none; box-shadow:none; border-radius:0; filter:drop-shadow(0 24px 40px rgba(0,0,0,.55)) drop-shadow(0 0 50px rgba(255,201,60,.25)); }
   .still.teal { border-color:var(--teal); } .still.coral { border-color:var(--coral); } .still.plain { border-color:rgba(201,193,255,.5); }
   .still img { position:absolute; left:0; top:0; transform-origin:50% 50%; }
   /* liste (tedavi malzemeleri gibi) */
@@ -217,6 +218,37 @@
   .lbl.lo { text-transform:none; letter-spacing:0; }
   .lbl.xl { font-size:60px; padding:20px 36px 16px; } .lbl.xl small { font-size:40px; }
   .dname { font:900 34px/1 var(--ui); color:#fff6e5; background:rgba(16,9,46,.88); border:4px solid #2ee6d6; border-radius:999px; padding:12px 22px 10px; white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,.5); }
+
+  /* ===== 4. dalga: şiirsel sinema yazısı, bölüm etiketi, iddia kartı, MİT/GERÇEK damgası, sayaç, meme yazısı, konuşma balonu, isim kartı ===== */
+  .chap { display:flex; align-items:center; gap:22px; font:900 44px/1 var(--ui); letter-spacing:12px; text-transform:uppercase; color:#fff6e5; text-shadow:0 0 16px rgba(0,0,0,.9), 0 2px 0 rgba(0,0,0,.6); }
+  .chap i { width:70px; height:3px; border-radius:2px; background:linear-gradient(90deg, transparent, var(--gold)); } .chap i:last-child { background:linear-gradient(90deg, var(--gold), transparent); }
+  .lvltag { font:800 34px/1 var(--ui); letter-spacing:2px; color:#d9d2ff; text-shadow:0 0 12px rgba(0,0,0,.95), 0 2px 0 rgba(0,0,0,.7); }
+  .kt.poem { text-transform:none; letter-spacing:0; font-size:118px; line-height:1.02; }
+  .sub.poem { background:none; box-shadow:none; border:none; font:800 52px/1.25 var(--ui); color:#fff6e5; text-shadow:0 0 18px #000, 0 0 6px #000, 0 3px 0 rgba(0,0,0,.8); }
+  .claim { margin:0 96px; padding:44px 46px 40px; border-radius:40px; background:#fff6e5; color:#14082e; text-align:center; font:800 70px/1.08 var(--disp); box-shadow:0 18px 0 rgba(20,8,46,.55), 0 30px 70px rgba(0,0,0,.5); border:7px solid #14082e; position:relative; }
+  .claim small { display:block; font:900 30px/1 var(--ui); letter-spacing:6px; text-transform:uppercase; color:#8b6bff; margin-bottom:14px; }
+  .claim:before { content:'“'; position:absolute; left:26px; top:-34px; font:800 170px/1 var(--disp); color:#ffc93c; text-shadow:0 6px 0 #14082e; }
+  .stamp2.big { font-size:150px; letter-spacing:14px; border-width:14px; border-radius:26px; padding:26px 46px 12px; background:rgba(40,0,10,.55); box-shadow:0 0 60px rgba(255,71,102,.5); }
+  .stamp2.ok { color:#3ef08a; border-color:#3ef08a; background:rgba(0,40,18,.55); box-shadow:0 0 60px rgba(62,240,138,.45); }
+  .timer { font:800 250px/1 var(--disp); letter-spacing:2px; color:#fff6e5; font-variant-numeric:tabular-nums; text-shadow:0 8px 0 rgba(10,5,30,.6), 0 0 40px rgba(46,230,214,.55); }
+  .timer.red { color:#ff4766; text-shadow:0 8px 0 rgba(60,0,15,.6), 0 0 50px rgba(255,40,80,.7); }
+  .timer.sm { font-size:120px; }
+  .meme { text-align:center; font:800 92px/1.02 var(--disp); text-transform:uppercase; color:#fff; padding:0 60px; -webkit-text-stroke:14px #000; paint-order:stroke fill; letter-spacing:1px; }
+  .meme.sm { font-size:70px; -webkit-text-stroke:11px #000; }
+  .bubble { position:relative; max-width:760px; padding:30px 38px 26px; border-radius:36px; background:#fff6e5; color:#14082e; font:900 50px/1.18 var(--ui); text-align:center; border:6px solid #14082e; box-shadow:0 14px 0 rgba(20,8,46,.5), 0 24px 60px rgba(0,0,0,.45); }
+  .bubble small { display:block; font:900 28px/1 var(--ui); letter-spacing:5px; text-transform:uppercase; color:#0b8f86; margin-bottom:10px; }
+  .bubble:after { content:''; position:absolute; left:50%; bottom:-46px; margin-left:-26px; border:26px solid transparent; border-top:24px solid #14082e; }
+  .nc { display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .nc small { font:900 40px/1 var(--ui); letter-spacing:16px; text-transform:uppercase; color:#ffc93c; text-shadow:0 0 16px rgba(0,0,0,.9); }
+  .nc b { font:800 112px/1 var(--disp); color:#fff; text-shadow:0 7px 0 rgba(10,5,30,.6), 0 0 40px rgba(10,5,30,.8); }
+  .nc span { font:800 34px/1.2 var(--ui); color:#cfc8f0; text-shadow:0 0 14px rgba(0,0,0,.95); }
+  .freeze { position:absolute; left:0; right:0; top:0; height:1920px; }
+  .bg-quiz { position:absolute; inset:0; background:radial-gradient(60% 36% at 50% 40%, rgba(255,201,60,.14), rgba(255,201,60,0) 70%), linear-gradient(118deg, #3d0c25 0%, #1d0b3a 47%, #1d0b3a 53%, #06302a 100%); overflow:hidden; }
+  .bg-plan { position:absolute; inset:0; background:radial-gradient(70% 40% at 50% 40%, #16336e 0%, #0b1a44 55%, #050b22 100%); overflow:hidden; }
+  .bg-plan .grid { position:absolute; inset:0; opacity:.16; background-image:linear-gradient(rgba(140,190,255,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(140,190,255,.7) 1px, transparent 1px); background-size:60px 60px; }
+  .bg-plan .grid2 { position:absolute; inset:0; opacity:.12; background-image:linear-gradient(rgba(140,190,255,.9) 2px, transparent 2px), linear-gradient(90deg, rgba(140,190,255,.9) 2px, transparent 2px); background-size:300px 300px; }
+  .bg-plan .arc { position:absolute; border:4px dashed rgba(255,201,60,.22); border-radius:50%; }
+  .bg-quiz .q { position:absolute; font:800 520px/1 var(--disp); color:rgba(255,255,255,.035); }
 </style>
 </head>
 <body>
@@ -284,6 +316,8 @@ const BGS = {
   board: '<div class="bg-board"><div class="grid"></div></div>',
   studio: '<div class="bg-studio"><div class="ray"></div><div class="bulbs" style="top:120px"></div><div class="bulbs" style="bottom:120px"></div></div>',
   calm: '<div class="bg-calm"></div><div class="stars" style="opacity:.25"></div>',
+  plan: '<div class="bg-plan"><div class="grid"></div><div class="grid2"></div><div class="arc" style="left:-200px;top:300px;width:900px;height:900px"></div><div class="arc" style="right:-260px;top:1100px;width:700px;height:700px"></div></div>',
+  quiz: '<div class="bg-quiz"><div class="q" style="left:-40px;top:120px;transform:rotate(-12deg)">?</div><div class="q" style="right:-30px;top:1080px;transform:rotate(14deg)">?</div></div><div class="stars" style="opacity:.2"></div>',
   stadium: '<div class="bg-stadium">' + [[-80, -22], [180, -9], [540, 0], [900, 9], [1160, 22]].map(([x, r]) => `<div class="beam" style="left:${x - 130}px" data-r="${r}"></div>`).join('') + '<div class="lights"></div><div class="crowd"></div></div>',
 };
 const noise = (t, k) => Math.sin(t * 61.7 + k * 3.1) * 0.5 + Math.sin(t * 37.3 + k * 7.7) * 0.35 + Math.sin(t * 93.1 + k) * 0.15;
@@ -358,6 +392,7 @@ window.setupReel = async (reel) => {
         const img = inner.querySelector('img'); img.src = L.src; img.style.width = Math.round(L.imgW * s) + 'px'; img.style.left = -cx * s + 'px'; img.style.top = -cy * s + 'px';
       }
       else if (k === 'clock') { inner.className = 'clock ' + (L.cls || ''); }
+      else if (k === 'timer') { inner.className = 'timer ' + (L.cls || ''); }
       else if (k === 'speed') { inner.className = 'speed'; e.style.left = '-660px'; e.style.right = '-660px'; }
       else if (k === 'spot') { inner.className = 'spot'; }
       else if (k === 'goo') {
@@ -445,6 +480,10 @@ window.seek = (t) => {
         const [h0, m0] = L.from ?? [3, 0]; const mins = h0 * 60 + m0 + Math.floor(a * (L.rate ?? 0)); const hh = Math.floor(mins / 60) % 24, mm = mins % 60;
         const colon = !L.blink || Math.floor(a * 2) % 2 === 0 ? ':' : '<span style="opacity:.15">:</span>';
         const txt = `${String(hh).padStart(2, '0')}${colon}${String(mm).padStart(2, '0')}`; if (inner.innerHTML !== txt) inner.innerHTML = txt; sig += txt;
+      }
+      if (L.kind === 'timer') {  // geri sayım (sn, iki ondalık): from − a·rate, sıfırda durur; son 3 sn kırmızı
+        const v = Math.max(0, (L.from ?? 10) - Math.max(0, a - (L.hold ?? 0)) * (L.rate ?? 1)); const txt = v.toFixed(2).replace('.', ',');
+        if (inner.textContent !== txt) inner.textContent = txt; inner.classList.toggle('red', v <= (L.redAt ?? 3) && v > 0 || (v === 0 && !!L.redZero)); sig += txt;
       }
       if (L.kind === 'speed') { const r = (L.spinSpeed ?? 40) * a; inner.style.transform = `rotate(${r.toFixed(2)}deg)`; sig += r.toFixed(1); }
       if (L._drips) for (const D of L._drips) {

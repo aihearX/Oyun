@@ -147,6 +147,58 @@
       { "id": "k9", "text": "Cevap: birincisi.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
       { "id": "k10", "text": "Kaç tane bildin? Yorumlara yaz.", "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } },
       { "id": "k11", "text": "Ton Avı kampta seni bekliyor. Bu bir oyun, işitme testi değil.", "asr": ["Ton Avı kampta seni bekliyor. Bu bir oyun, işitme testi değil", "Ton avı kampta seni bekliyor bu bir oyun işitme testi değil"], "v": { "exaggeration": 0.65, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.5 } }
+    ],
+    "ben-bir-sesim": [
+      { "id": "b1", "text": "Ben bir sesim.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b2", "text": "Annemin ninnisini taşıyorum.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b3", "text": "Kulak kepçesi beni topladı.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b4", "text": "Kanalın girişinde, kulak kıllarının arasından geçtim.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b5", "text": "Kulak zarını titrettim.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b6", "text": "Çekiç, örs ve üzengi beni iç kulağa taşıdı.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b7", "text": "Kokleada bir dalga oldum.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b8", "text": "Tüy hücreleri beni sinir sinyaline çevirdi.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b9", "text": "İşitme siniriyle beyne doğru yol aldım.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b10", "text": "Beyin sapında, öbür kulaktan gelen sesle buluştum.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b11", "text": "Ve sonunda, işitme korteksine ulaştım.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b12", "text": "Ve beyin, beni duydu.", "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } },
+      { "id": "b13", "text": "Sesin Yolu. Yakında.", "sub": "ODİ: Sesin Yolu. Yakında.", "asr": ["Sesin yolu yakında"], "v": { "exaggeration": 0.5, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 4.8, "max_tempo": 1.1, "max_gap": 0.6 } }
+    ],
+    "mit-mi-gercek-mi": [
+      { "id": "m1", "text": "Mit mi, gerçek mi? Hadi bakalım!", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m2", "text": "Kulak, yüksek sese alışır.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m3", "text": "Mit! Yüksek ses, tüy hücrelerine kalıcı zarar verebilir.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m4", "text": "İşitme kaybı sadece yaşlılarda olur.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m5", "text": "Mit! Her yaşta görülebilir; bu yüzden yenidoğanlar bile taranır.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22}, "asr": ["Mit her yaşta görülebilir bu yüzden yenidoğanlar bile taranır", "Mit her yaşta görülebilir bu yüzden yeni doğanlar bile taranır"]},
+      { "id": "m6", "text": "Bebekler, anne karnında duymaya başlar.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m7", "text": "Gerçek! Gebeliğin son aylarında annenin sesini duyabilirler.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m8", "text": "Kulak çınlaması önemsizdir.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m9", "text": "Mit! Çınlama bir belirtidir; sürerse bir uzmana danış.", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } },
+      { "id": "m10", "text": "Kaçını bildin? Yorumlara yaz!", "v": { "exaggeration": 0.9, "temperature": 0.8, "target_sps": 5.8, "max_tempo": 1.22 } }
+    ],
+    "takimini-topla": [
+      { "id": "h1", "text": "Bir plan. Beş oyuncu. Tek hedef: Gürültü Canavarı.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h2", "text": "Önce ekibini bul.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h3", "text": "Lider. Yardımcı. Hızlı olan. Usta. Ve bir çaylak.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h4", "text": "Planı sohbette kurun.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h5", "text": "Canlı takım yarışında ısının.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h6", "text": "Baskında, hep birlikte!", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h7", "text": "Ve büyük vurgun: Gürültü Canavarı!", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } },
+      { "id": "h8", "text": "Takımını topla. Yakında.", "v": { "exaggeration": 0.6, "cfg_weight": 0.3, "temperature": 0.75, "target_sps": 5.2, "max_tempo": 1.15, "max_gap": 0.55 } }
+    ],
+    "basaramadin-mi": [
+      { "id": "z1", "text": "Ben. Dördüncü bölüm. On dördüncü deneme.", "sub": "Ben. 4. bölüm. 14. deneme.", "asr": ["Ben dördüncü bölüm on dördüncü deneme", "Ben 4. bölüm 14. deneme"], "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "z2", "text": "Zıplamak, işe yaramadı.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "z3", "text": "Bu sefer olmadı.", "v": { "exaggeration": 0.55, "cfg_weight": 0.3, "temperature": 0.7, "target_sps": 5.0, "max_tempo": 1.12, "max_gap": 0.6 } },
+      { "id": "z4", "text": "Sonra bir ipucu geldi: kıl perdesi alçak. Aşağı kaydır, altından kay!", "v": { "exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2 } },
+      { "id": "z5", "text": "Bu sefer oldu: üç yıldız!", "asr": ["Bu sefer oldu üç yıldız", "Bu sefer oldu 3 yıldız"], "v": { "exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2 } },
+      { "id": "z6", "text": "Her kulak bir gün duyar. Yakında.", "v": { "exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2 } }
+    ],
+    "10-saniyede": [
+      { "id": "q1", "text": "On saniyede üç kulak bilgisi. Hazır mısın?", "sub": "10 saniyede 3 kulak bilgisi. Hazır mısın?", "asr": ["On saniyede üç kulak bilgisi hazır mısın", "10 saniyede 3 kulak bilgisi hazır mısın"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
+      { "id": "q2", "text": "Bir: vücudun en küçük kemiği kulakta. Üzengi!", "sub": "1: Vücudun en küçük kemiği kulakta. Üzengi!", "asr": ["Bir vücudun en küçük kemiği kulakta üzengi", "1 vücudun en küçük kemiği kulakta üzengi"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
+      { "id": "q3", "text": "İki: en küçük iskelet kası da orada. Stapedius!", "sub": "2: En küçük iskelet kası da orada. Stapedius!", "asr": ["İki en küçük iskelet kası da orada stapedius", "2 en küçük iskelet kası da orada stapedius", "İki en küçük iskelet kası da orada stapedyus"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
+      { "id": "q4", "text": "Üç: sağlıklı kulak, kendi çok hafif sesini üretir!", "sub": "3: Sağlıklı kulak, kendi çok hafif sesini üretir!", "asr": ["Üç sağlıklı kulak kendi çok hafif sesini üretir", "3 sağlıklı kulak kendi çok hafif sesini üretir"], "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } },
+      { "id": "q5", "text": "Daha fazlası oyunda! Yakında.", "v": { "exaggeration": 0.95, "temperature": 0.8, "target_sps": 6.2, "max_tempo": 1.25 } }
     ]
   }
 }

@@ -31,7 +31,11 @@ window.startClip = (sc) => {
       clearInterval(poll);
       W = w; S = scn; G = scn.game;
       // oyunun alt bilgi balonu (Tüy Dede ipuçları, değiştirici yazıları) temiz çekimde gizlenir; yazıyı Reels katmanı verir
-      try { S.hint = () => {}; } catch { /* yok */ }
+      if (!sc.hints) try { S.hint = () => {}; } catch { /* yok */ }  // hints: oyunun bölüm içi ipucu (el işaretli) görünsün
+      // mode 'zipla' (basaramadin-mi): bot hep zıplar, hiç kaymaz → kıl perdelerine çarpar (gerçek hasar, gerçek başarısızlık)
+      // mode 'bos': hiç dokunmayan oyuncu (girdi yok) → ilk boşluğa düşer
+      if (sc.mode === 'bos' && S.planner) S.planner.next = () => ({ down: false, pressed: false, released: false, swipeDown: false, dash: false });
+      if (sc.mode === 'zipla' && S.planner) { const nx = S.planner.next.bind(S.planner); S.planner.next = (st) => { const i = nx(st); return i.swipeDown ? { ...i, swipeDown: false, pressed: true, down: true } : i; }; }
       G.loop.sleep();
       vt = w.performance.now(); const realNow = w.performance.now.bind(w.performance);
       w.performance.now = () => vt; void realNow;

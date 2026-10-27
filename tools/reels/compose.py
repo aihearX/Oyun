@@ -215,6 +215,9 @@ def post_fx(img, fx, lt, t):
         elif g == 'cold': y = (lum + (x - lum) * 0.55) * np.array([0.85, 0.97, 1.18], np.float32)
         elif g == 'red': y = (lum + (x - lum) * 0.4) * np.array([1.35, 0.7, 0.75], np.float32)
         elif g == 'dark': y = x * 0.55
+        elif g == 'warm':  # sinema: gölgeler hafif mor-mavi, ışıklar sıcak altın; doygunluk biraz düşük
+            w = lum / 255.0; tint = (1 - w) * np.array([0.92, 0.94, 1.12], np.float32) + w * np.array([1.1, 1.02, 0.88], np.float32)
+            y = (lum + (x - lum) * 0.88) * tint; y = (y - 128) * 1.06 + 128
         else: y = x
         a = x * (1 - amt) + y * amt
     if fx.get('vignette'):

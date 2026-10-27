@@ -28,7 +28,7 @@ const opt = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
 
 /* ============================================================ teaser */
 async function teasers(which) {
-  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS, ...(await import('./reklamlar3.mjs')).REELS };
+  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS, ...(await import('./reklamlar3.mjs')).REELS, ...(await import('./reklamlar4.mjs')).REELS };
   const slugs = which === 'all' ? Object.keys(REELS) : which.split(',');
   for (const s of slugs) if (!REELS[s]) throw new Error(`bilinmeyen Reels: ${s} (${Object.keys(REELS).join(', ')})`);
   if (flag('--zaman')) {  // yalnız zaman çizelgesi: sahneler (anlatıcıya göre uzatılmış) ve anlatıcı satırları
