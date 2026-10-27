@@ -87,6 +87,7 @@ async function player(browser, bt, tag, seed = null, reduced = false) {
   }, [seed]);
   const page = await ctx.newPage();
   await page.addInitScript(OLAY_SAYACI); // görünen afiş / Tüy Dede kartı kaydı (kısa süre görünenler de)
+  if (process.env.KARE_OLC) await page.addInitScript(KARE);
   page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));
   page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket connection|ERR_CONNECTION|Failed to load resource|manifest/i.test(m.text())) errors.push(`${tag}: ${m.text()}`); });
   return page;
@@ -105,8 +106,12 @@ function suite(name) {
   };
 }
 const tab = (page, label) => page.locator('nav.tabbar .tab', { hasText: label }).click();
+/** öğe varsa sayfanın içinde tıkla (tek gidiş-dönüş, süre sınırı yok); tıklandıysa true. Yükte Playwright konum bulucusunun sayfaya
+ *  gidiş-dönüşü uzun görevlerin (SwiftShader kare birleştirmesi) arkasında 0,5–2,7 sn bekliyor: 500/1000 ms'lik bulma süresiyle
+ *  tıklama hiç yapılmıyordu (MK-034, iz: locator.evaluate "Timeout 1000ms exceeded", sayfada tıklama olayı yok). */
+const tikla = (page, sel) => page.evaluate((q) => { const el = document.querySelector(q); if (el instanceof HTMLElement) el.click(); return !!el; }, sel).catch(() => false);
 // bildirimi öğenin kendisine tıklayarak kapat (konumla tıklama, bildirim tam o an kaybolursa alttaki üst çubuk düğmesine — ör. Mesajlar — düşer)
-const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().evaluate((el) => el.click(), undefined, { timeout: 500 }).catch(() => undefined); await sleep(150); } };
+const toastGone = async (page) => { for (let i = 0; i < 8 && await tikla(page, '.toast-top'); i++) await sleep(150); };
 async function settle(page) {
   for (let i = 0; i < 10; i++) {
     if (!(await page.locator('.cel-root.on').count())) break;
@@ -120,8 +125,20 @@ const campReady = async (page) => { await page.locator('.camp-base').waitFor({ t
 /** binaya kanvas üzerinden dokun (gerçek dokunuş). Önce kamera binaya odaklanır ve dokunulacak nokta gerçekten kanvas olmalı:
  *  bina üst göstergenin (ör. Mesajlar düğmesi) ya da alt kartların altında kalırsa dokunuş o düğmeye gider. */
 /** kamera odak geçişi bitene kadar bekle: geçiş oyun saatiyle (kare başına en çok 50 ms) ilerler; yükte kare seyrekleşince 450 ms'lik geçiş
- *  saniyelerce sürer ve sabit beklemeden sonra okunan konum eskir (dokunuş binayı ıskalar ya da nokta ekran dışında kalır; MK-020) */
-const camStill = (page) => page.waitForFunction(() => window.__kamp?.still?.() ?? true, null, { timeout: 30_000, polling: 100 });
+ *  saniyelerce sürer ve sabit beklemeden sonra okunan konum eskir (dokunuş binayı ıskalar ya da nokta ekran dışında kalır; MK-020).
+ *  Bekleme duvar saatine değil kareye bağlı (MK-034): en uzun geçiş 900 ms = 18 kare (+ kaydırma sönümü); 300 karede durmazsa düşer.
+ *  Yükte kare aralığı 0,6–2,4 sn ölçüldü (KARE_OLC): 600 ms'lik bölge geçişi 12 kare = 20 sn'yi aşabiliyordu. 180 sn yalnız sayfa hiç
+ *  kare çizmezse (donmuş) güvenlik sınırı. Dönüş: beklenen kare sayısı. */
+const camStill = async (page) => {
+  await page.evaluate(() => { window.__dur = { n: 0 }; });
+  const r = await page.waitForFunction(() => {
+    const w = (window.__dur ??= { n: 0 }); w.n++;
+    const s = window.__kamp?.still?.() ?? true;
+    return s || w.n > 300 ? { s, n: w.n } : false;
+  }, null, { polling: 'raf', timeout: 180_000 }).then((h) => h.jsonValue());
+  if (!r.s) throw new Error(`kamera ${r.n} karede durmadı`);
+  return r.n;
+};
 async function tapBuilding(page, id) {
   await page.waitForFunction((b) => !!window.__kamp?.pos(b), id, { timeout: 25_000 }).catch(async (e) => {
     const d = await page.evaluate(() => ({ kamp: !!window.__kamp, base: !!document.querySelector('.camp-base') }));
@@ -132,6 +149,7 @@ async function tapBuilding(page, id) {
   await camStill(page);
   const p = await page.evaluate((b) => { const q = window.__kamp.pos(b); if (!q) return null; const el = document.elementFromPoint(q.x, q.y + 10); const ust = el && !(el instanceof HTMLCanvasElement) ? [`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)}`, el.closest('[data-testid]')?.getAttribute('data-testid'), String(el.closest('.bp-wrap, .toast-top, .dede-card, .cel-root, .camp-top, .camp-bottom, .sira-ipucu')?.className ?? '').slice(0, 40)].filter(Boolean).join(' < ') : undefined; return { ...q, free: el instanceof HTMLCanvasElement, ust }; }, id);
   if (!p?.free) { console.log(`  · ${id}: dokunulacak nokta kanvas değil, yeniden denenecek (${JSON.stringify(p)})`); return; }
+  iz(`dokunuş ${id} @${Math.round(p.x)},${Math.round(p.y + 10)}`);
   await page.touchscreen.tap(p.x, p.y + 10);
 }
 async function openPanel(page, id) {
@@ -139,14 +157,20 @@ async function openPanel(page, id) {
   await page.screenshot({ path: resolve(outRoot, `HATA-panel-${id}.png`) }).catch(() => undefined);
   throw new Error(`panel açılmadı: ${id} (bkz. ${resolve(outRoot, `HATA-panel-${id}.png`).replace(root + '/', '')})`);
 }
-/** paneli kapat: inşaat bitince panel kendiliğinden de kapanır (yarış: düğme tıklanmadan kaybolabilir) */
+/** paneli kapat: inşaat bitince panel kendiliğinden de kapanır (yarış: düğme tıklanmadan kaybolabilir).
+ *  Koşul sayfanın içinde denetlenir (MK-034): panel açıksa kapatma düğmesine tıklanır, sonraki yoklamada panel yoksa biter. Eski döngü
+ *  her tıklamaya 1 sn bulma süresi veriyordu; yükte (kare aralığı 0,6–1,7 sn) Playwright'ın sayfaya gidiş-dönüşü bunu aşıyor, tıklama
+ *  hiç yapılmıyor ve panel 25 sn açık kalıyordu ("panel kapanmadı"). Tıklama React'te eşzamanlı işlenir; yoklama aralığı yalnız
+ *  tekrar tıklamayı seyreltir. 60 sn yalnız güvenlik sınırı: panel gerçekten kapanmazsa (uygulama hatası) test düşer. */
 const closePanel = async (page) => {
-  // sabit deneme sayısı değil süre: yüklü makinede (DOM WebView) panelin kapanması 12 sn'yi aşabiliyordu (YN-027)
-  const until = Date.now() + 25_000;
-  while (await page.locator('.bp').count() && Date.now() < until) {
-    await page.locator('.bp-x').first().evaluate((el) => el.click(), undefined, { timeout: 1000 }).catch(() => undefined);
-    await page.locator('.bp').waitFor({ state: 'detached', timeout: 3000 }).catch(() => undefined);
-  }
+  iz('closePanel başladı');
+  const n = await page.waitForFunction(() => {
+    const w = (window.__kapat ??= { n: 0 });
+    if (!document.querySelector('.bp')) { const r = w.n; w.n = 0; return { tik: r }; }
+    const x = document.querySelector('.bp .bp-x'); if (x instanceof HTMLElement) { x.click(); w.n++; }
+    return false;
+  }, null, { polling: 250, timeout: 60_000 }).then((h) => h.jsonValue(), () => null);
+  iz(n ? `.bp kalktı (${n.tik} tıklama)` : '.bp 60 sn içinde kalkmadı');
   if (await page.locator('.bp').count()) {
     await page.screenshot({ path: resolve(outRoot, 'HATA-panel-kapanmadi.png') }).catch(() => undefined);
     throw new Error('panel kapanmadı (bkz. HATA-panel-kapanmadi.png)');
@@ -212,6 +236,50 @@ const OLAY_SAYACI = () => {
   };
   const start = () => new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) scan(n); }).observe(document.documentElement, { childList: true, subtree: true });
   if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
+};
+
+/** MK-034 tanı (isteğe bağlı): CAMP_IZ=1 → kutlama (E) bağlamlarında Playwright izi (düşerse out/kamp/iz-<hedef>.zip) ve sayfa içi zaman
+ *  çizelgesi (.bp eklenip kalkması, dokunuş/tıklama hedefleri, sunucu istek/itmeleri; duvar saati ms, Node tarafı kayıtlarıyla birleşir);
+ *  KARE_OLC=1 → kare aralığı (rAF) ve uzun görevler (ui-mobile-check ile aynı ölçüm). */
+const IZ = !!process.env.CAMP_IZ;
+const nodeZaman = [];
+const iz = (m) => { if (IZ) nodeZaman.push([Date.now(), `node ${m}`]); };
+const ZAMAN = () => {
+  const z = window.__zaman = []; const T = () => Math.round(performance.timeOrigin + performance.now());
+  const add = (e) => { z.push([T(), e]); if (z.length > 6000) z.splice(0, 2000); };
+  const isBp = (n) => n instanceof Element && (n.matches('.bp-wrap') || !!n.querySelector('.bp'));
+  const start = () => new MutationObserver((ms) => { for (const m of ms) { for (const n of m.addedNodes) if (isBp(n)) add(`bp+ ${n.querySelector('h2')?.textContent ?? ''}`); for (const n of m.removedNodes) if (isBp(n)) add('bp-'); } }).observe(document.documentElement, { childList: true, subtree: true });
+  if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
+  for (const ev of ['touchstart', 'touchend', 'pointerdown', 'pointerup', 'click']) addEventListener(ev, (e) => {
+    const t = e.target; const c = e.changedTouches?.[0] ?? e;
+    add(`${ev} ${t?.tagName?.toLowerCase?.() ?? '?'}.${String(t?.className ?? '').slice(0, 24)} @${Math.round(c.clientX ?? -1)},${Math.round(c.clientY ?? -1)} olay+${Math.round(T() - (performance.timeOrigin + e.timeStamp))}ms`);
+  }, true);
+  const W = window.WebSocket;
+  const kule = (d) => { const b = d?.camp?.buildings?.find?.((x) => x.id === 'kule'); return b ? ` kule Sv${b.level}${b.upgradingTo ? `→${b.upgradingTo} bitiş+${Math.round((b.endsAt - Date.now()) / 1000)}sn` : ''}` : ''; };
+  window.WebSocket = class extends W {
+    constructor(...a) { super(...a); this.addEventListener('message', (m) => { try { const d = JSON.parse(m.data); add(d.t === 'evt' ? `ws< ${d.ev}${kule(d.data)}` : `ws< ${d.t}#${d.id ?? ''}${d.ok === false ? ` HATA ${d.code}` : ''}${kule(d.data)}`); } catch { /* ikili */ } }); }
+    send(s) { try { const d = JSON.parse(s); add(`ws> ${d.op}#${d.id}`); } catch { /* yok */ } super.send(s); }
+  };
+};
+const KARE = () => {
+  const k = window.__kare = { n: 0, max: 0, uzun: 0, last: 0, lt: 0, ltMax: 0, ltSum: 0 };
+  const f = (t) => { if (k.last) { const d = t - k.last; if (d > k.max) k.max = d; if (d > 1000) k.uzun++; if (d > 500) window.__zaman?.push([Math.round(performance.timeOrigin + t), `kare ${Math.round(d)}ms`]); } k.last = t; k.n++; requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+  try { new PerformanceObserver((l) => { for (const e of l.getEntries()) { k.lt++; k.ltSum += e.duration; if (e.duration > k.ltMax) k.ltMax = e.duration; } }).observe({ type: 'longtask', buffered: true }); } catch { /* WebKit: longtask yok */ }
+};
+/** kare ölçümünü yaz ve sıfırla */
+const kareYaz = async (page, label) => {
+  if (!process.env.KARE_OLC) return;
+  const k = await page.evaluate(() => { const k = window.__kare; if (!k) return null; const r = { ...k }; Object.assign(k, { n: 0, max: 0, uzun: 0, lt: 0, ltMax: 0, ltSum: 0 }); return r; }).catch(() => null);
+  if (k) console.log(`  ⏱ ${label}: ${k.n} kare, en uzun kare aralığı ${Math.round(k.max)} ms, >1 sn: ${k.uzun}; uzun görev ${k.lt} (en uzun ${Math.round(k.ltMax)} ms, toplam ${Math.round(k.ltSum)} ms)`);
+};
+/** düşen adımın zaman çizelgesi: sayfa + Node kayıtları, son `ms` */
+const zamanYaz = async (page, ms = 60_000) => {
+  if (!IZ) return;
+  const z = await page.evaluate(() => window.__zaman ?? []).catch(() => []);
+  const all = [...z, ...nodeZaman].sort((a, b) => a[0] - b[0]); const son = all.at(-1)?.[0] ?? Date.now();
+  console.log('  ── zaman çizelgesi (ms, son olaya göre) ──');
+  for (const [t, e] of all.filter(([t]) => t >= son - ms)) console.log(`   ${String(t - son).padStart(7)} ${e}`);
 };
 
 /** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
@@ -546,7 +614,9 @@ try {
   // ======================================================================== E) yükseltme kutlaması: kristalle / süre dolunca / takım yardımıyla biten inşaat
   //    → afiş ("<Bina> Sv N!") ve Tüy Dede kartı TAM BİR KEZ (aynı bitiş istemciye işlem yanıtı + camp.updated itmesiyle birden çok kez gelir)
   if (want('kutlama')) {
-    const targets = [...browsers.map((bt) => ({ bt, dom: false })), ...(browsers.includes('chromium') ? [{ bt: 'chromium', dom: true }] : [])];
+    // --kutlama-hedef dom|chromium|webkit: yalnız o hedef (tanı koşuları için; varsayılan hepsi)
+    const targets = [...browsers.map((bt) => ({ bt, dom: false })), ...(browsers.includes('chromium') ? [{ bt: 'chromium', dom: true }] : [])]
+      .filter((t) => !opt('kutlama-hedef', null) || opt('kutlama-hedef') === (t.dom ? 'dom' : t.bt));
     let idx = 0;
     for (const { bt, dom } of targets) {
       const tg = dom ? 'dom' : bt; idx++;
@@ -558,6 +628,9 @@ try {
       if (dom) { const ctx = await domContext(browser, seen); K = await ctx.newPage(); K.on('pageerror', (e) => errors.push(`kutlama-dom: ${e.message}`)); }
       else K = await player(browser, bt, `kutlama-${tg}`, SEED(8, seen));
       await K.addInitScript(OLAY_SAYACI);
+      if (IZ) { nodeZaman.length = 0; await K.addInitScript(ZAMAN); await K.context().tracing.start({ screenshots: true, snapshots: true }); }
+      if (process.env.KARE_OLC) await K.addInitScript(KARE);
+      try {
       const nm = `Kutlu${idx}${Date.now() % 100}`;
       await K.goto(dom ? await domBundle() : base, { waitUntil: 'load' });
       await K.getByRole('button', { name: /Yola çık|Devam/ }).first().click({ timeout: 45_000 });
@@ -577,7 +650,7 @@ try {
       for (const [b, l] of [['merkez', 5], ['atolye', 2], ['kule', 2], ['revir', 2]]) db.run('UPDATE buildings SET level = ? WHERE player_id = ? AND id = ?', l, kId, b);
       db.run('UPDATE players SET jeton = 50000, kristal = 2000 WHERE id = ?', kId); srv.app.walletChanged(kId);
       await tab(K, 'Kamp'); await campReady(K); await sleep(1200); await settle(K);
-      const hush = async () => { await K.locator('.dede-card .en-x').click({ timeout: 1000 }).catch(() => undefined); };
+      const hush = async () => { await tikla(K, '.dede-card .en-x'); };
       /** afiş ve Tüy Dede kartı tam bir kez: ilk göründükten sonra ~7 sn kuyruk boşaltılır (ikinci bir kopya varsa bu arada çıkar) */
       const once = async (id, name, level, how) => {
         const title = `${name} Sv ${level}!`; const line = `kamp-sv-${id}-${((level - 1) % 3) + 1}`;
@@ -593,10 +666,11 @@ try {
         await hush();
       };
       const start = async (id) => {
+        iz(`start(${id})`);
         await K.evaluate((b) => window.__kamp.focus(b), id); await camStill(K); // bina ekranın dışında kalmasın
         await openPanel(K, id);
-        await K.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click();
-        await K.locator('.bp-build').waitFor({ timeout: 8000 });
+        await K.locator('.bp').getByRole('button', { name: /^(Kur|Yükselt)/ }).click(); iz('Yükselt tıklandı');
+        await K.locator('.bp-build').waitFor({ timeout: 8000 }); iz('.bp-build göründü');
       };
 
       step(`E2 · [${tg}] kristalle bitir (panel açıkken) → panel kapanır, kutlama bir kez`);
@@ -606,12 +680,14 @@ try {
       ok(`[${tg}] inşaat bitince panel kendiliğinden kapandı`);
       await once('atolye', 'İşitme Cihazı Atölyesi', 3, 'kristal');
 
+      await kareYaz(K, `[${tg}] E2`);
       step(`E3 · [${tg}] süre dolunca (sunucu itmesi + istemci tazelemesi) → kutlama bir kez`);
       await start('kule'); await closePanel(K);
       db.run("UPDATE buildings SET started_at = ?, ends_at = ? WHERE player_id = ? AND id = 'kule'", Date.now() - 60_000, Date.now() + 12_000, kId);
       await reopenCamp(K);
       await once('kule', 'Timpanometri Kulesi', 3, 'sure');
 
+      await kareYaz(K, `[${tg}] E3`);
       step(`E4 · [${tg}] takım yardımıyla biter (art arda iki camp.updated) → kutlama bir kez`);
       await start('revir');
       await K.locator('.bp').getByRole('button', { name: /Takımdan yardım iste/ }).click();
@@ -621,7 +697,14 @@ try {
       const { given } = await ece.call('team.camp.helpAll', {});
       check(given === 1, `[${tg}] takım arkadaşı yardım etti (${given})`);
       await once('revir', 'Odyoloji Kliniği', 3, 'yardim');
+      await kareYaz(K, `[${tg}] E4`);
       ece.close();
+      if (IZ) await K.context().tracing.stop();
+      } catch (e) {
+        await kareYaz(K, `[${tg}] düşen adım`); await zamanYaz(K);
+        if (IZ) { const f = resolve(outRoot, `iz-${tg}.zip`); await K.context().tracing.stop({ path: f }).catch(() => undefined); console.log(`  🧭 iz: ${f.replace(root + '/', '')} (npx playwright show-trace)`); }
+        throw e;
+      }
       await browser.close();
     }
   }
@@ -744,7 +827,9 @@ try {
       ok('sahnede Sessiz Koru açık');
       await G.locator('[data-testid="kamp-dede"][data-line="kamp-bolge-koru"]').waitFor({ timeout: 25_000 });
       await settle(G); if (await G.locator('.bp').count()) await closePanel(G);
-      await G.evaluate(() => window.__kamp.focusDistrict('koru')); await G.waitForFunction(() => Math.abs(window.__kamp.view().x + 780) < 60, null, { timeout: 20_000 });
+      await G.evaluate(() => window.__kamp.focusDistrict('koru')); const nKoru = await camStill(G); // geçiş kareyle ilerler (MK-034)
+      await G.waitForFunction(() => Math.abs(window.__kamp.view().x + 780) < 60, null, { timeout: 20_000 }).catch(async (e) => { throw new Error(`${e.message.split('\n')[0]} · kamera ${nKoru} karede durdu, görünüm ${JSON.stringify(await G.evaluate(() => window.__kamp.view()))}`); });
+      await kareYaz(G, `[${bt}] G3 Sessiz Koru`);
       await shot(G, 'G-sessiz-koru', 900);
       await upgradeNow(G, 'kabin', gId);
       check(lvlOf(gId, 'kabin') === 1, 'Akustik Kabin Sv 1');

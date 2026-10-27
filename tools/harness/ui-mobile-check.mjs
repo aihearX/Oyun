@@ -559,6 +559,7 @@ async function suite(browserName, target, [W, H]) {
   }
   /** metin kontrastı (measureContrast): animasyonlar biter, metinler ölçülür; resim/gradyan zeminliler yazılar gizlenmiş ekran
    *  görüntüsünden örneklenir (görünüm dışındakiler sırayla görünüme kaydırılır, sonra kaydırma konumları geri yüklenir) */
+  let kIlerleme = 0; // kontrast ölçümünün son ilerlediği an (bekçi: aşağıda)
   async function contrast(rec, file, label = '') {
     // solma/kayma animasyonu sürerken ölçülen yarı saydam metin yanlış ihlal olur (WebKit 320'de boş görüntü notu): sonlu animasyonlar bitsin
     await animasyonBekle(page, { max: 2500 });
@@ -570,12 +571,13 @@ async function suite(browserName, target, [W, H]) {
       const tick = () => { const now = snap(); same = now === last ? same + 1 : 0; last = now; if (same >= 3 || performance.now() - t0 > 1500) res(); else requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
     }));
-    const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]);
+    const items = await page.evaluate(measureContrast, [KONTRAST_ISTISNA, KONTRAST_BEKLEYEN]); kIlerleme = Date.now();
     const ids = items.map((i) => i.id);
     await page.evaluate(scrollSave, false); await page.evaluate(contrastHide, true);
     try {
       let pos = await page.evaluate(contrastRects, ids); let img = null, imgBuf = null; const done = new Set();
       for (let round = 0; round < 30; round++) {
+        kIlerleme = Date.now();
         // ilk turdan sonra yapışkan öğeler ölçülmez (kaydırma onları başka öğelerin üstüne/altına taşır)
         if (round > 0) for (const i of items) if (!done.has(i.id) && pos[i.id]?.sticky) { done.add(i.id); if (i.sample) i.unmeasured = true; }
         const now = items.filter((i) => !done.has(i.id) && pos[i.id]?.inView);
@@ -665,9 +667,11 @@ async function suite(browserName, target, [W, H]) {
     if (BIG) { const fs = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize); rec.rootFont = fs; if (fs !== '18.4px') fail(rec, `büyük yazı uygulanmadı: kök ${fs}`); }
     if (emoji) { const em = await page.evaluate(measureEmoji); rec.emoji = em; if (em.length) fail(rec, `arayüzde emoji (${em.length}): ${em.slice(0, 6).join(' | ')}`); }
     if (KONTRAST) {
-      // takılan ölçüm koşuyu durdurmasın: 120 sn sınır; aşılırsa ekran "kontrast ölçülemedi" diye düşer
-      let to; const limit = new Promise((_, rej) => { to = setTimeout(() => rej(new Error('kontrast ölçümü 120 sn içinde bitmedi')), 120_000); });
-      try { await Promise.race([contrast(rec, file, label), limit]); } catch (e) { fail(rec, String(e.message ?? e).split('\n')[0]); await page.evaluate(contrastHide, false).catch(() => undefined); } finally { clearTimeout(to); }
+      // takılan ölçüm koşuyu durdurmasın: ölçüm 120 sn hiç ilerlemezse (ne öğe listesi ne bir tur biter) ekran düşer. Toplam süre sınırı
+      // değil: yükte (≈20–46) bir ekranın 30 turluk ölçümü ilerlerken 120 sn'yi aşıp düşüyordu (MK-034, dom-chromium-320 sonuc-kaybetti)
+      kIlerleme = Date.now();
+      let to; const limit = new Promise((_, rej) => { to = setInterval(() => { if (Date.now() - kIlerleme > 120_000) rej(new Error('kontrast ölçümü 120 sn ilerlemedi')); }, 1000); });
+      try { await Promise.race([contrast(rec, file, label), limit]); } catch (e) { fail(rec, String(e.message ?? e).split('\n')[0]); await page.evaluate(contrastHide, false).catch(() => undefined); } finally { clearInterval(to); }
     }
     if (chat) { const c = await page.evaluate(measureChat); rec.chat = c; if (!c.present || !c.ok) fail(rec, `sohbet girişi görünmüyor: ${JSON.stringify(c)}`); }
     if (scroll) {

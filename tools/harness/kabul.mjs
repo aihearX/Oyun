@@ -27,9 +27,15 @@ const kontrastYok = has('--kontrast-yok');
 const win = process.platform === 'win32';
 process.env.PLAYWRIGHT_CHROMIUM ??= '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
 
-/** ui-mobile --target both zaman sınırı (sn). YAPILACAK (MK-020 B adımı): yükte ölçülen sürenin ~1,5 katı yazılacak; şimdilik eski
- *  sınır (4800) aynen duruyor, ölçülmüş bir değer değildir. Kontrast ölçümü koşuyu %30–50 uzatır (sahip notu). */
-const UIM_SURE = { kontrastli: 4800, kontrastsiz: 4800 };
+/** ui-mobile --target both zaman sınırı (sn) = en kötü ölçüm × 1,5 (MK-034). Ölçümler (kontrastlı, 972 ekran, 8 yapılandırma,
+ *  `nice -n 5 node tools/harness/ui-mobile-check.mjs --target both`, 4 çekirdek, başsız Chromium SwiftShader + WebKit):
+ *    · ek yük yok (aynı anda başka bir çalışanın kopma-e2e koşusu vardı): 5857 sn; 1 dk yük ortalaması ort. 3,5 (en çok 17,6);
+ *      yapılandırma başına 648–846 sn. Eski 4800 sn sınırı boş makinede bile yetmiyordu.
+ *    · yük ≈ 20 (ikinci ağaçta bot 1-40 ×2 + camp koşuları + yük ayarlı meşgul döngüler): 12648 sn; yük ort. 20,8 (14,9–46,0);
+ *      yapılandırma başına 1144–2038 sn.
+ *  Sınır 12648 × 1,5 ≈ 19000 sn. Kontrastsız koşu ayrıca ölçülmedi; kontrast ölçümü koşuyu %30–50 uzattığı için (MK-017) kontrastsız
+ *  süre kontrastlıdan kısadır, aynı sınır onun da üst sınırıdır. */
+const UIM_SURE = { kontrastli: 19000, kontrastsiz: 19000 };
 const node = (script, ...a) => [process.execPath, resolve(root, script), ...a];
 const npx = (...a) => ['npx', ...a];
 const H = 'tools/harness';
@@ -62,7 +68,7 @@ const STEPS = [
   // camp: yükte (bot 1-40 ×2 + ui-mobile, yük ~19) ölçülen 2193 sn; sınır ≈ 1,6 kat (MK-020)
   { ad: 'camp', cmd: node(`${H}/camp-e2e.mjs`), sure: 3600, dom: true, cikti: ['kamp'] },
   { ad: 'vaka', cmd: node(`${H}/vaka-e2e.mjs`), sure: 1500, dom: true, cikti: ['vaka'] },
-  // süre sınırı ölçülen süreden: UIM_SURE (aşağıda)
+  // süre sınırı ölçülen süreden: UIM_SURE (yukarıda)
   { ad: 'ui-mobile', cmd: node(`${H}/ui-mobile-check.mjs`, '--target', 'both', '--tag', 'kabul', ...(kontrastYok ? ['--kontrast-yok'] : [])), sure: kontrastYok ? UIM_SURE.kontrastsiz : UIM_SURE.kontrastli, dom: true, cikti: ['ui-mobile/kabul', 'ui-mobile/dist'] },
 ];
 
