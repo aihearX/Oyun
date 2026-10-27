@@ -4,6 +4,9 @@
 /* ---- hazır sözler */
 .quick-line { display:flex; align-items:center; gap:6px; min-width:0; }
 .quick-line > .quick-row, .quick-line > .phrase-row { flex:1 1 auto; min-width:0; }
+/* sohbetteki şerit başta hizalı açılır; kaydırınca hep bir çipin başında durur (sol kenarda kırpık çip kalmaz, MK-029) */
+.quick-line > .phrase-row { scroll-snap-type:x mandatory; scroll-padding-inline:0; }
+.quick-line > .phrase-row > .phrase { scroll-snap-align:start; }
 .quick.phr-toggle { display:inline-flex; align-items:center; justify-content:center; }
 .quick.phr-toggle.on { border-color:color-mix(in srgb, var(--teal) 70%, transparent); background:rgba(46,230,214,.14); }
 .phrase-row { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; padding:2px 0; -webkit-overflow-scrolling:touch; }

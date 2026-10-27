@@ -368,27 +368,16 @@ await step('harita', async () => {
   await tab(page, 'map'); await page.locator('.map-stage canvas').waitFor({ timeout: 30_000 }); await sleep(3500); await settle(page);
   await shoot(page, '02', 'harita', { title: 'Yaşayan Kulak Haritası', cleared: P1_CLEARED }, { settleMs: 2200 });
 });
-/** kamp sahnesi ilk yakınlaştırmayı açılıştaki görünüm boyutundan seçer: her boyutta kampı yeniden aç (cihazdaki gibi), sonra oyuncu
- *  hareketiyle çerçevele: tekerlekle yakınlaştır (görünür genişlik ~450 birim), sürükleyerek Odyoloji Merkezi'ni ortaya al
- *  (uzun ekranlarda kampın altı boş deniz kalmasın) */
+/** kamp sahnesi ilk görünümü (yakınlaştırma ve merkez) açılıştaki görünüm boyutundan seçer: genişlik ve yükseklik, layout.ts
+ *  campZoom (MK-028). Her boyutta kampı yeniden aç (cihazdaki gibi) ve oyunun kendi açılış görünümünü çek. Eskiden uzun ekranda
+ *  boş deniz kalmasın diye tekerlekle yakınlaştırılıp sürüklenerek Odyoloji Merkezi ortaya alınıyordu; artık gerekmiyor. */
 async function campFrame(page, Z) {
   await openCamp(page);
   await page.locator('[data-testid="kamp-dede"] .en-x, .dede-card .en-x').first().click({ timeout: 800 }).catch(() => undefined);
-  const cx = Math.round(Z.w / 2), cy = Math.round(Z.h * 0.5);
-  const z0 = (await page.evaluate(() => window.__kamp.view()))?.zoom ?? 1;
-  const k = Math.round(Math.log(Z.w / 450 / z0) / Math.log(1.1));
-  await page.mouse.move(cx, cy);
-  for (let i = 0; i < Math.abs(k); i++) { await page.mouse.wheel(0, k > 0 ? -100 : 100); await sleep(250); }
-  for (let pass = 0; pass < 2; pass++) {
-    const p = await page.evaluate(() => window.__kamp.pos('merkez')); if (!p) break;
-    const dx = Math.round(cx - p.x), dy = Math.round(Z.h * 0.47 - p.y);
-    if (Math.abs(dx) + Math.abs(dy) < 12) break;
-    const sx = cx - Math.round(dx / 2), sy = Math.round(Z.h * 0.55 - dy / 2);
-    await page.mouse.move(sx, sy); await page.mouse.down();
-    for (let i = 1; i <= 24; i++) { await page.mouse.move(sx + (dx * i) / 24, sy + (dy * i) / 24); await sleep(30); }
-    await sleep(400); await page.mouse.up(); await sleep(1500);
-  }
+  await sleep(600);
   await settle(page);
+  const e = await page.evaluate(() => { const k = window.__kamp; const top = document.querySelector('.topbar2')?.getBoundingClientRect().bottom ?? 0, bot = document.querySelector('nav.tabbar')?.getBoundingClientRect().top ?? innerHeight; return k?.empty ? { acik: k.empty(top, bot), tum: k.empty(), zoom: k.view()?.zoom } : null; }).catch(() => null);
+  if (e) log(`   kamp ${Z.dir}: boş deniz açık bant %${Math.round(e.acik * 1000) / 10} · tüm tuval %${Math.round(e.tum * 1000) / 10} · yakınlaştırma ${Math.round(e.zoom * 1000) / 1000}`);
 }
 await step('kamp', async () => {
   const { page } = P1;

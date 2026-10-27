@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import type { BuildingId, BuildingState, CampState } from '@odi/shared';
 import { buildingCanvas, type Anchors } from './buildings';
 import { BRIDGE, GROUND_BOX, ISLAND, ROADS, STREAM_PTS, onIsland, paintGround, paintSky, shoreK } from './ground';
-import { BUILDING_ORDER, LOTS, MAIN_BUILDINGS, depotStored, tierOf, zonesOpen } from './layout';
+import { BUILDING_ORDER, LOTS, MAIN_BUILDINGS, campZoom, depotStored, tierOf, zonesOpen } from './layout';
 import { ATLAS, TEX, WORKER_COLORS, buildAtlas, makeTex, scaffold, worker } from './props';
 import { MONUMENT_BOX, MONUMENT_SPOTS, MONUMENT_TINT, paintMonument } from './monuments';
 import { DISTRICTS, cellFree, depotCapHours, cellPoint, decorById, footprint, inDistrict, libStored, pointCell, remedyById, remedyShelf, taramaFactor, type District } from '@odi/content';
@@ -78,6 +78,7 @@ interface Hot { owner: string; x: () => number; y: () => number; r: number; act:
 export class CampScene extends Phaser.Scene {
   opts: CampSceneOpts;
   dpr = 1;
+  private groundImg?: Phaser.GameObjects.Image;
   userZoom = 1;
   ready = false;
   private views = new Map<BuildingId, BView>();
@@ -121,7 +122,7 @@ export class CampScene extends Phaser.Scene {
     // zemin
     const gb = GROUND_BOX;
     makeTex(this.textures, 'c-ground', gb.x1 - gb.x0, gb.y1 - gb.y0, -gb.x0, -gb.y0, paintGround, GTEX);
-    this.add.image(gb.x0, gb.y0, 'c-ground').setOrigin(0, 0).setScale(1 / GTEX).setDepth(DEPTH.ground);
+    this.groundImg = this.add.image(gb.x0, gb.y0, 'c-ground').setOrigin(0, 0).setScale(1 / GTEX).setDepth(DEPTH.ground);
     this.campLevel = this.opts.camp.xp?.level ?? 1;
     this.placeDecor();
     this.placeDistricts();
@@ -133,7 +134,8 @@ export class CampScene extends Phaser.Scene {
     this.applyState(this.opts.camp, true);
     this.setupInput();
     this.scale.on('resize', () => this.layout());
-    this.userZoom = Phaser.Math.Clamp(Math.min(this.scale.width / this.dpr / 540, this.scale.height / this.dpr / 600), 0.5, 1.1);
+    // açılış yakınlaştırması genişlik ve yüksekliğe göre: uzun telefonda ada ekranı doldurur (layout.ts campZoom, MK-028)
+    this.userZoom = campZoom(this.scale.width / this.dpr, this.scale.height / this.dpr);
     this.layout();
     cam.centerOn(0, -24);
     this.ready = true;
@@ -164,6 +166,26 @@ export class CampScene extends Phaser.Scene {
     cam.scrollX = before.x - cam.width / 2 - (sx - cam.width / 2) / cam.zoom;
     cam.scrollY = before.y - cam.height / 2 - (sy - cam.height / 2) / cam.zoom;
     this.applyZoom();
+  }
+  /** görünümün boş (deniz / gök) payı: [top, bottom) oyun pikseli bandında, ızgara noktalarının kaçı zemin dokusuna (ana ada,
+   *  bölge adaları, köprüler; sığ su halesi sayılmaz) düşmüyor. zoom: aynı merkezde başka bir yakınlaştırma (karşılaştırma).
+   *  Ölçüm ve test içindir (MK-028). */
+  emptyShare(top = 0, bottom = this.cameras.main.height, zoom?: number): number {
+    const cam = this.cameras.main; const imgs: Phaser.GameObjects.Image[] = [];
+    if (this.groundImg) imgs.push(this.groundImg);
+    for (const dv of this.dviews.values()) { if (dv.img) imgs.push(dv.img); if (dv.bridge) imgs.push(dv.bridge); }
+    const land = (wx: number, wy: number) => imgs.some((im) => {
+      const src = im.texture.getSourceImage() as HTMLCanvasElement; const lx = (wx - im.x) / im.scaleX, ly = (wy - im.y) / im.scaleY;
+      return lx >= 0 && ly >= 0 && lx < src.width && ly < src.height && (this.textures.getPixelAlpha(Math.floor(lx), Math.floor(ly), im.texture.key) ?? 0) > 128;
+    });
+    const t = Math.max(0, top), b = Math.min(cam.height, bottom); if (b <= t) return 0;
+    const z = zoom ? this.dpr * zoom : cam.zoom;
+    const NX = 30, NY = 50; let empty = 0;
+    for (let i = 0; i < NX; i++) for (let j = 0; j < NY; j++) {
+      const sx = ((i + 0.5) / NX) * cam.width, sy = t + ((j + 0.5) / NY) * (b - t);
+      if (!land(cam.scrollX + cam.width / 2 + (sx - cam.width / 2) / z, cam.scrollY + cam.height / 2 + (sy - cam.height / 2) / z)) empty++;
+    }
+    return empty / (NX * NY);
   }
   get uiScale() { return Phaser.Math.Clamp(1 / this.userZoom, 0.8, 1.9); }
 

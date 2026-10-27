@@ -64,6 +64,9 @@ export function TeamHome() {
   const xpFrom = extra ? prevThreshold(extra.level) : 0;
   return (
     <>
+      {/* başlık + alt sekmeler: normalde alt alta (display:contents); kısa ekranda sohbet açıkken başlık sekme satırının başında
+          küçük bir amblem çipine iner, mesajlara yer kalır (styles.css, MK-029) */}
+      <div className="team-top">
       <div className="card team-head">
         <span className="th-emblem" aria-hidden>{team.emblem}</span>
         <div className="grow min0">
@@ -88,6 +91,7 @@ export function TeamHome() {
         ...(featureOpen('tlig') ? [{ id: 'lig' as const, icon: '🛡️', label: 'Lig' }] : []),
         ...(featureOpen('siralama') ? [{ id: 'siralama' as const, icon: '🏆', label: 'Sıralama' }] : []),
       ]} />
+      </div>
       <div className="team-body" key={tab}>
         {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
         {tab === 'basvuru' && (approver ? <TeamApplications /> : <TeamMembers />)}

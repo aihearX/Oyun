@@ -150,10 +150,13 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       <div key={m.id} className={`msg${mine ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}${m.kind === 'hazir' ? ' preset' : ''}${at ? ' mentioned' : ''}`} data-testid="mesaj"
         onPointerDown={() => startPress(m)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => { e.preventDefault(); setMenu(m); }}>
         {head && !mine && <button type="button" className="msg-name linkish" style={{ color: hex(m.color) }} onClick={() => openProfile(m.from)}>{m.name}</button>}
-        <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>
+        {/* seçenekler düğmesi balonla aynı satırda, balonun hemen yanında (satırın sağ ucunda boşta durmaz) */}
+        <div className="bubble-row">
+          <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>
+          {!mine && <button type="button" className="msg-more" onClick={() => setMenu(m)} aria-label={`${m.name} mesajı için seçenekler`}>⋯</button>}
+        </div>
         {m.reactions && <ReactionBar msg={m} compact />}
         {(m.replies || live.length) ? <ThreadPreview parent={m} live={live} onOpen={() => setThread(m)} /> : null}
-        {!mine && <button className="msg-more" onClick={() => setMenu(m)} aria-label={`${m.name} mesajı için seçenekler`}>⋯</button>}
       </div>
     );
   };
@@ -165,7 +168,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
         {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : top.map(render)}
       </div>
       {phrases
-        ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Emoji tepkilerine geç"><Art name="chat" size={20} /></button><PhraseStrip ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
+        ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Emoji tepkilerine geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
         : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`Hızlı tepki ${e}`}>{e}</button>)}</div></div>}
       {err && <div className="chat-err" role="alert">{err}</div>}
       {sending && st !== 'bağlı' && <div className="net-banner chat-wait" role="status" data-testid="sohbet-bekliyor">Bağlantı bekleniyor; iletin bağlanınca gönderilecek.</div>}

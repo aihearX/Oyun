@@ -31,6 +31,9 @@ export interface CampHandle {
   focus(id: BuildingId, above?: boolean): void;
   /** kamera merkezi ve yakınlaştırma (test/hata ayıklama) */
   view(): { x: number; y: number; zoom: number } | null;
+  /** görünümün boş deniz / gök payı (0..1): sayfa CSS pikselinde [top, bottom) bandı (verilmezse bütün tuval); zoom verilirse aynı
+   *  merkezde o yakınlaştırmayla (karşılaştırma); test (MK-028) */
+  emptyShare(top?: number, bottom?: number, zoom?: number): number | null;
   /** panel kapanınca kamerayı önceki yerine döndür */
   unfocus(): void;
   /** Kütüphane okuma köşesi toplandı */
@@ -132,6 +135,10 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
       let bytes = 0, n = 0;
       for (const key of game.textures.getTextureKeys()) { const t = game.textures.get(key); for (const src of t.source) { bytes += (src.width || 0) * (src.height || 0) * 4; } n++; }
       return { textures: n, mb: Math.round((bytes / 1048576) * 10) / 10 };
+    },
+    emptyShare: (top, bottom, zoom) => {
+      if (!scene.ready || !game.canvas) return null; const r = game.canvas.getBoundingClientRect();
+      return scene.emptyShare(top == null ? 0 : (top - r.top) * dpr, bottom == null ? game.scale.height : (bottom - r.top) * dpr, zoom);
     },
     view: () => { if (!scene.ready) return null; const c = scene.cameras.main; return { x: c.midPoint.x, y: c.midPoint.y, zoom: scene.userZoom }; },
     unfocus: () => run(() => { boost(1200); scene.unfocus(); }),

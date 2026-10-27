@@ -34,3 +34,20 @@ export function depotStored(level: number, storedAt: number, now: number, capH =
 
 export const levelOf = (camp: CampState | null | undefined, id: BuildingId) => camp?.buildings.find((b) => b.id === id)?.level ?? 0;
 export const activeBuild = (camp: CampState | null | undefined): BuildingState | undefined => camp?.buildings.find((b) => b.upgradingTo && b.endsAt);
+
+/**
+ * Kamp kamerasının açılış yakınlaştırması (CSS pikseli / dünya birimi). Eski kural yalnız genişliğe bakıyordu
+ * (`min(w/540, h/600)`): uzun telefonda görünür dünya ~1170 birim yüksekliğe çıkıyor, ada (~800 birim: arka tepeler → ön uçurum)
+ * ekranın ancak %60'ını dolduruyordu. Yeni kural:
+ *  · sığdır: görünür yükseklik CAMP_FIT_H (ada yüksekliği + az pay) olacak kadar yakınlaş,
+ *  · üst sınır: görünür genişlik CAMP_MIN_W'nin altına inmesin (Odyoloji Merkezi ve iki yanı hep görünsün),
+ *  · eski kuralın değerinin altına hiç inilmez (yatay / geniş ekranda aynı görünüm; dokunma hedefleri küçülmez).
+ */
+export const CAMP_FIT_H = 820;
+export const CAMP_MIN_W = 380;
+export function campZoom(cssW: number, cssH: number): number {
+  const w = Math.max(1, cssW), h = Math.max(1, cssH);
+  const old = Math.min(1.1, Math.max(0.5, Math.min(w / 540, h / 600)));
+  const fit = Math.min(1.25, Math.min(h / CAMP_FIT_H, w / CAMP_MIN_W));
+  return Math.max(old, fit);
+}

@@ -775,6 +775,21 @@ async function suite(browserName, target, [W, H]) {
       const hud = await page.evaluate(() => ({ title: document.querySelector('.tb-title h1')?.textContent ?? '', j: document.querySelector('.tb-pill[data-hud="jeton"]')?.innerText ?? '', k: document.querySelector('.tb-pill[data-hud="kristal"]')?.innerText ?? '', w: [...document.querySelectorAll('.topbar2 .tb-title h1, .topbar2 .tb-pills > *')].map((e) => Math.round(e.getBoundingClientRect().width)) }));
       rec.hud = hud;
       if (hud.j.trim() !== '98B' || hud.k.trim() !== (W <= 360 ? '4,3B' : '4.321')) fail(rec, `büyük cüzdan görünmedi: ${JSON.stringify(hud)}`);
+      // boş deniz (MK-028): kamp yeni açıldı (açılış yakınlaştırması); zemin dışı (deniz / gök) pay hem bütün tuvalde hem üst çubuk
+      // ile sekme çubuğu arasındaki açık bantta ≤ %15
+      await page.waitForFunction(() => window.__kamp?.still?.(), null, { timeout: 5000 }).catch(() => undefined);
+      rec.bosDeniz = await page.evaluate(() => {
+        const k = window.__kamp; if (!k?.empty) return null;
+        const top = document.querySelector('.topbar2')?.getBoundingClientRect().bottom ?? 0, bottom = document.querySelector('nav.tabbar')?.getBoundingClientRect().top ?? innerHeight;
+        const r = (x) => (x == null ? null : Math.round(x * 1000) / 10);
+        // karşılaştırma: eski kural (yalnız genişlik: min(w/540, h/600)) aynı merkezde
+        const c = document.querySelector('.camp-canvas canvas')?.getBoundingClientRect(); const eskiZ = c ? Math.min(1.1, Math.max(0.5, Math.min(c.width / 540, c.height / 600))) : 0;
+        return { acik: r(k.empty(top, bottom)), tum: r(k.empty()), zoom: Math.round((k.view()?.zoom ?? 0) * 1000) / 1000, dokuMB: k.mem?.().mb ?? null, dpr: devicePixelRatio,
+          eski: eskiZ ? { acik: r(k.empty(top, bottom, eskiZ)), tum: r(k.empty(undefined, undefined, eskiZ)), zoom: Math.round(eskiZ * 1000) / 1000 } : null };
+      });
+      if (!rec.bosDeniz || rec.bosDeniz.acik == null) fail(rec, 'boş deniz ölçülemedi (__kamp.empty yok)');
+      else if (rec.bosDeniz.acik > 15 || rec.bosDeniz.tum > 15) fail(rec, `kampta boş deniz: açık bant %${rec.bosDeniz.acik}, tüm tuval %${rec.bosDeniz.tum} (en çok %15; yakınlaştırma ${rec.bosDeniz.zoom})`);
+      { const b = rec.bosDeniz; console.log(`    boş deniz ${W}x${H}: açık bant %${b?.acik} · tüm tuval %${b?.tum} · yakınlaştırma ${b?.zoom} · doku ${b?.dokuMB} MB (eski kural: %${b?.eski?.acik} · %${b?.eski?.tum} · ${b?.eski?.zoom})`); }
       // aynı cüzdanla diğer sekme başlıkları da okunur kalmalı
       for (const t of ['Bugün', 'Profil', 'Harita']) { await tab(t); await sleep(900); await toastGone(); await check(`buyuk-cuzdan-${t.toLocaleLowerCase('tr').replace('ü', 'u')}`, { scroll: false }); }
     }
@@ -803,7 +818,13 @@ async function suite(browserName, target, [W, H]) {
       await toastGone();
       const msgs = ['Merhaba takım! Bu hafta kepçeyi alalım mı? Herkes en az iki bölüm oynasın, savaş hedefini birlikte seçelim.', 'Çokuzunbirkelimeiçerenmesajbölünmedenekranıntaşmamasıgerekiyorçünküsağtarafgörünmüyordu', 'Tamam 👍'];
       for (const m of msgs) { await page.getByRole('textbox', { name: 'Mesaj' }).fill(m); await page.getByRole('button', { name: 'Gönder', exact: true }).click(); await sleep(1300); }
-      await check('takim-sohbet', { chat: true });
+      { const rec = await check('takim-sohbet', { chat: true });
+        // sohbet alanı (MK-029): en az üç mesaj balonu görünür (kutunun içinde en az 24 px'i ya da tamamı)
+        const vis = await page.evaluate(() => { const box = document.querySelector('.chat-box')?.getBoundingClientRect(); if (!box) return null;
+          const n = [...document.querySelectorAll('.chat-box .bubble')].filter((b) => { const r = b.getBoundingClientRect(); const v = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top); return v >= Math.min(24, r.height - 1); }).length;
+          return { balon: n, kutu: Math.round(box.height) }; });
+        rec.sohbetAlani = vis;
+        if (!vis || vis.balon < 3) fail(rec, `sohbette yalnız ${vis?.balon ?? 0} balon görünüyor (kutu ${vis?.kutu ?? 0} px; en az 3)`); }
       // başvuru: lider ekranında rozet + Başvurular sekmesi (aşağıdaki alt sekme turunda denetlenir); katılım başvuruyla
       { const myTeam = `Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
         const aday = rawClient(wsUrl); await aday.call('hello', { version: 1, name: `Aday${sno}` });

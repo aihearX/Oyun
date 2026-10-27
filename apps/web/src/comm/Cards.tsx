@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, QUICK_PHRASES, REACTION_LABEL, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
 import { newRunId } from '@odi/net';
@@ -33,11 +33,18 @@ async function sendIn(room: string, text: string, kind: 'text' | 'hazir', replyT
 }
 
 /** Hazır sözler şeridi (yatay kaydırılır): tek dokunuşla gönderir */
-export function PhraseStrip({ ctx, ids, onPick, className, label = 'Hazır sözler' }: { ctx: PhraseCtx[]; ids?: string[]; onPick: (id: string) => void; className?: string; label?: string }) {
+export function PhraseStrip({ ctx, ids, onPick, className, label = 'Hazır sözler', rewind }: { ctx: PhraseCtx[]; ids?: string[]; onPick: (id: string) => void; className?: string; label?: string; /** seçimden sonra şerit başa döner (sohbet: bir sonraki söz yine baştan, ilk çip kırpık kalmaz) */ rewind?: boolean }) {
   const list = ids ? ids.map((id) => QUICK_PHRASES.find((p) => p.id === id)).filter((p): p is (typeof QUICK_PHRASES)[number] => !!p) : phrasesFor(...ctx);
+  const row = useRef<HTMLDivElement>(null);
+  const pick = (id: string) => {
+    onPick(id);
+    const el = row.current; if (!rewind || !el || el.scrollLeft === 0) return;
+    const calm = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollTo({ left: 0, behavior: calm ? 'auto' : 'smooth' });
+  };
   return (
-    <div className={`phrase-row${className ? ` ${className}` : ''}`} role="group" aria-label={label}>
-      {list.map((p) => <button key={p.id} type="button" className="phrase" data-phrase={p.id} onClick={() => onPick(p.id)}>{p.text}</button>)}
+    <div ref={row} className={`phrase-row${className ? ` ${className}` : ''}`} role="group" aria-label={label}>
+      {list.map((p) => <button key={p.id} type="button" className="phrase" data-phrase={p.id} onClick={() => pick(p.id)}>{p.text}</button>)}
     </div>
   );
 }
