@@ -301,7 +301,7 @@ const mitReel = {
 /* =================================================================== 5. TAKIMINI TOPLA (soygun filmi parodisi) */
 const hb4 = grid(104); // 0,577 sn
 const TK = (f) => C4(`takim/${f}`);
-const ekran = (f, o = {}) => phone(TK(f), o.crop ?? [0, 0, 1170, 2532], { imgW: 1170, w: o.w ?? 560, y: o.y ?? 400, maxH: o.maxH ?? 860, ry: o.ry ?? [-10, 4], ...o });
+const ekran = (f, o = {}) => phone(TK(f), o.crop ?? [0, 0, 1170, 2532], { imgW: 1170, w: o.w ?? 760, y: o.y ?? 330, maxH: o.maxH ?? 900, ry: o.ry ?? [-10, 4], ...o });
 const ROLLER = [
   ['lider', 'Lider', 'Örs Kaptan', 'takımı kurdu · taç onda'],
   ['yardimci', 'Yardımcı', 'Zar Ustası', 'liderin sağ kolu · yıldız rozeti'],
@@ -309,7 +309,9 @@ const ROLLER = [
   ['usta', 'Usta', 'Koklea Kâşifi', 'Usta–Çırak’ta yol gösterir'],
   ['caylak', 'Çaylak', 'Minik Nota', 'başvurusu az önce kabul edildi'],
 ];
-const kartSahne = ([slug, rol, ad, not], i) => ({ id: `rol-${slug}`, dur: hb4(2), bg: 'plan', ...(i === 0 ? { mus: 'freeze' } : {}), fx: { flash: [[0, 0.1, [255, 255, 255], 0.55]], zoom: [[0, 0.25, 0.05]] },
+// isim kartları anlatıcının kelimelerine kesilir (h3 kelime zamanları: 0 · 0,76 · 1,42 · 2,18 · 2,64 sn; Whisper)
+const KART_SN = [0.76, 0.66, 0.76, 0.46, hb4(3.5)];
+const kartSahne = ([slug, rol, ad, not], i) => ({ id: `rol-${slug}`, dur: KART_SN[i], bg: 'plan', ...(i === 0 ? { mus: 'freeze' } : {}), fx: { flash: [[0, 0.1, [255, 255, 255], 0.55]], zoom: [[0, 0.25, 0.05]] },
   sfx: [[0, 'snap', 0.8], [0.02, 'hit', 0.35]], layers: [
   { kind: 'html', cls: 'nc', html: `<small>${rol}</small><b>${ad}</b><span>${not}</span>`, y: 420, at: 0, anim: 'stamp', rot: i % 2 ? 2 : -2 },
   { kind: 'still', src: TK(`08-uye-${slug}.png`), crop: [0, 0, ...dims(TK(`08-uye-${slug}.png`))], imgW: dims(TK(`08-uye-${slug}.png`))[0], w: 900, y: 860, at: 0.05, anim: 'pop', cls: i % 2 ? 'teal' : '', kb: [1, 1.03] },
@@ -319,20 +321,20 @@ const takim = {
   slug: 'takimini-topla', title: 'Takımını topla', ad: true, limit: 0.6, jpegOpaque: true, bpm: 104, snap: hb4(1), style: 'soygun', subY: 1400, subCls: 'big', voGap: 0.1, tail: 0.7,
   duck: { music: -8, sfx: -4 },
   scenes: [
-    { id: 'kanca', dur: hb4(7), bg: 'clip', clip: clip(40, 7.0, 1.0), speed: [[0, 1], [0.35, 0.15], [9, 0.15]], blend: true, cam: { z: [1.05, 1.15], top: [110, 120] }, mus: 'intro',
+    { id: 'kanca', dur: hb4(7), bg: 'clip', clip: clip(40, 7.0, 1.0), speed: [[0, 1], [0.35, 0.15], [9, 0.15]], blend: true, cam: { z: [1.2, 1.3], top: [165, 175] }, mus: 'intro',
       fx: { base: { grade: 'cold', gradeAmt: 0.7, vignette: 0.5 }, flash: [[0, 0.12]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'boom', 0.7], [0.05, 'stamp', 0.8]], layers: [
       { kind: 'html', cls: 'stamp2 big', html: 'Hedef', y: 300, at: 0.03, anim: 'stamp', rot: -7 },
       { kind: 'html', cls: '', html: '<div class="spotring" style="width:340px;height:340px"></div>', y: 600, at: 0.3, anim: 'pop', pulse: 104, pulseAt: 0.3 },
       kt('Gürültü<br>Canavarı', { c: 'md coral', y: 1000, at: hb4(4.5), anim: 'stamp' }),
     ] },
-    { id: 'bul', dur: hb4(4), bg: 'plan', mus: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('02-kesif-satir.png', { crop: [0, 600, 1170, 1650], y: 450 }), { kind: 'html', cls: 'lvltag', html: 'Takım › Takım bul', y: 1290, at: 0.3, anim: 'fade' }] },
-    { id: 'basvur', dur: hb4(3), bg: 'plan', sfx: [[0, 'swish', 0.4], [hb4(1.5), 'pop', 0.4]], layers: [ekran('04-basvuru.png', { crop: [0, 460, 1170, 1650], y: 430, ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Başvuru · hazır not', y: 1290, at: 0.3, anim: 'fade' }] },
+    { id: 'bul', dur: hb4(4), bg: 'plan', mus: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('02-kesif-satir.png', { crop: [0, 600, 1170, 1650], y: 380 }), { kind: 'html', cls: 'lvltag', html: 'Takım › Takım bul', y: 1290, at: 0.3, anim: 'fade' }] },
+    { id: 'basvur', dur: hb4(3), bg: 'plan', sfx: [[0, 'swish', 0.4], [hb4(1.5), 'pop', 0.4]], layers: [ekran('04-basvuru.png', { crop: [0, 460, 1170, 1650], y: 330, ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Başvuru · hazır not', y: 1290, at: 0.3, anim: 'fade' }] },
     ...ROLLER.map(kartSahne),
-    { id: 'sohbet', dur: hb4(4), bg: 'plan', mus: 'go', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('09-sohbet.png', { crop: [0, 150, 1170, 2050] }), { kind: 'html', cls: 'lvltag', html: 'Takım sohbeti · yalnız hazır sözler', y: 1290, at: 0.3, anim: 'fade' }] },
-    { id: 'yaris', dur: hb4(4), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('11-yaris-lobi.png', { crop: [0, 150, 1170, 2050], ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Canlı Takım Yarışı · 3’e 3', y: 1290, at: 0.3, anim: 'fade' }] },
-    { id: 'yaris2', dur: hb4(3), bg: 'plan', sfx: [[0, 'swish', 0.4]], layers: [ekran('12-yaris-ici.png', { crop: [0, 0, 1170, 2300] })] },
-    { id: 'baskin', dur: hb4(4), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('10-baskin-yari.png', { crop: [0, 150, 1170, 2050], ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Baskın · ortak can çubuğu', y: 1290, at: 0.3, anim: 'fade' }] },
-    { id: 'vurgun', dur: hb4(6), bg: 'clip', clip: clip(40, 26.6, 2.6), speed: [[0, 1], [0.5, 1], [0.6, 0.3], [1.6, 0.3], [1.8, 1]], blend: true, cam: { z: [1.05, 1.18], top: [110, 125], punch: [[0.55, 0.1, 0.3]] }, mus: 'boss',
+    { id: 'sohbet', dur: hb4(4), bg: 'plan', mus: 'go', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('09-sohbet.png', { crop: [0, 760, 1170, 1300] }), { kind: 'html', cls: 'lvltag', html: 'Takım sohbeti · yalnız hazır sözler', y: 1290, at: 0.3, anim: 'fade' }] },
+    { id: 'yaris', dur: hb4(4), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('11-yaris-lobi.png', { crop: [0, 980, 1170, 1220], ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Canlı Takım Yarışı · 3’e 3', y: 1290, at: 0.3, anim: 'fade' }] },
+    { id: 'yaris2', dur: hb4(3), bg: 'plan', sfx: [[0, 'swish', 0.4]], layers: [ekran('12-yaris-ici.png', { crop: [0, 150, 1170, 1380] })] },
+    { id: 'baskin', dur: hb4(4), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [ekran('10-baskin-yari.png', { crop: [0, 1000, 1170, 1180], ry: [10, -4] }), { kind: 'html', cls: 'lvltag', html: 'Baskın · ortak can çubuğu', y: 1290, at: 0.3, anim: 'fade' }] },
+    { id: 'vurgun', dur: hb4(6), bg: 'clip', clip: clip(40, 26.6, 2.6), speed: [[0, 1], [0.5, 1], [0.6, 0.3], [1.6, 0.3], [1.8, 1]], blend: true, cam: { z: [1.18, 1.28], top: [160, 170], punch: [[0.55, 0.1, 0.3]] }, mus: 'boss',
       fx: { shake: [[0.55, 0.6, 26]], flash: [[0.55, 0.12]] }, sfx: [[0.55, 'boom', 0.8], [0.55, 'hit', 0.6]], layers: [] },
     { id: 'son', dur: hb4(7), bg: 'plan', mus: 'end', fx: { flash: [[0, 0.15]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: [
       kt('Takımını<br>topla.', { c: 'lg gold', y: 260, at: 0.05 }),
@@ -341,13 +343,13 @@ const takim = {
     ] },
   ],
   vo: [
-    { id: 'h1', scene: 'kanca', at: 0.2 }, { id: 'h2', scene: 'bul', at: 0.15 }, { id: 'h3', scene: 'rol-lider', at: 0.08 }, { id: 'h4', scene: 'sohbet', at: 0.15 },
+    { id: 'h1', scene: 'kanca', at: 0.2 }, { id: 'h2', scene: 'bul', at: 0.15 }, { id: 'h3', scene: 'rol-lider', at: 0.02 }, { id: 'h4', scene: 'sohbet', at: 0.15 },
     { id: 'h5', scene: 'yaris', at: 0.15 }, { id: 'h6', scene: 'baskin', at: 0.15 }, { id: 'h7', scene: 'vurgun', at: 0.2 }, { id: 'h8', scene: 'son', at: 0.4, nosub: true },
   ],
   cover: { bg: 'plan', layers: [
     { kind: 'html', cls: 'stamp2 big', html: 'Hedef', y: 260, rot: -7 },
-    { kind: 'html', cls: 'kt md coral', html: 'Gürültü<br>Canavarı', y: 500 },
-    { kind: 'html', cls: 'nc', html: '<small>Bir plan · Beş oyuncu</small><b>Takımını topla</b>', y: 900 },
+    { kind: 'html', cls: 'kt md coral', html: 'Gürültü<br>Canavarı', y: 560 },
+    { kind: 'html', cls: 'nc', html: '<small>Bir plan · Beş oyuncu</small><b>Takımını topla</b>', y: 940 },
     { kind: 'html', cls: 'logo sm', html: LOGO, y: 1290 },
   ] },
   post: {
