@@ -223,12 +223,12 @@ const mb = grid(112); // 0,536 sn
 /** iddialar: oyunun içeriğiyle uyumlu (docs/odyoloji-icerik.md); damga + tek cümle açıklama + oyundaki karşılığı */
 const IDDIA = [
   { claim: 'Kulak, yüksek sese<br>alışır.', mit: true, vo: ['m2', 'm3'],
-    shotA: { bg: 'clip', clip: clip(21, 3.5, 3.2), cam: { z: [1.15, 1.25], top: [150, 165] }, layers: [lbl('Oyunda: Gürültü hasarı<small>21. bölüm · Koklea · gürültü bulutu</small>', { c: 'coral lo', y: 1190, at: 0.2, rot: -1.5 })] },
+    shotA: { bg: 'clip', clip: clip(22, 12.0, 3.2), skip: 1.9, speed: 0.8, cam: { z: [1.0, 1.05], x: -20, top: [190, 190] }, layers: [lbl('Oyunda: Gürültü hasarı<small>22. bölüm · Koklea · gürültü bulutu</small>', { c: 'coral lo', y: 1190, at: 0.2, rot: -1.5 })] },
     shotB: { tedavi: 'tarif-kulak-tikaci-kart.png', crop: [0, 0, 984, 470], label: 'Tedavi Odası: Kulak tıkacı<small>yüksek seste kulağı korur</small>' } },
   { claim: 'İşitme kaybı sadece<br>yaşlılarda olur.', mit: true, vo: ['m4', 'm5'],
     shotA: { phone: C3('vaka/kv19-hasta.png'), crop: [0, 790, 1170, 1240], label: 'Kamp Kliniği · Hasta Vakaları<small>yenidoğan işitme taraması (kurgusal vaka)</small>' } },
   { claim: 'Bebekler, anne karnında<br>duymaya başlar.', mit: false, vo: ['m6', 'm7'],
-    shotA: { phone: C4('hikaye/hikaye-2.jpg'), imgW: 780, crop: [0, 330, 780, 1170], label: 'Oyunun hikâyesi<small>Odi, annesinin ninnisini taşıyor</small>' } },
+    shotA: { phone: C4('hikaye/hikaye-2.jpg'), imgW: 780, w: 520, crop: [0, 380, 780, 1140], label: 'Oyunun hikâyesi<small>Odi, annesinin ninnisini taşıyor</small>' } },
   { claim: 'Kulak çınlaması<br>önemsizdir.', mit: true, vo: ['m8', 'm9'],
     shotA: { bg: 'clip', clip: clip(37, 17.4, 3.2), cam: { z: [1.15, 1.25], top: [150, 165] }, layers: [lbl('Oyunda: Kulak çınlaması<small>37. bölüm · İşitme Korteksi · nabızlı bulut</small>', { c: 'coral lo', y: 1190, at: 0.2, rot: -1.5 })] },
     shotB: { tedavi: 'tarif-ses-ureteci-kart.png', crop: [0, 0, 984, 380], label: 'Tedavi Odası: Ses üreteci<small>çınlamayı daha az fark edilir kılar</small>' } },
@@ -247,10 +247,10 @@ function iddiaSahne(d, i) {
   ] });
   const A = d.shotA;
   out.push(A.bg === 'clip'
-    ? { id: `oyun${i + 1}`, dur: d.shotB ? mb(3) : mb(6), bg: 'clip', clip: A.clip, cam: A.cam, mus: 'reveal', fx: { flash: [[0, 0.08]] }, sfx: [[0, 'whoosh', 0.35]], layers: [stampL(d.mit, { y: 270, anim: 'pop', className: '', cls: `stamp2${d.mit ? '' : ' ok'}` }), ...A.layers] }
+    ? { id: `oyun${i + 1}`, dur: d.shotB ? mb(3) : mb(6), bg: 'clip', clip: A.clip, cam: A.cam, ...(A.skip ? { skip: A.skip } : {}), ...(A.speed ? { speed: A.speed } : {}), mus: 'reveal', fx: { flash: [[0, 0.08]] }, sfx: [[0, 'whoosh', 0.35]], layers: [stampL(d.mit, { y: 270, anim: 'pop', className: '', cls: `stamp2${d.mit ? '' : ' ok'}` }), ...A.layers] }
     : { id: `oyun${i + 1}`, dur: mb(6), bg: 'quiz', mus: 'reveal', sfx: [[0, 'whoosh', 0.35]], layers: [
       stampL(d.mit, { y: 250, anim: 'pop', cls: `stamp2${d.mit ? '' : ' ok'}` }),
-      phone(A.phone, A.crop, { imgW: A.imgW ?? 1170, w: 600, y: 400, maxH: 760, ry: [i % 2 ? 10 : -10, i % 2 ? -4 : 4] }),
+      phone(A.phone, A.crop, { imgW: A.imgW ?? 1170, w: A.w ?? 600, y: 400, maxH: 760, ry: [i % 2 ? 10 : -10, i % 2 ? -4 : 4] }),
       lbl(A.label, { c: 'gold lo', y: 1210, at: 0.4, rot: i % 2 ? 1.5 : -1.5 }),
     ] });
   if (d.shotB) {
