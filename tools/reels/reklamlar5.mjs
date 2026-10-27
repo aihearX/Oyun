@@ -55,7 +55,7 @@ const cover = (layers, o = {}) => ({ bg: o.bg ?? 'launch', ...o, layers });
 const fb = grid(100); // 0,6 sn
 const FX = (o = {}) => ({ bars: 140, grade: 'teal', vignette: 0.55, grain: 0.01, ...o });
 const ttb = (html, o = {}) => ({ kind: 'html', anim: 'flicker', at: 0, y: 1080, ...o, cls: 'band', html: `<div class="tt ${o.c ?? ''}">${html}</div>` });
-const bolge = (id, lv, t0, name, tag, dur, o = {}) => ({ id, dur, bg: 'clip', clip: clip(lv, t0, 2.4), cam: o.cam ?? { z: [1.14, 1.24], top: [150, 162] }, ...(o.mus ? { mus: o.mus } : {}),
+const bolge = (id, lv, t0, name, tag, dur, o = {}) => ({ id, dur, bg: 'clip', clip: clip(lv, t0, o.cd ?? 2.4), cam: o.cam ?? { z: [1.14, 1.24], top: [150, 162] }, ...(o.mus ? { mus: o.mus } : {}),
   fx: FX({ flash: [[0, 0.1, [255, 255, 255], 0.45]] }), sfx: [[0, 'swish', 0.45], [0, 'hit', 0.3]], layers: [
     ttb(name, { c: 'sm', y: 1060, anim: 'none' }), { kind: 'html', cls: 'lvltag', html: tag, y: 1160, at: 0.08, anim: 'fade' }] });
 const yayinda = {
@@ -72,8 +72,8 @@ const yayinda = {
     bolge('orman', 3, 9.0, 'Kulak Kılı Ormanı', '3. bölüm · Dış Kulak', fb(2), { mus: 'pulse', cam: { z: [1.15, 1.25], top: [160, 175] } }),
     bolge('zar', 10, 18.7, 'Kulak Zarı', '10. bölüm «Titreşim»', fb(2)),
     bolge('kemik', 15, 34.3, 'Kemikçikler', '15. bölüm «Üzengi»', fb(2), { cam: { z: [1.15, 1.22], top: [140, 150] } }),
-    bolge('koklea', 22, 10.7, 'Koklea', '22. bölüm «İnce Sesler»', fb(2), { cam: { z: [1.12, 1.24], top: [160, 175] } }),
-    bolge('sinir', 31, 17.3, 'İşitme Siniri', '31. bölüm «Elektrik»', fb(1), { mus: 'build' }),
+    bolge('koklea', 22, 10.7, 'Koklea', '22. bölüm «İnce Sesler»', fb(2), { cd: 3.5, cam: { z: [1.12, 1.24], top: [160, 175] } }),
+    bolge('sinir', 31, 17.3, 'İşitme Siniri', '31. bölüm «Elektrik»', fb(1), { mus: 'build', cd: 3.0 }),
     bolge('korteks', 37, 14.9, 'İşitme Korteksi', '37. bölüm «Anlam Bahçesi»', fb(1)),
     { id: 'golem', dur: fb(5), bg: 'clip', clip: clip(20, 10.7, 3.5), speed: [[0, 1], [0.2, 1], [0.28, 0.25], [1.5, 0.25], [1.7, 1]], blend: true,
       cam: { z: [1.05, 1.25], top: 150, punch: [[0.48, 0.12, 0.25]] },
@@ -136,7 +136,7 @@ const geri = {
       [22, 60, 'Koklea', { skip: 0.3, cam: { z: 1.2, top: 190 } }],
       [35, 6.2, 'Ters Dünya', { cam: { z: 1.15, top: 160 } }],
       [40, 21.0, 'Gürültü Canavarı', { cam: { z: 1.1, top: 120, punch: [[0.3, 0.1, 0.3]] }, fx: { shake: [[0.3, 0.5, 22]] } }]]
-      .map(([lv, t0, name, o], i) => ({ id: `m${i + 1}`, dur: sp(2), bg: 'clip', clip: clip(lv, t0, 2.4), ...o, fx: { flash: [[0, 0.08, [255, 255, 255], 0.5]], ...(o.fx ?? {}) },
+      .map(([lv, t0, name, o], i) => ({ id: `m${i + 1}`, dur: sp(2), bg: 'clip', clip: clip(lv, t0, { 20: 3.5, 22: 3.5, 35: 2.4, 40: 3.5 }[lv]), ...o, fx: { flash: [[0, 0.08, [255, 255, 255], 0.5]], ...(o.fx ?? {}) },
         sfx: [[0, 'swish', 0.45], [0, 'hit', 0.4]], layers: [lbl(name, { c: i % 2 ? 'teal' : 'gold', y: 1180, at: 0.05, rot: i % 2 ? 2 : -2 })] })),
     { id: 'son', dur: sp(8), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: sonKart({ cta: 'Hemen oyna', bpm: 120 }) },
   ],
@@ -177,7 +177,7 @@ const ilkGun = {
       madde(0), { kind: 'html', cls: 'lvltag', html: '7. bölüm · Kulak Kanalı', y: 1250, at: 0.1, anim: 'fade' }] },
     { id: 'f1b', dur: ib(2), bg: 'clip', clip: clip(13, 41.0, 2.0), cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
       madde(0, { anim: 'none', drawAt: -1 }), { kind: 'html', cls: 'lvltag', html: '13. bölüm · Kemikçikler', y: 1250, at: 0, anim: 'none' }] },
-    { id: 'f1c', dur: ib(2), bg: 'clip', clip: clip(35, 6.2, 2.0), cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
+    { id: 'f1c', dur: ib(2), bg: 'clip', clip: clip(35, 6.2, 2.4), cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
       madde(0, { anim: 'none', drawAt: -1 }), { kind: 'html', cls: 'lvltag', html: '35. bölüm · Beyin Sapı', y: 1250, at: 0, anim: 'none' }] },
     { id: 'f2', dur: ib(4), bg: 'clip', clip: clip(22, 60, 3.5), skip: 0.3, cam: { z: [1.2, 1.28], top: [185, 195] }, shade: 'top', fx: { flash: [[0, 0.08]] }, sfx: ozSfx, layers: [
       madde(1), { kind: 'html', cls: 'lvltag', html: '21–30. bölüm · Koklea · sıvıda yüz', y: 1250, at: 0.2, anim: 'fade' }] },
@@ -232,7 +232,7 @@ const sinav = {
     ] },
     { id: 'pzt', dur: lb(2), bg: 'clip', clip: clip(13, 41.0, 2.0), cam: { z: [1.16, 1.22], top: [170, 178] }, shade: 'top', sfx: daySfx, layers: [
       weekL(0), dayL('Pazartesi', 'Anatomi'), { kind: 'html', cls: 'lvltag', html: '13. bölüm «Çekiç» · Kemikçikler', y: 1260, at: 0.2, anim: 'fade' }] },
-    { id: 'pzt2', dur: lb(2), bg: 'clip', clip: clip(15, 50.5, 2.0), cam: { z: [1.1, 1.16], top: [130, 140], punch: [[0.2, 0.1, 0.2]] }, shade: 'top', sfx: [[0, 'swish', 0.35], [0.2, 'thud', 0.4]], layers: [
+    { id: 'pzt2', dur: lb(2), bg: 'clip', clip: clip(15, 50.5, 2.4), cam: { z: [1.1, 1.16], top: [130, 140], punch: [[0.2, 0.1, 0.2]] }, shade: 'top', sfx: [[0, 'swish', 0.35], [0.2, 'thud', 0.4]], layers: [
       weekL(0), dayL('Pazartesi', 'Anatomi', { anim: 'none' }), { kind: 'html', cls: 'lvltag', html: '15. bölüm «Üzengi» · vücudun en küçük kemiği', y: 1260, at: 0, anim: 'none' }] },
     { id: 'sal', dur: lb(4), bg: 'clip', clip: clip(22, 10.7, 3.5), cam: { z: [1.12, 1.22], top: [160, 172] }, shade: 'top', sfx: daySfx, layers: [
       weekL(1), dayL('Salı', 'Fizyoloji', { rot: 2 }), { kind: 'html', cls: 'lvltag', html: '22. bölüm «İnce Sesler» · Koklea tabanı', y: 1260, at: 0.2, anim: 'fade' }] },

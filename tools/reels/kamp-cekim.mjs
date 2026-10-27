@@ -13,7 +13,7 @@
  *   vaka   Odyoloji Kliniği: kv11 ve kv19 vakalarının hasta, test (otoskopi, timpanometri, refleks, odyometri) ekranları; odyoloji düzeyi
  *   oyun   Ton Avı ve Timpanogram Eşleştir ekranları
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'node:net';
@@ -102,6 +102,9 @@ try {
     const page = await campPage(); const W = 480, H = 853; const idx = [];
     for (let L = 1; L <= 25; L++) {
       const K = Math.min(30, Math.ceil(L * 1.2));
+      // sürdürülebilir: kapsayıcı yeniden başlarsa çekilmiş seviyeler (png + yan json) atlanır
+      const fp = resolve(dir, `sv${String(L).padStart(2, '0')}.png`), fj = fp.replace(/\.png$/, '.json');
+      if (existsSync(fp) && existsSync(fj)) { idx.push(JSON.parse(readFileSync(fj, 'utf8'))); log(`zaman Sv ${L} hazır`); continue; }
       await openDemo(page, L, K);
       const m = await page.evaluate(() => { const p = window.__kamp.pos('merkez'); const v = window.__kamp.view(); return { p, v }; });
       // Merkez'in dünya noktası (rozet konumu → bina tabanı)
@@ -111,7 +114,7 @@ try {
       await sleep(1200);
       const v = await view(page);
       const f = resolve(dir, `sv${String(L).padStart(2, '0')}.png`); await page.screenshot({ path: f });
-      idx.push({ L, K, file: f, view: v, merkez: [mx, my] }); log(`zaman Sv ${L} (Kamp Sv ${K})`, JSON.stringify(v));
+      idx.push({ L, K, file: f, view: v, merkez: [mx, my] }); writeFileSync(fj, JSON.stringify(idx.at(-1))); log(`zaman Sv ${L} (Kamp Sv ${K})`, JSON.stringify(v));
     }
     writeFileSync(resolve(dir, 'index.json'), JSON.stringify(idx, null, 1));
     await page.context().close();

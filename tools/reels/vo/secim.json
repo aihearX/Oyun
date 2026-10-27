@@ -1840,6 +1840,17 @@
    "tempo": 1.0,
    "dur": 2.93,
    "sps": 4.78
+  },
+  "y3": {
+   "key": "339cf193a9fb",
+   "text": "Kırk bölüm. Kulaktan beyne.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "40 bölüm kulaktan beyne.",
+   "gap": 0.24,
+   "tempo": 1.1,
+   "dur": 1.78,
+   "sps": 4.5
   }
  }
 }

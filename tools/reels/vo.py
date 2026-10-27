@@ -8,9 +8,11 @@ Ses kaynağı (gerçek kişi klonu YOK): tools/reels/vo/ref-tr-erkek.wav — tam
 Denetim: Whisper large-v3-turbo (MIT) her çekimi yazıya döker; en iyi çekim = en düşük hata, kısa iç duraksama, akıcı hız.
 Sonra sessizlik kırpılır, hız gerekirse ffmpeg atempo ile hedefe (≈5,6 hece/sn) çekilir (en çok ×1,22), kenarlar yumuşatılır.
 
-Kurulum (depo DIŞINDA bir venv; CPU yeterli):
-  python3.11 -m venv ~/odi-vo && ~/odi-vo/bin/pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
-  ~/odi-vo/bin/pip install chatterbox-tts==0.1.7
+Kurulum (git'e girmeyen bir venv + model önbelleği; CPU yeterli): tools/voice/ortam-kur.sh [klasör] (varsayılan tools/harness/out/ses)
+  elle: python3.11 -m venv ~/odi-vo && ~/odi-vo/bin/pip install torch==2.6.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+        ~/odi-vo/bin/pip install chatterbox-tts==0.1.7
+Denetim katıdır: her sözcük Whisper dökümünde birebir olmalı (WER 0; "koklea" ↔ "kokleada" bile hata sayılır). "asr" listesi yalnız
+sayıların yazımı (kırk / 40) ve özel adın büyük-küçük yazımı (ODİ / Odi) gibi aynı okunuşlu yazımlar içindir.
 Kullanım (kökten; ağır iş: başka üretim varsa `nice -n 5`):
   HF_HOME=~/.cache/huggingface nice -n 5 ~/odi-vo/bin/python tools/reels/vo.py [--only kulak-yolculugu,tuy-dede] [--ids k1,k2] [--force]
 Girdi: tools/reels/vo/metin.json (metinler + ses ayarları). Çıktı: tools/reels/vo/<reels>/<id>.mp3 (işlenmiş, yerleştirmeye hazır)
