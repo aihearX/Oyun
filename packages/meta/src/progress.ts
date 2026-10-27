@@ -12,12 +12,22 @@ export function levelProgress(xp: number): { level: number; from: number; to: nu
 export type RunSpecLite = Pick<LevelSpec, 'number' | 'name' | 'biome' | 'mechanic' | 'objective' | 'parTimeSec' | 'coinsTotal'>;
 export interface NextGoal { text: string; kind: 'yakin' | 'yildiz' | 'hazine' | 'sirada' | 'son' }
 
+/** "yüzde N"nin iyelik + belirtme eki, sayının okunuşuna göre: %1'ini %2'sini %3'ünü %6'sını %9'unu %40'ını %100'ünü */
+export function yuzdeEki(n: number): string {
+  const birler = ['ını', 'ini', 'sini', 'ünü', 'ünü', 'ini', 'sını', 'sini', 'ini', 'unu'];
+  const onlar = ['', 'unu', 'sini', 'unu', 'ını', 'sini', 'ını', 'ini', 'ini', 'ını'];
+  const k = Math.abs(Math.round(n));
+  if (k === 0) return 'ını';
+  if (k % 100 === 0) return 'ünü';
+  return k % 10 ? birler[k % 10]! : onlar[(k % 100) / 10]!;
+}
+
 /** Dürüst "neredeyse" geri bildirimi: gerçekte ne eksikse onu söyler. */
 export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<number, LevelProgressLite> = {}): NextGoal {
   if (!r.completed) {
     const pct = typeof r.extra?.pct === 'number' ? r.extra.pct : null;
     if (pct != null && pct >= 0.5) return { kind: 'yakin', text: `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı!` };
-    if (pct != null) return { kind: 'yakin', text: `Yolun %${Math.round(pct * 100)}'ini geçtin. Bir dahakine daha ileri!` };
+    if (pct != null) return { kind: 'yakin', text: `Yolun %${Math.round(pct * 100)}'${yuzdeEki(Math.round(pct * 100))} geçtin. Bir dahakine daha ileri!` };
     return { kind: 'yakin', text: 'Bir daha dene: her denemede yol biraz daha tanıdık.' };
   }
   if (spec.coinsTotal <= 0) {

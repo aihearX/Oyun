@@ -6,7 +6,7 @@ const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind ==
 import {
   addDays, advanceStreak, albumProgress, applyGrant, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
   dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
-  nextGoal, nextTreasure, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
+  nextGoal, nextTreasure, yuzdeEki, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
 } from './index';
 
@@ -133,9 +133,17 @@ describe('bölüm işleme, başarımlar, albüm, kozmetik', () => {
 });
 
 describe('ilerleme geri bildirimi', () => {
+  it('yüzde eki okunuşa uyar', () => {
+    const ek = (n: number) => `%${n}'${yuzdeEki(n)}`;
+    expect([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 41, 49].map(ek)).toEqual([
+      "%0'ını", "%1'ini", "%2'sini", "%3'ünü", "%4'ünü", "%5'ini", "%6'sını", "%7'sini", "%8'ini", "%9'unu",
+      "%10'unu", "%20'sini", "%30'unu", "%40'ını", "%50'sini", "%60'ını", "%70'ini", "%80'ini", "%90'ını", "%100'ünü", "%41'ini", "%49'unu",
+    ]);
+  });
   it('XP çubuğu levelFromXp ile tutarlı', () => { const p = levelProgress(0); expect(p.level).toBe(1); expect(p.pct).toBe(0); const q = levelProgress(p.to); expect(q.level).toBe(2); expect(q.pct).toBe(0); });
   it('dürüst yakın-kaçış metinleri', () => {
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.92 } })).text).toBe('Kapıya %8 kaldı!');
+    expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.06 } })).text).toBe("Yolun %6'sını geçtin. Bir dahakine daha ileri!");
     expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha ya da: Hedef');
     expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha');
     expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toContain('2. yıldız için');
