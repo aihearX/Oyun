@@ -4,7 +4,8 @@
 //       index.html'de apple-touch-icon (180×180), durum çubuğu (black-translucent), ana ekran adı "ODİ"
 //   (b) çevrimdışı: ilk ziyaret (service worker kurulur, kabuk önbelleğe alınır) → context.setOffline(true) → yenile:
 //       açılış ekranı gelir; "Yola çık" → hikâye → Atla → 1. bölüm (Phaser) başlar; aynı bağlantısız durumda
-//       `?bot=1&level=1` bölümü baştan sona oynar (bot). Sayfa hatası olmamalı.
+//       `?bot=1&level=1` bölümü baştan sona oynar (bot). Çalınmış ses kaydı bağlantısızken gelir; /saglik ve /olcum
+//       önbelleğe girmez; bağlantısızken düşen istek yalnız hiç çalınmamış ses kaydı olabilir. Sayfa hatası olmamalı.
 //   (c) güncelleme: v1 açıkken v2 yayımlanır → v2 arka planda kurulur ve BEKLER (açık sayfa yenilenmez, hâlâ v1'de);
 //       sayfa kapanıp yeniden açılınca v2 gelir (eski index'te takılmaz), eski önbellek silinir; ardından çevrimdışı
 //       açılış da v2'yi açar.
@@ -13,7 +14,7 @@
 // Kullanım: node tools/harness/pwa-e2e.mjs [--browsers chromium,webkit] [--no-build]
 // Çıktı: tools/harness/out/pwa/ (v1, v2, yayin, ekran görüntüleri)
 import { spawn } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inflateSync } from 'node:zlib';
 import { chromium, webkit } from 'playwright';
@@ -229,10 +230,22 @@ for (const bn of browsers) {
   // (b) çevrimdışı açılış + 1. bölüm
   await adim(bn, '(b) çevrimdışı açılış + 1. bölüm', async () => {
     const ctx = await yeniBaglam(browser); const page = await ctx.newPage(); const hatalar = []; hataDinle(page, hatalar);
+    // bağlantısızken düşen istekler: yalnız henüz çalınmamış (önbellekte olmayan) ses kayıtları olabilir, kabuk dosyası olamaz
+    const dusen = []; let cevrimdisi = false;
+    page.on('requestfailed', (r) => { if (cevrimdisi) dusen.push(new URL(r.url()).pathname); });
     try {
       await page.goto(`${base}/`); await page.waitForSelector('.title-screen', { timeout: 30_000 });
       const n = await kabukHazir(page, S1);
-      await ctx.setOffline(true);
+      // çalınan ses kaydı önbelleğe girer; /saglik ve /olcum hiç girmez
+      const sesDosya = readdirSync(resolve(V1, 'voice')).find((f) => f.endsWith('.mp3'));
+      const onb = await page.evaluate(async ([ses, s]) => {
+        for (const u of [`/voice/${ses}`, '/saglik', '/olcum']) await fetch(u).then((r) => r.arrayBuffer()).catch(() => undefined);
+        await new Promise((r) => setTimeout(r, 500));
+        const c = await caches.open(`odi-kabuk-${s}`);
+        return { ses: !!(await c.match(`/voice/${ses}`)), saglik: !!(await caches.match('/saglik', { ignoreSearch: true })), olcum: !!(await caches.match('/olcum', { ignoreSearch: true })) };
+      }, [sesDosya, S1]);
+      beklenen(onb.ses && !onb.saglik && !onb.olcum, `önbellek kuralları: ${JSON.stringify(onb)}`);
+      await ctx.setOffline(true); cevrimdisi = true;
       await page.reload({ waitUntil: 'commit' });
       let ilk = null; try { ilk = parlaklik(await page.screenshot({ timeout: 10_000 })); } catch { /* yok */ }
       await page.waitForSelector('.title-screen', { timeout: 30_000 });
@@ -242,16 +255,20 @@ for (const bn of browsers) {
       // normal akış: Yola çık → hikâye → Atla → 1. bölüm başlar (bölüm üreticisi + Phaser parçaları önbellekten)
       await page.getByRole('button', { name: /Yola çık/ }).click();
       await page.locator('.story-skip').click({ timeout: 30_000 });
-      // ilk biyomun tanıtımı (Haydi!) → bölüm
+      // ilk biyomun tanıtımı (Haydi!) → bölüm (Phaser önbellekten) → dokun ve başla
       const t0 = Date.now(); let basladi = false;
       while (!basladi && Date.now() - t0 < 60_000) {
         basladi = await page.evaluate(() => !!window.__odi?.events?.some((e) => e.type === 'started'));
         const h = page.getByRole('button', { name: /Haydi/ });
         if (!basladi && await h.count()) await h.click({ timeout: 5000 }).catch(() => undefined);
+        // bölüm açıldı: "Dokun ve başla"
+        else if (!basladi && await page.locator('canvas').count()) await page.mouse.click(195, 600).catch(() => undefined);
         await sleep(300);
       }
       if (!basladi) { await shot(page, 'cevrimdisi-bolum1-HATA'); throw new Error('çevrimdışı 1. bölüm başlamadı (60 sn)'); }
       await sleep(1500); await shot(page, 'cevrimdisi-bolum1');
+      const sesCevrimdisi = await page.evaluate((ses) => fetch(`/voice/${ses}`).then((r) => r.ok && r.arrayBuffer()).then((b) => (b ? b.byteLength : 0)).catch(() => 0), sesDosya);
+      beklenen(sesCevrimdisi > 0, 'çalınmış ses kaydı bağlantısızken gelmedi');
       const canvas = await page.evaluate(() => { const c = document.querySelector('canvas'); return c ? [c.width, c.height] : null; });
       beklenen(canvas && canvas[0] > 0, 'bölüm tuvali yok');
       // aynı bağlantısız durumda bölüm baştan sona oynanır (bot)
@@ -260,8 +277,15 @@ for (const bn of browsers) {
       const r = await page.evaluate(() => window.__odi.result);
       await shot(page, 'cevrimdisi-bolum1-son');
       beklenen(r?.completed, `1. bölüm tamamlanmadı: ${JSON.stringify(r)?.slice(0, 200)}`);
-      beklenen(!hatalar.length, `sayfa hatası: ${hatalar.join(' | ')}`);
-      return `${n} dosya önbellekte; çevrimdışı 1. bölüm ⭐${r.stars}, ${r.timeSec} sn`;
+      const SES = /^\/voice\/[^/]+\.mp3$/;
+      const kabukDusen = dusen.filter((p) => !SES.test(p));
+      beklenen(!kabukDusen.length, `bağlantısızken kabuk isteği düştü: ${[...new Set(kabukDusen)].join(', ')}`);
+      // WebKit, bağlantısızken düşen (uygulamanın yakaladığı) ses isteklerini sayfa hatası olarak da bildirir: yalnız bunlar ve
+      // yalnız düşen ses isteği varken kabul edilir
+      const NET = /^(TypeError: Load failed|Response served by service worker is an error)/;
+      const gercek = hatalar.filter((h) => !(bn === 'webkit' && dusen.length && NET.test(h)));
+      beklenen(!gercek.length, `sayfa hatası: ${gercek.join(' | ')}`);
+      return `${n} dosya önbellekte; çevrimdışı 1. bölüm ⭐${r.stars}, ${r.timeSec} sn; önbellekte olmayan ${new Set(dusen).size} ses kaydı çalınamadı (beklenen)`;
     } finally { await ctx.close(); }
   });
 

@@ -82,7 +82,9 @@ async function onceOnbellek(e) {
   // bütün sürümlerin önbelleklerinde ara: eski sürüm etkinken yeni sürümün (kurulmuş, bekleyen) dosyaları da bulunur
   const hit = await caches.match(req, { ignoreSearch: true, ignoreVary: true });
   if (hit) return hit;
-  const r = await fetch(req);
+  let r;
+  // ağ yok ve önbellekte yok (ör. bağlantısızken ilk kez çalınan ses kaydı): ağ hatası, service worker'da yakalanmamış hata değil
+  try { r = await fetch(req); } catch { return Response.error(); }
   if (r.ok && r.status === 200 && r.type === 'basic') {
     const kopya = r.clone();
     const yol = new URL(req.url).pathname;
