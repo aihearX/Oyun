@@ -299,6 +299,16 @@ def mix_audio_ad(plan, out_wav):
     gm = 1 - (1 - 10 ** (duck.get('music', -10) / 20)) * e; gf = 1 - (1 - 10 ** (duck.get('sfx', -4) / 20)) * e
     rms = lambda z: np.sqrt(np.mean(z ** 2)) + 1e-9
     mus = mus / rms(mus) * 0.05 * float(duck.get('musicGain', 1.0)); fx = fx / max(1e-9, np.max(np.abs(fx))) * 0.55 * float(duck.get('sfxGain', 1.0))
+    # kelime altı oyuk (vo.dip): müzik ve efektler o kelimede ayrıca kısılır ve 1–5 kHz'de oyulur (ünsüzler maskelenmesin); 50 ms yumuşak geçiş
+    dips = [(vo['at'] + d[0], vo['at'] + d[1], d[2], d[3] if len(d) > 3 else 0) for vo in plan['voice'] for d in (vo.get('dip') or [])]
+    if dips:
+        tt = np.arange(n) / SR; rmp = 0.05
+        for a0, b0, gdb, eqdb in dips:
+            w = np.clip(np.minimum((tt - (a0 - rmp)) / rmp, ((b0 + rmp) - tt) / rmp), 0, 1); w = 0.5 - 0.5 * np.cos(np.pi * w)
+            if eqdb:
+                mus = np.stack([ch * (1 - w) + RS.fftfilt(ch, peak=(2500, eqdb, 2.2)) * w for ch in mus])
+                fx = np.stack([ch * (1 - w) + RS.fftfilt(ch, peak=(2500, eqdb, 2.2)) * w for ch in fx])
+            g = 1 - (1 - 10 ** (gdb / 20)) * w; mus = mus * g; fx = fx * g
     # Ton Avı tonları: saf sinüs, anlatıcının ~16 dB altında sabit düzey (sıkıştırma/sınırlayıcıya takılmaz; ani yüksek ses yok)
     tn = np.zeros(n)
     for ev in plan.get('tones') or []:

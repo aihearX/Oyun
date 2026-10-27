@@ -139,7 +139,8 @@ async function renderReel(r, browser, port, log) {
   });
   const subs = voice.flatMap((v) => (v.subs ?? []).map(([a, b, text]) => ({ kind: 'html', cls: 'sub', html: `<span class="who">Tüy Dede</span>${text}`, y: 1360, at: +(v.at + a).toFixed(3), until: +(v.at + b + 0.12).toFixed(3), anim: 'fade' })));
   // anlatıcı (erkek VO): satır başına bir altyazı, etiketsiz; bitiş kartında yazı zaten ekranda (nosub). Ağız oynatma yok.
-  const narr = (r.vo ?? []).map((v) => ({ id: v.id, file: v.file, at: +v.start.toFixed(3), from: 0, to: null, gain: v.gain ?? 1, fx: v.fx ?? r.vofx ?? null }));
+  // dip: [[satır içi sn a, b, müzik dB, orta-tiz oyuğu dB]]: tek bir kelimenin altında müziği ayrıca kısar (compose.py › mix_audio_ad)
+  const narr = (r.vo ?? []).map((v) => ({ id: v.id, file: v.file, at: +v.start.toFixed(3), from: 0, to: null, gain: v.gain ?? 1, fx: v.fx ?? r.vofx ?? null, dip: v.dip ?? null }));
   for (const v of r.vo ?? []) if (!v.nosub) subs.push({ kind: 'html', cls: `sub ${r.subCls ?? ''}`, html: v.text, y: v.subY ?? r.subY ?? 1360, at: +v.start.toFixed(3), until: +(v.start + v.dur + 0.15).toFixed(3), anim: 'fade' });
   // reklam: ses efektleri (sahne içi [at, tür, kazanç]) mutlak zamana
   const sfx = scenes.flatMap((sc) => (sc.sfx ?? []).map(([at, k, g, o]) => ({ t: +(sc.start + at).toFixed(3), k, g: g ?? 1, ...(o ?? {}) }))).sort((a, b) => a.t - b.t);

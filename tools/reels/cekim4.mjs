@@ -9,7 +9,7 @@
  *
  * Kullanım: PLAYWRIGHT_CHROMIUM=… node tools/reels/cekim4.mjs [--only sonuc,kart,tedavi,takim] [--no-build]
  * Çıktı: tools/harness/out/reels4/cekim/<bölüm>/<ad>.png (390×844 görünüm, ×3 = 1170×2532)
- *   sonuc   5. bölüm: önce "hep zıplayan" koşu (kaymayı zıplamaya çeviren bot; perdeye çarpar) → "Bu sefer olmadı", sonra bot → 3 yıldız
+ *   sonuc   --bolum N (varsayılan 4), --mod zipla|bos: önce başarısız koşu → "Bu sefer olmadı" (üstten ve teşvik satırına kaydırılmış: -alt), sonra bot → 3 yıldız
  *   kart    Kulak Kartları albümü (Kemikçikler) ve üç kart: En Küçük Kemik, Minik Koruyucu Kas, Kulağın Yankısı
  *   tedavi  Tedavi Odası: Kulak tıkacı ve Ses üreteci tarif kartları
  *   takim   "Sessiz Operasyon" takımı: keşif, başvuru, kabul, üyeler (Lider/Yardımcı), sohbet (hazır sözler), takım yarışı, baskın
@@ -212,6 +212,14 @@ const step = async (name, fn) => {
   try { await fn(); log(`✓ ${name} (${Math.round((Date.now() - t) / 1000)} sn)`); } catch (e) { problems.push(`${name}: ${String(e?.message ?? e).split('\n')[0]}`); log(`✗ ${name}: ${String(e?.message ?? e).split('\n')[0]}`); }
 };
 const top0 = (p) => p.evaluate(() => { document.scrollingElement?.scrollTo(0, 0); for (const el of document.querySelectorAll('.screen, #root')) el.scrollTop = 0; });
+/** sonuç ekranını teşvik satırı ("Yolun %N'… geçtin") yapışkan düğmelerin hemen üstünde tam görünecek kadar kaydırır (en az kaydırma) */
+const tesvikGoster = (p) => p.evaluate(() => {
+  const els = [...document.querySelectorAll('div, p, section')].filter((e) => /^Yolun %\d/.test(e.textContent.trim()));
+  const card = els.at(-1)?.closest('[class]'); const bar = document.querySelector('.result-actions'); if (!card || !bar) return false;
+  const sc = [document.scrollingElement, ...document.querySelectorAll('.screen, #root')].find((e) => e && e.scrollHeight > e.clientHeight + 4 && getComputedStyle(e).overflowY !== 'hidden') ?? document.scrollingElement;
+  const d = card.getBoundingClientRect().bottom - (bar.getBoundingClientRect().top + 18);
+  if (d > 0) sc.scrollTop += d; return d;
+});
 
 // ================================================================ sonuç: 5. bölüm, önce başarısız (hep zıplayan), sonra 3 yıldız
 /** sayfada: bölüm sahnesi kurulunca planlayıcının kaymalarını zıplamaya çevir (yeniden kurulursa yeniden sarar) */
@@ -240,6 +248,8 @@ await step('sonuc', async () => {
   const r1 = await waitResult(page); log(`başarısız koşu: ${JSON.stringify({ completed: r1?.completed, stars: r1?.stars, reason: r1?.extra?.reason, pct: r1?.extra?.pct })}`);
   if (r1?.completed) throw new Error(`${mod} koşusu bitirdi (beklenmedi)`);
   await top0(page); await shoot(page, 'sonuc', `L${pad2(n)}-basarisiz${fs0 ? `-fs${fs0}` : ''}`);
+  // aynı ekran, oyunun teşvik satırı ("Yolun %N'… geçtin") yapışkan düğmelerin üstünde tam görünecek kadar kaydırılmış
+  log(`teşvik satırı için kaydırma: ${await tesvikGoster(page)} px`); await shoot(page, 'sonuc', `L${pad2(n)}-basarisiz-alt${fs0 ? `-fs${fs0}` : ''}`); await top0(page);
   // ikinci koşu: bot (kayar)
   await page.evaluate(() => { clearInterval(window.__zipla); window.__zipla = null; });
   await page.getByRole('button', { name: /Tekrar dene/ }).click();
