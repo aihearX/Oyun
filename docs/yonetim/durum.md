@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 9. tur (hafif) · 2026-10-27 · main e049fe4.
+**Son tur:** 10. tur (hafif) · 2026-10-27 · main a9cece0.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,15 +26,11 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 492/492 ilk denemede):**
-  - 7868c61 bölüm/yarış görselleri (MK-025–027).
-  - c1181d5 + c55ddd8 yük altında kırılgan testler (MK-020; artıklar MK-034).
-  - f896cee yarış sürerken yeniden başlatma (MK-031) · 9c47603 `uzak-duman --kopma` (MK-032).
-  - 1203531 kamp yakınlaştırma + sohbet (MK-028/029).
-  - f539935 MK-021 ertelendi, MK-033 eklendi.
-  - 67c56e0 yüzde eki ("%6'sını").
-  - Reels 4. dalga (2b7a064 … e049fe4).
-- **Ortam riski (YN-031):** scratchpad silindi; ses araçları yeni satırdan önce yeniden kurulmalı.
+- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 503/503 ilk denemede):**
+  - e60c617 cüzdan uzlaşması (MK-035).
+  - a355079 + f0edc08 "panel kapanmadı" kök nedeni ve `UIM_SURE` (MK-034).
+  - 18f0292 / 7a8cce2 / e5fb840 bölüm sonu jetonu, bot önizleme, kabul çapraz kapatma (MK-036).
+- **PY denetimi:** web sürümü ana ekrana hazır değil → MK-037 (P1, iPhone beta yolu).
 
 ## Sürüyor
 - Çalışan yok (koordinatöre göre). Sıradaki emirler: cuzdan (MK-035, P1), saglam2 (MK-034).
