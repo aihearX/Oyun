@@ -88,8 +88,9 @@ function pendingJeton(): number {
 function mirrorCoins(): void {
   const n = useNet.getState();
   if (n.status !== 'bağlı' || !n.wallet) return;
-  // outbox çağrısı yanıt beklerken (sunucunun olayı yanıttan önce gelir) üst çubuk bir an fazla göstermesin; yanıt gelince güncellenir
-  if (outbox_.busy()) return;
+  // outbox ya da bölüm sonu (progress.submit) çağrısı yanıt beklerken (sunucunun olayı yanıttan önce gelir) üst çubuk bir an bir ödül
+  // fazla göstermesin; yanıt gelince (kayıt kuyruktan düşünce) ya da çağrı yanıtsız bitince güncellenir (MK-035, MK-036)
+  if (outbox_.busy() || client?.submitting()) return;
   const coins = Math.max(0, n.wallet.jeton + pendingJeton());
   if (useStore.getState().coins !== coins) useStore.setState({ coins });
 }
@@ -294,6 +295,7 @@ export function startNet(): void {
       saveToken: (t) => (t ? store().setItem(K.token, t) : store().removeItem(K.token)),
       getQueue: () => readJson<ProgressSubmit[]>(K.queue, []),
       saveQueue: (q) => { useSocial.setState({ queued: q.length, queuedCoins: q.reduce((a, x) => a + (x.coins ?? 0), 0) }); writeJson(K.queue, q); mirrorCoins(); },
+      onSubmitSettled: () => mirrorCoins(),
     });
     const c = client;
     // bağlanınca İLK istek outbox: yanıtı kaybolmuş (sunucuda yazılmış) ödül, yenilemenin getirdiği cüzdandan önce kapanır;

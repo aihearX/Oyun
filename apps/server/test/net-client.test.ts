@@ -63,6 +63,27 @@ describe('@odi/net istemcisi', () => {
     await expect(p4).rejects.toMatchObject({ code: 'GECERSIZ' }); // yeni hesapta 4. bölüm açık değil
   });
 
+  it('bölüm sonu: sunucu olayı yanıttan önce gelirken submitting() true; kayıt kuyruktan düşerken false (MK-036)', { timeout: 10_000 }, async () => {
+    srv = await startServer({ port: 0, host: '127.0.0.1' });
+    const seen: { ev?: { submitting: boolean; queued: number; jeton: number }; save: { submitting: boolean; n: number }[] } = { save: [] };
+    let token = '';
+    const c: NetClient = createClient({
+      url: `ws://127.0.0.1:${srv.port}`, name: 'Bolum', getToken: () => token, saveToken: (t) => { token = t; },
+      getQueue: () => [], saveQueue: (q) => { seen.save.push({ submitting: c.submitting(), n: q.length }); },
+    });
+    clients.push(c);
+    c.on('wallet.updated', ({ wallet }) => { seen.ev ??= { submitting: c.submitting(), queued: c.queued(), jeton: wallet.jeton }; });
+    c.connect();
+    await waitStatus(c, 'bağlı', 5000);
+    expect(c.submitting()).toBe(false);
+    const ack = await c.call('progress.submit', run(1, { coins: 20 }));
+    // olay geldiğinde cüzdan bölüm jetonunu içeriyor ve kayıt hâlâ kuyrukta: gösterge bu arada güncellenmemeli
+    expect(seen.ev).toEqual({ submitting: true, queued: 1, jeton: ack.wallet.jeton });
+    // kayıt düşerken (saveQueue) bayrak kapalı: gösterge yanıtla birlikte doğru değere geçer
+    expect(seen.save.at(-1)).toEqual({ submitting: false, n: 0 });
+    expect(c.submitting()).toBe(false);
+  });
+
   it('zaman aşımı ve kapalı istemci hataları Türkçe', async () => {
     const c = createClient({ url: 'ws://127.0.0.1:1', getToken: () => null, saveToken: () => {}, timeoutMs: 100, maxBackoffMs: 100 });
     clients.push(c);
