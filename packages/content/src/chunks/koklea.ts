@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, bank, beat, beatSlide, moving, block, bubble, checkpoint, chunk, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
+import { G, bank, beat, beatSlide, moving, block, bubble, checkpoint, chunk, coin, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -13,6 +13,8 @@ const K1 = ['koklea-1'] as const, K2 = ['koklea-2'] as const, K3 = ['koklea-3'] 
 const hucre = (x: number, s = 1) => decor(x, G, 'hucre', s);
 const hop = (x: number, hop = 110) => enemy(x, G, 'ziplayan', 0, { hop });
 const fish = (x: number, y: number, dx = 60) => enemy(x, y, 'ucan', dx, { amp: 20 });
+/** dalış izi: her notada `dy` px aşağı inen nota dizisi (oyuncuyu derindeki ödüle götürür) */
+const diveTrail = (x: number, y: number, n: number, gap: number, dy: number) => Array.from({ length: n }, (_, i) => coin(x + i * gap, y + i * dy));
 const crumbles = (x: number, n: number, y = G, gap = 92) => Array.from({ length: n }, (_, i) => crumble(x + i * gap, y, 88));
 
 export const KOKLEA_CHUNKS: ChunkSpec[] = [
@@ -32,7 +34,9 @@ export const KOKLEA_CHUNKS: ChunkSpec[] = [
   // ---------------------------------------------------------------- apeks
   // sarmal: fırlatıcıyla rafa, aralıklı ufalanan basamaklardan (her aralıkta kısa zıplama) aşağı
   chunk('k3-spiral', 'yuzme', 3, 1400, [ground(0, 300), spike(140, 36), launcher(270, G, 280, -1150), plat(560, G - 320, 140), crumble(740, G - 250, 80), crumble(864, G - 250, 80), crumble(1010, G - 170, 80), crumble(1134, G - 170, 80), ground(1240, 160), ...launchArc(270, 280, -1150, 4, { landY: G - 320, to: 0.5 }), ...coins(570, G - 360, 3, 40), ...jumpArc(800, 3, 0.15, G - 250), ...jumpArc(1070, 3, 0.15, G - 170), ...coins(750, G - 290, 2, 40), ...coins(1020, G - 210, 2, 40), secret(630, G - 470)], { tags: ['ufalanan', 'firlatici'], biomes: [...K3] }),
-  chunk('k3-derin', 'yuzme', 4, 1600, [bank(0, 260, 380), ...pool(260, 1080, 380), current(300, G + 100, 1000, 280, 60, 30), bubble(620, G + 300), bubble(1000, G + 260), spike(500, 100, G + 380), spike(860, 100, G + 380), hazard(700, G + 20, 90, 140), fish(940, G + 200, 60), ...coins(400, G + 300, 4, 44), ...coins(1000, G + 120, 4, 44), bank(1340, 260, 380), secret(760, G + 330), collect(1180, G + 300)], { tags: ['su', 'akinti'], biomes: [...K3] }),
+  // derin havuz: balığın ardındaki nota dizisi aşağı inen bir dalış izidir, büyük notaya (derinde, akıntının içinde) götürür —
+  // eskiden düz dizi ile büyük nota ayrı yollardı, oyuncu ikisinden birini seçmek zorundaydı (MK-021)
+  chunk('k3-derin', 'yuzme', 4, 1600, [bank(0, 260, 380), ...pool(260, 1080, 380), current(300, G + 100, 1000, 280, 60, 30), bubble(620, G + 300), bubble(1000, G + 260), spike(500, 100, G + 380), spike(860, 100, G + 380), hazard(700, G + 20, 90, 140), fish(940, G + 200, 60), ...coins(400, G + 300, 4, 44), ...diveTrail(1000, G + 120, 4, 44, 35), bank(1340, 260, 380), secret(760, G + 330), collect(1176, G + 270)], { tags: ['su', 'akinti'], biomes: [...K3] }),
   chunk('k3-bas', 'yuzme', 4, 1400, [ground(0, 1400), hop(360, 150), ...coins(320, G - 220, 3, 40, 20), enemy(640, G, 'kalkanli', 50), ...coins(600, G - 150, 3, 40, 20), hop(980, 140), ...coins(940, G - 210, 3, 40, 20), spike(1200, 48), ...coins(1180, G - 130, 3, 36, 20), secret(800, G - 260), plat(750, G - 180, 110)], { tags: ['dusman'], biomes: [...K3] }),
   // havuz üstü ufalanan basamaklar (aralıklı): kaçıran suya düşer ve yüzerek devam eder (bağışlayıcı ama yavaş)
   chunk('k3-ufalanan-su', 'yuzme', 4, 1400, [bank(0, 280), ...pool(280, 840, 240), ...crumbles(320, 6, G - 20, 130), bubble(700, G + 160), spike(470, 230, G + 240), hazard(860, G + 60, 70, 180), ...coins(330, G - 60, 6, 130), ...coins(500, G + 140, 4, 44), bank(1120, 280), spike(1260, 40), secret(840, G + 200)], { tags: ['ufalanan', 'su'], biomes: [...KALL] }),
