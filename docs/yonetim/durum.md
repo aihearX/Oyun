@@ -3,7 +3,7 @@
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
 **Son tur:** 10. tur (hafif) · 2026-10-27 · main a9cece0.
-Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlilik-TASLAK.md`](gizlilik-TASLAK.md), [`magaza-TASLAK.md`](magaza-TASLAK.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
+Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
 
@@ -11,7 +11,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 |---|---|---|
 | **İç test** (aynı Wi-Fi, Expo Go SDK 58) | Hazır | — |
 | **Kapalı beta** (web + APK, 20-50 kişi) | 4 eksik (3'ü yolda) | Oracle sunucusu: karar verildi, betik hazırlanıyor, kurulum sahipte, sonra D1–D16 (YN-006) · derlemede sunucu adresi (YN-007, sürüyor) · yeni yönetici kodu (YN-002, kurulumda) · ilk EAS derlemesi (YN-024; ücretsiz Expo hesabı sahipte) |
-| **Mağaza** (App Store + Google Play) | 8 eksik | Kapalı betanın 4'ü + gizlilik/KVKK metninin hukuk onayı ve URL'si (YN-009), ikon ve açılış görseli (YN-010), mağaza listesi ve yaş derecelendirmesi (YN-012), çökme raporu kararı (YN-011) |
+| **Mağaza** (App Store + Google Play) | Metinler ve beyanlar hazır; hesaplar sahipte | Kapalı betanın eksikleri + geliştirici hesapları, D-U-N-S, banka/vergi ve yükleme anahtarları (sahip; [`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)), `ayar.json` yer tutucuları (e-posta, unvan, adres, Oracle bölgesi; YN-009), uygulama içi satın alma kurulumu ve sandbox testi (YN-032), ikon (YN-010), çökme raporu kararı (YN-011), yaş ekranı kararı (YN-034). Gizlilik/KVKK son metni, /gizlilik, /en/privacy, /hesap-sil, mağaza metinleri, IARC / Veri güvenliği / App Privacy cevapları ve ürün kataloğu hazır (YN-009, YN-012, YN-017, YN-033) |
 
 ## Test sonuçları (5. tur, PY çalıştırdı; makine yükü 14–40, 4 çekirdek)
 
@@ -33,6 +33,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 - **PY denetimi:** web sürümü ana ekrana hazır değil → MK-037 (P1, iPhone beta yolu).
 
 ## Sürüyor
+- **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
 - Çalışan yok (koordinatöre göre). Sıradaki emirler: cuzdan (MK-035, P1), saglam2 (MK-034).
 - **Sahipte:** Oracle kurulumu, Expo hesabı, vitrin seçimi (kareler yeniden çekilmeli), kararlar 4–12 ve 15–19.
 
@@ -50,8 +51,11 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Taslaklar: [`gizlili
 | 1 | ~~Sunucu barındırma~~ (YN-006) | **KARAR (sahip): Oracle Cloud Always Free** (Ubuntu 24.04 ARM 2 OCPU / 12 GB, DuckDNS, Caddy HTTPS, web aynı sunucuda; Pay As You Go + 1 $ bütçe alarmı önerildi). Hazırlık: sunucu çalışanı; doğrulama planı [`sunucu-dogrulama.md`](sunucu-dogrulama.md). | — |
 | 2 | ~~Alan adı~~ (YN-007) | **KARAR: DuckDNS alt alan adı** (beta için); mağaza öncesi kendi alan adı önerilir (~10 $/yıl). | — |
 | 3 | **Yönetici kodunu yenile** (YN-002) | Kurulumda çözülür: `kur.sh` kodu gizli girişle sorar, yalnız özeti yazar. Kodu kimseye yazmayın. | — |
-| 4 | **Apple / Google geliştirici hesapları** | Apple Developer (yıllık 99 $), Google Play Console (bir kez 25 $), aiHear şirketi adına | Bireysel hesap da olur; mağazada satıcı olarak kişi adı görünür |
-| 5 | **Gizlilik / KVKK metni** (YN-009) | TASLAK'ı avukata verin; sunucu ülkesine göre yurt dışı aktarım dayanağını netleştirin | — |
+| 4 | **Apple / Google geliştirici hesapları** | Şirket (Ltd/A.Ş.) ise **aiHear şirket hesabı**: yayıncı adı şirket; Google'ın kişisel hesaplara koyduğu "12 test kullanıcısı × 14 gün" şartı yok. D-U-N-S gerekir. **Sahibin şirket türü onayı bekleniyor.** Metinlerde yayıncı adı tek yer tutucu: `{YAYINCI}` = aiHear (`apps/web/src/yasal/ayar.json`) | Bireysel hesap da olur; mağazada satıcı olarak kişi adı görünür |
+| 4a | ~~Uygulama içi satın alma ilk sürümde mi?~~ (YN-032) | **KARAR (sahip): EVET, ilk sürümde** (RevenueCat → StoreKit / Play Billing) | — |
+| 4b | ~~Mağaza hazırlığını kim yapar?~~ | **KARAR (sahip): ajan ekibi hazırlar** (ikon, gizlilik metni, mağaza metinleri, formlar) **ve hesaplar açılınca yüklemeleri de ajan yapar.** Sahip: hesaplar, kimlik, banka/vergi, yükleme anahtarları (App Store Connect API .p8 + Key ID + Issuer ID, Play hizmet hesabı JSON, Expo erişim anahtarı) | — |
+| 5 | **Gizlilik / KVKK metni** (YN-009) | Son metin hazır ve yayında (`/gizlilik`, `/en/privacy`, `/hesap-sil`). Sizden: iletişim e-postası, şirket unvanı ve adresi, Oracle bölgesi; mağazadan önce avukat okuması önerilir (KVKK m.9 yurt dışı aktarım dayanağı, VERBİS; [`gizlilik.md`](gizlilik.md) "Açık hukuk konuları") | — |
+| 20 | **Yaş ekranı** (YN-034) | Şimdilik yok; Google "çocukların ilgisini çekebilir" incelemesinde isterse nötr yaş sorusu eklenir | a) Şimdilik yok (önerim) · b) İlk açılışta nötr yaş sorusu |
 | 6 | **İkon ve açılış görseli** (YN-010) | Odi karakterli çizilmiş tek ikon (1024 px) — tasarımcı/çizer | Mevcut ikon geometrik yer tutucu |
 | 7 | **Çökme raporu** (YN-011) | Dış servis yerine kendi sunucumuza kişisel veri içermeyen, hız sınırlı hata kaydı | a) Kendi sunucu · b) Sentry (dış servis; gizlilik metnine eklenir) · c) Şimdilik yok |
 | 8 | **"Jeton" diyen 7 anlatıcı satırı** (YN-013) | Beta öncesi dokunmayın; gerekirse "altın" ya da "nota" ile yeniden seslendirme | — |
