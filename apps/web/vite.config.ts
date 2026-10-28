@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { build as esbuild } from 'esbuild';
+import { execFileSync } from 'node:child_process';
 
 /**
  * Herkese açık yasal sayfalar (YN-009): /gizlilik, /en/privacy, /hesap-sil (mağaza listelerindeki gizlilik ve hesap silme
@@ -72,8 +73,26 @@ function odiServiceWorker(): Plugin {
   };
 }
 
+/**
+ * Çökme raporundaki derleme kimliği (YN-011, src/hata.ts): yalnız `vite build`te (git kısa özeti, yoksa derleme günü).
+ * Geliştirme sunucusunda boş kalır: raporlama orada kapalıdır.
+ */
+function odiDerleme(): Plugin {
+  return {
+    name: 'odi-derleme',
+    config(_c, { command }) {
+      let id = '';
+      if (command === 'build') {
+        try { id = execFileSync('git', ['rev-parse', '--short=8', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch { /* git yok */ }
+        if (!/^[0-9a-f]{4,40}$/.test(id)) id = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      }
+      return { define: { __ODI_BUILD__: JSON.stringify(id) } };
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), odiYasalSayfalar(), odiServiceWorker()],
+  plugins: [react(), odiYasalSayfalar(), odiServiceWorker(), odiDerleme()],
   // sosyal sunucu adresi derleme zamanında verilebilir: VITE_ODI_SERVER=wss://... npm run build:web
   define: { __ODI_SERVER__: JSON.stringify(process.env.VITE_ODI_SERVER ?? ''), __ODI_E2E__: JSON.stringify(process.env.VITE_ODI_E2E === '1') },
   resolve: {

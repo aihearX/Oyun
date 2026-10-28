@@ -36,6 +36,8 @@
 | Bölüm gönderim kayıtları (`progress_runs`) | 30 gün | `progress.ts` `RUN_RETAIN_MS` |
 | Hesap açma sınırı için IP (bellek) | En çok ~2 saat (saatlik bakım) | `players.ts` `pruneNewAccountIps` |
 | Sunucu günlüğü (journald) | 30 gün | `tools/sunucu/ortak.sh` `MaxRetentionSec=30day` |
+| Çökme raporları (`crash_reports`; hesaba bağlı değil) | 30 gün | `hata.ts` `CRASH_RETAIN_MS`, `pruneCrashes` (saatlik bakım) |
+| Çökme raporu hız sınırı için IP (bellek, tuzlu özet) | En çok 1 gün (günlük pencere; gün değişince zamanlayıcı siler) | `hata.ts` `crashRateOk`, `crashRatePrune` (`server.ts` sweep) |
 | Yedek | 6 saatte bir, 28 kopya (7 gün) | `ortak.sh` `ODI_BACKUP_HOURS=6`, `ODI_BACKUP_KEEP=28` |
 | Diğer hesap verisi | Hesap silinene kadar | `account-veri.ts` `VERI_SINIFI` |
 
@@ -53,6 +55,11 @@
 | IP diske yalnız kod denemesinde | `server.ts` `clientIp` (bellekte `Conn.ip`), `codes.ts` `promo_log`; Caddyfile'da erişim günlüğü (`log`) yok |
 | Sunucu günlüğünde oyuncu kimliği | `server.ts` `log('ayrıldı', pid)`, hata kayıtları |
 | Toplu sayaçlar kişisel değil | `server.ts` `/olcum` → `metricsReport` |
+| Çökme raporu: yalnız hata adı ve temizlenmiş ileti, ≤ 20 yığın satırı (dosya:satır:sütun), sürüm/derleme, platform + işletim sistemi ana sürümü, ekran adı, dakikaya yuvarlı zaman | `packages/shared/src/hata.ts` (`scrubText`, `fingerprintStack`, `buildCrashReport`); sunucu şeması katı (`apps/server/src/hata.ts` `crashReportSchema.strict()`: fazla alan → 400) ve iletiyi yeniden temizler |
+| Çökme raporu oyuncu kimliği, takma ad, anahtar, sohbet metni, cihaz kimliği taşımaz; hesapla eşleştirilemez | Şemada bu alanlar yok; `crash_reports`'ta oyuncu sütunu yok (`account-veri.ts`); istek çerezsiz, `referrerPolicy: no-referrer` (`apps/web/src/hata.ts`) |
+| Aynı hata oturumda bir kez, oturumda en çok 5; bağlantısızken son 5 bekler | `CrashReporter` (`CRASH_LIMITS.perSession`, `queueMax`); test `packages/shared/src/hata.test.ts` |
+| IP yalnız bellekte, kötüye kullanımı sınırlamak için (dakikada 10, günde 100) | `hata.ts` `crashRateOk` (süreç başına rastgele tuzla özet); test `apps/server/test/hata.test.ts` |
+| Çökme raporu başka şirkete gitmez | Dış çökme/analiz SDK'sı yok; uç kendi sunucumuz (`POST /hata`, Caddyfile `handle /hata`) |
 | Serbest yazı 8 bölüm geçilene kadar kapalı | `COMM_RULES.freeTextLevel`, `comm/settings.ts` `requireFreeText` (sohbet ve özel mesaj) |
 | Küfür süzgeci (sohbet, DM, ad, takım adı/açıklama, başvuru notu) | `chat.ts`/`dm.ts` `maskProfanity`, `players.ts`, `teams.ts`, `teamapply.ts` `hasProfanity` |
 | 3 şikâyette ileti gizlenir, 1 günde 3 kişi → susturma | `chat.ts` `REPORTS_TO_HIDE`, `friends.ts` `addReport` (`FRIEND_LIMITS.reportsToMute`) |
@@ -76,6 +83,12 @@
    oyuncuya uzun susturma "N gün" diye yazılır.
 7. **Taslaktaki "Bağlantı kayıtları [süre]"** → journald 30 gün (`ortak.sh`).
 8. Oyun içi metin "TASLAK" diyordu; artık son metni gösterir (hukuk notu yalnız bu iç belgede).
+9. **Çökme raporu (YN-011):** sahip kararı 7 ile kendi sunucumuza, kişisel veri içermeyen, hız sınırlı çökme raporu eklendi. Metin §3'e
+   "Çökme raporları" paragrafı ve saklama satırı (30 gün), §7'ye "hesaba bağlı değil, 30 günde silinir" eklendi. Mağaza beyanları
+   buna göre: App Store "Teşhis › Çökme Verileri" (toplanır, kullanıcıya bağlı değil, izleme yok, Uygulama İşlevi; `ios.privacyManifests`
+   `CrashData` linked false), Google Play "Uygulama bilgileri ve performansı › Kilitlenme günlükleri ve Teşhis" (toplanır, aktarımda şifreli,
+   paylaşılmaz). Hukuki sebep m.5/2-f; rapor hesapla eşleştirilemediği için büyük olasılıkla kişisel veri sayılmaz, yine de metinde
+   açıkça yazılı.
 
 ## Açık hukuk konuları (avukata)
 

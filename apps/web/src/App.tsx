@@ -41,6 +41,8 @@ import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
 import { chunkFailed, loadLevel, loadLevelGen, loadMap, type LevelGen } from './engine';
 import { EngineLoading, ScreenLoading } from './ui/Loading';
+import { HataSiniri } from './ui/HataSiniri';
+import { setCrashScreen } from './hata';
 
 /**
  * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem ekrana hem önden
@@ -192,6 +194,8 @@ export function App() {
   const invite = useMemo(() => (bot ? null : readInvite()), [bot]);
   const store = useStore();
   const [route, setRoute] = useState<Route>(() => (!bot && wantsDemoResult() ? { name: 'wait' } : { name: 'title' }));
+  // çökme raporundaki ekran adı (YN-011; yalnız rota adı)
+  useEffect(() => { setCrashScreen(route.name); }, [route.name]);
   useEffect(() => {
     if (bot || !wantsDemoResult()) return;
     void loadLevelGen().then((lg) => { const d = demoResult(lg); if (d) { setDemo(d); setRoute(d); } }, chunkFailed);
@@ -303,8 +307,8 @@ export function App() {
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
   const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => { void raceSpec(room).then((spec) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room }), chunkFailed); }} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
-  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading tabs />}>{el}</Suspense><TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
-  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<Suspense fallback={<ScreenLoading />}>{el}</Suspense></NavContext.Provider>;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route}><Suspense fallback={<ScreenLoading tabs />}>{el}</Suspense></HataSiniri><TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
+  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route}><Suspense fallback={<ScreenLoading />}>{el}</Suspense></HataSiniri></NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
   const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
 
@@ -354,7 +358,7 @@ export function App() {
   } })();
   // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
   const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
-  return <><ArtDefs /><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading />}>{view}</Suspense>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  return <><ArtDefs /><HataSiniri sifirla={route.name}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
 
 /** bölüm üreticisi yüklenirken ekranın üstü: dokunuşları tutar, halka gecikmeli belirir (hızlı yüklemede hiç görünmez) */

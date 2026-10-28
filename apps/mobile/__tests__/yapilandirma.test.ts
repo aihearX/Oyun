@@ -21,24 +21,30 @@ const TUR: Record<string, string> = {
   'Kullanıcı İçeriği › Oyun İçeriği': 'GameplayContent',
   'Kullanıcı İçeriği › Diğer Kullanıcı İçeriği': 'OtherUserContent',
   'Diğer Veriler › Diğer Veri Türleri': 'OtherDataTypes',
+  'Teşhis › Çökme Verileri': 'CrashData',
 };
 const AMAC: Record<string, string> = { 'Uygulama İşlevi': 'AppFunctionality', 'Analiz': 'Analytics' };
+const EH: Record<string, boolean> = { Evet: true, Hayır: false };
 
 type Toplanan = { NSPrivacyCollectedDataType: string; NSPrivacyCollectedDataTypeLinked: boolean; NSPrivacyCollectedDataTypeTracking: boolean; NSPrivacyCollectedDataTypePurposes: string[] };
+type Satir = { amaclar: string[]; bagli: boolean; izleme: boolean };
 
-/** "Uygulama gizliliği" tablosunda "Toplanır: Evet" olan satırlar → { tür: amaçlar } */
-function beyan(): Map<string, string[]> {
+/** "Uygulama gizliliği" tablosunda "Toplanır: Evet" olan satırlar → { tür: amaçlar, kullanıcıya bağlı, izleme } */
+function beyan(): Map<string, Satir> {
   const bolum = appStore.split('## Uygulama gizliliği')[1]!.split('\n## ')[0]!;
-  const m = new Map<string, string[]>();
+  const m = new Map<string, Satir>();
   for (const satir of bolum.split('\n')) {
+    // | tür | toplanır | kullanıcıya bağlı | izleme | amaç | ne |
     const h = satir.split('|').map((s: string) => s.trim());
-    if (h.length < 6 || h[2] !== 'Evet') continue;
+    if (h.length < 8 || h[2] !== 'Evet') continue;
     const tur = TUR[h[1]!];
     if (!tur) throw new Error(`app-store.md: bilinmeyen Apple türü "${h[1]}" (TUR eşlemesine ekle)`);
-    const amaclar = h[3]!.replace(/\([^)]*\)/g, '').split(',').map((s: string) => s.trim()).filter(Boolean).map((a: string) => {
+    const bagli = EH[h[3]!]; const izleme = EH[h[4]!];
+    if (bagli === undefined || izleme === undefined) throw new Error(`app-store.md: "${h[1]}" bağlılık/izleme Evet ya da Hayır olmalı`);
+    const amaclar = h[5]!.replace(/\([^)]*\)/g, '').split(',').map((s: string) => s.trim()).filter(Boolean).map((a: string) => {
       const k = AMAC[a]; if (!k) throw new Error(`app-store.md: bilinmeyen amaç "${a}"`); return k;
     });
-    m.set(tur, amaclar.sort());
+    m.set(tur, { amaclar: amaclar.sort(), bagli, izleme });
   }
   return m;
 }
@@ -51,12 +57,14 @@ describe('Yerel derleme yapılandırması', () => {
     expect(appStore).toContain('**İzleme (tracking): Hayır**');
     const b = beyan();
     expect(b.size).toBeGreaterThan(0);
-    const bildirim = new Map<string, string[]>((pm.NSPrivacyCollectedDataTypes as Toplanan[]).map((t) => {
-      // tabloya göre hepsi kullanıcıya bağlı ve izleme için kullanılmaz
-      expect(t.NSPrivacyCollectedDataTypeLinked).toBe(true);
-      expect(t.NSPrivacyCollectedDataTypeTracking).toBe(false);
-      return [t.NSPrivacyCollectedDataType.replace('NSPrivacyCollectedDataType', ''), t.NSPrivacyCollectedDataTypePurposes.map((p) => p.replace('NSPrivacyCollectedDataTypePurpose', '')).sort()];
-    }));
+    // hiçbir tür izleme için kullanılmaz; çökme verisi (YN-011) kullanıcıya bağlı değil, diğerleri bağlı
+    for (const [t, v] of b) expect({ [t]: v.izleme }).toEqual({ [t]: false });
+    expect(b.get('CrashData')).toEqual({ amaclar: ['AppFunctionality'], bagli: false, izleme: false });
+    expect(b.get('UserID')?.bagli).toBe(true);
+    const bildirim = new Map<string, Satir>((pm.NSPrivacyCollectedDataTypes as Toplanan[]).map((t) => [
+      t.NSPrivacyCollectedDataType.replace('NSPrivacyCollectedDataType', ''),
+      { amaclar: t.NSPrivacyCollectedDataTypePurposes.map((p) => p.replace('NSPrivacyCollectedDataTypePurpose', '')).sort(), bagli: t.NSPrivacyCollectedDataTypeLinked, izleme: t.NSPrivacyCollectedDataTypeTracking },
+    ]));
     expect(Object.fromEntries(bildirim)).toEqual(Object.fromEntries(b));
   });
 

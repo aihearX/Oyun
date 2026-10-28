@@ -21,6 +21,16 @@ printf '  odi açılış: %s · yeniden başlama sayısı: %s · bellek: %s\n' \
   "$(systemctl show odi -p MemoryCurrent --value 2>/dev/null | awk '{ if ($1 ~ /^[0-9]+$/) printf "%.0f MB", $1/1048576; else print "?" }')"
 SAG=$(curl -fsS --max-time 3 "http://$ODI_HOST:$ODI_PORT/saglik" 2>/dev/null || true)
 if [ -n "$SAG" ]; then tamam "Sağlık: $SAG"; else hata "Sağlık: yanıt yok (http://$ODI_HOST:$ODI_PORT/saglik)"; fi
+# çökme raporları (YN-011): yalnız toplamlar (imza başına sayı); ayrıntı: npm run kod -- cokme
+COKME=$(curl -fsS --max-time 3 "http://$ODI_HOST:$ODI_PORT/hata/ozet" 2>/dev/null \
+  | node -e 'let s="";process.stdin.on("data",(d)=>{s+=d}).on("end",()=>{try{const o=JSON.parse(s);const top=o.imzalar.filter((i)=>i.son24>0).sort((a,b)=>b.son24-a.son24).slice(0,3).map((i)=>i.imza+" ("+i.son24+")");console.log(o.son24+"\t"+(top.join(", ")||"—")+"\t"+o.toplam)}catch{}})' 2>/dev/null || true)
+if [ -n "$COKME" ]; then
+  IFS=$'\t' read -r c_n c_imza c_hafta <<< "$COKME"
+  msj="son 24 sa çökme: $c_n, en sık 3 imza: $c_imza (7 günde $c_hafta; ayrıntı: npm run kod -- cokme)"
+  if [ "$c_n" = 0 ]; then tamam "$msj"; else uyari "$msj"; fi
+else
+  uyari "son 24 sa çökme: okunamadı (http://$ODI_HOST:$ODI_PORT/hata/ozet; sunucu eski sürüm olabilir → sudo odi-guncelle)"
+fi
 printf '  Sürüm: %s\n' "$(surum_bilgisi "$(readlink -f "$ODI_GUNCEL" 2>/dev/null)")"
 printf '  Node: %s\n' "$(node -v 2>/dev/null || echo yok)"
 

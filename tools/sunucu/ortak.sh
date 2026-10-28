@@ -443,6 +443,14 @@ $1 {
 	handle /olcum {
 		reverse_proxy $ODI_HOST:$ODI_PORT
 	}
+	# Çökme raporu (YN-011): yalnız /hata (POST; gövde en çok 8 KB, sunucu ayrıca sınırlar). Özet (/hata/ozet) dışarı açılmaz:
+	# odi-durum onu sunucunun kendisinden okur. Erişim günlüğü (log) yok: IP yazılmaz.
+	handle /hata {
+		request_body {
+			max_size 8KB
+		}
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
 
 	# Web sürümü (apps/web derlemesi). Parmak izli dosyalar (/assets/*) bir yıl önbellekte kalır;
 	# index.html, ses dosyaları ve diğerleri her açılışta doğrulanır (güncellemeden sonra hemen yenisi gelir).

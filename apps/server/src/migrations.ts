@@ -6,6 +6,7 @@
  */
 import type { DatabaseSync } from 'node:sqlite';
 import { silinmisArtiklariTemizle } from './account-veri';
+import { CRASH_SCHEMA } from './hata';
 
 export interface Migration { name: string; up: (db: DatabaseSync) => void }
 
@@ -18,10 +19,12 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
 /**
  * Uygulamanın göçleri. 1: taban sürüm (2026-10-24 itibarıyla tüm tablolar CREATE ile; veri değişikliği yok).
  * 2: YN-029 — sınıflandırmadan (account-veri.ts) önce silinmiş hesapların ve silinmiş takımların artık satırları temizlenir.
+ * 3: YN-011 — çökme raporları tablosu (`crash_reports`, hata.ts; oyuncu sütunu yok, 30 gün).
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
   { name: 'silinmis-hesap-artiklari', up: (db) => { silinmisArtiklariTemizle(db); } },
+  { name: 'cokme-raporlari', up: (db) => { db.exec(CRASH_SCHEMA); } },
 ];
 
 export const userVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;

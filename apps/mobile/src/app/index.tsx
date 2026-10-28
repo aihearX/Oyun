@@ -9,6 +9,7 @@ import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativeStore } from '@/purchases';
 import { voiceData, voiceManifest } from '@/voice/player';
+import { installNativeCrashReporting, nativeAppInfo } from '@/hata';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativeStore = createNativeStore();
@@ -20,6 +21,10 @@ function serverUrl(): string {
   const host = Constants.expoConfig?.hostUri?.split(':')[0];
   return host ? `ws://${host}:8787` : '';
 }
+
+// çökme raporu (YN-011): yalnız yayın derlemesinde ve sunucu adresi varken; kişisel veri yok (src/hata.ts)
+const appInfo = nativeAppInfo();
+installNativeCrashReporting(serverUrl(), appInfo);
 
 async function haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error') {
   try {
@@ -73,7 +78,7 @@ export default function Home() {
   // sıfırlamada WebView baştan kurulur (yeni JS bağlamı: bellekte hiçbir şey kalmaz)
   const [gen, setGen] = useState(0);
   return (
-    <ErrorBoundary>
+    <ErrorBoundary report>
       <View style={{ flex: 1, backgroundColor: '#140c35' }} testID="odi-root">
         <WebApp
           key={gen}
@@ -91,6 +96,7 @@ export default function Home() {
           {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices } : {})}
           canPurchase={!!nativeStore}
           serverUrl={serverUrl()}
+          {...(appInfo ? { appInfo } : {})}
           insetTop={insets.top}
           insetBottom={insets.bottom}
           // Kaydırma web tarafında #root kabında (ivmeli, kenar sekmesi kapta); WebView'in kendi kaydırması kapalı.

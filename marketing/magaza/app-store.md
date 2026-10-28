@@ -26,27 +26,33 @@ Liste metinleri (ad ≤ 30, alt başlık ≤ 30, tanıtım metni ≤ 170, anahta
 **Veri toplama:** Evet, veri topluyoruz. **İzleme (tracking): Hayır** — hiçbir veri başka şirketlerin uygulama/sitelerinden gelen
 veriyle birleştirilmez, veri aracısına verilmez; ATT izni istenmez. **Reklam: yok.**
 
-Aşağıdaki türlerin hepsi **kullanıcıya bağlıdır** (rastgele oyuncu kimliğiyle; ad/e-posta olmasa da Apple tanımında "linked"),
-**izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK'ların (RevenueCat) topladığını da bizim beyanımız sayar.
+Çökme verisi dışındaki bütün türler **kullanıcıya bağlıdır** (rastgele oyuncu kimliğiyle; ad/e-posta olmasa da Apple tanımında
+"linked"); çökme verisi **kullanıcıya bağlı değildir** (oyuncu kimliği, takma ad, cihaz kimliği taşımaz; hesapla eşleştirilemez).
+Hiçbiri **izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK'ların (RevenueCat) topladığını da bizim beyanımız sayar.
 
-| Apple türü | Toplanır | Amaç | Ne |
-|---|---|---|---|
-| Tanımlayıcılar › Kullanıcı Kimliği | Evet | Uygulama İşlevi | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
-| Satın Almalar › Satın Alma Geçmişi | Evet | Uygulama İşlevi, Analiz | Ürün, zaman, tutar, işlem no (sunucu + RevenueCat; RevenueCat panosunda satış raporları) |
-| Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet |
-| Kullanıcı İçeriği › Oyun İçeriği | Evet | Uygulama İşlevi | İlerleme, bölüm sonuçları, kamp, takım yarışı kayıtları |
-| Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu |
-| Diğer Veriler › Diğer Veri Türleri | Evet | Uygulama İşlevi (güvenlik, kötüye kullanımın önlenmesi) | IP adresi: ödül kodu denemesi kaydında 90 gün; bağlantıda yalnız bellekte |
-| İletişim Bilgileri, Sağlık ve Fitness, Finansal Bilgi (ödeme), Konum, Hassas Bilgiler, Kişiler, Tarama/Arama Geçmişi, Kullanım Verileri, Teşhis | **Hayır** | — | İstenmez, toplanmaz; çökme raporu aracı yok |
+| Apple türü | Toplanır | Kullanıcıya bağlı | İzleme | Amaç | Ne |
+|---|---|---|---|---|---|
+| Tanımlayıcılar › Kullanıcı Kimliği | Evet | Evet | Hayır | Uygulama İşlevi | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
+| Satın Almalar › Satın Alma Geçmişi | Evet | Evet | Hayır | Uygulama İşlevi, Analiz | Ürün, zaman, tutar, işlem no (sunucu + RevenueCat; RevenueCat panosunda satış raporları) |
+| Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Evet | Hayır | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet |
+| Kullanıcı İçeriği › Oyun İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | İlerleme, bölüm sonuçları, kamp, takım yarışı kayıtları |
+| Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu |
+| Diğer Veriler › Diğer Veri Türleri | Evet | Evet | Hayır | Uygulama İşlevi (güvenlik, kötüye kullanımın önlenmesi) | IP adresi: ödül kodu denemesi kaydında 90 gün; bağlantıda yalnız bellekte (çökme raporu hız sınırı: tuzlu özeti bellekte en çok 1 gün) |
+| Teşhis › Çökme Verileri | Evet | Hayır | Hayır | Uygulama İşlevi (çökmeleri azaltmak) | Çökme raporu (YN-011): hata adı ve temizlenmiş iletisi, yığın satırları (dosya:satır), uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, ekran adı, dakikaya yuvarlanmış zaman; kendi sunucumuzda 30 gün. Oyuncu kimliği, takma ad, anahtar, sohbet metni, cihaz kimliği yok; IP yalnız hız sınırı için bellekte |
+| İletişim Bilgileri, Sağlık ve Fitness, Finansal Bilgi (ödeme), Konum, Hassas Bilgiler, Kişiler, Tarama/Arama Geçmişi, Kullanım Verileri, Teşhis › Performans Verileri ve Diğer Teşhis Verileri | **Hayır** | — | — | — | İstenmez, toplanmaz; dış çökme/analiz aracı yok |
 
 Notlar:
 - "Kullanım Verileri › Ürün Etkileşimi" seçilmez: dokunma/ekran izlenmez; sunucudaki `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar.
+  Çökme raporundaki ekran adı yalnız hatanın olduğu ekrandır (etkileşim kaydı değil).
+- **Çökme verisi (YN-011):** dış servis yok; rapor kendi sunucumuza (`POST /hata`) gider, IP başına dakikada 10 / günde 100 ile
+  sınırlı, 30 günde silinir. Kod: `packages/shared/src/hata.ts` (temizleyici, alanlar), `apps/server/src/hata.ts` (katı şema: fazla
+  alan reddedilir). Uygulama sürümü ve işletim sistemi sürümü bu raporun parçasıdır; ayrıca "Diğer Teşhis Verileri" toplanmaz.
 - RevenueCat'in güncel "App Privacy" rehberine yüklemeden önce bakın; RevenueCat yeni bir tür ekliyorsa (ör. cihaz kimliği) bu tablo,
   gizlilik metni ve `apps/mobile/app.json` › `ios.privacyManifests` birlikte güncellenir.
 - **Gizlilik bildirimi (PrivacyInfo.xcprivacy):** `app.json` › `ios.privacyManifests` bu tablonun birebir karşılığıdır
-  (`NSPrivacyCollectedDataTypes`: UserID, PurchaseHistory, EmailsOrTextMessages, GameplayContent, OtherUserContent, OtherDataTypes; hepsi
-  linked, tracking yok; `NSPrivacyTracking: false`). Mobil jest testi `__tests__/yapilandirma.test.ts` tabloyu okuyup karşılaştırır:
-  biri değişip öteki değişmezse test düşer. Gerekçe isteyen API'ler (`NSPrivacyAccessedAPITypes`): UserDefaults `CA92.1`; dosya zamanı
+  (`NSPrivacyCollectedDataTypes`: UserID, PurchaseHistory, EmailsOrTextMessages, GameplayContent, OtherUserContent, OtherDataTypes
+  linked; CrashData linked değil; hepsinde tracking yok; `NSPrivacyTracking: false`). Mobil jest testi `__tests__/yapilandirma.test.ts`
+  tabloyu (tür, amaç, bağlılık, izleme) okuyup karşılaştırır: biri değişip öteki değişmezse test düşer. Gerekçe isteyen API'ler (`NSPrivacyAccessedAPITypes`): UserDefaults `CA92.1`; dosya zamanı
   `C617.1`, `0A2A.1`, `3B52.1`; açılıştan beri geçen süre `35F9.1`; disk alanı `E174.1`, `85F4.1` (React Native, AsyncStorage,
   expo-constants, expo-file-system ve RevenueCat'in kendi bildirimlerindeki gerekçelerin birleşimi; statik bağlanan CocoaPods
   bildirimleri her zaman birleştirilmediği için uygulama düzeyinde de yazılı).
@@ -100,7 +106,9 @@ Kids kategorisi seçilmez.
 > **Account deletion (5.1.1(v)):** Profil › Ayarlar › "Hesabı sil" › "Her şeyi sil". The account is deleted on the server immediately
 > and all local data is wiped. Web instructions: https://<adres>/hesap-sil
 >
-> **Privacy:** no ads, no tracking, no analytics SDK; no name, e-mail, phone, location or contacts are requested.
+> **Privacy:** no ads, no tracking, no analytics or crash-reporting SDK; no name, e-mail, phone, location or contacts are requested.
+> Crash reports (error name, scrubbed message, stack lines, app/OS version, screen name) go only to our own server, are not linked
+> to the player and are deleted after 30 days.
 > The audiology content is educational and does not diagnose.
 
 Ek: inceleme için gerekirse 6 bölümü geçmiş bir cihazın ekran kaydı (mağaza ve satın alma sayfası) eklenir (`tools/harness/vitrin.mjs`

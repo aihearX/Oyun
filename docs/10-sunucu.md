@@ -22,6 +22,10 @@ ODİ sunucusu hazır → http://localhost:8787  (sağlık: /saglik)
 
 - `GET /saglik` → `{ ok, version, players, online }` (`players`: silinmemiş hesap sayısı; `account.delete` ile silinen hesap sayılmaz)
 - `GET /olcum` → iletişim ölçümü: son 7 günün günlük toplam sayaçları (kişisel veri yok; bkz. `docs/13-iletisim.md` §6)
+- `POST /hata` → çökme raporu (YN-011): en çok 8 KB JSON, katı şema (fazla alan → 400), IP başına dakikada 10 / günde 100 (IP yalnız
+  bellekte), `crash_reports` tablosunda saat + imza başına sayaç, 30 gün. Alanlar ve temizleyici: `packages/shared/src/hata.ts`.
+- `GET /hata/ozet` → son 7 gün imza başına toplam ve son 24 saat (yalnız sayılar; Caddy dışarı açmaz, `odi-durum` okur).
+  Ayrıntı (ileti, yığın, sürüm, ekran): sunucu makinesinde `npm run kod -- cokme [--gun 7]`.
 - `GET /` → kısa Türkçe açıklama
 - WebSocket: herhangi bir yol (`ws://<adres>:8787`)
 

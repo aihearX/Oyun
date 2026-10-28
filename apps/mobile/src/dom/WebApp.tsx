@@ -6,6 +6,8 @@ import { App } from '../../../web/src/App';
 import { useStore } from '../../../web/src/store';
 import { NARRATOR_TTS } from '../../../web/src/ftue/voicePick';
 import { resetVoiceManifest } from '../../../web/src/ftue/voice';
+import { installCrashReporting } from '../../../web/src/hata';
+import { HataSiniri } from '../../../web/src/ui/HataSiniri';
 
 export type WebAppProps = {
   /** yerel depolama köprüsü (AsyncStorage) */
@@ -33,6 +35,8 @@ export type WebAppProps = {
   serverUrl: string;
   insetTop: number;
   insetBottom: number;
+  /** çökme raporu bağlamı (yalnız yayın derlemesinde; YN-011): platform, işletim sistemi ana sürümü, sürüm, derleme */
+  appInfo?: { platform: 'ios' | 'android'; os: string; app: string; build: string };
   dom?: import('expo/dom').DOMProps;
 };
 
@@ -66,7 +70,10 @@ export default function WebApp(p: WebAppProps) {
       ...(p.canPurchase && p.purchase && p.storePrices ? { storePrices: (ids: string[], pid: string) => p.storePrices!(ids, pid) } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
+      ...(p.appInfo ? { appInfo: p.appInfo } : {}),
     });
+    // çökme raporu (YN-011): arayüzün hataları web tarafındaki kurallarla (appInfo yoksa kapalı)
+    installCrashReporting();
     resetVoiceManifest();
     applyInsets(p.insetTop, p.insetBottom);
     // Expo'nun DOM sayfası viewport-fit=cover içermez → env(safe-area-inset-*) 0 kalır; ekle (köprü değerleri yine esas)
@@ -79,5 +86,5 @@ export default function WebApp(p: WebAppProps) {
   // güvenli alan payları ilk çizimden sonra gelebilir/değişebilir (SafeAreaProvider ölçümü, döndürme): her değişimde yaz
   useEffect(() => { applyInsets(p.insetTop, p.insetBottom); }, [p.insetTop, p.insetBottom]);
   if (!ready) return null;
-  return <App />;
+  return <HataSiniri kok><App /></HataSiniri>;
 }

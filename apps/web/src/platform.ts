@@ -44,6 +44,11 @@ export interface Platform {
    * `priceString` (mağazanın biçimi, vergi ve kur dahil). Tarayıcıda ve Expo Go'da tanımsız → arayüz TL liste fiyatını gösterir.
    */
   storePrices?: (productIds: string[], playerId: string) => Promise<StorePrice[]>;
+  /**
+   * Çökme raporu bağlamı (yalnız telefon kabuğunun yayın derlemesinde; YN-011, hata.ts): platform, işletim sistemi ana sürümü,
+   * uygulama sürümü ve mağaza derleme numarası. Kimlik taşımaz. Tarayıcıda tanımsız (sürüm/derleme web derlemesinden gelir).
+   */
+  appInfo?: { platform: 'ios' | 'android'; os: string; app: string; build: string };
 }
 
 const webStorage: Platform['storage'] = {

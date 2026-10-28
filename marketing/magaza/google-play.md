@@ -90,7 +90,7 @@ Hayır.
 | Soru | Cevap |
 |---|---|
 | Uygulamanız gerekli kullanıcı veri türlerinden herhangi birini topluyor ya da paylaşıyor mu? | **Evet** |
-| Toplanan bütün kullanıcı verileri aktarım sırasında şifreleniyor mu? | **Evet** (https/wss; mağaza derlemesinde sunucu adresi `wss://`, bkz. `apps/mobile/README.md`) |
+| Toplanan bütün kullanıcı verileri aktarım sırasında şifreleniyor mu? | **Evet** (https/wss; mağaza derlemesinde sunucu adresi `wss://`, bkz. `apps/mobile/README.md`; çökme raporu da aynı adrese `https://…/hata`) |
 | Uygulamanız hesap oluşturmaya izin veriyor mu? | **Evet → "Diğer"**: kendiliğinden anonim hesap (rastgele kimlik + cihazdaki anahtar), isteğe bağlı takma ad; kullanıcı adı/şifre, e-posta ya da OAuth yok |
 | Hesap silme bağlantısı (web) | `https://<adres>/hesap-sil` |
 | Kullanıcılar hesaplarını silmeden verilerinin bir kısmının silinmesini isteyebilir mi? | **Hayır** (oyunda yalnız tam silme var; takma ad oyunda değiştirilebilir, sohbet 30 günde kendiliğinden silinir) |
@@ -98,19 +98,22 @@ Hayır.
 | Aileler politikasına uygunluk taahhüdü | Uygulanmaz (Aileler programında değil) |
 
 **Veri türleri** ("Paylaşılır" hepsinde **Hayır**: Oracle barındırma ve RevenueCat, bizim adımıza işleyen hizmet sağlayıcılardır;
-Google'ın tanımında bu aktarım "paylaşım" sayılmaz. Hiçbiri "geçici işleme" (ephemeral) değildir, sunucuda saklanır.)
+Google'ın tanımında bu aktarım "paylaşım" sayılmaz. Hiçbiri "geçici işleme" (ephemeral) değildir, sunucuda saklanır. Çökme günlükleri ve
+teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün), kullanıcıya bağlı değil; dış çökme servisi yok.)
 
 | Kategori › tür | Toplanır | Zorunlu mu | Amaçlar | Dayanak (kod) |
 |---|---|---|---|---|
 | Kişisel bilgiler › Ad | Evet | İsteğe bağlı (varsayılan "OdiNNNN") | Uygulama işlevi, Hesap yönetimi | Takma ad (`profile.update`); Google "ad" tanımına takma ad da girer |
 | Kişisel bilgiler › Kullanıcı kimlikleri | Evet | Zorunlu | Uygulama işlevi, Hesap yönetimi, Dolandırıcılığı önleme / güvenlik | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
-| Kişisel bilgiler › Diğer bilgiler | Evet | Zorunlu | Dolandırıcılığı önleme / güvenlik | IP adresi: bağlantıda bellekte (hesap açma sınırı, en çok ~2 saat), ödül kodu denemesinde 90 gün |
+| Kişisel bilgiler › Diğer bilgiler | Evet | Zorunlu | Dolandırıcılığı önleme / güvenlik | IP adresi: bağlantıda bellekte (hesap açma sınırı, en çok ~2 saat), ödül kodu denemesinde 90 gün; çökme raporu hız sınırı için yalnız tuzlu özeti bellekte en çok 1 gün |
 | Finansal bilgiler › Satın alma geçmişi | Evet | İsteğe bağlı | Uygulama işlevi, Dolandırıcılığı önleme / güvenlik | `purchases` tablosu (ürün, zaman, mağaza, tutar, işlem no); RevenueCat |
 | Mesajlar › Diğer uygulama içi mesajlar | Evet | İsteğe bağlı | Uygulama işlevi | Takım/genel sohbet (30 gün), özel mesajlar (son 500) |
 | Uygulama etkinliği › Kullanıcının oluşturduğu diğer içerik | Evet | İsteğe bağlı | Uygulama işlevi | Takım adı ve açıklaması, takım başvuru notu |
 | Uygulama etkinliği › Diğer işlemler | Evet | Zorunlu | Uygulama işlevi | Oyun ilerlemesi: bölüm sonuçları, yıldız, XP, kamp, görevler, etkinlik, lig |
-| Uygulama etkinliği › Uygulama etkileşimleri | Hayır | — | — | Dokunma/ekran izlenmez; `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar |
-| Uygulama bilgileri ve performansı (çökme günlükleri, teşhis) | Hayır | — | — | Çökme raporu aracı yok (YN-011); sunucu hata günlükleri cihazdan teşhis verisi değildir |
+| Uygulama etkinliği › Uygulama etkileşimleri | Hayır | — | — | Dokunma/ekran izlenmez; `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar; çökme raporundaki ekran adı yalnız hatanın olduğu ekran (aşağıda "Teşhis") |
+| Uygulama bilgileri ve performansı › Kilitlenme günlükleri (Crash logs) | Evet | Zorunlu (oyunda kapatma ayarı yok; kişisel veri taşımaz) | Analiz (Google tanımında "hataları ve çökmeleri teşhis edip düzeltmek") | Çökme raporu (YN-011): hata adı, temizlenmiş ileti (e-posta, uzun sayı, anahtar/kimlik benzeri metin çıkarılır), en çok 20 yığın satırı (dosya:satır). Kendi sunucumuz `POST /hata`; 30 gün; oyuncu kimliği, takma ad, cihaz kimliği yok. Kod: `packages/shared/src/hata.ts`, `apps/server/src/hata.ts` |
+| Uygulama bilgileri ve performansı › Teşhis (Diagnostics) | Evet | Zorunlu (çökme raporunun parçası) | Analiz | Yalnız çökme raporuyla: uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, hatanın olduğu ekranın adı, dakikaya yuvarlanmış zaman. Pil, yükleme süresi, kare hızı gibi performans ölçümü yok |
+| Uygulama bilgileri ve performansı › Diğer uygulama performansı verileri | Hayır | — | — | — |
 | Cihaz veya diğer kimlikler | Hayır | — | — | Reklam kimliği yok; RevenueCat `collectDeviceIdentifiers` çağrılmaz. **Yüklemeden önce RevenueCat'in güncel "Google Play Data Safety" rehberiyle karşılaştırın** |
 | Konum, Kişiler, Takvim, Fotoğraf/video, Ses, Dosyalar, Sağlık, Web geçmişi, E-posta, Telefon, Ödeme bilgisi | Hayır | — | — | İzin isteyen modül yok; ödemeyi Google alır |
 
@@ -118,7 +121,7 @@ Google'ın tanımında bu aktarım "paylaşım" sayılmaz. Hiçbiri "geçici iş
 - Uygulama içi yol: Profil › Ayarlar › **Hesabı sil** › **Her şeyi sil**.
 - Web bağlantısı (zorunlu): `https://<adres>/hesap-sil`. Sayfa uygulama adını ve yayıncıyı ({YAYINCI}) gösterir, uygulama içi adımları ve
   uygulama dışı e-posta yolunu (arkadaş kodu ile; şifre istenmez) anlatır, silinen / tutulan veriyi ve süreleri yazar.
-- Tutulan veri: satın alma kaydı 10 yıl (oyuncu kimliği olmadan), şikâyet ve kod denemesi 90 gün, yedekler en geç 7 gün.
+- Tutulan veri: satın alma kaydı 10 yıl (oyuncu kimliği olmadan), şikâyet ve kod denemesi 90 gün, yedekler en geç 7 gün; çökme raporları hesaba bağlı olmadığından hesapla silinmez, 30 günde kendiliğinden silinir.
 
 ### Finansal özellikler, sağlık uygulamaları, VPN, tam ekran bildirim, ön plan hizmeti, konum izni
 Yok / uygulanmaz.

@@ -4,7 +4,7 @@
  * Her cümle kodun bugün yaptığına göre yazıldı; dayanakları docs/yonetim/gizlilik.md "Kod karşılığı" tablosunda.
  * Kod değişirse (yeni veri, yeni süre, yeni hizmet sağlayıcı) bu dosya ve o tablo birlikte güncellenir.
  * Sayılar kodla eşleşir: `yasal.test.ts` sohbet (30 gün), şikâyet (90 gün), kod denemesi (90 gün), özel mesaj (500), yedek
- * (28 kopya = 7 gün), serbest yazı eşiği (8. bölüm), satın alma (10 yıl) değerlerini sunucu sabitleriyle karşılaştırır.
+ * (28 kopya = 7 gün), serbest yazı eşiği (8. bölüm), satın alma (10 yıl), çökme raporu (30 gün) değerlerini sunucu sabitleriyle karşılaştırır.
  */
 import type { Belge } from './yasal';
 
@@ -43,9 +43,11 @@ export const GIZLILIK_TR: Belge = {
       ['Bağlantı sırasında IP adresi', 'Bağlantının kurulması, aynı adresten kısa sürede çok sayıda hesap açılmasını sınırlamak', 'm.5/2-f', 'Diske yazılmaz; yalnız sunucu belleğinde, bağlantı süresince ve hesap açma sınırı için en çok 2 saat'],
       ['Satın alma kaydı: ürün, zaman, mağaza (App Store / Google Play), tutar, mağaza işlem numarası', 'Satın almayı doğrulamak, aynı makbuzun iki kez kullanılmasını önlemek, aylık harcama sınırı', 'm.5/2-c ve ç (vergi ve ticaret hukuku)', '10 yıl (işlemin yapıldığı yılın sonundan başlayarak), sonra otomatik silinir; hesabınızı silince kayıttaki oyuncu kimliği kaldırılır'],
       ['Sunucu günlükleri (oyuncu kimliğiyle bağlantı kapanışı, hata kayıtları)', 'Sunucuyu işletmek, hataları bulmak', 'm.5/2-f', '30 gün'],
+      ['Çökme raporları (hesabınıza bağlı değil; ayrıntı aşağıda)', 'Oyunun çöktüğü ya da boş ekranda kaldığı hataları bulup düzeltmek', 'm.5/2-f', '30 gün, sonra otomatik silinir'],
       ['Veritabanı yedekleri', 'Veri kaybına karşı geri yükleme', 'm.5/2-f', '6 saatte bir alınır, en yeni 28 kopya (7 gün) tutulur'],
     ] },
     { t: 'p', x: 'Sunucu ayrıca kişiye bağlı olmayan günlük toplam sayaçlar tutar (ör. bir günde gönderilen hazır söz sayısı). Bunlar kişisel veri değildir.' },
+    { t: 'p', x: '**Çökme raporları:** Oyun bir hatayla karşılaşırsa (çökme, boş ekran) yalnızca kendi sunucumuza kısa bir rapor gider: hatanın adı ve iletisi (e-posta adresleri, uzun sayılar, bağlantı adreslerinin sorgu kısmı ve anahtar ya da kimlik benzeri metinler çıkarılarak), hatanın koddaki yeri (dosya adı ve satır), uygulama sürümü, platform (web, iOS, Android) ve işletim sisteminin ana sürümü, hatanın olduğu ekranın adı ve dakikaya yuvarlanmış zaman. Rapor **oyuncu kimliğinizi, takma adınızı, anahtarınızı, sohbet metinlerini ya da bir cihaz kimliğini içermez** ve hesabınızla eşleştirilemez. Aynı hata bir oturumda bir kez, bir oturumda en çok 5 rapor gönderilir. IP adresiniz kaydedilmez; kötüye kullanımı sınırlamak için (dakikada 10, günde 100 rapor) yalnızca tuzlanmış bir özeti en çok bir gün sunucu belleğinde tutulur. Raporlar başka bir şirkete gönderilmez ve 30 gün sonra otomatik silinir.' },
     { t: 'p', x: '**İşlemediklerimiz:** gerçek ad, e-posta, telefon, konum, rehber, fotoğraf, kamera, mikrofon, reklam kimliği, kart bilgisi. Oyun çerez kullanmaz; web sürümü yalnızca tarayıcının yerel depolamasını ve çevrimdışı açılış için önbelleği kullanır. Kart ve ödeme bilgileriniz bize hiç gelmez: ödemeyi Apple ya da Google alır.' },
 
     { t: 'h2', x: '4. Kimlere aktarıyoruz', id: 'aktarim' },
@@ -84,7 +86,7 @@ export const GIZLILIK_TR: Belge = {
     { t: 'ul', x: [
       '**Silinir:** ilerleme, cüzdan, kamp, görevler, etkinlik ve turnuva kayıtlarınız, sıralama ve lig satırlarınız, ödül kutunuz, arkadaşlıklarınız, istekleriniz, engellemeleriniz, özel mesajlarınız, sohbette yazdıklarınız ve sizin hakkınızdaki takım kartları, yardım istekleriniz, takım başvurularınız, ayarlarınız. Takımın son üyesiyseniz takım ve takımın bütün kayıtları da silinir.',
       '**Anonimleşir** (yalnızca başka oyuncuların puanları bozulmasın diye): takımınızın toplam puanına yaptığınız katkılar, geçen haftanın son sıralamasındaki yeriniz, takıma gönderdiğiniz hediye. Bu kayıtlar hiçbir anahtarla eşleşmeyen anonim bir kimliğe bağlanır; adınız her yerde "Silinmiş Oyuncu" olur.',
-      '**Gerekçeyle tutulur:** satın alma kaydı (10 yıl, oyuncu kimliği olmadan), şikâyet kayıtları (90 gün), kod denemeleri (90 gün) ve hesabın silindiği bilgisi (rastgele kimlik ve zaman; silinen hesabın sıralamada ve aramada görünmemesi için, ad ya da iletişim bilgisi yok).',
+      '**Gerekçeyle tutulur:** satın alma kaydı (10 yıl, oyuncu kimliği olmadan), şikâyet kayıtları (90 gün), kod denemeleri (90 gün) ve hesabın silindiği bilgisi (rastgele kimlik ve zaman; silinen hesabın sıralamada ve aramada görünmemesi için, ad ya da iletişim bilgisi yok). Çökme raporları hesabınıza bağlı olmadığı için hesapla birlikte bulunup silinemez; 30 günde kendiliğinden silinir.',
       '**Yedekler:** yedekteki eski kopyalar tek tek silinmez; yedekler 7 günde yenilendiği için silinen hesabın verisi en geç 7 gün içinde yedeklerden de çıkar.',
     ] },
     { t: 'p', x: 'Silinen hesaptaki satın alımlar geri getirilemez. İade için Apple ya da Google\'ın iade yollarını kullanabilirsiniz.' },
@@ -137,9 +139,11 @@ export const GIZLILIK_EN: Belge = {
       ['IP address while connected', 'Establishing the connection, limiting mass account creation from one address', 'art. 5/2-f', 'Not written to disk; kept in server memory only while connected and for at most 2 hours for the account-creation limit'],
       ['Purchase record: product, time, store (App Store / Google Play), amount, store transaction ID', 'Verifying purchases, preventing receipt reuse, monthly spending limit', 'art. 5/2-c and ç (tax and commercial law)', '10 years (from the end of the year of the transaction), then deleted automatically; the player ID is removed from the record when you delete your account'],
       ['Server logs (connection close with player ID, error records)', 'Operating the server, finding bugs', 'art. 5/2-f', '30 days'],
+      ['Crash reports (not linked to your account; details below)', 'Finding and fixing errors that crash the game or leave a blank screen', 'art. 5/2-f', '30 days, then deleted automatically'],
       ['Database backups', 'Restoring data after a failure', 'art. 5/2-f', 'Taken every 6 hours; the latest 28 copies (7 days) are kept'],
     ] },
     { t: 'p', x: 'The server also keeps daily totals that are not linked to any person (e.g. how many quick phrases were sent in a day). These are not personal data.' },
+    { t: 'p', x: '**Crash reports:** if the game hits an error (a crash or a blank screen), a short report is sent to our own server only: the error name and message (with e-mail addresses, long numbers, the query part of web addresses and key- or ID-like strings removed), where the error happened in the code (file name and line), the app version, the platform (web, iOS, Android) and the major version of the operating system, the name of the screen and the time rounded to the minute. A report **does not contain your player ID, nickname, key, chat text or any device identifier** and cannot be matched to your account. The same error is sent once per session, with at most 5 reports per session. Your IP address is not stored; to limit abuse (10 reports a minute, 100 a day) only a salted hash of it is held in server memory for at most one day. Reports are not sent to any other company and are deleted automatically after 30 days.' },
     { t: 'p', x: '**What we do not collect:** real name, e-mail, phone number, location, contacts, photos, camera, microphone, advertising ID, card details. The game uses no cookies; the web version only uses the browser\'s local storage and a cache for offline start. Payment details never reach us: Apple or Google takes the payment.' },
 
     { t: 'h2', x: '4. Who receives data', id: 'recipients' },
@@ -177,7 +181,7 @@ export const GIZLILIK_EN: Belge = {
     { t: 'ul', x: [
       '**Deleted:** progress, wallet, camp, quests, event and tournament records, ranking and league rows, reward inbox, friendships, requests, blocks, private messages, your chat messages and team cards about you, help requests, team applications, settings. If you are the last member of a team, the team and all its records are deleted too.',
       '**Anonymised** (only so other players\' scores stay correct): your contributions to your team\'s totals, last week\'s final ranking position, a gift you sent to your team. These are linked to an anonymous ID that matches no key; your name becomes "Silinmiş Oyuncu" (Deleted Player) everywhere.',
-      '**Kept for a stated reason:** purchase records (10 years, without your player ID), reports (90 days), code attempts (90 days), and the fact that an account was deleted (random ID and time, so it stays out of rankings and search; no name or contact data).',
+      '**Kept for a stated reason:** purchase records (10 years, without your player ID), reports (90 days), code attempts (90 days), and the fact that an account was deleted (random ID and time, so it stays out of rankings and search; no name or contact data). Crash reports are not linked to your account, so they cannot be found and deleted with it; they are deleted automatically after 30 days.',
       '**Backups:** old copies are not edited one by one; backups rotate every 7 days, so deleted data leaves the backups within 7 days.',
     ] },
     { t: 'p', x: 'Purchases in a deleted account cannot be restored. For refunds, use Apple\'s or Google\'s refund process.' },
@@ -226,14 +230,14 @@ export const HESAP_SIL: Belge = {
     { t: 'ul', x: [
       '**Silinir:** takma adınız, ilerlemeniz, cüzdanınız, kampınız, görevleriniz, takım üyeliğiniz, arkadaşlıklarınız, engellemeleriniz, özel mesajlarınız, sohbette yazdıklarınız, ödül kutunuz, sıralama ve lig kayıtlarınız.',
       '**Anonimleşir:** takımınızın toplam puanına yaptığınız katkı gibi başka oyuncuların puanını oluşturan satırlar; adınız "Silinmiş Oyuncu" olur.',
-      '**Belirli süre tutulur:** satın alma kayıtları 10 yıl (vergi ve ticaret hukuku; oyuncu kimliği olmadan), şikâyet kayıtları 90 gün, ödül kodu denemeleri 90 gün. Yedeklerdeki kopyalar en geç 7 gün içinde çıkar.',
+      '**Belirli süre tutulur:** satın alma kayıtları 10 yıl (vergi ve ticaret hukuku; oyuncu kimliği olmadan), şikâyet kayıtları 90 gün, ödül kodu denemeleri 90 gün. Yedeklerdeki kopyalar en geç 7 gün içinde çıkar. Çökme raporları hesaba bağlı değildir; 30 günde kendiliğinden silinir.',
     ] },
     { t: 'p', x: 'Uygulamayı kaldırmak hesabı silmez. Silinen hesaptaki satın alımlar geri getirilemez; iade için Apple ya da Google\'ın iade yollarını kullanın. Ayrıntılar: [Gizlilik politikası, Hesabınızı silme](/gizlilik#silme).' },
 
     { t: 'h2', x: 'English: deleting your account', id: 'english' },
     { t: 'p', x: '**In the game (immediate):** Profile › Settings › **Hesabı sil** (Delete account) › **Her şeyi sil** (Delete everything). Needs an internet connection; the account is deleted on the server at once.' },
     { t: 'p', x: '**If you cannot open the game:** e-mail [{ILETISIM_EPOSTA}](mailto:{ILETISIM_EPOSTA}?subject=Account%20deletion) with the subject "Account deletion", your **friend code** (Profile page) or nickname and team name. We never ask for a password or key. To stop others from deleting your account, we delete it once it has not connected for 14 days and confirm within 30 days.' },
-    { t: 'p', x: 'Deleted: nickname, progress, wallet, camp, team membership, friends, blocks, private and chat messages, rankings. Anonymised: rows that make up other players\' team scores. Kept: purchase records for 10 years (without player ID), reports and code attempts for 90 days. Backups clear within 7 days. Uninstalling the app does not delete the account. Details: [Privacy Policy](/en/privacy#deletion).' },
+    { t: 'p', x: 'Deleted: nickname, progress, wallet, camp, team membership, friends, blocks, private and chat messages, rankings. Anonymised: rows that make up other players\' team scores. Kept: purchase records for 10 years (without player ID), reports and code attempts for 90 days. Crash reports are not linked to the account and are deleted after 30 days. Backups clear within 7 days. Uninstalling the app does not delete the account. Details: [Privacy Policy](/en/privacy#deletion).' },
   ],
 };
 

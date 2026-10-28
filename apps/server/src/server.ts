@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { COMM_RULES, SOCIAL_LIMITS, type Op } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, SOCIAL_LIMITS, type Op } from '@odi/shared';
 import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type ServerConfig } from './app';
 import { campHandlers, completeDue } from './camp';
 import { campGrowthHandlers } from './camp-buyume';
@@ -29,6 +29,7 @@ import { teamRaceDisconnect, teamRaceHandlers, teamRaceRestoredEnd, teamRaceShut
 import { kgHandlers, withKgHooks } from './camp-quests';
 import { vakaHandlers } from './camp-quests-vaka';
 import { oyunHandlers } from './camp-quests-oyun';
+import { crashRateOk, crashRatePrune, crashSummary, pruneCrashes, receiveCrash } from './hata';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -125,6 +126,34 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       // iletişim ölçümü: yalnızca günlük toplam sayaçlar (kişisel veri yok), son 7 gün
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'no-store' });
       res.end(JSON.stringify({ ok: true, days: metricsReport(app, 7) }));
+      return;
+    }
+    if (url === '/hata') {
+      // çökme raporu (YN-011): kişisel veri yok; IP yalnız bellekte, hız sınırı için (hata.ts)
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST', 'access-control-allow-headers': 'content-type', 'cache-control': 'no-store' };
+      const bitir = (status: number, body = '') => { if (!res.headersSent) { res.writeHead(status, { ...cors, 'content-type': 'text/plain; charset=utf-8' }); res.end(body); } };
+      if (req.method === 'OPTIONS') { bitir(204); return; }
+      if (req.method !== 'POST') { bitir(405, 'Yalnız POST.\n'); return; }
+      const ip = clientIp(req.headers['x-forwarded-for'], req.socket.remoteAddress, cfg.trustProxy ?? 0);
+      // gövde okunmadan önce: sınır aşıldıysa ya da bildirilen boy büyükse gövde atılır
+      if (!crashRateOk(app, ip)) { req.resume(); bitir(429, 'Çok sık.\n'); return; }
+      if (Number(req.headers['content-length'] ?? 0) > CRASH_LIMITS.maxBytes) { req.resume(); bitir(413, 'Çok büyük.\n'); return; }
+      const parts: Buffer[] = []; let size = 0; let tasti = false;
+      req.on('data', (c: Buffer) => { if (tasti) return; size += c.length; if (size > CRASH_LIMITS.maxBytes) { tasti = true; parts.length = 0; return; } parts.push(c); });
+      req.on('error', () => bitir(400));
+      req.on('end', () => {
+        if (tasti) { bitir(413, 'Çok büyük.\n'); return; }
+        try {
+          const r = receiveCrash(app, Buffer.concat(parts).toString('utf8'));
+          bitir(r.status, r.error ? `${r.error}\n` : '');
+        } catch (e) { console.error('[çökme raporu]', e); bitir(500); }
+      });
+      return;
+    }
+    if (req.method === 'GET' && url === '/hata/ozet') {
+      // çökme özeti: yalnız toplamlar (imza başına sayı, son 7 gün); Caddy dışarı açmaz, odi-durum okur
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, ...crashSummary(app, 7) }));
       return;
     }
     if (req.method === 'GET' && url === '/') {
@@ -234,7 +263,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); }
+        crashRatePrune(app); // gün değişince çökme sınırının IP özetleri bellekten silinir
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

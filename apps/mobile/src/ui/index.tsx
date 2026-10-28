@@ -1,6 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { colors, radius, space } from './theme';
+import { reportNativeCrash } from '../hata';
 
 type Variant = 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'bodyStrong' | 'small' | 'tiny' | 'mono';
 const variants: Record<Variant, TextStyle> = {
@@ -42,13 +43,16 @@ export function Loading({ text }: { text: string }) {
   return <View style={styles.center}><ActivityIndicator size="large" color={colors.accent} /><AppText variant="bodyStrong" style={{ marginTop: 12 }}>{text}</AppText></View>;
 }
 
-type EBProps = { children: React.ReactNode; title?: string; onReset?: () => void };
+type EBProps = { children: React.ReactNode; title?: string; onReset?: () => void; /** çökme raporu gönder (YN-011; kişisel veri yok) */ report?: boolean };
 type EBState = { error: Error | null; info: string };
 /** Oyun motoru (DOM bileşeni) çökerse kırmızı ekran yerine okunabilir bir kart; "Tekrar dene" bileşeni yeniden kurar. */
 export class ErrorBoundary extends React.Component<EBProps, EBState> {
   override state: EBState = { error: null, info: '' };
   static getDerivedStateFromError(error: Error): Partial<EBState> { return { error }; }
-  override componentDidCatch(error: Error, info: React.ErrorInfo) { this.setState({ info: info.componentStack ?? '' }); }
+  override componentDidCatch(error: Error, info: React.ErrorInfo) {
+    this.setState({ info: info.componentStack ?? '' });
+    if (this.props.report) reportNativeCrash(error, 'kabuk-sinir');
+  }
   reset = () => { this.setState({ error: null, info: '' }); this.props.onReset?.(); };
   override render() {
     const { error, info } = this.state;

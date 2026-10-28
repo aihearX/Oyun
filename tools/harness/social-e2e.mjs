@@ -3,6 +3,7 @@
 // Akış: takma ad → A takım kurar → B kodla katılır → karşılıklı sohbet → B kamp inşaatı + yardım ister → A "Herkese yardım et"
 //       → B'nin süresi kısalır → A teknolojiye bağış → A test mağazasından takım hediyeli paket → B hediyeyi alır
 //       → savaş hedefi → baskın can barı (üçüncü bir oyuncu sunucuya ilerleme gönderir) düşer. Her adımda 360×740 ekran görüntüsü.
+//       Sonda çökme raporu (YN-011): gizli `?e2e=hata` kancası kasıtlı hata atar → tek rapor sunucuya ulaşır, oyuncu kimliği taşımaz.
 // Kullanım: node tools/harness/social-e2e.mjs [--no-build] [--headed]
 // Çıktı: tools/harness/out/sosyal/*.png
 import { spawn } from 'node:child_process';
@@ -313,6 +314,28 @@ try {
   await off.locator('.offline-card').waitFor({ timeout: 20_000 });
   check((await off.locator('.offline-card').innerText()).includes('Sunucuya bağlanılamadı'), 'çevrimdışı kartı + Tekrar dene');
   await shot(off, 'cevrimdisi-takim');
+
+  step('16 · Çökme raporu (YN-011): gizli ?e2e=hata kancası → tek rapor sunucuya; oyuncu kimliği, anahtar, takma ad yok');
+  const ozet = async () => (await fetch(`http://127.0.0.1:${sport}/hata/ozet`)).json();
+  check((await ozet()).toplam === 0, 'otomasyonla açılan sayfalar (webdriver) rapor göndermedi');
+  // A'nın bağlamında (aynı hesap, aynı yerel kayıt) dinleyicisiz yeni sayfa: kasıtlı hata sayfa hatası sayılmasın
+  const hp = await A.context().newPage();
+  const govdeler = []; const durumlar = []; let hpPid = '';
+  hp.on('request', (r) => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/hata') govdeler.push(r.postData() ?? ''); });
+  hp.on('response', (r) => { if (r.request().method() === 'POST' && new URL(r.url()).pathname === '/hata') durumlar.push(r.status()); });
+  hp.on('websocket', (ws) => ws.on('framereceived', (f) => { try { const m = JSON.parse(String(f.payload)); if (m.t === 'res' && m.data?.me?.id && m.data.serverTime) hpPid = m.data.me.id; } catch { /* ikili/başka */ } }));
+  await hp.goto(`http://localhost:${wport}/?e2e=hata&sunucu=${encodeURIComponent(wsUrl)}`, { waitUntil: 'load' });
+  for (let i = 0; i < 80 && !(durumlar.length && hpPid); i++) await sleep(250);
+  await sleep(1500); // ikinci bir rapor gelmesin
+  const anahtar = await hp.evaluate(() => localStorage.getItem('odi.net.token'));
+  check(govdeler.length === 1 && durumlar[0] === 204, `tek rapor gitti ve sunucu kabul etti (${govdeler.length} rapor, durum ${durumlar.join(',')})`);
+  const oz = await ozet();
+  check(oz.toplam === 1 && oz.son24 === 1 && oz.imzalar.length === 1, `sunucu özeti: ${JSON.stringify(oz)}`);
+  const rapor = JSON.parse(govdeler[0]);
+  check(Object.keys(rapor).sort().join(',') === 'app,at,build,kind,message,os,platform,screen,stack,v', `yalnız izinli alanlar: ${Object.keys(rapor).join(',')}`);
+  check(rapor.kind === 'Error' && rapor.message === 'ODİ kasıtlı test hatası' && rapor.platform === 'web' && rapor.at % 60_000 === 0 && rapor.stack.length <= 20, `rapor: ${rapor.kind}: ${rapor.message} · ${rapor.platform} ${rapor.os} · ekran ${rapor.screen} · ${rapor.stack.length} yığın satırı`);
+  check(!!hpPid && !!anahtar && !govdeler[0].includes(hpPid) && !govdeler[0].includes(anahtar) && !govdeler[0].includes('Ayşe') && !/localhost|127\.0\.0\.1|sunucu=/.test(govdeler[0]), 'raporda oyuncu kimliği, anahtar, takma ad, adres yok');
+  await hp.close();
 } catch (e) {
   failed = true;
   console.error('\nHATA:', e.message);

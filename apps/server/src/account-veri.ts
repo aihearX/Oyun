@@ -209,6 +209,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   },
   comm_settings: { oyuncu: { player_id: SIL } },
   comm_metrics: { not: 'Günlük toplam sayaçlar (ör. hazır söz sayısı); oyuncu kimliği yok.' },
+  crash_reports: { not: 'Çökme raporları (YN-011, hata.ts): hata adı, temizlenmiş ileti, yığın, sürüm, platform, ekran, sayaç; oyuncu kimliği, takma ad, IP yok. 30 günde silinir (pruneCrashes).' },
   feed_recent: { oyuncu: { player_id: SIL }, takim: { team_id: SIL }, degil: ['msg_id'] },
   challenges: { oyuncu: { player_id: SIL }, takim: { team_id: SIL }, degil: ['msg_id'] },
   challenge_beats: {
