@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 11. tur (hafif) · 2026-10-28 · main d47a3e1.
+**Son tur:** 12. tur (hafif) · 2026-10-28 · main 4ccc146.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,16 +26,12 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Üretim sunucusu canlı** (sahip kurdu; adres depoda yok). YN-006, YN-002 ve YN-007 sunucu tarafında tamam. Ayrıntı is-listesi YN-006.
-- **Sahip kararları:** şirket hesapları (D-U-N-S sürüyor); ilk sürümde uygulama içi satın alma; ikon, gizlilik metni ve mağaza kiti ajanlarda; hesaplar açılınca yüklemeyi ajanlar yapar.
-- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 528/528 ilk denemede):**
-  - MK-038 üst çubuk tahmini (cb53926).
-  - MK-037 web ana ekran + çevrimdışı (9c5ba36 … 97b6c62).
-  - YN-010 ikon, Konsept A (8c2872f, 87cf349, a73da38).
-  - Mağaza kiti, gizlilik sayfaları, uygulama dışı hesap silme, IAP kataloğu (2d8f8aa … c9daac7; YN-032/033/034).
-  - Reels 5. dalga ve `tools/voice/ortam-kur.sh` (YN-031 için yeniden kurulum betiği).
-  - Işığa duyarlılık (a06677f), eski övgü (29dcc60), ipucu gizleme (9775ae4).
-- **Yeni:** YN-036 rpcbind (P3).
+- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 534/534 ilk denemede):**
+  - YN-024 derleme hazırlığı + YN-036 rpcbind (5b21cd7 … f91f2a9); ilk `eas build` sahip günü.
+  - YN-032 mağaza fiyatı (11716a1, d7f8aa6).
+  - cb78fe0 `.gitignore dist-*/`.
+  - 4ccc146 YN-037: Instagram'da duyurulan ODY-İLK kodu yayından önce tanımlanmalı; ödül sahip kararı.
+- **Sahip:** "ikon, gizlilik sözleşmesi gibi her şeyi sen hazırla" → karar 7 (çökme raporu) ajanlara bırakıldı: kendi sunucumuz, kişisel veri yok, hız sınırlı (YN-011).
 
 ## Sürüyor
 - **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
