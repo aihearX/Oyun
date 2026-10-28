@@ -26,11 +26,14 @@ export const REFRESH_TEXT = 'Aşağı kaydır: perdenin altından kay!';
 export class Tutorial {
   /** ekranda gösterilen yazı (kabuk seslendirmesi için 'hint' olayıyla gider) */
   readonly text: string;
-  constructor(public ability: AbilityId, public tutorId: number, private hud: LevelHudView, private backdrop?: BiomeBackdrop, text?: string) {
+  private shown = false;
+  /** show: el işareti ve yazı çizilsin mi (ipuçları gizliyken — temiz çekim, `?ipucu=0` — yalnız ağır çekim ve olay) */
+  constructor(public ability: AbilityId, public tutorId: number, private hud: LevelHudView, private backdrop?: BiomeBackdrop, text?: string, show = true) {
     const def = ABILITIES[ability];
     this.text = text ?? `Yeni: ${def.name}\n${def.how}`;
-    hud.showHint(gestureHint(ability), this.text);
-    backdrop?.setForegroundAlpha(0.35);
+    if (show) { hud.showHint(gestureHint(ability), this.text); backdrop?.setForegroundAlpha(0.35); this.shown = true; }
   }
-  done() { this.hud.hideHint(); this.backdrop?.setForegroundAlpha(1); }
+  /** görseli kaldır (an sürer) */
+  hide() { if (!this.shown) return; this.shown = false; this.hud.hideHint(); this.backdrop?.setForegroundAlpha(1); }
+  done() { this.hide(); }
 }

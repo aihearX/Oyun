@@ -57,6 +57,8 @@ export class LevelScene extends Phaser.Scene {
   private praiseGen = 0;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
+  /** bölüm içi ipuçları çiziliyor mu (alt şerit, el işaretli öğretici, dünya tabelaları): LevelOptions.hints / setHints */
+  private hintsOn = true;
   /** kıl perdeleri: 3-8'de ilk üç perdeden önce "aşağı kaydır" ipucu; 5'te tazeleme anı bir kez, iki başarılı geçişten sonra hiç */
   private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false; private curtainHintId = -1; private curtainHintAt = -9;
   /** bölge patolojileri: x sırasıyla işaretli öğeler, bu koşuda görülenler, rozetli öğeler, son Tüy Dede cümlesinin anı */
@@ -74,6 +76,7 @@ export class LevelScene extends Phaser.Scene {
   create() {
     this.opts = this.registry.get('opts') as LevelOptions; this.spec = this.opts.spec;
     this.biome = BIOMES[this.spec.biome];
+    this.hintsOn = this.opts.hints !== false;
     setSoundsEnabled(this.opts.sounds !== false && !this.spec.modifiers.includes('cihaz-kapali'));
     // ışığa duyarlılık: flaşlar sınırlı (≤ 3/sn, beyaza yakın tam ekran kare yok); azaltılmış harekette hiç (render/flash.ts)
     setFlashPolicy({ reduced: this.opts.reducedMotion ?? prefersReducedMotion() });
@@ -305,11 +308,11 @@ export class LevelScene extends Phaser.Scene {
     if (ent?.p.refresher) {
       // tazeleme: bu koşuda bir kez; oyuncu iki perdeyi başarıyla geçtiyse (kalıcı anahtar) hiç
       if (this.opts.race || this.refresherShown || this.firstsDone.includes(REFRESH_KEY) || (this.opts.firsts !== undefined && !this.opts.firsts.includes(REFRESH_KEY))) return;
-      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT); this.tutorialT = 0;
+      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT, this.hintsOn); this.tutorialT = 0;
       this.emit({ type: 'hint', id: REFRESH_KEY, text: REFRESH_TEXT }); return;
     }
     if (!this.showTutorial(a)) return;
-    this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop); this.tutorialT = 0; this.tutorAbilities.add(a);
+    this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, undefined, this.hintsOn); this.tutorialT = 0; this.tutorAbilities.add(a);
     this.emit({ type: 'hint', id: tutorialKey(a), text: this.tutorial.text });
   }
   /** kıl perdesi ipucu (3-8) ve 5'teki başarılı geçiş sayımı */
@@ -435,7 +438,7 @@ export class LevelScene extends Phaser.Scene {
         case 'freqgate': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
         case 'fork': V.on = colorMatch(s.hero.color, Number(e.p.color ?? 0)); break;
         case 'trampoline': V.on = s.hero.tramp > 0 && s.hero.trampId === id; V.phase = beatPhase; break;
-        case 'text': V.on = !!this.tutorial; break;
+        case 'text': V.on = !!this.tutorial || !this.hintsOn; break; // on: tabela geri çekilir (öğretici an ya da ipuçları gizli)
         case 'hazard': {
           if (e.p.chase && !s.timers.has(id)) { V.visible = false; break; }
           if (hazardAt(this.world, s, e, t)) { V.x = rectX() - 8; V.y = rectY() - 8; } else if (Number(e.p.on ?? 0) > 0) { V.alpha = 0.3; }
@@ -659,8 +662,17 @@ export class LevelScene extends Phaser.Scene {
   /** ipucu yazısı; id verilirse kabuğa 'hint' olayı gider (seslendirme için; kimlikler bridge.ts → HINT_IDS) */
   hint(text: string, ms = 2500, kind?: HintKind, id?: string) {
     if (id) this.emit({ type: 'hint', id, text });
+    if (!this.hintsOn) return;
     if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
     this.hud.toast(text, ms);
+  }
+  /**
+   * İpuçlarını aç/kapat (araçlar: tools/reels clip.html ve studio.html temiz çekimde kapatır; kabuk `?ipucu=0` ile LevelOptions.hints).
+   * Kapalıyken ipucu yazısı, el işaretli öğretici ve dünya tabelaları çizilmez; 'hint' olayları ve öğretici anın ağır çekimi sürer.
+   */
+  setHints(on: boolean) {
+    this.hintsOn = on; if (on) return;
+    this.hintTimer?.remove(); this.hud.hideHint(); this.hud.toast('', 0); this.tutorial?.hide();
   }
   private buildFog(strength: number) {
     const r0 = this.opts.skills.echoSight ? 160 : 110, r1 = this.opts.skills.echoSight ? 340 : 260;

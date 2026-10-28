@@ -23,15 +23,16 @@ window.clip = { ready: false, error: null };
 let G = null, S = null, W = null, vt = 0;
 window.startClip = (sc) => {
   const f = document.getElementById('game');
-  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 3}`;
+  // ipucu=0: oyunun bölüm içi ipuçları (alt şerit, el işaretli öğretici, dünya tabelaları) baştan gizli; yazıyı Reels katmanı verir
+  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 3}${sc.hints ? '' : '&ipucu=0'}`;
   const poll = setInterval(() => {
     try {
       const w = f.contentWindow; const scn = w && w.__odiScene;
       if (!(w && w.__odi && w.__odi.events.some((e) => e.type === 'started') && scn && scn.sim)) return;
       clearInterval(poll);
       W = w; S = scn; G = scn.game;
-      // oyunun alt bilgi balonu (Tüy Dede ipuçları, değiştirici yazıları) temiz çekimde gizlenir; yazıyı Reels katmanı verir
-      if (!sc.hints) try { S.hint = () => {}; } catch { /* yok */ }  // hints: oyunun bölüm içi ipucu (el işaretli) görünsün
+      // sc.hints: oyunun bölüm içi ipuçları görünsün; yoksa (URL'deki ipucu=0'a ek olarak) sahnede de kapalı
+      if (!sc.hints) try { S.setHints(false); } catch { /* yok */ }
       // mode 'zipla' (basaramadin-mi): bot hep zıplar, hiç kaymaz → kıl perdelerine çarpar (gerçek hasar, gerçek başarısızlık)
       // mode 'bos': hiç dokunmayan oyuncu (girdi yok) → ilk boşluğa düşer
       if (sc.mode === 'bos' && S.planner) S.planner.next = () => ({ down: false, pressed: false, released: false, swipeDown: false, dash: false });

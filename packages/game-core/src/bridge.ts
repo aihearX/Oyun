@@ -66,6 +66,11 @@ export interface LevelOptions {
   /** Revir bonusu: bölümdeki ilk (düşme dışı) hasarı bu yüzde şansla yok say. Tek zar atılır; oran Kamp ekranında yazılıdır. */
   firstHitIgnorePct?: number;
   sounds?: boolean;
+  /**
+   * Bölüm içi ipuçları (varsayılan açık). false: alt şerit ipuçları, el işaretli öğretici anlar ve dünyadaki öğretici tabelalar
+   * çizilmez ('hint' olayları yine gelir; kabuk da seslendirmez). Temiz çekim ve test içindir (`?bot=1&ipucu=0`); oyuncuda hep açık.
+   */
+  hints?: boolean;
   /** azaltılmış hareket (Ayarlar/sistem `prefers-reduced-motion`): ekran flaşları tümden kapanır. Yoksa tarayıcı tercihi okunur. */
   reducedMotion?: boolean;
   /** bölüm başı can (varsayılan 3) */

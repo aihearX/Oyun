@@ -116,7 +116,7 @@ function wireTouch(win) {
 function playLevel(sc) {
   const f = $('game');
   K = 1 / (sc.ts ?? 1); document.documentElement.style.setProperty('--k', String(K));
-  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 2}`;
+  f.src = `/?bot=1&level=${sc.level}${sc.salt ? `&salt=${sc.salt}` : ''}&hd=${sc.hd ?? 2}&ipucu=0`;
   let wired = false;
   const poll = setInterval(() => {
     try {
@@ -125,7 +125,7 @@ function playLevel(sc) {
         wired = true;
         wireTouch(w);
         // oyunun kendi alt bilgi şeridini gizle (stüdyo kendi yazısını gösterir)
-        try { const s = w.__odiScene; s.hint = () => {}; } catch { /* yok */ }
+        try { w.__odiScene.setHints(false); } catch { /* yok */ }
       }
       if (wired && (w.__odiScene ? w.__odiScene.sim.t >= (sc.fromT ?? 0) : true)) {
         clearInterval(poll);

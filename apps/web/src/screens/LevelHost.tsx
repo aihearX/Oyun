@@ -36,7 +36,7 @@ declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunR
  * `race` verilirse canlı yarış: rakip hayaletleri + üst şerit + sunucu saatine hizalı geri sayım; bölüm bitince
  * `race.finish` gönderilir ve onDone(sonuç, güncel oda) çağrılır. `raceBotDelayMs` yalnızca test harness'i içindir (bot ile).
  */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, hints, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; /** false: bölüm içi ipuçları gizli (tuval + Tüy Dede sesi; yalnız test/çekim) */ hints?: boolean; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<{ title: string; text: string; closed?: boolean } | null>(null);
@@ -117,6 +117,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
         safeTop: safeAreaTop(), safeTopNow: safeAreaTop,
         // hareketi azalt (sistem tercihi): oyun içi ekran flaşları kapalı (ışığa duyarlılık; game-core render/flash.ts)
         reducedMotion: prefersReducedMotion(),
+        ...(hints === false ? { hints: false } : {}),
         // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
         onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
         // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
@@ -129,7 +130,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
           // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
           if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
           // seçilmiş bölüm içi ipuçları (ilk öğretici anlar, kayma tazelemesi, kayma öğrenildikten sonraki ilk kıl perdesi): oyuncu başına bir kez
-          if (e.type === 'hint' && !race) { const t = sayHint(e.id, saidBefore); if (t) talks.push(t); }
+          if (e.type === 'hint' && !race && hints !== false) { const t = sayHint(e.id, saidBefore); if (t) talks.push(t); }
           if ((e.type === 'levelComplete' || e.type === 'levelFailed') && !finished) {
             finished = true; bus.result = e.result;
             // oda: yanıt ile o arada gelen olaylardan en güncel olanı (sonuç ekranı da ayrıca canlı dinler)
