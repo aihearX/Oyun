@@ -21,6 +21,8 @@ export interface LevelFx {
   jumpPuff(x: number, y: number): void;
   noteSparkle(x: number, y: number): void;
   hitFlash(x?: number, y?: number): void;
+  /** dünyadaki övgü yazılarını ("Mükemmel!", "Güçlü!") hemen kaldır (hasar anı) */
+  clearPraise(): void;
   /** altın halka + parıltı; label: övgü sözü (null: söz yok — motor kendi yazısını gösteriyorsa) */
   perfectRing(x: number, y: number, label?: string | null): void;
   comboBurst(x: number, y: number, n?: number): void;
@@ -63,9 +65,11 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
   const flashI = s.add.image(O0.x, O0.y, vignetteTex(s)).setOrigin(0, 0).setScrollFactor(0).setDepth(91).setTint(THEME.hazard).setAlpha(0).setDisplaySize(vw, vh).setBlendMode(ADD);
   const ring = (x: number, y: number, tint: number, from: number, to: number, ms: number, sy = 1) => { const r = s.add.image(x, y, ringTex(s)).setBlendMode(ADD).setTint(tint).setDepth(31).setScale(from, from * sy); s.tweens.add({ targets: r, scaleX: to, scaleY: to * sy, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => r.destroy() }); };
   const flare = (x: number, y: number, tint: number, size: number, ms: number) => { const g = s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(tint).setDepth(30).setDisplaySize(size * 0.4, size * 0.4).setAlpha(1); s.tweens.add({ targets: g, displayWidth: size, displayHeight: size, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => g.destroy() }); };
+  const praises = new Set<Phaser.GameObjects.Text>();
   const praise = (x0: number, y: number, text: string, color: string) => {
     const wv = cam.worldView; const x = wv.width > 0 ? Math.max(wv.x + 70, Math.min(wv.right - 70, x0)) : x0;
     const t = s.add.text(x, y, text, { fontFamily: FONT, fontSize: '20px', fontStyle: '900', color, stroke: '#1a0b3e', strokeThickness: 5, resolution: R() }).setOrigin(0.5).setDepth(32).setScale(0.4);
+    praises.add(t); t.once('destroy', () => praises.delete(t));
     s.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.Out' }); s.tweens.add({ targets: t, y: y - 36, alpha: 0, delay: 420, duration: 360, onComplete: () => t.destroy() });
   };
   return {
@@ -77,6 +81,7 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
       if (takeFlash(s.time.now)) { s.tweens.killTweensOf(flashI); flashI.setAlpha(FLASH.maxAlpha); s.tweens.add({ targets: flashI, alpha: 0, duration: 420, ease: 'Cubic.Out' }); }
       if (x != null && y != null) { flare(x, y, 0xffffff, 120, 200); ring(x, y, THEME.hazard, 0.1, 0.6, 320); const st = s.add.image(x, y, sparkTex(s)).setBlendMode(ADD).setDepth(32).setScale(1.4).setTint(0xffd0e0); s.tweens.add({ targets: st, scale: 0, angle: 90, duration: 260, onComplete: () => st.destroy() }); }
     },
+    clearPraise() { for (const t of [...praises]) { s.tweens.killTweensOf(t); t.destroy(); } },
     perfectRing(x, y, label = 'Mükemmel!') { ring(x, y, THEME.gold, 0.1, 0.9, 420); ring(x, y, 0xffffff, 0.05, 0.6, 320); sparks.explode(q(10), x, y); if (label) praise(x, y - 40, label, '#ffc93c'); },
     comboBurst(x, y, n = 10) { dots.explode(q(Math.min(40, 10 + n)), x, y); notes.explode(q(Math.min(8, 2 + Math.floor(n / 5))), x, y); flare(x, y, THEME.violet, 160, 380); },
     checkpointLight(x, y) {

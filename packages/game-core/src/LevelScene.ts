@@ -29,6 +29,8 @@ export interface LevelState {
   custom: Record<string, number | string | boolean>;
 }
 
+/** hasardan sonra bu kadar oyun saniyesi övgü sözü gösterilmez */
+const PRAISE_HURT_QUIET = 1.2;
 const RECT_TYPES = new Set(['moving', 'lift', 'crumble', 'wall', 'barrier', 'door', 'freqgate', 'beat', 'echo', 'water', 'gravzone', 'current', 'hazard', 'platform']);
 const STREAM_AHEAD = 700, STREAM_KEEP = 1000;
 
@@ -51,6 +53,8 @@ export class LevelScene extends Phaser.Scene {
   private vw = GAME_W; private vh = GAME_H; private hudTop = 0; private praiseFree = 0; private comboShown = 0;
   private combo = 0; private comboAt = -99; private maxCombo = 0; private chain = 0; private chainAt = -99; private firstsDone: string[] = [];
   private nearMissed = new Set<number>(); private lastHurtAt = -99;
+  /** övgü kuşağı: hasar anında artar, sıradaki (gecikmeli) övgüler geçersiz olur */
+  private praiseGen = 0;
   private luckyId = -1; private luckyGlowImg?: Phaser.GameObjects.Image; private luckyState: 'off' | 'armed' | 'got' | 'missed' = 'off';
   private tutorial?: Tutorial; private tutorialT = 0; private tutorAbilities = new Set<AbilityId>();
   /** kıl perdeleri: 3-8'de ilk üç perdeden önce "aşağı kaydır" ipucu; 5'te tazeleme anı bir kez, iki başarılı geçişten sonra hiç */
@@ -233,7 +237,7 @@ export class LevelScene extends Phaser.Scene {
       case 'freqwrong': floatText(this, e.x, e.y - 60, 'Yanlış frekans!', COLORS.coral); break;
       case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); this.sectionSummary(this.world.ents[e.id!]?.sec ?? 0); break;
       case 'hurt': this.onHurt(e); break;
-      case 'respawn': flash(this, 0xc9b8ff, 0.3, 240); this.resetTutorTrigger(); break;
+      case 'respawn': flash(this, 0xc9b8ff, 0.3, 240); this.clearPraise(); this.resetTutorTrigger(); break;
       case 'freefall': floatText(this, e.x, e.y - 160, 'Sorun değil — tekrar!', COLORS.accent2); break;
       case 'spikegrace': floatText(this, e.x, e.y - 160, 'Dikkat, diken!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'remedy': {
@@ -271,7 +275,7 @@ export class LevelScene extends Phaser.Scene {
   private onHurt(e: SimEvent) {
     if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan kırıldı', COLORS.accent); return; }
     if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, '💚 Klinik korudu!', COLORS.accent2); return; }
-    this.lastHurtAt = this.sim.t;
+    this.lastHurtAt = this.sim.t; this.clearPraise();
     sfx.hit(); this.fx.hitFlash(); this.cameras.main.shake(160, 0.01); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
   }
   private collectCoin(e: SimEvent) {
@@ -638,7 +642,15 @@ export class LevelScene extends Phaser.Scene {
   }
   private emit(e: GameEvent) { try { void this.opts.onEvent(e); } catch { /* kabuk hatası oyunu durdurmasın */ } }
   /** övgü sözleri ve altın koklea yazısı üst üste binmesin: sırayla (en az 0,8 sn arayla) */
-  private praise(text: string) { this.afterPraise(() => this.hud.praise(text)); }
+  private praise(text: string) {
+    // hasar aldıktan hemen sonra övgü yok; sıraya alınmış övgü, arada hasar olduysa gösterilmez
+    if (this.recentlyHurt()) return;
+    const gen = this.praiseGen;
+    this.afterPraise(() => { if (gen === this.praiseGen && !this.recentlyHurt()) this.hud.praise(text); });
+  }
+  private recentlyHurt(): boolean { return this.sim.t - this.lastHurtAt < PRAISE_HURT_QUIET; }
+  /** oyuncu vuruldu/düştü: ekrandaki ve sıradaki övgüler hemen kalkar (eski "Güzel!" hasar anında ekranda kalmasın) */
+  private clearPraise() { this.praiseGen++; this.hud.clearPraise(); this.fx.clearPraise(); }
   private afterPraise(f: () => void) {
     const now = this.time.now; const at = Math.max(now, this.praiseFree); this.praiseFree = at + 800;
     if (at <= now) f(); else this.time.delayedCall(at - now, f);

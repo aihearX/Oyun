@@ -232,6 +232,11 @@ export class LevelHud {
     s.tweens.add({ targets: sp, angle: 180, scale: 0, duration: 700 });
     s.tweens.add({ targets: c, y: y0 - 26, alpha: 0, delay: 700, duration: 380, ease: 'Cubic.In', onComplete: () => c.destroy() });
   }
+  /** ekrandaki övgü sözünü hemen kaldır (oyuncu hasar aldı: eski "Güzel!" ekranda kalmasın) */
+  clearPraise() {
+    const prev = this.root.getByName('praise') as Phaser.GameObjects.Container | null; if (!prev) return;
+    this.scene.tweens.killTweensOf(prev); this.scene.tweens.killTweensOf(prev.list); prev.destroy();
+  }
   onPause(cb: () => void) { this.pauseCb = cb; }
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı; parmak için cömert 34 px yarıçap) */
   pauseCenter(): { x: number; y: number } { return { x: this.pause.x * this.k, y: this.pause.y * this.k }; }

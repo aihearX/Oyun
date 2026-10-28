@@ -162,6 +162,8 @@ export interface LevelHudView {
   flyNote(x: number, y: number): void;
   setCombo(n: number, mult: number): void;
   praise(text: string): void;
+  /** övgü sözünü hemen kaldır (hasar anı) */
+  clearPraise(): void;
   showHint(kind: HintKind, text: string): void; hideHint(): void;
   /** alt-orta bilgi şeridi (bölüm girişi, faz uyarıları); boş metin gizler */
   toast(text: string, ms: number): void;
@@ -185,7 +187,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHud
     },
     flyNote: (x, y) => hud.flyNote(x, y),
     setCombo: (n, m) => hud.setCombo(n, m),
-    praise: (t) => hud.praise(t),
+    praise: (t) => hud.praise(t), clearPraise: () => hud.clearPraise(),
     showHint: (k, t) => hud.showHint(k, t), hideHint: () => hud.hideHint(),
     toast: (t, ms) => hud.toast(t, ms),
     setCheckpoints: (p) => hud.setCheckpoints(p),
