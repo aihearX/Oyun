@@ -199,7 +199,9 @@ const ilkGun = {
     { id: 'son', dur: ib(8), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: sonKart({ bpm: 124 }) },
   ],
   vo: [
-    { id: 'i1', scene: 'kanca', at: 0.15, nosub: true }, { id: 'i2', scene: 'f1a', at: 0.1 }, { id: 'i3', scene: 'f2', at: 0.1 }, { id: 'i4', scene: 'f3', at: 0.1 },
+    // i2 "Kırk bölüm." (0,7 sn) drop başlangıcı, savrulma ve tik sesinin altında kalmasın: yalnız bu kısa satırda müzik/efekt −8 dB, 1–5 kHz −6 dB
+    { id: 'i1', scene: 'kanca', at: 0.15, nosub: true },
+    { id: 'i2', scene: 'f1a', at: 0.1, dip: [[-0.05, 0.75, -8, -6]] }, { id: 'i3', scene: 'f2', at: 0.1 }, { id: 'i4', scene: 'f3', at: 0.1 },
     { id: 'i5', scene: 'f4', at: 0.1 }, { id: 'i6', scene: 'f5', at: 0.1 }, { id: 'i7', scene: 'f6', at: 0.1 }, { id: 'i8', scene: 'ozet', at: 0.15, nosub: true },
   ],
   cover: cover([
