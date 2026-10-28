@@ -518,6 +518,67 @@ bitirme oranları birebir karşılaştırılmaz; ölçülen şey nota oranı ve 
 - Test: `play/notaci.test.ts` (deterministik ve belgelenen aralıkta; kitle tercihlerinde nota niyeti yok; tehlikeye yakın notanın
   ek değeri yok; 8 oyuncuyla üç odada notaya dalan ≥ %30 toplar, kitleden belirgin çok, herkes bitirir).
 
+**28'in yıldız payı ve k3-derin (MK-033, MK-021).** 28'de kitlenin bitirenler içindeki nota medyanı %50,5'ti (%45 çizgisi):
+odadaki birkaç notalık değişiklik ★≥2'yi birkaç puan oynatıyordu, bu yüzden k3-derin denemesi (`wip-derin`) ertelenmişti.
+Teşhis oda oda yapıldı (oyundaki 28, kitlenin 144 oyuncusu; hangi notanın toplandığı oyun dünyasından okundu):
+
+| Oda (28'deki sırayla) | Bölümdeki nota | Kitle: ortalama toplanan | Oran |
+|---|---|---|---|
+| k2-konusma | 6 | 2,90 | %48 |
+| gn-merdiven | 4 | 2,72 | %68 |
+| cp-koklea-3 | 6 | 4,15 | %69 |
+| k3-ufalanan-su | 6 | 3,65 | %61 |
+| mk-risk-cift | 11 | 6,38 | %58 |
+| **k3-derin** | 9 | 1,23 | **%14** |
+| gn-kuyu | 6 | 1,89 | %32 |
+| cp-koklea-3 | 6 | 3,90 | %65 |
+| gn-suzul | 4 | 3,31 | %83 |
+| gn-perde | 6 | 5,86 | %98 |
+| gn-geri-oyuk | 11 | 3,23 | %29 |
+| **k3-sp-spiral-inis** (gösteri) | 24 | 11,56 | **%48** |
+
+- **Nota sınırı belirleyici:** 28'in odalarında 152 nota var, üretici 100'e indirir (`thinNotes`: en çok notalı odaların dizileri
+  çıkar, gösteri odası korunur). Bu yüzden korunan Spiral İniş bölümün notalarının dörtte biridir; altı notası havuzun ortasındaydı
+  (G+180) ve 28'de **hiçbir** kitle oyuncusu almıyordu: ana yol son ufalanan basamaktan havuzu süzülerek geçiyor. k3-derin'in
+  dipteki dizisi sınırda çıkarılıyor; kalan dizi (G+120) ile büyük nota, akıntıya kapılıp dibe inen kitlenin 100-200 px üstünde kalıyordu.
+- **Spiral İniş (MK-033):** altı nota son basamaktan süzülen oyuncunun önünde havuza inen bir ize alındı (nota sayısı aynı).
+- **k3-derin (MK-021):** ikinci dizi, akıntının dibe indirdiği yolun üstüne, gürültünün altından inen bir ize alındı (gürültüden en az ~70 px
+  uzakta: notaya dalan kademe riskli notaya değer vermez). Notaya dalan oyuncu izle derine iner ve dipteki büyük notayı oradan görür;
+  eskiden çoğu yüzeyden sekerek geçiyordu. `wip-derin` denemesi (dalış izi + balık girişe) yerine bu kullanıldı: aynı oda payını
+  balığı oynatmadan veriyor ve 28'de kitleye de yarıyor. Denenip bırakılanlar: izin daha erken/sığ başlaması (oda %57-62 ama acemi
+  hasarı 0,02), büyük notanın yeri, dipteki dizinin yükseltilmesi (bölümlerde zaten sınırda çıkıyor).
+- **Oda puanları** iki oda için yenilendi (`--odalar --ids k3-derin,k3-sp-spiral-inis --k 16`): hasar sütunları 0 kaldı, yalnız yakın
+  kaçış değişti (1,06 → 0,81; 2,16 → 1,97). Bu 28'in oda seçimini değiştirdi (k2-konusma yerine mk-giris-cukur, mk-zar-cift ve k2-frekans); 1-40'ın
+  diğer bölümleri aynı. 28'in son satırları bu seçimle ölçüldü. Süreli bölüm süreleri `--sure --k 48` ile yenilendi: değişmedi.
+
+_Yıldızlar: `zorluk.mjs --yildiz --levels 27-30 --k 144` (ve `--notaci`), yüzdeler bitirenlere göre; "Spiral" ara adım (yalnız
+Spiral İniş), "Sonra" iki oda + oda puanları. 27, 29, 30'un oda seçimi değişmedi._
+
+| Bölüm | Kitle önce: bitirme / medyan / ★≥2 | Spiral | **Kitle sonra** | Notacı önce: bitirme / medyan / ★≥2 | Spiral | **Notacı sonra** |
+|---|---|---|---|---|---|---|
+| 27 | %100 / %55,6 / %91,0 | %100 / %59,6 / %93,8 | %100 / %63,6 / %97,9 | %99,3 / %76,8 / %100 | %99,3 / %77,8 / %100 | %97,2 / %73,7 / %100 |
+| **28** | %92,4 / %50,5 / %90,2 | %92,4 / %55,6 / %93,2 | **%97,2 / %61,2 / %99,3** | %92,4 / %72,7 / %100 | %92,4 / %73,7 / %100 | **%98,6** / %76,5 / %100 |
+| 29 (trambolin, 2★ %60) | %95,1 / %75,3 / %98,5 | %95,1 / %72,2 / %96,4 | %95,1 / %72,2 / %96,4 | %90,3 / %80,4 / %100 | aynı | aynı |
+| 30 (süreli) | %70,1 / %47,9 / %98,0 | %70,1 / %50,0 / %98,0 | %70,1 / %50,0 / %98,0 | %72,9 / %77,1 / %100 | %74,3 / %78,1 / %100 | %74,3 / %78,1 / %100 |
+
+| Oda (K=48) | Kitle: toplama önce → sonra | Notacı: toplama önce → sonra | Notacı: bitirme / can kaybı sonra | Acemi can kaybı (puanlar.ts) |
+|---|---|---|---|---|
+| **k3-derin** | %9 → %30 | **%42 → %60** | %100 / 0,00 | 0 → 0 |
+| k3-sp-spiral-inis | %49 → %66 | %69 → %75 | %100 / 0,04 (önce 0,13) | 0 → 0 |
+| öteki 20 yüzme odası | aynı | aynı (birebir) | aynı | – |
+
+Zorluk (27-30, `--bolumler --k 48`): 27 can kaybı 0,17 → 0,19, 28 0,31 → 0,35 (bitirme %98 / %98), 29 ve 30 aynı (30 bölgenin doruğu).
+
+- **Hedefler:** 28'de kitle medyanı ≥ %55 (%61,2), ★≥2 ≥ %90 (%99,3), notacı bitirme ≥ %92 (%98,6); k3-derin notacı ≥ %55 (%60);
+  acemi hasarı 0. 2★ eşiği (%45) değişmedi.
+- **Bedeller (bilinen):** 29'da kitle Spiral İniş'in havuzuna dalıp eski altı notanın ~%77'sini alıyordu; notalar süzülme izine
+  taşınınca 29'un kitle medyanı %75,3 → %72,2, ★≥2 (%60 eşik) %98,5 → %96,4. 27'de notacı medyanı %76,8 → %73,7, bitirme
+  %99,3 → %97,2: k3-derin'de notacının bu bölümdeki payı 4,30 → 3,08 nota (27'de odaya yüzeyden sekerek giriyor), kalan fark sonraki
+  odalardaki düşüşlerden (can kaybı aynı, 0,35; düşüşler k3-derin'den sonra, 12-16 bin px'te) — seed zinciri gürültüsü. ★≥2 iki
+  kitlede de 27-30'da ≥ %96.
+- Doğrulama: `npm run kabul -- --yalniz typecheck,lint,vitest` (534 test; `levels-3` en uzun girdisiz ≤ 4 sn, `zorluk-final`,
+  `notaci`, `zorluk-yuzme` dahil), `bot.mjs --levels 21-30` Chromium ve WebKit 10/10 hasarsız (28: ⭐3, 76/98 nota).
+
 ## 7. Komutlar
 
 ```bash
