@@ -1,5 +1,5 @@
 import type { ChunkSpec } from '@odi/shared';
-import { G, bank, beat, beatSlide, moving, block, bubble, checkpoint, chunk, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
+import { G, bank, beat, beatSlide, moving, block, bubble, checkpoint, chunk, coin, coins, collect, crumble, current, decor, enemy, fgate, flightArc, fork, ground, hazard, jumpArc, launchArc, launcher, plat, pool, power, secret, spike, spring } from './helpers';
 import { curtain } from './ogretici';
 
 /**
@@ -13,6 +13,8 @@ const K1 = ['koklea-1'] as const, K2 = ['koklea-2'] as const, K3 = ['koklea-3'] 
 const hucre = (x: number, s = 1) => decor(x, G, 'hucre', s);
 const hop = (x: number, hop = 110) => enemy(x, G, 'ziplayan', 0, { hop });
 const fish = (x: number, y: number, dx = 60) => enemy(x, y, 'ucan', dx, { amp: 20 });
+/** eğik nota izi: her notada `dy` px aşağı inen dizi (süzülen ya da dalan oyuncuyu yola/ödüle götürür) */
+const trail = (x: number, y: number, n: number, gap: number, dy: number) => Array.from({ length: n }, (_, i) => coin(x + i * gap, y + i * dy));
 const crumbles = (x: number, n: number, y = G, gap = 92) => Array.from({ length: n }, (_, i) => crumble(x + i * gap, y, 88));
 
 export const KOKLEA_CHUNKS: ChunkSpec[] = [
@@ -52,11 +54,12 @@ export const KOKLEA_CHUNKS: ChunkSpec[] = [
     checkpoint(1400), fork(1520, G - 40, 0.6), plat(1560, G - 140, 260), fork(1690, G - 190, 0.2), fgate(1950, G - 300, 300, 0.2),
     ...coins(310, G - 210, 3, 40), ...coins(910, G - 210, 3, 40), ...coins(1570, G - 220, 3, 40), ...coins(2050, G - 60, 6, 40), secret(1200, G - 300), collect(2200, G - 100), hucre(2300),
   ], { tags: ['gosteri', 'frekans'], biomes: [...K2], setPiece: true }),
-  // Spiral İniş: fırlatıcıyla tepeye, ufalanan sarmal basamaklardan derin suya
+  // Spiral İniş: fırlatıcıyla tepeye, ufalanan sarmal basamaklardan derin suya. Son basamaktan süzülen oyuncunun önünde havuzun
+  // üstüne inen nota izi (MK-033): ana yol havuzu süzülerek geçer; eskiden bu altı nota havuzun ortasındaydı, 28'de ana yol hiç almıyordu
   chunk('k3-sp-spiral-inis', 'yuzme', 4, 2400, [
     ground(0, 280), spike(130, 36), launcher(250, G, 240, -1300), plat(420, G - 460, 200), crumble(660, G - 400, 80), crumble(784, G - 400, 80), crumble(950, G - 320, 80), crumble(1074, G - 320, 80), crumble(1240, G - 240, 80), crumble(1364, G - 240, 80),
     bank(1460, 0 + 30, 300), ...pool(1490, 600, 300), bank(2090, 310, 300), bubble(1800, G + 220), hazard(1700, G + 60, 80, 140),
-    ...coins(440, G - 500, 4, 40), ...jumpArc(720, 3, 0.15, G - 400), ...jumpArc(1010, 3, 0.15, G - 320), ...jumpArc(1300, 3, 0.15, G - 240), ...coins(1560, G + 180, 6, 44), spike(2230, 40), secret(1960, G + 250), collect(760, G - 560),
+    ...coins(440, G - 500, 4, 40), ...jumpArc(720, 3, 0.15, G - 400), ...jumpArc(1010, 3, 0.15, G - 320), ...jumpArc(1300, 3, 0.15, G - 240), ...trail(1530, G - 386, 6, 44, 19), spike(2230, 40), secret(1960, G + 250), collect(760, G - 560),
   ], { tags: ['gosteri', 'ufalanan', 'su'], biomes: [...K3], setPiece: true }),
   // ---------------------------------------------------------------- sınav odaları (bölge finalleri, docs/12): öğrenilen her şey bir arada,
   // daha sıkı zamanlama; her tehlike görünür ve okunur, gizli koklea ana yolda değil
