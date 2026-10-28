@@ -41,8 +41,15 @@ Aşağıdaki türlerin hepsi **kullanıcıya bağlıdır** (rastgele oyuncu kiml
 
 Notlar:
 - "Kullanım Verileri › Ürün Etkileşimi" seçilmez: dokunma/ekran izlenmez; sunucudaki `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar.
-- RevenueCat'in güncel "App Privacy" rehberine yüklemeden önce bakın; RevenueCat yeni bir tür ekliyorsa (ör. cihaz kimliği) bu tablo
-  ve gizlilik metni birlikte güncellenir.
+- RevenueCat'in güncel "App Privacy" rehberine yüklemeden önce bakın; RevenueCat yeni bir tür ekliyorsa (ör. cihaz kimliği) bu tablo,
+  gizlilik metni ve `apps/mobile/app.json` › `ios.privacyManifests` birlikte güncellenir.
+- **Gizlilik bildirimi (PrivacyInfo.xcprivacy):** `app.json` › `ios.privacyManifests` bu tablonun birebir karşılığıdır
+  (`NSPrivacyCollectedDataTypes`: UserID, PurchaseHistory, EmailsOrTextMessages, GameplayContent, OtherUserContent, OtherDataTypes; hepsi
+  linked, tracking yok; `NSPrivacyTracking: false`). Mobil jest testi `__tests__/yapilandirma.test.ts` tabloyu okuyup karşılaştırır:
+  biri değişip öteki değişmezse test düşer. Gerekçe isteyen API'ler (`NSPrivacyAccessedAPITypes`): UserDefaults `CA92.1`; dosya zamanı
+  `C617.1`, `0A2A.1`, `3B52.1`; açılıştan beri geçen süre `35F9.1`; disk alanı `E174.1`, `85F4.1` (React Native, AsyncStorage,
+  expo-constants, expo-file-system ve RevenueCat'in kendi bildirimlerindeki gerekçelerin birleşimi; statik bağlanan CocoaPods
+  bildirimleri her zaman birleştirilmediği için uygulama düzeyinde de yazılı).
 
 ## Yaş derecelendirmesi
 

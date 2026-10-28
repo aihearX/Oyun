@@ -34,6 +34,8 @@ daha kapsayıcı (daha çok beyan eden) seçeneği seçin.
 
 ### Reklamlar
 Uygulamanız reklam içeriyor mu? **Hayır.**
+Reklam kimliği (Advertising ID) kullanıyor mu? **Hayır.** `com.google.android.gms.permission.AD_ID` izni `app.json` ›
+`android.blockedPermissions` ile engelli (bildirimde de yok).
 
 ### Uygulama erişimi (App access)
 "Bütün işlevler özel erişim gerektirmeden kullanılabilir." Kayıt ya da giriş yok; hesap ilk açılışta kendiliğinden oluşur.
