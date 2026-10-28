@@ -69,8 +69,15 @@ if [ -n "$ALAN" ]; then
   fi
 fi
 
-baslik "Dinlenen portlar"
-if command -v ss >/dev/null 2>&1; then ss -tlnH | awk '{print "  "$4}' | sort -u | tr '\n' ' '; echo; else echo '  (ss yok: sudo apt install iproute2)'; fi
+baslik "Dinlenen portlar (TCP ve UDP)"
+# beklenen: 22 (SSH), 80/443 (Caddy), 127.0.0.1:$ODI_PORT (oyun sunucusu), 127.0.0.53 (DNS önbelleği), Caddy yönetimi 127.0.0.1:2019
+if command -v ss >/dev/null 2>&1; then
+  PORTLAR=$(ss -tulnpH 2>/dev/null | awk '{ s = $7; sub(/^users:\(\("/, "", s); sub(/".*/, "", s); printf "  %-4s %-28s %s\n", $1, $5, s }' | sort -u)
+  printf '%s\n' "$PORTLAR"
+  if grep -qE '[:.]111 ' <<< "$PORTLAR"; then uyari "111 (rpcbind) açık: gereksiz servis (YN-036) → sudo bash tools/sunucu/kur.sh ya da sudo systemctl disable --now rpcbind.socket rpcbind.service"; fi
+else
+  echo '  (ss yok: sudo apt install iproute2)'
+fi
 
 if [ $KISA -eq 0 ]; then
   baslik "Son 50 günlük satırı (journalctl -u odi)"

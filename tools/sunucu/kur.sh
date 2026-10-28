@@ -271,8 +271,8 @@ guvenlik_kurali() { # $1 port
 }
 
 adim_guvenlik_duvari() {
-  baslik "8/10 Güvenlik duvarı (80, 443)"
-  if atla guvenlik-duvari; then uyari "Güvenlik duvarı adımı atlandı (ODI_KUR_ATLA)."; return; fi
+  baslik "8/10 Güvenlik duvarı (80, 443) ve gereksiz servisler"
+  if atla guvenlik-duvari; then uyari "Güvenlik duvarı adımı atlandı (ODI_KUR_ATLA)."; gereksiz_servisleri_kapat; return; fi
   # Oracle'ın Ubuntu görüntüsü /etc/iptables/rules.v4 ile 22 dışındaki her şeyi REJECT eder.
   # Yalnız 80 ve 443 için ACCEPT kuralı REJECT'in önüne eklenir; mevcut kurallar (SSH 22) olduğu gibi kalır.
   local p eklendi=0
@@ -286,6 +286,8 @@ adim_guvenlik_duvari() {
   fi
   iptables -C INPUT -p tcp -m state --state NEW -m tcp --dport 22 -j ACCEPT 2>/dev/null \
     || iptables -S INPUT | grep -q -- '--dport 22' || uyari "INPUT zincirinde 22 (SSH) için açık kural görünmüyor; mevcut ayara dokunulmadı."
+  # dışarıdan engelli olsa da gereksiz açık servis bırakılmaz (YN-036)
+  gereksiz_servisleri_kapat
 }
 
 adim_caddy() {
@@ -396,7 +398,8 @@ Adımlar:
      $ODI_SURUMLER/<tarih>-<commit>/{sunucu,web}; açılış denetimi (geçici örnek, ayrı port); $ODI_GUNCEL → yeni sürüm
   6  $ODI_ENV (0600 root:root): ayarlar + yönetici kodunun tuzlu özeti (kod.mjs ozet, kod standart girdiden)
   7  /etc/systemd/system/odi.service (User=odi, Restart=always, sertleştirilmiş); journald 1 GB / 30 gün
-  8  iptables: 80 ve 443 ACCEPT (REJECT kuralının önüne), netfilter-persistent save; 22 (SSH) olduğu gibi kalır
+  8  iptables: 80 ve 443 ACCEPT (REJECT kuralının önüne), netfilter-persistent save; 22 (SSH) olduğu gibi kalır;
+     varsa rpcbind (111) kapatılır: systemctl disable --now ${GEREKSIZ_BIRIMLER[*]}
   9  Caddy (resmi apt deposu); /etc/caddy/Caddyfile; Let's Encrypt sertifikası
   10 odi-duckdns.timer (5 dk); $ODI_BIN/{odi-guncelle,odi-durum,odi-kod-degistir,odi-yedek-geri}
   Son https://$alan/saglik 200 bekler, sonra "Hazır: wss://$alan" yazar

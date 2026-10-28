@@ -265,6 +265,23 @@ saglik_bekle() {
   return 1
 }
 
+# Gereksiz ağ servisleri (YN-036): Oracle'ın Ubuntu görüntüsünde rpcbind 0.0.0.0:111'i (TCP+UDP) dinler; NFS kullanılmıyor.
+# Birim yoksa sessizce atlanır; zaten kapalıysa bir şey yazmaz (yeniden çalıştırmak güvenlidir).
+GEREKSIZ_BIRIMLER=(rpcbind.socket rpcbind.service)
+gereksiz_servisleri_kapat() {
+  local u acik=0 var=()
+  command -v systemctl >/dev/null 2>&1 || return 0
+  for u in "${GEREKSIZ_BIRIMLER[@]}"; do
+    [ -n "$(systemctl list-unit-files "$u" --no-legend 2>/dev/null)" ] || continue
+    var+=("$u")
+    if [ "$(systemctl is-enabled "$u" 2>/dev/null)" = enabled ] || systemctl is-active --quiet "$u" 2>/dev/null; then acik=1; fi
+  done
+  [ "$acik" -eq 1 ] || return 0
+  systemctl disable --now --quiet "${var[@]}" 2>/dev/null || true
+  if systemctl is-active --quiet "${var[@]}" 2>/dev/null; then uyari "rpcbind kapatılamadı: sudo systemctl disable --now ${var[*]}"
+  else tamam "rpcbind kapatıldı ve açılışta başlamayacak (111 artık dinlenmiyor; NFS kullanılmıyor)."; fi
+}
+
 # ---------------------------------------------------------------- yapılandırma dosyaları (kur.sh ve --deneme)
 env_icerigi() { # $1 = özet satırının değeri (deneme modunda yer tutucu)
   cat <<EOF
