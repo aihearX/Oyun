@@ -382,6 +382,16 @@ def sfx(kind, d=None, **o):
         for k in range(int(d * 14)):
             c = r.uniform(0, d); w = r.uniform(0.015, 0.045); g += np.exp(-0.5 * ((t - c) / w) ** 2) * r.uniform(0.5, 1)
         return sweep(noise(d), 2500, 4200, bw=0.6, segs=12) * g * 0.8
+    # ---- 6. dalga (B) efektleri
+    if kind == 'fork':  # diyapazon "tıııng": 512 Hz temel + kısa süren yüksek kısmi (≈6,25×), yumuşak vuruş; ılımlı
+        d = d or 1.8; t = T(d); f = o.get('f', 512)
+        x = np.sin(2 * np.pi * f * t) * np.exp(-t * 1.6) + 0.18 * np.sin(2 * np.pi * f * 6.25 * t) * np.exp(-t * 22)
+        x += 0.25 * fftfilt(noise(d), lo=2000, hi=7000) * np.exp(-t * 120)
+        r = int(0.004 * SR); x[:r] *= np.linspace(0, 1, r); return x
+    if kind == 'tick2':  # yumuşak saat tıkı (geri sayım; çok kısa, kuru)
+        d = 0.06; t = T(d); return np.sin(2 * np.pi * 2600 * t) * np.exp(-t * 140) + 0.4 * fftfilt(noise(d), lo=3000, hi=9000) * np.exp(-t * 200)
+    if kind == 'clickx':  # yanıt düğmesi "çıt" (plastik)
+        d = 0.07; t = T(d); return fftfilt(noise(d), lo=900, hi=5000) * np.exp(-t * 160) + 0.5 * np.sin(2 * np.pi * 1400 * t) * np.exp(-t * 90)
     raise ValueError(f'bilinmeyen efekt: {kind}')
 
 

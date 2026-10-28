@@ -2201,5 +2201,18 @@
    "dur": 2.38,
    "sps": 5.47
   }
+ },
+ "rinne-weber-30sn": {
+  "rw1": {
+   "key": "d3d6cc2dfd04",
+   "text": "Rine ve Veber, otuz saniyede.",
+   "seed": 1,
+   "wer": 0.2,
+   "asr": "Rine ve Weber 30 saniyede.",
+   "gap": 0.13,
+   "tempo": 1.087,
+   "dur": 1.94,
+   "sps": 5.66
+  }
  }
 }
