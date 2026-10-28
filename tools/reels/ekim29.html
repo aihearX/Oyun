@@ -1,0 +1,127 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+/* 29 Ekim Cumhuriyet Bayramı Reels sahnesi (1080x1920). window.render(t) her kareyi saniye cinsinden çizer; ekim29.mjs kare kare çeker. */
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+body{font-family:"Inter Display","Inter",sans-serif;color:#fff;position:relative;
+ background:radial-gradient(90% 70% at 50% 38%,#d8202e 0%,#a50f1c 45%,#5e0610 100%)}
+#rings{position:absolute;inset:0}
+#dark{position:absolute;inset:0;background:radial-gradient(70% 50% at 50% 30%,#1c0306 0%,#080102 70%)}
+.wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center}
+.flag{width:760px;height:506px;margin-top:300px;border-radius:10px;overflow:hidden;position:relative;
+ box-shadow:0 0 0 6px rgba(255,255,255,.95),0 30px 70px rgba(40,0,6,.55)}
+.flag svg{display:block}
+#glow{position:absolute;left:50%;top:553px;width:1300px;height:1000px;transform:translate(-50%,-50%);
+ background:radial-gradient(closest-side,rgba(255,236,190,.55),rgba(255,200,120,.18) 55%,rgba(255,200,120,0));opacity:0;pointer-events:none}
+.date{margin-top:70px;font-weight:800;font-size:36px;letter-spacing:10px;color:#ffe3a3;height:44px;white-space:pre;position:relative}
+.date .car{display:inline-block;width:4px;height:36px;background:#ffe3a3;vertical-align:-4px;margin-left:2px}
+.zone{position:relative;width:1080px;height:400px}
+h1{position:absolute;left:0;right:0;top:18px;font-weight:900;font-size:96px;line-height:1.02;text-align:center;letter-spacing:-1px;text-shadow:0 6px 24px rgba(60,0,8,.45)}
+h1 .ln span{color:#ffe3a3}
+h1 .ln{display:block}
+.sub{position:absolute;left:0;right:0;top:254px;font-weight:600;font-size:40px;line-height:1.3;text-align:center;color:#ffe9ea}
+#count{position:absolute;left:0;right:0;top:-6px;text-align:center;font-weight:900;color:#ffe3a3;font-variant-numeric:tabular-nums;
+ font-size:230px;line-height:1;letter-spacing:-4px;text-shadow:0 10px 40px rgba(60,0,8,.5)}
+#count small{display:block;font-size:34px;letter-spacing:14px;font-weight:800;margin-top:14px;color:#ffe9ea;text-shadow:none}
+.foot{position:absolute;left:0;right:0;bottom:330px;display:flex;align-items:center;justify-content:center;gap:16px}
+.odi{width:150px;height:150px}
+.odi img{width:150px;height:150px;display:block}
+.logo{font-weight:900;font-size:42px;letter-spacing:2px;line-height:1}
+.logo small{display:block;font-size:19px;letter-spacing:6px;font-weight:700;color:#ffe9ea;margin-top:6px}
+</style></head><body>
+<div id="dark"></div>
+<canvas id="rings" width="1080" height="1920"></canvas>
+<div id="glow"></div>
+<div class="wrap">
+ <div class="flag" id="flag"><!-- Resmî ölçüler (Türk Bayrağı Kanunu Tüzüğü), G=1000: ay dış merkezi 1/2 G, dış çap 1/2 G, iç merkez kayması 1/16 G,
+  iç çap 2/5 G, yıldız dairesi çapı 1/4 G ve iç dairenin uçkur tarafındaki kenarından 1/3 G (yıldız merkezi 820,8); bir köşesi uçkura dönük düzgün yıldız. -->
+  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#E30A17"/>
+  <circle cx="500" cy="500" r="250" fill="#fff"/><circle cx="562.5" cy="500" r="200" fill="#E30A17"/>
+  <polygon id="star" fill="#fff" points=""/></svg>
+ </div>
+ <div class="date" id="date"></div>
+ <div class="zone">
+  <div id="count">0<small>YIL</small></div>
+  <h1><span class="ln" id="h1a">Cumhuriyetimizin</span><span class="ln" id="h1b"><span>103. yılı</span> kutlu olsun!</span></h1>
+  <div class="sub" id="sub">Bir milletin sesi,<br>103 yıldır yankılanıyor.</div>
+ </div>
+</div>
+<div class="foot" id="foot"><div class="odi"><img src="ekim29-odi.svg" alt=""></div><div class="logo">ODİ<small>SESİN YOLU</small></div></div>
+<script>
+// düzgün beş köşeli yıldız: merkez (820.8, 500), dış yarıçap 125, bir köşe uçkura (sola) dönük
+(() => { const cx = 820.8333, cy = 500, R = 125, r = R * Math.sin(Math.PI / 10) / Math.sin(3 * Math.PI / 10), p = [];
+  for (let k = 0; k < 10; k++) { const a = Math.PI + k * Math.PI / 5, rr = k % 2 ? r : R; p.push((cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2)); }
+  document.getElementById('star').setAttribute('points', p.join(' ')); })();
+
+const $ = (id) => document.getElementById(id);
+const cl = (x) => Math.max(0, Math.min(1, x));
+const seg = (t, a, b) => cl((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const CX = 540, CY = 553;
+const ctx = $('rings').getContext('2d');
+const DATE = '29 EKİM 1923';
+// ses dalgası atımları: [zaman, güç]
+const PULSES = [[0.55, 1.0], [1.15, .55], [1.75, .4], [2.55, 1.0], [7.95, 1.0], [11.7, .7]];
+for (let t = 3.9; t < 15.5; t += 1.333) PULSES.push([t, .28]);
+
+function rings(t) {
+  ctx.clearRect(0, 0, 1080, 1920);
+  // duran halkalar (görsel dildeki gibi), dalga geçtikçe belirir
+  const reveal = (t - 0.6) * 950;
+  for (let i = 0; i < 8; i++) {
+    const R = 300 + i * 110; const a = (0.73 - i * 0.1) * 0.10 * cl((reveal - R) / 220);
+    if (a <= 0) continue;
+    ctx.strokeStyle = `rgba(255,255,255,${a})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2); ctx.stroke();
+  }
+  // yayılan dalgalar
+  for (const [p0, g] of PULSES) {
+    const dt = t - p0; if (dt < 0 || dt > 2.6) continue;
+    for (let k = 0; k < 3; k++) {
+      const d = dt - k * 0.12; if (d < 0) continue;
+      const R = 20 + d * 620 * (1 - d * 0.08); const a = g * (k ? 0.22 : 0.42) * Math.pow(1 - d / 2.6, 1.6);
+      ctx.strokeStyle = k ? `rgba(255,227,163,${a})` : `rgba(255,255,255,${a})`; ctx.lineWidth = k ? 2 : 4;
+      ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2); ctx.stroke();
+    }
+  }
+  // ilk tek atım: karanlıkta parlayan nokta
+  const dotIn = seg(t, 0.05, 0.5), dotOut = seg(t, 0.55, 1.0);
+  if (dotIn > 0 && dotOut < 1) {
+    const r = 6 + 22 * eo(dotIn) + 40 * dotOut, a = dotIn * (1 - dotOut);
+    const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, r * 3);
+    g.addColorStop(0, `rgba(255,248,230,${a})`); g.addColorStop(.3, `rgba(255,227,163,${a * .6})`); g.addColorStop(1, 'rgba(255,200,120,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(CX, CY, r * 3, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+window.render = (t) => {
+  rings(t);
+  // karanlık → kırmızı (karanlık katman yalnız zeminin üstünde; nokta ve halkalar onun üstünde parlar)
+  const dk = 1 - eio(seg(t, 0.7, 2.9));
+  $('dark').style.opacity = dk;
+  // bayrak
+  const fp = eo(seg(t, 2.45, 3.45));
+  $('flag').style.opacity = fp; $('flag').style.transform = `scale(${0.9 + 0.1 * fp})`;
+  $('glow').style.opacity = Math.max(0, seg(t, 2.4, 2.75) - seg(t, 2.9, 4.6)) * 0.9 + 0.12 * seg(t, 3.5, 5);
+  // tarih yazılır
+  const n = Math.floor(seg(t, 3.75, 4.95) * DATE.length + 1e-6);
+  const caret = t >= 3.6 && t < 5.5 && (n < DATE.length || Math.floor(t * 2.5) % 2 === 0);
+  $('date').innerHTML = DATE.slice(0, n).replace(/ /g, '&nbsp;') + (caret ? '<span class="car"></span>' : '');
+  // sayaç 0 → 103
+  const cp = seg(t, 5.3, 7.95);
+  const v = Math.round(103 * (1 - Math.pow(1 - cp, 2.4)));
+  const cin = eo(seg(t, 5.1, 5.5)), cout = eio(seg(t, 8.5, 9.1));
+  const land = Math.exp(-Math.max(0, t - 7.95) * 6) * (t >= 7.95 ? 1 : 0);
+  $('count').innerHTML = v + '<small>YIL</small>';
+  $('count').style.opacity = cin * (1 - cout);
+  $('count').style.transform = `translateY(${(1 - cin) * 30 - cout * 40}px) scale(${(1 + 0.08 * land) * (1 - 0.25 * cout)})`;
+  // başlık
+  const a1 = eo(seg(t, 8.75, 9.35)), a2 = eo(seg(t, 9.1, 9.7));
+  $('h1a').style.opacity = a1; $('h1a').style.transform = `translateY(${(1 - a1) * 40}px)`;
+  $('h1b').style.opacity = a2; $('h1b').style.transform = `translateY(${(1 - a2) * 40}px)`;
+  const s = eo(seg(t, 10.2, 11.0));
+  $('sub').style.opacity = s; $('sub').style.transform = `translateY(${(1 - s) * 24}px)`;
+  const f = eo(seg(t, 11.55, 12.35));
+  $('foot').style.opacity = f; $('foot').style.transform = `translateY(${(1 - f) * 24}px)`;
+};
+window.render(0);
+</script></body></html>
