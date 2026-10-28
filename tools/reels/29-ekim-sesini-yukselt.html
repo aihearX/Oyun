@@ -1,0 +1,593 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas><script>
+/* 29 Ekim — "Sesini yükselt" (29-ekim-sesini-yukselt.mjs çizer). Tek tuval; window.draw(t) her kareyi baştan çizer (rastgelelik tohumlu).
+   Fikir: odyoloğun her gün "sesi kıs" dediği ses düzeyi ölçer, bugün tersine yükselir ve ÖLÇERİN KENDİSİ BAYRAĞA DÖNÜŞÜR:
+   LED basamakları → bayrağın dalgalanan kırmızı sıraları, kadranın yayı → ay, tepe (peak) işareti → yıldız.
+   Son bayrak: resmî oranlı SVG olduğu gibi (geometri/renk değişmez, üstüne hiçbir şey konmaz); dönüşümün son hâli bu geometriyle birebir. */
+const W = 1080, H = 1920, FONT = '"Inter Display","Inter",sans-serif', MONO = '"Inter","Inter Display",sans-serif';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let T = null, FLAG = null, ODI = null, GRAIN = [], OFF = null, OCTX = null, CR = null, CRX = null, SH = null, SHX = null;
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ss = (t, a, b) => { const x = lin(t, a, b); return x * x * (3 - 2 * x); };
+const eo = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const eio = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const back = (x) => { x = clamp(x); const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const win = (t, a, b, fi = 0.25, fo = 0.2) => Math.min(ss(t, a, a + fi), 1 - ss(t, b - fo, b));
+const L = (a, b, k) => a + (b - a) * k;
+const mixc = (c1, c2, k) => c1.map((v, i) => Math.round(v + (c2[i] - v) * k));
+function rnd(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+const hash = (n) => { const x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); };
+
+async function svgCanvas(svg, w, h) {
+  const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); await img.decode();
+  const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); return c;
+}
+function makeGrain() {
+  const r = rnd(29);
+  for (let k = 0; k < 4; k++) {
+    const c = document.createElement('canvas'); c.width = 540; c.height = 960; const g = c.getContext('2d'); const im = g.createImageData(540, 960);
+    for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (r() - 0.5) * 120; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+    g.putImageData(im, 0, 0); GRAIN.push(c);
+  }
+}
+const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return [c, c.getContext('2d')]; };
+window.init = async (o) => {
+  T = o.T; FLAG = await svgCanvas(o.flag, 1800, 1200); ODI = await svgCanvas(o.odi, 360, 360);
+  for (const w of [500, 600, 700, 800, 900]) await document.fonts.load(`${w} 80px "Inter Display"`);
+  for (const w of [600, 700, 800]) await document.fonts.load(`${w} 40px "Inter"`);
+  [OFF, OCTX] = mk(); [CR, CRX] = mk(); [SH, SHX] = mk();
+  makeGrain(); return true;
+};
+
+/* ------------------------------------------------------------------ yazı */
+function text(lines, o, c = ctx) {
+  const alpha = o.alpha ?? 1; if (alpha <= 0.004) return;
+  c.save(); c.globalAlpha = alpha; c.textBaseline = 'middle'; c.textAlign = 'left';
+  if ((o.blur ?? 0) > 0.3) c.filter = `blur(${o.blur.toFixed(2)}px)`;
+  const cx = o.x ?? W / 2, cy = o.y;
+  if (o.scale != null || o.rot) { c.translate(cx, cy); c.rotate(o.rot ?? 0); c.scale(o.scale ?? 1, (o.scale ?? 1) * (o.sy ?? 1)); c.translate(-cx, -cy); }
+  const Ls = lines.map((ln) => (typeof ln === 'string' ? { t: ln } : ln));
+  const sizes = Ls.map((l) => l.size ?? o.size ?? 72); const lh = o.lh ?? 1.2;
+  const total = sizes.reduce((a, s, i) => a + (i ? s * lh : 0), 0); let yy = cy - total / 2 + (o.rise ?? 0);
+  Ls.forEach((l, i) => {
+    if (i) yy += sizes[i] * lh * 0.5 + sizes[i - 1] * lh * 0.5;
+    const la = l.alpha ?? 1; if (la <= 0.004) return;
+    const segs = l.segs ?? [[l.t, l.color ?? o.color ?? '#f6f3ee']];
+    const size = sizes[i], weight = l.weight ?? o.weight ?? 800, ls = l.ls ?? o.ls ?? 0;
+    c.font = `${weight} ${size}px ${l.font ?? o.font ?? FONT}`; c.letterSpacing = ls + 'px';
+    const ws = segs.map(([s]) => c.measureText(s).width); const tw = ws.reduce((a, b) => a + b, 0) - ls;
+    let x = (o.align === 'left' ? cx : cx - tw / 2) + (l.dx ?? 0); const y = yy + (l.dy ?? 0);
+    c.globalAlpha = alpha * la;
+    segs.forEach(([s, col, ul], k) => {
+      if (o.shadow !== false) { c.shadowColor = o.shadowColor ?? 'rgba(0,0,0,.5)'; c.shadowBlur = o.shadowBlur ?? 22; c.shadowOffsetY = o.shadowY ?? 4; }
+      c.fillStyle = col; c.fillText(s, x, y);
+      if (ul != null && ul > 0) { // fosforlu kalem çizgisi
+        c.shadowBlur = 0; c.fillStyle = col; c.globalAlpha = alpha * la * 0.9;
+        const uw = (ws[k] - ls) * clamp(ul); c.beginPath(); c.roundRect(x, y + size * 0.47, uw, size * 0.09, size * 0.045); c.fill(); c.globalAlpha = alpha * la;
+      }
+      x += ws[k];
+    });
+  });
+  c.restore();
+}
+
+/* ------------------------------------------------------------------ ölçer: ibre değeri */
+const D = { x: 540, y: 770, r: 300, sw: 26 };   // kadran
+const DB0 = 30, DB1 = 120, A0 = 150, SWEEP = 240;
+const ang = (db) => (A0 + (db - DB0) / (DB1 - DB0) * SWEEP) * Math.PI / 180;
+function needleRaw(t) {
+  const K = T.needle; if (t <= K[0][0]) return K[0][1];
+  for (let i = 1; i < K.length; i++) {
+    if (t <= K[i][0]) {
+      const [t0, v0] = K[i - 1], [t1, v1, e] = K[i]; const x = (t - t0) / (t1 - t0);
+      return v0 + (v1 - v0) * (e === 'b' ? back(x) : e === 'l' ? x : e === 'io' ? eio(x) : eo(x));
+    }
+  }
+  return K[K.length - 1][1];
+}
+function needle(t) {
+  const frozen = t >= T.scratch && t < T.C0;
+  const tt = frozen ? T.scratch : t;
+  let v = needleRaw(tt);
+  const j = tt < T.C0 ? 1.1 : 1.6 * ss(tt, T.C0, T.C0 + 0.5);
+  v += j * (0.6 * Math.sin(tt * 23.1) + 0.4 * Math.sin(tt * 37.7 + 1) + 0.3 * Math.sin(tt * 11.3 + 2));
+  if (t >= T.scratch && t < T.scratch + 0.35) v += 9 * Math.sin((t - T.scratch) * 70) * (1 - lin(t, T.scratch, T.scratch + 0.35));
+  if (t >= T.C0) v = Math.min(v, 100 - 0.4 * Math.abs(Math.sin(tt * 9.7)));  // bayramda ölçek "100 dB GURUR"da durur
+  return clamp(v, DB0 - 1, DB1);
+}
+function peakHold(t) {
+  if (t < T.C0) return null; let m = 0;
+  for (let x = T.C0; x <= Math.min(t, T.M0); x += 1 / 60) m = Math.max(m, needle(x));
+  return Math.min(m, 100);
+}
+const pride = (t) => ss(t, T.C0 - 0.1, T.C0 + 1.2);   // 0: klinik, 1: bayram
+
+/* ------------------------------------------------------------------ arka plan */
+function bgClinic(t, a) {
+  ctx.fillStyle = '#070b16'; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createRadialGradient(540, D.y, 40, 540, D.y, 1100);
+  g.addColorStop(0, `rgba(40,80,140,${0.35 * a})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // cihaz ekranı ızgarası
+  ctx.save(); ctx.strokeStyle = `rgba(120,170,230,${0.06 * a})`; ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // tarama çizgisi
+  const sy = ((t * 260) % (H + 400)) - 200; const sg = ctx.createLinearGradient(0, sy - 120, 0, sy);
+  sg.addColorStop(0, 'rgba(120,200,255,0)'); sg.addColorStop(1, `rgba(120,200,255,${0.05 * a})`); ctx.fillStyle = sg; ctx.fillRect(0, sy - 120, W, 120);
+  ctx.restore();
+}
+function bgRed(t, a, cy) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const g = ctx.createRadialGradient(540, cy, 40, 540, cy + 300, 1500);
+  g.addColorStop(0, '#d01c2c'); g.addColorStop(0.42, '#930c19'); g.addColorStop(1, '#2a0307');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+}
+function ring(x, y, r, a, lw, col = '255,236,205') {
+  if (a <= 0.004 || r <= 0) return;
+  ctx.save(); ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = lw; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+}
+function vignette(a = 0.7) {
+  const g = ctx.createRadialGradient(W / 2, H * 0.45, H * 0.25, W / 2, H * 0.5, H * 0.78);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function grain(t, a) {
+  ctx.save(); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'overlay';
+  ctx.drawImage(GRAIN[Math.floor(t * 30) % GRAIN.length], 0, 0, W, H); ctx.restore();
+}
+
+/* ------------------------------------------------------------------ ölçer çizimi */
+const LAD = { n: 16, segH: 24, gap: 8, w: 92, bottom: 1110, xs: [52, 1080 - 52 - 92] };
+const segRect = (side, j) => ({ x: LAD.xs[side], y: LAD.bottom - (j + 1) * (LAD.segH + LAD.gap) + LAD.gap, w: LAD.w, h: LAD.segH });
+function ledColor(j, p) {
+  const f = j / (LAD.n - 1); const db = DB0 + (100 - DB0) * f;
+  const clin = db < 70 ? [70, 230, 140] : db < 85 ? [255, 196, 60] : [255, 64, 72];
+  const prd = j % 2 ? [255, 244, 236] : [255, 40, 56];
+  return mixc(clin, prd, p);
+}
+function ladders(t, a, p) {
+  if (a <= 0.004) return;
+  const v = needle(t); const lit = (v - DB0) / (100 - DB0) * LAD.n;
+  ctx.save();
+  for (const side of [0, 1]) for (let j = 0; j < LAD.n; j++) {
+    const r = segRect(side, j); const on = clamp(lit - j); const c = ledColor(j, p);
+    ctx.globalAlpha = a; ctx.fillStyle = `rgba(${c},${0.1 + 0.08 * p})`; ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 5); ctx.fill();
+    if (on > 0) {
+      ctx.shadowColor = `rgba(${c},${0.9 * on})`; ctx.shadowBlur = 18 + 14 * p; ctx.fillStyle = `rgba(${c},${on})`;
+      ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 5); ctx.fill(); ctx.shadowBlur = 0;
+    }
+  }
+  ctx.restore();
+}
+function dial(t, a, p, arcs = true) {
+  if (a <= 0.004) return;
+  const v = needle(t);
+  ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'butt';
+  if (arcs) {
+  // taban yay
+  ctx.lineWidth = D.sw; ctx.strokeStyle = `rgba(200,215,240,${0.16 + 0.1 * p})`;
+  ctx.beginPath(); ctx.arc(D.x, D.y, D.r, ang(DB0), ang(DB1)); ctx.stroke();
+  // klinik bölgeler (iç ince bant)
+  const zones = [[DB0, 70, '70,230,140'], [70, 85, '255,196,60'], [85, DB1, '255,64,72']];
+  ctx.lineWidth = 10;
+  for (const [z0, z1, c] of zones) { ctx.strokeStyle = `rgba(${c},${0.85 * (1 - p)})`; ctx.beginPath(); ctx.arc(D.x, D.y, D.r - 32, ang(z0), ang(z1)); ctx.stroke(); }
+  // dolan yay (bayramda beyaz parlar)
+  const fillTo = Math.max(DB0 + 0.01, p > 0 ? L(v, DB1, ss(t, T.M0 - 0.6, T.M0)) : v);
+  ctx.lineWidth = D.sw; ctx.strokeStyle = `rgba(${mixc([120, 200, 255], [255, 255, 255], p)},${0.55 + 0.45 * p})`;
+  ctx.shadowColor = `rgba(${mixc([80, 170, 255], [255, 220, 200], p)},.9)`; ctx.shadowBlur = 22 + 20 * p;
+  ctx.beginPath(); ctx.arc(D.x, D.y, D.r, ang(DB0), ang(fillTo)); ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  // çentikler ve sayılar
+  ctx.strokeStyle = 'rgba(220,230,250,.6)'; ctx.fillStyle = 'rgba(220,230,250,.85)';
+  ctx.font = `700 30px ${MONO}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let db = DB0; db <= DB1; db += 5) {
+    const an = ang(db), big = db % 10 === 0, r0 = D.r - 50, r1 = r0 - (big ? 26 : 14);
+    ctx.lineWidth = big ? 4 : 2; ctx.beginPath(); ctx.moveTo(D.x + r0 * Math.cos(an), D.y + r0 * Math.sin(an)); ctx.lineTo(D.x + r1 * Math.cos(an), D.y + r1 * Math.sin(an)); ctx.stroke();
+    if (db % 20 === 0) { const rl = D.r - 108; ctx.fillText(String(db), D.x + rl * Math.cos(an), D.y + rl * Math.sin(an)); }
+  }
+  // 85 dBA çizgisi (NIOSH) — 3. kartta vurgulanır
+  const n85 = win(t, T.cards[2].a, T.cards[2].b + 0.1, 0.3, 0.3);
+  { const an = ang(85); const r0 = D.r + 26, r1 = D.r - 60; ctx.lineWidth = 5 + 3 * n85; ctx.strokeStyle = `rgba(255,90,90,${0.45 + 0.55 * n85})`;
+    ctx.shadowColor = 'rgba(255,60,60,.9)'; ctx.shadowBlur = 20 * n85;
+    ctx.beginPath(); ctx.moveTo(D.x + r0 * Math.cos(an), D.y + r0 * Math.sin(an)); ctx.lineTo(D.x + r1 * Math.cos(an), D.y + r1 * Math.sin(an)); ctx.stroke(); ctx.shadowBlur = 0;
+    if (n85 > 0) { ctx.globalAlpha = a * n85; ctx.fillStyle = '#ff6a6a'; ctx.font = `800 30px ${MONO}`; const rl = D.r + 64; ctx.fillText('85', D.x + rl * Math.cos(an), D.y + rl * Math.sin(an)); ctx.globalAlpha = a; } }
+  ctx.restore();
+}
+function needleDraw(t, a, len = 1) {
+  if (a <= 0.004 || len <= 0.01) return;
+  const v = needle(t), an = ang(v), p = pride(t);
+  ctx.save(); ctx.globalAlpha = a;
+  const r1 = (D.r - 44) * len;
+  ctx.strokeStyle = `rgb(${mixc([255, 214, 120], [255, 255, 255], p)})`; ctx.lineWidth = 9; ctx.lineCap = 'round';
+  ctx.shadowColor = `rgba(${mixc([255, 190, 80], [255, 120, 110], p)},.9)`; ctx.shadowBlur = 24;
+  ctx.beginPath(); ctx.moveTo(D.x - 40 * Math.cos(an) * len, D.y - 40 * Math.sin(an) * len); ctx.lineTo(D.x + r1 * Math.cos(an), D.y + r1 * Math.sin(an)); ctx.stroke();
+  ctx.shadowBlur = 0; ctx.fillStyle = '#1a2236'; ctx.beginPath(); ctx.arc(D.x, D.y, 30 * len, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.restore();
+}
+function readout(t, a) {
+  if (a <= 0.004) return;
+  const v = needle(t), p = pride(t);
+  ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `800 104px ${FONT}`; ctx.fontVariantNumeric = 'tabular-nums'; ctx.fillStyle = '#fff';
+  ctx.shadowColor = `rgba(${mixc([90, 170, 255], [255, 120, 110], p)},.8)`; ctx.shadowBlur = 26;
+  ctx.fillText(v.toFixed(1).replace('.', ','), D.x, D.y + 118); ctx.shadowBlur = 0;
+  // birim: dB SPL → dB GURUR (ters dönerek)
+  const fl = lin(t, T.flip, T.flip + 0.5), sy = Math.abs(Math.cos(fl * Math.PI)); const after = fl >= 0.5;
+  ctx.save(); ctx.translate(D.x, D.y + 196); ctx.scale(1, Math.max(0.02, sy));
+  ctx.font = `800 40px ${FONT}`; ctx.letterSpacing = '6px';
+  if (after) { ctx.shadowColor = 'rgba(255,200,120,.9)'; ctx.shadowBlur = 20 * (1 - lin(t, T.flip + 0.5, T.flip + 1.5)) + 8; ctx.fillStyle = '#ffd98a'; ctx.fillText('dB GURUR*', 0, 0); }
+  else { ctx.fillStyle = 'rgba(190,215,255,.9)'; ctx.fillText('dB SPL', 0, 0); }
+  ctx.restore();
+  ctx.font = `700 24px ${MONO}`; ctx.letterSpacing = '4px'; ctx.fillStyle = `rgba(190,215,255,${0.7 * (1 - p)})`;
+  ctx.fillText('A · FAST', D.x, D.y - 120);
+  ctx.restore();
+}
+function panel(t, a) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.strokeStyle = 'rgba(150,190,240,.22)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(28, 430, 1024, 720, 40); ctx.stroke();
+  ctx.font = `700 22px ${MONO}`; ctx.letterSpacing = '5px'; ctx.fillStyle = 'rgba(170,200,240,.6)'; ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left'; ctx.fillText('SES DÜZEYİ ÖLÇER', 62, 470); ctx.textAlign = 'right'; ctx.fillText('L  ·  R', 1018, 470);
+  // kayıt ışığı
+  ctx.fillStyle = `rgba(255,70,70,${0.5 + 0.5 * (Math.sin(t * 6) > 0)})`; ctx.beginPath(); ctx.arc(1018 - 150, 470, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ üst yazı + "kıs" sayacı */
+function counterVal(t) { let n = 23; for (const k of T.kis) if (t >= k) n++; return n; }
+function header(t, a) {
+  if (a <= 0.004) return;
+  const p = pride(t);
+  text([{ t: 'Bir odyolog her gün şöyle der:', size: 46, weight: 700 }], { y: 300, alpha: a * (1 - ss(t, T.flip - 0.2, T.flip + 0.3)), color: '#d8e4fa', shadowBlur: 12 });
+  text([{ segs: [['Bir odyolog ', '#d8e4fa'], ['bugün', '#ffd98a'], [' şöyle der:', '#d8e4fa']], size: 46, weight: 800 }], { y: 300, alpha: a * ss(t, T.flip, T.flip + 0.5), shadowBlur: 12 });
+  // sayaç çipi
+  const n = counterVal(t); const last = T.kis.filter((k) => t >= k).pop() ?? -9; const bump = 1 - eo(lin(t, last, last + 0.35));
+  const flipped = t >= T.flip + 0.25; const fl = lin(t, T.flip, T.flip + 0.5), sy = Math.max(0.02, Math.abs(Math.cos(fl * Math.PI)));
+  const label = flipped ? 'Bugün: ' : 'Bugünkü “kıs” sayısı: ', val = flipped ? '29 Ekim' : String(n);
+  ctx.save(); ctx.globalAlpha = a; ctx.font = `700 34px ${FONT}`; ctx.letterSpacing = '0px';
+  const lw = ctx.measureText(label).width; ctx.font = `900 40px ${FONT}`; const vw = ctx.measureText(val).width;
+  const w = lw + vw + 56, h = 64, x = 540 - w / 2, y = 372 - h / 2;
+  ctx.translate(540, 372); ctx.scale(1 + 0.12 * bump, sy * (1 + 0.12 * bump)); ctx.translate(-540, -372);
+  ctx.fillStyle = flipped ? 'rgba(227,10,23,.9)' : 'rgba(30,48,84,.85)'; ctx.strokeStyle = flipped ? 'rgba(255,220,200,.8)' : 'rgba(140,180,240,.4)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fill(); ctx.stroke();
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left'; ctx.font = `700 34px ${FONT}`; ctx.fillStyle = flipped ? '#fff' : '#c9d8f2'; ctx.fillText(label, x + 28, 373);
+  ctx.font = `900 40px ${FONT}`; ctx.fillStyle = flipped ? '#fff' : (n >= 29 ? '#ffd98a' : '#fff'); ctx.fillText(val, x + 28 + lw, 373);
+  ctx.restore();
+  void p;
+}
+
+/* ------------------------------------------------------------------ kartlar */
+const HL = '#ffcf5a';
+function card(t, c, i) {
+  if (t < c.a || t > c.b) return;
+  const k = lin(t, c.a, c.a + 0.22), out = lin(t, c.b - 0.18, c.b);
+  const sc = 1.32 - 0.32 * back(k), al = ss(t, c.a, c.a + 0.08) * (1 - out);
+  const rot = (i % 2 ? 1 : -1) * 0.035 * (1 - eo(k)) + (i % 2 ? 0.008 : -0.008);
+  const ul = lin(t, c.a + 0.6, c.a + 0.95);
+  const lines = c.lines.map((l) => ({ ...l, segs: l.segs.map(([s, col, u]) => [s, col, u ? ul : null]) }));
+  text(lines, { y: c.y ?? 1310, alpha: al, scale: sc, rot, lh: 1.08, weight: 900, rise: -out * 40, blur: (1 - ss(t, c.a, c.a + 0.12)) * 10 + out * 6 });
+  if (c.note) text([{ t: c.note[0], size: 31, weight: 700 }, { t: c.note[1], size: 31, weight: 600 }], { y: 1500, alpha: ss(t, c.a + 0.5, c.a + 0.85) * (1 - out), color: '#ffb3b3', lh: 1.3, shadowBlur: 10 });
+}
+function rapid(t) {
+  for (const [i, r] of T.rapid.entries()) {
+    if (t < r.a || t > r.b) continue;
+    const k = lin(t, r.a, r.a + 0.12), al = ss(t, r.a, r.a + 0.05) * (1 - ss(t, r.b - 0.06, r.b));
+    const shake = i === 2 ? 6 * Math.sin(t * 90) : 0;
+    text([{ t: r.t, size: r.size, color: i === 2 ? HL : '#fff' }], { y: 1320, x: 540 + shake, alpha: al, scale: 1.5 - 0.5 * back(k), weight: 900, rot: (i - 1) * 0.03 });
+  }
+}
+function ama(t) {
+  const A = T.ama; if (t < A.a || t > T.C0 + 0.25) return;
+  const al = ss(t, A.a, A.a + 0.2) * (1 - ss(t, T.C0 - 0.05, T.C0 + 0.25));
+  const dots = A.dots.filter((d) => t >= d).length;
+  const k = lin(t, A.a, A.a + 0.3);
+  const segs = [['Ama bugün', '#fff']]; for (let i = 0; i < 3; i++) segs.push(['.', i < dots ? HL : 'rgba(0,0,0,0)']);
+  text([{ segs, size: 132 }], { y: 1310, alpha: al, scale: 1.12 - 0.12 * eo(k), weight: 900 });
+}
+function steps(t) {
+  const S = T.steps; const shown = S.filter((s) => t >= s.t); if (!shown.length) return;
+  const outA = 1 - ss(t, T.M0 - 0.1, T.M0 + 0.5);
+  shown.forEach((s, i) => {
+    const age = shown.length - 1 - i; const k = lin(t, s.t, s.t + 0.3);
+    const tgtY = 1440 - age * 124; const prevY = 1440 - (age - 1) * 124;
+    const nk = age > 0 ? eo(lin(t, shown[i + 1].t, shown[i + 1].t + 0.35)) : 1;
+    const y = age > 0 ? L(prevY, tgtY, nk) : 1440;
+    const size = (i === 2 ? 118 : 96) * (age > 0 ? L(1, 0.72, nk) : 1);
+    const al = (age > 0 ? L(1, 0.55, nk) : ss(t, s.t, s.t + 0.08)) * outA;
+    text([{ segs: [[`${s.db} dB: `, '#fff'], [s.w, i === 2 ? '#ffe3a3' : HL]], size }], { y, alpha: al, scale: age > 0 ? 1 : 1.4 - 0.4 * back(k), weight: 900, glow: i === 2 ? 'rgba(255,200,140,.9)' : null });
+  });
+  // dipnot: mecaz
+  text([{ t: '* Bugünün desibeli mecaz: ölçü birimi gurur.', size: 30, weight: 700 }, { t: 'Kulaklarınız emin ellerde.', size: 30, weight: 600 }],
+    { y: 1532, alpha: ss(t, T.steps[0].t + 0.2, T.steps[0].t + 0.6) * outA, color: '#ffe3d0', lh: 1.3, shadowBlur: 10 });
+}
+
+/* ------------------------------------------------------------------ yükselen ses dalgaları + konfeti */
+const NW = 10;
+function waveLineY(i, t) { // yükselişte: alttan yukarı akan çizgiler
+  const sp = 120; const base = H + 100 - ((t - T.C0) * sp + i * (H + 200) / NW) % (H + 200);
+  return base;
+}
+function confetti(t, a, bursts, behindOnly) {
+  if (a <= 0.004) return;
+  ctx.save();
+  bursts.forEach((b0, bi) => {
+    const u0 = t - b0; if (u0 < 0 || u0 > 3.2) return;
+    const r = rnd(500 + bi * 31);
+    for (let i = 0; i < 70; i++) {
+      const side = i % 2 ? 1 : -1, x0 = side > 0 ? 1080 + 20 : -20, y0 = 1250 + r() * 300;
+      const vx = -side * (300 + r() * 650), vy = -(900 + r() * 900), u = u0 - r() * 0.15; if (u < 0) continue;
+      const x = x0 + vx * u * Math.exp(-u * 0.6), y = y0 + vy * u + 620 * u * u;
+      const sp = r() * 10, w = 10 + r() * 14, h = 6 + r() * 6, al = a * (1 - lin(u0, 2.2, 3.2));
+      ctx.save(); ctx.translate(x, y); ctx.rotate(sp + u * (4 + r() * 6)); ctx.scale(1, Math.cos(u * (6 + r() * 6)));
+      ctx.fillStyle = i % 3 === 0 ? `rgba(255,255,255,${al})` : i % 3 === 1 ? `rgba(227,10,23,${al})` : `rgba(255,214,140,${al})`;
+      ctx.fillRect(-w / 2, -h / 2, w, h); ctx.restore();
+    }
+  });
+  ctx.restore(); void behindOnly;
+}
+function dust(t, a) {
+  const r = rnd(1923); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 80; i++) {
+    const x0 = r() * W, y0 = r() * H, v = 14 + r() * 40, s = 1 + r() * 2.8, ph = r() * 6.28, al = 0.25 + r() * 0.5;
+    const y = ((y0 - t * v) % H + H) % H, x = x0 + Math.sin(t * 0.6 + ph) * 18;
+    ctx.fillStyle = `rgba(255,225,170,${a * al * (0.6 + 0.4 * Math.sin(t * 2 + ph))})`; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ dönüşüm: ölçer → bayrak */
+const FR = { x: 90, y: 330, w: 900, h: 600 };
+const STAR = [[695.80, 500.00], [782.17, 471.94], [782.17, 381.12], [835.55, 454.59], [921.93, 426.53], [868.55, 500.00], [921.93, 573.47], [835.55, 545.41], [782.17, 618.88], [782.17, 528.06]];
+const SC = [820.8, 500];
+function flagRectAt(t) {
+  const e = eio(lin(t, T.E, T.E + 0.9));
+  return { x: L(FR.x, 270, e), y: L(FR.y, 290, e), w: L(FR.w, 540, e), h: L(FR.h, 360, e) };
+}
+/** kumaş dalgası (yalnız dönüşümde; F'de sıfır) */
+const waveAmp = (t) => 34 * (1 - ss(t, T.M0 + 1.4, T.F - 0.15)) * ss(t, T.M0, T.M0 + 0.8);
+function clothDy(x, t) { const u = clamp((x - FR.x) / FR.w, 0, 1.2); return waveAmp(t) * Math.pow(u, 0.8) * Math.sin(u * 2 * Math.PI * 1.15 - (t - T.M0) * 7.5); }
+
+function drawMorph(t, c) {
+  const m = (d = 0, dur = 2.2) => eio(lin(t, T.M0 + d, T.M0 + d + dur));
+  const s = FR.w / 1500, hr = FR.h / LAD.n;
+  const close = ss(t, T.M0 + 1.5, T.F - 0.35);
+  // 1) LED basamakları → bayrak sıraları (yarım sıralar, soldan ve sağdan)
+  for (const side of [0, 1]) for (let j = 0; j < LAD.n; j++) {
+    const k = LAD.n - 1 - j; const mm = m(0.05 + Math.abs(k - 7.5) * 0.035 + side * 0.06, 1.9);
+    const r0 = segRect(side, j);
+    const gap = 6 * (1 - close);
+    const r1 = { x: side ? FR.x + FR.w / 2 - 0.5 : FR.x, y: FR.y + k * hr + gap / 2, w: FR.w / 2 + 0.5, h: hr - gap + 0.6 };
+    const x = L(r0.x, r1.x, mm), y = L(r0.y, r1.y, mm), w = L(r0.w, r1.w, mm), h = L(r0.h, r1.h, mm);
+    const col = mixc(ledColor(j, 1), [227, 10, 23], ss(mm, 0.2, 0.9));
+    c.fillStyle = `rgb(${col})`;
+    c.beginPath();
+    const st = 12; c.moveTo(x, y);
+    for (let xx = x; xx <= x + w + 0.1; xx += st) c.lineTo(Math.min(xx, x + w), y);
+    c.lineTo(x + w, y + h); c.lineTo(x, y + h); c.closePath();
+    c.save(); c.globalAlpha = 1; c.shadowColor = 'rgba(255,60,70,.6)'; c.shadowBlur = 20 * (1 - close); c.fill(); c.restore();
+  }
+  // 2) ses dalgaları → sıra çizgileri (kayboluyor)
+  const wa = 1 - ss(t, T.M0 + 1.2, T.M0 + 2.4);
+  if (wa > 0.01) {
+    c.save(); c.lineWidth = 3;
+    for (let i = 0; i < NW; i++) {
+      const mm = m(i * 0.04, 1.6); const y0 = waveLineY(i, T.M0), y1 = FR.y + (i + 1) * FR.h / (NW + 1);
+      const yb = L(y0, y1, mm), x0 = L(-20, FR.x, mm), x1 = L(W + 20, FR.x + FR.w, mm);
+      c.strokeStyle = `rgba(255,236,220,${0.55 * wa})`; c.beginPath();
+      for (let x = x0; x <= x1; x += 6) { const y = yb + (1 - mm) * 18 * Math.sin(x * 0.03 - t * 6 + i); x === x0 ? c.moveTo(x, y) : c.lineTo(x, y); }
+      c.stroke();
+    }
+    c.restore();
+  }
+  // 3) kadran yayı → ay (dış daire − kaydırılmış iç daire), açıklık alttan sağa döner
+  const ma = m(0.25, 2.3);
+  const Co = [L(D.x, FR.x + 500 * s, ma), L(D.y, FR.y + 500 * s, ma)];
+  const Ro = L(D.r + D.sw / 2, 250 * s, ma), Ri = L(D.r - D.sw / 2, 200 * s, ma);
+  const off = L(0, 62.5 * s, ss(ma, 0.25, 1));
+  const cgap = L(360 - SWEEP, 0, ss(ma, 0.15, 0.95)) * Math.PI / 180, gc = L(90, 0, ss(ma, 0, 0.8)) * Math.PI / 180;
+  CRX.setTransform(1, 0, 0, 1, 0, 0); CRX.clearRect(0, 0, W, H); CRX.globalCompositeOperation = 'source-over';
+  CRX.fillStyle = '#fff'; CRX.beginPath();
+  if (cgap > 0.001) { CRX.moveTo(Co[0], Co[1]); CRX.arc(Co[0], Co[1], Ro, gc + cgap / 2, gc + 2 * Math.PI - cgap / 2); CRX.closePath(); }
+  else CRX.arc(Co[0], Co[1], Ro, 0, Math.PI * 2);
+  CRX.fill();
+  CRX.globalCompositeOperation = 'destination-out'; CRX.beginPath(); CRX.arc(Co[0] + off, Co[1], Ri, 0, Math.PI * 2); CRX.fill();
+  CRX.globalCompositeOperation = 'source-over';
+  c.save(); c.shadowColor = 'rgba(255,230,220,.8)'; c.shadowBlur = 30 * (1 - close); c.drawImage(CR, 0, 0); c.restore();
+  // 4) tepe işareti → yıldız (nokta → beş köşe, döne döne yerine)
+  const pk = ang(100); const P0 = [D.x + D.r * Math.cos(pk), D.y + D.r * Math.sin(pk)];
+  const ms = m(0.55, 2.2); const ctr = [L(P0[0], FR.x + SC[0] * s, ms), L(P0[1], FR.y + SC[1] * s, ms) - Math.sin(ms * Math.PI) * 120];
+  const rot = (1 - ms) * Math.PI * 2.4;
+  c.save(); c.fillStyle = '#fff'; c.shadowColor = 'rgba(255,240,220,.95)'; c.shadowBlur = 40 * (1 - close) + 4 * (1 - close);
+  c.beginPath();
+  STAR.forEach(([px, py], i) => {
+    const dx = px - SC[0], dy = py - SC[1]; const d0 = Math.hypot(dx, dy), an = Math.atan2(dy, dx);
+    const rr = L(16, d0 * s, ms); const x = ctr[0] + rr * Math.cos(an + rot), y = ctr[1] + rr * Math.sin(an + rot);
+    i ? c.lineTo(x, y) : c.moveTo(x, y);
+  });
+  c.closePath(); c.fill(); c.restore();
+}
+function morph(t) {
+  // düz çiz, sonra dikey dilimlerle kumaş gibi dalgalandır (+ ışık/gölge)
+  OCTX.setTransform(1, 0, 0, 1, 0, 0); OCTX.clearRect(0, 0, W, H);
+  drawMorph(t, OCTX);
+  const A = waveAmp(t);
+  if (A < 0.05) { ctx.drawImage(OFF, 0, 0); return; }
+  const sl = 6;
+  SHX.setTransform(1, 0, 0, 1, 0, 0); SHX.clearRect(0, 0, W, H); SHX.drawImage(OFF, 0, 0);
+  SHX.globalCompositeOperation = 'source-atop';
+  for (let x = 0; x < W; x += sl) {
+    const sd = (clothDy(x + sl, t) - clothDy(x, t)) / sl; const k = clamp(sd * 1.6, -0.5, 0.5);
+    SHX.fillStyle = k > 0 ? `rgba(0,0,0,${k * 0.55})` : `rgba(255,255,255,${-k * 0.35})`; SHX.fillRect(x, 0, sl, H);
+  }
+  SHX.globalCompositeOperation = 'source-over';
+  for (let x = 0; x < W; x += sl) ctx.drawImage(SH, x, 0, sl, H, x, clothDy(x + sl / 2, t), sl, H);
+}
+
+/* ------------------------------------------------------------------ bayrak ve son */
+function drawFlag(fr) {
+  ctx.save(); ctx.shadowColor = 'rgba(40,0,6,.6)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 26;
+  ctx.drawImage(FLAG, fr.x, fr.y, fr.w, fr.h); ctx.restore();
+}
+function soundRings(t, fr, a) {
+  const cx = fr.x + fr.w / 2, cy = fr.y + fr.h / 2;
+  for (let k = 0; k < 30; k++) {
+    const te = T.F + k * 1.0, u = t - te; if (u < 0) break; if (u > 3.6) continue;
+    const first = k === 0;
+    ring(cx, cy, fr.w * 0.42 + u * (first ? 700 : 360), a * (first ? 0.7 : 0.22) * (1 - u / 3.6) ** 1.4, first ? 10 * (1 - u / 3.6) + 2 : 3, '255,235,215');
+  }
+}
+function odiSign(cx, cy, a) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const s = 84; const gw = s + 14 + 150; const x0 = cx - gw / 2;
+  ctx.drawImage(ODI, x0, cy - s / 2, s, s);
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.font = `900 36px ${FONT}`; ctx.letterSpacing = '2px'; ctx.fillText('ODİ', x0 + s + 14, cy - 11);
+  ctx.font = `700 15px ${FONT}`; ctx.letterSpacing = '6px'; ctx.fillStyle = '#ffe9ea'; ctx.fillText('SESİN YOLU', x0 + s + 15, cy + 19);
+  ctx.restore();
+}
+function miniMeter(cx, cy, a, t) { // küçük çağrışım: yükselen dalga
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.beginPath();
+  for (let x = -170; x <= 170; x += 3) {
+    const e = Math.cos((x / 170) * Math.PI / 2) ** 2; const y = cy + 16 * e * (0.65 * Math.sin(x * 0.09 - t * 5) + 0.35 * Math.sin(x * 0.21 + t * 3));
+    x === -170 ? ctx.moveTo(cx + x, y) : ctx.lineTo(cx + x, y);
+  }
+  ctx.strokeStyle = '#ffe3a3'; ctx.lineWidth = 3; ctx.shadowColor = 'rgba(255,220,150,.8)'; ctx.shadowBlur = 12; ctx.stroke(); ctx.restore();
+}
+function endCard(t) {
+  const E = T.E + 0.5, ap = (d) => ss(t, E + d, E + d + 0.6), dy = (d) => (1 - eo(lin(t, E + d, E + d + 0.8))) * 24;
+  if (t < E) return;
+  text([{ t: '29 EKİM 1923  ·  103. YIL', size: 32, weight: 800, ls: 8, color: '#ffe3a3' }], { y: 712 + dy(0.2), alpha: ap(0.2), shadowBlur: 12 });
+  text([{ segs: [['Bugün ', '#fff'], ['sesini yükselt.', '#ffe3a3']], size: 70, weight: 900 }], { y: 792 + dy(0.35), alpha: ap(0.35) });
+  // not kartı
+  const a = ap(0.7), y0 = 870 + dy(0.7), h = 470;
+  if (a > 0.004) {
+    ctx.save(); ctx.globalAlpha = a; ctx.shadowColor = 'rgba(40,0,6,.5)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 14;
+    ctx.fillStyle = 'rgba(255,250,246,.97)'; ctx.beginPath(); ctx.roundRect(70, y0, 940, h, 36); ctx.fill(); ctx.restore();
+    // "ODYOLOG NOTU" etiketi
+    ctx.save(); ctx.globalAlpha = a; ctx.font = `900 28px ${FONT}`; ctx.letterSpacing = '5px';
+    const lw = ctx.measureText('ODYOLOG NOTU').width + 48; ctx.fillStyle = '#c8102e'; ctx.beginPath(); ctx.roundRect(540 - lw / 2, y0 + 34, lw, 52, 26); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('ODYOLOG NOTU', 540 + 2.5, y0 + 61); ctx.restore();
+    text([{ t: 'Havai fişek izlerken', size: 62 }, { t: 'kulaklarını koru.', size: 62 }], { y: y0 + 170, alpha: a, weight: 900, color: '#8e0a1c', lh: 1.12, shadow: false });
+    text([{ t: 'Uzaktan izle; çocuklara kulak koruyucu tak.', size: 33, weight: 700 }], { y: y0 + 280, alpha: a, color: '#3a1218', shadow: false });
+    ctx.save(); ctx.globalAlpha = a * 0.35; ctx.fillStyle = '#8e0a1c'; ctx.fillRect(170, y0 + 330, 740, 2); ctx.restore();
+    text([{ t: 'Yakın mesafede patlamanın anlık tepe sesi çok yüksektir.', size: 26, weight: 600 }, { t: 'WHO: anlık tepe ses yetişkinde 140 dB’i, çocukta 120 dB’i aşmamalı.', size: 24, weight: 600 }],
+      { y: y0 + 395, alpha: a, color: '#5b3a3e', lh: 1.35, shadow: false });
+  }
+  text([{ segs: [['Sesini yükselt, ', '#fff'], ['kulaklığını değil.', '#ffe3a3']], size: 46, weight: 800 }], { y: 1418 + dy(1.2), alpha: ap(1.2) });
+  odiSign(540, 1522, 0.92 * ap(1.6));
+}
+function postTexts(t) {
+  const o = 1 - ss(t, T.E - 0.1, T.E + 0.35);
+  const b = (a) => ({ a: ss(t, a, a + 0.5) * o, dy: (1 - eo(lin(t, a, a + 0.8))) * 30, sc: 1.18 - 0.18 * back(lin(t, a, a + 0.35)) });
+  const x1 = b(T.txt[0]), x2 = b(T.txt[1]), x3 = b(T.txt[2]);
+  text([{ segs: [['Bugün', '#ffe3a3']], size: 110 }, { segs: [['sesini yükselt.', '#fff']], size: 110 }], { y: 1110 + x1.dy, alpha: x1.a, scale: x1.sc, weight: 900, lh: 1.04, glow: 'rgba(255,200,150,.5)', glowBlur: 30 });
+  text([{ t: 'Cumhuriyetimizin 103. yılı', size: 62 }, { t: 'kutlu olsun!', size: 62 }], { y: 1338 + x2.dy, alpha: x2.a, weight: 800, lh: 1.16, color: '#fff' });
+  text([{ t: '29 EKİM 1923', size: 44, weight: 800, ls: 14, color: '#ffe3a3' }], { y: 1484 + x3.dy, alpha: x3.a, shadowBlur: 12 });
+}
+
+/* ------------------------------------------------------------------ sahne */
+function scene(t, cover = false) {
+  const p = pride(t);
+  const morphA = t >= T.M0;
+  // arka plan: klinik → kırmızı
+  bgClinic(t, 1 - p * 0.6);
+  const cy = t < T.M0 ? D.y : L(D.y, FR.y + FR.h / 2, eio(lin(t, T.M0, T.F)));
+  bgRed(t, p, cy);
+  if (p > 0) { // yükselişte nabız halkaları (her adımda)
+    for (const s of T.steps) { const u = t - s.t; if (u > 0 && u < 2.2) ring(D.x, D.y, D.r + u * 520, 0.5 * (1 - u / 2.2) ** 1.5 * (1 - lin(t, T.M0, T.M0 + 1)), 6, '255,235,215'); }
+    const wa = p * (1 - (t >= T.M0 ? 1 : 0));
+    if (wa > 0) { // yükselen ses dalgaları
+      ctx.save(); ctx.lineWidth = 3;
+      for (let i = 0; i < NW; i++) {
+        const y = waveLineY(i, t), amp = 10 + 26 * ss(t, T.C0, T.M0);
+        ctx.strokeStyle = `rgba(255,236,220,${0.28 * wa})`; ctx.beginPath();
+        for (let x = -20; x <= W + 20; x += 6) { const yy = y + amp * Math.sin(x * 0.03 - t * 6 + i); x === -20 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy); }
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+  }
+  if (t >= T.F - 0.6) { const fr = flagRectAt(t); soundRings(t, fr, ss(t, T.F - 0.3, T.F + 0.3)); dust(t, 0.7 * ss(t, T.F, T.F + 1.5)); }
+  if (t >= T.F) confetti(t, 1, [T.F], true);
+  vignette(t < T.C0 ? 0.75 : 0.55);
+
+  if (!morphA) {
+    const pa = 1;
+    panel(t, pa * (1 - p * 0.7));
+    dial(t, 1, p);
+    ladders(t, 1, p);
+    // tepe işareti (yükselişte)
+    const pk = peakHold(t);
+    if (pk != null && pk > DB0 + 1) {
+      const an = ang(pk), x = D.x + D.r * Math.cos(an), y = D.y + D.r * Math.sin(an), pa2 = ss(t, T.C0 + 0.3, T.C0 + 0.7);
+      ctx.save(); ctx.globalAlpha = pa2; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(255,240,220,1)'; ctx.shadowBlur = 30;
+      ctx.beginPath(); ctx.arc(x, y, 16, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+      ctx.font = `800 24px ${MONO}`; ctx.letterSpacing = '4px'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#ffe3a3';
+      const rl = D.r + 52; ctx.fillText('TEPE', D.x + rl * Math.cos(an), D.y + rl * Math.sin(an)); ctx.restore();
+    }
+    needleDraw(t, 1);
+    readout(t, 1);
+  } else if (t < T.F) {
+    // ibre ve yazılar kaybolurken dönüşüm
+    const mo = lin(t, T.M0, T.M0 + 0.6);
+    readout(t, 1 - mo); dial(t, 1 - mo, 1, false); needleDraw(t, 1 - mo, 1 - eo(mo));
+    morph(t);
+  }
+  if (t >= T.F - 0.5) { // resmî bayrak: dönüşümün son hâliyle birebir; üstüne hiçbir şey yok
+    const fr = flagRectAt(t); const fa = t >= T.F ? 1 : ss(t, T.F - 0.5, T.F);
+    ctx.save(); ctx.globalAlpha = fa; drawFlag(fr); ctx.restore();
+  }
+  if (!cover) {
+    if (t < T.flip + 0.6) header(t, 1); else if (t < T.M0 + 0.3) header(t, 1 - ss(t, T.M0 - 0.2, T.M0 + 0.3));
+    T.cards.forEach((c, i) => card(t, c, i));
+    rapid(t); ama(t); steps(t);
+    if (t >= T.F) { postTexts(t); endCard(t); }
+    // kayıt cızırtısı: sarsıntı + renk kaybı
+  }
+  // konfeti (bayraktan önce yalnız yükselişte; ölçerin üstünde)
+  if (t < T.M0 + 0.6) confetti(t, 1, T.steps.map((s) => s.t), false);
+}
+function post(t) {
+  // kayıt cızırtısı: sarsıntı, yatay kayma, renksizleşme (C0'da renk geri gelir)
+  const sk = t >= T.scratch && t < T.scratch + 0.45 ? (1 - lin(t, T.scratch, T.scratch + 0.45)) : 0;
+  const gray = t >= T.scratch && t < T.C0 + 0.4 ? 0.85 * ss(t, T.scratch, T.scratch + 0.1) * (1 - ss(t, T.C0 - 0.05, T.C0 + 0.4)) : 0;
+  if (sk <= 0 && gray <= 0) return;
+  SHX.setTransform(1, 0, 0, 1, 0, 0); SHX.globalCompositeOperation = 'source-over'; SHX.globalAlpha = 1; SHX.clearRect(0, 0, W, H); SHX.drawImage(cv, 0, 0);
+  ctx.save();
+  if (gray > 0) { ctx.filter = `grayscale(${gray}) contrast(${1 + 0.15 * gray})`; ctx.drawImage(SH, 0, 0); ctx.filter = 'none'; }
+  if (sk > 0) {
+    SHX.clearRect(0, 0, W, H); SHX.drawImage(cv, 0, 0);
+    const r = rnd(Math.floor(t * 30) + 7);
+    for (let y = 0; y < H; y += 40) { const dx = (r() - 0.5) * 70 * sk * (r() > 0.6 ? 1 : 0.2); ctx.drawImage(SH, 0, y, W, 40, dx, y, W, 40); }
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * sk; ctx.drawImage(SH, 10 * sk, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = `rgba(255,255,255,${0.12 * sk})`; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+}
+
+window.draw = (t, mode) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none'; ctx.letterSpacing = '0px';
+  if (mode === 'cover') {
+    const tc = T.cover; scene(tc, true);
+    // kapak başlığı
+    text([{ t: 'Bir odyolog her gün', size: 58, weight: 800 }, { segs: [['“sesi kıs” der.', '#fff']], size: 58, weight: 900 }], { y: 330, lh: 1.15 });
+    text([{ segs: [['100 dB: ', '#fff'], ['29 Ekim!', '#ffe3a3']], size: 118 }], { y: 1330, weight: 900, glow: 'rgba(255,200,140,.9)' });
+    text([{ segs: [['Ama bugün ', '#fff'], ['değil.', '#ffe3a3']], size: 84, weight: 900 }], { y: 1480 });
+    grain(0, 0.04); return;
+  }
+  // sarsıntı (cızırtı anı)
+  const sk = t >= T.scratch && t < T.scratch + 0.4 ? (1 - lin(t, T.scratch, T.scratch + 0.4)) : 0;
+  if (sk > 0) { const r = rnd(Math.floor(t * 30)); ctx.translate((r() - 0.5) * 36 * sk, (r() - 0.5) * 24 * sk); }
+  scene(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  post(t);
+  if (t < T.F - 0.5) grain(t, 0.06);
+};
+window.snap = (q = 0.93) => cv.toDataURL('image/jpeg', q);
+window.snapPng = () => cv.toDataURL('image/png');
+</script></body></html>
