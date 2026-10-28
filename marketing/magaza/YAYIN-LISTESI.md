@@ -21,7 +21,7 @@ Kit: [`metinler.json`](metinler.json) (liste metinleri) · [`google-play.md`](go
       `odi-guncelle` sonrası `/gizlilik`, `/en/privacy`, `/hesap-sil` sayfalarını tarayıcıda denetler.
 - [ ] **[S]** Avukat okuması (öneri): `docs/yonetim/gizlilik.md` "Açık hukuk konuları" (KVKK m.9 yurt dışı aktarım, VERBİS, yaş).
 - [ ] **[S]** İlk yayın ülkeleri (öneri: yalnız Türkiye; oyun fiyatı TL gösteriyor, bkz. `iap-urunler.md`).
-- [ ] **[S]** Yaş ekranı (YN-034) ve ikon (YN-010) kararları.
+- [ ] **[S]** Yaş ekranı kararı (YN-034). İkon tamam (YN-010, kavram A · Odi).
 
 ## 1. Kimlik ve hesaplar
 - [ ] **[S]** D-U-N-S numarası (şirket hesabı için; Apple ve Google ikisi de ister). Apple'ın D-U-N-S sorgu sayfasından ücretsiz;
@@ -66,7 +66,7 @@ Kit: [`metinler.json`](metinler.json) (liste metinleri) · [`google-play.md`](go
 - [ ] **[A]** Play Console › Uygulama oluştur: ad, varsayılan dil Türkçe, Oyun, Ücretsiz; beyanlar (Geliştirici Program Politikaları,
       ABD ihracat yasaları). (Uygulama oluşturma API ile yapılamaz → **[S]** iki dakikalık form; sonrası ajan.)
 - [ ] **[A]** Liste metinleri ve görseller: `metinler.json` (TR + EN), ekran görüntüleri `node tools/harness/vitrin.mjs --out …`
-      (sahip seçer), ikon ve öne çıkan görsel (1024×500, Play) ikon işinden (YN-010).
+      (sahip seçer); Play ikonu `play-ikon-512.png` ve öne çıkan görsel `play-tanitim-1024x500.png` (bu klasörde, YN-010); iOS ikonu derlemeden (`app.json`).
 - [ ] **[A]** Beyan formları: Google `google-play.md` (Veri güvenliği, IARC, hedef kitle, reklam, hesap silme adresi, uygulama
       erişimi); Apple `app-store.md` (gizlilik etiketi, yaş, inceleme notları, şifreleme).
 
