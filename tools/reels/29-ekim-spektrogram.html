@@ -1,0 +1,336 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}
+</style></head><body><canvas id="c" width="1080" height="1920"></canvas><script>
+/* 29 Ekim — "Bir sesin içinde ne saklıdır?" (29-ekim-spektrogram.mjs çizer). Tek tuval; window.draw(t) her kareyi baştan çizer.
+   Spektrogram pikselleri Python'un hesapladığı GERÇEK STFT'dir (spek.png); burada yalnız renk haritası uygulanır ve kaydırılır.
+   Bayrak: resmî oranlı SVG olduğu gibi (geometri/renk değişmez, üstüne hiçbir şey konmaz); yalnız bütün olarak ölçeklenir. */
+const W = 1080, H = 1920, FONT = '"Inter Display","Inter",sans-serif';
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let T = null, FLAG = null, ODI = null, GRAIN = [];
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const ss = (t, a, b) => { const x = lin(t, a, b); return x * x * (3 - 2 * x); };
+const eo = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const eio = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const win = (t, a, b, fi = 0.7, fo = 0.45) => Math.min(ss(t, a, a + fi), 1 - ss(t, b - fo, b));
+const mixc = (c1, c2, k) => c1.map((v, i) => Math.round(v + (c2[i] - v) * k));
+function rnd(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+async function svgCanvas(svg, w, h) {
+  const img = new Image(); img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); await img.decode();
+  const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(img, 0, 0, w, h); return c;
+}
+function makeGrain() {
+  const r = rnd(29);
+  for (let k = 0; k < 4; k++) {
+    const c = document.createElement('canvas'); c.width = 540; c.height = 960; const g = c.getContext('2d'); const im = g.createImageData(540, 960);
+    for (let i = 0; i < im.data.length; i += 4) { const v = 128 + (r() - 0.5) * 120; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 255; }
+    g.putImageData(im, 0, 0); GRAIN.push(c);
+  }
+}
+
+/* ------------------------------------------------------------------ yazı */
+function text(lines, o) {
+  const alpha = o.alpha ?? 1; if (alpha <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = alpha; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  if ((o.blur ?? 0) > 0.3) ctx.filter = `blur(${o.blur.toFixed(2)}px)`;
+  const n = lines.length; let yy = o.y;
+  const L = lines.map((ln) => (typeof ln === 'string' ? { t: ln } : ln));
+  const sizes = L.map((l) => l.size ?? o.size ?? 72); const lh = o.lh ?? 1.2;
+  const total = sizes.reduce((a, s, i) => a + (i ? s * lh : 0), 0); yy = o.y - total / 2 + (o.rise ?? 0);
+  L.forEach((l, i) => {
+    if (i) yy += sizes[i] * lh * 0.5 + sizes[i - 1] * lh * 0.5;
+    const la = l.alpha ?? 1; if (la <= 0.004) return;
+    const segs = l.segs ?? [[l.t, l.color ?? o.color ?? '#f6f3ee']];
+    const size = sizes[i], weight = l.weight ?? o.weight ?? 700, ls = l.ls ?? o.ls ?? 0;
+    ctx.font = `${weight} ${size}px ${FONT}`; ctx.letterSpacing = ls + 'px';
+    const ws = segs.map(([s]) => ctx.measureText(s).width); const tw = ws.reduce((a, b) => a + b, 0) - ls;
+    let x = (o.x ?? W / 2) - tw / 2; const y = yy + (l.dy ?? 0);
+    ctx.globalAlpha = alpha * la;
+    segs.forEach(([s, col], k) => {
+      if (o.shadow !== false) { ctx.shadowColor = o.shadowColor ?? 'rgba(0,0,0,.55)'; ctx.shadowBlur = o.shadowBlur ?? 26; ctx.shadowOffsetY = o.shadowY ?? 4; }
+      ctx.fillStyle = col; ctx.fillText(s, x, y);
+      if (o.glow) { ctx.shadowColor = o.glow; ctx.shadowBlur = o.glowBlur ?? 30; ctx.shadowOffsetY = 0; ctx.globalAlpha = alpha * la * 0.5; ctx.fillText(s, x, y); ctx.globalAlpha = alpha * la; }
+      x += ws[k];
+    });
+  });
+  ctx.restore();
+}
+/** zamanlı yazı: bulanıklıktan netleşerek yükselir, yumuşak söner */
+function beat(t, b) {
+  if (t < b.a - 0.05 || t > b.b + 0.05) return;
+  const a = win(t, b.a, b.b, b.fi ?? 0.8, b.fo ?? 0.45);
+  const rise = (1 - eo(lin(t, b.a, b.a + 1.1))) * 26 - ss(t, b.b - 0.45, b.b) * 10;
+  const blur = (1 - ss(t, b.a, b.a + 0.75)) * 12 + ss(t, b.b - 0.45, b.b) * 7;
+  const lines = b.lines.map((l) => {
+    if (typeof l === 'string' || l.at == null) return l;
+    return { ...l, alpha: ss(t, b.a + l.at, b.a + l.at + 0.6), dy: (1 - eo(lin(t, b.a + l.at, b.a + l.at + 0.9))) * 20 };
+  });
+  text(lines, { ...b, alpha: a, rise, blur });
+}
+
+function vignette(a = 0.75) {
+  const g = ctx.createRadialGradient(W / 2, H * 0.48, H * 0.25, W / 2, H * 0.5, H * 0.75);
+  g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${a})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+}
+function grain(t, a) {
+  ctx.save(); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'overlay';
+  ctx.drawImage(GRAIN[Math.floor(t * 30) % GRAIN.length], 0, 0, W, H); ctx.restore();
+}
+function odiSign(cx, cy, a) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const s = 92; const gw = s + 14 + 150; const x0 = cx - gw / 2;
+  ctx.drawImage(ODI, x0, cy - s / 2, s, s);
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.font = `900 38px ${FONT}`; ctx.letterSpacing = '2px'; ctx.fillText('ODİ', x0 + s + 14, cy - 12);
+  ctx.font = `700 16px ${FONT}`; ctx.letterSpacing = '6px'; ctx.fillStyle = '#ffe9ea'; ctx.fillText('SESİN YOLU', x0 + s + 15, cy + 20);
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ spektrogram (GERÇEK veri: spek.png, Python STFT'si; burada yalnız renklenir) */
+let SP = null, NJ = 0, PX, PY, PW, PH, SPC, SPX, SPI;
+const INF = [[0, 0, 0, 4], [0.1, 22, 11, 57], [0.2, 66, 10, 104], [0.3, 106, 23, 110], [0.4, 147, 38, 103], [0.5, 188, 55, 84], [0.6, 221, 81, 58],
+  [0.7, 243, 120, 25], [0.8, 252, 165, 10], [0.9, 246, 215, 70], [1, 252, 255, 164]];
+const RED = [227, 10, 23], WHT = [255, 255, 255];
+function inferno(v) {
+  for (let i = 1; i < INF.length; i++) if (v <= INF[i][0]) { const a = INF[i - 1], b = INF[i], k = (v - a[0]) / (b[0] - a[0]); return [1, 2, 3].map((c) => a[c] + (b[c] - a[c]) * k); }
+  return INF[INF.length - 1].slice(1);
+}
+const LUT = new Uint8ClampedArray(256 * 3);
+function makeLut(k) {
+  const w = 0.09 - 0.06 * k;
+  for (let i = 0; i < 256; i++) {
+    const v = i / 255, c = inferno(v), s = ss(v, T.th - w, T.th + w), rw = RED.map((r, j) => r + (WHT[j] - r) * s);
+    for (let j = 0; j < 3; j++) LUT[i * 3 + j] = c[j] + (rw[j] - c[j]) * k;
+  }
+}
+/** zaman t'de panelin görüntüsü: sağ kenar = "şimdi"; sütun = 1/v sn */
+function specImage(t, k) {
+  makeLut(k);
+  const d = SPI.data, tt = Math.min(t, T.ta);
+  for (let x = 0; x < PW; x++) {
+    const tau = tt - (PW - 0.5 - x) / T.v, jf = (tau - T.s0) * T.v;
+    const j0 = Math.floor(jf), fr = jf - j0, ok = jf >= 0 && j0 + 1 < NJ;
+    for (let y = 0; y < PH; y++) {
+      const o = (y * PW + x) * 4;
+      if (!ok) { d[o] = 5; d[o + 1] = 4; d[o + 2] = 10; d[o + 3] = 255; continue; }
+      const v = Math.round(SP[y * NJ + j0] * (1 - fr) + SP[y * NJ + j0 + 1] * fr) * 3;
+      d[o] = LUT[v]; d[o + 1] = LUT[v + 1]; d[o + 2] = LUT[v + 2]; d[o + 3] = 255;
+    }
+  }
+  SPX.putImageData(SPI, 0, 0); return SPC;
+}
+const fY = (f) => PY + PH * (1 - Math.log2(f / T.flo) / T.oct);
+
+/* ------------------------------------------------------------------ arka plan, ışık, parçacık */
+function bg(t) {
+  const red = ss(t, T.ta - 0.1, T.ta + 1.2);
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgb(${Math.round(8 + 40 * red)},${Math.round(7 + 2 * red)},${Math.round(16 - 6 * red)})`);
+  g.addColorStop(1, `rgb(${Math.round(3 + 22 * red)},${Math.round(3)},${Math.round(8 - 4 * red)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // panelin arkasında sıcak ışık: önce mor (ısı haritası), sonra kırmızı
+  const cx = W / 2, cy = PY + PH / 2, glow = 0.35 + 0.25 * ss(t, T.shape[0], T.shape[1]) + 0.3 * red;
+  const rg = ctx.createRadialGradient(cx, cy, 80, cx, cy, 900);
+  const c = mixc([90, 30, 120], [200, 20, 40], red);
+  rg.addColorStop(0, `rgba(${c},${0.38 * glow})`); rg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+}
+function rays(t, a, fr) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.translate(fr.x + fr.w / 2, fr.y + fr.h / 2); ctx.rotate(t * 0.04);
+  for (let i = 0; i < 18; i++) {
+    ctx.rotate(Math.PI * 2 / 18); const g = ctx.createLinearGradient(0, 0, 1100, 0);
+    g.addColorStop(0, `rgba(255,190,150,${0.10 * a})`); g.addColorStop(1, 'rgba(255,190,150,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(1100, -70); ctx.lineTo(1100, 70); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+function rings(t, fr) {   // bayrak oturunca dışa yayılan ses halkaları (bayrağın ARKASINDA)
+  const t0 = T.ta; if (t < t0) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5; i++) {
+    const u = (t - t0 - i * 0.9); if (u < 0) continue; const p = (u % 4.5) / 4.5; if (u > 4.5 * 2) continue;
+    const r = 340 + p * 620, a = (1 - p) * (i === 0 && u < 4.5 ? 0.55 : 0.25);
+    ctx.strokeStyle = `rgba(255,220,200,${a})`; ctx.lineWidth = 3 + 6 * (1 - p);
+    ctx.beginPath(); ctx.ellipse(fr.x + fr.w / 2, fr.y + fr.h / 2, r, r * 0.85, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.restore();
+}
+function dust(t, a, col = '255,225,170') {
+  if (a <= 0.004) return;
+  const r = rnd(1923); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 90; i++) {
+    const x0 = r() * W, y0 = r() * H, v = 14 + r() * 40, s = 1 + r() * 2.8, ph = r() * 6.28, al = 0.25 + r() * 0.5;
+    const y = ((y0 - t * v) % H + H) % H, x = x0 + Math.sin(t * 0.6 + ph) * 18;
+    ctx.fillStyle = `rgba(${col},${a * al * (0.6 + 0.4 * Math.sin(t * 2 + ph))})`; ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+function burst(t) {   // oturma anında parıltı kıvılcımları (bayrağın arkasından dışa)
+  const u = t - T.ta; if (u < 0 || u > 2.2) return;
+  const r = rnd(29); ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 120; i++) {
+    const ang = r() * 6.283, sp = 260 + r() * 520, d = sp * (1 - Math.exp(-u * 2.2)), s = 1.5 + r() * 3;
+    const x = W / 2 + Math.cos(ang) * (470 + d), y = PY + PH / 2 + Math.sin(ang) * (320 + d * 0.9), a = (1 - u / 2.2) * (0.4 + 0.6 * r());
+    ctx.fillStyle = `rgba(255,${200 + Math.round(55 * r())},${170 + Math.round(60 * r())},${a})`; ctx.beginPath(); ctx.arc(x, y, s, 0, 6.283); ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ kanca: aynı sesin dalga biçimi (gerçek örnekler) */
+function waveform(t, amp, a) {
+  if (a <= 0.004) return;
+  const cy = PY + PH / 2, p = clamp((t - T.hook0) / T.hook_len), n = T.wave.length, upto = Math.floor(p * n);
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(255,214,140,.10)'; ctx.fillRect(PX, cy - 1, PW, 2);
+  ctx.shadowColor = 'rgba(255,190,110,.8)'; ctx.shadowBlur = 14;
+  for (let i = 0; i < upto; i += 3) {
+    const h = Math.max(2, T.wave[i] * 230 * amp); const fresh = clamp(1 - (upto - i) / 140);
+    ctx.fillStyle = `rgba(255,${Math.round(205 + 40 * fresh)},${Math.round(130 + 100 * fresh)},${0.75 + 0.25 * fresh})`;
+    ctx.fillRect(PX + i, cy - h, 2, 2 * h);
+  }
+  if (p > 0 && p < 1) { ctx.fillStyle = '#fff'; ctx.shadowBlur = 24; ctx.fillRect(PX + upto, cy - 260 * amp, 3, 520 * amp); }
+  ctx.restore();
+}
+
+/* ------------------------------------------------------------------ panel süsleri: eksenler, başlık, canlı imleç, etiketler */
+function axes(t, a) {
+  if (a <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = a; ctx.font = `700 22px ${FONT}`; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [[250, '250'], [500, '500'], [1000, '1k'], [2000, '2k'], [4000, '4k'], [8000, '8k']].forEach(([f, s]) => {
+    const y = clamp(fY(f), PY + 10, PY + PH - 10); ctx.fillStyle = 'rgba(220,210,255,.75)'; ctx.fillText(s, PX - 10, y);
+    if (f > 250 && f < 8000) { ctx.fillStyle = 'rgba(255,255,255,.13)'; ctx.fillRect(PX, Math.round(fY(f)), PW, 1.5); }
+  });
+  ctx.fillStyle = 'rgba(220,210,255,.75)'; ctx.font = `700 18px ${FONT}`; ctx.fillText('Hz', PX - 10, PY - 22);
+  // başlık
+  ctx.textAlign = 'left'; ctx.font = `800 30px ${FONT}`; ctx.letterSpacing = '8px'; ctx.fillStyle = '#ffd98a'; ctx.fillText('SPEKTROGRAM', PX, PY - 64);
+  ctx.letterSpacing = '0px'; ctx.font = `600 24px ${FONT}`; ctx.fillStyle = 'rgba(235,228,255,.8)';
+  ctx.fillText('↑ frekans   → zaman   ■ renk = şiddet', PX, PY - 26);
+  // canlı
+  const live = t >= T.s0 && t < T.shift[1];
+  ctx.textAlign = 'right'; ctx.font = `800 24px ${FONT}`; ctx.letterSpacing = '4px'; ctx.fillStyle = 'rgba(255,255,255,.85)'; ctx.fillText('CANLI', PX + PW, PY - 64);
+  ctx.fillStyle = `rgba(255,60,60,${live ? 0.55 + 0.45 * Math.sin(t * 6) : 0.3})`; ctx.beginPath(); ctx.arc(PX + PW - 118, PY - 66, 9, 0, 6.283); ctx.fill();
+  ctx.restore();
+}
+function playhead(t, a) {
+  if (a <= 0.004) return;
+  const x = PX + PW; ctx.save(); ctx.globalAlpha = a; ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createLinearGradient(x - 40, 0, x, 0); g.addColorStop(0, 'rgba(255,230,200,0)'); g.addColorStop(1, 'rgba(255,230,200,.35)');
+  ctx.fillStyle = g; ctx.fillRect(x - 40, PY, 40, PH); ctx.fillStyle = 'rgba(255,245,230,.9)'; ctx.fillRect(x - 2, PY, 3, PH); ctx.restore();
+}
+function tag(t, tau, y, label, a) {   // içerikle birlikte kayan etiket
+  const x = PX + PW - (t - tau) * T.v; if (t < tau + 0.15) return;
+  const al = a * ss(t, tau + 0.15, tau + 0.6) * ss(x, PX + 30, PX + 150);
+  if (al <= 0.004) return;
+  ctx.save(); ctx.globalAlpha = al; ctx.font = `700 26px ${FONT}`; const w = ctx.measureText(label).width + 30;
+  ctx.fillStyle = 'rgba(10,6,20,.72)'; ctx.beginPath(); ctx.roundRect(x - w / 2, y - 22, w, 44, 22); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,217,138,.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = '#ffe3a3'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x, y + 1); ctx.restore();
+}
+
+/* ------------------------------------------------------------------ yazılar */
+const G = '#ffd98a', Wh = '#f6f3ee';
+const BEATS = () => [
+  { a: 0.0, b: 2.55, y: 1290, size: 112, weight: 900, lines: [{ segs: [['Bu sesi ', Wh], ['dinle.', G]] }], fi: 0.3 },
+  { a: 2.6, b: 4.55, y: 1290, size: 76, weight: 800, lines: ['Sadece bir hışırtı…', { segs: [['değil mi?', G]] }], fi: 0.5 },
+  { a: 5.25, b: 10.15, y: 1300, weight: 800, lh: 1.15, lines: [{ t: 'Odyologlar sesi', size: 72 }, { t: 'böyle de görür:', size: 72 }, { segs: [['spektrogram.', G]], size: 104, weight: 900 }] },
+  { a: 10.35, b: 13.7, y: 1290, size: 96, weight: 900, lh: 1.12, lines: ['Şimdi bir de', { segs: [['görüntüsüne bak.', G]] }], fi: 0.55 },
+  { a: 13.85, b: 18.35, y: 1270, size: 84, weight: 900, lh: 1.15, lines: ['Az önce', 'dinlediğin ses,', { segs: [['işte bu.', G]] }], fi: 0.55 },
+  { a: 14.6, b: 18.35, y: 1500, size: 34, weight: 700, color: '#efe6ff', lines: ['Bu sesin spektrogramı gerçektir: çizim değil, ölçüm.'], shadowBlur: 10 },
+  { a: T.ta + 0.35, b: T.ta + 3.6, y: 1290, size: 82, weight: 900, lh: 1.16, lines: ['Bazı sesler,', { segs: [['bir milletin', '#ffe3a3']] }, { segs: [['kimliğini taşır.', '#ffe3a3']] }], fi: 0.6 },
+  { a: T.ta + 3.8, b: T.ta + 6.75, y: 1300, lh: 1.02, weight: 900, lines: [{ t: '29 Ekim', size: 190 }, { t: '1923', size: 116, weight: 800, color: '#ffe3a3', ls: 26 }], fi: 0.5 },
+  { a: T.ta + 6.95, b: T.end - 0.12, y: 1300, weight: 900, lh: 1.1, lines: [{ t: 'Cumhuriyetimizin', size: 76 }, { t: '103. yılı', size: 144, color: '#ffe3a3' }, { t: 'kutlu olsun!', size: 76 }] },
+];
+let BT = null;
+
+/* ------------------------------------------------------------------ ana çizim */
+function flagRectEnd(t) {
+  const A = { x: PX, y: PY, w: PW, h: PH }, B = { x: 175, y: 360, w: 730, h: 730 * 2 / 3 }, k = eio(lin(t, T.end, T.end + 1.0));
+  return { x: A.x + (B.x - A.x) * k, y: A.y + (B.y - A.y) * k, w: A.w + (B.w - A.w) * k, h: A.h + (B.h - A.h) * k };
+}
+function drawScene(t, mode) {
+  const k = eio(lin(t, T.shift[0], T.shift[1]));             // ısı haritası → kırmızı-beyaz
+  const snap = ss(t, T.ta - 0.1, T.ta + 0.12);                // kesin bayrağa oturma
+  bg(t);
+  const fr = flagRectEnd(t);
+  rays(t, ss(t, T.ta, T.ta + 1.5) * (1 - 0.3 * ss(t, T.end, T.end + 1)), fr);
+  dust(t, 0.25 + 0.55 * ss(t, T.ta, T.ta + 1.5), t < T.ta ? '200,180,255' : '255,225,170');
+  rings(t, fr); burst(t);
+  // kanca
+  if (t < 5.3) {
+    const sq = 1 - eio(lin(t, 4.35, 4.85));
+    waveform(t, sq, 1 - ss(t, 4.85, 5.1));
+  }
+  // panel açılışı (dalga çizgisi → spektrogram düzlemi)
+  const open = eio(lin(t, 4.7, 5.25));
+  if (open > 0.002 && snap < 1) {
+    const h = PH * open, y = PY + (PH - h) / 2;
+    ctx.save();
+    ctx.shadowColor = `rgba(${mixc([140, 90, 255], [227, 10, 23], k)},.55)`; ctx.shadowBlur = 60;
+    ctx.fillStyle = '#05040a'; ctx.fillRect(PX, y, PW, h); ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.rect(PX, y, PW, h); ctx.clip();
+    if (t >= T.s0 - 0.1) ctx.drawImage(specImage(t, k), PX, PY);
+    ctx.restore();
+    const deco = open * (1 - ss(t, T.shift[0] + 0.3, T.shift[1] - 0.3));
+    axes(t, deco);
+    playhead(t, deco * ss(t, T.s0 - 0.1, T.s0 + 0.3));
+    tag(t, (T.vowel[0] + T.vowel[1]) / 2, PY + 58, 'ünlü  “aaa… iii”', 1);
+    tag(t, T.birds[0] + 0.6, PY + 245, 'kuş cıvıltısı', 1);
+    if (deco > 0.01) { ctx.save(); ctx.globalAlpha = deco; ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; ctx.strokeRect(PX - 1, y - 1, PW + 2, h + 2); ctx.restore(); }
+  }
+  // kesin resmî bayrak (bayrak.svg), yalnız bütün olarak ölçeklenir
+  if (snap > 0.002) {
+    ctx.save(); ctx.globalAlpha = snap; ctx.shadowColor = 'rgba(40,0,6,.65)'; ctx.shadowBlur = 70; ctx.shadowOffsetY = 26;
+    const pop = 1 + 0.025 * Math.sin(Math.PI * lin(t, T.ta - 0.05, T.ta + 0.45));
+    const cx = fr.x + fr.w / 2, cy = fr.y + fr.h / 2;
+    ctx.drawImage(FLAG, cx - fr.w * pop / 2, cy - fr.h * pop / 2, fr.w * pop, fr.h * pop); ctx.restore();
+  }
+  // oturma parlaması
+  const fl = (t >= T.ta - 0.05) ? Math.exp(-(t - T.ta + 0.05) * 5) : 0;
+  if (fl > 0.01) { ctx.save(); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(W / 2, PY + PH / 2, 100, W / 2, PY + PH / 2, 1100);
+    g.addColorStop(0, `rgba(255,240,230,${0.55 * fl})`); g.addColorStop(1, 'rgba(255,240,230,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+  if (mode === 'cover') return;
+  text([{ t: 'SESİ AÇ', size: 26, weight: 800, ls: 10, color: '#ffd98a' }], { y: 380, alpha: win(t, 0.0, 4.5, 0.01, 0.4) });
+  for (const b of BT) beat(t, b);
+  // bitiş kartı
+  const E = T.end, ap = (d) => ss(t, E + d, E + d + 0.7), dy = (d) => (1 - eo(lin(t, E + d, E + d + 0.9))) * 22;
+  if (t >= E) {
+    text([{ t: '29 EKİM 1923  ·  2026', size: 30, weight: 800, ls: 9, color: '#ffe3a3' }], { y: 925 + dy(0.5), alpha: ap(0.5), shadowBlur: 14 });
+    text([{ t: 'Sesimizin içinde', size: 96, weight: 900 }, { segs: [['Cumhuriyet', '#ffe3a3'], [' var.', '#fff']], size: 96, weight: 900 }], { y: 1080 + dy(0.7), alpha: ap(0.7), lh: 1.1 });
+    text([{ segs: [['Cumhuriyetimizin ', '#fff'], ['103. yılı', '#ffe3a3'], [' kutlu olsun!', '#fff']], size: 46, weight: 800 }], { y: 1228 + dy(1.1), alpha: ap(1.1) });
+    text([{ t: 'Bu ay-yıldız, bir sesin gerçek spektrogramından doğdu.', size: 31, weight: 600, color: '#ffe9ea' }], { y: 1306 + dy(1.5), alpha: 0.9 * ap(1.5), shadowBlur: 10 });
+    odiSign(540, 1440, 0.9 * ap(2.0));
+  }
+}
+function drawCover() {
+  const t = T.ta - 0.6;
+  bg(T.shape[1]); dust(3, 0.35, '200,180,255');
+  ctx.save(); ctx.shadowColor = 'rgba(140,90,255,.55)'; ctx.shadowBlur = 60; ctx.fillStyle = '#05040a'; ctx.fillRect(PX, PY, PW, PH); ctx.restore();
+  ctx.drawImage(specImage(t, 0), PX, PY);
+  axes(T.shape[1], 1);
+  text([{ t: 'Bir sesin içinde', size: 100, weight: 900 }, { segs: [['ne saklıdır?', '#ffd98a']], size: 100, weight: 900 }], { y: 1280, lh: 1.12 });
+  text([{ t: 'Bu spektrogram gerçektir: çizim değil, ölçüm.', size: 32, weight: 700, color: '#efe6ff' }], { y: 1450, shadowBlur: 10 });
+  text([{ t: '29 EKİM 1923  ·  2026', size: 30, weight: 800, ls: 9, color: '#ffe3a3' }], { y: 1525 });
+  vignette(0.5);
+}
+
+window.init = async (o) => {
+  T = o.T; [PX, PY, PW, PH] = T.panel; BT = BEATS();
+  FLAG = await svgCanvas(o.flag, 1860, 1240); ODI = await svgCanvas(o.odi, 360, 360);
+  const img = new Image(); img.src = o.spek; await img.decode(); NJ = img.width;
+  const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, img.width, img.height).data; SP = new Uint8Array(img.width * img.height);
+  for (let i = 0; i < SP.length; i++) SP[i] = d[i * 4];
+  SPC = document.createElement('canvas'); SPC.width = PW; SPC.height = PH; SPX = SPC.getContext('2d'); SPI = SPX.createImageData(PW, PH);
+  for (const w of [500, 600, 700, 800, 900]) await document.fonts.load(`${w} 80px "Inter Display"`);
+  makeGrain(); return true;
+};
+window.draw = (t, mode) => {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none'; ctx.letterSpacing = '0px';
+  if (mode === 'cover') { drawCover(); grain(0, 0.04); return; }
+  drawScene(t, mode); vignette(0.5); grain(t, 0.045);
+};
+window.snap = (q = 0.93) => cv.toDataURL('image/jpeg', q);
+window.snapPng = () => cv.toDataURL('image/png');
+</script></body></html>
