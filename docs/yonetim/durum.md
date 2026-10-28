@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 10. tur (hafif) · 2026-10-27 · main a9cece0.
+**Son tur:** 11. tur (hafif) · 2026-10-28 · main d47a3e1.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -10,7 +10,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | Aşama | Durum | Eksik |
 |---|---|---|
 | **İç test** (aynı Wi-Fi, Expo Go SDK 58) | Hazır | — |
-| **Kapalı beta** (web + APK, 20-50 kişi) | 4 eksik (3'ü yolda) | Oracle sunucusu: karar verildi, betik hazırlanıyor, kurulum sahipte, sonra D1–D16 (YN-006) · derlemede sunucu adresi (YN-007, sürüyor) · yeni yönetici kodu (YN-002, kurulumda) · ilk EAS derlemesi (YN-024; ücretsiz Expo hesabı sahipte) |
+| **Kapalı beta** (web + APK, 20-50 kişi) | **Sunucu canlı**; 2 eksik | Sahip: yeni Caddy ayarı için `odi-guncelle` + `kur.sh` · ilk APK (YN-024; Expo hesabı sahipte) · tarayıcı ve telefondan D4/D5/D6/D16 |
 | **Mağaza** (App Store + Google Play) | Metinler ve beyanlar hazır; hesaplar sahipte | Kapalı betanın eksikleri + geliştirici hesapları, D-U-N-S, banka/vergi ve yükleme anahtarları (sahip; [`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)), `ayar.json` yer tutucuları (e-posta, unvan, adres, Oracle bölgesi; YN-009), uygulama içi satın alma kurulumu ve sandbox testi (YN-032), çökme raporu kararı (YN-011), yaş ekranı kararı (YN-034). Gizlilik/KVKK son metni, /gizlilik, /en/privacy, /hesap-sil, mağaza metinleri, IARC / Veri güvenliği / App Privacy cevapları ve ürün kataloğu hazır (YN-009, YN-012, YN-017, YN-033) |
 
 ## Test sonuçları (5. tur, PY çalıştırdı; makine yükü 14–40, 4 çekirdek)
@@ -26,11 +26,16 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 503/503 ilk denemede):**
-  - e60c617 cüzdan uzlaşması (MK-035).
-  - a355079 + f0edc08 "panel kapanmadı" kök nedeni ve `UIM_SURE` (MK-034).
-  - 18f0292 / 7a8cce2 / e5fb840 bölüm sonu jetonu, bot önizleme, kabul çapraz kapatma (MK-036).
-- **PY denetimi:** web sürümü ana ekrana hazır değil → MK-037 (P1, iPhone beta yolu).
+- **Üretim sunucusu canlı** (sahip kurdu; adres depoda yok). YN-006, YN-002 ve YN-007 sunucu tarafında tamam. Ayrıntı is-listesi YN-006.
+- **Sahip kararları:** şirket hesapları (D-U-N-S sürüyor); ilk sürümde uygulama içi satın alma; ikon, gizlilik metni ve mağaza kiti ajanlarda; hesaplar açılınca yüklemeyi ajanlar yapar.
+- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 528/528 ilk denemede):**
+  - MK-038 üst çubuk tahmini (cb53926).
+  - MK-037 web ana ekran + çevrimdışı (9c5ba36 … 97b6c62).
+  - YN-010 ikon, Konsept A (8c2872f, 87cf349, a73da38).
+  - Mağaza kiti, gizlilik sayfaları, uygulama dışı hesap silme, IAP kataloğu (2d8f8aa … c9daac7; YN-032/033/034).
+  - Reels 5. dalga ve `tools/voice/ortam-kur.sh` (YN-031 için yeniden kurulum betiği).
+  - Işığa duyarlılık (a06677f), eski övgü (29dcc60), ipucu gizleme (9775ae4).
+- **Yeni:** YN-036 rpcbind (P3).
 
 ## Sürüyor
 - **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
