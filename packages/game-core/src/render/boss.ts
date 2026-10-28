@@ -14,6 +14,7 @@ import type { EntityView } from './view';
 import { I, R, T, softGlowTex, sparkTex, ringTex, puffTex, drawGoldNote } from './tex';
 import { circle, css, FONT, glow, heartPath, makeCanvas, rng, screenOrigin, taperHair, THEME, tono, type Ctx } from './util';
 import { fxQuality } from './quality';
+import { blinkOn, flashesEnabled, HIT_FILL } from './flash';
 
 const ADD = Phaser.BlendModes.ADD;
 type Img = Phaser.GameObjects.Image;
@@ -377,7 +378,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
   const bar = add(s.add.container(O.x + 195, O.y + 124).setScrollFactor(0).setDepth(102));
   const layout = (viewW: number, top: number) => { const o = screenOrigin(cam); bar.setPosition(o.x + viewW / 2, o.y + 124 + top); };
   const barBg = img(barPanelTex(s)); const fillKey = barFillTex(s);
-  const trail = img(fillKey, -102, 7).setOrigin(0, 0.5).setTintFill(0xffffff).setAlpha(0.85);
+  const trail = img(fillKey, -102, 7).setOrigin(0, 0.5).setTintFill(0xfff6e5).setAlpha(0.85); // durağan hasar izi (flaş değil)
   const fill = img(fillKey, -102, 7).setOrigin(0, 0.5);
   const icon = img(kind === 'golem' ? golemEyeTex(s) : canEyeTex(s), -122, 1).setScale(0.62 / R());
   const nameT = s.add.text(-102, -6, name, { fontFamily: FONT, fontSize: '13px', fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 3, resolution: R() }).setOrigin(0, 0.5);
@@ -502,8 +503,9 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
       flames.forEach((f, i) => f.setAlpha(b.phase >= 3 ? 0.55 + Math.sin(t * 13 + i * 2) * 0.25 : 0).setDisplaySize(50 + Math.sin(t * 9 + i) * 10, 70 + Math.sin(t * 11 + i) * 14));
       if (b.phase >= 2 && t > nextEmber && defeatAt < 0) { nextEmber = t + (b.phase === 3 ? 0.12 : 0.3) / fxQuality(); fx.sparks.setParticleTint(0xff8a1c); fx.sparks.emitParticleAt(rx + (Math.random() - 0.5) * 200, ry - 60 - Math.random() * 200, 1); }
       // --- vuruş flaşı
-      const flash = sinceHit < 0.09 || (transforming && sincePhase < 0.1) || (defeatAt >= 0 && Math.sin(t * 40) > 0.6);
-      for (const o of tintables) { if (flash) o.setTintFill(0xffffff); else if (b.phase === 3) o.setTint(o === torso ? 0xe0a080 : 0xffc0a8); else if (o === torso) o.setTint(0xeed2b4); else o.clearTint(); }
+      // vuruş/dönüşüm parlaması ve yenilgi parıltısı: beyaz değil, parlaklığı sınırlı; yenilgide 2 Hz (≤ 3/sn), azaltılmış harekette hiç (flash.ts)
+      const flash = flashesEnabled() && (sinceHit < 0.09 || (transforming && sincePhase < 0.1) || (defeatAt >= 0 && blinkOn(t)));
+      for (const o of tintables) { if (flash) o.setTintFill(HIT_FILL); else if (b.phase === 3) o.setTint(o === torso ? 0xe0a080 : 0xffc0a8); else if (o === torso) o.setTint(0xeed2b4); else o.clearTint(); }
 
       // --- yumruklar
       fists.forEach((v, slot) => {
@@ -534,7 +536,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
           v.gl.setTint(THEME.gold).setAlpha(0.28 + Math.sin(t * 9) * 0.1);
         } else if (f.st === 'up') {
           const u = clamp01(1 - (f.until - t) / 0.3); y = gy - ease(u) * 320; a = 1 - u;
-          if (f.hit) { v.cr.setAlpha(1 - u * 0.5); v.im.setTintFill(u < 0.25 ? 0xffffff : 0xffe0a0); if (u >= 0.25) v.im.setTint(0xffc090); } else v.im.clearTint();
+          if (f.hit) { v.cr.setAlpha(1 - u * 0.5); v.im.setTintFill(u < 0.25 && flashesEnabled() ? HIT_FILL : 0xffe0a0); if (u >= 0.25) v.im.setTint(0xffc090); } else v.im.clearTint();
         }
         v.c.setPosition(f.x, y).setAngle(ang).setAlpha(a); v.im.setScale(sx / R(), sy / R()); v.cr.setScale(sx / R(), sy / R());
       });
@@ -646,8 +648,8 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
     mouth0.setVisible(!open).setScale(1 / R(), (stun ? 0.8 + Math.sin(t * 6) * 0.1 : 1) / R());
     mouth1.setVisible(open).setScale((roar ? 1.12 : 1) / R(), (roar ? 1.1 + Math.sin(t * 40) * 0.08 : scream && !roar ? 0.7 : b.warnWall ? 0.5 + wp * 0.6 : 1) / R());
     stars.forEach((st, i) => { st.setVisible(stun); if (stun) { const a = t * 4 + i * 2.09; st.setPosition(Math.cos(a) * 70, -120 + Math.sin(a) * 18).setAngle(t * 200); } });
-    const flash = sinceHit < 0.09 || (transforming && sincePhase < 0.1);
-    for (const o of tintables) { if (flash) o.setTintFill(0xffffff); else if (stun) o.setTint(0xc0b0d8); else if (b.phase === 3) o.setTint(0xffb0c8); else o.clearTint(); }
+    const flash = flashesEnabled() && (sinceHit < 0.09 || (transforming && sincePhase < 0.1));
+    for (const o of tintables) { if (flash) o.setTintFill(HIT_FILL); else if (stun) o.setTint(0xc0b0d8); else if (b.phase === 3) o.setTint(0xffb0c8); else o.clearTint(); }
     // çığlık halkaları + şarj
     if (scream && t >= nextRing && defeatAt < 0) { nextRing = t + (roar ? 0.28 : 1.1); ring(rx, ry + 56 * rScale, 0xff4fd8, 0.2, roar ? 3.2 : 2, roar ? 700 : 900, 0.7, 4); }
     if (b.warnWall && Math.random() < 0.5 * fxQuality()) { fx.sparks.setParticleTint(b.warnWall.kind === 'high' ? 0xb069ff : THEME.coral); fx.sparks.emitParticleAt(rx + (Math.random() - 0.5) * 60, ry + 56 * rScale, 1); }
@@ -658,7 +660,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
       if (!coreSeen) { coreSeen = true; ring(cx, cy, 0xff4fd8, 0.1, 1.6, 500); fx.sparks.setParticleTint(0xff9ad8); fx.sparks.explode(q(16), cx, cy); }
       coreC.setVisible(true).setPosition(cx, cy + Math.sin(t * 5) * 3);
       coreI.setScale((1 + Math.sin(t * 10) * 0.08) / R()); coreGl.setAlpha(0.55 + Math.sin(t * 10) * 0.2); brk.setAngle(t * 90).setScale((1 + Math.sin(t * 6) * 0.06) / R()).setAlpha(0.95);
-      if (sinceHit < 0.09) coreI.setTintFill(0xffffff); else coreI.clearTint();
+      if (sinceHit < 0.09 && flashesEnabled()) coreI.setTintFill(HIT_FILL); else coreI.clearTint();
       tether.clear(); tether.lineStyle(6, 0xff4fd8, 0.25); tether.beginPath(); tether.moveTo(rx, ry + 40); tether.lineTo(cx + Math.sin(t * 7) * 10, (ry + cy) / 2); tether.lineTo(cx, cy - 20); tether.strokePath();
       tether.lineStyle(2, 0xffc4ee, 0.85); tether.beginPath(); tether.moveTo(rx, ry + 40); tether.lineTo(cx + Math.sin(t * 7) * 10, (ry + cy) / 2); tether.lineTo(cx, cy - 20); tether.strokePath();
     } else { if (coreSeen) { coreSeen = false; } coreC.setVisible(false); tether.clear(); }

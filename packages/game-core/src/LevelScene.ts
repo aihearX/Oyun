@@ -6,6 +6,7 @@ import { resolveTrack } from '@odi/audio';
 import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
 import { flash, floatText, tapToStart, COLORS, banner, endCard, FONT } from './ui';
+import { prefersReducedMotion, setFlashPolicy } from './render/flash';
 import { remedyName } from './play/remedy';
 import { pathologyLabel } from './render/patoloji';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
@@ -70,6 +71,8 @@ export class LevelScene extends Phaser.Scene {
     this.opts = this.registry.get('opts') as LevelOptions; this.spec = this.opts.spec;
     this.biome = BIOMES[this.spec.biome];
     setSoundsEnabled(this.opts.sounds !== false && !this.spec.modifiers.includes('cihaz-kapali'));
+    // ışığa duyarlılık: flaşlar sınırlı (≤ 3/sn, beyaza yakın tam ekran kare yok); azaltılmış harekette hiç (render/flash.ts)
+    setFlashPolicy({ reduced: this.opts.reducedMotion ?? prefersReducedMotion() });
     const ts = this.opts.timeScale ?? 1;
     // parçacıklar da sahne hız çarpanıyla (ağır çekim kayıt: tools/reels)
     this.sys.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, (o: Phaser.GameObjects.GameObject) => { if (o instanceof Phaser.GameObjects.Particles.ParticleEmitter) o.timeScale = this.opts.timeScale ?? 1; });
@@ -215,7 +218,7 @@ export class LevelScene extends Phaser.Scene {
       case 'pound': sfx.tick(); break;
       case 'poundland': sfx.hit(); this.cameras.main.shake(120, 0.008); this.fx.landDust(e.x, e.y, 1); hv.land(1400); this.emit({ type: 'haptic', kind: 'medium' }); break;
       case 'dash': sfx.power(); this.emit({ type: 'haptic', kind: 'light' }); break;
-      case 'flip': sfx.power(); this.cameras.main.flash(90, 214, 184, 255); break;
+      case 'flip': sfx.power(); flash(this, 0xd6b8ff, 0.3, 160); break;
       case 'splash': sfx.land(); this.fx.landDust(e.x, e.y, 0.6); break;
       case 'coin': this.collectCoin(e); break;
       case 'collect': S.score += 50; this.fx.comboBurst(e.x, e.y, 16); this.hud.flyNote(e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 ♪', COLORS.amber); break;
@@ -230,7 +233,7 @@ export class LevelScene extends Phaser.Scene {
       case 'freqwrong': floatText(this, e.x, e.y - 60, 'Yanlış frekans!', COLORS.coral); break;
       case 'checkpoint': sfx.tick(); this.fx.checkpointLight(e.x, e.y); floatText(this, e.x, e.y - 60, 'Kontrol noktası', COLORS.accent2); this.emit({ type: 'checkpoint', x: e.x }); this.firstTime('kontrol'); this.sectionSummary(this.world.ents[e.id!]?.sec ?? 0); break;
       case 'hurt': this.onHurt(e); break;
-      case 'respawn': this.cameras.main.flash(200, 255, 255, 255); this.resetTutorTrigger(); break;
+      case 'respawn': flash(this, 0xc9b8ff, 0.3, 240); this.resetTutorTrigger(); break;
       case 'freefall': floatText(this, e.x, e.y - 160, 'Sorun değil — tekrar!', COLORS.accent2); break;
       case 'spikegrace': floatText(this, e.x, e.y - 160, 'Dikkat, diken!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'remedy': {
@@ -259,7 +262,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `♪ ${e.n}/3`, COLORS.accent); break;
       case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200, undefined, 'boss-sersem'); sfx.power(); break;
-      case 'bossDown': flash(this, 0xffffff, 0.5); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
+      case 'bossDown': flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
         floatText(this, GAME_W / 2, GROUND_Y - 220, this.sim.boss?.kind === 'canavar' ? 'Ninni beyne ulaştı' : 'Kanal açıldı!', COLORS.accent); break;
       default: break;

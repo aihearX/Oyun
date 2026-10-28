@@ -6,6 +6,7 @@ import Phaser from 'phaser';
 import { EntityView } from './view';
 import { I, R, T, softGlowTex, sparkTex, ringTex, puffTex } from './tex';
 import { circle, css, darken, glow, lighten, rng, THEME, type Ctx } from './util';
+import { HIT_FILL } from './flash';
 
 const ADD = Phaser.BlendModes.ADD;
 type Kind = 'devriye' | 'ucan' | 'atici' | 'ziplayan' | 'kalkanli';
@@ -141,7 +142,7 @@ export function buildEnemy(v: EntityView, kindRaw: unknown) {
     const al = I(s, alertTex(s), 0, bodyY - 34); v.add(al); al.setScale(0);
     s.tweens.add({ targets: al, scale: r, duration: 180, ease: 'Back.Out' });
     s.tweens.add({ targets: al, alpha: 0, y: al.y - 10, delay: 520, duration: 200, onComplete: () => { al.destroy(); tele = false; drawBrows(0); body.clearTint(); } });
-    drawBrows(2.5); body.setTintFill(0xffffff);
+    drawBrows(2.5); body.setTintFill(HIT_FILL); // saldırı uyarısı (küçük alan; beyaz değil: render/flash.ts)
     s.time.delayedCall(70, () => { if (!v.dead) body.clearTint().setTint(0xffc0d0); });
     glowI.setAlpha(0.9);
     switch (k) {

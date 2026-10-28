@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { safeFlashAlpha, safeFlashColor, takeFlash } from './render/flash';
+import { screenOrigin } from './render/util';
 
 export const FONT = '"SF Pro Rounded","Segoe UI Rounded","Nunito","Helvetica Neue",Arial,sans-serif';
 /** tasarım birimiyle görünüm boyutu (kamera cihaz piksel oranında yakınlaşmış olabilir) */
@@ -38,9 +40,14 @@ export class Hud {
   }
 }
 
-/** Kısa tam ekran flaş (vuruş/ödül). */
+/**
+ * Kısa tam ekran flaş (vuruş/ödül). Işığa duyarlılık güvenli (render/flash.ts): renk parlaklığı ve saydamlık sınırlı,
+ * saniyede en çok 3, azaltılmış harekette hiç. Oyunda tam ekran flaşın tek yolu budur (`cameras.main.flash` kullanılmaz).
+ */
 export function flash(scene: Phaser.Scene, color = 0xff5c5c, alpha = 0.35, ms = 180) {
-  const r = scene.add.rectangle(viewW(scene) / 2, viewH(scene) / 2, viewW(scene), viewH(scene), color, alpha).setScrollFactor(0).setDepth(200);
+  if (!takeFlash(scene.time.now)) return;
+  const w = viewW(scene), h = viewH(scene); const o = screenOrigin(scene.cameras.main);
+  const r = scene.add.rectangle(o.x + w / 2, o.y + h / 2, w, h, safeFlashColor(color), safeFlashAlpha(alpha)).setScrollFactor(0).setDepth(200);
   scene.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
 }
 

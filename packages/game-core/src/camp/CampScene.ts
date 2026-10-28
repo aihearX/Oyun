@@ -10,6 +10,7 @@ import type { BiomeId, DecorPlaced } from '@odi/shared';
 import { bridgeBox, districtBox, paintBridge, paintDistrict, paintDistrictLocked } from './districts';
 import { DECOR_BOX, paintDecor } from './decor';
 import { HELPER_COLORS } from './props';
+import { FLASH, safeFlashColor, setFlashPolicy, takeFlash } from '../render/flash';
 
 export interface CampTeam { emblem: string; name: string }
 export interface CampSceneOpts {
@@ -113,6 +114,7 @@ export class CampScene extends Phaser.Scene {
 
   create() {
     this.dpr = (this.registry.get('dpr') as number) ?? 1;
+    setFlashPolicy({ reduced: !!this.opts.reducedMotion });
     const cam = this.cameras.main; cam.setBackgroundColor('#1b1446'); cam.roundPixels = false;
     buildAtlas(this.textures);
     // gökyüzü (ekrana sabit)
@@ -647,8 +649,9 @@ export class CampScene extends Phaser.Scene {
       this.tweens.add({ targets: img, scaleY: sx, duration: calm ? 1 : 900, ease: 'Back.Out' });
       const dust = this.add.particles(sp.x, sp.y, ATLAS, { frame: 'c-puff', lifespan: 900, speed: { min: 10, max: 40 }, angle: { min: 190, max: 350 }, scale: { start: 0.3, end: 0.8 }, alpha: { start: 0.6, end: 0 }, tint: [0xe9d3b0, 0xd9c09a], emitting: false }).setDepth(DEPTH.fx);
       dust.explode(calm ? 6 : 18); this.time.delayedCall(1100, () => dust.destroy());
-      const glow = this.add.image(sp.x, cy, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(MONUMENT_TINT[sp.region]).setScale(0.4).setDepth(DEPTH.fx);
-      this.tweens.add({ targets: glow, scale: 4.5, alpha: { from: 1, to: 0 }, duration: 1100, ease: 'Cubic.Out', onComplete: () => glow.destroy() });
+      // büyüyen ışık geniş alanı kaplar: ışığa duyarlılık sınırı (≤ 0,35, ≤ 3/sn; azaltılmış harekette yok — render/flash.ts)
+      if (takeFlash(this.time.now)) { const glow = this.add.image(sp.x, cy, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(safeFlashColor(MONUMENT_TINT[sp.region])).setScale(0.4).setDepth(DEPTH.fx);
+        this.tweens.add({ targets: glow, scale: 4.5, alpha: { from: FLASH.maxAlpha, to: 0 }, duration: 1100, ease: 'Cubic.Out', onComplete: () => glow.destroy() }); }
       const rays = this.add.image(sp.x, cy, ATLAS, 'c-rays').setBlendMode(Phaser.BlendModes.ADD).setTint(MONUMENT_TINT[sp.region]).setScale(0.25).setDepth(DEPTH.fx);
       this.tweens.add({ targets: rays, scale: 1.2, angle: 70, alpha: { from: 1, to: 0 }, duration: 1500, ease: 'Cubic.Out', onComplete: () => rays.destroy() });
       if (!calm) {
@@ -887,8 +890,8 @@ export class CampScene extends Phaser.Scene {
     const calm = !!this.opts.reducedMotion; const cam = this.cameras.main;
     if (!this.opts.readOnly) cam.pan(d.cx, d.cy - 20, calm ? 1 : 900, 'Sine.easeInOut', true);
     this.time.delayedCall(calm ? 50 : 700, () => {
-      const glow = this.add.image(d.cx, d.cy - 20, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0b0).setScale(0.6).setDepth(DEPTH.fx);
-      this.tweens.add({ targets: glow, scale: 9, alpha: { from: 1, to: 0 }, duration: 1300, ease: 'Cubic.Out', onComplete: () => glow.destroy() });
+      if (takeFlash(this.time.now)) { const glow = this.add.image(d.cx, d.cy - 20, ATLAS, 'c-glow').setBlendMode(Phaser.BlendModes.ADD).setTint(safeFlashColor(0xfff0b0)).setScale(0.6).setDepth(DEPTH.fx);
+        this.tweens.add({ targets: glow, scale: 9, alpha: { from: FLASH.maxAlpha, to: 0 }, duration: 1300, ease: 'Cubic.Out', onComplete: () => glow.destroy() }); }
       const rays = this.add.image(d.cx, d.cy - 20, ATLAS, 'c-rays').setBlendMode(Phaser.BlendModes.ADD).setScale(0.4).setDepth(DEPTH.fx);
       this.tweens.add({ targets: rays, scale: 2.2, angle: 70, alpha: { from: 1, to: 0 }, duration: 1600, ease: 'Cubic.Out', onComplete: () => rays.destroy() });
       if (!calm) {

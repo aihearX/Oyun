@@ -66,6 +66,8 @@ export interface LevelOptions {
   /** Revir bonusu: bölümdeki ilk (düşme dışı) hasarı bu yüzde şansla yok say. Tek zar atılır; oran Kamp ekranında yazılıdır. */
   firstHitIgnorePct?: number;
   sounds?: boolean;
+  /** azaltılmış hareket (Ayarlar/sistem `prefers-reduced-motion`): ekran flaşları tümden kapanır. Yoksa tarayıcı tercihi okunur. */
+  reducedMotion?: boolean;
   /** bölüm başı can (varsayılan 3) */
   lives?: number;
   /** harness/pazarlama çekimi: tuvalin CSS pikseli başına piksel oranını zorla (1–3; ör. 3 → 440 CSS px genişlikte 1320 px tuval).

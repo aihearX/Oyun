@@ -8,6 +8,7 @@ import { artOf } from './palette';
 import { R, T, dotTex, puffTex, ringTex, softGlowTex, sparkTex, drawGoldNote, drawGoldCochlea } from './tex';
 import { canvasTex, FONT, screenOrigin, THEME } from './util';
 import { fxQuality } from './quality';
+import { FLASH, takeFlash } from './flash';
 
 /** düşük kalitede parçacık sayısı azalır (en az 1) */
 const q = (n: number) => Math.max(1, Math.round(n * fxQuality()));
@@ -72,7 +73,8 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
     jumpPuff(x, y) { dust.explode(q(5), x, y - 2); ring(x, y - 2, 0xffffff, 0.06, 0.32, 240, 0.3); },
     noteSparkle(x, y) { sparks.explode(q(7), x, y); flare(x, y, THEME.gold, 80, 280); },
     hitFlash(x, y) {
-      s.tweens.killTweensOf(flashI); flashI.setAlpha(0.9); s.tweens.add({ targets: flashI, alpha: 0, duration: 420, ease: 'Cubic.Out' });
+      // ekran kenarı kırmızı vinyet nabzı: ışığa duyarlılık sınırı (≤ 0,35, ≤ 3/sn ortak sayaç, azaltılmış harekette yok; flash.ts)
+      if (takeFlash(s.time.now)) { s.tweens.killTweensOf(flashI); flashI.setAlpha(FLASH.maxAlpha); s.tweens.add({ targets: flashI, alpha: 0, duration: 420, ease: 'Cubic.Out' }); }
       if (x != null && y != null) { flare(x, y, 0xffffff, 120, 200); ring(x, y, THEME.hazard, 0.1, 0.6, 320); const st = s.add.image(x, y, sparkTex(s)).setBlendMode(ADD).setDepth(32).setScale(1.4).setTint(0xffd0e0); s.tweens.add({ targets: st, scale: 0, angle: 90, duration: 260, onComplete: () => st.destroy() }); }
     },
     perfectRing(x, y, label = 'Mükemmel!') { ring(x, y, THEME.gold, 0.1, 0.9, 420); ring(x, y, 0xffffff, 0.05, 0.6, 320); sparks.explode(q(10), x, y); if (label) praise(x, y - 40, label, '#ffc93c'); },

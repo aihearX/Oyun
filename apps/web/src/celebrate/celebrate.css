@@ -48,8 +48,9 @@
 .cc-lock { position:absolute; left:50%; top:-6px; width:38px; height:44px; margin-left:-19px; border-radius:10px; background:linear-gradient(180deg, #fff6d0, var(--stud) 40%, #d99a00); border:3px solid var(--c3); box-shadow:0 3px 0 rgba(0,0,0,.25); }
 .cc-lock::after { content:''; position:absolute; left:50%; top:13px; width:10px; height:14px; margin-left:-5px; border-radius:5px 5px 2px 2px; background:var(--c3); }
 .cel-chest.opened .cc-lock { opacity:0; transition:opacity .2s; }
-.cc-burst { position:absolute; left:50%; top:40%; width:30px; height:30px; margin:-15px; border-radius:50%; background:#fff; box-shadow:0 0 60px 40px rgba(255,240,190,.9); animation:burstOut .7s ease-out forwards; z-index:2; }
-@keyframes burstOut { 0% { transform:scale(.2); opacity:1; } 100% { transform:scale(6); opacity:0; } }
+/* sandık açılış ışığı: ışığa duyarlılık sınırı (beyaz değil, en çok %35 opaklık; game-core render/flash.ts ile aynı ölçü), azaltılmış harekette yok */
+.cc-burst { position:absolute; left:50%; top:40%; width:30px; height:30px; margin:-15px; border-radius:50%; background:#ffd98a; box-shadow:0 0 60px 40px rgba(255,214,120,.8); animation:burstOut .7s ease-out forwards; z-index:2; }
+@keyframes burstOut { 0% { transform:scale(.2); opacity:.35; } 100% { transform:scale(6); opacity:0; } }
 .ph-reveal .cel-chest, .ph-collect .cel-chest, .ph-out .cel-chest { animation:chestShrink .5s ease-out forwards; }
 @keyframes chestShrink { to { transform:scale(.72) translateY(-10px); } }
 

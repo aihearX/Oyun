@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import type { HeroCosmetic, HeroPose, HeroVisual } from './types';
 import { I, R, T, softGlowTex, puffTex, sparkTex, ringTex } from './tex';
 import { circle, css, darken, glow, lighten, mix, spiralPath, THEME, type Ctx } from './util';
+import { HIT_FILL } from './flash';
 
 const ADD = Phaser.BlendModes.ADD;
 const RAD = 22;           // gövde yarıçapı (HERO_SIZE 48)
@@ -218,7 +219,7 @@ class HeroView implements HeroVisual {
     const prev = this.state; this.state = state;
     if (state === 'jump' && prev !== 'jump') { this.sx = 0.82; this.sy = 1.22; this.puff(0, 0, 4); }
     if (state === 'dash') { this.sx = 1.45; this.sy = 0.7; }
-    if (state === 'hurt') { this.body.setTintFill(0xffffff); this.scene.time.delayedCall(90, () => this.body.clearTint().setTint(0xffb0c0)); this.scene.time.delayedCall(600, () => this.body.clearTint()); }
+    if (state === 'hurt') { this.body.setTintFill(HIT_FILL); this.scene.time.delayedCall(90, () => this.body.clearTint().setTint(0xffb0c0)); this.scene.time.delayedCall(600, () => this.body.clearTint()); }
     if (state === 'win') for (let i = 0; i < 6; i++) { const sp = this.scene.add.image(this.root.x, this.root.y + CY, sparkTex(this.scene)).setBlendMode(ADD).setTint(i % 2 ? THEME.gold : 0xffffff).setDepth(21).setScale(0.4); const a = -Math.PI / 2 + (i - 2.5) * 0.45; this.scene.tweens.add({ targets: sp, x: sp.x + Math.cos(a) * 50, y: sp.y + Math.sin(a) * 50, scale: 0, angle: 200, duration: 700, onComplete: () => sp.destroy() }); }
   }
   land(impact = 600) {
