@@ -367,7 +367,17 @@ let REEL = null, SCENES = [], VOICE = [];
  *   still: { src, crop:[x,y,w,h], w, kb?: [s0,s1], pan?: [dy0,dy1] }   odi/dede: { size, bob? }   count: { from, to, dur, suffix }
  *   journey: { n, step }
  */
+const OZEL_YUKLU = new Set();
+/** ek çizim betikleri (reel.scripts: ör. 'ozel/6b.js'): window.OZEL[ad] = { setup(inner, L, ids), draw(inner, a, L, { lt, t, dur }) → imza } */
+async function ozelYukle(list) {
+  window.OZEL = window.OZEL || {};
+  for (const src of list || []) {
+    if (OZEL_YUKLU.has(src)) continue; OZEL_YUKLU.add(src);
+    await new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('yüklenemedi: ' + src)); document.head.appendChild(s); });
+  }
+}
 window.setupReel = async (reel) => {
+  await ozelYukle(reel.scripts);
   REEL = reel; VOICE = reel.voice || [];
   const root = document.getElementById('root'); root.innerHTML = '';
   SCENES = reel.scenes.map((sc, si) => {
@@ -423,6 +433,10 @@ window.setupReel = async (reel) => {
         const [cx, cy, cw, ch] = L.crop; const w = L.w ?? 700; const s = w / cw; const h = Math.round(ch * s);
         inner.className = 'evid'; inner.innerHTML = `<div class="pin"></div><div class="ph" style="width:${w}px;height:${h}px"><img></div><div class="cap">${L.cap ?? ''}</div>`;
         const img = inner.querySelector('img'); img.src = L.src; img.style.width = Math.round(L.imgW * s) + 'px'; img.style.left = -cx * s + 'px'; img.style.top = -cy * s + 'px';
+      }
+      else if (k === 'ozel') {  // ek betikteki çizim (reel.scripts): kendi DOM'unu kurar, seek'te draw ile canlanır
+        const F = window.OZEL?.[L.fn]; if (!F) throw new Error('OZEL çizim yok: ' + L.fn);
+        inner.className = 'ozel ' + (L.cls || ''); F.setup(inner, L, { si, li }); L._oz = F;
       }
       else if (k === 'clock') { inner.className = 'clock ' + (L.cls || ''); }
       else if (k === 'timer') { inner.className = 'timer ' + (L.cls || ''); }
@@ -553,6 +567,7 @@ window.seek = (t) => {
       if (L._tp) { const p = clamp(a / (L.draw ?? 0.8)); L._tp.style.strokeDashoffset = (1 - p).toFixed(3); sig += p.toFixed(3); }
       if (L._ring) { const n = L.from ?? 3, d = L.dur ?? 3; const left = Math.max(0, d - a); const num = Math.max(1, Math.ceil(left / (d / n))); L._ring.arc.style.strokeDashoffset = (1 - left / d).toFixed(3); const txt = left <= 0 ? (L.zero ?? '!') : String(num); if (L._ring.b.textContent !== txt) L._ring.b.textContent = txt; sig += txt + left.toFixed(2); }
       if (L._pr) { (L.pulses ?? []).forEach(([p0, pd]) => { const q = (lt - p0) / pd; L._pr.forEach((el, j) => { const qq = q - j * 0.35; if (qq >= 0 && qq <= 1) { el.style.opacity = (1 - qq).toFixed(2); el.style.transform = `scale(${(1 + 1.4 * qq).toFixed(3)})`; sig += qq.toFixed(2); } }); }); if (!(L.pulses ?? []).some(([p0, pd]) => lt >= p0 && lt <= p0 + pd * 1.4)) L._pr.forEach((el) => { el.style.opacity = '0'; }); }
+      if (L._oz && L._oz.draw) { const z = L._oz.draw(inner, a, L, { lt, t, dur: sc.dur }); sig += 'z' + (z ?? ''); }
       if (L._mouth) { const v = voiceAt(t); L._mouth.setAttribute('ry', (4 + 9 * v).toFixed(2)); L._mouth.setAttribute('rx', (7.5 + 2 * v).toFixed(2)); sig += v.toFixed(2); }
     }
   }

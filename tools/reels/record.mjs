@@ -28,7 +28,7 @@ const opt = (f) => (args.includes(f) ? args[args.indexOf(f) + 1] : undefined);
 
 /* ============================================================ teaser */
 async function teasers(which) {
-  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS, ...(await import('./reklamlar3.mjs')).REELS, ...(await import('./reklamlar4.mjs')).REELS, ...(await import('./reklamlar5.mjs')).REELS };
+  const REELS = { ...(await import('./teasers.mjs')).REELS, ...(await import('./reklamlar.mjs')).REELS, ...(await import('./reklamlar3.mjs')).REELS, ...(await import('./reklamlar4.mjs')).REELS, ...(await import('./reklamlar5.mjs')).REELS, ...(await import('./reklamlar6b.mjs')).REELS };
   const slugs = which === 'all' ? Object.keys(REELS) : which.split(',');
   for (const s of slugs) if (!REELS[s]) throw new Error(`bilinmeyen Reels: ${s} (${Object.keys(REELS).join(', ')})`);
   if (flag('--zaman')) {  // yalnız zaman çizelgesi: sahneler (anlatıcıya göre uzatılmış) ve anlatıcı satırları
@@ -145,14 +145,15 @@ async function renderReel(r, browser, port, log) {
   // reklam: ses efektleri (sahne içi [at, tür, kazanç]) mutlak zamana
   const sfx = scenes.flatMap((sc) => (sc.sfx ?? []).map(([at, k, g, o]) => ({ t: +(sc.start + at).toFixed(3), k, g: g ?? 1, ...(o ?? {}) }))).sort((a, b) => a.t - b.t);
   // Ton Avı tonları (kulakligini-tak): ayrı iz, sabit ve ılımlı düzey (compose.py › mix_audio_ad)
-  const tones = scenes.flatMap((sc) => (sc.tones ?? []).map(([at, f, d]) => ({ t: +(sc.start + at).toFixed(3), f, d })));
+  const tones = scenes.flatMap((sc) => (sc.tones ?? []).map(([at, f, d, g]) => ({ t: +(sc.start + at).toFixed(3), f, d, ...(g != null ? { g } : {}) })));
   const payload = {
     scenes: [...scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, ringY: sc.ringY, shade: sc.shade, flash: sc.flash, layers: (sc.layers ?? []).map(stage) })),
       { id: 'altyazi', start: 0, dur: total, bg: 'none', layers: subs }],
     voice: voice.filter((v) => v.lipsync !== false).map((v) => ({ at: v.at, fps, env: v.env })),
+    scripts: r.scripts ?? [],  // ek çizim betikleri (tools/reels/ozel/*.js; katman kind 'ozel')
   };
   const plan = {
-    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post, ad: !!r.ad, sfx, tones, duck: r.duck ?? null, limit: r.limit ?? 0.75,
+    slug: r.slug, title: r.title, fps, total, bpm: r.bpm, style: r.style, post: r.post, ad: !!r.ad, sfx, tones, tonesPost: r.tonesPost ?? null, aac: r.aac ?? null, duck: r.duck ?? null, limit: r.limit ?? 0.75,
     scenes: scenes.map((sc) => ({ id: sc.id, start: sc.start, dur: sc.dur, bg: sc.bg, frame: sc.frame ?? null, speed: sc.speed ?? 1,
       clip: sc.clip ? { ...sc.clip, dir: sc.clip.dir ?? clipDir(sc.clip) } : null, boss: !!sc.boss, flash: !!sc.flash,
       cam: sc.cam ?? null, fx: sc.fx ?? null, blend: !!sc.blend, mus: sc.mus ?? null, skip: sc.skip ?? 0 })),
@@ -182,8 +183,8 @@ async function renderReel(r, browser, port, log) {
   }
   // kapak katmanı
   if (r.cover) {
-    await page.evaluate((p) => window.setupReel(p), { scenes: [{ id: 'kapak', start: 0, dur: 9, bg: r.cover.bg ?? 'none', ringY: 760, shade: r.cover.clip ? 'both' : undefined, layers: r.cover.layers.map(stage) }], voice: [] });
-    await page.evaluate(() => window.seek(4));
+    await page.evaluate((p) => window.setupReel(p), { scenes: [{ id: 'kapak', start: 0, dur: 9, bg: r.cover.bg ?? 'none', ringY: 760, shade: r.cover.clip ? 'both' : undefined, layers: r.cover.layers.map(stage) }], voice: [], scripts: r.scripts ?? [] });
+    await page.evaluate((tt) => window.seek(tt), r.cover.seek ?? 4);
     await page.screenshot({ path: plan.cover.png, omitBackground: true });
   }
   await ctx.close();

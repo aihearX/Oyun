@@ -18,6 +18,9 @@ export async function prepareDist({ build = true } = {}) {
   const dst = path.join(dist, 'reels'); fs.mkdirSync(path.join(dst, 'img'), { recursive: true }); fs.mkdirSync(path.join(dst, 'fonts'), { recursive: true });
   for (const f of ['studio.html', 'clip.html', 'overlay.html']) if (fs.existsSync(path.join(root, 'tools/reels', f))) fs.copyFileSync(path.join(root, 'tools/reels', f), path.join(dst, f));
   for (const f of fs.readdirSync(path.join(root, 'tools/reels/fonts'))) fs.copyFileSync(path.join(root, 'tools/reels/fonts', f), path.join(dst, 'fonts', f));
+  // ek çizim betikleri (overlay.html › reel.scripts, katman kind 'ozel'): tools/reels/ozel/*.js → dist/reels/ozel/
+  const oz = path.join(root, 'tools/reels/ozel');
+  if (fs.existsSync(oz)) { fs.mkdirSync(path.join(dst, 'ozel'), { recursive: true }); for (const f of fs.readdirSync(oz)) fs.copyFileSync(path.join(oz, f), path.join(dst, 'ozel', f)); }
   return dst;
 }
 /** tools/harness/out altındaki bir görseli dist/reels/img'ye kopyalar, sayfadaki adresini döndürür */

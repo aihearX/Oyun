@@ -311,7 +311,7 @@ def mix_audio_ad(plan, out_wav):
             g = 1 - (1 - 10 ** (gdb / 20)) * w; mus = mus * g; fx = fx * g
     # Ton Avı tonları: saf sinüs, anlatıcının ~16 dB altında sabit düzey (sıkıştırma/sınırlayıcıya takılmaz; ani yüksek ses yok)
     tn = np.zeros(n)
-    for ev in plan.get('tones') or []:
+    for ev in ([] if plan.get('tonesPost') else plan.get('tones') or []):  # tonesPost: tonlar ses yüksekliği ayarından SONRA, mutlak düzeyde (compose_ad)
         x = RS.sfx('tone', ev.get('d', 0.45), f=ev['f']) * 0.028 * float(ev.get('g', 1)); i = int(ev['t'] * SR); j = min(n, i + len(x)); tn[i:j] += x[: j - i]
     L = mus[0] * gm + fx[0] * gf + v + vr + tn; R = mus[1] * gm + fx[1] * gf + v + vr + tn
     y = np.stack([L, R]); y = np.tanh(y * 1.4) / 1.4
@@ -419,11 +419,34 @@ def compose_ad(plan, work, out_dir, video):
     sh(['ffmpeg', '-y', '-v', 'error', '-i', raw, '-af', 'acompressor=threshold=-18dB:ratio=3:attack=5:release=120:makeup=2dB', mixed])
     ln = loudness_chain(mixed, limit=plan.get('limit', 0.75))  # 3. dalga: 0,6 (parlak çan/glokenşpil geçişleri AAC'de gerçek tepeyi aşmasın)
     final = os.path.join(out_dir, f'{slug}.mp4')
+    fades = f'afade=t=in:d=0.02,afade=t=out:st={max(0, plan["total"] - 0.3):.2f}:d=0.3'
+    aac = plan.get('aac') or {}  # ör. { b: '256k', cutoff: 20000 } (yüksek frekans tonları AAC'de kesilmesin)
+    aopts = ['-c:a', 'aac', '-b:a', aac.get('b', '192k'), *(['-cutoff', str(aac['cutoff'])] if aac.get('cutoff') else []), '-ar', '48000']
+    if plan.get('tonesPost'):
+        # tonlar: ses yüksekliği zinciri ve sınırlayıcıdan SONRA, sabit mutlak düzeyde eklenir (−14 LUFS hedefi tonları yükseltmez)
+        normd = os.path.join(work, 'mix-norm.wav'); sh(['ffmpeg', '-y', '-v', 'error', '-i', mixed, '-af', f'{ln},aresample=48000', '-c:a', 'pcm_f32le', normd])
+        mixed = os.path.join(work, 'mix-son.wav'); add_tones_post(normd, mixed, plan['tones'], plan['tonesPost'])
+        ln_af = fades
+    else: ln_af = f'{ln},aresample=48000,{fades}'
     sh(['ffmpeg', '-y', '-v', 'error', '-i', video, '-i', mixed, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
-        '-af', f'{ln},aresample=48000,afade=t=in:d=0.02,afade=t=out:st={max(0, plan["total"] - 0.3):.2f}:d=0.3',
-        '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', final])
+        '-af', ln_af, *aopts, '-shortest', '-movflags', '+faststart', final])
     render_cover(plan, os.path.join(out_dir, f'{slug}-kapak.png'))
     print(f'✅ {final} ({plan["total"]:.1f} sn, {os.path.getsize(final) / 1e6:.1f} MB)')
+
+
+def add_tones_post(src, dst, tones, cfg):
+    """saf sinüs tonları (yumuşak giriş/çıkış) normalize karışıma mutlak düzeyde eklenir: cfg { dbfs: RMS dBFS (ör. −30), fade: sn }"""
+    r = sh(['ffmpeg', '-v', 'error', '-i', src, '-f', 'f32le', '-ac', '2', '-ar', '48000', '-'])
+    y = np.frombuffer(r.stdout, dtype='<f4').reshape(-1, 2).astype(np.float64).copy(); sr = 48000
+    amp = 10 ** (float(cfg.get('dbfs', -30)) / 20) * np.sqrt(2); fd = float(cfg.get('fade', 0.08))
+    for ev in tones:
+        d = float(ev.get('d', 1.0)); t = np.arange(int(d * sr)) / sr; x = np.sin(2 * np.pi * float(ev['f']) * t)
+        k = int(fd * sr); w = np.ones_like(x); w[:k] = 0.5 - 0.5 * np.cos(np.pi * np.arange(k) / k); w[-k:] = w[:k][::-1]
+        x = x * w * amp * float(ev.get('g', 1)); i = int(ev['t'] * sr); j = min(len(y), i + len(x)); y[i:j] += x[: j - i, None]
+    print(f'  tonlar: {len(tones)} adet, {cfg.get("dbfs", -30)} dBFS RMS (tepe {20 * np.log10(amp):.1f} dBFS), karışım tepe {20 * np.log10(np.max(np.abs(y)) + 1e-9):.1f} dBFS')
+    pcm = (np.clip(y, -1, 1) * 32767).astype('<i2')
+    with wave.open(dst, 'wb') as w:
+        w.setnchannels(2); w.setsampwidth(2); w.setframerate(sr); w.writeframes(pcm.tobytes())
 
 
 # ------------------------------------------------------------------ eski
