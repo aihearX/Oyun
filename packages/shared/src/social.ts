@@ -266,6 +266,12 @@ export const SHOP: ShopProduct[] = [
   { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0 },
   { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal (toplam 840) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: 28 }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1 },
 ];
+/**
+ * Mağazanın (App Store / Google Play, RevenueCat `getProducts`) döndürdüğü yerel fiyat: yalnız gösterim içindir.
+ * `priceString` mağazanın kendi biçimi (vergi, kur ve ülke dahil; ör. "₺49,99", "$1.99"); sunucu satın almayı ve aylık
+ * harcama sınırını TL liste fiyatıyla (`priceTry`) sayar.
+ */
+export interface StorePrice { id: string; priceString: string; currencyCode: string }
 /** kristal ile hızlandırma: kalan her dakika için 1 kristal (yukarı yuvarlanır) — şeffaf */
 export function crystalsToFinish(remainingSec: number): number { return Math.max(1, Math.ceil(remainingSec / 60)); }
 export interface PurchaseRecord { id: string; productId: string; at: number; store: 'test' | 'app-store' | 'play'; amountTry: number }

@@ -17,6 +17,8 @@
 //           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
 //           [--dist-ek ad] (web ve dom derlemesi dist-<ad> klasörlerinde: aynı ağaçta iki koşu ayrı derlemeyle)
+//           [--magaza-fiyat] (yalnız dom: köprü gerçek satın alma + mağaza fiyatı verir (sahte EUR priceString, YN-032);
+//                             yoksa köprüde fiyat yok → TL liste fiyatı ve "Mağaza fiyatı satın alırken gösterilir" notu)
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -45,6 +47,9 @@ const BIG = has('buyuk-yazi');
 const KONTRAST = !has('kontrast-yok');
 // --ek-css <dosya>: her sayfaya ek stil (sahibe görsel öneri: aynı ekranların önce/sonra görüntüsü; ör. kontrast önerileri)
 const EK_CSS = opt('ek-css', '') ? readFileSync(resolve(process.cwd(), opt('ek-css')), 'utf8') : '';
+// --magaza-fiyat: sahte mağaza fiyatları (RevenueCat priceString yerine; en uzun "299,99 €" 320 px'te sığmalı)
+const STORE_PRICES = has('magaza-fiyat') ? [['odi.baslangic', '5,49 €'], ['odi.kristal.1', '2,99 €'], ['odi.kristal.2', '14,99 €'], ['odi.kristal.3', '299,99 €'], ['odi.hiz.1', '7,99 €'], ['odi.hiz.2', '19,99 €'], ['odi.pass', '9,99 €']].map(([id, priceString]) => ({ id, priceString, currencyCode: 'EUR' })) : null;
+if (STORE_PRICES && !targets.includes('dom')) console.warn('--magaza-fiyat yalnız dom hedefinde (mobil köprü) etkili; web hedefi köprüsüz koşar.');
 const BASE_STATE = { ftue: { v: 1, story: true, tours: [], bypass: true }, ...(BIG ? { bigText: true } : {}) };
 const outRoot = resolve(root, 'tools/harness/out/ui-mobile', tag); mkdirSync(outRoot, { recursive: true });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -109,11 +114,11 @@ function webInsets([top, bottom]) {
   if (!set()) document.addEventListener('DOMContentLoaded', set);
 }
 /** dom hedefi: Expo DOM köprüsü + yerel scrollEnabled:false kilidi (belge kullanıcıyla kaydırılamaz) */
-function domBridge([serverUrl, top, bottom, seed, base]) {
+function domBridge([serverUrl, top, bottom, seed, base, prices]) {
   // ilk açılış rehberi (hikâye + anlatıcı turları + kilitler) bu denetimin konusu değil: atlanmış başlar (bkz. onboarding-e2e.mjs)
   const store = { 'odi-v1': JSON.stringify({ state: base, version: 3 }), ...(seed || {}) };
   window.ReactNativeWebView = {
-    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share'], props: { serverUrl, canPurchase: false, insetTop: top, insetBottom: bottom } } }),
+    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', ...(prices ? ['purchase', 'storePrices'] : [])], props: { serverUrl, canPurchase: !!prices, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
       try {
         const m = JSON.parse(s);
@@ -123,6 +128,9 @@ function domBridge([serverUrl, top, bottom, seed, base]) {
         if (m.data.actionId === 'setItem') store[k] = v;
         if (m.data.actionId === 'removeItem') delete store[k];
         if (m.data.actionId === 'share') result = 'copied';
+        // mağaza köprüsü (--magaza-fiyat): istenen ürünlerin sahte fiyatları; satın alma denetimde yapılmaz (iptal)
+        if (m.data.actionId === 'storePrices') result = (prices || []).filter((x) => (k || []).includes(x.id));
+        if (m.data.actionId === 'purchase') result = { ok: false, cancelled: true, error: 'denetim' };
         setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
       } catch { /* yok */ }
     },
@@ -537,7 +545,7 @@ async function suite(browserName, target, [W, H]) {
     try { new PerformanceObserver((l) => { for (const e of l.getEntries()) { k.lt++; k.ltSum += e.duration; if (e.duration > k.ltMax) k.ltMax = e.duration; } }).observe({ type: 'longtask', buffered: true }); } catch { /* WebKit: longtask yok */ }
   });
   if (EK_CSS) await page.addInitScript((css) => { const put = () => { const st = document.createElement('style'); st.id = '__ek_css'; st.textContent = css; document.head.appendChild(st); }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', put); else put(); }, EK_CSS);
-  if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, null, BASE_STATE]);
+  if (target === 'dom') await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, null, BASE_STATE, STORE_PRICES]);
   else {
     await page.addInitScript(webInsets, [INSET, INSET_B]);
     await page.addInitScript((base) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: base, version: 3 })); } catch { /* depolama yok */ } }, BASE_STATE);
@@ -723,6 +731,19 @@ async function suite(browserName, target, [W, H]) {
         await back();
         if (!(await page.locator('.menu-tile').count())) await tab('Profil');
       }
+      // mağaza onay sayfası + fiyat kaynağı (YN-032): köprü fiyat verdiyse mağazanın biçimi (notsuz), vermediyse TL liste fiyatı + not
+      { await page.locator('.menu-tile[data-tile="shop"]').click(); await page.locator('.card.product .btn.small').first().waitFor({ timeout: 20_000 });
+        const storeOn = !!STORE_PRICES && target === 'dom';
+        const beklenen = storeOn ? STORE_PRICES[0].priceString : '49,99 TL';
+        const kart = (await page.locator('.card.product .btn.small').first().textContent())?.trim();
+        const not = await page.getByTestId('fiyat-notu').count();
+        await page.locator('.card.product .btn.small').first().click(); await page.locator('.sheet').waitFor(); await sleep(400);
+        const r = await check('magaza-onay', { scroll: false });
+        const onay = (await page.getByTestId('onay-fiyat').textContent())?.trim();
+        const yanlis = [kart !== beklenen && `kart fiyatı “${kart}” ≠ “${beklenen}”`, onay !== beklenen && `onay fiyatı “${onay}” ≠ “${beklenen}”`, storeOn === !!not && `TL notu ${not ? 'var' : 'yok'}`].filter(Boolean);
+        if (yanlis.length) { fail(r, `mağaza fiyatı: ${yanlis.join(', ')}`); console.log(`  ✗ ${name} · magaza-onay — mağaza fiyatı: ${yanlis.join(', ')}`); }
+        await page.locator('.sheet').getByRole('button', { name: 'Vazgeç' }).click(); await sleep(300);
+        await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // sıralama: bilgi sayfası (formül + ödüller) ve takım tabloları
       { await page.locator('.menu-tile[data-tile="ranking"]').click(); await page.getByTestId('siralama').waitFor(); await sleep(500);
         await page.getByRole('button', { name: 'Nasıl hesaplanır?' }).click(); await page.locator('.sheet').waitFor(); await check('siralama-bilgi', { scroll: false });
@@ -1030,7 +1051,7 @@ async function suite(browserName, target, [W, H]) {
     if (want('giris')) {
       // geri dönen oyuncu: kayıtlı ilerleme → “Devam et”
       const seed = { 'odi-v1': JSON.stringify({ state: { progress: { 1: { stars: 3, best: 900, plays: 1 }, 2: { stars: 2, best: 700, plays: 1 } }, coins: 240, ...BASE_STATE }, version: 3 }) };
-      if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, BASE_STATE]); }
+      if (target === 'dom') { await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, BASE_STATE, STORE_PRICES]); }
       else await page.evaluate((sd) => { for (const [k, v] of Object.entries(sd)) localStorage.setItem(k, v); }, seed);
       await page.goto(url(), { waitUntil: 'load' });
       await page.getByRole('button', { name: /Devam et/ }).waitFor({ timeout: 45_000 }); await sleep(700);

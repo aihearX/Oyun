@@ -7,11 +7,11 @@ import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
-import { createNativePurchase } from '@/purchases';
+import { createNativeStore } from '@/purchases';
 import { voiceData, voiceManifest } from '@/voice/player';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
-const nativePurchase = createNativePurchase();
+const nativeStore = createNativeStore();
 
 /** Sosyal sunucu adresi: EXPO_PUBLIC_ODI_SERVER > geliştirmede Metro'nun çalıştığı bilgisayar (aynı Wi-Fi) */
 function serverUrl(): string {
@@ -88,8 +88,8 @@ export default function Home() {
           voiceData={voiceData}
           clearAll={clearAll}
           restartApp={async () => setGen((g) => g + 1)}
-          {...(nativePurchase ? { purchase: nativePurchase } : {})}
-          canPurchase={!!nativePurchase}
+          {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices } : {})}
+          canPurchase={!!nativeStore}
           serverUrl={serverUrl()}
           insetTop={insets.top}
           insetBottom={insets.bottom}

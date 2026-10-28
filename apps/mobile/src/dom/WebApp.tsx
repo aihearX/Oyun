@@ -26,6 +26,8 @@ export type WebAppProps = {
   restartApp?: () => Promise<void>;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
+  /** mağazanın yerel fiyatları (RevenueCat priceString; yalnız mağaza derlemesinde, purchase ile birlikte) */
+  storePrices?: (productIds: string[], playerId: string) => Promise<{ id: string; priceString: string; currencyCode: string }[]>;
   canPurchase: boolean;
   /** sosyal sunucu (ws://bilgisayar-ip:8787 ya da wss://...) */
   serverUrl: string;
@@ -61,6 +63,7 @@ export default function WebApp(p: WebAppProps) {
       ...(p.restartApp ? { restartApp: () => { void p.restartApp!().catch(() => undefined); } } : {}),
       ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
+      ...(p.canPurchase && p.purchase && p.storePrices ? { storePrices: (ids: string[], pid: string) => p.storePrices!(ids, pid) } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
     });

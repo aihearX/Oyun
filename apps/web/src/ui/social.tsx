@@ -50,7 +50,7 @@ function HudNum({ v }: { v: number }) {
   const a = fmtHud(v); const b = fmtHud(v, true);
   return a === b ? <>{a}</> : <><span className="hn-w">{a}</span><span className="hn-d">{b}</span></>;
 }
-export const fmtTry = (n: number) => `${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
+export { fmtTry } from '../shopPrice';
 export const fmtTime = (t: number) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 export const fmtDate = (t: number) => new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) + ' ' + fmtTime(t);
 export const buildingDef = (id: string) => BUILDINGS.find((b) => b.id === id);

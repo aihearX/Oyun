@@ -3,6 +3,7 @@
  * (apps/mobile, Expo DOM bileşeni içinde) çalışır. Yerel yetenekler buradan geçer.
  * Mobil kabuk `installPlatform(...)` ile kendi uygulamasını kurar; kurulmazsa tarayıcı varsayılanları kullanılır.
  */
+import type { StorePrice } from '@odi/shared';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from './ftue/voicePick';
 
 export interface SpeakOpts { rate?: number; pitch?: number; /** yalnız erkek tr-TR ses varsa oku (Tüy Dede kadın sesle konuşmaz) */ maleOnly?: boolean }
@@ -38,6 +39,11 @@ export interface Platform {
   /** arayüzü baştan kur (mobil: WebView yeniden oluşturulur); yoksa sayfa yenilenir */
   restartApp?: () => void;
   purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
+  /**
+   * Mağazanın yerel fiyatları (yalnız mağaza derlemesinde, `purchase` ile birlikte): RevenueCat `getProducts` → ürün başına
+   * `priceString` (mağazanın biçimi, vergi ve kur dahil). Tarayıcıda ve Expo Go'da tanımsız → arayüz TL liste fiyatını gösterir.
+   */
+  storePrices?: (productIds: string[], playerId: string) => Promise<StorePrice[]>;
 }
 
 const webStorage: Platform['storage'] = {
