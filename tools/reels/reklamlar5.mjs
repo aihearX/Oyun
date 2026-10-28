@@ -257,7 +257,8 @@ const sinav = {
     { kind: 'html', cls: 'stamp2 big', html: 'Sınav<br>haftası', y: 260, rot: -6 },
     { kind: 'html', cls: 'week', html: GUN.map((g) => `<span>${g}</span>`).join(''), y: 690 },
     { kind: 'html', cls: 'kt md gold', html: 'ODİ<br>yanında', y: 820 },
-    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: 1180 },
+    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: 1090 },
+    { kind: 'dede', size: 320, y: 1230 },
   ], { bg: 'desk' }),
   post: {
     caption: 'Sınav haftası mı? ODİ yanında.\nPazartesi anatomi: çekiç, örs, üzengi. Salı fizyoloji: koklea tabanı ince sesleri algılar. Çarşamba timpanometri: eğriyi oku, bulguyu söyle (timpanogram tek başına tanı koydurmaz). Perşembe klinik: 32 kurgusal hasta vakası. Cuma tekrar: 50 Kulak Kartı.\nDers notlarının yerine değil, yanında. ODİ: Sesin Yolu yayında; sınavdan önce bir tur at! Sınav arkadaşını etiketle.',

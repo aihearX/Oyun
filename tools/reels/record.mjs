@@ -165,7 +165,8 @@ async function renderReel(r, browser, port, log) {
   if (!coverOnly) { fs.rmSync(ovl, { recursive: true, force: true }); fs.mkdirSync(ovl, { recursive: true }); }
   const ctx = await browser.newContext({ viewport: { width: 1080, height: 1920 }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
-  const errors = []; page.on('pageerror', (e) => errors.push(e.message)); page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  const errors = []; page.on('pageerror', (e) => errors.push(e.message)); page.on('console', (m) => { if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) errors.push(m.text()); });
+  page.on('response', (res) => { if (res.status() >= 400) errors.push(`${res.status()} ${new URL(res.url()).pathname}`); });  // hangi dosya eksik, adıyla
   await page.goto(`http://localhost:${port}/reels/overlay.html`, { waitUntil: 'load' });
   await page.evaluate((p) => window.setupReel(p), payload);
   const n = coverOnly ? 0 : Math.round(total * fps); let prev = null, prevFile = null, shots = 0; const t0 = Date.now();
