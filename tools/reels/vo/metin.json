@@ -211,7 +211,7 @@
     "geri-sayim": [
       {"id": "g1", "text": "Beş: zıpla!", "asr": ["Beş zıpla", "5 zıpla"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "g2", "text": "Dört: altından kay!", "asr": ["Dört altından kay", "4 altından kay"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "g3", "text": "Üç: havada süzül!", "asr": ["Üç havada süzül", "3 havada süzül"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "g3", "text": "Üç: süzül, havada kal!", "asr": ["Üç süzül havada kal", "3 süzül havada kal"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6, 7, 8]}},
       {"id": "g4", "text": "İki: yere çakıl!", "asr": ["İki yere çakıl", "2 yere çakıl"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "g5", "text": "Bir: ileri atıl!", "asr": ["Bir ileri atıl", "1 ileri atıl"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "g6", "text": "ODİ yayında! Hemen oyna!", "asr": ["ODİ yayında hemen oyna", "Odi yayında hemen oyna"], "v": {"exaggeration": 1.0, "temperature": 0.8, "target_sps": 6.0, "max_tempo": 1.25, "seeds": [1, 2, 3, 4, 5, 6]}}
@@ -219,7 +219,7 @@
     "ilk-gun": [
       {"id": "i1", "text": "İlk gün seni neler bekliyor?", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "i2", "text": "Kırk bölüm.", "sub": "40 bölüm.", "asr": ["Kırk bölüm", "40 bölüm"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "i3", "text": "Kokleanın içinde yüzmek.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "i3", "text": "Sıvı dolu bir koklea.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6, 7, 8]}},
       {"id": "i4", "text": "Büyüyen bir kamp.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "i5", "text": "Takımınla canlı yarış.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "i6", "text": "Timpanogram Eşleştir.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},

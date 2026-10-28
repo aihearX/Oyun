@@ -39,14 +39,14 @@ const dims = (rel) => pngDims(path.join(ROOT, 'tools/harness/out', rel));
 
 /** bitiş kartı: simge, logo, "Şimdi yayında", mağaza satırı (MAGAZA), indir düğmesi (+ isteğe bağlı satır) */
 function sonKart(o = {}) {
-  const [iw, ih] = pngDims(IKON); const y = o.y0 ?? 270;
+  const [iw, ih] = pngDims(IKON); const y = o.y0 ?? 300;
   return [
-    { kind: 'still', src: IKON, crop: [0, 0, iw, ih], imgW: iw, w: 300, y, at: 0.04, anim: 'drop', cls: 'appicon', kb: [1, 1], maxBottom: 1900 },
-    { kind: 'html', cls: 'logo sm', html: LOGO, y: y + 320, at: 0.22, anim: 'zoom' },
-    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: y + 640, at: 0.45, anim: 'stamp', rot: -3 },
-    { kind: 'html', cls: 'store', html: MAGAZA, y: y + 790, at: 0.7, anim: 'rise' },
+    { kind: 'still', src: IKON, crop: [0, 0, iw, ih], imgW: iw, w: 340, y, at: 0.04, anim: 'drop', cls: 'appicon', kb: [1, 1], maxBottom: 1900 },
+    { kind: 'html', cls: 'logo sm', html: LOGO, y: y + 350, at: 0.22, anim: 'zoom' },
+    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: y + 660, at: 0.45, anim: 'stamp', rot: -3 },
+    { kind: 'html', cls: 'store', html: MAGAZA, y: y + 800, at: 0.7, anim: 'rise' },
     { kind: 'html', cls: 'dl', html: `${o.cta ?? 'Hemen indir'}<i></i>`, y: y + 900, at: 0.9, anim: 'pop', pulse: o.bpm ?? 0, pulseAt: 0.9, pulseAmt: 0.04 },
-    ...(o.extra ? [{ kind: 'html', cls: 'note', html: o.extra, y: y + 1060, at: 1.1, anim: 'fade' }] : []),
+    ...(o.extra ? [{ kind: 'html', cls: 'note', html: o.extra, y: y + 1050, at: 1.1, anim: 'fade' }] : []),
   ];
 }
 const cover = (layers, o = {}) => ({ bg: o.bg ?? 'launch', ...o, layers });
@@ -57,7 +57,7 @@ const FX = (o = {}) => ({ bars: 140, grade: 'teal', vignette: 0.55, grain: 0.01,
 const ttb = (html, o = {}) => ({ kind: 'html', anim: 'flicker', at: 0, y: 1080, ...o, cls: 'band', html: `<div class="tt ${o.c ?? ''}">${html}</div>` });
 const bolge = (id, lv, t0, name, tag, dur, o = {}) => ({ id, dur, bg: 'clip', clip: clip(lv, t0, o.cd ?? 2.4), cam: o.cam ?? { z: [1.14, 1.24], top: [150, 162] }, ...(o.mus ? { mus: o.mus } : {}),
   fx: FX({ flash: [[0, 0.1, [255, 255, 255], 0.45]] }), sfx: [[0, 'swish', 0.45], [0, 'hit', 0.3]], layers: [
-    ttb(name, { c: 'sm', y: 1060, anim: 'none' }), { kind: 'html', cls: 'lvltag', html: tag, y: 1160, at: 0.08, anim: 'fade' }] });
+    ttb(name, { c: 'sm', y: 270, anim: 'none' }), { kind: 'html', cls: 'lvltag', html: tag, y: 370, at: 0.08, anim: 'fade' }] });
 const yayinda = {
   slug: 'simdi-yayinda', title: 'ODİ: Sesin Yolu — Şimdi yayında', ad: true, bpm: 100, snap: fb(1), style: 'fragman', subY: 1390, subCls: 'tr', vofx: 'trailer', voGap: 0.2, tail: 0.8, limit: 0.6,
   duck: { music: -10, sfx: -6 },
@@ -67,7 +67,7 @@ const yayinda = {
       fx: FX({ flash: [[0, 0.16]], shake: [[0, 0.9, 40]], rgb: [[0, 0.5, 16]], zoom: [[0, 0.35, 0.14]] }), sfx: [[0, 'braam', 1], [0, 'boom', 0.8]], layers: [
       ttb('Bekleyiş<br>bitti.', { c: 'lg gold', y: 980, at: 0.04 }),
     ] },
-    { id: 'giris', dur: fb(5), bg: 'clip', clip: clip(2, 0.4, 3.8), speed: 0.5, blend: true, cam: { z: [1.75, 1.95], x: -55, top: [300, 320] }, mus: 'drone',
+    { id: 'giris', dur: fb(5), bg: 'clip', clip: clip(2, 0.4, 3.8), speed: 0.35, blend: true, cam: { z: [1.75, 1.95], x: -55, top: [300, 320] }, mus: 'drone',
       fx: FX({ fadeIn: 0.2 }), sfx: [[0.05, 'heartbeat', 0.8], [fb(2.5), 'heartbeat', 0.7]], layers: [] },
     bolge('orman', 3, 9.0, 'Kulak Kılı Ormanı', '3. bölüm · Dış Kulak', fb(2), { mus: 'pulse', cam: { z: [1.15, 1.25], top: [160, 175] } }),
     bolge('zar', 10, 18.7, 'Kulak Zarı', '10. bölüm «Titreşim»', fb(2)),
@@ -81,27 +81,27 @@ const yayinda = {
       ttb('Serumen Golemi', { c: 'gold', at: 1.2 }),
     ] },
     { id: 'sus', dur: fb(1), bg: 'black', mus: 'off', fx: FX(), layers: [] },
-    { id: 'canavar', dur: fb(6), bg: 'clip', clip: clip(40, 21.0, 3.5), cam: { z: [1.0, 1.2], top: 110, punch: [[0.3, 0.1, 0.3]] }, mus: 'full',
+    { id: 'canavar', dur: fb(6), bg: 'clip', clip: clip(40, 21.0, 4), cam: { z: [1.0, 1.2], top: 110, punch: [[0.3, 0.1, 0.3]] }, mus: 'full',
       fx: FX({ shake: [[0.3, 1.2, 30]], rgb: [[0.3, 0.6, 18]], flash: [[0, 0.12]] }), sfx: [[0, 'braam', 1], [0, 'boom', 0.9]], layers: [
       ttb('Gürültü Canavarı', { c: 'gold', at: 1.5 }),
     ] },
     // açılış: siyahtan altın ışınlara, "Şimdi yayında" çarpar
     { id: 'acilis', dur: fb(5), bg: 'launch', mus: 'hit', fx: { flash: [[0, 0.22]], shake: [[0, 0.5, 26]], zoom: [[0, 0.4, 0.1]] },
       sfx: [[0, 'boom', 1], [0, 'braam', 0.55], [0.1, 'sparkle', 0.6]], layers: [
-      { kind: 'odi', size: 300, y: 300, at: 0.05, anim: 'drop', bob: 1.6, bobAmp: 12 },
-      kt('Şimdi<br>yayında', { c: 'lg gold', y: 660, at: 0.02, slamFrom: 2.6 }),
-      tsub('ODİ: Sesin Yolu', { y: 1100, at: 0.5, c: 'lo xl' }),
+      { kind: 'odi', size: 360, y: 330, at: 0.05, anim: 'drop', bob: 1.6, bobAmp: 12 },
+      kt('Şimdi<br>yayında', { c: 'lg gold', y: 760, at: 0.02, slamFrom: 2.6 }),
+      tsub('ODİ: Sesin Yolu', { y: 1200, at: 0.5, c: 'lo xl' }),
     ] },
     { id: 'son', dur: fb(6), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5], [0.9, 'pop', 0.4]], layers: sonKart({ bpm: 100 }) },
   ],
   vo: [
     { id: 'y1', scene: 'kanca', at: 0.3, nosub: true }, { id: 'y2', scene: 'giris', at: 0.3 }, { id: 'y3', scene: 'orman', at: 0.15 },
-    { id: 'y4', scene: 'canavar', at: 0.25 }, { id: 'y5', scene: 'acilis', at: 0.35, nosub: true }, { id: 'y6', scene: 'son', at: 0.9, nosub: true },
+    { id: 'y4', scene: 'canavar', at: 0.25, nosub: true }, { id: 'y5', scene: 'acilis', at: 0.35, nosub: true }, { id: 'y6', scene: 'son', at: 0.9, nosub: true },
   ],
-  cover: { clip: clip(40, 26.8, 2.9), t: 1.3, frame: { zoom: 2.2, top: 205 }, dim: 0.55, blur: 1.0, bg: 'none', layers: [
+  cover: { clip: clip(40, 26.8, 2.9), t: 1.3, frame: { zoom: 2.2, top: 205 }, dim: 0.42, blur: 2.5, bg: 'none', layers: [
     { kind: 'html', cls: 'band', html: '<div class="tt lg gold">Bekleyiş<br>bitti.</div>', y: 300 },
-    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: 760 },
-    { kind: 'html', cls: 'logo sm', html: LOGO, y: 1000 },
+    { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: 680 },
+    { kind: 'html', cls: 'logo sm', html: LOGO, y: 1260 },
   ] },
   post: {
     caption: 'Bekleyiş bitti. Bir ses, beyne ulaşmak için yola çıkıyor: Kulak Kılı Ormanı, kulak zarı, kemikçikler, Koklea, işitme siniri… ve yolun sonunda Gürültü Canavarı.\nODİ: Sesin Yolu şimdi yayında. 40 bölüm, kulaktan beyne. Hemen indir!',
@@ -136,7 +136,7 @@ const geri = {
       [22, 60, 'Koklea', { skip: 0.3, cam: { z: 1.2, top: 190 } }],
       [35, 6.2, 'Ters Dünya', { cam: { z: 1.15, top: 160 } }],
       [40, 21.0, 'Gürültü Canavarı', { cam: { z: 1.1, top: 120, punch: [[0.3, 0.1, 0.3]] }, fx: { shake: [[0.3, 0.5, 22]] } }]]
-      .map(([lv, t0, name, o], i) => ({ id: `m${i + 1}`, dur: sp(2), bg: 'clip', clip: clip(lv, t0, { 20: 3.5, 22: 3.5, 35: 2.4, 40: 3.5 }[lv]), ...o, fx: { flash: [[0, 0.08, [255, 255, 255], 0.5]], ...(o.fx ?? {}) },
+      .map(([lv, t0, name, o], i) => ({ id: `m${i + 1}`, dur: sp(2), bg: 'clip', clip: clip(lv, t0, { 20: 3.5, 22: 3.5, 35: 2.4, 40: 4 }[lv]), ...o, fx: { flash: [[0, 0.08, [255, 255, 255], 0.5]], ...(o.fx ?? {}) },
         sfx: [[0, 'swish', 0.45], [0, 'hit', 0.4]], layers: [lbl(name, { c: i % 2 ? 'teal' : 'gold', y: 1180, at: 0.05, rot: i % 2 ? 2 : -2 })] })),
     { id: 'son', dur: sp(8), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: sonKart({ cta: 'Hemen oyna', bpm: 120 }) },
   ],
@@ -187,10 +187,10 @@ const ilkGun = {
       madde(3), phone(TK('12-yaris-ici.png'), [0, 150, 1170, 1380], { imgW: 1170, w: 700, y: 420, maxH: 780, ry: [-10, 4] }),
       { kind: 'html', cls: 'lvltag', html: 'Canlı Takım Yarışı · aynı bölüm, aynı anda', y: 1290, at: 0.3, anim: 'fade' }] },
     { id: 'f5', dur: ib(4), bg: 'board', sfx: ozSfx, layers: [
-      madde(4), phone(C3('oyun/timpano-1.png'), [0, 300, 1080, 1250], { imgW: 1080, w: 680, y: 420, maxH: 760, ry: [10, -4] }),
+      madde(4), phone(C3('oyun/timpano-1.png'), [0, 520, 1170, 1500], { imgW: 1170, w: 680, y: 420, maxH: 760, ry: [10, -4] }),
       { kind: 'html', cls: 'note', html: 'Eğri bir bulgudur; tanıyı bütün testler birlikte koyar.', y: 1270, at: 0.3, anim: 'fade' }] },
     { id: 'f6', dur: ib(4), bg: 'night', ringY: 900, sfx: ozSfx, layers: [
-      madde(5), phone(C3('vaka/kv19-hasta.png'), [0, 300, 1080, 1250], { imgW: 1080, w: 680, y: 420, maxH: 760, ry: [-10, 4] }),
+      madde(5), phone(C3('vaka/kv19-hasta.png'), [0, 760, 1170, 1250], { imgW: 1170, w: 680, y: 420, maxH: 760, ry: [-10, 4] }),
       { kind: 'html', cls: 'lvltag', html: 'Kamp Kliniği · 32 kurgusal vaka', y: 1290, at: 0.3, anim: 'fade' }] },
     { id: 'ozet', dur: ib(4), bg: 'launch', mus: 'rise', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'whoosh', 0.4], ...OZ.map((_, i) => [0.05 + i * 0.08, 'pop', 0.25])], layers: [
       ...OZ.map((t, i) => ({ ...chkL(t, { c: 'sm', y: 280 + i * 104, at: 0.04 + i * 0.08, anim: 'pop', drawAt: 0.1 }), dx: -40 })),
@@ -220,7 +220,7 @@ const GUN = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum'];
 const weekL = (i, o = {}) => ({ kind: 'html', cls: 'week', html: GUN.map((g, k) => `<span class="${k < i ? 'done' : k === i ? 'on' : ''}">${g}</span>`).join(''), y: o.y ?? 255, at: o.at ?? 0, anim: o.anim ?? 'none' });
 const dayL = (gun, ders, o = {}) => ({ kind: 'html', cls: 'day', html: `<b>${gun}</b><span>${ders}</span>`, y: o.y ?? 370, at: o.at ?? 0.05, anim: o.anim ?? 'stamp', rot: o.rot ?? -2 });
 const daySfx = [[0, 'swish', 0.4], [0.08, 'scribble', 0.5], [0.12, 'paper', 0.25]];
-const ekranL = (src, crop, o = {}) => phone(src, crop, { imgW: o.imgW ?? 1080, w: o.w ?? 640, y: o.y ?? 640, maxH: o.maxH ?? 620, ry: o.ry ?? [-10, 4], ...o });
+const ekranL = (src, crop, o = {}) => phone(src, crop, { imgW: o.imgW ?? 1170, w: o.w ?? 560, y: o.y ?? 640, maxH: o.maxH ?? 700, ry: o.ry ?? [-10, 4], ...o });
 const sinav = {
   slug: 'sinav-haftasi', title: 'Sınav haftası: ODİ yanında', ad: true, bpm: 84, snap: lb(1), style: 'lofi', subY: 1400, subCls: 'big', voGap: 0.1, tail: 0.8, limit: 0.6,
   duck: { music: -7, sfx: -4 },
@@ -237,14 +237,14 @@ const sinav = {
     { id: 'sal', dur: lb(4), bg: 'clip', clip: clip(22, 10.7, 3.5), cam: { z: [1.12, 1.22], top: [160, 172] }, shade: 'top', sfx: daySfx, layers: [
       weekL(1), dayL('Salı', 'Fizyoloji', { rot: 2 }), { kind: 'html', cls: 'lvltag', html: '22. bölüm «İnce Sesler» · Koklea tabanı', y: 1260, at: 0.2, anim: 'fade' }] },
     { id: 'car', dur: lb(4), bg: 'desk', sfx: daySfx, layers: [
-      weekL(2), dayL('Çarşamba', 'Timpanometri'), ekranL(C3('oyun/timpano-1-cevap.png'), [0, 300, 1080, 1250]),
-      { kind: 'html', cls: 'note', html: 'Timpanogram tek başına tanı koydurmaz.', y: 1290, at: 0.4, anim: 'fade' }] },
+      weekL(2), dayL('Çarşamba', 'Timpanometri'), ekranL(C3('oyun/timpano-1-cevap.png'), [0, 250, 1170, 1720]),
+      { kind: 'html', cls: 'note', html: 'Timpanogram tek başına tanı koydurmaz.', y: 565, at: 0.4, anim: 'fade' }] },
     { id: 'per', dur: lb(4), bg: 'desk', sfx: daySfx, layers: [
-      weekL(3), dayL('Perşembe', 'Klinik', { rot: 2 }), ekranL(C3('vaka/kv11-test-grid.png'), [0, 300, 1080, 1250], { ry: [10, -4] }),
-      { kind: 'html', cls: 'lvltag', html: 'Kamp Kliniği · Hasta Vakaları (kurgusal)', y: 1290, at: 0.4, anim: 'fade' }] },
+      weekL(3), dayL('Perşembe', 'Klinik', { rot: 2 }), ekranL(C3('vaka/kv11-test-grid.png'), [0, 280, 1170, 1500], { ry: [10, -4] }),
+      { kind: 'html', cls: 'lvltag', html: 'Kamp Kliniği · Hasta Vakaları (kurgusal)', y: 570, at: 0.4, anim: 'fade' }] },
     { id: 'cum', dur: lb(4), bg: 'desk', sfx: daySfx, layers: [
-      weekL(4), dayL('Cuma', 'Tekrar'), ekranL(C4('kart/album-kemikcikler.png'), [0, 300, 1170, 1500], { imgW: 1170 }),
-      { kind: 'html', cls: 'lvltag', html: 'Kulak Kartları · 50 kart', y: 1290, at: 0.4, anim: 'fade' }] },
+      weekL(4), dayL('Cuma', 'Tekrar'), ekranL(C4('kart/album-kemikcikler.png'), [0, 300, 1170, 1500]),
+      { kind: 'html', cls: 'lvltag', html: 'Kulak Kartları · 50 kart', y: 570, at: 0.4, anim: 'fade' }] },
     { id: 'son', dur: lb(6), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'boom', 0.4], [0.1, 'sparkle', 0.5]], layers: sonKart({ cta: 'Bir tur at', extra: 'Ders notlarının yerine değil, yanında: oynayarak tekrar.' }) },
   ],
   vo: [
