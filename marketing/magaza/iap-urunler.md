@@ -37,11 +37,15 @@ bitirmeye harcanır (kalan her dakika 1 kristal); bölüm, savaş ya da lig puan
 - **App Store:** fiyat noktası seçilir. Temel ülke **Türkiye** seçilip yukarıdaki TRY değerine en yakın nokta seçilir; diğer ülkeler
   Apple'ın eşdeğeriyle dolar (ilk yayında yalnız Türkiye önerilir). Apple KDV'yi kendisi tahsil eder; görünen fiyat KDV dahildir.
 - **Google Play:** varsayılan fiyat TRY olarak girilir (KDV dahil); diğer ülkeler "fiyatları dönüştür".
-- **Dikkat:** oyun bugün fiyatı mağazadan çekmiyor, `SHOP.priceTry`'yi TL olarak gösteriyor (`ShopScreen.tsx`); aylık harcama
-  sınırı da bu değerle hesaplanıyor. Bu yüzden ilk yayında: **yalnız Türkiye** ve mağaza fiyatı **tam olarak** tablodaki TRY değeri
-  (App Store'da tam bu değerde fiyat noktası yoksa en yakın nokta seçilip `SHOP.priceTry` ona eşitlenir). Gösterilen fiyatla
-  ödenen fiyat farklı olursa inceleme reddi ve tüketici şikâyeti riski var. Başka ülkeler açılmadan önce oyun, RevenueCat'in
-  döndürdüğü yerel fiyatı (`product.priceString`) göstermeli (is-listesi YN-032).
+- **Oyunda gösterilen fiyat (YN-032):** mağaza derlemesinde oyun her ürünün fiyatını RevenueCat'ten (`getProducts` →
+  `priceString`, mağazanın kendi biçimi: vergi, kur ve ülke dahil) alır ve kartta, onay sayfasında, "… öde" düğmesinde onu
+  gösterir (`apps/mobile/src/purchases.ts` → köprü `storePrices` → `apps/web/src/shopPrice.ts`). Yanlış para birimi gösterilmez:
+  listedeki her ürünün fiyatı (hepsi aynı para biriminde) gelmezse hepsi TL liste fiyatına (`SHOP.priceTry`) düşer. Mağaza fiyatı
+  yoksa (web, Expo Go, çevrimdışı, RevenueCat anahtarı yok) gösterilen tek fiyat TL liste fiyatıdır ve yanında "Mağaza fiyatı
+  satın alırken gösterilir" notu durur; gerçek satın almada onay düğmesi tutar yazmaz ("Mağazada satın al"), tutarı mağazanın ödeme
+  sayfası gösterir. **Aylık harcama sınırı** sunucuda TL liste fiyatıyla sayılır (değişmedi) ve oyunda "TL liste fiyatıyla" diye
+  etiketlidir; Türkiye dışında ödenen tutar sınıra kur çevrimiyle değil liste fiyatıyla girer. İlk yayında yine **yalnız Türkiye**
+  ve mağaza fiyatı tablodaki TRY değerine en yakın nokta önerilir (sınır ve geçmiş tutarları ödenenle aynı kalsın).
 
 ### Apple inceleme ekran görüntüsü (her ürün için)
 Her üründe bir "Review Screenshot" (en az 640×920) istenir: ürünün oyunda satın alındığı yer.
@@ -57,7 +61,7 @@ Her üründe bir "Review Screenshot" (en az 640×920) istenir: ürünün oyunda 
 | `odi.pass` Sezon Kartı | 28 gün süren fayda: Apple "süreli erişim" sayıp **otomatik yenilenmeyen abonelik** (Non-Renewing Subscription) isteyebilir. Ayrıca kalıcı kostüm içerir. Oyunlarda günlük kristal veren kartlar yaygın olarak tüketilebilir girilir | Orta | Tüketilebilir olarak gönder; açıklamada "otomatik yenilenmez, 28 gün boyunca her gün 30 kristal ödül kutusuna" yaz. Reddedilirse Non-Renewing Subscription olarak yeniden oluştur: istemci kodu değişmez (iOS'ta `getProducts` türden bağımsız), ama RevenueCat'in bu satın almayı `non_subscriptions` altında döndürdüğü **sandbox'ta doğrulanmalı** (sunucu orada arar) |
 | `odi.pass` | `limit: 1` hesap başına **ömür boyu** bir kez demek: "Sezon" adı her sezon yeniden alınabileceğini düşündürür | Düşük (inceleme), ürün kararı | Ad ve açıklama "hesap başına bir kez" diyor. Her sezon satılacaksa sunucuda sınır sezon başına yapılmalı (ürün sahibine) |
 | `odi.baslangic` | Kalıcı şapka içeren tüketilebilir ürün: inceleyici "geri yüklenebilir (non-consumable) olmalı" diyebilir | Düşük–orta | İçeriğin çoğu harcanır (kristal, hızlandırıcı); hesap kayıt sistemi olmadığından yeni cihaza geri yükleme yapılamaz. Açıklama "hesap başına bir kez" diyor; gerekirse inceleme notunda açıklanır |
-| Hepsi | Oyunda gösterilen fiyat sabit TL (`SHOP.priceTry`), mağazanın yerel fiyatı değil | Orta | Yalnız Türkiye + mağaza fiyatı SHOP ile birebir; çok ülke öncesi yerel fiyat gösterimi (YN-032) |
+| Hepsi | Mağaza fiyatı alınamazsa (çevrimdışı, ürün RevenueCat'te eksik) oyun TL liste fiyatını gösterir | Düşük | TL fiyatın yanında "Mağaza fiyatı satın alırken gösterilir" notu; ödeme düğmesi tutar yazmaz; ödenen tutarı mağazanın ödeme sayfası gösterir (YN-032) |
 | Hepsi | Mağaza 6 bölümden sonra açılıyor: inceleyici ürünleri hemen göremez (2.1) | Orta | İnceleme notunda yol ve süre yazılı (yaklaşık 6–8 dk). İstenirse ekran kaydı eklenir |
 | Hepsi | Ganimet kutusu / rastgele ücretli öğe | **Yok** | Olasılık beyanı gerekmez. Ücretsiz "Şanslı Nota" ihtimali (%10) oyunda (Profil › Nasıl çalışır?) yazılı |
 | Hepsi | Takım hediyesi: satın alma başkalarına ödül verir ("hediye" sayılırsa 3.1.1'de "başka kullanıcıya hediye" kuralı) | Düşük | Hediye oyun içi sabit kristal/jeton; satın alınan ürün devredilmez. Açıklamada yazılı |
