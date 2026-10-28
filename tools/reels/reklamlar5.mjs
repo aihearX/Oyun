@@ -128,13 +128,13 @@ const geri = {
     sayi(1, 'bir', clip(31, 22.2, 3.4), 'Atıl', 'Koşu yönüne kaydır', { skip: 1.0, cam: { z: [1.2, 1.26], top: [165, 175], punch: [[0.15, 0.12, 0.2]] } }),
     { id: 'sifir', dur: sp(2), bg: 'black', mus: 'off', sfx: [[sp(2), 'reverse', 0.7]], layers: [] },
     { id: 'yayinda', dur: sp(4), bg: 'launch', mus: 'drop', fx: { flash: [[0, 0.2]], shake: [[0, 0.45, 26]], zoom: [[0, 0.35, 0.1]] }, sfx: [[0, 'boom', 1], [0, 'horn', 0.5], [0.1, 'sparkle', 0.6]], layers: [
-      kt('Yayında!', { c: 'lg gold', y: 380, at: 0.02, slamFrom: 2.8 }),
-      { kind: 'odi', size: 340, y: 720, at: 0.15, anim: 'drop', bob: 1.0, bobAmp: 14 },
-      tsub('ODİ: Sesin Yolu', { y: 1130, at: 0.4, c: 'lo xl' }),
+      kt('Yayında!', { c: 'lg gold', y: 520, at: 0.02, slamFrom: 2.8 }),
+      { kind: 'odi', size: 380, y: 820, at: 0.15, anim: 'drop', bob: 1.0, bobAmp: 14 },
+      tsub('ODİ: Sesin Yolu', { y: 1270, at: 0.4, c: 'lo xl' }),
     ] },
     ...[[20, 10.7, 'Serumen Golemi', { skip: 0.2, cam: { z: 1.15, top: 150, punch: [[0.28, 0.12, 0.25]] }, fx: { shake: [[0.28, 0.4, 24]] } }],
       [22, 60, 'Koklea', { skip: 0.3, cam: { z: 1.2, top: 190 } }],
-      [35, 6.2, 'Ters Dünya', { cam: { z: 1.15, top: 160 } }],
+      [35, 6.2, 'Ters Dünya', { skip: 0.35, cam: { z: 1.15, top: 160 } }],
       [40, 21.0, 'Gürültü Canavarı', { cam: { z: 1.1, top: 120, punch: [[0.3, 0.1, 0.3]] }, fx: { shake: [[0.3, 0.5, 22]] } }]]
       .map(([lv, t0, name, o], i) => ({ id: `m${i + 1}`, dur: sp(2), bg: 'clip', clip: clip(lv, t0, { 20: 3.5, 22: 3.5, 35: 2.4, 40: 4 }[lv]), ...o, fx: { flash: [[0, 0.08, [255, 255, 255], 0.5]], ...(o.fx ?? {}) },
         sfx: [[0, 'swish', 0.45], [0, 'hit', 0.4]], layers: [lbl(name, { c: i % 2 ? 'teal' : 'gold', y: 1180, at: 0.05, rot: i % 2 ? 2 : -2 })] })),
@@ -151,7 +151,7 @@ const geri = {
     { kind: 'html', cls: 'logo sm', html: LOGO, y: 1230 },
   ]),
   post: {
-    caption: 'Beş: zıpla! Dört: altından kay! Üç: havada süzül! İki: yere çakıl! Bir: ileri atıl!\nODİ: Sesin Yolu yayında. Beş hareket, kırk bölüm, kulaktan beyne tek yol. Hemen oyna!',
+    caption: 'Beş: zıpla! Dört: altından kay! Üç: süzül, havada kal! İki: yere çakıl! Bir: ileri atıl!\nODİ: Sesin Yolu yayında. Beş hareket, kırk bölüm, kulaktan beyne tek yol. Hemen oyna!',
     tags: ['#odisesinyolu', '#yayında', '#yenioyun', '#mobiloyun', '#platformoyunu', '#oyun', '#kulak', '#işitme'],
   },
 };
@@ -171,13 +171,13 @@ const ilkGun = {
     { id: 'kanca', dur: ib(4), bg: 'launch', mus: 'intro', fx: { flash: [[0, 0.14]], zoom: [[0, 0.3, 0.08]] }, sfx: [[0, 'boom', 0.8], [0, 'hit', 0.5]], layers: [
       kt('İlk gün', { c: 'xl gold', y: 250, at: 0.0, slamFrom: 2.6 }),
       tsub('seni neler bekliyor?', { y: 540, at: 0.25, c: 'lo xl' }),
-      ...OZ.map((t, i) => ({ ...chkL(t, { c: 'sm off', y: 690 + i * 104, at: 0.35 + i * 0.09, drawAt: 99 }), dx: -40 })),
+      ...OZ.map((t, i) => chkL(t, { c: 'sm w off', y: 690 + i * 104, at: 0.35 + i * 0.09, drawAt: 99 })),
     ] },
     { id: 'f1a', dur: ib(2), bg: 'clip', clip: clip(7, 12.1, 2.0), cam: CAMI, mus: 'drop', shade: 'top', fx: { flash: [[0, 0.1]] }, sfx: ozSfx, layers: [
       madde(0), { kind: 'html', cls: 'lvltag', html: '7. bölüm · Kulak Kanalı', y: 1250, at: 0.1, anim: 'fade' }] },
     { id: 'f1b', dur: ib(2), bg: 'clip', clip: clip(13, 41.0, 2.0), cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
       madde(0, { anim: 'none', drawAt: -1 }), { kind: 'html', cls: 'lvltag', html: '13. bölüm · Kemikçikler', y: 1250, at: 0, anim: 'none' }] },
-    { id: 'f1c', dur: ib(2), bg: 'clip', clip: clip(35, 6.2, 2.4), cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
+    { id: 'f1c', dur: ib(2), bg: 'clip', clip: clip(35, 6.2, 2.4), skip: 0.35, cam: CAMI, shade: 'top', sfx: [[0, 'swish', 0.4]], layers: [
       madde(0, { anim: 'none', drawAt: -1 }), { kind: 'html', cls: 'lvltag', html: '35. bölüm · Beyin Sapı', y: 1250, at: 0, anim: 'none' }] },
     { id: 'f2', dur: ib(4), bg: 'clip', clip: clip(22, 60, 3.5), skip: 0.3, cam: { z: [1.2, 1.28], top: [185, 195] }, shade: 'top', fx: { flash: [[0, 0.08]] }, sfx: ozSfx, layers: [
       madde(1), { kind: 'html', cls: 'lvltag', html: '21–30. bölüm · Koklea · sıvıda yüz', y: 1250, at: 0.2, anim: 'fade' }] },
@@ -193,7 +193,7 @@ const ilkGun = {
       madde(5), phone(C3('vaka/kv19-hasta.png'), [0, 760, 1170, 1250], { imgW: 1170, w: 680, y: 420, maxH: 760, ry: [-10, 4] }),
       { kind: 'html', cls: 'lvltag', html: 'Kamp Kliniği · 32 kurgusal vaka', y: 1290, at: 0.3, anim: 'fade' }] },
     { id: 'ozet', dur: ib(4), bg: 'launch', mus: 'rise', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'whoosh', 0.4], ...OZ.map((_, i) => [0.05 + i * 0.08, 'pop', 0.25])], layers: [
-      ...OZ.map((t, i) => ({ ...chkL(t, { c: 'sm', y: 280 + i * 104, at: 0.04 + i * 0.08, anim: 'pop', drawAt: 0.1 }), dx: -40 })),
+      ...OZ.map((t, i) => chkL(t, { c: 'sm w', y: 280 + i * 104, at: 0.04 + i * 0.08, anim: 'whipL', drawAt: 0.12 })),
       kt('Hepsi<br>ilk günden', { c: 'md gold', y: 960, at: 0.55 }),
     ] },
     { id: 'son', dur: ib(8), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: sonKart({ bpm: 124 }) },
@@ -205,11 +205,11 @@ const ilkGun = {
   cover: cover([
     { kind: 'html', cls: 'kt xl gold', html: 'İlk gün', y: 230 },
     { kind: 'html', cls: 'tsub lo xl', html: 'seni neler bekliyor?', y: 520 },
-    ...OZ.map((t, i) => ({ kind: 'html', cls: 'chk sm', html: `<span class="bx">${CHECK.replace('stroke-dashoffset="1"', 'stroke-dashoffset="0"')}</span>${t}`, y: 640 + i * 100, dx: -40 })),
+    ...OZ.map((t, i) => ({ kind: 'html', cls: 'chk sm w', html: `<span class="bx">${CHECK.replace('stroke-dashoffset="1"', 'stroke-dashoffset="0"')}</span>${t}`, y: 640 + i * 100 })),
     { kind: 'html', cls: 'live', html: '<b></b>Şimdi yayında', y: 1270 },
   ]),
   post: {
-    caption: 'İlk gün seni neler bekliyor?\n✔ 40 bölüm: kulaktan beyne\n✔ Koklea’nın içinde yüzmek\n✔ Büyüyen bir Kulak Kampı\n✔ Takımınla canlı yarış\n✔ Timpanogram Eşleştir (eğri bir bulgudur; tanıyı bütün testler birlikte koyar)\n✔ Kamp Kliniği: 32 kurgusal hasta vakası\nHepsi ilk günden. ODİ: Sesin Yolu yayında, hemen indir!',
+    caption: 'İlk gün seni neler bekliyor?\n✔ 40 bölüm: kulaktan beyne\n✔ Sıvı dolu bir Koklea: içinde yüz\n✔ Büyüyen bir Kulak Kampı\n✔ Takımınla canlı yarış\n✔ Timpanogram Eşleştir (eğri bir bulgudur; tanıyı bütün testler birlikte koyar)\n✔ Kamp Kliniği: 32 kurgusal hasta vakası\nHepsi ilk günden. ODİ: Sesin Yolu yayında, hemen indir!',
     tags: ['#odisesinyolu', '#yayında', '#yenioyun', '#mobiloyun', '#odyoloji', '#odyolojiöğrencisi', '#işitme', '#kulak', '#koklea'],
   },
 };
@@ -220,15 +220,15 @@ const GUN = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum'];
 const weekL = (i, o = {}) => ({ kind: 'html', cls: 'week', html: GUN.map((g, k) => `<span class="${k < i ? 'done' : k === i ? 'on' : ''}">${g}</span>`).join(''), y: o.y ?? 255, at: o.at ?? 0, anim: o.anim ?? 'none' });
 const dayL = (gun, ders, o = {}) => ({ kind: 'html', cls: 'day', html: `<b>${gun}</b><span>${ders}</span>`, y: o.y ?? 370, at: o.at ?? 0.05, anim: o.anim ?? 'stamp', rot: o.rot ?? -2 });
 const daySfx = [[0, 'swish', 0.4], [0.08, 'scribble', 0.5], [0.12, 'paper', 0.25]];
-const ekranL = (src, crop, o = {}) => phone(src, crop, { imgW: o.imgW ?? 1170, w: o.w ?? 560, y: o.y ?? 640, maxH: o.maxH ?? 700, ry: o.ry ?? [-10, 4], ...o });
+const ekranL = (src, crop, o = {}) => phone(src, crop, { imgW: o.imgW ?? 1170, w: o.w ?? 760, y: o.y ?? 625, maxH: o.maxH ?? 720, ry: o.ry ?? [-7, 3], ...o });
 const sinav = {
   slug: 'sinav-haftasi', title: 'Sınav haftası: ODİ yanında', ad: true, bpm: 84, snap: lb(1), style: 'lofi', subY: 1400, subCls: 'big', voGap: 0.1, tail: 0.8, limit: 0.6,
   duck: { music: -7, sfx: -4 },
   scenes: [
     { id: 'kanca', dur: lb(3), bg: 'desk', mus: 'dusty', fx: { flash: [[0, 0.1]], shake: [[0, 0.3, 16]] }, sfx: [[0, 'stamp', 0.9], [0.02, 'hit', 0.4], [0.45, 'pop', 0.4], [0.75, 'boing', 0.3]], layers: [
-      { kind: 'html', cls: 'stamp2 big', html: 'Sınav<br>haftası', y: 290, at: 0.02, anim: 'stamp', rot: -6 },
+      { kind: 'html', cls: 'stamp2 big', html: 'Sınav<br>haftası', y: 290, at: 0.02, anim: 'stamp', rot: -6, z: 3 },
       weekL(-1, { y: 720, at: 0.4, anim: 'pop' }),
-      { kind: 'dede', size: 330, y: 880, at: 0.7, anim: 'drop', bob: 1.8, bobAmp: 10 },
+      { kind: 'dede', size: 440, y: 830, at: 0.7, anim: 'drop', bob: 1.8, bobAmp: 10, z: 1 },
     ] },
     { id: 'pzt', dur: lb(2), bg: 'clip', clip: clip(13, 41.0, 2.0), cam: { z: [1.16, 1.22], top: [170, 178] }, shade: 'top', sfx: daySfx, layers: [
       weekL(0), dayL('Pazartesi', 'Anatomi'), { kind: 'html', cls: 'lvltag', html: '13. bölüm «Çekiç» · Kemikçikler', y: 1260, at: 0.2, anim: 'fade' }] },
@@ -272,9 +272,9 @@ const ilkTakim = {
   slug: 'ilk-takim', title: 'Takımını kur, ilk sen ol', ad: true, bpm: 112, snap: tb(1), style: 'komedi', subY: 1400, subCls: 'big', voGap: 0.08, tail: 0.7, limit: 0.6,
   duck: { music: -9, sfx: -3 },
   scenes: [
-    { id: 'kanca', dur: tb(4), bg: 'clip', clip: clip(2, 0.4, 3.8), speed: [[0, 1], [0.25, 0], [9, 0]], cam: { z: 1.75, x: -55, top: 305, punch: [[0.25, 0.08, 0.3]] }, mus: 'off',
+    { id: 'kanca', dur: tb(4), bg: 'clip', clip: clip(2, 0.4, 3.8), speed: [[0, 1], [0.25, 0], [9, 0]], cam: { z: [2.0, 2.2], x: -55, top: [312, 318], punch: [[0.25, 0.1, 0.3]] }, mus: 'off',
       fx: { flash: [[0.25, 0.1, [255, 255, 255], 0.5]] }, sfx: [[0, 'hit', 0.5], [0.25, 'scratch', 0.8]], layers: [
-      meme('Her arkadaş<br>grubunda<br>bir tane vardır:', { y: 250, anim: 'slam', slamFrom: 1.6, at: 0.02 }),
+      meme('Her arkadaş<br>grubunda<br>bir tane vardır:', { c: 'lg', y: 260, anim: 'slam', slamFrom: 1.6, at: 0.02 }),
     ] },
     { id: 'a1', dur: tb(3), bg: 'clip', clip: clip(31, 17.3, 3.0), speed: 1.4, cam: CAMT, mus: 'bouncy', fx: { flash: [[0, 0.08]] }, sfx: [[0, 'whoosh', 0.4], [0.05, 'pop', 0.4]], layers: [
       meme('Hep önden<br>koşan', { c: 'sm' }), tip(1)] },
@@ -285,16 +285,16 @@ const ilkTakim = {
       meme('Aynı yerde<br>takılıp kalan', { c: 'sm' }), tip(3)] },
     { id: 'a4', dur: tb(4), bg: 'plan', mus: 'bright', sfx: [[0, 'whoosh', 0.4], [0.3, 'ding', 0.35]], layers: [
       meme('Ve herkesi<br>toplayan', { c: 'sm', y: 250 }),
-      phone(TK('08-uyeler.png'), [0, 520, 1170, 1250], { imgW: 1170, w: 720, y: 520, maxH: 650, ry: [-10, 4] }), tip(4)] },
+      phone(TK('08-uyeler.png'), [0, 520, 1170, 1250], { imgW: 1170, w: 840, y: 470, maxH: 720, ry: [-8, 3] }), tip(4)] },
     { id: 'hepsi', dur: tb(3), bg: 'launch', fx: { flash: [[0, 0.14]], zoom: [[0, 0.3, 0.08]] }, sfx: [[0, 'boom', 0.6], [0.05, 'sparkle', 0.4]], layers: [
       kt('Hepsi<br>lazım.', { c: 'lg gold', y: 320, at: 0.02 }),
       { kind: 'odi', size: 300, y: 820, at: 0.1, anim: 'drop', bob: 1.0, bobAmp: 12 },
     ] },
     { id: 'yaris', dur: tb(3), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [
-      phone(TK('12-yaris-ici.png'), [0, 150, 1170, 1380], { imgW: 1170, w: 700, y: 300, maxH: 880, ry: [10, -4] }),
+      phone(TK('12-yaris-ici.png'), [0, 150, 1170, 1380], { imgW: 1170, w: 800, y: 280, maxH: 920, ry: [8, -3] }),
       { kind: 'html', cls: 'lvltag', html: 'Canlı Takım Yarışı', y: 1270, at: 0.2, anim: 'fade' }] },
     { id: 'baskin', dur: tb(3), bg: 'plan', sfx: [[0, 'whoosh', 0.4]], layers: [
-      phone(TK('10-baskin-yari.png'), [0, 600, 1170, 1250], { imgW: 1170, w: 720, y: 300, maxH: 880, ry: [-10, 4] }),
+      phone(TK('10-baskin-yari.png'), [0, 600, 1170, 1250], { imgW: 1170, w: 840, y: 280, maxH: 920, ry: [-8, 3] }),
       { kind: 'html', cls: 'lvltag', html: 'Baskın · ortak can çubuğu', y: 1270, at: 0.2, anim: 'fade' }] },
     { id: 'son', dur: tb(7), bg: 'launch', mus: 'end', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.5], [0.1, 'sparkle', 0.5]], layers: sonKart({ cta: 'Takımını kur', extra: 'Arkadaşını etiketle. İlk takımı siz kurun.', bpm: 112 }) },
   ],
