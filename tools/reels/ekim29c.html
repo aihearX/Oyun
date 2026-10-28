@@ -1,0 +1,189 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+/* 29 Ekim — Atatürk anma/kutlama Reels sahnesi (1080x1920). window.render(t) her kareyi saniye cinsinden çizer; ekim29c.mjs kare kare çeker.
+   Saygı kuralları: yalnız kamu malı arşiv fotoğrafı (marketing/reels/kaynak/LISANS.md); fotoğrafa yalnız yavaş Ken Burns, sepya/gren, solma.
+   Yüzün üstünde hiçbir şey yok; ODİ/oyun grafiği fotoğrafla aynı karede yok; ODİ imzası ayrı son karede. */
+@font-face{font-family:Lora;font-weight:500;font-style:normal;src:url(fonts/lora-latin-500-normal.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:500;font-style:normal;src:url(fonts/lora-latin-ext-500-normal.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Lora;font-weight:600;font-style:normal;src:url(fonts/lora-latin-600-normal.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:600;font-style:normal;src:url(fonts/lora-latin-ext-600-normal.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Lora;font-weight:500;font-style:italic;src:url(fonts/lora-latin-500-italic.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:500;font-style:italic;src:url(fonts/lora-latin-ext-500-italic.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000}
+body{font-family:Lora,serif;color:#fff;position:relative}
+.scene{position:absolute;inset:0;opacity:0}
+/* 1–2: portre + söz */
+#s1{background:#060403}
+#pwrap{position:absolute;left:0;top:170px;width:1080px;height:1456px;transform-origin:540px 300px;
+ -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 170px);mask-image:linear-gradient(to bottom,transparent 0,#000 170px)}
+#photo{display:block;width:1080px;height:1456px;filter:grayscale(1) sepia(.38) contrast(1.06) brightness(1)}
+#shade{position:absolute;left:0;top:0;width:1080px;height:1920px;pointer-events:none;
+ background:linear-gradient(to bottom,rgba(6,4,3,0) 0px,rgba(6,4,3,0) 760px,rgba(6,4,3,.82) 1000px,rgba(6,4,3,.95) 1300px,#060403 1640px)}
+#edge{position:absolute;inset:0;pointer-events:none;
+ background:linear-gradient(to bottom,#060403 0px,rgba(6,4,3,0) 300px),radial-gradient(120% 75% at 50% 32%,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%)}
+#wave{position:absolute;left:190px;top:944px;width:700px;height:40px}
+#quote{position:absolute;left:60px;right:60px;top:992px;text-align:center;font-weight:500;font-size:62px;line-height:1.24;color:#fbf3e4;
+ text-shadow:0 3px 18px rgba(0,0,0,.85)}
+#quote .l{display:block}
+#attr{position:absolute;left:0;right:0;top:1474px;text-align:center;color:#e9c98a;text-shadow:0 2px 12px rgba(0,0,0,.9)}
+#attr b{display:block;font-weight:600;font-size:36px;letter-spacing:1px}
+#attr i{display:block;font-style:italic;font-weight:500;font-size:29px;margin-top:6px;color:#d9c3a0}
+/* 3: köprü */
+#s3{background:radial-gradient(80% 55% at 50% 42%,#1f1610 0%,#0a0705 70%)}
+#rings3{position:absolute;inset:0}
+.bridge{position:absolute;left:70px;right:70px;text-align:center;font-weight:500;font-size:66px;line-height:1.25;color:#fbf3e4}
+#b1{top:930px}#b2{top:1160px;color:#f0d49a}
+/* 4: bayrak */
+#s4{background:radial-gradient(90% 70% at 50% 34%,#c81a28 0%,#8f0d19 50%,#4a050c 100%)}
+#fglow{position:absolute;left:50%;top:640px;width:1400px;height:1100px;transform:translate(-50%,-50%);
+ background:radial-gradient(closest-side,rgba(255,236,190,.5),rgba(255,200,120,.15) 55%,rgba(255,200,120,0));opacity:0}
+.flag{position:absolute;left:90px;top:340px;width:900px;height:600px;border-radius:8px;overflow:hidden;
+ box-shadow:0 0 0 6px rgba(255,255,255,.95),0 30px 80px rgba(30,0,4,.6)}
+.flag svg{display:block}
+#date{position:absolute;left:0;right:0;top:1030px;text-align:center;font-weight:600;font-size:60px;letter-spacing:6px;color:#ffe3a3}
+#kutlu{position:absolute;left:40px;right:40px;top:1150px;text-align:center;font-weight:600;font-size:84px;line-height:1.12;color:#fff;
+ text-shadow:0 6px 24px rgba(50,0,6,.5)}
+#kutlu .l{display:block}
+/* 5: kapanış */
+#s5{background:radial-gradient(80% 55% at 50% 45%,#1c140e 0%,#080605 72%)}
+#saygi{position:absolute;left:0;right:0;top:760px;text-align:center;font-style:italic;font-weight:500;font-size:72px;color:#fbf3e4}
+#imzaw{position:absolute;left:220px;top:930px;width:640px;height:230px;overflow:hidden}
+#imza{display:block;width:640px;height:229px;filter:invert(1) sepia(.45) brightness(.98)}
+#rule{position:absolute;left:390px;width:300px;top:1220px;height:2px;background:linear-gradient(90deg,rgba(233,201,138,0),#e9c98a,rgba(233,201,138,0))}
+/* 6: ayrı son kare */
+#s6{background:#000}
+#odi{position:absolute;left:0;right:0;top:930px;text-align:center;font-weight:600;font-size:34px;letter-spacing:6px;color:#cfc6b8}
+#grain{position:absolute;inset:0;width:1080px;height:1920px;opacity:.10;mix-blend-mode:overlay;image-rendering:auto}
+#veil{position:absolute;inset:0;background:#000;pointer-events:none}
+</style></head><body>
+<div class="scene" id="s1">
+ <div id="pwrap"><img id="photo" src="../../marketing/reels/kaynak/ataturk-1932-portre.jpg" alt=""></div>
+ <div id="shade"></div><div id="edge"></div>
+ <canvas id="wave" width="700" height="40"></canvas>
+ <div id="quote"><span class="l" id="q0">“Dünyada her şey için,</span><span class="l" id="q1">medeniyet için,</span><span class="l" id="q2">hayat için,</span><span class="l" id="q3">muvaffakiyet için</span><span class="l" id="q4">en hakiki mürşit</span><span class="l" id="q5">ilimdir, fendir.”</span></div>
+ <div id="attr"><b>Mustafa Kemal Atatürk</b><i>Samsun, 22 Eylül 1924</i></div>
+</div>
+<div class="scene" id="s3">
+ <canvas id="rings3" width="1080" height="1920"></canvas>
+ <div class="bridge" id="b1">Bilimi rehber edinen<br>bir meslek olarak…</div>
+ <div class="bridge" id="b2">…her sesi bir hayata<br>taşımaya devam ediyoruz.</div>
+</div>
+<div class="scene" id="s4">
+ <div id="fglow"></div>
+ <div class="flag" id="flag"><!-- Resmî ölçüler (Türk Bayrağı Kanunu Tüzüğü), ekim29.html ile aynı geometri; üzerinde hiçbir şey yok. -->
+  <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#E30A17"/>
+  <circle cx="500" cy="500" r="250" fill="#fff"/><circle cx="562.5" cy="500" r="200" fill="#E30A17"/>
+  <polygon fill="#fff" points="695.80,500.00 782.17,471.94 782.17,381.12 835.55,454.59 921.93,426.53 868.55,500.00 921.93,573.47 835.55,545.41 782.17,618.88 782.17,528.06"/></svg>
+ </div>
+ <div id="date">29 EKİM 1923</div>
+ <div id="kutlu"><span class="l" id="k1">Cumhuriyetimizin</span><span class="l" id="k2">103. yılı kutlu olsun.</span></div>
+</div>
+<div class="scene" id="s5">
+ <div id="saygi">Saygı, minnet ve özlemle.</div>
+ <div id="imzaw"><img id="imza" src="../../marketing/reels/kaynak/ataturk-imza.svg" alt=""></div>
+ <div id="rule"></div>
+</div>
+<div class="scene" id="s6"><div id="odi">ODİ · SESİN YOLU</div></div>
+<canvas id="grain" width="540" height="960"></canvas>
+<div id="veil"></div>
+<script>
+const $ = (id) => document.getElementById(id);
+const cl = (x) => Math.max(0, Math.min(1, x));
+const seg = (t, a, b) => cl((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const sm = (x) => x * x * (3 - 2 * x);
+// zaman çizelgesi (sn) — ekim29c_ses.py ile eş
+const Q0 = 7.6, QD = 0.95;            // söz satırları: 7,6 + k·0,95
+const ATTR = 13.6, S1OUT = [17.6, 18.9];
+const S3IN = [19.0, 19.8], B1 = 19.5, B2 = 21.7, S3OUT = [25.0, 25.9];
+const S4IN = [25.6, 26.6], FLAG = 26.0, DATE = 27.3, K1 = 28.3, K2 = 28.8, S4OUT = [31.6, 32.4];
+const S5IN = [32.3, 33.0], SAYGI = 32.7, IMZA = 33.7, S5OUT = [37.2, 38.0];
+const S6 = [38.1, 38.6], END = 39.5;
+
+// film greni: zamana bağlı belirlenimci gürültü
+const g = $('grain').getContext('2d'); const gi = g.createImageData(540, 960);
+function rnd(seed) { let s = seed >>> 0; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+function grain(t) {
+  const r = rnd(Math.floor(t * 30) * 2654435761 + 1); const d = gi.data;
+  for (let i = 0; i < d.length; i += 4) { const v = 128 + (r() - .5) * 255 * 0.9; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+  g.putImageData(gi, 0, 0);
+}
+// ses dalgası motifi (yüzde değil, sözün üstünde ince çizgi): her satır gelirken kısa bir "konuşma" zarfı
+const w = $('wave').getContext('2d');
+function wave(t) {
+  w.clearRect(0, 0, 700, 40);
+  let amp = 0;
+  for (let k = 0; k < 6; k++) { const dt = t - (Q0 + k * QD); if (dt > -0.05 && dt < 0.9) amp = Math.max(amp, Math.sin(Math.PI * cl(dt / 0.85))); }
+  amp = 0.12 + 0.88 * amp;
+  w.strokeStyle = 'rgba(233,201,138,.75)'; w.lineWidth = 2.5; w.beginPath();
+  for (let x = 0; x <= 700; x += 3) {
+    const u = x / 700, win = Math.pow(Math.sin(Math.PI * u), 1.6);
+    const y = 20 + 15 * amp * win * (0.6 * Math.sin(x * 0.11 - t * 9) + 0.4 * Math.sin(x * 0.047 + t * 5.3));
+    x ? w.lineTo(x, y) : w.moveTo(x, y);
+  }
+  w.stroke();
+}
+// köprü: yavaş yayılan ince ses halkaları (soyut)
+const r3 = $('rings3').getContext('2d');
+function rings3(t) {
+  r3.clearRect(0, 0, 1080, 1920);
+  const cx = 540, cy = 640;
+  for (let k = 0; k < 7; k++) {
+    const ph = ((t - 19) * 0.22 + k / 7) % 1; const R = 40 + ph * 520; const a = 0.32 * Math.sin(Math.PI * ph);
+    r3.strokeStyle = `rgba(233,201,138,${a})`; r3.lineWidth = 2; r3.beginPath(); r3.arc(cx, cy, R, 0, Math.PI * 2); r3.stroke();
+  }
+  const gr = r3.createRadialGradient(cx, cy, 0, cx, cy, 70); gr.addColorStop(0, 'rgba(255,240,210,.55)'); gr.addColorStop(1, 'rgba(255,240,210,0)');
+  r3.fillStyle = gr; r3.beginPath(); r3.arc(cx, cy, 70, 0, Math.PI * 2); r3.fill();
+}
+const rise = (el, p, dy = 26) => { el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * dy}px)`; };
+
+window.render = (t) => {
+  grain(t);
+  // 1) portre karanlıktan belirir; yavaş Ken Burns
+  const s1 = 1 - eio(seg(t, ...S1OUT));
+  $('s1').style.opacity = s1;
+  const em = sm(seg(t, 0.9, 6.2));
+  const flick = 1 + 0.012 * Math.sin(t * 23.0) * Math.sin(t * 7.3);
+  $('photo').style.filter = `grayscale(1) sepia(.38) contrast(1.06) brightness(${(0.04 + 0.96 * em) * flick})`;
+  $('pwrap').style.transform = `scale(${1 + 0.075 * eio(seg(t, 0, 18.9))})`;
+  $('shade').style.opacity = 0.35 + 0.65 * eio(seg(t, 6.0, 7.6));
+  // 2) söz satır satır
+  $('wave').style.opacity = eo(seg(t, 7.0, 7.6)) * (1 - seg(t, 16.8, 17.6));
+  if (t > 6.9 && t < 19) wave(t);
+  for (let k = 0; k < 6; k++) rise($('q' + k), eo(seg(t, Q0 + k * QD, Q0 + k * QD + 0.6)), 22);
+  rise($('attr'), eo(seg(t, ATTR, ATTR + 0.8)), 16);
+  // 3) köprü
+  $('s3').style.opacity = eio(seg(t, ...S3IN)) * (1 - eio(seg(t, ...S3OUT)));
+  if (t > 18.9 && t < 26) rings3(t);
+  rise($('b1'), eo(seg(t, B1, B1 + 0.9)));
+  rise($('b2'), eo(seg(t, B2, B2 + 0.9)));
+  // 4) bayrak
+  $('s4').style.opacity = eio(seg(t, ...S4IN)) * (1 - eio(seg(t, ...S4OUT)));
+  const fp = eo(seg(t, FLAG, FLAG + 1.3));
+  $('flag').style.opacity = fp; $('flag').style.transform = `scale(${0.93 + 0.07 * fp})`;
+  $('fglow').style.opacity = Math.max(0, seg(t, FLAG, FLAG + .4) - seg(t, FLAG + .6, FLAG + 2.4)) * 0.9 + 0.18 * seg(t, FLAG + 1.4, FLAG + 3);
+  rise($('date'), eo(seg(t, DATE, DATE + 0.8)), 18);
+  rise($('k1'), eo(seg(t, K1, K1 + 0.7)), 30);
+  rise($('k2'), eo(seg(t, K2, K2 + 0.7)), 30);
+  // 5) kapanış: söz ve imza (imza soldan sağa açılır)
+  $('s5').style.opacity = eio(seg(t, ...S5IN)) * (1 - eio(seg(t, ...S5OUT)));
+  rise($('saygi'), eo(seg(t, SAYGI, SAYGI + 1.0)), 18);
+  const ip = eio(seg(t, IMZA, IMZA + 1.8));
+  $('imzaw').style.clipPath = `inset(0 ${(1 - ip) * 100}% 0 0)`; $('imzaw').style.opacity = cl(ip * 3);
+  $('rule').style.opacity = eo(seg(t, IMZA + 1.6, IMZA + 2.4));
+  // 6) ayrı son kare
+  $('s6').style.opacity = eio(seg(t, ...S6));
+  $('odi').style.opacity = eo(seg(t, S6[1], S6[1] + 0.6)) * (1 - seg(t, END - 0.5, END));
+  // genel siyah perde: açılış ve sahne aralarında hiçbir şey üst üste binmesin
+  $('veil').style.opacity = 1 - eio(seg(t, 0.0, 0.6));
+  $('grain').style.opacity = t < S6[0] ? 0.10 : 0.05;
+};
+window.render(0);
+</script></body></html>

@@ -2,41 +2,6 @@
   "_aciklama": "Reels anlatıcı metinleri (erkek anlatıcı). Üretim: tools/reels/vo.py (Chatterbox Multilingual, MIT). text: okunan metin (gerekirse okunuşa göre yazılır), sub: ekrandaki altyazı, asr: Whisper denetimi için beklenen yazım. Sahne yerleşimi: tools/reels/teasers.mjs (vo).",
   "voice": { "ref": "ref-tr-erkek.wav", "lang": "tr", "exaggeration": 0.8, "cfg_weight": 0.3, "temperature": 0.8, "seeds": [1, 2, 3, 4], "target_sps": 5.6, "max_tempo": 1.22 },
   "lines": {
-    "odyolog-oldugunu-soyleme": [
-      {"id": "a1", "text": "Odyoloji öğrencisi olduğunu söylemeden söyle.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "a2", "text": "Hangisi sensin? Sınıf arkadaşını etiketle.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
-    ],
-    "odyogrami-oku": [
-      {"id": "b1", "text": "Bu odyogramı beş saniyede oku.", "asr": ["Bu odyogramı beş saniyede oku", "Bu odyogramı 5 saniyede oku"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [7, 8, 9, 10, 11, 12]}},
-      {"id": "b2", "text": "Dört kilohertzde çentik: gürültüyle uyumlu.", "asr": ["Dört kilohertzde çentik gürültüyle uyumlu", "4 kilohertzde çentik gürültüyle uyumlu", "4 khzde çentik gürültüyle uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "b3", "text": "Aralık var: iletim tipi bileşenle uyumlu.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "b4", "text": "Aralık yok: sensörinöral tiple uyumlu.", "asr": ["Aralık yok sensörinöral tiple uyumlu", "Aralık yok sensorinöral tiple uyumlu", "Aralık yok sensorinoral tiple uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "b5", "text": "Kaçını bildin? Yorumlara yaz.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
-    ],
-    "timpanogram-tipin": [
-      {"id": "c1", "text": "Hangi timpanogram tipisin?", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c2", "text": "Dengeli. Ne eksik, ne fazla.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c3", "text": "Biraz kasıntı. Pek esnemez.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c4", "text": "Fazla rahat. Her şeye esner.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c5", "text": "Dümdüz. Hiçbir şeye tepki yok.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c6", "text": "Biraz negatif, ama tepesi var.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c7", "text": "Gerçekte timpanogram tek başına tanı koydurmaz.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "c8", "text": "Hikâyende paylaş: sen hangi tipsin?", "asr": ["Hikayende paylaş sen hangi tipsin"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
-    ],
-    "siniftaki-tipler": [
-      {"id": "d1", "text": "Her odyoloji sınıfında bu beş tip vardır.", "asr": ["Her odyoloji sınıfında bu beş tip vardır", "Her odyoloji sınıfında bu 5 tip vardır"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d2", "text": "Diyapazonu her yere götüren,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d3", "text": "herkese maskelemeyi anlatan,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d4", "text": "her timpanogramı Tip A sanan,", "asr": ["her timpanogramı tip a sanan", "her timpanogramı tipa sanan"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d5", "text": "odyogram sembollerini çoktan ezberleyen,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d6", "text": "ve sınavdan bir gece önce başlayan.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d7", "text": "Sınıfında hangisi var? Etiketle!", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
-    ],
-    "akrabalar-odyoloji": [
-      {"id": "e1", "text": "Akrabalara odyoloji okuyorum deyince...", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "e2", "text": "Odyoloji; işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "e3", "text": "Sen de duydun mu? Arkadaşına gönder.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
-    ],
     "kulak-yolculugu": [
       { "id": "k1", "text": "Kokleanın içinde koşan bir oyun hiç gördün mü?" },
       { "id": "k2", "text": "Ses, kulak kepçesinden yola çıkar," },

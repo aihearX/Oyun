@@ -2201,29 +2201,5 @@
    "dur": 2.38,
    "sps": 5.47
   }
- },
- "odyolog-oldugunu-soyleme": {
-  "a1": {
-   "key": "98506f921cbd",
-   "text": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
-   "seed": 3,
-   "wer": 0.0,
-   "asr": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
-   "gap": 0.05,
-   "tempo": 1.0,
-   "dur": 3.02,
-   "sps": 5.95
-  },
-  "a2": {
-   "key": "fc1083d0ea4f",
-   "text": "Hangisi sensin? Sınıf arkadaşını etiketle.",
-   "seed": 3,
-   "wer": 0.0,
-   "asr": "Hangisi sensin? Sınıf arkadaşını etiketle.",
-   "gap": 0.2,
-   "tempo": 1.114,
-   "dur": 2.9,
-   "sps": 5.51
-  }
  }
 }
