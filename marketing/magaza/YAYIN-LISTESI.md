@@ -30,8 +30,38 @@ Kit: [`metinler.json`](metinler.json) (liste metinleri) · [`google-play.md`](go
       sahibi başvurur. Onay birkaç gün sürebilir.
 - [ ] **[S]** Google Play Console geliştirici hesabı (bir kerelik 25 USD): kimlik doğrulama, şirket için D-U-N-S; geliştirici adı
       `{YAYINCI}`; iletişim e-postası ve telefon doğrulaması.
-- [ ] **[S]** Expo hesabı (ücretsiz) → **[A]** `eas init` (`app.json > extra.eas.projectId` dolar; ikon çalışanının `app.json`
-      alanlarına dokunulmaz).
+- [ ] **[S]** Expo hesabı (ücretsiz) → aynı gün **1b** (giriş, `eas init`, ortam değişkenleri, ilk Android APK). `eas init`
+      yalnız `app.json > extra.eas.projectId` alanını doldurur; öteki alanlara dokunulmaz.
+
+## 1b. Expo hesabı açıldığı gün: ilk deneme derlemesi (sahip, Windows PowerShell; YN-024)
+Amaç: mağazaya gitmeden önce gerçek bir Android telefonda uygulamanın açıldığını ve sunucuya bağlandığını görmek. Yaklaşık bir saat
+(derleme sırası beklemesi dahil). Hazırlık (bir kez): [nodejs.org](https://nodejs.org) üzerinden **Node.js 22 LTS** kurulu; depo
+bilgisayarda (GitHub Desktop › Clone `aihearX/Oyun`). PowerShell'i açıp depo klasörüne girin ve paketleri kurun:
+`cd $HOME\Documents\GitHub\Oyun` (klasör nerede ise) → `npm ci`. İlk `npx` komutu "Ok to proceed?" sorarsa `y` + Enter.
+PowerShell "betik çalıştırma devre dışı" (running scripts is disabled) derse komutlarda `npx` yerine `npx.cmd` yazın.
+
+1. [ ] **Giriş:** `npx eas-cli login` → Expo kullanıcı adı ve şifresi. Denetim: `npx eas-cli whoami` hesap adınızı yazar.
+2. [ ] **Projeyi bağla:** `cd apps\mobile` → `npx eas-cli init` → "Create a project…?" sorusuna **Yes**. `app.json` içindeki
+       `extra.eas.projectId` dolar (gizli değildir). Değişen `app.json`'u GitHub Desktop'ta "EAS proje kimliği" notuyla gönderin
+       (ya da ajana söyleyin, o göndersin).
+3. [ ] **Gizli olmayan ayarlar (EAS ortam değişkenleri; depoya yazılmaz):** sunucu adresini ve varsa RevenueCat anahtarlarını
+       girin. `ALAN-ADI` yerine sunucunun alan adı; RevenueCat henüz yoksa son iki satırı atlayın (uygulama açılır, yalnız satın alma kapalı kalır):
+       ```powershell
+       npx eas-cli env:create --environment preview --environment production --name EXPO_PUBLIC_ODI_SERVER --value "wss://ALAN-ADI" --visibility plaintext
+       npx eas-cli env:create --environment preview --environment production --name EXPO_PUBLIC_REVENUECAT_IOS --value "appl_..." --visibility plaintext
+       npx eas-cli env:create --environment preview --environment production --name EXPO_PUBLIC_REVENUECAT_ANDROID --value "goog_..." --visibility plaintext
+       npx eas-cli env:list --environment preview
+       ```
+       Son komut girdiğiniz değişkenleri listeler.
+4. [ ] **Derle:** (hâlâ `apps\mobile` klasöründe) `npx eas-cli build -p android --profile preview`. "Generate a new Android
+       Keystore?" → **Yes** (anahtarı EAS saklar; kaybolmaz). Sürüm numarası sorulursa Enter. Derleme Expo'nun bulutunda 15–40 dk
+       sürer (ücretsiz hesapta sıra beklenebilir); bitince ekranda bir bağlantı ve QR kodu çıkar. Hata olursa ekrandaki
+       "Build details" bağlantısını ajana iletin.
+5. [ ] **Telefonda dene:** Android telefonun kamerasıyla QR'ı okutun (ya da bağlantıyı telefonda açın) → APK'yı indirin →
+       "Bilinmeyen uygulamalara izin ver" isterse izin verin → kurun, açın. Bakılacaklar: açılış ekranı ve ikon, ilk bölüm oynanıyor,
+       ses geliyor; haritada seviye rozetinin yanındaki nokta **yeşil** (yeşil = sunucuya bağlı, sarı = bağlanıyor, gri = çevrimdışı) ve
+       5 bölümden sonra açılan **Takım** sekmesinde bağlantı uyarısı yok. Gri kalırsa 3. adımdaki adresi `env:list` ile denetleyin.
+       Sonucu (çalıştı / şu ekranda takıldı + ekran görüntüsü) ajana yazın.
 
 ## 2. Banka, vergi, sözleşmeler
 - [ ] **[S]** App Store Connect › Sözleşmeler: **Paid Apps** sözleşmesi; banka hesabı (IBAN; şirket hesabı) ve vergi formları
