@@ -1,0 +1,334 @@
+{
+ "h1": {
+  "key": "0d53d6d7a56f",
+  "text": "Bir zamanlar bu topraklarda, pek çok ses duyulmazdı.",
+  "seed": 2,
+  "wer": 0.0,
+  "asr": "Bir zamanlar bu topraklarda pek çok ses duyulmazdı.",
+  "gap": 0.29,
+  "dur": 4.05,
+  "sps": 3.95,
+  "f0_med": 102.1,
+  "f0_range_st": 9.32,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.125,
+    "sps": 4.46,
+    "gap": 0.25,
+    "f0_range_st": 5.64,
+    "score": 2.145
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 4.1,
+    "gap": 0.29,
+    "f0_range_st": 9.32,
+    "score": -0.6
+   },
+   {
+    "seed": 3,
+    "wer": 0.0,
+    "sps": 4.55,
+    "gap": 0.21,
+    "f0_range_st": 10.02,
+    "score": -0.57
+   }
+  ]
+ },
+ "c1": {
+  "key": "a9df1ec2da47",
+  "text": "Bir çocuğun sesi, harflerle buluştu.",
+  "seed": 2,
+  "wer": 0.0,
+  "asr": "Bir çocuğun sesi harflerle buluştu.",
+  "gap": 0.2,
+  "dur": 2.52,
+  "sps": 4.77,
+  "f0_med": 111.3,
+  "f0_range_st": 7.85,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 5.0,
+    "gap": 0.18,
+    "f0_range_st": 5.16,
+    "score": -0.113
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 5.07,
+    "gap": 0.2,
+    "f0_range_st": 7.85,
+    "score": -0.286
+   }
+  ]
+ },
+ "k1": {
+  "key": "76fbe7603185",
+  "text": "Bir kadının sesi, sandıkta yankılandı.",
+  "seed": 1,
+  "wer": 0.0,
+  "asr": "Bir kadının sesi sandıkta yankılandı.",
+  "gap": 0.2,
+  "dur": 2.74,
+  "sps": 4.74,
+  "f0_med": 116.6,
+  "f0_range_st": 8.59,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 5.02,
+    "gap": 0.2,
+    "f0_range_st": 8.59,
+    "score": -0.375
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 4.78,
+    "gap": 0.27,
+    "f0_range_st": 5.29,
+    "score": -0.255
+   }
+  ]
+ },
+ "m1": {
+  "key": "71dd6cff9114",
+  "text": "Ve bir milletin sesi, kendi meclisinde yükseldi.",
+  "seed": 1,
+  "wer": 0.0,
+  "asr": "Ve bir milletin sesi kendi meclisinde yükseldi.",
+  "gap": 0.22,
+  "dur": 3.38,
+  "sps": 4.73,
+  "f0_med": 105.1,
+  "f0_range_st": 7.96,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 4.95,
+    "gap": 0.22,
+    "f0_range_st": 7.96,
+    "score": -0.367
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 5.15,
+    "gap": 0.2,
+    "f0_range_st": 4.88,
+    "score": -0.0
+   }
+  ]
+ },
+ "m2": {
+  "key": "17317a325e93",
+  "text": "Yirmi dokuz Ekim, bin dokuz yüz yirmi üç.",
+  "seed": 3,
+  "wer": 0.0,
+  "asr": "29 Ekim 1923",
+  "gap": 0.39,
+  "dur": 2.77,
+  "sps": 4.69,
+  "f0_med": 122.1,
+  "f0_range_st": 7.38,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 2.49,
+    "gap": 1.07,
+    "f0_range_st": 16.12,
+    "score": 2.174
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 2.74,
+    "gap": 2.0,
+    "f0_range_st": 13.44,
+    "score": 4.686
+   },
+   {
+    "seed": 3,
+    "wer": 0.0,
+    "sps": 4.95,
+    "gap": 0.39,
+    "f0_range_st": 7.38,
+    "score": -0.32
+   },
+   {
+    "seed": 4,
+    "wer": 0.0,
+    "sps": 4.67,
+    "gap": 0.43,
+    "f0_range_st": 5.0,
+    "score": -0.298
+   }
+  ]
+ },
+ "m3": {
+  "key": "d965e5222fd1",
+  "text": "Bu sesin adı: Cumhuriyet.",
+  "seed": 1,
+  "wer": 0.0,
+  "asr": "Bu sesin adı Cumhuriyet.",
+  "gap": 0.19,
+  "dur": 2.01,
+  "sps": 4.49,
+  "f0_med": 105.1,
+  "f0_range_st": 6.8,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 4.85,
+    "gap": 0.19,
+    "f0_range_st": 6.8,
+    "score": -0.394
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 1.89,
+    "gap": 1.23,
+    "f0_range_st": 16.19,
+    "score": 4.022
+   },
+   {
+    "seed": 3,
+    "wer": 0.0,
+    "sps": 2.69,
+    "gap": 0.49,
+    "f0_range_st": 5.55,
+    "score": 0.702
+   }
+  ]
+ },
+ "o1": {
+  "key": "66259d52b808",
+  "text": "Biz işitme uzmanları iyi biliriz: Duyulmak, var olmaktır.",
+  "seed": 2,
+  "wer": 0.0,
+  "asr": "Biz işitme uzmanları iyi biliriz. Duyulmak, var olmaktır.",
+  "gap": 0.3,
+  "dur": 4.25,
+  "sps": 4.71,
+  "f0_med": 113.9,
+  "f0_range_st": 8.26,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 5.12,
+    "gap": 0.32,
+    "f0_range_st": 7.39,
+    "score": -0.219
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 4.88,
+    "gap": 0.3,
+    "f0_range_st": 8.26,
+    "score": -0.433
+   }
+  ]
+ },
+ "o2": {
+  "key": "2cfc9faaadb3",
+  "text": "Cumhuriyet, bir milletin kendi sesiyle duyulmasıdır.",
+  "seed": 2,
+  "wer": 0.0,
+  "asr": "Cumhuriyet, bir milletin kendi sesiyle duyulmasıdır.",
+  "gap": 0.12,
+  "dur": 3.41,
+  "sps": 5.27,
+  "f0_med": 112.0,
+  "f0_range_st": 5.9,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 5.86,
+    "gap": 0.23,
+    "f0_range_st": 6.22,
+    "score": 0.318
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 5.51,
+    "gap": 0.12,
+    "f0_range_st": 5.9,
+    "score": 0.134
+   }
+  ]
+ },
+ "f1": {
+  "key": "90a21a2f5d48",
+  "text": "Yüz üç yıldır, hepimizin sesi.",
+  "seed": 1,
+  "wer": 0.0,
+  "asr": "103 yıldır hepimizin sesi.",
+  "gap": 0.18,
+  "dur": 2.23,
+  "sps": 4.48,
+  "f0_med": 106.9,
+  "f0_range_st": 9.31,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 4.81,
+    "gap": 0.18,
+    "f0_range_st": 9.31,
+    "score": -0.594
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 5.04,
+    "gap": 0.09,
+    "f0_range_st": 4.75,
+    "score": -0.116
+   }
+  ]
+ },
+ "f2": {
+  "key": "d819841828ea",
+  "text": "Cumhuriyetimizin yüz üçüncü yılı, kutlu olsun!",
+  "seed": 2,
+  "wer": 0.0,
+  "asr": "Cumhuriyetimizin 103. yılı kutlu olsun.",
+  "gap": 0.18,
+  "dur": 3.06,
+  "sps": 5.55,
+  "f0_med": 122.1,
+  "f0_range_st": 6.34,
+  "adaylar": [
+   {
+    "seed": 1,
+    "wer": 0.0,
+    "sps": 6.56,
+    "gap": 0.18,
+    "f0_range_st": 3.74,
+    "score": 0.757
+   },
+   {
+    "seed": 2,
+    "wer": 0.0,
+    "sps": 5.84,
+    "gap": 0.18,
+    "f0_range_st": 6.34,
+    "score": 0.117
+   }
+  ]
+ }
+}

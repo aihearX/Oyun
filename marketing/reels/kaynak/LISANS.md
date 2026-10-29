@@ -101,3 +101,66 @@ Fotoğrafı olmayan anlar (19 Mayıs 1919 Samsun, 29 Ekim 1923) tipografiyle anl
 - Açıklama: "Türkiye Büyük Millet Meclisi'nin 8 Şubat 1935 genel seçimleri ile seçilen ilk kadın milletvekilleri." (portre panosu)
 - Lisans: **Kamu malı** — `LicenseShortName: Public domain`; şablon `{{PD-TR}}`
 - Videoda künye: "1935'te Meclis'e giren ilk kadın milletvekilleri" · etiket: 5 Aralık 1934 · seçme ve seçilme hakkı. Pano kırpılmadan (sığdırılarak) gösterilir.
+
+---
+
+## «Cumhuriyet herkese bir ses verdi» (29 Ekim 2026, `marketing/reels/29-ekim-herkese-bir-ses.mp4`)
+
+Aşağıdaki beş fotoğraf (üçü yukarıdaki «Sesin Yolculuğu» dosyalarıyla bayt bayt aynı, aynı dosya kullanılır) aynı yöntemle (Commons API `extmetadata` + dosya sayfasındaki lisans şablonu) 29 Ekim 2026'da denetlenip
+değiştirilmeden indirildi; SHA-1 değerleri Commons API'deki `sha1` ile birebir eşleşti. Videoda yalnız yavaş yakınlaşma/kaydırma
+(Ken Burns), siyah-beyaz + sepya tonlama, gren, bulanık/karanlık → net geçiş ("sesin açılması") ve üzerinden geçen yumuşak ışık
+uygulanır; yüzlerde düzenleme, renklendirme, canlandırma yoktur; yüzlerin üstüne yazı ya da çizim konmaz. Her fotoğraf, ekranda
+Commons açıklamasındaki yer/tarihle etiketlenir; ayrı bir olayın kanıtı gibi sunulmaz (olay bilgisi ayrı satırda, kaynaklı).
+Sahne: `tools/reels/29-ekim-herkese-bir-ses.html`.
+
+### 1928-harf-kayseri.jpg (yukarıdaki dosyanın aynısı; bu videoda yer adı yazılmadan)
+- Commons: `File:Mustafa Kemal harf devriminde.jpg` — https://commons.wikimedia.org/wiki/File:Mustafa_Kemal_harf_devriminde.jpg
+- Özgün: https://upload.wikimedia.org/wikipedia/commons/0/08/Mustafa_Kemal_harf_devriminde.jpg (1440×1972, 257 865 bayt,
+  SHA-1 `02113d14ee7aa91b625143f25113df470226a54c`, SHA-256 `43be7aace9383ee0b0dcaee779df31e5cf5556a84b7cb3ead182be85c3c85e11`)
+- Açıklama (Commons): en "Mustafa Kemal Atatürk introducing the new Turkish alphabet to the people of Kayseri. September 20, 1928";
+  tr "Başöğretmen Gazi Mustafa Kemal Sivas'ta yeni alfabeyi öğretiyor, 1928". Tarih: `{{Taken on|1928-09-20}}`.
+- Yazar/kaynak: Presidency of the Republic of Turkey (http://www.tccb.gov.tr/sayfa/ata_ozel/fotograf/)
+- Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-TR}}` `{{PD-US-expired}}`
+- Not: Commons'un İngilizce ve Türkçe açıklamaları yeri farklı veriyor (Kayseri / Sivas). Bu yüzden videoda yer adı YAZILMAZ;
+  etiket: "Başöğretmen Atatürk yeni harfleri öğretiyor · 1928".
+
+### sinif-1931-izmir.jpg
+- Commons: `File:Izmir High School for Boys Feb 1 1931.jpg` — https://commons.wikimedia.org/wiki/File:Izmir_High_School_for_Boys_Feb_1_1931.jpg
+- Özgün: https://upload.wikimedia.org/wikipedia/commons/d/d6/Izmir_High_School_for_Boys_Feb_1_1931.jpg (635×351, 102 338 bayt,
+  SHA-1 `ee37248351f887be74fdd27bdd4f44f7e8fd6656`, SHA-256 `ee884e99cd7931c31108baf545125b9326c8ae60f33f26db89b5fa1312ee9bf4`)
+- Açıklama (Commons): tr "Mustafa Kemal (Atatürk) 1 Şubat 1931'de İzmir Erkek Lisesi'ni ziyareti sırasında matematik dersini dinliyor."
+- Kaynak: Millî Eğitim Bakanlığı (http://egitek.meb.gov.tr/uretim/atacd/008/2g13.htm); yazar belirtilmemiş
+- Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-TR}}`
+- Videodaki etiket: "Atatürk İzmir Erkek Lisesi'nde matematik dersini dinliyor · 1 Şubat 1931"
+
+### 1935-ilk-kadin-milletvekilleri.jpg (yukarıdaki dosyanın aynısı)
+- Commons: `File:First female MPs of the Turkish Parliament (1935).jpg` —
+  https://commons.wikimedia.org/wiki/File:First_female_MPs_of_the_Turkish_Parliament_(1935).jpg
+- Özgün: https://upload.wikimedia.org/wikipedia/commons/4/43/First_female_MPs_of_the_Turkish_Parliament_%281935%29.jpg (1067×815,
+  161 065 bayt, SHA-1 `8f9dcd04045483e85dbf8cc47a3fc763ae3853eb`, SHA-256 `49cb1ddb21846710ded60058a664a542b1e8a7c43adf2ec291b9d362f69f324c`)
+- Açıklama (Commons): tr "Türkiye Büyük Millet Meclisi'nin 8 Şubat 1935 genel seçimleri ile seçilen ilk kadın milletvekilleri." (18 portre,
+  adlarıyla; tablo İzmir Kadın Müzesi kategorisinde)
+- Yazar: Commons'a en.wikipedia'dan aktarılmış (ilk yükleyen Kemalist Yurtsever, 16 Eylül 2007)
+- Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-TR}}`
+- Videodaki etiket: "8 Şubat 1935 seçimleriyle Meclis'e giren ilk kadın milletvekilleri" (sayı verilmez: kaynaklar 17/18 diye ayrışıyor)
+
+### 1920-tbmm-ankara.jpg (yukarıdaki dosyanın aynısı)
+- Commons: `File:I.-Türkiye-Büyük-Millet-Meclisi-Ankara-1920.jpg` —
+  https://commons.wikimedia.org/wiki/File:I.-T%C3%BCrkiye-B%C3%BCy%C3%BCk-Millet-Meclisi-Ankara-1920.jpg
+- Özgün: https://upload.wikimedia.org/wikipedia/commons/9/90/I.-T%C3%BCrkiye-B%C3%BCy%C3%BCk-Millet-Meclisi-Ankara-1920.jpg (862×562,
+  378 649 bayt, SHA-1 `54f9764d76d1c08965318bd8e71fed88e68cee51`, SHA-256 `44d8b59667b52e0156522f68b032021abea6cf889f0f4a693fcf2950a08eb1a8`)
+- Açıklama (Commons): tr "Türkiye Büyük Millet Meclisi, Ankara (1920)"; tarih 1920; yazar bilinmiyor
+- Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-Ottoman}}`
+- Videodaki etiket: "Türkiye Büyük Millet Meclisi binası · Ankara, 1920" (açılış günü fotoğrafı diye SUNULMAZ; 23 Nisan 1920 ve
+  29 Ekim 1923 ayrı olay satırlarında)
+- Not: Commons'taki `File:Opening of the Grand National Assembly, 23 April 1920.jpg` CC BY-SA ve kaynağı belirsiz olduğu için kullanılmadı.
+
+### trabzon-1930.jpg
+- Commons: `File:Atatürk Trabzon'da köylü bir aile ile birlikte (28 Kasım 1930).jpg` —
+  https://commons.wikimedia.org/wiki/File:Atat%C3%BCrk_Trabzon%27da_k%C3%B6yl%C3%BC_bir_aile_ile_birlikte_(28_Kas%C4%B1m_1930).jpg
+- Özgün: https://upload.wikimedia.org/wikipedia/commons/e/ef/Atat%C3%BCrk_Trabzon%27da_k%C3%B6yl%C3%BC_bir_aile_ile_birlikte_%2828_Kas%C4%B1m_1930%29.jpg
+  (1280×907, 187 321 bayt, SHA-1 `4a0c90f9075e83eebf19fdcc62b947bd55404a4a`,
+  SHA-256 `9c7b0461f65eab4a0a7088cce224332e70cbdd9e65e64a4781addf3cfaa3c972`)
+- Açıklama (Commons): tr "Atatürk Trabzon'da köylü bir aile ile birlikte. (28 Kasım 1930)"; yazar bilinmiyor
+- Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-Turkey}}`
+- Videodaki etiket: "Atatürk Trabzon'da köylü bir aile ile birlikte · 28 Kasım 1930"

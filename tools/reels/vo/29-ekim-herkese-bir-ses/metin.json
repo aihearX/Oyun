@@ -1,0 +1,154 @@
+{
+ "voice": {
+  "ref": "ref-tr-erkek.wav",
+  "lang": "tr",
+  "seeds": [
+   1,
+   2,
+   3,
+   4
+  ]
+ },
+ "lines": [
+  {
+   "id": "h1",
+   "text": "Bir zamanlar bu topraklarda, pek çok ses duyulmazdı.",
+   "v": {
+    "exaggeration": 0.5,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.3,
+    "max_gap": 0.5
+   }
+  },
+  {
+   "id": "c1",
+   "text": "Bir çocuğun sesi, harflerle buluştu.",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.5,
+    "max_gap": 0.55
+   }
+  },
+  {
+   "id": "k1",
+   "text": "Bir kadının sesi, sandıkta yankılandı.",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.5,
+    "max_gap": 0.55
+   }
+  },
+  {
+   "id": "m1",
+   "text": "Ve bir milletin sesi, kendi meclisinde yükseldi.",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.5,
+    "max_gap": 0.55
+   }
+  },
+  {
+   "id": "m2",
+   "text": "Yirmi dokuz Ekim, bin dokuz yüz yirmi üç.",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.5,
+    "max_gap": 0.55
+   },
+   "asr": [
+    "Yirmi dokuz Ekim bin dokuz yüz yirmi üç",
+    "29 Ekim 1923"
+   ]
+  },
+  {
+   "id": "m3",
+   "text": "Bu sesin adı: Cumhuriyet.",
+   "v": {
+    "exaggeration": 0.8,
+    "cfg_weight": 0.3,
+    "temperature": 0.75,
+    "target_sps": 4.6,
+    "max_gap": 0.5
+   }
+  },
+  {
+   "id": "o1",
+   "text": "Biz işitme uzmanları iyi biliriz: Duyulmak, var olmaktır.",
+   "v": {
+    "exaggeration": 0.55,
+    "cfg_weight": 0.35,
+    "temperature": 0.65,
+    "target_sps": 4.5,
+    "max_gap": 0.55,
+    "seeds": [
+     1,
+     2,
+     3,
+     4,
+     5
+    ],
+    "enough": 2
+   }
+  },
+  {
+   "id": "o2",
+   "text": "Cumhuriyet, bir milletin kendi sesiyle duyulmasıdır.",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.5,
+    "max_gap": 0.55
+   }
+  },
+  {
+   "id": "f1",
+   "text": "Yüz üç yıldır, hepimizin sesi.",
+   "v": {
+    "exaggeration": 0.8,
+    "cfg_weight": 0.3,
+    "temperature": 0.75,
+    "target_sps": 4.6,
+    "max_gap": 0.5
+   },
+   "asr": [
+    "Yüz üç yıldır hepimizin sesi",
+    "103 yıldır hepimizin sesi"
+   ]
+  },
+  {
+   "id": "f2",
+   "text": "Cumhuriyetimizin yüz üçüncü yılı, kutlu olsun!",
+   "v": {
+    "exaggeration": 0.6,
+    "cfg_weight": 0.3,
+    "temperature": 0.7,
+    "target_sps": 4.8,
+    "max_gap": 0.6,
+    "seeds": [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6
+    ]
+   },
+   "asr": [
+    "Cumhuriyetimizin yüz üçüncü yılı kutlu olsun",
+    "Cumhuriyetimizin 103. yılı kutlu olsun",
+    "Cumhuriyetimizin 103 üncü yılı kutlu olsun",
+    "Cumhuriyetimizin 103üncü yılı kutlu olsun"
+   ]
+  }
+ ]
+}
