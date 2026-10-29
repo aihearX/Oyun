@@ -421,7 +421,8 @@ def compose_ad(plan, work, out_dir, video):
     final = os.path.join(out_dir, f'{slug}.mp4')
     fades = f'afade=t=in:d=0.02,afade=t=out:st={max(0, plan["total"] - 0.3):.2f}:d=0.3'
     aac = plan.get('aac') or {}  # ör. { b: '256k', cutoff: 20000 } (yüksek frekans tonları AAC'de kesilmesin)
-    aopts = ['-c:a', 'aac', '-b:a', aac.get('b', '192k'), *(['-cutoff', str(aac['cutoff'])] if aac.get('cutoff') else []), '-ar', '48000']
+    # pns: False → '-aac_pns 0' (ffmpeg 6.1 yerel AAC kodlayıcısı keskin tıklarda gürültü yerine koyma ile +5 dBFS'lik bir çıtırtı üretebiliyor)
+    aopts = ['-c:a', 'aac', '-b:a', aac.get('b', '192k'), *(['-cutoff', str(aac['cutoff'])] if aac.get('cutoff') else []), *(['-aac_pns', '0'] if aac.get('pns') is False else []), '-ar', '48000']
     if plan.get('tonesPost'):
         # tonlar: ses yüksekliği zinciri ve sınırlayıcıdan SONRA, sabit mutlak düzeyde eklenir (−14 LUFS hedefi tonları yükseltmez)
         normd = os.path.join(work, 'mix-norm.wav'); sh(['ffmpeg', '-y', '-v', 'error', '-i', mixed, '-af', f'{ln},aresample=48000', '-c:a', 'pcm_f32le', normd])
@@ -430,6 +431,10 @@ def compose_ad(plan, work, out_dir, video):
     else: ln_af = f'{ln},aresample=48000,{fades}'
     sh(['ffmpeg', '-y', '-v', 'error', '-i', video, '-i', mixed, '-map', '0:v', '-map', '1:a', '-c:v', 'copy',
         '-af', ln_af, *aopts, '-shortest', '-movflags', '+faststart', final])
+    # güvenlik: kodlanmış seste örnek tepe −1 dBFS'yi aşarsa uyar (kodlayıcı çıtırtısı; aac.pns: False dene)
+    st = subprocess.run(['ffmpeg', '-hide_banner', '-i', final, '-af', 'astats=metadata=0', '-f', 'null', '-'], capture_output=True, text=True).stderr
+    pk = float([l for l in st.splitlines() if 'Peak level dB' in l][-1].split(':')[-1])
+    if pk > -1.0: print(f'⚠️  {slug}: kodlanmış seste tepe {pk:.1f} dBFS (> −1): AAC çıtırtısı olabilir')
     render_cover(plan, os.path.join(out_dir, f'{slug}-kapak.png'))
     print(f'✅ {final} ({plan["total"]:.1f} sn, {os.path.getsize(final) / 1e6:.1f} MB)')
 

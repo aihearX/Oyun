@@ -2350,5 +2350,211 @@
    "dur": 2.18,
    "sps": 5.49
   }
+ },
+ "rinne-weber-30sn": {
+  "rw1": {
+   "key": "d3d6cc2dfd04",
+   "text": "Rine ve Veber, otuz saniyede.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Rine ve Weber 30 saniyede.",
+   "gap": 0.13,
+   "tempo": 1.087,
+   "dur": 1.94,
+   "sps": 5.66
+  },
+  "rw2": {
+   "key": "4efdc0533ff9",
+   "text": "Önce Veber: diyapazon başın ortasında. Ses hangi kulakta?",
+   "seed": 6,
+   "wer": 0.0,
+   "asr": "Önce Weber, diyapazon başın ortasında, ses hangi kulakta,",
+   "gap": 0.29,
+   "tempo": 1.164,
+   "dur": 3.48,
+   "sps": 5.75
+  },
+  "rw3": {
+   "key": "698cd9f72784",
+   "text": "İletim tipi kayıpta, kötü kulakta duyulur.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "İletim tipi kayıpta, kötü kulakta duyulur.",
+   "gap": 0.12,
+   "tempo": 1.0,
+   "dur": 2.74,
+   "sps": 5.85
+  },
+  "rw5": {
+   "key": "3094ec5082d9",
+   "text": "Sonra ikinci test: kemik yolu, ardından hava yolu.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Sonra ikinci test kemik yolu ardından hava yolu.",
+   "gap": 0.08,
+   "tempo": 1.086,
+   "dur": 2.98,
+   "sps": 5.71
+  },
+  "rw6": {
+   "key": "13b102188e87",
+   "text": "Hava daha uzunsa pozitif: normal ya da sensorinöral.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Hava daha uzunsa pozitif, normal ya da sensorinöral.",
+   "gap": 0.43,
+   "tempo": 1.157,
+   "dur": 3.31,
+   "sps": 5.74
+  },
+  "rw7": {
+   "key": "382e51afbe18",
+   "text": "Kemik daha uzunsa negatif: iletim bileşeni var.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kemik daha uzunsa negatif, iletim bileşeni var.",
+   "gap": 0.25,
+   "tempo": 1.025,
+   "dur": 3.14,
+   "sps": 5.73
+  },
+  "rw8": {
+   "key": "55e56a73e14b",
+   "text": "Bunlar tarama testi. Tanı için odyogram gerekir.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bunlar tarama testi. Tanı için odyogram gerekir.",
+   "gap": 0.28,
+   "tempo": 1.184,
+   "dur": 2.98,
+   "sps": 5.71
+  },
+  "rw9": {
+   "key": "e14d6b42f69c",
+   "text": "Sınavdan önce kaydet, arkadaşına gönder.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sınavdan önce kaydet, arkadaşına gönder.",
+   "gap": 0.15,
+   "tempo": 1.2,
+   "dur": 2.5,
+   "sps": 5.61
+  },
+  "rw4": {
+   "key": "c5c4ea528630",
+   "text": "Sensorinöral kayıpta, iyi kulakta.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Sensori nöral kayıpta, iyi kulakta.",
+   "gap": 0.16,
+   "tempo": 1.106,
+   "dur": 2.28,
+   "sps": 5.7
+  }
+ },
+ "kulaktan-beyne-sirala": {
+  "ks1": {
+   "key": "d67e83f12c89",
+   "text": "Kulaktan beyne: on beş saniyede sırala!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kulaktan beyne 15 saniyede sırala.",
+   "gap": 0.29,
+   "tempo": 1.199,
+   "dur": 2.38,
+   "sps": 5.89
+  },
+  "ks2": {
+   "key": "6aca9fdffe3b",
+   "text": "Süre doldu! Doğru sıra:",
+   "seed": 5,
+   "wer": 0.0,
+   "asr": "Süre doldu. Doğru sıra",
+   "gap": 0.2,
+   "tempo": 1.22,
+   "dur": 1.49,
+   "sps": 5.38
+  },
+  "ks3": {
+   "key": "be628fa347ff",
+   "text": "Kaçıncı saniyede bildin? Yorumlara yaz.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Kaçıncı saniyede bildin? Yorumlara yaz.",
+   "gap": 0.34,
+   "tempo": 1.158,
+   "dur": 2.35,
+   "sps": 5.95
+  }
+ },
+ "ilk-hastan": {
+  "ih1": {
+   "key": "e9e5ee070179",
+   "text": "Herkesin bir ilki var.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Herkesin bir ilki var.",
+   "gap": 0.06,
+   "tempo": 1.15,
+   "dur": 1.39,
+   "sps": 5.03
+  },
+  "ih2": {
+   "key": "d042fc0adf5a",
+   "text": "Otuz iki kurgusal vakayla pratik yap.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "32 kurgusal vakayla pratik yap.",
+   "gap": 0.09,
+   "tempo": 1.0,
+   "dur": 2.47,
+   "sps": 5.26
+  },
+  "ih3": {
+   "key": "4c48d12f62ef",
+   "text": "İlk hastanı hatırlıyor musun? Yorumlara yaz.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "İlk hastanı hatırlıyor musun? Yorumlara yaz.",
+   "gap": 0.36,
+   "tempo": 1.07,
+   "dur": 2.93,
+   "sps": 5.12
+  }
+ },
+ "bu-ses-kac-db": {
+  "d2": {
+   "key": "9b5409d1211a",
+   "text": "Bir fısıltı?",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "bir fısıltı,",
+   "gap": 0.06,
+   "tempo": 1.22,
+   "dur": 0.84,
+   "sps": 4.76
+  },
+  "d1": {
+   "key": "7f052ba60e80",
+   "text": "Bu ses kaç desibel? Tahmin et!",
+   "seed": 6,
+   "wer": 0.0,
+   "asr": "Bu ses kaç decibel? Tahmin et.",
+   "gap": 0.18,
+   "tempo": 1.22,
+   "dur": 1.78,
+   "sps": 5.07
+  },
+  "d3": {
+   "key": "87c23cd6fb55",
+   "text": "Yaklaşık otuz desibel.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Yaklaşık 30 decibel.",
+   "gap": 0.07,
+   "tempo": 1.067,
+   "dur": 1.39,
+   "sps": 5.75
+  }
  }
 }
