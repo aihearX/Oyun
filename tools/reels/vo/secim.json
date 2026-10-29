@@ -2315,5 +2315,40 @@
    "dur": 2.11,
    "sps": 5.21
   }
+ },
+ "akrabalar-odyoloji": {
+  "e1": {
+   "key": "71abe69bdf83",
+   "text": "Akrabalara odyoloji okuyorum deyince...",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "akrabalara odyoloji okuyorum deyince,",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 2.64,
+   "sps": 6.06
+  },
+  "e2": {
+   "key": "a3326ec233ec",
+   "text": "Odyoloji; işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Odyoloji, işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
+   "gap": 0.15,
+   "tempo": 1.01,
+   "dur": 5.76,
+   "sps": 5.56
+  },
+  "e3": {
+   "key": "d17a5d85f152",
+   "text": "Sen de duydun mu? Arkadaşına gönder.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "''Sen de duydun mu?'' arkadaşına gönder.",
+   "gap": 0.31,
+   "tempo": 1.2,
+   "dur": 2.18,
+   "sps": 5.49
+  }
  }
 }

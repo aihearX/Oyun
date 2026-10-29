@@ -655,7 +655,7 @@ const akraba = {
   ],
   vo: [
     { id: 'e1', scene: 'kanca', at: 0.1, nosub: true },
-    { id: 'e2', scene: 'cevap', at: 0.4, nosub: true },
+    { id: 'e2', scene: 'cevap', at: 0.45, nosub: true, dip: [[-0.05, 0.85, -9, -6]] },
     { id: 'e3', scene: 'gonder', at: 0.1, nosub: true },
   ],
   cover: { bg: 'black', layers: [
