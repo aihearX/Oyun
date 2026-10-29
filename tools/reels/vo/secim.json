@@ -2225,5 +2225,95 @@
    "dur": 2.9,
    "sps": 5.51
   }
+ },
+ "timpanogram-tipin": {
+  "c1": {
+   "key": "6c4017b0d287",
+   "text": "Hangi timpanogram tipisin?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Hangi timpanogram tipisin?",
+   "gap": 0.06,
+   "tempo": 1.104,
+   "dur": 1.66,
+   "sps": 5.43
+  },
+  "c2": {
+   "key": "ef9194c1f547",
+   "text": "Dengeli. Ne eksik, ne fazla.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Dengeli. Ne eksik ne fazla.",
+   "gap": 0.35,
+   "tempo": 1.2,
+   "dur": 2.02,
+   "sps": 4.46
+  },
+  "c3": {
+   "key": "388ff0bdcbb6",
+   "text": "Biraz kasıntı. Pek esnemez.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Biraz kasıntı. Pek esnemez.",
+   "gap": 0.28,
+   "tempo": 1.2,
+   "dur": 1.92,
+   "sps": 4.69
+  },
+  "c4": {
+   "key": "a26ff6e1a365",
+   "text": "Fazla rahat. Her şeye esner.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Fazla rahat her şeye esner.",
+   "gap": 0.07,
+   "tempo": 1.2,
+   "dur": 1.68,
+   "sps": 5.36
+  },
+  "c5": {
+   "key": "0a3dced5a799",
+   "text": "Dümdüz. Hiçbir şeye tepki yok.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Dümdüz, hiçbir şeye tepki yok.",
+   "gap": 0.14,
+   "tempo": 1.2,
+   "dur": 1.73,
+   "sps": 5.21
+  },
+  "c6": {
+   "key": "ec039b7c4773",
+   "text": "Biraz negatif, ama tepesi var.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Biraz negatif ama tepesi var.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.97,
+   "sps": 5.59
+  },
+  "c7": {
+   "key": "8e969cbcc067",
+   "text": "Gerçekte timpanogram tek başına tanı koydurmaz.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Gerçekte timpanogram tek başına tanı koydurmaz.",
+   "gap": 0.14,
+   "tempo": 1.147,
+   "dur": 2.9,
+   "sps": 5.51
+  },
+  "c8": {
+   "key": "68677432bd2a",
+   "text": "Hikâyende paylaş: sen hangi tipsin?",
+   "seed": 6,
+   "wer": 0.0,
+   "asr": "Hikayende paylaş. Sen hangi tipsin?",
+   "gap": 0.2,
+   "tempo": 1.2,
+   "dur": 2.11,
+   "sps": 5.21
+  }
  }
 }

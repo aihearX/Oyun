@@ -78,13 +78,13 @@ const CSS = `<style>
 .per6 { text-align:center; font:800 100px/1.0 'Baloo 2'; color:#fff; padding:0 60px; -webkit-text-stroke:13px #14082e; paint-order:stroke fill; }
 .real6 { max-width:900px; padding:18px 30px 16px; border-radius:24px; background:rgba(8,5,24,.88); border:4px solid rgba(255,255,255,.35); text-align:center; font:900 38px/1.18 'Nunito'; color:#fff6e5; }
 .real6 small { display:block; font:900 26px/1 'Nunito'; letter-spacing:6px; text-transform:uppercase; color:#2ee6d6; margin-bottom:8px; }
-.tlist6 { display:flex; flex-direction:column; gap:16px; width:900px; }
-.tr6 { display:flex; align-items:center; gap:22px; padding:12px 22px 12px 14px; border-radius:28px; background:#fff; color:#14082e; box-shadow:0 8px 0 rgba(0,0,0,.28); }
+.tlist6 { display:flex; flex-direction:column; gap:14px; width:920px; }
+.tr6 { display:flex; align-items:center; gap:20px; padding:10px 20px 10px 12px; border-radius:28px; background:#fff; color:#14082e; box-shadow:0 8px 0 rgba(0,0,0,.28); }
 .tr6 .k { flex:none; width:190px; height:118px; border-radius:18px; background:#160d3d; display:grid; place-items:center; }
 .tr6 .n { flex:none; width:120px; font:800 84px/0.85 'Baloo 2'; text-align:center; padding-top:6px; }
 .tr6 .n small { font-size:52px; }
 .tr6 .n i { display:block; font:900 24px/1 'Nunito'; font-style:normal; letter-spacing:4px; color:#7a6fa6; margin-bottom:4px; }
-.tr6 .p { font:900 40px/1.08 'Nunito'; }
+.tr6 .p { font:900 37px/1.05 'Nunito'; }
 .tr6 .p small { display:block; font:800 25px/1.15 'Nunito'; color:#5a4a8a; margin-top:6px; }
 .ttl6 { font:800 104px/0.95 'Baloo 2'; text-align:center; color:#fff; -webkit-text-stroke:14px #14082e; paint-order:stroke fill; text-transform:uppercase; }
 .ttl6 em { font-style:normal; color:#ffc93c; }
@@ -263,7 +263,7 @@ function audiogram(e, o = {}) {
   if (e.r?.bcm || e.l?.bcm) items.push(['[]', 'Maskeli KY']);
   const iw = AUD_W / items.length;
   items.forEach(([sym, lab], i) => {
-    const cx = iw * i + iw / 2 - 40;
+    const cx = iw * i + 34;
     let symSvg;
     if (sym === 'X') { const x = cx, y = yL - 9; symSvg = `<path d="M${x - 11} ${y - 11}L${x + 11} ${y + 11}M${x + 11} ${y - 11}L${x - 11} ${y + 11}" stroke="${B}" stroke-width="5" stroke-linecap="round"/>`; }
     else if (sym === '<>') symSvg = `<text x="${cx}" y="${yL}" text-anchor="middle" font-size="34"><tspan fill="${R}">&lt;</tspan><tspan fill="${B}">&gt;</tspan></text>`;
@@ -494,16 +494,16 @@ const timpTip = {
     { id: 'kart', dur: tb(8), bg: 'black', mus: 'reveal', fx: { flash: [[0, 0.12]] }, sfx: [[0, 'boom', 0.45], ...TIPLER.map((_, k) => [0.1 + k * 0.08, 'pop', 0.25])], layers: [
       css(), bgL('#3b2496', '#0a0624'),
       { kind: 'html', cls: 'ttl6', html: 'Sen <em>hangi</em><br>tipsin?', y: 262, at: 0, anim: 'slam', slamFrom: 1.8 },
-      { kind: 'html', cls: 'tlist6', html: TIPLER.map(tipRow).join(''), y: 480, at: 0.1, anim: 'pop' },
-      { kind: 'html', cls: 'tag6', html: 'Hikâyende paylaş', y: 1290, at: 0.5, anim: 'pop', pulse: 112, pulseAt: 0.5, pulseAmt: 0.05 },
-      { kind: 'html', cls: 'note6', html: 'Jerger sınıflaması · <b>Gerçekte: timpanogram tek başına tanı koydurmaz.</b>', y: 1420, at: 0.6, anim: 'fade' },
+      { kind: 'html', cls: 'tlist6', html: TIPLER.map(tipRow).join(''), y: 500, at: 0.1, anim: 'pop' },
+      { kind: 'html', cls: 'tag6', html: 'Hikâyende paylaş', y: 1385, at: 0.5, anim: 'pop', pulse: 112, pulseAt: 0.5, pulseAmt: 0.05 },
+      { kind: 'html', cls: 'note6', html: 'Jerger sınıflaması · <b>Gerçekte: timpanogram tek başına tanı koydurmaz.</b>', y: 1500, at: 0.6, anim: 'fade' },
     ] },
     sonSahne('3', tb(4)),
   ],
   vo: [
     { id: 'c1', scene: 'kanca', at: 0.1, nosub: true },
     ...TIPLER.map((T, i) => ({ id: T.vo, scene: `tip${i + 1}`, at: 0.35, nosub: true })),
-    { id: 'c7', scene: 'gercek', at: 0.15, nosub: true }, { id: 'c8', scene: 'kart', at: 0.3, nosub: true },
+    { id: 'c7', scene: 'gercek', at: 0.15, nosub: true }, { id: 'c8', scene: 'kart', at: 0.5, nosub: true, dip: [[-0.05, 0.9, -10, -6]] },
   ],
   cover: { bg: 'black', layers: [
     css(), bgL('#3b2496', '#0a0624'),
@@ -561,7 +561,7 @@ const sinif = {
       { kind: 'html', cls: 'pun6', html: 'Odyoloji<br>sınıfındaki', y: 300, at: 0.02, anim: 'slam', slamFrom: 2.0 },
       { kind: 'html', cls: 'big6', html: '5', y: 560, at: 0.45, anim: 'stamp', rot: -6 },
       { kind: 'html', cls: 'pun6 xl', html: '<em>tip</em>', y: 900, at: 0.6, anim: 'slam', slamFrom: 2.0 },
-      ...SINIF.map((S, k) => odiL(210, `o4h${k}`, { ...S.o, y: 1130 + (k % 2) * 90, dx: (k - 2) * 195, at: 0.7 + k * 0.08, anim: 'drop' })),
+      ...SINIF.map((S, k) => odiL(250, `o4h${k}`, { ...S.o, y: 1110 + (k % 2) * 150, dx: (k - 2) * 200, at: 0.7 + k * 0.08, anim: 'drop' })),
       wm('4h'),
     ] },
     ...SINIF.map(sinifSahne),

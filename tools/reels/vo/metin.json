@@ -8,9 +8,9 @@
     ],
     "odyogrami-oku": [
       {"id": "b1", "text": "Bu odyogramı beş saniyede oku.", "asr": ["Bu odyogramı beş saniyede oku", "Bu odyogramı 5 saniyede oku"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [7, 8, 9, 10, 11, 12]}},
-      {"id": "b2", "text": "Dört kilohertzde çentik: gürültüyle uyumlu.", "asr": ["Dört kilohertzde çentik gürültüyle uyumlu", "4 kilohertzde çentik gürültüyle uyumlu", "4 khzde çentik gürültüyle uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "b2", "text": "Dört kilohertzde çentik: gürültüyle uyumlu.", "asr": ["Dört kilohertzde çentik gürültüyle uyumlu", "4 kilohertzde çentik gürültüyle uyumlu", "4 khzde çentik gürültüyle uyumlu", "4 kHz de çentik gürültüyle uyumlu", "Dört kHz de çentik gürültüyle uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "b3", "text": "Aralık var: iletim tipi bileşenle uyumlu.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "b4", "text": "Aralık yok: sensörinöral tiple uyumlu.", "asr": ["Aralık yok sensörinöral tiple uyumlu", "Aralık yok sensorinöral tiple uyumlu", "Aralık yok sensorinoral tiple uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "b4", "text": "Aralık yok: sensöri-nöral tiple uyumlu.", "asr": ["Aralık yok sensörinöral tiple uyumlu", "Aralık yok sensöri nöral tiple uyumlu"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}, "sub": "Aralık yok: sensörinöral tiple uyumlu."},
       {"id": "b5", "text": "Kaçını bildin? Yorumlara yaz.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
     ],
     "timpanogram-tipin": [
@@ -28,7 +28,7 @@
       {"id": "d2", "text": "Diyapazonu her yere götüren,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "d3", "text": "herkese maskelemeyi anlatan,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "d4", "text": "her timpanogramı Tip A sanan,", "asr": ["her timpanogramı tip a sanan", "her timpanogramı tipa sanan"], "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
-      {"id": "d5", "text": "odyogram sembollerini çoktan ezberleyen,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
+      {"id": "d5", "text": "sembolleri çoktan ezberleyen,", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "d6", "text": "ve sınavdan bir gece önce başlayan.", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}},
       {"id": "d7", "text": "Sınıfında hangisi var? Etiketle!", "v": {"exaggeration": 0.8, "temperature": 0.8, "target_sps": 5.6, "max_tempo": 1.2, "seeds": [1, 2, 3, 4, 5, 6]}}
     ],
