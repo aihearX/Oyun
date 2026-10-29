@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 12. tur (hafif) · 2026-10-28 · main 4ccc146.
+**Son tur:** 13. tur (hafif) · 2026-10-29 · main 0699bb4.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,12 +26,16 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 534/534 ilk denemede):**
-  - YN-024 derleme hazırlığı + YN-036 rpcbind (5b21cd7 … f91f2a9); ilk `eas build` sahip günü.
-  - YN-032 mağaza fiyatı (11716a1, d7f8aa6).
-  - cb78fe0 `.gitignore dist-*/`.
-  - 4ccc146 YN-037: Instagram'da duyurulan ODY-İLK kodu yayından önce tanımlanmalı; ödül sahip kararı.
-- **Sahip:** "ikon, gizlilik sözleşmesi gibi her şeyi sen hazırla" → karar 7 (çökme raporu) ajanlara bırakıldı: kendi sunucumuz, kişisel veri yok, hız sınırlı (YN-011).
+- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 548/548 ilk denemede):**
+  - 17ebb1f çökme raporu, kişisel veri yok (YN-011). Sunucuda etkinleşmesi için sahip `odi-guncelle` + `kur.sh` çalıştırmalı.
+  - a0043b9, 65d9a25, 0f2121a: 28. bölümün yıldız payı ve k3-derin (MK-033, MK-021).
+- **Pazarlama:**
+  - Reels 6. dalga: 10 öğrenci reelsi (e29592c … 0699bb4).
+  - Hat eklemeleri 77153c0. ffmpeg AAC PNS tıkırtısı `aac.pns: false` ile aşıldı.
+  - 29 Ekim reelsi: 7 adet (c097d41 … a14ceb4). 1f6ab15'te eski tabandan geri alma olayı yaşandı, 61a63d6 ile düzeltildi.
+  - Kamu malı Atatürk fotoğrafı ve imzası; lisanslar `marketing/reels/kaynak/LISANS.md`'de.
+  - Instagram hesabı açıldı; ODY-İLK kodu duyuruldu (YN-037).
+- **Ortam:** ortak ses ortamı `/home/user/ses-ortam` (YN-031 şimdilik çözüldü).
 
 ## Sürüyor
 - **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
@@ -43,6 +47,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 - Disk dar (5. turda bir ara 557 MB'a indi). Harness çıktıları (`tools/harness/out/<takım>`) koşu bitince silinmeli.
 - `node_modules`: `cp -al /home/user/oyun/node_modules` (+ `apps/mobile/node_modules`, `apps/web/node_modules`); ana kopya SDK 58.
 - `social-e2e` önizleme sürecini kapatmıyor (YN-023) — koşudan sonra kendi PID'ini kapatın.
+- **Gönderme kuralı:** göndermeden önce `git fetch origin main && git rebase FETCH_HEAD`. **Asla** `git reset --soft origin/main` yapmayın: eski `origin/main` ile yapılan commit, aradaki başkalarının işlerini geri alır (1f6ab15 olayı; 61a63d6 ile düzeltildi).
 - Uzak depoda kalan yedek dalları (silinemedi, vekil 403; zararsız): wip-kamp-buyume, wip-kamp-gorev, wip-oynanis, wip-perf, wip-pm, wip-sdk58, wip-siralama, wip-yedek, wip-zorluk.
 
 ## Sahibin kararı gerekenler
