@@ -10,14 +10,16 @@
  *   sikayetler [--gun 7]                   → son günlerin şikâyetleri (oyuncu başına, gizlenen iletilerle)
  *   sustur ARKADAŞ-KODU --gun N            → sohbet ve özel mesajı N gün kapatır (0: kaldırır)
  *   cokme [--gun 7]                        → çökme raporları imza başına (YN-011; kişisel veri yok): sayı, ileti, yığın, sürüm, ekran
+ *   geribildirim [--gun 7]                 → beta geri bildirimleri, yeniden eskiye: zaman, konu, platform, sürüm, ekran, metin (oyuncu yok)
  * Veritabanı: ODI_DB (yoksa apps/server/data/odi.sqlite). Tarihler İstanbul saatiyle; bitiş günü dahildir.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CODE_PATTERN, COMM_RULES, normalizeCode, SOCIAL_LIMITS } from '@odi/shared';
+import { CODE_PATTERN, COMM_RULES, FEEDBACK_TOPIC_LABEL, normalizeCode, SOCIAL_LIMITS } from '@odi/shared';
 import { App, OdiError, type ServerConfig } from './app';
 import { createCode, hashAdminCode, listCodes, rewardText, setCodeActive } from './codes';
 import { crashDetails } from './hata';
+import { feedbackList } from './geribildirim';
 import { HESAP_SIL_BEKLEME_GUN, hesapBul, hesapSilIstegi, sikayetler, sustur, type HesapOzeti } from './yonetim';
 
 /** üretim yönetici kodu için en kısa uzunluk (docs/18-sunucu-kurulum.md) */
@@ -105,8 +107,17 @@ async function main(): Promise<void> {
         console.log(`        ${r.platformlar} · sürüm ${r.surumler} · ekran ${r.ekranlar || '—'} · ilk ${fmt(r.ilk)} · son ${fmt(r.son)}`);
         for (const l of r.stack.slice(0, 8)) console.log(`          ${l}`);
       }
+    } else if (cmd === 'geribildirim') {
+      const gun = num('gun') ?? 7;
+      const list = feedbackList(app, gun);
+      if (!list.length) console.log(`(son ${gun} günde geri bildirim yok)`);
+      for (const r of list) {
+        console.log(`${fmt(r.at)}  ${FEEDBACK_TOPIC_LABEL[r.topic] ?? r.topic} · ${r.platform} ${r.app}${r.build ? `+${r.build}` : ''} · ekran ${r.screen || '—'}`);
+        console.log(`  ${r.text}`);
+      }
+      if (list.length) console.log(`— ${list.length} kayıt (son ${gun} gün${list.length >= 500 ? '; en yeni 500' : ''})`);
     } else {
-      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet | hesap ARKADAŞ-KODU | hesap-sil ARKADAŞ-KODU --onay | sikayetler [--gun 7] | sustur ARKADAŞ-KODU --gun N | cokme [--gun 7]');
+      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet | hesap ARKADAŞ-KODU | hesap-sil ARKADAŞ-KODU --onay | sikayetler [--gun 7] | sustur ARKADAŞ-KODU --gun N | cokme [--gun 7] | geribildirim [--gun 7]');
     }
   } finally { app.close(); }
 }

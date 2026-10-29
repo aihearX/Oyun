@@ -85,6 +85,37 @@ export function scrubText(raw: unknown, max: number = CRASH_LIMITS.messageMax): 
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+/**
+ * Oyuncunun kendi yazdığı kısa metin (beta geri bildirimi, geribildirim.ts) için temizleyici: `scrubText`in kişisel veri kurallarının
+ * serbest yazıya uyarlanmışı. Çıkarılır: URL'lerin sorgu/parça kısmı, e-postalar, telefon numarası benzeri rakam grupları (en az 7
+ * rakam; nokta ya da eğik çizgiyle yazılmışsa en az 10: tarih ve sürüm numarası kalır), uzun rakam dizileri (6+), anahtar/kimlik
+ * benzeri dizgiler ve büyük harfli arkadaş kodu benzeri dizgiler. Kısa sayılar ("3. bölüm") ve tırnak içi yazı KALIR (geri bildirimin
+ * kendisidir). Denetim ve görünmez yön karakterleri boşluk olur; satır sonları tek boşluğa iner. Ad yazılırsa ayıklanamaz: arayüz
+ * "Adını, telefonunu ya da e-postanı yazma." uyarısını gösterir.
+ */
+export function scrubFreeText(raw: unknown, max = 500): string {
+  let s = typeof raw === 'string' ? raw : '';
+  s = s.slice(0, 4000);
+  s = s
+    // denetim, sıfır genişlikli ve yön değiştiren karakterler (uçbirimde ve günlükte görünmez ya da yanıltıcı olur)
+    // eslint-disable-next-line no-control-regex -- amaç tam olarak denetim karakterlerini ayıklamak
+    .replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, ' ')
+    .replace(/\b((?:https?|wss?|file):\/\/[^\s?#"'`<>)]*)[?#][^\s"'`<>)]*/gi, '$1')
+    .replace(/[^\s@<>()[\]"'`,;:]+@[^\s@<>()[\]"'`,;:]+\.[A-Za-z]{2,}/g, '<e-posta>')
+    // telefon ve kart numarası benzeri: rakam grupları (boşluk, tire, parantez; nokta ya da eğik çizgiyle yazılmışsa en az 10 rakam)
+    .replace(/(?:\+|\b00)?\d(?:[\s()./-]{0,3}\d)+/g, (m) => {
+      const n = m.replace(/\D/g, '').length;
+      return n >= (/[./]/.test(m) ? 10 : 7) ? '<numara>' : m;
+    })
+    .replace(/\d{6,}/g, '<numara>')
+    .replace(/[A-Za-z0-9_+/=-]{12,}/g, (w) => (/\d/.test(w) || w.length >= 32 ? '<anahtar>' : w))
+    .replace(/\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{6,}\b/g, '<kod>')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const cp = Array.from(s);
+  return cp.length > max ? `${cp.slice(0, max - 1).join('')}…` : s;
+}
+
 /** hata adı: yalnız tanımlayıcı karakterleri */
 export function scrubKind(raw: unknown): string {
   const s = typeof raw === 'string' ? raw.replace(/[^\w$.-]/g, '').slice(0, 60) : '';
@@ -168,13 +199,16 @@ export function buildCrashReport(e: unknown, ctx: CrashContext, now: number = Da
   };
 }
 
-/** ws://, wss://, http(s):// sunucu adresi → rapor ucu (http(s)://kök/hata); geçersizse boş */
-export function crashEndpoint(serverUrl: string): string {
+/** ws://, wss://, http(s):// sunucu adresi → aynı sunucunun HTTP ucu (http(s)://kök/<yol>); geçersizse boş */
+export function serverHttpEndpoint(serverUrl: string, yol: string): string {
   const m = /^(ws|wss|http|https):\/\/([^/?#\s]+)/i.exec(serverUrl.trim());
   if (!m) return '';
   const proto = /^(wss|https)$/i.test(m[1]!) ? 'https' : 'http';
-  return `${proto}://${m[2]}/hata`;
+  return `${proto}://${m[2]}/${yol}`;
 }
+
+/** ws://, wss://, http(s):// sunucu adresi → rapor ucu (http(s)://kök/hata); geçersizse boş */
+export function crashEndpoint(serverUrl: string): string { return serverHttpEndpoint(serverUrl, 'hata'); }
 
 export interface CrashStore { get(): Promise<string | null>; set(v: string): Promise<void> }
 export interface CrashReporterDeps {

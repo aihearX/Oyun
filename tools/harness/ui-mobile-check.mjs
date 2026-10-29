@@ -776,6 +776,37 @@ async function suite(browserName, target, [W, H]) {
           await check(ad, { scroll: false });
           await page.keyboard.press('Escape'); await sleep(300);
         }
+        // Geri bildirim gönder: kart, form, otomasyonda "kapalı" iletisi; gizli ?e2e=geribildirim kancasıyla gönderim hatası ve teşekkür
+        // (sunucu yanıtını sayfadaki fetch taklidi verir: 8 yapılandırma aynı sunucuya gönderse IP başına saatte 5 sınırına takılırdı;
+        //  page.route WebKit'te hizmet çalışanından geçen isteği yakalamıyor)
+        const fbForm = async () => {
+          await page.getByTestId('geri-bildirim-kart').scrollIntoViewIfNeeded(); await sleep(300);
+          await page.getByTestId('geri-bildirim-ac').click(); await page.getByTestId('geri-bildirim-form').waitFor(); await sleep(400);
+          await page.getByTestId('geri-bildirim-konu-zorluk').click();
+          await page.getByTestId('geri-bildirim-metin').fill('3. bölümde Başla’ya basınca ekran donuyor, harita yeniden açılınca düzeliyor.');
+        };
+        await page.getByTestId('geri-bildirim-kart').scrollIntoViewIfNeeded(); await sleep(300);
+        await check('ayarlar-geri-bildirim');
+        await fbForm(); await check('geri-bildirim-form', { scroll: false });
+        await page.getByTestId('geri-bildirim-gonder').click(); await page.locator('[data-testid="geri-bildirim-sonuc"][data-durum="kapali"]').waitFor();
+        await check('geri-bildirim-kapali', { scroll: false });
+        await page.keyboard.press('Escape'); await sleep(300);
+        // kanca adres çubuğuna yeniden yüklemeden eklenir (gönderim anında okunur; DOM hedefinde yeniden yükleme köprü deposunu sıfırlardı)
+        const fbKanca = (on) => page.evaluate((k) => { const u = new URL(location.href); if (k) u.searchParams.set('e2e', 'geribildirim'); else u.searchParams.delete('e2e'); history.replaceState(history.state, '', u); }, on);
+        await fbKanca(true);
+        await fbForm();
+        const fbCevap = (status) => page.evaluate((st) => {
+          const asil = (window.__fbFetch ??= window.fetch);
+          window.fetch = st ? (u, o) => (String(u).endsWith('/geri-bildirim') ? Promise.resolve(new Response(null, { status: st })) : asil(u, o)) : asil;
+        }, status);
+        await fbCevap(503);
+        await page.getByTestId('geri-bildirim-gonder').click(); await page.locator('[data-testid="geri-bildirim-sonuc"][data-durum="hata"]').waitFor();
+        await check('geri-bildirim-hata', { scroll: false });
+        await fbCevap(204);
+        await page.getByTestId('geri-bildirim-gonder').click(); await page.getByTestId('geri-bildirim-tesekkur').waitFor();
+        await check('geri-bildirim-tesekkur', { scroll: false });
+        await fbCevap(0); await fbKanca(false);
+        await page.keyboard.press('Escape'); await sleep(300);
         await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
     }
     if (want('kamp')) {

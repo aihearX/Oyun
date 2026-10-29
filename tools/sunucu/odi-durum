@@ -31,6 +31,15 @@ if [ -n "$COKME" ]; then
 else
   uyari "son 24 sa çökme: okunamadı (http://$ODI_HOST:$ODI_PORT/hata/ozet; sunucu eski sürüm olabilir → sudo odi-guncelle)"
 fi
+# beta geri bildirimi: yalnız sayılar (metin yok); okumak için: npm run kod -- geribildirim [--gun 7]
+GERI=$(curl -fsS --max-time 3 "http://$ODI_HOST:$ODI_PORT/geri-bildirim/ozet" 2>/dev/null \
+  | node -e 'let s="";process.stdin.on("data",(d)=>{s+=d}).on("end",()=>{try{const o=JSON.parse(s);if(Number.isInteger(o.son24))console.log(o.son24+"\t"+o.gun7)}catch{}})' 2>/dev/null || true)
+if [ -n "$GERI" ]; then
+  IFS=$'\t' read -r g_n g_hafta <<< "$GERI"
+  tamam "son 24 sa geri bildirim: $g_n (7 günde $g_hafta; okumak için: npm run kod -- geribildirim)"
+else
+  uyari "son 24 sa geri bildirim: okunamadı (http://$ODI_HOST:$ODI_PORT/geri-bildirim/ozet; sunucu eski sürüm olabilir → sudo odi-guncelle)"
+fi
 printf '  Sürüm: %s\n' "$(surum_bilgisi "$(readlink -f "$ODI_GUNCEL" 2>/dev/null)")"
 printf '  Node: %s\n' "$(node -v 2>/dev/null || echo yok)"
 

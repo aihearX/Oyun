@@ -26,6 +26,12 @@ ODİ sunucusu hazır → http://localhost:8787  (sağlık: /saglik)
   bellekte), `crash_reports` tablosunda saat + imza başına sayaç, 30 gün. Alanlar ve temizleyici: `packages/shared/src/hata.ts`.
 - `GET /hata/ozet` → son 7 gün imza başına toplam ve son 24 saat (yalnız sayılar; Caddy dışarı açmaz, `odi-durum` okur).
   Ayrıntı (ileti, yığın, sürüm, ekran): sunucu makinesinde `npm run kod -- cokme [--gun 7]`.
+- `POST /geri-bildirim` → beta geri bildirimi (Ayarlar › Geri bildirim gönder): en çok 4 KB JSON, katı şema (fazla alan → 400;
+  alanlar: konu, metin ≤ 500, ekran, sürüm, derleme, platform), metin sunucuda yeniden temizlenir (e-posta, telefon, uzun rakam
+  dizisi), IP başına saatte 5 / günde 20 (IP yalnız bellekte), `feedback` tablosu (göç 4; oyuncu sütunu yok), 90 gün.
+  Kurallar: `packages/shared/src/geribildirim.ts`, `apps/server/src/geribildirim.ts`.
+- `GET /geri-bildirim/ozet` → son 24 saat ve son 7 gün kayıt sayısı (metin yok; Caddy dışarı açmaz, `odi-durum` okur).
+  Okumak: sunucu makinesinde `npm run kod -- geribildirim [--gun 7]`.
 - `GET /` → kısa Türkçe açıklama
 - WebSocket: herhangi bir yol (`ws://<adres>:8787`)
 

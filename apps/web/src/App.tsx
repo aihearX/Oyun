@@ -43,6 +43,7 @@ import { chunkFailed, loadLevel, loadLevelGen, loadMap, type LevelGen } from './
 import { EngineLoading, ScreenLoading } from './ui/Loading';
 import { HataSiniri } from './ui/HataSiniri';
 import { setCrashScreen } from './hata';
+import { noteFeedbackScreen } from './geribildirim';
 
 /**
  * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem ekrana hem önden
@@ -194,8 +195,8 @@ export function App() {
   const invite = useMemo(() => (bot ? null : readInvite()), [bot]);
   const store = useStore();
   const [route, setRoute] = useState<Route>(() => (!bot && wantsDemoResult() ? { name: 'wait' } : { name: 'title' }));
-  // çökme raporundaki ekran adı (YN-011; yalnız rota adı)
-  useEffect(() => { setCrashScreen(route.name); }, [route.name]);
+  // çökme raporundaki (YN-011) ve geri bildirimdeki ekran adı (yalnız rota adı)
+  useEffect(() => { setCrashScreen(route.name); noteFeedbackScreen(route.name); }, [route.name]);
   useEffect(() => {
     if (bot || !wantsDemoResult()) return;
     void loadLevelGen().then((lg) => { const d = demoResult(lg); if (d) { setDemo(d); setRoute(d); } }, chunkFailed);

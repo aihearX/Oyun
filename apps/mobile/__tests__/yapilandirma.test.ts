@@ -49,6 +49,13 @@ function beyan(): Map<string, Satir> {
   return m;
 }
 
+/** tablodaki bir Apple türünün "Ne" sütunu */
+const neSutunu = (tur: string): string => {
+  const bolum = appStore.split('## Uygulama gizliliği')[1]!.split('\n## ')[0]!;
+  const satir = bolum.split('\n').find((l: string) => l.split('|').map((x: string) => x.trim())[1] === tur);
+  return satir ? satir.split('|').map((x: string) => x.trim())[6] ?? '' : '';
+};
+
 describe('Yerel derleme yapılandırması', () => {
   it('iOS gizlilik bildirimi App Store gizlilik cevaplarıyla birebir aynı', () => {
     const pm = app.ios.privacyManifests;
@@ -61,6 +68,11 @@ describe('Yerel derleme yapılandırması', () => {
     for (const [t, v] of b) expect({ [t]: v.izleme }).toEqual({ [t]: false });
     expect(b.get('CrashData')).toEqual({ amaclar: ['AppFunctionality'], bagli: false, izleme: false });
     expect(b.get('UserID')?.bagli).toBe(true);
+    // beta geri bildirimi notu: Diğer Kullanıcı İçeriği, Uygulama İşlevi. Not kendi başına bağlı değil; Apple tür başına tek cevap
+    // istediği ve aynı tür (takma ad) bağlı olduğu için tür bağlı beyan edilir (manifestte tek OtherUserContent girdisi)
+    expect(b.get('OtherUserContent')).toEqual({ amaclar: ['AppFunctionality'], bagli: true, izleme: false });
+    expect(neSutunu('Kullanıcı İçeriği › Diğer Kullanıcı İçeriği')).toMatch(/beta geri bildirimi notu.*oyuncu kimliği yok/);
+    expect((pm.NSPrivacyCollectedDataTypes as Toplanan[]).filter((t) => t.NSPrivacyCollectedDataType === 'NSPrivacyCollectedDataTypeOtherUserContent')).toHaveLength(1);
     const bildirim = new Map<string, Satir>((pm.NSPrivacyCollectedDataTypes as Toplanan[]).map((t) => [
       t.NSPrivacyCollectedDataType.replace('NSPrivacyCollectedDataType', ''),
       { amaclar: t.NSPrivacyCollectedDataTypePurposes.map((p) => p.replace('NSPrivacyCollectedDataTypePurpose', '')).sort(), bagli: t.NSPrivacyCollectedDataTypeLinked, izleme: t.NSPrivacyCollectedDataTypeTracking },

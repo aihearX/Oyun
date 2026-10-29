@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { COMM_RULES, CRASH_LIMITS, FRIEND_LIMITS } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS } from '@odi/shared';
 import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
@@ -13,6 +13,7 @@ import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS } from '../../server/src/accoun
 import { DEFAULT_SPEND_LIMIT_TRY, LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
 import { HESAP_SIL_BEKLEME_GUN } from '../../server/src/yonetim';
 import { CRASH_RETAIN_MS } from '../../server/src/hata';
+import { FEEDBACK_RETAIN_MS } from '../../server/src/geribildirim';
 
 const DAY = 86_400_000;
 const root = resolve(__dirname, '../../..');
@@ -56,6 +57,8 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(HESAP_SIL_BEKLEME_GUN).toBe(14);
     expect(CRASH_RETAIN_MS).toBe(30 * DAY);
     expect(CRASH_LIMITS.perSession).toBe(5);
+    expect(FEEDBACK_RETAIN_MS).toBe(90 * DAY);
+    expect([FEEDBACK_LIMITS.perIpHour, FEEDBACK_LIMITS.perIpDay, FEEDBACK_LIMITS.textMax]).toEqual([5, 20, 500]);
     const ortak = readFileSync(resolve(root, 'tools/sunucu/ortak.sh'), 'utf8');
     expect(ortak).toMatch(/^ODI_BACKUP_HOURS=6$/m);
     expect(ortak).toMatch(/^ODI_BACKUP_KEEP=28$/m);
@@ -69,6 +72,13 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     for (const k of ['oyuncu kimliğinizi, takma adınızı, anahtarınızı, sohbet metinlerini ya da bir cihaz kimliğini içermez', 'en çok 5 rapor', '30 gün sonra otomatik silinir']) expect(tr).toContain(k);
     expect(en).toContain('Crash reports: if the game hits an error');
     for (const k of ['does not contain your player ID, nickname, key, chat text or any device identifier', 'at most 5 reports', 'deleted automatically after 30 days']) expect(en).toContain(k);
+    // beta geri bildirimi: ne gider, ne gitmez, sınır, kaç gün; Caddy yalnız /geri-bildirim'i açar
+    expect(tr).toContain('Geri bildirim: Profil › Ayarlar › Geri bildirim gönder');
+    for (const k of ['en çok 500 karakter', 'e-posta adresleri, telefon numaraları ve uzun sayılar', 'oyuncu kimliğinizi, takma adınızı, anahtarınızı ya da bir cihaz kimliğini içermez', 'adınızı, telefonunuzu ya da e-postanızı yazmayın', 'saatte 5, günde 20 not', '90 gün sonra otomatik silinir']) expect(tr).toContain(k);
+    expect(en).toContain('Feedback: if you want, you can send us a short note');
+    for (const k of ['at most 500 characters', 'e-mail addresses, phone numbers and long numbers removed', 'does not contain your player ID, nickname, key or any device identifier', 'do not write your name, phone number or e-mail address', '5 notes an hour, 20 a day', 'deleted automatically after 90 days']) expect(en).toContain(k);
+    expect(hs).toContain('Geri bildirim notları da hesaba bağlı değildir; 90 günde');
+    expect(ortak).toMatch(/handle \/geri-bildirim \{\s*request_body \{\s*max_size 4KB/);
     expect(hs).toContain('Çökme raporları hesaba bağlı değildir');
     expect(hs).toContain(`son ${HESAP_SIL_BEKLEME_GUN} gün`);
     expect(hs).toContain(`${HESAP_SIL_BEKLEME_GUN} days`);
@@ -77,6 +87,11 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
   it('oyun içi yol ile metin aynı: Profil › Ayarlar › Hesabı sil, Her şeyi sil', () => {
     const ayarlar = readFileSync(resolve(root, 'apps/web/src/screens/SettingsScreen.tsx'), 'utf8');
     expect(ayarlar).toContain('<h2>Hesabı sil</h2>');
+    // Profil › Ayarlar › Geri bildirim gönder (gizlilik metni §3) ve kartın uyarısı
+    expect(ayarlar).toContain('<GeriBildirimKart />');
+    const gb = readFileSync(resolve(root, 'apps/web/src/screens/GeriBildirimKart.tsx'), 'utf8');
+    expect(gb).toContain('<h2>Geri bildirim gönder</h2>');
+    expect(gb).toContain('Adını, telefonunu ya da e-postanı yazma.');
     expect(ayarlar).toContain("'Her şeyi sil'");
     expect(duzMetin(HESAP_SIL)).toContain('Hesabı sil');
     expect(duzMetin(HESAP_SIL)).toContain('Her şeyi sil');

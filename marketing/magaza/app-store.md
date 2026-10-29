@@ -28,6 +28,8 @@ veriyle birleştirilmez, veri aracısına verilmez; ATT izni istenmez. **Reklam:
 
 Çökme verisi dışındaki bütün türler **kullanıcıya bağlıdır** (rastgele oyuncu kimliğiyle; ad/e-posta olmasa da Apple tanımında
 "linked"); çökme verisi **kullanıcıya bağlı değildir** (oyuncu kimliği, takma ad, cihaz kimliği taşımaz; hesapla eşleştirilemez).
+Beta geri bildirimi notu da kendi başına kullanıcıya bağlı değildir (oyuncu kimliği yok); ama Apple bağlılığı **tür başına tek cevapla**
+sorar ve aynı tür (Diğer Kullanıcı İçeriği: takma ad, takım adı) bağlı olduğu için tür "bağlı" beyan edilir (daha kapsayıcı cevap).
 Hiçbiri **izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK'ların (RevenueCat) topladığını da bizim beyanımız sayar.
 
 | Apple türü | Toplanır | Kullanıcıya bağlı | İzleme | Amaç | Ne |
@@ -36,14 +38,20 @@ Hiçbiri **izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK
 | Satın Almalar › Satın Alma Geçmişi | Evet | Evet | Hayır | Uygulama İşlevi, Analiz | Ürün, zaman, tutar, işlem no (sunucu + RevenueCat; RevenueCat panosunda satış raporları) |
 | Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Evet | Hayır | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet |
 | Kullanıcı İçeriği › Oyun İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | İlerleme, bölüm sonuçları, kamp, takım yarışı kayıtları |
-| Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu |
+| Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu; beta geri bildirimi notu (Ayarlar › Geri bildirim gönder: konu, temizlenmiş metin ≤ 500 karakter, geldiği ekranın adı, sürüm, platform; kendi sunucumuzda 90 gün; oyuncu kimliği yok, hesapla eşleştirilemez) |
 | Diğer Veriler › Diğer Veri Türleri | Evet | Evet | Hayır | Uygulama İşlevi (güvenlik, kötüye kullanımın önlenmesi) | IP adresi: ödül kodu denemesi kaydında 90 gün; bağlantıda yalnız bellekte (çökme raporu hız sınırı: tuzlu özeti bellekte en çok 1 gün) |
 | Teşhis › Çökme Verileri | Evet | Hayır | Hayır | Uygulama İşlevi (çökmeleri azaltmak) | Çökme raporu (YN-011): hata adı ve temizlenmiş iletisi, yığın satırları (dosya:satır), uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, ekran adı, dakikaya yuvarlanmış zaman; kendi sunucumuzda 30 gün. Oyuncu kimliği, takma ad, anahtar, sohbet metni, cihaz kimliği yok; IP yalnız hız sınırı için bellekte |
 | İletişim Bilgileri, Sağlık ve Fitness, Finansal Bilgi (ödeme), Konum, Hassas Bilgiler, Kişiler, Tarama/Arama Geçmişi, Kullanım Verileri, Teşhis › Performans Verileri ve Diğer Teşhis Verileri | **Hayır** | — | — | — | İstenmez, toplanmaz; dış çökme/analiz aracı yok |
 
 Notlar:
 - "Kullanım Verileri › Ürün Etkileşimi" seçilmez: dokunma/ekran izlenmez; sunucudaki `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar.
-  Çökme raporundaki ekran adı yalnız hatanın olduğu ekrandır (etkileşim kaydı değil).
+  Çökme raporundaki ekran adı yalnız hatanın olduğu ekrandır; geri bildirimdeki ekran adı yalnız oyuncunun notu yazmadan önceki
+  ekranıdır (ikisi de etkileşim kaydı değil).
+- **Beta geri bildirimi:** oyuncu isterse yazar (Ayarlar › Geri bildirim gönder); dış servis yok, not kendi sunucumuza
+  (`POST /geri-bildirim`) gider, IP başına saatte 5 / günde 20 ile sınırlı, 90 günde silinir. Ad, telefon, e-posta istenmez
+  ("Adını, telefonunu ya da e-postanı yazma." uyarısı); e-posta, telefon ve uzun rakam dizileri cihazda ve sunucuda çıkarılır.
+  Apple türü: Kullanıcı İçeriği › Diğer Kullanıcı İçeriği, amaç Uygulama İşlevi (destek). Not kendi başına kullanıcıya bağlı değil;
+  tür takma ad yüzünden zaten "bağlı" beyanlı. Kod: `packages/shared/src/geribildirim.ts`, `apps/server/src/geribildirim.ts`.
 - **Çökme verisi (YN-011):** dış servis yok; rapor kendi sunucumuza (`POST /hata`) gider, IP başına dakikada 10 / günde 100 ile
   sınırlı, 30 günde silinir. Kod: `packages/shared/src/hata.ts` (temizleyici, alanlar), `apps/server/src/hata.ts` (katı şema: fazla
   alan reddedilir). Uygulama sürümü ve işletim sistemi sürümü bu raporun parçasıdır; ayrıca "Diğer Teşhis Verileri" toplanmaz.

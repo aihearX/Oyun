@@ -38,6 +38,8 @@
 | Sunucu günlüğü (journald) | 30 gün | `tools/sunucu/ortak.sh` `MaxRetentionSec=30day` |
 | Çökme raporları (`crash_reports`; hesaba bağlı değil) | 30 gün | `hata.ts` `CRASH_RETAIN_MS`, `pruneCrashes` (saatlik bakım) |
 | Çökme raporu hız sınırı için IP (bellek, tuzlu özet) | En çok 1 gün (günlük pencere; gün değişince zamanlayıcı siler) | `hata.ts` `crashRateOk`, `crashRatePrune` (`server.ts` sweep) |
+| Beta geri bildirimi (`feedback`; hesaba bağlı değil) | 90 gün | `geribildirim.ts` `FEEDBACK_RETAIN_MS`, `pruneFeedback` (saatlik bakım) |
+| Geri bildirim hız sınırı için IP (bellek, tuzlu özet) | En çok 1 gün (günlük pencere; gün değişince zamanlayıcı siler) | `geribildirim.ts` `feedbackRateOk`, `feedbackRatePrune` (`server.ts` sweep) |
 | Yedek | 6 saatte bir, 28 kopya (7 gün) | `ortak.sh` `ODI_BACKUP_HOURS=6`, `ODI_BACKUP_KEEP=28` |
 | Diğer hesap verisi | Hesap silinene kadar | `account-veri.ts` `VERI_SINIFI` |
 
@@ -60,6 +62,11 @@
 | Aynı hata oturumda bir kez, oturumda en çok 5; bağlantısızken son 5 bekler | `CrashReporter` (`CRASH_LIMITS.perSession`, `queueMax`); test `packages/shared/src/hata.test.ts` |
 | IP yalnız bellekte, kötüye kullanımı sınırlamak için (dakikada 10, günde 100) | `hata.ts` `crashRateOk` (süreç başına rastgele tuzla özet); test `apps/server/test/hata.test.ts` |
 | Çökme raporu başka şirkete gitmez | Dış çökme/analiz SDK'sı yok; uç kendi sunucumuz (`POST /hata`, Caddyfile `handle /hata`) |
+| Geri bildirim: yalnız konu (Hata/Zorluk/Öneri/Diğer), metin ≤ 500 karakter, geldiği ekranın adı, sürüm + derleme, platform | `packages/shared/src/geribildirim.ts` (`buildFeedback`); sunucu şeması katı (`apps/server/src/geribildirim.ts` `feedbackSchema.strict()`: fazla alan → 400) |
+| Geri bildirim metninden e-posta, telefon, uzun rakam dizisi (ve anahtar/arkadaş kodu benzeri) cihazda ve sunucuda çıkarılır | `packages/shared/src/hata.ts` `scrubFreeText` (istemci `buildFeedback`, sunucu `receiveFeedback` yeniden); test `packages/shared/src/geribildirim.test.ts`, `apps/server/test/geribildirim.test.ts` |
+| Geri bildirim oyuncu kimliği, takma ad, anahtar, cihaz kimliği taşımaz; hesapla eşleştirilemez; ad/telefon/e-posta istenmez | Şemada bu alanlar yok; `feedback`'te oyuncu sütunu yok (`account-veri.ts`); istek çerezsiz, `referrerPolicy: no-referrer` (`apps/web/src/geribildirim.ts`); kartta "Adını, telefonunu ya da e-postanı yazma." (`screens/GeriBildirimKart.tsx`) |
+| Geri bildirimde IP yalnız bellekte, kötüye kullanımı sınırlamak için (saatte 5, günde 20) | `geribildirim.ts` `feedbackRateOk` (süreç başına rastgele tuzla özet); günlükte yalnız konu/platform/sürüm/ekran (metin ve IP yok) |
+| Geri bildirim başka şirkete gitmez | Uç kendi sunucumuz (`POST /geri-bildirim`, Caddyfile `handle /geri-bildirim`); okuma yalnız sunucu makinesinde `npm run kod -- geribildirim` |
 | Serbest yazı 8 bölüm geçilene kadar kapalı | `COMM_RULES.freeTextLevel`, `comm/settings.ts` `requireFreeText` (sohbet ve özel mesaj) |
 | Küfür süzgeci (sohbet, DM, ad, takım adı/açıklama, başvuru notu) | `chat.ts`/`dm.ts` `maskProfanity`, `players.ts`, `teams.ts`, `teamapply.ts` `hasProfanity` |
 | 3 şikâyette ileti gizlenir, 1 günde 3 kişi → susturma | `chat.ts` `REPORTS_TO_HIDE`, `friends.ts` `addReport` (`FRIEND_LIMITS.reportsToMute`) |
@@ -89,6 +96,15 @@
    `CrashData` linked false), Google Play "Uygulama bilgileri ve performansı › Kilitlenme günlükleri ve Teşhis" (toplanır, aktarımda şifreli,
    paylaşılmaz). Hukuki sebep m.5/2-f; rapor hesapla eşleştirilemediği için büyük olasılıkla kişisel veri sayılmaz, yine de metinde
    açıkça yazılı.
+10. **Beta geri bildirimi:** sahip gizlilik işini bize bıraktı; oyun içinden kısa not (Ayarlar › Geri bildirim gönder) eklendi. Yeni veri
+   türü: **oyuncunun kendi yazdığı serbest metin** (konu + ≤ 500 karakter) ve yanında ekran adı, sürüm, platform; oyuncu kimliği yok,
+   90 gün. Serbest metne oyuncu yine de adını yazabilir: kart açıkça "Adını, telefonunu ya da e-postanı yazma." der, e-posta/telefon/
+   uzun rakam dizisi otomatik çıkarılır; ad otomatik ayıklanamaz (kalan risk, metinde "yazmayın" diye belirtildi). Metin §3'e
+   "Geri bildirim" paragrafı ve saklama satırı (90 gün), §7'ye ve hesap silme sayfasına "hesaba bağlı değil, 90 günde silinir", "İşlemediklerimiz"e
+   "nota da yazmamanızı isteriz" eklendi. Mağaza: App Store "Kullanıcı İçeriği › Diğer Kullanıcı İçeriği", Uygulama İşlevi — not kendi
+   başına kullanıcıya bağlı değil, ama Apple bağlılığı tür başına tek cevapla sorar ve aynı tür (takma ad) zaten bağlı, bu yüzden tür
+   "bağlı" kalır (`ios.privacyManifests` `OtherUserContent` linked true, tek girdi; jest testi sabitler). Google Play "Uygulama etkinliği ›
+   Kullanıcının oluşturduğu diğer içerik" (toplanır, isteğe bağlı, Uygulama işlevi, aktarımda şifreli, paylaşılmaz). Hukuki sebep m.5/2-f.
 
 ## Açık hukuk konuları (avukata)
 

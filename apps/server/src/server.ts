@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { COMM_RULES, CRASH_LIMITS, SOCIAL_LIMITS, type Op } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, SOCIAL_LIMITS, type Op } from '@odi/shared';
 import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type ServerConfig } from './app';
 import { campHandlers, completeDue } from './camp';
 import { campGrowthHandlers } from './camp-buyume';
@@ -30,6 +30,7 @@ import { kgHandlers, withKgHooks } from './camp-quests';
 import { vakaHandlers } from './camp-quests-vaka';
 import { oyunHandlers } from './camp-quests-oyun';
 import { crashRateOk, crashRatePrune, crashSummary, pruneCrashes, receiveCrash } from './hata';
+import { feedbackRateOk, feedbackRatePrune, feedbackSummary, pruneFeedback, receiveFeedback } from './geribildirim';
 
 export const SERVER_VERSION = '0.1.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -156,6 +157,34 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       res.end(JSON.stringify({ ok: true, ...crashSummary(app, 7) }));
       return;
     }
+    if (url === '/geri-bildirim') {
+      // beta geri bildirimi: kişisel veri istenmez ve eklenmez; IP yalnız bellekte, hız sınırı için (geribildirim.ts)
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST', 'access-control-allow-headers': 'content-type', 'cache-control': 'no-store' };
+      const bitir = (status: number, body = '') => { if (!res.headersSent) { res.writeHead(status, { ...cors, 'content-type': 'text/plain; charset=utf-8' }); res.end(body); } };
+      if (req.method === 'OPTIONS') { bitir(204); return; }
+      if (req.method !== 'POST') { bitir(405, 'Yalnız POST.\n'); return; }
+      const ip = clientIp(req.headers['x-forwarded-for'], req.socket.remoteAddress, cfg.trustProxy ?? 0);
+      // gövde okunmadan önce: sınır aşıldıysa ya da bildirilen boy büyükse gövde atılır
+      if (!feedbackRateOk(app, ip)) { req.resume(); bitir(429, 'Çok sık.\n'); return; }
+      if (Number(req.headers['content-length'] ?? 0) > FEEDBACK_LIMITS.maxBytes) { req.resume(); bitir(413, 'Çok büyük.\n'); return; }
+      const parts: Buffer[] = []; let size = 0; let tasti = false;
+      req.on('data', (c: Buffer) => { if (tasti) return; size += c.length; if (size > FEEDBACK_LIMITS.maxBytes) { tasti = true; parts.length = 0; return; } parts.push(c); });
+      req.on('error', () => bitir(400));
+      req.on('end', () => {
+        if (tasti) { bitir(413, 'Çok büyük.\n'); return; }
+        try {
+          const r = receiveFeedback(app, Buffer.concat(parts).toString('utf8'));
+          bitir(r.status, r.error ? `${r.error}\n` : '');
+        } catch (e) { console.error('[geri bildirim]', e); bitir(500); }
+      });
+      return;
+    }
+    if (req.method === 'GET' && url === '/geri-bildirim/ozet') {
+      // yalnız sayılar (son 24 saat, son 7 gün); metin yok. Caddy dışarı açmaz, odi-durum okur
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+      res.end(JSON.stringify({ ok: true, ...feedbackSummary(app) }));
+      return;
+    }
     if (req.method === 'GET' && url === '/') {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
       res.end('ODİ: Sesin Yolu sosyal sunucusu çalışıyor.\nOyun bu adrese WebSocket ile bağlanır (ws:// ya da wss://).\nSağlık kontrolü: /saglik\n');
@@ -264,7 +293,8 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         rankDayTick(app);
         expireApplications(app);
         crashRatePrune(app); // gün değişince çökme sınırının IP özetleri bellekten silinir
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); }
+        feedbackRatePrune(app); // geri bildirim sınırının IP özetleri de
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); pruneFeedback(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

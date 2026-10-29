@@ -451,6 +451,14 @@ $1 {
 		}
 		reverse_proxy $ODI_HOST:$ODI_PORT
 	}
+	# Beta geri bildirimi: yalnız /geri-bildirim (POST; gövde en çok 4 KB, sunucu ayrıca sınırlar: IP başına saatte 5, günde 20).
+	# Sayı özeti (/geri-bildirim/ozet) dışarı açılmaz: odi-durum onu sunucunun kendisinden okur. Erişim günlüğü (log) yok: IP yazılmaz.
+	handle /geri-bildirim {
+		request_body {
+			max_size 4KB
+		}
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
 
 	# Web sürümü (apps/web derlemesi). Parmak izli dosyalar (/assets/*) bir yıl önbellekte kalır;
 	# index.html, ses dosyaları ve diğerleri her açılışta doğrulanır (güncellemeden sonra hemen yenisi gelir).

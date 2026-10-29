@@ -4,6 +4,7 @@
 //       → B'nin süresi kısalır → A teknolojiye bağış → A test mağazasından takım hediyeli paket → B hediyeyi alır
 //       → savaş hedefi → baskın can barı (üçüncü bir oyuncu sunucuya ilerleme gönderir) düşer. Her adımda 360×740 ekran görüntüsü.
 //       Sonda çökme raporu (YN-011): gizli `?e2e=hata` kancası kasıtlı hata atar → tek rapor sunucuya ulaşır, oyuncu kimliği taşımaz.
+//       Beta geri bildirimi: otomasyonda gönderim kapalı; gizli `?e2e=geribildirim` kancasıyla tek not gider, temizlenmiş, kimliksiz.
 // Kullanım: node tools/harness/social-e2e.mjs [--no-build] [--headed]
 // Çıktı: tools/harness/out/sosyal/*.png
 import { spawn } from 'node:child_process';
@@ -336,6 +337,42 @@ try {
   check(rapor.kind === 'Error' && rapor.message === 'ODİ kasıtlı test hatası' && rapor.platform === 'web' && rapor.at % 60_000 === 0 && rapor.stack.length <= 20, `rapor: ${rapor.kind}: ${rapor.message} · ${rapor.platform} ${rapor.os} · ekran ${rapor.screen} · ${rapor.stack.length} yığın satırı`);
   check(!!hpPid && !!anahtar && !govdeler[0].includes(hpPid) && !govdeler[0].includes(anahtar) && !govdeler[0].includes('Ayşe') && !/localhost|127\.0\.0\.1|sunucu=/.test(govdeler[0]), 'raporda oyuncu kimliği, anahtar, takma ad, adres yok');
   await hp.close();
+
+  step('17 · Beta geri bildirimi: otomasyonda gönderim kapalı (istek yok); gizli ?e2e=geribildirim kancasıyla tek not sunucuya, temizlenmiş, oyuncu kimliği yok');
+  const gozet = async () => (await fetch(`http://127.0.0.1:${sport}/geri-bildirim/ozet`)).json();
+  const fp = await B.context().newPage();
+  const fGovde = []; const fDurum = []; let fPid = '';
+  fp.on('request', (r) => { if (r.method() === 'POST' && new URL(r.url()).pathname === '/geri-bildirim') fGovde.push(r.postData() ?? ''); });
+  fp.on('response', (r) => { if (r.request().method() === 'POST' && new URL(r.url()).pathname === '/geri-bildirim') fDurum.push(r.status()); });
+  fp.on('websocket', (ws) => ws.on('framereceived', (f) => { try { const m = JSON.parse(String(f.payload)); if (m.t === 'res' && m.data?.me?.id && m.data.serverTime) fPid = m.data.me.id; } catch { /* ikili/başka */ } }));
+  const notYaz = async (q, metin, foto) => {
+    await fp.goto(`http://localhost:${wport}/?${q}sunucu=${encodeURIComponent(wsUrl)}`, { waitUntil: 'load' });
+    await fp.getByRole('button', { name: /Devam et|Yola çık/ }).first().click({ timeout: 45_000 });
+    await fp.locator('nav.tabbar').waitFor({ timeout: 20_000 }); await toastGone(fp);
+    await tab(fp, 'Profil'); await fp.locator('.menu-tile[data-tile="settings"]').click();
+    await fp.getByTestId('geri-bildirim-kart').scrollIntoViewIfNeeded();
+    await fp.getByTestId('geri-bildirim-ac').click(); await fp.getByTestId('geri-bildirim-form').waitFor();
+    await fp.getByTestId('geri-bildirim-konu-zorluk').click();
+    await fp.getByTestId('geri-bildirim-metin').fill(metin);
+    if (foto) await shot(fp, foto);
+    await fp.getByTestId('geri-bildirim-gonder').click();
+  };
+  await notYaz('', 'otomasyon denemesi');
+  await fp.locator('[data-testid="geri-bildirim-sonuc"][data-durum="kapali"]').waitFor({ timeout: 10_000 });
+  await sleep(800);
+  check(fGovde.length === 0 && (await gozet()).son24 === 0, 'otomasyonla açılan sayfa (webdriver) not göndermedi, kart "kapalı" dedi');
+  await notYaz('e2e=geribildirim&', '3. bölümde Başla’ya basınca ekran donuyor. Bana bora@ornek.com ya da 0532 123 45 67 üzerinden yaz', 'B-geri-bildirim-form');
+  await fp.getByTestId('geri-bildirim-tesekkur').waitFor({ timeout: 15_000 });
+  await shot(fp, 'B-geri-bildirim-tesekkur');
+  const fAnahtar = await fp.evaluate(() => localStorage.getItem('odi.net.token'));
+  check(fGovde.length === 1 && fDurum[0] === 204, `tek not gitti ve sunucu kabul etti (${fGovde.length} not, durum ${fDurum.join(',')})`);
+  check((await gozet()).son24 === 1, 'sunucu özeti: son 24 saatte 1 not');
+  const not = JSON.parse(fGovde[0]);
+  check(Object.keys(not).sort().join(',') === 'app,build,platform,screen,text,topic,v', `yalnız izinli alanlar: ${Object.keys(not).join(',')}`);
+  check(not.topic === 'zorluk' && not.platform === 'web' && not.screen === 'map' && not.text === '3. bölümde Başla’ya basınca ekran donuyor. Bana <e-posta> ya da <numara> üzerinden yaz',
+    `not: ${not.topic} · ${not.platform} ${not.app}+${not.build} · ekran ${not.screen} · «${not.text}»`);
+  check(!!fPid && !!fAnahtar && !fGovde[0].includes(fPid) && !fGovde[0].includes(fAnahtar) && !fGovde[0].includes('Bora') && !/bora@|0532|localhost|127\.0\.0\.1|sunucu=/.test(fGovde[0]), 'notta oyuncu kimliği, anahtar, takma ad, e-posta, telefon, adres yok');
+  await fp.close();
 } catch (e) {
   failed = true;
   console.error('\nHATA:', e.message);
