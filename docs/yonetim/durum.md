@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 13. tur (hafif) · 2026-10-29 · main 0699bb4.
+**Son tur:** 14. tur (yalnız belge) · 2026-10-29 · main b8b2767.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,16 +26,12 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **İnenler (PY: `kabul --yalniz typecheck,lint,vitest` 548/548 ilk denemede):**
-  - 17ebb1f çökme raporu, kişisel veri yok (YN-011). Sunucuda etkinleşmesi için sahip `odi-guncelle` + `kur.sh` çalıştırmalı.
-  - a0043b9, 65d9a25, 0f2121a: 28. bölümün yıldız payı ve k3-derin (MK-033, MK-021).
-- **Pazarlama:**
-  - Reels 6. dalga: 10 öğrenci reelsi (e29592c … 0699bb4).
-  - Hat eklemeleri 77153c0. ffmpeg AAC PNS tıkırtısı `aac.pns: false` ile aşıldı.
-  - 29 Ekim reelsi: 7 adet (c097d41 … a14ceb4). 1f6ab15'te eski tabandan geri alma olayı yaşandı, 61a63d6 ile düzeltildi.
-  - Kamu malı Atatürk fotoğrafı ve imzası; lisanslar `marketing/reels/kaynak/LISANS.md`'de.
-  - Instagram hesabı açıldı; ODY-İLK kodu duyuruldu (YN-037).
-- **Ortam:** ortak ses ortamı `/home/user/ses-ortam` (YN-031 şimdilik çözüldü).
+- **Geri bildirim** b8b2767 (YN-038): Ayarlar'dan kısa not, kişisel veri yok. Sunucuda sahip `odi-guncelle` + `kur.sh` çalıştırmalı.
+- **29 Ekim reelsi** (anlatıcı + kamu malı arşiv fotoğrafları): 7a7f8e4 + ab4fb68, 3b6a178, e9919df.
+  - 1928 fotoğrafının yeri belirsiz (Kayseri mi Sivas mı), alt yazı yalnız "1928".
+  - Lisanslar `marketing/reels/kaynak/LISANS.md`'de.
+  - Anlatıcı modeli "odyolog" sözcüğünü "odiyolog" okuyor; seslendirmede "işitme uzmanları" kullanılıyor.
+- **aday** (sürüyor): tam kabul koşusu. Beta notları taslağı `wip-aday` (06e39b6). Sürüm önerisi 0.9.0 sahipte.
 
 ## Sürüyor
 - **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
@@ -76,3 +72,5 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | 17 | **Anlatım sırasında müzik ne kadar kısılsın?** | Bugün 0.3 (−10 dB). Ölçüm dengeli diyor; değiştirmeyin. Dinleyip "müzik çok kayboluyor" derseniz 0.45. | a) 0.3 kalsın (önerim) · b) 0.45–0.5 |
 | 18 | **Müzik parçaları arası düzey** (MK-023, 62844a8) | Menü ve Sinir müziği +2,8 dB, Kanal −1,5 dB yapıldı (parçalar arası fark 5,8 → 2,6 LU). Ölçüm iyi; kulakla dinleyip onaylayın, beğenmezseniz bu commit tek başına geri alınır. | a) Kalsın (önerim) · b) Geri al |
 | 19 | **Dolgu renklerinde kontrast düzeltmesi** (MK-017, Ö1–Ö7: bildirim rozeti, mor ve mercan düğmeler, seviye rozeti, Süsle, kademe çipi, etkinlik şeridi) | Hepsini kabul edin: renk tonu aynı kalıyor, yalnız açık uçlar bir ton koyulaşıyor (önce/sonra karşılaştırmasında fark ince). Küçük beyaz yazılar 2–3:1'den ≥ 4,5:1'e çıkıyor. İşitme odaklı oyunun oyuncuları arasında görme güçlüğü olanlar da olacak. En belirgin değişiklik Ö5: Süsle düğmesinde kahve yazı beyaz olur. | a) Hepsi (önerim) · b) Ö5 hariç hepsi · c) Yalnız Ö1 (rozetler) · d) Hiçbiri; gerekçeli istisna olarak kalır |
+| 20 | **Kapalı beta sürüm numarası** | 0.9.0 (aday çalışanının önerisi): mağaza öncesi, 1.0.0'a yer bırakır. | a) 0.9.0 (önerim) · b) 1.0.0 · c) 0.1.0 kalsın |
+| 21 | **ODY-İLK ödülü** (YN-037) | Bir kez kullanılabilen kozmetik (Odi rengi ya da süs) + 300 jeton; güç vermez. Yayından önce sunucuda tanımlanacak. | a) Öneri · b) Yalnız jeton · c) Yalnız kozmetik |
