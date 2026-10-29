@@ -374,17 +374,17 @@ const ROUNDS = [
   { // iki kulak, 4 kHz çentik, 8 kHz'te kısmi düzelme (Katz: gürültüye bağlı işitme kaybı)
     e: { r: { ac: F8.map((f, i) => [f, [10, 10, 15, 20, 40, 55, 45, 25][i]]) }, l: { ac: F8.map((f, i) => [f, [15, 10, 15, 25, 45, 60, 50, 30][i]]) } },
     hl: () => { const x = audX(4000), y = audY(57); return `<ellipse class="draw" pathLength="1" stroke-dasharray="1 1" cx="${x}" cy="${y}" rx="120" ry="70" fill="none" stroke="#ff9f1c" stroke-width="9"/><text x="${x}" y="${y + 120}" text-anchor="middle" font-size="34" fill="#c25100">çentik</text><path class="draw" pathLength="1" stroke-dasharray="1 1" d="M${audX(6000) + 10} ${audY(30)}Q${audX(8000) - 10} ${audY(20)} ${audX(8000) + 6} ${audY(10)}" fill="none" stroke="#0f9f8f" stroke-width="7" stroke-linecap="round"/><text x="${audX(8000) - 6}" y="${audY(4)}" text-anchor="end" font-size="28" fill="#0f7f72">düzelme</text>`; },
-    b: '4 kHz’te çentik,<br>8 kHz’te kısmi düzelme', s: 'Gürültüye maruz kalmakla uyumlu', vo: 'b2',
+    b: '4 kHz’te çentik,<br>8 kHz’te kısmi düzelme', s: 'Gürültüye maruz kalmakla uyumlu', vo: 'b2', dip: [-0.05, 1.1, -8, -6],
   },
   { // sağ kulak: hava yolu ≈35–40 dB, maskeli kemik yolu 0–10 dB → hava–kemik aralığı (Katz: >10 dB iletim tipi bileşen)
     e: { r: { ac: [[250, 40], [500, 40], [1000, 35], [2000, 35], [4000, 35], [8000, 40]], bcm: [[250, 5], [500, 5], [1000, 5], [2000, 5], [4000, 5]] }, l: { ac: [[250, 15], [500, 10], [1000, 15], [2000, 15], [4000, 15], [8000, 20]] } },
     hl: () => { const x = audX(1000), y0 = audY(5), y1 = audY(35); return `<path class="draw" pathLength="1" stroke-dasharray="1 1" d="M${x + 60} ${y0}h22v${y1 - y0}h-22" fill="none" stroke="#ff9f1c" stroke-width="8" stroke-linejoin="round"/><text x="${x + 96}" y="${(y0 + y1) / 2 + 12}" font-size="34" fill="#c25100">≈30 dB aralık</text>`; },
-    b: 'Sağda hava–kemik aralığı:<br>kemik yolu iyi, hava yolu düşük', s: 'İletim tipi bileşenle uyumlu', vo: 'b3',
+    b: 'Sağda hava–kemik aralığı:<br>kemik yolu iyi, hava yolu düşük', s: 'İletim tipi bileşenle uyumlu', vo: 'b3', dip: [-0.05, 0.7, -8, -6],
   },
   { // iki kulak, tize doğru inen kayıp; maskesiz kemik yolu hava yoluyla aynı (aralık yok) → sensörinöral tiple uyumlu (Katz)
     e: { r: { ac: [[250, 15], [500, 20], [1000, 30], [2000, 45], [4000, 60], [8000, 70]], bc: [[500, 20], [1000, 30], [2000, 45], [4000, 60]] }, l: { ac: [[250, 20], [500, 20], [1000, 35], [2000, 50], [4000, 65], [8000, 75]], bc: [[500, 20], [1000, 35], [2000, 50], [4000, 65]] } },
     hl: () => `<path class="draw" pathLength="1" stroke-dasharray="1 1" d="M${audX(500)} ${audY(-2)}L${audX(8000) - 20} ${audY(52)}" fill="none" stroke="#ff9f1c" stroke-width="9" stroke-linecap="round"/><path d="M${audX(8000) - 20} ${audY(52)}l-12-30M${audX(8000) - 20} ${audY(52)}l-32 6" stroke="#ff9f1c" stroke-width="9" stroke-linecap="round"/><text x="${audX(1000)}" y="${audY(-1) + 4}" font-size="32" fill="#c25100">tize doğru iniyor</text>`,
-    b: 'Tize doğru inen kayıp,<br>hava–kemik aralığı yok', s: 'Sensörinöral tiple uyumlu', vo: 'b4',
+    b: 'Tize doğru inen kayıp,<br>hava–kemik aralığı yok', s: 'Sensörinöral tiple uyumlu', vo: 'b4', dip: [0.5, 1.6, -8, -6],
   },
 ];
 const AUD_Y = 470; const AUD_SCALE = 1.1;
@@ -411,7 +411,7 @@ const odyogram = {
   slug: 'odyogrami-oku', title: 'Bu odyogramı 5 saniyede oku', ad: true, bpm: 120, snap: qb(1), style: 'yarisma', subY: 1400, subCls: 'big', voGap: 0.08, tail: 0.5, limit: 0.6, jpegOpaque: true,
   duck: { music: -9, sfx: -4 },
   scenes: [
-    { id: 'kanca', dur: qb(4), bg: 'quiz', mus: 'fanfar', fx: { flash: [[0, 0.14]], shake: [[0, 0.3, 14]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'hit', 0.8], [0, 'horn', 0.35], [0.2, 'drumroll', 0.35, { d: 1.2 }]], layers: [
+    { id: 'kanca', dur: qb(5), bg: 'quiz', mus: 'fanfar', fx: { flash: [[0, 0.14]], shake: [[0, 0.3, 14]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'hit', 0.8], [0, 'horn', 0.35], [0.2, 'drumroll', 0.35, { d: 1.2 }]], layers: [
       css(),
       { kind: 'html', cls: 'pun6 md', html: 'Bu odyogramı<br><em>5 saniyede</em> oku', y: 262, at: 0.02, anim: 'slam', slamFrom: 2.0, z: 3 },
       { kind: 'html', cls: 'aud6', html: audiogram(ROUNDS[0].e, { scale: 0.95 }), y: 560, at: 0.25, anim: 'pop', draw: 0.5, drawAt: 0.3 },
@@ -428,9 +428,9 @@ const odyogram = {
     sonSahne('2', qb(3)),
   ],
   vo: [
-    { id: 'b1', scene: 'kanca', at: 0.15, nosub: true },
-    ...ROUNDS.map((R, i) => ({ id: R.vo, scene: `c${i + 1}`, at: 0.2, nosub: true })),
-    { id: 'b5', scene: 'kacini', at: 0.1, nosub: true },
+    { id: 'b1', scene: 'kanca', at: 0.15, nosub: true, dip: [[0.1, 0.95, -9, -6]] },
+    ...ROUNDS.map((R, i) => ({ id: R.vo, scene: `c${i + 1}`, at: 0.1, nosub: true, dip: [R.dip] })),
+    { id: 'b5', scene: 'kacini', at: 0.05, nosub: true },
   ],
   cover: { bg: 'quiz', layers: [
     css(),

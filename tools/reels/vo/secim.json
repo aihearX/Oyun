@@ -2589,5 +2589,62 @@
    "dur": 2.18,
    "sps": 5.49
   }
+ },
+ "odyogrami-oku": {
+  "b1": {
+   "key": "c907efbc31d0",
+   "text": "Bu odyogramı beş saniyede oku.",
+   "seed": 7,
+   "wer": 0.0,
+   "asr": "Bu odyogramı 5 saniyede oku.",
+   "gap": 0.07,
+   "tempo": 1.082,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "b2": {
+   "key": "708f67d5e2f0",
+   "text": "Dört kilohertzde çentik: gürültüyle uyumlu.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "4 kHz de çentik, gürültüyle uyumlu.",
+   "gap": 0.16,
+   "tempo": 1.055,
+   "dur": 2.54,
+   "sps": 5.5
+  },
+  "b3": {
+   "key": "d5f66cb4ea21",
+   "text": "Aralık var: iletim tipi bileşenle uyumlu.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Aralık var. İletim tipi bileşenle uyumlu.",
+   "gap": 0.23,
+   "tempo": 1.024,
+   "dur": 2.9,
+   "sps": 5.51
+  },
+  "b4": {
+   "key": "fa924ee92181",
+   "text": "Aralık yok: sensöri-nöral tiple uyumlu.",
+   "seed": 6,
+   "wer": 0.0,
+   "asr": "Aralık yok, sensör-i nöral tiple uyumlu.",
+   "gap": 0.23,
+   "tempo": 1.119,
+   "dur": 2.54,
+   "sps": 5.5
+  },
+  "b5": {
+   "key": "1fc314393275",
+   "text": "Kaçını bildin? Yorumlara yaz.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Kaçını bildin? Yorumlara yaz.",
+   "gap": 0.32,
+   "tempo": 1.2,
+   "dur": 1.9,
+   "sps": 5.27
+  }
  }
 }
