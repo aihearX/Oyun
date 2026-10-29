@@ -2439,6 +2439,140 @@
    "tempo": 1.22,
    "dur": 0.94,
    "sps": 4.27
+  },
+  "d7": {
+   "key": "2f6e48758935",
+   "text": "Seksen ile seksen beş arası.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "80 ile 85 arası.",
+   "gap": 0.06,
+   "tempo": 1.22,
+   "dur": 1.75,
+   "sps": 5.71
+  },
+  "d8": {
+   "key": "cd9dd17faced",
+   "text": "Ya bir konser?",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Ya bir konser?",
+   "gap": 0.05,
+   "tempo": 1.22,
+   "dur": 0.89,
+   "sps": 4.5
+  },
+  "d9": {
+   "key": "00f144a1ca00",
+   "text": "Yüz ile yüz on desibel!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "100 ile 110 decibel.",
+   "gap": 0.1,
+   "tempo": 1.22,
+   "dur": 1.39,
+   "sps": 5.75
+  },
+  "d10": {
+   "key": "30d6c397c35c",
+   "text": "Seksen beş desibelde güvenli süre sekiz saat.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "85 dB de güvenli süre 8 saat.",
+   "gap": 0.06,
+   "tempo": 1.153,
+   "dur": 2.81,
+   "sps": 5.7
+  },
+  "d11": {
+   "key": "00d6acc771cd",
+   "text": "Her üç desibelde bu süre yarıya iner.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Her 3 decibel de bu süre yarıya iner.",
+   "gap": 0.07,
+   "tempo": 1.066,
+   "dur": 2.47,
+   "sps": 5.66
+  },
+  "d12": {
+   "key": "d1b5e0eec37b",
+   "text": "Konserde güvenli süre dakikalara düşer.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Konserde güvenli süre dakikalara düşer.",
+   "gap": 0.29,
+   "tempo": 1.144,
+   "dur": 2.62,
+   "sps": 5.73
+  },
+  "d13": {
+   "key": "976b2ce0cc7a",
+   "text": "Konser arkadaşını etiketle!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Konser arkadaşını etiketle.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 1.82,
+   "sps": 6.03
+  }
+ },
+ "kac-hz-duyuyorsun": {
+  "h1": {
+   "key": "eefcad9abdf5",
+   "text": "Kaç hertze kadar duyuyorsun?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kaç hertz'e kadar duyuyorsun?",
+   "gap": 0.08,
+   "tempo": 1.123,
+   "dur": 1.61,
+   "sps": 5.6
+  },
+  "h2": {
+   "key": "bc12a575567a",
+   "text": "Bu bir işitme testi değil. Sesi düşük tut.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bu bir işitme testi değil. Sesi düşük tut.",
+   "gap": 0.14,
+   "tempo": 1.039,
+   "dur": 2.74,
+   "sps": 5.12
+  },
+  "h3": {
+   "key": "12cdbbfdacaf",
+   "text": "Duyduğun son frekansı yorumlara yaz.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Duyduğun son frekansı yorumlara yaz.",
+   "gap": 0.05,
+   "tempo": 1.089,
+   "dur": 2.11,
+   "sps": 5.68
+  },
+  "h4": {
+   "key": "3edfe6e1771d",
+   "text": "Yaşla birlikte, genellikle önce ince sesleri duymak zorlaşır.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Yaşla birlikte, genellikle önce ince sesleri duymak zorlaşır.",
+   "gap": 0.31,
+   "tempo": 1.089,
+   "dur": 4.08,
+   "sps": 5.15
+  },
+  "h5": {
+   "key": "d6ba812f08bc",
+   "text": "Arkadaşına gönder: kim daha yükseği duyacak?",
+   "seed": 5,
+   "wer": 0.0,
+   "asr": "Arkadaşına gönder, kim daha yükseği duyacak?",
+   "gap": 0.34,
+   "tempo": 1.037,
+   "dur": 2.78,
+   "sps": 5.75
   }
  },
  "odyolog-oldugunu-soyleme": {

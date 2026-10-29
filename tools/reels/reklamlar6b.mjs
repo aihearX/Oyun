@@ -259,9 +259,9 @@ const NIOSH = `<h3>Güvenli süre <small>günde, NIOSH 1998</small></h3>
   <div class="src">NIOSH, Occupational Noise Exposure (1998): 85 dBA'da 8 saat, 3 dB değiş tokuş oranı · eğitsel içerik</div>`;
 const dbQuiz = {
   slug: 'bu-ses-kac-db', title: 'Bu ses kaç dB?', ad: true, bpm: 128, snap: db(1), style: 'yarisma', scripts: SCR,
-  subY: 1440, subCls: 'big', voGap: 0.1, tail: 0.5, limit: 0.6, jpegOpaque: true, duck: { music: -9, sfx: -4 },
+  subY: 1300, subCls: 'big', voGap: 0.1, tail: 0.5, limit: 0.6, jpegOpaque: true, duck: { music: -9, sfx: -4 },
   scenes: [
-    { id: 'kanca', dur: db(5), bg: 'quiz', mus: 'fanfar', fx: { flash: [[0, 0.12]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'hit', 0.6], ...[0.35, 0.5, 0.65, 0.8].map((t) => [t, 'pop', 0.3])], layers: [
+    { id: 'kanca', dur: db(4), bg: 'quiz', mus: 'fanfar', fx: { flash: [[0, 0.12]], zoom: [[0, 0.3, 0.06]] }, sfx: [[0, 'hit', 0.6], ...[0.35, 0.5, 0.65, 0.8].map((t) => [t, 'pop', 0.3])], layers: [
       kt('Bu ses<br>kaç <span class="lo">dB</span>?', { c: 'lg gold', y: 330, slamFrom: 2.2 }),
       ...SESLER.map((x, i) => Z('sesIkon', { ikon: x.id, lvl: x.lvl, size: 0.5, y: 780 + Math.floor(i / 2) * 290, dx: i % 2 ? 200 : -200, at: 0.35 + i * 0.15, anim: 'pop' })),
       H('lead6', 'Tahmin et: <b>4 ses</b>', { y: 1380, at: 0.9, anim: 'rise' }),
@@ -275,23 +275,23 @@ const dbQuiz = {
       { kind: 'ring', y: 960, dx: 250, at: 0.35, until: D_REV, from: 3, dur: D_REV - 0.35, anim: 'pop' },
       H('big6 lo', `<span style="font-size:44px;letter-spacing:2px">yaklaşık</span><br><span style="font-size:${x.cevap.length > 6 ? 88 : 110}px">${x.cevap}</span>`, { y: 990, dx: 250, at: D_REV, anim: 'slam', slamFrom: 1.8 }),
     ] })),
-    { id: 'niosh', dur: db(10), bg: 'quiz', mus: 'reveal', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'whoosh', 0.4], [0.1, 'paper', 0.5]], layers: [
+    { id: 'niosh', dur: db(8), bg: 'quiz', mus: 'reveal', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'whoosh', 0.4], [0.1, 'paper', 0.5]], layers: [
       H('kart6', NIOSH, { y: 330, at: 0, anim: 'grow', growFrom: 0.85, growT: 0.3 }),
     ] },
     { id: 'vurgu', dur: db(6), bg: 'quiz', sfx: [[0, 'stamp', 0.5]], layers: [
       H('kart6', NIOSH, { y: 330, at: 0, anim: 'none' }),
-      H('tag6', 'Konser (≈100–110 dB): güvenli süre dakikalarla ölçülür', { y: 1340, at: 0.05, anim: 'stamp', rot: -2 }),
+      H('tag6', 'Konser ≈ 100–110 dB:<br>güvenli süre dakikalarla ölçülür', { y: 1300, at: 0.05, anim: 'stamp', rot: -2 }),
     ] },
-    { id: 'cta', dur: db(6), bg: 'quiz', sfx: [[0, 'pop', 0.5]], layers: [
+    { id: 'cta', dur: db(5), bg: 'quiz', sfx: [[0, 'pop', 0.5]], layers: [
       H('kart6', NIOSH, { y: 330, at: 0, anim: 'none' }),
       H('cta6 gold', `<svg width="58" height="58" viewBox="0 0 58 58"><circle cx="29" cy="29" r="25" fill="none" stroke="#14082e" stroke-width="7"/><circle cx="29" cy="29" r="9" fill="#14082e"/><path d="M38 29v6a6 6 0 0 0 12 0v-6" fill="none" stroke="#14082e" stroke-width="7"/></svg><span>Konser arkadaşını etiketle.</span>`, { y: 1340, at: 0.05, anim: 'pop', pulse: 128, pulseAt: 0.3, pulseAmt: 0.03 }),
     ] },
     son(db(4)),
   ],
   vo: [
-    { id: 'd1', scene: 'kanca', at: 0.2, nosub: true },
+    { id: 'd1', scene: 'kanca', at: 0.1, nosub: true },
     ...SESLER.flatMap((x) => [{ id: x.q, scene: x.id, at: 0.15, nosub: true }, { id: x.r, scene: x.id, at: D_REV + 0.05, nosub: true }]),
-    { id: 'd10', scene: 'niosh', at: 0.3 }, { id: 'd11', scene: 'niosh', at: 0.3 }, { id: 'd12', scene: 'vurgu', at: 0.1, nosub: true }, { id: 'd13', scene: 'cta', at: 0.1, nosub: true },
+    { id: 'd10', scene: 'niosh', at: 0.3 }, { id: 'd11', scene: 'niosh', at: 3.25 }, { id: 'd12', scene: 'vurgu', at: 0.1, nosub: true }, { id: 'd13', scene: 'cta', at: 0.1, nosub: true },
   ],
   cover: { bg: 'quiz', seek: 2, layers: [
     kt('Bu ses<br>kaç <span class="lo">dB</span>?', { c: 'lg gold', y: 330 }),
@@ -307,15 +307,15 @@ const dbQuiz = {
 /* =================================================================== 10. KAÇ HZ'E KADAR DUYUYORSUN? (ton merdiveni; işitme testi değildir) */
 const hb = grid(90); // ≈0,667 sn
 const FREK = [8000, 10000, 12000, 14000, 15000, 16000, 17000];
-const T_ON = 1.25, T_ARA = 0.5, T_ILK = 1.0;  // ton süresi, ara, ilk ton
+const T_ON = 1.2, T_ARA = 0.45, T_ILK = 1.0;  // ton süresi, ara, ilk ton
 const STEPS = FREK.map((f, i) => ({ f, at: T_ILK + i * (T_ON + T_ARA), d: T_ON }));
 const UYARI = '<b>Bu bir işitme testi değildir.</b><br>Telefon hoparlörü ve kulaklık yüksek frekansları veremeyebilir; uygulamanın ses sıkıştırması da kesebilir. <b>Sesi düşük tut.</b>';
 const kacHz = {
   slug: 'kac-hz-duyuyorsun', title: "Kaç Hz'e kadar duyuyorsun?", ad: true, bpm: 90, snap: hb(1), style: 'sessiz', scripts: SCR,
-  subY: 1440, subCls: 'big', voGap: 0.12, tail: 0.5, limit: 0.6, jpegOpaque: true, duck: { music: -8, sfx: -4 },
+  subY: 1300, subCls: 'big', voGap: 0.12, tail: 0.5, limit: 0.6, jpegOpaque: true, duck: { music: -8, sfx: -4 },
   tonesPost: { dbfs: -27, fade: 0.08 }, aac: { b: '256k', cutoff: 20000, pns: false },
   scenes: [
-    { id: 'kanca', dur: hb(4), bg: 'calm', mus: 'amb', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'hit', 0.4]], layers: [
+    { id: 'kanca', dur: hb(3.5), bg: 'calm', mus: 'amb', fx: { flash: [[0, 0.1]] }, sfx: [[0, 'hit', 0.4]], layers: [
       kt("Kaç <span class=\"lo\">Hz'e</span><br>kadar<br>duyuyorsun?", { c: 'md gold', y: 340, slamFrom: 2.0 }),
       H('big6 lo', '8 kHz <em>→</em> 17 kHz', { y: 860, at: 0.35, anim: 'pop' }),
       H('lead6', '7 ton, alçaktan inceye', { y: 1000, at: 0.5, anim: 'rise' }),
@@ -331,27 +331,28 @@ const kacHz = {
       Z('merdiven', { y: 0, steps: STEPS, waveY: 450, y0: 1340, gap: 108 }),
       H('src6', 'Bu bir işitme testi değildir · Sesi düşük tut', { y: 1480, at: 0, anim: 'none' }),
     ] },
-    { id: 'yaz', dur: hb(4), bg: 'calm', mus: 'pulse', fx: { flash: [[0, 0.08]] }, sfx: [[0, 'ding', 0.4]], layers: [
+    { id: 'yaz', dur: hb(3.5), bg: 'calm', mus: 'pulse', fx: { flash: [[0, 0.08]] }, sfx: [[0, 'ding', 0.4]], layers: [
       H('lead6', 'Duyduğun <b>son frekansı</b><br>yorumlara yaz', { y: 320, at: 0, anim: 'none' }),
-      Z('merdiven', { y: 0, steps: STEPS.map((x) => ({ ...x, at: x.at - 99 })), waveY: 450, y0: 1340, gap: 108 }),
-      H('cta6', `${YORUM}<span>Kaç kHz? Yorumlara yaz.</span>`, { y: 1440, at: 0.1, anim: 'pop' }),
+      Z('merdiven', { y: 0, steps: STEPS.map((x) => ({ ...x, at: x.at - 99 })), waveY: 450, y0: 1280, gap: 102 }),
+      H('cta6', `${YORUM}<span>Kaç kHz? Yorumlara yaz.</span>`, { y: 1415, at: 0.1, anim: 'pop' }),
     ] },
-    { id: 'bilgi', dur: hb(5), bg: 'calm', sfx: [[0, 'whoosh', 0.3]], layers: [
+    { id: 'bilgi', dur: hb(6.5), bg: 'calm', sfx: [[0, 'whoosh', 0.3]], layers: [
       H('kart6', `<h3>Neden herkes farklı? <small>bilgi</small></h3>
         <div class="r" style="display:block;border:none">Genç ve sağlıklı kulak yaklaşık <b class="t">20 Hz – 20 kHz</b> arasını duyar.</div>
         <div class="r" style="display:block">Yaşla birlikte genellikle önce <b class="c">ince (yüksek frekanslı)</b> sesleri duymak zorlaşır.</div>
         <div class="ft" style="background:#e3f9f6;color:#0b5f5a">İşitmenle ilgili bir kaygın varsa bir odyoloğa danış.</div>
         <div class="src">Kaynak: Gelfand, Hearing (mutlak eşikler); Katz, Handbook of Clinical Audiology (presbiakuzi)</div>`, { y: 420, at: 0, anim: 'grow', growFrom: 0.85, growT: 0.3 }),
     ] },
-    { id: 'cta', dur: hb(4), bg: 'calm', sfx: [[0, 'pop', 0.4]], layers: [
+    { id: 'cta', dur: hb(4.5), bg: 'calm', sfx: [[0, 'pop', 0.4]], layers: [
       H('kt md gold', 'Kim daha<br>yükseği<br>duyacak?', { y: 380, anim: 'slam', slamFrom: 1.8 }),
-      H('cta6', `${GONDER}<span>Arkadaşına gönder.</span>`, { y: 1050, at: 0.15, anim: 'pop', pulse: 90, pulseAt: 0.4, pulseAmt: 0.03 }),
+      { kind: 'odi', size: 340, y: 780, at: 0.1, anim: 'pop', bob: 1.4, bobAmp: 12 },
+      H('cta6', `${GONDER}<span>Arkadaşına gönder.</span>`, { y: 1200, at: 0.15, anim: 'pop', pulse: 90, pulseAt: 0.4, pulseAmt: 0.03 }),
     ] },
-    son(hb(3)),
+    son(hb(2.75)),
   ],
   vo: [
     { id: 'h1', scene: 'kanca', at: 0.2, nosub: true }, { id: 'h2', scene: 'uyari', at: 0.2, nosub: true }, { id: 'h3', scene: 'yaz', at: 0.15, nosub: true },
-    { id: 'h4', scene: 'bilgi', at: 0.2 }, { id: 'h5', scene: 'cta', at: 0.1, nosub: true },
+    { id: 'h4', scene: 'bilgi', at: 0.2, nosub: true }, { id: 'h5', scene: 'cta', at: 0.1, nosub: true },
   ],
   cover: { bg: 'calm', seek: 6.3, layers: [
     kt("Kaç <span class=\"lo\">Hz'e</span> kadar<br>duyuyorsun?", { c: 'sm gold', y: 290 }),
