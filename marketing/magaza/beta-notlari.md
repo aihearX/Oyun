@@ -5,6 +5,6 @@
 - **Önce şunlara bak:** ilk 10 bölüm (zorluk, ipuçları, anlatıcı sesi), **Takım** (kur ya da kodla katıl, takım sohbeti) ve **Kamp** (inşaat, sıraya alma, kutlama).
 - Her bölümden sonra kısaca not al: nerede takıldın, neyi anlamadın, ne sıkıcıydı, ne hoşuna gitti.
 - **Oyun çökerse** kendisi haber verir: rapor yalnız hatanın teknik özetini taşır; adın, e-postan, konumun ya da yazdıkların gitmez.
-- Hata, öneri ya da soru için: **{ILETISIM_EPOSTA}** (ekran görüntüsü, telefon modeli ve saat çok işe yarar).
+- Takıldığın yeri ya da fikrini oyundan çıkmadan yaz: **Ayarlar › Geri bildirim gönder**. Uzun anlatım ya da ekran görüntüsü için: **{ILETISIM_EPOSTA}** (telefon modeli ve saat çok işe yarar).
 - Bu bir beta: bölümler, ödüller ve dengeler sürüm sürüm değişebilir; bilinen sorunlar listesini de sana ayrıca gönderiyoruz.
 - Teşekkürler: ODİ'yi senin geri bildirimin şekillendiriyor.
