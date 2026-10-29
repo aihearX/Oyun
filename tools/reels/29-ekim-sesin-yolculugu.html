@@ -1,0 +1,344 @@
+<!doctype html><html lang="tr"><head><meta charset="utf-8"><style>
+/* 29 Ekim — «Ben bir sesim»: Sesin Yolculuğu (1080x1920). window.render(t) her kareyi çizer; 29-ekim-sesin-yolculugu.mjs kare kare çeker.
+   Anlatıcı: milletin sesi (1919 → bugün). Sesi, anlatıcının gerçek ses zarfıyla titreşen ince altın bir dalga çizgisi taşır:
+   çizgi fotoğrafların altında akar; sahne geçişlerinde üzerinde bir dalga tepesi soldan sağa koşar ve yeni fotoğrafı onun peşinden açar;
+   doruklarda (Cumhuriyet, 103. yıl) kabarır, bayrak bu dalgadan yükselir.
+   Saygı kuralları: yalnız doğrulanmış kamu malı arşiv fotoğrafları (marketing/reels/kaynak/LISANS.md); fotoğrafa yalnız yavaş Ken Burns,
+   sepya/gren ve yumuşak açılış; yüzlerin üstünde hiçbir şey yok; her fotoğrafın altında gerçek künyesi; olayı fotoğrafı olmayan anlar
+   (Samsun, 29 Ekim 1923) tipografiyle anlatılır. Bayrak resmî ölçülerde, üzerinde hiçbir şey yok. ODİ imzası yalnız ayrı son karede. */
+@font-face{font-family:Lora;font-weight:500;font-style:normal;src:url(fonts/lora-latin-500-normal.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:500;font-style:normal;src:url(fonts/lora-latin-ext-500-normal.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Lora;font-weight:600;font-style:normal;src:url(fonts/lora-latin-600-normal.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:600;font-style:normal;src:url(fonts/lora-latin-ext-600-normal.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:Lora;font-weight:500;font-style:italic;src:url(fonts/lora-latin-500-italic.woff2) format('woff2');
+ unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2212,U+FEFF,U+FFFD}
+@font-face{font-family:Lora;font-weight:500;font-style:italic;src:url(fonts/lora-latin-ext-500-italic.woff2) format('woff2');
+ unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+2020,U+20A0-20AB,U+2113,U+2C60-2C7F,U+A720-A7FF}
+*{box-sizing:border-box;margin:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#070504}
+body{font-family:Lora,serif;color:#fff;position:relative}
+.ph{position:absolute;inset:0;opacity:0}
+.ph .bgi{position:absolute;left:-80px;top:-80px;width:1240px;height:2080px;object-fit:cover;filter:grayscale(1) sepia(.5) blur(38px) brightness(.26)}
+.ph .fr{position:absolute;left:0;top:210px;width:1080px;height:980px;overflow:hidden;
+ -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 120px,#000 800px,transparent 980px);mask-image:linear-gradient(to bottom,transparent 0,#000 120px,#000 800px,transparent 980px)}
+.ph .fr img{position:absolute;left:0;top:0;width:100%;height:100%;filter:grayscale(1) sepia(.34) contrast(1.08) brightness(.95)}
+.ph .kunye{position:absolute;left:60px;right:60px;top:1130px;text-align:center;font-style:italic;font-weight:500;font-size:25px;color:rgba(232,220,200,.78);
+ text-shadow:0 2px 10px rgba(0,0,0,.9)}
+#ph-anniv1,#ph-anniv2{z-index:5}
+#vig,#wave,#etiket,#alt,#kaynak,#kapak,#odi,#grain,#veil{z-index:10}
+#vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 80% at 50% 40%,rgba(0,0,0,0) 55%,rgba(0,0,0,.6) 100%)}
+.typo{position:absolute;inset:0;opacity:0}
+#samsun{background:radial-gradient(90% 40% at 50% 52%,#151a22 0%,#07080b 70%)}
+#samsun .big{position:absolute;left:0;right:0;top:640px;text-align:center;font-weight:600;font-size:128px;letter-spacing:22px;color:#f6ecd8;padding-left:22px}
+#samsun .sm{position:absolute;left:0;right:0;top:560px;text-align:center;font-weight:600;font-size:40px;letter-spacing:8px;color:#e9c98a}
+#tarih{background:radial-gradient(80% 45% at 50% 50%,#1a120c 0%,#060403 72%)}
+#tarih .d1{position:absolute;left:0;right:0;top:710px;text-align:center;font-weight:600;font-size:128px;letter-spacing:6px;color:#f6ecd8;line-height:1}
+#kizil{position:absolute;inset:0;opacity:0;background:radial-gradient(95% 62% at 50% 34%,#b8131f 0%,#7e0b15 48%,#2a0307 100%)}
+#fglow{position:absolute;left:50%;top:640px;width:1500px;height:1100px;transform:translate(-50%,-50%);opacity:0;
+ background:radial-gradient(closest-side,rgba(255,236,190,.55),rgba(255,200,120,.16) 55%,rgba(255,200,120,0))}
+#flag{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#cumh{position:absolute;left:0;right:0;top:985px;text-align:center;font-weight:600;font-size:116px;letter-spacing:12px;padding-left:12px;color:#fff;opacity:0;
+ text-shadow:0 0 40px rgba(255,220,160,.45),0 6px 24px rgba(40,0,6,.6)}
+#kutlu{position:absolute;left:30px;right:30px;top:1250px;text-align:center;font-weight:600;font-size:80px;line-height:1.14;color:#fff;
+ text-shadow:0 6px 24px rgba(50,0,6,.55)}
+#kutlu .l{display:block;opacity:0}
+#serit{position:absolute;inset:0;opacity:0;overflow:hidden}
+#serit .card{position:absolute;top:360px;height:600px;overflow:hidden;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#serit .card img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) sepia(.4) contrast(1.05) brightness(.8)}
+#wave{position:absolute;inset:0}
+#etiket{position:absolute;left:30px;right:30px;top:1262px;text-align:center;font-weight:600;font-size:33px;letter-spacing:5px;color:#e9c98a;opacity:0;
+ text-shadow:0 2px 12px rgba(0,0,0,.9)}
+#alt{position:absolute;left:56px;right:56px;top:1330px;text-align:center;font-weight:500;font-size:60px;line-height:1.24;color:#fbf3e4;
+ text-shadow:0 3px 18px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.6)}
+#alt .q{color:#f2cf86;font-style:italic}
+#kaynak{position:absolute;left:0;right:0;top:1500px;text-align:center;font-style:italic;font-weight:500;font-size:28px;color:#d9c3a0;opacity:0}
+#odi{position:absolute;inset:0;background:#000;opacity:0}
+#odi .t{position:absolute;left:0;right:0;top:1000px;text-align:center;font-weight:600;font-size:34px;letter-spacing:7px;color:#cfc6b8;padding-left:7px}
+#grain{position:absolute;inset:0;width:1080px;height:1920px;opacity:.09;mix-blend-mode:overlay}
+#veil{position:absolute;inset:0;background:#000;pointer-events:none}
+/* kapak */
+#kapak{position:absolute;inset:0;display:none}
+#kapak .bas{position:absolute;left:0;right:0;top:1270px;text-align:center;font-weight:600;font-size:104px;letter-spacing:4px;color:#fff;
+ text-shadow:0 4px 30px rgba(0,0,0,.9)}
+#kapak .alt2{position:absolute;left:0;right:0;top:1420px;text-align:center;font-weight:600;font-size:40px;letter-spacing:9px;color:#e9c98a}
+</style></head><body>
+<div class="typo" id="samsun"><div class="sm">19 MAYIS 1919</div><div class="big">SAMSUN</div></div>
+<div id="photos"></div>
+<div class="typo" id="tarih"><div class="d1">29 EKİM 1923</div></div>
+<div id="kizil"><div id="fglow"></div></div>
+<div id="serit"></div>
+<canvas id="flag" width="1080" height="1920"></canvas>
+<div id="cumh">CUMHURİYET</div>
+<div id="kutlu"><span class="l" id="k1">Cumhuriyetimizin</span><span class="l" id="k2">103. yılı kutlu olsun.</span></div>
+<div id="vig"></div>
+<canvas id="wave" width="1080" height="1920"></canvas>
+<div id="etiket"></div>
+<div id="alt"></div>
+<div id="kaynak">Mustafa Kemal Atatürk, Nutuk (1927)</div>
+<div id="kapak"><div class="bas">Ben bir sesim.</div><div class="alt2">1919 · 1923 · 2026</div></div>
+<div id="odi"><div class="t">ODİ · SESİN YOLU</div></div>
+<canvas id="grain" width="540" height="960"></canvas>
+<div id="veil"></div>
+<script src="../harness/out/reels/29-ekim-sesin-yolculugu/zaman.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const cl = (x) => Math.max(0, Math.min(1, x));
+const seg = (t, a, b) => cl((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);
+const eio = (x) => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const sm = (x) => x * x * (3 - 2 * x);
+const lerp = (a, b, p) => a + (b - a) * p;
+const { L, S, env } = window.TL;
+const K = '../../marketing/reels/kaynak/';
+const WIPE = 0.95;   // dalga tepesinin ekranı geçme süresi (sn)
+
+// fotoğraflar: açılış zamanı (S), künye (açıklaması/tarihi neyse o), etiket (olay ve doğrulanmış tarihi), kadraj odağı
+const P = [
+  { id: 'sivas', src: '1919-sivas-heyet.jpg', fx: .47, fy: .40, z: 1.0, kunye: 'Mustafa Kemal Paşa ve arkadaşları, Sivas, Eylül 1919', etiket: 'SİVAS KONGRESİ · 4 EYLÜL 1919', crop: [0, 0, 1, .88] },
+  { id: 'tbmm', src: '1920-tbmm-ankara.jpg', fx: .40, fy: .50, z: 1.0, kunye: 'Birinci Meclis binası ve önündeki halk, Ankara, 1920', etiket: 'TBMM AÇILDI · 23 NİSAN 1920' },
+  { id: 'siper', src: '1922-siper.jpg', fx: .5, fy: .55, z: 1.0, kunye: 'Kurtuluş Savaşı’nda siperde Türk piyadeleri, y. 1922', etiket: 'KURTULUŞ SAVAŞI · 1919–1922' },
+  { id: 'kocatepe', src: '1922-kocatepe.jpg', fx: .30, fy: .45, z: 1.0, kunye: 'Mustafa Kemal Paşa Kocatepe’de, 1922', etiket: 'BÜYÜK TAARRUZ · 26 AĞUSTOS 1922' },
+  { id: 'anniv1', src: '1933-10-yil-konusma.jpg', fx: .62, fy: .35, z: 1.0, kunye: 'Atatürk, Cumhuriyet’in 10. yıl kutlamalarında konuşurken', etiket: '10. YIL · 29 EKİM 1933' },
+  { id: 'anniv2', src: '1933-10-yil-tribun.jpg', fx: .45, fy: .45, z: 1.0, kunye: '10. yıl kutlamalarında şeref tribünü, Ankara, 29 Ekim 1933', etiket: '10. YIL · 29 EKİM 1933' },
+  { id: 'harf', src: '1928-harf-kayseri.jpg', fx: .5, fy: .42, z: 1.0, kunye: 'Atatürk yeni harfleri tanıtırken, Kayseri, 20 Eylül 1928', etiket: 'HARF DEVRİMİ · 1 KASIM 1928' },
+  { id: 'kadin', src: '1935-ilk-kadin-milletvekilleri.jpg', fx: .5, fy: .5, z: 1.0, fit: 'contain', kunye: '1935’te Meclis’e giren ilk kadın milletvekilleri', etiket: '5 ARALIK 1934 · SEÇME VE SEÇİLME HAKKI' },
+];
+if (window.TL.erzurum) P.unshift({ id: 'erzurum', src: '1919-erzurum.png', fx: .5, fy: .36, z: 1.0, kunye: 'Mustafa Kemal Paşa ve arkadaşları, Erzurum, 5 Temmuz 1919', etiket: 'ERZURUM KONGRESİ · 23 TEMMUZ 1919' });
+// her fotoğraf bir sonrakinin açılışına (ya da sahne sonuna) dek görünür
+const ENDS = { sivas: S.tbmm + WIPE, tbmm: S.siper + WIPE, siper: S.kocatepe + WIPE, kocatepe: S.tarih + 0.5, anniv1: S.anniv2 + WIPE, anniv2: S.harf + WIPE, harf: S.kadin + WIPE, kadin: S.serit + 0.6, erzurum: S.sivas + WIPE };
+const OPEN = (p) => p.id === 'erzurum' ? S.erzurum : (p.id === 'sivas' && !window.TL.erzurum ? S.erzurum : S[p.id]);
+const host = $('photos');
+for (const p of P) {
+  const d = document.createElement('div'); d.className = 'ph'; d.id = 'ph-' + p.id;
+  d.innerHTML = `<img class="bgi" src="${K + p.src}"><div class="fr"><img src="${K + p.src}"></div><div class="kunye">${p.kunye}</div>`;
+  host.appendChild(d); p.el = d; p.img = d.querySelector('.fr img'); p.t0 = OPEN(p); p.t1 = ENDS[p.id];
+}
+function layout(p) {
+  // kapak (cover) yerleşimi; crop: [x0,y0,x1,y1] özgün görüntünün kullanılacak bölgesi (ör. negatif numarasını dışarıda bırakmak)
+  const iw = p.img.naturalWidth, ih = p.img.naturalHeight, c = p.crop || [0, 0, 1, 1];
+  const cw = iw * (c[2] - c[0]), ch = ih * (c[3] - c[1]);
+  const FW = 1080, FH = 980;
+  const s = p.fit === 'contain' ? Math.min(FW / cw, (FH - 200) / ch) : Math.max(FW / cw, FH / ch);
+  p.w = iw * s; p.h = ih * s; p.cx0 = c[0] * iw * s; p.cy0 = c[1] * ih * s; p.cw = cw * s; p.ch = ch * s; p.s = s;
+}
+function drawPhoto(p, t) {
+  if (t < p.t0 - 0.05 || t > p.t1 + 0.05) { p.el.style.opacity = 0; return; }
+  p.el.style.opacity = 1;
+  if (p.w === undefined) layout(p);
+  const life = cl((t - p.t0) / Math.max(1, p.t1 - p.t0));
+  const k = 1 + 0.07 * life;                       // yavaş Ken Burns
+  const FW = 1080, FH = 980;
+  let w = p.w * k, h = p.h * k;
+  // odak noktası kadrajın ortasına yakın kalsın; kenar taşmasın
+  const fx = p.cx0 * k + p.cw * k * p.fx, fy = p.cy0 * k + p.ch * k * p.fy;
+  let x = FW / 2 - fx - (life - .5) * 18, y = FH / 2 - fy + (p.fit === 'contain' ? 0 : 0);
+  if (p.fit === 'contain') { x = (FW - w) / 2; y = (FH - h) / 2 - 10; }
+  else { x = Math.min(-p.cx0 * k, Math.max(FW - (p.cx0 + p.cw) * k, x)); y = Math.min(-p.cy0 * k, Math.max(FH - (p.cy0 + p.ch) * k, y)); }
+  p.img.style.width = w + 'px'; p.img.style.height = h + 'px'; p.img.style.left = x + 'px'; p.img.style.top = y + 'px';
+  // açılış: dalga tepesiyle eşzamanlı yumuşak soldan sağa açılma
+  const r = eio(seg(t, p.t0, p.t0 + WIPE));
+  const edge = r * 108 - 4;   // dar yumuşak kenar: iki görüntü yalnız ince bir şeritte karışır (yüzler üst üste binmez)
+  const m = r >= 1 ? 'none' : `linear-gradient(to right,#000 ${edge}%,transparent ${edge + 3.5}%)`;
+  p.el.style.webkitMaskImage = m; p.el.style.maskImage = m;
+  const flick = 1 + 0.012 * Math.sin(t * 23.0) * Math.sin(t * 7.3);
+  p.img.style.filter = `grayscale(1) sepia(.34) contrast(1.08) brightness(${0.95 * flick})`;
+  p.el.querySelector('.kunye').style.opacity = eo(seg(t, p.t0 + 0.6, p.t0 + 1.3)) * (1 - seg(t, p.t1 - 0.6, p.t1 - 0.1));
+}
+
+// ---------------------------------------------------------------- ses dalgası çizgisi
+const wc = $('wave').getContext('2d');
+const envAt = (t) => { const f = t * 30, i = Math.floor(f); const a = env[i] || 0, b = env[i + 1] || 0; return a + (b - a) * (f - i); };
+// sahneye göre dalganın yüksekliği (piksel): fotoğraflarda altta, tipografide ortada
+function waveY(t) {
+  const keys = [[0, 960], [S.erzurum - 0.6, 960], [S.erzurum, 1205], [S.tarih - 0.3, 1205], [S.tarih + 0.3, 1000], [S.bayrak - 0.25, 1000], [S.bayrak + 0.4, 1290], [S.anniv1, 1290], [S.anniv1 + 0.8, 1205],
+    [S.kulak - 0.4, 1205], [S.kulak + 0.4, 960], [S.bayrak2 - 0.3, 960], [S.bayrak2 + 0.5, 1110], [99, 1110]];
+  for (let i = 0; i < keys.length - 1; i++) { const [a, ya] = keys[i], [b, yb] = keys[i + 1]; if (t >= a && t <= b) return lerp(ya, yb, eio((t - a) / Math.max(1e-3, b - a))); }
+  return 1150;
+}
+// geçiş tepeleri: fotoğraf/sahne açılışları
+const SWEEPS = [S.samsun, ...P.map((p) => p.t0), S.serit, S.bayrak2].sort((a, b) => a - b);
+function climax(t) {
+  // "Cumhuriyet!" ve son kutlamada dalga kabarır
+  const c1 = Math.exp(-Math.pow((t - (S.bayrak + 0.35)) / 0.55, 2));
+  const c2 = Math.exp(-Math.pow((t - (S.bayrak2 + 0.3)) / 0.6, 2)) * 0.45;
+  const c3 = Math.exp(-Math.pow((t - S.siz) / 0.5, 2)) * 0.4;
+  return c1 + c2 + c3;
+}
+function drawWave(t) {
+  wc.clearRect(0, 0, 1080, 1920);
+  const vis = eo(seg(t, 0.3, 1.3)) * (1 - seg(t, S.son - 0.2, S.son + 0.4));
+  if (vis <= 0) return;
+  const cy = waveY(t), e = envAt(t), C = climax(t);
+  const A = 5 + 46 * e + 135 * C;
+  let px = -1e4, pa = 0;
+  for (const s of SWEEPS) { const q = (t - s) / WIPE; if (q > -0.05 && q < 1.1) { px = eio(cl(q)) * 1166 - 43; pa = Math.sin(Math.PI * cl(q)); } }
+  const ys = [];
+  for (let x = 0; x <= 1080; x += 3) {
+    const u = x / 1080, win = Math.pow(Math.sin(Math.PI * u), 0.9);
+    let y = A * win * (0.55 * Math.sin(x * 0.019 - t * 6.1) + 0.3 * Math.sin(x * 0.043 + t * 3.9) + 0.15 * Math.sin(x * 0.087 - t * 9.7));
+    const g = Math.exp(-Math.pow((x - px) / 70, 2));
+    y += pa * g * 46 * Math.sin(x * 0.11 - t * 18);
+    ys.push(cy + y);
+  }
+  const draw = (lw, col, blur) => {
+    wc.lineWidth = lw; wc.strokeStyle = col; wc.shadowColor = 'rgba(255,214,140,.9)'; wc.shadowBlur = blur; wc.beginPath();
+    ys.forEach((y, i) => i ? wc.lineTo(i * 3, y) : wc.moveTo(0, y)); wc.stroke();
+  };
+  wc.globalAlpha = vis;
+  draw(9 + 10 * C, `rgba(242,200,120,${0.10 + 0.12 * e + 0.2 * C})`, 26);
+  draw(2.6 + 2 * C, `rgba(246,214,150,${0.85})`, 10);
+  // geçiş tepesinin parıltısı
+  if (pa > 0.01) {
+    const gx = Math.max(0, Math.min(1080, px)), gy = ys[Math.max(0, Math.min(ys.length - 1, Math.round(gx / 3)))];
+    const gr = wc.createRadialGradient(gx, gy, 0, gx, gy, 90); gr.addColorStop(0, `rgba(255,236,190,${0.55 * pa})`); gr.addColorStop(1, 'rgba(255,236,190,0)');
+    wc.shadowBlur = 0; wc.fillStyle = gr; wc.beginPath(); wc.arc(gx, gy, 90, 0, Math.PI * 2); wc.fill();
+  }
+  // "Çünkü beni taşıyan sizsiniz": tek ses binlerce sese çoğalır (yelpaze gibi açılan ince çizgiler)
+  const many = eo(seg(t, S.siz - 0.15, S.siz + 0.9)) * (1 - seg(t, S.kulak - 0.6, S.kulak + 0.1));
+  if (many > 0) {
+    wc.shadowBlur = 0;
+    for (let k = 1; k <= 26; k++) {
+      const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 30 * many, ph = k * 1.7;
+      wc.strokeStyle = `rgba(240,205,140,${(0.42 - k * 0.012) * many})`; wc.lineWidth = 1.4; wc.beginPath();
+      for (let x = 0; x <= 1080; x += 6) {
+        const u = x / 1080, win = Math.pow(Math.sin(Math.PI * u), 0.9);
+        const y = cy + off * (0.4 + 0.6 * win) + (14 + 30 * e) * win * Math.sin(x * (0.017 + k * 0.0011) - t * (4 + k * 0.17) + ph);
+        x ? wc.lineTo(x, y) : wc.moveTo(x, y);
+      }
+      wc.stroke();
+    }
+  }
+  // kulak (hafif dokunuş): ses, duyan bir kulağa ulaşır — merkezden yayılan ince halkalar
+  const kr = seg(t, S.kulak, S.kulak + 0.6) * (1 - seg(t, S.bayrak2 - 0.4, S.bayrak2));
+  if (kr > 0) {
+    for (let k = 0; k < 5; k++) {
+      const ph = ((t - S.kulak) * 0.32 + k / 5) % 1, R = 30 + ph * 470, a = 0.22 * Math.sin(Math.PI * ph) * kr;
+      wc.strokeStyle = `rgba(233,201,138,${a})`; wc.lineWidth = 1.6; wc.beginPath(); wc.arc(540, cy, R, 0, Math.PI * 2); wc.stroke();
+    }
+  }
+  wc.globalAlpha = 1; wc.shadowBlur = 0;
+}
+
+// ---------------------------------------------------------------- bayrak (resmî ölçü; dalgalanma: dikey şeritler yalnız kaydırılır, oran korunur)
+const flagImg = new Image();
+flagImg.src = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="1000" viewBox="0 0 1500 1000"><rect width="1500" height="1000" fill="#E30A17"/><circle cx="500" cy="500" r="250" fill="#fff"/><circle cx="562.5" cy="500" r="200" fill="#E30A17"/><polygon fill="#fff" points="695.80,500.00 782.17,471.94 782.17,381.12 835.55,454.59 921.93,426.53 868.55,500.00 921.93,573.47 835.55,545.41 782.17,618.88 782.17,528.06"/></svg>');
+const fc = $('flag').getContext('2d');
+const off = document.createElement('canvas'); off.width = 900; off.height = 600; const oc = off.getContext('2d');
+const buf = document.createElement('canvas'); buf.width = 1080; buf.height = 1920; const bc = buf.getContext('2d');
+function drawFlag(t, vis, rise, top) {
+  fc.clearRect(0, 0, 1080, 1920);
+  if (vis <= 0) return;
+  oc.clearRect(0, 0, 900, 600); oc.drawImage(flagImg, 0, 0, 900, 600);
+  const X0 = 90, Y0 = top, W = 900, H = 600, st = 6;
+  // dalgalanan bayrak önce ara tuvale (tam opak) çizilir, sonra gölgesiyle birlikte saydamlıkla bindirilir
+  bc.clearRect(0, 0, 1080, 1920);
+  for (let x = 0; x < W; x += st) {
+    const u = x / W, amp = 11 * Math.pow(u, 0.85);
+    const ph = 2 * Math.PI * (u * 1.25) - t * 2.4;
+    const dy = amp * Math.sin(ph);
+    bc.drawImage(off, x, 0, st, H, X0 + x, Y0 + dy, st + 0.6, H);
+    const sh = Math.cos(ph) * Math.pow(u, 0.85);   // ışık: kıvrımın eğimi
+    bc.fillStyle = sh > 0 ? `rgba(255,255,255,${0.07 * sh})` : `rgba(0,0,0,${-0.13 * sh})`;
+    bc.fillRect(X0 + x, Y0 + dy, st + 0.6, H);
+  }
+  // dalgadan yükseliş: aşağıdan süzülerek belirir (oran ve geometri değişmez)
+  fc.save(); fc.globalAlpha = vis * rise; fc.shadowColor = 'rgba(30,0,4,.55)'; fc.shadowBlur = 50; fc.shadowOffsetY = 24;
+  fc.drawImage(buf, 0, (1 - rise) * 90);
+  fc.restore();
+}
+
+// ---------------------------------------------------------------- akan şerit: 103 yıl (kullanılan tüm fotoğraflar, akarak)
+const SER = ['1919-sivas-heyet.jpg', '1920-tbmm-ankara.jpg', '1922-siper.jpg', '1922-kocatepe.jpg', '1933-10-yil-konusma.jpg', '1928-harf-kayseri.jpg', '1935-ilk-kadin-milletvekilleri.jpg', '1933-10-yil-tribun.jpg'];
+const cards = SER.map((s, i) => { const d = document.createElement('div'); d.className = 'card'; d.innerHTML = `<img src="${K + s}">`; $('serit').appendChild(d); return d; });
+function drawSerit(t) {
+  const v = eio(seg(t, S.serit, S.serit + 0.6)) * (1 - eio(seg(t, S.siz - 0.2, S.siz + 0.7)));
+  $('serit').style.opacity = v; if (v <= 0) return;
+  const CW = 470, G = 40, speed = 520, x0 = 1080 - (t - S.serit) * speed;
+  cards.forEach((c, i) => { c.style.width = CW + 'px'; c.style.left = (x0 + i * (CW + G) - 300) + 'px'; });
+}
+
+// ---------------------------------------------------------------- film greni
+const g = $('grain').getContext('2d'); const gi = g.createImageData(540, 960);
+function rnd(seed) { let s = seed >>> 0; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+function grain(t) {
+  const r = rnd(Math.floor(t * 30) * 2654435761 + 1); const d = gi.data;
+  for (let i = 0; i < d.length; i += 4) { const v = 128 + (r() - .5) * 255 * 0.9; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+  g.putImageData(gi, 0, 0);
+}
+
+// ---------------------------------------------------------------- altyazı (anlatıyla eşzamanlı)
+const SUBS = Object.entries(L).map(([id, [a, b, s]]) => ({ id, a, b, s }));
+function subHTML(s) { return s.replace(/“([^”]+)”/, '<span class="q">“$1”</span>'); }
+let curSub = null;
+function drawSub(t) {
+  let best = null, op = 0;
+  for (const u of SUBS) {
+    if (u.id === 'y8' || u.id === 'y14') continue;          // bayrakta büyük başlık konuşur
+    const o = eo(seg(t, u.a - 0.12, u.a + 0.25)) * (1 - seg(t, u.b + 0.3, u.b + 0.6));
+    if (o > op) { op = o; best = u; }
+  }
+  const el = $('alt');
+  if (best !== curSub) { el.innerHTML = best ? subHTML(best.s) : ''; curSub = best; }
+  el.style.opacity = op; el.style.transform = `translateY(${(1 - op) * 14}px)`;
+  // y4 kaynak satırı
+  const y4 = L.y4; $('kaynak').style.opacity = eo(seg(t, y4[0] + 0.3, y4[0] + 0.9)) * (1 - seg(t, y4[1] + 0.3, y4[1] + 0.6));
+  // altyazı konumu: tipografi sahnelerinde dalganın altında
+  const yAlt = (t < S.erzurum - 0.3 || (t > S.kulak - 0.3 && t < S.bayrak2)) ? 1080 : 1330;
+  el.style.top = yAlt + 'px';
+}
+function drawEtiket(t) {
+  let txt = '', op = 0;
+  for (const p of P) { const o = eo(seg(t, p.t0 + 0.35, p.t0 + 0.95)) * (1 - seg(t, p.t1 - WIPE, p.t1 - WIPE + 0.3)); if (o > op) { op = o; txt = p.etiket; } }
+  const so = eo(seg(t, S.serit + 0.3, S.serit + 0.9)) * (1 - seg(t, S.kulak - 0.6, S.kulak - 0.2));
+  if (so > op) { op = so; txt = '1923 — 2026'; }
+  const el = $('etiket'); if (el.textContent !== txt) el.textContent = txt; el.style.opacity = op;
+}
+
+window.render = (t) => {
+  $('kapak').style.display = 'none';
+  grain(t);
+  for (const p of P) drawPhoto(p, t);
+  // Samsun: ufuk çizgisi (dalga) üstünde tarih ve şehir
+  $('samsun').style.opacity = eio(seg(t, S.samsun, S.samsun + 0.8)) * (1 - eio(seg(t, S.erzurum, S.erzurum + WIPE)));
+  $('samsun').querySelector('.big').style.transform = `scale(${1 + 0.03 * seg(t, S.samsun, S.erzurum)})`;
+  // 29 Ekim 1923
+  { const r = eio(seg(t, S.tarih, S.tarih + WIPE)), e = r * 108 - 4, m = r >= 1 ? 'none' : `linear-gradient(to right,#000 ${e}%,transparent ${e + 3.5}%)`;
+    $('tarih').style.webkitMaskImage = m; $('tarih').style.maskImage = m;
+    $('tarih').style.opacity = (t >= S.tarih ? 1 : 0) * (1 - eio(seg(t, S.bayrak - 0.12, S.bayrak + 0.12))); }
+  $('tarih').querySelector('.d1').style.transform = `scale(${1 + 0.035 * seg(t, S.tarih, S.bayrak)})`;
+  // bayrak: "Cumhuriyet!" ile dalgadan yükselir; 10. yıl fotoğraflarına geçerken söner; sonda yeniden
+  const f1 = eio(seg(t, S.bayrak, S.bayrak + 0.3)) * (1 - eio(seg(t, S.anniv1 - 0.4, S.anniv1 + 0.02)));   // bayrak, fotoğraf açılmadan tümüyle söner
+  const f2 = eio(seg(t, S.bayrak2, S.bayrak2 + 0.5)) * (1 - eio(seg(t, S.son, S.son + 0.4)));
+  $('kizil').style.opacity = Math.max(f1, f2);
+  $('fglow').style.opacity = Math.max(0, seg(t, S.bayrak, S.bayrak + .3) - seg(t, S.bayrak + .5, S.bayrak + 2.2)) * 0.95 + 0.2 * Math.max(f1, f2);
+  const rise = Math.max(f1 > 0 ? eo(seg(t, S.bayrak + 0.12, S.bayrak + 1.0)) : 0, f2 > 0 ? eo(seg(t, S.bayrak2 + 0.1, S.bayrak2 + 1.0)) : 0);
+  drawFlag(t, Math.max(f1, f2), rise, f2 > 0 ? 300 : 330);
+  $('cumh').style.opacity = eo(seg(t, S.bayrak + 0.25, S.bayrak + 0.9)) * (1 - eio(seg(t, S.anniv1 - 0.3, S.anniv1 + 0.3)));
+  $('cumh').style.transform = `scale(${0.94 + 0.06 * eo(seg(t, S.bayrak + 0.2, S.bayrak + 1.2))})`;
+  const y14 = L.y14;
+  for (const [id, a] of [['k1', y14[0] - 0.05], ['k2', y14[0] + 0.85]]) {
+    const o = eo(seg(t, a, a + 0.6)) * (1 - seg(t, S.son, S.son + 0.4)); $(id).style.opacity = o; $(id).style.transform = `translateY(${(1 - o) * 26}px)`;
+  }
+  drawSerit(t);
+  drawWave(t);
+  drawSub(t);
+  drawEtiket(t);
+  // ayrı son kare
+  $('odi').style.opacity = eio(seg(t, S.odi - 0.1, S.odi + 0.5));
+  $('odi').querySelector('.t').style.opacity = eo(seg(t, S.odi + 0.6, S.odi + 1.3)) * (1 - seg(t, S.dur - 0.5, S.dur));
+  $('veil').style.opacity = 1 - eio(seg(t, 0.0, 0.6));
+  $('grain').style.opacity = t < S.odi ? 0.09 : 0.04;
+};
+// kapak: 10. yıl konuşması (mikrofonlar) + altın dalga + başlık
+window.kapak = () => {
+  const t = S.anniv1 + 1.2; window.render(t);
+  ['alt', 'etiket', 'kaynak'].forEach((id) => $(id).style.opacity = 0);
+  $('ph-anniv1').querySelector('.kunye').style.opacity = 0;
+  $('kapak').style.display = 'block';
+};
+window.render(0);
+</script></body></html>

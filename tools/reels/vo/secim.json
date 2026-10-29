@@ -2859,5 +2859,161 @@
    "dur": 2.02,
    "sps": 5.95
   }
+ },
+ "29-ekim-sesin-yolculugu": {
+  "y1": {
+   "key": "767f5587d07c",
+   "text": "Ben bir sesim.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ben bir sesim.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 1.03,
+   "sps": 3.88
+  },
+  "y2": {
+   "key": "bd13bb3c05c6",
+   "text": "Bin dokuz yüz on dokuzda, Samsun'da bir iskelede yükseldim.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "1919'da Samsun'da bir iskelede yükseldim.",
+   "gap": 0.41,
+   "tempo": 1.0,
+   "dur": 3.86,
+   "sps": 4.92
+  },
+  "y3": {
+   "key": "6b4fecc05d10",
+   "text": "Erzurum'da, Sivas'ta çoğaldım.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Erzurum'da, Sivas'ta çoğaldım.",
+   "gap": 0.14,
+   "tempo": 1.007,
+   "dur": 2.21,
+   "sps": 4.53
+  },
+  "y4": {
+   "key": "c82601b51250",
+   "text": "Bir milletin, ya istiklal, ya ölüm diyen nefesi oldum.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir milletin ya istiklal ya ölüm diyen nefesi oldum.",
+   "gap": 0.17,
+   "tempo": 1.0,
+   "dur": 3.86,
+   "sps": 4.66
+  },
+  "y5": {
+   "key": "f2a8cf850fd5",
+   "text": "Yirmi üç Nisan bin dokuz yüz yirmide, bir meclisin kapısından içeri girdim.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "23 Nisan 1920'de bir meclisin kapısından içeri girdim.",
+   "gap": 0.37,
+   "tempo": 1.0,
+   "dur": 4.99,
+   "sps": 5.01
+  },
+  "y6": {
+   "key": "bee4f4331cdb",
+   "text": "Yokluğun, yorgunluğun içinde bile, hiç susmadım.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Yokluğun, yorgunluğun içinde bile hiç susmadım.",
+   "gap": 0.13,
+   "tempo": 1.0,
+   "dur": 3.17,
+   "sps": 5.05
+  },
+  "y7": {
+   "key": "ee7da727c785",
+   "text": "Ve yirmi dokuz Ekim bin dokuz yüz yirmi üçte, bir isim aldım.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "ve 29 Ekim 1923'te bir isim aldım.",
+   "gap": 0.18,
+   "tempo": 1.0,
+   "dur": 3.91,
+   "sps": 5.11
+  },
+  "y8": {
+   "key": "c5f8890532ac",
+   "text": "Cumhuriyet!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cumhuriyet.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 0.98,
+   "sps": 4.07
+  },
+  "y9": {
+   "key": "3ae494981a49",
+   "text": "Bir çocuğun okuduğu ilk harfte yankılandım.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir çocuğun okuduğu ilk harfte yankılandım.",
+   "gap": 0.45,
+   "tempo": 1.0,
+   "dur": 3.02,
+   "sps": 4.96
+  },
+  "y10": {
+   "key": "f662adb84904",
+   "text": "Bir kadının attığı ilk oyda yükseldim.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Bir kadının attığı ilk oyda yükseldim.",
+   "gap": 0.1,
+   "tempo": 1.0,
+   "dur": 2.38,
+   "sps": 5.47
+  },
+  "y11": {
+   "key": "65b04ceebee5",
+   "text": "Yüz üç yıldır susmadım.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "103 yıldır susmadım.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.56,
+   "sps": 4.49
+  },
+  "y12": {
+   "key": "7557f8a6157b",
+   "text": "Çünkü beni taşıyan, sizsiniz.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Çünkü beni taşıyan sizsiniz.",
+   "gap": 0.16,
+   "tempo": 1.0,
+   "dur": 2.21,
+   "sps": 4.53
+  },
+  "y13": {
+   "key": "bb34213001ee",
+   "text": "Bir ses, onu duyan bir kulak oldukça yaşar.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bir ses, onu duyan bir kulak oldukça yaşar.",
+   "gap": 0.26,
+   "tempo": 1.0,
+   "dur": 3.19,
+   "sps": 4.39
+  },
+  "y14": {
+   "key": "798f9a61dfb7",
+   "text": "Cumhuriyetimizin yüz üçüncü yılı kutlu olsun.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cumhuriyetimizin 103. yılı kutlu olsun.",
+   "gap": 0.44,
+   "tempo": 1.0,
+   "dur": 3.26,
+   "sps": 5.21
+  }
  }
 }
