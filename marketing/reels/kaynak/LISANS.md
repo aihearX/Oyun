@@ -91,9 +91,9 @@ Fotoğrafı olmayan anlar (19 Mayıs 1919 Samsun, 29 Ekim 1923) tipografiyle anl
 ## 1928-harf-kayseri.jpg
 - Commons: `File:Mustafa Kemal harf devriminde.jpg` — https://commons.wikimedia.org/wiki/File:Mustafa_Kemal_harf_devriminde.jpg
 - Özgün dosya (değiştirilmeden): https://upload.wikimedia.org/wikipedia/commons/0/08/Mustafa_Kemal_harf_devriminde.jpg (1440×1972, SHA-1 `02113d14ee7aa91b625143f25113df470226a54c`)
-- Açıklama: "Mustafa Kemal Atatürk introducing the new Turkish alphabet to the people of Kayseri. September 20, 1928" · Yazar: Cumhurbaşkanlığı (tccb.gov.tr)
+- Açıklama (Commons): en "Mustafa Kemal Atatürk introducing the new Turkish alphabet to the people of Kayseri. September 20, 1928"; tr açıklama yeri Sivas olarak veriyor · Yazar: Cumhurbaşkanlığı (tccb.gov.tr). Yer (Kayseri/Sivas) ve gün çelişkili olduğundan videoda yazılmaz; dosya adındaki "kayseri" yalnız ilk indirmedeki adlandırmadır.
 - Lisans: **Kamu malı** — `LicenseShortName: Public domain`; şablonlar `{{PD-TR}}`, `{{PD-US-expired}}`
-- Videoda künye: "Atatürk yeni harfleri tanıtırken, Kayseri, 20 Eylül 1928" · etiket: Harf Devrimi · 1 Kasım 1928 (1353 sayılı Kanun)
+- Videoda künye: "Atatürk yeni harfleri tanıtırken, 1928" · etiket: Harf Devrimi · 1 Kasım 1928 (1353 sayılı Kanun)
 
 ## 1935-ilk-kadin-milletvekilleri.jpg
 - Commons: `File:First female MPs of the Turkish Parliament (1935).jpg` — https://commons.wikimedia.org/wiki/File:First_female_MPs_of_the_Turkish_Parliament_(1935).jpg

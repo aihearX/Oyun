@@ -29,7 +29,7 @@ Fotoğrafı olmayan anlar (19 Mayıs 1919 Samsun, 29 Ekim 1923) tipografiyle anl
 | 25,7–30,6 | tipografi: "29 EKİM 1923"; müzik neredeyse susar, kalp atışı gibi alçak vuruş | 26,2 "Ve 29 Ekim 1923'te… bir isim aldım:" |
 | 30,6–33,2 | **doruk**: dalga kabarır, bayrak dalgadan yükselir, "CUMHURİYET" (timpani, koro, bakır) | 30,7 "Cumhuriyet!" |
 | 33,2–35,6 | 10. yıl, 29 Ekim 1933: Atatürk konuşurken (mikrofonlar) → şeref tribünü | — (müzik teması) |
-| 35,6–39,3 | Atatürk yeni harfleri tanıtırken, Kayseri, 20 Eylül 1928 (etiket: Harf Devrimi · 1 Kasım 1928) | 36,0 "Bir çocuğun okuduğu ilk harfte yankılandım." |
+| 35,6–39,3 | Atatürk yeni harfleri tanıtırken, 1928 (etiket: Harf Devrimi · 1 Kasım 1928) | 36,0 "Bir çocuğun okuduğu ilk harfte yankılandım." |
 | 39,3–42,4 | 1935'te Meclis'e giren ilk kadın milletvekilleri (etiket: 5 Aralık 1934 · seçme ve seçilme hakkı) | 39,6 "Bir kadının attığı ilk oyda yükseldim." |
 | 42,4–47,3 | akan şerit: bütün fotoğraflar art arda (etiket: 1923 — 2026); "sizsiniz"de tek çizgi onlarca sese çoğalır | 42,8 "103 yıldır susmadım." · 44,8 "Çünkü beni taşıyan, sizsiniz." |
 | 47,3–51,4 | karanlık, tek sakin çizgi, merkezden ince halkalar (hafif odyoloji dokunuşu) | 47,8 "Bir ses, onu duyan bir kulak oldukça yaşar." |
@@ -74,7 +74,7 @@ Her satır Whisper large-v3-turbo ile birebir doğrulandı (WER 0); seçimler `t
 - **Kurtuluş Savaşı 1919–1922; Büyük Taarruz 26 Ağustos 1922** (Kocatepe). Fotoğraflar: siperde piyadeler (y. 1922), Mustafa Kemal Paşa Kocatepe'de (1922).
 - **29 Ekim 1923:** Cumhuriyet'in ilanı. 1923 → 2026 = **103. yıl**.
 - **10. yıl, 29 Ekim 1933:** iki fotoğraf da Commons açıklamasına göre 10. yıl kutlamalarındandır.
-- **1 Kasım 1928:** 1353 sayılı "Türk Harflerinin Kabul ve Tatbiki Hakkında Kanun". Fotoğraf: Atatürk yeni harfleri tanıtırken, Kayseri, 20 Eylül 1928.
+- **1 Kasım 1928:** 1353 sayılı "Türk Harflerinin Kabul ve Tatbiki Hakkında Kanun". Fotoğraf: Atatürk yeni harfleri tanıtırken, 1928 (Commons'un İngilizce açıklaması Kayseri, Türkçesi Sivas diyor; bu çelişki yüzünden künyede yer ve gün yazılmaz).
 - **5 Aralık 1934:** kadınlara milletvekili seçme ve seçilme hakkı (Anayasa değişikliği). Fotoğraf: 8 Şubat 1935 seçimleriyle Meclis'e
   giren ilk kadın milletvekilleri (sayı verilmedi).
 
@@ -88,7 +88,7 @@ Her satır Whisper large-v3-turbo ile birebir doğrulandı (WER 0); seçimler `t
 | `1922-kocatepe.jpg` | `File:Kocatepe1922.jpg` | 1922 | Public domain, `{{PD-TR}}` |
 | `1933-10-yil-konusma.jpg` | `File:Atatürk during the 10th Anniversary Speech.jpg` | 29 Ekim 1933 | Public domain, `{{PD-TR}}` |
 | `1933-10-yil-tribun.jpg` | `File:10th Anniversary Speech.jpg` | 1933 (10. yıl) | Public domain, `{{PD-TR}}` |
-| `1928-harf-kayseri.jpg` | `File:Mustafa Kemal harf devriminde.jpg` | 20 Eylül 1928 | Public domain, `{{PD-TR}}` `{{PD-US-expired}}` |
+| `1928-harf-kayseri.jpg` | `File:Mustafa Kemal harf devriminde.jpg` | 1928 (yer belirsiz: Kayseri/Sivas) | Public domain, `{{PD-TR}}` `{{PD-US-expired}}` |
 | `1935-ilk-kadin-milletvekilleri.jpg` | `File:First female MPs of the Turkish Parliament (1935).jpg` | 1935 | Public domain, `{{PD-TR}}` |
 
 URL'ler, açıklamalar, yazarlar ve SHA-1 özetleri: `marketing/reels/kaynak/LISANS.md`. "No known copyright restrictions" (Flickr Commons)
