@@ -2646,5 +2646,84 @@
    "dur": 1.9,
    "sps": 5.27
   }
+ },
+ "siniftaki-tipler": {
+  "d1": {
+   "key": "2c1f585cd97b",
+   "text": "Her odyoloji sınıfında bu beş tip vardır.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Her odyoloji sınıfında bu beş tip vardır.",
+   "gap": 0.07,
+   "tempo": 1.094,
+   "dur": 2.54,
+   "sps": 5.5
+  },
+  "d2": {
+   "key": "a635ac985846",
+   "text": "Diyapazonu her yere götüren,",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "diyapazonu her yere götüren,",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.87,
+   "sps": 5.88
+  },
+  "d3": {
+   "key": "d6545def4e3b",
+   "text": "herkese maskelemeyi anlatan,",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "herkese maskelemeyi anlatan,",
+   "gap": 0.04,
+   "tempo": 1.017,
+   "dur": 1.99,
+   "sps": 5.52
+  },
+  "d4": {
+   "key": "278382bf14ad",
+   "text": "her timpanogramı Tip A sanan,",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Her timpanogramı tipa sanan,",
+   "gap": 0.08,
+   "tempo": 1.011,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "d5": {
+   "key": "ef17e1659fdf",
+   "text": "sembolleri çoktan ezberleyen,",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sembolleri çoktan ezberleyen.",
+   "gap": 0.07,
+   "tempo": 1.137,
+   "dur": 1.82,
+   "sps": 5.48
+  },
+  "d6": {
+   "key": "d21e1a9e9225",
+   "text": "ve sınavdan bir gece önce başlayan.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ve sınavdan bir gece önce başlayan.",
+   "gap": 0.07,
+   "tempo": 1.022,
+   "dur": 2.18,
+   "sps": 5.49
+  },
+  "d7": {
+   "key": "86119219adfb",
+   "text": "Sınıfında hangisi var? Etiketle!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Sınıfında hangisi var etiketle?",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.02,
+   "sps": 5.95
+  }
  }
 }
