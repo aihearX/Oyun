@@ -2428,6 +2428,17 @@
    "tempo": 1.22,
    "dur": 1.03,
    "sps": 4.84
+  },
+  "d6": {
+   "key": "429c9266118e",
+   "text": "Yoğun trafik?",
+   "seed": 5,
+   "wer": 0.0,
+   "asr": "Yoğun trafik.",
+   "gap": 0.07,
+   "tempo": 1.22,
+   "dur": 0.94,
+   "sps": 4.27
   }
  },
  "odyolog-oldugunu-soyleme": {
