@@ -2202,155 +2202,6 @@
    "sps": 5.47
   }
  },
- "odyolog-oldugunu-soyleme": {
-  "a1": {
-   "key": "98506f921cbd",
-   "text": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
-   "seed": 3,
-   "wer": 0.0,
-   "asr": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
-   "gap": 0.05,
-   "tempo": 1.0,
-   "dur": 3.02,
-   "sps": 5.95
-  },
-  "a2": {
-   "key": "fc1083d0ea4f",
-   "text": "Hangisi sensin? Sınıf arkadaşını etiketle.",
-   "seed": 3,
-   "wer": 0.0,
-   "asr": "Hangisi sensin? Sınıf arkadaşını etiketle.",
-   "gap": 0.2,
-   "tempo": 1.114,
-   "dur": 2.9,
-   "sps": 5.51
-  }
- },
- "timpanogram-tipin": {
-  "c1": {
-   "key": "6c4017b0d287",
-   "text": "Hangi timpanogram tipisin?",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "Hangi timpanogram tipisin?",
-   "gap": 0.06,
-   "tempo": 1.104,
-   "dur": 1.66,
-   "sps": 5.43
-  },
-  "c2": {
-   "key": "ef9194c1f547",
-   "text": "Dengeli. Ne eksik, ne fazla.",
-   "seed": 3,
-   "wer": 0.0,
-   "asr": "Dengeli. Ne eksik ne fazla.",
-   "gap": 0.35,
-   "tempo": 1.2,
-   "dur": 2.02,
-   "sps": 4.46
-  },
-  "c3": {
-   "key": "388ff0bdcbb6",
-   "text": "Biraz kasıntı. Pek esnemez.",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "Biraz kasıntı. Pek esnemez.",
-   "gap": 0.28,
-   "tempo": 1.2,
-   "dur": 1.92,
-   "sps": 4.69
-  },
-  "c4": {
-   "key": "a26ff6e1a365",
-   "text": "Fazla rahat. Her şeye esner.",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "Fazla rahat her şeye esner.",
-   "gap": 0.07,
-   "tempo": 1.2,
-   "dur": 1.68,
-   "sps": 5.36
-  },
-  "c5": {
-   "key": "0a3dced5a799",
-   "text": "Dümdüz. Hiçbir şeye tepki yok.",
-   "seed": 2,
-   "wer": 0.0,
-   "asr": "Dümdüz, hiçbir şeye tepki yok.",
-   "gap": 0.14,
-   "tempo": 1.2,
-   "dur": 1.73,
-   "sps": 5.21
-  },
-  "c6": {
-   "key": "ec039b7c4773",
-   "text": "Biraz negatif, ama tepesi var.",
-   "seed": 4,
-   "wer": 0.0,
-   "asr": "Biraz negatif ama tepesi var.",
-   "gap": 0.06,
-   "tempo": 1.0,
-   "dur": 1.97,
-   "sps": 5.59
-  },
-  "c7": {
-   "key": "8e969cbcc067",
-   "text": "Gerçekte timpanogram tek başına tanı koydurmaz.",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "Gerçekte timpanogram tek başına tanı koydurmaz.",
-   "gap": 0.14,
-   "tempo": 1.147,
-   "dur": 2.9,
-   "sps": 5.51
-  },
-  "c8": {
-   "key": "68677432bd2a",
-   "text": "Hikâyende paylaş: sen hangi tipsin?",
-   "seed": 6,
-   "wer": 0.0,
-   "asr": "Hikayende paylaş. Sen hangi tipsin?",
-   "gap": 0.2,
-   "tempo": 1.2,
-   "dur": 2.11,
-   "sps": 5.21
-  }
- },
- "akrabalar-odyoloji": {
-  "e1": {
-   "key": "71abe69bdf83",
-   "text": "Akrabalara odyoloji okuyorum deyince...",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "akrabalara odyoloji okuyorum deyince,",
-   "gap": 0.06,
-   "tempo": 1.0,
-   "dur": 2.64,
-   "sps": 6.06
-  },
-  "e2": {
-   "key": "a3326ec233ec",
-   "text": "Odyoloji; işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
-   "seed": 2,
-   "wer": 0.0,
-   "asr": "Odyoloji, işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
-   "gap": 0.15,
-   "tempo": 1.01,
-   "dur": 5.76,
-   "sps": 5.56
-  },
-  "e3": {
-   "key": "d17a5d85f152",
-   "text": "Sen de duydun mu? Arkadaşına gönder.",
-   "seed": 1,
-   "wer": 0.0,
-   "asr": "''Sen de duydun mu?'' arkadaşına gönder.",
-   "gap": 0.31,
-   "tempo": 1.2,
-   "dur": 2.18,
-   "sps": 5.49
-  }
- },
  "rinne-weber-30sn": {
   "rw1": {
    "key": "d3d6cc2dfd04",
@@ -2555,6 +2406,177 @@
    "tempo": 1.067,
    "dur": 1.39,
    "sps": 5.75
+  },
+  "d4": {
+   "key": "a097932e825e",
+   "text": "Normal konuşma?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Normal konuşma.",
+   "gap": 0.05,
+   "tempo": 1.22,
+   "dur": 0.91,
+   "sps": 5.48
+  },
+  "d5": {
+   "key": "07983894a4af",
+   "text": "Yaklaşık altmış.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Yaklaşık 60.",
+   "gap": 0.09,
+   "tempo": 1.22,
+   "dur": 1.03,
+   "sps": 4.84
+  }
+ },
+ "odyolog-oldugunu-soyleme": {
+  "a1": {
+   "key": "98506f921cbd",
+   "text": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Odyoloji öğrencisi olduğunu söylemeden söyle.",
+   "gap": 0.05,
+   "tempo": 1.0,
+   "dur": 3.02,
+   "sps": 5.95
+  },
+  "a2": {
+   "key": "fc1083d0ea4f",
+   "text": "Hangisi sensin? Sınıf arkadaşını etiketle.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Hangisi sensin? Sınıf arkadaşını etiketle.",
+   "gap": 0.2,
+   "tempo": 1.114,
+   "dur": 2.9,
+   "sps": 5.51
+  }
+ },
+ "timpanogram-tipin": {
+  "c1": {
+   "key": "6c4017b0d287",
+   "text": "Hangi timpanogram tipisin?",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Hangi timpanogram tipisin?",
+   "gap": 0.06,
+   "tempo": 1.104,
+   "dur": 1.66,
+   "sps": 5.43
+  },
+  "c2": {
+   "key": "ef9194c1f547",
+   "text": "Dengeli. Ne eksik, ne fazla.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Dengeli. Ne eksik ne fazla.",
+   "gap": 0.35,
+   "tempo": 1.2,
+   "dur": 2.02,
+   "sps": 4.46
+  },
+  "c3": {
+   "key": "388ff0bdcbb6",
+   "text": "Biraz kasıntı. Pek esnemez.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Biraz kasıntı. Pek esnemez.",
+   "gap": 0.28,
+   "tempo": 1.2,
+   "dur": 1.92,
+   "sps": 4.69
+  },
+  "c4": {
+   "key": "a26ff6e1a365",
+   "text": "Fazla rahat. Her şeye esner.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Fazla rahat her şeye esner.",
+   "gap": 0.07,
+   "tempo": 1.2,
+   "dur": 1.68,
+   "sps": 5.36
+  },
+  "c5": {
+   "key": "0a3dced5a799",
+   "text": "Dümdüz. Hiçbir şeye tepki yok.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Dümdüz, hiçbir şeye tepki yok.",
+   "gap": 0.14,
+   "tempo": 1.2,
+   "dur": 1.73,
+   "sps": 5.21
+  },
+  "c6": {
+   "key": "ec039b7c4773",
+   "text": "Biraz negatif, ama tepesi var.",
+   "seed": 4,
+   "wer": 0.0,
+   "asr": "Biraz negatif ama tepesi var.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 1.97,
+   "sps": 5.59
+  },
+  "c7": {
+   "key": "8e969cbcc067",
+   "text": "Gerçekte timpanogram tek başına tanı koydurmaz.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Gerçekte timpanogram tek başına tanı koydurmaz.",
+   "gap": 0.14,
+   "tempo": 1.147,
+   "dur": 2.9,
+   "sps": 5.51
+  },
+  "c8": {
+   "key": "68677432bd2a",
+   "text": "Hikâyende paylaş: sen hangi tipsin?",
+   "seed": 6,
+   "wer": 0.0,
+   "asr": "Hikayende paylaş. Sen hangi tipsin?",
+   "gap": 0.2,
+   "tempo": 1.2,
+   "dur": 2.11,
+   "sps": 5.21
+  }
+ },
+ "akrabalar-odyoloji": {
+  "e1": {
+   "key": "71abe69bdf83",
+   "text": "Akrabalara odyoloji okuyorum deyince...",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "akrabalara odyoloji okuyorum deyince,",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 2.64,
+   "sps": 6.06
+  },
+  "e2": {
+   "key": "a3326ec233ec",
+   "text": "Odyoloji; işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Odyoloji, işitme ve dengeyi değerlendiren, rehabilite eden ve koruyan bilim dalıdır.",
+   "gap": 0.15,
+   "tempo": 1.01,
+   "dur": 5.76,
+   "sps": 5.56
+  },
+  "e3": {
+   "key": "d17a5d85f152",
+   "text": "Sen de duydun mu? Arkadaşına gönder.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "''Sen de duydun mu?'' arkadaşına gönder.",
+   "gap": 0.31,
+   "tempo": 1.2,
+   "dur": 2.18,
+   "sps": 5.49
   }
  }
 }

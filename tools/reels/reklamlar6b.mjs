@@ -104,9 +104,9 @@ const rinneWeber = {
     son(rb(3)),
   ],
   vo: [
-    { id: 'rw1', scene: 'kanca', at: 0.2, nosub: true }, { id: 'rw2', scene: 'weber1', at: 0.15, nosub: true, dip: [[0.8, 2.3, -14, -8]] }, { id: 'rw3', scene: 'weber2', at: 0.2, nosub: true },
+    { id: 'rw1', scene: 'kanca', at: 0.2, nosub: true }, { id: 'rw2', scene: 'weber1', at: 0.15, nosub: true, dip: [[0.9, 2.2, -6, -5]] }, { id: 'rw3', scene: 'weber2', at: 0.2, nosub: true },
     { id: 'rw4', scene: 'weber3', at: 0.2, nosub: true }, { id: 'rw5', scene: 'rinne1', at: 0.15, nosub: true }, { id: 'rw6', scene: 'rinne2', at: 0.15, nosub: true },
-    { id: 'rw7', scene: 'rinne3', at: 0.15, nosub: true }, { id: 'rw8', scene: 'ozet', at: 0.2, nosub: true, dip: [[1.9, 3.0, -18, -8]] }, { id: 'rw9', scene: 'cta', at: 0.1, nosub: true },
+    { id: 'rw7', scene: 'rinne3', at: 0.15, nosub: true }, { id: 'rw8', scene: 'ozet', at: 0.2, nosub: true, dip: [[1.9, 3.0, -8, -6]] }, { id: 'rw9', scene: 'cta', at: 0.1, nosub: true },
   ],
   cover: { bg: 'board', seek: 2, layers: [
     kt('Rinne<br>ve Weber', { c: 'lg gold', y: 290 }),
