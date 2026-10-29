@@ -164,3 +164,42 @@ Sahne: `tools/reels/29-ekim-herkese-bir-ses.html`.
 - Açıklama (Commons): tr "Atatürk Trabzon'da köylü bir aile ile birlikte. (28 Kasım 1930)"; yazar bilinmiyor
 - Lisans: **Kamu malı** — `LicenseShortName: Public domain`, `Copyrighted: False`; şablon `{{PD-Turkey}}`
 - Videodaki etiket: "Atatürk Trabzon'da köylü bir aile ile birlikte · 28 Kasım 1930"
+
+---
+Aşağıdaki üç dosya 29 Ekim 2026'da `29-ekim-onuncu-yil-yankisi.mp4` («Yankı», sahne `tools/reels/29-ekim-onuncu-yil-yankisi.html`) için
+aynı yöntemle (Commons API `extmetadata` + dosya kategorisi/şablonu) denetlenip değiştirilmeden indirildi. Videoda yalnız gri ton + sepya,
+kontrast, Ken Burns (yavaş yakınlaşma/kayma), bulanık arka plaka ile paralaks, film greni ve solma uygulanır; yüzlerin üstüne yazı, halka
+ya da ışık konmaz; yapay zekâ ile renklendirme/canlandırma/ağız hareketi yoktur.
+
+## 1933-onuncu-yil-kursu.jpg
+- Commons dosyası: `File:10th Anniversary Speech.jpg` — https://commons.wikimedia.org/wiki/File:10th_Anniversary_Speech.jpg
+- Özgün dosya: https://upload.wikimedia.org/wikipedia/commons/c/c1/10th_Anniversary_Speech.jpg (1500×1061, JPEG, 234 017 bayt,
+  SHA-1 `fc5ac757c98c93ec32df22aebf3cd5ec5cdefb0b`, SHA-256 `8addee3a71d146c0a1d7154836b5d00827b70ade1e95cbbaf3a53298be88ece7`)
+- Konu (Commons açıklaması): Cumhuriyetin 10. yıldönümü töreni, Ankara, 1933 (Onuncu Yıl Nutku'nun okunduğu tören). Soldan sağa:
+  Genelkurmay Başkanı Mareşal Fevzi (Çakmak), Cumhurbaşkanı Gazi Mustafa Kemal (Atatürk), TBMM Başkanı Kâzım (Özalp), Başbakan İsmet (İnönü).
+  Aynı karenin 1024 px'lik kopyası `File:Atatürk Cumhuriyet Bayramı kutlamalarında kürsüde.jpg` tarihini 29 Ekim 1933 verir.
+- Tarih: 1933 (Commons `DateTimeOriginal: 1933`; kategori "Atatürk's Speech on the Tenth Anniversary of the Republic", "October 1933 in Turkey")
+- Yazar: Türkiye Cumhuriyeti (Commons "Republic of Turkey"); kaynak: Yargıtay (Supreme Court of Appeals of the Republic of Turkey)
+- Lisans: **Kamu malı** — Commons `LicenseShortName: Public domain`, `Copyrighted: False`; dosya sayfasındaki şablon `{{PD-TR}}`
+
+## 1933-onuncu-yil-mikrofon.jpg
+- Commons dosyası: `File:Atatürk during the 10th Anniversary Speech.jpg` —
+  https://commons.wikimedia.org/wiki/File:Atat%C3%BCrk_during_the_10th_Anniversary_Speech.jpg
+- Özgün dosya: https://upload.wikimedia.org/wikipedia/commons/8/86/Atat%C3%BCrk_during_the_10th_Anniversary_Speech.jpg (941×560, JPEG,
+  394 587 bayt, SHA-1 `7bfbaddfa8b1b26f8c17158933e14d780fbad787`, SHA-256 `f8b73cf9f4e34e9125264da679dd2f05971f4bd51adb1b941ef7f0443a32ffa6`)
+- Konu: "Atatürk speaks during the 10th anniversary celebrations of the Republic of Turkey." (mikrofonlar önünde, 10. Yıl Nutku)
+- Tarih: 29 Ekim 1933 · Yazar: TSK (Commons "TSK"; kaynak http://www.tsk.tr/12_anitkabir/ataturk106.html)
+- Lisans: **Kamu malı** — Commons `LicenseShortName: Public domain`, `Copyrighted: False`; dosya sayfasındaki şablon `{{PD-TR}}`
+- Not: taranan baskı dönemin elle boyanmış bir kopyasıdır; videoda gri ton/sepyaya alınır (renk eklenmez).
+
+## milliyet-1933-10-30-s1.jpg
+- Commons dosyası: `File:Milliyet 1933 tesrinievvel 30.pdf` — https://commons.wikimedia.org/wiki/File:Milliyet_1933_tesrinievvel_30.pdf
+  (2597×3647, 11 266 297 bayt, SHA-1 `70d6a67476eef5778397c3daf74ca73633fdd165`)
+- Buradaki dosya, PDF'in 1. sayfasının Wikimedia'nın ürettiği 1920 px görüntüsüdür:
+  https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Milliyet_1933_tesrinievvel_30.pdf/page1-1920px-Milliyet_1933_tesrinievvel_30.pdf.jpg
+  (1920×2696, JPEG, SHA-256 `891407b78ef51e6932f50d8feaea440b5104761a8991f8e7df49b2bc67d7eb92`)
+- Konu: Milliyet gazetesi, 30 Teşrinievvel (Ekim) 1933, ilk sayfa — manşet "Dün bütün memleket Cumhuriyetin onuncu yıldönümünü emsali
+  görülmemiş bir neş'e ve coşgunluk içinde kutladı"; "Cümhurreisi Hz. nin millete hitabeleri" kutusunda nutkun metni
+  (başlığı: "Millî kültürümüzü muasır medeniyet seviyesinin üstüne çıkaracağız").
+- Tarih: 30 Ekim 1933 · Yazar: Milliyet Gazetesi · Kaynak: İstanbul Üniversitesi Kütüphane ve Dokümantasyon Daire Başkanlığı
+- Lisans: **Kamu malı** — Commons `LicenseShortName: Public domain`, `Copyrighted: False`; dosya sayfasındaki şablon `{{PD-Turkey}}` (= `{{PD-TR}}`, kategori "PD Tr")

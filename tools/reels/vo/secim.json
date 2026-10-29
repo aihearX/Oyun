@@ -3015,5 +3015,161 @@
    "dur": 3.26,
    "sps": 5.21
   }
+ },
+ "29-ekim-onuncu-yil-yankisi": {
+  "n1": {
+   "key": "300edab7ff8d",
+   "text": "Yirmi dokuz Ekim, bin dokuz yüz otuz üç.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "29 Ekim 1933",
+   "gap": 0.41,
+   "tempo": 1.0,
+   "dur": 2.9,
+   "sps": 4.48
+  },
+  "n2": {
+   "key": "89e0cdbd234e",
+   "text": "Ankara. Cumhuriyet on yaşında.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ankara, Cumhuriyet 10 yaşında.",
+   "gap": 0.29,
+   "tempo": 1.0,
+   "dur": 2.16,
+   "sps": 5.09
+  },
+  "n3": {
+   "key": "2f14f338f6b7",
+   "text": "Ve Atatürk, milletine seslenir.",
+   "seed": 3,
+   "wer": 0.0,
+   "asr": "Ve Atatürk milletine seslenir.",
+   "gap": 0.22,
+   "tempo": 1.0,
+   "dur": 2.38,
+   "sps": 4.63
+  },
+  "q1": {
+   "key": "9fa7ec8f399f",
+   "text": "Türk Milleti!",
+   "seed": 2,
+   "wer": 0.0,
+   "asr": "Türk Milleti",
+   "gap": 0.07,
+   "tempo": 1.06,
+   "dur": 0.96,
+   "sps": 4.17
+  },
+  "q2": {
+   "key": "ac905f211a83",
+   "text": "Kurtuluş Savaşı'na başladığımızın on beşinci yılındayız.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kurtuluş Savaşı'na başladığımızın 15. yılındayız.",
+   "gap": 0.26,
+   "tempo": 1.0,
+   "dur": 3.62,
+   "sps": 5.79
+  },
+  "q3": {
+   "key": "347008aa488c",
+   "text": "Bugün Cumhuriyetimizin onuncu yılını doldurduğu en büyük bayramdır.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bugün Cumhuriyetimizin 10. yılını doldurduğu en büyük bayramdır.",
+   "gap": 0.1,
+   "tempo": 1.0,
+   "dur": 4.18,
+   "sps": 5.99
+  },
+  "q4": {
+   "key": "3f016d95624e",
+   "text": "Kutlu olsun!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Kutlu olsun.",
+   "gap": 0.06,
+   "tempo": 1.06,
+   "dur": 0.94,
+   "sps": 4.27
+  },
+  "q5": {
+   "key": "212cbfc235c0",
+   "text": "Millî kültürümüzü muasır medeniyet seviyesinin üstüne çıkaracağız.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Milli kültürümüzü muasır medeniyet seviyesinin üstüne çıkaracağız.",
+   "gap": 0.18,
+   "tempo": 1.0,
+   "dur": 4.61,
+   "sps": 5.86
+  },
+  "q6": {
+   "key": "b2111fe40213",
+   "text": "Ebediyete akıp giden her on senede,",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Ebediyete akıp giden her 10 senede,",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.42,
+   "sps": 5.78
+  },
+  "q7": {
+   "key": "f5357e052fe5",
+   "text": "Bu büyük millet bayramını daha büyük şereflerle, saadetlerle huzur ve refah içinde kutlamanı gönülden dilerim.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bu Büyük Millet Bayramı'nı daha büyük şereflerle, saadetlerle huzur ve refah içinde kutlamanı gönülden dilerim.",
+   "gap": 0.26,
+   "tempo": 1.0,
+   "dur": 6.7,
+   "sps": 5.97
+  },
+  "n4": {
+   "key": "3693b1e71212",
+   "text": "O günden bugüne doksan üç yıl geçti.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "O günden bugüne 93 yıl geçti.",
+   "gap": 0.08,
+   "tempo": 1.0,
+   "dur": 2.42,
+   "sps": 4.95
+  },
+  "n5": {
+   "key": "7ad301a170e0",
+   "text": "Bazı sesler kulaktan silinir.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Bazı sesler kulaktan silinir.",
+   "gap": 0.07,
+   "tempo": 1.0,
+   "dur": 2.23,
+   "sps": 4.48
+  },
+  "n6": {
+   "key": "3954e7773c8b",
+   "text": "Bazıları ise yüzyıllarca yankılanır.",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "bazıları ise yüzyıllarca yankılanır.",
+   "gap": 0.06,
+   "tempo": 1.0,
+   "dur": 2.69,
+   "sps": 5.21
+  },
+  "n7": {
+   "key": "8bdd83644e65",
+   "text": "Cumhuriyetimizin yüz üçüncü yılı kutlu olsun!",
+   "seed": 1,
+   "wer": 0.0,
+   "asr": "Cumhuriyetimizin 103. yılı kutlu olsun.",
+   "gap": 0.09,
+   "tempo": 1.0,
+   "dur": 2.64,
+   "sps": 6.44
+  }
  }
 }
