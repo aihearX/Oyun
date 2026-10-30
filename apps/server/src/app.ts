@@ -6,6 +6,7 @@ import {
 } from '@odi/shared';
 import { Db } from './db';
 import { weekInfo } from './time';
+import { badgeFields } from './rozet';
 
 /** sunucunun ödül kutusuna / hediyeye koyabildiği tek ödül */
 export interface Grant { kind: InboxKind; amount: number; ref: string }
@@ -82,6 +83,9 @@ export interface TeamRow { id: string; name: string; name_key: string; emblem: s
 
 export type Handler<O extends Op> = (app: App, s: Session, data: OpMap[O]['req']) => OpMap[O]['res'] | Promise<OpMap[O]['res']>;
 export type Handlers = { [O in Op]?: Handler<O> };
+
+/** profil kartında herkese görünen rozet alanları (liste seçimi yalnız kendi profilinde) */
+const pubBadges = ({ listede: _l, ...rest }: ReturnType<typeof badgeFields>) => rest;
 
 /** karışmayan harfler: I, O, 0, 1, L yok */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -170,13 +174,16 @@ export class App {
       id: p.id, name: p.name, color: p.color, hat: p.hat, level: levelFromXp(p.xp), highest: p.highest, stars: p.stars,
       teamId: t?.id ?? null, teamName: t?.name ?? null, teamEmblem: t?.emblem ?? null, league: p.league_tier,
       online: this.online.has(p.id), lastSeen: this.online.has(p.id) ? this.now() : p.last_seen,
+      ...pubBadges(badgeFields(this, p.id)),
     };
   }
   myProfile(p: PlayerRow): MyProfile {
+    const { listede } = badgeFields(this, p.id);
     return {
       ...this.publicProfile(p), friendCode: p.friend_code, shields: p.shields,
       cosmetics: parseJson<string[]>(p.cosmetics, []),
       cards: Object.keys(parseJson<Record<string, number>>(p.cards, {})),
+      ...(listede === undefined ? {} : { listede }),
     };
   }
 

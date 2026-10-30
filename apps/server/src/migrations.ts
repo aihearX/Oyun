@@ -8,6 +8,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { silinmisArtiklariTemizle } from './account-veri';
 import { CRASH_SCHEMA } from './hata';
 import { FEEDBACK_SCHEMA } from './geribildirim';
+import { ROZET_SCHEMA } from './rozet';
 
 export interface Migration { name: string; up: (db: DatabaseSync) => void }
 
@@ -22,12 +23,14 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 2: YN-029 — sınıflandırmadan (account-veri.ts) önce silinmiş hesapların ve silinmiş takımların artık satırları temizlenir.
  * 3: YN-011 — çökme raporları tablosu (`crash_reports`, hata.ts; oyuncu sütunu yok, 30 gün).
  * 4: beta geri bildirimi tablosu (`feedback`, geribildirim.ts; oyuncu sütunu yok, 90 gün).
+ * 5: YN-041 — kalıcı rozetler (`player_badges`, rozet.ts; Kurucu Yolcu, Hata Avcısı; hesap silinince silinir).
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
   { name: 'silinmis-hesap-artiklari', up: (db) => { silinmisArtiklariTemizle(db); } },
   { name: 'cokme-raporlari', up: (db) => { db.exec(CRASH_SCHEMA); } },
   { name: 'geri-bildirim', up: (db) => { db.exec(FEEDBACK_SCHEMA); } },
+  { name: 'rozetler', up: (db) => { db.exec(ROZET_SCHEMA); } },
 ];
 
 export const userVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;

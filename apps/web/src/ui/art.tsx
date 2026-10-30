@@ -13,7 +13,9 @@ export type ArtName =
   | 'check' | 'cross' | 'lock' | 'unlock' | 'crown' | 'hat' | 'palette' | 'card' | 'clover' | 'booster' | 'ticket' | 'help' | 'users'
   | 'ear' | 'map' | 'compass' | 'hammer' | 'tent' | 'bigtop' | 'mail' | 'chat' | 'megaphone' | 'signal' | 'bulb' | 'flask' | 'search'
   | 'party' | 'baton' | 'door' | 'sprout' | 'wave' | 'spark' | 'bell' | 'sound' | 'mute' | 'up' | 'down' | 'question' | 'key' | 'link'
-  | 'sun' | 'moon' | 'pencil' | 'trash' | 'copy' | 'gear' | 'refresh' | 'plus' | 'play' | 'heal' | 'boom' | 'wind' | 'online' | 'tag' | 'empty';
+  | 'sun' | 'moon' | 'pencil' | 'trash' | 'copy' | 'gear' | 'refresh' | 'plus' | 'play' | 'heal' | 'boom' | 'wind' | 'online' | 'tag' | 'empty'
+  /** YN-041: Kurucu Yolcu rozeti (defne halkasında altın yol yıldızı), Hata Avcısı unvanı (büyüteçte böcek) */
+  | 'founder' | 'bughunt';
 
 const SH = 'rgba(14,6,40,.38)';
 /** gölge + dolgu + kontur (aynı yol) */
@@ -235,6 +237,25 @@ const ART: Record<ArtName, ReactNode> = {
     <circle cx="12" cy="12" r="6.6" fill="url(#oa-cream)" />
     <path d="M12 6.4l2 5.6h-4z" fill="#ff5c8a" /><path d="M12 17.6l-2-5.6h4z" fill="#2ee6d6" />
     <circle cx="12" cy="12" r="1" fill="#22153f" />
+  </>,
+  founder: <>
+    <C cx={12} cy={12} r={9.4} g="violet" o="#2d1a85" />
+    {line('M6.1 15.6a7 7 0 0 0 4.4 3.5M17.9 15.6a7 7 0 0 1-4.4 3.5', '#8ef0b0', 1.5)}
+    <path d="M6.6 13.6l-1.3.6M7.6 16.1l-1.1 1M16.4 13.6l1.3.6M16.4 16.1l1.1 1" stroke="#8ef0b0" strokeWidth="1.2" strokeLinecap="round" />
+    <S d="M12 3.6l1.9 5.4 5.4 1.9-5.4 1.9L12 18.2l-1.9-5.4-5.4-1.9 5.4-1.9z" g="gold" o="#a35a00" w={1.1} />
+    <circle cx="12" cy="10.9" r="1.35" fill="#fff6e5" stroke="#a35a00" strokeWidth=".7" />
+    {gloss(10.4, 7.6, 1.2, 0.6)}
+  </>,
+  bughunt: <>
+    <path d="M15.6 15.6l4.8 4.8" stroke="url(#oa-gold)" strokeWidth="3.2" strokeLinecap="round" />
+    <path d="M15.6 15.6l4.8 4.8" stroke="#a35a00" strokeWidth=".8" strokeLinecap="round" opacity=".6" />
+    <C cx={10.4} cy={10.4} r={7} g="gold" o="#a35a00" />
+    <circle cx="10.4" cy="10.4" r="5.2" fill="url(#oa-cream)" />
+    <path d="M8.2 8.6l-1.3-1.1M12.6 8.6l1.3-1.1M7.6 10.8H6.2M13.2 10.8h1.4M8 12.9l-1.2 1M12.8 12.9l1.2 1" stroke="#22153f" strokeWidth=".9" strokeLinecap="round" />
+    <ellipse cx="10.4" cy="11.2" rx="2.4" ry="3" fill="url(#oa-coral)" stroke="#8f1740" strokeWidth=".8" />
+    <circle cx="10.4" cy="7.9" r="1.2" fill="#22153f" />
+    <path d="M10.4 8.6v5.4" stroke="#8f1740" strokeWidth=".6" />
+    {gloss(8.4, 6.6, 1.3, 0.6)}
   </>,
   hammer: <>
     <path d="M6.2 20.2l7.2-7.2" stroke="url(#oa-bronze)" strokeWidth="2.8" strokeLinecap="round" />

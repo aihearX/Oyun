@@ -5,15 +5,19 @@
  * - Yönetici kodu: düz metni hiçbir yerde yok; sunucu yalnızca tuzlu scrypt özetini bilir (ODI_ADMIN_CODE_HASH, varsayılan aşağıda).
  *   Doğru girilince hesap yönetici olarak işaretlenir (player_flags.admin = 1, kalıcı) ve yönetici modu açılır (admin_on; kapatılabilir).
  *   Yönetici hesapları adil rekabetten çıkarılır (Sıralama, Takım Ligi, takım yarışı ödülü, haftalık ödüller, savaş/baskın/lig puanı).
+ * - Rozet kodları (YN-041): `ÖNEK-XXXX-XXXX`, tek kullanımlık (max_uses 1), yalnız sunucu makinesinde üretilir (createRozetCodes,
+ *   `npm run kod -- kurucu --adet N`). Ödül kalıcı rozettir (rozet.ts). Rozeti zaten olan hesap ve yönetici hesabı kurucu kodunu
+ *   kullanamaz; kod harcanmaz, başkasına verilebilir.
  * - Yanlış denemeler sınırlı (oyuncu 5, IP 20 / 10 dk; sunucu genelinde en çok ADMIN_CHECKS_PER_WINDOW yönetici sınaması / 10 dk) ve her deneme kaydedilir (promo_log; bilinmeyen kodun metni kaydedilmez).
  */
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import {
-  CODE_PATTERN, CODE_RULES, normalizeCode, type AdminState, type CodeError, type CodeRedeemResult, type PromoCodeView, type PromoReward,
+  CODE_PATTERN, CODE_RULES, ROZET_KOD_ONEKI, ROZETLER, normalizeCode, type AdminState, type CodeError, type CodeRedeemResult, type PromoCodeView, type PromoReward, type RozetId,
 } from '@odi/shared';
 import { COSMETICS } from '@odi/content';
-import { fail, parseJson, type App, type Handlers, type Session } from './app';
+import { fail, parseJson, randomCode, type App, type Handlers, type Session } from './app';
 import { rankInvalidate } from './rank';
+import { grantBadge, hasBadge, isRozetId, kurucuListesi, revokeBadge } from './rozet';
 
 export const CODES_SCHEMA = `
 CREATE TABLE IF NOT EXISTS promo_codes(code TEXT PRIMARY KEY, rewards TEXT NOT NULL, max_uses INTEGER, uses INTEGER NOT NULL DEFAULT 0, starts_at INTEGER, ends_at INTEGER,
@@ -92,6 +96,7 @@ export function rewardText(r: PromoReward): string {
   const p: string[] = [];
   if (r.jeton) p.push(`${r.jeton} jeton`); if (r.kristal) p.push(`${r.kristal} kristal`); if (r.kalkan) p.push(`${r.kalkan} kalkan`);
   if (r.kozmetik?.length) p.push(`${r.kozmetik.length} kozmetik`);
+  for (const b of r.rozet ?? []) if (isRozetId(b)) p.push(`${ROZETLER[b].ad} ${ROZETLER[b].tur}`);
   const h = r.hizlandirici; const hz = (h?.m5 ?? 0) + (h?.m60 ?? 0) + (h?.s8 ?? 0); if (hz) p.push(`${hz} hızlandırıcı`);
   return p.join(' + ') || 'ödül';
 }
@@ -104,6 +109,16 @@ function grantRewards(app: App, pid: string, code: string, r: PromoReward): void
   for (const k of r.kozmetik ?? []) app.addInbox(pid, { kind: 'kozmetik', amount: 1, ref: k }, why);
   const h = r.hizlandirici;
   if (h && (h.m5 || h.m60 || h.s8)) { app.addCurrency(pid, 'm5', h.m5 ?? 0); app.addCurrency(pid, 'm60', h.m60 ?? 0); app.addCurrency(pid, 's8', h.s8 ?? 0); app.walletChanged(pid); }
+  for (const b of r.rozet ?? []) if (isRozetId(b)) grantBadge(app, pid, b);
+}
+
+/** rozet kodunun bu hesaba işleyip işlemeyeceği: yönetici kurucu olamaz; rozetlerin hepsi zaten varsa kod harcanmaz */
+function rozetEngeli(app: App, pid: string, r: PromoReward): string | null {
+  const list = (r.rozet ?? []).filter(isRozetId);
+  if (!list.length) return null;
+  if (list.includes('kurucu') && isAdmin(app, pid)) return 'Yönetici hesapları Kurucu Yolcu olamaz; kodu bir test eden yolcuya ver.';
+  if (list.every((b) => hasBadge(app, pid, b))) return `Bu hesap zaten ${list.map((b) => ROZETLER[b].ad).join(', ')}; kodu başka bir yolcuya bırak.`;
+  return null;
 }
 
 /** kodu kullan: yönetici kodu ya da ödül kodu; hata da bir sonuçtur (deneme kaydı geri alınmasın diye fırlatılmaz) */
@@ -128,10 +143,13 @@ export function redeem(app: App, pid: string, ip: string, raw: string): CodeRede
   if (!r.active || (r.ends_at != null && now >= r.ends_at)) return bad('suresi', code);
   if (r.starts_at != null && now < r.starts_at) return bad('baslamadi', code);
   if (app.db.get('SELECT 1 AS x FROM promo_uses WHERE code = ? AND player_id = ?', code, pid)) return bad('kullanildi', code);
+  const rewards = parseJson<PromoReward>(r.rewards, {});
+  // rozet kodu: aynı hesap ikinci kez kurucu olamaz, yönetici kurucu sayılmaz; kod harcanmaz (yanlış deneme de sayılmaz)
+  const engel = rozetEngeli(app, pid, rewards);
+  if (engel) { log(code, 'rozet-var'); return { kind: 'hata', error: 'kullanildi', message: engel }; }
   // toplam sınır: koşullu artış (aynı anda iki kullanım sınırı aşamaz)
   if (!app.db.run('UPDATE promo_codes SET uses = uses + 1 WHERE code = ? AND (max_uses IS NULL OR uses < max_uses)', code)) return bad('tukendi', code);
   app.db.run('INSERT INTO promo_uses(code, player_id, at) VALUES(?, ?, ?)', code, pid, now);
-  const rewards = parseJson<PromoReward>(r.rewards, {});
   grantRewards(app, pid, code, rewards);
   log(code, 'odul');
   return { kind: 'odul', code, title: r.note || 'Sürpriz ödül!', rewards };
@@ -147,6 +165,7 @@ const cleanRewards = (r: PromoReward): PromoReward => {
   const known = new Set(COSMETICS.map((c) => c.id));
   const koz = (r.kozmetik ?? []).filter((x) => known.has(x)).slice(0, 10); if (koz.length) out.kozmetik = koz;
   const h = r.hizlandirici; if (h) { const hz = { m5: n(h.m5, 100), m60: n(h.m60, 100), s8: n(h.s8, 100) }; if (hz.m5 || hz.m60 || hz.s8) out.hizlandirici = Object.fromEntries(Object.entries(hz).filter(([, v]) => v)) as PromoReward['hizlandirici']; }
+  const rz = [...new Set((r.rozet ?? []).filter(isRozetId))]; if (rz.length) out.rozet = rz;
   return out;
 };
 export function createCode(app: App, o: { code: string; rewards: PromoReward; maxUses?: number | null; startsAt?: number | null; endsAt?: number | null; note?: string; by: string }): PromoCodeView {
@@ -161,6 +180,40 @@ export function createCode(app: App, o: { code: string; rewards: PromoReward; ma
     code, JSON.stringify(rewards), max, o.startsAt ?? null, o.endsAt ?? null, (o.note ?? '').slice(0, 60), app.now(), o.by);
   return toView(app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code)!);
 }
+/** en çok bu kadar rozet kodu tek seferde üretilir */
+export const ROZET_KOD_MAX = 500;
+/**
+ * Tek kullanımlık rozet kodları: `ÖNEK-XXXX-XXXX` (ör. KURUCU-7KQ2-M9XD; karışan harfler yok, CODE_PATTERN'e uyar), her biri
+ * max_uses 1. Kodlar yalnız döndürülür (sunucu makinesinin terminaline yazılır); depoya ya da günlüğe yazılmaz.
+ */
+export function createRozetCodes(app: App, rozet: RozetId, adet: number, by = 'cli'): string[] {
+  const onek = ROZET_KOD_ONEKI[rozet];
+  if (!onek) fail('GECERSIZ', 'Bu rozet için kod üretilmez.');
+  if (!Number.isInteger(adet) || adet < 1 || adet > ROZET_KOD_MAX) fail('GECERSIZ', `Adet 1–${ROZET_KOD_MAX} olmalı.`);
+  const out: string[] = [];
+  app.db.tx(() => {
+    while (out.length < adet) {
+      const code = `${onek}-${randomCode(4)}-${randomCode(4)}`;
+      if (app.db.get('SELECT 1 AS x FROM promo_codes WHERE code = ?', code)) continue;
+      createCode(app, { code, rewards: { rozet: [rozet] }, maxUses: 1, note: ROZETLER[rozet].ad, by });
+      out.push(code);
+    }
+  });
+  return out;
+}
+
+/** sunucu makinesinden unvan/rozet verme ya da geri alma; yönetim kaydına (promo_log, ip 'cli') yazılır */
+export function rozetVer(app: App, pid: string, rozet: RozetId, kaldir = false): boolean {
+  return app.db.tx(() => {
+    const c = kaldir ? revokeBadge(app, pid, rozet) : grantBadge(app, pid, rozet);
+    app.db.run('INSERT INTO promo_log(at, player_id, ip, code, result) VALUES(?, ?, ?, ?, ?)', app.now(), pid, 'cli', '', `${kaldir ? 'rozet-geri' : 'rozet'}:${rozet}${c ? '' : ':degisiklik-yok'}`);
+    return c;
+  });
+}
+
+/** uygulama paneli için: rozet kodunun metni gizlenir (KURUCU-••••-••••); kullanım sayısı görünür */
+export const maskRozetKodu = (v: PromoCodeView): PromoCodeView => (v.rewards.rozet?.length ? { ...v, code: v.code.replace(/-[^-]+-[^-]+$/, '-••••-••••') } : v);
+
 export function listCodes(app: App): PromoCodeView[] { return app.db.all<Row>('SELECT * FROM promo_codes ORDER BY created_at DESC LIMIT 200').map(toView); }
 export function setCodeActive(app: App, raw: string, active: boolean): PromoCodeView {
   const code = normalizeCode(raw);
@@ -178,7 +231,9 @@ export const codeHandlers: Handlers = {
     app.db.run('UPDATE player_flags SET admin_on = ? WHERE player_id = ?', on ? 1 : 0, s.pid);
     return { admin: adminState(app, s.pid) };
   },
-  'code.list': (app, s) => { requireAdminOn(app, s); return { codes: listCodes(app) }; },
+  // rozet kodları (kişiye özel, tek kullanımlık) uygulama panelinde gizli: yalnız sunucu makinesinin terminalinde görünür
+  'code.list': (app, s) => { requireAdminOn(app, s); return { codes: listCodes(app).map(maskRozetKodu) }; },
   'code.create': (app, s, d) => { requireAdminOn(app, s); return { code: createCode(app, { ...d, by: s.pid }) }; },
   'code.close': (app, s, { code, active }) => { requireAdminOn(app, s); return { code: setCodeActive(app, code, active ?? false) }; },
+  'kurucu.liste': (app) => kurucuListesi(app),
 };

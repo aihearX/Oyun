@@ -57,7 +57,7 @@ function reveal(app: App, r: DqRow): void {
       metric(app, 'dq.correct');
     }
   }
-  updateCard(app, r.msg_id, null, { rev: 1, ans: q.answer, exp: q.explain, ok: names.slice(0, 12).join(', '), okn: names.length });
+  updateCard(app, r.msg_id, null, { rev: 1, ans: q.answer, exp: q.explain, ok: names.slice(0, 12).join(', '), okn: names.length, ...(q.oneren ? { on: q.oneren } : {}) });
 }
 
 /** zamanlayıcı: vakti gelen soruları açıkla; çevrimiçi üyesi olan takımlara bugünün sorusunu aç (dakikada bir) */
@@ -79,7 +79,7 @@ function view(app: App, r: DqRow, pid: string): DailyQuestion {
   const mine = app.db.get<{ choice: number }>('SELECT choice FROM dq_answers WHERE team_id = ? AND day = ? AND player_id = ?', r.team_id, r.day, pid)?.choice ?? null;
   const rev = !!r.revealed;
   const correct = rev ? app.db.all<{ id: string; name: string }>('SELECT p.id, p.name FROM dq_answers a JOIN players p ON p.id = a.player_id WHERE a.team_id = ? AND a.day = ? AND a.correct = 1 ORDER BY a.at', r.team_id, r.day) : null;
-  return { day: r.day, msgId: r.msg_id, text: q.text, choices: [...q.choices], level: r.level, revealAt: r.reveal_at, revealed: rev, answer: rev ? q.answer : null, explain: rev ? q.explain : null, answered, myChoice: mine, correct };
+  return { day: r.day, msgId: r.msg_id, text: q.text, choices: [...q.choices], level: r.level, revealAt: r.reveal_at, revealed: rev, answer: rev ? q.answer : null, explain: rev ? q.explain : null, answered, myChoice: mine, correct, ...(rev && q.oneren ? { oneren: q.oneren } : {}) };
 }
 
 export function dqState(app: App, pid: string): DqState {

@@ -41,6 +41,7 @@
 | Beta geri bildirimi (`feedback`; hesaba bağlı değil) | 90 gün | `geribildirim.ts` `FEEDBACK_RETAIN_MS`, `pruneFeedback` (saatlik bakım) |
 | Geri bildirim hız sınırı için IP (bellek, tuzlu özet) | En çok 1 gün (günlük pencere; gün değişince zamanlayıcı siler) | `geribildirim.ts` `feedbackRateOk`, `feedbackRatePrune` (`server.ts` sweep) |
 | Yedek | 6 saatte bir, 28 kopya (7 gün) | `ortak.sh` `ODI_BACKUP_HOURS=6`, `ODI_BACKUP_KEEP=28` |
+| Rozet ve unvanlar (`player_badges`: Kurucu Yolcu, Hata Avcısı, liste ve çerçeve seçimi) | Hesap silinene kadar; hesapla birlikte silinir | `rozet.ts`, `account-veri.ts` (`player_badges` "sil") |
 | Diğer hesap verisi | Hesap silinene kadar | `account-veri.ts` `VERI_SINIFI` |
 
 `apps/web/src/legal.test.ts` metindeki sayıları bu sabitlerle karşılaştırır; kod değişirse test düşer.
@@ -105,6 +106,25 @@
    başına kullanıcıya bağlı değil, ama Apple bağlılığı tür başına tek cevapla sorar ve aynı tür (takma ad) zaten bağlı, bu yüzden tür
    "bağlı" kalır (`ios.privacyManifests` `OtherUserContent` linked true, tek girdi; jest testi sabitler). Google Play "Uygulama etkinliği ›
    Kullanıcının oluşturduğu diğer içerik" (toplanır, isteğe bağlı, Uygulama işlevi, aktarımda şifreli, paylaşılmaz). Hukuki sebep m.5/2-f.
+
+11. **Kurucu Yolcular (YN-041):** kapalı beta kurucusuna kişiye özel, tek kullanımlık kod (`npm run kod -- kurucu --adet N`) →
+   kalıcı rozet, profil çerçevesi; "Hata Avcısı" unvanı. **Yeni veri türü yok:** rozet ve seçimler hesaba bağlı oyun verisidir
+   (takma ad, renk, şapka gibi "Oyun içeriği / Diğer kullanıcı içeriği"); kişisel bilgi istenmez, iletişim bilgisi toplanmaz. Liste
+   (Profil › Kurucular) yalnız oyuncunun açtığı "Adım listede görünsün" ile, varsayılan kapalı. Metin §3'e saklama satırı ve
+   "Kurucu Yolcu rozeti, Kurucular listesi ve Öneren" paragrafı, §7'ye ve hesap silme sayfasına "rozet ve unvanlarınız, Kurucular
+   listesindeki yeriniz silinir" eklendi (TR + EN). Mağaza beyanları **değişmez**: App Store App Privacy ve Google Play Veri
+   güvenliğinde zaten beyan edilen türler (oyun içi takma ad / kullanıcı içeriği, Uygulama işlevi) dışında veri yok; kodlar
+   kişiye bağlanmaz, kimin hangi kodu aldığı sunucuda değil sahipte (isterse, kendi notunda) kalır.
+
+## Öneren (bilgi yarışması sorusu, Kulak Kartı)
+
+`packages/content` `QuizQuestion.oneren`, `CardDef.oneren`: oyunda "Öneren: <takma ad>". Depo herkese açık olduğu için kural:
+
+- Depoya **yalnız oyuncunun bu iş için açıkça izin verdiği takma ad** yazılır. Gerçek ad, e-posta, telefon, hesap kimliği, arkadaş
+  kodu asla yazılmaz. İzin yoksa alan boş kalır (soru/kart yine eklenebilir).
+- **İzin kaydını sahip tutar** (ne zaman, hangi kanaldan, hangi takma ad için); depoya, sohbete ya da iş listesine konmaz.
+- Oyuncu iznini geri çekerse takma ad bir sonraki sürümde alandan çıkarılır (git geçmişinde kalır: izin istenirken bu söylenir).
+- Hukuki sebep: açık rıza değil, oyuncunun kendi isteğiyle yaptığı katkının anılması; yine de yazılı izin alınır (gizlilik metni §3).
 
 ## Açık hukuk konuları (avukata)
 

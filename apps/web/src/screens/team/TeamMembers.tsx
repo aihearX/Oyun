@@ -6,6 +6,7 @@ import { OdiAvatar } from '../../ui/OdiAvatar';
 import { ROLE_LABEL, Sheet, fmtNum } from '../../ui/social';
 import { openProfile } from '../../friends/state';
 import { Art, rich } from '../../ui/art';
+import { RozetMini } from '../../kurucu/rozet';
 
 const HATS: Record<string, string> = { 'sapka-bere': 'bere', 'sapka-nota': 'nota', 'sapka-koklea': 'koklea', 'sapka-kulaklik': 'kulaklik', 'sapka-parti': 'parti', 'sapka-yildiz': 'yildiz', 'sapka-dalgic': 'dalgic', 'sapka-tac': 'tac', 'sapka-kasif': 'kasif' };
 export const hatKey = (h: string) => HATS[h] ?? h;
@@ -32,7 +33,7 @@ export function TeamMembers() {
         <button className="card member" key={m.id} onClick={() => (canManage(m) ? setSel(m) : openProfile(m.id))} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`}>
           <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
           <span className="grow min0 mem-body">
-            <span className="row mem-top"><b className="ellipsis">{m.name}{m.id === me.id ? ' (sen)' : ''}</b>{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{rich(ROLE_LABEL[m.role])}</span>}</span>
+            <span className="row mem-top"><b className="ellipsis">{m.name}{m.id === me.id ? ' (sen)' : ''}</b><RozetMini p={m} />{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{rich(ROLE_LABEL[m.role])}</span>}</span>
             <span className="mem-stats"><span title="Bağış"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c?.donated ?? 0)}</span><span title="Yardım"><Art e="🤝" size="1.15em" className="art-inline" /> {c?.helps ?? 0}</span><span title="Yıldız"><Art e="⭐" size="1.15em" className="art-inline" /> {c?.stars ?? 0}</span><span title="Savaş puanı"><Art e="⚔️" size="1.15em" className="art-inline" /> {fmtNum(m.weekPoints)}</span></span>
           </span>
           <span className="mem-lvl muted">{m.highest}. bölüm</span>

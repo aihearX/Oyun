@@ -56,7 +56,8 @@ function view(app: App, q: QuizRow, viewer: string): QuizState {
     const mine = rows.find((r) => r.player_id === viewer);
     const myA = mine ? parseJson<Answers>(mine.answers, {})[String(index)] : undefined;
     question = { index, total: QUIZ_COUNT, text: def.text, choices: [...def.choices], startsAt: qStart, endsAt: qStart + QUESTION_MS,
-      answer: phase === 'cevap' ? def.answer : null, explain: phase === 'cevap' ? def.explain : null, myChoice: myA ? myA.c : null, answered: players.filter((p) => p.answered).length };
+      answer: phase === 'cevap' ? def.answer : null, explain: phase === 'cevap' ? def.explain : null, myChoice: myA ? myA.c : null, answered: players.filter((p) => p.answered).length,
+      ...(phase === 'cevap' && def.oneren ? { oneren: def.oneren } : {}) };
   }
   const teamAvg = players.length ? Math.round(players.reduce((a, r) => a + r.score, 0) / players.length) : 0;
   return { id: q.id, teamId: q.team_id, phase, startedBy: q.started_by, lobbyEndsAt: q.lobby_ends, endsAt: endsAtOf(q), players, question, teamAvg, questionMs: QUESTION_MS, revealMs: REVEAL_MS };

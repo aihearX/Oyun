@@ -93,6 +93,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     oyuncu: { player_id: { karar: 'tut', neden: 'Güvenlik kaydı (kod deneme sınırı, kötüye kullanım; IP ile).', sure: '90 gün, sonra otomatik silinir (prunePromoLog)' } },
   },
   promo_uses: { oyuncu: { player_id: SIL } },
+  player_badges: { oyuncu: { player_id: SIL }, not: 'Kalıcı rozetler (YN-041, rozet.ts): Kurucu Yolcu, Hata Avcısı; listede (Kurucular ekranı) ve çerçeve oyuncunun seçimi. Hesap silinince rozet ve liste kaydı silinir.' },
   purchases: {
     oyuncu: { player_id: { karar: 'tut', neden: 'Satın alma makbuzu: yasal saklama (ticari defter/vergi) ve aynı makbuzun ikinci kez kullanılmasını önleme. Oyuncu kimliği yerine "silinmis" işareti yazılır.', sure: '10 yıl, işlem yılının sonundan başlayarak (VUK m.253, TTK m.82), sonra otomatik silinir (prunePurchases)', degistir: { player_id: 'silinmis' } } },
     degil: ['id', 'product_id'],

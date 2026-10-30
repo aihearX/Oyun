@@ -11,13 +11,19 @@
  *   sustur ARKADAŞ-KODU --gun N            → sohbet ve özel mesajı N gün kapatır (0: kaldırır)
  *   cokme [--gun 7]                        → çökme raporları imza başına (YN-011; kişisel veri yok): sayı, ileti, yığın, sürüm, ekran
  *   geribildirim [--gun 7]                 → beta geri bildirimleri, yeniden eskiye: zaman, konu, platform, sürüm, ekran, metin (oyuncu yok)
+ *   kurucu --adet N                        → N tek kullanımlık Kurucu Yolcu kodu (KURUCU-XXXX-XXXX; YN-041). Kodlar YALNIZ bu terminale
+ *                                            yazılır: depoya, sohbete, ekran görüntüsüne koymayın; her kurucuya ayrı ayrı verin.
+ *   avci --adet N                          → N tek kullanımlık Hata Avcısı unvan kodu (AVCI-XXXX-XXXX)
+ *   unvan ARKADAŞ-KODU hata-avcisi [--kaldir] → unvanı doğrudan ver / geri al (yönetim kaydına yazılır)
+ *   kurucular                              → kurucu sayısı (kaçı Kurucular ekranında görünmeyi seçti); ad yazılmaz
  * Veritabanı: ODI_DB (yoksa apps/server/data/odi.sqlite). Tarihler İstanbul saatiyle; bitiş günü dahildir.
  */
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CODE_PATTERN, COMM_RULES, FEEDBACK_TOPIC_LABEL, normalizeCode, SOCIAL_LIMITS } from '@odi/shared';
+import { CODE_PATTERN, COMM_RULES, FEEDBACK_TOPIC_LABEL, normalizeCode, ROZETLER, SOCIAL_LIMITS } from '@odi/shared';
 import { App, OdiError, type ServerConfig } from './app';
-import { createCode, hashAdminCode, listCodes, rewardText, setCodeActive } from './codes';
+import { createCode, createRozetCodes, hashAdminCode, listCodes, rewardText, rozetVer, setCodeActive } from './codes';
+import { isRozetId, kurucuSayisi } from './rozet';
 import { crashDetails } from './hata';
 import { feedbackList } from './geribildirim';
 import { HESAP_SIL_BEKLEME_GUN, hesapBul, hesapSilIstegi, sikayetler, sustur, type HesapOzeti } from './yonetim';
@@ -116,8 +122,24 @@ async function main(): Promise<void> {
         console.log(`  ${r.text}`);
       }
       if (list.length) console.log(`— ${list.length} kayıt (son ${gun} gün${list.length >= 500 ? '; en yeni 500' : ''})`);
+    } else if (cmd === 'kurucu' || cmd === 'avci') {
+      const adet = num('adet'); if (!adet) throw new Error(`--adet N eksik: npm run kod -- ${cmd} --adet 50`);
+      const rozet = cmd === 'kurucu' ? 'kurucu' : 'hata-avcisi';
+      const codes = app.run(() => createRozetCodes(app, rozet, adet));
+      // kodlar yalnız bu terminale: depoya, sohbete ya da ekran görüntüsüne koymayın
+      for (const c of codes) console.log(c);
+      console.error(`✓ ${codes.length} tek kullanımlık ${ROZETLER[rozet].ad} kodu üretildi (her kod bir hesaba bir kez işler). Kodları kişiye özel verin; listeyi saklamayın.`);
+    } else if (cmd === 'unvan') {
+      const h = hesapBul(app, argv[1] ?? ''); if (!h || h.silindi) throw new Error('bu arkadaş koduyla (silinmemiş) hesap yok');
+      const r = argv[2] ?? ''; if (!isRozetId(r) || ROZETLER[r].tur !== 'unvan') throw new Error('unvan adı: hata-avcisi');
+      const kaldir = argv.includes('--kaldir');
+      const c = app.run(() => rozetVer(app, h.id, r, kaldir));
+      console.log(c ? `✓ ${h.ad}: ${ROZETLER[r].ad} ${kaldir ? 'geri alındı' : 'verildi'} (yönetim kaydında)` : `${h.ad}: değişiklik yok (${kaldir ? 'unvan zaten yok' : 'unvan zaten var'})`);
+    } else if (cmd === 'kurucular') {
+      const k = kurucuSayisi(app);
+      console.log(`${k.toplam} Kurucu Yolcu · ${k.listede} kişi Kurucular ekranında görünmeyi seçti`);
     } else {
-      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet | hesap ARKADAŞ-KODU | hesap-sil ARKADAŞ-KODU --onay | sikayetler [--gun 7] | sustur ARKADAŞ-KODU --gun N | cokme [--gun 7] | geribildirim [--gun 7]');
+      console.log('Kullanım: npm run kod -- ekle KOD [--jeton N] [--kristal N] [--kalkan N] [--kozmetik a,b] [--m5 N] [--m60 N] [--s8 N] [--max N] [--baslangic YYYY-AA-GG] [--bitis YYYY-AA-GG] [--not "metin"] | liste | kapat KOD | ac KOD | ozet | hesap ARKADAŞ-KODU | hesap-sil ARKADAŞ-KODU --onay | sikayetler [--gun 7] | sustur ARKADAŞ-KODU --gun N | cokme [--gun 7] | geribildirim [--gun 7] | kurucu --adet N | avci --adet N | unvan ARKADAŞ-KODU hata-avcisi [--kaldir] | kurucular');
     }
   } finally { app.close(); }
 }

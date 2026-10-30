@@ -285,6 +285,7 @@ export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] 
       {rev ? (
         <div className="dq-exp">
           <p>{s(m.meta?.exp)}</p>
+          {s(m.meta?.on) && <small className="dq-oneren">Öneren: <span data-ugc>{s(m.meta?.on)}</span></small>}
           <small className="muted">{n(m.meta?.okn) ? `Doğru bilenler (${n(m.meta?.okn)}): ${s(m.meta?.ok)}` : 'Bu kez doğru bilen olmadı; yarın yeni soru!'}{my === ans && my !== null ? ` · ödül kutuna ${dq?.reward ?? COMM_RULES.dqCorrectJeton} jeton` : ''}</small>
         </div>
       ) : (

@@ -155,6 +155,8 @@ başlatır. Eski kod hemen geçersiz olur. `--kapat`: yönetici kodunu kapatır 
 - Caddy: `sudo systemctl reload caddy` · günlük: `sudo journalctl -u caddy -n 100`
 - DuckDNS'i hemen güncelle: `sudo systemctl start odi-duckdns` · sonuç: `sudo journalctl -u odi-duckdns -n 5`
 - Kodlar (Kod Gir): `sudo -u odi env ODI_DB=/var/lib/odi/odi.sqlite node /opt/odi/guncel/sunucu/kod.mjs liste`
+- Kurucu Yolcu kodları (YN-041): aynı komut `kurucu --adet 50` (kodlar yalnız terminale yazılır; tek tek, kişiye özel verin),
+  Hata Avcısı unvanı `unvan ARKADAŞ-KODU hata-avcisi`; bkz. docs/10-sunucu.md "Rozetler".
 - Hesap silme isteği ve şikâyetler (`hesap`, `hesap-sil`, `sikayetler`, `sustur`): aynı komut, bkz. docs/10-sunucu.md "Hesap ve şikâyet".
   (yazma işlemleri için önce `sudo systemctl stop odi`; bkz. docs/10-sunucu.md "Kodlar")
 

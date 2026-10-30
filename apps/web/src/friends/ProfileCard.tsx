@@ -9,6 +9,7 @@ import { closeProfile, friendsNet, refreshFriends, useFriends } from './state';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
+import { Cerceve, RozetCipleri } from '../kurucu/rozet';
 import './friends.css';
 
 /**
@@ -49,9 +50,10 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
     <Sheet onClose={onClose}>
       <div className="fr-card" data-testid="profil-karti">
         <div className="fr-card-hero">
-          <Av p={p} size={96} />
+          <Cerceve p={p} size={96}><Av p={p} size={96} /></Cerceve>
           <div className="min0">
             <h2 className="ellipsis">{p.name}</h2>
+            <RozetCipleri p={p} />
             <div className={`fr-seen${online ? ' on' : ''}`}>{lastSeenText(p, online)}</div>
             <div className="fr-rel-tag">{rich(rel === 'arkadas' ? '🫂 Arkadaşın' : rel === 'istek-giden' ? '⏳ İstek gönderildi' : rel === 'istek-gelen' ? '👋 Sana istek gönderdi' : rel === 'engelledin' ? '🚫 Engelledin' : card.sameTeam ? '🤝 Takım arkadaşın' : rel === 'ben' ? 'Bu sensin' : '')}</div>
           </div>

@@ -5,9 +5,12 @@
  */
 /** düzey: 'merakli' herkes için (varsayılan havuz), 'odyoloji' öğrenci düzeyi (Ayarlar › Bilgi düzeyi: Odyoloji öğrencisi) */
 export type QuizLevel = 'merakli' | 'odyoloji';
-export interface QuizQuestion { id: number; text: string; choices: [string, string, string, string]; answer: 0 | 1 | 2 | 3; explain: string; topic: 'anatomi' | 'ses' | 'saglik' | 'doga' | 'teknoloji'; level: QuizLevel }
+export interface QuizQuestion { id: number; text: string; choices: [string, string, string, string]; answer: 0 | 1 | 2 | 3; explain: string; topic: 'anatomi' | 'ses' | 'saglik' | 'doga' | 'teknoloji'; level: QuizLevel;
+  /** soruyu öneren oyuncunun takma adı; oyunda "Öneren: <takma ad>" görünür. YALNIZ oyuncunun açıkça izin verdiği takma ad yazılır,
+   *  izin kaydı sahipte (docs/yonetim/gizlilik.md "Öneren"); gerçek ad, e-posta ya da hesap kimliği asla. */
+  oneren?: string }
 
-type Raw = [topic: QuizQuestion['topic'], text: string, correct: string, w1: string, w2: string, w3: string, explain: string, level?: QuizLevel];
+type Raw = [topic: QuizQuestion['topic'], text: string, correct: string, w1: string, w2: string, w3: string, explain: string, level?: QuizLevel, oneren?: string];
 const RAW: Raw[] = [
   ['anatomi', 'Vücudumuzun en küçük kemiği hangisidir?', 'Üzengi', 'Çekiç', 'Örs', 'Serçe parmak kemiği', 'Orta kulaktaki üzengi yaklaşık 3 mm uzunluğundadır; vücudun en küçük kemiğidir.'],
   ['anatomi', 'Orta kulakta kaç tane kemikçik vardır?', '3', '2', '4', '6', 'Çekiç, örs ve üzengi: üç küçük kemik sesi kulak zarından iç kulağa taşır.'],
@@ -141,9 +144,9 @@ const RAW: Raw[] = [
 ];
 
 /** seçenek sırasını soru numarasına göre sabit döndür (doğru cevap hep aynı yerde durmasın) */
-export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ RAW.map(([topic, text, correct, w1, w2, w3, explain, level = 'merakli'], i) => {
+export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ RAW.map(([topic, text, correct, w1, w2, w3, explain, level = 'merakli', oneren], i) => {
   const rot = (i * 3 + 1) % 4;
   const base = [correct, w1, w2, w3];
   const choices = [0, 1, 2, 3].map((k) => base[(k + 4 - rot) % 4]!) as QuizQuestion['choices'];
-  return { id: i + 1, text, choices, answer: rot as QuizQuestion['answer'], explain, topic, level };
+  return { id: i + 1, text, choices, answer: rot as QuizQuestion['answer'], explain, topic, level, ...(oneren ? { oneren } : {}) };
 });

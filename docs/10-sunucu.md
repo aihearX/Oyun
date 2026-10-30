@@ -345,3 +345,51 @@ Yönetici hesabı **adil rekabetten çıkarılır**:
 
 Testlerde gerçek kod kullanılmaz; sunucu, test kodunun özetiyle kurulur (`apps/server/test/codes.test.ts`, `tools/harness/codes-e2e.mjs`).
 
+## Rozetler: Kurucu Yolcu ve Hata Avcısı (YN-041)
+
+Kapalı beta kurucuları oyunda kalıcı olarak anılır. **Yalnız görünüş:** güç, ekonomi, ödül kutusu ya da sıralama etkisi yok.
+**Kişisel veri istenmez** (yalnız takma ad). Kod: `apps/server/src/rozet.ts`, `codes.ts` (`createRozetCodes`, `rozetVer`); test
+`apps/server/test/rozet.test.ts`; istemci `apps/web/src/kurucu/`.
+
+- **Tablo** `player_badges(player_id, badge, at, listede, cerceve)` (göç 5). Birincil anahtar oyuncu + rozet: aynı hesap aynı rozeti
+  iki kez alamaz. Hesap silinince satır silinir (`account-veri.ts` "sil"); rozet ve Kurucular listesindeki yer birlikte gider.
+- **Rozetler** (`ROZET_IDS`, `packages/shared/src/social.ts`): `kurucu` (Kurucu Yolcu rozeti + profil çerçevesi), `hata-avcisi`
+  (Hata Avcısı görünüş unvanı). Profilde, profil kartında ve takım üye listelerinde görünür (`PublicProfile.rozetler`, `cerceve`;
+  rozeti olmayanın profilinde alan hiç yok).
+- **Seçimler** (`profile.update` `listede`, `cerceve`; yalnız rozeti olan): "Adım listede görünsün" (varsayılan **kapalı**;
+  Ayarlar ya da Profil › Kurucular), çerçeve (Dolap › Çerçeveler; kod kullanılınca giyili gelir, çıkarılabilir).
+- **Kurucular ekranı** (`kurucu.liste`): yalnız `listede = 1` olanların takma adı, kodu kullanma sırasıyla; listede olmayanlar yalnız
+  sayı olarak ("N kurucu adını listede göstermemeyi seçti"). Yönetici ve silinmiş hesaplar listede de sayıda da yok.
+- **Yönetici hesapları kurucu sayılmaz:** kurucu kodu yönetici hesabında işlemez (kod harcanmaz). Rozeti zaten olan hesap ikinci bir
+  kurucu kodunu kullanamaz; kod harcanmaz, başkasına verilebilir (`promo_log` sonucu `rozet-var`).
+
+**Kod üretme ve dağıtma (sunucu makinesinde, sahip):**
+
+```
+sudo systemctl stop odi    # yazma işlemi: önce servisi durdur (docs/18-sunucu-kurulum.md "Elle işlemler")
+sudo -u odi env ODI_DB=/var/lib/odi/odi.sqlite node /opt/odi/guncel/sunucu/kod.mjs kurucu --adet 50
+sudo systemctl start odi
+# geliştirme kopyasında: npm run kod -- kurucu --adet 50
+```
+
+- Her satır bir kod: `KURUCU-XXXX-XXXX` (karışan harfler I, O, 0, 1, L yok; `CODE_PATTERN`'e uyar), her biri **tek kullanımlık**
+  (`max_uses 1`). Kodlar **yalnız terminale** yazılır; dosyaya, depoya, sohbete ya da ekran görüntüsüne konmaz. Uygulama içi kod
+  paneli rozet kodlarının metnini göstermez (`KURUCU-••••-••••`; yalnız kullanım sayısı).
+- Kodları kurucuya **tek tek, kişiye özel** verin (ör. özel mesajla). Kurucu, oyunda Profil › Kod gir'e yazar.
+- Kurucu sayısı parametredir: `--adet N` (1–500). Gerekirse sonradan yeniden üretilir; kullanılmayan kod `kapat KOD` ile kapatılır.
+- `npm run kod -- kurucular`: kaç kurucu var, kaçı listede görünmeyi seçti (ad yazılmaz).
+
+**Hata Avcısı unvanı:**
+
+```
+npm run kod -- unvan ARKADAŞ-KODU hata-avcisi           # ver (oyuncunun Profil'deki arkadaş kodu)
+npm run kod -- unvan ARKADAŞ-KODU hata-avcisi --kaldir  # geri al
+npm run kod -- avci --adet 5                            # ya da tek kullanımlık AVCI-XXXX-XXXX kodları
+```
+
+Doğrudan verme ve geri alma yönetim kaydına yazılır (`promo_log`: ip `cli`, sonuç `rozet:hata-avcisi`; 90 gün).
+
+**"Öneren" teşekkürü** (bilgi yarışması sorusu ve Kulak Kartı, `packages/content` `oneren`): oyunda "Öneren: <takma ad>" görünür.
+Kural: depoya **yalnız oyuncunun açıkça izin verdiği takma ad** yazılır (gerçek ad, e-posta, hesap kimliği asla); izin kaydını
+**sahip** tutar, depoya konmaz. Ayrıntı: `docs/yonetim/gizlilik.md` "Öneren".
+
