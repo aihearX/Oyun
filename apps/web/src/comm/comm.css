@@ -126,6 +126,7 @@
 .dq-opt.bad { border-color:rgba(255,92,138,.7); background:rgba(255,92,138,.12); }
 .dq-opt.dim { opacity:.55; }
 .dq-exp { padding:8px 10px; border-radius:12px; background:rgba(5,2,20,.35); }
+.dq-oneren { display:block; margin:0 0 4px; font-size:0.75rem; font-weight:700; color:var(--text-2); }
 .dq-exp p { margin:0 0 4px; font-weight:700; font-size:0.875rem; line-height:1.4; }
 .dq-wait { line-height:1.35; }
 .dq-board { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }

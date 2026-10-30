@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import type { NetClient } from '@odi/net';
 import { useNet } from '@odi/net/store';
-import { CODE_PATTERN, normalizeCode, type AdminState, type CodeRedeemResult, type PromoCodeView, type PromoReward } from '@odi/shared';
+import { CODE_PATTERN, ROZETLER, normalizeCode, type AdminState, type CodeRedeemResult, type PromoCodeView, type PromoReward } from '@odi/shared';
 import { COSMETICS } from '@odi/content';
 import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
@@ -65,8 +65,18 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
       setRaw('');
       return;
     }
-    onClose();
+    // kalıcı rozet (YN-041): profil sunucudan yenilenir (rozet, çerçeve); başka ödül yoksa sayfada kutlama notu
+    const rozet = (res.rewards.rozet ?? []).filter((r): r is keyof typeof ROZETLER => r in ROZETLER);
+    if (rozet.length) await getNet()!.call('profile.update', {}).catch(() => undefined);
     const items = rewardItems(res.rewards);
+    if (rozet.length && !items.length) {
+      setRaw('');
+      setMsg({ tone: 'ok', text: rozet.includes('kurucu')
+        ? 'Hoş geldin, Kurucu Yolcu! Rozetin profilinde; çerçeveni Dolap’tan seçebilir, Ayarlar’dan adını Kurucular listesinde gösterebilirsin.'
+        : `${rozet.map((r) => ROZETLER[r].ad).join(', ')} unvanın profilinde.` });
+      return;
+    }
+    onClose();
     await celebrate.chest({ title: res.title, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : (res.rewards.kristal ?? 0) >= 20 ? 'gumus' : 'bronz' });
     toast('🎁', 'Ödüller ödül kutusunda', 'Profil › Ödül kutusu’ndan al.', 'green');
   };
@@ -122,7 +132,8 @@ export function CodeSettingsCard() {
   );
 }
 
-const rewardLine = (r: PromoReward) => rewardItems(r).map((i) => `${fmtNum(i.amount)} ${i.kind === 'kozmetik' ? i.label ?? 'kozmetik' : i.kind === 'hizlandirici' ? 'hızlandırıcı' : i.kind}`).join(' + ');
+const rewardLine = (r: PromoReward) => [...rewardItems(r).map((i) => `${fmtNum(i.amount)} ${i.kind === 'kozmetik' ? i.label ?? 'kozmetik' : i.kind === 'hizlandirici' ? 'hızlandırıcı' : i.kind}`),
+  ...(r.rozet ?? []).filter((x): x is keyof typeof ROZETLER => x in ROZETLER).map((x) => `${ROZETLER[x].ad} ${ROZETLER[x].tur}`)].join(' + ');
 const fmtDay = (t: number | null) => (t == null ? '—' : new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }));
 
 /** yönetici paneli: kod oluştur, listele, kapat/aç (sunucu yalnızca yönetici modunda izin verir) */

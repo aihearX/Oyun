@@ -10,6 +10,7 @@ import { resetEverything } from '../reset';
 import { speakLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { GeriBildirimKart } from './GeriBildirimKart';
+import { KurucuSecim } from '../kurucu/Kurucular';
 import { lineText } from '../ftue/script';
 import { LegalSheet, type YasalSayfa } from './LegalSheet';
 import { APP_VERSION } from '../legal';
@@ -68,6 +69,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         </div>
       </div>
       <CodeSettingsCard />
+      <KurucuSecim />
       <GeriBildirimKart />
       <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => { setLegal(null); setAsk(true); }}>Hesabı sil</button></div>
       {ask && (

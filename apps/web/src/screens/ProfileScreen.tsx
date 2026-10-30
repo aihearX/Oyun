@@ -20,6 +20,7 @@ import { clearedCount, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
 import { CodeSheet } from '../codes/Codes';
 import { reachedRegions } from './GlossaryScreen';
+import { Cerceve, RozetCipleri } from '../kurucu/rozet';
 
 export type ProfileLink = 'achievements' | 'album' | 'glossary' | 'wardrobe' | 'skills' | 'settings' | 'info' | 'friends' | 'shop' | 'inbox' | 'league';
 /** Profil: Odi, seviye, istatistikler, lig, sosyal (arkadaşlar, mağaza, ödül kutusu, sohbet) ve yatırım hatları. */
@@ -44,9 +45,10 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
     <div className="screen fade-in with-tabs">
       <TopBar title="Profil" />
       <div className="card profile-hero">
-        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><OdiAvatar size={88} color={look.color} hat={look.hat} /><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
+        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><Cerceve p={me} size={88}><OdiAvatar size={88} color={look.color} hat={look.hat} /></Cerceve><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
         <div className="grow min0">
           <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <IconButton icon="pencil" label="Takma adı değiştir" tone="gold" small onClick={() => setRename(true)} />}</h2>
+          <RozetCipleri p={me} />
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
           {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? <> · <span data-ugc>{me.teamEmblem}</span> {me.teamName}</> : ''}</div>}
@@ -63,6 +65,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className={tileCls('shop')} data-tile="shop" onClick={guard('shop', () => onOpen('shop'))}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b>{lockNote('shop') ?? <span className="muted">İçerikler açık, sınır sende</span>}</button>
         <button className={tileCls('friends')} data-tile="together" onClick={guard('friends', () => nav.open({ name: 'birlikte' }))}><span className="mi gold"><Art name="users" size={26} /></span><b>Birlikte</b>{lockNote('friends') ?? <span className="muted">İkili Görev, Usta–Çırak</span>}</button>
         <button className={tileCls('siralama')} data-tile="ranking" onClick={guard('siralama', () => nav.open({ name: 'siralama' }))}><span className="mi gold"><Art name="trophy" size={26} /></span><b>Sıralama</b>{lockNote('siralama') ?? <span className="muted">En güçlü oyuncular ve takımlar</span>}</button>
+        <button className="menu-tile" data-tile="kurucular" onClick={() => nav.open({ name: 'kurucular' })}><span className="mi gold"><Art name="founder" size={26} /></span><b>Kurucular</b><span className="muted">ODİ'yi birlikte kuranlar</span></button>
         <button className={tileCls('friends')} data-tile="chat" onClick={guard('friends', () => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' }))}><span className="mi teal"><Icon name="globe" /></span><b>Genel sohbet</b>{lockNote('friends') ?? <span className="muted">Herkesle konuş</span>}</button>
         <button className={tileCls('album')} data-tile="achievements" onClick={guard('album', () => onOpen('achievements'))}><span className="mi gold"><Icon name="trophy" /></span><b>Başarımlar</b>{lockNote('album') ?? <span className="muted">{tiers}/{maxTiers} kademe</span>}<Bar value={tiers / maxTiers} tone="amber" label="Başarımlar" /></button>
         <button className={tileCls('album')} data-tile="album" onClick={guard('album', () => onOpen('album'))}><span className="mi teal"><Icon name="cards" /></span><b>Kulak Kartları</b>{lockNote('album') ?? <span className="muted">{album.owned}/{CARDS.length} · %{album.pct}</span>}<Bar value={album.pct / 100} tone="green" label="Albüm" /></button>

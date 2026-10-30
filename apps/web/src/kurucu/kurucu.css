@@ -1,0 +1,28 @@
+/* Kurucu Yolcular (YN-041): rozet çipleri, küçük rozet, profil çerçevesi, Kurucular ekranı. Koyu cam + altın; yazılar ≥ 4,5:1. */
+.rz-cips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.rz-cip { display:inline-flex; align-items:center; gap:5px; max-width:100%; padding:3px 10px 3px 5px; border-radius:999px; font-size:0.75rem; font-weight:900; line-height:1.3;
+  background:rgba(12,6,36,.62); border:1.5px solid rgba(255,201,60,.6); color:#ffe08a; box-shadow:inset 0 1px 0 rgba(255,255,255,.1); }
+.rz-cip.rz-hata-avcisi { border-color:rgba(46,230,214,.55); color:#c9fff9; }
+.rz-mini { display:inline-flex; flex:none; align-items:center; gap:2px; }
+.rz-mini .art { display:block; }
+
+/* çerçeve: avatarın çevresinde altın halka (gölge, yerleşimi büyütmez) ve alt sağda kurucu yıldızı */
+.rz-cerceve { position:relative; display:inline-grid; place-items:center; flex:none; border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, rgba(255,201,60,.18), rgba(12,6,36,.0) 70%);
+  box-shadow:0 0 0 3px #ffc93c, 0 0 0 5px rgba(201,111,0,.85), 0 0 16px 4px rgba(255,201,60,.35); }
+.rz-cerceve-yildiz { position:absolute; right:-3px; bottom:-3px; display:grid; place-items:center; line-height:0; border-radius:50%; background:var(--bg-0); padding:1px; }
+
+/* Kurucular ekranı */
+.kurucu-hero { display:flex; gap:14px; align-items:center; }
+.kurucu-hero .art { flex:none; }
+.kurucu-hero p { margin:4px 0 0; }
+.kurucu-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap:8px; }
+.kurucu-list li { display:flex; align-items:center; gap:8px; min-width:0; padding:8px 10px; border-radius:14px; background:rgba(12,6,36,.55); border:1.5px solid rgba(255,201,60,.35); }
+.kurucu-list li b { font-weight:900; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.kurucu-list .kl-no { flex:none; font-size:0.75rem; font-weight:900; color:#ffe08a; min-width:1.6em; }
+.kurucu-secim { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.kurucu-secim .min0 { min-width:0; }
+html.buyuk-yazi .kurucu-secim { flex-wrap:wrap; }
+html.buyuk-yazi .kurucu-secim > .toggle-btn { margin-left:auto; }
+.wtile .rz-cerceve { margin:4px 0 2px; }
+.kurucu-list + .small-note { margin-top:10px; }

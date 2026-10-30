@@ -721,6 +721,20 @@ async function suite(browserName, target, [W, H]) {
 
     if (want('bugun')) { await tab('Bugün'); await check('bugun'); }
     if (want('profil')) {
+      // Kurucu Yolcu (YN-041): bu yapılandırmaya özel tek kullanımlık test kodu (gerçek kodlar depoda yoktur) → rozet, çerçeve,
+      // Dolap'ta çerçeve, Ayarlar'da liste seçimi ve Kurucular ekranı aşağıdaki karolarla birlikte denetlenir
+      { const { DatabaseSync } = await import('node:sqlite');
+        const kod = `KURUCU-TEST-${randomBytes(3).toString('hex').toUpperCase().replace(/[^A-Z0-9]/g, 'X')}`;
+        const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000');
+        sq.prepare("INSERT INTO promo_codes(code, rewards, max_uses, active, note, created_at, created_by) VALUES(?, '{\"rozet\":[\"kurucu\"]}', 1, 1, 'Kurucu Yolcu', ?, 'test')").run(kod, Date.now()); sq.close();
+        await tab('Profil');
+        await page.locator('.menu-tile[data-tile="kod"]').click(); await page.getByTestId('kod-sayfasi').waitFor();
+        await page.getByTestId('kod-girdi').fill(kod.toLowerCase()); await page.getByTestId('kod-kullan').click();
+        await page.locator('[data-testid="kod-sonuc"]', { hasText: 'Kurucu Yolcu' }).waitFor();
+        await check('kod-kurucu', { scroll: false });
+        await page.keyboard.press('Escape'); await sleep(300);
+        await page.locator('.profile-hero [data-rozet="kurucu"]').waitFor(); await page.locator('.profile-hero [data-testid="kurucu-cerceve"]').waitFor();
+        await page.evaluate(resetScroll); await sleep(200); }
       await tab('Profil'); await check('profil');
       const tiles = await page.locator('.menu-tile').evaluateAll((els) => els.map((e) => e.querySelector('b')?.textContent ?? ''));
       for (const t of tiles) {
@@ -731,6 +745,12 @@ async function suite(browserName, target, [W, H]) {
         await back();
         if (!(await page.locator('.menu-tile').count())) await tab('Profil');
       }
+      // Kurucular: "Adım listede görünsün" açılınca takma ad listede (varsayılan kapalı)
+      { await page.locator('.menu-tile[data-tile="kurucular"]').click(); await page.getByTestId('kurucular').waitFor();
+        await page.getByTestId('kurucu-listede').click(); await page.locator('[data-testid="kurucu-listede"][aria-pressed="true"]').waitFor();
+        await page.locator('[data-testid="kurucu-listesi"] li', { hasText: PAGE_NAME }).first().waitFor({ timeout: 10_000 });
+        await check('kurucular-liste');
+        await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // mağaza onay sayfası + fiyat kaynağı (YN-032): köprü fiyat verdiyse mağazanın biçimi (notsuz), vermediyse TL liste fiyatı + not
       { await page.locator('.menu-tile[data-tile="shop"]').click(); await page.locator('.card.product .btn.small').first().waitFor({ timeout: 20_000 });
         const storeOn = !!STORE_PRICES && target === 'dom';

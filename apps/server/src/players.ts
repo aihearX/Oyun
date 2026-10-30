@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { BUILDINGS, PROTOCOL_VERSION, SOCIAL_LIMITS, type InboxItem } from '@odi/shared';
 import { fail, randomCode, rid, sendJson, type App, type Conn, type Handlers, type PlayerRow } from './app';
 import { hasProfanity } from './profanity';
+import { setBadgePrefs } from './rozet';
 import { dayKey } from './time';
 
 export const START_JETON = 100;
@@ -119,7 +120,9 @@ export const playerHandlers: Handlers = {
     if (newToken) me.token = newToken;
     return { me, serverTime: app.now() };
   },
-  'profile.update': (app, s, { name, color, hat }) => {
+  'profile.update': (app, s, { name, color, hat, listede, cerceve }) => {
+    // Kurucu Yolcu seçimleri (YN-041): Kurucular listesinde görünmek, profil çerçevesi; yalnız rozeti olan hesap
+    if ((listede !== undefined || cerceve !== undefined) && !setBadgePrefs(app, s.pid, { listede, cerceve })) fail('YOK', 'Bu seçim yalnız Kurucu Yolcular için.');
     if (name !== undefined) app.db.run('UPDATE players SET name = ? WHERE id = ?', validateName(name), s.pid);
     if (color !== undefined) app.db.run('UPDATE players SET color = ? WHERE id = ?', color, s.pid);
     if (hat !== undefined) app.db.run('UPDATE players SET hat = ? WHERE id = ?', hat, s.pid);

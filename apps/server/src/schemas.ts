@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, CAMP_CHEERS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, CAMP_CHEERS, CERCEVE_IDS, ROZET_IDS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -21,7 +21,8 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   ...FRIEND_SCHEMAS,
   ...KG_SCHEMAS,
   'hello': z.object({ token: z.string().max(200).optional(), name: z.string().max(40).optional(), version: z.number().int(), campV: z.number().int().min(0).max(1000).optional() }),
-  'profile.update': z.object({ name: z.string().max(40).optional(), color: z.number().int().min(0).max(0xffffff).optional(), hat: z.string().max(32).regex(/^[a-z0-9-]*$/).optional() }),
+  'profile.update': z.object({ name: z.string().max(40).optional(), color: z.number().int().min(0).max(0xffffff).optional(), hat: z.string().max(32).regex(/^[a-z0-9-]*$/).optional(),
+    listede: z.boolean().optional(), cerceve: z.enum(['', ...CERCEVE_IDS]).optional() }),
   'profile.get': z.object({ id }),
   'progress.submit': z.object({
     runId: z.string().min(1).max(64).regex(/^[A-Za-z0-9_.:-]+$/), level, completed: z.boolean(), stars: z.number().int().min(0).max(3), score: z.number().min(0).max(MAX_SCORE),
@@ -116,10 +117,11 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'code.create': z.object({
     code: z.string().min(3).max(64), note: z.string().max(60).optional(),
     rewards: z.object({ jeton: z.number().int().min(0).max(100_000).optional(), kristal: z.number().int().min(0).max(10_000).optional(), kalkan: z.number().int().min(0).max(50).optional(),
-      kozmetik: z.array(z.string().max(40)).max(10).optional(), hizlandirici: z.object({ m5: z.number().int().min(0).max(100).optional(), m60: z.number().int().min(0).max(100).optional(), s8: z.number().int().min(0).max(100).optional() }).optional() }),
+      kozmetik: z.array(z.string().max(40)).max(10).optional(), rozet: z.array(z.enum(ROZET_IDS)).max(ROZET_IDS.length).optional(), hizlandirici: z.object({ m5: z.number().int().min(0).max(100).optional(), m60: z.number().int().min(0).max(100).optional(), s8: z.number().int().min(0).max(100).optional() }).optional() }),
     maxUses: z.number().int().min(1).max(10_000_000).nullable().optional(), startsAt: z.number().int().nullable().optional(), endsAt: z.number().int().nullable().optional(),
   }),
   'code.close': z.object({ code: z.string().min(1).max(64), active: z.boolean().optional() }),
+  'kurucu.liste': empty,
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

@@ -29,6 +29,10 @@ export interface PublicProfile {
   online: boolean;
   /** son görülme (ms) */
   lastSeen: number;
+  /** kalıcı rozetler (YN-041: 'kurucu' Kurucu Yolcu, 'hata-avcisi' unvanı; yalnız görünüş). Yoksa alan da yok. */
+  rozetler?: RozetId[];
+  /** giyilen profil çerçevesi (Dolap; yalnız rozeti olan seçebilir). Yoksa alan da yok. */
+  cerceve?: CerceveId;
 }
 
 export interface MyProfile extends PublicProfile {
@@ -42,6 +46,8 @@ export interface MyProfile extends PublicProfile {
   cosmetics: string[];
   /** açılmış kulak kartı kimlikleri */
   cards: string[];
+  /** Kurucu Yolcu: adı "Kurucular" ekranında görünsün mü (oyuncunun seçimi; varsayılan kapalı) */
+  listede?: boolean;
 }
 
 /** feed: Takım Akışı kartı · hazir: hazır söz (Hızlı Sohbet) · soru: Günün Sorusu kartı (bkz. İLETİŞİM bölümü) */
@@ -282,7 +288,8 @@ export interface SpendState { monthTry: number; limitTry: number; purchases: Pur
 export interface OpMap {
   /** campV: istemcinin anladığı kamp sürümü (CAMP_V); yoksa eski istemci sayılır ve yalnız eski binalar gönderilir */
   'hello': { req: { token?: string; name?: string; version: number; campV?: number }; res: { me: MyProfile; serverTime: number } };
-  'profile.update': { req: { name?: string; color?: number; hat?: string }; res: { me: MyProfile } };
+  /** listede / cerceve: yalnız ilgili rozeti olan hesap (YN-041); boş istek güncel profili döndürür */
+  'profile.update': { req: { name?: string; color?: number; hat?: string; listede?: boolean; cerceve?: CerceveId | '' }; res: { me: MyProfile } };
   'profile.get': { req: { id: string }; res: { profile: PublicProfile } };
   'progress.submit': { req: ProgressSubmit; res: ProgressAck };
   'friends.list': { req: Record<string, never>; res: { friends: PublicProfile[]; /** bugün hediye gönderilen arkadaşlar */ gifted?: string[] } };
@@ -510,7 +517,8 @@ export interface HuntState { period: EventPeriod | null; next: EventPeriod; targ
 
 // ---------- Kulak Bilgi Yarışması (canlı takım quizi)
 export type QuizPhase = 'lobi' | 'soru' | 'cevap' | 'bitti';
-export interface QuizQuestionView { index: number; total: number; text: string; choices: string[]; startsAt: number; endsAt: number; answer: number | null; explain: string | null; myChoice: number | null; answered: number }
+export interface QuizQuestionView { index: number; total: number; text: string; choices: string[]; startsAt: number; endsAt: number; answer: number | null; explain: string | null; myChoice: number | null; answered: number;
+  /** soruyu öneren oyuncunun takma adı (izinle; açıklanınca, varsa) */ oneren?: string | null }
 export interface QuizPlayer { id: string; name: string; color: number; score: number; correct: number; answered: boolean; lastCorrect: boolean | null }
 export interface QuizState { id: string; teamId: string; phase: QuizPhase; startedBy: string; lobbyEndsAt: number; endsAt: number; players: QuizPlayer[]; question: QuizQuestionView | null; teamAvg: number; questionMs: number; revealMs: number }
 export interface QuizInfo { nextSlotAt: number; slotOpen: boolean; canStart: boolean; startsLeft: number; ranking: { teamId: string; name: string; emblem: string; avg: number }[]; rewards: { perCorrect: number; bonusAvg: number; bonus: EventReward[] } }
@@ -792,6 +800,7 @@ export interface DailyQuestion {
   level: 'merakli' | 'odyoloji';
   revealAt: number; revealed: boolean;
   /** açıklanınca */ answer: number | null; explain: string | null;
+  /** soruyu öneren oyuncunun takma adı (izinle; açıklanınca, varsa) */ oneren?: string | null;
   answered: number; myChoice: number | null;
   /** açıklanınca doğru bilenler */
   correct: { id: string; name: string }[] | null;
@@ -1079,6 +1088,8 @@ export interface PromoReward {
   /** kozmetik kimlikleri */
   kozmetik?: string[];
   hizlandirici?: { m5?: number; m60?: number; s8?: number };
+  /** kalıcı rozet kimlikleri (ROZET_IDS; YN-041). Yalnız görünüş; hesap başına bir kez. */
+  rozet?: string[];
 }
 export interface PromoCodeView {
   code: string; rewards: PromoReward; maxUses: number | null; uses: number;
@@ -1378,3 +1389,26 @@ export interface OpMap {
  * oturum uzunluğu sapması için pay. Eski sınır 600, 3 ve 6 oturumlu dürüst oyuncunun ilk 3 gününde 616 / 963 jetonunu kesiyordu.
  */
 export const LOCAL_JETON_DAILY_MAX = 1500;
+
+// =====================================================================
+// KURUCU YOLCULAR (YN-041; docs/10-sunucu.md "Rozetler"). Yalnızca EKLEME. Kalıcı rozetler ve unvanlar yalnız görünüştür:
+// güç, ekonomi ya da sıralama etkisi yok. Kişisel veri yok (yalnız takma ad). Listede görünmek oyuncunun seçimi (varsayılan kapalı).
+// =====================================================================
+
+/** kurucu: kapalı beta kurucusu (rozet + profil çerçevesi); hata-avcisi: görünüş unvanı */
+export const ROZET_IDS = ['kurucu', 'hata-avcisi'] as const;
+export type RozetId = typeof ROZET_IDS[number];
+export const ROZETLER: Record<RozetId, { ad: string; tur: 'rozet' | 'unvan'; aciklama: string }> = {
+  'kurucu': { ad: 'Kurucu Yolcu', tur: 'rozet', aciklama: "ODİ'yi kapalı betada birlikte kuranlardan." },
+  'hata-avcisi': { ad: 'Hata Avcısı', tur: 'unvan', aciklama: 'Oyundaki bir hatayı bulup bildirdi.' },
+};
+/** profil çerçeveleri (rozetle açılır) */
+export const CERCEVE_IDS = ['kurucu'] as const;
+export type CerceveId = typeof CERCEVE_IDS[number];
+/** kod önekleri (sunucu üretir: ÖNEK-XXXX-XXXX, tek kullanımlık) */
+export const ROZET_KOD_ONEKI: Partial<Record<RozetId, string>> = { 'kurucu': 'KURUCU', 'hata-avcisi': 'AVCI' };
+
+export interface OpMap {
+  /** "Kurucular" ekranı: listede görünmeyi seçen kurucuların takma adları, kod kullanım sırasıyla; gizli = listede olmayan kurucu sayısı */
+  'kurucu.liste': { req: Record<string, never>; res: { names: string[]; gizli: number } };
+}

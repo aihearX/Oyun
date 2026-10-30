@@ -813,7 +813,7 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
 .team-screen .tb-pill[data-testid="mesaj-rozeti"], .camp-list-screen .tb-pill[data-testid="mesaj-rozeti"] { display:none; }
 @media (max-width:340px) {
   .profile-hero { gap:10px; }
-  .profile-hero .avatar-btn svg { width:64px; height:64px; }
+  .profile-hero .avatar-btn svg.odi-avatar { width:64px; height:64px; }
 }
 @media (max-width:360px) { .perks { grid-template-columns:1fr; } .perk:last-child { grid-column:auto; } }
 

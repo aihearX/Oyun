@@ -180,6 +180,7 @@
 .ev-choice.right .ev-letter { background:var(--lime); color:var(--ink); }
 .ev-choice.wrong { border-color:var(--coral); background:color-mix(in srgb, var(--coral) 25%, var(--panel-2)); animation:ev-shake .4s; }
 .ev-choice.dim { opacity:.55; }
+.ev-explain .ev-oneren { font-weight:700; font-size:0.75rem; color:var(--ink-2); }
 .ev-explain { display:flex; flex-direction:column; gap:4px; font-weight:700; font-size:0.875rem; line-height:1.4; animation:fade .3s ease-out; }
 
 /* ---- görevler */

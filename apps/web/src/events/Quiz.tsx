@@ -77,7 +77,7 @@ export function QuizView() {
             })}
           </div>
           {q.phase === 'soru' && qv.myChoice != null && <div className="ev-note"><Art e="🔒" size="1.15em" className="art-inline" /> Cevabın kilitlendi — süre bitince açıklanır.</div>}
-          {q.phase === 'cevap' && qv.explain && <div className="card cream ev-explain"><b>{rich(qv.myChoice === qv.answer ? '🎉 Doğru!' : qv.myChoice == null ? '⏰ Süre doldu' : '💡 Doğru cevap: ' + LETTERS[qv.answer!])}</b><span>{qv.explain}</span></div>}
+          {q.phase === 'cevap' && qv.explain && <div className="card cream ev-explain"><b>{rich(qv.myChoice === qv.answer ? '🎉 Doğru!' : qv.myChoice == null ? '⏰ Süre doldu' : '💡 Doğru cevap: ' + LETTERS[qv.answer!])}</b><span>{qv.explain}</span>{qv.oneren && <small className="ev-oneren">Öneren: <span data-ugc>{qv.oneren}</span></small>}</div>}
           {!joined && <button className="btn small" data-testid="quiz-katil" onClick={() => void join()}><Art e="🙋" size="1.15em" className="art-inline" /> Sonraki sorudan katıl</button>}
         </div>
       )}

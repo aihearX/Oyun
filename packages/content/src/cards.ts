@@ -13,10 +13,13 @@ import type { BiomeId } from '@odi/shared';
  *  usta    — biyomdaki tüm bölümleri bitir
  */
 export type CardSlot = 'ilk' | 'yildiz' | 'ozel' | 'sandik' | 'usta';
-export interface CardDef { id: string; biome: BiomeId; slot: CardSlot; title: string; fact: string; emoji: string; /** öğrenci düzeyi teknik ayrıntı (albümde "Daha fazla") */ tech: string }
+export interface CardDef { id: string; biome: BiomeId; slot: CardSlot; title: string; fact: string; emoji: string; /** öğrenci düzeyi teknik ayrıntı (albümde "Daha fazla") */ tech: string;
+  /** kartı öneren oyuncunun takma adı; albümde "Öneren: <takma ad>". YALNIZ açık izinli takma ad (izin kaydı sahipte; docs/yonetim/gizlilik.md "Öneren") */
+  oneren?: string }
 
 const SLOTS: CardSlot[] = ['ilk', 'yildiz', 'ozel', 'sandik', 'usta'];
-type Raw = [emoji: string, title: string, fact: string, tech: string];
+/** oneren: kartı öneren oyuncunun izinli takma adı (isteğe bağlı) */
+type Raw = [emoji: string, title: string, fact: string, tech: string, oneren?: string];
 const RAW: Record<BiomeId, Raw[]> = {
   'dis-kulak': [
     ['👂', 'Kıvrımlı Pusula', 'Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder.', 'Aurikula (pinna) elastik kıkırdaktandır; yüksek frekanslarda geliş açısına bağlı spektral tepe ve çentikler oluşturarak dikey yön ve ön-arka ayrımına ipucu verir.'],
@@ -90,7 +93,7 @@ const RAW: Record<BiomeId, Raw[]> = {
   ],
 };
 
-export const CARDS: CardDef[] = (Object.keys(RAW) as BiomeId[]).flatMap((biome) => RAW[biome].map(([emoji, title, fact, tech], i) => ({ id: `${biome}:${SLOTS[i]!}`, biome, slot: SLOTS[i]!, title, fact, emoji, tech })));
+export const CARDS: CardDef[] = (Object.keys(RAW) as BiomeId[]).flatMap((biome) => RAW[biome].map(([emoji, title, fact, tech, oneren], i) => ({ id: `${biome}:${SLOTS[i]!}`, biome, slot: SLOTS[i]!, title, fact, emoji, tech, ...(oneren ? { oneren } : {}) })));
 export const cardById = (id: string) => CARDS.find((c) => c.id === id);
 
 export function cardSlotText(slot: CardSlot, biomeHasSecret: boolean): string {

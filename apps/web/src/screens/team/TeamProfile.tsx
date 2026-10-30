@@ -14,6 +14,7 @@ import { useComm } from '../../comm/state';
 import { hatKey } from './TeamMembers';
 import { bumpBrowse, closeTeamProfile, refreshMine, useTeamApply } from './apply';
 import './team-apply.css';
+import { RozetMini } from '../../kurucu/rozet';
 
 /**
  * Takım bulma ve başvuru (docs/16-takim-rekabeti.md): satır/profil düğmesi (Katıl · Başvur · Başvuru gönderildi · Dolu · N. bölümden sonra),
@@ -170,6 +171,7 @@ function TeamProfileSheet({ id }: { id: string }) {
               <button type="button" className="ta-mem" onClick={() => { closeTeamProfile(); openProfile(m.id); }} aria-label={`${m.name}, ${ROLE[m.role].label}`}>
                 <OdiAvatar size={34} color={m.color} hat={hatKey(m.hat)} />
                 <span className="grow min0 ellipsis">{m.name}</span>
+                <RozetMini p={m} />
                 {m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{ROLE[m.role].art && <Art name={ROLE[m.role].art!} size={12} />} {ROLE[m.role].label}</span>}
                 <span className="muted ta-lvl">{m.highest}. bölüm</span>
               </button>

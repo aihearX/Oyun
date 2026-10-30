@@ -78,6 +78,10 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(en).toContain('Feedback: if you want, you can send us a short note');
     for (const k of ['at most 500 characters', 'e-mail addresses, phone numbers and long numbers removed', 'does not contain your player ID, nickname, key or any device identifier', 'do not write your name, phone number or e-mail address', '5 notes an hour, 20 a day', 'deleted automatically after 90 days']) expect(en).toContain(k);
     expect(hs).toContain('Geri bildirim notları da hesaba bağlı değildir; 90 günde');
+    // Kurucu Yolcu (YN-041): kişisel bilgi istenmez, liste yalnız oyuncunun seçimiyle (varsayılan kapalı), "Öneren" yalnız açık izinle, silinince gider
+    for (const k of ['hiçbir kişisel bilgi istenmez', 'yalnızca siz "Adım listede görünsün" seçeneğini açarsanız', 'baştan kapalıdır', 'yalnızca siz açıkça izin verirseniz', 'rozetleriniz ve listedeki yeriniz de silinir']) expect(tr).toContain(k);
+    for (const k of ['do not ask for any personal information', 'only if you turn on', 'off by default', 'only with your explicit permission', 'also deletes your badges']) expect(en).toContain(k);
+    expect(hs).toContain('Kurucular listesindeki yeriniz');
     expect(ortak).toMatch(/handle \/geri-bildirim \{\s*request_body \{\s*max_size 4KB/);
     expect(hs).toContain('Çökme raporları hesaba bağlı değildir');
     expect(hs).toContain(`son ${HESAP_SIL_BEKLEME_GUN} gün`);
