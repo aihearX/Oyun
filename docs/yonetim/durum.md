@@ -2,7 +2,7 @@
 
 > **Görev: sahibi teslim alana kadar sürekli geliştirme.** Turlar ara vermeden art arda koşar; tek durma koşulu sahibin "teslim aldım" demesi ya da durdurması. main'in kararlılığı hızdan önce gelir.
 
-**Son tur:** 14. tur (yalnız belge) · 2026-10-29 · main b8b2767.
+**Son tur:** 15. tur (hafif) · 2026-10-30 · main bca5a1a.
 Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge): [`gizlilik.md`](gizlilik.md). Mağaza kiti: [`marketing/magaza/`](../../marketing/magaza/) ([`YAYIN-LISTESI.md`](../../marketing/magaza/YAYIN-LISTESI.md)); ekran görüntüleri [`magaza-ekran.md`](magaza-ekran.md). Ekonomi ölçümü: [`ekonomi-olcum.md`](ekonomi-olcum.md). Ses düzeyi: [`ses-duzeyi.md`](ses-duzeyi.md).
 
 ## Genel hazırlık
@@ -26,12 +26,24 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | ui-mobile **büyük yazı**, DOM | 460 ekran (Chromium + WebKit × 320/390), 0 sorun | DOM Chromium'un kamp adımları burada geçti → normal kipteki düşüş yük kaynaklı |
 
 ## Bu tur yapılanlar (main'de)
-- **Geri bildirim** b8b2767 (YN-038): Ayarlar'dan kısa not, kişisel veri yok. Sunucuda sahip `odi-guncelle` + `kur.sh` çalıştırmalı.
-- **29 Ekim reelsi** (anlatıcı + kamu malı arşiv fotoğrafları): 7a7f8e4 + ab4fb68, 3b6a178, e9919df.
-  - 1928 fotoğrafının yeri belirsiz (Kayseri mi Sivas mı), alt yazı yalnız "1928".
-  - Lisanslar `marketing/reels/kaynak/LISANS.md`'de.
-  - Anlatıcı modeli "odyolog" sözcüğünü "odiyolog" okuyor; seslendirmede "işitme uzmanları" kullanılıyor.
-- **aday** (sürüyor): tam kabul koşusu. Beta notları taslağı `wip-aday` (06e39b6). Sürüm önerisi 0.9.0 sahipte.
+- **Sürüm adayı (aday: 41b28fe, ff64bce, f40ca92, e155e50):**
+  - Tam `npm run kabul` ilk denemede geçti: vitest 559, bot 40/40, ui-mobile 1044 ekran 0 sorun, kopma 520.
+  - pwa-e2e 10/10; yerelde `uzak-duman` 37 denetim 0 hata; 50 oyunculu yükte p95 3,3 ms.
+  - expo-doctor kayması giderildi (YN-039; expo 58.0.21, RN 0.88.1).
+  - Bilinen sorunlar: [`surum-adayi.md`](surum-adayi.md).
+- **PY:** `kabul --yalniz typecheck,lint,vitest` 559/559 ilk denemede (bca5a1a).
+- **YN-040** (bca5a1a): Instagram "Karar sende" oylamaları. Sonuçları oyuna koymak bir söz.
+
+## Öneri, sahip onayı bekliyor: "Kurucu Yolcular" (yayın öncesi birlikte yaratım)
+- ~50 kurucuyla kapalı beta.
+- Haftalık döngü: Pazartesi sürüm, Çarşamba oylama, Cuma "Sizin sayenizde", Pazar Takım Gecesi.
+- Kalıcı "Kurucu Yolcu" rozeti ve çerçevesi.
+- İsteğe bağlı oyun içi "Kurucular" teşekkür ekranı.
+- "Hata Avcısı" görünüş unvanı.
+- Topluluğun önerdiği bilgi yarışması sorusu ve kartlarda "Öneren: takma ad".
+- Herkese açık yol haritası sayfası.
+- WhatsApp grubu + Instagram yayın kanalı.
+- Emirler hazır, sahip onaylayınca verilecek: "kurucu", "yolharitasi".
 
 ## Sürüyor
 - **magaza** (bu iş): gizlilik son metni, yasal sayfalar, Ayarlar bağlantıları, mağaza kiti, eas.json gönderim profili (YN-009, YN-012, YN-017, YN-032, YN-033).
@@ -42,6 +54,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 - **Kabul takımı tek komut:** `npm run kabul` (bütün takımlar sırayla, düşeni bir kez yeniden koşar, çıktıları siler; özet `tools/harness/out/kabul/ozet.json`). Alt küme: `npm run kabul -- --yalniz vitest,social` · liste: `--liste`.
 - Disk dar (5. turda bir ara 557 MB'a indi). Harness çıktıları (`tools/harness/out/<takım>`) koşu bitince silinmeli.
 - `node_modules`: `cp -al /home/user/oyun/node_modules` (+ `apps/mobile/node_modules`, `apps/web/node_modules`); ana kopya SDK 58.
+- `kabul`'u `--yalniz` ile bölerken DOM takımlarını (domcheck, ui-mobile dom, *-e2e `--target both`) koşan parçaya `dom-paketi` de eklenmeli (aday notu).
 - `social-e2e` önizleme sürecini kapatmıyor (YN-023) — koşudan sonra kendi PID'ini kapatın.
 - **Gönderme kuralı:** göndermeden önce `git fetch origin main && git rebase FETCH_HEAD`. **Asla** `git reset --soft origin/main` yapmayın: eski `origin/main` ile yapılan commit, aradaki başkalarının işlerini geri alır (1f6ab15 olayı; 61a63d6 ile düzeltildi).
 - Uzak depoda kalan yedek dalları (silinemedi, vekil 403; zararsız): wip-kamp-buyume, wip-kamp-gorev, wip-oynanis, wip-perf, wip-pm, wip-sdk58, wip-siralama, wip-yedek, wip-zorluk.
@@ -74,3 +87,7 @@ Ayrıntılı iş listesi: [`is-listesi.md`](is-listesi.md). Gizlilik (iç belge)
 | 19 | **Dolgu renklerinde kontrast düzeltmesi** (MK-017, Ö1–Ö7: bildirim rozeti, mor ve mercan düğmeler, seviye rozeti, Süsle, kademe çipi, etkinlik şeridi) | Hepsini kabul edin: renk tonu aynı kalıyor, yalnız açık uçlar bir ton koyulaşıyor (önce/sonra karşılaştırmasında fark ince). Küçük beyaz yazılar 2–3:1'den ≥ 4,5:1'e çıkıyor. İşitme odaklı oyunun oyuncuları arasında görme güçlüğü olanlar da olacak. En belirgin değişiklik Ö5: Süsle düğmesinde kahve yazı beyaz olur. | a) Hepsi (önerim) · b) Ö5 hariç hepsi · c) Yalnız Ö1 (rozetler) · d) Hiçbiri; gerekçeli istisna olarak kalır |
 | 20 | **Kapalı beta sürüm numarası** | 0.9.0 (aday çalışanının önerisi): mağaza öncesi, 1.0.0'a yer bırakır. | a) 0.9.0 (önerim) · b) 1.0.0 · c) 0.1.0 kalsın |
 | 21 | **ODY-İLK ödülü** (YN-037) | Bir kez kullanılabilen kozmetik (Odi rengi ya da süs) + 300 jeton; güç vermez. Yayından önce sunucuda tanımlanacak. | a) Öneri · b) Yalnız jeton · c) Yalnız kozmetik |
+| 22 | **Kurucu Yolcular** (birlikte yaratım önerisi, yukarıda) | Onaylayın. Kurucu sayısı 50: takım ve yarış dolu olur, geri bildirim okunabilir kalır. | a) Onay · b) Değişiklikle · c) Hayır |
+| 23 | **Kurucu sayısı** | 50 (en çok 60) | — |
+| 24 | **Buluşma yeri** | WhatsApp grubu (hızlı) + Instagram yayın kanalı (duyuru). Grup kuralları ve moderatör sahipte. 13 yaş ve kişisel veri için gizlilik metnine not. | a) WhatsApp · b) Discord · c) Yalnız Instagram |
+| 25 | **Topluluk adı** | "Kurucu Yolcular" (oyunun "Yolcu" diliyle uyumlu) | Sahip seçer |
