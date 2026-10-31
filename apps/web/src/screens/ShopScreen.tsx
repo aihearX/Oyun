@@ -88,10 +88,10 @@ function Shop() {
         <div className={`card product${p.tag ? ` tag-${p.tag}` : ''}`} key={p.id}>
           {p.tag && <span className="ribbon">{TAG[p.tag]}</span>}
           {mode === 'test' && <span className="test-chip">TEST</span>}
-          <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
+          <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.id === 'odi.pass' ? PASS_DESC : p.desc}</div></div></div>
           <ItemChips items={p.contents} small />
           {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Rich text={`🎁 Takımındaki herkese: ${p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}`} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
-          {p.id === 'odi.pass' && <PassPath />}
+          {p.id === 'odi.pass' && <><PassPath /><PassTerms /></>}
           <div className="row between prod-foot">
             <span className="muted small-note">{p.limit > 0 ? `Kişi başı ${p.limit} · alındı ${p.bought}/${p.limit}` : p.bought ? `${p.bought} kez alındı` : ''}</span>
             <button className="btn small" disabled={mode === 'closed' || soldOut} onClick={() => setSel(p)}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
@@ -111,6 +111,7 @@ function Shop() {
           <div className="confirm-price" data-testid="onay-fiyat">{pl.text}</div>
           {!pl.store && <div className="muted small-note">TL liste fiyatı. {STORE_PRICE_NOTE}.</div>}
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
+          {sel.id === 'odi.pass' && <PassTerms />}
           {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <span data-ugc>{team.emblem}</span> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
           <div className="muted small-note">Aylık sınır (TL liste fiyatıyla): {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / {fmtTry(sp.limitTry)}</div>
           {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı aşağıdan değiştirebilirsin (yükseltme 24 saat sonra geçerli).</div>}
@@ -143,6 +144,25 @@ function LimitSheet({ sp, onClose, onSaved }: { sp: SpendState; onClose: () => v
       <div className="limit-grid">{LIMITS.map((n) => <button key={n} className={`chip-btn${v === n ? ' on' : ''}`} onClick={() => setV(n)}>{n === 0 ? 'Kapalı' : `${n} TL`}</button>)}</div>
       <button className="btn" onClick={() => void save()}>Kaydet</button>
     </Sheet>
+  );
+}
+
+/**
+ * Sezon Kartı'nın bugünkü işleyişi (sunucu: players.ts passDaily, shop.ts deliver): satın alındığı andan 28 gün boyunca her takvim
+ * gününün (Türkiye saati) ilk girişinde 30 kristal ödül kutusuna; girilmeyen günün kristali sonradan gelmez; tek seferlik alım,
+ * kendiliğinden yenilenmez. Paylaşılan ürün açıklamasındaki "toplam 840" ancak her gün girilirse doğru olduğundan kartta bu açıklama
+ * kullanılır. İşleyiş sahip kararı bekliyor (durum.md, karar 30): değişirse bu metin de değişmeli.
+ */
+const PASS_DESC = '28 gün boyunca, girdiğin her gün 30 kristal + Altın Koklea kostümü';
+function PassTerms() {
+  return (
+    <ul className="pass-terms" data-testid="sezon-kosullari">
+      <li>Satın aldığın andan başlayarak 28 gün sürer; satın aldığın gün de sayılır.</li>
+      <li>Her günün (Türkiye saatiyle) ilk girişinde 30 kristal ödül kutuna gelir.</li>
+      <li>Oyuna girmediğin günün kristali sonradan verilmez. Toplam 840 kristal, ancak 28 günün hepsinde girersen.</li>
+      <li>Altın Koklea kostümü satın alır almaz dolabında.</li>
+      <li>Tek seferlik alımdır: abonelik değildir, kendiliğinden yenilenmez, yeniden ücret alınmaz.</li>
+    </ul>
   );
 }
 

@@ -41,7 +41,7 @@ html.buyuk-yazi { font-size:115%; }
 /* büyük yazıda uzun düğme etiketi kesilmez, iki satıra iner; Ayarlar'daki aç/kapa düğmesi dar ekranda açıklamanın altına iner */
 html.buyuk-yazi .abtn { white-space:normal; text-align:center; }
 html.buyuk-yazi .vol-row > .row.between { flex-wrap:wrap; row-gap:10px; }
-html.buyuk-yazi .vol-row > .row.between > .toggle-btn { margin-left:auto; }
+html.buyuk-yazi .vol-row > .row.between > .toggle-btn, html.buyuk-yazi .vol-row > .row.between > .onoff { margin-left:auto; }
 html body #root { position:fixed; inset:0; display:block; flex:none; margin:0; width:auto; min-height:0; overflow-x:hidden; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; scrollbar-width:none; }
 html body #root::-webkit-scrollbar { display:none; }
 body {
@@ -155,6 +155,11 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .brand-sub { font-size:0.875rem; }
 .linkish { appearance:none; background:none; border:0; color:#ffd56b; font:inherit; font-weight:900; font-size:0.875rem; padding:6px 0; cursor:pointer; text-align:left; }
 .screen-head { display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px; padding-top:16px; }
+/* alt ekran başlığı yapışık: uzun ekranın dibinde de Geri görünür (alt ekranlarda sekme çubuğu yok). Ekranın güvenli alan payını
+   ve yan boşluğunu başlık üstlenir ki arkadan kayan içerik çentiğin altında ve kenarlarda görünmesin; ilk görünüş aynı kalır. */
+.screen > .screen-head { position:sticky; top:0; z-index:30; margin:calc(-1 * var(--sat)) -16px 0; padding:calc(var(--sat) + 16px) 16px 8px;
+  background:var(--bg-0); background:color-mix(in srgb, var(--bg-0) 90%, transparent); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+@media (max-width:360px) { .screen > .screen-head { margin-left:-12px; margin-right:-12px; padding-left:12px; padding-right:12px; } }
 .screen-head h1 { text-align:center; font-size:1.5rem; overflow-wrap:anywhere; }
 .screen-head .btn.small { padding:8px 0; width:44px; text-align:center; }
 .sh-right { justify-self:end; }
@@ -701,6 +706,7 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .limit-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
 .chip-btn { appearance:none; font:inherit; font-weight:900; font-size:0.8125rem; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); color:var(--text); border-radius:12px; min-height:44px; cursor:pointer; }
 .chip-btn.on { border-color:var(--gold); background:rgba(255,201,60,.18); color:var(--gold); }
+.pass-terms { margin:4px 0 0; padding-left:1.2em; display:flex; flex-direction:column; gap:4px; color:var(--text-2); font-weight:700; font-size:0.8125rem; line-height:1.35; }
 .pass-path { display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin; padding-bottom:4px; }
 .pp-day { flex:none; width:64px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.1); border-radius:12px; padding:6px 4px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:0.75rem; }
 .pp-day b { font-size:0.625rem; color:var(--text-2); } .pp-day.first { width:92px; background:rgba(255,201,60,.18); border-color:rgba(255,201,60,.5); }
@@ -746,6 +752,19 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .range::-moz-range-thumb { width:26px; height:26px; border-radius:50%; background:var(--gold); border:3px solid #fff; box-shadow:0 3px 0 var(--gold-edge); cursor:pointer; }
 .range:focus-visible { box-shadow:inset 0 2px 3px rgba(0,0,0,.4), 0 0 0 3px rgba(46,230,214,.4); }
 .toggle-btn { min-width:88px; }
+/* Ayarlar: açıklama + Açık/Kapalı seçimi yan yana; dar ekranda seçim açıklamanın altına, sağa iner */
+.set-row { flex-wrap:wrap; row-gap:10px; }
+.set-row > .set-text { flex:1 1 9em; min-width:0; }
+.onoff { flex:none; margin-left:auto; }
+.onoff button { min-width:64px; }
+.set-fixed { flex:none; margin-left:auto; padding:8px 12px; border-radius:999px; background:rgba(5,2,20,.45); border:2px solid rgba(255,255,255,.1); font-weight:900; font-size:0.8125rem; color:var(--text-2); }
+.set-note { padding:8px 12px; border-radius:14px; background:rgba(255,92,138,.12); border:1px solid rgba(255,92,138,.35); font-weight:800; font-size:0.875rem; line-height:1.35; }
+.vol-slider { display:flex; flex-direction:column; gap:6px; }
+.vol-slider .vl { display:flex; align-items:center; gap:8px; font-weight:900; }
+.vol-slider .vi { width:auto; font-size:1.125rem; }
+.vol-slider .range { width:100%; flex:none; }
+.vol-slider.off .vl, .vol-slider.off .vv { opacity:.55; }
+.voice-try { margin-top:4px; gap:10px; }
 
 
 /* yarış ekranları: race.css'teki açık yüzeyleri gece temasına uydur (race.css'e dokunmadan; :root ile öncelik) */
@@ -792,12 +811,15 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
   .btn.big-cta { min-width:170px; padding:15px 28px; }
 }
 
-/* azaltılmış hareket: animasyon yok, son durum anında */
+/* azaltılmış hareket: animasyon yok, son durum anında (sistem tercihi ya da Ayarlar › Hareketi azalt → html.az-hareket) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:1ms !important; animation-delay:0ms !important; animation-iteration-count:1 !important; transition-duration:1ms !important; }
   .star-slot.on .star-full { opacity:1; transform:none; }
   .bi-rings, .unlock-card::after { display:none; }
 }
+html.az-hareket *, html.az-hareket *::before, html.az-hareket *::after { animation-duration:1ms !important; animation-delay:0ms !important; animation-iteration-count:1 !important; transition-duration:1ms !important; }
+html.az-hareket .star-slot.on .star-full { opacity:1; transform:none; }
+html.az-hareket .bi-rings, html.az-hareket .unlock-card::after { display:none; }
 .msg-name.linkish { font-size:inherit; padding:0; font-weight:800; }
 /* aynı anda gelen bildirimler üst üste binmesin: arkadaş/mesaj şeridi üstte, etkinlik şeridi onun altında */
 body:has(.fr-banner) .ev-notice { top:calc(var(--sat) + 88px); }

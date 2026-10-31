@@ -74,10 +74,25 @@ function defaultServerUrl(): string {
 
 declare const __ODI_SERVER__: string | undefined;
 
+/**
+ * Titreşim anahtarı (Ayarlar › Titreşim, store.haptics; store kurulunca ve her değişimde setHaptics ile bildirir).
+ * Kapalıyken hiçbir çağıran titretmez: platformun kendi haptic'i yalnız buradan çağrılır (installPlatform da bunu korur).
+ */
+let hapticsOn = true;
+export function setHaptics(on: boolean) { hapticsOn = on; }
+const webHaptic = (kind: HapticKind) => { try { if ('vibrate' in navigator) navigator.vibrate(kind === 'heavy' ? 40 : kind === 'medium' || kind === 'error' ? 20 : 8); } catch { /* yok */ } };
+let deviceHaptic: Platform['haptic'] = webHaptic;
+const gatedHaptic: Platform['haptic'] = (kind) => { if (hapticsOn) deviceHaptic(kind); };
+/** cihaz titreyebilir mi: telefon kabuğu (expo-haptics) evet; tarayıcıda Vibration API varsa (iOS Safari'de yok) */
+export function hapticsSupported(): boolean {
+  if (current.kind === 'native' || deviceHaptic !== webHaptic) return true;
+  try { return typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'; } catch { return false; }
+}
+
 let current: Platform = {
   kind: 'web',
   storage: webStorage,
-  haptic(kind) { try { if ('vibrate' in navigator) navigator.vibrate(kind === 'heavy' ? 40 : kind === 'medium' || kind === 'error' ? 20 : 8); } catch { /* yok */ } },
+  haptic: gatedHaptic,
   async share(text) {
     try { if (navigator.share) { await navigator.share({ text }); return 'shared'; } await navigator.clipboard.writeText(text); return 'copied'; } catch { return 'cancelled'; }
   },
@@ -122,7 +137,10 @@ export function freezeStorage() {
 }
 export const storageFrozen = () => frozen;
 
-export function installPlatform(p: Partial<Platform>) { current = { ...current, ...p, storage: p.storage ?? current.storage }; }
+export function installPlatform(p: Partial<Platform>) {
+  if (p.haptic) deviceHaptic = p.haptic;
+  current = { ...current, ...p, storage: p.storage ?? current.storage, haptic: gatedHaptic };
+}
 export function platform(): Platform { return current; }
 
 /** Kalıcı depolama: her çağrıda o anki platforma gider (mobil köprü sonradan kurulsa da doğru yere yazar). */

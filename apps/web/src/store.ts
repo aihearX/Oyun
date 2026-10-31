@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { platformStorage } from './platform';
+import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
@@ -62,6 +62,12 @@ interface State extends PlayerCore {
   /** Büyük yazı (Ayarlar, erişilebilirlik): kök yazı ölçeği 1,15 (html.buyuk-yazi); kalıcı */
   bigText: boolean;
   setBigText(v: boolean): void;
+  /** Titreşim (Ayarlar): kapalıysa platform().haptic hiç titretmez (zıplama, hasar, kontrol noktası, ödül); kalıcı, varsayılan açık */
+  haptics: boolean;
+  setHaptics(v: boolean): void;
+  /** Hareketi azalt (Ayarlar): sistem tercihine ek, oyun içinden açılır (prefersReducedMotion ikisini de okur; html.az-hareket); kalıcı */
+  reduceMotion: boolean;
+  setReduceMotion(v: boolean): void;
   noteShown(id: string): void;
 }
 
@@ -88,7 +94,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, bigText: false, odiColor: null as number | null, chosenColor: null as number | null };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, bigText: false, haptics: true, reduceMotion: false, odiColor: null as number | null, chosenColor: null as number | null };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -161,6 +167,8 @@ export const useStore = create<State>()(persist((set, get) => {
     setNarratorVoice(v) { set({ narratorVoice: v }); },
     setKnowledge(v) { set({ knowledge: v }); },
     setBigText(v) { set({ bigText: v }); },
+    setHaptics(v) { set({ haptics: v }); },
+    setReduceMotion(v) { set({ reduceMotion: v }); },
     noteShown(id) { const seen = get().notesSeen; set({ notesSeen: seen.includes(id) ? seen : [...seen, id], noteAt: Date.now() }); },
     playerLevel() { return levelFromXp(get().xp); },
   };
@@ -170,7 +178,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, odiColor: s.odiColor, chosenColor: s.chosenColor }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, haptics: s.haptics, reduceMotion: s.reduceMotion, odiColor: s.odiColor, chosenColor: s.chosenColor }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };
@@ -181,9 +189,17 @@ export const useStore = create<State>()(persist((set, get) => {
     if (!persisted || typeof persisted !== 'object') return current;
     const p = persisted as Partial<State>;
     // ftue: v3 öncesi kayıtta yok → ilerlemesi olan oyuncu hikâyeyi ve açılmış yerlerin turlarını görmüş sayılır
-    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
+    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, haptics: p.haptics !== false, reduceMotion: p.reduceMotion === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
   },
 }));
+
+/** ayarların yan etkileri: titreşim anahtarı platform köprüsüne, hareketi azalt kök sınıfa (CSS animasyonları; bkz. styles.css) */
+const applyPrefs = (s: Pick<State, 'haptics' | 'reduceMotion'>) => {
+  setPlatformHaptics(s.haptics);
+  try { document.documentElement.classList.toggle('az-hareket', s.reduceMotion); } catch { /* DOM yok (test) */ }
+};
+applyPrefs(useStore.getState());
+useStore.subscribe((s, prev) => { if (s.haptics !== prev.haptics || s.reduceMotion !== prev.reduceMotion) applyPrefs(s); });
 
 /** anlatıcı düzeyi: eski kayıtta yok → o güne kadar duyduğu düzey (anlatıcı efekt düzeyini izliyordu, 0,2'nin altına inmezdi) */
 export function migrateVoiceVol(p: { voiceVol?: unknown; sfxVol?: unknown }): number {
