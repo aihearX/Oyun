@@ -1,4 +1,4 @@
-import { SHOP, SPEND_LIMIT_SUGGESTED_TRY, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
+import { PURCHASE_GIFT_REF, SHOP, SPEND_LIMIT_SUGGESTED_TRY, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
 import { fail, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { passDaily } from './players';
@@ -13,11 +13,14 @@ import { DAY_MS, dayNumber, dayNumberStart, monthStart } from './time';
 export const SPEND_LIMIT_MAX_TRY = 10_000;
 export const LIMIT_RAISE_DELAY_MS = DAY_MS;
 
-/** takım hediyesi içeriği ürün fiyatına göre sabittir (önceden belli, şans yok) */
+/**
+ * takım hediyesi içeriği ürün fiyatına göre sabittir (önceden belli, şans yok). Jetonu `PURCHASE_GIFT_REF` işaretlidir: alan
+ * oyuncunun cüzdanında satın alma hediyesi jetonu olarak ayrı sayılır, takım teknolojisine bağışlanamaz (karar 29 / YN-065).
+ */
 export function teamGiftFor(priceTry: number): Grant[] {
-  if (priceTry < 50) return [{ kind: 'kristal', amount: 20, ref: '' }, { kind: 'jeton', amount: 50, ref: '' }];
-  if (priceTry < 100) return [{ kind: 'kristal', amount: 50, ref: '' }, { kind: 'jeton', amount: 100, ref: '' }];
-  return [{ kind: 'kristal', amount: 100, ref: '' }, { kind: 'jeton', amount: 200, ref: '' }];
+  const jeton = priceTry < 50 ? 50 : priceTry < 100 ? 100 : 200;
+  const kristal = priceTry < 50 ? 20 : priceTry < 100 ? 50 : 100;
+  return [{ kind: 'kristal', amount: kristal, ref: '' }, { kind: 'jeton', amount: jeton, ref: PURCHASE_GIFT_REF }];
 }
 
 export type ReceiptResult = { ok: true; transactionId: string } | { ok: false; error: string };

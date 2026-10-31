@@ -49,6 +49,22 @@ describe('şema sürümü ve göçler', () => {
     db.close();
   });
 
+  it('göç 9: satın alma hediyesi jetonu sütunları eklenir; var olan cüzdan ve sıradaki inşaat bağışlanabilir jetonla başlar', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    old.run('INSERT INTO players(id, token_hash, name, color, friend_code, depot_at, created_at, last_seen, jeton) VALUES(?, ?, ?, 0, ?, 0, 0, 0, 500)', 'p1', 'h1', 'p1', 'K1');
+    old.run('INSERT INTO camp_queue(player_id, id, to_level, jeton, at) VALUES(?, ?, 1, 80, 0)', 'p1', 'depo');
+    // göç 8 sonrası şema: göç 9'un sütunları yok
+    old.raw.exec('ALTER TABLE players DROP COLUMN gift_jeton; ALTER TABLE camp_queue DROP COLUMN gift_jeton; PRAGMA user_version = 8');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    expect(db.get('SELECT jeton, gift_jeton FROM players WHERE id = ?', 'p1')).toEqual({ jeton: 500, gift_jeton: 0 });
+    expect(db.get('SELECT jeton, gift_jeton FROM camp_queue WHERE player_id = ?', 'p1')).toEqual({ jeton: 80, gift_jeton: 0 });
+    db.close();
+  });
+
   it('bekleyenler sırayla uygulanır, addColumn tekrar güvenli; hatalı göç geri alınır ve sürüm ilerlemez; yeni şema uyarı verir', () => {
     const raw = new DatabaseSync(':memory:');
     raw.exec('CREATE TABLE t(id INTEGER PRIMARY KEY, a TEXT); INSERT INTO t(a) VALUES (\'x\')');

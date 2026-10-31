@@ -55,7 +55,9 @@ klinik kapalıdır. Kamp seviyeleri yalnız eşleşmedeki "Takım gücü"ne gire
   - Sezon açılışında üyesi olan takımlar, kademe içinde güce göre gruplara yerleşir.
   - Sezon ortasında gelen takım, kademesinde boş yeri olan gruba girer.
 - **Lig puanı** sunucu kayıtlarından hesaplanır; istemci sayı söylemez. Kaynakların hiçbirine kamp binası etkisi girmez (karar 29:
-  Bölge Savaşı ve Baskın çarpanı yalnız takım teknolojisinden, Savaş Borusu ve Baskın Gücü). Haftalık üst sınırlarla:
+  Bölge Savaşı ve Baskın çarpanı yalnız takım teknolojisinden, Savaş Borusu ve Baskın Gücü). Takım teknolojisine yalnız oyunda
+  kazanılan jeton bağışlanır: gerçek parayla alınan paketin takıma düşen hediyesindeki jeton bağışlanamaz (YN-065,
+  `docs/04-monetizasyon.md` §6). Haftalık üst sınırlarla:
 
 | Kaynak | Kural |
 |---|---|

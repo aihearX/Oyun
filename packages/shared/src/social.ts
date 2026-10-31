@@ -162,7 +162,14 @@ export interface ProgressAck { highest: number; stars: number; warPoints: number
 // =====================================================================
 
 /** Para birimleri: jeton (oynayarak), kristal (az miktarda oynayarak + satın alarak). */
-export interface Wallet { jeton: number; kristal: number; hizlandirici: { m5: number; m60: number; s8: number } }
+export interface Wallet {
+  jeton: number; kristal: number; hizlandirici: { m5: number; m60: number; s8: number };
+  /**
+   * `jeton`un içindeki satın alma hediyesi jetonu (gerçek parayla alınan paketin takıma düşen hediyesi): kampta ve yeteneklerde
+   * harcanır, takım teknolojisine bağışlanamaz (pay-to-win yok, karar 29 / YN-065). Yalnız 0'dan büyükse gönderilir.
+   */
+  bagislanamaz?: number;
+}
 
 // ---------- Kulak Kampı (kişisel üs; süreli inşaat, takım yardımıyla hızlanır)
 // Kimlikler kalıcıdır (kayıtlar ve sunucu satırları bunlara bağlı); adlar ve açıklamalar odyoloji temasına göre (docs/14-kamp.md).
@@ -253,6 +260,11 @@ export function techCost(level: number): number { return Math.round(500 * Math.p
 export interface TechState { id: TechId; level: number; progress: number; cost: number }
 
 // ---------- Takım hediyeleri ve ortak hedefler
+/**
+ * Satın alma hediyesindeki jetonun işareti (`ref`): bu jeton cüzdanda `Wallet.bagislanamaz` olarak ayrı sayılır ve takım
+ * teknolojisine bağışlanamaz; gerçek para takım gücüne dolaylı yoldan da dönüşmez (karar 29 / YN-065, docs/04-monetizasyon.md).
+ */
+export const PURCHASE_GIFT_REF = 'satin-alma-hediyesi';
 export interface TeamGift { id: string; from: string; fromName: string; reason: string; contents: { kind: InboxKind; amount: number; ref: string }[]; at: number; expiresAt: number; claimed: boolean }
 export interface TeamGoalTier { need: number; reward: { kind: InboxKind; amount: number; ref: string }[] }
 export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number }

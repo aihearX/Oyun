@@ -136,7 +136,8 @@ export const extraHandlers: Handlers = {
     let needed = -row.progress;
     for (let l = row.level; l < def.maxLevel; l++) needed += techCost(l);
     const amount = Math.min(jeton, needed);
-    app.spend(p.id, 'jeton', amount);
+    // satın alma hediyesi jetonu bağışlanamaz: yalnız oyunda kazanılan jeton takım teknolojisine gider (karar 29 / YN-065)
+    app.spendDonatable(p.id, amount);
     let { level, progress } = row;
     progress += amount;
     while (level < def.maxLevel && progress >= techCost(level)) {

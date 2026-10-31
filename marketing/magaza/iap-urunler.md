@@ -32,7 +32,8 @@ Play Billing'de satın alma onaylanıp tüketilir, bunu RevenueCat SDK'sı yapar
 Takım hediyesi (sunucu `teamGiftFor`, fiyata göre sabit): 50 TL altı 20 kristal + 50 jeton, 100 TL altı 50 kristal + 100 jeton,
 üstü 100 kristal + 200 jeton; satın alanın takımındaki diğer üyelerin hediye kutusuna düşer. Kristal yalnız kamp inşaatını hemen
 bitirmeye harcanır (kalan her dakika 1 kristal); bölüm, savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcıyla büyüyen kamp binaları
-yalnız kişisel etki verir (jeton, kalkan, klinik); takım puanlarına ve lige hiç girmez (karar 29).
+yalnız kişisel etki verir (jeton, kalkan, klinik); takım puanlarına ve lige hiç girmez (karar 29). Hediyedeki jeton kampta ve yeteneklerde
+harcanır, takım teknolojisine bağışlanamaz (YN-065).
 
 ### Fiyat
 - **App Store:** fiyat noktası seçilir. Temel ülke **Türkiye** seçilip yukarıdaki TRY değerine en yakın nokta seçilir; diğer ülkeler

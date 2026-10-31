@@ -43,6 +43,14 @@ Yukarıdaki ürün tablosu ilk taslaktır; satılan ürünler `packages/shared/s
 - **Pay-to-win yok (karar 29):** hızlandırıcılar yalnız kamp inşaatını kısaltır. Kamp binaları takım rekabetine (savaş, baskın, takım
   yarışı, Takım Ligi) ve bireysel lige hiç yansımaz; yalnız kişisel jeton, kalkan ve klinik şansı verir. Timpanometri Kulesi'nin savaş
   puanı etkisi kişisel bölüm jetonu etkisine çevrildi. Ayrıntı ve kalan dolaylı bağlar: `docs/14-kamp.md` §1.
+- **Satın alma hediyesi jetonu bağışlanamaz (karar 29 devamı, YN-065):** takım hediyeli bir paket alınınca diğer üyelere düşen
+  50 / 100 / 200 jeton, alan oyuncunun cüzdanında ayrı sayılır (`players.gift_jeton`, göç 9; `Wallet.bagislanamaz`). Bu jeton kampta
+  ve yeteneklerde harcanır (önce o harcanır), ama takım teknolojisine (Ortak Kazanç, Savaş Borusu, Baskın Gücü …) bağışlanamaz:
+  gerçek para takım gücüne dolaylı yoldan da dönüşmez. Bağış bu yüzden yetmezse oyuncu nedenini görür ("Satın alma hediyesinden
+  gelen N jetonun takım teknolojisine bağışlanamaz …"); Teknoloji sekmesi ve hediye kartı da aynı kuralı yazar. Sıraya alınıp
+  sıradan çıkarılan inşaat bedeli aynı ayrımla geri döner (aklama yok). Mağazadaki ilke satırı: "Takım hediyesindeki jeton takım
+  teknolojisine bağışlanamaz." Göçten önce alınmış hediye jetonu ayırt edilemez ve bağışlanabilir kalır (gerçek para satın alımı
+  henüz açılmadı, yalnız test mağazası). Test: `apps/server/test/pay-to-win.test.ts`.
 - **Sezon Kartı (karar 30):** 28 gün, her güne 30 kristal, toplam tam 840. Girilmeyen günlerin kristali yanmaz, birikir ve sonraki
   girişte ödül kutusuna toplu gelir; 28. günden sonra hiçbir şey gelmez (eski "29. gün sabahı fazladan 30" hatası da kapandı).
   Tek seferlik alım, kendiliğinden yenilenmez.

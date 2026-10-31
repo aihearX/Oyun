@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { WebSocket } from 'ws';
 import {
-  levelFromXp, type Evt, type EvtMap, type InboxItem, type InboxKind, type LeagueTier, type MyProfile, type Op, type OpMap,
+  levelFromXp, PURCHASE_GIFT_REF, type Evt, type EvtMap, type InboxItem, type InboxKind, type LeagueTier, type MyProfile, type Op, type OpMap,
   type PublicProfile, type TeamRole, type Wallet,
 } from '@odi/shared';
 import { Db } from './db';
@@ -80,6 +80,8 @@ export interface PlayerRow {
   spend_limit: number; spend_pending: number | null; spend_pending_at: number | null;
   /** göç 7–8 (karar 28, 30): oyuncu aylık sınırı seçti mi (0/1); Sezon Kartı başlangıç günü (dayNumber, 0 = yok), gün sayısı, ödenen gün */
   spend_chosen: number; pass_start: number; pass_days: number; pass_paid: number; created_at: number; last_seen: number;
+  /** göç 9 (YN-065): `jeton`un içindeki satın alma hediyesi jetonu; takım teknolojisine bağışlanamaz (her zaman ≤ jeton) */
+  gift_jeton: number;
 }
 export interface TeamRow { id: string; name: string; name_key: string; emblem: string; description: string; open: number; code: string; min_level: number; xp: number; targets: string; created_at: number }
 
@@ -191,18 +193,49 @@ export class App {
 
   wallet(pid: string): Wallet {
     const p = this.player(pid);
-    return { jeton: p.jeton, kristal: p.kristal, hizlandirici: { m5: p.m5, m60: p.m60, s8: p.s8 } };
+    const gift = Math.min(p.gift_jeton, p.jeton);
+    return { jeton: p.jeton, kristal: p.kristal, hizlandirici: { m5: p.m5, m60: p.m60, s8: p.s8 }, ...(gift > 0 ? { bagislanamaz: gift } : {}) };
   }
   walletChanged(pid: string): Wallet { const w = this.wallet(pid); this.emit(pid, 'wallet.updated', { wallet: w }); return w; }
 
-  /** cüzdandan düş; yetmezse Türkçe hata */
-  spend(pid: string, col: 'jeton' | 'kristal' | 'm5' | 'm60' | 's8', amount: number): void {
-    if (amount <= 0) return;
-    const n = this.db.run(`UPDATE players SET ${col} = ${col} - ? WHERE id = ? AND ${col} >= ?`, amount, pid, amount);
-    if (n === 0) {
-      const label = col === 'jeton' ? 'jeton' : col === 'kristal' ? 'kristal' : 'hızlandırıcı';
-      fail('YETERSIZ', `Yeterli ${label} yok.`);
+  /**
+   * cüzdandan düş; yetmezse Türkçe hata. Jetonda önce satın alma hediyesi jetonu harcanır (bağışlanabilir jeton korunur);
+   * dönen değer bu harcamada kullanılan hediye jetonudur (geri verilirse aynı ayrımla geri verilsin: `addJeton`).
+   * Takım teknolojisine bağış bu yolu değil `spendDonatable`ı kullanır.
+   */
+  spend(pid: string, col: 'jeton' | 'kristal' | 'm5' | 'm60' | 's8', amount: number): number {
+    if (amount <= 0) return 0;
+    if (col === 'jeton') {
+      const p = this.player(pid);
+      const gift = Math.min(Math.min(p.gift_jeton, p.jeton), amount);
+      const n = this.db.run('UPDATE players SET jeton = jeton - ?, gift_jeton = MAX(0, MIN(gift_jeton, jeton) - ?) WHERE id = ? AND jeton >= ?', amount, amount, pid, amount);
+      if (n === 0) fail('YETERSIZ', 'Yeterli jeton yok.');
+      return gift;
     }
+    const n = this.db.run(`UPDATE players SET ${col} = ${col} - ? WHERE id = ? AND ${col} >= ?`, amount, pid, amount);
+    if (n === 0) fail('YETERSIZ', `Yeterli ${col === 'kristal' ? 'kristal' : 'hızlandırıcı'} yok.`);
+    return 0;
+  }
+  /**
+   * Takım teknolojisine bağış: yalnız bağışlanabilir jetondan (jeton − satın alma hediyesi jetonu). Hediye jetonu yüzünden
+   * yetmiyorsa oyuncuya nedenini söyler (karar 29 / YN-065).
+   */
+  spendDonatable(pid: string, amount: number): void {
+    if (amount <= 0) return;
+    const n = this.db.run('UPDATE players SET jeton = jeton - ? WHERE id = ? AND jeton - MIN(gift_jeton, jeton) >= ?', amount, pid, amount);
+    if (n > 0) return;
+    const p = this.player(pid);
+    if (p.jeton < amount) fail('YETERSIZ', 'Yeterli jeton yok.');
+    const free = p.jeton - Math.min(p.gift_jeton, p.jeton);
+    fail('HEDIYE_JETONU', `Satın alma hediyesinden gelen ${p.jeton - free} jetonun takım teknolojisine bağışlanamaz (parayla takım gücü olmasın diye); kampta ve yeteneklerde harcanır. Bağışlayabileceğin: ${free} jeton.`);
+  }
+  /**
+   * jeton ekle; `gift` kadarı satın alma hediyesi jetonu sayılır (hediye alma; harcanmış jetonu aynı ayrımla geri verme,
+   * ör. inşaat sırasından çıkarma: sıraya alıp çıkararak hediye jetonu bağışlanabilir olmasın)
+   */
+  addJeton(pid: string, amount: number, gift: number): void {
+    if (amount <= 0) return;
+    this.db.run('UPDATE players SET jeton = jeton + ?, gift_jeton = MIN(jeton + ?, MIN(gift_jeton, jeton) + ?) WHERE id = ?', amount, amount, Math.max(0, Math.min(gift, amount)), pid);
   }
   addCurrency(pid: string, col: 'jeton' | 'kristal' | 'm5' | 'm60' | 's8', amount: number): void {
     if (amount) this.db.run(`UPDATE players SET ${col} = ${col} + ? WHERE id = ?`, amount, pid);
@@ -211,7 +244,11 @@ export class App {
   /** bir ödülü doğrudan oyuncuya uygular (ödül kutusundan alma, hediye alma) */
   grant(pid: string, g: Grant): void {
     switch (g.kind) {
-      case 'jeton': this.addCurrency(pid, 'jeton', g.amount); break;
+      case 'jeton':
+        // satın alma hediyesinin jetonu ayrı sayılır: takım teknolojisine bağışlanamaz (karar 29 / YN-065)
+        if (g.ref === PURCHASE_GIFT_REF) this.addJeton(pid, g.amount, g.amount);
+        else this.addCurrency(pid, 'jeton', g.amount);
+        break;
       case 'kristal': this.addCurrency(pid, 'kristal', g.amount); break;
       case 'kalkan': this.db.run('UPDATE players SET shields = shields + ? WHERE id = ?', g.amount, pid); break;
       case 'kozmetik': {

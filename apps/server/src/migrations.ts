@@ -37,6 +37,10 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 8: YN-058 / karar 30 — Sezon Kartı birikir: `players.pass_start` (başlangıç günü, dayNumber), `pass_days`, `pass_paid`. Eski kart
  *    (`pass_until` = satın alma + 28 × 24 sa) yeni biçime çevrilir: başlangıç günü satın alma günü, ödenen gün = verilmiş Sezon Kartı
  *    ödül kutusu satırları (en çok 28); kalan günler bir sonraki girişte birikmiş olarak gelir.
+ * 9: YN-065 / karar 29 — satın alma hediyesi jetonu: `players.gift_jeton` (jetonun takım teknolojisine bağışlanamayan kısmı) ve
+ *    `camp_queue.gift_jeton` (sıraya alınırken harcanan hediye jetonu; sıradan çıkınca yine hediye jetonu olarak döner). Var olan
+ *    cüzdanlar 0 ile başlar: göçten önce alınmış hediye jetonu ayırt edilemez ve bağışlanabilir kalır (gerçek para satın alımı henüz
+ *    açılmadı, YN-032; yalnız test mağazası).
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -60,6 +64,10 @@ export const MIGRATIONS: Migration[] = [
       const start = dayNumber(r.pass_until - ESKI_KART_GUN * DAY_MS);
       yaz.run(start, ESKI_KART_GUN, Math.min(ESKI_KART_GUN, (odenen.get(r.id) as { n: number }).n), r.id);
     }
+  } },
+  { name: 'satin-alma-hediye-jetonu', up: (db) => {
+    addColumn(db, 'players', 'gift_jeton', 'INTEGER NOT NULL DEFAULT 0');
+    addColumn(db, 'camp_queue', 'gift_jeton', 'INTEGER NOT NULL DEFAULT 0');
   } },
 ];
 

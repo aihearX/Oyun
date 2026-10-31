@@ -78,7 +78,7 @@ function Shop() {
     <div className="stack">
       {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
       {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
-      <div className="muted small-note" data-testid="magaza-ilke">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. İçerikler önceden yazılı, şans yok.</div>
+      <div className="muted small-note" data-testid="magaza-ilke">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. Takım hediyesindeki jeton takım teknolojisine bağışlanamaz. İçerikler önceden yazılı, şans yok.</div>
       {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">Fiyatlar TL liste fiyatıdır. {STORE_PRICE_NOTE}.</div>}
 
       <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />

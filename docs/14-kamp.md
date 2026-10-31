@@ -32,8 +32,10 @@ teknolojisinden; `apps/server/test/pay-to-win.test.ts` aynı koşuların puanın
 yalnız kişisel etki verir: jeton (Odyometri, Kule), bölüm başı kalkan şansı (Atölye), ilk hasarı yok sayma (Klinik); kalkan ve klinik
 yarışta (takım yarışı dahil) kapalıdır. Kalan dolaylı bağlar bilinçli olarak açık yazılır: kalkan ve klinik bir bölümü bitirmeyi biraz
 kolaylaştırabilir (bitirilen bölüm savaş puanı yazar), bina seviyeleri "Güç" ve "Takım gücü" sıralamalarında sayılır (ödülsüz kalıcı
-tablolar; takım yarışı eşleşmesinde benzer güçleri buluşturmak için kullanılır, skoru değiştirmez). Kule'nin eski savaş etkisini anlatan
-seslendirilmiş satır `kamp-sv-kule-2` ("Kulen artık takımının sesini daha uzağa taşıyor") sahip onayıyla yeniden yazılıp seslendirilmeli.
+tablolar; takım yarışı eşleşmesinde benzer güçleri buluşturmak için kullanılır, skoru değiştirmez). Takım hediyeli paketin diğer
+üyelere düşürdüğü jeton (satın alma hediyesi jetonu) kampta harcanır, takım teknolojisine bağışlanamaz (YN-065; `docs/04-monetizasyon.md`
+§6); inşaat önce bu jetondan ödenir, sıradan çıkarılan bedel aynı ayrımla geri döner. Kule'nin eski savaş etkisini anlatan seslendirilmiş
+satır `kamp-sv-kule-2` sahip onayıyla (karar 32) yeniden yazıldı ve seslendirildi: "Kulen her bölümde sana biraz daha jeton kazandırıyor."
 
 Bina panelinde "Odyolojide" kutusu: sade cümle + "Daha fazla" teknik satır + kaynak (`BUILDING_INFO`). Kısa ad (`BUILDINGS[].short`)
 üst göstergede kullanılır (Merkez, Odyometri, Atölye, Depo, Kule, Klinik, Tedavi).

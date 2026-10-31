@@ -98,7 +98,8 @@ export function grantCampUnlocks(app: App, pid: string): string[] {
 }
 
 // ------------------------------------------------------------------ inşaat sırası (docs/14-kamp.md "İnşaat sırası")
-interface QRow { player_id: string; id: BuildingId; to_level: number; jeton: number; at: number }
+/** gift_jeton (göç 9): sıraya alınırken harcanan satın alma hediyesi jetonu; geri verilince yine hediye jetonu sayılır */
+interface QRow { player_id: string; id: BuildingId; to_level: number; jeton: number; gift_jeton: number; at: number }
 const qRow = (app: App, pid: string) => app.db.get<QRow>('SELECT * FROM camp_queue WHERE player_id = ?', pid);
 export function queuedOf(app: App, pid: string): QueuedBuild | null {
   const q = qRow(app, pid);
@@ -144,7 +145,7 @@ function startQueued(app: App, pid: string, at: number): void {
   app.db.run('DELETE FROM camp_queue WHERE player_id = ?', pid);
   const r = all.find((x) => x.id === q.id); const def = BUILDINGS.find((b) => b.id === q.id);
   if (!r || !def || r.level + 1 !== q.to_level || q.to_level > def.maxLevel) {
-    app.addCurrency(pid, 'jeton', q.jeton); app.walletChanged(pid);
+    app.addJeton(pid, q.jeton, q.gift_jeton); app.walletChanged(pid);
     return;
   }
   startBuild(app, pid, q.id, q.to_level, at);
@@ -272,8 +273,8 @@ export const campHandlers: Handlers = {
     if (qRow(app, s.pid)) fail('DOLU', 'Sırada zaten bir inşaat var; önce onu sıradan çıkar.');
     const to = queueTarget(all, app, s.pid, id);
     const jeton = buildCost(id, to).jeton;
-    app.spend(s.pid, 'jeton', jeton);
-    app.db.run('INSERT INTO camp_queue(player_id, id, to_level, jeton, at) VALUES(?, ?, ?, ?, ?)', s.pid, id, to, jeton, app.now());
+    const gift = app.spend(s.pid, 'jeton', jeton);
+    app.db.run('INSERT INTO camp_queue(player_id, id, to_level, jeton, gift_jeton, at) VALUES(?, ?, ?, ?, ?, ?)', s.pid, id, to, jeton, gift, app.now());
     return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), started: false };
   },
   'camp.unqueue': (app, s) => {
@@ -281,7 +282,7 @@ export const campHandlers: Handlers = {
     const q = qRow(app, s.pid);
     if (!q) return fail('YOK', 'Sırada bir inşaat yok.');
     app.db.run('DELETE FROM camp_queue WHERE player_id = ?', s.pid);
-    app.addCurrency(s.pid, 'jeton', q.jeton);
+    app.addJeton(s.pid, q.jeton, q.gift_jeton);
     return { camp: campState(app, s.pid), wallet: app.walletChanged(s.pid), refunded: q.jeton };
   },
   'camp.speedup': (app, s, { id, item, count }) => {
