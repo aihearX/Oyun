@@ -38,7 +38,7 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = [
     odyoloji: 'İnsan, tam önden gelen seslerde yaklaşık 1 derecelik yön farkını ayırt edebilir (en küçük duyulabilir açı).',
     src: `${G}, fiziksel akustik; ses kaynağının yerini belirleme` },
   { bolum: 5, genel: 'Bebeklerde kulak kanalı kısa ve düzdür; yetişkindeki S biçimli kıvrım büyüdükçe oluşur.',
-    odyoloji: 'Kepçenin yön ipuçları çoğunlukla 4 kHz üstündedir; ancak bu kısa dalga boyları kıvrımlarla etkileşir.',
+    odyoloji: 'Kepçenin yön ipuçları çoğunlukla 4 kHz üstündedir, çünkü yalnız bu kısa dalga boyları kıvrımlarla etkileşir.',
     src: `${KBB}, dış kulak gelişimi; ${G}, ses kaynağının yerini belirleme` },
   { bolum: 6, genel: 'Kulak kanalının iç üçte ikisi kemik içinden geçer; oradaki deri çok ince ve dokunmaya çok duyarlıdır.',
     odyoloji: 'Kanalın arka duvarını vagus sinirinin bir dalı (Arnold siniri) duyurur; dokunmak bazı kişilerde öksürtür.',
