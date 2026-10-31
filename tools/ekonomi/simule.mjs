@@ -81,7 +81,7 @@ export { CAMP_XP, campXpState, campLevelRewards, decorSlots, kabinXpPct, depotCa
   HUMAN_JOURNEY, MONUMENT_DECOR, CARDS, DISTRICTS, questById } from '@odi/content';
 export { rollDailyQuests } from '@odi/meta';
 export { FEATURES } from './apps/web/src/ftue/features';
-export { MAX_COINS, LAB_PCT_PER_LEVEL } from './apps/server/src/progress';
+export { MAX_COINS, LAB_PCT_PER_LEVEL, KULE_PCT_PER_LEVEL } from './apps/server/src/progress';
 export { DEPOT_PER_LEVEL_HOUR, CAMP_HELP_REWARD, CAMP_HELP_REWARD_DAILY, SPEEDUP_SEC } from './apps/server/src/camp';
 export { LOCAL_JETON_DAILY_MAX } from './apps/server/src/wallet';
 export { START_JETON } from './apps/server/src/players';
@@ -339,7 +339,7 @@ function simule(P, H = {}) {
   // ---------------------------------------------------------------- bölüm oynama (beklenen değer yürüyüşü)
   let gunSayac = null;
   const bolumOyna = (butce) => {
-    const mul = 1 + (Math.min(F.CAMP_POWER_LEVEL, s.L.laboratuvar) * F.LAB_PCT_PER_LEVEL + (s.team ? T.tekno * 3 : 0)) / 100; // progress.ts
+    const mul = 1 + (Math.min(F.CAMP_POWER_LEVEL, s.L.laboratuvar) * F.LAB_PCT_PER_LEVEL + Math.min(F.CAMP_POWER_LEVEL, s.L.kule ?? 0) * F.KULE_PCT_PER_LEVEL + (s.team ? T.tekno * 3 : 0)) / 100; // progress.ts (Kule: karar 29)
     while (butce > 1e-9) {
       const tekrar = s.lv > 40; const n = tekrar ? (s.replay % 40) + 1 : s.lv; const d = LV[n];
       const kalan = d.sure - s.spent; const dt = Math.min(butce, kalan); const oran = dt / d.sure;

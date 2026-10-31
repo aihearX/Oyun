@@ -30,7 +30,7 @@ const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ru
 /** wallet.local şeması: tek kayıtta en çok bu kadar jeton (apps/server/src/schemas.ts); devir zaten DEVIR_MAX (3000) ile sınırlı */
 const LOCAL_JETON_PER_CALL = 10_000;
 
-export interface LastRun { runId: string; state: 'gonderiliyor' | 'kuyrukta' | 'tamam' | 'hata' | 'yok'; ack?: ProgressAck; error?: string; biome: string; level: number; completed: boolean }
+export interface LastRun { runId: string; state: 'gonderiliyor' | 'kuyrukta' | 'tamam' | 'hata' | 'yok'; ack?: ProgressAck; error?: string; biome: string; level: number; completed: boolean; /** yarış koşusuysa oda kimliği (yarış sonucu sunucunun lig puanını gösterir) */ raceId?: string }
 interface SocialState {
   /** sunucu adresi var mı (yoksa sosyal katman kapalı) */
   enabled: boolean;
@@ -223,7 +223,7 @@ const sanitizeMechanic = (m: string) => (MECHANICS.has(m) ? m : 'kosu') as Progr
 /** Her koşu sunucuya gider (çevrimdışıysa kalıcı kuyruğa). Dönen runId sonuç ekranında katkı satırlarını eşler. */
 export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): string {
   const runId = newRunId();
-  const base: LastRun = { runId, state: 'gonderiliyor', biome: spec.biome, level: spec.number, completed: r.completed };
+  const base: LastRun = { runId, state: 'gonderiliyor', biome: spec.biome, level: spec.number, completed: r.completed, ...(raceId ? { raceId } : {}) };
   if (!client) { useSocial.setState({ lastRun: { ...base, state: 'yok' } }); return runId; }
   const data: ProgressSubmit = {
     runId, level: spec.number, completed: r.completed, stars: r.completed ? r.stars : 0, score: Math.max(0, Math.min(50_000, Math.round(r.score))),

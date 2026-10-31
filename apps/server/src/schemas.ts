@@ -94,7 +94,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'team.goal.claim': z.object({ goalId: z.string().max(40), tier: z.number().int().min(0).max(10) }),
   'shop.list': empty,
   'shop.purchase': z.object({ productId: z.string().max(60), store: z.enum(['test', 'app-store', 'play']), receipt: z.string().max(4096).optional() }),
-  'shop.limit': z.object({ limitTry: z.number().int().min(0).max(SPEND_LIMIT_MAX_TRY) }),
+  'shop.limit': z.object({ limitTry: z.number().int().min(0).max(SPEND_LIMIT_MAX_TRY), confirmRaise: z.boolean().optional() }),
   'me.bonuses': empty,
   'wallet.local': z.object({ ledgerId: z.string().min(1).max(80).regex(/^[A-Za-z0-9_.:-]+$/), jeton: z.number().int().min(1).max(10_000), reason: z.string().min(1).max(60) }),
   'wallet.spend': z.object({ jeton: z.number().int().min(1).max(100_000), reason: z.string().min(1).max(60) }),

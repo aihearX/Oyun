@@ -1,5 +1,14 @@
-import type { LeagueState, LeagueTier } from '@odi/shared';
+import { leagueRunPoints, type LeagueState, type LeagueTier } from '@odi/shared';
 import type { App, Handlers } from './app';
+
+/**
+ * Lig puanı tekrar sınırı (karar 26, göç 6): bu lig haftasında bölüm başına yazılmış tam puanlı bitiriş sayısı.
+ * Hafta kapanışında eski haftaların satırları silinir; hesap silinince oyuncunun satırları silinir (account-veri.ts).
+ */
+export const LEAGUE_RUNS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS league_level_runs(week TEXT NOT NULL, player_id TEXT NOT NULL, level INTEGER NOT NULL, full_runs INTEGER NOT NULL,
+  PRIMARY KEY(week, player_id, level));
+`;
 
 export const TIERS: LeagueTier[] = ['bronz', 'gumus', 'altin', 'koklea'];
 export const GROUP_SIZE = 30;
@@ -25,6 +34,22 @@ export function ensureLeague(app: App, pid: string): LRow {
   return app.db.get<LRow>('SELECT * FROM league WHERE week = ? AND player_id = ?', week, pid)!;
 }
 
+/**
+ * Bu koşunun lig puanı (sunucu tek doğru kaynak): bölüm bu hafta LEAGUE_FULL_RUNS_PER_LEVEL kez tam puanla bitirildiyse
+ * LEAGUE_REPLAY_POINTS, değilse `full` (leaguePointsFor; yarış derecesi dahil). Tam puan yazan bitiriş sayaca eklenir.
+ */
+export function leaguePointsForRun(app: App, pid: string, level: number, completed: boolean, full: number): { points: number; replay: boolean } {
+  if (!completed) return leagueRunPoints(full, false, 0);
+  const week = app.week().key;
+  const before = app.db.get<{ n: number }>('SELECT full_runs AS n FROM league_level_runs WHERE week = ? AND player_id = ? AND level = ?', week, pid, level)?.n ?? 0;
+  const r = leagueRunPoints(full, true, before);
+  if (!r.replay) {
+    app.db.run(`INSERT INTO league_level_runs(week, player_id, level, full_runs) VALUES(?, ?, ?, 1)
+      ON CONFLICT(week, player_id, level) DO UPDATE SET full_runs = full_runs + 1`, week, pid, level);
+  }
+  return r;
+}
+
 export function addLeaguePoints(app: App, pid: string, pts: number): void {
   const r = ensureLeague(app, pid);
   app.db.run('UPDATE league SET points = points + ? WHERE week = ? AND player_id = ?', pts, r.week, pid);
@@ -48,6 +73,8 @@ export function leagueState(app: App, pid: string): LeagueState {
 
 /** hafta kapanışı: her grupta ilk 7 bir üst kademeye, son 5 (ilk 7'ye girmeyenlerden) bir alta */
 export function leagueRollover(app: App, oldWeek: string): void {
+  // tekrar sınırı haftalıktır: yalnız bu haftanın sayaçları kalır
+  app.db.run('DELETE FROM league_level_runs WHERE week <> ?', app.week().key);
   const groups = app.db.all<{ id: string }>('SELECT id FROM league_groups WHERE week = ?', oldWeek);
   for (const g of groups) {
     const rows = groupRows(app, g.id);

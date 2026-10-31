@@ -56,6 +56,7 @@ describe('Kulak Kampı', () => {
     expect(b(st.camp, 'merkez').endsAt).toBe(end0 - 120_000);
     expect(b(st.camp, 'merkez').helpsReceived).toBe(2);
     // test mağazası: 10 × m5 + 300 kristal
+    await a.call('shop.limit', { limitTry: 100 });
     await a.call('shop.purchase', { productId: 'odi.baslangic', store: 'test' });
     const sp = await a.call('camp.speedup', { id: 'merkez', item: 'm5', count: 1 });
     expect(sp.wallet.hizlandirici.m5).toBe(9);

@@ -152,7 +152,9 @@ export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: s
 
 // ---------- İlerleme bildirimi (her bölüm sonunda)
 export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[] }
-export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet }
+export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet;
+  /** true: bu bölüm bu lig haftasında LEAGUE_FULL_RUNS_PER_LEVEL kez tam puan yazdı; bu koşu LEAGUE_REPLAY_POINTS yazdı (karar 26). Eski sunucu göndermez. */
+  leagueReplay?: boolean }
 
 
 // =====================================================================
@@ -177,7 +179,7 @@ export const BUILDINGS: BuildingDef[] = [
   { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 25 },
   { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 25 },
   { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 25 },
-  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Kanaldaki basıncı değiştirip zarın ne kadar rahat hareket ettiğini ölçer; takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 25 },
+  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Kanaldaki basıncı değiştirip zarın ne kadar rahat hareket ettiğini ölçer; ölçtükçe kazanırsın: bölüm jetonu +%2/seviye.', maxLevel: 25 },
   { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 25 },
   { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 25 },
   // ---- Kamp Seviyesiyle açılan bölgeler (docs/14-kamp.md §8–9): etkiler ekonomi, üretim, bilgi ve süs üzerinedir; bölüm gücü değil
@@ -272,6 +274,14 @@ export interface ShopProduct {
   limit: number;
   tag?: 'populer' | 'en-iyi-deger' | 'baslangic';
 }
+/**
+ * Sezon Kartı (karar 30): satın alınan takvim günü (Türkiye saati) 1. gün olmak üzere PASS_DAYS gün, her güne PASS_DAILY_KRISTAL kristal.
+ * Girilmeyen günün kristali yanmaz: birikir, bir sonraki girişte ödül kutusuna toplu düşer. Toplam tam PASS_DAYS × PASS_DAILY_KRISTAL;
+ * PASS_DAYS. günden sonra hiçbir şey verilmez.
+ */
+export const PASS_DAYS = 28;
+export const PASS_DAILY_KRISTAL = 30;
+export const PASS_TOTAL_KRISTAL = PASS_DAYS * PASS_DAILY_KRISTAL;
 export const SHOP: ShopProduct[] = [
   { id: 'odi.baslangic', name: 'Başlangıç Paketi', desc: '300 kristal, 10 adet 5 dk hızlandırıcı, Kaşif şapkası', priceTry: 49.99, contents: [{ kind: 'kristal', amount: 300 }, { kind: 'm5', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'sapka-kasif' }], teamGift: true, limit: 1, tag: 'baslangic' },
   { id: 'odi.kristal.1', name: 'Avuç Kristal', desc: '120 kristal', priceTry: 29.99, contents: [{ kind: 'kristal', amount: 120 }], teamGift: false, limit: 0 },
@@ -279,7 +289,7 @@ export const SHOP: ShopProduct[] = [
   { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, tag: 'en-iyi-deger' },
   { id: 'odi.hiz.1', name: 'İnşaatçı Paketi', desc: '10 × 60 dk, 20 × 5 dk hızlandırıcı', priceTry: 79.99, contents: [{ kind: 'm60', amount: 10 }, { kind: 'm5', amount: 20 }], teamGift: true, limit: 0 },
   { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0 },
-  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal (toplam 840) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: 28 }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1 },
+  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal, toplam 840 (girmediğin günlerin kristali birikir, girince alırsın) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: PASS_DAYS }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1 },
 ];
 /**
  * Mağazanın (App Store / Google Play, RevenueCat `getProducts`) döndürdüğü yerel fiyat: yalnız gösterim içindir.
@@ -290,8 +300,17 @@ export interface StorePrice { id: string; priceString: string; currencyCode: str
 /** kristal ile hızlandırma: kalan her dakika için 1 kristal (yukarı yuvarlanır) — şeffaf */
 export function crystalsToFinish(remainingSec: number): number { return Math.max(1, Math.ceil(remainingSec / 60)); }
 export interface PurchaseRecord { id: string; productId: string; at: number; store: 'test' | 'app-store' | 'play'; amountTry: number }
-/** harcama sınırı (aylık TL); oyuncu ayarlardan düşürebilir; 18 yaş altı beyanında 0 */
-export interface SpendState { monthTry: number; limitTry: number; purchases: PurchaseRecord[]; /** yükseltme isteği 24 saat sonra geçerli olur */ pendingLimitTry: number | null; pendingLimitAt: number | null }
+/**
+ * Aylık harcama sınırı (karar 28): ilk satın almadan önce oyuncu kendi seçer (önerilen SPEND_LIMIT_SUGGESTED_TRY). Düşürmek hemen geçerli;
+ * yükseltmek ayrı bir onay ister (`shop.limit { confirmRaise: true }`) ve 24 saat sonra geçerli olur. 0 = satın alma kapalı.
+ */
+export const SPEND_LIMIT_SUGGESTED_TRY = 100;
+/** ilk seçimde gösterilen sınırlar (TL); sonradan değiştirirken SPEND_LIMIT_OPTIONS */
+export const SPEND_LIMIT_FIRST_CHOICES = [0, 50, 100, 250, 500] as const;
+export const SPEND_LIMIT_OPTIONS = [0, 50, 100, 250, 500, 1000, 2000, 5000] as const;
+export interface SpendState { monthTry: number; limitTry: number; purchases: PurchaseRecord[]; /** yükseltme isteği 24 saat sonra geçerli olur */ pendingLimitTry: number | null; pendingLimitAt: number | null;
+  /** false: oyuncu sınırı henüz seçmedi; satın almadan önce seçmeli (limitTry o zaman önerilen değeri gösterir) */
+  limitChosen: boolean }
 
 // ---------- İstek/yanıt sözleşmesi
 export interface OpMap {
@@ -362,7 +381,8 @@ export interface OpMap {
   'team.goal.claim': { req: { goalId: string; tier: number }; res: { extra: TeamExtra; wallet: Wallet } };
   'shop.list': { req: Record<string, never>; res: { products: (ShopProduct & { bought: number })[]; spend: SpendState; testStore: boolean } };
   'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
-  'shop.limit': { req: { limitTry: number }; res: { spend: SpendState } };
+  /** ilk seçim hemen geçerli; düşürmek hemen; yükseltmek confirmRaise: true ister (yoksa ONAY hatası) ve 24 saat sonra geçerli */
+  'shop.limit': { req: { limitTry: number; confirmRaise?: boolean }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
   /** yerel meta ödüllerinin (görev/takvim/sandık/hazine…) jetonu: ledgerId ile idempotent, günlük üst sınırlı */
   'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number } };
@@ -435,7 +455,18 @@ export function raidDamageFor(p: Pick<ProgressSubmit, 'completed' | 'stars' | 'm
   if (!p.completed) return 0;
   return (5 + 5 * p.stars) * (p.mechanic === 'boss' ? 2 : 1);
 }
-/** Lig puanı: yıldız + hız bonusu + yarış derecesi (yarıştaysa). */
+/**
+ * Lig puanı tekrar sınırı (karar 26): bir bölüm aynı lig haftasında en çok LEAGUE_FULL_RUNS_PER_LEVEL kez tam puan (leaguePointsFor) yazar;
+ * o bölümün sonraki her bitirişi LEAGUE_REPLAY_POINTS yazar. Bitirilemeyen koşu zaten 1 puandır ve hakkı harcamaz. Sunucu uygular.
+ */
+export const LEAGUE_FULL_RUNS_PER_LEVEL = 2;
+export const LEAGUE_REPLAY_POINTS = 1;
+/** bu koşunun lig puanı: `fullRunsBefore` bu hafta bu bölümde daha önce yazılmış tam puanlı bitiriş sayısı */
+export function leagueRunPoints(full: number, completed: boolean, fullRunsBefore: number): { points: number; replay: boolean } {
+  if (!completed || fullRunsBefore < LEAGUE_FULL_RUNS_PER_LEVEL) return { points: full, replay: false };
+  return { points: LEAGUE_REPLAY_POINTS, replay: true };
+}
+/** Lig puanı: yıldız + yarış derecesi (yarıştaysa). Tekrar sınırı için leagueRunPoints. */
 export function leaguePointsFor(p: Pick<ProgressSubmit, 'completed' | 'stars'>, racePlace?: number | null): number {
   if (!p.completed) return 1;
   const race = racePlace == null ? 0 : racePlace === 1 ? 30 : racePlace === 2 ? 15 : racePlace === 3 ? 8 : 3;

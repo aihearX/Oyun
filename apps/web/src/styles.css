@@ -717,6 +717,9 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .limit-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
 .chip-btn { appearance:none; font:inherit; font-weight:900; font-size:0.8125rem; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); color:var(--text); border-radius:12px; min-height:44px; cursor:pointer; }
 .chip-btn.on { border-color:var(--gold); background:rgba(255,201,60,.18); color:var(--gold); }
+.limit-first { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; }
+.limit-first .chip-btn { text-align:left; padding:8px 14px; }
+.limit-tag { font-weight:700; opacity:.85; }
 .pass-terms { margin:4px 0 0; padding-left:1.2em; display:flex; flex-direction:column; gap:4px; color:var(--text-2); font-weight:700; font-size:0.8125rem; line-height:1.35; }
 .pass-path { display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin; padding-bottom:4px; }
 .pp-day { flex:none; width:64px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.1); border-radius:12px; padding:6px 4px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:0.75rem; }

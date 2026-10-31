@@ -103,8 +103,9 @@ Kids kategorisi seçilmez.
 >
 > **In-app purchases** (all consumable): crystal packs, camp booster packs, a one-time Starter Pack and the Odi Season Card
 > (28 days of daily crystals, does not auto-renew). Contents are fixed and listed before purchase; there are no loot boxes or
-> random paid items. Purchases are verified on our server through RevenueCat. A monthly spending limit (default 1000 TRY) can be
-> lowered at once and raised only after 24 hours (Mağaza › harcama sınırı).
+> random paid items. Purchases are verified on our server through RevenueCat. Before the first purchase the player must choose a monthly spending
+> limit (100 TRY suggested, or purchases off); it can be lowered at once and raised only with a separate confirmation and after 24 hours
+> (Mağaza › harcama sınırı).
 >
 > **User-generated content (1.2):** chat is limited to preset phrases and emoji until the player has cleared 8 levels; free text and
 > nicknames pass a profanity filter. Players can report a message (long-press › "Şikâyet et") or a player and block them (player

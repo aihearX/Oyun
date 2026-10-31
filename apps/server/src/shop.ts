@@ -1,11 +1,15 @@
-import { SHOP, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
+import { SHOP, SPEND_LIMIT_SUGGESTED_TRY, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
 import { fail, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { passDaily } from './players';
 import { createGift } from './teamextra';
-import { DAY_MS, monthStart } from './time';
+import { DAY_MS, dayNumber, dayNumberStart, monthStart } from './time';
 
-export const DEFAULT_SPEND_LIMIT_TRY = 1000;
+/**
+ * Aylık harcama sınırı (karar 28): varsayılan sınır yok; oyuncu ilk satın almadan önce kendisi seçer (`spend_chosen`, göç 7).
+ * Seçim ekranında önerilen değer SPEND_LIMIT_SUGGESTED_TRY (100 TL); seçilene kadar gösterilen sınır da odur.
+ * Seçilmeden satın alma yapılamaz (SINIR_SEC). Düşürmek hemen; yükseltmek ayrı onay (confirmRaise) + LIMIT_RAISE_DELAY_MS.
+ */
 export const SPEND_LIMIT_MAX_TRY = 10_000;
 export const LIMIT_RAISE_DELAY_MS = DAY_MS;
 
@@ -45,6 +49,7 @@ export async function verifyReceipt(apiKey: string | null, store: 'app-store' | 
 
 function effectiveLimit(app: App, pid: string): number {
   const p = app.player(pid);
+  if (!p.spend_chosen) return SPEND_LIMIT_SUGGESTED_TRY;
   if (p.spend_pending != null && p.spend_pending_at != null && app.now() >= p.spend_pending_at) {
     app.db.run('UPDATE players SET spend_limit = ?, spend_pending = NULL, spend_pending_at = NULL WHERE id = ?', p.spend_pending, pid);
     return p.spend_pending;
@@ -58,7 +63,7 @@ export function spendState(app: App, pid: string): SpendState {
   const monthTry = app.db.get<{ s: number | null }>('SELECT SUM(amount_try) AS s FROM purchases WHERE player_id = ? AND at >= ?', pid, since)!.s ?? 0;
   const purchases = app.db.all<PurchaseRecord>('SELECT id, product_id AS productId, at, store, amount_try AS amountTry FROM purchases WHERE player_id = ? ORDER BY at DESC LIMIT 30', pid).map((r) => ({ ...r }));
   const p = app.player(pid);
-  return { monthTry: Math.round(monthTry * 100) / 100, limitTry, purchases, pendingLimitTry: p.spend_pending ?? null, pendingLimitAt: p.spend_pending_at ?? null };
+  return { monthTry: Math.round(monthTry * 100) / 100, limitTry, purchases, pendingLimitTry: p.spend_pending ?? null, pendingLimitAt: p.spend_pending_at ?? null, limitChosen: !!p.spend_chosen };
 }
 
 const boughtCount = (app: App, pid: string, productId: string) => app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM purchases WHERE player_id = ? AND product_id = ?', pid, productId)!.n;
@@ -67,6 +72,7 @@ const boughtCount = (app: App, pid: string, productId: string) => app.db.get<{ n
 function checkLimits(app: App, pid: string, prod: ShopProduct): void {
   if (prod.limit > 0 && boughtCount(app, pid, prod.id) >= prod.limit) fail('LIMIT', 'Bu ürünü satın alma sınırına ulaştın.');
   const sp = spendState(app, pid);
+  if (!sp.limitChosen) fail('SINIR_SEC', 'Satın almadan önce aylık harcama sınırını seç (önerilen 100 TL).');
   if (sp.monthTry + prod.priceTry > sp.limitTry + 1e-9) fail('HARCAMA_SINIRI', `Bu satın alma aylık harcama sınırını (${sp.limitTry} TL) aşıyor. Sınırı ayarlardan değiştirebilirsin.`);
 }
 
@@ -76,9 +82,15 @@ function deliver(app: App, pid: string, prod: ShopProduct): void {
       case 'kristal': case 'jeton': case 'm5': case 'm60': case 's8': app.addCurrency(pid, c.kind, c.amount); break;
       case 'kozmetik': app.grant(pid, { kind: 'kozmetik', amount: 1, ref: c.ref ?? '' }); break;
       case 'pass': {
+        // Sezon Kartı (karar 30): satın alınan gün 1. gün; süren kart varsa günler ona eklenir. pass_until yalnız gösterim/uyumluluk:
+        // son günün bittiği an (İstanbul gece yarısı), 29. günün sabahı fazladan ödeme olmaz (ödeme pass_paid ile sayılır).
+        passDaily(app, pid); // önceki kartın birikmiş günleri önce ödenir
         const p = app.player(pid);
-        const until = Math.max(app.now(), p.pass_until) + c.amount * DAY_MS;
-        app.db.run('UPDATE players SET pass_until = ? WHERE id = ?', until, pid);
+        const active = p.pass_start > 0 && p.pass_paid < p.pass_days;
+        const start = active ? p.pass_start : dayNumber(app.now());
+        const days = (active ? p.pass_days : 0) + c.amount;
+        const paid = active ? p.pass_paid : 0;
+        app.db.run('UPDATE players SET pass_start = ?, pass_days = ?, pass_paid = ?, pass_until = ? WHERE id = ?', start, days, paid, dayNumberStart(start + days), pid);
         passDaily(app, pid);
         break;
       }
@@ -122,9 +134,12 @@ export const shopHandlers: Handlers = {
       return { wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent };
     });
   },
-  'shop.limit': (app, s, { limitTry }) => {
+  'shop.limit': (app, s, { limitTry, confirmRaise }) => {
+    const chosen = !!app.player(s.pid).spend_chosen;
     const current = effectiveLimit(app, s.pid);
-    if (limitTry <= current) app.db.run('UPDATE players SET spend_limit = ?, spend_pending = NULL, spend_pending_at = NULL WHERE id = ?', limitTry, s.pid);
+    // ilk seçim (karar 28): hangi değer seçilirse hemen geçerli; düşürmek hemen; yükseltmek ayrı onay + 24 saat
+    if (!chosen || limitTry <= current) app.db.run('UPDATE players SET spend_limit = ?, spend_pending = NULL, spend_pending_at = NULL, spend_chosen = 1 WHERE id = ?', limitTry, s.pid);
+    else if (!confirmRaise) fail('ONAY', 'Sınırı yükseltmek için ayrıca onay vermelisin.');
     else app.db.run('UPDATE players SET spend_pending = ?, spend_pending_at = ? WHERE id = ?', limitTry, app.now() + LIMIT_RAISE_DELAY_MS, s.pid);
     return { spend: spendState(app, s.pid) };
   },

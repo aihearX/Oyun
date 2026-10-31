@@ -22,7 +22,7 @@ export function effect(id: BuildingId, l: number): string {
     case 'laboratuvar': return `Bölüm jetonu +%${P(l) * 3}`;
     case 'atolye': return `Bölüm başında kalkan şansı %${P(l) * 4}`;
     case 'depo': return l ? `${l * DEPOT_RATE} jeton/saat (${DEPOT_CAP_H} saatte dolar)` : 'Pasif jeton üretimi yok';
-    case 'kule': return `Savaş puanı +%${P(l) * 2}`;
+    case 'kule': return `Bölüm jetonu +%${P(l) * 2}`;
     case 'revir': return `İlk hasarı yok sayma şansı %${P(l) * 3}`;
     case 'tedavi': return l ? `${remediesAt(l).length} tarif · rafta en çok ${remedyShelfCap(l)}` : 'Malzeme hazırlanmıyor';
     case 'kabin': return l ? `Kamp XP +%${kabinXpPct(l)}` : 'Kamp XP bonusu yok';

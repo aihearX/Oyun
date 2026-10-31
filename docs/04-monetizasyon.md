@@ -32,3 +32,17 @@ Apple ve Google, dijital içerik için kendi uygulama içi satın alma sistemler
 - Dönüşüm (ödeyen/aktif): %3-5 (tür ortalaması %2-4).
 - ARPDAU: $0,05-0,10 ilk yıl; gelir ağırlığı Odi Pass'te.
 - İade oranı <%1; mağaza puanı 4,7+.
+
+## 6. Uygulanan kurallar (sahip kararları 28, 29, 30; 2026-10-31)
+Yukarıdaki ürün tablosu ilk taslaktır; satılan ürünler `packages/shared/src/social.ts` `SHOP` ve `marketing/magaza/iap-urunler.md`.
+
+- **Aylık harcama sınırı (karar 28):** varsayılan sınır yok. İlk satın almadan önce oyuncu sınırını kendisi seçer: Satın alma kapalı,
+  50, **100 (önerilen)**, 250, 500 TL. Seçilmeden sunucu satın almayı kabul etmez (`SINIR_SEC`). Düşürmek hemen geçerli; yükseltmek
+  ikinci bir onay adımı ister (`confirmRaise`) ve 24 saat sonra geçerli olur. Kitle öğrenci ve çocuk olduğu için eski 1.000 TL
+  varsayılanı kaldırıldı. Göç 7: sınırını önceden değiştirmiş oyuncu seçmiş sayılır, diğerleri bir sonraki alımdan önce seçer.
+- **Pay-to-win yok (karar 29):** hızlandırıcılar yalnız kamp inşaatını kısaltır. Kamp binaları takım rekabetine (savaş, baskın, takım
+  yarışı, Takım Ligi) ve bireysel lige hiç yansımaz; yalnız kişisel jeton, kalkan ve klinik şansı verir. Timpanometri Kulesi'nin savaş
+  puanı etkisi kişisel bölüm jetonu etkisine çevrildi. Ayrıntı ve kalan dolaylı bağlar: `docs/14-kamp.md` §1.
+- **Sezon Kartı (karar 30):** 28 gün, her güne 30 kristal, toplam tam 840. Girilmeyen günlerin kristali yanmaz, birikir ve sonraki
+  girişte ödül kutusuna toplu gelir; 28. günden sonra hiçbir şey gelmez (eski "29. gün sabahı fazladan 30" hatası da kapandı).
+  Tek seferlik alım, kendiliğinden yenilenmez.

@@ -61,6 +61,7 @@ describe('İnşaat sırası', () => {
     expect((await err(a.call('camp.unqueue', {}))).code).toBe('YOK');
     // sıradaki binaya hızlandırıcı ya da yardım isteği olmaz
     await a.call('camp.queue', { id: 'depo' });
+    await a.call('shop.limit', { limitTry: 100 });
     await a.call('shop.purchase', { productId: 'odi.baslangic', store: 'test' });
     expect((await err(a.call('camp.speedup', { id: 'depo', item: 'm5' }))).code).toBe('YOK');
     expect((await err(a.call('camp.help.request', { id: 'depo' }))).code).toBe('YOK');

@@ -72,7 +72,7 @@
 | Küfür süzgeci (sohbet, DM, ad, takım adı/açıklama, başvuru notu) | `chat.ts`/`dm.ts` `maskProfanity`, `players.ts`, `teams.ts`, `teamapply.ts` `hasProfanity` |
 | 3 şikâyette ileti gizlenir, 1 günde 3 kişi → susturma | `chat.ts` `REPORTS_TO_HIDE`, `friends.ts` `addReport` (`FRIEND_LIMITS.reportsToMute`) |
 | Şikâyetleri inceler, uzun süre susturabiliriz | `npm run kod -- sikayetler`, `npm run kod -- sustur KOD --gun N` (`yonetim.ts`) |
-| Harcama sınırı 1000 TL, yükseltme 24 saat | `shop.ts` `DEFAULT_SPEND_LIMIT_TRY`, `LIMIT_RAISE_DELAY_MS` |
+| Harcama sınırı ilk alımdan önce oyuncu seçer (önerilen 100 TL), yükseltme ayrı onay + 24 saat (karar 28) | `@odi/shared` `SPEND_LIMIT_SUGGESTED_TRY`, `shop.ts` `LIMIT_RAISE_DELAY_MS` |
 | Hesap silme: sil / anonim / tut ayrıntısı | `account-veri.ts` `VERI_SINIFI` (128 tablo, test `account.test.ts`) |
 | Uygulama dışı silme: arkadaş kodu, 14 gün bağlanmamış, 30 gün içinde yanıt | `yonetim.ts` `hesapSilIstegi`, `HESAP_SIL_BEKLEME_GUN` |
 | Uygulamayı kaldırmak hesabı silmez | Anahtar yalnız cihazda; sunucuda hareketsiz hesap temizliği yok |

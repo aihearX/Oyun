@@ -304,6 +304,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   raid_damage: { oyuncu: { player_id: SIL }, takim: { team_id: SIL }, degil: ['raid_id'], not: 'Takım ligi ve baskın sıralaması silinen hesapları zaten saymaz (ADMIN_IDS_SQL); can raids.hp\'de.' },
   league_groups: { degil: ['id'], not: 'Lig grubu; kimlik yok.' },
   league: { oyuncu: { player_id: SIL }, degil: ['group_id'], not: 'Bütün haftalar silinir (geçmiş haftalar yalnız hafta kapanışında okunur).' },
+  league_level_runs: { oyuncu: { player_id: SIL }, not: 'Lig puanı tekrar sınırı sayacı (karar 26, league.ts): bu haftanın bölüm başına tam puanlı bitiriş sayısı; hafta kapanışında eski haftalar silinir.' },
 
   // ------------------------------------------------------------------ sıralama
   rank_level: { oyuncu: { player_id: SIL } },
@@ -498,9 +499,16 @@ export const ANONIM_OYUNCU_SQL = `UPDATE players SET name = ?, token_hash = ?, f
   m5 = 0, m60 = 0, s8 = 0, shields = 0, chat_muted_until = 0, last_chat_at = 0, pass_until = 0, pass_day = '', spend_pending = NULL,
   spend_pending_at = NULL WHERE id = ?`;
 
+/**
+ * Göç 7–8'in eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı). ANONIM_OYUNCU_SQL'den ayrı: göç 2 bu sütunlar eklenmeden
+ * önce de çalışır (eski veritabanı); hesap silmede ikisi birlikte uygulanır.
+ */
+export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0 WHERE id = ?';
+
 /** anonim oyuncu satırı + silindi işareti (hesap silme ve göç) */
-export function anonimOyuncu(db: Sorgu, pid: string, at: number): void {
+export function anonimOyuncu(db: Sorgu, pid: string, at: number, ekAlanlar = false): void {
   db.run(ANONIM_OYUNCU_SQL, SILINMIS, `silindi:${pid}`, `X${randomBytes(8).toString('hex').toUpperCase()}`, pid);
+  if (ekAlanlar) db.run(ANONIM_OYUNCU_EK_SQL, pid);
   db.run('INSERT OR IGNORE INTO deleted_players(player_id, at) VALUES(?, ?)', pid, at);
 }
 

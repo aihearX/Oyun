@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import type { InboxItem, LeagueState } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS, type InboxItem, type LeagueState } from '@odi/shared';
 import { claimInboxItem, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
@@ -75,7 +75,7 @@ export function LeagueScreen({ onBack }: { onBack: () => void }) {
       <Online what="Lig">
         {!lg ? <Skeleton rows={5} /> : (() => { const n = lg.group.length; const downFrom = Math.max(lg.promoteTop, n - lg.demoteBottom); return (
           <div className="stack">
-            <div className="card"><b><Glyph e={TIER[lg.tier].icon} size="1.2em" /> {TIER[lg.tier].name} Ligi</b><div className="muted">Bitişe {fmtLeft(lg.endsAt - now)}. İlk {lg.promoteTop} bir üst lige çıkar{lg.tier !== 'bronz' ? `, son ${lg.demoteBottom} bir alta iner` : ''}. Puan: her bölüm 5 + 5 × yıldız (+ yarış derecesi).</div></div>
+            <div className="card"><b><Glyph e={TIER[lg.tier].icon} size="1.2em" /> {TIER[lg.tier].name} Ligi</b><div className="muted">Bitişe {fmtLeft(lg.endsAt - now)}. İlk {lg.promoteTop} bir üst lige çıkar{lg.tier !== 'bronz' ? `, son ${lg.demoteBottom} bir alta iner` : ''}. Puan: bitirdiğin her bölüm 5 + 5 × yıldız (+ yarış derecesi); bitiremediğin koşu 1. Aynı bölüm haftada en çok {LEAGUE_FULL_RUNS_PER_LEVEL} kez tam puan yazar, sonraki her bitirişi {LEAGUE_REPLAY_POINTS} puan.</div></div>
             <ol className="league-list">
               {lg.group.map((p, i) => { const up = i < lg.promoteTop && lg.tier !== 'koklea'; const down = lg.tier !== 'bronz' && i >= downFrom; return (
                 <li key={p.id} className={`${p.id === me?.id ? 'me ' : ''}${up ? 'up' : down ? 'down' : ''}`}>

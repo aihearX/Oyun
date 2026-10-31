@@ -177,7 +177,8 @@ describe('Yeni bina etkileri', () => {
     expect(c.collected).toBe(20 * depotCapHours(4));
     setLevels(env, pid, { laboratuvar: 25, atolye: 20, revir: 16, kule: 25 });
     const b = await a.call('me.bonuses', {});
-    expect(b).toMatchObject({ coinPct: 45, shieldChancePct: 60, firstHitIgnorePct: 45, warPct: 30 });
+    // Kule kişisel jeton verir (karar 29): 15 × 3 + 15 × 2; savaş/baskın yüzdesi binadan gelmez
+    expect(b).toMatchObject({ coinPct: 75, shieldChancePct: 60, firstHitIgnorePct: 45, warPct: 0, raidPct: 0 });
   });
 });
 

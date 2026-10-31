@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS players(
   depot_at INTEGER NOT NULL,
   pass_until INTEGER NOT NULL DEFAULT 0,
   pass_day TEXT NOT NULL DEFAULT '',
-  spend_limit INTEGER NOT NULL DEFAULT 1000,
+  spend_limit INTEGER NOT NULL DEFAULT 1000, -- karar 28: oyuncu seçene kadar (spend_chosen = 0, göç 7) kullanılmaz
   spend_pending INTEGER,
   spend_pending_at INTEGER,
   created_at INTEGER NOT NULL,

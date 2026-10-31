@@ -39,6 +39,7 @@ describe('sözleşme v2 eklemeleri', () => {
     await b.call('team.help.give', { requestId: req.id });
     const item = (await a.call('inbox.list', {})).items[0]!;
     await a.call('inbox.claim', { id: item.id });
+    await a.call('shop.limit', { limitTry: 100 });
     await a.call('shop.purchase', { productId: 'odi.baslangic', store: 'test' });
     const me = (await a.call('profile.update', {})).me;
     expect(me).toMatchObject({ shields: 1, cosmetics: ['sapka-kasif'], cards: [] });
@@ -64,13 +65,13 @@ describe('sözleşme v2 eklemeleri', () => {
     env = await setup();
     const a = await env.connect('Ayşe');
     const list = await a.call('shop.list', {});
-    expect(list.spend).toMatchObject({ pendingLimitTry: null, pendingLimitAt: null });
+    expect(list.spend).toMatchObject({ pendingLimitTry: null, pendingLimitAt: null, limitChosen: false });
     for (const p of list.products) {
       if (p.teamGift) expect(p.teamGiftContents).toEqual(teamGiftFor(p.priceTry));
       else expect(p.teamGiftContents).toBeUndefined();
     }
     await a.call('shop.limit', { limitTry: 100 });
-    const up = (await a.call('shop.limit', { limitTry: 500 })).spend;
+    const up = (await a.call('shop.limit', { limitTry: 500, confirmRaise: true })).spend;
     expect(up).toMatchObject({ limitTry: 100, pendingLimitTry: 500, pendingLimitAt: env.clock.t + 24 * 3600_000 });
     env.clock.advance(24 * 3600_000);
     expect((await a.call('shop.list', {})).spend).toMatchObject({ limitTry: 500, pendingLimitTry: null, pendingLimitAt: null });

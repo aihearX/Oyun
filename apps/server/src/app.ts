@@ -77,7 +77,9 @@ export interface PlayerRow {
   team_id: string | null; team_role: TeamRole | null; team_joined_at: number | null; league_tier: LeagueTier;
   jeton: number; kristal: number; m5: number; m60: number; s8: number; shields: number; cosmetics: string; cards: string; muted: string;
   chat_muted_until: number; last_chat_at: number; depot_at: number; pass_until: number; pass_day: string;
-  spend_limit: number; spend_pending: number | null; spend_pending_at: number | null; created_at: number; last_seen: number;
+  spend_limit: number; spend_pending: number | null; spend_pending_at: number | null;
+  /** göç 7–8 (karar 28, 30): oyuncu aylık sınırı seçti mi (0/1); Sezon Kartı başlangıç günü (dayNumber, 0 = yok), gün sayısı, ödenen gün */
+  spend_chosen: number; pass_start: number; pass_days: number; pass_paid: number; created_at: number; last_seen: number;
 }
 export interface TeamRow { id: string; name: string; name_key: string; emblem: string; description: string; open: number; code: string; min_level: number; xp: number; targets: string; created_at: number }
 

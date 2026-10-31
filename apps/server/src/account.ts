@@ -22,7 +22,7 @@ export function deleteAccount(app: App, pid: string): void {
     for (const r of app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid)) app.emit(r.b, 'friend.removed', { id: pid });
     // sınıflandırmaya göre: sil / anonimleştir / gerekçeyle tut (account-veri.ts)
     veriyiTemizle(app.db, 'oyuncu', pid, { ad: p.name, createdAt: p.created_at });
-    anonimOyuncu(app.db, pid, app.now());
+    anonimOyuncu(app.db, pid, app.now(), true);
   });
   app.after(() => rankInvalidate(app)); // Sıralama önbelleği: hesap hemen tablolardan çıkar
 }

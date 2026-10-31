@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, SPEND_LIMIT_SUGGESTED_TRY } from '@odi/shared';
 import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
@@ -10,7 +10,7 @@ import { CHAT_RETAIN_MS } from '../../server/src/chat';
 import { RUN_RETAIN_MS } from '../../server/src/progress';
 import { PROMO_LOG_RETAIN_MS } from '../../server/src/codes';
 import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS } from '../../server/src/account-veri';
-import { DEFAULT_SPEND_LIMIT_TRY, LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
+import { LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
 import { HESAP_SIL_BEKLEME_GUN } from '../../server/src/yonetim';
 import { CRASH_RETAIN_MS } from '../../server/src/hata';
 import { FEEDBACK_RETAIN_MS } from '../../server/src/geribildirim';
@@ -52,7 +52,7 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(FRIEND_LIMITS.dmKeep).toBe(500);
     expect(FRIEND_LIMITS.reportsToMute).toBe(3);
     expect(COMM_RULES.freeTextLevel).toBe(8);
-    expect(DEFAULT_SPEND_LIMIT_TRY).toBe(1000);
+    expect(SPEND_LIMIT_SUGGESTED_TRY).toBe(100);
     expect(LIMIT_RAISE_DELAY_MS).toBe(DAY);
     expect(HESAP_SIL_BEKLEME_GUN).toBe(14);
     expect(CRASH_RETAIN_MS).toBe(30 * DAY);
@@ -65,8 +65,8 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(ortak).toMatch(/^MaxRetentionSec=30day$/m);
     expect(ortak).toContain('try_files {path} {path}.html /index.html');
     const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN); const hs = duzMetin(HESAP_SIL);
-    for (const s of ['30 gün', '90 gün', 'son 500 mesaj', '8 bölüm', '10 yıl', '28 kopya (7 gün)', '1000 TL', '24 saat']) expect(tr).toContain(s);
-    for (const s of ['30 days', '90 days', 'Last 500 messages', '8 levels', '10 years', '28 copies (7 days)', '1000 TRY', '24 hours']) expect(en).toContain(s);
+    for (const s of ['30 gün', '90 gün', 'son 500 mesaj', '8 bölüm', '10 yıl', '28 kopya (7 gün)', 'önerilen 100 TL', 'ayrıca onay ister', '24 saat']) expect(tr).toContain(s);
+    for (const s of ['30 days', '90 days', 'Last 500 messages', '8 levels', '10 years', '28 copies (7 days)', '100 TRY suggested', 'separate confirmation', '24 hours']) expect(en).toContain(s);
     // çökme raporu (YN-011): ne gider, ne gitmez, kaç gün
     expect(tr).toContain('Çökme raporları: Oyun bir hatayla');
     for (const k of ['oyuncu kimliğinizi, takma adınızı, anahtarınızı, sohbet metinlerini ya da bir cihaz kimliğini içermez', 'en çok 5 rapor', '30 gün sonra otomatik silinir']) expect(tr).toContain(k);

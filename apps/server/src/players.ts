@@ -1,12 +1,11 @@
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { BUILDINGS, PROTOCOL_VERSION, SOCIAL_LIMITS, type InboxItem } from '@odi/shared';
+import { BUILDINGS, PASS_DAILY_KRISTAL, PROTOCOL_VERSION, SOCIAL_LIMITS, type InboxItem } from '@odi/shared';
 import { fail, randomCode, rid, sendJson, type App, type Conn, type Handlers, type PlayerRow } from './app';
 import { hasProfanity } from './profanity';
 import { setBadgePrefs } from './rozet';
-import { dayKey } from './time';
+import { dayNumber } from './time';
 
 export const START_JETON = 100;
-export const PASS_DAILY_KRISTAL = 30;
 const COLORS = [0xff7a59, 0x7c5cff, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
 
 export const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
@@ -74,15 +73,20 @@ export function announcePresence(app: App, pid: string, online: boolean): void {
   for (const id of circleOf(app, pid)) app.emit(id, 'presence', { id: pid, online });
 }
 
-/** Sezon kartı: 28 gün boyunca her günün ilk girişinde 30 kristal ödül kutusuna */
+/**
+ * Sezon Kartı (karar 30, göç 8): satın alınan takvim günü (Türkiye saati) 1. gün; `pass_days` gün boyunca her güne 30 kristal.
+ * Girilmeyen günün kristali birikir: girişte o güne kadar ödenmemiş günlerin hepsi tek ödül kutusu satırıyla gelir.
+ * `pass_paid` ödenen gün sayısıdır; en çok `pass_days` olur, yani toplam tam pass_days × 30 ve son günden sonra hiçbir şey gelmez.
+ */
 export function passDaily(app: App, pid: string): void {
   const p = app.player(pid);
-  const now = app.now();
-  const today = dayKey(now);
-  if (p.pass_until > now && p.pass_day !== today) {
-    app.db.run('UPDATE players SET pass_day = ? WHERE id = ?', today, pid);
-    app.addInbox(pid, { kind: 'kristal', amount: PASS_DAILY_KRISTAL, ref: 'odi.pass' }, 'Sezon Kartı günlük ödülü');
-  }
+  if (!p.pass_start || p.pass_paid >= p.pass_days) return;
+  const reached = Math.min(p.pass_days, dayNumber(app.now()) - p.pass_start + 1);
+  const due = reached - p.pass_paid;
+  if (due <= 0) return;
+  app.db.run('UPDATE players SET pass_paid = ? WHERE id = ?', reached, pid);
+  app.addInbox(pid, { kind: 'kristal', amount: due * PASS_DAILY_KRISTAL, ref: 'odi.pass' },
+    due === 1 ? `Sezon Kartı ${reached}. gün` : `Sezon Kartı ${p.pass_paid + 1}–${reached}. günler (${due} gün birikti)`);
 }
 
 export function attach(app: App, conn: Conn, pid: string): void {

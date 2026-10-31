@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { SHOP, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
 import { applyServerItems, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { audio } from '@odi/audio';
@@ -14,12 +14,11 @@ import { STORE_PRICE_NOTE, loadStorePrices, priceLabel, type StorePriceMap } fro
 type Product = ShopProduct & { bought: number };
 type List = OpMap['shop.list']['res'];
 const TAG = { populer: 'Popüler', 'en-iyi-deger': 'En iyi değer', baslangic: 'Başlangıç' } as const;
-const LIMITS = [0, 100, 250, 500, 1000, 2000, 5000];
 const SHOP_IDS = SHOP.map((p) => p.id);
 /** bu oturumda mağazadan gelen son fiyatlar (oyuncu başına): mağaza yeniden açılınca beklemeden gösterilir */
 let priceCache: { playerId: string; map: StorePriceMap } | null = null;
 
-/** Mağaza: içerik ve takım hediyesi açık, kişi başı sınır, aylık harcama sınırı, geçmiş. Savaş/lig puanı satılmaz. */
+/** Mağaza: içerik ve takım hediyesi açık, kişi başı sınır, aylık harcama sınırı (ilk alımdan önce oyuncu seçer), geçmiş. Takım ya da lig puanı satılmaz. */
 export function ShopScreen({ onBack }: { onBack: () => void }) {
   const wallet = useNet((s) => s.wallet); const k = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
@@ -79,7 +78,7 @@ function Shop() {
     <div className="stack">
       {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
       {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
-      <div className="muted small-note">Mağazada savaş ya da lig puanı satılmaz; içerikler önceden yazılı, şans yok.</div>
+      <div className="muted small-note" data-testid="magaza-ilke">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. İçerikler önceden yazılı, şans yok.</div>
       {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">Fiyatlar TL liste fiyatıdır. {STORE_PRICE_NOTE}.</div>}
 
       <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />
@@ -88,7 +87,7 @@ function Shop() {
         <div className={`card product${p.tag ? ` tag-${p.tag}` : ''}`} key={p.id}>
           {p.tag && <span className="ribbon">{TAG[p.tag]}</span>}
           {mode === 'test' && <span className="test-chip">TEST</span>}
-          <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.id === 'odi.pass' ? PASS_DESC : p.desc}</div></div></div>
+          <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
           <ItemChips items={p.contents} small />
           {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Rich text={`🎁 Takımındaki herkese: ${p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}`} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
           {p.id === 'odi.pass' && <><PassPath /><PassTerms /></>}
@@ -105,7 +104,11 @@ function Shop() {
         )}
       </div>
 
-      {sel && (() => { const over = sp.monthTry + sel.priceTry > sp.limitTry + 1e-9; const pl = priceLabel(sel, prices); return (
+      {sel && !sp.limitChosen && (
+        <Sheet title="Önce aylık harcama sınırı" onClose={() => setSel(null)}>
+          <FirstLimit onSaved={(s) => setData({ ...data, spend: s })} onCancel={() => setSel(null)} />
+        </Sheet>)}
+      {sel && sp.limitChosen && (() => { const over = sp.monthTry + sel.priceTry > sp.limitTry + 1e-9; const pl = priceLabel(sel, prices); return (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           {mode === 'test' && <div className="test-banner small"><Art name="flask" size="1.2em" className="art-inline" /> TEST — gerçek para çekilmez</div>}
           <div className="confirm-price" data-testid="onay-fiyat">{pl.text}</div>
@@ -114,7 +117,7 @@ function Shop() {
           {sel.id === 'odi.pass' && <PassTerms />}
           {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <span data-ugc>{team.emblem}</span> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
           <div className="muted small-note">Aylık sınır (TL liste fiyatıyla): {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / {fmtTry(sp.limitTry)}</div>
-          {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı aşağıdan değiştirebilirsin (yükseltme 24 saat sonra geçerli).</div>}
+          {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı mağazadaki "Sınırı ayarla"dan değiştirebilirsin (yükseltme ayrıca onay ister, 24 saat sonra geçerli olur).</div>}
           <button className="btn" disabled={busy || over} onClick={() => void buy(sel)}>{busy ? 'İşleniyor…' : mode === 'test' ? 'Test satın alması yap' : pl.store ? `${pl.text} öde` : 'Mağazada satın al'}</button>
           <button className="btn ghost" onClick={() => setSel(null)}>Vazgeç</button>
         </Sheet>); })()}
@@ -125,6 +128,12 @@ function Shop() {
 
 /** aylık harcama: sunucu TL liste fiyatıyla sayar (mağaza fiyatı gösterilse de); her zaman TL */
 function SpendCard({ sp, storePrices, onEdit }: { sp: SpendState; storePrices: boolean; onEdit: () => void }) {
+  if (!sp.limitChosen) return (
+    <div className="card spend" data-testid="sinir-secilmedi">
+      <div className="row between"><b>Aylık harcama sınırı</b><button className="linkish" onClick={onEdit}>Sınırı seç</button></div>
+      <div className="muted small-note">Henüz seçmedin. İlk satın almadan önce kendin seçersin; önerimiz {fmtTry(SPEND_LIMIT_SUGGESTED_TRY)}.{sp.monthTry > 0 ? ` Bu ay ${fmtTry(sp.monthTry)} harcandı.` : ''}</div>
+    </div>
+  );
   return (
     <div className="card spend">
       <div className="row between"><b>Bu ayki harcama (TL)</b><button className="linkish" onClick={onEdit}>Sınırı ayarla</button></div>
@@ -135,43 +144,90 @@ function SpendCard({ sp, storePrices, onEdit }: { sp: SpendState; storePrices: b
   );
 }
 
+const limitLabel = (n: number) => (n === 0 ? 'Kapalı' : `${n} TL`);
+
+/**
+ * İlk satın almadan önce aylık sınır seçimi (karar 28): önerilen 100 TL seçili gelir; ilk seçim hemen geçerli. "Satın alma kapalı"
+ * da bir seçenektir. Kaydedince satın alma onayı açılır (üst bileşen yeni SpendState ile yeniden çizer).
+ */
+function FirstLimit({ onSaved, onCancel }: { onSaved: (s: SpendState) => void; onCancel?: () => void }) {
+  const [v, setV] = useState<number>(SPEND_LIMIT_SUGGESTED_TRY); const [busy, setBusy] = useState(false);
+  const save = async () => {
+    const c = getNet(); if (!c) return;
+    setBusy(true);
+    try { const r = await c.call('shop.limit', { limitTry: v }); onSaved(r.spend); toast('🧭', 'Aylık sınırın kaydedildi', `Aylık sınır: ${v === 0 ? 'satın alma kapalı' : fmtTry(v)}`); } catch (e) { toast('🙈', 'Kaydedilemedi', errText(e), 'bronze'); }
+    setBusy(false);
+  };
+  return (
+    <div className="stack" data-testid="ilk-sinir">
+      <div className="muted">Satın almadan önce bir ayda en çok ne kadar harcamak istediğini seç. Sınır TL'dir, ürünlerin TL liste fiyatıyla sayılır. Sonra düşürmek hemen geçerli olur; yükseltmek ayrıca onay ister ve 24 saat sonra geçerli olur.</div>
+      <div className="limit-first" role="radiogroup" aria-label="Aylık harcama sınırı">
+        {SPEND_LIMIT_FIRST_CHOICES.map((n) => (
+          <button key={n} role="radio" aria-checked={v === n} className={`chip-btn${v === n ? ' on' : ''}`} data-testid={`ilk-sinir-${n}`} onClick={() => setV(n)}>
+            {n === 0 ? 'Satın alma kapalı' : `${n} TL`}{n === SPEND_LIMIT_SUGGESTED_TRY && <small className="limit-tag"> · önerilen</small>}
+          </button>))}
+      </div>
+      <button className="btn" data-testid="ilk-sinir-kaydet" disabled={busy} onClick={() => void save()}>{busy ? 'Kaydediliyor…' : 'Sınırı kaydet'}</button>
+      {onCancel && <button className="btn ghost" onClick={onCancel}>Vazgeç</button>}
+    </div>
+  );
+}
+
+/** Sınırı değiştir: düşürmek hemen; yükseltmek ikinci bir onay adımı ister ve 24 saat sonra geçerli olur (karar 28). */
 function LimitSheet({ sp, onClose, onSaved }: { sp: SpendState; onClose: () => void; onSaved: (s: SpendState) => void }) {
   const [v, setV] = useState(sp.pendingLimitTry ?? sp.limitTry);
-  const save = async () => { const c = getNet(); if (!c) return; try { const r = await c.call('shop.limit', { limitTry: v }); onSaved(r.spend); toast('🧭', v <= sp.limitTry ? 'Sınır hemen güncellendi' : 'Yükseltme 24 saat sonra geçerli', `Aylık sınır: ${fmtTry(v)}`); } catch (e) { toast('🙈', 'Kaydedilemedi', errText(e), 'bronze'); } };
+  const [confirm, setConfirm] = useState(false);
+  if (!sp.limitChosen) return <Sheet title="Aylık harcama sınırı" onClose={onClose}><FirstLimit onSaved={onSaved} /></Sheet>;
+  const raise = v > sp.limitTry;
+  const save = async (confirmRaise: boolean) => {
+    const c = getNet(); if (!c) return;
+    try {
+      const r = await c.call('shop.limit', { limitTry: v, ...(confirmRaise ? { confirmRaise: true } : {}) });
+      onSaved(r.spend); toast('🧭', raise ? 'Yükseltme 24 saat sonra geçerli' : 'Sınır hemen güncellendi', `Aylık sınır: ${limitLabel(v)}`);
+    } catch (e) { toast('🙈', 'Kaydedilemedi', errText(e), 'bronze'); }
+  };
+  if (confirm && raise) return (
+    <Sheet title="Sınırı yükselt?" onClose={onClose}>
+      <div className="stack" data-testid="sinir-yukselt-onay">
+        <div>Aylık sınırın <b>{limitLabel(sp.limitTry)}</b> → <b>{limitLabel(v)}</b> olacak.</div>
+        <div className="muted">Yükseltme <b>24 saat sonra</b> geçerli olur; o zamana kadar bugünkü sınır geçerli kalır ve istersen sınırı yeniden düşürebilirsin.</div>
+        <button className="btn" data-testid="sinir-yukselt-evet" onClick={() => void save(true)}>Evet, yükselt</button>
+        <button className="btn ghost" onClick={() => setConfirm(false)}>Vazgeç</button>
+      </div>
+    </Sheet>
+  );
   return (
     <Sheet title="Aylık harcama sınırı" onClose={onClose}>
-      <div className="muted">Sınır TL'dir, ürünlerin TL liste fiyatıyla sayılır. Düşürmek hemen, yükseltmek 24 saat sonra geçerli olur. 0 = satın alma kapalı.</div>
-      <div className="limit-grid">{LIMITS.map((n) => <button key={n} className={`chip-btn${v === n ? ' on' : ''}`} onClick={() => setV(n)}>{n === 0 ? 'Kapalı' : `${n} TL`}</button>)}</div>
-      <button className="btn" onClick={() => void save()}>Kaydet</button>
+      <div className="muted">Sınır TL'dir, ürünlerin TL liste fiyatıyla sayılır. Düşürmek hemen geçerli olur; yükseltmek ayrıca onay ister ve 24 saat sonra geçerli olur. Kapalı = satın alma kapalı.</div>
+      <div className="limit-grid">{SPEND_LIMIT_OPTIONS.map((n) => <button key={n} className={`chip-btn${v === n ? ' on' : ''}`} onClick={() => setV(n)}>{limitLabel(n)}</button>)}</div>
+      <button className="btn" data-testid="sinir-kaydet" onClick={() => (raise ? setConfirm(true) : void save(false))}>{raise ? 'Yükselt…' : 'Kaydet'}</button>
     </Sheet>
   );
 }
 
 /**
- * Sezon Kartı'nın bugünkü işleyişi (sunucu: players.ts passDaily, shop.ts deliver): satın alındığı andan 28 gün boyunca her takvim
- * gününün (Türkiye saati) ilk girişinde 30 kristal ödül kutusuna; girilmeyen günün kristali sonradan gelmez; tek seferlik alım,
- * kendiliğinden yenilenmez. Paylaşılan ürün açıklamasındaki "toplam 840" ancak her gün girilirse doğru olduğundan kartta bu açıklama
- * kullanılır. İşleyiş sahip kararı bekliyor (durum.md, karar 30): değişirse bu metin de değişmeli.
+ * Sezon Kartı'nın işleyişi (karar 30; sunucu: players.ts passDaily, shop.ts deliver): satın alınan takvim günü (Türkiye saati) 1. gün;
+ * 28 günün her birine 30 kristal. Girilmeyen günlerin kristali birikir ve sonraki girişte ödül kutusuna toplu gelir; toplam tam 840,
+ * 28. günden sonra hiçbir şey gelmez. Tek seferlik alım, kendiliğinden yenilenmez.
  */
-const PASS_DESC = '28 gün boyunca, girdiğin her gün 30 kristal + Altın Koklea kostümü';
 function PassTerms() {
   return (
     <ul className="pass-terms" data-testid="sezon-kosullari">
-      <li>Satın aldığın andan başlayarak 28 gün sürer; satın aldığın gün de sayılır.</li>
-      <li>Her günün (Türkiye saatiyle) ilk girişinde 30 kristal ödül kutuna gelir.</li>
-      <li>Oyuna girmediğin günün kristali sonradan verilmez. Toplam 840 kristal, ancak 28 günün hepsinde girersen.</li>
+      <li>Satın aldığın andan başlayarak {PASS_DAYS} gün sürer; satın aldığın gün 1. gün sayılır.</li>
+      <li>Her güne {PASS_DAILY_KRISTAL} kristal düşer; o günkü ilk girişinde ödül kutuna gelir.</li>
+      <li>Oyuna girmediğin günlerin kristali kaybolmaz: birikir, bir sonraki girişinde ödül kutuna toplu gelir. Toplam {PASS_TOTAL_KRISTAL} kristal; {PASS_DAYS}. günden sonra kristal gelmez.</li>
       <li>Altın Koklea kostümü satın alır almaz dolabında.</li>
       <li>Tek seferlik alımdır: abonelik değildir, kendiliğinden yenilenmez, yeniden ücret alınmaz.</li>
     </ul>
   );
 }
 
-/** Sezon Kartı ödül yolu: 28 gün, her günün ilk girişinde 30 kristal + Altın Koklea kostümü (hemen) */
+/** Sezon Kartı ödül yolu: 28 gün, her güne 30 kristal (girilmeyen günlerinki birikir) + Altın Koklea kostümü (hemen) */
 function PassPath() {
   return (
     <div className="pass-path" aria-label="Sezon Kartı ödül yolu">
       <div className="pp-day first"><b>Hemen</b><span><Art name="palette" size="1.15em" className="art-inline" /> Altın Koklea</span></div>
-      {Array.from({ length: 28 }, (_, i) => <div className="pp-day" key={i}><b>{i + 1}. gün</b><span><Art name="crystal" size="1.15em" className="art-inline" /> 30</span></div>)}
+      {Array.from({ length: PASS_DAYS }, (_, i) => <div className="pp-day" key={i}><b>{i + 1}. gün</b><span><Art name="crystal" size="1.15em" className="art-inline" /> {PASS_DAILY_KRISTAL}</span></div>)}
     </div>
   );
 }

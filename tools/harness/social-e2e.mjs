@@ -194,8 +194,15 @@ try {
   await A.locator('.test-banner').first().waitFor();
   check((await A.locator('.test-banner').first().innerText()).includes('TEST MAĞAZASI'), 'TEST MAĞAZASI uyarısı görünür');
   await shot(A, 'A-magaza');
+  check(await A.getByTestId('sinir-secilmedi').isVisible(), 'aylık sınır henüz seçilmedi (karar 28)');
   await A.locator('.product', { hasText: 'Başlangıç Paketi' }).getByRole('button', { name: /TL/ }).click();
-  await A.locator('.sheet').waitFor();
+  // ilk satın almadan önce aylık sınır seçimi: önerilen 100 TL seçili gelir
+  await A.getByTestId('ilk-sinir').waitFor();
+  check(await A.getByTestId('ilk-sinir-100').getAttribute('aria-checked') === 'true', 'önerilen 100 TL seçili geliyor');
+  await shot(A, 'A-magaza-ilk-sinir');
+  await A.getByTestId('ilk-sinir-kaydet').click();
+  await A.locator('.sheet').getByRole('button', { name: 'Test satın alması yap' }).waitFor({ timeout: 8000 });
+  ok('sınır seçildi, satın alma onayı açıldı');
   await shot(A, 'A-magaza-onay');
   await A.locator('.sheet').getByRole('button', { name: 'Test satın alması yap' }).click();
   await A.locator('.product', { hasText: 'Başlangıç Paketi' }).getByRole('button', { name: 'Alındı' }).waitFor({ timeout: 8000 });

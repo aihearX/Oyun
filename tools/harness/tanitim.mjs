@@ -1332,10 +1332,14 @@ async function sectionMagaza() {
     await profileTile(page, 'shop');
     await G.shot(page, 10, 'magaza', { kind: 'magaza', title: 'Mağaza', caption: 'Mağaza: kristal paketleri, Sezon Kartı ve takım hediyeli ürünler. Web\'de açıkça TEST mağazasıdır, para çekmez; gerçek satın alma yalnızca App Store / Google Play üzerinden.' });
     await page.evaluate(() => { document.scrollingElement?.scrollTo(0, 99999); document.getElementById('root')?.scrollTo(0, 99999); }); await sleep(700);
-    await G.shot(page, 11, 'magaza-alt', { kind: 'magaza', title: 'Mağaza: aylık harcama sınırı', caption: 'Ürünlerin içeriği ve takım hediyesi açıkça yazar; aylık harcama sınırı oyuncu tarafından düşürülebilir (yükseltme 24 saat sonra geçerli).' });
+    await G.shot(page, 11, 'magaza-alt', { kind: 'magaza', title: 'Mağaza: aylık harcama sınırı', caption: 'Ürünlerin içeriği ve takım hediyesi açıkça yazar; aylık harcama sınırını oyuncu ilk satın almadan önce kendisi seçer (önerilen 100 TL); düşürmek hemen, yükseltmek ayrı onayla ve 24 saat sonra geçerli.' });
     await scrollTop(page);
     const buy = page.locator('.product').first().getByRole('button').first();
     if (await buy.count()) { await buy.click(); await page.locator('.sheet').waitFor({ timeout: 5000 }).catch(() => undefined); await sleep(700);
+      if (await page.getByTestId('ilk-sinir').count()) {
+        await G.shot(page, 12, 'magaza-ilk-sinir', { kind: 'magaza', title: 'İlk alımdan önce aylık sınır', caption: 'İlk satın almadan önce oyuncu aylık harcama sınırını seçer: önerilen 100 TL seçili gelir, "Satın alma kapalı" da bir seçenektir.' });
+        await page.getByTestId('ilk-sinir-kaydet').click(); await page.locator('.sheet').getByRole('button', { name: /Test satın alması yap/ }).waitFor({ timeout: 8000 }).catch(() => undefined); await sleep(500);
+      }
       await G.shot(page, 12, 'magaza-onay', { kind: 'magaza', title: 'Satın alma onayı', caption: 'Satın almadan önce içerik, fiyat ve kalan aylık sınır gösterilir; TEST modunda düğme "Test satın alması yap" der.' });
       await page.locator('.sheet').getByRole('button', { name: /Test satın alması yap/ }).click().catch(() => undefined); await sleep(2500); await settle(page); }
     await back(page);

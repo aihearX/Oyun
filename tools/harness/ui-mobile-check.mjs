@@ -759,11 +759,23 @@ async function suite(browserName, target, [W, H]) {
         const kart = (await page.locator('.card.product .btn.small').first().textContent())?.trim();
         const not = await page.getByTestId('fiyat-notu').count();
         await page.locator('.card.product .btn.small').first().click(); await page.locator('.sheet').waitFor(); await sleep(400);
+        // ilk satın almadan önce aylık sınır seçimi (karar 28): önerilen 100 TL seçili; kaydedince onay sayfası
+        if (await page.getByTestId('ilk-sinir').count()) {
+          await check('magaza-ilk-sinir', { scroll: false });
+          await page.getByTestId('ilk-sinir-kaydet').click(); await page.getByTestId('onay-fiyat').waitFor({ timeout: 10_000 }); await sleep(400);
+        }
         const r = await check('magaza-onay', { scroll: false });
         const onay = (await page.getByTestId('onay-fiyat').textContent())?.trim();
         const yanlis = [kart !== beklenen && `kart fiyatı “${kart}” ≠ “${beklenen}”`, onay !== beklenen && `onay fiyatı “${onay}” ≠ “${beklenen}”`, storeOn === !!not && `TL notu ${not ? 'var' : 'yok'}`].filter(Boolean);
         if (yanlis.length) { fail(r, `mağaza fiyatı: ${yanlis.join(', ')}`); console.log(`  ✗ ${name} · magaza-onay — mağaza fiyatı: ${yanlis.join(', ')}`); }
         await page.locator('.sheet').getByRole('button', { name: 'Vazgeç' }).click(); await sleep(300);
+        // sınırı yükseltmek ayrı onay adımı ister (karar 28): onay sayfasını denetle, vazgeç
+        await page.getByRole('button', { name: 'Sınırı ayarla' }).click(); await page.locator('.sheet .limit-grid').waitFor();
+        await page.locator('.sheet .limit-grid .chip-btn', { hasText: /^1000 TL$/ }).click(); await page.getByTestId('sinir-kaydet').click();
+        await page.getByTestId('sinir-yukselt-onay').waitFor(); await sleep(300);
+        await check('magaza-sinir-yukselt', { scroll: false });
+        await page.keyboard.press('Escape'); await sleep(300);
+        if (await page.locator('.sheet-wrap').count()) { await page.keyboard.press('Escape'); await sleep(300); }
         await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // sıralama: bilgi sayfası (formül + ödüller) ve takım tabloları
       { await page.locator('.menu-tile[data-tile="ranking"]').click(); await page.getByTestId('siralama').waitFor(); await sleep(500);

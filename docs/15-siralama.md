@@ -64,3 +64,19 @@ takımına Takım Akışı kartı (`type: 'sira'`, oyuncunun "başarılarım ak�
 `apps/server/test/rank.test.ts` (formül, eşitleme sayılmaz, haftalık sınırlar, kapsamlar ve ▲▼, kapanış + bir kez ödül + duyuru +
 rozet, takıma davet). Uçtan uca: `node tools/harness/comm-e2e.mjs --only-rank` (üç oyuncu: sıra, arkadaşlar, yakınım, bilgi,
 profil kartı → takıma davet → katılım, Takım › Sıralama) ve `--only-tour` (5. bölüm turu). Ekran denetimi `ui-mobile-check.mjs` (390/320).
+
+## 6. Bireysel haftalık lig puanı ve tekrar sınırı (karar 26)
+
+Haftalık kişisel lig (30 kişilik gruplar, ilk 7 yükselir, son 5 düşer; Profil › lig kartı) ayrı bir tablodur; puanı `progress.submit`
+yazar (`leaguePointsFor`, `apps/server/src/league.ts`):
+
+- Bitirilen bölüm **5 + 5 × yıldız**; canlı yarışta derece eklenir (1. 30, 2. 15, 3. 8, diğer bitirenler 3). Bitirilemeyen koşu 1.
+- **Tekrar sınırı** (sahip kararı 26, 2026-10-31): bir bölüm aynı lig haftasında en çok **2 kez** tam puan yazar
+  (`LEAGUE_FULL_RUNS_PER_LEVEL`). O bölümün sonraki her bitirişi, yarışta da, **1 puan** (`LEAGUE_REPLAY_POINTS`; yanıtta
+  `leagueReplay: true`). Bitirilemeyen koşu hakkı harcamaz. Sayaç `league_level_runs` (göç 6); yeni haftada sıfırlanır.
+- Neden: önceden her koşu tam puan yazıyordu; en kolay bölümü üst üste oynayan ligi kazanıyordu (YN-054). Haftalık yıldız tablosu
+  zaten yalnız yeni yıldızı sayıyordu.
+- Kural oyuncuya açıkça yazılır: lig ekranı ("Puan: …"), "Ödüller nasıl çalışır?" › Haftalık lig puanı, sonuç ekranındaki katkı satırı
+  ve yarış sonucu (tekrarda "bu bölüm bu hafta 2 kez tam puan yazdı, tekrarı 1 puan"). Yarış sonucu lig puanını sunucu yanıtından
+  gösterir, tahmin etmez.
+- Testler: `apps/server/test/war-raid-league.test.ts` (2 tam + 1'ler, bitirilemeyen koşu, aynı runId, yeni hafta, yarışta da sınır).

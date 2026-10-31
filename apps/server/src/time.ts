@@ -29,6 +29,10 @@ function local(t: number) {
 }
 
 export function dayKey(t: number): string { const l = local(t); return `${l.y}-${pad(l.m + 1)}-${pad(l.d)}`; }
+/** yerel (İstanbul) takvim gününün sıra numarası (1970-01-01 = 0); iki günün farkı takvim günü farkıdır */
+export function dayNumber(t: number): number { const l = local(t); return Math.round(Date.UTC(l.y, l.m, l.d) / DAY_MS); }
+/** yerel takvim gününün (dayNumber) başladığı an */
+export function dayNumberStart(n: number): number { const utc = n * DAY_MS; return utc - istanbulOffsetMs(utc); }
 export function monthKey(t: number): string { const l = local(t); return `${l.y}-${pad(l.m + 1)}`; }
 export function monthStart(t: number): number { const l = local(t); return Date.UTC(l.y, l.m, 1) - l.off; }
 

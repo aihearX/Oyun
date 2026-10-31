@@ -2,7 +2,7 @@ import { CAMP_POWER_LEVEL, leaguePointsFor, raidDamageFor, warPointsFor, xpForRu
 import { fail, parseJson, type App, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
 import { completeDue, useRemedies } from './camp';
-import { addLeaguePoints } from './league';
+import { addLeaguePoints, leaguePointsForRun } from './league';
 import { racePlaceFor } from './race';
 import { raidHit } from './raid';
 import { addContrib, addGoalProgress, addTeamXp, broadcastExtra, techBonus } from './teamextra';
@@ -16,20 +16,26 @@ export const MIN_TIME_SEC = 5;
 export const LAB_PCT_PER_LEVEL = 3;
 export const ATOLYE_PCT_PER_LEVEL = 4;
 export const REVIR_PCT_PER_LEVEL = 3;
+/** Timpanometri Kulesi: kişisel bölüm jetonu +%2/seviye (karar 29'dan önce savaş puanı veriyordu) */
 export const KULE_PCT_PER_LEVEL = 2;
 
 export interface Bonuses { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number }
-/** kamp binaları + takım teknolojisi toplam etkileri (yüzde) — sunucu hesapları ve istemci (kalkan/revir şansı) aynı değeri kullanır */
+/**
+ * Kamp binaları + takım teknolojisi toplam etkileri (yüzde) — sunucu hesapları ve istemci (kalkan/revir şansı) aynı değeri kullanır.
+ * Pay-to-win yok (karar 29): kamp binaları parayla satılan hızlandırıcılarla da büyüdüğü için takım rekabetine (savaş, baskın, takım
+ * yarışı, lig) hiçbir bina etkisi girmez; binalar yalnız kişisel jeton, kalkan ve klinik şansı verir (yarışta kalkan/klinik yok).
+ * warPct ve raidPct yalnız takımın ortak teknolojisinden (Savaş Borusu, Baskın Gücü; oynayarak kazanılan jetonla bağışlanır).
+ */
 export function bonusesFor(app: App, pid: string): Bonuses {
   const teamId = app.player(pid).team_id;
   const bld = new Map(app.db.all<{ id: string; level: number }>('SELECT id, level FROM buildings WHERE player_id = ?', pid).map((b) => [b.id, b.level]));
   // bina gücü Sv 15'te tavan yapar (Sv 16–25: görünüm, bilgi, süs; zorluk eğrisi korunur)
   const lv = (id: string) => Math.min(CAMP_POWER_LEVEL, bld.get(id) ?? 0);
   return {
-    coinPct: lv('laboratuvar') * LAB_PCT_PER_LEVEL + techBonus(app, teamId, 'jeton'),
+    coinPct: lv('laboratuvar') * LAB_PCT_PER_LEVEL + lv('kule') * KULE_PCT_PER_LEVEL + techBonus(app, teamId, 'jeton'),
     shieldChancePct: lv('atolye') * ATOLYE_PCT_PER_LEVEL + techBonus(app, teamId, 'kalkan'),
     firstHitIgnorePct: lv('revir') * REVIR_PCT_PER_LEVEL,
-    warPct: lv('kule') * KULE_PCT_PER_LEVEL + techBonus(app, teamId, 'savas'),
+    warPct: techBonus(app, teamId, 'savas'),
     raidPct: techBonus(app, teamId, 'baskin'),
   };
 }
@@ -71,7 +77,7 @@ export const progressHandlers: Handlers = {
     const xp = p.xp + xpForRun(run);
     app.db.run('UPDATE players SET highest = ?, stars = stars + ?, xp = ? WHERE id = ?', highest, starGain, xp, s.pid);
 
-    // savaş puanı (parayla alınamaz: yalnızca oynayarak)
+    // savaş puanı (parayla alınamaz: yalnızca oynayarak; kamp binası etkisi yok, karar 29)
     const warMul = 1 + bonus.warPct / 100;
     const warPoints = admin ? 0 : Math.round(warPointsFor(d) * warMul);
     addWarPoints(app, s.pid, teamId, d.biome, warPoints);
@@ -82,7 +88,9 @@ export const progressHandlers: Handlers = {
 
     // lig
     const place = d.raceId ? racePlaceFor(app, s.pid, d.raceId) : null;
-    const leaguePoints = admin ? 0 : leaguePointsFor(d, place);
+    // tekrar sınırı (karar 26): bir bölüm haftada en çok 2 kez tam puan, sonraki her bitirişi 1 puan
+    const lig = admin ? { points: 0, replay: false } : leaguePointsForRun(app, s.pid, d.level, d.completed, leaguePointsFor(d, place));
+    const leaguePoints = lig.points;
     addLeaguePoints(app, s.pid, leaguePoints);
 
     // takım katkısı ve hedefler
@@ -101,7 +109,7 @@ export const progressHandlers: Handlers = {
 
     const after = app.player(s.pid);
     const ack = {
-      highest: after.highest, stars: after.stars, warPoints, raidDamage, leaguePoints,
+      highest: after.highest, stars: after.stars, warPoints, raidDamage, leaguePoints, ...(lig.replay ? { leagueReplay: true } : {}),
       newInbox: app.unclaimedInbox(s.pid), jeton, wallet: app.walletChanged(s.pid),
     };
     app.db.run('INSERT INTO progress_runs(player_id, run_id, ack, at) VALUES(?, ?, ?, ?)', s.pid, d.runId, JSON.stringify(ack), app.now());

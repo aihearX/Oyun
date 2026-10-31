@@ -30,6 +30,9 @@ ve sonuçlar sunucudadır.
 - Takım puanı = üyelerin toplamı × **denge çarpanı**. Az kişili takımın toplamı büyük takımın kişi sayısına ölçeklenir; ör. 3'e 2'de ×1,5.
 - Yıldızlar doğrulanmış koşudan gelir (`progress.submit { raceId }`). Sonuç, son bitirenin yıldızı gelince ya da en geç 15 sn sonra **bir kez** yazılır (`tr_match.finalized`).
 
+**Kamp binaları skoru değiştirmez** (karar 29): takım yarışı puanı yalnız bitiş sırası ve yıldızdan gelir; yarışta kamp kalkanı ve
+klinik kapalıdır. Kamp seviyeleri yalnız eşleşmedeki "Takım gücü"ne girer (benzer güçte rakip bulmak için), skora girmez.
+
 **Ödül ve lig puanı** (yarış lige sayılırsa)
 - Kazanan takımın katılanları: 60 jeton + 3 kristal.
 - Berabere: 30 jeton.
@@ -51,7 +54,8 @@ ve sonuçlar sunucudadır.
 - **Gruplar**: kademe başına en çok 15 takım.
   - Sezon açılışında üyesi olan takımlar, kademe içinde güce göre gruplara yerleşir.
   - Sezon ortasında gelen takım, kademesinde boş yeri olan gruba girer.
-- **Lig puanı** sunucu kayıtlarından hesaplanır; istemci sayı söylemez. Haftalık üst sınırlarla:
+- **Lig puanı** sunucu kayıtlarından hesaplanır; istemci sayı söylemez. Kaynakların hiçbirine kamp binası etkisi girmez (karar 29:
+  Bölge Savaşı ve Baskın çarpanı yalnız takım teknolojisinden, Savaş Borusu ve Baskın Gücü). Haftalık üst sınırlarla:
 
 | Kaynak | Kural |
 |---|---|

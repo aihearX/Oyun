@@ -923,7 +923,9 @@ async function suiteYarisIci(players, sig) {
     check(s.runs - o.runs === 1, `${P.tag}: ağ kopmasından sonra da progress_runs tek (+${s.runs - o.runs})`);
     check(s.xp - o.xp === xpPuani(run.completed, run.stars), `${P.tag}: XP bir kez (+${s.xp - o.xp}; beklenen +${xpPuani(run.completed, run.stars)})`);
     check(s.lig - o.lig === ack.leaguePoints, `${P.tag}: lig puanı bir kez (+${s.lig - o.lig} = yanıt ${ack.leaguePoints})`);
-    check(ack.leaguePoints === ligPuani(run.completed, run.stars, place), `${P.tag}: yarış derecesi (${place ?? '-'}.) lig puanına bağlandı: ${ack.leaguePoints} (beklenen ${ligPuani(run.completed, run.stars, place)})`);
+    // tekrar sınırı (karar 26): bölüm bu hafta 2 kez tam puan yazdıysa yarış koşusu da 1 puan
+    const ligBeklenen = ack.leagueReplay ? 1 : ligPuani(run.completed, run.stars, place);
+    check(ack.leaguePoints === ligBeklenen, `${P.tag}: yarış derecesi (${place ?? '-'}.) lig puanına bağlandı: ${ack.leaguePoints} (beklenen ${ligBeklenen})`);
     check(s.jeton - o.jeton === ack.jeton + (s.grants - o.grants), `${P.tag}: jeton bir kez (+${s.jeton - o.jeton} = bölüm ${ack.jeton} + yerel ödül defteri ${s.grants - o.grants})`);
   }
 

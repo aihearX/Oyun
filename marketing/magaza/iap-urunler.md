@@ -27,11 +27,12 @@ Play Billing'de satın alma onaylanıp tüketilir, bunu RevenueCat SDK'sı yapar
 | `odi.kristal.3` | Sandık Kristal | Chest of Crystals | 1400 kristal (+%17) | — | Var | 299,99 |
 | `odi.hiz.1` | İnşaatçı Paketi | Builder Pack | 10 × 60 dk, 20 × 5 dk hızlandırıcı | — | Var | 79,99 |
 | `odi.hiz.2` | Usta İnşaatçı | Master Builder | 5 × 8 saat, 20 × 60 dk hızlandırıcı | — | Var | 199,99 |
-| `odi.pass` | Odi Sezon Kartı | Odi Season Card | 28 gün her gün 30 kristal (ödül kutusuna; toplam 840) + Altın Koklea kostümü (hemen) | Hesap başına 1 | Var | 99,99 |
+| `odi.pass` | Odi Sezon Kartı | Odi Season Card | 28 gün her güne 30 kristal (ödül kutusuna; girilmeyen günlerinki birikir, toplam tam 840) + Altın Koklea kostümü (hemen) | Hesap başına 1 | Var | 99,99 |
 
 Takım hediyesi (sunucu `teamGiftFor`, fiyata göre sabit): 50 TL altı 20 kristal + 50 jeton, 100 TL altı 50 kristal + 100 jeton,
 üstü 100 kristal + 200 jeton; satın alanın takımındaki diğer üyelerin hediye kutusuna düşer. Kristal yalnız kamp inşaatını hemen
-bitirmeye harcanır (kalan her dakika 1 kristal); bölüm, savaş ya da lig puanı satılmaz.
+bitirmeye harcanır (kalan her dakika 1 kristal); bölüm, savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcıyla büyüyen kamp binaları
+yalnız kişisel etki verir (jeton, kalkan, klinik); takım puanlarına ve lige hiç girmez (karar 29).
 
 ### Fiyat
 - **App Store:** fiyat noktası seçilir. Temel ülke **Türkiye** seçilip yukarıdaki TRY değerine en yakın nokta seçilir; diğer ülkeler

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { raidDamageFor, warPointsFor } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, leaguePointsFor, raidDamageFor, warPointsFor } from '@odi/shared';
 import type { NetError } from '@odi/net';
 import { RAID_GIFT, raidMaxHp } from '../src/raid';
 import { WAR_REWARD } from '../src/war';
@@ -171,8 +171,8 @@ describe('Lig', () => {
     expect(s0).toMatchObject({ tier: 'bronz', week: '2026-W42', promoteTop: 7, demoteBottom: 5 });
     const last = (await players[30]!.call('league.state', {})).league;
     expect(last.group).toHaveLength(1);
-    // puanlar: ilk 9 oyuncu oynar; i. oyuncu i+1 bölüm
-    for (let i = 0; i < 9; i++) for (let k = 0; k <= i; k++) await players[i]!.call('progress.submit', run(1, { stars: 2 }));
+    // puanlar: ilk 9 oyuncu oynar; i. oyuncu i+1 farklı bölüm (aynı bölümün tekrarı sınırlı, aşağıda)
+    for (let i = 0; i < 9; i++) for (let k = 0; k <= i; k++) await players[i]!.call('progress.submit', run(k + 1, { stars: 2 }));
     const st = (await players[8]!.call('league.state', {})).league;
     expect(st.rank).toBe(1);
     expect(st.points).toBe(9 * 15);
@@ -186,5 +186,44 @@ describe('Lig', () => {
     expect(g).toMatchObject({ tier: 'gumus', week: '2026-W43', points: 0 });
     // tek kişilik grubun tek oyuncusu da ilk 7'de
     expect((await players[30]!.call('league.state', {})).league.tier).toBe('gumus');
+  });
+
+  it('tekrar sınırı (karar 26): bir bölüm haftada en çok 2 kez tam puan, sonra her bitiriş 1 puan; yeni haftada sıfırlanır', async () => {
+    env = await setup();
+    const a = await env.connect('Ayşe');
+    const full = leaguePointsFor({ completed: true, stars: 3 });
+    expect(full).toBe(20);
+    expect(LEAGUE_FULL_RUNS_PER_LEVEL).toBe(2);
+    const acks = [];
+    for (let i = 0; i < 5; i++) acks.push(await a.call('progress.submit', run(1)));
+    expect(acks.map((x) => x.leaguePoints)).toEqual([20, 20, 1, 1, 1]);
+    expect(acks.map((x) => !!x.leagueReplay)).toEqual([false, false, true, true, true]);
+    // bitirilemeyen koşu 1 puan ve hakkı harcamaz; başka bölüm kendi 2 hakkıyla
+    expect((await a.call('progress.submit', run(2, { completed: false, stars: 0 }))).leaguePoints).toBe(1);
+    const l2 = [];
+    for (let i = 0; i < 3; i++) l2.push((await a.call('progress.submit', run(2, { stars: 1 }))).leaguePoints);
+    expect(l2).toEqual([10, 10, 1]);
+    expect((await a.call('league.state', {})).league.points).toBe(20 + 20 + 1 + 1 + 1 + 1 + 10 + 10 + 1);
+    // aynı runId yeniden gönderilirse sayaç ilerlemez (kayıtlı yanıt)
+    const r3 = run(3);
+    expect((await a.call('progress.submit', r3)).leaguePoints).toBe(20);
+    expect((await a.call('progress.submit', r3)).leaguePoints).toBe(20);
+    expect((await a.call('progress.submit', run(3))).leaguePoints).toBe(20);
+    expect((await a.call('progress.submit', run(3))).leaguePoints).toBe(1);
+    // yeni lig haftası: sayaçlar sıfır, eski haftanın satırları silinir
+    env.clock.t = weekInfo(T0).endsAt + 1;
+    expect((await a.call('progress.submit', run(1))).leaguePoints).toBe(20);
+    const weeks = env.srv.app.db.all<{ week: string }>('SELECT DISTINCT week FROM league_level_runs');
+    expect(weeks.map((w) => w.week)).toEqual(['2026-W43']);
+  });
+
+  it('tekrar sınırı yarışta da geçerli: aynı bölümün 3. bitirişi yarışta da 1 puan', async () => {
+    env = await setup();
+    const a = await env.connect('Ayşe');
+    for (let i = 0; i < 2; i++) await a.call('progress.submit', run(1));
+    const room = (await a.call('race.create', { level: 1 })).room;
+    const ack = await a.call('progress.submit', run(1, { raceId: room.id }));
+    expect(ack.leaguePoints).toBe(1);
+    expect(ack.leagueReplay).toBe(true);
   });
 });

@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Db } from '../src/db';
 import { MIGRATIONS, addColumn, runMigrations, userVersion, type Migration } from '../src/migrations';
+import { dayNumber } from '../src/time';
 
 let tmp = '';
 afterEach(() => { if (tmp) fs.rmSync(tmp, { recursive: true, force: true }); tmp = ''; });
@@ -24,6 +25,27 @@ describe('şema sürümü ve göçler', () => {
     const db = new Db(file);
     expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
     expect(db.metaGet('eski')).toBe('veri');
+    db.close();
+  });
+
+  it('göç 7–8: aylık sınırı değiştirmiş oyuncu seçmiş sayılır; eski Sezon Kartı birikir biçimine çevrilir', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    const DAY = 86_400_000; const buy = Date.UTC(2026, 9, 14, 9); // 12:00 İstanbul
+    const ins = (id: string, limit: number, pending: number | null, passUntil: number) => old.run(
+      'INSERT INTO players(id, token_hash, name, color, friend_code, depot_at, created_at, last_seen, spend_limit, spend_pending, pass_until) VALUES(?, ?, ?, 0, ?, 0, 0, 0, ?, ?, ?)',
+      id, `h${id}`, id, `K${id}`, limit, pending, passUntil);
+    ins('varsayilan', 1000, null, 0); ins('dusurmus', 250, null, 0); ins('bekleyen', 1000, 2000, 0); ins('kartli', 1000, null, buy + 28 * DAY);
+    for (let i = 0; i < 3; i++) old.run("INSERT INTO inbox(id, player_id, kind, amount, ref, reason, at, claimed) VALUES(?, 'kartli', 'kristal', 30, 'odi.pass', 'Sezon Kartı günlük ödülü', ?, 1)", `i${i}`, buy + i * DAY);
+    old.raw.exec('PRAGMA user_version = 6');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    const sec = db.all<{ id: string; spend_chosen: number }>('SELECT id, spend_chosen FROM players ORDER BY id');
+    expect(Object.fromEntries(sec.map((r) => [r.id, r.spend_chosen]))).toEqual({ bekleyen: 1, dusurmus: 1, kartli: 0, varsayilan: 0 });
+    expect(db.get('SELECT pass_start, pass_days, pass_paid FROM players WHERE id = ?', 'kartli')).toEqual({ pass_start: dayNumber(buy), pass_days: 28, pass_paid: 3 });
+    expect(db.get('SELECT pass_start, pass_days, pass_paid FROM players WHERE id = ?', 'varsayilan')).toEqual({ pass_start: 0, pass_days: 0, pass_paid: 0 });
     db.close();
   });
 

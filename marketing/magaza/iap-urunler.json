@@ -54,8 +54,8 @@
       "tur": "consumable",
       "fiyatTry": 99.99,
       "sinir": 1,
-      "tr": { "ad": "Odi Sezon Kartı", "aciklama": "28 gün her gün 30 kristal + kostüm", "uzun": "28 gün boyunca her günün ilk girişinde ödül kutuna 30 kristal (toplam 840) ve hemen Altın Koklea kostümü. Otomatik yenilenmez, hesap başına bir kez. Takımına küçük bir hediye gider." },
-      "en": { "ad": "Odi Season Card", "aciklama": "30 crystals a day for 28 days + costume", "uzun": "30 crystals in your inbox on your first visit each day for 28 days (840 in total) and the Golden Cochlea costume right away. Does not renew; once per account. Your team gets a small gift." }
+      "tr": { "ad": "Odi Sezon Kartı", "aciklama": "28 gün her gün 30 kristal + kostüm", "uzun": "28 gün boyunca her güne 30 kristal, toplam 840: girmediğin günlerinki birikir, girince ödül kutuna gelir. Altın Koklea kostümü hemen. Yenilenmez, hesap başına bir kez. Takımına küçük hediye gider." },
+      "en": { "ad": "Odi Season Card", "aciklama": "30 crystals a day for 28 days + costume", "uzun": "30 crystals for each of 28 days, 840 in total: days you miss add up and arrive in your inbox on your next visit. Golden Cochlea costume right away. Does not renew; once per account. Team gets a gift." }
     }
   ],
   "sinirlar": {

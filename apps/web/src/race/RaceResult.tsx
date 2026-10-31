@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RaceRoom, RunResult } from '@odi/shared';
-import { leaguePointsFor } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, leaguePointsFor } from '@odi/shared';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
-import { errText } from '../net';
+import { errText, useSocial } from '../net';
 import { useNet } from '@odi/net/store';
 import { fmtSec, levelName, newerRoom, placeMedal, raceBonus, raceTimeSec, standings, useRaceNet } from './common';
 import { Art, rich, Glyph } from '../ui/art';
@@ -55,7 +55,10 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
   const me = room.players.find((p) => p.id === meId);
   const myPlace = me?.place ?? null;
   const headline = closed ? 'Yarış kapandı' : myPlace === 1 ? '🏆 Birinci oldun!' : myPlace === 2 ? '🥈 İkinci oldun!' : myPlace === 3 ? '🥉 Üçüncü oldun!' : myPlace != null ? `${myPlace}. oldun!` : result && !result.completed ? 'Bu sefer olmadı' : 'Yarış bitti';
-  const myLeague = result ? leaguePointsFor({ completed: result.completed, stars: result.stars }, myPlace) : null;
+  // sunucunun yazdığı lig puanı (tekrar sınırı dahil, karar 26); onay gelmeden tahmin gösterilmez
+  const ack = useSocial((s) => (s.lastRun?.raceId === room.id && s.lastRun.state === 'tamam' ? s.lastRun.ack : undefined));
+  const myLeague = result && ack ? ack.leaguePoints : null;
+  const fullLeague = result ? leaguePointsFor({ completed: result.completed, stars: result.stars }, myPlace) : null;
   const rivals = room.players.filter((p) => p.id !== meId);
 
   const rematch = async () => {
@@ -98,7 +101,9 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
       {done && myLeague != null && (
         <div className="card race-league-card">
           <b>Bu yarıştan {myLeague} lig puanı</b>
-          <small className="muted">Bölüm ({result!.completed ? `${5 + result!.stars * 5}` : '1'}) + yarış derecesi ({raceBonus(myPlace)}). Puanı sunucu hesaplar; parayla alınamaz.</small>
+          {ack?.leagueReplay
+            ? <small className="muted" data-testid="lig-tekrar">Bu bölüm bu hafta {LEAGUE_FULL_RUNS_PER_LEVEL} kez tam puan yazdı; tekrarı derece bonusu dahil 1 puan. Başka bir bölümde yarışırsan tam puan ({fullLeague}) yazar.</small>
+            : <small className="muted">Bölüm ({result!.completed ? `${5 + result!.stars * 5}` : '1'}) + yarış derecesi ({raceBonus(myPlace)}). Puanı sunucu hesaplar; parayla alınamaz.</small>}
         </div>
       )}
       {/* yarış sonrası tek dokunuş: "İyi yarıştı!" (yalnızca bu odadakiler görür) */}

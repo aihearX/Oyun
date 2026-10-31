@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { LEAGUE_FULL_RUNS_PER_LEVEL } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { regionForBiome, useSocial } from '../net';
 import { useNav } from '../nav';
@@ -42,7 +43,7 @@ export function TeamContribution({ runId, reduced }: { runId: string; reduced: b
   const lines: ReactNode[] = [];
   if (team && ack.warPoints > 0) lines.push(<><span className="tc-i"><Art name="swords" /></span><span>Takımına katkın: <b>+{war$} savaş puanı</b>{region ? <> → <b>{region.name}</b></> : <span className="muted"> (hedef bölge seçilmemiş)</span>}</span></>);
   if (team && ack.raidDamage > 0) lines.push(<><span className="tc-i"><Art name="monster" /></span><span className="grow"><span>Gürültü Canavarı’na <b>−{raid$} hasar</b></span>{raid && raid.maxHp > 0 && <Bar value={raid.hp / raid.maxHp} tone="coral" label="Canavarın canı" />}</span></>);
-  if (ligOpen && ack.leaguePoints > 0) lines.push(<><span className="tc-i"><Art name="trophy" /></span><span><b>+{lig$} lig puanı</b> bu haftaki grubunda</span></>);
+  if (ligOpen && ack.leaguePoints > 0) lines.push(<><span className="tc-i"><Art name="trophy" /></span><span><b>+{lig$} lig puanı</b> bu haftaki grubunda{ack.leagueReplay && <span className="muted" data-testid="lig-tekrar"> · bu bölüm bu hafta {LEAGUE_FULL_RUNS_PER_LEVEL} kez tam puan yazdı, tekrarı 1 puan</span>}</span></>);
   if (!team && feat.open('team') && ack.warPoints > 0) lines.push(<><span className="tc-i"><Art name="users" /></span><span className="grow">Bir takımda olsaydın bu koşu <b>+{ack.warPoints} savaş puanı</b> yazardı. <button className="linkish" onClick={(e) => { e.stopPropagation(); nav.tab('team'); }}>Takım bul →</button></span></>);
   if (!lines.length) return null;
   return (

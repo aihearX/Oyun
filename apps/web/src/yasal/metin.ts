@@ -71,7 +71,7 @@ export const GIZLILIK_TR: Belge = {
       'Sohbette ve özel mesajlarda küfür süzgeci vardır; takma adlar ve takım adları da süzülür.',
       'Her oyuncu bir iletiyi ya da oyuncuyu **şikâyet edebilir** ve **engelleyebilir**. Üç farklı oyuncunun şikâyet ettiği ileti gizlenir; bir gün içinde üç farklı oyuncunun şikâyet ettiği oyuncu bir süre mesaj gönderemez. Şikâyetleri inceler, gerekirse hesabın mesaj göndermesini uzun süre kapatırız.',
       'Mesajlar uçtan uca şifreli değildir; kötüye kullanım incelemesi için şikâyet edilen iletileri görebiliriz.',
-      'Mağazada aylık harcama sınırı vardır (varsayılan 1000 TL). Sınırı düşürmek hemen, yükseltmek 24 saat sonra geçerli olur.',
+      'Mağazada aylık harcama sınırı vardır. İlk satın almadan önce sınırı oyuncu kendisi seçer (önerilen 100 TL; satın almayı tamamen kapatmak da bir seçenektir). Sınırı düşürmek hemen geçerli olur; yükseltmek ayrıca onay ister ve 24 saat sonra geçerli olur.',
     ] },
 
     { t: 'h2', x: '6. Haklarınız (KVKK m.11)', id: 'haklar' },
@@ -171,7 +171,7 @@ export const GIZLILIK_EN: Belge = {
       'Chat and private messages pass a profanity filter; nicknames and team names are filtered too.',
       'Every player can **report** a message or a player and **block** players. A message reported by three different players is hidden; a player reported by three different players within a day cannot send messages for a while. We review reports and can disable an account\'s messaging for a long period.',
       'Messages are not end-to-end encrypted; we can see reported messages to review abuse.',
-      'The shop has a monthly spending limit (1000 TRY by default). Lowering it takes effect immediately; raising it takes effect after 24 hours.',
+      'The shop has a monthly spending limit. Before the first purchase the player chooses the limit (100 TRY suggested; turning purchases off completely is also an option). Lowering it takes effect immediately; raising it needs a separate confirmation and takes effect after 24 hours.',
     ] },
 
     { t: 'h2', x: '6. Your rights', id: 'rights' },

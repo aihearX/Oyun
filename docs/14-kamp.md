@@ -15,15 +15,25 @@ Kod: `packages/content/src/kamp.ts` (bina açıklamaları, açılım tablosu, ka
 
 Kimlikler değişmedi (kayıtlar ve sunucu satırları bunlara bağlı); adlar, açıklamalar ve "Daha fazla" satırları değişti.
 
-| kimlik | ad | oyun etkisi (değişmedi) | odyolojik karşılık |
+| kimlik | ad | oyun etkisi (kişisel; takım rekabetine girmez, karar 29) | odyolojik karşılık |
 |---|---|---|---|
 | `merkez` | **Odyoloji Merkezi** | diğer binaların en yüksek seviyesi | test bataryası, çapraz kontrol ilkesi |
 | `laboratuvar` | **Odyometri Odası** | bölüm jetonu +%3/Sv ("ölçtükçe daha çok öğrenirsin") | saf ses ve konuşma odyometrisi, hava/kemik yolu |
 | `atolye` | **İşitme Cihazı Atölyesi** | bölüm başı kalkan şansı +%4/Sv ("ayarlı cihaz destek olur") | amplifikasyon, NAL-NL2 / DSL, kulak kalıbı |
 | `depo` | **Kulak Deposu** (ad korunur: FTUE satırı kayıtlı) | saatte Sv × 20 jeton, 8 saatte dolar ("kulak kiri gibi birikir") | serumen ve epitel göçü |
-| `kule` | **Timpanometri Kulesi** | savaş puanı +%2/Sv | 226 Hz prob, timpanogram tipleri, akustik refleks |
+| `kule` | **Timpanometri Kulesi** | bölüm jetonu +%2/Sv (2026-10-31'e kadar savaş puanı +%2/Sv'ydi; karar 29) | 226 Hz prob, timpanogram tipleri, akustik refleks |
 | `revir` | **Odyoloji Kliniği** | ilk hasarı yok sayma şansı +%3/Sv ("erken tanı korur") | otoskopi, tarama, kayıp dereceleri |
 | `tedavi` | **Tedavi Odası** (YENİ) | malzeme üretir (§3) | koruma ve tedavi yöntemleri |
+
+**Pay-to-win yok (karar 29, YN-057, 2026-10-31).** Kamp inşaatı parayla satılan hızlandırıcılarla (İnşaatçı Paketi, Usta İnşaatçı,
+Başlangıç Paketi) ve kristalle kısalabilir. Bu yüzden **hiçbir bina takım rekabetine yansımaz**: Bölge Savaşı puanı, Baskın hasarı,
+Takım Yarışı skoru, Takım Ligi ve bireysel lig puanı bina seviyesinden bağımsızdır (`bonusesFor`: `warPct` ve `raidPct` yalnız takım
+teknolojisinden; `apps/server/test/pay-to-win.test.ts` aynı koşuların puanını binalar en üstteyken ve hiç yokken karşılaştırır). Binalar
+yalnız kişisel etki verir: jeton (Odyometri, Kule), bölüm başı kalkan şansı (Atölye), ilk hasarı yok sayma (Klinik); kalkan ve klinik
+yarışta (takım yarışı dahil) kapalıdır. Kalan dolaylı bağlar bilinçli olarak açık yazılır: kalkan ve klinik bir bölümü bitirmeyi biraz
+kolaylaştırabilir (bitirilen bölüm savaş puanı yazar), bina seviyeleri "Güç" ve "Takım gücü" sıralamalarında sayılır (ödülsüz kalıcı
+tablolar; takım yarışı eşleşmesinde benzer güçleri buluşturmak için kullanılır, skoru değiştirmez). Kule'nin eski savaş etkisini anlatan
+seslendirilmiş satır `kamp-sv-kule-2` ("Kulen artık takımının sesini daha uzağa taşıyor") sahip onayıyla yeniden yazılıp seslendirilmeli.
 
 Bina panelinde "Odyolojide" kutusu: sade cümle + "Daha fazla" teknik satır + kaynak (`BUILDING_INFO`). Kısa ad (`BUILDINGS[].short`)
 üst göstergede kullanılır (Merkez, Odyometri, Atölye, Depo, Kule, Klinik, Tedavi).
@@ -267,7 +277,7 @@ Kamera bütün takımadayı gezer (kilitli bölgeler de görünür ki hedef bell
 
 En yüksek Sv 20. Her birinde `BUILDING_INFO` (sade + Daha fazla + kaynak), iki Kulak Sözlüğü terimi (`ortam-gurultusu`,
 `tarama-136`, `aabr`, `isitsel-egitim`, `vng`, `bppv`, `kanit`) ve Tüy Dede'nin üç satırı (`kamp-sv-<bina>-1..3`).
-Eski binalar Sv 25'e çıktı; **bina gücü (jeton, kalkan, ilk hasar, savaş yüzdeleri) Sv 15'te tavan yapar** (`CAMP_POWER_LEVEL`;
+Eski binalar Sv 25'e çıktı; **bina gücü (jeton, kalkan, ilk hasar yüzdeleri) Sv 15'te tavan yapar** (`CAMP_POWER_LEVEL`;
 sunucu `bonusesFor` ve panel metni). Sv 16–25 maliyeti yumuşak doğrusal büyür (en uzun inşaat ~13 sa, Merkez ~18 sa; takım
 yardımı ve hızlandırıcılar geçerli, depo/raf/okuma köşesi çevrimdışı birikir).
 

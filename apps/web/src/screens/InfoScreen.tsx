@@ -1,4 +1,5 @@
 import { CALENDAR, DAILY_CHEST_BASE, LUCKY_NOTE, MAX_STREAK_SHIELDS, DUPLICATE_VALUE, TREASURES, TIER_REWARD } from '@odi/content';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS } from '@odi/shared';
 import { RewardChips, ScreenHead } from '../ui/bits';
 import { Glyph } from '../ui/art';
 
@@ -28,6 +29,12 @@ export function InfoScreen({ onBack }: { onBack: () => void }) {
       <div className="card info">
         <h2><Glyph e="🗺️" size="1.1em" /> Harita hazineleri</h2>
         <p>Bu bölümleri ilk kez bitirince açılır: {TREASURES.map((t) => t.level).join(', ')}. İçerikleri haritada görünür.</p>
+      </div>
+      <div className="card info" data-testid="bilgi-lig">
+        <h2><Glyph e="🏅" size="1.1em" /> Haftalık lig puanı</h2>
+        <p>Bitirdiğin her bölüm <b>5 + 5 × yıldız</b> lig puanı yazar; canlı yarışta derecen de eklenir (1. 30, 2. 15, 3. 8, diğer bitirenler 3). Bitiremediğin koşu 1 puandır.</p>
+        <p><b>Tekrar sınırı:</b> aynı bölüm bir lig haftasında en çok <b>{LEAGUE_FULL_RUNS_PER_LEVEL} kez</b> tam puan yazar; o bölümü sonra yeniden bitirirsen (yarışta da) her seferinde <b>{LEAGUE_REPLAY_POINTS} puan</b> alırsın. Yeni haftada sayaç sıfırlanır. Böylece lig, en kolay bölümü üst üste oynayanı değil, farklı bölümlerde iyi oynayanı öne çıkarır.</p>
+        <p className="muted">Lig puanı satın alınamaz; puanı sunucu hesaplar.</p>
       </div>
       <div className="card info">
         <h2><Glyph e="🏆" size="1.1em" /> Başarımlar</h2>

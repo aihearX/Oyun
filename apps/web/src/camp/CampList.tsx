@@ -56,7 +56,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
 
       {bonuses && Object.values(bonuses).some((v) => v > 0) && (
         <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
-          <span className="muted small-note">Kamp + takım etkilerin</span>
+          <span className="muted small-note">Kamp + takım etkilerin · savaş ve baskın yüzdesi yalnız takım teknolojisinden; kamp binaları takım puanlarına eklenmez</span>
           <div className="bonus-row">
             <span><b>+%{bonuses.coinPct}</b><Art e="🪙" size="1.15em" className="art-inline" /> jeton</span><span><b>%{bonuses.shieldChancePct}</b><Art e="🛡️" size="1.15em" className="art-inline" /> kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b><Art e="💚" size="1.15em" className="art-inline" /> klinik</span><span><b>+%{bonuses.warPct}</b><Art e="⚔️" size="1.15em" className="art-inline" /> savaş</span><span><b>+%{bonuses.raidPct}</b><Art e="👹" size="1.15em" className="art-inline" /> baskın</span>
           </div>
