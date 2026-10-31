@@ -19,10 +19,16 @@ import { NoteCard, useNote } from '../ftue/Notes';
 import { biliyorMuydun } from '@odi/content/biliyor-muydun';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
+import { mapIntroView } from '../ftue/map-intro';
+import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
 
-interface Props { spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string }
+interface Props {
+  spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string;
+  /** haritaya gelinince kendiliğinden başlayacak anlatıcı turları (ftue/map-intro.ts mapIntroQueue): doluysa "Sonraki" yerine "Haritaya dön" */
+  mapIntro?: readonly string[];
+}
 
 const STAR_AT = 380, STAR_GAP = 380, SCORE_MS = 900;
 
@@ -40,7 +46,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 }
 
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
-export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId }: Props) {
+export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro }: Props) {
   const store = useStore();
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
@@ -61,6 +67,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const skip = () => setStep(FINAL);
   const done = step >= FINAL;
   const last = spec.number >= HUMAN_JOURNEY.levels.length;
+  // yeni yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey varsa ileri düğmesi haritaya götürür (bölüme atlatmaz; YN-066)
+  const intro = result.completed && !last ? mapIntroView(mapIntro ?? []) : null;
   // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
   // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
   const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
@@ -251,7 +259,20 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
         {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
         <div className="result-actions" onClick={(e) => e.stopPropagation()}>
-          {result.completed && !last ? (
+          {intro ? (
+            <>
+              <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={(mapIntro ?? []).join(' ')}>
+                <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
+                <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
+                <Art name={intro.art} size={30} className="ra-art" />
+              </div>
+              <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
+              <div className="abtn-grid">
+                <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
+                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+              </div>
+            </>
+          ) : result.completed && !last ? (
             <>
               <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
               <div className="abtn-grid">

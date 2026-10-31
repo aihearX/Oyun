@@ -93,6 +93,10 @@ jeton / 98
 - `#` başlık, `[pencere: …]` açık iletişim kutusu, `! …` komutun notu (ne yapıldı, yeni sürüm yüklendi, bekleme…),
   `⚠ … hata` uygulamanın konsol/sayfa hataları (bunlar genellikle **hata** geri bildirimidir), `BÖLÜM AÇIK` bölüm başladı ve
   `bolum` bekliyor.
+- Sonuç ekranında "Sonraki" her zaman yoktur (YN-066): bölüm yeni bir yer açtıysa ya da Tüy Dede'nin haritada anlatacağı bir
+  şey varsa ileri düğmesi **"Haritaya dön"** (1. bölümden sonra "Haritaya git") olur, üstünde "Yeni: Kamp · Tüy Dede haritada
+  anlatacak." satırı durur; dokununca harita açılır ve tanıtım kendiliğinden başlar. Sıradaki bölümü haritadan başlat
+  ("Bölüm N"). Bekleyen bir şey yoksa (eski bölüm tekrarı, her şey görülmüş) düğme yine "Sonraki"dir. Kayıpta düğme "Tekrar dene".
 - Metin yalnız ekranda görünen kısımdır (açık pencerenin arkası yazılmaz). Ayrıntı için ekran görüntüsünü oku: özet bir yardımcıdır,
   oyuncunun gördüğü şey görüntüdür (renk, kontrast, taşma, kesilen yazı yalnız görüntüde görülür).
 - Tuval (harita, kamp, bölüm) içindekiler listede yoktur; görüntüye bakıp `dokun @x,y` kullan (koordinatlar CSS pikseli, görüntüyle aynı).

@@ -1128,7 +1128,8 @@ async function suite(browserName, target, [W, H]) {
       await check('giris-devam', { scroll: false });
     }
     if (want('sonuc')) {
-      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti']]) {
+      // YN-066: haritada bekleyen tanıtım (Kamp; iki açılım en uzun satır) → Sonraki yerine "Haritaya dön"
+      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1140,6 +1141,15 @@ async function suite(browserName, target, [W, H]) {
         rec.buttons = btn;
         const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);
         if (bad.length) fail(rec, `sonuç düğmeleri görünüm dışında: ${JSON.stringify(bad)}`);
+        if (label.startsWith('sonuc-anlatim')) {
+          const strip = await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').boundingBox().catch(() => null);
+          if (!strip || strip.x < 0 || strip.x + strip.width > W || strip.y + strip.height > H) fail(rec, `bekleyen tanıtım satırı görünmüyor ya da taşıyor: ${JSON.stringify(strip)}`);
+          if (await page.locator('.result-actions [data-act="sonraki"]').count()) fail(rec, 'bekleyen tanıtım varken Sonraki düğmesi var');
+          if (!btn.some((b) => b.t === 'Haritaya dön')) fail(rec, `"Haritaya dön" düğmesi yok: ${btn.map((b) => b.t).join(', ')}`);
+          const yazi = (await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').textContent().catch(() => '')) ?? '';
+          const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : 'Yeni: Kamp';
+          if (!yazi.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${yazi}"`);
+        }
       }
     }
     if (want('kamp') && target === 'web') {

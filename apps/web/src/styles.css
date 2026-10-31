@@ -272,6 +272,13 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .qm .bar { grid-column:2 / span 2; height:8px; }
 .result-actions { width:calc(100% + 32px); margin:4px -16px 0; display:flex; flex-direction:column; gap:12px; position:sticky; bottom:0; z-index:20; padding:22px 16px calc(var(--sab) + 14px); background:linear-gradient(rgba(20,12,53,0), var(--bg-0) 20px); }
 .result-actions::before { content:''; position:absolute; left:16px; right:16px; top:10px; height:1px; background:linear-gradient(90deg, transparent, rgba(255,201,60,.35), transparent); }
+/* YN-066: haritada bekleyen tanıtım (Tüy Dede + ne açıldı); ileri düğmesi "Haritaya dön" */
+.result-anlatim { display:flex; align-items:center; gap:10px; text-align:left; background:rgba(46,230,214,.12); border:2px solid rgba(46,230,214,.42); border-radius:var(--radius); padding:6px 12px 6px 6px; }
+.result-anlatim .ra-td { flex:none; display:flex; }
+.result-anlatim .ra-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; line-height:1.3; overflow-wrap:anywhere; }
+.result-anlatim .ra-body b { font-size:0.9375rem; font-weight:900; color:var(--text); }
+.result-anlatim .ra-body small { font-size:0.8125rem; font-weight:700; color:var(--text); opacity:.85; }
+.result-anlatim .ra-art { flex:none; }
 .more-unlocks { align-self:center; min-height:44px; font-size:0.875rem; }
 .skip-hint { font-size:0.75rem; opacity:.7; }
 /* YN-042: nota kartı "78/98", isteğe bağlı hedef durumu yazıyla, "Bu bölümden" jeton dökümü */
@@ -295,6 +302,9 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
   .result-actions { gap:8px; padding-top:14px; }
   .result-actions::before { top:6px; }
   .result-actions .abtn.primary { min-height:50px; }
+  .result-anlatim { gap:8px; padding:4px 10px 4px 4px; }
+  .result-anlatim .ra-td svg { width:36px; height:36px; }
+  .result-anlatim .ra-art { width:24px; height:24px; }
   .result-actions .abtn-grid { gap:8px; }
   .result-actions .abtn.tile { flex-direction:row; gap:5px; min-height:44px; padding:4px 6px; }
   .result-actions .abtn.tile .ic { width:18px; height:18px; }

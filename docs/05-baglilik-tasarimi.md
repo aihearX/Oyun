@@ -52,6 +52,22 @@ Sekiz çekirdek dürtü: anlam (ses taşımak, Büyük Sessizlik), başarı (yı
 13. **Juice** her yerde.
 14. **Paylaşım kartları** her anlamlı anda.
 
+### 2.1 Kademeli açılım ve Tüy Dede'nin tanıtımları (ilk deneyim)
+Yeni oyuncuda her yer bir anda açık değildir: yerler bölüm geçtikçe tek tek açılır (`apps/web/src/ftue/features.ts`, ör.
+Bugün 2, Kamp 3, Takım 5) ve Tüy Dede her yeni yeri kısa bir turla gösterir (`ftue/Director.tsx`). Turlar ekran sakinken,
+tek seferde bir tane ve oyuncu başına bir kez oynar; bir bölüm geçişinden sonra en çok 2 açılım turu art arda gelir, fazlası
+sonraki geçişe kalır. Sonuç turu sonuç ekranında, harita turu ve açılım turları sekme ekranlarında (önce harita), kamp
+görevleri turları ve kamp öğreticisi yalnız kampta başlar.
+
+**Sonuç ekranı anlatımı kaçırtmaz (sahip isteği 2026-10-31, YN-066).** Haritaya gelince kendiliğinden başlayacak bir tur varsa
+(`ftue/map-intro.ts` `mapIntroQueue`: yönetmenle aynı kuyruk ve aynı bölüm başı sınır) sonuç ekranında "Sonraki" yoktur; ileri
+düğmesi "Haritaya dön" olur (1. bölümden sonra harita turu için "Haritaya git") ve üstünde ne beklediği yazar ("Yeni: Kamp ·
+Tüy Dede haritada anlatacak."). Dokununca harita açılır, tanıtım ek dokunuş olmadan başlar; oyuncu sıradaki bölümü isterse
+haritadan başlatır. Tekrar ve Meydan oku yerinde kalır. Bekleyen bir şey yoksa (eski bölüm tekrarı, her şey görülmüş, bu geçişin
+sınırı dolmuş, test atlaması/yönetici kipi) "Sonraki" eskisi gibi bölümü başlatır; kayıpta ileri düğmesi yoktur. Yalnız kampta
+başlayan turlar (Kamp Görevleri, kamp oyunları, Hasta Vakaları) sonucu yönlendirmez: oyuncu kampa girince oynar. Yarış, takım
+yarışı ve etkinlik bölümlerinin kendi sonuç ekranları bölüme atlatmaz; değişmedi.
+
 ## 3. Yapmayacaklarımız (yasal ve ahlaki sınır)
 - Yalan, sahte sayaç, sahte kıtlık, sahte sosyal kanıt.
 - Loot box / gacha (AB'de düzenleniyor, Apple açıklama zorunlu kılıyor; marka için risk).

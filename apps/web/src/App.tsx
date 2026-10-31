@@ -15,7 +15,8 @@ import { ArtDefs } from './ui/art';
 import { CoachHost } from './ftue/Coach';
 import { FtueDirector, useLockToast } from './ftue/Director';
 import { StoryScreen } from './ftue/Story';
-import { clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
+import { FEATURES, clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
+import { mapIntroQueue } from './ftue/map-intro';
 import { useStore } from './store';
 import { TitleScreen } from './screens/TitleScreen';
 import type { ProfileLink } from './screens/ProfileScreen';
@@ -175,6 +176,8 @@ function botParams() {
  * Sonuç ekranını sahte bir çekirdek üzerinde gösterir; kayda hiçbir şey yazmaz (üretimde zararsız).
  * `&katki=1`: takım katkısı satırlarını örnek bir sunucu onayıyla gösterir (yalnızca görünüm; sunucuya bir şey gitmez).
  */
+/** önizleme: `&anlatim=camp` (ya da `map`, `friends,glossary`…) → sonuç ekranı haritada bekleyen tanıtımı gösterir (kayda dokunmaz) */
+const demoMapIntro = (): string[] => (new URLSearchParams(location.search).get('anlatim') ?? '').split(',').filter((t) => t === 'map' || FEATURES.some((f) => f.tour && f.id === t));
 const wantsDemoResult = () => new URLSearchParams(location.search).get('demo') === 'sonuc';
 function demoResult({ generateLevel }: LevelGen): Extract<Route, { name: 'result' }> | null {
   const q = new URLSearchParams(location.search); if (q.get('demo') !== 'sonuc') return null;
@@ -360,7 +363,7 @@ export function App() {
         const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result); setRoute({ name: 'result', spec: r.spec, result, summary, runId });
       }}
       onQuit={() => setRoute(r.race ? (r.race.team ? { name: 'team' } : { name: 'race', back: 'team', key: Date.now() }) : { name: 'map' })} />; }
-    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
+    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} mapIntro={route.demo ? demoMapIntro() : mapIntroQueue(cleared, store.ftue)} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
     case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} onReset={() => setRoute({ name: 'title' })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;

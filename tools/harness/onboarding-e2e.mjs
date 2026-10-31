@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // ODİ ilk deneyim (FTUE) uçtan uca testi: yeni oyuncu akışı baştan sona.
 //   açılış → hikâye (7 cümle, Tüy Dede) → 1. bölüm (bot) → sonuç turu (yıldızlar, notalar) → harita turu (kilitli sekmeler)
-//   → 2. bölüm → "Bugün" açılır (tur: sekmeye dokun, takvim ödülünü al) → 3. bölüm → "Kamp" açılır → kamp öğreticisi
-//   (binaya dokun, panel, gerçek inşaat başlar) → 4. bölüm → Arkadaşlar → 5. bölüm → Takım açılır (tur).
+//   → 2. bölüm → "Bugün" açılır (tur: sekmeye dokun, takvim ödülünü al) → 3. bölüm → "Kamp" açılır: sonuç ekranında Sonraki
+//   yok, "Haritaya dön" → haritada Kamp tanıtımı kendiliğinden başlar (YN-066) → kamp öğreticisi (binaya dokun, panel, gerçek
+//   inşaat başlar) → 3. bölüm tekrar (bekleyen yok → Sonraki) → Sonraki ile 4. bölüm → Arkadaşlar → 5. bölüm → Takım açılır (tur).
 // Her adımda: kilit durumları, anlatıcı metni (Türkçe) ve konuşma köprüsünün Türkçe metinle çağrıldığı denetlenir;
 // her anlatıcı adımının ekran görüntüsü alınır (çentik 47 px bandı işaretli).
 //   web Chromium: 6–10. bölüm de oynanır; her açılım turu yürütülür, bölüm başına tur sayısı (anlatıcı yükü) raporlanır.
@@ -244,6 +245,22 @@ async function suite(target, browserName, [W, H]) {
     if (await page.getByRole('button', { name: /Haydi/ }).count()) await page.getByRole('button', { name: /Haydi/ }).click();
     await waitResult(page, lv);
   }
+  /** sonuç ekranı (YN-066): haritada bekleyen tanıtım varsa ileri düğmesi "Haritaya dön/git" (Sonraki yok); yoksa Sonraki.
+   *  `want`: beklenen tur kimlikleri (boşluklu; '' = bekleyen yok). Bekleyen turları döndürür. */
+  async function resultForward(page, lv, want, label) {
+    await page.locator('.result-actions [data-act="harita"]').waitFor({ timeout: 10_000 }); await sleep(500);
+    const strip = page.locator('.result-actions [data-testid="anlatim-bekliyor"]');
+    const tours = (await strip.count()) ? (await strip.getAttribute('data-tours')) ?? '' : '';
+    const next = await page.locator('.result-actions [data-act="sonraki"]').count();
+    const fwd = page.locator('.result-actions [data-act="harita"]');
+    const primary = (await fwd.count()) && (await fwd.getAttribute('data-anlatim')) === '1' ? ((await fwd.textContent()) ?? '').trim() : '';
+    if (want === undefined) return tours;
+    if (want) {
+      check(tours === want && !next && /^Haritaya (dön|git)$/.test(primary), `${lv}. bölüm sonucu: haritada bekleyen tanıtım (${tours || '-'}) → ileri düğmesi "${primary || '-'}", Sonraki yok`);
+      if (label) await shot(page, label);
+    } else check(!tours && next === 1, `${lv}. bölüm sonucu: bekleyen tanıtım yok → Sonraki (${next})`);
+    return tours;
+  }
   async function waitResult(page, lv) {
     for (let i = 0; i < 400 && !(await page.locator('.result-actions').count()); i++) {
       const h = page.getByRole('button', { name: /Haydi/ }); if (await h.count()) await h.click().catch(() => undefined);
@@ -279,6 +296,7 @@ async function suite(target, browserName, [W, H]) {
       await page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 30_000 }); await sleep(800); await shot(page, 'bolum-1');
       await waitResult(page, 1);
       check(await page.locator('.result-actions [data-act="meydan"][disabled]').count() === 1, 'sonuç: Meydan oku kilitli (Bölüm 8)');
+      await resultForward(page, 1, 'map');
       await driveTour(page, 'result1', 'sonuc-turu');
       // ---- 3 · harita turu
       await page.locator('.map-play').waitFor({ timeout: 20_000 }); await nickname(page);
@@ -288,6 +306,7 @@ async function suite(target, browserName, [W, H]) {
       // map turunun son adımı 2. bölümü başlatır
       if (await page.getByRole('button', { name: /Haydi/ }).count()) await page.getByRole('button', { name: /Haydi/ }).click();
       await waitResult(page, 2);
+      await resultForward(page, 2, 'today');
       await page.locator('.result-actions [data-act="harita"]').click();
       // ---- 4 · Bugün açılır
       await driveTour(page, 'today', 'bugun-turu');
@@ -297,7 +316,11 @@ async function suite(target, browserName, [W, H]) {
       // ---- 5 · 3. bölüm → Kamp
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       await playFromMap(page, 3);
+      // sahip isteği 2026-10-31 (YN-066): Kamp'ı açan bölümün sonucu bölüme değil haritaya götürür; Kamp tanıtımı haritada kendiliğinden başlar
+      await sleep(600); await resultForward(page, 3, 'camp', 'sonuc-kamp-acildi');
       await page.locator('.result-actions [data-act="harita"]').click();
+      await page.locator('[data-testid="anlatici-tur"][data-tour="camp"]').waitFor({ timeout: 40_000 });
+      check(await page.locator('.map-play').count() === 1 && !(await page.locator('.result-actions').count()), 'Kamp tanıtımı haritada ek dokunuş olmadan başladı');
       await driveTour(page, 'camp', 'kamp-acilis');
       await page.locator('.camp-base').waitFor({ timeout: 20_000 });
       await driveTour(page, 'camp-build', 'kamp-ogretici', {
@@ -305,9 +328,18 @@ async function suite(target, browserName, [W, H]) {
       });
       check(await page.locator('.bp-build').count() === 1, 'kamp: gerçek inşaat başladı');
       await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined);
-      // ---- 6 · 4. ve 5. bölüm → Arkadaşlar, Takım
+      // ---- 6 · geçilmiş bölümü tekrar (bekleyen tanıtım yok → Sonraki), Sonraki ile 4. bölüm → Arkadaşlar; 5. bölüm → Takım
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
-      await playFromMap(page, 4); await page.locator('.result-actions [data-act="harita"]').click();
+      // geçilmiş son bölüm (3) tekrar: Sonraki 4. bölümü başlatır
+      await page.waitForFunction(() => !!window.__harita, null, { timeout: 20_000 }); await page.evaluate(() => window.__harita.card(3));
+      await page.getByRole('button', { name: /Tekrar oyna/ }).click({ timeout: 10_000 });
+      await waitResult(page, 3); await dismissCel(page);
+      await resultForward(page, 3, '');
+      await page.locator('.result-actions [data-act="sonraki"]').click();
+      await page.locator('.result-actions').waitFor({ state: 'detached', timeout: 20_000 });
+      check(!(await page.locator('nav.tabbar').count()), 'Sonraki haritaya uğramadan sıradaki bölümü başlattı');
+      await waitResult(page, 4); await resultForward(page, 4, 'friends glossary');
+      await page.locator('.result-actions [data-act="harita"]').click();
       await driveTour(page, 'friends', 'arkadaslar-turu');
       // Kulak Sözlüğü (4. bölümden sonra, arkadaşlardan hemen sonra): kutucuğa dokun → sözlük açılır → ilk terim
       await driveTour(page, 'glossary', 'sozluk-turu');
@@ -318,7 +350,7 @@ async function suite(target, browserName, [W, H]) {
       await page.getByRole('button', { name: 'Geri' }).first().click();
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       check((await lockedTabs(page)).includes('team'), 'Takım hâlâ kilitli (Bölüm 5)');
-      await playFromMap(page, 5); await page.locator('.result-actions [data-act="harita"]').click();
+      await playFromMap(page, 5); await resultForward(page, 5, 'team siralama'); await page.locator('.result-actions [data-act="harita"]').click();
       await driveTour(page, 'team', 'takim-turu');
       check(!(await lockedTabs(page)).length, 'bütün sekmeler açık');
       // ---- 7 · 6–10. bölüm: her açılım tek tek, anlatıcı yükü ölçülür (yalnız Chromium; WebKit aynı turları 1–5'te denetler)
@@ -326,11 +358,15 @@ async function suite(target, browserName, [W, H]) {
         const perLevel = { 5: await drainTours(page, 'b5') };
         for (let lv = 6; lv <= 10; lv++) {
           await toMap(page, perLevel[`${lv - 1}-kamp`] ?? perLevel[lv - 1], `b${lv - 1}-gecis`);
-          await playFromMap(page, lv); await page.locator('.result-actions [data-act="harita"]').click();
+          await playFromMap(page, lv); const bekleyen = await resultForward(page, lv);
+          check(bekleyen ? !(await page.locator('.result-actions [data-act="sonraki"]').count()) : (await page.locator('.result-actions [data-act="sonraki"]').count()) === 1, `${lv}. bölüm sonucu: ${bekleyen ? `haritada bekleyen ${bekleyen} → Haritaya dön` : 'bekleyen yok → Sonraki'}`);
+          await page.locator('.result-actions [data-act="harita"]').click();
           await dismissCel(page);
           perLevel[lv] = await drainTours(page, `b${lv}`);
           // bir tur alt ekranda bitince (ör. Etkinlik çadırı) haritaya dönüşte sıradaki tur başlayabilir
           await toMap(page, perLevel[lv], `b${lv}-harita`);
+          // dürüstlük: sonuç ekranının söylediği her tanıtım haritaya gelince gerçekten oynadı
+          if (bekleyen) { const eksik = bekleyen.split(' ').filter((t) => !perLevel[lv].includes(t)); check(!eksik.length && perLevel[lv][0] === bekleyen.split(' ')[0], `${lv}. bölüm: söylenen tanıtımlar haritada oynadı (${perLevel[lv].join('+')}${eksik.length ? `; oynamayan: ${eksik.join(', ')}` : ''})`); }
           // kamp turları yalnız kampta başlar: oyuncu gibi her bölümden sonra kampa uğra
           await page.locator('nav.tabbar .tab[data-tab="camp"]').click(); await sleep(1500); await dismissCel(page);
           perLevel[`${lv}-kamp`] = await drainTours(page, `b${lv}-kamp`);
