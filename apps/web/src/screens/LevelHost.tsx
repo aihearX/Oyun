@@ -36,7 +36,7 @@ declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunR
  * `race` verilirse canlı yarış: rakip hayaletleri + üst şerit + sunucu saatine hizalı geri sayım; bölüm bitince
  * `race.finish` gönderilir ve onDone(sonuç, güncel oda) çağrılır. `raceBotDelayMs` yalnızca test harness'i içindir (bot ile).
  */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, renderScale, hints, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; timeScale?: number; renderScale?: number; /** false: bölüm içi ipuçları gizli (tuval + Tüy Dede sesi; yalnız test/çekim) */ hints?: boolean; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeScale, renderScale, hints, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; /** yalnız test derlemesi: botun insan eli (App.tsx `oyun-beceri`) */ botHand?: Promise<LevelOptions['botHand']>; timeScale?: number; renderScale?: number; /** false: bölüm içi ipuçları gizli (tuval + Tüy Dede sesi; yalnız test/çekim) */ hints?: boolean; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<{ title: string; text: string; closed?: boolean } | null>(null);
@@ -108,11 +108,11 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       // bitiş zaten kayıtlı (yanıt kaybolmuştu), yarış bitti ya da oda yok: odanın son hâli; o da yoksa son bilinen (sonuç ekranı ayrıca sorar)
       try { return (await net.call('race.state', { roomId: race.id })).room; } catch { return latest; }
     };
-    const start = ({ startLevel }: Awaited<ReturnType<typeof loadLevel>>) => {
+    const start = ([{ startLevel }, hand]: [Awaited<ReturnType<typeof loadLevel>>, LevelOptions['botHand']]) => {
       if (dead) return;
       setLoading(false);
       h = startLevel(el, {
-        spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot ? {} : extras), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
+        spec, skills, sounds, bot, botIdle, timeScale, ...(renderScale ? { renderScale } : {}), ...(bot && !hand ? {} : extras), ...(bot && hand ? { botHand: hand } : {}), ...(raceOpt ? { race: raceOpt, remedies: undefined } : {}),
         // çentik/kamera/saat: oyun içi gösterge güvenli alanın altına iner
         safeTop: safeAreaTop(), safeTopNow: safeAreaTop,
         // hareketi azalt (sistem tercihi): oyun içi ekran flaşları kapalı (ışığa duyarlılık; game-core render/flash.ts)
@@ -142,7 +142,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, timeScale, rende
       handle.current = h;
     };
     // parça indirilemezse bölümden çıkılır (web'de sayfa yenilenir: engine.ts chunkFailed)
-    loadLevel().then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
+    Promise.all([loadLevel(), botHand]).then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
     return () => { dead = true; for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir — yalnız duraklatmanın kısması kalkar (anlatıcı/kutlama sürer)

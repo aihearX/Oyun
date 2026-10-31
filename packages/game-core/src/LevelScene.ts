@@ -42,6 +42,8 @@ const STREAM_AHEAD = 700, STREAM_KEEP = 1000;
 export class LevelScene extends Phaser.Scene {
   opts!: LevelOptions; spec!: LevelSpec; biome!: BiomeDef;
   world!: World; sim!: SimState; planner?: Planner;
+  /** test botunun insan eli (LevelOptions.botHand): öğretici an ağır çekimini elin tepki süresine yansıtır */
+  private botSlow?: (k: number) => void;
   input_!: TouchInput; state!: LevelState; race?: RaceLayer;
   heroView!: HeroView; hud!: LevelHudView;
   private backdrop?: BiomeBackdrop; private views = new Map<number, EntityView>(); private streamAt = 0;
@@ -94,7 +96,7 @@ export class LevelScene extends Phaser.Scene {
     this.sim = initState(this.world, { lives: this.opts.lives, revir: !this.opts.bot && revirPct > 0 && Math.random() * 100 < revirPct, remedies: this.opts.race ? undefined : this.opts.remedies });
     this.patList = this.world.ents.filter((e) => typeof e.p.patoloji === 'string').map((e) => ({ id: e.id, x: e.l, pat: String(e.p.patoloji) })).sort((a, b) => a.x - b.x);
     this.sim.events = [];
-    if (this.opts.bot && !this.opts.botIdle) this.planner = new Planner(this.world);
+    if (this.opts.bot && !this.opts.botIdle) { const hand = this.opts.botHand?.(this.world); this.planner = new Planner(this.world, hand?.prefs); this.botSlow = hand?.slow; }
     this.state = { started: false, finished: false, lives: this.sim.lives, coins: 0, score: 0, timeSec: 0, deaths: 0, damageTaken: 0, shield: this.sim.shield, custom: {} };
 
     // ---- görünüm (seam'ler: play/visuals.ts)
@@ -308,11 +310,11 @@ export class LevelScene extends Phaser.Scene {
     if (ent?.p.refresher) {
       // tazeleme: bu koşuda bir kez; oyuncu iki perdeyi başarıyla geçtiyse (kalıcı anahtar) hiç
       if (this.opts.race || this.refresherShown || this.firstsDone.includes(REFRESH_KEY) || (this.opts.firsts !== undefined && !this.opts.firsts.includes(REFRESH_KEY))) return;
-      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT, this.hintsOn); this.tutorialT = 0;
+      this.refresherShown = true; this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, REFRESH_TEXT, this.hintsOn); this.tutorialT = 0; this.botSlow?.(TUTORIAL_SLOW);
       this.emit({ type: 'hint', id: REFRESH_KEY, text: REFRESH_TEXT }); return;
     }
     if (!this.showTutorial(a)) return;
-    this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, undefined, this.hintsOn); this.tutorialT = 0; this.tutorAbilities.add(a);
+    this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, undefined, this.hintsOn); this.tutorialT = 0; this.tutorAbilities.add(a); this.botSlow?.(TUTORIAL_SLOW);
     this.emit({ type: 'hint', id: tutorialKey(a), text: this.tutorial.text });
   }
   /** kıl perdesi ipucu (3-8) ve 5'teki başarılı geçiş sayımı */
@@ -354,7 +356,7 @@ export class LevelScene extends Phaser.Scene {
     }
   }
   private endTutorial(success: boolean) {
-    const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done();
+    const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done(); this.botSlow?.(1);
     if (success) {
       this.praise('Harika!'); sfx.perfect(2);
       const key = tutorialKey(t.ability); if (this.opts.firsts?.includes(key) && !this.firstsDone.includes(key)) this.firstsDone.push(key);

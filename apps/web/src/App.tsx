@@ -138,6 +138,13 @@ const E2E_Q = E2E ? new URLSearchParams(location.search) : null;
 const PLAY_BOT = !!E2E_Q && E2E_Q.get('oyun-bot') === '1';
 /** test: bot hız çarpanı (`&oyun-hiz=3`; yavaş test makinesinde çok oyunculu yarış zaman sınırına takılmasın) */
 const BOT_SPEED = PLAY_BOT ? Math.min(4, Math.max(1, Number(E2E_Q!.get('oyun-hiz')) || 1)) : 1;
+/**
+ * test: `&oyun-beceri=0..1[&oyun-tohum=N]` → harness botu (`oyun-bot=1` akışı ve `?bot=1`) kusursuz değil, o becerideki insan eliyle
+ * oynar (play/human.ts; oyuncu ajanları: tools/harness/oyuncu.mjs). Yalnız test derlemesinde; modül de yalnız o zaman yüklenir.
+ */
+const BOT_HAND: Promise<LevelOptions['botHand']> | undefined = E2E && E2E_Q!.has('oyun-beceri') && Number(E2E_Q!.get('oyun-beceri')) < 0.99
+  ? import('./e2e/oyuncu-eli').then((m) => m.oyuncuEli(Number(E2E_Q!.get('oyun-beceri')), E2E_Q!.has('oyun-tohum') ? Number(E2E_Q!.get('oyun-tohum')) : null))
+  : undefined;
 /** test: `&ipucu=0` bölüm içi ipuçlarını gizler (çekim; ilk deneyim turlarını gizleyen `ftue=0` / ftue.bypass ile birlikte kullanılır) */
 const NO_HINTS = !!E2E_Q && E2E_Q.get('ipucu') === '0';
 /** sekme → açılması gereken yer (harita hep açık) */
@@ -289,7 +296,7 @@ export function App() {
   if (bot && route.name !== 'level') return <><ArtDefs /><EngineLoading /></>;
   if (bot && route.name === 'level') {
     const skills = bot.skillsAll ? { doubleJump: true, longSlide: true, magnet: 3 as const, shield: 2 as const, breath: 3 as const, echoSight: true } : DEFAULT_SKILLS;
-    return <Suspense fallback={<EngineLoading />}><LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} timeScale={bot.ts} renderScale={bot.hd || undefined} hints={bot.hints} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} /></Suspense>;
+    return <Suspense fallback={<EngineLoading />}><LevelHost spec={route.spec} skills={skills} sounds={false} bot={!bot.human} botIdle={bot.idle} botHand={BOT_HAND} timeScale={bot.ts} renderScale={bot.hd || undefined} hints={bot.hints} onDone={() => { /* harness window.__odi üzerinden okur */ }} onQuit={() => undefined} /></Suspense>;
   }
 
   // sekme rozetleri: bekleyen (alınabilir) ödüller
@@ -340,7 +347,7 @@ export function App() {
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
     case 'raceResult': if (route.room.team) return sub(<TeamRaceResultScreen room={route.room} result={route.result} />); return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills }); }} />;
-    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} hints={NO_HINTS ? false : undefined} extras={r.extras} race={r.race}
+    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} botHand={PLAY_BOT ? BOT_HAND : undefined} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} hints={NO_HINTS ? false : undefined} extras={r.extras} race={r.race}
       onDone={levelDone.current = (result, room) => {
         if (r.race) {
           // yarış bölümü açık bölümlerdense ilerlemeye ve takıma sayılır (rövanşta açılmamış bölüm sayılmaz)

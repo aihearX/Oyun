@@ -1,4 +1,6 @@
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
+import type { PlanPrefs } from './play/planner';
+import type { World } from './play/world';
 
 export type GameEvent =
   | { type: 'ready' }
@@ -63,6 +65,12 @@ export interface LevelOptions {
   bot?: boolean;
   /** test: bot modunda başlar ama hiçbir giriş yapmaz (boşta oyuncu). Her bölüm boşta kaybedilmeli. */
   botIdle?: boolean;
+  /**
+   * yalnız test derlemesi (oyuncu ajanları, `&oyun-beceri=`): botun eli. Bölüm kurulunca dünyayla bir kez çağrılır; dönen tercihlerle
+   * planlayıcı insan gibi oynar (tepki gecikmesi, sapma, kaçan girdi: play/human.ts `humanHand`); `slow(k)` öğretici an ağır çekiminde
+   * çağrılır (0,3; bitince 1). Yoksa bot kusursuz planlayıcıdır (varsayılan; bot.mjs ve e2e takımları).
+   */
+  botHand?: (w: World) => { prefs: PlanPrefs; slow?: (k: number) => void };
   /** Revir bonusu: bölümdeki ilk (düşme dışı) hasarı bu yüzde şansla yok say. Tek zar atılır; oran Kamp ekranında yazılıdır. */
   firstHitIgnorePct?: number;
   sounds?: boolean;

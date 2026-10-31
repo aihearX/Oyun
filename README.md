@@ -27,6 +27,7 @@ Bu repo, aiHear'ın bağımsız oyun projesidir. aihearX süper uygulamasındaki
 | [`docs/odyoloji-icerik.md`](docs/odyoloji-icerik.md) | Odyoloji içeriği (uzman incelemesi için) |
 | [`docs/anlatici-metinleri.md`](docs/anlatici-metinleri.md) | Tüy Dede anlatıcı metinleri |
 | [`docs/yonetim/durum.md`](docs/yonetim/durum.md) | Proje yöneticisi: güncel durum, test sonuçları, sahip kararları ([iş listesi](docs/yonetim/is-listesi.md)) |
+| [`docs/yonetim/oyuncu-testi/README.md`](docs/yonetim/oyuncu-testi/README.md) | Oyuncu testi: 10 LLM kişi oyunu baştan sona oynar, geri bildirim yazar (`node tools/harness/oyuncu.mjs`) |
 
 Durum: **Faz 1 (dikey dilim) geliştirmede.** Kod bu repoda; aşağıdaki komutlarla çalışır.
 

@@ -110,6 +110,27 @@ export function humanControl(seed: number, p: HumanParams = HUMAN): { prefs: Pla
   return { prefs, slow: (k: number) => { tk = k; prefs.react = Math.max(1, Math.round((p.reactMs * k) / F)); } };
 }
 
+/**
+ * Dünyaya göre ayarlı insan eli (ölçüm `runHuman` ve canlı bölümdeki test botu `LevelOptions.botHand` aynı kuralı kullanır):
+ * boss arenasında saldırıların yönü/türü önceden bilinemez — oyuncu ancak uyarıyı (telegraf) görünce plan yapabilir, ileri bakış
+ * uyarı süresiyle sınırlı (planlayıcı geleceği "bilmesin"); sulu bölümde ileri bakış en az SWIM_LOOK_MS.
+ */
+export function humanHand(w: World, seed: number, base: HumanParams = HUMAN): { prefs: PlanPrefs; slow: (k: number) => void } {
+  const params = w.boss ? { ...base, lookMs: Math.min(base.lookMs, BOSS_LOOK_MS) } : w.ents.some((e) => e.type === 'water') ? { ...base, lookMs: Math.max(base.lookMs, SWIM_LOOK_MS) } : base;
+  return humanControl(seed, params);
+}
+
+/**
+ * Oyuncu ajanlarının (tools/harness/oyuncu.mjs, yalnız test derlemesi) beceri ölçeği 0 (hiç oynamamış) … 1 (kusursuz) → el modeli.
+ * 0,99 ve üstü (ya da sayı değil): null = kusursuz planlayıcı bot. 0,25'in altı: ilk kez oynayan kademe (`firstTimerOf(k)`).
+ * Arası kitle: 0,95 → USTA, 0,4 ve altı → NOVICE, doğrusal (`playerAt`). `k`: oyuncu/deneme numarası (her deneme başka bir el).
+ */
+export function skillHand(skill: number, k: number): HumanParams | null {
+  if (!(skill < 0.99)) return null;
+  if (skill < 0.25) return firstTimerOf(k);
+  return playerAt((0.95 - skill) / 0.55);
+}
+
 export interface HumanRun {
   finished: boolean; failed: string | null; t: number;
   /** kaybedilen can (düşme dahil); bitiremeyen 3 can kaybetmiştir */
@@ -126,11 +147,7 @@ const gap = (hl: number, ht: number, hr: number, hb: number, l: number, t: numbe
 
 /** hazır dünyayı insan modeliyle oyna (dünya + başlangıç durumu dışarıda kurulur) */
 export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun {
-  // boss arenasında saldırıların yönü/türü önceden bilinemez: oyuncu ancak uyarıyı (telegraf) görünce plan yapabilir —
-  // ileri bakış uyarı süresiyle sınırlı (planlayıcı geleceği "bilmesin")
-  const base = o.params ?? HUMAN;
-  const params = w.boss ? { ...base, lookMs: Math.min(base.lookMs, BOSS_LOOK_MS) } : w.ents.some((e) => e.type === 'water') ? { ...base, lookMs: Math.max(base.lookMs, SWIM_LOOK_MS) } : base;
-  const ctl = humanControl(seed, params); const p = new Planner(w, ctl.prefs); const maxT = (o.maxT ?? 300);
+  const ctl = humanHand(w, seed, o.params ?? HUMAN); const p = new Planner(w, ctl.prefs); const maxT = (o.maxT ?? 300);
   // öğretici an (LevelScene): yeni yeteneğin ilk karşılaşmasında oyun ×0,3 yavaşlar, oyuncu hareketi yapınca (ya da 8 gerçek sn
   // sonra) normale döner — ilk kez oynayan oyuncu o an bolca zaman bulur
   const ownEvents = !s.events; if (ownEvents) s.events = []; let tut: string | null = null; let tutEnd = 0;
