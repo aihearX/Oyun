@@ -33,18 +33,20 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
   if (spec.coinsTotal <= 0) {
     if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
   } else if (r.stars < 3) {
-    // eşikler yıldız kuralıyla aynı yerden (shared economy.ts → noteThresholds; yüzmede 2★ %45 nota)
-    const th = noteThresholds(spec); const needAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9) - r.coins;
+    // eşikler yıldız kuralıyla aynı yerden (shared economy.ts → noteThresholds; yüzmede 2★ %45 nota). Tek cümle, nota sayısı
+    // toplam olarak (sonuç ekranındaki "78/98 nota" ile yan yana okunur): "3. yıldız: 90 nota ya da hepsini topla"
+    const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
     if (r.stars === 1) {
-      const need = Math.max(1, needAt(th.star2));
       const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
-      return { kind: 'yildiz', text: t2 ? `2. yıldız için ${need} nota daha ya da ${t2} saniyede bitir` : `2. yıldız için ${need} nota daha` };
+      return { kind: 'yildiz', text: `2. yıldız: ${notesAt(th.star2)} nota${t2 ? ` ya da ${t2} saniyede bitir` : ''}` };
     }
-    // yüzmede 2★ %60'tan az notayla gelebilir; hedefle 3★ için yine %60 nota gerekir → eksik notayı da söyle (tümünü toplama hariç)
-    const needObj = th.star3Objective ? needAt(th.star3Objective) : 0;
-    if (needObj > 0 && spec.objective.id !== 'collect-all') return { kind: 'yildiz', text: `3. yıldız için ${needObj} nota daha ve: ${spec.objective.label}` };
-    const need = Math.max(1, needAt(th.star3));
-    return { kind: 'yildiz', text: spec.objective.id === 'reach' ? `3. yıldız için ${need} nota daha` : `3. yıldız için ${need} nota daha ya da: ${spec.objective.label}` };
+    const n3 = `3. yıldız: ${notesAt(th.star3)} nota`;
+    if (spec.objective.id === 'reach') return { kind: 'yildiz', text: n3 };
+    const hedef = spec.objective.id === 'collect-all' ? 'hepsini topla' : spec.objective.label.charAt(0).toLocaleLowerCase('tr-TR') + spec.objective.label.slice(1);
+    // yüzmede 2★ %60'tan az notayla gelebilir; hedefle 3★ için yine %60 nota gerekir → onu da söyle
+    const withObj = th.star3Objective ? notesAt(th.star3Objective) : 0;
+    if (withObj > r.coins && spec.objective.id !== 'collect-all') return { kind: 'yildiz', text: `${n3} ya da ${withObj} nota ve ${hedef}` };
+    return { kind: 'yildiz', text: `${n3} ya da ${hedef}` };
   }
   const t = nextTreasure(spec.number + 1, progress);
   if (t && t.remaining <= 3) return { kind: 'hazine', text: t.remaining === 1 ? 'Sıradaki bölümün sonunda hazine var!' : `${t.remaining} bölüm sonra hazine!` };

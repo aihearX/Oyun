@@ -21,6 +21,8 @@ export interface RunSummary {
   events: MetaEvent[];
   goal: NextGoal;
   firsts: string[];
+  /** bu koşunun ödül defteri kayıtları (bölüm, Şanslı Nota, hazine, başarım…): jetonları toplamı coinsAfter − coinsBefore, XP'leri xpAfter − xpBefore */
+  grants: { reason: string; items: RewardItem[] }[];
 }
 
 /** Bölüm sonucunu işler: ilerleme, sayaçlar, ödüller (hepsi applyGrant'tan), görevler, açılımlar. Saf. */
@@ -71,6 +73,7 @@ export function processRun<T extends PlayerCore>(core: T, spec: RunSpecLite, r: 
   if (r.completed && t && !c.meta.treasures.includes(n)) { c = { ...c, meta: { ...c.meta, treasures: [...c.meta.treasures, n] } }; const g = applyGrant(c, t.reward, `hazine:${n}`, now); c = g.core; treasureApplied = g.applied; }
 
   const settled = settle(c, now); c = settled.core;
+  const oldLedger = new Set(core.meta.ledger);
   const summary: RunSummary = {
     level: n, prevBest: prev.best, prevStars: prev.stars, newRecord: r.completed && prev.best > 0 && r.score > prev.best, firstClear,
     xpBefore, xpAfter: c.xp, levelBefore: levelProgress(xpBefore).level, levelAfter: levelProgress(c.xp).level,
@@ -78,6 +81,7 @@ export function processRun<T extends PlayerCore>(core: T, spec: RunSpecLite, r: 
     lucky: luckyApplied, treasure: treasureApplied, quests: changes,
     announcements: firstClear ? unlockAnnouncements(n) : [], events: settled.events,
     goal: nextGoal(spec, r, c.progress), firsts,
+    grants: c.meta.ledger.filter((g) => !oldLedger.has(g)).map((g) => ({ reason: g.reason, items: g.items })),
   };
   return { core: c, summary };
 }

@@ -263,6 +263,43 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-actions::before { content:''; position:absolute; left:16px; right:16px; top:10px; height:1px; background:linear-gradient(90deg, transparent, rgba(255,201,60,.35), transparent); }
 .more-unlocks { align-self:center; min-height:44px; font-size:0.875rem; }
 .skip-hint { font-size:0.75rem; opacity:.7; }
+/* YN-042: nota kartı "78/98", isteğe bağlı hedef durumu yazıyla, "Bu bölümden" jeton dökümü */
+.result-screen .stats .card { justify-content:center; }
+.result-of { font-size:.7em; color:var(--text-2); }
+.result-obj .k { display:flex; flex-direction:column; gap:2px; color:var(--text); }
+.result-obj-h { font-size:0.625rem; font-weight:900; text-transform:uppercase; letter-spacing:.3px; color:var(--text-2); }
+.result-obj-s { font-size:0.75rem; font-weight:900; line-height:1.3; color:var(--text-2); overflow-wrap:anywhere; }
+.result-obj-s .art { vertical-align:-3px; margin-right:3px; }
+.result-nw { white-space:nowrap; }
+.result-obj.met .result-obj-s { color:var(--text); }
+.result-earn { width:100%; display:flex; flex-direction:column; gap:6px; text-align:left; opacity:0; transform:translateY(8px); transition:opacity .35s, transform .35s; }
+.result-earn[data-show="yes"] { opacity:1; transform:none; }
+.result-earn-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:900; }
+.result-earn-head b { display:inline-flex; align-items:center; gap:4px; color:var(--gold); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.result-earn-list { list-style:none; margin:0; padding:6px 0 0; border-top:1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; gap:4px; }
+.result-earn-list li { display:flex; justify-content:space-between; gap:8px; font-size:0.8125rem; font-weight:800; line-height:1.3; color:var(--text-2); }
+.result-earn-list b { color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+/* dar/kısa ekran (320×640): alt düğmeler sıkışık (karo düğmeler yatay, daha alçak), XP çubuğu düğmelerin üstünde görünür kalır */
+@media (max-width:360px), (max-height:700px) {
+  .result-actions { gap:8px; padding-top:14px; }
+  .result-actions::before { top:6px; }
+  .result-actions .abtn.primary { min-height:50px; }
+  .result-actions .abtn-grid { gap:8px; }
+  .result-actions .abtn.tile { flex-direction:row; gap:5px; min-height:44px; padding:4px 6px; }
+  .result-actions .abtn.tile .ic { width:18px; height:18px; }
+  /* kilitli karo: ikon yerine kilit satırı (etiket + "Bölüm N" iki satıra sığar) */
+  .result-actions .abtn.tile:disabled > .ic { display:none; }
+}
+@media (max-height:700px) {
+  .result-screen .result { gap:8px; }
+  .result-screen .result-title { font-size:clamp(30px, 9vw, 36px); }
+  .result-screen .star-row { height:70px; }
+  .result-screen .star-slot { width:60px; height:60px; }
+  .result-screen .star-slot:nth-child(2) { width:70px; height:70px; transform:translateY(-10px); }
+  .result-screen .score-line { min-height:0; gap:4px; }
+  .result-screen .result .score { font-size:clamp(36px, 11vw, 44px); }
+  .result-screen .stats .card { padding:8px 4px; }
+}
 
 /* ---------------------------------------------------------------- harita (harita ekibi kendi sanatını Phaser'da çizer; DOM öğeleri tema renginde) */
 .journey-card { display:flex; flex-direction:column; gap:10px; }

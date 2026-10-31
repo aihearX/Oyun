@@ -49,7 +49,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   A('moda-kulagi', '🎩', 'Moda Kulağı', '{n} kozmetiğe sahip ol', 'cosmetics', [3, 7, 12]),
   A('usta-dinleyici', '🎧', 'Usta Dinleyici', 'Seviye {n} ol', 'playerLevel', [3, 8, 15]),
   A('kasif', '🧭', 'Kâşif', '{n} biyomun tüm bölümlerini bitir', 'biomesDone', [1, 5, 10]),
-  A('kombo', '🔗', 'Seri Ustası', 'Tek bölümde {n}\'luk jeton serisi yap', 'maxCombo', [10, 20, 35]),
+  A('kombo', '🔗', 'Seri Ustası', 'Tek bölümde art arda {n} nota topla', 'maxCombo', [10, 20, 35]),
   A('pes-etmeyen', '💪', 'Pes Etmeyen', 'Üst üste kaybettikten sonra {n} kez kazan', 'comebacks', [1, 5, 15]),
   A('bir-daha', '🔁', 'Bir Daha!', '{n} bölüm oyna', 'plays', [10, 100, 500]),
   A('kulagi-muzikli', '🎼', 'Kulağı Müzikli', 'Melodi hedefini {n} kez tamamla', 'melody', [1, 3, 6]),

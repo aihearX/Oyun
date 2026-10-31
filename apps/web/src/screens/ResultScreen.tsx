@@ -1,4 +1,4 @@
-import type { LevelSpec, RunResult } from '@odi/shared';
+import { objectiveCountsForStar, type LevelSpec, type RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, TIER_NAMES, achievementById, achievementDesc, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
 import { levelProgress, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
@@ -6,6 +6,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { platform } from '../platform';
 import { useStore } from '../store';
 import { inviteUrl, type Invite } from '../invite';
+import { useSocial } from '../net';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
@@ -57,6 +58,12 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const skip = () => setStep(FINAL);
   const done = step >= FINAL;
   const last = spec.number >= HUMAN_JOURNEY.levels.length;
+  // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
+  // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
+  const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
+  const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
+  const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
+  const timed = spec.objective.id === 'timed';
 
   // zaman çizelgesi
   useEffect(() => {
@@ -167,15 +174,26 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         </div>
 
         <div className="stats">
-          <div className="card" ref={coinRef}><div className="v"><Art name="coin" size={22} className="art-inline" />{result.coins}</div><div className="k">jeton{spec.coinsTotal ? ` / ${spec.coinsTotal}` : ''}</div></div>
-          <div className="card"><div className="v"><Art name="timer" size={22} className="art-inline" />{Math.round(result.timeSec)} sn</div><div className="k">par {spec.parTimeSec} sn</div></div>
-          <div className="card"><div className="v"><Art name={result.objectiveMet ? 'check' : 'empty'} size={26} /></div><div className="k">{spec.objective.label}</div></div>
+          {spec.coinsTotal > 0
+            ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
+            : <div className="card"><div className="v"><Art name="heart" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
+          {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
+          <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{Math.round(result.timeSec)} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
+          <div className={`card result-obj${result.objectiveMet ? ' met' : ''}`}>
+            <div className="k"><small className="result-obj-h">{spec.coinsTotal > 0 && objectiveCountsForStar(spec) ? '3. yıldız hedefi' : 'Bölüm hedefi'}</small>{spec.objective.label}</div>
+            <div className="result-obj-s"><span className="result-nw"><Art name={result.objectiveMet ? 'check' : 'empty'} size={16} className="art-inline" />{result.objectiveMet ? 'tamam' : 'yapılmadı'}</span>{objectiveMiss(spec, result)}</div>
+          </div>
         </div>
 
         <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
-          <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpEarned} XP</span></div>
+          <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>
           <div className="bar tone-accent xp"><i style={{ width: `${xpWidth * 100}%`, transition: xpPhase === 2 && leveled && !reduced ? 'none' : undefined }} key={xpPhase === 2 && leveled ? 'n' : 'o'} /></div>
           {leveled && xpPhase >= 1 && <div className="levelup" role="status"><Art name="party" size="1.2em" className="art-inline" /> Seviye {after.level}!</div>}
+        </div>
+
+        <div className="card result-earn" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
+          <div className="result-earn-head"><span>Bu bölümden{earn.length > 1 ? ' toplam' : ''}</span><b><Art name="coin" size={20} className="art-inline" />+{earnTotal.toLocaleString('tr-TR')} jeton</b></div>
+          {earn.length > 1 && <ul className="result-earn-list">{earn.map((l, i) => <li key={i}><span>{l.label}</span><b>{l.jeton > 0 ? '+' : ''}{l.jeton.toLocaleString('tr-TR')}</b></li>)}</ul>}
         </div>
 
         <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
@@ -183,7 +201,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <span><Rich text={summary.goal.text} /></span>
         </div>
 
-        {runId && step >= S + 3 && <TeamContribution runId={runId} result={result} reduced={reduced} />}
+        {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
         {step >= S + 3 && <ResultComm level={spec.number} completed={result.completed} demo={demo} />}
 
         {challenge && challenge.level === spec.number && challenge.score > 0 && (
@@ -263,8 +281,35 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
   for (const e of [...s.events].sort((a, b) => order[a.kind] - order[b.kind])) {
     if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ icon: '🃏', kicker: `Yeni Kulak Kartı · ${BIOMES[c.biome].name}`, title: c.title, text: c.fact, tone: 'green' }); }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); const col = odiColor; if (c) out.push({ icon: <OdiAvatar size={40} color={c.kind === 'renk' ? c.color : col} hat={c.hat} />, kicker: 'Dolaba yeni', title: c.name, text: c.desc, tone: 'accent' }); }
-    else if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
+    else if (e.kind === 'achievement') { const a = achievementById(e.id); const g = s.grants.find((x) => x.reason === `basarim:${e.id}:${e.tier}`); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), ...(g ? { chips: g.items } : {}), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }
+  return out;
+}
+
+/** Tutturulmayan isteğe bağlı hedefte ne kadar yapıldığı (" · 1 hasar aldın"); durum yazıyla, simge/renk tek başına yetmez (sesi kapalı, az gören oyuncu) */
+function objectiveMiss(spec: LevelSpec, r: RunResult): string {
+  if (r.objectiveMet || !r.completed) return '';
+  const o = spec.objective; const num = (k: string) => { const v = r.extra?.[k]; return typeof v === 'number' ? v : 0; };
+  const why = o.id === 'no-damage' ? `${r.damageTaken}\u00a0hasar aldın`
+    : o.id === 'secret' && num('cochleasTotal') > 0 ? `${num('cochleas')}/${num('cochleasTotal')}\u00a0altın koklea`
+    : o.id === 'collect-all' ? `${Math.max(1, (o.target ?? spec.coinsTotal) - r.coins)}\u00a0nota kaldı`
+    : o.id === 'timed' ? `${Math.round(r.timeSec)}\u00a0sn sürdü`
+    : '';
+  return why ? ` · ${why}` : '';
+}
+
+/** "Bu bölümden" dökümünün satırları: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus) */
+function earnLines(s: RunSummary, serverBonus: number): { label: string; jeton: number }[] {
+  const out: { label: string; jeton: number }[] = []; const ach: { name: string; jeton: number }[] = [];
+  for (const g of s.grants) {
+    const jeton = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!jeton) continue;
+    const [kind, id] = g.reason.split(':');
+    if (kind === 'basarim') { ach.push({ name: achievementById(id ?? '')?.name ?? 'Başarım', jeton }); continue; }
+    out.push({ label: kind === 'bolum' ? 'Toplanan notalar' : kind === 'sansli-nota' ? 'Şanslı Nota' : kind === 'hazine' ? `Bölüm ${id} hazinesi` : kind === 'kart' ? 'Kart karşılığı' : kind === 'kozmetik' ? 'Kozmetik karşılığı' : 'Ödül', jeton });
+  }
+  // başarımlar tek satır (her birinin ödülü aşağıdaki başarım kartında)
+  if (ach.length) out.push({ label: ach.length === 1 ? `Başarım: ${ach[0]!.name}` : `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0) });
+  if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
   return out;
 }

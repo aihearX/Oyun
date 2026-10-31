@@ -106,6 +106,23 @@ describe('bölüm işleme, başarımlar, albüm, kozmetik', () => {
     expect(r.summary.lucky).not.toBeNull(); expect(r.summary.treasure).not.toBeNull(); expect(r.core.meta.treasures).toContain(5);
     const again = processRun(r.core, spec(5), run(), DAY); expect(again.summary.treasure).toBeNull();
   });
+  it('sonuç dökümü (YN-042): bu koşunun ödül kayıtları cüzdan ve XP farkına eşit (bölüm + Şanslı Nota + hazine + başarım)', () => {
+    const sum = (gs: { items: { kind: string; amount: number }[] }[], k: string) => gs.flatMap((g) => g.items).filter((i) => i.kind === k).reduce((a, i) => a + i.amount, 0);
+    // Bölüm 1: ilk geçiş (İlk Ses başarımı)
+    const a = processRun(core(), spec(1), run({ coins: 20, extra: { maxCombo: 12 } }), DAY);
+    expect(a.summary.grants.map((g) => g.reason)).toEqual(expect.arrayContaining(['bolum:1', 'basarim:ilk-ses:1', 'basarim:kombo:1']));
+    expect(sum(a.summary.grants, 'jeton')).toBe(a.summary.coinsAfter - a.summary.coinsBefore);
+    expect(sum(a.summary.grants, 'xp')).toBe(a.summary.xpAfter - a.summary.xpBefore);
+    // Bölüm 4 ve 5 (hazine + Şanslı Nota)
+    let c = core(); for (let n = 1; n <= 3; n++) c = processRun(c, spec(n), run(), DAY).core;
+    for (const n of [4, 5]) {
+      const r = processRun(c, spec(n), run({ extra: { luckyNote: n === 5 } }), DAY); c = r.core;
+      expect(r.summary.grants.length).toBeGreaterThan(0);
+      expect(sum(r.summary.grants, 'jeton')).toBe(r.summary.coinsAfter - r.summary.coinsBefore);
+      expect(sum(r.summary.grants, 'xp')).toBe(r.summary.xpAfter - r.summary.xpBefore);
+      if (n === 5) expect(r.summary.grants.map((g) => g.reason)).toEqual(expect.arrayContaining(['bolum:5', 'sansli-nota', 'hazine:5']));
+    }
+  });
   it('başarım kademeleri bir kez açılır', () => {
     let c = core(); c = processRun(c, spec(1), run(), DAY).core;
     expect(evaluateAchievements(c)).toEqual([]);
@@ -144,23 +161,23 @@ describe('ilerleme geri bildirimi', () => {
   it('dürüst yakın-kaçış metinleri', () => {
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.92 } })).text).toBe('Kapıya %8 kaldı!');
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.06 } })).text).toBe("Yolun %6'sını geçtin. Bir dahakine daha ileri!");
-    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha ya da: Hedef');
-    expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha');
-    expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toContain('2. yıldız için');
+    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hepsini topla');
+    expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota');
+    expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toBe('2. yıldız: 18 nota');
     expect(nextGoal(spec(3), run({ stars: 3, coins: 30 })).text).toContain('hazine');
     const timed = { ...spec(23), objective: { id: 'timed' as const, target: 80, target2: 95, label: '80 saniyede bitir' } };
     // 23 yüzme bölümü: 2★ nota eşiği %45 (30 notanın 14'ü)
-    expect(nextGoal(timed, run({ stars: 1, coins: 10, objectiveMet: false })).text).toBe('2. yıldız için 4 nota daha ya da 95 saniyede bitir');
-    expect(nextGoal({ ...timed, mechanic: 'kosu' as const }, run({ stars: 1, coins: 10, objectiveMet: false })).text).toBe('2. yıldız için 8 nota daha ya da 95 saniyede bitir');
-    expect(nextGoal(timed, run({ stars: 2, coins: 10, objectiveMet: false })).text).toBe('3. yıldız için 17 nota daha ya da: 80 saniyede bitir');
+    expect(nextGoal(timed, run({ stars: 1, coins: 10, objectiveMet: false })).text).toBe('2. yıldız: 14 nota ya da 95 saniyede bitir');
+    expect(nextGoal({ ...timed, mechanic: 'kosu' as const }, run({ stars: 1, coins: 10, objectiveMet: false })).text).toBe('2. yıldız: 18 nota ya da 95 saniyede bitir');
+    expect(nextGoal(timed, run({ stars: 2, coins: 10, objectiveMet: false })).text).toBe('3. yıldız: 27 nota ya da 80 saniyede bitir');
   });
   it('yüzme bölümlerinin ipuçları (MK-008): 2★ %45 nota, hedefle 3★ için %60 nota', () => {
     expect(spec(21).mechanic).toBe('yuzme'); expect(spec(28).objective.id).toBe('escort');
-    expect(nextGoal(spec(21), run({ stars: 1, coins: 10 })).text).toBe('2. yıldız için 4 nota daha');
-    expect(nextGoal(spec(21), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız için 12 nota daha');
-    expect(nextGoal(spec(28), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız için 3 nota daha ve: Hedef');
-    expect(nextGoal(spec(28), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız için 7 nota daha ya da: Hedef');
-    expect(nextGoal(spec(22), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız için 12 nota daha ya da: Hedef');
+    expect(nextGoal(spec(21), run({ stars: 1, coins: 10 })).text).toBe('2. yıldız: 14 nota');
+    expect(nextGoal(spec(21), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota');
+    expect(nextGoal(spec(28), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da 18 nota ve hedef');
+    expect(nextGoal(spec(28), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hedef');
+    expect(nextGoal(spec(22), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da hepsini topla');
   });
   it('sıradaki hazine ve yenilik duyuruları', () => {
     expect(nextTreasure(3, {})).toMatchObject({ level: 5, remaining: 3 });
