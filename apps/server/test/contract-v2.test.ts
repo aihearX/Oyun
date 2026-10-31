@@ -32,7 +32,7 @@ describe('sözleşme v2 eklemeleri', () => {
     env = await setup();
     const [a, b] = [await env.connect('Ayşe'), await env.connect('Bora')];
     expect(a.me).toMatchObject({ shields: 0, cosmetics: [], cards: [] });
-    const t = (await a.call('team.create', { name: 'Profil Takımı', emblem: '🎭' })).team;
+    const t = (await a.call('team.create', { name: 'Profil Takımı', emblem: '☀️' })).team;
     await b.call('team.join', { teamId: t.id });
     const req = (await a.call('team.help.request', { level: 1 })).request;
     expect(req.expiresAt).toBe(req.at + 24 * 3600_000);

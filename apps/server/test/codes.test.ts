@@ -162,7 +162,7 @@ describe('Kod Gir: yönetici kodu', () => {
     // Sıralama: yönetici hesabı tablolarda yok
     expect((await a.call('rank.board', { board: 'guc', scope: 'herkes' })).view.rows.map((r) => r.name)).toEqual(['Bora']);
     // takım gücü yöneticiyi saymaz
-    const t = (await a.call('team.create', { name: 'Testçiler', emblem: '🧪' })).team;
+    const t = (await a.call('team.create', { name: 'Testçiler', emblem: '🔊' })).team;
     await b.call('team.join', { teamId: t.id });
     const tg = (await b.call('rank.board', { board: 't-guc', scope: 'herkes' })).view.rows[0]!;
     const bora = (await b.call('rank.board', { board: 'guc', scope: 'herkes' })).view.rows[0]!;
@@ -189,7 +189,7 @@ describe('Kod Gir: yönetici kodu', () => {
     env = await setup({ adminCodeHash: hashAdminCode(TEST_ADMIN), raceCountdownMs: 50 });
     const app = env.srv.app;
     const a = await makeAdmin(env, 'Yönetici'); const b = await env.connect('Bora');
-    const t = (await a.call('team.create', { name: 'Testçiler', emblem: '🧪' })).team; await b.call('team.join', { teamId: t.id });
+    const t = (await a.call('team.create', { name: 'Testçiler', emblem: '🔊' })).team; await b.call('team.join', { teamId: t.id });
     const s = (await b.call('tlig.state', {})).state.season;
     app.db.run('INSERT INTO tl_race(match_id, team_id, season, day, rival_id, points, counted, at) VALUES(?, ?, ?, ?, ?, ?, 1, ?)', 'm1', t.id, s.key, 'gün', 'x', 20, app.now());
     env.clock.advance(14 * 24 * 3_600_000);

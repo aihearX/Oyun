@@ -31,10 +31,10 @@ describe('Bölge Savaşı', () => {
   it('hedefler, puan, bölge sahibi değişimi, hafta devri ödülü', async () => {
     env = await setup();
     const [a1, a2, b1, c1] = [await env.connect('Ayşe'), await env.connect('Ali'), await env.connect('Bora'), await env.connect('Cem')];
-    const A = (await a1.call('team.create', { name: 'Kepçe Kartalları', emblem: '🦅' })).team;
+    const A = (await a1.call('team.create', { name: 'Kepçe Kartalları', emblem: '🦉' })).team;
     await a2.call('team.join', { teamId: A.id });
     const B = (await b1.call('team.create', { name: 'Bas Baykuşları', emblem: '🦉' })).team;
-    await c1.call('team.create', { name: 'Hedefsizler', emblem: '🐢' });
+    await c1.call('team.create', { name: 'Hedefsizler', emblem: '🌱' });
     expect((await err(a2.call('war.targets', { regions: ['kepce'] }))).code).toBe('YETKI');
     expect((await err(a1.call('war.targets', { regions: ['kepce', 'kanal', 'zar', 'tepe'] }))).code).toBe('GECERSIZ');
     expect((await err(a1.call('war.targets', { regions: ['yok'] }))).code).toBe('GECERSIZ');
@@ -93,7 +93,7 @@ describe('Baskın', () => {
   it('pencere dışında hasar yok', async () => {
     env = await setup();
     const a = await env.connect('Ayşe');
-    await a.call('team.create', { name: 'Avcılar', emblem: '🗡️' });
+    await a.call('team.create', { name: 'Avcılar', emblem: '⚡' });
     const p = await a.call('progress.submit', run(1, { mechanic: 'boss' }));
     expect(p.raidDamage).toBe(0);
     const rs = (await a.call('raid.state', {})).raid;
@@ -106,7 +106,7 @@ describe('Baskın', () => {
   it('ODI_RAID_ALWAYS: ortak HP düşer, yenilince süre, hediye, sıralama; takım hedefi kademesi', async () => {
     env = await setup({ raidAlways: true });
     const [a, b, x] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Xavi')];
-    const t = (await a.call('team.create', { name: 'Canavar Avcıları', emblem: '⚔️' })).team;
+    const t = (await a.call('team.create', { name: 'Canavar Avcıları', emblem: '⚡' })).team;
     await b.call('team.join', { teamId: t.id });
     await x.call('team.create', { name: 'Diğer Takım', emblem: '🛡️' });
     const s0 = (await a.call('raid.state', {})).raid;

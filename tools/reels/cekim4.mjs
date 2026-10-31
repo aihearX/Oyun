@@ -40,7 +40,7 @@ const problems = []; const shots = [];
 const AD = { lider: 'Örs Kaptan', yardimci: 'Zar Ustası', hizli: 'Hızlı Lif', usta: 'Koklea Kâşifi', caylak: 'Minik Nota', solo: 'Nota Avcısı' };
 const TEAM = { name: 'Sessiz Operasyon', emblem: '🦉', description: 'Hedef: Gürültü Canavarı. Her akşam birlikte.' };
 const OTHERS = [
-  { lead: 'Davulcu Zar', name: 'Zar Davulcuları', emblem: '🥁', description: 'Titreşimi seven herkese açık.', open: true, lv: 22 },
+  { lead: 'Davulcu Zar', name: 'Zar Davulcuları', emblem: '🎵', description: 'Titreşimi seven herkese açık.', open: true, lv: 22 },
   { lead: 'Bas Baykuşu', name: 'Bas Baykuşları', emblem: '🦉', description: 'Alçak frekansların ustaları.', open: false, lv: 30 },
   { lead: 'Kıvrım Kuşu', name: 'Koklea Kaşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.', open: true, lv: 18 },
 ];

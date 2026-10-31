@@ -16,7 +16,7 @@ import { TeamWar } from './TeamWar';
 import { TeamRaid } from './TeamRaid';
 import { TeamEvents } from './TeamEvents';
 import { pendingCount, useEvents } from '../../events';
-import { Art } from '../../ui/art';
+import { Art, TeamEmblem } from '../../ui/art';
 import { mentionCount, useComm } from '../../comm/state';
 import { TEAM_APPLY_RULES, canApprove, joinModeOf } from '@odi/shared';
 import { TeamApplications } from './TeamApplications';
@@ -51,7 +51,7 @@ export function TeamHome() {
   }, [team.id]);
 
   const share = async () => {
-    const r = await platform().share(`ODİ'de ${team.emblem} ${team.name} takımına gel! Takım sekmesinde “Kodla katıl”: ${team.code}`);
+    const r = await platform().share(`ODİ'de ${team.name} takımına gel! Takım sekmesinde “Kodla katıl”: ${team.code}`);
     if (r === 'copied') toast('📋', 'Davet kodu kopyalandı', team.code);
     setMenu(false);
   };
@@ -68,7 +68,7 @@ export function TeamHome() {
           küçük bir amblem çipine iner, mesajlara yer kalır (styles.css, MK-029) */}
       <div className="team-top">
       <div className="card team-head">
-        <span className="th-emblem" aria-hidden>{team.emblem}</span>
+        <span className="th-emblem" aria-hidden><TeamEmblem e={team.emblem} /></span>
         <div className="grow min0">
           <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
           {approver && apps > 0 && tab !== 'basvuru' && <button type="button" className="ta-head-pill" onClick={() => setTab('basvuru')} data-testid="basvuru-rozeti"><Art name="mail" size={16} /> {apps} yeni başvuru</button>}

@@ -4,9 +4,11 @@ import { albumProgress, biomeHasSecret } from '@odi/meta';
 import { useStore } from '../store';
 import { Bar, ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
+import { AnatomyGlyph } from '../ui/anatomy';
 import { MoreLine } from '../ftue/Notes';
 
-/** Kulak Kartları albümü: her biyomda 5 gerçek bilgi kartı; tamamlanan biyom rozet kazanır. */
+/** Kulak Kartları albümü: her biyomda 5 gerçek bilgi kartı; tamamlanan biyom rozet kazanır. Kart resimleri çizili ikon (CardDef.art),
+ *  emoji yok; kilitli kartın açılma koşulu kısaltılmadan yazılır (YN-044). */
 export function AlbumScreen({ onBack }: { onBack: () => void }) {
   const s = useStore(); const owned = new Set(s.meta.cards); const album = albumProgress(s.meta.cards);
   const [open, setOpen] = useState<CardDef | null>(null);
@@ -24,7 +26,7 @@ export function AlbumScreen({ onBack }: { onBack: () => void }) {
           <div className="cards-grid">
             {CARDS.filter((c) => c.biome === b.biome).map((c) => { const has = owned.has(c.id); return (
               <button key={c.id} className={`ear-card${has ? ' has' : ''}`} onClick={() => setOpen(c)} aria-label={has ? c.title : 'Kilitli kart'}>
-                <span className="ec-e">{has ? c.emoji : <Art name="question" size={22} />}</span>
+                <span className="ec-e">{has ? <Art name={c.art} size={34} /> : <Art name="lock" size={24} />}</span>
                 <span className="ec-t">{has ? c.title : cardSlotText(c.slot, biomeHasSecret(c.biome))}</span>
               </button>); })}
           </div>
@@ -33,8 +35,8 @@ export function AlbumScreen({ onBack }: { onBack: () => void }) {
       {open && (
         <div className="overlay" onClick={() => setOpen(null)}>
           <div className="card fact-card" role="dialog" aria-label={owned.has(open.id) ? open.title : 'Kilitli kart'}>
-            <div className="fc-e">{owned.has(open.id) ? open.emoji : <Art name="lock" size={48} />}</div>
-            <div className="muted">{BIOMES[open.biome].name}</div>
+            <div className="fc-e">{owned.has(open.id) ? <Art name={open.art} size={64} /> : <Art name="lock" size={48} />}</div>
+            <div className="muted fc-biome"><AnatomyGlyph region={open.biome} size={24} />{BIOMES[open.biome].name}</div>
             {owned.has(open.id) ? <><h2>{open.title}</h2><p className="fact-text">{open.fact}</p><MoreLine text={open.tech} />{open.oneren && <p className="muted small-note" data-testid="kart-oneren">Öneren: <span data-ugc>{open.oneren}</span></p>}</> : <><h2>Kilitli kart</h2><p className="fact-text">Nasıl açılır: {cardSlotText(open.slot, biomeHasSecret(open.biome))}.</p></>}
             <button className="btn" onClick={() => setOpen(null)}>Tamam</button>
           </div>

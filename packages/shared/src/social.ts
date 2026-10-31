@@ -73,10 +73,19 @@ export interface ChatMessage {
   thread?: ChatMessage[];
 }
 
+/**
+ * Takım amblemleri (YN-044): 20 çizili amblem. Saklanan değer eski kayıtlarla uyum için (göç gerekmesin) emoji kod noktasıdır,
+ * ama yalnızca bir ANAHTAR olarak: arayüz onu glif olarak çizmez, ui/art.tsx TeamEmblem çizime çevirir (listede olmayan eski
+ * amblemler eşleme tablosuyla, eşleşmeyen varsayılan çizimle). Sunucu takım kurarken yalnız bu listeyi kabul eder.
+ */
+export const TEAM_EMBLEMS = ['👂', '🦻', '🐚', '🎵', '🔊', '🎧', '🦉', '🐬', '⭐', '🔥', '🌙', '☀️', '⚡', '🛡️', '🍀', '🌱', '👑', '🎯', '🧭', '🔔'] as const;
+export type TeamEmblemKey = (typeof TEAM_EMBLEMS)[number];
+export const isTeamEmblem = (s: string): s is TeamEmblemKey => (TEAM_EMBLEMS as readonly string[]).includes(s);
+
 export interface TeamSummary {
   id: string;
   name: string;
-  /** tek emoji */
+  /** amblem anahtarı (TEAM_EMBLEMS; eski kayıtlarda başka bir emoji olabilir) */
   emblem: string;
   description: string;
   members: number;
@@ -168,7 +177,7 @@ export const BUILDINGS: BuildingDef[] = [
   { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 25 },
   { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 25 },
   { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 25 },
-  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Zarın titreşimini yoklar, takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 25 },
+  { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Kanaldaki basıncı değiştirip zarın ne kadar rahat hareket ettiğini ölçer; takımının sesini uzağa taşır: savaş puanı +%2/seviye.', maxLevel: 25 },
   { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 25 },
   { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 25 },
   // ---- Kamp Seviyesiyle açılan bölgeler (docs/14-kamp.md §8–9): etkiler ekonomi, üretim, bilgi ve süs üzerinedir; bölüm gücü değil

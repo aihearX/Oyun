@@ -105,7 +105,7 @@ try {
   await shot(A, 'A-takimsiz');
   await A.getByRole('button', { name: '＋ Takım kur' }).first().click();
   await A.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill('Koklea Kaşifleri');
-  await A.locator('.emoji-opt', { hasText: '🐚' }).click();
+  await A.locator('.emoji-opt[data-emblem="🐚"]').click();
   await A.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her gün biraz, hep birlikte.');
   await shot(A, 'A-takim-kur');
   await A.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();

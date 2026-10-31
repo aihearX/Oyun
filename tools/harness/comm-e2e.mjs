@@ -250,7 +250,7 @@ async function webSuite(bt) {
     // ---- güvenli sohbet ZORUNLU: Cem (1 bölüm) yalnız hazır söz/emoji; açma seçeneği yok, dürüst not
     await C.page.locator('.chat-input input[readonly]').waitFor({ timeout: 8000 });
     S.check(await C.page.locator('.quick-line .phrase-row').count() === 1, 'yeni oyuncu: hazır sözler açık, serbest yazı kapalı');
-    S.check((await C.page.getByRole('textbox', { name: 'Mesaj' }).getAttribute('placeholder')).includes('3. bölümden sonra açılır'), 'giriş kutusunda dürüst not: “Serbest yazı N. bölümden sonra açılır”');
+    S.check((await C.page.getByTestId('serbest-kilit').innerText()).includes('3. bölümden sonra açılır'), 'giriş kutusunun üstünde dürüst not: “Serbest yazı N. bölümden sonra açılır”');
     await S.shot(C, 'guvenli-hazir-sozler');
     await C.page.locator('.quick-line .phrase[data-phrase="selam"]').click();
     await B.page.locator('.msg.preset .bubble', { hasText: 'Selam!' }).last().waitFor({ timeout: 8000 });
@@ -416,7 +416,7 @@ async function webSuite(bt) {
 
     // ---- son genel görünüm (takım sohbeti, Kim çevrimiçi)
     await teamChat(B);
-    S.check(await B.page.getByTestId('kim-cevrimici').innerText().then((t) => /2 çevrimiçi/.test(t)), 'Kim çevrimiçi: 2 takım arkadaşı');
+    S.check(await B.page.getByTestId('kim-cevrimici').innerText().then((t) => /başka 2 kişi çevrimiçi/.test(t)), 'Kim çevrimiçi: 2 takım arkadaşı');
     await S.shot(B, 'takim-sohbeti-genel');
     for (const p of [A, B, C]) await p.ctx.close();
   } catch (e) {

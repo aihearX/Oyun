@@ -80,7 +80,7 @@ export function toastsFor(events: MetaEvent[]): Toast[] {
   for (const e of events) {
     if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ id: toastSeq++, icon: a.emoji, title: `${a.name} · ${TIER_NAMES[e.tier]}`, text: 'Başarım açıldı!', tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); if (c && c.unlock.by !== 'default') out.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
-    else if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ id: toastSeq++, icon: c.emoji, title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
+    else if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ id: toastSeq++, icon: '🃏', title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
     else if (e.kind === 'albumBadge') out.push({ id: toastSeq++, icon: '🏅', title: `${BIOMES[e.biome].name} albümü tamam!`, text: 'Biyom rozeti kazandın', tone: 'gold' });
   }
   // aynı anda çok açılım: ilk 3'ü göster, kalanı tek satır
@@ -152,7 +152,7 @@ export const useStore = create<State>()(persist((set, get) => {
       const newCos = cosmetics.filter((id) => !m.cosmetics.owned.includes(id)); const newCards = cards.filter((id) => !m.cards.includes(id));
       const extra: Toast[] = [];
       for (const id of newCos) { const c = cosmeticById(id); if (c) extra.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
-      for (const id of newCards) { const c = cardById(id); if (c) extra.push({ id: toastSeq++, icon: c.emoji, title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
+      for (const id of newCards) { const c = cardById(id); if (c) extra.push({ id: toastSeq++, icon: '🃏', title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
       if (teamShields > s.teamShields) extra.push({ id: toastSeq++, icon: '🛡️', title: `+${teamShields - s.teamShields} kalkan`, text: 'Bir sonraki bölüme kalkanla başlarsın.', tone: 'accent' });
       set({ teamShields });
       if (!newCos.length && !newCards.length) { if (extra.length) set({ toasts: [...get().toasts, ...extra] }); return; }

@@ -17,7 +17,7 @@ describe('Ralli', () => {
     env = await setup();
     const [a, b, teamId] = await team2(env, ['Ayşe', 'Bora'], 'Ralli Kurtları');
     const other = await connectW(env, 'Cem');
-    await other.c.call('team.create', { name: 'Başka Takım', emblem: '🐢' });
+    await other.c.call('team.create', { name: 'Başka Takım', emblem: '🌱' });
     const xp0 = (await a.c.call('team.extra', {})).extra.xp;
     const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
     const def = RALLY_MONSTERS[0]!;
@@ -346,7 +346,7 @@ describe('Etkinlik merkezi', () => {
     let o = (await a.c.call('events.overview', {})).overview;
     expect(o).toMatchObject({ inTeam: false, rally: null, duel: null, fast: true });
     expect(o.challenge.level).toBeGreaterThan(0);
-    await a.c.call('team.create', { name: 'Merkez', emblem: '🎪' });
+    await a.c.call('team.create', { name: 'Merkez', emblem: '⭐' });
     o = (await a.c.call('events.overview', {})).overview;
     expect(o.inTeam).toBe(true);
     expect(o.duel?.status).toBe('araniyor');

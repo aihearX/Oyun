@@ -11,7 +11,7 @@ describe('mağaza', () => {
   it('test mağazası: içerik cüzdana, takım hediyesi diğer üyede, ürün sınırı', async () => {
     env = await setup();
     const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
-    const t = (await a.call('team.create', { name: 'Hediyeciler', emblem: '🎁' })).team;
+    const t = (await a.call('team.create', { name: 'Hediyeciler', emblem: '🎯' })).team;
     await b.call('team.join', { teamId: t.id });
     await c.call('team.join', { teamId: t.id });
     const list = await a.call('shop.list', {});

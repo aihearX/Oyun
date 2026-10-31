@@ -846,7 +846,7 @@ async function sectionEtkinlik() {
   await group('etkinlik', 'etkinlik', async (G) => {
     const q = 'etkinlik-bot=1';
     const A = await netPlayer(S, 'Ayşe', { cleared: 14, q, color: 0xff4f7a }); const B = await netPlayer(S, 'Bora', { cleared: 12, q, color: 0x2ec4b6 }); const C = await netPlayer(S, 'Cem', { cleared: 10, q, color: 0xffb347 });
-    const tA = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦅', description: 'Her gün biraz, hep birlikte.' })).team;
+    const tA = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦉', description: 'Her gün biraz, hep birlikte.' })).team;
     await net(B, 'team.join', { teamId: tA.id }); await net(C, 'team.create', { name: 'Bas Baykuşları', emblem: '🦉', description: 'Alçak frekansların ustaları.' });
     for (const p of [A, B, C]) await syncTeam(p);
     await step('baskin-once', async () => {
@@ -961,7 +961,7 @@ async function sectionEtkinlik() {
   await group('etkinlik-avi', 'etkinlik', async (G) => {
     const H = await server('hizli');
     const A = await netPlayer(H, 'Ayşe', { cleared: 14, q: 'etkinlik-bot=1', color: 0xff4f7a }); const B = await netPlayer(H, 'Bora', { cleared: 12, q: 'etkinlik-bot=1', color: 0x2ec4b6 });
-    const t = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦅' })).team; await net(B, 'team.join', { teamId: t.id }); for (const p of [A, B]) await syncTeam(p);
+    const t = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦉' })).team; await net(B, 'team.join', { teamId: t.id }); for (const p of [A, B]) await syncTeam(p);
     await climb(A, 1, 9, { coins: 90 }); await climb(B, 1, 7, { coins: 90 });
     for (const p of [A, B]) await p.page.evaluate(() => window.__etkinlik.net().call('events.overview', {}).then((r) => window.__etkinlik.events.setState({ ...r.overview, loaded: true, offset: r.overview.serverTime - Date.now() })));
     await openEvents(A, 'avi'); await tid(A, 'ses-avi').waitFor(); await sleep(800);
@@ -1199,13 +1199,13 @@ async function sectionTakim() {
     const q = 'oyun-bot=1&oyun-hiz=2';
     const A = [await netPlayer(S, 'Ayşe', { cleared: 12, q, color: 0xff4f7a }), await netPlayer(S, 'Ali', { cleared: 12, q, color: 0x5b8def }), await netPlayer(S, 'Asya', { cleared: 12, q, color: 0x22a565 })];
     const B = [await netPlayer(S, 'Bora', { cleared: 12, q, color: 0x2ec4b6 }), await netPlayer(S, 'Banu', { cleared: 12, q, color: 0xffb347 })];
-    const ta = (await net(A[0], 'team.create', { name: 'Koklea Kartalları', emblem: '🦅', description: 'Her gün biraz, hep birlikte.' })).team;
+    const ta = (await net(A[0], 'team.create', { name: 'Koklea Kartalları', emblem: '🦉', description: 'Her gün biraz, hep birlikte.' })).team;
     const tb = (await net(B[0], 'team.create', { name: 'Yunuslar', emblem: '🐬', description: 'Dalgayı birlikte yakalarız.' })).team;
     for (const p of A.slice(1)) await net(p, 'team.join', { teamId: ta.id }); await net(B[1], 'team.join', { teamId: tb.id });
     for (const p of [...A, ...B]) await syncTeam(p);
     // ligde başka gerçek takımlar da olsun (tarayıcısız oyuncular, gerçek bölüm sonuçlarıyla)
     const extra = [];
-    for (const [nm, tn, em] of [['Deniz', 'Bas Baykuşları', '🦉'], ['Elif', 'Tiz Serçeler', '🐦'], ['Kerem', 'Sarmal Ekip', '🐚']]) { const c = await rawPlayer(S.url, nm, 10, 0x9b7bff); await c.call('team.create', { name: tn, emblem: em }).catch(() => undefined); extra.push(c); }
+    for (const [nm, tn, em] of [['Deniz', 'Bas Baykuşları', '🦉'], ['Elif', 'Tiz Serçeler', '🎵'], ['Kerem', 'Sarmal Ekip', '🐚']]) { const c = await rawPlayer(S.url, nm, 10, 0x9b7bff); await c.call('team.create', { name: tn, emblem: em }).catch(() => undefined); extra.push(c); }
     await step('lobi', async () => {
       await teamTabT(A[0], 'Takım Yarışı'); await A[0].page.getByTestId('takim-yarisi').waitFor({ timeout: 10_000 });
       await G.shot(A[0].page, 1, 'takim-yarisi', { kind: 'takim-yarisi', title: 'Canlı Takım Yarışı', caption: 'Takım › Takım Yarışı: lider ya da yardımcı 3\'e 3 ya da 5\'e 5 lobi açar; kurallar ve puanlama aynı ekranda açıkça yazar.' });

@@ -12,6 +12,8 @@ describe('takım', () => {
     const [a, b, c, d] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem'), await env.connect('Deniz')];
     expect((await err(a.call('team.create', { name: 'xy', emblem: '👂' }))).code).toBe('ISIM');
     expect((await err(a.call('team.create', { name: 'Kulaklar', emblem: 'AB' }))).code).toBe('GECERSIZ');
+    // YN-044: amblem çizili listeden (TEAM_EMBLEMS) seçilir; listede olmayan tek emoji de reddedilir
+    expect((await err(a.call('team.create', { name: 'Kulaklar', emblem: '🐢' }))).code).toBe('GECERSIZ');
     expect((await err(a.call('team.create', { name: 'Kulaklar', emblem: '👂', minLevel: 5 }))).code).toBe('SART');
     const t = (await a.call('team.create', { name: 'Kulaklar', emblem: '👂', description: 'Birlikte!' })).team;
     expect(t.roster).toHaveLength(1);
@@ -65,7 +67,7 @@ describe('takım', () => {
   it('en fazla 30 üye', async () => {
     env = await setup();
     const lead = await env.connect('Lider');
-    const t = (await lead.call('team.create', { name: 'Kalabalık', emblem: '🎺' })).team;
+    const t = (await lead.call('team.create', { name: 'Kalabalık', emblem: '🔔' })).team;
     for (let i = 0; i < 29; i++) { const c = await env.connect(`Üye ${i}`); await c.call('team.join', { teamId: t.id }); }
     const late = await env.connect('Geç Kalan');
     expect((await err(late.call('team.join', { teamId: t.id }))).code).toBe('DOLU');
@@ -74,7 +76,7 @@ describe('takım', () => {
   it('bölüm yardımı: kalkan ödül kutusuna, yardım edene 5 jeton, günde 3 istek', async () => {
     env = await setup();
     const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
-    const t = (await a.call('team.create', { name: 'Yardımlaşma', emblem: '🤝' })).team;
+    const t = (await a.call('team.create', { name: 'Yardımlaşma', emblem: '👑' })).team;
     await b.call('team.join', { teamId: t.id });
     await c.call('team.join', { teamId: t.id });
     expect((await err(a.call('team.help.request', { level: 5 }))).code).toBe('GECERSIZ');

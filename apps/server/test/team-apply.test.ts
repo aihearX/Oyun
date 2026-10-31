@@ -23,7 +23,7 @@ describe('takım bulma ve başvuru', () => {
     const ta = (await a.call('team.create', { name: 'Açık Kulaklar', emblem: '👂', description: 'Herkes gelsin' })).team;
     const tb = (await b.call('team.create', { name: 'Başvurulu Kepçe', emblem: '🐚', open: false })).team;
     await climb(c, 3);
-    const tc = (await c.call('team.create', { name: 'Şartlı Çekiç', emblem: '🔨', open: false, minLevel: 3 })).team;
+    const tc = (await c.call('team.create', { name: 'Şartlı Çekiç', emblem: '🛡️', open: false, minLevel: 3 })).team;
     await a.call('progress.submit', run(1));
     await climb(b, 3); // b daha güçlü
     const all = await d.call('team.list', {});
@@ -211,7 +211,7 @@ describe('takım bulma ve başvuru', () => {
   it('kabul engelleri ve yarış: dolu takım, iki kabul aynı anda tek yeri dolduramaz, başka takıma giren oyuncu', async () => {
     env = await setup();
     const lead = await env.connect('Lider');
-    const t = (await lead.call('team.create', { name: 'Kalabalık', emblem: '🎺', open: false })).team;
+    const t = (await lead.call('team.create', { name: 'Kalabalık', emblem: '🔔', open: false })).team;
     // 28 üye kodla (kod kısayolu başvuruyla takıma da doğrudan katılır)
     for (let i = 0; i < 28; i++) { const c = await env.connect(`Üye ${i}`); await c.call('team.join', { code: t.code }); }
     const [x, y, z] = [await env.connect('Xu'), await env.connect('Yu'), await env.connect('Zu')];

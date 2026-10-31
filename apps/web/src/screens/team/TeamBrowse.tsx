@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { SOCIAL_LIMITS, TEAM_APPLY_RULES, rejectReasonText, type TeamApplyStatus, type TeamBrowseRow, type TeamListFilter } from '@odi/shared';
+import { SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_EMBLEMS, rejectReasonText, type TeamApplyStatus, type TeamBrowseRow, type TeamEmblemKey, type TeamListFilter } from '@odi/shared';
 import { act, errText, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { Empty, Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
-import { Art, Glyph, type ArtName } from '../../ui/art';
+import { Art, Glyph, TEAM_EMBLEM_ART, TeamEmblem, type ArtName } from '../../ui/art';
 import { JoinButton, ModeTag } from './TeamProfile';
 import { bumpBrowse, openTeamProfile, refreshMine, useTeamApply } from './apply';
 
-const EMBLEMS = ['👂', '🦻', '🎧', '🎵', '🎶', '🐚', '🔊', '🌀', '⭐', '🔥', '🌙', '🦉', '🐬', '🦋', '🍀', '🌈', '⚡', '🛡️', '🏰', '🎺'];
 const PERKS = [
   { icon: '🔬', title: 'Ortak teknoloji', text: 'Bağışlar herkesi güçlendirir: jeton, kalkan, hız.' },
   { icon: '🎁', title: 'Takım hediyeleri', text: 'Hedef ve baskın ödülleri herkese düşer.' },
@@ -95,7 +94,7 @@ export function TeamBrowse() {
           {teams.map((t) => (
             <div className="card team-row" key={t.id} data-testid="takim-satiri" data-team={t.id} data-name={t.name}>
               <button type="button" className="tr-main" onClick={() => openTeamProfile(t.id)} aria-label={`${t.name} takım profili`}>
-                <span className="tr-emblem" aria-hidden>{t.emblem}{t.rank ? <i className="tr-rank">{t.rank}</i> : null}</span>
+                <span className="tr-emblem" aria-hidden><TeamEmblem e={t.emblem} />{t.rank ? <i className="tr-rank">{t.rank}</i> : null}</span>
                 <span className="grow min0 tr-body">
                   <b className="ellipsis">{t.name}</b>
                   <span className="tr-meta"><span><Art name="users" size="1.15em" className="art-inline" /> {t.members}/{t.max}</span><span title="Takım gücü"><Art name="bolt" size="1.15em" className="art-inline" /> {fmtNum(t.rankPower ?? 0)}</span><ModeTag open={t.open} />{t.minLevel > 1 && <span><Art name="unlock" size="1.15em" className="art-inline" /> {t.minLevel}. bölüm</span>}</span>
@@ -127,7 +126,7 @@ function MyApplications() {
       {shown.map((a) => (
         <div className={`ta-mine-row st-${a.status}`} key={a.id} data-status={a.status}>
           <button type="button" className="tr-main" onClick={() => openTeamProfile(a.teamId)} aria-label={`${a.teamName} takım profili`}>
-            <span className="tr-emblem sm" aria-hidden>{a.teamEmblem}</span>
+            <span className="tr-emblem sm" aria-hidden><TeamEmblem e={a.teamEmblem} /></span>
             <span className="grow min0 tr-body"><b className="ellipsis">{a.teamName}</b>
               <small className="ta-st">{STATUS[a.status]}{a.status === 'bekliyor' ? ` · ${fmtLeft(a.expiresAt - now)} içinde düşer` : a.status === 'red' && a.reason ? `: ${rejectReasonText(a.reason)}` : ''}</small></span>
           </button>
@@ -140,7 +139,7 @@ function MyApplications() {
 
 function CreateTeam({ onClose, onDone }: { onClose: () => void; onDone: (name: string) => void }) {
   const me = useNet((s) => s.me)!;
-  const [name, setName] = useState(''); const [emblem, setEmblem] = useState('👂'); const [desc, setDesc] = useState('');
+  const [name, setName] = useState(''); const [emblem, setEmblem] = useState<TeamEmblemKey>('👂'); const [desc, setDesc] = useState('');
   const [open, setOpen] = useState(true); const [minLevel, setMinLevel] = useState(1);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const submit = async () => {
@@ -152,9 +151,9 @@ function CreateTeam({ onClose, onDone }: { onClose: () => void; onDone: (name: s
   };
   return (
     <Sheet title="Takım kur" onClose={onClose}>
-      <div className="create-preview"><span className="cp-emblem">{emblem}</span><b className="ellipsis">{name.trim() || 'Takımının adı'}</b></div>
+      <div className="create-preview"><span className="cp-emblem" aria-hidden><TeamEmblem e={emblem} /></span><b className="ellipsis">{name.trim() || 'Takımının adı'}</b></div>
       <label className="field"><span>İsim</span><input className="input" value={name} maxLength={SOCIAL_LIMITS.teamNameMax} onChange={(e) => setName(e.target.value)} placeholder="ör. Koklea Kaşifleri" autoFocus /></label>
-      <div className="field"><span>Amblem</span><div className="emoji-grid" role="radiogroup" aria-label="Amblem">{EMBLEMS.map((e) => <button key={e} type="button" role="radio" aria-checked={emblem === e} className={`emoji-opt${emblem === e ? ' on' : ''}`} onClick={() => setEmblem(e)}>{e}</button>)}</div></div>
+      <div className="field"><span>Amblem</span><div className="emoji-grid" role="radiogroup" aria-label="Amblem">{TEAM_EMBLEMS.map((e) => <button key={e} type="button" role="radio" aria-checked={emblem === e} aria-label={TEAM_EMBLEM_ART[e].name} data-emblem={e} className={`emoji-opt${emblem === e ? ' on' : ''}`} onClick={() => setEmblem(e)}><TeamEmblem e={e} /></button>)}</div></div>
       <label className="field"><span>Açıklama <i className="muted">(isteğe bağlı)</i></span><input className="input" value={desc} maxLength={140} onChange={(e) => setDesc(e.target.value)} placeholder="ör. Her gün biraz, hep birlikte." /></label>
       <div className="field"><div className="row between"><span>Katılım</span>
         <div className="seg" role="radiogroup" aria-label="Katılım"><button type="button" className={open ? 'on' : ''} aria-checked={open} role="radio" onClick={() => setOpen(true)}>Açık</button><button type="button" className={!open ? 'on' : ''} aria-checked={!open} role="radio" onClick={() => setOpen(false)}>Başvuruyla</button></div></div>
@@ -164,7 +163,7 @@ function CreateTeam({ onClose, onDone }: { onClose: () => void; onDone: (name: s
         <div className="stepper"><button type="button" className="btn ghost small icon-btn" onClick={() => setMinLevel(Math.max(1, minLevel - 1))} aria-label="Azalt">−</button><b>{minLevel}</b><button type="button" className="btn ghost small icon-btn" onClick={() => setMinLevel(Math.min(me.highest, minLevel + 1))} aria-label="Artır">+</button></div>
       </div>
       {err && <div className="chat-err" role="alert">{err}</div>}
-      <button className="btn" disabled={busy || name.trim().length < 3} onClick={() => void submit()}>{busy ? 'Kuruluyor…' : <><span data-ugc>{emblem}</span> Takımı kur</>}</button>
+      <button className="btn" disabled={busy || name.trim().length < 3} onClick={() => void submit()}>{busy ? 'Kuruluyor…' : <><TeamEmblem e={emblem} size="1.15em" className="art-inline" /> Takımı kur</>}</button>
       <div className="muted small-note">Takım kurmak ücretsiz. İsim benzersiz olmalı (3–20 karakter).</div>
     </Sheet>
   );

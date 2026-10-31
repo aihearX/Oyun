@@ -7,7 +7,7 @@ import { platform } from '../../platform';
 import { useStore } from '../../store';
 import { useNav } from '../../nav';
 import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
-import { Art } from '../../ui/art';
+import { Art, TeamEmblem } from '../../ui/art';
 import { Icon } from '../../ui/icons';
 
 // yılan düzeni: 1 2 3 / 6 5 4 / 7 8 9 / 12 11 10 (kulaktan beyne)
@@ -64,7 +64,7 @@ export function TeamWar() {
           <button key={r.id} className={`region${target ? ' target' : ''}${ours ? ' ours' : ''}`} style={{ gridColumn: (Math.floor(i / 3) % 2 === 0 ? i % 3 : 2 - (i % 3)) + 1, gridRow: Math.floor(i / 3) + 1 }}
             onClick={() => (edit ? toggle(r.id) : setSel(r))} aria-pressed={edit ? target : undefined} aria-label={`${r.name}${r.owner ? `, sahibi ${r.owner.name}` : ', sahipsiz'}${target ? ', hedef' : ''}`}>
             <span className="rg-n">{idx + 1}</span>{target && <span className="rg-t" aria-hidden><Art e="🎯" size="1.15em" className="art-inline" /></span>}
-            <span className="rg-e" aria-hidden>{r.owner ? <span data-ugc>{r.owner.emblem}</span> : <Art name="flag" size={26} />}</span>
+            <span className="rg-e" aria-hidden>{r.owner ? <TeamEmblem e={r.owner.emblem} size={26} /> : <Art name="flag" size={26} />}</span>
             <span className="rg-name">{r.name}</span>
             <span className="rg-p">{r.owner ? fmtNum(r.owner.points) : '—'}</span>
           </button>); })}
@@ -73,15 +73,15 @@ export function TeamWar() {
       <div className="card">
         <b>Haftanın ilk 5 takımı</b>
         {top5.length === 0 ? <div className="muted">Henüz puan yazılmadı. İlk bayrağı siz dikin!</div> : (
-          <ol className="rank-list">{top5.map(([id, t], i) => <li key={id} className={id === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>
+          <ol className="rank-list">{top5.map(([id, t], i) => <li key={id} className={id === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>
         )}
       </div>
 
       {sel && (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           <div className="muted">Puan yazan biyomlar: {sel.biomes.map((b) => BIOMES[b as keyof typeof BIOMES]?.name ?? b).join(', ')}</div>
-          <div className="muted">{sel.owner ? <>Şu an <span data-ugc>{sel.owner.emblem}</span> {sel.owner.name} önde ({fmtNum(sel.owner.points)}).</> : 'Henüz sahibi yok.'} Eşitlikte mevcut sahip kalır.</div>
-          {sel.top.length > 0 && <ol className="rank-list">{sel.top.map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>}
+          <div className="muted">{sel.owner ? <>Şu an <TeamEmblem e={sel.owner.emblem} size="1.15em" className="art-inline" /> {sel.owner.name} önde ({fmtNum(sel.owner.points)}).</> : 'Henüz sahibi yok.'} Eşitlikte mevcut sahip kalır.</div>
+          {sel.top.length > 0 && <ol className="rank-list">{sel.top.map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{fmtNum(t.points)}</b></li>)}</ol>}
           {canLead && <button className="btn" disabled={!war.targets.includes(sel.id) && war.targets.length >= SOCIAL_LIMITS.targetsMax}
             onClick={async () => { const next = war.targets.includes(sel.id) ? war.targets.filter((x) => x !== sel.id) : [...war.targets, sel.id]; const r = await act('war.targets', { regions: next }); if (r) { useNet.setState({ war: r.war }); setSel(null); } }}>
             {war.targets.includes(sel.id) ? 'Hedeften çıkar' : war.targets.length >= SOCIAL_LIMITS.targetsMax ? 'En çok 3 hedef' : <><Art name="target" size="1.15em" className="art-inline" /> Hedef yap</>}</button>}

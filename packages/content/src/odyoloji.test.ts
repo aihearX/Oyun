@@ -49,6 +49,9 @@ describe('odyoloji içeriği', () => {
     for (const c of CARDS) {
       expect(c.id).toMatch(/^[a-z0-9-]+:(ilk|yildiz|ozel|sandik|usta)$/);
       sane(c.title, c.id); sane(c.fact, `${c.id}.fact`); sane(c.tech, `${c.id}.tech`);
+      // YN-044: kart resmi çizili ikon adıdır, hiçbir alanda emoji yok
+      expect(c.art, c.id).toMatch(/^[a-z]+$/);
+      for (const t of [c.title, c.fact, c.tech]) expect(/\p{Extended_Pictographic}/u.test(t), `${c.id}: emoji`).toBe(false);
     }
   });
   it('quiz: en az 120 soru, iki düzey, her soruda tek doğru cevap ve açıklama', () => {

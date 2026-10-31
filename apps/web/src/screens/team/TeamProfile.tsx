@@ -7,7 +7,7 @@ import {
 import { act, errText, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { Sheet, fmtLeft, fmtNum, useNow } from '../../ui/social';
-import { Art, type ArtName } from '../../ui/art';
+import { Art, TeamEmblem, type ArtName } from '../../ui/art';
 import { OdiAvatar } from '../../ui/OdiAvatar';
 import { openProfile } from '../../friends/state';
 import { useComm } from '../../comm/state';
@@ -144,7 +144,7 @@ function TeamProfileSheet({ id }: { id: string }) {
     <Sheet title="Takım profili" onClose={closeTeamProfile}>
       <div className="ta-profile" data-testid="takim-profili" data-team={t.id}>
         <div className="ta-hero">
-          <span className="ta-emblem" data-ugc aria-hidden>{t.emblem}</span>
+          <span className="ta-emblem" aria-hidden><TeamEmblem e={t.emblem} /></span>
           <div className="min0 grow">
             <h2 className="ellipsis">{t.name}</h2>
             <div className="ta-tags"><ModeTag open={t.open} />{t.minLevel > 1 && <span className="ta-mode"><Art name="unlock" size={14} />{t.minLevel}. bölüm</span>}</div>

@@ -1,4 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
+import { isTeamEmblem, type TeamEmblemKey } from '@odi/shared';
 
 /**
  * ODİ resimli ikon seti (kabuk). Oyun içi boyamayla aynı dil: üstten ışık alan degrade, sıcak koyu kontur,
@@ -15,7 +16,9 @@ export type ArtName =
   | 'party' | 'baton' | 'door' | 'sprout' | 'wave' | 'spark' | 'bell' | 'sound' | 'mute' | 'up' | 'down' | 'question' | 'key' | 'link'
   | 'sun' | 'moon' | 'pencil' | 'trash' | 'copy' | 'gear' | 'refresh' | 'plus' | 'play' | 'heal' | 'boom' | 'wind' | 'online' | 'tag' | 'empty'
   /** YN-041: Kurucu Yolcu rozeti (defne halkasında altın yol yıldızı), Hata Avcısı unvanı (büyüteçte böcek) */
-  | 'founder' | 'bughunt';
+  | 'founder' | 'bughunt'
+  /** YN-044: Kulak Kartları (diyapazon, davul, cetvel, uçak, beyin, timpanogram/odyogram) ve takım amblemleri (kulaklık, baykuş, yunus, işitme cihazı) */
+  | 'fork' | 'drum' | 'ruler' | 'plane' | 'brain' | 'chart' | 'headphones' | 'owl' | 'dolphin' | 'hearingaid';
 
 const SH = 'rgba(14,6,40,.38)';
 /** gölge + dolgu + kontur (aynı yol) */
@@ -382,6 +385,67 @@ const ART: Record<ArtName, ReactNode> = {
   wind: <>{line('M3.4 9.2h10.8a2.6 2.6 0 1 0-2.6-2.6M3.4 13.2h14.4a2.8 2.8 0 1 1-2.8 2.8M3.4 17h6.4', '#2ee6d6', 1.9)}</>,
   online: <><circle cx="12" cy="12" r="5.6" fill="url(#oa-green)" stroke="#11663a" strokeWidth="1.2" /><circle cx="10.6" cy="10.4" r="1.4" fill="#fff" opacity=".8" /></>,
   tag: <><S d="M3.6 4.8a1.2 1.2 0 0 1 1.2-1.2h6.6l9 9a1.4 1.4 0 0 1 0 2l-5.6 5.6a1.4 1.4 0 0 1-2 0l-9-9z" g="gold" o="#a35a00" /><circle cx="8" cy="8" r="1.6" fill="#7a4300" /></>,
+  fork: <>
+    <S d="M7.8 2.8h2.6v8.4a1.6 1.6 0 0 0 3.2 0V2.8h2.6v8.4a4.2 4.2 0 0 1-2.9 4v4.2h-2.6v-4.2a4.2 4.2 0 0 1-2.9-4z" g="silver" o="#4f5875" />
+    <C cx={12} cy={20.2} r={1.7} g="silver" o="#4f5875" w={1} />
+    {line('M4.8 4.6c-.9 1.2-.9 2.8 0 4M19.2 4.6c.9 1.2.9 2.8 0 4', '#2ee6d6', 1.4)}
+    {gloss(9.1, 5, 0.45, 1.5, 0, 0.8)}
+  </>,
+  drum: <>
+    {line('M9.4 8.2 4.6 2.8M14.6 8.2l4.8-5.4', '#a35d26', 1.5)}
+    <S d="M3.8 9.2v7.2c0 2 3.7 3.6 8.2 3.6s8.2-1.6 8.2-3.6V9.2z" g="coral" o="#8f1740" />
+    {line('M5 11.8l2.4 5.4 2.4-5.8 2.2 6 2.2-6 2.4 5.8 2.4-5.4', '#fff3b0', 1)}
+    <ellipse cx="12" cy="9.2" rx="8.2" ry="3.1" fill="url(#oa-cream)" stroke="#8f1740" strokeWidth="1.25" />
+    {gloss(8.6, 8.6, 2, 0.7, -6, 0.8)}
+  </>,
+  ruler: <><g transform="rotate(-35 12 12)">
+    <S d="M2.6 9h18.8a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H2.6a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" g="gold" o="#a35a00" />
+    {line('M5 9.4v2.6M8 9.4v1.6M11 9.4v2.6M14 9.4v1.6M17 9.4v2.6M20 9.4v1.6', '#7a4300', 1)}
+  </g></>,
+  plane: <>
+    <S d="M12 2.4c.9 0 1.5 1 1.5 2.4v4.6l7.4 4.2v2.1l-7.4-2.2v4l2.3 1.7v1.6L12 20l-3.8.8v-1.6l2.3-1.7v-4l-7.4 2.2v-2.1l7.4-4.2V4.8c0-1.4.6-2.4 1.5-2.4z" g="silver" o="#4f5875" />
+    {gloss(11.5, 6, 0.5, 1.6, 0, 0.85)}
+  </>,
+  brain: <>
+    <S d="M7.6 5.2c1-1.6 3.4-2 4.8-.8 1.4-1.2 3.8-1 4.8.6 2 .2 3.4 2 3 4 1.2 1 1.4 3 .4 4.2.2 2-1.6 3.6-3.6 3.4-.8 1.4-2.6 2-4 1.2l-.4 2.6h-2.4l.2-3c-1.6.4-3.4-.4-4-2-2 0-3.4-1.8-3-3.8-1.2-1.2-1-3.2.4-4.2 0-1.6 1.6-2.6 3.8-2.2z" g="coral" o="#8f1740" />
+    {line('M12.4 4.6v4M9 8.4c1 .2 2 1 2.4 2M15.8 8c-1 .4-1.6 1.2-1.8 2.2M7.2 12.4c1.2-.4 2.6 0 3.2 1M17 12.4c-1.4-.2-2.6.4-3.2 1.6', '#b8254f', 1)}
+    {gloss(8.4, 6.4, 1.4, 0.7)}
+  </>,
+  chart: <>
+    <S d="M4 3.4h16a1 1 0 0 1 1 1v15.2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4.4a1 1 0 0 1 1-1z" g="cream" o="#b98a3e" />
+    {line('M5.6 5.8v12.4h13.6', '#b98a3e', 0.9)}
+    {line('M6.6 16.8c2.8 0 3.2-9.8 5.6-9.8s2.8 9.8 5.6 9.8', '#ff5c8a', 1.7)}
+  </>,
+  headphones: <>
+    {line('M5.2 14.4v-2.6a6.8 6.8 0 0 1 13.6 0v2.6', '#2d1a85', 2.8)}
+    {line('M5.2 14.4v-2.6a6.8 6.8 0 0 1 13.6 0v2.6', '#8b6bff', 1.2)}
+    <S d="M3.4 14.2a1.8 1.8 0 0 1 1.8-1.8h1.6a1 1 0 0 1 1 1v6.2a1 1 0 0 1-1 1H5.2a1.8 1.8 0 0 1-1.8-1.8z" g="teal" o="#0b5f5a" />
+    <S d="M20.6 14.2a1.8 1.8 0 0 0-1.8-1.8h-1.6a1 1 0 0 0-1 1v6.2a1 1 0 0 0 1 1h1.6a1.8 1.8 0 0 0 1.8-1.8z" g="teal" o="#0b5f5a" />
+    {gloss(5.4, 14.4, 0.6, 1.3, 0, 0.8)}
+  </>,
+  owl: <>
+    <S d="M5.6 4.4l2.9 2.1a7.6 7.6 0 0 1 7 0l2.9-2.1-.5 4.2c1 1.3 1.7 3 1.7 4.8 0 4.4-3.4 7.2-7.6 7.2s-7.6-2.8-7.6-7.2c0-1.8.7-3.5 1.7-4.8z" g="bronze" o="#6b3815" />
+    <path d="M8.6 16.4c1-.6 2.2-.9 3.4-.9s2.4.3 3.4.9c-.4 1.9-1.8 3-3.4 3s-3-1.1-3.4-3z" fill="url(#oa-cream)" opacity=".85" />
+    <circle cx="9.2" cy="11.4" r="2.7" fill="url(#oa-cream)" stroke="#6b3815" strokeWidth=".9" />
+    <circle cx="14.8" cy="11.4" r="2.7" fill="url(#oa-cream)" stroke="#6b3815" strokeWidth=".9" />
+    <circle cx="9.5" cy="11.6" r="1.2" fill="#22153f" /><circle cx="14.5" cy="11.6" r="1.2" fill="#22153f" />
+    <circle cx="9.9" cy="11.1" r=".4" fill="#fff" /><circle cx="14.9" cy="11.1" r=".4" fill="#fff" />
+    <path d="M12 13.2l1.1 1.5L12 15.9l-1.1-1.2z" fill="url(#oa-gold)" stroke="#a35a00" strokeWidth=".6" strokeLinejoin="round" />
+    {gloss(8.4, 7.6, 1.2, 0.55)}
+  </>,
+  dolphin: <>
+    {line('M3.2 20.2c1.4-1 2.8-1 4.2 0s2.8 1 4.2 0 2.8-1 4.2 0 2.8 1 4.2 0', '#2ee6d6', 1.4)}
+    <S d="M3.6 16.4c2.4-5.8 7.2-9 12.4-8.8l1.6-2.6.7 3.2c1.7.7 2.8 1.9 3.4 3.3l-2.4.4c-.6-.6-1.4-1-2.5-1.1-3.4-.2-6.4 1.6-8.6 4.4l1.6 2.9-3.1-1.3-2.7 1.5z" g="teal" o="#0b5f5a" />
+    <circle cx="17.4" cy="9.6" r=".7" fill="#0b4f4a" />
+    {line('M7.6 15.4c1.8-1.7 3.9-2.7 6.3-2.9', '#f2fffe', 0.9)}
+  </>,
+  hearingaid: <>
+    <S d="M12.6 2.8c4 0 6.8 2.8 6.8 6.4 0 2.8-1.6 5.2-4 6.2l-1.4-2.2c1.5-.8 2.5-2.3 2.5-4 0-2.2-1.6-3.9-3.9-4z" g="violet" o="#2d1a85" />
+    {line('M14.6 14.4c-.9 2.7-2.9 4.4-5.4 4.6', '#4f5875', 1.6)}
+    <C cx={8.4} cy={18.8} r={2.3} g="silver" o="#4f5875" w={1} />
+    <circle cx="16.8" cy="6.2" r=".9" fill="url(#oa-gold)" stroke="#a35a00" strokeWidth=".5" />
+    {gloss(13.4, 4.4, 1.2, 0.5, -10)}
+  </>,
   empty: <><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4" fill="rgba(5,2,20,.35)" stroke="rgba(201,193,255,.45)" strokeWidth="1.4" strokeDasharray="2.4 2" /></>,
 };
 
@@ -456,7 +520,7 @@ export function Glyph({ e, size = 22 }: { e: ReactNode; size?: number | string }
   return <>{e}</>;
 }
 
-/** Metin içindeki emojileri resimli ikona çevirir (eşleşmeyenler olduğu gibi kalır). Kullanıcı içeriği (sohbet, takma ad, amblem) buradan GEÇMEZ. */
+/** Metin içindeki emojileri resimli ikona çevirir (eşleşmeyenler olduğu gibi kalır). Kullanıcı içeriği (sohbet, takma ad) buradan GEÇMEZ; takım amblemi TeamEmblem ile çizilir. */
 export function Rich({ text, size = '1.15em' }: { text: string | number | null | undefined; size?: number | string }) {
   return <>{rich(text, size)}</>;
 }
@@ -481,6 +545,24 @@ export function rich(text: string | number | null | undefined, size: number | st
 /** Düz metin gereken yerler (aria-label, paylaşım değil, başlık özellikleri): emojileri ayıklar */
 export function stripEmoji(s: string): string {
   return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim();
+}
+
+/** Takım amblemi anahtarı (TEAM_EMBLEMS, @odi/shared) → çizim ve adı (YN-044). Amblem hiçbir yerde emoji glifi olarak basılmaz. */
+export const TEAM_EMBLEM_ART: Record<TeamEmblemKey, { art: ArtName; name: string }> = {
+  '👂': { art: 'ear', name: 'Kulak' }, '🦻': { art: 'hearingaid', name: 'İşitme cihazı' }, '🐚': { art: 'shell', name: 'Koklea' }, '🎵': { art: 'note', name: 'Nota' },
+  '🔊': { art: 'sound', name: 'Ses' }, '🎧': { art: 'headphones', name: 'Kulaklık' }, '🦉': { art: 'owl', name: 'Baykuş' }, '🐬': { art: 'dolphin', name: 'Yunus' },
+  '⭐': { art: 'star', name: 'Yıldız' }, '🔥': { art: 'flame', name: 'Alev' }, '🌙': { art: 'moon', name: 'Ay' }, '☀️': { art: 'sun', name: 'Güneş' },
+  '⚡': { art: 'bolt', name: 'Şimşek' }, '🛡️': { art: 'shield', name: 'Kalkan' }, '🍀': { art: 'clover', name: 'Yonca' }, '🌱': { art: 'sprout', name: 'Fidan' },
+  '👑': { art: 'crown', name: 'Taç' }, '🎯': { art: 'target', name: 'Hedef' }, '🧭': { art: 'compass', name: 'Pusula' }, '🔔': { art: 'bell', name: 'Zil' },
+};
+/** Eski kayıtlardaki (listeden önceki) emoji amblem: genel eşleme tablosu (EMOJI_ART), eşleşmezse varsayılan kalkan. Göç gerekmez. */
+export function emblemArt(e: string | null | undefined): ArtName {
+  if (!e) return 'shield';
+  return isTeamEmblem(e) ? TEAM_EMBLEM_ART[e].art : artFor(e) ?? 'shield';
+}
+/** Takım amblemi (çizim). Boyut verilmezse çevredeki yazı boyunda (1em) çizilir; kutular (.th-emblem, .tr-emblem…) font-size ile ölçekler. */
+export function TeamEmblem({ e, size = '1em', className }: { e: string | null | undefined; size?: number | string; className?: string }) {
+  return <Art name={emblemArt(e)} size={size} className={className} />;
 }
 
 /** Geliştirme önizlemesi (`?demo=ikonlar`): bütün resimli ikonlar, büyük ve küçük boyda, koyu ve krem zeminde */

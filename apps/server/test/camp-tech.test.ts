@@ -33,7 +33,7 @@ describe('Kulak Kampı', () => {
   it('takım yardımı süreyi kısaltır, hızlandırıcı ve kristal bitirir; yardım edene günlük 2 jeton', async () => {
     env = await setup();
     const [a, h1, h2] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
-    const t = (await a.call('team.create', { name: 'Kampçılar', emblem: '🏕️' })).team;
+    const t = (await a.call('team.create', { name: 'Kampçılar', emblem: '🍀' })).team;
     await h1.call('team.join', { teamId: t.id });
     await h2.call('team.join', { teamId: t.id });
     for (let i = 0; i < 2; i++) await a.call('progress.submit', run(1, { coins: 400 }));
@@ -94,7 +94,7 @@ describe('takım teknolojisi', () => {
   it('bağış teknolojiyi yükseltir; jeton/inşaat/yardım etkileri sunucu hesabına yansır', async () => {
     env = await setup();
     const [a, m] = [await env.connect('Ayşe'), await env.connect('Bora')];
-    const t = (await a.call('team.create', { name: 'Bilim Takımı', emblem: '🔬' })).team;
+    const t = (await a.call('team.create', { name: 'Bilim Takımı', emblem: '🧭' })).team;
     await m.call('team.join', { teamId: t.id });
     expect((await a.call('progress.submit', run(1, { coins: 100 }))).jeton).toBe(100);
     await a.call('progress.submit', run(2, { coins: 400 }));

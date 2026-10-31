@@ -162,7 +162,7 @@ try {
   const A = await player('Ayşe', 'ayse'); const B = await player('Bora', 'bora'); const C = await player('Cem', 'cem');
   log('üç oyuncu bağlandı');
   // takımlar (takım kurma ekranı başka ekibin; burada doğrudan istemciyle)
-  const tA = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦅', description: 'Her gün biraz, hep birlikte.' })).team;
+  const tA = (await net(A, 'team.create', { name: 'Koklea Kartalları', emblem: '🦉', description: 'Her gün biraz, hep birlikte.' })).team;
   await net(B, 'team.join', { teamId: tA.id });
   await net(C, 'team.create', { name: 'Bas Baykuşları', emblem: '🦉' });
   const codeB = await B.page.evaluate(() => window.__etkinlik.net().me.friendCode); const codeA = await A.page.evaluate(() => window.__etkinlik.net().me.friendCode);

@@ -5,7 +5,7 @@ import { useStore } from '../../store';
 import { useNav } from '../../nav';
 import { Bar } from '../../ui/bits';
 import { Skeleton, fmtDate, fmtLeft, fmtNum, useNow } from '../../ui/social';
-import { Art, rich } from '../../ui/art';
+import { Art, TeamEmblem, rich } from '../../ui/art';
 
 /** Baskın: Gürültü Canavarı'nın ortak can barı (canlı), katkı sıralaması, takımlar arası sıralama, pencere saati. */
 export function TeamRaid() {
@@ -45,7 +45,7 @@ export function TeamRaid() {
         <b>Takımlar arası</b>
         <div className="muted small-note">Sıra: canavarı en kısa sürede yenen önde; yenemeyenler hasara göre.</div>
         {raid.ranking.length === 0 ? <div className="muted">Bu baskında henüz sıralama yok.</div> : (
-          <ol className="rank-list">{raid.ranking.slice(0, 10).map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{t.timeMs != null ? `${Math.max(1, Math.round(t.timeMs / 60_000))} dk` : fmtNum(t.damage)}</b></li>)}</ol>
+          <ol className="rank-list">{raid.ranking.slice(0, 10).map((t, i) => <li key={t.teamId} className={t.teamId === team.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{t.timeMs != null ? `${Math.max(1, Math.round(t.timeMs / 60_000))} dk` : fmtNum(t.damage)}</b></li>)}</ol>
         )}
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { SOCIAL_LIMITS, WAR_REGIONS, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
+import { SOCIAL_LIMITS, WAR_REGIONS, isTeamEmblem, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
 import { fail, parseJson, randomCode, rid, type App, type Handlers, type PlayerRow, type TeamRow } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { feedEvent, onHelpCard } from './comm';
@@ -16,14 +16,6 @@ const TEAM_NAME_MIN = 3;
 
 const ROLE_ORDER: Record<TeamRole, number> = { lider: 0, yardimci: 1, uye: 2 };
 export const teamNameKey = (s: string) => s.replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
-
-let segmenter: Intl.Segmenter | null = null;
-try { segmenter = new Intl.Segmenter('tr', { granularity: 'grapheme' }); } catch { segmenter = null; }
-export function isSingleEmoji(s: string): boolean {
-  if (!s || s.length > 16) return false;
-  const count = segmenter ? [...segmenter.segment(s)].length : [...s].length;
-  return count === 1 && /\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(s);
-}
 
 interface HelpRow { id: string; team_id: string; from_id: string; level: number; helpers: string; max: number; at: number }
 function toHelp(app: App, r: HelpRow): HelpRequest {
@@ -112,7 +104,7 @@ export const teamHandlers: Handlers = {
     if (len < TEAM_NAME_MIN || len > SOCIAL_LIMITS.teamNameMax) fail('ISIM', `Takım adı ${TEAM_NAME_MIN}-${SOCIAL_LIMITS.teamNameMax} karakter olmalı.`);
     if (!/^[\p{L}\p{N} _.'-]+$/u.test(clean)) fail('ISIM', 'Takım adında yalnızca harf, rakam, boşluk ve - _ . kullanılabilir.');
     if (hasProfanity(clean)) fail('ISIM', 'Bu takım adı uygun değil.');
-    if (!isSingleEmoji(emblem)) fail('GECERSIZ', 'Amblem tek bir emoji olmalı.');
+    if (!isTeamEmblem(emblem)) fail('GECERSIZ', 'Amblemi listeden seç.');
     const desc = (description ?? '').replace(/\s+/g, ' ').trim();
     if (hasProfanity(desc)) fail('GECERSIZ', 'Açıklamada uygun olmayan ifade var.');
     const min = minLevel ?? 1;

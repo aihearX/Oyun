@@ -48,7 +48,7 @@ describe('İnşaat sırası', () => {
   it('sıradan çıkarınca bedel tamamen geri; hızlandırıcı ve takım yardımı yalnız süren inşaata', async () => {
     env = await setup();
     const [a, h] = [await env.connect('Ayşe'), await env.connect('Bora')];
-    const t = (await a.call('team.create', { name: 'Sıracılar', emblem: '🏕️' })).team;
+    const t = (await a.call('team.create', { name: 'Sıracılar', emblem: '🍀' })).team;
     await h.call('team.join', { teamId: t.id });
     give(env, a, 5000);
     await a.call('camp.upgrade', { id: 'laboratuvar' });

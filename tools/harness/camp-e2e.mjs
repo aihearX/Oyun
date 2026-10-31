@@ -349,7 +349,7 @@ try {
     await tab(A, 'Takım'); await A.locator('.team-hero').waitFor();
     await A.getByRole('button', { name: '＋ Takım kur' }).first().click();
     await A.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Kampçılar ${bt}`);
-    await A.locator('.emoji-opt', { hasText: '🐚' }).click();
+    await A.locator('.emoji-opt[data-emblem="🐚"]').click();
     await A.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
     await A.locator('.team-head').waitFor(); await toastGone(A);
     await A.getByLabel('Takım menüsü').click();

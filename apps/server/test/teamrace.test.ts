@@ -91,8 +91,8 @@ describe('Takım Yarışı', () => {
 
   it('eşleşme güç penceresiyle; pencere zamanla genişler; rakip yoksa dürüst not ve süre sonunda arama biter', async () => {
     env = await setup({ raceCountdownMs: 100 });
-    const A = await team(env, 'Güçlüler', '🦁', ['Ada', 'Arda']);
-    const B = await team(env, 'Yeniler', '🐣', ['Bal', 'Bulut']);
+    const A = await team(env, 'Güçlüler', '👑', ['Ada', 'Arda']);
+    const B = await team(env, 'Yeniler', '🌱', ['Bal', 'Bulut']);
     for (let l = 1; l <= 12; l++) await A.ps[0]!.call('progress.submit', run(l, { stars: 3 }));
     await gather(A.ps); await gather(B.ps);
     await A.ps[0]!.call('trace.search', { on: true });
@@ -106,7 +106,7 @@ describe('Takım Yarışı', () => {
     const m = await B.ps[1]!.waitFor('trace.matched');
     expect(m.room.team?.a.name).toBe('Güçlüler');
     // tek başına arayan: dürüst not, 3 dk sonra arama durur
-    const C = await team(env, 'Yalnızlar', '🐢', ['Can', 'Cem']);
+    const C = await team(env, 'Yalnızlar', '🌙', ['Can', 'Cem']);
     await gather(C.ps);
     const lc = (await C.ps[0]!.call('trace.search', { on: true })).lobby;
     expect(lc.note).toContain('arayan başka takım yok');
@@ -118,8 +118,8 @@ describe('Takım Yarışı', () => {
 
   it('dostluk daveti → kabul; az kişili takıma denge çarpanı; bağlantısı kopan süre sonunda bitiremedi sayılır', async () => {
     env = await setup({ raceCountdownMs: 100, teamRaceGraceMs: 150 });
-    const A = await team(env, 'Davetçiler', '🦊', ['Efe', 'Ece', 'Eda']);
-    const B = await team(env, 'İkililer', '🐼', ['Gül', 'Gök']);
+    const A = await team(env, 'Davetçiler', '🧭', ['Efe', 'Ece', 'Eda']);
+    const B = await team(env, 'İkililer', '🍀', ['Gül', 'Gök']);
     await gather(A.ps);
     await A.ps[0]!.call('trace.challenge', { teamId: B.id });
     const ch = await B.ps[1]!.waitFor('trace.challenged');
@@ -170,8 +170,8 @@ describe('Takım Ligi', () => {
     const app = env.srv.app;
     // 7 Bronz takım + 6 Gümüş takım (her biri tek üyeli)
     const bronz: { id: string; c: TC }[] = []; const gumus: { id: string; c: TC }[] = [];
-    for (let i = 0; i < 7; i++) { const c = await env.connect(`Br${i}`); bronz.push({ id: (await c.call('team.create', { name: `Bronz ${i}`, emblem: '🥉' })).team.id, c }); }
-    for (let i = 0; i < 6; i++) { const c = await env.connect(`Gm${i}`); gumus.push({ id: (await c.call('team.create', { name: `Gümüş ${i}`, emblem: '🥈' })).team.id, c }); }
+    for (let i = 0; i < 7; i++) { const c = await env.connect(`Br${i}`); bronz.push({ id: (await c.call('team.create', { name: `Bronz ${i}`, emblem: '🔥' })).team.id, c }); }
+    for (let i = 0; i < 6; i++) { const c = await env.connect(`Gm${i}`); gumus.push({ id: (await c.call('team.create', { name: `Gümüş ${i}`, emblem: '🌙' })).team.id, c }); }
     for (const t of gumus) app.db.run("INSERT INTO tl_team(team_id, tier) VALUES(?, 'gumus')", t.id);
     const st0 = (await bronz[0]!.c.call('tlig.state', {})).state;
     expect(st0.tier).toBe('bronz');
