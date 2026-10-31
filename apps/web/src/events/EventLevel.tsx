@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { EventKind, LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
+import type { LevelOptions } from '@odi/game-core/lite';
 import { DEFAULT_SKILLS } from '@odi/content';
 import { newRunId } from '@odi/net';
 import { LevelHost } from '../screens/LevelHost';
@@ -19,7 +20,18 @@ export interface EventFlash { icon: string; title: string; text: string; tone: '
 /** yalnız test derlemesi (VITE_ODI_E2E=1 → vite define); Metro/mobil pakette tanımsız → kapalı */
 declare const __ODI_E2E__: boolean | undefined;
 const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
-export const EVENT_BOT = E2E && new URLSearchParams(location.search).get('etkinlik-bot') === '1';
+const E2E_Q = E2E ? new URLSearchParams(location.search) : null;
+export const EVENT_BOT = !!E2E_Q && E2E_Q.get('etkinlik-bot') === '1';
+/**
+ * test: oyuncu testi (`?oyun-bot=1[&oyun-hiz=N][&oyun-beceri=0..1[&oyun-tohum=N]]`, App.tsx ile aynı parametreler): etkinlik ayağını da
+ * haritadaki bölüm gibi harness botu oynar, `oyun-beceri` verilince aynı insan eliyle (e2e/oyuncu-eli.ts; modül yalnız o zaman yüklenir).
+ */
+const PLAY_BOT = !!E2E_Q && E2E_Q.get('oyun-bot') === '1';
+const BOT = EVENT_BOT || PLAY_BOT;
+const BOT_SPEED = PLAY_BOT ? Math.min(4, Math.max(1, Number(E2E_Q!.get('oyun-hiz')) || 1)) : 1;
+const BOT_HAND: Promise<LevelOptions['botHand']> | undefined = PLAY_BOT && E2E_Q!.has('oyun-beceri') && Number(E2E_Q!.get('oyun-beceri')) < 0.99
+  ? import('../e2e/oyuncu-eli').then((m) => m.oyuncuEli(Number(E2E_Q!.get('oyun-beceri')), E2E_Q!.has('oyun-tohum') ? Number(E2E_Q!.get('oyun-tohum')) : null))
+  : undefined;
 
 /** Mevcut LevelHost ile etkinlik bölümünü oynatır; bitince sonucu ilgili etkinliğe (runId ile idempotent) gönderir. */
 export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: EventPlay; onExit: (kind: EventKind, flash?: EventFlash) => void }) {
@@ -31,11 +43,11 @@ export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: Even
   };
   // bot modunda LevelHost onDone çağırmaz: sonucu window.__odi'den al
   useEffect(() => {
-    if (!EVENT_BOT) return;
+    if (!BOT) return;
     const h = setInterval(() => { const o = window.__odi; if (o?.done && o.result && o.spec?.id === spec.id) { clearInterval(h); finish(o.result); } }, 250);
     return () => clearInterval(h);
   }, [spec.id]);
-  return <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!EVENT_BOT && useStore.getState().sounds} bot={EVENT_BOT} onDone={finish} onQuit={() => onExit(play.kind)} />;
+  return <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} onDone={finish} onQuit={() => onExit(play.kind)} />;
 }
 
 async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {

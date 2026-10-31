@@ -41,6 +41,9 @@ odak alanları, oyun tarzı). Her ajan yalnız kendi girdisini okur.
 3. `ekran` → ne görüyorsun? Ekran görüntüsüne (yazdırılan PNG yolu) bak. `dokun`, `yaz`, `kaydir`, `geri` ile ilerle.
 4. Bölüm açılınca (`BÖLÜM AÇIK ve bekliyor`) `bolum` çalıştır: bölüm senin becerinle oynanır; 3 ara kare + sonuç ekranı gelir.
    Kaybedersen gerçek oyuncu gibi karar ver: tekrar dene, haritaya dön, başka şeyle uğraş.
+   Etkinlik ayakları da böyle: Takım › Etkinlikler › Bayrak Yarışı "1. ayağı koş", Ralli "Saldır", Meydan Okuma ve Turnuva "Oyna"
+   bölümü açar (`BÖLÜM AÇIK`), `bolum` aynı elle oynatır; sonuç sunucuya gider, çıktıda `ETKİNLİK SONUCU (bayrak): N. ayak: X sn …`
+   (ya da `Ayak tamamlanmadı`) satırı ve etkinlik ekranı gelir. Karttaki "Dokun ve başla"ya kendin dokunma: `bolum` başlatır.
 5. Fark ettiğin her şeyi hemen `geri-bildirim.jsonl`'ye bir satır olarak yaz (aşağıda). Kişiliğinin gözüyle bak.
 6. Oturum sonunda günlüğüne bir bölüm ekle (ne yaptın, ilerleme, ruh hâli, yarım kalanlar).
 7. `durum` → `"oyunBitti": true` ise (40 bölümün hepsi geçildi) günlüğe "Tur N bitti" yaz ve `sifirla` çalıştır: hesap ve profil
@@ -67,7 +70,7 @@ node tools/harness/oyuncu.mjs geri --kisi K             görünür Geri/Kapat d�
 node tools/harness/oyuncu.mjs bekle 30 --kisi K         bekle (en çok 300 sn), sonra ekran (inşaat, sandık, sunucu olayı)
 node tools/harness/oyuncu.mjs yenile --kisi K           sayfayı yenile (uygulamayı kapatıp açmak gibi)
 node tools/harness/oyuncu.mjs ag kapat|ac --kisi K      bağlantıyı kes / geri getir (uçak modu gibi)
-node tools/harness/oyuncu.mjs bolum [--zaman 600] --kisi K   açık bölümü oynat; sonuç + kareler
+node tools/harness/oyuncu.mjs bolum [--zaman 600] --kisi K   açık bölümü (harita ya da etkinlik ayağı) oynat; sonuç + kareler
 node tools/harness/oyuncu.mjs durum --kisi K            ilerleme JSON
 node tools/harness/oyuncu.mjs sifirla [--evet] --kisi K hesabı ve profili sil, yeni tur (oyun bitmediyse --evet gerekir)
 node tools/harness/oyuncu.mjs kapat --kisi K            oturumu kapat (ilerleme kalır; zaten 20 dk boşta kendiliğinden kapanır)
@@ -195,6 +198,9 @@ günlüklerden bulur.
 - **Bot kipinin gerçek oyundan farkları:** bölüm içi Şanslı Nota çıkmaz; Revir bonusu (ilk hasarı yok sayma) uygulanmaz; bölüm içi ses
   kapalıdır (başsız tarayıcı zaten duymaz — sesle ilgili geri bildirim metin/görsel karşılık üzerinden verilir); kişinin dokunuşları
   yerine el modeli oynar (dokunma hassasiyeti, kaydırma algısı gibi şeyler ölçülmez). Canlı yarışta yarış başlayınca hemen `bolum`.
+  Etkinlik ayakları (Ralli, Bayrak, Meydan Okuma, Turnuva) da bot kipinde haritadaki bölümle aynı elle oynanır (`oyun-bot`/`oyun-beceri`
+  EventLevel'a da ulaşır; YN-068): "Dokun ve başla" kartı çıkmaz, sonuç etkinliğin kendi yoluyla (ör. `relay.submit`) yazılır; `bolum`
+  sonuç kartını (`ETKİNLİK SONUCU`) yazar. Bölüm 90 sn'de başlamazsa `bolum` bekleyip durmaz, hata notuyla döner.
   Yazılım GL'de Phaser sahneleri (harita dönüşü, kamp) gerçek telefondan birkaç kat yavaş akar: süre/akıcılık geri bildirimi oyun içi
   yazıya ve sahnenin bitmiş hâline göre verilir. `ag kapat` tarayıcıyı çevrimdışı yapar ve açık WebSocket'leri uçak modu gibi koparır
   (uygulama anormal kapanış görür; bağlantı noktası griye döner); `ag ac` ağı geri getirir, uygulama kendisi yeniden bağlanır.

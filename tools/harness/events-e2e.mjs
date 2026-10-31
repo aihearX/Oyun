@@ -4,7 +4,8 @@
 // + 3 tarayıcı (Ayşe ve Bora aynı takım, Cem başka takım), 390×844.
 // Akış: harita yüzen Etkinlik düğmesi → merkez → düello eşleşmesi → ralli (başlat, bildirim, katıl, ikisi de bölümü bot ile oynar, kazanılır)
 //       → quiz (iki üye aynı anda cevaplar, cevap + açıklama) → bayrak (koş, devret, "Bayrak sende!", ikinci ayak) → düello skor çubuğu
-//       → Günün Meydan Okuması (üçü de oynar, sıralama) → takım sekmesi, görevler, Ses Avı, turnuva, quiz sonucu.
+//       → Günün Meydan Okuması (üçü de oynar, sıralama) → takım sekmesi, görevler, Ses Avı, turnuva
+//       → bot olmadan Bayrak ayağı (Cem: "Dokun ve başla", dokunuşla zıplama, sonuç yazılır) → quiz sonucu.
 // Kullanım: node tools/harness/events-e2e.mjs [--no-build] [--headed]
 // Çıktı: tools/harness/out/etkinlik/*.png ve e2e.json
 import { spawn } from 'node:child_process';
@@ -291,6 +292,33 @@ try {
   await openEvents(A, 'gorev'); await tid(A, 'takim-gorevleri').waitFor(); await shot(A, 'takim-gorevleri');
   await openEvents(A, 'avi'); await tid(A, 'ses-avi').waitFor(); await shot(A, 'ses-avi');
   await openEvents(C, 'turnuva'); await tid(C, 'turnuva').waitFor(); await shot(C, 'haftalik-turnuva');
+
+  // ---- gerçek oyuncu akışı (YN-068): bot parametresi olmadan Bayrak ayağı "Dokun ve başla"da bekler; o dokunuş yutulur
+  // (consumeActive: zıplatmaz), sonraki dokunuş zıplatır; oyuncu bırakınca Odi düşer ve sonuç normal yoldan (onDone) yazılır
+  await C.page.goto(base.replace('&etkinlik-bot=1', ''), { waitUntil: 'load' });
+  await C.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 20_000 });
+  await C.page.getByRole('button', { name: /Yola çık|Devam et/ }).click();
+  await tid(C, 'ev-fab').waitFor({ timeout: 20_000 });
+  await openEvents(C, 'bayrak');
+  await tid(C, 'bayrak-al').click(); await tid(C, 'bayrak-kos').click();
+  await C.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'ready'), null, { timeout: 30_000 });
+  await sleep(1500);
+  check(!(await C.page.evaluate(() => window.__odi.events.some((e) => e.type === 'started'))), 'bayrak (bot yok): ayak "Dokun ve başla"da bekliyor');
+  await shot(C, 'bayrak-dokun-ve-basla');
+  const cv = await C.page.locator('.level-host canvas').first().boundingBox();
+  await C.page.touchscreen.tap(cv.x + cv.width / 2, cv.y + cv.height * 0.6);
+  await C.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 5000 });
+  // yükselen Odi (yerden kalkmış, hızı yerçekiminin tersine) sayılır
+  await C.page.evaluate(() => { const w = window; w.__zipla = 0; const f = () => { const h = w.__odiScene?.sim?.hero; if (h && !h.grounded && h.vy * h.g < -1) w.__zipla++; if (w.__odiScene) requestAnimationFrame(f); }; f(); });
+  await sleep(500);
+  check((await C.page.evaluate(() => window.__zipla)) === 0, 'bayrak (bot yok): başlatan dokunuş yutuldu, Odi zıplamadı');
+  await C.page.touchscreen.tap(cv.x + cv.width / 2, cv.y + cv.height * 0.6);
+  await C.page.waitForFunction(() => window.__zipla > 0, null, { timeout: 3000 }).catch(() => undefined);
+  check((await C.page.evaluate(() => window.__zipla)) > 0, 'bayrak (bot yok): sonraki dokunuşla Odi zıpladı');
+  await C.page.locator('[data-testid="ev-flash"]').waitFor({ timeout: 150_000 });
+  const flashC = (await C.page.locator('[data-testid="ev-flash"]').innerText()).replace(/\s+/g, ' ');
+  check(/ayak/i.test(flashC), `bayrak (bot yok): sonuç etkinliğe yazıldı ("${flashC}")`);
+  await shot(C, 'bayrak-elle-sonuc');
 
   // ---- quiz sonucu (10 soru × 21 sn; arka planda bitti)
   await openEvents(B, 'quiz');

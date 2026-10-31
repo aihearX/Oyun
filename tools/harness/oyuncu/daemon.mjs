@@ -231,13 +231,13 @@ async function geri() {
 async function bolum({ zamanSn = 600 } = {}) {
   if (!(await bolumAcik())) {
     if (bekleyenSonuc) { const s = bekleyenSonuc; bekleyenSonuc = null; return `(önceki bölümün sonucu; o sırada komut kopmuştu)\n${s}`; }
-    throw new Error('açık bölüm yok: önce bölümü başlatan düğmeye dokun (ör. "Bölüm 3", "Oyna", "Tekrar oyna"), sonra bolum');
+    throw new Error('açık bölüm yok: önce bölümü başlatan düğmeye dokun (ör. "Bölüm 3", "Oyna", "Tekrar oyna"; etkinlikte "1. ayağı koş", "Saldır", "Oyna"), sonra bolum');
   }
   const t0 = Date.now();
   const y = await yuvaAl(ID, { bekliyor: () => log('bölüm: yuva bekleniyor') });
   const notlar = []; if (y.beklemeMs > 1500) notlar.push(`yuva için ${Math.round(y.beklemeMs / 1000)} sn beklendi`);
   const kareler = [];
-  let sonuc; let spec; let el; let cikti = false;
+  let sonuc; let spec; let el; let cikti = false; let etkinlik = null;
   try {
     await page.evaluate(() => { window.__oyuncu.izin = true; window.__oyuncu.dondur(false); });
     const tb = Date.now(); const esik = [0.25, 0.5, 0.75]; let ei = 0;
@@ -253,12 +253,22 @@ async function bolum({ zamanSn = 600 } = {}) {
       if (ei < 3 && d.started && (d.pct >= esik[ei] || gecen > (ei + 1) * 25 / Math.max(1, HIZ / 2))) {
         const yol = shotYolu(`bolum-${ei + 1}`); await page.screenshot({ path: yol, scale: 'css' }).catch(() => undefined); kareler.push(`${rel(yol)} (%${Math.round(d.pct * 100)})`); ei++;
       }
+      // bot bağlı değilse sahne "Dokun ve başla"da bekler (YN-068: etkinlik ayağında böyleydi): 600 sn boşa beklenmesin
+      if (!d.started && gecen > 90) { notlar.push('bölüm 90 sn\'de başlamadı ("Dokun ve başla"da bekliyor olabilir: bot bu bölüme bağlanmamış — hata olarak yaz): donduruldu'); break; }
       if (gecen > zamanSn) { notlar.push(`bölüm ${zamanSn} sn'de bitmedi: donduruldu (bot takılmış olabilir — hata olarak yaz)`); break; }
     }
     const r = await page.evaluate(() => ({ result: window.__odi?.result ?? null, spec: window.__odi?.spec ? { number: window.__odi.spec.number, name: window.__odi.spec.name, mechanic: window.__odi.spec.mechanic, biome: window.__odi.spec.biome, objective: window.__odi.spec.objective?.label, coinsTotal: window.__odi.spec.coinsTotal, par: window.__odi.spec.parTimeSec, modifiers: window.__odi.spec.modifiers } : null, el: window.__odiEl ?? null }));
     sonuc = r.result; spec = r.spec; el = r.el;
-    // sonuç ekranı (App levelDone 250 ms'de bir yoklar) + kutlama animasyonları
-    if (sonuc) { for (let i = 0; i < 40 && (await page.evaluate(() => !!document.querySelector('.level-host'))); i++) await sleep(250); await sleep(1500); }
+    // sonuç ekranı (App levelDone 250 ms'de bir yoklar) + kutlama animasyonları. Etkinlik ayağı (Ralli, Bayrak, Meydan Okuma,
+    // Turnuva; EventLevel) önce sonucu sunucuya gönderir, sonra etkinlik ekranına kısa sonuç kartıyla (ev-flash, 6 sn) döner
+    if (sonuc) {
+      for (let i = 0; i < 80 && (await page.evaluate(() => !!document.querySelector('.level-host'))); i++) await sleep(250);
+      for (let i = 0; i < 8 && !etkinlik; i++) {
+        etkinlik = await page.evaluate(() => { const f = document.querySelector('[data-testid="ev-flash"]'); const v = document.querySelector('[data-testid="etkinlikler"]'); return f ? { gorunum: v?.getAttribute('data-view') ?? '?', kart: f.innerText.replace(/\s+/g, ' ').trim() } : null; }).catch(() => null);
+        if (!etkinlik) await sleep(250);
+      }
+      await sleep(1500);
+    }
   } finally {
     await page.evaluate(() => { window.__oyuncu.izin = false; }).catch(() => undefined);
     y.birak();
@@ -271,7 +281,8 @@ async function bolum({ zamanSn = 600 } = {}) {
     s.push(`nota ${x.coins}/${spec?.coinsTotal ?? '?'} · oyun süresi ${Math.round(x.timeSec)} sn (hedef ${spec?.par ?? '?'} sn) · düşme ${x.deaths} · hasar ${x.damageTaken} · skor ${Math.round(x.score)}`);
     if (spec) s.push(`bölüm: ${spec.mechanic} / ${spec.biome} · hedef: ${spec.objective ?? '?'}${spec.modifiers?.length ? ` · değiştirici: ${spec.modifiers.join(', ')}` : ''}`);
     s.push(`el: ${el ? `${el.model} (beceri ${el.beceri}, deneme ${el.deneme})` : 'kusursuz bot'} · gerçek süre ${sure} sn`);
-    kayit({ komut: 'bolum', bolum: spec?.number, gecti: x.completed, yildiz: x.stars, nota: x.coins, notaTop: spec?.coinsTotal, sure: Math.round(x.timeSec), dusme: x.deaths, hasar: x.damageTaken, neden: x.extra?.reason, el, duvar: sure, tur: tur(), surum: yukluSurum.slice(0, 8) });
+    if (etkinlik) s.push(`ETKİNLİK SONUCU (${etkinlik.gorunum}): ${etkinlik.kart}`);
+    kayit({ komut: 'bolum', bolum: spec?.number, ...(etkinlik ? { etkinlik: etkinlik.gorunum, etkinlikKart: etkinlik.kart } : {}), gecti: x.completed, yildiz: x.stars, nota: x.coins, notaTop: spec?.coinsTotal, sure: Math.round(x.timeSec), dusme: x.deaths, hasar: x.damageTaken, neden: x.extra?.reason, el, duvar: sure, tur: tur(), surum: yukluSurum.slice(0, 8) });
   } else if (cikti) s.push('bölüm ekranı kapandı (çıkıldı ya da sayfa değişti); sonuç yok');
   else s.push('sonuç yok');
   if (kareler.length) s.push(`bölüm içi kareler: ${kareler.join(' · ')}`);
@@ -296,7 +307,7 @@ async function sunucuKaydi(token) {
 function denemeler() {
   if (!existsSync(KAYIT)) return {};
   const t = tur(); const by = {};
-  for (const l of readFileSync(KAYIT, 'utf8').split('\n')) { if (!l) continue; try { const o = JSON.parse(l); if (o.komut !== 'bolum' || (o.tur ?? 1) !== t || !o.bolum) continue; const b = (by[o.bolum] ??= { deneme: 0, kayip: 0 }); b.deneme++; if (!o.gecti) b.kayip++; } catch { /* bozuk satır */ } }
+  for (const l of readFileSync(KAYIT, 'utf8').split('\n')) { if (!l) continue; try { const o = JSON.parse(l); if (o.komut !== 'bolum' || (o.tur ?? 1) !== t || !o.bolum || o.etkinlik) continue; const b = (by[o.bolum] ??= { deneme: 0, kayip: 0 }); b.deneme++; if (!o.gecti) b.kayip++; } catch { /* bozuk satır */ } }
   return by;
 }
 async function durum() {
