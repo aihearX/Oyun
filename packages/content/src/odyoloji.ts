@@ -69,7 +69,7 @@ export const GLOSSARY: GlossaryTerm[] = [
     tech: 'Kanalın dış, kıkırdak bölümündeki seruminöz ve yağ bezlerinin salgısı ile dökülen deri hücrelerinden oluşur. Kanal derisinin dışa doğru göçüyle kendiliğinden dışarı taşınır; tıkayıcı birikimi iletim tipi işitme kaybı yapabilir.',
     src: `${K}, dış kulak ve otoskopi bölümü` },
   { id: 'rezonans', term: 'Kulak kanalı rezonansı', region: 'kanal', art: 'wave',
-    plain: 'Kulak kanalı, şişe ağzına üflemek gibi bazı sesleri kendiliğinden güçlendirir.',
+    plain: 'Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli 2–3 kHz civarındaki sesleri kendiliğinden güçlendirir.',
     tech: 'Bir ucu kapalı yaklaşık 2,5 cm’lik tüp gibi davranır; rezonansı yaklaşık 2,5–3 kHz civarındadır ve bu bölgede sesi yaklaşık 10–15 dB artırır. Kepçe ve baş ile birlikte konuşma için önemli bir bölgeyi öne çıkarır.',
     src: `${G}, dış kulak aktarım işlevi` },
   // ---- zar / orta kulak
@@ -213,7 +213,8 @@ export const EAR_NOTES: EarNote[] = [
     tech: 'Genç ve sağlıklı insan kulağı yaklaşık 20 Hz–20 kHz arasını duyar ve yaklaşık 1–4 kHz arasında en duyarlıdır. Perde algısı frekansla ilişkilidir ama doğrusal değildir.', src: `${G}, mutlak eşikler` },
   { id: 'db', region: 'dis-kulak', plain: 'Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir.',
     tech: 'Ses basıncı düzeyi = 20·log10(p/p0), p0 = 20 µPa. 6 dB artış ses basıncını yaklaşık iki katına, 20 dB artış on katına çıkarır; 10 dB artış ses şiddetini (enerjiyi) on katına çıkarır.', src: `${G}, fiziksel akustik` },
-  { id: 'kanal-rezonans', region: 'kanal', plain: 'Kulak kanalı, şişe ağzına üflemek gibi bazı sesleri kendiliğinden güçlendirir.',
+  { id: 'kanal-rezonans', region: 'kanal', plain: 'Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli 2–3 kHz civarındaki sesleri kendiliğinden güçlendirir.',
+    spoken: 'Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli iki-üç kilohertz civarındaki sesleri kendiliğinden güçlendirir.',
     tech: 'Bir ucu kapalı yaklaşık 2,5 cm’lik tüp gibi davranır; rezonansı yaklaşık 2,5–3 kHz civarındadır ve bu bölgede sesi yaklaşık 10–15 dB artırır.', src: `${G}, dış kulak aktarım işlevi` },
   { id: 'serumen-temiz', region: 'kanal', plain: 'Kulak kendi kendini temizler; pamuklu çubuk kiri çoğu zaman daha derine iter.',
     tech: 'Kanal derisi epitel göçüyle kiri dışa taşır. Tıkayıcı serumen iletim tipi kayba yol açabilir; çıkarılması gerektiğinde bu işlem sağlık profesyonelince yapılmalıdır.', src: `${K}, otoskopi ve serumen yönetimi` },

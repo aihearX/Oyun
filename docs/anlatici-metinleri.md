@@ -122,7 +122,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `kamp-sv-tedavi-3` | Unutma: gerçek hayatta tedaviyi hekim ve odyolog birlikte seçer. Burada ise oynayarak öğreniriz. | Kamp: Tedavi Odası yükseldi (Sv 3, 6, 9, 12, 15) | bilge, şefkatli (wise, caring) |
 | `tedavi-al-01` | Malzemelerin çantanda! Haritada bir bölüm kartı aç, Çanta’ya dokun ve götürmek istediklerini seç. Kullanmadığın kaybolmaz. | Kamp: Tedavi Odası rafı ilk kez toplandı | sıcak, yönlendiren (warm, guiding) |
 | `anit-dis-kulak` | Dış Kulak anıtı kampına geldi! Kulak kepçesi sesi toplar ve kanala yönlendirir. | Kamp: bölge anıtı yükseldi (Dış Kulak) | coşkulu (celebratory) |
-| `anit-kanal` | Kanal anıtı yükseldi! Kulak kanalı bazı sesleri, şişe ağzına üflemek gibi güçlendirir. | Kamp: bölge anıtı yükseldi (Kanal) | coşkulu (celebratory) |
+| `anit-kanal` | Kanal anıtı yükseldi! Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli iki-üç kilohertz civarındaki sesleri güçlendirir. | Kamp: bölge anıtı yükseldi (Kanal) | coşkulu (celebratory) |
 | `anit-zar` | Kulak Zarı anıtı geldi! Zar, gelen sesle titreşir ve titreşimi kemikçiklere verir. | Kamp: bölge anıtı yükseldi (Zar) | coşkulu (celebratory) |
 | `anit-kemikcikler` | Kemikçikler anıtı kuruldu: çekiç, örs ve üzengi! Vücudumuzun en küçük kemikleri. | Kamp: bölge anıtı yükseldi (Kemikçikler) | hayranlık (wonder) |
 | `anit-koklea-1` | Koklea anıtı parlıyor! Sarmal koklea, titreşimi sinir sinyaline hazırlar. | Kamp: bölge anıtı yükseldi (Koklea 1) | hayranlık (wonder) |
@@ -199,7 +199,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-kanal-rezonans` | Kulak kanalı, şişe ağzına üflemek gibi bazı sesleri kendiliğinden güçlendirir. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-kanal-rezonans` | Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli 2–3 kHz civarındaki sesleri kendiliğinden güçlendirir.<br><small>okunuş: Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli iki-üç kilohertz civarındaki sesleri kendiliğinden güçlendirir.</small> | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-serumen-temiz` | Kulak kendi kendini temizler; pamuklu çubuk kiri çoğu zaman daha derine iter. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-gurultu-sure` | Ses ne kadar yüksekse, güvenle dinleyebileceğimiz süre o kadar kısalır. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-empedans` | Orta kulak, havadaki sesi iç kulak sıvısına aktarırken onu güçlendiren bir yükseltici gibi çalışır. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
@@ -220,7 +220,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `not-ototoksik` | Bazı ilaçlar iç kulağa zarar verebilir; bu yüzden hekim kontrolünde kullanılırlar. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-abr-not` | Uyuyan bir bebeğin bile işitmesi, beyin sapından gelen minik elektrik dalgalarıyla değerlendirilebilir. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-kayip-turleri` | İşitme kaybı, sorunun kulağın hangi bölümünde olduğuna göre adlandırılır. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-hl-spl` | Odyogramdaki 0 dB “hiç ses yok” demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.<br><small>okunuş: Odyogramdaki sıfır desibel, hiç ses yok demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.</small> | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-hl-spl` | Odyogramdaki 0 dB “hiç ses yok” demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.<br><small>okunuş: Odyogramdaki sıfır desibel, hiç ses yok demek değildir; genç ve sağlıklı kulakların ortalama duyma eşiğidir.</small> | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-tarama` | Yenidoğan işitme taraması, işitme kaybını erken fark edip erken desteklemeyi sağlar. | Tüy Dede'nin Notu · sinir | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-yon` | İki kulağımız sayesinde sesin nereden geldiğini buluruz. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-maskeleme` | Bir ses başka bir sesi bastırabilir; buna maskeleme denir. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
