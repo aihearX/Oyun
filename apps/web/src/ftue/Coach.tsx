@@ -104,7 +104,8 @@ export function useTypewriter(text: string, key: unknown) {
   return { shown: text.slice(0, n), done: n >= text.length, finish: () => setN(text.length) };
 }
 
-/** anlatıcı konuşma paneli: koyu cam, portre, daktilo yazı, İleri, Atla, ilerleme noktaları */
+/** anlatıcı konuşma paneli: koyu cam, portre, daktilo yazı, İleri, Atla, ilerleme noktaları.
+ * İleri tek dokunuşta sonraki cümleye geçer (yazı bitmeyi beklemez; sahip isteği). Ekrana dokunmak ise önce yazıyı tamamlar. */
 export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra, compact, tuck, panelRef }: {
   text: string; typed: string; typing: boolean; place?: 'top' | 'bottom' | 'center'; index: number; total: number;
   onNext?: () => void; onSkip?: () => void; waiting?: boolean; hint?: string; mood?: 'happy' | 'wow' | 'wink'; extra?: ReactNode;
@@ -125,7 +126,7 @@ export function SpeechPanel({ text, typed, typing, place = 'bottom', index, tota
           {onSkip && <button type="button" className="cp-skip" onClick={onSkip}>Atla</button>}
           {waiting
             ? <span className="cp-hint" data-testid="anlatici-ipucu"><i aria-hidden /> {hint ?? 'Parlayan yere dokun'}</span>
-            : onNext && <button type="button" className="abtn primary cp-next" data-testid="anlatici-ileri" onClick={onNext}><span className="lbl">{typing ? 'Devam' : 'İleri'}</span><Icon name="chevron" size={20} /></button>}
+            : onNext && <button type="button" className="abtn primary cp-next" data-testid="anlatici-ileri" data-yaziyor={typing ? '1' : undefined} onClick={onNext}><span className="lbl">İleri</span><Icon name="chevron" size={20} /></button>}
         </div>
       </div>
     </div>
@@ -260,7 +261,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
       <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} compact={compact} tuck={tuck} panelRef={panelRef}
-        waiting={wait !== 'next' && tw.done} hint={st.hint} onNext={() => { if (!tw.done) tw.finish(); else go(); }} onSkip={() => end(true)} />
+        waiting={wait !== 'next'} hint={st.hint} onNext={go} onSkip={() => end(true)} />
     </div>
   );
 }

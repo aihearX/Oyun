@@ -428,8 +428,8 @@ async function driveTour(G, page, tourId, nnBase, shots, ctxNote = '') {
     const step = await page.locator('[data-testid="anlatici-tur"]').getAttribute('data-step').catch(() => null);
     if (step !== last && step != null) {
       last = step;
-      // daktilo bitsin (düğme "Devam" → "İleri") ya da dokunma halkası yerine otursun
-      for (let i = 0; i < 30; i++) { const lbl = await page.locator('[data-testid="anlatici-ileri"] .lbl').innerText().catch(() => ''); if (lbl === 'İleri' || await page.locator('[data-testid="anlatici-ipucu"]').count()) break; await sleep(250); }
+      // daktilo bitsin (İleri düğmesinde data-yaziyor kalkar) ya da dokunma halkası yerine otursun
+      for (let i = 0; i < 30; i++) { if (!(await page.locator('[data-testid="anlatici"]').count())) break; if (!(await page.locator('[data-testid="anlatici-ileri"][data-yaziyor]').count())) break; await sleep(250); }
       if (await page.locator('[data-testid="anlatici-ipucu"]').count()) await page.locator('.coach-ring').waitFor({ timeout: 4000 }).catch(() => undefined);
       await sleep(700);
       const say = await page.locator('[data-testid="anlatici"]').first().getAttribute('data-say').catch(() => '');
@@ -466,7 +466,7 @@ async function sectionAcilis() {
     await page.locator('[data-testid="hikaye"]').waitFor();
     for (let i = 0; i < 7; i++) {
       await page.locator(`[data-testid="hikaye"][data-step="${i}"]`).waitFor();
-      for (let k = 0; k < 30; k++) { const lbl = await page.locator('[data-testid="anlatici-ileri"] .lbl').innerText().catch(() => ''); if (lbl === 'İleri' || lbl === 'Başla' || !lbl) break; await sleep(250); }
+      for (let k = 0; k < 30; k++) { if (!(await page.locator('[data-testid="anlatici-ileri"][data-yaziyor]').count())) break; await sleep(250); }
       await sleep(900);
       const say = await page.locator('[data-testid="anlatici"]').first().getAttribute('data-say').catch(() => '');
       await G.shot(page, 2 + i, `hikaye-${i + 1}`, { kind: 'hikaye', title: `Hikâye ${i + 1}/7`, caption: `Tüy Dede anlatıyor: "${say}"` }, { wait: 100 });

@@ -61,7 +61,9 @@ export function StoryScreen({ onDone, replay }: { onDone: () => void; replay?: b
   const tw = useTypewriter(s.say, i);
   useEffect(() => { sayAloud(s.say, s.id); prefetchLines(STORY.slice(i + 1, i + 3).map((x) => ({ id: x.id, text: x.say }))); return () => stopVoice(); }, [i]);
   useEffect(() => { audio.music('menu'); }, []);
-  const next = () => { if (!tw.done) { tw.finish(); return; } stopVoice(); audio.play('tap'); if (i + 1 >= STORY.length) onDone(); else setI(i + 1); };
+  // İleri düğmesi: tek dokunuşta sonraki sahne. Ekrana dokunmak önce yazıyı tamamlar, ikinci dokunuş geçer.
+  const advance = () => { stopVoice(); audio.play('tap'); if (i + 1 >= STORY.length) onDone(); else setI(i + 1); };
+  const next = () => { if (!tw.done) { tw.finish(); return; } advance(); };
   return (
     <div className="story" data-testid="hikaye" data-step={i} onClick={next}>
       <div className="story-top" onClick={(e) => e.stopPropagation()}>
@@ -69,7 +71,7 @@ export function StoryScreen({ onDone, replay }: { onDone: () => void; replay?: b
         <button type="button" className="story-skip" onClick={() => { stopVoice(); onDone(); }}>Atla</button>
       </div>
       <div className="story-scene"><div className={`scene${s.dark ? ' dark' : ''}`} key={i}>{s.scene()}</div></div>
-      <SpeechPanel text={s.say} typed={tw.shown} typing={!tw.done} index={i} total={STORY.length} mood={s.mood} onNext={next} />
+      <SpeechPanel text={s.say} typed={tw.shown} typing={!tw.done} index={i} total={STORY.length} mood={s.mood} onNext={advance} />
     </div>
   );
 }
