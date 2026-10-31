@@ -2,7 +2,7 @@ import { xpForRun, type RunResult } from '@odi/shared';
 import { LUCKY_NOTE, treasureAt, type RewardItem } from '@odi/content';
 import { FEAT, type PlayerCore } from './state';
 import { applyGrant } from './rewards';
-import { applyQuestDeltas, ensureDaily, questDeltasFromRun, type QuestChange } from './daily';
+import { applyQuestDeltas, dailyFor, questDeltasFromRun, type QuestChange } from './daily';
 import { settle, type MetaEvent } from './unlocks';
 import { levelProgress, nextGoal, unlockAnnouncements, type Announcement, type NextGoal, type RunSpecLite } from './progress';
 
@@ -55,7 +55,7 @@ export function processRun<T extends PlayerCore>(core: T, spec: RunSpecLite, r: 
     if (core.failStreak >= 2) s.comebacks++;
   } else s.fails++;
 
-  const daily0 = ensureDaily(core.meta.daily, today);
+  const daily0 = dailyFor(core, today);
   const { daily, changes } = applyQuestDeltas(daily0, questDeltasFromRun({ completed: r.completed, stars: r.stars, coins: r.coins, damageTaken: r.damageTaken, timeSec: r.timeSec, parTimeSec: spec.parTimeSec, maxCombo, prevStars: prev.stars }));
 
   let c: T = {

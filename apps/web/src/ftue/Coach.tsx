@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { Art, rich, type ArtName } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { useStore } from '../store';
+import { prefersReducedMotion } from '../ui/bits';
 import { prefetchLines, speakLine, stopVoice } from './voice';
 import { audio } from '@odi/audio';
 import { TuyDede, NARRATOR_NAME } from './Narrator';
@@ -30,8 +31,10 @@ export interface CoachStep {
   hint?: string;
   /** adım açılınca bir kez çalışır (ör. kamp kamerasını binaya çevir) */
   enter?: () => void;
-  /** hedef 1,5 sn içinde bulunmazsa adım atlanır (ör. ödül zaten alınmışsa) */
-  optional?: boolean;
+  /** hedef 1,5 sn içinde bulunmazsa adım atlanır (ör. ödül zaten alınmışsa); { el }: bu öğe 1,5 sn içinde yoksa atlanır (hedef sonra belirebilir) */
+  optional?: boolean | { el: string };
+  /** hedef belirene dek gösterilecek yer: yalnız halka, el ve kısa yönerge (anlatıcı henüz konuşmaz; dokunuş alttaki öğeye geçer) */
+  before?: { target: Target; hint: string };
 }
 export interface Tour { id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void }
 
@@ -85,12 +88,12 @@ function bringIntoView(t: Target | undefined) {
   // hedefin üstünü üstteki anlatıcı panelinin hemen altına getir (panel üste yerleşir; uzun hedefin alt ucu kırpılır, başı görünür)
   const ph = (document.querySelector('.coach-panel') as HTMLElement | null)?.offsetHeight ?? 190;
   const want = Math.min(H * 0.5, insetPx('--sat') + 12 + ph + 18);
-  sc.scrollBy({ top: r.top - want, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  sc.scrollBy({ top: r.top - want, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
 }
 
-/** daktilo: metni harf harf açar (azaltılmış harekette anında) */
+/** daktilo: metni harf harf açar (azaltılmış harekette anında: sistem tercihi ya da Ayarlar › Hareketi azalt) */
 export function useTypewriter(text: string, key: unknown) {
-  const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduced = prefersReducedMotion();
   const [n, setN] = useState(reduced ? text.length : 0);
   useEffect(() => {
     if (reduced) { setN(text.length); return; }
@@ -138,34 +141,53 @@ export function CoachHost() {
   return typeof document !== 'undefined' ? createPortal(v, document.body) : v;
 }
 
+/** işaretli adımda halka en geç bu kadar beklenir; gelmezse yazı yine de çıkar (oyuncu açıklamasız kalmasın) */
+const MARK_WAIT_MS = 6000;
+
 function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const st = tour.steps[index]!;
   const wait = st.wait ?? 'next';
-  const tw = useTypewriter(st.say, `${tour.id}:${index}`);
+  // dokunma/bekleme adımı bir yeri gösteriyorsa: halka yerine oturmadan Tüy Dede konuşmaz, "dokun" yazısı çıkmaz
+  // (kamp kamerası kayarken, sandık henüz açılmamışken); o arada en çok `before` yeri gösterilir
+  const marked = wait !== 'next' && !!st.target;
+  const [shown, setShown] = useState(!marked);
+  const tw = useTypewriter(st.say, `${tour.id}:${index}:${shown}`);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [pre, setPre] = useState<DOMRect | null>(null);
   const [nudge, setNudge] = useState(0);
   const next = useCoach((s) => s.next); const end = useCoach((s) => s.end);
   const advanced = useRef(false);
   const go = () => { if (advanced.current) return; advanced.current = true; stopVoice(); audio.play('tap'); next(); };
 
-  // ses: adım açılınca okunur, kapanınca susar
-  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } sayAloud(st.say, st.id); prefetchLines(tour.steps.slice(index + 1, index + 3).map((x) => ({ id: x.id, text: x.say }))); return () => stopVoice(); }, [tour.id, index]);
+  // adım açılınca bir kez (ör. kamp kamerasını binaya çevir)
+  useEffect(() => { try { st.enter?.(); } catch { /* yok */ } }, [tour.id, index]);
+  // ses: adım görününce okunur, kapanınca susar
+  useEffect(() => {
+    if (!shown) return;
+    sayAloud(st.say, st.id); prefetchLines(tour.steps.slice(index + 1, index + 3).map((x) => ({ id: x.id, text: x.say })));
+    return () => stopVoice();
+  }, [tour.id, index, shown]);
+  // halka gelmezse yine de göster
+  useEffect(() => { if (shown) return; const h = setTimeout(() => setShown(true), MARK_WAIT_MS); return () => clearTimeout(h); }, [tour.id, index]);
   // hedef görünmüyorsa görünür banda kaydır (küçük ekranlar)
-  useEffect(() => { const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index]);
-  // hedefin konumu: her karede izlenir (kaydırma, animasyon, sahne kamerası)
+  useEffect(() => { const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index, shown]);
+  // hedefin konumu: her karede izlenir (kaydırma, animasyon, sahne kamerası); hedef belirince adım görünür
   useLayoutEffect(() => {
-    let raf = 0; let last = '';
+    let raf = 0; let last = ''; let lastPre = '';
+    const key = (r: DOMRect | null) => (r ? `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}` : '');
     const loop = () => {
-      const r = resolve(st.target); const k = r ? `${Math.round(r.left)},${Math.round(r.top)},${Math.round(r.width)},${Math.round(r.height)}` : '';
-      if (k !== last) { last = k; setRect(r); }
+      const r = resolve(st.target); const k = key(r);
+      if (k !== last) { last = k; setRect(r); if (r) setShown(true); }
+      const p = st.before && !r ? resolve(st.before.target) : null; const kp = key(p);
+      if (kp !== lastPre) { lastPre = kp; setPre(p); }
       raf = requestAnimationFrame(loop);
     };
     loop(); return () => cancelAnimationFrame(raf);
   }, [tour.id, index]);
-  // isteğe bağlı adım: hedef yoksa geç
+  // isteğe bağlı adım: hedef (ya da verilen öğe) yoksa geç
   useEffect(() => {
-    if (!st.optional) return;
-    const h = setTimeout(() => { if (!resolve(st.target)) go(); }, 1500);
+    const o = st.optional; if (!o) return;
+    const h = setTimeout(() => { if (typeof o === 'object' ? !document.querySelector(o.el) : !resolve(st.target)) go(); }, 1500);
     return () => clearTimeout(h);
   }, [tour.id, index]);
   // bekleme: öğe belirdi / koşul sağlandı
@@ -206,6 +228,21 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   useLayoutEffect(() => { const el = panelRef.current; if (!el || el.classList.contains('tuck')) return; const h = el.offsetHeight; if (h && h !== ph) setPh(h); });
   const tuck = !compact && place === 'bottom' && !!hole && hole.y + hole.h > H - insetSab - 14 - (ph || 190) - 52;
   const onBack = () => { if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
+
+  if (!shown) {
+    // işaret yok: yazı ve ses yok; yalnız `before` yeri (ör. kapalı sandık) halka, el ve kısa yönergeyle; dokunuş alttaki öğeye geçer.
+    // Gösterecek yer de yoksa boş katman (tur sürüyor; dokunuşlar geçer)
+    if (!pre || !st.before) return <div className="coach" data-testid="anlatici-tur" data-tour={tour.id} data-step={index} aria-hidden />;
+    const ph = { x: pre.left - pad, y: pre.top - pad, w: pre.width + pad * 2, h: pre.height + pad * 2 };
+    const below = ph.y + ph.h + 120 < H;
+    return (
+      <div className="coach" data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
+        <div className="coach-ring" style={{ left: ph.x, top: ph.y, width: ph.w, height: ph.h }} />
+        <PointHand hole={ph} H={H} />
+        <div className="coach-chip" style={{ left: ph.x + ph.w / 2, top: below ? ph.y + ph.h + 62 : Math.max(8, ph.y - 104) }}><span className="cp-hint" data-testid="anlatici-ipucu"><i aria-hidden /> {st.before.hint}</span></div>
+      </div>
+    );
+  }
 
   return (
     <div className={`coach${hole ? ' has-hole' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>

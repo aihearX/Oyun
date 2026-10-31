@@ -5,7 +5,7 @@ import { DEFAULT_SKILLS, ACHIEVEMENTS, CARDS, COSMETICS, HUMAN_JOURNEY, MAX_STRE
 const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind === 'kozmetik').map((c) => c.ref!));
 import {
   addDays, advanceStreak, albumProgress, applyGrant, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
-  dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
+  clearedInRow, dailyFor, dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
   nextGoal, nextTreasure, yuzdeEki, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
 } from './index';
@@ -55,7 +55,8 @@ describe('günlük görevler', () => {
     expect(many.size).toBeGreaterThan(5);
   });
   it('bölüm sonucu görev ilerletir; görev ödülü bir kez alınır; sandık hepsi bitince açılır', () => {
-    let c = core();
+    // meydan okuma açık (8 bölüm geçilmiş) oyuncu
+    let c = core({ progress: Object.fromEntries(Array.from({ length: 8 }, (_, i) => [i + 1, { stars: 2, best: 500, plays: 1 }])) });
     c = { ...c, meta: { ...c.meta, daily: { day: DAY, chestOpened: false, quests: [{ id: 'oyna-3', progress: 0, claimed: false }, { id: 'uc-yildiz-1', progress: 0, claimed: false }, { id: 'meydan-1', progress: 0, claimed: false }] } } };
     for (let i = 0; i < 3; i++) c = processRun(c, spec(1), run({ stars: 3 }), DAY).core;
     const q = c.meta.daily!.quests; expect(q[0]!.progress).toBe(3); expect(q[1]!.progress).toBe(1); expect(q[2]!.progress).toBe(0);
@@ -66,6 +67,45 @@ describe('günlük görevler', () => {
     const opened = openDailyChest(c, DAY)!; expect(opened.core.meta.daily!.chestOpened).toBe(true); expect(opened.core.meta.shields).toBe(1);
     expect(opened.core.meta.daily!.quests.every((x) => x.claimed)).toBe(true); expect(openDailyChest(opened.core, DAY)).toBeNull();
     expect(opened.core.meta.stats.chests).toBe(1); expect(opened.core.meta.stats.quests).toBe(3);
+  });
+  it('meydan okuma açılmamış oyuncuya (Bölüm 8 öncesi) "meydan oku" verilmez; üç görev de yapılabilir, deterministik', () => {
+    const meydan = QUESTS.find((q) => q.metric === 'share')!; expect(meydan.after).toBe(8);
+    let withShare = 0;
+    for (let i = 0; i < 120; i++) {
+      const day = addDays(DAY, i); const full = rollDailyQuests(day);
+      for (const cleared of [0, 3, 7]) {
+        const q = rollDailyQuests(day, cleared);
+        expect(q.map((x) => x.slot)).toEqual(['a', 'b', 'c']);
+        expect(q.every((x) => (x.after ?? 0) <= cleared), `${day} · ${cleared}`).toBe(true);
+        expect(rollDailyQuests(day, cleared).map((x) => x.id)).toEqual(q.map((x) => x.id));
+        // yalnız açılmamış görevin yuvası değişir
+        q.forEach((x, k) => { if (full[k]!.id !== meydan.id) expect(x.id).toBe(full[k]!.id); });
+        expect(ensureDaily(null, day, cleared).quests.map((x) => x.id)).toEqual(q.map((x) => x.id));
+      }
+      expect(rollDailyQuests(day, 8).map((x) => x.id)).toEqual(full.map((x) => x.id));
+      if (full.some((x) => x.id === meydan.id)) withShare++;
+    }
+    expect(withShare).toBeGreaterThan(0); // açılımı olan oyuncuya hâlâ gelir
+  });
+  it('kayıtlı günlük durum bozulmaz: ilerlemesiz "meydan oku" aynı yuvanın görevine döner, gerisi aynen kalır', () => {
+    const day = Array.from({ length: 120 }, (_, i) => addDays(DAY, i)).find((d) => rollDailyQuests(d).some((q) => q.id === 'meydan-1'))!;
+    const old = ensureDaily(null, day); expect(old.quests.map((q) => q.id)).toContain('meydan-1');
+    const fitted = ensureDaily({ ...old, quests: old.quests.map((q, i) => (i === 0 ? { ...q, progress: 2 } : q)) }, day, 3);
+    expect(fitted.quests.map((q) => q.id)).toEqual(rollDailyQuests(day, 3).map((q) => q.id));
+    expect(fitted.quests[0]!.progress).toBe(2); expect(fitted.quests[2]).toEqual({ id: rollDailyQuests(day, 3)[2]!.id, progress: 0, claimed: false });
+    expect(ensureDaily(fitted, day, 3)).toBe(fitted); expect(ensureDaily(fitted, day, 9)).toBe(fitted); // gün içinde görev eklenmez
+    // yapılmış (megafonla paylaşılmış) görev, açılmış sandık ve açılımı tam oyuncu: dokunulmaz
+    const done = { ...old, quests: old.quests.map((q) => (q.id === 'meydan-1' ? { ...q, progress: 1 } : q)) };
+    expect(ensureDaily(done, day, 3)).toBe(done);
+    const opened = { ...old, chestOpened: true }; expect(ensureDaily(opened, day, 3)).toBe(opened);
+    expect(ensureDaily(old, day, 8)).toBe(old); expect(ensureDaily(old, day)).toBe(old);
+    // görev işlemleri de aynı açılımı kullanır: 3 bölümlük oyuncunun bölüm sonucu yeni görevi ilerletir, sandık açılabilir
+    const progress = { 1: { stars: 2, best: 1, plays: 1 }, 2: { stars: 1, best: 1, plays: 1 }, 3: { stars: 3, best: 1, plays: 1 } };
+    expect(clearedInRow(progress)).toBe(3); expect(clearedInRow({ 1: { stars: 1 }, 3: { stars: 3 } })).toBe(1);
+    let c = core({ progress, meta: { ...defaultMeta(), daily: old } });
+    expect(dailyFor(c, day).quests.map((q) => q.id)).not.toContain('meydan-1');
+    c = processRun(c, spec(3), run({ stars: 3 }), day).core;
+    expect(c.meta.daily!.quests.map((q) => q.id)).toEqual(rollDailyQuests(day, 3).map((q) => q.id));
   });
   it('yeni gün yeni görevler', () => { const d = ensureDaily(null, DAY); expect(ensureDaily(d, DAY)).toBe(d); expect(ensureDaily(d, addDays(DAY, 1)).day).toBe(addDays(DAY, 1)); });
 });

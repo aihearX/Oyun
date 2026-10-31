@@ -24,6 +24,8 @@ export interface CampHandle {
   collected(amount: number): void;
   /** binanın ekrandaki noktası (CSS px, sayfa koordinatı) */
   screenPos(id: BuildingId): { x: number; y: number } | null;
+  /** binanın dokunma çerçevesi (CSS px, sayfa koordinatı): içine dokunuş binaya gider; anlatıcı halkası bunu çevreler */
+  box(id: BuildingId): { x: number; y: number; w: number; h: number } | null;
   /** kamera duruyor mu (odak geçişi, atalet bitti; test: dokunmadan önce konum kararlı olsun) */
   still(): boolean;
   bounce(id: BuildingId): void;
@@ -115,6 +117,10 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
     screenPos: (id) => {
       if (!scene.ready || !game.canvas) return null; const p = scene.screenPoint(id); if (!p) return null;
       const r = game.canvas.getBoundingClientRect(); return { x: r.left + p.x / dpr, y: r.top + p.y / dpr };
+    },
+    box: (id) => {
+      if (!scene.ready || !game.canvas) return null; const b = scene.tapBox(id); if (!b) return null;
+      const r = game.canvas.getBoundingClientRect(); return { x: r.left + b.x / dpr, y: r.top + b.y / dpr, w: b.w / dpr, h: b.h / dpr };
     },
     still: () => scene.ready && scene.camStill(),
     bounce: (id) => run(() => scene.bounce(id)),

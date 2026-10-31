@@ -21,6 +21,9 @@
 .coach-block { position:absolute; pointer-events:auto; }
 .coach-ring { position:absolute; border-radius:18px; pointer-events:none; box-shadow:0 0 0 3px var(--gold), 0 0 0 7px rgba(255,201,60,.28), 0 0 26px rgba(255,201,60,.65); animation:crPulse 1.3s ease-in-out infinite; }
 @keyframes crPulse { 50% { box-shadow:0 0 0 3px var(--gold), 0 0 0 13px rgba(255,201,60,.08), 0 0 34px rgba(255,201,60,.85); } }
+/* halka henüz gelmemişken gösterilen yerin kısa yönergesi (anlatıcı paneli yok) */
+.coach-chip { position:absolute; transform:translateX(-50%); pointer-events:none; }
+.coach-chip .cp-hint { background:rgba(22,13,60,.92); box-shadow:0 6px 14px rgba(5,2,20,.5); }
 .coach-hand { position:absolute; pointer-events:none; filter:drop-shadow(0 6px 10px rgba(5,2,20,.6)); animation:chPoke 1s ease-in-out infinite; }
 .coach-hand.up { transform:rotate(180deg); animation-name:chPokeUp; }
 @keyframes chPoke { 50% { transform:translateY(-10px); } }
@@ -107,6 +110,9 @@
 .story .coach-panel { position:fixed; z-index:3; bottom:calc(var(--sab) + 14px); }
 @media (max-height:680px) { .scene { width:min(250px, 72vw); } .story-scene { padding-bottom:calc(var(--sab) + 190px); } }
 @media (prefers-reduced-motion: reduce) { .tuy-dede *, .coach-ring, .coach-hand, .cu-burst, .coach-unlock .art, .scene, .scene * { animation:none !important; } }
+/* azaltılmış harekette anlatıcı paneli ve tur katmanı giriş animasyonsuz, anında görünür (sistem tercihi ya da Ayarlar › Hareketi azalt) */
+@media (prefers-reduced-motion: reduce) { .coach, .coach-panel, .coach-unlock, .coach-hand { animation:none !important; } }
+html.az-hareket .coach, html.az-hareket .coach-panel, html.az-hareket .coach-unlock, html.az-hareket .coach-hand, html.az-hareket .coach-ring, html.az-hareket .scene { animation:none !important; }
 .credit { display:block; margin-top:8px; font-size:0.71875rem; line-height:1.35; opacity:.8; }
 
 /* ---- Tüy Dede'nin Notu (ekran başına en çok bir, kapatılabilir, engellemez) */

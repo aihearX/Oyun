@@ -236,7 +236,15 @@ export class CampScene extends Phaser.Scene {
     const uid = this.hitDecor(w.x, w.y);
     const hit = this.hitBuilding(w.x, w.y);
     if (uid != null && (!hit || (this.decorViews.get(uid)!.img.depth > this.views.get(hit)!.sprite.depth))) { const d = this.decorViews.get(uid)!; this.bounceImg(d.img); this.opts.onDecor?.(d.id, uid); return; }
-    if (hit) { this.bounce(hit); this.opts.onTap(hit); }
+    if (hit) { this.bounce(hit); this.opts.onTap(hit); return; }
+    // binanın saydam yeri ve çevresi: çerçevesinin (rehber halkası; tapBox) tamamı o binaya dokunuştur (en öndeki)
+    const near = [...this.views.values()].sort((a, b) => b.sprite.depth - a.sprite.depth).find((v) => { const b = this.tapBox(v.id); return !!b && sx >= b.x && sx <= b.x + b.w && sy >= b.y && sy <= b.y + b.h; });
+    if (near) { this.bounce(near.id); this.opts.onTap(near.id); }
+  }
+  /** binanın dokunma çerçevesi (oyun pikseli, kanvas içi): tepe noktası çevresinde 92 CSS px kare; anlatıcının parlayan halkası da budur */
+  tapBox(id: BuildingId): { x: number; y: number; w: number; h: number } | null {
+    const p = this.screenPoint(id); if (!p) return null; const d = this.dpr;
+    return { x: p.x - 46 * d, y: p.y - 58 * d, w: 92 * d, h: 92 * d };
   }
   /** dokunulan süs (piksel saydamlığına göre; en öndeki) */
   hitDecor(wx: number, wy: number): number | null {
@@ -1101,10 +1109,10 @@ export class CampScene extends Phaser.Scene {
     if (above && !this.restoreCam) this.restoreCam = { x: cam.midPoint.x, y: cam.midPoint.y };
     const midY = v ? v.sprite.y - v.sprite.originY * v.sprite.displayHeight * 0.5 : l.y - 30;
     const viewH = cam.height / cam.zoom;
-    cam.pan(l.x, above ? midY + viewH * 0.2 : midY, 450, 'Sine.easeInOut', true);
+    cam.pan(l.x, above ? midY + viewH * 0.2 : midY, this.opts.reducedMotion ? 1 : 450, 'Sine.easeInOut', true);
   }
   unfocus() {
     const r = this.restoreCam; this.restoreCam = null; if (!r) return;
-    this.cameras.main.pan(r.x, r.y, 400, 'Sine.easeInOut', true);
+    this.cameras.main.pan(r.x, r.y, this.opts.reducedMotion ? 1 : 400, 'Sine.easeInOut', true);
   }
 }

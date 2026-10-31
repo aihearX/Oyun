@@ -1,7 +1,7 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { audio } from '@odi/audio';
 import { MAX_STREAK_SHIELDS, questById, type RewardItem } from '@odi/content';
-import { calendarView, chestReady, dailyChestReward, dayKey, ensureDaily, highestUnlocked, questDone, resolveReward } from '@odi/meta';
+import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, highestUnlocked, questDone, resolveReward } from '@odi/meta';
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
@@ -9,7 +9,6 @@ import { Bar, RewardChips, rewardIcon, rewardLabel } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
-import { IconButton } from '../ui/Button';
 import { Art, Glyph } from '../ui/art';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
@@ -18,7 +17,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   useEffect(() => { s.touchDay(); }, []);
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
-  const daily = ensureDaily(s.meta.daily, today); const cal = calendarView(s, today);
+  const daily = dailyFor(s, today); const cal = calendarView(s, today);
   const chestItems = resolveReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
   const doneCount = daily.quests.filter(questDone).length;
   /** sandık/takvim: kutlama katmanında açılır; gösterilen = verilen (store'un döndürdüğü öğeler aynen) */
@@ -81,7 +80,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
               </div>
               {q.claimed ? <span className="muted">Alındı</span>
                 : ok ? <button className="btn small" onClick={(e) => claimQuest(q.id, e)}>Al</button>
-                : d.metric === 'share' ? <IconButton icon="megaphone" tone="gold" label="Meydan okuma bağlantısını paylaş" onClick={() => void challenge()} /> : null}
+                : d.metric === 'share' ? <button className="btn small" onClick={() => void challenge()}>Paylaş</button> : null}
             </div>); })}
         </div>
       </section>

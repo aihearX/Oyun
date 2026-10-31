@@ -19,6 +19,8 @@ const TAB_LINE: Record<string, [string, string]> = { today: ['sekme-bugun', 'Bug
 const tapTab = (t: string): CoachStep => { const [id, hint] = TAB_LINE[t]!; return { id, say: lineText(id), target: tab(t), wait: 'tap', hint }; };
 const unlockCard = (id: FeatureId, line: string): CoachStep => ({ id: line, say: lineText(line), art: featureById(id).art, kicker: 'Yeni yer açıldı!', mood: 'wow' });
 const exists = (sel: string) => !!document.querySelector(sel);
+/** takvim/sandık kutlamasının Topla düğmesi (sandık açılınca belirir) */
+const TOPLA = '.chest-stage .cel-cta .btn';
 /** öğe önce belirip sonra kaybolunca true (henüz belirmediyse beklemeye devam) */
 const gone = (sel: string) => { let seen = false; return () => { if (exists(sel)) seen = true; return seen && !exists(sel); }; };
 
@@ -37,15 +39,17 @@ function campPick(): BuildingId | null {
   if (!ok.length) return null;
   return (ok.find((b) => b.id === 'depo' && b.level === 0) ?? ok.sort((a, b) => buildCost(a.id, a.level + 1).jeton - buildCost(b.id, b.level + 1).jeton)[0]!).id;
 }
-const kamp = () => (window as unknown as { __kamp?: { pos(id: string): { x: number; y: number } | null; focus?(id: string): void } }).__kamp;
+type Box = { x: number; y: number; w: number; h: number };
+const kamp = () => (window as unknown as { __kamp?: { pos(id: string): { x: number; y: number } | null; box?(id: string): Box | null; focus?(id: string): void } }).__kamp;
 let settle = { k: '', t: 0 };
-/** binanın ekrandaki kutusu; kamera kayarken null (halka yerine oturunca belirir, kayan hedefe dokunulmaz) */
+/** binanın dokunma çerçevesi (sahnenin tapBox'ı: içine dokunuş binaya gider); kamera kayarken null (halka yerine oturunca belirir, kayan hedefe dokunulmaz) */
 function buildingRect(id: BuildingId): DOMRect | null {
-  const p = kamp()?.pos(id); if (!p) return null;
+  const k0 = kamp(); const p = k0?.pos(id); if (!p) return null;
   const k = `${id}:${Math.round(p.x)},${Math.round(p.y)}`; const now = performance.now();
   if (k !== settle.k) { settle = { k, t: now }; return null; }
   if (now - settle.t < 220) return null;
-  return new DOMRect(p.x - 46, p.y - 58, 92, 92);
+  const b = k0?.box?.(id) ?? { x: p.x - 46, y: p.y - 58, w: 92, h: 92 };
+  return new DOMRect(b.x, b.y, b.w, b.h);
 }
 const buildingVisible = (id: BuildingId) => !!kamp()?.pos(id);
 
@@ -71,7 +75,9 @@ export function tourFor(id: string, route: string): Tour | null {
         unlockCard('today', 'bugun-01'),
         ...(route === 'today' ? [] : [tapTab('today')]),
         { id: 'bugun-02', say: lineText('bugun-02'), target: '.cal-today .btn:not(:disabled)', wait: 'tap', hint: 'Al’a dokun', optional: true },
-        { id: 'bugun-03', say: lineText('bugun-03'), target: () => document.querySelector('.cel-cta .btn') ?? document.querySelector('.cel-stage .cel-cta'), wait: { until: gone('.cel-stage') }, hint: 'Topla’ya dokun', optional: true, mood: 'wow' },
+        // sandık kapalıyken yalnız sandık gösterilir ("Sandığa dokun"); Tüy Dede "Topla’ya dokun"u Topla düğmesi belirince söyler,
+        // toplanınca (düğme kaybolunca) hemen ilerler
+        { id: 'bugun-03', say: lineText('bugun-03'), target: TOPLA, before: { target: '.chest-stage .cel-chest', hint: 'Sandığa dokun' }, wait: { until: gone(TOPLA) }, hint: 'Topla’ya dokun', optional: { el: '.chest-stage' }, mood: 'wow' },
         { id: 'bugun-04', say: lineText('bugun-04'), target: '.quests' },
       ); break;
     case 'camp':
@@ -211,6 +217,22 @@ function countUnlockTour(id: string, cleared: number): void {
 }
 const groupFull = (id: string, cleared: number) => unlockTours.cleared === cleared && unlockTours[groupOf(id)] >= MAX_UNLOCK_TOURS_PER_LEVEL;
 
+/**
+ * "Atla": o an sırada bekleyen bütün turlar (art arda gelecek Tüy Dede balonları) birlikte geçilir; oyuncu her birini tek tek
+ * atlamaz. Kamp turları ve diğerleri ayrı dizidir. Yerler açık kalır; sonraki bölümlerde açılan yerler yine duyurulur.
+ */
+export function pendingTours(skipped: string, cleared: number, done: readonly string[]): string[] {
+  const g = groupOf(skipped); const out: string[] = [];
+  if (g === 'genel') { if (cleared >= 1) out.push('result1', 'map'); if (cleared >= featureById('camp').at) out.push('camp-build'); }
+  for (const f of FEATURES) if (f.tour && cleared >= f.at && groupOf(f.id) === g) out.push(f.id);
+  return out.filter((id) => id !== skipped && !done.includes(id));
+}
+/** oyuncunun kendi girdiği yer: tanıtımı sonradan gösterilmez (Takım'a girmiş oyuncuya bir bölüm sonra "Yeni: Takım!" gelmez) */
+const VISIT_ROUTE: Partial<Record<FeatureId, string>> = { today: 'today', camp: 'camp', team: 'team' };
+export function visitedTours(route: string, cleared: number, done: readonly string[], keep: readonly (string | null | undefined)[]): string[] {
+  return (Object.keys(VISIT_ROUTE) as FeatureId[]).filter((id) => VISIT_ROUTE[id] === route && cleared >= featureById(id).at && !done.includes(id) && !keep.includes(id));
+}
+
 /** bir sonraki tur: sıra önemli (önce sonuç → harita → açılımlar) */
 function nextTour(route: string): string | null {
   const s = useStore.getState(); const f = s.ftue; if (f.bypass || f.admin) return null;
@@ -235,9 +257,15 @@ export function FtueDirector({ route }: { route: string }) {
     if (bypass || active) return;
     const h = setInterval(() => {
       if (useCoach.getState().tour || !quiet()) return;
-      const id = nextTour(route); if (!id) return;
+      const st = useStore.getState(); const id = nextTour(route);
+      // oyuncu bir yere kendi girdiyse (turu henüz sırada beklerken) o yerin tanıtımı görülmüş sayılır; şimdi başlayacak tur hariç
+      if (!st.ftue.bypass && !st.ftue.admin) for (const v of visitedTours(route, clearedCount(st.progress), st.ftue.tours, [id])) st.ftueTourDone(v);
+      if (!id) return;
       const t = tourFor(id, route);
-      if (t) { countUnlockTour(id, clearedCount(useStore.getState().progress)); useCoach.getState().start(t); } else useStore.getState().ftueTourDone(id);
+      if (t) {
+        countUnlockTour(id, clearedCount(st.progress));
+        useCoach.getState().start({ ...t, onDone: (skipped) => { if (!skipped) return; const s = useStore.getState(); for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) s.ftueTourDone(p); } });
+      } else st.ftueTourDone(id);
     }, 500);
     return () => clearInterval(h);
   }, [route, active, bypass]);

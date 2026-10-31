@@ -15,6 +15,7 @@ import { clearedCount } from '../ftue/features';
 import { DedeCard, sayDede, showDede } from './dede';
 import { markSeen, monumentToCelebrate, regionsNow } from './anit';
 import { Art } from '../ui/art';
+import { prefersReducedMotion } from '../ui/bits';
 import { Icon } from '../ui/icons';
 import { odiLook } from '../look';
 import { useStore } from '../store';
@@ -75,7 +76,7 @@ export function CampBase(p: CampBaseProps) {
     // Phaser kamp sahnesi ayrı parça; yüklenene kadar .camp-loading görünür (ready)
     void loadCamp().then(({ startCamp }) => {
       if (dead) return;
-      const reduced = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const reduced = prefersReducedMotion(); // sistem tercihi ya da Ayarlar › Hareketi azalt (kamera kaymaz, binaya doğrudan geçer)
       const heroColor = visit ? visit.heroColor : odiLook(useStore.getState()).color;
       el.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); // test kancası: kamptaki kendi Odi'nin rengi
       const st = useStore.getState(); const tutorialDone = !!st.ftue.bypass || st.ftue.tours.includes('camp-build');
@@ -123,7 +124,7 @@ export function CampBase(p: CampBaseProps) {
       });
       h = cur; handle.current = cur;
       (window as unknown as { __kamp?: unknown }).__kamp = {
-        pos: (id: BuildingId) => cur.screenPos(id), still: () => cur.still(), view: () => cur.view(), empty: (top?: number, bottom?: number, zoom?: number) => cur.emptyShare(top, bottom, zoom), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
+        pos: (id: BuildingId) => cur.screenPos(id), box: (id: BuildingId) => cur.box(id), still: () => cur.still(), view: () => cur.view(), empty: (top?: number, bottom?: number, zoom?: number) => cur.emptyShare(top, bottom, zoom), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
         decor: (uid: number) => cur.decorPos(uid), ghost: () => cur.ghostPos(), ghostState: () => cur.ghostState(), district: (id: string) => cur.districtPos(id), focusDistrict: (id: string) => cur.focusDistrict(id), districts: () => cur.openDistricts(), mem: () => cur.mem(), moveGhost: (gx: number, gy: number) => cur.moveGhost(gx, gy),
       };
     }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });

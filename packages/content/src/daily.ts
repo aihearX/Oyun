@@ -3,10 +3,14 @@ import { PATOLOJI_IDS, PATOLOJILER, patolojiKey } from './patolojiler';
 
 /**
  * Günlük görevler, 7 günlük giriş takvimi ve harita hazineleri. Hepsinin ödülü önceden görünür; rastgele sandık yok.
- * Görev seçimi deterministiktir (tarih tohumu): aynı gün herkes aynı üç görevi görür.
+ * Görev seçimi deterministiktir (tarih tohumu): aynı gün, aynı açılımdaki herkes aynı üç görevi görür.
  */
 export type QuestMetric = 'plays' | 'clears' | 'clears2' | 'threeStar' | 'coins' | 'noDamage' | 'underPar' | 'combo10' | 'share' | 'replay';
-export interface QuestDef { id: string; slot: 'a' | 'b' | 'c'; text: string; metric: QuestMetric; target: number; reward: Reward; emoji: string }
+export interface QuestDef {
+  id: string; slot: 'a' | 'b' | 'c'; text: string; metric: QuestMetric; target: number; reward: Reward; emoji: string;
+  /** yalnız bu kadar bölüm (art arda) geçmiş oyuncuya verilir: görevin özelliği o zaman açılır (yapılamayacak görev verilmez) */
+  after?: number;
+}
 
 export const QUESTS: QuestDef[] = [
   // a: kolay ısınma
@@ -20,7 +24,8 @@ export const QUESTS: QuestDef[] = [
   { id: 'par-1', slot: 'b', emoji: '💨', text: 'Bir bölümü par süresinden hızlı bitir', metric: 'underPar', target: 1, reward: [R.jeton(30), R.xp(20)] },
   { id: 'seri-10', slot: 'b', emoji: '🔗', text: 'Tek bölümde 10\'luk jeton serisi yap', metric: 'combo10', target: 1, reward: [R.jeton(30), R.xp(20)] },
   // c: çeşitlilik / sosyal
-  { id: 'meydan-1', slot: 'c', emoji: '📣', text: 'Bir arkadaşa meydan oku', metric: 'share', target: 1, reward: [R.jeton(25), R.xp(15)] },
+  // meydan okuma 8. bölümde açılır (apps/web ftue/features.ts 'race'); öncesinde bu yuvadan başka görev gelir
+  { id: 'meydan-1', slot: 'c', emoji: '📣', text: 'Bir arkadaşa meydan oku', metric: 'share', target: 1, reward: [R.jeton(25), R.xp(15)], after: 8 },
   { id: 'tekrar-1', slot: 'c', emoji: '🔁', text: 'Yıldızlı bir bölümü tekrar oyna', metric: 'replay', target: 1, reward: [R.jeton(25), R.xp(15)] },
   { id: 'jeton-120', slot: 'c', emoji: '💰', text: '120 jeton topla', metric: 'coins', target: 120, reward: [R.jeton(25), R.xp(15)] },
 ];

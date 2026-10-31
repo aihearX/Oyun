@@ -7,15 +7,45 @@ import { daysBetween } from './time';
 
 // ---------------------------------------------------------------- günlük görevler
 
-/** Günün 3 görevi: her yuvadan (a kolay, b beceri, c çeşitlilik) bir tane; tarih tohumuyla, herkes için aynı. */
-export function rollDailyQuests(day: string): QuestDef[] {
+/**
+ * Günün 3 görevi: her yuvadan (a kolay, b beceri, c çeşitlilik) bir tane; tarih tohumuyla, herkes için aynı.
+ * `cleared` (art arda geçilen bölüm) verilirse özelliği henüz açılmamış görev (QuestDef.after) verilmez: o yuva için
+ * aynı günün ayrı tohumuyla açık havuzdan biri seçilir (öteki yuvalar ve açılımı tam oyuncunun görevleri değişmez).
+ */
+export function rollDailyQuests(day: string, cleared = Infinity): QuestDef[] {
   const rng = mulberry32(hashString(`odi-gunluk:${day}`));
-  return (['a', 'b', 'c'] as const).map((slot) => { const pool = QUESTS.filter((q) => q.slot === slot); return pool[Math.floor(rng() * pool.length)]!; });
+  return (['a', 'b', 'c'] as const).map((slot) => {
+    const pool = QUESTS.filter((q) => q.slot === slot); const pick = pool[Math.floor(rng() * pool.length)]!;
+    if ((pick.after ?? 0) <= cleared) return pick;
+    const open = pool.filter((q) => (q.after ?? 0) <= cleared);
+    return open[Math.floor(mulberry32(hashString(`odi-gunluk:${day}:${slot}`))() * open.length)] ?? pick;
+  });
 }
-export function ensureDaily(daily: DailyState | null, day: string): DailyState {
-  if (daily && daily.day === day) return daily;
-  return { day, chestOpened: false, quests: rollDailyQuests(day).map((q) => ({ id: q.id, progress: 0, claimed: false })) };
+/**
+ * Günün görev durumu. Kayıtlı gün bugünse korunur; yalnız özelliği açılmamış, hiç ilerlemeyen ve alınmamış görev
+ * aynı yuvanın o günkü yapılabilir göreviyle değişir (deterministik; ilerleme olan görev ve açılmış sandık dokunulmaz).
+ * Görev eklenmez: gün içinde özellik açılsa da o günün görevleri değişmez.
+ */
+export function ensureDaily(daily: DailyState | null, day: string, cleared = Infinity): DailyState {
+  if (!daily || daily.day !== day) return { day, chestOpened: false, quests: rollDailyQuests(day, cleared).map((q) => ({ id: q.id, progress: 0, claimed: false })) };
+  if (daily.chestOpened) return daily;
+  let alt: QuestDef[] | null = null; let changed = false;
+  const quests = daily.quests.map((q) => {
+    const def = questById(q.id);
+    if (!def || (def.after ?? 0) <= cleared || q.progress > 0 || q.claimed) return q;
+    alt ??= rollDailyQuests(day, cleared);
+    const sub = alt.find((x) => x.slot === def.slot);
+    if (!sub || daily.quests.some((x) => x.id === sub.id)) return q;
+    changed = true; return { id: sub.id, progress: 0, claimed: false };
+  });
+  return changed ? { ...daily, quests } : daily;
 }
+/** art arda geçilen bölüm sayısı (görev açılımları bununla; apps/web ftue clearedCount ile aynı kural) */
+export function clearedInRow(progress: Record<number, { stars: number } | undefined>): number {
+  let n = 0; while (progress[n + 1] && progress[n + 1]!.stars > 0) n++; return n;
+}
+/** oyuncunun bugünkü görevleri: açılımına göre (ekranlar ve bütün görev işlemleri bunu kullanır) */
+export const dailyFor = (core: Pick<PlayerCore, 'meta' | 'progress'>, day: string): DailyState => ensureDaily(core.meta.daily, day, clearedInRow(core.progress));
 
 export type QuestDeltas = Partial<Record<QuestMetric, number>>;
 export interface RunFacts { completed: boolean; stars: number; coins: number; damageTaken: number; timeSec: number; parTimeSec: number; maxCombo: number; prevStars: number }
@@ -41,7 +71,7 @@ export function applyQuestDeltas(daily: DailyState, deltas: QuestDeltas): { dail
 export const questDone = (q: { id: string; progress: number }) => q.progress >= (questById(q.id)?.target ?? Infinity);
 
 export function claimQuest<T extends PlayerCore>(core: T, id: string, day: string, now = Date.now()): { core: T; applied: RewardItem[] } | null {
-  const daily = ensureDaily(core.meta.daily, day); const q = daily.quests.find((x) => x.id === id); const def = questById(id);
+  const daily = dailyFor(core, day); const q = daily.quests.find((x) => x.id === id); const def = questById(id);
   if (!q || !def || q.claimed || !questDone(q)) return null;
   const next = { ...core, meta: { ...core.meta, daily: { ...daily, quests: daily.quests.map((x) => (x.id === id ? { ...x, claimed: true } : x)) }, stats: { ...core.meta.stats, quests: core.meta.stats.quests + 1 } } };
   return applyGrant(next, def.reward, `gorev:${id}`, now);
@@ -55,7 +85,7 @@ export function dailyChestReward(core: PlayerCore): Reward {
 export function chestReady(daily: DailyState): boolean { return !daily.chestOpened && daily.quests.length > 0 && daily.quests.every(questDone); }
 /** Sandığı aç: henüz alınmamış görev ödülleri de verilir. */
 export function openDailyChest<T extends PlayerCore>(core: T, day: string, now = Date.now()): { core: T; applied: RewardItem[] } | null {
-  const daily = ensureDaily(core.meta.daily, day); if (!chestReady(daily)) return null;
+  const daily = dailyFor(core, day); if (!chestReady(daily)) return null;
   let c: T = { ...core, meta: { ...core.meta, daily } }; const applied: RewardItem[] = [];
   for (const q of daily.quests) if (!q.claimed) { const r = claimQuest(c, q.id, day, now); if (r) { c = r.core; applied.push(...r.applied); } }
   const reward = dailyChestReward(c);
@@ -105,6 +135,6 @@ export function claimCalendar<T extends PlayerCore>(core: T, today: string, now 
 
 /** Meydan okuma paylaşıldı (iptal edilmediyse): sayaç + "meydan oku" görevi. */
 export function recordShare<T extends PlayerCore>(core: T, today: string): { core: T; changes: QuestChange[] } {
-  const { daily, changes } = applyQuestDeltas(ensureDaily(core.meta.daily, today), { share: 1 });
+  const { daily, changes } = applyQuestDeltas(dailyFor(core, today), { share: 1 });
   return { core: { ...core, meta: { ...core.meta, daily, stats: { ...core.meta.stats, shares: core.meta.stats.shares + 1 } } }, changes };
 }
