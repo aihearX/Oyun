@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BuildingId, CampState, CheerKind, Wallet } from '@odi/shared';
 import { CAMP_CHEERS } from '@odi/shared';
 import type { CampHandle, CampTeam } from '@odi/game-core/lite';
-import { chunkFailed, loadCamp } from '../engine';
+import { chunkFailed, chunkOffline, loadCamp } from '../engine';
 import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { platform } from '../platform';
@@ -51,6 +51,8 @@ export function CampBase(p: CampBaseProps) {
   const handle = useRef<CampHandle | null>(null);
   const [sel, setSel] = useState<BuildingId | null>(null);
   const [ready, setReady] = useState(false);
+  // sahne parçası bağlantı yokken yüklenemedi: dürüst durum + bağlanınca (ya da Tekrar dene ile) yeniden (YN-047)
+  const [agYok, setAgYok] = useState(false); const [deneme, setDeneme] = useState(0);
   const [levelPanel, setLevelPanel] = useState(false);
   const [edit, setEdit] = useState(false);
   const [susSel, setSusSel] = useState<SusSel>(null);
@@ -69,7 +71,7 @@ export function CampBase(p: CampBaseProps) {
   const regions = visit ? visit.regions : ownRegions;
   const celebrateRef = useRef<string | null>(null);
 
-  // sahne: bir kez kurulur, ekrandan çıkınca yok edilir
+  // sahne: bir kez kurulur, ekrandan çıkınca yok edilir (parça bağlantı yokken yüklenemediyse yeniden denemede yeniden)
   useEffect(() => {
     if (!host.current) return;
     const el = host.current; let dead = false; let h: CampHandle | null = null;
@@ -127,10 +129,12 @@ export function CampBase(p: CampBaseProps) {
         pos: (id: BuildingId) => cur.screenPos(id), box: (id: BuildingId) => cur.box(id), still: () => cur.still(), view: () => cur.view(), empty: (top?: number, bottom?: number, zoom?: number) => cur.emptyShare(top, bottom, zoom), focus: (id: BuildingId) => cur.focus(id, true), monument: (r: string) => cur.monumentPos(r), regions: () => live.current.regions, celebrated: () => celebrateRef.current,
         decor: (uid: number) => cur.decorPos(uid), ghost: () => cur.ghostPos(), ghostState: () => cur.ghostState(), district: (id: string) => cur.districtPos(id), focusDistrict: (id: string) => cur.focusDistrict(id), districts: () => cur.openDistricts(), mem: () => cur.mem(), moveGhost: (gx: number, gy: number) => cur.moveGhost(gx, gy),
       };
-    }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
+    }, (e: unknown) => { if (dead) return; if (chunkOffline(e)) { setAgYok(true); return; } try { chunkFailed(e); } catch { /* yenileniyor */ } });
     if (!visit) audio.music('menu');
     return () => { dead = true; h?.destroy(); handle.current = null; delete (window as unknown as { __kamp?: unknown }).__kamp; };
-  }, []);
+  }, [deneme]);
+  const yenidenDene = () => { setAgYok(false); setDeneme((n) => n + 1); };
+  useEffect(() => { if (!agYok) return; addEventListener('online', yenidenDene); return () => removeEventListener('online', yenidenDene); }, [agYok]);
   live.current.regions = regions;
   useEffect(() => { handle.current?.update({ camp: p.camp }); }, [p.camp]);
   const regionsInit = useRef(false);
@@ -182,7 +186,9 @@ export function CampBase(p: CampBaseProps) {
   return (
     <div className={`camp-base${edit ? ' editing' : ''}${visit ? ' visiting' : ''}`}>
       <div className="camp-canvas" ref={host} aria-label={visit ? `${visit.name} adlı oyuncunun kampı` : 'Kulak Kampı üs görünümü'} role="img" />
-      {!ready && <div className="camp-loading" aria-hidden><span><Art e="🏕️" size="1.15em" className="art-inline" /></span></div>}
+      {!ready && (agYok
+        ? <div className="camp-loading camp-agyok" role="status"><div className="card offline-card"><h2>Kamp yüklenemedi</h2><div className="muted">Bağlanınca açılır. İlerlemen cihazında kayıtlı.</div><button type="button" className="btn" onClick={() => { audio.play('tap'); yenidenDene(); }}>Tekrar dene</button></div></div>
+        : <div className="camp-loading" aria-hidden><span><Art e="🏕️" size="1.15em" className="art-inline" /></span></div>)}
       <div className="camp-top">
         {visit
           ? <div className="topbar2 visit-bar"><button className="pill tb-pill tap ico" onClick={() => { audio.play('tap'); visit.onBack(); }} aria-label="Geri"><Icon name="back" size="1.1em" /></button><h1 className="grow min0">{visit.name} · Kamp</h1></div>
@@ -214,7 +220,7 @@ export function CampBase(p: CampBaseProps) {
         ) : edit ? (
           <SusPanel camp={p.camp} handle={handle.current} actions={p.actions} sel={susSel} setSel={setSusSel} onDone={() => { audio.play('tap'); setEdit(false); }} />
         ) : (<>
-          {idle && anyUpgrade && <div className="camp-hint"><Art e="👷" size="1.15em" className="art-inline" /> İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
+          {ready && idle && anyUpgrade && <div className="camp-hint"><Art e="👷" size="1.15em" className="art-inline" /> İnşaatçı boşta — bir binaya dokun, yükselt!</div>}
           <div className="camp-actions">
             {p.team && <button className={`btn camp-helpall${p.helpCount ? ' pulse' : ''}`} disabled={!p.helpCount} onClick={() => void helpAll()} aria-label={`Herkese yardım et (${p.helpCount})`}><Art e="🤝" size="1.15em" className="art-inline" /> {p.camp.decor ? 'Yardım et' : 'Herkese yardım et'}{` (${p.helpCount})`}</button>}
             {p.camp.decor && <button className="btn camp-susle" data-testid="susle" onClick={() => { audio.play('tap'); setEdit(true); }} aria-label={`Süsle${invCount ? `, envanterde ${invCount} süs` : ''}`}><Art name="palette" size={18} /> Süsle{invCount > 0 && <i className="cnt-badge">{invCount}</i>}</button>}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { HUMAN_JOURNEY } from '@odi/content';
-import { buildLayout, nextVitalityNeed, planReturn, pointAt, unlockedOf, vitalityOf, zoneOfLevels, finaleVitality, type StarMap } from './layout';
+import { buildLayout, nextVitalityNeed, planReturn, pointAt, RETURN_MAX_MS, returnDurationMs, unlockedOf, vitalityOf, zoneOfLevels, finaleVitality, type StarMap } from './layout';
 
 const upTo = (n: number, s = 2): StarMap => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, s]));
 
@@ -50,5 +50,13 @@ describe('dönüş sahnesi', () => {
   it('değişiklik yoksa boş; son bölüm finale yürür', () => {
     expect(planReturn(upTo(6), upTo(6))).toEqual([]);
     expect(planReturn(upTo(39), upTo(40)).find((s) => s.kind === 'walk')).toEqual({ kind: 'walk', from: 40, to: 'finale' });
+  });
+  it('süre: tek bölüm 8 sn altında, 5 bölüm birden üst sınırı aşar (MapScene birikmiş dönüşü baştan hızlandırır)', () => {
+    const L = buildLayout();
+    const one = returnDurationMs(planReturn(upTo(1, 3), upTo(2, 3)), L);
+    const five = returnDurationMs(planReturn(upTo(1, 1), upTo(6, 3)), L);
+    expect(one).toBeLessThan(RETURN_MAX_MS);
+    expect(five).toBeGreaterThan(RETURN_MAX_MS);
+    expect(five / Math.min(6, five / RETURN_MAX_MS)).toBeLessThanOrEqual(RETURN_MAX_MS + 1);
   });
 });

@@ -159,3 +159,24 @@ export function planReturn(seen: StarMap, now: StarMap, levels: LevelPlan[] = HU
   for (const z of rising) if (before[z] === 0) steps.push({ kind: 'zone', zone: z, from: 0, to: after[z] });
   return steps;
 }
+
+/** dönüş sahnesinin üst süresi: daha uzun sürecekse sahne baştan hızlanır (MapScene.play; YN-047) */
+export const RETURN_MAX_MS = 8000;
+/**
+ * Dönüş sahnesinin hızlandırmasız süresi (ms). MapScene adımlarının süreleriyle aynıdır (biri değişirse öbürü de): yıldız uçuşu
+ * (odak 550 + yıldız başına 620 + 380), sandık sallanması, bölge canlanması, yol çizimi + Odi'nin zıplayarak yürüyüşü.
+ * Kutlama pencereleri (sandık, bölge; oyuncu kapatır) dahil değil.
+ */
+export function returnDurationMs(steps: ReturnStep[], L: Pick<MapLayout, 'nodes' | 'finale'>): number {
+  let ms = 0;
+  for (const st of steps) {
+    if (st.kind === 'stars') ms += 550 + 620 * (st.to - st.from) + 380;
+    else if (st.kind === 'treasure') ms += 300 + 90 * 2 * 6;
+    else if (st.kind === 'zone') ms += 500 + 700 + 900;
+    else {
+      const ds = (st.to === 'finale' ? L.finale.s : L.nodes[st.to - 1]!.s) - L.nodes[st.from - 1]!.s;
+      ms += Math.min(2600, 500 + ds * 2.2) + Math.max(2, Math.round(ds / 52)) * 230 + 260 + 300;
+    }
+  }
+  return ms;
+}

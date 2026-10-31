@@ -4,6 +4,9 @@
 .camp-canvas canvas { display:block; touch-action:none; }
 .camp-loading { position:absolute; inset:0; display:grid; place-items:center; background:radial-gradient(circle at 50% 40%, #2d1d6e, #140c35); font-size:54px; }
 .camp-loading span { animation:campBob 1s ease-in-out infinite; }
+/* sahne parçası bağlantı yokken yüklenemedi (YN-047) */
+.camp-agyok { font-size:1rem; padding:0 16px; }
+.camp-agyok .card { max-width:340px; }
 
 .camp-top { position:absolute; top:0; left:0; right:0; padding:0 12px 18px; background:linear-gradient(rgba(20,12,53,.88) 0%, rgba(20,12,53,.55) 70%, rgba(20,12,53,0)); pointer-events:none;
   --text:#fff6e5; --muted:#cfc3ff; --bg2:rgba(20,12,53,.62); --line:rgba(255,246,229,.22); --panel:rgba(20,12,53,.62); --text-2:#cfc3ff; }
@@ -36,7 +39,7 @@
 .camp-helpall:disabled { background:rgba(20,12,53,.75); color:#cfc3ff; box-shadow:none; border:1px solid rgba(255,246,229,.2); }
 .camp-helpall.pulse { animation:campPulse 1.4s ease-in-out infinite; }
 .camp-listbtn.btn.ghost { flex:none; background:rgba(20,12,53,.8); color:#fff6e5; border:1px solid rgba(255,246,229,.28); }
-.camp-net { position:fixed; top:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; z-index:60; }
+.camp-net { position:fixed; top:0; left:50%; transform:translateX(-50%); width:100%; max-width:480px; z-index:60; background:rgba(36,24,6,.94); color:#fff6e5; } /* üs görünümünün başlığı üstünde okunur kalsın */
 .camp-offline h2 { overflow-wrap:anywhere; }
 
 /* bina paneli */

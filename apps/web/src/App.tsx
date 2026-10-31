@@ -39,7 +39,7 @@ import { CommBanner } from './comm/CommBanner';
 import { mentionCount, useComm } from './comm/state';
 import { odiLook } from './look';
 import { takeRemedies } from './camp/bag';
-import { chunkFailed, loadLevel, loadLevelGen, loadMap, type LevelGen } from './engine';
+import { chunkFailed, chunkImport, loadLevel, loadLevelGen, loadMap, type LevelGen } from './engine';
 import { EngineLoading, ScreenLoading } from './ui/Loading';
 import { HataSiniri } from './ui/HataSiniri';
 import { setCrashScreen } from './hata';
@@ -49,15 +49,18 @@ import { noteFeedbackScreen } from './geribildirim';
  * Ekranlar isteğe bağlı parçalar (ilk açılışta yalnız başlık + hikâye ayrıştırılır). Aynı yükleyici hem ekrana hem önden
  * yüklemeye (preloadFor) verilir; modül bir kez indirilir. Önden yüklenmiş ekran ilk çizimde askıya alınmaz (React.lazy her
  * zaman en az bir kez bekler; o arada eski ekran gizli olarak DOM'da kalır): yüklüyse doğrudan çizilir.
+ * Bağlantı yokken parça istenmez (engine.ts chunkImport). React.lazy reddedilen sözü saklar: yükleme başarısız olunca yerine
+ * yeni bir lazy kurulur, hata sınırındaki "Tekrar dene" (ya da bağlantı dönünce kendiliğinden deneme) parçayı yeniden ister.
  */
 type Loader<M> = (() => Promise<M>) & { value?: M };
 function mod<M>(f: () => Promise<M>): Loader<M> {
-  const l: Loader<M> = () => f().then((m) => (l.value = m));
+  const l: Loader<M> = () => chunkImport(f).then((m) => (l.value = m));
   return l;
 }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- ekranların prop tipleri farklı; her ekranın kendi prop tipi korunur
 function screen<M extends Record<K, ComponentType<any>>, K extends keyof M & string>(load: Loader<M>, name: K) {
-  const Lazy = lazy(() => load().then((m) => ({ default: m[name] }), chunkFailed));
+  const make = () => lazy(() => load().then((m) => ({ default: m[name] }), (e: unknown) => { Lazy = make(); return chunkFailed(e); }));
+  let Lazy = make();
   return function Screen(props: ComponentProps<M[K]>) {
     // seçim bağlanırken bir kez yapılır (sonradan değişirse ekran baştan kurulurdu)
     const [C] = useState(() => (load.value?.[name] ?? Lazy) as ComponentType<ComponentProps<M[K]>>);

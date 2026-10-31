@@ -101,7 +101,8 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     return <ListShell setView={setView}><CampOffline /></ListShell>;
   }
   const banner = st !== 'bağlı' && <div className="net-banner camp-net"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
-  if (!camp || !wallet) return <ListShell setView={setView}>{banner}<Skeleton rows={4} /></ListShell>;
+  // kamp verisi hiç gelmeden bağlantı koptu: iskelet yerine dürüst kart; bağlanınca (st → bağlı) kamp kendiliğinden yüklenir
+  if (!camp || !wallet) return <ListShell setView={setView}>{st === 'bağlı' ? <Skeleton rows={4} /> : <CampOffline />}</ListShell>;
   if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
   return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;
 }

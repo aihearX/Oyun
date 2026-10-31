@@ -5,6 +5,9 @@
  *  1) ilk açılışta kişinin cihaz ayarları (Büyük yazı, ses) — yalnız kayıt yoksa (oyuncu Ayarlar'dan açmış gibi)
  *  2) requestAnimationFrame kapısı: komutlar arasında Phaser döngüleri (harita, kamp, bölüm) durur → boştaki 10 kişi işlemci yemez
  *  3) bölüm ekranı (.level-host) açılınca, `bolum` komutu izin vermediyse hemen dondur: bölüm yalnız yuva kilidiyle koşar
+ *  4) açık WebSocket'lerin listesi: `ag kapat` onları gerçek uçak modu gibi koparır (Playwright'ın setOffline'ı açık bağlantıya
+ *     dokunmaz; uygulama "bağlı" sanır, istekler zaman aşımına düşerdi)
+ * Harita dönüş sahnesi (yıldız uçuşu, yürüyüş) dondurmadan önce biter: daemon ekran görüntüsünden önce bekler (daemon.mjs diziBekle).
  */
 export function oyuncuInit(seed) {
   if (window.top !== window) return;
@@ -22,6 +25,17 @@ export function oyuncuInit(seed) {
     else { document.getElementById('__oyuncu_donuk')?.remove(); svg(false); const l = [...q.values()]; q.clear(); for (const cb of l) raf(cb); }
   } };
   window.__oyuncu = o;
+  // bağlantı kesme: uygulama anormal kapanış (1006) görür, alttaki bağlantı da kapatılır (gerçek kapanış olayı sonradan gelse de
+  // uygulama o soketi çoktan bırakmıştır)
+  const WS = window.WebSocket; const acik = new Set();
+  window.WebSocket = class extends WS {
+    constructor(...a) { super(...a); acik.add(this); this.addEventListener('close', () => acik.delete(this)); }
+  };
+  o.wsKopar = () => {
+    const l = [...acik]; acik.clear();
+    for (const ws of l) { try { ws.dispatchEvent(new CloseEvent('close', { code: 1006, reason: '', wasClean: false })); ws.close(); } catch { /* kapalı */ } }
+    return l.length;
+  };
   const mo = new MutationObserver(() => { if (!frozen && !o.izin && document.querySelector('.level-host')) o.dondur(true); });
   const start = () => mo.observe(document.documentElement, { childList: true, subtree: true });
   if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);

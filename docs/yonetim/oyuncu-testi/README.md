@@ -178,7 +178,9 @@ günlüklerden bulur.
   kaybeder. Gerekirse `ODI_OYUNCU_ONIZLEME_PORT` / `ODI_OYUNCU_SUNUCU_PORT`.
 - **Kişi oturumu (daemon):** ilk komutta kendiliğinden açılır (`launchPersistentContext`, `nice -n 10`), sayfayı açık tutar, komutları
   sırayla yürütür, 20 dk boşta kalınca kapanır (`ODI_OYUNCU_BOSTA_DK`). Komutlar arasında sayfanın `requestAnimationFrame`'i durdurulur
-  (Phaser harita/kamp/bölüm döngüleri işlemci yemez); WebSocket ve zamanlayıcılar sürer (kişi çevrimiçi görünür).
+  (Phaser harita/kamp/bölüm döngüleri işlemci yemez); WebSocket ve zamanlayıcılar sürer (kişi çevrimiçi görünür). Harita dönüş sahnesi
+  (yıldız uçuşu, Odi'nin yürüyüşü) sürüyorsa ekran görüntüsünden önce bitmesi beklenir (en çok 60 sn; kutlama penceresinin düğmesi
+  çıkarsa beklenmez, sahne bir sonraki komutta sürer) — çıktıda `! harita dönüş sahnesi bitti (N sn beklendi)`.
 - **Yuva kilidi:** bölüm oynatma ve derleme `flock` ile 3 yuvadan birini tutar (`ODI_OYUNCU_SLOT`); fazlası sırada bekler (`yuvalar`).
   Bölüm ekranı açılınca, `bolum` izin verene kadar donar: bölüm hiçbir zaman yuva dışında koşmaz. 4 çekirdek / 15 GB'ta 10 açık oturum
   + 3 bölüm aynı anda sığar (oturum başına ~300-500 MB).
@@ -189,6 +191,11 @@ günlüklerden bulur.
 - **Bot kipinin gerçek oyundan farkları:** bölüm içi Şanslı Nota çıkmaz; Revir bonusu (ilk hasarı yok sayma) uygulanmaz; bölüm içi ses
   kapalıdır (başsız tarayıcı zaten duymaz — sesle ilgili geri bildirim metin/görsel karşılık üzerinden verilir); kişinin dokunuşları
   yerine el modeli oynar (dokunma hassasiyeti, kaydırma algısı gibi şeyler ölçülmez). Canlı yarışta yarış başlayınca hemen `bolum`.
+  Yazılım GL'de Phaser sahneleri (harita dönüşü, kamp) gerçek telefondan birkaç kat yavaş akar: süre/akıcılık geri bildirimi oyun içi
+  yazıya ve sahnenin bitmiş hâline göre verilir. `ag kapat` tarayıcıyı çevrimdışı yapar ve açık WebSocket'leri uçak modu gibi koparır
+  (uygulama anormal kapanış görür; bağlantı noktası griye döner); `ag ac` ağı geri getirir, uygulama kendisi yeniden bağlanır.
+  Service worker kapalı olduğundan çevrimdışıyken önceden indirilmemiş ekran açılmaz ("İnternet yok", bağlanınca kendiliğinden açılır);
+  yayındaki web sürümünde service worker parçaları önbellekten verir.
 - **Geliştirici komutları** (oyuncu ajanları kullanmaz): `gelistirici-ac <n> --kisi K` 1..n−1 bölümleri geçilmiş sayar ve rehberi kapatır
   (duman testi); `ODI_OYUNCU_KISILER=<dosya>` başka bir kişi dosyası (harness'in kendi testleri için); `ODI_OYUNCU_HIZ` bot hızı
   (varsayılan 2; sonucu değiştirmez, el modeli oyun saatiyle çalışır).

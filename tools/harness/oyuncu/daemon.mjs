@@ -32,7 +32,7 @@ const beceriParam = K.beceri < 0.99 ? `&oyun-beceri=${K.beceri}` : '';
 const url = () => `http://127.0.0.1:${PORTLAR.onizleme}/?sunucu=${encodeURIComponent(`ws://127.0.0.1:${PORTLAR.sunucu}`)}&oyun-bot=1&oyun-hiz=${HIZ}${beceriParam}`;
 /** ilk açılışta kayda yazılan kişi ayarları (yalnız kayıt yoksa) */
 const tohum = (() => { const s = {}; if (C.buyukYazi) s.bigText = true; if (K.ses === false) s.sounds = false; return Object.keys(s).length ? s : null; })();
-const GURULTU = /favicon|AudioContext|WebGL|GPU stall|Autoplay|WebSocket connection|ERR_INTERNET_DISCONNECTED|net::ERR|Failed to load resource|swiftshader|GroupMarkerNotSet/i;
+const GURULTU = /ChunkOffline|favicon|AudioContext|WebGL|GPU stall|Autoplay|WebSocket connection|ERR_INTERNET_DISCONNECTED|net::ERR|Failed to load resource|swiftshader|GroupMarkerNotSet/i;
 
 /** tarayıcı süreçleri ve iş parçacıkları düşük öncelikte (Chromium bazılarını kendisi -8'e çekiyor): nice 10'a geri al */
 function oncelik() {
@@ -96,8 +96,38 @@ const bolumAcik = () => page.evaluate(() => !!document.querySelector('.level-hos
 async function coz() { await page.evaluate(() => { if (!document.querySelector('.level-host') || window.__odi?.done) window.__oyuncu?.dondur(false); }).catch(() => undefined); }
 async function dondur() { await page.evaluate(() => { window.__oyuncu.izin = false; window.__oyuncu?.dondur(true); }).catch(() => undefined); }
 
+/**
+ * Harita dönüş sahnesi (yıldız uçuşu, Odi'nin yürüyüşü; MapScene.play) sürüyorsa bitmesini bekle: komutlar arası dondurma onu
+ * yarıda keserdi, ekran görüntüsü sahnenin başını (eski yıldızlar, kilitli düğümler) gösterirdi. Sahne bitince uygulama haritada
+ * gösterilen durumu kaydeder (odi-map-seen = ilerleme). Üst sınır `ms` (yazılım GL'de sahne gerçek telefondan birkaç kat yavaş);
+ * kutlama penceresi düğmesi (Topla/Devam: oyuncunun dokunuşu) çıkarsa beklenmez — sahne bir sonraki komutta sürer.
+ * Dönüş: not (beklenmediyse null).
+ */
+async function diziBekle(ms = 60_000) {
+  const t0 = Date.now(); let gordu = false;
+  for (;;) {
+    const d = await page.evaluate(() => {
+      if (!document.querySelector('.map-stage')) return 'yok';
+      if (document.querySelector('.cel-stage button')) return 'pencere';
+      try {
+        const seen = JSON.parse(localStorage.getItem('odi-map-seen') || 'null')?.state;
+        const prog = JSON.parse(localStorage.getItem('odi-v1') || 'null')?.state?.progress ?? {};
+        if (!seen?.init) return 'yok'; // ilk açılış: sahnesiz kaydedilir
+        const now = Object.fromEntries(Object.entries(prog).filter(([, p]) => p.stars > 0).map(([k, p]) => [k, p.stars]));
+        const a = Object.keys(now); const b = Object.keys(seen.stars ?? {});
+        return a.length === b.length && a.every((k) => seen.stars[k] === now[k]) ? 'bitti' : 'suruyor';
+      } catch { return 'yok'; }
+    }).catch(() => 'yok');
+    if (d !== 'suruyor') return gordu ? `harita dönüş sahnesi ${d === 'pencere' ? 'kutlama penceresine kadar oynadı' : 'bitti'} (${Math.round((Date.now() - t0) / 1000)} sn beklendi)` : null;
+    gordu = true;
+    if (Date.now() - t0 > ms) return `harita dönüş sahnesi ${Math.round(ms / 1000)} sn'de bitmedi: yarıda donduruldu (görüntü sahnenin ortası; bir sonraki komut sürdürür)`;
+    await sleep(400);
+  }
+}
+
 // ---------------------------------------------------------------- ekran
 async function ekran(etiket = 'ekran', { notlar = [] } = {}) {
+  const dizi = await diziBekle(); if (dizi) { notlar.push(dizi); await durul(1500); }
   await sleep(150);
   const yol = shotYolu(etiket);
   await page.screenshot({ path: yol, scale: 'css', timeout: 30_000 }).catch((e) => notlar.push(`ekran görüntüsü alınamadı: ${e.message.split('\n')[0]}`));
@@ -343,10 +373,12 @@ async function yurutIc(komut, arg, secenek, notlar, t0) {
     case 'ag': {
       const kapat = /^(kapat|kes|off|cevrimdisi)$/.test(arg.trim()); if (!kapat && !/^(ac|aç|on|cevrimici)$/.test(arg.trim())) throw new Error('ag kapat|ac');
       await ctx.setOffline(kapat);
+      // setOffline açık WebSocket'e dokunmaz: gerçek uçak modu gibi onlar da kopar (sayfa.mjs wsKopar)
+      const kopan = kapat ? await page.evaluate(() => window.__oyuncu?.wsKopar?.() ?? 0).catch(() => 0) : 0;
       // Playwright'ın çevrimdışı/çevrimiçi geçişi ağ koşullarını sıfırlar: eski telefonun yavaş ağı geri gelsin
       if (!kapat) await agYavaslat();
       await sleep(kapat ? 800 : 2500); await durul();
-      notlar.unshift(kapat ? 'ağ KAPALI (uçak modu gibi) — "ag ac" ile geri aç' : 'ağ açık'); cikti = await ekran('ag', { notlar }); break;
+      notlar.unshift(kapat ? `ağ KAPALI (uçak modu gibi${kopan ? `; açık bağlantı koptu: ${kopan}` : ''}) — "ag ac" ile geri aç` : 'ağ açık'); cikti = await ekran('ag', { notlar }); break;
     }
     case 'bolum': cikti = (notlar.length ? notlar.map((n) => `! ${n}`).join('\n') + '\n' : '') + (await bolum({ zamanSn: Number(secenek.zaman) || 600 })); break;
     case 'durum': cikti = await durum(); break;

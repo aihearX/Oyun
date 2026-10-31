@@ -6,7 +6,7 @@
 import Phaser from 'phaser';
 import { BIOMES } from '@odi/content';
 import { emojiTexture, hatTexture, heroTexture } from '../art';
-import { buildLayout, journeyDone, planReturn, pointAt, unlockedOf, zoneVitality, type MapLayout, type MapNode, type ReturnStep, type StarMap, type ZoneId } from './layout';
+import { buildLayout, journeyDone, planReturn, pointAt, RETURN_MAX_MS, returnDurationMs, unlockedOf, zoneVitality, type MapLayout, type MapNode, type ReturnStep, type StarMap, type ZoneId } from './layout';
 import { darken } from './paint';
 import { RegionView, wait } from './region';
 import { avatarTex, chestTex, flagTex, glowTex, NODE_D, nodeTex, pulseRingTex, shadowTex, sparkleTex, starTex, targetTex, type NodeState } from './sprites';
@@ -29,6 +29,8 @@ export class MapScene extends Phaser.Scene {
   private viewTop = 0; private vel = 0; private drag: { y: number; t: number; moved: number; startTop: number } | null = null;
   private follow: (() => number) | null = null; private autoTarget: number | null = null;
   private busy = false; private queue: StarMap | null = null; private speed = 1; private curVisible = true;
+  /** dönüş sahnesi başlamak üzere (açılıştan 450 ms sonra): hafif modda döngü bu arada uyumasın (yoksa sahne dokunulana dek başlamaz) */
+  private pending = false;
   private progS = 0;
   /** hafif mod: döngü animasyonu yok; boşta döngü tamamen uyur (dokununca uyanır) */
   light = false; private lastInput = 0; private sleeping = false;
@@ -57,7 +59,7 @@ export class MapScene extends Phaser.Scene {
     this.scale.on('resize', () => { this.fitCamera(); this.applyView(); });
     if (this.opts.social) this.setSocial(this.opts.social);
     this.events.once('shutdown', () => this.cleanup());
-    if (this.opts.seen) this.time.delayedCall(450, () => this.play(this.opts.stars));
+    if (this.opts.seen) { this.pending = true; this.time.delayedCall(450, () => { this.pending = false; void this.play(this.opts.stars); }); }
   }
 
   // ---------------------------------------------------------------- kamera
@@ -120,7 +122,7 @@ export class MapScene extends Phaser.Scene {
     if (!this.drag && Math.abs(this.vel) < 0.05) { const vh = this.viewH * 2; const nx = this.regions.find((rv) => !rv.painted && rv.zone.bottom > top - vh && rv.zone.top < bot + vh); nx?.paint(); }
     for (const g of this.prog) g.setVisible((g.getData('y1') as number) > top && (g.getData('y0') as number) < bot);
     // boşta: kare hızı düşer (pil/ısı); hafif modda döngü tamamen uyur
-    const moving = this.busy || !!this.drag || Math.abs(this.vel) > 0.002 || this.autoTarget != null || this.follow != null;
+    const moving = this.busy || this.pending || !!this.drag || Math.abs(this.vel) > 0.002 || this.autoTarget != null || this.follow != null;
     if (moving) this.lastInput = this.time.now;
     const idleMs = this.time.now - this.lastInput;
     const loop = this.game.loop as unknown as { _limitRate: number };
@@ -235,7 +237,11 @@ export class MapScene extends Phaser.Scene {
   async play(target: StarMap) {
     const steps = planReturn(this.shown, target);
     if (!steps.length) { this.shown = { ...target }; this.opts.onSequence?.('done'); return; }
-    this.busy = true; this.speed = 1; this.opts.onSequence?.('start');
+    this.busy = true; this.opts.onSequence?.('start');
+    // birden çok bölümün birikmiş dönüşü (ör. 5 bölüm: ~21-29 sn): sahne en çok ~8 sn sürsün diye baştan hızlanır; dokununca daha
+    // da (speedUp). Tek bölümün dönüşü (sandık + bölge canlanması dahil) tasarlandığı hızda kalır.
+    const multi = steps.filter((s) => s.kind === 'stars').length > 1;
+    this.speed = multi ? Math.min(6, Math.max(1, returnDurationMs(steps, this.L) / RETURN_MAX_MS)) : 1; this.tweens.timeScale = this.speed; this.time.timeScale = this.speed;
     try { for (const st of steps) { if (!this.sys.isActive()) return; await this.step(st, target); } }
     finally {
       if (this.sys.isActive()) {
