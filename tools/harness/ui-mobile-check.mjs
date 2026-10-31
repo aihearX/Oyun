@@ -12,7 +12,7 @@
 //         Expo'nun kendi sayfa iskeleti (viewport-fit yok, #root flex) ve yerel WebView'in scrollEnabled:false kilidi
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
-//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
+//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only takma-ad,bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
 //           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
 //           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
@@ -713,6 +713,12 @@ async function suite(browserName, target, [W, H]) {
     await check('giris', { scroll: false });
     await page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });
     await page.locator('.onboard').waitFor({ timeout: 15_000 });
+    if (want('takma-ad')) {
+      // takma ad kartı + Bilgi düzeyi sorusu (karar 31): Ayarlar'daki iki seçenek, geçilebilir (varsayılan Genel)
+      await sleep(600); const rec = await check('takma-ad', { scroll: false });
+      const secenek = await page.locator('[data-testid="onboard-bilgi"] [role="radio"]').allTextContents();
+      if (secenek.join('|') !== 'Genel|Odyoloji öğrencisi') fail(rec, `takma ad kartında Bilgi düzeyi seçenekleri yok/yanlış: ${JSON.stringify(secenek)}`);
+    }
     await page.getByRole('textbox', { name: 'Takma ad' }).fill(PAGE_NAME);
     await page.getByRole('button', { name: 'Başla' }).click();
     await page.locator('.onboard').waitFor({ state: 'detached' });
@@ -1127,6 +1133,9 @@ async function suite(browserName, target, [W, H]) {
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
         const rec = await check(label);
+        // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
+        const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
+        if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
         const btn = await page.evaluate(() => [...document.querySelectorAll('.result-actions button')].map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; }));
         rec.buttons = btn;
         const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);

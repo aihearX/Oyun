@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { NetError } from '@odi/net';
 import { useNet } from '@odi/net/store';
@@ -7,6 +7,7 @@ import { errText, getNet, toast, useSocial } from '../net';
 import { platform } from '../platform';
 import { OdiAvatar } from './OdiAvatar';
 import { useStore } from '../store';
+import { useCoach } from '../ftue/Coach';
 
 const COLORS = [0x6c4cf1, 0xff7a59, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
 export const isDefaultName = (n: string) => /^Odi\d{4}$/.test(n);
@@ -45,7 +46,32 @@ useNet.subscribe((s) => {
   if (s.status === 'bağlı' && !ucus) gonder(b).catch(() => undefined);
 });
 
-/** İlk bağlantıda takma ad + renk seçimi (sunucu doğrular). "Sonra" denirse bu oturumda bir daha sorulmaz. */
+/** başka bir akış sürerken kart açılmaz (oyuncu testi: takma ad penceresi harita turu ve başarım kutlamasıyla aynı anda çıkıyordu):
+ *  anlatıcı turu, kutlama, açılış hikâyesi ve bölge tanıtımı bitince açılır. Tur da açık kartın üstüne başlamaz (Director `quiet`). */
+const mesgulDom = () => !!document.querySelector('.cel-stage, .story, .biome-intro');
+function useSakin(): boolean {
+  const tur = useCoach((s) => s.tour);
+  const [mesgul, setMesgul] = useState(mesgulDom);
+  useEffect(() => { const h = setInterval(() => setMesgul(mesgulDom()), 400); return () => clearInterval(h); }, []);
+  return !tur && !mesgul;
+}
+
+/** Bilgi düzeyi sorusu (karar 31): Ayarlar'dakiyle aynı iki seçenek; dokunmak yeter, geçilebilir (varsayılan Genel kalır) */
+function BilgiSorusu() {
+  const k = useStore((s) => s.knowledge); const set = useStore((s) => s.setKnowledge);
+  return (
+    <div className="onboard-bilgi" data-testid="onboard-bilgi">
+      <div className="ob-k" id="ob-bilgi">Bilgi düzeyi</div>
+      <div className="seg" role="radiogroup" aria-labelledby="ob-bilgi">
+        <button type="button" role="radio" aria-checked={k === 'genel'} className={k === 'genel' ? 'on' : ''} onClick={() => set('genel')}>Genel</button>
+        <button type="button" role="radio" aria-checked={k === 'odyoloji'} className={k === 'odyoloji' ? 'on' : ''} onClick={() => set('odyoloji')}>Odyoloji öğrencisi</button>
+      </div>
+      <div className="muted ob-not">Notlar ve sorular buna göre gelir; Ayarlar’dan değişir.</div>
+    </div>
+  );
+}
+
+/** İlk bağlantıda takma ad + renk seçimi (sunucu doğrular) ve bir kez Bilgi düzeyi sorusu. "Sonra" denirse bu oturumda bir daha sorulmaz. */
 export function Onboarding() {
   const me = useNet((s) => s.me); const st = useNet((s) => s.status); const dismissed = useSocial((s) => s.onboardDismissed);
   const bekleyen = useAdKaydi((s) => s.bekleyen);
@@ -55,14 +81,20 @@ export function Onboarding() {
   const [gecikti, setGecikti] = useState(false);
   // açılmış kart bağlantı koparsa kaybolmaz (yazılan ad bağlanınca kaydedilir)
   const acildi = useRef(false);
+  // Bilgi düzeyi sorusu yalnız bir kez (karar 31): kart açılırken karar verilir, seçince kart içinde kalır
+  const bilgiSor = useRef(false);
+  const sakin = useSakin();
   if (!me || dismissed || !isDefaultName(me.name) || (st !== 'bağlı' && !acildi.current)) return null;
   // önceki oturumdan bekleyen ad: bağlanınca kendiliğinden gönderilir, yeniden sorulmaz
   if (bekleyen && !acildi.current) return null;
+  if (!acildi.current && !sakin) return null;
+  if (!acildi.current) bilgiSor.current = !useStore.getState().knowledgeAsked;
   acildi.current = true;
+  const sonra = () => { useStore.getState().knowledgeAskedDone(); useSocial.setState({ onboardDismissed: true }); };
   const c = color ?? useStore.getState().odiColor ?? me.color;
   const save = async () => {
     const b = { name: name.trim(), color: c };
-    setBusy(true); setErr(''); bekleyenYaz(b);
+    setBusy(true); setErr(''); bekleyenYaz(b); useStore.getState().knowledgeAskedDone();
     let sure: ReturnType<typeof setTimeout> | undefined;
     try {
       // en çok BEKLE ms: yanıt gelmezse istek sürer, kart dürüstçe "bağlanınca kaydedilecek" der
@@ -93,9 +125,10 @@ export function Onboarding() {
         <div className="muted">Takım arkadaşların ve sohbette bu adı görecek. Gerçek adını yazmak zorunda değilsin.</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={SOCIAL_LIMITS.nameMax} placeholder="Takma ad (3–16 harf)" aria-label="Takma ad" autoFocus />
         <div className="swatches" role="radiogroup" aria-label="Rengin">{COLORS.map((x) => <button type="button" key={x} role="radio" aria-checked={c === x} className={`swatch${c === x ? ' on' : ''}`} style={{ background: `#${x.toString(16).padStart(6, '0')}` }} onClick={() => setColor(x)} aria-label="Renk" />)}</div>
+        {bilgiSor.current && <BilgiSorusu />}
         {err && <div className="chat-err" role="alert">{err}</div>}
         <button className="btn" disabled={busy || name.trim().length < SOCIAL_LIMITS.nameMin}>{busy ? 'Kaydediliyor…' : 'Başla'}</button>
-        <button type="button" className="linkish center" onClick={() => useSocial.setState({ onboardDismissed: true })}>Sonra</button>
+        <button type="button" className="linkish center" onClick={sonra}>Sonra</button>
       </form>
     </div>
   );

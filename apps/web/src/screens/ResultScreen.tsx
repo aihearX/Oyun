@@ -16,6 +16,7 @@ import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
 import { Art, Glyph, Rich } from '../ui/art';
 import { NoteCard, useNote } from '../ftue/Notes';
+import { biliyorMuydun } from '@odi/content/biliyor-muydun';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
 import { ResultComm } from '../comm/ResultComm';
@@ -44,6 +45,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
   const note = useNote(spec.biome, 'result', !demo && result.completed && spec.number >= 2 && !useCoach.getState().tour && Math.random() < (store.knowledge === 'odyoloji' ? 0.8 : 0.45), spec.number + result.score);
+  // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı
+  const bilgi = biliyorMuydun(spec.number, store.knowledge);
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
   /** önizleme bayrağı: ?demo=sonuc&kutlama=0 → seviye kutlaması açılmaz (yalnızca ekran görüntüsü için) */
@@ -200,6 +203,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <span className="gi"><Art name={result.completed ? (summary.goal.kind === 'hazine' ? 'chest' : 'target') : 'ear'} size={30} /></span>
           <span><Rich text={summary.goal.text} /></span>
         </div>
+
+        {bilgi && (
+          <aside className="result-bilgi" data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} aria-label="Biliyor muydun?">
+            <Art name="bulb" size={26} className="rb-art" />
+            <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
+          </aside>
+        )}
 
         {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
         {step >= S + 3 && <ResultComm level={spec.number} completed={result.completed} demo={demo} />}

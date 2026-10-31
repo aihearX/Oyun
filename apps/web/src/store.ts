@@ -52,6 +52,8 @@ interface State extends PlayerCore {
   ftue: FtueState; narratorVoice: boolean;
   /** Bilgi düzeyi (Ayarlar): 'odyoloji' öğrenci düzeyini öne çıkarır (Tüy Dede notlarında teknik ayrıntı açık, quizde öğrenci soruları) */
   knowledge: 'genel' | 'odyoloji';
+  /** Bilgi düzeyi sorusu (takma ad kartında, karar 31) bir kez soruldu ya da oyuncu Ayarlar'dan seçti: bir daha sorulmaz */
+  knowledgeAsked: boolean;
   /** gösterilen Tüy Dede notları ve son gösterim (sıklık sınırı) */
   notesSeen: string[]; noteAt: number;
   ftueStoryDone(): void;
@@ -59,6 +61,7 @@ interface State extends PlayerCore {
   ftueBypass(): void;
   setNarratorVoice(v: boolean): void;
   setKnowledge(v: 'genel' | 'odyoloji'): void;
+  knowledgeAskedDone(): void;
   /** Büyük yazı (Ayarlar, erişilebilirlik): kök yazı ölçeği 1,15 (html.buyuk-yazi); kalıcı */
   bigText: boolean;
   setBigText(v: boolean): void;
@@ -94,7 +97,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', notesSeen: [] as string[], noteAt: 0, bigText: false, haptics: true, reduceMotion: false, odiColor: null as number | null, chosenColor: null as number | null };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', knowledgeAsked: false, notesSeen: [] as string[], noteAt: 0, bigText: false, haptics: true, reduceMotion: false, odiColor: null as number | null, chosenColor: null as number | null };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -165,7 +168,8 @@ export const useStore = create<State>()(persist((set, get) => {
     ftueTourDone(id) { const f = get().ftue; if (!f.tours.includes(id)) set({ ftue: { ...f, tours: [...f.tours, id] } }); },
     ftueBypass() { set({ ftue: { ...get().ftue, story: true, bypass: true } }); },
     setNarratorVoice(v) { set({ narratorVoice: v }); },
-    setKnowledge(v) { set({ knowledge: v }); },
+    setKnowledge(v) { set({ knowledge: v, knowledgeAsked: true }); },
+    knowledgeAskedDone() { if (!get().knowledgeAsked) set({ knowledgeAsked: true }); },
     setBigText(v) { set({ bigText: v }); },
     setHaptics(v) { set({ haptics: v }); },
     setReduceMotion(v) { set({ reduceMotion: v }); },
@@ -178,7 +182,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, haptics: s.haptics, reduceMotion: s.reduceMotion, odiColor: s.odiColor, chosenColor: s.chosenColor }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, knowledgeAsked: s.knowledgeAsked, notesSeen: s.notesSeen, noteAt: s.noteAt, bigText: s.bigText, haptics: s.haptics, reduceMotion: s.reduceMotion, odiColor: s.odiColor, chosenColor: s.chosenColor }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };
@@ -189,7 +193,7 @@ export const useStore = create<State>()(persist((set, get) => {
     if (!persisted || typeof persisted !== 'object') return current;
     const p = persisted as Partial<State>;
     // ftue: v3 öncesi kayıtta yok → ilerlemesi olan oyuncu hikâyeyi ve açılmış yerlerin turlarını görmüş sayılır
-    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, haptics: p.haptics !== false, reduceMotion: p.reduceMotion === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
+    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', knowledgeAsked: p.knowledgeAsked === true || p.knowledge === 'odyoloji', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bigText: p.bigText === true, haptics: p.haptics !== false, reduceMotion: p.reduceMotion === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
   },
 }));
 

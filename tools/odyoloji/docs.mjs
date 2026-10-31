@@ -10,6 +10,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const { GLOSSARY, EAR_NOTES } = await import(join(root, 'packages/content/src/odyoloji.ts'));
 const { CARDS } = await import(join(root, 'packages/content/src/cards.ts'));
 const { QUIZ_QUESTIONS } = await import(join(root, 'packages/content/src/quiz.ts'));
+const { BILIYOR_MUYDUN } = await import(join(root, 'packages/content/src/biliyor-muydun.ts'));
 // Kulak Kampı (kamp.ts başka modül içe aktardığı için esbuild ile tek parça yüklenir)
 const { build } = await import('esbuild');
 const bundled = await build({ entryPoints: [join(root, 'packages/content/src/kamp.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
@@ -28,7 +29,7 @@ const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
 
 const md = `# Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`, \`kamp-gorev-vakalar.ts\`.
+> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`biliyor-muydun.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`, \`kamp-gorev-vakalar.ts\`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -36,7 +37,7 @@ Acoustics*; Katz, *Handbook of Clinical Audiology*; Pickles, *An Introduction to
 Sayılar yaklaşık ve aralık olarak verilir. Emin olunmayan bilgi eklenmez. Her madde iki derinliktedir: herkes için sade cümle +
 isteğe bağlı teknik ayrıntı ("Daha fazla").
 
-**Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${CARDS.length} Kulak Kartı ·
+**Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${BILIYOR_MUYDUN.length} bölüm sonu "Biliyor muydun?" satırı (×2 düzey) · ${CARDS.length} Kulak Kartı ·
 ${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji) · Kulak Kampı: ${Object.keys(BUILDING_INFO).length} bina,
 ${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı ·
 ${PATOLOJI_IDS.length} bölge patolojisi (${PATOLOJI_IDS.filter((id) => PATOLOJILER[id].ilkBolum > 0).length} tanesi bölümlerde) · ${KG.VAKALAR.length} kurgusal hasta vakası (Kamp Kliniği).
@@ -52,6 +53,17 @@ ${GLOSSARY.map((g) => `| ${REGION[g.region]} | **${esc(g.term)}** | ${esc(g.plai
 | bölge | sade (seslendirilir) | Daha fazla | kaynak |
 |---|---|---|---|
 ${EAR_NOTES.map((n) => `| ${REGION[n.region]} | ${esc(n.plain)} | ${esc(n.tech)} | ${esc(n.src)} |`).join('\n')}
+
+## Biliyor muydun? — Sahip onayı bekliyor (karar 31) (${BILIYOR_MUYDUN.length})
+
+> **Sahip onayı bekliyor (karar 31, YN-059).** Satırlar oyunda yayında; sahip listeyi gözden geçirecek. Kaynak:
+> \`packages/content/src/biliyor-muydun.ts\`. Her bölümün sonuç ekranında tek satır, seslendirilmez. Ayarlar › Bilgi düzeyi
+> "Genel" ise **genel**, "Odyoloji öğrencisi" ise **odyoloji** satırı gösterilir. Her satır tek cümle, en çok 120 karakter;
+> Tüy Dede notlarını, sözlüğü ve kartları kelimesi kelimesine tekrar etmez; tanı ya da tedavi önerisi yoktur.
+
+| bölüm | genel | odyoloji öğrencisi | kaynak |
+|---|---|---|---|
+${BILIYOR_MUYDUN.map((b) => `| ${b.bolum} | ${esc(b.genel)} | ${esc(b.odyoloji)} | ${esc(b.src)} |`).join('\n')}
 
 ## Kulak Kartları (${CARDS.length})
 
@@ -149,4 +161,4 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 ${QUIZ_QUESTIONS.map((q) => `| ${q.id} | ${lvl[q.level]} | ${q.topic} | ${esc(q.text)} | ${q.choices.map((c, i) => (i === q.answer ? `**${esc(c)}**` : esc(c))).join(' · ')} | ${esc(q.explain)} |`).join('\n')}
 `;
 writeFileSync(join(root, 'docs/odyoloji-icerik.md'), md);
-console.log(`✓ docs/odyoloji-icerik.md · ${GLOSSARY.length} terim, ${EAR_NOTES.length} not, ${CARDS.length} kart, ${QUIZ_QUESTIONS.length} soru`);
+console.log(`✓ docs/odyoloji-icerik.md · ${GLOSSARY.length} terim, ${EAR_NOTES.length} not, ${BILIYOR_MUYDUN.length} biliyor muydun, ${CARDS.length} kart, ${QUIZ_QUESTIONS.length} soru`);

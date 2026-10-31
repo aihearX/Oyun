@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from './cards';
 import { QUIZ_QUESTIONS } from './quiz';
 import { EAR_NOTES, GLOSSARY } from './odyoloji';
+import { BILIYOR_MUYDUN, biliyorMuydun } from './biliyor-muydun';
+import { HUMAN_JOURNEY } from './journeys';
 
 /** bozuk kodlama (mojibake), yer tutucu ve boşluk hataları */
 const BAD = /Ã|Ä|Å|Ð|Þ|�|\s{2,}|\s[,.;:!?]|TODO|XXX|lorem/i;
@@ -77,5 +79,36 @@ describe('odyoloji içeriği', () => {
     // doğru cevap konumu dengeli dağılır (hep aynı şık olmasın)
     const pos = [0, 1, 2, 3].map((k) => QUIZ_QUESTIONS.filter((q) => q.answer === k).length);
     for (const n of pos) expect(n).toBeGreaterThan(QUIZ_QUESTIONS.length / 8);
+  });
+
+  it('Biliyor muydun? (karar 31): her bölümde bir satır, iki düzey, kısa, tek cümle, tekrar yok', () => {
+    const n = HUMAN_JOURNEY.levels.length;
+    expect(BILIYOR_MUYDUN.map((b) => b.bolum)).toEqual(Array.from({ length: n }, (_, i) => i + 1));
+    const all = BILIYOR_MUYDUN.flatMap((b) => [b.genel, b.odyoloji]);
+    expect(dupes(all)).toEqual([]);
+    // Tüy Dede notları, sözlük ve Kulak Kartlarıyla kelimesi kelimesine aynı değil
+    const eski = [...EAR_NOTES.flatMap((x) => [x.plain, x.tech]), ...GLOSSARY.flatMap((g) => [g.plain, g.tech]), ...CARDS.flatMap((c) => [c.fact, c.tech])];
+    for (const b of BILIYOR_MUYDUN) {
+      expect(b.src.length, `${b.bolum}`).toBeGreaterThan(10);
+      for (const t of [b.genel, b.odyoloji]) {
+        sane(t, `bölüm ${b.bolum}`);
+        expect(t.length, `${b.bolum}: “${t}”`).toBeLessThanOrEqual(120);
+        expect(t.endsWith('.'), t).toBe(true);
+        // tek cümle: cümle sonu yalnız en sonda (kısaltma/ondalık yok sayılır)
+        expect(/[.!?]\s+\p{Lu}/u.test(t.slice(0, -1)), `tek cümle: ${t}`).toBe(false);
+        expect(eski.includes(t), `tekrar: ${t}`).toBe(false);
+        expect(/salyangoz/i.test(t), t).toBe(false);
+        expect(/\p{Extended_Pictographic}/u.test(t), t).toBe(false);
+        // sayı ile birim arasında bölünmez boşluk
+        expect(/\d (?:Hz|kHz|dB|cm|mm|ms|ml|mM|daPa|km|m\/sn|°C)(?![\p{L}\d])/u.test(t), t).toBe(false);
+        // tanı/tedavi önerisi yok: oyuncuya "doktora git", "ilaç kullan", "tanın" gibi yönlendirme yazılmaz
+        expect(/hekime git|doktora git|tedavi ol|ilaç kullan|tanın |sende .* var/i.test(t), t).toBe(false);
+      }
+      // timpanogramdan söz eden satır, tek başına tanı koydurmadığını söyler
+      if (/timpanogram/i.test(b.odyoloji)) expect(b.odyoloji).toMatch(/tek başına tanı koydurmaz/);
+    }
+    expect(biliyorMuydun(1, 'genel')).toBe(BILIYOR_MUYDUN[0]!.genel);
+    expect(biliyorMuydun(1, 'odyoloji')).toBe(BILIYOR_MUYDUN[0]!.odyoloji);
+    expect(biliyorMuydun(n + 1, 'genel')).toBeNull();
   });
 });

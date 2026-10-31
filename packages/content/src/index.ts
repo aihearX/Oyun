@@ -24,3 +24,4 @@ export * from './kamp-arazi';
 export * from './kamp-seviye';
 export * from './kamp-susler';
 export * from './kamp-gorev';
+export * from './biliyor-muydun';
