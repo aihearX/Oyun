@@ -54,6 +54,10 @@ describe('odyoloji içeriği', () => {
       for (const t of [c.title, c.fact, c.tech]) expect(/\p{Extended_Pictographic}/u.test(t), `${c.id}: emoji`).toBe(false);
     }
   });
+  it('sayı ile birim arasında bölünmez boşluk (U+00A0): satır sonunda "20" / "Hz" diye ayrılmaz', () => {
+    const texts = [...GLOSSARY.flatMap((g) => [g.plain, g.tech]), ...EAR_NOTES.flatMap((n) => [n.plain, n.tech]), ...CARDS.flatMap((c) => [c.fact, c.tech])];
+    for (const t of texts) expect(/\d (?:Hz|kHz|dB|cm|mm|ms|ml|daPa)(?![\p{L}\d])/u.test(t), t).toBe(false);
+  });
   it('quiz: en az 120 soru, iki düzey, her soruda tek doğru cevap ve açıklama', () => {
     expect(QUIZ_QUESTIONS.length).toBeGreaterThanOrEqual(120);
     const merakli = QUIZ_QUESTIONS.filter((q) => q.level === 'merakli').length;

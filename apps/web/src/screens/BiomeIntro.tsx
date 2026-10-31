@@ -1,4 +1,4 @@
-import { BIOMES, MECHANICS } from '@odi/content';
+import { ABILITIES, BIOMES, MECHANICS } from '@odi/content';
 import type { LevelSpec } from '@odi/shared';
 import { useEffect, useState } from 'react';
 import { platform } from '../platform';
@@ -7,6 +7,15 @@ import { Icon } from '../ui/icons';
 import { NoteCard, useNote } from '../ftue/Notes';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
+/**
+ * Kontroller: her hareket ayrı satır. Bölümdeki bütün yetenekler bu bölümde yeni açılıyorsa (yolculuğun ilk bölümü) yalnız onların
+ * hareketleri; geri kalanı ilk gerektiği yerde öğretici anda (el işaretiyle) gösterilir.
+ */
+function moves(spec: LevelSpec): string[] {
+  const a = spec.abilities ?? []; const fresh = spec.newAbilities ?? [];
+  const lines = a.length && a.every((x) => fresh.includes(x)) ? a.flatMap((x) => ABILITIES[x].how.split(' · ')) : MECHANICS[spec.mechanic].hint.split(' · ');
+  return lines.map((l) => l.trim()).filter(Boolean);
+}
 /** İlk kez girilen biyom için kısa sinematik kart. Tek dokunuşla geçilir. */
 export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }) {
   const b = BIOMES[spec.biome]; const m = MECHANICS[spec.mechanic];
@@ -22,8 +31,12 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
         <div className="bi-kicker">Yeni biyom</div>
         <h1 className="bi-title">{b.name}</h1>
         <p className="bi-blurb">{b.blurb}</p>
+        {/* ne yapacağını önce okusun: kontroller notun üstünde */}
+        <div className="bi-mech">
+          <div className="bi-mech-head"><Glyph e={m.icon} size="1.2em" /> {`${m.name}:`}</div>
+          <ul className="bi-moves">{moves(spec).map((l) => <li key={l}>{l}</li>)}</ul>
+        </div>
         {note ? <NoteCard note={note} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
-        <div className="bi-mech"><Glyph e={m.icon} size="1.2em" /> {m.name}: {m.hint}</div>
         <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
     </div>

@@ -30,7 +30,7 @@ export const HINT_IDS = {
   giris: 'bölümün giriş cümlesi',
   'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
   eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
-  'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm sonu nota özeti',
+  'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',
 } as const;
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */
@@ -79,6 +79,8 @@ export interface LevelOptions {
    * çizilmez ('hint' olayları yine gelir; kabuk da seslendirmez). Temiz çekim ve test içindir (`?bot=1&ipucu=0`); oyuncuda hep açık.
    */
   hints?: boolean;
+  /** Büyük yazı (Ayarlar): oyun içi gösterge, ipucu şeridi, üst şerit ve uçan yazılar ~1,2 kat büyür (yalnız görsel) */
+  bigText?: boolean;
   /** azaltılmış hareket (Ayarlar/sistem `prefers-reduced-motion`): ekran flaşları tümden kapanır. Yoksa tarayıcı tercihi okunur. */
   reducedMotion?: boolean;
   /** bölüm başı can (varsayılan 3) */

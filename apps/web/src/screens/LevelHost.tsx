@@ -14,6 +14,7 @@ import type { GameEvent, LevelHandle, LevelOptions, RaceOptions } from '@odi/gam
 import { chunkFailed, loadLevel } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { prefersReducedMotion } from '../ui/bits';
+import { useStore } from '../store';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
 const PAUSE_CARD = { background: 'linear-gradient(180deg, #2a1b63, #170d40)', border: '2px solid rgba(255,255,255,.14)', borderRadius: 22, padding: '22px 18px', boxShadow: '0 12px 40px rgba(0,0,0,.55)', color: '#fff6e5' } as const;
@@ -117,6 +118,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
         safeTop: safeAreaTop(), safeTopNow: safeAreaTop,
         // hareketi azalt (sistem tercihi): oyun içi ekran flaşları kapalı (ışığa duyarlılık; game-core render/flash.ts)
         reducedMotion: prefersReducedMotion(),
+        // Büyük yazı (Ayarlar): oyun içi gösterge ve uçan yazılar da büyür
+        bigText: useStore.getState().bigText,
         ...(hints === false ? { hints: false } : {}),
         // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
         onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },

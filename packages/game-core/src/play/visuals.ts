@@ -19,7 +19,7 @@ import { luckyNoteTexture } from '../art';
  *        e: DÜNYA koordinatlı Entity (dikdörtgenler sol-üst; spike sol+taban; ayaklılar alt-orta; noktalar merkez)
  *        v: x,y (anlık bağlantı noktası), visible, alpha, warn 0..1 (telegraf), on (açık/basılı/katı), phase (ritim evresi), t, face
  *  createHeroView(scene, cosmetic, x, y, color): HeroView             — Odi; her kare update(h: HeroVisual), anlar için fx(kind)
- *  createHud(scene, heroColor, top): LevelHudView                      — nota sayacı + uçan nota, 3 altın koklea, can, ilerleme, seri, övgü, el işareti
+ *  createHud(scene, heroColor, top, textScale): LevelHudView           — nota sayacı + uçan nota, altın koklea (n/3), can, ilerleme, süre, seri, övgü, el işareti
  *  createFx(scene, biome): LevelFx                                      — iniş tozu, zıplama pufu, parıltı, vuruş flaşı, halka, koklea, vinyet
  *  createBossView(scene, kind, name, groundY, biome): BossView         — boss ve saldırıları
  *  createProjectileLayer(scene, biome): ProjectileLayer                — atıcı mermileri
@@ -155,7 +155,9 @@ export function createEscortView(s: Phaser.Scene, biome: BiomeDef): { update(x: 
 }
 
 // ---------------------------------------------------------------- HUD
-export interface HudSnapshot { notes: number; notesTotal: number; cochleas: number; lives: number; pct: number }
+export interface HudSnapshot { notes: number; notesTotal: number; cochleas: number; /** bölümdeki gizli koklea sayısı (0: boss) */ cochleasTotal: number; lives: number; pct: number;
+  /** süreli bölümde kalan oyun saniyesi (geri sayım); süresiz bölümde null */
+  timeLeft: number | null }
 export type HintKind = RD.HintKind;
 export interface LevelHudView {
   update(h: HudSnapshot): void;
@@ -174,13 +176,15 @@ export interface LevelHudView {
   /** görünüm boyutu / güvenli alan inişi değişti (tasarım px) */
   resize(w: number, h: number, top: number): void;
 }
-export function createHud(s: Phaser.Scene, heroColor: number, top = 0): LevelHudView {
-  const hud = new RD.LevelHud(s, top, heroColor);
+/** textScale: Büyük yazı (LevelOptions.bigText) açıkken gösterge yazıları bu çarpanla büyür */
+export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale = 1): LevelHudView {
+  const hud = new RD.LevelHud(s, top, heroColor, textScale);
   let last: HudSnapshot | null = null;
   return {
     update: (h) => {
       if (!last || last.notes !== h.notes || last.notesTotal !== h.notesTotal) hud.setNotes(h.notes, h.notesTotal);
-      if (!last || last.cochleas !== h.cochleas) hud.setCochleas(h.cochleas);
+      if (!last || last.cochleas !== h.cochleas || last.cochleasTotal !== h.cochleasTotal) hud.setCochleas(h.cochleas, h.cochleasTotal);
+      hud.setTimer(h.timeLeft);
       if (!last || last.lives !== h.lives) hud.setLives(h.lives);
       if (!last || Math.abs(last.pct - h.pct) > 0.002) hud.setProgress(h.pct);
       last = { ...h };

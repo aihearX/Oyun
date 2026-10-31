@@ -62,7 +62,9 @@ oyun/
 ### Erişilebilirlik (web ve telefon aynı arayüz)
 - **Büyük yazı** (Ayarlar): `store.bigText` (kalıcı) → `App.tsx` kök öğeye `html.buyuk-yazi` koyar → `font-size:115%`. Arayüzdeki
   yazı boyutları `rem` olduğundan (24 px'e kadar olanlar; daha büyük başlık/süs/ikon boyutları px kalır) menü, sohbet, kamp
-  panelleri birlikte 1,15 büyür. Phaser tuvali (bölüm göstergeleri, harita, kamp) değişmez. Yeni CSS'te metin boyutu `rem` yazılır.
+  panelleri birlikte 1,15 büyür. Bölüm içinde `LevelHost` aynı ayarı `LevelOptions.bigText` ile geçirir: oyun içi gösterge
+  (`render/hud.ts`; paneller içeriğe göre genişler, üst satır taşmaz), ipucu şeridi, üst şerit ve uçan yazılar 1,2 büyür (`ui.ts` `textScale`).
+  Harita ve kamp tuvali değişmez (YN-049). Yeni CSS'te metin boyutu `rem` yazılır.
 - **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır).
 - **Yakınlaştırma (web):** `index.html`'de `user-scalable=no` yok; tarayıcıda iki parmakla yakınlaştırılabilir. Çift dokunuşla
   yakınlaştırma `html { touch-action:manipulation }` ile kapalı (hızlı dokunuşlar sayfayı büyütmesin); bölüm ekranı

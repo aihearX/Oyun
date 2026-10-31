@@ -31,11 +31,12 @@ export class Hud {
     bg.setStrokeStyle(1, 0xe6e8f0);
     this.score = scene.add.text(16, 24, '0', { fontFamily: FONT, fontSize: '26px', fontStyle: '800', color: COLORS.text }).setScrollFactor(0).setDepth(101);
     this.level = scene.add.text(w / 2, 36, '', { fontFamily: FONT, fontSize: '14px', fontStyle: '700', color: COLORS.muted }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
-    this.lives = scene.add.text(w - 16, 36, '', { fontFamily: FONT, fontSize: '22px' }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(101);
+    this.lives = scene.add.text(w - 16, 36, '', { fontFamily: FONT, fontSize: '18px', fontStyle: '800', color: COLORS.coral }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(101);
   }
   set(score: number, lives: number, level?: string) {
     this.score.setText(score.toLocaleString('tr-TR'));
-    this.lives.setText('❤️'.repeat(Math.max(0, lives)) + '🤍'.repeat(Math.max(0, 3 - lives)));
+    // tuvalde emoji yok (kurucu ilkesi): can sayısı yazıyla
+    this.lives.setText(`Can ${Math.max(0, lives)}/3`);
     if (level != null) this.level.setText(level);
   }
 }
@@ -55,10 +56,22 @@ export function flash(scene: Phaser.Scene, color = 0xff5c5c, alpha = 0.35, ms = 
 const NIGHT: Record<string, string> = { [COLORS.accent]: '#c9b8ff', [COLORS.accent2]: '#2ee6d6', [COLORS.coral]: '#ff7aa2', [COLORS.amber]: '#ffc93c', [COLORS.muted]: '#e4dcff', [COLORS.text]: '#fff6e5', '#1b8f52': '#8ef0b0' };
 const DPR = (s: Phaser.Scene) => Math.max(1, Math.min(3, s.cameras.main.zoom || 1));
 
-/** Uçan "+120" yazısı. */
+/**
+ * Bölüm içi yazı ölçeği (Ayarlar › Büyük yazı → LevelOptions.bigText; LevelScene kayda 'textScale' yazar). Yoksa 1.
+ * Uçan yazı, üst şerit ve oyun içi gösterge (render/hud.ts) bu çarpanla büyür.
+ */
+export const textScale = (s: Phaser.Scene) => Number(s.registry?.get('textScale')) || 1;
+
+/**
+ * Uçan "+120" yazısı. Açık dolgu + kalın koyu kontur ve gölge: hangi zeminde olursa olsun dolgu ile kontur arasındaki zıtlık
+ * ≥ 4,5:1 (NIGHT tonları #140c35 kontura karşı en az ~7:1). Önce tam görünür yükselir, sonra söner (yarı saydam okunmaz).
+ */
 export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = COLORS.accent2) {
-  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: '21px', fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: 5, resolution: DPR(scene) }).setOrigin(0.5).setDepth(150);
-  scene.tweens.add({ targets: t, y: y - 60, alpha: 0, duration: 700, ease: 'Cubic.Out', onComplete: () => t.destroy() });
+  const k = textScale(scene);
+  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${Math.round(21 * k)}px`, fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: Math.round(7 * k), resolution: DPR(scene), padding: { x: 4, y: 4 } }).setOrigin(0.5).setDepth(150);
+  t.setShadow(0, 2, 'rgba(10,4,30,0.9)', 4, true, false);
+  scene.tweens.add({ targets: t, y: y - 34, duration: 520, ease: 'Cubic.Out' });
+  scene.tweens.add({ targets: t, y: y - 60, alpha: 0, delay: 520, duration: 380, ease: 'Cubic.In', onComplete: () => t.destroy() });
 }
 
 /** koyu cam kart dokusu (Kulak Gecesi: mor cam, altın kenar) */
@@ -117,15 +130,19 @@ export function cheer(scene: Phaser.Scene, text: string, color = COLORS.accent, 
   return t;
 }
 
-/** Üstten kayan küçük şerit: "İlk ezme! 🎉", "Şanslı Nota bu bölümde!" */
-export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 1800) {
-  const w = viewW(scene); const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#ffffff' }).setOrigin(0.5);
-  const bw = Math.min(w - 32, t.width + 32), bh = 34;
+/** Üstten kayan küçük şerit: "İlk ezme!", "Bu bölümde bir Şanslı Nota var!". icon: çizili simge dokusu (emoji değil), yazının solunda. */
+export function banner(scene: Phaser.Scene, text: string, bg = 0x6c4cf1, ms = 1800, icon?: string) {
+  const w = viewW(scene); const k = textScale(scene);
+  const t = scene.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(15 * k)}px`, fontStyle: '800', color: '#ffffff', resolution: DPR(scene) }).setOrigin(0.5);
+  const iw = icon ? Math.round(24 * k) : 0; const bh = Math.round(34 * k);
+  const bw = Math.min(w - 32, t.width + 32 + (iw ? iw + 6 : 0));
   const r = scene.add.graphics(); r.fillStyle(bg, 0.96); r.fillRoundedRect(-bw / 2, -bh / 2, bw, bh, bh / 2);
-  // bölümde oyun içi gösterge güvenli alan kadar iner (LevelScene 'hudTop'); şerit onun altında kalsın
+  const parts: Phaser.GameObjects.GameObject[] = [r, t];
+  if (icon) { const im = scene.add.image(0, 0, icon).setDisplaySize(iw, iw); im.setX(-(t.width + iw + 6) / 2 + iw / 2); t.setX(im.x + iw / 2 + 6 + t.width / 2); parts.push(im); }
+  // bölümde oyun içi gösterge güvenli alan kadar iner (LevelScene 'hudTop'); şerit onun ve süre göstergesinin (render/hud.ts) altında kalsın
   const top = Number(scene.registry?.get('hudTop')) || 0;
-  const c = scene.add.container(w / 2, 96 + top, [r, t]).setScrollFactor(0).setDepth(170).setAlpha(0);
-  const y0 = 128 + top;
+  const c = scene.add.container(w / 2, 110 + top, parts).setScrollFactor(0).setDepth(170).setAlpha(0);
+  const y0 = 142 + top;
   scene.tweens.add({ targets: c, y: y0, alpha: 1, duration: 220, ease: 'Back.Out' });
   scene.tweens.add({ targets: c, alpha: 0, y: y0 - 16, delay: ms, duration: 260, onComplete: () => c.destroy() });
   return c;

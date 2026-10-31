@@ -8,13 +8,28 @@ import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, softGlowTex, sparkT
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 
 const ADD = Phaser.BlendModes.ADD;
+/** koklea yuvası ölçeği: üç yuva + "n/3" yazısı nota ve can panelleri arasına aralıklı sığsın */
+const COCH_K = 0.84;
 export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight' | 'swipeLeft';
 export interface GhostMark { id: string; pct: number; color: number; label?: string }
 
 // ---------------------------------------------------------------- dokular
 const panelTex = (s: Phaser.Scene, w: number, h: number, r: number) => T(s, `hud-panel-${w}x${h}-${r}`, w + 16, h + 16, (ctx) => glassPanel(ctx, 8, 6, w, h, r));
 const noteIcon = (s: Phaser.Scene) => T(s, 'hud-note', 30, 32, (ctx) => drawGoldNote(ctx, 15, 16, 24, false));
-const cochleaIcon = (s: Phaser.Scene, lit: boolean) => T(s, `hud-coch-${lit ? 1 : 0}`, 34, 34, (ctx) => drawGoldCochlea(ctx, 17, 17, 10, lit));
+// bulunan altın koklea dolu ve parlak; bulunmayan yalnız açık çerçeve + sarmal çizgisi (dolgu yok: ikisi bir bakışta ayrılır)
+const cochleaIcon = (s: Phaser.Scene, lit: boolean) => T(s, `hud-coch-${lit ? 1 : 'cerceve'}`, 34, 34, (ctx) => {
+  if (lit) { drawGoldCochlea(ctx, 17, 17, 10, true); return; }
+  ctx.beginPath(); ctx.arc(17, 17, 9.4, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(201,193,255,0.85)'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.save(); ctx.lineCap = 'round'; ctx.beginPath();
+  for (let i = 0; i <= 60; i++) { const a = (i / 60) * Math.PI * 4.4; const r = 7.6 * (1 - i / 70); const x = 17 + Math.cos(a) * r, y = 17 + Math.sin(a) * r; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+  ctx.strokeStyle = 'rgba(201,193,255,0.6)'; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore();
+});
+/** süre göstergesinin kronometresi (çizili simge) */
+const clockTex = (s: Phaser.Scene) => T(s, 'hud-saat', 26, 28, (ctx) => {
+  ctx.fillStyle = css(THEME.gold); ctx.beginPath(); ctx.roundRect(10, 1.5, 6, 3.5, 1.2); ctx.fill();
+  ctx.beginPath(); ctx.arc(13, 16, 10, 0, Math.PI * 2); ctx.fillStyle = css(0x140c35, 0.6); ctx.fill(); ctx.strokeStyle = css(THEME.gold); ctx.lineWidth = 2.2; ctx.stroke();
+  ctx.strokeStyle = '#fff6e5'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(13, 16); ctx.lineTo(13, 9.5); ctx.moveTo(13, 16); ctx.lineTo(17.5, 18.5); ctx.stroke();
+});
 const heartIcon = (s: Phaser.Scene, full: boolean) => T(s, `hud-heart-${full ? 1 : 0}`, 26, 24, (ctx) => {
   if (full) {
     ctx.save(); ctx.translate(0.8, 1.4); heartPath(ctx, 13, 12, 20); ctx.fillStyle = 'rgba(60,0,20,0.5)'; ctx.fill(); ctx.restore();
@@ -78,7 +93,11 @@ export class LevelHud {
   readonly root: Phaser.GameObjects.Container;
   private w: number; private h: number;
   private notesPanel: Phaser.GameObjects.Image; private noteIco: Phaser.GameObjects.Image; private notesText: Phaser.GameObjects.Text; private notesTotal: Phaser.GameObjects.Text;
-  private cochPanel: Phaser.GameObjects.Image; private coch: Phaser.GameObjects.Image[] = []; private cochOn: Phaser.GameObjects.Image[] = [];
+  private cochPanel: Phaser.GameObjects.Image; private coch: Phaser.GameObjects.Image[] = []; private cochOn: Phaser.GameObjects.Image[] = []; private cochText: Phaser.GameObjects.Text; private cochTotal = 3;
+  /** süreli bölümün geri sayımı (ikinci satırın ortası); yalnız setTimer çağrılırsa görünür */
+  private timerPanel: Phaser.GameObjects.Image; private timerIco: Phaser.GameObjects.Image; private timerText: Phaser.GameObjects.Text; private timerShown = -999;
+  /** nota ve koklea panellerinin görünür genişliği (içeriğe göre büyür; Büyük yazıda yazılar büyüdüğü için) */
+  private notesW = 112; private cochW = 92;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
   private pause: Phaser.GameObjects.Image; private pauseCb: (() => void) | null = null;
   private bar: Phaser.GameObjects.Container; private track: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private fill: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private head: Phaser.GameObjects.Image; private headDot: Phaser.GameObjects.Arc; private flag: Phaser.GameObjects.Image;
@@ -89,19 +108,25 @@ export class LevelHud {
   private pct = 0; private notes = 0;
   private barX = 16; private barY = 0; private barW = 0; private k = 1;
 
-  constructor(private scene: Phaser.Scene, private top = 0, heroColor = 0x6c4cf1) {
+  /** ts: yazı ölçeği (Büyük yazı: 1,2) — sayaç, koklea sayısı, süre, bilgi şeridi ve öğretici yazısı büyür; paneller içeriğe göre genişler */
+  constructor(private scene: Phaser.Scene, private top = 0, heroColor = 0x6c4cf1, private ts = 1) {
     const s = scene; const cam = s.cameras.main; this.w = cam.width / cam.zoom; this.h = cam.height / cam.zoom;
     const O = screenOrigin(cam);
     this.root = s.add.container(O.x, O.y).setDepth(100).setScrollFactor(0);
-    const txt = (size: number, color: string, weight = '900') => s.add.text(0, 0, '', { fontFamily: FONT, fontSize: `${size}px`, fontStyle: weight, color, resolution: R() }).setOrigin(0, 0.5);
+    const txt = (size: number, color: string, weight = '900') => s.add.text(0, 0, '', { fontFamily: FONT, fontSize: `${Math.round(size * ts)}px`, fontStyle: weight, color, resolution: R() }).setOrigin(0, 0.5);
     // nota sayacı
     this.notesPanel = I(s, panelTex(s, 112, 40, 20)).setOrigin(0, 0);
     this.noteIco = I(s, noteIcon(s)).setOrigin(0.5);
     this.notesText = txt(20, '#fff6e5'); this.notesText.setStroke('#140c35', 4);
-    this.notesTotal = txt(13, '#c9c1ff', '800');
-    // koklea yuvaları
+    this.notesTotal = txt(13, '#e4dcff', '800');
+    // koklea yuvaları + "1/3"
     this.cochPanel = I(s, panelTex(s, 92, 40, 20)).setOrigin(0, 0);
-    for (let i = 0; i < 3; i++) { this.coch.push(I(s, cochleaIcon(s, false))); const on = I(s, cochleaIcon(s, true)).setVisible(false); this.cochOn.push(on); }
+    for (let i = 0; i < 3; i++) { this.coch.push(I(s, cochleaIcon(s, false)).setScale(COCH_K / R())); const on = I(s, cochleaIcon(s, true)).setScale(COCH_K / R()).setVisible(false); this.cochOn.push(on); }
+    this.cochText = txt(15, '#fff6e5'); this.cochText.setStroke('#140c35', 4);
+    // süre (yalnız süreli bölüm)
+    this.timerPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
+    this.timerIco = I(s, clockTex(s)).setVisible(false);
+    this.timerText = txt(18, '#fff6e5'); this.timerText.setStroke('#140c35', 4).setVisible(false);
     // canlar
     this.livesPanel = I(s, panelTex(s, 86, 40, 20)).setOrigin(0, 0);
     for (let i = 0; i < 5; i++) { this.heartsOff.push(I(s, heartIcon(s, false))); this.hearts.push(I(s, heartIcon(s, true))); }
@@ -123,7 +148,7 @@ export class LevelHud {
     this.comboMult = s.add.text(-18, -1, '×2', { fontFamily: FONT, fontSize: '26px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0.5);
     this.comboCount = s.add.text(20, 0, 'Seri\n12', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#c9c1ff', align: 'center', lineSpacing: -2, resolution: R() }).setOrigin(0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -135,9 +160,10 @@ export class LevelHud {
     this.k = Math.min(1, this.w / 390); this.root.setScale(this.k);
     const t = this.top / this.k + 10; const W = this.iw;
     this.notesPanel.setPosition(4, t - 6); this.noteIco.setPosition(30, t + 20); this.notesText.setPosition(46, t + 19); this.positionTotal();
-    this.cochPanel.setPosition(122, t - 6); this.coch.forEach((c, i) => { c.setPosition(146 + i * 28, t + 20); this.cochOn[i]!.setPosition(146 + i * 28, t + 20); });
     this.pause.setPosition(W - 32, t + 19);
     this.livesPanel.setPosition(W - 154, t - 6); this.placeHearts();
+    this.fitTop();
+    this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer();
     this.barX = 18; this.barW = W - 36; this.barY = t + 58;
     this.bar.setPosition(this.barX, this.barY);
     this.setW(this.track, this.barW, 16); this.flag.setPosition(this.barW - 2, -3);
@@ -150,6 +176,23 @@ export class LevelHud {
     if (o instanceof Phaser.GameObjects.NineSlice) { const RR = R(); o.setSize(Math.max(12, w) * RR, h * RR); } else o.setDisplaySize(Math.max(12, w), h);
   }
   private positionTotal() { this.notesTotal.setPosition(this.notesText.x + this.notesText.width + 2, this.notesText.y + 2); }
+  /**
+   * Üst satır: nota paneli içeriğine göre genişler, koklea paneli onun hemen sağında; can panelinin solunda kalsın diye
+   * gerekirse koklea yuvaları sıklaşır (taşma yok). Panel dokusu 8 px gölge payıyla çizilir: görünür sol kenar = x + 8.
+   */
+  private fitTop() {
+    const t = this.top / this.k + 10;
+    const notesW = Math.max(112, Math.ceil((this.notesTotal.x + this.notesTotal.width + 10 - 12) / 4) * 4);
+    if (notesW !== this.notesW) { this.notesW = notesW; this.notesPanel.setTexture(panelTex(this.scene, notesW, 40, 20)); }
+    const left = 12 + this.notesW + 6; const limit = this.livesPanel.x + 8 - 6; const textW = this.cochText.width;
+    // yuva aralığı 21 (sığmazsa en az 18); yazı son yuvanın 11 px sağında
+    const sp = Math.max(18, Math.min(21, (limit - left - 14 - 11 - textW - 9) / 2));
+    const x0 = left + 14; this.coch.forEach((c, i) => { c.setPosition(x0 + i * sp, t + 20); this.cochOn[i]!.setPosition(x0 + i * sp, t + 20); });
+    this.cochText.setPosition(x0 + 2 * sp + 11, t + 19);
+    const cochW = Math.ceil((this.cochText.x + textW + 9 - left) / 4) * 4;
+    if (cochW !== this.cochW) { this.cochW = cochW; this.cochPanel.setTexture(panelTex(this.scene, cochW, 40, 20)); }
+    this.cochPanel.setPosition(left - 8, t - 6);
+  }
   private placeHearts() {
     const n = Math.max(3, Math.min(5, this.lives)); const x0 = this.livesPanel.x + 8 + 43 - ((n - 1) * 25) / 2;
     for (let i = 0; i < 5; i++) { const vis = i < n; const x = x0 + i * 25, y = this.livesPanel.y + 26; this.heartsOff[i]!.setPosition(x, y).setVisible(vis); this.hearts[i]!.setPosition(x, y).setVisible(vis && i < this.lives); }
@@ -162,7 +205,9 @@ export class LevelHud {
 
   setNotes(n: number, total: number) {
     const up = n > this.notes; this.notes = n;
+    const w0 = this.notesText.width + this.notesTotal.width;
     this.notesText.setText(String(n)); this.notesTotal.setText(total > 0 ? `/${total}` : ''); this.positionTotal();
+    if (this.notesText.width + this.notesTotal.width > w0) this.fitTop();
     if (up) { this.bump(this.noteIco, 1.35); }
   }
   /** dünyadaki noktadan sayaca uçan nota; varınca sayaç zıplar */
@@ -174,14 +219,38 @@ export class LevelHud {
     s.tweens.add({ targets: path, t: 1, duration: 520, ease: 'Cubic.In', onUpdate: () => { const t = path.t, u = 1 - t; n.setPosition(u * u * v.x + 2 * u * t * mx + t * t * tx, u * u * v.y + 2 * u * t * my + t * t * ty); n.setScale((1 - t * 0.35) / R()); },
       onComplete: () => { n.destroy(); this.bump(this.noteIco, 1.45); const g = s.add.image(tx, ty, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDisplaySize(60, 60).setScrollFactor(0); this.root.add(g); s.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }); onArrive?.(); } });
   }
-  setCochleas(n: number) {
-    for (let i = 0; i < 3; i++) { const on = i < n; const was = this.cochOn[i]!.visible; this.cochOn[i]!.setVisible(on); this.coch[i]!.setVisible(!on);
-      if (on && !was) { const c = this.cochOn[i]!; const b = 1 / R(); this.scene.tweens.killTweensOf(c); c.setScale(b * 2.2); this.scene.tweens.add({ targets: c, scale: b, duration: 420, ease: 'Back.Out' }); const r = this.scene.add.image(c.x, c.y, ringTex(this.scene)).setBlendMode(ADD).setTint(THEME.gold).setScale(0.1).setScrollFactor(0); this.root.add(r); this.scene.tweens.add({ targets: r, scale: 0.45, alpha: 0, duration: 500, onComplete: () => r.destroy() }); }
+  /** bulunan altın koklea sayısı (dolu yuvalar + "n/3"); total: bölümdeki gizli koklea sayısı (en çok 3; 0 = boss arenası, panel gizli) */
+  setCochleas(n: number, total = this.cochTotal) {
+    const w0 = this.cochText.width; this.cochTotal = total = Math.max(0, Math.min(3, total));
+    this.cochText.setText(`${Math.min(n, total)}/${total}`).setColor(n > 0 ? '#ffc93c' : '#fff6e5').setVisible(total > 0); this.cochPanel.setVisible(total > 0);
+    if (this.cochText.width !== w0) this.fitTop();
+    for (let i = 0; i < 3; i++) { const on = i < n && i < total; const was = this.cochOn[i]!.visible; this.cochOn[i]!.setVisible(on); this.coch[i]!.setVisible(!on && i < total);
+      if (on && !was) { const c = this.cochOn[i]!; const b = COCH_K / R(); this.scene.tweens.killTweensOf(c); c.setScale(b * 2.2); this.scene.tweens.add({ targets: c, scale: b, duration: 420, ease: 'Back.Out' }); const r = this.scene.add.image(c.x, c.y, ringTex(this.scene)).setBlendMode(ADD).setTint(THEME.gold).setScale(0.1).setScrollFactor(0); this.root.add(r); this.scene.tweens.add({ targets: r, scale: 0.45, alpha: 0, duration: 500, onComplete: () => r.destroy() }); }
     }
   }
   setLives(n: number) {
     const lost = n < this.lives; this.lives = Math.max(0, n); this.placeHearts();
     if (lost) { const h = this.heartsOff[this.lives]; if (h) { const b = 1 / R(); this.scene.tweens.killTweensOf(h); h.setScale(b * 1.5); this.scene.tweens.add({ targets: h, scale: b, duration: 300, ease: 'Back.Out' }); } this.scene.tweens.add({ targets: this.livesPanel, x: this.livesPanel.x + 4, duration: 50, yoyo: true, repeat: 2 }); }
+  }
+  /**
+   * Süreli bölümün geri sayımı (kalan oyun saniyesi; null gizler). Son 10 saniyede yalnız renk değil yazı da değişir
+   * ("Son 8 sn!"), süre bitince "Süre doldu" (bölüm sürer; hedef tutmadı).
+   */
+  setTimer(left: number | null) {
+    if (left == null) { for (const o of [this.timerPanel, this.timerIco, this.timerText]) o.setVisible(false); this.timerShown = -999; return; }
+    const sec = Math.max(0, Math.ceil(left)); if (sec === this.timerShown) return;
+    const prev = this.timerShown; this.timerShown = sec;
+    for (const o of [this.timerPanel, this.timerIco, this.timerText]) o.setVisible(true);
+    const label = sec <= 0 ? 'Süre doldu' : sec <= 10 ? `Son ${sec} sn!` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    this.timerText.setText(label).setColor(sec <= 0 ? '#c9c1ff' : sec <= 10 ? '#ff9ab8' : '#fff6e5');
+    this.placeTimer();
+    if (sec > 0 && sec <= 10 && sec !== prev) this.bump(this.timerIco, 1.3);
+  }
+  private placeTimer() {
+    const w = Math.ceil((this.timerText.width + 44) / 4) * 4; const x = this.timerPanel.x, y = this.timerPanel.y;
+    if (this.timerPanel.getData('w') !== w) { this.timerPanel.setData('w', w); this.timerPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
+    // panel dokusu gölge payıyla (8, 6) kaydırılmış: görünür merkez dokunun merkezinin 2 px üstünde
+    const l = x - w / 2; this.timerIco.setPosition(l + 16, y - 1); this.timerText.setPosition(l + 30, y - 1);
   }
   setProgress(pct: number) {
     this.pct = Math.max(0, Math.min(1, pct)); const x = this.pct * this.barW;
@@ -250,7 +319,7 @@ export class LevelHud {
     const prev = this.toastC; this.toastC = undefined;
     if (prev) s.tweens.add({ targets: prev, alpha: 0, duration: 140, onComplete: () => prev.destroy() });
     if (!text) return;
-    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: '15px', fontStyle: '800', color: '#fff6e5', align: 'center', lineSpacing: 2, wordWrap: { width: this.iw - 64 }, resolution: R() }).setOrigin(0.5);
+    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(15 * this.ts)}px`, fontStyle: '800', color: '#fff6e5', align: 'center', lineSpacing: 2, wordWrap: { width: this.iw - 64 }, resolution: R() }).setOrigin(0.5);
     const pw = Math.round(Math.min(this.iw - 32, label.width + 40)), ph = Math.round(label.height + 20);
     const bg = I(s, panelTex(s, pw, ph, Math.min(18, Math.round(ph / 2)))).setPosition(0, 2);
     const c = s.add.container(this.iw / 2, this.ih - 74, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0);
@@ -265,7 +334,7 @@ export class LevelHud {
     const c = s.add.container(0, 0).setScrollFactor(0); this.root.add(c); this.hint = c;
     const tw = (cfg: Phaser.Types.Tweens.TweenBuilderConfig) => { const t = s.tweens.add(cfg); this.hintTweens.push(t); return t; };
     // açıklama
-    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: '17px', fontStyle: '900', color: '#fff6e5', align: 'center', wordWrap: { width: this.iw - 80 }, resolution: R() }).setOrigin(0.5);
+    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(17 * this.ts)}px`, fontStyle: '900', color: '#fff6e5', align: 'center', wordWrap: { width: this.iw - 80 }, resolution: R() }).setOrigin(0.5);
     const pw = Math.min(this.iw - 40, label.width + 40), ph = label.height + 20;
     const bg = I(s, panelTex(s, Math.round(pw), Math.round(ph), Math.min(20, Math.round(ph / 2)))); const lab = s.add.container(cx, cy - 120, [bg, label]); c.add(lab);
     bg.setPosition(0, 2);

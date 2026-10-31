@@ -111,7 +111,7 @@ export class RaceLayer {
       g.fromX = g.x; g.fromY = g.y; g.toX = p.x; g.toY = p.y; g.t0 = now; g.dur = Math.max(1000 / SOCIAL_LIMITS.racePosHz, Math.min(320, gap));
       if (wasStale) this.setFaded(g, false);
     }
-    if (g.pct >= 0.999 && !g.done) { g.done = true; g.label.setText(`🏁 ${g.info.name}`); }
+    if (g.pct >= 0.999 && !g.done) { g.done = true; g.label.setText(`${g.info.name} · bitirdi`); }
   }
 
   /** soluk (konumu gelmiyor) ya da normal görünüm */
@@ -145,7 +145,11 @@ export class RaceLayer {
     this.x0 = 64; this.x1 = right - 30;
     const track = scene.add.graphics().setScrollFactor(0).setDepth(104);
     track.lineStyle(3, 0x6a5fb0, 1); track.lineBetween(this.x0, y, this.x1, y);
-    const flag = scene.add.text(this.x1 + 14, y, '🏁', { fontFamily: FONT, fontSize: '15px' }).setOrigin(0.5).setScrollFactor(0).setDepth(105);
+    // bitiş bayrağı çizili (tuvalde emoji yok): direk + dama bayrak
+    const flag = scene.add.graphics().setScrollFactor(0).setDepth(105); const fx = this.x1 + 9, fy = y - 9;
+    flag.lineStyle(2, 0xfff6e5, 1); flag.lineBetween(fx, fy, fx, fy + 19);
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) { flag.fillStyle((r + c) % 2 ? 0x140c35 : 0xfff6e5, 1); flag.fillRect(fx + 1 + c * 4, fy + r * 4, 4, 4); }
+    flag.lineStyle(1, 0xfff6e5, 1); flag.strokeRect(fx + 1, fy, 12, 8);
     this.meRing = scene.add.graphics().setScrollFactor(0).setDepth(106);
     this.meRing.lineStyle(2.5, 0x6c4cf1, 1); this.meRing.strokeCircle(0, 0, 12);
     const meColor = this.host.heroColor ?? 0x6c4cf1;

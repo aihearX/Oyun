@@ -74,7 +74,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         <small className="muted credit" data-testid="ses-lisansi">Anlatıcı sesi: Chatterbox Multilingual (Resemble AI, MIT) · temel tını Kokoro-82M (Apache-2.0) · sentetik ses, Perth filigranlı</small>
       </div>
       <div className="card vol-row" data-testid="buyuk-yazi-ayar">
-        <div className="row between set-row"><div className="set-text"><h2>Büyük yazı</h2><div className="muted">Menülerde ve sohbette yazılar daha büyük görünür (oyun içi göstergeler değişmez)</div></div>
+        <div className="row between set-row"><div className="set-text"><h2>Büyük yazı</h2><div className="muted">Menülerde, sohbette ve bölüm içi göstergelerde yazılar daha büyük görünür</div></div>
           <OnOff label="Büyük yazı" on={s.bigText} onChange={s.setBigText} testid="buyuk-yazi" /></div>
       </div>
       <div className="card vol-row" data-testid="hareket-ayar">

@@ -10,7 +10,7 @@ import { prefersReducedMotion, setFlashPolicy } from './render/flash';
 import { remedyName } from './play/remedy';
 import { pathologyLabel } from './render/patoloji';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
-import { tonotopyFreq } from './art';
+import { luckyNoteTexture, tonotopyFreq } from './art';
 import { RaceLayer } from './race';
 import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
@@ -103,6 +103,8 @@ export class LevelScene extends Phaser.Scene {
     const w = this.world;
     // keskinlik: oyun cihaz piksel oranında boyutlanır, kamera aynı oranda yakınlaşır (köşe kökenli: tasarım birimi = 390×780)
     this.dpr = Number(this.registry.get('dpr') ?? 1) || 1; setVisualResolution(this.dpr);
+    // Büyük yazı (Ayarlar): gösterge, uçan yazı ve şerit yazıları büyür (ui.ts textScale; yalnız görsel)
+    const textK = this.opts.bigText ? 1.2 : 1; this.registry.set('textScale', textK);
     this.cameras.main.setZoom(this.dpr).setOrigin(0, 0);
     this.measureView();
     this.quality = this.dpr > 1 ? 'high' : 'low'; setFxQuality(1);
@@ -115,7 +117,7 @@ export class LevelScene extends Phaser.Scene {
     this.projLayer = createProjectileLayer(this, this.biome);
     if (this.sim.boss) { this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome); this.bossView.layout?.(this.vw, this.hudTop); }
     this.fx = createFx(this, this.biome);
-    this.hud = createHud(this, heroColor, this.hudTop);
+    this.hud = createHud(this, heroColor, this.hudTop, textK);
     if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
     this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
@@ -132,7 +134,7 @@ export class LevelScene extends Phaser.Scene {
     const begin = () => {
       unlock(); music(track); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' });
       if (this.spec.intro) this.hint(this.spec.intro, 3200, undefined, 'giris');
-      if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, '🍀 Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200));
+      if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, 'Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200, luckyNoteTexture(this)));
       if (this.spec.modifiers.includes('ters-yercekimi')) this.hint('Ters yerçekimi: tavanlı yerlerde zaman zaman yön değişir', 3000, undefined, 'mod-ters-yercekimi');
     };
     if (this.opts.race) {
@@ -230,8 +232,8 @@ export class LevelScene extends Phaser.Scene {
       case 'flip': sfx.power(); flash(this, 0xd6b8ff, 0.3, 160); break;
       case 'splash': sfx.land(); this.fx.landDust(e.x, e.y, 0.6); break;
       case 'coin': this.collectCoin(e); break;
-      case 'collect': S.score += 50; this.fx.comboBurst(e.x, e.y, 16); this.hud.flyNote(e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 ♪', COLORS.amber); break;
-      case 'note': { const ent = this.world.ents[e.id!]!; sfx.toneAt(tonotopyFreq(1 - Number(ent.p.t ?? 0.5)), 0.25); floatText(this, e.x, e.y - 10, `♪ ${e.n}/${this.spec.objective.target ?? this.world.notesTotal}`, COLORS.accent); S.score += 40; break; }
+      case 'collect': S.score += 50; this.fx.comboBurst(e.x, e.y, 16); this.hud.flyNote(e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 nota', COLORS.amber); break;
+      case 'note': { const ent = this.world.ents[e.id!]!; sfx.toneAt(tonotopyFreq(1 - Number(ent.p.t ?? 0.5)), 0.25); floatText(this, e.x, e.y - 10, `Nota ${e.n}/${this.spec.objective.target ?? this.world.notesTotal}`, COLORS.accent); S.score += 40; break; }
       case 'noteWrong': sfx.tick(); floatText(this, e.x, e.y - 10, 'sıra değil', COLORS.coral); break;
       case 'cochlea': S.score += 200; sfx.levelUp(); this.afterPraise(() => this.fx.cochleaPickup(e.x, e.y)); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'power': {
@@ -249,7 +251,7 @@ export class LevelScene extends Phaser.Scene {
         // Tedavi Odası malzemesi patoloji engelini etkisiz kıldı (docs/14-kamp.md §4)
         const [rid = '', pat = ''] = String(e.s ?? '').split('|');
         this.views.get(e.id ?? -1)?.patho('cured'); sfx.power(); this.fx.perfectRing(e.x, e.y - 30, null);
-        banner(this, `💊 ${remedyName(rid)} korudu!`, 0x1b8f52, 1600);
+        banner(this, `${remedyName(rid)} korudu!`, 0x1b8f52, 1600);
         this.emit({ type: 'remedy', id: rid, pathology: pat, left: Number(e.n ?? 0) }); this.emit({ type: 'haptic', kind: 'success' });
         break;
       }
@@ -269,7 +271,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
       case 'bossPhase': this.hint(this.sim.boss?.kind === 'golem' ? (e.n === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!') : (e.n === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!'), 2600, undefined, `boss-faz-${e.n}`); sfx.toneAt(110, 0.5); break;
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
-      case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `♪ ${e.n}/3`, COLORS.accent); break;
+      case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
       case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200, undefined, 'boss-sersem'); sfx.power(); break;
       case 'bossDown': flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
@@ -279,7 +281,7 @@ export class LevelScene extends Phaser.Scene {
   }
   private onHurt(e: SimEvent) {
     if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan kırıldı', COLORS.accent); return; }
-    if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, '💚 Klinik korudu!', COLORS.accent2); return; }
+    if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, 'Klinik korudu!', COLORS.accent2); return; }
     this.lastHurtAt = this.sim.t; this.clearPraise();
     sfx.hit(); this.fx.hitFlash(); this.cameras.main.shake(160, 0.01); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
   }
@@ -404,7 +406,9 @@ export class LevelScene extends Phaser.Scene {
     const esc = this.sim.escort; if (esc) { this.escortView ??= createEscortView(this, this.biome); this.escortView.update(esc.x, esc.y, esc.alive); }
   }
   private syncHud() {
-    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, lives: this.sim.lives, pct: this.pct() });
+    // süreli bölüm: hedef süreden geri sayım (yarışta yok: yarışın kendi şeridi var)
+    const o = this.spec.objective; const timeLeft = o.id === 'timed' && !this.opts.race ? (o.target ?? this.spec.parTimeSec) - this.sim.t : null;
+    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft });
   }
   /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
   private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
@@ -527,12 +531,13 @@ export class LevelScene extends Phaser.Scene {
       }
     }
   }
-  /** bölüm-içi bölüm bitince: o kısımda kaç nota toplandı (kaçırılanı dürüstçe gösterir; baskı yok, süre yok) */
+  /** bölüm-içi kısım bitince: o kısımda kaç nota toplandı (kaçırılanı dürüstçe gösterir; baskı yok, süre yok). "Bölüm" her yerde bütün
+   *  seviye demek; üstteki bütün-bölüm sayacıyla karışmasın diye yazı "Bu kısımda" der. */
   private sectionSummary(sec: number) {
     for (let k = this.summaryDone; k < sec; k++) {
       let got = 0, tot = 0;
       for (const e of this.world.ents) { if (e.sec !== k || (e.type !== 'coin' && e.type !== 'collect')) continue; const v = e.type === 'collect' ? 5 : 1; tot += v; if (this.sim.collected.has(e.id)) got += v; }
-      if (tot > 0 && k === sec - 1) this.time.delayedCall(700, () => this.hint(got >= tot ? `Bu bölümde ${got}/${tot} nota · hepsi!` : `Bu bölümde ${got}/${tot} nota`, 2200, undefined, 'bolum-nota'));
+      if (tot > 0 && k === sec - 1) this.time.delayedCall(700, () => this.hint(got >= tot ? `Bu kısımda ${got}/${tot} nota · hepsi!` : `Bu kısımda ${got}/${tot} nota`, 2200, undefined, 'bolum-nota'));
     }
     this.summaryDone = Math.max(this.summaryDone, sec);
   }
@@ -551,7 +556,7 @@ export class LevelScene extends Phaser.Scene {
   }
   private firstTime(id: string) {
     if (!this.opts.firsts?.includes(id) || this.firstsDone.includes(id)) return;
-    this.firstsDone.push(id); banner(this, `🎉 ${FIRSTS[id] ?? 'İlk kez!'}`, 0x6c4cf1, 1500); sfx.power();
+    this.firstsDone.push(id); banner(this, FIRSTS[id] ?? 'İlk kez!', 0x6c4cf1, 1500); sfx.power();
   }
   private chainHit() {
     const now = this.sim.t; this.chain = now - this.chainAt < 4 ? this.chain + 1 : 1; this.chainAt = now;
@@ -568,7 +573,7 @@ export class LevelScene extends Phaser.Scene {
   private collectLucky(x: number, y: number) {
     this.luckyState = 'got'; this.luckyGlowImg?.destroy(); this.luckyGlowImg = undefined;
     this.fx.comboBurst(x, y, 18); sfx.levelUp(); flash(this, 0x8ef0b0, 0.25, 260); this.emit({ type: 'haptic', kind: 'success' });
-    this.praise('🍀 Şanslı Nota!'); floatText(this, x, y - 30, 'Bonus sonuçta!', '#1b8f52');
+    this.praise('Şanslı Nota!'); floatText(this, x, y - 30, 'Bonus sonuçta!', '#1b8f52');
   }
 
   // ------------------------------------------------------------------ sonuç
