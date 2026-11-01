@@ -8,7 +8,7 @@ import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMa
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
 import { RewardChips } from '../ui/bits';
-import { treasureItems } from './goals';
+import { treasureItems, VITALITY_WILL } from './goals';
 import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { NoteCard, useNote } from '../ftue/Notes';
@@ -105,7 +105,7 @@ function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: (
   const alb = albumProgress(cards).biomes.find((x) => x.biome === z);
   const need = nextVitalityNeed(z as BiomeId, stars);
   const terms = GLOSSARY.filter((g) => g.region === z);
-  const needText = !need ? 'Bu bölge ışıl ışıl! Tüm yıldızlar senin.' : need.to === 1 ? 'Önceki bölgeyi bitirince uyanır.' : need.clears ? `${need.clears} bölüm daha geç: ${VITALITY_NAMES[need.to].toLowerCase()}.` : `${need.stars} yıldız daha: ışıl ışıl.`;
+  const needText = !need ? 'Bu bölge ışıl ışıl! Tüm yıldızlar senin.' : need.to === 1 ? 'Önceki bölgeyi bitirince uyanır.' : need.clears ? `Bu bölgede ${need.clears} bölüm daha geç: ${VITALITY_WILL[need.to]}.` : `${need.stars} yıldız daha: ışıl ışıl olur.`;
   return (
     <Sheet onClose={onClose}>
       <div className="mc-head" style={{ ['--acc' as string]: hex(b.palette.accent) }}>
@@ -128,9 +128,13 @@ function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: (
 }
 function Vital({ v }: { v: number }) {
   return (
-    <div className="mc-vital" aria-label={`Canlanma: ${VITALITY_NAMES[v as 0]}`}>
-      {[1, 2, 3, 4].map((i) => <i key={i} className={i <= v ? 'on' : ''} />)}
-      <b>{VITALITY_NAMES[v as 0]}</b>
-    </div>
+    <>
+      <div className="mc-vital" aria-label={`Canlanma: ${VITALITY_NAMES[v as 0]} (${v}/4)`}>
+        {[1, 2, 3, 4].map((i) => <i key={i} className={i <= v ? 'on' : ''} />)}
+        <b>{VITALITY_NAMES[v as 0]}</b>
+      </div>
+      {/* aşamaların sırası açıkça: oyuncu "çiçeklenir"den sonra "canlanır"ın geldiğini görür (OT-ilk-kez-oyun-13) */}
+      <ol className="mc-vital-steps" aria-hidden>{([1, 2, 3, 4] as const).map((i) => <li key={i} className={i === v ? 'on' : i < v ? 'done' : ''}>{VITALITY_NAMES[i]}</li>)}</ol>
+    </>
   );
 }

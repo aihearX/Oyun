@@ -2,16 +2,37 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
 import { cardById, cosmeticById } from '@odi/content';
 import { IconButton } from './Button';
-import { rich } from './art';
+import { Glyph, rich } from './art';
 import { useStore } from '../store';
+import { odiLook } from '../look';
+import { OdiAvatar } from './OdiAvatar';
 
 /** Ödül içeriğini görünür kılan çipler: "🪙 50", "✨ 20 XP", "🛡️ 1", kart/kozmetik adı. */
 export function RewardChips({ items, small }: { items: RewardItem[]; small?: boolean }) {
   return (
     <span className={`chips${small ? ' small' : ''}`}>
-      {items.map((it, i) => <span className="chip" key={i}>{rich(rewardLabel(it))}</span>)}
+      {items.map((it, i) => <span className="chip" key={i}>{it.kind === 'kozmetik' ? <CosmeticChip id={it.ref} fallback={rewardLabel(it)} /> : rich(rewardLabel(it))}</span>)}
     </span>
   );
+}
+/**
+ * Kozmetiğin kendi küçük resmi: Dolap'taki önizlemeyle aynı çizim (şapka oyuncunun Odi'sinin başında, renk Odi'nin gövdesinde).
+ * Her şapkalı ödül aynı genel şapka simgesiyle görünmesin (OT-ogrenci-birinci-12). Tanınmayan kimlikte null.
+ */
+export function CosmeticThumb({ id, size = '1.7em' }: { id: string | undefined; size?: number | string }) {
+  const base = useStore((s) => odiLook(s).color); const c = cosmeticById(id ?? '');
+  if (!c) return null;
+  return <span className="cos-thumb" aria-hidden><OdiAvatar size={size} color={c.kind === 'renk' && c.color != null ? c.color : base} hat={c.hat} /></span>;
+}
+/** çip içeriği: kozmetiğin resmi + adı; tanınmayan kimlikte türüne uygun genel simgeli etiket */
+export function CosmeticChip({ id, fallback }: { id: string | undefined; fallback: string }) {
+  const c = cosmeticById(id ?? '');
+  return c ? <><CosmeticThumb id={id} />{c.name}</> : <>{rich(fallback)}</>;
+}
+/** ödül paketinin tek simgesi (takvim günü): kozmetik varsa onun resmi, yoksa türünün simgesi */
+export function RewardGlyph({ items, size = 22 }: { items: RewardItem[]; size?: number | string }) {
+  const cos = items.find((i) => i.kind === 'kozmetik');
+  return cos && cosmeticById(cos.ref ?? '') ? <CosmeticThumb id={cos.ref} size={typeof size === 'number' ? size + 6 : size} /> : <Glyph e={rewardIcon(items)} size={size} />;
 }
 export function rewardLabel(it: RewardItem): string {
   switch (it.kind) {

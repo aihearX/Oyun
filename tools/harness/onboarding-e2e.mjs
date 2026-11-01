@@ -207,6 +207,8 @@ async function suite(target, browserName, [W, H]) {
       if (await page.locator('.map-screen[data-donus="suruyor"], .camp-loading, [data-testid="kamp-dede"]:not([data-line=""]), .cel-stage').count()) { t0 = Date.now(); if (t0 - start > 90_000) return false; }
       else if (Date.now() - t0 > ms) return false;
       if (await page.locator('.map-skip').count()) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined);
+      // hızlandırma dokunuşu sahne biterken bir bölge/bölüm kartı açtıysa oyuncu gibi kapat: açık pencere varken tur başlamaz (YN-084)
+      else if (await page.locator('.map-sheet-wrap').count()) await page.locator('.map-sheet-wrap').click({ position: { x: 8, y: 8 } }).catch(() => undefined);
       await sleep(500);
     }
   }

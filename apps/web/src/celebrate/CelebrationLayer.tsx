@@ -14,7 +14,7 @@ import { setFxEngine } from './fx';
 import { platform } from '../platform';
 import { useStore } from '../store';
 import { Toasts } from '../ui/Toasts';
-import { prefersReducedMotion } from '../ui/bits';
+import { CosmeticThumb, prefersReducedMotion } from '../ui/bits';
 import { Art, Glyph, Rich } from '../ui/art';
 import './celebrate.css';
 
@@ -218,7 +218,7 @@ function Card({ it, i, show }: { it: RewardItem; i: number; show: boolean }) {
   const v = itemView(it);
   return (
     <div className={`cel-card tone-${v.tone}${show ? ' in' : ''}`} style={{ ['--i' as string]: i }}>
-      <div className="cc-icon" aria-hidden><Glyph e={v.icon} size={46} /></div>
+      <div className="cc-icon" aria-hidden>{it.kind === 'kozmetik' && cosmeticById(it.ref ?? '') ? <CosmeticThumb id={it.ref} size={56} /> : <Glyph e={v.icon} size={46} />}</div>
       {v.amount != null && <CountUp to={v.amount} run={show} prefix={it.kind === 'xp' ? '+' : '×'} />}
       <div className="cc-name">{v.name}</div>
     </div>

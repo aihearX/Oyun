@@ -83,14 +83,17 @@
 .mc-medal { flex: none; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 1.375rem; font-weight: 900; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.3);
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--acc) 55%, white), var(--acc) 60%, color-mix(in srgb, var(--acc) 70%, black)); border: 4px solid #ffc93c; box-shadow: 0 4px 0 #b8620a, 0 8px 14px rgba(0,0,0,.25); }
 .mc-kicker { font-size: 0.75rem; font-weight: 900; color: #8b6bff; text-transform: uppercase; letter-spacing: .05em; }
-.mc-stars { display: flex; gap: 6px; justify-content: center; } .mc-stars i { font-style: normal; font-size: 1.5rem; color: rgba(42,22,96,.18); } .mc-stars.big i { font-size: 34px; } .mc-stars i.on { color: #ffb21c; text-shadow: 0 2px 0 #b8620a, 0 0 12px rgba(255,201,60,.8); }
+/* yıldızlar resimli çizilir (renk almaz): alınmamış yıldız gri ve soluk, alınan dolu ve parlak (OT-eski-telefon-10) */
+.mc-stars { display: flex; gap: 6px; justify-content: center; } .mc-stars i { font-style: normal; font-size: 1.5rem; display: inline-flex; filter: grayscale(1) opacity(.3); } .mc-stars.big i { font-size: 34px; } .mc-stars i.on { filter: drop-shadow(0 2px 0 #b8620a) drop-shadow(0 0 6px rgba(255,201,60,.7)); }
 .mc-rows { display: flex; flex-direction: column; gap: 6px; }
 .mc-row { display: grid; grid-template-columns: 26px auto 1fr; align-items: center; gap: 8px; background: rgba(139,107,255,.1); border-radius: 14px; padding: 8px 10px; font-size: 0.875rem; }
-.mc-row > span:first-child { font-size: 1.125rem; text-align: center; } .mc-row b { white-space: nowrap; } .mc-row .chips { justify-content: flex-start; }
+.mc-row > span:first-child { font-size: 1.125rem; text-align: center; } .mc-row b { white-space: nowrap; } .mc-row .chips { justify-content: flex-start; } .map-sheet .chip { background: #fff; color: #2a1660; border-color: #f0dcb4; }
 .mc-dim { color: #5b4a8a; font-size: 0.8125rem; font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
 .mc-fact { background: rgba(46,230,214,.14); border: 1px dashed rgba(14,156,152,.5); border-radius: 14px; padding: 10px 12px; font-size: 0.8125rem; font-weight: 700; color: #1d5552; }
 .mc-chest { font-size: 64px; text-align: center; animation: pop .5s ease-out; filter: drop-shadow(0 6px 10px rgba(184,98,10,.4)); }
 .mc-vital { display: flex; align-items: center; justify-content: center; gap: 6px; } .mc-vital i { width: 22px; height: 10px; border-radius: 6px; background: rgba(42,22,96,.15); }
 .mc-vital i.on { background: linear-gradient(90deg, #ffc93c, #ff9f1c); box-shadow: 0 0 8px rgba(255,201,60,.8); } .mc-vital b { margin-left: 6px; font-size: 0.875rem; }
+.mc-vital-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; list-style: none; margin: -4px 0 0; padding: 0; font-size: 0.6875rem; font-weight: 800; color: #8a7bb8; }
+.mc-vital-steps li + li::before { content: "›"; margin-right: 4px; color: #b3a6dc; } .mc-vital-steps li.done { color: #5b4a8a; } .mc-vital-steps li.on { color: #2a1660; font-weight: 900; }
 .map-btn { font-size: 1.1875rem; padding: 14px 20px; width: 100%; margin-top: 4px; }
 .map-btn.locked { background: linear-gradient(180deg, #d7d0f2, #a99fd6); color: #3b2c7a; box-shadow: 0 5px 0 #6c5fa8; text-shadow: none; cursor: default; }

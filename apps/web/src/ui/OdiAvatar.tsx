@@ -3,7 +3,7 @@ import type { HatId } from '@odi/content';
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 
 /** Odi'nin SVG hali (oyundaki heroTexture/hatTexture ile aynı koordinatlar: 64×64, gövde merkezi 32,32, yarıçap 22). */
-export function OdiAvatar({ color = 0x6c4cf1, hat, size = 64, mood = 'happy' }: { color?: number; hat?: HatId | string; size?: number; mood?: 'happy' | 'wow' }) {
+export function OdiAvatar({ color = 0x6c4cf1, hat, size = 64, mood = 'happy' }: { color?: number; hat?: HatId | string; size?: number | string; mood?: 'happy' | 'wow' }) {
   const c = hex(color);
   return (
     <svg width={size} height={size} viewBox="0 -4 64 68" aria-hidden className="odi-avatar">

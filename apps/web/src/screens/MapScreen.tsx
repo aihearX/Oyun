@@ -5,7 +5,7 @@ import { odiLook, useOdiLook } from '../look';
 import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
-import type { MapHandle, MapSocial, ZoneId } from '@odi/game-core/lite';
+import type { MapHandle, MapSocial, StarMap, ZoneId } from '@odi/game-core/lite';
 import { chunkFailed, loadMap } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
@@ -17,7 +17,7 @@ import { prefersReducedMotion } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
-import { mapGoals, treasureItems } from '../map/goals';
+import { mapGoal, treasureItems } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import { Art, Glyph, Rich, artSvg, emblemArt } from '../ui/art';
@@ -51,6 +51,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [stage, setStage] = useState(false);
   // dönüş sahnesi bitti (ya da oynanacak bir şey yok): Tüy Dede turu ancak o zaman başlar (ftue/Director.tsx quiet; YN-067)
   const [settled, setSettled] = useState(false);
+  // haritanın bu açılıştan önce en son gösterdiği yıldızlar: önceki hedefe ulaşıldıysa "Sıradaki hedef" bunu bir kez söyler
+  const [before, setBefore] = useState<StarMap | null>(null);
 
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
@@ -61,6 +63,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       const s = useStore.getState(); const now = starsOf(s.progress);
       const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
       if (!seenSt.init) seenSt.commit(now);
+      setBefore(seen);
       const look = odiLook(s);
       host.current.dataset.odiColor = look.color.toString(16).padStart(6, '0'); // test kancası: haritadaki Odi'nin rengi
       const hb = hudRef.current?.getBoundingClientRect().bottom ?? 70; const pb = playRef.current?.getBoundingClientRect().top ?? innerHeight - 140;
@@ -102,10 +105,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const calReady = lastDay === today && !cal.claimedToday; const doneQ = daily.quests.filter(questDone).length;
   const todayText = chestReady(daily) ? '🎁 Sandık hazır!' : calReady ? '📅 Ödül hazır' : `${doneQ}/3 görev`;
   const todayHot = chestReady(daily) || calReady;
-  const goals = useMemo(() => mapGoals(stars, progress, unlocked, meta.treasures), [stars, progress, unlocked, meta.treasures]);
-  const [gi, setGi] = useState(0);
-  useEffect(() => { const t = setInterval(() => setGi((i) => i + 1), 4800); return () => clearInterval(t); }, []);
-  const goal = goals[gi % goals.length]!;
+  // tek hedef, ulaşılana kadar aynı (öncelik kuralı: map/goals.ts pickGoal)
+  const goal = useMemo(() => mapGoal(stars, before), [stars, before]);
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
   const feat = useFeatures();
 
@@ -129,8 +130,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      {feat.cleared >= 1 || feat.open('today') ? <button className="map-goal" key={gi % goals.length} onClick={() => handle.current?.focusCurrent()} aria-label={`Sıradaki hedef: ${goal.text}`}>
-        <small>Sıradaki hedef</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
+      {feat.cleared >= 1 || feat.open('today') ? <button className="map-goal" key={goal.text} onClick={() => handle.current?.focusCurrent()} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
+        <small>{goal.small ?? 'Sıradaki hedef'}</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
       </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
       {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır <Art name="booster" size="1.15em" className="art-inline" /></div>}

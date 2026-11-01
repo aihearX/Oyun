@@ -14,7 +14,8 @@ import { openTeamTab } from '../screens/team/teamTabs';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
- * Ekran sakinken (takma ad penceresi, kutlama, alt sayfa, haritanın dönüş sahnesi yokken) tek seferde tek tur; her tur bir kez.
+ * Ekran sakinken (takma ad penceresi, kutlama, alt sayfa/pencere, haritanın dönüş sahnesi yokken ve oyuncu son ~1,2 sn ekrana
+ * dokunmamışken) tek seferde tek tur; her tur bir kez.
  * Tur sürerken açılan kutlama turu duraklatır (Coach.tsx); bir anda tek etkileşimli katman (YN-067).
  */
 const tab = (t: string) => `nav.tabbar .tab[data-tab="${t}"]`;
@@ -36,8 +37,31 @@ function quiet(allowSheets = false): boolean {
   if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return false;
   // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden; kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
   if (exists('.map-screen:not([data-donus="bitti"])') || exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
-  if (!allowSheets && (exists('.sheet-wrap') || exists('.bp-wrap') || exists('.overlay'))) return false;
+  if (!allowSheets && (exists('.sheet-wrap') || exists('.map-sheet-wrap') || exists('.bp-wrap') || exists('.overlay') || exists('[aria-modal="true"]'))) return false;
   return true;
+}
+
+/**
+ * Oyuncu ekranla etkileşirken tur başlamaz (OT-buyuk-yazi-17: "Al"a dokunurken açılan tur ekranı karartıp dokunuşu yuttu).
+ * Son dokunuştan (basma/bırakma, tekerlek, tuş) en az TOUCH_CALM_MS geçmeli ve parmak ekranda olmamalı; böylece basılı ya da
+ * yeni bırakılmış bir dokunuş, tur katmanı açılırken yutulmaz.
+ */
+const TOUCH_CALM_MS = 1200;
+/** bırakma olayı kaçarsa (parmak pencere dışına çıktı) basılı sayılmanın üst sınırı */
+const HELD_MAX_MS = 4000;
+const touch = { last: -Infinity, held: false };
+if (typeof document !== 'undefined') {
+  const mark = (held?: boolean) => () => { touch.last = performance.now(); if (held !== undefined) touch.held = held; };
+  const o = { capture: true, passive: true };
+  document.addEventListener('pointerdown', mark(true), o);
+  document.addEventListener('pointerup', mark(false), o);
+  document.addEventListener('pointercancel', mark(false), o);
+  document.addEventListener('wheel', mark(), o);
+  document.addEventListener('keydown', mark(), o);
+}
+function handsOff(): boolean {
+  const since = performance.now() - touch.last;
+  return since >= TOUCH_CALM_MS && (!touch.held || since >= HELD_MAX_MS);
 }
 
 /** kamp öğreticisi için kurulacak bina: önce Kulak Deposu (kurulmadıysa), değilse jetonun yettiği en ucuz yükseltme */
@@ -261,7 +285,7 @@ export function FtueDirector({ route }: { route: string }) {
     // ekran bir süre sakin kalmalı (art arda gelen kutlama/sahne adımlarının arasındaki kısa boşlukta tur başlamasın)
     let calm = 0;
     const h = setInterval(() => {
-      if (useCoach.getState().tour || !quiet()) { calm = 0; return; }
+      if (useCoach.getState().tour || !quiet() || !handsOff()) { calm = 0; return; }
       if (++calm < CALM_TICKS) return;
       const st = useStore.getState(); const id = nextTour(route);
       // oyuncu bir yere kendi girdiyse (turu henüz sırada beklerken) o yerin tanıtımı görülmüş sayılır; şimdi başlayacak tur hariç

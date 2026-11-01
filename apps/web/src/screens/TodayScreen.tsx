@@ -5,7 +5,7 @@ import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, highestUn
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, rewardIcon, rewardLabel } from '../ui/bits';
+import { Bar, RewardChips, RewardGlyph, rewardLabel } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
@@ -55,7 +55,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
           {cal.days.map((d) => (
             <div key={d.day} className={`cal-day ${d.state}${d.big ? ' big' : ''}`}>
               <span className="cd-n">{d.day}</span>
-              <span className="cd-i">{d.state === 'alindi' ? <Art name="check" size={22} /> : <Glyph e={rewardIcon(d.reward)} size={22} />}</span>
+              <span className="cd-i">{d.state === 'alindi' ? <Art name="check" size={22} /> : <RewardGlyph items={d.reward} size={22} />}</span>
               <span className="cd-a">{d.reward.find((r) => r.kind === 'jeton')?.amount ?? ''}</span>
             </div>
           ))}

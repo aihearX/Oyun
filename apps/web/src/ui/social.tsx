@@ -10,6 +10,7 @@ import { useHudCount } from '../celebrate/hud';
 import { IconButton } from './Button';
 import { Icon } from './icons';
 import { Art, Glyph, Rich, rich, type ArtName } from './art';
+import { CosmeticChip } from './bits';
 import { useFeatures } from '../ftue/useFeatures';
 import { prefersReducedMotion } from './bits';
 
@@ -71,7 +72,7 @@ export function itemLabel(kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass', amount
   }
 }
 export function ItemChips({ items, small }: { items: { kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass'; amount: number; ref?: string }[]; small?: boolean }) {
-  return <span className={`chips${small ? ' small' : ''}`}>{items.map((it, i) => <span className="chip" key={i}>{rich(itemLabel(it.kind, it.amount, it.ref))}</span>)}</span>;
+  return <span className={`chips${small ? ' small' : ''}`}>{items.map((it, i) => <span className="chip" key={i}>{it.kind === 'kozmetik' ? <CosmeticChip id={it.ref} fallback={itemLabel(it.kind, it.amount, it.ref)} /> : rich(itemLabel(it.kind, it.amount, it.ref))}</span>)}</span>;
 }
 
 /** bağlantı noktası: yeşil bağlı, sarı bağlanıyor, gri çevrimdışı */
