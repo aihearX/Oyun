@@ -14,8 +14,9 @@ import { FEATURES, featureById, type FeatureId, type FtueState } from './feature
  * öğreticisi bu sayıya girmez. Sayaç bellektedir: uygulama yeniden açılınca sıfırlanır (bekleyen turlar kaybolmaz).
  */
 export const MAX_UNLOCK_TOURS_PER_LEVEL = 2;
-/** kamp turları yalnız kampta başlar (oyuncu kampa girince; başka bir akışı bölmez) */
-export const CAMP_TOURS: ReadonlySet<string> = new Set(['gorev', 'kampoyun', 'vaka']);
+/** kamp turları yalnız kampta başlar (oyuncu kampa girince; başka bir akışı bölmez). `vaka-kur`: klinik kurulmamışken Hasta Vakaları
+ *  yerine söylenen yazı satırı ("Önce Odyoloji Kliniği'ni kur"; Director.tsx) */
+export const CAMP_TOURS: ReadonlySet<string> = new Set(['gorev', 'kampoyun', 'vaka', 'vaka-kur']);
 export type TourGroup = 'genel' | 'kamp';
 /** kamp turları ve diğerleri ayrı sayılır: biri ötekini aç bırakmasın */
 export const groupOf = (id: string): TourGroup => (CAMP_TOURS.has(id) ? 'kamp' : 'genel');

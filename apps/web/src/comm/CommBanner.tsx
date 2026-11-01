@@ -7,21 +7,24 @@ import { Av } from '../friends/common';
 import { Icon } from '../ui/icons';
 import { Art, type ArtName } from '../ui/art';
 import { dismissNotice, useComm } from './state';
+import { useCoach } from '../ftue/Coach';
 import type { CommNotice } from '@odi/shared';
 
 const ART: Record<CommNotice['kind'], ArtName> = { mention: 'bell', thanks: 'heart', mentor: 'crown', duo: 'users', challenge: 'finish', dq: 'bulb' };
 
-/** İletişim bildirim şeridi: bahsetme, teşekkür, usta–çırak, ikili görev, meydan okuma. 7 sn sonra kaybolur. Gerçek olaylardan gelir. */
+/** İletişim bildirim şeridi: bahsetme, teşekkür, usta–çırak, ikili görev, meydan okuma. 7 sn sonra kaybolur. Gerçek olaylardan gelir.
+ *  Tüy Dede bir yeri gösterirken kart sırada bekler (rehberin çerçevesiyle üst üste binmez, görülmeden süresi dolmaz; OT-buyuk-yazi-20). */
 export function CommBanner() {
   const n = useComm((s) => s.notices[0]);
+  const guide = useCoach((s) => !!s.tour);
   const nav = useNav();
   useEffect(() => {
-    if (!n) return;
+    if (!n || guide) return;
     platform().haptic('light');
     const h = setTimeout(() => dismissNotice(n.id), 7000);
     return () => clearTimeout(h);
-  }, [n?.id]);
-  if (!n) return null;
+  }, [n?.id, guide]);
+  if (!n || guide) return null;
   const close = () => dismissNotice(n.id);
   const reply = async (phrase: string) => {
     close();

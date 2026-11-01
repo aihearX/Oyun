@@ -179,6 +179,8 @@ async function suite(target, browserName, [W, H]) {
         if (await page.locator('[data-testid="anlatici-ipucu"]').count()) await page.locator('.coach-ring').waitFor({ timeout: 3000 }).catch(() => undefined);
         await shot(page, `${label}-${step}`);
         if (!TR.test(text) && !/[a-z]/.test(text)) fail(`anlatıcı metni boş/yanlış (${tourId}#${step})`);
+        // rehber bir yeri gösterirken bildirim/teşekkür kartı sırada bekler, üstüne binmez (YN-092)
+        if (await page.locator('[data-testid="iletisim-bildirimi"]').count()) fail(`bildirim kartı rehberle aynı anda görünüyor (${tourId}#${step})`);
       }
       if (act[step]) { await act[step](page); act[step] = null; await sleep(600); continue; }
       const next = page.locator('[data-testid="anlatici-ileri"]');
@@ -254,6 +256,82 @@ async function suite(target, browserName, [W, H]) {
     if (await waitTour(page, '[data-testid="anlatici-tur"]', 4000)) seen.push(...await drainTours(page, label));
     await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor({ timeout: 20_000 });
     seen.push(...await drainTours(page, label));
+    return seen;
+  }
+  /** iki kutunun kesişim alanı / küçüğün alanı */
+  const overlap = (a, b) => { if (!a || !b) return 0; const w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x); const h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); return w > 0 && h > 0 ? (w * h) / Math.min(a.width * a.height, b.width * b.height) : 0; };
+  const tapBox = async (page, loc) => { const b = await loc.boundingBox(); if (!b) return false; await page.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); return true; };
+  /**
+   * YN-092 (OT-ogrenci-birinci-14, OT-sessiz-oyuncu-9): bekleyen 2 kamp tanıtımıyla (Kamp Görevleri, Kamp oyunları) Kamp'a gir,
+   * Liste'ye dokun → liste açılır (tanıtım dokunuşu yutmaz, başka tanıtıma dönüşmez); tanıtım tek kartta ("Kamp'ta yeni 2 şey"),
+   * art arda zincir yok: her biri "Göster" ile.
+   */
+  async function kampYeni(page) {
+    const seen = [];
+    await page.locator('.camp-base').waitFor({ timeout: 25_000 }); await page.locator('.camp-loading').waitFor({ state: 'detached', timeout: 25_000 }).catch(() => undefined);
+    // oyuncu gibi: kampın açılış kutlamaları (inşaat, Kamp Seviyesi) bitip ekran durulunca Liste'ye dokunur. Kart o sırada (yönetmen
+    // ekranı ~1,5 sn sakin görünce) gelir: dokunuştan önce ya da sonra; dokunuş her durumda Liste'ye gider
+    for (let calm = 0, i = 0; calm < 3 && i < 60; i++) { await dismissCel(page); calm = (await page.locator('.cel-stage, .cel-root.on, .toast-top').count()) ? 0 : calm + 1; await sleep(400); }
+    const before = await page.evaluate(() => ({ kart: !!document.querySelector('[data-testid="kamp-yeni"]'), tur: document.querySelector('[data-testid="anlatici-tur"]')?.getAttribute('data-tour') ?? null }));
+    await tapBox(page, page.locator('.camp-listbtn'));
+    await page.locator('.camp-list-screen').waitFor({ timeout: 4000 }).catch(() => undefined);
+    const after = await page.evaluate(() => ({ liste: !!document.querySelector('.camp-list-screen'), tur: document.querySelector('[data-testid="anlatici-tur"]')?.getAttribute('data-tour') ?? null, ust: [...document.querySelectorAll('.cel-stage, .cel-root.on, .toast-top, .sheet-wrap')].map((e) => e.className).join(',') }));
+    check(after.liste && !after.tur, `kamp: Liste dokunuşu listeyi açtı, tanıtım dokunuşu yutmadı (dokunuştan önce kart ${before.kart ? 'vardı' : 'yoktu'}${after.tur || after.ust ? `; tur ${after.tur ?? '-'}; üstte ${after.ust || '-'}` : ''})`);
+    const card = page.locator('[data-testid="kamp-yeni"]');
+    await card.waitFor({ timeout: 20_000 }).catch(() => undefined);
+    const title = await card.locator('.en-plain').textContent().catch(() => '');
+    check(title === 'Kamp’ta yeni 2 şey: Kamp Görevleri, Kamp oyunları' && await card.locator('[data-testid="kamp-yeni-goster"]').count() === 2, `kamp: tek kart “${title}”, her biri için Göster`);
+    await sleep(3000); await shot(page, 'kamp-yeni-kart');
+    check(!(await page.locator('[data-testid="anlatici-tur"]').count()), 'kamp: kart açıkken tanıtım kendiliğinden başlamadı');
+    for (const id of ['gorev', 'kampoyun']) {
+      await card.locator(`[data-testid="kamp-yeni-goster"][data-tour="${id}"]`).click();
+      await driveTour(page, id, `kamp-yeni-${id}`); seen.push(id);
+      if (await page.locator('.sheet-wrap, [data-testid="kg-panel"]').count()) { await page.keyboard.press('Escape').catch(() => undefined); await sleep(400); }
+      // zincir yok: tur bitince sıradaki kendiliğinden başlamaz; kalan kartta bekler
+      await sleep(3500);
+      check(!(await page.locator('[data-testid="anlatici-tur"]').count()), `kamp: ${id} tanıtımından sonra başka tanıtım kendiliğinden başlamadı`);
+    }
+    check(!(await card.count()), 'kamp: ikisi de gösterilince kart kapandı');
+    await page.getByRole('button', { name: 'Üs görünümü' }).click(); await page.locator('.camp-base').waitFor({ timeout: 20_000 });
+    return seen;
+  }
+  /**
+   * YN-092 (OT-sessiz-oyuncu-9, OT-buyuk-yazi-20): Hasta Vakaları bölümü geldi ama Odyoloji Kliniği Sv 0 → tanıtım yok, yerine yazı
+   * ("önce kur"), çerçeve klinik binasında; klinik kurulunca asıl tanıtım gelir ve çerçeve Klinik girişinde (Görevler değil).
+   */
+  async function klinikTanitim(page) {
+    const seen = [];
+    await page.locator('.camp-base').waitFor({ timeout: 25_000 }); await sleep(1500); await dismissCel(page);
+    await waitTour(page, '[data-testid="anlatici-tur"]', 20_000);
+    const first = await page.locator('[data-testid="anlatici-tur"]').getAttribute('data-tour').catch(() => null);
+    check(first === 'vaka-kur', `klinik Sv 0: Hasta Vakaları tanıtımı çıkmadı, yerine “önce kur” yazısı (${first ?? 'tur yok'})`);
+    if (first === 'vaka-kur') {
+      await page.locator('.coach-ring').waitFor({ timeout: 8000 }).catch(() => undefined); await sleep(600);
+      const ring = await page.locator('.coach-ring').boundingBox().catch(() => null);
+      const bina = await page.evaluate(() => window.__kamp?.box?.('revir') ?? null);
+      check(overlap(ring, bina && { x: bina.x, y: bina.y, width: bina.w, height: bina.h }) > 0.5, 'önce-kur yazısının çerçevesi Odyoloji Kliniği binasında');
+      check(await say(page) === 'Önce Odyoloji Kliniği’ni kur; Hasta Vakaları oradan açılır.', 'önce-kur yazısı');
+      await driveTour(page, 'vaka-kur', 'vaka-once-kur'); seen.push('vaka-kur');
+    }
+    // kliniği kur (liste görünümü: kart → Kur → onay)
+    await page.locator('.camp-listbtn').click(); await page.locator('.camp-list-screen').waitFor();
+    const kart = page.locator('.card.building', { hasText: 'Odyoloji Kliniği' });
+    await kart.scrollIntoViewIfNeeded(); await kart.getByRole('button', { name: 'Kur' }).click();
+    await page.locator('.sheet-wrap').getByRole('button', { name: 'Yükselt' }).click();
+    const bitti = page.locator('.card.building', { hasText: 'Odyoloji Kliniği' }).locator('.lvl-pill', { hasText: 'Sv 1' });
+    for (let i = 0; i < 100 && !(await bitti.count()); i++) { await dismissCel(page); await sleep(1000); }
+    check(await bitti.count() === 1, 'Odyoloji Kliniği kuruldu (Sv 1)');
+    await dismissCel(page);
+    await waitTour(page, '[data-testid="anlatici-tur"][data-tour="vaka"]', 40_000);
+    await driveTour(page, 'vaka', 'vaka-klinik-kuruldu', { 1: async (p) => {
+      await p.locator('.coach-ring').waitFor({ timeout: 4000 }).catch(() => undefined); await sleep(400);
+      const r = await p.locator('.coach-ring').boundingBox().catch(() => null); const k = await p.locator('[data-testid="klinik-btn"]').boundingBox().catch(() => null);
+      const g = await p.locator('[data-testid="kg-btn"]').boundingBox().catch(() => null);
+      check(overlap(r, k) > 0.6 && overlap(r, g) < 0.2, 'klinik kurulunca Hasta Vakaları tanıtımı: çerçeve Klinik girişinde (Görevler’de değil)');
+      await p.locator('[data-testid="anlatici-ileri"]').click();
+    } });
+    seen.push('vaka');
+    await page.getByRole('button', { name: 'Üs görünümü' }).click(); await page.locator('.camp-base').waitFor({ timeout: 20_000 });
     return seen;
   }
   const lockedTabs = (page) => page.locator('nav.tabbar .tab.locked').evaluateAll((els) => els.map((e) => e.getAttribute('data-tab')));
@@ -386,8 +464,11 @@ async function suite(target, browserName, [W, H]) {
           // dürüstlük: sonuç ekranının söylediği her tanıtım haritaya gelince gerçekten oynadı
           if (bekleyen) { const eksik = bekleyen.split(' ').filter((t) => !perLevel[lv].includes(t)); check(!eksik.length && perLevel[lv][0] === bekleyen.split(' ')[0], `${lv}. bölüm: söylenen tanıtımlar haritada oynadı (${perLevel[lv].join('+')}${eksik.length ? `; oynamayan: ${eksik.join(', ')}` : ''})`); }
           // kamp turları yalnız kampta başlar: oyuncu gibi her bölümden sonra kampa uğra
-          await page.locator('nav.tabbar .tab[data-tab="camp"]').click(); await sleep(1500); await dismissCel(page);
-          perLevel[`${lv}-kamp`] = await drainTours(page, `b${lv}-kamp`);
+          await page.locator('nav.tabbar .tab[data-tab="camp"]').click();
+          // 6: bekleyen iki kamp tanıtımı tek kartta; 7: Hasta Vakaları yalnız klinik kurulunca (YN-092)
+          if (lv === 6) perLevel['6-kamp'] = await kampYeni(page);
+          else if (lv === 7) perLevel['7-kamp'] = await klinikTanitim(page);
+          else { await sleep(1500); await dismissCel(page); perLevel[`${lv}-kamp`] = await drainTours(page, `b${lv}-kamp`); }
         }
         ok(`anlatıcı turları (bölüm → turlar): ${Object.entries(perLevel).map(([k, v]) => `${k}: ${v.join('+') || '-'}`).join(' · ')}`);
         const most = Math.max(...Object.values(perLevel).map((v) => v.length));

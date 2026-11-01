@@ -40,6 +40,8 @@ export interface CoachStep {
   before?: { target: Target; hint: string };
   /** kutlama katmanının içindeki bir yeri gösterir (sandığın Topla'sı): kutlama açıkken bu adım duraklamaz */
   cel?: boolean;
+  /** seslendirilmez (kaydı olmayan yazı satırı; cihaz sesine de düşmez) */
+  silent?: boolean;
 }
 export interface Tour { id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void }
 
@@ -150,6 +152,8 @@ export function CoachHost() {
   return typeof document !== 'undefined' ? createPortal(v, document.body) : v;
 }
 
+/** turun ilk adımı açıldıktan sonra bu süre içindeki dokunuş (açılırken zaten yoldaydı) turu ilerletmez */
+const FIRST_TAP_GRACE_MS = 450;
 /** işaretli adımda halka en geç bu kadar beklenir; gelmezse yazı yine de çıkar (oyuncu açıklamasız kalmasın) */
 const MARK_WAIT_MS = 6000;
 
@@ -168,12 +172,16 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const next = useCoach((s) => s.next); const end = useCoach((s) => s.end);
   const advanced = useRef(false);
   const go = () => { if (advanced.current) return; advanced.current = true; stopVoice(); audio.play('tap'); next(); };
+  // tur ekrana yeni geldiyse (ilk adım) o anda düşen dokunuş oyuncunun başka bir yere niyetlendiği dokunuştur: turu ilerletmez,
+  // atlatmaz (OT-ogrenci-birinci-14: Liste'ye dokunuş tanıtımı ilerletip Görevler'e götürdü). Katman yine de alttakine geçirmez
+  const born = useRef(typeof performance !== 'undefined' ? performance.now() : 0);
+  const settled = () => index > 0 || performance.now() - born.current >= FIRST_TAP_GRACE_MS;
 
   // adım açılınca bir kez (ör. kamp kamerasını binaya çevir)
   useEffect(() => { try { st.enter?.(); } catch { /* yok */ } }, [tour.id, index]);
   // ses: adım görününce okunur, kapanınca susar
   useEffect(() => {
-    if (!shown) return;
+    if (!shown || st.silent) return;
     sayAloud(st.say, st.id); prefetchLines(tour.steps.slice(index + 1, index + 3).map((x) => ({ id: x.id, text: x.say })));
     return () => stopVoice();
   }, [tour.id, index, shown]);
@@ -241,7 +249,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   // tuck ↔ tuck'sız arasında sonsuz döngü olur (React #185; Sıralama turunda ekranın ortasındaki "benim satırım")
   useLayoutEffect(() => { const el = panelRef.current; if (!el || el.classList.contains('tuck')) return; const h = el.offsetHeight; if (h && h !== ph) setPh(h); });
   const tuck = !compact && place === 'bottom' && !!hole && hole.y + hole.h > H - insetSab - 14 - (ph || 190) - 52;
-  const onBack = () => { if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
+  const onBack = () => { if (!settled()) return; if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
 
   if (!shown) {
     // işaret yok: yazı ve ses yok; yalnız `before` yeri (ör. kapalı sandık) halka, el ve kısa yönergeyle; dokunuş alttaki öğeye geçer.
@@ -274,7 +282,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
       <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} compact={compact} tuck={tuck} panelRef={panelRef}
-        waiting={wait !== 'next'} hint={st.hint} onNext={go} onSkip={() => end(true)} />
+        waiting={wait !== 'next'} hint={st.hint} onNext={() => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
     </div>
   );
 }
