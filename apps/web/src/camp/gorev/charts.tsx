@@ -14,32 +14,40 @@ export function OdyogramSvg({ o, normalBand = true, title = 'Odyogram' }: { o: O
   const W = 320, H = 250, x0 = 40, x1 = 306, y0 = 22, y1 = 226;
   const xOf = (i: number) => x0 + (Math.log2(AC_HZ[i]! / 250) / 5) * (x1 - x0);
   const yOf = (db: number) => y0 + ((db + 10) / 130) * (y1 - y0);
-  const ear = (e: 'R' | 'L') => {
-    const color = e === 'R' ? RED : BLUE; const ac = o.ac[e]; const bc = o.bc[e];
+  /**
+   * Katmanlar (YN-090): önce sol kulak, sonra sağ; her kulakta çizgi → kemik yolu → hava yolu. Klinik alışkanlıkla O içi boş ve
+   * X'ten büyüktür (r 7,5 > X yarı köşegeni ~6,4): aynı eşikte X O'nun içinden geçer, O'nun halkası en üstte kalır. Kemik yolu
+   * frekans çizgisinin ±13 px dışında, O'ya değmez.
+   */
+  const veri = (e: 'R' | 'L') => {
     const nrAc = o.nr?.[e === 'R' ? 'acR' : 'acL'] ?? []; const nrBc = o.nr?.[e === 'R' ? 'bcR' : 'bcL'] ?? [];
-    const pts = ac.map((d, i) => [xOf(i), yOf(d)] as const);
+    return { color: e === 'R' ? RED : BLUE, nrAc, nrBc, pts: o.ac[e].map((d, i) => [xOf(i), yOf(d)] as const) };
+  };
+  const cizgi = (e: 'R' | 'L') => {
+    const { color, nrAc, pts } = veri(e);
     const path = pts.filter((_, i) => !nrAc.includes(i)).map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
-    const dx = e === 'R' ? -9 : 9;
-    return (
-      <g key={e} data-ear={e}>
-        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeDasharray={e === 'L' ? '6 4' : undefined} opacity=".85" />
-        {pts.map(([x, y], i) => (
-          <g key={i}>
-            {e === 'R' ? <circle cx={x} cy={y} r="5.6" fill="#1a1240" stroke={color} strokeWidth="2.2" /> : <path d={`M${x - 5} ${y - 5}l10 10M${x + 5} ${y - 5}l-10 10`} stroke={color} strokeWidth="2.4" strokeLinecap="round" />}
-            {nrAc.includes(i) && <path d={`M${x + (e === 'R' ? 4 : -4)} ${y + 5}l${e === 'R' ? 6 : -6} 8m0 0l0-5m0 5l${e === 'R' ? -5 : 5} 0`} stroke={color} strokeWidth="1.6" fill="none" />}
-          </g>
-        ))}
-        {bc.map((d, bi) => {
-          const x = xOf(BC_AT[bi]!) + dx; const y = yOf(d);
-          return (
-            <g key={`b${bi}`}>
-              <path d={e === 'R' ? `M${x + 4} ${y - 6}L${x - 4} ${y}L${x + 4} ${y + 6}` : `M${x - 4} ${y - 6}L${x + 4} ${y}L${x - 4} ${y + 6}`} fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" />
-              {nrBc.includes(bi) && <path d={`M${x} ${y + 7}l0 8m-3-3l3 3 3-3`} stroke={color} strokeWidth="1.5" fill="none" />}
-            </g>
-          );
-        })}
+    return <path key={`c${e}`} d={path} fill="none" stroke={color} strokeWidth="2" strokeDasharray={e === 'L' ? '6 4' : undefined} opacity=".85" />;
+  };
+  const kemik = (e: 'R' | 'L') => {
+    const { color, nrBc } = veri(e); const dx = e === 'R' ? -13 : 13;
+    return o.bc[e].map((d, bi) => {
+      const x = xOf(BC_AT[bi]!) + dx; const y = yOf(d);
+      return (
+        <g key={`b${e}${bi}`} data-bc={e}>
+          <path d={e === 'R' ? `M${x + 4} ${y - 6}L${x - 4} ${y}L${x + 4} ${y + 6}` : `M${x - 4} ${y - 6}L${x + 4} ${y}L${x - 4} ${y + 6}`} fill="none" stroke={color} strokeWidth="2.2" strokeLinejoin="round" />
+          {nrBc.includes(bi) && <path d={`M${x} ${y + 7}l0 8m-3-3l3 3 3-3`} stroke={color} strokeWidth="1.5" fill="none" />}
+        </g>
+      );
+    });
+  };
+  const hava = (e: 'R' | 'L') => {
+    const { color, nrAc, pts } = veri(e);
+    return pts.map(([x, y], i) => (
+      <g key={`a${e}${i}`}>
+        {e === 'R' ? <circle cx={x} cy={y} r="7.5" fill="none" stroke={color} strokeWidth="2.2" data-ac="R" /> : <path d={`M${x - 4.5} ${y - 4.5}l9 9M${x + 4.5} ${y - 4.5}l-9 9`} stroke={color} strokeWidth="2.4" strokeLinecap="round" data-ac="L" />}
+        {nrAc.includes(i) && <path d={`M${x + (e === 'R' ? 6 : -6)} ${y + 6}l${e === 'R' ? 6 : -6} 8m0 0l0-5m0 5l${e === 'R' ? -5 : 5} 0`} stroke={color} strokeWidth="1.6" fill="none" />}
       </g>
-    );
+    ));
   };
   return (
     <svg className="kg-chart kg-ody" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} data-testid="odyogram">
@@ -53,7 +61,7 @@ export function OdyogramSvg({ o, normalBand = true, title = 'Odyogram' }: { o: O
           <text x={xOf(i)} y={y0 - 7} textAnchor="middle" className="kg-ax">{f >= 1000 ? `${f / 1000}k` : f}</text></g>
       ))}
       <text x={6} y={y0 + 4} className="kg-ax small" transform={`rotate(-90 6 ${y0 + 4})`} textAnchor="end">dB HL</text>
-      {ear('R')}{ear('L')}
+      <g data-ear="L">{cizgi('L')}{kemik('L')}{hava('L')}</g><g data-ear="R">{cizgi('R')}{kemik('R')}{hava('R')}</g>
     </svg>
   );
 }

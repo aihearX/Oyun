@@ -52,18 +52,26 @@ export interface Odyogram {
 }
 /** test yapılmadıysa ya da bu hastada uygun değilse gerekçesi */
 export interface YokTest { yok: string }
-export type KulakSonuc<T> = { R: T | null; L: T | null; not?: string };
+/**
+ * `yorum` (YN-090): sonuç ekranında "İsteseydin şunu görecektin" satırının altındaki tek cümle. Tanıyı söylemez; bulgunun neyle
+ * uyumlu olduğunu söyler (timpanogram yorumu tek başına tanı demez). İsteğe bağlı; yoksa satır yorumsuz kalır.
+ */
+export type KulakSonuc<T> = { R: T | null; L: T | null; not?: string; yorum?: string };
 export interface VakaTestleri {
   otoskopi: KulakSonuc<Otoskopi> & { aciklama?: Partial<Record<Ear, string>> } | YokTest;
-  odyometri: Odyogram & { not?: string } | YokTest;
+  odyometri: Odyogram & { not?: string; yorum?: string } | YokTest;
   timpanometri: KulakSonuc<Timp> | YokTest;
   refleks: KulakSonuc<Refleks> | YokTest;
   oae: KulakSonuc<Oae> | YokTest;
   abr: KulakSonuc<Abr> | YokTest;
-  konusma: { srt: Record<Ear, number>; sds: Record<Ear, number>; not?: string } | YokTest;
-  islemleme: { gurultu: Islem; dikotik: Islem; bosluk: Islem; not?: string } | YokTest;
+  konusma: { srt: Record<Ear, number>; sds: Record<Ear, number>; not?: string; yorum?: string } | YokTest;
+  islemleme: { gurultu: Islem; dikotik: Islem; bosluk: Islem; not?: string; yorum?: string } | YokTest;
 }
 export const isYok = (x: unknown): x is YokTest => !!x && typeof x === 'object' && 'yok' in (x as object);
+/** istenmeyen testin tek cümlelik yorumu (yoksa null) */
+export const testYorumu = (v: { testler: VakaTestleri }, id: TestId): string | null => {
+  const x = v.testler[id]; return !isYok(x) && typeof (x as { yorum?: unknown }).yorum === 'string' ? (x as { yorum: string }).yorum : null;
+};
 
 // ---------------------------------------------------------------- tanı ve hasta
 

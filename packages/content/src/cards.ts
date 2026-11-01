@@ -63,7 +63,7 @@ const RAW: Record<BiomeId, Raw[]> = {
   'koklea-2': [
     ['users', 'Binlerce Tüy Hücresi', 'Bir kulakta yaklaşık 3.500 iç ve 12.000 dış tüy hücresi bulunur.', 'Corti organında bir sıra iç, üç sıra dış tüy hücresi vardır; afferent liflerin yaklaşık %90–95’i iç tüy hücrelerinden bilgi taşır.'],
     ['party', 'Dans Eden Hücreler', 'Dış tüy hücreleri sesle birlikte boyca uzayıp kısalır ve hafif sesleri güçlendirir.', 'Prestin proteinine dayalı elektromotilite koklear amplifikatörü oluşturur; duyarlılığı ve frekans seçiciliğini artırır.'],
-    ['signal', 'Kulağın Yankısı', 'Sağlıklı bir kulak kendi çok hafif seslerini üretir; bebeklerin işitmesi bununla taranabilir.', 'Otoakustik emisyonlar dış tüy hücresi işlevinin yan ürünüdür; prob mikrofonla ölçülür ve yenidoğan taramasında otomatik ABR ile birlikte kullanılır.'],
+    ['signal', 'Kulağın Yankısı', 'Sağlıklı bir kulak kendi çok hafif seslerini üretir; bebeklerin işitmesi bununla taranabilir.', 'Otoakustik emisyonlar dış tüy hücresi işlevinin yan ürünüdür; prob mikrofonla ölçülür. Yalnız dış tüy hücrelerine kadar olan yolu gösterdiği için işitsel nöropatide “geçti” çıkabilir; bu yüzden 5 günden uzun yoğun bakımda yatan bebekler otomatik ABR ile taranır. Tarama tanı koymaz.'],
     ['unlock', 'Stereosilya', 'Tüy hücrelerinin üstünde minik tüy demetleri vardır; eğildiklerinde sinir sinyali başlar.', 'Basamaklı stereosilyaları bağlayan uç bağlantıları (tip link) gerilince mekanoelektrik iletim kanalları açılır ve endolenften K+ girer.'],
     ['boom', 'Hızla Yükselen Sesler', 'İç kulak kaynaklı kayıpta sesler bir noktadan sonra hızla fazla yüksek gelebilir.', 'Gürlük toplanması (rekrütman): koklear kayıpta eşik yükselir ama rahatsız edici gürlük düzeyi pek değişmez; dinamik aralık daralır.'],
   ],

@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNet } from '@odi/net/store';
 import { GLOSSARY } from '@odi/content/odyoloji';
-import { CAMP_TERMS, KG_KURAL, PATHOLOGY_IDS, PATHOLOGY_NAMES, REMEDY_DISCLAIMER, VAKALAR, VAKA_TESTLERI, isYok, taniById, taniSecenekleri, vakaById, yonetimSecenekleri, type Ear, type Odyogram, type Otoskopi, type Timp, type Vaka } from '@odi/content';
+import { CAMP_TERMS, KG_KURAL, PATHOLOGY_IDS, PATHOLOGY_NAMES, REMEDY_DISCLAIMER, VAKALAR, VAKA_TESTLERI, isYok, taniById, taniSecenekleri, testYorumu, vakaById, yonetimSecenekleri, type Ear, type Odyogram, type Otoskopi, type Timp, type Vaka } from '@odi/content';
 import type { VakaSonuc } from '@odi/shared';
 import { audio } from '@odi/audio';
 import { act } from '../../net';
@@ -213,16 +213,17 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 /**
  * Sonuçtaki bulgular (YN-080): klinikte karar eldeki bulguya dayanır. "İstediğin testler" yalnız oyuncunun istediklerini, "İsteseydin
  * şunu görecektin" istenmeyen (bu vakada yapılabilen) testleri gösterir; açıklama paragrafı bütün testlere dayandığı için öyle adlandırılır.
+ * İstenmeyen test satırının altında, vakada varsa tek cümlelik yorum (YN-090): tanıyı söylemez, bulgunun neyle uyumlu olduğunu söyler.
  */
 function Bulgular({ v, istenen, duzey }: { v: Vaka; istenen: string[]; duzey: 'genel' | 'odyoloji' }) {
   const T = v.testler as unknown as Record<string, unknown>;
   const ad = (id: string) => { const t = VAKA_TESTLERI.find((x) => x.id === id)!; return duzey === 'genel' ? t.kisa : t.ad; };
   const istenmeyen = VAKA_TESTLERI.filter((t) => !istenen.includes(t.id) && !isYok(T[t.id])).map((t) => t.id);
-  const satir = (id: string) => <li key={id} data-bulgu={id}><b>{ad(id)}:</b> {testSatirlari(v, id, duzey).join(' · ')}</li>;
+  const satir = (id: string, yorum: string | null = null) => <li key={id} data-bulgu={id}><b>{ad(id)}:</b> {testSatirlari(v, id, duzey).join(' · ')}{yorum && <div className="kg-note" data-bulgu-yorum={id}>{yorum}</div>}</li>;
   return (
     <>
-      <div className="kg-bulgu" data-testid="bulgu-istenen"><h4>İstediğin testler</h4><ul>{istenen.map(satir)}</ul></div>
-      {istenmeyen.length > 0 && <div className="kg-bulgu diger" data-testid="bulgu-istenmeyen"><h4>İsteseydin şunu görecektin</h4><ul>{istenmeyen.map(satir)}</ul></div>}
+      <div className="kg-bulgu" data-testid="bulgu-istenen"><h4>İstediğin testler</h4><ul>{istenen.map((id) => satir(id))}</ul></div>
+      {istenmeyen.length > 0 && <div className="kg-bulgu diger" data-testid="bulgu-istenmeyen"><h4>İsteseydin şunu görecektin</h4><ul>{istenmeyen.map((id) => satir(id, testYorumu(v, id)))}</ul></div>}
       <div className="kg-aciklama"><h4>{istenmeyen.length > 0 ? 'Tam tablo (bütün testlerle)' : 'Açıklama'}</h4><p>{v.aciklama.sade}</p><MoreLine text={v.aciklama.teknik} /></div>
     </>
   );

@@ -22,12 +22,31 @@ export const OTOSKOPI_ADI: Record<Otoskopi, { sade: string; teknik: string }> = 
 };
 const KAYIP_SADE = { normal: 'normal', iletim: 'orta kulak/kanal kaynaklı (kemik yolu iyi)', sensorinoral: 'iç kulak kaynaklı (hava ve kemik yolu birlikte düşük)', mikst: 'karışık (kemik yolu da düşük ve arada fark var)' } as const;
 
+/** "%76’sını": yüzdenin belirtme hâli eki, sayının okunuşunun son sözcüğüne göre (altı → sını, sekiz → ini, yüz → ünü) */
+const BIRLER = ['', 'ini', 'sini', 'ünü', 'ünü', 'ini', 'sını', 'sini', 'ini', 'unu'];
+const ONLAR = ['ını', 'unu', 'sini', 'unu', 'ını', 'sini', 'ını', 'ini', 'ini', 'ını'];
+export const yuzdeEki = (n: number) => `%${n}’${n === 100 ? 'ünü' : n % 10 ? BIRLER[n % 10] : ONLAR[Math.floor(n / 10)]}`;
+const ort = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+/**
+ * Eğrinin biçimi (YN-090): saf ses ortalaması (500–2000 Hz) tize doğru inen eğride kaybı küçük gösterir. 4–8 kHz ortalaması
+ * ondan en az 20 dB kötüyse ve 8 kHz'te düzelme yoksa (çentik değil) "inen" sayılır; alçak bant 250–1000 Hz ortalamasıdır.
+ */
+function inenEgri(ac: number[]): { alcak: number; yuksek: number } | null {
+  const yuksek = ort([ac[5]!, ac[6]!, ac[7]!]);
+  if (yuksek - pta3(ac) < 20 || ac[7]! < ac[5]! - 5) return null;
+  return { alcak: ort([ac[0]!, ac[1]!, ac[2]!]), yuksek };
+}
+
 export function odyoSatir(o: Odyogram, e: Ear, duzey: BilgiDuzeyi): string {
-  const p = pta3(o.ac[e]); const k = kayipTipi(o, e);
-  if (duzey === 'genel') return k === 'normal' ? `${KULAK[e]}: işitme normal sınırda` : `${KULAK[e]}: ${derece(p)} kayıp, ${KAYIP_SADE[k]}`;
+  const p = pta3(o.ac[e]); const k = kayipTipi(o, e); const inen = k === 'normal' ? null : inenEgri(o.ac[e]);
+  if (duzey === 'genel') {
+    if (k === 'normal') return `${KULAK[e]}: işitme normal sınırda`;
+    if (inen) return `${KULAK[e]}: yüksek frekanslara doğru inen kayıp: alçak frekanslarda ${derece(inen.alcak)}, 4–8 kHz’te ${derece(inen.yuksek)}; ${KAYIP_SADE[k]}`;
+    return `${KULAK[e]}: ${derece(p)} kayıp, ${KAYIP_SADE[k]}`;
+  }
   const g = gaps(o, e).filter((x): x is number => x !== null);
   const lo = Math.max(0, Math.min(...g)); const hi = Math.max(0, ...g);
-  return `${KULAK[e]}: saf ses ortalaması ${n1(p)} dB HL · hava–kemik aralığı ${lo === hi ? lo : `${lo}–${hi}`} dB`;
+  return `${KULAK[e]}: saf ses ortalaması ${n1(p)} dB HL${inen ? ` · yüksek frekans ortalaması (4–8 kHz) ${n1(inen.yuksek)} dB HL` : ''} · hava–kemik aralığı ${lo === hi ? lo : `${lo}–${hi}`} dB`;
 }
 export function timpSatir(t: Timp | null, e: Ear, duzey: BilgiDuzeyi, grup: Vaka['hasta']['grup']): string {
   if (!t) return `${KULAK[e]}: ölçülmedi`;
@@ -67,7 +86,7 @@ function satirlar(v: Vaka, id: string, duzey: BilgiDuzeyi): string[] {
     case 'refleks': { const r = x as { R: Refleks | null; L: Refleks | null; not?: string }; return [...ears.map((e) => `${KULAK[e]} (ipsilateral): ${r[e] ? REFLEKS_ADI[r[e]!] : 'ölçülmedi'}`), ...(r.not ? [r.not] : [])]; }
     case 'oae': { const r = x as { R: Oae | null; L: Oae | null; not?: string }; return [...ears.map((e) => `${KULAK[e]}: ${r[e] ? OAE_ADI[r[e]!] : 'ölçülmedi'}`), ...(r.not ? [r.not] : [])]; }
     case 'abr': { const r = x as { R: Abr | null; L: Abr | null; not?: string }; return [...ears.map((e) => `${KULAK[e]}: ${r[e] ? ABR_ADI[r[e]!][duzey === 'genel' ? 'sade' : 'teknik'] : 'ölçülmedi'}`), ...(r.not ? [r.not] : [])]; }
-    case 'konusma': { const k = x as { srt: Record<Ear, number>; sds: Record<Ear, number>; not?: string }; return [...ears.map((e) => (duzey === 'genel' ? `${KULAK[e]}: kelimeleri ${k.srt[e]} dB’de duyuyor, %${k.sds[e]} doğru anlıyor` : `${KULAK[e]}: SRT ${k.srt[e]} dB HL · ayırt etme %${k.sds[e]}`)), ...(k.not ? [k.not] : [])]; }
+    case 'konusma': { const k = x as { srt: Record<Ear, number>; sds: Record<Ear, number>; not?: string }; return [...ears.map((e) => (duzey === 'genel' ? `${KULAK[e]}: konuşmayı ${k.srt[e]} dB HL’de algılamaya başlıyor; rahat duyduğu seste kelimelerin ${yuzdeEki(k.sds[e])} doğru tekrarlıyor` : `${KULAK[e]}: SRT ${k.srt[e]} dB HL · kelime tanıma %${k.sds[e]} (konforlu düzeyde)`)), ...(k.not ? [k.not] : [])]; }
     case 'islemleme': { const k = x as { gurultu: Islem; dikotik: Islem; bosluk: Islem; not?: string }; return [`Gürültüde konuşma: ${ISLEM_ADI[k.gurultu]}`, `Dikotik dinleme: ${ISLEM_ADI[k.dikotik]}`, `Boşluk saptama: ${ISLEM_ADI[k.bosluk]}`, ...(k.not ? [k.not] : [])]; }
   }
   return [];

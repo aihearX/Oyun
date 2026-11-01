@@ -26,7 +26,7 @@ const KG = await yukle('packages/content/src/kamp-gorev.ts');
 const { PATOLOJI_IDS, PATOLOJILER } = await yukle('packages/content/src/patolojiler.ts');
 const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
 
-const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (Corti organı)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
+const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (orta kıvrım)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
 const esc = (s) => String(s).replace(/\|/g, '\\|');
 const lvl = { merakli: 'Meraklı', odyoloji: 'Odyoloji' };
 const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
@@ -150,6 +150,16 @@ ${KG.VAKALAR.map((v) => {
   const tim = tp ? ['R', 'L'].map((e) => (tp[e] ? `${e === 'R' ? 'Sağ' : 'Sol'} ${tp[e].tip} (${tp[e].hacim} ml)` : `${e === 'R' ? 'Sağ' : 'Sol'} —`)).join('; ') : '—';
   return `| \`${v.id}\` | ${v.kademe} | **${esc(v.baslik)}** | ${esc(v.hasta.ad)}, ${esc(v.hasta.yas)} | ${v.kat} | ${esc(KG.taniById(v.tani.dogru).teknik)} | ${v.anahtar.join(', ')} | ${esc(ody)} | ${esc(tim)} | ${esc(v.yonetim[0].sade)} | ${esc(v.aciklama.teknik)} | \`${v.terim}\` | ${esc(v.kaynak)} |`;
 }).join('\n')}
+
+### İstenmeyen testlerin yorumu (YN-090)
+
+Sonuç ekranında "İsteseydin şunu görecektin" altında, istenmeyen test satırının altında tek cümle (\`testler.<test>.yorum\`, isteğe bağlı).
+Tanıyı söylemez; bulgunun neyle uyumlu olduğunu söyler; timpanogram yorumu tek başına tanı demez. Kaynak: vakanın kaynağı ve
+Katz, *Handbook of Clinical Audiology* (OAE, akustik refleks, konuşma odyometrisi, işitsel nöropati bölümleri); JCIH (2019).
+
+| vaka | test | yorum | kaynak |
+|---|---|---|---|
+${KG.VAKALAR.flatMap((v) => KG.VAKA_TESTLERI.map((t) => [t, KG.testYorumu(v, t.id)]).filter(([, y]) => y).map(([t, y]) => `| \`${v.id}\` ${esc(v.hasta.ad)} | ${esc(t.ad)} | ${esc(y)} | ${esc(v.kaynak)} |`)).join('\n')}
 
 ## Timpanogram Eşleştir — soru bankası (${KG.TIMP_SORULAR.length}, docs/17-kamp-gorevleri.md)
 
