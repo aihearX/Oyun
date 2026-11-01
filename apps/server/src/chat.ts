@@ -149,6 +149,22 @@ export function history(app: App, pid: string, room: string): ChatMessage[] {
   return rows.filter((r) => !hides(app, pid, r.from_id, muted)).slice(0, SOCIAL_LIMITS.historySize).reverse().map((r) => decorate(app, pid, toMsg(r), muted));
 }
 
+/** okunmamış takım iletileri (Takım sekmesi rozeti): imleçten sonra, başkasının yazdığı (kendi iletin ve seninle ilgili akış kartı
+ *  sayılmaz), konu yanıtı olmayan, sessize aldığın kişiden gelmeyen; en çok 99 */
+export const UNREAD_MAX = 99;
+function unreadCount(app: App, pid: string, room: string, since: number): number {
+  const muted = mutedBy(app, pid);
+  const rows = app.db.all<{ from_id: string }>(`SELECT from_id FROM chat WHERE room = ? AND at > ? AND hidden = 0 AND from_id <> ?
+    AND id NOT IN (SELECT msg_id FROM chat_thread) AND (meta IS NULL OR json_extract(meta, '$.pid') IS NULL OR json_extract(meta, '$.pid') <> ?)
+    ORDER BY at DESC LIMIT ?`, room, since, pid, pid, UNREAD_MAX + muted.size * 5);
+  return Math.min(UNREAD_MAX, rows.filter((r) => !hides(app, pid, r.from_id, muted)).length);
+}
+const readCursor = (app: App, pid: string, room: string) => app.db.get<{ at: number }>('SELECT at FROM chat_read WHERE player_id = ? AND room = ?', pid, room)?.at;
+function checkTeamRoom(app: App, pid: string, room: string): void {
+  if (!teamOfRoom(room)) fail('GECERSIZ', 'Okunma imleci yalnız takım sohbetinde tutulur.');
+  checkRoom(app, pid, room);
+}
+
 export function pruneChat(app: App): void {
   app.db.run('DELETE FROM chat WHERE at < ?', app.now() - CHAT_RETAIN_MS);
   app.db.run('DELETE FROM chat_reactions WHERE msg_id NOT IN (SELECT id FROM chat)');
@@ -297,6 +313,19 @@ export const chatHandlers: Handlers = {
       if (parent) broadcastUpdate(app, parent);
     }
     return {};
+  },
+  'chat.read': (app, s, { room, at }) => {
+    checkTeamRoom(app, s.pid, room);
+    const t = Math.min(at, app.now());
+    app.db.run('INSERT INTO chat_read(player_id, room, at) VALUES(?, ?, ?) ON CONFLICT(player_id, room) DO UPDATE SET at = MAX(at, excluded.at)', s.pid, room, t);
+    return { unread: unreadCount(app, s.pid, room, readCursor(app, s.pid, room) ?? t) };
+  },
+  'chat.unread': (app, s, { room }) => {
+    checkTeamRoom(app, s.pid, room);
+    const at = readCursor(app, s.pid, room);
+    // imleç yoksa (ilk kez, takıma yeni katılmış): şimdiden başlar; geçmişi okunmamış saymaz
+    if (at === undefined) { app.db.run('INSERT OR IGNORE INTO chat_read(player_id, room, at) VALUES(?, ?, ?)', s.pid, room, app.now()); return { unread: 0 }; }
+    return { unread: unreadCount(app, s.pid, room, at) };
   },
   'chat.mute': (app, s, { id, on }) => {
     if (id === s.pid) fail('GECERSIZ', 'Kendini engelleyemezsin.');

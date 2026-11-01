@@ -4,7 +4,8 @@ import type { StarMap, Vitality, ZoneId } from './layout';
 export type MapSfx = 'nodePop' | 'pathDraw' | 'odiStep' | 'restore' | 'biomeAwaken' | 'flagPlant' | 'tap' | 'star1' | 'star2' | 'star3' | 'chestShake' | 'whoosh' | 'pop';
 export interface MapFriend { id: string; name: string; color: number; highest: number }
 /** Bölge Savaşı işareti: takımın sahip olduğu (bayrak) ya da hedeflediği (hedef işareti) bölge */
-export interface MapWarMark { regionId: string; name: string; zone: ZoneId; emblem: string; owned: boolean; target: boolean }
+/** emblemSvg: amblemin çizimi (kabuk verir, ui/art.tsx artSvg); yoksa bayrak amblemsiz çizilir (emoji glifi değil, YN-060) */
+export interface MapWarMark { regionId: string; name: string; zone: ZoneId; emblem: string; emblemSvg?: string; owned: boolean; target: boolean }
 export interface MapSocial { friends: MapFriend[]; war: MapWarMark[]; teamColor?: number }
 
 export interface MapOptions {

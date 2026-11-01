@@ -8,7 +8,7 @@ import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { useNav } from '../nav';
 import { OdiAvatar } from '../ui/OdiAvatar';
-import { Art } from '../ui/art';
+import { Art, TeamEmblem } from '../ui/art';
 import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { hatKey } from '../screens/team/TeamMembers';
 import { levelName } from '../race/common';
@@ -42,7 +42,7 @@ export function TeamRaceView() {
       </div>
       {live && (
         <div className="card tr-live" data-testid="tr-suruyor">
-          <b>Yarış sürüyor: {live.team?.a.emblem} {live.team?.a.name} – {live.team?.b.name} {live.team?.b.emblem}</b>
+          <b>Yarış sürüyor: <TeamEmblem e={live.team?.a.emblem} size="1.1em" className="art-inline" /> {live.team?.a.name} – {live.team?.b.name} <TeamEmblem e={live.team?.b.emblem} size="1.1em" className="art-inline" /></b>
           <small className="muted">{live.level}. bölüm · sonuç bitince burada ve takım sohbetinde.</small>
         </div>
       )}
@@ -89,11 +89,11 @@ function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searchi
       {l.status === 'ariyor' && l.searchingSince != null && <div className="muted small-note">Arama süresi {fmtLeft(Math.max(0, now - l.searchingSince))} · şu an {searching} başka takım arıyor</div>}
       {l.incoming.map((c) => (
         <div key={c.teamId} className="tr-inv" data-testid="tr-davet">
-          <span data-ugc className="tr-emb">{c.emblem}</span><span className="grow min0"><b className="ellipsis">{c.name}</b><small>{c.size}’e {c.size} dostluk daveti · {fmtLeft(c.until - now)}</small></span>
+          <span className="tr-emb" aria-hidden><TeamEmblem e={c.emblem} /></span><span className="grow min0"><b className="ellipsis">{c.name}</b><small>{c.size}’e {c.size} dostluk daveti · {fmtLeft(c.until - now)}</small></span>
           {canLead && <><button className="btn small" disabled={busy} data-testid="tr-kabul" onClick={() => void run(() => act('trace.accept', { teamId: c.teamId }))}>Kabul</button><button className="btn small ghost" disabled={busy} onClick={() => void run(() => act('trace.decline', { teamId: c.teamId }))}>Sonra</button></>}
         </div>
       ))}
-      {l.outgoing && <div className="tr-inv out"><span data-ugc className="tr-emb">{l.outgoing.emblem}</span><span className="grow min0"><b className="ellipsis">{l.outgoing.name}</b><small>davet gönderildi · {fmtLeft(l.outgoing.until - now)}</small></span></div>}
+      {l.outgoing && <div className="tr-inv out"><span className="tr-emb" aria-hidden><TeamEmblem e={l.outgoing.emblem} /></span><span className="grow min0"><b className="ellipsis">{l.outgoing.name}</b><small>davet gönderildi · {fmtLeft(l.outgoing.until - now)}</small></span></div>}
       {l.status !== 'eslesti' && (
         <div className="tr-actions">
           {!mine
@@ -120,7 +120,7 @@ function ResultRow({ r, teamId, canLead }: { r: TeamRaceResult; teamId: string; 
   return (
     <div className={`tr-res ${o}`} data-testid="tr-sonuc">
       <span className="tr-res-o">{o === 'win' ? 'Kazandık' : o === 'draw' ? 'Berabere' : 'Kaybettik'}</span>
-      <span className="grow min0"><b className="ellipsis">{U.score} – {T.score} · <span data-ugc>{T.emblem}</span> {T.name}</b><small className="muted">{r.level}. {levelName(r.level)}{r.friendly ? ' · dostluk' : ''}{r.counted ? '' : ' · lige sayılmadı'}</small></span>
+      <span className="grow min0"><b className="ellipsis">{U.score} – {T.score} · <TeamEmblem e={T.emblem} size="1.1em" className="art-inline" /> {T.name}</b><small className="muted">{r.level}. {levelName(r.level)}{r.friendly ? ' · dostluk' : ''}{r.counted ? '' : ' · lige sayılmadı'}</small></span>
       {canLead && <button className="btn small ghost" disabled={busy} data-testid="tr-rovans" onClick={async () => { setBusy(true); const x = await act('trace.rematch', { matchId: r.matchId }); setBusy(false); if (x) toast('🔁', 'Rövanş daveti gönderildi', `${T.name} kabul edince başlar.`, 'green'); void refreshTeamRace(); }}>Rövanş</button>}
     </div>
   );
@@ -141,7 +141,7 @@ function ChallengeSheet({ onClose, myTeam }: { onClose: () => void; myTeam: stri
       <div className="tr-pick" data-testid="tr-takimlar">
         {!teams ? <Skeleton rows={3} /> : teams.length === 0 ? <div className="muted">Takım bulunamadı.</div> : teams.slice(0, 20).map((t) => (
           <button key={t.id} className="tr-pick-row" data-testid="tr-takim" data-name={t.name} onClick={async () => { const r = await act('trace.challenge', { teamId: t.id }); if (r) { toast('📨', `${t.name} takımına davet gönderildi`, undefined, 'green'); onClose(); void refreshTeamRace(); } }}>
-            <span data-ugc className="tr-emb">{t.emblem}</span><span className="grow min0"><b className="ellipsis">{t.name}</b><small>{t.members} üye</small></span><Art name="swords" size={20} />
+            <span className="tr-emb" aria-hidden><TeamEmblem e={t.emblem} /></span><span className="grow min0"><b className="ellipsis">{t.name}</b><small>{t.members} üye</small></span><Art name="swords" size={20} />
           </button>
         ))}
       </div>
@@ -170,7 +170,7 @@ const SIDE_COLOR = { us: 0x2ee6d6, them: 0xff5c8a } as const;
 export function teamGhost(room: RaceRoom, meId: string, p: { id: string; name: string; color: number; hat: string; side?: TeamRaceSideId }) {
   if (!room.team || !p.side) return { id: p.id, name: p.name, color: p.color, hat: p.hat };
   const mySide = room.players.find((x) => x.id === meId)?.side;
-  return { id: p.id, name: `${room.team[p.side].emblem} ${p.name}`, color: p.side === mySide ? SIDE_COLOR.us : SIDE_COLOR.them, hat: p.hat };
+  return { id: p.id, name: p.name, color: p.side === mySide ? SIDE_COLOR.us : SIDE_COLOR.them, hat: p.hat };
 }
 
 export function TeamRaceHud({ room }: { room: RaceRoom }) {
@@ -193,11 +193,11 @@ export function TeamRaceHud({ room }: { room: RaceRoom }) {
   return (
     <div className="tr-hud" data-testid="tr-hud" aria-live="polite">
       <div className="tr-bar">
-        <span className="tr-side us"><span data-ugc>{U.emblem}</span><b>{live(mySide)}</b></span>
+        <span className="tr-side us"><TeamEmblem e={U.emblem} size="1.1em" className="art-inline" /><b>{live(mySide)}</b></span>
         <span className="tr-track" aria-label={`İlerleme: biz %${Math.round(prog(mySide) * 100)}, rakip %${Math.round(prog(other) * 100)}`}>
           <i className="us" style={{ width: `${Math.round(prog(mySide) * 50)}%` }} /><i className="them" style={{ width: `${Math.round(prog(other) * 50)}%` }} />
         </span>
-        <span className="tr-side them"><b>{live(other)}</b><span data-ugc>{T.emblem}</span></span>
+        <span className="tr-side them"><b>{live(other)}</b><TeamEmblem e={T.emblem} size="1.1em" className="art-inline" /></span>
       </div>
       <div className="tr-reacts" role="group" aria-label="Takım arkadaşlarına tepki">
         {TEAM_RACE_REACTIONS.map((e) => <button key={e} type="button" onClick={() => { platform().haptic('light'); void trNet()?.call('trace.react', { emoji: e }).catch(() => undefined); }} aria-label={`Tepki ${e}`}>{e}</button>)}
@@ -233,9 +233,9 @@ export function TeamRaceResultScreen({ room, result: run }: { room: RaceRoom; re
         {run && <div className="muted">{run.completed ? `Bitirdin · ${run.stars} yıldız` : 'Bitiremedin'}</div>}
       </div>
       <div className="tr-score card">
-        <span className="tr-ts us"><span data-ugc className="tr-emb big">{room.team[mySide].emblem}</span><b className="ellipsis">{room.team[mySide].name}</b><strong data-testid="tr-skor-biz">{res ? res[mySide].score : '…'}</strong>{room.team[mySide].mult !== 1 && <small>×{room.team[mySide].mult.toLocaleString('tr-TR')}</small>}</span>
+        <span className="tr-ts us"><span className="tr-emb big" aria-hidden><TeamEmblem e={room.team[mySide].emblem} /></span><b className="ellipsis">{room.team[mySide].name}</b><strong data-testid="tr-skor-biz">{res ? res[mySide].score : '…'}</strong>{room.team[mySide].mult !== 1 && <small>×{room.team[mySide].mult.toLocaleString('tr-TR')}</small>}</span>
         <span className="tr-vs">–</span>
-        <span className="tr-ts them"><span data-ugc className="tr-emb big">{room.team[other].emblem}</span><b className="ellipsis">{room.team[other].name}</b><strong data-testid="tr-skor-rakip">{res ? res[other].score : '…'}</strong>{room.team[other].mult !== 1 && <small>×{room.team[other].mult.toLocaleString('tr-TR')}</small>}</span>
+        <span className="tr-ts them"><span className="tr-emb big" aria-hidden><TeamEmblem e={room.team[other].emblem} /></span><b className="ellipsis">{room.team[other].name}</b><strong data-testid="tr-skor-rakip">{res ? res[other].score : '…'}</strong>{room.team[other].mult !== 1 && <small>×{room.team[other].mult.toLocaleString('tr-TR')}</small>}</span>
       </div>
       {!res ? <div className="muted race-live"><span className="race-dots" aria-hidden><i /><i /><i /></span> Herkesin yıldızı geliyor…</div> : (
         <>
@@ -263,7 +263,7 @@ export function TeamRaceResultScreen({ room, result: run }: { room: RaceRoom; re
 const tierDef = (t: TeamLeagueTier) => TEAM_LEAGUE_TIERS.find((x) => x.id === t)!;
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 export function TierEmblem({ emblem, tier, size = 44 }: { emblem: string; tier: TeamLeagueTier; size?: number }) {
-  return <span className="tl-emb" data-tier={tier} style={{ width: size, height: size, fontSize: Math.round(size * 0.55), borderColor: hex(tierDef(tier).color), boxShadow: `0 0 12px ${hex(tierDef(tier).color)}55` }} data-ugc>{emblem}</span>;
+  return <span className="tl-emb" data-tier={tier} style={{ width: size, height: size, fontSize: Math.round(size * 0.55), borderColor: hex(tierDef(tier).color), boxShadow: `0 0 12px ${hex(tierDef(tier).color)}55` }} aria-hidden><TeamEmblem e={emblem} /></span>;
 }
 
 export function TeamLeagueView() {
@@ -288,7 +288,7 @@ export function TeamLeagueView() {
           const zone = i < s.promoteTop && r.points > 0 ? 'up' : i >= n - s.demoteBottom && i >= s.promoteTop ? 'down' : '';
           return (
             <li key={r.teamId} className={`tl-row ${zone}${r.me ? ' me' : ''}`} data-testid="tl-satir" data-rank={r.rank}>
-              <b className="tl-rank">{r.rank}</b><span data-ugc className="tr-emb">{r.emblem}</span>
+              <b className="tl-rank">{r.rank}</b><span className="tr-emb" aria-hidden><TeamEmblem e={r.emblem} /></span>
               <span className="grow min0 ellipsis"><b>{r.name}{r.me ? ' (biz)' : ''}</b></span>
               {zone && <span className={`tl-zone ${zone}`} aria-label={zone === 'up' ? 'yükselme bölgesi' : 'düşme bölgesi'}><Art name={zone === 'up' ? 'up' : 'down'} size={14} /></span>}
               <b className="tl-pts">{fmtNum(r.points)}</b>

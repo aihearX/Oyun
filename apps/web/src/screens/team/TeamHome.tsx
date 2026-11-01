@@ -72,6 +72,8 @@ export function TeamHome() {
         <div className="grow min0">
           <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
           {approver && apps > 0 && tab !== 'basvuru' && <button type="button" className="ta-head-pill" onClick={() => setTab('basvuru')} data-testid="basvuru-rozeti"><Art name="mail" size={16} /> {apps} yeni başvuru</button>}
+          {/* Takım sekmesi rozeti alınmamış hediyeleri de sayar: nerede beklediği görünsün (YN-071) */}
+          {gifts > 0 && tab !== 'hediye' && <button type="button" className="ta-head-pill" onClick={() => setTab('hediye')} data-testid="hediye-rozeti"><Art name="gift" size={16} /> {gifts} hediye seni bekliyor</button>}
           <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span title="Üyelerin toplam yıldızı"><Art e="⭐" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
           {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
         </div>

@@ -14,7 +14,7 @@ import { IconButton } from '../ui/Button';
 import { Sheet, TopBar, fmtNum } from '../ui/social';
 import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
-import { Art, type ArtName } from '../ui/art';
+import { Art, TeamEmblem, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
 import { clearedCount, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
@@ -51,7 +51,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
           <RozetCipleri p={me} />
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
-          {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? <> · <span data-ugc>{me.teamEmblem}</span> {me.teamName}</> : ''}</div>}
+          {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? <> · <TeamEmblem e={me.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{me.teamName}</span></> : ''}</div>}
         </div>
       </div>
       <div className="pstats">

@@ -177,9 +177,9 @@ try {
   await longPress(B, B.locator('[data-testid="dm-mesaj"]', { hasText: 'yarışalım' }).locator('.dm-bubble'));
   await B.locator('.dm-react-bar').waitFor({ timeout: 4000 });
   await shot(B, 'B-uzun-bas-menu');
-  await B.getByRole('button', { name: 'Tepki ❤️' }).click();
-  await A.locator('[data-testid="dm-mesaj"]', { hasText: 'yarışalım' }).locator('.dm-reacts', { hasText: '❤️' }).waitFor({ timeout: 8000 });
-  ok('A, B\'nin ❤️ tepkisini gördü');
+  await B.getByRole('button', { name: 'Tepki: Kalp' }).click();
+  await A.locator('[data-testid="dm-mesaj"]', { hasText: 'yarışalım' }).locator('.dm-reacts svg.art-heart').waitFor({ timeout: 8000 });
+  ok('A, B\'nin kalp tepkisini (çizim) gördü');
   await A.getByRole('button', { name: 'Emoji ve çıkartmalar' }).click();
   await A.locator('.dm-panel-tabs button', { hasText: 'Odi' }).click();
   await shot(A, 'A-cikartma-paneli');

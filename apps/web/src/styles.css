@@ -678,7 +678,7 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .msg-sys.kind-help { border-color:rgba(142,240,176,.5); color:#c6ffd9; background:rgba(142,240,176,.1); }
 .quick-row { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
 .quick-row::-webkit-scrollbar { display:none; }
-.quick { appearance:none; flex:none; width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); font-size:1.25rem; cursor:pointer; }
+.quick { appearance:none; flex:none; width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); font-size:1.25rem; cursor:pointer; display:inline-grid; place-items:center; padding:0; }
 .quick:active { transform:scale(.9); }
 .chat-input { display:flex; gap:8px; }
 /* serbest yazı kapalıyken yazı alanının üstünde tam cümle (yer tutucu kısa kalır, kesilmez: YN-044) */

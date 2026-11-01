@@ -23,7 +23,7 @@ interface OwnerRow { team_id: string; points: number }
 function announceOwner(app: App, regionId: string, newTeam: string, oldTeam: string | null): void {
   const r = REGION_BY_ID.get(regionId)!;
   const t = app.team(newTeam)!;
-  const text = `${t.emblem} ${t.name} takımı ${r.name} bölgesinin başına geçti!`;
+  const text = `${t.name} takımı ${r.name} bölgesinin başına geçti!`;
   systemMessage(app, teamRoom(newTeam), text, 'war', { region: regionId, team: newTeam });
   if (oldTeam && app.team(oldTeam)) systemMessage(app, teamRoom(oldTeam), text, 'war', { region: regionId, team: newTeam });
   broadcastWar(app);

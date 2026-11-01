@@ -4,7 +4,7 @@ import { fmtDate, fmtNum } from '../ui/social';
 import { useNav } from '../nav';
 import { useEvents } from './store';
 import { Countdown, Rewards } from './common';
-import { Art, rich } from '../ui/art';
+import { Art, TeamEmblem, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 
 /** Takım Düellosu: iki takım, canlı skor çubuğu (halat çekme), en çok katkı yapanlar, son 2 saat, sabit ödüller */
@@ -23,9 +23,9 @@ export function DuelView() {
         <div className="ev-versus" data-tone="violet">
           <div className="row between"><span className="ev-tag">{d.status === 'eslesti' ? 'Düello sürüyor' : 'Rakip aranıyor'}</span>{d.period && <Countdown to={d.period.endsAt} urgentMs={d.finalPushMs} />}</div>
           <div className="ev-vs-row">
-            <div className="ev-side me"><span className="ev-emb">{d.me?.emblem}</span><b className="ellipsis">{d.me?.name}</b>{(d.me?.power ?? 0) > 0 && <small><Art e="⚡" size="1.15em" className="art-inline" /> güç {fmtNum(d.me!.power)}</small>}</div>
+            <div className="ev-side me"><span className="ev-emb" aria-hidden><TeamEmblem e={d.me?.emblem} /></span><b className="ellipsis">{d.me?.name}</b>{(d.me?.power ?? 0) > 0 && <small><Art e="⚡" size="1.15em" className="art-inline" /> güç {fmtNum(d.me!.power)}</small>}</div>
             <span className="ev-vs">VS</span>
-            {d.rival ? <div className="ev-side"><span className="ev-emb">{d.rival.emblem}</span><b className="ellipsis">{d.rival.name}</b>{d.rival.power > 0 && <small><Art e="⚡" size="1.15em" className="art-inline" /> güç {fmtNum(d.rival.power)}</small>}</div>
+            {d.rival ? <div className="ev-side"><span className="ev-emb" aria-hidden><TeamEmblem e={d.rival.emblem} /></span><b className="ellipsis">{d.rival.name}</b>{d.rival.power > 0 && <small><Art e="⚡" size="1.15em" className="art-inline" /> güç {fmtNum(d.rival.power)}</small>}</div>
               : <div className="ev-side searching"><span className="ev-emb"><Art e="🔎" size="1.15em" className="art-inline" /></span><b>Rakip aranıyor</b><small>Gerçek bir takım katılınca eşleşirsin</small></div>}
           </div>
           <div className="ev-tug" data-testid="duello-skor" data-me={d.me?.points ?? 0} data-rival={d.rival?.points ?? 0}>
@@ -65,7 +65,7 @@ export function DuelView() {
 function Top({ emblem, title, list, meId }: { emblem?: string; title: string; list: { id: string; name: string; points: number }[]; meId?: string }) {
   return (
     <div className="card ev-top">
-      <b className="ellipsis">{emblem && <span data-ugc>{emblem}</span>} {title}</b>
+      <b className="ellipsis">{emblem && <TeamEmblem e={emblem} size="1.15em" className="art-inline" />} {title}</b>
       {list.length === 0 ? <div className="muted small-note">Henüz puan yok.</div> : (
         <ol className="rank-list">{list.map((x, i) => <li key={x.id} className={x.id === meId ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis">{x.name}</span><b>{fmtNum(x.points)}</b></li>)}</ol>
       )}

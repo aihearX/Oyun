@@ -6,7 +6,7 @@ import { useNav } from '../nav';
 import { Sheet } from '../ui/social';
 import { Av, giftFriend, inviteToTeam, lastSeenText, raceWith, requestFriend, tierLabel, useOnline } from './common';
 import { closeProfile, friendsNet, refreshFriends, useFriends } from './state';
-import { Art, rich } from '../ui/art';
+import { Art, TeamEmblem, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
 import { Cerceve, RozetCipleri } from '../kurucu/rozet';
@@ -63,7 +63,7 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
           <span className="fr-badge"><b><Art e="🗺️" size="1.15em" className="art-inline" /> {p.highest}</b><small>en yüksek bölüm</small></span>
           <span className="fr-badge"><b>{rich(tierLabel(p))}</b><small>lig</small></span>
           <span className="fr-badge"><b>Sv {p.level}</b><small>seviye</small></span>
-          {p.teamName && <span className="fr-badge wide"><b><span data-ugc>{p.teamEmblem}</span> {p.teamName}</b><small>takım</small></span>}
+          {p.teamName && <span className="fr-badge wide"><b><TeamEmblem e={p.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{p.teamName}</span></b><small>takım</small></span>}
           <span className="fr-badge"><b><Art e="🫂" size="1.15em" className="art-inline" /> {card.friendCount}</b><small>{card.mutualFriends ? `${card.mutualFriends} ortak` : 'arkadaş'}</small></span>
         </div>
 

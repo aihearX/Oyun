@@ -12,7 +12,7 @@ import { fmtClock, hexColor, levelName, raceSpec, useRaceNet } from './common';
 import { chunkFailed, loadLevelGen } from '../engine';
 import './race.css';
 import { IconButton } from '../ui/Button';
-import { Art } from '../ui/art';
+import { Art, rich } from '../ui/art';
 import { PhraseStrip } from '../comm/Cards';
 import { Icon } from '../ui/icons';
 
@@ -268,7 +268,8 @@ function InviteList({ room, onClose }: { room: RaceRoom; onClose: () => void }) 
   );
 }
 
-const QUICK = ['👋', '🔥', '😄', '🏁', '👍'];
+/** yarış hızlı tepkileri: çizimle gösterilir, iletiye emoji kodu yazılır (eski istemciler de okur; YN-071) */
+const QUICK: [string, string][] = [['👋', 'Selam'], ['🔥', 'Ateş'], ['😄', 'Gülücük'], ['🏁', 'Bitiş bayrağı'], ['👍', 'Tamam']];
 
 /** Odaya özel küçük sohbet: yalnızca bu yarış odasındakiler görür (takım/genel sohbetten ayrı). */
 export function RaceChat({ roomId, meId, compact }: { roomId: string; meId: string | null; compact?: boolean }) {
@@ -298,12 +299,12 @@ export function RaceChat({ roomId, meId, compact }: { roomId: string; meId: stri
         {!shown.length && <div className="muted small-note">Rakiplerine bir merhaba de <Art e="👋" size="1.15em" className="art-inline" /></div>}
         {shown.map((m) => (
           <div key={m.id} className={`race-msg${m.from === meId ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}`}>
-            {m.from !== meId && <b style={{ color: hexColor(m.color), cursor: 'pointer' }} onClick={() => openProfile(m.from)}>{m.name}</b>}<span>{m.text}</span>
+            {m.from !== meId && <b data-ugc style={{ color: hexColor(m.color), cursor: 'pointer' }} onClick={() => openProfile(m.from)}>{m.name}</b>}{m.kind === 'emoji' ? <span data-ugc>{rich(m.text, '1.4em')}</span> : <span data-ugc>{m.text}</span>}
           </div>
         ))}
       </div>
       <PhraseStrip ctx={['yaris']} ids={compact ? ['iyi-yaris', 'bir-daha', 'harika', 'az-kaldi', 'tebrik', 'gorusuruz'] : ['selam', 'iyi-sans', 'hazirim', 'harika', 'gorusuruz']} onPick={(id) => void send(id, 'hazir')} label="Yarış sözleri" />
-      {!compact && <div className="race-quick">{QUICK.map((e) => <button key={e} className="race-emoji" aria-label={`${e} gönder`} onClick={() => void send(e, 'emoji')}>{e}</button>)}</div>}
+      {!compact && <div className="race-quick">{QUICK.map(([e, label]) => <button key={e} className="race-emoji" aria-label={`${label} gönder`} onClick={() => void send(e, 'emoji')}><Art e={e} size={24} /></button>)}</div>}
       {!compact && <form className="race-chat-form" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
         <input className="race-input" data-testid="yaris-sohbet-input" value={text} onChange={(e) => setText(e.target.value)} placeholder="Mesaj yaz…" maxLength={SOCIAL_LIMITS.chatMax} />
         <button className="btn small" data-testid="yaris-sohbet-gonder" disabled={!text.trim()}>Gönder</button>

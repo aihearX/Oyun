@@ -114,6 +114,16 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
 - Takım sohbetinin üstünde "Kim çevrimiçi": çevrimiçi üyeler (gerçek bağlantı), dokununca profil kartı. Giriş kutusunda "@" yazınca
   üye önerileri.
 
+### 3.9 Okunmamış ve hızlı tepkiler (YN-071)
+- Takım sekmesi rozetindeki sohbet sayısı sunucudaki okunma imlecinden gelir (`chat.unread`, `chat.read`; tablo `chat_read`): sohbet
+  görünür ve sona kaydırılmışsa son iletiye kadar okunmuş sayılır, yeniden açılışta da doğru kalır. Sayılmaz: kendi iletin, seninle
+  ilgili akış kartı (`meta.pid`), konu yanıtı (üst mesajın altında), sessize aldığın kişi. İmleç ilk kez kurulurken geçmiş sayılmaz.
+  Rozet ayrıca alınmamış takım hediyelerini, yardım bekleyen inşaatları ve (lider/yardımcı) başvuruları sayar; Takım başlığında
+  "N hediye seni bekliyor" hapı nerede beklediğini gösterir.
+- Hızlı tepki satırı mesaj kartı tepkileriyle aynı çizili set (alkış, kalp, ateş, yıldız, güç). İletiye eşlenen emoji kodu yazılır
+  (sunucu `emoji` türünü böyle doğrular, eski istemciler okur); balonda kod değil çizim görünür (`EMOJI_ART`; eski 😂 gibi kayıtlar da).
+  Özel mesaj simge paneli, tepkileri ve Odi çıkartmaları da çizimdir.
+
 ## 4. Moderasyon ve güvenlik
 - **Küfür filtresi** (`apps/server/src/profanity.ts`, Türkçe + İngilizce, normalize edilmiş): sohbet, yanıt, ipucu metni, özel mesaj;
   isim ve takım adı reddedilir. Liste genişletildi; masum kelimeleri yakalamaması test edilir.

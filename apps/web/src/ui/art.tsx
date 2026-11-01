@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { isTeamEmblem, type TeamEmblemKey } from '@odi/shared';
 
 /**
@@ -18,7 +18,9 @@ export type ArtName =
   /** YN-041: Kurucu Yolcu rozeti (defne halkasında altın yol yıldızı), Hata Avcısı unvanı (büyüteçte böcek) */
   | 'founder' | 'bughunt'
   /** YN-044: Kulak Kartları (diyapazon, davul, cetvel, uçak, beyin, timpanogram/odyogram) ve takım amblemleri (kulaklık, baykuş, yunus, işitme cihazı) */
-  | 'fork' | 'drum' | 'ruler' | 'plane' | 'brain' | 'chart' | 'headphones' | 'owl' | 'dolphin' | 'hearingaid';
+  | 'fork' | 'drum' | 'ruler' | 'plane' | 'brain' | 'chart' | 'headphones' | 'owl' | 'dolphin' | 'hearingaid'
+  /** YN-071: yüz ifadeleri (özel mesaj tepkileri, eski emoji iletileri) ve el sallama (Selam çıkartması) */
+  | 'smile' | 'laugh' | 'wow' | 'sad' | 'angry' | 'hand';
 
 const SH = 'rgba(14,6,40,.38)';
 /** gölge + dolgu + kontur (aynı yol) */
@@ -30,6 +32,10 @@ function C({ cx, cy, r, g, o, w = 1.25 }: { cx: number; cy: number; r: number; g
 }
 const gloss = (cx: number, cy: number, rx = 2.4, ry = 1.2, rot = -30, op = 0.85) => <ellipse cx={cx} cy={cy} rx={rx} ry={ry} transform={`rotate(${rot} ${cx} ${cy})`} fill="#fff" opacity={op} />;
 const line = (d: string, color: string, w = 1.6) => <path d={d} fill="none" stroke={color} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />;
+
+/** yüz ifadesi tabanı (YN-071): degrade yuvarlak + parlama; gözler ayrı */
+const face = (g: string, o: string) => <><C cx={12} cy={12} r={8.8} g={g} o={o} />{gloss(8.4, 7.4, 1.8, 0.9)}</>;
+const eyes = (r = 1.05, c = '#5a2a00') => <><ellipse cx="9.1" cy="10.2" rx={r} ry={r * 1.3} fill={c} /><ellipse cx="14.9" cy="10.2" rx={r} ry={r * 1.3} fill={c} /></>;
 
 const STAR = 'M12 2.6l2.75 5.6 6.15.9-4.45 4.33 1.05 6.12L12 16.65 6.5 19.55l1.05-6.12L3.1 9.1l6.15-.9z';
 const medal = (g: string, o: string, ink: string) => <>
@@ -446,6 +452,30 @@ const ART: Record<ArtName, ReactNode> = {
     <circle cx="16.8" cy="6.2" r=".9" fill="url(#oa-gold)" stroke="#a35a00" strokeWidth=".5" />
     {gloss(13.4, 4.4, 1.2, 0.5, -10)}
   </>,
+  smile: <>{face('gold', '#a35a00')}{eyes()}{line('M8.2 13.6c1 2 2.3 3 3.8 3s2.8-1 3.8-3', '#5a2a00', 1.4)}</>,
+  laugh: <>
+    {face('gold', '#a35a00')}{line('M7.4 10.4l1.5-1.2 1.5 1.2M13.6 10.4l1.5-1.2 1.5 1.2', '#5a2a00', 1.3)}
+    <path d="M7.8 12.8h8.4c-.3 2.7-2 4.4-4.2 4.4s-3.9-1.7-4.2-4.4z" fill="#5a2a00" /><path d="M9.8 16.2c.6-.9 1.3-1.2 2.2-1.2s1.6.3 2.2 1.2c-.6.6-1.4 1-2.2 1s-1.6-.4-2.2-1z" fill="#ff5c8a" />
+    <path d="M4 12.2c-.9 1.2-1.1 2.2-.6 2.8s1.4.4 1.8-.4c.3-.7 0-1.6-1.2-2.4zM20 12.2c.9 1.2 1.1 2.2.6 2.8s-1.4.4-1.8-.4c-.3-.7 0-1.6 1.2-2.4z" fill="url(#oa-teal)" stroke="#0b5f5a" strokeWidth=".6" />
+  </>,
+  wow: <>{face('gold', '#a35a00')}{eyes(1.3)}<ellipse cx="12" cy="15.4" rx="1.9" ry="2.3" fill="#5a2a00" /></>,
+  sad: <>
+    {face('gold', '#a35a00')}{eyes()}{line('M8.6 16.4c.9-1.4 2-2 3.4-2s2.5.6 3.4 2', '#5a2a00', 1.4)}
+    <path d="M15.4 11.6c-.8 1.2-1 2-.6 2.6s1.3.4 1.6-.3c.3-.6 0-1.4-1-2.3z" fill="url(#oa-teal)" stroke="#0b5f5a" strokeWidth=".6" />
+  </>,
+  angry: <>
+    {face('coral', '#8f1740')}{line('M7.4 8.4l3 1.4M16.6 8.4l-3 1.4', '#5a0d24', 1.4)}{eyes(1, '#5a0d24')}{line('M8.8 16.4c.9-1 1.9-1.4 3.2-1.4s2.3.4 3.2 1.4', '#5a0d24', 1.4)}
+  </>,
+  hand: <>
+    <S d="M6.9 13V7.6a1.2 1.2 0 0 1 2.4 0V13z" g="gold" o="#a35a00" w={1} />
+    <S d="M9.6 12.6V5.6a1.2 1.2 0 0 1 2.4 0v7z" g="gold" o="#a35a00" w={1} />
+    <S d="M12.3 12.6V5.4a1.2 1.2 0 0 1 2.4 0v7.2z" g="gold" o="#a35a00" w={1} />
+    <S d="M15 13V7.2a1.2 1.2 0 0 1 2.4 0V13z" g="gold" o="#a35a00" w={1} />
+    <S d="M8.2 15.6 5 12.6a1.2 1.2 0 0 1 1.6-1.8l3 2.6z" g="gold" o="#a35a00" w={1} />
+    <S d="M6.9 12.2h10.5v3.2c0 3.1-2.3 5.4-5.25 5.4S6.9 18.5 6.9 15.4z" g="gold" o="#a35a00" w={1} />
+    {line('M2.8 6.6c.4-1.4 1.2-2.4 2.4-3M19.6 3.8c1 .8 1.6 1.8 1.8 3', '#2ee6d6', 1.3)}
+    {gloss(10.8, 6.4, 0.5, 1.1, 0)}
+  </>,
   empty: <><rect x="4.4" y="4.4" width="15.2" height="15.2" rx="4" fill="rgba(5,2,20,.35)" stroke="rgba(201,193,255,.45)" strokeWidth="1.4" strokeDasharray="2.4 2" /></>,
 };
 
@@ -485,12 +515,16 @@ export const EMOJI_ART: Record<string, ArtName> = {
   '👤': 'users', '👂': 'ear', '🦻': 'ear', '🗺️': 'map', '🗺': 'map', '🧭': 'compass', '🏗️': 'hammer', '🔨': 'hammer', '🛠️': 'hammer', '👷': 'hammer',
   '🧰': 'hammer', '🏕️': 'tent', '🎪': 'bigtop', '✉️': 'mail', '📨': 'mail', '💌': 'mail', '📬': 'mail', '📭': 'mail', '💬': 'chat',
   '📣': 'megaphone', '📢': 'megaphone', '📯': 'megaphone', '📡': 'signal', '📶': 'signal', '🧠': 'bulb', '💡': 'bulb', '🔬': 'flask', '🧪': 'flask',
-  '🔎': 'search', '🔍': 'search', '🎉': 'party', '🏃': 'baton', '🤸': 'baton', '🏊': 'baton', '🚪': 'door', '🌱': 'sprout', '👋': 'users',
+  '🔎': 'search', '🔍': 'search', '🎉': 'party', '🏃': 'baton', '🤸': 'baton', '🏊': 'baton', '🚪': 'door', '🌱': 'sprout', '👋': 'hand',
   '🆕': 'spark', '🔔': 'bell', '🔊': 'sound', '🎧': 'sound', '🔇': 'mute', '⬆️': 'up', '⬇️': 'down', '❔': 'question', '❓': 'question',
   '🔑': 'key', '🔗': 'link', '☀️': 'sun', '🌙': 'moon', '✏️': 'pencil', '🗑️': 'trash', '📋': 'copy', '⚙️': 'gear', '🔁': 'refresh',
   '➕': 'plus', '▶': 'play', '▶️': 'play', '🩹': 'heal', '💥': 'boom', '💨': 'wind', '🌬️': 'wind', '🟢': 'online', '🏷️': 'tag', '⬜': 'empty',
   '🙈': 'cross', '😴': 'moon', '🎭': 'spark', '↩️': 'refresh', '🏰': 'flag', '👏': 'party', '💪': 'bolt', '🙏': 'heart', '👍': 'check',
   '🌍': 'compass', '🎚️': 'gear', '🎛️': 'gear', '🎺': 'megaphone', '🥁': 'note', '🫧': 'spark', '🌊': 'wind', '🪶': 'wind', '🛤️': 'map', '🧹': 'spark', '🗼': 'signal', '🧞': 'monster', '👻': 'monster', '🟤': 'monster', '◻️': 'empty', '◻': 'empty',
+  // yüz ifadeleri: özel mesaj tepkileri ve eski emoji iletileri çizimle görünür (YN-071)
+  '😀': 'smile', '😃': 'smile', '😄': 'smile', '🙂': 'smile', '😊': 'smile', '🥰': 'smile', '😍': 'smile', '😎': 'smile', '🤩': 'smile', '😁': 'smile',
+  '😂': 'laugh', '🤣': 'laugh', '😆': 'laugh', '😅': 'laugh', '😮': 'wow', '😯': 'wow', '😲': 'wow', '😱': 'wow',
+  '😢': 'sad', '😭': 'sad', '😞': 'sad', '😔': 'sad', '😡': 'angry', '😠': 'angry', '😤': 'angry',
   // kamp bölge binaları (docs/14-kamp.md §10)
   '👶': 'sprout', '🌳': 'clover', '🌀': 'compass', '📚': 'card',
 };
@@ -563,6 +597,30 @@ export function emblemArt(e: string | null | undefined): ArtName {
 /** Takım amblemi (çizim). Boyut verilmezse çevredeki yazı boyunda (1em) çizilir; kutular (.th-emblem, .tr-emblem…) font-size ile ölçekler. */
 export function TeamEmblem({ e, size = '1em', className }: { e: string | null | undefined; size?: number | string; className?: string }) {
   return <Art name={emblemArt(e)} size={size} className={className} />;
+}
+
+/**
+ * Çizimi bağımsız SVG metni olarak verir (degradeler içinde): DOM dışında çizilen yerler için, ör. Phaser dokusu
+ * (kamp bayrağındaki ve harita savaş işaretindeki takım amblemi, YN-060). Amblemin anahtarı emoji kod noktasıdır, glifi çizilmez.
+ */
+export function artSvg(name: ArtName, px = 64): string {
+  const defs = (ArtDefs() as ReactElement<{ children?: ReactNode }>).props.children;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24" fill="none">${markup(defs)}${markup(ART[name])}</svg>`;
+}
+const escAttr = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/** ikon ağacını (yalnız svg öğeleri, saf bileşenler S/C ve Fragment) metne çevirir; camelCase özellikler kebab-case olur */
+function markup(n: ReactNode): string {
+  if (n === null || n === undefined || typeof n === 'boolean') return '';
+  if (typeof n === 'string' || typeof n === 'number') return escAttr(String(n));
+  if (Array.isArray(n)) return n.map(markup).join('');
+  if (!isValidElement(n)) return '';
+  const props = n.props as Record<string, unknown> & { children?: ReactNode };
+  if (typeof n.type === 'function') return markup((n.type as (p: unknown) => ReactNode)(props));
+  if (typeof n.type !== 'string') return markup(props.children);
+  const attrs = Object.entries(props)
+    .filter(([k, v]) => k !== 'children' && v !== undefined && v !== null && typeof v !== 'object' && typeof v !== 'function')
+    .map(([k, v]) => ` ${k === 'className' ? 'class' : k === 'viewBox' ? k : k.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}="${escAttr(String(v))}"`).join('');
+  return `<${n.type}${attrs}>${markup(props.children)}</${n.type}>`;
 }
 
 /** Geliştirme önizlemesi (`?demo=ikonlar`): bütün resimli ikonlar, büyük ve küçük boyda, koyu ve krem zeminde */

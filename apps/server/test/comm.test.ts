@@ -107,6 +107,49 @@ describe('Takım Akışı', () => {
     expect(after).toHaveLength(0);
   });
 
+  it('kamp kartı cümlesi (YN-071): tek binada "kurdu" / "seviyeye yükseltti", birleşince liste; "kurdu yaptı" yok', async () => {
+    env = await setup();
+    const a = await env!.connect('DrMelis'); const b = await env!.connect('Bora');
+    await team(a, b);
+    const app = env!.srv.app;
+    b.drain();
+    app.run(() => feedEvent(app, a.me!.id, 'bina', { items: ['Timpanometri Kulesi kurdu'] }));
+    const card = (await feedOf(b, 'bina')).msg;
+    expect(card.text).toBe('DrMelis kampında Timpanometri Kulesi kurdu.');
+    app.run(() => feedEvent(app, a.me!.id, 'bina', { items: ['Kulak Kepçesi 3. seviye'] }));
+    expect((await b.waitFor('chat.updated', (x) => x.msg.id === card.id)).msg.text).toBe('DrMelis kampında 2 binayı geliştirdi: Timpanometri Kulesi (yeni), Kulak Kepçesi (3. seviye).');
+    env!.clock.advance(31 * 60_000);
+    app.run(() => feedEvent(app, a.me!.id, 'bina', { items: ['Kulak Kepçesi 4. seviye'] }));
+    expect((await feedOf(b, 'bina')).msg.text).toBe('DrMelis kampında Kulak Kepçesi yapısını 4. seviyeye yükseltti.');
+  });
+
+  it('okunma imleci (YN-071): okunmamış = imleçten sonra başkasının iletisi; kendi iletin ve seninle ilgili kart sayılmaz; okuyunca 0', async () => {
+    env = await setup({ freeTextCleared: 0 });
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');
+    const t = await team(a, b);
+    const app = env!.srv.app;
+    // imleç yokken: şimdiden başlar, geçmiş (katılma kartı vb.) sayılmaz
+    expect((await a.call('chat.unread', { room: t.room })).unread).toBe(0);
+    env!.clock.advance(1000);
+    await a.call('chat.send', { room: t.room, text: '👏', kind: 'emoji' }); // kendi iletin
+    app.run(() => feedEvent(app, a.me!.id, 'seri', { days: 3 })); // seninle ilgili kart
+    expect((await a.call('chat.unread', { room: t.room })).unread).toBe(0);
+    env!.clock.advance(1300);
+    const m1 = (await b.call('chat.send', { room: t.room, text: 'Selam takım', kind: 'text' })).msg;
+    env!.clock.advance(1300);
+    await b.call('chat.send', { room: t.room, text: 'tebrik', kind: 'hazir', replyTo: m1.id }); // konu yanıtı: üst mesajın altında
+    app.run(() => feedEvent(app, b.me!.id, 'seri', { days: 4 }));
+    expect((await a.call('chat.unread', { room: t.room })).unread).toBe(2);
+    // sona kadar okundu: 0; imleç geri gitmez
+    expect((await a.call('chat.read', { room: t.room, at: app.now() })).unread).toBe(0);
+    expect((await a.call('chat.read', { room: t.room, at: 0 })).unread).toBe(0);
+    expect((await a.call('chat.unread', { room: t.room })).unread).toBe(0);
+    // yalnız takım odası; başka takımın odası olmaz
+    expect((await err(a.call('chat.read', { room: 'genel', at: 1 }))).code).toBe('GECERSIZ');
+    const c = await env!.connect('Cem'); const t2 = await team(c);
+    expect((await err(a.call('chat.unread', { room: t2.room }))).code).toBeTruthy();
+  });
+
   it('takım başına saatte en çok 20 yeni kart; üye kartı her zaman', async () => {
     env = await setup();
     const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');

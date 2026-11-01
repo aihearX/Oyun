@@ -4,6 +4,7 @@ import { fail, parseJson, type App, type PlayerRow } from '../app';
 import { postCard, teamRoom, updateCard } from '../chat';
 import { dayKey, DAY_MS } from '../time';
 import { commNotice, feedShareOn, metric } from './settings';
+import { binaMetni } from './bina-metni';
 
 /**
  * Takım Akışı: sunucunun gördüğü GERÇEK olaylardan takım sohbetine kart (kind 'feed').
@@ -31,7 +32,7 @@ function textFor(type: FeedType, name: string, d: Data): string {
       return d.first ? `${name} ${lv[0]}. bölümü ${d.stars} yıldızla geçti.` : `${name} ${lv[0]}. bölümde 3 yıldıza ulaştı.`;
     case 'boss': return `${name}, ${d.level}. bölümün canavarını yendi: ${levelName(Number(d.level))}!`;
     case 'koklea': return lv.length > 1 ? `${name} ${d.n} altın koklea buldu (bölüm ${lv.join(', ')}).` : `${name} ${lv[0]}. bölümde ${d.n} altın koklea buldu.`;
-    case 'bina': { const b = (d.items as string[]) ?? []; return b.length > 1 ? `${name} kampında ${b.length} binayı geliştirdi: ${b.join(', ')}.` : `${name} kampında ${b[0]} yaptı.`; }
+    case 'bina': return binaMetni(name, (d.items as string[]) ?? []);
     case 'uye': return `${name} takıma katıldı.`;
     case 'seri': return `${name} ${d.days} gündür her gün oynuyor!`;
     case 'yardim': return `${name} ${d.level}. bölümü takımının yardımıyla geçti! Teşekkürler: ${d.helpers}.`;

@@ -12,7 +12,7 @@ import { useBuiltCelebration } from '../camp/built';
 import { useCampLevelCelebration } from '../camp/seviye';
 import { sayDede } from '../camp/dede';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
-import { Art } from '../ui/art';
+import { Art, artSvg, emblemArt } from '../ui/art';
 import '../camp/camp.css';
 
 type View = 'us' | 'liste';
@@ -94,7 +94,8 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     libCollect: async () => { const r = await act('camp.lib.collect', {}); if (!r) return null; useNet.setState({ camp: r.camp }); return r.xp; },
   }), []);
   const onHelped = useCallback((fn: (b: BuildingId, s: number) => void) => { const n = getNet(); if (!n) return () => undefined; return n.on('camp.helped', ({ building, seconds }) => fn(building, seconds)); }, []);
-  const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name } : null), [team?.emblem, team?.name]);
+  // amblem kamp bayrağında çizim olarak (SVG doku; emoji glifi değil, YN-060)
+  const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name, emblemSvg: artSvg(emblemArt(team.emblem)) } : null), [team?.emblem, team?.name]);
 
   if (!me) {
     if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><Skeleton rows={4} /></ListShell>;
@@ -139,7 +140,7 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
     decorStore: async (uid) => { const r = demoReduce(ref.current, { k: 'decorStore', uid }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return true; },
     libCollect: async () => { const r = demoReduce(ref.current, { k: 'lib' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
   }), []);
-  const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri' }), []);
+  const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri', emblemSvg: artSvg(emblemArt('🐚')) }), []);
   if (view === 'us') return <CampBase demo camp={s.camp} wallet={s.wallet} team={team} helpCount={2} fast={4} now={Date.now} actions={actions} onList={() => setView('liste')} />;
   return <ListShell setView={setView}><div className="camp-demo-tag static">ÖNİZLEME · sunucuya bir şey gitmez</div><CampList camp={s.camp} wallet={s.wallet} team fast={4} sNow={nowMs} actions={actions} bonuses={null} /></ListShell>;
 }

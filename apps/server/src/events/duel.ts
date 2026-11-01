@@ -30,8 +30,8 @@ function enroll(app: App, cur: EventPeriod, teamId: string): DuelRow {
   app.db.run('UPDATE ev_duel SET rival_id = ?, matched_at = ? WHERE period = ? AND team_id = ?', teamId, now, cur.key, rival.team_id);
   for (const [a, b] of [[teamId, rival.team_id], [rival.team_id, teamId]] as const) {
     const other = app.team(b)!;
-    systemMessage(app, teamRoom(a), `Takım Düellosu başladı! Rakibiniz: ${other.emblem} ${other.name}. Her yıldız, ralli ve bayrak ayağı puan getirir.`, 'war', { event: 'duello' });
-    notify(app, app.teamMemberIds(a), { kind: 'duello', icon: '⚔️', title: 'Düello rakibiniz belli oldu!', text: `${other.emblem} ${other.name} ile 48 saatlik düello`, target: 'duello' });
+    systemMessage(app, teamRoom(a), `Takım Düellosu başladı! Rakibiniz: ${other.name}. Her yıldız, ralli ve bayrak ayağı puan getirir.`, 'war', { event: 'duello' });
+    notify(app, app.teamMemberIds(a), { kind: 'duello', icon: '⚔️', title: 'Düello rakibiniz belli oldu!', text: `${other.name} ile 48 saatlik düello`, target: 'duello' });
   }
   broadcastDuel(app, rival.team_id); broadcastDuel(app, teamId);
   return rowOf(app, cur.key, teamId)!;

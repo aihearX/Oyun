@@ -165,12 +165,13 @@ function measureOverflow() {
   const rootEl = document.getElementById('root');
   return { offenders: out.slice(0, 12), count: out.length, docScrollW: document.documentElement.scrollWidth - W, rootScrollW: rootEl ? rootEl.scrollWidth - rootEl.clientWidth : 0 };
 }
-/** arayüz metninde emoji: kullanıcı içeriği (sohbet, tepkiler, takma ad) hariç her metin düğümü (takım amblemi ve Kulak Kartı
- *  resmi çizimdir, muaf değil: YN-044),
+/** arayüz metninde emoji: yalnız oyuncunun kendi yazdığı serbest metin (sohbet/özel mesaj balonu, takma ad, `data-ugc`) muaf;
+ *  takım amblemi ve Kulak Kartı resmi (YN-044), hızlı tepki, çıkartma, özel mesaj tepkisi ve simge paneli, etkinlik simgesi (YN-071)
+ *  oyunun sunduğu sabit seçeneklerdir, çizimdir, muaf değil;
  *  yer tutucu ve ::before/::after içeriği taranır; emoji yerine ui/art.tsx resimli ikonları kullanılmalı */
 function measureEmoji() {
   const re = /(?:\p{Extended_Pictographic}|[▶★])️?/u; const skip = new Set(['©', '®', '™']);
-  const ALLOW = '[data-ugc], .ev-emb, .race-quick, .race-msg, [class*="sticker"], .bubble, .msg-name, .quick-row, .dm-list, .dm-bottom, .dm-react, input, textarea, script, style, #__inset_top, #__inset_bottom';
+  const ALLOW = '[data-ugc], .bubble, .msg-name, .dm-bubble, .dm-quote, .dm-inv-text, input, textarea, script, style, #__inset_top, #__inset_bottom';
   const vis = (el) => { const r = el.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return false; const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05; };
   const hits = new Map();
   const add = (el, t) => { const m = t.match(re); if (!m || skip.has(m[0])) return; const key = `${m[0]} ${(el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : el.tagName.toLowerCase())}: ${t.trim().replace(/\s+/g, ' ').slice(0, 40)}`; hits.set(key, 1); };

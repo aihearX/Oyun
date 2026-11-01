@@ -5,7 +5,7 @@ import { platform } from '../platform';
 import { fmtDate, fmtNum } from '../ui/social';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, hexColor, useSrvNow } from './common';
-import { Art, rich } from '../ui/art';
+import { Art, TeamEmblem, rich } from '../ui/art';
 import { useStore } from '../store';
 import { Icon } from '../ui/icons';
 
@@ -113,7 +113,7 @@ function Ranking() {
   return (
     <div className="card">
       <b>Bugünün takım sıralaması</b>
-      {info.ranking.length === 0 ? <div className="muted small-note">Bugün henüz yarışma bitiren takım yok.</div> : <ol className="rank-list">{info.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{fmtNum(t.avg)}</b></li>)}</ol>}
+      {info.ranking.length === 0 ? <div className="muted small-note">Bugün henüz yarışma bitiren takım yok.</div> : <ol className="rank-list">{info.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{fmtNum(t.avg)}</b></li>)}</ol>}
     </div>
   );
 }

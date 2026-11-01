@@ -121,7 +121,7 @@ describe('Sıralamadan takıma davet', () => {
     // başka takımın kimliğiyle davet olmaz
     expect((await err(send(b, a.me!.id, { type: 'takim', roomId: t.id }))).code).toBe('YETKI');
     const m = (await send(a, b.me!.id, { type: 'takim', roomId: t.id }, 'kötü söz yazmaya çalışıyorum')).msg;
-    expect(m.text).toBe(`👂 Kulaklar takımına katılmak ister misin? Kod: ${t.code}`);
+    expect(m.text).toBe(`Kulaklar takımına katılmak ister misin? Kod: ${t.code}`);
     expect(m.meta).toMatchObject({ type: 'takim', roomId: t.id, code: t.code, title: 'Takım daveti' });
     // serbest yazı kapalı: başka davetlerin metnini de sunucu yazar
     env.clock.advance(10_000);

@@ -11,6 +11,7 @@ import { FEEDBACK_SCHEMA } from './geribildirim';
 import { ROZET_SCHEMA } from './rozet';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
+import { binaMetni } from './comm/bina-metni';
 
 /** göç 7: `players.spend_limit` sütununun eski varsayılanı (db.ts); bu değerde kalmış, bekleyen yükseltmesi olmayan sınır seçilmemiş sayılır */
 const OLD_DEFAULT_SPEND_LIMIT_TRY = 1000;
@@ -41,6 +42,8 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  *    `camp_queue.gift_jeton` (sıraya alınırken harcanan hediye jetonu; sıradan çıkınca yine hediye jetonu olarak döner). Var olan
  *    cüzdanlar 0 ile başlar: göçten önce alınmış hediye jetonu ayırt edilemez ve bağışlanabilir kalır (gerçek para satın alımı henüz
  *    açılmadı, YN-032; yalnız test mağazası).
+ * 10: YN-071 — Takım Akışı kamp kartlarının kayıtlı cümlesi ("… Timpanometri Kulesi kurdu yaptı.") kartın meta'sındaki öğelerden
+ *    yeniden kurulur (comm/bina-metni.ts); veri biçimi değişmez.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -68,6 +71,15 @@ export const MIGRATIONS: Migration[] = [
   { name: 'satin-alma-hediye-jetonu', up: (db) => {
     addColumn(db, 'players', 'gift_jeton', 'INTEGER NOT NULL DEFAULT 0');
     addColumn(db, 'camp_queue', 'gift_jeton', 'INTEGER NOT NULL DEFAULT 0');
+  } },
+  { name: 'akis-bina-cumlesi', up: (db) => {
+    const kartlar = db.prepare(`SELECT id, meta FROM chat WHERE kind = 'feed' AND meta LIKE '%"type":"bina"%'`).all() as { id: string; meta: string }[];
+    const yaz = db.prepare('UPDATE chat SET text = ? WHERE id = ?');
+    for (const k of kartlar) {
+      let m: Record<string, unknown>; try { m = JSON.parse(k.meta) as Record<string, unknown>; } catch { continue; }
+      const items = String(m.items ?? '').split(',').filter(Boolean); const name = typeof m.pname === 'string' ? m.pname : '';
+      if (m.type === 'bina' && name && items.length) yaz.run(binaMetni(name, items), k.id);
+    }
   } },
 ];
 

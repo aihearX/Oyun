@@ -54,6 +54,8 @@ CREATE TABLE IF NOT EXISTS friends(a TEXT NOT NULL, b TEXT NOT NULL, at INTEGER 
 CREATE TABLE IF NOT EXISTS chat(id TEXT PRIMARY KEY, room TEXT NOT NULL, from_id TEXT NOT NULL, name TEXT NOT NULL, color INTEGER NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL, at INTEGER NOT NULL, meta TEXT, hidden INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS chat_room ON chat(room, at);
 CREATE TABLE IF NOT EXISTS chat_cid(player_id TEXT NOT NULL, cid TEXT NOT NULL, msg_id TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, cid));
+-- takım sohbeti okunma imleci (YN-071): bu ana kadarki iletiler okundu; Takım sekmesi rozeti yeniden açılışta da doğru sayar
+CREATE TABLE IF NOT EXISTS chat_read(player_id TEXT NOT NULL, room TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, room));
 CREATE TABLE IF NOT EXISTS chat_reports(msg_id TEXT NOT NULL, reporter TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(msg_id, reporter));
 CREATE TABLE IF NOT EXISTS teams(id TEXT PRIMARY KEY, name TEXT NOT NULL, name_key TEXT NOT NULL UNIQUE, emblem TEXT NOT NULL, description TEXT NOT NULL, open INTEGER NOT NULL, code TEXT NOT NULL UNIQUE, min_level INTEGER NOT NULL, xp INTEGER NOT NULL DEFAULT 0, targets TEXT NOT NULL DEFAULT '[]', created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS help_requests(id TEXT PRIMARY KEY, team_id TEXT NOT NULL, from_id TEXT NOT NULL, level INTEGER NOT NULL, helpers TEXT NOT NULL DEFAULT '[]', max INTEGER NOT NULL, at INTEGER NOT NULL);

@@ -46,7 +46,7 @@ export function bindTeamRace(c: NetClient): void {
   });
   c.on('trace.challenged', ({ challenge }) => {
     set({ challenge });
-    toast('🏁', `${challenge.emblem} ${challenge.name} sizi Takım Yarışına davet ediyor`, `${challenge.size}'e ${challenge.size} · Takım › Takım Yarışı`);
+    toast('🏁', `${challenge.name} sizi Takım Yarışına davet ediyor`, `${challenge.size}'e ${challenge.size} · Takım › Takım Yarışı`);
     void refreshTeamRace();
   });
   c.on('trace.reaction', ({ name, emoji }) => {

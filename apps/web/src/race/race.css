@@ -53,7 +53,7 @@
 .race-msg.mine { align-self:flex-end; background:#efeaff; border-radius:12px 12px 4px 12px; }
 .race-msg.emoji span { font-size:1.5rem; }
 .race-quick { display:flex; gap:6px; }
-.race-emoji { appearance:none; border:1px solid var(--line); background:var(--bg2); border-radius:999px; width:38px; height:34px; font-size:1.125rem; cursor:pointer; }
+.race-emoji { appearance:none; border:1px solid var(--line); background:var(--bg2); border-radius:999px; width:38px; height:34px; font-size:1.125rem; cursor:pointer; display:inline-grid; place-items:center; padding:0; }
 .race-chat-form { display:flex; gap:6px; }
 .race-chat-form .race-input { padding:9px 12px; font-size:1rem; } /* ≥ 16 px: iOS odakta yakınlaştırmasın */
 .race-actions { position:sticky; bottom:0; display:flex; flex-direction:column; gap:8px; padding:10px 0 4px; background:linear-gradient(to top, #fff 75%, rgba(255,255,255,0)); margin-top:auto; }

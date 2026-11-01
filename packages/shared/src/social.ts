@@ -343,6 +343,10 @@ export interface OpMap {
   'chat.send': { req: { room: string; text: string; kind?: 'text' | 'emoji' | 'hazir'; replyTo?: string; cid?: string }; res: { msg: ChatMessage } };
   'chat.report': { req: { msgId: string }; res: Record<string, never> };
   'chat.mute': { req: { id: string; on: boolean }; res: { muted: string[] } };
+  /** takım sohbeti okunma imleci (YN-071): `at` anına kadarki iletiler okundu (geri gitmez); yanıt kalan okunmamış sayısı */
+  'chat.read': { req: { room: string; at: number }; res: { unread: number } };
+  /** okunmamış ileti sayısı (imleçten sonra, başkasının yazdığı, konu yanıtı olmayan, kendisi hakkında olmayan; en çok 99). İmleç yoksa şimdi kurulur. */
+  'chat.unread': { req: { room: string }; res: { unread: number } };
   /** v7: tüm takımlar (açık + başvuruyla), takım gücüne göre; filtre ve sayfalama isteğe bağlı (bkz. TAKIM BAŞVURUSU) */
   'team.list': { req: { query?: string; filter?: TeamListFilter; offset?: number; limit?: number }; res: { teams: TeamBrowseRow[]; next?: number | null; total?: number } };
   'team.create': { req: { name: string; emblem: string; description?: string; open?: boolean; minLevel?: number }; res: { team: TeamDetail } };

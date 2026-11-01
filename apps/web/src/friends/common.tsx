@@ -5,6 +5,8 @@ import { platform } from '../platform';
 import type { Nav } from '../nav';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { TIER } from '../ui/social';
+import { Art, TeamEmblem } from '../ui/art';
+import type { ReactNode } from 'react';
 import { hatKey } from '../screens/team/TeamMembers';
 import { friendsNet, sendDm, useFriends } from './state';
 
@@ -25,9 +27,10 @@ export function Av({ p, size = 44, dot = true, mood }: { p: Pick<PublicProfile, 
   );
 }
 
-/** "12. bölüm · 🐚 Kulaklar" gibi kısa satır */
-export function infoLine(p: PublicProfile): string {
-  return [`${p.highest}. bölüm`, p.teamName ? `${p.teamEmblem ?? ''} ${p.teamName}`.trim() : null].filter(Boolean).join(' · ');
+/** "12. bölüm · (amblem) Kulaklar" gibi kısa satır; amblem çizimdir (TeamEmblem, YN-060), takım adı oyuncu içeriği */
+export function infoLine(p: PublicProfile): ReactNode {
+  if (!p.teamName) return `${p.highest}. bölüm`;
+  return <>{p.highest}. bölüm · <TeamEmblem e={p.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{p.teamName}</span></>;
 }
 export const tierLabel = (p: PublicProfile) => `${TIER[p.league].icon} ${TIER[p.league].name}`;
 
@@ -47,7 +50,7 @@ export function Sticker({ id, color, hat, size = 108 }: { id: string; color: num
   return (
     <span className="fr-sticker" role="img" aria-label={`Çıkartma: ${s.label}`} style={{ width: size, height: size }}>
       <OdiAvatar size={Math.round(size * 0.82)} color={color} hat={hatKey(hat)} mood={s.mood} />
-      <i className="fr-sticker-emo" aria-hidden style={{ fontSize: Math.round(size * 0.3) }}>{s.emoji}</i>
+      <i className="fr-sticker-emo" aria-hidden><Art e={s.emoji} size={Math.round(size * 0.32)} /></i>
       {size >= 80 && <b className="fr-sticker-cap">{s.label}</b>}
     </span>
   );

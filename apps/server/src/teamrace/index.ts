@@ -138,8 +138,8 @@ function startMatch(app: App, a: Lobby, b: Lobby, friendly: boolean): void {
   for (const l of [a, b]) { l.status = 'eslesti'; l.raceId = room.id; l.matchId = matchId; l.searchingSince = null; l.outgoing = null; l.note = null; }
   st(app).incoming.get(a.teamId)?.delete(b.teamId); st(app).incoming.get(b.teamId)?.delete(a.teamId);
   for (const id of [...ida, ...idb]) app.emit(id, 'trace.matched', { room });
-  systemMessage(app, teamRoom(ta.id), `Takım Yarışı başladı: ${ta.emblem} ${ta.name} (${ida.length}) – ${tb.emblem} ${tb.name} (${idb.length}) · ${level}. bölüm${friendly ? ' · dostluk maçı' : ''}`, 'system', { event: 'tyaris', matchId });
-  systemMessage(app, teamRoom(tb.id), `Takım Yarışı başladı: ${tb.emblem} ${tb.name} (${idb.length}) – ${ta.emblem} ${ta.name} (${ida.length}) · ${level}. bölüm${friendly ? ' · dostluk maçı' : ''}`, 'system', { event: 'tyaris', matchId });
+  systemMessage(app, teamRoom(ta.id), `Takım Yarışı başladı: ${ta.name} (${ida.length}) – ${tb.name} (${idb.length}) · ${level}. bölüm${friendly ? ' · dostluk maçı' : ''}`, 'system', { event: 'tyaris', matchId });
+  systemMessage(app, teamRoom(tb.id), `Takım Yarışı başladı: ${tb.name} (${idb.length}) – ${ta.name} (${ida.length}) · ${level}. bölüm${friendly ? ' · dostluk maçı' : ''}`, 'system', { event: 'tyaris', matchId });
   push(app, a.teamId); push(app, b.teamId);
 }
 
@@ -198,7 +198,7 @@ export function finalize(app: App, matchId: string): TeamRaceResult | null {
         const o = outcome(r.side); if (r.left || (o === 'lose' && r.place == null) || isAdmin(app, r.id)) continue;
         if (app.dailyCount(r.id, day, 'tyaris_odul') >= R.rewardRacesPerDay) continue;
         app.dailyInc(r.id, day, 'tyaris_odul');
-        const g = R.rewards[o]; const why = `Takım Yarışı ${o === 'win' ? 'kazanıldı' : o === 'draw' ? 'berabere' : 'katılım'}: ${A.emblem} ${A.score} – ${B.score} ${B.emblem}`;
+        const g = R.rewards[o]; const why = `Takım Yarışı ${o === 'win' ? 'kazanıldı' : o === 'draw' ? 'berabere' : 'katılım'}: ${A.name} ${A.score} – ${B.score} ${B.name}`;
         if (g.jeton) app.addInbox(r.id, { kind: 'jeton', amount: g.jeton, ref: 'takim-yarisi' }, why);
         if (g.kristal) app.addInbox(r.id, { kind: 'kristal', amount: g.kristal, ref: 'takim-yarisi' }, why);
       }
@@ -209,7 +209,7 @@ export function finalize(app: App, matchId: string): TeamRaceResult | null {
       const mvp = rows.find((r) => r.side === k && r.place != null) ?? rows.find((r) => r.side === k);
       const word = o === 'win' ? 'Kazandınız!' : o === 'draw' ? 'Berabere!' : 'Bu sefer olmadı.';
       postCard(app, teamRoom(us.teamId), {
-        kind: 'feed', text: `Takım Yarışı: ${us.emblem} ${us.name} ${us.score} – ${them.score} ${them.name} ${them.emblem} · ${word}`,
+        kind: 'feed', text: `Takım Yarışı: ${us.name} ${us.score} – ${them.score} ${them.name} · ${word}`,
         meta: { type: 'tyaris', matchId, pid: mvp?.id ?? '', pname: mvp?.name ?? us.name, pc: mvp?.color ?? 0x8b6bff, ph: mvp?.hat ?? '', us: us.score, them: them.score, rival: them.teamId, rivalName: them.name, rivalEmblem: them.emblem, outcome: o, counted: result.counted ? 1 : 0 },
       });
     }
@@ -268,7 +268,7 @@ function sendChallenge(app: App, pid: string, from: Lobby, toTeam: string): void
   m.set(from.teamId, { size: from.size, until });
   from.outgoing = { teamId: toTeam, until };
   const me = app.team(from.teamId)!;
-  systemMessage(app, teamRoom(toTeam), `${me.emblem} ${me.name} takımı sizi ${from.size}'e ${from.size} Takım Yarışına davet ediyor (10 dk). Lider ya da yardımcı Takım › Takım Yarışı'ndan kabul edebilir.`, 'system', { event: 'tyaris', from: me.id });
+  systemMessage(app, teamRoom(toTeam), `${me.name} takımı sizi ${from.size}'e ${from.size} Takım Yarışına davet ediyor (10 dk). Lider ya da yardımcı Takım › Takım Yarışı'ndan kabul edebilir.`, 'system', { event: 'tyaris', from: me.id });
   const ch: TeamRaceChallenge = { teamId: me.id, name: me.name, emblem: me.emblem, size: from.size, until };
   for (const id of app.teamMemberIds(toTeam)) app.emit(id, 'trace.challenged', { challenge: ch });
   push(app, toTeam);

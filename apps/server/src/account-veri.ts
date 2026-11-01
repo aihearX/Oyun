@@ -180,6 +180,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     not: 'Başka oyuncuların yazdığı metinlere dokunulmaz (onların içeriği); sohbet 30 günde silinir (pruneChat).',
   },
   chat_cid: { oyuncu: { player_id: SIL }, degil: ['msg_id'] },
+  chat_read: { oyuncu: { player_id: SIL }, takim: { room: sil(`room = 'takim:' || ?`) }, not: 'Takım sohbeti okunma imleci (yalnız zaman); takım silinince de silinir.' },
   chat_reactions: {
     oyuncu: { player_id: SIL },
     bagli: [

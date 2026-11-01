@@ -193,7 +193,7 @@
 .dm-panel-tabs button { appearance:none; flex:1; min-height:38px; border-radius:12px; border:2px solid rgba(255,255,255,.1); background:rgba(5,2,20,.3); color:var(--text-2); font:inherit; font-weight:900; font-size:0.8125rem; cursor:pointer; }
 .dm-panel-tabs button.on { color:var(--gold-ink); background:linear-gradient(180deg, var(--gold), var(--gold-2)); border-color:var(--gold); }
 .dm-emoji-grid { display:grid; grid-template-columns:repeat(8, 1fr); gap:2px; max-height:176px; overflow-y:auto; }
-.dm-emoji-grid button { appearance:none; border:0; background:none; font-size:26px; height:44px; border-radius:12px; cursor:pointer; }
+.dm-emoji-grid button { appearance:none; border:0; background:none; font-size:26px; height:44px; border-radius:12px; cursor:pointer; display:grid; place-items:center; padding:0; }
 .dm-emoji-grid button:active { background:rgba(255,255,255,.1); }
 .dm-st-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; max-height:200px; overflow-y:auto; padding-bottom:6px; }
 .dm-st-btn { appearance:none; border:0; background:rgba(255,255,255,.04); border-radius:16px; padding:4px 0 8px; cursor:pointer; display:flex; justify-content:center; }
@@ -204,7 +204,7 @@
 
 /* uzun bas menüsü */
 .dm-react-bar { display:flex; justify-content:space-between; gap:4px; padding:6px; border-radius:999px; background:rgba(5,2,20,.45); border:2px solid var(--panel-edge); }
-.dm-react-bar button { appearance:none; border:0; background:none; font-size:30px; width:48px; height:48px; border-radius:50%; cursor:pointer; transition:transform .12s; }
+.dm-react-bar button { appearance:none; border:0; background:none; font-size:30px; width:48px; height:48px; border-radius:50%; cursor:pointer; display:grid; place-items:center; padding:0; transition:transform .12s; }
 .dm-react-bar button:active { transform:scale(1.25); }
 .dm-react-bar button.on { background:color-mix(in srgb, var(--gold) 28%, transparent); }
 .dm-quote { font-weight:700; color:var(--text-2); overflow-wrap:anywhere; white-space:pre-wrap; max-height:120px; overflow:auto; }

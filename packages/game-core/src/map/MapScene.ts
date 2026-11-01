@@ -5,7 +5,7 @@
  */
 import Phaser from 'phaser';
 import { BIOMES } from '@odi/content';
-import { emojiTexture, hatTexture, heroTexture } from '../art';
+import { hatTexture, heroTexture, svgTexture } from '../art';
 import { buildLayout, journeyDone, planReturn, pointAt, RETURN_MAX_MS, returnDurationMs, unlockedOf, zoneVitality, type MapLayout, type MapNode, type ReturnStep, type StarMap, type ZoneId } from './layout';
 import { darken } from './paint';
 import { RegionView, wait } from './region';
@@ -377,8 +377,9 @@ export class MapScene extends Phaser.Scene {
       const side = k % 2 ? -1 : 1; const x = W / 2 + side * 132, y = rv.label.y - 4 + Math.floor(k / 2) * 36;
       if (m.owned) {
         const fl = this.add.image(x, y, flagTex(this, this.R, s.teamColor ?? 0xff5c8a)).setScale(1 / this.R).setOrigin(0.18, 0.95).setDepth(8.6);
-        const em = this.add.image(x + 12, y - 40, emojiTexture(this, `emj-${m.emblem}`, m.emblem, 48)).setScale(0.36).setDepth(8.7);
-        this.social.push(fl, em);
+        this.social.push(fl);
+        const svg = m.emblemSvg;
+        if (svg) svgTexture(this, `emb-${m.emblem}`, svg, (k) => { if (this.social.includes(fl)) this.social.push(this.add.image(x + 12, y - 40, k).setDisplaySize(17, 17).setDepth(8.7)); });
         if (!this.light) this.socialTw.push(this.tweens.add({ targets: fl, scaleX: 0.9 / this.R, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }));
       }
       if (m.target) {

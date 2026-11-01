@@ -9,7 +9,7 @@ import { useNav } from '../nav';
 import { useEvents } from './store';
 import { Countdown, EVENT_META, levelName, useSrvNow } from './common';
 import { MonsterArt } from './MonsterArt';
-import { Art, Glyph, rich } from '../ui/art';
+import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
 
 /** Etkinlik kartı: renkli bant (etkinliğin vurgu rengi), başlık, kalan süre, içerik, ana düğme */
 export function EvCard({ kind, live, clock, cta, ctaTone, onOpen, children, testId }: { kind: EventKind; live?: string | null; clock?: ReactNode; cta?: string; ctaTone?: 'gold' | 'ghost'; onOpen: () => void; children?: ReactNode; testId?: string }) {
@@ -120,9 +120,9 @@ function MiniTug({ a, b, ea, eb }: { a: number; b: number; ea: string; eb: strin
   const p = a + b > 0 ? a / (a + b) : 0.5;
   return (
     <div className="ev-tug mini" aria-label={`Biz ${a}, rakip ${b}`}>
-      <span className="ev-tug-e" data-ugc>{ea}</span><b>{fmtNum(a)}</b>
+      <span className="ev-tug-e" aria-hidden><TeamEmblem e={ea} /></span><b>{fmtNum(a)}</b>
       <div className="ev-tug-bar"><i style={{ width: `${p * 100}%` }} /></div>
-      <b>{fmtNum(b)}</b><span className="ev-tug-e" data-ugc>{eb}</span>
+      <b>{fmtNum(b)}</b><span className="ev-tug-e" aria-hidden><TeamEmblem e={eb} /></span>
     </div>
   );
 }

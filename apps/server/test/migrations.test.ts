@@ -65,6 +65,28 @@ describe('şema sürümü ve göçler', () => {
     db.close();
   });
 
+  it('göç 10 (YN-071): kayıtlı Takım Akışı kamp kartının bozuk cümlesi meta öğelerinden yeniden kurulur', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    const kart = (id: string, text: string, items: string) => old.run("INSERT INTO chat(id, room, from_id, name, color, text, kind, at, meta) VALUES(?, 'takim:t1', 'sistem', 'Sistem', 0, ?, 'feed', 1, ?)",
+      id, text, JSON.stringify({ type: 'bina', pid: 'p1', pname: 'DrMelis', items }));
+    kart('m1', 'DrMelis kampında Timpanometri Kulesi kurdu yaptı.', 'Timpanometri Kulesi kurdu');
+    kart('m2', 'DrMelis kampında Kulak Kepçesi 3. seviye yaptı.', 'Kulak Kepçesi 3. seviye');
+    kart('m3', 'DrMelis kampında 2 binayı geliştirdi: Timpanometri Kulesi kurdu, Kulak Kepçesi 3. seviye.', 'Timpanometri Kulesi kurdu,Kulak Kepçesi 3. seviye');
+    old.run("INSERT INTO chat(id, room, from_id, name, color, text, kind, at, meta) VALUES('m4', 'takim:t1', 'p1', 'DrMelis', 0, 'kurdu yaptı.', 'text', 1, NULL)");
+    old.raw.exec('PRAGMA user_version = 9');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    const t = (id: string) => db.get<{ text: string }>('SELECT text FROM chat WHERE id = ?', id)?.text;
+    expect(t('m1')).toBe('DrMelis kampında Timpanometri Kulesi kurdu.');
+    expect(t('m2')).toBe('DrMelis kampında Kulak Kepçesi yapısını 3. seviyeye yükseltti.');
+    expect(t('m3')).toBe('DrMelis kampında 2 binayı geliştirdi: Timpanometri Kulesi (yeni), Kulak Kepçesi (3. seviye).');
+    expect(t('m4')).toBe('kurdu yaptı.'); // oyuncunun yazdığı metne dokunulmaz
+    db.close();
+  });
+
   it('bekleyenler sırayla uygulanır, addColumn tekrar güvenli; hatalı göç geri alınır ve sürüm ilerlemez; yeni şema uyarı verir', () => {
     const raw = new DatabaseSync(':memory:');
     raw.exec('CREATE TABLE t(id INTEGER PRIMARY KEY, a TEXT); INSERT INTO t(a) VALUES (\'x\')');

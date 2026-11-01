@@ -10,9 +10,11 @@ import type { BiomeId, DecorPlaced } from '@odi/shared';
 import { bridgeBox, districtBox, paintBridge, paintDistrict, paintDistrictLocked } from './districts';
 import { DECOR_BOX, paintDecor } from './decor';
 import { HELPER_COLORS } from './props';
+import { svgTexture } from '../art';
 import { FLASH, safeFlashColor, setFlashPolicy, takeFlash } from '../render/flash';
 
-export interface CampTeam { emblem: string; name: string }
+/** emblemSvg: amblemin çizimi (kabuk verir, ui/art.tsx artSvg); yoksa bayrak amblemsiz (emoji glifi çizilmez, YN-060) */
+export interface CampTeam { emblem: string; name: string; emblemSvg?: string }
 export interface CampSceneOpts {
   camp: CampState;
   /** sunucu saatine eşitlenmiş şimdi (ms) */
@@ -684,10 +686,12 @@ export class CampScene extends Phaser.Scene {
     const cloth = this.add.graphics();
     cloth.fillStyle(0x6c4cf1, 1); cloth.beginPath(); cloth.moveTo(1, -76); cloth.lineTo(38, -73); cloth.lineTo(34, -61); cloth.lineTo(38, -49); cloth.lineTo(1, -52); cloth.closePath(); cloth.fillPath();
     cloth.fillStyle(0x8b6bff, 1); cloth.fillRect(1, -76, 34, 4); cloth.lineStyle(1.4, 0xffc93c, 1); cloth.strokePath();
-    const em = this.add.text(17, -63, team.emblem, { fontFamily: '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif', fontSize: '15px' }).setOrigin(0.5).setResolution(this.dpr * 1.5);
+    const em = this.add.container(17, -63);
     const c = this.add.container(l.x - 128, l.y + 40, [pole, cloth, em]).setDepth(l.y + 40);
     if (!this.opts.reducedMotion) this.tweens.add({ targets: [cloth, em], scaleX: { from: 1, to: 0.82 }, scaleY: { from: 1, to: 1.04 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
     this.teamFlag = c;
+    const svg = team.emblemSvg;
+    if (svg) svgTexture(this, `emb-${team.emblem}`, svg, (k) => { if (this.teamFlag === c) em.add(this.add.image(0, 0, k).setDisplaySize(16, 16)); });
   }
 
   // ------------------------------------------------------------------ süsler ve sis

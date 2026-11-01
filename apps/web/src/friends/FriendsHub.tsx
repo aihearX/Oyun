@@ -9,7 +9,7 @@ import { Av, giftFriend, infoLine, raceWith, requestFriend, useOnline } from './
 import { friendsNet, openProfile, refreshFriends, useFriends } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
-import { Art, Glyph, rich } from '../ui/art';
+import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 
 type T = 'arkadaslar' | 'istekler' | 'oneriler';
@@ -99,7 +99,7 @@ function SearchResults({ q }: { q: string }) {
         <div className="card fr-row" key={h.profile.id} data-testid="arama-sonucu">
           <button className="fr-row-main" onClick={() => openProfile(h.profile.id)} aria-label={`${h.profile.name} profili`}>
             <Av p={h.profile} />
-            <span className="min0 grow fr-row-text"><b className="ellipsis">{h.profile.name}</b><small className="ellipsis"><Art e="⭐" size="1.15em" className="art-inline" /> {h.profile.stars} · {<span data-ugc>{infoLine(h.profile)}</span>}</small></span>
+            <span className="min0 grow fr-row-text"><b className="ellipsis">{h.profile.name}</b><small className="ellipsis"><Art e="⭐" size="1.15em" className="art-inline" /> {h.profile.stars} · {infoLine(h.profile)}</small></span>
           </button>
           <RelBtn hit={h} onDone={(r) => setRel(h.profile.id, r)} />
         </div>
@@ -121,7 +121,7 @@ function FriendRow({ f, raceReady }: { f: PublicProfile; raceReady: boolean }) {
         <Av p={f} />
         <span className="min0 grow fr-row-text">
           <b className="ellipsis">{f.name}</b>
-          <small className="ellipsis">{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{f.highest}. bölüm{f.teamEmblem ? <> · <span data-ugc>{f.teamEmblem}</span></> : ''}</small>
+          <small className="ellipsis">{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{f.highest}. bölüm{f.teamEmblem ? <> · <TeamEmblem e={f.teamEmblem} size="1.1em" className="art-inline" /></> : ''}</small>
         </span>
       </button>
       <div className="fr-acts">

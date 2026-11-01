@@ -20,7 +20,7 @@ import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
 import { mapGoals, treasureItems } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
-import { Art, Glyph, Rich } from '../ui/art';
+import { Art, Glyph, Rich, artSvg, emblemArt } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
 import { Icon } from '../ui/icons';
 import '../map/map.css';
@@ -160,7 +160,7 @@ function useMapSocial(): MapSocial | null {
         if (!owned && !target) continue;
         const def = WAR_REGIONS.find((x) => x.id === r.id);
         const zone: ZoneId = r.id === 'merkez' ? 'finale' : ((def?.biomes[0] ?? r.biomes[0] ?? 'dis-kulak') as ZoneId);
-        marks.push({ regionId: r.id, name: r.name, zone, emblem: team.emblem, owned, target });
+        marks.push({ regionId: r.id, name: r.name, zone, emblem: team.emblem, emblemSvg: artSvg(emblemArt(team.emblem), 48), owned, target });
       }
     }
     return { friends: (friends ?? []).map((f) => ({ id: f.id, name: f.name, color: f.color, highest: f.highest })), war: marks, teamColor: 0xff5c8a };

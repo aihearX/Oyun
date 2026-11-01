@@ -172,7 +172,7 @@ export const dmHandlers: Handlers = {
         const t = p.team_id === roomId ? app.db.get<{ name: string; emblem: string; code: string; open: number }>('SELECT name, emblem, code, open FROM teams WHERE id = ?', roomId) : undefined;
         if (!t) fail('YETKI', 'Yalnızca kendi takımına davet edebilirsin.');
         if (app.player(to).team_id === roomId) fail('GECERSIZ', 'Zaten takımında.');
-        body = `${t.emblem} ${t.name} takımına katılmak ister misin? Kod: ${t.code}`;
+        body = `${t.name} takımına katılmak ister misin? Kod: ${t.code}`;
         saveMeta.code = t.code; saveMeta.title = 'Takım daveti';
       }
       if (typeof meta?.level === 'number' && Number.isInteger(meta.level) && meta.level > 0 && meta.level < 10_000) saveMeta.level = meta.level;

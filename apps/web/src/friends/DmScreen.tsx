@@ -9,13 +9,16 @@ import { Av, Sticker, dayLabel, lastSeenText, openInvite, raceWith, useOnline } 
 import { applyMsg, friendsNet, loadConvo, openProfile, readActive, sendDm, useFriends } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
-import { Art } from '../ui/art';
+import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
 import { PhraseStrip, SafeChatSheet } from '../comm/Cards';
 import { useCanFreeText, useComm } from '../comm/state';
 
-const EMOJIS = ['😀', '😂', '🥰', '😎', '🤩', '😮', '😢', '😡', '👍', '👏', '🙏', '💪', '🔥', '🎉', '❤️', '💜', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '👋', '😴'];
+/** simge paneli: her biri çizimle görünür (ui/art.tsx EMOJI_ART); iletiye emoji kodu yazılır, balonda çizim çıkar (YN-071) */
+const EMOJIS = ['😀', '😂', '😮', '😢', '😡', '👋', '👍', '👏', '💪', '🔥', '❤️', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '😴'];
+/** tepki adları (erişilebilir ad; tepki çizimle gösterilir) */
+const REACT_NAME: Record<string, string> = { '❤️': 'Kalp', '😂': 'Kahkaha', '😮': 'Vay', '😢': 'Üzgün', '👍': 'Tamam', '🔥': 'Ateş' };
 const EMPTY: DmMessage[] = [];
 
 /** klavye açılınca görünür alanın yüksekliği (mobil WebView): giriş alanı hep görünür kalsın */
@@ -101,7 +104,8 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
     const c = friendsNet(); const t = Date.now();
     if (c && v.trim() && t - lastTyping.current > 2500) { lastTyping.current = t; c.fire('dm.typing', { to: id }); }
   };
-  const pickEmoji = (e: string) => { if (text.trim()) { setText((t) => t + e); input.current?.focus(); } else void send(e, 'emoji'); };
+  // simge her zaman kendi iletisi olarak gider (yazının içine emoji glifi eklenmez); yazılan metin kutuda kalır
+  const pickEmoji = (e: string) => { void send(e, 'emoji'); };
 
   const lastMine = [...msgs].reverse().find((m) => m.from === me?.id && !m.deleted);
   const peerRead = conv?.peerReadSeq ?? 0;
@@ -157,13 +161,13 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           {panel && (
             <div className="dm-panel" role="dialog" aria-label="Emoji ve çıkartmalar">
               <div className="dm-panel-tabs">
-                <button className={panel === 'emoji' ? 'on' : ''} onClick={() => setPanel('emoji')}><Icon name="smile" size="1.1em" className="ic-inline" /> Emoji</button>
+                <button className={panel === 'emoji' ? 'on' : ''} onClick={() => setPanel('emoji')}><Icon name="smile" size="1.1em" className="ic-inline" /> Simgeler</button>
                 <button className={panel === 'odi' ? 'on' : ''} onClick={() => setPanel('odi')}><Art e="🫧" size="1.15em" className="art-inline" /> Odi çıkartmaları</button>
                 <button className={panel === 'soz' ? 'on' : ''} onClick={() => setPanel('soz')}><Art name="chat" size="1.15em" className="art-inline" /> Hazır sözler</button>
               </div>
               {panel === 'soz' ? <div className="dm-phrases"><PhraseStrip ctx={['genel', 'tebrik', 'tesekkur', 'yaris']} onPick={(pid) => { void send(pid, 'hazir'); setPanel(''); }} /></div>
                 : panel === 'emoji'
-                ? <div className="dm-emoji-grid">{EMOJIS.map((e) => <button key={e} onClick={() => pickEmoji(e)} aria-label={`Emoji ${e}`}>{e}</button>)}</div>
+                ? <div className="dm-emoji-grid">{EMOJIS.map((e) => <button key={e} onClick={() => pickEmoji(e)} aria-label={`Simge ${e}`}><Art e={e} size={28} /></button>)}</div>
                 : <div className="dm-st-grid">{DM_STICKERS.map((s) => <button key={s.id} className="dm-st-btn" onClick={() => { void send(s.id, 'sticker'); setPanel(''); }} aria-label={`Çıkartma gönder: ${s.label}`}><Sticker id={s.id} color={me?.color ?? 0x8b6bff} hat={me?.hat ?? ''} size={72} /></button>)}</div>}
             </div>
           )}
@@ -203,7 +207,7 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   let body;
   if (m.deleted) body = <div className="dm-bubble deleted"><Art e="🚫" size="1.15em" className="art-inline" /> Bu mesaj silindi {meta}</div>;
   else if (m.kind === 'sticker') body = <div className="dm-free">{sender && <Sticker id={m.text} color={sender.color} hat={sender.hat} />}{meta}</div>;
-  else if (m.kind === 'emoji') body = <div className="dm-free"><span className="dm-big-emoji">{m.text}</span>{meta}</div>;
+  else if (m.kind === 'emoji') body = <div className="dm-free"><span className="dm-big-emoji" data-ugc>{rich(m.text, '1em')}</span>{meta}</div>;
   else if (m.kind === 'davet') {
     const yaris = m.meta?.type === 'yaris'; const takim = m.meta?.type === 'takim';
     body = (
@@ -219,8 +223,8 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
     <div className={`dm-row ${mine ? 'mine' : 'theirs'}${tail ? ' end' : ''}`} onPointerDown={down} onPointerUp={cancel} onPointerLeave={cancel} onPointerMove={move} onContextMenu={(e) => { e.preventDefault(); if (!m.deleted) onMenu(); }} data-testid="dm-mesaj">
       {body}
       {counts.size > 0 && (
-        <button className="dm-reacts" onClick={onMenu} aria-label={`Tepkiler: ${[...counts.keys()].join(' ')}`}>
-          {[...counts.entries()].map(([e, n]) => <span key={e} className={m.reactions?.[meId] === e ? 'me' : ''}>{e}{n > 1 ? n : ''}</span>)}
+        <button className="dm-reacts" onClick={onMenu} aria-label={`Tepkiler: ${[...counts.keys()].map((e) => REACT_NAME[e] ?? 'tepki').join(', ')}`}>
+          {[...counts.entries()].map(([e, n]) => <span key={e} className={m.reactions?.[meId] === e ? 'me' : ''}>{rich(e, '1.1em')}{n > 1 ? n : ''}</span>)}
         </button>
       )}
     </div>
@@ -235,7 +239,7 @@ function MsgMenu({ m, mine, meId, name, onClose }: { m: DmMessage; mine: boolean
   return (
     <Sheet onClose={onClose}>
       <div className="dm-react-bar" role="group" aria-label="Tepki ver">
-        {DM_REACTIONS.map((e) => <button key={e} className={m.reactions?.[meId] === e ? 'on' : ''} onClick={() => void react(e)} aria-label={`Tepki ${e}`}>{e}</button>)}
+        {DM_REACTIONS.map((e) => <button key={e} className={m.reactions?.[meId] === e ? 'on' : ''} onClick={() => void react(e)} aria-label={`Tepki: ${REACT_NAME[e] ?? e}`}><Art e={e} size={28} /></button>)}
       </div>
       {m.kind === 'text' && <div className="dm-quote">“{m.text}”</div>}
       {m.kind === 'text' && <button className="btn ghost" onClick={() => void copy()}><Art e="📋" size="1.15em" className="art-inline" /> Kopyala</button>}

@@ -5,7 +5,7 @@ import { errText, getNet } from '../net';
 import { platform } from '../platform';
 import { ScreenHead } from '../ui/bits';
 import { Online, Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../ui/social';
-import { Art, type ArtName } from '../ui/art';
+import { Art, TeamEmblem, type ArtName } from '../ui/art';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { hatKey } from '../screens/team/TeamMembers';
 import { openProfile } from '../friends/state';
@@ -110,7 +110,7 @@ function Reset({ at }: { at: number }) {
 }
 
 function Face({ r, team, size }: { r: RankRowView; team: boolean; size: number }) {
-  if (team) return <span className="rr-emb" data-ugc style={{ fontSize: Math.round(size * 0.62), width: size, height: size }}>{r.emblem}</span>;
+  if (team) return <span className="rr-emb" aria-hidden style={{ fontSize: Math.round(size * 0.62), width: size, height: size }}><TeamEmblem e={r.emblem} /></span>;
   return <OdiAvatar size={size} color={r.color} hat={hatKey(r.hat ?? '')} />;
 }
 

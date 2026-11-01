@@ -6,7 +6,7 @@ import { Sheet } from '../ui/social';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, fmtSecs, levelName } from './common';
 import type { PlayFn } from './EventsScreen';
-import { Art, Glyph, rich } from '../ui/art';
+import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
 
 const LEG_ICON = ['🏃', '🤸', '⚙️', '🏊'];
 
@@ -65,7 +65,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
       <div className="card">
         <b>Takımlar arası (toplam süre)</b>
         {r.ranking.length === 0 ? <div className="muted small-note">Bu hafta henüz parkuru bitiren yok.</div> : (
-          <ol className="rank-list">{r.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><span data-ugc>{t.emblem}</span> {t.name}</span><b>{t.totalSec != null ? fmtSecs(t.totalSec) : `${t.legs}/4 ayak`}</b></li>)}</ol>
+          <ol className="rank-list">{r.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{t.totalSec != null ? fmtSecs(t.totalSec) : `${t.legs}/4 ayak`}</b></li>)}</ol>
         )}
       </div>
       {r.history.length > 0 && <div className="card"><b>Bayrağı taşıyanlar</b><ul className="ev-feed">{r.history.map((h, i) => <li key={i}><span className="grow ellipsis"><Art e="🚩" size="1.15em" className="art-inline" /> {h.name} · {h.leg + 1}. ayak</span><b>{fmtSecs(h.timeSec)}</b></li>)}</ul></div>}

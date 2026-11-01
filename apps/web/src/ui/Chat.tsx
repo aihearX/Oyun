@@ -1,19 +1,21 @@
 import { openProfile } from '../friends/state';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { COMM_RULES, SOCIAL_LIMITS, type ChatMessage } from '@odi/shared';
+import { CHAT_REACTIONS, COMM_RULES, REACTION_LABEL, SOCIAL_LIMITS, type ChatMessage, type ChatReaction } from '@odi/shared';
 import { newRunId } from '@odi/net';
 import { act, callSafe, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
 import { Art, Glyph, rich } from './art';
-import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
+import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, REACTION_ART, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
 import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { featureOpen } from '../ftue/useFeatures';
 
-const QUICK = ['👍', '❤️', '😂', '🔥', '👏', '💪', '🎉', '🙏'];
+/** hızlı tepki satırı: mesaj kartı tepkileriyle aynı çizili set (YN-071). İletiye eşlenen emoji kodu yazılır (sunucu 'emoji' türünü
+ *  böyle doğrular, eski istemciler de okur); balonda kod değil çizim görünür (artFor / EMOJI_ART, eski 😂 gibi kayıtlar dahil). */
+const QUICK_CODE: Record<ChatReaction, string> = { alkis: '👏', kalp: '❤️', ates: '🔥', yildiz: '⭐', guc: '💪' };
 const EMPTY: ChatMessage[] = [];
 export interface ChatMember { id: string; name: string; color: number; hat: string; online: boolean }
 
@@ -109,7 +111,18 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   }, [msgs, muted, dqOpen]);
 
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
-  const onScroll = () => { const b = box.current; if (b) stick.current = b.scrollHeight - b.scrollTop - b.clientHeight < 60; };
+  // takım sohbeti görünür ve sona kaydırılmışsa son iletiye kadar okundu (sunucu imleci; Takım sekmesi rozeti, YN-071)
+  const readAt = useRef(0);
+  const markRead = () => {
+    const b = box.current; if (!team || loading || !b || document.visibilityState === 'hidden') return;
+    if (b.scrollHeight - b.scrollTop - b.clientHeight >= 60) return;
+    const last = msgs.reduce((a, m) => Math.max(a, m.at), 0); if (!last || last <= readAt.current) return;
+    readAt.current = last;
+    getNet()?.call('chat.read', { room, at: last }).catch(() => { readAt.current = 0; });
+  };
+  useEffect(() => { markRead(); });
+  useEffect(() => { const vis = () => markRead(); document.addEventListener('visibilitychange', vis); return () => document.removeEventListener('visibilitychange', vis); });
+  const onScroll = () => { const b = box.current; if (b) stick.current = b.scrollHeight - b.scrollTop - b.clientHeight < 60; markRead(); };
 
   // gönderim kimliği (cid): aynı ileti yeniden denenirse sunucu bir kez yazar (kopukken / yanıt gelmeden kopunca)
   const cid = useRef<{ key: string; id: string } | null>(null);
@@ -152,7 +165,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
         {head && !mine && <button type="button" className="msg-name linkish" style={{ color: hex(m.color) }} onClick={() => openProfile(m.from)}>{m.name}</button>}
         {/* seçenekler düğmesi balonla aynı satırda, balonun hemen yanında (satırın sağ ucunda boşta durmaz) */}
         <div className="bubble-row">
-          <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>
+          <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{m.kind === 'emoji' ? <span className="emoji-art">{rich(m.text, '1.6em')}</span> : withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>
           {!mine && <button type="button" className="msg-more" onClick={() => setMenu(m)} aria-label={`${m.name} mesajı için seçenekler`}>⋯</button>}
         </div>
         {m.reactions && <ReactionBar msg={m} compact />}
@@ -168,8 +181,8 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
         {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : top.map(render)}
       </div>
       {phrases
-        ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Emoji tepkilerine geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
-        : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{QUICK.map((e) => <button key={e} className="quick" onClick={() => void send(e, 'emoji')} aria-label={`Hızlı tepki ${e}`}>{e}</button>)}</div></div>}
+        ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Tepkilere geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
+        : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{CHAT_REACTIONS.map((r) => <button key={r} type="button" className="quick" onClick={() => void send(QUICK_CODE[r], 'emoji')} aria-label={`Hızlı tepki: ${REACTION_LABEL[r]}`}><Art name={REACTION_ART[r]} size={22} /></button>)}</div></div>}
       {err && <div className="chat-err" role="alert">{err}</div>}
       {sending && st !== 'bağlı' && <div className="net-banner chat-wait" role="status" data-testid="sohbet-bekliyor">Bağlantı bekleniyor; iletin bağlanınca gönderilecek.</div>}
       {suggest.length > 0 && <div className="at-suggest" role="listbox" aria-label="Bahset">{suggest.map((m) => <button key={m.id} type="button" role="option" aria-selected={false} onClick={() => pickMention(m.name)}><span className="at-dot" style={{ background: hex(m.color) }} />@{m.name}</button>)}</div>}
@@ -182,7 +195,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       </form>
       {menu && (
         <Sheet title={menu.name} onClose={() => setMenu(null)}>
-          <div className="muted wrap">“{menu.text}”</div>
+          <div className="muted wrap">{menu.kind === 'emoji' ? rich(menu.text, '1.4em') : <span data-ugc>“{menu.text}”</span>}</div>
           <ReactionBar msg={menu} />
           <ActionButton block tone="teal" onClick={() => { setThread(menu); setMenu(null); }}>Yanıtla</ActionButton>
           {menu.from !== me?.id && <>

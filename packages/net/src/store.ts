@@ -58,7 +58,12 @@ export function bindNet(client: NetClient): () => void {
     try {
       const [w, t, inbox] = await Promise.all([client.call('wallet.get', {}), client.call('team.detail', {}), client.call('inbox.list', {})]);
       set({ wallet: w.wallet, team: t.team, inboxCount: inbox.items.length });
-      if (t.team) { const x = await client.call('team.extra', {}); set({ extra: x.extra, giftCount: giftsOf(x.extra) }); }
+      if (t.team) {
+        const x = await client.call('team.extra', {}); set({ extra: x.extra, giftCount: giftsOf(x.extra) });
+        // okunmamış takım iletileri sunucudaki okunma imlecinden (yeniden açılışta da doğru; YN-071); sohbet açıksa 0 kalır
+        const room = `takim:${t.team.id}`; const { unread } = await client.call('chat.unread', { room });
+        set((s) => ({ unread: { ...s.unread, [room]: s.activeRoom === room ? 0 : unread } }));
+      }
       else set({ extra: null, giftCount: 0 });
     } catch { /* bağlantı koptuysa bir sonraki bağlanışta yenilenir */ }
   };
@@ -83,8 +88,9 @@ export function bindNet(client: NetClient): () => void {
     // aynı ileti iki kez gelirse (yanıtla birlikte eklenmiş, yeniden katılım) yerinde güncellenir
     const dup = cur.some((m) => m.id === msg.id);
     const list = (dup ? cur.map((m) => (m.id === msg.id ? msg : m)) : [...cur, msg]).slice(-MAX_MSGS);
-    const mine = msg.from === s.me?.id;
-    const unread = dup || s.activeRoom === msg.room || mine ? s.unread : { ...s.unread, [msg.room]: (s.unread[msg.room] ?? 0) + 1 };
+    // sayılmaz: kendi iletin, seninle ilgili akış kartı (meta.pid), konu yanıtı (üst mesajın altında), açık oda (sunucu imleciyle aynı kural)
+    const me = s.me?.id; const mine = msg.from === me || (!!me && msg.meta?.pid === me);
+    const unread = dup || s.activeRoom === msg.room || mine || msg.replyTo ? s.unread : { ...s.unread, [msg.room]: Math.min(99, (s.unread[msg.room] ?? 0) + 1) };
     return { messages: { ...s.messages, [msg.room]: list }, unread };
   })));
   if (client.status === 'bağlı') void refresh();

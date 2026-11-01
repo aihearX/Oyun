@@ -8,7 +8,7 @@ import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
 import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtTry } from '../ui/social';
-import { Art, Rich } from '../ui/art';
+import { Art, Rich, TeamEmblem } from '../ui/art';
 import { STORE_PRICE_NOTE, loadStorePrices, priceLabel, type StorePriceMap } from '../shopPrice';
 
 type Product = ShopProduct & { bought: number };
@@ -115,7 +115,7 @@ function Shop() {
           {!pl.store && <div className="muted small-note">TL liste fiyatı. {STORE_PRICE_NOTE}.</div>}
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
           {sel.id === 'odi.pass' && <PassTerms />}
-          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <span data-ugc>{team.emblem}</span> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
+          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <TeamEmblem e={team.emblem} size="1.1em" className="art-inline" /> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
           <div className="muted small-note">Aylık sınır (TL liste fiyatıyla): {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / {fmtTry(sp.limitTry)}</div>
           {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı mağazadaki "Sınırı ayarla"dan değiştirebilirsin (yükseltme ayrıca onay ister, 24 saat sonra geçerli olur).</div>}
           <button className="btn" disabled={busy || over} onClick={() => void buy(sel)}>{busy ? 'İşleniyor…' : mode === 'test' ? 'Test satın alması yap' : pl.store ? `${pl.text} öde` : 'Mağazada satın al'}</button>

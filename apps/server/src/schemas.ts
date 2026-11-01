@@ -38,6 +38,8 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'chat.send': z.object({ room, text: z.string().min(1).max(SOCIAL_LIMITS.chatMax * 4), kind: z.enum(['text', 'emoji', 'hazir']).optional(), replyTo: id.optional(), cid: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional() }),
   'chat.report': z.object({ msgId: id }),
   'chat.mute': z.object({ id, on: z.boolean() }),
+  'chat.read': z.object({ room, at: z.number().int().min(0) }),
+  'chat.unread': z.object({ room }),
   'team.list': z.object({ query: z.string().max(40).optional(), filter: z.enum(['hepsi', 'acik', 'basvuru', 'uygun']).optional(), offset: z.number().int().min(0).max(100_000).optional(), limit: z.number().int().min(1).max(TEAM_APPLY_RULES.pageMax).optional() }),
   'team.profile': z.object({ teamId: id }),
   'team.apply': z.object({ teamId: id, noteId: z.string().max(20).regex(/^[a-z0-9-]+$/).optional(), note: z.string().max(TEAM_APPLY_RULES.noteMax * 4).optional() }),

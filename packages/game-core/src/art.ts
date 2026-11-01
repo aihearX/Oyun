@@ -1,5 +1,22 @@
 import Phaser from 'phaser';
 
+/**
+ * Kabuğun verdiği SVG çizimini (ör. takım amblemi, YN-060) doku yapar; görüntü yüklenince `ready(key)` çağrılır.
+ * Sahne o arada kapandıysa sessizce bırakır. Amblem hiçbir zaman emoji glifi olarak çizilmez.
+ */
+export function svgTexture(scene: Phaser.Scene, key: string, svg: string, ready: (key: string) => void): void {
+  if (scene.textures.exists(key)) { ready(key); return; }
+  const img = new Image();
+  img.onload = () => {
+    try {
+      if (!scene.sys?.isActive()) return;
+      if (!scene.textures.exists(key)) scene.textures.addImage(key, img);
+      ready(key);
+    } catch { /* sahne kapandı */ }
+  };
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
 /** Emoji'yi doku olarak üretir; sprite ve parçacıklar için. */
 export function emojiTexture(scene: Phaser.Scene, key: string, emoji: string, size = 64): string {
   if (scene.textures.exists(key)) return key;

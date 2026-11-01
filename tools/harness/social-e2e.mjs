@@ -136,9 +136,9 @@ try {
   await A.locator('.msg .bubble', { hasText: 'Ben varım' }).waitFor({ timeout: 8000 });
   ok('A, B\'nin cevabını gördü');
   await sleep(1300); // sohbet hız sınırı: mesajlar arası 1,2 sn
-  await A.getByRole('button', { name: 'Hızlı tepki 🔥' }).click();
-  await B.locator('.msg.emoji .bubble', { hasText: '🔥' }).waitFor({ timeout: 8000 });
-  ok('hızlı emoji tepkisi ulaştı');
+  await A.getByRole('button', { name: 'Hızlı tepki: Ateş' }).click();
+  await B.locator('.msg.emoji .bubble svg.art-flame').waitFor({ timeout: 8000 });
+  ok('hızlı tepki ulaştı (çizim)');
   await shot(B, 'B-takim-sohbet');
   await shot(A, 'A-takim-sohbet-cevap');
   await sub(A, 'Üyeler');
