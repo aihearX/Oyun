@@ -6,7 +6,7 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 13/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 20/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -44,3 +44,17 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-13 (Hâlâ: boş mor ekran Birlikte/Kamp Liste), -14 (sekmeler taşıyor), -15 (hareket azaltma süsleri durdurmuyor), -16 (sonuçta 2. yıldız satırı düğmenin altında), -17 (rehber dokunuşu yuttu).
 - Yarım kalan / sonraki oturum: Bölüm 14 sırada (Kemikçikler). Odyoloji Merkezi inşaatı sürüyor; sonra Odyometri Odası (Ton Avı) kurulacak. Bugün'deki "Yıldızlı bir bölümü tekrar oyna" görevi ve günlük sandık açılmadı. Usta–Çırak, Etkinlikler (2 bekliyor), Kamp oyunları, Mağaza bu oturum denenmedi. Kamp Görevleri'ndeki iki ödül (Görevler 2) alınmadı.
 - Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4). KaptanTuba arkadaşlığımı kabul etmiş; ona hediye gönderdim ve bu haftanın İkili Görevi'ne davet ettim (yanıt bekleniyor). Bana gelen yeni istek yoktu.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 13/40, 26 yıldız, seri 2 gün. Bitiş: 20/40, 42 yıldız (15, 18, 20'de 3 yıldız), oyuncu seviyesi 6, seri 2 gün, 3.923 jeton, 130 kristal.
+- Önceki geri bildirimlerin kontrolü:
+  - OT-buyuk-yazi-13: düzeldi. Profil › Birlikte (0285) ve Kamp (Liste görünümü, 0288) açılır açılmaz dolu geldi, boş mor ekran yok.
+  - OT-buyuk-yazi-14: hâlâ var (kısmen). Takım'ın üst sırası (Sohbet · Etkinlikler · Takım · Rekabet) artık tam sığıyor; ama ikinci sıra kenarlarda kesik ("eknoloji", "Hede"; Arkadaşlar'da "Ön"), oklar var ama adsız (0281, 0323). Yeni satır: OT-buyuk-yazi-22.
+  - OT-buyuk-yazi-15: düzeldi (görebildiğim kadarıyla). Bölüm 14-20 karelerinde kayan yıldız kuyruğu ve kontrol noktası ışık patlaması görmedim. Bölüm 15'in başında arkada büyük duran ışık huzmeleri var (0249) ve canavar bölümünde kırıntı/parıltı bol (0313); hareket edip etmediklerini durağan karelerden anlayamadım, yazmadım.
+  - OT-buyuk-yazi-16: düzeldi. Sonuçta 2./3. yıldız koşulu artık kendi kartında, düğmelerin üstünde ve iri ("2. YILDIZ · 60 nota · 10 nota kaldı", 0262; 0247, 0252).
+  - OT-buyuk-yazi-17: düzeldi (Bugün'de). Bugün'de "Al" iki kez sorunsuz çalıştı (0305). Kamp'ta ise ekran açıldıktan bir an sonra Tüy Dede tanıtımı geldi ve "Topla"ya basmak isterken pencere araya girdi (0289-0290); bu OT-ogrenci-birinci-14 ile aynı, yeni yazmadım.
+- Ne yaptım: Bölüm 14-20 (20 Serumen Golemi'nde ilk denemede 13 saniyede 3 can gitti, ikinci denemede hasarsız 3 yıldız). Bölüm 15 ve 20 hazineleri, Kulak Zarı / Kemikçikler / Kulak Kanalı canlandı pencereleri. Takım: AyseTeyze 19. bölümde takılmıştı, ipucu gönderdim ("Acele etme, müziğin ritmini dinle"), o da geçti, teşekkür olarak 20 jeton geldi; takımın 3 hediyesini aldım (+900 jeton, +80 kristal). Kamp: depoyu topladım, Odyometri Odası'nı kurdum, Kamp Görevleri'nde hikâye ödülü ve iki günlük ödül. Bugün: bir görev ödülü (günlük sandık 2/3, "yıldızlı bölümü tekrar oyna" kaldı). Ödül kutusu boşaltıldı. Profil › Birlikte ve Arkadaşlar'a baktım.
+- Hissettiğim: Bu sürümde geçen seferki dertlerimin çoğu gitmiş, gerçekten sevindim: boş mor ekranlar yok, sonuç ekranı derli toplu, takım sekmeleri sığıyor. Oyun içi sayaçlar ve "Seri x5 +20" gibi yazılar artık okunuyor. Yine de yorulduğum yerler: seviye pencereleri ben okuyamadan kendiliğinden kapanıyor; haritadaki "Hedefe ulaştın" kartı düğmelerin altında kalıyor; Kamp'ta aynı anda iki şey (rehber ve teşekkür kartı) üst üste çıkıyor. Canavarın can çubuğu çok ince. Seviye 6 penceresinde şeytan yüzü emoji gördüm (OT-ilk-kez-oyun-22 zaten yazmış). Haritada hazine sonuçta "+40/+100" diye sayılıp haritada yeniden "Topla" istiyor (OT-sinav-adayi-17 ile aynı). Kayıp ekranında "Neden olmadı?" kartı "Bu bölümden" satırının üstüne biniyor (OT-ilk-kez-oyun-20 ile aynı).
+- Yazdığım geri bildirimler: OT-buyuk-yazi-18 (Hedefe ulaştın kartı düğmelerin altında), -19 (seviye penceresi kendiliğinden kapanıyor), -20 (Kamp'ta rehber çerçevesi teşekkür kartının altında; YENİ YER AÇILDI yazısı üst üste), -21 (canavar can çubuğu ince), -22 (Hâlâ kısmen: ikinci sıra sekmeler kesik, oklar adsız; eski OT-14), -23 (takım ipucu listesi bölüme uymuyor).
+- Yarım kalan / sonraki oturum: Bölüm 21 (Suya Dalış, yeni mekanik) sırada. Bugün'deki "Yıldızlı bir bölümü tekrar oyna" görevi ve günlük sandık açılmadı. Odyometri Odası inşaatı (1 dk) bitti mi bakılacak; Hasta Vakaları (Odyoloji Kliniği) açıldı, girişini bulamadım. Etkinlikler (1 bekliyor), Mağaza, Ayarlar bu oturumda denenmedi.
+- Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 10/30 üye, Sv 2). Arkadaşım KaptanTuba (KRMXHC); bugünkü hediyesi gönderilmiş görünüyor, İkili Görev davetim hâlâ yanıt bekliyor. Takımdan AyseTeyze'ye ipucu verdim. Bana gelen yeni arkadaşlık ya da takım isteği yoktu.

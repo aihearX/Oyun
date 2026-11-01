@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 19/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 25/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -49,3 +49,25 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-sinav-adayi-12 (süre hedefi "64 sn sürdü · yapılmadı" yuvarlama), -13 (Kulak Kanalı biyom kartı kilitli kaldı), -14 (otoskleroz kartı nota uydurulmamış; ilk bildirim OT-uzman-odyolog-7), -15 (açık kartın resmi asma kilit), -16 (Ece vakası sonucu istenmeyen timpanometri/OAE bulgusunu anlatıyor).
 - Yarım kalan / sonraki oturum: Bölüm 20 (sonunda hazine). Klinik'te Hakan, Zeynep, İsmail, Nuri bekliyor (Vaka Defteri 2/32). Kulak Bilgi Yarışması 13:00/20:00. Ton Avı ve Timpanogram Eşleştir kamp oyunları hâlâ denenmedi. Takım sekme çubuğunda Sohbet/Etkinlikler soldan taşınca yana kaydıramadım; "Yardım"a dokununca göründüler (araç sınırı olabilir, yazmadım).
 - Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; bekleyen istek yok. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo da var. Bronz Ligi 2. sıra.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 19/40, seri 2 gün. Bitiş: 25/40, 54 yıldız (3 yıldız: 4, 7, 15, 17, 19, 23, 24, 25), seviye 8, 4811 jeton, 110 kristal, seri 2 gün. Kayıp yok (25 deneme, 25 geçiş).
+- Eski geri bildirimlerin kontrolü (tur 4, durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-1: düzeldi (Kulak Kartları albümünde ve kart ayrıntısında çizim simgeler; Sertleşen Kemik kartında dişli çizimi).
+  - OT-sinav-adayi-2: düzeldi (sonuçta "33/100 nota" nota simgesiyle, jeton ayrı "Bu bölümden toplam" kutusunda).
+  - OT-sinav-adayi-3: düzeldi (oturum 2'de doğrulandı; bu oturumda Ayarlar'a girmedim).
+  - OT-sinav-adayi-4: yapildi; yerine yazdığım OT-8 "yalnız test derlemesinde" diye reddedildi, yeniden yazmadım.
+  - OT-sinav-adayi-5: düzeldi (Bugün > Giriş takvimi: "Bugünün ödülü alındı. Yarın: Kulaklı Bere"; balon yok).
+  - OT-sinav-adayi-10: düzeldi (Kamp üstünde "Klinik 4" sekmesi doğrudan bekleme salonunu açıyor).
+  - OT-sinav-adayi-12: düzeldi (süre artık ondalıklı yazıyor: "30,7 sn", "82,1 sn"; Bölüm 23'te "88 saniyede bitir · tamam". Tam sınır durumuna denk gelmedim).
+  - OT-sinav-adayi-13: düzeldi (kilitli kart penceresi "Kulak Kanalı bölümleri: 6, 7, 8, 17, 20 · 4/5" diyor; Bölüm 20'den sonra haritada "Kulak Kanalı yeniden canlandı" çıktı).
+  - OT-sinav-adayi-14: düzeldi (Sertleşen Kemik teknik cümlesi artık Bölüm 13 notuyla aynı: otik kapsül, Carhart ~2 kHz, timpanogram çoğu zaman A bazen As, tek başına tanı koydurmaz).
+  - OT-sinav-adayi-15: düzeldi (açık kartın resmi artık dişli, asma kilit değil).
+  - OT-sinav-adayi-16: düzeldi (İsmail vakasında sonuç "İstediğin testler" / "İsteseydin şunu görecektin" / "Tam tablo (bütün testlerle)" diye ayrılmış).
+- Ne yaptım: Bugün'de iki görev ödülü (Günün Sorusu hâlâ Bugün'de yok; OT-11 iş listesinde, yeniden yazmadım). Profil > Kulak Kartları kontrolü. Bölüm 20-25 (Serumen Golemi canavarı, Koklea · Taban ve Orta Kıvrım biyomlarına giriş), hepsini ilk denemede geçtim. Kamp > Klinik: İsmail (52, dokuma fabrikası) vakasını otoskopi + saf ses ile "Gürültüye bağlı SNİK" + koruyucu/izlem/cihaz önerisiyle "Mükemmel karar" (3 yıldız) çözdüm; Vaka Defteri 3/32. Takım sohbetinde EceOdyo'yu tebrik ettim. Takım > Etkinlikler > Bayrak Yarışı 2. ayağı koştum (Zarın Üstünde, 62,1 sn, "ayağın en iyi süresi"). Kulak Bilgi Yarışması'na yine denk gelmedim (açılışa 2 sa vardı). Başarımlar 46/125.
+- Bilgi içeriği (sınav gözüyle): bu biyomların notları çok iyi ve doğru: tıkayıcı serumen ~5-40 dB iletim kaybı; Békésy 1961 Nobel, ilerleyen dalga, canlıda dış tüy hücreleriyle keskin tepe; kemik labirent doğumda yetişkin boyutunda; endokoklear potansiyel ~+80 mV, stria vaskülaris, K+; endolenf K+ ~150 mM, perilenf BOS benzeri (Na+ ~140 mM); OAE dış tüy hücresi işlevi, prob mikrofon; stereosilyalar aktin, dış tüy hücresinin en uzun stereosilyası tektoryal zara gömülü. Taban = yüksek frekans doğru. İsmail'in odyogramı tipik gürültü çentiği (4 kHz en kötü, 8 kHz'te düzelme, hava-kemik aralığı 0-5 dB). Tek pürüz: Orta Kıvrım tanıtımı Corti organını o kıvrıma bağlıyor gibi okunuyor (OT-18).
+- Hissettiğim: bu oturum en çok öğrendiğim oturum oldu; Koklea biyomlarıyla her bölüm sonu gerçekten sınav notu gibi. Bölümler hâlâ kolay (25/25 ilk denemede). Önceki beş bildirimimin hepsinin düzeldiğini görmek güven verdi. Vaka sonuç ekranı artık çok daha öğretici; istenmeyen testlerin yorumu da eklenirse tam bir çalışma aracı olur.
+- Yazdığım geri bildirimler: OT-sinav-adayi-17 (haritaya dönüşte 4 pencere art arda, Bölüm 20 hazinesi sonuçta verilmiş yazıp haritada yeniden Topla), -18 (Orta Kıvrım tanıtımı ve Corti organı), -19 (vaka sonucunda istenmeyen testlerin yorumu yok; öneri). Not: OT-19'un kanıt yolu yanlış yazıldı, doğrusu tools/harness/out/oyuncular/sinav-adayi/ekran/0384-dokun.png (vaka sonucu).
+- Bakıp yazmadıklarım: Başarım bildirimindeki ve Kamp "baskın" satırındaki kırmızı canavar yüzü önce sistem emojisi sandım; kodda çizim "monster" simgesine eşlendiğini gördüm, yazmadım. Başarımlar'da "Kart Koleksiyoncusu 19/25" ile albümdeki sayının uyuşup uyuşmadığına bakamadım.
+- Yarım kalan / sonraki oturum: Bölüm 26 (Derin Kıvrım; sonunda Orta Kıvrım canlanır). Klinik'te Hakan, Zeynep, Nuri bekliyor. Bayrak Yarışı 3. ve 4. ayak takım arkadaşlarında (arka arkaya iki ayak koşulamıyor). Kulak Bilgi Yarışması 13:00/20:00. Ton Avı ve Timpanogram Eşleştir kamp oyunları hâlâ denenmedi. Ayarlar'a bu oturumda bakmadım.
+- Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; bekleyen istek görmedim. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo ve KralKoklea da var. Bronz Ligi 3. sıra (395 puan).

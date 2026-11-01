@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 18/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 25/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -52,3 +52,22 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 - Başkalarının yazdığını gördüğüm, yeniden yazmadığım: "Kontrol noktası" uçan yazısı soldan kesiliyor (OT-ogrenci-birinci-8, 0183), 3. yıldız koşulu kartta 100 nota altta 90 nota (OT-rekabetci-7, 0191), Sözlük sayısı Profil'de 16/39 içeride 16/60 (OT-ogrenci-birinci-3), Kulak Kanalı "tüm bölümleri bitir" kartı hâlâ kilitli (OT-ogrenci-birinci-13). Kamp'a girince "YENİ YER AÇILDI!" yazısı birkaç saniye bina kartının ve Tüy Dede balonunun üstünde kaldı (0252, 0253), sonra kendiliğinden gitti.
 - Yarım kalan / sonraki oturum: Bölüm 19'dan devam (2 bölüm sonra hazine). Kulak Deposu dolu (160/160), Kamp tanıtımı yüzünden toplayamadım; Odyoloji Merkezi Sv 2 yükseltmesi (418 jeton) ve İşitme Cihazı Atölyesi kurulacak. Etkinlikler (2 bekliyor), Mağaza, Hasta Vakaları, bilgi yarışması henüz denenmedi. Günün Sorusu'na bak (OT-5).
 - Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 2, 10/30 üye), rolüm üye. Bu oturumda yeni davet yoktu.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 18/40, seri 2 gün, 3091 jeton, 65 kristal, Sv 6. Bitiş: 25/40 (yıldızlar 19:2 20:1 21:2 22:2 23:3 24:2 25:3; toplam 53, üç yıldız 6), Sv 7, seri 2 gün, 4471 jeton, 125 kristal. 8 denemede 0 kayıp (25'i 1 yıldızla geçip bir kez daha oynadım, 3 yıldız).
+- Yeniden kontrol (durumu "yapildi:" olan maddelerim):
+  - OT-sessiz-oyuncu-1: düzeldi (Ayarlar'da "Sesler kapalı: anlatıcı da susuyor…" yazısı yerinde, 0266).
+  - OT-sessiz-oyuncu-2: düzeldi (Titreşim anahtarı Açık, 0267).
+  - OT-sessiz-oyuncu-3: düzeldi (sonuç kartı "10 nota kaldı · 1/7 sırayla", "1 nota kaldı" diyor; 0286, 0340).
+  - OT-sessiz-oyuncu-4: düzeldi (bu oturumdaki Kamp tanıtımları İleri'ye basınca ilerledi, alt menüyü örtüp takılan balon görmedim; ama yeni bir yanlış gösterme var, bkz. OT-9).
+  - OT-sessiz-oyuncu-5: kontrol edilemedi (Günün Sorusu kartını takım sohbetinde 6 kez yukarı kaydırarak aradım, bulamadım; tanıtım bir kez çıktığı için aynı adım tekrar gelmiyor).
+  - OT-sessiz-oyuncu-7: kontrol edilemedi (Fısıltıyı Taşı'nı tekrar oynamadım, 19-25 arasında fısıltı mekaniği gelmedi).
+  - OT-sessiz-oyuncu-8: kontrol edilemedi (Ödül kutusu boştu, arkadaş hediyesi satırı yoktu; 0262).
+  - OT-sessiz-oyuncu-6 (kismen, yapildi değil): iyileşmiş. Koklea · Orta Kıvrım tanıtımı artık "Melodi: nota biçimli olanları soldan sağa, atlamadan topla ("Nota 3/7" yazar)" diyor (0308); Bölüm 19'da yanlış notada "sıra değil" yazısı çıkıyor (0283); sonuç "1/7 sırayla", "2/8 sırayla" diyor. Kulak Zarı'ndaki "ritim platformları vuruşla belirir" için görsel karşılığı yine aramadım.
+- Ne yaptım: takım hediyeleri (2 hediye: +650 jeton, +60 kristal). Bölüm 19 Makine Melodisi, 20 Serumen Golemi (boss; faz yazıları ekranda, "Faz 2: Serumen topları! Üstlerinden zıpla"), yeni biyom Koklea · Taban: 21 Suya Dalış, 22 İnce Sesler, 23 Akıntı (3 yıldız, Seviye 7), yeni biyom Koklea · Orta Kıvrım: 24 Konuşma Kıvrımı, 25 Tüy Hücresi Tarlası (iki deneme, ikincisi 3 yıldız; günlük "yıldızlı bölümü tekrar oyna" görevi de bunun için). Haritada Bölüm 20 hazinesi ve art arda Kulak Kanalı / Kemikçikler / Koklea · Taban canlandı kutlamaları. Kamp: üç tanıtımdan sonra Kulak Deposu'nu topladım (+160), Kamp Görevleri ödülü, Odyoloji Merkezi Sv 2 inşaatı başladı (6 dk). Ayarlar'a baktım. Ton Avı (kamp oyunu) tanıtımı çıktı ama oyunu listede bulamadım; Mağaza, Etkinlik (1 bekliyor), bilgi yarışması ve Kulak Kartları bu oturumda kaldı.
+- Sessiz oynanabilirlik: Koklea'da yüzme bölümleri sessiz tamamen anlaşılır ("Sıvıda basılı tut: yüksel / Bırak: dal", "Diyapazonla kapının rengini eşle" renkle). Kısım sonunda "Bu kısımda 14/24 nota" yazısı güzel. Sıralı nota artık yazıyla sayılıyor. Ses kökenli tek pürüz hazır ipucu "müziğin ritmini dinle" (OT-10). Tüy Dede notları doğru ve saygılı ("Koklea" hep doğru; tiz seslerin tabanda olması, otoakustik emisyonla bebek taraması).
+- Hissettiğim: bu oturum çok akıcıydı, hiç kaybetmedim. Haritaya dönüşte üç kutlama art arda ve her biri uzun; kutlama yazısını notalar örtüyor (OT-11). Kamp'ta Topla'ya her basışımda başka bir tanıtım açılması yordu (başkaları yazmış: OT-ogrenci-birinci-14).
+- Yazdığım geri bildirimler: OT-sessiz-oyuncu-9 (Hasta Vakaları tanıtımı kurulmamış kliniği açık gibi anlatıp Görevler'i gösteriyor), OT-sessiz-oyuncu-10 (hazır ipucu yalnız sese dayanıyor), OT-sessiz-oyuncu-11 (canlandı kutlamasında notalar yazıyı örtüyor).
+- Başkalarının yazdığını gördüğüm, yeniden yazmadığım: haritada art arda kutlama/hazine pencereleri (OT-sinav-adayi-17), Kamp'ta tanıtımların dokunuşu yutması (OT-ogrenci-birinci-14), "YENİ YER AÇILDI!" yazısının İnşaatçı satırına binmesi (OT-buyuk-yazi-20), hazır ipuçlarının bölüme uymaması (OT-buyuk-yazi-23), biyomun başında "Usta" başarımları (OT-ogrenci-birinci-16). Takım sohbetindeki hızlı tepkiler artık çizim simgesi, sistem emojisi görmedim.
+- Yarım kalan / sonraki oturum: Bölüm 26'dan devam. Odyoloji Merkezi Sv 2 bitince Odyoloji Kliniği'ni kur (Hasta Vakaları için), İşitme Cihazı Atölyesi. Ton Avı'nı bul ve sessiz oynanabilir mi bak (adı üstünde ses tabanlı olabilir). Mağaza, Etkinlik, bilgi yarışması, Kulak Kartları. OT-5, OT-7, OT-8 yeniden kontrol.
+- Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 2, 10/30 üye), rolüm üye. Takım ekranında yeni davet görmedim; Arkadaşlar sayfasındaki bekleyen isteklere bu oturumda bakamadım (sonraki oturumda bak).

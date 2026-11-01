@@ -6,7 +6,7 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 14/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 19/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -50,3 +50,19 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-ilk-kez-oyun-12 ("1,4B" jeton yazımı), -13 (Sıradaki hedef sürekli değişiyor), -14 (rehber Takım'a götürüp yarışı göstermiyor), -15 (3 kayıp sonrası yardım kartı ve ipucu kaydırmadan görünmüyor, ipucu kancayla ilgili değil), -16 ("çakıl" kelimesi), -17 ("Artık bir ustasın!").
 - Yarım kalan / sonraki oturum: Sıradaki Bölüm 15. Kamp'a (1 bildirim), Ayarlar'a, Mağaza'ya, bilgi yarışmalarına ve Etkinlikler'e (2 bekliyor) hâlâ girmedim. Takım yarışının nerede olduğunu bulmam lazım. Günlük görevlerden "Yıldızlı bir bölümü tekrar oyna" yapılmadı.
 - Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) artık arkadaşım; bugün ona hediye gönderdim. Bana yeni gelen arkadaşlık/takım daveti yoktu. 13. bölüm için takımdan yardım istedim.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 14/40, 27 yıldız, seri 2. Bitiş: 19/40, 36 yıldız (15:2 16:2 17:1 18:2 19:2), oyuncu seviyesi 6, 3.394 jeton, 90 kristal, seri 2 gün. Sıradaki Bölüm 20 (Serumen Golemi, 2 kayıp).
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ilk-kez-oyun-8: düzeldi. Kayıpta artık "Neden olmadı? Canların bitti · 3 kez hasar aldın, en son boşluğa düştün" ve bir ipucu var (0257, 0261). Yalnız ipucu hep aynı cümle (yeni satır OT-ilk-kez-oyun-19).
+  - OT-ilk-kez-oyun-13: düzeldi. "Sıradaki hedef" tutarlı: "Bu bölümün sonunda hazine" → "Hedefe ulaştın! … 3 bölüm sonra canlanır" → "3 bölüm sonra Kemikçikler canlanır" → "Bu bölümün sonunda Kemikçikler canlanır" (0246, 0268, 0279, 0311).
+  - OT-ilk-kez-oyun-14: kontrol edemedim (rehber bir daha çıkmadı). Takım › Etkinlikler sekmesi doğrudan Ralli ve Düello'yu gösteriyor (0272).
+  - OT-ilk-kez-oyun-15: düzeldi. 19'da 3. kayıptan sonra "Takımından yardım iste" kartı ve ipucu kaydırmadan görünüyor (0309). Kartlar nota/süre kutularının üstüne biniyor ama (yeni satır OT-ilk-kez-oyun-20).
+  - OT-ilk-kez-oyun-16: kontrol edemedim; bu oturum "aşağı kaydır" hareketini anlatan bir tanıtım kartı görmedim.
+  - Önceki oturumlarda düzelen OT-1, -2, -4, -6/-7: hâlâ düzgün. Süreli 18'de üstte geri sayan saat var (0290); "Harika!" yalnız geçince çıkıyor; dönüşte pencereler tek tek geldi.
+- Ne yaptım: Bölüm 15 (ilk denemede, 2 yıldız), 16 (2 kayıp, 3.'de 2 yıldız), 17 (1 kayıp, 1 yıldız), 18 (2 kayıp, 3.'de 2 yıldız), 19 (4 kayıp: 3.'den sonra "Yardım iste"ye bastım, 5.'de 2 yıldız), 20 Serumen Golemi (2 kayıp, bıraktım). Takım'da 2 takım hediyesini aldım (jeton + 40 kristal), Etkinlikler › Ralli ayrıntılarına ve Bayrak Yarışı parkuruna baktım (takımım 273,6 sn ile parkuru bitirmiş). Bugün'e baktım (2/3 görev; "Yıldızlı bölümü tekrar oyna" kaldı). Profil › Ödül kutusu'nda KaptanTuba'nın 13. bölüm için gönderdiği kalkanı aldım. Ayarlar'a ilk kez girdim (ses ayarları açık ve anlaşılır).
+- Hissettiğim: 15-18 arası iyi gitti; kaybedince "Neden olmadı?" kartı artık ne olduğunu söylüyor, bu çok rahatlattı. 19'da sis vardı, önümü göremedim ve 4 kez üst üste düştüm; dördünde de aynı ipucu yazdı, artık okumadım. Beşincide geçince çok sevindim. Sonra Golem geldi: daha alttaki hikâye yazısını okurken iki canım gitti, nasıl vuracağımı bilmeden 20 saniyede bitti, iki kez. Orada telefonu bıraktım. Rehber pencereleri bu oturum çok daha az ve tek tek geldi; bunalmadım. "Sv", "par", "mekanik", "1/7 sırayla" kelimelerini hâlâ tahminle okuyorum. Bayrak Yarışı'ndaki mor kronometre düğmesinin "yeniden koş" demek olduğunu yazının altındaki cümleden tahmin ettim. Ödül kutusundaki "+1 kalkan · Bir sonraki bölüme kalkanla başlarsın" yazısı çok açıktı.
+- Başkalarının yazdığını gördüğüm, bende de olanlar (yeniden yazmadım): 15'in hazinesi sonuçta "+40" sayılıp bir bölüm sonra haritada yeniden "Topla" istedi (OT-sinav-adayi-17; 0251, 0267); Ayarlar'da "kaynak: indirme · çözülen kayıt: 4 · son satır: …" teşhis satırı (OT-sinav-adayi-4/-8; 0319); Profil'de üstte "3,2B", ortada "3.210 jeton" (benim OT-12, YN-087'de); Seviye ödüllerinin açıklamasız olması (benim OT-5, YN-050'de).
+- Yazdığım geri bildirimler: OT-ilk-kez-oyun-18 (Golem yazı ekrandayken vuruyor, nasıl vurulacağı gösterilmiyor), -19 (kayıp ipucu hep aynı), -20 (kayıp kartları kutuların üstüne biniyor, ampul emojisi), -21 (Bayrak Yarışı'nda yazısız kronometre düğmeleri ve emojiler), -22 (Seviye 6'da "Yeni mekanik: Canavar" emojisi).
+- Yarım kalan / sonraki oturum: Bölüm 20 (Golem) geçilecek. Mağaza, Kulak Kartları, bilgi yarışmaları (Günün Sorusu), Kamp'a (1 bildirim) bu oturum da giremedim. Ralli'yi başlatmadım (en az 2 kişi gerekiyor, çevrimiçi 1 kişi vardı). Bayrak Yarışı'nda bir ayak koşmayı deneyebilirim. Günlük görev "Yıldızlı bir bölümü tekrar oyna" yapılmadı.
+- Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) arkadaşım; 13. bölüm için kalkan göndermiş, aldım. 19. bölüm için takımdan yardım istedim. Bana yeni arkadaşlık ya da takım daveti gelmedi.

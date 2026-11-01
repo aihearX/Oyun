@@ -6,7 +6,7 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 17/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 23/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -50,3 +50,23 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 - Küçük not (harness): Bölüm 14 sonrası kutlama penceresinde "Devam"a dokunma zaman aşımına uğradı, pencere kendisi kapanmış olabilir; oyunda sorun görmedim.
 - Yarım kalan / sonraki oturum: Bölüm 18'den devam. OT-10'u kontrol etmek (Bölüm 6 notu), Kulak Kanalı "usta" kartının 17'den sonra açılıp açılmadığına bakmak. Kamp, Günün Sorusu, Hasta Vakaları hâlâ denenmedi; takımda 2 etkinlik bekliyor.
 - Sosyal: arkadaş kodum KYM4WW (takma ad EceOdyo). KaptanTuba (KRMXHC) arkadaşlık isteğimi kabul etmiş, artık arkadaşız. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım kodu 8XJUU4); takımda Hesapli ve SinanSinav da var. Bana yeni istek/davet gelmedi.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 17/40, seri 2 gün, 3932 jeton. Bitiş: 23/40 (yıldızlar 18:3 19:3 20:3 21:1 22:2 23:2; toplam 51 yıldız, 8 üç yıldız), oyuncu seviyesi 8, seri 2 gün, 4613 jeton, 95 kristal. 1 kayıp (18'i ilk denemede boşluğa düşüp kaybettim, ikincide 3 yıldız).
+- Önceki geri bildirim kontrolü (durumu "yapildi:" olanlar):
+  - OT-ogrenci-birinci-8: düzeldi (görünürde). Bölüm 19'da "Nota 4/7" uçan yazısı ekranın içinde, kesik değil (ekran/0284-bolum-2.png); 18-23 karelerinde soldan taşan yazı görmedim.
+  - OT-ogrenci-birinci-12: düzeldi. Dolap'ta Kulaklık'ın resmi artık kırmızı kulaklıklı Odi (ekran/0329-kaydir.png).
+  - OT-ogrenci-birinci-13: düzeldi. Kulak Kartları'nda Kulak Kanalı 5/5, "biyomu bitir" kartı açık (ekran/0319-dokun.png).
+  - OT-ogrenci-birinci-1: düzeldi (hâlâ iyi). Haritada Odi 24'ün üstünde, geçtiğim bölümler yıldızlarıyla (ekran/0316-dokun.png).
+  - OT-ogrenci-birinci-5: düzeldi (hâlâ iyi). "3. yıldız · biri yeter · tamam / 89 nota … ya da 64 saniyede bitir" çok anlaşılır (ekran/0279-sonuc.png).
+  - OT-ogrenci-birinci-6: düzeldi (hâlâ iyi). Oyun içinde artık "Bu kısımda 11/12 nota" yazıyor, üst sayaçla çelişmiyor (ekran/0272-bolum-2.png).
+  - OT-ogrenci-birinci-7: düzeldi (hâlâ iyi). Bölüm 20 hazinesi haritada tek başına geldi, Topla çalıştı (ekran/0312-dokun.png).
+  - OT-ogrenci-birinci-2, -9: bu oturumda da sorun yok (günlük görevler 3/3; takım sohbetinde hızlı tepkiler adlı ikonlar).
+  - OT-ogrenci-birinci-10: yine kontrol edemedim (Bölüm 6'yı tekrar oynamadım).
+  - OT-3, -4 (YN-048), -11 (YN-070) iş listesinde.
+- Ne yaptım: Bölüm 18-23 (Kemikçikler'in sonu, 20 Serumen Golemi boss'u, sonra Koklea · Taban'a geçiş 21-23). Haritada Bölüm 20 hazinesi ve art arda üç "yeniden canlandı" penceresi (Kulak Kanalı, Kemikçikler, Koklea · Taban). Kulak Kartları albümü (19/50): "Kulaktaki Pil" ayrıntısı. Dolap'ta Gece Mavisi rengini giydim. Kamp'a ilk kez gerçekten girdim: Kamp Seviyesi 3, iki Tüy Dede tanıtımı (Kamp Görevleri, Kamp oyunları), Odyometri Odası'nı kurdum (80 jeton, 1 dk). Takım › Etkinlikler › Bayrak Yarışı'nda 3. ayağı (Örs) koştum: 65,4 sn.
+- Hissettiğim: Bu oturum çok akıcıydı, "Sonraki" ile art arda 6 bölüm. Koklea girişindeki Tüy Dede notu (taban = ince sesler, ilerleyen dalga tabandan tepeye, Békésy 1961 Nobel, dış tüy hücrelerinin tepeyi keskinleştirmesi) ve "Kulaktaki Pil" kartı (endolenf, stria vaskülaris, yaklaşık +80 mV endokoklear potansiyel) derste öğrendiklerimle birebir; "stapedius ve tensor timpani", "koklea şakak kemiğinin petröz kısmında", "kemik yolu titreşimi doğrudan kokleaya" bilgileri de doğru. Boss 21 saniyede bitti, kolaydı ama eğlenceliydi. Rahatsız eden: Kamp'ta her dokunuşumda başka bir tanıtımın açılması, Bayrak Yarışı'nı açarken 10 saniye boş ekran, iki bölüm oynayınca "Usta" başarımı gelmesi. Seviye pencereleri (Seviye 7, 8, Kamp 3) birkaç saniyede kendiliğinden kapanıyor ve açılanların ("Bezelye Boyunda", "İlk Ses"…) ne olduğunu söylemiyor; açıklamasızlık OT-ilk-kez-oyun-5 (YN-050), kendiliğinden kapanma OT-ekonomi-denetci-14 ile bilinen konular, yeniden yazmadım.
+- Yazdığım geri bildirimler: OT-ogrenci-birinci-14 (Kamp tanıtımları dokunuşu yutuyor), -15 (Bayrak Yarışı açılırken bomboş ekran), -16 ("Usta" başarımları biyomun başında, koşulu yazmıyor).
+- Başkasının yazdığını gördüm, yeniden yazmadım: haritaya dönüşte üst üste pencereler ve Bölüm 20 hazinesinin hem sonuçta hem haritada sayılması (OT-sinav-adayi-17); pembe hedef kutusu 390 px'te de Etkinlik düğmesine biniyor ve "Kıvrım" sağda kesiliyor (OT-eski-telefon-5, YN-049; ekran/0316-dokun.png); Profil'de "25 bölüm" yazıyor ama 23 geçtim, artık iki fazla (OT-rekabetci-4, YN-048; yeni kanıt ekran/0317-dokun.png); haftalık kamp hedefi 6 saat kala 4 görev istiyor, günde 3 görev var (OT-takim-kaptani-2, YN-051; ekran/0340-hata.png).
+- Yarım kalan / sonraki oturum: Bölüm 24'ten devam (Koklea · Orta Kıvrım). Odyometri Odası'ndaki Ton Avı ve Kamp görevleri; Günün Sorusu ve Hasta Vakaları hâlâ denenmedi; takım hediyelerinde 3 hediye bekliyor; Bayrak Yarışı'nın 4. ayağı bir takım arkadaşında.
+- Sosyal: arkadaş kodum KYM4WW (takma ad EceOdyo). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım kodu 8XJUU4); KaptanTuba (KRMXHC) arkadaşım. Bayrak Yarışı'nda KralKoklea 1., SinanSinav 2., ben 3. ayağı koştum; 4. ayak gönüllü bekliyor. Bana yeni arkadaşlık ya da takım daveti gelmedi.

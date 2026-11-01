@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 25/40 (oturum 3 sonu) |
+| 1 | 2026-10-31 | | | 31/40 (oturum 4 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -47,3 +47,19 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 - Yazdığım geri bildirimler: OT-rekabetci-12 (lig ilk 7/10), -13 (yüzme nota eşiği), -14 (Meydan oku yalnız bağlantı), -15 (56.6 / 56,6), -16 (Bayrağı al düğmesi kırılıyor).
 - Yarım kalan / sonraki oturum: Bölüm 26. 3. yıldız: 21, 22, 24 ve 13, 14, 16. Bayrağı 2. ayak için devretmedim (gönüllü bekliyor). Takım Düellosu Pazartesi başlıyor; canlı yarışı hâlâ deneyemedim.
 - Sosyal: arkadaş kodum EB3UVW (KralKoklea). Takımım Ninni Tasiyicilari (üye). Arkadaşlar ekranında 1 yeni bildirim var, bakmadım. Bu oturumda yeni davet gelmedi. takim-kaptani: Bayrak 2. ayağı sende, düelloda görüşürüz.
+
+## Oturum 4 · 2026-11-01 · sürüm 57a7915d · tur 1
+- Başlangıç: 25/40, 60 yıldız (3 yıldız: 10 bölüm), seviye 9, seri 2. Bitiş: 31/40, 73 yıldız (3 yıldız: 11 bölüm; yeni: 28), seviye 10, seri 2, Bronz Ligi 1. sıra (645 puan; 2. DrMelis 424), jeton 5.646.
+- Önceki maddeler (yapildi olanlar yeniden kontrol):
+  - OT-rekabetci-7: düzeldi. Sonuç kartı artık "3. YILDIZ · BİRİ YETER" başlığıyla iki koşulu da yazıyor (Bölüm 26: "90 nota / ya da 3 altın kokleayı bul", 0367-sonuc). Yeni bir yanı var: ikinci koşulun nota şartı, tutunca gizleniyor (OT-rekabetci-17).
+  - OT-rekabetci-14: düzeldi. "Meydan oku" düğmesi artık kaybolmuyor, uyarı "Bağlantı kopyalandı: arkadaşına yapıştır, skorunu geçmeye çalışsın." diyor (0368-dokun). Uygulama içinden arkadaşa skor meydan okuması göndermek hâlâ yok, ama madde düzeldi.
+  - OT-rekabetci-15: düzeldi. Takım akışı "EceOdyo 3. ayağı 65,4 sn'de bitirdi", "son ayağı 89,5 sn'de" yazıyor; Bayrak Yarışı ekranıyla aynı virgül (0412-dokun).
+  - OT-rekabetci-16: düzeldi (görebildiğim kadarıyla). "Bayrağı al" düğmesi Etkinlikler kartında tek satır (0353-dokun); devre dışı hâlini bu oturumda göremedim, çünkü bayrak bekliyordu.
+  - OT-rekabetci-8 ve -9: önceki oturumda düzeldi yazılmıştı; bu oturumda da sorunsuz (Bayrak 4. ayak hemen başladı, akış cümleleri düzgün).
+  - OT-rekabetci-2 ve -6 (yapildi): -2 hâlâ doğru (Bölüm 30'da süre hedefi olunca kutu "süre" diyor); -6 bu oturumda balon çıkmadı, kontrol edilemedi.
+  - İşlenmeyi bekleyen (yapildi değil) OT-4/10, YN-048: hâlâ var, daha da açıldı: 31 bölüm geçmişken Profil "73 yıldız · 40 bölüm" yazıyor; oyunu bitirmişim gibi görünüyor (0431-dokun). OT-12 (lig ilk 7/10) ve OT-13 (yüzme 90 nota) hâlâ aynı.
+- Ne yaptım: Bayrak Yarışı 4. ayağı koştum (23. Akıntı, 89,5 sn, "Ayağın en iyi süresi senin!"); parkur 273,6 sn'de tamamlandı. 26 (2 yıldız, tekrarında yine 2), 27 (2), 28 (2, tekrarında 3), 29 (2), 30 (2, hazine), 31 (2). Hiç kayıp yok. Seviye 10. Takım › Rekabet: Bölge Savaşı, Takım Yarışı (açık lobi yok), Takım Ligi. KaptanTuba'ya mesaj ve canlı yarış daveti, Hızlı yarışta 30 sn bekledim (kimse gelmedi). Haftalık lig: bu oturum +125 puan; formülle birebir tuttu (7 × 15 + 1 × 20). Bugün: 3 görev ve günlük sandık (80 jeton).
+- Hissettiğim: Bayrak Yarışı'nı tamamlamak güzeldi, ligde puan formülünün tutması güven veriyor. Ama yüzme biyomu (Koklea 26-30) 3. yıldızda duvar: 90 notaya hiç yaklaşamıyorum (46-63 nota), tek şansım alternatif koşul. Takım tarafında sayılar birbirini tutmuyor (Bölge Savaşı 3.525 / 821 / benim 1.060) ve canlı yarış için hiç rakip yok; rekabet hissi şu an bireysel lige sıkışmış durumda.
+- Yazdığım geri bildirimler: OT-rekabetci-17 (3. yıldız ikinci koşulunun nota şartı gizleniyor), -18 (Takım Ligi "İlk – takım"), -19 (arkadaşla yarış daveti: açamadığı bölüm, ölü davet), -20 (yarış davetinde emoji), -21 (Bölge Savaşı puanları tutmuyor), -22 (Bayrak Yarışı Takım Ligi'nde sayılmıyor).
+- Yarım kalan / sonraki oturum: Bölüm 32 (İşitme Siniri). 3. yıldız: 26, 27, 29, 30, 31 ve eskiler 21, 22, 24, 13, 14, 16. Bayrak Yarışı'nda artık her ayak yeniden koşulabiliyor; 4. ayak süremi (89,5) düşürmek. Takım hediyeleri (2) alınmadı. Takım Düellosu Pazartesi başlıyor.
+- Sosyal: arkadaş kodum EB3UVW (KralKoklea). Takımım Ninni Tasiyicilari (üye; takımda DrMelis, EceOdyo, SinanSinav). Arkadaşlarım: SinanSinav, KaptanTuba. Bu oturumda yeni arkadaşlık ya da takım daveti gelmedi. KaptanTuba'ya mesaj ve canlı yarış daveti bıraktım (oda kapandı); takim-kaptani: çevrimiçi olunca bana yaz, ikimizin de açtığı bir bölümde yarışalım.
