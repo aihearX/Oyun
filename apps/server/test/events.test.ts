@@ -28,6 +28,7 @@ describe('Ralli', () => {
     expect(notice.notice.text).toContain('10:00');
     const chat = await b.wait('chat', (m) => m.msg.meta?.event === 'ralli');
     expect(chat.msg.text).toContain('Ayşe ralli başlattı');
+    expect(chat.msg.text).not.toMatch(/\p{Extended_Pictographic}/u); // sistem iletisinde emoji yok (YN-085)
     // aynı anda ikinci ralli yok; başka takım katılamaz
     expect((await err(b.c.call('rally.start', { monster: 'cinlama-cini' }))).code).toBe('MESGUL');
     expect((await err(other.c.call('rally.join', { rallyId: rally.id }))).code).toBe('YOK');

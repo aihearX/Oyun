@@ -29,6 +29,7 @@ export const FRIEND_SCHEMAS: Record<FriendOp & Op, z.ZodType> = {
   'dm.send': z.object({
     to: id, text: z.string().min(1).max(2000), kind: z.enum(['text', 'emoji', 'sticker', 'davet', 'hazir']).optional(),
     meta: z.record(z.string().max(20), metaVal).refine((m) => Object.keys(m).length <= 8).optional(),
+    cid: z.string().regex(/^[A-Za-z0-9_-]{8,64}$/).optional(),
   }),
   'dm.read': z.object({ id, upTo: z.number().int().min(0).optional() }),
   'dm.react': z.object({ msgId: id, emoji: z.string().max(16) }),

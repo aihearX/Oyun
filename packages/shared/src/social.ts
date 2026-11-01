@@ -731,7 +731,8 @@ export interface OpMap {
   'profile.card': { req: { id: string }; res: { card: ProfileCard } };
   'dm.threads': { req: Record<string, never>; res: { threads: DmThread[]; unread: number } };
   'dm.open': { req: { id: string; before?: number }; res: { other: PublicProfile; messages: DmMessage[]; hasMore: boolean; peerReadSeq: number; myReadSeq: number; canMessage: boolean; reason: string | null } };
-  'dm.send': { req: { to: string; text: string; kind?: DmKind; meta?: Record<string, string | number | boolean> }; res: { msg: DmMessage } };
+  /** cid (isteğe bağlı, YN-085): istemcinin gönderim kimliği; aynı oyuncu aynı cid'i yeniden gönderirse (kopma, bekleyen mesaj kuyruğu) ileti bir kez yazılır, ilk ileti döner, hız sınırı sayılmaz */
+  'dm.send': { req: { to: string; text: string; kind?: DmKind; meta?: Record<string, string | number | boolean>; cid?: string }; res: { msg: DmMessage } };
   'dm.read': { req: { id: string; upTo?: number }; res: { unread: number } };
   'dm.react': { req: { msgId: string; emoji: string }; res: { msg: DmMessage } };
   'dm.delete': { req: { msgId: string }; res: { msg: DmMessage } };

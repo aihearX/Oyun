@@ -159,4 +159,23 @@ describe('özel mesaj', () => {
     // engel kalktı ama arkadaşlık geri gelmez → mesaj kapalı
     expect((await err(c.call('dm.send', { to: a.me!.id, text: 'tekrar' }))).code).toBe('YETKI');
   });
+
+  it('gönderim kimliği (cid): aynı mesaj yeniden gönderilince bir kez yazılır, hız uyarısı çıkmaz (YN-085)', async () => {
+    env = await setup();
+    const [a, b] = [await env.connect('Ayşe'), await env.connect('Bora')];
+    await befriend(a, b);
+    const cid = 'bekleyen-mesaj-0001';
+    const m1 = (await a.call('dm.send', { to: b.me!.id, text: 'çevrimdışıyken yazdım', cid })).msg;
+    // yanıt kayboldu, bağlanınca kuyruk aynı kimlikle yeniden gönderir: bekleme süresi dolmadan da aynı ileti döner (HIZ değil)
+    const again = (await a.call('dm.send', { to: b.me!.id, text: 'çevrimdışıyken yazdım', cid })).msg;
+    expect(again.id).toBe(m1.id);
+    expect((await b.call('dm.open', { id: a.me!.id })).messages.filter((m) => m.text === 'çevrimdışıyken yazdım')).toHaveLength(1);
+    // başka bir kimlikle hemen ikinci mesaj: hız sınırı yerinde
+    expect((await err(a.call('dm.send', { to: b.me!.id, text: 'ikinci', cid: 'bekleyen-mesaj-0002' }))).code).toBe('HIZ');
+    env.clock.advance(FRIEND_LIMITS.dmCooldownMs);
+    expect((await a.call('dm.send', { to: b.me!.id, text: 'ikinci', cid: 'bekleyen-mesaj-0002' })).msg.id).not.toBe(m1.id);
+    // aynı kimlik başkasında ayrı ileti (kimlik oyuncuya özel)
+    env.clock.advance(FRIEND_LIMITS.dmCooldownMs);
+    expect((await b.call('dm.send', { to: a.me!.id, text: 'selam', cid })).msg.id).not.toBe(m1.id);
+  });
 });

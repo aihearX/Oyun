@@ -12,11 +12,18 @@ export function ScreenLoading({ tabs, title, onBack, top }: { tabs?: boolean; ti
   return (
     <div className={`screen lazy-screen${tabs ? ' with-tabs' : ''}`}>
       {head}
-      <div className="lazy-body" role="status" aria-busy="true">
-        <p className="lazy-text">Yükleniyor…</p>
-        <div className="skel-list" aria-hidden>
-          {[0, 1, 2, 3].map((i) => <div className="skel card" key={i}><i className="sk-a" /><span><i className="sk-b" /><i className="sk-c" /></span></div>)}
-        </div>
+      <ContentLoading />
+    </div>
+  );
+}
+
+/** Ekranın içerik alanı yüklenirken (veri bekleniyor; başlık ve Geri zaten çizili): iri, okunur "Yükleniyor…" + iskelet (YN-072, YN-085) */
+export function ContentLoading({ rows = 4 }: { rows?: number }) {
+  return (
+    <div className="lazy-body" role="status" aria-busy="true">
+      <p className="lazy-text">Yükleniyor…</p>
+      <div className="skel-list" aria-hidden>
+        {Array.from({ length: rows }, (_, i) => <div className="skel card" key={i}><i className="sk-a" /><span><i className="sk-b" /><i className="sk-c" /></span></div>)}
       </div>
     </div>
   );

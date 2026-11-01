@@ -107,7 +107,7 @@ export const rallyHandlers: Handlers = {
       id, t.id, def.id, randomInt(1, 1000), p.id, p.name, 'acik', hp, hp, now, now + RALLY_RULES.durationMs, dayKey(now));
     app.db.run('INSERT INTO ev_rally_part(rally_id, player_id, joined_at) VALUES(?, ?, ?)', id, p.id, now);
     const mins = Math.round(RALLY_RULES.durationMs / 60_000);
-    systemMessage(app, teamRoom(t.id), `${p.name} ralli başlattı! ${def.emoji} ${def.name} · ${mins}:00 içinde katıl, birlikte yenelim!`, 'system', { event: 'ralli', rallyId: id });
+    systemMessage(app, teamRoom(t.id), `${p.name} ralli başlattı! ${def.name} · ${mins}:00 içinde katıl, birlikte yenelim!`, 'system', { event: 'ralli', rallyId: id });
     notify(app, app.teamMemberIds(t.id).filter((x) => x !== p.id), { kind: 'ralli', icon: '🔥', title: `${p.name} ralli başlattı!`, text: `${def.emoji} ${def.name} · ${mins}:00 — katıl!`, target: 'ralli', ref: id });
     const r = rowById(app, id)!;
     broadcast(app, r);

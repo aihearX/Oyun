@@ -9,6 +9,10 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { Empty, ItemChips, Online, Skeleton, TIER, fmtDate, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { Art, Glyph, Rich } from '../ui/art';
 
+/** eski kayıtların nedeni sistem emojisiyle başlayabilir ("🎁 Ayşe sana arkadaş hediyesi gönderdi"): baştaki emoji ayıklanır, satırın simgesi zaten çizim (OT-sessiz-oyuncu-8) */
+const LEAD_EMOJI = /^(?:\p{Extended_Pictographic}|\u{FE0F}|\u{200D})+\s*/u;
+const inboxReason = (s: string) => s.replace(LEAD_EMOJI, '');
+
 /** Ödül kutusu: sunucunun verdiği ödüller; tek tek ya da "Hepsini al". */
 export function InboxScreen({ onBack }: { onBack: () => void }) {
   return (
@@ -39,7 +43,7 @@ function Inbox() {
       {items.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text="Savaş zaferleri, takım yardımları ve Sezon Kartı ödülleri buraya gelir." /> : items.map((it) => (
         <div className="card gift" key={it.id}>
           <span className="gift-i" aria-hidden><Art name={it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
-          <div className="grow min0"><b className="wrap">{it.reason}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={[it]} small /></div>
+          <div className="grow min0"><b className="wrap">{inboxReason(it.reason)}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={[it]} small /></div>
           <button className="btn small" disabled={busy} onClick={() => void one(it)}>Al</button>
         </div>))}
     </div>

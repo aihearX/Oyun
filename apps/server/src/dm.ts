@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmKind, type DmMessage, type DmThread } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { addReport, areFriends, dmBlockReason, hasBlocked } from './friends';
@@ -39,6 +40,11 @@ function reactionsOf(app: App, msgId: string): Record<string, string> {
   return out;
 }
 const msgById = (app: App, id: string) => app.db.get<DmRow>('SELECT * FROM dm WHERE id = ?', id);
+/**
+ * İstemcinin gönderim kimliğinden (cid) ileti kimliği: aynı oyuncu aynı cid'i yeniden gönderirse (yanıt gelmeden kopma, bağlanınca
+ * giden bekleyen mesaj) ileti bir kez yazılır, ilk ileti döner ve hız sınırına sayılmaz (YN-085). Ek tablo gerekmez: dm.id tekildir.
+ */
+const cidMsgId = (pid: string, cid: string) => `d${createHash('sha256').update(`${pid}:${cid}`).digest('hex').slice(0, 32)}`;
 const fullMsg = (app: App, r: DmRow) => toMsg(r, reactionsOf(app, r.id));
 
 export function readSeq(app: App, pid: string, other: string): number {
@@ -133,7 +139,12 @@ export const dmHandlers: Handlers = {
       peerReadSeq: readSeq(app, id, s.pid), myReadSeq: readSeq(app, s.pid, id), canMessage: reason === null, reason,
     };
   },
-  'dm.send': (app, s, { to, text, kind = 'text', meta }) => {
+  'dm.send': (app, s, { to, text, kind = 'text', meta, cid }) => {
+    const cidId = cid ? cidMsgId(s.pid, cid) : null;
+    if (cidId) {
+      const prev = msgById(app, cidId);
+      if (prev) return prev.to_id === to ? { msg: fullMsg(app, prev) } : fail('GECERSIZ', 'Bu gönderim kimliği başka bir konuşmada kullanıldı.');
+    }
     const why = dmBlockReason(app, s.pid, to);
     if (why) fail(why.startsWith('Oyuncu') ? 'YOK' : hasBlocked(app, to, s.pid) || hasBlocked(app, s.pid, to) ? 'ENGEL' : 'YETKI', why);
     const p = app.player(s.pid);
@@ -180,7 +191,7 @@ export const dmHandlers: Handlers = {
     }
     times.set(s.pid, now);
     metric(app, kind === 'hazir' ? 'dm.hazir' : `dm.${kind}`);
-    const id = rid('d'); const pair = pairOf(s.pid, to);
+    const id = cidId ?? rid('d'); const pair = pairOf(s.pid, to);
     app.db.run('INSERT INTO dm(id, pair, from_id, to_id, text, kind, meta, at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, pair, s.pid, to, body, kind, saveMeta ? JSON.stringify(saveMeta) : null, now);
     const row = msgById(app, id)!;
     prune(app, pair);

@@ -142,6 +142,13 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 /* backwards: animasyon bitince dönüşüm kalmaz → ekrandaki position:fixed öğeler (alt sayfa, sekme çubuğu) ekrana değil görünüme göre konumlanır */
 .fade-in { animation:screenIn .34s cubic-bezier(.2,.9,.3,1.05) backwards; }
 @keyframes screenIn { from { opacity:0; transform:translateY(14px) scale(.985); } to { opacity:1; transform:none; } }
+/* ekranlarda başlık (ScreenHead, üst çubuk, sohbet başlığı) ilk karede; kayma + solma yalnız içerikte (YN-085). WebKit yükteyken
+   animasyonun başlaması saniyelerce gecikebiliyor: ekranın kökü solunca başlık ve Geri de o süre görünmüyordu, ekran boş mor kalıyordu
+   (OT-buyuk-yazi-13). Sıfır özgüllük: kendi animasyonu olan çocuk onu korur. Hareket azaltmada hiç solma yok (aşağıda). */
+.screen.fade-in, .dm-screen.fade-in { animation:none; }
+@media (prefers-reduced-motion: no-preference) {
+  :where(html:not(.az-hareket) :is(.screen, .dm-screen).fade-in) > :where(:not(.screen-head, .topbar2, .dm-head)) { animation:screenIn .34s cubic-bezier(.2,.9,.3,1.05) backwards; }
+}
 @keyframes fade { from { opacity:0; } to { opacity:1; } }
 .toast { position:fixed; left:50%; bottom:30px; transform:translateX(-50%); background:var(--cream); color:var(--ink); padding:10px 16px; border-radius:999px; font-weight:900; font-size:0.875rem; z-index:60; box-shadow:0 4px 0 rgba(0,0,0,.3); }
 
@@ -929,6 +936,9 @@ html.az-hareket .bi-rings, html.az-hareket .unlock-card::after { display:none; }
 /* hareket azaltmada yükleme iskeleti solmadan, doğrudan görünür (YN-072) */
 html.az-hareket .lazy-body { animation:none; opacity:1; }
 @media (prefers-reduced-motion: reduce) { .lazy-body { animation:none; opacity:1; } }
+/* hareket azaltmada ekran ve kartlar solmadan, ilk karede görünür (YN-085) */
+html.az-hareket .fade-in { animation:none; }
+@media (prefers-reduced-motion: reduce) { .fade-in { animation:none; } }
 .msg-name.linkish { font-size:inherit; padding:0; font-weight:800; }
 /* aynı anda gelen bildirimler üst üste binmesin: arkadaş/mesaj şeridi üstte, etkinlik şeridi onun altında */
 body:has(.fr-banner) .ev-notice { top:calc(var(--sat) + 88px); }

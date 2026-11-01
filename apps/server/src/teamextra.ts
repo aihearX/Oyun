@@ -142,7 +142,7 @@ export const extraHandlers: Handlers = {
     progress += amount;
     while (level < def.maxLevel && progress >= techCost(level)) {
       progress -= techCost(level); level++;
-      systemMessage(app, teamRoom(t.id), `Takım teknolojisi yükseldi: ${def.emoji} ${def.name} ${level}. seviye!`);
+      systemMessage(app, teamRoom(t.id), `Takım teknolojisi yükseldi: ${def.name} ${level}. seviye!`);
     }
     if (level >= def.maxLevel) progress = 0;
     app.db.run(`INSERT INTO team_tech(team_id, tech, level, progress) VALUES(?, ?, ?, ?)

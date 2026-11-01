@@ -20,11 +20,14 @@
 //               bolum (MK-036): bölüm sonu progress.submit yanıtı geciktirilir (olay önce gelir); üst çubuk bir ödül fazla göstermez.
 //               bolum-kopma / bolum-zaman (MK-038): yanıt kaybolur + yeniden bağlanma / zaman aşımı; fazla yok, ödül düşmez, donma ≤ 100 ms.
 //   etkinlik    etkinlik merkezi açıkken yeniden başlatma: şerit, bağlanınca içerik yeniden yüklenir.
+//   arkadas (g) ağ kopukken (sunucu açık; YN-085, YN-076): arkadaş araması hemen "bağlı değilsin" der, bağlanınca kendisi yineler,
+//               Enter aynı yazıyla yeniden arar; özel mesaj ekranı sonsuz "Yükleniyor…" yerine açık durum gösterir, yazılan iki mesaj
+//               gri "bağlanınca gidecek" balonu olur (kutu boşalır), bağlanınca sırayla birer kez gider, hız uyarısı çıkmaz.
 //   yaris   (d) yarış odasında: sunucu yeniden başlarsa oda silinir → açık ileti + menü, yeni oda kurulur; yalnız ağ kopması
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
 // Her kopmada: "Bağlantı koptu" şeridi görünür; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanır; cüzdan, kamp, ilerleme
 // sunucu (SQLite) ve istemcide aynı; bekleyen kuyruk/outbox boş.
-// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,yaris,yaris-ici] [--cuzdan bolum,olay,…] [--no-build] [--headed]
+// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,arkadas,yaris,yaris-ici] [--cuzdan bolum,olay,…] [--no-build] [--headed]
 // Çıktı: tools/harness/out/kopma/<tarayıcı>/*.png, sonuc.json
 import { spawn } from 'node:child_process';
 import net from 'node:net';
@@ -710,6 +713,80 @@ async function suiteSohbet(A, B) {
   return { kopuk: t1, yanit: t2, aradaki: t3, uzun: t4 };
 }
 
+async function suiteArkadas(A, B) {
+  step('(g) Arkadaşlar: ağ kopukken arama ve özel mesaj; bağlanınca arama yinelenir, mesajlar birer kez gider (YN-085, YN-076)');
+  if (!q1('SELECT 1 AS x FROM friends WHERE a = ? AND b = ?', A.pid, B.pid)) {
+    const r = await call(A, 'friends.request', { id: B.pid });
+    if (r.request) await call(B, 'friends.respond', { requestId: r.request.id, accept: true });
+  }
+  await tab(A, 'Profil'); await A.page.locator('.menu-tile', { hasText: 'Arkadaşlar' }).click();
+  await A.page.locator('[data-testid="arkadas-satiri"]', { hasText: B.name }).waitFor({ timeout: 15_000 });
+  const offline = async () => {
+    A.proxy.mode = 'refuse'; A.proxy.drop();
+    await A.page.waitForFunction(() => window.__ag?.net()?.status !== 'bağlı', null, { timeout: 8000, polling: 100 });
+  };
+  const online = async (label) => {
+    const tPass = Date.now(); A.proxy.mode = 'pass';
+    const t = await waitOnline(A, RECONNECT_MAX_MS + 10_000).catch(() => null);
+    check(t != null, `${label}: ağ gelince ${t ? ((t - tPass) / 1000).toFixed(1) : '—'} sn'de bağlandı`);
+  };
+  const searches = () => A.proxy.reqs.filter((r) => r.op === 'players.search').length;
+
+  // g1: arama — kopukken hemen açık durum (20 sn iskelet değil); bağlanınca kendiliğinden yinelenir; Enter aynı yazıyla yeniden arar
+  const code = q1('SELECT friend_code AS c FROM players WHERE id = ?', B.pid).c;
+  const box = A.page.getByRole('textbox', { name: 'Oyuncu ara' });
+  await offline();
+  const tAra = Date.now(); await box.fill(code);
+  const hemen = await A.page.getByTestId('arama-cevrimdisi').waitFor({ timeout: 3000 }).then(() => Date.now() - tAra, () => null);
+  check(hemen != null, `kopukken arama ${hemen != null ? `${hemen} ms'de` : '3 sn içinde'} "bağlı değilsin" dedi (iskelet beklemeden)`);
+  check(!(await A.page.locator('.chat-err[role="alert"]').count()), 'kopukken aramada kırmızı hata yok (açık durum)');
+  await shot(A, 'arama-kopuk');
+  await online('arama');
+  const bulundu = await A.page.locator('[data-testid="arama-sonucu"]', { hasText: B.name }).waitFor({ timeout: 8000 }).then(() => true, () => false);
+  check(bulundu, 'bağlanınca arama kendiliğinden yinelendi, arkadaş bulundu');
+  check(!(await A.page.getByTestId('arama-cevrimdisi').count()), 'bağlanınca "bağlı değilsin" kalktı');
+  const n0 = searches(); await box.press('Enter');
+  let n1 = n0; for (let i = 0; i < 30 && n1 === n0; i++) { await sleep(100); n1 = searches(); }
+  check(n1 > n0, 'Enter aynı kodla yeniden aradı');
+  await shot(A, 'arama-sonra');
+  await A.page.getByRole('button', { name: 'Aramayı temizle' }).click();
+
+  // g2: özel mesaj — kopukken ekran açık durum der; yazılan iki mesaj gri balon olur, kutu boşalır; bağlanınca sırayla birer kez gider
+  await offline();
+  await A.page.getByRole('button', { name: `${B.name} ile mesajlaş` }).click();
+  await A.page.locator('[data-testid="dm-ekrani"]').waitFor();
+  const durum = await A.page.getByTestId('dm-cevrimdisi').waitFor({ timeout: 3000 }).then(() => true, () => false);
+  check(durum, 'kopukken özel mesaj ekranı "Bağlantı yok" diyor');
+  check(!(await A.page.locator('.dm-older', { hasText: 'Yükleniyor' }).count()), 'kopukken sonsuz "Yükleniyor…" yok');
+  const m1 = `Kopukken mesaj ${cur.bt}`, m2 = `İkinci mesaj ${cur.bt}`;
+  const yaz = async (t, enter) => { await A.page.getByRole('textbox', { name: 'Mesaj' }).fill(t); if (enter) await A.page.getByRole('textbox', { name: 'Mesaj' }).press('Enter'); else await A.page.getByRole('button', { name: 'Gönder', exact: true }).click(); };
+  await yaz(m1, true); await yaz(m2, false);
+  const bekleyen = A.page.locator('[data-testid="dm-bekleyen"]');
+  await bekleyen.nth(1).waitFor({ timeout: 3000 }).catch(() => undefined);
+  check(await bekleyen.count() === 2, `iki mesaj bekleyen balon (${await bekleyen.count()})`);
+  check((await bekleyen.first().innerText()).includes('Bağlanınca gidecek'), 'bekleyen balonda "Bağlanınca gidecek"');
+  check(await A.page.getByRole('textbox', { name: 'Mesaj' }).inputValue() === '', 'mesaj kutudan çıktı');
+  const rows = (t) => q1('SELECT COUNT(*) AS n FROM dm WHERE text = ? AND from_id = ?', t, A.pid).n;
+  check(rows(m1) === 0 && rows(m2) === 0, 'kopukken sunucuda kayıt yok');
+  await shot(A, 'dm-kopuk');
+  const hiz0 = A.proxy.hiz;
+  await online('özel mesaj');
+  await bekleyen.first().waitFor({ state: 'detached', timeout: 10_000 }).catch(() => undefined);
+  for (const t of [m1, m2]) await A.page.locator('[data-testid="dm-mesaj"]', { hasText: t }).waitFor({ timeout: 10_000 }).catch(() => undefined);
+  await sleep(1200);
+  check(!(await bekleyen.count()), 'bağlanınca bekleyen balon kalmadı');
+  check(rows(m1) === 1 && rows(m2) === 1, `bağlanınca her mesaj bir kez gitti (sunucuda ${rows(m1)} + ${rows(m2)})`);
+  const sira = qa('SELECT text FROM dm WHERE from_id = ? AND text IN (?, ?) ORDER BY seq', A.pid, m1, m2).map((r) => r.text);
+  check(sira.join('|') === `${m1}|${m2}`, 'yazılış sırasıyla gitti');
+  check(await A.page.locator('[data-testid="dm-mesaj"]', { hasText: m1 }).count() === 1 && await A.page.locator('[data-testid="dm-mesaj"]', { hasText: m2 }).count() === 1, 'ekranda her mesaj bir balon');
+  const yavas = await A.page.getByText('Biraz yavaş').count();
+  check(!yavas && !(await A.page.locator('.dm-err').count()), 'hız uyarısı ya da hata yok');
+  console.log(`    · bağlanınca HIZ yanıtı: ${A.proxy.hiz - hiz0}`);
+  await shot(A, 'dm-sonra');
+  await A.page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined);
+  await consistent(A, 'arkadas');
+}
+
 async function suiteEtkinlik(A) {
   step('(d) Etkinlik merkezi açıkken sunucu yeniden başlar');
   await tab(A, 'Harita');
@@ -991,6 +1068,7 @@ try {
     for (const k of CUZDAN) await section('cuzdan', () => suiteCuzdan(A, k), `cuzdan/${k}`);
     await section('sohbet', () => suiteSohbet(A, B));
     await section('etkinlik', () => suiteEtkinlik(A));
+    await section('arkadas', () => suiteArkadas(A, B));
     await section('yaris', () => suiteYaris(A, B));
     if (want('yaris-ici')) C = await newPlayer(browser, bt, 'C', `Cem${bt[0]}`);
     await section('yaris-ici', () => suiteYarisIci([A, B, C], 'SIGTERM'), 'yaris-ici/SIGTERM');

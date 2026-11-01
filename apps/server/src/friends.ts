@@ -216,7 +216,7 @@ export const friendHandlers: Handlers = {
     app.db.run('INSERT INTO friend_gifts(day, from_id, to_id, at) VALUES(?, ?, ?, ?)', day, s.pid, id, now);
     app.dailyInc(s.pid, day, 'friend_gift');
     const me = app.player(s.pid);
-    app.addInbox(id, { kind: 'jeton', amount: FRIEND_LIMITS.giftJeton, ref: 'arkadas' }, `🎁 ${me.name} sana arkadaş hediyesi gönderdi`);
+    app.addInbox(id, { kind: 'jeton', amount: FRIEND_LIMITS.giftJeton, ref: 'arkadas' }, `${me.name} sana arkadaş hediyesi gönderdi`);
     app.emit(id, 'friend.gift', { from: app.publicProfile(me), amount: FRIEND_LIMITS.giftJeton });
     app.addCurrency(s.pid, 'jeton', FRIEND_LIMITS.giftThanksJeton);
     return { wallet: app.walletChanged(s.pid), thanks: FRIEND_LIMITS.giftThanksJeton, left: FRIEND_LIMITS.giftsPerDay - sent - 1 };

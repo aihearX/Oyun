@@ -5,7 +5,8 @@ import { COMM_RULES, type MentorLink, type PublicProfile } from '@odi/shared';
 import { act, toast } from '../net';
 import { platform } from '../platform';
 import { ScreenHead } from '../ui/bits';
-import { Empty, ItemChips, Online, Skeleton, fmtLeft, fmtNum, useNow } from '../ui/social';
+import { Empty, ItemChips, Online, fmtLeft, fmtNum, useNow } from '../ui/social';
+import { ContentLoading } from '../ui/Loading';
 import { Art } from '../ui/art';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { hatKey } from '../screens/team/TeamMembers';
@@ -28,7 +29,7 @@ function Together() {
   const duo = useComm((s) => s.duo); const mentor = useComm((s) => s.mentor);
   const feat = useFeatures();
   useEffect(() => { void refreshDuo(); void refreshMentor(); }, []);
-  if (!duo || !mentor) return <Skeleton rows={3} />;
+  if (!duo || !mentor) return <ContentLoading rows={3} />;
   const duoOpen = feat.open('ikili') || !!duo.active || duo.incoming.length > 0;
   return (
     <div className="stack">

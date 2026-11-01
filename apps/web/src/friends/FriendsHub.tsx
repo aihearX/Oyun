@@ -20,6 +20,8 @@ export function FriendsHub({ raceReady = true }: { raceReady?: boolean }) {
   const incoming = useFriends((s) => s.incoming.length);
   const [tab, setTab] = useState<T>(() => (useFriends.getState().incoming.length ? 'istekler' : 'arkadaslar'));
   const [q, setQ] = useState('');
+  /** Enter: aynı yazıyla da yeniden ara (YN-076) */
+  const [again, setAgain] = useState(0);
   const friends = useFriends((s) => s.friends);
   useEffect(() => { void refreshFriends(); }, []);
   const searching = q.trim().length > 0;
@@ -28,10 +30,10 @@ export function FriendsHub({ raceReady = true }: { raceReady?: boolean }) {
       <MyCode code={me.friendCode} />
       <div className="fr-search">
         <span aria-hidden className="fr-search-ico"><Art e="🔎" size="1.15em" className="art-inline" /></span>
-        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="İsim ya da arkadaş kodu ara" aria-label="Oyuncu ara" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false} maxLength={30} />
+        <input className="input" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setAgain((n) => n + 1); } }} placeholder="İsim ya da arkadaş kodu ara" aria-label="Oyuncu ara" enterKeyHint="search" autoCapitalize="off" autoCorrect="off" spellCheck={false} maxLength={30} />
         {searching && <button className="fr-search-x" onClick={() => setQ('')} aria-label="Aramayı temizle"><Icon name="close" size="1.1em" className="ic-inline" /></button>}
       </div>
-      {searching ? <SearchResults q={q.trim()} /> : (
+      {searching ? <SearchResults q={q.trim()} again={again} /> : (
         <>
           <SubTabs<T> active={tab} onChange={setTab} tabs={[
             { id: 'arkadaslar', icon: '🫂', label: `Arkadaşlar${friends ? ` ${friends.length}` : ''}` },
@@ -73,24 +75,32 @@ function RelBtn({ hit, onDone }: { hit: SearchHit; onDone: (r: SearchHit['relati
   return <button className="btn small" disabled={busy} aria-label={`${p.name} ekle`} onClick={async () => { setBusy(true); const r = await requestFriend(p); if (r) onDone(r === 'arkadas' ? 'arkadas' : 'istek-giden'); setBusy(false); }}><Art e="➕" size="1.15em" className="art-inline" /> Ekle</button>;
 }
 
-function SearchResults({ q }: { q: string }) {
+/**
+ * Arama sonuçları. Bağlı değilken istek bekletilmez: hemen "bağlı değilsin" denir ve bağlantı gelince arama kendiliğinden yinelenir;
+ * Enter (again) ve hatadaki "Tekrar dene" aynı yazıyla yeniden arar (YN-076).
+ */
+function SearchResults({ q, again }: { q: string; again: number }) {
+  const online = useNet((s) => s.status === 'bağlı');
   const [res, setRes] = useState<{ q: string; hits: SearchHit[]; more: boolean; page: number } | null>(null);
   const [err, setErr] = useState('');
+  const [retry, setRetry] = useState(0);
   const short = [...q].length < FRIEND_LIMITS.searchMin;
   useEffect(() => {
-    if (short) { setRes(null); setErr(''); return; }
-    const c = friendsNet(); if (!c) return;
+    setErr('');
+    if (short) { setRes(null); return; }
+    const c = friendsNet(); if (!c || !online) return;
     let alive = true;
     const h = setTimeout(() => { c.call('players.search', { query: q }).then((r) => { if (alive) { setErr(''); setRes({ q, hits: r.players, more: r.hasMore, page: 0 }); } }, (e) => { if (alive) setErr(errText(e)); }); }, 300);
     return () => { alive = false; clearTimeout(h); };
-  }, [q, short]);
+  }, [q, short, online, again, retry]);
   const more = async () => {
     const c = friendsNet(); if (!c || !res) return;
     try { const r = await c.call('players.search', { query: res.q, page: res.page + 1 }); setRes({ ...res, hits: [...res.hits, ...r.players], more: r.hasMore, page: res.page + 1 }); } catch (e) { setErr(errText(e)); }
   };
   const setRel = (id: string, relation: SearchHit['relation']) => setRes((r) => (r ? { ...r, hits: r.hits.map((h) => (h.profile.id === id ? { ...h, relation } : h)) } : r));
   if (short) return <div className="muted small-note fr-hint">Aramak için en az {FRIEND_LIMITS.searchMin} harf yaz. 6 karakterlik arkadaş kodunu da yazabilirsin.</div>;
-  if (err) return <div className="chat-err" role="alert">{err}</div>;
+  if (!online) return <div className="net-banner fr-hint" role="status" data-testid="arama-cevrimdisi"><Art name="signal" size={18} /><span className="grow min0">Sunucuya bağlı değilsin. Bağlantı gelince arama kendiliğinden yinelenir.</span></div>;
+  if (err) return <div className="chat-err" role="alert">{err} <button type="button" className="linkish" onClick={() => setRetry((n) => n + 1)}>Tekrar dene</button></div>;
   if (!res || res.q !== q) return <Skeleton rows={2} />;
   if (!res.hits.length) return <Empty icon="🔍" title="Kimseyi bulamadık" text={`“${q}” adında bir oyuncu yok. Arkadaşından kodunu isteyebilirsin.`} />;
   return (
@@ -116,7 +126,7 @@ function FriendRow({ f, raceReady }: { f: PublicProfile; raceReady: boolean }) {
   const unread = useFriends((s) => s.threads?.find((t) => t.other.id === f.id)?.unread ?? 0);
   const [busy, setBusy] = useState(false);
   return (
-    <div className={`card fr-row${online ? ' online' : ''}`} data-testid="arkadas-satiri">
+    <div className={`card fr-row fr-friend${online ? ' online' : ''}`} data-testid="arkadas-satiri">
       <button className="fr-row-main" onClick={() => openProfile(f.id)} aria-label={`${f.name} profili`}>
         <Av p={f} />
         <span className="min0 grow fr-row-text">

@@ -4,7 +4,8 @@ import type { BuildingId, CampState, Wallet } from '@odi/shared';
 import { audio } from '@odi/audio';
 import { act, getNet, reconnect, toast, useSocial } from '../net';
 import { platform } from '../platform';
-import { Skeleton, TopBar, useNow } from '../ui/social';
+import { TopBar, useNow } from '../ui/social';
+import { ContentLoading } from '../ui/Loading';
 import { CampBase } from '../camp/CampBase';
 import { CampList } from '../camp/CampList';
 import { askedHelp, buildKey, defOf, type CampActions } from '../camp/model';
@@ -98,12 +99,12 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
   const teamView = useMemo(() => (team ? { emblem: team.emblem, name: team.name, emblemSvg: artSvg(emblemArt(team.emblem)) } : null), [team?.emblem, team?.name]);
 
   if (!me) {
-    if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><Skeleton rows={4} /></ListShell>;
+    if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><ContentLoading /></ListShell>;
     return <ListShell setView={setView}><CampOffline /></ListShell>;
   }
   const banner = st !== 'bağlı' && <div className="net-banner camp-net"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
   // kamp verisi hiç gelmeden bağlantı koptu: iskelet yerine dürüst kart; bağlanınca (st → bağlı) kamp kendiliğinden yüklenir
-  if (!camp || !wallet) return <ListShell setView={setView}>{st === 'bağlı' ? <Skeleton rows={4} /> : <CampOffline />}</ListShell>;
+  if (!camp || !wallet) return <ListShell setView={setView}>{st === 'bağlı' ? <ContentLoading /> : <CampOffline />}</ListShell>;
   if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
   return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;
 }

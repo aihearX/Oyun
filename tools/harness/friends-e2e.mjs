@@ -134,6 +134,22 @@ try {
   check(await A.locator('[data-testid="arkadas-satiri"] .fr-dot.on').count() === 1, 'Bora çevrimiçi (yeşil nokta)');
   await toastGone(A);
   await shot(A, 'A-arkadas-listesi');
+  // 320 px (OT-eski-telefon-11): ad sütunu en az 12 harflik takma adı ("KaptanTuba12") kesmeden alır, normal ve Büyük yazıda;
+  // Mesaj/Hediye/Yarış gerekirse adın altına iner
+  await A.setViewportSize({ width: 320, height: 640 });
+  for (const big of [false, true]) {
+    await A.evaluate((b) => document.documentElement.classList.toggle('buyuk-yazi', b), big); await sleep(300);
+    const r = await A.locator('[data-testid="arkadas-satiri"]', { hasText: 'Bora' }).evaluate((row) => {
+      const b = row.querySelector('.fr-row-text b'); const cs = getComputedStyle(b);
+      const c = document.createElement('canvas').getContext('2d'); c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const acts = row.querySelector('.fr-acts').getBoundingClientRect();
+      return { col: Math.round(b.parentElement.getBoundingClientRect().width), need: Math.ceil(c.measureText('KaptanTuba12').width), over: row.scrollWidth - row.clientWidth, actsIn: acts.right <= row.getBoundingClientRect().right + 1 };
+    });
+    check(r.col >= r.need && r.over <= 0 && r.actsIn, `320 px${big ? ' Büyük yazı' : ''}: ad sütunu ${r.col} px ≥ 12 harf ${r.need} px, düğmeler satırda`);
+    await shot(A, `A-arkadas-320${big ? '-buyuk' : ''}`);
+  }
+  await A.evaluate(() => document.documentElement.classList.remove('buyuk-yazi'));
+  await A.setViewportSize({ width: 390, height: 844 }); await sleep(300);
   // B profil sekmesine döner (rozetleri görmek için)
   await toastGone(B);
   await back(B);

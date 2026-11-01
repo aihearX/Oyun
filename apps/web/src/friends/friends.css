@@ -45,6 +45,10 @@
 .fr-act.done, .fr-act:disabled { opacity:.6; cursor:default; }
 .fr-act .sbadge.abs { top:-7px; right:-6px; box-shadow:0 0 0 2px var(--panel); }
 .fr-row.wrap { flex-wrap:wrap; row-gap:10px; }
+/* arkadaş satırı (OT-eski-telefon-11): ad en az ~12 harf sığmıyorsa (320 px, Büyük yazı) Mesaj/Hediye/Yarış adın altına iner, sağa yaslı */
+.fr-row.fr-friend { flex-wrap:wrap; row-gap:8px; }
+.fr-row.fr-friend .fr-row-main { flex:1 1 calc(54px + 7.5em); }
+.fr-row.fr-friend .fr-acts { margin-left:auto; }
 .fr-req-btns { display:flex; gap:8px; flex:1 1 100%; }
 .fr-req-btns .btn { flex:1; }
 .fr-req-btns .btn.small { padding:10px 12px; }
@@ -133,6 +137,15 @@
   border:1.5px solid color-mix(in srgb, var(--gold) 45%, transparent); box-shadow:0 2px 0 rgba(8,4,26,.35), inset 0 1px 0 rgba(255,255,255,.25); }
 .dm-row.mine .dm-bubble.tail { border-bottom-right-radius:6px; }
 .dm-row.theirs .dm-bubble.tail { border-bottom-left-radius:6px; }
+/* gönderilmeyi bekleyen mesaj (YN-085): gri balon + durum satırı; reddedilince mercan kenar, neden ve Tekrar dene / Sil */
+.dm-row.mine.dm-pending .dm-bubble { background:var(--panel-2); border:1.5px dashed var(--panel-edge); box-shadow:none; text-shadow:none; color:var(--text); }
+.dm-row.mine.dm-pending.failed .dm-bubble { border-color:var(--coral); }
+.dm-pending .dm-free { opacity:.6; }
+.dm-pend-note { display:flex; align-items:center; gap:4px; flex-wrap:wrap; justify-content:flex-end; margin-top:3px; font-size:0.75rem; font-weight:800; color:var(--text-2); text-align:right; }
+.dm-pending.failed .dm-pend-note { color:var(--coral-text); }
+.dm-pend-acts { display:inline-flex; gap:12px; }
+.dm-pend-acts .linkish { font-size:0.75rem; min-height:32px; padding:0 2px; }
+.dm-net { margin:6px 10px 0; flex:none; }
 .dm-bubble.deleted { font-style:italic; font-weight:700; opacity:.75; background:rgba(255,255,255,.05) !important; border:1.5px dashed rgba(255,255,255,.2) !important; box-shadow:none !important; text-shadow:none !important; }
 .dm-meta { display:inline-flex; align-items:center; gap:3px; float:right; margin:6px 0 -3px 10px; font-size:0.65625rem; font-weight:800; opacity:.75; white-space:nowrap; }
 .dm-ticks { letter-spacing:-3px; padding-right:3px; color:var(--text-2); }

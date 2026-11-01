@@ -258,7 +258,7 @@ describe('arkadaş hediyesi', () => {
     expect(ev).toMatchObject({ amount: 10, from: { name: 'Ayşe' } });
     const item = (await b.waitFor('inbox.new')).item;
     expect(item).toMatchObject({ kind: 'jeton', amount: 10 });
-    expect(item.reason).toContain('Ayşe');
+    expect(item.reason).toBe('Ayşe sana arkadaş hediyesi gönderdi'); // sistem emojisi yok (OT-sessiz-oyuncu-8)
     expect((await b.call('inbox.list', {})).items.some((i) => i.id === item.id)).toBe(true);
     expect((await err(a.call('friends.gift', { id: b.me!.id }))).code).toBe('TEKRAR');
     expect((await a.call('friends.list', {})).gifted).toEqual([b.me!.id]);

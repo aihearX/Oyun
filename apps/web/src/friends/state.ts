@@ -3,10 +3,16 @@
  * Ekranlar burayı okur; sunucu olayları (istek, kabul, dm.*) buraya yazar.
  */
 import { create } from 'zustand';
-import type { NetClient } from '@odi/net';
-import type { DmMessage, DmThread, FriendRequest, PublicProfile } from '@odi/shared';
+import { NetError, newRunId, type NetClient } from '@odi/net';
+import { FRIEND_LIMITS, type DmMessage, type DmThread, type FriendRequest, type PublicProfile } from '@odi/shared';
 
 export interface Convo { messages: DmMessage[]; hasMore: boolean; peerReadSeq: number; canMessage: boolean; reason: string | null; loaded: boolean }
+/**
+ * Gönderilmeyi bekleyen özel mesaj (YN-085): yazılan mesaj kutudan hemen çıkar, konuşmada gri "bağlanınca gidecek" balonu olur;
+ * bağlıyken hemen, değilse bağlanınca sırayla gider. Gönderim kimliği (cid) sunucuda tekildir: yanıt kaybolup yeniden gönderilse de
+ * mesaj bir kez yazılır ve hız sınırına sayılmaz. `error`: sunucu kalıcı olarak reddetti (balonda neden + Tekrar dene / Sil).
+ */
+export interface PendingDm { cid: string; to: string; text: string; kind: DmMessage['kind']; at: number; error?: string }
 export interface Banner { id: number; kind: 'dm' | 'istek' | 'kabul' | 'hediye'; from: PublicProfile; title: string; text: string }
 
 interface FriendsState {
@@ -27,10 +33,12 @@ interface FriendsState {
   banner: Banner | null;
   /** son bilinen profiller (sohbet başlığı vb.) */
   people: Record<string, PublicProfile>;
+  /** gönderilmeyi bekleyen özel mesajlar (yazılış sırasıyla) */
+  outbox: PendingDm[];
 }
 
 export const useFriends = create<FriendsState>()(() => ({
-  friends: null, gifted: [], incoming: [], outgoing: [], threads: null, dmUnread: 0, convos: {}, typing: {}, activeDm: null, profileId: null, banner: null, people: {},
+  friends: null, gifted: [], incoming: [], outgoing: [], threads: null, dmUnread: 0, convos: {}, typing: {}, activeDm: null, profileId: null, banner: null, people: {}, outbox: [],
 }));
 
 let client: NetClient | null = null;
@@ -112,7 +120,7 @@ export function bindFriends(c: NetClient): () => void {
   client = c;
   const offs: (() => void)[] = [];
   const me = () => c.me?.id ?? '';
-  offs.push(c.onStatus((st) => { if (st === 'bağlı') { void refreshFriends(); void refreshThreads(); } }));
+  offs.push(c.onStatus((st) => { if (st === 'bağlı') { void refreshFriends(); void refreshThreads(); void flushDm(); } }));
   offs.push(c.on('friend.request', ({ request, removed }) => {
     remember(request.from, request.to);
     if (removed) { set((s) => ({ incoming: s.incoming.filter((r) => r.id !== request.id), outgoing: s.outgoing.filter((r) => r.id !== request.id) })); return; }
@@ -167,15 +175,69 @@ export async function loadConvo(id: string, older = false): Promise<void> {
   });
 }
 
-/** mesaj gönder; yerelde hemen listeye eklenir */
+/** gönderilen mesajı konuşmaya ve sohbet listesine yaz */
+function delivered(to: string, msg: DmMessage, cid?: string): void {
+  set((s) => {
+    const c = s.convos[to] ?? emptyConvo();
+    return { convos: { ...s.convos, [to]: { ...c, messages: upsert(c.messages, msg) } }, outbox: cid ? s.outbox.filter((x) => x.cid !== cid) : s.outbox };
+  });
+  const other = get().people[to] ?? (get().friends ?? []).find((f) => f.id === to);
+  if (other) threadTouch(other, msg, false);
+  else void refreshThreads();
+}
+
+/** mesaj gönder (davet kartı vb.: yanıtı bekleyen çağıranlar); gönderim kimliğiyle, yanıt gelmeden koparsa bir kez yeniden denenir */
 export async function sendDm(to: string, text: string, kind: DmMessage['kind'] = 'text', meta?: DmMessage['meta']): Promise<DmMessage> {
   const c = client; if (!c) throw new Error('Sunucuya bağlı değilsin.');
-  const r = await c.call('dm.send', meta ? { to, text, kind, meta } : { to, text, kind });
-  patchConvo(to, (cv) => ({ messages: upsert(cv.messages, r.msg) }));
-  const other = get().people[to] ?? (get().friends ?? []).find((f) => f.id === to);
-  if (other) threadTouch(other, r.msg, false);
-  else void refreshThreads();
+  const req = { to, text, kind, cid: newRunId(), ...(meta ? { meta } : {}) };
+  const r = await c.call('dm.send', req).catch((e: unknown) => { if (e instanceof NetError && e.code === 'KOPTU') return c.call('dm.send', req); throw e; });
+  delivered(to, r.msg);
   return r.msg;
+}
+
+/** konuşma ekranından mesaj: hemen bekleyen balon olur, bağlıysa şimdi, değilse bağlanınca gider (YN-085) */
+export function queueDm(to: string, text: string, kind: DmMessage['kind'] = 'text'): void {
+  set((s) => ({ outbox: [...s.outbox, { cid: newRunId(), to, text, kind, at: Date.now() }] }));
+  void flushDm();
+}
+/** reddedilen bekleyen mesaj: yeniden dene ya da sil */
+export function retryDm(cid: string): void { set((s) => ({ outbox: s.outbox.map((x) => (x.cid === cid ? { ...x, error: undefined } : x)) })); void flushDm(); }
+export function dropDm(cid: string): void { set((s) => ({ outbox: s.outbox.filter((x) => x.cid !== cid) })); }
+
+/** geçici hata (bağlantı yok/koptu, geç yanıt): mesaj kuyrukta kalır, bağlanınca (onStatus) ya da kısa süre sonra yine denenir */
+const TRANSIENT = new Set(['CEVRIMDISI', 'KOPTU', 'ZAMAN_ASIMI', 'KAPALI']);
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+let flushing = false;
+let lastSentAt = 0;
+/** bekleyen mesajları sırayla gönder (tek akış); aralarında sunucunun bekleme süresi kadar durur, hız uyarısı çıkmaz */
+export async function flushDm(): Promise<void> {
+  if (flushing) return;
+  flushing = true;
+  let retryLater = false;
+  try {
+    let hiz = 0;
+    for (;;) {
+      const c = client;
+      const item = get().outbox.find((x) => !x.error);
+      if (!c || !item || c.status !== 'bağlı') break;
+      const gap = lastSentAt + FRIEND_LIMITS.dmCooldownMs + 50 - Date.now();
+      if (gap > 0) await wait(gap);
+      if (!get().outbox.some((x) => x.cid === item.cid)) continue; // beklerken silindi
+      try {
+        const r = await c.call('dm.send', { to: item.to, text: item.text, kind: item.kind, cid: item.cid });
+        lastSentAt = Date.now(); hiz = 0;
+        delivered(item.to, r.msg, item.cid);
+      } catch (e) {
+        const code = e instanceof NetError ? e.code : '';
+        // sunucunun bekleme süresi (saat farkı): aynı kimlikle biraz sonra yine; oyuncuya uyarı gösterilmez
+        if (code === 'HIZ' && hiz++ < 5) { lastSentAt = Date.now(); continue; }
+        if (TRANSIENT.has(code)) { retryLater = code === 'ZAMAN_ASIMI'; break; }
+        const error = e instanceof Error ? e.message : 'Gönderilemedi.';
+        set((s) => ({ outbox: s.outbox.map((x) => (x.cid === item.cid ? { ...x, error } : x)) }));
+      }
+    }
+  } finally { flushing = false; }
+  if (retryLater) setTimeout(() => void flushDm(), 1500);
 }
 export function applyMsg(m: DmMessage): void {
   const meId = client?.me?.id;

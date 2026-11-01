@@ -1,12 +1,12 @@
-import { Fragment, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useNet } from '@odi/net/store';
-import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, type DmMessage, type PublicProfile } from '@odi/shared';
+import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmMessage, type PublicProfile } from '@odi/shared';
 import { act, errText, toast } from '../net';
 import { platform } from '../platform';
 import { useNav } from '../nav';
 import { Sheet } from '../ui/social';
 import { Av, Sticker, dayLabel, lastSeenText, openInvite, raceWith, useOnline } from './common';
-import { applyMsg, friendsNet, loadConvo, openProfile, readActive, sendDm, useFriends } from './state';
+import { applyMsg, dropDm, friendsNet, loadConvo, openProfile, queueDm, readActive, retryDm, useFriends, type PendingDm } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
 import { Art, rich } from '../ui/art';
@@ -20,6 +20,7 @@ const EMOJIS = ['😀', '😂', '😮', '😢', '😡', '👋', '👍', '👏', 
 /** tepki adları (erişilebilir ad; tepki çizimle gösterilir) */
 const REACT_NAME: Record<string, string> = { '❤️': 'Kalp', '😂': 'Kahkaha', '😮': 'Vay', '😢': 'Üzgün', '👍': 'Tamam', '🔥': 'Ateş' };
 const EMPTY: DmMessage[] = [];
+const NO_PENDING: PendingDm[] = [];
 
 /** klavye açılınca görünür alanın yüksekliği (mobil WebView): giriş alanı hep görünür kalsın */
 function useViewportHeight(): number | null {
@@ -45,12 +46,15 @@ function useTyping(id: string): boolean {
 export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   const nav = useNav();
   const me = useNet((s) => s.me);
+  const online = useNet((s) => s.status === 'bağlı');
   const conv = useFriends((s) => s.convos[id]);
+  const outbox = useFriends((s) => s.outbox);
+  const pending = useMemo(() => { const p = outbox.filter((x) => x.to === id); return p.length ? p : NO_PENDING; }, [outbox, id]);
   const msgs = conv?.messages ?? EMPTY;
   const other = useFriends((s) => s.people[id] ?? null);
   const isFriend = useFriends((s) => (s.friends ?? []).some((f) => f.id === id));
   const typing = useTyping(id);
-  const online = useOnline(other);
+  const peerOnline = useOnline(other);
   const vh = useViewportHeight();
   const [text, setText] = useState('');
   const [err, setErr] = useState('');
@@ -64,9 +68,14 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   const restore = useRef<{ h: number; top: number } | null>(null);
   const lastTyping = useRef(0);
 
+  // konuşma bağlıyken yüklenir; bağlantı yokken istek bekletilmez (sonsuz "Yükleniyor…" yerine açık durum), bağlanınca kendiliğinden (YN-085)
+  useEffect(() => {
+    if (!online) return;
+    setErr('');
+    loadConvo(id).then(() => readActive(id), (e) => setErr(errText(e)));
+  }, [id, online]);
   useEffect(() => {
     useFriends.setState({ activeDm: id });
-    loadConvo(id).then(() => readActive(id), (e) => setErr(errText(e)));
     const vis = () => { if (document.visibilityState === 'visible') readActive(id); };
     document.addEventListener('visibilitychange', vis);
     return () => { document.removeEventListener('visibilitychange', vis); if (useFriends.getState().activeDm === id) useFriends.setState({ activeDm: null }); };
@@ -77,7 +86,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
     const el = list.current; if (!el) return;
     if (restore.current) { el.scrollTop = el.scrollHeight - restore.current.h + restore.current.top; restore.current = null; return; }
     if (stick.current) el.scrollTop = el.scrollHeight;
-  }, [msgs, typing, vh, panel]);
+  }, [msgs, pending, typing, vh, panel]);
 
   const onScroll = () => {
     const el = list.current; if (!el) return;
@@ -89,15 +98,14 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
     }
   };
 
-  const send = async (body: string, kind: DmMessage['kind'] = 'text') => {
+  // mesaj hemen bekleyen balon olur ve kutudan çıkar; bağlıysa şimdi, değilse bağlanınca bir kez gider (state.ts queueDm)
+  const send = (body: string, kind: DmMessage['kind'] = 'text') => {
     const clean = body.trim(); if (!clean) return;
     setErr('');
-    try {
-      stick.current = true;
-      await sendDm(id, clean, kind);
-      if (kind === 'text') setText('');
-      platform().haptic('light');
-    } catch (e) { setErr(errText(e)); }
+    stick.current = true;
+    queueDm(id, clean, kind);
+    if (kind === 'text') setText('');
+    platform().haptic('light');
   };
   const onType = (v: string) => {
     setText(v);
@@ -120,16 +128,17 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           {other && <Av p={other} size={40} />}
           <span className="min0">
             <b className="ellipsis">{name}</b>
-            <small className={`ellipsis${typing ? ' dm-typing-txt' : online ? ' fr-on' : ''}`} data-testid="dm-durum">{typing ? 'yazıyor…' : other ? lastSeenText(other, online) : ''}</small>
+            <small className={`ellipsis${typing ? ' dm-typing-txt' : peerOnline ? ' fr-on' : ''}`} data-testid="dm-durum">{typing ? 'yazıyor…' : other ? lastSeenText(other, peerOnline) : ''}</small>
           </span>
         </button>
         {isFriend && other && featureOpen('race') && <button className="btn coral small icon-btn" onClick={() => void raceWith(other, nav)} aria-label={`${name} ile yarış`}><Art e="🏁" size="1.15em" className="art-inline" /></button>}
       </header>
 
+      {!online && <div className="net-banner dm-net" role="status" data-testid="dm-cevrimdisi"><Art name="signal" size={18} /><span className="grow min0">{conv?.loaded ? 'Bağlantı yok: son yüklenen konuşma. Yazdıkların bağlanınca gider.' : 'Bağlantı yok: konuşma bağlanınca yüklenecek. Yazdıkların bağlanınca gider.'}</span></div>}
       <div className="dm-list" ref={list} onScroll={onScroll} aria-live="polite">
         {conv?.hasMore && <div className="dm-older">{loadingOlder ? 'Eski mesajlar yükleniyor…' : '↑ Daha eski mesajlar için kaydır'}</div>}
-        {!conv?.loaded && !err && <div className="dm-older">Yükleniyor…</div>}
-        {conv?.loaded && msgs.length === 0 && (
+        {!conv?.loaded && !err && online && <div className="dm-older">Yükleniyor…</div>}
+        {conv?.loaded && msgs.length === 0 && !pending.length && (
           <div className="dm-hello">
             {other && <Av p={other} size={88} dot={false} mood="wow" />}
             <b>{name} ile sohbetin burada başlıyor</b>
@@ -152,6 +161,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
             </Fragment>
           );
         })}
+        {pending.map((p) => <PendingBubble key={p.cid} p={p} online={online} sender={me} />)}
         {typing && <div className="dm-row theirs"><div className="dm-bubble dm-typing" aria-label={`${name} yazıyor`}><i /><i /><i /></div></div>}
       </div>
 
@@ -189,6 +199,22 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
 
       {menu && <MsgMenu m={menu} mine={menu.from === me?.id} meId={me?.id ?? ''} name={name} onClose={() => setMenu(null)} />}
       {optIn && <SafeChatSheet onClose={() => setOptIn(false)} />}
+    </div>
+  );
+}
+
+/** gönderilmeyi bekleyen mesaj: gri balon, altında durumu (bağlanınca gidecek / gönderiliyor / reddedildi: Tekrar dene, Sil) */
+function PendingBubble({ p, online, sender }: { p: PendingDm; online: boolean; sender: Pick<PublicProfile, 'color' | 'hat'> | null }) {
+  const body = p.kind === 'sticker' ? <div className="dm-free">{sender && <Sticker id={p.text} color={sender.color} hat={sender.hat} />}</div>
+    : p.kind === 'emoji' ? <div className="dm-free"><span className="dm-big-emoji" data-ugc>{rich(p.text, '1em')}</span></div>
+    : p.kind === 'hazir' ? <div className="dm-bubble tail">{phraseById(p.text)?.text ?? p.text}</div>
+    : <div className="dm-bubble tail">{p.text}</div>;
+  return (
+    <div className={`dm-row mine end dm-pending${p.error ? ' failed' : ''}`} data-testid="dm-bekleyen">
+      {body}
+      {p.error
+        ? <div className="dm-pend-note" role="alert"><span>Gönderilemedi: {p.error}</span><span className="dm-pend-acts"><button type="button" className="linkish" onClick={() => retryDm(p.cid)}>Tekrar dene</button><button type="button" className="linkish" onClick={() => dropDm(p.cid)}>Sil</button></span></div>
+        : <div className="dm-pend-note" role="status"><Art name={online ? 'hourglass' : 'signal'} size="1em" className="art-inline" /> {online ? 'Gönderiliyor…' : 'Bağlanınca gidecek'}</div>}
     </div>
   );
 }
