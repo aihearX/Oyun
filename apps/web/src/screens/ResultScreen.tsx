@@ -1,6 +1,6 @@
-import { objectiveCountsForStar, type LevelSpec, type RunResult } from '@odi/shared';
+import type { LevelSpec, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, TIER_NAMES, achievementById, achievementDesc, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
-import { levelProgress, type RunSummary } from '@odi/meta';
+import { levelProgress, lossView, star3View, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -75,6 +75,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   const timed = spec.objective.id === 'timed';
+  const loss = result.completed ? null : lossView(result);
+  const star3 = result.completed ? star3View(spec, result) : null;
 
   // zaman çizelgesi
   useEffect(() => {
@@ -184,16 +186,34 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, result.score).toLocaleString('tr-TR')}</div>}
         </div>
 
-        <div className="stats">
+        <div className="stats has-wide">
           {spec.coinsTotal > 0
             ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
             : <div className="card"><div className="v"><Art name="heart" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
           {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
           <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{Math.round(result.timeSec)} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
-          <div className={`card result-obj${result.objectiveMet ? ' met' : ''}`}>
-            <div className="k"><small className="result-obj-h">{spec.coinsTotal > 0 && objectiveCountsForStar(spec) ? '3. yıldız hedefi' : 'Bölüm hedefi'}</small>{spec.objective.label}</div>
-            <div className="result-obj-s"><span className="result-nw"><Art name={result.objectiveMet ? 'check' : 'empty'} size={16} className="art-inline" />{result.objectiveMet ? 'tamam' : 'yapılmadı'}</span>{objectiveMiss(spec, result)}</div>
-          </div>
+          {/* kayıpta neden (3. yıldız kartı kaybın sebebi sanılmasın); kazançta 3. yıldızın tam koşulu ve her yarının ilerlemesi (YN-070) */}
+          {loss ? (
+            <div className="card result-obj result-why" data-testid="sonuc-neden">
+              <small className="result-obj-h">Neden olmadı?</small>
+              <b className="result-why-t">{loss.title}</b>
+              {loss.detail && <span className="result-why-d">{loss.detail}</span>}
+              {loss.tip && <span className="result-why-tip"><Art name="bulb" size={16} className="art-inline" />{loss.tip}</span>}
+            </div>
+          ) : star3 && (
+            <div className={`card result-obj${star3.done ? ' met' : ''}`} data-testid="sonuc-yildiz3">
+              <small className="result-obj-h">3. yıldız{star3.rows.length > 1 ? ' · biri yeter' : ''}{star3.done ? ' · tamam' : ''}</small>
+              <ul className="result-star3">
+                {star3.rows.map((row, i) => (
+                  <li key={i} className={row.done ? 'met' : ''}>
+                    <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
+                    <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
+                    <span className="rs3-n">{row.done ? 'tamam' : row.note || 'yapılmadı'}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
 
         <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
@@ -255,7 +275,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             )}
           </div>
         )}
-        {!result.completed && result.extra?.reason === 'fall' && <div className="muted wrap">İpucu: boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.</div>}
 
         {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
         <div className="result-actions" onClick={(e) => e.stopPropagation()}>
@@ -316,18 +335,6 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }
   return out;
-}
-
-/** Tutturulmayan isteğe bağlı hedefte ne kadar yapıldığı (" · 1 hasar aldın"); durum yazıyla, simge/renk tek başına yetmez (sesi kapalı, az gören oyuncu) */
-function objectiveMiss(spec: LevelSpec, r: RunResult): string {
-  if (r.objectiveMet || !r.completed) return '';
-  const o = spec.objective; const num = (k: string) => { const v = r.extra?.[k]; return typeof v === 'number' ? v : 0; };
-  const why = o.id === 'no-damage' ? `${r.damageTaken}\u00a0hasar aldın`
-    : o.id === 'secret' && num('cochleasTotal') > 0 ? `${num('cochleas')}/${num('cochleasTotal')}\u00a0altın koklea`
-    : o.id === 'collect-all' ? `${Math.max(1, (o.target ?? spec.coinsTotal) - r.coins)}\u00a0nota kaldı`
-    : o.id === 'timed' ? `${Math.round(r.timeSec)}\u00a0sn sürdü`
-    : '';
-  return why ? ` · ${why}` : '';
 }
 
 /** "Bu bölümden" dökümünün satırları: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus) */

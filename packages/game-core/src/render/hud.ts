@@ -6,10 +6,13 @@
 import Phaser from 'phaser';
 import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, softGlowTex, sparkTex, ringTex } from './tex';
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
+import { motionReduced } from './flash';
 
 const ADD = Phaser.BlendModes.ADD;
 /** koklea yuvası ölçeği: üç yuva + "n/3" yazısı nota ve can panelleri arasına aralıklı sığsın */
 const COCH_K = 0.84;
+/** yuva dolunca açılan halkanın son ölçeği (128 px doku → ~31 px): koklea panelinin içinde kalır, nota kutusuna taşmaz */
+const COCH_RING = 0.24;
 export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight' | 'swipeLeft';
 export interface GhostMark { id: string; pct: number; color: number; label?: string }
 
@@ -208,16 +211,21 @@ export class LevelHud {
     const w0 = this.notesText.width + this.notesTotal.width;
     this.notesText.setText(String(n)); this.notesTotal.setText(total > 0 ? `/${total}` : ''); this.positionTotal();
     if (this.notesText.width + this.notesTotal.width > w0) this.fitTop();
-    if (up) { this.bump(this.noteIco, 1.35); }
+    if (up && !motionReduced()) { this.bump(this.noteIco, 1.25); }
   }
   /** dünyadaki noktadan sayaca uçan nota; varınca sayaç zıplar */
   flyNote(worldX: number, worldY: number, onArrive?: () => void) {
-    const s = this.scene; const cam = s.cameras.main; const v = { x: (worldX - cam.worldView.x) / this.k, y: (worldY - cam.worldView.y) / this.k };
-    const n = I(s, noteIcon(s), v.x, v.y).setScrollFactor(0); this.root.add(n);
-    const tx = this.noteIco.x, ty = this.noteIco.y; const mx = (v.x + tx) / 2 + 40, my = Math.min(v.y, ty) - 40;
+    const s = this.scene;
+    // azaltılmış harekette uçuş yok: sayaç yalnız güncellenir (setNotes)
+    if (motionReduced()) { onArrive?.(); return; }
+    const cam = s.cameras.main; const v = { x: (worldX - cam.worldView.x) / this.k, y: (worldY - cam.worldView.y) / this.k };
+    // uçan nota panelin üstünde ama simge ve rakamların altında çizilir (rakam hiç örtülmez); simgeye alttan, rakamların
+    // sırasından değil simgenin sütunundan yaklaşır (kontrol noktası simgenin altında)
+    const n = I(s, noteIcon(s), v.x, v.y).setScrollFactor(0); this.root.addAt(n, this.root.getIndex(this.notesPanel) + 1);
+    const tx = this.noteIco.x, ty = this.noteIco.y; const mx = tx + (v.x - tx) * 0.15, my = Math.max(v.y, ty) + 90;
     const path = { t: 0 };
-    s.tweens.add({ targets: path, t: 1, duration: 520, ease: 'Cubic.In', onUpdate: () => { const t = path.t, u = 1 - t; n.setPosition(u * u * v.x + 2 * u * t * mx + t * t * tx, u * u * v.y + 2 * u * t * my + t * t * ty); n.setScale((1 - t * 0.35) / R()); },
-      onComplete: () => { n.destroy(); this.bump(this.noteIco, 1.45); const g = s.add.image(tx, ty, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDisplaySize(60, 60).setScrollFactor(0); this.root.add(g); s.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }); onArrive?.(); } });
+    s.tweens.add({ targets: path, t: 1, duration: 520, ease: 'Cubic.In', onUpdate: () => { const t = path.t, u = 1 - t; n.setPosition(u * u * v.x + 2 * u * t * mx + t * t * tx, u * u * v.y + 2 * u * t * my + t * t * ty); n.setScale((1 - t * 0.45) / R()); },
+      onComplete: () => { n.destroy(); this.bump(this.noteIco, 1.3); const g = s.add.image(tx, ty, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDisplaySize(48, 48).setScrollFactor(0); this.root.addAt(g, this.root.getIndex(this.notesPanel) + 1); s.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() }); onArrive?.(); } });
   }
   /** bulunan altın koklea sayısı (dolu yuvalar + "n/3"); total: bölümdeki gizli koklea sayısı (en çok 3; 0 = boss arenası, panel gizli) */
   setCochleas(n: number, total = this.cochTotal) {
@@ -225,7 +233,8 @@ export class LevelHud {
     this.cochText.setText(`${Math.min(n, total)}/${total}`).setColor(n > 0 ? '#ffc93c' : '#fff6e5').setVisible(total > 0); this.cochPanel.setVisible(total > 0);
     if (this.cochText.width !== w0) this.fitTop();
     for (let i = 0; i < 3; i++) { const on = i < n && i < total; const was = this.cochOn[i]!.visible; this.cochOn[i]!.setVisible(on); this.coch[i]!.setVisible(!on && i < total);
-      if (on && !was) { const c = this.cochOn[i]!; const b = COCH_K / R(); this.scene.tweens.killTweensOf(c); c.setScale(b * 2.2); this.scene.tweens.add({ targets: c, scale: b, duration: 420, ease: 'Back.Out' }); const r = this.scene.add.image(c.x, c.y, ringTex(this.scene)).setBlendMode(ADD).setTint(THEME.gold).setScale(0.1).setScrollFactor(0); this.root.add(r); this.scene.tweens.add({ targets: r, scale: 0.45, alpha: 0, duration: 500, onComplete: () => r.destroy() }); }
+      // yeni dolan yuva: küçük zıplama ve yuvadan taşmayan halka (yandaki nota kutusunu örtmez); azaltılmış harekette yok
+      if (on && !was && !motionReduced()) { const c = this.cochOn[i]!; const b = COCH_K / R(); this.scene.tweens.killTweensOf(c); c.setScale(b * 1.3); this.scene.tweens.add({ targets: c, scale: b, duration: 320, ease: 'Back.Out' }); const r = this.scene.add.image(c.x, c.y, ringTex(this.scene)).setBlendMode(ADD).setTint(THEME.gold).setScale(0.08).setScrollFactor(0); this.root.addAt(r, this.root.getIndex(this.cochPanel) + 1); this.scene.tweens.add({ targets: r, scale: COCH_RING, alpha: 0, duration: 420, onComplete: () => r.destroy() }); }
     }
   }
   setLives(n: number) {

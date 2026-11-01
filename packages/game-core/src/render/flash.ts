@@ -24,6 +24,8 @@ const recent: number[] = [];
 /** sahne kurulurken: azaltılmış hareket açıksa flaşlar tümden kapanır; sayaç sıfırlanır */
 export function setFlashPolicy(o: { reduced: boolean }): void { reduced = o.reduced; recent.length = 0; }
 export function flashesEnabled(): boolean { return !reduced; }
+/** azaltılmış hareket açık mı (setFlashPolicy ile sahne kurulurken yazılır): gösterge uçuşları ve büyüyen parıltılar da kapanır */
+export function motionReduced(): boolean { return reduced; }
 
 /** tarayıcının "hareketi azalt" tercihi (yoksa ya da okunamazsa false) */
 export function prefersReducedMotion(): boolean {

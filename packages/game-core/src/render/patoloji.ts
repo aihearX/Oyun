@@ -6,7 +6,7 @@
  */
 import Phaser from 'phaser';
 import { softGlowTex } from './tex';
-import { viewTopLeft } from './util';
+import { placeFloat } from './float-lane';
 import type { EntityView } from './view';
 
 const ADD = Phaser.BlendModes.ADD;
@@ -72,14 +72,15 @@ export function markPathology(v: EntityView, type: string, w: number, h: number)
 /** ilk görüşte engelin üstünde patolojinin adı (tıbbi artıyla); kısa süre durur, sonra süzülüp söner */
 export function pathologyLabel(s: Phaser.Scene, x: number, y: number, text: string, font: string) {
   const res = Math.max(1, Math.min(3, s.cameras.main.zoom || 1));
-  const t = s.add.text(x, y, `✚ ${text}`, { fontFamily: font, fontSize: '20px', fontStyle: '900', color: '#ffd1de', stroke: '#5a0f2c', strokeThickness: 6, resolution: res })
+  // Büyük yazı (LevelScene kayda 'textScale' yazar) bu yazıyı da büyütür
+  const k = Number(s.registry?.get('textScale')) || 1;
+  const t = s.add.text(x, y, `✚ ${text}`, { fontFamily: font, fontSize: `${Math.round(20 * k)}px`, fontStyle: '900', color: '#ffd1de', stroke: '#5a0f2c', strokeThickness: Math.round(6 * k), resolution: res })
     .setOrigin(0.5).setDepth(150).setScale(0.6).setAlpha(0);
-  // ekranın içinde kalsın (öğe ekranın kenarındayken yazı kesilmesin)
-  const cam = s.cameras.main; const half = t.width / 2 + 10;
-  const follow = () => { const L = viewTopLeft(cam).x; const W = cam.width / cam.zoom; if (W > 2 * half) t.x = Math.max(L + half, Math.min(L + W - half, x)); };
-  follow(); s.events.on('update', follow); t.once('destroy', () => s.events.off('update', follow));
+  // ekranın içinde kalsın (öğe ekranın kenarındayken ve kamera kayarken yazı kesilmesin), aynı anda çıkan "Kontrol noktası" gibi
+  // yazıyla üst üste binmesin (float-lane.ts)
+  const y0 = placeFloat(s, t, x, y, t.width, t.height);
   s.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
-  s.tweens.add({ targets: t, y: y - 40, alpha: 0, delay: 1900, duration: 600, ease: 'Cubic.In', onComplete: () => t.destroy() });
+  s.tweens.add({ targets: t, y: y0 - 40, alpha: 0, delay: 1900, duration: 600, ease: 'Cubic.In', onComplete: () => t.destroy() });
 }
 
 /** zar sertleşmesi: zarın üstünde beyaz, tebeşirimsi plaklar (kap kökeni zarın ortası, y zar tabanı) */

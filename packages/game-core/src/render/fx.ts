@@ -8,7 +8,8 @@ import { artOf } from './palette';
 import { R, T, dotTex, puffTex, ringTex, softGlowTex, sparkTex, drawGoldNote, drawGoldCochlea } from './tex';
 import { canvasTex, FONT, screenOrigin, THEME } from './util';
 import { fxQuality } from './quality';
-import { FLASH, takeFlash } from './flash';
+import { FLASH, motionReduced, takeFlash } from './flash';
+import { placeFloat } from './float-lane';
 
 /** düşük kalitede parçacık sayısı azalır (en az 1) */
 const q = (n: number) => Math.max(1, Math.round(n * fxQuality()));
@@ -65,12 +66,26 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
   const flashI = s.add.image(O0.x, O0.y, vignetteTex(s)).setOrigin(0, 0).setScrollFactor(0).setDepth(91).setTint(THEME.hazard).setAlpha(0).setDisplaySize(vw, vh).setBlendMode(ADD);
   const ring = (x: number, y: number, tint: number, from: number, to: number, ms: number, sy = 1) => { const r = s.add.image(x, y, ringTex(s)).setBlendMode(ADD).setTint(tint).setDepth(31).setScale(from, from * sy); s.tweens.add({ targets: r, scaleX: to, scaleY: to * sy, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => r.destroy() }); };
   const flare = (x: number, y: number, tint: number, size: number, ms: number) => { const g = s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(tint).setDepth(30).setDisplaySize(size * 0.4, size * 0.4).setAlpha(1); s.tweens.add({ targets: g, displayWidth: size, displayHeight: size, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => g.destroy() }); };
-  const praises = new Set<Phaser.GameObjects.Text>();
-  const praise = (x0: number, y: number, text: string, color: string) => {
-    const wv = cam.worldView; const x = wv.width > 0 ? Math.max(wv.x + 70, Math.min(wv.right - 70, x0)) : x0;
-    const t = s.add.text(x, y, text, { fontFamily: FONT, fontSize: '20px', fontStyle: '900', color, stroke: '#1a0b3e', strokeThickness: 5, resolution: R() }).setOrigin(0.5).setDepth(32).setScale(0.4);
-    praises.add(t); t.once('destroy', () => praises.delete(t));
-    s.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.Out' }); s.tweens.add({ targets: t, y: y - 36, alpha: 0, delay: 420, duration: 360, onComplete: () => t.destroy() });
+  const praises = new Set<Phaser.GameObjects.GameObject>();
+  /**
+   * Dünyadaki övgü sözü. Büyük yazıyla büyür (kayıttaki 'textScale'), ekranda kalır ve başka uçan yazının üstüne binmez
+   * (float-lane.ts). plate: koyu zemin (parlak ışığın içinde çıkan "Altın Koklea!" okunabilsin); ışıkların önünde çizilir.
+   */
+  const praise = (x0: number, y: number, text: string, color: string, plate = false, hold = 420) => {
+    const k = Number(s.registry?.get('textScale')) || 1; const calm = motionReduced();
+    const t = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round((plate ? 22 : 20) * k)}px`, fontStyle: '900', color, stroke: '#1a0b3e', strokeThickness: Math.round(5 * k), resolution: R(), padding: { x: 2, y: 2 } }).setOrigin(0.5);
+    const parts: Phaser.GameObjects.GameObject[] = [];
+    let w = t.width, h = t.height;
+    if (plate) {
+      w += 20 * k; h += 6 * k;
+      const g = s.add.graphics(); g.fillStyle(0x140c35, 0.88).fillRoundedRect(-w / 2, -h / 2, w, h, h / 2); g.lineStyle(2, 0xffc93c, 0.8).strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2); parts.push(g);
+    }
+    parts.push(t);
+    const c = s.add.container(x0, y, parts).setDepth(150).setScale(calm ? 1 : 0.6);
+    praises.add(c); c.once('destroy', () => praises.delete(c));
+    const y0 = placeFloat(s, c, x0, y, w, h);
+    if (!calm) s.tweens.add({ targets: c, scale: 1, duration: 200, ease: 'Back.Out' });
+    s.tweens.add({ targets: c, y: y0 - 36, alpha: 0, delay: hold, duration: 360, onComplete: () => c.destroy() });
   };
   return {
     landDust(x, y, k = 0.6) { dust.explode(q(Math.round(4 + k * 8)), x, y - 2); if (k > 0.7) ring(x, y - 2, A.ground.topHi, 0.08, 0.5, 300, 0.25); },
@@ -90,11 +105,14 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
       ring(x, y - 70, THEME.gold, 0.1, 1.1, 600); sparks.explode(q(16), x, y - 70); flare(x, y - 70, THEME.gold, 220, 600);
     },
     cochleaPickup(x, y) {
+      // azaltılmış harekette büyüyüp dönen koklea, halkalar ve büyük ışık yok: yalnız kısa parıltı ve yazı
+      if (motionReduced()) { sparks.explode(q(8), x, y); praise(x, y - 56, 'Altın Koklea!', '#ffc93c', true, 1100); return; }
       const c = s.add.image(x, y, cochleaMiniTex(s)).setDepth(33).setScale(1 / R());
       s.tweens.add({ targets: c, scale: 2.2 / R(), angle: 360, duration: 520, ease: 'Back.Out' });
       s.tweens.add({ targets: c, alpha: 0, y: y - 30, delay: 520, duration: 300, onComplete: () => c.destroy() });
       ring(x, y, THEME.gold, 0.1, 1.4, 700); ring(x, y, 0xffffff, 0.05, 0.8, 500); sparks.explode(q(24), x, y); dots.explode(q(20), x, y); flare(x, y, THEME.gold, 300, 700);
-      praise(x, y - 52, 'Altın Koklea!', '#ffc93c');
+      // yazı ışığın üstünde, koyu zeminde ve okunacak kadar uzun (Büyük yazıda büyür)
+      praise(x, y - 56, 'Altın Koklea!', '#ffc93c', true, 1100);
     },
     hintTrail(x0, y0, x1, y1) {
       for (let i = 0; i < q(5); i++) {

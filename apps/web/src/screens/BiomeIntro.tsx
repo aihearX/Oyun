@@ -1,4 +1,4 @@
-import { ABILITIES, BIOMES, MECHANICS } from '@odi/content';
+import { ABILITIES, BIOMES, HUMAN_JOURNEY, MECHANICS } from '@odi/content';
 import type { LevelSpec } from '@odi/shared';
 import { useEffect, useState } from 'react';
 import { platform } from '../platform';
@@ -14,8 +14,12 @@ const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 function moves(spec: LevelSpec): string[] {
   const a = spec.abilities ?? []; const fresh = spec.newAbilities ?? [];
   const lines = a.length && a.every((x) => fresh.includes(x)) ? a.flatMap((x) => ABILITIES[x].how.split(' · ')) : MECHANICS[spec.mechanic].hint.split(' · ');
+  // bu biyomda melodi bölümü varsa sıralı notanın ekranda nasıl göründüğü (sesi kapalı oynayan da bilsin; YN-070)
+  if (HUMAN_JOURNEY.levels.some((l) => l.biome === spec.biome && l.objective === 'melody')) lines.push(MELODY_HOW);
   return lines.map((l) => l.trim()).filter(Boolean);
 }
+/** melodi hedefi: nota biçimli toplanabilirler x sırasıyla (game-core world.ts), her doğru notada "Nota 3/7" yazar */
+const MELODY_HOW = 'Melodi: nota biçimli olanları soldan sağa, atlamadan topla ("Nota 3/7" yazar)';
 /** İlk kez girilen biyom için kısa sinematik kart. Tek dokunuşla geçilir. */
 export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }) {
   const b = BIOMES[spec.biome]; const m = MECHANICS[spec.mechanic];

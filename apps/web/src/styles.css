@@ -290,6 +290,26 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-obj-s .art { vertical-align:-3px; margin-right:3px; }
 .result-nw { white-space:nowrap; }
 .result-obj.met .result-obj-s { color:var(--text); }
+/* YN-070: 3. yıldız kartı / kayıp nedeni tam satır (iki küçük kart üstte); "ya da"lı koşul satır satır, her satır kendi ilerlemesiyle */
+.stats.has-wide { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.stats.has-wide .result-obj { grid-column:1 / -1; text-align:left; gap:6px; padding:10px 12px; }
+.result-screen .stats .result-obj { justify-content:flex-start; }
+.result-star3 { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.result-star3 li { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; column-gap:6px; font-size:0.875rem; font-weight:900; line-height:1.3; color:var(--text); }
+.result-star3 li > .art { flex:none; }
+.rs3-t { min-width:0; overflow-wrap:anywhere; }
+.rs3-or { font-size:0.75rem; font-weight:800; color:var(--text-2); }
+.rs3-n { font-size:0.8125rem; font-weight:900; color:var(--gold); text-align:right; white-space:nowrap; }
+.result-star3 li.met .rs3-n { color:var(--text-2); }
+.result-why { color:var(--text); }
+.result-why-t { font-size:1rem; font-weight:900; line-height:1.25; }
+.result-why-d { font-size:0.875rem; font-weight:800; line-height:1.35; color:var(--text); overflow-wrap:anywhere; }
+.result-why-tip { font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
+.result-why-tip .art { vertical-align:-3px; margin-right:4px; }
+/* dar ekranda / büyük yazıda satır sığmazsa ilerleme alta iner */
+@media (max-width:360px) { .result-star3 li { grid-template-columns:auto minmax(0,1fr); } .result-star3 li .rs3-n { grid-column:2; text-align:left; white-space:normal; } }
+html.buyuk-yazi .result-star3 li { grid-template-columns:auto minmax(0,1fr); }
+html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-space:normal; }
 .result-earn { width:100%; display:flex; flex-direction:column; gap:6px; text-align:left; opacity:0; transform:translateY(8px); transition:opacity .35s, transform .35s; }
 .result-earn[data-show="yes"] { opacity:1; transform:none; }
 .result-earn-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:900; }

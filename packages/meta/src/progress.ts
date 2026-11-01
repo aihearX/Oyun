@@ -34,24 +34,83 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
   } else if (r.stars < 3) {
     // eşikler yıldız kuralıyla aynı yerden (shared economy.ts → noteThresholds; yüzmede 2★ %45 nota). Tek cümle, nota sayısı
-    // toplam olarak (sonuç ekranındaki "78/98 nota" ile yan yana okunur): "3. yıldız: 90 nota ya da hepsini topla"
+    // toplam olarak (sonuç ekranındaki "78/98 nota" ile yan yana okunur): "3. yıldız: 90 nota ya da hiç hasar alma"
     const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
     if (r.stars === 1) {
       const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
       return { kind: 'yildiz', text: `2. yıldız: ${notesAt(th.star2)} nota${t2 ? ` ya da ${t2} saniyede bitir` : ''}` };
     }
     const n3 = `3. yıldız: ${notesAt(th.star3)} nota`;
-    if (spec.objective.id === 'reach') return { kind: 'yildiz', text: n3 };
-    const hedef = spec.objective.id === 'collect-all' ? 'hepsini topla' : spec.objective.label.charAt(0).toLocaleLowerCase('tr-TR') + spec.objective.label.slice(1);
+    // "hepsini topla" 90 notanın içinde kalır: ikinci yarı yazılmaz (sonuç kartıyla aynı tek sayı; OT-rekabetci-7)
+    if (spec.objective.id === 'reach' || spec.objective.id === 'collect-all') return { kind: 'yildiz', text: n3 };
+    const hedef = spec.objective.label.charAt(0).toLocaleLowerCase('tr-TR') + spec.objective.label.slice(1);
     // yüzmede 2★ %60'tan az notayla gelebilir; hedefle 3★ için yine %60 nota gerekir → onu da söyle
     const withObj = th.star3Objective ? notesAt(th.star3Objective) : 0;
-    if (withObj > r.coins && spec.objective.id !== 'collect-all') return { kind: 'yildiz', text: `${n3} ya da ${withObj} nota ve ${hedef}` };
+    if (withObj > r.coins) return { kind: 'yildiz', text: `${n3} ya da ${withObj} nota ve ${hedef}` };
     return { kind: 'yildiz', text: `${n3} ya da ${hedef}` };
   }
   const t = nextTreasure(spec.number + 1, progress);
   if (t && t.remaining <= 3) return { kind: 'hazine', text: t.remaining === 1 ? 'Sıradaki bölümün sonunda hazine var!' : `${t.remaining} bölüm sonra hazine!` };
   const next = HUMAN_JOURNEY.levels[spec.number];
   return next ? { kind: 'sirada', text: `Sırada: ${next.number}. ${next.name}` } : { kind: 'son', text: 'Yolculuğun sonuna ulaştın. Ninni beyne ulaştı!' };
+}
+
+/** Sonuç ekranındaki 3. yıldız kartının bir satırı: koşul, tutturuldu mu, tutmadıysa ne kadar yapıldığı (yazıyla; simge tek başına yetmez) */
+export interface StarRow { text: string; done: boolean; note: string }
+export interface Star3View { rows: StarRow[]; done: boolean }
+
+/**
+ * 3. yıldızın koşulları, sonuç kartı için (yıldız kuralıyla aynı yerden: shared economy.ts → scoreRun / noteThresholds).
+ * "Ya da"lı kural iki satır olur (biri yeter), her satır kendi ilerlemesini söyler: "7 nota kaldı", "1 hasar aldın", "3/7 sırayla".
+ * "Tüm notaları topla" 90 notanın içinde kaldığından tek satır: "90 nota topla". Notasız (boss) bölümde 3★ hasarsız bitirmektir.
+ */
+export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
+  const num = (k: string) => { const v = r.extra?.[k]; return typeof v === 'number' ? v : 0; };
+  const dmg: StarRow = { text: 'Hiç hasar alma', done: r.damageTaken === 0, note: r.damageTaken > 0 ? `${r.damageTaken}\u00a0hasar aldın` : '' };
+  if (spec.coinsTotal <= 0) return { rows: [dmg], done: r.stars === 3 };
+  const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
+  const n3 = notesAt(th.star3); const o = spec.objective;
+  const rows: StarRow[] = [{ text: o.id === 'collect-all' ? `${n3} nota topla` : `${n3} nota`, done: r.coins >= n3, note: r.coins >= n3 ? '' : `${n3 - r.coins}\u00a0nota kaldı` }];
+  if (o.id !== 'reach' && o.id !== 'collect-all' && th.star3Objective !== null) {
+    // yüzmede 2★ %45 notayla gelir; hedefle 3★ için yine %60 nota gerekir → satır bunu da söyler
+    const need = notesAt(th.star3Objective); const short = need > r.coins;
+    const text = `${o.label}${short ? ` ve ${need} nota` : ''}`;
+    const why = o.id === 'no-damage' ? dmg.note
+      : o.id === 'secret' ? `${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`
+      : o.id === 'melody' ? `${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`
+      : o.id === 'timed' ? `${Math.round(r.timeSec)}\u00a0sn sürdü`
+      : o.id === 'escort' ? 'Fısıltı yolda kaldı'
+      : '';
+    const done = r.objectiveMet && !short;
+    rows.push({ text, done, note: done ? '' : r.objectiveMet && short ? `${need - r.coins}\u00a0nota kaldı` : why });
+  }
+  return { rows, done: r.stars === 3 };
+}
+
+/** son hasarın kaynağı → "en son …" (sim.ts hurt nedenleri; boss saldırıları tek cümle) */
+const LOSS_WHAT: Record<string, string> = {
+  fall: 'boşluğa düştün', diken: 'dikene değdin', gurultu: 'bir engele çarptın', dusman: 'bir gürültü yaratığına çarptın',
+  mermi: 'bir mermi sana değdi', nefes: 'nefesin tükendi', freq: 'kapıya yanlış frekansla girdin',
+  yumruk: 'canavarın saldırısına yakalandın', top: 'canavarın saldırısına yakalandın', damla: 'canavarın saldırısına yakalandın',
+  dalga: 'canavarın saldırısına yakalandın', bulut: 'canavarın saldırısına yakalandın',
+};
+const LOSS_TIP: Record<string, string> = {
+  fall: 'Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.',
+  diken: 'Dikenin üstünden zıpla; basılı tutarsan daha yükseğe çıkarsın.',
+  dusman: 'Gürültü yaratıklarının çoğunu üstüne zıplayarak ezebilirsin.',
+  nefes: 'Arada yüzeye çıkıp nefes al.',
+  freq: 'Kapıdan önce diyapazona değ: rengin kapıyla aynı olsun.',
+};
+/**
+ * Kayıpta neden (OT-ilk-kez-oyun-8): başlığın altında, 3. yıldız kartının yerinde. Canlar mı bitti, en son neye çarptı; bilinen
+ * nedenlerde tek cümle ipucu. reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti').
+ */
+export function lossView(r: RunResult): { title: string; detail: string; tip: string } {
+  const reason = typeof r.extra?.reason === 'string' ? r.extra.reason : '';
+  if (reason === 'yaris-bitti') return { title: 'Yarış bitti', detail: 'Sen kapıya varmadan yarış kapandı.', tip: '' };
+  const n = r.damageTaken; const what = LOSS_WHAT[reason];
+  const detail = n > 0 ? `${n} kez hasar aldın${what ? `, en son ${what}` : ''}.` : what ? `${what.charAt(0).toLocaleUpperCase('tr-TR')}${what.slice(1)}.` : '';
+  return { title: 'Canların bitti', detail, tip: LOSS_TIP[reason] ?? '' };
 }
 
 /** Haritada görünür sıradaki hazine: "N bölüm sonra hazine". */

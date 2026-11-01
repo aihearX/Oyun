@@ -1130,7 +1130,7 @@ async function suite(browserName, target, [W, H]) {
     }
     if (want('sonuc')) {
       // YN-066: haritada bekleyen tanıtım (Kamp; iki açılım en uzun satır) → Sonraki yerine "Haritaya dön"
-      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki']]) {
+      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1138,6 +1138,18 @@ async function suite(browserName, target, [W, H]) {
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
         const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
         if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
+        // YN-070: kayıpta neden kartı (3. yıldız kartı yok); kazançta 3. yıldız kartı, tutmayan her satırın ilerlemesi yazıyla
+        if (label.startsWith('sonuc-kaybetti')) {
+          const why = (await page.locator('[data-testid="sonuc-neden"]').textContent().catch(() => '')) ?? '';
+          if (!/Canların bitti/.test(why)) fail(rec, `kayıp nedeni yazmıyor: "${why}"`);
+          if (label === 'sonuc-kaybetti-diken' && !/en son dikene değdin/.test(why)) fail(rec, `son hasar yazmıyor: "${why}"`);
+          if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, 'kayıpta 3. yıldız kartı görünüyor');
+        } else {
+          const rows = await page.locator('[data-testid="sonuc-yildiz3"] li').allTextContents().catch(() => []);
+          if (!rows.length) fail(rec, '3. yıldız kartı yok');
+          const want3 = { 'sonuc-yildiz-ya-da': [/nota kaldı/, /hasar aldın/], 'sonuc-yildiz-hepsi': [/nota topla.*nota kaldı/], 'sonuc-melodi': [/nota kaldı/, /sırayla/] }[label];
+          if (want3 && (rows.length !== want3.length || want3.some((re, i) => !re.test(rows[i] ?? '')))) fail(rec, `3. yıldız satırları beklenen gibi değil: ${JSON.stringify(rows)}`);
+        }
         const btn = await page.evaluate(() => [...document.querySelectorAll('.result-actions button')].map((b) => { const r = b.getBoundingClientRect(); return { t: b.textContent.trim(), l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; }));
         rec.buttons = btn;
         const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);

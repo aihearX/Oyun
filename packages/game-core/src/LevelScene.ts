@@ -143,7 +143,11 @@ export class LevelScene extends Phaser.Scene {
       const go = () => { this.input_.tick(); begin(); };
       const delay = this.opts.bot ? Math.max(0, race.botDelayMs ?? 0) : 0;
       this.race.countdown(`${this.spec.number}. ${this.spec.name}\n${this.spec.objective.label}`, () => { if (delay) this.time.delayedCall(delay, go); else go(); });
-    } else if (this.opts.bot) begin(); else tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}\n\nDokun ve başla`, () => { this.input_.consumeActive(); begin(); });
+    } else if (this.opts.bot) begin(); else {
+      // melodi hedefi sesi kapalı oynayana da görünsün: hangi nota, hangi sıra (her doğru notada "Nota 3/7" yazar)
+      const how = this.spec.objective.id === 'melody' ? '\nNota biçimli olanları soldan sağa, atlamadan topla' : '';
+      tapToStart(this, `${this.spec.name}\n\n${this.spec.objective.label}${how}\n\nDokun ve başla`, () => { this.input_.consumeActive(); begin(); });
+    }
 
     (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = this;
     this.events.once('shutdown', () => { (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = undefined; });
@@ -582,7 +586,8 @@ export class LevelScene extends Phaser.Scene {
     const base = {
       levelId: this.spec.id, completed, coins: s.coins, timeSec: Math.round(s.t * 10) / 10, deaths: s.deaths, damageTaken: s.damageTaken,
       objectiveMet: this.objectiveMet(completed), secretFound: cochleasTotal > 0 && s.cochleas >= cochleasTotal,
-      extra: { cochleas: s.cochleas, cochleasTotal } as Record<string, number | string | boolean>,
+      // melodi: sırayla toplanan nota sayısı (sonuç kartı "7 notanın 3'ü sırayla" diyebilsin)
+      extra: { cochleas: s.cochleas, cochleasTotal, ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
     };
     return { ...base, ...scoreRun(this.spec, base) };
   }

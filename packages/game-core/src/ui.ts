@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { safeFlashAlpha, safeFlashColor, takeFlash } from './render/flash';
 import { screenOrigin } from './render/util';
+import { placeFloat } from './render/float-lane';
 
 export const FONT = '"SF Pro Rounded","Segoe UI Rounded","Nunito","Helvetica Neue",Arial,sans-serif';
 /** tasarım birimiyle görünüm boyutu (kamera cihaz piksel oranında yakınlaşmış olabilir) */
@@ -70,8 +71,10 @@ export function floatText(scene: Phaser.Scene, x: number, y: number, text: strin
   const k = textScale(scene);
   const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${Math.round(21 * k)}px`, fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: Math.round(7 * k), resolution: DPR(scene), padding: { x: 4, y: 4 } }).setOrigin(0.5).setDepth(150);
   t.setShadow(0, 2, 'rgba(10,4,30,0.9)', 4, true, false);
-  scene.tweens.add({ targets: t, y: y - 34, duration: 520, ease: 'Cubic.Out' });
-  scene.tweens.add({ targets: t, y: y - 60, alpha: 0, delay: 520, duration: 380, ease: 'Cubic.In', onComplete: () => t.destroy() });
+  // ekranın içinde kalır (kamera kayarken de), aynı anda çıkan başka yazının üstüne binmez (render/float-lane.ts)
+  const y0 = placeFloat(scene, t, x, y, t.width, t.height);
+  scene.tweens.add({ targets: t, y: y0 - 34, duration: 520, ease: 'Cubic.Out' });
+  scene.tweens.add({ targets: t, y: y0 - 60, alpha: 0, delay: 520, duration: 380, ease: 'Cubic.In', onComplete: () => t.destroy() });
 }
 
 /** koyu cam kart dokusu (Kulak Gecesi: mor cam, altın kenar) */

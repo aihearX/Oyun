@@ -176,7 +176,7 @@ function botParams() {
 }
 
 /**
- * Geliştirme önizlemesi: `?demo=sonuc&yildiz=3&skor=1234&rekor=1[&seviye=1][&sans=1][&acilim=1][&bolum=8]`
+ * Geliştirme önizlemesi: `?demo=sonuc&yildiz=3&skor=1234&rekor=1[&seviye=1][&sans=1][&acilim=1][&bolum=8][&neden=diken]`
  * Sonuç ekranını sahte bir çekirdek üzerinde gösterir; kayda hiçbir şey yazmaz (üretimde zararsız).
  * `&katki=1`: takım katkısı satırlarını örnek bir sunucu onayıyla gösterir (yalnızca görünüm; sunucuya bir şey gitmez).
  */
@@ -190,10 +190,12 @@ function demoResult({ generateLevel }: LevelGen): Extract<Route, { name: 'result
   const record = q.get('rekor') === '1', levelUp = q.get('seviye') === '1', lucky = q.get('sans') === '1', unlock = q.get('acilim') === '1';
   const spec = generateLevel(HUMAN_JOURNEY.id, n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
   const completed = stars > 0;
+  // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…)
+  const melodyTotal = spec.objective.id === 'melody' ? spec.objective.target ?? 7 : 0;
   const result: RunResult = {
-    levelId: spec.id, completed, stars, score, coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.6 : 0.4)) : 6, timeSec: spec.parTimeSec - 4,
-    deaths: 0, damageTaken: stars === 3 ? 0 : 1, objectiveMet: stars >= 2, secretFound: false,
-    extra: { maxCombo: 12, ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: 'fall', pct: 0.92 }) },
+    levelId: spec.id, completed, stars, score, coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4)) : 6, timeSec: spec.parTimeSec - 4,
+    deaths: 0, damageTaken: stars === 3 ? 0 : completed ? 1 : 3, objectiveMet: stars === 3, secretFound: false,
+    extra: { maxCombo: 12, cochleas: stars === 3 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }) },
   };
   const progress: PlayerCore['progress'] = {};
   for (let i = 1; i < n; i++) progress[i] = { stars: 2, best: 600, plays: 1 };

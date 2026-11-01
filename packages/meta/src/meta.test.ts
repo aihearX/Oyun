@@ -6,7 +6,7 @@ const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind ==
 import {
   addDays, advanceStreak, albumProgress, applyGrant, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
   clearedInRow, dailyFor, dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
-  nextGoal, nextTreasure, yuzdeEki, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
+  lossView, nextGoal, nextTreasure, star3View, yuzdeEki, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
 } from './index';
 
@@ -201,7 +201,7 @@ describe('ilerleme geri bildirimi', () => {
   it('dürüst yakın-kaçış metinleri', () => {
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.92 } })).text).toBe('Kapıya %8 kaldı!');
     expect(nextGoal(spec(2), run({ completed: false, stars: 0, extra: { pct: 0.06 } })).text).toBe("Yolun %6'sını geçtin. Bir dahakine daha ileri!");
-    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hepsini topla');
+    expect(nextGoal(spec(2), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota');
     expect(nextGoal(spec(1), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota');
     expect(nextGoal(spec(2), run({ stars: 1, objectiveMet: false })).text).toBe('2. yıldız: 18 nota');
     expect(nextGoal(spec(3), run({ stars: 3, coins: 30 })).text).toContain('hazine');
@@ -217,7 +217,31 @@ describe('ilerleme geri bildirimi', () => {
     expect(nextGoal(spec(21), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota');
     expect(nextGoal(spec(28), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da 18 nota ve hedef');
     expect(nextGoal(spec(28), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hedef');
-    expect(nextGoal(spec(22), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da hepsini topla');
+    expect(nextGoal(spec(22), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota');
+  });
+  it('sonuç kartı: 3. yıldız tek koşul ve ilerleme (YN-070)', () => {
+    // 8 Damlalar: "Tüm notaları topla" 90 notanın içinde → tek satır, kalan en yakın koşula göre
+    const d = { ...spec(8), objective: { id: 'collect-all' as const, target: 30, label: 'Tüm notaları topla (30)' } };
+    expect(star3View(d, run({ stars: 2, coins: 25, objectiveMet: false }))).toEqual({ done: false, rows: [{ text: '27 nota topla', done: false, note: '2\u00a0nota kaldı' }] });
+    expect(nextGoal(d, run({ stars: 2, coins: 25, objectiveMet: false })).text).toBe('3. yıldız: 27 nota');
+    // 7 Yapışkan Yol: "ya da" → iki satır, ikisinin de ilerlemesi
+    const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
+    expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false })).rows).toEqual([
+      { text: '27 nota', done: false, note: '7\u00a0nota kaldı' }, { text: 'Hiç hasar alma', done: false, note: '1\u00a0hasar aldın' }]);
+    expect(star3View(y, run({ stars: 3, coins: 20, damageTaken: 0, objectiveMet: true }))).toMatchObject({ done: true, rows: [{ done: false }, { done: true, note: '' }] });
+    // 12 Zar Melodisi: kaçı sırayla
+    const m = { ...spec(12), objective: { id: 'melody' as const, target: 7, label: 'Notaları sırayla topla (7)' } };
+    expect(star3View(m, run({ stars: 2, coins: 20, objectiveMet: false, extra: { melody: 3, melodyTotal: 7 } })).rows[1]).toEqual({ text: 'Notaları sırayla topla (7)', done: false, note: '3/7\u00a0sırayla' });
+    // yüzme: hedef tuttu ama %60 nota yok → satır notayı da ister
+    expect(star3View(spec(28), run({ stars: 2, coins: 15, objectiveMet: true })).rows[1]).toEqual({ text: 'Hedef ve 18 nota', done: false, note: '3\u00a0nota kaldı' });
+    // notasız (boss): hasarsız
+    expect(star3View({ ...spec(20), coinsTotal: 0 }, run({ stars: 2, damageTaken: 1 })).rows).toEqual([{ text: 'Hiç hasar alma', done: false, note: '1\u00a0hasar aldın' }]);
+  });
+  it('kayıpta neden yazılır (YN-070)', () => {
+    expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'diken' } }))).toEqual({ title: 'Canların bitti', detail: '3 kez hasar aldın, en son dikene değdin.', tip: 'Dikenin üstünden zıpla; basılı tutarsan daha yükseğe çıkarsın.' });
+    expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'gurultu' } })).tip).toBe('');
+    expect(lossView(run({ completed: false, stars: 0, damageTaken: 2, extra: { reason: 'bilinmeyen' } })).detail).toBe('2 kez hasar aldın.');
+    expect(lossView(run({ completed: false, stars: 0, extra: { reason: 'yaris-bitti' } })).title).toBe('Yarış bitti');
   });
   it('sıradaki hazine ve yenilik duyuruları', () => {
     expect(nextTreasure(3, {})).toMatchObject({ level: 5, remaining: 3 });
