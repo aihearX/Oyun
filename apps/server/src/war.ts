@@ -49,6 +49,8 @@ export function addWarPoints(app: App, pid: string, teamId: string | null, biome
   app.db.run('INSERT INTO team_week(week, team_id, points) VALUES(?, ?, ?) ON CONFLICT(week, team_id) DO UPDATE SET points = points + excluded.points', week, teamId, points);
   const region = regionFor(teamTargets(app, teamId), biome);
   if (!region) return null;
+  // kişinin bölgelere yazılan payı (Bölge Savaşı dökümü: "Sen"; göç 11)
+  app.db.run('UPDATE player_week SET region_points = region_points + ? WHERE week = ? AND player_id = ?', points, week, pid);
   app.db.run('INSERT INTO war_points(week, team_id, region, points) VALUES(?, ?, ?, ?) ON CONFLICT(week, team_id, region) DO UPDATE SET points = points + excluded.points', week, teamId, region, points);
   const mine = app.db.get<{ points: number }>('SELECT points FROM war_points WHERE week = ? AND team_id = ? AND region = ?', week, teamId, region)!.points;
   const owner = app.db.get<OwnerRow>('SELECT team_id, points FROM war_owner WHERE week = ? AND region = ?', week, region);
@@ -69,8 +71,10 @@ export function warState(app: App, pid: string): WarState {
     return { id: r.id, name: r.name, biomes: [...r.biomes], owner: o ? { ...o } : null, top };
   });
   const teamPoints = p.team_id ? app.db.get<{ points: number }>('SELECT points FROM team_week WHERE week = ? AND team_id = ?', w.key, p.team_id)?.points ?? 0 : 0;
-  const myPoints = app.db.get<{ war_points: number }>('SELECT war_points FROM player_week WHERE week = ? AND player_id = ?', w.key, pid)?.war_points ?? 0;
-  return { week: w.key, startsAt: w.startsAt, endsAt: w.endsAt, regions, targets: teamTargets(app, p.team_id), teamPoints, myPoints };
+  // döküm (OT-rekabetci-21): bölgelere yazılan + hedefe yazılmayan (bölge kazandırmaz; Takım Ligi ve haftalık sıralama) = teamPoints
+  const regionPoints = p.team_id ? app.db.get<{ v: number }>('SELECT COALESCE(SUM(points), 0) AS v FROM war_points WHERE week = ? AND team_id = ?', w.key, p.team_id)!.v : 0;
+  const mine = app.db.get<{ war_points: number; region_points: number }>('SELECT war_points, region_points FROM player_week WHERE week = ? AND player_id = ?', w.key, pid);
+  return { week: w.key, startsAt: w.startsAt, endsAt: w.endsAt, regions, targets: teamTargets(app, p.team_id), teamPoints, myPoints: mine?.war_points ?? 0, regionPoints, myRegionPoints: mine?.region_points ?? 0 };
 }
 
 /** hafta kapanışı: bölge sahibi takımların üyelerine ödül kutusu (puanlar hafta anahtarıyla tutulduğundan kendiliğinden sıfırlanır) */

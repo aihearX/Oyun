@@ -40,9 +40,26 @@ export function addContrib(app: App, teamId: string, pid: string, d: { donated?:
 }
 
 interface GiftRow { id: string; team_id: string; from_id: string; from_name: string; reason: string; contents: string; at: number; expires_at: number; goal_ref: string | null }
-const toGift = (g: GiftRow, claimed: boolean): TeamGift => ({
-  id: g.id, from: g.from_id, fromName: g.from_name, reason: g.reason, contents: parseJson(g.contents, []), at: g.at, expiresAt: g.expires_at, claimed,
+/** gift_recipients.claimed: 0 bekliyor, 1 alındı, 2 süresi doldu ve içeriği ödül kutusuna geçti (expireGifts) */
+const GIFT_TO_INBOX = 2;
+const toGift = (g: GiftRow, claimed: number): TeamGift => ({
+  id: g.id, from: g.from_id, fromName: g.from_name, reason: g.reason, contents: parseJson(g.contents, []), at: g.at, expiresAt: g.expires_at, claimed: !!claimed,
+  ...(claimed === GIFT_TO_INBOX ? { toInbox: true as const } : {}),
 });
+
+/**
+ * Süresi dolan, alınmamış takım hediyesi silinmez, kaybolmaz: içeriği alıcının ödül kutusuna geçer (kazanılmış ödül; sahte kıtlık yok,
+ * OT-ekonomi-denetci-16). Zamanlayıcı (eventsSweep) tümünü, hediye listesi açılınca yalnız o oyuncununkini taşır. pid verilmezse hepsi.
+ */
+export function expireGifts(app: App, pid?: string): void {
+  const due = app.db.all<{ gift_id: string; player_id: string; contents: string; reason: string }>(
+    `SELECT r.gift_id, r.player_id, g.contents, g.reason FROM gift_recipients r JOIN team_gifts g ON g.id = r.gift_id
+      WHERE r.claimed = 0 AND g.expires_at <= ?${pid ? ' AND r.player_id = ?' : ''} LIMIT 500`, ...(pid ? [app.now(), pid] : [app.now()]));
+  for (const d of due) {
+    if (!app.db.run('UPDATE gift_recipients SET claimed = ? WHERE gift_id = ? AND player_id = ? AND claimed = 0', GIFT_TO_INBOX, d.gift_id, d.player_id)) continue;
+    for (const c of parseJson<Grant[]>(d.contents, [])) app.addInbox(d.player_id, c, `Takım hediyesi (alma süresi doldu): ${d.reason}`);
+  }
+}
 
 /** takım hediyesi: içerik sabit ve önceden bellidir; alıcılar o anki üyelerdir */
 export function createGift(app: App, teamId: string, from: { id: string; name: string }, reason: string, contents: Grant[], recipients: string[], opts: { expiresAt?: number; goalRef?: string } = {}): string {
@@ -51,7 +68,7 @@ export function createGift(app: App, teamId: string, from: { id: string; name: s
   const row: GiftRow = { id, team_id: teamId, from_id: from.id, from_name: from.name, reason, contents: JSON.stringify(contents), at, expires_at: opts.expiresAt ?? at + GIFT_TTL_MS, goal_ref: opts.goalRef ?? null };
   app.db.run('INSERT INTO team_gifts(id, team_id, from_id, from_name, reason, contents, at, expires_at, goal_ref) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)',
     row.id, row.team_id, row.from_id, row.from_name, row.reason, row.contents, row.at, row.expires_at, row.goal_ref);
-  const gift = toGift(row, false);
+  const gift = toGift(row, 0);
   for (const pid of recipients) {
     app.db.run('INSERT OR IGNORE INTO gift_recipients(gift_id, player_id) VALUES(?, ?)', id, pid);
     app.emit(pid, 'team.gift', { gift });
@@ -92,9 +109,10 @@ export function teamExtra(app: App, teamId: string, viewer: string): TeamExtra {
     const level = r?.level ?? 0;
     return { id: d.id, level, progress: r?.progress ?? 0, cost: level >= d.maxLevel ? 0 : techCost(level) };
   });
+  expireGifts(app, viewer);
   const gifts = app.db.all<GiftRow & { claimed: number }>(
     `SELECT g.*, r.claimed FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? WHERE g.team_id = ? AND g.at > ? ORDER BY g.at DESC LIMIT 50`,
-    viewer, teamId, now - GIFT_LIST_MS).map((g) => toGift(g, !!g.claimed));
+    viewer, teamId, now - GIFT_LIST_MS).map((g) => toGift(g, g.claimed));
   const goals: TeamGoal[] = TEAM_GOALS.map((d) => {
     const claimedTiers = app.db.all<{ goal_ref: string }>(
       `SELECT g.goal_ref FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? AND r.claimed = 1 WHERE g.team_id = ? AND g.goal_ref LIKE ?`,
@@ -117,8 +135,9 @@ export function broadcastExtra(app: App, teamId: string): void {
 function claimGift(app: App, pid: string, giftId: string): void {
   const g = app.db.get<GiftRow & { claimed: number }>('SELECT g.*, r.claimed FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? WHERE g.id = ?', pid, giftId);
   if (!g) return fail('YOK', 'Hediye bulunamadı.');
+  if (g.claimed === GIFT_TO_INBOX) fail('KUTUDA', 'Bu hediyenin süresi doldu; içeriği ödül kutunda.');
   if (g.claimed) fail('TEKRAR', 'Bu hediyeyi zaten aldın.');
-  if (g.expires_at <= app.now()) fail('SURE', 'Bu hediyenin süresi doldu.');
+  if (g.expires_at <= app.now()) fail('SURE', 'Bu hediyenin süresi doldu; içeriği birazdan ödül kutuna geçer.');
   app.db.run('UPDATE gift_recipients SET claimed = 1 WHERE gift_id = ? AND player_id = ?', giftId, pid);
   for (const c of parseJson<Grant[]>(g.contents, [])) app.grant(pid, c);
 }

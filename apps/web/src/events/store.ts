@@ -53,7 +53,7 @@ export function bindEvents(c: NetClient): () => void {
   const set = useEvents.setState;
   const offs = [
     c.onStatus((s) => { if (s === 'bağlı') void refreshEvents(); }),
-    c.on('rally.updated', ({ rally }) => set((s) => ({ rally: !s.rally || s.rally.id === rally.id || rally.startsAt >= s.rally.startsAt ? rally : s.rally }))),
+    c.on('rally.updated', ({ rally, startsLeft }) => set((s) => ({ rally: !s.rally || s.rally.id === rally.id || rally.startsAt >= s.rally.startsAt ? rally : s.rally, rallyStartsLeft: startsLeft ?? s.rallyStartsLeft }))),
     c.on('duel.updated', ({ duel }) => set({ duel })),
     c.on('relay.updated', ({ relay }) => set({ relay })),
     c.on('hunt.updated', ({ hunt }) => set({ hunt })),

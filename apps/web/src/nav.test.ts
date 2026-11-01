@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { SCREEN_TITLE } from './nav';
+import { EVENT_TITLE, SCREEN_TITLE } from './nav';
 
 const FILE: Record<string, string> = {
   skills: 'screens/SkillsScreen.tsx', settings: 'screens/SettingsScreen.tsx', achievements: 'screens/AchievementsScreen.tsx', album: 'screens/AlbumScreen.tsx',
@@ -18,5 +18,14 @@ describe('yükleme başlığı (SCREEN_TITLE)', () => {
     expect(file, `${route} için ekran dosyası test listesinde yok`).toBeTruthy();
     const src = readFileSync(resolve(__dirname, file ?? ''), 'utf8');
     expect(src.includes(`title="${title}"`), `${file} içinde title="${title}" yok`).toBe(true);
+  });
+});
+
+describe('etkinlik yükleme başlığı (EVENT_TITLE)', () => {
+  const src = readFileSync(resolve(__dirname, 'events/common.tsx'), 'utf8');
+  const hub = readFileSync(resolve(__dirname, 'events/EventsScreen.tsx'), 'utf8');
+  it.each(Object.entries(EVENT_TITLE))('%s → "%s" ekranın başlığıyla aynı', (view, title) => {
+    if (view === 'merkez') expect(hub.includes(`<h1>${title}</h1>`), `EventsScreen.tsx içinde <h1>${title}</h1> yok`).toBe(true);
+    else expect(src.includes(`${view}: { name: '${title}'`), `events/common.tsx EVENT_META.${view}.name "${title}" değil`).toBe(true);
   });
 });

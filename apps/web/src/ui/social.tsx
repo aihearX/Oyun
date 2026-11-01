@@ -202,9 +202,10 @@ export function SubTabs<T extends string>({ tabs, active, onChange, name }: { ta
           </button>
         ))}
       </div>
-      {/* kesik kenar okları: ekran okuyucu için değil (sekmeler zaten listede), yalnız görme ve dokunma kolaylığı */}
-      {edge.l && <button type="button" className="st-ok sol" aria-hidden tabIndex={-1} onClick={() => nudge(-1)}><Icon name="back" size={16} /></button>}
-      {edge.r && <button type="button" className="st-ok sag" aria-hidden tabIndex={-1} onClick={() => nudge(1)}><Icon name="chevron" size={16} /></button>}
+      {/* kesik kenar okları: görme ve dokunma kolaylığı; sekmeler zaten listede olduğundan sekme sırasında değil, ama adlı (OT-buyuk-yazi-22).
+          Büyük yazıda ikinci sıra sarar (styles.css), ok çıkmaz. */}
+      {edge.l && <button type="button" className="st-ok sol" aria-label="Önceki sekmeler" tabIndex={-1} onClick={() => nudge(-1)}><Icon name="back" size={16} /></button>}
+      {edge.r && <button type="button" className="st-ok sag" aria-label="Sonraki sekmeler" tabIndex={-1} onClick={() => nudge(1)}><Icon name="chevron" size={16} /></button>}
     </div>
   );
 }

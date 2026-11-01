@@ -13,6 +13,9 @@
 .ev-hub-art { font-size:40px; filter:drop-shadow(0 4px 8px rgba(0,0,0,.4)); animation:ev-bob 2.6s ease-in-out infinite; }
 .ev-head { display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px; padding-top:16px; }
 .ev-head h1 { text-align:center; font-size:1.375rem; line-height:1.15; overflow-wrap:anywhere; text-shadow:0 2px 0 rgba(0,0,0,.35); }
+/* başlık ve Geri ilk karede (YN-085 deseni, OT-ogrenci-birinci-15): ekran içeriği solarken etkinlik başlığı solmaz; WebKit yükteyken
+   solma saniyelerce gecikince ekran başlıksız, Geri'siz boş mor kalıyordu */
+.ev-screen.fade-in > .ev-head, .ev-screen.fade-in > .ev-hub-head { animation:none; }
 .ev-head h1 span { filter:drop-shadow(0 0 8px color-mix(in srgb, var(--ev) 70%, transparent)); }
 .ev-sec { font-size:1.0625rem; margin:6px 2px 0; color:var(--text-2); letter-spacing:.2px; }
 .ev-fast { background:color-mix(in srgb, var(--gold) 16%, transparent); border:2px dashed color-mix(in srgb, var(--gold) 55%, transparent); color:var(--gold); border-radius:14px; padding:8px 12px; font-weight:900; font-size:0.75rem; }
@@ -136,6 +139,10 @@
 .ev-leg.cur { border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 25%, transparent); }
 .ev-leg.cur .ev-leg-dot { border-color:var(--gold); animation:ev-pulse 1.4s ease-in-out infinite; }
 .ev-leg .btn.small { padding:8px 10px; min-height:40px; }
+/* Bayrak: parkur bitince her ayağı yeniden koşma düğmesi yazılı (OT-ilk-kez-oyun-21); dar ekranda simge düşer, yazı kalır */
+.ev-leg .btn.ev-rerun { flex:none; white-space:nowrap; font-size:0.8125rem; gap:4px; }
+@media (max-width:360px) { .ev-rerun-ic { display:none; } }
+html.buyuk-yazi .ev-rerun-ic { display:none; }
 .ev-carrier { display:flex; flex-direction:column; gap:8px; }
 /* Bayrağı al / Devret: yazı kırılmaz, sığmazsa düğmeler alt alta iner (OT-rekabetci-16) */
 .ev-take-row { flex-wrap:wrap; gap:8px; } .ev-take-row > .btn { flex:1 1 auto; white-space:nowrap; }
@@ -143,6 +150,9 @@
 .ev-pass { flex-wrap:wrap; appearance:none; font:inherit; color:var(--text); display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border-radius:16px; background:var(--glass); border:2px solid rgba(255,255,255,.14); cursor:pointer; min-height:52px; }
 .ev-pass:active { transform:scale(.98); }
 .ev-dot { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,.3); flex:none; } .ev-dot.on { background:var(--lime); box-shadow:0 0 8px var(--lime); }
+/* çağırma penceresi: ad + çevrimiçi noktası ve son görülme (OT-takim-kaptani-12) */
+.ev-call-who { display:flex; flex-direction:column; gap:2px; }
+.ev-call-who small { display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:800; }
 
 /* ---- ses avı */
 .ev-melody { display:flex; flex-direction:column; gap:12px; padding:14px 12px; border-radius:26px; background:radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--gold) 30%, var(--bg-2)), var(--bg-1) 75%); border:2px solid color-mix(in srgb, var(--gold) 50%, transparent); box-shadow:var(--shadow); }

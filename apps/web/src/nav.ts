@@ -32,6 +32,13 @@ export const SCREEN_TITLE: Record<string, string> = {
   league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', race: 'Canlı yarış', pratik: 'Bilgi pratiği',
 };
 
+/** Etkinlikler ekranının yükleme başlığı (görünüme göre): merkez "Etkinlikler", tek etkinlikte adı (events/common.tsx EVENT_META,
+ *  eşleşme nav.test.ts'te). Parça yüklenirken başlık ve Geri ilk karede (OT-ogrenci-birinci-15). */
+export const EVENT_TITLE: Record<EventView, string> = {
+  merkez: 'Etkinlikler', ralli: 'Ralli', duello: 'Takım Düellosu', bayrak: 'Bayrak Yarışı', avi: 'Ses Avı', quiz: 'Kulak Bilgi Yarışması',
+  gorev: 'Günlük Takım Görevleri', meydan: 'Günün Meydan Okuması', turnuva: 'Haftalık Turnuva',
+};
+
 export interface Nav {
   open: (r: SocialRoute) => void;
   /** bölüm oyna (haritadaki akışla aynı) */

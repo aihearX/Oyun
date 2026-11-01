@@ -28,6 +28,25 @@ describe('zaman', () => {
 });
 
 describe('Bölge Savaşı', () => {
+  it('döküm: bölgelere yazılan + hedefe yazılmayan = takım toplamı; "Sen" satırında kişinin bölge payı (OT-rekabetci-21)', async () => {
+    env = await setup();
+    const [a1, a2] = [await env.connect('Ayşe'), await env.connect('Ali')];
+    const A = (await a1.call('team.create', { name: 'Döküm Takımı', emblem: '🦉' })).team;
+    await a2.call('team.join', { teamId: A.id });
+    await a2.call('progress.submit', run(1)); // hedef yok: bölgeye yazılmaz, yalnız takım haftalığına (Takım Ligi)
+    await a1.call('war.targets', { regions: ['kepce'] });
+    await a1.call('progress.submit', run(1, { biome: 'dis-kulak' })); // kepçe
+    await a2.call('progress.submit', run(2, { biome: 'kanal' })); // hedef var ama biyomu uymuyor (merkez hedef değil)
+    const w1 = (await a1.call('war.state', {})).war; const w2 = (await a2.call('war.state', {})).war;
+    const onMap = w1.regions.reduce((n, r) => n + (r.top.find((t) => t.teamId === A.id)?.points ?? 0), 0);
+    expect(w1.regionPoints).toBe(onMap);
+    expect(w1.regionPoints).toBe(31);
+    expect(w1.teamPoints - w1.regionPoints).toBe(w2.myPoints); // a2'nin iki koşusu da bölgeye yazılmadı
+    expect([w1.myPoints, w1.myRegionPoints]).toEqual([31, 31]);
+    expect(w2.myRegionPoints).toBe(0);
+    expect(w2.myPoints).toBeGreaterThan(0);
+  });
+
   it('hedefler, puan, bölge sahibi değişimi, hafta devri ödülü', async () => {
     env = await setup();
     const [a1, a2, b1, c1] = [await env.connect('Ayşe'), await env.connect('Ali'), await env.connect('Bora'), await env.connect('Cem')];

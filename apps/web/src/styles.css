@@ -648,6 +648,10 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .subtab { appearance:none; flex:none; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); color:var(--text-2); font:inherit; font-weight:900; font-size:0.875rem; border-radius:999px; padding:0 14px; min-height:44px; display:inline-flex; align-items:center; gap:4px; cursor:pointer; scroll-snap-align:center; white-space:nowrap; }
 .subtab.on { background:linear-gradient(180deg,#ffe27a,var(--gold) 50%,var(--gold-2)); color:var(--gold-ink); border-color:#ffe08a; box-shadow:0 3px 0 var(--gold-edge); }
 .subtab .sbadge { margin-left:2px; }
+/* Büyük yazıda ikinci sıra sekmeler (Takım alt sekmeleri, Arkadaşlar, sıralama…) kaydırılmaz, sarar: kenarda kesik sekme ve ok kalmaz,
+   hepsi tam görünür (OT-buyuk-yazi-22). Üst sıra (takim-grup) zaten sığar. */
+html.buyuk-yazi .subtabs-wrap:not([data-subtabs="takim-grup"]) .subtabs { flex-wrap:wrap; overflow-x:visible; scroll-snap-type:none; -webkit-mask-image:none; mask-image:none; }
+html.buyuk-yazi .subtabs-wrap:not([data-subtabs="takim-grup"]) .subtab { flex:1 1 auto; justify-content:center; padding:0 10px; }
 .float-burst { position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:900; font-size:1.5rem; color:var(--lime); pointer-events:none; animation:burstUp 1.4s ease-out forwards; text-shadow:0 2px 0 rgba(0,0,0,.45); white-space:nowrap; z-index:5; }
 @keyframes burstUp { 0% { opacity:0; transform:translate(-50%,10px) scale(.6); } 20% { opacity:1; transform:translate(-50%,-10px) scale(1.15); } 100% { opacity:0; transform:translate(-50%,-60px) scale(1); } }
 

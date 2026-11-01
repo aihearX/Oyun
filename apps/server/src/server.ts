@@ -14,7 +14,7 @@ import { raceHandlers, racePos, raceShutdown, restoreRaces, sweepRaces } from '.
 import { raidHandlers } from './raid';
 import { firePosSchema, schemaError, SCHEMAS } from './schemas';
 import { shopHandlers } from './shop';
-import { extraHandlers } from './teamextra';
+import { expireGifts, extraHandlers } from './teamextra';
 import { teamHandlers } from './teams';
 import { expireApplications, installTeamApply, teamApplyHandlers } from './teamapply';
 import { walletHandlers } from './wallet';
@@ -289,6 +289,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       app.run(() => {
         completeDue(app);
         eventsSweep(app);
+        expireGifts(app); // süresi dolan alınmamış takım hediyesi ödül kutusuna (OT-ekonomi-denetci-16)
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);

@@ -72,8 +72,38 @@ describe('Ralli', () => {
     expect(n.notice.kind).toBe('ralli');
     expect((await a.c.call('rally.state', {})).rally!.status).toBe('kaybedildi');
     expect((await err(a.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('SURE');
-    for (let i = 0; i < 5; i++) { const r = await a.c.call('rally.start', { monster: 'serumen-yavrusu' }); env.clock.advance(10 * MIN + 1); env.srv.sweep(); expect(r.rally.status).toBe('acik'); }
+    // günlük sınır: en az 2 katılımcıya ulaşan ralliler sayılır
+    for (let i = 0; i < 5; i++) { const r = await a.c.call('rally.start', { monster: 'serumen-yavrusu' }); await b.c.call('rally.join', { rallyId: r.rally.id }); env.clock.advance(10 * MIN + 1); env.srv.sweep(); expect(r.rally.status).toBe('acik'); }
     expect((await err(a.c.call('rally.start', { monster: 'serumen-yavrusu' }))).code).toBe('LIMIT');
+  });
+
+  it('kimse katılmadan süresi dolan ralli günlük hakka sayılmaz; sohbet "hakkınız geri verildi" der (OT-takim-kaptani-13)', async () => {
+    env = await setup();
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Tek Başına');
+    expect((await a.c.call('rally.state', {})).startsLeft).toBe(6);
+    const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
+    expect((await a.c.call('rally.state', {})).startsLeft).toBe(5); // açıkken hak kullanılıyor
+    a.drain(); b.drain();
+    env.clock.advance(10 * MIN + 1);
+    env.srv.sweep();
+    const msg = await b.wait('chat', (m) => m.msg.meta?.event === 'ralli' && m.msg.text.includes('kaçtı'));
+    expect(msg.msg.text).toContain('Bu ralli sayılmadı, takımın günlük ralli hakkı geri verildi (bugün kalan 6)');
+    expect((await b.wait('events.notice', (x) => x.notice.title.includes('kaçtı'))).notice.text).toContain('günlük hakkınız geri verildi');
+    expect((await b.wait('rally.updated', (x) => x.rally.id === rally.id)).startsLeft).toBe(6);
+    const st = await a.c.call('rally.state', {});
+    expect(st.rally!.status).toBe('kaybedildi');
+    expect(st.startsLeft).toBe(6);
+    // 2 katılımcıya ulaşıp kaçan ralli sayılır (hak geri gelmez)
+    const r2 = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
+    await b.c.call('rally.join', { rallyId: r2.rally.id });
+    a.drain();
+    env.clock.advance(10 * MIN + 1);
+    env.srv.sweep();
+    expect((await a.wait('chat', (m) => m.msg.meta?.event === 'ralli' && m.msg.text.includes('kaçtı'))).msg.text).not.toContain('geri verildi');
+    expect((await a.c.call('rally.state', {})).startsLeft).toBe(5);
+    // tek kişilik ralliler hakkı tüketmez: 6'dan fazla da başlatılabilir, ama aynı anda yalnız bir açık ralli
+    for (let i = 0; i < 6; i++) { await a.c.call('rally.start', { monster: 'serumen-yavrusu' }); env.clock.advance(10 * MIN + 1); env.srv.sweep(); }
+    expect((await a.c.call('rally.state', {})).startsLeft).toBe(5);
   });
 });
 

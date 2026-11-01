@@ -122,6 +122,10 @@ export interface WarState {
   /** benim takımımın bu haftaki toplam savaş puanı */
   teamPoints: number;
   myPoints: number;
+  /** teamPoints'in bölgelere yazılan kısmı; kalanı hedef seçilmeden (ya da biyom hedefe uymadan) kazanıldı: bölge kazandırmaz, Takım Ligi'ne ve haftalık sıralamaya sayılır */
+  regionPoints: number;
+  /** myPoints'in bölgelere yazılan kısmı */
+  myRegionPoints: number;
 }
 
 // ---------- Baskın (haftalık, takım ortak can barı)
@@ -265,7 +269,9 @@ export interface TechState { id: TechId; level: number; progress: number; cost: 
  * teknolojisine bağışlanamaz; gerçek para takım gücüne dolaylı yoldan da dönüşmez (karar 29 / YN-065, docs/04-monetizasyon.md).
  */
 export const PURCHASE_GIFT_REF = 'satin-alma-hediyesi';
-export interface TeamGift { id: string; from: string; fromName: string; reason: string; contents: { kind: InboxKind; amount: number; ref: string }[]; at: number; expiresAt: number; claimed: boolean }
+export interface TeamGift { id: string; from: string; fromName: string; reason: string; contents: { kind: InboxKind; amount: number; ref: string }[]; at: number; expiresAt: number; claimed: boolean;
+  /** alınmadan süresi doldu, içeriği ödül kutusuna geçti (claimed da true; hediye kaybolmaz) */
+  toInbox?: true }
 export interface TeamGoalTier { need: number; reward: { kind: InboxKind; amount: number; ref: string }[] }
 export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number }
 export interface TeamExtra { level: number; xp: number; xpNext: number; tech: TechState[]; gifts: TeamGift[]; goals: TeamGoal[]; contributionWeek: { id: string; name: string; donated: number; helps: number; stars: number }[] }
@@ -639,7 +645,7 @@ export interface OpMap {
 
 export interface EvtMap {
   'events.notice': { notice: EventNotice };
-  'rally.updated': { rally: RallyState };
+  'rally.updated': { rally: RallyState; /** takımın bugün kalan ralli hakkı (kimse katılmadan süresi dolan ralli hakkı geri verir) */ startsLeft?: number };
   'duel.updated': { duel: DuelState };
   'relay.updated': { relay: RelayState };
   'hunt.updated': { hunt: HuntState };

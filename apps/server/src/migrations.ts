@@ -44,6 +44,8 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  *    açılmadı, YN-032; yalnız test mağazası).
  * 10: YN-071 — Takım Akışı kamp kartlarının kayıtlı cümlesi ("… Timpanometri Kulesi kurdu yaptı.") kartın meta'sındaki öğelerden
  *    yeniden kurulur (comm/bina-metni.ts); veri biçimi değişmez.
+ * 11: YN-095 — Bölge Savaşı dökümü: `player_week.region_points` (oyuncunun bu hafta bölgelere yazılan savaş puanı). Var olan satırlar
+ *    0 ile başlar: göçten önce bölgeye yazılan kişisel pay ayırt edilemez (takımın bölge toplamı war_points'te doğru).
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -81,6 +83,7 @@ export const MIGRATIONS: Migration[] = [
       if (m.type === 'bina' && name && items.length) yaz.run(binaMetni(name, items), k.id);
     }
   } },
+  { name: 'savas-bolge-payi', up: (db) => { addColumn(db, 'player_week', 'region_points', 'INTEGER NOT NULL DEFAULT 0'); } },
 ];
 
 export const userVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;

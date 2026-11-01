@@ -130,7 +130,7 @@ Takım seviyesi: eşik(l) = 300 × (l−1)^1,6; XP = yıldızlar × 2 + bağış
 
 **Takım teknolojisi.** `team.donate` jetonu düşer, ilerleme `techCost(seviye)` dolunca seviye atlar (sistem mesajı). En üst seviyeyi aşan kısım alınmaz. Yalnız bağışlanabilir jeton gider (`App.spendDonatable`): satın alma hediyesi jetonu (`players.gift_jeton`, göç 9) bağışlanamaz; bağış bu yüzden yetmezse `HEDIYE_JETONU` (ileti nedenini ve bağışlanabilir miktarı yazar), toplam jeton yetmezse `YETERSIZ`. Diğer harcamalar (`App.spend`) önce hediye jetonunu kullanır; inşaat sırasından geri verilen bedel aynı ayrımla döner (`camp_queue.gift_jeton`). Cüzdanda `Wallet.bagislanamaz` (yalnız 0'dan büyükse).
 
-**Takım hediyeleri** (içerik sabit, şans yok; 24 saat içinde alınır, liste son 7 gün):
+**Takım hediyeleri** (içerik sabit, şans yok; 24 saat içinde alınır, liste son 7 gün). Süresinde alınmayan hediye kaybolmaz: zamanlayıcı (ve hediye listesi açılınca) içeriğini alıcının ödül kutusuna taşır (`expireGifts`; `gift_recipients.claimed` = 2, `TeamGift.toInbox`; `ref` korunur, satın alma hediyesi jetonu kutudan alınınca da bağışlanamaz; YN-095):
 - Mağazada `teamGift` ürün alınınca diğer tüm üyelere — fiyat < 50 TL: 20 kristal + 50 jeton; < 100 TL: 50 kristal + 100 jeton; ≥ 100 TL: 100 kristal + 200 jeton. Bu jeton `ref: PURCHASE_GIFT_REF` işaretlidir: alınınca satın alma hediyesi jetonu sayılır, takım teknolojisine bağışlanamaz (karar 29 / YN-065).
 - Baskında canavar yenilince tüm üyelere: 30 kristal + 200 jeton.
 - Takım hedef kademesi tamamlanınca o anki tüm üyelere kademe ödülü (hafta sonuna kadar; `team.goal.claim` ya da `team.gift.claim` ile).
@@ -143,7 +143,7 @@ Takım seviyesi: eşik(l) = 300 × (l−1)^1,6; XP = yıldızlar × 2 + bağış
 | Bölüm Maratonu | tamamlanan bölüm | 20 / 60 / 120 / 200 | aynı |
 | Canavar Avı | baskın hasarı | 500 / 1500 / 3000 / 6000 | aynı |
 
-**Bölge Savaşı.** ISO hafta: Pazartesi 00:00 – Pazar 23:59 (İstanbul). Lider/yardımcı en çok 3 hedef bölge seçer. Puan, biyomu eşleşen ilk hedefe; eşleşen yoksa ve `merkez` hedefse merkeze; yoksa yalnızca kişisel ve takım haftalık puanına yazılır. Bölge sahibi = en yüksek puan; eşitlikte mevcut sahip kalır. El değiştirince iki takımın sohbetine `war` mesajı ve herkese `war.updated`. Hafta kapanınca (ilk erişimde, tembel) sahip takımın üyelerine bölge başına 50 kristal + 300 jeton ödül kutusuna; puanlar yeni haftada sıfırdan başlar. Hedef seçimi haftalar arası korunur.
+**Bölge Savaşı.** ISO hafta: Pazartesi 00:00 – Pazar 23:59 (İstanbul). Lider/yardımcı en çok 3 hedef bölge seçer. Puan, biyomu eşleşen ilk hedefe; eşleşen yoksa ve `merkez` hedefse merkeze; yoksa yalnızca kişisel ve takım haftalık puanına yazılır. Bölge sahibi = en yüksek puan; eşitlikte mevcut sahip kalır. El değiştirince iki takımın sohbetine `war` mesajı ve herkese `war.updated`. `war.state` dökümü: `teamPoints` = `regionPoints` (bölgelere yazılan) + hedefe yazılmayan (bölge kazandırmaz; Takım Ligi'ne ve haftalık sıralamaya sayılır); `myRegionPoints` oyuncunun bölgelere yazılan payı (`player_week.region_points`, göç 11; göçten önceki pay 0 sayılır). Hafta kapanınca (ilk erişimde, tembel) sahip takımın üyelerine bölge başına 50 kristal + 300 jeton ödül kutusuna; puanlar yeni haftada sıfırdan başlar. Hedef seçimi haftalar arası korunur.
 
 **Baskın.** Pencere Cuma 20:00 – Cumartesi 20:00 (İstanbul); `ODI_RAID_ALWAYS=1` ile tüm hafta. Ortak can = 400 + 120 × üye sayısı; takımın penceredeki ilk erişiminde sabitlenir. Sıralama: yenme süresi (pencere açılışından itibaren) küçük olan önde, sonra hasar.
 
@@ -184,7 +184,7 @@ Hepsi sunucu yetkilidir; saatler Europe/Istanbul'a göredir; ödüller ödül ku
 
 | Etkinlik | Takvim | Kısaca |
 |---|---|---|
-| Ralli | her an (takım günde 6) | Üye mini canavara ralli başlatır, 10 dk içinde en az 2 üye katılıp ralli bölümünü oynar; can sıfırlanırsa katılan herkese ödül, takıma XP, düello puanı |
+| Ralli | her an (takım günde 6) | Üye mini canavara ralli başlatır, 10 dk içinde en az 2 üye katılıp ralli bölümünü oynar; can sıfırlanırsa katılan herkese ödül, takıma XP, düello puanı. 2 katılımcıya ulaşmadan süresi dolan ralli günlük 6 hakka sayılmaz (hak geri verilir, sohbet söyler; `rally.updated.startsLeft`) |
 | Takım Düellosu | Pzt 00:00–Çar 00:00, Per 00:00–Cmt 00:00 | Güce en yakın takımla eşleşme; yıldız, ralli, bayrak puanları; son 2 saat bildirimi; kazanan/berabere/teselli ödülleri |
 | Bayrak Yarışı | haftalık | 4 ayaklı parkur, bayrağı al-koş-devret; en iyi ayak süreleri toplamı takım sıralamasına |
 | Ses Avı | 3 günlük (Pzt–Per, Cum–Pzt) | Bölüm jetonları ortak melodiye nota olarak sayılır; 8 kademe hediyesi; %100'de takım şarkısı + sandık |

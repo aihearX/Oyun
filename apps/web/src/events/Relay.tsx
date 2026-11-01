@@ -3,6 +3,7 @@ import { useNet } from '@odi/net/store';
 import { platform } from '../platform';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Sheet } from '../ui/social';
+import { ContentLoading } from '../ui/Loading';
 import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, fmtSecs, levelName } from './common';
 import type { PlayFn } from './EventsScreen';
@@ -14,7 +15,7 @@ const LEG_ICON = ['🏃', '🤸', '⚙️', '🏊'];
 export function RelayView({ onPlay }: { onPlay: PlayFn }) {
   const r = useEvents((s) => s.relay); const me = useNet((s) => s.me); const team = useNet((s) => s.team);
   const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [passOpen, setPassOpen] = useState(false);
-  if (!r) return <div className="card muted">Parkur yükleniyor…</div>;
+  if (!r) return <ContentLoading rows={3} />;
   const meId = me?.id ?? '';
   const done = r.current >= 4;
   const mine = r.carrier?.id === meId;
@@ -38,7 +39,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
               <span className="ev-leg-dot"><Glyph e={l.firstBy ? '🚩' : LEG_ICON[i] ?? '🏃'} size={20} /></span>
               <div className="min0 grow"><b className="ellipsis">{i + 1}. ayak · {levelName(l.level)}</b>
                 <small className="ellipsis">{rich(l.best ? `⏱️ ${fmtSecs(l.best.timeSec)} · ${l.best.name}` : i === r.current && r.carrier ? `🏃 ${r.carrier.name} koşuyor` : 'Henüz koşulmadı')}</small></div>
-              {done && <button className="btn small ghost" onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'bayrak', leg: i })}><Art e="⏱️" size="1.15em" className="art-inline" /></button>}
+              {done && <button className="btn small ghost ev-rerun" data-testid={`bayrak-yeniden-${i}`} aria-label={`${i + 1}. ayağı yeniden koş`} onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'bayrak', leg: i })}><span className="ev-rerun-ic" aria-hidden><Art e="⏱️" size="1.15em" className="art-inline" /></span> Yeniden koş</button>}
             </div>
           ))}
         </div>
@@ -64,7 +65,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
         </div>
       )}
       {!done && r.carrier && !mine && <div className="card ev-wait"><OdiAvatar color={0x2ee6d6} size={36} /><b>{r.carrier.name} {r.current + 1}. ayağı koşuyor</b><Countdown to={r.carrier.until} label="bayrak süresi" /></div>}
-      {done && <div className="card cream ev-result"><b><Art e="🏁" size="1.15em" className="art-inline" /> Parkur tamam: {fmtSecs(r.totalSec ?? 0)}</b><span>Artık her ayakta en iyi süre geçerli: <Art e="⏱️" size="1.15em" className="art-inline" /> ile istediğin ayağı yeniden koş.</span></div>}
+      {done && <div className="card cream ev-result"><b><Art e="🏁" size="1.15em" className="art-inline" /> Parkur tamam: {fmtSecs(r.totalSec ?? 0)}</b><span>Artık her ayakta en iyi süre geçerli: istediğin ayağın yanındaki “Yeniden koş” düğmesiyle o ayağı tekrar koş, süreyi iyileştir.</span></div>}
 
       <div className="card">
         <b>Takımlar arası (toplam süre)</b>

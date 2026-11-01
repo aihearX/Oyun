@@ -12,6 +12,7 @@ import { Art, TeamEmblem } from '../ui/art';
 import { Sheet, Skeleton, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { hatKey } from '../screens/team/TeamMembers';
 import { levelName } from '../race/common';
+import { TeammateCall } from '../events/Call';
 import { refreshLeague, refreshTeamRace, trNet, useTeamRace } from './state';
 import '../race/race.css'; // race-big / race-dots / race-live / race-actions: yarış ekranları açılmadan da stilli (YN-026)
 import './teamrace.css';
@@ -103,6 +104,10 @@ function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searchi
           {canLead && (l.status === 'ariyor'
             ? <button className="btn ghost" data-testid="tr-ara-dur" disabled={busy} onClick={() => void run(() => act('trace.search', { on: false }))}>Aramayı durdur</button>
             : <button className="btn coral" data-testid="tr-ara" disabled={busy || ready < R.minPlayers} onClick={() => void run(() => act('trace.search', { on: true }))}><Art name="search" size={18} className="art-inline" /> Rakip ara</button>)}
+          {/* lobide olmayan takım arkadaşını özel mesajla çağır (ralli ile aynı pencere: çevrimiçiler üstte; OT-takim-kaptani-12) */}
+          <TeammateCall joined={l.members.map((m) => m.id)} testId="tr-cagir" label="Takım arkadaşını çağır" sheetTitle="Kimi lobiye çağıralım?"
+            note="Özel mesajla davet kartı gider; dokununca Takım ekranı açılır, Takım Yarışı lobisine katılır."
+            text={`Takım Yarışı lobisine gel! ${l.size}’e ${l.size}, katılıp “Hazırım” de.`} meta={{ type: 'tyaris', roomId: l.teamId, title: 'Takım Yarışı' }} />
           {canLead && <button className="btn ghost" data-testid="tr-meydan" disabled={busy} onClick={onPick}><Art name="swords" size={18} className="art-inline" /> Takıma meydan oku</button>}
           <div className="row">
             {mine && <button className="linkish" onClick={() => void run(() => act('trace.leave', {}))}>Lobiden ayrıl</button>}
@@ -267,6 +272,18 @@ export function TierEmblem({ emblem, tier, size = 44 }: { emblem: string; tier: 
   return <span className="tl-emb" data-tier={tier} style={{ width: size, height: size, fontSize: Math.round(size * 0.55), borderColor: hex(tierDef(tier).color), boxShadow: `0 0 12px ${hex(tierDef(tier).color)}55` }} aria-hidden><TeamEmblem e={emblem} /></span>;
 }
 
+/**
+ * Yükselme/düşme cümlesi sunucunun gerçek kuralıyla (teamrace/league.ts cut): 6+ takımlı grupta ilk 3 / son 3, daha küçük grupta
+ * üçte biri (aşağı yuvarlanır); puanı 0 olan yükselmez. Koklea en üst, Bronz en alt kademe. Yükselme yoksa açıkça söylenir (OT-rekabetci-18).
+ */
+export function moveRule(tier: TeamLeagueTier, n: number, up: number, down: number): string {
+  const drop = down ? ` Son ${down} takım bir alt kademeye iner.` : '';
+  if (tier === 'koklea') return `Koklea en üst kademe: buradan yükselme yok.${drop}`;
+  if (up > 0) return `İlk ${up} takım (puanı 0 değilse) bir üst kademeye çıkar.${drop}`;
+  const who = n <= 1 ? 'Grupta şimdilik yalnız takımınız var' : `Grupta şimdilik ${n} takım var`;
+  return `${who}: yükselme, grupta en az 3 takım olunca açılır (küçük grupta ilk üçte biri yükselir). Sezon içinde gruba yeni takımlar katılabilir.${drop}`;
+}
+
 export function TeamLeagueView() {
   const s = useTeamRace((x) => x.league);
   const team = useNet((x) => x.team);
@@ -297,12 +314,14 @@ export function TeamLeagueView() {
           );
         })}
       </ol>
-      <div className="muted small-note">İlk {s.promoteTop || '–'} takım bir üst kademeye çıkar{s.demoteBottom ? `, son ${s.demoteBottom} takım bir alta iner` : ''}. Sezon sonunda puanı olan takımların her üyesine kristal.</div>
+      <div className="muted small-note" data-testid="tl-kural">{moveRule(s.tier, n, s.promoteTop, s.demoteBottom)} Sezon sonunda puanı olan takımların her üyesine kristal.</div>
       <div className="card tl-mine" data-testid="tl-puanlarimiz">
         <b>Puanlarımız: {fmtNum(s.mine.total)}</b>
         {([['war', 'swords'], ['raid', 'monster'], ['quiz', 'bulb'], ['duel', 'shield'], ['race', 'finish']] as const).map(([k, a]) => (
           <div key={k} className="tl-src"><Art name={a} size={20} /><span className="grow min0"><b>{S[k].label}</b><small>{S[k].desc}</small></span><b>{fmtNum(s.mine[k])}</b></div>
         ))}
+        {/* dürüstlük: ligde sayılmayan takım etkinlikleri (sahip kararı 40 beklenirken; OT-rekabetci-18) */}
+        <small className="muted tl-not" data-testid="tl-sayilmayan">Ligde doğrudan sayılmaz: Bayrak Yarışı, Ralli, Ses Avı. Ralli ve Bayrak ayakları Takım Düellosu puanına yazılır; düellonun sonucu lige sayılır.</small>
       </div>
       {s.history.length > 0 && (
         <div className="tl-hist">

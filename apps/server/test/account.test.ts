@@ -6,6 +6,7 @@ import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { DELETED_PLAYER_NAME } from '@odi/shared';
 import { VERI_SINIFI, type Kural } from '../src/account-veri';
 import { Db } from '../src/db';
+import { createGift } from '../src/teamextra';
 import { run, setup, type Env, type TC } from './helpers';
 
 let env: Env | undefined;
@@ -229,6 +230,11 @@ describe('veri sınıflandırması (YN-029, account-veri.ts)', () => {
     await z.call('friends.gift', { id: c.me!.id });
     await z.call('dm.send', { to: c.me!.id, text: 'selam Cem' });
     await z.call('camp.state', {});
+    // alınmadan süresi dolan takım hediyesi ödül kutusuna geçer (YN-095): hesap silinince o satırlar da gider
+    createGift(app, t.id, { id: b.me!.id, name: 'Bora' }, 'Bora paket aldı', [{ kind: 'jeton', amount: 50, ref: '' }], [zid]);
+    env.clock.advance(25 * 3600_000); env.srv.sweep();
+    expect(say(raw, "SELECT 1 FROM inbox WHERE player_id = ? AND reason = 'Takım hediyesi (alma süresi doldu): Bora paket aldı'", zid)).toBe(1);
+    expect(say(raw, 'SELECT 1 FROM gift_recipients WHERE player_id = ? AND claimed = 2', zid)).toBeGreaterThan(0);
     // takımın toplamı satırların toplamı olan bir tablo (anonim): düello puanı
     raw.prepare('INSERT INTO ev_duel_pts(period, team_id, player_id, points) VALUES(?, ?, ?, ?), (?, ?, ?, ?)').run('P1', t.id, zid, 30, 'P1', t.id, b.me!.id, 20);
     yapayVeri(raw, 'oyuncu', zid, AD);

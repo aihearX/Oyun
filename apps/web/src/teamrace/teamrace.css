@@ -97,6 +97,7 @@
 .tl-pts { flex:none; color:var(--gold); }
 .tl-mine { display:flex; flex-direction:column; gap:8px; }
 .tl-src { display:flex; align-items:center; gap:8px; min-width:0; }
+.tl-not { display:block; font-size:0.75rem; line-height:1.35; color:var(--text-2); font-weight:700; }
 .tl-src small { display:block; font-size:0.71875rem; color:var(--text-2); font-weight:700; }
 .tl-hist { display:flex; flex-direction:column; gap:6px; }
 .tl-h { display:flex; align-items:center; gap:8px; font-size:0.8125rem; font-weight:800; min-width:0; }

@@ -42,9 +42,21 @@ describe('mağaza', () => {
     expect(claimed.wallet).toMatchObject({ jeton: 150, kristal: 20 });
     expect(claimed.extra.gifts[0]!.claimed).toBe(true);
     expect((await err(b.call('team.gift.claim', { giftId: g.gift.id }))).code).toBe('TEKRAR');
-    // süresi dolan hediye alınamaz
+    // süresi dolan hediye alınamaz, ama kaybolmaz: zamanlayıcı içeriğini alıcının ödül kutusuna taşır (OT-ekonomi-denetci-16)
     env.clock.advance(25 * 3600_000);
     expect((await err(c.call('team.gift.claim', { giftId: g.gift.id }))).code).toBe('SURE');
+    env.srv.sweep();
+    const moved = (await c.call('inbox.list', {})).items.filter((i) => i.reason.includes('alma süresi doldu'));
+    const key = (x: { kind: string; amount: number; ref: string }) => `${x.kind}:${x.amount}:${x.ref}`;
+    expect(moved.map(key).sort()).toEqual(teamGiftFor(49.99).map(key).sort());
+    expect((await c.call('team.extra', {})).extra.gifts[0]).toMatchObject({ id: g.gift.id, claimed: true, toInbox: true });
+    expect((await err(c.call('team.gift.claim', { giftId: g.gift.id }))).code).toBe('KUTUDA');
+    env.srv.sweep(); // ikinci kez taşınmaz; hediyeyi zamanında alan b'nin kutusuna da düşmez
+    expect((await c.call('inbox.list', {})).items.filter((i) => i.reason.includes('alma süresi doldu'))).toHaveLength(moved.length);
+    expect((await b.call('inbox.list', {})).items.some((i) => i.reason.includes('alma süresi doldu'))).toBe(false);
+    // satın alma hediyesi jetonunun işareti korunur: kutudan alınınca da takım teknolojisine bağışlanamaz (karar 29)
+    const jet = moved.find((i) => i.kind === 'jeton')!;
+    expect((await c.call('inbox.claim', { id: jet.id })).wallet.bagislanamaz).toBeGreaterThanOrEqual(jet.amount);
     // ürün sınırı (limit 1)
     expect((await err(a.call('shop.purchase', { productId: 'odi.baslangic', store: 'test' }))).code).toBe('LIMIT');
     expect((await a.call('shop.list', {})).products.find((p) => p.id === 'odi.baslangic')!.bought).toBe(1);

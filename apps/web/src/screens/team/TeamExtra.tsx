@@ -70,15 +70,15 @@ export function TeamGifts() {
   return (
     <div className="stack">
       {open.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art e="🎁" size="1.15em" className="art-inline" /> Hepsini al ({open.length})</button>}
-      {open.length === 0 && <Empty icon="🎁" title="Bekleyen hediye yok" text="Takım hedefleri, baskın zaferleri ve takım arkadaşlarının paketleri buraya düşer. İçerikleri hep önceden yazılı." />}
+      {open.length === 0 && <Empty icon="🎁" title="Bekleyen hediye yok" text="Takım hedefleri, baskın zaferleri ve takım arkadaşlarının paketleri buraya düşer. İçerikleri hep önceden yazılı; süresinde alınmayan hediye kaybolmaz, Ödül kutuna geçer." />}
       {open.map((g) => (
         <div className="card gift" key={g.id}>
           <span className="gift-i" aria-hidden><Art e="🎁" size="1.15em" className="art-inline" /></span>
-          <div className="grow min0"><b className="wrap">{g.reason}</b><div className="muted">{g.from === 'sistem' ? g.fromName : `${g.fromName} gönderdi`} · <Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(g.expiresAt - now)}</div><ItemChips items={g.contents} small />{g.contents.some((c) => c.ref === PURCHASE_GIFT_REF) && <div className="muted small-note">Bu jeton takım teknolojisine bağışlanamaz.</div>}</div>
+          <div className="grow min0"><b className="wrap">{g.reason}</b><div className="muted">{g.from === 'sistem' ? g.fromName : `${g.fromName} gönderdi`}</div><div className="muted small-note" data-testid="hediye-sure">Alınmazsa {fmtLeft(g.expiresAt - now)} sonra Ödül kutuna geçer.</div><ItemChips items={g.contents} small />{g.contents.some((c) => c.ref === PURCHASE_GIFT_REF) && <div className="muted small-note">Bu jeton takım teknolojisine bağışlanamaz.</div>}</div>
           <button className="btn small" disabled={busy} onClick={() => void one(g)}>Al</button>
         </div>))}
       {rest.length > 0 && <><div className="muted section-head">Son 7 gün</div>{rest.map((g) => (
-        <div className="card gift done" key={g.id}><span className="gift-i" aria-hidden><Art name={g.claimed ? 'check' : 'hourglass'} size={30} /></span><div className="grow min0"><b className="wrap">{g.reason}</b><div className="muted">{g.claimed ? 'Alındı' : 'Süresi doldu'}</div><ItemChips items={g.contents} small /></div></div>))}</>}
+        <div className="card gift done" key={g.id}><span className="gift-i" aria-hidden><Art name={g.claimed && !g.toInbox ? 'check' : 'mail'} size={30} /></span><div className="grow min0"><b className="wrap">{g.reason}</b><div className="muted">{g.toInbox ? 'Süresi doldu: Ödül kutuna geçti' : g.claimed ? 'Alındı' : 'Süresi doldu: Ödül kutuna geçiyor'}</div><ItemChips items={g.contents} small /></div></div>))}</>}
     </div>
   );
 }

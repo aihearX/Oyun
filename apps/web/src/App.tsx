@@ -25,7 +25,7 @@ import { readInvite } from './invite';
 import { FriendBanner, useSocialUnread } from './friends/Banner';
 import { ProfileCardHost } from './friends/ProfileCard';
 import { Onboarding } from './ui/Onboarding';
-import { NavContext, SCREEN_TITLE, type Nav, type SocialRoute } from './nav';
+import { EVENT_TITLE, NavContext, SCREEN_TITLE, type Nav, type SocialRoute } from './nav';
 import { startNet, submitRun, toast, useSocial } from './net';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
@@ -337,7 +337,7 @@ export function App() {
   // parça yüklenirken ekranın adı ve Geri ilk karede (YN-072): sekmede üst çubuk, alt ekranda ScreenHead; Geri ekranın kendi Geri'siyle aynı yere
   const loadingHead = (r: Route): { title?: string; onBack?: () => void } => {
     if (r.name === 'story' || r.name === 'raceResult' || r.name === 'eventLevel' || !('back' in r)) return {};
-    return { title: r.name === 'chat' ? r.title : SCREEN_TITLE[r.name] ?? '', onBack: SUBS.includes(r.name as Sub) ? () => setRoute({ name: r.back }) : back(r) };
+    return { title: r.name === 'chat' ? r.title : r.name === 'events' ? EVENT_TITLE[r.view ?? 'merkez'] : SCREEN_TITLE[r.name] ?? '', onBack: SUBS.includes(r.name as Sub) ? () => setRoute({ name: r.back }) : back(r) };
   };
 
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler

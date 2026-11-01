@@ -5,7 +5,8 @@
 // Akış: harita yüzen Etkinlik düğmesi → merkez → düello eşleşmesi → ralli (başlat, bildirim, katıl, ikisi de bölümü bot ile oynar, kazanılır)
 //       → quiz (iki üye aynı anda cevaplar, cevap + açıklama) → bayrak (koş, devret, "Bayrak sende!", ikinci ayak) → düello skor çubuğu
 //       → Günün Meydan Okuması (üçü de oynar, sıralama) → takım sekmesi, görevler, Ses Avı, turnuva
-//       → bot olmadan Bayrak ayağı (Cem: "Dokun ve başla", dokunuşla zıplama, sonuç yazılır) → quiz sonucu.
+//       → bot olmadan Bayrak ayağı (Cem: "Dokun ve başla", dokunuşla zıplama, sonuç yazılır) → quiz sonucu
+//       → Cem'in baştan başlattığı tek kişilik rallinin süresi dolar: günlük hak değişmez, sohbet "hakkı geri verildi" der (YN-095).
 // Kullanım: node tools/harness/events-e2e.mjs [--no-build] [--headed]
 // Çıktı: tools/harness/out/etkinlik/*.png ve e2e.json
 import { spawn } from 'node:child_process';
@@ -188,6 +189,17 @@ try {
   check(true, 'düello: canlı skor çubuğu (Cem 20 – Kartallar 30)');
   await shot(C, 'duello-eslesme');
 
+  // ---- TEK KİŞİLİK RALLİ (YN-095, OT-takim-kaptani-13): Cem'in takımında ikinci üye yok; ralli 10 dk açık kalır, kimse katılmaz.
+  // Süre dolunca (testin sonunda beklenir) takımın günlük ralli hakkı değişmemiş olmalı ve sohbet "hakkınız geri verildi" demeli.
+  const soloLeft0 = (await net(C, 'rally.state')).startsLeft;
+  await openEvents(C, 'ralli');
+  await tid(C, 'ralli-baslat-serumen-yavrusu').click();
+  await tid(C, 'ralli-bekleme').waitFor();
+  const soloRally = await C.page.evaluate(() => window.__etkinlik.events.getState().rally);
+  check((await tid(C, 'ralli-kural').innerText()).includes('günlük ralli hakkı geri verilir'), 'ralli (tek kişi): bekleme kartında açık kural cümlesi');
+  check((await tid(C, 'ralli-akis-bos').innerText()).includes('Bir takım arkadaşın katılınca saldırı açılır'), 'ralli (tek kişi): akış "Bir takım arkadaşın katılınca saldırı açılır" (çelişki yok)');
+  await shot(C, 'ralli-tek-kisi-bekleme');
+
   // ---- RALLİ
   await openEvents(A, 'ralli');
   await tid(A, 'ralli-secim').waitFor();
@@ -325,6 +337,18 @@ try {
   await B.page.locator('[data-testid="quiz"][data-phase="bitti"]').waitFor({ timeout: 240_000 }).catch(() => fail('quiz bitmedi'));
   check(true, 'quiz bitti: takım ortalaması hesaplandı');
   await shot(B, 'quiz-sonuc');
+
+  // ---- tek kişilik rallinin süresi doldu: hak sayısı değişmedi (sunucu ve ekrandaki sayı), sohbet hakkın geri verildiğini söyledi
+  const soloWait = Math.max(0, soloRally.endsAt - (Date.now() + (await C.page.evaluate(() => window.__etkinlik.events.getState().offset))));
+  log(`tek kişilik ralli: süre dolana dek ${Math.round(soloWait / 1000)} sn bekleniyor`);
+  await C.page.waitForFunction((id) => { const s = window.__etkinlik.events.getState(); return s.rally?.id === id && s.rally.status === 'kaybedildi'; }, soloRally.id, { timeout: soloWait + 60_000, polling: 1000 })
+    .catch(() => fail('tek kişilik ralli kaybedildi olmadı'));
+  const soloSt = await net(C, 'rally.state');
+  const soloUi = await C.page.evaluate(() => window.__etkinlik.events.getState().rallyStartsLeft);
+  check(soloSt.startsLeft === soloLeft0 && soloUi === soloLeft0, `ralli (tek kişi): süre dolunca günlük hak değişmedi (önce ${soloLeft0}, sonra sunucu ${soloSt.startsLeft} / ekran ${soloUi})`);
+  const soloChat = (await net(C, 'chat.join', { room: `takim:${soloRally.teamId}` })).history.filter((m) => m.meta?.event === 'ralli' && m.text.includes('kaçtı'));
+  check(soloChat.some((m) => m.text.includes('hakkı geri verildi')), `ralli (tek kişi): sohbet "${soloChat.at(-1)?.text ?? '—'}"`);
+  await openEvents(C, 'ralli'); await tid(C, 'ralli-oda').waitFor(); await shot(C, 'ralli-tek-kisi-kacti');
 
   const errors = players.map((p) => ({ player: p.name, errors: [...new Set(p.errors)] }));
   writeFileSync(resolve(outDir, 'e2e.json'), JSON.stringify({ checks, rallyRuns, leg1, leg2, board, errors, seconds: Math.round((Date.now() - t0) / 1000) }, null, 2));

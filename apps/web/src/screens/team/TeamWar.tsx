@@ -47,8 +47,13 @@ export function TeamWar() {
     <div className="stack">
       <div className="card war-head">
         <div className="row between"><b><Art e="⚔️" size="1.15em" className="art-inline" /> Bölge Savaşı</b><span className="countdown"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(war.endsAt - now)}</span></div>
-        <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen: <b>{fmtNum(war.myPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
-        <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
+        <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen (bölgelerde): <b data-testid="savas-sen">{fmtNum(war.myRegionPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
+        {/* döküm sunucudan (war.ts warState): bölgelere yazılan + hedefe yazılmayan = takım toplamı (OT-rekabetci-21) */}
+        <div className="muted small-note war-dokum" data-testid="savas-dokum" data-bolge={war.regionPoints} data-disari={war.teamPoints - war.regionPoints} data-toplam={war.teamPoints}>
+          Bölgelere yazılan <b>{fmtNum(war.regionPoints)}</b> · hedef bölgeye yazılmayan <b>{fmtNum(war.teamPoints - war.regionPoints)}</b> (bölge kazandırmaz; Takım Ligi’ne ve haftalık Sıralama’ya sayıldı).
+          {war.myPoints > 0 && <> Senin bu haftaki savaş puanın {fmtNum(war.myPoints)}; {fmtNum(war.myRegionPoints)} kadarı bölgelere yazıldı.</>}
+        </div>
+        <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Hedef yokken ya da biyom hiçbir hedefe uymazken kazanılan puan bölgeye yazılmaz; yalnız Takım Ligi’ne ve haftalık Sıralama’ya sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
         {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç. Seçilene dek kazanılan savaş puanı bölgeye yazılmaz.' : 'Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz. Sohbette öner!'}</div>
           : fit ? <button className="btn" onClick={() => nav.play(fit.number)}><Icon name="play" size="0.9em" className="ic-inline" /> {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
           : <div className="war-cta muted">Hedef bölgelerin henüz açmadığın biyomlarda. Haritada ilerledikçe açılır.</div>}

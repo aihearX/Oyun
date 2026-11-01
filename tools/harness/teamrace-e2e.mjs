@@ -178,6 +178,14 @@ async function webSuite(bt) {
     await A[0].page.getByTestId('tr-ac-3').click();
     await A[0].page.getByTestId('tr-lobi').waitFor();
     S.check(true, 'lider 3’e 3 lobi açtı');
+    // lobide olmayanı çağırma penceresi (YN-095, OT-takim-kaptani-12): çevrimiçi noktası + son görülme, çevrimiçiler üstte
+    await A[0].page.getByTestId('tr-cagir').click();
+    await A[0].page.locator('.sheet [data-testid="cagir-uye"]').first().waitFor();
+    const cagir = await A[0].page.locator('.sheet [data-testid="cagir-uye"]').evaluateAll((els) => els.map((e) => ({ on: e.dataset.online === '1', t: e.querySelector('small')?.textContent?.trim() ?? '', dot: e.querySelector('.ev-dot')?.getAttribute('aria-label') ?? '' })));
+    const sirali = cagir.every((x, i) => i === 0 || !x.on || cagir[i - 1].on);
+    S.check(cagir.length === A.length - 1 && cagir.every((x) => x.dot && x.t) && sirali, `lobi: takım arkadaşını çağır penceresi (${cagir.map((x) => `${x.dot}: ${x.t}`).join(' · ')})`);
+    await S.shot(A[0], 'lobi-cagir');
+    await A[0].page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
     // üyeler arayüzden katılır ve hazır
     for (const p of A.slice(1)) {
       await teamTab(p, 'Takım Yarışı');
