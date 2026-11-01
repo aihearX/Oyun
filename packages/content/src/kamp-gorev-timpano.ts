@@ -11,12 +11,13 @@
  * Değerler 226 Hz prob tonuyla, yetişkin ve çocuk normlarına göre yazılmıştır (bebekte 226 Hz eğrisi soru olarak kullanılmaz).
  */
 import { hacimSinifi, timpHatasi, type BilgiDuzeyi, type Otoskopi, type Timp, type TipTimp, type YasGrubu } from './kamp-gorev-vaka';
+import { bolunmezYap } from './metin';
 
 // ---------------------------------------------------------------- bulgu sınıfları (tanı değil)
 
 export type EgriTur = 'A' | 'As' | 'Ad' | 'B-normal' | 'B-buyuk' | 'B-kucuk' | 'C';
 /** cevap etiketleri: eğrinin gösterdiği bulgu (tanı değil) */
-export const EGRI_ADI: Record<EgriTur, { sade: string; teknik: string }> = {
+export const EGRI_ADI: Record<EgriTur, { sade: string; teknik: string }> = /* @__PURE__ */ bolunmezYap({
   'A': { sade: 'Zar rahat hareket ediyor: tepe normal yerde ve normal yükseklikte', teknik: 'Tip A: normal tepe basıncı ve admitans' },
   'As': { sade: 'Tepe normal yerde ama alçak: sert / az hareketli sistem', teknik: 'Tip As (sığ): düşük admitans' },
   'Ad': { sade: 'Tepe çok yüksek: aşırı hareketli sistem', teknik: 'Tip Ad (derin): yüksek admitans' },
@@ -24,9 +25,9 @@ export const EGRI_ADI: Record<EgriTur, { sade: string; teknik: string }> = {
   'B-buyuk': { sade: 'Düz eğri + büyük hacim: zarda açıklık ya da açık tüp olabilir', teknik: 'Tip B, büyük hacim' },
   'B-kucuk': { sade: 'Düz eğri + küçük hacim: kanal tıkalı olabilir ya da prob duvara dayanmış', teknik: 'Tip B, küçük hacim' },
   'C': { sade: 'Tepe negatif basınçta: negatif orta kulak basıncı', teknik: 'Tip C: negatif tepe basıncı' },
-};
+});
 /** cevaptan sonra gösterilen açıklama: olası nedenler yalnız burada ve olasılık diliyle */
-export const EGRI_ACIKLAMA: Record<EgriTur, string> = {
+export const EGRI_ACIKLAMA: Record<EgriTur, string> = /* @__PURE__ */ bolunmezYap({
   'A': 'Tepe −100…+50 daPa arasında, admitans normal sınırda: zar ve kemikçikler basınç değişimine rahat yanıt veriyor. Normal eğri kokleanın ya da sinirin sağlam olduğunu söylemez; işitme eşiği ayrıca ölçülür.',
   'As': 'Tepe normal basınçta ama alçak: sistem sert. Olası nedenler arasında otoskleroz ve zarda sertleşme (timpanoskleroz) vardır; otoskopi ve odyogramla birlikte yorumlanır.',
   'Ad': 'Tepe normal basınçta ama çok yüksek: sistem fazla gevşek. Kemikçik zinciri kopukluğu ya da zarın ince, gevşek (atrofik) bir bölümü olabilir; işitmenin durumu odyogramla ayırt edilir.',
@@ -34,7 +35,7 @@ export const EGRI_ACIKLAMA: Record<EgriTur, string> = {
   'B-buyuk': 'Eğri düz ve ölçülen hacim büyük: ölçüm kanalın ötesine, orta kulak boşluğuna da uzanıyor olabilir. Zarda delik ya da açık bir ventilasyon tüpü olası nedenlerdir; otoskopiyle bakılır.',
   'B-kucuk': 'Eğri düz ve hacim küçük: ses zara ulaşmıyor olabilir. Kanalı tıkayan kir (serumen) ya da kanal duvarına dayanmış prob olası nedenlerdir; otoskopi yapılır, prob yeniden yerleştirilip ölçüm tekrarlanır.',
   'C': 'Tepe −100 daPa’dan daha negatif: orta kulak basıncı dışarıdan düşük. Çoğu zaman Östaki borusunun basıncı dengeleyememesiyle ilişkilidir; soğuk algınlığı ya da uçuş sonrası görülebilir, izlem ve tekrar ölçüm yapılabilir.',
-};
+});
 export const egriTipi = (e: EgriTur): TipTimp => (e.startsWith('B') ? 'B' : e as TipTimp);
 /** eğrinin bulgu sınıfı (düz eğride yaşa göre kanal hacmi) */
 export function egriSinifi(t: Timp, grup: YasGrubu): EgriTur {
@@ -102,7 +103,7 @@ const st = (id: string, egri: Timp, grup: YasGrubu = 'yetiskin', yas?: string): 
   return { id, duzey: 'odyoloji', bicim: 'sayi-tip', egri, secenek: [dogru, ...pick[dogru].filter((x) => yan.includes(x))], grup, yas, kaynak: grup === 'cocuk' ? MARGOLIS : JERGER };
 };
 
-export const TIMP_SORULAR: TimpSoruDef[] = [
+export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
   // ---- eğri → bulgu (genel)
   eb('te01', 'genel', T('A', -10, 0.8, 1.1)),
   eb('te02', 'genel', T('A', 15, 1.2, 1.3)),
@@ -279,7 +280,7 @@ export const TIMP_SORULAR: TimpSoruDef[] = [
   { id: 'tk20', duzey: 'odyoloji', bicim: 'bilgi', soru: 'Bir kulakta düz eğri ve 3,2 ml hacim, öteki kulakta 1,1 ml hacimle normal eğri var. Ölçüm sonrası ilk adım hangisi?', kaynak: HUNTER,
     secenek: ['Otoskopiyle zarda açıklık ya da tüp aranır', 'Hacim farkı önemsizdir, rapora yazılmaz', 'Ölçüm 1000 Hz ile tekrarlanır, otoskopi gerekmez', 'Tanı kesin efüzyondur'],
     aciklama: 'Tek kulakta belirgin büyük hacim açıklık ya da açık tüp olasılığını gösterir; otoskopiyle doğrulanır ve sonuç hekimle paylaşılır.' },
-];
+]);
 
 export const timpSoruById = (id: string): TimpSoruDef | undefined => TIMP_SORULAR.find((s) => s.id === id);
 /** düzeyin havuzu: genel oyuncuya genel sorular; odyoloji (öğrenci) düzeyine hepsi */
@@ -314,8 +315,9 @@ function sagSolDogru(sor: SagSolSoru, sag: Timp, sol: Timp, grup: YasGrubu): num
 }
 const egriSec = (e: EgriTur): TimpSecenek => ({ anahtar: e, metin: EGRI_ADI[e].sade, teknik: EGRI_ADI[e].teknik });
 
-/** tek bir sorunun ekran hâli; seçenek sırası tur tohumu ve soru kimliğiyle karışır */
-export function timpBulmaca(def: TimpSoruDef, seed: number): TimpanoBulmaca {
+/** tek bir sorunun ekran hâli; seçenek sırası tur tohumu ve soru kimliğiyle karışır (sayı satırı burada kurulur: bölünmez yapılır) */
+export const timpBulmaca = (def: TimpSoruDef, seed: number): TimpanoBulmaca => bolunmezYap(bulmacaKur(def, seed));
+function bulmacaKur(def: TimpSoruDef, seed: number): TimpanoBulmaca {
   const r = rng((seed ^ hash(def.id)) >>> 0);
   const grup = def.grup ?? 'yetiskin';
   const base = { id: def.id, bicim: def.bicim, grup, yas: def.yas, kaynak: def.kaynak };

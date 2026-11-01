@@ -3,6 +3,7 @@
  * bilgileri; sayılar yaklaşık ve yuvarlaktır ("yaklaşık" diye yazılır). Yeni soru eklerken doğruluğu kontrol et.
  * Kimlik = sıra numarası: yeni sorular yalnızca SONA eklenir. Ham kayıtlarda doğru cevap her zaman ilk seçenektir; yayınlanan seçenek sırası soru numarasına göre sabit biçimde döndürülür.
  */
+import { bolunmezYap } from './metin';
 /** düzey: 'merakli' herkes için (varsayılan havuz), 'odyoloji' öğrenci düzeyi (Ayarlar › Bilgi düzeyi: Odyoloji öğrencisi) */
 export type QuizLevel = 'merakli' | 'odyoloji';
 export interface QuizQuestion { id: number; text: string; choices: [string, string, string, string]; answer: 0 | 1 | 2 | 3; explain: string; topic: 'anatomi' | 'ses' | 'saglik' | 'doga' | 'teknoloji'; level: QuizLevel;
@@ -144,9 +145,9 @@ const RAW: Raw[] = [
 ];
 
 /** seçenek sırasını soru numarasına göre sabit döndür (doğru cevap hep aynı yerde durmasın) */
-export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ RAW.map(([topic, text, correct, w1, w2, w3, explain, level = 'merakli', oneren], i) => {
+export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ bolunmezYap(RAW.map(([topic, text, correct, w1, w2, w3, explain, level = 'merakli', oneren], i) => {
   const rot = (i * 3 + 1) % 4;
   const base = [correct, w1, w2, w3];
   const choices = [0, 1, 2, 3].map((k) => base[(k + 4 - rot) % 4]!) as QuizQuestion['choices'];
   return { id: i + 1, text, choices, answer: rot as QuizQuestion['answer'], explain, topic, level, ...(oneren ? { oneren } : {}) };
-});
+}));

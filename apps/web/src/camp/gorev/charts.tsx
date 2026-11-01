@@ -1,6 +1,7 @@
 /**
  * Klinik çizimleri: odyogram (ASHA sembolleri: sağ hava yolu kırmızı O, sol hava yolu mavi X, kemik yolu sağ <, sol >;
- * yanıt yok: sembolün altında aşağı ok), timpanogram (Jerger tipleri; normal bölge gölgeli), otoskopi görünümü (stilize) ve
+ * yanıt yok: sembolün altında aşağı ok; "normal bölge" adı lejantta, sembollerle çakışmasın), timpanogram (Jerger tipleri;
+ * gölgeli kutu YETİŞKİN normudur ve öyle etiketlenir; eşdeğer kanal hacmi her zaman yazılır), otoskopi görünümü (stilize) ve
  * kurgusal hasta çizimi (gerçekçi olmayan, resimli karakter). Hepsi SVG; renkler koyu cam panellerde okunur.
  */
 import { AC_HZ, BC_AT, type HastaGorunum, type Odyogram, type Otoskopi, type Timp, type YasGrubu } from '@odi/content';
@@ -44,7 +45,6 @@ export function OdyogramSvg({ o, normalBand = true, title = 'Odyogram' }: { o: O
     <svg className="kg-chart kg-ody" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} data-testid="odyogram">
       <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.18)" />
       {normalBand && <rect x={x0} y={yOf(-10)} width={x1 - x0} height={yOf(25) - yOf(-10)} fill="rgba(95,227,154,.12)" />}
-      {normalBand && <text x={x1 - 4} y={yOf(25) + 11} textAnchor="end" className="kg-ax small kg-normal">↑ normal bölge</text>}
       {Array.from({ length: 14 }, (_, i) => -10 + i * 10).map((d) => (
         <g key={d}><line x1={x0} x2={x1} y1={yOf(d)} y2={yOf(d)} stroke="rgba(255,255,255,.1)" strokeWidth={d === 0 ? 1.4 : 1} />{d % 20 === 0 && <text x={x0 - 5} y={yOf(d) + 3.5} textAnchor="end" className="kg-ax">{d}</text>}</g>
       ))}
@@ -57,11 +57,13 @@ export function OdyogramSvg({ o, normalBand = true, title = 'Odyogram' }: { o: O
     </svg>
   );
 }
-export function OdyogramLejant() {
+/** odyogram lejantı; `normal`: gölgeli bant çiziliyse adı burada (grafiğin içinde yazı sembollerin altında kalıyordu) */
+export function OdyogramLejant({ normal = false }: { normal?: boolean }) {
   return (
     <div className="kg-legend" aria-label="Odyogram sembolleri">
       <span><i className="sym o" aria-hidden /> Sağ hava yolu</span><span><i className="sym x" aria-hidden /> Sol hava yolu</span>
       <span><b className="r">&lt;</b> Sağ kemik yolu</span><span><b className="l">&gt;</b> Sol kemik yolu</span>
+      {normal && <span data-testid="ody-normal"><i className="sym band" aria-hidden /> Normal bölge</span>}
     </div>
   );
 }
@@ -78,27 +80,36 @@ function curve(t: Timp): [number, number][] {
   }
   return pts;
 }
+/** eşdeğer kanal hacmi satırı (sağ/sol iki kulakta her zaman; tek eğride `values` ile): düz eğrinin anlamı buna bağlı */
+export function hacimMetni({ R, L, tek }: { R?: Timp | null; L?: Timp | null; tek?: Timp }): string | null {
+  if (tek) return `Kanal hacmi ${fmt(tek.hacim)} ml`;
+  const p = [R && `sağ ${fmt(R.hacim)} ml`, L && `sol ${fmt(L.hacim)} ml`].filter(Boolean);
+  return p.length ? `Kanal hacmi: ${p.join(' · ')}` : null;
+}
 /** mini: seçenek kartı için küçük çizim; tüm mini eğriler aynı ölçekte (yükseklikler karşılaştırılabilir), eksen yazısı yok */
 export function TimpanogramSvg({ R, L, tek, values = false, title = 'Timpanogram', mini = false }: { R?: Timp | null; L?: Timp | null; tek?: Timp; values?: boolean; title?: string; mini?: boolean }) {
   const W = 320, H = 200, x0 = mini ? 8 : 40, x1 = mini ? 312 : 306, y0 = 14, y1 = mini ? 190 : 168;
   const all = [R, L, tek].filter((t): t is Timp => !!t);
-  const ymax = mini ? 3.2 : Math.max(2, ...all.map((t) => t.uyum + 0.4));
+  // üstte hacim satırına yer kalsın: en yüksek tepenin üstünde boşluk
+  const ymax = mini ? 3.2 : Math.max(2, ...all.map((t) => t.uyum + 0.55));
+  const hacim = mini || (tek && !values) ? null : hacimMetni({ R, L, tek });
   const xOf = (p: number) => x0 + ((p + 400) / 600) * (x1 - x0);
   const yOf = (v: number) => y1 - (v / ymax) * (y1 - y0);
   const line = (t: Timp, color: string, dash?: string, key = '') => <path key={key} d={curve(t).map(([p, v], i) => `${i ? 'L' : 'M'}${xOf(p).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ')} fill="none" stroke={color} strokeWidth={mini ? 5 : 2.6} strokeDasharray={dash} strokeLinecap="round" />;
   return (
     <svg className={`kg-chart kg-timp${mini ? ' mini' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} data-testid={mini ? 'timpanogram-mini' : 'timpanogram'}>
       <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.18)" />
-      {/* normal bölge (Tip A): −100…+50 daPa, 0,3–1,7 ml */}
+      {/* normal bölge (Tip A, YETİŞKİN normu; Jerger): −100…+50 daPa, 0,3–1,7 ml. Çocuk/bebek normu çizilmez, kutu etiketlenir */}
       <rect x={xOf(-100)} y={yOf(1.7)} width={xOf(50) - xOf(-100)} height={yOf(0.3) - yOf(1.7)} fill="rgba(95,227,154,.12)" stroke="rgba(142,240,176,.4)" strokeDasharray="3 3" />
       {[-400, -300, -200, -100, 0, 100, 200].map((p) => <g key={p}><line x1={xOf(p)} x2={xOf(p)} y1={y0} y2={y1} stroke="rgba(255,255,255,.1)" strokeWidth={p === 0 ? 1.4 : 1} />{!mini && <text x={xOf(p)} y={y1 + 14} textAnchor="middle" className="kg-ax">{p}</text>}</g>)}
       {[0, 0.5, 1, 1.5, 2, 2.5, 3].filter((v) => v <= ymax).map((v) => <g key={v}><line x1={x0} x2={x1} y1={yOf(v)} y2={yOf(v)} stroke="rgba(255,255,255,.08)" />{!mini && <text x={x0 - 5} y={yOf(v) + 3.5} textAnchor="end" className="kg-ax">{fmt(v)}</text>}</g>)}
       {!mini && <text x={x1} y={H - 2} textAnchor="end" className="kg-ax small">daPa</text>}
+      {!mini && <text x={x0} y={H - 2} className="kg-ax small kg-normal" data-testid="timp-norm">Kutu: yetişkin normu</text>}
       {!mini && <text x={6} y={y0 + 4} className="kg-ax small" transform={`rotate(-90 6 ${y0 + 4})`} textAnchor="end">ml</text>}
       {tek && line(tek, '#ffd66b', undefined, 't')}
       {R && line(R, RED, undefined, 'r')}
       {L && line(L, BLUE, '7 4', 'l')}
-      {values && tek && <text x={x1 - 6} y={y0 + 16} textAnchor="end" className="kg-ax val">Kanal hacmi {fmt(tek.hacim)} ml</text>}
+      {hacim && <text x={x1 - 6} y={y0 + 16} textAnchor="end" className="kg-ax val" data-testid="timp-hacim">{hacim}</text>}
     </svg>
   );
 }

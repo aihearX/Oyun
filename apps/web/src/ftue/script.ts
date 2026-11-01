@@ -227,9 +227,10 @@ export function lineText(id: string): string {
   return l.text;
 }
 
-/** metnin kısa parmak izi (FNV-1a 32 bit): kayıt bu metinle mi yapıldı? Boşluk farkları sayılmaz. */
+/** metnin kısa parmak izi (FNV-1a 32 bit): kayıt bu metinle mi yapıldı? Boşluk farkları ve satır sonu bölünmesin diye
+ *  konan görünmez WORD JOINER (U+2060, @odi/content metin.ts) sayılmaz: okunuş değişmez. */
 export function textHash(text: string): string {
-  const s = text.normalize('NFC').replace(/\s+/g, ' ').trim();
+  const s = text.normalize('NFC').replace(/\u2060/g, '').replace(/\s+/g, ' ').trim();
   let h = 0x811c9dc5;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return h.toString(16).padStart(8, '0');

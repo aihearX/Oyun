@@ -12,7 +12,7 @@ import { SiraIpucu } from './SiraIpucu';
 import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
-import { KgBinaKanca } from './gorev/Kanca';
+import { KgBinaKanca, KlinikVakaSatiri } from './gorev/Kanca';
 import { useKg } from './gorev/state';
 import { KgIcon } from './gorev/art';
 import { hikayeBinasi } from './hikaye-bina';
@@ -150,6 +150,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
         {/* Tedavi Odası üretimi ve odyolojik bilgi: birincil eylemin (Kur/Yükselt) altında kalsın ki küçük ekranda düğme görünür olsun */}
         {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
         {b.level > 0 && <KgBinaKanca id={id} onClose={onClose} />}
+        {id === 'revir' && b.level === 0 && <KlinikVakaSatiri level={0} />}
         <BuildingInfo id={id} level={b.level} />
       </div>
     </div>,

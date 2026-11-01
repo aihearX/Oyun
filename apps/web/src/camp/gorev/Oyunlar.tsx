@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import type { KampOdul, KampOyunTur } from '@odi/shared';
-import { EGRI_ADI, KAMP_OYUN, KG_KURAL, TIMP_BICIM_ADI, timpanoTuru, tonTuru, type TimpanoBulmaca, type TimpSecenek, type TonDeneme } from '@odi/content';
+import { EGRI_ADI, KAMP_OYUN, KG_KURAL, TIMP_BICIM_ADI, bolunmez, timpanoTuru, tonTuru, type TimpanoBulmaca, type TimpSecenek, type TonDeneme } from '@odi/content';
 import { audio } from '@odi/audio';
 import { act } from '../../net';
 import { useStore } from '../../store';
@@ -135,8 +135,11 @@ function TonTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[]) =
 
 // ------------------------------------------------------------------ Timpanogram Eşleştir
 const n1 = (v: number) => v.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+/** sayı + birim tek parça (dar ekranda "0,7" / "ml" diye bölünmesin) */
+const ml = (v: number) => bolunmez(`${n1(v)} ml`);
+const daPa = (t: { basinc: number | null }, yok = 'tepe yok') => (t.basinc === null ? yok : bolunmez(`${t.basinc} daPa`));
 function Secenek({ o, genel, sec }: { o: TimpSecenek; genel: boolean; sec: string }) {
-  if (o.egri) return <span className="kg-opt-egri"><TimpanogramSvg tek={o.egri} mini title="Seçenek eğrisi" /><small>{genel ? `kanal hacmi ${n1(o.egri.hacim)} ml` : `${o.egri.basinc === null ? 'tepe yok' : `${o.egri.basinc} daPa`} · ${n1(o.egri.uyum)} ml · hacim ${n1(o.egri.hacim)} ml`}</small></span>;
+  if (o.egri) return <span className="kg-opt-egri"><TimpanogramSvg tek={o.egri} mini title="Seçenek eğrisi" /><small>{genel ? `kanal hacmi ${ml(o.egri.hacim)}` : `${daPa(o.egri)} · ${ml(o.egri.uyum)} · hacim ${ml(o.egri.hacim)}`}</small></span>;
   if (o.teknik && !genel) return <span className="kg-opt-txt"><b>{o.teknik}</b><small>{o.metin}</small></span>;
   return <span className="kg-opt-txt" data-sec={sec}>{o.metin}</span>;
 }
@@ -158,7 +161,7 @@ function TimpanoTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[
       <h3>{b.soru}</h3>
       {b.hikaye && <p className="kg-vinyet">{b.hikaye}</p>}
       {b.bulgu && <p className="kg-bulgu"><b>{genel ? EGRI_ADI[b.bulgu].sade : `${EGRI_ADI[b.bulgu].teknik} — ${EGRI_ADI[b.bulgu].sade}`}</b></p>}
-      {b.sayilar && b.egri && <div className="kg-sayilar" data-testid="timp-sayilar"><span><small>Tepe basıncı</small><b>{b.egri.basinc === null ? 'tepe yok' : `${b.egri.basinc} daPa`}</b></span><span><small>Admitans</small><b>{n1(b.egri.uyum)} ml</b></span><span><small>Kanal hacmi</small><b>{n1(b.egri.hacim)} ml</b></span></div>}
+      {b.sayilar && b.egri && <div className="kg-sayilar" data-testid="timp-sayilar"><span><small>Tepe basıncı</small><b>{daPa(b.egri)}</b></span><span><small>Admitans</small><b>{ml(b.egri.uyum)}</b></span><span><small>Kanal hacmi</small><b>{ml(b.egri.hacim)}</b></span></div>}
       {!b.sayilar && b.egri && (
         <div className={b.otoskopi ? 'kg-vinyet-row' : undefined}>
           <TimpanogramSvg tek={b.egri} values title="Soru timpanogramı" />
@@ -166,8 +169,9 @@ function TimpanoTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[
         </div>
       )}
       {(b.sag || b.sol) && <TimpanogramSvg R={b.sag} L={b.sol} title="Sağ ve sol timpanogram" />}
-      {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı düz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {n1(b.sag.hacim)} ml, sol {n1(b.sol.hacim)} ml</small>}
-      {!genel && b.egri && !b.sayilar && <small className="kg-note">{b.egri.basinc === null ? 'Tepe yok' : `Tepe ${b.egri.basinc} daPa`} · admitans {n1(b.egri.uyum)} ml · kanal hacmi {n1(b.egri.hacim)} ml</small>}
+      {(b.grup === 'cocuk' || b.grup === 'bebek') && ((b.egri && !b.sayilar) || b.sag || b.sol || egriSecenek) && <small className="kg-note" data-testid="timp-norm-not">Gölgeli kutu yetişkin normudur; çocukta ve bebekte normal aralıklar farklıdır (açıklamadaki kaynağa bak).</small>}
+      {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı düz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {ml(b.sag.hacim)}, sol {ml(b.sol.hacim)}</small>}
+      {!genel && b.egri && !b.sayilar && <small className="kg-note">{b.egri.basinc === null ? 'Tepe yok' : `Tepe ${daPa(b.egri)}`} · admitans {ml(b.egri.uyum)} · kanal hacmi {ml(b.egri.hacim)}</small>}
       <div className={`kg-opts${egriSecenek ? ' egri' : ''}`}>
         {b.secenek.map((o, k) => <button key={o.anahtar} className={`kg-opt${secim === null ? '' : k === b.dogru ? ' ok' : k === secim ? ' no' : ' dim'}`} data-secenek={k} data-anahtar={o.anahtar} disabled={secim !== null} onClick={() => sec(k)}><Secenek o={o} genel={genel} sec={o.anahtar} /></button>)}
       </div>

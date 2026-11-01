@@ -221,8 +221,8 @@ function SonucKart({ v, id, duzey }: { v: Vaka; id: string; duzey: 'genel' | 'od
   return (
     <div className={`kg-sonuc-kart${yok ? ' yok' : ''}`} data-sonuc={id}>
       <div className="kg-sk-head"><TestIcon id={id} size={22} /><b>{def.ad}</b></div>
-      {!yok && id === 'odyometri' && <><OdyogramSvg o={x as Odyogram} normalBand={duzey === 'genel'} /><OdyogramLejant /></>}
-      {!yok && id === 'timpanometri' && <><TimpanogramSvg R={(x as { R: Timp | null }).R} L={(x as { L: Timp | null }).L} /><div className="kg-legend"><span><i className="sym line r" aria-hidden /> Sağ</span><span><i className="sym line l" aria-hidden /> Sol</span><span><i className="sym box" aria-hidden /> Normal bölge</span></div></>}
+      {!yok && id === 'odyometri' && <><OdyogramSvg o={x as Odyogram} normalBand={duzey === 'genel'} /><OdyogramLejant normal={duzey === 'genel'} /></>}
+      {!yok && id === 'timpanometri' && <><TimpanogramSvg R={(x as { R: Timp | null }).R} L={(x as { L: Timp | null }).L} /><div className="kg-legend"><span><i className="sym line r" aria-hidden /> Sağ</span><span><i className="sym line l" aria-hidden /> Sol</span><span><i className="sym box" aria-hidden /> Normal bölge (yetişkin)</span></div></>}
       {!yok && id === 'otoskopi' && <div className="kg-oto-row">{(['R', 'L'] as Ear[]).map((e) => { const f = (x as Record<Ear, Otoskopi | null>)[e]; return <figure key={e}>{f ? <OtoskopSvg f={f} ear={e} size={96} /> : <span className="kg-oto-yok">—</span>}<figcaption>{KULAK[e]}</figcaption></figure>; })}</div>}
       <ul className="kg-sk-lines">{testSatirlari(v, id, duzey).map((l, i) => <li key={i}>{l}</li>)}</ul>
     </div>

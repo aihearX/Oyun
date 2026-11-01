@@ -1,4 +1,5 @@
 import type { BiomeId } from '@odi/shared';
+import { bolunmezYap } from './metin';
 
 /**
  * Bölge patolojileri (kulak hastalıkları): Odi'nin geçtiği bölgeye özgü, OYNANIŞTA karşılaşılan okunur engeller. Her biri ilk
@@ -40,7 +41,7 @@ export interface Patoloji {
 
 const K = { katz: 'Katz, Handbook of Clinical Audiology', gelfand: 'Gelfand, Essentials of Audiology', kbb: 'Cummings Otolaryngology; Scott-Brown\'s Otorhinolaryngology' };
 
-export const PATOLOJILER: Record<PatolojiId, Patoloji> = {
+export const PATOLOJILER: Record<PatolojiId, Patoloji> = /* @__PURE__ */ bolunmezYap({
   'serumen-tikaci': {
     id: 'serumen-tikaci', ad: 'Kulak kiri tıkacı', terim: 'Serumen tıkacı (buşon)', bolge: ['kanal'], ilkBolum: 6,
     sade: 'Kulak kiri normalde kendiliğinden dışarı çıkar; birikip tıkaç olursa sesin yolunu kapatır. Üstünden atla!',
@@ -149,7 +150,7 @@ export const PATOLOJILER: Record<PatolojiId, Patoloji> = {
     teknik: 'Gürültüde konuşmayı anlama ve ses sıralamada güçlük; odyolojik test bataryasıyla değerlendirilir.',
     mekanik: 'Yankı basamakları: ancak ses darbesinden sonra katılaşır.', kaynak: `${K.katz}; ${K.gelfand}`,
   },
-};
+});
 
 /** oyuncunun ilk karşılaşmasını kalıcı yapan anahtar (meta.firsts) */
 export const patolojiKey = (id: PatolojiId) => `patoloji:${id}`;

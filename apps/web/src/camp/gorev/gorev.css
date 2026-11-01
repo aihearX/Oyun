@@ -92,6 +92,7 @@
 .kg-etk b { display:block; font-size:0.9375rem; } .kg-etk small { display:block; font-size:0.75rem; color:var(--text-2); }
 .kg-etk.locked { opacity:.6; cursor:default; }
 .kg-bina-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(90deg,#8b6bff,#2ee6d6); }
+.kg-vaka-satir { margin-top:6px; } .btn.kg-vaka-satir { display:flex; align-items:center; gap:6px; width:100%; justify-content:flex-start; text-align:left; }
 
 /* klinik */
 .kg-hasta-kart { appearance:none; font:inherit; color:#fff; text-align:left; display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.05); border:1.5px solid var(--panel-edge); border-radius:16px; padding:8px 10px; cursor:pointer; }
@@ -136,6 +137,7 @@
 .kg-legend .sym.x { background:linear-gradient(45deg,transparent 42%,#6fb7ff 42% 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#6fb7ff 42% 58%,transparent 58%); }
 .kg-legend .sym.line { height:3px; width:16px; border-radius:2px; } .kg-legend .sym.line.r { background:#ff6b7f; } .kg-legend .sym.line.l { background:repeating-linear-gradient(90deg,#6fb7ff 0 5px,transparent 5px 8px); }
 .kg-legend .sym.box { border:1px dashed #8ef0b0; background:rgba(95,227,154,.15); }
+.kg-legend .sym.band { background:rgba(95,227,154,.3); border-top:1px solid rgba(142,240,176,.6); border-bottom:1px solid rgba(142,240,176,.6); }
 .kg-legend b.r { color:#ff6b7f; } .kg-legend b.l { color:#6fb7ff; }
 .kg-oto-row { display:flex; justify-content:space-around; gap:8px; }
 .kg-oto-row figure { margin:0; display:flex; flex-direction:column; align-items:center; gap:2px; }

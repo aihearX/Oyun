@@ -1,4 +1,5 @@
 import type { BiomeId } from '@odi/shared';
+import { bolunmezYap } from './metin';
 
 /**
  * Kulak Kartları albümü: her biyom için 5 bilgi kartı; her kartta herkes için sade bir cümle (fact) ve öğrenci düzeyi teknik
@@ -96,7 +97,7 @@ const RAW: Record<BiomeId, Raw[]> = {
   ],
 };
 
-export const CARDS: CardDef[] = (Object.keys(RAW) as BiomeId[]).flatMap((biome) => RAW[biome].map(([art, title, fact, tech, oneren], i) => ({ id: `${biome}:${SLOTS[i]!}`, biome, slot: SLOTS[i]!, title, fact, art, tech, ...(oneren ? { oneren } : {}) })));
+export const CARDS: CardDef[] = /* @__PURE__ */ bolunmezYap((Object.keys(RAW) as BiomeId[]).flatMap((biome) => RAW[biome].map(([art, title, fact, tech, oneren], i) => ({ id: `${biome}:${SLOTS[i]!}`, biome, slot: SLOTS[i]!, title, fact, art, tech, ...(oneren ? { oneren } : {}) }))));
 export const cardById = (id: string) => CARDS.find((c) => c.id === id);
 
 export function cardSlotText(slot: CardSlot, biomeHasSecret: boolean): string {

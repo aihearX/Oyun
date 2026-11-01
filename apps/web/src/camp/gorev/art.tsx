@@ -3,6 +3,7 @@
  * beyaz parlama; degradeler ui/art.tsx ArtDefs içinde). Var olan ikonlar (çekiç, çadır, harita…) yeniden kullanılır.
  */
 import type { ReactNode } from 'react';
+import type { BuildingId } from '@odi/shared';
 import type { KgArt } from '@odi/content';
 import { Art, type ArtName } from '../../ui/art';
 
@@ -11,7 +12,8 @@ const S = ({ d, g, o, w = 1.25 }: { d: string; g: string; o: string; w?: number 
 const gloss = (cx: number, cy: number, rx = 2, ry = 1, rot = -30) => <ellipse cx={cx} cy={cy} rx={rx} ry={ry} transform={`rotate(${rot} ${cx} ${cy})`} fill="#fff" opacity=".8" />;
 const ln = (d: string, c: string, w = 1.6) => <path d={d} fill="none" stroke={c} strokeWidth={w} strokeLinecap="round" strokeLinejoin="round" />;
 
-const OWN: Partial<Record<KgArt | 'otoskop' | 'konsult' | 'salon', ReactNode>> = {
+type Own = KgArt | 'otoskop' | 'konsult' | 'salon' | 'refleks' | 'oae' | 'konusma';
+const OWN: Partial<Record<Own, ReactNode>> = {
   klinik: <>
     <S d="M4 9.5 12 3.6l8 5.9v9.6a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19.1z" g="cream" o="#b98a3e" />
     <rect x="9.2" y="10.6" width="5.6" height="5.6" rx="1" fill="url(#oa-green)" stroke="#11663a" strokeWidth="1" />
@@ -69,21 +71,54 @@ const OWN: Partial<Record<KgArt | 'otoskop' | 'konsult' | 'salon', ReactNode>> =
     {ln('M5.4 15.8v4.2M18.6 15.8v4.2', '#5a2a30', 1.8)}
     {gloss(7, 10, 1.6, 0.6, 0)}
   </>,
+  /** akustik refleks: üzengi (stapes) ve ona bağlı minik stapedius kası */
+  refleks: <>
+    <S d="M4.2 18.2a1.2 1.2 0 0 1 1.2-1.2h13.2a1.2 1.2 0 0 1 1.2 1.2v1.2a1.2 1.2 0 0 1-1.2 1.2H5.4a1.2 1.2 0 0 1-1.2-1.2z" g="cream" o="#b98a3e" w={1} />
+    <path d="M11 7.2C7.2 9.4 6.2 13.4 6.4 17h2.4c0-3 .8-5.6 3.2-7.4 2.4 1.8 3.2 4.4 3.2 7.4h2.4c.2-3.6-.8-7.6-4.6-9.8z" fill="url(#oa-cream)" stroke="#b98a3e" strokeWidth="1" strokeLinejoin="round" />
+    <circle cx="12" cy="5.8" r="2" fill="url(#oa-cream)" stroke="#b98a3e" strokeWidth="1" />
+    {ln('M10.2 5.2 7.6 4.4', '#8f1740', 1.1)}
+    <ellipse cx="5" cy="3.9" rx="3" ry="1.5" transform="rotate(12 5 3.9)" fill="url(#oa-coral)" stroke="#8f1740" strokeWidth=".9" />
+    {gloss(11.2, 5, 0.9, 0.5)}
+  </>,
+  /** otoakustik emisyon: kokleadan dışarı dönen hafif yankı */
+  oae: <>
+    <path d="M8.4 12.8a1.3 1.3 0 1 1 1.3 1.3 3 3 0 1 1-3-3 4.8 4.8 0 1 1 4.8 4.8" fill="none" stroke={SH} strokeWidth="3" strokeLinecap="round" transform="translate(.5 1.2)" />
+    <path d="M8.4 12.8a1.3 1.3 0 1 1 1.3 1.3 3 3 0 1 1-3-3 4.8 4.8 0 1 1 4.8 4.8" fill="none" stroke="#a35a00" strokeWidth="3.2" strokeLinecap="round" />
+    <path d="M8.4 12.8a1.3 1.3 0 1 1 1.3 1.3 3 3 0 1 1-3-3 4.8 4.8 0 1 1 4.8 4.8" fill="none" stroke="url(#oa-gold)" strokeWidth="1.8" strokeLinecap="round" />
+    {ln('M16.2 9.6a4 4 0 0 1 0 5.6M18.8 7.2a7.4 7.4 0 0 1 0 10.4', '#2ee6d6', 1.6)}
+    {ln('M20.6 11.2l1.6 1.2-1.6 1.2', '#2ee6d6', 1.2)}
+  </>,
+  /** konuşma odyometrisi: konuşma balonu ve içinde ses dalgası */
+  konusma: <>
+    <S d="M5 4.4h14a2 2 0 0 1 2 2v8.2a2 2 0 0 1-2 2h-7.2l-4.6 3.6v-3.6H5a2 2 0 0 1-2-2V6.4a2 2 0 0 1 2-2z" g="teal" o="#0b5f5a" />
+    {ln('M5.6 10.6h1.6l1.2-3 2 6.2 1.8-5 1.4 3.4 1.2-1.6h3.6', '#fff', 1.4)}
+    {gloss(6.6, 6.2, 1.6, 0.6, -8)}
+  </>,
 };
 const MAP: Record<KgArt, ArtName> = {
   depo: 'chest', insaat: 'hammer', klinik: 'heal', defter: 'card', ton: 'sound', timpano: 'signal', malzeme: 'heal', takim: 'users', harita: 'map',
   yildiz: 'star', dekor: 'sprout', ziyaret: 'door', kamp: 'tent', gorev: 'check', bolum: 'flag',
 };
-export type KgIconName = KgArt | 'otoskop' | 'konsult' | 'salon';
+export type KgIconName = Own;
 export function KgIcon({ name, size = 24, className }: { name: KgIconName | string; size?: number | string; className?: string }) {
   const own = OWN[name as KgIconName];
   if (own) return <svg className={`art kg-art${className ? ` ${className}` : ''}`} width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden focusable="false">{own}</svg>;
   return <Art name={MAP[name as KgArt] ?? 'spark'} size={size} className={className} />;
 }
 
-/** test simgeleri (otoskop, odyogram, timpanogram, refleks, OAE, ABR, konuşma, işlemleme) */
+/** test simgeleri (otoskop, odyogram, timpanogram, refleks: üzengi ve kası, OAE: kokleadan dönen dalga, ABR, konuşma, işlemleme: beyin) */
 export function TestIcon({ id, size = 26 }: { id: string; size?: number }) {
-  const m: Record<string, KgIconName | ArtName> = { otoskopi: 'otoskop', odyometri: 'ton', timpanometri: 'timpano', refleks: 'bolt', oae: 'wave', abr: 'signal', konusma: 'chat', islemleme: 'bulb' };
+  const m: Record<string, KgIconName | ArtName> = { otoskopi: 'otoskop', odyometri: 'ton', timpanometri: 'timpano', refleks: 'refleks', oae: 'oae', abr: 'signal', konusma: 'konusma', islemleme: 'brain' };
   const n = m[id] ?? 'search';
+  return OWN[n as KgIconName] ? <KgIcon name={n} size={size} /> : <Art name={n as ArtName} size={size} />;
+}
+
+/** kamp binası simgesi (BUILDINGS[].emoji yerine çizim; liste, inşaat kartı): binanın işini anlatır */
+const BINA: Record<BuildingId, KgIconName | ArtName> = {
+  merkez: 'tent', laboratuvar: 'ton', atolye: 'hearingaid', depo: 'chest', kule: 'timpano', revir: 'klinik', tedavi: 'heal',
+  kabin: 'headphones', tarama: 'sprout', park: 'clover', denge: 'compass', kutuphane: 'card',
+};
+export function BinaIcon({ id, size = 32 }: { id: BuildingId; size?: number }) {
+  const n = BINA[id];
   return OWN[n as KgIconName] ? <KgIcon name={n} size={size} /> : <Art name={n as ArtName} size={size} />;
 }

@@ -9,13 +9,14 @@
  * ASHA odyogram sembolleri (1990); ilgili AAO-HNS klinik kılavuzları, JCIH (2019), NIOSH (1998). Her vakada `kaynak` alanı.
  */
 import type { PathologyId } from './remedies';
+import { bolunmezYap } from './metin';
 
 // ---------------------------------------------------------------- testler
 
 export type TestId = 'otoskopi' | 'odyometri' | 'timpanometri' | 'refleks' | 'oae' | 'abr' | 'konusma' | 'islemleme';
 export interface TestDef { id: TestId; ad: string; kisa: string; sade: string; teknik: string }
 /** test kataloğu (sırası ekrandaki sıradır) */
-export const VAKA_TESTLERI: TestDef[] = [
+export const VAKA_TESTLERI: TestDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'otoskopi', ad: 'Otoskopi', kisa: 'Otoskop', sade: 'Işıklı aletle kanala ve kulak zarına bakılır.', teknik: 'Kanal, zarın rengi, ışık üçgeni, delik, sıvı, retraksiyon ve kir değerlendirilir.' },
   { id: 'odyometri', ad: 'Saf ses odyometrisi', kisa: 'Odyogram', sade: 'Her frekansta duyulan en hafif ses bulunur (hava ve kemik yolu).', teknik: '250–8000 Hz hava yolu, 500–4000 Hz kemik yolu eşikleri (dB HL); hava–kemik aralığı kaybın tipini gösterir.' },
   { id: 'timpanometri', ad: 'Timpanometri', kisa: 'Timpanogram', sade: 'Kanal basıncı değişirken zarın ne kadar rahat hareket ettiği ölçülür.', teknik: '226 Hz prob (6 aydan küçük bebekte 1000 Hz); tepe basıncı (daPa), statik admitans (ml) ve eşdeğer kanal hacmi (ml).' },
@@ -24,7 +25,7 @@ export const VAKA_TESTLERI: TestDef[] = [
   { id: 'abr', ad: 'İşitsel beyin sapı yanıtı (ABR)', kisa: 'ABR', sade: 'Sese karşı işitme sinirinin ve beyin sapının elektrik yanıtı kaydedilir.', teknik: 'Dalga I–V latansları ve eşik; retrokoklear patoloji, bebeklerde eşik tahmini ve işitsel nöropati (koklear mikrofonik) için.' },
   { id: 'konusma', ad: 'Konuşma odyometrisi', kisa: 'Konuşma', sade: 'Kelimelerle ne kadar hafif konuşmayı duyduğu ve ne kadar doğru anladığı ölçülür.', teknik: 'Konuşmayı alma eşiği (SRT, saf ses ortalamasıyla uyumlu olmalı) ve rahat düzeyde konuşmayı ayırt etme skoru (%).' },
   { id: 'islemleme', ad: 'İşitsel işlemleme testleri', kisa: 'İşlemleme', sade: 'Gürültüde konuşma ve iki kulağa farklı sözler verildiğinde anlama sınanır.', teknik: 'Gürültüde konuşma, dikotik dinleme ve zamansal işlemleme (boşluk saptama) testleri; periferik işitme normalken yorumlanır.' },
-];
+]);
 export const testById = (id: string) => VAKA_TESTLERI.find((t) => t.id === id);
 
 /** hava yolu frekansları (Hz) ve kemik yolu frekansları (Hz) */
@@ -69,7 +70,7 @@ export const isYok = (x: unknown): x is YokTest => !!x && typeof x === 'object' 
 export type VakaKategori = PathologyId | 'normal' | 'tarama' | 'ani';
 export interface TaniDef { id: string; sade: string; teknik: string; /** bu tanının ait olduğu kategori (tutarlılık denetimi) */ kat: VakaKategori | 'mikst' | 'aom' }
 /** tanı seçenekleri kataloğu: sade (herkes) ve teknik (odyoloji öğrencisi) adlar */
-export const TANILAR: TaniDef[] = [
+export const TANILAR: TaniDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'normal', kat: 'normal', sade: 'İşitme normal', teknik: 'Normal işitme (bütün eşikler normal sınırda)' },
   { id: 'serumen', kat: 'serumen-tikaci', sade: 'Kulak kiri tıkacı', teknik: 'Serumen tıkacı (buşon)' },
   { id: 'dis-kulak-iltihabi', kat: 'otitis-eksterna', sade: 'Dış kulak yolu iltihabı', teknik: 'Akut otitis eksterna' },
@@ -96,7 +97,7 @@ export const TANILAR: TaniDef[] = [
   { id: 'mikst', kat: 'mikst', sade: 'Hem orta hem iç kulak etkilenmiş (karışık kayıp)', teknik: 'Mikst tip işitme kaybı' },
   { id: 'tarama-gecti', kat: 'tarama', sade: 'Tarama geçti', teknik: 'Yenidoğan işitme taraması: geçti' },
   { id: 'tarama-ileri', kat: 'tarama', sade: 'Tarama geçilemedi: ileri test gerekli', teknik: 'Taramada kaldı: tanısal değerlendirme gerekli' },
-];
+]);
 export const taniById = (id: string) => TANILAR.find((t) => t.id === id);
 
 export type YasGrubu = 'bebek' | 'cocuk' | 'genc' | 'yetiskin' | 'yasli';

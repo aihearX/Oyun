@@ -1,4 +1,5 @@
 import type { BiomeId } from '@odi/shared';
+import { bolunmezYap } from './metin';
 
 /**
  * Odyoloji katmanı: Kulak Sözlüğü terimleri ve "Tüy Dede'nin Notu" bilgileri.
@@ -36,7 +37,7 @@ const G = 'Gelfand, Hearing: An Introduction to Psychological and Physiological 
 const K = 'Katz, Handbook of Clinical Audiology';
 const P = 'Pickles, An Introduction to the Physiology of Hearing';
 
-export const GLOSSARY: GlossaryTerm[] = [
+export const GLOSSARY: GlossaryTerm[] = /* @__PURE__ */ bolunmezYap([
   // ---- dış kulak
   { id: 'aurikula', term: 'Kulak kepçesi (aurikula, pinna)', region: 'dis-kulak', art: 'ear',
     plain: 'Kulağın dışta görünen, kıkırdaktan yapılmış kıvrımlı kısmı; sesi toplayıp kanala yönlendirir.',
@@ -204,9 +205,9 @@ export const GLOSSARY: GlossaryTerm[] = [
     plain: 'Konuşmayı anlamada önemli rol oynayan dil bölgesi.',
     tech: 'Çoğu kişide sol hemisferde, üst temporal girusun arka kısmında yer alır; işitsel kortekse komşudur.',
     src: `${P}, işitsel korteks ve dil` },
-];
+]);
 
-export const EAR_NOTES: EarNote[] = [
+export const EAR_NOTES: EarNote[] = /* @__PURE__ */ bolunmezYap([
   { id: 'kepce-yon', region: 'dis-kulak', plain: 'Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder.',
     tech: 'Kepçe, sesin geliş açısına göre yüksek frekanslarda farklı tepe ve çentikler oluşturur; beyin bu spektral ipuçlarını dikey yön ve ön-arka ayrımı için kullanır.', src: `${G}, ses kaynağının yerini belirleme` },
   { id: 'hz', region: 'dis-kulak', plain: 'Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur.',
@@ -229,7 +230,7 @@ export const EAR_NOTES: EarNote[] = [
   { id: 'akustik-refleks', region: 'kemikcikler', plain: 'Çok yüksek seste orta kulaktaki minik bir kas kasılır ve kulağı biraz korur.',
     tech: 'Stapedius refleksi iki taraflıdır; normal işitenlerde tipik eşikler yaklaşık 70–100 dB HL arasındadır. Belli bir gecikmeyle devreye girdiği için ani darbe seslerine karşı koruması sınırlıdır.', src: `${K}, akustik refleks bölümü` },
   { id: 'otoskleroz', region: 'kemikcikler', plain: 'Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir.',
-    tech: 'Üzengi tabanının fiksasyonu ilerleyici iletim tipi kayba yol açar. Odyogramda yaklaşık 2 kHz’te kemik yolunda Carhart çentiği görülebilir; timpanogram çoğunlukla As tipidir ve akustik refleks alınamayabilir.', src: `${K}, otoskleroz` },
+    tech: 'Sertleşen, üzengi kemiğinin kendisi değildir: kulak kapsülündeki (otik kapsül) kemik anormal biçimde yeniden yapılanır ve üzengi tabanını oval pencereye sabitler. Bu fiksasyon ilerleyici iletim tipi kayba yol açar; ileri evrede kayıp karışık tipe dönebilir. Odyogramda yaklaşık 2 kHz’te kemik yolunda Carhart çentiği görülebilir. Timpanogram çoğu zaman normaldir (A tipi), bazen As tipidir; tek başına tanı koydurmaz. Akustik refleks alınamayabilir.', src: `${K}, otoskleroz` },
   { id: 'kemik-yolu', region: 'kemikcikler', plain: 'Sesi kafatası kemikleri yoluyla da duyarız; kendi sesimizi kayıtta farklı bulmamızın bir nedeni budur.',
     tech: 'Kemik yolu testinde vibratör mastoide konur ve doğrudan kokleayı uyarır. Hava ve kemik yolu eşikleri arasındaki fark (hava-kemik aralığı) iletim tipi işitme kaybını gösterir.', src: `${K}, kemik yolu odyometrisi` },
   { id: 'dalga', region: 'koklea-1', plain: 'Kokleadaki dalga tabandan tepeye doğru ilerler; her ses kendi noktasında en büyük olur.',
@@ -274,6 +275,6 @@ export const EAR_NOTES: EarNote[] = [
     tech: 'Cihaz kazancı odyograma göre reçete formülleriyle (ör. NAL-NL2, DSL v5) belirlenir ve gerçek kulak ölçümüyle doğrulanır.', src: `${K}, işitme cihazı uygulaması` },
   { id: 'tinnitus', region: 'korteks', plain: 'Kulak çınlaması, dışarıda bir ses yokken ses duyma hissidir ve oldukça yaygındır.',
     tech: 'Tinnitus sıklıkla işitme kaybıyla birliktedir. Değerlendirmede odyolojik testler ve rahatsızlık ölçekleri kullanılır; danışmanlık ve ses terapisi yaygın yaklaşımlardır.', src: `${K}, tinnitus` },
-];
+]);
 
 export const glossaryById = (id: string) => GLOSSARY.find((g) => g.id === id);

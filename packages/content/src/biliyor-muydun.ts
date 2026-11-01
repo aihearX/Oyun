@@ -8,6 +8,7 @@
  * ya da tedavi önerisi yok; timpanogram tek başına tanı koydurmaz; iç kulak organının adı her yerde "Koklea". Tüy Dede notlarını ve
  * Kulak Kartlarını kelimesi kelimesine tekrar etmez (birim testi). Sayı ile birim arasında bölünmez boşluk (U+00A0).
  */
+import { bolunmezYap } from './metin';
 
 export interface BiliyorMuydun {
   /** bölüm numarası (1–40, HUMAN_JOURNEY) */
@@ -24,7 +25,7 @@ const K = 'Katz, Handbook of Clinical Audiology';
 const P = 'Pickles, An Introduction to the Physiology of Hearing';
 const KBB = 'Cummings Otolaryngology; Scott-Brown’s Otorhinolaryngology';
 
-export const BILIYOR_MUYDUN: BiliyorMuydun[] = [
+export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
   { bolum: 1, genel: 'Ses, havadaki basınç dalgalarıdır; uzay gibi havasız bir boşlukta ses yayılamaz.',
     odyoloji: 'Ses havada 20 °C’de yaklaşık 343 m/sn hızla ilerler; suda bu hız yaklaşık dört kat fazladır.',
     src: `${G}, fiziksel akustik` },
@@ -145,7 +146,7 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = [
   { bolum: 40, genel: 'Gürültüde konuşmayı anlamak sessizde anlamaktan daha çok çaba ister; işitme kaybında bu çaba artar.',
     odyoloji: 'SNR, konuşma ile gürültü düzeyi arasındaki farktır; işitme kaybında aynı anlama için daha yüksek SNR gerekir.',
     src: `${K}, gürültüde konuşma testleri` },
-];
+]);
 
 /** bölümün "Biliyor muydun?" satırı oyuncunun Bilgi düzeyine göre; listede olmayan bölümde (ör. üretilmiş bölüm) null */
 export function biliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji'): string | null {

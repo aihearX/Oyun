@@ -4,22 +4,26 @@
 //   node tools/odyoloji/docs.mjs
 import { writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const { GLOSSARY, EAR_NOTES } = await import(join(root, 'packages/content/src/odyoloji.ts'));
-const { CARDS } = await import(join(root, 'packages/content/src/cards.ts'));
-const { QUIZ_QUESTIONS } = await import(join(root, 'packages/content/src/quiz.ts'));
-const { BILIYOR_MUYDUN } = await import(join(root, 'packages/content/src/biliyor-muydun.ts'));
-// Kulak Kampı (kamp.ts başka modül içe aktardığı için esbuild ile tek parça yüklenir)
+// İçerik modülleri ortak yardımcıları (metin.ts) içe aktardığı için esbuild ile tek parça yüklenir
 const { build } = await import('esbuild');
-const bundled = await build({ entryPoints: [join(root, 'packages/content/src/kamp.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
-const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, REMEDIES, PATHOLOGY_NAMES, CAMP_COSMETICS } = { ...(await import('data:text/javascript;base64,' + Buffer.from(bundled.outputFiles[0].text + "\nexport { REMEDIES, PATHOLOGY_NAMES } from '" + pathToFileURL(join(root, 'packages/content/src/remedies.ts')).href + "';").toString('base64'))) };
-// Hasta Vakaları (Kamp Kliniği, docs/17-kamp-gorevleri.md): tek parça yüklenir
-const vb = await build({ entryPoints: [join(root, 'packages/content/src/kamp-gorev.ts')], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
-const KG = await import('data:text/javascript;base64,' + Buffer.from(vb.outputFiles[0].text).toString('base64'));
-// Bölge patolojileri (oyun ekibi): yalnız tür içe aktarır
-const { PATOLOJI_IDS, PATOLOJILER } = await import(join(root, 'packages/content/src/patolojiler.ts'));
+const yukle = async (rel) => {
+  const b = await build({ entryPoints: [join(root, rel)], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
+  return import('data:text/javascript;base64,' + Buffer.from(b.outputFiles[0].text).toString('base64'));
+};
+const { GLOSSARY, EAR_NOTES } = await yukle('packages/content/src/odyoloji.ts');
+const { CARDS } = await yukle('packages/content/src/cards.ts');
+const { QUIZ_QUESTIONS } = await yukle('packages/content/src/quiz.ts');
+const { BILIYOR_MUYDUN } = await yukle('packages/content/src/biliyor-muydun.ts');
+// Kulak Kampı
+const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, CAMP_COSMETICS } = await yukle('packages/content/src/kamp.ts');
+const { REMEDIES, PATHOLOGY_NAMES } = await yukle('packages/content/src/remedies.ts');
+// Hasta Vakaları (Kamp Kliniği, docs/17-kamp-gorevleri.md)
+const KG = await yukle('packages/content/src/kamp-gorev.ts');
+// Bölge patolojileri (oyun ekibi)
+const { PATOLOJI_IDS, PATOLOJILER } = await yukle('packages/content/src/patolojiler.ts');
 const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
 
 const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (Corti organı)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
@@ -160,5 +164,6 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 |---|---|---|---|---|---|
 ${QUIZ_QUESTIONS.map((q) => `| ${q.id} | ${lvl[q.level]} | ${q.topic} | ${esc(q.text)} | ${q.choices.map((c, i) => (i === q.answer ? `**${esc(c)}**` : esc(c))).join(' · ')} | ${esc(q.explain)} |`).join('\n')}
 `;
-writeFileSync(join(root, 'docs/odyoloji-icerik.md'), md);
+// satır sonu bölünmesin diye içerikteki görünmez WORD JOINER (metin.ts) belgede gerekmez
+writeFileSync(join(root, 'docs/odyoloji-icerik.md'), md.replace(/\u2060/g, ''));
 console.log(`✓ docs/odyoloji-icerik.md · ${GLOSSARY.length} terim, ${EAR_NOTES.length} not, ${BILIYOR_MUYDUN.length} biliyor muydun, ${CARDS.length} kart, ${QUIZ_QUESTIONS.length} soru`);

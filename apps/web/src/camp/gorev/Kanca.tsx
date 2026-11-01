@@ -2,6 +2,7 @@
  * Kamp ekranına küçük kancalar: üst göstergede "Görevler" (rozet: alınmayı bekleyen ödül) ve "Klinik" (bekleyen hasta) düğmeleri,
  * açık paneli çizen kök (GorevHost) ve bina panellerindeki giriş düğmeleri (Klinik → Hasta Vakaları, Odyometri Odası → Ton Avı,
  * Kule → Timpanogram Eşleştir). Özellikler sunucunun söylediğiyle açılır (geçilen bölüm; yönetici modunda hepsi).
+ * Hasta Vakaları'nın yeri Klinik kartında ve panelinde de söylenir (KlinikVakaSatiri): kurulmadıysa "Kurunca: Hasta Vakaları açılır".
  */
 import { useEffect } from 'react';
 import type { BuildingId } from '@odi/shared';
@@ -42,6 +43,19 @@ export function GorevHost() {
   return <OyunPanel oyun={p.oyun} />;
 }
 
+/** Odyoloji Kliniği kartı/paneli: Hasta Vakaları nerede, ne zaman açılır; açıksa giriş düğmesi */
+export function KlinikVakaSatiri({ level, onOpen }: { level: number; onOpen?: () => void }) {
+  const kg = useKg((s) => s.kg);
+  if (level < 1) return <div className="muted small-note kg-vaka-satir" data-testid="klinik-vaka-not"><KgIcon name="klinik" size={16} className="art-inline" /> Kurunca: Hasta Vakaları açılır (kurgusal hastalara test iste, karar ver)</div>;
+  if (!kg) return null;
+  if (kg.vaka.open) return (
+    <button className="btn small ghost kg-vaka-satir" data-testid="klinik-vaka-giris" onClick={() => { audio.play('tap'); onOpen?.(); setTimeout(() => openPanel({ kind: 'klinik', tab: 'salon' }), 0); }}>
+      <KgIcon name="klinik" size={18} /> Hasta Vakaları: {kg.vaka.waiting > 0 ? `${kg.vaka.waiting} hasta bekliyor` : 'şu an bekleyen yok'}
+    </button>
+  );
+  return kg.vaka.locked ? <div className="muted small-note kg-vaka-satir" data-testid="klinik-vaka-not"><KgIcon name="klinik" size={16} className="art-inline" /> Hasta Vakaları: {kg.vaka.locked}</div> : null;
+}
+
 /** bina panelinde kamp etkinliği girişi */
 export function KgBinaKanca({ id, onClose }: { id: BuildingId; onClose: () => void }) {
   const kg = useKg((s) => s.kg);
@@ -52,6 +66,7 @@ export function KgBinaKanca({ id, onClose }: { id: BuildingId; onClose: () => vo
       <KgIcon name="klinik" size={22} /> Hasta Vakaları{kg.vaka.waiting > 0 ? ` · ${kg.vaka.waiting} hasta bekliyor` : ''}
     </button>
   );
+  if (id === 'revir' && kg.vaka.locked) return <KlinikVakaSatiri level={1} />;
   const g = kg.oyun.find((x) => KAMP_OYUN[x.oyun].bina === id);
   if (g?.open) return (
     <button className="btn kg-bina-btn" data-testid={`bina-${g.oyun}`} onClick={() => go(() => openPanel({ kind: 'oyun', oyun: g.oyun }))}>

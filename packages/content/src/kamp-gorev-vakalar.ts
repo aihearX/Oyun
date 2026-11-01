@@ -8,6 +8,7 @@
  * Kademe: 1 = Odyoloji Kliniği Sv 1, 2 = Sv 2, 3 = Sv 3 (KG_KURAL.kademeSv). Değerler ders kitabı örnekleridir (Katz; Gelfand; Jerger 1970; ASHA).
  */
 import type { Odyogram, Timp, Vaka, YokTest } from './kamp-gorev-vaka';
+import { bolunmezYap } from './metin';
 
 const K = 'Katz, Handbook of Clinical Audiology';
 const G = 'Gelfand, Essentials of Audiology';
@@ -21,7 +22,7 @@ const ISLEM_GEREKMEZ = yok('Bu vakada gerekli görülmedi: yakınma işitsel iş
 const BEBEK_ODY = yok('Bebekte davranışsal saf ses odyometrisi yapılamaz.');
 const BEBEK_KONUSMA = yok('Bebekte konuşma testi yapılamaz.');
 
-export const VAKALAR: Vaka[] = [
+export const VAKALAR: Vaka[] = /* @__PURE__ */ bolunmezYap([
   // ======================================================== Kademe 1 (Odyoloji Kliniği Sv 1)
   {
     id: 'kv01', kademe: 1, kat: 'normal', baslik: 'Konser sonrası kontrol',
@@ -859,6 +860,6 @@ export const VAKALAR: Vaka[] = [
     },
     terim: 'abr', kaynak: `${K}, işitsel nöropati; Starr ve ark. (1996) işitsel nöropati tanımı`,
   },
-];
+]);
 
 export const vakaById = (id: string) => VAKALAR.find((v) => v.id === id);

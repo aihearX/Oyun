@@ -12,6 +12,7 @@
  * serumen-tikaci, otitis-eksterna, eksostoz, perforasyon, timpanoskleroz, retraksiyon, otitis-media, ostaki, otoskleroz,
  * zincir-kopuk, gurultu-hasari, presbiakuzi, ototoksisite, meniere, noroma, noropati, tinnitus, merkezi.
  */
+import { bolunmezYap } from './metin';
 
 export const PATHOLOGY_IDS = [
   'serumen-tikaci', 'otitis-eksterna', 'eksostoz', 'perforasyon', 'timpanoskleroz', 'retraksiyon', 'otitis-media', 'ostaki', 'otoskleroz',
@@ -68,7 +69,7 @@ const K = 'Katz, Handbook of Clinical Audiology';
 const G = 'Gelfand, Essentials of Audiology';
 const E = 'standart KBB kitapları (Cummings Otolaryngology; Scott-Brown’s Otorhinolaryngology)';
 
-export const REMEDIES: RemedyDef[] = [
+export const REMEDIES: RemedyDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'kulak-tikaci', name: 'Kulak tıkacı', term: 'İşitme koruyucu (köpük tıkaç, kulaklık tipi koruyucu)', counters: ['gurultu-hasari', 'eksostoz'], level: 1, minutes: 20, color: '#ff9f1c',
     plain: 'Yüksek seste kulağı korur; soğuk suda yüzerken de kanalı korumaya yardım eder.',
     tech: 'Doğru takılan köpük tıkaç gürültüyü yaklaşık 20–30 dB azaltabilir (etiket değeri NRR/SNR; gerçek kullanımda genellikle daha az). Gürültüye bağlı kalıcı işitme kaybının en etkili önlemi korunmadır. Sık soğuk su ve rüzgâra maruz kalmak kanalda kemik çıkıntılarına (eksostoz, “sörfçü kulağı”) yol açabilir; yüzücü tıkaçları önlemde kullanılır.',
@@ -113,7 +114,7 @@ export const REMEDIES: RemedyDef[] = [
     plain: 'Sesi elektrik sinyaline çevirip işitme sinirini doğrudan uyarır.',
     tech: 'İşitme cihazından yeterli yarar görmeyen ileri–çok ileri sensörinöral kayıplarda koklear implant uygulanır: dıştaki işlemci sesi kodlar, mıknatıslı bobinle deri altındaki alıcıya iletir; koklea içine yerleştirilen elektrot dizisi spiral ganglion hücrelerini tonotopik sırayla uyarır.',
     src: `${K}, koklear implantlar; ${G}` },
-];
+]);
 
 export const remedyById = (id: string): RemedyDef | undefined => REMEDIES.find((r) => r.id === id);
 /** bu patolojiye karşı işe yarayan malzemeler */

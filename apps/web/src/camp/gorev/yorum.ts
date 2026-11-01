@@ -2,7 +2,7 @@
  * Test sonuçlarının ekran metni: "genel" düzeyde sade yorum (ne gördüğünü söyler), "odyoloji" düzeyinde sayılar ve teknik ad
  * (yorumu öğrenciye bırakır). Tanıyı söylemez; tanıyı oyuncu seçer.
  */
-import { derece, gaps, hacimSinifi, isYok, kayipTipi, pta3, type Abr, type BilgiDuzeyi, type Ear, type Islem, type Oae, type Odyogram, type Otoskopi, type Refleks, type Timp, type Vaka } from '@odi/content';
+import { bolunmez, derece, gaps, hacimSinifi, isYok, kayipTipi, pta3, type Abr, type BilgiDuzeyi, type Ear, type Islem, type Oae, type Odyogram, type Otoskopi, type Refleks, type Timp, type Vaka } from '@odi/content';
 
 export const KULAK: Record<Ear, string> = { R: 'Sağ', L: 'Sol' };
 const n1 = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -52,8 +52,11 @@ export const ABR_ADI: Record<Abr, { sade: string; teknik: string }> = {
 };
 export const ISLEM_ADI: Record<Islem, string> = { normal: 'yaş normunda', zayif: 'yaş normunun altında' };
 
-/** testin sonucu: kısa satırlar (kart başlığının altında) */
+/** testin sonucu: kısa satırlar (kart başlığının altında); sayı–birim ve aralıklar satır sonunda bölünmez */
 export function testSatirlari(v: Vaka, id: string, duzey: BilgiDuzeyi): string[] {
+  return satirlar(v, id, duzey).map(bolunmez);
+}
+function satirlar(v: Vaka, id: string, duzey: BilgiDuzeyi): string[] {
   const T = v.testler as unknown as Record<string, unknown>; const x = T[id];
   if (!x || isYok(x)) return [isYok(x) ? x.yok : 'Bu test bu vakada yapılmadı.'];
   const ears: Ear[] = ['R', 'L'];

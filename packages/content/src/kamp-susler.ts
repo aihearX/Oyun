@@ -2,6 +2,7 @@
  * Kulak Kampı süslemeleri (docs/14-kamp.md §10): yalnız görünüştür (güç vermez). Kamp Seviyesi, bölge anıtları ve (dışa açık
  * `grantDecoration` ile) kamp görevleri verir. Her süste kısa, doğru bir odyoloji bilgisi vardır; çizimler game-core/camp/decor.ts.
  */
+import { bolunmezYap } from './metin';
 
 export type DecorSource = 'seviye' | 'anit' | 'gorev';
 export interface DecorDef {
@@ -17,7 +18,7 @@ export interface DecorDef {
   color: number;
 }
 
-export const DECORATIONS: DecorDef[] = [
+export const DECORATIONS: DecorDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'diyapazon', name: 'Diyapazon Heykeli', size: 1, from: ['seviye'], color: 0xb9c3d6,
     plain: 'Rinne ve Weber testlerinde 512 Hz’lik diyapazon kullanılır: sapı kemiğe değince ses kemik yoluyla iletilir.' },
   { id: 'odyogram-tarhi', name: 'Odyogram Çiçek Tarhı', size: 1, from: ['seviye'], color: 0xff6f6f,
@@ -66,7 +67,7 @@ export const DECORATIONS: DecorDef[] = [
     plain: 'İyi bir vaka değerlendirmesi öyküyle başlar; testler birbirini doğrulayınca karar netleşir.' },
   { id: 'dede-banki', name: 'Tüy Dede Bankı', size: 1, from: ['gorev'], color: 0xffd6a0,
     plain: 'Tüy Dede’nin dinlenme bankı: iyi bir dinleyici sabırla dinler, sonra sorar.' },
-];
+]);
 export const decorById = (id: string): DecorDef | undefined => DECORATIONS.find((d) => d.id === id);
 /** bölge anıtı yükselince verilen süs (sunucu bir kez verir) */
 export const MONUMENT_DECOR: Record<string, { id: string; n: number }> = {

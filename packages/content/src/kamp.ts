@@ -1,6 +1,7 @@
 import type { BiomeId, BuildingId } from '@odi/shared';
 import type { GlossaryTerm } from './odyoloji';
 import { REMEDIES } from './remedies';
+import { bolunmezYap } from './metin';
 
 /**
  * Kulak Kampı içeriği (docs/14-kamp.md): binaların odyolojik işlevi (sade + "Daha fazla" teknik satır), seviye açılımları
@@ -19,7 +20,7 @@ export interface BuildingInfo {
   tech: string;
   src: string;
 }
-export const BUILDING_INFO: Record<BuildingId, BuildingInfo> = {
+export const BUILDING_INFO: Record<BuildingId, BuildingInfo> = /* @__PURE__ */ bolunmezYap({
   merkez: {
     plain: 'Odyoloji; işitme ve dengenin değerlendirilmesi, rehabilitasyonu ve korunmasıyla ilgilenir. Merkez, diğer bütün odaları yönetir.',
     tech: 'Tek bir test tanı koydurmaz: öykü, otoskopi, saf ses ve konuşma odyometrisi, timpanometri, akustik refleks, OAE ve gerekirse ABR bir test bataryası olarak birlikte yorumlanır (çapraz kontrol ilkesi, Jerger ve Hayes, 1976).',
@@ -68,13 +69,13 @@ export const BUILDING_INFO: Record<BuildingId, BuildingInfo> = {
     plain: 'Odyoloji bilgisi araştırmayla büyür: iyi bir uygulama kanıta, yani dikkatle yapılmış çalışmalara dayanır.',
     tech: 'Kanıta dayalı uygulamada klinik karar; en iyi araştırma kanıtı, klinisyenin deneyimi ve hastanın tercihleri birlikte düşünülerek verilir. Sistematik derlemeler ve randomize kontrollü çalışmalar kanıt düzeyinin üst basamaklarındadır.',
     src: `${K}, kanıta dayalı uygulama; ${G}` },
-};
+});
 
 // ---------------------------------------------------------------- Kulak Sözlüğü: kampta açılan terimler
 
 export interface CampTerm extends GlossaryTerm { building: BuildingId; level: number }
 /** kampta bina seviyesiyle açılan sözlük terimleri (bölge yerine bina; region yalnız çizim için) */
-export const CAMP_TERMS: CampTerm[] = [
+export const CAMP_TERMS: CampTerm[] = /* @__PURE__ */ bolunmezYap([
   { id: 'test-bataryasi', term: 'Odyolojik test bataryası', region: 'dis-kulak', art: 'signal', building: 'merkez', level: 4,
     plain: 'İşitmeyi tek bir testle değil, birbirini doğrulayan birkaç testle değerlendirmek.',
     tech: 'Çapraz kontrol ilkesi (Jerger ve Hayes, 1976): bir testin sonucu başka bir bağımsız testle doğrulanır. Örneğin davranışsal odyogram, timpanometri ve akustik refleks ya da OAE ile birlikte yorumlanır; özellikle küçük çocuklarda tek test yanıltıcı olabilir.',
@@ -160,7 +161,7 @@ export const CAMP_TERMS: CampTerm[] = [
     plain: 'Bir tedaviyi seçerken araştırma sonuçlarına, deneyime ve kişinin isteğine birlikte bakmak.',
     tech: 'Kanıt düzeyleri: sistematik derleme ve meta-analiz, randomize kontrollü çalışma, kohort ve vaka-kontrol çalışmaları, vaka serileri ve uzman görüşü. Klinik soru PICO biçiminde (hasta, müdahale, karşılaştırma, sonuç) sorulur.',
     src: `${K}, kanıta dayalı uygulama` },
-];
+]);
 
 // ---------------------------------------------------------------- Odi kozmetikleri (kampta açılır; tanımları cosmetics.ts'te)
 
@@ -213,7 +214,7 @@ export interface Monument {
   line: string;
 }
 /** kulaktan beyne: haritada bölgeye ulaşınca kampta o bölgenin anıtı yükselir */
-export const MONUMENTS: Monument[] = [
+export const MONUMENTS: Monument[] = /* @__PURE__ */ bolunmezYap([
   { region: 'dis-kulak', name: 'Kulak Kepçesi Heykeli', line: 'anit-dis-kulak', plain: 'Kepçenin kıvrımları sesi toplar ve yönünü anlamamıza yardım eder.' },
   { region: 'kanal', name: 'Kanal Kemeri', line: 'anit-kanal', plain: 'Yaklaşık 2,5 cm’lik kanal, 2,5–3 kHz civarındaki sesleri güçlendirir.' },
   { region: 'zar', name: 'Kulak Zarı Davulu', line: 'anit-zar', plain: 'İnci grisi zar sesle titreşir; ön-alt kısmında ışık üçgeni parlar.' },
@@ -224,7 +225,7 @@ export const MONUMENTS: Monument[] = [
   { region: 'sinir', name: 'Sinir Lifi Feneri', line: 'anit-sinir', plain: 'İşitme siniri sinyali binlerce lifle beyin sapına taşır.' },
   { region: 'beyin-sapi', name: 'İki Kulak Kavşağı', line: 'anit-beyin-sapi', plain: 'İki kulağın sesi beyin sapında buluşur; sesin yönü böyle bulunur.' },
   { region: 'korteks', name: 'Heschl Işığı', line: 'anit-korteks', plain: 'İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür.' },
-];
+]);
 export const monumentOf = (region: string): Monument | undefined => MONUMENTS.find((m) => m.region === region);
 
 // ---------------------------------------------------------------- Tüy Dede: yükseltmede tek satır (dönüşümlü)
