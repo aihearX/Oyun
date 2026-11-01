@@ -3,6 +3,7 @@ import type { AbilityId, Entity, LevelSpec, RunResult } from '@odi/shared';
 import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
 import { BIOMES, FIRSTS, PATOLOJILER, journeyById, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
+import { yuzdeIyelik } from '@odi/meta';
 import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
 import { flash, floatText, tapToStart, COLORS, banner, endCard, FONT } from './ui';
@@ -17,10 +18,11 @@ import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
 import { liveWaves } from './play/boss';
+import { escortDanger } from './play/escort';
 import { REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
 import {
   paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
-  type BiomeBackdrop, type EntityView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
+  type BiomeBackdrop, type EntityView, type EscortView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
 } from './play/visuals';
 
 /** kabuğun/harness'in okuduğu özet durum (geriye uyum: state.finished, lives, custom.boss*) */
@@ -47,7 +49,9 @@ export class LevelScene extends Phaser.Scene {
   input_!: TouchInput; state!: LevelState; race?: RaceLayer;
   heroView!: HeroView; hud!: LevelHudView;
   private backdrop?: BiomeBackdrop; private views = new Map<number, EntityView>(); private streamAt = 0;
-  private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: { update(x: number, y: number, alive: boolean): void };
+  private projLayer!: ProjectileLayer; private bossView?: BossView; private escortView?: EscortView;
+  /** fısıltının tehlike derecesi (play/escort.ts) ve göstergedeki uyarı (eşik aralığıyla: düşman sınırda gidip gelince yazı titremez) */
+  private escDanger = 0; private escWarn = false;
   private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0; private camAnchor = 0.66;
   private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
   private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1;
@@ -407,12 +411,17 @@ export class LevelScene extends Phaser.Scene {
       win: this.state.finished && this.sim.finished, shield: this.sim.shield, breath: h.breath, breathMax: BREATH + 2 * (this.opts.skills.breath ?? 0), echo: h.echoUntil > this.sim.t,
       charge: this.state.finished ? 0 : charge,
     });
-    const esc = this.sim.escort; if (esc) { this.escortView ??= createEscortView(this, this.biome); this.escortView.update(esc.x, esc.y, esc.alive); }
+    const esc = this.sim.escort;
+    if (esc) {
+      this.escDanger = this.state.finished ? 0 : escortDanger(this.world, this.sim); this.escWarn = this.escDanger >= (this.escWarn ? 0.15 : 0.3);
+      this.escortView ??= createEscortView(this, this.biome); this.escortView.update(esc.x, esc.y, esc.alive, this.escDanger);
+    }
   }
   private syncHud() {
     // süreli bölüm: hedef süreden geri sayım (yarışta yok: yarışın kendi şeridi var)
     const o = this.spec.objective; const timeLeft = o.id === 'timed' && !this.opts.race ? (o.target ?? this.spec.parTimeSec) - this.sim.t : null;
-    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft });
+    this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft,
+      escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null });
   }
   /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
   private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
@@ -618,7 +627,11 @@ export class LevelScene extends Phaser.Scene {
     if (this.state.finished) return; this.state.finished = true; this.endTutorial(false); this.hud.setCombo(0, 1); this.hud.toast('', 0); this.race?.finished(false);
     this.syncHud(); const r = this.withJuice(this.result(false)); sfx.gameOver(); music(null, 1.2); this.emit({ type: 'haptic', kind: 'error' });
     const pct = this.pct();
-    endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub: pct >= 0.5 ? `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı` : `Yolun %${Math.round(pct * 100)}'i geride` });
+    // boss bölümünde kapı yok: pct canavarın yitirdiği güç; sonuç ekranıyla aynı cümle (meta progress.ts nextGoal)
+    const left = Math.max(1, 100 - Math.round(pct * 100)), done = Math.round(pct * 100);
+    const sub = this.world.boss ? `${this.sim.boss?.name ?? this.spec.boss?.name ?? 'Canavar'} gücünün %${left}'${yuzdeIyelik(left)} kaldı`
+      : pct >= 0.5 ? `Kapıya %${left} kaldı` : `Yolun %${done}'${yuzdeIyelik(done)} geride`;
+    endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub });
     this.sendResult('levelFailed', { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000 } });
   }
   private sendResult(type: 'levelComplete' | 'levelFailed', result: RunResult) {

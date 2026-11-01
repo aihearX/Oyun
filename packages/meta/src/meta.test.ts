@@ -246,7 +246,7 @@ describe('ilerleme geri bildirimi', () => {
   it('kayıpta ipucu: yeni mekaniğin ilk iki bölümünde mekaniğin kendi ipucu (YN-081)', () => {
     const fall = run({ completed: false, stars: 0, damageTaken: 1, extra: { reason: 'fall' } });
     // 13 Çekiç kancanın ilk bölümü: zıplama değil kanca
-    expect(lossView(fall, spec(13)).tip).toBe('Kancanın yanında basılı tut: sallan, bırak: fırla · Havada aşağı kaydır: çakıl');
+    expect(lossView(fall, spec(13)).tip).toBe('Kancanın yanında basılı tut: sallan, bırak: fırla · Havada aşağı kaydır: yere çakıl (hızla in)');
     expect(lossView(fall, spec(14)).tip).toContain('Kancanın yanında');
     expect(lossView(fall, spec(15)).tip).toBe('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
     // koşu temel mekanik; yüzmenin kendi nedenleri (nefes) kendi ipucunu korur

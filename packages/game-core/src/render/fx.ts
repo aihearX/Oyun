@@ -64,8 +64,9 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
   const O0 = screenOrigin(cam);
   const vig = s.add.image(O0.x, O0.y, vignetteTex(s)).setOrigin(0, 0).setScrollFactor(0).setDepth(90).setTint(0x05001a).setAlpha(0.55).setDisplaySize(vw, vh);
   const flashI = s.add.image(O0.x, O0.y, vignetteTex(s)).setOrigin(0, 0).setScrollFactor(0).setDepth(91).setTint(THEME.hazard).setAlpha(0).setDisplaySize(vw, vh).setBlendMode(ADD);
-  const ring = (x: number, y: number, tint: number, from: number, to: number, ms: number, sy = 1) => { const r = s.add.image(x, y, ringTex(s)).setBlendMode(ADD).setTint(tint).setDepth(31).setScale(from, from * sy); s.tweens.add({ targets: r, scaleX: to, scaleY: to * sy, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => r.destroy() }); };
-  const flare = (x: number, y: number, tint: number, size: number, ms: number) => { const g = s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(tint).setDepth(30).setDisplaySize(size * 0.4, size * 0.4).setAlpha(1); s.tweens.add({ targets: g, displayWidth: size, displayHeight: size, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => g.destroy() }); };
+  // büyüyen halka ve ışık süstür: azaltılmış harekette çizilmez (oynanış geri bildirimi kıvılcım, yazı ve sesle kalır; OT-buyuk-yazi-15)
+  const ring = (x: number, y: number, tint: number, from: number, to: number, ms: number, sy = 1) => { if (motionReduced()) return; const r = s.add.image(x, y, ringTex(s)).setBlendMode(ADD).setTint(tint).setDepth(31).setScale(from, from * sy); s.tweens.add({ targets: r, scaleX: to, scaleY: to * sy, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => r.destroy() }); };
+  const flare = (x: number, y: number, tint: number, size: number, ms: number) => { if (motionReduced()) return; const g = s.add.image(x, y, softGlowTex(s)).setBlendMode(ADD).setTint(tint).setDepth(30).setDisplaySize(size * 0.4, size * 0.4).setAlpha(1); s.tweens.add({ targets: g, displayWidth: size, displayHeight: size, alpha: 0, duration: ms, ease: 'Cubic.Out', onComplete: () => g.destroy() }); };
   const praises = new Set<Phaser.GameObjects.GameObject>();
   /**
    * Dünyadaki övgü sözü. Büyük yazıyla büyür (kayıttaki 'textScale'), ekranda kalır ve başka uçan yazının üstüne binmez
@@ -98,8 +99,13 @@ export function createFx(scene: Phaser.Scene, biomeId: string): LevelFx {
     },
     clearPraise() { for (const t of [...praises]) { s.tweens.killTweensOf(t); t.destroy(); } },
     perfectRing(x, y, label = 'Mükemmel!') { ring(x, y, THEME.gold, 0.1, 0.9, 420); ring(x, y, 0xffffff, 0.05, 0.6, 320); sparks.explode(q(10), x, y); if (label) praise(x, y - 40, label, '#ffc93c'); },
-    comboBurst(x, y, n = 10) { dots.explode(q(Math.min(40, 10 + n)), x, y); notes.explode(q(Math.min(8, 2 + Math.floor(n / 5))), x, y); flare(x, y, THEME.violet, 160, 380); },
+    comboBurst(x, y, n = 10) {
+      // azaltılmış harekette uçuşan notalar ve renkli konfeti yok: yalnız kısa, küçük parıltı
+      if (motionReduced()) { sparks.explode(q(6), x, y); return; }
+      dots.explode(q(Math.min(40, 10 + n)), x, y); notes.explode(q(Math.min(8, 2 + Math.floor(n / 5))), x, y); flare(x, y, THEME.violet, 160, 380); },
     checkpointLight(x, y) {
+      // azaltılmış harekette ekranı boydan geçen ışın, halka ve büyük ışık yok: yalnız kısa, küçük parıltı (OT-buyuk-yazi-15)
+      if (motionReduced()) { sparks.explode(q(6), x, y - 70); return; }
       const b = s.add.image(x, y, beamTex(s)).setOrigin(0.5, 1).setBlendMode(ADD).setTint(THEME.gold).setDepth(29).setDisplaySize(10, 420).setAlpha(0.9);
       s.tweens.add({ targets: b, displayWidth: 70, alpha: 0, duration: 900, ease: 'Cubic.Out', onComplete: () => b.destroy() });
       ring(x, y - 70, THEME.gold, 0.1, 1.1, 600); sparks.explode(q(16), x, y - 70); flare(x, y - 70, THEME.gold, 220, 600);

@@ -65,7 +65,9 @@ oyun/
   panelleri birlikte 1,15 büyür. Bölüm içinde `LevelHost` aynı ayarı `LevelOptions.bigText` ile geçirir: oyun içi gösterge
   (`render/hud.ts`; paneller içeriğe göre genişler, üst satır taşmaz), ipucu şeridi, üst şerit ve uçan yazılar 1,2 büyür (`ui.ts` `textScale`).
   Harita ve kamp tuvali değişmez (YN-049). Yeni CSS'te metin boyutu `rem` yazılır.
-- **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır).
+- **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır). Bölüm içinde `motionReduced()` (`render/flash.ts`)
+  açıkken süs hareketleri durur: kontrol noktası ışını ve dönen fener ışınları, büyüyen halka/ışıklar, seri konfetisi, gökte kayan
+  yıldız kuyrukları, sisin kendi kayması, huzme nabzı ve sürüklenen toz yok; oynanış hareketleri ve kısa parıltılar kalır (YN-082).
 - **Yakınlaştırma (web):** `index.html`'de `user-scalable=no` yok; tarayıcıda iki parmakla yakınlaştırılabilir. Çift dokunuşla
   yakınlaştırma `html { touch-action:manipulation }` ile kapalı (hızlı dokunuşlar sayfayı büyütmesin); bölüm ekranı
   (`.level-host`), harita ve kamp tuvali `touch-action:none` (oyun içinde tarayıcı hareketi yok; Phaser dokunuşları zaten yakalar).

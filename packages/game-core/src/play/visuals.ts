@@ -148,16 +148,19 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
   };
 }
 
-/** eskort edilen fısıltı */
-export function createEscortView(s: Phaser.Scene, biome: BiomeDef): { update(x: number, y: number, alive: boolean): void } {
+/** eskort edilen fısıltı; danger 0..1 (play/escort.ts): yaklaşan düşman yüzü kızartır. Kaybolunca olduğu yerde gri işaretle kalır */
+export interface EscortView { update(x: number, y: number, alive: boolean, danger: number): void }
+export function createEscortView(s: Phaser.Scene, biome: BiomeDef): EscortView {
   const o = RD.entitySprite(s, { type: 'escortee', x: 0, y: 0 }, biome.id).setDepth(RD.DEPTH.hero - 1);
-  return { update: (x, y, alive) => { o.setPosition(x, y + 20); o.setAlpha(alive ? 1 : 0.4); } };
+  return { update: (x, y, alive, danger) => { o.setPosition(x, y + 20); if (alive) o.h.danger?.(danger); else o.h.lost?.(); } };
 }
 
 // ---------------------------------------------------------------- HUD
 export interface HudSnapshot { notes: number; notesTotal: number; cochleas: number; /** bölümdeki gizli koklea sayısı (0: boss) */ cochleasTotal: number; lives: number; pct: number;
   /** süreli bölümde kalan oyun saniyesi (geri sayım); süresiz bölümde null */
-  timeLeft: number | null }
+  timeLeft: number | null;
+  /** eskort bölümünde fısıltının durumu (yoksa null) */
+  escort: RD.EscortHud }
 export type HintKind = RD.HintKind;
 export interface LevelHudView {
   update(h: HudSnapshot): void;
@@ -184,7 +187,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     update: (h) => {
       if (!last || last.notes !== h.notes || last.notesTotal !== h.notesTotal) hud.setNotes(h.notes, h.notesTotal);
       if (!last || last.cochleas !== h.cochleas || last.cochleasTotal !== h.cochleasTotal) hud.setCochleas(h.cochleas, h.cochleasTotal);
-      hud.setTimer(h.timeLeft);
+      hud.setTimer(h.timeLeft); hud.setEscort(h.escort);
       if (!last || last.lives !== h.lives) hud.setLives(h.lives);
       if (!last || Math.abs(last.pct - h.pct) > 0.002) hud.setProgress(h.pct);
       last = { ...h };

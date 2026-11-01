@@ -7,6 +7,8 @@ export type Handlers = Partial<{
   telegraph(): void; collect(): void; shatter(): void; facing(d: 1 | -1): void;
   /** bölge patolojisi (render/patoloji.ts): ilk görüşte rozet; malzemeyle etkisiz kalınca sönükleşir */
   sighted(): void; cured(): void;
+  /** eskort fısıltısı (mech.ts buildEscortee): tehlike 0..1 (yüz kızarır, titrer, ünlem) ve kayıp (gri, kalıcı işaret) */
+  danger(k: number): void; lost(): void;
 }>;
 
 export class EntityView extends Phaser.GameObjects.Container implements EntityApi {

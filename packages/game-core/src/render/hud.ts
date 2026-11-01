@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, softGlowTex, sparkTex, ringTex } from './tex';
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 import { motionReduced } from './flash';
+import { spiritTex } from './mech';
 
 const ADD = Phaser.BlendModes.ADD;
 /** koklea yuvası ölçeği: üç yuva + "n/3" yazısı nota ve can panelleri arasına aralıklı sığsın */
@@ -14,6 +15,8 @@ const COCH_K = 0.84;
 /** yuva dolunca açılan halkanın son ölçeği (128 px doku → ~31 px): koklea panelinin içinde kalır, nota kutusuna taşmaz */
 const COCH_RING = 0.24;
 export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight' | 'swipeLeft';
+/** Fısıltıyı Taşı göstergesi: yanında / tehlikede (düşman yaklaşıyor) / yolda kaldı (simge gri); null gizler */
+export type EscortHud = 'ok' | 'danger' | 'lost' | null;
 export interface GhostMark { id: string; pct: number; color: number; label?: string }
 
 // ---------------------------------------------------------------- dokular
@@ -99,6 +102,8 @@ export class LevelHud {
   private cochPanel: Phaser.GameObjects.Image; private coch: Phaser.GameObjects.Image[] = []; private cochOn: Phaser.GameObjects.Image[] = []; private cochText: Phaser.GameObjects.Text; private cochTotal = 3;
   /** süreli bölümün geri sayımı (ikinci satırın ortası); yalnız setTimer çağrılırsa görünür */
   private timerPanel: Phaser.GameObjects.Image; private timerIco: Phaser.GameObjects.Image; private timerText: Phaser.GameObjects.Text; private timerShown = -999;
+  /** eskort bölümünde fısıltının durumu (ikinci satırın solu; sesi kapalı oyuncu da tehlikeyi ve kaybı görsün) */
+  private escPanel: Phaser.GameObjects.Image; private escIco: Phaser.GameObjects.Image; private escText: Phaser.GameObjects.Text; private escState: EscortHud = null;
   /** nota ve koklea panellerinin görünür genişliği (içeriğe göre büyür; Büyük yazıda yazılar büyüdüğü için) */
   private notesW = 112; private cochW = 92;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
@@ -130,6 +135,10 @@ export class LevelHud {
     this.timerPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
     this.timerIco = I(s, clockTex(s)).setVisible(false);
     this.timerText = txt(18, '#fff6e5'); this.timerText.setStroke('#140c35', 4).setVisible(false);
+    // fısıltı (yalnız eskort bölümü)
+    this.escPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
+    this.escIco = I(s, spiritTex(s)).setScale(0.62 / R()).setVisible(false);
+    this.escText = txt(14, '#fff6e5', '800'); this.escText.setStroke('#140c35', 4).setVisible(false);
     // canlar
     this.livesPanel = I(s, panelTex(s, 86, 40, 20)).setOrigin(0, 0);
     for (let i = 0; i < 5; i++) { this.heartsOff.push(I(s, heartIcon(s, false))); this.hearts.push(I(s, heartIcon(s, true))); }
@@ -151,7 +160,7 @@ export class LevelHud {
     this.comboMult = s.add.text(-18, -1, '×2', { fontFamily: FONT, fontSize: '26px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0.5);
     this.comboCount = s.add.text(20, 0, 'Seri\n12', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#c9c1ff', align: 'center', lineSpacing: -2, resolution: R() }).setOrigin(0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -166,7 +175,7 @@ export class LevelHud {
     this.pause.setPosition(W - 32, t + 19);
     this.livesPanel.setPosition(W - 154, t - 6); this.placeHearts();
     this.fitTop();
-    this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer();
+    this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer(); this.escPanel.y = t + 88; this.placeEscort();
     this.barX = 18; this.barW = W - 36; this.barY = t + 58;
     this.bar.setPosition(this.barX, this.barY);
     this.setW(this.track, this.barW, 16); this.flag.setPosition(this.barW - 2, -3);
@@ -260,6 +269,23 @@ export class LevelHud {
     if (this.timerPanel.getData('w') !== w) { this.timerPanel.setData('w', w); this.timerPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
     // panel dokusu gölge payıyla (8, 6) kaydırılmış: görünür merkez dokunun merkezinin 2 px üstünde
     const l = x - w / 2; this.timerIco.setPosition(l + 16, y - 1); this.timerText.setPosition(l + 30, y - 1);
+  }
+  setEscort(st: EscortHud) {
+    if (st === this.escState) return; const prev = this.escState; this.escState = st;
+    for (const o of [this.escPanel, this.escIco, this.escText]) o.setVisible(st != null);
+    if (st == null) return;
+    this.escText.setText(st === 'lost' ? 'Fısıltı yolda kaldı' : st === 'danger' ? 'Fısıltı tehlikede!' : 'Fısıltı yanında').setColor(st === 'lost' ? '#c9c1ff' : st === 'danger' ? '#ff9ab8' : '#fff6e5');
+    // tehlikede yüz kızarır, kaybolunca simge gri (renk + yazı birlikte: yalnız renge dayanmaz)
+    this.escIco.setTint(st === 'lost' ? 0x8e8aa6 : st === 'danger' ? 0xff8aa6 : 0xffffff).setAlpha(st === 'lost' ? 0.6 : 1);
+    this.placeEscort();
+    if (st === 'danger' && prev === 'ok' && !motionReduced()) this.bump(this.escIco, 1.3);
+  }
+  /** ikinci satırın solunda, görünür sol kenar ilerleme çubuğuyla hizalı (seri rozeti sağda kalır) */
+  private placeEscort() {
+    const w = Math.ceil((this.escText.width + 46) / 4) * 4;
+    if (this.escPanel.getData('w') !== w) { this.escPanel.setData('w', w); this.escPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
+    const l = 18, y = this.escPanel.y; this.escPanel.x = l + w / 2;
+    this.escIco.setPosition(l + 18, y - 1); this.escText.setPosition(l + 34, y - 1);
   }
   setProgress(pct: number) {
     this.pct = Math.max(0, Math.min(1, pct)); const x = this.pct * this.barW;

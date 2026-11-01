@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import type { BiomeArt } from './palette';
 import { EntityView } from './view';
 import { I, R, T, glassPanel, softGlowTex, sparkTex, ringTex } from './tex';
+import { motionReduced } from './flash';
 import { halo } from './items';
 import { terrainPiece, accentTex, LIP_H } from './terrain';
 import { circle, css, darken, FONT, glow, hashStr, lighten, mix, roundRectPath, spiralPath, THEME, tono } from './util';
@@ -152,7 +153,8 @@ const gateTex = (s: Phaser.Scene, A: BiomeArt) => T(s, `mc-gate-${A.id}`, 130, 1
   ctx.save(); spiralPath(ctx, cx, 20, 9, 2, 1, 60); ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.6; ctx.stroke(); ctx.restore();
   for (const sx of [-1, 1]) { ctx.fillStyle = '#5a2a00'; ctx.beginPath(); ctx.roundRect(cx + sx * 45 - 9, 176, 18, 8, 2); ctx.fill(); }
 });
-const spiritTex = (s: Phaser.Scene) => T(s, 'mc-spirit', 48, 48, (ctx) => {
+/** eskort fısıltısının yüzü (göstergedeki simge de bu: render/hud.ts) */
+export const spiritTex = (s: Phaser.Scene) => T(s, 'mc-spirit', 48, 48, (ctx) => {
   glow(ctx, 24, 24, 24, 0xe6dcff, 0.55);
   const g = ctx.createRadialGradient(19, 16, 2, 24, 24, 17); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#c9c1ff');
   ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(10, 30); ctx.bezierCurveTo(8, 12, 40, 10, 38, 28); ctx.quadraticCurveTo(38, 36, 31, 37); ctx.quadraticCurveTo(28, 44, 22, 41); ctx.quadraticCurveTo(15, 41, 13, 36); ctx.quadraticCurveTo(9, 34, 10, 30); ctx.fill();
@@ -329,7 +331,8 @@ export function buildCheckpoint(v: EntityView) {
   const off = I(s, lanternTex(s, false)).setOrigin(0.5, 1); const on = I(s, lanternTex(s, true)).setOrigin(0.5, 1).setAlpha(0); v.add([off, on]);
   const rays = I(s, T(s, 'mc-rays', 128, 128, (ctx) => { ctx.translate(64, 64); for (let i = 0; i < 10; i++) { ctx.rotate(Math.PI / 5); const gg = ctx.createLinearGradient(0, 0, 0, -62); gg.addColorStop(0, 'rgba(255,230,160,0.5)'); gg.addColorStop(1, 'rgba(255,230,160,0)'); ctx.fillStyle = gg; ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(-8, -62); ctx.lineTo(8, -62); ctx.lineTo(3, 0); ctx.closePath(); ctx.fill(); } }), 0, -70).setBlendMode(ADD).setAlpha(0); v.add(rays); v.sendToBack(rays); v.sendToBack(g);
   let lit = false;
-  v.h.open = (o) => { if (o === lit) return; lit = o; s.tweens.add({ targets: on, alpha: o ? 1 : 0, duration: 260 }); s.tweens.add({ targets: [g], alpha: o ? 0.6 : 0, duration: 300 }); s.tweens.add({ targets: rays, alpha: o ? 0.9 : 0, duration: 400 }); if (o) { v.tw({ targets: rays, angle: 360, duration: 10000, repeat: -1 }); s.tweens.add({ targets: [on, off], scaleY: { from: on.scaleY * 0.85, to: on.scaleY }, duration: 420, ease: 'Back.Out' }); } };
+  // azaltılmış harekette yanan fener durağan: ışınlar dönmez ve sönük, fener zıplamaz (OT-buyuk-yazi-15)
+  v.h.open = (o) => { if (o === lit) return; lit = o; const calm = motionReduced(); s.tweens.add({ targets: on, alpha: o ? 1 : 0, duration: 260 }); s.tweens.add({ targets: [g], alpha: o ? (calm ? 0.35 : 0.6) : 0, duration: 300 }); s.tweens.add({ targets: rays, alpha: o ? (calm ? 0.4 : 0.9) : 0, duration: 400 }); if (o && !calm) { v.tw({ targets: rays, angle: 360, duration: 10000, repeat: -1 }); s.tweens.add({ targets: [on, off], scaleY: { from: on.scaleY * 0.85, to: on.scaleY }, duration: 420, ease: 'Back.Out' }); } };
 }
 export function buildGate(v: EntityView, A: BiomeArt) {
   const s = v.scene;
@@ -341,12 +344,37 @@ export function buildGate(v: EntityView, A: BiomeArt) {
   v.tw({ targets: swirl, alpha: 0.2, scaleX: swirl.scaleX * 0.8, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   for (let i = 0; i < 6; i++) { const p = s.add.image((Math.random() - 0.5) * 60, -20, sparkTex(s)).setBlendMode(ADD).setScale(0.3).setTint(i % 2 ? THEME.gold : 0xffffff); v.add(p); v.tw({ targets: p, y: -150 - Math.random() * 30, x: p.x + (Math.random() - 0.5) * 30, alpha: { from: 1, to: 0 }, scale: { from: 0.4, to: 0.1 }, duration: 1800 + Math.random() * 1200, delay: i * 300, repeat: -1 }); }
 }
+/** fısıltının başının üstündeki ünlem (tehlike) ve kaybolduğu yerde kalan işaret: çizim, yazı değil (sesi kapalı oyuncu için) */
+const escortWarnTex = (s: Phaser.Scene) => T(s, 'mc-spirit-unlem', 20, 26, (ctx) => {
+  ctx.beginPath(); ctx.arc(10, 13, 9, 0, Math.PI * 2); ctx.fillStyle = css(THEME.coral); ctx.fill(); ctx.strokeStyle = '#fff6e5'; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.fillStyle = '#fff6e5'; ctx.beginPath(); ctx.roundRect(8.6, 6, 2.8, 8, 1.4); ctx.fill(); circle(ctx, 10, 17.4, 1.7); ctx.fill();
+});
+const escortLostTex = (s: Phaser.Scene) => T(s, 'mc-spirit-kayip', 22, 22, (ctx) => {
+  ctx.beginPath(); ctx.arc(11, 11, 9, 0, Math.PI * 2); ctx.fillStyle = 'rgba(40,30,80,0.85)'; ctx.fill(); ctx.strokeStyle = 'rgba(201,193,255,0.8)'; ctx.lineWidth = 1.6; ctx.stroke();
+  ctx.strokeStyle = '#c9c1ff'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(7.5, 7.5); ctx.lineTo(14.5, 14.5); ctx.moveTo(14.5, 7.5); ctx.lineTo(7.5, 14.5); ctx.stroke();
+});
 export function buildEscortee(v: EntityView) {
   const g = halo(v, 0xd6c8ff, 70, 0.5);
   const sp = I(v.scene, spiritTex(v.scene)); v.add(sp);
-  v.tw({ targets: [sp, g], y: '-=6', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-  v.tw({ targets: sp, angle: { from: -5, to: 5 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+  const warn = I(v.scene, escortWarnTex(v.scene), 0, -30).setVisible(false); v.add(warn);
+  const bob = [v.tw({ targets: [sp, g, warn], y: '-=6', duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.InOut' }), v.tw({ targets: sp, angle: { from: -5, to: 5 }, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.InOut' })];
   v.h.facing = (d) => { sp.scaleX = Math.abs(sp.scaleX) * d; };
+  let gone = false;
+  // tehlike: yüz kızarır (renk), ünlem görünür; titreme yalnız hareket azaltma kapalıyken
+  v.h.danger = (k) => {
+    if (gone) return;
+    const c = k > 0 ? mix(0xffffff, THEME.coral, Math.min(1, 0.35 + k * 0.65)) : 0xffffff;
+    sp.setTint(c); g.setTint(k > 0 ? mix(0xd6c8ff, THEME.coral, k) : 0xd6c8ff);
+    warn.setVisible(k >= 0.3);
+    sp.x = k > 0.3 && !motionReduced() ? (Math.random() - 0.5) * 5 * k : 0;
+  };
+  // kayıp: gri ve hareketsiz kalır, üstünde kalıcı çarpı işareti
+  v.h.lost = () => {
+    if (gone) return; gone = true;
+    for (const t of bob) t.stop();
+    sp.setTint(0x8e8aa6).setAngle(0).setPosition(0, 0).setAlpha(0.55); g.setTint(0x6e6a88).setAlpha(0.25); warn.setVisible(false);
+    v.add(I(v.scene, escortLostTex(v.scene), 0, -28));
+  };
 }
 export function buildDecor(v: EntityView, A: BiomeArt, kind: string, scale: number) {
   const variant = kind === 'ot' || kind === 'damla' ? 0 : 1;

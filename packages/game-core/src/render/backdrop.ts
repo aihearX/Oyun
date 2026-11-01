@@ -6,6 +6,7 @@
 import Phaser from 'phaser';
 import type { BiomeBackdrop } from './types';
 import { artOf, variantArt, type BiomeArt } from './palette';
+import { motionReduced } from './flash';
 import { screenOrigin, viewTopLeft, canvasTex, circle, css, darken, glow, glowEllipse, grain, hashStr, lighten, mix, renderResolution, ridgeFn, rng, softFill, sparkle, taperHair, tono, wrapX, type Ctx, type Rnd } from './util';
 
 const TW = 1024;          // katman döşeme genişliği (tasarım px)
@@ -53,7 +54,7 @@ function blurred(ctx: Ctx, px: number, draw: (c: Ctx) => void) {
 function blurShape(ctx: Ctx, path: () => void, c: number, a: number, blur: number) { softFill(ctx, path, css(c, a), blur); }
 
 // ---------------------------------------------------------------- gök (sabit, ekran boyutunda)
-function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
+function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm = false) {
   const [t, m, hz] = A.sky;
   const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css(t)); g.addColorStop(0.5, css(m)); g.addColorStop(0.86, css(mix(m, hz, 0.75))); g.addColorStop(1, css(hz));
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
@@ -69,7 +70,7 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
     glow(ctx, x, y, r * 4, c, 0.18 + rnd() * 0.2); ctx.fillStyle = css(c, 0.5 + rnd() * 0.5); circle(ctx, x, y, r * 0.6); ctx.fill();
   }
   for (let i = 0; i < 6; i++) sparkle(ctx, rnd() * W, rnd() * H * 0.45, 2 + rnd() * 2.5, A.motes[i % A.motes.length]!, 0.8);
-  if (A.skyAccent) paintSkyAccent(ctx, W, H, rnd, A);
+  if (A.skyAccent) paintSkyAccent(ctx, W, H, rnd, A, calm);
   switch (A.motif) {
     case 'cortex': {
       // aurora şeritleri
@@ -104,8 +105,11 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
   }
 }
 
-/** bölüm kimliği: gökte tek, hafif bir motif (oynanış alanının üstünde kalır, okunaklılığı bozmaz) */
-function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
+/**
+ * bölüm kimliği: gökte tek, hafif bir motif (oynanış alanının üstünde kalır, okunaklılığı bozmaz).
+ * calm: azaltılmış hareket; hareket izlenimi veren çizimler (kayan yıldız kuyruğu) yerine durağan karşılığı çizilir.
+ */
+function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm: boolean) {
   const L = A.light; const lx = L.x * W, ly = L.y * H;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   switch (A.skyAccent) {
@@ -134,9 +138,10 @@ function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt) {
       }
       break;
     }
-    case 'kayan': { // kayan yıldızlar
+    case 'kayan': { // kayan yıldızlar; azaltılmış harekette kuyruksuz, sönük yıldız (çizgiler "art arda kayıyor" okunuyordu: OT-buyuk-yazi-15)
       for (let i = 0; i < 4; i++) {
         const x = W * (0.15 + rnd() * 0.7), y = H * (0.06 + rnd() * 0.3), len = 60 + rnd() * 70; const a = 0.5 + rnd() * 0.25;
+        if (calm) { glow(ctx, x, y, 5, 0xffffff, 0.45); continue; }
         const g = ctx.createLinearGradient(x, y, x - Math.cos(a) * len, y - Math.sin(a) * len); g.addColorStop(0, css(0xffffff, 0.85)); g.addColorStop(1, css(A.motes[0]!, 0));
         ctx.strokeStyle = g; ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - Math.cos(a) * len, y - Math.sin(a) * len); ctx.stroke();
         glow(ctx, x, y, 6, 0xffffff, 0.8);
@@ -761,13 +766,15 @@ function bubbleTex(scene: Phaser.Scene): string {
 export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number, worldH: number, opts: { quality?: 'high' | 'low'; variant?: number } = {}): BiomeBackdrop {
   const A = opts.variant === undefined ? artOf(biomeId) : variantArt(artOf(biomeId), opts.variant); const set = PAINTERS[A.motif]!; let low = opts.quality === 'low';
   const R = low ? 1 : renderResolution(); const cam = scene.cameras.main;
+  // azaltılmış hareket (flash.ts; sahne kurulurken yazılır): süs hareketleri durur, oynanış alanı aynı kalır
+  const calm = motionReduced();
   let vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
   const seed = hashStr(A.id);
   const objects: Phaser.GameObjects.GameObject[] = [];
   cam.setBackgroundColor(A.sky[0]);
 
   // gök: tasarım boyutunda bir kez (görünüme gerilir)
-  const skyKey = canvasTex(scene, `bd-sky-${A.id}`, 390, 844, 1, (ctx, W, H) => paintSky(ctx, W, H, rng(seed ^ 1), A));
+  const skyKey = canvasTex(scene, `bd-sky-${A.id}${calm ? '-sakin' : ''}`, 390, 844, 1, (ctx, W, H) => paintSky(ctx, W, H, rng(seed ^ 1), A, calm));
   const sky = scene.add.image(0, 0, skyKey).setOrigin(0, 0).setScrollFactor(0).setDepth(-100);
   objects.push(sky);
 
@@ -808,7 +815,8 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
   const mkMotes = () => {
     const O0 = screenOrigin(cam);
     for (const m of motes) m.destroy(); motes.length = 0;
-    if (low) return;
+    // sürüklenen toz ve kabarcıklar süs: azaltılmış harekette yok
+    if (low || calm) return;
     const e = scene.add.particles(0, 0, moteKeys[0]!, {
       x: { min: O0.x, max: O0.x + vw }, y: { min: O0.y, max: O0.y + vh }, lifespan: { min: 5000, max: 9000 }, speedX: { min: -14, max: 6 }, speedY: A.underwater ? { min: -26, max: -10 } : { min: -10, max: 6 },
       scale: { min: 0.12, max: 0.42 }, alpha: { onEmit: () => 0, onUpdate: (_p: unknown, _k: string, t: number) => Math.sin(t * Math.PI) * 0.85 }, frequency: 260, quantity: 1, blendMode: 'ADD', maxAliveParticles: 34,
@@ -851,8 +859,10 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
       }
       if (low) return;
       shafts.x = O.x; shafts.tilePositionX = camX * 0.25 % 512; shafts.y = O.y + Math.min(0, dy * 0.2 - 40);
-      fog.x = O.x; fog.tilePositionX = (camX * 0.8 + (scene.time.now - t0) * 0.012) % 512; fog.y = O.y + vh + 40 + dy * 0.85;
-      const tt = (scene.time.now - t0) / 1000; shafts.setAlpha(0.8 + Math.sin(tt * 0.6) * 0.14 + Math.sin(tt * 1.7) * 0.06);
+      // sisin kendi kayması ve huzmelerin nabzı süs: azaltılmış harekette yalnız kamerayla (paralaks) kayar, ışık sabit
+      const tt = calm ? 0 : (scene.time.now - t0) / 1000;
+      fog.x = O.x; fog.tilePositionX = (camX * 0.8 + tt * 12) % 512; fog.y = O.y + vh + 40 + dy * 0.85;
+      shafts.setAlpha(0.8 + Math.sin(tt * 0.6) * 0.14 + Math.sin(tt * 1.7) * 0.06);
     },
     resize(w, h) { vw = w; vh = h; layout(); mkMotes(); },
     setForegroundAlpha(a) { fgA = a; for (const l of layers) if (l.def.depth > 0) l.ts.setAlpha(fgA); },
