@@ -1,5 +1,5 @@
 import { DmTopPill } from '../friends/Banner';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, type InboxKind } from '@odi/shared';
 import { cardById, cosmeticById } from '@odi/content';
@@ -9,8 +9,9 @@ import { useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
 import { IconButton } from './Button';
 import { Icon } from './icons';
-import { Art, Glyph, Rich, rich } from './art';
+import { Art, Glyph, Rich, rich, type ArtName } from './art';
 import { useFeatures } from '../ftue/useFeatures';
+import { prefersReducedMotion } from './bits';
 
 /** saniyelik (ya da verilen aralıkta) yeniden çizim için şimdiki zaman */
 export function useNow(ms = 1000): number {
@@ -162,17 +163,47 @@ export function Sheet({ title, onClose, children }: { title?: string; onClose: (
   );
 }
 
-/** yatay kaydırılan alt sekmeler (rozetli) */
-export function SubTabs<T extends string>({ tabs, active, onChange }: { tabs: { id: T; label: string; icon: string; badge?: number }[]; active: T; onChange: (t: T) => void }) {
+/** yatay kaydırılan alt sekmeler (rozetli). Taşarsa parmakla (fareyle de) sürüklenir; kesik kenarda solma ve ok görünür, ok
+ *  dokunuşla kaydırır (OT-buyuk-yazi-14). `name`: şeridin adı (data-subtabs; iki düzeyli Takım sekmelerinde grup/alt). */
+export function SubTabs<T extends string>({ tabs, active, onChange, name }: { tabs: { id: T; label: string; icon?: string; art?: ArtName; badge?: number }[]; active: T; onChange: (t: T) => void; name?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { ref.current?.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); }, [active]);
+  const [edge, setEdge] = useState({ l: false, r: false });
+  const measure = useCallback(() => {
+    const el = ref.current; if (!el) return;
+    const l = el.scrollLeft > 2; const r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setEdge((e) => (e.l === l && e.r === r ? e : { l, r }));
+  }, []);
+  useEffect(() => { ref.current?.querySelector('.on')?.scrollIntoView({ inline: 'center', block: 'nearest' }); measure(); }, [active, measure]);
+  // genişlik, yazı boyu (Büyük yazı) ya da sekme sayısı değişince kenarları yeniden ölç
+  useEffect(() => {
+    const el = ref.current; if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure); ro.observe(el); for (const c of el.children) ro.observe(c);
+    return () => ro.disconnect();
+  }, [tabs.length, measure]);
+  // fareyle sürükleme (dokunmatikte tarayıcının kendi kaydırması çalışır); sürüklemeden sonraki tıklama sekme değiştirmez
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const el = ref.current; if (!el || e.pointerType !== 'mouse' || e.button !== 0 || el.scrollWidth <= el.clientWidth) return;
+    const x0 = e.clientX; const s0 = el.scrollLeft; let moved = false;
+    const move = (ev: PointerEvent) => { const dx = ev.clientX - x0; if (!moved && Math.abs(dx) < 6) return; moved = true; el.scrollLeft = s0 - dx; };
+    const up = () => {
+      removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+      if (moved) { const stop = (ev: MouseEvent) => { ev.stopPropagation(); ev.preventDefault(); }; el.addEventListener('click', stop, { capture: true, once: true }); setTimeout(() => el.removeEventListener('click', stop, true), 0); }
+    };
+    addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  };
+  const nudge = (dir: 1 | -1) => { const el = ref.current; if (el) el.scrollBy({ left: dir * Math.max(120, el.clientWidth * 0.6), behavior: prefersReducedMotion() ? 'auto' : 'smooth' }); };
   return (
-    <div className="subtabs" ref={ref} role="tablist">
-      {tabs.map((t) => (
-        <button key={t.id} role="tab" aria-selected={active === t.id} className={`subtab${active === t.id ? ' on' : ''}`} onClick={() => onChange(t.id)}>
-          <span aria-hidden className="st-ic"><Glyph e={t.icon} size={18} /></span> {t.label}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
-        </button>
-      ))}
+    <div className="subtabs-wrap" data-subtabs={name} data-sol={edge.l || undefined} data-sag={edge.r || undefined}>
+      <div className="subtabs" ref={ref} role="tablist" onScroll={measure} onPointerDown={onPointerDown}>
+        {tabs.map((t) => (
+          <button key={t.id} role="tab" aria-selected={active === t.id} className={`subtab${active === t.id ? ' on' : ''}`} data-sekme={t.id} onClick={() => onChange(t.id)}>
+            <span aria-hidden className="st-ic">{t.art ? <Art name={t.art} size={18} /> : <Glyph e={t.icon} size={18} />}</span> {t.label}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
+          </button>
+        ))}
+      </div>
+      {/* kesik kenar okları: ekran okuyucu için değil (sekmeler zaten listede), yalnız görme ve dokunma kolaylığı */}
+      {edge.l && <button type="button" className="st-ok sol" aria-hidden tabIndex={-1} onClick={() => nudge(-1)}><Icon name="back" size={16} /></button>}
+      {edge.r && <button type="button" className="st-ok sag" aria-hidden tabIndex={-1} onClick={() => nudge(1)}><Icon name="chevron" size={16} /></button>}
     </div>
   );
 }

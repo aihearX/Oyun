@@ -15,6 +15,7 @@ import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
+import { takimSekme } from './takim-sekme.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -647,7 +648,7 @@ async function rankSuite(bt) {
     await closeBanners(A); await backToTabs(A);
     await A.page.locator('nav.tabbar .tab[data-tab="team"]').click();
     await A.page.locator('.team-head').waitFor({ timeout: 15_000 });
-    await A.page.locator('.subtabs .subtab', { hasText: 'Sıralama' }).first().click();
+    await takimSekme(A.page, 'Sıralama');
     await A.page.locator('.rank-list[data-board="t-guc"]').waitFor({ state: 'attached', timeout: 10_000 });
     await A.page.locator('.rank .rank-row.me').first().waitFor({ timeout: 10_000 });
     S.check(await A.page.locator('.rank .rank-row.me').count() === 1, 'kendi satırım listede görünürken altta tekrar edilmez');

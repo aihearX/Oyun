@@ -10,6 +10,7 @@ import { FEATURES, clearedCount, featureById, type FeatureId } from './features'
 import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf } from './map-intro';
 import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
+import { openTeamTab } from '../screens/team/teamTabs';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
@@ -154,26 +155,28 @@ export function tourFor(id: string, route: string): Tour | null {
       steps.push(
         unlockCard('tlig', 'tlig-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
-        { ...line('tlig-02'), target: () => [...document.querySelectorAll('.subtabs .subtab')].find((e) => /\bLig\b/.test(e.textContent ?? '')) ?? document.querySelector('.team-hero, .team-head'), optional: true, mood: 'wink' },
+        // Takım sekmeleri iki düzeyli (YN-083): Lig, Rekabet grubunun içinde; tur sekmeyi açar, sonra parlatır
+        { ...line('tlig-02'), enter: () => openTeamTab('lig'), target: () => document.querySelector('.subtabs .subtab[data-sekme="lig"]') ?? document.querySelector('.team-hero, .team-head'), optional: true, mood: 'wink' },
       ); break;
     case 'tyaris':
       steps.push(
         unlockCard('tyaris', 'tyaris-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
-        { ...line('tyaris-02'), target: () => [...document.querySelectorAll('.subtabs .subtab')].find((e) => /Takım Yarışı/.test(e.textContent ?? '')) ?? document.querySelector('.team-hero, .team-head'), optional: true },
+        // son açık sekme (ör. Hediyeler) değil: Takım Yarışı sekmesi açılır ve parlar (OT-ilk-kez-oyun-14)
+        { ...line('tyaris-02'), enter: () => openTeamTab('tyaris'), target: () => document.querySelector('.subtabs .subtab[data-sekme="tyaris"]') ?? document.querySelector('.team-hero, .team-head'), optional: true },
       ); break;
     case 'akis':
       steps.push(
         unlockCard('akis', 'akis-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
-        { ...line('akis-02'), target: () => document.querySelector('[data-testid="akis-karti"]') ?? document.querySelector('.quick-line'), optional: true, mood: 'wink' },
+        { ...line('akis-02'), enter: () => openTeamTab('sohbet'), target: () => document.querySelector('[data-testid="akis-karti"]') ?? document.querySelector('.quick-line'), optional: true, mood: 'wink' },
       ); break;
     case 'soru':
       steps.push(
         unlockCard('soru', 'soru-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
         // soru kapalıysa (cevaplanmış/açıklanmış) "Bir şık seç" denmez: adım konuşmadan geçilir, kart sıradaki saati yazar
-        { ...line('soru-02'), target: openQuestion, optional: true },
+        { ...line('soru-02'), enter: () => openTeamTab('sohbet'), target: openQuestion, optional: true },
       ); break;
     case 'ikili':
       steps.push(

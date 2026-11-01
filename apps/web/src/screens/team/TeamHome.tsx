@@ -8,6 +8,7 @@ import { RankView } from '../../rank/RankScreen';
 import { TeamLeagueView, TeamRaceView, useTeamRace } from '../../teamrace';
 import { Bar } from '../../ui/bits';
 import { ActionButton, IconButton } from '../../ui/Button';
+import { Icon } from '../../ui/icons';
 import { featureOpen } from '../../ftue/useFeatures';
 import { TeamMembers } from './TeamMembers';
 import { TeamHelp } from './TeamHelp';
@@ -22,18 +23,20 @@ import { TEAM_APPLY_RULES, canApprove, joinModeOf } from '@odi/shared';
 import { TeamApplications } from './TeamApplications';
 import { ModeTag } from './TeamProfile';
 import { useTeamApply } from './apply';
+import { GROUP_OF, openTeamTab, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
 
-export type TeamTab = 'sohbet' | 'basvuru' | 'uyeler' | 'yardim' | 'tekno' | 'hediye' | 'hedef' | 'savas' | 'baskin' | 'etkinlik' | 'siralama' | 'tyaris' | 'lig';
-let lastTab: TeamTab = 'sohbet';
+export type { TeamTab } from './teamTabs';
 
-/** Takım ana ekranı: başlık (amblem, seviye, üye, güç) + 8 alt sekme. */
+/** Takım ana ekranı: başlık (amblem, seviye, üye, güç) + iki düzey sekme: Sohbet · Etkinlikler · Takım (Üyeler, Başvurular, Yardım,
+ *  Teknoloji, Hediyeler, Hedefler) · Rekabet (Savaş, Baskın, Takım Yarışı, Lig, Sıralama). Sohbet her yerden tek dokunuş (YN-083). */
 export function TeamHome() {
   const team = useNet((s) => s.team)!; const extra = useNet((s) => s.extra); const me = useNet((s) => s.me)!;
   const unread = useNet((s) => s.unread[`takim:${s.team?.id}`] ?? 0); const gifts = useNet((s) => s.giftCount); const campHelp = useNet((s) => s.campHelp);
-  const [tab, setTabState] = useState<TeamTab>(lastTab);
+  const tab = useTeamTab((s) => s.tab); const lastIn = useTeamTab((s) => s.last);
+  const war = useNet((s) => s.war);
   const evBadge = useEvents((s) => pendingCount(s, me.id));
   const mentions = useComm((s) => mentionCount(s, `takim:${team.id}`)); const study = useComm((s) => s.dq?.study ?? false);
-  const setTab = (t: TeamTab) => { lastTab = t; setTabState(t); platform().haptic('light'); };
+  const setTab = (t: TeamTab) => { openTeamTab(t); platform().haptic('light'); };
   const [menu, setMenu] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const myRole = team.roster.find((m) => m.id === me.id)?.role ?? 'uye';
@@ -48,6 +51,8 @@ export function TeamHome() {
     const c = getNet(); if (!c) return;
     void c.call('team.extra', {}).then((r) => useNet.setState({ extra: r.extra, giftCount: r.extra.gifts.filter((g) => !g.claimed && g.expiresAt > Date.now()).length })).catch(() => undefined);
     void c.call('camp.state', {}).then((r) => useNet.setState({ camp: r.camp })).catch(() => undefined);
+    // savaş hedefi seçilmemiş uyarısı için (başlıkta; Savaş sekmesi açılmadan da)
+    void c.call('war.state', {}).then((r) => useNet.setState({ war: r.war })).catch(() => undefined);
   }, [team.id]);
 
   const share = async () => {
@@ -62,6 +67,38 @@ export function TeamHome() {
   };
 
   const xpFrom = extra ? prevThreshold(extra.level) : 0;
+  const all: { id: TeamTab; icon: string; label: string; badge?: number }[] = [
+    { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread + mentions },
+    ...(featureOpen('events') ? [{ id: 'etkinlik' as const, icon: '🎪', label: 'Etkinlikler', badge: evBadge }] : []),
+    { id: 'uyeler', icon: '👥', label: 'Üyeler' },
+    ...(approver ? [{ id: 'basvuru' as const, icon: '✉️', label: 'Başvurular', badge: apps }] : []),
+    { id: 'yardim', icon: '🤝', label: 'Yardım', badge: campHelp.length + levelHelp },
+    { id: 'tekno', icon: '🔬', label: 'Teknoloji' },
+    { id: 'hediye', icon: '🎁', label: 'Hediyeler', badge: gifts },
+    { id: 'hedef', icon: '🎯', label: 'Hedefler', badge: claimableGoals },
+    { id: 'savas', icon: '⚔️', label: 'Savaş' },
+    { id: 'baskin', icon: '👹', label: 'Baskın' },
+    ...(featureOpen('tyaris') ? [{ id: 'tyaris' as const, icon: '🏁', label: 'Takım Yarışı', badge: raceBadge }] : []),
+    ...(featureOpen('tlig') ? [{ id: 'lig' as const, icon: '🛡️', label: 'Lig' }] : []),
+    ...(featureOpen('siralama') ? [{ id: 'siralama' as const, icon: '🏆', label: 'Sıralama' }] : []),
+  ];
+  // üst sıra: Sohbet, Etkinlikler ve iki grup; grubun rozeti içindekilerin toplamı (grup açıkken rozetler alt sırada)
+  const group = GROUP_OF[tab];
+  const inGroup = (g: TeamGroup) => all.filter((t) => GROUP_OF[t.id] === g);
+  const groupBadge = (g: TeamGroup) => (g === group ? 0 : inGroup(g).reduce((a, t) => a + (t.badge ?? 0), 0));
+  const groups: { id: TeamGroup; label: string; icon?: string; art?: 'users' | 'swords'; badge?: number }[] = [
+    ...all.flatMap((t) => (t.id === 'sohbet' || t.id === 'etkinlik' ? [{ ...t, id: t.id }] : [])),
+    { id: 'takim' as const, art: 'users' as const, label: 'Takım', badge: groupBadge('takim') },
+    { id: 'rekabet' as const, art: 'swords' as const, label: 'Rekabet', badge: groupBadge('rekabet') },
+  ];
+  const sub = group === 'takim' || group === 'rekabet' ? inGroup(group) : [];
+  const openGroup = (g: TeamGroup) => {
+    if (g === 'sohbet' || g === 'etkinlik') return setTab(g);
+    const ids = inGroup(g).map((t) => t.id); const last = lastIn[g];
+    setTab(last && ids.includes(last) ? last : ids[0]!);
+  };
+  // savaş hedefi seçilmemiş (OT-takim-kaptani-9): seçilene dek kazanılan savaş puanı hiçbir bölgeye yazılmaz, sonradan da yazılmaz
+  const noTarget = !!war && war.targets.length === 0 && tab !== 'savas';
   return (
     <>
       {/* başlık + alt sekmeler: normalde alt alta (display:contents); kısa ekranda sohbet açıkken başlık sekme satırının başında
@@ -78,22 +115,12 @@ export function TeamHome() {
           {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
         </div>
       </div>
-      <SubTabs<TeamTab> active={tab} onChange={setTab} tabs={[
-        { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread + mentions },
-        ...(approver ? [{ id: 'basvuru' as const, icon: '✉️', label: 'Başvurular', badge: apps }] : []),
-        ...(featureOpen('events') ? [{ id: 'etkinlik' as const, icon: '🎪', label: 'Etkinlikler', badge: evBadge }] : []),
-        { id: 'uyeler', icon: '👥', label: 'Üyeler' },
-        { id: 'yardim', icon: '🤝', label: 'Yardım', badge: campHelp.length + levelHelp },
-        { id: 'tekno', icon: '🔬', label: 'Teknoloji' },
-        { id: 'hediye', icon: '🎁', label: 'Hediyeler', badge: gifts },
-        { id: 'hedef', icon: '🎯', label: 'Hedefler', badge: claimableGoals },
-        { id: 'savas', icon: '⚔️', label: 'Savaş' },
-        { id: 'baskin', icon: '👹', label: 'Baskın' },
-        ...(featureOpen('tyaris') ? [{ id: 'tyaris' as const, icon: '🏁', label: 'Takım Yarışı', badge: raceBadge }] : []),
-        ...(featureOpen('tlig') ? [{ id: 'lig' as const, icon: '🛡️', label: 'Lig' }] : []),
-        ...(featureOpen('siralama') ? [{ id: 'siralama' as const, icon: '🏆', label: 'Sıralama' }] : []),
-      ]} />
+      <SubTabs<TeamGroup> name="takim-grup" active={group} onChange={openGroup} tabs={groups} />
+      {sub.length > 0 && <SubTabs<TeamTab> name="takim-alt" active={tab} onChange={setTab} tabs={sub} />}
       </div>
+      {noTarget && (approver
+        ? <button type="button" className="card war-warn" onClick={() => setTab('savas')} data-testid="savas-hedef-uyari"><Art name="target" size={24} /><span className="grow min0"><b>Savaş hedefi seçilmedi</b><small>Seçilene dek kazanılan savaş puanı bölgeye yazılmaz, sonradan da yazılmaz.</small></span><Icon name="chevron" size={20} /></button>
+        : <div className="card war-warn note" role="note" data-testid="savas-hedef-uyari"><Art name="target" size={24} /><small className="grow min0">Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz.</small></div>)}
       <div className="team-body" key={tab}>
         {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
         {tab === 'basvuru' && (approver ? <TeamApplications /> : <TeamMembers />)}

@@ -12,6 +12,7 @@ import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createServer } from 'node:net';
 import { chromium } from 'playwright';
+import { takimSekme } from './takim-sekme.mjs';
 
 const args = new Set(process.argv.slice(2));
 const root = resolve(new URL('../..', import.meta.url).pathname);
@@ -69,7 +70,7 @@ async function shot(page, name) {
   console.log(`  📸 ${f.replace(root + '/', '')}`);
 }
 const tab = (page, label) => page.locator('nav.tabbar .tab', { hasText: label }).click();
-const sub = (page, label) => page.locator('.subtabs .subtab', { hasText: label }).click();
+const sub = (page, label) => takimSekme(page, label);
 const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
 
 // ---- üçüncü oyuncu (sunucuya doğrudan ilerleme gönderen gerçek istemci; tarayıcısız)

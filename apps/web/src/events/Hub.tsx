@@ -7,7 +7,7 @@ import { Bar } from '../ui/bits';
 import { fmtNum } from '../ui/social';
 import { useNav } from '../nav';
 import { useEvents } from './store';
-import { Countdown, EVENT_META, levelName, useSrvNow } from './common';
+import { Countdown, EVENT_META, fmtSecs, levelName, useSrvNow } from './common';
 import { MonsterArt } from './MonsterArt';
 import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
 
@@ -70,7 +70,7 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
       <EvCard key="bayrak" kind="bayrak" live={relayMine ? 'BAYRAK SENDE' : null} onOpen={() => open('bayrak')} clock={s.relay ? <Countdown to={s.relay.period.endsAt} /> : null}
         cta={relayMine ? '🏃 Ayağı koş' : s.relay && s.relay.current < 4 && !s.relay.carrier ? '🚩 Bayrağı al' : 'Parkuru gör'} ctaTone={relayMine || (s.relay && !s.relay.carrier && s.relay.current < 4) ? 'gold' : 'ghost'}>
         {s.relay && <div className="ev-flags">{s.relay.legs.map((l, i) => <span key={i} className={`ev-flag${l.firstBy ? ' done' : ''}${i === s.relay!.current ? ' cur' : ''}`}>{l.firstBy ? <Art name="flag" size={16} /> : i + 1}</span>)}
-          <small className="muted ellipsis">{s.relay.current >= 4 ? `Toplam ${s.relay.totalSec} sn` : s.relay.carrier ? `Bayrak: ${s.relay.carrier.name}` : `${s.relay.current + 1}. ayak gönüllü bekliyor`}</small></div>}
+          <small className="muted ellipsis">{s.relay.current >= 4 ? `Toplam ${fmtSecs(s.relay.totalSec ?? 0)}` : s.relay.carrier ? `Bayrak: ${s.relay.carrier.name}` : `${s.relay.current + 1}. ayak gönüllü bekliyor`}</small></div>}
       </EvCard>,
       <EvCard key="avi" kind="avi" onOpen={() => open('avi')} clock={s.hunt?.period ? <Countdown to={s.hunt.period.endsAt} /> : s.hunt ? <Countdown to={s.hunt.next.startsAt} label="başlamasına" /> : null}
         cta={s.hunt?.song ? '🎶 Şarkıyı dinle' : undefined} ctaTone="ghost">

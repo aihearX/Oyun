@@ -130,6 +130,7 @@ export const relayHandlers: Handlers = {
     } else if (d.leg > RELAY_LEGS - 1) fail('GECERSIZ', 'Geçersiz ayak.');
     const now = app.now();
     const time = Math.round(d.timeSec * 10) / 10;
+    const sn = time.toLocaleString('tr-TR', { maximumFractionDigits: 1 }); // akış satırı: Türkçe ondalık virgül (56,6 sn)
     app.db.run('INSERT INTO ev_relay_run(player_id, run_id, period, team_id, leg, time_sec, completed, at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', p.id, d.runId, period.key, t.id, d.leg, time, d.completed ? 1 : 0, now);
     if (!d.completed) { broadcastRelay(app, t.id); return { relay: relayState(app, t.id), improved: false }; }
     const leg = app.db.get<LegRow>('SELECT leg, best_sec, best_by, first_by, first_at FROM ev_relay_leg WHERE period = ? AND team_id = ? AND leg = ?', period.key, t.id, d.leg);
@@ -144,15 +145,15 @@ export const relayHandlers: Handlers = {
       if (next >= RELAY_LEGS) {
         addTeamXp(app, t.id, RELAY_TEAM_XP);
         broadcastExtra(app, t.id);
-        systemMessage(app, teamRoom(t.id), `${p.name} son ayağı ${time} sn'de bitirdi: parkur tamam! Artık her ayakta süreyi iyileştirebilirsiniz.`, 'system', { event: 'bayrak' });
+        systemMessage(app, teamRoom(t.id), `${p.name} son ayağı ${sn} sn'de bitirdi: parkur tamam! Artık her ayakta süreyi iyileştirebilirsiniz.`, 'system', { event: 'bayrak' });
         notify(app, app.teamMemberIds(t.id), { kind: 'bayrak', icon: '🏁', title: 'Bayrak Yarışı parkuru tamam!', text: 'Şimdi en iyi süreleri kovalayın.', target: 'bayrak' });
       } else {
-        systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayağı ${time} sn'de bitirdi! Sıradaki ${next + 1}. ayak: bayrağı kim alacak?`, 'system', { event: 'bayrak' });
+        systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayağı ${sn} sn'de bitirdi! Sıradaki ${next + 1}. ayak: bayrağı kim alacak?`, 'system', { event: 'bayrak' });
         notify(app, app.teamMemberIds(t.id).filter((x) => x !== p.id), { kind: 'bayrak', icon: '🚩', title: `${next + 1}. ayak seni bekliyor!`, text: `${p.name} ${d.leg + 1}. ayağı bitirdi. Bayrağı al!`, target: 'bayrak' });
       }
     } else if (improved) {
       addDuelPoints(app, t.id, p.id, DUEL_RULES.relayImprove);
-      systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayakta yeni en iyi süre: ${time} sn!`, 'system', { event: 'bayrak' });
+      systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayakta yeni en iyi süre: ${sn} sn!`, 'system', { event: 'bayrak' });
     }
     broadcastRelay(app, t.id);
     return { relay: relayState(app, t.id), improved };

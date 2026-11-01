@@ -137,6 +137,8 @@
 .ev-leg.cur .ev-leg-dot { border-color:var(--gold); animation:ev-pulse 1.4s ease-in-out infinite; }
 .ev-leg .btn.small { padding:8px 10px; min-height:40px; }
 .ev-carrier { display:flex; flex-direction:column; gap:8px; }
+/* Bayrağı al / Devret: yazı kırılmaz, sığmazsa düğmeler alt alta iner (OT-rekabetci-16) */
+.ev-take-row { flex-wrap:wrap; gap:8px; } .ev-take-row > .btn { flex:1 1 auto; white-space:nowrap; }
 .ev-carrier.tone-teal { border:2px solid var(--teal); box-shadow:0 0 0 4px color-mix(in srgb, var(--teal) 20%, transparent), var(--shadow); }
 .ev-pass { flex-wrap:wrap; appearance:none; font:inherit; color:var(--text); display:flex; align-items:center; gap:10px; width:100%; padding:8px 12px; border-radius:16px; background:var(--glass); border:2px solid rgba(255,255,255,.14); cursor:pointer; min-height:52px; }
 .ev-pass:active { transform:scale(.98); }

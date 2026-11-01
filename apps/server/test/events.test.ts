@@ -153,6 +153,8 @@ describe('Bayrak Yarışı', () => {
     relay = (await a.c.call('relay.submit', { leg: 0, ...r0 })).relay;
     expect(relay).toMatchObject({ current: 1, carrier: null, lastRunner: { name: 'Ayşe' } });
     expect(relay.legs[0]!.best).toMatchObject({ name: 'Ayşe', timeSec: 31.4 });
+    // takım akışı satırı Türkçe ondalık virgülle (OT-rekabetci-15)
+    expect((await b.wait('chat', (m) => m.msg.meta?.event === 'bayrak' && m.msg.text.includes('bitirdi'))).msg.text).toContain("1. ayağı 31,4 sn'de bitirdi");
     expect((await a.c.call('relay.submit', { leg: 0, ...r0 })).relay.current).toBe(1); // idempotent
     expect((await err(a.c.call('relay.take', {}))).code).toBe('SART'); // art arda iki ayak yok
     await a.c.call('relay.pass', { to: (await b.c.call('relay.state', {})).relay.lastRunner!.id === a.c.me!.id ? b.c.me!.id : '' });

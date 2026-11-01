@@ -29,6 +29,7 @@ import { inflateSync } from 'node:zlib';
 import { createServer } from 'node:net';
 import { chromium, webkit } from 'playwright';
 import { measureHudFit } from './hud-fit.mjs';
+import { takimSekme } from './takim-sekme.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -934,10 +935,18 @@ async function suite(browserName, target, [W, H]) {
         await aday.call('team.apply', { teamId: t.id, noteId: 'savas' });
         await page.getByTestId('basvuru-rozeti').waitFor({ timeout: 10_000 }).catch(() => undefined);
         aday.close(); }
-      const subs = await page.locator('.subtabs .subtab').evaluateAll((els) => els.map((e) => e.textContent.replace(/\d+$/, '').trim()));
-      for (const s of subs.slice(1)) {
-        await page.locator('.subtabs .subtab', { hasText: s.replace(/^\S+\s/, '') }).first().click(); await sleep(700);
-        await check(`takim-${s.replace(/^\S+\s/, '').toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`);
+      // iki düzeyli sekmeler (YN-083): üst sıradaki her grup (Sohbet dışında) ve grubun alt sırasındaki her sekme
+      const sekmeAdi = (e) => e.textContent.replace(/\d+$/, '').trim();
+      const gruplar = await page.locator('[data-subtabs="takim-grup"] .subtab').evaluateAll((els) => els.map((e) => e.dataset.sekme));
+      for (const g of gruplar.slice(1)) {
+        await page.locator(`[data-subtabs="takim-grup"] .subtab[data-sekme="${g}"]`).click(); await sleep(700);
+        const alt = await page.locator('[data-subtabs="takim-alt"] .subtab').evaluateAll((els) => els.map((e) => e.dataset.sekme));
+        const adlar = alt.length ? alt : [g];
+        for (const id of adlar) {
+          const t = page.locator(`.subtabs .subtab[data-sekme="${id}"]`).first();
+          await t.click(); await sleep(700);
+          await check(`takim-${(await t.evaluate(sekmeAdi)).toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]+/g, '-')}`);
+        }
       }
       await page.getByLabel('Takım menüsü').click(); await page.locator('.sheet').waitFor();
       await check('takim-menu-sayfasi', { scroll: false });
@@ -966,7 +975,7 @@ async function suite(browserName, target, [W, H]) {
         await bora.call('progress.submit', { runId: `u${sno}a${Date.now()}`, level: 1, completed: true, stars: 3, score: 900, timeSec: 40, coins: 60, biome: 'dis-kulak', mechanic: 'kosu', cochleas: 2 });
         await bora.call('team.help.request', { level: 2 });
         await page.locator('[data-testid="yardim-karti"]').first().waitFor({ timeout: 10_000 });
-        await page.locator('.subtabs .subtab', { hasText: 'Üyeler' }).first().click(); await sleep(300);
+        await takimSekme(page, 'Üyeler'); await sleep(300);
         await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(700);
         await check('takim-sohbet-kartlar', { chat: true });
         await page.locator('[data-testid="akis-karti"]').last().getByRole('button', { name: 'Yanıtla' }).click();

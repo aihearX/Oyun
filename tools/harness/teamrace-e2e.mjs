@@ -13,6 +13,7 @@ import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
+import { takimSekme } from './takim-sekme.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -127,9 +128,7 @@ async function teamTab(p, sub) {
   await closeBanners(p); await toastGone(p); await backToTabs(p);
   await p.page.locator('nav.tabbar .tab[data-tab="team"]').click();
   await p.page.locator('.team-head').waitFor({ timeout: 15_000 });
-  const t = p.page.locator('.subtabs .subtab', { hasText: sub }).first();
-  await t.scrollIntoViewIfNeeded().catch(() => undefined);
-  await t.click();
+  await takimSekme(p.page, sub);
   await sleep(400);
 }
 async function newPlayer(bt, browser, name, slug, errors) {

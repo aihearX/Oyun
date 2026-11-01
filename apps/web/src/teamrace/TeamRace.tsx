@@ -77,12 +77,13 @@ function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searchi
   return (
     <div className="card tr-lobby" data-testid="tr-lobi">
       <div className="row between"><b>{l.size}’e {l.size} lobi</b><span className={`pill tr-st ${l.status}`} data-testid="tr-durum">{l.status === 'ariyor' && <i className="tr-pulse" aria-hidden />}{label}</span></div>
+      {/* boş yuva dokunulmaz: üye lobiye kendisi katılır (sohbete "lobi açtı" satırı düşer); sahte oyuncu yok (OT-takim-kaptani-11) */}
       <div className="tr-slots">
         {Array.from({ length: slots }, (_, i) => l.members[i]).map((m, i) => m ? (
           <span key={m.id} className={`tr-slot${m.ready ? ' ready' : ''}${m.online ? '' : ' off'}${m.id === meId ? ' me' : ''}`} data-testid="tr-uye" data-ready={m.ready ? '1' : '0'}>
             <OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} /><b className="ellipsis">{m.name}</b><small>{m.ready ? 'Hazır' : m.online ? 'Bekliyor' : 'Çevrimdışı'}</small>
           </span>
-        ) : <span key={`e${i}`} className="tr-slot empty"><span className="tr-plus">+</span><small>Boş</small></span>)}
+        ) : <span key={`e${i}`} className="tr-slot empty" data-testid="tr-bos"><Art name="hourglass" size={22} /><small>Üye bekleniyor</small></span>)}
       </div>
       <div className="muted small-note">{ready} hazır · en az {R.minPlayers} hazır üyeyle aranır; az kişiyle de yarışılır (denge çarpanı).</div>
       {l.note && <div className="tr-note" role="status" data-testid="tr-not">{l.note}</div>}

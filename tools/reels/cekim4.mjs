@@ -20,6 +20,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
+import { takimSekme } from '../harness/takim-sekme.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -317,7 +318,7 @@ await step('tedavi', async () => {
 });
 
 // ================================================================ takım: keşif → başvuru → kabul → üyeler → sohbet → takım yarışı → baskın
-async function teamSub(page, label) { await closeBanners(page); await tab(page, 'team'); await page.locator('.team-head').waitFor({ timeout: 15_000 }); await page.locator('.subtabs .subtab', { hasText: label }).first().click(); await sleep(900); }
+async function teamSub(page, label) { await closeBanners(page); await tab(page, 'team'); await page.locator('.team-head').waitFor({ timeout: 15_000 }); await takimSekme(page, label); await sleep(900); }
 await step('takim', async () => {
   // lider (tarayıcı)
   const A = await newPage({ seed: save(30, { extra: { odiColor: 0xffb347, chosenColor: 0xffb347 } }) });

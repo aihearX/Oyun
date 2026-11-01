@@ -28,6 +28,7 @@ import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
+import { takimSekme } from './takim-sekme.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -838,7 +839,7 @@ async function waitEventLevel(p, ms = 200_000) {
   await p.page.waitForFunction(() => window.__odi?.events?.some((e) => e.type === 'started'), null, { timeout: 40_000 });
   await p.page.waitForFunction(() => !!document.querySelector('[data-testid="ev-flash"]') || !!document.querySelector('[data-testid="etkinlikler"]'), null, { timeout: ms });
 }
-async function teamSub(p, label) { await toTab(p, 'team'); await p.page.locator('.team-head').waitFor({ timeout: 15_000 }); await p.page.locator('.subtabs .subtab', { hasText: label }).first().click(); await sleep(900); }
+async function teamSub(p, label) { await toTab(p, 'team'); await p.page.locator('.team-head').waitFor({ timeout: 15_000 }); await takimSekme(p.page, label); await sleep(900); }
 const step = async (name, fn) => { try { await fn(); } catch (e) { warn(`${name}: ${String(e?.message ?? e).split('\n')[0]}`); await lastPage?.screenshot({ path: resolve(OUT, `hata-${name}.png`) }).catch(() => undefined); } };
 
 async function sectionEtkinlik() {
@@ -1191,7 +1192,7 @@ async function teamTabT(p, sub) {
   await closeBanners(p.page); await toastGone(p.page);
   for (let i = 0; i < 4 && !(await p.page.locator('nav.tabbar').count()); i++) { await p.page.getByRole('button', { name: /Geri|Takıma dön/ }).first().click({ timeout: 3000 }).catch(() => undefined); await sleep(350); }
   await tab(p.page, 'team'); await p.page.locator('.team-head').waitFor({ timeout: 15_000 });
-  const t = p.page.locator('.subtabs .subtab', { hasText: sub }).first(); await t.scrollIntoViewIfNeeded().catch(() => undefined); await t.click(); await sleep(700);
+  await takimSekme(p.page, sub); await sleep(700);
 }
 async function sectionTakim() {
   const S = await server('normal');

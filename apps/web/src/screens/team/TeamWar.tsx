@@ -49,7 +49,7 @@ export function TeamWar() {
         <div className="row between"><b><Art e="⚔️" size="1.15em" className="art-inline" /> Bölge Savaşı</b><span className="countdown"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(war.endsAt - now)}</span></div>
         <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen: <b>{fmtNum(war.myPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
         <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
-        {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç.' : 'Liderin hedef seçmesini bekle; sohbette öner!'}</div>
+        {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç. Seçilene dek kazanılan savaş puanı bölgeye yazılmaz.' : 'Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz. Sohbette öner!'}</div>
           : fit ? <button className="btn" onClick={() => nav.play(fit.number)}><Icon name="play" size="0.9em" className="ic-inline" /> {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
           : <div className="war-cta muted">Hedef bölgelerin henüz açmadığın biyomlarda. Haritada ilerledikçe açılır.</div>}
       </div>

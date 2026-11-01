@@ -23,6 +23,8 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
   const pass = (to: string) => act(async () => { const x = await evNet()!.call('relay.pass', { to }); useEvents.setState({ relay: x.relay }); setPassOpen(false); });
   const canPass = !done && (mine || (!r.carrier && r.lastRunner?.id === meId));
   const others = (team?.roster ?? []).filter((m) => m.id !== meId);
+  // son ayağı ben koştum ve takımda başkası var: aynı kişi art arda iki ayak koşamaz
+  const backToBack = r.lastRunner?.id === meId && others.length > 0;
   const leg = !done ? r.legs[r.current]! : null;
 
   return (
@@ -53,10 +55,12 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
         <div className="card ev-carrier">
           <b>{r.lastRunner ? `${r.lastRunner.name} ${r.current}. ayağı bitirdi!` : 'Parkur seni bekliyor!'}</b>
           <span className="muted">{r.current + 1}. ayak için bir gönüllü gerekiyor.</span>
-          <div className="row">
-            <button className="btn teal grow" data-testid="bayrak-al" disabled={busy || (r.lastRunner?.id === meId && others.length > 0)} onClick={() => void take()}><Art e="🚩" size="1.15em" className="art-inline" /> Bayrağı al</button>
+          <div className="row ev-take-row">
+            <button className="btn teal grow" data-testid="bayrak-al" disabled={busy || backToBack} aria-describedby={backToBack ? 'bayrak-neden' : undefined} onClick={() => void take()}><Art e="🚩" size="1.15em" className="art-inline" /> Bayrağı al</button>
             {canPass && others.length > 0 && <button className="btn ghost grow" data-testid="bayrak-devret" onClick={() => setPassOpen(true)}><Art e="🤝" size="1.15em" className="art-inline" /> Devret</button>}
           </div>
+          {/* devre dışı düğme nedenini söyler (sunucu da art arda iki ayağı reddeder: relay.take SART) */}
+          {backToBack && <small id="bayrak-neden" className="muted small-note" data-testid="bayrak-neden">Arka arkaya iki ayak koşulmaz: bayrağı bir takım arkadaşına devret.</small>}
         </div>
       )}
       {!done && r.carrier && !mine && <div className="card ev-wait"><OdiAvatar color={0x2ee6d6} size={36} /><b>{r.carrier.name} {r.current + 1}. ayağı koşuyor</b><Countdown to={r.carrier.until} label="bayrak süresi" /></div>}
