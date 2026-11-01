@@ -98,7 +98,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `soru-02` | İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var. | Takım sohbeti: Günün Sorusu kartı vurgulanır | göz kırpan (playful) |
 | `ikili-01` | Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız. | Açılış kutlaması: İkili Görev (10. bölümden sonra) | coşkulu (celebratory) |
 | `ikili-02` | Birlikte burada, Profil’in içinde. Arkadaşını seç ve davet et. | Profil: Birlikte kutucuğu vurgulanır | davet eden (inviting) |
-| `usta-01` | Artık bir ustasın! Yeni başlayan bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
+| `usta-01` | Artık yeni başlayan birine yol gösterebilirsin! Bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
 | `kamp-sv-merkez-1` | Merkez büyüdükçe kampın da büyür. Odyolojide tek bir test yetmez; testler birbirini doğrular. | Kamp: Odyoloji Merkezi yükseldi (Sv 1, 4, 7, 10, 13) | gururlu, bilge (proud, wise) |
 | `kamp-sv-merkez-2` | Bir odyolog işitmeyi de dengeyi de değerlendirir. Merkezin artık diğer binalara daha yüksek kat açıyor. | Kamp: Odyoloji Merkezi yükseldi (Sv 2, 5, 8, 11, 14) | sıcak, öğretici (warm, explaining) |
 | `kamp-sv-merkez-3` | Erken tanı, erken destek demektir. Merkezin büyüdü; şimdi diğer binaları da yükseltebilirsin. | Kamp: Odyoloji Merkezi yükseldi (Sv 3, 6, 9, 12, 15) | cesaret veren (encouraging) |
@@ -206,7 +206,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `not-timpanometri` | Timpanometri, kulak zarının ne kadar rahat hareket ettiğini ölçen kısa ve ağrısız bir testtir. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-ome` | Çocuklarda orta kulakta sıvı birikmesi sık görülür ve işitmeyi geçici olarak azaltabilir. | Tüy Dede'nin Notu · zar | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-akustik-refleks` | Çok yüksek seste orta kulaktaki minik bir kas kasılır ve kulağı biraz korur. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-otoskleroz` | Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-otoskleroz` | Otosklerozda iç kulağı saran kemik bozulup yeniden örülür, üzengi tabanını pencereye yapıştırabilir; ses içeri iyi geçemez. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-kemik-yolu` | Sesi kafatası kemikleri yoluyla da duyarız; kendi sesimizi kayıtta farklı bulmamızın bir nedeni budur. | Tüy Dede'nin Notu · kemikcikler | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-dalga` | Kokleadaki dalga tabandan tepeye doğru ilerler; her ses kendi noktasında en büyük olur. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-pil` | Kokleanın içinde, küçük bir pil gibi bir elektrik gerilimi vardır. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
