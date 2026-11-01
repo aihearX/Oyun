@@ -1,5 +1,5 @@
-import { levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type RunResult } from '@odi/shared';
-import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TREASURES, cosmeticById, type HatId, type Reward } from '@odi/content';
+import { levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
+import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
 /** XP çubuğu: bu seviyenin başı/sonu ve doluluk. levelFromXp ile aynı formül. */
@@ -69,10 +69,9 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     // "hepsini topla" 90 notanın içinde kalır: ikinci yarı yazılmaz (sonuç kartıyla aynı tek sayı; OT-rekabetci-7)
     if (spec.objective.id === 'reach' || spec.objective.id === 'collect-all') return { kind: 'yildiz', text: n3 };
     const hedef = spec.objective.label.charAt(0).toLocaleLowerCase('tr-TR') + spec.objective.label.slice(1);
-    // yüzmede 2★ %60'tan az notayla gelebilir; hedefle 3★ için yine %60 nota gerekir → onu da söyle
+    // hedefle 3★ için %60 nota da gerekir: koşul her zaman tam yazılır, nota şartı tuttu diye yazıdan düşmez (OT-rekabetci-17)
     const withObj = th.star3Objective ? notesAt(th.star3Objective) : 0;
-    if (withObj > r.coins) return { kind: 'yildiz', text: `${n3} ya da ${withObj} nota ve ${hedef}` };
-    return { kind: 'yildiz', text: `${n3} ya da ${hedef}` };
+    return { kind: 'yildiz', text: `${n3} ya da ${hedef}${withObj > 0 ? ` ve ${withObj} nota` : ''}` };
   }
   const t = nextTreasure(spec.number + 1, progress);
   if (t && t.remaining <= 3) return { kind: 'hazine', text: t.remaining === 1 ? 'Sıradaki bölümün sonunda hazine var!' : `${t.remaining} bölüm sonra hazine!` };
@@ -80,8 +79,11 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
   return next ? { kind: 'sirada', text: `Sırada: ${next.number}. ${next.name}` } : { kind: 'son', text: 'Yolculuğun sonuna ulaştın. Ninni beyne ulaştı!' };
 }
 
-/** Sonuç ekranındaki 3. yıldız kartının bir satırı: koşul, tutturuldu mu, tutmadıysa ne kadar yapıldığı (yazıyla; simge tek başına yetmez) */
-export interface StarRow { text: string; done: boolean; note: string }
+/**
+ * Sonuç ekranındaki 3. yıldız kartının bir satırı: koşul, tutturuldu mu, tutmadıysa ne kadar yapıldığı (yazıyla; simge tek başına yetmez).
+ * İki parçalı koşulda ("3 altın kokleayı bul ve 60 nota") parts her parçanın ilerlemesi; note bunların " · " ile birleşimi.
+ */
+export interface StarRow { text: string; done: boolean; note: string; parts?: { text: string; done: boolean }[] }
 export interface Star3View { rows: StarRow[]; done: boolean }
 
 /**
@@ -113,17 +115,22 @@ export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
   const n3 = notesAt(th.star3); const o = spec.objective;
   const rows: StarRow[] = [{ text: o.id === 'collect-all' ? `${n3} nota topla` : `${n3} nota`, done: r.coins >= n3, note: r.coins >= n3 ? '' : `${n3 - r.coins}\u00a0nota kaldı` }];
   if (o.id !== 'reach' && o.id !== 'collect-all' && th.star3Objective !== null) {
-    // yüzmede 2★ %45 notayla gelir; hedefle 3★ için yine %60 nota gerekir → satır bunu da söyler
+    // hedefle 3★ için %60 nota da gerekir (yüzmede 2★ %45 notayla gelir): koşul her zaman tam yazılır, nota şartı tuttu diye
+    // yazıdan düşmez; not iki parçanın ilerlemesini söyler, tutan parça "tamam" (OT-rekabetci-17): "60 nota tamam · 2/3 altın koklea"
     const need = notesAt(th.star3Objective); const short = need > r.coins;
-    const text = `${o.label}${short ? ` ve ${need} nota` : ''}`;
-    const why = o.id === 'no-damage' ? dmg.note
+    const text = `${o.label}${need > 0 ? ` ve ${need} nota` : ''}`;
+    const prog = o.id === 'no-damage' ? (r.objectiveMet ? 'hasar almadın' : dmg.note)
       : o.id === 'secret' ? `${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`
       : o.id === 'melody' ? `${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`
-      : o.id === 'timed' ? lateNote(runTimeSec(spec, r), o.target ?? spec.parTimeSec)
-      : o.id === 'escort' ? 'Fısıltı yolda kaldı'
-      : '';
+      : o.id === 'timed' ? (r.objectiveMet ? 'süre tamam' : lateNote(runTimeSec(spec, r), o.target ?? spec.parTimeSec))
+      : o.id === 'escort' ? (r.objectiveMet ? 'Fısıltı kapıda' : 'Fısıltı yolda kaldı')
+      : r.objectiveMet ? 'hedef tamam' : '';
     const done = r.objectiveMet && !short;
-    rows.push({ text, done, note: done ? '' : r.objectiveMet && short ? `${need - r.coins}\u00a0nota kaldı` : why });
+    const objPart = { text: prog, done: r.objectiveMet };
+    // tutan parça önde, eksik olan sonda
+    const parts = need <= 0 ? [objPart] : !short ? [{ text: `${need}\u00a0nota tamam`, done: true }, objPart] : [...(r.objectiveMet ? [objPart] : []), { text: `${need - r.coins}\u00a0nota kaldı`, done: false }, ...(r.objectiveMet ? [] : [objPart])];
+    const shown = parts.filter((x) => x.text);
+    rows.push({ text, done, note: done ? '' : shown.map((x) => x.text).join(' · '), ...(done || shown.length < 2 ? {} : { parts: shown }) });
   }
   return { rows, done: r.stars === 3 };
 }
@@ -164,17 +171,84 @@ function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
   return HUMAN_JOURNEY.levels.filter((l) => l.mechanic === spec.mechanic).slice(0, 2).some((l) => l.number === spec.number);
 }
 /**
- * Kayıpta neden (OT-ilk-kez-oyun-8): "Tekrar dene"nin üstünde. Canlar mı bitti, en son neye çarptı; bilinen nedenlerde tek cümle
- * ipucu. Yeni bir mekaniğin ilk iki bölümünde ipucu o mekaniğin kendisidir (kanca bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15).
+ * Bölümün kendi zorluğuna göre kayıp ipuçları (OT-ilk-kez-oyun-19): değiştiriciler, hedef, canavar. Her cümle oyunda görünen
+ * bir şeye dayanır, yalnız sese değil: sis/gece LevelScene.buildFog (Odi'nin çevresinde aydınlık halka; Yankı Görüşü onu
+ * genişletir), yankı sim effectiveInput (dokunuş 0,14 sn geç işler), melodi LevelScene (nota biçimli altın notalar soldan sağa,
+ * her doğruda "Nota 3/7" yazısı), canavar render/boss.ts telegrafları (gölge, parlayan duvar, ok).
+ */
+const MOD_TIPS: Partial<Record<ModifierId, string[]>> = {
+  sis: ['Siste yalnız Odi\'nin çevresi aydınlık: engel o ışık halkasına girince zıpla.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
+  gece: ['Gecede yalnız Odi\'nin çevresi görünür: halkanın kenarına bak, engel orada belirir.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
+  yanki: ['Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.'],
+  hiz: ['Bu bölümde her şey daha hızlı: engel ekrana girer girmez hazırlan.'],
+};
+const OBJECTIVE_TIPS: Partial<Record<ObjectiveId, string>> = {
+  melody: 'Nota biçimli altın notaları soldan sağa, hiç atlamadan topla: her doğru notada "Nota 3/7" gibi sırası yazar.',
+};
+const BOSS_TIPS = ['Her saldırıdan önce bir uyarı görünür (yere düşen gölge, parlayan duvar, ok): onu görünce oradan uzaklaş.'];
+type LossSpec = Pick<RunSpecLite, 'number' | 'mechanic'> & Partial<Pick<LevelSpec, 'modifiers' | 'objective'>>;
+/**
+ * Bir bölümün kayıp ipuçları, gösterilme sırasıyla. Yeni bir mekaniğin ilk iki bölümünde önce mekaniğin kendisi (kanca
+ * bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15; yüzmenin kendi nedenleri nefes/diyapazon kendi cümlesiyle), sonra bölümün
+ * zorluğu (değiştirici, canavar), son hasarın nedeni, hedef ve mekaniğin ipucu. Her gruptan birer cümle sırayla alınır (art arda kayıpta aynı türden iki cümle üst üste gelmez).
+ */
+export function lossTips(reason: string, spec?: LossSpec): string[] {
+  const own = MECHANIC_OWN_TIP.has(reason); const reasonTip = LOSS_TIP[reason];
+  if (!spec) return reasonTip ? [reasonTip] : [];
+  const mech = MECHANICS[spec.mechanic].hint; const fresh = newMechanic(spec) && !own;
+  const groups: string[][] = [
+    fresh ? [mech] : [],
+    own && reasonTip ? [reasonTip] : [],
+    (spec.modifiers ?? []).flatMap((m) => MOD_TIPS[m] ?? []),
+    spec.mechanic === 'boss' ? [mech, ...BOSS_TIPS] : [],
+    !own && reasonTip ? [reasonTip] : [],
+    spec.objective && OBJECTIVE_TIPS[spec.objective.id] ? [OBJECTIVE_TIPS[spec.objective.id]!] : [],
+    // koşunun ipucu beş hareketlik bir liste (temel mekanik; ipuçlarını nedenler verir)
+    spec.mechanic === 'kosu' ? [] : [mech],
+  ];
+  const out: string[] = []; const most = Math.max(...groups.map((g) => g.length));
+  for (let i = 0; i < most; i++) for (const g of groups) { const t = g[i]; if (t && !out.includes(t)) out.push(t); }
+  return out;
+}
+/**
+ * Kayıpta neden (OT-ilk-kez-oyun-8): "Tekrar dene"nin üstünde. Canlar mı bitti, en son neye çarptı; tek cümle ipucu, bölümün
+ * kendi zorluğuna göre (lossTips). attempt: bu bölümdeki deneme sayısı (1'den); aynı bölümde art arda kayıpta sıradaki cümle
+ * gelir (OT-ilk-kez-oyun-19: 7 kayıptan 6'sında aynı "Boşluklarda…" cümlesi).
  * reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti').
  */
-export function lossView(r: RunResult, spec?: Pick<RunSpecLite, 'number' | 'mechanic'>): { title: string; detail: string; tip: string } {
+export function lossView(r: RunResult, spec?: LossSpec, attempt = 1): { title: string; detail: string; tip: string } {
   const reason = typeof r.extra?.reason === 'string' ? r.extra.reason : '';
   if (reason === 'yaris-bitti') return { title: 'Yarış bitti', detail: 'Sen kapıya varmadan yarış kapandı.', tip: '' };
   const n = r.damageTaken; const what = LOSS_WHAT[reason];
   const detail = n > 0 ? `${n} kez hasar aldın${what ? `, en son ${what}` : ''}.` : what ? `${what.charAt(0).toLocaleUpperCase('tr-TR')}${what.slice(1)}.` : '';
-  const tip = spec && newMechanic(spec) && !MECHANIC_OWN_TIP.has(reason) ? MECHANICS[spec.mechanic].hint : LOSS_TIP[reason] ?? '';
+  const tips = lossTips(reason, spec);
+  const tip = tips.length ? tips[(Math.max(1, Math.floor(attempt)) - 1) % tips.length]! : '';
   return { title: 'Canların bitti', detail, tip };
+}
+
+/** "Bu bölümden" dökümünün bir satırı; birden çok başarım tek satırda toplanır, altında her biri (items) adıyla ve ödülüyle */
+export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[] }
+/**
+ * "Bu bölümden" dökümü: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus). Toplam =
+ * cüzdana giren (YN-042). Başarımlar tek tek: "Yıldız Avcısı · Gümüş +40", altında koşulu (OT-ekonomi-denetci-17,
+ * OT-ogrenci-birinci-16); ikiden çoksa "6 başarım +215" satırının altında.
+ */
+export function earnLines(s: { grants: { reason: string; items: RewardItem[] }[] }, serverBonus = 0): EarnLine[] {
+  const out: EarnLine[] = []; const ach: EarnLine[] = [];
+  for (const g of s.grants) {
+    const jeton = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!jeton) continue;
+    const [kind, id, t] = g.reason.split(':');
+    if (kind === 'basarim') {
+      const a = achievementById(id ?? ''); const tier = Math.max(1, Math.min(3, Number(t) || 1)) as Tier;
+      ach.push(a ? { label: `${achievementName(a, tier)} · ${TIER_NAMES[tier]}`, jeton, note: achievementDesc(a, tier) } : { label: 'Başarım', jeton });
+      continue;
+    }
+    out.push({ label: kind === 'bolum' ? 'Toplanan notalar' : kind === 'sansli-nota' ? 'Şanslı Nota' : kind === 'hazine' ? `Bölüm ${id} hazinesi` : kind === 'kart' ? 'Kart karşılığı' : kind === 'kozmetik' ? 'Kozmetik karşılığı' : 'Ödül', jeton });
+  }
+  if (ach.length === 1) out.push({ ...ach[0]!, label: `Başarım: ${ach[0]!.label}` });
+  else if (ach.length) out.push({ label: `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0), items: ach });
+  if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
+  return out;
 }
 
 /** Haritada görünür sıradaki hazine: "N bölüm sonra hazine". */
@@ -195,7 +269,8 @@ export function unlockAnnouncements(levelNumber: number): Announcement[] {
   const levels = HUMAN_JOURNEY.levels; const next = levels[levelNumber]; if (!next) return [];
   const before = levels.slice(0, levelNumber); const out: Announcement[] = [];
   if (!before.some((l) => l.biome === next.biome)) out.push({ kind: 'biyom', id: next.biome, title: `Yeni biyom: ${BIOMES[next.biome].name}`, text: BIOMES[next.biome].blurb });
-  if (!before.some((l) => l.mechanic === next.mechanic)) { const m = MECHANICS[next.mechanic]; out.push({ kind: 'mekanik', id: next.mechanic, title: `Yeni mekanik: ${m.icon} ${m.name}`, text: m.hint }); }
+  // oyuncuya "mekanik" kelimesi ve simge (emoji) yazılmaz; seviye penceresi de bu başlığı gösterir (OT-ilk-kez-oyun-22)
+  if (!before.some((l) => l.mechanic === next.mechanic)) { const m = MECHANICS[next.mechanic]; out.push({ kind: 'mekanik', id: next.mechanic, title: next.mechanic === 'boss' ? 'Yeni: Canavar bölümleri' : `Yeni: ${m.name}`, text: m.hint }); }
   return out;
 }
 /** Bölümden önce gösterilecek biyom sinematiği gerekli mi? */

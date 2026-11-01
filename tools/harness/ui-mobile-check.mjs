@@ -1163,7 +1163,9 @@ async function suite(browserName, target, [W, H]) {
       for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki'],
         // YN-081: 1★ (2. yıldızın koşulu ilk ekranda), süreli hedef 0,4 sn kaçtı, kanca bölümünde kayıp (mekaniğin ipucu), boss kaybı
         ['demo=sonuc&bolum=7&yildiz=1&skor=980&kutlama=0', 'sonuc-yildiz1'], ['demo=sonuc&bolum=18&yildiz=2&skor=1650&sure=gec&kutlama=0', 'sonuc-sure-gec'],
-        ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss']]) {
+        ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss'],
+        // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
+        ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1175,6 +1177,19 @@ async function suite(browserName, target, [W, H]) {
             const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); const inAct = !!act?.contains(el);
             return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
           }).filter(Boolean);
+        });
+        // YN-093 (OT-ilk-kez-oyun-20): neden kartı sayfa akışında; kutularla ve yapışkan düğme alanıyla örtüşmez
+        const ort = !label.startsWith('sonuc-kaybetti') ? [] : await page.evaluate(() => {
+          const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
+          const hit = (a, b) => a.l < b.r - 1 && a.r > b.l + 1 && a.t < b.b - 1 && a.b > b.t + 1;
+          const why = document.querySelector('[data-testid="sonuc-neden"]'); const act = document.querySelector('.result-actions');
+          if (!why || !act) return ['kart ya da düğme alanı yok'];
+          const out = []; const w = box(why);
+          if (act.contains(why)) out.push('neden kartı yapışkan düğme alanında');
+          for (const c of document.querySelectorAll('.result .stats .card, .result-earn, .goal-card')) if (hit(w, box(c))) out.push(`neden kartı ${c.className} ile örtüşüyor`);
+          const first = act.firstElementChild; if (first && hit(w, box(first))) out.push('neden kartı düğmelerin altında kalıyor');
+          const help = document.querySelector('[data-testid="yardim-iste"]'); if (help && act.contains(help)) out.push('yardım kartı yapışkan düğme alanında');
+          return out;
         });
         const rec = await check(label);
         const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
@@ -1189,6 +1204,7 @@ async function suite(browserName, target, [W, H]) {
           if (label === 'sonuc-kaybetti-diken' && !/en son dikene değdin/.test(why)) fail(rec, `son hasar yazmıyor: "${why}"`);
           if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, 'kayıpta 3. yıldız kartı görünüyor');
           if (label === 'sonuc-kaybetti-kanca' && !/Kancanın yanında basılı tut/.test(why)) fail(rec, `kanca bölümünde kanca ipucu yok: "${why}"`);
+          if (ort.length) fail(rec, `kayıp kartları örtüşüyor: ${ort.join('; ')}`);
           const hedef = (await page.locator('.goal-card').textContent().catch(() => '')) ?? '';
           if (label === 'sonuc-kaybetti-boss' && (/Kapıya/.test(hedef) || !/gücünün %\d+'(ı|i|u|ü|sı|si|su|sü) kaldı/.test(hedef))) fail(rec, `boss kaybında hedef cümlesi: "${hedef}"`);
         } else if (label === 'sonuc-yildiz1') {

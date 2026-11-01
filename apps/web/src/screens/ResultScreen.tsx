@@ -1,6 +1,6 @@
-import type { LevelSpec, RunResult } from '@odi/shared';
-import { HUMAN_JOURNEY, TIER_NAMES, achievementById, achievementDesc, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
-import { levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
+import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
+import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
+import { earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -75,7 +75,10 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   const timed = spec.objective.id === 'timed';
-  const loss = result.completed ? null : lossView(result, spec);
+  // ipucu bölümün kendi zorluğuna göre; aynı bölümde her denemede sıradaki cümle (OT-ilk-kez-oyun-19). Deneme sayısı ekran
+  // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
+  const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
+  const loss = result.completed ? null : lossView(result, spec, attempt);
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   const starNext = !result.completed ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
 
@@ -200,16 +203,28 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
               <ul className="result-star3">
                 {starNext.v.rows.map((row, i) => (
-                  <li key={i} className={row.done ? 'met' : ''}>
+                  <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
                     <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
                     <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
-                    <span className="rs3-n">{row.done ? 'tamam' : row.note || 'yapılmadı'}</span>
+                    {/* iki parçalı koşulda tutan parça işaretli: "60 nota tamam · 2/3 altın koklea" (OT-rekabetci-17) */}
+                    <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ''}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.done && <Art name="check" size={13} className="art-inline" />}{p.text}</span>) : row.note || 'yapılmadı'}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
         </div>
+
+        {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutuların hemen altında: yapışkan düğme alanında
+            büyüyüp kutuların üstüne binmesin (OT-ilk-kez-oyun-20); ilk ekranda görünür kalır (OT-ilk-kez-oyun-15) */}
+        {loss && (
+          <div className="card result-obj result-why" data-testid="sonuc-neden">
+            <small className="result-obj-h">Neden olmadı?</small>
+            <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
+            {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
+          </div>
+        )}
+        {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
         <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
           <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>
@@ -219,7 +234,17 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
         <div className="card result-earn" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
           <div className="result-earn-head"><span>Bu bölümden{earn.length > 1 ? ' toplam' : ''}</span><b><Art name="coin" size={20} className="art-inline" />+{earnTotal.toLocaleString('tr-TR')} jeton</b></div>
-          {earn.length > 1 && <ul className="result-earn-list">{earn.map((l, i) => <li key={i}><span>{l.label}</span><b>{l.jeton > 0 ? '+' : ''}{l.jeton.toLocaleString('tr-TR')}</b></li>)}</ul>}
+          {(earn.length > 1 || earn.some((l) => l.items || l.note)) && (
+            <ul className="result-earn-list" data-testid="sonuc-kazanc">
+              {earn.map((l, i) => (
+                <li key={i} className={l.items ? 'has-sub' : undefined}>
+                  <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}</span><b>{fmtJeton(l.jeton)}</b>
+                  {/* birden çok başarım: adları, kademeleri, koşulları ve tek tek ödülleri (OT-ekonomi-denetci-17) */}
+                  {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
@@ -297,15 +322,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             </>
           ) : (
             <>
-              {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı ilk ekranda, "Tekrar dene"nin hemen üstünde (OT-ilk-kez-oyun-15) */}
-              {loss && (
-                <div className="card result-obj result-why" data-testid="sonuc-neden">
-                  <small className="result-obj-h">Neden olmadı?</small>
-                  <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
-                  {loss.tip && <span className="result-why-tip"><Art name="bulb" size={16} className="art-inline" />{loss.tip}</span>}
-                </div>
-              )}
-              {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
               <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
               <div className="abtn-grid">
                 {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
@@ -330,28 +346,16 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
   const out: UnlockView[] = [];
   if (s.lucky) out.push({ icon: '🍀', kicker: 'Şanslı Nota', title: 'Sürpriz bonus!', chips: s.lucky, tone: 'green' });
   if (s.treasure) out.push({ icon: '🎁', kicker: 'Hazine açıldı', title: `Bölüm ${s.level} hazinesi`, chips: s.treasure, tone: 'gold' });
-  for (const a of s.announcements) out.push({ icon: a.kind === 'biyom' ? '🧭' : '🆕', kicker: a.kind === 'biyom' ? 'Kapı aralandı' : 'Yeni hareket', title: a.title, text: a.text, tone: 'accent' });
+  // yeni hareketin kendi simgesi (canavarda hedef: korkutucu yüz değil; OT-ilk-kez-oyun-22)
+  for (const a of s.announcements) { const icon = a.kind === 'mekanik' ? MECHANICS[a.id as MechanicId]?.icon : undefined; out.push({ icon: a.kind === 'biyom' ? '🧭' : icon ?? '🆕', kicker: a.kind === 'biyom' || a.id === 'boss' ? 'Kapı aralandı' : 'Yeni hareket', title: a.title, text: a.text, tone: 'accent' }); }
   const order = { card: 0, cosmetic: 1, albumBadge: 2, achievement: 3 } as const;
   for (const e of [...s.events].sort((a, b) => order[a.kind] - order[b.kind])) {
     if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ icon: '🃏', kicker: `Yeni Kulak Kartı · ${BIOMES[c.biome].name}`, title: c.title, text: c.fact, tone: 'green' }); }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); const col = odiColor; if (c) out.push({ icon: <OdiAvatar size={40} color={c.kind === 'renk' ? c.color : col} hat={c.hat} />, kicker: 'Dolaba yeni', title: c.name, text: c.desc, tone: 'accent' }); }
-    else if (e.kind === 'achievement') { const a = achievementById(e.id); const g = s.grants.find((x) => x.reason === `basarim:${e.id}:${e.tier}`); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: a.name, text: achievementDesc(a, e.tier), ...(g ? { chips: g.items } : {}), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
+    else if (e.kind === 'achievement') { const a = achievementById(e.id); const g = s.grants.find((x) => x.reason === `basarim:${e.id}:${e.tier}`); if (a) out.push({ icon: <Glyph e={a.emoji} size={32} />, kicker: `Başarım · ${TIER_NAMES[e.tier]}`, title: achievementName(a, e.tier), text: achievementDesc(a, e.tier), ...(g ? { chips: g.items } : {}), tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }
   return out;
 }
 
-/** "Bu bölümden" dökümünün satırları: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus) */
-function earnLines(s: RunSummary, serverBonus: number): { label: string; jeton: number }[] {
-  const out: { label: string; jeton: number }[] = []; const ach: { name: string; jeton: number }[] = [];
-  for (const g of s.grants) {
-    const jeton = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!jeton) continue;
-    const [kind, id] = g.reason.split(':');
-    if (kind === 'basarim') { ach.push({ name: achievementById(id ?? '')?.name ?? 'Başarım', jeton }); continue; }
-    out.push({ label: kind === 'bolum' ? 'Toplanan notalar' : kind === 'sansli-nota' ? 'Şanslı Nota' : kind === 'hazine' ? `Bölüm ${id} hazinesi` : kind === 'kart' ? 'Kart karşılığı' : kind === 'kozmetik' ? 'Kozmetik karşılığı' : 'Ödül', jeton });
-  }
-  // başarımlar tek satır (her birinin ödülü aşağıdaki başarım kartında)
-  if (ach.length) out.push({ label: ach.length === 1 ? `Başarım: ${ach[0]!.name}` : `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0) });
-  if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
-  return out;
-}
+const fmtJeton = (n: number) => `${n > 0 ? '+' : ''}${n.toLocaleString('tr-TR')}`;

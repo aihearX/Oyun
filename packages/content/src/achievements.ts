@@ -21,13 +21,19 @@ export interface AchievementDef {
   metric: MetricId;
   /** kademe eşikleri (artan): 1-3 kademe */
   tiers: number[];
+  /** kademeye göre ad (ilerlemeye uygun: bronz "Gezgini", altın "Ustası"); yoksa her kademede name */
+  tierNames?: string[];
 }
 
 const A = (id: string, emoji: string, name: string, desc: string, metric: MetricId, tiers: number[]): AchievementDef => ({ id, emoji, name, desc, metric, tiers });
 
+/**
+ * Biyom başarımı: bronz biyomdaki bölüm sayısı kadar yıldızla gelir (biyomun başında); ad kademeyle büyür, "Usta" ancak
+ * altında (OT-ogrenci-birinci-16). Kimlik ve ödüller aynı (kayıt uyumu); listedeki ad son kademenin adı.
+ */
 const biomeAch: AchievementDef[] = BIOME_ORDER.map((b) => {
-  const n = HUMAN_JOURNEY.levels.filter((l) => l.biome === b).length;
-  return A(`biyom-${b}`, '🗺️', `${BIOMES[b].name} Ustası`, `${BIOMES[b].name} biyomunda toplam {n} yıldız topla`, `biomeStars:${b}`, [n, n * 2, n * 3]);
+  const n = HUMAN_JOURNEY.levels.filter((l) => l.biome === b).length; const name = BIOMES[b].name;
+  return { ...A(`biyom-${b}`, '🗺️', `${name} Ustası`, `${name} biyomunda toplam {n} yıldız topla`, `biomeStars:${b}`, [n, n * 2, n * 3]), tierNames: [`${name} Gezgini`, `${name} Kâşifi`, `${name} Ustası`] };
 });
 
 export const ACHIEVEMENTS: AchievementDef[] = [
@@ -67,3 +73,5 @@ export const ACHIEVEMENTS: AchievementDef[] = [
 ];
 export const achievementById = (id: string) => ACHIEVEMENTS.find((a) => a.id === id);
 export const achievementDesc = (a: AchievementDef, tier: Tier) => a.desc.replace('{n}', (a.tiers[Math.min(tier, a.tiers.length) - 1] ?? 0).toLocaleString('tr-TR'));
+/** kademenin adı: biyom başarımında "Kemikçikler Gezgini" (bronz) … "Kemikçikler Ustası" (altın); diğerlerinde name */
+export const achievementName = (a: AchievementDef, tier: Tier) => a.tierNames?.[Math.min(tier, a.tierNames.length) - 1] ?? a.name;

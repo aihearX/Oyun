@@ -8,5 +8,6 @@ export const MECHANICS: Record<MechanicId, MechanicDef> = {
   makine: { id: 'makine', name: 'Kanca ve Çakılma', hint: 'Kancanın yanında basılı tut: sallan, bırak: fırla · Havada aşağı kaydır: yere çakıl (hızla in)', icon: '⚙️' },
   impuls: { id: 'impuls', name: 'Ses Darbesi', hint: 'Koşu yönüne kaydır: atıl · Ters yöne kaydır: geri dön · Gürültü duvarını kır · Yankı yollarını görünür kıl', icon: '⚡' },
   ruya: { id: 'ruya', name: 'Yerçekimi', hint: 'Mor bölgede dokun: yerçekimini çevir', icon: '🌀' },
-  boss: { id: 'boss', name: 'Canavar', hint: 'Zayıf noktasına vur, saldırısını atlat', icon: '👹' },
+  // simge: hedef (zayıf noktasına vur); korkutucu canavar yüzü değil (OT-ilk-kez-oyun-22)
+  boss: { id: 'boss', name: 'Canavar', hint: 'Zayıf noktasına vur, saldırısını atlat', icon: '🎯' },
 };

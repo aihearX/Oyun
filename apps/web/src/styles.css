@@ -310,13 +310,26 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .rs3-or { font-size:0.75rem; font-weight:800; color:var(--text-2); }
 .rs3-n { font-size:0.8125rem; font-weight:900; color:var(--gold); text-align:right; white-space:nowrap; }
 .result-star3 li.met .rs3-n { color:var(--text-2); }
+/* OT-rekabetci-17: iki parçalı koşulun ilerlemesi alt satırda; tutan parça soluk ve işaretli ("60 nota tamam · 2/3 altın koklea") */
+.result-star3 li.two { grid-template-columns:auto minmax(0,1fr); }
+.result-star3 li.two .rs3-n { grid-column:2; text-align:left; white-space:normal; }
+.rs3-p.ok { color:var(--text-2); }
+.rs3-p .art { vertical-align:-2px; margin-right:2px; }
+.rs3-sep { color:var(--text-2); }
 .result-why { color:var(--text); }
 .result-why-t { font-size:1rem; font-weight:900; line-height:1.25; }
 .result-why-d { font-size:0.875rem; font-weight:800; line-height:1.35; color:var(--text); overflow-wrap:anywhere; }
-.result-why-tip { font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
-.result-why-tip .art { vertical-align:-3px; margin-right:4px; }
-/* YN-081: kayıpta neden kartı yapışkan alt bölgede ("Tekrar dene"nin üstünde): başlık ve ayrıntı tek akış, ipucu altında */
-.result-actions .result-why { display:flex; flex-direction:column; gap:3px; text-align:left; padding:8px 12px; }
+.result-why-tip { display:flex; align-items:flex-start; gap:6px; font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
+.result-why-tip .rwt-art { flex:none; margin-top:-1px; }
+.result-why-tip > span { min-width:0; }
+/* kayıpta neden kartı sayfa akışında, kutuların altında (OT-ilk-kez-oyun-20: yapışkan bölgede büyüyüp kutuların üstüne biniyordu):
+   başlık ve ayrıntı tek akış, ipucu altında */
+.result-screen .result-why { width:100%; display:flex; flex-direction:column; gap:3px; text-align:left; padding:8px 12px; }
+/* kayıpta boş yıldızlar alçak, skor satırı boşluk bırakmaz: neden ve yardım kartı ilk ekranda, düğmelerin üstünde kalsın */
+.result-screen.lost .star-row { height:64px; }
+.result-screen.lost .star-slot { width:54px; height:54px; }
+.result-screen.lost .star-slot:nth-child(2) { width:64px; height:64px; transform:translateY(-8px); }
+.result-screen.lost .score-line { min-height:0; gap:4px; }
 .result-why-l { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:6px; row-gap:1px; }
 /* "Bağlantı kopyalandı: …" (OT-rekabetci-14): iki satıra inebilir; düğmelerin üstünde değil, ekranın üstünde */
 .result-screen .toast { bottom:auto; top:calc(var(--sat) + 12px); width:max-content; max-width:calc(100vw - 32px); border-radius:18px; text-align:center; line-height:1.35; }
@@ -331,6 +344,12 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .result-earn-list { list-style:none; margin:0; padding:6px 0 0; border-top:1px solid rgba(255,255,255,.12); display:flex; flex-direction:column; gap:4px; }
 .result-earn-list li { display:flex; justify-content:space-between; gap:8px; font-size:0.8125rem; font-weight:800; line-height:1.3; color:var(--text-2); }
 .result-earn-list b { color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
+/* başarımlar tek tek (OT-ekonomi-denetci-17): ad · kademe, altında koşulu; birden çoksa toplam satırının altında girintili */
+.result-earn-list .rel-l { min-width:0; display:flex; flex-direction:column; gap:1px; overflow-wrap:anywhere; }
+.result-earn-list .rel-l small { font-size:0.75rem; font-weight:700; opacity:.85; }
+.result-earn-list li.has-sub { flex-wrap:wrap; }
+.result-earn-sub { list-style:none; width:100%; margin:2px 0 0; padding:0 0 0 10px; border-left:2px solid rgba(255,255,255,.14); display:flex; flex-direction:column; gap:5px; }
+.result-earn-sub b { color:var(--text-2); }
 /* dar/kısa ekran (320×640): alt düğmeler sıkışık (karo düğmeler yatay, daha alçak), XP çubuğu düğmelerin üstünde görünür kalır */
 @media (max-width:360px), (max-height:700px) {
   .result-actions { gap:8px; padding-top:14px; }
@@ -358,6 +377,25 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
   .result-screen .result-top { padding-top:6px; }
   .result-screen .stats.has-wide .result-obj { padding:8px 10px; gap:4px; }
   .result-screen .result-star3 { gap:4px; }
+  /* kayıpta (320×640, kanca bölümünün uzun ipucu) neden kartı düğmelerin üstünde kalsın */
+  .result-screen.lost .star-row { height:50px; }
+  .result-screen.lost .star-slot { width:42px; height:42px; }
+  .result-screen.lost .star-slot:nth-child(2) { width:50px; height:50px; transform:translateY(-6px); }
+  .result-screen.lost .stats .card { padding:6px 4px; }
+  .result-screen .result-why { padding:6px 10px; gap:2px; }
+  /* Büyük yazıda iki parçalı yıldız satırı ve neden kartı uzar: üst bölüm daha da alçak */
+  html.buyuk-yazi .result-screen .result { gap:6px; }
+  html.buyuk-yazi .result-screen .star-row { height:50px; }
+  html.buyuk-yazi .result-screen .star-slot { width:42px; height:42px; }
+  html.buyuk-yazi .result-screen .star-slot:nth-child(2) { width:50px; height:50px; transform:translateY(-6px); }
+  html.buyuk-yazi .result-screen .result .score { font-size:34px; }
+  html.buyuk-yazi .result-screen .result-title { font-size:27px; }
+  html.buyuk-yazi .result-screen.lost .stats .card { gap:0; }
+}
+@media (min-height:701px) and (max-height:760px) {
+  html.buyuk-yazi .result-screen .star-row { height:70px; }
+  html.buyuk-yazi .result-screen .star-slot { width:60px; height:60px; }
+  html.buyuk-yazi .result-screen .star-slot:nth-child(2) { width:70px; height:70px; transform:translateY(-10px); }
 }
 
 /* ---------------------------------------------------------------- harita (harita ekibi kendi sanatını Phaser'da çizer; DOM öğeleri tema renginde) */

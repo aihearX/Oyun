@@ -1,4 +1,4 @@
-import { achievementById } from './achievements';
+import { achievementById, achievementName } from './achievements';
 
 /** kilit metni için bina adları (@odi/shared BUILDINGS ile aynı; içerik paketi değer içe aktarmaz) */
 const CAMP_BUILDING_NAMES: Record<string, string> = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası',
@@ -78,7 +78,7 @@ export function cosmeticUnlockText(u: CosmeticUnlock): string {
   switch (u.by) {
     case 'default': return 'Başlangıçta açık';
     case 'level': return `Seviye ${u.level}`;
-    case 'achievement': return `${achievementById(u.id)?.name ?? 'Başarım'} · ${u.tier === 1 ? 'bronz' : u.tier === 2 ? 'gümüş' : 'altın'}`;
+    case 'achievement': { const a = achievementById(u.id); return `${a ? achievementName(a, u.tier) : 'Başarım'} · ${u.tier === 1 ? 'bronz' : u.tier === 2 ? 'gümüş' : 'altın'}`; }
     case 'album': return `Albüm %${u.pct}`;
     case 'calendar': return `Giriş takvimi ${u.day}. gün`;
     case 'treasure': return `Hazine: Bölüm ${u.level}`;

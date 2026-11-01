@@ -225,8 +225,9 @@ describe('ilerleme geri bildirimi', () => {
     expect(spec(21).mechanic).toBe('yuzme'); expect(spec(28).objective.id).toBe('escort');
     expect(nextGoal(spec(21), run({ stars: 1, coins: 10 })).text).toBe('2. yıldız: 14 nota');
     expect(nextGoal(spec(21), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota');
-    expect(nextGoal(spec(28), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da 18 nota ve hedef');
-    expect(nextGoal(spec(28), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hedef');
+    // koşul nota şartı tutsa da tam yazılır (OT-rekabetci-17)
+    expect(nextGoal(spec(28), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota ya da hedef ve 18 nota');
+    expect(nextGoal(spec(28), run({ stars: 2, coins: 20 })).text).toBe('3. yıldız: 27 nota ya da hedef ve 18 nota');
     expect(nextGoal(spec(22), run({ stars: 2, coins: 15 })).text).toBe('3. yıldız: 27 nota');
   });
   it('sonuç kartı: 3. yıldız tek koşul ve ilerleme (YN-070)', () => {
@@ -237,13 +238,14 @@ describe('ilerleme geri bildirimi', () => {
     // 7 Yapışkan Yol: "ya da" → iki satır, ikisinin de ilerlemesi
     const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
     expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false })).rows).toEqual([
-      { text: '27 nota', done: false, note: '7\u00a0nota kaldı' }, { text: 'Hiç hasar alma', done: false, note: '1\u00a0hasar aldın' }]);
+      { text: '27 nota', done: false, note: '7\u00a0nota kaldı' },
+      { text: 'Hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · 1\u00a0hasar aldın', parts: [{ text: '18\u00a0nota tamam', done: true }, { text: '1\u00a0hasar aldın', done: false }] }]);
     expect(star3View(y, run({ stars: 3, coins: 20, damageTaken: 0, objectiveMet: true }))).toMatchObject({ done: true, rows: [{ done: false }, { done: true, note: '' }] });
     // 12 Zar Melodisi: kaçı sırayla
     const m = { ...spec(12), objective: { id: 'melody' as const, target: 7, label: 'Notaları sırayla topla (7)' } };
-    expect(star3View(m, run({ stars: 2, coins: 20, objectiveMet: false, extra: { melody: 3, melodyTotal: 7 } })).rows[1]).toEqual({ text: 'Notaları sırayla topla (7)', done: false, note: '3/7\u00a0sırayla' });
-    // yüzme: hedef tuttu ama %60 nota yok → satır notayı da ister
-    expect(star3View(spec(28), run({ stars: 2, coins: 15, objectiveMet: true })).rows[1]).toEqual({ text: 'Hedef ve 18 nota', done: false, note: '3\u00a0nota kaldı' });
+    expect(star3View(m, run({ stars: 2, coins: 20, objectiveMet: false, extra: { melody: 3, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'Notaları sırayla topla (7) ve 18 nota', done: false, note: '18\u00a0nota tamam · 3/7\u00a0sırayla' });
+    // yüzme: hedef tuttu ama %60 nota yok → satır notayı da ister, tutan parça önde
+    expect(star3View(spec(28), run({ stars: 2, coins: 15, objectiveMet: true })).rows[1]).toMatchObject({ text: 'Hedef ve 18 nota', done: false, note: 'Fısıltı kapıda · 3\u00a0nota kaldı' });
     // notasız (boss): hasarsız
     expect(star3View({ ...spec(20), coinsTotal: 0 }, run({ stars: 2, damageTaken: 1 })).rows).toEqual([{ text: 'Hiç hasar alma', done: false, note: '1\u00a0hasar aldın' }]);
   });
@@ -292,7 +294,7 @@ describe('ilerleme geri bildirimi', () => {
     const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
     // kalkan tek vuruşu karşıladı: can gitmedi ama "Hiç hasar alma" yapılmadı
     expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false, extra: { guarded: 1 } })).rows[1])
-      .toEqual({ text: 'Hiç hasar alma', done: false, note: 'Kalkan bir vuruşu karşıladı, bu da hasar sayılır' });
+      .toMatchObject({ text: 'Hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · Kalkan bir vuruşu karşıladı, bu da hasar sayılır' });
     expect(damageNote(run({ damageTaken: 1, extra: { guarded: 1, klinik: true } }))).toBe('Klinik bir vuruşu karşıladı, bu da hasar sayılır');
     expect(damageNote(run({ damageTaken: 2, extra: { guarded: 2, klinik: true } }))).toBe('Kalkan ve Klinik 2\u00a0vuruşu karşıladı, bunlar da hasar sayılır');
     expect(damageNote(run({ damageTaken: 3, extra: { guarded: 1 } }))).toBe('3\u00a0hasar aldın (kalkan bir vuruşu karşıladı; o da sayılır)');

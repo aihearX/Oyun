@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { CHAT_REACTIONS, COMM_RULES, QUICK_PHRASES, REACTION_LABEL, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
+import { CHAT_REACTIONS, COMM_RULES, QUICK_PHRASES, REACTION_LABEL, tipPhrasesFor, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
+import { HUMAN_JOURNEY } from '@odi/content';
 import { newRunId } from '@odi/net';
 import { act, callSafe, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
@@ -12,6 +13,7 @@ import { Sheet, fmtNum, fmtTime, hex } from '../ui/social';
 import { hatKey } from '../screens/team/TeamMembers';
 import { openProfile } from '../friends/state';
 import { TuyDede } from '../ftue/Narrator';
+import { loadLevelGen } from '../engine';
 import { patchMessage, refreshDq, useCanFreeText, useComm } from './state';
 import './comm.css';
 
@@ -23,7 +25,8 @@ const cap = (t: string) => t.charAt(0).toLocaleUpperCase('tr') + t.slice(1);
 const s = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
 
-export const phrasesFor = (...ctx: PhraseCtx[]) => QUICK_PHRASES.filter((p) => p.ctx.some((c) => ctx.includes(c)));
+/** bağlamın hazır sözleri; bölüme özgü ipuçları (when) yalnız bölümü bilen "İpucu ver" penceresinde (TipSheet) */
+export const phrasesFor = (...ctx: PhraseCtx[]) => QUICK_PHRASES.filter((p) => !p.when && p.ctx.some((c) => ctx.includes(c)));
 
 async function sendIn(room: string, text: string, kind: 'text' | 'hazir', replyTo?: string): Promise<boolean> {
   const c = getNet(); if (!c) return false;
@@ -232,16 +235,29 @@ export function HelpCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
   );
 }
 
+/**
+ * Bölümün özellikleri (mekanik, hedef, değiştiriciler): hazır ipuçları bunlara göre süzülür (OT-buyuk-yazi-23). Değiştiriciler
+ * bölüm üreticisinin eğrisinden (knobsFor; tembel parça, yüklenene kadar yalnız mekanik ve hedef).
+ */
+function useLevelTraits(level: number): string[] {
+  const plan = HUMAN_JOURNEY.levels[level - 1];
+  const [mods, setMods] = useState<string[]>([]);
+  useEffect(() => { let live = true; void loadLevelGen().then((lg) => { if (live) setMods(lg.knobsFor(level).modifiers); }, () => undefined); return () => { live = false; }; }, [level]);
+  return useMemo(() => (plan ? [plan.mechanic, plan.objective, ...mods] : mods), [plan, mods]);
+}
+
 function TipSheet({ requestId, name, level, onClose }: { requestId: string; name: string; level: number; onClose: () => void }) {
   const free = useCanFreeText(); const [text, setText] = useState(''); const [busy, setBusy] = useState(false);
+  const traits = useLevelTraits(level); const tips = useMemo(() => tipPhrasesFor(traits), [traits]);
   const send = async (d: { phrase?: string; text?: string }) => {
     setBusy(true); const r = await act('help.tip', { requestId, ...d }); setBusy(false);
     if (r) { platform().haptic('success'); toast('💡', 'İpucun gitti', `${name} geçerse ikinize de teşekkür ödülü.`, 'green'); onClose(); }
   };
   return (
     <Sheet title={`${name} için ipucu`} onClose={onClose}>
-      <div className="muted small-note">{level}. bölümde işe yarayan bir ipucu seç{free ? ' ya da kendin yaz' : ''}. İpucu kartın altında görünür.</div>
-      <div className="tip-list">{phrasesFor('ipucu').map((p) => <button key={p.id} type="button" className="tip-opt" data-phrase={p.id} disabled={busy} onClick={() => void send({ phrase: p.id })}><Art name="bulb" size={18} /> {cap(p.text.replace(/^İpucu: /, ''))}</button>)}</div>
+      {/* bölüme uyan ipucu yoksa başlık "genel" der: söz vermediği şeyi söylemez */}
+      <div className="muted small-note" data-testid="ipucu-baslik">{tips.fits ? `${level}. bölümde işe yarayan bir ipucu seç` : 'Genel bir ipucu seç'}{free ? ' ya da kendin yaz' : ''}. İpucu kartın altında görünür.</div>
+      <div className="tip-list">{tips.list.map((p) => <button key={p.id} type="button" className="tip-opt" data-phrase={p.id} disabled={busy} onClick={() => void send({ phrase: p.id })}><Art name="bulb" size={18} /> {cap(p.text.replace(/^İpucu: /, ''))}</button>)}</div>
       {free && (
         <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send({ text: text.trim() }); }}>
           <input className="input" value={text} maxLength={200} onChange={(e) => setText(e.target.value)} placeholder="Kendi ipucunu yaz…" aria-label="İpucu" />

@@ -772,7 +772,11 @@ export const REACTION_LABEL: Record<ChatReaction, string> = { alkis: 'Alkış', 
 
 /** Hızlı Sohbet: hazır sözler (kimlikle gönderilir, metni sunucu yazar) */
 export type PhraseCtx = 'genel' | 'tebrik' | 'yaris' | 'ipucu' | 'tesekkur';
-export interface QuickPhrase { id: string; text: string; ctx: PhraseCtx[] }
+/**
+ * when: ipucu yalnız bu bölümlere uyar (mekanik, değiştirici ya da hedef kimliği: 'makine', 'sis', 'melody'…); "İpucu ver"
+ * penceresi bölümün özelliklerine göre bunları öne alır, uymayanları göstermez. when'siz ipucu her bölüme (genel).
+ */
+export interface QuickPhrase { id: string; text: string; ctx: PhraseCtx[]; when?: string[] }
 export const QUICK_PHRASES: QuickPhrase[] = [
   { id: 'selam', text: 'Selam!', ctx: ['genel', 'yaris'] },
   { id: 'nasilsin', text: 'Nasıl gidiyor?', ctx: ['genel'] },
@@ -793,12 +797,29 @@ export const QUICK_PHRASES: QuickPhrase[] = [
   { id: 'rica', text: 'Rica ederim, ne demek!', ctx: ['tesekkur'] },
   { id: 'ipucu-erken', text: 'İpucu: boşluğa gelmeden hemen önce zıpla.', ctx: ['ipucu'] },
   { id: 'ipucu-bas', text: 'İpucu: uzun zıplamak için basılı tut.', ctx: ['ipucu'] },
-  { id: 'ipucu-ritim', text: 'İpucu: acele etme, müziğin ritmini dinle.', ctx: ['ipucu'] },
   { id: 'ipucu-kaydir', text: 'İpucu: alçak engelin altından aşağı kaydır.', ctx: ['ipucu'] },
   { id: 'ipucu-duvar', text: 'İpucu: duvara değince dokun, karşıya sıçrarsın.', ctx: ['ipucu'] },
   { id: 'ipucu-kalkan', text: 'İpucu: zor yerde kalkanla başla, ilk darbe sayılmaz.', ctx: ['ipucu'] },
   { id: 'ipucu-yavas', text: 'İpucu: önce notaları değil, yolu öğren; yıldızlar sonra gelir.', ctx: ['ipucu'] },
+  // bölüme göre (OT-buyuk-yazi-23, OT-sessiz-oyuncu-10): her biri oyunda görünen bir şeye dayanır, yalnız sese değil
+  { id: 'ipucu-ritim', text: 'İpucu: acele etme, ritmi izle: platformların ışığına bak.', ctx: ['ipucu'], when: ['trambolin'] },
+  { id: 'ipucu-zar', text: 'İpucu: zara değdiğin an dokun; havada basılı tut, süzülürsün.', ctx: ['ipucu'], when: ['trambolin'] },
+  { id: 'ipucu-kanca', text: 'İpucu: kancanın yanında basılı tut, bırakınca fırlarsın.', ctx: ['ipucu'], when: ['makine'] },
+  { id: 'ipucu-nefes', text: 'İpucu: kabarcığa değ ya da yüzeye çık, nefesin dolar.', ctx: ['ipucu'], when: ['yuzme'] },
+  { id: 'ipucu-diyapazon', text: 'İpucu: kapıdan önce diyapazona değ, rengin kapıyla aynı olsun.', ctx: ['ipucu'], when: ['yuzme'] },
+  { id: 'ipucu-darbe', text: 'İpucu: gürültü duvarına gelince koşu yönüne kaydır, atılıp kırarsın.', ctx: ['ipucu'], when: ['impuls'] },
+  { id: 'ipucu-yercekimi', text: 'İpucu: mor bölgede dokun, yerçekimi döner.', ctx: ['ipucu'], when: ['ruya'] },
+  { id: 'ipucu-canavar', text: 'İpucu: saldırıdan önce gölge ya da parlama çıkar, onu görünce kaç.', ctx: ['ipucu'], when: ['boss'] },
+  { id: 'ipucu-sis', text: 'İpucu: siste engel Odi\'nin ışık halkasına girince zıpla.', ctx: ['ipucu'], when: ['sis', 'gece'] },
+  { id: 'ipucu-yanki', text: 'İpucu: yankıda dokunuşun geç işler, biraz erken bas.', ctx: ['ipucu'], when: ['yanki'] },
+  { id: 'ipucu-melodi', text: 'İpucu: altın notaları soldan sağa, hiç atlamadan topla.', ctx: ['ipucu'], when: ['melody'] },
 ];
+/** "İpucu ver" listesi: bölümün özelliklerine (mekanik, değiştiriciler, hedef) uyanlar önde, sonra genel ipuçları; fits: uyan var mı */
+export function tipPhrasesFor(traits: readonly string[]): { list: QuickPhrase[]; fits: boolean } {
+  const tips = QUICK_PHRASES.filter((p) => p.ctx.includes('ipucu'));
+  const fit = tips.filter((p) => p.when?.some((w) => traits.includes(w)));
+  return { list: [...fit, ...tips.filter((p) => !p.when)], fits: fit.length > 0 };
+}
 export const phraseById = (id: string) => QUICK_PHRASES.find((p) => p.id === id);
 
 /** sabit kurallar (sunucu ve istemci aynı değeri gösterir) */

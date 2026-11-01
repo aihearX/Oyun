@@ -160,16 +160,16 @@
 .comm-result .cr-confirm { flex:none; display:flex; gap:8px; }
 @media (max-width:420px) { .comm-result { flex-wrap:wrap; } .comm-result .cr-t { flex:1 1 calc(100% - 60px); } .comm-result .btn { width:100%; } }
 @media (max-width:420px) { .comm-result .cr-confirm { width:100%; } .comm-result .cr-confirm .btn { flex:1; width:auto; } }
-/* kayıpta "Tekrar dene"nin üstünde (sonuç ekranının yapışkan alt bölgesi): alçak kart, düğme metnin yanında */
-.result-actions .comm-result { padding:8px 10px; gap:8px; flex-wrap:nowrap; }
-.result-actions .comm-result .cr-ic { width:36px; height:36px; border-radius:12px; }
-.result-actions .comm-result .cr-ic svg { width:24px; height:24px; }
-.result-actions .comm-result .cr-t { flex:1 1 auto; }
-.result-actions .comm-result .btn { width:auto; }
+/* kayıpta neden kartının hemen altında (sayfa akışında, kutuların altında; OT-ilk-kez-oyun-20): alçak kart, düğme metnin yanında */
+.result-why + .comm-result { padding:8px 10px; gap:8px; flex-wrap:nowrap; }
+.result-why + .comm-result .cr-ic { width:36px; height:36px; border-radius:12px; }
+.result-why + .comm-result .cr-ic svg { width:24px; height:24px; }
+.result-why + .comm-result .cr-t { flex:1 1 auto; }
+.result-why + .comm-result .btn { width:auto; }
 /* dar ekranda / Büyük yazıda metin sütunu daralmasın: düğme alta, tam genişlik */
-@media (max-width:360px) { .result-actions .comm-result { flex-wrap:wrap; } .result-actions .comm-result .cr-t { flex:1 1 calc(100% - 52px); } .result-actions .comm-result .btn { width:100%; } }
-html.buyuk-yazi .result-actions .comm-result { flex-wrap:wrap; }
-html.buyuk-yazi .result-actions .comm-result .cr-t { flex:1 1 calc(100% - 52px); }
+@media (max-width:360px) { .result-why + .comm-result { flex-wrap:wrap; } .result-why + .comm-result .cr-t { flex:1 1 calc(100% - 52px); } .result-why + .comm-result .btn { width:100%; } }
+html.buyuk-yazi .result-why + .comm-result { flex-wrap:wrap; }
+html.buyuk-yazi .result-why + .comm-result .cr-t { flex:1 1 calc(100% - 52px); }
 html.buyuk-yazi .result-actions .comm-result .btn { width:100%; }
 
 /* ---- Birlikte ekranı */

@@ -4,7 +4,7 @@ import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
-import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, achievementById, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
+import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
 import {
   advanceStreak, applyGrant, claimCalendar, claimQuest, dayKey, defaultMeta, ensureDaily, equipCosmetic, highestUnlocked, migrateMeta,
   openDailyChest, processRun, recordShare, settle, type MetaEvent, type MetaState, type PlayerCore, type RunSummary, type StreakEvent,
@@ -81,7 +81,7 @@ let toastSeq = 1;
 export function toastsFor(events: MetaEvent[]): Toast[] {
   const out: Toast[] = [];
   for (const e of events) {
-    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ id: toastSeq++, icon: a.emoji, title: `${a.name} · ${TIER_NAMES[e.tier]}`, text: 'Başarım açıldı!', tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
+    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ id: toastSeq++, icon: a.emoji, title: `${achievementName(a, e.tier)} · ${TIER_NAMES[e.tier]}`, text: 'Başarım açıldı!', tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); if (c && c.unlock.by !== 'default') out.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
     else if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ id: toastSeq++, icon: '🃏', title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
     else if (e.kind === 'albumBadge') out.push({ id: toastSeq++, icon: '🏅', title: `${BIOMES[e.biome].name} albümü tamam!`, text: 'Biyom rozeti kazandın', tone: 'gold' });
