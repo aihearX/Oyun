@@ -78,7 +78,7 @@ const load = {
   info: mod(() => import('./screens/InfoScreen')), visit: mod(() => import('./camp/Ziyaret')), shop: mod(() => import('./screens/ShopScreen')),
   inbox: mod(() => import('./screens/InboxScreen')), raceLobby: mod(() => import('./race/RaceLobby')), raceResult: mod(() => import('./race/RaceResult')),
   teamRace: mod(() => import('./teamrace/TeamRace')), events: mod(() => import('./events/EventsScreen')), eventLevel: mod(() => import('./events/EventLevel')),
-  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), gallery: mod(() => import('./ui/art')),
+  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), pratik: mod(() => import('./events/Pratik')), gallery: mod(() => import('./ui/art')),
 };
 const MapScreen = screen(load.map, 'MapScreen');
 const LevelHost = screen(load.level, 'LevelHost');
@@ -111,6 +111,7 @@ const EventLevel = screen(load.eventLevel, 'EventLevel');
 const TogetherScreen = screen(load.together, 'TogetherScreen');
 const RankScreen = screen(load.rank, 'RankScreen');
 const KurucularScreen = screen(load.kurucular, 'KurucularScreen');
+const PratikScreen = screen(load.pratik, 'PratikScreen');
 const ArtGallery = screen(load.gallery, 'ArtGallery');
 
 /** bu ekrandan sonra büyük olasılıkla açılacak parçalar (boşta, arka planda; Phaser dahil) */
@@ -355,6 +356,7 @@ export function App() {
     case 'birlikte': return sub(<TogetherScreen onBack={back(route)} />);
     case 'siralama': return sub(<RankScreen onBack={back(route)} />);
     case 'kurucular': return sub(<KurucularScreen onBack={back(route)} />);
+    case 'pratik': return sub(<PratikScreen level={store.knowledge} onBack={back(route)} />);
     case 'kamp': return sub(<CampVisitScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'shop': return sub(<ShopScreen onBack={back(route)} />);

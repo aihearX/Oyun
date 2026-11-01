@@ -12,7 +12,7 @@
 //         Expo'nun kendi sayfa iskeleti (viewport-fit yok, #root flex) ve yerel WebView'in scrollEnabled:false kilidi
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
-//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only takma-ad,bugun,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
+//           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only takma-ad,bugun,pratik,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
 //           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
 //           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
@@ -729,6 +729,27 @@ async function suite(browserName, target, [W, H]) {
     await check('harita', { scroll: false });
 
     if (want('bugun')) { await tab('Bugün'); await check('bugun'); }
+    if (want('pratik')) {
+      // Bilgi pratiği (YN-078): Bugün'den açılır (takımsız oyuncu); giriş, soru, cevap + açıklama, sonuç. Ödülsüz: kayıttaki jeton/XP/meta değişmez (web)
+      await tab('Bugün'); const ac = page.getByTestId('bugun-pratik-ac'); await ac.scrollIntoViewIfNeeded(); await sleep(200);
+      const kayit = () => (target === 'web' ? page.evaluate(() => { const st = JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {}; return JSON.stringify({ c: st.coins, x: st.xp, m: st.meta }); }) : Promise.resolve(''));
+      const once = await kayit();
+      await check('bugun-pratik-karti', { scroll: false });
+      await ac.click(); await page.getByTestId('pratik').waitFor({ timeout: 10_000 });
+      await check('pratik-giris');
+      await page.getByTestId('pratik-basla').click(); await page.getByTestId('pratik-secenek-0').waitFor();
+      await check('pratik-soru');
+      for (let k = 0; k < 10; k++) {
+        await page.getByTestId('pratik-secenek-0').click(); await page.getByTestId('pratik-aciklama').waitFor();
+        if (k === 0) await check('pratik-cevap');
+        await page.getByTestId('pratik-sonraki').click(); await sleep(80);
+      }
+      await page.getByTestId('pratik-dogru').waitFor();
+      const rec = await check('pratik-sonuc');
+      if (!/^\d+\/10$/.test((await page.getByTestId('pratik-dogru').textContent()) ?? '')) fail(rec, 'pratik sonucu "N/10" değil');
+      if ((await kayit()) !== once) fail(rec, 'pratik oyuncu kaydını değiştirdi (ödül/ilerleme yazılmamalı)');
+      await back();
+    }
     if (want('profil')) {
       // Kurucu Yolcu (YN-041): bu yapılandırmaya özel tek kullanımlık test kodu (gerçek kodlar depoda yoktur) → rozet, çerçeve,
       // Dolap'ta çerçeve, Ayarlar'da liste seçimi ve Kurucular ekranı aşağıdaki karolarla birlikte denetlenir

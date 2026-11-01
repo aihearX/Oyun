@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import type { QuizInfo, QuizPhase, QuizPlayer, QuizQuestionView, QuizState } from '@odi/shared';
-import { QUIZ_QUESTIONS } from '@odi/content';
+import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from '@odi/content';
 import { fail, parseJson, rid, type App, type Handlers } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { requireTeam } from '../teams';
@@ -8,7 +8,7 @@ import { dayKey } from '../time';
 import { giveRewards, notify, quizSlot, rw } from './common';
 import { questProgress } from './quests';
 
-export const QUIZ_COUNT = 10;
+export const QUIZ_COUNT = QUIZ_ROUND;
 export const QUESTION_MS = 15_000;
 export const REVEAL_MS = 6_000;
 const lobbyMs = (app: App) => (app.cfg.eventsFast ? 20_000 : 60_000);
@@ -116,18 +116,8 @@ function activeRow(app: App, teamId: string): QuizRow | null {
   return q;
 }
 
-/**
- * Soru seçimi: varsayılan (genel) yalnız "Meraklı" düzeyinden; başlatan "Odyoloji öğrencisi" seçtiyse soruların yaklaşık
- * %60'ı öğrenci düzeyinden, kalanı genelden (herkes katılabilsin diye karışık). Sabit saatli (sistem) yarışmalar hep genel.
- */
-function pickQuestions(level: 'genel' | 'odyoloji'): number[] {
-  const idx = (l: 'merakli' | 'odyoloji') => QUIZ_QUESTIONS.flatMap((q, i) => (q.level === l ? [i] : []));
-  const take = (pool: number[], n: number) => { const out: number[] = []; while (out.length < n && pool.length) out.push(pool.splice(randomInt(0, pool.length), 1)[0]!); return out; };
-  if (level !== 'odyoloji') return take(idx('merakli'), QUIZ_COUNT);
-  const tech = Math.round(QUIZ_COUNT * 0.6);
-  const mixed = [...take(idx('odyoloji'), tech), ...take(idx('merakli'), QUIZ_COUNT - tech)];
-  return take(mixed, mixed.length); // karıştır
-}
+/** Soru seçimi: havuz ve kural @odi/content `pickQuizQuestions` (tek kişilik Pratik de aynısını kullanır, YN-078). Sabit saatli (sistem) yarışmalar hep genel. */
+const pickQuestions = (level: 'genel' | 'odyoloji'): number[] => pickQuizQuestions(level, (n) => randomInt(0, n), QUIZ_COUNT);
 
 function create(app: App, teamId: string, by: string, slot: string | null, level: 'genel' | 'odyoloji' = 'genel'): QuizRow {
   const now = app.now();

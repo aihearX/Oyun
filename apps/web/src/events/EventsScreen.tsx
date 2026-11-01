@@ -10,7 +10,7 @@ import { RallyView } from './Rally';
 import { DuelView } from './Duel';
 import { RelayView } from './Relay';
 import { HuntView } from './Hunt';
-import { QuizView } from './Quiz';
+import { PratikLink, QuizView } from './Quiz';
 import { QuestsView } from './Quests';
 import { ChallengeView } from './Challenge';
 import { TourneyView } from './Tourney';
@@ -39,7 +39,7 @@ export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?
       {v === 'merkez' ? <EvHeadHub onBack={onBack} /> : <EvHead kind={v} onBack={back} />}
       {shown && <div className={`ev-flash ${shown.tone}`} role="status" data-testid="ev-flash" onClick={() => setShown(undefined)}><span className="ev-flash-i"><Glyph e={shown.icon} size={30} /></span><span className="min0"><b>{shown.title}</b><small>{shown.text}</small></span></div>}
       <Online what="Etkinlikler">
-        {needTeam ? <div className="card muted">Bu etkinlik için bir takımda olmalısın.</div> : (
+        {needTeam ? <div className="card muted stack">Bu etkinlik için bir takımda olmalısın.{v === 'quiz' && <PratikLink />}</div> : (
           <>
             {v === 'merkez' && <Hub open={setV} />}
             {v === 'ralli' && <RallyView onPlay={onPlay} />}

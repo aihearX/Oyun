@@ -9,7 +9,7 @@ const FILE: Record<string, string> = {
   skills: 'screens/SkillsScreen.tsx', settings: 'screens/SettingsScreen.tsx', achievements: 'screens/AchievementsScreen.tsx', album: 'screens/AlbumScreen.tsx',
   glossary: 'screens/GlossaryScreen.tsx', wardrobe: 'screens/WardrobeScreen.tsx', info: 'screens/InfoScreen.tsx', friends: 'screens/FriendsScreen.tsx',
   messages: 'screens/FriendsScreen.tsx', shop: 'screens/ShopScreen.tsx', inbox: 'screens/InboxScreen.tsx', league: 'screens/InboxScreen.tsx',
-  birlikte: 'comm/Together.tsx', siralama: 'rank/RankScreen.tsx', kurucular: 'kurucu/Kurucular.tsx', race: 'race/RaceLobby.tsx',
+  birlikte: 'comm/Together.tsx', siralama: 'rank/RankScreen.tsx', kurucular: 'kurucu/Kurucular.tsx', race: 'race/RaceLobby.tsx', pratik: 'events/Pratik.tsx',
 };
 
 describe('yükleme başlığı (SCREEN_TITLE)', () => {

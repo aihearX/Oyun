@@ -81,6 +81,7 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
         clock={q ? (q.phase === 'lobi' ? <Countdown to={q.lobbyEndsAt} label="başlamasına" /> : <span className="ev-note">Soru {(q.question?.index ?? 0) + 1}/10</span>) : s.quizInfo && !s.quizInfo.slotOpen ? <Countdown to={s.quizInfo.nextSlotAt} label="sabit saate" /> : null}
         cta={q ? (q.players.some((p) => p.id === meId) ? 'Yarışmaya dön' : '🧠 Katıl') : s.quizInfo?.canStart ? '🧠 Yarışma başlat' : 'Ayrıntılar'} ctaTone={q || s.quizInfo?.canStart ? 'gold' : 'ghost'}>
         {!q && <div className="ev-note">Her gün 13:00 ve 20:00'de kendiliğinden açılır.</div>}
+        <button className="btn small ghost" data-testid="pratik-ac" onClick={() => nav.open({ name: 'pratik' })}><Art name="bulb" size="1.15em" className="art-inline" /> Tek başına pratik yap</button>
       </EvCard>,
       <EvCard key="gorev" kind="gorev" onOpen={() => open('gorev')} clock={s.quests ? <Countdown to={s.quests.endsAt} /> : null}>
         {s.quests && <div className="ev-qmini">{s.quests.quests.map((x) => <div key={x.kind} className={`row${x.done ? ' done' : ''}`}><span className="grow min0 ellipsis"><Art name={x.done ? 'check' : 'empty'} size="1.15em" className="art-inline" /> {x.text}</span><span className="qn">{x.progress}/{x.need}</span></div>)}</div>}
@@ -98,6 +99,8 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
           <b>Ralli, düello, bayrak yarışı, quiz… hepsi takımla!</b>
           <span className="muted">Bir takıma katıl ya da kendi takımını kur; grup etkinlikleri hemen açılır.</span>
           <button className="btn small" onClick={() => nav.tab('team')}>Takım bul</button>
+          <small className="muted">Takımsız da olur: bilgi yarışması sorularıyla tek başına, ödülsüz pratik.</small>
+          <button className="btn small ghost" data-testid="pratik-ac" onClick={() => nav.open({ name: 'pratik' })}><Art name="bulb" size="1.15em" className="art-inline" /> Tek başına pratik yap</button>
         </div>
       )}
       <h2 className="ev-sec"><Art e="🙋" size="1.15em" className="art-inline" /> Bireysel etkinlikler</h2>

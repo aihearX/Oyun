@@ -15,6 +15,8 @@ export type SocialRoute =
   | { name: 'siralama' }
   /** Profil › Kurucular: kapalı betanın Kurucu Yolcuları (kurucu/Kurucular.tsx, YN-041) */
   | { name: 'kurucular' }
+  /** tek kişilik, ödülsüz bilgi pratiği (canlı yarışmanın soru havuzu; takımsız ve çevrimdışı da; events/Pratik.tsx, YN-078) */
+  | { name: 'pratik' }
   /** arkadaşın ya da takım arkadaşının kampı (salt okunur, hazır tepki; camp/Ziyaret.tsx) */
   | { name: 'kamp'; id: string }
   /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
@@ -27,7 +29,7 @@ export type SocialRoute =
 export const SCREEN_TITLE: Record<string, string> = {
   skills: 'Yetenekler', settings: 'Ayarlar', achievements: 'Başarımlar', album: 'Kulak Kartları', glossary: 'Kulak Sözlüğü',
   wardrobe: 'Dolap', info: 'Ödüller nasıl çalışır?', friends: 'Arkadaşlar', messages: 'Mesajlar', shop: 'Mağaza', inbox: 'Ödül kutusu',
-  league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', race: 'Canlı yarış',
+  league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', race: 'Canlı yarış', pratik: 'Bilgi pratiği',
 };
 
 export interface Nav {

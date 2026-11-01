@@ -419,6 +419,14 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .quest .chips { margin-top:4px; }
 .chest { display:flex; gap:12px; align-items:center; }
 .chest-icon { font-size:44px; flex:none; filter:drop-shadow(0 4px 0 rgba(0,0,0,.3)); }
+/* Bugün › Bilgi pratiği (YN-078) ve pratik/yarışma sonu düğme satırı */
+.pratik-kart { display:flex; gap:12px; align-items:center; }
+.pratik-kart .pk-icon { flex:none; filter:drop-shadow(0 4px 0 rgba(0,0,0,.3)); }
+.pratik-kart .pk-icon .art { display:block; }
+.pratik-kart .pk-btn { margin-top:8px; }
+/* cevaptan sonra kendiliğinden görünür alana kaydırılan düğme: alt güvenli alanın (ana çizgi) altında kalmasın */
+.pratik-sonraki { scroll-margin-bottom:calc(var(--sab) + 16px); }
+.pratik-son { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
 .chest.ready { border-color:rgba(255,201,60,.7); background:linear-gradient(135deg, #6b3fb0 0%, var(--panel-2) 60%); box-shadow:0 0 0 3px rgba(255,201,60,.2), 0 0 26px rgba(255,201,60,.25), var(--shadow); }
 .chest.ready .chest-icon { animation:wiggle 1.6s ease-in-out infinite; }
 .reward-pop { width:min(340px, 88vw); display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; background:linear-gradient(180deg,#fffaf0,var(--cream)) !important; color:var(--ink); border-color:#fff !important; animation:pop .4s cubic-bezier(.2,1.4,.4,1); }

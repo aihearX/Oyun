@@ -8,6 +8,13 @@ import { Countdown, Rewards, errText, hexColor, useSrvNow } from './common';
 import { Art, TeamEmblem, rich } from '../ui/art';
 import { useStore } from '../store';
 import { Icon } from '../ui/icons';
+import { useNav } from '../nav';
+
+/** tek kişilik, ödülsüz bilgi pratiği (YN-078): canlı yarışma saatini beklemeden aynı sorularla çalış */
+export function PratikLink() {
+  const nav = useNav();
+  return <button className="btn small ghost" data-testid="pratik-ac" onClick={() => nav.open({ name: 'pratik' })}><Art name="bulb" size="1.15em" className="art-inline" /> Tek başına pratik yap</button>;
+}
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 
@@ -42,6 +49,8 @@ export function QuizView() {
           : <div className="ev-tag">Sabit saat: {info ? fmtDate(info.nextSlotAt) : '13:00 / 20:00'}</div>}
         {info && !info.slotOpen && <Countdown to={info.nextSlotAt} label="sabit saate" />}
         {info && <small className="muted">Lider ve yardımcılar her an başlatabilir · bugün kalan: {info.startsLeft}</small>}
+        <small className="muted">Beklerken: aynı sorularla tek başına pratik (ödülsüz, takım puanına sayılmaz).</small>
+        <PratikLink />
       </div>
       <QuizRewards />
       <Ranking />
@@ -87,7 +96,7 @@ export function QuizView() {
           <b>Takım ortalaması</b>
           <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span>
           {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/10 doğru{rich(c > 0 ? ` · 🪙 ${c * 10} ödül kutunda` : ' · bir dahaki yarışmada!')}</span>; })()}
-          <button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button>
+          <div className="row pratik-son"><button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button><PratikLink /></div>
         </div>
       )}
       {q.players.length > 0 && (

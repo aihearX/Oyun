@@ -151,3 +151,20 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ bolunmezYap(RAW.ma
   const choices = [0, 1, 2, 3].map((k) => base[(k + 4 - rot) % 4]!) as QuizQuestion['choices'];
   return { id: i + 1, text, choices, answer: rot as QuizQuestion['answer'], explain, topic, level, ...(oneren ? { oneren } : {}) };
 }));
+
+/** Bir bilgi turunun soru sayısı: canlı Kulak Bilgi Yarışması ve tek kişilik Pratik aynı (YN-078). */
+export const QUIZ_ROUND = 10;
+
+/**
+ * Bir turun soruları (QUIZ_QUESTIONS sıra numaraları). Canlı yarışma (sunucu) ve tek kişilik Pratik (istemci, çevrimdışı) bunu ortak
+ * kullanır; havuz ve seçim kuralı tek yerde. Genel: yalnız "Meraklı" düzeyi; Odyoloji öğrencisi: yaklaşık %60'ı öğrenci düzeyinden,
+ * kalanı genelden (karışık). `randInt(n)` 0..n-1 arası tamsayı döndürür (sunucu: crypto.randomInt; Pratik: Math.random).
+ */
+export function pickQuizQuestions(level: 'genel' | 'odyoloji', randInt: (n: number) => number, count = QUIZ_ROUND): number[] {
+  const idx = (l: QuizLevel) => QUIZ_QUESTIONS.flatMap((q, i) => (q.level === l ? [i] : []));
+  const take = (pool: number[], n: number) => { const out: number[] = []; while (out.length < n && pool.length) out.push(pool.splice(randInt(pool.length), 1)[0]!); return out; };
+  if (level !== 'odyoloji') return take(idx('merakli'), count);
+  const tech = Math.round(count * 0.6);
+  const mixed = [...take(idx('odyoloji'), tech), ...take(idx('merakli'), count - tech)];
+  return take(mixed, mixed.length); // karıştır
+}

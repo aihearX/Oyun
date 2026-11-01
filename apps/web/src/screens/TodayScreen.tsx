@@ -10,10 +10,11 @@ import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
 import { Art, Glyph } from '../ui/art';
+import { useNav } from '../nav';
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
-  const s = useStore(); const today = dayKey();
+  const s = useStore(); const today = dayKey(); const nav = useNav();
   useEffect(() => { s.touchDay(); }, []);
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
@@ -93,6 +94,16 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
           {!daily.chestOpened && <RewardChips items={chestItems} small />}
         </div>
         {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest())}>Aç</button>}
+      </section>
+
+      {/* tek kişilik bilgi pratiği (YN-078): takımsız ve çevrimdışı da; ödülsüz, bu yüzden görev/sandık akışının dışında */}
+      <section className="card pratik-kart" data-testid="bugun-pratik">
+        <div className="pk-icon" aria-hidden><Art name="bulb" size={44} /></div>
+        <div className="grow min0">
+          <h2>Bilgi pratiği</h2>
+          <div className="muted">Tek başına 10 soru, her cevaptan sonra açıklama. Ödülsüz, yalnız öğrenmek için.</div>
+          <button className="btn small pk-btn" data-testid="bugun-pratik-ac" onClick={() => nav.open({ name: 'pratik' })}>Pratik yap</button>
+        </div>
       </section>
 
       <button className="linkish" onClick={onInfo}>Ödüller nasıl çalışır? Şanslı Nota ihtimali, sandık içerikleri →</button>
