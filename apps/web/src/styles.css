@@ -508,7 +508,9 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .sk-a { width:40px; height:40px; border-radius:50% !important; flex:none; } .sk-b { height:12px; width:60%; } .sk-c { height:10px; width:85%; }
 @keyframes shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
 /* isteğe bağlı yüklenen ekran / Phaser sahnesi beklerken (ui/Loading.tsx): kısa yüklemede görünmesin diye gecikmeli belirir */
-.lazy-screen { opacity:0; animation:fade .3s ease-out .18s forwards; }
+/* parça yüklenirken (ui/Loading.tsx, YN-072): başlık + Geri ilk karede; iri "Yükleniyor…" kısa gecikmeyle (hızlı yüklemede hiç görünmez) */
+.lazy-body { display:flex; flex-direction:column; gap:14px; opacity:0; animation:fade .3s ease-out .18s forwards; }
+.lazy-text { margin:8px 0 0; text-align:center; font-size:1.25rem; font-weight:900; color:var(--cream); overflow-wrap:anywhere; }
 .lazy-head { display:flex; align-items:center; gap:10px; padding-top:16px; }
 .lazy-head i { display:block; height:40px; border-radius:999px; background:linear-gradient(90deg,rgba(255,255,255,.06) 25%,rgba(255,255,255,.16) 50%,rgba(255,255,255,.06) 75%); background-size:200% 100%; animation:shimmer 1.2s linear infinite; }
 .lazy-head i:nth-child(1) { width:44px; } .lazy-head i:nth-child(2) { flex:1; max-width:180px; height:28px; margin:0 auto; } .lazy-head i:nth-child(3) { width:44px; }
@@ -870,6 +872,9 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 html.az-hareket *, html.az-hareket *::before, html.az-hareket *::after { animation-duration:1ms !important; animation-delay:0ms !important; animation-iteration-count:1 !important; transition-duration:1ms !important; }
 html.az-hareket .star-slot.on .star-full { opacity:1; transform:none; }
 html.az-hareket .bi-rings, html.az-hareket .unlock-card::after { display:none; }
+/* hareket azaltmada yükleme iskeleti solmadan, doğrudan görünür (YN-072) */
+html.az-hareket .lazy-body { animation:none; opacity:1; }
+@media (prefers-reduced-motion: reduce) { .lazy-body { animation:none; opacity:1; } }
 .msg-name.linkish { font-size:inherit; padding:0; font-weight:800; }
 /* aynı anda gelen bildirimler üst üste binmesin: arkadaş/mesaj şeridi üstte, etkinlik şeridi onun altında */
 body:has(.fr-banner) .ev-notice { top:calc(var(--sat) + 88px); }

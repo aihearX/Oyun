@@ -20,6 +20,16 @@ export type SocialRoute =
   /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
   | { name: 'events'; view?: EventView; flash?: EventFlash };
 
+/**
+ * Alt ekranların adı (ScreenHead başlığıyla aynı): parça yüklenirken başlık ve Geri hemen çizilir, ekran "donmuş" görünmez
+ * (YN-072; App.tsx ScreenLoading). Adı değişken ekranlar (sohbet: oda adı; dm, kamp ziyareti) burada yok. Eşleşme nav.test.ts'te.
+ */
+export const SCREEN_TITLE: Record<string, string> = {
+  skills: 'Yetenekler', settings: 'Ayarlar', achievements: 'Başarımlar', album: 'Kulak Kartları', glossary: 'Kulak Sözlüğü',
+  wardrobe: 'Dolap', info: 'Ödüller nasıl çalışır?', friends: 'Arkadaşlar', messages: 'Mesajlar', shop: 'Mağaza', inbox: 'Ödül kutusu',
+  league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', race: 'Canlı yarış',
+};
+
 export interface Nav {
   open: (r: SocialRoute) => void;
   /** bölüm oyna (haritadaki akışla aynı) */
