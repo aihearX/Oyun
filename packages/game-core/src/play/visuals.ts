@@ -215,6 +215,8 @@ export interface BossVisual {
   waves: { x: number; kind: 'low' | 'high'; dir?: number }[]; warnWall: { side: -1 | 1; kind: string } | null; notes: { x: number; y: number; got: boolean }[]; core: { x: number } | null;
   /** gözler kahramanı izler (yalnız görsel) */
   heroX?: number;
+  /** ilk canavarın öğretici anı: zayıf nokta (saplı yumruk) parlar */
+  focus?: boolean;
 }
 export interface BossView { update(b: BossVisual, groundY: number): void; destroy(): void; /** ekran-sabit can çubuğu: görünüm genişliği ve gösterge inişi (tasarım px) */ layout?(viewW: number, top: number): void }
 /** Boss ve saldırıları: render/boss.ts (boyalı kukla, telegraf, vuruş flaşı, faz dönüşümü, yenilgi patlaması, can çubuğu). */

@@ -1,5 +1,5 @@
 import { GROUND_Y, hashString, mulberry32, type AbilityId } from '@odi/shared';
-import { TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './tutorial';
+import { BOSS_TUTOR, BOSS_TUTOR_SUCCESS, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './tutorial';
 import * as C from './consts';
 import { Planner, type Action, type NoteSeek, type PlanPrefs } from './planner';
 import { enemyAt, hazardAt, lastRect, projectiles, solidAt, step, type SimState } from './sim';
@@ -149,7 +149,7 @@ const gap = (hl: number, ht: number, hr: number, hb: number, l: number, t: numbe
 export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun {
   const ctl = humanHand(w, seed, o.params ?? HUMAN); const p = new Planner(w, ctl.prefs); const maxT = (o.maxT ?? 300);
   // öğretici an (LevelScene): yeni yeteneğin ilk karşılaşmasında oyun ×0,3 yavaşlar, oyuncu hareketi yapınca (ya da 8 gerçek sn
-  // sonra) normale döner — ilk kez oynayan oyuncu o an bolca zaman bulur
+  // sonra) normale döner — ilk kez oynayan oyuncu o an bolca zaman bulur. İlk canavarın anı ('bossTutor') yumruk kalkınca da biter
   const ownEvents = !s.events; if (ownEvents) s.events = []; let tut: string | null = null; let tutEnd = 0;
   // faz: zamanlamalı öğelerin (hareketli platform, düşman, nabız, ritim) varışta hangi evrede olduğu tasarımın değil şansın
   // işidir; ölçüm her tohumda saati rastgele bir evreden başlatır → zorluk evrelere göre beklenen değerdir (boss hariç)
@@ -158,10 +158,10 @@ export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number
   while (!s.finished && !s.failed && s.t - t0 < maxT) {
     step(w, s, p.next(s));
     for (const e of s.events!) {
-      if (e.k === 'tutor' && !tut) { tut = String(e.s); tutEnd = s.t + TUTORIAL_MAX_S * TUTORIAL_SLOW; ctl.slow(TUTORIAL_SLOW); }
-      else if (tut && (TUTORIAL_SUCCESS[tut as AbilityId] ?? []).includes(e.k)) { tut = null; ctl.slow(1); }
+      if ((e.k === 'tutor' || e.k === 'bossTutor') && !tut) { tut = e.k === 'bossTutor' ? BOSS_TUTOR : String(e.s); tutEnd = s.t + TUTORIAL_MAX_S * TUTORIAL_SLOW; ctl.slow(TUTORIAL_SLOW); }
+      else if (tut && (tut === BOSS_TUTOR ? BOSS_TUTOR_SUCCESS : TUTORIAL_SUCCESS[tut as AbilityId] ?? []).includes(e.k)) { tut = null; ctl.slow(1); }
     }
-    if (tut && s.t > tutEnd) { tut = null; ctl.slow(1); }
+    if (tut && (s.t > tutEnd || (tut === BOSS_TUTOR && !s.boss?.fists.some((f) => f.st === 'planted')))) { tut = null; ctl.slow(1); }
     if (ownEvents) s.events!.length = 0;
     const h = s.hero;
     if (h.invuln > 0) { wasGrounded = h.grounded; continue; }

@@ -30,7 +30,7 @@ export const HINT_IDS = {
   giris: 'bölümün giriş cümlesi',
   'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
   eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
-  'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',
+  'boss-ogret': 'ilk canavarın öğretici anı (20, ilk saplı yumruk)', 'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',
 } as const;
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */

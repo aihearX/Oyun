@@ -17,9 +17,9 @@ import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
-import { liveWaves } from './play/boss';
+import { INTRO_S, liveWaves } from './play/boss';
 import { escortDanger } from './play/escort';
-import { REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW, TUTORIAL_SUCCESS } from './play/tutorial';
+import { bossTutorial, REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW } from './play/tutorial';
 import {
   paintBiome, makeTerrain, drawEntity, createHeroView, createHud, createFx, createBossView, createProjectileLayer, createEscortView, luckyGlow, setVisualResolution, setFxQuality,
   type BiomeBackdrop, type EntityView, type EscortView, type EntityVisual, type HeroView, type HeroHandle, type LevelHudView, type LevelFx, type BossView, type ProjectileLayer, type TerrainRect, type TerrainLayer, type HintKind,
@@ -140,7 +140,7 @@ export class LevelScene extends Phaser.Scene {
     music(track);
     const begin = () => {
       unlock(); music(track); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' });
-      if (this.spec.intro) this.hint(this.spec.intro, 3200, undefined, 'giris');
+      if (this.spec.intro) this.hint(this.spec.intro, INTRO_S * 1000, undefined, 'giris');
       if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, 'Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200, luckyNoteTexture(this)));
       if (this.spec.modifiers.includes('ters-yercekimi')) this.hint('Ters yerçekimi: tavanlı yerlerde zaman zaman yön değişir', 3000, undefined, 'mod-ters-yercekimi');
     };
@@ -196,6 +196,8 @@ export class LevelScene extends Phaser.Scene {
       if (this.state.finished) break;
     }
     if (n >= 40) this.acc = 0;
+    // ilk canavarın öğretici anı yumruk kalkınca biter (vuramadıysa savaş normal hızda sürer)
+    if (this.tutorial?.boss && !this.sim.boss?.fists.some((f) => f.st === 'planted')) this.endTutorial(false);
     if (this.sim.failed && !this.state.finished) { this.fail(this.sim.failed); return; }
     if (this.sim.finished && !this.state.finished) { this.finish(); }
     this.state.timeSec = this.sim.t; this.state.lives = this.sim.lives; this.state.coins = this.sim.coins; this.state.deaths = this.sim.deaths; this.state.damageTaken = this.sim.damageTaken; this.state.shield = this.sim.shield;
@@ -217,7 +219,7 @@ export class LevelScene extends Phaser.Scene {
   }
   private onEvent(e: SimEvent) {
     const hv = this.heroView; const S = this.state;
-    if (this.tutorial && TUTORIAL_SUCCESS[this.tutorial.ability].includes(e.k)) this.endTutorial(true);
+    if (this.tutorial?.success.includes(e.k)) this.endTutorial(true);
     switch (e.k) {
       case 'jump': sfx.jump(); this.fx.jumpPuff(e.x, e.y); this.emit({ type: 'haptic', kind: 'light' }); break;
       case 'airjump': sfx.doubleJump(); this.fx.jumpPuff(e.x, e.y); break;
@@ -272,6 +274,7 @@ export class LevelScene extends Phaser.Scene {
       case 'crumble': if (e.s === 'kir') sfx.hit(); else sfx.tick(); break;
       case 'switch': sfx.power(); floatText(this, e.x, e.y - 60, 'Kapı açıldı!', COLORS.accent2); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'tutor': this.startTutorial(e); break;
+      case 'bossTutor': this.startBossTutorial(); break;
       case 'escort': this.hint('Fısıltı seni izliyor. Onu düşmanlardan koru!', 2500, undefined, 'eskort'); break;
       case 'escortLost': this.hint('Fısıltı yaralandı… hedef kaçtı', 2000, undefined, 'eskort-kayip'); break;
       case 'chase': this.hint('Işık treni geliyor! Durma, atıl!', 2200, undefined, 'kovalama'); this.cameras.main.shake(200, 0.006); break;
@@ -279,7 +282,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bubble': sfx.tick(); break;
       case 'bossWarn': sfx.tick(); break;
       case 'bossSlam': this.cameras.main.shake(160, 0.014); sfx.hit(); break;
-      case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
+      case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral, 28); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
       case 'bossPhase': this.hint(this.sim.boss?.kind === 'golem' ? (e.n === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!') : (e.n === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!'), 2600, undefined, `boss-faz-${e.n}`); sfx.toneAt(110, 0.5); break;
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
@@ -330,6 +333,12 @@ export class LevelScene extends Phaser.Scene {
     this.tutorial = new Tutorial(a, e.id ?? -1, this.hud, this.backdrop, undefined, this.hintsOn); this.tutorialT = 0; this.tutorAbilities.add(a); this.botSlow?.(TUTORIAL_SLOW);
     this.emit({ type: 'hint', id: tutorialKey(a), text: this.tutorial.text });
   }
+  /** ilk canavarın öğretici anı (play/tutorial.ts bossTutorial): ilk saplı yumrukta bir kez; zayıf nokta parlar, oyun yavaşlar */
+  private startBossTutorial() {
+    if (this.opts.race || this.tutorial || this.state.finished) return;
+    this.tutorial = bossTutorial(this.hud, this.backdrop, this.hintsOn); this.tutorialT = 0; this.botSlow?.(TUTORIAL_SLOW);
+    this.emit({ type: 'hint', id: 'boss-ogret', text: this.tutorial.text });
+  }
   /** kıl perdesi ipucu (3-8) ve 5'teki başarılı geçiş sayımı */
   private curtainWatch() {
     const n = this.spec.number; if (n < 3 || n > 8 || this.opts.race) return;
@@ -372,6 +381,7 @@ export class LevelScene extends Phaser.Scene {
     const t = this.tutorial; if (!t) return; this.tutorial = undefined; t.done(); this.botSlow?.(1);
     if (success) {
       this.praise('Harika!'); sfx.perfect(2);
+      if (t.boss) return;
       const key = tutorialKey(t.ability); if (this.opts.firsts?.includes(key) && !this.firstsDone.includes(key)) this.firstsDone.push(key);
       else if (!this.firstsDone.includes(key)) this.firstsDone.push(key);
     }
@@ -482,7 +492,7 @@ export class LevelScene extends Phaser.Scene {
     const list: { x: number; y: number }[] = []; const tmp: { x: number; y: number }[] = [];
     for (const id of near(this.world, L - 200, Rr + 200)) { const e = this.world.ents[id]!; if (e.cls === 'enemy' && enemyKind(e) === 'atici') { projectiles(e, t, s.killed.get(id), tmp); list.push(...tmp); } }
     this.projLayer.update(list);
-    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, waves: liveWaves(b, t), warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null, heroX: s.hero.x }, GROUND_Y); }
+    if (this.bossView && s.boss) { const b = s.boss; this.bossView.update({ ...b, t, fists: b.fists, waves: liveWaves(b, t), warnWall: b.warnWall ? { side: b.warnWall.side, kind: b.warnWall.kind } : null, heroX: s.hero.x, focus: !!this.tutorial?.boss }, GROUND_Y); }
   }
   /** varlık artık görünmeyecek mi (toplandı, öldü, kırıldı) */
   private gone(e: WEnt): boolean {

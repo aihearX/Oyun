@@ -66,10 +66,11 @@ export const textScale = (s: Phaser.Scene) => Number(s.registry?.get('textScale'
 /**
  * Uçan "+120" yazısı. Açık dolgu + kalın koyu kontur ve gölge: hangi zeminde olursa olsun dolgu ile kontur arasındaki zıtlık
  * ≥ 4,5:1 (NIGHT tonları #140c35 kontura karşı en az ~7:1). Önce tam görünür yükselir, sonra söner (yarı saydam okunmaz).
+ * size: tasarım px (Büyük yazıda × textScale); boss vuruşu daha iri yazılır.
  */
-export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = COLORS.accent2) {
+export function floatText(scene: Phaser.Scene, x: number, y: number, text: string, color = COLORS.accent2, size = 21) {
   const k = textScale(scene);
-  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${Math.round(21 * k)}px`, fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: Math.round(7 * k), resolution: DPR(scene), padding: { x: 4, y: 4 } }).setOrigin(0.5).setDepth(150);
+  const t = scene.add.text(x, y, text, { fontFamily: FONT, fontSize: `${Math.round(size * k)}px`, fontStyle: '900', color: NIGHT[color] ?? color, stroke: '#140c35', strokeThickness: Math.round(7 * k * size / 21), resolution: DPR(scene), padding: { x: 4, y: 4 } }).setOrigin(0.5).setDepth(150);
   t.setShadow(0, 2, 'rgba(10,4,30,0.9)', 4, true, false);
   // ekranın içinde kalır (kamera kayarken de), aynı anda çıkan başka yazının üstüne binmez (render/float-lane.ts)
   const y0 = placeFloat(scene, t, x, y, t.width, t.height);

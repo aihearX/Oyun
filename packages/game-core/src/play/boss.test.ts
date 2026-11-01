@@ -3,9 +3,9 @@ import { generateLevel } from '@odi/level-gen';
 import { DEFAULT_SKILLS } from '@odi/content';
 import { setup } from './testkit';
 import { Planner } from './planner';
-import { step } from './sim';
-import { ARENA_W, RUN_L, RUN_R, WALL_W, liveWaves } from './boss';
-import { BOSS_LOOK_MS, humanPrefs, humanSeed, playerOf } from './human';
+import { NO_INPUT, step } from './sim';
+import { ARENA_W, INTRO_S, RUN_L, RUN_R, WALL_W, liveWaves } from './boss';
+import { BOSS_LOOK_MS, firstTimerOf, humanPrefs, humanSeed, playerOf, runHuman } from './human';
 
 /** Gürültü Canavarı faz 3: "Çift dalga!" gerçekten iki dalga olarak arenada görünür ve bot yine yener. */
 describe('boss: Gürültü Canavarı', () => {
@@ -51,4 +51,50 @@ describe('boss: arena sınırı', () => {
       expect(out.slice(0, 5)).toEqual([]);
     }, 450_000); // MK-020: bölüm 40 CPU 21,5 sn (yük 15'te duvar 62 sn), bölüm 20 CPU 13 sn; sınır ≈ CPU × 20
   }
+});
+
+/**
+ * YN-091: giriş yazısı (INTRO_S) ekrandayken canavar saldırmaz — ilk uyarı (telegraf) yazı kapandıktan sonra başlar, kahraman
+ * o sürede hasar almaz. İlk canavarın öğretici anı ('bossTutor') yalnız 20'de, ilk saplı yumrukta bir kez.
+ */
+describe('boss: giriş yazısı ve ilk canavar öğretici anı', () => {
+  for (const n of [20, 40]) {
+    it(`bölüm ${n}: ilk saldırı uyarısı ≥ giriş yazısı süresi, yazı sırasında hasar yok`, () => {
+      const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
+      expect(spec.intro, 'boss bölümünün giriş yazısı var').toBeTruthy();
+      const { w, s } = setup(spec); s.events = [];
+      let firstWarn = -1;
+      while (s.t < INTRO_S + 3 && firstWarn < 0) {
+        step(w, s, NO_INPUT);
+        const b = s.boss!;
+        if (b.fists.length || b.warnWall || b.waves.length) firstWarn = s.t;
+        if (s.t <= INTRO_S) expect(s.damageTaken, `t=${s.t.toFixed(2)}`).toBe(0);
+        s.events.length = 0;
+      }
+      expect(firstWarn).toBeGreaterThanOrEqual(INTRO_S);
+    });
+    it(`bölüm ${n}: ilk kez oynayan oyuncular yazı sırasında can kaybetmez`, () => {
+      for (let k = 0; k < 6; k++) {
+        const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
+        const { w, s } = setup(spec);
+        runHuman(w, s, humanSeed(n, k), { maxT: INTRO_S, params: firstTimerOf(k) });
+        expect(s.damageTaken, `k${k}`).toBe(0);
+      }
+    });
+  }
+  it('öğretici an yalnız 20\'de, ilk saplı yumrukta bir kez', () => {
+    const count = (n: number) => {
+      const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
+      const { w, s } = setup(spec); s.events = []; const p = new Planner(w);
+      let tutors = 0; let slamAt = -1; let tutorAt = -1;
+      while (!s.finished && !s.failed && s.t < 60) {
+        step(w, s, p.next(s));
+        for (const e of s.events) { if (e.k === 'bossTutor') { tutors++; if (tutorAt < 0) tutorAt = s.t; } if (e.k === 'bossSlam' && slamAt < 0) slamAt = s.t; }
+        s.events.length = 0;
+      }
+      return { tutors, slamAt, tutorAt };
+    };
+    const g = count(20); expect(g.tutors).toBe(1); expect(g.tutorAt).toBe(g.slamAt);
+    expect(count(40).tutors).toBe(0);
+  }, 120_000);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Tutorial } from './tutorial';
+import { bossTutorial, Tutorial } from './tutorial';
 import type { BiomeBackdrop, LevelHudView } from './visuals';
 
 /** öğretici an: ipuçları gizliyken (temiz çekim, `?ipucu=0`) el işareti ve yazı çizilmez; an (olay metni) sürer */
@@ -24,5 +24,15 @@ describe('öğretici an ipucu görünürlüğü', () => {
   it('an sürerken gizlenince görsel kalkar', () => {
     const f = fake(); const t = new Tutorial('kayma', 1, f.hud, f.backdrop); t.hide(); t.done();
     expect(f.calls.filter((c) => c === 'hide')).toHaveLength(1);
+  });
+});
+
+describe('ilk canavar öğretici anı', () => {
+  it('çakılma el işareti, vuruş yolunu söyleyen yazı; yalnız canavara vuruş "başardın" sayılır', () => {
+    const f = fake(); const t = bossTutorial(f.hud, f.backdrop, true);
+    expect(f.calls[0]).toBe('show:swipeDown:Zayıf nokta: parlayan yumruk');
+    expect(t.text).toMatch(/zıpla, havada aşağı kaydır/);
+    expect(t.boss).toBe(true); expect(t.success).toEqual(['bossHit']); expect(t.success).not.toContain('poundland');
+    expect(new Tutorial('cakil', 1, f.hud).boss).toBe(false);
   });
 });

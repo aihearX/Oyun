@@ -14,7 +14,7 @@ import type { EntityView } from './view';
 import { I, R, T, softGlowTex, sparkTex, ringTex, puffTex, drawGoldNote } from './tex';
 import { circle, css, FONT, glow, heartPath, makeCanvas, rng, screenOrigin, taperHair, THEME, tono, type Ctx } from './util';
 import { fxQuality } from './quality';
-import { blinkOn, flashesEnabled, HIT_FILL } from './flash';
+import { blinkOn, flashesEnabled, HIT_FILL, motionReduced } from './flash';
 
 const ADD = Phaser.BlendModes.ADD;
 type Img = Phaser.GameObjects.Image;
@@ -26,6 +26,8 @@ export interface BossArtState {
   waves: { x: number; kind: 'low' | 'high'; dir?: number }[];
   warnWall: { side: -1 | 1; kind: string } | null; notes: { x: number; y: number; got: boolean }[]; core: { x: number } | null;
   heroX?: number;
+  /** öğretici an (ilk canavar): saplı yumruk parlar — hareket azaltmada yanıp sönmez, sabit vurgu */
+  focus?: boolean;
 }
 export interface BossArt { update(b: BossArtState, groundY: number): void; destroy(): void; /** can çubuğu: görünüm genişliğinde ortalı, oyun içi göstergenin inişi kadar aşağıda (tasarım px) */ layout(viewW: number, top: number): void }
 
@@ -113,17 +115,24 @@ const downTex = (s: Phaser.Scene) => T(s, 'bs-down', 34, 30, (c) => {
   for (const [y, a] of [[6, 0.6], [14, 1]] as [number, number][]) { c.strokeStyle = `rgba(90,40,0,${0.6 * a})`; c.lineWidth = 7; c.beginPath(); c.moveTo(7, y); c.lineTo(17, y + 9); c.lineTo(27, y); c.stroke(); c.strokeStyle = `rgba(255,214,90,${a})`; c.lineWidth = 4; c.beginPath(); c.moveTo(7, y); c.lineTo(17, y + 9); c.lineTo(27, y); c.stroke(); }
 });
 const noteTex = (s: Phaser.Scene) => T(s, 'bs-note', 24, 26, (c) => drawGoldNote(c, 12, 13, 18, false));
-const barPanelTex = (s: Phaser.Scene) => T(s, 'bs-bar-panel', 296, 54, (c) => {
-  c.save(); c.shadowColor = 'rgba(5,0,25,0.6)'; c.shadowBlur = 10; c.shadowOffsetY = 3; c.beginPath(); c.roundRect(8, 6, 280, 40, 14);
-  const g = c.createLinearGradient(0, 6, 0, 46); g.addColorStop(0, css(0x3a2788, 0.92)); g.addColorStop(1, css(0x1a1046, 0.94)); c.fillStyle = g; c.fill(); c.restore();
-  c.save(); c.beginPath(); c.roundRect(8, 6, 280, 40, 14); c.clip(); const sh = c.createLinearGradient(0, 6, 0, 26); sh.addColorStop(0, 'rgba(255,255,255,0.16)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = sh; c.fillRect(8, 6, 280, 20); c.restore();
-  c.beginPath(); c.roundRect(8.75, 6.75, 278.5, 38.5, 13.5); c.strokeStyle = css(THEME.gold, 0.7); c.lineWidth = 1.5; c.stroke();
-  // çubuk yuvası
-  c.beginPath(); c.roundRect(46, 29, 232, 10, 5); c.fillStyle = 'rgba(8,2,26,0.85)'; c.fill(); c.strokeStyle = 'rgba(255,201,60,0.35)'; c.lineWidth = 1; c.stroke();
+/**
+ * Can çubuğu ölçüleri (tasarım px; kutu 280 geniş, dokuda üstte 6 px gölge payı). Büyük yazıda (kayıttaki 'textScale' > 1) çubuk
+ * iki kat kalın, kutu yazılarla birlikte uzar (YN-091). barY: çubuk ortasının dokudaki y'si.
+ */
+interface BarDims { h: number; barH: number; barY: number; textY: number }
+const barDims = (big: boolean): BarDims => big ? { h: 58, barH: 16, barY: 50, textY: 22 } : { h: 40, barH: 8, barY: 34, textY: 21 };
+const barPanelTex = (s: Phaser.Scene, d: BarDims) => T(s, `bs-bar-panel-${d.h}`, 296, d.h + 14, (c) => {
+  const b = 6 + d.h;
+  c.save(); c.shadowColor = 'rgba(5,0,25,0.6)'; c.shadowBlur = 10; c.shadowOffsetY = 3; c.beginPath(); c.roundRect(8, 6, 280, d.h, 14);
+  const g = c.createLinearGradient(0, 6, 0, b); g.addColorStop(0, css(0x3a2788, 0.92)); g.addColorStop(1, css(0x1a1046, 0.94)); c.fillStyle = g; c.fill(); c.restore();
+  c.save(); c.beginPath(); c.roundRect(8, 6, 280, d.h, 14); c.clip(); const sh = c.createLinearGradient(0, 6, 0, 26); sh.addColorStop(0, 'rgba(255,255,255,0.16)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = sh; c.fillRect(8, 6, 280, 20); c.restore();
+  c.beginPath(); c.roundRect(8.75, 6.75, 278.5, d.h - 1.5, 13.5); c.strokeStyle = css(THEME.gold, 0.7); c.lineWidth = 1.5; c.stroke();
+  // çubuk yuvası: koyu oyuk (kalan can çubuğuyla kontrast ≥ 3:1)
+  const sh2 = d.barH + 2; c.beginPath(); c.roundRect(46, d.barY - sh2 / 2, 232, sh2, sh2 / 2); c.fillStyle = 'rgba(8,2,26,0.92)'; c.fill(); c.strokeStyle = 'rgba(255,201,60,0.35)'; c.lineWidth = 1; c.stroke();
 });
-const barFillTex = (s: Phaser.Scene) => T(s, 'bs-bar-fill', 230, 8, (c) => {
-  c.beginPath(); c.roundRect(0, 0, 230, 8, 4); const g = c.createLinearGradient(0, 0, 230, 0); g.addColorStop(0, '#ff3d6e'); g.addColorStop(0.6, '#ff5c8a'); g.addColorStop(1, '#ffb36b'); c.fillStyle = g; c.fill();
-  c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.roundRect(3, 1.2, 224, 2, 1); c.fill();
+const barFillTex = (s: Phaser.Scene, h: number) => T(s, `bs-bar-fill-${h}`, 230, h, (c) => {
+  c.beginPath(); c.roundRect(0, 0, 230, h, h / 2); const g = c.createLinearGradient(0, 0, 230, 0); g.addColorStop(0, '#ff3d6e'); g.addColorStop(0.6, '#ff5c8a'); g.addColorStop(1, '#ffb36b'); c.fillStyle = g; c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.5)'; c.beginPath(); c.roundRect(3, h * 0.15, 224, h / 4, 1); c.fill();
 });
 const pipTex = (s: Phaser.Scene, lit: boolean) => T(s, `bs-pip-${lit ? 1 : 0}`, 12, 12, (c) => {
   c.beginPath(); c.moveTo(6, 1); c.lineTo(11, 6); c.lineTo(6, 11); c.lineTo(1, 6); c.closePath(); c.fillStyle = lit ? css(THEME.coral) : css(0x2a1b63); c.fill(); c.strokeStyle = lit ? '#ffe0ea' : 'rgba(201,193,255,0.6)'; c.lineWidth = 1.2; c.stroke();
@@ -377,15 +386,18 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
   const cam = s.cameras.main; const O = screenOrigin(cam);
   const bar = add(s.add.container(O.x + 195, O.y + 124).setScrollFactor(0).setDepth(102));
   const layout = (viewW: number, top: number) => { const o = screenOrigin(cam); bar.setPosition(o.x + viewW / 2, o.y + 124 + top); };
-  const barBg = img(barPanelTex(s)); const fillKey = barFillTex(s);
-  const trail = img(fillKey, -102, 7).setOrigin(0, 0.5).setTintFill(0xfff6e5).setAlpha(0.85); // durağan hasar izi (flaş değil)
-  const fill = img(fillKey, -102, 7).setOrigin(0, 0.5);
-  const icon = img(kind === 'golem' ? golemEyeTex(s) : canEyeTex(s), -122, 1).setScale(0.62 / R());
-  const nameT = s.add.text(-102, -6, name, { fontFamily: FONT, fontSize: '13px', fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 3, resolution: R() }).setOrigin(0, 0.5);
-  const phaseT = s.add.text(92, -6, 'Faz 1', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#ffc93c', resolution: R() }).setOrigin(1, 0.5);
+  // Büyük yazı: ad, faz yazısı ve çubuk göstergenin sayaçlarıyla aynı ölçekte (render/hud.ts: sayaç 20·k, koklea 15·k)
+  const tk = Number(s.registry?.get('textScale')) || 1; const D = barDims(tk > 1); const cy = (D.h + 14) / 2;
+  const barBg = img(barPanelTex(s, D)); const fillKey = barFillTex(s, D.barH); const fy = D.barY - cy, ty = D.textY - cy;
+  // durağan hasar izi (flaş değil): koyu gül rengi — kalan candan ayrı okunur, boş oyukla karışmaz
+  const trail = img(fillKey, -102, fy).setOrigin(0, 0.5).setTintFill(0x6a2440);
+  const fill = img(fillKey, -102, fy).setOrigin(0, 0.5);
+  const icon = img(kind === 'golem' ? golemEyeTex(s) : canEyeTex(s), -122, tk > 1 ? -2 : 1).setScale((tk > 1 ? 0.8 : 0.62) / R());
+  const nameT = s.add.text(-102, ty, name, { fontFamily: FONT, fontSize: `${Math.round(13 * tk)}px`, fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 3, resolution: R() }).setOrigin(0, 0.5);
+  const phaseT = s.add.text(tk > 1 ? 128 : 92, ty, 'Faz 1', { fontFamily: FONT, fontSize: `${Math.round((tk > 1 ? 15 : 11) * tk)}px`, fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: tk > 1 ? 3 : 0, resolution: R() }).setOrigin(1, 0.5);
   // faz elmasları: çubuk üzerinde 2/3 ve 1/3 çentikleri
   const notchX = (r: number) => -102 + 230 * r;
-  const notches = [2 / 3, 1 / 3].map((r) => img(pipTex(s, false), notchX(r), 7).setScale(0.8 / R()));
+  const notches = [2 / 3, 1 / 3].map((r) => img(pipTex(s, false), notchX(r), fy).setScale((tk > 1 ? 1.3 : 0.8) / R()));
   bar.add([barBg, trail, fill, ...notches, icon, nameT, phaseT]);
   const fullW = s.textures.getFrame(fillKey)!.width; const fullH = s.textures.getFrame(fillKey)!.height;
   let shownRatio = 1; let trailRatio = 1; let trailHold = 0;
@@ -515,7 +527,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
         v.c.setVisible(true);
         let y = gy, sx = 1, sy = 1, a = 1, ang = 0;
         v.tg.setVisible(f.st === 'warn' || f.st === 'slam'); v.beam.setVisible(f.st === 'warn');
-        v.down.setAlpha(0); v.cr.setAlpha(0); v.gl.setAlpha(0);
+        v.down.setAlpha(0); v.cr.setAlpha(0); v.gl.setAlpha(0).setDisplaySize(150, 150);
         if (f.st === 'warn') {
           const p = clamp01((t - v.t0) / Math.max(0.1, f.until - v.t0));
           y = gy - 300 - (1 - ease(p * 3)) * 140 - Math.sin(p * Math.PI) * 18 + Math.sin(t * 34) * (2 + p * 4); ang = Math.sin(t * 28) * (2 + p * 5);
@@ -534,6 +546,8 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
           // "buraya çakıl" işareti: altın oklar + üst kenar ışığı
           v.down.setAlpha(0.95).setY(-96 + Math.sin(t * 9) * 5);
           v.gl.setTint(THEME.gold).setAlpha(0.28 + Math.sin(t * 9) * 0.1);
+          // öğretici an (ilk canavar): zayıf nokta belirgin parlar; hareket azaltmada nabız yok, sabit vurgu
+          if (b.focus) { const calm = motionReduced(); v.gl.setTint(0xffe08a).setDisplaySize(230, 230).setAlpha(calm ? 0.85 : 0.7 + Math.sin(t * 6) * 0.15); v.im.setTint(0xfff0c8); if (calm) v.down.setY(-100); }
         } else if (f.st === 'up') {
           const u = clamp01(1 - (f.until - t) / 0.3); y = gy - ease(u) * 320; a = 1 - u;
           if (f.hit) { v.cr.setAlpha(1 - u * 0.5); v.im.setTintFill(u < 0.25 && flashesEnabled() ? HIT_FILL : 0xffe0a0); if (u >= 0.25) v.im.setTint(0xffc090); } else v.im.clearTint();

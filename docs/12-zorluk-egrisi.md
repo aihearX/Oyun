@@ -367,6 +367,7 @@ bölümü. Ölçüm aracı: `zorluk.mjs --bolumler --k 48` ile aynı oyuncular.
 - **Boss 20 denendi, değiştirilmedi:** golemin canı 14 → 16-20 ve temposu ×0,9-1,2 (96 oyuncu, iki tohum kümesi) savaşı 25-34 sn'ye
   uzatıyor ama can kaybını 1,7-2,0'a çıkarıyor (bitirme %58-72): 20 bu durumda 33-39 finallerinden, hatta 40'tan zor olur ("üst
   kademe daha zor" bozulur). Can 16 / tempo ×1,1 bile 1,75 can (39: 1,65). Ölçüm gürültüsü yüksek (tempo saldırı sırasını da değiştirir).
+- **Giriş yazısında saldırı yok + ilk canavar dersi (YN-091, 240 oyuncu, Bölüm 20):** ilk uyarı 2,4 → 4 sn (yazı 3,2 sn; 40'ta 1,6 → 4), ilk saplı yumrukta bir kez ağır çekim ders; 0,4 beceri %55 → %65 bitirme (2,15 → 1,98 can), ilk kez oynayan %8 → %9 (2,90 → 2,89). İlk saldırının anı hizalamayı değiştirdiği için oran ona duyarlı (96 oyuncuda 3,2-7,4 sn arası %34-64); 4 sn ölçülen değer.
 - **Kademe adımı (finalden finale):** 13+ zinciri 19 → 23 → 26 → 30 → 33 → 36 → 39 can kaybında yükseliyordu, ama 23 bitirmede ve
   denemede 19'dan kolaydı (%92 / %88). 23'ün varyantı 14 aday arasından (24 + 24 oyuncu, adaylar ek 48 oyuncuyla) **v4 → v17**:
   %81 bitirme, 1,27 can, 0,92 düşme, 1,23 deneme. 96 oyuncuda 19 %86 · 1,07 · 0,73, 26 %79 · 1,20 · 0,83, 23 (v17) %82 · 1,36 ·

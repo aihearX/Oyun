@@ -14,6 +14,14 @@ import { cloneState, hurt, step, NO_INPUT, type R, type SimState } from './sim';
  */
 
 export const ARENA_W = 390;
+/** bölümün giriş yazısının ekranda kaldığı süre (sn; LevelScene alt şeridi) */
+export const INTRO_S = 3.2;
+/**
+ * Giriş yazısı varken ilk saldırının uyarısı (telegraf) en erken bu anda başlar: yazı (INTRO_S) kapanır, 0,8 sn nefes — oyuncu
+ * yazıyı okurken canavar saldırmaz (YN-091). Yalnız ilk saldırı ertelenir; uyarı süreleri ve sonraki tempo aynı. Ölçüm (insan
+ * modeli, Bölüm 20): ilk saldırının anı hizalamayı değiştirir, bitirme oranı ona duyarlı; 4 sn ölçülen değerdir (docs/12 §6).
+ */
+export const BOSS_CALM_S = 4;
 export const WALL_W = 26;
 export const RUN_L = WALL_W + C.HERO_HW;
 export const RUN_R = ARENA_W - WALL_W - C.HERO_HW;
@@ -28,6 +36,8 @@ export interface BossState {
   fists: Fist[]; balls: Ball[]; drops: Drop[]; waves: Wave[]; warnWall: { side: -1 | 1; at: number; kind: 'low' | 'high' | 'ball'; pair: boolean } | null;
   notes: { x: number; y: number; got: boolean }[]; core: { x: number; until: number; immune: number } | null;
   seed: number; lastHit: number; respawned: boolean; fistIds: number[]; hits: number;
+  /** ilk canavarın öğretici anı ('bossTutor' olayı) bu koşuda verildi mi */
+  tutored: boolean;
 }
 
 export function cloneBoss(b: BossState): BossState {
@@ -43,10 +53,11 @@ export function bossInit(w: World, s: SimState): void {
   addEntity(w, { type: 'wall', x: ARENA_W - WALL_W, y: GROUND_Y - 640, w: WALL_W, h: 640 });
   const fistIds = [0, 1].map((i) => addEntity(w, { type: 'platform', x: 0, y: GROUND_Y - 64, w: 80, h: 64, props: { boss: 'fist', slot: i } }));
   const hp = spec?.hp ?? (kind === 'golem' ? 12 : 18);
+  const calm = w.spec.intro ? BOSS_CALM_S : 0;
   s.boss = {
     kind, name: spec?.name ?? (kind === 'golem' ? 'Serumen Golemi' : 'Gürültü Canavarı'), hp, maxHp: hp, phase: 1, defeated: false, defeatAt: 0,
-    mode: 'idle', until: 2.4, nextAttack: kind === 'canavar' ? 1.6 : 2.4, nextBall: 6, nextDrop: 4, nextScream: kind === 'canavar' ? 7 : 1e9,
-    fists: [], balls: [], drops: [], waves: [], warnWall: null, notes: [], core: null, seed: (w.spec.seed ^ 0x5bd1e995) >>> 0, lastHit: -9, respawned: false, fistIds, hits: 0,
+    mode: 'idle', until: 2.4, nextAttack: Math.max(calm, kind === 'canavar' ? 1.6 : 2.4), nextBall: 6, nextDrop: 4, nextScream: kind === 'canavar' ? 7 : 1e9,
+    fists: [], balls: [], drops: [], waves: [], warnWall: null, notes: [], core: null, seed: (w.spec.seed ^ 0x5bd1e995) >>> 0, lastHit: -9, respawned: false, fistIds, hits: 0, tutored: false,
   };
   s.hero.x = 120; s.hero.y = GROUND_Y; s.hero.dir = 1;
   s.cp = { x: 195, y: GROUND_Y, dir: 1, odo: 0 }; s.safe = [s.cp];
@@ -125,7 +136,11 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
     else if (f.st === 'slam') {
       // yumruk yere iner: yalnızca yerdekine (ayağı yumruk boyundan alçakta) değer — zamanında zıplayan kurtulur
       if (hit(hb, f.x - 38, GROUND_Y - 60, f.x + 38, GROUND_Y + 4)) hurt(w, s, 'yumruk', f.x);
-      if (t >= f.until) { f.st = 'planted'; f.until = t + (b.phase === 3 ? 1.8 : 2.1); if (s.events) s.events.push({ k: 'bossSlam', x: f.x, y: GROUND_Y }); }
+      if (t >= f.until) {
+        f.st = 'planted'; f.until = t + (b.phase === 3 ? 1.8 : 2.1); if (s.events) s.events.push({ k: 'bossSlam', x: f.x, y: GROUND_Y });
+        // ilk canavar (20): ilk saplı yumrukta bir kez öğretici an (LevelScene ağır çekim + el işareti; insan modeli de yavaşlar)
+        if (!b.tutored) { b.tutored = true; if (s.events) s.events.push({ k: 'bossTutor', x: f.x, y: GROUND_Y - 64, n: f.slot }); }
+      }
     } else if (f.st === 'planted') {
       // saplı yumruğun üstüne çakıl → hasar
       if (h.grounded && h.groundId === b.fistIds[f.slot] && h.poundLandT === t && !f.hit) { f.hit = true; damageBoss(w, s, 2, 'cakil'); f.st = 'up'; f.until = t + 0.3; h.vy = -520; h.grounded = false; }
