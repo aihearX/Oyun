@@ -270,6 +270,9 @@ async function webSuite(bt) {
     await syncTeam(C);
     await C.page.locator('.result-title').click().catch(() => undefined);
     await tid(C, 'yardim-iste').waitFor({ timeout: 15_000 });
+    // YN-081: kayıpta yardım kartı ilk ekranda, "Tekrar dene"nin hemen üstünde (kaydırmadan)
+    const yb = await tid(C, 'yardim-iste').boundingBox(); const tb = await C.page.locator('.result-actions .abtn.primary').boundingBox();
+    S.check(!!yb && !!tb && yb.y >= 0 && yb.y + yb.height <= tb.y + 1 && tb.y + tb.height <= VH, `yardım kartı kaydırmadan görünür, "Tekrar dene"nin üstünde (${JSON.stringify(yb)} / ${JSON.stringify(tb)})`);
     await tid(C, 'yardim-iste').scrollIntoViewIfNeeded();
     await S.shot(C, 'sonuc-yardim-iste');
     await tid(C, 'yardim-iste-dugme').click();
@@ -328,6 +331,27 @@ async function webSuite(bt) {
     const inboxB = (await net(B, 'inbox.list', {})).items.filter((i) => i.ref === 'yardim').reduce((a, i) => a + i.amount, 0);
     const inboxC = (await net(C, 'inbox.list', {})).items.filter((i) => i.ref === 'yardim').reduce((a, i) => a + i.amount, 0);
     S.check(inboxB === 20 && inboxC === 15, `ödüller bir kez: yardım eden 20, isteyen 15 (${inboxB}/${inboxC})`);
+
+    // ---- Takıma meydan oku (YN-081): "Takıma gönder" tek adımlı onay ister; Vazgeç'te sohbete bir şey gitmez
+    const feedCount = async () => (await net(C, 'chat.join', { room: `takim:${await C.page.evaluate(() => window.__etkinlik.netStore.getState().team.id)}` })).history.filter((m) => m.meta?.type === 'meydan').length;
+    await C.page.goto(`${base}&demo=sonuc&yildiz=3&skor=2480&bolum=2&kutlama=0`, { waitUntil: 'load' });
+    await C.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 25_000 });
+    await syncTeam(C);
+    await C.page.locator('.result-title').click().catch(() => undefined);
+    await tid(C, 'takima-meydan').waitFor({ timeout: 15_000 }); await tid(C, 'takima-meydan').scrollIntoViewIfNeeded();
+    const once = await feedCount();
+    await tid(C, 'takima-meydan-dugme').click();
+    await tid(C, 'takima-meydan-onay').waitFor({ timeout: 5000 });
+    await S.shot(C, 'takima-meydan-onay');
+    await tid(C, 'takima-meydan-vazgec').click(); await tid(C, 'takima-meydan-dugme').waitFor({ timeout: 5000 });
+    S.check((await feedCount()) === once, 'Takıma gönder: onaysız sohbete kart düşmez (Vazgeç)');
+    await tid(C, 'takima-meydan-dugme').click(); await tid(C, 'takima-meydan-onay').click();
+    await tid(C, 'takima-meydan').locator('b', { hasText: 'Meydan okudun!' }).waitFor({ timeout: 8000 });
+    S.check((await feedCount()) === once + 1, 'onaydan sonra meydan okuma kartı takım sohbetinde');
+    await C.page.goto(base, { waitUntil: 'load' });
+    await C.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 25_000 });
+    await C.page.getByRole('button', { name: /Yola çık|Devam et/ }).click(); await C.page.locator('nav.tabbar').waitFor(); await settle(C);
+    await toastGone(C);
 
     // ---- Usta–Çırak: Ayşe (11. bölüm) Cem'e (3. bölüm) teklif eder
     await closeBanners(A);

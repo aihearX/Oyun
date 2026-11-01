@@ -1,6 +1,6 @@
 import type { LevelSpec, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, TIER_NAMES, achievementById, achievementDesc, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
-import { levelProgress, lossView, star3View, type RunSummary } from '@odi/meta';
+import { levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -75,8 +75,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   const timed = spec.objective.id === 'timed';
-  const loss = result.completed ? null : lossView(result);
-  const star3 = result.completed ? star3View(spec, result) : null;
+  const loss = result.completed ? null : lossView(result, spec);
+  // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
+  const starNext = !result.completed ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
 
   // zaman çizelgesi
   useEffect(() => {
@@ -161,10 +162,11 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
   const share = async () => {
     const link = inviteUrl({ level: spec.number, score: result.completed ? result.score : 0, stars: result.stars });
-    const text = result.completed ? `ODİ: ${spec.number}. bölümü ${'⭐'.repeat(result.stars)} ile ${result.score} puanla geçtim. Kulak kabartır mısın, beni geçebilir misin? ${link}` : `ODİ'de ${spec.number}. bölümde takıldım. Sen geçebilir misin? ${link}`;
+    // uygulama dışına giden metin: emoji yok (OT-rekabetci-14)
+    const text = result.completed ? `ODİ: ${spec.number}. bölümü ${result.stars} yıldızla, ${result.score} puanla geçtim. Kulak kabartır mısın, beni geçebilir misin? ${link}` : `ODİ'de ${spec.number}. bölümde takıldım. Sen geçebilir misin? ${link}`;
     const r = await platform().share(text);
     if (r !== 'cancelled' && !demo) store.recordShare();
-    if (r === 'copied') { setToast('Bağlantı kopyalandı'); setTimeout(() => setToast(''), 1500); }
+    if (r === 'copied') { setToast('Bağlantı kopyalandı: arkadaşına yapıştır, skorunu geçmeye çalışsın.'); setTimeout(() => setToast(''), 3200); }
   };
 
 
@@ -191,20 +193,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
             : <div className="card"><div className="v"><Art name="heart" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
           {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
-          <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{Math.round(result.timeSec)} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
-          {/* kayıpta neden (3. yıldız kartı kaybın sebebi sanılmasın); kazançta 3. yıldızın tam koşulu ve her yarının ilerlemesi (YN-070) */}
-          {loss ? (
-            <div className="card result-obj result-why" data-testid="sonuc-neden">
-              <small className="result-obj-h">Neden olmadı?</small>
-              <b className="result-why-t">{loss.title}</b>
-              {loss.detail && <span className="result-why-d">{loss.detail}</span>}
-              {loss.tip && <span className="result-why-tip"><Art name="bulb" size={16} className="art-inline" />{loss.tip}</span>}
-            </div>
-          ) : star3 && (
-            <div className={`card result-obj${star3.done ? ' met' : ''}`} data-testid="sonuc-yildiz3">
-              <small className="result-obj-h">3. yıldız{star3.rows.length > 1 ? ' · biri yeter' : ''}{star3.done ? ' · tamam' : ''}</small>
+          <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
+          {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
+          {starNext && (
+            <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
+              <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
               <ul className="result-star3">
-                {star3.rows.map((row, i) => (
+                {starNext.v.rows.map((row, i) => (
                   <li key={i} className={row.done ? 'met' : ''}>
                     <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
                     <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
@@ -240,7 +235,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         )}
 
         {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
-        {step >= S + 3 && <ResultComm level={spec.number} completed={result.completed} demo={demo} />}
+        {result.completed && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
 
         {challenge && challenge.level === spec.number && challenge.score > 0 && (
           <div className="card" style={{ width: '100%' }}>
@@ -302,6 +297,15 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             </>
           ) : (
             <>
+              {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı ilk ekranda, "Tekrar dene"nin hemen üstünde (OT-ilk-kez-oyun-15) */}
+              {loss && (
+                <div className="card result-obj result-why" data-testid="sonuc-neden">
+                  <small className="result-obj-h">Neden olmadı?</small>
+                  <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
+                  {loss.tip && <span className="result-why-tip"><Art name="bulb" size={16} className="art-inline" />{loss.tip}</span>}
+                </div>
+              )}
+              {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
               <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
               <div className="abtn-grid">
                 {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}

@@ -6,7 +6,7 @@ const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind ==
 import {
   addDays, advanceStreak, albumProgress, applyGrant, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
   clearedInRow, dailyFor, dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
-  lossView, nextGoal, nextTreasure, star3View, yuzdeEki, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
+  lossView, nextGoal, nextTreasure, runTimeSec, star2View, star3View, sureYazi, yuzdeEki, yuzdeIyelik, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
 } from './index';
 
@@ -242,6 +242,41 @@ describe('ilerleme geri bildirimi', () => {
     expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'gurultu' } })).tip).toBe('');
     expect(lossView(run({ completed: false, stars: 0, damageTaken: 2, extra: { reason: 'bilinmeyen' } })).detail).toBe('2 kez hasar aldın.');
     expect(lossView(run({ completed: false, stars: 0, extra: { reason: 'yaris-bitti' } })).title).toBe('Yarış bitti');
+  });
+  it('kayıpta ipucu: yeni mekaniğin ilk iki bölümünde mekaniğin kendi ipucu (YN-081)', () => {
+    const fall = run({ completed: false, stars: 0, damageTaken: 1, extra: { reason: 'fall' } });
+    // 13 Çekiç kancanın ilk bölümü: zıplama değil kanca
+    expect(lossView(fall, spec(13)).tip).toBe('Kancanın yanında basılı tut: sallan, bırak: fırla · Havada aşağı kaydır: çakıl');
+    expect(lossView(fall, spec(14)).tip).toContain('Kancanın yanında');
+    expect(lossView(fall, spec(15)).tip).toBe('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+    // koşu temel mekanik; yüzmenin kendi nedenleri (nefes) kendi ipucunu korur
+    expect(lossView(fall, spec(1)).tip).toBe('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+    expect(lossView(run({ completed: false, stars: 0, damageTaken: 1, extra: { reason: 'nefes' } }), spec(21)).tip).toBe('Arada yüzeye çıkıp nefes al.');
+    expect(lossView(fall, spec(21)).tip).toContain('Sıvıda basılı tut');
+  });
+  it('boss kaybında kapı değil canavarın gücü (YN-081)', () => {
+    const boss = { ...spec(20), coinsTotal: 0, boss: { id: 'serumen-golemi', name: 'Serumen Golemi', hp: 12, phases: 3, biome: 'kanal' as const } };
+    expect(nextGoal(boss, run({ completed: false, stars: 0, extra: { pct: 0.57 } })).text).toBe("Serumen Golemi gücünün %43'ü kaldı!");
+    expect(nextGoal(boss, run({ completed: false, stars: 0, extra: { pct: 0.1 } })).text).toBe("Serumen Golemi gücünün %90'ı kaldı!");
+    expect(nextGoal({ ...spec(20), boss: undefined }, run({ completed: false, stars: 0, extra: { pct: 0.98 } })).text).toBe("Canavar gücünün %2'si kaldı!");
+    expect([1, 2, 3, 6, 9, 10, 40, 43, 100].map((n) => `%${n}'${yuzdeIyelik(n)}`)).toEqual(["%1'i", "%2'si", "%3'ü", "%6'sı", "%9'u", "%10'u", "%40'ı", "%43'ü", "%100'ü"]);
+  });
+  it('süreli hedef: gösterilen süre karşılaştırmayla çelişmez (YN-081)', () => {
+    expect([64, 64.4, 64.04, 63.96, 0].map(sureYazi)).toEqual(['64', '64,4', '64,1', '64', '0']);
+    const t = { ...spec(18), objective: { id: 'timed' as const, target: 64, target2: 75, label: '64 saniyede bitir' } };
+    const late = run({ stars: 2, coins: 20, timeSec: 64.4, objectiveMet: false });
+    expect(star3View(t, late).rows[1]).toEqual({ text: '64 saniyede bitir', done: false, note: '64,4\u00a0sn sürdü, 0,4\u00a0sn geç' });
+    // sonuç onda bire yuvarlı (64,03 → 64,0) ama hedef tutmadı: gösterilen süre hedeften kısa ya da eşit olmaz
+    const edge = run({ stars: 2, coins: 20, timeSec: 64, objectiveMet: false });
+    expect(runTimeSec(t, edge)).toBeGreaterThan(64); expect(star3View(t, edge).rows[1]!.note).toBe('64,1\u00a0sn sürdü, 0,1\u00a0sn geç');
+    expect(runTimeSec(t, run({ timeSec: 63.5, objectiveMet: true }))).toBe(63.5);
+  });
+  it('1★ sonucunda 2. yıldızın koşulları (YN-081)', () => {
+    expect(star2View(spec(2), run({ stars: 1, coins: 10 }))).toEqual({ done: false, rows: [{ text: '18 nota', done: false, note: '8\u00a0nota kaldı' }] });
+    const t = { ...spec(4), objective: { id: 'timed' as const, target: 64, target2: 75, label: '64 saniyede bitir' } };
+    expect(star2View(t, run({ stars: 1, coins: 10, timeSec: 80.2, objectiveMet: false })).rows).toEqual([
+      { text: '18 nota', done: false, note: '8\u00a0nota kaldı' }, { text: '75 saniyede bitir', done: false, note: '80,2\u00a0sn sürdü, 5,2\u00a0sn geç' }]);
+    expect(star2View({ ...spec(20), coinsTotal: 0 }, run({ stars: 1, damageTaken: 2 })).rows).toEqual([{ text: 'En çok 1 kez hasar al', done: false, note: '2\u00a0hasar aldın' }]);
   });
   it('sıradaki hazine ve yenilik duyuruları', () => {
     expect(nextTreasure(3, {})).toMatchObject({ level: 5, remaining: 3 });

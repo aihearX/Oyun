@@ -82,7 +82,16 @@ try {
   await cel(p, 'levelUp', { level: 7, unlocks: ['Yeni hareket: Çift zıplama', 'Kulak Kartı: Örs', 'Kostüm: Kaşif şapkası'] });
   await sleep(450); await shot(p, '17-seviye-patlama');
   await sleep(1900); await shot(p, '18-seviye-liste');
-  await p.getByRole('button', { name: 'Harika!' }).click(); await sleep(700);
+  await p.getByRole('button', { name: 'Harika!' }).click();
+  // YN-081: pencere kapanınca ~400 ms alttaki ekran dokunuş almaz (pencereye giden dokunuş alttaki düğmeye geçmesin), sonra alır
+  {
+    await p.waitForFunction(() => !document.querySelector('.cel-root.on'), null, { timeout: 3000 });
+    const ust = () => p.evaluate(() => document.elementFromPoint(innerWidth / 2, innerHeight * 0.7)?.className ?? '');
+    const hemen = await ust(); await sleep(550); const sonra = await ust();
+    if (!/cel-shield/.test(hemen)) errors.push(`seviye penceresi kapanınca dokunuş kalkanı yok (en üstte: ${hemen})`);
+    if (/cel-shield/.test(sonra)) errors.push('dokunuş kalkanı 550 ms sonra hâlâ duruyor');
+  }
+  await sleep(150);
   await cel(p, 'biomeRestored', { biome: 'koklea-1', name: 'Koklea · Taban', reward: [{ kind: 'jeton', amount: 200 }, { kind: 'kristal', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'renk-turkuaz' }] });
   await sleep(700); await shot(p, '19-biyom-yukselis');
   await sleep(2900); await shot(p, '20-biyom-canlandi');

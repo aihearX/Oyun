@@ -306,6 +306,11 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-why-d { font-size:0.875rem; font-weight:800; line-height:1.35; color:var(--text); overflow-wrap:anywhere; }
 .result-why-tip { font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
 .result-why-tip .art { vertical-align:-3px; margin-right:4px; }
+/* YN-081: kayıpta neden kartı yapışkan alt bölgede ("Tekrar dene"nin üstünde): başlık ve ayrıntı tek akış, ipucu altında */
+.result-actions .result-why { display:flex; flex-direction:column; gap:3px; text-align:left; padding:8px 12px; }
+.result-why-l { display:flex; flex-wrap:wrap; align-items:baseline; column-gap:6px; row-gap:1px; }
+/* "Bağlantı kopyalandı: …" (OT-rekabetci-14): iki satıra inebilir; düğmelerin üstünde değil, ekranın üstünde */
+.result-screen .toast { bottom:auto; top:calc(var(--sat) + 12px); width:max-content; max-width:calc(100vw - 32px); border-radius:18px; text-align:center; line-height:1.35; }
 /* dar ekranda / büyük yazıda satır sığmazsa ilerleme alta iner */
 @media (max-width:360px) { .result-star3 li { grid-template-columns:auto minmax(0,1fr); } .result-star3 li .rs3-n { grid-column:2; text-align:left; white-space:normal; } }
 html.buyuk-yazi .result-star3 li { grid-template-columns:auto minmax(0,1fr); }
@@ -339,7 +344,11 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
   .result-screen .star-slot:nth-child(2) { width:70px; height:70px; transform:translateY(-10px); }
   .result-screen .score-line { min-height:0; gap:4px; }
   .result-screen .result .score { font-size:clamp(36px, 11vw, 44px); }
-  .result-screen .stats .card { padding:8px 4px; }
+  .result-screen .stats .card { padding:8px 4px; gap:2px; }
+  /* YN-081: sıradaki yıldızın kartı (iki satır, Büyük yazıda notlar alt satırda) düğmelerin üstünde kalsın */
+  .result-screen .result-top { padding-top:6px; }
+  .result-screen .stats.has-wide .result-obj { padding:8px 10px; gap:4px; }
+  .result-screen .result-star3 { gap:4px; }
 }
 
 /* ---------------------------------------------------------------- harita (harita ekibi kendi sanatını Phaser'da çizer; DOM öğeleri tema renginde) */

@@ -24,7 +24,10 @@ type Scene =
   | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
   | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number };
 
-interface Job { run: () => Promise<void>; done: () => void }
+/** interactive: tam ekran sahne (sandık, seviye, biyom); kapanınca alttaki ekran kısa bir süre dokunuş almaz */
+interface Job { run: () => Promise<void>; done: () => void; interactive: boolean }
+/** sahne kapandıktan sonra alttaki ekranın dokunuş almadığı süre (ms) */
+const SHIELD_MS = 400;
 
 /** ödül öğesinin görünümü (ikon, ad, miktar) */
 export function itemView(it: RewardItem): { icon: string; name: string; amount: number | null; tone: string } {
@@ -45,6 +48,8 @@ const center = (el: Element | null | undefined): ScreenPoint | null => { if (!el
 
 export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   const [scene, setScene] = useState<Scene | null>(null);
+  // sahne kendiliğinden kapanırken pencerenin düğmesine giden dokunuş alttaki ekrana (ör. "Takıma gönder") geçmesin (OT-ekonomi-denetci-14)
+  const [shield, setShield] = useState(false); const shieldT = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null); const flyRef = useRef<HTMLDivElement>(null); const chestRef = useRef<HTMLDivElement>(null); const cardsRef = useRef<HTMLDivElement>(null);
   const fx = useRef<Particles | null>(null);
   const queue = useRef<Job[]>([]); const busy = useRef(false);
@@ -63,13 +68,14 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     const h = setTimeout(() => { waitBtn.current = null; res(); }, maxMs);
     waitBtn.current = () => { clearTimeout(h); waitBtn.current = null; res(); };
   });
-  const enqueue = (run: () => Promise<void>) => new Promise<void>((done) => { queue.current.push({ run, done }); void pump(); });
+  const enqueue = (run: () => Promise<void>, interactive = true) => new Promise<void>((done) => { queue.current.push({ run, done, interactive }); void pump(); });
   const pump = async () => {
     if (busy.current) return; busy.current = true;
     while (queue.current.length) {
       const j = queue.current.shift()!;
       try { await j.run(); } catch { /* kutlama hatası oyunu durdurmasın */ }
       setScene(null); j.done();
+      if (j.interactive) { setShield(true); clearTimeout(shieldT.current); shieldT.current = window.setTimeout(() => setShield(false), SHIELD_MS); }
     }
     busy.current = false;
   };
@@ -167,14 +173,14 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     const onResize = () => fx.current?.resize(); addEventListener('resize', onResize);
     registerCelebrations({
       chest: (o) => enqueue(() => runChest(o)),
-      coins: (o) => enqueue(() => flyCoins(o.amount, o.kind ?? 'jeton', o.from ?? null, false)),
+      coins: (o) => enqueue(() => flyCoins(o.amount, o.kind ?? 'jeton', o.from ?? null, false), false),
       levelUp: (o) => enqueue(() => runLevelUp(o)),
       biomeRestored: (o) => enqueue(() => runBiome(o)),
       banner: (o) => { const tone = o.tone === 'coral' ? 'coral' : o.tone === 'green' ? 'green' : o.tone === 'gold' ? 'gold' : 'accent'; useStore.setState((s) => ({ toasts: [...s.toasts, { id: Date.now() + Math.random(), icon: o.icon, title: o.title, text: o.body, tone }] })); },
     });
     // test/önizleme için (yalnızca ?demo / ?kutlama varken)
     if (/[?&](demo|kutlama)=/.test(location.search)) (window as unknown as { __celebrate?: unknown }).__celebrate = { ...celebrateRef };
-    return () => { removeEventListener('resize', onResize); fx.current?.destroy(); setFxEngine(null); registerCelebrations({ async chest() {}, async coins() {}, async levelUp() {}, async biomeRestored() {}, banner() {} }); };
+    return () => { clearTimeout(shieldT.current); removeEventListener('resize', onResize); fx.current?.destroy(); setFxEngine(null); registerCelebrations({ async chest() {}, async coins() {}, async levelUp() {}, async biomeRestored() {}, banner() {} }); };
   }, []);
 
   // anlatıcı turu kutlama süresince duraklar (ftue/Coach.tsx); kuyruktaki art arda kutlamalar arasında boşluk yok (aynı karede değişir)
@@ -192,6 +198,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
         {scene?.kind === 'chest' && <ChestScene s={scene} chestRef={chestRef} cardsRef={cardsRef} onTap={tapStage} onCollect={() => waitBtn.current?.()} />}
         {scene?.kind === 'levelUp' && <LevelUpScene s={scene} onTap={tapStage} onOk={() => waitBtn.current?.()} />}
         {scene?.kind === 'biome' && <BiomeScene s={scene} cardsRef={cardsRef} onTap={tapStage} onOk={() => waitBtn.current?.()} />}
+        {shield && !scene && <div className="cel-shield" data-testid="kutlama-kalkan" aria-hidden />}
         <canvas ref={canvasRef} className="cel-canvas" aria-hidden />
         <div ref={flyRef} className="cel-fly" aria-hidden />
       </div>

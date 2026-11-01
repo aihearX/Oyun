@@ -1130,11 +1130,25 @@ async function suite(browserName, target, [W, H]) {
     }
     if (want('sonuc')) {
       // YN-066: haritada bekleyen tanıtım (Kamp; iki açılım en uzun satır) → Sonraki yerine "Haritaya dön"
-      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki']]) {
+      for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki'],
+        // YN-081: 1★ (2. yıldızın koşulu ilk ekranda), süreli hedef 0,4 sn kaçtı, kanca bölümünde kayıp (mekaniğin ipucu), boss kaybı
+        ['demo=sonuc&bolum=7&yildiz=1&skor=980&kutlama=0', 'sonuc-yildiz1'], ['demo=sonuc&bolum=18&yildiz=2&skor=1650&sure=gec&kutlama=0', 'sonuc-sure-gec'],
+        ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
+        // YN-081: kaydırmadan görünmesi gerekenler (yapışkan düğmelerin altında kalmadan): sıradaki yıldızın kartı, kayıpta neden kartı
+        const ilk = await page.evaluate(() => {
+          // yapışkan bölgenin üst dolgusu saydam degrade: sınır ilk düğmenin (ya da kartın) üstü
+          const act = document.querySelector('.result-actions'); const aTop = act?.firstElementChild ? act.firstElementChild.getBoundingClientRect().top : innerHeight;
+          return ['[data-testid="sonuc-yildiz2"]', '[data-testid="sonuc-yildiz3"]', '[data-testid="sonuc-neden"]', '[data-testid="yardim-iste"]'].map((sel) => {
+            const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); const inAct = !!act?.contains(el);
+            return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
+          }).filter(Boolean);
+        });
         const rec = await check(label);
+        const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
+        if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
         const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
         if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
@@ -1144,9 +1158,23 @@ async function suite(browserName, target, [W, H]) {
           if (!/Canların bitti/.test(why)) fail(rec, `kayıp nedeni yazmıyor: "${why}"`);
           if (label === 'sonuc-kaybetti-diken' && !/en son dikene değdin/.test(why)) fail(rec, `son hasar yazmıyor: "${why}"`);
           if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, 'kayıpta 3. yıldız kartı görünüyor');
+          if (label === 'sonuc-kaybetti-kanca' && !/Kancanın yanında basılı tut/.test(why)) fail(rec, `kanca bölümünde kanca ipucu yok: "${why}"`);
+          const hedef = (await page.locator('.goal-card').textContent().catch(() => '')) ?? '';
+          if (label === 'sonuc-kaybetti-boss' && (/Kapıya/.test(hedef) || !/gücünün %\d+'(ı|i|u|ü|sı|si|su|sü) kaldı/.test(hedef))) fail(rec, `boss kaybında hedef cümlesi: "${hedef}"`);
+        } else if (label === 'sonuc-yildiz1') {
+          // 1★: 3. yıldız kartı yerine 2. yıldızın koşulu
+          const rows = await page.locator('[data-testid="sonuc-yildiz2"] li').allTextContents().catch(() => []);
+          if (!rows.length || !/nota kaldı/.test(rows[0] ?? '')) fail(rec, `2. yıldız kartı yok ya da ilerlemesiz: ${JSON.stringify(rows)}`);
+          if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, '1★ sonuçta 3. yıldız kartı görünüyor');
         } else {
           const rows = await page.locator('[data-testid="sonuc-yildiz3"] li').allTextContents().catch(() => []);
           if (!rows.length) fail(rec, '3. yıldız kartı yok');
+          if (label === 'sonuc-sure-gec') {
+            // süre kartı ve hedef satırı aynı sayıyı söyler, süre hedeften uzun: "64,4 sn sürdü, 0,4 sn geç"
+            const sure = (await page.locator('.stats .card', { has: page.locator('.art-timer') }).locator('.v').textContent().catch(() => '')) ?? '';
+            const m = /(\d+) saniyede bitir.*?(\d+(?:,\d)?)\s?sn sürdü, 0,4\s?sn geç/.exec(rows[1] ?? '');
+            if (!m || Number(m[2].replace(',', '.')) <= Number(m[1]) || !sure.includes(m[2])) fail(rec, `süreli hedef satırı/süre kartı tutarsız: ${JSON.stringify(rows)} · kart "${sure}"`);
+          }
           const want3 = { 'sonuc-yildiz-ya-da': [/nota kaldı/, /hasar aldın/], 'sonuc-yildiz-hepsi': [/nota topla.*nota kaldı/], 'sonuc-melodi': [/nota kaldı/, /sırayla/] }[label];
           if (want3 && (rows.length !== want3.length || want3.some((re, i) => !re.test(rows[i] ?? '')))) fail(rec, `3. yıldız satırları beklenen gibi değil: ${JSON.stringify(rows)}`);
         }

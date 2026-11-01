@@ -9,7 +9,7 @@ export function levelProgress(xp: number): { level: number; from: number; to: nu
   return { level, from, to, pct: Math.max(0, Math.min(1, (xp - from) / Math.max(1, to - from))) };
 }
 
-export type RunSpecLite = Pick<LevelSpec, 'number' | 'name' | 'biome' | 'mechanic' | 'objective' | 'parTimeSec' | 'coinsTotal'>;
+export type RunSpecLite = Pick<LevelSpec, 'number' | 'name' | 'biome' | 'mechanic' | 'objective' | 'parTimeSec' | 'coinsTotal'> & Partial<Pick<LevelSpec, 'boss'>>;
 export interface NextGoal { text: string; kind: 'yakin' | 'yildiz' | 'hazine' | 'sirada' | 'son' }
 
 /** "yüzde N"nin iyelik + belirtme eki, sayının okunuşuna göre: %1'ini %2'sini %3'ünü %6'sını %9'unu %40'ını %100'ünü */
@@ -22,10 +22,35 @@ export function yuzdeEki(n: number): string {
   return k % 10 ? birler[k % 10]! : onlar[(k % 100) / 10]!;
 }
 
+/** "yüzde N"nin iyelik eki (yalın): %43'ü %2'si %40'ı — yuzdeEki'nin belirtme eki ("-nı/-ni/-nu/-nü") düşülmüş hali */
+export function yuzdeIyelik(n: number): string { return yuzdeEki(n).slice(0, -2); }
+
+/** saniyenin onda biri yukarı yuvarlanır, Türkçe virgülle: 64 → "64", 64,04 → "64,1" (gösterilen süre gerçek süreden kısa olmaz) */
+export function sureYazi(sec: number): string {
+  const t = Math.ceil(Math.max(0, sec) * 10 - 1e-6) / 10;
+  return Number.isInteger(t) ? String(t) : t.toFixed(1).replace('.', ',');
+}
+/**
+ * Sonuç ekranında bölümün süresi (süre kartı ve süreli hedefin notu aynı sayıyı söyler; OT-sinav-adayi-12). Süreli hedef
+ * tutmadıysa gösterilen süre hedeften kısa ya da ona eşit olamaz ("64 sn sürdü · yapılmadı" çelişkisi): hedef karşılaştırması
+ * yuvarlanmamış süreyle yapılır (LevelScene), sonuçtaki süre onda bire yuvarlanmıştır.
+ */
+export function runTimeSec(spec: RunSpecLite, r: RunResult): number {
+  const target = spec.objective.id === 'timed' ? spec.objective.target : undefined;
+  return r.completed && target != null && !r.objectiveMet ? Math.max(r.timeSec, target + 0.1) : r.timeSec;
+}
+/** "64,4 sn sürdü, 0,4 sn geç" (hedef süreyi tutmayan satırın notu) */
+function lateNote(t: number, target: number): string { return `${sureYazi(t)}\u00a0sn sürdü, ${sureYazi(Math.max(0.1, t - target))}\u00a0sn geç`; }
+
 /** Dürüst "neredeyse" geri bildirimi: gerçekte ne eksikse onu söyler. */
 export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<number, LevelProgressLite> = {}): NextGoal {
   if (!r.completed) {
     const pct = typeof r.extra?.pct === 'number' ? r.extra.pct : null;
+    // boss bölümünde kapı yok: pct canavarın yitirdiği güç (LevelScene.pct); bölüm içi bitiş kartıyla aynı dil (YN-082)
+    if (pct != null && (spec.mechanic === 'boss' || spec.objective.id === 'boss')) {
+      const k = Math.max(1, 100 - Math.round(pct * 100));
+      return { kind: 'yakin', text: `${spec.boss?.name ?? 'Canavar'} gücünün %${k}'${yuzdeIyelik(k)} kaldı!` };
+    }
     if (pct != null && pct >= 0.5) return { kind: 'yakin', text: `Kapıya %${Math.max(1, 100 - Math.round(pct * 100))} kaldı!` };
     if (pct != null) return { kind: 'yakin', text: `Yolun %${Math.round(pct * 100)}'${yuzdeEki(Math.round(pct * 100))} geçtin. Bir dahakine daha ileri!` };
     return { kind: 'yakin', text: 'Bir daha dene: her denemede yol biraz daha tanıdık.' };
@@ -78,13 +103,27 @@ export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
     const why = o.id === 'no-damage' ? dmg.note
       : o.id === 'secret' ? `${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`
       : o.id === 'melody' ? `${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`
-      : o.id === 'timed' ? `${Math.round(r.timeSec)}\u00a0sn sürdü`
+      : o.id === 'timed' ? lateNote(runTimeSec(spec, r), o.target ?? spec.parTimeSec)
       : o.id === 'escort' ? 'Fısıltı yolda kaldı'
       : '';
     const done = r.objectiveMet && !short;
     rows.push({ text, done, note: done ? '' : r.objectiveMet && short ? `${need - r.coins}\u00a0nota kaldı` : why });
   }
   return { rows, done: r.stars === 3 };
+}
+
+/**
+ * 1★ sonucunda 2. yıldızın koşulları (yıldız kuralıyla aynı yerden: scoreRun / noteThresholds): nota eşiği, süreli bölümde
+ * ya da 2★ süresi (biri yeter); notasız (boss) bölümde en çok 1 hasar. 3. yıldız kartının yerinde gösterilir (OT-buyuk-yazi-16):
+ * 2★ yokken 3★'ın koşulları yanıltır.
+ */
+export function star2View(spec: RunSpecLite, r: RunResult): Star3View {
+  if (spec.coinsTotal <= 0) return { rows: [{ text: 'En çok 1 kez hasar al', done: r.damageTaken <= 1, note: r.damageTaken > 1 ? `${r.damageTaken}\u00a0hasar aldın` : '' }], done: r.stars >= 2 };
+  const n2 = Math.ceil(spec.coinsTotal * noteThresholds(spec).star2 - 1e-9);
+  const rows: StarRow[] = [{ text: `${n2} nota`, done: r.coins >= n2, note: r.coins >= n2 ? '' : `${n2 - r.coins}\u00a0nota kaldı` }];
+  const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;
+  if (t2) { const met = r.timeSec <= t2; rows.push({ text: `${t2} saniyede bitir`, done: met, note: met ? '' : lateNote(r.timeSec, t2) }); }
+  return { rows, done: r.stars >= 2 };
 }
 
 /** son hasarın kaynağı → "en son …" (sim.ts hurt nedenleri; boss saldırıları tek cümle) */
@@ -101,16 +140,25 @@ const LOSS_TIP: Record<string, string> = {
   nefes: 'Arada yüzeye çıkıp nefes al.',
   freq: 'Kapıdan önce diyapazona değ: rengin kapıyla aynı olsun.',
 };
+/** yüzme mekaniğinin kendi nedenleri: ipuçları mekaniğin ipucundan daha yerinde (nefes, diyapazon) */
+const MECHANIC_OWN_TIP = new Set(['nefes', 'freq']);
+/** bölüm, mekaniğinin yolculuktaki ilk iki bölümünden biri mi (koşu temel mekanik: ipuçlarını nedenler verir) */
+function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
+  if (spec.mechanic === 'kosu') return false;
+  return HUMAN_JOURNEY.levels.filter((l) => l.mechanic === spec.mechanic).slice(0, 2).some((l) => l.number === spec.number);
+}
 /**
- * Kayıpta neden (OT-ilk-kez-oyun-8): başlığın altında, 3. yıldız kartının yerinde. Canlar mı bitti, en son neye çarptı; bilinen
- * nedenlerde tek cümle ipucu. reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti').
+ * Kayıpta neden (OT-ilk-kez-oyun-8): "Tekrar dene"nin üstünde. Canlar mı bitti, en son neye çarptı; bilinen nedenlerde tek cümle
+ * ipucu. Yeni bir mekaniğin ilk iki bölümünde ipucu o mekaniğin kendisidir (kanca bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15).
+ * reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti').
  */
-export function lossView(r: RunResult): { title: string; detail: string; tip: string } {
+export function lossView(r: RunResult, spec?: Pick<RunSpecLite, 'number' | 'mechanic'>): { title: string; detail: string; tip: string } {
   const reason = typeof r.extra?.reason === 'string' ? r.extra.reason : '';
   if (reason === 'yaris-bitti') return { title: 'Yarış bitti', detail: 'Sen kapıya varmadan yarış kapandı.', tip: '' };
   const n = r.damageTaken; const what = LOSS_WHAT[reason];
   const detail = n > 0 ? `${n} kez hasar aldın${what ? `, en son ${what}` : ''}.` : what ? `${what.charAt(0).toLocaleUpperCase('tr-TR')}${what.slice(1)}.` : '';
-  return { title: 'Canların bitti', detail, tip: LOSS_TIP[reason] ?? '' };
+  const tip = spec && newMechanic(spec) && !MECHANIC_OWN_TIP.has(reason) ? MECHANICS[spec.mechanic].hint : LOSS_TIP[reason] ?? '';
+  return { title: 'Canların bitti', detail, tip };
 }
 
 /** Haritada görünür sıradaki hazine: "N bölüm sonra hazine". */
