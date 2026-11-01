@@ -69,6 +69,8 @@ export class LevelScene extends Phaser.Scene {
   private curtainHinted = new Set<number>(); private curtainPassed = new Set<number>(); private curtainSlides = 0; private refresherShown = false; private curtainHintId = -1; private curtainHintAt = -9;
   /** bölge patolojileri: x sırasıyla işaretli öğeler, bu koşuda görülenler, rozetli öğeler, son Tüy Dede cümlesinin anı */
   private patList: { id: number; x: number; pat: string }[] = []; private patIdx = 0; private patSeen = new Set<string>(); private patSighted = new Set<number>(); private patLineAt = -99;
+  /** bu koşu Klinik korumasıyla başladı mı (sonuç kartı karşılanan vuruşu adıyla söylesin) */
+  private revirStart = false;
   private pendingEdges: { pressed: boolean; released: boolean; swipeDown: boolean; swipeX: number } = { pressed: false, released: false, swipeDown: false, swipeX: 0 };
   private resultSent = false; private lastWall = 0; private chargeFrom = -1; private summaryDone = 0; private cues = new Map<number, number>(); private cueAt = -9;
   /** görsel kalite: gerçek cihazda kare hızı 2 sn boyunca ~45'in altında kalırsa 'low'a iner (bot/harness'te ölçülmez) */
@@ -98,6 +100,7 @@ export class LevelScene extends Phaser.Scene {
     this.world = buildWorld(this.spec, { skills: this.opts.skills, bpm });
     const revirPct = this.opts.firstHitIgnorePct ?? 0;
     this.sim = initState(this.world, { lives: this.opts.lives, revir: !this.opts.bot && revirPct > 0 && Math.random() * 100 < revirPct, remedies: this.opts.race ? undefined : this.opts.remedies });
+    this.revirStart = this.sim.revir;
     this.patList = this.world.ents.filter((e) => typeof e.p.patoloji === 'string').map((e) => ({ id: e.id, x: e.l, pat: String(e.p.patoloji) })).sort((a, b) => a.x - b.x);
     this.sim.events = [];
     if (this.opts.bot && !this.opts.botIdle) { const hand = this.opts.botHand?.(this.world); this.planner = new Planner(this.world, hand?.prefs); this.botSlow = hand?.slow; }
@@ -595,8 +598,9 @@ export class LevelScene extends Phaser.Scene {
     const base = {
       levelId: this.spec.id, completed, coins: s.coins, timeSec: Math.round(s.t * 10) / 10, deaths: s.deaths, damageTaken: s.damageTaken,
       objectiveMet: this.objectiveMet(completed), secretFound: cochleasTotal > 0 && s.cochleas >= cochleasTotal,
-      // melodi: sırayla toplanan nota sayısı (sonuç kartı "7 notanın 3'ü sırayla" diyebilsin)
-      extra: { cochleas: s.cochleas, cochleasTotal, ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
+      // melodi: sırayla toplanan nota sayısı (sonuç kartı "7 notanın 3'ü sırayla" diyebilsin);
+      // guarded: kalkanın/Klinik korumasının karşıladığı vuruş (damageTaken'in içinde; sonuç kartı nedenini söylesin, karar 37); klinik: biri Klinik'ti
+      extra: { cochleas: s.cochleas, cochleasTotal, ...(s.guarded > 0 ? { guarded: s.guarded, ...(this.revirStart && !s.revir ? { klinik: true } : {}) } : {}), ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
     };
     return { ...base, ...scoreRun(this.spec, base) };
   }

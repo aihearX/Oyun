@@ -7,7 +7,7 @@ export const SKILL_TREE: SkillNode[] = [
   { id: 'magnet:1', key: 'magnet', level: 1, name: 'Mıknatıs I', desc: 'Jetonlar yakından çekilir.', cost: 100 },
   { id: 'magnet:2', key: 'magnet', level: 2, name: 'Mıknatıs II', desc: 'Çekim alanı büyür.', cost: 220, requires: 'magnet:1' },
   { id: 'magnet:3', key: 'magnet', level: 3, name: 'Mıknatıs III', desc: 'Çekim alanı ekranın yarısı.', cost: 400, requires: 'magnet:2' },
-  { id: 'shield:1', key: 'shield', level: 1, name: 'Kalkan', desc: 'Her bölüme 1 kalkanla başla.', cost: 200 },
+  { id: 'shield:1', key: 'shield', level: 1, name: 'Kalkan', desc: 'Her bölüme 1 kalkanla başla: bir vuruşta canını korur, vuruş yine hasar sayılır.', cost: 200 },
   { id: 'shield:2', key: 'shield', level: 2, name: 'Çift Kalkan', desc: 'Her bölüme 2 kalkanla başla.', cost: 450, requires: 'shield:1' },
   { id: 'breath:1', key: 'breath', level: 1, name: 'Nefes I', desc: 'Su altında daha uzun kal.', cost: 120 },
   { id: 'breath:2', key: 'breath', level: 2, name: 'Nefes II', desc: 'Nefes iki kat.', cost: 240, requires: 'breath:1' },

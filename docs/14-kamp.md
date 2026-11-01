@@ -19,10 +19,10 @@ Kimlikler değişmedi (kayıtlar ve sunucu satırları bunlara bağlı); adlar, 
 |---|---|---|---|
 | `merkez` | **Odyoloji Merkezi** | diğer binaların en yüksek seviyesi | test bataryası, çapraz kontrol ilkesi |
 | `laboratuvar` | **Odyometri Odası** | bölüm jetonu +%3/Sv ("ölçtükçe daha çok öğrenirsin") | saf ses ve konuşma odyometrisi, hava/kemik yolu |
-| `atolye` | **İşitme Cihazı Atölyesi** | bölüm başı kalkan şansı +%4/Sv ("ayarlı cihaz destek olur") | amplifikasyon, NAL-NL2 / DSL, kulak kalıbı |
+| `atolye` | **İşitme Cihazı Atölyesi** | bölüm başı kalkan şansı +%4/Sv ("ayarlı cihaz destek olur"; karşılanan vuruş hasar sayılır, karar 37) | amplifikasyon, NAL-NL2 / DSL, kulak kalıbı |
 | `depo` | **Kulak Deposu** (ad korunur: FTUE satırı kayıtlı) | saatte Sv × 20 jeton, 8 saatte dolar ("kulak kiri gibi birikir") | serumen ve epitel göçü |
 | `kule` | **Timpanometri Kulesi** | bölüm jetonu +%2/Sv (2026-10-31'e kadar savaş puanı +%2/Sv'ydi; karar 29) | 226 Hz prob, timpanogram tipleri, akustik refleks |
-| `revir` | **Odyoloji Kliniği** | ilk hasarı yok sayma şansı +%3/Sv ("erken tanı korur") | otoskopi, tarama, kayıp dereceleri |
+| `revir` | **Odyoloji Kliniği** | ilk vuruşta canı koruma şansı +%3/Sv ("erken tanı korur"; korunan vuruş hasar sayılır, karar 37) | otoskopi, tarama, kayıp dereceleri |
 | `tedavi` | **Tedavi Odası** (YENİ) | malzeme üretir (§3) | koruma ve tedavi yöntemleri |
 
 **Pay-to-win yok (karar 29, YN-057, 2026-10-31).** Kamp inşaatı parayla satılan hızlandırıcılarla (İnşaatçı Paketi, Usta İnşaatçı,
@@ -30,7 +30,9 @@ Başlangıç Paketi) ve kristalle kısalabilir. Bu yüzden **hiçbir bina takım
 Takım Yarışı skoru, Takım Ligi ve bireysel lig puanı bina seviyesinden bağımsızdır (`bonusesFor`: `warPct` ve `raidPct` yalnız takım
 teknolojisinden; `apps/server/test/pay-to-win.test.ts` aynı koşuların puanını binalar en üstteyken ve hiç yokken karşılaştırır). Binalar
 yalnız kişisel etki verir: jeton (Odyometri, Kule), bölüm başı kalkan şansı (Atölye), ilk hasarı yok sayma (Klinik); kalkan ve klinik
-yarışta (takım yarışı dahil) kapalıdır. Kalan dolaylı bağlar bilinçli olarak açık yazılır: kalkan ve klinik bir bölümü bitirmeyi biraz
+yarışta (takım yarışı dahil) kapalıdır. Kalkanın (yetenek, takım, Atölye) ve Klinik korumasının karşıladığı vuruş canı götürmez ama
+yıldız, "Hiç hasar alma" hedefi, skor ve lig için hasar sayılır (sahip kararı 37, YN-088; `sim.ts` `hurt`, `guarded`); sonuç kartı
+"Kalkan bir vuruşu karşıladı, bu da hasar sayılır" der. Kalan dolaylı bağlar bilinçli olarak açık yazılır: kalkan ve klinik bir bölümü bitirmeyi biraz
 kolaylaştırabilir (bitirilen bölüm savaş puanı yazar), bina seviyeleri "Güç" ve "Takım gücü" sıralamalarında sayılır (ödülsüz kalıcı
 tablolar; takım yarışı eşleşmesinde benzer güçleri buluşturmak için kullanılır, skoru değiştirmez). Takım hediyeli paketin diğer
 üyelere düşürdüğü jeton (satın alma hediyesi jetonu) kampta harcanır, takım teknolojisine bağışlanamaz (YN-065; `docs/04-monetizasyon.md`

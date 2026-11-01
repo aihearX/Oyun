@@ -184,10 +184,10 @@ export interface BuildingDef {
 export const BUILDINGS: BuildingDef[] = [
   { id: 'merkez', name: 'Odyoloji Merkezi', short: 'Merkez', emoji: '🏕️', desc: 'Kampın kalbi: diğer binaların en yüksek seviyesini belirler.', maxLevel: 25 },
   { id: 'laboratuvar', name: 'Odyometri Odası', short: 'Odyometri', emoji: '🔬', desc: 'Ölçtükçe daha çok öğrenirsin: bölüm jetonu +%3/seviye.', maxLevel: 25 },
-  { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye.', maxLevel: 25 },
+  { id: 'atolye', name: 'İşitme Cihazı Atölyesi', short: 'Atölye', emoji: '🛠️', desc: 'Ayarlı cihaz zor anda destek olur: bölüm başında kalkan şansı +%4/seviye. Kalkan canını korur ama karşıladığı vuruş hasar sayılır: hasara bağlı yıldızı kurtarmaz.', maxLevel: 25 },
   { id: 'depo', name: 'Kulak Deposu', short: 'Depo', emoji: '📦', desc: 'Kulak kiri gibi kendiliğinden birikir: saatte seviye × 20 jeton, 8 saatte dolar.', maxLevel: 25 },
   { id: 'kule', name: 'Timpanometri Kulesi', short: 'Kule', emoji: '🗼', desc: 'Kanaldaki basıncı değiştirip zarın ne kadar rahat hareket ettiğini ölçer; ölçtükçe kazanırsın: bölüm jetonu +%2/seviye.', maxLevel: 25 },
-  { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk hasarı yok sayma şansı +%3/seviye.', maxLevel: 25 },
+  { id: 'revir', name: 'Odyoloji Kliniği', short: 'Klinik', emoji: '💚', desc: 'Erken fark edilen sorun kolay atlatılır: bölümde ilk vuruşta canını koruma şansı +%3/seviye. Korunan vuruş yine hasar sayılır: hasara bağlı yıldızı kurtarmaz.', maxLevel: 25 },
   { id: 'tedavi', name: 'Tedavi Odası', short: 'Tedavi', emoji: '🩹', desc: 'Koruma ve tedavi malzemesi hazırlar; bölüme yanında götürür, uygun engeli bir kez aşarsın.', maxLevel: 25 },
   // ---- Kamp Seviyesiyle açılan bölgeler (docs/14-kamp.md §8–9): etkiler ekonomi, üretim, bilgi ve süs üzerinedir; bölüm gücü değil
   { id: 'kabin', name: 'Akustik Kabin', short: 'Kabin', emoji: '🎧', desc: 'Sessizlikte en hafif ses duyulur: kazandığın Kamp XP +%3/seviye.', maxLevel: 20, campLevel: 3 },

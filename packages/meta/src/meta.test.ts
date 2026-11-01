@@ -6,7 +6,7 @@ const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind ==
 import {
   addDays, advanceStreak, albumProgress, applyGrant, biomeLevelProgress, earnedCards, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
   clearedInRow, dailyFor, dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
-  lossView, nextGoal, nextTreasure, runTimeSec, star2View, star3View, sureYazi, yuzdeEki, yuzdeIyelik, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
+  damageNote, lossView, nextGoal, nextTreasure, runTimeSec, star2View, star3View, sureYazi, yuzdeEki, yuzdeIyelik, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
 } from './index';
 
@@ -287,6 +287,18 @@ describe('ilerleme geri bildirimi', () => {
     expect(star2View(t, run({ stars: 1, coins: 10, timeSec: 80.2, objectiveMet: false })).rows).toEqual([
       { text: '18 nota', done: false, note: '8\u00a0nota kaldı' }, { text: '75 saniyede bitir', done: false, note: '80,2\u00a0sn sürdü, 5,2\u00a0sn geç' }]);
     expect(star2View({ ...spec(20), coinsTotal: 0 }, run({ stars: 1, damageTaken: 2 })).rows).toEqual([{ text: 'En çok 1 kez hasar al', done: false, note: '2\u00a0hasar aldın' }]);
+  });
+  it('kalkanın/Klinik korumasının karşıladığı vuruş hasar sayılır ve sonuç kartı nedenini söyler (karar 37, YN-088)', () => {
+    const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
+    // kalkan tek vuruşu karşıladı: can gitmedi ama "Hiç hasar alma" yapılmadı
+    expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false, extra: { guarded: 1 } })).rows[1])
+      .toEqual({ text: 'Hiç hasar alma', done: false, note: 'Kalkan bir vuruşu karşıladı, bu da hasar sayılır' });
+    expect(damageNote(run({ damageTaken: 1, extra: { guarded: 1, klinik: true } }))).toBe('Klinik bir vuruşu karşıladı, bu da hasar sayılır');
+    expect(damageNote(run({ damageTaken: 2, extra: { guarded: 2, klinik: true } }))).toBe('Kalkan ve Klinik 2\u00a0vuruşu karşıladı, bunlar da hasar sayılır');
+    expect(damageNote(run({ damageTaken: 3, extra: { guarded: 1 } }))).toBe('3\u00a0hasar aldın (kalkan bir vuruşu karşıladı; o da sayılır)');
+    expect(damageNote(run({ damageTaken: 0 }))).toBe('');
+    // notasız (boss): kalkanlı vuruş 3★'ı da bozar
+    expect(star2View({ ...spec(20), coinsTotal: 0 }, run({ stars: 1, damageTaken: 2, extra: { guarded: 1 } })).rows[0]!.note).toBe('2\u00a0hasar aldın (kalkan bir vuruşu karşıladı; o da sayılır)');
   });
   it('sıradaki hazine ve yenilik duyuruları', () => {
     expect(nextTreasure(3, {})).toMatchObject({ level: 5, remaining: 3 });

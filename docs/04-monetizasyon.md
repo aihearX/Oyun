@@ -41,7 +41,8 @@ Yukarıdaki ürün tablosu ilk taslaktır; satılan ürünler `packages/shared/s
   ikinci bir onay adımı ister (`confirmRaise`) ve 24 saat sonra geçerli olur. Kitle öğrenci ve çocuk olduğu için eski 1.000 TL
   varsayılanı kaldırıldı. Göç 7: sınırını önceden değiştirmiş oyuncu seçmiş sayılır, diğerleri bir sonraki alımdan önce seçer.
 - **Pay-to-win yok (karar 29):** hızlandırıcılar yalnız kamp inşaatını kısaltır. Kamp binaları takım rekabetine (savaş, baskın, takım
-  yarışı, Takım Ligi) ve bireysel lige hiç yansımaz; yalnız kişisel jeton, kalkan ve klinik şansı verir. Timpanometri Kulesi'nin savaş
+  yarışı, Takım Ligi) ve bireysel lige hiç yansımaz; yalnız kişisel jeton, kalkan ve klinik şansı verir. Kalkan/Klinik canı korur ama karşılanan vuruş yıldız ve lig için
+  hasar sayılır (karar 37, YN-088): "Hiç hasar alma" ve hasara bağlı yıldızlar bu yolla gelmez. Timpanometri Kulesi'nin savaş
   puanı etkisi kişisel bölüm jetonu etkisine çevrildi. Ayrıntı ve kalan dolaylı bağlar: `docs/14-kamp.md` §1.
 - **Satın alma hediyesi jetonu bağışlanamaz (karar 29 devamı, YN-065):** takım hediyeli bir paket alınınca diğer üyelere düşen
   50 / 100 / 200 jeton, alan oyuncunun cüzdanında ayrı sayılır (`players.gift_jeton`, göç 9; `Wallet.bagislanamaz`). Bu jeton kampta

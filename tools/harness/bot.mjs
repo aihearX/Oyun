@@ -2,6 +2,8 @@
 // ODİ bot harness: web derlemesini önizleme sunucusunda açar, her bölümü otomatik oyuncuyla oynatır,
 // konsol hatalarını ve sonuçları toplar, ekran görüntüsü alır.
 // Kullanım: node tools/harness/bot.mjs [--levels 1-40] [--browser chromium|webkit] [--parallel 3] [--ts 1] [--skills all] [--no-build] [--timeout 180] [--tag isim] [--shots 1] [--json 1]
+// Bot varsayılan yeteneklerle (kalkansız) ve Klinik koruması olmadan oynar; --skills all kalkanla başlatır. Kalkanın karşıladığı vuruş
+// hasar sayılır (karar 37, YN-088): "dmg" sütununa girer, "(kalkan N)" kaçının kalkanla karşılandığını gösterir.
 // --tag: ayrı derleme ve çıktı klasörü (tools/harness/out/<tag>/) — aynı anda birden çok harness çalıştırmak için.
 import { spawn } from 'node:child_process';
 import { mkdirSync, existsSync } from 'node:fs';
@@ -80,7 +82,7 @@ async function playLevel(n) {
 
 const results = [];
 const queue = [...levels];
-await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, async () => { while (queue.length) { const n = queue.shift(); const r = await playLevel(n); results.push(r); const s = r.spec ?? {}; console.log(`L${String(n).padStart(2, '0')} ${(s.mechanic ?? '?').padEnd(9)} ${(s.biome ?? '?').padEnd(12)} ${(s.objective ?? '?').padEnd(11)} ${r.result ? (r.result.completed ? `OK ⭐${r.result.stars}` : 'FAIL  ') : 'TIMEOUT'} prog ${(r.progress * 100).toFixed(0).padStart(3)}% coins ${r.result?.coins ?? 0}/${s.coins ?? '?'} dmg ${r.result?.damageTaken ?? '-'} fall ${r.result?.deaths ?? '-'} ${r.result?.extra?.reason ?? ''} t=${r.result?.timeSec ?? '-'}s fps ${r.fps} wall ${r.wall}s${r.errors.length ? ' ERR: ' + r.errors.join(' | ').slice(0, 300) : ''}`); } }));
+await Promise.all(Array.from({ length: Math.min(parallel, queue.length) }, async () => { while (queue.length) { const n = queue.shift(); const r = await playLevel(n); results.push(r); const s = r.spec ?? {}; console.log(`L${String(n).padStart(2, '0')} ${(s.mechanic ?? '?').padEnd(9)} ${(s.biome ?? '?').padEnd(12)} ${(s.objective ?? '?').padEnd(11)} ${r.result ? (r.result.completed ? `OK ⭐${r.result.stars}` : 'FAIL  ') : 'TIMEOUT'} prog ${(r.progress * 100).toFixed(0).padStart(3)}% coins ${r.result?.coins ?? 0}/${s.coins ?? '?'} dmg ${r.result?.damageTaken ?? '-'}${r.result?.extra?.guarded ? ` (kalkan ${r.result.extra.guarded})` : ''} fall ${r.result?.deaths ?? '-'} ${r.result?.extra?.reason ?? ''} t=${r.result?.timeSec ?? '-'}s fps ${r.fps} wall ${r.wall}s${r.errors.length ? ' ERR: ' + r.errors.join(' | ').slice(0, 300) : ''}`); } }));
 results.sort((a, b) => a.n - b.n);
 await browser.close(); stopPreview();
 const failed = results.filter((r) => !r.result?.completed);

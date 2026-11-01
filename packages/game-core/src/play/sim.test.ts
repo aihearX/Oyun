@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { GROUND_Y as G } from '@odi/shared';
 import * as C from './consts';
 import { testSpec, setup, press, run } from './testkit';
-import { cloneState, solidAt, step, type SimInput, type SimState } from './sim';
+import { cloneState, hurt, initState, solidAt, step, type SimInput, type SimState } from './sim';
+import { DEFAULT_SKILLS } from '@odi/content';
 import type { WEnt, World } from './world';
 
 const flat = (extra: Parameters<typeof testSpec>[0] = [], o: Parameters<typeof testSpec>[1] = {}) => setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, ...extra], o));
@@ -143,3 +144,41 @@ describe('yetenekler ve açılmaları', () => {
   });
 });
 function solidOn(w: World, s: SimState, e: WEnt) { return solidAt(w, s, e, s.t); }
+
+describe('kalkan ve Klinik koruması (sahip kararı 37, YN-088)', () => {
+  const SHIELD = { ...DEFAULT_SKILLS, shield: 1 };
+  const flatShield = () => setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }]), SHIELD);
+  it('kalkan vuruşu karşılar: can gitmez, oyuncu ölmez; ama vuruş hasar sayılır', () => {
+    const { w, s } = flatShield(); run(w, s, 10);
+    expect(s.shield).toBe(1);
+    expect(hurt(w, s, 'dusman', s.hero.x + 30)).toBe(false);
+    expect(s.shield).toBe(0); expect(s.lives).toBe(3); expect(s.failed).toBeNull();
+    expect(s.damageTaken).toBe(1); expect(s.guarded).toBe(1);
+    // kalkan bitince ikinci vuruş can götürür
+    s.hero.invuln = 0; expect(hurt(w, s, 'dusman', s.hero.x + 30)).toBe(true);
+    expect(s.lives).toBe(2); expect(s.damageTaken).toBe(2); expect(s.guarded).toBe(1);
+  });
+  it('Klinik ilk vuruşta canı korur; vuruş yine hasar sayılır', () => {
+    const { w } = flat(); const s = initState(w, { revir: true }); run(w, s, 10);
+    expect(hurt(w, s, 'diken')).toBe(false);
+    expect(s.revir).toBe(false); expect(s.lives).toBe(3); expect(s.failed).toBeNull();
+    expect(s.damageTaken).toBe(1); expect(s.guarded).toBe(1);
+  });
+  it('tek canlı bölümde kalkan oyuncuyu hayatta tutar', () => {
+    const { w, s } = setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }], { modifiers: ['tek-can'] }), SHIELD); run(w, s, 10);
+    expect(s.lives).toBe(1);
+    hurt(w, s, 'mermi', s.hero.x + 30);
+    expect(s.lives).toBe(1); expect(s.failed).toBeNull(); expect(s.damageTaken).toBe(1);
+  });
+  it('düşüş kalkanı harcamaz (kalkan yalnız çarpmalarda)', () => {
+    const { w, s } = flatShield(); run(w, s, 10); s.freeFalls = 0;
+    hurt(w, s, 'fall');
+    expect(s.shield).toBe(1); expect(s.guarded).toBe(0); expect(s.lives).toBe(2);
+  });
+  it('bağışlanan vuruş (öğretici odası, dikene ilk değiş) kalkanı harcamaz, hasar da sayılmaz', () => {
+    const { w, s } = flatShield(); run(w, s, 10);
+    w.assist.grace = [[s.hero.x - 100, s.hero.x + 100]];
+    hurt(w, s, 'dusman', s.hero.x + 30);
+    expect(s.shield).toBe(1); expect(s.damageTaken).toBe(0); expect(s.softHits).toBe(1);
+  });
+});

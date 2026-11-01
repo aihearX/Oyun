@@ -85,13 +85,29 @@ export interface StarRow { text: string; done: boolean; note: string }
 export interface Star3View { rows: StarRow[]; done: boolean }
 
 /**
+ * Hasar satırının notu: "2 hasar aldın". Kalkan ya da Klinik koruması bir vuruşu karşıladıysa can gitmemiştir ama vuruş yine
+ * hasar sayılır (sahip kararı 37, YN-088); not bunu açıkça söyler, yoksa oyuncu "hasar almadım ki" der.
+ * r.extra.guarded: korumanın karşıladığı vuruş (damageTaken'in içinde); r.extra.klinik: biri Klinik korumasıydı.
+ */
+export function damageNote(r: RunResult): string {
+  const n = r.damageTaken; if (n <= 0) return '';
+  const g0 = r.extra?.guarded; const g = Math.min(n, typeof g0 === 'number' && g0 > 0 ? Math.floor(g0) : 0);
+  if (g === 0) return `${n}\u00a0hasar aldın`;
+  // "Klinik" binanın adı (büyük harf kalır); "kalkan" cümle başında büyür
+  const who = (start: boolean) => (r.extra?.klinik === true ? (g >= 2 ? `${start ? 'K' : 'k'}alkan ve Klinik` : 'Klinik') : `${start ? 'K' : 'k'}alkan`);
+  const what = `${g === 1 ? 'bir vuruşu' : `${g}\u00a0vuruşu`} karşıladı`;
+  if (g === n) return `${who(true)} ${what}, ${g === 1 ? 'bu da hasar sayılır' : 'bunlar da hasar sayılır'}`;
+  return `${n}\u00a0hasar aldın (${who(false)} ${what}; ${g === 1 ? 'o da sayılır' : 'onlar da sayılır'})`;
+}
+
+/**
  * 3. yıldızın koşulları, sonuç kartı için (yıldız kuralıyla aynı yerden: shared economy.ts → scoreRun / noteThresholds).
  * "Ya da"lı kural iki satır olur (biri yeter), her satır kendi ilerlemesini söyler: "7 nota kaldı", "1 hasar aldın", "3/7 sırayla".
  * "Tüm notaları topla" 90 notanın içinde kaldığından tek satır: "90 nota topla". Notasız (boss) bölümde 3★ hasarsız bitirmektir.
  */
 export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
   const num = (k: string) => { const v = r.extra?.[k]; return typeof v === 'number' ? v : 0; };
-  const dmg: StarRow = { text: 'Hiç hasar alma', done: r.damageTaken === 0, note: r.damageTaken > 0 ? `${r.damageTaken}\u00a0hasar aldın` : '' };
+  const dmg: StarRow = { text: 'Hiç hasar alma', done: r.damageTaken === 0, note: damageNote(r) };
   if (spec.coinsTotal <= 0) return { rows: [dmg], done: r.stars === 3 };
   const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
   const n3 = notesAt(th.star3); const o = spec.objective;
@@ -118,7 +134,7 @@ export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
  * 2★ yokken 3★'ın koşulları yanıltır.
  */
 export function star2View(spec: RunSpecLite, r: RunResult): Star3View {
-  if (spec.coinsTotal <= 0) return { rows: [{ text: 'En çok 1 kez hasar al', done: r.damageTaken <= 1, note: r.damageTaken > 1 ? `${r.damageTaken}\u00a0hasar aldın` : '' }], done: r.stars >= 2 };
+  if (spec.coinsTotal <= 0) return { rows: [{ text: 'En çok 1 kez hasar al', done: r.damageTaken <= 1, note: r.damageTaken > 1 ? damageNote(r) : '' }], done: r.stars >= 2 };
   const n2 = Math.ceil(spec.coinsTotal * noteThresholds(spec).star2 - 1e-9);
   const rows: StarRow[] = [{ text: `${n2} nota`, done: r.coins >= n2, note: r.coins >= n2 ? '' : `${n2 - r.coins}\u00a0nota kaldı` }];
   const t2 = spec.objective.id === 'timed' ? spec.objective.target2 : undefined;

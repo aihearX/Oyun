@@ -38,6 +38,7 @@ export interface SafeSpot { x: number; y: number; dir: 1 | -1; odo: number }
 export interface SimState {
   t: number; n: number; hero: HeroS;
   lives: number; shield: number; revir: boolean; deaths: number; damageTaken: number;
+  /** kalkanın ya da Klinik korumasının karşıladığı vuruş: can gitmez ama yıldız/hedef/lig için hasar sayılır (damageTaken'e de eklenir; karar 37) */ guarded: number;
   /** kalan can kaybettirmeyen düşüş (ilk bölümlerin yardımı) ve öğretici odasındaki bağışlanan düşüş */ freeFalls: number; graceFalls: number;
   /** can götürmeyen (bağışlanan) çarpma/düşüş sayısı — planlayıcı bunlardan da kaçınır */ softHits: number;
   /** dikene ilk değişi bağışlanan son oda (spikeGrace) */ spikeRoom: number;
@@ -75,7 +76,7 @@ export function initState(w: World, o: InitOpts = {}): SimState {
   const h = newHero(w.startX, w.startY);
   const spot: SafeSpot = { x: w.startX, y: w.startY, dir: 1, odo: 0 };
   const s: SimState = {
-    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
+    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, guarded: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
     rem: initRemedies(o.remedies), remUsed: {}, cured: new Set(),
     coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,
@@ -291,8 +292,6 @@ export function useRemedy(w: World, s: SimState, e: WEnt): boolean {
 export function hurt(w: World, s: SimState, reason: string, fromX?: number): boolean {
   const h = s.hero;
   if (s.finished || s.failed || h.invuln > 0) return false;
-  if (reason !== 'fall' && s.shield > 0) { s.shield--; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'shield' }); return false; }
-  if (reason !== 'fall' && s.revir) { s.revir = false; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'revir' }); return false; }
   // ilk bölümlerin ilk çukurları ve öğretici odaları can götürmez: aynı yerden yeniden dene
   // (öğretici odasında en çok 3 düşüş bağışlanır: boşta oyuncu orada sonsuza dek kalmasın)
   const grace = w.assist.grace.some(([l, r]) => h.x >= l && h.x < r);
@@ -317,6 +316,11 @@ export function hurt(w: World, s: SimState, reason: string, fromX?: number): boo
     if (fromX !== undefined && h.hookId < 0) { h.knock = 0.18; h.vy = -320 * h.g; h.grounded = false; h.jumpRise = false; }
     return false;
   }
+  // kalkan (yetenek, takım, Atölye) ve Klinik koruması can götürecek vuruşu karşılar (bağışlanan vuruşlar yukarıda, kalkan harcamaz).
+  // Can gitmez ama vuruş yıldız, "Hiç hasar alma" ve lig için hasar sayılır (sahip kararı 37, YN-088): parayla hızlanabilen
+  // binalar yıldıza ve lig puanına dolaylı yoldan gitmesin.
+  if (reason !== 'fall' && s.shield > 0) { s.shield--; s.damageTaken++; s.guarded++; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'shield' }); return false; }
+  if (reason !== 'fall' && s.revir) { s.revir = false; s.damageTaken++; s.guarded++; h.invuln = C.INVULN_SHIELD; ev(s, 'hurt', h.x, h.y, { s: 'revir' }); return false; }
   s.lives--; s.damageTaken++; h.invuln = reason === 'fall' ? C.INVULN_FALL : C.INVULN_HIT;
   ev(s, 'hurt', h.x, h.y, { s: reason, n: s.lives });
   if (s.lives <= 0) { s.failed = reason; return true; }
