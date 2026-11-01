@@ -195,7 +195,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
             <li className={res.mgOk ? 'ok' : 'no'}><Art name={res.mgOk ? 'check' : 'cross'} size={18} /> Yönetim: {v.yonetim[0].sade}</li>
             <li className={res.efficient ? 'ok' : 'no'}><Art name={res.efficient ? 'check' : 'cross'} size={18} /> Test seçimi: {res.efficient ? 'verimli' : `anahtar testler: ${v.anahtar.map((k) => VAKA_TESTLERI.find((t) => t.id === k)!.kisa).join(', ')} (en çok ${v.anahtar.length + 1} test)`}</li>
           </ul>
-          <div className="kg-aciklama"><p>{v.aciklama.sade}</p><MoreLine text={v.aciklama.teknik} /></div>
+          <Bulgular v={v} istenen={[...tests].reverse()} duzey={duzey} />
           <Terim id={v.terim} />
           {odulOgeleri(res.reward).length > 0 && <div className="kg-odul" data-testid="vaka-odul">{odulOgeleri(res.reward).map((i, k) => <span key={k} className="kg-odul-chip">{i.label ?? `${i.amount} ${i.kind === 'jeton' ? 'jeton' : 'kristal'}`}</span>)}</div>}
           {res.stars > 0 && res.reward.malzeme && <small className="kg-note">{REMEDY_DISCLAIMER}</small>}
@@ -207,6 +207,24 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
         </div>
       )}
     </KgSheet>
+  );
+}
+
+/**
+ * Sonuçtaki bulgular (YN-080): klinikte karar eldeki bulguya dayanır. "İstediğin testler" yalnız oyuncunun istediklerini, "İsteseydin
+ * şunu görecektin" istenmeyen (bu vakada yapılabilen) testleri gösterir; açıklama paragrafı bütün testlere dayandığı için öyle adlandırılır.
+ */
+function Bulgular({ v, istenen, duzey }: { v: Vaka; istenen: string[]; duzey: 'genel' | 'odyoloji' }) {
+  const T = v.testler as unknown as Record<string, unknown>;
+  const ad = (id: string) => { const t = VAKA_TESTLERI.find((x) => x.id === id)!; return duzey === 'genel' ? t.kisa : t.ad; };
+  const istenmeyen = VAKA_TESTLERI.filter((t) => !istenen.includes(t.id) && !isYok(T[t.id])).map((t) => t.id);
+  const satir = (id: string) => <li key={id} data-bulgu={id}><b>{ad(id)}:</b> {testSatirlari(v, id, duzey).join(' · ')}</li>;
+  return (
+    <>
+      <div className="kg-bulgu" data-testid="bulgu-istenen"><h4>İstediğin testler</h4><ul>{istenen.map(satir)}</ul></div>
+      {istenmeyen.length > 0 && <div className="kg-bulgu diger" data-testid="bulgu-istenmeyen"><h4>İsteseydin şunu görecektin</h4><ul>{istenmeyen.map(satir)}</ul></div>}
+      <div className="kg-aciklama"><h4>{istenmeyen.length > 0 ? 'Tam tablo (bütün testlerle)' : 'Açıklama'}</h4><p>{v.aciklama.sade}</p><MoreLine text={v.aciklama.teknik} /></div>
+    </>
   );
 }
 

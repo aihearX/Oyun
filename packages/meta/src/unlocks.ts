@@ -9,6 +9,11 @@ import { applyGrant } from './rewards';
 const LEVELS = HUMAN_JOURNEY.levels;
 export const levelsOfBiome = (b: BiomeId) => LEVELS.filter((l) => l.biome === b);
 export const biomeHasSecret = (b: BiomeId) => levelsOfBiome(b).some((l) => l.objective === 'secret');
+/** Biyomun bölüm numaraları ve kaçının geçildiği ("usta" kartının açılma koşulu oyuncuya bununla yazılır; bölümler haritada farklı bölgelerde olabilir). */
+export function biomeLevelProgress(b: BiomeId, progress: Record<number, LevelProgressLite>): { levels: number[]; done: number } {
+  const lv = levelsOfBiome(b);
+  return { levels: lv.map((l) => l.number), done: lv.filter((l) => (progress[l.number]?.stars ?? 0) > 0).length };
+}
 
 /** İlk kilitli bölüm (önceki bölüm en az 1 yıldız). */
 export function highestUnlocked(progress: Record<number, LevelProgressLite>, total = LEVELS.length): number {

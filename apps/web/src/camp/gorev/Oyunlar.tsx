@@ -170,7 +170,7 @@ function TimpanoTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[
       )}
       {(b.sag || b.sol) && <TimpanogramSvg R={b.sag} L={b.sol} title="Sağ ve sol timpanogram" />}
       {(b.grup === 'cocuk' || b.grup === 'bebek') && ((b.egri && !b.sayilar) || b.sag || b.sol || egriSecenek) && <small className="kg-note" data-testid="timp-norm-not">Gölgeli kutu yetişkin normudur; çocukta ve bebekte normal aralıklar farklıdır (açıklamadaki kaynağa bak).</small>}
-      {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı düz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {ml(b.sag.hacim)}, sol {ml(b.sol.hacim)}</small>}
+      {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı kesintisiz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {ml(b.sag.hacim)}, sol {ml(b.sol.hacim)}</small>}
       {!genel && b.egri && !b.sayilar && <small className="kg-note">{b.egri.basinc === null ? 'Tepe yok' : `Tepe ${daPa(b.egri)}`} · admitans {ml(b.egri.uyum)} · kanal hacmi {ml(b.egri.hacim)}</small>}
       <div className={`kg-opts${egriSecenek ? ' egri' : ''}`}>
         {b.secenek.map((o, k) => <button key={o.anahtar} className={`kg-opt${secim === null ? '' : k === b.dogru ? ' ok' : k === secim ? ' no' : ' dim'}`} data-secenek={k} data-anahtar={o.anahtar} disabled={secim !== null} onClick={() => sec(k)}><Secenek o={o} genel={genel} sec={o.anahtar} /></button>)}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import type { BiomeId } from '@odi/shared';
 import { BIOMES, CARDS, cardSlotText, type CardDef } from '@odi/content';
-import { albumProgress, biomeHasSecret } from '@odi/meta';
+import { albumProgress, biomeHasSecret, biomeLevelProgress } from '@odi/meta';
 import { useStore } from '../store';
 import { Bar, ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
@@ -37,11 +38,17 @@ export function AlbumScreen({ onBack }: { onBack: () => void }) {
           <div className="card fact-card" role="dialog" aria-label={owned.has(open.id) ? open.title : 'Kilitli kart'}>
             <div className="fc-e">{owned.has(open.id) ? <Art name={open.art} size={64} /> : <Art name="lock" size={48} />}</div>
             <div className="muted fc-biome"><AnatomyGlyph region={open.biome} size={24} />{BIOMES[open.biome].name}</div>
-            {owned.has(open.id) ? <><h2>{open.title}</h2><p className="fact-text">{open.fact}</p><MoreLine text={open.tech} />{open.oneren && <p className="muted small-note" data-testid="kart-oneren">Öneren: <span data-ugc>{open.oneren}</span></p>}</> : <><h2>Kilitli kart</h2><p className="fact-text">Nasıl açılır: {cardSlotText(open.slot, biomeHasSecret(open.biome))}.</p></>}
+            {owned.has(open.id) ? <><h2>{open.title}</h2><p className="fact-text">{open.fact}</p><MoreLine text={open.tech} />{open.oneren && <p className="muted small-note" data-testid="kart-oneren">Öneren: <span data-ugc>{open.oneren}</span></p>}</> : <><h2>Kilitli kart</h2><p className="fact-text">Nasıl açılır: {cardSlotText(open.slot, biomeHasSecret(open.biome))}.</p>{open.slot === 'usta' && <UstaIlerleme biome={open.biome} />}</>}
             <button className="btn" onClick={() => setOpen(null)}>Tamam</button>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+/** "usta" kartının koşulu: biyomun bütün bölümleri (bazıları haritada başka bölgelerde görünür) ve kaçının geçildiği (YN-080). */
+function UstaIlerleme({ biome }: { biome: BiomeId }) {
+  const progress = useStore((s) => s.progress); const p = biomeLevelProgress(biome, progress);
+  return <p className="muted small-note" data-testid="usta-ilerleme">{BIOMES[biome].name} bölümleri: {p.levels.join(', ')}{'\u00a0·\u00a0'}{p.done}/{p.levels.length}</p>;
 }

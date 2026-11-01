@@ -16,7 +16,7 @@ import { bolunmezYap } from './metin';
 export type CardSlot = 'ilk' | 'yildiz' | 'ozel' | 'sandik' | 'usta';
 /** Kartın çizili ikonu: apps/web ui/art.tsx ArtName adlarından biri (web tarafı tür denetimiyle eşler). Kartlarda emoji yok (YN-044). */
 export type CardArt =
-  | 'bell' | 'bolt' | 'boom' | 'brain' | 'calendar' | 'chart' | 'chat' | 'compass' | 'cross' | 'down' | 'drum' | 'ear' | 'finish' | 'flag' | 'fork' | 'hammer' | 'heal' | 'heart' | 'help' | 'hourglass' | 'link' | 'lock' | 'map' | 'megaphone' | 'moon' | 'mute' | 'note' | 'party' | 'plane' | 'refresh' | 'ruler' | 'search' | 'shell' | 'shield' | 'signal' | 'sound' | 'spark' | 'sprout' | 'sun' | 'timer' | 'unlock' | 'up' | 'users' | 'wave' | 'wind';
+  | 'bell' | 'bolt' | 'boom' | 'brain' | 'calendar' | 'chart' | 'chat' | 'compass' | 'cross' | 'down' | 'drum' | 'ear' | 'finish' | 'flag' | 'fork' | 'gear' | 'hammer' | 'heal' | 'heart' | 'help' | 'hourglass' | 'link' | 'lock' | 'map' | 'megaphone' | 'moon' | 'mute' | 'note' | 'party' | 'plane' | 'refresh' | 'ruler' | 'search' | 'shell' | 'shield' | 'signal' | 'sound' | 'spark' | 'sprout' | 'sun' | 'timer' | 'unlock' | 'up' | 'users' | 'wave' | 'wind';
 export interface CardDef { id: string; biome: BiomeId; slot: CardSlot; title: string; fact: string; art: CardArt; /** öğrenci düzeyi teknik ayrıntı (albümde "Daha fazla") */ tech: string;
   /** kartı öneren oyuncunun takma adı; albümde "Öneren: <takma ad>". YALNIZ açık izinli takma ad (izin kaydı sahipte; docs/yonetim/gizlilik.md "Öneren") */
   oneren?: string }
@@ -51,7 +51,7 @@ const RAW: Record<BiomeId, Raw[]> = {
     ['search', 'En Küçük Kemik', 'Üzengi, yaklaşık 3 mm boyuyla vücuttaki en küçük kemiktir.', 'Stapes başı, iki kolu (krus) ve tabandan (footplate) oluşur; tabanın titreşimi skala vestibulideki perilenfe aktarılır.'],
     ['up', 'Basınç Yükseltici', 'Orta kulak, havadaki sesi iç kulak sıvısına aktarırken onu yaklaşık 20 kat güçlendirir.', 'Empedans uyumu: zar/stapes tabanı alan oranı yaklaşık 17:1, kemikçik kaldıracı yaklaşık 1,3:1; toplam kazanç yaklaşık 25–30 dB.'],
     ['mute', 'Minik Koruyucu Kas', 'Üzengiye bağlı stapedius, vücudun en küçük iskelet kasıdır; çok yüksek seste kasılır.', 'Akustik (stapedius) refleks iki taraflıdır; normal işitenlerde tipik eşikler yaklaşık 70–100 dB HL. Stapedius fasiyal sinirden, tensor timpani trigeminal sinirden dal alır.'],
-    ['lock', 'Sertleşen Kemik', 'Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir.', 'Stapes fiksasyonu ilerleyici iletim tipi kayba yol açar; yaklaşık 2 kHz’te kemik yolunda Carhart çentiği ve As tipi timpanogram görülebilir.'],
+    ['gear', 'Sertleşen Kemik', 'Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir.', 'Otosklerozda otik kapsül kemiği yeniden yapılanır ve üzengi tabanını oval pencereye sabitler; ilerleyici iletim tipi kayıp olur. Kemik yolunda yaklaşık 2 kHz’te Carhart çentiği görülebilir; timpanogram çoğu zaman A, bazen As tipidir ve tek başına tanı koydurmaz.'],
   ],
   'koklea-1': [
     ['shell', 'Koklea Kıvrımı', 'Koklea yaklaşık iki buçuk tur kıvrılan sarmal bir kanaldır; adı Latincede “salyangoz kabuğu” anlamına gelir.', 'Kemik eksen (modiolus) çevresinde yaklaşık 2,5–2,75 tur kıvrılır; içinde skala vestibuli, skala media ve skala timpani bulunur.'],

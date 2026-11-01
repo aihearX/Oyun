@@ -4,7 +4,7 @@ import { SHOP } from '@odi/shared';
 import { DEFAULT_SKILLS, ACHIEVEMENTS, CARDS, COSMETICS, HUMAN_JOURNEY, MAX_STREAK_SHIELDS, QUESTS, BIOME_ORDER } from '@odi/content';
 const SHOP_COSMETIC_IDS = SHOP.flatMap((p) => p.contents.filter((c) => c.kind === 'kozmetik').map((c) => c.ref!));
 import {
-  addDays, advanceStreak, albumProgress, applyGrant, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
+  addDays, advanceStreak, albumProgress, applyGrant, biomeLevelProgress, earnedCards, calendarView, chestReady, claimCalendar, claimQuest, computeMetrics, dailyChestReward,
   clearedInRow, dailyFor, dayKey, daysBetween, defaultMeta, ensureDaily, equipCosmetic, evaluateAchievements, highestUnlocked, levelProgress, migrateMeta,
   lossView, nextGoal, nextTreasure, runTimeSec, star2View, star3View, sureYazi, yuzdeEki, yuzdeIyelik, openDailyChest, processRun, recordShare, resolveLook, resolveReward, rollDailyQuests, rollLucky, settle,
   unlockAnnouncements, type PlayerCore,
@@ -180,6 +180,16 @@ describe('bölüm işleme, başarımlar, albüm, kozmetik', () => {
     const c = core({ meta: { ...defaultMeta(), cards: quarter } }); const s = settle(c);
     expect(s.core.meta.cosmetics.owned).toContain('sapka-koklea');
     expect(s.events.some((e) => e.kind === 'albumBadge')).toBe(true);
+  });
+  it('usta kartı: biyomun bölüm listesi ve ilerlemesi (Kulak Kanalı 6, 7, 8, 17, 20; YN-080)', () => {
+    const lv = HUMAN_JOURNEY.levels.filter((l) => l.biome === 'kanal').map((l) => l.number);
+    expect(lv).toEqual([6, 7, 8, 17, 20]);
+    const progress = Object.fromEntries(lv.slice(0, -1).map((n) => [n, { stars: 1, best: 1, plays: 1 }]));
+    expect(biomeLevelProgress('kanal', progress)).toEqual({ levels: lv, done: lv.length - 1 });
+    expect(earnedCards(core({ progress })).some((c) => c.id === 'kanal:usta')).toBe(false);
+    const all = { ...progress, [lv.at(-1)!]: { stars: 1, best: 1, plays: 1 } };
+    expect(biomeLevelProgress('kanal', all).done).toBe(lv.length);
+    expect(earnedCards(core({ progress: all })).some((c) => c.id === 'kanal:usta')).toBe(true);
   });
   it('kozmetik giyme ve görünüm', () => {
     let m = defaultMeta(); expect(equipCosmetic(m, 'sapka-bere')).toBe(m); // sahip değil

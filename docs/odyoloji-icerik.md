@@ -168,7 +168,7 @@ isteğe bağlı teknik ayrıntı ("Daha fazla").
 | `kemikcikler:yildiz` | En Küçük Kemik | Üzengi, yaklaşık 3 mm boyuyla vücuttaki en küçük kemiktir. | Stapes başı, iki kolu (krus) ve tabandan (footplate) oluşur; tabanın titreşimi skala vestibulideki perilenfe aktarılır. |
 | `kemikcikler:ozel` | Basınç Yükseltici | Orta kulak, havadaki sesi iç kulak sıvısına aktarırken onu yaklaşık 20 kat güçlendirir. | Empedans uyumu: zar/stapes tabanı alan oranı yaklaşık 17:1, kemikçik kaldıracı yaklaşık 1,3:1; toplam kazanç yaklaşık 25–30 dB. |
 | `kemikcikler:sandik` | Minik Koruyucu Kas | Üzengiye bağlı stapedius, vücudun en küçük iskelet kasıdır; çok yüksek seste kasılır. | Akustik (stapedius) refleks iki taraflıdır; normal işitenlerde tipik eşikler yaklaşık 70–100 dB HL. Stapedius fasiyal sinirden, tensor timpani trigeminal sinirden dal alır. |
-| `kemikcikler:usta` | Sertleşen Kemik | Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir. | Stapes fiksasyonu ilerleyici iletim tipi kayba yol açar; yaklaşık 2 kHz’te kemik yolunda Carhart çentiği ve As tipi timpanogram görülebilir. |
+| `kemikcikler:usta` | Sertleşen Kemik | Bazı kişilerde üzengi kemiği sertleşip hareketini kaybedebilir; buna otoskleroz denir. | Otosklerozda otik kapsül kemiği yeniden yapılanır ve üzengi tabanını oval pencereye sabitler; ilerleyici iletim tipi kayıp olur. Kemik yolunda yaklaşık 2 kHz’te Carhart çentiği görülebilir; timpanogram çoğu zaman A, bazen As tipidir ve tek başına tanı koydurmaz. |
 | `koklea-1:ilk` | Koklea Kıvrımı | Koklea yaklaşık iki buçuk tur kıvrılan sarmal bir kanaldır; adı Latincede “salyangoz kabuğu” anlamına gelir. | Kemik eksen (modiolus) çevresinde yaklaşık 2,5–2,75 tur kıvrılır; içinde skala vestibuli, skala media ve skala timpani bulunur. |
 | `koklea-1:yildiz` | Sıvı Dalgası | Üzengi oval pencereyi ittiğinde koklea sıvısında bir dalga yayılır. | Sıvı sıkıştırılamadığı için yuvarlak pencere dışa doğru esner; basınç farkı baziler membranda tabandan tepeye ilerleyen dalgayı başlatır. |
 | `koklea-1:ozel` | Kulaktaki Pil | Kokleanın içinde küçük bir pil gibi elektrik gerilimi vardır. | Skala media potasyumdan zengin endolenf içerir; stria vaskülarisin ürettiği yaklaşık +80 mV endokoklear potansiyel tüy hücresi uyarımını kolaylaştırır. |
@@ -333,6 +333,12 @@ değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konu�
 Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
 ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv 1 / 2 / 3.
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
+Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
+bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
+
+> **Sahip onayı bekliyor (YN-080, OT-uzman-odyolog-13).** `kv01` (Ece, konser sonrası) için uzman önerisi: normal odyogram gürültü
+> etkisini kesin olarak dışlamaz; çınlama sürer ya da tekrarlarsa işitme yeniden kontrol edilmeli. Yeni tıbbi cümle olduğu için oyuna
+> eklenmedi; sahip onaylarsa vakanın açıklamasına eklenir.
 
 | # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (teknik) | sözlük | kaynak |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

@@ -135,6 +135,12 @@ değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konu�
 Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
 ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv ${KG.KG_KURAL.kademeSv.join(' / ')}.
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
+Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
+bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
+
+> **Sahip onayı bekliyor (YN-080, OT-uzman-odyolog-13).** \`kv01\` (Ece, konser sonrası) için uzman önerisi: normal odyogram gürültü
+> etkisini kesin olarak dışlamaz; çınlama sürer ya da tekrarlarsa işitme yeniden kontrol edilmeli. Yeni tıbbi cümle olduğu için oyuna
+> eklenmedi; sahip onaylarsa vakanın açıklamasına eklenir.
 
 | # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (teknik) | sözlük | kaynak |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

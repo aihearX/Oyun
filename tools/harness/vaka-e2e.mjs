@@ -221,6 +221,13 @@ try {
     const v1 = await solveCase(A, shot, 'kv01', 'vaka1');
     check(await A.locator('[data-testid="vaka-sonuc"]').getAttribute('data-stars') === '3', `${v1.baslik}: 3 yıldız`);
     check(await A.locator('[data-testid="vaka-terim"]').count() === 1, 'sonuçta Kulak Sözlüğü terimi');
+    {
+      // YN-080: istenmeyen testin bulgusu "İstediğin testler"de görünmez, ayrı etiketle görünür
+      const ist = await A.locator('[data-testid="bulgu-istenen"] [data-bulgu]').evaluateAll((els) => els.map((e) => e.getAttribute('data-bulgu')).sort());
+      const diger = await A.locator('[data-testid="bulgu-istenmeyen"] [data-bulgu]').evaluateAll((els) => els.map((e) => e.getAttribute('data-bulgu')));
+      check(JSON.stringify(ist) === JSON.stringify([...v1.anahtar].sort()) && diger.includes('timpanometri') && !diger.some((x) => v1.anahtar.includes(x))
+        && (await A.locator('[data-testid="bulgu-istenmeyen"] h4').textContent()) === 'İsteseydin şunu görecektin', `sonuç: istenen testler (${ist.join(', ')}) ve ayrı "İsteseydin" bölümü (${diger.join(', ')})`);
+    }
     check(db.get("SELECT stars FROM kv_book WHERE player_id = ? AND case_id = 'kv01'", aId)?.stars === 3, 'sunucu: Vaka Defteri 3 yıldız');
     await shot(A, 'vaka1-sonuc', 600);
     await settle(A);

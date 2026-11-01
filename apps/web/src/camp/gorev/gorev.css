@@ -157,6 +157,10 @@
 .kg-check li { display:flex; gap:6px; align-items:flex-start; }
 .kg-check li.no { color:#ffd3df; }
 .kg-aciklama p { margin:0 0 4px; font-size:0.84375rem; line-height:1.5; }
+.kg-aciklama h4, .kg-bulgu h4 { margin:0 0 4px; font-size:0.75rem; font-weight:900; text-transform:uppercase; letter-spacing:.02em; color:var(--text-2); }
+.kg-bulgu ul { margin:0; padding-left:18px; font-size:0.8125rem; line-height:1.45; display:flex; flex-direction:column; gap:2px; }
+.kg-bulgu.diger { border:1px dashed var(--panel-edge); border-radius:14px; padding:8px 10px; }
+.kg-bulgu.diger h4 { color:#ffe28a; }
 .kg-terim { display:flex; gap:8px; align-items:flex-start; background:rgba(255,201,60,.08); border:1px solid rgba(255,201,60,.3); border-radius:14px; padding:8px 10px; }
 .kg-terim small { display:block; color:var(--gold); font-weight:900; font-size:0.6875rem; text-transform:uppercase; } .kg-terim b { display:block; } .kg-terim p { margin:2px 0 0; font-size:0.78125rem; color:var(--text-2); }
 .kg-kaynak { font-size:0.6875rem; color:var(--text-2); }
