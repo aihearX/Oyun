@@ -6,7 +6,7 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 8/40 (oturum 2 sonu) |
+| 1 | 2026-10-31 | | | 14/40 (oturum 3 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -34,3 +34,19 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-ilk-kez-oyun-7 (Hâlâ: pencereler üst üste, eski -6), -8 (kayıpta sebep yok), -9 (rehber "Profil'e dokun" / "Arkadaşlar burada" karışıklığı), -10 (açıklanmayan oyun kelimeleri), -11 (davet kodu kutusu menünün arkasında).
 - Yarım kalan / sonraki oturum: Hedef 6 bölümdü, ~70 komut sınırında 3 bölüm geçebildim (meta özelliklere ve rehberlere çok komut gitti). Sıradaki Bölüm 9. Odyoloji Merkezi inşaatı sürüyordu. Mağaza, Ayarlar, Kulak Kartları, bilgi yarışmaları, Etkinlikler'e bakmadım. Haritada "Canlı yarış" rehberi yarıda kaldı.
 - Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba'ya (KRMXHC) arkadaşlık isteği gönderdim, yanıt bekleniyor. Bana gelen istek yoktu.
+
+## Oturum 3 · 2026-10-31 · sürüm c824118c · tur 1
+- Başlangıç: 8/40, 17 yıldız, seri 2. Bitiş: 14/40, 27 yıldız (9:1 10:1 11:3 12:1 13:2 14:2), oyuncu seviyesi 4, 2.141 jeton, 50 kristal, seri 2 gün. Artık kilitli yer kalmadı.
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ilk-kez-oyun-1: düzeldi (yine). Kulak Zarı ve Kemikçikler tanıtım kartlarında hareketler madde madde ve okunaklı (0170, 0211).
+  - OT-ilk-kez-oyun-2: düzeldi (yine). Bölüm 10 sonucunda "Geçtin!" ile "3. yıldız hedefi · yapılmadı · 50 nota kaldı" ayrı (0191).
+  - OT-ilk-kez-oyun-3: bu oturum Kamp'a girmedim; geçen oturumda düzelmişti.
+  - OT-ilk-kez-oyun-4: düzeldi. Bölüm 11 ("64 saniyede bitir") sırasında üstte geri sayan saat var: 0:35 → 0:19 (0198, 0199).
+  - OT-ilk-kez-oyun-6 ve -7: düzeldi. Bölüm 10 dönüşünde önce Hazine penceresi tek başına geldi, "Topla" deyince sonra Tüy Dede ayrı geldi (0192, 0194); üst üste binen pencere görmedim.
+  - OT-ilk-kez-oyun-9: aynı Profil rehberi bir daha çıkmadı, kontrol edemedim. Ama benzeri Takım'da oldu: "Takım'a dokun" dedi, dokununca yarış gösterilmedi (yeni satır OT-ilk-kez-oyun-14).
+- Ne yaptım: Takım'da 6 takım hediyesini "Hepsini al" ile aldım (jeton + 50 kristal + 1 kalkan). KaptanTuba arkadaşlık isteğimi kabul etmiş; ona hediye gönderdim. Bölüm 9-14'ü geçtim (13 Çekiç'te 3 kayıp, "Yardım iste"ye bastım, 4. denemede 2 yıldızla geçtim). Tüy Dede'den Canlı Takım Yarışı, Günün Sorusu, İkili Görev, Usta–Çırak tanıtımları (bazılarını Atla'dım). Bugün'de "hasarsız bitir" görev ödülünü aldım (bu kez unutmadım). Profil'e ve Kulak Kartları albümüne (9/50) baktım.
+- Hissettiğim: Bölüm 9-12 kolay geldi, 11'de 3 yıldız bile aldım, çok sevindim. 13'te kanca çıktı ve 3 kez üst üste düştüm; üçüncüde "yine mi" dedim, biraz bıkkınlık geldi. "Kapıya %14 kaldı!" ve "Yolun %42'sini geçtin" yazıları moral verdi, ama neden düştüğümü yine söylemedi (OT-8, iş listesinde). Yardım kartını kaydırınca buldum; bulunca iyi hissettirdi. Seviye 4 penceresindeki ödüller ("Atomdan Küçük Titreşim", "Mercan", "Mükemmeliyetçi", "Kulak Zarı Ustası") ne işe yarıyor, hâlâ anlamadım (OT-5, iş listesinde). Bugün ekranında "2. gün" yanındaki kalkanlı "1/2" simgesini seri koruyucu diye tahmin ettim. "Notaları sırayla topla (7)" hedefinde neyin sırası olduğunu anlamadım (OT-sessiz-oyuncu-6'ya yakın, yazmadım). Takım ve harita tanıtımları azaldı ve tek tek geliyor, geçen seferden çok daha rahat.
+- Başkalarının yazdığını gördüğüm, bende de olanlar (yeniden yazmadım): sonuçta "Tüm notaları topla (100) · 20 nota kaldı" ile altta "3. yıldız: 90 nota ya da hepsini topla" çelişkisi (OT-rekabetci-7, Bölüm 14'te bende de 0234); bölüm içinde "Kontrol noktası" yazısının soldan kesilmesi (0173).
+- Yazdığım geri bildirimler: OT-ilk-kez-oyun-12 ("1,4B" jeton yazımı), -13 (Sıradaki hedef sürekli değişiyor), -14 (rehber Takım'a götürüp yarışı göstermiyor), -15 (3 kayıp sonrası yardım kartı ve ipucu kaydırmadan görünmüyor, ipucu kancayla ilgili değil), -16 ("çakıl" kelimesi), -17 ("Artık bir ustasın!").
+- Yarım kalan / sonraki oturum: Sıradaki Bölüm 15. Kamp'a (1 bildirim), Ayarlar'a, Mağaza'ya, bilgi yarışmalarına ve Etkinlikler'e (2 bekliyor) hâlâ girmedim. Takım yarışının nerede olduğunu bulmam lazım. Günlük görevlerden "Yıldızlı bir bölümü tekrar oyna" yapılmadı.
+- Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) artık arkadaşım; bugün ona hediye gönderdim. Bana yeni gelen arkadaşlık/takım daveti yoktu. 13. bölüm için takımdan yardım istedim.

@@ -6,7 +6,7 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 9/40 (oturum 2 sonu) |
+| 1 | 2026-10-31 | | | 13/40 (oturum 3 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -32,3 +32,15 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-9 (Hâlâ: uçan yazılar küçük), -10 (boş açılan ekranlar Sözlük dışında da), -11 (sayaçların üstüne binen simgeler), -12 (Kaşif/Kâşif yazımı).
 - Yarım kalan / sonraki oturum: Bölüm 10 sırada (İkili Görev 10'da açılacak). Bugün'deki iki görev ödülü (Al) alınmadı. Etkinlikler (1 bekliyor), Günün Sorusu, Kamp oyunları, Hasta Vakaları açıldı, denemedim. Kulak Deposu ve kamp rehberine (OT-8) bakılacak. KaptanTuba'nın isteğimi kabul edip etmediğine bak.
 - Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4). KaptanTuba'ya (KRMXHC) arkadaşlık isteği gönderildi, yanıt bekleniyor. Bana gelen istek yoktu.
+
+## Oturum 3 · 2026-10-31 · sürüm c824118c · tur 1
+- Başlangıç: 9/40, 19 yıldız, seri 2 gün. Bitiş: 13/40, 26 yıldız (11'de 3 yıldız; 10 ve 12'de 1, 13'te 2), oyuncu seviyesi 4, seri 2 gün, 2.003 jeton, 50 kristal.
+- Önceki geri bildirimlerin kontrolü:
+  - OT-buyuk-yazi-10: düzeldi (yazdığım ekranlarda). Bugün, Kulak Kartları ve Ayarlar artık açılır açılmaz dolu geliyor (0165, 0195, 0200). Ama Profil › Birlikte ve Kamp › Liste görünümü hâlâ birkaç saniye bomboş mor açılıyor (0214, 0184). Yeni satır: OT-buyuk-yazi-13 (Hâlâ).
+  - OT-buyuk-yazi-1, -3, -4, -5 oturum 2'de kontrol edildi (3 → OT-9 olarak sürüyor). OT-1 bu oturumda da düzgün: kilitli kart yazıları iri ve tam (0195).
+  - İş listesindekiler (kontrol değil, not): haritadaki "1 adım = 1 bölüm" hâlâ minik (OT-2); kamp hızlandırma kutucukları hâlâ gri üstüne gri (OT-7, 0188); "kurdu yaptı" cümlesi düzelmiş ("Odyometri Odası kurdu").
+- Ne yaptım: Bugün'de iki görev ödülü; Günün Sorusu'nu cevapladım (A); takımın 6 hediyesini aldım (+580 jeton, 50 kristal, 1 kalkan); Kamp Görevleri tanıtımı, Kulak Deposu topladım, Odyoloji Merkezi'ni Sv 2'ye yükseltmeye başladım ve takımdan yardım istedim; KaptanTuba'ya hediye gönderdim ve İkili Görev'e davet ettim; Bölüm 10-13 (kayıp yok, 13 yeni biyom Kemikçikler).
+- Hissettiğim: Menüler hâlâ rahat; boş açılan ekranların çoğu düzelmiş, sevindim. Bu sefer en çok yoran: sekmelerin kenarda yarım kalması (Üyeler, Hedefler, Öneriler), hareket azaltma açıkken bile kayan yıldızlar ve kontrol noktasındaki ışık patlaması, sonuç ekranında "2. yıldız: N nota" satırının düğmenin altında kalması. Tüy Dede bir kere tam "Al"a basarken açıldı, ödül alınmadı, şaşırdım. Seviye 4 penceresi ben "Harika!"ya basamadan kendiliğinden kapandı gibi geldi (emin değilim, yazmadım). Takım ekranında "Teknoloji" ve Kamp Görevleri'nde "Başarı" sekme yazıları küçük.
+- Yazdığım geri bildirimler: OT-buyuk-yazi-13 (Hâlâ: boş mor ekran Birlikte/Kamp Liste), -14 (sekmeler taşıyor), -15 (hareket azaltma süsleri durdurmuyor), -16 (sonuçta 2. yıldız satırı düğmenin altında), -17 (rehber dokunuşu yuttu).
+- Yarım kalan / sonraki oturum: Bölüm 14 sırada (Kemikçikler). Odyoloji Merkezi inşaatı sürüyor; sonra Odyometri Odası (Ton Avı) kurulacak. Bugün'deki "Yıldızlı bir bölümü tekrar oyna" görevi ve günlük sandık açılmadı. Usta–Çırak, Etkinlikler (2 bekliyor), Kamp oyunları, Mağaza bu oturum denenmedi. Kamp Görevleri'ndeki iki ödül (Görevler 2) alınmadı.
+- Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4). KaptanTuba arkadaşlığımı kabul etmiş; ona hediye gönderdim ve bu haftanın İkili Görevi'ne davet ettim (yanıt bekleniyor). Bana gelen yeni istek yoktu.

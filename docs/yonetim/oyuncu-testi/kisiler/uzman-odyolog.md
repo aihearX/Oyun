@@ -33,3 +33,20 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 - Yazdığım geri bildirimler: OT-uzman-odyolog-6, OT-uzman-odyolog-7, OT-uzman-odyolog-8, OT-uzman-odyolog-9, OT-uzman-odyolog-10, OT-uzman-odyolog-11
 - Yarım kalan / sonraki oturum: Bölüm 16'dan devam. Klinikte bekleyen 2 vaka (Ece 21 yaş konser sonrası, Hakan 46 yaş duştan sonra tıkanan kulak), Vaka Defteri 1/32. Kulak Sözlüğü'nde Timpanometri terimi açıldı (bakılacak). Dış Kulak notunu OT-3 için yeniden açmak. Ayarlar > Bilgi düzeyi hâlâ "genel"; uzman düzeyi denenecek. İkili Görev ve Usta–Çırak açıldı, bakmadım.
 - Sosyal: arkadaş kodum K9FM5K, takma ad DrMelis. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4), lig bronz. KaptanTuba (KRMXHC) arkadaşlık isteği göndermiş görünüyor; bu oturumda Takım/Arkadaşlar ekranını açmaya komut bütçem yetmedi, bir sonraki oturumda kabul edeceğim.
+
+## Oturum 3 · 2026-10-31 · sürüm c824118c · tur 1
+- Başlangıç: 15/40 (32 yıldız, seri 1 gün). Bitiş: 21/40, 44 yıldız (17 üç yıldız), oyuncu seviyesi 6, seri 2 gün, 3.856 jeton, 80 kristal (takım hediyelerinden).
+- Önceki geri bildirim kontrolü ("yapildi:" maddeleri):
+  - OT-uzman-odyolog-2: düzeldi (oturum 2'de doğrulanmıştı; değişiklik yok).
+  - OT-uzman-odyolog-3: düzeldi (Tüy Dede notlarında; aynı sorunun öbür yeri OT-10 olarak aşağıda).
+  - OT-uzman-odyolog-6: düzeldi. Hakan vakasında timpanogram grafiğinde "Kanal hacmi: sağ 0,3 ml · sol 1,3 ml" yazıyor, satırda "düz eğri, zar hareket etmiyor · kanal hacmi küçük"; sonuç "prob kire dayanıyor" diye açıklıyor (0276-dokun.png).
+  - OT-uzman-odyolog-8: düzeldi. 7 yaş kısa vakada grafiğin altında "Gölgeli kutu yetişkin normudur; çocukta ve bebekte normal aralıklar farklıdır" notu var, eksende "Kutu: yetişkin normu" (0309-dokun.png).
+  - OT-uzman-odyolog-9: düzeldi. Ece odyogramında "Normal bölge" yazısı grafiğin içinden lejanta taşınmış, sembollerle çakışma yok (0285-dokun.png).
+  - OT-uzman-odyolog-10: düzeldi. "kanal hacmi sağ 1,3 ml, sol 1,3 ml" satırında sayı ile ml aynı satırda kalıyor (0311-dokun.png).
+  - OT-uzman-odyolog-11: düzeldi. Kamp listesindeki binalar ve klinik test düğmeleri (Refleks, OAE, Konuşma, İşlemleme) artık çizim simgeleri; emoji görmedim (0270-dokun.png, 0276-dokun.png).
+- Ne yaptım: Klinikte Hakan (buşon; Otoskop + Timpanogram, "Mükemmel karar") ve Ece (konser sonrası, Odyogram, "Doğru tanı") vakalarını çözdüm. Timpanogram Eşleştir bir tur (5/5). Takım hediyelerini (9) topladım. Bölüm 16-21: 20'de (Serumen Golemi) iki kayıp, üçüncü denemede geçtim. Koklea · Taban biyomuna geçtim, Tüy Dede notunu (Békésy, ilerleyen dalga, dış tüy hücreleri) okudum.
+- Tıbbi doğruluk izlenimi: önceki düzeltmelerin hepsi yerinde; Koklea biyom notu, "Biliyor muydun?" kartları (stapedius/tensor timpani, kemikçik zinciri kopması ve iletim kaybı, kemik yolu cihazı, petröz kemik, buşon ve işitme) doğru. "Salyangoz" görmedim. Kalan sorun: vaka sonuçları istenmeyen testlerin bulgusunu anlatıyor (OT-13) ve Timpanogram Eşleştir'de "düz çizgi"/"düz eğri" karışıklığı (OT-12).
+- Hissettiğim: düzeltmelerin bu kadar özenli yapılması güven verdi; klinik bölüm artık öğrencilerime gösterebileceğim düzeyde. Boss'a 13 saniyede üç kez çarpıp yenilmek biraz moral bozdu ama üçüncüde geçti. Kamp Görevleri'nde görev satırına dokununca o oyuna gitmek isterdim; "Görevi değiştir" düğmesine yanlışlıkla basıp günlük değiştirme hakkımı harcadım (küçük, yazmadım).
+- Yazdığım geri bildirimler: OT-uzman-odyolog-12, OT-uzman-odyolog-13, OT-uzman-odyolog-14
+- Yarım kalan / sonraki oturum: Bölüm 22'den devam (Koklea · Taban). Klinikte 3 hasta bekliyor (Zeynep uçak sonrası, İsmail fabrika, Nuri 74 yaş presbiakuzi): odyogram çentiği ve yaşa bağlı kayıp açıklamalarını denetlemek. Ayarlar > Bilgi düzeyi "uzman" hâlâ denenmedi. Kulak Sözlüğü'nde Koklea terimleri.
+- Sosyal: arkadaş kodum K9FM5K, takma ad DrMelis. KaptanTuba (KRMXHC) ile arkadaşız (istek kabul edilmiş, Arkadaşlar listesinde). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4), takım Sv 1, lig bronz. Takımdaşlar: EceOdyo, SinanSinav.

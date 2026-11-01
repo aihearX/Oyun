@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.7 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 12/40 (oturum 2 sonu) |
+| 1 | 2026-10-31 | | | 18/40 (oturum 3 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -32,3 +32,17 @@ Cihaz: 390×844 chromium · beceri 0.7 · ses açık. Ayrıntı: tools/harness/o
 - Başkalarının yazdığını gördüğüm ve yeniden yazmadığım: Bayrak Yarışı ayağı donuyor (OT-rekabetci-9), rehberin hazine penceresiyle üst üste gelmesi (OT-ogrenci-birinci-7, OT-ilk-kez-oyun-7), takım sohbeti hızlı tepki emojileri (OT-ogrenci-birinci-9).
 - Yarım kalan / sonraki oturum: Bölüm 13 sırada. Kamp'a bu oturumda hiç girmedim (Kamp Görevleri, süs, yardım). Ralli (en az 2 katılımcı) ve Canlı Takım Yarışı için takımdan biri çevrimiçiyken dene. İkili Görev (KralKoklea) ve çırak teklifi (AyseTeyze) yanıtlarını kontrol et. Günün Sorusu ve Hasta Vakaları açıldı, bakılmadı. "Hoş geldin de" düğmesi gönderdikten sonra da etkin kalıyor; ikinci kez basınca ne olduğunu dene.
 - Sosyal: arkadaş kodum KRMXHC, takma ad KaptanTuba. Takımım "Ninni Tasiyicilari" (lider, 10/30 üye, takım Sv 1), takım davet kodu **8XJUU4**. Arkadaşlarım (8): MuratEski (Q86EJU), Deniz (RHPKK9), HasanBey (8XFY4K), AyseTeyze (KQH9VZ), KralKoklea (EB3UVW), DrMelis (K9FM5K), EceOdyo (KYM4WW), SinanSinav (EQ3TAW). Takımda ayrıca Hesapli (ZBWD95). İkili Görev daveti: KralKoklea. Çırak teklifi: AyseTeyze.
+
+## Oturum 3 · 2026-10-31 · sürüm c824118c · tur 1
+- Başlangıç: 12/40, seri 2 gün, 1612 jeton. Bitiş: 18/40, 39 yıldız (15 ve 17: 3 yıldız), oyuncu seviyesi 6, 3837 jeton, 130 kristal. Bu oturumda kayıp yok.
+- Önceki geri bildirimlerin kontrolü ("yapildi:" olanlar):
+  - OT-takim-kaptani-1: düzeldi. Takım başlığındaki amblem çizim kulak (0247-dokun.png).
+  - OT-takim-kaptani-6: düzeldi. Takım sekmesi rozeti artık bekleyen hediye sayısını gösteriyor (19); "Hepsini al" deyince rozet kalktı (0247 → 0249-dokun.png).
+  - OT-takim-kaptani-7: düzeldi. Arkadaşlar listesinde takım amblemi çizim kulak (0251-dokun.png); özel mesajdaki "Simgeler" paneli de çizim simgeler (0253-dokun.png).
+  - OT-takim-kaptani-3 ve -4 geçen oturumda düzeldi diye yazılmıştı; bu oturumda da sohbet çevrimiçi satırı doğru ("Senden başka 1 kişi çevrimiçi").
+- Ne yaptım: Bölüm 13-18 (hepsi ilk denemede). Takım › Hediyeler'de 19 hediyeyi topladım (+1790 jeton, +130 kristal, kalkan). MuratEski'ye özel mesaj (takım kodunu ilettim). Takım › Savaş'ta hedef bölgeleri ilk kez seçtim: Çekiç Ovası, Üzengi Geçidi, Ninni Merkezi; sonraki bölümlerin puanı doğru bölgelere yazıldı ve takım iki bölgenin başına geçti. Kamp: Kamp Görevleri ödülü, Kulak Deposu topla, Odyoloji Merkezi Sv 2 inşaatı ve "Takımdan yardım iste". Takım › Yardım: AyseTeyze'nin Bölüm 13 isteğine yardım gönderdim. Takım Yarışı: 3'e 3 lobi açtım, Hazırım dedim (kimse katılmadı), takım sohbetinde Hesapli'yi çağırdım. Hesapli'nin 17. bölüm meydan okumasını bölümü oynarken geçmişim (sohbette yazdı).
+- Hissettiğim: Bu sürümde takım ekranı çok daha temiz: amblem ve tepkiler çizim, rozet anlamlı. Ama lider olarak bir haftalık savaş puanının (2.704) hiçbir bölgeye yazılmadığını tesadüfen, sonuç ekranındaki küçük "(hedef bölge seçilmemiş)" notundan öğrendim; bu beni üzdü. 12 sekmelik şeritte gezinmek yorucu. Hediyeler sekmesinde bir anda +1790 jeton gelmesi şaşırttı; kötü değil ama takımın ödülleri kişisel ilerlemeye göre büyük duruyor (ekonomi-denetci bakabilir).
+- Yazdığım geri bildirimler: OT-takim-kaptani-9 (savaş hedefi seçilmemiş, kimse uyarılmamış), -10 (Takım ekranında 12 sekme, Sohbet'e dönmek 6 dokunuş), -11 (lobideki "+ Boş" yuvası dokunulmuyor, kimseyi çağıramıyorum).
+- Başkalarının yazdığını gördüğüm ve yeniden yazmadığım: sonuç ekranında 3. yıldız koşulunun iki farklı yazılması (Bölüm 14: kartta "Tüm notaları topla (100)", altta "90 nota ya da hepsini") → OT-rekabetci-7; hazinedeki "Kulaklık" ödülünün resminin şapka olması → OT-ogrenci-birinci-12; haftalık kamp hedefi (12 görev, 13 sa kala 1) hâlâ yetişilemez → kendi OT-takim-kaptani-2 (is-listesi:YN-051); büyük yazıda sekmelerin kesik görünmesi → OT-buyuk-yazi-14.
+- Yarım kalan / sonraki oturum: Bölüm 19 sırada. Odyoloji Merkezi Sv 2 inşaatı sürüyor (yardım bekleniyor). 3'e 3 lobi açık bıraktım; biri katılırsa "Rakip ara" dene. Ralli (6 hak, en az 2 katılımcı) ve Bayrak Yarışı için takımdan biri çevrimiçiyken dene. İkili Görev (KralKoklea) ve çırak teklifi (AyseTeyze) yanıtlarına bu oturumda bakmadım. Kamp'ta süs yerleştirme görevi duruyor.
+- Sosyal: arkadaş kodum KRMXHC, takma ad KaptanTuba. Takımım "Ninni Tasiyicilari" (lider, 10/30 üye, takım Sv 2, katılım Açık, en az bölüm 1), takım davet kodu **8XJUU4**. Savaş hedefleri: Çekiç Ovası, Üzengi Geçidi, Ninni Merkezi. Arkadaşlarım (8): MuratEski (Q86EJU), Deniz (RHPKK9), HasanBey (8XFY4K), AyseTeyze (KQH9VZ), KralKoklea (EB3UVW), DrMelis (K9FM5K), EceOdyo (KYM4WW), SinanSinav (EQ3TAW). Takımda ayrıca Hesapli (ZBWD95).

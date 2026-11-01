@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 12/40 (oturum 2 sonu) |
+| 1 | 2026-10-31 | | | 19/40 (oturum 3 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -33,3 +33,19 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-sinav-adayi-8 (Hâlâ: teşhis satırı), -9 (bilgi yarışmasında tek kişilik pratik yok), -10 (Hasta Vakaları'nın yeri/Klinik koşulu söylenmiyor; vaka içeriği övgü), -11 (Günün Sorusu Bugün'de yok). Zaten yazılmış olduğu için yeniden yazmadıklarım: Sözlük 8/39 ile 8/60 farkı (OT-ogrenci-birinci-3), Sözlük'te bulunamayan terim için "sonuç yok" yazmaması (OT-uzman-odyolog-5; timpanogram aramasında ben de gördüm), "3. yıldız: 89 nota ya da hepsini topla" ile "Tüm notaları topla (98)" çelişkisi (OT-ogrenci-birinci-5, Bölüm 10'da yine gördüm), haritaya dönüşte Tüy Dede balonunun kutlama penceresinin üstüne binmesi ("Profil'e dokun" balonu "Dış Kulak yeniden canlandı" penceresinin üstünde; kanıt 0086-hata.png).
 - Yarım kalan / sonraki oturum: Bölüm 13. Hasta Vakaları'nda Ece ve Hakan bekliyor; Vaka Defteri 1/32. Günün Sorusu'nu takım sohbetinde ara. Kulak Bilgi Yarışması 13:00/20:00'de; denk gelirsem gir. Ton Avı (Odyometri Odası) ve Timpanogram Eşleştir (Timpanometri Kulesi kurulunca) kamp oyunları denenmedi. Odyoloji Kliniği inşaatı tamamlandı.
 - Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takım sohbetine "Selam!" yazdım.
+
+## Oturum 3 · 2026-10-31 · sürüm c824118c · tur 1
+- Başlangıç: 12/40, seri 1 gün. Bitiş: 19/40, 41 yıldız (3 yıldız: 4, 7, 15, 17, 19), seviye 6, 3869 jeton, 110 kristal, seri 2 gün. Kayıp yok (19 deneme, 19 geçiş).
+- Eski geri bildirimlerin kontrolü (tur 3, durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-1: düzeldi (kartlarda yine çizim simgeler; yeni açılan Kemikçikler kartları da öyle).
+  - OT-sinav-adayi-2: düzeldi (sonuçta "78/95 nota" nota simgesiyle, jeton ayrı kutuda).
+  - OT-sinav-adayi-3: düzeldi (oturum 2'de doğrulandı; bu oturumda Ayarlar'a girmedim).
+  - OT-sinav-adayi-4: yapildi olarak işaretli; yerine yazdığım OT-8 "yalnız test derlemesinde" gerekçesiyle reddedildi, yeniden yazmadım.
+  - OT-sinav-adayi-5: düzeldi (Bugün > Giriş takvimi: "Al" penceresi açıyor, pencerede "Topla" düğmesi var; topladıktan sonra balon kalmadı, "Bugünün ödülü alındı. Yarın: Kulaklı Bere" yazıyor).
+  - OT-sinav-adayi-10: düzeldi (Kamp'ın üstünde artık "Klinik 5" sekmesi var; dokununca doğrudan Odyoloji Kliniği bekleme salonu açılıyor).
+- Ne yaptım: takvim ödülü; Kamp > Klinik'te Ece (21, konser sonrası) vakası: otoskopi + saf ses → "Normal işitme" + koruyucu öğüt, "Mükemmel karar". Bölüm 13-19 (Kemikçikler). Takım hediyeleri (17 tane, +1500 jeton, +110 kristal), EceOdyo'yu tebrik ettim. Takım > Etkinlikler'de Kulak Bilgi Yarışması (13:00'e 3 sa vardı, giremedim). Profil > Kulak Kartları 12/50.
+- Bilgi içeriği (sınav gözüyle): Bölüm 13 otoskleroz notu artık çok iyi (otik kapsül, Carhart ~2 kHz, A/As, tek başına tanı koydurmaz, refleks yok). Biliyor muydun? satırları doğru: inkudomalleal/inkudostapedial eklem; inkusun uzun kolu KOM'da en sık aşınan yer; stapes tabanı ~3 mm²; sağlam zarla zincir kopukluğunda ~60 dB iletim kaybı; kemik yolunda interaural zayıflama 0-10 dB, bu yüzden maskeleme; stapedius VII, tensor timpani V3. Ece vakasının TTS/PTS ve 3-6 kHz çentiği açıklaması doğru, kaynak yazıyor.
+- Hissettiğim: Klinik sekmesi gelince vakalara ulaşmak çok kolaylaştı, oyunun en değerli yeri hâlâ burası. Bölümler kolay (beceri 0,6 ile hiç kaybetmedim). Kart ile notun aynı konuda farklı şey söylemesi (otoskleroz) sınava çalışan biri için kafa karıştırıcı. Bilgi yarışması yine saate denk gelmedi; Günün Sorusu'nu hâlâ bulamadım (OT-11 iş listesinde).
+- Yazdığım geri bildirimler: OT-sinav-adayi-12 (süre hedefi "64 sn sürdü · yapılmadı" yuvarlama), -13 (Kulak Kanalı biyom kartı kilitli kaldı), -14 (otoskleroz kartı nota uydurulmamış; ilk bildirim OT-uzman-odyolog-7), -15 (açık kartın resmi asma kilit), -16 (Ece vakası sonucu istenmeyen timpanometri/OAE bulgusunu anlatıyor).
+- Yarım kalan / sonraki oturum: Bölüm 20 (sonunda hazine). Klinik'te Hakan, Zeynep, İsmail, Nuri bekliyor (Vaka Defteri 2/32). Kulak Bilgi Yarışması 13:00/20:00. Ton Avı ve Timpanogram Eşleştir kamp oyunları hâlâ denenmedi. Takım sekme çubuğunda Sohbet/Etkinlikler soldan taşınca yana kaydıramadım; "Yardım"a dokununca göründüler (araç sınırı olabilir, yazmadım).
+- Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; bekleyen istek yok. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo da var. Bronz Ligi 2. sıra.
