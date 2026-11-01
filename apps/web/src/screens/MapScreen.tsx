@@ -12,7 +12,7 @@ import { useStore } from '../store';
 import { getNet, useSocial } from '../net';
 import { useNav } from '../nav';
 import { platform } from '../platform';
-import { StatusDot } from '../ui/social';
+import { HudNum, StatusDot, fmtNum } from '../ui/social';
 import { prefersReducedMotion } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
@@ -28,7 +28,6 @@ declare const __ODI_E2E__: boolean | undefined;
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
-const fmt = (n: number) => (n >= 10000 ? `${Math.round(n / 1000)}B` : n.toLocaleString('tr-TR'));
 
 /**
  * Yaşayan Kulak Haritası: tam ekran Phaser haritası + React katmanı (cam HUD, Bugün çipi, sıradaki hedef rozeti,
@@ -50,6 +49,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
   const social = useMapSocial(); const socialRef = useRef(social); socialRef.current = social;
   const [stage, setStage] = useState(false);
+  // dönüş sahnesi bitti (ya da oynanacak bir şey yok): Tüy Dede turu ancak o zaman başlar (ftue/Director.tsx quiet; YN-067)
+  const [settled, setSettled] = useState(false);
 
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
@@ -78,10 +79,10 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
           if (z === 'finale') { celebrate.banner({ icon: '👑', title: 'Ninni beyne ulaştı!', body: 'Ninni Merkezi ışıl ışıl yandı.', tone: 'gold' }); return; }
           await celebrate.biomeRestored({ biome: z, name: BIOMES[z].name });
         },
-        onSequence: (p) => { setSeq(p === 'start'); if (p === 'start') started = true; if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
+        onSequence: (p) => { setSeq(p === 'start'); setSettled(p === 'done'); if (p === 'start') started = true; if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
       });
-      handle.current = h; setStage(true);
+      handle.current = h; setStage(true); if (!seen) setSettled(true);
     }, (e: unknown) => { if (!dead) { try { chunkFailed(e); } catch { /* yenileniyor */ } } });
     // sahne yarıda bırakılırsa (ör. hemen bölüme geçildi) bir dahaki açılışta tekrar oynamasın
     return () => { dead = true; if (started) useMapSeen.getState().commit(starsOf(useStore.getState().progress)); h?.destroy(); handle.current = null; };
@@ -109,7 +110,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const feat = useFeatures();
 
   return (
-    <div className="map-screen" onPointerDown={() => audio.unlock()}>
+    <div className="map-screen" data-donus={settled ? 'bitti' : 'suruyor'} onPointerDown={() => audio.unlock()}>
       <div className="map-stage" ref={host} aria-label="Yolculuk haritası" role="img" />
       {!stage && <EngineLoading inStage />}
       <MapFrame />
@@ -118,8 +119,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         <StatusDot />
         <span className="mh-pill" aria-label={`${totalStars} yıldız`}><Art name="star" size={18} />{totalStars}</span>
         <span className="grow" />
-        <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${coin.value} jeton`}><Art name="coin" size={18} />{fmt(coin.value)}</span>
-        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} />{fmt(kristal.value)}</button>}
+        <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${fmtNum(coin.value)} jeton`}><Art name="coin" size={18} /><HudNum v={coin.value} /></span>
+        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} /><HudNum v={kristal.value} /></button>}
         {wallet && feat.open('shop') && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
       <div className="map-side-l">

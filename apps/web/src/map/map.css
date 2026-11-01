@@ -26,6 +26,14 @@
 .mh-pill.gold { border-color: rgba(255,201,60,.6); color: #ffe7a3; animation: mh-bump .35s ease-out; }
 .mh-pill.tap { cursor: pointer; min-height: 34px; }
 .mh-pill .dot { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--m-coral); color: #fff; font-size: 0.6875rem; display: flex; align-items: center; justify-content: center; }
+/* dar ekran (320 px; Büyük yazıda da): bütün haplar sığsın — sayılar 1.000'den sonra kısalır (1B; tam değer aria-label'da), aralıklar daralır */
+.mh-pill .hn-d { display: none; }
+@media (max-width: 360px) {
+  .mh-pill .hn-w { display: none; } .mh-pill .hn-d { display: inline; }
+  .map-hud { left: 8px; right: 8px; gap: 4px; padding: 5px 6px 5px 5px; }
+  .mh-pill { padding: 5px 7px; gap: 2px; }
+  .mh-lvl { width: 38px; height: 38px; }
+}
 @keyframes mh-bump { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
 /* sol: Bugün çipi + pusula */

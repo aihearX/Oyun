@@ -3,11 +3,11 @@
  * Kuyruklu (aynı anda tek kutlama), dokununca hızlanır, prefers-reduced-motion'da kısa ve parçacıksız.
  * Dürüstlük: gösterilen içerik = verilen içerik (çağıranın verdiği öğeler aynen gösterilir); gizli olasılık yok.
  */
-import { useEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { audio } from '@odi/audio';
 import { BIOMES, cardById, cosmeticById } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
-import { celebrate as celebrateRef, registerCelebrations, type RewardItem, type ScreenPoint } from './index';
+import { celebrate as celebrateRef, registerCelebrations, useCelebrating, type RewardItem, type ScreenPoint } from './index';
 import { Particles } from './particles';
 import { hud, type HudKind } from './hud';
 import { setFxEngine } from './fx';
@@ -176,6 +176,11 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     if (/[?&](demo|kutlama)=/.test(location.search)) (window as unknown as { __celebrate?: unknown }).__celebrate = { ...celebrateRef };
     return () => { removeEventListener('resize', onResize); fx.current?.destroy(); setFxEngine(null); registerCelebrations({ async chest() {}, async coins() {}, async levelUp() {}, async biomeRestored() {}, banner() {} }); };
   }, []);
+
+  // anlatıcı turu kutlama süresince duraklar (ftue/Coach.tsx); kuyruktaki art arda kutlamalar arasında boşluk yok (aynı karede değişir)
+  const on = scene !== null;
+  useLayoutEffect(() => { useCelebrating.setState({ on }); }, [on]);
+  useEffect(() => () => useCelebrating.setState({ on: false }), []);
 
   const tapStage = () => { if (skipFn.current) skipFn.current(); else if (scene?.kind === 'levelUp' && waitBtn.current) waitBtn.current(); };
 

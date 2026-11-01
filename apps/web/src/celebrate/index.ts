@@ -3,6 +3,8 @@
  * Hepsi tam ekran katmanında oynar, dokunuşla hızlandırılabilir, prefers-reduced-motion'da kısa sürer.
  * Dürüstlük: gösterilen içerik her zaman verilen içerikle aynıdır; gizli olasılık yok.
  */
+import { create } from 'zustand';
+
 export interface RewardItem { kind: 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart' | 'xp' | 'koruyucu' | 'hizlandirici'; amount: number; label?: string; ref?: string }
 export interface ScreenPoint { x: number; y: number }
 
@@ -24,3 +26,9 @@ export function registerCelebrations(i: Impl) { impl = i; }
 export const celebrate: Impl = {
   chest: (o) => impl.chest(o), coins: (o) => impl.coins(o), levelUp: (o) => impl.levelUp(o), biomeRestored: (o) => impl.biomeRestored(o), banner: (o) => impl.banner(o),
 };
+
+/**
+ * Etkileşimli kutlama sahnesi (sandık, seviye, bölge canlandı) ekranda mı: kutlama katmanı yazar. Bir anda tek etkileşimli katman
+ * (YN-067): anlatıcı turu bu sırada duraklar, kutlama kapanınca kaldığı adımdan sürer; Yönetmen yeni turu başlatmaz.
+ */
+export const useCelebrating = create<{ on: boolean }>(() => ({ on: false }));

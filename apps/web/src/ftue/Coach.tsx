@@ -8,6 +8,7 @@ import { prefersReducedMotion } from '../ui/bits';
 import { prefetchLines, speakLine, stopVoice } from './voice';
 import { audio } from '@odi/audio';
 import { TuyDede, NARRATOR_NAME } from './Narrator';
+import { useCelebrating } from '../celebrate';
 import './ftue.css';
 
 /**
@@ -17,6 +18,8 @@ import './ftue.css';
  *   target   — vurgulanacak öğe: CSS seçici ya da (tuval içi bina gibi) ekran dikdörtgeni döndüren işlev
  *   wait     — 'next' (İleri / ekrana dokun), 'tap' (vurgulanan yere dokun), { el } (öğe belirene dek), { until } (koşul)
  *   art/kicker — yeni açılan yer için büyük rozet ("Yeni yer açıldı")
+ * Bir anda tek etkileşimli katman (YN-067): kutlama (sandık, seviye, bölge canlandı) açılınca tur duraklar, kapanınca kaldığı
+ * adımdan sürer; yalnız kutlamanın içini gösteren adım (`cel`) kutlamayla birlikte görünür.
  */
 export type Target = string | (() => Element | DOMRect | null);
 export interface CoachStep {
@@ -35,6 +38,8 @@ export interface CoachStep {
   optional?: boolean | { el: string };
   /** hedef belirene dek gösterilecek yer: yalnız halka, el ve kısa yönerge (anlatıcı henüz konuşmaz; dokunuş alttaki öğeye geçer) */
   before?: { target: Target; hint: string };
+  /** kutlama katmanının içindeki bir yeri gösterir (sandığın Topla'sı): kutlama açıkken bu adım duraklamaz */
+  cel?: boolean;
 }
 export interface Tour { id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void }
 
@@ -136,7 +141,10 @@ export function SpeechPanel({ text, typed, typing, place = 'bottom', index, tota
 /** kökte bir kez: etkin tur varsa çizer */
 export function CoachHost() {
   const tour = useCoach((s) => s.tour); const step = useCoach((s) => s.step);
+  const celebrating = useCelebrating((s) => s.on);
   if (!tour) return null;
+  // kutlama sürerken tur duraklar (adım yeniden çizilince baştan okunur); Topla/Devam soluk kalmaz, ilk dokunuş kutlamaya gider
+  if (celebrating && !tour.steps[step]?.cel) return null;
   // gövdeye taşınır: #root sabit konumlu (kendi yığın bağlamı) ve alt sayfalar (bina paneli) gövdeye taşındığı için üstte kalmalı
   const v = <CoachView key={`${tour.id}:${step}`} tour={tour} index={step} />;
   return typeof document !== 'undefined' ? createPortal(v, document.body) : v;
@@ -149,8 +157,9 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const st = tour.steps[index]!;
   const wait = st.wait ?? 'next';
   // dokunma/bekleme adımı bir yeri gösteriyorsa: halka yerine oturmadan Tüy Dede konuşmaz, "dokun" yazısı çıkmaz
-  // (kamp kamerası kayarken, sandık henüz açılmamışken); o arada en çok `before` yeri gösterilir
-  const marked = wait !== 'next' && !!st.target;
+  // (kamp kamerası kayarken, sandık henüz açılmamışken); o arada en çok `before` yeri gösterilir. İsteğe bağlı adım da hedefi
+  // yoksa konuşmadan geçilir (kapanmış Günün Sorusu'na "Bir şık seç" denmez)
+  const marked = !!st.target && (wait !== 'next' || !!st.optional);
   const [shown, setShown] = useState(!marked);
   const tw = useTypewriter(st.say, `${tour.id}:${index}:${shown}`);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -205,7 +214,9 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
     if (wait !== 'tap') return;
     const on = (e: MouseEvent) => {
       const el = targetEl(st.target); const t = e.target as Node | null;
-      const r = resolve(st.target);
+      // seçici hedefte dokunuş öğenin kendisine gitmeli: üstünü örten bir katmana (kutlama) giden dokunuş yutulur, adım yerinde kalır.
+      // Konumla yalnız tuval içi hedefler (dikdörtgen döndüren işlev) sayılır
+      const r = el ? null : resolve(st.target);
       const inside = (el && t && el.contains(t)) || (r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
       if (inside) setTimeout(go, 60);
     };
@@ -218,8 +229,10 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const hole = rect ? { x: rect.left - pad, y: rect.top - pad, w: rect.width + pad * 2, h: rect.height + pad * 2 } : null;
   const W = typeof innerWidth === 'number' ? innerWidth : 390, H = typeof innerHeight === 'number' ? innerHeight : 844;
   const [insetSab] = useState(() => insetPx('--sab'));
+  // gösterdiği yer ekranda yok (ör. Profil'in içi haritadayken): panel üste, ekran kilitlenmez; oyuncu alt menüye erişip oraya gidebilir
+  const lost = marked && !hole;
   // yerleşim: hedefin üstünde/altında hangi tarafta daha çok boş yer varsa panel oraya
-  const place: 'top' | 'bottom' | 'center' = st.art && !hole ? 'center' : hole && hole.y > H - (hole.y + hole.h) ? 'top' : 'bottom';
+  const place: 'top' | 'bottom' | 'center' = lost ? 'top' : st.art && !hole ? 'center' : hole && hole.y > H - (hole.y + hole.h) ? 'top' : 'bottom';
   const compact = shortScreen();
   // alttaki panelin taşan portresi hedefin üstüne binecekse portre panelin içine alınır
   const panelRef = useRef<HTMLDivElement>(null);
@@ -247,16 +260,16 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
 
   return (
     <div className={`coach${hole ? ' has-hole' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
-      <svg className="coach-dim" width={W} height={H} aria-hidden>
+      {!lost && <svg className="coach-dim" width={W} height={H} aria-hidden>
         <defs><mask id="coach-mask"><rect width={W} height={H} fill="#fff" />{hole && <rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx="18" fill="#000" />}</mask></defs>
         <rect width={W} height={H} fill="rgba(8,4,26,.74)" mask="url(#coach-mask)" />
-      </svg>
+      </svg>}
       {passThrough && hole ? <>
         <div className="coach-block" style={{ left: 0, top: 0, width: W, height: Math.max(0, hole.y) }} onClick={onBack} />
         <div className="coach-block" style={{ left: 0, top: hole.y + hole.h, width: W, height: Math.max(0, H - hole.y - hole.h) }} onClick={onBack} />
         <div className="coach-block" style={{ left: 0, top: hole.y, width: Math.max(0, hole.x), height: hole.h }} onClick={onBack} />
         <div className="coach-block" style={{ left: hole.x + hole.w, top: hole.y, width: Math.max(0, W - hole.x - hole.w), height: hole.h }} onClick={onBack} />
-      </> : <div className="coach-block" style={{ inset: 0 }} onClick={onBack} />}
+      </> : !lost && <div className="coach-block" style={{ inset: 0 }} onClick={onBack} />}
       {hole && <div className="coach-ring" style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} />}
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}

@@ -9,15 +9,18 @@ const line = (id: string) => ({ id, say: lineText(id) });
 import { FEATURES, clearedCount, featureById, type FeatureId } from './features';
 import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf } from './map-intro';
 import { Art } from '../ui/art';
+import { useCelebrating } from '../celebrate';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
- * Ekran sakinken (takma ad penceresi, kutlama, alt sayfa yokken) tek seferde tek tur; her tur bir kez.
+ * Ekran sakinken (takma ad penceresi, kutlama, alt sayfa, haritanın dönüş sahnesi yokken) tek seferde tek tur; her tur bir kez.
+ * Tur sürerken açılan kutlama turu duraklatır (Coach.tsx); bir anda tek etkileşimli katman (YN-067).
  */
 const tab = (t: string) => `nav.tabbar .tab[data-tab="${t}"]`;
 /** alt sekmeye dokun: satır kimliği sekme-<ad>; ipucu Türkçe ek uyumuyla (Kamp'a, Profil'e) */
 const TAB_LINE: Record<string, [string, string]> = { today: ['sekme-bugun', 'Bugün’e dokun'], camp: ['sekme-kamp', 'Kamp’a dokun'], profile: ['sekme-profil', 'Profil’e dokun'], team: ['sekme-takim', 'Takım’a dokun'], map: ['sekme-harita', 'Harita’ya dokun'] };
-const tapTab = (t: string): CoachStep => { const [id, hint] = TAB_LINE[t]!; return { id, say: lineText(id), target: tab(t), wait: 'tap', hint }; };
+/** sekme gerçekten açılınca ilerler (dokunuş yutulduysa, ör. arkada kutlama varken, adım yerinde kalır) */
+const tapTab = (t: string): CoachStep => { const [id, hint] = TAB_LINE[t]!; return { id, say: lineText(id), target: tab(t), wait: { until: () => exists(`${tab(t)}[aria-current="page"]`) }, hint }; };
 const unlockCard = (id: FeatureId, line: string): CoachStep => ({ id: line, say: lineText(line), art: featureById(id).art, kicker: 'Yeni yer açıldı!', mood: 'wow' });
 const exists = (sel: string) => !!document.querySelector(sel);
 /** takvim/sandık kutlamasının Topla düğmesi (sandık açılınca belirir) */
@@ -25,8 +28,13 @@ const TOPLA = '.chest-stage .cel-cta .btn';
 /** öğe önce belirip sonra kaybolunca true (henüz belirmediyse beklemeye devam) */
 const gone = (sel: string) => { let seen = false; return () => { if (exists(sel)) seen = true; return seen && !exists(sel); }; };
 
+/** açık (cevaplanabilir) Günün Sorusu kartı; cevaplanmış ya da açıklanmış soru sayılmaz */
+const openQuestion = () => [...document.querySelectorAll('[data-testid="gunun-sorusu"]')].find((e) => !!e.querySelector('.dq-opt:not(:disabled)')) ?? null;
+
 function quiet(allowSheets = false): boolean {
-  if (exists('.onboard') || exists('.cel-stage') || exists('.story') || exists('.biome-intro')) return false;
+  if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return false;
+  // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden; kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
+  if (exists('.map-screen:not([data-donus="bitti"])') || exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
   if (!allowSheets && (exists('.sheet-wrap') || exists('.bp-wrap') || exists('.overlay'))) return false;
   return true;
 }
@@ -78,7 +86,7 @@ export function tourFor(id: string, route: string): Tour | null {
         { id: 'bugun-02', say: lineText('bugun-02'), target: '.cal-today .btn:not(:disabled)', wait: 'tap', hint: 'Al’a dokun', optional: true },
         // sandık kapalıyken yalnız sandık gösterilir ("Sandığa dokun"); Tüy Dede "Topla’ya dokun"u Topla düğmesi belirince söyler,
         // toplanınca (düğme kaybolunca) hemen ilerler
-        { id: 'bugun-03', say: lineText('bugun-03'), target: TOPLA, before: { target: '.chest-stage .cel-chest', hint: 'Sandığa dokun' }, wait: { until: gone(TOPLA) }, hint: 'Topla’ya dokun', optional: { el: '.chest-stage' }, mood: 'wow' },
+        { id: 'bugun-03', say: lineText('bugun-03'), target: TOPLA, before: { target: '.chest-stage .cel-chest', hint: 'Sandığa dokun' }, wait: { until: gone(TOPLA) }, hint: 'Topla’ya dokun', optional: { el: '.chest-stage' }, mood: 'wow', cel: true },
         { id: 'bugun-04', say: lineText('bugun-04'), target: '.quests' },
       ); break;
     case 'camp':
@@ -164,7 +172,8 @@ export function tourFor(id: string, route: string): Tour | null {
       steps.push(
         unlockCard('soru', 'soru-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
-        { ...line('soru-02'), target: '[data-testid="gunun-sorusu"]', optional: true },
+        // soru kapalıysa (cevaplanmış/açıklanmış) "Bir şık seç" denmez: adım konuşmadan geçilir, kart sıradaki saati yazar
+        { ...line('soru-02'), target: openQuestion, optional: true },
       ); break;
     case 'ikili':
       steps.push(
@@ -214,7 +223,7 @@ export function pendingTours(skipped: string, cleared: number, done: readonly st
   return out.filter((id) => id !== skipped && !done.includes(id));
 }
 /** oyuncunun kendi girdiği yer: tanıtımı sonradan gösterilmez (Takım'a girmiş oyuncuya bir bölüm sonra "Yeni: Takım!" gelmez) */
-const VISIT_ROUTE: Partial<Record<FeatureId, string>> = { today: 'today', camp: 'camp', team: 'team' };
+const VISIT_ROUTE: Partial<Record<FeatureId, string>> = { today: 'today', camp: 'camp', team: 'team', friends: 'friends', glossary: 'glossary' };
 export function visitedTours(route: string, cleared: number, done: readonly string[], keep: readonly (string | null | undefined)[]): string[] {
   return (Object.keys(VISIT_ROUTE) as FeatureId[]).filter((id) => VISIT_ROUTE[id] === route && cleared >= featureById(id).at && !done.includes(id) && !keep.includes(id));
 }
@@ -238,13 +247,19 @@ function nextTour(route: string): string | null {
   return null;
 }
 
+/** tur başlamadan önce ekranın art arda sakin kalacağı yoklama sayısı (500 ms aralıkla) */
+const CALM_TICKS = 3;
+
 export function FtueDirector({ route }: { route: string }) {
   const active = useCoach((s) => s.tour);
   const bypass = useStore((s) => s.ftue.bypass);
   useEffect(() => {
     if (bypass || active) return;
+    // ekran bir süre sakin kalmalı (art arda gelen kutlama/sahne adımlarının arasındaki kısa boşlukta tur başlamasın)
+    let calm = 0;
     const h = setInterval(() => {
-      if (useCoach.getState().tour || !quiet()) return;
+      if (useCoach.getState().tour || !quiet()) { calm = 0; return; }
+      if (++calm < CALM_TICKS) return;
       const st = useStore.getState(); const id = nextTour(route);
       // oyuncu bir yere kendi girdiyse (turu henüz sırada beklerken) o yerin tanıtımı görülmüş sayılır; şimdi başlayacak tur hariç
       if (!st.ftue.bypass && !st.ftue.admin) for (const v of visitedTours(route, clearedCount(st.progress), st.ftue.tours, [id])) st.ftueTourDone(v);

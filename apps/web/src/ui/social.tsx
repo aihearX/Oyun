@@ -45,8 +45,8 @@ export const fmtHud = (n: number, dar = false) => {
   if (v < 1_000_000) return `${Math.floor(v / 1000)}B`;
   return `${(Math.floor(v / 100_000) / 10).toLocaleString('tr-TR')}M`;
 };
-/** hap sayısı: geniş ve dar biçim farklıysa ikisi de yazılır, CSS ekran genişliğine göre birini gösterir */
-function HudNum({ v }: { v: number }) {
+/** hap sayısı: geniş ve dar biçim farklıysa ikisi de yazılır, CSS ekran genişliğine göre birini gösterir (üst çubuk ve harita) */
+export function HudNum({ v }: { v: number }) {
   const a = fmtHud(v); const b = fmtHud(v, true);
   return a === b ? <>{a}</> : <><span className="hn-w">{a}</span><span className="hn-d">{b}</span></>;
 }

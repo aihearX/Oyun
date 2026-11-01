@@ -161,7 +161,8 @@ async function suite(target, browserName, [W, H]) {
 
   /** anlatıcı turunu sonuna kadar yürüt: İleri'ye bas, bekleyen adımda parlayan halkanın ortasına dokun */
   async function driveTour(page, tourId, label, act = {}) {
-    await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).waitFor({ timeout: 40_000 });
+    await waitTour(page, `[data-testid="anlatici-tur"][data-tour="${tourId}"]`, 40_000);
+    await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).waitFor({ timeout: 5_000 });
     ok(`tur başladı: ${tourId}`);
     let last = ''; let guard = 0;
     let voiced = await page.evaluate(() => (window.__played?.length ?? 0) + (window.__spoken?.length ?? 0));
@@ -196,6 +197,19 @@ async function suite(target, browserName, [W, H]) {
     }
     check(!(await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).count()), `tur bitti: ${tourId}`);
   }
+  /** tur bekle (ekran sakinleştikten sonra en çok ms). Yönetmen haritanın dönüş sahnesi, kamp yüklenmesi, Tüy Dede'nin sesli kamp
+   *  satırı ve kutlama bitmeden tur başlatmaz (YN-067): bunlar sürerken süre işlemez (en çok 90 sn); dönüş sahnesi oyuncu gibi
+   *  haritaya dokunarak hızlandırılır (yazılımla çizen test tarayıcısında sahne yavaş) */
+  async function waitTour(page, sel, ms) {
+    const start = Date.now(); let t0 = start;
+    for (;;) {
+      if (await page.locator(sel).count()) return true;
+      if (await page.locator('.map-screen[data-donus="suruyor"], .camp-loading, [data-testid="kamp-dede"]:not([data-line=""]), .cel-stage').count()) { t0 = Date.now(); if (t0 - start > 90_000) return false; }
+      else if (Date.now() - t0 > ms) return false;
+      if (await page.locator('.map-skip').count()) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined);
+      await sleep(500);
+    }
+  }
   async function nickname(page) {
     for (let i = 0; i < 20; i++) {
       if (await page.locator('.onboard').count()) {
@@ -217,7 +231,7 @@ async function suite(target, browserName, [W, H]) {
     const seen = [];
     for (let k = 0; k < 12; k++) {
       const t = page.locator('[data-testid="anlatici-tur"]').first();
-      try { await t.waitFor({ timeout: 5000 }); } catch { break; }
+      if (!(await waitTour(page, '[data-testid="anlatici-tur"]', 5000))) break;
       const id = await t.getAttribute('data-tour');
       if (!id) break;
       seen.push(id); await driveTour(page, id, `${label}-${id}`);
@@ -233,8 +247,9 @@ async function suite(target, browserName, [W, H]) {
       if (await page.locator('[data-testid="anlatici-tur"]').count()) seen.push(...await drainTours(page, label));
       await page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined); await sleep(500);
     }
-    // gecikmeli başlayan tur (yönetmen 0,5 sn'de bir bakar) sekme dokunuşunu örtmesin: önce onu yürüt
-    await sleep(1200); if (await page.locator('[data-testid="anlatici-tur"]').count()) seen.push(...await drainTours(page, label));
+    // gecikmeli başlayan tur sekme dokunuşunu örtmesin: önce onu yürüt (yönetmen 0,5 sn'de bir bakar, ekran 1,5 sn sakin kalınca ve
+    // haritanın dönüş sahnesi bitince başlatır — YN-067)
+    if (await waitTour(page, '[data-testid="anlatici-tur"]', 4000)) seen.push(...await drainTours(page, label));
     await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor({ timeout: 20_000 });
     seen.push(...await drainTours(page, label));
     return seen;
@@ -319,7 +334,8 @@ async function suite(target, browserName, [W, H]) {
       // sahip isteği 2026-10-31 (YN-066): Kamp'ı açan bölümün sonucu bölüme değil haritaya götürür; Kamp tanıtımı haritada kendiliğinden başlar
       await sleep(600); await resultForward(page, 3, 'camp', 'sonuc-kamp-acildi');
       await page.locator('.result-actions [data-act="harita"]').click();
-      await page.locator('[data-testid="anlatici-tur"][data-tour="camp"]').waitFor({ timeout: 40_000 });
+      await waitTour(page, '[data-testid="anlatici-tur"][data-tour="camp"]', 40_000);
+      await page.locator('[data-testid="anlatici-tur"][data-tour="camp"]').waitFor({ timeout: 5_000 });
       check(await page.locator('.map-play').count() === 1 && !(await page.locator('.result-actions').count()), 'Kamp tanıtımı haritada ek dokunuş olmadan başladı');
       await driveTour(page, 'camp', 'kamp-acilis');
       await page.locator('.camp-base').waitFor({ timeout: 20_000 });

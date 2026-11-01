@@ -28,8 +28,10 @@
 .coach-hand.up { transform:rotate(180deg); animation-name:chPokeUp; }
 @keyframes chPoke { 50% { transform:translateY(-10px); } }
 @keyframes chPokeUp { 0%, 100% { transform:rotate(180deg) translateY(0); } 50% { transform:rotate(180deg) translateY(-10px); } }
-.coach-unlock { position:absolute; left:50%; top:calc(var(--sat) + 13vh); transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:10px; pointer-events:none; animation:pop .5s cubic-bezier(.2,1.5,.4,1) both; }
-.coach-unlock b { font-size:0.9375rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--gold); text-shadow:0 2px 0 #7a4300, 0 0 18px rgba(255,201,60,.6); white-space:nowrap; }
+/* ortalama transform'la değil kenar boşluklarıyla: "pop" canlandırması transform'u ezer (rozet sağa kayıp kesiliyordu; 320 px, YN-067) */
+.coach-unlock { position:absolute; left:0; right:0; margin:0 auto; width:max-content; max-width:calc(100% - 24px); top:calc(var(--sat) + 13vh); display:flex; flex-direction:column; align-items:center; gap:10px; pointer-events:none; animation:pop .5s cubic-bezier(.2,1.5,.4,1) both; }
+.coach-unlock b { font-size:0.9375rem; font-weight:900; letter-spacing:2px; text-transform:uppercase; color:var(--gold); text-shadow:0 2px 0 #7a4300, 0 0 18px rgba(255,201,60,.6); text-align:center; overflow-wrap:anywhere; min-width:0; }
+@media (max-width:360px) { .coach-unlock b { letter-spacing:1px; font-size:0.875rem; } }
 .coach-unlock .art { filter:drop-shadow(0 10px 18px rgba(5,2,20,.6)); animation:tsBob 2.4s ease-in-out infinite; }
 .coach-unlock.small { top:calc(var(--sat) + 10px); flex-direction:row; gap:8px; }
 .coach-unlock.small b { font-size:0.8125rem; }
