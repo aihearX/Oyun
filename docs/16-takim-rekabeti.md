@@ -64,7 +64,7 @@ klinik kapalıdır. Kamp seviyeleri yalnız eşleşmedeki "Takım gücü"ne gire
 | Bölge Savaşı | her 100 savaş puanı 1 (haftada en çok 60) |
 | Baskın | her 200 hasar 1 (haftada en çok 40) |
 | Bilgi | açıklanmış Günün Sorusu doğruları 1'er (haftada en çok 30) |
-| Düello | kazanma 40, beraberlik 15, kayıp 5 |
+| Düello | kazanma 40, beraberlik 15, kayıp 5; rakipsiz biten düello sayılmaz (0) |
 | Takım Yarışı | kazanma 20, beraberlik 8, kayıp 4 (günde en çok 10 yarış) |
 
 - **Sezon sonu** bir kez işlenir (`tl_closed:<sezon>`):
@@ -73,12 +73,15 @@ klinik kapalıdır. Kamp seviyeleri yalnız eşleşmedeki "Takım gücü"ne gire
   - Geçmiş kaydı tutulur (`tl_history`).
 - **Ödül**: üye başına kristal, bir kez (`tl_rewards`).
   - Kademe tabanları: Bronz 5, Gümüş 8, Altın 12, Platin 16, Koklea 20.
-  - Taban, sıraya göre çarpılır: 1. ×3, 2. ×2, 3. ×1,5, puanı olan diğer takımlar ×1.
+  - Taban, sıraya göre çarpılır: 1. ×3, 2. ×2, 3. ×1,5, puanı olan diğer takımlar ×1 (`teamLeagueReward`, sunucu ve ekran aynı işlev).
+  - Kesir en yakın tam sayıya yuvarlanır (`Math.round`, ,5 yukarı): Bronz'da 1. 15, 2. 10, 3. 8 (7,5), diğerleri 5 kristal.
+    Kurallar sayfası takımın kademesinde bu örneği gerçek sayılarla yazar.
 - **Duyuru**: takım sohbetine sistem mesajı düşer (`meta.event = 'tlig'`).
 - **Rozet**: geçen sezon ilk 3'e girdiyse amblem çerçevesi kademenin renginde gösterilir.
 - **Takım › Lig** ekranında şunlar var:
   - grup sıralaması ve yükselme/düşme bölgeleri,
-  - kaynak kaynak puanlarımız,
+  - kaynak kaynak puanlarımız; haftalık sınırlı kaynakların altında sezon dökümü ("Bu sezon (2 hafta): 1. hafta 46 + bu hafta 7
+    (792 savaş puanı)"; `TeamLeagueBreakdown.weeks`, `curWeek`), Savaş/Baskın ekranının bu haftaki sayısıyla karşılaştırılabilir,
   - kalan süre,
   - geçmiş sezonlar,
   - kurallar sayfası.

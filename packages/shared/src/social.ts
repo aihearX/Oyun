@@ -148,7 +148,22 @@ export interface RaceRoom { id: string; hostId: string; level: number; salt: num
 export interface RacePos { id: string; x: number; y: number; pct: number; at: number }
 
 // ---------- Lig (haftalık, 30 kişilik grup)
+/** promoteTop/demoteBottom: bu grubun gerçek sınırları (leagueCuts; kademe kuralı ayrı: Koklea'dan çıkılmaz, Bronz'dan düşülmez) */
 export interface LeagueState { tier: LeagueTier; week: string; endsAt: number; rank: number; points: number; group: { id: string; name: string; color: number; points: number }[]; promoteTop: number; demoteBottom: number }
+/** Bireysel lig grubu: en çok 30 kişi; 30 kişilik grupta ilk 7 yükselir, son 5 düşer */
+export const LEAGUE_GROUP_SIZE = 30;
+export const LEAGUE_PROMOTE_TOP = 7;
+export const LEAGUE_DEMOTE_BOTTOM = 5;
+/**
+ * Grubun yükselme/düşme sınırları grup büyüklüğüne oranlı (YN-086): yükselen ⌈n × 7/30⌉, düşen ⌈n × 5/30⌉; ikisi ayrık
+ * (düşen en çok n − yükselen). 30'da 7/5, 10'da 3/2, 4'te 1/1, 2'de 1/1, 1'de 1/0.
+ */
+export function leagueCuts(n: number): { up: number; down: number } {
+  if (n <= 0) return { up: 0, down: 0 };
+  const up = Math.min(n, Math.ceil((n * LEAGUE_PROMOTE_TOP) / LEAGUE_GROUP_SIZE));
+  const down = Math.min(n - up, Math.ceil((n * LEAGUE_DEMOTE_BOTTOM) / LEAGUE_GROUP_SIZE));
+  return { up, down };
+}
 
 // ---------- Ödül kutusu (sunucu verdiği ödüller; istemci alınca yerel cüzdana ekler)
 export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
@@ -598,7 +613,17 @@ export interface DuelState {
   /** son biten düellonun sonucu (varsa) */
   last: { key: string; result: 'kazandi' | 'kaybetti' | 'berabere'; mine: number; theirs: number; rivalName: string; rivalEmblem: string } | null;
 }
-export const DUEL_RULES = { starPoints: 10, rallyWin: 60, relayLeg: 40, relayImprove: 10 } as const;
+/**
+ * Düello puanı. Yıldız puanı tekrar sınırı (karar 26 düelloya da, YN-106): bir bölüm aynı düello döneminde en çok `fullRunsPerLevel`
+ * kez tam puan (yıldız × `starPoints`) yazar, o bölümün sonraki her bitirişi `replayPoints`. Ralli ve Bayrak ayağı puanları sınırsız.
+ */
+export const DUEL_RULES = { starPoints: 10, fullRunsPerLevel: LEAGUE_FULL_RUNS_PER_LEVEL, replayPoints: LEAGUE_REPLAY_POINTS, rallyWin: 60, relayLeg: 40, relayImprove: 10 } as const;
+/** bu bitirişin düello yıldız puanı: `fullRunsBefore` bu dönemde bu bölümde daha önce tam puan yazmış bitiriş sayısı */
+export function duelStarPoints(stars: number, fullRunsBefore: number): { points: number; replay: boolean } {
+  if (stars <= 0) return { points: 0, replay: false };
+  if (fullRunsBefore < DUEL_RULES.fullRunsPerLevel) return { points: stars * DUEL_RULES.starPoints, replay: false };
+  return { points: DUEL_RULES.replayPoints, replay: true };
+}
 
 // ---------- Bayrak Yarışı (haftalık, 4 ayak, asenkron)
 export interface RelayLeg { index: number; level: number; salt: number; best: { id: string; name: string; timeSec: number } | null; firstBy: { id: string; name: string } | null }
@@ -1154,14 +1179,24 @@ export const TEAM_LEAGUE_RULES = {
     war: { per: 100, capWeek: 60, label: 'Bölge Savaşı', desc: 'her 100 savaş puanı 1 (haftada en çok 60)' },
     raid: { per: 200, capWeek: 40, label: 'Baskın', desc: 'her 200 hasar 1 (haftada en çok 40)' },
     quiz: { per: 1, capWeek: 30, label: 'Bilgi', desc: 'Günün Sorusu’nda her doğru 1 (haftada en çok 30)' },
-    duel: { win: 40, draw: 15, lose: 5, label: 'Düello', desc: 'kazanma 40, beraberlik 15, kayıp 5' },
+    duel: { win: 40, draw: 15, lose: 5, label: 'Düello', desc: 'kazanma 40, beraberlik 15, kayıp 5; rakipsiz biten düello sayılmaz' },
     race: { label: 'Takım Yarışı', desc: 'kazanma 20, beraberlik 8, kayıp 4 (günde en çok 10 yarış)' },
   },
-  /** sezon ödülü (üye başına, bir kez): kademe tabanı × (1. 3, 2. 2, 3. 1.5, diğer puanı olan 1) kristal */
+  /** sezon ödülü (üye başına, bir kez): kademe tabanı × (1. 3, 2. 2, 3. 1.5, diğer puanı olan 1) kristal; teamLeagueReward */
   rewardBase: { bronz: 5, gumus: 8, altin: 12, platin: 16, koklea: 20 },
+  rewardMul: [3, 2, 1.5],
 } as const;
+/** sezon sonu üye başına kristal: kademe tabanı × sıra çarpanı (1. ×3, 2. ×2, 3. ×1,5, diğer puanlı ×1); kesir en yakın tama (Math.round, ,5 yukarı). Puanı 0 olan takım ödül almaz. */
+export function teamLeagueReward(tier: TeamLeagueTier, rank: number, points: number): number {
+  if (points <= 0) return 0;
+  return Math.round(TEAM_LEAGUE_RULES.rewardBase[tier] * (TEAM_LEAGUE_RULES.rewardMul[rank - 1] ?? 1));
+}
 export interface TeamLeagueRow { rank: number; teamId: string; name: string; emblem: string; points: number; me?: boolean }
-export interface TeamLeagueBreakdown { war: number; raid: number; quiz: number; duel: number; race: number; total: number }
+/** haftalık sınırlı kaynakların hafta hafta lig puanı (sezonun haftaları sırayla); ham: o haftanın savaş puanı ve baskın hasarı */
+export interface TeamLeagueWeek { war: number; raid: number; quiz: number; warRaw: number; raidRaw: number }
+export interface TeamLeagueBreakdown { war: number; raid: number; quiz: number; duel: number; race: number; total: number;
+  /** sezonun haftaları (yalnız `mine`; eski sunucu göndermez) ve bu haftanın sırası (0'dan) */
+  weeks?: TeamLeagueWeek[]; curWeek?: number }
 export interface TeamLeagueHistory { season: string; no: number; tier: TeamLeagueTier; rank: number; groupSize: number; outcome: 'yukseldi' | 'kaldi' | 'dustu'; points: number }
 export interface TeamLeagueState {
   season: { key: string; no: number; startsAt: number; endsAt: number };

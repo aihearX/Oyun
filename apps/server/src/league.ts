@@ -1,4 +1,4 @@
-import { leagueRunPoints, type LeagueState, type LeagueTier } from '@odi/shared';
+import { LEAGUE_GROUP_SIZE, leagueCuts, leagueRunPoints, type LeagueState, type LeagueTier } from '@odi/shared';
 import type { App, Handlers } from './app';
 
 /**
@@ -11,9 +11,8 @@ CREATE TABLE IF NOT EXISTS league_level_runs(week TEXT NOT NULL, player_id TEXT 
 `;
 
 export const TIERS: LeagueTier[] = ['bronz', 'gumus', 'altin', 'koklea'];
-export const GROUP_SIZE = 30;
-export const PROMOTE_TOP = 7;
-export const DEMOTE_BOTTOM = 5;
+/** grup en çok 30 kişi; yükselme/düşme sınırları grup büyüklüğüne oranlı (leagueCuts, YN-086: 30'da 7/5) */
+export const GROUP_SIZE = LEAGUE_GROUP_SIZE;
 
 interface LRow { week: string; player_id: string; tier: LeagueTier; group_id: string; points: number; joined_at: number }
 
@@ -62,28 +61,29 @@ export function leagueState(app: App, pid: string): LeagueState {
   const me = ensureLeague(app, pid);
   const rows = groupRows(app, me.group_id);
   const w = app.week();
+  const cut = leagueCuts(rows.length);
   return {
     tier: me.tier, week: w.key, endsAt: w.endsAt,
     rank: rows.findIndex((r) => r.player_id === pid) + 1,
     points: rows.find((r) => r.player_id === pid)?.points ?? 0,
     group: rows.map((r) => ({ id: r.player_id, name: r.name, color: r.color, points: r.points })),
-    promoteTop: PROMOTE_TOP, demoteBottom: DEMOTE_BOTTOM,
+    promoteTop: cut.up, demoteBottom: cut.down,
   };
 }
 
-/** hafta kapanışı: her grupta ilk 7 bir üst kademeye, son 5 (ilk 7'ye girmeyenlerden) bir alta */
+/** hafta kapanışı: her grupta ilk ⌈n × 7/30⌉ bir üst kademeye, son ⌈n × 5/30⌉ (yükselenlerden ayrık) bir alta (leagueCuts) */
 export function leagueRollover(app: App, oldWeek: string): void {
   // tekrar sınırı haftalıktır: yalnız bu haftanın sayaçları kalır
   app.db.run('DELETE FROM league_level_runs WHERE week <> ?', app.week().key);
   const groups = app.db.all<{ id: string }>('SELECT id FROM league_groups WHERE week = ?', oldWeek);
   for (const g of groups) {
     const rows = groupRows(app, g.id);
-    const n = rows.length;
+    const n = rows.length; const { up, down } = leagueCuts(n);
     rows.forEach((r, i) => {
       const ti = TIERS.indexOf(r.tier);
       let next = ti;
-      if (i < PROMOTE_TOP) next = Math.min(TIERS.length - 1, ti + 1);
-      else if (i >= Math.max(PROMOTE_TOP, n - DEMOTE_BOTTOM)) next = Math.max(0, ti - 1);
+      if (i < up) next = Math.min(TIERS.length - 1, ti + 1);
+      else if (i >= Math.max(up, n - down)) next = Math.max(0, ti - 1);
       if (next !== ti) app.db.run('UPDATE players SET league_tier = ? WHERE id = ?', TIERS[next]!, r.player_id);
     });
   }

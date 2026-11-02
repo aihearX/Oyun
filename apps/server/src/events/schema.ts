@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS ev_rally_hit(player_id TEXT NOT NULL, run_id TEXT NOT
 CREATE INDEX IF NOT EXISTS ev_rally_hit_r ON ev_rally_hit(rally_id, at);
 CREATE TABLE IF NOT EXISTS ev_duel(period TEXT NOT NULL, team_id TEXT NOT NULL, rival_id TEXT, power INTEGER NOT NULL, enrolled_at INTEGER NOT NULL, matched_at INTEGER, push_sent INTEGER NOT NULL DEFAULT 0, result TEXT, PRIMARY KEY(period, team_id));
 CREATE TABLE IF NOT EXISTS ev_duel_pts(period TEXT NOT NULL, team_id TEXT NOT NULL, player_id TEXT NOT NULL, points INTEGER NOT NULL, PRIMARY KEY(period, team_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_duel_runs(period TEXT NOT NULL, player_id TEXT NOT NULL, level INTEGER NOT NULL, full_runs INTEGER NOT NULL, PRIMARY KEY(period, player_id, level));
 CREATE TABLE IF NOT EXISTS ev_relay(period TEXT NOT NULL, team_id TEXT NOT NULL, current INTEGER NOT NULL DEFAULT 0, carrier TEXT, carrier_at INTEGER, last_runner TEXT, PRIMARY KEY(period, team_id));
 CREATE TABLE IF NOT EXISTS ev_relay_leg(period TEXT NOT NULL, team_id TEXT NOT NULL, leg INTEGER NOT NULL, best_sec REAL, best_by TEXT, first_by TEXT, first_at INTEGER, PRIMARY KEY(period, team_id, leg));
 CREATE TABLE IF NOT EXISTS ev_relay_run(player_id TEXT NOT NULL, run_id TEXT NOT NULL, period TEXT NOT NULL, team_id TEXT NOT NULL, leg INTEGER NOT NULL, time_sec REAL NOT NULL, completed INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY(player_id, run_id));

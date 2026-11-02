@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS, inboxGotText, inboxReasonText, type InboxItem, type LeagueState } from '@odi/shared';
+import { LEAGUE_DEMOTE_BOTTOM, LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_GROUP_SIZE, LEAGUE_PROMOTE_TOP, LEAGUE_REPLAY_POINTS, inboxGotText, inboxReasonText, type InboxItem, type LeagueState, type LeagueTier } from '@odi/shared';
 import { claimInboxItem, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
@@ -52,6 +52,17 @@ function Inbox() {
   );
 }
 
+/**
+ * Bu grubun gerçek yükselme/düşme cümlesi (YN-086): sınırlar sunucudan (leagueCuts, grup büyüklüğüne oranlı; yükselen ve düşen ayrık).
+ * Koklea'dan yükselme, Bronz'dan düşme yok.
+ */
+export function leagueRuleText(tier: LeagueTier, n: number, up: number, down: number): string {
+  const drop = tier === 'bronz' ? ' Bronz\'dan düşülmez.' : down > 0 ? ` Son ${down} bir alta iner.` : ' Bu grupta düşme yok.';
+  const head = tier === 'koklea' ? 'Koklea en üst lig: buradan yükselme yok.' : `İlk ${up} bir üst lige çıkar.`;
+  const grow = n < LEAGUE_GROUP_SIZE ? ` Gruba yeni oyuncu katıldıkça sınırlar büyür (${LEAGUE_GROUP_SIZE} kişide ilk ${LEAGUE_PROMOTE_TOP}, son ${LEAGUE_DEMOTE_BOTTOM}).` : '';
+  return `Bu grupta ${n} kişi var. ${head}${drop}${grow}`;
+}
+
 /** Profildeki haftalık lig kartı */
 export function LeagueCard({ onOpen }: { onOpen: () => void }) {
   const st = useNet((s) => s.status);
@@ -60,11 +71,14 @@ export function LeagueCard({ onOpen }: { onOpen: () => void }) {
   if (!lg) return null;
   const t = TIER[lg.tier]; const n = lg.group.length;
   const zone = lg.rank <= lg.promoteTop && lg.tier !== 'koklea' ? 'up' : lg.tier !== 'bronz' && lg.rank > Math.max(lg.promoteTop, n - lg.demoteBottom) ? 'down' : 'safe';
+  // güvenli bölgede bu grubun gerçek sınırları (YN-086)
+  const dropTxt = lg.tier === 'bronz' ? '' : lg.demoteBottom ? `son ${lg.demoteBottom} iner` : 'düşme yok';
+  const safe = lg.tier === 'koklea' ? (lg.rank <= lg.promoteTop ? '🐚 Zirvedesin' : `Bu grupta ${dropTxt}`) : `Bu grupta ilk ${lg.promoteTop} çıkar${dropTxt ? `, ${dropTxt}` : ''}`;
   return (
     <button className={`card league-card z-${zone}`} onClick={onOpen}>
       <span className="lg-tier" aria-hidden><Glyph e={t.icon} size={40} /></span>
       <span className="grow min0"><b>{t.name} Ligi · {lg.rank}. sıra</b><span className="muted">{fmtNum(lg.points)} puan · {n} kişi · bitişe {fmtLeft(lg.endsAt - now)}</span>
-        <span className="lg-zone"><Rich text={zone === 'up' ? '⬆️ Yükselme bölgesindesin' : zone === 'down' ? '⬇️ Düşme bölgesi: biraz gayret!' : lg.tier === 'koklea' && lg.rank <= lg.promoteTop ? '🐚 Zirvedesin' : `İlk ${lg.promoteTop} bir üst lige çıkar`} /></span>
+        <span className="lg-zone"><Rich text={zone === 'up' ? '⬆️ Yükselme bölgesindesin' : zone === 'down' ? '⬇️ Düşme bölgesi: biraz gayret!' : safe} /></span>
       </span>
       <span aria-hidden>›</span>
     </button>
@@ -81,7 +95,7 @@ export function LeagueScreen({ onBack }: { onBack: () => void }) {
       <Online what="Lig">
         {!lg ? <Skeleton rows={5} /> : (() => { const n = lg.group.length; const downFrom = Math.max(lg.promoteTop, n - lg.demoteBottom); return (
           <div className="stack">
-            <div className="card"><b><Glyph e={TIER[lg.tier].icon} size="1.2em" /> {TIER[lg.tier].name} Ligi</b><div className="muted">Bitişe {fmtLeft(lg.endsAt - now)}. İlk {lg.promoteTop} bir üst lige çıkar{lg.tier !== 'bronz' ? `, son ${lg.demoteBottom} bir alta iner` : ''}. Puan: bitirdiğin her bölüm 5 + 5 × yıldız (+ yarış derecesi); bitiremediğin koşu 1. Aynı bölüm haftada en çok {LEAGUE_FULL_RUNS_PER_LEVEL} kez tam puan yazar, sonraki her bitirişi {LEAGUE_REPLAY_POINTS} puan.</div></div>
+            <div className="card"><b><Glyph e={TIER[lg.tier].icon} size="1.2em" /> {TIER[lg.tier].name} Ligi</b><div className="muted" data-testid="lig-kural">Bitişe {fmtLeft(lg.endsAt - now)}. {leagueRuleText(lg.tier, n, lg.promoteTop, lg.demoteBottom)} Puan: bitirdiğin her bölüm 5 + 5 × yıldız (+ yarış derecesi); bitiremediğin koşu 1. Aynı bölüm haftada en çok {LEAGUE_FULL_RUNS_PER_LEVEL} kez tam puan yazar, sonraki her bitirişi {LEAGUE_REPLAY_POINTS} puan.</div></div>
             <ol className="league-list">
               {lg.group.map((p, i) => { const up = i < lg.promoteTop && lg.tier !== 'koklea'; const down = lg.tier !== 'bronz' && i >= downFrom; return (
                 <li key={p.id} className={`${p.id === me?.id ? 'me ' : ''}${up ? 'up' : down ? 'down' : ''}`}>

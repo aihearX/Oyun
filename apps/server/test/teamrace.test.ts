@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
-import type { RaceRoom } from '@odi/shared';
+import { teamLeagueReward, type RaceRoom } from '@odi/shared';
 import { setup, run, sleep, type Env, type TC } from './helpers';
 import { finalize } from '../src/teamrace';
 import { seasonInfo } from '../src/teamrace/league';
@@ -212,5 +212,25 @@ describe('Takım Ligi', () => {
     // duyuru takım sohbetinde
     const h = (await bronz[0]!.c.call('chat.join', { room: `takim:${bronz[0]!.id}` })).history;
     expect(h.some((m) => m.meta?.event === 'tlig' && m.text.includes('Gümüş kademesine yükseldiniz'))).toBe(true);
+  });
+
+  it('sezon dökümü (OT-rekabetci-26): Bölge Savaşı hafta hafta, haftalık sınırla; ödül işlevi kapanıştaki tutarla aynı (OT-rekabetci-27)', async () => {
+    env = await setup();
+    const app = env.srv.app;
+    const c = await env.connect('Savaşçı');
+    const id = (await c.call('team.create', { name: 'Döküm', emblem: '🧭' })).team.id;
+    const s = seasonInfo(app.now());
+    // 1. hafta 4.650 savaş puanı (46), 2. hafta 792 (7); baskında 1. hafta 20.000 hasar (sınır 40)
+    app.db.run('INSERT INTO team_week(week, team_id, points) VALUES(?, ?, ?)', s.weeks[0]!, id, 4650);
+    app.db.run('INSERT INTO team_week(week, team_id, points) VALUES(?, ?, ?)', s.weeks[1]!, id, 792);
+    const st = (await c.call('tlig.state', {})).state;
+    expect(st.mine.war).toBe(53);
+    expect(st.mine.weeks?.map((w) => [w.war, w.warRaw])).toEqual([[46, 4650], [7, 792]]);
+    expect(st.mine.curWeek).toBe(s.weeks.indexOf(app.week().key));
+    expect(st.mine.curWeek).toBeGreaterThanOrEqual(0);
+    // ödül: Bronz 5 × (3, 2, 1,5, 1) → 15, 10, 8 (7,5 Math.round), 5; puansız 0
+    expect([1, 2, 3, 4, 9].map((r) => teamLeagueReward('bronz', r, 1))).toEqual([15, 10, 8, 5, 5]);
+    expect(teamLeagueReward('koklea', 3, 1)).toBe(30);
+    expect(teamLeagueReward('altin', 1, 0)).toBe(0);
   });
 });

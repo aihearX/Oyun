@@ -1125,7 +1125,7 @@ async function sectionSosyal() {
     });
     await step('lig-arkadaslar', async () => {
       await closeBanners(B.page); await toTab(B, 'profile'); await B.page.locator('.league-card').first().click(); await sleep(1200);
-      await G.shot(B.page, 55, 'lig', { kind: 'sosyal', title: 'Haftalık lig', caption: 'Haftalık lig: 30 kişilik grup, ilk 7 bir üst kademeye çıkar; puanlar bölüm sonuçlarından ve yarış derecelerinden.' });
+      await G.shot(B.page, 55, 'lig', { kind: 'sosyal', title: 'Haftalık lig', caption: 'Haftalık lig: en çok 30 kişilik grup; 30 kişide ilk 7 bir üst kademeye çıkar, küçük grupta sınırlar orantılı ve ekranda yazılı; puanlar bölüm sonuçlarından ve yarış derecelerinden.' });
       await B.page.getByRole('button', { name: 'Geri' }).first().click(); await B.page.locator('.menu-tile[data-tile="friends"]').click(); await sleep(1000); await B.page.locator('.subtabs .subtab').first().click().catch(() => undefined); await sleep(800);
       await G.shot(B.page, 56, 'arkadaslar', { kind: 'sosyal', title: 'Arkadaşlar', caption: 'Arkadaş listesi (çevrimiçi önce), arkadaş kodu, arama ve öneriler ("Takım arkadaşın", "Aynı ligdesiniz"); günde bir arkadaş hediyesi.' });
     });

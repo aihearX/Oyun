@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { LEAGUE_FULL_RUNS_PER_LEVEL, leaguePointsFor, raidDamageFor, warPointsFor } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, leagueCuts, leaguePointsFor, raidDamageFor, warPointsFor } from '@odi/shared';
 import type { NetError } from '@odi/net';
 import { RAID_GIFT, raidMaxHp } from '../src/raid';
 import { WAR_REWARD } from '../src/war';
@@ -183,7 +183,7 @@ describe('Baskın', () => {
 });
 
 describe('Lig', () => {
-  it('30 kişilik gruplar, katılım sırası; hafta sonunda ilk 7 yükselir', async () => {
+  it('30 kişilik gruplar, katılım sırası; hafta sonunda 30 kişilik grupta ilk 7 yükselir', async () => {
     env = await setup();
     const players = [];
     for (let i = 0; i < 31; i++) players.push(await env.connect(`Oyuncu ${i}`));
@@ -206,8 +206,29 @@ describe('Lig', () => {
     expect(promoted).toEqual(['bronz', 'bronz', 'gumus', 'gumus', 'gumus', 'gumus', 'gumus', 'gumus', 'gumus', 'bronz']);
     const g = (await players[8]!.call('league.state', {})).league;
     expect(g).toMatchObject({ tier: 'gumus', week: '2026-W43', points: 0 });
-    // tek kişilik grubun tek oyuncusu da ilk 7'de
+    // tek kişilik grubun tek oyuncusu ilk ⌈1 × 7/30⌉ = 1'de (leagueCuts)
+    expect(last).toMatchObject({ promoteTop: 1, demoteBottom: 0 });
     expect((await players[30]!.call('league.state', {})).league.tier).toBe('gumus');
+  });
+
+  it('küçük grup (YN-086): sınırlar grup büyüklüğüne oranlı, yükselen ve düşen kümeler ayrık', async () => {
+    expect(leagueCuts(30)).toEqual({ up: 7, down: 5 });
+    expect(leagueCuts(10)).toEqual({ up: 3, down: 2 });
+    expect(leagueCuts(4)).toEqual({ up: 1, down: 1 });
+    expect(leagueCuts(1)).toEqual({ up: 1, down: 0 });
+    for (let n = 1; n <= 30; n++) { const c = leagueCuts(n); expect(c.up + c.down).toBeLessThanOrEqual(n); expect(c.up).toBeGreaterThan(0); }
+    env = await setup();
+    const players = [];
+    for (let i = 0; i < 4; i++) players.push(await env.connect(`Gümüş ${i}`));
+    for (const p of players) env.srv.app.db.run("UPDATE players SET league_tier = 'gumus' WHERE id = ?", p.me!.id);
+    for (const p of players) await p.call('league.state', {});
+    for (let i = 0; i < 4; i++) for (let k = 0; k < 4 - i; k++) await players[i]!.call('progress.submit', run(k + 1, { stars: 2 }));
+    const st = (await players[3]!.call('league.state', {})).league;
+    expect(st).toMatchObject({ tier: 'gumus', promoteTop: 1, demoteBottom: 1, rank: 4 });
+    expect(st.group).toHaveLength(4);
+    env.clock.t = weekInfo(T0).endsAt + 1;
+    const tiers = await Promise.all(players.map(async (p) => (await p.call('league.state', {})).league.tier));
+    expect(tiers).toEqual(['altin', 'gumus', 'gumus', 'bronz']);
   });
 
   it('tekrar sınırı (karar 26): bir bölüm haftada en çok 2 kez tam puan, sonra her bitiriş 1 puan; yeni haftada sıfırlanır', async () => {

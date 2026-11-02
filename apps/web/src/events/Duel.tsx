@@ -1,4 +1,4 @@
-import { DUEL_RULES } from '@odi/shared';
+import { DUEL_RULES, RALLY_RULES } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { fmtDate, fmtNum } from '../ui/social';
 import { useNav } from '../nav';
@@ -45,8 +45,8 @@ export function DuelView() {
       <div className="card">
         <b>Puan nasıl kazanılır?</b>
         <ul className="ev-rules">
-          <li><Art e="⭐" size="1.15em" className="art-inline" /> Her bölüm yıldızı: <b>{DUEL_RULES.starPoints}</b></li>
-          <li><Art e="🔥" size="1.15em" className="art-inline" /> Kazanılan ralli: katılan her kişi <b>{60}</b></li>
+          <li data-testid="duello-yildiz-kural"><Art e="⭐" size="1.15em" className="art-inline" /> Her bölüm yıldızı: <b>{DUEL_RULES.starPoints}</b>. Aynı bölüm bu düelloda en çok {DUEL_RULES.fullRunsPerLevel} kez tam puan yazar, sonraki her bitirişi <b>{DUEL_RULES.replayPoints}</b> puan.</li>
+          <li><Art e="🔥" size="1.15em" className="art-inline" /> Kazanılan ralli: katılan her kişi <b>{RALLY_RULES.duelPoints}</b></li>
           <li><Art e="🚩" size="1.15em" className="art-inline" /> Bayrak ayağı: <b>{DUEL_RULES.relayLeg}</b> (süre rekoru {DUEL_RULES.relayImprove})</li>
         </ul>
         <button className="btn small ghost" onClick={() => nav.tab('map')}><Icon name="play" size="0.9em" className="ic-inline" /> Bölüm oyna</button>
@@ -56,6 +56,7 @@ export function DuelView() {
         <Rewards items={d.rewards.win} label="🏆 Kazanan" />
         <Rewards items={d.rewards.tie} label="🤝 Berabere" />
         <Rewards items={d.rewards.lose} label="💪 Teselli" />
+        <span className="muted small-note" data-testid="duello-rakipsiz">Rakip çıkmazsa düello sayılmaz (Takım Ligi'ne puan yazılmaz); takım puan topladıysa her üyeye Teselli ödülü verilir.</span>
       </div>
       {d.last && <div className="card ev-last"><b>Son düello: {rich(d.last.result === 'kazandi' ? '🏆 Kazandınız' : d.last.result === 'kaybetti' ? 'Kaybettiniz' : 'Berabere')}</b><span className="muted">{fmtNum(d.last.mine)} – {fmtNum(d.last.theirs)} · {d.last.rivalEmblem} {d.last.rivalName}</span></div>}
     </div>

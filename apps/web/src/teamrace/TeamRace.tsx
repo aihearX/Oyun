@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import {
-  TEAM_LEAGUE_RULES, TEAM_LEAGUE_TIERS, TEAM_RACE_REACTIONS, TEAM_RACE_RULES as R, type RaceRoom, type RunResult, type TeamLeagueTier, type TeamRaceLobby,
+  TEAM_LEAGUE_RULES, TEAM_LEAGUE_TIERS, TEAM_RACE_REACTIONS, TEAM_RACE_RULES as R, teamLeagueReward, type RaceRoom, type RunResult, type TeamLeagueTier,
+  type TeamLeagueWeek, type TeamRaceLobby,
   type TeamRaceResult, type TeamRaceSideId, type TeamRaceSize, type TeamSummary,
 } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
@@ -284,6 +285,31 @@ export function moveRule(tier: TeamLeagueTier, n: number, up: number, down: numb
   return `${who}: yükselme, grupta en az 3 takım olunca açılır (küçük grupta ilk üçte biri yükselir). Sezon içinde gruba yeni takımlar katılabilir.${drop}`;
 }
 
+/**
+ * Haftalık sınırlı kaynağın sezon dökümü (OT-rekabetci-26): "Bu sezon (2 hafta): 1. hafta 46 + bu hafta 7 (792 savaş puanı)".
+ * Ham sayı (savaş puanı, baskın hasarı) yalnız bu hafta için: Savaş/Baskın ekranının bu haftaki sayısıyla karşılaştırılabilsin.
+ */
+export function weekLine(k: 'war' | 'raid' | 'quiz', weeks: TeamLeagueWeek[] | undefined, cur: number | undefined): string | null {
+  if (!weeks?.length || cur == null) return null;
+  const raw = (w: TeamLeagueWeek) => (k === 'war' ? ` (${fmtNum(w.warRaw)} savaş puanı)` : k === 'raid' ? ` (${fmtNum(w.raidRaw)} hasar)` : '');
+  const parts = weeks.slice(0, cur + 1).map((w, i) => (i === cur ? `${cur === 0 ? '1. hafta (bu hafta)' : 'bu hafta'} ${fmtNum(w[k])}${raw(w)}` : `${i + 1}. hafta ${fmtNum(w[k])}`));
+  return `Bu sezon (${weeks.length} hafta): ${parts.join(' + ')}`;
+}
+
+/**
+ * Sezon ödülü cümlesi (OT-rekabetci-27): çarpanlar, kademe tabanları ve takımın kademesinde gerçek örnek (teamLeagueReward;
+ * sunucu aynı işlevle verir). Kesirli sonuç en yakın tam sayıya yuvarlanır (Bronz 3. sıra 7,5 → 8).
+ */
+export function rewardRule(tier: TeamLeagueTier): string {
+  const [m1, m2, m3] = TEAM_LEAGUE_RULES.rewardMul.map((m) => m.toLocaleString('tr-TR'));
+  const bases = TEAM_LEAGUE_TIERS.map((x) => `${x.name} ${TEAM_LEAGUE_RULES.rewardBase[x.id]}`).join(', ');
+  const ex = [1, 2, 3, 4].map((r) => teamLeagueReward(tier, r, 1));
+  const exact = TEAM_LEAGUE_RULES.rewardBase[tier] * TEAM_LEAGUE_RULES.rewardMul[2];
+  const round = Number.isInteger(exact) ? '' : ` (${exact.toLocaleString('tr-TR')} → ${ex[2]})`;
+  return `Üye başına kristal (sezon sonunda bir kez): 1. takım taban ×${m1}, 2. ×${m2}, 3. ×${m3}, diğer puanlı takımlar ×1; puanı 0 olan takım almaz. `
+    + `Taban: ${bases}. Örnek, ${tierDef(tier).name} kademesinde: 1. takım ${ex[0]}, 2. ${ex[1]}, 3. ${ex[2]}${round}, diğerleri ${ex[3]} kristal. Kesirli sonuç en yakın tam sayıya yuvarlanır (,5 yukarı).`;
+}
+
 export function TeamLeagueView() {
   const s = useTeamRace((x) => x.league);
   const team = useNet((x) => x.team);
@@ -318,7 +344,8 @@ export function TeamLeagueView() {
       <div className="card tl-mine" data-testid="tl-puanlarimiz">
         <b>Puanlarımız: {fmtNum(s.mine.total)}</b>
         {([['war', 'swords'], ['raid', 'monster'], ['quiz', 'bulb'], ['duel', 'shield'], ['race', 'finish']] as const).map(([k, a]) => (
-          <div key={k} className="tl-src"><Art name={a} size={20} /><span className="grow min0"><b>{S[k].label}</b><small>{S[k].desc}</small></span><b>{fmtNum(s.mine[k])}</b></div>
+          <div key={k} className="tl-src"><Art name={a} size={20} /><span className="grow min0"><b>{S[k].label}</b><small>{S[k].desc}</small>
+            {k !== 'duel' && k !== 'race' && weekLine(k, s.mine.weeks, s.mine.curWeek) && <small className="tl-hafta" data-testid={`tl-hafta-${k}`}>{weekLine(k, s.mine.weeks, s.mine.curWeek)}</small>}</span><b>{fmtNum(s.mine[k])}</b></div>
         ))}
         {/* dürüstlük: ligde sayılmayan takım etkinlikleri (sahip kararı 40 beklenirken; OT-rekabetci-18) */}
         <small className="muted tl-not" data-testid="tl-sayilmayan">Ligde doğrudan sayılmaz: Bayrak Yarışı, Ralli, Ses Avı. Ralli ve Bayrak ayakları Takım Düellosu puanına yazılır; düellonun sonucu lige sayılır.</small>
@@ -335,7 +362,7 @@ export function TeamLeagueView() {
             <li><Art name="calendar" size={18} /> <span>Sezon {TEAM_LEAGUE_RULES.seasonWeeks} hafta (Pazartesi 00:00, İstanbul). Kademeler: {TEAM_LEAGUE_TIERS.map((x) => x.name).join(' → ')}. Grupta en çok {TEAM_LEAGUE_RULES.groupSize} takım.</span></li>
             {(['war', 'raid', 'quiz', 'duel', 'race'] as const).map((k) => <li key={k}><Art name="check" size={18} /> <span><b>{S[k].label}:</b> {S[k].desc}.</span></li>)}
             <li><Art name="up" size={18} /> <span>Sezon sonunda ilk {TEAM_LEAGUE_RULES.promote} yükselir, son {TEAM_LEAGUE_RULES.demote} düşer (küçük gruplarda üçte biri). Puanı 0 olan yükselmez.</span></li>
-            <li><Art name="crystal" size={18} /> <span>Ödül (üye başına, bir kez): kademe tabanı ({Object.entries(TEAM_LEAGUE_RULES.rewardBase).map(([k, v]) => `${tierDef(k as TeamLeagueTier).name} ${v}`).join(', ')}) × 1. 3, 2. 2, 3. 1,5, diğer puanlı takımlar 1 kristal.</span></li>
+            <li><Art name="crystal" size={18} /> <span data-testid="tl-odul">{rewardRule(s.tier)}</span></li>
           </ul>
           <button className="btn" onClick={() => setInfo(false)}>Anladım</button>
         </Sheet>

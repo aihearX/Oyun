@@ -4,7 +4,7 @@
  * (raid_damage), Bilgi (açıklanmış Günün Sorusu doğruları), Düello (ev_duel sonucu) ve Takım Yarışı (tl_race). Haftalık üst sınırlar
  * TEAM_LEAGUE_RULES'ta. Sezon kapanınca (bir kez) yükselme/düşme, geçmiş kaydı, üye başına kristal ödülü (bir kez) ve takım sohbetine duyuru.
  */
-import { TEAM_LEAGUE_RULES as R, TEAM_LEAGUE_TIERS, type TeamLeagueBreakdown, type TeamLeagueHistory, type TeamLeagueRow, type TeamLeagueState, type TeamLeagueTier } from '@odi/shared';
+import { TEAM_LEAGUE_RULES as R, TEAM_LEAGUE_TIERS, teamLeagueReward, type TeamLeagueBreakdown, type TeamLeagueHistory, type TeamLeagueRow, type TeamLeagueState, type TeamLeagueTier, type TeamLeagueWeek } from '@odi/shared';
 import { fail, rid, type App } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { DAY_MS, WEEK_MS, weekInfo } from '../time';
@@ -44,24 +44,27 @@ export function currentTier(app: App, teamId: string): TeamLeagueTier {
   return app.db.get<{ tier: TeamLeagueTier }>('SELECT tier FROM tl_member WHERE season = ? AND team_id = ?', seasonInfo(app.now()).key, teamId)?.tier ?? tierOf(app, teamId);
 }
 
-/** takımın sezon puanı (kaynak kaynak, haftalık sınırlarla) */
-export function seasonPoints(app: App, teamId: string, s: Season): TeamLeagueBreakdown {
+/** takımın sezon puanı (kaynak kaynak, haftalık sınırlarla); `weeks` hafta hafta döküm (ekranda "1. hafta X + bu hafta Y") */
+export function seasonPoints(app: App, teamId: string, s: Season): TeamLeagueBreakdown & { weeks: TeamLeagueWeek[] } {
   let war = 0, raid = 0, quiz = 0;
+  const weeks: TeamLeagueWeek[] = [];
   for (const w of s.weeks) {
     const wp = app.db.get<{ v: number }>('SELECT points AS v FROM team_week WHERE week = ? AND team_id = ?', w, teamId)?.v ?? 0;
-    war += Math.min(R.sources.war.capWeek, Math.floor(wp / R.sources.war.per));
+    const ww = Math.min(R.sources.war.capWeek, Math.floor(wp / R.sources.war.per));
     const rd = app.db.get<{ v: number }>(`SELECT COALESCE(SUM(damage), 0) AS v FROM raid_damage WHERE raid_id = ? AND team_id = ? AND player_id NOT IN (${ADMIN_IDS_SQL})`, w, teamId)!.v;
-    raid += Math.min(R.sources.raid.capWeek, Math.floor(rd / R.sources.raid.per));
+    const wr = Math.min(R.sources.raid.capWeek, Math.floor(rd / R.sources.raid.per));
     const q = app.db.get<{ v: number }>(`SELECT COALESCE(SUM(a.correct), 0) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1
       WHERE d.week = ? AND a.team_id = ? AND a.player_id NOT IN (${ADMIN_IDS_SQL})`, w, teamId)!.v;
-    quiz += Math.min(R.sources.quiz.capWeek, q);
+    const wq = Math.min(R.sources.quiz.capWeek, q);
+    war += ww; raid += wr; quiz += wq;
+    weeks.push({ war: ww, raid: wr, quiz: wq, warRaw: wp, raidRaw: rd });
   }
   let duel = 0;
   for (const d of app.db.all<{ result: string }>("SELECT result FROM ev_duel WHERE team_id = ? AND enrolled_at >= ? AND enrolled_at < ? AND result IN ('kazandi', 'berabere', 'kaybetti')", teamId, s.startsAt, s.endsAt)) {
     duel += d.result === 'kazandi' ? R.sources.duel.win : d.result === 'berabere' ? R.sources.duel.draw : R.sources.duel.lose;
   }
   const race = app.db.get<{ v: number }>('SELECT COALESCE(SUM(points), 0) AS v FROM tl_race WHERE team_id = ? AND season = ? AND counted = 1', teamId, s.key)!.v;
-  return { war, raid, quiz, duel, race, total: war + raid + quiz + duel + race };
+  return { war, raid, quiz, duel, race, total: war + raid + quiz + duel + race, weeks };
 }
 
 // ------------------------------------------------------------------ gruplar
@@ -122,9 +125,8 @@ export function closeSeason(app: App, key: string): void {
       else if (i >= n - down && i >= up && ti > 0) { outcome = 'dustu'; tier = TIERS[ti - 1]!; }
       app.db.run('INSERT INTO tl_team(team_id, tier) VALUES(?, ?) ON CONFLICT(team_id) DO UPDATE SET tier = excluded.tier', r.teamId, tier);
       app.db.run('INSERT OR IGNORE INTO tl_history(season, team_id, no, tier, rank, group_size, outcome, points) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', key, r.teamId, s.no, g.tier, r.rank, n, outcome, r.points);
-      // ödül: puanı olan takımın üyelerine, kademe tabanı × sıra çarpanı
-      const mul = r.points <= 0 ? 0 : r.rank === 1 ? 3 : r.rank === 2 ? 2 : r.rank === 3 ? 1.5 : 1;
-      const amount = Math.round(R.rewardBase[g.tier] * mul);
+      // ödül: puanı olan takımın üyelerine, kademe tabanı × sıra çarpanı (Math.round: Bronz 3. 7,5 → 8)
+      const amount = teamLeagueReward(g.tier, r.rank, r.points);
       if (amount > 0) {
         for (const pid of app.teamMemberIds(r.teamId)) {
           if (isAdmin(app, pid)) continue; // yönetici hesabı sezon ödülü almaz
@@ -162,7 +164,8 @@ export function leagueState(app: App, teamId: string): TeamLeagueState {
   const last = history[0];
   const rows = groupRows(app, s, m.group, teamId);
   return {
-    season: { key: s.key, no: s.no, startsAt: s.startsAt, endsAt: s.endsAt }, tier: m.tier, groupId: m.group, rows, mine: seasonPoints(app, teamId, s),
+    season: { key: s.key, no: s.no, startsAt: s.startsAt, endsAt: s.endsAt }, tier: m.tier, groupId: m.group, rows,
+    mine: { ...seasonPoints(app, teamId, s), curWeek: Math.max(0, s.weeks.indexOf(app.week().key)) },
     promoteTop: m.tier === 'koklea' ? 0 : cut(rows.length, R.promote), demoteBottom: m.tier === 'bronz' ? 0 : cut(rows.length, R.demote), history,
     badge: last && last.no === s.no - 1 && last.rank <= 3 && last.points > 0 ? { tier: last.tier, no: last.no, rank: last.rank } : null,
   };

@@ -67,7 +67,7 @@ profil kartı → takıma davet → katılım, Takım › Sıralama) ve `--only-
 
 ## 6. Bireysel haftalık lig puanı ve tekrar sınırı (karar 26)
 
-Haftalık kişisel lig (30 kişilik gruplar, ilk 7 yükselir, son 5 düşer; Profil › lig kartı) ayrı bir tablodur; puanı `progress.submit`
+Haftalık kişisel lig (en çok 30 kişilik gruplar; 30 kişide ilk 7 yükselir, son 5 düşer, küçük grupta oranlı: §7; Profil › lig kartı) ayrı bir tablodur; puanı `progress.submit`
 yazar (`leaguePointsFor`, `apps/server/src/league.ts`):
 
 - Bitirilen bölüm **5 + 5 × yıldız**; canlı yarışta derece eklenir (1. 30, 2. 15, 3. 8, diğer bitirenler 3). Bitirilemeyen koşu 1.
@@ -80,3 +80,24 @@ yazar (`leaguePointsFor`, `apps/server/src/league.ts`):
   ve yarış sonucu (tekrarda "bu bölüm bu hafta 2 kez tam puan yazdı, tekrarı 1 puan"). Yarış sonucu lig puanını sunucu yanıtından
   gösterir, tahmin etmez.
 - Testler: `apps/server/test/war-raid-league.test.ts` (2 tam + 1'ler, bitirilemeyen koşu, aynı runId, yeni hafta, yarışta da sınır).
+- Aynı kural Takım Düellosu'nun yıldız puanına da uygulanır (YN-106): bir bölüm aynı düello döneminde en çok 2 kez tam puan
+  (yıldız × 10), sonraki her bitirişi 1 puan; ralli ve Bayrak ayağı puanları sınırsız. Ayrıntı `docs/10-sunucu.md` (Etkinlikler).
+
+## 7. Küçük lig gruplarında yükselme ve düşme (YN-086)
+
+Grup en çok 30 kişidir ama hafta başında ya da az oyunculu kademede küçük kalabilir. Eskiden sınır sabitti (ilk 7 / son 5): 4 kişilik
+grupta herkes yükseliyor, 4. aynı anda "son 5"te görünüyordu. Şimdi sınırlar grup büyüklüğüne oranlı (`leagueCuts`, `@odi/shared`):
+
+| Grup | Yükselen (⌈n × 7/30⌉) | Düşen (⌈n × 5/30⌉, yükselenlerden ayrık) |
+|---|---|---|
+| 30 | 7 | 5 |
+| 10 | 3 | 2 |
+| 4 | 1 | 1 |
+| 2 | 1 | 1 |
+| 1 | 1 | 0 |
+
+- Yükselen ve düşen kümeler ayrıktır; Bronz'dan düşülmez, Koklea'dan yükselinmez.
+- Hafta kapanışı (`leagueRollover`) ve ekran aynı işlevi kullanır; `league.state` o grubun sayılarını döndürür. Ekran gerçek sayıyı
+  yazar: "Bu grupta 4 kişi var. İlk 1 bir üst lige çıkar. Son 1 bir alta iner. Gruba yeni oyuncu katıldıkça sınırlar büyür".
+- Testler: `apps/server/test/war-raid-league.test.ts` (4 kişilik Gümüş grubu: 1 yükselir, 1 düşer, 2 kalır; 1–30 arası ayrıklık),
+  `apps/web/src/lig-kural.test.ts` (cümle).

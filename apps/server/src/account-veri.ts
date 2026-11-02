@@ -340,6 +340,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   },
   ev_duel: { takim: { team_id: SIL, rival_id: { karar: 'tut', neden: `${RAKIP_GECMISI} Dağılan takımın puanı silindiği için düello rakip lehine kapanır.`, sure: 'süresiz' } } },
   ev_duel_pts: { oyuncu: { player_id: { karar: 'anonim', neden: `Düello puanı: ${ANONIM_TAKIM_TOPLAMI}` } }, takim: { team_id: SIL } },
+  ev_duel_runs: { oyuncu: { player_id: SIL }, not: 'Düello yıldız puanı tekrar sınırı sayacı (YN-106, events/duel.ts): süren dönemin bölüm başına tam puanlı bitiriş sayısı; dönem kapanınca silinir.' },
   ev_relay: {
     oyuncu: {
       carrier: { karar: 'anonim', neden: 'Takımın bayrak durumu; bayrak silinen hesapta kalmasın diye boşaltılır.', degistir: { carrier: null, carrier_at: null } },

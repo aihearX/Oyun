@@ -1,10 +1,14 @@
-import type { DuelSide, DuelState, EventPeriod } from '@odi/shared';
+import { duelStarPoints, type DuelSide, type DuelState, type EventPeriod } from '@odi/shared';
 import type { App, Handlers } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { requireTeam } from '../teams';
 import { duelFinalMs, duelPeriods, giveRewards, markDone, notify, rw } from './common';
 
-/** Kazanan/kaybeden/beraberlik ödülleri: her üyeye, sabit ve önceden görünür (kaybedene küçük teselli) */
+/**
+ * Kazanan/kaybeden/beraberlik ödülleri: her üyeye, sabit ve önceden görünür (kaybedene küçük teselli).
+ * Rakipsiz biten dönem (YN-106): düello sayılmaz (sonuç 'eslesmedi', Takım Ligi'ne puan yok); takım o dönem puan yazdıysa
+ * her üyeye teselli ödülü (`lose`) ve takım sohbetine duyuru; puan yazmadıysa yalnız kapanır.
+ */
 export const DUEL_REWARDS = { win: rw(400, 80), lose: rw(100, 15), tie: rw(250, 40) };
 
 interface DuelRow { period: string; team_id: string; rival_id: string | null; power: number; enrolled_at: number; matched_at: number | null; push_sent: number; result: string | null }
@@ -62,9 +66,10 @@ export function duelTick(app: App): void {
   }
   const open = app.db.all<{ period: string }>('SELECT DISTINCT period FROM ev_duel WHERE result IS NULL AND period != ?', cur?.key ?? '');
   for (const { period } of open) {
+    app.db.run('DELETE FROM ev_duel_runs WHERE period = ?', period); // tekrar sınırı sayacı yalnız süren dönemde gerekir
     if (!markDone(app, 'duello', period)) { app.db.run("UPDATE ev_duel SET result = COALESCE(result, 'kapandi') WHERE period = ?", period); continue; }
     for (const r of app.db.all<DuelRow>('SELECT * FROM ev_duel WHERE period = ?', period)) {
-      if (!r.rival_id) { app.db.run("UPDATE ev_duel SET result = 'eslesmedi' WHERE period = ? AND team_id = ?", period, r.team_id); continue; }
+      if (!r.rival_id) { closeUnmatched(app, period, r.team_id); continue; }
       const mine = points(app, period, r.team_id); const theirs = points(app, period, r.rival_id);
       const result = mine > theirs ? 'kazandi' : mine < theirs ? 'kaybetti' : 'berabere';
       app.db.run('UPDATE ev_duel SET result = ? WHERE period = ? AND team_id = ?', result, period, r.team_id);
@@ -76,6 +81,16 @@ export function duelTick(app: App): void {
       notify(app, app.teamMemberIds(r.team_id), { kind: 'duello', icon: result === 'kazandi' ? '🏆' : '⚔️', title: result === 'kazandi' ? 'Düelloyu kazandınız!' : result === 'kaybetti' ? 'Düello bitti' : 'Düello berabere', text: `${mine}–${theirs} · ödüller ödül kutusunda`, target: 'duello' });
     }
   }
+}
+
+/** rakipsiz biten dönem (DUEL_REWARDS notu): sayılmaz; puan yazan takımın her üyesine teselli ödülü */
+function closeUnmatched(app: App, period: string, teamId: string): void {
+  app.db.run("UPDATE ev_duel SET result = 'eslesmedi' WHERE period = ? AND team_id = ?", period, teamId);
+  const mine = points(app, period, teamId);
+  if (mine <= 0 || !app.team(teamId)) return;
+  for (const m of app.teamMemberIds(teamId)) giveRewards(app, m, DUEL_REWARDS.lose, `Takım Düellosu: rakip çıkmadı (${mine} puan), teselli ödülü`);
+  systemMessage(app, teamRoom(teamId), `Düello dönemi rakipsiz bitti: ${mine} puan topladınız ama eşleşecek takım çıkmadı. Düello sayılmadı (Takım Ligi'ne puan yok); her üyeye teselli ödülü ödül kutusunda.`, 'war', { event: 'duello' });
+  notify(app, app.teamMemberIds(teamId), { kind: 'duello', icon: '⚔️', title: 'Düello: rakip çıkmadı', text: 'Düello sayılmadı · teselli ödülü ödül kutusunda', target: 'duello' });
 }
 
 export function duelState(app: App, pid: string): DuelState | null {
@@ -116,6 +131,23 @@ export function addDuelPoints(app: App, teamId: string, pid: string, pts: number
     ON CONFLICT(period, team_id, player_id) DO UPDATE SET points = points + excluded.points`, cur.key, teamId, pid, pts);
   broadcastDuel(app, teamId);
   if (row.rival_id) broadcastDuel(app, row.rival_id);
+}
+
+/**
+ * Bölüm bitirişinin düello yıldız puanı (karar 26 düelloya da, YN-106): bölüm bu dönemde DUEL_RULES.fullRunsPerLevel kez tam puan
+ * yazdıysa DUEL_RULES.replayPoints, değilse yıldız × starPoints. Tam puan yazan bitiriş sayaca eklenir. Aktif dönem yoksa yazılmaz.
+ */
+export function addDuelStarPoints(app: App, teamId: string, pid: string, level: number, stars: number): number {
+  const { cur } = duelPeriods(app);
+  if (!cur || stars <= 0) return 0;
+  const before = app.db.get<{ n: number }>('SELECT full_runs AS n FROM ev_duel_runs WHERE period = ? AND player_id = ? AND level = ?', cur.key, pid, level)?.n ?? 0;
+  const r = duelStarPoints(stars, before);
+  if (!r.replay) {
+    app.db.run(`INSERT INTO ev_duel_runs(period, player_id, level, full_runs) VALUES(?, ?, ?, 1)
+      ON CONFLICT(period, player_id, level) DO UPDATE SET full_runs = full_runs + 1`, cur.key, pid, level);
+  }
+  addDuelPoints(app, teamId, pid, r.points);
+  return r.points;
 }
 
 export const duelHandlers: Handlers = {

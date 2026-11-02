@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { QUIZ_QUESTIONS } from '@odi/content';
-import { RALLY_MONSTERS, rallyDamageFor, rallyMaxHp } from '@odi/shared';
+import { DUEL_RULES, RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp } from '@odi/shared';
 import { duelPeriods, huntPeriods, quizSlot } from '../src/events/common';
 import { DUEL_REWARDS } from '../src/events/duel';
 import { HUNT_TIERS } from '../src/events/hunt';
@@ -163,6 +163,61 @@ describe('Takım Düellosu', () => {
     const after = (await a.c.call('duel.state', {})).duel;
     expect(after.last).toMatchObject({ result: 'kazandi', mine: 170, theirs: 10, rivalName: 'Bas Baykuşları' });
     expect(after.status).toBe('araniyor'); // yeni dönem, yeni eşleşme bekleniyor
+  });
+
+  it('tekrar sınırı (YN-106, karar 26): aynı bölüm dönemde 2 kez tam puan, sonraki her bitiriş 1; ralli sınırsız; yeni dönemde sıfır', async () => {
+    env = await setup({ eventsFast: true });
+    const [a, a2] = await team2(env, ['Ayşe', 'Ali'], 'Tekrarcılar');
+    expect(DUEL_RULES).toMatchObject({ starPoints: 10, fullRunsPerLevel: 2, replayPoints: 1 });
+    for (let i = 0; i < 5; i++) await a.c.call('progress.submit', run(1, { stars: 3 }));
+    expect((await a.c.call('duel.state', {})).duel.myPoints).toBe(2 * 30 + 3 * 1);
+    // başka bölüm kendi 2 hakkıyla; başka oyuncunun hakkı ayrı; bitirilemeyen koşu hakkı harcamaz
+    await a.c.call('progress.submit', run(2, { completed: false, stars: 0 }));
+    await a.c.call('progress.submit', run(2, { stars: 1 }));
+    await a2.c.call('progress.submit', run(1, { stars: 2 }));
+    expect((await a.c.call('duel.state', {})).duel.myPoints).toBe(63 + 10);
+    expect((await a2.c.call('duel.state', {})).duel.myPoints).toBe(20);
+    // aynı runId ikinci kez sayılmaz (sayaç da ilerlemez)
+    const r = run(3, { stars: 2 });
+    await a.c.call('progress.submit', r); await a.c.call('progress.submit', r);
+    expect((await a.c.call('duel.state', {})).duel.myPoints).toBe(73 + 20);
+    // ralli puanı sınırsız
+    for (let k = 0; k < 2; k++) {
+      const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
+      await a2.c.call('rally.join', { rallyId: rally.id });
+      await a.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
+      await a2.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
+    }
+    expect((await a.c.call('duel.state', {})).duel.myPoints).toBe(93 + 2 * RALLY_RULES.duelPoints);
+    // yeni dönem: sayaç sıfır, eski dönemin satırları silinir
+    env.clock.advance(48 * MIN + 1);
+    env.srv.sweep();
+    await a.c.call('progress.submit', run(1, { stars: 3 }));
+    expect((await a.c.call('duel.state', {})).duel.myPoints).toBe(30);
+    const periods = env.srv.app.db.all<{ period: string }>('SELECT DISTINCT period FROM ev_duel_runs');
+    expect(periods).toHaveLength(1);
+  });
+
+  it('rakipsiz biten dönem (YN-106): düello sayılmaz, puan yazan takımın her üyesine teselli ödülü ve duyuru; puansız takıma ödül yok', async () => {
+    env = await setup({ eventsFast: true });
+    const [a, a2] = await team2(env, ['Ayşe', 'Ali'], 'Yalnız Kurtlar');
+    const c = await connectW(env, 'Cem');
+    await a.c.call('progress.submit', run(1, { stars: 2 }));
+    expect((await a.c.call('duel.state', {})).duel).toMatchObject({ status: 'araniyor', rival: null });
+    // ikinci takım dönem bittikten sonra kurulur: bu dönemde eşleşme olmaz
+    env.clock.advance(48 * MIN + 1);
+    await c.c.call('team.create', { name: 'Sessizler', emblem: '🌙' });
+    env.srv.sweep();
+    const msg = await a2.wait('chat', (m) => m.msg.meta?.event === 'duello' && m.msg.text.includes('rakipsiz'));
+    expect(msg.msg.text).toContain('20 puan');
+    expect(msg.msg.text).toContain("Takım Ligi'ne puan yok");
+    for (const p of [a, a2]) {
+      const got = (await p.c.call('inbox.list', {})).items.filter((i) => i.reason.includes('rakip çıkmadı'));
+      expect(got.map((i) => [i.kind, i.amount]).sort()).toEqual(DUEL_REWARDS.lose.map((x) => [x.kind, x.amount]).sort());
+    }
+    const row = env.srv.app.db.get<{ result: string }>("SELECT result FROM ev_duel WHERE team_id = (SELECT team_id FROM players WHERE name = 'Ayşe') ORDER BY enrolled_at LIMIT 1");
+    expect(row?.result).toBe('eslesmedi');
+    expect((await a.c.call('duel.state', {})).duel.last).toBeNull(); // sayılmayan düello "son düello" değildir
   });
 });
 

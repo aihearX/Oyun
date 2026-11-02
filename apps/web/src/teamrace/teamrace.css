@@ -102,3 +102,4 @@
 .tl-hist { display:flex; flex-direction:column; gap:6px; }
 .tl-h { display:flex; align-items:center; gap:8px; font-size:0.8125rem; font-weight:800; min-width:0; }
 .tl-h small { flex:none; color:var(--text-2); }
+.tl-src small.tl-hafta { margin-top:2px; color:var(--text); }

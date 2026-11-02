@@ -3,10 +3,9 @@
  * Günün Meydan Okuması ve Haftalık Turnuva (bireysel). Hepsi sunucu yetkili; dönemler tembel + zamanlayıcıyla kapanır.
  */
 import type { EventsOverview, OpMap, ProgressSubmit } from '@odi/shared';
-import { DUEL_RULES } from '@odi/shared';
 import type { App, Handler, Handlers } from '../app';
 import { challengeHandlers, challengeState, challengeTick } from './challenge';
-import { addDuelPoints, duelHandlers, duelState, duelTick } from './duel';
+import { addDuelStarPoints, duelHandlers, duelState, duelTick } from './duel';
 import { addHuntNotes, huntHandlers, huntState } from './hunt';
 import { broadcastQuests, questHandlers, questProgress, questsState } from './quests';
 import { quizHandlers, quizInfo, quizShutdown, quizTick, teamQuiz } from './quiz';
@@ -32,7 +31,7 @@ export const eventHandlers: Handlers = {
   ...rallyHandlers, ...duelHandlers, ...relayHandlers, ...huntHandlers, ...quizHandlers, ...questHandlers, ...challengeHandlers, ...tourneyHandlers,
 };
 
-/** normal bölüm sonucu etkinliklere de sayılır: düello (yıldız), günlük görevler, Ses Avı (jeton = nota) */
+/** normal bölüm sonucu etkinliklere de sayılır: düello (yıldız; bölüm başına tekrar sınırı), günlük görevler, Ses Avı (jeton = nota) */
 function onProgress(app: App, pid: string, d: ProgressSubmit): void {
   const teamId = app.player(pid).team_id;
   if (!teamId) return;
@@ -41,7 +40,7 @@ function onProgress(app: App, pid: string, d: ProgressSubmit): void {
   if (d.completed) questProgress(app, teamId, 'bolum', 1, pid, true);
   if (stars) questProgress(app, teamId, 'yildiz', stars, pid, true);
   addHuntNotes(app, teamId, pid, Math.min(400, Math.max(0, Math.round(d.coins))));
-  addDuelPoints(app, teamId, pid, stars * DUEL_RULES.starPoints);
+  addDuelStarPoints(app, teamId, pid, d.level, stars);
   broadcastQuests(app, teamId);
 }
 
