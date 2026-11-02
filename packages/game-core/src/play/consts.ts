@@ -90,3 +90,7 @@ export const CEIL_GAP = 520;
 export const MOD_FLIP_EVERY = 8;
 /** ters yerçekimi değiştiricisi: tavanda kalma süresi (tavan yolu ölü kalmasın diye kısa; tavanda yerdeki dikenlerin aynası var) */
 export const MOD_INV_T = 3.5;
+/** Yankı değiştiricisi: dokunuş/kaydırma bu kadar sn geç işler (content MODIFIERS.yanki açıklaması bu sayıyı söyler) */
+export const ECHO_DELAY_S = 0.14;
+/** Hız değiştiricisi: koşu hızı çarpanı (content MODIFIERS.hiz "%30 daha hızlı") */
+export const HIZ_K = 1.3;

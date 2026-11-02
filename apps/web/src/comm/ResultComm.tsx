@@ -22,10 +22,13 @@ export function ResultComm({ level, completed, demo }: { level: number; complete
   const [state, setState] = useState<'' | 'busy' | 'done'>('');
   const [duel, setDuel] = useState<'' | 'confirm' | 'busy' | 'done'>('');
   useEffect(() => { if (!demo) noteRun(level, completed); }, []);
-  if (status !== 'bağlı' || !team || !featureOpen('team')) return null;
-  const mine = team.help.some((h) => h.level === level && h.expiresAt > Date.now() && useNet.getState().me?.id === h.from);
-  if (!completed && (fails >= COMM_RULES.helpFailsToAsk || failStreak >= COMM_RULES.helpFailsToAsk)) {
+  // önizleme (yalnız ekran görüntüsü; `?demo=sonuc&yardim=4`): takım bağlantısı olmadan yardım kartı, düğme ağa bir şey göndermez
+  const demoFails = demo && !completed ? Number(new URLSearchParams(location.search).get('yardim') ?? 0) : 0;
+  if (!demoFails && (status !== 'bağlı' || !team || !featureOpen('team'))) return null;
+  const mine = !!team?.help.some((h) => h.level === level && h.expiresAt > Date.now() && useNet.getState().me?.id === h.from);
+  if (!completed && (demoFails || fails >= COMM_RULES.helpFailsToAsk || failStreak >= COMM_RULES.helpFailsToAsk)) {
     const ask = async () => {
+      if (demoFails) { setState('done'); return; }
       setState('busy');
       const r = await act('team.help.request', { level });
       if (r) { setState('done'); useComm.setState((s) => ({ asked: [...s.asked, level] })); platform().haptic('success'); toast('🙋', 'Takımına haber verdin', 'İpucu, kalkan ya da birlikte yarış gelebilir. Geçince ikinize de ödül.', 'green'); }
@@ -35,7 +38,7 @@ export function ResultComm({ level, completed, demo }: { level: number; complete
     return (
       <div className="comm-result" data-testid="yardim-iste" onClick={(e) => e.stopPropagation()}>
         <span className="cr-ic"><Art name="help" size={30} /></span>
-        <span className="cr-t"><b>{done ? 'Yardım istedin' : 'Takımından yardım iste'}</b><small>{done ? 'Takım sohbetinde kartın var; ipucu ve kalkanlar oraya gelir.' : `${level}. bölümü ${Math.max(fails, failStreak)} kez denedin. Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.`}</small></span>
+        <span className="cr-t"><b>{done ? 'Yardım istedin' : 'Takımından yardım iste'}</b><small>{done ? 'Takım sohbetinde kartın var; ipucu ve kalkanlar oraya gelir.' : `${level}. bölümü ${Math.max(fails, failStreak, demoFails)} kez denedin. Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.`}</small></span>
         {!done && <button type="button" className="btn small" data-testid="yardim-iste-dugme" disabled={state === 'busy'} onClick={() => void ask()}>Yardım iste</button>}
       </div>
     );

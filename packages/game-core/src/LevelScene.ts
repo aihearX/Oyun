@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { AbilityId, Entity, LevelSpec, RunResult } from '@odi/shared';
 import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
-import { BIOMES, FIRSTS, PATOLOJILER, journeyById, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
+import { BIOMES, FIRSTS, MODIFIERS, PATOLOJILER, journeyById, modifierAnnounce, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import { yuzdeIyelik } from '@odi/meta';
 import type { GameEvent, LevelOptions } from './bridge';
@@ -17,7 +17,7 @@ import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
 import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
-import { INTRO_S, liveWaves } from './play/boss';
+import { INTRO_S, bossPhaseText, bossStrip, liveWaves } from './play/boss';
 import { escortDanger } from './play/escort';
 import { bossTutorial, REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW } from './play/tutorial';
 import {
@@ -54,6 +54,10 @@ export class LevelScene extends Phaser.Scene {
   private escDanger = 0; private escWarn = false;
   private acc = 0; private startAt = 0; private lastProgress = 0; private camX = 0; private camY = 0; private camAnchor = 0.66;
   private hintTimer?: Phaser.Time.TimerEvent; private fog?: Phaser.GameObjects.Image;
+  /** Yüksek görünürlük (LevelOptions.highVisibility): zemin kenarı, engel ve düşman konturları (sisin/gecenin üstünde) */
+  private hiVis?: Phaser.GameObjects.Graphics;
+  /** boss alt şeridinde en son gösterilen boss yazısı (play/boss.ts bossStrip) */
+  private bossStripId = '';
   private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1;
   /** görünüm (tasarım px; en az 390×780 — uzun/geniş ekranda fazlası: view.ts) ve oyun içi göstergenin güvenli alan inişi (tasarım px) */
   private vw = GAME_W; private vh = GAME_H; private hudTop = 0; private praiseFree = 0; private comboShown = 0;
@@ -130,8 +134,13 @@ export class LevelScene extends Phaser.Scene {
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
     if (this.spec.assist) this.input_.hSwipePx = this.spec.assist.swipePx;
     this.input_.blockZones.push({ hit: (x, y) => this.hud.pauseHit(x, y), onTap: () => this.hud.pressPause() });
-    if (this.spec.modifiers.includes('sis') || this.spec.modifiers.includes('gece')) this.buildFog(this.spec.modifiers.includes('gece') ? 0.96 : 0.8);
-    if (this.spec.modifiers.includes('cihaz-kapali')) this.hint('Cihaz kapalı: notalar yaklaşınca görünür, ses yok', 3500, undefined, 'mod-cihaz-kapali');
+    // sis/gece örtüsü; Yüksek görünürlükte daha açık (yalnız görsel) ve konturlar örtünün üstünde
+    const hv = !!this.opts.highVisibility; const night = this.spec.modifiers.includes('gece');
+    if (night || this.spec.modifiers.includes('sis')) this.buildFog(night ? (hv ? 0.6 : 0.96) : (hv ? 0.45 : 0.8));
+    if (hv && !w.boss) this.hiVis = this.add.graphics().setDepth(81);
+    // değiştiriciler (YN-102): göstergede kalıcı rozet; duyuru bölüm başlayınca (begin)
+    const mods = this.spec.modifiers.filter((m) => MODIFIERS[m]);
+    this.hud.setModifiers(mods.map((m) => ({ id: m, name: MODIFIERS[m].name })));
     if (this.opts.lucky && !this.opts.bot) this.armLucky();
     this.camX = Math.max(0, w.startX - GAME_W * 0.3 - (this.vw - GAME_W)); this.camY = w.startY - GAME_H * this.camAnchor - this.camUp();
     this.syncCamera(1); this.syncViews(true); this.syncHero(); this.syncHud();
@@ -141,8 +150,10 @@ export class LevelScene extends Phaser.Scene {
     const begin = () => {
       unlock(); music(track); this.state.started = true; this.startAt = this.time.now; this.emit({ type: 'started' });
       if (this.spec.intro) this.hint(this.spec.intro, INTRO_S * 1000, undefined, 'giris');
-      if (this.luckyState === 'armed') this.time.delayedCall(500, () => banner(this, 'Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200, luckyNoteTexture(this)));
-      if (this.spec.modifiers.includes('ters-yercekimi')) this.hint('Ters yerçekimi: tavanlı yerlerde zaman zaman yön değişir', 3000, undefined, 'mod-ters-yercekimi');
+      // değiştirici duyurusu: ad + ne yapmalı, ~3 sn (oyun durmaz; bot kipinde de yalnız yazı). Şanslı Nota şeridi ondan sonra.
+      const annMs = mods.length ? 2600 + 600 * mods.length : 0;
+      if (mods.length) { const lines = mods.map(modifierAnnounce); for (let i = 0; i < mods.length; i++) this.emit({ type: 'hint', id: `mod-${mods[i]}`, text: lines[i]! }); if (this.hintsOn) this.hud.announce(lines.join('\n'), annMs); }
+      if (this.luckyState === 'armed') this.time.delayedCall(500 + annMs, () => banner(this, 'Bu bölümde bir Şanslı Nota var!', 0x22a565, 2200, luckyNoteTexture(this)));
     };
     if (this.opts.race) {
       const race = this.opts.race;
@@ -201,11 +212,13 @@ export class LevelScene extends Phaser.Scene {
     if (this.sim.failed && !this.state.finished) { this.fail(this.sim.failed); return; }
     if (this.sim.finished && !this.state.finished) { this.finish(); }
     this.state.timeSec = this.sim.t; this.state.lives = this.sim.lives; this.state.coins = this.sim.coins; this.state.deaths = this.sim.deaths; this.state.damageTaken = this.sim.damageTaken; this.state.shield = this.sim.shield;
+    if (this.sim.boss) this.bossStripTick();
     if (this.sim.boss) { const b = this.sim.boss; this.state.custom.bossHp = b.hp; this.state.custom.bossPhase = b.phase; this.state.custom.bossMode = b.mode; this.state.custom.bossDefeated = b.defeated; }
     this.syncCamera(realDt * Math.min(1, ts)); this.syncViews(false); this.syncHero(); this.syncHud();
     this.backdrop?.update(this.cameras.main);
     this.watchPerf();
     if (this.fog) { const cam = this.cameras.main; this.fog.setPosition(this.hero.x - cam.scrollX, this.hero.y - 30 - cam.scrollY); }
+    this.drawHiVis();
     this.nearMiss(); this.cochleaCue();
     if (this.luckyState === 'armed') this.tickLucky();
     if (this.time.now - this.lastProgress > 500) { this.lastProgress = this.time.now; this.emit({ type: 'progress', pct: this.pct(), coins: this.sim.coins, score: this.state.score }); }
@@ -283,7 +296,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bossWarn': sfx.tick(); break;
       case 'bossSlam': this.cameras.main.shake(160, 0.014); sfx.hit(); break;
       case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral, 28); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
-      case 'bossPhase': this.hint(this.sim.boss?.kind === 'golem' ? (e.n === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!') : (e.n === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!'), 2600, undefined, `boss-faz-${e.n}`); sfx.toneAt(110, 0.5); break;
+      case 'bossPhase': this.hint(bossPhaseText(this.sim.boss?.kind ?? 'golem', Number(e.n ?? 2)), 2600, undefined, `boss-faz-${e.n}`); this.bossStripId = `boss-faz-${e.n}`; sfx.toneAt(110, 0.5); break;
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
       case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200, undefined, 'boss-sersem'); sfx.power(); break;
@@ -433,8 +446,10 @@ export class LevelScene extends Phaser.Scene {
   private syncHud() {
     // süreli bölüm: hedef süreden geri sayım (yarışta yok: yarışın kendi şeridi var)
     const o = this.spec.objective; const timeLeft = o.id === 'timed' && !this.opts.race ? (o.target ?? this.spec.parTimeSec) - this.sim.t : null;
+    // melodi hedefi: "Nota 3/8" baştan sona (sırayla toplananlar; YN-102)
+    const melody = o.id === 'melody' && this.world.notesTotal > 0 ? { n: this.sim.notes, total: o.target ?? this.world.notesTotal } : null;
     this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft,
-      escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null });
+      escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null, melody });
   }
   /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
   private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
@@ -713,6 +728,42 @@ export class LevelScene extends Phaser.Scene {
     this.hintsOn = on; if (on) return;
     this.hintTimer?.remove(); this.hud.hideHint(); this.hud.toast('', 0); this.tutorial?.hide();
   }
+  /**
+   * Boss alt şeridi (YN-102): giriş yazısı INTRO_S oyun saniyesi, sonra Faz 1 talimatı. Oyun saniyesiyle karar verilir (bot/yük
+   * altında sahne zamanlayıcısı simülasyonun gerisinde kalsa da hikâye cümlesi Faz 1 boyunca ekranda kalmaz).
+   */
+  private bossStripTick() {
+    const b = this.sim.boss!; const want = bossStrip(b, this.sim.t, !!this.spec.intro);
+    if (!want || want.id === this.bossStripId) return;
+    this.bossStripId = want.id; this.hint(want.text, Math.max(1500, (want.untilS - this.sim.t) * 1000), undefined, want.id);
+  }
+  /** Yüksek görünürlük: görünen zemin üst/yan kenarları, engeller ve düşmanlar açık konturla (koyu alt çizgiyle; her zeminde seçilir) */
+  private drawHiVis() {
+    const g = this.hiVis; if (!g) return;
+    g.clear(); const cam = this.cameras.main; const L = cam.scrollX - 40, Rr = cam.scrollX + this.vw + 40; const t = this.sim.t;
+    const ids = [...new Set(near(this.world, L, Rr))];
+    const terr = ids.map((id) => this.world.ents[id]!).filter((e) => (e.type === 'platform' || e.type === 'wall') && !e.p.boss);
+    // yan kenar yalnız gerçek kenarda (boşluk, basamak): aynı yükseklikte bitişik zemin varsa ek yeri çizilmez
+    const joined = (e: WEnt, x: number) => terr.some((o) => o !== e && o.l <= x + 2 && o.r >= x - 2 && o.t <= e.t + 6 && o.b > e.t + 6);
+    const box = (l: number, tp: number, r: number, b: number, c: number, wdt: number, sides: false | [boolean, boolean] = false) => {
+      const bot = Math.min(b, tp + 140);
+      for (const [lw, col, a] of [[wdt + 3, 0x0a0620, 0.75], [wdt, c, 1]] as const) {
+        g.lineStyle(lw, col, a); g.beginPath();
+        if (sides) { g.moveTo(l, sides[0] ? bot : tp); g.lineTo(l, tp); g.lineTo(r, tp); g.lineTo(r, sides[1] ? bot : tp); } else { g.moveTo(l, tp); g.lineTo(r, tp); g.lineTo(r, b); g.lineTo(l, b); g.closePath(); }
+        g.strokePath();
+      }
+    };
+    for (const id of ids) {
+      const e = this.world.ents[id]!; if (e.sr < L || e.sl > Rr || this.gone(e) || this.sim.cured.has(id)) continue;
+      if (e.type === 'platform' || e.type === 'wall') { if (!e.p.boss) box(e.l, e.t, e.r, e.b, 0xfff6e5, 2.5, [!joined(e, e.l), !joined(e, e.r)]); }
+      else if (e.type === 'moving' || e.type === 'lift' || e.type === 'crumble' || e.type === 'beat' || e.type === 'echo' || e.type === 'door' || e.type === 'barrier' || e.type === 'freqgate') {
+        solidAt(this.world, this.sim, e, t); const r = lastRect(); box(r.l, r.t, r.r, r.b, 0xfff6e5, 2.5, false);
+      } else if (e.cls === 'hazard' && e.type !== 'gear') {
+        if (e.type === 'hazard' && !hazardAt(this.world, this.sim, e, t)) continue;
+        const r = e.type === 'hazard' ? lastRect() : e; box(r.l, r.t, r.r, r.b, 0xffd6e2, 3, false);
+      } else if (e.cls === 'enemy') { const p = enemyAt(e, t); g.lineStyle(6, 0x0a0620, 0.75); g.strokeCircle(p.x, p.y - 16, 22); g.lineStyle(3, 0xffd6e2, 1); g.strokeCircle(p.x, p.y - 16, 22); }
+    }
+  }
   private buildFog(strength: number) {
     const r0 = this.opts.skills.echoSight ? 160 : 110, r1 = this.opts.skills.echoSight ? 340 : 260;
     const key = `fog-${strength}-${r0}`; const W = GAME_W * 3, H = GAME_H * 3;
@@ -735,7 +786,7 @@ function levelVariant(spec: LevelSpec): number | undefined {
 /** durağan zemin (makeTerrain toptan çizer) */
 function isTerrain(e: WEnt): boolean { return (e.type === 'platform' && !e.p.boss) || e.type === 'wall'; }
 /** WEnt → dünya koordinatlı Entity (görsel seam'e verilen) */
-function worldEntity(e: WEnt): Entity { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, props: e.p }; }
+function worldEntity(e: WEnt): Entity { return { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, props: e.type === 'note' ? { ...e.p, ord: e.ord } : e.p }; }
 // solidAt/hazardAt son sonucu paylaşılan dikdörtgene yazar; okumak için:
 const rectX = () => lastRect().l; const rectY = () => lastRect().t;
 const solidRect = () => lastRect();

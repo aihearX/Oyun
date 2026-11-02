@@ -26,6 +26,22 @@ export function drawGoldNote(ctx: Ctx, x: number, y: number, s: number, halo = t
   ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#8a4500'; ctx.lineWidth = Math.max(1, s * 0.05); ctx.lineJoin = 'round'; ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(x - s * 0.27, y + s * 0.22, s * 0.08, s * 0.05, -0.5, 0, Math.PI * 2); ctx.fill();
 }
+/**
+ * Melodi notası (YN-102): sırayla toplanan notalar altın notalardan hem renkle (camgöbeği) hem biçimle (açık halka + kalın
+ * krem kontur) ayrılır; renk körlüğünde ve Büyük yazıda da seçilsin. Sahne ve gösterge aynı çizimi kullanır.
+ */
+export function drawMelodyNote(ctx: Ctx, x: number, y: number, s: number, ring = true) {
+  if (ring) {
+    circle(ctx, x, y, s * 0.74); ctx.fillStyle = css(0x0b3a4a, 0.55); ctx.fill();
+    ctx.lineWidth = Math.max(1.6, s * 0.09); ctx.strokeStyle = '#fff6e5'; ctx.stroke();
+    circle(ctx, x, y, s * 0.74 + Math.max(1.6, s * 0.09)); ctx.lineWidth = Math.max(1, s * 0.04); ctx.strokeStyle = css(0x062a35, 0.8); ctx.stroke();
+  }
+  const nx = x + s * 0.02, ny = y + s * 0.02, ns = s * 0.9;
+  ctx.save(); ctx.translate(1, 1.4); notePath(ctx, nx, ny, ns); ctx.fillStyle = 'rgba(0,30,40,0.5)'; ctx.fill(); ctx.restore();
+  notePath(ctx, nx, ny, ns);
+  const g = ctx.createLinearGradient(0, ny - ns * 0.55, 0, ny + ns * 0.5); g.addColorStop(0, '#d9fffb'); g.addColorStop(0.45, css(THEME.teal)); g.addColorStop(1, '#109a9a');
+  ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#fff6e5'; ctx.lineWidth = Math.max(1.2, s * 0.07); ctx.lineJoin = 'round'; ctx.stroke();
+}
 /** altın koklea (sarmal kıvrım) */
 export function drawGoldCochlea(ctx: Ctx, x: number, y: number, r: number, lit = true) {
   if (lit) glow(ctx, x, y, r * 1.45, THEME.gold, 0.6);

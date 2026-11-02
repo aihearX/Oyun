@@ -120,7 +120,7 @@ export function canTurn(w: World, s: SimState): boolean {
 /** yerçekimi yönünü değiştir: gövde yerinde kalsın diye ayak noktası başın olduğu yere taşınır */
 function setG(h: HeroS, g: 1 | -1) { if (h.g === g) return; h.y += -h.g * (h.slide > 0 ? C.HERO_SLIDE_H : C.HERO_H); h.g = g; h.grounded = false; h.groundId = -1; }
 const breathMax = (w: World) => C.BREATH + 2 * (w.skills.breath ?? 0);
-const speedOf = (w: World, s: SimState) => w.assist.runK * (w.mods.hiz ? 1.3 : 1) * (s.speedUntil > s.t ? 1.25 : 1);
+const speedOf = (w: World, s: SimState) => w.assist.runK * (w.mods.hiz ? C.HIZ_K : 1) * (s.speedUntil > s.t ? 1.25 : 1);
 const ev = (s: SimState, k: string, x: number, y: number, extra?: Partial<SimEvent>) => { if (s.events) s.events.push({ k, x, y, ...extra }); };
 
 // ------------------------------------------------------------------ dinamik geometri
@@ -268,7 +268,7 @@ const overlap = (a: { l: number; r: number; t: number; b: number }, b: { l: numb
 /** girdi gecikmesi (yankı değiştiricisi) */
 function effectiveInput(w: World, s: SimState, raw: SimInput): SimInput {
   if (!w.mods.yanki) return raw;
-  s.delayQ.push({ at: s.t + 0.14, inp: { ...raw } });
+  s.delayQ.push({ at: s.t + C.ECHO_DELAY_S, inp: { ...raw } });
   const out: SimInput = { down: s.lastDown, pressed: false, released: false, swipeDown: false, dash: false, turn: false };
   while (s.delayQ.length && s.delayQ[0]!.at <= s.t + 1e-9) {
     const q = s.delayQ.shift()!.inp; out.down = q.down; out.pressed ||= q.pressed; out.released ||= q.released; out.swipeDown ||= q.swipeDown; out.dash ||= q.dash; out.turn ||= !!q.turn;

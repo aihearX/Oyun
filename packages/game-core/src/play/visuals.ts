@@ -160,7 +160,9 @@ export interface HudSnapshot { notes: number; notesTotal: number; cochleas: numb
   /** süreli bölümde kalan oyun saniyesi (geri sayım); süresiz bölümde null */
   timeLeft: number | null;
   /** eskort bölümünde fısıltının durumu (yoksa null) */
-  escort: RD.EscortHud }
+  escort: RD.EscortHud;
+  /** melodi hedefli bölümde sırayla toplanan notalar / hedef ("Nota 3/8"); yoksa null */
+  melody?: { n: number; total: number } | null }
 export type HintKind = RD.HintKind;
 export interface LevelHudView {
   update(h: HudSnapshot): void;
@@ -172,6 +174,10 @@ export interface LevelHudView {
   showHint(kind: HintKind, text: string): void; hideHint(): void;
   /** alt-orta bilgi şeridi (bölüm girişi, faz uyarıları); boş metin gizler */
   toast(text: string, ms: number): void;
+  /** bölümün değiştiricileri: göstergede küçük kalıcı rozet (çizili simge + ad); boş liste gizler */
+  setModifiers(list: { id: string; name: string }[]): void;
+  /** bölüm başı duyurusu (değiştiriciler; göstergenin altında, ms sonra söner) */
+  announce(text: string, ms: number): void;
   setCheckpoints(pcts: number[]): void;
   onPause(cb: () => void): void;
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
@@ -187,7 +193,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     update: (h) => {
       if (!last || last.notes !== h.notes || last.notesTotal !== h.notesTotal) hud.setNotes(h.notes, h.notesTotal);
       if (!last || last.cochleas !== h.cochleas || last.cochleasTotal !== h.cochleasTotal) hud.setCochleas(h.cochleas, h.cochleasTotal);
-      hud.setTimer(h.timeLeft); hud.setEscort(h.escort);
+      hud.setTimer(h.timeLeft); hud.setEscort(h.escort); hud.setMelody(h.melody ? h.melody.n : null, h.melody?.total ?? 0);
       if (!last || last.lives !== h.lives) hud.setLives(h.lives);
       if (!last || Math.abs(last.pct - h.pct) > 0.002) hud.setProgress(h.pct);
       last = { ...h };
@@ -197,6 +203,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     praise: (t) => hud.praise(t), clearPraise: () => hud.clearPraise(),
     showHint: (k, t) => hud.showHint(k, t), hideHint: () => hud.hideHint(),
     toast: (t, ms) => hud.toast(t, ms),
+    setModifiers: (l) => hud.setModifiers(l), announce: (t, ms) => hud.announce(t, ms),
     setCheckpoints: (p) => hud.setCheckpoints(p),
     onPause: (cb) => hud.onPause(cb),
     pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),

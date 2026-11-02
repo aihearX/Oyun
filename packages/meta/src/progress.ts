@@ -180,7 +180,7 @@ const MOD_TIPS: Partial<Record<ModifierId, string[]>> = {
   sis: ['Siste yalnız Odi\'nin çevresi aydınlık: engel o ışık halkasına girince zıpla.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
   gece: ['Gecede yalnız Odi\'nin çevresi görünür: halkanın kenarına bak, engel orada belirir.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
   yanki: ['Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.'],
-  hiz: ['Bu bölümde her şey daha hızlı: engel ekrana girer girmez hazırlan.'],
+  hiz: ['Bu bölümde Odi daha hızlı koşar: engel ekrana girer girmez hazırlan.'],
 };
 const OBJECTIVE_TIPS: Partial<Record<ObjectiveId, string>> = {
   melody: 'Nota biçimli altın notaları soldan sağa, hiç atlamadan topla: her doğru notada "Nota 3/7" gibi sırası yazar.',

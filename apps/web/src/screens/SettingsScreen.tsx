@@ -77,6 +77,10 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
         <div className="row between set-row"><div className="set-text"><h2>Büyük yazı</h2><div className="muted">Menülerde, sohbette ve bölüm içi göstergelerde yazılar daha büyük görünür</div></div>
           <OnOff label="Büyük yazı" on={s.bigText} onChange={s.setBigText} testid="buyuk-yazi" /></div>
       </div>
+      <div className="card vol-row" data-testid="yuksek-gorunurluk-ayar">
+        <div className="row between set-row"><div className="set-text"><h2>Yüksek görünürlük</h2><div className="muted">Sis ve gece bölümlerinde karanlık daha açık olur; zemin kenarları, engeller ve düşmanlar açık çizgiyle belirginleşir. Süre, hasar ve notalar değişmez.</div></div>
+          <OnOff label="Yüksek görünürlük" on={s.highVis} onChange={s.setHighVis} testid="yuksek-gorunurluk" /></div>
+      </div>
       <div className="card vol-row" data-testid="hareket-ayar">
         <div className="row between set-row"><div className="set-text"><h2>Hareketi azalt</h2><div className="muted">Menü canlandırmaları ve kutlamalar sadeleşir, bölümlerde ekran flaşları kapanır</div></div>
           {systemMotion ? <span className="set-fixed" data-testid="hareket-sistem">Telefon ayarından açık</span> : <OnOff label="Hareketi azalt" on={s.reduceMotion} onChange={s.setReduceMotion} testid="hareket-azalt" />}</div>

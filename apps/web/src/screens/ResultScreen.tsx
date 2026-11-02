@@ -1,5 +1,5 @@
 import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
-import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, BIOMES, type RewardItem } from '@odi/content';
+import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, modifierNames, BIOMES, type RewardItem } from '@odi/content';
 import { earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -81,6 +81,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const loss = result.completed ? null : lossView(result, spec, attempt);
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   const starNext = !result.completed ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
+  // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Yankı"); sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme
+  const mods = modifierNames(spec.modifiers ?? []);
+  const dark = !result.completed && !store.highVis && (spec.modifiers ?? []).some((m) => m === 'sis' || m === 'gece');
 
   // zaman çizelgesi
   useEffect(() => {
@@ -191,6 +194,21 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, result.score).toLocaleString('tr-TR')}</div>}
         </div>
 
+        {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
+
+        {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
+            kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
+            yapışkan "Tekrar dene" çubuğunun arkasında yarım kalmasın (OT-ilk-kez-oyun-25) */}
+        {loss && (
+          <div className="card result-obj result-why" data-testid="sonuc-neden">
+            <small className="result-obj-h">Neden olmadı?</small>
+            <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
+            {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
+            {dark && <span className="result-why-hv" data-testid="sonuc-gorunurluk"><Art name="gear" size={16} className="art-inline" />Zor mu görüyorsun? Ayarlar › Yüksek görünürlük</span>}
+          </div>
+        )}
+        {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
+
         <div className="stats has-wide">
           {spec.coinsTotal > 0
             ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
@@ -215,16 +233,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
         </div>
 
-        {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutuların hemen altında: yapışkan düğme alanında
-            büyüyüp kutuların üstüne binmesin (OT-ilk-kez-oyun-20); ilk ekranda görünür kalır (OT-ilk-kez-oyun-15) */}
-        {loss && (
-          <div className="card result-obj result-why" data-testid="sonuc-neden">
-            <small className="result-obj-h">Neden olmadı?</small>
-            <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
-            {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
-          </div>
-        )}
-        {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
         <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
           <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>

@@ -120,6 +120,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
         reducedMotion: prefersReducedMotion(),
         // Büyük yazı (Ayarlar): oyun içi gösterge ve uçan yazılar da büyür
         bigText: useStore.getState().bigText,
+        // Yüksek görünürlük (Ayarlar): sis/gece örtüsü açık, kenar/engel/düşman konturlu (yalnız görsel)
+        highVisibility: useStore.getState().highVis,
         ...(hints === false ? { hints: false } : {}),
         // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
         onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },

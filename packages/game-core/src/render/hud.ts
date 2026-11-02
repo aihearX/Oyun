@@ -4,7 +4,7 @@
  * öğretici el işareti. Ekran-sabit (scrollFactor 0); kamera yakınlaştırması/kökeni ne olursa olsun tasarım biriminde konumlanır.
  */
 import Phaser from 'phaser';
-import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, softGlowTex, sparkTex, ringTex } from './tex';
+import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, drawMelodyNote, softGlowTex, sparkTex, ringTex } from './tex';
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 import { motionReduced } from './flash';
 import { spiritTex } from './mech';
@@ -70,6 +70,24 @@ const markerTex = (s: Phaser.Scene, c: number) => T(s, `hud-mark-${c.toString(16
   ctx.beginPath(); ctx.arc(11, 11, 7.5, 0, Math.PI * 2); const g = ctx.createRadialGradient(9, 8, 1, 11, 11, 8); g.addColorStop(0, '#ffffff'); g.addColorStop(0.35, css(c)); g.addColorStop(1, css(c)); ctx.fillStyle = g; ctx.fill();
   ctx.strokeStyle = '#fff6e5'; ctx.lineWidth = 2; ctx.stroke(); ctx.strokeStyle = 'rgba(10,0,30,0.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(11, 11, 9, 0, Math.PI * 2); ctx.stroke();
 });
+/** melodi sayacının simgesi: sahnedeki melodi notasıyla aynı çizim (camgöbeği nota + halka) */
+const melodyIcon = (s: Phaser.Scene) => T(s, 'hud-melodi', 28, 28, (ctx) => drawMelodyNote(ctx, 14, 14, 16));
+/** değiştirici rozetinin çizili simgeleri (22×22, krem çizgi; emoji yok) */
+const modIcon = (s: Phaser.Scene, id: string) => T(s, `hud-mod-${id}`, 22, 22, (ctx) => {
+  ctx.strokeStyle = '#fff6e5'; ctx.fillStyle = '#fff6e5'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const line = (pts: number[]) => { ctx.beginPath(); ctx.moveTo(pts[0]!, pts[1]!); for (let i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i]!, pts[i + 1]!); ctx.stroke(); };
+  switch (id) {
+    case 'hiz': line([4, 5, 10, 11, 4, 17]); line([11, 5, 17, 11, 11, 17]); break;
+    case 'sis': for (const y of [6, 11, 16]) { ctx.beginPath(); ctx.moveTo(3, y); ctx.bezierCurveTo(7, y - 3, 10, y + 3, 14, y); ctx.bezierCurveTo(16, y - 2, 18, y - 1, 19, y); ctx.stroke(); } break;
+    case 'gece': ctx.beginPath(); ctx.arc(11, 11, 8, 0.6, Math.PI * 2 - 0.6, false); ctx.arc(15, 8, 6.4, Math.PI * 2 - 1.2, 1.9, true); ctx.closePath(); ctx.fill(); break;
+    case 'yanki': ctx.beginPath(); ctx.arc(5, 11, 2, 0, Math.PI * 2); ctx.fill(); for (const r of [6, 10, 14]) { ctx.beginPath(); ctx.arc(5, 11, r, -0.75, 0.75); ctx.stroke(); } break;
+    case 'ayna': line([11, 3, 11, 19]); ctx.beginPath(); ctx.moveTo(8, 6); ctx.lineTo(2, 11); ctx.lineTo(8, 16); ctx.closePath(); ctx.fill(); ctx.beginPath(); ctx.moveTo(14, 6); ctx.lineTo(20, 11); ctx.lineTo(14, 16); ctx.closePath(); ctx.stroke(); break;
+    case 'tek-can': heartPath(ctx, 11, 11, 17); ctx.fill(); break;
+    case 'ters-yercekimi': line([7, 18, 7, 4]); line([3, 8, 7, 4, 11, 8]); line([15, 4, 15, 18]); line([11, 14, 15, 18, 19, 14]); break;
+    case 'cihaz-kapali': ctx.beginPath(); ctx.moveTo(3, 8); ctx.lineTo(7, 8); ctx.lineTo(11, 4); ctx.lineTo(11, 18); ctx.lineTo(7, 14); ctx.lineTo(3, 14); ctx.closePath(); ctx.fill(); line([14, 8, 20, 14]); line([20, 8, 14, 14]); break;
+    default: ctx.beginPath(); ctx.arc(11, 11, 7, 0, Math.PI * 2); ctx.stroke(); break;
+  }
+});
 const handTex = (s: Phaser.Scene) => T(s, 'hud-hand', 70, 92, (ctx) => paintHand(ctx));
 function paintHand(ctx: Ctx) {
   // işaret parmağı yukarıda, sevimli eldiven el
@@ -104,6 +122,12 @@ export class LevelHud {
   private timerPanel: Phaser.GameObjects.Image; private timerIco: Phaser.GameObjects.Image; private timerText: Phaser.GameObjects.Text; private timerShown = -999;
   /** eskort bölümünde fısıltının durumu (ikinci satırın solu; sesi kapalı oyuncu da tehlikeyi ve kaybı görsün) */
   private escPanel: Phaser.GameObjects.Image; private escIco: Phaser.GameObjects.Image; private escText: Phaser.GameObjects.Text; private escState: EscortHud = null;
+  /** bölüm değiştiricileri (YN-102): ikinci satırın solunda küçük kalıcı rozet (çizili simge + ad); süre/fısıltı varsa bir alt satıra iner */
+  private modPanel: Phaser.GameObjects.Image; private modIcons: Phaser.GameObjects.Image[] = []; private modText: Phaser.GameObjects.Text; private modShown = false;
+  /** melodi hedefi (YN-102): "Nota 3/8" sayacı baştan sona (ikinci satırın ortası; süre de varsa bir alt satır) */
+  private melPanel: Phaser.GameObjects.Image; private melIco: Phaser.GameObjects.Image; private melText: Phaser.GameObjects.Text; private melKey = '';
+  /** bölüm başı değiştirici duyurusu (göstergenin altında, birkaç saniye) */
+  private announceC?: Phaser.GameObjects.Container;
   /** nota ve koklea panellerinin görünür genişliği (içeriğe göre büyür; Büyük yazıda yazılar büyüdüğü için) */
   private notesW = 112; private cochW = 92;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
@@ -139,6 +163,12 @@ export class LevelHud {
     this.escPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
     this.escIco = I(s, spiritTex(s)).setScale(0.62 / R()).setVisible(false);
     this.escText = txt(14, '#fff6e5', '800'); this.escText.setStroke('#140c35', 4).setVisible(false);
+    // değiştirici rozeti ve melodi sayacı (yalnız ilgili bölümde)
+    this.modPanel = I(s, panelTex(s, 100, 30, 15)).setOrigin(0.5).setVisible(false);
+    this.modText = txt(13, '#fff6e5', '800'); this.modText.setStroke('#140c35', 4).setVisible(false);
+    this.melPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
+    this.melIco = I(s, melodyIcon(s)).setVisible(false);
+    this.melText = txt(16, '#fff6e5'); this.melText.setStroke('#140c35', 4).setVisible(false);
     // canlar
     this.livesPanel = I(s, panelTex(s, 86, 40, 20)).setOrigin(0, 0);
     for (let i = 0; i < 5; i++) { this.heartsOff.push(I(s, heartIcon(s, false))); this.hearts.push(I(s, heartIcon(s, true))); }
@@ -160,7 +190,7 @@ export class LevelHud {
     this.comboMult = s.add.text(-18, -1, '×2', { fontFamily: FONT, fontSize: '26px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0.5);
     this.comboCount = s.add.text(20, 0, 'Seri\n12', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#c9c1ff', align: 'center', lineSpacing: -2, resolution: R() }).setOrigin(0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -175,7 +205,7 @@ export class LevelHud {
     this.pause.setPosition(W - 32, t + 19);
     this.livesPanel.setPosition(W - 154, t - 6); this.placeHearts();
     this.fitTop();
-    this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer(); this.escPanel.y = t + 88; this.placeEscort();
+    this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer(); this.escPanel.y = t + 88; this.placeEscort(); this.placeRow2();
     this.barX = 18; this.barW = W - 36; this.barY = t + 58;
     this.bar.setPosition(this.barX, this.barY);
     this.setW(this.track, this.barW, 16); this.flag.setPosition(this.barW - 2, -3);
@@ -269,6 +299,7 @@ export class LevelHud {
     if (this.timerPanel.getData('w') !== w) { this.timerPanel.setData('w', w); this.timerPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
     // panel dokusu gölge payıyla (8, 6) kaydırılmış: görünür merkez dokunun merkezinin 2 px üstünde
     const l = x - w / 2; this.timerIco.setPosition(l + 16, y - 1); this.timerText.setPosition(l + 30, y - 1);
+    this.placeRow2();
   }
   setEscort(st: EscortHud) {
     if (st === this.escState) return; const prev = this.escState; this.escState = st;
@@ -286,6 +317,64 @@ export class LevelHud {
     if (this.escPanel.getData('w') !== w) { this.escPanel.setData('w', w); this.escPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
     const l = 18, y = this.escPanel.y; this.escPanel.x = l + w / 2;
     this.escIco.setPosition(l + 18, y - 1); this.escText.setPosition(l + 34, y - 1);
+    this.placeRow2();
+  }
+  /** bölümün değiştiricileri (boş liste gizler): "Hız · Yankı" ve her birinin çizili simgesi */
+  setModifiers(list: { id: string; name: string }[]) {
+    for (const o of this.modIcons) o.destroy(); this.modIcons = [];
+    this.modShown = list.length > 0; this.modPanel.setVisible(this.modShown); this.modText.setVisible(this.modShown);
+    if (!this.modShown) return;
+    this.modText.setText(list.map((m) => m.name).join(' · '));
+    for (const m of list) { const ic = I(this.scene, modIcon(this.scene, m.id)).setScale(0.8 / R()); this.modIcons.push(ic); this.root.add(ic); }
+    this.placeRow2();
+  }
+  /** melodi hedefi sayacı: sırayla toplanan / hedef (null gizler) */
+  setMelody(n: number | null, total = 0) {
+    const key = n == null ? '' : `${n}/${total}`; if (key === this.melKey) return;
+    const up = !!this.melKey && n != null && n > Number(this.melKey.split('/')[0]); this.melKey = key;
+    for (const o of [this.melPanel, this.melIco, this.melText]) o.setVisible(n != null);
+    if (n == null) return;
+    this.melText.setText(`Nota ${n}/${total}`).setColor(n >= total ? '#8ef0b0' : '#fff6e5');
+    this.placeRow2();
+    if (up && !motionReduced()) this.bump(this.melIco, 1.35);
+  }
+  /**
+   * İkinci satır: solda fısıltı ya da değiştirici rozeti, ortada süre ya da melodi sayacı. Sığmayan (sol rozet ortadakine
+   * değiyorsa ya da ikisi de ortada istiyorsa) bir alt satıra (+36) iner: hiçbir şey üst üste binmez.
+   */
+  private placeRow2() {
+    if (!this.modPanel || !this.melPanel) return;
+    const y2 = this.timerPanel.y, y3 = y2 + 36; const W = this.iw;
+    const timerOn = this.timerPanel.visible, escOn = this.escPanel.visible;
+    // melodi sayacı: ortada; süre de görünüyorsa bir alt satırda
+    if (this.melPanel.visible) {
+      const w = Math.ceil((this.melText.width + 46) / 4) * 4;
+      if (this.melPanel.getData('w') !== w) { this.melPanel.setData('w', w); this.melPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
+      const y = timerOn ? y3 : y2; const x = W / 2; this.melPanel.setPosition(x, y);
+      const l = x - w / 2; this.melIco.setPosition(l + 17, y - 1); this.melText.setPosition(l + 32, y - 1);
+    }
+    if (!this.modShown) return;
+    const n = this.modIcons.length; const w = Math.ceil((this.modText.width + 18 * n + 24) / 4) * 4;
+    if (this.modPanel.getData('w') !== w) { this.modPanel.setData('w', w); this.modPanel.setTexture(panelTex(this.scene, w, 30, 15)); }
+    const l = 18; const mid = timerOn ? this.timerPanel : this.melPanel.visible ? this.melPanel : null;
+    const midL = mid ? mid.x - Number(mid.getData('w') ?? 100) / 2 : Infinity;
+    const y = escOn || l + w + 6 > midL ? (mid === this.melPanel && timerOn ? y3 + 36 : y3) : y2;
+    this.modPanel.setPosition(l + w / 2, y);
+    this.modIcons.forEach((ic, i) => ic.setPosition(l + 14 + i * 18, y - 1));
+    this.modText.setPosition(l + 8 + 18 * n, y - 1);
+  }
+  /** bölüm başı duyurusu (değiştiriciler): göstergenin altında koyu cam panel, ms sonra söner. Oynanışı durdurmaz. */
+  announce(text: string, ms = 2800) {
+    const s = this.scene; this.announceC?.destroy(); if (!text) { this.announceC = undefined; return; }
+    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(15 * this.ts)}px`, fontStyle: '800', color: '#fff6e5', align: 'center', lineSpacing: 3, wordWrap: { width: this.iw - 72 }, resolution: R() }).setOrigin(0.5);
+    const pw = Math.round(Math.min(this.iw - 32, label.width + 36)), ph = Math.round(label.height + 18);
+    const bg = I(s, panelTex(s, pw, ph, Math.min(16, Math.round(ph / 2)))).setPosition(0, 2);
+    // ikinci (ve varsa üçüncü) satırın altında
+    const below = Math.max(this.timerPanel.y + 22, this.modPanel.y + 21, this.melPanel.visible ? this.melPanel.y + 22 : 0);
+    const c = s.add.container(this.iw / 2, below + 10 + ph / 2, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0).setName('duyuru');
+    this.root.add(c); this.announceC = c;
+    s.tweens.add({ targets: c, alpha: 1, duration: 200 });
+    s.tweens.add({ targets: c, alpha: 0, delay: ms, duration: 300, onComplete: () => { c.destroy(); if (this.announceC === c) this.announceC = undefined; } });
   }
   setProgress(pct: number) {
     this.pct = Math.max(0, Math.min(1, pct)); const x = this.pct * this.barW;

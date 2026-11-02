@@ -33,7 +33,7 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'lane': buildMine(v); v.setDepth(DEPTH.hazard); break;
     case 'projectile': case 'bullet': buildBullet(v); v.setDepth(DEPTH.enemy); break;
     case 'coin': buildCoin(v); v.setDepth(DEPTH.item); break;
-    case 'note': buildNote(v); v.setDepth(DEPTH.item); break;
+    case 'note': buildNote(v, num(p.ord, -1) >= 0 ? num(p.ord, 0) : undefined); v.setDepth(DEPTH.item); break; // ord: melodi sırası (0'dan)
     case 'collect': buildBigNote(v); v.setDepth(DEPTH.item); break;
     case 'secret': buildCochlea(v); v.setDepth(DEPTH.item); break;
     case 'powerup': buildPowerup(v, String(p.kind ?? 'shield')); v.setDepth(DEPTH.item); break;

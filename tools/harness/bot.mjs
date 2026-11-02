@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // ODİ bot harness: web derlemesini önizleme sunucusunda açar, her bölümü otomatik oyuncuyla oynatır,
 // konsol hatalarını ve sonuçları toplar, ekran görüntüsü alır.
-// Kullanım: node tools/harness/bot.mjs [--levels 1-40] [--browser chromium|webkit] [--parallel 3] [--ts 1] [--skills all] [--no-build] [--timeout 180] [--tag isim] [--shots 1] [--json 1]
+// Kullanım: node tools/harness/bot.mjs [--levels 1-40 | 20,23,26] [--browser chromium|webkit] [--parallel 3] [--ts 1] [--skills all] [--no-build] [--timeout 180] [--tag isim] [--shots 1] [--json 1]
+//           [--gorunurluk] (Ayarlar → Yüksek görünürlük açık: kayıt tohumu highVis) [--buyuk-yazi] (Büyük yazı açık) [--shot-at 6] (--shots ile: başlangıçtan N sn sonra bir kare daha, -mid.png)
 // Bot varsayılan yeteneklerle (kalkansız) ve Klinik koruması olmadan oynar; --skills all kalkanla başlatır. Kalkanın karşıladığı vuruş
 // hasar sayılır (karar 37, YN-088): "dmg" sütununa girer, "(kalkan N)" kaçının kalkanla karşılandığını gösterir.
 // --tag: ayrı derleme ve çıktı klasörü (tools/harness/out/<tag>/) — aynı anda birden çok harness çalıştırmak için.
@@ -12,8 +13,10 @@ import { createServer } from 'node:net';
 import { chromium, webkit } from 'playwright';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a, i, arr) => a.startsWith('--') ? [a.slice(2), arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : '1'] : []).filter(Boolean));
-const [lo, hi] = (args.levels ?? '1-1').split('-').map(Number);
-const levels = Array.from({ length: (hi ?? lo) - lo + 1 }, (_, i) => lo + i);
+// "1-40" aralığı ya da "20,23,24" listesi (karışık da olur: "1-3,20")
+const levels = (args.levels ?? '1-1').split(',').flatMap((part) => { const [lo, hi] = part.split('-').map(Number); return Array.from({ length: (hi ?? lo) - lo + 1 }, (_, i) => lo + i); });
+// oyuncu kaydı tohumu (zustand persist 'odi-v1'): erişilebilirlik ayarları bölüm seçeneklerine böyle geçer (LevelHost)
+const seed = { ...(args.gorunurluk ? { highVis: true } : {}), ...(args['buyuk-yazi'] ? { bigText: true } : {}) };
 const browserName = args.browser ?? 'chromium';
 const parallel = Number(args.parallel ?? 3);
 const ts = Number(args.ts ?? 1);
@@ -59,6 +62,7 @@ const browser = await (browserName === 'webkit' ? webkit : chromium).launch({ he
 async function playLevel(n) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 780 }, deviceScaleFactor: 1, isMobile: browserName !== 'webkit', hasTouch: true });
   const page = await ctx.newPage();
+  if (Object.keys(seed).length) await page.addInitScript((sd) => { try { const k = 'odi-v1'; const cur = JSON.parse(localStorage.getItem(k) ?? 'null'); localStorage.setItem(k, JSON.stringify({ version: cur?.version ?? 3, state: { ...(cur?.state ?? {}), ...sd } })); } catch { /* yok */ } }, seed);
   const errors = []; const events = [];
   page.on('pageerror', (e) => errors.push(String(e.message ?? e)));
   page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay/i.test(t)) errors.push(t); if (t.startsWith('ODI_EVENT ')) { try { events.push(JSON.parse(t.slice(10))); } catch { /* yok */ } } });
@@ -69,6 +73,7 @@ async function playLevel(n) {
     await page.goto(url, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__odi && window.__odi.events.some((e) => e.type === 'started'), null, { timeout: 30_000 });
     if (args.shots) await page.screenshot({ path: resolve(outDir, `L${String(n).padStart(2, '0')}-start.png`) });
+    if (args.shots && args['shot-at']) { await page.waitForTimeout(Number(args['shot-at']) * 1000 / ts).catch(() => {}); await page.screenshot({ path: resolve(outDir, `L${String(n).padStart(2, '0')}-mid.png`) }).catch(() => {}); }
     await page.waitForFunction(() => window.__odi && window.__odi.done, null, { timeout: timeoutSec * 1000 });
     result = await page.evaluate(() => window.__odi.result);
   } catch (e) { timedOut = true; errors.push('timeout/err: ' + String(e.message ?? e).split('\n')[0]); }

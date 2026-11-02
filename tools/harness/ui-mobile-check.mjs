@@ -1165,7 +1165,9 @@ async function suite(browserName, target, [W, H]) {
         ['demo=sonuc&bolum=7&yildiz=1&skor=980&kutlama=0', 'sonuc-yildiz1'], ['demo=sonuc&bolum=18&yildiz=2&skor=1650&sure=gec&kutlama=0', 'sonuc-sure-gec'],
         ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss'],
         // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
-        ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis']]) {
+        ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis'],
+        // YN-102: ilk canavarda 4. kayıp, takımdan yardım kartı ("Yardım iste" düğmesi yapışkan çubuğun arkasında kalmaz); değiştiricili bölüm sonucu
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1173,7 +1175,7 @@ async function suite(browserName, target, [W, H]) {
         const ilk = await page.evaluate(() => {
           // yapışkan bölgenin üst dolgusu saydam degrade: sınır ilk düğmenin (ya da kartın) üstü
           const act = document.querySelector('.result-actions'); const aTop = act?.firstElementChild ? act.firstElementChild.getBoundingClientRect().top : innerHeight;
-          return ['[data-testid="sonuc-yildiz2"]', '[data-testid="sonuc-yildiz3"]', '[data-testid="sonuc-neden"]', '[data-testid="yardim-iste"]'].map((sel) => {
+          return ['[data-testid="sonuc-yildiz2"]', '[data-testid="sonuc-yildiz3"]', '[data-testid="sonuc-neden"]', '[data-testid="yardim-iste"]', '[data-testid="yardim-iste-dugme"]'].map((sel) => {
             const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); const inAct = !!act?.contains(el);
             return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
           }).filter(Boolean);
@@ -1194,6 +1196,11 @@ async function suite(browserName, target, [W, H]) {
         const rec = await check(label);
         const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
         if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
+        // YN-102: değiştiricili bölümde "Değiştirici: …" satırı; sis/gece kaybında Yüksek görünürlük yönlendirmesi; yardım kartı çıktı mı
+        const degis = (await page.locator('[data-testid="sonuc-degistirici"]').textContent().catch(() => null)) ?? '';
+        if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Yankı$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
+        if (label === 'sonuc-kaybetti-sis' && (!/Sis/.test(degis) || !(await page.locator('[data-testid="sonuc-gorunurluk"]').count()))) fail(rec, `sis kaybında değiştirici satırı ya da Yüksek görünürlük yönlendirmesi yok: "${degis}"`);
+        if (label === 'sonuc-kaybetti-yardim' && !(await page.locator('[data-testid="yardim-iste-dugme"]').count())) fail(rec, 'yardım kartı/düğmesi yok');
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
         const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
         if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');

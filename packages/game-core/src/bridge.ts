@@ -18,7 +18,7 @@ export type GameEvent =
   /**
    * Bölüm içi ipucu/öğretici yazısı ekranda göründü (kabuk seçtiklerini seslendirebilir). id: HINT_IDS'teki sabit kimlikler,
    * öğretici anlar `ogret-<yetenek>` (zipla, kayma, duvar, suzul, trambolin, kanca, cakil, yuz, darbe, cevir), patoloji
-   * cümleleri `patoloji:<kimlik>`, boss evresi `boss-faz-2` / `boss-faz-3`. text: ekrandaki yazı.
+   * cümleleri `patoloji:<kimlik>`, boss evresi `boss-faz-1` / `boss-faz-2` / `boss-faz-3`. text: ekrandaki yazı.
    */
   | { type: 'hint'; id: string; text: string }
   | { type: 'quit' };
@@ -28,7 +28,9 @@ export const HINT_IDS = {
   'tazele-kayma': '5. bölümün kayma tazeleme anı (ilk perdeden önce)',
   'perde-kay': 'kıl perdesi önünde "aşağı kaydır" ipucu (3-8, ilk üç perde)',
   giris: 'bölümün giriş cümlesi',
-  'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
+  // bölüm başı değiştirici duyurusu (YN-102; her değiştirici için `mod-<kimlik>`, yazı content MODIFIERS: ad + ne yapmalı)
+  'mod-hiz': 'Hız değiştiricisi', 'mod-sis': 'Sis değiştiricisi', 'mod-ayna': 'Ayna değiştiricisi', 'mod-tek-can': 'Tek Can değiştiricisi', 'mod-yanki': 'Yankı değiştiricisi',
+  'mod-gece': 'Gece değiştiricisi', 'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
   eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
   'boss-ogret': 'ilk canavarın öğretici anı (20, ilk saplı yumruk)', 'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',
 } as const;
@@ -81,6 +83,11 @@ export interface LevelOptions {
   hints?: boolean;
   /** Büyük yazı (Ayarlar): oyun içi gösterge, ipucu şeridi, üst şerit ve uçan yazılar ~1,2 kat büyür (yalnız görsel) */
   bigText?: boolean;
+  /**
+   * Yüksek görünürlük (Ayarlar; YN-102): sis/gece örtüsü daha açık, zemin kenarları, engeller ve düşmanlar açık konturla çizilir.
+   * Yalnız görsel: zamanlama, hasar, nota sayısı aynı.
+   */
+  highVisibility?: boolean;
   /** azaltılmış hareket (Ayarlar/sistem `prefers-reduced-motion`): ekran flaşları tümden kapanır. Yoksa tarayıcı tercihi okunur. */
   reducedMotion?: boolean;
   /** bölüm başı can (varsayılan 3) */

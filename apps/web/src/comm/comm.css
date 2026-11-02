@@ -166,10 +166,20 @@
 .result-why + .comm-result .cr-ic svg { width:24px; height:24px; }
 .result-why + .comm-result .cr-t { flex:1 1 auto; }
 .result-why + .comm-result .btn { width:auto; }
-/* dar ekranda / Büyük yazıda metin sütunu daralmasın: düğme alta, tam genişlik */
-@media (max-width:360px) { .result-why + .comm-result { flex-wrap:wrap; } .result-why + .comm-result .cr-t { flex:1 1 calc(100% - 52px); } .result-why + .comm-result .btn { width:100%; } }
-html.buyuk-yazi .result-why + .comm-result { flex-wrap:wrap; }
-html.buyuk-yazi .result-why + .comm-result .cr-t { flex:1 1 calc(100% - 52px); }
+/* dar ekranda / Büyük yazıda: üst satırda simge + başlık + düğme, açıklama altta tam genişlik. Düğme kartın üst satırında kalır:
+   kart alçalır ve "Yardım iste" ilk ekranda yapışkan "Tekrar dene" çubuğunun arkasında yarım kalmaz (OT-ilk-kez-oyun-25, 320×640) */
+@media (max-width:360px) {
+  .result-why + .comm-result { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; column-gap:8px; row-gap:4px; align-items:center; }
+  .result-why + .comm-result .cr-t { display:contents; }
+  .result-why + .comm-result .cr-t b { grid-column:2; grid-row:1; }
+  .result-why + .comm-result .cr-t small { grid-column:1 / -1; grid-row:2; }
+  .result-why + .comm-result .btn { grid-column:3; grid-row:1; width:auto; }
+}
+html.buyuk-yazi .result-why + .comm-result { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; column-gap:8px; row-gap:4px; align-items:center; }
+html.buyuk-yazi .result-why + .comm-result .cr-t { display:contents; }
+html.buyuk-yazi .result-why + .comm-result .cr-t b { grid-column:2; grid-row:1; }
+html.buyuk-yazi .result-why + .comm-result .cr-t small { grid-column:1 / -1; grid-row:2; }
+html.buyuk-yazi .result-why + .comm-result .btn { grid-column:3; grid-row:1; width:auto; }
 html.buyuk-yazi .result-actions .comm-result .btn { width:100%; }
 
 /* ---- Birlikte ekranı */

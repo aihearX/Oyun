@@ -6,8 +6,8 @@
 import Phaser from 'phaser';
 import type { BiomeArt } from './palette';
 import { EntityView } from './view';
-import { I, R, T, drawGoldCochlea, drawGoldNote, softGlowTex, sparkTex, ringTex } from './tex';
-import { circle, css, darken, glow, heartPath, lighten, mix, rng, THEME, tono } from './util';
+import { I, R, T, drawGoldCochlea, drawGoldNote, drawMelodyNote, softGlowTex, sparkTex, ringTex } from './tex';
+import { circle, css, darken, FONT, glow, heartPath, lighten, mix, rng, THEME, tono } from './util';
 
 const ADD = Phaser.BlendModes.ADD;
 export const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -45,6 +45,9 @@ const coinTex = (s: Phaser.Scene) => T(s, 'it-coin', 34, 34, (ctx) => {
   ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.ellipse(12, 10.5, 4, 2, -0.5, 0, Math.PI * 2); ctx.fill();
 });
 const noteTex = (s: Phaser.Scene) => T(s, 'it-note', 40, 44, (ctx) => drawGoldNote(ctx, 20, 22, 30, false));
+const melodyTex = (s: Phaser.Scene) => T(s, 'it-melodi', 52, 52, (ctx) => drawMelodyNote(ctx, 26, 26, 30));
+/** melodi notasının sıra numarası rozeti (krem daire, koyu rakam) */
+const ordTex = (s: Phaser.Scene) => T(s, 'it-melodi-sira', 24, 24, (ctx) => { circle(ctx, 12, 12, 10); ctx.fillStyle = '#fff6e5'; ctx.fill(); ctx.strokeStyle = '#0b3a4a'; ctx.lineWidth = 2; ctx.stroke(); });
 const bigNoteTex = (s: Phaser.Scene) => T(s, 'it-bignote', 64, 64, (ctx) => {
   // çift nota (kirişli) — 5 nota değerinde
   const stroke = (p: () => void) => { ctx.save(); ctx.translate(1.5, 2); p(); ctx.fillStyle = 'rgba(80,30,0,0.45)'; ctx.fill(); ctx.restore(); p(); const g = ctx.createLinearGradient(0, 8, 0, 56); g.addColorStop(0, '#fff6c4'); g.addColorStop(0.45, css(THEME.gold)); g.addColorStop(1, css(THEME.gold2)); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#8a4500'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.stroke(); };
@@ -158,12 +161,21 @@ export function buildCoin(v: EntityView) {
   v.tw({ targets: c, scaleX: { from: b, to: b * 0.18 }, duration: 520, yoyo: true, repeat: -1, repeatDelay: 1100, delay: 600 + Math.random() * 1200, ease: 'Sine.InOut' });
   bob(v, 4, 800); v.h.collect = () => burst(v, THEME.gold, 6);
 }
-export function buildNote(v: EntityView) {
-  const hl = halo(v, THEME.gold, 64, 0.45);
-  const n = I(v.scene, noteTex(v.scene)); v.add(n);
+/**
+ * Nota. `ord` verilirse melodi notası (YN-102): camgöbeği nota, açık halka ve sıra numarası (1, 2, 3…) — sıradan altın
+ * notalardan renk, biçim ve yazıyla ayrılır.
+ */
+export function buildNote(v: EntityView, ord?: number) {
+  const melody = ord !== undefined;
+  const hl = halo(v, melody ? THEME.teal : THEME.gold, melody ? 74 : 64, 0.45);
+  const n = I(v.scene, melody ? melodyTex(v.scene) : noteTex(v.scene)); v.add(n);
+  if (melody) {
+    const b = I(v.scene, ordTex(v.scene), 17, -17); const t = v.scene.add.text(17, -17, String(ord + 1), { fontFamily: FONT, fontSize: '14px', fontStyle: '900', color: '#0b3a4a', resolution: R() }).setOrigin(0.5, 0.52);
+    v.add([b, t]);
+  }
   v.tw({ targets: hl, alpha: 0.2, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   v.tw({ targets: n, angle: { from: -6, to: 6 }, duration: 900 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-  bob(v, 5, 850); v.h.collect = () => burst(v, THEME.gold, 8);
+  bob(v, 5, 850); v.h.collect = () => burst(v, melody ? THEME.teal : THEME.gold, 8);
 }
 export function buildBigNote(v: EntityView) {
   const rays = I(v.scene, raysTex(v.scene)).setBlendMode(ADD).setAlpha(0.8); v.add(rays);

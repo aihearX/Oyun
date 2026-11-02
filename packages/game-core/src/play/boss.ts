@@ -22,6 +22,27 @@ export const INTRO_S = 3.2;
  * modeli, Bölüm 20): ilk saldırının anı hizalamayı değiştirir, bitirme oranı ona duyarlı; 4 sn ölçülen değerdir (docs/12 §6).
  */
 export const BOSS_CALM_S = 4;
+
+/**
+ * Boss bölümünün alt şeridi (YN-102): her faz kendi talimatını söyler; Faz 1'in talimatı giriş yazısı (INTRO_S) kapanınca gelir
+ * (hikâye cümlesi Faz 1 boyunca ekranda kalmasın). Cümleler motorun gerçek davranışını anlatır (golem(), canavar() aşağıda).
+ */
+export function bossPhaseText(kind: BossState['kind'], phase: number): string {
+  if (kind === 'golem') return phase === 1 ? 'Faz 1: Gölgeden kaç. Yumruk saplanınca üstüne zıpla, havada aşağı kaydır' : phase === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!';
+  return phase === 1 ? 'Faz 1: Alçak dalganın üstünden zıpla. Bağırınca 3 notayı topla, kalbine atıl' : phase === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!';
+}
+/** Faz 1 talimatı şeritte bu kadar oyun saniyesi kalır (sonra şerit boşalır; faz 2/3 uyarıları 2,6 sn) */
+export const PHASE1_TEXT_S = 7;
+/**
+ * Şeritte şu an hangi yazı olmalı (oyun saniyesiyle; LevelScene her karede sorar, değişince gösterir): giriş yazısı INTRO_S'ye
+ * kadar, sonra Faz 1 talimatı. null: şeride boss karışmaz (faz 2/3 uyarıları 'bossPhase' olayıyla gelir).
+ */
+export function bossStrip(b: Pick<BossState, 'kind' | 'phase' | 'defeated'>, t: number, intro: boolean): { id: string; text: string; untilS: number } | null {
+  if (b.defeated || b.phase !== 1) return null;
+  const from = intro ? INTRO_S : 0;
+  if (t < from) return null;
+  return t < from + PHASE1_TEXT_S ? { id: 'boss-faz-1', text: bossPhaseText(b.kind, 1), untilS: from + PHASE1_TEXT_S } : null;
+}
 export const WALL_W = 26;
 export const RUN_L = WALL_W + C.HERO_HW;
 export const RUN_R = ARENA_W - WALL_W - C.HERO_HW;
