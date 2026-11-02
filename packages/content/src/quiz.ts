@@ -155,15 +155,20 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = /* @__PURE__ */ bolunmezYap(RAW.ma
 /** Bir bilgi turunun soru sayısı: canlı Kulak Bilgi Yarışması ve tek kişilik Pratik aynı (YN-078). */
 export const QUIZ_ROUND = 10;
 
+/** Bir turun nerede oynandığı: canlı takım yarışması (sunucu) ya da tek kişilik Pratik (istemci). */
+export type QuizMode = 'canli' | 'pratik';
+
 /**
  * Bir turun soruları (QUIZ_QUESTIONS sıra numaraları). Canlı yarışma (sunucu) ve tek kişilik Pratik (istemci, çevrimdışı) bunu ortak
- * kullanır; havuz ve seçim kuralı tek yerde. Genel: yalnız "Meraklı" düzeyi; Odyoloji öğrencisi: yaklaşık %60'ı öğrenci düzeyinden,
- * kalanı genelden (karışık). `randInt(n)` 0..n-1 arası tamsayı döndürür (sunucu: crypto.randomInt; Pratik: Math.random).
+ * kullanır; havuz ve seçim kuralı tek yerde. Genel: yalnız "Meraklı" düzeyi. Odyoloji öğrencisi: canlı yarışmada yaklaşık %60'ı öğrenci
+ * düzeyinden, kalanı genelden (karışık); Pratik'te (sahip kararı 41) hepsi öğrenci düzeyinden.
+ * `randInt(n)` 0..n-1 arası tamsayı döndürür (sunucu: crypto.randomInt; Pratik: Math.random).
  */
-export function pickQuizQuestions(level: 'genel' | 'odyoloji', randInt: (n: number) => number, count = QUIZ_ROUND): number[] {
+export function pickQuizQuestions(level: 'genel' | 'odyoloji', randInt: (n: number) => number, count = QUIZ_ROUND, opts: { mode?: QuizMode } = {}): number[] {
   const idx = (l: QuizLevel) => QUIZ_QUESTIONS.flatMap((q, i) => (q.level === l ? [i] : []));
   const take = (pool: number[], n: number) => { const out: number[] = []; while (out.length < n && pool.length) out.push(pool.splice(randInt(pool.length), 1)[0]!); return out; };
   if (level !== 'odyoloji') return take(idx('merakli'), count);
+  if (opts.mode === 'pratik') return take(idx('odyoloji'), count);
   const tech = Math.round(count * 0.6);
   const mixed = [...take(idx('odyoloji'), tech), ...take(idx('merakli'), count - tech)];
   return take(mixed, mixed.length); // karıştır

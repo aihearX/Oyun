@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CARDS } from './cards';
-import { QUIZ_QUESTIONS } from './quiz';
+import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from './quiz';
 import { EAR_NOTES, GLOSSARY } from './odyoloji';
 import { BILIYOR_MUYDUN, biliyorMuydun } from './biliyor-muydun';
 import { HUMAN_JOURNEY } from './journeys';
@@ -84,6 +84,28 @@ describe('odyoloji içeriği', () => {
     for (const q of QUIZ_QUESTIONS) for (const c of q.choices) {
       expect(/^\p{L}$/u.test(c.trim()), `#${q.id}: “${c}”`).toBe(false);
       expect(/^[A-Da-d]\p{Ll}?$/u.test(c.trim()), `#${q.id}: “${c}”`).toBe(false);
+    }
+  });
+
+  it('quiz seçimi (karar 41, YN-109): canlı yarışmada öğrenci 6 öğrenci + 4 genel; Pratik\'te öğrenci 10/10 öğrenci; Genel hep genel', () => {
+    let seed = 1;
+    const rnd = (n: number) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+    const lv = (qs: number[]) => qs.map((i) => QUIZ_QUESTIONS[i]!.level);
+    for (let k = 0; k < 50; k++) {
+      for (const opts of [undefined, { mode: 'canli' as const }]) {
+        const canli = pickQuizQuestions('odyoloji', rnd, QUIZ_ROUND, opts);
+        expect(new Set(canli).size).toBe(QUIZ_ROUND);
+        expect(lv(canli).filter((l) => l === 'odyoloji')).toHaveLength(6);
+        expect(lv(canli).filter((l) => l === 'merakli')).toHaveLength(4);
+      }
+      const pratik = pickQuizQuestions('odyoloji', rnd, QUIZ_ROUND, { mode: 'pratik' });
+      expect(new Set(pratik).size).toBe(QUIZ_ROUND);
+      expect(lv(pratik).every((l) => l === 'odyoloji')).toBe(true);
+      for (const mode of ['canli', 'pratik'] as const) {
+        const genel = pickQuizQuestions('genel', rnd, QUIZ_ROUND, { mode });
+        expect(new Set(genel).size).toBe(QUIZ_ROUND);
+        expect(lv(genel).every((l) => l === 'merakli')).toBe(true);
+      }
     }
   });
 

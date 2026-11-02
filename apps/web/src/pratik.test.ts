@@ -1,10 +1,11 @@
-// Tek kişilik bilgi pratiği (YN-078, sahip kararı 35): canlı yarışmayla aynı havuz ve seçim kuralı; hiçbir ödül ya da ilerleme yazmaz.
+// Tek kişilik bilgi pratiği (YN-078, sahip kararı 35): canlı yarışmayla aynı havuz ve seçim işlevi; Odyoloji öğrencisinde yalnız öğrenci
+// soruları (karar 41, YN-109; canlı yarışma karışık kalır). Hiçbir ödül ya da ilerleme yazmaz.
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import ts from 'typescript';
 import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from '@odi/content';
-import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './events/pratik';
+import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikDuzeyNotu, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './events/pratik';
 
 const src = (p: string) => readFileSync(resolve(__dirname, p), 'utf8');
 /** bir kaynak dosyanın içe aktardığı modüller (`import type` hariç: derlemede silinir) */
@@ -27,17 +28,34 @@ describe('bilgi pratiği: canlı yarışmayla aynı soru havuzu', () => {
     expect(server).not.toMatch(/\[\s*'(anatomi|ses|saglik|doga|teknoloji)'/);
   });
 
-  it.each(['genel', 'odyoloji'] as const)('%s: aynı rastgele dizide pratik ve canlı yarışma aynı soruları seçer', (level) => {
+  it.each(['genel', 'odyoloji'] as const)('%s: pratik ortak işlevin Pratik kipini kullanır; Genel\'de canlı yarışmayla aynı sorular', (level) => {
     for (let seed = 1; seed <= 40; seed++) {
-      const r1 = seeded(seed), r2 = seeded(seed);
+      const r1 = seeded(seed), r2 = seeded(seed), r3 = seeded(seed);
       const t = pratikBaslat(level, r1);
-      expect(t.qs).toEqual(pickQuizQuestions(level, (n) => Math.min(n - 1, Math.floor(r2() * n))));
+      expect(t.qs).toEqual(pickQuizQuestions(level, (n) => Math.min(n - 1, Math.floor(r2() * n)), QUIZ_ROUND, { mode: 'pratik' }));
       expect(new Set(t.qs).size).toBe(QUIZ_ROUND);
       for (let k = 0; k < t.qs.length; k++) expect(pratikSoru({ ...t, i: k })).toBe(QUIZ_QUESTIONS[t.qs[k]!]); // havuzun kendisi (kopya değil)
       const lv = t.qs.map((i) => QUIZ_QUESTIONS[i]!.level);
-      if (level === 'genel') expect(lv.every((l) => l === 'merakli')).toBe(true);
-      else { expect(lv.filter((l) => l === 'odyoloji')).toHaveLength(6); expect(lv.filter((l) => l === 'merakli')).toHaveLength(4); }
+      if (level === 'genel') {
+        expect(lv.every((l) => l === 'merakli')).toBe(true);
+        expect(t.qs).toEqual(pickQuizQuestions(level, (n) => Math.min(n - 1, Math.floor(r3() * n)))); // canlı yarışmayla aynı kural
+      } else expect(lv.every((l) => l === 'odyoloji'), 'karar 41: öğrenci Pratik\'i 10/10 öğrenci sorusu').toBe(true);
     }
+  });
+
+  it('canlı yarışma (karar 41 sonrası da) öğrenci düzeyinde karışık: 6 öğrenci + 4 genel', () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const r = seeded(seed);
+      const lv = pickQuizQuestions('odyoloji', (n) => Math.min(n - 1, Math.floor(r() * n))).map((i) => QUIZ_QUESTIONS[i]!.level);
+      expect(lv.filter((l) => l === 'odyoloji')).toHaveLength(6);
+      expect(lv.filter((l) => l === 'merakli')).toHaveLength(4);
+    }
+  });
+
+  it('giriş ekranı her düzeyde ne geleceğini doğru yazar', () => {
+    expect(pratikDuzeyNotu('odyoloji')).toBe('Odyoloji öğrencisi: 10 sorunun hepsi öğrenci düzeyinden.');
+    expect(pratikDuzeyNotu('genel')).toBe('Genel: 10 sorunun hepsi genel düzeyden.');
+    expect(src('events/Pratik.tsx')).toContain('{pratikDuzeyNotu(level)} (Ayarlar › Bilgi düzeyi)');
   });
 
   it('her sorunun havuzda açıklaması var (cevaptan sonra gösterilir)', () => {
@@ -71,7 +89,7 @@ describe('bilgi pratiği: tur akışı', () => {
 
   it('"Yeni tur" notu gerçek davranışı yazar: her tur aynı havuzdan baştan seçilir', () => {
     expect(pratikHavuz('genel')).toBe(QUIZ_QUESTIONS.filter((q) => q.level === 'merakli').length);
-    expect(pratikHavuz('odyoloji')).toBe(QUIZ_QUESTIONS.length);
+    expect(pratikHavuz('odyoloji')).toBe(QUIZ_QUESTIONS.filter((q) => q.level === 'odyoloji').length); // karar 41: yalnız öğrenci soruları
     const s = src('events/Pratik.tsx');
     expect(s).toContain('soruluk havuzdan yeniden rastgele {PRATIK_SORU} soru; bu turdakiler yine gelebilir.');
     expect(s).toContain('Yanlışların');

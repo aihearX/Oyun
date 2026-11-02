@@ -3,13 +3,14 @@ import { ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { scrollAppTop } from '../ui/viewport';
-import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
+import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikDuzeyNotu, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
 import './events.css';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 
 /**
- * Bilgi pratiği (YN-078): tek başına, ödülsüz, süresiz; canlı Kulak Bilgi Yarışması'nın soru havuzu. Her cevaptan sonra doğru cevap ve
+ * Bilgi pratiği (YN-078): tek başına, ödülsüz, süresiz; canlı Kulak Bilgi Yarışması'nın soru havuzu (Odyoloji öğrencisinde yalnız öğrenci
+ * soruları, karar 41). Her cevaptan sonra doğru cevap ve
  * havuzdaki kısa açıklama. Takımsız ve çevrimdışı da açılır (sorular cihazda). Ödül, takım/lig puanı, başarım ya da görev ilerlemesi yok;
  * sıralama yok. Bu ekran oyuncu kaydına ve sunucuya hiçbir şey yazmaz (pratik.test.ts). Cevaptan sonra şık işaretleri renge ek olarak
  * simge ve ekran okuyucu metniyle (YN-101); sonuçta yanlışların listesi (soru, oyuncunun cevabı, doğrusu, açıklama).
@@ -20,7 +21,6 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
   const bitti = !!tur && pratikBitti(tur);
   const q = tur ? pratikSoru(tur) : null;
   const sec = tur ? pratikSecim(tur) : null;
-  const duzey = level === 'odyoloji' ? 'Odyoloji öğrencisi' : 'Genel';
   // cevaptan sonra açıklama ve "Sonraki soru" küçük ekranda (320 px, Büyük yazı) görünür alana gelsin
   const aciklama = useRef<HTMLButtonElement>(null);
   useEffect(() => { if (sec != null) aciklama.current?.scrollIntoView({ block: 'nearest' }); }, [sec, tur?.i]);
@@ -33,7 +33,7 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
             <span className="ev-art big" aria-hidden><Art name="bulb" size="1.15em" className="art-inline" /></span>
             <b>Tek başına pratik</b>
             <span className="muted">{PRATIK_SORU} soru, süre yok. Kulak Bilgi Yarışması'nın soruları; her cevaptan sonra doğru cevap ve kısa açıklama.</span>
-            <span className="muted">Düzey: {duzey} (Ayarlar › Bilgi düzeyi)</span>
+            <span className="muted" data-testid="pratik-duzey">{pratikDuzeyNotu(level)} (Ayarlar › Bilgi düzeyi)</span>
             <button className="btn ev-big" data-testid="pratik-basla" onClick={() => setTur(pratikBaslat(level))}><Art name="play" size="1.15em" className="art-inline" /> Başla</button>
           </div>
         )}
