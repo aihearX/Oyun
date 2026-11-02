@@ -5,7 +5,7 @@ import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, askedHelp, buildKey, canQueue, effect, queueSupported, shortOf, type CampActions } from './model';
+import { DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, buildKey, canQueue, effect, queueSupported, shortOf, sureTam, type CampActions } from './model';
 import { useKg } from './gorev/state';
 import { BinaIcon, KgIcon } from './gorev/art';
 import { hikayeBinasi } from './hikaye-bina';
@@ -13,7 +13,7 @@ import { TedaviPanel } from './TedaviPanel';
 import { DedeCard } from './dede';
 import { SiraIpucu } from './SiraIpucu';
 import { Art, rich } from '../ui/art';
-import { GorevChips, GorevHost, KlinikVakaSatiri } from './gorev/Kanca';
+import { GorevChips, GorevHost, KgOyunGiris, KlinikVakaSatiri } from './gorev/Kanca';
 
 /** Liste görünümü (erişilebilirlik): binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
 export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
@@ -72,13 +72,13 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
               <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div><div className="b-desc">{d.desc}</div></div>
             </div>
             {!max && <div className="row b-up">
-              <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {fmtDur(dur(cost.seconds))}</span>
+              <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {sureTam(dur(cost.seconds))}</span>
               {inQueue ? <button className="btn small ghost" onClick={() => void actions.unqueue()} aria-label={`${d.name} sırada; sıradan çıkar, ${fmtNum(camp.queued!.jeton)} jeton geri`}>Sıradan çıkar</button>
                 : qv ? <button className="btn small" disabled={!qv.ok} onClick={() => setConfirm(d)}>{qv.ok ? 'Sıraya al' : qv.short}</button>
                 : <button className="btn small" disabled={busy || blocked || poor || locked} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : locked ? `Kamp Sv ${d.campLevel}` : blocked ? `Merkez ${to}` : b.level === 0 ? 'Kur' : 'Yükselt'}</button>}
             </div>}
             {story && story.id === d.id && b.level < story.need && <div className="muted small-note" data-testid="hikaye-ipucu"><KgIcon name="bolum" size={16} className="art-inline" /> Kampın Hikâyesi bu binayı Sv {story.need} istiyor</div>}
-            {d.id === 'revir' && <KlinikVakaSatiri level={b.level} />}
+            {d.id === 'revir' ? <KlinikVakaSatiri level={b.level} /> : <KgOyunGiris id={d.id} />}
             {inQueue && <div className="muted small-note"><Art name="hourglass" size={16} className="art-inline" /> Sırada: Sv {camp.queued!.toLevel} · {active ? `${shortOf(active.id)} bitince başlar` : 'birazdan başlar'} · bedel ödendi</div>}
             {max && <div className="muted">En yüksek seviye.</div>}
             {d.id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} compact />}
@@ -87,7 +87,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
       {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); return (
         <Sheet title={`${confirm.name} → Sv ${b.level + 1}`} onClose={() => setConfirm(null)}>
           <div className="muted">{effect(confirm.id, b.level + 1)}</div>
-          <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(dur(c.seconds))}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
+          <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {sureTam(dur(c.seconds))}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
           {qOn && <div className="muted small-note">{shortOf(active!.id)} bitince kendiliğinden başlar. Bedel şimdi ödenir; sıradan çıkarırsan tamamı geri gelir.</div>}
           <button className="btn" onClick={() => void upgrade(confirm)}>{qOn ? 'Sıraya al' : 'Yükselt'}</button>
           <button className="btn ghost" onClick={() => setConfirm(null)}>Vazgeç</button>
@@ -113,7 +113,7 @@ export function Construction({ b, sNow, wallet, team, actions, queued }: { b: Bu
         {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={wallet.hizlandirici[it.k] < 1} onClick={() => void actions.speed(b.id, it.k)}><Art e="⏩" size="1.15em" className="art-inline" /> {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
       </div>
       <button className="btn ghost small finish" disabled={wallet.kristal < crystals} onClick={() => void actions.speed(b.id, 'kristal')}><Art e="💎" size="1.15em" className="art-inline" /> {crystals} kristalle hemen bitir</button>
-      <div className="muted small-note">Kristal: kalan her dakika için 1 (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
+      <div className="muted small-note">{KRISTAL_KURAL} (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
       {queued && <div className="row q-line" data-testid="sirada-sonraki"><Art name="hourglass" size={18} className="art-inline" /><span className="grow min0">Sırada: <b>{shortOf(queued.id)} Sv {queued.toLevel}</b> · bu bitince başlar</span><button className="btn ghost small" onClick={() => void actions.unqueue()}>Sıradan çıkar</button></div>}
     </div>
   );

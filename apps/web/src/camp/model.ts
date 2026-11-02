@@ -10,6 +10,17 @@ import { platform } from '../platform';
 import { sayDede } from './dede';
 
 export { DEPOT_CAP_H, DEPOT_RATE };
+/**
+ * İnşaat süresi saniyesine kadar (OT-ekonomi-denetci-21): "6 dk 26 sn", "1 sa 2 dk 5 sn". Pencere yuvarlamaz: sayaç aynı süreden
+ * başlar ve kristalle bitirme bedeli (kalan her başlamış dakika için 1) yazılan süreyle tutar (6 dk 26 sn → 7 kristal).
+ */
+export function sureTam(sec: number): string {
+  const s = Math.max(0, Math.round(sec)); const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), r = s % 60;
+  const out = [h && `${h} sa`, m && `${m} dk`, r && `${r} sn`].filter(Boolean).join(' ');
+  return out || '0 sn';
+}
+/** kristalle bitirme notu (bedel kuralı sunucuda: crystalsToFinish) */
+export const KRISTAL_KURAL = 'Kristal: kalan her başlamış dakika için 1';
 const fmtH = (h: number) => (Number.isInteger(h) ? String(h) : h.toLocaleString('tr-TR', { maximumFractionDigits: 1 }));
 /** bina gücü Sv 15'te tavan yapar (sunucu ile aynı) */
 const P = (l: number) => Math.min(CAMP_POWER_LEVEL, l);

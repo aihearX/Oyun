@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost, type BuildingId } from '@odi/shared';
 import { useStore } from '../store';
@@ -7,7 +7,7 @@ import { lineText } from './script';
 
 const line = (id: string) => ({ id, say: lineText(id) });
 import { FEATURES, clearedCount, featureById, type FeatureId } from './features';
-import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf } from './map-intro';
+import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, unlockTally } from './map-intro';
 import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
@@ -68,6 +68,12 @@ function handsOff(): boolean {
   const since = performance.now() - touch.last;
   return since >= TOUCH_CALM_MS && (!touch.held || since >= HELD_MAX_MS);
 }
+/**
+ * Kampa girişte (OT-ogrenci-birinci-17): oyuncu kampa girdiğinden beri ekrana dokunmadıysa (son dokunuş kampı açan sekme dokunuşu)
+ * kamp tanıtımı beklemeden, ekran açılır açılmaz gelir; oyuncu okuyup bir yere uzanırken değil. Dokunduysa her zamanki sakinlik kuralı.
+ */
+const ENTRY_TOUCH_MS = 300;
+const untouchedSince = (at: number) => !touch.held && touch.last <= at + ENTRY_TOUCH_MS;
 
 /** kamp öğreticisi için kurulacak bina: önce Kulak Deposu (kurulmadıysa), değilse jetonun yettiği en ucuz yükseltme */
 function campPick(): BuildingId | null {
@@ -93,6 +99,11 @@ function buildingRect(id: BuildingId): DOMRect | null {
 const buildingVisible = (id: BuildingId) => !!kamp()?.pos(id);
 /** Odyoloji Kliniği'nin kartı: liste görünümünde kart (Kanca.tsx'in "Kurunca: Hasta Vakaları açılır" satırını taşıyan), üs görünümünde bina */
 const klinikKart = (): Element | DOMRect | null => document.querySelector('[data-testid="klinik-vaka-not"]')?.closest('.card') ?? buildingRect('revir');
+/** öğe görünür bantta mı (üst çubuk ve sekme çubuğu payı dışında) */
+function onScreen(v: Element | DOMRect | null): boolean {
+  if (!v) return false; const r = v instanceof Element ? v.getBoundingClientRect() : v;
+  return r.height > 0 && r.top >= 56 && r.bottom <= innerHeight - 80;
+}
 /** Hasta Vakaları'nın gerçek girişi: kamp üst göstergesindeki Klinik düğmesi (yoksa liste görünümündeki klinik kartının girişi) */
 const klinikGiris = (): Element | null => document.querySelector('[data-testid="klinik-btn"]') ?? document.querySelector('[data-testid="klinik-vaka-giris"]');
 
@@ -240,9 +251,11 @@ export function tourFor(id: string, route: string): Tour | null {
         ...(route === 'camp' ? [] : [tapTab('camp')]),
         { ...line('kg-vaka-02'), target: klinikGiris, optional: true },
       ); break;
-    // klinik kurulmamışken tanıtım yerine yazı (seslendirilmez): çerçeve klinik kartında (OT-sessiz-oyuncu-9)
+    // klinik kurulmamışken tanıtım yerine yazı (seslendirilmez): çerçeve klinik kartında (OT-sessiz-oyuncu-9). Dokunuş çerçevenin
+    // içinden karta geçer: parlayan "Kur"a (üs görünümünde binaya) ilk dokunuş hem işini yapar hem yazıyı kapatır; sayfa kendiliğinden
+    // kaymaz, kart ekranda değilse oyuncu kaydırınca çerçeve belirir (OT-ogrenci-birinci-17)
     case 'vaka-kur':
-      steps.push({ say: VAKA_KUR, silent: true, target: klinikKart, enter: () => kamp()?.focus?.('revir'), mood: 'wink' });
+      steps.push({ say: VAKA_KUR, silent: true, target: klinikKart, wait: 'tap', hint: exists('.camp-list-screen') ? 'Kur’a dokun' : 'Kliniğe dokun', noScroll: true, enter: () => kamp()?.focus?.('revir'), mood: 'wink' });
       break;
     default: return null;
   }
@@ -320,7 +333,9 @@ function nextTour(route: string): string | null {
   if (route === 'camp' && exists('.camp-base, .camp-list-screen') && useKg.getState().kg) {
     const q = campQueue(cleared, f.tours, vakaDurum()).filter((id) => !campVisit.has(id));
     if (q.length >= 2) { campCard = q; return KAMP_YENI; }
-    if (q[0] && (q[0] === 'vaka-kur' || !groupFull(q[0], cleared))) return q[0];
+    // "önce kur" yazısı liste görünümünde klinik kartı ekrandayken gelir (sayfa onu göstermek için kaymaz)
+    if (q[0] === 'vaka-kur') { if (!exists('.camp-list-screen') || onScreen(klinikKart())) return q[0]; }
+    else if (q[0] && !groupFull(q[0], cleared)) return q[0];
   }
   if (route === 'camp' && done('camp') && !done('camp-build') && exists('.camp-base') && campPick() && buildingVisible(campPick()!)) return 'camp-build';
   return null;
@@ -328,16 +343,23 @@ function nextTour(route: string): string | null {
 
 /** tur başlamadan önce ekranın art arda sakin kalacağı yoklama sayısı (500 ms aralıkla) */
 const CALM_TICKS = 3;
+/** kampa girişte oyuncu dokunmadıysa yeterli sakin yoklama */
+const FRESH_TICKS = 2;
 
 /** turu başlat; "Atla" o an sırada bekleyen turları da geçer (Hasta Vakaları klinik kurulmadan geçilmiş sayılmaz) */
 function startTour(id: string, route: string): void {
   const st = useStore.getState(); const t = tourFor(id, route);
   if (!t) { st.ftueTourDone(id); return; }
   if (CAMP_TOURS.has(id)) campVisit.add(id);
-  countUnlockTour(id, clearedCount(st.progress));
+  const cleared = clearedCount(st.progress);
+  countUnlockTour(id, cleared);
   useCoach.getState().start({ ...t, onDone: (skipped) => {
     if (!skipped) return; const s = useStore.getState();
     for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) if (p !== 'vaka' || vakaDurum() === 'acik') s.ftueTourDone(p);
+  }, onDefer: () => {
+    // açılırken oyuncu başka yere dokundu: sayılmaz, bu girişte yine sırada (ekran sakinleşince)
+    campVisit.delete(id);
+    if (unlockTally.cleared === cleared && FEATURES.some((f) => f.id === id && f.tour)) unlockTally[groupOf(id)] = Math.max(0, unlockTally[groupOf(id)] - 1);
   } });
 }
 
@@ -346,15 +368,20 @@ export function FtueDirector({ route }: { route: string }) {
   const bypass = useStore((s) => s.ftue.bypass);
   // kamptan çıkınca: bu girişin duyuruları ve tek kart sıfırlanır (bekleyenler bir sonraki girişte yine duyurulur)
   useEffect(() => { if (route !== 'camp') { campVisit.clear(); hideKampYeni(); } }, [route]);
+  // ekrana giriş anı (kampa girişte dokunulmadıysa tanıtım beklemeden gelir)
+  const enteredAt = useRef(0);
+  useEffect(() => { enteredAt.current = performance.now(); }, [route]);
   useEffect(() => {
     if (bypass || active) return;
     // ekran bir süre sakin kalmalı (art arda gelen kutlama/sahne adımlarının arasındaki kısa boşlukta tur başlamasın)
     let calm = 0;
     const h = setInterval(() => {
-      if (useCoach.getState().tour || !quiet() || !handsOff()) { calm = 0; return; }
+      // kampa girdiğinden beri dokunmayan oyuncu: kısa bekleme (açılıştaki kutlama/satır kendini gösterebilsin)
+      const fresh = route === 'camp' && untouchedSince(enteredAt.current);
+      if (useCoach.getState().tour || !quiet() || (!fresh && !handsOff())) { calm = 0; return; }
       // kampın tek kartı açıkken başka tur başlamaz (oyuncu "Göster"le seçer)
       if (kampYeniBekleyen().length) { calm = 0; return; }
-      if (++calm < CALM_TICKS) return;
+      if (++calm < (fresh ? FRESH_TICKS : CALM_TICKS)) return;
       const st = useStore.getState(); const id = nextTour(route);
       // oyuncu bir yere kendi girdiyse (turu henüz sırada beklerken) o yerin tanıtımı görülmüş sayılır; şimdi başlayacak tur hariç
       if (!st.ftue.bypass && !st.ftue.admin) for (const v of visitedTours(route, clearedCount(st.progress), st.ftue.tours, [id])) st.ftueTourDone(v);

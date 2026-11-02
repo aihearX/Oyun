@@ -1,7 +1,7 @@
 /**
  * Kamp ekranına küçük kancalar: üst göstergede "Görevler" (rozet: alınmayı bekleyen ödül) ve "Klinik" (bekleyen hasta) düğmeleri,
  * açık paneli çizen kök (GorevHost) ve bina panellerindeki giriş düğmeleri (Klinik → Hasta Vakaları, Odyometri Odası → Ton Avı,
- * Kule → Timpanogram Eşleştir). Özellikler sunucunun söylediğiyle açılır (geçilen bölüm; yönetici modunda hepsi).
+ * Kule → Timpanogram Eşleştir; liste kartında da). Özellikler sunucunun söylediğiyle açılır (geçilen bölüm; yönetici modunda hepsi).
  * Hasta Vakaları'nın yeri Klinik kartında ve panelinde de söylenir (KlinikVakaSatiri): kurulmadıysa "Kurunca: Hasta Vakaları açılır".
  */
 import { useEffect } from 'react';
@@ -67,11 +67,22 @@ export function KgBinaKanca({ id, onClose }: { id: BuildingId; onClose: () => vo
     </button>
   );
   if (id === 'revir' && kg.vaka.locked) return <KlinikVakaSatiri level={1} />;
-  const g = kg.oyun.find((x) => KAMP_OYUN[x.oyun].bina === id);
-  if (g?.open) return (
-    <button className="btn kg-bina-btn" data-testid={`bina-${g.oyun}`} onClick={() => go(() => openPanel({ kind: 'oyun', oyun: g.oyun }))}>
-      <KgIcon name={KAMP_OYUN[g.oyun].art} size={22} /> {KAMP_OYUN[g.oyun].ad} oyna · ödüllü tur {Math.max(0, g.cap - g.rewarded)}
+  return <KgOyunGiris id={id} onOpen={onClose} />;
+}
+
+/**
+ * Kamp oyununun binadaki kalıcı girişi (Odyometri Odası → Ton Avı, Timpanometri Kulesi → Timpanogram Eşleştir): bina paneli ve liste
+ * görünümünün kartı. Açıksa "Oyna"; değilse ne gerektiği (sunucunun dürüst nedeni: "Timpanometri Kulesi’ni kur", "Bölüm N’de açılır").
+ */
+export function KgOyunGiris({ id, onOpen }: { id: BuildingId; onOpen?: () => void }) {
+  const kg = useKg((s) => s.kg);
+  const g = kg?.oyun.find((x) => KAMP_OYUN[x.oyun].bina === id);
+  if (!g) return null;
+  const o = KAMP_OYUN[g.oyun];
+  if (!g.open) return g.locked ? <div className="muted small-note kg-vaka-satir" data-testid={`giris-${g.oyun}-kilit`}><KgIcon name={o.art} size={16} className="art-inline" /> {o.ad}: {g.locked}</div> : null;
+  return (
+    <button className="btn kg-bina-btn" data-testid={`bina-${g.oyun}`} onClick={() => { audio.play('tap'); onOpen?.(); setTimeout(() => openPanel({ kind: 'oyun', oyun: g.oyun }), 0); }}>
+      <KgIcon name={o.art} size={22} /> {o.ad} oyna · ödüllü tur {Math.max(0, g.cap - g.rewarded)}
     </button>
   );
-  return null;
 }

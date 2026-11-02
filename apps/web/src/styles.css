@@ -820,6 +820,11 @@ button.war-warn { cursor:pointer; }
 .bonus-row { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }
 .bonus-row span { display:flex; flex-direction:column; align-items:center; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); border-radius:12px; padding:4px 2px; font-weight:800; font-size:0.625rem; color:var(--text-2); white-space:nowrap; }
 .bonus-row b { font-size:0.8125rem; color:var(--text); }
+/* Büyük yazı: etiket ve simge gövde yazısı boyunda, kutucuklar üç sütunda iki satıra sarar; açıklama gövde boyunda (OT-buyuk-yazi-27) */
+html.buyuk-yazi .bonus-card > .small-note { font-size:0.875rem; line-height:1.4; }
+html.buyuk-yazi .bonus-row { grid-template-columns:repeat(auto-fit,minmax(5.2rem,1fr)); gap:6px; }
+html.buyuk-yazi .bonus-row span { font-size:0.875rem; white-space:normal; text-align:center; padding:6px 4px; gap:2px; }
+html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .building { display:flex; flex-direction:column; gap:8px; }
 .building-now { border-color:rgba(255,201,60,.5); }
 .b-up { gap:10px; align-items:center; } .b-up .muted { font-size:0.75rem; line-height:1.4; }

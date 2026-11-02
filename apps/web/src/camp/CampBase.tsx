@@ -93,7 +93,7 @@ export function CampBase(p: CampBaseProps) {
           const name = BIOMES[region as BiomeId]?.name ?? region;
           if (isNew) { audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
           audio.play('pop');
-          if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`);
+          if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`, undefined, true);
           else showDede(`${name} bölgesine ulaşınca burada ${m.name} yükselecek.`, 'Kulak Yolu');
         },
         onCollectRemedy: () => { void collectRemedy(); },

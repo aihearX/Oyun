@@ -42,15 +42,22 @@ export interface CoachStep {
   cel?: boolean;
   /** seslendirilmez (kaydı olmayan yazı satırı; cihaz sesine de düşmez) */
   silent?: boolean;
+  /** hedef ekranda değilse sayfa kendiliğinden kaydırılmaz (oyuncu kaydırınca halka belirir) */
+  noScroll?: boolean;
 }
-export interface Tour { id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void }
+export interface Tour {
+  id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void;
+  /** tur açılırken oyuncu başka bir yere dokundu: tur görülmüş sayılmadan çekildi (yönetmen sonra yeniden başlatır) */
+  onDefer?: () => void;
+}
 
-interface CoachState { tour: Tour | null; step: number; start(t: Tour): void; next(): void; end(skipped: boolean): void }
+interface CoachState { tour: Tour | null; step: number; start(t: Tour): void; next(): void; end(skipped: boolean): void; defer(): void }
 export const useCoach = create<CoachState>((set, get) => ({
   tour: null, step: 0,
   start(t) { if (get().tour) return; set({ tour: t, step: 0 }); },
   next() { const { tour, step } = get(); if (!tour) return; if (step + 1 >= tour.steps.length) get().end(false); else set({ step: step + 1 }); },
   end(skipped) { const t = get().tour; set({ tour: null, step: 0 }); stopVoice(); if (t) { useStore.getState().ftueTourDone(t.id); t.onDone?.(skipped); } },
+  defer() { const t = get().tour; set({ tour: null, step: 0 }); stopVoice(); t?.onDefer?.(); },
 }));
 
 /** sesli okuma: kayıtlı ses (varsa) ya da cihaz sesi; genel ses ve "Anlatıcı sesi" açıksa (bkz. voice.ts) */
@@ -176,6 +183,23 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   // atlatmaz (OT-ogrenci-birinci-14: Liste'ye dokunuş tanıtımı ilerletip Görevler'e götürdü). Katman yine de alttakine geçirmez
   const born = useRef(typeof performance !== 'undefined' ? performance.now() : 0);
   const settled = () => index > 0 || performance.now() - born.current >= FIRST_TAP_GRACE_MS;
+  // açılış anında katman dokunuş almaz (yoldaki dokunuş alttaki öğeye gider, OT-ogrenci-birinci-17); o an ekrana basan oyuncu bir
+  // işe girişmiştir: tur görülmüş sayılmadan çekilir, yönetmen ekran yeniden sakinleşince başlatır. Dokunulacak yeri gösteren adımda
+  // o yere basmak turu ilerletir (aşağıdaki "dokun" dinleyicisi)
+  const [opening, setOpening] = useState(index === 0);
+  useEffect(() => { if (!opening) return; const h = setTimeout(() => setOpening(false), FIRST_TAP_GRACE_MS); return () => clearTimeout(h); }, [opening]);
+  useEffect(() => {
+    if (!opening) return;
+    const on = (e: PointerEvent) => {
+      if (wait === 'tap') {
+        const el = targetEl(st.target); const t = e.target as Node | null; const r = el ? null : resolve(st.target);
+        if ((el && t && el.contains(t)) || (r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom)) return;
+      }
+      useCoach.getState().defer();
+    };
+    document.addEventListener('pointerdown', on, true);
+    return () => document.removeEventListener('pointerdown', on, true);
+  }, [opening]);
 
   // adım açılınca bir kez (ör. kamp kamerasını binaya çevir)
   useEffect(() => { try { st.enter?.(); } catch { /* yok */ } }, [tour.id, index]);
@@ -187,8 +211,8 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   }, [tour.id, index, shown]);
   // halka gelmezse yine de göster
   useEffect(() => { if (shown) return; const h = setTimeout(() => setShown(true), MARK_WAIT_MS); return () => clearTimeout(h); }, [tour.id, index]);
-  // hedef görünmüyorsa görünür banda kaydır (küçük ekranlar)
-  useEffect(() => { const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index, shown]);
+  // hedef görünmüyorsa görünür banda kaydır (küçük ekranlar); `noScroll` adımı sayfayı kendiliğinden kaydırmaz
+  useEffect(() => { if (st.noScroll) return; const h = setTimeout(() => bringIntoView(st.target), 120); return () => clearTimeout(h); }, [tour.id, index, shown]);
   // hedefin konumu: her karede izlenir (kaydırma, animasyon, sahne kamerası); hedef belirince adım görünür
   useLayoutEffect(() => {
     let raf = 0; let last = ''; let lastPre = '';
@@ -254,11 +278,11 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   if (!shown) {
     // işaret yok: yazı ve ses yok; yalnız `before` yeri (ör. kapalı sandık) halka, el ve kısa yönergeyle; dokunuş alttaki öğeye geçer.
     // Gösterecek yer de yoksa boş katman (tur sürüyor; dokunuşlar geçer)
-    if (!pre || !st.before) return <div className="coach" data-testid="anlatici-tur" data-tour={tour.id} data-step={index} aria-hidden />;
+    if (!pre || !st.before) return <div className={`coach${opening ? ' acilis' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index} aria-hidden />;
     const ph = { x: pre.left - pad, y: pre.top - pad, w: pre.width + pad * 2, h: pre.height + pad * 2 };
     const below = ph.y + ph.h + 120 < H;
     return (
-      <div className="coach" data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
+      <div className={`coach${opening ? ' acilis' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
         <div className="coach-ring" style={{ left: ph.x, top: ph.y, width: ph.w, height: ph.h }} />
         <PointHand hole={ph} H={H} />
         <div className="coach-chip" style={{ left: ph.x + ph.w / 2, top: below ? ph.y + ph.h + 62 : Math.max(8, ph.y - 104) }}><span className="cp-hint" data-testid="anlatici-ipucu"><i aria-hidden /> {st.before.hint}</span></div>
@@ -267,7 +291,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   }
 
   return (
-    <div className={`coach${hole ? ' has-hole' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
+    <div className={`coach${hole ? ' has-hole' : ''}${opening ? ' acilis' : ''}`} data-testid="anlatici-tur" data-tour={tour.id} data-step={index}>
       {!lost && <svg className="coach-dim" width={W} height={H} aria-hidden>
         <defs><mask id="coach-mask"><rect width={W} height={H} fill="#fff" />{hole && <rect x={hole.x} y={hole.y} width={hole.w} height={hole.h} rx="18" fill="#000" />}</mask></defs>
         <rect width={W} height={H} fill="rgba(8,4,26,.74)" mask="url(#coach-mask)" />

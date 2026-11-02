@@ -9,8 +9,14 @@ import { Icon } from '../ui/icons';
 /**
  * Kampta Tüy Dede'nin tek satırı: bina yükselince (dönüşümlü satır), anıt yükselince ya da anıta dokununca.
  * Hiçbir şeyi engellemez, kapatılabilir; kayıtlı ses varsa kayıt, yoksa cihaz sesi (ayar kapalıysa sessiz, altyazı ekranda).
+ * Kısa satır bir süre sonra kendiliğinden kaybolur; "Daha fazla"sı olan not (anıt, yeni bina, arazi) ve anıta dokununca açılan not
+ * yalnız X ile kapanır: okuyan oyuncunun elinden kaybolmaz (OT-uzman-odyolog-20). Konuşma süresi bitince satır kimliği düşer
+ * (rehber turları "Tüy Dede konuşuyor" diye beklemez), not ekranda kalır.
  */
-export interface DedeSay { id?: string; text: string; kicker: string; tech?: string; key: number; /** seslendirilsin mi (dokunuşla açılan bilgi kartları sessizdir) */ voice: boolean }
+export interface DedeSay {
+  id?: string; text: string; kicker: string; tech?: string; key: number; /** seslendirilsin mi (dokunuşla açılan bilgi kartları sessizdir) */ voice: boolean;
+  /** kendiliğinden kaybolmaz (yalnız X) */ keep?: boolean;
+}
 export const useDede = create<{ say: DedeSay | null }>()(() => ({ say: null }));
 let seq = 0;
 /** anlatıcı satırı (script.ts kimliği) */
@@ -19,8 +25,8 @@ export function sayDede(lineId: string, kicker: string, tech?: string): void {
   try { text = lineText(lineId); } catch { return; }
   useDede.setState({ say: { id: lineId, text, kicker, tech, key: ++seq, voice: true } });
 }
-/** serbest metin (anıt bilgisi gibi; sessiz) */
-export function showDede(text: string, kicker: string, tech?: string): void { useDede.setState({ say: { text, kicker, tech, key: ++seq, voice: false } }); }
+/** serbest metin (anıt bilgisi gibi; sessiz); `keep`: yalnız X ile kapanır */
+export function showDede(text: string, kicker: string, tech?: string, keep?: boolean): void { useDede.setState({ say: { text, kicker, tech, key: ++seq, voice: false, keep } }); }
 export const hushDede = () => useDede.setState({ say: null });
 
 export function DedeCard({ className = '' }: { className?: string }) {
@@ -29,8 +35,9 @@ export function DedeCard({ className = '' }: { className?: string }) {
   useEffect(() => {
     if (!say) return;
     if (say.voice) talk.current = speakLine(say.text, say.id);
-    // uzun süre açık kalmasın (dokunmadan da kaybolur)
-    const h = setTimeout(() => useDede.setState((s) => (s.say?.key === say.key ? { say: null } : {})), say.tech ? 16_000 : 11_000);
+    // uzun süre açık kalmasın (dokunmadan da kaybolur); kalıcı not yalnız konuşan satır olmaktan çıkar
+    const sticky = !!say.tech || !!say.keep;
+    const h = setTimeout(() => useDede.setState((s) => (!s.say || s.say.key !== say.key ? {} : sticky ? { say: { ...s.say, id: undefined } } : { say: null })), say.tech ? 16_000 : 11_000);
     return () => { clearTimeout(h); stopVoiceIf(talk.current); };
   }, [say?.key]);
   if (!say) return null;

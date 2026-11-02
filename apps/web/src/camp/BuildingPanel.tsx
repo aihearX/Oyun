@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom';
 import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type CampState, type Wallet } from '@odi/shared';
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
-import { fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, queueSupported, shortOf, unlockLabel, type CampActions } from './model';
+import { fmtLeft, fmtNum } from '../ui/social';
+import { DEPOT_RATE, ITEMS, KRISTAL_KURAL, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, queueSupported, shortOf, sureTam, unlockLabel, type CampActions } from './model';
 import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
@@ -12,7 +12,7 @@ import { SiraIpucu } from './SiraIpucu';
 import { RemedyIcon } from './remedyArt';
 import { Art, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
-import { KgBinaKanca, KlinikVakaSatiri } from './gorev/Kanca';
+import { KgBinaKanca, KgOyunGiris, KlinikVakaSatiri } from './gorev/Kanca';
 import { useKg } from './gorev/state';
 import { KgIcon } from './gorev/art';
 import { hikayeBinasi } from './hikaye-bina';
@@ -121,13 +121,13 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
               {ITEMS.map((it) => <button key={it.k} className="btn ghost small" disabled={busy || wallet.hizlandirici[it.k] < 1} onClick={() => void run(() => actions.speed(id, it.k))}><Art e="⏩" size="1.15em" className="art-inline" /> {it.label}<i className="cnt">×{wallet.hizlandirici[it.k]}</i></button>)}
             </div>
             <button className="btn finish" disabled={busy || wallet.kristal < crystals} onClick={() => void run(() => actions.speed(id, 'kristal'))}><Art e="💎" size="1.15em" className="art-inline" /> {crystals} ile bitir</button>
-            <div className="bp-note">Kristal: kalan her dakika için 1 (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
+            <div className="bp-note">{KRISTAL_KURAL} (sende <Art name="crystal" size="1.15em" className="art-inline" /> {fmtNum(wallet.kristal)}).</div>
             {camp.queued && <div className="bp-qline" data-testid="sirada-sonraki"><Art name="hourglass" size={18} className="art-inline" /><span className="grow min0">Sırada: <b>{shortOf(camp.queued.id)} Sv {camp.queued.toLevel}</b> · bu bitince başlar</span></div>}
           </div>
         ) : max ? <div className="bp-note">En yüksek seviyede. Tebrikler!</div> : (
           <div className="bp-up">
             <SiraIpucu on={queueMode && !inQueue} className="bp-sira-ipucu" />
-            <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {fmtDur(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
+            <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {sureTam(seconds)}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
             <div className="bp-next" data-testid="sonraki-gorunum"><BuildingThumb id={id} level={to} size={58} /><span><b>Sv {to}: {tierNext ? 'yeni görünüm!' : 'yeni bir ekleme'}</b><br />{tierNext ? `${CAMP_TIER_NAMES[tierOf(to)]} ${b.level === 0 ? 'yapı kurulur' : 'malzemeyle büyür'}` : id === 'merkez' ? 'Merkez her seviyede yeni bir parça kazanır' : 'Binanın çevresi süslenir'}</span></div>
             {POWER_BUILDINGS.includes(id) && to > CAMP_POWER_LEVEL && <div className="bp-note">Bina gücü Sv {CAMP_POWER_LEVEL}’te tavan yapar; sonraki seviyeler yeni görünüm ve Kamp XP’si verir.</div>}
             {inQueue ? (
@@ -151,6 +151,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
         {id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} />}
         {b.level > 0 && <KgBinaKanca id={id} onClose={onClose} />}
         {id === 'revir' && b.level === 0 && <KlinikVakaSatiri level={0} />}
+        {id !== 'revir' && b.level === 0 && <KgOyunGiris id={id} />}
         <BuildingInfo id={id} level={b.level} />
       </div>
     </div>,

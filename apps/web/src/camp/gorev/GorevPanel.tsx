@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { KampOdul, KgBasamak, KgGorev, KgState } from '@odi/shared';
-import { KAMP_OYUN, KG_KURAL, odulMetni } from '@odi/content';
+import { KAMP_OYUN, KG_GUNLUK, KG_KURAL, odulMetni, type KgOlcut } from '@odi/content';
 import { audio } from '@odi/audio';
 import { TuyDede } from '../../ftue/Narrator';
 import { lineText } from '../../ftue/script';
@@ -15,7 +15,8 @@ import { fmtLeft, useNow } from '../../ui/social';
 import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { act } from '../../net';
-import { claimKg, openPanel, refreshKg, useKg, type GorevSekme } from './state';
+import { useNav, type Nav } from '../../nav';
+import { claimKg, openPanel, refreshKg, useKg, type GorevSekme, type KgPanel } from './state';
 
 const satir = (id: string) => { try { return lineText(id); } catch { return ''; } };
 const DINLENDI = 'odi.kg.dinlendi';
@@ -123,10 +124,35 @@ function Hikaye({ s }: { s: KgState }) {
   );
 }
 
+/**
+ * Günlük görevin yeri (OT-uzman-odyolog-22): "Git"/"Oyna" oyuncuyu görevin yapıldığı yere götürür. Kamp oyunu ve klinik paneli açılır;
+ * kampın içindeki iş (depo, inşaat, malzeme, süs, yardım) için panel kapanır, kamp görünür; bölüm ve ziyaret için harita ve Arkadaşlar.
+ */
+const GOREV_YERI: Partial<Record<KgOlcut, KgPanel | 'harita' | 'arkadas'>> = {
+  vaka: { kind: 'klinik', tab: 'salon' }, 'vaka-tekrar': { kind: 'klinik', tab: 'defter' },
+  ton: { kind: 'oyun', oyun: 'ton' }, 'ton-iyi': { kind: 'oyun', oyun: 'ton' }, timpano: { kind: 'oyun', oyun: 'timpano' },
+  bolum: 'harita', 'malzeme-kullan': 'harita', ziyaret: 'arkadas',
+};
+export function gorevGit(id: string): { label: 'Git' | 'Oyna'; go(nav: Nav): void } {
+  const olcut = KG_GUNLUK.find((g) => g.id === id)?.olcut; const yer = olcut ? GOREV_YERI[olcut] : undefined;
+  const oyun = typeof yer === 'object' && yer.kind === 'oyun';
+  return {
+    label: oyun ? 'Oyna' : 'Git',
+    go: (nav) => {
+      if (typeof yer === 'object') { openPanel(yer); return; }
+      openPanel(null);
+      if (yer === 'harita') nav.tab('map'); else if (yer === 'arkadas') nav.open({ name: 'friends' });
+    },
+  };
+}
+
 function Gunluk({ s }: { s: KgState }) {
-  const busy = useKg((x) => x.busy); const now = useNow(30_000);
+  const busy = useKg((x) => x.busy); const now = useNow(30_000); const nav = useNav();
   const [degis, setDegis] = useState<string | null>(null);
-  const reroll = async (id: string) => { setDegis(id); const r = await act('kg.reroll', { id }); setDegis(null); if (r) { useKg.setState({ kg: r.state }); audio.play('whoosh'); } };
+  // değiştirme ayrı ve onaylı: hak günde bir, yanlış dokunuşla gitmesin (OT-uzman-odyolog-22)
+  const [sor, setSor] = useState<string | null>(null);
+  const reroll = async (id: string) => { setSor(null); setDegis(id); const r = await act('kg.reroll', { id }); setDegis(null); if (r) { useKg.setState({ kg: r.state }); audio.play('whoosh'); } };
+  const hak = s.daily.rerollLeft;
   return (
     <div className="kg-gunluk">
       {s.weekly && <Haftalik s={s} />}
@@ -138,14 +164,21 @@ function Gunluk({ s }: { s: KgState }) {
             <div className="grow min0"><b>{t.text}</b>
               {t.locked && !t.done ? <small className="kg-kilit"><Art name="lock" size={14} /> {t.locked}</small> : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.round((t.progress / t.need) * 100)}%` }} /></div><small>{t.progress}/{t.need}</small></div>}
               {t.reward && <OdulChips r={t.reward} small />}
+              {!t.done && hak > 0 && sor !== t.id && <button type="button" className="kg-degis" data-testid="kg-degistir" disabled={!!degis} onClick={() => { audio.play('tap'); setSor(t.id); }}><Art name="refresh" size={14} /> Değiştir</button>}
+              {!t.done && hak > 0 && sor === t.id && (
+                <div className="kg-degis-onay" role="group" aria-label="Görev değiştirme onayı" data-testid="kg-degistir-soru">
+                  <small>Bugün {hak} değiştirme hakkın var. Değiştirilsin mi?</small>
+                  <span className="row"><button type="button" className="btn small ghost" data-testid="kg-degistir-onay" disabled={!!degis} onClick={() => void reroll(t.id)}>Değiştir</button><button type="button" className="btn small ghost" onClick={() => setSor(null)}>Vazgeç</button></span>
+                </div>
+              )}
             </div>
             {t.claimed ? <span className="kg-alindi">Alındı</span>
               : t.done ? <button className="btn small gold" data-testid="kg-al" data-ref={t.ref} disabled={busy === t.ref} onClick={(e) => void claimKg(t.ref, 'Kamp görevi tamam!', { from: from(e) })}>Al</button>
-                : s.daily.rerollLeft > 0 ? <button className="kg-degis" data-testid="kg-degistir" aria-label={`Görevi değiştir: ${t.text}`} disabled={!!degis} onClick={() => void reroll(t.id)}><Art name="refresh" size={18} /><small>Değiştir</small></button> : null}
+                : !t.locked ? (() => { const g = gorevGit(t.id); return <button className="btn small" data-testid="kg-git" onClick={() => { audio.play('tap'); g.go(nav); }}>{g.label}</button>; })() : null}
           </div>
         ))}
       </div>
-      <small className="kg-note">{s.daily.rerollLeft > 0 ? 'Bugün bir görevi değiştirebilirsin.' : 'Bugünün değiştirme hakkı kullanıldı.'} Günlük görevler her gün gece yarısı yenilenir.</small>
+      <small className="kg-note">{hak > 0 ? `Bugün ${hak} görevi değiştirebilirsin (onay sorulur).` : 'Bugünün değiştirme hakkı kullanıldı.'} Günlük görevler her gün gece yarısı yenilenir.</small>
     </div>
   );
 }

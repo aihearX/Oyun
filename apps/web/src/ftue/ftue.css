@@ -19,6 +19,8 @@
 .coach { position:fixed; inset:0; z-index:260; pointer-events:none; animation:fade .2s ease-out; }
 .coach-dim { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 .coach-block { position:absolute; pointer-events:auto; }
+/* açılış anı (ilk ~450 ms): katman dokunuş almaz, yoldaki dokunuş alttaki öğeye gider (Coach.tsx) */
+.coach.acilis, .coach.acilis * { pointer-events:none !important; }
 .coach-ring { position:absolute; border-radius:18px; pointer-events:none; box-shadow:0 0 0 3px var(--gold), 0 0 0 7px rgba(255,201,60,.28), 0 0 26px rgba(255,201,60,.65); animation:crPulse 1.3s ease-in-out infinite; }
 @keyframes crPulse { 50% { box-shadow:0 0 0 3px var(--gold), 0 0 0 13px rgba(255,201,60,.08), 0 0 34px rgba(255,201,60,.85); } }
 /* halka henüz gelmemişken gösterilen yerin kısa yönergesi (anlatıcı paneli yok) */

@@ -20,6 +20,18 @@ export function visitCamp(v: CampVisit, now = Date.now()): CampState {
   };
 }
 
+/**
+ * Alkış bildirimi: "Alkışın Deniz’e iletildi" (yönelme eki son ünlüye göre, ünlüyle biten adda y kaynaştırmasıyla). Ad harfle
+ * bitmiyorsa ya da ünlüsü yoksa ek tahmin edilmez: "Alkışın iletildi: Kaptan42".
+ */
+export function alkisIletildi(name: string): string {
+  const n = name.trim(); const low = n.toLocaleLowerCase('tr-TR');
+  const v = [...low].reverse().find((c) => 'aıoueiöü'.includes(c));
+  if (!v || !/\p{L}$/u.test(low)) return `Alkışın iletildi: ${n}`;
+  const ek = ('aıou'.includes(v) ? 'a' : 'e');
+  return `Alkışın ${n}’${'aıoueiöü'.includes(low.at(-1)!) ? 'y' : ''}${ek} iletildi`;
+}
+
 /** Kamp ziyareti (docs/14-kamp.md §12): arkadaşın ya da takım arkadaşının kampı salt okunur; günde bir hazır tepki. */
 export function CampVisitScreen({ id, onBack }: { id: string; onBack: () => void }) {
   const [v, setV] = useState<CampVisit | null>(null);
@@ -38,7 +50,8 @@ export function CampVisitScreen({ id, onBack }: { id: string; onBack: () => void
     const r = await act('camp.cheer', { playerId: id, kind });
     if (!r) return;
     setV(r.visit);
-    toast('👏', `${v.name} tepkini gördü`, r.xp > 0 ? `+${r.xp} Kamp XP` : 'Yarın yine gel!', 'green');
+    // dürüst: sunucu tepkiyi iletir, karşı tarafın görüp görmediğini bilmez ("gördü" denmez; OT-takim-kaptani-14)
+    toast('👏', alkisIletildi(v.name), r.xp > 0 ? `+${r.xp} Kamp XP` : 'Yarın yine gel!', 'green');
   };
   return (
     <CampBase camp={camp} wallet={{ jeton: 0, kristal: 0, hizlandirici: { m5: 0, m60: 0, s8: 0 } }} team={v.team} helpCount={0} fast={0} now={Date.now} actions={NO_ACTIONS} onList={() => undefined}

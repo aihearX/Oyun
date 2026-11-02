@@ -314,6 +314,10 @@ async function suite(target, browserName, [W, H]) {
       check(overlap(ring, bina && { x: bina.x, y: bina.y, width: bina.w, height: bina.h }) > 0.5, 'önce-kur yazısının çerçevesi Odyoloji Kliniği binasında');
       check(await say(page) === 'Önce Odyoloji Kliniği’ni kur; Hasta Vakaları oradan açılır.', 'önce-kur yazısı');
       await driveTour(page, 'vaka-kur', 'vaka-once-kur'); seen.push('vaka-kur');
+      // YN-104 (OT-ogrenci-birinci-17): parlayan binaya ilk dokunuş hem yazıyı kapattı hem binanın işini yaptı (Kur penceresi açık)
+      await page.locator('.bp').waitFor({ timeout: 5000 }).catch(() => undefined);
+      check(await page.locator('.bp .bp-up .btn', { hasText: /^Kur/ }).count() === 1, 'önce-kur: parlayan kliniğe tek dokunuş Kur penceresini açtı');
+      await page.locator('.bp .bp-x').first().click().catch(() => undefined); await page.locator('.bp').waitFor({ state: 'detached', timeout: 5000 }).catch(() => undefined);
     }
     // kliniği kur (liste görünümü: kart → Kur → onay)
     await page.locator('.camp-listbtn').click(); await page.locator('.camp-list-screen').waitFor();

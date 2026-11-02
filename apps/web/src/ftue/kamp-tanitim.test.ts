@@ -149,3 +149,57 @@ describe('rehber sürerken bildirim/teşekkür kartı sırada bekler', () => {
     } finally { vi.useRealTimers(); }
   });
 });
+
+/**
+ * Oyuncu testi tur 5 (YN-104, OT-ogrenci-birinci-17): tanıtım açılırken ekrana basan oyuncunun dokunuşu yutulmaz; tanıtım çekilir
+ * (görülmüş sayılmaz) ve dokunuş alttaki öğeye gider. "Önce kur" yazısında parlayan Kur'a ilk dokunuş hem Kur'un işini yapar hem
+ * yazıyı kapatır; sayfa kendiliğinden kaymaz.
+ */
+const press = (target: Element, x: number, y: number) => target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, clientX: x, clientY: y }));
+const tapAt = (target: Element, x: number, y: number) => target.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: x, clientY: y }));
+
+describe('kampa girişte ilk dokunuş tanıtım tarafından yutulmaz', () => {
+  it('açılış anında katman dokunuş almaz; başka yere basınca tur görülmüş sayılmadan çekilir, dokunuş alttakine gider', async () => {
+    screen();
+    const { CoachHost, useCoach } = await import('./Coach'); const { useStore } = await import('../store');
+    let gorevler = 0;
+    const btn = el('button', { 'data-testid': 'kg-btn' }, [10, 70, 120, 40]); btn.addEventListener('click', () => { gorevler++; }); document.body.appendChild(btn);
+    await render(createElement(CoachHost));
+    let deferred = 0;
+    await act(async () => { useCoach.getState().start({ id: 'vaka-kur', steps: [{ say: 'Önce kur' }], onDefer: () => { deferred++; } }); });
+    expect(document.querySelector('[data-testid="anlatici-tur"]')?.classList.contains('acilis')).toBe(true); // pointer-events:none
+    await act(async () => { press(btn, 40, 90); tapAt(btn, 40, 90); });
+    expect(gorevler).toBe(1);
+    expect(useCoach.getState().tour).toBeNull();
+    expect(deferred).toBe(1);
+    expect(useStore.getState().ftue.tours).not.toContain('vaka-kur');
+  });
+  it('açılış anı geçince katman olağan: dokunuş turu çekmez', async () => {
+    screen();
+    const { CoachHost, useCoach } = await import('./Coach');
+    await render(createElement(CoachHost));
+    await act(async () => { useCoach.getState().start({ id: 'deneme', steps: [{ say: 'Bir' }] }); });
+    await tick(500);
+    expect(document.querySelector('[data-testid="anlatici-tur"]')?.classList.contains('acilis')).toBe(false);
+    await act(async () => { press(document.body, 5, 5); });
+    expect(useCoach.getState().tour?.id).toBe('deneme');
+  });
+  it('"önce kur": parlayan Kur’a ilk dokunuş (açılış anında bile) Kur’un işini yapar ve yazıyı kapatır; sayfa kaymaz', async () => {
+    screen();
+    const { tourFor } = await import('./Director'); const { CoachHost, useCoach } = await import('./Coach'); const { useStore } = await import('../store');
+    const list = el('div', { class: 'camp-list-screen' }, [0, 0, 390, 844]); document.body.appendChild(list);
+    const card = el('div', { class: 'card building' }, [10, 300, 370, 160]); card.appendChild(el('div', { 'data-testid': 'klinik-vaka-not' }, [20, 420, 340, 30]));
+    let kur = 0; const kurBtn = el('button', { class: 'btn small' }, [290, 330, 80, 44]); kurBtn.addEventListener('click', () => { kur++; }); card.appendChild(kurBtn);
+    list.appendChild(card);
+    await render(createElement(CoachHost));
+    const t = tourFor('vaka-kur', 'camp')!;
+    expect(t.steps[0]).toMatchObject({ wait: 'tap', noScroll: true, hint: 'Kur’a dokun' });
+    await act(async () => { useCoach.getState().start(t); });
+    await tick(30);
+    await act(async () => { press(kurBtn, 320, 350); tapAt(kurBtn, 320, 350); });
+    await tick(120);
+    expect(kur).toBe(1);
+    expect(useCoach.getState().tour).toBeNull();
+    expect(useStore.getState().ftue.tours).toContain('vaka-kur');
+  });
+});

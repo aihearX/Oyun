@@ -72,8 +72,12 @@
 .kg-claim-row small { color:var(--text-2); font-weight:800; font-size:0.75rem; }
 .kg-sheet .btn.gold { background:linear-gradient(180deg,#ffd66b,#ff9f1c); color:var(--gold-ink); box-shadow:0 6px 16px rgba(255,159,28,.35); }
 .kg-sheet .btn:disabled { opacity:.5; }
-.kg-degis { appearance:none; flex:none; display:flex; flex-direction:column; align-items:center; gap:1px; border:1px solid var(--panel-edge); background:rgba(255,255,255,.06); border-radius:12px; padding:5px 6px; color:#fff; cursor:pointer; }
-.kg-degis small { font-size:0.65625rem; font-weight:800; }
+/* günlük görev: "Git/Oyna" sağda; "Değiştir" ayrı, küçük ve onaylı (OT-uzman-odyolog-22) */
+.kg-degis { appearance:none; display:inline-flex; align-items:center; gap:4px; margin-top:6px; min-height:32px; border:1px solid var(--panel-edge); background:rgba(255,255,255,.04); border-radius:999px; padding:3px 10px; color:var(--text-2); font:inherit; font-size:0.75rem; font-weight:800; cursor:pointer; }
+.kg-degis-onay { display:flex; flex-direction:column; gap:6px; margin-top:6px; padding:8px; border-radius:12px; background:rgba(255,255,255,.06); border:1px dashed rgba(255,255,255,.22); }
+.kg-degis-onay small { font-size:0.78125rem; font-weight:800; color:var(--text); }
+.kg-degis-onay .row { display:flex; gap:6px; flex-wrap:wrap; }
+.kg-degis-onay .btn { padding:6px 12px; }
 
 /* haftalık + takım */
 .kg-hafta, .kg-takim { display:flex; flex-direction:column; gap:8px; background:rgba(255,201,60,.08); border:1px solid rgba(255,201,60,.3); border-radius:16px; padding:10px 12px; }
