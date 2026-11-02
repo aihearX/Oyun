@@ -54,7 +54,7 @@ export class MapScene extends Phaser.Scene {
     for (const n of this.L.nodes) this.nodes.push(this.makeNode(n));
     this.makeOdi();
     this.syncNodes(); this.drawProgress(this.progressS(this.shown)); this.placeOdi(false);
-    this.focusY(this.currentY(), false);
+    this.focusCurrent(false);
     this.setupInput();
     this.scale.on('resize', () => { this.fitCamera(); this.applyView(); });
     if (this.opts.social) this.setSocial(this.opts.social);
@@ -76,16 +76,34 @@ export class MapScene extends Phaser.Scene {
   private focusTop(y: number) { const t = this.opts.insets.top * this.cssToWorld, b = this.opts.insets.bottom * this.cssToWorld; return y - (t + (this.viewH - b)) / 2; }
   private clampTop(v: number) { const b = this.bounds; return Math.max(b.min, Math.min(b.max, v)); }
   focusY(y: number, animate = true) { const t = this.clampTop(this.focusTop(y)); if (!animate) { this.viewTop = t; this.autoTarget = null; this.applyView(); } else { this.autoTarget = t; this.vel = 0; } }
-  focusCurrent(animate = true) { this.poke(); this.follow = null; this.focusY(this.currentY(), animate); }
+  /**
+   * sıradaki bölüm ve üstündeki Odi, HUD'un (güncel paylar) dışında kalan görünür alanın ortasına; hareket azaltmada animasyonsuz
+   * (OT-ogrenci-birinci-19: dönüş sahnesi bölge canlanmasında bitince kamera geçilen bölümlerde kalıyordu)
+   */
+  focusCurrent(animate = true) { this.poke(); this.follow = null; this.refreshInsets(); this.focusY(this.focusPoint(), animate && !this.opts.reducedMotion); }
+  private refreshInsets() { const i = this.opts.getInsets?.(); if (i && Number.isFinite(i.top) && Number.isFinite(i.bottom)) this.opts.insets = i; }
   private currentY() { return journeyDone(this.shown) ? this.L.finale.y : this.L.nodes[unlockedOf(this.shown) - 1]!.y; }
+  /** sıradaki düğüm ile üstündeki Odi'nin (odiAt) kapladığı alan (dünya birimi) */
+  private currentSpan() {
+    if (journeyDone(this.shown)) { const f = this.L.finale; return { x: f.x, r: 60, top: f.y - 60, bottom: f.y + 60 }; }
+    const nv = this.nodes[unlockedOf(this.shown) - 1]!; return { x: nv.n.x, r: nv.r, top: nv.n.y - nv.r * 0.55 - ODI, bottom: nv.n.y + nv.r };
+  }
+  private focusPoint() { const c = this.currentSpan(); return (c.top + c.bottom) / 2; }
+  /** sıradaki düğüm + Odi'nin ekrandaki dikdörtgeni (CSS px; ölçüm/test için) */
+  currentRect() {
+    const c = this.currentSpan(); const k = this.cameras.main.zoom / this.dpr;
+    return { left: (c.x - c.r) * k, right: (c.x + c.r) * k, top: (c.top - this.viewTop) * k, bottom: (c.bottom - this.viewTop) * k };
+  }
 
   private setupInput() {
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.poke(); this.drag = { y: p.y, t: p.event.timeStamp || performance.now(), moved: 0, startTop: this.viewTop }; this.vel = 0; this.autoTarget = null; });
+    // dokunuş (sahneyi hızlandırma, düğüme dokunma) kameranın odaklanmasını kesmez; yalnız sürükleme keser
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.poke(); this.drag = { y: p.y, t: p.event.timeStamp || performance.now(), moved: 0, startTop: this.viewTop }; this.vel = 0; });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       const d = this.drag; if (!d || !p.isDown) return; this.poke();
       const dy = (p.y - d.y) / this.cameras.main.zoom; const now = p.event.timeStamp || performance.now(); const dt = Math.max(1, now - d.t);
       d.moved += Math.abs(p.y - d.y); d.y = p.y; d.t = now;
       if (this.busy) return;
+      if (d.moved >= 10 * this.dpr) this.autoTarget = null; // dokunuş titremesi değil, gerçek sürükleme
       let next = this.viewTop - dy; const b = this.bounds; if (next < b.min || next > b.max) next = this.viewTop - dy * 0.35; // lastik
       this.viewTop = next; this.vel = 0.8 * (-dy / dt) + 0.2 * this.vel; this.follow = null;
     });
@@ -237,7 +255,7 @@ export class MapScene extends Phaser.Scene {
   async play(target: StarMap) {
     const steps = planReturn(this.shown, target);
     if (!steps.length) { this.shown = { ...target }; this.opts.onSequence?.('done'); return; }
-    this.busy = true; this.opts.onSequence?.('start');
+    this.busy = true; this.opts.onSequence?.('start'); this.refreshInsets();
     // birden çok bölümün birikmiş dönüşü (ör. 5 bölüm: ~21-29 sn): sahne en çok ~8 sn sürsün diye baştan hızlanır; dokununca daha
     // da (speedUp). Tek bölümün dönüşü (sandık + bölge canlanması dahil) tasarlandığı hızda kalır.
     const multi = steps.filter((s) => s.kind === 'stars').length > 1;
@@ -248,7 +266,7 @@ export class MapScene extends Phaser.Scene {
         this.shown = { ...target }; this.syncNodes(); this.drawProgress(this.progressS(this.shown)); this.placeOdi(false);
         this.busy = false; this.follow = null; this.tweens.timeScale = 1; this.time.timeScale = 1;
         this.opts.onSequence?.('done');
-        const q = this.queue; this.queue = null; if (q) void this.play(q);
+        const q = this.queue; this.queue = null; if (q) void this.play(q); else this.focusCurrent();
       }
     }
   }

@@ -110,6 +110,10 @@
 
 /* ---------------------------------------------------------------- birikmiş kutlamalar (tek pencere) */
 .rc-sub { font-weight:900; font-size:1rem; color:var(--gold); margin-top:-8px; }
+/* satırlar sığmazsa liste kendi içinde kayar (başlık ve Tamam hep görünür); giriş bitince satırlar animasyondan bağımsız görünür */
+.recap-stage .lvl-list { flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; touch-action:pan-y; padding:2px 4px 6px; }
+.recap-stage.all .lvl-item { opacity:1; transform:none; animation:none; }
+.recap-stage .lvl-item { flex:none; }
 .recap-stage .lvl-item > .min0 { display:flex; flex-direction:column; gap:2px; }
 .recap-stage .chips { margin-top:2px; } .recap-stage .chip { background:#fff; color:var(--ink); border-color:#f0dcb4; }
 .cel-note { font-weight:900; font-size:0.9375rem; color:#d6ffe9; background:rgba(14,6,34,.7); border-radius:999px; padding:5px 14px; }

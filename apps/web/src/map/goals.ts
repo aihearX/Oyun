@@ -15,8 +15,10 @@ const STAGE_ICON: Record<Vitality, string> = { 0: '🌱', 1: '🌱', 2: '🌱', 
 export interface GoalPick {
   /** hedefin kimliği (aynı hedef sürerken değişmez): "t:15", "b:zar:2", "s:dis-kulak", "son" */
   key: string;
-  /** bölüm hedefi: kaç bölüm sonra (1 = bu bölümün sonunda); yıldız hedefinde yıldız sayısı */
+  /** bölüm hedefi: kaç bölüm sonra (1 = sıradaki bölümün sonunda); yıldız hedefinde yıldız sayısı */
   left: number;
+  /** bölüm hedefi: gerçekleşeceği bölüm (o bölüm bitince) */
+  level?: number;
   treasure?: number;
   biome?: { id: BiomeId; to: Vitality };
   stars?: { id: BiomeId; n: number };
@@ -49,7 +51,7 @@ export function pickGoal(stars: StarMap, levels: LevelPlan[] = HUMAN_JOURNEY.lev
   }
   if (at.size) {
     const lv = Math.min(...at.keys()); const g = at.get(lv)!;
-    return { key: [g.treasure ? `t:${g.treasure}` : '', g.biome ? `b:${g.biome.id}:${g.biome.to}` : ''].filter(Boolean).join('+'), left: lv - unlocked + 1, ...g };
+    return { key: [g.treasure ? `t:${g.treasure}` : '', g.biome ? `b:${g.biome.id}:${g.biome.to}` : ''].filter(Boolean).join('+'), left: lv - unlocked + 1, level: lv, ...g };
   }
   let best: { id: BiomeId; n: number } | null = null;
   // önceki yıldız hedefi sürüyorsa o korunur (başka bölgeden gelen yıldız hedefi değiştirmez)
@@ -63,14 +65,17 @@ export function pickGoal(stars: StarMap, levels: LevelPlan[] = HUMAN_JOURNEY.lev
 const name = (b: BiomeId) => BIOMES[b].name;
 /** "da/de" bağlacı: son ünlüye göre (Kulak Zarı da, Kemikçikler de) */
 const daDe = (w: string) => (/[aıou][^aıoueiöü]*$/i.test(w) ? 'da' : 'de');
-/** hedef metni; `same` verilirse o bölgenin adı tekrar edilmez ("Sıradaki: 2 bölüm sonra canlanır") */
-function goalText(g: GoalPick, same?: BiomeId): string {
+/**
+ * hedef metni: her zaman yer adı ve ne zaman (OT-sinav-adayi-24: "Sıradaki: Bu bölümün sonunda canlanır" neyin canlanacağını ve
+ * hangi bölümü söylemiyordu). Sıradaki bölümde gerçekleşecekse bölüm numarası: "Bölüm 33 bitince İşitme Siniri canlanır".
+ */
+function goalText(g: GoalPick): string {
   if (g.stars) return `${g.stars.n} yıldız daha: ${name(g.stars.id)} ışıl ışıl olur`;
   if (!g.treasure && !g.biome) return 'Ninni beyne ulaştı!';
-  const when = g.left <= 1 ? 'Bu bölümün sonunda' : `${g.left} bölüm sonra`;
-  if (g.treasure && g.biome) { const who = g.biome.id === same ? 'Bölge' : name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}.`; }
-  if (g.biome) return `${when} ${g.biome.id === same ? '' : `${name(g.biome.id)} `}${VITALITY_WILL[g.biome.to]}`;
-  return g.left <= 1 ? 'Bu bölümün sonunda hazine!' : `${g.left} bölüm sonra hazine`;
+  const when = g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
+  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}.`; }
+  if (g.biome) return `${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}`;
+  return g.left <= 1 ? `${when} hazine!` : `${when} hazine`;
 }
 const goalIcon = (g: GoalPick) => (g.treasure ? '🎁' : g.biome ? STAGE_ICON[g.biome.to] : g.stars ? '✨' : '👑');
 /** ulaşılan hedefin kutlama cümlesi */
@@ -91,15 +96,14 @@ function reached(g: GoalPick, stars: StarMap): boolean {
 
 /**
  * Haritadaki tek "Sıradaki hedef". `before`: haritanın en son gösterdiği yıldızlar (mapSeen; ilk açılışta null).
- * Önceki hedefe bu dönüşte ulaşıldıysa bir kez söylenir: "Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra canlanır".
+ * Önceki hedefe bu dönüşte ulaşıldıysa bir kez söylenir: "Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır".
  */
 export function mapGoal(stars: StarMap, before: StarMap | null): Goal {
   const was = before ? pickGoal(before) : null;
   const now = pickGoal(stars, undefined, was);
   const text = now ? goalText(now) : 'Ninni beyne ulaştı!'; const icon = now ? goalIcon(now) : '👑';
   if (!was || was.key === now?.key || !reached(was, stars)) return { icon, text };
-  const same = was.biome && now?.biome?.id === was.biome.id ? was.biome.id : undefined;
-  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now, same)}` : `${reachedText(was)} Ninni beyne ulaştı!` };
+  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now)}` : `${reachedText(was)} Ninni beyne ulaştı!` };
 }
 
 /** hazinenin GERÇEK verilen içeriği: defterdeki kayıt (tekrar gelen kozmetik jetona dönmüş olabilir); yoksa tanım */

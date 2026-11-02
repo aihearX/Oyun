@@ -112,7 +112,7 @@ try {
   if (await p.locator('.cel-coin').count()) errors.push('verilmiş hazine jetonları sayaca yeniden uçtu');
   await sleep(1200);
   // birikmiş kutlamalar tek pencerede
-  await cel(p, 'recap', { title: 'Yokluğunda', sub: '2 hazine, 2 bölge canlandı', note: 'Hazineler cüzdanına eklendi', rows: [{ icon: '🎁', text: 'Hazine · Bölüm 20', items: [{ kind: 'jeton', amount: 100 }] }, { icon: '🎁', text: 'Hazine · Bölüm 25', items: [{ kind: 'jeton', amount: 120 }, { kind: 'xp', amount: 40 }] }, { icon: '🌟', text: 'Kulak Kanalı yeniden canlandı!' }, { icon: '🌟', text: 'Koklea · Taban yeniden canlandı!' }] });
+  await cel(p, 'recap', { title: 'Yolda kazandıkların', sub: '2 hazine, 2 bölge canlandı', note: 'Hazineler cüzdanına eklendi', rows: [{ icon: '🎁', text: 'Hazine · Bölüm 20', items: [{ kind: 'jeton', amount: 100 }] }, { icon: '🎁', text: 'Hazine · Bölüm 25', items: [{ kind: 'jeton', amount: 120 }, { kind: 'xp', amount: 40 }] }, { icon: '🌟', text: 'Kulak Kanalı yeniden canlandı!' }, { icon: '🌟', text: 'Koklea · Taban yeniden canlandı!' }] });
   await sleep(2600); await shot(p, '20c-birikmis');
   await p.getByRole('button', { name: 'Tamam' }).click(); await sleep(1200);
   await cel(p, 'banner', { icon: '🏗️', title: 'Laboratuvar 3. seviye!', body: 'İnşaat bitti', tone: 'gold' });

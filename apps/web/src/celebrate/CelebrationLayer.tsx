@@ -24,7 +24,7 @@ type Scene =
   | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number; granted: boolean }
   | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
   | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number }
-  | { kind: 'recap'; title: string; sub?: string; note?: string; rows: RecapRow[]; phase: 'list' | 'out'; shown: number };
+  | { kind: 'recap'; title: string; sub?: string; note?: string; rows: RecapRow[]; phase: 'list' | 'out'; shown: number; all?: boolean };
 
 /** interactive: tam ekran sahne (sandık, seviye, biyom); kapanınca alttaki ekran kısa bir süre dokunuş almaz */
 interface Job { run: () => Promise<void>; done: () => void; interactive: boolean }
@@ -183,8 +183,10 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await wait(500);
     for (let k = 1; k <= o.rows.length; k++) { setScene({ ...base, phase: 'list', shown: k }); audio.play('unlock', { semitones: (k - 1) * 2, vol: 0.8 }); await wait(380); }
     setScene({ ...base, phase: 'list', shown: o.rows.length });
+    // giriş animasyonu bitti: bütün satırlar animasyondan bağımsız görünür (üst satırdaki sayı = görünen satır; OT-sinav-adayi-23)
+    await wait(500); setScene({ ...base, phase: 'list', shown: o.rows.length, all: true });
     await waitTap();
-    setScene({ ...base, phase: 'out', shown: o.rows.length }); await sleep(reduced.current ? 0 : 220);
+    setScene({ ...base, phase: 'out', shown: o.rows.length, all: true }); await sleep(reduced.current ? 0 : 220);
   };
 
   useEffect(() => {
@@ -314,7 +316,7 @@ function BiomeScene({ s, cardsRef, onTap, onOk }: { s: Extract<Scene, { kind: 'b
 
 function RecapScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'recap' }>; onTap: () => void; onOk: () => void }) {
   return (
-    <div className={`cel-stage recap-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={s.sub ? `${s.title}: ${s.sub}` : s.title}>
+    <div className={`cel-stage recap-stage ph-${s.phase}${s.all ? ' all' : ''}`} onClick={onTap} role="dialog" aria-label={s.sub ? `${s.title}: ${s.sub}` : s.title}>
       <div className="cel-title">{s.title}</div>
       {s.sub && <div className="rc-sub">{s.sub}</div>}
       <div className="lvl-list">

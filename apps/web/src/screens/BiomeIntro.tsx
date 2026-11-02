@@ -31,7 +31,8 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
   return (
     <div className={`biome-intro${dark ? ' dark' : ''}`} style={{ ['--b1' as string]: hex(b.palette.bgFar), ['--b2' as string]: hex(b.palette.bgNear), ['--ba' as string]: hex(b.palette.accent) }} onClick={() => { if (ready) onGo(); }}>
       <div className="bi-rings" aria-hidden><i /><i /><i /></div>
-      <div className="bi-body">
+      {/* kart ekrandan uzunsa (320 px, Büyük yazı, "Daha fazla" açık) içerik kendi içinde kayar; "Haydi!" alttaki çubukta hep görünür (OT-eski-telefon-16) */}
+      <div className="bi-scroll"><div className="bi-body">
         <div className="bi-kicker">Yeni biyom</div>
         <h1 className="bi-title">{b.name}</h1>
         <p className="bi-blurb">{b.blurb}</p>
@@ -41,6 +42,8 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
           <ul className="bi-moves">{moves(spec).map((l) => <li key={l}>{l}</li>)}</ul>
         </div>
         {note ? <NoteCard note={note} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
+      </div></div>
+      <div className="bi-foot">
         <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
     </div>

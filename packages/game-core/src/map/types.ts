@@ -19,6 +19,8 @@ export interface MapOptions {
   social?: MapSocial | null;
   /** üst HUD ve alt düğme/sekme çubuğunun kapladığı alan (CSS px) — odak bu boşluğun ortasına */
   insets: { top: number; bottom: number };
+  /** güncel paylar (HUD öğeleri sonradan değişebilir: hedef kartı, Etkinlik düğmesi); odaklanmadan önce sorulur */
+  getInsets?(): { top: number; bottom: number };
   reducedMotion?: boolean;
   /** hafif mod (düşük güç): sürekli animasyon yok, boşta döngü uyur. Verilmezse: test tarayıcısı ya da azaltılmış harekette açık */
   light?: boolean;
@@ -42,6 +44,8 @@ export interface MapHandle {
   /** yeni ilerleme (ör. sunucu eşitlemesi): farkı oynatır */
   update(stars: StarMap, treasuresOpen: number[]): void;
   focusCurrent(animate?: boolean): void;
+  /** sıradaki düğüm + Odi'nin ekrandaki dikdörtgeni (CSS px; harita açık değilse null) — ölçüm/test için */
+  currentRect(): { left: number; right: number; top: number; bottom: number } | null;
   /** dönüş sahnesini hızlandır (dokunuş) */
   speedUp(): void;
   /** oyuncunun Odi rengi değişti: haritadaki kahraman yerinde yeniden boyanır */

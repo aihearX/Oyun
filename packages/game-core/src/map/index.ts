@@ -42,6 +42,7 @@ export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
     setSocial: (s) => { opts.social = s; scene()?.setSocial(s); },
     update: (stars, treasures) => { opts.stars = stars; opts.treasuresOpen = treasures; scene()?.updateProgress(stars, treasures); },
     focusCurrent: (a = true) => scene()?.focusCurrent(a),
+    currentRect: () => scene()?.currentRect() ?? null,
     speedUp: () => scene()?.speedUp(),
     setHeroColor: (c) => { opts.hero = { ...opts.hero, color: c }; scene()?.setHeroColor(c); },
   };
