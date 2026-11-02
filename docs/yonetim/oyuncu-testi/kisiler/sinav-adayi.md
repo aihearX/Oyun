@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 32/40 (oturum 5 sonu) |
+| 1 | 2026-10-31 | | | 38/40 (oturum 6 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -89,3 +89,20 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 - Bakıp yazmadıklarım: pratik açıklamasındaki ampul simgesini önce sistem emojisi sandım; kodda çizim "bulb" simgesine eşlendiğini gördüm, yazmadım. Bölüm 29'da "Tüm notaları topla (97)" ile "3. yıldız: 88 nota" çelişkisi zaten yazılı (OT-ogrenci-birinci-5).
 - Yarım kalan / sonraki oturum: Bölüm 33 (sonunda İşitme Siniri canlanır). Takım › Etkinlikler › Bayrak Yarışı'nda "2. ayak seni bekliyor" (EceOdyo 1. ayağı bitirdi); bu oturumda koşamadım, sonraki oturumda ilk iş. Klinik'te Hakan, Zeynep, Defne, Bebek Ada, Burak bekliyor. Kulak Bilgi Yarışması (13:00/20:00) hâlâ denk gelmedi. Ton Avı ve Timpanogram Eşleştir kamp oyunları denenmedi. Bugün'deki günlük sandık 0/3.
 - Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; yeni arkadaşlık ya da takım daveti görmedim (zaten takımdayım). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo ve KralKoklea da var. Lig: Gümüş.
+
+## Oturum 6 · 2026-11-02 · sürüm 8b5919d2 · tur 1
+- Başlangıç: 32/40, seri 3 gün. Bitiş: 38/40, 80 yıldız (3 yıldız: 4, 7, 15, 17, 19, 23, 24, 25, 28, 30, 34), seviye 11, 6635 jeton, 110 kristal, seri 3 gün, Gümüş lig. Bu turda ilk kaybım: Bölüm 36 (39 deneme, 1 kayıp).
+- Eski geri bildirimlerin kontrolü (tur 6, durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-21: düzeldi (Pratik bitti ekranında "Yanlışların" bölümü: soru, "Senin cevabın: B) Her gün yenilenirler", "Doğru cevap: A) …" ve açıklama; "Yeni tur: 128 soruluk havuzdan yeniden rastgele 10 soru; bu turdakiler yine gelebilir" yazıyor). Kanıt 0541-dokun.png.
+  - OT-sinav-adayi-22: düzeldi (soru ve açıklama artık "tüy hücreleri").
+  - OT-sinav-adayi-23: düzeldi (Bölüm 33'ten haritaya dönüşte pencere başlığı "İşitme Siniri yeniden canlandı", "Yokluğunda" yok; Bölüm 35'te tek pencere "Hazine · Bölüm 35 · Cüzdanına eklendi · Tamam").
+  - OT-sinav-adayi-24: düzeldi (hedef kartı "Bölüm 33 bitince İşitme Siniri canlanır", sonra "Sıradaki: Bölüm 36 bitince Beyin Sapı canlanır"; yer adı var, kesilmiyor). Kanıt 0497-dokun.png.
+  - OT-sinav-adayi-12 ve -17: düzelmiş hâlde kaldı (Bölüm 33'te "76,4 sn sürdü, 0,4 sn geç"; Bölüm 35 hazinesi sonuçta +100, haritada ikinci kez eklenmedi, jeton 6.382).
+  - Ötekiler (1, 2, 3, 5, 9, 10, 13-16, 18, 19) önceki oturumlarda doğrulandı; gördüğüm yerlerde (sonuç kartı, takvim, pratik) bozulma yok. OT-4 / OT-8 reddedildi (test derlemesi), OT-11 kısmen, OT-20 sahip kararında: yeniden yazmadım.
+- Ne yaptım: Takım › Etkinlikler › Bayrak Yarışı 4. ayağı koştum (İnce Sesler, 68,1 sn, ayağın en iyi süresi); parkur takımca 281,9 sn'de tamamlandı. Bugün'de üç görev ödülü ve günlük sandık (Hertz Nedir? kartı). Bilgi pratiği 9/10 (birini Yanlışlar listesini görmek için bilerek yanlış). Bölüm 33-38 (İşitme Siniri sonu, Beyin Sapı, İşitme Korteksi'ne giriş); Bölüm 36'yı ilk denemede kaybettim (3 hasar, boşluğa düşme), ikinci denemede 1 yıldızla geçtim. Bölüm 35 hazinesi. Klinik'e ve Kulak Kartları'na bu oturumda bakmadım (komut bütçesi).
+- Bilgi içeriği (sınav gözüyle): doğru ve yerinde: ABR I–V aralığı yetişkinde ~4 ms; koklear çekirdek liflerinin önemli kısmı trapezoid cisimde karşıya geçer; maskeleme notu (supra-aural hava yolu IA en az ~40 dB, kemik yolu ~0 dB); Haas/öncelik etkisi; inferior kollikulus zorunlu aktarma durağı; kokteyl parti etkisi ve işitme kaybında ilk zorlaşan durum olması. Pratikte prestin, tip link + K+ girişi, 6 dB kuralı, C tipi timpanogram (östaki işlev bozukluğunda görülür, tanı demiyor), SNİK'te hava-kemik aralığı yok: hepsi doğru. Yanlış bilgi görmedim.
+- Hissettiğim: dört bildirimimin dördü de düzelmiş; pratikteki "Yanlışların" listesi tam istediğim şey. Beyin Sapı ve Korteks bölümleri belirgin biçimde zorlaştı (36 ve 38 tek yıldız, ilk kayıp); bilgi için oynadığım için tekrar etmedim. Pratikte hâlâ çocuk düzeyi sorular var (işaret dilleri, "Yankı nedir?"); OT-20 sahip kararında, yeniden yazmadım. Takıldığım bölümde her denemede aynı "Biliyor muydun?" satırı gelmesi beni biraz üzdü (OT-25).
+- Yazdığım geri bildirimler: OT-sinav-adayi-25 (kayıp/tekrarda aynı Biliyor muydun? satırı; öneri).
+- Bakıp yazmadıklarım: Seviye 10 penceresinde "Yeni biyom: Beyin Sapı" seviye ödülü gibi listeleniyor (OT-ekonomi-denetci-10 / OT-ilk-kez-oyun-5 ile aynı konu). Bölüm 36'da zorluk sıçraması zaten yazılı (OT-rekabetci-28). Bayrak Yarışı "Takımlar arası" listesinde yalnız bizim takım var (OT-rekabetci-22 yakın konu).
+- Yarım kalan / sonraki oturum: Bölüm 39 ve 40 (oyun sonu). Bölüm 36'dan sonra "Sonraki" ile ilerlediğim için Beyin Sapı canlanma kutlamasını haritada görmedim; sonraki haritaya dönüşte çıkacak mı bakılacak. Klinik'te Hakan, Zeynep, Defne, Bebek Ada, Burak bekliyor. Kulak Bilgi Yarışması (13:00/20:00) hâlâ denk gelmedi. Ton Avı ve Timpanogram Eşleştir kamp oyunları denenmedi.
+- Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; yeni arkadaşlık ya da takım daveti görmedim (zaten takımdayım). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; Bayrak Yarışı'nda EceOdyo, AyseTeyze, KaptanTuba ile parkuru tamamladık. Lig: Gümüş.

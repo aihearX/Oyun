@@ -6,7 +6,8 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 37/40 (oturum 5 sonu) |
+| 1 | 2026-10-31 | 2026-11-02 | 8b5919d2 | 40/40, 93 yıldız, 14 bölümde 3 yıldız, 58 deneme / 2 kayıp |
+| 2 | 2026-11-02 | | | sıfırlandı; sonraki oturumda baştan |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -78,3 +79,26 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 - Yazdığım geri bildirimler: OT-rekabetci-23 (Düello tekrar puanı), -24 (4 kişilik ligde 7/5 kuralı), -25 (rakipsiz düello ne olur), -26 (Takım Ligi 53 ile bu hafta 792), -27 (Takım Ligi ödül satırı), -28 (Bölüm 36 zorluk sıçraması).
 - Yarım kalan / sonraki oturum: Bölüm 38-40 (oyunu bitirmek). 3. yıldız: 32, 35, 36, 37 ve eskiler (yüzme 26-30, 21, 22, 24, 13, 14, 16). Ödül kutusunda 18 ödül ve takımda 9 hediye alınmadı. Bayrak Yarışı 2. ayağı hâlâ gönüllü bekliyor. Düello rakipsiz bitecek mi, bakmak.
 - Sosyal: arkadaş kodum EB3UVW (KralKoklea). Takımım Ninni Tasiyicilari (üye; takım davet kodu 8XJUU4, lider KaptanTuba). Arkadaşlarım: SinanSinav (33. bölüm), KaptanTuba (26. bölüm). Bu oturumda yeni arkadaşlık ya da takım daveti gelmedi. KaptanTuba'ya yazdım: düelloda yıldızlar sayılıyor, Bayrak 2. ayak boş, ortak bir bölümde (26) yarışalım.
+
+## Oturum 6 · 2026-11-02 · sürüm 8b5919d2 · tur 1
+- Başlangıç: 37/40, 87 yıldız (3 yıldız: 13), seviye 12, seri 3, Gümüş Ligi. Bitiş: 40/40, 93 yıldız (3 yıldız: 14; yeni: 39), seviye 13, seri 3 gün, Gümüş Ligi 3. sıra (7 kişi), jeton 7.749.
+- Önceki maddeler (yapildi olanlar yeniden kontrol):
+  - OT-rekabetci-12: düzeldi. Lig artık grup büyüklüğüne göre: 7 kişilik Gümüş'te "İlk 2 bir üst lige çıkar. Son 2 bir alta iner. ... (30 kişide ilk 7, son 5)" (0546-dokun).
+  - OT-rekabetci-24: düzeldi. Aynı ekran; yükselme ve düşme bölgeleri artık çakışmıyor.
+  - OT-rekabetci-23: düzeldi (kural olarak). Düello "Aynı bölüm bu düelloda en çok 2 kez tam puan yazar, sonraki her bitirişi 1 puan" diyor. Katkım 300; bu düellonun başladığı saati bilmediğim için tek tek tutturamadım.
+  - OT-rekabetci-25: düzeldi. "Rakip çıkmazsa düello sayılmaz (Takım Ligi'ne puan yazılmaz); takım puan topladıysa her üyeye Teselli ödülü verilir." (0607-kaydir).
+  - OT-rekabetci-26: düzeldi. Takım Ligi "Bu sezon (2 hafta): 1. hafta 46 + bu hafta 23 (2.396 savaş puanı) · 69" yazıyor; toplam ve 2.396/100 tutuyor.
+  - OT-rekabetci-27: düzeldi. Kurallar "1. takım taban ×3, 2. ×2, 3. ×1,5 ... Örnek, Bronz: 1. takım 15, 2. 10, 3. 8 (7,5 → 8)" diyor; açık.
+  - OT-rekabetci-2: düzeldi (yine doğru: 39'da süre hedefi olunca kutu "süre" diyor). OT-6: balon çıkmadı, kontrol edilemedi.
+  - OT-rekabetci-7, -8, -9, -14 ... -18, -21: önceki oturumlarda düzeldi; bu oturumda da sorun yok (39'un 3. yıldız kartı "biri yeter · tamam" ile iki koşulu da yazıyor).
+  - İşlenmeyi bekleyen: OT-4/10 (YN-048) hâlâ var: 37 bölüm geçmişken Profil "87 yıldız · 50 bölüm" (0545-dokun). OT-5: haritadan bölüme girince hâlâ ön kart yok.
+- Ne yaptım: 38 (1 yıldız, tekrarında yine 1; Gece değiştiricisi, 49/89 nota), 39 (2, tekrarında 3: 81,3 sn / hedef 85), 40 final canavarı (1, tekrarında 2; skor 474 → 491). Oyunu bitirdim. Haftalık lig, Takım › Rekabet (Savaş, Takım Yarışı: açık lobi yok, Sıralama: sunucuda tek takım, Lig ve kuralları), Takım Düellosu ayrıntısı (yine rakipsiz). Yankı Hayaleti ralisi başlattım, DrMelis, SinanSinav, KaptanTuba'yı çağırdım; kimse gelmedi. DrMelis 40'ta takılınca yardım kartından "Yarış" ile 40'a oda kurdum, 1,5 dk bekledim, gelmedi. Bugün: takvim 3. gün (Kulaklı Bere + 20 jeton), görev ödülleri.
+- Hissettiğim: geçen oturumda yazdığım beş şeyin beşi de düzelmiş, sayılar ve kurallar artık açık; bu oyuna güvenimi artırdı. 39'da süreyle 3 yıldız almak tatmin ediciydi. Final canavarı ise skor olarak hayal kırıklığı (491) ve oyunun sonu sessiz geçti. Rallide en zor canavarın 2 kişiyle hiç yenilemeyeceğini fark etmek beni rahatsız etti.
+- Yazdığım geri bildirimler: OT-rekabetci-29 (Yankı Hayaleti 2 kişiyle yenilemez), -30 (Düello katkı listesinde adlar kesik), -31 (canavar skoru çok düşük), -32 (oyun sonu özeti yok).
+- Yarım kalan / sonraki oturum: Tur 1 bitti, profil sıfırlanıyor; tur 2'de 1. bölümden başlayıp bu kez her bölümde 3 yıldız peşine düşeceğim. Canlı yarışı hâlâ hiç oynayamadım (rakip hiç gelmedi).
+- Sosyal: arkadaş kodum EB3UVW (KralKoklea; sıfırlamadan sonra değişebilir, tur 2'de buraya yeni kodu yazacağım). Takımım Ninni Tasiyicilari (üye; davet kodu 8XJUU4, lider KaptanTuba). Arkadaşlarım SinanSinav, KaptanTuba. Bu oturumda yeni arkadaşlık ya da takım daveti yoktu. DrMelis: 40'ta takıldıysan yarış odası kurdum, bir dahakine birlikte koşalım.
+
+### Tur 1 bitti · 2026-11-02 · sürüm 8b5919d2
+- Sonuç: 40/40, 93/120 yıldız, 14 bölümde 3 yıldız, 58 deneme, 2 kayıp (3 ve 36), seviye 13, Gümüş Ligi.
+- Son değerlendirme: Ana oyun akıcı ve 0,95 elle kolay; gerçek zorluk 36'dan sonra ve 3. yıldızda (özellikle yüzme biyomunda 90 nota eşiği). Rekabet tarafında en büyük gelişme şeffaflık: lig, Takım Ligi, Bölge Savaşı ve Düello artık puanın nereden geldiğini açıkça yazıyor ve sayılar birbirini tutuyor; sahte rakip yok, bu dürüst. En zayıf yan: canlı yarış ve takımlar arası rekabet için hiç rakip bulamadım (tek takım, hep "Rakip aranıyor"), bu yüzden rekabet hissi bireysel lige sıkışıyor. Skorun nasıl hesaplandığı (OT-3) ve canavar skorlarının düşüklüğü sıralama/rekor tarafını zayıflatıyor. Bölüme girmeden 3. yıldız koşulunu görmek (OT-5) tur 2'de en çok isteyeceğim şey.
+- Sıfırlandı (sifirla): sunucu hesabı "KralKoklea" silindi; EB3UVW kodu ve Ninni Tasiyicilari üyeliği artık geçersiz. Tur 2 hesabının kodu sonraki oturumda buraya yazılacak.

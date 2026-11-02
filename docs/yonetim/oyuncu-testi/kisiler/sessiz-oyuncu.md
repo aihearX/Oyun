@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 32/40 (oturum 5 sonu) |
+| 1 | 2026-10-31 | | | 38/40 (oturum 6 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -93,3 +93,26 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 - Başkalarının yazdığını gördüğüm, yeniden yazmadığım: Ödül kutusunda oynamadığım modların sıralama ödülü (OT-buyuk-yazi-26), Profil'de "26 bölüm" geçtiğimden bir fazla (OT-rekabetci-4), 5 kişilik ligde 0 puanla son sıradayken "Yükselme bölgesindesin" (OT-rekabetci-12 / -24), takvimin 3. günü "+20" deyip sonra "70" yazması (OT-ogrenci-birinci-18), Ayarlar'da "çözülen kayıt: 0" teşhis satırı (OT-sinav-adayi-8), seviye penceresi açılanları açıklamıyor (OT-ekonomi-denetci-10).
 - Yarım kalan / sonraki oturum: Bölüm 33'ten devam (değiştirici listesine göre 33'ten sonra "Cihaz Kapalı" gelebilir: notalar görünmez olursa sessiz oynanabilir mi, dikkatle bak). Ton Avı (kamp oyunu) hâlâ bulunamadı. Etkinlik (1 bekliyor), Mağaza, Hasta Vakaları (önce Odyoloji Kliniği kurulmalı), Kulak Kartları'nda Koklear İmplant kartını oku. OT-5, OT-10, OT-11 yeniden kontrol.
 - Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC); bu oturumda ona hediye gönderdim. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 3, 10/30 üye), rolüm üye. Bekleyen arkadaşlık isteği ya da yeni takım daveti yoktu.
+
+## Oturum 6 · 2026-11-02 · sürüm 8b5919d2 · tur 1
+- Başlangıç: 32/40, seri 3 gün, 7291 jeton, 395 kristal, Sv 9. Bitiş: 38/40 (yıldızlar 33:2 34:2 35:2 36:1 37:2 38:1; toplam 78, üç yıldız 7), Sv 11, seri 3 gün, 8732 jeton, 425 kristal. 10 denemede 4 kayıp (33'te 3, 36'da 1).
+- Yeniden kontrol (durumu "yapildi:" olan maddelerim):
+  - OT-sessiz-oyuncu-1: düzeldi (Ayarlar'da "Sesler kapalı: anlatıcı da susuyor…" yazısı yerinde, 0462).
+  - OT-sessiz-oyuncu-2: düzeldi (Titreşim anahtarı Açık; ayrıca yeni "Yüksek görünürlük" seçeneği var, 0463).
+  - OT-sessiz-oyuncu-3: düzeldi (sonuç kartı "30 nota kaldı · 59 nota tamam 2 hasar aldın", "0/3 altın koklea", "81,4 sn sürdü, 2,4 sn geç" diyor; 0486, 0494, 0516).
+  - OT-sessiz-oyuncu-4: düzeldi (bu oturumda alt menüyü örtüp takılan rehber balonu görmedim).
+  - OT-sessiz-oyuncu-5: kontrol edilemedi (Günün Sorusu tanıtımı bir daha çıkmıyor; kartına rastlamadım).
+  - OT-sessiz-oyuncu-7: kontrol edilemedi (bu oturumda fısıltı bölümü gelmedi; ama kayıp sonuçlarında artık "Neden olmadı? Canların bitti · 3 kez hasar aldın, en son boşluğa düştün" kutusu var, 0470, 0504; aynı kutunun fısıltı kaybında da çıkacağını umuyorum).
+  - OT-sessiz-oyuncu-8: kontrol edilemedi (Ödül kutusu boştu, arkadaş hediyesi satırı yoktu).
+  - OT-sessiz-oyuncu-9: düzeldi (oturum 5'te doğrulamıştım; yeni tanıtım görmedim).
+  - OT-sessiz-oyuncu-10: düzeldi. Bölüm 33 ve 36'da kaybettim; ipuçları "Bu bölümde Odi daha hızlı koşar: engel ekrana girer girmez hazırlan", "Boşluklarda bir an önce zıpla…", "Mor bölgede dokun: yerçekimini çevir" (0470, 0475, 0504). Hiçbiri sese dayanmıyor.
+  - OT-sessiz-oyuncu-11: düzeldi. Haritaya dönüşte kutlamalar tek pencerede toplandı ("Yolda kazandıkların: 1 hazine, 2 bölge canlandı"), "İşitme Siniri yeniden canlandı!", "Beyin Sapı yeniden canlandı!" satırları temiz okunuyor, üstünden nota geçmiyor (0525).
+  - OT-sessiz-oyuncu-12: düzeldi. Bölüm içinde sol üstte "Hız · Yankı", "Sis", "Gece", "Yankı" rozeti var (0467, 0497, 0501, 0519), sonuçta "Değiştirici: Hız, Yankı" yazıyor (0470). Küçük not: Yankı'nın ne yaptığı hâlâ yazmıyor, ama adı artık görünüyor.
+  - OT-sessiz-oyuncu-6 (kismen): daha da iyileşmiş. Bölüm 38'de üstte "Nota 3/9" rozeti (0519), Bölüm 35'te Tüy Dede "Basamaklar ritimden kayıyor: gözünle izle!" diyor (0497): ritim artık açıkça göze söyleniyor.
+- Ne yaptım: Bugün'de 3 görev ödülü ve günlük sandık (+1 Kulak Kartı: Hertz Nedir?). KaptanTuba'nın ralli davetine "Davete git" dedim, başka bir ralli açıldı (OT-13). Etkinlikler'e ve Ses Avı'na baktım (takım 2500/2500 nota). Ayarlar. Bölüm 33 Işık Hızı (3 kayıp; takımdan yardım istedim, 4. denemede değiştiricisiz geçtim: OT-14), yeni biyom Beyin Sapı: 34 Çapraz Yollar, 35 Ters Dünya (Bölüm 35 hazinesi), 36 Tavanın Altı (bir kayıp), yeni biyom İşitme Korteksi: 37 Anlam Bahçesi, 38 Ninni Hatırlanıyor (Seviye 10 ve 11). Kulak Kartları (33/50): Koklear İmplant kartı ("sesi elektrik sinyaline çevirip işitme sinirini doğrudan uyarır… bazal elektrotlar yüksek, apikal alçak frekans") doğru ve saygılı, çok hoşuma gitti. Takım hediyeleri (+400 jeton, +30 kristal).
+- Sessiz oynanabilirlik: şimdiye kadarki en iyi hâli. Değiştiriciler rozetle, sıralı nota sayaçla, ritim "gözünle izle" yazısıyla, kayıp sebebi "Neden olmadı?" kutusuyla geliyor. Tek pürüz: aynı anda çıkan iki uçan yazı üst üste biniyor (OT-15); sesi kapalıyken bu yazılar benim tek geri bildirimim.
+- Hissettiğim: Bölüm 33 ilk kez gerçekten zorladı, üç kayıp sinir bozdu ama "Takımından yardım iste" kartı güzel bir dokunuştu. 4. denemede bölümün kolaylaştığını fark ettim ama oyun söylemedi (OT-14). Beyin Sapı ve Korteks notları (maskeleme, irkilme refleksi, bebeklerin anne sesini tanıması) ilgi çekici.
+- Yazdığım geri bildirimler: OT-sessiz-oyuncu-13 (ralli daveti başka ralliyi açıyor), OT-sessiz-oyuncu-14 (3 kayıptan sonra sessiz kolaylaştırma söylenmiyor), OT-sessiz-oyuncu-15 (iki uçan yazı üst üste).
+- Başkalarının yazdığını gördüğüm, yeniden yazmadığım: ralli davet kartındaki sistem emojisi (🔥) ve süresi dolan kartın "seni bekliyor" demesi (OT-takim-kaptani-15), Profil'de geçtiğimden bir fazla bölüm sayısı (OT-rekabetci-4; "33 bölüm" / "39 bölüm"), Yankı Hayaleti rallisinin 2 kişiyle yenilemezliği (OT-rekabetci-29), sohbetteki "Silinmiş Oyuncu" ralli kartı (OT-ilk-kez-oyun-32).
+- Yarım kalan / sonraki oturum: Bölüm 39'dan devam (iki bölüm kaldı, 40 boss gibi görünüyor: haritada canavar yüzlü düğüm). Ton Avı (kamp oyunu), Mağaza, Hasta Vakaları ve bilgi yarışması hâlâ denenmedi. OT-5, OT-7, OT-8 yeniden kontrol.
+- Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC); bugünkü hediye gönderilmiş görünüyor. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 3, 9/30 üye), rolüm üye. Bekleyen arkadaşlık isteği ya da yeni takım daveti yoktu; takım sohbetine Bölüm 33 için yardım isteği kartı düştü.

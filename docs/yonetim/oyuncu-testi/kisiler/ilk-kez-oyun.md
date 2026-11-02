@@ -6,7 +6,7 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 19/40 (oturum 5 sonu; 20 Golem 8 kayıp) |
+| 1 | 2026-10-31 | | | 21/40 (oturum 6 sonu; 20 Golem 15. denemede geçildi) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -83,3 +83,20 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-ilk-kez-oyun-23 (Hâlâ: Golem'de yazı dururken can gidiyor, eski -18), -24 (ilk canavar duvar: 8 kayıp, kolaylaştırma yok), -25 ("Yardım iste" düğmesi sabit çubuğun arkasında), -26 (Hâlâ: ampul ve Bayrak Yarışı emojileri, eski -20/-21), -27 ("alma süresi doldu" ama Al var; Baskın birinciliği kimin), -28 (Mağaza üst paragrafı).
 - Yarım kalan / sonraki oturum: Hedef 6 bölümdü; Golem'i geçemediğim için hiç ilerleyemedim. Bir sonraki oturumda yine Golem; takımdan ipucu/kalkan gelmiş mi bakılacak. Günün Sorusu'na ve Kamp'ta yükseltmeye (inşaatçı boşta) hâlâ bakmadım. Günlük görevler (2 bölüm bitir, 3 yıldız, 120 jeton) yapılmadı.
 - Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) arkadaşım; bugün ona hediye gönderdim ve Bayrak Yarışı'nın 3. ayağını ona devrettim. Takımda HasanBey ve EceOdyo'yu gördüm (EceOdyo 1. ayağı koşmuş). Bana yeni arkadaşlık ya da takım daveti gelmedi. 20. bölüm için takımdan yardım istedim.
+
+## Oturum 6 · 2026-11-02 · sürüm 8b5919d2 · tur 1
+- Başlangıç: 19/40, 36 yıldız, seri 3. Bitiş: 21/40, 39 yıldız (20:1 21:2), oyuncu seviyesi 6, 6.217 jeton, 410 kristal, Kamp Seviyesi 4, seri 3 gün. Sıradaki Bölüm 22.
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ilk-kez-oyun-23: düzeldi. Golem'in ilk saniyelerinde altta "Faz 1: Gölgeden kaç. Yumruk saplanınca üstüne zıpla, havada aşağı kaydır" yazıyor, o sırada canlarım dolu (0426). Artık ne yapacağımı biliyorum.
+  - OT-ilk-kez-oyun-25: düzeldi. Kayıp ekranında yardım kartı ("Yardım istedin · Takım sohbetinde kartın var") alttaki "Tekrar dene" çubuğunun üstünde, tamamı görünüyor (0427, 0431).
+  - OT-ilk-kez-oyun-27: düzeldi. Takım hediyelerinde artık "Alınmazsa 6 gün 11 sa sonra Ödül kutuna geçer" yazıyor; "süresi doldu" korkusu yok (0438).
+  - OT-ilk-kez-oyun-28: kontrol edemedim (bu oturum Mağaza'ya girmedim).
+  - OT-ilk-kez-oyun-14, -16, -22: kontrol edemedim (ilgili rehber, "aşağı kaydır" tanıtımı ya da seviye atlama penceresi çıkmadı).
+  - OT-ilk-kez-oyun-24 (sahip kararı YN-110, "yapildi" değil): bilgi olarak: bu oturum 6 kayıp daha, 15. denemede 1 yıldızla geçtim.
+  - Daha önce düzelen -1, -2, -4, -6/-7, -8, -13, -15, -19: bozulduğunu görmedim. Kayıp ipucu değişiyor ("Zayıf noktasına vur…" / "Her saldırıdan önce bir uyarı görünür…").
+- Ne yaptım: Ödül kutusundan KaptanTuba'nın kalkanını aldım. Golem'e 7 kez girdim: 6 kayıp (bazısı Faz 2'ye kadar, "%43'ü kaldı"), 7.'de 18,7 sn'de 1 yıldızla GEÇTİM; "Pes Etmeyen · Gümüş" başarımı geldi. Sonra Bölüm 21 Suya Dalış (ilk denemede, 2 yıldız). Takım'da 5 hediyeyi aldım (+2 kalkan, jeton, kristal), 40. bölümde takılan DrMelis'e yardım (kalkan) gönderdim. Bugün › Bilgi pratiği'nde 3 soru çözdüm (2 doğru, Presbiyopi'yi Presbiakuzi ile karıştırdım). Kamp'ta Kulak Deposu'nu topladım, Odyoloji Kliniği'ni kurdum (Kamp Seviyesi 4), ilk Hasta Vakası'nı çözdüm: Hakan, kulak kiri tıkacı, yalnız otoskopla "Mükemmel karar!".
+- Hissettiğim: Golem'de 6 kayıp daha verince "bu oyun bana göre değil" demeye başladım; takımdan gelen kalkanlar bile yetmedi. Ama artık ekranda ne yapacağım yazdığı için kayıplar daha az haksız geldi. Sonunda geçince çok çok sevindim; "Pes Etmeyen" başarımı tam yerindeydi. Ardından 21 ilk denemede geçti, moralim yerine geldi. Hasta Vakası çok hoşuma gitti: hikâye kısa, otoskobu kliniğin açıklamasından tahmin ettim ve doğru çıktı; ama OAE, ABR, Refleks, İşlemleme düğmelerinin ne olduğunu hiç bilmiyorum (OT-29). Bilgi pratiğinde süre olmaması ve her cevaptan sonra açıklama gelmesi rahatlattı. Golem'i geçince Kulak Kanalı'nın canlanmasını beklerken doğrudan yeni bölgeye geçtim, biraz buruk kaldı (OT-34). "Diyapazon", "perilenf", "biyom", "Faz", "par" kelimelerini hâlâ tahminle okuyorum.
+- Başkalarının yazdığını gördüğüm, bende de olanlar (yeniden yazmadım): Hasta Vakaları'nın yerini bulmak zor (OT-sinav-adayi-10, OT-sessiz-oyuncu-9); vaka sonucunda istemediğim testlerin bulguları anlatılıyor (OT-uzman-odyolog-13, bende de Hakan'da 0487); üstte "5,9B" jeton (benim OT-12, YN-087).
+- Yazdığım geri bildirimler: OT-ilk-kez-oyun-29 (klinik test düğmeleri açıklamasız), -30 ("Timpanogra/m" kelime bölünmesi), -31 ("Diyapazonla kapının rengini eşle" talimatı), -32 ("Silinmiş Oyuncu ralli başlattı" eski kart), -33 (Kamp "Göster" bir şey göstermiyor; Merkez/Klinik adları), -34 (Golem sonrası "Sonraki" canlanmayı atlıyor), -35 (bilgi pratiğinde yanlış şıkkın açıklaması yok).
+- Yarım kalan / sonraki oturum: Hedef 6 bölümdü; Golem'e çok deneme gittiği için 2 bölüm geçebildim. Sıradaki Bölüm 22. Mağaza (OT-28 kontrolü), Kulak Kartları, Kamp oyunları, Günün Sorusu'na bakılacak; klinikte Ece ve Mert vakaları bekliyor. Günlük görevlerden "2 bölüm bitir" bu oturumda tamamlanmış olmalı, sandığı açmadım.
+- Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) arkadaşım; 20. bölüm için kalkan göndermişti, aldım. DrMelis'e 40. bölüm için kalkan gönderdim. Takımda DrMelis, SinanSinav, HasanBey var. Bana yeni arkadaşlık ya da takım daveti gelmedi.

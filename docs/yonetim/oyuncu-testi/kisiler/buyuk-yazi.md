@@ -6,7 +6,7 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 27/40 (oturum 5 sonu) |
+| 1 | 2026-10-31 | | | 33/40 (oturum 6 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -76,3 +76,18 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-24 (sis/gece ekranı karartıyor), -25 (melodi notaları jetonlardan ayırt edilmiyor), -26 (Ödül kutusu sıralama satırları kimin sırası belli değil, aynı başlık iki kez), -27 (Kamp etki kutusunun etiketleri küçük), -28 (Bilgi pratiğinde soluk şıklar, yanlış şık yalnız renkle).
 - Yarım kalan / sonraki oturum: Bölüm 28 (Koklea · Apeks) sırada. İşitme Cihazı Atölyesi inşaatı (1 dk) bitti mi bakılacak; Odyoloji Merkezi Sv 3 sıraya alınmadı. OT-21 (canavar can çubuğu) bir sonraki canavar bölümünde kontrol edilecek. Etkinlikler (1 bekliyor), Mağaza, Ayarlar, Kulak Kartları bu oturumda denenmedi. Bilgi pratiği yarıda bırakıldı (2/10).
 - Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 10/30 üye, Sv 3). Arkadaşım KaptanTuba (KRMXHC); bugün ona hediye gönderdim. Takımdan AyseTeyze'ye 20. bölüm için ipucu verdim. Bekleyen arkadaşlık ya da takım isteği yoktu.
+
+## Oturum 6 · 2026-11-02 · sürüm 8b5919d2 · tur 1
+- Başlangıç: 27/40, 57 yıldız, seri 3 gün. Bitiş: 33/40, 69 yıldız (28-33 hepsi 2 yıldız), oyuncu seviyesi 9, seri 3 gün, 8.420 jeton, 460 kristal.
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlar):
+  - OT-buyuk-yazi-24: düzeldi. Sisli Bölüm 29'da Odi'nin çevresi geniş ve aydınlık, platformlar ve notalar görünüyor (0436, 0437); gece Bölüm 32'de Odi'nin bandı aydınlık, platformlar parlak, dikenler seçiliyor (0511, 0512). Üst kısım hâlâ koyu ama oynanan yer artık görünüyor.
+  - OT-buyuk-yazi-27: düzeldi. Kamp'taki etki kutusunda yüzdeler iri, etiketler (jeton, kalkan, klinik, savaş, baskın) okunuyor (0455).
+  - OT-buyuk-yazi-28: düzeldi. Bilgi pratiğinde yanlış şıkkımda pembe zemin + kırmızı çarpı simgesi var, doğru şık yeşil çerçeve + tik; öteki şıklar okunabilir (0485).
+  - OT-buyuk-yazi-25: bakamadım; bu oturumda melodi bölümü gelmedi.
+  - OT-buyuk-yazi-26: bakamadım; ödül kutusunda yalnız bir teşekkür ödülü vardı, sıralama satırı çıkmadı (0487).
+  - OT-buyuk-yazi-21: bakamadım; canavar bölümü gelmedi.
+- Ne yaptım: Bölüm 28-33. 30 Son Kıvrım (Hız · Yankı) üç kez kaybettim, takımdan yardım istedim, kalkan geldi, dördüncüde geçtim. 31'de yeni biyom İşitme Siniri. 33 Işık Hızı dört kayıptan sonra beşincide geçti (yine yardım istedim). Seviye 9. Kamp: depoyu topladım, iki Kamp Görevi ödülü, Ton Avı'nı bir tur oynadım (2/8). Bugün: Bilgi pratiğinde bir soru. Takım: AyseTeyze'yi tebrik ettim, 3 takım hediyesi (+450 jeton, +50 kristal), DrMelis'e 40. bölüm için kalkan gönderdim. Ödül kutusu boşaltıldı. Profil, Arkadaşlar, Kulak Kartları, Ayarlar'a baktım.
+- Hissettiğim: Eski dertlerimin çoğu gerçekten gitmiş; sis ve gece artık beni korkutmuyor, sonuç ve kayıp ekranları derli toplu, Bilgi pratiği tam istediğim gibi. Bu sefer zorlandığım şey yeni İşitme Siniri biyomu: parlak çizgilerin arasında platformları ve gürültü bulutunu göremedim, 33'ü beş denemede geçtim. Hız · Yankı bölümlerinde ekranın ortasında iki hastalık adı birden uçuştu, okurken bulutu kaçırdım. Takım yardımı çok hoşuma gitti (kalkan gelince geçtim). Ayarlar'daki teşhis satırı hâlâ görünüyor (OT-sinav-adayi-4/-8 ile aynı; yeni yazmadım). Kayıp ekranındaki ampul ve sohbet tepkileri hâlâ emoji gibi (zaten yazılmış). Kulak Kartları albüm kartındaki açıklama yazısı küçük ve ilerleme çubuğuna yapışık (0547), yazmadım, küçük şey.
+- Yazdığım geri bildirimler: OT-buyuk-yazi-29 (hastalık adları oyun alanının ortasında üst üste), -30 (İşitme Siniri'nde platform ve bulut çizgilerle karışıyor), -31 (Ton Avı'nda doğru/yanlış görünmüyor), -32 (geçilmiş bölümün yardım isteği listede kalıyor), -33 (yardım kartında 'dk' bölünüyor, Gönderildi gri üstüne gri), -34 (Odi'nin üstündeki ince turkuaz çizgi).
+- Yarım kalan / sonraki oturum: Bölüm 34 (İşitme Siniri) sırada. OT-21 (canavar can çubuğu), OT-25 (melodi notaları), OT-26 (ödül kutusu sıralama satırı) bir sonraki fırsatta kontrol edilecek. Kamp'ta inşaatçı boşta (Odyoloji Merkezi Sv 3 başlatılmadı). Etkinlikler (1 bekliyor), Mağaza, Hasta Vakaları denenmedi.
+- Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 9/30 üye, Sv 3). Arkadaşım KaptanTuba (KRMXHC; 32. bölümde). Bu oturum bana yeni arkadaşlık ya da takım isteği gelmedi. 30 ve 33 için takımdan yardım istedim; DrMelis'e 40. bölüm için kalkan gönderdim.
