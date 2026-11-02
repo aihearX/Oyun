@@ -6,7 +6,7 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | | | | |
+| 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 82 yıldız, 49 deneme / 9 kayıp |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -95,3 +95,21 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 - Yazdığım geri bildirimler: OT-uzman-odyolog-23, OT-uzman-odyolog-24, OT-uzman-odyolog-25, OT-uzman-odyolog-26
 - Yarım kalan / sonraki oturum: Bölüm 40 (Gürültü Canavarı); geçince tur biter. Timpanogram Eşleştir (OT-12), Kulak Sözlüğü otoskleroz (OT-7), anıt notu (OT-20) hâlâ doğrulanacak. Klinikte Defne (yüzücü kulağı) bekliyor. Bilgi pratiğinin kalan 7 sorusu.
 - Sosyal: arkadaş kodum K9FM5K, takma ad DrMelis. KaptanTuba (KRMXHC) ile arkadaşız. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4), lig gümüş. Yeni arkadaşlık ya da takım daveti yoktu; KralKoklea'dan Ralli (Yankı Hayaleti) daveti geldi. Bölüm 40 için takım sohbetine yardım kartı bıraktım.
+
+## Oturum 7 · 2026-11-02 · sürüm bd976b22 · tur 1
+- Başlangıç: 39/40 (79 yıldız, seri 3 gün). Bitiş: 40/40, 82 yıldız (40 üç yıldız), oyuncu seviyesi 11, seri 4 gün, 7.160 jeton, 80 kristal, Gümüş Ligi 3. sıra.
+- Önceki geri bildirim kontrolü ("yapildi:" maddeleri; 2, 3, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 22 önceki oturumlarda doğrulanmıştı):
+  - OT-uzman-odyolog-23: düzeldi. Bilgi pratiğinde efüzyonlu otitis media sorusunda şıklar artık "A · B tipi", "B · A tipi", "C · Ad tipi", "D · As tipi": şık harfi ayrı rozette, cevapta "tipi" yazıyor, karışmıyor (0675-dokun.png).
+  - OT-uzman-odyolog-26: doğrulanamadı; aynı "B tipi nedir" sorusu bu turdaki 10 soruda gelmedi. Gelen B tipi açıklaması ("sıvı varken zar hareketi kısıtlanır, eğri düzleşir") OME sorusu için doğru.
+  - OT-uzman-odyolog-7 (otoskleroz notu): doğrulanamadı. Kulak Sözlüğü'nde "otoskleroz" terimi yok (Kemikçikler: Örs, Üzengi, Oval pencere doğru); biyom notunu yeniden açmanın yolunu bulamadım.
+  - OT-uzman-odyolog-12 (Timpanogram Eşleştir), OT-uzman-odyolog-20 (anıt notu), OT-uzman-odyolog-24 (İşitme Korteksi alt başlığı), OT-uzman-odyolog-25 (İsmail odyogramı "(çentik)"): bu oturumda o ekranlara gelmedim, doğrulanamadı.
+- Ne yaptım: Bölüm 40'ı (Gürültü Canavarı) beşinci denemede, hasarsız ve 3 yıldızla geçtim; tur bitti. Bugün'de takvimi aldım, Bilgi pratiğinde 10/10. Klinikte Selim (travmatik zar perforasyonu; Otoskopi + Odyogram, "Doğru tanı", 2 yıldız) ve Defne (akut otitis eksterna; yalnız Otoskopi, "Mükemmel karar") vakalarını çözdüm. Kulak Sözlüğü'nde arama denedim. Takım akışına baktım.
+- Tıbbi doğruluk izlenimi: çok iyi. Bilgi pratiğindeki 10 soru (OAE + otomatik ABR tarama, rekrütman ve koklear kayıp, dupleks kuramı ILD/ITD, sisplatin/aminoglikozid, yarım daire kanalları ve açısal ivme, refleks eşikleri 70-100 dB HL, OAE ve dış tüy hücresi, OME ve B tipi, baziler membran tabanı ve tiz sesler, NIOSH 3 dB) doğru. Defne vakasında "Ağrılı kanala prob takılmaz" notu klinik olarak çok yerinde. Tek ciddi itiraz: Selim vakasında anahtar testlerin Otoskop + Timpanogram sayılması (OT-27). "Koklea" her yerde doğru, "Salyangoz" görmedim.
+- Hissettiğim: son bölümü sonunda hasarsız geçmek çok iyi geldi; dört kayıptan sonra beklemiyordum. Sözlükte "otoskleroz" araması hâlâ "sonuç yok" demeden kilitli kamp terimlerinin hepsini listeliyor (OT-5 kapsıyor, YN-048'de; yeniden yazmadım).
+- Yazdığım geri bildirimler: OT-uzman-odyolog-27, OT-uzman-odyolog-28
+- Yarım kalan / sonraki tur: Timpanogram Eşleştir (OT-12), otoskleroz notu (OT-7), anıt notu (OT-20), İşitme Korteksi alt başlığı (OT-24), İsmail "(çentik)" (OT-25), B tipi açıklaması (OT-26) yeni turda yeniden bakılacak.
+- Sosyal: arkadaş kodum K9FM5K, takma ad DrMelis. KaptanTuba (KRMXHC) ile arkadaşız. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4), takım Sv 3, lig gümüş. Yeni arkadaşlık ya da takım daveti yoktu (mesajlar 0 okunmamış). Sıfırlamadan sonra hesabım silinecek: yeni turda kod değişebilir, yeni kodu günlüğe yazacağım.
+
+### Tur 1 bitti (2026-11-02, sürüm bd976b22)
+- 40/40 bölüm, 82 yıldız, 8 bölüm üç yıldız; 49 deneme, 9 kayıp (en çok Bölüm 40: 4 kayıp, sonra 20 ve 23).
+- Son değerlendirme: ODİ, klinik odyolog gözüyle tıbbi açıdan şimdiye dek gördüğüm en özenli eğitim oyunu. Terimler tutarlı (Koklea, dB HL, hava-kemik aralığı, timpanogram tipleri); "timpanogram tek başına tanı koydurmaz" ilkesi hem Timpanogram Eşleştir'de hem vakalarda korunuyor; vakalar kurgusal ve "tıbbi öneri değildir" uyarılı, kaynakçalı (Jerger, AAO-HNS, JCIH, NIOSH). Tur boyunca yazdığım 28 maddenin büyük kısmı düzeltildi ve düzeltmeler önerdiğim metne çok yakın. Kalan işler küçük: bir vakada anahtar test seçimi (OT-27), birkaç sistem emojisi (OT-28), sözlük aramasında "sonuç yok" (OT-5). Oyun becerisi düşük biri olarak 40. bölümde takıldım ama "Neden olmadı?" kutuları ve takım yardımı moralimi korudu. Öğrencilerime gönül rahatlığıyla öneririm.

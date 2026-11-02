@@ -6,7 +6,8 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 38/40 (oturum 6 sonu) |
+| 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 84 yıldız (9 üç yıldız), 49 denemede 8 kayıp; oturum 7 sonunda sıfırlandı |
+| 2 | 2026-11-02 | | | sıfırlamadan sonra baştan |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -116,3 +117,30 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 - Başkalarının yazdığını gördüğüm, yeniden yazmadığım: ralli davet kartındaki sistem emojisi (🔥) ve süresi dolan kartın "seni bekliyor" demesi (OT-takim-kaptani-15), Profil'de geçtiğimden bir fazla bölüm sayısı (OT-rekabetci-4; "33 bölüm" / "39 bölüm"), Yankı Hayaleti rallisinin 2 kişiyle yenilemezliği (OT-rekabetci-29), sohbetteki "Silinmiş Oyuncu" ralli kartı (OT-ilk-kez-oyun-32).
 - Yarım kalan / sonraki oturum: Bölüm 39'dan devam (iki bölüm kaldı, 40 boss gibi görünüyor: haritada canavar yüzlü düğüm). Ton Avı (kamp oyunu), Mağaza, Hasta Vakaları ve bilgi yarışması hâlâ denenmedi. OT-5, OT-7, OT-8 yeniden kontrol.
 - Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC); bugünkü hediye gönderilmiş görünüyor. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 3, 9/30 üye), rolüm üye. Bekleyen arkadaşlık isteği ya da yeni takım daveti yoktu; takım sohbetine Bölüm 33 için yardım isteği kartı düştü.
+
+## Oturum 7 · 2026-11-02 · sürüm bd976b22 · tur 1
+- Başlangıç: 38/40, seri 3 gün, 8732 jeton, 425 kristal, Sv 11. Bitiş: 40/40 (39:3 40:3; toplam 84 yıldız, üç yıldız 9), seri 4 gün, 10381 jeton, 495 kristal, Sv 11. Bu oturumda 4 deneme, 2 kayıp (39'da 2).
+- Yeniden kontrol (durumu "yapildi:" olan maddelerim):
+  - OT-sessiz-oyuncu-1: düzeldi (oturum 6'da doğrulandı; ses ayarı bu oturumda da kapalı, anlatıcı susuyor).
+  - OT-sessiz-oyuncu-2: düzeldi (oturum 6'da doğrulandı).
+  - OT-sessiz-oyuncu-3: düzeldi (kayıp sonucu "54 / 100 nota", "Neden olmadı? Canların bitti · 3 kez hasar aldın, en son boşluğa düştün", 0560; kazançta "90 nota · 25 nota kaldı / ya da 85 saniyede bitir · tamam", 0569).
+  - OT-sessiz-oyuncu-4: düzeldi (alt menüyü örten takılı rehber balonu yok).
+  - OT-sessiz-oyuncu-5: kontrol edilemedi (Günün Sorusu tanıtımı bir daha çıkmıyor).
+  - OT-sessiz-oyuncu-9: düzeldi (Odyoloji Kliniği'ni bu oturumda kurdum; klinik kurulunca "Klinik, 3 hasta bekliyor" düğmesi geldi, kurulmadan önce yanıltıcı tanıtım görmedim, 0610).
+  - OT-sessiz-oyuncu-10: düzeldi (Bölüm 39 kayıplarındaki ipuçları "engel ekrana girer girmez hazırlan", "Gürültü yaratıklarının çoğunu üstüne zıplayarak ezebilirsin": sese dayanmıyor, 0560, 0564).
+  - OT-sessiz-oyuncu-11: düzeldi ("İşitme Korteksi yeniden canlandı!" yazısı koyu şeridin üstünde, notalar yazının üstünden geçmiyor, 0576).
+  - OT-sessiz-oyuncu-13: kontrol edilemedi (bu oturumda ralli daveti gelmedi).
+  - OT-sessiz-oyuncu-14: kontrol edilemedi (39'da 2 kayıptan sonra 3. denemede "Hız · Gece" rozeti aynıyla geçtim, 0566-0569; 3 kayıp eşiğine gelmedim).
+  - OT-sessiz-oyuncu-15: bu oturumda iki uçan yazının üst üste bindiğini görmedim ("+5 nota" ve "+50" tek başına, 0557, 0567); büyük olasılıkla düzeldi, kalabalık bir anda yeniden bakılmalı.
+  - OT-sessiz-oyuncu-7 ve -8 (durumları "yapildi:" değil): 8 için Ödül kutusundaki kalkan satırı çizim simgeli, emoji yok (0547); arkadaş hediyesi satırı gelmediği için o satırı göremedim.
+- Ne yaptım: Ödül kutusunda KaptanTuba'nın kalkanını aldım; Bugün'de takvimin 4. günü (+20, seri koruyucu dolu olduğu için +30). Bölüm 39 Son Koşu (Hız · Gece; 2 kayıp, 3. denemede 3 yıldız), Bölüm 40 Gürültü Canavarı (ilk denemede 3 yıldız, hiç hasar almadan), Bölüm 40 hazinesi (Ninni Tacı, +200), İşitme Korteksi canlandı, "Ninni beyne ulaştı!". Kamp: Kamp Hikâyesi Bölüm 1 ödülü, Kamp Seviyesi 5 (Kulak Kaşifi), Odyometri Odası Sv 1 kurdum ve Ton Avı'na girdim (sesle oynandığı için oynamadım, OT-16), Odyoloji Kliniği Sv 1 kurdum, ilk Hasta Vakası: Ece, konser sonrası kontrol; Otoskop + Odyogram isteyip "İşitme normal" + güven ver / kulak koruyucu öner kararıyla "Mükemmel karar!". Takım hediyeleri (4 tane), KaptanTuba'ya arkadaş hediyesi.
+- Sessiz oynanabilirlik: Bölümlerin kendisi artık sesi kapalı rahatça oynanıyor: Canavar bölümünde "Kalbi açıkta! Atıl ya da üstüne çakıl" yazısı ve kalbin parlaması saldırı anını gözle söylüyor (0571-0573). Sesin tek başına taşıdığı yer kaldıysa o da Kamp'taki Ton Avı: dürüstçe "yalnız sesle oynanır" diyor, ama ödüllü turu duymayan oyuncu alamıyor (OT-16). "Tüy Dede'yi dinle" hoparlörü sesler kapalıyken tepkisiz (OT-17). Arkadaşın kalkanının işe yarayıp yaramadığını ne gördüm ne duydum (OT-18).
+- Hissettiğim: 39'u iki kez kaybetmek can sıktı ama "Neden olmadı?" kutusu ne yapmam gerektiğini söyledi, üçüncüde üç yıldız geldi. Canavar beklediğimden kolaydı ve gösterişliydi. Klinik vakası çok hoşuma gitti: "timpanogram tek başına nedeni söylemez" cümlesini görmek güven verdi; "İşitme cihazı denemesi planla" şıkkı da saygılı bir dille yazılmış.
+- Yazdığım geri bildirimler: OT-sessiz-oyuncu-16 (Ton Avı yalnız sesle; ödüllü tur sessiz oyuncuya kapalı), OT-sessiz-oyuncu-17 (sesler kapalıyken "Tüy Dede'yi dinle" tepkisiz), OT-sessiz-oyuncu-18 (kalkanın etkisi yazmıyor; "33. bölüm için" kalkan geç geldi).
+- Başkalarının yazdığını gördüğüm, yeniden yazmadığım: oyun bitince bir bitiş özeti olmaması, haritada yalnız küçük bir bildirim (OT-rekabetci-32); canavar bölümünün skorunun normal bölümden çok düşük olması (466 / 3.656; OT-rekabetci-31); takvimdeki "Seri koruyucun doluydu: +30 jeton" satırı (OT-ilk-kez-oyun-38); arkadaşın geçtiği bölüm için yardım (OT-buyuk-yazi-35).
+- Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC); bugünkü hediye gönderildi. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 3, 6/30 üye), rolüm üye. Bekleyen arkadaşlık isteği ya da yeni takım daveti yoktu. Sıfırlamadan sonra hesap silinir: tur 2'de kod değişecek, yeni kodu günlüğe yazacağım.
+
+### Tur 1 bitti (2026-11-02, sürüm bd976b22)
+- 40/40 bölüm, 84 yıldız (9 üç yıldız), 49 denemede 8 kayıp (en çok 33 Işık Hızı: 3 kayıp, 39 Son Koşu: 2 kayıp), oyuncu seviyesi 11, gümüş lig.
+- Son değerlendirme (sesi kapalı oynayan işitme cihazı kullanıcısı olarak): ODİ sessiz oynanabilen bir oyun. Tüy Dede'nin her sözü baştan beri yazılı; tur boyunca yazdığım ses sorunlarının neredeyse hepsi düzeltildi: ses ayarındaki belirsizlik, titreşim ve "Yüksek görünürlük" seçeneği, tutturulamayan hedefin açıkça yazılması, "müziğin ritmini dinle" ipucunun yerine göze dayanan ipuçları, değiştirici rozetleri, "Nota 3/9" sayacı, "Basamaklar ritimden kayıyor: gözünle izle!" ve kayıpta "Neden olmadı?" kutusu. Dil işitme cihazı ve implant kullanıcısına saygılı (İşitme Cihazı Atölyesi, Koklear İmplant kartı, klinikteki "İşitme cihazı denemesi planla"); tıbbi metinler dikkatli ("Bir işitme testi değildir", "timpanogram tek başına nedeni söylemez"). Kalan pürüzler küçük: sesle oynanan Ton Avı'nın ödülü sessiz oyuncuya kapalı (OT-16), sesler kapalıyken hoparlör düğmeleri tepkisiz (OT-17) ve kalkan gibi ses efektine yaslanan anlık olayların yazılı karşılığı (OT-18). Bir de oyunun sonu: Ninni beyne ulaşınca bir kapanış hikâyesi görmek isterdim (açılıştaki 7 kartlık hikâye gibi; OT-rekabetci-32).
+- Sıfırlandı; tur 2'de oyunu yeni sürümde ilk kez açıyormuş gibi baştan oynayacağım.

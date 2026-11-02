@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 38/40 (oturum 6 sonu) |
+| 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 85 yıldız (12 tane 3 yıldız), 44 deneme / 4 kayıp |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -106,3 +106,30 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 - Bakıp yazmadıklarım: Seviye 10 penceresinde "Yeni biyom: Beyin Sapı" seviye ödülü gibi listeleniyor (OT-ekonomi-denetci-10 / OT-ilk-kez-oyun-5 ile aynı konu). Bölüm 36'da zorluk sıçraması zaten yazılı (OT-rekabetci-28). Bayrak Yarışı "Takımlar arası" listesinde yalnız bizim takım var (OT-rekabetci-22 yakın konu).
 - Yarım kalan / sonraki oturum: Bölüm 39 ve 40 (oyun sonu). Bölüm 36'dan sonra "Sonraki" ile ilerlediğim için Beyin Sapı canlanma kutlamasını haritada görmedim; sonraki haritaya dönüşte çıkacak mı bakılacak. Klinik'te Hakan, Zeynep, Defne, Bebek Ada, Burak bekliyor. Kulak Bilgi Yarışması (13:00/20:00) hâlâ denk gelmedi. Ton Avı ve Timpanogram Eşleştir kamp oyunları denenmedi.
 - Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; yeni arkadaşlık ya da takım daveti görmedim (zaten takımdayım). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; Bayrak Yarışı'nda EceOdyo, AyseTeyze, KaptanTuba ile parkuru tamamladık. Lig: Gümüş.
+
+## Oturum 7 · 2026-11-02 · sürüm bd976b22 · tur 1
+- Başlangıç: 38/40, seri 3 gün. Bitiş: 40/40 (oyun bitti), 85 yıldız (3 yıldız: 4, 7, 15, 17, 19, 23, 24, 25, 28, 30, 34, 40), seviye 11, 7378 jeton, 110 kristal, seri 4 gün, Gümüş Ligi 2. sıra. Bu oturumda 5 deneme, 3 kayıp (39'da 1, 40'ta 2).
+- Eski geri bildirimlerin kontrolü (tur 7, durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-1: düzeldi (Kulak Kartları albümü ve Kulak Çınlaması kart ayrıntısında çizim zil simgesi, emoji yok; 0659-dokun.png).
+  - OT-sinav-adayi-2: düzeldi (Bölüm 39 sonucu "67/100 nota" nota simgesiyle, "+224 jeton" ayrı "Bu bölümden toplam" kutusunda).
+  - OT-sinav-adayi-5: düzeldi (Bugün › Giriş takvimi 4. gün: "Al" → pencerede "Topla"; toplandıktan sonra balon yok).
+  - OT-sinav-adayi-10: düzeldi (Kamp üstünde "Klinik 6" sekmesi doğrudan bekleme salonunu açıyor).
+  - OT-sinav-adayi-12: düzeldi (Bölüm 39: "3. yıldız · biri yeter: 90 nota ya da 85 saniyede bitir · 93,6 sn sürdü, 8,6 sn geç").
+  - OT-sinav-adayi-13: düzeldi hâlinde (biyom kartları albümde açık; Kulak Kanalı 4/5, kalan kart günlük sandıktan).
+  - OT-sinav-adayi-15: düzeldi (açık kartların resmi kendi çizimi; asma kilit yalnız kilitli kartlarda).
+  - OT-sinav-adayi-17: düzeldi (Bölüm 40 hazinesi sonuçta "+200, Ninni Tacı" verildi; haritada tek pencere "Hazine · Bölüm 40 · Cüzdanına eklendi · Tamam", Topla istemedi, jeton 7.378'de kaldı).
+  - OT-sinav-adayi-23: düzeldi (haritada "İşitme Korteksi yeniden canlandı!" penceresi, "Yokluğunda" yok).
+  - OT-sinav-adayi-24: düzeldi (hedef kartı "Hazine açıldı, İşitme Korteksi canlandı! Sıradaki: 1 yıldız daha: Koklea · Orta Kıvrım ışıl ışıl olur").
+  - OT-sinav-adayi-3, -9, -14, -16, -18, -19, -21, -22: bu oturumda o ekranlara (Ayarlar, Pratik, otoskleroz kartı) girmedim; önceki oturumlarda doğrulandı. OT-19: Bebek Ada vakasında "İsteseydin şunu görecektin" bölümü hiç çıkmadı (tek testlik tarama vakası); bozulma mı, tasarım mı bilemedim, OT-27'de öneri olarak yazdım.
+  - OT-sinav-adayi-25 (is-listesi, yapildi değil): hâlâ var; Bölüm 40'ı üç kez denedim, üçünde de aynı SNR satırı geldi. Yeni satır yazmadım (iş listesinde).
+- Ne yaptım: takvim 4. gün ödülü (20 jeton + seri koruyucu dolu olduğu için +30). Bölüm 39 (1 kayıp, sonra 2 yıldız) ve Bölüm 40 Gürültü Canavarı (2 kayıp: %53 ve %6 güç kala; üçüncüde hasarsız 3 yıldız, "Pes Etmeyen · Bronz"). Ninni Merkezi canlandı, oyun bitti. Kamp › Klinik: Bebek Ada (2 günlük, yenidoğan taraması) vakasını yalnız OAE ile "Tarama geçti" + aile bilgilendirme kararıyla "Mükemmel karar · Test seçimi: verimli" çözdüm; Vaka Defteri 5/32. Kulak Kartları 35/50 (yeni: Kulak Çınlaması). Kulak Sözlüğü 39/39. Arkadaşlar ve İstekler'e baktım. Takım sohbetinde Günün Sorusu'nu buldum.
+- Bilgi içeriği (sınav gözüyle): Bebek Ada vakası doğru ve sınava birebir (JCIH 2019 1-3-6; iyi bebekte OAE ya da otomatik ABR; 5 günden uzun YYBÜ'de işitsel nöropati için otomatik ABR; taramadan geçmek izlemeyi bitirmez). Kulak Çınlaması kartı doğru (tinnitus sık; işitme kaybıyla birlikte; değerlendirmede odyolojik test + rahatsızlık ölçeği, yönetimde danışmanlık ve ses terapisi). Biliyor muydun? satırları doğru (implant sonrası konuşmayı anlamanın aylar içinde gelişmesi; SNR tanımı ve işitme kaybında daha yüksek SNR gereksinimi). Günün Sorusu ("Çınlamaya ne denir? Miyopi / Astım / Tinnitus") çocuk düzeyinde; takım sorusu karışık düzeyde kalacak diye sahip kararı var (karar 41, canlı yarışma karışık), yazmadım.
+- Hissettiğim: son iki bölüm gerçekten zorlaştı, ilk kez art arda kaybettim ama canavar her denemede biraz daha zayıflıyor ("%53 kaldı", "%6 kaldı") ve bu tekrar denemeye değer hissettirdi. Bitiş anı sade: sonuçta "Yolculuğun sonuna ulaştın", haritada küçük bir bildirim; bir bitiş özeti beklerdim (zaten yazılı: OT-rekabetci-32). Günün Sorusu'nun Bugün'de değil takım sohbetinin en üstünde durduğunu sonunda gördüm; sohbet akışı en alta açıldığı için soru görünmüyor, bulmak hâlâ zor (OT-11 kısmen).
+- Yazdığım geri bildirimler: OT-sinav-adayi-26 ("3 yıldız al" kilitli kartı biyomun bölümlerini ve en iyi yıldızımı söylemiyor; öneri), -27 (tarama vakasında "Tanı: tarama geçti"; istenmeyen test yorumu yok; öneri).
+- Bakıp yazmadıklarım: oyun sonunda bitiş özeti yok (OT-rekabetci-32, iş listesinde). Canavar bölümünün düşük skoru (OT-rekabetci-31). Günün Sorusu'na sürükleyerek ulaşmaya çalıştım, sürükleme yazıyı seçti, sohbet kaymadı; gerçek dokunmatikte kayar, araç sınırı sayıp yazmadım; soruyu bu yüzden cevaplayamadım. Arkadaş listemde yalnız KaptanTuba kaldı (KralKoklea yok); büyük olasılıkla o kişi turunu bitirip sıfırlandı, hata saymadım.
+- Yarım kalan: Klinik'te Hakan, Zeynep, Defne, Burak, Selim bekliyordu (Vaka Defteri 5/32); Ton Avı ve Timpanogram Eşleştir kamp oyunları, canlı Kulak Bilgi Yarışması hiç denk gelmedi. Bunlar yeni turda.
+- Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav; sıfırlamadan sonra değişebilir). Arkadaşım KaptanTuba; bekleyen istek yok. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo da var. Gümüş Ligi 2. sıra.
+
+### Tur 1 bitti · 2026-11-02 · sürüm bd976b22
+- 40/40, 85 yıldız (12 tane 3 yıldız), 7 oturum, 44 deneme / 4 kayıp (36, 39, 40×2). 27 geri bildirim yazdım; "yapildi" olanların hepsini sonraki sürümde düzelmiş buldum (yalnız teşhis satırı test derlemesine özgü diye reddedildi).
+- Son değerlendirme (sınava hazırlanan öğrenci gözüyle): ODİ'nin bilgi içeriği şaşırtıcı derecede doğru ve yoğun. Yedi oturumda tek bir yanlış tıbbi bilgi görmedim; kafa karıştıran yerler (otoskleroz kartı ile not, Orta Kıvrım–Corti organı, "tüylü hücre") hızla düzeltildi. "Koklea" her yerde doğru, timpanogram hiçbir yerde tek başına tanı koydurmuyor. En değerli üç şey: Odyoloji Kliniği vakaları (test seçimi + sonuçta "İsteseydin şunu görecektin" yorumları + kaynak), Bugün › Bilgi pratiği ("Yanlışların" listesiyle) ve Koklea'dan sonraki biyomların bölüm sonu notları. Zayıf kalanlar: bu üçünün yeri hâlâ dağınık (vaka Kamp'ta, pratik Bugün'ün altında, Günün Sorusu takım sohbetinin en üstünde gizli); bölümler 35'e kadar beceri 0,6 ile fazla kolay, sonra birden zorlaşıyor; kart albümünün son %30'u (gizli altın koklea, günlük sandık, 3 yıldız) bilgiyle değil tekrar oynamakla açılıyor ve neyi tekrar oynayacağını söylemiyor. Sınava çalışırken açıp gerçekten not alacağım bir oyun; yeni turda vakalara ve canlı bilgi yarışmasına öncelik vereceğim.

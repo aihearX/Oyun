@@ -6,7 +6,8 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | |
+| 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 90 yıldız |
+| 2 | | | | sıfırlandı 2026-11-02 |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -92,3 +93,25 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-ekonomi-denetci-25, -26, -27, -28
 - Yarım kalan / sonraki oturum: Bölüm 38'den devam (3 bölüm kaldı). OT-22 ve OT-24'ü yeni günün sandığı ve Ödül kutusuyla doğrula; takvim 4. gün "50" diyor, alınca kaç geldiğini say. Odyoloji Merkezi Sv 3 (903 jeton) değer mi bak. Yetenekler onayı (OT-13) iş listesinde.
 - Sosyal: arkadaş kodum ZBWD95 (takma ad Hesapli). Takımım: Ninni Tasiyicilari (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba ile arkadaşız; ondan Takım Yarışı lobisi daveti ve iki ralli daveti vardı (eski), katılmadım. Yeni arkadaşlık ya da takım daveti yoktu.
+
+## Oturum 7 · 2026-11-02 · sürüm bd976b22 · tur 1
+- Başlangıç: 37/40, 83 yıldız, 8.873 jeton, 909 kristal, seviye 11. Bitiş: 40/40 (oyun bitti), 90 yıldız (38:2 39:2 40:3), seviye 12, seri 4 gün, 11.070 jeton, 1.009 kristal.
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ekonomi-denetci-24: düzeldi. Günlük sandık önizlemesi artık "50 · 25 XP · +1 Kulak Kartı: Uçak Kulağı · Seri koruyucun dolu: yerine +30 jeton" diyor; açınca tam bunlar geldi (cüzdan 9.820 → 9.900, kart albümde).
+  - OT-ekonomi-denetci-25: düzeldi. Kese Kristal üstündeki "Popüler" rozeti kalkmış; yerine Sandık Kristal'de "En iyi değer" var ve bu doğru (1.400 / 299,99 = kristal başına en ucuz).
+  - OT-ekonomi-denetci-28: düzeldi. Kod gir penceresi "Kodlar yalnız ODİ duyurularında verilir, satılmaz. Kod için kimseye şifreni, telefonunu ya da para verme" diyor.
+  - OT-ekonomi-denetci-20: düzeldi (yeniden doğrulandı). Takvim 4. gün hücresi 50, pencere 20 + 30, cüzdan +50. Yalnız alındıktan sonraki satır 20'yi yazmıyor (yeni küçük madde OT-31).
+  - OT-ekonomi-denetci-16: düzeldi (yeniden doğrulandı). Takım › Hediyeler: 6 hediyenin her birinde "Alınmazsa … Ödül kutuna geçer"; Hepsini al: 1.170 jeton + 100 kristal, cüzdan tam tuttu.
+  - OT-ekonomi-denetci-1, -17: düzeldi (yeniden doğrulandı). Yedi sonuç ekranının dökümü cüzdanla tuttu: 38 +88 (71 + bronz 15 + bonus 2), 39 kayıplar +53 / +48 / +37, 39 +176 (74 + Uzun Yol altın 100 + 2), 40 kayıplar +0 / +0, 40 +420 (hazine 200 + 4 başarım 220, tek tek yazılı). Hazine penceresi "Cüzdanına eklendi" dedi, iki kez saymadı. Günlük görevler 20 + 30 + 25 tam geldi.
+  - OT-ekonomi-denetci-14: düzeldi (yeniden doğrulandı). Seviye 12 penceresi "Harika!" ile kapandı, sohbete bir şey düşmedi.
+  - OT-ekonomi-denetci-22: denenemedi (Ödül kutusu boş). OT-26, OT-27: denenemedi (bu oturumda hikâye ödülü ya da kamp seviyesi çıkmadı). OT-2, -3, -6, -12, -21: önceki oturumlarda düzeldi; bu oturumda yeniden bakmadım.
+  - (iş listesinde) OT-7: "Mağaza fiyatı satın alırken gösterilir" hâlâ duruyor. OT-18: 79,98 / 100 TL harcamadayken 149,99 / 299,99 / 79,99 TL düğmeleri hâlâ etkin görünüyor. Yeni satır yazmadım.
+- Ne yaptım: Bölüm 38-40 (39'da üç, 40'ta iki kayıp; üç kayıptan sonra oyun "Hız kalkacak" diye önceden söyledi ve öyle oldu, dürüst). Kayıp ekranlarında hiçbir şey satılmaya çalışılmadı; "Takımından yardım iste" önerildi. Bugün: takvim, üç görev, günlük sandık. Mağaza, Kod gir, Kulak Kartları (Uçak Kulağı), Ödül kutusu, Takım hediyeleri. Bu oturumda satın alma yapmadım.
+- Hissettiğim: Oyunu bitirdim ve son oturumda da tek jetonluk fark bulamadım. Geçen oturumda yazdığım "Popüler" rozeti ve kod uyarısı düzeltilmiş. Yeni bulduklarım küçük: Profil "41 bölüm" diyor, üst çubuk 10.000 üstünde "11B" yazıyor (tam sayı kayboluyor), takvimin alındı satırı 20'yi unutuyor.
+- Yazdığım geri bildirimler: OT-ekonomi-denetci-29, -30, -31
+- Yarım kalan / sonraki oturum: Tur bitti; profil sıfırlanacak. Yeni turda ilk açılışta mağaza ve harcama sınırı sorusunun ne zaman çıktığına, ilk ödüllerin sayımına yeniden bak.
+- Sosyal: arkadaş kodum ZBWD95 (takma ad Hesapli) bu turun sonunda silinecek; yeni turda kod değişir. Takımım Ninni Tasiyicilari (lider KaptanTuba, takım davet kodu 8XJUU4, şimdi 4/30 üye; ayrılan sıfırlanmış hesaplar sohbette "Silinmiş Oyuncu" diye görünüyor, gizlilik açısından iyi). KaptanTuba 3'e 3 Takım Yarışı lobisi açmıştı; katılmadım. Yeni arkadaşlık ya da takım daveti yoktu (Mesajlar 0).
+
+### Tur 1 bitti · 2026-11-02 · sürüm bd976b22
+- 40/40 bölüm, 90 yıldız, 7 oturum, 56 deneme (15 kayıp). Üç TEST alımı (Avuç Kristal ×2, Başlangıç Paketi; toplam 109,97 TL, sınırın altında).
+- Son değerlendirme (ekonomi ve güven gözüyle): İlk oturumda kazancın dökümü yoktu, cüzdan söylenenden fazla artıyordu; turun sonunda her sonuç ekranı, hazine, sandık, takvim ve takım hediyesi kuruşu kuruşuna tutuyor. Mağaza dürüst: TEST etiketi, "bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz", kalkanın hasar sayıldığı açıklaması, kozmetiklerin yalnız görünüş olduğu. Harcama sınırı (varsayılan yok, "Satın alma kapalı" seçeneği, yükseltmenin 24 saat sonra geçerli olması) ebeveyn olarak gördüğüm en iyi uygulamalardan. Sahte geri sayım, sahte kıtlık, kayıp ekranında satış görmedim; "Popüler" rozeti kaldırıldı. Kalan açıklar: "Mağaza fiyatı satın alırken gösterilir" cümlesi ve sınırı aşan paketin düğmesinin etkin görünmesi (YN-073), Yetenek ve büyük bağışlarda onay olmaması, satın almanın takım sohbetine duyurulması (YN-097), gizlilik metninde iletişim adresinin yer tutucu kalması (YN-009). Pay-to-win yok; parayla alınan hiçbir şey bölümü benim yerime geçmedi.

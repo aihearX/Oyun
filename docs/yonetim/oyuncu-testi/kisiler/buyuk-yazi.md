@@ -6,7 +6,8 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 33/40 (oturum 6 sonu) |
+| 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 82 yıldız (8 tane 3 yıldız), 53 deneme / 13 kayıp; oturum 7 sonunda bitti, profil sıfırlandı |
+| 2 | 2026-11-02 (sıfırlama) | | | bir sonraki oturumda yeni sürümde baştan |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -91,3 +92,25 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-29 (hastalık adları oyun alanının ortasında üst üste), -30 (İşitme Siniri'nde platform ve bulut çizgilerle karışıyor), -31 (Ton Avı'nda doğru/yanlış görünmüyor), -32 (geçilmiş bölümün yardım isteği listede kalıyor), -33 (yardım kartında 'dk' bölünüyor, Gönderildi gri üstüne gri), -34 (Odi'nin üstündeki ince turkuaz çizgi).
 - Yarım kalan / sonraki oturum: Bölüm 34 (İşitme Siniri) sırada. OT-21 (canavar can çubuğu), OT-25 (melodi notaları), OT-26 (ödül kutusu sıralama satırı) bir sonraki fırsatta kontrol edilecek. Kamp'ta inşaatçı boşta (Odyoloji Merkezi Sv 3 başlatılmadı). Etkinlikler (1 bekliyor), Mağaza, Hasta Vakaları denenmedi.
 - Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 9/30 üye, Sv 3). Arkadaşım KaptanTuba (KRMXHC; 32. bölümde). Bu oturum bana yeni arkadaşlık ya da takım isteği gelmedi. 30 ve 33 için takımdan yardım istedim; DrMelis'e 40. bölüm için kalkan gönderdim.
+
+## Oturum 7 · 2026-11-02 · sürüm bd976b22 · tur 1
+- Başlangıç: 33/40 (bu oturumun ilk, yarıda kalan denemesinde 34 ve 35 geçilmiş: 34'te 3 yıldız, 35'te 2), 69 yıldız, seri 3 gün. Bitiş: 40/40, 82 yıldız, oyuncu seviyesi 12, seri 4 gün, 10.663 jeton, 505 kristal. Oyun bitti.
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlar):
+  - OT-buyuk-yazi-21: düzeldi. Bölüm 40'ta canavarın can çubuğu artık üstte kendi kartında: "Gürültü Canavarı" adı, iri "Faz 2/Faz 3" yazısı ve kalın çubuk (0611, 0612).
+  - OT-buyuk-yazi-25: düzeldi (gösterge tarafı). Melodi bölümü 38'de üstte iri "Nota 2/9, 3/9, 4/9" hapı var, sırayı oradan takip edebildim (0600-0602). Nota biçimli toplanacakları karelerde yakından göremedim; ama artık kaçırdığımı sayaçtan anlıyorum.
+  - OT-buyuk-yazi-26: bakamadım; ödül kutusu boştu (0 ödül), sıralama satırı çıkmadı.
+  - OT-buyuk-yazi-29: düzeldi. Yankı (36) ve Hız · Gece (39) bölümlerinde oyun alanının ortasında uçuşan hastalık adı görmedim; değiştirici yalnız sol üstte küçük hapta (0581, 0586, 0606).
+  - OT-buyuk-yazi-30: düzeldi. İşitme Siniri bölümlerinde (34, 35) platformların üstünde açık lavanta kenar var, gürültü bulutu koyu ve gözlü, çizgilerden ayrılıyor (0560, 0566, 0567).
+  - OT-buyuk-yazi-32: hâlâ var (kısmen). Geçilen bölümlerin istekleri artık "Bölümü geçti; istek kapandı · Geçti" diyor; ama KaptanTuba 37. bölümdeyken onun 32. bölüm isteği hâlâ "Gönder" ile duruyor (0575, 0573). Yeni satır: OT-buyuk-yazi-35.
+  - OT-buyuk-yazi-33: düzeldi. Süre satırı tek satırda ("11 sa 24 dk kaldı"), "Geçti" düğmeleri okunuyor (0575).
+  - OT-buyuk-yazi-34: düzeldi. Odi'nin üstünde ince turkuaz çizgi görmedim (0559-0567).
+  - Eski düzelenler bu oturumda da sağlam: OT-1 (kilitli kart yazısı iri, 0645), OT-16 (sonuçta yıldız koşulu kartı, 0588), OT-18 (Hedefe ulaştın kartı tam, 0571), OT-28 (Bilgi pratiğinde doğru şık yeşil + tik, 0635).
+- Ne yaptım: Bölüm 36-40. 36 Tavanın Altı (yerçekimi) ilk denemede düştüm, ikincide 2 yıldız; 37 (yeni biyom İşitme Korteksi) 2 yıldız, Seviye 11; 38 melodi + gece 1 yıldız; 39 Hız · Gece 2 yıldız; 40 Gürültü Canavarı ilk denemede %16 kala kaybettim, ikincide 1 yıldızla geçtim. "Ninni beyne ulaştı!" bildirimi ve Ninni Tacı hazinesi. Takım: 3 takım hediyesi (+560 jeton, +45 kristal), yardım listesine baktım. Bugün: takvim 4. gün, üç görev ödülü (meydan oku görevi "Paylaş" ile bağlantı kopyalanınca tamamlandı), günlük sandık (Yürüyen Bant kartı, Kulak Kanalı albümü tamamlandı), Bilgi pratiğinde bir soru. Kamp: depoyu topladım. Profil, Arkadaşlar (KaptanTuba'ya hediye), Kulak Kartları. Ayarlar ve Mağaza'ya bu oturumda ulaşamadım (komut sınırı).
+- Hissettiğim: Son bölümlere geldiğimde gözüm rahattı: sonuç ekranları, sayaçlar, canavar çubuğu, Bugün ve Bilgi pratiği artık bana göre. Zorlandığım tek yer yerçekimi bölümü: "mor bölge" dediği yeri mor bir dünyada bulamadım. Başarım bildirimleri sonuçta başlığın üstüne bindi. Takım üye kartlarındaki sayılar, Kamp rozetindeki küçük yazı ve Kulak Kartları albüm açıklaması hâlâ küçük. Bitiş biraz sessiz geçti: küçük bir bildirim ve sandık, sonra harita (OT-rekabetci-32 ile aynı, yeni yazmadım). Üst çubukta jeton "10B" yazıyor (OT-ogrenci-birinci-26 ile aynı, yeni yazmadım).
+- Yazdığım geri bildirimler: OT-buyuk-yazi-35 (Hâlâ: geçilmiş bölümün yardım isteği, eski OT-32), -36 (mor bölge ayırt edilmiyor), -37 (başarım bildirimi sonuç başlığını örtüyor), -38 (üye kartlarındaki sayılar etiketsiz), -39 (Kamp seviye rozeti küçük), -40 (Kulak Kartları albüm açıklaması küçük), -41 (hasar kalple gösteriliyor).
+- Yarım kalan / sonraki oturum: Oyun bitti, profil sıfırlanıyor. OT-26 (ödül kutusu sıralama satırı), OT-31 (Ton Avı, YN-123) ve OT-36..41 yeni turda kontrol edilecek. Ayarlar, Mağaza, Hasta Vakaları ve Etkinlikler bu turda az denendi; yeni turda bakılacak.
+- Sosyal: arkadaş kodum 8XFY4K (sıfırlamadan sonra değişebilir), takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 7/30 üye, Sv 3). Arkadaşım KaptanTuba (KRMXHC, 37. bölümde); bugün ona hediye gönderdim. Bekleyen arkadaşlık ya da takım isteği yoktu. Sıfırlamadan sonra hesap silineceği için takım üyeliği ve arkadaşlık da gidecek; yeni turda yeniden katılmak isterim.
+
+## Tur 1 bitti · 2026-11-02 · sürüm bd976b22
+- 40/40 bölüm, 82 yıldız (8 tane 3 yıldız), 53 deneme, 13 kayıp; en çok 33 (4 kayıp), 30 (3 kayıp) ve 23'te takıldım. Yedi oturum, üç gün.
+- Son değerlendirme (az gören biri olarak): Başta menüler Büyük yazıyla iyiydi ama oyunun içi (tuval) bana kapalıydı: uçan yazılar, altın koklea sayacı, harita etiketleri, kesik sekmeler, boş açılan mor ekranlar. Yazdığım maddelerin çok büyük kısmı tur içinde düzeldi ve her oturumda bunu ekranda gördüm; bu bana oyunun beni dinlediğini hissettirdi. Bugün oyun içi sayaçlar, sonuç ekranı, canavar çubuğu, sis/gece görüşü, Takım sekmeleri ve Bilgi pratiği rahat okunuyor; hareket azaltma da belirgin işe yarıyor. Hâlâ kalanlar çoğunlukla ince ayar: haritadaki küçük etiketler (OT-2 / YN-049), renge dayanan bölgeler (yerçekimi), etiketsiz küçük simgeli sayılar ve birkaç küçük açıklama yazısı. Takım yardımı ve ipucu göndermek en sevdiğim şeydi; zorlandığım bölümleri takımdan gelen kalkanla geçtim, kimseye para ödemeden. Bitiş daha belirgin bir kapanış hak ediyor. Yeni turda baştan, Büyük yazı ve hareket azaltma açık olarak yeniden bakacağım.
