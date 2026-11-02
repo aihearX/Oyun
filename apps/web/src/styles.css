@@ -860,9 +860,9 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .test-banner { background:repeating-linear-gradient(135deg,#ffe9a8,#ffe9a8 12px,#ffd36b 12px,#ffd36b 24px); border:2px solid #f2b400; color:#4a2c00; border-radius:14px; padding:10px 12px; font-weight:900; font-size:0.875rem; text-align:center; }
 .test-banner.small { font-size:0.75rem; padding:6px 10px; }
 .product { position:relative; display:flex; flex-direction:column; gap:8px; overflow:hidden; }
-.product.tag-populer { border-color:rgba(255,92,138,.6); } .product.tag-en-iyi-deger { border-color:rgba(142,240,176,.6); } .product.tag-baslangic { border-color:rgba(139,107,255,.7); }
+.product.tag-en-iyi-deger { border-color:rgba(142,240,176,.6); } .product.tag-baslangic { border-color:rgba(139,107,255,.7); }
 .ribbon { align-self:flex-start; font-size:0.6875rem; font-weight:900; text-transform:uppercase; letter-spacing:.4px; border-radius:999px; padding:3px 10px; background:var(--violet); color:#fff; }
-.tag-populer .ribbon { background:var(--coral); } .tag-en-iyi-deger .ribbon { background:#3fcf7a; color:#05332f; }
+.tag-en-iyi-deger .ribbon { background:#3fcf7a; color:#05332f; }
 .test-chip { position:absolute; top:12px; right:12px; font-size:0.625rem; font-weight:900; color:#4a2c00; background:#ffe9a8; border:1px solid #f2b400; border-radius:6px; padding:1px 6px; }
 .team-gift-line { background:rgba(255,201,60,.14); border:2px solid rgba(255,201,60,.4); border-radius:12px; padding:6px 10px; font-weight:900; font-size:0.8125rem; line-height:1.35; }
 .prod-foot { gap:8px; }

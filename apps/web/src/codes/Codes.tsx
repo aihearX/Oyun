@@ -84,6 +84,8 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Kod gir" onClose={onClose}>
       <div className="code-sheet" data-testid="kod-sayfasi">
         <div className="muted">Sana verilen kodu yaz. Her kod hesabına bir kez işler; ödüller ödül kutusuna gelir.</div>
+        {/* kodun kaynağı ve dolandırıcılık uyarısı (OT-ekonomi-denetci-28): Profil ve Ayarlar aynı sayfayı açar */}
+        <div className="muted code-safe" role="note" data-testid="kod-uyari">Kodlar yalnız ODİ duyurularında verilir, satılmaz. Kod için kimseye şifreni, telefonunu ya da para verme.</div>
         <form className="code-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           <input className="input code-input" data-testid="kod-girdi" value={raw} onChange={(e) => { setRaw(e.target.value.slice(0, 40)); setMsg(null); }} placeholder="KOD" aria-label="Kod"
             autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} enterKeyHint="go" maxLength={40} />

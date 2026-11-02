@@ -477,7 +477,7 @@ function sampleContrast(img, rects, fg, alpha) {
  *  uygulanmadı; öneri ve önce/sonra görüntüleri tools/harness/out/kontrast-oneri/ (oneri.css, Ö1–Ö7). Koşuyu düşürmez, ayrı sayılır
  *  ve listelenir. Sahip bir öneriyi kabul edince satırı silinir (ölçüm o zaman gerçekten 4,5:1'i arar). */
 const KONTRAST_BEKLEYEN = [
-  ['.dot, .sbadge, .kg-badge:not(.teal), .cnt-badge, .tag-populer .ribbon', 'Ö1 bildirim rozeti: beyaz sayı mercan dolguda (2,94:1)'],
+  ['.dot, .sbadge, .kg-badge:not(.teal), .cnt-badge', 'Ö1 bildirim rozeti: beyaz sayı mercan dolguda (2,94:1)'],
   ['.btn.ghost, .seg button.on, .msg.mine .bubble, .race-msg.mine, .ribbon', 'Ö2 mor dolgu: beyaz yazı açık mor degradede'],
   ['.btn.coral, .ev-mon-card .btn, .fc-actions .btn, .badge-record', 'Ö3 mercan dolgu: beyaz yazı açık mercan degradede'],
   ['.ks-badge, .mh-lvl', 'Ö4 seviye rozeti: küçük etiket açık mor degradede'],

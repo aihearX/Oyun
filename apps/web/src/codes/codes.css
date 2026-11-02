@@ -1,5 +1,6 @@
 /* Kod Gir: koyu cam sayfa, yönetici kutusu ve kod paneli */
 .code-sheet { display:flex; flex-direction:column; gap:10px; }
+.code-safe { font-size:0.8125rem; line-height:1.4; }
 .code-form { display:flex; gap:8px; min-width:0; }
 .code-input { flex:1; min-width:0; text-transform:uppercase; letter-spacing:.12em; font-weight:900; font-size:1.125rem; text-align:center; }
 .code-input::placeholder { letter-spacing:.2em; opacity:.5; }

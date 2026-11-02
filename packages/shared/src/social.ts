@@ -347,7 +347,8 @@ export interface ShopProduct {
   teamGiftContents?: { kind: InboxKind; amount: number; ref: string }[];
   /** kişi başı satın alma sınırı (0 = sınırsız) */
   limit: number;
-  tag?: 'populer' | 'en-iyi-deger' | 'baslangic';
+  /** yalnız ölçülebilir etiket: 'en-iyi-deger' kristal paketleri arasında kristal/TL hesabıyla (magaza.test.ts). Satış verisine dayanmayan sosyal kanıt rozeti yok (OT-ekonomi-denetci-25). */
+  tag?: 'en-iyi-deger' | 'baslangic';
 }
 /**
  * Sezon Kartı (karar 30): satın alınan takvim günü (Türkiye saati) 1. gün olmak üzere PASS_DAYS gün, her güne PASS_DAILY_KRISTAL kristal.
@@ -360,7 +361,7 @@ export const PASS_TOTAL_KRISTAL = PASS_DAYS * PASS_DAILY_KRISTAL;
 export const SHOP: ShopProduct[] = [
   { id: 'odi.baslangic', name: 'Başlangıç Paketi', desc: '300 kristal, 10 adet 5 dk hızlandırıcı, Kaşif şapkası', priceTry: 49.99, contents: [{ kind: 'kristal', amount: 300 }, { kind: 'm5', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'sapka-kasif' }], teamGift: true, limit: 1, tag: 'baslangic' },
   { id: 'odi.kristal.1', name: 'Avuç Kristal', desc: '120 kristal', priceTry: 29.99, contents: [{ kind: 'kristal', amount: 120 }], teamGift: false, limit: 0 },
-  { id: 'odi.kristal.2', name: 'Kese Kristal', desc: '650 kristal (+%8)', priceTry: 149.99, contents: [{ kind: 'kristal', amount: 650 }], teamGift: true, limit: 0, tag: 'populer' },
+  { id: 'odi.kristal.2', name: 'Kese Kristal', desc: '650 kristal (+%8)', priceTry: 149.99, contents: [{ kind: 'kristal', amount: 650 }], teamGift: true, limit: 0 },
   { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, tag: 'en-iyi-deger' },
   { id: 'odi.hiz.1', name: 'İnşaatçı Paketi', desc: '10 × 60 dk, 20 × 5 dk hızlandırıcı', priceTry: 79.99, contents: [{ kind: 'm60', amount: 10 }, { kind: 'm5', amount: 20 }], teamGift: true, limit: 0 },
   { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0 },

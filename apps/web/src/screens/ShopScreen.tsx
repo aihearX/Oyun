@@ -13,7 +13,7 @@ import { STORE_PRICE_NOTE, loadStorePrices, priceLabel, type StorePriceMap } fro
 
 type Product = ShopProduct & { bought: number };
 type List = OpMap['shop.list']['res'];
-const TAG = { populer: 'Popüler', 'en-iyi-deger': 'En iyi değer', baslangic: 'Başlangıç' } as const;
+const TAG = { 'en-iyi-deger': 'En iyi değer', baslangic: 'Başlangıç' } as const;
 const SHOP_IDS = SHOP.map((p) => p.id);
 /** bu oturumda mağazadan gelen son fiyatlar (oyuncu başına): mağaza yeniden açılınca beklemeden gösterilir */
 let priceCache: { playerId: string; map: StorePriceMap } | null = null;

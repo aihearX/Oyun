@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
-import { cardById, cosmeticById, MAX_STREAK_SHIELDS } from '@odi/content';
+import { cardById, cosmeticById } from '@odi/content';
 import type { RewardSwap } from '@odi/meta';
 import { IconButton } from './Button';
 import { Glyph, rich } from './art';
@@ -46,13 +46,13 @@ export function rewardLabel(it: RewardItem): string {
   }
 }
 /**
- * Zaten sahip olunan şeyin jetona dönüşmesi (önceden yazılı karşılık). Önizlemede: "Kulaklı Bere zaten sende: yerine 50 jeton";
- * açılış penceresinde ayrı satır: "Kulaklı Bere zaten dolabında" ×50 (OT-ekonomi-denetci-20).
+ * Zaten sahip olunan şeyin jetona dönüşmesi (önceden yazılı karşılık). Önizlemede: "Kulaklı Bere zaten sende: yerine +50 jeton"
+ * (çiplerde bu jeton yok: `ownItems`); açılış penceresinde ayrı satır: "Kulaklı Bere zaten dolabında" ×50 (OT-ekonomi-denetci-20).
  */
 export function swapText(w: RewardSwap, done = false): string {
-  if (w.from.kind === 'koruyucu') return done ? `Seri koruyucun doluydu: +${w.jeton} jeton` : `Seri koruyucun dolu (${MAX_STREAK_SHIELDS}/${MAX_STREAK_SHIELDS}): yerine ${w.jeton} jeton`;
+  if (w.from.kind === 'koruyucu') return done ? `Seri koruyucun doluydu: +${w.jeton} jeton` : `Seri koruyucun dolu: yerine +${w.jeton} jeton`;
   if (done) return `${swapName(w)} zaten ${w.from.kind === 'kart' ? 'albümündeydi' : 'dolabındaydı'}: +${w.jeton} jeton`;
-  return `${swapName(w)} zaten sende: yerine ${w.jeton} jeton`;
+  return `${swapName(w)} zaten sende: yerine +${w.jeton} jeton`;
 }
 /** ödül kaleminin düz yazısı (ekran okuyucu): "20 jeton", "Kulaklı Bere" */
 export function rewardPlain(it: RewardItem): string {
@@ -73,6 +73,13 @@ export function withSwapRows(items: RewardItem[], swaps: RewardSwap[]): (RewardI
   const rest = items.flatMap((it, i) => (i !== at ? [it] : it.amount > total ? [{ ...it, amount: it.amount - total }] : []));
   const where = (w: RewardSwap) => (w.from.kind === 'kozmetik' ? 'dolabında' : w.from.kind === 'kart' ? 'albümünde' : null);
   return [...rest, ...swaps.map((w) => ({ kind: 'jeton' as const, amount: w.jeton, label: where(w) ? `${swapName(w)} zaten ${where(w)}` : 'Seri koruyucun dolu' }))];
+}
+/**
+ * Önizleme çipleri: ödülün kendi kalemleri; dönüşen jeton çiplere katılmaz, `swapText` satırında ayrı yazılır. Çipler + satırlar =
+ * açılış penceresindeki kutular (`withSwapRows`). "80 jeton" + "yerine 30 jeton" 110 gibi okunuyordu (OT-eski-telefon-21).
+ */
+export function ownItems(items: RewardItem[], swaps: RewardSwap[]): RewardItem[] {
+  return withSwapRows(items, swaps).filter((r) => !r.label);
 }
 export function rewardIcon(items: RewardItem[]): string {
   const cos = items.find((i) => i.kind === 'kozmetik'); const k = cos ? (cosmeticById(cos.ref ?? '')?.kind === 'renk' ? '🎨' : '🎩') : items.find((i) => i.kind === 'kart') ? '🃏' : items.find((i) => i.kind === 'koruyucu') ? '🛡️' : '🪙';

@@ -5,7 +5,7 @@ import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, explainRe
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, RewardGlyph, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
+import { Bar, RewardChips, RewardGlyph, ownItems, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
@@ -14,7 +14,7 @@ import { useNav } from '../nav';
 
 /** takvim hücresinin okunuşu (ekran okuyucu ve uzun basış): dönüşüm de söylenir */
 function calDayText(d: CalendarDay): string {
-  const what = d.reward.map(rewardPlain).join(', ');
+  const what = ownItems(d.reward, d.swaps).map(rewardPlain).join(', ');
   const swap = d.swaps.map((w) => swapText(w, d.state === 'alindi')).join('; ');
   return `${d.day}. gün${d.state === 'alindi' ? ' (alındı)' : ''}: ${what}${swap ? ` (${swap})` : ''}`;
 }
@@ -78,7 +78,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
           <div className="grow min0">
             {cal.claimedToday && calToday.swaps.map((w, i) => <div className="muted cal-swap" key={`b${i}`}>Bugün: {swapText(w, true)}</div>)}
             <div className="muted">{cal.claimedToday ? 'Bugünün ödülü alındı. Yarın:' : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
-            <RewardChips items={calShown.reward} small />
+            <RewardChips items={ownItems(calShown.reward, calShown.swaps)} small />
             {calShown.swaps.map((w, i) => <div className="muted cal-swap" key={i}>{swapText(w)}</div>)}</div>
           <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => openChest(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar(), calToday.swaps, !!calToday.big)}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>
         </div>
@@ -107,7 +107,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="grow min0">
           <h2>Günlük sandık</h2>
           <div className="muted">{daily.chestOpened ? 'Açıldı. Yarın yeni görevler, yeni sandık.' : ready ? 'Üç görev de tamam. Aç bakalım!' : `Üç görev bitince açılır (${doneCount}/3). İçinde:`}</div>
-          {!daily.chestOpened && <RewardChips items={chest.items} small />}
+          {!daily.chestOpened && <RewardChips items={ownItems(chest.items, chest.swaps)} small />}
           {!daily.chestOpened && chest.swaps.map((w, i) => <div className="muted cal-swap" key={i}>{swapText(w)}</div>)}
         </div>
         {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest(), chest.swaps)}>Aç</button>}

@@ -1,10 +1,10 @@
 // YN-103 (OT-ekonomi-denetci-20): her cüzdan artışı bir satırla söylenir. Takvimin 3. günü bereyi 12. kozmetik yapınca
 // "Moda Kulağı · Altın" +100 jeton verir; pencere takvim kalemlerini, bildirimler başarımların jetonunu yazar, toplam cüzdan artışına eşit.
 import { describe, expect, it } from 'vitest';
-import { COSMETICS, DEFAULT_SKILLS, TIER_REWARD } from '@odi/content';
-import { calendarView, claimCalendar, defaultMeta, rewardSum, settle, type PlayerCore } from '@odi/meta';
+import { COSMETICS, DAILY_CHEST_BASE, DEFAULT_SKILLS, MAX_STREAK_SHIELDS, TIER_REWARD } from '@odi/content';
+import { calendarView, claimCalendar, defaultMeta, explainReward, rewardSum, settle, type PlayerCore } from '@odi/meta';
 import { toastsFor } from './store';
-import { withSwapRows } from './ui/bits';
+import { ownItems, swapText, withSwapRows } from './ui/bits';
 
 const DAY = '2026-11-02'; const NOW = new Date(2026, 10, 2, 12).getTime();
 const core = (meta = defaultMeta()): PlayerCore => ({ progress: {}, coins: 4572, xp: 0, streak: 3, lastDay: DAY, failStreak: 0, skills: { ...DEFAULT_SKILLS }, meta });
@@ -34,6 +34,15 @@ describe('cüzdan artışı = gösterilen satırlar', () => {
     const rows = withSwapRows(r.applied, swaps);
     expect(rows).toEqual([{ kind: 'jeton', amount: 20 }, { kind: 'jeton', amount: 50, label: 'Kulaklı Bere zaten dolabında' }]);
     expect(rows.reduce((a, x) => a + x.amount, 0)).toBe(r.core.coins - c.coins);
+  });
+  it('günlük sandık önizlemesi, koruyucu dolu: çipte sandığın 50 jetonu, ayrı satırda +30; açılışta aynı iki kutu (OT-eski-telefon-21)', () => {
+    const m = defaultMeta(); m.shields = MAX_STREAK_SHIELDS;
+    const ex = explainReward(m, DAILY_CHEST_BASE);
+    expect(ownItems(ex.items, ex.swaps).filter((i) => i.kind === 'jeton')).toEqual([{ kind: 'jeton', amount: 50 }]);
+    expect(ex.swaps.map((w) => swapText(w))).toEqual(['Seri koruyucun dolu: yerine +30 jeton']);
+    const open = withSwapRows(ex.items, ex.swaps).filter((i) => i.kind === 'jeton').map((i) => i.amount);
+    expect(open).toEqual([50, 30]);
+    expect(open.reduce((a, n) => a + n, 0)).toBe(rewardSum(ex.items, 'jeton'));
   });
   it('çok açılımda toplanan bildirim de jetonu söyler', () => {
     const ev = (['ilk-ses', 'yildiz-avcisi', 'kusursuz-kulak', 'tuy-gibi'] as const).map((id) => ({ kind: 'achievement' as const, id, tier: 1 as const }));
