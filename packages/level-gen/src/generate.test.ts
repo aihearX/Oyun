@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateLevel, levelKnobs, DEFAULT_PROFILE, MAX_NOTES } from './generate';
+import { generateLevel, levelKnobs, levelEase, easeLine, easeNextLine, DEFAULT_PROFILE, MAX_NOTES } from './generate';
 import { CURVE_ZONES, targetLambda } from './curve';
 import { predictDmg, roomStats } from './rooms';
 import { validateChunks, HUMAN_JOURNEY, abilitiesAt, chunkNeeds, newAbilitiesAt } from '@odi/content';
@@ -113,5 +113,42 @@ describe('bölüm üretici', () => {
       expect(b.chunks.map((c) => c.id)).toEqual(a.chunks.map((c) => c.id));
     }
     expect(levelKnobs(27, { ...DEFAULT_PROFILE, recentStars: 3 }).lambda).toBeGreaterThanOrEqual(levelKnobs(27).lambda);
+  });
+});
+
+describe('yardım açıkça söylenir (YN-113)', () => {
+  const at = (n: number, failStreak: number) => levelEase('insan', n, { ...DEFAULT_PROFILE, failStreak });
+  it('0-2 kayıpta yardım yok, satır boş; 3 kayıpta bir, 5 kayıpta iki kademe (levelKnobs ile aynı)', () => {
+    for (const n of [7, 27, 33]) {
+      for (const f of [0, 1, 2]) { expect(at(n, f).ease).toBe(0); expect(easeLine(at(n, f))).toBe(''); }
+      for (const f of [3, 4, 5, 8]) expect(at(n, f).ease, `${n}/${f}`).toBe(levelKnobs(n, { ...DEFAULT_PROFILE, failStreak: f }).ease);
+    }
+  });
+  it('kalkan değiştiriciler üretilen bölümle aynı: normal bölümde olup kolay bölümde olmayanlar', () => {
+    for (const s of normal) {
+      const e = at(s.number, 3); const easy = generateLevel('insan', s.number, { ...DEFAULT_PROFILE, failStreak: 3 });
+      expect(e.removed, `${s.number}`).toEqual(s.modifiers.filter((m) => !easy.modifiers.includes(m)));
+    }
+    expect(at(33, 3).removed).toEqual(['hiz', 'yanki']);
+    expect(at(26, 3).removed).toEqual([]); // gece kalır
+  });
+  it('metin: kalkan değiştiriciler adıyla; yoksa yalnız seyrelme; ikinci kademe "daha"', () => {
+    expect(easeLine(at(33, 3))).toBe('Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.');
+    expect(easeLine(at(36, 4))).toBe('Üst üste 4 kayıptan sonra bölüm biraz kolaylaştı: Yankı kaldırıldı, engeller biraz seyreldi.');
+    expect(easeLine(at(12, 5))).toBe('Üst üste 5 kayıptan sonra bölüm biraz daha kolaylaştı: engeller biraz seyreldi.');
+  });
+  it('kayıpta sonraki deneme yalnız gerçekten kolaylaşacaksa söylenir', () => {
+    expect(easeNextLine(at(33, 2), at(33, 3))).toBe('Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak.');
+    expect(easeNextLine(at(12, 4), at(12, 5))).toBe('Sonraki denemede bölüm biraz daha kolaylaşacak.');
+    expect(easeNextLine(at(12, 1), at(12, 2))).toBe('');
+    expect(easeNextLine(at(33, 3), at(33, 4))).toBe('');
+    expect(easeNextLine(at(20, 4), at(20, 5))).toBe('');
+  });
+  it('boss bölümünde yardım bir şey değiştirmez: söylenmez', () => {
+    for (const n of [20, 40]) {
+      expect(at(n, 5).ease).toBe(0); expect(easeLine(at(n, 5))).toBe('');
+      const a = generateLevel('insan', n), b = generateLevel('insan', n, { ...DEFAULT_PROFILE, failStreak: 5 });
+      expect(b.boss).toEqual(a.boss);
+    }
   });
 });

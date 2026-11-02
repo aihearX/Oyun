@@ -19,7 +19,7 @@ import { NoteCard, useNote } from '../ftue/Notes';
 import { biliyorMuydun } from '@odi/content/biliyor-muydun';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
-import { mapIntroView } from '../ftue/map-intro';
+import { mapIntroView, type MapReveal } from '../ftue/map-intro';
 import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
@@ -28,6 +28,10 @@ interface Props {
   spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string;
   /** haritaya gelinince kendiliğinden başlayacak anlatıcı turları (ftue/map-intro.ts mapIntroQueue): doluysa "Sonraki" yerine "Haritaya dön" */
   mapIntro?: readonly string[];
+  /** haritanın dönüş sahnesinde bekleyen bölge canlanması / hazine (ftue/map-intro.ts mapRevealPending): doluysa da "Haritaya dön" (YN-114) */
+  reveal?: MapReveal | null;
+  /** bu denemenin kolaylaştırma satırı ve kayıpta sonraki denemenin (level-gen easeLine / easeNextLine; YN-113) */
+  ease?: string; easeNext?: string;
 }
 
 const STAR_AT = 380, STAR_GAP = 380, SCORE_MS = 900;
@@ -46,7 +50,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 }
 
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
-export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro }: Props) {
+export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro, reveal, ease, easeNext }: Props) {
   const store = useStore();
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
@@ -67,8 +71,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const skip = () => setStep(FINAL);
   const done = step >= FINAL;
   const last = spec.number >= HUMAN_JOURNEY.levels.length;
-  // yeni yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey varsa ileri düğmesi haritaya götürür (bölüme atlatmaz; YN-066)
-  const intro = result.completed && !last ? mapIntroView(mapIntro ?? []) : null;
+  // yeni yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey varsa ileri düğmesi haritaya götürür (bölüme atlatmaz; YN-066);
+  // bölge canlanması ya da hazine sandığı haritada bekliyorsa da (son bölümde de: Ninni Merkezi orada yanar; YN-114)
+  const intro = result.completed ? mapIntroView(last ? [] : mapIntro ?? [], reveal) : null;
   // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
   // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
   const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
@@ -195,6 +200,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         </div>
 
         {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
+        {/* gizli kolaylaştırma yok (YN-113): yardım bu denemede devredeyse ve kayıpta sonraki deneme kolaylaşacaksa tek satır */}
+        {ease && <div className="result-mods" data-testid="sonuc-kolay">{ease}</div>}
+        {easeNext && <div className="result-mods" data-testid="sonuc-kolay-sonraki">{easeNext}</div>}
 
         {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
             kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
@@ -308,7 +316,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         <div className="result-actions" onClick={(e) => e.stopPropagation()}>
           {intro ? (
             <>
-              <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={(mapIntro ?? []).join(' ')}>
+              <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
                 <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
                 <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
                 <Art name={intro.art} size={30} className="ra-art" />

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { BIOMES, BOSSES, HUMAN_JOURNEY, MECHANICS, treasureAt } from '@odi/content';
-import { generateLevel } from '@odi/level-gen';
+import { easeLine, generateLevel, levelEase } from '@odi/level-gen';
 import { albumProgress, biomeStats } from '@odi/meta';
 import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMap, type ZoneId } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
@@ -58,6 +58,8 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
   const p = useStore((s) => s.progress[n]); const locked = n > unlocked;
   // hedef: oynanacak bölümün gerçek hedef metni (üretici aynı girdilerle aynı bölümü kurar)
   const goal = useMemo(() => { const s = useStore.getState(); try { return generateLevel(s.journey, n, { recentStars: 2, failStreak: s.failStreak, skills: s.skills }).objective.label; } catch { return ''; } }, [n]);
+  // uyarlanabilir yardım devredeyse açıkça (YN-113): hangi değiştiriciler kalktı; 0-2 kayıpta ve boss bölümünde boş
+  const ease = useMemo(() => { const s = useStore.getState(); return easeLine(levelEase(s.journey, n, { recentStars: 2, failStreak: s.failStreak, skills: s.skills })); }, [n]);
   const tr = treasureAt(n); const boss = l.boss ? BOSSES[l.boss] : null;
   return (
     <Sheet onClose={onClose}>
@@ -73,6 +75,7 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
         <div className="mc-row"><span><Glyph e={m.icon} size={22} /></span><b>{m.name}</b><span className="mc-dim">{m.hint}</span></div>
         {goal && <div className="mc-row"><span><Art e="🎯" size="1.15em" className="art-inline" /></span><b>Hedef</b><span className="mc-dim">{goal}</span></div>}
         {boss && <div className="mc-row"><span><Art e="👹" size="1.15em" className="art-inline" /></span><b>{boss.name}</b><span className="mc-dim">{boss.hp} can · {boss.phases} evre</span></div>}
+        {ease && !locked && <div className="mc-row" data-testid="bolum-kolay"><span><Art name="sprout" size="1.15em" className="art-inline" /></span><b>Yardım</b><span className="mc-dim">{ease}</span></div>}
         {p && p.best > 0 && <div className="mc-row"><span><Art e="🏅" size="1.15em" className="art-inline" /></span><b>En iyi skor</b><span className="mc-dim">{p.best.toLocaleString('tr-TR')}</span></div>}
         {tr && <div className="mc-row"><span><Art e="🎁" size="1.15em" className="art-inline" /></span><b>Hazine</b><RewardChips items={tr.reward} small /></div>}
         {!locked && <RemedyPicker region={l.biome} />}

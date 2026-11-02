@@ -50,6 +50,39 @@ function pickModifiers(plan: LevelPlan, knobs: LevelKnobs): ModifierId[] {
   return knobs.modifiers.filter((m) => MODIFIERS[m] && !(m === 'ters-yercekimi' && abilitiesAt(plan.number).includes('cevir')));
 }
 
+/** uyarlanabilir yardımın oyuncuya söylenen yüzü (YN-113): kaç kademe, kaç kayıptan sonra, hangi değiştiriciler kalktı */
+export interface LevelEase { ease: number; failStreak: number; removed: ModifierId[] }
+/**
+ * Bu profille bölümün yardımı: `levelKnobs` ile aynı kural (davranış değişmez; yalnız açıkça söylenir). Boss bölümünde yardım
+ * hiçbir şeyi değiştirmez (can, uyarı ve tempo sabit; `curve.ts`) → kademe 0. `removed`: normal bölümde olup bu denemede kalkan
+ * değiştiriciler (sırayla).
+ */
+export function levelEase(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE): LevelEase {
+  const plan = journeyById(journeyId)?.levels.find((l) => l.number === number);
+  const knobs = levelKnobs(number, profile);
+  if (!plan || plan.mechanic === 'boss' || knobs.ease <= 0) return { ease: 0, failStreak: profile.failStreak, removed: [] };
+  const eased = new Set(pickModifiers(plan, knobs));
+  const removed = pickModifiers(plan, levelKnobs(number, { ...profile, failStreak: 0 })).filter((m) => !eased.has(m));
+  return { ease: knobs.ease, failStreak: profile.failStreak, removed };
+}
+/**
+ * Bölüm kartı ve sonuç ekranının tek satırı: "Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller
+ * biraz seyreldi." Her kademe engelleri seyreltir ve bölümü kısaltır (`knobsFor`); süre bölüme göre uzayabilir de kısalabilir de,
+ * o yüzden söylenmez. Yardım yoksa boş.
+ */
+export function easeLine(e: LevelEase): string {
+  if (e.ease <= 0) return '';
+  const mods = e.removed.length ? `${modList(e.removed)} kaldırıldı, ` : '';
+  return `Üst üste ${e.failStreak} kayıptan sonra bölüm biraz ${e.ease > 1 ? 'daha ' : ''}kolaylaştı: ${mods}engeller biraz seyreldi.`;
+}
+/** kayıpta, yalnız gerçekse: bir sonraki deneme bu denemeden kolay olacak ("Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak.") */
+export function easeNextLine(now: LevelEase, next: LevelEase): string {
+  if (next.ease <= now.ease) return '';
+  const more = next.removed.filter((m) => !now.removed.includes(m));
+  return `Sonraki denemede bölüm biraz ${now.ease > 0 ? 'daha ' : ''}kolaylaşacak${more.length ? `: ${modList(more)} kalkacak` : ''}.`;
+}
+const modList = (ids: readonly ModifierId[]) => { const n = ids.map((m) => MODIFIERS[m].name); return n.length > 1 ? `${n.slice(0, -1).join(', ')} ve ${n[n.length - 1]}` : n[0] ?? ''; };
+
 /** odanın bu bölümün düğmelerine uyup uymadığı (`strict` 0 tam, 1 boşluk/iniş serbest, 2 aile serbest, 3 yalnız tavan ×1,6) */
 function knobOk(c: ChunkSpec, k: LevelKnobs, strict: number): boolean {
   const st = roomStats(c);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES, veteranTours } from './features';
-import { CAMP_TOURS, MAX_UNLOCK_TOURS_PER_LEVEL, countUnlockTour, mapIntroPending, mapIntroQueue, mapIntroView, tourShortName, type UnlockTally } from './map-intro';
+import { CAMP_TOURS, MAX_UNLOCK_TOURS_PER_LEVEL, countUnlockTour, mapIntroPending, mapIntroQueue, mapIntroView, mapRevealPending, tourShortName, type UnlockTally } from './map-intro';
 
 /**
  * Sahip isteği 2026-10-31 (YN-066): bölüm geçilince yeni bir yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey
@@ -68,5 +68,43 @@ describe('sonuç ekranındaki satır ve düğme (mapIntroView)', () => {
       expect(name.length, f.id).toBeLessThanOrEqual(16);
       expect(/\p{Extended_Pictographic}/u.test(name), f.id).toBe(false);
     }
+  });
+});
+
+/**
+ * YN-114 (OT-ilk-kez-oyun-34): bölge sonu (canavar) ya da hazine bölümü ilk kez geçilince haritanın dönüş sahnesinde canlanma /
+ * sandık bekler; sonuç ekranı "Sonraki" yerine "Haritaya dön" der. Eski bölüm tekrarında (görülmüş) Sonraki kalır.
+ */
+describe('haritada bekleyen kutlama (mapRevealPending)', () => {
+  /** 1..n-1 iki yıldızla geçilmiş (harita bunları göstermiş); `now`: n de geçildi */
+  const upTo = (n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, 2])) as Record<number, number>;
+  const restoredBefore = (n: number) => { const r: string[] = []; for (let k = 1; k < n; k++) { const x = mapRevealPending(upTo(k - 1), upTo(k), r); if (x) r.push(...x.zones); } return r; };
+  it('Golem (20) ilk geçiş: Kulak Kanalı canlanır ve hazine açılır → "Haritaya dön" ve satır', () => {
+    const r = mapRevealPending(upTo(19), upTo(20), restoredBefore(20));
+    expect(r?.zones).toContain('kanal'); expect(r?.treasures).toEqual([20]);
+    const v = mapIntroView([], r)!;
+    expect(v.button).toBe('Haritaya dön'); expect(v.title).toBe('Kulak Kanalı haritada canlanacak.'); expect(v.note).toBe('Hazine sandığını da orada göreceksin.');
+  });
+  it('Gürültü Canavarı (40) ilk geçiş: bölge sonu kutlaması bekler', () => {
+    const r = mapRevealPending(upTo(39), upTo(40), restoredBefore(40));
+    expect(r).toEqual({ zones: ['korteks', 'finale'], treasures: [40] });
+    expect(mapIntroView([], r)).toMatchObject({ title: 'İşitme Korteksi haritada canlanacak.', note: 'Ninni Merkezi de ışıl ışıl yanacak. Hazine sandığını da orada göreceksin.', button: 'Haritaya dön' });
+  });
+  it('yalnız hazine (10): sandık satırı; tanıtım da bekliyorsa Tüy Dede de söylenir', () => {
+    const r = mapRevealPending(upTo(9), upTo(10), restoredBefore(10));
+    expect(r).toEqual({ zones: [], treasures: [10] });
+    expect(mapIntroView([], r)).toMatchObject({ art: 'chest', title: 'Hazine sandığını haritada göreceksin.', note: 'Sıradaki bölüm haritadan.' });
+    expect(mapIntroView(['events'], r)?.note).toBe('Tüy Dede de anlatacak: Etkinlikler.');
+    // 5. bölüm: Dış Kulak canlanır, sandık açılır, Takım ve Sıralama tanıtılır
+    expect(mapIntroView(['team', 'siralama'], mapRevealPending(upTo(4), upTo(5), restoredBefore(5)))?.note).toBe('Hazine sandığını da orada göreceksin. Tüy Dede de anlatacak: Takım ve Sıralama.');
+  });
+  it('sıradan bölüm, eski bölüm tekrarı (yıldız artsa da) ve hiç açılmamış harita: bekleyen yok → Sonraki', () => {
+    for (const n of [2, 11, 13, 21]) expect(mapRevealPending(upTo(n - 1), upTo(n), restoredBefore(n)), `${n}`).toBeNull();
+    const all = restoredBefore(41);
+    expect(mapRevealPending(upTo(40), upTo(40), all)).toBeNull();
+    expect(mapRevealPending(upTo(40), { ...upTo(40), 20: 3, 8: 3 }, all)).toBeNull();
+    expect(mapRevealPending(upTo(12), upTo(12), restoredBefore(13))).toBeNull();
+    expect(mapRevealPending(null, upTo(20), [])).toBeNull();
+    expect(mapIntroView([], null)).toBeNull();
   });
 });

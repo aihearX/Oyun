@@ -1,3 +1,6 @@
+import { BIOMES } from '@odi/content';
+// yalnız saf yerleşim hesabı (lite girişi harita boyamasını da taşır; bu dosya ilk parçada)
+import { planReturn, type StarMap, type ZoneId } from '@odi/game-core/map/layout';
 import type { ArtName } from '../ui/art';
 import { FEATURES, featureById, type FeatureId, type FtueState } from './features';
 
@@ -5,7 +8,8 @@ import { FEATURES, featureById, type FeatureId, type FtueState } from './feature
  * Haritada (Kulak Kanalı) kendiliğinden başlayacak anlatıcı turları: tek doğruluk kaynağı.
  * Yönetmen (Director.tsx) sekme ekranlarında sıradaki turu buradan seçer; sonuç ekranı aynı kuyruğa bakıp "Sonraki" yerine
  * "Haritaya dön" gösterir (sahip isteği 2026-10-31, YN-066): yeni bir yer açıldıysa ya da Tüy Dede'nin anlatacağı bir şey varsa
- * oyuncu anlatımı bölüme geçerek kaçırmasın.
+ * oyuncu anlatımı bölüme geçerek kaçırmasın. Aynı kural haritanın dönüş sahnesinde bekleyen bölge canlanması ve hazine için de
+ * geçerli (YN-114, OT-ilk-kez-oyun-34): hedef kutusunun söz verdiği an bölüme atlanarak kaçmasın.
  */
 
 /**
@@ -54,12 +58,36 @@ export const mapIntroPending = (cleared: number, ftue: Pick<FtueState, 'tours' |
 const SHORT: Partial<Record<FeatureId, string>> = { friends: 'Arkadaşlar', shop: 'Mağaza', race: 'Canlı yarış', akis: 'Takım Akışı', tyaris: 'Takım Yarışı' };
 export const tourShortName = (id: FeatureId) => SHORT[id] ?? featureById(id).name;
 
-/** sonuç ekranındaki dürüst satır ve düğme: neyin beklediği (emoji yok) */
+/**
+ * Haritaya gelinince dönüş sahnesinde kutlanacaklar (MapScreen onZoneRise / onTreasure ile aynı kural): ilk kez canlanan bölgeler
+ * (aşama 3 ve üstü, daha önce kutlanmamış; son bölge şeritle) ve açılan hazine sandıkları. `seen`: haritanın en son gösterdiği
+ * yıldızlar (mapSeen); harita hiç açılmamışsa (null) ilk açılış sahnesiz kaydedilir, beklenen bir şey yoktur. Eski bölüm tekrarında
+ * fark yoktur → null.
+ */
+export interface MapReveal { zones: ZoneId[]; treasures: number[] }
+export function mapRevealPending(seen: StarMap | null, now: StarMap, restored: readonly string[]): MapReveal | null {
+  if (!seen) return null;
+  const steps = planReturn(seen, now);
+  const zones = steps.flatMap((st) => (st.kind === 'zone' && st.to >= 3 && !restored.includes(st.zone) ? [st.zone] : []));
+  const treasures = steps.flatMap((st) => (st.kind === 'treasure' ? [st.n] : []));
+  return zones.length || treasures.length ? { zones, treasures } : null;
+}
+const andJoin = (xs: readonly string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ve ${xs[xs.length - 1]}` : xs[0] ?? '');
+/** haritada bekleyen kutlamanın satırı: "Kulak Kanalı haritada canlanacak." / "Hazine sandığını haritada göreceksin." */
+function revealView(r: MapReveal, tour: string): MapIntroView {
+  const places = r.zones.flatMap((z) => (z === 'finale' ? [] : [BIOMES[z].name])); const finale = r.zones.includes('finale');
+  const title = places.length ? `${andJoin(places)} haritada canlanacak.` : finale ? 'Ninni Merkezi haritada ışıl ışıl yanacak.' : 'Hazine sandığını haritada göreceksin.';
+  const also = [places.length && finale ? 'Ninni Merkezi de ışıl ışıl yanacak.' : '', (places.length || finale) && r.treasures.length ? 'Hazine sandığını da orada göreceksin.' : '', tour].filter(Boolean);
+  return { art: places.length || finale ? 'sprout' : 'chest', title, note: also.join(' ') || 'Sıradaki bölüm haritadan.', button: 'Haritaya dön' };
+}
+
+/** sonuç ekranındaki dürüst satır ve düğme: neyin beklediği (emoji yok); haritada kutlama bekliyorsa önce o söylenir */
 export interface MapIntroView { art: ArtName; title: string; note: string; button: string }
-export function mapIntroView(queue: readonly string[]): MapIntroView | null {
+export function mapIntroView(queue: readonly string[], reveal?: MapReveal | null): MapIntroView | null {
+  const ids = queue.filter((id): id is FeatureId => FEATURES.some((f) => f.id === id)); const names = ids.map(tourShortName).join(' ve ');
+  if (reveal) return revealView(reveal, queue[0] === 'map' ? 'Tüy Dede de yolunu gösterecek.' : ids.length ? `Tüy Dede de anlatacak: ${names}.` : '');
   const first = queue[0]; if (!first) return null;
   if (first === 'map') return { art: 'map', title: 'Tüy Dede’nin anlatacakları var', note: 'Haritada yolunu gösterecek.', button: 'Haritaya git' };
-  const ids = queue.filter((id): id is FeatureId => FEATURES.some((f) => f.id === id));
   if (!ids.length) return null;
-  return { art: featureById(ids[0]!).art, title: `Yeni: ${ids.map(tourShortName).join(' ve ')}`, note: 'Tüy Dede haritada anlatacak.', button: 'Haritaya dön' };
+  return { art: featureById(ids[0]!).art, title: `Yeni: ${names}`, note: 'Tüy Dede haritada anlatacak.', button: 'Haritaya dön' };
 }

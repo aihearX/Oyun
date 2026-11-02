@@ -1170,7 +1170,11 @@ async function suite(browserName, target, [W, H]) {
         // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
         ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis'],
         // YN-102: ilk canavarda 4. kayıp, takımdan yardım kartı ("Yardım iste" düğmesi yapışkan çubuğun arkasında kalmaz); değiştiricili bölüm sonucu
-        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici']]) {
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici'],
+        // YN-113: 3 kayıptan sonra kolaylaşmış bölümün sonucu (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin kolaylaşacağı
+        // YN-114: bölge sonu (Golem) ilk geçişte "Haritaya dön" + "Kulak Kanalı haritada canlanacak."
+        ['demo=sonuc&bolum=33&yildiz=2&skor=1700&kolay=3&kutlama=0', 'sonuc-kolay'], ['demo=sonuc&bolum=33&yildiz=0&skor=420&kolay=2&kutlama=0', 'sonuc-kaybetti-kolay-sonraki'],
+        ['demo=sonuc&bolum=20&yildiz=3&skor=3100&acilim=1&harita=1&kutlama=0', 'sonuc-harita-canlanma']]) {
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1204,6 +1208,12 @@ async function suite(browserName, target, [W, H]) {
         if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Yankı$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
         if (label === 'sonuc-kaybetti-sis' && (!/Sis/.test(degis) || !(await page.locator('[data-testid="sonuc-gorunurluk"]').count()))) fail(rec, `sis kaybında değiştirici satırı ya da Yüksek görünürlük yönlendirmesi yok: "${degis}"`);
         if (label === 'sonuc-kaybetti-yardim' && !(await page.locator('[data-testid="yardim-iste-dugme"]').count())) fail(rec, 'yardım kartı/düğmesi yok');
+        // YN-113: kolaylaştırma satırı yalnız yardım devredeyken (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin satırı
+        const kolay = (await page.locator('[data-testid="sonuc-kolay"]').textContent().catch(() => null)) ?? '';
+        const kolaySonra = (await page.locator('[data-testid="sonuc-kolay-sonraki"]').textContent().catch(() => null)) ?? '';
+        if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
+        if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
+        if (!/kolay/.test(label) && (kolay || kolaySonra)) fail(rec, `yardım yokken kolaylaştırma satırı: "${kolay}${kolaySonra}"`);
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
         const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
         if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
@@ -1238,13 +1248,13 @@ async function suite(browserName, target, [W, H]) {
         rec.buttons = btn;
         const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);
         if (bad.length) fail(rec, `sonuç düğmeleri görünüm dışında: ${JSON.stringify(bad)}`);
-        if (label.startsWith('sonuc-anlatim')) {
+        if (label.startsWith('sonuc-anlatim') || label.startsWith('sonuc-harita')) {
           const strip = await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').boundingBox().catch(() => null);
           if (!strip || strip.x < 0 || strip.x + strip.width > W || strip.y + strip.height > H) fail(rec, `bekleyen tanıtım satırı görünmüyor ya da taşıyor: ${JSON.stringify(strip)}`);
           if (await page.locator('.result-actions [data-act="sonraki"]').count()) fail(rec, 'bekleyen tanıtım varken Sonraki düğmesi var');
           if (!btn.some((b) => b.t === 'Haritaya dön')) fail(rec, `"Haritaya dön" düğmesi yok: ${btn.map((b) => b.t).join(', ')}`);
           const yazi = (await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').textContent().catch(() => '')) ?? '';
-          const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : 'Yeni: Kamp';
+          const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : label === 'sonuc-harita-canlanma' ? 'Kulak Kanalı haritada canlanacak.Hazine sandığını da orada göreceksin.' : 'Yeni: Kamp';
           if (!yazi.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${yazi}"`);
         }
       }
