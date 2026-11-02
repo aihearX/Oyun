@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, SPEND_LIMIT_SUGGESTED_TRY } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
 import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
@@ -86,6 +86,14 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(hs).toContain('Çökme raporları hesaba bağlı değildir');
     expect(hs).toContain(`son ${HESAP_SIL_BEKLEME_GUN} gün`);
     expect(hs).toContain(`${HESAP_SIL_BEKLEME_GUN} days`);
+  });
+
+  it('takım hediyeli satın alma adsız duyurulur (karar 39, YN-097): metin sunucunun yazdığıyla aynı', () => {
+    const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN);
+    expect(tr).toContain('alanın adı olmadan');
+    expect(TEAM_GIFT_ANON.chat.startsWith(TEAM_GIFT_ANON.fromName)).toBe(true);
+    expect(tr).toContain(TEAM_GIFT_ANON.chat.split('!')[0]!);
+    expect(en).toContain("do not include the buyer's name");
   });
 
   it('oyun içi yol ile metin aynı: Profil › Ayarlar › Hesabı sil, Her şeyi sil', () => {

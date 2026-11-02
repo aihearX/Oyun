@@ -1,4 +1,4 @@
-import { INBOX_TEXT, TEAM_TECH, techCost, type TeamExtra, type TeamGift, type TeamGoal, type TeamGoalTier, type TechId, type TechState } from '@odi/shared';
+import { INBOX_TEXT, TEAM_GIFT_ANON, TEAM_TECH, techCost, type TeamExtra, type TeamGift, type TeamGoal, type TeamGoalTier, type TechId, type TechState } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { requireTeam } from './teams';
@@ -42,8 +42,9 @@ export function addContrib(app: App, teamId: string, pid: string, d: { donated?:
 interface GiftRow { id: string; team_id: string; from_id: string; from_name: string; reason: string; contents: string; at: number; expires_at: number; goal_ref: string | null }
 /** gift_recipients.claimed: 0 bekliyor, 1 alındı, 2 süresi doldu ve içeriği ödül kutusuna geçti (expireGifts) */
 const GIFT_TO_INBOX = 2;
+/** oyuncudan gelen (satın alma) hediye istemciye adsız gider: kimlik de ad da yok (karar 39) */
 const toGift = (g: GiftRow, claimed: number): TeamGift => ({
-  id: g.id, from: g.from_id, fromName: g.from_name, reason: g.reason, contents: parseJson(g.contents, []), at: g.at, expiresAt: g.expires_at, claimed: !!claimed,
+  id: g.id, ...(g.from_id === 'sistem' ? { from: 'sistem', fromName: g.from_name } : { from: TEAM_GIFT_ANON.from, fromName: TEAM_GIFT_ANON.fromName }), reason: g.reason, contents: parseJson(g.contents, []), at: g.at, expiresAt: g.expires_at, claimed: !!claimed,
   ...(claimed === GIFT_TO_INBOX ? { toInbox: true as const } : {}),
 });
 

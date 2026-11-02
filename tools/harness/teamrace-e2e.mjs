@@ -249,6 +249,22 @@ async function webSuite(bt) {
     const rows = await A[0].page.locator('[data-testid="tl-satir"]').count();
     S.check(rows >= 2, `Lig grubunda ${rows} takım`);
     await S.shot(A[0], 'lig');
+    // lig kapsamı (karar 40, YN-098): sayılan ve sayılmayan etkinlikler kartta yazılı, 320 px'te görünür ve taşmaz
+    {
+      const pg = A[0].page; const vp = pg.viewportSize();
+      await pg.setViewportSize({ width: 320, height: 640 }); await pg.waitForTimeout(300);
+      const kapsam = [];
+      for (const id of ['tl-sayilan', 'tl-sayilmayan']) {
+        const el = pg.getByTestId(id); await el.scrollIntoViewIfNeeded();
+        const box = await el.boundingBox(); const txt = (await el.innerText()).trim();
+        kapsam.push({ id, txt, ok: !!box && box.width > 0 && box.x >= 0 && box.x + box.width <= 320 + 0.5 && await el.isVisible() });
+      }
+      const [say, saymaz] = kapsam;
+      S.check(kapsam.every((x) => x.ok) && ['Bölge Savaşı', 'Baskın', 'Bilgi', 'Düello', 'Takım Yarışı'].every((x) => say.txt.includes(x)) && ['Bayrak Yarışı', 'Ralli', 'Ses Avı'].every((x) => saymaz.txt.includes(x) && !say.txt.includes(x)),
+        `Lig kartı 320 px: sayılan / sayılmayan etkinlikler görünür (${kapsam.map((x) => `${x.id} ${x.ok ? 'görünür' : 'SORUN'}`).join(', ')})`);
+      await S.shot(A[0], 'lig-320');
+      if (vp) await pg.setViewportSize(vp);
+    }
     // sıralama: Takım Ligi tablosu
     const board = (await net(A[0], 'rank.board', { board: 't-lig', scope: 'herkes' })).view;
     S.check(board.rows.some((r) => r.name === `Kulaklar ${k}`), 'Sıralama › Takım Ligi tablosunda');

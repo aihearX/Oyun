@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
 import { applyServerItems, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { audio } from '@odi/audio';
@@ -67,7 +67,7 @@ function Shop() {
       applyServerItems(p.contents.filter((x) => x.kind === 'kozmetik').map((x) => ({ kind: 'kozmetik' as const, amount: 1, ref: x.ref ?? '' })));
       void c.call('profile.update', {}).catch(() => undefined);
       platform().haptic('success'); audio.play('fanfare');
-      celebrate.banner({ icon: '🎉', title: `${p.name} hesabında`, body: res.teamGiftSent ? 'Takımındaki herkese hediye gitti!' : undefined, tone: 'gold' });
+      celebrate.banner({ icon: '🎉', title: `${p.name} hesabında`, body: res.teamGiftSent ? 'Takımındaki herkese adsız hediye gitti.' : undefined, tone: 'gold' });
       if (res.wallet.kristal > before) void celebrate.coins({ amount: res.wallet.kristal - before, kind: 'kristal' });
       setSel(null); await load();
     } catch (e) { toast('🙈', 'Satın alınamadı', errText(e), 'bronze'); }
@@ -123,6 +123,7 @@ function Shop() {
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
           {sel.id === 'odi.pass' && <PassTerms />}
           {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <TeamEmblem e={team.emblem} size="1.1em" className="art-inline" /> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
+          {sel.teamGift && team && <div className="muted small-note" data-testid="adsiz-hediye">{TEAM_GIFT_ANON.shopNote}</div>}
           <div className="muted small-note">Aylık sınır (TL liste fiyatıyla): {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / {fmtTry(sp.limitTry)}</div>
           {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı mağazadaki "Sınırı ayarla"dan değiştirebilirsin (yükseltme ayrıca onay ister, 24 saat sonra geçerli olur).</div>}
           <button className="btn" disabled={busy || over} onClick={() => void buy(sel)}>{busy ? 'İşleniyor…' : mode === 'test' ? 'Test satın alması yap' : pl.store ? `${pl.text} öde` : 'Mağazada satın al'}</button>

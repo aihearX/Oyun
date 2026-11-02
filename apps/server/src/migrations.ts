@@ -12,6 +12,7 @@ import { ROZET_SCHEMA } from './rozet';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
 import { binaMetni } from './comm/bina-metni';
+import { INBOX_TEXT, TEAM_GIFT_ANON } from '@odi/shared';
 
 /** göç 7: `players.spend_limit` sütununun eski varsayılanı (db.ts); bu değerde kalmış, bekleyen yükseltmesi olmayan sınır seçilmemiş sayılır */
 const OLD_DEFAULT_SPEND_LIMIT_TRY = 1000;
@@ -84,7 +85,33 @@ export const MIGRATIONS: Migration[] = [
     }
   } },
   { name: 'savas-bolge-payi', up: (db) => { addColumn(db, 'player_week', 'region_points', 'INTEGER NOT NULL DEFAULT 0'); } },
+  { name: 'adsiz-takim-hediyesi', up: (db) => { adsizTakimHediyesi(db); } },
 ];
+
+/** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */
+const ESKI_HEDIYE_NEDENI = /^.+ takıma hediye gönderdi \(([^()]*)\)$/u;
+const ESKI_HEDIYE_SOHBET = ' takıma hediye gönderdi! Hediye kutunuza bakın.';
+/**
+ * göç 12 (karar 39, YN-097): satın alma hediyelerinde alıcının adı kalmasın. Hediye satırı (from_name, reason),
+ * süresi dolup ödül kutusuna geçmiş kopyası (inbox.reason) ve takım sohbetindeki sistem duyurusu adsız metne çevrilir.
+ */
+export function adsizTakimHediyesi(db: DatabaseSync): void {
+  const gifts = db.prepare("SELECT id, reason FROM team_gifts WHERE from_id <> 'sistem'").all() as { id: string; reason: string }[];
+  const yazGift = db.prepare('UPDATE team_gifts SET from_name = ?, reason = ? WHERE id = ?');
+  for (const g of gifts) {
+    const m = ESKI_HEDIYE_NEDENI.exec(g.reason);
+    yazGift.run(TEAM_GIFT_ANON.fromName, m ? TEAM_GIFT_ANON.reason(m[1]!) : g.reason, g.id);
+  }
+  const onEk = INBOX_TEXT.giftMoved('');
+  const kutu = db.prepare('SELECT id, reason FROM inbox WHERE substr(reason, 1, ?) = ?').all(onEk.length, onEk) as { id: string; reason: string }[];
+  const yazKutu = db.prepare('UPDATE inbox SET reason = ? WHERE id = ?');
+  for (const k of kutu) {
+    const m = ESKI_HEDIYE_NEDENI.exec(k.reason.slice(onEk.length));
+    if (m) yazKutu.run(INBOX_TEXT.giftMoved(TEAM_GIFT_ANON.reason(m[1]!)), k.id);
+  }
+  db.prepare(`UPDATE chat SET text = ? WHERE from_id = 'sistem' AND meta LIKE '%"product":%' AND substr(text, -?) = ?`)
+    .run(TEAM_GIFT_ANON.chat, ESKI_HEDIYE_SOHBET.length, ESKI_HEDIYE_SOHBET);
+}
 
 export const userVersion = (db: DatabaseSync) => (db.prepare('PRAGMA user_version').get() as { user_version: number }).user_version;
 

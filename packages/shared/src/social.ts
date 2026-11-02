@@ -190,6 +190,19 @@ export const INBOX_TEXT = {
   /** bölge ödülü kristal ve jeton olarak iki satır: aynı başlıkla durmasınlar */
   war: (week: string, region: string, kind: InboxKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
 };
+/**
+ * Takım hediyeli paket satın alınınca takıma giden duyuru ve hediye kartı ADSIZDIR (karar 39, YN-097):
+ * çocuğun harcaması ilan edilmez, "X hediye gönderdi" satırları ötekilere "sen de al" baskısı olmaz.
+ * Sunucu alıcının kimliğini istemciye göndermez (`from` = TEAM_GIFT_ANON.from).
+ */
+export const TEAM_GIFT_ANON = {
+  from: 'takim-arkadasi',
+  fromName: 'Bir takım arkadaşın',
+  chat: 'Bir takım arkadaşın takıma hediye gönderdi! Hediye kutunuza bakın.',
+  reason: (product: string) => `Takım hediyesi (${product})`,
+  /** mağaza satın alma penceresi */
+  shopNote: 'Takımına adsız hediye düşer; adın sohbette yazılmaz.',
+} as const;
 /** "Hepsini al" bildirimi: yalnız gerçekten alınan türler ("+600 jeton, +200 kristal"; OT-ekonomi-denetci-22) */
 export function inboxGotText(got: readonly Pick<InboxItem, 'kind' | 'amount'>[]): string {
   const sum = (k: InboxKind) => got.filter((x) => x.kind === k).reduce((a, x) => a + x.amount, 0);
@@ -1209,10 +1222,23 @@ export const TEAM_LEAGUE_RULES = {
     duel: { win: 40, draw: 15, lose: 5, label: 'Düello', desc: 'kazanma 40, beraberlik 15, kayıp 5; rakipsiz biten düello sayılmaz' },
     race: { label: 'Takım Yarışı', desc: 'kazanma 20, beraberlik 8, kayıp 4 (günde en çok 10 yarış)' },
   },
+  /**
+   * ligde SAYILMAYAN takım etkinlikleri (sahip kararı 40, YN-098): lig puanı yazmazlar. Ralli ve Bayrak ayakları
+   * Takım Düellosu puanına eklenir (events/rally.ts, relay.ts); lige yalnız düellonun sonucu (`sources.duel`) yazılır.
+   */
+  notCounted: ['Bayrak Yarışı', 'Ralli', 'Ses Avı'],
   /** sezon ödülü (üye başına, bir kez): kademe tabanı × (1. 3, 2. 2, 3. 1.5, diğer puanı olan 1) kristal; teamLeagueReward */
   rewardBase: { bronz: 5, gumus: 8, altin: 12, platin: 16, koklea: 20 },
   rewardMul: [3, 2, 1.5],
 } as const;
+/** lig kartı ve kural penceresi: hangi etkinlikler sayılır, hangileri sayılmaz (karar 40; OT-rekabetci-18, -22) */
+export function teamLeagueScopeText(): { counted: string; notCounted: string } {
+  const S = TEAM_LEAGUE_RULES.sources;
+  return {
+    counted: `Ligde sayılan: ${[S.war, S.raid, S.quiz, S.duel, S.race].map((x) => x.label).join(', ')}.`,
+    notCounted: `Ligde sayılmayan: ${TEAM_LEAGUE_RULES.notCounted.join(', ')}. Bunlar lig puanı yazmaz; Ralli ve Bayrak ayakları yalnız Takım Düellosu puanına eklenir, lige düellonun sonucu sayılır.`,
+  };
+}
 /** sezon sonu üye başına kristal: kademe tabanı × sıra çarpanı (1. ×3, 2. ×2, 3. ×1,5, diğer puanlı ×1); kesir en yakın tama (Math.round, ,5 yukarı). Puanı 0 olan takım ödül almaz. */
 export function teamLeagueReward(tier: TeamLeagueTier, rank: number, points: number): number {
   if (points <= 0) return 0;

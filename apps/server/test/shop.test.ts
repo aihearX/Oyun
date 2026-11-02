@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
-import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SPEND_LIMIT_SUGGESTED_TRY } from '@odi/shared';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
 import { teamGiftFor } from '../src/shop';
 import { setup, type Env, type TC } from './helpers';
 
@@ -31,9 +31,15 @@ describe('mağaza', () => {
     // hediye: diğer üyelere düşer, alana düşmez; içerik sabit ve önceden belli
     const g = await b.waitFor('team.gift');
     expect(g.gift.contents).toEqual(teamGiftFor(49.99));
-    expect(g.gift.fromName).toBe('Ayşe');
+    // adsız (karar 39, YN-097): hediye kartında ve sohbet duyurusunda alıcının adı da kimliği de yok
+    expect(g.gift).toMatchObject({ from: TEAM_GIFT_ANON.from, fromName: TEAM_GIFT_ANON.fromName, reason: 'Takım hediyesi (Başlangıç Paketi)' });
+    expect(JSON.stringify(g.gift)).not.toMatch(/Ayşe/);
+    expect(JSON.stringify(g.gift)).not.toContain(a.me!.id);
     expect(g.gift.expiresAt - g.gift.at).toBe(24 * 3600_000);
-    expect((await b.waitFor('chat', (x) => x.msg.text.includes('hediye'))).msg.from).toBe('sistem');
+    const duyuru = (await b.waitFor('chat', (x) => x.msg.text.includes('hediye'))).msg;
+    expect(duyuru).toMatchObject({ from: 'sistem', text: 'Bir takım arkadaşın takıma hediye gönderdi! Hediye kutunuza bakın.' });
+    expect(JSON.stringify(duyuru)).not.toMatch(/Ayşe/);
+    expect(JSON.stringify((await c.call('chat.join', { room: `takim:${t.id}` })).history)).not.toMatch(/Ayşe takıma/);
     const extraA = (await a.call('team.extra', {})).extra;
     expect(extraA.gifts).toHaveLength(0);
     const extraB = (await b.call('team.extra', {})).extra;

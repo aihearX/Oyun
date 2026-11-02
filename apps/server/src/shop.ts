@@ -1,4 +1,4 @@
-import { PURCHASE_GIFT_REF, SHOP, SPEND_LIMIT_SUGGESTED_TRY, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
+import { PURCHASE_GIFT_REF, SHOP, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
 import { fail, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { passDaily } from './players';
@@ -129,8 +129,9 @@ export const shopHandlers: Handlers = {
       if (prod.teamGift && p.team_id) {
         const others = app.teamMemberIds(p.team_id).filter((id) => id !== p.id);
         if (others.length) {
-          createGift(app, p.team_id, { id: p.id, name: p.name }, `${p.name} takıma hediye gönderdi (${prod.name})`, teamGiftFor(prod.priceTry), others);
-          systemMessage(app, teamRoom(p.team_id), `${p.name} takıma hediye gönderdi! Hediye kutunuza bakın.`, 'system', { product: prod.id });
+          // adsız (karar 39): alıcının kimliği yalnız sunucuda (hesap verisi için), ad hiçbir yerde yazılmaz
+          createGift(app, p.team_id, { id: p.id, name: TEAM_GIFT_ANON.fromName }, TEAM_GIFT_ANON.reason(prod.name), teamGiftFor(prod.priceTry), others);
+          systemMessage(app, teamRoom(p.team_id), TEAM_GIFT_ANON.chat, 'system', { product: prod.id });
           teamGiftSent = true;
         }
       }

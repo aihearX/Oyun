@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
-import { teamLeagueReward, type RaceRoom } from '@odi/shared';
+import { TEAM_LEAGUE_RULES, teamLeagueReward, teamLeagueScopeText, type RaceRoom } from '@odi/shared';
 import { setup, run, sleep, type Env, type TC } from './helpers';
 import { finalize } from '../src/teamrace';
 import { seasonInfo } from '../src/teamrace/league';
+import { addDuelPoints } from '../src/events/duel';
 
 let env: Env | undefined;
 afterEach(async () => { await env?.close(); env = undefined; });
@@ -232,5 +233,20 @@ describe('Takım Ligi', () => {
     expect([1, 2, 3, 4, 9].map((r) => teamLeagueReward('bronz', r, 1))).toEqual([15, 10, 8, 5, 5]);
     expect(teamLeagueReward('koklea', 3, 1)).toBe(30);
     expect(teamLeagueReward('altin', 1, 0)).toBe(0);
+  });
+  it('kapsam (karar 40, YN-098): lig yalnız 5 kaynaktan puan alır; Bayrak Yarışı, Ralli, Ses Avı sayılmaz ve kart bunu yazar', async () => {
+    env = await setup();
+    const c = await env.connect('Kapsam');
+    const id = (await c.call('team.create', { name: 'Kapsam', emblem: '🧭' })).team.id;
+    // Ralli ve Bayrak ayaklarının yaptığı gibi düello puanı yazılır: lig puanı değişmez (lige yalnız düello sonucu)
+    addDuelPoints(env.srv.app, id, c.me!.id, 500);
+    const m = (await c.call('tlig.state', {})).state.mine;
+    expect(m.total).toBe(0);
+    const src = Object.keys(m).filter((k) => !['weeks', 'curWeek', 'total'].includes(k));
+    expect(src.sort()).toEqual(Object.keys(TEAM_LEAGUE_RULES.sources).sort());
+    const t = teamLeagueScopeText();
+    expect(t.counted).toBe('Ligde sayılan: Bölge Savaşı, Baskın, Bilgi, Düello, Takım Yarışı.');
+    expect(t.notCounted.startsWith('Ligde sayılmayan: Bayrak Yarışı, Ralli, Ses Avı.')).toBe(true);
+    for (const x of TEAM_LEAGUE_RULES.notCounted) expect(t.counted).not.toContain(x);
   });
 });

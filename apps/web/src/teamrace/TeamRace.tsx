@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import {
-  TEAM_LEAGUE_RULES, TEAM_LEAGUE_TIERS, TEAM_RACE_REACTIONS, TEAM_RACE_RULES as R, teamLeagueReward, type RaceRoom, type RunResult, type TeamLeagueTier,
+  TEAM_LEAGUE_RULES, TEAM_LEAGUE_TIERS, TEAM_RACE_REACTIONS, TEAM_RACE_RULES as R, teamLeagueReward, teamLeagueScopeText, type RaceRoom, type RunResult, type TeamLeagueTier,
   type TeamLeagueWeek, type TeamRaceLobby,
   type TeamRaceResult, type TeamRaceSideId, type TeamRaceSize, type TeamSummary,
 } from '@odi/shared';
@@ -320,6 +320,7 @@ export function TeamLeagueView() {
   if (!s) return <Skeleton rows={4} />;
   const t = tierDef(s.tier); const n = s.rows.length;
   const S = TEAM_LEAGUE_RULES.sources;
+  const scope = teamLeagueScopeText();
   return (
     <div className="tlig" data-testid="takim-ligi" data-tier={s.tier}>
       <div className="card tl-head">
@@ -347,8 +348,9 @@ export function TeamLeagueView() {
           <div key={k} className="tl-src"><Art name={a} size={20} /><span className="grow min0"><b>{S[k].label}</b><small>{S[k].desc}</small>
             {k !== 'duel' && k !== 'race' && weekLine(k, s.mine.weeks, s.mine.curWeek) && <small className="tl-hafta" data-testid={`tl-hafta-${k}`}>{weekLine(k, s.mine.weeks, s.mine.curWeek)}</small>}</span><b>{fmtNum(s.mine[k])}</b></div>
         ))}
-        {/* dürüstlük: ligde sayılmayan takım etkinlikleri (sahip kararı 40 beklenirken; OT-rekabetci-18) */}
-        <small className="muted tl-not" data-testid="tl-sayilmayan">Ligde doğrudan sayılmaz: Bayrak Yarışı, Ralli, Ses Avı. Ralli ve Bayrak ayakları Takım Düellosu puanına yazılır; düellonun sonucu lige sayılır.</small>
+        {/* hangi etkinlik sayılır, hangisi sayılmaz (sahip kararı 40, YN-098; OT-rekabetci-18, -22) */}
+        <small className="muted tl-not" data-testid="tl-sayilan">{scope.counted}</small>
+        <small className="muted tl-not" data-testid="tl-sayilmayan">{scope.notCounted}</small>
       </div>
       {s.history.length > 0 && (
         <div className="tl-hist">
@@ -361,6 +363,7 @@ export function TeamLeagueView() {
           <ul className="rules">
             <li><Art name="calendar" size={18} /> <span>Sezon {TEAM_LEAGUE_RULES.seasonWeeks} hafta (Pazartesi 00:00, İstanbul). Kademeler: {TEAM_LEAGUE_TIERS.map((x) => x.name).join(' → ')}. Grupta en çok {TEAM_LEAGUE_RULES.groupSize} takım.</span></li>
             {(['war', 'raid', 'quiz', 'duel', 'race'] as const).map((k) => <li key={k}><Art name="check" size={18} /> <span><b>{S[k].label}:</b> {S[k].desc}.</span></li>)}
+            <li data-testid="tl-kural-sayilmayan"><Art name="cross" size={18} /> <span>{scope.notCounted}</span></li>
             <li><Art name="up" size={18} /> <span>Sezon sonunda ilk {TEAM_LEAGUE_RULES.promote} yükselir, son {TEAM_LEAGUE_RULES.demote} düşer (küçük gruplarda üçte biri). Puanı 0 olan yükselmez.</span></li>
             <li><Art name="crystal" size={18} /> <span data-testid="tl-odul">{rewardRule(s.tier)}</span></li>
           </ul>

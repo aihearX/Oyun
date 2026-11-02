@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { INBOX_TEXT, TEAM_GIFT_ANON } from '@odi/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Db } from '../src/db';
 import { MIGRATIONS, addColumn, runMigrations, userVersion, type Migration } from '../src/migrations';
@@ -84,6 +85,35 @@ describe('şema sürümü ve göçler', () => {
     expect(t('m2')).toBe('DrMelis kampında Kulak Kepçesi yapısını 3. seviyeye yükseltti.');
     expect(t('m3')).toBe('DrMelis kampında 2 binayı geliştirdi: Timpanometri Kulesi (yeni), Kulak Kepçesi (3. seviye).');
     expect(t('m4')).toBe('kurdu yaptı.'); // oyuncunun yazdığı metne dokunulmaz
+    db.close();
+  });
+
+  it('göç 12 (YN-097, karar 39): satın alma hediyesinin kartı, ödül kutusu kopyası ve sohbet duyurusu adsız olur', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    const hediye = (id: string, from: string, name: string, reason: string) => old.run(
+      "INSERT INTO team_gifts(id, team_id, from_id, from_name, reason, contents, at, expires_at) VALUES(?, 't1', ?, ?, ?, '[]', 1, 2)", id, from, name, reason);
+    hediye('g1', 'p1', 'Hesapli', 'Hesapli takıma hediye gönderdi (Başlangıç Paketi)');
+    hediye('g2', 'sistem', 'Baskın', 'Gürültü Canavarı yenildi');
+    old.run("INSERT INTO inbox(id, player_id, kind, amount, ref, reason, at) VALUES('i1', 'p2', 'jeton', 50, 'x', ?, 1)", INBOX_TEXT.giftMoved('Hesapli takıma hediye gönderdi (Başlangıç Paketi)'));
+    old.run("INSERT INTO inbox(id, player_id, kind, amount, ref, reason, at) VALUES('i2', 'p2', 'jeton', 50, 'x', ?, 1)", INBOX_TEXT.giftMoved('Gürültü Canavarı yenildi'));
+    const sohbet = (id: string, from: string, text: string, meta: string | null) => old.run(
+      "INSERT INTO chat(id, room, from_id, name, color, text, kind, at, meta) VALUES(?, 'takim:t1', ?, 'x', 0, ?, 'system', 1, ?)", id, from, text, meta);
+    sohbet('m1', 'sistem', 'Hesapli takıma hediye gönderdi! Hediye kutunuza bakın.', JSON.stringify({ product: 'odi.baslangic' }));
+    sohbet('m2', 'p1', 'Hesapli takıma hediye gönderdi! Hediye kutunuza bakın.', null); // oyuncunun yazdığına dokunulmaz
+    old.raw.exec('PRAGMA user_version = 11');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    expect(db.get('SELECT from_name, reason FROM team_gifts WHERE id = ?', 'g1')).toEqual({ from_name: TEAM_GIFT_ANON.fromName, reason: TEAM_GIFT_ANON.reason('Başlangıç Paketi') });
+    expect(db.get('SELECT from_name, reason FROM team_gifts WHERE id = ?', 'g2')).toEqual({ from_name: 'Baskın', reason: 'Gürültü Canavarı yenildi' });
+    const kutu = (id: string) => db.get<{ reason: string }>('SELECT reason FROM inbox WHERE id = ?', id)?.reason;
+    expect(kutu('i1')).toBe(INBOX_TEXT.giftMoved(TEAM_GIFT_ANON.reason('Başlangıç Paketi')));
+    expect(kutu('i2')).toBe(INBOX_TEXT.giftMoved('Gürültü Canavarı yenildi'));
+    const t = (id: string) => db.get<{ text: string }>('SELECT text FROM chat WHERE id = ?', id)?.text;
+    expect(t('m1')).toBe(TEAM_GIFT_ANON.chat);
+    expect(t('m2')).toBe('Hesapli takıma hediye gönderdi! Hediye kutunuza bakın.');
     db.close();
   });
 

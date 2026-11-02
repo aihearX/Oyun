@@ -72,6 +72,7 @@ export const GIZLILIK_TR: Belge = {
       'Her oyuncu bir iletiyi ya da oyuncuyu **şikâyet edebilir** ve **engelleyebilir**. Üç farklı oyuncunun şikâyet ettiği ileti gizlenir; bir gün içinde üç farklı oyuncunun şikâyet ettiği oyuncu bir süre mesaj gönderemez. Şikâyetleri inceler, gerekirse hesabın mesaj göndermesini uzun süre kapatırız.',
       'Mesajlar uçtan uca şifreli değildir; kötüye kullanım incelemesi için şikâyet edilen iletileri görebiliriz.',
       'Mağazada aylık harcama sınırı vardır. İlk satın almadan önce sınırı oyuncu kendisi seçer (önerilen 100 TL; satın almayı tamamen kapatmak da bir seçenektir). Sınırı düşürmek hemen geçerli olur; yükseltmek ayrıca onay ister ve 24 saat sonra geçerli olur.',
+      'Takım hediyeli bir paket satın alındığında takıma giden duyuru ve hediye **alanın adı olmadan** gösterilir ("Bir takım arkadaşın takıma hediye gönderdi").',
     ] },
 
     { t: 'h2', x: '6. Haklarınız (KVKK m.11)', id: 'haklar' },
@@ -172,6 +173,7 @@ export const GIZLILIK_EN: Belge = {
       'Every player can **report** a message or a player and **block** players. A message reported by three different players is hidden; a player reported by three different players within a day cannot send messages for a while. We review reports and can disable an account\'s messaging for a long period.',
       'Messages are not end-to-end encrypted; we can see reported messages to review abuse.',
       'The shop has a monthly spending limit. Before the first purchase the player chooses the limit (100 TRY suggested; turning purchases off completely is also an option). Lowering it takes effect immediately; raising it needs a separate confirmation and takes effect after 24 hours.',
+      'When someone buys a pack that includes a team gift, the announcement and the gift shown to the team **do not include the buyer\'s name** ("A teammate sent the team a gift").',
     ] },
 
     { t: 'h2', x: '6. Your rights', id: 'rights' },
