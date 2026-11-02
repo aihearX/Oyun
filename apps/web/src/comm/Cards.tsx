@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { CHAT_REACTIONS, COMM_RULES, QUICK_PHRASES, REACTION_LABEL, tipPhrasesFor, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
+import { CHAT_REACTIONS, COMM_RULES, DELETED_PLAYER_NAME, LEFT_PLAYER_LABEL, QUICK_PHRASES, RALLY_RULES, REACTION_LABEL, tipPhrasesFor, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
 import { HUMAN_JOURNEY } from '@odi/content';
 import { newRunId } from '@odi/net';
 import { act, callSafe, errText, getNet, toast } from '../net';
@@ -9,7 +9,8 @@ import { useNav } from '../nav';
 import { useStore } from '../store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Art, type ArtName } from '../ui/art';
-import { Sheet, fmtNum, fmtTime, hex } from '../ui/social';
+import { Sheet, fmtLeft, fmtNum, fmtTime, hex } from '../ui/social';
+import { srvNow, useEvents } from '../events/store';
 import { hatKey } from '../screens/team/TeamMembers';
 import { openProfile } from '../friends/state';
 import { TuyDede } from '../ftue/Narrator';
@@ -265,6 +266,55 @@ function TipSheet({ requestId, name, level, onClose }: { requestId: string; name
         </form>
       )}
     </Sheet>
+  );
+}
+
+// ---------- Ralli sohbet kartı (YN-116)
+type RallyEnd = 'kazanildi' | 'kacti';
+/** ralli başladı iletisi (yeni: meta.phase; eski iletiler metinden) */
+export const isRallyStart = (m: ChatMessage) => m.from === 'sistem' && m.meta?.event === 'ralli' && !!m.meta.rallyId && (m.meta.phase === 'basladi' || (!m.meta.phase && / ralli başlattı! /.test(m.text)));
+/** odadaki ralli sonuç iletilerinden: hangi ralli kazanıldı / kaçtı */
+export function rallyEnds(msgs: ChatMessage[]): Map<string, RallyEnd> {
+  const out = new Map<string, RallyEnd>();
+  for (const m of msgs) {
+    if (m.from !== 'sistem' || m.meta?.event !== 'ralli' || isRallyStart(m)) continue;
+    const id = s(m.meta.rallyId); const ph = s(m.meta.phase);
+    const end: RallyEnd | null = ph === 'kazanildi' || ph === 'kacti' ? ph : / yenildi! /.test(m.text) ? 'kazanildi' : / kaçtı/.test(m.text) ? 'kacti' : null;
+    if (id && end) out.set(id, end);
+  }
+  return out;
+}
+
+/**
+ * Takım sohbetinde "X ralli başlattı" kartı: açıkken kalan süre ve "Ralliye git" (kartın kendi rallisi), bitince "Bitti" ve sonucu.
+ * Silinmiş hesabın adı burada "Ayrılan bir oyuncu" görünür (sunucudaki anonim ad değişmez).
+ */
+export function RallyChatCard({ m, end }: { m: ChatMessage; end?: RallyEnd }) {
+  const nav = useNav();
+  const id = s(m.meta?.rallyId);
+  const endsAt = n(m.meta?.endsAt) || m.at + RALLY_RULES.durationMs;
+  const live = useEvents((x) => (x.rally?.id === id ? x.rally : null));
+  const [now, setNow] = useState(srvNow);
+  const outcome: RallyEnd | null = live?.status === 'kazanildi' ? 'kazanildi' : live?.status === 'kaybedildi' ? 'kacti' : end ?? null;
+  const open = !outcome && endsAt > now;
+  useEffect(() => { if (!open) return; const h = setInterval(() => setNow(srvNow()), 1000); return () => clearInterval(h); }, [open]);
+  const hit = /^(.*) ralli başlattı! (.+?) · \d+:\d+ içinde katıl/.exec(m.text);
+  const who = hit ? (hit[1] === DELETED_PLAYER_NAME ? LEFT_PLAYER_LABEL : hit[1]!) : '';
+  const title = hit ? `${who} ralli başlattı: ${hit[2]}` : m.text.replace(new RegExp(`^${DELETED_PLAYER_NAME}`), LEFT_PLAYER_LABEL);
+  const state = open ? 'acik' : outcome ?? 'bitti';
+  return (
+    <div className={`fcard t-ralli${open ? '' : ' over'}`} data-testid="ralli-karti" data-durum={state} data-id={m.id}>
+      <div className="fc-head">
+        <span className="fc-av" aria-hidden><Art name="monster" size={28} /></span>
+        <div className="fc-txt min0"><small>Ralli · {fmtTime(m.at)}</small><b>{title}</b></div>
+      </div>
+      <div className="fc-duel">
+        {open
+          ? <span className="fc-rally-left"><Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(endsAt - now)} kaldı</span>
+          : <span className="fc-rally-left">{outcome === 'kazanildi' ? 'Bitti: canavar yenildi' : outcome === 'kacti' ? 'Bitti: canavar kaçtı' : 'Bitti'}</span>}
+        {open && <button type="button" className="btn small coral" data-testid="ralli-karti-git" onClick={() => nav.open({ name: 'events', view: 'ralli', rallyId: id })}>Ralliye git</button>}
+      </div>
+    </div>
   );
 }
 

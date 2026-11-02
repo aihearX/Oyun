@@ -376,7 +376,7 @@ export function App() {
     case 'inbox': return sub(<InboxScreen onBack={back(route)} />);
     case 'league': return sub(<LeagueScreen onBack={back(route)} />);
     case 'race': return sub(<RaceLobby key={route.key} inviteRoomId={route.inviteRoomId} onPlay={(spec, room) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room })} onClose={back(route)} />);
-    case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} onBack={back(route)} onPlay={(spec, p) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back })} />);
+    case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} rallyId={route.rallyId} onBack={back(route)} onPlay={(spec, p) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back })} />);
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, key: Date.now() })} />;
     case 'raceResult': if (route.room.team) return sub(<TeamRaceResultScreen room={route.room} result={route.result} />); return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills, ease: route.ease }); }} />;

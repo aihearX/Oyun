@@ -873,7 +873,7 @@ async function sectionEtkinlik() {
     await step('ralli', async () => {
       await openEvents(A, 'ralli'); await tid(A, 'ralli-secim').waitFor();
       await G.shot(A.page, 20, 'ralli-canavar-secimi', { kind: 'etkinlik', title: 'Ralli: canavar seçimi', caption: 'Bir üye mini canavara ralli başlatır; 10 dakika içinde en az iki üye katılıp ralli bölümünü oynamalı.' });
-      await A.page.locator('[data-testid^="ralli-baslat-"]').first().click(); await tid(A, 'ralli-oda').waitFor();
+      await A.page.locator('[data-testid^="ralli-baslat-"]').first().click(); await tid(A, 'ralli-onay-baslat').click(); await tid(A, 'ralli-oda').waitFor();
       await tid(B, 'ev-bildirim').waitFor({ timeout: 12_000 });
       await G.shot(B.page, 21, 'ralli-bildirimi', { kind: 'etkinlik', title: 'Ralli bildirimi', caption: 'Takım arkadaşlarına "Ayşe ralli başlattı!" bildirimi düşer; tek dokunuşla ralliye katılınır.' });
       await openEvents(B, 'ralli'); await tid(B, 'ralli-katil').click(); await tid(B, 'ralli-saldir').waitFor(); await tid(A, 'ralli-saldir').waitFor(); await sleep(800);

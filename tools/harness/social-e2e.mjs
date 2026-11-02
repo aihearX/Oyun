@@ -69,7 +69,16 @@ async function shot(page, name) {
   if (over > 0) { errors.push(`${name}: yatay taşma ${over}px`); console.log(`  ⚠ ${name}: yatay taşma ${over}px`); }
   console.log(`  📸 ${f.replace(root + '/', '')}`);
 }
-const tab = (page, label) => page.locator('nav.tabbar .tab', { hasText: label }).click();
+/** açık kutlama (seviye atlama, kamp seviyesi) sekme çubuğunu örter: önce kapatılır (events-e2e settle ile aynı yol) */
+const celebrationGone = async (page) => {
+  for (let i = 0; i < 12 && await page.locator('.cel-root.on').count(); i++) {
+    const cta = page.locator('.cel-cta button');
+    if (await cta.count() && await cta.first().isVisible()) await cta.first().click().catch(() => undefined);
+    else await page.mouse.click(180, 420).catch(() => undefined);
+    await sleep(400);
+  }
+};
+const tab = async (page, label) => { await celebrationGone(page); await page.locator('nav.tabbar .tab', { hasText: label }).click(); };
 const sub = (page, label) => takimSekme(page, label);
 const toastGone = async (page) => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
 

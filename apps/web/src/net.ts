@@ -326,7 +326,8 @@ export function startNet(): void {
     useNet.subscribe((n, p) => { if (n.camp && n.camp !== p.camp) syncCampUnlocks(n.camp); }); // kampta açılan kozmetikler hemen Dolap'a
     c.on('team.extra.updated', () => { void c.call('me.bonuses', {}).then((b) => useSocial.setState({ bonuses: b })).catch(() => undefined); });
     c.on('team.updated', ({ team }) => { if (team) void c.call('war.state', {}).then((w) => useNet.setState({ war: w.war })).catch(() => undefined); });
-    c.on('team.help', ({ request }) => useNet.setState((s) => (s.team ? { team: { ...s.team, help: [request, ...s.team.help.filter((h) => h.id !== request.id)] } } : {})));
+    // var olan istek yerinde güncellenir (Yardım listesinde satır kaymaz, YN-115); yeni istek başa
+    c.on('team.help', ({ request }) => useNet.setState((s) => (s.team ? { team: { ...s.team, help: s.team.help.some((h) => h.id === request.id) ? s.team.help.map((h) => (h.id === request.id ? request : h)) : [request, ...s.team.help] } } : {})));
     c.on('camp.helped', ({ name, seconds }) => toast('🤝', `${name} inşaatını hızlandırdı`, `−${fmtShort(seconds)}`, 'green'));
     c.on('camp.cheered', ({ name, kind }) => toast('👏', `${name} kampına tepki bıraktı`, CAMP_CHEERS.find((x) => x.id === kind)?.text, 'green'));
     c.on('team.gift', ({ gift }) => toast('🎁', 'Takım hediyesi geldi!', gift.reason, 'gold'));

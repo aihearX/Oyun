@@ -225,7 +225,7 @@ describe('veri sınıflandırması (YN-029, account-veri.ts)', () => {
     await b.call('progress.submit', run(1, { stars: 2 }));
     await c.call('progress.submit', run(1, { stars: 1 }));
     await z.call('chat.send', { room: `takim:${t.id}`, text: 'takıma selam' });
-    await z.call('team.help.request', { level: 2 });
+    await z.call('team.help.request', { level: 4 }); // 1-3 geçildi: takılı olunan bölüm (YN-115)
     await befriend(z, c); await befriend(c, d);
     await z.call('friends.gift', { id: c.me!.id });
     await z.call('dm.send', { to: c.me!.id, text: 'selam Cem' });

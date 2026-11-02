@@ -111,6 +111,10 @@
 .ev-mon-card { display:flex; align-items:center; gap:10px; padding:12px; border-radius:var(--radius); background:linear-gradient(135deg, color-mix(in srgb, var(--ev) 26%, var(--panel-2)), var(--panel)); border:2px solid color-mix(in srgb, var(--ev) 45%, var(--panel-edge)); box-shadow:var(--shadow); }
 .ev-mon-big { flex:none; line-height:0; filter:drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
 .ev-mon-meta { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:0.75rem; font-weight:900; margin-top:4px; }
+/* dürüst bilgi: yenmek için en az kaç kişi (YN-116) ve bu katılımla yenilemeyen ralli uyarısı */
+.ev-need { display:block; margin-top:4px; font-weight:800; color:var(--text); line-height:1.35; }
+.ev-warn { display:flex; flex-direction:column; gap:4px; border-color:color-mix(in srgb, var(--coral) 60%, var(--panel-edge)); background:color-mix(in srgb, var(--coral) 14%, var(--panel)); }
+.ev-warn .small-note { line-height:1.4; }
 
 /* ---- düello */
 .ev-versus { display:flex; flex-direction:column; gap:10px; padding:14px 12px; border-radius:26px; background:radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--violet) 45%, var(--bg-2)), var(--bg-1) 75%); border:2px solid color-mix(in srgb, var(--violet) 55%, transparent); box-shadow:var(--shadow); }

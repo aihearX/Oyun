@@ -94,7 +94,8 @@ export async function raceWith(p: PublicProfile, nav: Nav): Promise<void> {
 export function openInvite(meta: Record<string, string | number | boolean> | undefined, nav: Nav): void {
   if (!meta) return;
   if (meta.type === 'yaris' && typeof meta.roomId === 'string') { nav.open({ name: 'race', inviteRoomId: meta.roomId }); return; }
-  if (meta.type === 'ralli') { nav.open({ name: 'events', view: 'ralli' }); return; }
+  // davet kartı kendi rallisini açar (takımın o anki rallisi başka olabilir, YN-116)
+  if (meta.type === 'ralli') { nav.open({ name: 'events', view: 'ralli', ...(typeof meta.roomId === 'string' ? { rallyId: meta.roomId } : {}) }); return; }
   if (meta.type === 'takim' && typeof meta.code === 'string') {
     const code = meta.code;
     if (useNet.getState().team?.id === meta.roomId) { nav.tab('team'); return; }

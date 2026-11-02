@@ -106,4 +106,29 @@ describe('takım', () => {
     const extra = (await a.call('team.extra', {})).extra;
     expect(extra.contributionWeek.find((x) => x.id === b.me!.id)!.helps).toBe(1);
   });
+
+  it('geçilmiş bölüme istek açılmaz, hak harcanmaz; bölüm geçilince istek "Geçti" olur ve kalkan gönderilemez (YN-115)', async () => {
+    env = await setup();
+    const [a, b] = [await env.connect('Ayşe'), await env.connect('Bora')];
+    const t = (await a.call('team.create', { name: 'Takılanlar', emblem: '👑' })).team;
+    await b.call('team.join', { teamId: t.id });
+    for (let l = 1; l <= 4; l++) await a.call('progress.submit', run(l)); // 5. bölümde takılı
+    // oturum başındaki eski ilerleme (ör. 2. bölüm) gönderilirse: açık hata, günlük hak yerinde
+    const e = await err(a.call('team.help.request', { level: 2 }));
+    expect(e.code).toBe('GECILDI');
+    expect(e.message).toContain('2. bölümü zaten geçtin');
+    const req = (await a.call('team.help.request', { level: 5 })).request;
+    expect(req).toMatchObject({ level: 5 });
+    expect(req.passed).toBeUndefined();
+    await a.call('team.help.request', { level: 5 });
+    await a.call('team.help.request', { level: 5 }); // 3 hakkın üçü de takılı olunan bölüme gitti
+    expect((await err(a.call('team.help.request', { level: 5 }))).code).toBe('LIMIT');
+    // isteyen bölümü geçer: üyelere güncel istek gider, liste "Geçti" gösterir, kalkan gönderilemez
+    b.drain();
+    await a.call('progress.submit', run(5));
+    expect((await b.waitFor('team.help', (x) => x.request.id === req.id)).request.passed).toBe(true);
+    expect((await b.call('team.detail', {})).team!.help.find((h) => h.id === req.id)!.passed).toBe(true);
+    expect((await err(b.call('team.help.give', { requestId: req.id }))).code).toBe('BITTI');
+    expect((await err(a.call('team.help.request', { level: 5 }))).code).toBe('GECILDI');
+  });
 });

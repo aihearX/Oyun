@@ -41,10 +41,10 @@ export function rallyTick(app: App): void {
     const parts = app.db.all<{ player_id: string }>('SELECT player_id FROM ev_rally_part WHERE rally_id = ?', r.id).length;
     if (parts < RALLY_RULES.minPlayers) {
       // saldırı hiç açılmadı: ralli günlük hakka sayılmaz (rallyStartsLeft), hak geri verilir (OT-takim-kaptani-13)
-      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı: süre doldu, saldırı için en az ${RALLY_RULES.minPlayers} katılımcı gerekiyordu. Bu ralli sayılmadı, takımın günlük ralli hakkı geri verildi (bugün kalan ${rallyStartsLeft(app, r.team_id)}).`, 'system', { event: 'ralli', rallyId: r.id });
+      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı: süre doldu, saldırı için en az ${RALLY_RULES.minPlayers} katılımcı gerekiyordu. Bu ralli sayılmadı, takımın günlük ralli hakkı geri verildi (bugün kalan ${rallyStartsLeft(app, r.team_id)}).`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kacti' });
       notify(app, app.teamMemberIds(r.team_id), { kind: 'ralli', icon: m.emoji, title: `${m.name} kaçtı`, text: 'Kimse katılmadı; ralli sayılmadı, günlük hakkınız geri verildi.', target: 'ralli', ref: r.id });
     } else {
-      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı! Süre doldu (kalan can ${r.hp}/${r.max_hp}). Bir dahaki rallide!`, 'system', { event: 'ralli', rallyId: r.id });
+      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı! Süre doldu (kalan can ${r.hp}/${r.max_hp}). Bir dahaki rallide!`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kacti' });
       notify(app, app.teamMemberIds(r.team_id), { kind: 'ralli', icon: m.emoji, title: `${m.name} kaçtı`, text: 'Ralli süresi doldu. Yeni bir ralli başlatabilirsiniz.', target: 'ralli', ref: r.id });
     }
     broadcast(app, rowById(app, r.id)!);
@@ -95,13 +95,20 @@ function win(app: App, r: RallyRow): void {
   addTeamXp(app, r.team_id, m.teamXp);
   questProgress(app, r.team_id, 'ralli', 1);
   const secs = Math.round((now - r.starts_at) / 1000);
-  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${parts.length} kahraman ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. Ödüller ödül kutusunda, takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id });
+  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${parts.length} kahraman ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. Ödüller ödül kutusunda, takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kazanildi' });
   notify(app, app.teamMemberIds(r.team_id), { kind: 'ralli', icon: '🏆', title: `${m.name} yenildi!`, text: 'Ralli kazanıldı. Ödüller ödül kutusunda!', target: 'ralli', ref: r.id });
   broadcastExtra(app, r.team_id);
 }
 
 export const rallyHandlers: Handlers = {
-  'rally.state': (app, s) => { const { t } = requireTeam(app, s.pid); return { rally: teamRally(app, t.id), startsLeft: rallyStartsLeft(app, t.id) }; },
+  'rally.state': (app, s, { rallyId }) => {
+    const { t } = requireTeam(app, s.pid);
+    if (rallyId === undefined) return { rally: teamRally(app, t.id), startsLeft: rallyStartsLeft(app, t.id) };
+    // davet ve sohbet kartı kendi rallisini açar (biten de olsa); başka takımın ya da bilinmeyen ralli: null (YN-116)
+    rallyTick(app);
+    const r = rowById(app, rallyId);
+    return { rally: r && r.team_id === t.id ? view(app, r) : null, startsLeft: rallyStartsLeft(app, t.id) };
+  },
   'rally.start': (app, s, { monster }) => {
     const { p, t } = requireTeam(app, s.pid);
     rallyTick(app);
@@ -116,7 +123,7 @@ export const rallyHandlers: Handlers = {
       id, t.id, def.id, randomInt(1, 1000), p.id, p.name, 'acik', hp, hp, now, now + RALLY_RULES.durationMs, dayKey(now));
     app.db.run('INSERT INTO ev_rally_part(rally_id, player_id, joined_at) VALUES(?, ?, ?)', id, p.id, now);
     const mins = Math.round(RALLY_RULES.durationMs / 60_000);
-    systemMessage(app, teamRoom(t.id), `${p.name} ralli başlattı! ${def.name} · ${mins}:00 içinde katıl, birlikte yenelim!`, 'system', { event: 'ralli', rallyId: id });
+    systemMessage(app, teamRoom(t.id), `${p.name} ralli başlattı! ${def.name} · ${mins}:00 içinde katıl, birlikte yenelim!`, 'system', { event: 'ralli', rallyId: id, phase: 'basladi', endsAt: now + RALLY_RULES.durationMs });
     notify(app, app.teamMemberIds(t.id).filter((x) => x !== p.id), { kind: 'ralli', icon: '🔥', title: `${p.name} ralli başlattı!`, text: `${def.emoji} ${def.name} · ${mins}:00 — katıl!`, target: 'ralli', ref: id });
     const r = rowById(app, id)!;
     broadcast(app, r);

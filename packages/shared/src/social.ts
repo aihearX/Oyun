@@ -100,7 +100,8 @@ export interface TeamSummary {
   study?: boolean;
 }
 export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number }
-export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number }
+/** passed: isteyen o bölümü geçti; istek kapandı, kalkan gönderilemez (YN-115) */
+export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number; passed?: boolean }
 export interface TeamDetail extends TeamSummary { roster: TeamMember[]; help: HelpRequest[]; weekPoints: number }
 
 // ---------- Bölge Savaşı (haftalık)
@@ -588,6 +589,26 @@ export const RALLY_RULES = { durationMs: 10 * 60_000, minPlayers: 2, triesPerPla
 /** ralli hasarı: tamamlanırsa 60 + 30 × yıldız, tamamlanmazsa 15 (şeffaf) */
 export function rallyDamageFor(r: { completed: boolean; stars: number }): number { return r.completed ? 60 + 30 * Math.max(0, Math.min(3, r.stars)) : 15; }
 export function rallyMaxHp(m: Pick<RallyMonsterDef, 'hpBase' | 'hpPerMember'>, members: number): number { return m.hpBase + m.hpPerMember * Math.max(1, members); }
+/** bir koşunun en çok hasarı (3 yıldızla bitiriş) */
+export const RALLY_MAX_HIT = rallyDamageFor({ completed: true, stars: 3 });
+/** bir katılımcının bütün haklarıyla en çok hasarı */
+export const RALLY_MAX_PER_PLAYER = RALLY_RULES.triesPerPlayer * RALLY_MAX_HIT;
+/**
+ * Dürüst bilgi (YN-116; can formülü sahip kararı 43'ü bekliyor): bu canı bitirmek için en az kaç katılımcının bütün hakları gerekir.
+ * Herkes her koşuyu 3 yıldızla bitirse bile bundan azı yetmez.
+ */
+export function rallyPlayersNeeded(hp: number): number { return Math.ceil(Math.max(0, hp) / RALLY_MAX_PER_PLAYER); }
+/** açık rallide şu anki katılımcıların kalan haklarıyla verebileceği en çok hasar */
+export function rallyReachable(participants: readonly { tries: number }[]): number {
+  return participants.reduce((a, p) => a + Math.max(0, RALLY_RULES.triesPerPlayer - p.tries) * RALLY_MAX_HIT, 0);
+}
+/** kalan can, katılımcıların kalan haklarıyla bitirilemiyorsa en az kaç kişi daha katılmalı (yetiyorsa 0) */
+export function rallyMorePlayersNeeded(hp: number, participants: readonly { tries: number }[]): number {
+  return rallyPlayersNeeded(Math.max(0, hp - rallyReachable(participants)));
+}
+/** silinmiş hesabın adı (DELETED_PLAYER_NAME) ralli ekranında ve kartlarında böyle görünür; sunucu verisi değişmez (YN-116) */
+export const LEFT_PLAYER_LABEL = 'Ayrılan bir oyuncu';
+export function rallyShownName(name: string): string { return name === DELETED_PLAYER_NAME ? LEFT_PLAYER_LABEL : name; }
 export type RallyStatus = 'acik' | 'kazanildi' | 'kaybedildi';
 export interface RallyParticipant { id: string; name: string; color: number; hat: string; damage: number; tries: number; joinedAt: number }
 export interface RallyHit { id: string; name: string; damage: number; stars: number; completed: boolean; at: number }
@@ -689,7 +710,8 @@ export interface EventRun { runId: string; completed: boolean; stars: number; sc
 
 export interface OpMap {
   'events.overview': { req: Record<string, never>; res: { overview: EventsOverview } };
-  'rally.state': { req: Record<string, never>; res: { rally: RallyState | null; startsLeft: number } };
+  /** rallyId: o ralli (davet kartı, sohbet kartı; takımın değilse ya da yoksa null); yoksa takımın açık/son rallisi */
+  'rally.state': { req: { rallyId?: string }; res: { rally: RallyState | null; startsLeft: number } };
   'rally.start': { req: { monster: RallyMonsterId }; res: { rally: RallyState } };
   'rally.join': { req: { rallyId: string }; res: { rally: RallyState } };
   'rally.hit': { req: EventRun & { rallyId: string }; res: { rally: RallyState; damage: number } };

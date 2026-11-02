@@ -77,6 +77,33 @@ describe('Ralli', () => {
     expect((await err(a.c.call('rally.start', { monster: 'serumen-yavrusu' }))).code).toBe('LIMIT');
   });
 
+  it('davet kartı kendi rallisini işaret eder: biten rallinin kimliğiyle o ralli gelir, takımın yeni rallisi değil; başka takım göremez (YN-116, OT-sessiz-oyuncu-13)', async () => {
+    env = await setup();
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Davetliler');
+    const other = await connectW(env, 'Cem');
+    await other.c.call('team.create', { name: 'Başka Takım', emblem: '🌱' });
+    a.drain(); b.drain();
+    const r1 = (await a.c.call('rally.start', { monster: 'serumen-yavrusu' })).rally;
+    // sohbet kartı: başlangıç iletisi kimlik, evre ve bitiş zamanını taşır (kart geri sayar, bitince "Bitti" der)
+    const start = await b.wait('chat', (m) => m.msg.meta?.event === 'ralli');
+    expect(start.msg.meta).toMatchObject({ rallyId: r1.id, phase: 'basladi', endsAt: r1.endsAt });
+    // Ayşe, Bora'yı özel mesajla çağırır: davet kartı bu rallinin kimliğini taşır
+    await a.c.call('dm.send', { to: b.c.me!.id, text: 'Ralliye katıl! Serumen Yavrusu seni bekliyor', kind: 'davet', meta: { type: 'ralli', roomId: r1.id, title: 'Serumen Yavrusu' } });
+    // ralli kaçar, takım başka bir ralli başlatır
+    env.clock.advance(10 * MIN + 1); env.srv.sweep();
+    expect((await b.wait('chat', (m) => m.msg.meta?.rallyId === r1.id && m.msg.meta?.phase === 'kacti')).msg.text).toContain('kaçtı');
+    const r2 = (await a.c.call('rally.start', { monster: 'yanki-hayaleti' })).rally;
+    const card = (await b.c.call('dm.open', { id: a.c.me!.id })).messages.find((m) => m.kind === 'davet')!;
+    expect(card.meta).toMatchObject({ type: 'ralli', roomId: r1.id });
+    // kartın kimliği o ralliyi açar (bitti: "kaybedildi"); kimliksiz durum takımın yeni rallisini verir
+    const own = (await b.c.call('rally.state', { rallyId: String(card.meta!.roomId) })).rally!;
+    expect(own).toMatchObject({ id: r1.id, monster: 'serumen-yavrusu', status: 'kaybedildi' });
+    expect((await b.c.call('rally.state', {})).rally).toMatchObject({ id: r2.id, monster: 'yanki-hayaleti', status: 'acik' });
+    // başka takımın oyuncusu kimliği bilse de göremez; bilinmeyen kimlik null
+    expect((await other.c.call('rally.state', { rallyId: r1.id })).rally).toBeNull();
+    expect((await b.c.call('rally.state', { rallyId: 'yokboyle' })).rally).toBeNull();
+  });
+
   it('kimse katılmadan süresi dolan ralli günlük hakka sayılmaz; sohbet "hakkınız geri verildi" der (OT-takim-kaptani-13)', async () => {
     env = await setup();
     const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Tek Başına');

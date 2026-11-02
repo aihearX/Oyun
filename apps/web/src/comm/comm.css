@@ -55,6 +55,10 @@
 .fcard.t-boss, .fcard.t-meydan { background:linear-gradient(160deg, rgba(255,92,138,.26), rgba(42,27,99,.92) 55%); border-color:rgba(255,92,138,.35); }
 .fcard.t-koklea, .fcard.t-seri, .fcard.t-bolum { background:linear-gradient(160deg, rgba(255,201,60,.22), rgba(42,27,99,.92) 55%); border-color:rgba(255,201,60,.3); }
 .fcard.t-uye, .fcard.t-bina { background:linear-gradient(160deg, rgba(46,230,214,.2), rgba(42,27,99,.92) 55%); border-color:rgba(46,230,214,.3); }
+.fcard.t-ralli { background:linear-gradient(160deg, rgba(255,92,138,.24), rgba(42,27,99,.92) 55%); border-color:rgba(255,92,138,.4); }
+.fcard.t-ralli.over { background:var(--panel); border-color:var(--panel-edge); }
+.fcard.t-ralli .fc-av { cursor:default; }
+.fc-rally-left { font-weight:900; font-size:0.875rem; white-space:nowrap; font-variant-numeric:tabular-nums; }
 .fcard.t-help { background:linear-gradient(160deg, rgba(142,240,176,.2), rgba(42,27,99,.92) 55%); border-color:rgba(142,240,176,.38); }
 .fcard.t-help.done { border-color:rgba(142,240,176,.7); }
 .fcard.t-soru { background:linear-gradient(160deg, rgba(255,246,229,.16), rgba(53,35,128,.95) 50%); border-color:rgba(255,233,194,.4); }

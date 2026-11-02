@@ -735,6 +735,15 @@ button.war-warn { cursor:pointer; }
 .help-row.mine { background:linear-gradient(180deg, #43308f, var(--panel)); }
 .hr-i { font-size:26px; width:36px; text-align:center; flex:none; }
 .help-row .muted { font-size:0.8125rem; }
+/* süre kendi satırında, bölünmez ("23 sa 44 dk"; Büyük yazıda da, YN-115) */
+.help-row .hr-time { white-space:nowrap; }
+/* dar ekranda (320 px + Büyük yazı) bilgi sütunu düğmenin altına ezilmez: düğme kendi satırına, sağa iner */
+.help-row { flex-wrap:wrap; }
+.help-row > .grow { flex:1 1 9rem; }
+.help-row > .btn { margin-left:auto; }
+/* devre dışı yardım düğmeleri ("Gönderildi", "Geçti", "Herkese yardım et"): gri üstüne gri değil, düz zeminde ≥ 4,5:1 yazı */
+.help-row .btn:disabled, .help-all .btn:disabled { filter:none; opacity:1; color:var(--text); text-shadow:none; background:var(--panel-2); box-shadow:inset 0 0 0 2px var(--panel-edge); animation:none; }
+.help-row .btn:disabled::after, .help-all .btn:disabled::after { display:none; }
 
 /* teknoloji, hediye, hedef */
 .tech { position:relative; display:flex; flex-direction:column; gap:8px; }

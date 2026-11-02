@@ -194,6 +194,7 @@ try {
   const soloLeft0 = (await net(C, 'rally.state')).startsLeft;
   await openEvents(C, 'ralli');
   await tid(C, 'ralli-baslat-serumen-yavrusu').click();
+  await tid(C, 'ralli-onay-baslat').click(); // başlatma onayı (YN-116)
   await tid(C, 'ralli-bekleme').waitFor();
   const soloRally = await C.page.evaluate(() => window.__etkinlik.events.getState().rally);
   check((await tid(C, 'ralli-kural').innerText()).includes('günlük ralli hakkı geri verilir'), 'ralli (tek kişi): bekleme kartında açık kural cümlesi');
@@ -204,7 +205,13 @@ try {
   await openEvents(A, 'ralli');
   await tid(A, 'ralli-secim').waitFor();
   await shot(A, 'ralli-canavar-secimi');
+  // dürüst bilgi (YN-116): her kartta bugünkü candan "yenmek için en az N kişi"; Yankı Hayaleti 2 üyede 440 can → 1 kişinin hakları (2 kişiyle açılır)
+  check(/Yenmek için/.test(await tid(A, 'ralli-gerekli-yanki-hayaleti').innerText()), 'ralli: canavar kartında "Yenmek için …" bilgisi');
   await tid(A, 'ralli-baslat-serumen-yavrusu').click();
+  await tid(A, 'ralli-onay').waitFor();
+  check(/Yenmek için/.test(await tid(A, 'ralli-onay-gerekli').innerText()), 'ralli: başlatma onayında "Yenmek için …" bilgisi');
+  await shot(A, 'ralli-baslatma-onayi');
+  await tid(A, 'ralli-onay-baslat').click();
   await tid(A, 'ralli-oda').waitFor();
   await tid(B, 'ev-bildirim').waitFor({ timeout: 10_000 });
   check((await tid(B, 'ev-bildirim').innerText()).includes('Ayşe ralli başlattı'), 'Bora: "Ayşe ralli başlattı! 10:00" bildirimi');
@@ -349,6 +356,12 @@ try {
   const soloChat = (await net(C, 'chat.join', { room: `takim:${soloRally.teamId}` })).history.filter((m) => m.meta?.event === 'ralli' && m.text.includes('kaçtı'));
   check(soloChat.some((m) => m.text.includes('hakkı geri verildi')), `ralli (tek kişi): sohbet "${soloChat.at(-1)?.text ?? '—'}"`);
   await openEvents(C, 'ralli'); await tid(C, 'ralli-oda').waitFor(); await shot(C, 'ralli-tek-kisi-kacti');
+  // takım sohbetindeki ralli kartı (YN-116): süresi dolunca geri sayım ve düğme yok, "Bitti: canavar kaçtı" der
+  await toTab(C, 'Takım'); await C.page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click();
+  const rcard = C.page.locator('[data-testid="ralli-karti"]').last(); await rcard.waitFor({ timeout: 10_000 });
+  const rtext = (await rcard.innerText()).replace(/\s+/g, ' ');
+  check((await rcard.getAttribute('data-durum')) === 'kacti' && rtext.includes('Bitti: canavar kaçtı') && !(await rcard.getByTestId('ralli-karti-git').count()), `ralli sohbet kartı: "${rtext}"`);
+  await rcard.scrollIntoViewIfNeeded(); await shot(C, 'ralli-sohbet-karti-bitti');
 
   const errors = players.map((p) => ({ player: p.name, errors: [...new Set(p.errors)] }));
   writeFileSync(resolve(outDir, 'e2e.json'), JSON.stringify({ checks, rallyRuns, leg1, leg2, board, errors, seconds: Math.round((Date.now() - t0) / 1000) }, null, 2));

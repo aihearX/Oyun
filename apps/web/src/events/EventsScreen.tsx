@@ -25,7 +25,7 @@ export type PlayFn = (spec: LevelSpec, play: EventPlay) => void;
 const TEAM_ONLY: EventKind[] = ['ralli', 'duello', 'bayrak', 'avi', 'quiz', 'gorev'];
 
 /** Etkinlikler: merkez (kartlar) + her etkinliğin ekranı. Koşu bitince `flash` ile sonuç gösterilir. */
-export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?: EventView; flash?: EventFlash; onBack: () => void; onPlay: PlayFn }) {
+export function EventsScreen({ view = 'merkez', flash, rallyId, onBack, onPlay }: { view?: EventView; flash?: EventFlash; rallyId?: string; onBack: () => void; onPlay: PlayFn }) {
   const [v, setV] = useState<EventView>(view);
   const [shown, setShown] = useState<EventFlash | undefined>(flash);
   const inTeam = useEvents((s) => s.inTeam); const loaded = useEvents((s) => s.loaded); const status = useNet((s) => s.status);
@@ -42,7 +42,7 @@ export function EventsScreen({ view = 'merkez', flash, onBack, onPlay }: { view?
         {needTeam ? <div className="card muted stack">Bu etkinlik için bir takımda olmalısın.{v === 'quiz' && <PratikLink />}</div> : (
           <>
             {v === 'merkez' && <Hub open={setV} />}
-            {v === 'ralli' && <RallyView onPlay={onPlay} />}
+            {v === 'ralli' && <RallyView onPlay={onPlay} rallyId={rallyId} />}
             {v === 'duello' && <DuelView />}
             {v === 'bayrak' && <RelayView onPlay={onPlay} />}
             {v === 'avi' && <HuntView />}

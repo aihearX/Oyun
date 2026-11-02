@@ -12,7 +12,7 @@ const run = {
 
 export const EVENT_SCHEMAS = {
   'events.overview': empty,
-  'rally.state': empty,
+  'rally.state': z.object({ rallyId: id.optional() }),
   'rally.start': z.object({ monster: z.enum(RALLY_MONSTERS.map((m) => m.id) as [string, ...string[]]) }),
   'rally.join': z.object({ rallyId: id }),
   'rally.hit': z.object({ rallyId: id, ...run }),

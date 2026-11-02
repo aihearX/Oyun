@@ -999,6 +999,9 @@ async function suite(browserName, target, [W, H]) {
         await bora.call('progress.submit', { runId: `u${sno}a${Date.now()}`, level: 1, completed: true, stars: 3, score: 900, timeSec: 40, coins: 60, biome: 'dis-kulak', mechanic: 'kosu', cochleas: 2 });
         await bora.call('team.help.request', { level: 2 });
         await page.locator('[data-testid="yardim-karti"]').first().waitFor({ timeout: 10_000 });
+        // Yardım listesinde istek satırı: bölüm/yardım ve süre ayrı satır, süre bölünmez (Büyük yazıda da, YN-115)
+        await takimSekme(page, 'Yardım'); await page.locator('[data-testid="yardim-satiri"]').first().waitFor({ timeout: 10_000 });
+        await check('takim-yardim-istek');
         await takimSekme(page, 'Üyeler'); await sleep(300);
         await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(700);
         await check('takim-sohbet-kartlar', { chat: true });
@@ -1016,10 +1019,15 @@ async function suite(browserName, target, [W, H]) {
         await check('birlikte');
         await back();
         // özel mesaj: takım arkadaşı hazır söz gönderir; panelde Hazır sözler
-        await bora.call('dm.send', { to: (await bora.call('team.detail', {})).team.roster.find((m) => !m.name.startsWith('Bora')).id, text: 'selam', kind: 'hazir' });
+        const meId = (await bora.call('team.detail', {})).team.roster.find((m) => !m.name.startsWith('Bora')).id;
+        await bora.call('dm.send', { to: meId, text: 'selam', kind: 'hazir' }); await sleep(700); // DM aralığı (dmCooldownMs)
+        // ralli daveti: kartın rallisi yok/bitti → gri "Bu ralli artık açık değil", düğme devre dışı (YN-116)
+        await bora.call('dm.send', { to: meId, text: 'Ralliye katıl! Serumen Yavrusu seni bekliyor', kind: 'davet', meta: { type: 'ralli', roomId: `yok${sno}`, title: 'Serumen Yavrusu' } });
         await page.locator('.menu-tile[data-tile="messages"]').click();
         await page.locator('[data-testid="sohbet-satiri"]').first().click({ timeout: 10_000 });
         await page.getByTestId('dm-ekrani').waitFor();
+        await page.locator('[data-testid="davet-karti"][data-durum="yok"]').waitFor({ timeout: 10_000 });
+        await check('dm-ralli-daveti-bitti', { scroll: false });
         await page.getByRole('button', { name: 'Emoji ve çıkartmalar' }).click();
         await page.locator('.dm-panel-tabs button', { hasText: 'Hazır sözler' }).click(); await sleep(300);
         await check('dm-hazir-sozler', { scroll: false });

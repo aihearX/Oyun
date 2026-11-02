@@ -19,8 +19,8 @@ export type SocialRoute =
   | { name: 'pratik' }
   /** arkadaşın ya da takım arkadaşının kampı (salt okunur, hazır tepki; camp/Ziyaret.tsx) */
   | { name: 'kamp'; id: string }
-  /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu) */
-  | { name: 'events'; view?: EventView; flash?: EventFlash };
+  /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu; rallyId: davet/sohbet kartının kendi rallisi, YN-116) */
+  | { name: 'events'; view?: EventView; flash?: EventFlash; rallyId?: string };
 
 /**
  * Alt ekranların adı (ScreenHead başlığıyla aynı): parça yüklenirken başlık ve Geri hemen çizilir, ekran "donmuş" görünmez

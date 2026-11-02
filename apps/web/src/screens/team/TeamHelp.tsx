@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { useNet } from '@odi/net/store';
+import { highestUnlocked } from '@odi/meta';
+import { HUMAN_JOURNEY } from '@odi/content';
+import { useStore } from '../../store';
 import { act, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { useNav } from '../../nav';
@@ -13,6 +16,10 @@ export function TeamHelp() {
   const [burst, setBurst] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
   const net = getNet(); const off = net ? net.serverNow() - Date.now() : 0;
+  // takılı olunan bölüm: cihazdaki güncel ilerlemeden ilk geçilmemiş bölüm (son kaybedilen bölüm de budur; yönetici açılışı sayılmaz).
+  // me.highest oturum başındaki değerdir, yalnız cihaz ilerlemesi geride kaldıysa (yeni cihaz) kullanılır (YN-115)
+  const progress = useStore((s) => s.progress);
+  const stuck = Math.max(me.highest, highestUnlocked(progress, HUMAN_JOURNEY.levels.length));
 
   const helpAll = async () => {
     setBusy('all');
@@ -27,7 +34,7 @@ export function TeamHelp() {
     if (r) { platform().haptic('light'); setBurst('+1 yardım'); }
   };
   const giveShield = async (id: string) => { setBusy(id); const r = await act('team.help.give', { requestId: id }); setBusy(''); if (r) { platform().haptic('success'); setBurst('+1 🛡️ gönderildi'); } };
-  const askLevel = async () => { const r = await act('team.help.request', { level: me.highest }); if (r) toast('🙋', `${r.request.level}. bölüm için yardım istedin`, 'Takım arkadaşların sana kalkan gönderebilir.'); };
+  const askLevel = async () => { const r = await act('team.help.request', { level: stuck }); if (r) toast('🙋', `${r.request.level}. bölüm için yardım istedin`, 'Takım arkadaşların sana kalkan gönderebilir.'); };
 
   const levelReqs = team.help.filter((h) => h.expiresAt > now);
   const others = levelReqs.filter((h) => h.from !== me.id);
@@ -45,17 +52,19 @@ export function TeamHelp() {
       {campHelp.length > 0 && campHelp.map((r) => { const b = buildingDef(r.building); return (
         <div className="card help-row" key={r.playerId + r.building}>
           <span className="hr-i" aria-hidden><Glyph e={b?.emoji ?? '🏗️'} size={30} /></span>
-          <div className="grow min0"><b className="ellipsis">{r.name}</b><div className="muted">{b?.name} · <Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(r.endsAt - (now + off))} · {r.helpsReceived}/{r.helpsMax} yardım</div></div>
+          <div className="grow min0"><b className="ellipsis">{r.name}</b><div className="muted">{b?.name} · {r.helpsReceived}/{r.helpsMax} yardım</div><div className="muted hr-time"><Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(r.endsAt - (now + off))} kaldı</div></div>
           <button className="btn small" disabled={busy === r.playerId + r.building} onClick={() => void helpOne(r.playerId, r.building)}>Yardım et</button>
         </div>); })}
 
       <div className="row between section-head"><h2>Bölüm yardımı</h2><button className="btn ghost small" onClick={() => void askLevel()}><Art e="🙋" size="1.15em" className="art-inline" /> Yardım iste</button></div>
-      <div className="muted small-note">Takılırsan iste: her yardım sana bir kalkan, yardım edene 5 jeton. Günde 3 istek.</div>
-      {others.length === 0 ? <Empty icon="🫶" title="Şu an yardım isteyen yok" text="Biri takılırsa burada görünür; tek dokunuşla kalkan gönderebilirsin." /> : others.map((h) => { const done = h.helpers.includes(me.id); const full = h.helpers.length >= h.max; return (
-        <div className="card help-row" key={h.id}>
+      <div className="muted small-note" data-testid="yardim-iste-not">Takılırsan iste: istek takıldığın {stuck}. bölüm için açılır. Her yardım sana bir kalkan, yardım edene 5 jeton. Günde 3 istek.</div>
+      {others.length === 0 ? <Empty icon="🫶" title="Şu an yardım isteyen yok" text="Biri takılırsa burada görünür; tek dokunuşla kalkan gönderebilirsin." /> : others.map((h) => { const done = h.helpers.includes(me.id); const full = h.helpers.length >= h.max; const passed = !!h.passed; return (
+        // satır yerinde kalır: gönderince yalnız düğme değişir (sıra ekran yeniden açılınca güncellenir; net.ts team.help yerinde günceller)
+        <div className={`card help-row${passed ? ' passed' : ''}`} key={h.id} data-testid="yardim-satiri" data-passed={passed ? '1' : '0'}>
           <span className="hr-i" aria-hidden><Art e="🙋" size="1.15em" className="art-inline" /></span>
-          <div className="grow min0"><b className="ellipsis">{h.name}</b><div className="muted">{h.level}. bölüm · {h.helpers.length}/{h.max} yardım · <Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(h.expiresAt - now)}</div></div>
-          <button className="btn small" disabled={done || full || busy === h.id} onClick={() => void giveShield(h.id)}>{done ? 'Gönderildi' : full ? 'Tamam' : <><Art name="shield" size="1.15em" className="art-inline" /> Gönder</>}</button>
+          <div className="grow min0"><b className="ellipsis">{h.name}</b><div className="muted">{h.level}. bölüm · {h.helpers.length}/{h.max} yardım</div>
+            <div className="muted hr-time">{passed ? 'Bölümü geçti; istek kapandı' : <><Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(h.expiresAt - now)} kaldı</>}</div></div>
+          <button className="btn small" disabled={passed || done || full || busy === h.id} onClick={() => void giveShield(h.id)}>{passed ? 'Geçti' : done ? 'Gönderildi' : full ? 'Tamam' : <><Art name="shield" size="1.15em" className="art-inline" /> Gönder</>}</button>
         </div>); })}
 
       <h2 className="section-head">Senin isteklerin</h2>
@@ -63,11 +72,11 @@ export function TeamHelp() {
       {myBuild && (() => { const b = buildingDef(myBuild.id); return (
         <div className="card help-row mine">
           <span className="hr-i" aria-hidden><Glyph e={b?.emoji ?? '🏗️'} size={30} /></span>
-          <div className="grow min0"><b>{b?.name} → Sv {myBuild.upgradingTo}</b><div className="muted"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(myBuild.endsAt! - (now + off))} · {myBuild.helpsReceived} yardım aldın</div></div>
+          <div className="grow min0"><b>{b?.name} → Sv {myBuild.upgradingTo}</b><div className="muted">{myBuild.helpsReceived} yardım aldın</div><div className="muted hr-time"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(myBuild.endsAt! - (now + off))} kaldı</div></div>
           <button className="btn ghost small" onClick={() => nav.tab('camp')}>Kamp</button>
         </div>); })()}
       {mine.map((h) => (
-        <div className="card help-row mine" key={h.id}><span className="hr-i" aria-hidden><Art e="🛡️" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>{h.level}. bölüm</b><div className="muted">{h.helpers.length}/{h.max} kalkan geldi · ödül kutuna düşer</div></div></div>
+        <div className="card help-row mine" key={h.id}><span className="hr-i" aria-hidden><Art e="🛡️" size="1.15em" className="art-inline" /></span><div className="grow min0"><b>{h.level}. bölüm</b><div className="muted">{h.passed ? `Geçtin; istek kapandı · ${h.helpers.length} kalkan geldi` : `${h.helpers.length}/${h.max} kalkan geldi · ödül kutuna düşer`}</div></div></div>
       ))}
     </div>
   );

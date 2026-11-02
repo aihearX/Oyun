@@ -8,7 +8,7 @@ import { platform } from '../platform';
 import { Empty, Sheet, Skeleton, fmtTime, hex } from './social';
 import { ActionButton, IconButton } from './Button';
 import { Art, Glyph, rich } from './art';
-import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, REACTION_ART, ReactionBar, ThreadPreview, ThreadSheet } from '../comm/Cards';
+import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, REACTION_ART, RallyChatCard, ReactionBar, ThreadPreview, ThreadSheet, isRallyStart, rallyEnds } from '../comm/Cards';
 import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { featureOpen } from '../ftue/useFeatures';
@@ -110,6 +110,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
     return { top: t, repliesOf: by };
   }, [msgs, muted, dqOpen]);
 
+  const ralliEnds = useMemo(() => (team ? rallyEnds(msgs) : new Map()), [msgs, team]);
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
   // takım sohbeti görünür ve sona kaydırılmışsa son iletiye kadar okundu (sunucu imleci; Takım sekmesi rozeti, YN-071)
   const readAt = useRef(0);
@@ -156,6 +157,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
     if (m.kind === 'feed') return <FeedCard key={m.id} m={m} live={live} rich={richFeed} />;
     if (m.kind === 'help' && team) return <HelpCard key={m.id} m={m} live={live} />;
     if (m.kind === 'soru') return <QuestionCard key={m.id} m={m} live={live} />;
+    if (team && isRallyStart(m)) return <RallyChatCard key={m.id} m={m} end={ralliEnds.get(String(m.meta!.rallyId))} />;
     if (m.from === 'sistem') return <div key={m.id} className={`msg-sys kind-${m.kind}`}><span aria-hidden><Glyph e={sysIcon(m)} size="1.2em" /></span> {rich(m.text)}{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>;
     const mine = m.from === me?.id; const head = !prev || prev.from !== m.from || m.at - prev.at > 5 * 60_000 || prev.kind === 'feed';
     const at = typeof m.meta?.at === 'string' && !!me && m.meta.at.split(',').includes(me.id);

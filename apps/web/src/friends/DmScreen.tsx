@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useNet } from '@odi/net/store';
-import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmMessage, type PublicProfile } from '@odi/shared';
-import { act, errText, toast } from '../net';
+import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmMessage, type PublicProfile, type RallyState } from '@odi/shared';
+import { act, errText, getNet, toast } from '../net';
+import { srvNow, useEvents } from '../events/store';
 import { platform } from '../platform';
 import { useNav } from '../nav';
 import { Sheet } from '../ui/social';
@@ -203,6 +204,37 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
   );
 }
 
+/** biten ralli kesin sonuçtur: oturum boyunca bir kez sorulur (aynı konuşmada birden çok kart) */
+const rallyDone = new Map<string, RallyState | null>();
+/**
+ * Ralli davet kartının durumu (YN-116): kartın kendi rallisi (meta.roomId) sunucudan sorulur; takımın güncel rallisiyse canlı.
+ * 'acik' | 'kazanildi' | 'kaybedildi' | 'yok' (bulunamadı / takımının değil); undefined: yükleniyor ya da ralli kartı değil.
+ */
+function useRallyInvite(id: string | undefined): RallyState['status'] | 'yok' | undefined {
+  const live = useEvents((s) => (id && s.rally?.id === id ? s.rally : null));
+  const [got, setGot] = useState<RallyState | null | undefined>(() => (id ? rallyDone.get(id) : undefined));
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!id || rallyDone.has(id)) return;
+    let on = true;
+    void getNet()?.call('rally.state', { rallyId: id }).then((r) => {
+      if (!r.rally || r.rally.status !== 'acik') rallyDone.set(id, r.rally);
+      if (on) setGot(r.rally);
+    }, () => { if (on) setGot(null); });
+    return () => { on = false; };
+  }, [id]);
+  const rally = live ?? got;
+  // açık ralli süresi dolunca kart kendiliğinden "bitti" olur
+  useEffect(() => {
+    if (rally?.status !== 'acik') return;
+    const h = setTimeout(() => tick((x) => x + 1), Math.max(0, rally.endsAt - srvNow()) + 300);
+    return () => clearTimeout(h);
+  }, [rally?.status, rally?.endsAt]);
+  if (!id || rally === undefined) return undefined;
+  if (!rally) return 'yok';
+  return rally.status === 'acik' && rally.endsAt <= srvNow() ? 'kaybedildi' : rally.status;
+}
+
 /** gönderilmeyi bekleyen mesaj: gri balon, altında durumu (bağlanınca gidecek / gönderiliyor / reddedildi: Tekrar dene, Sil) */
 function PendingBubble({ p, online, sender }: { p: PendingDm; online: boolean; sender: Pick<PublicProfile, 'color' | 'hat'> | null }) {
   const body = p.kind === 'sticker' ? <div className="dm-free">{sender && <Sticker id={p.text} color={sender.color} hat={sender.hat} />}</div>
@@ -230,6 +262,8 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   const reacts = Object.entries(m.reactions ?? {});
   const counts = new Map<string, number>(); for (const [, e] of reacts) counts.set(e, (counts.get(e) ?? 0) + 1);
   const meta = <span className="dm-meta">{time}{ticks}</span>;
+  const rally = useRallyInvite(m.kind === 'davet' && m.meta?.type === 'ralli' && typeof m.meta.roomId === 'string' ? m.meta.roomId : undefined);
+  const rallyOver = rally !== undefined && rally !== 'acik';
   let body;
   if (m.deleted) body = <div className="dm-bubble deleted"><Art e="🚫" size="1.15em" className="art-inline" /> Bu mesaj silindi {meta}</div>;
   else if (m.kind === 'sticker') body = <div className="dm-free">{sender && <Sticker id={m.text} color={sender.color} hat={sender.hat} />}{meta}</div>;
@@ -237,10 +271,12 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   else if (m.kind === 'davet') {
     const yaris = m.meta?.type === 'yaris'; const takim = m.meta?.type === 'takim';
     body = (
-      <div className="dm-invite" data-testid="davet-karti">
+      <div className={`dm-invite${rallyOver ? ' closed' : ''}`} data-testid="davet-karti" data-durum={rally ?? ''}>
         <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : takim ? 'users' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
-        <div className="dm-inv-text">{m.text}</div>
-        <button className={`btn small ${mine ? 'ghost' : ''}`} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : takim ? (mine ? 'Takımına git' : 'Takıma katıl') : 'Davete git'}</button>
+        {/* eski ralli davetlerinin sonundaki sistem emojisi gösterilmez (yeni davetlerde yok, YN-107) */}
+        <div className="dm-inv-text">{m.meta?.type === 'ralli' ? m.text.replace(/\s*🔥\s*$/u, '') : m.text}</div>
+        {rallyOver && <div className="dm-inv-state" role="status" data-testid="davet-bitti">{rally === 'yok' ? 'Bu ralli artık açık değil' : `Bu ralli bitti${rally === 'kazanildi' ? ': canavar yenildi' : ': canavar kaçtı'}`}</div>}
+        <button className={`btn small ${mine ? 'ghost' : ''}`} disabled={rallyOver} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : takim ? (mine ? 'Takımına git' : 'Takıma katıl') : 'Davete git'}</button>
         {meta}
       </div>
     );

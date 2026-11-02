@@ -2,6 +2,7 @@ import { COMM_RULES, phraseById, type OpMap } from '@odi/shared';
 import { fail, parseJson, type App, type Handler, type Session } from '../app';
 import { postCard, sendAs, teamRoom, updateCard } from '../chat';
 import { raceHandlers } from '../race';
+import { emitHelp } from '../teams';
 import { DAY_MS } from '../time';
 import { feedEvent } from './feed';
 import { commNotice, metric } from './settings';
@@ -55,6 +56,7 @@ export function resolveHelp(app: App, pid: string, level: number): void {
     const helpers = new Set<string>([...app.db.all<{ helper_id: string }>('SELECT helper_id, MIN(at) AS t, MIN(rowid) AS o FROM help_actions WHERE request_id = ? GROUP BY helper_id ORDER BY t, o', r.id).map((x) => x.helper_id), ...parseJson<string[]>(r.helpers, [])]);
     helpers.delete(pid);
     refreshCard(app, r.id);
+    emitHelp(app, r.id);
     if (!helpers.size) continue;
     metric(app, 'help.resolved');
     const p = app.player(pid);
