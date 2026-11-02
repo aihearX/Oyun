@@ -6,7 +6,7 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 20/40 (oturum 4 sonu) |
+| 1 | 2026-10-31 | | | 27/40 (oturum 5 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -58,3 +58,21 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-18 (Hedefe ulaştın kartı düğmelerin altında), -19 (seviye penceresi kendiliğinden kapanıyor), -20 (Kamp'ta rehber çerçevesi teşekkür kartının altında; YENİ YER AÇILDI yazısı üst üste), -21 (canavar can çubuğu ince), -22 (Hâlâ kısmen: ikinci sıra sekmeler kesik, oklar adsız; eski OT-14), -23 (takım ipucu listesi bölüme uymuyor).
 - Yarım kalan / sonraki oturum: Bölüm 21 (Suya Dalış, yeni mekanik) sırada. Bugün'deki "Yıldızlı bir bölümü tekrar oyna" görevi ve günlük sandık açılmadı. Odyometri Odası inşaatı (1 dk) bitti mi bakılacak; Hasta Vakaları (Odyoloji Kliniği) açıldı, girişini bulamadım. Etkinlikler (1 bekliyor), Mağaza, Ayarlar bu oturumda denenmedi.
 - Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 10/30 üye, Sv 2). Arkadaşım KaptanTuba (KRMXHC); bugünkü hediyesi gönderilmiş görünüyor, İkili Görev davetim hâlâ yanıt bekliyor. Takımdan AyseTeyze'ye ipucu verdim. Bana gelen yeni arkadaşlık ya da takım isteği yoktu.
+
+## Oturum 5 · 2026-11-01 · sürüm 756322a5 · tur 1
+- Başlangıç: 20/40, 42 yıldız, seri 2 gün. Bitiş: 27/40, 57 yıldız (25'te 3 yıldız, öteki yeni bölümler 2), oyuncu seviyesi 8, seri 3 gün, 6.706 jeton, 410 kristal.
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlar):
+  - OT-buyuk-yazi-9: düzeldi. Bölüm içinde "+5 nota" uçan yazısı iri, koyu konturlu, okunuyor (0330).
+  - OT-buyuk-yazi-11: düzeldi. Üstteki nota, altın koklea ve can kutularının üstüne binen simge görmedim; sayaçlar temiz (0329, 0333, 0341).
+  - OT-buyuk-yazi-18: düzeldi. Haritadaki "Hedefe ulaştın!" kartı artık Etkinlik düğmesinin altında, tam genişlikte ve bütün yazısı okunuyor (0368).
+  - OT-buyuk-yazi-19: düzeldi. Seviye 7 penceresi 10 saniye bekledim, kendiliğinden kapanmadı; "Harika!"ya ben bastım (0336, 0337).
+  - OT-buyuk-yazi-20: düzeldi (bu oturumda tekrar oluşmadı). Kamp'a girince rehber ya da teşekkür kartı üst üste çıkmadı (0387); aynı durumu yeniden yaşamadığım için kesin değil.
+  - OT-buyuk-yazi-21: bakamadım; bu oturumda canavar bölümü gelmedi.
+  - OT-buyuk-yazi-22: düzeldi. Takım'ın ikinci sırası artık iki satıra kırılan iri haplar: "Üyeler, Yardım, Teknoloji, Hediyeler, Hedefler" tam kelime, kesik yok (0396).
+  - OT-buyuk-yazi-23: düzeldi. AyseTeyze 20. bölümde (Serumen Golemi) takılmıştı; listenin ilk ipucu "Saldırıdan önce gölge ya da parlama çıkar, onu görünce kaç." tam o bölüme uyuyordu, onu gönderdim (0394).
+  - Not: OT-sinav-adayi-17'deki hazine sorunu da düzelmiş görünüyor: Bölüm 25 hazinesi haritada "Cüzdanına eklendi" dedi, yeniden Topla istemedi (0366).
+- Ne yaptım: Bölüm 21-27 (yeni biyomlar Koklea · Taban, Orta Kıvrım, Apeks; yüzme). 23 Akıntı (sis) iki kayıptan sonra üçüncüde, 26 Derin Kıvrım (gece) bir kayıptan sonra geçti. Seviye 7 ve 8. Bugün: takvim 3. gün (Kulaklı Bere), üç görev ödülü ve günlük sandık; Bilgi pratiğinde iki soru. Kamp: depoyu topladım, İşitme Cihazı Atölyesi'ni kurdum. Takım: AyseTeyze'ye ipucu, 12 takım hediyesi (+860 jeton, +50 kristal). KaptanTuba'ya hediye gönderdim. Ödül kutusundaki 11 ödülü aldım.
+- Hissettiğim: Geçen seferki şikâyetlerimin neredeyse hepsi düzelmiş; özellikle Takım sekmeleri ve seviye penceresi artık bana göre. Menüler, sonuç ekranı ve oyun içi sayaçlar rahat okunuyor. Bu sefer en çok zorlandığım şey sisli ve gece bölümleri: ekranın çoğu kapkara, nereye düştüğümü göremedim. Melodi bölümünde sırayla toplanacak notaları sıradan jetonlardan ayıramadım. Ödül kutusunda hiç oynamadığım Baskın'dan "geçen hafta 1." ödülü görünce şaşırdım. Seviye 8 penceresindeki dört satırın ne olduğu yazmıyor (OT-ekonomi-denetci-10 / YN-050 ile aynı; yeni yazmadım).
+- Yazdığım geri bildirimler: OT-buyuk-yazi-24 (sis/gece ekranı karartıyor), -25 (melodi notaları jetonlardan ayırt edilmiyor), -26 (Ödül kutusu sıralama satırları kimin sırası belli değil, aynı başlık iki kez), -27 (Kamp etki kutusunun etiketleri küçük), -28 (Bilgi pratiğinde soluk şıklar, yanlış şık yalnız renkle).
+- Yarım kalan / sonraki oturum: Bölüm 28 (Koklea · Apeks) sırada. İşitme Cihazı Atölyesi inşaatı (1 dk) bitti mi bakılacak; Odyoloji Merkezi Sv 3 sıraya alınmadı. OT-21 (canavar can çubuğu) bir sonraki canavar bölümünde kontrol edilecek. Etkinlikler (1 bekliyor), Mağaza, Ayarlar, Kulak Kartları bu oturumda denenmedi. Bilgi pratiği yarıda bırakıldı (2/10).
+- Sosyal: arkadaş kodum 8XFY4K, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, davet kodu 8XJUU4; 10/30 üye, Sv 3). Arkadaşım KaptanTuba (KRMXHC); bugün ona hediye gönderdim. Takımdan AyseTeyze'ye 20. bölüm için ipucu verdim. Bekleyen arkadaşlık ya da takım isteği yoktu.

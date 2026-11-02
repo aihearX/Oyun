@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 25/40 (oturum 4 sonu) |
+| 1 | 2026-10-31 | | | 32/40 (oturum 5 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -71,3 +71,25 @@ Cihaz: 390×844 chromium · beceri 0.5 · ses kapalı. Ayrıntı: tools/harness/
 - Başkalarının yazdığını gördüğüm, yeniden yazmadığım: haritada art arda kutlama/hazine pencereleri (OT-sinav-adayi-17), Kamp'ta tanıtımların dokunuşu yutması (OT-ogrenci-birinci-14), "YENİ YER AÇILDI!" yazısının İnşaatçı satırına binmesi (OT-buyuk-yazi-20), hazır ipuçlarının bölüme uymaması (OT-buyuk-yazi-23), biyomun başında "Usta" başarımları (OT-ogrenci-birinci-16). Takım sohbetindeki hızlı tepkiler artık çizim simgesi, sistem emojisi görmedim.
 - Yarım kalan / sonraki oturum: Bölüm 26'dan devam. Odyoloji Merkezi Sv 2 bitince Odyoloji Kliniği'ni kur (Hasta Vakaları için), İşitme Cihazı Atölyesi. Ton Avı'nı bul ve sessiz oynanabilir mi bak (adı üstünde ses tabanlı olabilir). Mağaza, Etkinlik, bilgi yarışması, Kulak Kartları. OT-5, OT-7, OT-8 yeniden kontrol.
 - Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 2, 10/30 üye), rolüm üye. Takım ekranında yeni davet görmedim; Arkadaşlar sayfasındaki bekleyen isteklere bu oturumda bakamadım (sonraki oturumda bak).
+
+## Oturum 5 · 2026-11-01 · sürüm 756322a5 · tur 1
+- Başlangıç: 25/40, seri 2 gün, 4471 jeton, 125 kristal, Sv 7. Bitiş: 32/40 (yıldızlar 26:2 27:2 28:3 29:2 30:2 31:2 32:2; toplam 68, üç yıldız 7), Sv 9, seri 3 gün, 7291 jeton, 395 kristal. 7 denemede 0 kayıp.
+- Yeniden kontrol (durumu "yapildi:" olan maddelerim):
+  - OT-sessiz-oyuncu-1: düzeldi (Ayarlar'da "Sesler kapalı: anlatıcı da susuyor…" yazısı yerinde, 0376).
+  - OT-sessiz-oyuncu-2: düzeldi (Titreşim anahtarı Açık, 0377).
+  - OT-sessiz-oyuncu-3: düzeldi (sonuç kartı "37 nota kaldı · 0/3 altın koklea", "86,4 sn sürdü, 0,4 sn geç" diyor; 0384, 0405).
+  - OT-sessiz-oyuncu-4: düzeldi (bu oturumda alt menüyü örtüp takılan rehber balonu hiç görmedim).
+  - OT-sessiz-oyuncu-5: kontrol edilemedi (Günün Sorusu tanıtımı bir daha çıkmıyor; bu oturumda Günün Sorusu kartına rastlamadım).
+  - OT-sessiz-oyuncu-7: düzeldi (gördüğüm kadarıyla). Bölüm 28 Ninni Derinlerde yine fısıltı taşıma bölümüydü; üst köşede sürekli "Fısıltı yanında" rozeti var (0392, 0393), fısıltı ekranda yüzü olan beyaz bir bulut olarak görünüyor. Bu sefer kaybetmediğim için kayıp anındaki sebep yazısını göremedim.
+  - OT-sessiz-oyuncu-8: kısmen kontrol edildi. Ödül kutusundaki 9 satırın (sıralama ve Bölge Savaşı ödülleri) simgesi çizim elmas, emoji yok (0351); arkadaş hediyesi satırı bu sefer yoktu.
+  - OT-sessiz-oyuncu-9: düzeldi. Kamp listesinde Odyoloji Kliniği altında "Kurunca: Hasta Vakaları açılır" yazıyor (0425); klinik kurulmadan açık gibi anlatan tanıtım görmedim.
+  - OT-sessiz-oyuncu-10: kontrol edilemedi (bu oturumda hiç kaybetmediğim için hazır ipucu çıkmadı).
+  - OT-sessiz-oyuncu-11: kontrol edilemedi (canlandı kutlamasını yarıda gördüm; 0420'de "Koklea · Orta Kıvrım canlandı!" şeridi okunuyor, üstünde nota yoktu ama sahnenin tamamını görmedim).
+  - OT-sessiz-oyuncu-6 (kismen): değişiklik görmedim; Ayarlar'da görsel ses ipucu seçeneği hâlâ yok, ama bu oturumdaki bölümlerde sesle verilen bir ipucuna rastlamadım.
+- Ne yaptım: oturum başında Bölüm 25 hazinesi (80 jeton + seri koruyucu). Ödül kutusu 9 ödül (sıralama ve Bölge Savaşı; "Bilgi · geçen hafta 1." diyor ama hiç bilgi yarışması oynamadım, OT-buyuk-yazi-26 zaten yazmış). Bugün: takvim 3. gün (Kulaklı Bere + 20). Bilgi pratiği: 2 soru, ikisi de doğru, açıklamalar kısa ve net. KaptanTuba'ya arkadaş hediyesi gönderdim. Bölüm 26 Derin Kıvrım (gece), yeni biyom Koklea · Apeks: 27 Bas Diyarı, 28 Ninni Derinlerde (fısıltı, 3 yıldız), 29 Apeks Sıçrayışı (sis), 30 Son Kıvrım (hız + yankı, Bölüm 30 hazinesi, Seviye 9), yeni biyom İşitme Siniri ve Ses Darbesi: 31 Elektrik, 32 Lif Yolu (gece). Kamp: Kulak Deposu'nu topladım (+160), İşitme Cihazı Atölyesi Sv 1 inşaatını başlattım. Takım: 14 takım hediyesi (+1160 jeton, +90 kristal, kalkanlar). Dolap'a baktım.
+- Sessiz oynanabilirlik: bu oturum iyiydi. Fısıltı artık rozetle görünüyor; "Kontrol noktası" yazısı tam görünüyor; gece bölümlerinde ses dalgası çizgileri yolu gösteriyor; Ses Darbesi tanıtımı tamamen yazılı ("Koşu yönüne kaydır: atıl", "Yankı yollarını görünür kıl"). Bas Diyarı'ndaki not ("Çok kalın sesleri yalnızca kulakla değil, vücudumuzdaki titreşimle de hissederiz") bana çok iyi geldi. Eksik: değiştiriciler (Yankı, Hız, Gece, Sis) ekranda hiç adlandırılmıyor; özellikle "Yankı" bir ses etkisi gibi duruyor ve ne yaptığını bilmeden oynuyorum (OT-12).
+- Hissettiğim: akıcı ve ödül bol, hiç kaybetmedim. Seviye 9 penceresinde "Koklear İmplant" yazıyordu; bir kozmetik sandım, Dolap'ta aradım, yoktu; sonradan bir Kulak Kartı olduğunu anladım. Pencere ne olduğunu söylemiyor (OT-ekonomi-denetci-10 ve OT-ilk-kez-oyun-5 zaten bunu yazmış; yeniden yazmadım). İşitme cihazı ve implant temalı ödüllerin (İşitme Cihazı Atölyesi, İmplant Ustası Kostümü) olması hoşuma gidiyor.
+- Yazdığım geri bildirimler: OT-sessiz-oyuncu-12 (bölüm değiştiricileri ekranda hiç söylenmiyor; Yankı'nın ne olduğu sesi kapalı oyuncuya belli değil).
+- Başkalarının yazdığını gördüğüm, yeniden yazmadığım: Ödül kutusunda oynamadığım modların sıralama ödülü (OT-buyuk-yazi-26), Profil'de "26 bölüm" geçtiğimden bir fazla (OT-rekabetci-4), 5 kişilik ligde 0 puanla son sıradayken "Yükselme bölgesindesin" (OT-rekabetci-12 / -24), takvimin 3. günü "+20" deyip sonra "70" yazması (OT-ogrenci-birinci-18), Ayarlar'da "çözülen kayıt: 0" teşhis satırı (OT-sinav-adayi-8), seviye penceresi açılanları açıklamıyor (OT-ekonomi-denetci-10).
+- Yarım kalan / sonraki oturum: Bölüm 33'ten devam (değiştirici listesine göre 33'ten sonra "Cihaz Kapalı" gelebilir: notalar görünmez olursa sessiz oynanabilir mi, dikkatle bak). Ton Avı (kamp oyunu) hâlâ bulunamadı. Etkinlik (1 bekliyor), Mağaza, Hasta Vakaları (önce Odyoloji Kliniği kurulmalı), Kulak Kartları'nda Koklear İmplant kartını oku. OT-5, OT-10, OT-11 yeniden kontrol.
+- Sosyal: arkadaş kodum RHPKK9 (takma ad Deniz). Arkadaşım KaptanTuba (KRMXHC); bu oturumda ona hediye gönderdim. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4, Sv 3, 10/30 üye), rolüm üye. Bekleyen arkadaşlık isteği ya da yeni takım daveti yoktu.

@@ -6,7 +6,7 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 19/40 (oturum 4 sonu) |
+| 1 | 2026-10-31 | | | 19/40 (oturum 5 sonu; 20 Golem 8 kayıp) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -66,3 +66,20 @@ Cihaz: 360×740 chromium · beceri 0.1 · ses açık. Ayrıntı: tools/harness/o
 - Yazdığım geri bildirimler: OT-ilk-kez-oyun-18 (Golem yazı ekrandayken vuruyor, nasıl vurulacağı gösterilmiyor), -19 (kayıp ipucu hep aynı), -20 (kayıp kartları kutuların üstüne biniyor, ampul emojisi), -21 (Bayrak Yarışı'nda yazısız kronometre düğmeleri ve emojiler), -22 (Seviye 6'da "Yeni mekanik: Canavar" emojisi).
 - Yarım kalan / sonraki oturum: Bölüm 20 (Golem) geçilecek. Mağaza, Kulak Kartları, bilgi yarışmaları (Günün Sorusu), Kamp'a (1 bildirim) bu oturum da giremedim. Ralli'yi başlatmadım (en az 2 kişi gerekiyor, çevrimiçi 1 kişi vardı). Bayrak Yarışı'nda bir ayak koşmayı deneyebilirim. Günlük görev "Yıldızlı bir bölümü tekrar oyna" yapılmadı.
 - Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) arkadaşım; 13. bölüm için kalkan göndermiş, aldım. 19. bölüm için takımdan yardım istedim. Bana yeni arkadaşlık ya da takım daveti gelmedi.
+
+## Oturum 5 · 2026-11-01 · sürüm 756322a5 · tur 1
+- Başlangıç: 19/40, 36 yıldız, seri 2. Bitiş: 19/40 (ilerleyemedim), 36 yıldız, oyuncu seviyesi 6, 5.256 jeton, 345 kristal, seri 3 gün. Sıradaki hâlâ Bölüm 20 (Serumen Golemi, toplam 8 kayıp).
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ilk-kez-oyun-18: hâlâ var. Golem'in ilk saniyelerinde alttaki hikâye yazısı dururken 1-2 can gidiyor; Faz 1'de ne yapacağım yazmıyor (0345, 0348, 0354). Faz 2'de "Serumen topları! Üstlerinden zıpla" çıkıyor, o güzel (0355). Yeni satır OT-ilk-kez-oyun-23.
+  - OT-ilk-kez-oyun-19: düzeldi. Golem kayıplarında ipucu değişiyor: "Zayıf noktasına vur, saldırısını atlat" / "Her saldırıdan önce bir uyarı görünür (yere düşen gölge, parlayan duvar, ok)…" (0346, 0349).
+  - OT-ilk-kez-oyun-20: örtüşme düzeldi, kartlar artık kutuların altında (0346). Ampul hâlâ emoji (yeni satır OT-ilk-kez-oyun-26). Ayrıca ipucu uzayınca "Yardım iste" düğmesi alttaki sabit çubuğun arkasında kalıyor (yeni sorun, OT-ilk-kez-oyun-25).
+  - OT-ilk-kez-oyun-21: yazısız kronometre düğmeleri ve "[resim] ile" cümlesi artık yok: düzeldi. Bayrak, kum saati, kronometre, iğne simgeleri hâlâ emoji gibi (0384, 0390; OT-ilk-kez-oyun-26'da).
+  - OT-ilk-kez-oyun-22: kontrol edemedim (bu oturum seviye atlamadım).
+  - OT-ilk-kez-oyun-16, -14: kontrol edemedim (ilgili tanıtım/rehber çıkmadı).
+  - Daha önce düzelen -1, -2, -4, -6/-7, -8, -13, -15: bozulduğunu görmedim; açılışta "Kemikçikler yeniden canlandı" kutlaması tek başına geldi.
+- Ne yaptım: Bölüm 20'yi 6 kez denedim (biri Ödül kutusundan gelen kalkanla), hepsini kaybettim; en iyisi Faz 2, "Golem gücünün %43'ü kaldı". 4. kayıptan sonra takımdan yardım istedim (gelen olmadı). Bugün'de 3. gün takvim ödülü (Kulaklı Bere + 20 jeton) ve "Takvim Dostu" bronz başarımı. Ödül kutusunda 13 ödül "Hepsini al". Kamp Görevleri'nde Hikâye Bölüm 1 ödülü (80 jeton, 60 Kamp XP, 2 hızlandırıcı). Takım › Hediyeler'de 10 hediye. Bayrak Yarışı'nda ilk kez ayak koştum: "Bayrağı al" → 2. ayak (Zar Melodisi) 94,2 sn, sonra bayrağı KaptanTuba'ya devrettim. KaptanTuba'ya hediye gönderdim. Mağaza'ya ilk kez girdim (bir şey almadım). Kulak Kartları albümüne baktım (10/50; "2,5 Santimlik Tünel" kartı açık ve anlaşılır).
+- Hissettiğim: Golem'de üçüncü kayıptan sonra "yine mi" dedim, beşincide sinirlendim, sekizincide bıraktım. Her seferinde 10-20 saniyede bitiyor; ne yaptığımı anlamadan bitiyor. "Odi yoruldu…" ve "%43'ü kaldı" yazıları kibar ama ilerleme olmayınca teselli etmiyor. Buna karşılık Bayrak Yarışı çok hoşuma gitti: ne yapacağım adım adım yazıyordu ("Bayrak sende!", "Bitirince bayrağı sıradaki gönüllüye devret", "Arka arkaya iki ayak koşulmaz"), bitirince "Ayağın en iyi süresi senin!" dedi; takıma bir şey kattım hissi. Ödül kutusunda "alma süresi doldu" yazısını görünce kaçırdım sandım, sonra aldım. Mağazadaki uzun açıklamayı okuyup anlayamadım. "Biyom", "Faz", "par" kelimelerini hâlâ tahminle okuyorum ("Faz"ı "aşama" diye tahmin ettim).
+- Başkalarının yazdığını gördüğüm, bende de olanlar (yeniden yazmadım): Mağaza'da "Kaşif şapkası" / "Kâşif Şapkası" (OT-buyuk-yazi-12); üstte "5,2B", Profil'de "5.254 jeton" (benim OT-12, YN-087).
+- Yazdığım geri bildirimler: OT-ilk-kez-oyun-23 (Hâlâ: Golem'de yazı dururken can gidiyor, eski -18), -24 (ilk canavar duvar: 8 kayıp, kolaylaştırma yok), -25 ("Yardım iste" düğmesi sabit çubuğun arkasında), -26 (Hâlâ: ampul ve Bayrak Yarışı emojileri, eski -20/-21), -27 ("alma süresi doldu" ama Al var; Baskın birinciliği kimin), -28 (Mağaza üst paragrafı).
+- Yarım kalan / sonraki oturum: Hedef 6 bölümdü; Golem'i geçemediğim için hiç ilerleyemedim. Bir sonraki oturumda yine Golem; takımdan ipucu/kalkan gelmiş mi bakılacak. Günün Sorusu'na ve Kamp'ta yükseltmeye (inşaatçı boşta) hâlâ bakmadım. Günlük görevler (2 bölüm bitir, 3 yıldız, 120 jeton) yapılmadı.
+- Sosyal: arkadaş kodum KQH9VZ (AyseTeyze). Takımım "Ninni Tasiyicilari" (üye; lider KaptanTuba, takım davet kodu 8XJUU4). KaptanTuba (KRMXHC) arkadaşım; bugün ona hediye gönderdim ve Bayrak Yarışı'nın 3. ayağını ona devrettim. Takımda HasanBey ve EceOdyo'yu gördüm (EceOdyo 1. ayağı koşmuş). Bana yeni arkadaşlık ya da takım daveti gelmedi. 20. bölüm için takımdan yardım istedim.

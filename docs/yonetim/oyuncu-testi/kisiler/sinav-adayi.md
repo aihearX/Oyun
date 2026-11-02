@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 25/40 (oturum 4 sonu) |
+| 1 | 2026-10-31 | | | 32/40 (oturum 5 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -71,3 +71,21 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 - Bakıp yazmadıklarım: Başarım bildirimindeki ve Kamp "baskın" satırındaki kırmızı canavar yüzü önce sistem emojisi sandım; kodda çizim "monster" simgesine eşlendiğini gördüm, yazmadım. Başarımlar'da "Kart Koleksiyoncusu 19/25" ile albümdeki sayının uyuşup uyuşmadığına bakamadım.
 - Yarım kalan / sonraki oturum: Bölüm 26 (Derin Kıvrım; sonunda Orta Kıvrım canlanır). Klinik'te Hakan, Zeynep, Nuri bekliyor. Bayrak Yarışı 3. ve 4. ayak takım arkadaşlarında (arka arkaya iki ayak koşulamıyor). Kulak Bilgi Yarışması 13:00/20:00. Ton Avı ve Timpanogram Eşleştir kamp oyunları hâlâ denenmedi. Ayarlar'a bu oturumda bakmadım.
 - Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; bekleyen istek görmedim. Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo ve KralKoklea da var. Bronz Ligi 3. sıra (395 puan).
+
+## Oturum 5 · 2026-11-01 · sürüm 756322a5 · tur 1
+- Başlangıç: 25/40, seri 2 gün. Bitiş: 32/40, 69 yıldız (3 yıldız: 4, 7, 15, 17, 19, 23, 24, 25, 28, 30), seviye 9, 5731 jeton, 110 kristal, seri 3 gün, Gümüş lig. Kayıp yok (32 deneme, 32 geçiş).
+- Eski geri bildirimlerin kontrolü (tur 5, durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-1, -2, -3, -5, -10, -12…-16: oturum 4'te düzeldi diye doğrulandı; bu oturumda gördüklerimde (sonuç kartı nota simgesi, takvim "Al" → "Topla", Klinik sekmesi, ondalıklı süre) bozulma yok.
+  - OT-sinav-adayi-4: yapildi; yerine yazdığım OT-8 reddedildi (yalnız test derlemesinde), yeniden yazmadım.
+  - OT-sinav-adayi-9: düzeldi (Bugün'ün altında "Bilgi pratiği · Pratik yap": tek başına 10 soru, süre yok, her cevaptan sonra doğru cevap ve açıklama, ödülsüz; düzey Ayarlar'dan "Odyoloji öğrencisi" olarak yazıyor). 9/10 yaptım.
+  - OT-sinav-adayi-17: düzeldi (Bölüm 30 hazinesi sonuçta "+60" verildi; haritada tek bir pencere "Hazine cüzdanına eklendi · Tamam" dedi, Topla istemedi, jeton 5.389'da kaldı, ikinci kez eklenmedi).
+  - OT-sinav-adayi-18: düzeldi (Orta Kıvrım tanıtım metni artık "Konuşma frekanslarının (yaklaşık 500-4000 Hz) işlendiği kıvrım"; tanıtım kartını oyunda yeniden göremedim, içerik dosyasında doğruladım).
+  - OT-sinav-adayi-19: düzeldi (Nuri vakasında "İsteseydin şunu görecektin" altında her testin yanında tek cümle yorum var: timpanometri "timpanogram tek başına nedeni söylemez", refleks "iç kulak kaynaklı kayıpta çoğu zaman korunur", OAE "tizde yokluğu dış tüy hücresi işleviyle uyumlu", konuşma "ince ünsüzleri kaçırttığı için").
+  - OT-sinav-adayi-11 (kısmen yapıldı, kontrol listesinde değildi): Bugün'de hâlâ Günün Sorusu kartı yok; Bilgi pratiği onun yerini büyük ölçüde tutuyor. Yeniden yazmadım.
+- Ne yaptım: takvim 3. gün ödülü (Kulaklı Bere + 20 jeton; "Takvim Dostu · Bronz" başarımı). Bugün › Bilgi pratiği (10 soru, 9 doğru; birini açıklamayı görmek için bilerek yanlış). Bölüm 26-32 (Koklea · Orta Kıvrım sonu, Koklea · Apeks, İşitme Siniri'ne giriş), hepsi ilk denemede. Bölüm 30 hazinesi (Dalgıç Gözlüğü). Kamp › Klinik: Nuri (74, presbiakuzi) vakasını otoskopi + saf ses ile "Presbiakuzi" + iki kulak cihaz değerlendirmesi ve iletişim taktikleriyle "Mükemmel karar · Test seçimi: verimli" çözdüm; Vaka Defteri 4/32. Kart Koleksiyoncusu Gümüş (25 kart).
+- Bilgi içeriği (sınav gözüyle): bu oturumun notları doğru ve yoğun: ductus reuniens (koklear kanal–sakkül, endolenf sürekliliği); ototoksisite (aminoglikozid, sisplatin, yüksek frekanstan başlar, izlemde yüksek frekans odyometrisi ve OAE); 20 Hz altı infrases; faz kilitlenmesi memelilerde ~4-5 kHz'e kadar; 1 kHz'te frekans ayırt etme ~2-3 Hz (%0,2-0,3); JCIH 1-3-6 ilkesi; iç tüy hücresi sinapsında glutamat ve şerit sinaps; "Hızla Yükselen Sesler" (rekrutman) kartı. Pratik soruları: Weber, 0 dB HL / dB SPL, maskeleme, helikotrema, MGB, skala media endolenf hepsi doğru. Nuri'nin odyogramı tipik presbiakuzi (simetrik, tizde düşen, hava-kemik aralığı 0-5 dB).
+- Hissettiğim: Bilgi pratiği ve vaka sonuçlarındaki yorumlar tam istediğim şeydi; oyun artık gerçekten bir çalışma aracı. Önceki dört bildirimimin (9, 17, 18, 19) hepsinin düzeldiğini görmek güven verdi. Pratikte çocuk düzeyi sorular (yarasa, miyopi/astım şıkları) "Odyoloji öğrencisi" etiketine uymuyor; puanı anlamsızlaştırıyor. Bölümler hâlâ kolay (32/32 ilk denemede), birkaçında 3. yıldızı birkaç notayla kaçırdım ama bilgi için oynadığımdan tekrar etmedim.
+- Yazdığım geri bildirimler: OT-sinav-adayi-20 (pratikte düzey karışık, çeldiriciler saçma), -21 (pratik sonunda yanlışları görme yok), -22 ("tüylü hücre" / "tüy hücresi" terim birliği), -23 ("Yokluğunda" penceresi, Apeks satırı görünmüyor), -24 (hedef kartında "Bu bölümün sonunda canlanır" yer adı yok).
+- Bakıp yazmadıklarım: pratik açıklamasındaki ampul simgesini önce sistem emojisi sandım; kodda çizim "bulb" simgesine eşlendiğini gördüm, yazmadım. Bölüm 29'da "Tüm notaları topla (97)" ile "3. yıldız: 88 nota" çelişkisi zaten yazılı (OT-ogrenci-birinci-5).
+- Yarım kalan / sonraki oturum: Bölüm 33 (sonunda İşitme Siniri canlanır). Takım › Etkinlikler › Bayrak Yarışı'nda "2. ayak seni bekliyor" (EceOdyo 1. ayağı bitirdi); bu oturumda koşamadım, sonraki oturumda ilk iş. Klinik'te Hakan, Zeynep, Defne, Bebek Ada, Burak bekliyor. Kulak Bilgi Yarışması (13:00/20:00) hâlâ denk gelmedi. Ton Avı ve Timpanogram Eşleştir kamp oyunları denenmedi. Bugün'deki günlük sandık 0/3.
+- Sosyal: arkadaş kodum EQ3TAW (takma ad SinanSinav). Arkadaşlarım: KaptanTuba, KralKoklea; yeni arkadaşlık ya da takım daveti görmedim (zaten takımdayım). Takımım "Ninni Tasiyicilari" (lider KaptanTuba, davet kodu 8XJUU4), rolüm üye; takımda EceOdyo ve KralKoklea da var. Lig: Gümüş.

@@ -6,7 +6,7 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
-| 1 | 2026-10-31 | | | 31/40 (oturum 4 sonu) |
+| 1 | 2026-10-31 | | | 37/40 (oturum 5 sonu) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -63,3 +63,18 @@ Cihaz: 390×844 chromium · beceri 0.95 · ses açık. Ayrıntı: tools/harness/
 - Yazdığım geri bildirimler: OT-rekabetci-17 (3. yıldız ikinci koşulunun nota şartı gizleniyor), -18 (Takım Ligi "İlk – takım"), -19 (arkadaşla yarış daveti: açamadığı bölüm, ölü davet), -20 (yarış davetinde emoji), -21 (Bölge Savaşı puanları tutmuyor), -22 (Bayrak Yarışı Takım Ligi'nde sayılmıyor).
 - Yarım kalan / sonraki oturum: Bölüm 32 (İşitme Siniri). 3. yıldız: 26, 27, 29, 30, 31 ve eskiler 21, 22, 24, 13, 14, 16. Bayrak Yarışı'nda artık her ayak yeniden koşulabiliyor; 4. ayak süremi (89,5) düşürmek. Takım hediyeleri (2) alınmadı. Takım Düellosu Pazartesi başlıyor.
 - Sosyal: arkadaş kodum EB3UVW (KralKoklea). Takımım Ninni Tasiyicilari (üye; takımda DrMelis, EceOdyo, SinanSinav). Arkadaşlarım: SinanSinav, KaptanTuba. Bu oturumda yeni arkadaşlık ya da takım daveti gelmedi. KaptanTuba'ya mesaj ve canlı yarış daveti bıraktım (oda kapandı); takim-kaptani: çevrimiçi olunca bana yaz, ikimizin de açtığı bir bölümde yarışalım.
+
+## Oturum 5 · 2026-11-01 · sürüm 756322a5 · tur 1
+- Başlangıç: 31/40, 73 yıldız (3 yıldız: 11 bölüm), seviye 10, seri 2, Bronz Ligi 1. Bitiş: 37/40, 87 yıldız (3 yıldız: 13; yeni: 33, 34), seviye 12, seri 3 gün, Gümüş Ligi 1. sıra (112 puan, 4 kişi), jeton 6.950.
+- Önceki maddeler (yapildi olanlar yeniden kontrol):
+  - OT-rekabetci-17: düzeldi. Bölüm 34 tutunca da "ya da Hiç hasar alma ve 59 nota · tamam" yazıyor; Bölüm 37'de tutmayınca "ya da 3 altın kokleayı bul ve 59 nota · 59 nota tamam · 0/3 altın koklea" (0475-sonuc, 0542-sonuc). Koşul artık hep tam yazıyor, parçalar ayrı işaretli.
+  - OT-rekabetci-18: düzeldi. Takım Ligi "Grupta şimdilik yalnız takımınız var: yükselme, grupta en az 3 takım olunca açılır (küçük grupta ilk üçte biri yükselir)" diyor; tire ve boşluk yok (0504-dokun).
+  - OT-rekabetci-21: düzeldi. Bölge Savaşı "Bölgelere yazılan 792 · hedef bölgeye yazılmayan 0 ... Senin bu haftaki savaş puanın 239; 239 kadarı bölgelere yazıldı" diye döküm veriyor; bölge listesinde Ninni Merkezi 792, tutuyor (0500-dokun).
+  - OT-rekabetci-7, -8, -9, -14, -15, -16 (önceki oturumlarda düzeldi): bu oturumda da sorun görmedim (-7/-17 sonuç kartı tutarlı; -14 Meydan oku düğmesi duruyor).
+  - OT-rekabetci-22 (sahip kararı): Takım Ligi artık "Ligde doğrudan sayılmaz: Bayrak Yarışı, Ralli, Ses Avı. Ralli ve Bayrak ayakları Takım Düellosu puanına yazılır" diyor. Açık, kabul.
+  - İşlenmeyi bekleyenler: OT-4/10 (YN-048) hâlâ var: Profil "85 yıldız · 48 bölüm", geçilen 36 idi. OT-19/20 (YN-096) hâlâ var: "KaptanTuba ile yarış" yine 37. bölüme oda kurdu (KaptanTuba 26'da), davet kartında 🏁 duruyor, odadan çıkınca kart "Lobiye dön" ile ölü kalıyor. OT-5: haritadan bölüme girince hâlâ ön kart yok.
+- Ne yaptım: 32 (2 yıldız; 3. yıldız için 2 tekrar, 84/87/82 nota, eşik 90), 33 (3, süreyle), 34 (3, hasarsız), 35 (2, hazine +100), 36 (ilk denemede kapıya %2 kala kayıp, sonra 1 ve 2 yıldız), 37 (1, tekrarında 2). Takıma 32 meydan okuma kartı gönderdim. Takım › Rekabet: Savaş, Lig, Takım Ligi kuralları; Etkinlikler › Takım Düellosu ayrıntıları. KaptanTuba'ya mesaj. Haftalık lig: Gümüş'e yükselmişim; bu haftaki 112 puan formülle tutuyor (32'nin 3. bitirişi 1 puan yazdı).
+- Hissettiğim: geçen oturumda yazdığım üç şeyin (3. yıldız kartı, Takım Ligi cümlesi, Bölge Savaşı dökümü) üçü de düzelmiş; sayılar artık birbirini tutuyor, bu güven veriyor. Skorlar normal bölümde ~2.900-3.800'e çıkmış. Rekabet tarafında yeni dertler: Düello puanı tekrar oynamayla şişiyor (benim 170'im 17 koşudan), Gümüş Ligi 4 kişide "ilk 7 çıkar, son 5 iner" diyor. Düello 29 saattir rakipsiz; dürüst ama boşlukta oynuyoruz. 36'daki kayıp beni gerçekten şaşırttı: oyunun ilk "zor" anı.
+- Yazdığım geri bildirimler: OT-rekabetci-23 (Düello tekrar puanı), -24 (4 kişilik ligde 7/5 kuralı), -25 (rakipsiz düello ne olur), -26 (Takım Ligi 53 ile bu hafta 792), -27 (Takım Ligi ödül satırı), -28 (Bölüm 36 zorluk sıçraması).
+- Yarım kalan / sonraki oturum: Bölüm 38-40 (oyunu bitirmek). 3. yıldız: 32, 35, 36, 37 ve eskiler (yüzme 26-30, 21, 22, 24, 13, 14, 16). Ödül kutusunda 18 ödül ve takımda 9 hediye alınmadı. Bayrak Yarışı 2. ayağı hâlâ gönüllü bekliyor. Düello rakipsiz bitecek mi, bakmak.
+- Sosyal: arkadaş kodum EB3UVW (KralKoklea). Takımım Ninni Tasiyicilari (üye; takım davet kodu 8XJUU4, lider KaptanTuba). Arkadaşlarım: SinanSinav (33. bölüm), KaptanTuba (26. bölüm). Bu oturumda yeni arkadaşlık ya da takım daveti gelmedi. KaptanTuba'ya yazdım: düelloda yıldızlar sayılıyor, Bayrak 2. ayak boş, ortak bir bölümde (26) yarışalım.
