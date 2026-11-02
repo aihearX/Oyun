@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import ts from 'typescript';
 import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from '@odi/content';
-import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikSecim, pratikSonraki, pratikSoru, type PratikTur } from './events/pratik';
+import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './events/pratik';
 
 const src = (p: string) => readFileSync(resolve(__dirname, p), 'utf8');
 /** bir kaynak dosyanın içe aktardığı modüller (`import type` hariç: derlemede silinir) */
@@ -62,6 +62,21 @@ describe('bilgi pratiği: tur akışı', () => {
     expect(pratikBitti(t)).toBe(true);
     expect(pratikSoru(t)).toBeNull();
     expect(pratikDogru(t)).toBe(want);
+    // sonuçtaki "Yanlışların" (YN-101): yanlış cevaplanan sorular turdaki sırasıyla, oyuncunun seçtiği şıkla
+    const y = pratikYanlislar(t);
+    expect(y).toHaveLength(QUIZ_ROUND - want);
+    expect(y.map((x) => x.soru)).toEqual(t.qs.filter((_, k) => k % 2 === 0).map((q) => QUIZ_QUESTIONS[q]));
+    for (const x of y) { expect(x.secim).not.toBe(x.soru.answer); expect(x.secim).toBe((x.soru.answer + 1) % 4); }
+  });
+
+  it('"Yeni tur" notu gerçek davranışı yazar: her tur aynı havuzdan baştan seçilir', () => {
+    expect(pratikHavuz('genel')).toBe(QUIZ_QUESTIONS.filter((q) => q.level === 'merakli').length);
+    expect(pratikHavuz('odyoloji')).toBe(QUIZ_QUESTIONS.length);
+    const s = src('events/Pratik.tsx');
+    expect(s).toContain('soruluk havuzdan yeniden rastgele {PRATIK_SORU} soru; bu turdakiler yine gelebilir.');
+    expect(s).toContain('Yanlışların');
+    expect(s).toContain('aria-label="Senin cevabın, yanlış"><Art name="cross"');
+    expect(s).toContain("'Doğru cevap'");
   });
 });
 

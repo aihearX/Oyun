@@ -3,7 +3,7 @@ import { ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { scrollAppTop } from '../ui/viewport';
-import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikSecim, pratikSonraki, pratikSoru, type PratikTur } from './pratik';
+import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
 import './events.css';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -11,7 +11,8 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 /**
  * Bilgi pratiği (YN-078): tek başına, ödülsüz, süresiz; canlı Kulak Bilgi Yarışması'nın soru havuzu. Her cevaptan sonra doğru cevap ve
  * havuzdaki kısa açıklama. Takımsız ve çevrimdışı da açılır (sorular cihazda). Ödül, takım/lig puanı, başarım ya da görev ilerlemesi yok;
- * sıralama yok. Bu ekran oyuncu kaydına ve sunucuya hiçbir şey yazmaz (pratik.test.ts).
+ * sıralama yok. Bu ekran oyuncu kaydına ve sunucuya hiçbir şey yazmaz (pratik.test.ts). Cevaptan sonra şık işaretleri renge ek olarak
+ * simge ve ekran okuyucu metniyle (YN-101); sonuçta yanlışların listesi (soru, oyuncunun cevabı, doğrusu, açıklama).
  */
 export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; onBack: () => void }) {
   const [tur, setTur] = useState<PratikTur | null>(null);
@@ -43,7 +44,10 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
             <div className="ev-choices">
               {q.choices.map((c, i) => {
                 const cls = sec == null ? '' : i === q.answer ? ' right' : i === sec ? ' wrong' : ' dim';
-                return <button key={i} className={`ev-choice${cls}`} data-testid={`pratik-secenek-${i}`} disabled={sec != null} onClick={() => setTur(pratikCevapla(tur, i))}><span className="ev-letter">{LETTERS[i]}</span><span className="grow">{c}</span>{sec != null && i === q.answer && <span><Icon name="check" size="1.1em" className="ic-inline" /></span>}</button>;
+                const isaret = sec == null ? null : i === q.answer
+                  ? <span className="pk-isaret" role="img" aria-label={i === sec ? 'Senin cevabın, doğru' : 'Doğru cevap'}><Icon name="check" size="1.1em" className="ic-inline" /></span>
+                  : i === sec ? <span className="pk-isaret" role="img" aria-label="Senin cevabın, yanlış"><Art name="cross" size="1.25em" className="art-inline" /></span> : null;
+                return <button key={i} className={`ev-choice${cls}`} data-testid={`pratik-secenek-${i}`} disabled={sec != null} onClick={() => setTur(pratikCevapla(tur, i))}><span className="ev-letter">{LETTERS[i]}</span><span className="grow">{c}</span>{isaret}</button>;
               })}
             </div>
             {sec != null && (
@@ -66,7 +70,23 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
               <button className="btn" data-testid="pratik-yeniden" onClick={() => setTur(pratikBaslat(level))}>Yeni tur</button>
               <button className="btn ghost" onClick={onBack}>Kapat</button>
             </div>
+            <span className="muted pratik-yeni-not" data-testid="pratik-yeni-not">Yeni tur: {pratikHavuz(level)} soruluk havuzdan yeniden rastgele {PRATIK_SORU} soru; bu turdakiler yine gelebilir.</span>
           </div>
+        )}
+        {tur && bitti && pratikYanlislar(tur).length > 0 && (
+          <section className="card pratik-yanlislar" data-testid="pratik-yanlislar" aria-labelledby="pratik-yanlislar-baslik">
+            <h3 id="pratik-yanlislar-baslik">Yanlışların</h3>
+            <ol>
+              {pratikYanlislar(tur).map(({ soru, secim }) => (
+                <li key={soru.id} data-soru={soru.id}>
+                  <b>{soru.text}</b>
+                  <span className="pk-satir"><Art name="cross" size="1.15em" className="art-inline" /> Senin cevabın: {LETTERS[secim]}) {soru.choices[secim]}</span>
+                  <span className="pk-satir"><Icon name="check" size="1.1em" className="ic-inline pk-dogru" /> Doğru cevap: {LETTERS[soru.answer]}) {soru.choices[soru.answer]}</span>
+                  <span className="pk-aciklama">{soru.explain}</span>
+                </li>
+              ))}
+            </ol>
+          </section>
         )}
         <div className="card muted small-note" data-testid="pratik-not">Pratik: ödül yok, takım puanına ve lige sayılmaz. Ödüller canlı Kulak Bilgi Yarışması'nda (takımla, her gün 13:00 ve 20:00).</div>
       </div>

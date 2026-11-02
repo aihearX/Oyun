@@ -39,3 +39,10 @@ export function pratikSonraki(t: PratikTur): PratikTur {
 }
 
 export const pratikDogru = (t: PratikTur): number => t.qs.reduce((a, q, k) => a + (t.picks[k] === QUIZ_QUESTIONS[q]!.answer ? 1 : 0), 0);
+
+/** sonuç ekranındaki "Yanlışların" (YN-101): yanlış cevaplanan her soru ve oyuncunun seçtiği şık, turdaki sırasıyla */
+export const pratikYanlislar = (t: PratikTur): { soru: QuizQuestion; secim: number }[] =>
+  t.qs.flatMap((q, k) => { const s = t.picks[k]; const soru = QUIZ_QUESTIONS[q]!; return s != null && s !== soru.answer ? [{ soru, secim: s }] : []; });
+
+/** "Yeni tur" notu için havuz büyüklüğü: her tur bu havuzdan baştan seçilir (önceki tur hatırlanmaz, aynı soru yine gelebilir) */
+export const pratikHavuz = (level: 'genel' | 'odyoloji'): number => QUIZ_QUESTIONS.filter((q) => level === 'odyoloji' || q.level === 'merakli').length;

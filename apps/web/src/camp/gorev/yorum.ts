@@ -2,7 +2,7 @@
  * Test sonuçlarının ekran metni: "genel" düzeyde sade yorum (ne gördüğünü söyler), "odyoloji" düzeyinde sayılar ve teknik ad
  * (yorumu öğrenciye bırakır). Tanıyı söylemez; tanıyı oyuncu seçer.
  */
-import { bolunmez, derece, gaps, hacimSinifi, isYok, kayipTipi, pta3, type Abr, type BilgiDuzeyi, type Ear, type Islem, type Oae, type Odyogram, type Otoskopi, type Refleks, type Timp, type Vaka } from '@odi/content';
+import { AC_HZ, bolunmez, derece, gaps, hacimSinifi, isYok, kayipTipi, pta3, type Abr, type BilgiDuzeyi, type Ear, type Islem, type Oae, type Odyogram, type Otoskopi, type Refleks, type Timp, type Vaka } from '@odi/content';
 
 export const KULAK: Record<Ear, string> = { R: 'Sağ', L: 'Sol' };
 const n1 = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -37,16 +37,40 @@ function inenEgri(ac: number[]): { alcak: number; yuksek: number } | null {
   return { alcak: ort([ac[0]!, ac[1]!, ac[2]!]), yuksek };
 }
 
+/**
+ * En kötü yüksek frekans bölgesi (YN-101): saf ses ortalaması 2–8 kHz'teki dar bir düşüşü (ör. 4 kHz çentiği) göstermez. 2–8 kHz'te
+ * en kötü eşik ortalamadan en az 20 dB kötüyse, o frekansla birlikte ortalamadan 20 dB ve daha kötü olan bitişik frekanslar bölgedir.
+ * Bölgenin derecesi bölgedeki eşiklerin ORTALAMASINDAN hesaplanır (derece(), Clark 1981 / ASHA); en kötü frekans ayrıca söylenir.
+ * 8 kHz'te en kötü eşikten en az 10 dB düzelme varsa "çentik" denir: eğrinin biçimidir, tanı adı değildir (tanıyı oyuncu seçer).
+ * Tize doğru inen eğri (inenEgri) önce gelir; bu bölge yalnız inen sayılmayan eğride söylenir.
+ */
+function kotuBolge(ac: number[]): { lo: number; hi: number; enKotu: number; ort: number; centik: boolean } | null {
+  const esik = pta3(ac) + 20;
+  let w = 3; for (let i = 4; i <= 7; i++) if (ac[i]! > ac[w]!) w = i;
+  if (ac[w]! < esik) return null;
+  let lo = w; let hi = w;
+  while (lo > 3 && ac[lo - 1]! >= esik) lo--;
+  while (hi < 7 && ac[hi + 1]! >= esik) hi++;
+  return { lo, hi, enKotu: w, ort: ort(ac.slice(lo, hi + 1)), centik: w < 7 && ac[7]! <= ac[w]! - 10 };
+}
+const kHz = (i: number) => AC_HZ[i]! / 1000;
+
 export function odyoSatir(o: Odyogram, e: Ear, duzey: BilgiDuzeyi): string {
-  const p = pta3(o.ac[e]); const k = kayipTipi(o, e); const inen = k === 'normal' ? null : inenEgri(o.ac[e]);
+  const ac = o.ac[e]; const p = pta3(ac); const k = kayipTipi(o, e); const inen = k === 'normal' ? null : inenEgri(ac);
+  const b = k === 'normal' || inen ? null : kotuBolge(ac);
   if (duzey === 'genel') {
     if (k === 'normal') return `${KULAK[e]}: işitme normal sınırda`;
     if (inen) return `${KULAK[e]}: yüksek frekanslara doğru inen kayıp: alçak frekanslarda ${derece(inen.alcak)}, 4–8 kHz’te ${derece(inen.yuksek)}; ${KAYIP_SADE[k]}`;
+    if (b) {
+      const yer = b.lo === b.hi ? `${kHz(b.lo)} kHz’te` : `${kHz(b.lo)}–${kHz(b.hi)} kHz’te`;
+      return `${KULAK[e]}: konuşma frekanslarında ${derece(p)}; ${yer} ${derece(b.ort)} kayıp${b.lo === b.hi ? '' : `, en kötüsü ${kHz(b.enKotu)} kHz’te`}${b.centik ? ' (çentik)' : ''}; ${KAYIP_SADE[k]}`;
+    }
     return `${KULAK[e]}: ${derece(p)} kayıp, ${KAYIP_SADE[k]}`;
   }
   const g = gaps(o, e).filter((x): x is number => x !== null);
   const lo = Math.max(0, Math.min(...g)); const hi = Math.max(0, ...g);
-  return `${KULAK[e]}: saf ses ortalaması ${n1(p)} dB HL${inen ? ` · yüksek frekans ortalaması (4–8 kHz) ${n1(inen.yuksek)} dB HL` : ''} · hava–kemik aralığı ${lo === hi ? lo : `${lo}–${hi}`} dB`;
+  const bs = b ? ` · en kötü eşik ${kHz(b.enKotu)} kHz’te ${ac[b.enKotu]} dB HL${b.centik ? `, 8 kHz’te ${ac[7]} dB HL (çentik)` : ''}` : '';
+  return `${KULAK[e]}: saf ses ortalaması ${n1(p)} dB HL${inen ? ` · yüksek frekans ortalaması (4–8 kHz) ${n1(inen.yuksek)} dB HL` : ''}${bs} · hava–kemik aralığı ${lo === hi ? lo : `${lo}–${hi}`} dB`;
 }
 export function timpSatir(t: Timp | null, e: Ear, duzey: BilgiDuzeyi, grup: Vaka['hasta']['grup']): string {
   if (!t) return `${KULAK[e]}: ölçülmedi`;

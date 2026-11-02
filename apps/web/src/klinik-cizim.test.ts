@@ -85,6 +85,22 @@ describe('Klinik odyogram ve bulgu metinleri (YN-090)', () => {
     expect(tek(odyoSatir(odyOf('kv05'), 'R', 'genel'))).not.toContain('inen'); // gürültü çentiği: 8 kHz’te düzelme
     expect(tek(odyoSatir(odyOf('kv11'), 'R', 'genel'))).toBe('Sağ: hafif kayıp, orta kulak/kanal kaynaklı (kemik yolu iyi)');
   });
+  it('çentikli eğride sade satır konuşma frekanslarının derecesinin yanında en kötü bölgeyi ve derecesini söyler (YN-101)', () => {
+    // İsmail: 250–2000 Hz 10–25, 3 kHz 45, 4 kHz 55, 6 kHz 45, 8 kHz 30 dB HL; bölge ortalaması 48,3 → orta
+    expect(tek(odyoSatir(odyOf('kv05'), 'R', 'genel'))).toBe('Sağ: konuşma frekanslarında çok hafif; 3–6 kHz’te orta kayıp, en kötüsü 4 kHz’te (çentik); iç kulak kaynaklı (hava ve kemik yolu birlikte düşük)');
+    expect(tek(odyoSatir(odyOf('kv05'), 'L', 'odyoloji'))).toBe('Sol: saf ses ortalaması 18,3 dB HL · en kötü eşik 4 kHz’te 60 dB HL, 8 kHz’te 35 dB HL (çentik) · hava–kemik aralığı 0–5 dB');
+    // sonuç ekranındaki "İstediğin testler" aynı satırı kullanır
+    expect(tek(testSatirlari(vakaById('kv05')!, 'odyometri', 'genel')[0]!)).toBe(tek(odyoSatir(odyOf('kv05'), 'R', 'genel')));
+    expect(tek(odyoSatir(odyOf('kv31'), 'L', 'genel'))).toContain('3–6 kHz’te orta-ileri kayıp, en kötüsü 4 kHz’te (çentik)');
+    // düz eğride bölge yok; ortalama 20 dB'den az aşılırsa satır değişmez
+    expect(tek(odyoSatir(odyOf('kv20'), 'R', 'genel'))).toBe('Sağ: orta-ileri kayıp, iç kulak kaynaklı (hava ve kemik yolu birlikte düşük)');
+    // sade satır tanı adı söylemez ("işitme normal" tanısı değil, normal eşiklerin sade adı hariç)
+    const adlar = TANILAR.flatMap((t) => [t.sade, t.teknik]).map((a) => a.toLocaleLowerCase('tr-TR')).filter((a) => !a.includes('normal'));
+    for (const v of VAKALAR) {
+      if (isYok(v.testler.odyometri)) continue;
+      for (const l of testSatirlari(v, 'odyometri', 'genel')) for (const a of adlar) expect(l.toLocaleLowerCase('tr-TR'), `${v.id}: "${a}"`).not.toContain(a);
+    }
+  });
   it('konuşma satırı dB HL birimini ve tanımanın rahat duyulan seste ölçüldüğünü söyler', () => {
     const nuri = vakaById('kv06')!;
     expect(tek(testSatirlari(nuri, 'konusma', 'genel')[0]!)).toBe('Sağ: konuşmayı 30 dB HL’de algılamaya başlıyor; rahat duyduğu seste kelimelerin %76’sını doğru tekrarlıyor');
