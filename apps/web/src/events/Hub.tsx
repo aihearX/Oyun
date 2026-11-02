@@ -51,7 +51,7 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
     team.push(
       <EvCard key="ralli" kind="ralli" live={r ? 'CANLI' : null} onOpen={() => open('ralli')}
         clock={r ? <Countdown to={r.endsAt} urgentMs={120_000} /> : <span className="ev-note">Bugün {s.rallyStartsLeft} ralli hakkı</span>}
-        cta={r ? (rJoined ? (r.participants.length >= 2 ? '⚔️ Saldır' : 'Takım bekleniyor…') : '🔥 Katıl') : '🔥 Ralli başlat'}>
+        cta={r ? (rJoined ? (r.participants.length >= 2 ? '⚔️ Saldır' : 'Takım bekleniyor…') : r.attackStarted ? 'Saldırıyı izle' : '🔥 Katıl') : '🔥 Ralli başlat'}>
         {r && rMon ? (
           <div className="ev-rally-mini">
             <span className="ev-mon-s" aria-hidden><MonsterArt id={rMon.id} size={44} /></span>

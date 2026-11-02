@@ -205,11 +205,11 @@ try {
   await openEvents(A, 'ralli');
   await tid(A, 'ralli-secim').waitFor();
   await shot(A, 'ralli-canavar-secimi');
-  // dürüst bilgi (YN-116): her kartta bugünkü candan "yenmek için en az N kişi"; Yankı Hayaleti 2 üyede 440 can → 1 kişinin hakları (2 kişiyle açılır)
-  check(/Yenmek için/.test(await tid(A, 'ralli-gerekli-yanki-hayaleti').innerText()), 'ralli: canavar kartında "Yenmek için …" bilgisi');
+  // dürüst bilgi (YN-116, karar 43 / YN-117): can katılımcıya göre; kartta 2 kişiyle can ve kişi başı ortalama hasar (Yankı Hayaleti 2 kişiyle 440)
+  check(/Can katılımcıya göre: 2 kişiyle 440/.test(await tid(A, 'ralli-gerekli-yanki-hayaleti').innerText()), 'ralli: canavar kartında "Can katılımcıya göre: 2 kişiyle 440" bilgisi');
   await tid(A, 'ralli-baslat-serumen-yavrusu').click();
   await tid(A, 'ralli-onay').waitFor();
-  check(/Yenmek için/.test(await tid(A, 'ralli-onay-gerekli').innerText()), 'ralli: başlatma onayında "Yenmek için …" bilgisi');
+  check(/Can katılımcıya göre: 2 kişiyle 200/.test(await tid(A, 'ralli-onay-gerekli').innerText()), 'ralli: başlatma onayında katılımcıya göre can bilgisi');
   await shot(A, 'ralli-baslatma-onayi');
   await tid(A, 'ralli-onay-baslat').click();
   await tid(A, 'ralli-oda').waitFor();
@@ -220,6 +220,9 @@ try {
   await tid(B, 'ralli-katil').click();
   await tid(B, 'ralli-saldir').waitFor();
   await tid(A, 'ralli-saldir').waitFor();
+  // can katılımcıya göre (YN-117): 2 katılımcıyla Serumen Yavrusu 200, ilk vuruşa dek "şu an 2 katılımcıya göre"
+  await A.page.locator('[data-testid="ralli-oda"][data-hp="200"]').waitFor({ timeout: 10_000 });
+  check(/şu an 2 katılımcıya göre/.test(await tid(A, 'ralli-can-temel').innerText()), 'ralli: can 2 katılımcıya göre (200) ve ilk vuruşta sabitleneceği yazıyor');
   await shot(A, 'ralli-odasi');
   const rallyRuns = [];
   for (let round = 0; round < 3; round++) {

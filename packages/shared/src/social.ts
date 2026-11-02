@@ -570,7 +570,7 @@ export interface RallyMonsterDef {
   id: RallyMonsterId; name: string; emoji: string; desc: string;
   /** ralli bölümü: generateLevel('insan', level, DEFAULT_PROFILE, rally.salt) */
   level: number;
-  /** can = hpBase + hpPerMember × üye sayısı (ralli başlarken sabitlenir) */
+  /** can = hpBase + hpPerMember × katılımcı sayısı; saldırı başlayınca (ilk vuruş) sabitlenir (sahip kararı 43, YN-117) */
   hpBase: number; hpPerMember: number;
   /** kazanılınca katılan herkese (ödül kutusu) */
   reward: EventReward[];
@@ -588,23 +588,23 @@ export const RALLY_MONSTERS: RallyMonsterDef[] = [
 export const RALLY_RULES = { durationMs: 10 * 60_000, minPlayers: 2, triesPerPlayer: 3, startsPerTeamDay: 6, rewardsPerPlayerDay: 5, duelPoints: 60 } as const;
 /** ralli hasarı: tamamlanırsa 60 + 30 × yıldız, tamamlanmazsa 15 (şeffaf) */
 export function rallyDamageFor(r: { completed: boolean; stars: number }): number { return r.completed ? 60 + 30 * Math.max(0, Math.min(3, r.stars)) : 15; }
-export function rallyMaxHp(m: Pick<RallyMonsterDef, 'hpBase' | 'hpPerMember'>, members: number): number { return m.hpBase + m.hpPerMember * Math.max(1, members); }
+/**
+ * Ralli canı katılımcı sayısına göre (sahip kararı 43, YN-117): hpBase + hpPerMember × katılımcı.
+ * Saldırı başlayana (ilk vuruş) dek her katılımla yeniden hesaplanır; ilk vuruşta sabitlenir ve yeni katılım kapanır,
+ * böylece can her zaman ödül alacak kişi sayısına göredir (geç katılanla kolaylaşmaz).
+ */
+export function rallyMaxHp(m: Pick<RallyMonsterDef, 'hpBase' | 'hpPerMember'>, participants: number): number { return m.hpBase + m.hpPerMember * Math.max(1, participants); }
 /** bir koşunun en çok hasarı (3 yıldızla bitiriş) */
 export const RALLY_MAX_HIT = rallyDamageFor({ completed: true, stars: 3 });
 /** bir katılımcının bütün haklarıyla en çok hasarı */
 export const RALLY_MAX_PER_PLAYER = RALLY_RULES.triesPerPlayer * RALLY_MAX_HIT;
-/**
- * Dürüst bilgi (YN-116; can formülü sahip kararı 43'ü bekliyor): bu canı bitirmek için en az kaç katılımcının bütün hakları gerekir.
- * Herkes her koşuyu 3 yıldızla bitirse bile bundan azı yetmez.
- */
-export function rallyPlayersNeeded(hp: number): number { return Math.ceil(Math.max(0, hp) / RALLY_MAX_PER_PLAYER); }
+/** n katılımcıyla kişi başına düşen ortalama hasar (yukarı yuvarlı); RALLY_MAX_PER_PLAYER'ı aşmaz (denge testi: ralli.test.ts) */
+export function rallyPerPlayerNeed(m: Pick<RallyMonsterDef, 'hpBase' | 'hpPerMember'>, participants: number): number {
+  const n = Math.max(1, participants); return Math.ceil(rallyMaxHp(m, n) / n);
+}
 /** açık rallide şu anki katılımcıların kalan haklarıyla verebileceği en çok hasar */
 export function rallyReachable(participants: readonly { tries: number }[]): number {
   return participants.reduce((a, p) => a + Math.max(0, RALLY_RULES.triesPerPlayer - p.tries) * RALLY_MAX_HIT, 0);
-}
-/** kalan can, katılımcıların kalan haklarıyla bitirilemiyorsa en az kaç kişi daha katılmalı (yetiyorsa 0) */
-export function rallyMorePlayersNeeded(hp: number, participants: readonly { tries: number }[]): number {
-  return rallyPlayersNeeded(Math.max(0, hp - rallyReachable(participants)));
 }
 /** silinmiş hesabın adı (DELETED_PLAYER_NAME) ralli ekranında ve kartlarında böyle görünür; sunucu verisi değişmez (YN-116) */
 export const LEFT_PLAYER_LABEL = 'Ayrılan bir oyuncu';
@@ -615,6 +615,10 @@ export interface RallyHit { id: string; name: string; damage: number; stars: num
 export interface RallyState {
   id: string; teamId: string; monster: RallyMonsterId; salt: number; starterId: string; starterName: string;
   status: RallyStatus; hp: number; maxHp: number; startsAt: number; endsAt: number; wonAt: number | null;
+  /** canın dayandığı katılımcı sayısı (maxHp = rallyMaxHp(canavar, hpPlayers)) */
+  hpPlayers: number;
+  /** ilk vuruş yapıldı: can sabit, yeni katılım kapalı (YN-117) */
+  attackStarted: boolean;
   participants: RallyParticipant[]; hits: RallyHit[];
 }
 

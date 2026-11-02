@@ -21,7 +21,8 @@ describe('Ralli', () => {
     const xp0 = (await a.c.call('team.extra', {})).extra.xp;
     const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
     const def = RALLY_MONSTERS[0]!;
-    expect(rally).toMatchObject({ status: 'acik', hp: rallyMaxHp(def, 2), maxHp: 200, monster: 'serumen-yavrusu' });
+    // can katılımcıya göre (YN-117): başlatan tek başına 80 + 60 × 1; ikinci katılımcıyla 200
+    expect(rally).toMatchObject({ status: 'acik', hp: rallyMaxHp(def, 1), maxHp: 140, hpPlayers: 1, attackStarted: false, monster: 'serumen-yavrusu' });
     expect(rally.endsAt - rally.startsAt).toBe(10 * MIN);
     const notice = await b.wait('events.notice', (n) => n.notice.kind === 'ralli');
     expect(notice.notice.title).toBe('Ayşe ralli başlattı!');
@@ -35,7 +36,7 @@ describe('Ralli', () => {
     // tek katılımcıyla saldırı yok
     expect((await err(a.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('SART');
     expect((await err(b.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('YETKI');
-    await b.c.call('rally.join', { rallyId: rally.id });
+    expect((await b.c.call('rally.join', { rallyId: rally.id })).rally).toMatchObject({ hp: rallyMaxHp(def, 2), maxHp: 200, hpPlayers: 2, attackStarted: false });
     const r1 = erun({ stars: 2 });
     const h1 = await a.c.call('rally.hit', { rallyId: rally.id, ...r1 });
     expect(h1.damage).toBe(rallyDamageFor({ completed: true, stars: 2 }));
@@ -102,6 +103,41 @@ describe('Ralli', () => {
     // başka takımın oyuncusu kimliği bilse de göremez; bilinmeyen kimlik null
     expect((await other.c.call('rally.state', { rallyId: r1.id })).rally).toBeNull();
     expect((await b.c.call('rally.state', { rallyId: 'yokboyle' })).rally).toBeNull();
+  });
+
+  it('can katılımcı sayısıyla: takım büyüklüğü değil; her katılımla artar, ilk vuruşta sabitlenir, sonra katılım kapalı; en az 2 kişi kuralı aynı (YN-117, karar 43)', async () => {
+    env = await setup();
+    const [a, b, teamId] = await team2(env, ['Ayşe', 'Bora'], 'Kalabalık Takım');
+    const c = await connectW(env, 'Cem'); const d = await connectW(env, 'Deniz'); const e = await connectW(env, 'Ece');
+    for (const x of [c, d, e]) await x.c.call('team.join', { teamId });
+    const def = RALLY_MONSTERS.find((m) => m.id === 'yanki-hayaleti')!;
+    const { rally } = await a.c.call('rally.start', { monster: 'yanki-hayaleti' });
+    // 5 üyeli takım, ama can başlatanın tek katılımına göre (eski kural 200 + 120 × 5 = 800 olurdu)
+    expect(rally).toMatchObject({ hp: 320, maxHp: 320, hpPlayers: 1, attackStarted: false });
+    // en az 2 kişi kuralı değişmedi: tek katılımcıyla saldırı yok
+    expect((await err(a.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('SART');
+    expect((await b.c.call('rally.join', { rallyId: rally.id })).rally).toMatchObject({ hp: 440, maxHp: 440, hpPlayers: 2 });
+    expect((await c.c.call('rally.join', { rallyId: rally.id })).rally).toMatchObject({ hp: rallyMaxHp(def, 3), maxHp: 560, hpPlayers: 3, attackStarted: false });
+    // aynı kişi ikinci kez katılınca can değişmez
+    expect((await c.c.call('rally.join', { rallyId: rally.id })).rally).toMatchObject({ maxHp: 560, hpPlayers: 3 });
+    // ilk vuruş saldırıyı başlatır: can 3 katılımcıya göre sabit
+    const h = await b.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 1 }) });
+    expect(h.rally).toMatchObject({ hp: 560 - 90, maxHp: 560, hpPlayers: 3, attackStarted: true });
+    // geç katılan: katılım kapalı, can değişmez
+    const late = await err(d.c.call('rally.join', { rallyId: rally.id }));
+    expect(late.code).toBe('BASLADI');
+    expect(late.message).toContain('artık katılınamaz');
+    expect((await err(d.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('YETKI');
+    const st = (await e.c.call('rally.state', {})).rally!;
+    expect(st).toMatchObject({ hp: 470, maxHp: 560, hpPlayers: 3, attackStarted: true });
+    expect(st.participants.map((p) => p.name)).toEqual(['Ayşe', 'Bora', 'Cem']);
+    // 3 kişi tam güçle yenebilir: kalan 470, 8 vuruş × 150 erişilebilir; 4 vuruşta biter
+    for (const x of [a, c, a, c]) { const r = await x.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) }); if (r.rally.status === 'kazanildi') break; }
+    const won = (await a.c.call('rally.state', {})).rally!;
+    expect(won).toMatchObject({ status: 'kazanildi', hp: 0, maxHp: 560, hpPlayers: 3 });
+    // ödül yalnız 3 katılımcıya
+    for (const x of [a, b, c]) expect((await x.c.call('inbox.list', {})).items.some((i) => i.reason.startsWith('Ralli kazanıldı'))).toBe(true);
+    for (const x of [d, e]) expect((await x.c.call('inbox.list', {})).items.some((i) => i.reason.startsWith('Ralli kazanıldı'))).toBe(false);
   });
 
   it('kimse katılmadan süresi dolan ralli günlük hakka sayılmaz; sohbet "hakkınız geri verildi" der (OT-takim-kaptani-13)', async () => {

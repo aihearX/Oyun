@@ -74,7 +74,7 @@ export function pendingCount(s: EventsStore, meId: string | null): number {
   if (!meId) return 0;
   const now = srvNow();
   let n = 0;
-  if (s.rally?.status === 'acik' && s.rally.endsAt > now) { const me = s.rally.participants.find((p) => p.id === meId); if (!me || (me.tries < 3 && s.rally.participants.length >= 2)) n++; }
+  if (s.rally?.status === 'acik' && s.rally.endsAt > now) { const me = s.rally.participants.find((p) => p.id === meId); if (me ? me.tries < 3 && s.rally.participants.length >= 2 : !s.rally.attackStarted) n++; /* saldırı başlayınca katılım kapalı (YN-117) */ }
   if (s.relay && s.relay.current < 4 && (s.relay.carrier?.id === meId || (!s.relay.carrier && s.relay.lastRunner?.id !== meId))) n++;
   if (s.quiz && s.quiz.phase !== 'bitti' && !s.quiz.players.some((p) => p.id === meId)) n++;
   if (s.challenge && s.challenge.tries < s.challenge.maxTries && s.challenge.tries === 0) n++;

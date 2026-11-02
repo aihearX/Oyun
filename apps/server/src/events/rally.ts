@@ -5,7 +5,7 @@ import { systemMessage, teamRoom } from '../chat';
 import { addTeamXp, broadcastExtra } from '../teamextra';
 import { requireTeam } from '../teams';
 import { dayKey } from '../time';
-import { checkRun, giveRewards, memberCount, notify } from './common';
+import { checkRun, giveRewards, notify } from './common';
 import { addDuelPoints } from './duel';
 import { questProgress } from './quests';
 
@@ -14,6 +14,9 @@ interface RallyRow { id: string; team_id: string; monster: string; salt: number;
 const SHOW_DONE_MS = 30 * 60_000;
 const monsterDef = (id: string) => RALLY_MONSTERS.find((m) => m.id === id)!;
 const rowById = (app: App, id: string) => app.db.get<RallyRow>('SELECT * FROM ev_rally WHERE id = ?', id) ?? null;
+const partCount = (app: App, rallyId: string) => app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM ev_rally_part WHERE rally_id = ?', rallyId)!.n;
+/** saldırı başladı mı: ilk vuruştan sonra can sabittir, yeni katılım kapalıdır (YN-117) */
+const attackStarted = (app: App, rallyId: string) => !!app.db.get('SELECT 1 AS x FROM ev_rally_hit WHERE rally_id = ? LIMIT 1', rallyId);
 
 function view(app: App, r: RallyRow): RallyState {
   const participants: RallyParticipant[] = app.db.all<{ id: string; name: string; color: number; hat: string; damage: number; tries: number; joined_at: number }>(
@@ -23,7 +26,9 @@ function view(app: App, r: RallyRow): RallyState {
     'SELECT p.id, p.name, h.damage, h.stars, h.completed, h.at FROM ev_rally_hit h JOIN players p ON p.id = h.player_id WHERE h.rally_id = ? ORDER BY h.at DESC, h.rowid DESC LIMIT 20', r.id)
     .map((h) => ({ id: h.id, name: h.name, damage: h.damage, stars: h.stars, completed: !!h.completed, at: h.at }));
   return { id: r.id, teamId: r.team_id, monster: r.monster as RallyState['monster'], salt: r.salt, starterId: r.starter, starterName: r.starter_name, status: r.status as RallyState['status'],
-    hp: r.hp, maxHp: r.max_hp, startsAt: r.starts_at, endsAt: r.ends_at, wonAt: r.won_at, participants, hits };
+    hp: r.hp, maxHp: r.max_hp, startsAt: r.starts_at, endsAt: r.ends_at, wonAt: r.won_at,
+    // katılım saldırı başlayınca kapandığı için canın dayandığı sayı katılımcı sayısıdır (YN-117)
+    hpPlayers: participants.length, attackStarted: attackStarted(app, r.id), participants, hits };
 }
 
 function broadcast(app: App, r: RallyRow): void {
@@ -117,7 +122,8 @@ export const rallyHandlers: Handlers = {
     if (app.db.get("SELECT 1 AS x FROM ev_rally WHERE team_id = ? AND status = 'acik'", t.id)) fail('MESGUL', 'Takımında zaten açık bir ralli var; ona katıl!');
     if (rallyStartsLeft(app, t.id) <= 0) fail('LIMIT', `Takım günde en çok ${RALLY_RULES.startsPerTeamDay} ralli başlatabilir. Yarın yeniden!`);
     const now = app.now();
-    const hp = rallyMaxHp(def, memberCount(app, t.id));
+    // can katılımcı sayısına göre (karar 43, YN-117): başlatan tek başına; her katılımla saldırı başlayana dek yeniden hesaplanır
+    const hp = rallyMaxHp(def, 1);
     const id = rid('y');
     app.db.run('INSERT INTO ev_rally(id, team_id, monster, salt, starter, starter_name, status, hp, max_hp, starts_at, ends_at, day) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       id, t.id, def.id, randomInt(1, 1000), p.id, p.name, 'acik', hp, hp, now, now + RALLY_RULES.durationMs, dayKey(now));
@@ -131,13 +137,18 @@ export const rallyHandlers: Handlers = {
   },
   'rally.join': (app, s, { rallyId }) => {
     const { p, t } = requireTeam(app, s.pid);
-    const r = openRally(app, rallyId, t.id);
-    const n = app.db.run('INSERT OR IGNORE INTO ev_rally_part(rally_id, player_id, joined_at) VALUES(?, ?, ?)', r.id, p.id, app.now());
-    if (n) {
-      const count = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM ev_rally_part WHERE rally_id = ?', r.id)!.n;
-      if (count === RALLY_RULES.minPlayers) notify(app, app.teamMemberIds(t.id), { kind: 'ralli', icon: '⚔️', title: 'Ralli hazır!', text: `${p.name} katıldı — saldırı başlayabilir!`, target: 'ralli', ref: r.id });
-      broadcast(app, r);
-    }
+    let r = openRally(app, rallyId, t.id);
+    const already = !!app.db.get('SELECT 1 AS x FROM ev_rally_part WHERE rally_id = ? AND player_id = ?', r.id, p.id);
+    if (already) return { rally: view(app, r) };
+    // can ilk vuruşta sabitlendi: geç katılan canı değiştirmez ve ödüle ortak olmaz; bu yüzden katılım kapalı (YN-117)
+    if (attackStarted(app, r.id)) fail('BASLADI', 'Saldırı başladı; can katılımcı sayısıyla sabitlendi, bu ralliye artık katılınamaz. Bir sonraki ralliye katıl!');
+    app.db.run('INSERT INTO ev_rally_part(rally_id, player_id, joined_at) VALUES(?, ?, ?)', r.id, p.id, app.now());
+    const count = partCount(app, r.id);
+    const hp = rallyMaxHp(monsterDef(r.monster), count);
+    app.db.run('UPDATE ev_rally SET hp = ?, max_hp = ? WHERE id = ?', hp, hp, r.id);
+    r = rowById(app, r.id)!;
+    if (count === RALLY_RULES.minPlayers) notify(app, app.teamMemberIds(t.id), { kind: 'ralli', icon: '⚔️', title: 'Ralli hazır!', text: `${p.name} katıldı — saldırı başlayabilir!`, target: 'ralli', ref: r.id });
+    broadcast(app, r);
     return { rally: view(app, r) };
   },
   'rally.hit': (app, s, d) => {
@@ -148,7 +159,7 @@ export const rallyHandlers: Handlers = {
     const r = openRally(app, d.rallyId, t.id);
     const part = app.db.get<{ tries: number }>('SELECT tries FROM ev_rally_part WHERE rally_id = ? AND player_id = ?', r.id, p.id);
     if (!part) return fail('YETKI', 'Önce ralliye katılmalısın.');
-    const count = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM ev_rally_part WHERE rally_id = ?', r.id)!.n;
+    const count = partCount(app, r.id);
     if (count < RALLY_RULES.minPlayers) fail('SART', `Saldırı için en az ${RALLY_RULES.minPlayers} katılımcı gerekli; takım arkadaşlarını bekle.`);
     if (part.tries >= RALLY_RULES.triesPerPlayer) fail('LIMIT', `Bu ralli için ${RALLY_RULES.triesPerPlayer} deneme hakkını kullandın.`);
     const damage = Math.min(rallyDamageFor(d), r.hp);
