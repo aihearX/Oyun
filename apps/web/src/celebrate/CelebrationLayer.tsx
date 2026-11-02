@@ -144,16 +144,18 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
 
   const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string }) => {
     const unlocks = o.unlocks ?? [];
+    // başlık ve rozet yazısı (ör. "Kamp Seviyesi 5!") her evrede korunur; yalnız ilk evrede değil (OT-ekonomi-denetci-27)
+    const base = { kind: 'levelUp' as const, level: o.level, unlocks, title: o.title, kicker: o.kicker };
     audio.duck('kutlama', 3, 0.3);
-    setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'burst', shown: 0, title: o.title, kicker: o.kicker });
+    setScene({ ...base, phase: 'burst', shown: 0 });
     audio.play('levelUp'); platform().haptic('success');
     const cx = window.innerWidth / 2, cy = window.innerHeight * 0.38;
     P()?.ring(cx, cy, '#ffc93c', 40); P()?.confetti(cx, cy, 120, 1.2); setTimeout(() => P()?.rain(60), 300);
     await wait(1100);
-    for (let k = 1; k <= unlocks.length; k++) { setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'list', shown: k }); audio.play('unlock', { semitones: (k - 1) * 2, vol: 0.8 }); await wait(380); }
-    setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'list', shown: unlocks.length });
+    for (let k = 1; k <= unlocks.length; k++) { setScene({ ...base, phase: 'list', shown: k }); audio.play('unlock', { semitones: (k - 1) * 2, vol: 0.8 }); await wait(380); }
+    setScene({ ...base, phase: 'list', shown: unlocks.length });
     await waitTap();
-    setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'out', shown: unlocks.length }); await sleep(reduced.current ? 0 : 220);
+    setScene({ ...base, phase: 'out', shown: unlocks.length }); await sleep(reduced.current ? 0 : 220);
   };
 
   const runBiome = async (o: { biome: string; name: string; reward?: RewardItem[] }) => {

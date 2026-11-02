@@ -26,7 +26,10 @@ import { KULAK, testSatirlari } from './yorum';
 export const KLINIK_NOT = 'Vakalar kurgusaldır ve eğitim içindir; gerçek kişiler değildir ve tıbbi öneri değildir. Gerçek hayatta tanı ve tedaviyi hekim ve odyolog birlikte koyar.';
 const terimOf = (id: string) => GLOSSARY.find((g) => g.id === id) ?? CAMP_TERMS.find((t) => t.id === id);
 
-/** koyu cam alt sayfa (bina paneliyle aynı görünüm) */
+/**
+ * koyu cam alt sayfa (bina paneliyle aynı görünüm). Kökün (#root) en üstüne taşınır: kamp sahnesinin ve sekme çubuğunun üstünde,
+ * kutlama katmanının (sandık, seviye) altında kalır; ödül sandığı sayfanın arkasında açılmaz (OT-ekonomi-denetci-26)
+ */
 export function KgSheet({ title, icon, onClose, children, testid, wide }: { title: string; icon?: ReactNode; onClose: () => void; children: ReactNode; testid: string; wide?: boolean }) {
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, [onClose]);
   return createPortal(
@@ -37,7 +40,7 @@ export function KgSheet({ title, icon, onClose, children, testid, wide }: { titl
         {children}
       </div>
     </div>,
-    document.body,
+    document.getElementById('root') ?? document.body,
   );
 }
 

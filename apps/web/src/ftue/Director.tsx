@@ -106,8 +106,20 @@ function onScreen(v: Element | DOMRect | null): boolean {
 }
 /** Hasta Vakaları'nın gerçek girişi: kamp üst göstergesindeki Klinik düğmesi (yoksa liste görünümündeki klinik kartının girişi) */
 const klinikGiris = (): Element | null => document.querySelector('[data-testid="klinik-btn"]') ?? document.querySelector('[data-testid="klinik-vaka-giris"]');
+/**
+ * Üs görünümünde kamera yalnız binanın çerçevesi üst gösterge ile alt kartların arasında değilse kayar (OT-ilk-kez-oyun-33): bina
+ * zaten görünüyorsa halka hemen oturur; kayan kamerayı bekleyen (yavaş telefonda saniyeler süren) boş ekran olmaz
+ */
+function focusIfHidden(id: BuildingId): void {
+  const b = kamp()?.box?.(id);
+  const top = document.querySelector('.camp-base .camp-top')?.getBoundingClientRect().bottom ?? 120;
+  const bottom = document.querySelector('.camp-base .camp-bottom')?.getBoundingClientRect().top ?? innerHeight - 200;
+  if (b && b.y >= top && b.y + b.h <= bottom) return;
+  kamp()?.focus?.(id);
+}
 
-export function tourFor(id: string, route: string): Tour | null {
+/** goster: oyuncu tanıtımı kendisi istedi (kamp kartındaki "Göster"); gösterilecek yer ekranda değilse sayfa ona kayar */
+export function tourFor(id: string, route: string, goster = false): Tour | null {
   const steps: CoachStep[] = [];
   switch (id) {
     case 'result1':
@@ -252,10 +264,11 @@ export function tourFor(id: string, route: string): Tour | null {
         { ...line('kg-vaka-02'), target: klinikGiris, optional: true },
       ); break;
     // klinik kurulmamışken tanıtım yerine yazı (seslendirilmez): çerçeve klinik kartında (OT-sessiz-oyuncu-9). Dokunuş çerçevenin
-    // içinden karta geçer: parlayan "Kur"a (üs görünümünde binaya) ilk dokunuş hem işini yapar hem yazıyı kapatır; sayfa kendiliğinden
-    // kaymaz, kart ekranda değilse oyuncu kaydırınca çerçeve belirir (OT-ogrenci-birinci-17)
+    // içinden karta geçer: parlayan "Kur"a (üs görünümünde binaya) ilk dokunuş hem işini yapar hem yazıyı kapatır. Kendiliğinden
+    // başlayınca sayfa kaymaz, kart ekranda değilse oyuncu kaydırınca çerçeve belirir (OT-ogrenci-birinci-17); "Göster"le istenince
+    // liste klinik kartına kayar (OT-ilk-kez-oyun-33)
     case 'vaka-kur':
-      steps.push({ say: VAKA_KUR, silent: true, target: klinikKart, wait: 'tap', hint: exists('.camp-list-screen') ? 'Kur’a dokun' : 'Kliniğe dokun', noScroll: true, enter: () => kamp()?.focus?.('revir'), mood: 'wink' });
+      steps.push({ say: VAKA_KUR, silent: true, target: klinikKart, wait: 'tap', hint: exists('.camp-list-screen') ? 'Kur’a dokun' : 'Kliniğe dokun', noScroll: !goster, enter: () => focusIfHidden('revir'), mood: 'wink' });
       break;
     default: return null;
   }
@@ -346,17 +359,54 @@ const CALM_TICKS = 3;
 /** kampa girişte oyuncu dokunmadıysa yeterli sakin yoklama */
 const FRESH_TICKS = 2;
 
+/**
+ * Kamp tanıtımı açıkken oyuncunun ilk dokunuşu karartılmış zemine, altta kalan bir düğmenin (ör. "Görevler") üstüne düştüyse o düğme
+ * hatırlanır; tanıtım bitince (ya da atlanınca) ekranda başka bir pencere yoksa düğmenin işi yapılır. Oyuncu tanıtımı görmeden
+ * uzandığı düğmeye dokunduğunda dokunuş sessizce yutulmaz (OT-ogrenci-birinci-22). Yalnız turun ilk dokunuşu sayılır.
+ */
+export function rememberTap(): { take(): HTMLElement | null; stop(): void } {
+  let first = true; let hit: HTMLElement | null = null;
+  const on = (e: MouseEvent) => {
+    const t = e.target instanceof Element ? e.target : null;
+    if (!first || !t?.closest('.coach')) return;
+    first = false;
+    if (!t.closest('.coach-block')) return;
+    for (const x of document.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
+      if (x.closest('.coach')) continue;
+      const b = x.closest('button, a[href], [role="button"], [role="tab"]');
+      if (b instanceof HTMLElement && !(b as HTMLButtonElement).disabled) hit = b;
+      break;
+    }
+  };
+  document.addEventListener('click', on, true);
+  return { take: () => hit, stop: () => document.removeEventListener('click', on, true) };
+}
+/** hatırlanan düğmenin işi: yalnız düğme hâlâ ekrandaysa ve üstte pencere/tur yoksa */
+function replayTap(el: HTMLElement | null): void {
+  if (!el) return;
+  setTimeout(() => {
+    const r = el.getBoundingClientRect();
+    if (!el.isConnected || r.width < 2 || r.height < 2 || useCoach.getState().tour || useCelebrating.getState().on) return;
+    if (exists('.sheet-wrap, .map-sheet-wrap, .bp-wrap, .overlay, [aria-modal="true"]')) return;
+    el.click();
+  }, 120);
+}
+
 /** turu başlat; "Atla" o an sırada bekleyen turları da geçer (Hasta Vakaları klinik kurulmadan geçilmiş sayılmaz) */
-function startTour(id: string, route: string): void {
-  const st = useStore.getState(); const t = tourFor(id, route);
+export function startTour(id: string, route: string, goster = false): void {
+  const st = useStore.getState(); const t = tourFor(id, route, goster);
   if (!t) { st.ftueTourDone(id); return; }
   if (CAMP_TOURS.has(id)) campVisit.add(id);
   const cleared = clearedCount(st.progress);
   countUnlockTour(id, cleared);
+  // kendiliğinden başlayan kamp tanıtımında oyuncunun ilk dokunuşu (bkz. rememberTap)
+  const tap = CAMP_TOURS.has(id) && !goster ? rememberTap() : null;
   useCoach.getState().start({ ...t, onDone: (skipped) => {
+    tap?.stop(); replayTap(tap?.take() ?? null);
     if (!skipped) return; const s = useStore.getState();
     for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) if (p !== 'vaka' || vakaDurum() === 'acik') s.ftueTourDone(p);
   }, onDefer: () => {
+    tap?.stop();
     // açılırken oyuncu başka yere dokundu: sayılmaz, bu girişte yine sırada (ekran sakinleşince)
     campVisit.delete(id);
     if (unlockTally.cleared === cleared && FEATURES.some((f) => f.id === id && f.tour)) unlockTally[groupOf(id)] = Math.max(0, unlockTally[groupOf(id)] - 1);
@@ -392,7 +442,7 @@ export function FtueDirector({ route }: { route: string }) {
     return () => clearInterval(h);
   }, [route, active, bypass]);
   // rota değişince eski rotaya ait bekleyen adımlar kendi hedeflerini bekler; tur iptal edilmez
-  return route === 'camp' && !bypass ? <KampYeniKart onShow={(id) => startTour(id, 'camp')} calm={() => quiet()} /> : null;
+  return route === 'camp' && !bypass ? <KampYeniKart onShow={(id) => startTour(id, 'camp', true)} calm={() => quiet()} /> : null;
 }
 
 /** kilitli sekme/karo dokunuşu: kısa dürüst not */

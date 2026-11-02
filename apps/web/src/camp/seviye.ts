@@ -46,7 +46,32 @@ export function rewardLabel(r: CampLevelReward): string {
 }
 export const rewardIcon = (r: CampLevelReward): ArtName => ({ arazi: 'map', bina: 'tent', sus: 'gift', kozmetik: 'hat', canta: 'chest', unvan: 'crown', yer: 'plus' } as const)[r.kind];
 
-/** kamp ekranı açıkken: yeni Kamp Seviyesini bir kez kutla (ödüller yazılı); arazi açıldıysa Tüy Dede o bölgeyi anlatır */
+/**
+ * Kutlama penceresi açıkken sekme çubuğunun üstüne düşen dokunuş (pencere oyuncu alt çubuğa uzanırken açıldı): hangi sekmeye
+ * dokunulduğu hatırlanır; pencere kapanınca o sekme açılır, dokunuş kaybolmaz (OT-ekonomi-denetci-27).
+ */
+export function tabTapUnder(): { stop(): string | null } {
+  let tab: string | null = null;
+  const on = (e: MouseEvent) => {
+    if (!(e.target instanceof Element) || !e.target.closest('.cel-root')) return;
+    for (const t of document.querySelectorAll<HTMLElement>('nav.tabbar .tab[data-tab]')) {
+      const r = t.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { tab = t.dataset.tab ?? null; return; }
+    }
+  };
+  document.addEventListener('click', on, true);
+  return { stop: () => { document.removeEventListener('click', on, true); return tab; } };
+}
+/** hatırlanan sekmeyi aç (kilitli ya da zaten açıksa bir şey yapmaz; sekme çubuğunun kendi düğmesi: aynı yol) */
+export function openTab(tab: string | null): void {
+  const el = tab ? document.querySelector<HTMLElement>(`nav.tabbar .tab[data-tab="${tab}"]`) : null;
+  if (el && el.getAttribute('aria-current') !== 'page' && !el.classList.contains('locked')) el.click();
+}
+
+/**
+ * kamp ekranı açıkken: yeni Kamp Seviyesini bir kez kutla (ödüller yazılı); arazi açıldıysa Tüy Dede o bölgeyi anlatır. Pencere
+ * beklerken oyuncu kamptan çıkarsa başka bir sekmenin üstünde açılmaz: seviye görülmemiş kalır, kampa dönünce kutlanır.
+ */
 export function useCampLevelCelebration(owner: string | null | undefined, camp: CampState | null | undefined, delayMs = 0): void {
   useEffect(() => {
     if (!owner || !camp) return;
@@ -60,13 +85,26 @@ export function useCampLevelCelebration(owner: string | null | undefined, camp: 
     const sorted = [...all].sort((a, b) => order[a.kind] - order[b.kind]);
     const rewards = sorted.slice(0, 6);
     const land = all.find((r) => r.kind === 'arazi');
-    setTimeout(() => {
+    const wait: Bekleyen = { owner, top, prev: levels[0]! - 1, h: undefined };
+    bekleyen.add(wait);
+    wait.h = setTimeout(() => {
+      bekleyen.delete(wait);
       platform().haptic('success'); audio.play('fanfare');
       const more = all.filter((r) => r.kind !== 'unvan').length - rewards.filter((r) => r.kind !== 'unvan').length;
-      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: [`Unvan: ${campTitle(top)}`, ...rewards.filter((r) => r.kind !== 'unvan').map(rewardLabel), ...(more > 0 ? [`ve ${more} ödül daha (Kamp Seviyesi panelinde)`] : [])] });
+      const tap = tabTapUnder();
+      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: [`Unvan: ${campTitle(top)}`, ...rewards.filter((r) => r.kind !== 'unvan').map(rewardLabel), ...(more > 0 ? [`ve ${more} ödül daha (Kamp Seviyesi panelinde)`] : [])] })
+        .then(() => openTab(tap.stop()));
       // aynı anda bir bina da bittiyse Tüy Dede önce binanın satırını bitirsin
       const dede = () => { if (land && land.kind === 'arazi') sayDede(`kamp-bolge-${land.district}`, `Yeni arazi · ${districtById(land.district)?.name ?? ''}`, districtById(land.district)?.plain); else sayDede('kamp-seviye-up', `Kamp Seviyesi ${top}`); };
       if (Date.now() - lastBuiltAt < 4000) setTimeout(dede, 9000); else dede();
     }, delayMs);
   }, [owner, camp]);
+  // kamptan çıkıldı, pencere henüz açılmadı: seviye görülmemiş sayılır, kampa dönünce kutlanır (başka sekmenin üstünde açılmaz)
+  useEffect(() => () => {
+    for (const w of bekleyen) { clearTimeout(w.h); if (seen.get(w.owner) === w.top) seen.set(w.owner, w.prev); }
+    bekleyen.clear();
+  }, []);
 }
+/** zamanlanmış ama henüz açılmamış kutlamalar */
+interface Bekleyen { owner: string; top: number; prev: number; h: ReturnType<typeof setTimeout> | undefined }
+const bekleyen = new Set<Bekleyen>();

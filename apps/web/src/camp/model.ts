@@ -1,6 +1,8 @@
 /**
  * Kulak Kampı arayüz modeli: etki metinleri, yükseltme uygunluğu (nedeniyle), hızlandırıcılar, eylemler (gerçek/demo).
  */
+import { create } from 'zustand';
+import { useNet } from '@odi/net/store';
 import { BUILDINGS, CAMP_POWER_LEVEL, buildCost, type BuildingDef, type BuildingId, type BuildingState, type CampState, type Wallet } from '@odi/shared';
 import { CAMP_TIER_NAMES, DEPOT_CAP_H, DEPOT_RATE, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
@@ -100,6 +102,19 @@ export function canQueue(camp: CampState, wallet: Wallet, id: BuildingId): Verdi
   const cost = buildCost(id, to).jeton;
   if (wallet.jeton < cost) return { ok: false, reason: `Jeton yetersiz: ${Math.round(cost - wallet.jeton).toLocaleString('tr-TR')} jeton daha gerekli.`, short: 'Jeton yetersiz' };
   return { ok: true };
+}
+
+/**
+ * Bağlantı yokken basılan Kur/Yükselt/Sıraya al (OT-eski-telefon-18): istek bağlantıyı bekler (net.ts `offlineWaitMs`) ve bağlanınca
+ * bir kez gider. O arada binanın kartı "Bağlanınca başlayacak" der, yükseltme düğmeleri kilitli (ikinci istek, çift harcama denemesi
+ * yok); istek düşerse (bekleme süresi doldu) kart eski haline döner, nedeni bildirimde.
+ */
+export const BEKLEYEN_INSAAT = 'Bağlanınca başlayacak';
+export const useBekleyenInsaat = create<{ id: BuildingId | null }>()(() => ({ id: null }));
+export async function insaatIstegi<T>(id: BuildingId, f: () => Promise<T>): Promise<T> {
+  const off = useNet.getState().status !== 'bağlı';
+  if (off) useBekleyenInsaat.setState({ id });
+  try { return await f(); } finally { if (off && useBekleyenInsaat.getState().id === id) useBekleyenInsaat.setState({ id: null }); }
 }
 
 /** kamp eylemleri: gerçek (sunucu) ya da demo (yerel) */

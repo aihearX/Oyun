@@ -190,6 +190,11 @@ try {
     check(db.get('SELECT jeton FROM players WHERE id = ?', aId).jeton === jeton0 + 80, 'cüzdan: +80 (bir kez)');
     check((await A.evaluate(() => window.__kg.celebrations())) - cel0 === 1, 'kutlama tam bir kez (iki dokunuş, bir ödül)');
     check(await A.evaluate(() => window.__olay.cel) >= 1, 'sandık kutlaması ekranda');
+    // YN-120 (OT-ekonomi-denetci-26): sandık Kamp Görevleri sayfasının önünde; üst sayaç ödül alınır alınmaz sunucu cüzdanıyla aynı
+    const onde = await A.evaluate(() => { const c = document.querySelector('.cel-stage'); if (!c) return false; const r = c.getBoundingClientRect(); const x = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!x?.closest('.cel-root'); });
+    check(onde, 'sandık Kamp Görevleri sayfasının önünde açıldı');
+    const sayac = await A.evaluate(() => Number(document.querySelector('[data-hud="jeton"]')?.getAttribute('data-value')));
+    check(sayac === jeton0 + 80, `üst sayaç sandık açıkken doğru: ${sayac} (sunucu ${jeton0 + 80})`);
     await shot(A, 'gorev-hikaye-kutlama', 300);
     await settle(A);
     await shot(A, 'gorev-hikaye-bolum-son', 300);

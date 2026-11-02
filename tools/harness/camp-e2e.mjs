@@ -153,7 +153,8 @@ async function tapBuilding(page, id) {
   await page.touchscreen.tap(p.x, p.y + 10);
 }
 async function openPanel(page, id) {
-  for (let i = 0; i < 3; i++) { await tapBuilding(page, id); if (await page.locator('.bp').waitFor({ timeout: 4000 }).then(() => true, () => false)) return; await sleep(800); }
+  // kutlama penceresi (ör. Kamp Seviyesi) kendiliğinden kapanmaz (YN-094): binayı örtüyorsa oyuncu gibi önce düğmesine dokunulur (YN-111)
+  for (let i = 0; i < 3; i++) { await settle(page); await tapBuilding(page, id); if (await page.locator('.bp').waitFor({ timeout: 4000 }).then(() => true, () => false)) return; await sleep(800); }
   await page.screenshot({ path: resolve(outRoot, `HATA-panel-${id}.png`) }).catch(() => undefined);
   throw new Error(`panel açılmadı: ${id} (bkz. ${resolve(outRoot, `HATA-panel-${id}.png`).replace(root + '/', '')})`);
 }
@@ -226,11 +227,15 @@ async function domContext(browser, seen) {
 }
 /** sayfaya eklenen her bildirim afişi (.toast-top), kutlama sahnesi (.cel-root) ve Tüy Dede kartı kaydedilir: "tam bir kez" denetimi */
 const OLAY_SAYACI = () => {
-  const o = { toast: [], dede: [], cel: 0, titles: [] }; window.__olay = o;
+  const o = { toast: [], dede: [], cel: 0, titles: [] }; window.__olay = o; const dedeKey = new Set();
   const scan = (n) => {
     if (!(n instanceof Element)) return;
     for (const t of [n, ...n.querySelectorAll('.toast-top')]) if (t.matches('.toast-top')) o.toast.push(t.querySelector('b')?.textContent ?? '');
-    for (const d of [n, ...n.querySelectorAll('[data-testid="kamp-dede"]')]) if (d.matches('[data-testid="kamp-dede"]')) o.dede.push(d.getAttribute('data-line') ?? '');
+    for (const d of [n, ...n.querySelectorAll('[data-testid="kamp-dede"]')]) if (d.matches('[data-testid="kamp-dede"]')) {
+      // aynı satırın kartı (ör. sekmeden kampa dönünce yeniden çizilen) bir kez sayılır
+      const k = d.getAttribute('data-key'); if (k && dedeKey.has(k)) continue; if (k) dedeKey.add(k);
+      o.dede.push(d.getAttribute('data-line') ?? '');
+    }
     for (const c of [n, ...n.querySelectorAll('.cel-root')]) if (c.matches('.cel-root')) o.cel++;
     for (const c of [n, ...n.querySelectorAll('.lvl-stage')]) if (c.matches('.lvl-stage')) o.titles.push(c.querySelector('.cel-title')?.textContent ?? '');
   };
@@ -760,6 +765,19 @@ try {
       ok(`[${bt}] "Kamp Seviyesi 2" kutlaması sahnede`);
       if (await G.locator('.cel-root.on', { hasText: 'Kamp Seviyesi 2' }).count()) await shot(G, 'G-kamp-seviye-2', 600);
       else console.log('  · kutlama görüntü alınmadan kapandı (yük); sayım aşağıda denetlenir');
+      // YN-120 (OT-ekonomi-denetci-27): açılanlar sıralanırken de başlık "Kamp Seviyesi 2!" (oyuncu seviyesiyle karışmaz); pencere açıkken
+      // alt çubuğa (Profil) uzanan dokunuş yutulmaz: pencere kapanır, Profil açılır
+      if (await G.locator('.lvl-stage .cel-cta .btn').waitFor({ timeout: 8000 }).then(() => true, () => false)) {
+        const t = (await G.locator('.lvl-stage .cel-title').textContent().catch(() => '')) ?? '';
+        check(t === 'Kamp Seviyesi 2!' && (await G.locator('.lvl-stage .lb-k').textContent()) === 'KAMP', `[${bt}] pencere başlığı açılanlar sıralanırken de "${t}"`);
+        const pr = await G.locator('nav.tabbar .tab[data-tab="profile"]').boundingBox();
+        await G.mouse.click(pr.x + pr.width / 2, pr.y + pr.height / 2);
+        // açılanlar henüz sıralanıyorsa dokunuş sıralamayı hızlandırır, pencere düğmeyle kapanır: Profil yine kapanınca açılır
+        await sleep(700); if (await G.locator('.lvl-stage .cel-cta .btn').count()) await G.locator('.lvl-stage .cel-cta .btn').click().catch(() => undefined);
+        await G.locator('nav.tabbar .tab[data-tab="profile"][aria-current="page"]').waitFor({ timeout: 8000 }).catch(() => undefined);
+        check(await G.locator('nav.tabbar .tab[data-tab="profile"][aria-current="page"]').count() === 1 && !(await G.locator('.lvl-stage').count()), `[${bt}] pencere açıkken Profil’e dokunuş: pencere kapandı, Profil açıldı`);
+        await tab(G, 'Kamp'); await campReady(G);
+      } else console.log('  · seviye penceresi düğme evresinden önce kapandı; başlık ve sekme dokunuşu denetlenmedi');
       await settle(G); for (let i = 0; i < 12; i++) { await toastGone(G); await sleep(1000); }
       const o1 = await G.evaluate(() => window.__olay);
       const nK = o1.titles.filter((t) => t.includes('Kamp Seviyesi 2')).length;

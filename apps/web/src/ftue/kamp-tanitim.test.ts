@@ -203,3 +203,68 @@ describe('kampa girişte ilk dokunuş tanıtım tarafından yutulmaz', () => {
     expect(useStore.getState().ftue.tours).toContain('vaka-kur');
   });
 });
+
+/**
+ * Oyuncu testi tur 6 (YN-120, OT-ogrenci-birinci-22, OT-ilk-kez-oyun-33): kendiliğinden açılan kamp tanıtımında oyuncunun ilk dokunuşu
+ * karartılmış zemine, altta kalan bir düğmenin ("Görevler") üstüne düşerse düğme hatırlanır ve tanıtım bitince işi yapılır (sessizce
+ * yutulmaz). Kamp kartındaki "Göster"le istenen "önce kur" yazısı klinik kartını ekrana getirir (sayfa kayar).
+ */
+describe('kamp tanıtımı ilk dokunuşu yutmaz (tur 6)', () => {
+  async function setup() {
+    screen();
+    const { startTour } = await import('./Director'); const { CoachHost, useCoach } = await import('./Coach');
+    let gorevler = 0;
+    const btn = el('button', { 'data-testid': 'kg-btn' }, [10, 70, 120, 40]); btn.addEventListener('click', () => { gorevler++; }); document.body.appendChild(btn);
+    await render(createElement(CoachHost));
+    return { startTour, useCoach, btn, count: () => gorevler };
+  }
+  const zemin = async (btn: Element) => {
+    const block = document.querySelector('.coach-block')!;
+    (document as { elementsFromPoint?: unknown }).elementsFromPoint = () => [block, btn];
+    await act(async () => { tapAt(block, 40, 90); });
+  };
+  const ileri = () => act(async () => { (document.querySelector('[data-testid="anlatici-ileri"]') as HTMLElement).click(); });
+  afterEach(() => { delete (document as { elementsFromPoint?: unknown }).elementsFromPoint; });
+
+  it('zemine düşen dokunuş Görevler’in üstündeydi: tanıtım biter bitmez Görevler açılır (bir kez)', async () => {
+    const { startTour, useCoach, btn, count } = await setup();
+    await act(async () => { startTour('kampoyun', 'camp'); });
+    await tick(500);
+    await zemin(btn);
+    expect(count()).toBe(0); // dokunuş tanıtımı ilerletti; düğmenin işi tanıtım bitince
+    expect(useCoach.getState().step).toBe(1);
+    await tick(50); await ileri();
+    expect(useCoach.getState().tour).toBeNull();
+    await tick(200);
+    expect(count()).toBe(1);
+  });
+  it('atlanınca da düğmenin işi yapılır; o an bir pencere açıksa yapılmaz', async () => {
+    const { startTour, btn, count } = await setup();
+    await act(async () => { startTour('kampoyun', 'camp'); });
+    await tick(500); await zemin(btn);
+    await act(async () => { (document.querySelector('.cp-skip') as HTMLElement).click(); });
+    await tick(200);
+    expect(count()).toBe(1);
+    const { useStore } = await import('../store'); useStore.setState({ ftue: { v: 1, story: true, tours: [] } });
+    await act(async () => { startTour('kampoyun', 'camp'); });
+    await tick(500); await zemin(btn);
+    const sheet = el('div', { class: 'sheet-wrap' }, [0, 0, 390, 844]); document.body.appendChild(sheet);
+    await act(async () => { (document.querySelector('.cp-skip') as HTMLElement).click(); });
+    await tick(200);
+    expect(count()).toBe(1);
+  });
+  it('İleri’ye basan oyuncu tanıtımı görmüştür: sonradan bir şey açılmaz', async () => {
+    const { startTour, btn, count } = await setup();
+    await act(async () => { startTour('kampoyun', 'camp'); });
+    await tick(500); await ileri(); await tick(50);
+    await zemin(btn); await tick(50);
+    if (document.querySelector('[data-testid="anlatici-ileri"]')) await ileri();
+    await tick(200);
+    expect(count()).toBe(0);
+  });
+  it('"Göster"le istenen "önce kur" yazısı sayfayı klinik kartına kaydırır; kendiliğinden gelen kaydırmaz', async () => {
+    const { tourFor } = await import('./Director');
+    expect(tourFor('vaka-kur', 'camp', true)!.steps[0]).toMatchObject({ noScroll: false });
+    expect(tourFor('vaka-kur', 'camp')!.steps[0]).toMatchObject({ noScroll: true });
+  });
+});

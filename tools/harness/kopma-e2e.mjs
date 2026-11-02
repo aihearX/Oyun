@@ -459,6 +459,26 @@ async function suiteKamp(A) {
   await sleep(1500);
   check(q1('SELECT kristal FROM players WHERE id = ?', A.pid).kristal === k1, 'kristal bir kez düştü');
   await consistent(A, 'kamp/kristal');
+
+  step('(a3) Kopukken "Yükselt" (YN-120, OT-eski-telefon-18): kart "Bağlanınca başlayacak", düğmeler kilitli; bağlanınca bir kez başlar');
+  await toastGone(A);
+  const m0 = q1("SELECT level FROM buildings WHERE player_id = ? AND id = 'merkez'", A.pid).level; const j3 = q1('SELECT jeton FROM players WHERE id = ?', A.pid).jeton;
+  await outage('kamp-yukselt', { sig: 'SIGTERM', players: [A], bannerOf: (P) => P.page.locator('.net-banner.camp-net'),
+    whileDown: async () => {
+      await card('Odyoloji Merkezi').getByRole('button', { name: 'Yükselt' }).click();
+      await A.page.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
+      const not = card('Odyoloji Merkezi').getByTestId('bekleyen-insaat');
+      await not.waitFor({ timeout: 5000 }).catch(() => undefined);
+      const kilitli = await A.page.locator('.card.building .b-up .btn:not([disabled])').count();
+      check(/Bağlanınca başlayacak/.test((await not.textContent().catch(() => '')) ?? '') && kilitli === 0, `kopukken Yükselt: kart "Bağlanınca başlayacak", yükseltme düğmeleri kilitli (açık düğme ${kilitli})`);
+      await shot(A, 'kamp-yukselt-bekliyor');
+    } });
+  await A.page.locator('.card.construction', { hasText: 'Odyoloji Merkezi' }).waitFor({ timeout: 25_000 }).catch(() => undefined);
+  const mz = q1("SELECT upgrading_to FROM buildings WHERE player_id = ? AND id = 'merkez'", A.pid);
+  await sleep(1500);
+  const j4 = q1('SELECT jeton FROM players WHERE id = ?', A.pid).jeton;
+  check(mz.upgrading_to === m0 + 1 && j3 - j4 > 0 && !(await A.page.getByTestId('bekleyen-insaat').count()), `bağlanınca yükseltme bir kez başladı (Merkez → Sv ${m0 + 1}, ${j3 - j4} jeton), bekliyor yazısı kalktı`);
+  await consistent(A, 'kamp/yukselt');
   await shot(A, 'kamp-sonra');
   return { ...t1, kristal: t2[A.tag] };
 }

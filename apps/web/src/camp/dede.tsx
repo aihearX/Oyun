@@ -42,7 +42,7 @@ export function DedeCard({ className = '' }: { className?: string }) {
   }, [say?.key]);
   if (!say) return null;
   return (
-    <aside key={say.key} className={`ear-note dede-card ${className}`} data-testid="kamp-dede" data-line={say.id ?? ''} onClick={(e) => e.stopPropagation()} aria-live="polite" aria-label="Tüy Dede">
+    <aside key={say.key} className={`ear-note dede-card ${className}`} data-testid="kamp-dede" data-line={say.id ?? ''} data-key={say.key} onClick={(e) => e.stopPropagation()} aria-live="polite" aria-label="Tüy Dede">
       <span className="en-face" aria-hidden><TuyDede size={46} talking={false} mood="wink" /></span>
       <div className="en-body">
         <div className="en-k">{say.kicker}</div>

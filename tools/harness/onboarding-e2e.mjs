@@ -162,6 +162,9 @@ async function suite(target, browserName, [W, H]) {
   /** anlatıcı turunu sonuna kadar yürüt: İleri'ye bas, bekleyen adımda parlayan halkanın ortasına dokun */
   async function driveTour(page, tourId, label, act = {}) {
     await waitTour(page, `[data-testid="anlatici-tur"][data-tour="${tourId}"]`, 40_000);
+    // tur başladıktan hemen sonra açılan kutlama (haritanın hazine penceresi) turu duraklatır (YN-067); pencere kendiliğinden
+    // kapanmaz: oyuncu gibi düğmesine dokunulur, tur kaldığı yerden sürer (YN-111)
+    for (let i = 0; i < 10 && !(await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).count()); i++) { await dismissCel(page); await sleep(500); }
     await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).waitFor({ timeout: 5_000 });
     ok(`tur başladı: ${tourId}`);
     let last = ''; let guard = 0;
@@ -329,7 +332,21 @@ async function suite(target, browserName, [W, H]) {
     check(await bitti.count() === 1, 'Odyoloji Kliniği kuruldu (Sv 1)');
     await dismissCel(page);
     await waitTour(page, '[data-testid="anlatici-tur"][data-tour="vaka"]', 40_000);
-    await driveTour(page, 'vaka', 'vaka-klinik-kuruldu', { 1: async (p) => {
+    let hedefSayfa = null;
+    await driveTour(page, 'vaka', 'vaka-klinik-kuruldu', {
+      // YN-120 (OT-ogrenci-birinci-22): tanıtım açıkken (oyuncu görmeden) bir düğmeye (Görevler ya da kartın Hasta Vakaları girişi;
+      // hangisi ekrandaysa) uzanan dokunuş karartılmış zemine düşer: yutulmaz, tanıtım bitince o düğmenin sayfası açılır
+      0: async (p) => {
+        // liste aşağı kaymış olabilir (klinik kartı kurulurken): oyuncu gibi başa dönülür, üstteki Görevler görünür
+        await p.evaluate(() => document.getElementById('root')?.scrollTo(0, 0)); await sleep(400);
+        const H = p.viewportSize().height;
+        for (const [btn, panel] of [['kg-btn', 'kg-panel'], ['klinik-btn', 'klinik-panel'], ['klinik-vaka-giris', 'klinik-panel']]) {
+          const g = await p.locator(`[data-testid="${btn}"]`).first().boundingBox().catch(() => null);
+          if (!g || g.y < 60 || g.y + g.height > H * 0.6) continue;
+          await p.touchscreen.tap(g.x + g.width / 2, g.y + g.height / 2); hedefSayfa = panel; return;
+        }
+      },
+      1: async (p) => {
       await p.locator('.coach-ring').waitFor({ timeout: 4000 }).catch(() => undefined); await sleep(400);
       const r = await p.locator('.coach-ring').boundingBox().catch(() => null); const k = await p.locator('[data-testid="klinik-btn"]').boundingBox().catch(() => null);
       const g = await p.locator('[data-testid="kg-btn"]').boundingBox().catch(() => null);
@@ -337,6 +354,10 @@ async function suite(target, browserName, [W, H]) {
       await p.locator('[data-testid="anlatici-ileri"]').click();
     } });
     seen.push('vaka');
+    check(!!hedefSayfa, 'tanıtım açıkken ekranda dokunulacak bir giriş düğmesi vardı');
+    await page.locator(`[data-testid="${hedefSayfa}"]`).waitFor({ timeout: 5000 }).catch(() => undefined);
+    check(await page.locator(`[data-testid="${hedefSayfa}"]`).count() === 1, `tanıtım açıkken düğmeye dokunuş yutulmadı: tanıtım bitince ${hedefSayfa} açıldı`);
+    await page.keyboard.press('Escape'); await page.locator(`[data-testid="${hedefSayfa}"]`).waitFor({ state: 'detached', timeout: 5000 }).catch(() => undefined);
     await page.getByRole('button', { name: 'Üs görünümü' }).click(); await page.locator('.camp-base').waitFor({ timeout: 20_000 });
     return seen;
   }
@@ -460,6 +481,7 @@ async function suite(target, browserName, [W, H]) {
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       check((await lockedTabs(page)).includes('team'), 'Takım hâlâ kilitli (Bölüm 5)');
       await playFromMap(page, 5); await resultForward(page, 5, 'team siralama'); await resultAct(page, 'harita');
+      await dismissCel(page); // haritanın dönüş sahnesi hazine penceresi açtıysa (YN-111)
       await driveTour(page, 'team', 'takim-turu');
       check(!(await lockedTabs(page)).length, 'bütün sekmeler açık');
       // ---- 7 · 6–10. bölüm: her açılım tek tek, anlatıcı yükü ölçülür (yalnız Chromium; WebKit aynı turları 1–5'te denetler)
@@ -479,7 +501,9 @@ async function suite(target, browserName, [W, H]) {
           await toMap(page, perLevel[lv], `b${lv}-harita`);
           // dürüstlük: sonuç ekranının söylediği her tanıtım haritaya gelince gerçekten oynadı
           if (bekleyen) { const eksik = bekleyen.split(' ').filter((t) => !perLevel[lv].includes(t)); check(!eksik.length && perLevel[lv][0] === bekleyen.split(' ')[0], `${lv}. bölüm: söylenen tanıtımlar haritada oynadı (${perLevel[lv].join('+')}${eksik.length ? `; oynamayan: ${eksik.join(', ')}` : ''})`); }
-          // kamp turları yalnız kampta başlar: oyuncu gibi her bölümden sonra kampa uğra
+          // kamp turları yalnız kampta başlar: oyuncu gibi her bölümden sonra kampa uğra (açık kalan hazine/kutlama penceresi önce
+          // düğmesiyle kapanır: pencereler kendiliğinden kapanmaz, YN-111)
+          await dismissCel(page);
           await page.locator('nav.tabbar .tab[data-tab="camp"]').click();
           // 6: bekleyen iki kamp tanıtımı tek kartta; 7: Hasta Vakaları yalnız klinik kurulunca (YN-092)
           if (lv === 6) perLevel['6-kamp'] = await kampYeni(page);

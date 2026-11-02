@@ -46,6 +46,7 @@ export const odulBos = (r: KampOdul) => odulOgeleri(r).length === 0;
 
 /**
  * ödülü al: sunucu bir kez verir; kutlama yalnız başarılı yanıtta çalar. `big`: sandık kutlaması (bölüm/basamak), değilse afiş + jeton uçuşu.
+ * Cüzdan yanıtla hemen yazılır ve sandık içeriği "cüzdanına eklendi" diye gösterir: üst sayaç ödül alınır alınmaz doğru (OT-ekonomi-denetci-26).
  * Dönüş: alınan ödül (başarısızsa null).
  */
 export async function claimKg(ref: string, title: string, o: { from?: { x: number; y: number }; big?: boolean } = {}): Promise<KampOdul | null> {
@@ -64,7 +65,7 @@ export function celebrateReward(title: string, reward: KampOdul, o: { from?: { x
   const items = odulOgeleri(reward); if (!items.length) return;
   celebrations++;
   platform().haptic('success');
-  if (o.big) { void celebrate.chest({ title, items, tier: reward.kristal && reward.kristal >= 8 ? 'altin' : reward.kristal ? 'gumus' : 'bronz' }); return; }
+  if (o.big) { void celebrate.chest({ title, items, tier: reward.kristal && reward.kristal >= 8 ? 'altin' : reward.kristal ? 'gumus' : 'bronz', granted: true }); return; }
   audio.play('questDone');
   if (reward.jeton) void celebrate.coins({ amount: reward.jeton, kind: 'jeton', from: o.from });
   celebrate.banner({ icon: '✅', title, body: items.map((i) => i.label ?? `${i.amount} ${i.kind}`).join(' · '), tone: 'green' });

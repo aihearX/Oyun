@@ -5,7 +5,7 @@ import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, buildKey, canQueue, effect, queueSupported, shortOf, sureTam, type CampActions } from './model';
+import { BEKLEYEN_INSAAT, DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, buildKey, canQueue, effect, insaatIstegi, queueSupported, shortOf, sureTam, useBekleyenInsaat, type CampActions } from './model';
 import { useKg } from './gorev/state';
 import { BinaIcon, KgIcon } from './gorev/art';
 import { hikayeBinasi } from './hikaye-bina';
@@ -28,7 +28,9 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   const merkez = lv('merkez'); const depot = lv('depo');
   const { stored, max: depotMax } = depotStored(depot, camp.depotStoredAt, sNow, depotCapHours(lv('denge')));
   const [levelPanel, setLevelPanel] = useState(false);
-  const upgrade = async (d: BuildingDef) => { setConfirm(null); if (active && queueSupported(camp)) await actions.queue(d.id); else await actions.upgrade(d.id); };
+  // bağlantı yokken basılan yükseltme bağlanınca bir kez gider; o arada kart bekliyor der, düğmeler kilitli (model.ts insaatIstegi)
+  const bekleyen = useBekleyenInsaat((st) => st.id);
+  const upgrade = async (d: BuildingDef) => { setConfirm(null); await insaatIstegi(d.id, () => (active && queueSupported(camp) ? actions.queue(d.id) : actions.upgrade(d.id))); };
   const qOn = !!active && queueSupported(camp);
   const story = hikayeBinasi(useKg((st) => st.kg)); // hikâyenin istediği bina (MK-016)
   const collect = async () => { const n = await actions.collect(); if (n) setBurst(`+${fmtNum(n)} 🪙`); };
@@ -63,7 +65,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         </div>)}
 
       {BUILDINGS.map((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; const cost = buildCost(d.id, to); const max = b.level >= d.maxLevel;
-        const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active; const poor = wallet.jeton < cost.jeton; const locked = !!d.campLevel && (camp.xp?.level ?? 1) < d.campLevel;
+        const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active || !!bekleyen; const poor = wallet.jeton < cost.jeton; const locked = !!d.campLevel && (camp.xp?.level ?? 1) < d.campLevel;
         const inQueue = camp.queued?.id === d.id; const qv = qOn && !b.upgradingTo ? canQueue(camp, wallet, d.id) : null;
         return (
           <div className={`card building${b.upgradingTo ? ' building-now' : ''}${inQueue ? ' building-queued' : ''}`} key={d.id}>
@@ -74,9 +76,10 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
             {!max && <div className="row b-up">
               <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {sureTam(dur(cost.seconds))}</span>
               {inQueue ? <button className="btn small ghost" onClick={() => void actions.unqueue()} aria-label={`${d.name} sırada; sıradan çıkar, ${fmtNum(camp.queued!.jeton)} jeton geri`}>Sıradan çıkar</button>
-                : qv ? <button className="btn small" disabled={!qv.ok} onClick={() => setConfirm(d)}>{qv.ok ? 'Sıraya al' : qv.short}</button>
-                : <button className="btn small" disabled={busy || blocked || poor || locked} onClick={() => setConfirm(d)}>{b.upgradingTo ? 'Yapılıyor' : locked ? `Kamp Sv ${d.campLevel}` : blocked ? `Merkez ${to}` : b.level === 0 ? 'Kur' : 'Yükselt'}</button>}
+                : qv ? <button className="btn small" disabled={!qv.ok || !!bekleyen} onClick={() => setConfirm(d)}>{bekleyen === d.id ? 'Bekliyor' : qv.ok ? 'Sıraya al' : qv.short}</button>
+                : <button className="btn small" disabled={busy || blocked || poor || locked} onClick={() => setConfirm(d)}>{bekleyen === d.id ? 'Bekliyor' : b.upgradingTo ? 'Yapılıyor' : locked ? `Kamp Sv ${d.campLevel}` : blocked ? `Merkez ${to}` : b.level === 0 ? 'Kur' : 'Yükselt'}</button>}
             </div>}
+            {bekleyen === d.id && <div className="muted small-note" role="status" data-testid="bekleyen-insaat"><Art name="signal" size={16} className="art-inline" /> {BEKLEYEN_INSAAT}: Sv {to}</div>}
             {story && story.id === d.id && b.level < story.need && <div className="muted small-note" data-testid="hikaye-ipucu"><KgIcon name="bolum" size={16} className="art-inline" /> Kampın Hikâyesi bu binayı Sv {story.need} istiyor</div>}
             {d.id === 'revir' ? <KlinikVakaSatiri level={b.level} /> : <KgOyunGiris id={d.id} />}
             {inQueue && <div className="muted small-note"><Art name="hourglass" size={16} className="art-inline" /> Sırada: Sv {camp.queued!.toLevel} · {active ? `${shortOf(active.id)} bitince başlar` : 'birazdan başlar'} · bedel ödendi</div>}

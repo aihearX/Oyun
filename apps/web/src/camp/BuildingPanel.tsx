@@ -4,7 +4,7 @@ import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type Ca
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
 import { fmtLeft, fmtNum } from '../ui/social';
-import { DEPOT_RATE, ITEMS, KRISTAL_KURAL, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, queueSupported, shortOf, sureTam, unlockLabel, type CampActions } from './model';
+import { BEKLEYEN_INSAAT, DEPOT_RATE, ITEMS, KRISTAL_KURAL, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, insaatIstegi, queueSupported, shortOf, sureTam, unlockLabel, useBekleyenInsaat, type CampActions } from './model';
 import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
@@ -64,6 +64,8 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
   const crystals = crystalsToFinish(Math.ceil(left / 1000));
   const [asked, setAsked] = useState(() => askedHelp.has(buildKey(b)));
   const [busy, setBusy] = useState(false);
+  // bağlantı yokken basılan yükseltme (bu ya da başka bir bina): bağlanınca bir kez gider, o arada düğmeler kilitli
+  const bekleyen = useBekleyenInsaat((st) => st.id);
   useEffect(() => { setAsked(askedHelp.has(buildKey(b))); }, [b.upgradingTo, b.startedAt]);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, [onClose]);
   const run = async (f: () => Promise<unknown>) => { if (busy) return; setBusy(true); audio.play('tap'); try { await f(); } finally { setBusy(false); } };
@@ -137,12 +139,14 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
                 <button className="btn ghost" disabled={busy} onClick={() => void run(() => actions.unqueue())}>Sıradan çıkar · <Art name="coin" size={16} className="art-inline" /> {fmtNum(camp.queued!.jeton)} geri</button>
               </div>
             ) : queueMode ? (<>
-              <button className="btn" data-testid="siraya-al" disabled={busy || !qv.ok} onClick={() => void run(() => actions.queue(id))}>Sıraya al · <Art name="coin" size={16} className="art-inline" /> {fmtNum(cost.jeton)}</button>
-              {qv.ok ? <div className="bp-note">{shortOf(other!.id)} bitince kendiliğinden başlar. Bedel şimdi ödenir; sıradan çıkarırsan tamamı geri gelir.</div>
+              <button className="btn" data-testid="siraya-al" disabled={busy || !!bekleyen || !qv.ok} onClick={() => void run(() => insaatIstegi(id, () => actions.queue(id)))}>Sıraya al · <Art name="coin" size={16} className="art-inline" /> {fmtNum(cost.jeton)}</button>
+              {bekleyen === id ? <div className="bp-note" role="status" data-testid="bekleyen-insaat"><Art name="signal" size={16} className="art-inline" /> {BEKLEYEN_INSAAT}</div>
+                : qv.ok ? <div className="bp-note">{shortOf(other!.id)} bitince kendiliğinden başlar. Bedel şimdi ödenir; sıradan çıkarırsan tamamı geri gelir.</div>
                 : <div className="bp-why" role="status">{qv.reason}</div>}
             </>) : (<>
-              <button className="btn" disabled={busy || !verdict.ok} onClick={() => void run(() => actions.upgrade(id))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
-              {!verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
+              <button className="btn" disabled={busy || !!bekleyen || !verdict.ok} onClick={() => void run(() => insaatIstegi(id, () => actions.upgrade(id)))}>{b.level === 0 ? 'Kur' : 'Yükselt'}{verdict.ok ? ` → Sv ${to}` : ''}</button>
+              {bekleyen === id ? <div className="bp-note" role="status" data-testid="bekleyen-insaat"><Art name="signal" size={16} className="art-inline" /> {BEKLEYEN_INSAAT}</div>
+                : !verdict.ok && <div className="bp-why" role="status">{verdict.reason}</div>}
             </>)}
           </div>
         )}
