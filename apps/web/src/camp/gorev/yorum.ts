@@ -63,13 +63,13 @@ export function odyoSatir(o: Odyogram, e: Ear, duzey: BilgiDuzeyi): string {
     if (inen) return `${KULAK[e]}: yüksek frekanslara doğru inen kayıp: alçak frekanslarda ${derece(inen.alcak)}, 4–8 kHz’te ${derece(inen.yuksek)}; ${KAYIP_SADE[k]}`;
     if (b) {
       const yer = b.lo === b.hi ? `${kHz(b.lo)} kHz’te` : `${kHz(b.lo)}–${kHz(b.hi)} kHz’te`;
-      return `${KULAK[e]}: konuşma frekanslarında ${derece(p)}; ${yer} ${derece(b.ort)} kayıp${b.lo === b.hi ? '' : `, en kötüsü ${kHz(b.enKotu)} kHz’te`}${b.centik ? ' (çentik)' : ''}; ${KAYIP_SADE[k]}`;
+      return `${KULAK[e]}: konuşma frekanslarında ${derece(p)}; ${yer} ${derece(b.ort)} kayıp${b.lo === b.hi ? '' : `, en kötüsü ${kHz(b.enKotu)} kHz’te`}${b.centik ? ` (${kHz(b.enKotu)} kHz çentiği)` : ''}; ${KAYIP_SADE[k]}`;
     }
     return `${KULAK[e]}: ${derece(p)} kayıp, ${KAYIP_SADE[k]}`;
   }
   const g = gaps(o, e).filter((x): x is number => x !== null);
   const lo = Math.max(0, Math.min(...g)); const hi = Math.max(0, ...g);
-  const bs = b ? ` · en kötü eşik ${kHz(b.enKotu)} kHz’te ${ac[b.enKotu]} dB HL${b.centik ? `, 8 kHz’te ${ac[7]} dB HL (çentik)` : ''}` : '';
+  const bs = b ? ` · en kötü eşik ${kHz(b.enKotu)} kHz’te ${ac[b.enKotu]} dB HL${b.centik ? `; 8 kHz’te ${ac[7]} dB HL’ye toparlanıyor (${kHz(b.enKotu)} kHz çentiği)` : ''}` : '';
   return `${KULAK[e]}: saf ses ortalaması ${n1(p)} dB HL${inen ? ` · yüksek frekans ortalaması (4–8 kHz) ${n1(inen.yuksek)} dB HL` : ''}${bs} · hava–kemik aralığı ${lo === hi ? lo : `${lo}–${hi}`} dB`;
 }
 export function timpSatir(t: Timp | null, e: Ear, duzey: BilgiDuzeyi, grup: Vaka['hasta']['grup']): string {

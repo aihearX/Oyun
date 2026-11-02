@@ -62,7 +62,7 @@ export const DECORATIONS: DecorDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'altin-kulak', name: 'Altın Kulak Heykeli', size: 2, from: ['seviye'], color: 0xf5c542,
     plain: 'İki kulakla duymak sesin yönünü bulmayı ve gürültüde konuşmayı anlamayı kolaylaştırır.' },
   { id: 'heschl-kemer', name: 'Heschl Işık Kemeri', size: 2, from: ['seviye', 'anit'], color: 0xff8fb1,
-    plain: 'Birincil işitsel korteks, şakak lobundaki Heschl girusundadır; sesi anlamlı bir kelimeye burada dönüştürürüz.' },
+    plain: 'Birincil işitsel korteks, şakak lobundaki Heschl girusundadır; ses burada çözümlenir, çevresindeki alanlarda anlamlı bir kelimeye dönüşür.' },
   { id: 'vaka-panosu', name: 'Vaka Panosu', size: 1, from: ['gorev'], color: 0x9fd8ff,
     plain: 'İyi bir vaka değerlendirmesi öyküyle başlar; testler birbirini doğrulayınca karar netleşir.' },
   { id: 'dede-banki', name: 'Tüy Dede Bankı', size: 1, from: ['gorev'], color: 0xffd6a0,

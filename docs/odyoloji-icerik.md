@@ -1,6 +1,6 @@
 # Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge `node tools/odyoloji/docs.mjs` ile üretilir; kaynak dosyalar: `packages/content/src/odyoloji.ts`, `biliyor-muydun.ts`, `cards.ts`, `quiz.ts`, `kamp.ts`, `remedies.ts`, `patolojiler.ts`, `kamp-gorev-vakalar.ts`.
+> Bu belge `node tools/odyoloji/docs.mjs` ile üretilir; kaynak dosyalar: `packages/content/src/odyoloji.ts`, `biliyor-muydun.ts`, `cards.ts`, `quiz.ts`, `kamp.ts`, `kamp-susler.ts`, `biomes.ts`, `remedies.ts`, `patolojiler.ts`, `kamp-gorev-vakalar.ts`, `apps/web/src/camp/gorev/yorum.ts`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -289,6 +289,52 @@ Jerger ve Hayes (1976) çapraz kontrol ilkesi; Clark (1981) işitme kaybı derec
 | Beyin sapı | **İki Kulak Kavşağı** | İki kulağın sesi beyin sapında buluşur; sesin yönü böyle bulunur. |
 | İşitsel korteks | **Heschl Işığı** | İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. |
 
+### Kamp süsleri (24, docs/14-kamp.md §10)
+
+| kimlik | süs | bilgi (dokununca) |
+|---|---|---|
+| `diyapazon` | **Diyapazon Heykeli** | Rinne ve Weber testlerinde 512 Hz’lik diyapazon kullanılır: sapı kemiğe değince ses kemik yoluyla iletilir. |
+| `odyogram-tarhi` | **Odyogram Çiçek Tarhı** | Odyogramda sağ kulak kırmızı daire (O), sol kulak mavi çarpı (X) ile işaretlenir. Bu tarhta çiçekler de öyle dizilir. |
+| `stereosilya` | **Stereosilya Çimi** | Tüy hücrelerinin üstündeki stereosilyalar basamak gibi boy sırasıyla dizilir; eğilince sinyal başlar. |
+| `kemikcik-banki` | **Kemikçik Bankı** | Çekiç, örs ve üzengi zarın titreşimini oval pencereye taşır. Üzengi vücudun en küçük kemiğidir. |
+| `otoskop-lamba` | **Otoskop Lambası** | Otoskop, ışığı ve büyüteciyle kulak kanalını ve inci grisi kulak zarını görmemizi sağlar. |
+| `dalga-cit` | **Ses Dalgası Çiti** | Ses, havada sıkışma ve seyrelmelerle ilerleyen bir dalgadır; tepeler arası mesafe dalga boyudur. |
+| `koklea-cesme` | **Koklea Çeşmesi** | Koklea yaklaşık iki buçuk tur döner ve sıvıyla doludur; titreşim bu sıvıda dalga olarak ilerler. |
+| `kulaklik-salincak` | **Kulaklık Salıncağı** | Saf ses odyometrisinde hava yolu eşikleri kulaklıkla ölçülür; her kulak ayrı ayrı test edilir. |
+| `kepce-cardak` | **Kulak Kepçesi Çardağı** | Kepçenin heliks ve konka kıvrımları sesi toplar, yüksek frekansları süzerek sesin yukarıdan mı aşağıdan mı geldiğini anlamaya yardım eder. |
+| `cihaz-saksi` | **İşitme Cihazı Saksısı** | Kulak arkası işitme cihazında mikrofon sesi alır, işlemci güçlendirir, ses bir hortum ya da kanal içi hoparlörle kulağa iletilir. |
+| `kanal-heykel` | **Yarım Daire Kanalları Heykeli** | İç kulakta birbirine dik üç yarım daire kanalı başın dönüşünü algılar; denge sistemi işitmenin komşusudur. |
+| `tuy-lamba` | **Tüy Hücresi Lambası** | Kokleada bir sıra iç, üç sıra dış tüy hücresi vardır; dış tüy hücreleri hafif sesleri güçlendirir. |
+| `tikac-puf` | **Kulak Tıkacı Pufu** | Köpük kulak tıkacı sıkıştırılıp kanala yerleştirilir ve genişleyerek kanalı kapatır; doğru takılınca gürültüyü belirgin azaltır. |
+| `dalga-havuz` | **Ses Dalgası Havuzu** | Suya atılan taşın halkaları gibi ses de kaynağından her yöne yayılır ve uzaklaştıkça zayıflar. |
+| `desibel-sutun` | **Desibel Sütunları** | Desibel logaritmiktir: her 10 dB artış ses şiddetini on kat artırır. 85 dB üstünde uzun süre kalmak kulağı yorar. |
+| `implant-heykel` | **İmplant Bobini Heykeli** | Koklear implantın dış bobini mıknatısla deri altındaki alıcıya tutunur; elektrotlar işitme sinirini doğrudan uyarır. |
+| `nota-agaci` | **Tonotopi Ağacı** | Kokleanın tabanı ince (tiz), tepesi kalın (pes) seslere yanıt verir; bu sıralamaya tonotopi denir. |
+| `ostaki-kemer` | **Östaki Kemeri** | Östaki borusu orta kulağı genize bağlar ve yutkununca açılarak basıncı eşitler. |
+| `isik-feneri` | **Işık Üçgeni Feneri** | Sağlıklı kulak zarına ışık tutunca ön-alt kısımda üçgen bir parıltı (ışık refleksi) görülür. |
+| `altin-diyapazon` | **Altın Diyapazon** | Weber testinde diyapazon alnın ortasına konur; tek taraflı iletim tipi kayıpta ses kötü kulakta daha yüksek duyulur. |
+| `altin-kulak` | **Altın Kulak Heykeli** | İki kulakla duymak sesin yönünü bulmayı ve gürültüde konuşmayı anlamayı kolaylaştırır. |
+| `heschl-kemer` | **Heschl Işık Kemeri** | Birincil işitsel korteks, şakak lobundaki Heschl girusundadır; ses burada çözümlenir, çevresindeki alanlarda anlamlı bir kelimeye dönüşür. |
+| `vaka-panosu` | **Vaka Panosu** | İyi bir vaka değerlendirmesi öyküyle başlar; testler birbirini doğrulayınca karar netleşir. |
+| `dede-banki` | **Tüy Dede Bankı** | Tüy Dede’nin dinlenme bankı: iyi bir dinleyici sabırla dinler, sonra sorar. |
+
+## Harita bölgeleri (10)
+
+Kaynak: `packages/content/src/biomes.ts`. Harita kartındaki tek cümle (anlatı) ve bölge bilgisi.
+
+| bölge | ad | kart cümlesi | bilgi |
+|---|---|---|---|
+| Dış kulak | **Dış Kulak** | Kulak kepçesinin (aurikula) kıvrımlarında ilk adımlar. | Kulak kepçesi sesi toplar; kanalla birlikte yaklaşık 2-4 kHz civarını doğal olarak güçlendirir. |
+| Dış kulak yolu | **Kulak Kanalı** | Dış kulak yolu: dar, sıcak, serumenli (kulak kirli) bir tünel. | Kanal yaklaşık 2,5 cm; rezonansı yaklaşık 2,5-3 kHz civarını yükseltir. |
+| Kulak zarı ve orta kulak | **Kulak Zarı** | Titreyen zar (timpanik membran), dev bir trambolin. | Kulak zarı yaklaşık 0,1 mm kalınlığındadır ve sesin frekansıyla titreşir. |
+| Kemikçikler | **Kemikçikler** | Çekiç (malleus), örs (inkus), üzengi (stapes): vücudun en küçük makinesi. | Üzengi (stapes), yaklaşık 3 mm ile vücuttaki en küçük kemiktir. |
+| Koklea (giriş) | **Koklea · Taban** | İnce (yüksek frekanslı) seslerin kıvrımı; perilenfin içinde yüz. | Kokleanın tabanı (baz) ince, yüksek frekanslı sesleri algılar. |
+| Koklea (orta kıvrım) | **Koklea · Orta Kıvrım** | Konuşma frekanslarının (yaklaşık 500-4000 Hz) işlendiği kıvrım. | Konuşma seslerinin önemli kısmı yaklaşık 500-4000 Hz arasındadır; bu frekanslar kokleanın orta bölümlerinde işlenir. |
+| Koklea (tonotopi) | **Koklea · Apeks** | Kalın (alçak frekanslı) seslerin tepesi; bas ve uğultu. | Apeks kalın (düşük frekanslı) sesleri algılar; 125 Hz apekse yakın işlenir. |
+| İşitme siniri | **İşitme Siniri** | VIII. kafa siniri: sen artık bir elektrik impulsusun. Hızlan. | İşitme siniri yaklaşık 30.000 liften oluşur. |
+| Beyin sapı | **Beyin Sapı** | Sağ ve sol ses superior oliver komplekste buluşur; yön doğar. | Beyin sapı, iki kulaktan gelen sesin zaman farkıyla yön hesaplar. |
+| İşitsel korteks | **İşitme Korteksi** | Heschl girusunda ses çözümlenir, çevresindeki alanlarda anlama dönüşür: rüya dünyası. | Birincil işitme korteksi şakak (temporal) lobundaki Heschl girusundadır. |
+
 ## Bölge patolojileri (18)
 
 Kaynak: `packages/content/src/patolojiler.ts` (kimlikler kamp ekibinin `remedies.ts` → `PATHOLOGY_IDS` listesiyle aynı). Odi'nin
@@ -335,6 +381,10 @@ ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testin
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
 Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
 bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
+Odyogram özeti (`yorum.ts` → `odyoSatir`, YN-101/YN-118): saf ses ortalaması dar bir yüksek frekans düşüşünü göstermediği için en kötü
+bölge ayrıca söylenir; 8 kHz'te en az 10 dB düzelme varsa çentiğin frekansı (en kötü eşiğin frekansı) adıyla yazılır. Örnek (`kv05`):
+- Genel: Sağ: konuşma frekanslarında çok hafif; 3–6 kHz’te orta kayıp, en kötüsü 4 kHz’te (4 kHz çentiği); iç kulak kaynaklı (hava ve kemik yolu birlikte düşük)
+- Odyoloji: Sol: saf ses ortalaması 18,3 dB HL · en kötü eşik 4 kHz’te 60 dB HL; 8 kHz’te 35 dB HL’ye toparlanıyor (4 kHz çentiği) · hava–kemik aralığı 0–5 dB
 
 > **Sahip onayı bekliyor (YN-080, OT-uzman-odyolog-13).** `kv01` (Ece, konser sonrası) için uzman önerisi: normal odyogram gürültü
 > etkisini kesin olarak dışlamaz; çınlama sürer ya da tekrarlarsa işitme yeniden kontrol edilmeli. Yeni tıbbi cümle olduğu için oyuna
@@ -637,11 +687,11 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 | 99 | Odyoloji | saglik | Gürültüye bağlı işitme kaybında odyogramdaki tipik çentik nerededir? | Yaklaşık 250 Hz · Yaklaşık 1 kHz · Yaklaşık 125 Hz · **Yaklaşık 4 kHz (3–6 kHz)** | Çentik çoğunlukla 3–6 kHz bölgesinde, sıklıkla 4 kHz’tedir; 8 kHz’te kısmi düzelme görülür. |
 | 100 | Odyoloji | saglik | Presbiakuzide işitme kaybı genellikle hangi frekanslardan başlar? | Yalnızca 1 kHz · Tüm frekanslarda aynı anda · **Yüksek frekanslar** · Düşük frekanslar | Yaşa bağlı kayıp genellikle iki taraflı, simetrik ve yüksek frekanslardan başlar. |
 | 101 | Odyoloji | saglik | Otosklerozda kemik yolunda yaklaşık 2 kHz’te görülebilen çentiğin adı nedir? | Rinne çentiği · **Carhart çentiği** · Gürültü çentiği · Békésy çentiği | Carhart çentiği, stapes fiksasyonunun kemik yolu ölçümünü etkilemesiyle ilişkilidir. |
-| 102 | Odyoloji | saglik | Jerger sınıflamasında düz (tepesiz) timpanogram hangi tiptir? | **B** · A · As · C | B tipi düz eğri; orta kulakta sıvı ya da zar delinmesinde görülür, kanal hacmi ikisini ayırt ettirir. |
-| 103 | Odyoloji | saglik | Negatif orta kulak basıncını gösteren timpanogram tipi hangisidir? | A · Ad · As · **C** | C tipinde tepe negatif basınçtadır; östaki borusu işlev bozukluğunda görülür. |
-| 104 | Odyoloji | saglik | Kemikçik zinciri kopukluğunda beklenen timpanogram tipi hangisidir? | C · As · **Ad** · B | Zincir kopukluğunda sistem aşırı hareketlidir; tepe yüksektir (Ad). |
-| 105 | Odyoloji | saglik | Otosklerozda timpanogram çoğunlukla hangi tiptir? | C · **As** · Ad · B | Sertleşmiş sistemde tepe basıncı normal, tepe yüksekliği düşüktür (As). |
-| 106 | Odyoloji | saglik | Efüzyonlu otitis mediada tipik timpanogram hangisidir? | **B** · A · Ad · As | Orta kulakta sıvı varken zar hareketi kısıtlanır ve eğri düzleşir. |
+| 102 | Odyoloji | saglik | Jerger sınıflamasında düz (tepesiz) timpanogram hangi tiptir? | **B tipi** · A tipi · As tipi · C tipi | B tipi düz eğridir. Kanal hacmi normalse orta kulakta sıvı, büyükse zarda delik ya da açık tüp, küçükse buşon ya da probun kanal duvarına dayanması olabilir; tanı otoskopi ve odyogramla birlikte konur. |
+| 103 | Odyoloji | saglik | Negatif orta kulak basıncını gösteren timpanogram tipi hangisidir? | A tipi · Ad tipi · As tipi · **C tipi** | C tipinde tepe negatif basınçtadır; östaki borusu işlev bozukluğunda görülür. |
+| 104 | Odyoloji | saglik | Kemikçik zinciri kopukluğunda beklenen timpanogram tipi hangisidir? | C tipi · As tipi · **Ad tipi** · B tipi | Zincir kopukluğunda sistem aşırı hareketlidir; tepe yüksektir (Ad). |
+| 105 | Odyoloji | saglik | Otosklerozda timpanogram çoğunlukla hangi tiptir? | C tipi · **As tipi** · Ad tipi · B tipi | Sertleşmiş sistemde tepe basıncı normal, tepe yüksekliği düşüktür (As). |
+| 106 | Odyoloji | saglik | Efüzyonlu otitis mediada tipik timpanogram hangisidir? | **B tipi** · A tipi · Ad tipi · As tipi | Orta kulakta sıvı varken zar hareketi kısıtlanır ve eğri düzleşir. |
 | 107 | Odyoloji | saglik | Normal işitenlerde akustik refleks eşikleri tipik olarak hangi aralıktadır? | Yaklaşık 0–10 dB HL · Yaklaşık 20–30 dB HL · Yaklaşık 130–150 dB HL · **Yaklaşık 70–100 dB HL** | Stapedius refleksi yüksek şiddetli uyaranla tetiklenir; tipik eşikler yaklaşık 70–100 dB HL’dir. |
 | 108 | Odyoloji | saglik | Rinne testinde normal kulakta beklenen sonuç nedir? | Diyapazon hiç duyulmaz · Yalnızca kemik yolu duyulur · **Hava yolu kemik yolundan daha uzun duyulur** · Kemik yolu hava yolundan daha uzun duyulur | Normalde (ve sensörinöral kayıpta) Rinne pozitiftir; iletim tipi kayıpta negatifleşir. |
 | 109 | Odyoloji | saglik | Sol kulakta iletim tipi kayıp varken Weber testinde ses nerede duyulur? | Her zaman tam ortada · **Sol kulakta** · Sağ kulakta · Hiç duyulmaz | Weber testinde ses iletim tipi kayıpta etkilenen kulağa lateralize olur. |

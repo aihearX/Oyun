@@ -80,6 +80,12 @@ describe('odyoloji içeriği', () => {
     const pos = [0, 1, 2, 3].map((k) => QUIZ_QUESTIONS.filter((q) => q.answer === k).length);
     for (const n of pos) expect(n).toBeGreaterThan(QUIZ_QUESTIONS.length / 8);
   });
+  it('quiz: hiçbir şık A–D rozetleriyle karışmaz (tek harf ya da "Ad", "As" gibi; "B tipi" yazılır) (YN-118)', () => {
+    for (const q of QUIZ_QUESTIONS) for (const c of q.choices) {
+      expect(/^\p{L}$/u.test(c.trim()), `#${q.id}: “${c}”`).toBe(false);
+      expect(/^[A-Da-d]\p{Ll}?$/u.test(c.trim()), `#${q.id}: “${c}”`).toBe(false);
+    }
+  });
 
   it('Biliyor muydun? (karar 31): her bölümde bir satır, iki düzey, kısa, tek cümle, tekrar yok', () => {
     const n = HUMAN_JOURNEY.levels.length;

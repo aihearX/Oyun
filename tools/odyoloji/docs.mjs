@@ -9,8 +9,8 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 // İçerik modülleri ortak yardımcıları (metin.ts) içe aktardığı için esbuild ile tek parça yüklenir
 const { build } = await import('esbuild');
-const yukle = async (rel) => {
-  const b = await build({ entryPoints: [join(root, rel)], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external: ['@odi/shared'] });
+const yukle = async (rel, external = ['@odi/shared']) => {
+  const b = await build({ entryPoints: [join(root, rel)], bundle: true, write: false, format: 'esm', platform: 'node', logLevel: 'silent', external });
   return import('data:text/javascript;base64,' + Buffer.from(b.outputFiles[0].text).toString('base64'));
 };
 const { GLOSSARY, EAR_NOTES } = await yukle('packages/content/src/odyoloji.ts');
@@ -24,6 +24,11 @@ const { REMEDIES, PATHOLOGY_NAMES } = await yukle('packages/content/src/remedies
 const KG = await yukle('packages/content/src/kamp-gorev.ts');
 // Bölge patolojileri (oyun ekibi)
 const { PATOLOJI_IDS, PATOLOJILER } = await yukle('packages/content/src/patolojiler.ts');
+// Harita bölgelerinin kart cümlesi ve kamp süslerinin bilgi satırı
+const { BIOMES, BIOME_ORDER } = await yukle('packages/content/src/biomes.ts');
+const { DECORATIONS } = await yukle('packages/content/src/kamp-susler.ts');
+// Kamp Kliniği sonuç ekranının odyogram özeti (örnek satırlar gerçek yardımcıdan üretilir)
+const { odyoSatir } = await yukle('apps/web/src/camp/gorev/yorum.ts', []);
 const BNAME = { merkez: 'Odyoloji Merkezi', laboratuvar: 'Odyometri Odası', atolye: 'İşitme Cihazı Atölyesi', depo: 'Kulak Deposu', kule: 'Timpanometri Kulesi', revir: 'Odyoloji Kliniği', tedavi: 'Tedavi Odası' };
 
 const REGION = { 'dis-kulak': 'Dış kulak', kanal: 'Dış kulak yolu', zar: 'Kulak zarı ve orta kulak', kemikcikler: 'Kemikçikler', 'koklea-1': 'Koklea (giriş)', 'koklea-2': 'Koklea (orta kıvrım)', 'koklea-3': 'Koklea (tonotopi)', sinir: 'İşitme siniri', 'beyin-sapi': 'Beyin sapı', korteks: 'İşitsel korteks' };
@@ -33,7 +38,7 @@ const byLevel = (l) => QUIZ_QUESTIONS.filter((q) => q.level === l).length;
 
 const md = `# Odyoloji içeriği (uzman incelemesi için)
 
-> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`biliyor-muydun.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`remedies.ts\`, \`patolojiler.ts\`, \`kamp-gorev-vakalar.ts\`.
+> Bu belge \`node tools/odyoloji/docs.mjs\` ile üretilir; kaynak dosyalar: \`packages/content/src/odyoloji.ts\`, \`biliyor-muydun.ts\`, \`cards.ts\`, \`quiz.ts\`, \`kamp.ts\`, \`kamp-susler.ts\`, \`biomes.ts\`, \`remedies.ts\`, \`patolojiler.ts\`, \`kamp-gorev-vakalar.ts\`, \`apps/web/src/camp/gorev/yorum.ts\`.
 > Elle düzenlemeyin; düzeltmeyi kaynakta yapıp belgeyi yeniden üretin.
 
 **İlke:** yalnızca ders kitabı düzeyinde yerleşik bilgiler (Gelfand, *Hearing: An Introduction to Psychological and Physiological
@@ -108,6 +113,20 @@ ${CAMP_COSMETICS.map((c) => `- \`${c.id}\` — ${BNAME[c.building]} Sv ${c.level
 |---|---|---|
 ${MONUMENTS.map((m) => `| ${REGION[m.region]} | **${esc(m.name)}** | ${esc(m.plain)} |`).join('\n')}
 
+### Kamp süsleri (${DECORATIONS.length}, docs/14-kamp.md §10)
+
+| kimlik | süs | bilgi (dokununca) |
+|---|---|---|
+${DECORATIONS.map((d) => `| \`${d.id}\` | **${esc(d.name)}** | ${esc(d.plain)} |`).join('\n')}
+
+## Harita bölgeleri (${BIOME_ORDER.length})
+
+Kaynak: \`packages/content/src/biomes.ts\`. Harita kartındaki tek cümle (anlatı) ve bölge bilgisi.
+
+| bölge | ad | kart cümlesi | bilgi |
+|---|---|---|---|
+${BIOME_ORDER.map((id) => `| ${REGION[id]} | **${esc(BIOMES[id].name)}** | ${esc(BIOMES[id].blurb)} | ${esc(BIOMES[id].fact)} |`).join('\n')}
+
 ## Bölge patolojileri (${PATOLOJI_IDS.length})
 
 Kaynak: \`packages/content/src/patolojiler.ts\` (kimlikler kamp ekibinin \`remedies.ts\` → \`PATHOLOGY_IDS\` listesiyle aynı). Odi'nin
@@ -137,6 +156,10 @@ ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testin
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
 Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
 bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
+Odyogram özeti (\`yorum.ts\` → \`odyoSatir\`, YN-101/YN-118): saf ses ortalaması dar bir yüksek frekans düşüşünü göstermediği için en kötü
+bölge ayrıca söylenir; 8 kHz'te en az 10 dB düzelme varsa çentiğin frekansı (en kötü eşiğin frekansı) adıyla yazılır. Örnek (\`kv05\`):
+- Genel: ${odyoSatir(KG.vakaById('kv05').testler.odyometri, 'R', 'genel')}
+- Odyoloji: ${odyoSatir(KG.vakaById('kv05').testler.odyometri, 'L', 'odyoloji')}
 
 > **Sahip onayı bekliyor (YN-080, OT-uzman-odyolog-13).** \`kv01\` (Ece, konser sonrası) için uzman önerisi: normal odyogram gürültü
 > etkisini kesin olarak dışlamaz; çınlama sürer ya da tekrarlarsa işitme yeniden kontrol edilmeli. Yeni tıbbi cümle olduğu için oyuna
