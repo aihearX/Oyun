@@ -14,10 +14,10 @@ import { useNav } from '../nav';
 import { platform } from '../platform';
 import { HudNum, StatusDot, fmtNum } from '../ui/social';
 import { prefersReducedMotion } from '../ui/bits';
-import { celebrate } from '../celebrate';
+import { celebrate, type RecapRow } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
-import { mapGoal, treasureItems } from '../map/goals';
+import { mapGoal, returnCelebrations, treasureItems } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import { Art, Glyph, Rich, artSvg, emblemArt } from '../ui/art';
@@ -53,6 +53,9 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [settled, setSettled] = useState(false);
   // haritanın bu açılıştan önce en son gösterdiği yıldızlar: önceki hedefe ulaşıldıysa "Sıradaki hedef" bunu bir kez söyler
   const [before, setBefore] = useState<StarMap | null>(null);
+  // dönüş sahnesinin başladığı (haritada gösterilen) durum ve birikmiş kutlamalar: üç ve daha çok pencere açılacaksa sahne sürerken
+  // biriktirilir, sahne bitince tek pencerede gösterilir (OT-sinav-adayi-17: 20-25 art arda → dört pencere peş peşe)
+  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0 });
 
   // ---- Phaser haritası (bir kez kurulur; kapanınca tamamen yok edilir)
   useEffect(() => {
@@ -63,7 +66,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       const s = useStore.getState(); const now = starsOf(s.progress);
       const seenSt = useMapSeen.getState(); const seen = seenSt.init ? seenSt.stars : null;
       if (!seenSt.init) seenSt.commit(now);
-      setBefore(seen);
+      setBefore(seen); shownRef.current = seen ?? now;
       const look = odiLook(s);
       host.current.dataset.odiColor = look.color.toString(16).padStart(6, '0'); // test kancası: haritadaki Odi'nin rengi
       const hb = hudRef.current?.getBoundingClientRect().bottom ?? 70; const pb = playRef.current?.getBoundingClientRect().top ?? innerHeight - 140;
@@ -74,15 +77,23 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
         onTreasure: async (n) => {
           const items = treasureItems(useStore.getState().meta, n);
-          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz' });
+          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; return; }
+          // hazine bölüm bitince verildi ve sonuç ekranında sayıldı: burada yalnız gösterilir, sayaç yeniden saymaz
+          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true });
         },
         onZoneRise: async (z, _from, to) => {
           const ms = useMapSeen.getState(); if (to < 3 || ms.restored.includes(z)) return;
           ms.markRestored(z);
           if (z === 'finale') { celebrate.banner({ icon: '👑', title: 'Ninni beyne ulaştı!', body: 'Ninni Merkezi ışıl ışıl yandı.', tone: 'gold' }); return; }
+          if (batch.current) { batch.current.push({ icon: '🌟', text: `${BIOMES[z].name} yeniden canlandı!` }); batchCount.current.z++; return; }
           await celebrate.biomeRestored({ biome: z, name: BIOMES[z].name });
         },
-        onSequence: (p) => { setSeq(p === 'start'); setSettled(p === 'done'); if (p === 'start') started = true; if (p === 'done') useMapSeen.getState().commit(starsOf(useStore.getState().progress)); },
+        onSequence: (p) => {
+          setSeq(p === 'start'); setSettled(p === 'done');
+          const cur = starsOf(useStore.getState().progress);
+          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0 }; }
+          if (p === 'done') { useMapSeen.getState().commit(cur); shownRef.current = cur; flushBatch(); }
+        },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
       });
       handle.current = h; setStage(true); if (!seen) setSettled(true);
@@ -90,6 +101,13 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
     // sahne yarıda bırakılırsa (ör. hemen bölüme geçildi) bir dahaki açılışta tekrar oynamasın
     return () => { dead = true; if (started) useMapSeen.getState().commit(starsOf(useStore.getState().progress)); h?.destroy(); handle.current = null; };
   }, []);
+  /** sahne boyunca biriken kutlamalar: tek pencere ("Yokluğunda: 2 hazine, 2 bölge canlandı"; her biri satır) */
+  const flushBatch = () => {
+    const rows = batch.current; const { t, z } = batchCount.current; batch.current = null;
+    if (!rows?.length) return;
+    const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
+    void celebrate.recap({ title: 'Yokluğunda', sub, rows, note: t ? (t > 1 ? 'Hazineler cüzdanına eklendi' : 'Hazine cüzdanına eklendi') : undefined });
+  };
   // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
   useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);
   useEffect(() => { handle.current?.setSocial(social); }, [social]);
@@ -107,6 +125,14 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const todayHot = chestReady(daily) || calReady;
   // tek hedef, ulaşılana kadar aynı (öncelik kuralı: map/goals.ts pickGoal)
   const goal = useMemo(() => mapGoal(stars, before), [stars, before]);
+  // kesilen hedef metni dokununca tam açılır (tam genişlik, düğmelerin altında; OT-buyuk-yazi-18)
+  const [goalOpen, setGoalOpen] = useState(false);
+  useEffect(() => setGoalOpen(false), [goal.text]);
+  const onGoal = (b: HTMLElement) => {
+    const t = b.querySelector('span');
+    if (goalOpen || (t && t.scrollHeight > t.clientHeight + 1)) { setGoalOpen(!goalOpen); return; }
+    handle.current?.focusCurrent();
+  };
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
   const feat = useFeatures();
 
@@ -130,7 +156,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      {feat.cleared >= 1 || feat.open('today') ? <button className="map-goal" key={goal.text} onClick={() => handle.current?.focusCurrent()} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
+      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goalOpen ? ' open' : ''}`} key={goal.text} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
         <small>{goal.small ?? 'Sıradaki hedef'}</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
       </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}

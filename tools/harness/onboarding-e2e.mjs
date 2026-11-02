@@ -208,7 +208,9 @@ async function suite(target, browserName, [W, H]) {
       if (await page.locator(sel).count()) return true;
       if (await page.locator('.map-screen[data-donus="suruyor"], .camp-loading, [data-testid="kamp-dede"]:not([data-line=""]), .cel-stage').count()) { t0 = Date.now(); if (t0 - start > 90_000) return false; }
       else if (Date.now() - t0 > ms) return false;
-      if (await page.locator('.map-skip').count()) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined);
+      // kutlama penceresi kendiliğinden kapanmaz (YN-094, WCAG 2.2.1): oyuncu gibi düğmesine dokun
+      if (await page.locator('.cel-cta .btn').count()) await page.locator('.cel-cta .btn').first().click({ timeout: 2000 }).catch(() => undefined);
+      else if (await page.locator('.map-skip').count()) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined);
       // hızlandırma dokunuşu sahne biterken bir bölge/bölüm kartı açtıysa oyuncu gibi kapat: açık pencere varken tur başlamaz (YN-084)
       else if (await page.locator('.map-sheet-wrap').count()) await page.locator('.map-sheet-wrap').click({ position: { x: 8, y: 8 } }).catch(() => undefined);
       await sleep(500);
@@ -356,6 +358,13 @@ async function suite(target, browserName, [W, H]) {
     } else check(!tours && next === 1, `${lv}. bölüm sonucu: bekleyen tanıtım yok → Sonraki (${next})`);
     return tours;
   }
+  /** sonuç ekranının düğmesi: üstünde kutlama penceresi (seviye) varsa oyuncu gibi önce onu kapatır (pencere kendiliğinden
+   *  kapanmaz, YN-094) */
+  async function resultAct(page, act) {
+    const b = page.locator(`.result-actions [data-act="${act}"]`);
+    for (let i = 0; i < 6; i++) { await dismissCel(page); try { await b.click({ timeout: 5000 }); return; } catch { /* pencere örttü: yeniden dene */ } }
+    await b.click();
+  }
   async function waitResult(page, lv) {
     for (let i = 0; i < 400 && !(await page.locator('.result-actions').count()); i++) {
       const h = page.getByRole('button', { name: /Haydi/ }); if (await h.count()) await h.click().catch(() => undefined);
@@ -402,7 +411,7 @@ async function suite(target, browserName, [W, H]) {
       if (await page.getByRole('button', { name: /Haydi/ }).count()) await page.getByRole('button', { name: /Haydi/ }).click();
       await waitResult(page, 2);
       await resultForward(page, 2, 'today');
-      await page.locator('.result-actions [data-act="harita"]').click();
+      await resultAct(page, 'harita');
       // ---- 4 · Bugün açılır
       await driveTour(page, 'today', 'bugun-turu');
       await dismissCel(page);
@@ -413,7 +422,7 @@ async function suite(target, browserName, [W, H]) {
       await playFromMap(page, 3);
       // sahip isteği 2026-10-31 (YN-066): Kamp'ı açan bölümün sonucu bölüme değil haritaya götürür; Kamp tanıtımı haritada kendiliğinden başlar
       await sleep(600); await resultForward(page, 3, 'camp', 'sonuc-kamp-acildi');
-      await page.locator('.result-actions [data-act="harita"]').click();
+      await resultAct(page, 'harita');
       await waitTour(page, '[data-testid="anlatici-tur"][data-tour="camp"]', 40_000);
       await page.locator('[data-testid="anlatici-tur"][data-tour="camp"]').waitFor({ timeout: 5_000 });
       check(await page.locator('.map-play').count() === 1 && !(await page.locator('.result-actions').count()), 'Kamp tanıtımı haritada ek dokunuş olmadan başladı');
@@ -431,11 +440,11 @@ async function suite(target, browserName, [W, H]) {
       await page.getByRole('button', { name: /Tekrar oyna/ }).click({ timeout: 10_000 });
       await waitResult(page, 3); await dismissCel(page);
       await resultForward(page, 3, '');
-      await page.locator('.result-actions [data-act="sonraki"]').click();
+      await resultAct(page, 'sonraki');
       await page.locator('.result-actions').waitFor({ state: 'detached', timeout: 20_000 });
       check(!(await page.locator('nav.tabbar').count()), 'Sonraki haritaya uğramadan sıradaki bölümü başlattı');
       await waitResult(page, 4); await resultForward(page, 4, 'friends glossary');
-      await page.locator('.result-actions [data-act="harita"]').click();
+      await resultAct(page, 'harita');
       await driveTour(page, 'friends', 'arkadaslar-turu');
       // Kulak Sözlüğü (4. bölümden sonra, arkadaşlardan hemen sonra): kutucuğa dokun → sözlük açılır → ilk terim
       await driveTour(page, 'glossary', 'sozluk-turu');
@@ -446,7 +455,7 @@ async function suite(target, browserName, [W, H]) {
       await page.getByRole('button', { name: 'Geri' }).first().click();
       await page.locator('nav.tabbar .tab[data-tab="map"]').click(); await page.locator('.map-play').waitFor();
       check((await lockedTabs(page)).includes('team'), 'Takım hâlâ kilitli (Bölüm 5)');
-      await playFromMap(page, 5); await resultForward(page, 5, 'team siralama'); await page.locator('.result-actions [data-act="harita"]').click();
+      await playFromMap(page, 5); await resultForward(page, 5, 'team siralama'); await resultAct(page, 'harita');
       await driveTour(page, 'team', 'takim-turu');
       check(!(await lockedTabs(page)).length, 'bütün sekmeler açık');
       // ---- 7 · 6–10. bölüm: her açılım tek tek, anlatıcı yükü ölçülür (yalnız Chromium; WebKit aynı turları 1–5'te denetler)
@@ -456,7 +465,7 @@ async function suite(target, browserName, [W, H]) {
           await toMap(page, perLevel[`${lv - 1}-kamp`] ?? perLevel[lv - 1], `b${lv - 1}-gecis`);
           await playFromMap(page, lv); const bekleyen = await resultForward(page, lv);
           check(bekleyen ? !(await page.locator('.result-actions [data-act="sonraki"]').count()) : (await page.locator('.result-actions [data-act="sonraki"]').count()) === 1, `${lv}. bölüm sonucu: ${bekleyen ? `haritada bekleyen ${bekleyen} → Haritaya dön` : 'bekleyen yok → Sonraki'}`);
-          await page.locator('.result-actions [data-act="harita"]').click();
+          await resultAct(page, 'harita');
           await dismissCel(page);
           perLevel[lv] = await drainTours(page, `b${lv}`);
           // bir tur alt ekranda bitince (ör. Etkinlik çadırı) haritaya dönüşte sıradaki tur başlayabilir

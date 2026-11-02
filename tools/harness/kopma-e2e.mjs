@@ -240,6 +240,8 @@ async function newPlayer(browser, bt, tag, name) {
   await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) { localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); localStorage.setItem('odi.kamp.gorunum', 'liste'); } } catch { /* yok */ } });
   await ctx.addInitScript(KAYIT);
   const page = await ctx.newPage();
+  // kutlama penceresi (ör. Kamp Seviyesi) kendiliğinden kapanmaz (YN-094, WCAG 2.2.1): bir işlem onun altında kalırsa oyuncu gibi düğmesine dokunulur
+  await page.addLocatorHandler(page.locator('.cel-cta .btn'), async (b) => { await b.click({ timeout: 3000 }).catch(() => undefined); }, { noWaitAfter: true });
   const P = { tag, name, ctx, page, errors: [], proxy: await makeProxy(tag), pid: null, dir: resolve(outRoot, bt), n: 0 };
   mkdirSync(P.dir, { recursive: true });
   page.on('pageerror', (e) => P.errors.push(String(e.message ?? e)));

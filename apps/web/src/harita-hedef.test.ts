@@ -1,7 +1,7 @@
 // Haritanın "Sıradaki hedef"i (OT-ilk-kez-oyun-13): tek hedef, ulaşılana kadar aynı; ulaşılan aşama bir kez söylenir.
 import { describe, expect, it } from 'vitest';
 import { BIOMES, HUMAN_JOURNEY } from '@odi/content';
-import { mapGoal, pickGoal } from './map/goals';
+import { mapGoal, pickGoal, returnCelebrations } from './map/goals';
 
 /** ilk n bölüm geçilmiş (her biri k yıldız) */
 const upTo = (n: number, k = 2): Record<number, number> => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, k]));
@@ -74,5 +74,16 @@ describe('yıldız hedefi (yolculuk bitti)', () => {
     const g = mapGoal(other, all2);
     expect(g.small).toBeUndefined();
     expect(g.text).toBe(`${first.stars!.n} yıldız daha: ${BIOMES[first.stars!.id].name} ışıl ışıl olur`);
+  });
+});
+
+describe('dönüş kutlamaları (returnCelebrations)', () => {
+  it('tek bölüm: en çok hazine + canlanma; art arda bölümler: hepsi sayılır, kutlanmış bölge sayılmaz', () => {
+    expect(returnCelebrations(upTo(3, 3), upTo(4, 3), [])).toBe(0);
+    // 5. bölüm: hazine + Dış Kulak canlanır
+    expect(returnCelebrations(upTo(4, 3), upTo(5, 3), [])).toBe(2);
+    expect(returnCelebrations(upTo(4, 3), upTo(5, 3), ['dis-kulak'])).toBe(1);
+    // 1-10 birden: iki hazine ve en az bir canlanma → üç ya da daha çok (tek pencere)
+    expect(returnCelebrations({}, upTo(10, 3), [])).toBeGreaterThanOrEqual(3);
   });
 });

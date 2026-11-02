@@ -25,10 +25,10 @@ const base = `http://localhost:${port}`;
 const browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
 const errors = []; const shots = [];
 
-async function page(w = W, h = H) {
+async function page(w = W, h = H, { big = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, locale: 'tr-TR' });
   // ilk açılış rehberini (hikâye + anlatıcı turları + kilitler) atla: bu test başka bir akışı sınar (bkz. onboarding-e2e.mjs)
-  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); } catch { /* depolama yok */ } });
+  await ctx.addInitScript((b) => { try { if (!localStorage.getItem('odi-v1')) localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true }, ...(b ? { bigText: true } : {}) }, version: 3 })); } catch { /* depolama yok */ } }, big);
   const p = await ctx.newPage();
   p.on('pageerror', (e) => errors.push(String(e.message ?? e)));
   p.on('console', (m) => { if (m.type() === 'error' && !/favicon|WebSocket|ws:\/\/|ERR_CONNECTION|AudioContext|vibrate/i.test(m.text())) errors.push(m.text()); });
@@ -82,6 +82,9 @@ try {
   await cel(p, 'levelUp', { level: 7, unlocks: ['Yeni hareket: Çift zıplama', 'Kulak Kartı: Örs', 'Kostüm: Kaşif şapkası'] });
   await sleep(450); await shot(p, '17-seviye-patlama');
   await sleep(1900); await shot(p, '18-seviye-liste');
+  // YN-094: pencere kendiliğinden kapanmaz (WCAG 2.2.1, OT-buyuk-yazi-19): 20 sn sonra hâlâ açık
+  await sleep(18_000);
+  if (!(await p.locator('.lvl-stage').count())) errors.push('seviye penceresi 20 sn içinde kendiliğinden kapandı');
   await p.getByRole('button', { name: 'Harika!' }).click();
   // YN-081: pencere kapanınca ~400 ms alttaki ekran dokunuş almaz (pencereye giden dokunuş alttaki düğmeye geçmesin), sonra alır
   {
@@ -95,13 +98,50 @@ try {
   await cel(p, 'biomeRestored', { biome: 'koklea-1', name: 'Koklea · Taban', reward: [{ kind: 'jeton', amount: 200 }, { kind: 'kristal', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'renk-turkuaz' }] });
   await sleep(700); await shot(p, '19-biyom-yukselis');
   await sleep(2900); await shot(p, '20-biyom-canlandi');
+  // YN-094: notalar ve konfeti yazının arkasında (parçacık tuvali sahnenin altında; OT-sessiz-oyuncu-11)
+  {
+    const z = await p.evaluate(() => { const c = document.querySelector('.cel-canvas'); const st = document.querySelector('.biome-stage'); return c && st ? [Number(getComputedStyle(c).zIndex), Number(getComputedStyle(st).zIndex)] : null; });
+    if (!z || !(z[0] < z[1])) errors.push(`biyom sahnesinde parçacıklar yazının üstünde (z: ${JSON.stringify(z)})`);
+  }
   await p.getByRole('button', { name: 'Topla' }).click(); await sleep(2500);
+  // YN-094: sonuç ekranında verilmiş hazine haritada yeniden "toplanmaz": "Tamam", jeton uçmaz (OT-sinav-adayi-17)
+  await cel(p, 'chest', { title: 'Hazine · Bölüm 20', tier: 'gumus', granted: true, items: [{ kind: 'jeton', amount: 100 }, { kind: 'xp', amount: 30 }] });
+  await sleep(4400); await shot(p, '20b-hazine-verilmis');
+  if (!(await p.locator('.cel-stage', { hasText: 'Cüzdanına eklendi' }).count())) errors.push('verilmiş hazinede "Cüzdanına eklendi" yok');
+  await p.getByRole('button', { name: 'Tamam' }).click(); await sleep(120);
+  if (await p.locator('.cel-coin').count()) errors.push('verilmiş hazine jetonları sayaca yeniden uçtu');
+  await sleep(1200);
+  // birikmiş kutlamalar tek pencerede
+  await cel(p, 'recap', { title: 'Yokluğunda', sub: '2 hazine, 2 bölge canlandı', note: 'Hazineler cüzdanına eklendi', rows: [{ icon: '🎁', text: 'Hazine · Bölüm 20', items: [{ kind: 'jeton', amount: 100 }] }, { icon: '🎁', text: 'Hazine · Bölüm 25', items: [{ kind: 'jeton', amount: 120 }, { kind: 'xp', amount: 40 }] }, { icon: '🌟', text: 'Kulak Kanalı yeniden canlandı!' }, { icon: '🌟', text: 'Koklea · Taban yeniden canlandı!' }] });
+  await sleep(2600); await shot(p, '20c-birikmis');
+  await p.getByRole('button', { name: 'Tamam' }).click(); await sleep(1200);
   await cel(p, 'banner', { icon: '🏗️', title: 'Laboratuvar 3. seviye!', body: 'İnşaat bitti', tone: 'gold' });
   await sleep(500); await shot(p, '21-serit');
   await sleep(2600);
   await p.locator('nav.tabbar .tab', { hasText: 'Profil' }).click(); await sleep(600); await shot(p, '22-profil');
   await p.locator('.menu-tile', { hasText: 'Ayarlar' }).click(); await sleep(600); await shot(p, '23-ayarlar');
   await p.close();
+
+  console.log('▶ Büyük yazı: seviye penceresi kendiliğinden kapanmaz, kapanınca alttaki düğme tetiklenmez');
+  {
+    const b = await page(W, H, { big: true });
+    await b.goto(`${base}/?kutlama=1`, { waitUntil: 'load' });
+    await b.getByRole('button', { name: /Yola çık|Devam et/ }).click(); await sleep(600);
+    await b.locator('nav.tabbar .tab', { hasText: 'Bugün' }).click(); await sleep(700);
+    await cel(b, 'levelUp', { level: 8, unlocks: ['Yeni bölge: Kulak Kanalı', 'Kulak Kartı: Örs', 'Kostüm: Kaşif şapkası'] });
+    await sleep(20_000);
+    if (!(await b.locator('.lvl-stage').count())) errors.push('Büyük yazı: seviye penceresi 20 sn içinde kendiliğinden kapandı');
+    await shot(b, '24-buyuk-yazi-seviye-20sn');
+    // "Harika!" düğmesinin yerine iki kez dokun (ikincisi kapanıştan hemen sonra): alttaki ekrana geçmemeli (kalkan, SHIELD_MS)
+    await b.evaluate(() => { window.__alt = []; document.addEventListener('click', (e) => { const t = e.target; if (t instanceof Element && !t.closest('.cel-root')) window.__alt.push(t.className || t.tagName); }, true); });
+    const r = await b.getByRole('button', { name: 'Harika!' }).boundingBox();
+    if (r) { await b.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2); await sleep(120); await b.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2); }
+    await sleep(800);
+    if (await b.locator('.lvl-stage').count()) errors.push('Büyük yazı: "Harika!" seviye penceresini kapatmadı');
+    const alt = await b.evaluate(() => window.__alt);
+    if (alt.length) errors.push(`Büyük yazı: pencere kapanırken dokunuş alttaki ekrana geçti (${alt.join(', ')})`);
+    await b.close();
+  }
 
   console.log('▶ 360 px taşma denetimi');
   const n = await page(360, 740);

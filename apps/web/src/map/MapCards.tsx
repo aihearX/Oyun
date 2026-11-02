@@ -1,5 +1,5 @@
-/** Harita kartları: bölüm kartı, hazine önizlemesi, bölge (biyom) kartı. Alt tabaka, dokununca kapanır. */
-import { useMemo, type ReactNode } from 'react';
+/** Harita kartları: bölüm kartı, hazine önizlemesi, bölge (biyom) kartı. Alt tabaka; boşluğa dokununca, Kapat'la ya da Escape/geri ile kapanır. */
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { BIOMES, BOSSES, HUMAN_JOURNEY, MECHANICS, treasureAt } from '@odi/content';
 import { generateLevel } from '@odi/level-gen';
@@ -18,11 +18,25 @@ import { RemedyPicker } from '../camp/RemedyPicker';
 export type MapCard = { kind: 'node'; n: number } | { kind: 'treasure'; n: number } | { kind: 'zone'; z: ZoneId };
 
 function Sheet({ onClose, children, tone }: { onClose: () => void; children: ReactNode; tone?: string }) {
+  const close = useRef(onClose); close.current = onClose;
+  const ref = useRef<HTMLDivElement>(null);
+  // Escape (klavye, Android geri) kartı kapatır; odak açılınca karta, kapanınca önceki yerine (OT-eski-telefon-13)
+  useEffect(() => {
+    const prev = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    ref.current?.focus({ preventScroll: true });
+    const k = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.repeat || e.defaultPrevented) return;
+      e.preventDefault(); close.current();
+    };
+    addEventListener('keydown', k);
+    return () => { removeEventListener('keydown', k); if (prev?.isConnected) prev.focus({ preventScroll: true }); };
+  }, []);
   // gövdeye taşınır: haritanın sabit katmanı sekme çubuğunun altında kalmasın
   return createPortal(
     <div className="map-sheet-wrap" onClick={onClose} role="dialog" aria-modal="true">
-      <div className={`map-sheet${tone ? ` ${tone}` : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`map-sheet${tone ? ` ${tone}` : ''}`} ref={ref} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" />
+        <button type="button" className="map-sheet-x" aria-label="Kapat" onClick={onClose}><Icon name="close" size={20} /></button>
         {children}
       </div>
     </div>,

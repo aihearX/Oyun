@@ -1,7 +1,7 @@
 /** Haritanın "Sıradaki hedef" rozeti ve kart metinleri: gerçek ilerlemeden, dürüst sayılar. */
 import { BIOME_ORDER, BIOMES, HUMAN_JOURNEY, TREASURES, treasureAt, type LevelPlan, type RewardItem } from '@odi/content';
 import type { MetaState } from '@odi/meta';
-import { journeyDone, nextVitalityNeed, unlockedOf, vitalityOf, type StarMap, type Vitality } from '@odi/game-core/lite';
+import { journeyDone, nextVitalityNeed, planReturn, unlockedOf, vitalityOf, type StarMap, type Vitality } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 
 export interface Goal { icon: string; text: string; /** hedefe ulaşılınca bir kez söylenir */ small?: string }
@@ -106,4 +106,12 @@ export function mapGoal(stars: StarMap, before: StarMap | null): Goal {
 export function treasureItems(meta: Pick<MetaState, 'ledger'>, n: number): RewardItem[] {
   const rec = [...meta.ledger].reverse().find((g) => g.reason === `hazine:${n}`);
   return rec ? rec.items : treasureAt(n)?.reward ?? [];
+}
+
+/**
+ * Haritaya dönüş sahnesinin açacağı kutlama pencereleri: açılan hazineler ve ilk kez canlanan bölgeler (MapScreen onTreasure /
+ * onZoneRise ile aynı kural; son bölge pencere değil şerittir). Üç ve daha çoksa tek pencerede toplanır (OT-sinav-adayi-17).
+ */
+export function returnCelebrations(seen: StarMap, now: StarMap, restored: readonly string[]): number {
+  return planReturn(seen, now).filter((st) => st.kind === 'treasure' || (st.kind === 'zone' && st.to >= 3 && st.zone !== 'finale' && !restored.includes(st.zone))).length;
 }

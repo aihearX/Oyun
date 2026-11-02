@@ -101,8 +101,18 @@
 .bm-wave i:nth-child(2) { animation-delay:.8s; } .bm-wave i:nth-child(3) { animation-delay:1.6s; }
 .bm-name { font-weight:900; font-size:clamp(36px, 12vw, 54px); line-height:1.05; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 30px rgba(255,255,255,.45); animation:nameIn .8s cubic-bezier(.2,1.4,.4,1) both; max-width:100%; overflow-wrap:anywhere; }
 @keyframes nameIn { 0% { opacity:0; transform:scale(2.2); filter:blur(8px); } 100% { opacity:1; transform:none; filter:none; } }
-.bm-sub { font-weight:900; font-size:clamp(20px, 6.5vw, 26px); color:var(--gold); text-shadow:0 3px 0 #9a4f00; animation:titleDrop .5s .45s cubic-bezier(.2,1.5,.4,1) both; }
+/* alt satır koyu şeritte (sarı yazı bölgenin turuncu-kahve zemininde soluktu; kontrast ≥ 4,5:1, OT-sessiz-oyuncu-11) */
+.bm-sub { font-weight:900; font-size:clamp(20px, 6.5vw, 26px); color:var(--gold); animation:titleDrop .5s .45s cubic-bezier(.2,1.5,.4,1) both; }
+.bm-sub span { display:inline-block; padding:4px 16px 6px; border-radius:999px; background:rgba(14,6,34,.86); box-shadow:0 4px 14px rgba(0,0,0,.35); text-shadow:0 2px 0 #000; }
+/* biyom sahnesinde parçacık tuvali sahnenin arkasında: notalar yazının üstünden geçmez */
+.cel-root.fx-back .cel-canvas { z-index:1; }
 .ph-rise .bm-wave i { border-color:rgba(255,255,255,.9); }
+
+/* ---------------------------------------------------------------- birikmiş kutlamalar (tek pencere) */
+.rc-sub { font-weight:900; font-size:1rem; color:var(--gold); margin-top:-8px; }
+.recap-stage .lvl-item > .min0 { display:flex; flex-direction:column; gap:2px; }
+.recap-stage .chips { margin-top:2px; } .recap-stage .chip { background:#fff; color:var(--ink); border-color:#f0dcb4; }
+.cel-note { font-weight:900; font-size:0.9375rem; color:#d6ffe9; background:rgba(14,6,34,.7); border-radius:999px; padding:5px 14px; }
 
 @media (prefers-reduced-motion: reduce) {
   .cc-rays, .lvl-rays, .bm-wave, .cc-burst { display:none; }

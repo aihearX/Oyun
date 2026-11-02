@@ -1,28 +1,30 @@
 /**
  * Kutlama katmanı: sandık, jeton uçuşu, seviye atlama, biyom canlandı, şerit.
  * Kuyruklu (aynı anda tek kutlama), dokununca hızlanır, prefers-reduced-motion'da kısa ve parçacıksız.
+ * Pencereler kendiliğinden kapanmaz: oyuncu düğmeye (ya da seviye penceresinde sahneye) dokununca kapanır (WCAG 2.2.1, OT-buyuk-yazi-19).
  * Dürüstlük: gösterilen içerik = verilen içerik (çağıranın verdiği öğeler aynen gösterilir); gizli olasılık yok.
  */
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { audio } from '@odi/audio';
 import { BIOMES, cardById, cosmeticById } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
-import { celebrate as celebrateRef, registerCelebrations, useCelebrating, type RewardItem, type ScreenPoint } from './index';
+import { celebrate as celebrateRef, registerCelebrations, useCelebrating, type RecapRow, type RewardItem, type ScreenPoint } from './index';
 import { Particles } from './particles';
 import { hud, type HudKind } from './hud';
 import { setFxEngine } from './fx';
 import { platform } from '../platform';
 import { useStore } from '../store';
 import { Toasts } from '../ui/Toasts';
-import { CosmeticThumb, prefersReducedMotion } from '../ui/bits';
+import { CosmeticThumb, prefersReducedMotion, RewardChips } from '../ui/bits';
 import { Art, Glyph, Rich } from '../ui/art';
 import './celebrate.css';
 
 type Tier = 'bronz' | 'gumus' | 'altin';
 type Scene =
-  | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number }
+  | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number; granted: boolean }
   | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
-  | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number };
+  | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number }
+  | { kind: 'recap'; title: string; sub?: string; note?: string; rows: RecapRow[]; phase: 'list' | 'out'; shown: number };
 
 /** interactive: tam ekran sahne (sandık, seviye, biyom); kapanınca alttaki ekran kısa bir süre dokunuş almaz */
 interface Job { run: () => Promise<void>; done: () => void; interactive: boolean }
@@ -48,31 +50,34 @@ const center = (el: Element | null | undefined): ScreenPoint | null => { if (!el
 
 export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   const [scene, setScene] = useState<Scene | null>(null);
-  // sahne kendiliğinden kapanırken pencerenin düğmesine giden dokunuş alttaki ekrana (ör. "Takıma gönder") geçmesin (OT-ekonomi-denetci-14)
+  // sahne kapanırken pencerenin düğmesine giden dokunuş alttaki ekrana (ör. "Takıma gönder") geçmesin (OT-ekonomi-denetci-14)
   const [shield, setShield] = useState(false); const shieldT = useRef(0);
   const canvasRef = useRef<HTMLCanvasElement>(null); const flyRef = useRef<HTMLDivElement>(null); const chestRef = useRef<HTMLDivElement>(null); const cardsRef = useRef<HTMLDivElement>(null);
   const fx = useRef<Particles | null>(null);
   const queue = useRef<Job[]>([]); const busy = useRef(false);
-  const skipFn = useRef<(() => void) | null>(null); const waitBtn = useRef<(() => void) | null>(null);
+  const skipFn = useRef<(() => void) | null>(null); const waitBtn = useRef<(() => void) | null>(null); const early = useRef(false);
   const reduced = useRef(prefersReducedMotion());
 
   // ---------------------------------------------------------------- yardımcılar
   /** bekle; dokunuş bekleyişi kısaltır (hızlandırma). Azaltılmış harekette çok kısa. */
   const wait = (ms: number) => new Promise<void>((res) => {
+    if (early.current) { res(); return; }
     const d = reduced.current ? Math.min(ms, 120) : ms;
     const h = setTimeout(() => { skipFn.current = null; res(); }, d);
     skipFn.current = () => { clearTimeout(h); skipFn.current = null; res(); };
   });
-  /** düğmeye basılmasını bekle (ya da üst sınır süre) */
-  const waitTap = (maxMs = 9000) => new Promise<void>((res) => {
-    const h = setTimeout(() => { waitBtn.current = null; res(); }, maxMs);
-    waitBtn.current = () => { clearTimeout(h); waitBtn.current = null; res(); };
+  /** düğmeye basılmasını bekle. Süre sınırı yok: yavaş okuyan oyuncu açılanları okumadan pencere kapanmasın (OT-buyuk-yazi-19) */
+  const waitTap = () => new Promise<void>((res) => {
+    if (early.current) { early.current = false; res(); return; }
+    waitBtn.current = () => { waitBtn.current = null; res(); };
   });
+  /** pencerenin düğmesi: açılanlar sıralanırken basılırsa sıralama kısalır ve pencere beklemeden kapanır */
+  const ok = () => { if (waitBtn.current) { waitBtn.current(); return; } early.current = true; skipFn.current?.(); };
   const enqueue = (run: () => Promise<void>, interactive = true) => new Promise<void>((done) => { queue.current.push({ run, done, interactive }); void pump(); });
   const pump = async () => {
     if (busy.current) return; busy.current = true;
     while (queue.current.length) {
-      const j = queue.current.shift()!;
+      const j = queue.current.shift()!; early.current = false;
       try { await j.run(); } catch { /* kutlama hatası oyunu durdurmasın */ }
       setScene(null); j.done();
       if (j.interactive) { setShield(true); clearTimeout(shieldT.current); shieldT.current = window.setTimeout(() => setShield(false), SHIELD_MS); }
@@ -114,10 +119,11 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   };
 
   // ---------------------------------------------------------------- kutlamalar
-  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier }) => {
-    const items = o.items; const tier = o.tier ?? 'bronz';
-    for (const it of items) { const k = currency(it); if (k) hud.hold(k, it.amount); }
-    const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0 };
+  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier; granted?: boolean }) => {
+    const items = o.items; const tier = o.tier ?? 'bronz'; const granted = !!o.granted;
+    // granted: içerik cüzdana zaten girdi ve sayaç onu saydı (sonuç ekranı): sayaç yeniden saymaz, jeton uçmaz (OT-sinav-adayi-17)
+    if (!granted) for (const it of items) { const k = currency(it); if (k) hud.hold(k, it.amount); }
+    const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0, granted };
     audio.duck('kutlama', 6, 0.35);
     setScene({ ...base, phase: 'drop' }); audio.play('whoosh', { vol: 0.8 }); await wait(700);
     for (let i = 0; i < 3; i++) { setScene({ ...base, phase: 'shake', shake: i + 1 }); audio.play('chestShake', { semitones: i * 2 }); platform().haptic(i === 2 ? 'heavy' : 'medium'); await wait(560); }
@@ -127,13 +133,13 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await wait(650);
     for (let k = 1; k <= items.length; k++) { setScene({ ...base, phase: 'reveal', shake: 3, shown: k }); audio.play('itemReveal', { semitones: Math.min(12, (k - 1) * 2) }); platform().haptic('light'); await wait(420); }
     setScene({ ...base, phase: 'collect', shake: 3, shown: items.length });
-    await waitTap(15000);
+    await waitTap();
     // topla: para birimleri sayaca uçar, diğerleri yukarı süzülür
     const cards = Array.from(cardsRef.current?.querySelectorAll<HTMLElement>('.cel-card') ?? []);
     setScene({ ...base, phase: 'out', shake: 3, shown: items.length });
     audio.play('whoosh', { vol: 0.6 });
-    await Promise.all(items.map(async (it, i) => { const k = currency(it); if (k) await flyCoins(it.amount, k, center(cards[i]), true); }));
-    await sleep(reduced.current ? 0 : 150);
+    if (!granted) await Promise.all(items.map(async (it, i) => { const k = currency(it); if (k) await flyCoins(it.amount, k, center(cards[i]), true); }));
+    await sleep(reduced.current ? 0 : granted ? 300 : 150);
   };
 
   const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string }) => {
@@ -146,7 +152,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await wait(1100);
     for (let k = 1; k <= unlocks.length; k++) { setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'list', shown: k }); audio.play('unlock', { semitones: (k - 1) * 2, vol: 0.8 }); await wait(380); }
     setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'list', shown: unlocks.length });
-    await waitTap(7000);
+    await waitTap();
     setScene({ kind: 'levelUp', level: o.level, unlocks, phase: 'out', shown: unlocks.length }); await sleep(reduced.current ? 0 : 220);
   };
 
@@ -162,10 +168,23 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await wait(1200);
     for (let k = 1; k <= reward.length; k++) { setScene({ ...base, phase: 'reward', shown: k }); audio.play('itemReveal', { semitones: (k - 1) * 2 }); await wait(400); }
     setScene({ ...base, phase: 'reward', shown: reward.length });
-    await waitTap(9000);
+    await waitTap();
     const cards = Array.from(cardsRef.current?.querySelectorAll<HTMLElement>('.cel-card') ?? []);
     setScene({ ...base, phase: 'out', shown: reward.length });
     await Promise.all(reward.map(async (it, i) => { const k = currency(it); if (k) await flyCoins(it.amount, k, center(cards[i]), true); }));
+  };
+
+  /** birikmiş kutlamalar tek pencerede (haritaya dönüş: hazineler, canlanan bölgeler; her biri satır) */
+  const runRecap = async (o: { title: string; sub?: string; note?: string; rows: RecapRow[] }) => {
+    const base = { kind: 'recap' as const, title: o.title, sub: o.sub, note: o.note, rows: o.rows };
+    audio.duck('kutlama', 3, 0.3);
+    setScene({ ...base, phase: 'list', shown: 0 }); audio.play('biomeAwaken'); platform().haptic('success');
+    const cx = window.innerWidth / 2; P()?.confetti(cx, window.innerHeight * 0.3, 90, 1);
+    await wait(500);
+    for (let k = 1; k <= o.rows.length; k++) { setScene({ ...base, phase: 'list', shown: k }); audio.play('unlock', { semitones: (k - 1) * 2, vol: 0.8 }); await wait(380); }
+    setScene({ ...base, phase: 'list', shown: o.rows.length });
+    await waitTap();
+    setScene({ ...base, phase: 'out', shown: o.rows.length }); await sleep(reduced.current ? 0 : 220);
   };
 
   useEffect(() => {
@@ -176,11 +195,12 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
       coins: (o) => enqueue(() => flyCoins(o.amount, o.kind ?? 'jeton', o.from ?? null, false), false),
       levelUp: (o) => enqueue(() => runLevelUp(o)),
       biomeRestored: (o) => enqueue(() => runBiome(o)),
+      recap: (o) => enqueue(() => runRecap(o)),
       banner: (o) => { const tone = o.tone === 'coral' ? 'coral' : o.tone === 'green' ? 'green' : o.tone === 'gold' ? 'gold' : 'accent'; useStore.setState((s) => ({ toasts: [...s.toasts, { id: Date.now() + Math.random(), icon: o.icon, title: o.title, text: o.body, tone }] })); },
     });
     // test/önizleme için (yalnızca ?demo / ?kutlama varken)
     if (/[?&](demo|kutlama)=/.test(location.search)) (window as unknown as { __celebrate?: unknown }).__celebrate = { ...celebrateRef };
-    return () => { clearTimeout(shieldT.current); removeEventListener('resize', onResize); fx.current?.destroy(); setFxEngine(null); registerCelebrations({ async chest() {}, async coins() {}, async levelUp() {}, async biomeRestored() {}, banner() {} }); };
+    return () => { clearTimeout(shieldT.current); removeEventListener('resize', onResize); fx.current?.destroy(); setFxEngine(null); registerCelebrations({ async chest() {}, async coins() {}, async levelUp() {}, async biomeRestored() {}, async recap() {}, banner() {} }); };
   }, []);
 
   // anlatıcı turu kutlama süresince duraklar (ftue/Coach.tsx); kuyruktaki art arda kutlamalar arasında boşluk yok (aynı karede değişir)
@@ -193,11 +213,13 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   return (
     <>
       {toasts && <Toasts />}
-      <div className={`cel-root${scene ? ' on' : ''}`} aria-live="polite">
+      {/* biyom sahnesinde parçacıklar (notalar, konfeti) yazının arkasında kalır (OT-sessiz-oyuncu-11) */}
+      <div className={`cel-root${scene ? ' on' : ''}${scene?.kind === 'biome' ? ' fx-back' : ''}`} aria-live="polite">
         {scene && <div className={`cel-back${scene.phase === 'out' ? ' out' : ''}${scene.kind === 'biome' ? ' biome' : ''}`} style={scene.kind === 'biome' ? biomeVars(scene.biome) : undefined} onClick={tapStage} />}
-        {scene?.kind === 'chest' && <ChestScene s={scene} chestRef={chestRef} cardsRef={cardsRef} onTap={tapStage} onCollect={() => waitBtn.current?.()} />}
-        {scene?.kind === 'levelUp' && <LevelUpScene s={scene} onTap={tapStage} onOk={() => waitBtn.current?.()} />}
-        {scene?.kind === 'biome' && <BiomeScene s={scene} cardsRef={cardsRef} onTap={tapStage} onOk={() => waitBtn.current?.()} />}
+        {scene?.kind === 'chest' && <ChestScene s={scene} chestRef={chestRef} cardsRef={cardsRef} onTap={tapStage} onCollect={ok} />}
+        {scene?.kind === 'levelUp' && <LevelUpScene s={scene} onTap={tapStage} onOk={ok} />}
+        {scene?.kind === 'biome' && <BiomeScene s={scene} cardsRef={cardsRef} onTap={tapStage} onOk={ok} />}
+        {scene?.kind === 'recap' && <RecapScene s={scene} onTap={tapStage} onOk={ok} />}
         {shield && !scene && <div className="cel-shield" data-testid="kutlama-kalkan" aria-hidden />}
         <canvas ref={canvasRef} className="cel-canvas" aria-hidden />
         <div ref={flyRef} className="cel-fly" aria-hidden />
@@ -249,8 +271,9 @@ function ChestScene({ s, chestRef, cardsRef, onTap, onCollect }: { s: Extract<Sc
       <div className={`cel-cards n${Math.min(6, s.items.length)}`} ref={cardsRef}>
         {opened && s.items.map((it, i) => <Card key={i} it={it} i={i} show={i < s.shown} />)}
       </div>
+      {s.granted && (s.phase === 'collect' || s.phase === 'out') && <div className="cel-note">Cüzdanına eklendi</div>}
       <div className="cel-cta">
-        {s.phase === 'collect' ? <button className="btn gold big-cta" onClick={(e) => { e.stopPropagation(); onCollect(); }}>Topla</button>
+        {s.phase === 'collect' ? <button className="btn gold big-cta" onClick={(e) => { e.stopPropagation(); onCollect(); }}>{s.granted ? 'Tamam' : 'Topla'}</button>
           : s.phase !== 'out' && <div className="cel-hint">Dokun: hızlandır</div>}
       </div>
     </div>
@@ -279,7 +302,7 @@ function BiomeScene({ s, cardsRef, onTap, onOk }: { s: Extract<Scene, { kind: 'b
     <div className={`cel-stage biome-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={`${s.name} yeniden canlandı`}>
       <div className="bm-wave" aria-hidden><i /><i /><i /></div>
       {titled && <div className="bm-name">{s.name}</div>}
-      {titled && <div className="bm-sub">yeniden canlandı!</div>}
+      {titled && <div className="bm-sub"><span>yeniden canlandı!</span></div>}
       <div className={`cel-cards n${Math.min(6, s.reward.length)}`} ref={cardsRef}>
         {s.reward.map((it, i) => <Card key={i} it={it} i={i} show={i < s.shown} />)}
       </div>
@@ -288,3 +311,22 @@ function BiomeScene({ s, cardsRef, onTap, onOk }: { s: Extract<Scene, { kind: 'b
   );
 }
 
+
+function RecapScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'recap' }>; onTap: () => void; onOk: () => void }) {
+  return (
+    <div className={`cel-stage recap-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={s.sub ? `${s.title}: ${s.sub}` : s.title}>
+      <div className="cel-title">{s.title}</div>
+      {s.sub && <div className="rc-sub">{s.sub}</div>}
+      <div className="lvl-list">
+        {s.rows.map((r, i) => (
+          <div key={i} className={`lvl-item${i < s.shown ? ' in' : ''}`}>
+            <span aria-hidden><Glyph e={r.icon} size={24} /></span>
+            <span className="min0"><b><Rich text={r.text} /></b>{r.items && r.items.length > 0 && <RewardChips items={r.items} small />}</span>
+          </div>
+        ))}
+      </div>
+      {s.note && <div className="cel-note">{s.note}</div>}
+      <div className="cel-cta"><button className="btn gold big-cta" onClick={(e) => { e.stopPropagation(); onOk(); }}>Tamam</button></div>
+    </div>
+  );
+}
