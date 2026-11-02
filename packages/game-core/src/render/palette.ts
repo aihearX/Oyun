@@ -23,6 +23,11 @@ export interface BiomeArt {
   motes: number[];
   /** tonotopi aralığı (koklea) */
   tono?: [number, number];
+  /**
+   * platform dudağının koyu kalın kenarı ve belirgin alt gölgesi (yoksa ince kontur): arka planı ışıklı çizgilerle dolu biyomda
+   * basılacak yer arka plandan ayrılsın (YN-119, İşitme Siniri)
+   */
+  edge?: number;
   /** suyun içinde mi (kabarcıklar, ışık huzmeleri yukarıdan) */
   underwater?: boolean;
   /** bölüm kimliği: gökteki vurgu motifi (bkz. LEVEL_VARIANTS) */
@@ -115,7 +120,7 @@ export const BIOME_ART: Record<string, BiomeArt> = {
     sky: [0x02041a, 0x081446, 0x1a40a0], light: { c: 0x6ad8ff, x: 0.5, y: 0.45, r: 0.6 },
     far: 0x1a3a8a, midFar: 0x122c70, mid: 0x0c1f54, near: 0x061238, fg: 0x02061a, fog: 0x4c8dff,
     ground: { top: 0xa8e4ff, topHi: 0xf0fcff, topLo: 0x5aa8e0, body: 0x1c2e72, deep: 0x040818, rim: 0x4cf0ff, line: 0x061038 },
-    accent: 0x4cf0ff, accent2: 0xffc93c, motes: [0x4cf0ff, 0xa8e4ff, 0x8b6bff],
+    accent: 0x4cf0ff, accent2: 0xffc93c, motes: [0x4cf0ff, 0xa8e4ff, 0x8b6bff], edge: 0x02041a,
   },
   'beyin-sapi': {
     id: 'beyin-sapi', motif: 'stem',

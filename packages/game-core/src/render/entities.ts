@@ -26,9 +26,9 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'wall': buildWall(v, A, e.x, e.y, w || 40, h || 220); v.setDepth(DEPTH.platform); break;
     case 'crumble': buildCrumble(v, A, e.x, e.y, w || 110, h || 24); v.setDepth(DEPTH.platform); break;
     case 'beat': buildBeat(v, w || 110, h || 24, String(p.pattern ?? '1010'), A); v.setDepth(DEPTH.platform); break;
-    case 'echo': buildEcho(v, w || 110, h || 24); v.setDepth(DEPTH.platform); break;
+    case 'echo': buildEcho(v, w || 110, h || 24, A.edge); v.setDepth(DEPTH.platform); break;
     case 'spike': buildSpike(v, A, w || 32); v.setDepth(DEPTH.hazard); break;
-    case 'hazard': if (p.kind === 'sivi') buildFluid(v, w || 300, h || 100); else if (p.curtain) buildCurtain(v, String(p.kind ?? 'tuy'), w || 100, h || 140, Math.max(0, GROUND_Y - (e.y + (h || 140)))); else buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80); v.setDepth(DEPTH.hazard); break;
+    case 'hazard': if (p.kind === 'sivi') buildFluid(v, w || 300, h || 100); else if (p.curtain) buildCurtain(v, String(p.kind ?? 'tuy'), w || 100, h || 140, Math.max(0, GROUND_Y - (e.y + (h || 140)))); else buildHazardCloud(v, String(p.kind ?? 'gurultu'), w || 100, h || 80, A.edge != null); v.setDepth(DEPTH.hazard); break;
     case 'barrier': buildBarrier(v, w || 34, h || 160); v.setDepth(DEPTH.hazard); break;
     case 'lane': buildMine(v); v.setDepth(DEPTH.hazard); break;
     case 'projectile': case 'bullet': buildBullet(v); v.setDepth(DEPTH.enemy); break;
@@ -59,7 +59,7 @@ export function entitySprite(scene: Phaser.Scene, e: RenderEntity, biomeId: stri
     case 'text': buildText(v, String(p.text ?? '')); v.setDepth(DEPTH.text); break;
     default: buildNote(v); v.setAlpha(0.4); break;
   }
-  // bölge patolojisi (level-gen/src/patoloji.ts): iltihaplı örtü + ilk görüşte tıbbi artı rozeti
+  // bölge patolojisi (level-gen/src/patoloji.ts): iltihaplı örtü + ilk görüşte uyarı üçgeni rozeti
   if (typeof p.patoloji === 'string') markPathology(v, e.type, w || (e.type === 'spike' ? 32 : 110), h);
   return v;
 }

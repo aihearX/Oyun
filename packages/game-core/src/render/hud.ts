@@ -8,6 +8,7 @@ import { I, R, T, glassPanel, drawGoldNote, drawGoldCochlea, drawMelodyNote, sof
 import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 import { motionReduced } from './flash';
 import { spiritTex } from './mech';
+import { paintWarning } from './patoloji';
 
 const ADD = Phaser.BlendModes.ADD;
 /** koklea yuvası ölçeği: üç yuva + "n/3" yazısı nota ve can panelleri arasına aralıklı sığsın */
@@ -88,6 +89,11 @@ const modIcon = (s: Phaser.Scene, id: string) => T(s, `hud-mod-${id}`, 22, 22, (
     default: ctx.beginPath(); ctx.arc(11, 11, 7, 0, Math.PI * 2); ctx.stroke(); break;
   }
 });
+/**
+ * Bölge patolojisi uyarı simgesi (YN-119): pembe üçgen içinde "!" (çizili; emoji ya da tıbbi artı değil: artı "ödül" gibi
+ * okunuyordu). Engelin üstündeki rozetle aynı çizim (render/patoloji.ts `paintWarning`).
+ */
+const warnTex = (s: Phaser.Scene) => T(s, 'hud-uyari', 30, 28, (ctx) => paintWarning(ctx, 15, 15, 26));
 const handTex = (s: Phaser.Scene) => T(s, 'hud-hand', 70, 92, (ctx) => paintHand(ctx));
 function paintHand(ctx: Ctx) {
   // işaret parmağı yukarıda, sevimli eldiven el
@@ -128,6 +134,8 @@ export class LevelHud {
   private melPanel: Phaser.GameObjects.Image; private melIco: Phaser.GameObjects.Image; private melText: Phaser.GameObjects.Text; private melKey = '';
   /** bölüm başı değiştirici duyurusu (göstergenin altında, birkaç saniye) */
   private announceC?: Phaser.GameObjects.Container;
+  /** bölge patolojisi adı (üst bantta, Odi'nin ve yolun üstünde değil); aynı anda birden çoksa sırayla */
+  private pathoC?: Phaser.GameObjects.Container; private pathoQ: string[] = [];
   /** nota ve koklea panellerinin görünür genişliği (içeriğe göre büyür; Büyük yazıda yazılar büyüdüğü için) */
   private notesW = 112; private cochW = 92;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
@@ -370,11 +378,35 @@ export class LevelHud {
     const pw = Math.round(Math.min(this.iw - 32, label.width + 36)), ph = Math.round(label.height + 18);
     const bg = I(s, panelTex(s, pw, ph, Math.min(16, Math.round(ph / 2)))).setPosition(0, 2);
     // ikinci (ve varsa üçüncü) satırın altında
-    const below = Math.max(this.timerPanel.y + 22, this.modPanel.y + 21, this.melPanel.visible ? this.melPanel.y + 22 : 0);
-    const c = s.add.container(this.iw / 2, below + 10 + ph / 2, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0).setName('duyuru');
+    const below = this.row2Bottom;
+    const c = s.add.container(this.iw / 2, below + 10 + ph / 2, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0).setName('duyuru').setData('h', ph);
     this.root.add(c); this.announceC = c;
     s.tweens.add({ targets: c, alpha: 1, duration: 200 });
     s.tweens.add({ targets: c, alpha: 0, delay: ms, duration: 300, onComplete: () => { c.destroy(); if (this.announceC === c) this.announceC = undefined; } });
+  }
+  /** ikinci (ve varsa üçüncü) satırın ve seri rozetinin altı: duyuru ve patoloji adı buradan aşağı dizilir */
+  private get row2Bottom() { return Math.max(this.timerPanel.y + 22, this.modPanel.y + 21, this.melPanel.visible ? this.melPanel.y + 22 : 0); }
+  /**
+   * Bölge patolojisinin adı (YN-119): üst bantta koyu cam panel, solunda çizili uyarı üçgeni; ms sonra söner. Dünyada (engelin
+   * üstünde) Odi'yi ve önündeki yolu örtüyordu. Aynı anda ikinci ad gelirse ilki sönünce çıkar (alt alta yığılmaz).
+   * Duyuru açıksa onun altında. Yalnız saydamlıkla açılıp kapanır (hareket yok).
+   */
+  pathology(text: string, ms = 2600) {
+    if (this.pathoC) { if (!this.pathoQ.includes(text)) this.pathoQ.push(text); return; }
+    const s = this.scene; const ts = this.ts;
+    const ico = I(s, warnTex(s)).setScale(ts / R());
+    const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(16 * ts)}px`, fontStyle: '900', color: '#ffe1ea', wordWrap: { width: this.iw - 96 }, resolution: R() }).setOrigin(0, 0.5);
+    const iw = 30 * ts; const pw = Math.round(Math.min(this.iw - 24, label.width + iw + 34)), ph = Math.round(Math.max(label.height, 26 * ts) + 16);
+    const bg = I(s, panelTex(s, pw, ph, Math.min(16, Math.round(ph / 2)))).setPosition(0, 2);
+    const l = -pw / 2 + 12; ico.setPosition(l + iw / 2, 0); label.setPosition(l + iw + 6, 0);
+    const a = this.announceC; const top = Math.max(this.row2Bottom + 18, a ? a.y + Number(a.getData('h') ?? 0) / 2 + 8 : 0);
+    const c = s.add.container(this.iw / 2, top + ph / 2, [bg, ico, label]).setScrollFactor(0, 0, true).setAlpha(0).setName('patoloji').setData('h', ph);
+    this.root.add(c); this.pathoC = c;
+    s.tweens.add({ targets: c, alpha: 1, duration: 200 });
+    s.tweens.add({ targets: c, alpha: 0, delay: ms, duration: 300, onComplete: () => {
+      c.destroy(); if (this.pathoC === c) this.pathoC = undefined;
+      const next = this.pathoQ.shift(); if (next) this.pathology(next, ms);
+    } });
   }
   setProgress(pct: number) {
     this.pct = Math.max(0, Math.min(1, pct)); const x = this.pct * this.barW;
@@ -412,7 +444,9 @@ export class LevelHud {
   }
   /** övgü sözü: "Güzel!", "Mükemmel!" — ekranın üst-ortasında altın, büyüyüp süzülür */
   praise(text: string) {
-    const s = this.scene; const y0 = this.top / this.k + 168;
+    const s = this.scene; const p = this.pathoC;
+    // patoloji adı açıksa övgü onun altında (üst üste binmez)
+    const y0 = Math.max(this.top / this.k + 168, p ? p.y + Number(p.getData('h') ?? 0) / 2 + 34 : 0);
     const prev = this.root.getByName('praise') as Phaser.GameObjects.Container | null; prev?.destroy();
     const t = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: '38px', fontStyle: '900', color: '#ffc93c', stroke: '#2a0f4a', strokeThickness: 8, resolution: R(), padding: { x: 6, y: 6 } }).setOrigin(0.5);
     const grd = t.context.createLinearGradient(0, 0, 0, t.height); grd.addColorStop(0.2, '#fff6c4'); grd.addColorStop(0.55, '#ffc93c'); grd.addColorStop(0.9, '#ff8a1c'); t.setFill(grd);
@@ -499,6 +533,7 @@ export class LevelHud {
     this.w = w; this.h = h; this.top = top; const O = screenOrigin(this.scene.cameras.main); this.root.setPosition(O.x, O.y); this.layout();
     // açık bilgi şeridi alt-ortada, el işareti ekranın alt-ortasında kalsın (oluşturulduğu boyuta göre konumlanmışlardı)
     if (this.toastC) this.toastC.setPosition(this.toastC.x + (this.iw - ow) / 2, this.toastC.y + (this.ih - oh));
+    if (this.pathoC) this.pathoC.x = this.iw / 2;
     if (this.hint) this.hint.setPosition(this.hint.x + (this.iw - ow) / 2, this.hint.y + (this.ih - oh) * 0.62);
   }
   destroy() { this.hideHint(); this.root.destroy(); }

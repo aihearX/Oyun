@@ -59,6 +59,8 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
   if (e.type === 'tutor' || e.type === 'escortee') return null;
   const v = RD.entitySprite(s, { type: e.type, x: e.x, y: e.y, w: e.w, h: e.h, props: e.props }, biome.id);
   const moves = MOVERS.has(e.type);
+  // koyu kenarlı biyomda (İşitme Siniri) kapalı evredeki gürültü bulutu daha opak: ışıklı arka planda kaybolmasın (YN-119)
+  const ghostMin = RD.artOf(biome.id).edge != null ? 0.55 : 0;
   let lastOn: boolean | null = null; let lastWarn = 0; let signHalf = -1; let lastFace = 0; let lastVis = true; let lastCrack = 0; let lastAlpha = -1; let lx = e.x, ly = e.y;
   return {
     obj: v,
@@ -78,7 +80,7 @@ export function drawEntity(s: Phaser.Scene, e: Entity, biome: BiomeDef): EntityV
         case 'crumble': { const c = !st.visible ? 1 : st.warn; if (c !== lastCrack) { if (c === 0) v.crack(0); else v.crack(c); lastCrack = c; } break; }
         case 'door': case 'freqgate': case 'switch': case 'checkpoint': if (st.on !== lastOn) { v.setOpen(st.on); lastOn = st.on; } break;
         case 'enemy': if (st.face !== lastFace) { v.setFacing(st.face); lastFace = st.face; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
-        case 'hazard': if (st.alpha !== lastAlpha) { if (e.props?.kind === 'sivi') v.reveal(st.alpha); else v.setAlpha(st.alpha); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
+        case 'hazard': if (st.alpha !== lastAlpha) { if (e.props?.kind === 'sivi') v.reveal(st.alpha); else v.setAlpha(Math.max(ghostMin, st.alpha)); lastAlpha = st.alpha; } if (st.warn > 0 && lastWarn === 0) v.telegraph(); lastWarn = st.warn; break;
         case 'coin': case 'note': case 'collect': if (st.alpha !== lastAlpha) { v.setAlpha(st.alpha); lastAlpha = st.alpha; } break;
         case 'fork': if (st.on !== lastOn) { v.setScale(st.on ? 1.25 : 1); lastOn = st.on; } break;
         // vuruşta nabız atan zar: her vuruş başında esner (oyuncu vuruşu görerek okur)
@@ -126,7 +128,23 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
   const hv = RD.createHeroVisual(s, { color: cosmetic?.color ?? defaultColor, hat: cosmetic?.hat ?? null });
   hv.setPosition(x, y); hv.setDepth(RD.DEPTH.hero);
   const rope = s.add.graphics().setDepth(RD.DEPTH.hero - 1);
-  const breathBar = s.add.rectangle(x, y, 40, 5, 0x2ee6d6, 1).setDepth(30).setOrigin(0.5);
+  // su altında nefes göstergesi (YN-119): solda çizili hava kabarcığı, koyu yuvalı kalın çubuk; kalkan baloncuğunun üstünde
+  // (eskiden baloncuğun tepesine değen 5 px'lik ince çizgiydi, kalkan sanılıyordu). Büyük yazıda büyür.
+  const breathBar = s.add.graphics().setDepth(30).setVisible(false);
+  const drawBreath = (x: number, y: number, frac: number, low: boolean) => {
+    const k = Number(s.registry?.get('textScale')) || 1; const w = 46 * k, bh = 8 * k, r = 7 * k, gap = 5 * k;
+    const ix = x - (w + r * 2 + gap) / 2 + r, bx = ix + r + gap;
+    breathBar.clear();
+    breathBar.fillStyle(0x140c35, 0.88).fillRoundedRect(bx - 2, y - bh / 2 - 2, w + 4, bh + 4, bh / 2 + 2).fillCircle(ix, y, r + 2);
+    breathBar.fillStyle(low ? 0xff5c5c : 0x2ee6d6, 1).fillRoundedRect(bx, y - bh / 2, Math.max(bh, w * frac), bh, bh / 2);
+    breathBar.lineStyle(1.5, 0xfff6e5, 0.9).strokeRoundedRect(bx - 2, y - bh / 2 - 2, w + 4, bh + 4, bh / 2 + 2);
+    // hava kabarcığı (iki kabarcık; açık çizgili, içi saydam turkuaz, parlak yay)
+    const sx = ix + r * 0.95, sy = y - r * 0.95, sr = r * 0.42;
+    breathBar.fillStyle(0x140c35, 0.88).fillCircle(sx, sy, sr + 2);
+    breathBar.fillStyle(0x2ee6d6, 0.35).fillCircle(ix, y, r).fillCircle(sx, sy, sr);
+    breathBar.lineStyle(2, 0xe9fffd, 1).strokeCircle(ix, y, r).lineStyle(1.5, 0xe9fffd, 1).strokeCircle(sx, sy, sr);
+    breathBar.lineStyle(1.6, 0xffffff, 0.95).beginPath().arc(ix, y, r * 0.6, Math.PI * 1.1, Math.PI * 1.45).strokePath();
+  };
   let shield = -1; let pose: RD.HeroPose | '' = '';
   const handle: HeroHandle = { get x() { return hv.root.x; }, get y() { return hv.root.y; }, get sprite() { return hv.root; } };
   return {
@@ -141,7 +159,8 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
       hv.setCharge(h.charge ?? 0);
       const cy = h.y - 24 * h.g;
       rope.clear(); if (h.hook) { rope.lineStyle(2.5, 0xfff6e5, 0.9); rope.beginPath(); rope.moveTo(h.hook.x, h.hook.y + 8); rope.lineTo(h.x, cy); rope.strokePath(); }
-      breathBar.setVisible(h.water && h.breath < h.breathMax - 0.05).setPosition(h.x, cy - 40).setSize(40 * Math.max(0, h.breath / h.breathMax), 5).setFillStyle(h.breath < 2 ? 0xff5c5c : 0x2ee6d6);
+      const breath = h.water && h.breath < h.breathMax - 0.05; breathBar.setVisible(breath);
+      if (breath) drawBreath(h.x, cy - 54, Math.max(0, h.breath / h.breathMax), h.breath < 2);
     },
     land: (impact) => hv.land(impact),
     destroy: () => { hv.destroy(); rope.destroy(); breathBar.destroy(); },
@@ -178,6 +197,8 @@ export interface LevelHudView {
   setModifiers(list: { id: string; name: string }[]): void;
   /** bölüm başı duyurusu (değiştiriciler; göstergenin altında, ms sonra söner) */
   announce(text: string, ms: number): void;
+  /** bölge patolojisinin adı: üst bantta çizili uyarı simgesiyle (Odi'nin ve yolun üstünde değil); aynı anda birden çoksa sırayla */
+  pathology(text: string): void;
   setCheckpoints(pcts: number[]): void;
   onPause(cb: () => void): void;
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
@@ -203,7 +224,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     praise: (t) => hud.praise(t), clearPraise: () => hud.clearPraise(),
     showHint: (k, t) => hud.showHint(k, t), hideHint: () => hud.hideHint(),
     toast: (t, ms) => hud.toast(t, ms),
-    setModifiers: (l) => hud.setModifiers(l), announce: (t, ms) => hud.announce(t, ms),
+    setModifiers: (l) => hud.setModifiers(l), announce: (t, ms) => hud.announce(t, ms), pathology: (t) => hud.pathology(t),
     setCheckpoints: (p) => hud.setCheckpoints(p),
     onPause: (cb) => hud.onPause(cb),
     pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),

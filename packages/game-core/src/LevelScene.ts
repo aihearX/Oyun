@@ -6,10 +6,9 @@ import { resolveTrack } from '@odi/audio';
 import { yuzdeIyelik } from '@odi/meta';
 import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
-import { flash, floatText, tapToStart, COLORS, banner, endCard, FONT } from './ui';
+import { flash, floatText, tapToStart, COLORS, banner, endCard } from './ui';
 import { prefersReducedMotion, setFlashPolicy } from './render/flash';
 import { remedyName } from './play/remedy';
-import { pathologyLabel } from './render/patoloji';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
 import { luckyNoteTexture, tonotopyFreq } from './art';
 import { RaceLayer } from './race';
@@ -372,7 +371,7 @@ export class LevelScene extends Phaser.Scene {
       if (!this.curtainPassed.has(id) && h.x > e.r) { this.curtainPassed.add(id); if (n === 5 && h.invuln <= 0) { this.curtainSlides++; if (this.curtainSlides >= 2 && !this.firstsDone.includes(REFRESH_KEY)) this.firstsDone.push(REFRESH_KEY); } }
     }
   }
-  /** bölge patolojisi ilk görüş: adı (✚), öğede rozet; oyuncunun ilk karşılaşmasında Tüy Dede'nin cümlesi (kalıcı: patoloji:<id>) */
+  /** bölge patolojisi ilk görüş: adı göstergenin üst bandında (uyarı simgesiyle, sırayla), öğede uyarı rozeti; oyuncunun ilk karşılaşmasında Tüy Dede'nin cümlesi (kalıcı: patoloji:<id>) */
   private pathologyWatch() {
     if (this.opts.race || this.state.finished) return;
     const h = this.sim.hero;
@@ -383,9 +382,9 @@ export class LevelScene extends Phaser.Scene {
       // öğretici an ya da az önceki Tüy Dede cümlesi sürerken bekle (üst üste yazı yok)
       if (this.tutorial || this.sim.t - this.patLineAt < 3.8) break;
       this.patIdx++; this.patSeen.add(q.pat); this.patSighted.add(q.id); this.views.get(q.id)?.patho('sighted');
-      const e = this.world.ents[q.id]!; const key = patolojiKey(P.id);
+      const key = patolojiKey(P.id);
       const first = !this.firstsDone.includes(key) && (this.opts.firsts === undefined || this.opts.firsts.includes(key));
-      pathologyLabel(this, Math.max(e.l + 40, Math.min(e.r - 40, (e.l + e.r) / 2)), Math.min(e.t, GROUND_Y - 30) - 70, P.ad, FONT);
+      this.hud.pathology(P.ad);
       if (first) { this.firstsDone.push(key); this.hint(`Tüy Dede: ${P.sade}`, 3600, undefined, key); this.patLineAt = this.sim.t; }
       this.emit({ type: 'pathology', id: P.id, first });
     }

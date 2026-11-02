@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampX, freeY } from './float-lane';
+import { clampX, freeY, settle } from './float-lane';
 
 /** uçan yazılar ekranda kalır ve üst üste binmez (YN-070, OT-ogrenci-birinci-8) */
 describe('uçan yazı yeri (render/float-lane.ts)', () => {
@@ -22,4 +22,25 @@ describe('uçan yazı yeri (render/float-lane.ts)', () => {
     const y3 = freeY({ x: 100, y: 300, w: 120, h: 30 }, [first, second]);
     expect(y3).toBeLessThanOrEqual(266 - 30 - 4);
   });
+  it('kenara yaslanıp kayan eski yazı yenisinin üstüne gelirse yenisi yukarı çıkar; eski yerinde kalır (YN-119, OT-sessiz-oyuncu-15)', () => {
+    // "+50 ezme!" solda (ekran sol kenarına yaslı), "Kontrol noktası" sağda; ilk karede kesişmiyorlar
+    const ezme = { x: 70, y: 480, w: 130, h: 40 }, kontrol = { x: 260, y: 480, w: 200, h: 40 };
+    expect(settle([{ box: ezme, lift: 0 }, { box: kontrol, lift: 0 }])).toEqual([0, 0]);
+    // kamera 120 px sağa kaydı: ezme kenara yaslı kaldığı için dünyada 120 px sağa kaydı, kontrol noktası yerinde → kesişir
+    const kayan = { ...ezme, x: ezme.x + 120 };
+    const [l1, l2] = settle([{ box: kayan, lift: 0 }, { box: kontrol, lift: 0 }]);
+    expect(l1).toBe(0);
+    expect(l2).toBe(40 + 4);
+    // kaydırma kalıcı: ertesi karede ezme uzaklaşsa da kontrol noktası aşağı zıplamaz
+    expect(settle([{ box: ezme, lift: 0 }, { box: kontrol, lift: l2! }])).toEqual([0, 44]);
+  });
+  it('yükselişi yetişen yazı (altta çıkıp hızla yükselen) üsttekine binmez', () => {
+    // eski yazı yükselişinin sonunda (yavaş), yenisi altında çıktı ve hızla yükselip ona yetişti
+    const eski = { x: 200, y: 400, w: 160, h: 36 }, yeni = { x: 210, y: 420, w: 140, h: 36 };
+    const [a, b] = settle([{ box: eski, lift: 0 }, { box: yeni, lift: 0 }]);
+    expect(a).toBe(0);
+    const y = yeni.y - b!;
+    expect(y).toBeLessThanOrEqual(eski.y - 36 - 4);
+  });
 });
+

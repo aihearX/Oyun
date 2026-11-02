@@ -131,7 +131,7 @@ ${BIOME_ORDER.map((id) => `| ${REGION[id]} | **${esc(BIOMES[id].name)}** | ${esc
 
 Kaynak: \`packages/content/src/patolojiler.ts\` (kimlikler kamp ekibinin \`remedies.ts\` → \`PATHOLOGY_IDS\` listesiyle aynı). Odi'nin
 geçtiği bölgeye özgü kulak hastalıkları, bölgenin VAR OLAN engelleri olarak oynanır (\`level-gen/src/patoloji.ts\` yalnız etiket
-ekler; geometri ve zorluk eğrisi değişmez). İlk görüşte engelin üstünde adı (✚) ve iltihaplı görünüm, oyuncunun ilk karşılaşmasında
+ekler; geometri ve zorluk eğrisi değişmez). İlk görüşte engelin üstünde uyarı üçgeni, göstergenin üst bandında adı ve iltihaplı görünüm, oyuncunun ilk karşılaşmasında
 Tüy Dede'nin sade cümlesi çıkar (kalıcı anahtar \`patoloji:<kimlik>\`). Tedavi Odası malzemesi o patolojinin ilk karşılaşmasını bir
 kez etkisiz kılar (docs/14-kamp.md §4). Dil eğitseldir, tıbbi öneri değildir: tanı ve tedaviyi hekim ve odyolog birlikte koyar.
 Kaynaklar ders kitabı düzeyindedir (Katz, *Handbook of Clinical Audiology*; Gelfand, *Essentials of Audiology*; Cummings

@@ -173,10 +173,13 @@ const beatTex = (s: Phaser.Scene, c: number) => T(s, `mc-beat-${c.toString(16)}`
 const beatGhostTex = (s: Phaser.Scene, c: number) => T(s, `mc-beatg-${c.toString(16)}`, 96, 40, (ctx, W, H) => {
   ctx.setLineDash([6, 5]); roundRectPath(ctx, 2, 2, W - 4, H - 4, 12); ctx.strokeStyle = css(lighten(c, 0.3), 0.9); ctx.lineWidth = 2; ctx.stroke();
 });
-const echoTex = (s: Phaser.Scene) => T(s, 'mc-echo', 96, 40, (ctx, W, H) => {
-  roundRectPath(ctx, 2, 2, W - 4, H - 4, 12); const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(180,255,250,0.55)'); g.addColorStop(1, 'rgba(46,230,214,0.12)'); ctx.fillStyle = g; ctx.fill();
+/** edge: koyu kenar rengi (İşitme Siniri, YN-119): cam platformun dışına koyu kalın kontur, ışıklı arka plandan ayrılsın */
+const echoTex = (s: Phaser.Scene, edge?: number) => T(s, `mc-echo${edge != null ? '-kenar' : ''}`, 96, 40, (ctx, W, H) => {
+  const i = edge != null ? 4 : 2;
+  if (edge != null) { roundRectPath(ctx, 2, 2, W - 4, H - 4, 12); ctx.strokeStyle = css(edge); ctx.lineWidth = 4; ctx.stroke(); }
+  roundRectPath(ctx, i, i, W - i * 2, H - i * 2, 12); const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(180,255,250,0.55)'); g.addColorStop(1, 'rgba(46,230,214,0.12)'); ctx.fillStyle = g; ctx.fill();
   ctx.strokeStyle = 'rgba(220,255,252,0.95)'; ctx.lineWidth = 2; ctx.stroke();
-  ctx.save(); roundRectPath(ctx, 2, 2, W - 4, H - 4, 12); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; for (let y = 6; y < H; y += 4) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); } ctx.restore();
+  ctx.save(); roundRectPath(ctx, i, i, W - i * 2, H - i * 2, 12); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; for (let y = 6; y < H; y += 4) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); } ctx.restore();
 });
 const crackTex = (s: Phaser.Scene, w: number, h: number) => T(s, `mc-crack-${w}x${h}`, w, h, (ctx, W, H) => {
   ctx.strokeStyle = 'rgba(20,0,20,0.85)'; ctx.lineWidth = 1.8; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -433,10 +436,10 @@ export function buildBeat(v: EntityView, w: number, h: number, pattern: string, 
   v.h.pulse = (p) => { const k = Math.pow(1 - Math.max(0, Math.min(1, p)), 2); glowI.setAlpha(0.18 + k * 0.6); body.setScale((1 / RR) * (1 + k * 0.04), (1 / RR) * (1 + k * 0.08)); body.setPosition(-w * k * 0.02, -hh * k * 0.04); };
   v.h.solid = (on) => { body.setVisible(on); ghost.setVisible(!on); glowI.setVisible(on); for (const d of dots) d.setAlpha(on ? 1 : 0.45); };
 }
-export function buildEcho(v: EntityView, w: number, h: number) {
+export function buildEcho(v: EntityView, w: number, h: number, edge?: number) {
   const s = v.scene; const RR = R(); const hh = Math.max(24, h);
   const glowI = s.add.image(w / 2, hh / 2, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.teal).setDisplaySize(w * 1.4, hh * 3).setAlpha(0.45); v.add(glowI);
-  const body = s.add.nineslice(0, 0, echoTex(s), undefined, w * RR, hh * RR, 16 * RR, 16 * RR, 14 * RR, 14 * RR).setOrigin(0, 0).setScale(1 / RR); v.add(body);
+  const body = s.add.nineslice(0, 0, echoTex(s, edge), undefined, w * RR, hh * RR, 16 * RR, 16 * RR, 14 * RR, 14 * RR).setOrigin(0, 0).setScale(1 / RR); v.add(body);
   v.setAlpha(0);
   v.tw({ targets: glowI, alpha: 0.2, duration: 500, yoyo: true, repeat: -1 });
   v.h.reveal = (a) => { v.setAlpha(Math.max(0, Math.min(1, a))); };

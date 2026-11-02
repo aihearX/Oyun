@@ -1,12 +1,13 @@
 /**
  * Bölge patolojilerinin ayrı görsel dili (content/src/patolojiler.ts): işaretli engel "iltihaplı" görünür — kızarık, soluk bir
- * örtü ve kırmızımsı kesik kenar; ilk görüşte üstünde tıbbi artı rozeti belirir (sighted). Tedavi Odası malzemesi etkisiz
- * kılınca örtü yeşile döner, engel sönükleşir (cured). Düşme bölgesi (decor 'patoloji') yalnız kenarlarında yırtık/iltihaplı
+ * örtü ve kırmızımsı kesik kenar; ilk görüşte üstünde uyarı üçgeni rozeti belirir (sighted; tıbbi artı "ödül" gibi okunuyordu,
+ * YN-119), adı göstergenin üst bandında yazılır (render/hud.ts `pathology`). Tedavi Odası malzemesi etkisiz kılınca örtü yeşile
+ * döner, rozet yeşil artıya (tedavi) dönüşür, engel sönükleşir (cured). Düşme bölgesi (decor 'patoloji') yalnız kenarlarında yırtık/iltihaplı
  * dokuyla çizilir (zarın deliği, kopuk zincir, seyrek basamak).
  */
 import Phaser from 'phaser';
-import { softGlowTex } from './tex';
-import { placeFloat } from './float-lane';
+import { I, T, softGlowTex } from './tex';
+import { css, type Ctx } from './util';
 import type { EntityView } from './view';
 
 const ADD = Phaser.BlendModes.ADD;
@@ -20,6 +21,25 @@ function bounds(type: string, w: number, h: number): { x: number; y: number; w: 
   return { x: 0, y: 0, w, h: Math.max(16, h) };
 }
 
+/** uyarı üçgeni: pembe dolgu, koyu kontur, krem "!" (size: üçgenin genişliği; cx, cy: üçgenin ağırlık merkezi yakını) */
+export function paintWarning(ctx: Ctx, cx: number, cy: number, size: number) {
+  const h = size * 0.88; const top = cy - h * 0.55, bot = cy + h * 0.45;
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, top); ctx.lineTo(cx + size / 2, bot); ctx.lineTo(cx - size / 2, bot); ctx.closePath();
+  ctx.fillStyle = css(INFLAMED); ctx.fill(); ctx.strokeStyle = '#3a0418'; ctx.lineWidth = Math.max(1.6, size * 0.08); ctx.stroke();
+  ctx.strokeStyle = '#fff1f5'; ctx.lineWidth = Math.max(2, size * 0.11);
+  ctx.beginPath(); ctx.moveTo(cx, top + h * 0.34); ctx.lineTo(cx, bot - h * 0.3); ctx.stroke();
+  ctx.fillStyle = '#fff1f5'; ctx.beginPath(); ctx.arc(cx, bot - h * 0.13, Math.max(1.2, size * 0.065), 0, Math.PI * 2); ctx.fill();
+}
+const warnBadgeTex = (s: Phaser.Scene) => T(s, 'pat-uyari', 40, 38, (ctx) => paintWarning(ctx, 20, 21, 32));
+
+/** engelin üstündeki uyarı rozeti (ilk görüş): parıltı + üçgen */
+function warnBadge(s: Phaser.Scene, x: number, y: number): Phaser.GameObjects.Container {
+  const halo = s.add.image(0, 0, softGlowTex(s)).setBlendMode(ADD).setTint(INFLAMED).setDisplaySize(46, 46).setAlpha(0.6);
+  return s.add.container(x, y, [halo, I(s, warnBadgeTex(s))]);
+}
+
+/** tedavi rozeti: yeşil tıbbi artı (malzeme engeli etkisiz kıldı) */
 function crossBadge(s: Phaser.Scene, x: number, y: number, color: number): Phaser.GameObjects.Container {
   const c = s.add.container(x, y);
   const halo = s.add.image(0, 0, softGlowTex(s)).setBlendMode(ADD).setTint(color).setDisplaySize(46, 46).setAlpha(0.6);
@@ -54,7 +74,7 @@ export function markPathology(v: EntityView, type: string, w: number, h: number)
   drawVeil(INFLAMED, 0.2);
   v.add([glowI, veil]);
   v.tw({ targets: glowI, alpha: 0.12, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
-  const badge = crossBadge(s, b.x + b.w / 2, b.y - 26, INFLAMED).setScale(0).setAlpha(0); v.add(badge);
+  const badge = warnBadge(s, b.x + b.w / 2, b.y - 26).setScale(0).setAlpha(0); v.add(badge);
   let shown = false;
   v.h.sighted = () => {
     if (shown) return; shown = true;
@@ -67,20 +87,6 @@ export function markPathology(v: EntityView, type: string, w: number, h: number)
     v.tw({ targets: nb, scale: 1.2, duration: 220, ease: 'Back.Out' });
     v.tw({ targets: v, alpha: 0.45, duration: 400 });
   };
-}
-
-/** ilk görüşte engelin üstünde patolojinin adı (tıbbi artıyla); kısa süre durur, sonra süzülüp söner */
-export function pathologyLabel(s: Phaser.Scene, x: number, y: number, text: string, font: string) {
-  const res = Math.max(1, Math.min(3, s.cameras.main.zoom || 1));
-  // Büyük yazı (LevelScene kayda 'textScale' yazar) bu yazıyı da büyütür
-  const k = Number(s.registry?.get('textScale')) || 1;
-  const t = s.add.text(x, y, `✚ ${text}`, { fontFamily: font, fontSize: `${Math.round(20 * k)}px`, fontStyle: '900', color: '#ffd1de', stroke: '#5a0f2c', strokeThickness: Math.round(6 * k), resolution: res })
-    .setOrigin(0.5).setDepth(150).setScale(0.6).setAlpha(0);
-  // ekranın içinde kalsın (öğe ekranın kenarındayken ve kamera kayarken yazı kesilmesin), aynı anda çıkan "Kontrol noktası" gibi
-  // yazıyla üst üste binmesin (float-lane.ts)
-  const y0 = placeFloat(s, t, x, y, t.width, t.height);
-  s.tweens.add({ targets: t, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
-  s.tweens.add({ targets: t, y: y0 - 40, alpha: 0, delay: 1900, duration: 600, ease: 'Cubic.In', onComplete: () => t.destroy() });
 }
 
 /** zar sertleşmesi: zarın üstünde beyaz, tebeşirimsi plaklar (kap kökeni zarın ortası, y zar tabanı) */

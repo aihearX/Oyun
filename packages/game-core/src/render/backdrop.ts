@@ -510,7 +510,7 @@ const spiral: Record<string, Painter> = {
     const [lo, hi] = A.tono ?? [0, 1];
     const base = H - OVER - 90; const f = ridgeFn(W, rnd, 20, 3, 4);
     for (let i = 0; i < 16; i++) { const x = (i + rnd() * 0.7) * (W / 16), y = base + f(x) + 8; wrapX(W, x, 50, (xx) => hairCell(ctx, xx, y, 90 + rnd() * 110, A.mid, tono(lo + (hi - lo) * ((i * 0.37 + rnd() * 0.3) % 1)), 1)); }
-    silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 30, A.mid, H, A.accent, 0.45, 2.5);
+    silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 30, A.mid, H, nerveGlow(A, A.mid), 0.45, 2.5);
     // denizanası gibi süzülen hücreler
     for (let i = 0; i < 7; i++) { const x = rnd() * W, y = base - 140 - rnd() * 220, r = 8 + rnd() * 12; const c = tono(lo + (hi - lo) * rnd()); glow(ctx, x, y, r * 2.5, c, 0.3); ctx.strokeStyle = css(lighten(c, 0.4), 0.6); ctx.lineWidth = 1.5; circle(ctx, x, y, r); ctx.stroke(); ctx.fillStyle = css(0xffffff, 0.5); circle(ctx, x - r * 0.35, y - r * 0.35, r * 0.25); ctx.fill(); }
     grainOver(ctx, W, H, rnd);
@@ -538,13 +538,20 @@ function hairCell(ctx: Ctx, x: number, y: number, h: number, c: number, tip: num
 }
 
 // ---------------------------------------------------------------- NERVE · İşitme Siniri (ışık lifleri, miyelin)
+/**
+ * İşitme Siniri arka planı soluk çizilir (YN-119, OT-buyuk-yazi-30): parlak turkuaz/mor lifler açık turkuaz platformlarla ve
+ * gürültü bulutuyla karışıyordu. Lif ve akson ışıkları göğe doğru karartılır (NERVE_DIM), saydamlıkları düşük; ön plan
+ * (platform, bulut, Odi) arka plandan belirgin ayrılır.
+ */
+const NERVE_DIM = 0.55;
+const nerveGlow = (A: BiomeArt, toward: number) => mix(A.accent, toward, NERVE_DIM);
 const nerve: Record<string, Painter> = {
   far: (ctx, W, H, rnd, A) => {
-    // yatay lif demetleri (ışıklı kablolar)
+    // yatay lif demetleri (soluk ışıklı kablolar)
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 9; i++) {
-      const y0 = H - OVER - 120 - rnd() * 420; const amp = 20 + rnd() * 50; const k = 1 + Math.floor(rnd() * 3); const ph = rnd() * 6; const c = [0x4cf0ff, 0x6a8bff, 0x8b6bff][i % 3]!;
-      for (const [lw, a] of [[22, 0.04], [9, 0.08], [3, 0.35], [1.2, 0.8]] as [number, number][]) {
+      const y0 = H - OVER - 120 - rnd() * 420; const amp = 20 + rnd() * 50; const k = 1 + Math.floor(rnd() * 3); const ph = rnd() * 6; const c = mix([0x4cf0ff, 0x6a8bff, 0x8b6bff][i % 3]!, A.sky[1], NERVE_DIM);
+      for (const [lw, a] of [[22, 0.03], [9, 0.05], [3, 0.16], [1.2, 0.34]] as [number, number][]) {
         ctx.strokeStyle = css(c, a); ctx.lineWidth = lw; ctx.beginPath();
         for (let x = 0; x <= W; x += 6) { const y = y0 + Math.sin((x / W) * Math.PI * 2 * k + ph) * amp; if (!x) ctx.moveTo(x, y); else ctx.lineTo(x, y); }
         ctx.stroke();
@@ -560,7 +567,7 @@ const nerve: Record<string, Painter> = {
     for (let i = 0; i < 3; i++) {
       const y0 = H - OVER - 160 - i * 120 - rnd() * 40; const k = 1 + i; const ph = rnd() * 6; const amp = 30 + rnd() * 30;
       const yAt = (x: number) => y0 + Math.sin((x / W) * Math.PI * 2 * k + ph) * amp;
-      axon(ctx, W, yAt, 9 - i * 2, mix(A.midFar, A.fog, 0.2), A.accent, 60 + i * 10);
+      axon(ctx, W, yAt, 9 - i * 2, mix(A.midFar, A.fog, 0.2), nerveGlow(A, A.midFar), 60 + i * 10);
     }
     const f = ridgeFn(W, rnd, 24, 4, 3); const base = H - OVER - 120;
     silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 40, A.midFar, H, A.accent, 0.4, 2, A.fog, 0.25);
@@ -568,22 +575,22 @@ const nerve: Record<string, Painter> = {
   },
   mid: (ctx, W, H, rnd, A) => {
     const base = H - OVER - 90; const f = ridgeFn(W, rnd, 18, 3, 4);
-    for (let i = 0; i < 2; i++) { const y0 = base - 120 - i * 150; const ph = rnd() * 6; axon(ctx, W, (x) => y0 + Math.sin((x / W) * Math.PI * 2 * (2 + i) + ph) * 40, 11, A.mid, A.accent, 70); }
+    for (let i = 0; i < 2; i++) { const y0 = base - 120 - i * 150; const ph = rnd() * 6; axon(ctx, W, (x) => y0 + Math.sin((x / W) * Math.PI * 2 * (2 + i) + ph) * 40, 11, A.mid, nerveGlow(A, A.mid), 70); }
     // nöron gövdeleri (dalcıklı yıldızlar)
-    for (let i = 0; i < 5; i++) { const x = rnd() * W, y = base + f(x) - 10; wrapX(W, x, 80, (xx) => neuron(ctx, xx, y, 16 + rnd() * 10, A.mid, A.accent, rnd)); }
+    for (let i = 0; i < 5; i++) { const x = rnd() * W, y = base + f(x) - 10; wrapX(W, x, 80, (xx) => neuron(ctx, xx, y, 16 + rnd() * 10, A.mid, nerveGlow(A, A.mid), rnd)); }
     silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 30, A.mid, H, A.accent, 0.45, 2.5);
     grainOver(ctx, W, H, rnd);
   },
   near: (ctx, W, H, rnd, A) => {
     const base = H - OVER - 60; const f = ridgeFn(W, rnd, 20, 4, 4);
     silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 30, A.near, H, A.accent, 0.5, 2);
-    for (let i = 0; i < 20; i++) { const x = rnd() * W, y = base + f(x) + 14 + rnd() * 60; glow(ctx, x, y, 3 + rnd() * 4, A.accent, 0.6); }
+    for (let i = 0; i < 20; i++) { const x = rnd() * W, y = base + f(x) + 14 + rnd() * 60; glow(ctx, x, y, 3 + rnd() * 4, A.accent, 0.3); }
     for (let i = 0; i < 16; i++) { const x = rnd() * W; taperHair(ctx, x, base + f(x) + 3, 20 + rnd() * 30, -Math.PI / 2 + (rnd() - 0.5) * 1.4, (rnd() - 0.5) * 2, 2.4, darken(A.near, 0.1), 1, rnd() < 0.5 ? A.accent : undefined); }
   },
   fg: (ctx, W, H, rnd, A) => {
     const base = H - OVER;
     for (let i = 0; i < 5; i++) { const cx = rnd() * W; wrapX(W, cx, 170, (x) => blurShape(ctx, () => { ctx.beginPath(); ctx.ellipse(x, base + 36, 120 + rnd() * 80, 60 + rnd() * 30, 0, 0, Math.PI * 2); }, A.fg, 0.95, 12)); }
-    blurred(ctx, 4, (c) => axon(c, W, (x) => base - 40 + Math.sin((x / W) * Math.PI * 4) * 30, 26, A.fg, A.accent, 120));
+    blurred(ctx, 4, (c) => axon(c, W, (x) => base - 40 + Math.sin((x / W) * Math.PI * 4) * 30, 26, A.fg, nerveGlow(A, A.fg), 120));
   },
 };
 /** akson: W boyunca segmentli miyelin tüpü; düğümlerde parıltı */

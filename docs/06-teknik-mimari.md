@@ -68,6 +68,12 @@ oyun/
 - **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır). Bölüm içinde `motionReduced()` (`render/flash.ts`)
   açıkken süs hareketleri durur: kontrol noktası ışını ve dönen fener ışınları, büyüyen halka/ışıklar, seri konfetisi, gökte kayan
   yıldız kuyrukları, sisin kendi kayması, huzme nabzı ve sürüklenen toz yok; oynanış hareketleri ve kısa parıltılar kalır (YN-082).
+- **Bölüm içi okunurluk (YN-119):** dünya içi uçan yazılar (`ui.ts` `floatText`, `fx.ts` övgü) `render/float-lane.ts`
+  şeridinden geçer: yerleşirken ve her karede (kenara yaslanıp kamerayla kayan ya da yükselişi yetişen yazı başkasına binmez,
+  yenisi üste çıkar). Bölge patolojisinin adı Odi'nin üstünde değil göstergenin üst bandında, çizili uyarı üçgeniyle ve sırayla
+  (`hud.ts` `pathology`); engelin üstündeki rozet de üçgen (tedavide yeşil artı). İşitme Siniri'nde arka plan lifleri soluk,
+  platform dudağı koyu kalın kenarlı (`palette.ts` `edge`), gürültü bulutu açık konturlu ve kapalı evresinde daha opak.
+  Su altı nefes göstergesi kalkan baloncuğunun üstünde, kabarcık simgeli kalın çubuk (Büyük yazıda büyür).
 - **Yakınlaştırma (web):** `index.html`'de `user-scalable=no` yok; tarayıcıda iki parmakla yakınlaştırılabilir. Çift dokunuşla
   yakınlaştırma `html { touch-action:manipulation }` ile kapalı (hızlı dokunuşlar sayfayı büyütmesin); bölüm ekranı
   (`.level-host`), harita ve kamp tuvali `touch-action:none` (oyun içinde tarayıcı hareketi yok; Phaser dokunuşları zaten yakalar).

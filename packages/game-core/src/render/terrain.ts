@@ -45,14 +45,15 @@ function shadowTex(scene: Phaser.Scene): string {
 function lipTex(scene: Phaser.Scene, A: BiomeArt, R: number): string {
   const w = 96, h = LIP_H + 12; // altında yumuşak gölge
   return canvasTex(scene, `tr-lip-${A.id}-${R}`, w, h, R, (ctx) => {
-    const G = A.ground; const r = LIP_H / 2;
-    // alt gölge
-    const sg = ctx.createLinearGradient(0, LIP_H - 4, 0, h); sg.addColorStop(0, css(G.line, 0.55)); sg.addColorStop(1, css(G.line, 0));
+    const G = A.ground; const r = LIP_H / 2; const edge = A.edge;
+    // alt gölge (koyu kenarlı biyomda daha koyu ve keskin)
+    const sg = ctx.createLinearGradient(0, LIP_H - 4, 0, h); sg.addColorStop(0, css(edge ?? G.line, edge != null ? 0.95 : 0.55)); sg.addColorStop(1, css(edge ?? G.line, 0));
     ctx.fillStyle = sg; roundRectPath(ctx, 4, LIP_H - 6, w - 8, h - LIP_H + 6, 8); ctx.fill();
-    roundRectPath(ctx, 1, 1, w - 2, LIP_H - 2, r);
+    const lp = () => (edge != null ? roundRectPath(ctx, 2, 2, w - 4, LIP_H - 3, r - 1) : roundRectPath(ctx, 1, 1, w - 2, LIP_H - 2, r));
+    lp();
     const g = ctx.createLinearGradient(0, 0, 0, LIP_H); g.addColorStop(0, css(G.topHi)); g.addColorStop(0.28, css(G.top)); g.addColorStop(1, css(G.topLo));
     ctx.fillStyle = g; ctx.fill();
-    ctx.strokeStyle = css(darken(G.topLo, 0.45), 0.9); ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.strokeStyle = edge != null ? css(edge) : css(darken(G.topLo, 0.45), 0.9); ctx.lineWidth = edge != null ? 3 : 1.6; lp(); ctx.stroke();
     // parlak üst çizgi
     ctx.strokeStyle = css(0xffffff, 0.55); ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r * 0.7, 4.2); ctx.lineTo(w - r * 0.7, 4.2); ctx.stroke();
     // uç parlamaları

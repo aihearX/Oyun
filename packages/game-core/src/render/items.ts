@@ -105,7 +105,8 @@ const spikeTex = (s: Phaser.Scene, A: BiomeArt, w: number) => T(s, `it-spike-${A
     glow(ctx, cx, top + 1, 4, 0xffffff, 0.8);
   }
 });
-const cloudTex = (s: Phaser.Scene, kind: string, w: number, h: number) => T(s, `it-cloud-${kind}-${w}x${h}`, w + 24, h + 24, (ctx, W, H) => {
+/** edge: koyu, ışıklı çizgili zeminde (İşitme Siniri) bulutun dışına açık renk kalın kontur (YN-119) */
+const cloudTex = (s: Phaser.Scene, kind: string, w: number, h: number, edge = false) => T(s, `it-cloud-${kind}-${w}x${h}${edge ? '-kenar' : ''}`, w + 24, h + 24, (ctx, W, H) => {
   const rnd = rng(w * 13 + h); const cx = W / 2, cy = H / 2;
   const hot = kind === 'serumen' ? 0xff6a2c : THEME.hazard;
   const dark = kind === 'serumen' ? [0x7a3410, 0x2a0a04, 0xffa060] : [0x5a2470, 0x1e0a2e, 0xc080ff];
@@ -114,7 +115,9 @@ const cloudTex = (s: Phaser.Scene, kind: string, w: number, h: number) => T(s, `
   for (let i = 0; i < n; i++) { const t = (i + 0.5) / n; const r = (w / n) * (0.62 + rnd() * 0.18) * (1 - Math.abs(t - 0.5) * 0.5); puffs.push([12 + t * w, cy - h * 0.08 - Math.sin(t * Math.PI) * h * 0.12, Math.min(h * 0.5, r)]); }
   const path = () => { ctx.beginPath(); ctx.roundRect(12 + w * 0.04, cy - h * 0.05, w * 0.92, h * 0.5, h * 0.25); for (const [x, y, r] of puffs) { ctx.moveTo(x + r, y); ctx.arc(x, y, r, 0, Math.PI * 2); } };
   glow(ctx, cx, cy, Math.max(w, h) * 0.62, hot, 0.3);
-  ctx.save(); ctx.lineJoin = 'round'; path(); ctx.strokeStyle = css(hot, 0.9); ctx.lineWidth = 4; ctx.stroke(); path(); ctx.strokeStyle = css(dark[1]!); ctx.lineWidth = 2.2; ctx.stroke(); ctx.restore();
+  ctx.save(); ctx.lineJoin = 'round';
+  if (edge) { path(); ctx.strokeStyle = '#ffe4f0'; ctx.lineWidth = 9; ctx.stroke(); }
+  path(); ctx.strokeStyle = css(hot, 0.9); ctx.lineWidth = 4; ctx.stroke(); path(); ctx.strokeStyle = css(dark[1]!); ctx.lineWidth = 2.2; ctx.stroke(); ctx.restore();
   path(); const g = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h / 2); g.addColorStop(0, css(dark[0]!)); g.addColorStop(1, css(dark[1]!)); ctx.fillStyle = g; ctx.fill();
   ctx.save(); path(); ctx.clip();
   for (const [x, y, r] of puffs) { const rg = ctx.createRadialGradient(x - r * 0.3, y - r * 0.45, 1, x, y, r); rg.addColorStop(0, css(dark[2]!, 0.5)); rg.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
@@ -224,11 +227,11 @@ export function buildSpike(v: EntityView, A: BiomeArt, w: number) {
   const sp = I(v.scene, spikeTex(v.scene, A, ww)).setOrigin(0, 1); v.add(sp);
   v.tw({ targets: g, alpha: 0.15, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
 }
-export function buildHazardCloud(v: EntityView, kind: string, w: number, h: number) {
+export function buildHazardCloud(v: EntityView, kind: string, w: number, h: number, edge = false) {
   const cx = w / 2, cy = h / 2;
   const hot = kind === 'serumen' ? 0xff6a2c : THEME.hazard;
   const g = v.scene.add.image(cx, cy, softGlowTex(v.scene)).setBlendMode(ADD).setTint(hot).setDisplaySize(w * 1.5, h * 1.6).setAlpha(0.45); v.add(g);
-  const cl = I(v.scene, cloudTex(v.scene, kind, Math.round(w), Math.round(h)), cx, cy); v.add(cl);
+  const cl = I(v.scene, cloudTex(v.scene, kind, Math.round(w), Math.round(h), edge), cx, cy); v.add(cl);
   const z = I(v.scene, zigTex(v.scene, Math.round(w), Math.round(h * 0.7)), cx, cy + h * 0.05).setBlendMode(ADD); v.add(z);
   // kızgın gözler (sevimli ama tehlikeli)
   const eyes = v.scene.add.graphics(); v.add(eyes);

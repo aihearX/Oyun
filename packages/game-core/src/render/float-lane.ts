@@ -1,7 +1,9 @@
 /**
- * Dünyadaki uçan yazıların yeri (YN-070): "Kontrol noktası", "✚ Kulak kiri tıkacı", "Altın Koklea!" gibi yazılar
+ * Dünyadaki uçan yazıların yeri (YN-070, YN-119): "Kontrol noktası", "+50 ezme!", "Seri x5", "Altın Koklea!" gibi yazılar
  *  - ekranın içinde kalır: kamera kayarken de (kahraman koşarken yazı soldan taşmasın) her karede kenara yaslanır;
- *  - aynı anda çıkan iki yazı üst üste binmez: yenisi, ekrandaki yazılarla kesişmeyene dek yukarı kayar.
+ *  - aynı anda çıkan iki yazı üst üste binmez: yenisi, ekrandaki yazılarla kesişmeyene dek yukarı kayar;
+ *  - sonradan da binmez: kenara yaslanan yazı kamerayla kayıp başka yazının üstüne gelirse ya da iki yazının yükselişi
+ *    birbirine yetişirse, her karede yeni olan eskisinin üstüne çıkar (`settle`; eski yazı yerinde kalır).
  * Hesap Phaser'dan bağımsız (birim testi: float-lane.test.ts); `placeFloat` sahnedeki canlı yazıları izler.
  */
 import type Phaser from 'phaser';
@@ -29,27 +31,61 @@ export function freeY(box: Box, taken: readonly Box[], gap = 4, maxSteps = 4): n
   return y;
 }
 
+/**
+ * Sonradan binme çözümü: kutular oluşturulma sırasında (eski önce), `lift` her kutunun şimdiki yukarı kaydırması. Eski kutular
+ * yerinde kalır; yenisi gösterilen eski kutulardan biriyle kesişiyorsa onun üstüne çıkar. Kaydırma yalnız artar (yazı aşağı
+ * zıplamaz, iki yer arasında titremez). Dönüş: yeni kaydırmalar (aynı sıra).
+ */
+export function settle(items: readonly { box: Box; lift: number }[], gap = 4): number[] {
+  const shown: Box[] = [];
+  return items.map(({ box, lift }) => {
+    const y = freeY({ ...box, y: box.y - lift }, shown, gap);
+    shown.push({ ...box, y });
+    return box.y - y;
+  });
+}
+
 type Floating = Phaser.GameObjects.Components.Transform & Phaser.GameObjects.GameObject;
-/** sahnedeki canlı uçan yazılar ve tam boyları (büyüyerek açılan yazının o anki boyu değil) */
-const live = new WeakMap<Phaser.Scene, Map<Floating, { w: number; h: number }>>();
+/** canlı uçan yazı: tam boyu (büyüyerek açılan yazının o anki boyu değil), istenen x ve şimdiki yukarı kaydırması */
+interface Live { w: number; h: number; x: number; lift: number }
+/** sahne başına canlı yazılar (oluşturulma sırasıyla) */
+const lanes = new WeakMap<Phaser.Scene, Map<Floating, Live>>();
 
 /**
- * Uçan yazıyı yerleştirir: x ekranda kalır (her karede), y başka canlı yazıyla çakışmayacak yere kayar. Dönen y, yazının
- * tween'lerinin taban noktasıdır (çağıran yükselişi bu y'den hesaplar). w/h: yazının tam boyu (büyüyerek açılıyorsa son boyu).
+ * Sahnenin şeridi. Kaydırma tween'lerin y'sine eklenir ama tween'ler onu görmez: kare başında (tween'ler yürümeden) çıkarılır,
+ * sahnenin update'inden SONRA (kamera o karede kaydıktan sonra, çizimden önce) yeniden hesaplanıp eklenir. 'update' olayı kamerayı
+ * bir kare geriden izler, yavaş karede (büyük adım) yazı kenardan taşıyordu.
+ */
+function lane(s: Phaser.Scene): Map<Floating, Live> {
+  const had = lanes.get(s); if (had) return had;
+  const live = new Map<Floating, Live>(); lanes.set(s, live);
+  const cam = () => s.cameras.main;
+  const pre = () => { for (const [o, l] of live) if (o.active) o.y += l.lift; };
+  const post = () => {
+    const c = cam(); const left = viewTopLeft(c).x; const vw = c.width / c.zoom;
+    const list = [...live].filter(([o]) => o.active);
+    for (const [o, l] of list) o.x = clampX(l.x, l.w / 2, left, vw);
+    const lifts = settle(list.map(([o, l]) => ({ box: { x: o.x, y: o.y, w: l.w, h: l.h }, lift: l.lift })));
+    list.forEach(([o, l], i) => { l.lift = lifts[i]!; o.y -= l.lift; });
+  };
+  s.events.on('preupdate', pre); s.events.on('postupdate', post);
+  s.events.once('shutdown', () => { s.events.off('preupdate', pre); s.events.off('postupdate', post); live.clear(); lanes.delete(s); });
+  return live;
+}
+
+/**
+ * Uçan yazıyı yerleştirir: x ekranda kalır (her karede), y başka canlı yazıyla çakışmayacak yere kayar; sonradan çakışırsa
+ * yukarı çıkar (`settle`). Dönen y, yazının tween'lerinin taban noktasıdır (çağıran yükselişi bu y'den hesaplar).
+ * w/h: yazının tam boyu (büyüyerek açılıyorsa son boyu).
  */
 export function placeFloat(s: Phaser.Scene, o: Floating, x: number, y: number, w: number, h: number): number {
-  const cam = s.cameras.main; const half = w / 2;
-  const vw = () => cam.width / cam.zoom;
-  let set = live.get(s); if (!set) { set = new Map(); live.set(s, set); }
-  const x0 = clampX(x, half, viewTopLeft(cam).x, vw());
-  const taken: Box[] = [...set].filter(([t]) => t.active).map(([t, b]) => ({ x: t.x, y: t.y, ...b }));
+  const cam = s.cameras.main; const live = lane(s);
+  const x0 = clampX(x, w / 2, viewTopLeft(cam).x, cam.width / cam.zoom);
+  // sahnenin update'i içindeyiz: canlı yazıların y'si kaydırmasız, gösterilen yer y - lift
+  const taken: Box[] = [...live].filter(([t]) => t.active).map(([t, b]) => ({ x: t.x, y: t.y - b.lift, w: b.w, h: b.h }));
   const y0 = freeY({ x: x0, y, w, h }, taken);
   o.setPosition(x0, y0);
-  set.set(o, { w, h });
-  // sahnenin update'inden SONRA (kamera o karede kaydıktan sonra, çizimden önce): 'update' olayı kamerayı bir kare geriden izler,
-  // yavaş karede (büyük adım) yazı kenardan taşıyordu
-  const follow = () => { if (o.active) o.x = clampX(x, half, viewTopLeft(cam).x, vw()); };
-  s.events.on('postupdate', follow);
-  o.once('destroy', () => { s.events.off('postupdate', follow); set.delete(o); });
+  live.set(o, { w, h, x, lift: 0 });
+  o.once('destroy', () => live.delete(o));
   return y0;
 }
