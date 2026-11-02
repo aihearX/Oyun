@@ -29,6 +29,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
     timeSec: z.number().min(MIN_TIME_SEC).max(3600), coins: z.number().int().min(0).max(MAX_COINS),
     biome: z.enum(BIOMES), mechanic: z.enum(MECHANICS), raceId: id.optional(), cochleas: z.number().int().min(0).max(3).optional(),
     remediesUsed: z.array(z.object({ id: remedyId, count: z.number().int().min(1).max(9) })).max(12).optional(),
+    rahat: z.boolean().optional(),
   }),
   'friends.list': empty,
   'friends.add': z.object({ code: z.string().min(4).max(12) }),

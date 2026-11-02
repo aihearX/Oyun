@@ -1,5 +1,5 @@
 import type { AbilityId, ChunkSpec, Entity, LevelSpec, ModifierId, PlayerSkills } from '@odi/shared';
-import { mulberry32, hashString, pick, GROUND_Y } from '@odi/shared';
+import { mulberry32, hashString, pick, GROUND_Y, RAHAT } from '@odi/shared';
 import { ALL_CHUNKS, BOSSES, MODIFIERS, abilitiesAt, chunkNeeds, journeyById, newAbilitiesAt, objective, type LevelPlan } from '@odi/content';
 import { quietProfile, startsWithPit } from './pacing';
 import { CURVE_ZONES, knobsFor, tuningAt, zoneOf, zonePos, type LevelKnobs } from './curve';
@@ -316,11 +316,26 @@ function weighted<T>(rng: () => number, items: { v: T; w: number }[]): T | undef
 
 /** Bölüm üretimi: deterministik (journey + number + seedSalt). Profil yalnızca zorluk ve parça seçimini etkiler.
  *  Bir önceki bölümün odaları düşük ağırlık alır: art arda bölümler farklı hissettirsin. */
-export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0, o: { variant?: number } = {}): LevelSpec {
+export function generateLevel(journeyId: string, number: number, profile: PlayerProfile = DEFAULT_PROFILE, seedSalt = 0, o: { variant?: number; rahat?: boolean } = {}): LevelSpec {
   const prev = new Set<string>();
   // önceki iki bölümün odaları (varsayılan varyantlarıyla: bir bölümün kalibrasyonu komşularını değiştirmesin)
   for (const k of [1, 2]) if (number > k) { try { for (const c of generateCore(journeyId, number - k, profile, seedSalt, new Set(), 0).chunks) prev.add(c.id); } catch { /* yok */ } }
-  return generateCore(journeyId, number, profile, seedSalt, prev, o.variant);
+  const spec = generateCore(journeyId, number, profile, seedSalt, prev, o.variant);
+  return o.rahat ? rahatSpec(spec) : spec;
+}
+
+/**
+ * Rahat deneme (sahip kararı 42, YN-110): canavar bölümünün oyuncunun AÇIKÇA seçtiği hâli. Canavar `RAHAT.slow` katı hızda
+ * (`BossSpec.pace`, boss.ts): uyarılar, saldırı araları ve saplı yumruğun yerde kaldığı süre ÷0,8 uzar, top ve dalga ×0,8 yavaşlar;
+ * +1 can (sim initState) ve en çok 1 yıldız (scoreRun). Canavar olmayan bölümde hiçbir şey değişmez (teklif yalnız canavar bölümünde). Kayıp serisinin yardımı
+ * (`levelKnobs` ease) canavar bölümünde zaten hiçbir şeyi değiştirmez (`levelEase` 0): iki yardım üst üste binmez, bu tek yardımdır.
+ */
+export const RAHAT_INTRO = `Rahat deneme: canavar %${Math.round((1 - RAHAT.slow) * 100)} yavaş, ${RAHAT.extraLives} can fazla. En çok ${RAHAT.maxStars} yıldız.`;
+export function rahatSpec(spec: LevelSpec): LevelSpec {
+  if (spec.mechanic !== 'boss' || !spec.boss) return spec;
+  const b = spec.boss;
+  // bölüm içinde de söylenir: giriş şeridi (INTRO_S) hikâye cümlesi yerine Rahat denemenin ne değiştirdiğini yazar
+  return { ...spec, rahat: true, intro: RAHAT_INTRO, boss: { ...b, pace: RAHAT.slow } };
 }
 
 /**

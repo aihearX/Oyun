@@ -1,6 +1,14 @@
 import type { LevelSpec, RunResult } from './types';
 import { STAR2_NOTE_RATIO, STAR3_NOTE_RATIO, SWIM_STAR2_NOTE_RATIO } from './constants';
 
+/**
+ * Rahat deneme (sahip kararı 42, YN-110): aynı canavar bölümünde `afterFails` kayıptan sonra kayıp ekranı açıkça teklif eder,
+ * oyuncu her seferinde kendisi seçer. Canavar `slow` katı hızda (saldırı temposu ×0,8, uyarı süresi ÷0,8), `extraLives` can fazla.
+ * Koşu en çok `maxStars` yıldız verir; lig, düello, savaş, baskın, sıralama ve meydan okuma puanı yazmaz (sunucu da uygular).
+ * Sonra normal denemeyle daha çok yıldız alınırsa yıldız yükselir.
+ */
+export const RAHAT = { afterFails: 3, slow: 0.8, extraLives: 1, maxStars: 1 } as const;
+
 /** Hedefin 3. yıldız sayılması için anlamlı olup olmadığı ('reach' zaten bitirmektir) */
 export const objectiveCountsForStar = (spec: Pick<LevelSpec, 'objective'>) => spec.objective.id !== 'reach';
 
@@ -40,6 +48,8 @@ export function scoreRun(spec: LevelSpec, r: Omit<RunResult, 'score' | 'stars'>)
     const o = spec.objective;
     if (o.id === 'timed') { if (r.objectiveMet) stars = 3; else if (o.target2 && r.timeSec <= o.target2) stars = Math.max(stars, 2) as 2 | 3; }
   }
+  // Rahat deneme: en çok 1 yıldız (karar 42)
+  if (spec.rahat) stars = Math.min(stars, RAHAT.maxStars) as 1;
   return { score: Math.max(0, score), stars };
 }
 

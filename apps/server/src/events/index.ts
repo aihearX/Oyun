@@ -40,7 +40,8 @@ function onProgress(app: App, pid: string, d: ProgressSubmit): void {
   if (d.completed) questProgress(app, teamId, 'bolum', 1, pid, true);
   if (stars) questProgress(app, teamId, 'yildiz', stars, pid, true);
   addHuntNotes(app, teamId, pid, Math.min(400, Math.max(0, Math.round(d.coins))));
-  addDuelStarPoints(app, teamId, pid, d.level, stars);
+  // Rahat deneme düello puanı yazmaz (karar 42; progress.ts isRahat)
+  if (d.rahat !== true) addDuelStarPoints(app, teamId, pid, d.level, stars);
   broadcastQuests(app, teamId);
 }
 

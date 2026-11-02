@@ -77,7 +77,7 @@ export function bossInit(w: World, s: SimState): void {
   const calm = w.spec.intro ? BOSS_CALM_S : 0;
   s.boss = {
     kind, name: spec?.name ?? (kind === 'golem' ? 'Serumen Golemi' : 'Gürültü Canavarı'), hp, maxHp: hp, phase: 1, defeated: false, defeatAt: 0,
-    mode: 'idle', until: 2.4, nextAttack: Math.max(calm, kind === 'canavar' ? 1.6 : 2.4), nextBall: 6, nextDrop: 4, nextScream: kind === 'canavar' ? 7 : 1e9,
+    mode: 'idle', until: 2.4, nextAttack: Math.max(calm, (kind === 'canavar' ? 1.6 : 2.4) / paceK(w)), nextBall: 6 / paceK(w), nextDrop: 4 / paceK(w), nextScream: kind === 'canavar' ? 7 / paceK(w) : 1e9,
     fists: [], balls: [], drops: [], waves: [], warnWall: null, notes: [], core: null, seed: (w.spec.seed ^ 0x5bd1e995) >>> 0, lastHit: -9, respawned: false, fistIds, hits: 0, tutored: false,
   };
   s.hero.x = 120; s.hero.y = GROUND_Y; s.hero.dir = 1;
@@ -95,6 +95,12 @@ export function bossSolid(s: SimState, e: WEnt, _t: number, out: R): boolean {
 /** zorluk düğmeleri (BossSpec.warn / tempo): uyarı süresi asla 0,6 katın altına inmez (dürüst telegraf) */
 const warnK = (w: World) => Math.max(0.6, w.spec.boss?.warn ?? 1);
 const tempoK = (w: World) => Math.max(0.5, w.spec.boss?.tempo ?? 1);
+/**
+ * Rahat deneme (karar 42): canavarın saati (1 normal, 0,8 = %20 yavaş). Süreler ÷pace (uyarı, saldırı arası, saplı yumruk, çığlık,
+ * sersemleme), hızlar ×pace (top, dalga). Darbenin kendisi (0,12 sn iniş) ve düşen damlanın/bulutun gölge-düşüş zamanlaması aynı
+ * kalır (çizim aynı sabitleri kullanır, render/boss.ts); damlalar daha seyrek gelir.
+ */
+const paceK = (w: World) => Math.max(0.5, Math.min(1, w.spec.boss?.pace ?? 1));
 
 let forecasting = false;
 /** golemin nişanı: kahraman hiçbir şey yapmazsa `dt` sn sonra nerede olur (motorun kendi adımıyla) */
@@ -149,7 +155,7 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
     const lead = 0.95; const tx = Math.max(78, Math.min(ARENA_W - 78, forecastX(w, s, lead)));
     const targets = [tx];
     if (b.phase === 3) { let t2 = tx + (tx < ARENA_W / 2 ? 150 : -150); t2 = Math.max(78, Math.min(ARENA_W - 78, t2)); targets.push(t2); }
-    b.fists = targets.map((x, i) => ({ x, t0: t, st: 'warn', until: t + (b.phase === 3 ? 0.75 : 0.85) * warnK(w), slot: i, hit: false }));
+    b.fists = targets.map((x, i) => ({ x, t0: t, st: 'warn', until: t + ((b.phase === 3 ? 0.75 : 0.85) * warnK(w)) / paceK(w), slot: i, hit: false }));
     if (s.events) s.events.push({ k: 'bossWarn', x: tx, y: GROUND_Y });
   }
   for (const f of b.fists) {
@@ -158,7 +164,7 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
       // yumruk yere iner: yalnızca yerdekine (ayağı yumruk boyundan alçakta) değer — zamanında zıplayan kurtulur
       if (hit(hb, f.x - 38, GROUND_Y - 60, f.x + 38, GROUND_Y + 4)) hurt(w, s, 'yumruk', f.x);
       if (t >= f.until) {
-        f.st = 'planted'; f.until = t + (b.phase === 3 ? 1.8 : 2.1); if (s.events) s.events.push({ k: 'bossSlam', x: f.x, y: GROUND_Y });
+        f.st = 'planted'; f.until = t + (b.phase === 3 ? 1.8 : 2.1) / paceK(w); if (s.events) s.events.push({ k: 'bossSlam', x: f.x, y: GROUND_Y });
         // ilk canavar (20): ilk saplı yumrukta bir kez öğretici an (LevelScene ağır çekim + el işareti; insan modeli de yavaşlar)
         if (!b.tutored) { b.tutored = true; if (s.events) s.events.push({ k: 'bossTutor', x: f.x, y: GROUND_Y - 64, n: f.slot }); }
       }
@@ -170,17 +176,17 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
     if (b.defeated) return;
   }
   b.fists = b.fists.filter((f) => f.until >= 0);
-  if (b.mode === 'attack' && !b.fists.length) { b.mode = 'idle'; b.nextAttack = t + (b.phase === 1 ? 1.1 : b.phase === 2 ? 0.9 : 0.7) / tempoK(w); }
+  if (b.mode === 'attack' && !b.fists.length) { b.mode = 'idle'; b.nextAttack = t + (b.phase === 1 ? 1.1 : b.phase === 2 ? 0.9 : 0.7) / tempoK(w) / paceK(w); }
   // faz 2+: yuvarlanan toplar (kahramanın koştuğu duvardan, ona doğru)
   if (b.phase >= 2) {
-    if (!b.warnWall && t >= b.nextBall) { b.warnWall = { side: h.dir, at: t + 0.7 * warnK(w), kind: 'ball', pair: false }; }
-    if (b.warnWall && t >= b.warnWall.at) { const side = b.warnWall.side; b.balls.push({ x: side > 0 ? ARENA_W - WALL_W - 20 : WALL_W + 20, vx: -side * (190 + b.phase * 20) * Math.sqrt(tempoK(w)), t0: t }); b.warnWall = null; b.nextBall = t + (b.phase === 3 ? 3.4 : 3.8) / tempoK(w); }
+    if (!b.warnWall && t >= b.nextBall) { b.warnWall = { side: h.dir, at: t + (0.7 * warnK(w)) / paceK(w), kind: 'ball', pair: false }; }
+    if (b.warnWall && t >= b.warnWall.at) { const side = b.warnWall.side; b.balls.push({ x: side > 0 ? ARENA_W - WALL_W - 20 : WALL_W + 20, vx: -side * (190 + b.phase * 20) * Math.sqrt(tempoK(w)) * paceK(w), t0: t }); b.warnWall = null; b.nextBall = t + (b.phase === 3 ? 3.4 : 3.8) / tempoK(w) / paceK(w); }
     for (const ball of b.balls) { ball.x += ball.vx * C.DT; if (hit(hb, ball.x - 15, GROUND_Y - 34, ball.x + 15, GROUND_Y)) { hurt(w, s, 'top', ball.x); ball.t0 = -1; } }
     b.balls = b.balls.filter((x) => x.t0 >= 0 && x.x > WALL_W && x.x < ARENA_W - WALL_W);
   }
   // faz 3: tavandan serumen damlası (gölge 0,8 sn)
   if (b.phase >= 3) {
-    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1) + (rnd(b) - 0.5) * 80)), t0: t }); b.nextDrop = t + 2.6 / tempoK(w); }
+    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1) + (rnd(b) - 0.5) * 80)), t0: t }); b.nextDrop = t + 2.6 / tempoK(w) / paceK(w); }
     for (const d of b.drops) { const age = t - d.t0; if (age > 0.8 && age < 1.05) { const y = GROUND_Y - 300 + (age - 0.8) / 0.25 * 300; if (hit(hb, d.x - 14, y - 26, d.x + 14, y)) { hurt(w, s, 'damla', d.x); d.t0 = -9; } } }
     b.drops = b.drops.filter((d) => t - d.t0 < 1.1);
   }
@@ -189,7 +195,7 @@ function golem(w: World, s: SimState, b: BossState, hb: ReturnType<typeof heroBo
 // ---------------------------------------------------------------- Gürültü Canavarı
 /** faz 3 çift dalgası: ikinci dalganın (karşı duvardan) gecikmesi (sn) */
 export const PAIR_DELAY = 0.35;
-const waveSpeed = (b: BossState, w?: World) => (250 + b.phase * 15) * (w ? Math.sqrt(tempoK(w)) : 1);
+const waveSpeed = (b: BossState, w?: World) => (250 + b.phase * 15) * (w ? Math.sqrt(tempoK(w)) * paceK(w) : 1);
 /** çizilecek (doğmuş) dalgalar */
 export const liveWaves = (b: BossState, t: number) => b.waves.filter((w) => w.t0 <= t);
 
@@ -197,25 +203,25 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
   const t = s.t; const h = s.hero;
   // çığlık: 3 nota
   if (b.mode !== 'stun' && b.mode !== 'scream' && t >= b.nextScream) {
-    b.mode = 'scream'; b.until = t + 7;
+    b.mode = 'scream'; b.until = t + 7 / paceK(w);
     const xs = [96, 195, 294]; b.notes = xs.map((x, i) => ({ x: x + (rnd(b) - 0.5) * 30, y: GROUND_Y - (i === 1 ? 120 : 70), got: false }));
     if (s.events) s.events.push({ k: 'bossScream', x: 195, y: GROUND_Y - 300 });
   }
   if (b.mode === 'scream') {
     for (const n of b.notes) if (!n.got && hit(hb, n.x - 22, n.y - 22, n.x + 22, n.y + 22)) { n.got = true; if (s.events) s.events.push({ k: 'bossNote', x: n.x, y: n.y, n: b.notes.filter((q) => q.got).length }); }
-    if (b.notes.every((n) => n.got)) { b.mode = 'stun'; b.until = t + 3.2; b.core = { x: 195, until: t + 3.2, immune: 0 }; b.notes = []; b.waves = []; b.warnWall = null; if (s.events) s.events.push({ k: 'bossStun', x: 195, y: GROUND_Y - 40 }); }
-    else if (t >= b.until) { b.mode = 'idle'; b.notes = []; b.nextScream = t + 3; }
+    if (b.notes.every((n) => n.got)) { b.mode = 'stun'; b.until = t + 3.2 / paceK(w); b.core = { x: 195, until: t + 3.2 / paceK(w), immune: 0 }; b.notes = []; b.waves = []; b.warnWall = null; if (s.events) s.events.push({ k: 'bossStun', x: 195, y: GROUND_Y - 40 }); }
+    else if (t >= b.until) { b.mode = 'idle'; b.notes = []; b.nextScream = t + 3 / paceK(w); }
   }
   if (b.mode === 'stun' && b.core) {
     const c = b.core; const cy = GROUND_Y - 40;
-    if (t >= c.until) { b.core = null; b.mode = 'idle'; b.nextScream = t + 7.5; b.nextAttack = t + 1.2; }
+    if (t >= c.until) { b.core = null; b.mode = 'idle'; b.nextScream = t + 7.5 / paceK(w); b.nextAttack = t + 1.2 / paceK(w); }
     else if (t >= c.immune && hit(hb, c.x - 34, cy - 34, c.x + 34, cy + 34) && (h.dash > 0 || h.pound)) { c.immune = t + 0.6; damageBoss(w, s, 3, h.dash > 0 ? 'darbe' : 'cakil'); if (h.pound) { h.pound = false; h.vy = -480; } }
     return;
   }
   // dalgalar
   if (!b.warnWall && t >= b.nextAttack) {
     const kind: Wave['kind'] = b.phase === 1 ? 'low' : rnd(b) < 0.5 ? 'low' : 'high';
-    b.warnWall = { side: h.dir, at: t + 0.75 * warnK(w), kind, pair: b.phase === 3 };
+    b.warnWall = { side: h.dir, at: t + (0.75 * warnK(w)) / paceK(w), kind, pair: b.phase === 3 };
   }
   if (b.warnWall && t >= b.warnWall.at) {
     const side = b.warnWall.side; const x0 = side > 0 ? ARENA_W - WALL_W - 12 : WALL_W + 12;
@@ -224,7 +230,7 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
     // Kahramanın arkasından gelir ve onu yavaşça (dalga 295 − koşu 260 px/sn) yakalar; öndekini aştıktan sonra duvarda dönünce
     // karşısına çıkar → iki karşılaşma arası rahat. Eskiden arenanın dışında (x0 + side·330) doğup aynı karede ayıklanıyordu.
     if (b.warnWall.pair) { const xb = side > 0 ? WALL_W + 12 : ARENA_W - WALL_W - 12; b.waves.push({ x: xb, dir: (side > 0 ? 1 : -1), kind: b.warnWall.kind === 'low' ? 'high' : 'low', t0: t + PAIR_DELAY }); }
-    b.warnWall = null; b.nextAttack = t + ((b.phase === 1 ? 2.1 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1)) / tempoK(w);
+    b.warnWall = null; b.nextAttack = t + ((b.phase === 1 ? 2.1 : b.phase === 2 ? 2.2 : 2.9) * (b.mode === 'scream' ? 1.4 : 1)) / tempoK(w) / paceK(w);
   }
   const sp = waveSpeed(b, w);
   for (const wv of b.waves) {
@@ -236,7 +242,7 @@ function canavar(w: World, s: SimState, b: BossState, hb: ReturnType<typeof hero
   b.waves = b.waves.filter((wv) => wv.t0 >= 0 && wv.x > WALL_W - 40 && wv.x < ARENA_W - WALL_W + 40);
   // faz 2+: düşen gürültü bulutları
   if (b.phase >= 2) {
-    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1))), t0: t }); b.nextDrop = t + (b.phase === 3 ? 2.6 : 3.4) / tempoK(w); }
+    if (t >= b.nextDrop) { b.drops.push({ x: Math.max(60, Math.min(ARENA_W - 60, predictX(h.x, h.dir, 1.1))), t0: t }); b.nextDrop = t + (b.phase === 3 ? 2.6 : 3.4) / tempoK(w) / paceK(w); }
     for (const d of b.drops) { const age = t - d.t0; if (age > 0.85 && age < 1.15) { const y = GROUND_Y - 320 + (age - 0.85) / 0.3 * 320; if (hit(hb, d.x - 22, y - 30, d.x + 22, y)) { hurt(w, s, 'bulut', d.x); d.t0 = -9; } } }
     b.drops = b.drops.filter((d) => t - d.t0 < 1.2);
   }

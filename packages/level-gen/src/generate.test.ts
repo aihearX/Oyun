@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateLevel, levelKnobs, levelEase, easeLine, easeNextLine, DEFAULT_PROFILE, MAX_NOTES } from './generate';
+import { generateLevel, levelKnobs, levelEase, easeLine, easeNextLine, rahatSpec, DEFAULT_PROFILE, MAX_NOTES } from './generate';
 import { CURVE_ZONES, targetLambda } from './curve';
 import { predictDmg, roomStats } from './rooms';
 import { validateChunks, HUMAN_JOURNEY, abilitiesAt, chunkNeeds, newAbilitiesAt } from '@odi/content';
@@ -150,5 +150,32 @@ describe('yardım açıkça söylenir (YN-113)', () => {
       const a = generateLevel('insan', n), b = generateLevel('insan', n, { ...DEFAULT_PROFILE, failStreak: 5 });
       expect(b.boss).toEqual(a.boss);
     }
+  });
+});
+
+describe('Rahat deneme (karar 42, YN-110)', () => {
+  const bosses = HUMAN_JOURNEY.levels.filter((l) => l.mechanic === 'boss').map((l) => l.number);
+  it('yolculuğun bütün canavar bölümlerinde (20 ve 40): canavar %20 yavaş, yalnız oyuncu seçince', () => {
+    expect(bosses).toEqual([20, 40]);
+    for (const n of bosses) {
+      const a = generateLevel('insan', n), r = generateLevel('insan', n, DEFAULT_PROFILE, 0, { rahat: true });
+      expect(a.rahat).toBeUndefined(); expect(r.rahat).toBe(true);
+      expect(a.boss!.pace).toBeUndefined(); expect(r.boss!.pace).toBe(0.8);
+      // canavarın canı, tempo/uyarı düğmeleri ve arenanın kendisi aynı; yalnız canavarın saati yavaş
+      expect({ ...r.boss!, pace: undefined }).toEqual({ ...a.boss!, pace: undefined }); expect(r.id).toBe(a.id);
+      // bölüm içinde de açıkça söylenir (giriş şeridi)
+      expect(r.intro).toBe('Rahat deneme: canavar %20 yavaş, 1 can fazla. En çok 1 yıldız.');
+    }
+  });
+  it('kayıp serisinin yardımıyla üst üste binmez: canavar bölümünde seri hiçbir şeyi değiştirmez, Rahat tek yardımdır', () => {
+    for (const n of bosses) {
+      const r0 = generateLevel('insan', n, DEFAULT_PROFILE, 0, { rahat: true });
+      const r5 = generateLevel('insan', n, { ...DEFAULT_PROFILE, failStreak: 5 }, 0, { rahat: true });
+      expect(r5.boss).toEqual(r0.boss); expect(levelEase('insan', n, { ...DEFAULT_PROFILE, failStreak: 5 }).ease).toBe(0);
+    }
+  });
+  it('canavar olmayan bölümde hiçbir şey değişmez', () => {
+    const a = generateLevel('insan', 19); expect(rahatSpec(a)).toBe(a);
+    expect(generateLevel('insan', 19, DEFAULT_PROFILE, 0, { rahat: true }).rahat).toBeUndefined();
   });
 });

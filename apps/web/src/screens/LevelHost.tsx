@@ -166,7 +166,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
       {paused && (
         // koyu duraklatma menüsü (açık temadan bağımsız: oyunun gece paletiyle)
         <div className="overlay pause-menu" role="dialog" aria-label="Duraklatıldı" style={PAUSE_BG}><div className="card" style={PAUSE_CARD}>
-          <h2 style={{ color: '#fff6e5', margin: 0 }}>Duraklatıldı</h2><div style={{ color: '#c9c1ff', fontWeight: 700 }}>{spec.number}. {spec.name}{lives != null ? ` · ${lives} can` : ''}</div>
+          <h2 style={{ color: '#fff6e5', margin: 0 }}>Duraklatıldı</h2><div style={{ color: '#c9c1ff', fontWeight: 700 }}>{spec.number}. {spec.name}{lives != null ? ` · ${lives} can` : ''}{spec.rahat ? ' · Rahat deneme' : ''}</div>
           <button className="btn" onClick={togglePause}>Devam</button>
           <button className="btn ghost" style={PAUSE_GHOST} onClick={restart}>Yeniden başla</button>
           <button className="btn ghost" style={PAUSE_GHOST} onClick={onQuit}>Haritaya dön</button>

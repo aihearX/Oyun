@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { BIOMES, BOSSES, HUMAN_JOURNEY, MECHANICS, treasureAt } from '@odi/content';
 import { easeLine, generateLevel, levelEase } from '@odi/level-gen';
-import { albumProgress, biomeStats } from '@odi/meta';
+import { RAHAT_TEXT, albumProgress, biomeStats } from '@odi/meta';
 import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMap, type ZoneId } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
@@ -76,6 +76,8 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
         {goal && <div className="mc-row"><span><Art e="🎯" size="1.15em" className="art-inline" /></span><b>Hedef</b><span className="mc-dim">{goal}</span></div>}
         {boss && <div className="mc-row"><span><Art e="👹" size="1.15em" className="art-inline" /></span><b>{boss.name}</b><span className="mc-dim">{boss.hp} can · {boss.phases} evre</span></div>}
         {ease && !locked && <div className="mc-row" data-testid="bolum-kolay"><span><Art name="sprout" size="1.15em" className="art-inline" /></span><b>Yardım</b><span className="mc-dim">{ease}</span></div>}
+        {/* yıldız yalnız Rahat denemeyle alındıysa (karar 42): "Oyna" normal denemedir, yıldızı yükseltebilir */}
+        {p?.rahat && <div className="mc-row" data-testid="bolum-rahat"><span><Art name="heart" size="1.15em" className="art-inline" /></span><b>{RAHAT_TEXT.title}</b><span className="mc-dim">{RAHAT_TEXT.mapNote}</span></div>}
         {p && p.best > 0 && <div className="mc-row"><span><Art e="🏅" size="1.15em" className="art-inline" /></span><b>En iyi skor</b><span className="mc-dim">{p.best.toLocaleString('tr-TR')}</span></div>}
         {tr && <div className="mc-row"><span><Art e="🎁" size="1.15em" className="art-inline" /></span><b>Hazine</b><RewardChips items={tr.reward} small /></div>}
         {!locked && <RemedyPicker region={l.biome} />}

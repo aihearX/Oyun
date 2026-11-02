@@ -10,7 +10,9 @@ import {
   openDailyChest, processRun, recordShare, settle, type MetaEvent, type MetaState, type PlayerCore, type RunSummary, type StreakEvent,
 } from '@odi/meta';
 
-export interface LevelProgress { stars: number; best: number; plays: number; lastResult?: RunResult }
+export interface LevelProgress { stars: number; best: number; plays: number; lastResult?: RunResult;
+  /** bu bölümde art arda kayıp; yıldız yalnız Rahat denemeyle mi (meta LevelProgressLite; karar 42) */
+  fails?: number; rahat?: boolean }
 /** Üstte kısa kutlama bildirimi (kalıcı değil) */
 export interface Toast { id: number; icon: string; title: string; text?: string; tone?: 'gold' | 'silver' | 'bronze' | 'accent' | 'green' | 'coral' }
 

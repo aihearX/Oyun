@@ -1,4 +1,4 @@
-import { levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
+import { RAHAT, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
 import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
@@ -55,6 +55,8 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     if (pct != null) return { kind: 'yakin', text: `Yolun %${Math.round(pct * 100)}'${yuzdeEki(Math.round(pct * 100))} geçtin. Bir dahakine daha ileri!` };
     return { kind: 'yakin', text: 'Bir daha dene: her denemede yol biraz daha tanıdık.' };
   }
+  // Rahat denemede yıldız 1'de kalır: sıradaki yıldız ancak normal denemeyle (karar 42)
+  if (r.rahat && spec.coinsTotal <= 0) return { kind: 'yildiz', text: 'Normal denemede 2. yıldız için en çok 1 kez hasar al' };
   if (spec.coinsTotal <= 0) {
     if (r.stars < 3) return { kind: 'yildiz', text: r.stars === 1 ? '2. yıldız için en çok 1 kez hasar al' : '3. yıldız için hiç hasar almadan yen' };
   } else if (r.stars < 3) {
@@ -225,6 +227,37 @@ export function lossView(r: RunResult, spec?: LossSpec, attempt = 1): { title: s
   const tip = tips.length ? tips[(Math.max(1, Math.floor(attempt)) - 1) % tips.length]! : '';
   return { title: 'Canların bitti', detail, tip };
 }
+
+// ---------------------------------------------------------------- Rahat deneme (sahip kararı 42, YN-110)
+
+/**
+ * Kayıp ekranı Rahat denemeyi teklif eder mi: yalnız canavar bölümünde, o bölümde art arda `RAHAT.afterFails` kayıptan sonra
+ * (sayaç `processRun`'da; normal geçişte sıfırlanır). Teklif her kayıpta yeniden gösterilir; oyuncu her seferinde kendisi seçer,
+ * hiçbir deneme kendiliğinden Rahat olmaz.
+ */
+export function rahatOffer(spec: Pick<RunSpecLite, 'mechanic'>, p: Pick<LevelProgressLite, 'fails'> | undefined): boolean {
+  return spec.mechanic === 'boss' && (p?.fails ?? 0) >= RAHAT.afterFails;
+}
+const RAHAT_PCT = Math.round((1 - RAHAT.slow) * 100);
+/** Rahat denemenin oyuncuya söylenen yüzü: teklif kartı, sonuç kartı, harita kartı (hepsi aynı kurallarla, açıkça) */
+export const RAHAT_TEXT = {
+  title: 'Rahat deneme',
+  /** ne değişir (teklif kartı ve Rahat kayıp satırı) */
+  what: `Canavar %${RAHAT_PCT} yavaş, ${RAHAT.extraLives} can fazla.`,
+  /** ne verir, ne vermez */
+  rules: `En çok ${RAHAT.maxStars} yıldız verir; lig, düello ve takım puanı yazılmaz.`,
+  offer: (fails: number) => `Bu canavarda üst üste ${fails} kez kaybettin. İstersen bir sonraki denemeyi rahat oyna; her seferinde sen seçersin.`,
+  button: 'Rahat dene',
+  /** düğmenin altındaki kısa satır */
+  short: `%${RAHAT_PCT} yavaş, +${RAHAT.extraLives} can, en çok ${RAHAT.maxStars} yıldız`,
+  /** Rahat denemeyle kazanınca sonuç kartının başlığı ve notu */
+  passed: 'Rahat denemeyle geçildi',
+  passedNote: `En çok ${RAHAT.maxStars} yıldız; lig, düello ve takım puanı yazılmadı. Normal denemede daha çok yıldız alırsan yıldızın yükselir.`,
+  /** Rahat denemeyle kaybedince */
+  lostNote: `Bu Rahat denemeydi (canavar %${RAHAT_PCT} yavaş, ${RAHAT.extraLives} can fazla).`,
+  /** harita kartı: yıldız yalnız Rahat denemeyle alındıysa */
+  mapNote: 'Rahat denemeyle geçildi: normal denemeyle yıldızını yükseltebilirsin.',
+} as const;
 
 /** "Bu bölümden" dökümünün bir satırı; birden çok başarım tek satırda toplanır, altında her biri (items) adıyla ve ödülüyle */
 export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[] }

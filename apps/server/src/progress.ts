@@ -1,4 +1,4 @@
-import { CAMP_POWER_LEVEL, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type RunResult } from '@odi/shared';
+import { CAMP_POWER_LEVEL, RAHAT, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
 import { completeDue, useRemedies } from './camp';
@@ -44,6 +44,15 @@ export function bonusesFor(app: App, pid: string): Bonuses {
 export const RUN_RETAIN_MS = 30 * 86_400_000;
 export function pruneRuns(app: App): void { app.db.run('DELETE FROM progress_runs WHERE at < ?', app.now() - RUN_RETAIN_MS); }
 
+/**
+ * Rahat deneme (sahip kararı 42, YN-110): istemcinin "bu koşu Rahat denemeydi" bayrağı. Bayrak yalnız oyuncunun aleyhinedir (yıldız
+ * en çok 1, rekabet puanı yok), bu yüzden sunucu teklifin koşulunu (3 kayıp) yeniden sınamaz; kuralı kendisi uygular:
+ * canavar bölümü dışında ve yarışta reddedilir, 1'den çok yıldız reddedilir; savaş, baskın, lig, takım katkısı/hedefi, düello
+ * (events), sıralama ve meydan okuma (comm) yazılmaz; en iyi skor (level_best.score) yükselmez. Yıldız ilerleme olarak yazılır
+ * (bir sonraki bölüm açılır); sonraki normal koşu yıldızı ve sıralamayı normal kuralla yükseltir.
+ */
+export const isRahat = (d: Pick<ProgressSubmit, 'rahat'>) => d.rahat === true;
+
 export const progressHandlers: Handlers = {
   'me.bonuses': (app, s) => bonusesFor(app, s.pid),
   'progress.submit': (app, s, d) => {
@@ -54,6 +63,9 @@ export const progressHandlers: Handlers = {
     const admin = isAdmin(app, s.pid); const adminOn = admin && isAdminOn(app, s.pid);
     if (d.level > p.highest + 1 && !adminOn) fail('GECERSIZ', 'Bu bölüm henüz açılmamış.');
     if (!d.completed && d.stars > 0) fail('GECERSIZ', 'Tamamlanmayan bölüm yıldız veremez.');
+    const rahat = isRahat(d);
+    if (rahat && (d.mechanic !== 'boss' || d.raceId)) fail('GECERSIZ', 'Rahat deneme yalnız canavar bölümünde, yarış dışında oynanır.');
+    if (rahat && d.stars > RAHAT.maxStars) fail('GECERSIZ', `Rahat deneme en çok ${RAHAT.maxStars} yıldız verir.`);
     completeDue(app, s.pid);
     const teamId = p.team_id;
     const bonus = bonusesFor(app, s.pid);
@@ -69,8 +81,9 @@ export const progressHandlers: Handlers = {
     let starGain = 0;
     if (d.completed) {
       starGain = Math.max(0, d.stars - (best?.stars ?? 0));
+      // Rahat denemenin skoru en iyi skora girmez (meydan okuma kartı en iyi skoru kullanır)
       app.db.run(`INSERT INTO level_best(player_id, level, stars, score) VALUES(?, ?, ?, ?)
-        ON CONFLICT(player_id, level) DO UPDATE SET stars = MAX(stars, excluded.stars), score = MAX(score, excluded.score)`, s.pid, d.level, d.stars, score);
+        ON CONFLICT(player_id, level) DO UPDATE SET stars = MAX(stars, excluded.stars), score = MAX(score, excluded.score)`, s.pid, d.level, d.stars, rahat ? 0 : score);
     }
     const highest = d.completed && d.level <= p.highest + (adminOn ? 0 : 1) ? Math.max(p.highest, Math.min(MAX_LEVEL, d.level + 1)) : p.highest;
     const run = { completed: d.completed, stars: d.stars, secretFound: false } as RunResult;
@@ -79,22 +92,23 @@ export const progressHandlers: Handlers = {
 
     // savaş puanı (parayla alınamaz: yalnızca oynayarak; kamp binası etkisi yok, karar 29)
     const warMul = 1 + bonus.warPct / 100;
-    const warPoints = admin ? 0 : Math.round(warPointsFor(d) * warMul);
+    const noCompete = admin || rahat;
+    const warPoints = noCompete ? 0 : Math.round(warPointsFor(d) * warMul);
     addWarPoints(app, s.pid, teamId, d.biome, warPoints);
 
     // baskın
-    const raidRaw = admin ? 0 : Math.round(raidDamageFor(d) * (1 + bonus.raidPct / 100));
+    const raidRaw = noCompete ? 0 : Math.round(raidDamageFor(d) * (1 + bonus.raidPct / 100));
     const raidDamage = raidHit(app, s.pid, teamId, raidRaw);
 
     // lig
     const place = d.raceId ? racePlaceFor(app, s.pid, d.raceId) : null;
     // tekrar sınırı (karar 26): bir bölüm haftada en çok 2 kez tam puan, sonraki her bitirişi 1 puan
-    const lig = admin ? { points: 0, replay: false } : leaguePointsForRun(app, s.pid, d.level, d.completed, leaguePointsFor(d, place));
+    const lig = noCompete ? { points: 0, replay: false } : leaguePointsForRun(app, s.pid, d.level, d.completed, leaguePointsFor(d, place));
     const leaguePoints = lig.points;
     addLeaguePoints(app, s.pid, leaguePoints);
 
     // takım katkısı ve hedefler
-    if (teamId && !admin) {
+    if (teamId && !noCompete) {
       const stars = d.completed ? d.stars : 0;
       addContrib(app, teamId, s.pid, { stars });
       addTeamXp(app, teamId, stars * 2);
@@ -109,7 +123,7 @@ export const progressHandlers: Handlers = {
 
     const after = app.player(s.pid);
     const ack = {
-      highest: after.highest, stars: after.stars, warPoints, raidDamage, leaguePoints, ...(lig.replay ? { leagueReplay: true } : {}),
+      highest: after.highest, stars: after.stars, warPoints, raidDamage, leaguePoints, ...(lig.replay ? { leagueReplay: true } : {}), ...(rahat ? { rahat: true } : {}),
       newInbox: app.unclaimedInbox(s.pid), jeton, wallet: app.walletChanged(s.pid),
     };
     app.db.run('INSERT INTO progress_runs(player_id, run_id, ack, at) VALUES(?, ?, ?, ?)', s.pid, d.runId, JSON.stringify(ack), app.now());

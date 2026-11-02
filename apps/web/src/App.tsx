@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, 
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
 import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
 import {
-  calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rollLucky, settle, xpThreshold,
+  calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rahatOffer, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
 } from '@odi/meta';
 import type { LevelOptions } from '@odi/game-core/lite';
@@ -170,7 +170,8 @@ type Route =
   | { name: 'raceResult'; room: RaceRoom; result: RunResult; back: Tab }
   | { name: 'eventLevel'; spec: LevelSpec; play: EventPlay; back: Tab }
   /** ease / easeNext: kolaylaştırma satırları (YN-113); reveal: yalnız önizlemede, haritada bekleyen kutlama (gerçek akışta mapSeen'den) */
-  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string; ease?: string; easeNext?: string; reveal?: MapReveal | null };
+  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string; ease?: string; easeNext?: string; reveal?: MapReveal | null;
+    /** yalnız önizlemede: Rahat deneme teklifi (gerçek akışta kayıttan, meta rahatOffer) */ rahatOffer?: boolean };
 
 /** `?bot=1&level=N[&ts=2][&skills=all][&salt=K][&hd=2][&human=1][&ipucu=0]` → test modu: harness bölümü otomatik oynatır (hd: pazarlama çekimi için tuval piksel oranı;
  *  human: bot yerine dokunuş girdisi — mobil duraklat/kaydırma testleri; ipucu=0: bölüm içi ipuçları gizli — temiz çekim, tools/reels). */
@@ -187,6 +188,8 @@ function botParams() {
  * `&katki=1`: takım katkısı satırlarını örnek bir sunucu onayıyla gösterir (yalnızca görünüm; sunucuya bir şey gitmez).
  * `&kolay=3`: bölüm bu kayıp serisiyle üretilir, kolaylaştırma satırı görünür (kayıpta sonraki denemenin satırı da; YN-113).
  * `&harita=1`: haritada bekleyen bölge canlanması / hazine sonuçta söylenir (ör. `bolum=20&acilim=1`; YN-114).
+ * `&rahat=teklif`: canavar bölümünde 3 kayıptan sonraki kayıp (Rahat deneme teklifi); `&rahat=1`: Rahat denemenin sonucu
+ * (kazanç: "Rahat denemeyle geçildi", en çok 1 yıldız; kayıp: "Bu Rahat denemeydi" + teklif yine). Karar 42, YN-110.
  */
 /** önizleme: `&anlatim=camp` (ya da `map`, `friends,glossary`…) → sonuç ekranı haritada bekleyen tanıtımı gösterir (kayda dokunmaz) */
 const demoMapIntro = (): string[] => (new URLSearchParams(location.search).get('anlatim') ?? '').split(',').filter((t) => t === 'map' || FEATURES.some((f) => f.tour && f.id === t));
@@ -197,13 +200,14 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const n = Math.max(1, Math.min(HUMAN_JOURNEY.levels.length, Number(q.get('bolum') ?? 8)));
   const record = q.get('rekor') === '1', levelUp = q.get('seviye') === '1', lucky = q.get('sans') === '1', unlock = q.get('acilim') === '1';
   const fails = Math.max(0, Number(q.get('kolay') ?? 0)); const prof = { recentStars: 2, failStreak: fails, skills: DEFAULT_SKILLS };
-  const spec = generateLevel(HUMAN_JOURNEY.id, n, prof);
+  const rq = q.get('rahat'); const rahatRun = rq === '1';
+  const spec = generateLevel(HUMAN_JOURNEY.id, n, prof, 0, rahatRun ? { rahat: true } : {});
   const completed = stars > 0;
   const ease = levelEase(HUMAN_JOURNEY.id, n, prof);
   // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…)
   const melodyTotal = spec.objective.id === 'melody' ? spec.objective.target ?? 7 : 0;
   const result: RunResult = {
-    levelId: spec.id, completed, stars, score, coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4)) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
+    levelId: spec.id, completed, stars: rahatRun ? Math.min(stars, 1) as 0 | 1 : stars, score, ...(rahatRun ? { rahat: true } : {}), coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4)) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
     deaths: 0, damageTaken: stars === 3 ? 0 : completed ? 1 : 3, objectiveMet: stars === 3, secretFound: false,
     extra: { maxCombo: 12, cochleas: stars === 3 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }) },
   };
@@ -216,7 +220,8 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const { summary } = processRun(base, spec, result, dayKey());
   const seen = starsOf(progress); const reveal = q.get('harita') === '1' ? mapRevealPending(seen, { ...seen, ...(completed ? { [n]: Math.max(seen[n] ?? 0, stars) } : {}) }, []) : null;
   const easeNext = completed ? '' : easeNextLine(ease, levelEase(HUMAN_JOURNEY.id, n, { ...prof, failStreak: fails + 1 }));
-  return { name: 'result', spec, result, summary, demo: true, ease: easeLine(ease), easeNext, reveal, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}) };
+  const offer = !completed && (rq === 'teklif' || rahatRun) && spec.mechanic === 'boss';
+  return { name: 'result', spec, result, summary, demo: true, ease: easeLine(ease), easeNext, reveal, rahatOffer: offer, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}) };
 }
 
 export function App() {
@@ -289,22 +294,25 @@ export function App() {
    */
   const [starting, setStarting] = useState(false);
   const playSeq = useRef(0);
-  const play = (number: number) => {
+  /** o.rahat: oyuncu kayıp ekranında Rahat denemeyi kendisi seçti (karar 42; yalnız bu deneme, hiçbir zaman kendiliğinden değil) */
+  const play = (number: number, o: { rahat?: boolean } = {}) => {
     const seq = ++playSeq.current;
     const lg = loadLevelGen.value;
-    if (lg) { setStarting(false); startLevel(lg, number); return; }
+    if (lg) { setStarting(false); startLevel(lg, number, o); return; }
     setStarting(true);
-    loadLevelGen().then((m) => { if (seq !== playSeq.current) return; setStarting(false); startLevel(m, number); }, (e: unknown) => {
+    loadLevelGen().then((m) => { if (seq !== playSeq.current) return; setStarting(false); startLevel(m, number, o); }, (e: unknown) => {
       if (seq === playSeq.current) setStarting(false);
       try { chunkFailed(e); } catch { /* yenileniyor ya da çevrimdışı: ekran yerinde kalır */ }
     });
   };
-  const startLevel = ({ generateLevel, levelEase }: LevelGen, number: number) => {
+  const startLevel = ({ generateLevel, levelEase }: LevelGen, number: number, o: { rahat?: boolean } = {}) => {
     const s = useStore.getState();
     // sonuç ekranı haritada bekleyen kutlamayı haritanın gösterdiği son durumdan okur (harita bu oturumda hiç açılmamış olabilir)
     void loadMapSeen();
     const profile = { recentStars: s.recentStars.length ? s.recentStars.reduce((a, b) => a + b, 0) / s.recentStars.length : 2, failStreak: s.failStreak, skills: s.skills };
-    const spec = generateLevel(s.journey, number, profile); const ease = levelEase(s.journey, number, profile);
+    // Rahat deneme yalnız teklif gerçekten açıkken (canavar bölümü, 3 kayıp; meta rahatOffer) — eski bir düğme normal bölümü değiştirmez
+    const rahat = !!o.rahat && rahatOffer(HUMAN_JOURNEY.levels[number - 1] ?? { mechanic: 'kosu' }, s.progress[number]);
+    const spec = generateLevel(s.journey, number, profile, 0, rahat ? { rahat } : {}); const ease = levelEase(s.journey, number, profile);
     const look = odiLook(s);
     const extras: Extras = {
       // seçilen renk her bölümde (yoksa bölüm biyomun varsayılan rengini kullanır)
@@ -391,7 +399,7 @@ export function App() {
         setRoute({ name: 'result', spec: r.spec, result, summary, runId, ...easeLines(r.spec, r.ease, result.completed) });
       }}
       onQuit={() => setRoute(r.race ? (r.race.team ? { name: 'team' } : { name: 'race', back: 'team', key: Date.now() }) : { name: 'map' })} />; }
-    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} mapIntro={route.demo ? demoMapIntro() : mapIntroQueue(cleared, store.ftue)} reveal={route.demo ? route.reveal : mapReveal(store.progress)} ease={route.ease} easeNext={route.easeNext} onRetry={() => play(route.spec.number)} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
+    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} mapIntro={route.demo ? demoMapIntro() : mapIntroQueue(cleared, store.ftue)} reveal={route.demo ? route.reveal : mapReveal(store.progress)} ease={route.ease} easeNext={route.easeNext} rahatOffer={route.demo ? !!route.rahatOffer : rahatOffer(route.spec, store.progress[route.spec.number])} onRetry={() => play(route.spec.number)} onRahat={() => play(route.spec.number, { rahat: true })} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
     case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} onReset={() => setRoute({ name: 'title' })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;

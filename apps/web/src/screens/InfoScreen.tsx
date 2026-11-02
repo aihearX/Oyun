@@ -1,5 +1,5 @@
 import { CALENDAR, DAILY_CHEST_BASE, LUCKY_NOTE, MAX_STREAK_SHIELDS, DUPLICATE_VALUE, TREASURES, TIER_REWARD } from '@odi/content';
-import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS, RAHAT } from '@odi/shared';
 import { RewardChips, ScreenHead } from '../ui/bits';
 import { Glyph } from '../ui/art';
 
@@ -34,6 +34,7 @@ export function InfoScreen({ onBack }: { onBack: () => void }) {
         <h2><Glyph e="🏅" size="1.1em" /> Haftalık lig puanı</h2>
         <p>Bitirdiğin her bölüm <b>5 + 5 × yıldız</b> lig puanı yazar; canlı yarışta derecen de eklenir (1. 30, 2. 15, 3. 8, diğer bitirenler 3). Bitiremediğin koşu 1 puandır.</p>
         <p><b>Tekrar sınırı:</b> aynı bölüm bir lig haftasında en çok <b>{LEAGUE_FULL_RUNS_PER_LEVEL} kez</b> tam puan yazar; o bölümü sonra yeniden bitirirsen (yarışta da) her seferinde <b>{LEAGUE_REPLAY_POINTS} puan</b> alırsın. Yeni haftada sayaç sıfırlanır. Böylece lig, en kolay bölümü üst üste oynayanı değil, farklı bölümlerde iyi oynayanı öne çıkarır.</p>
+        <p data-testid="bilgi-rahat"><b>Rahat deneme:</b> bir canavar bölümünde üst üste {RAHAT.afterFails} kez kaybedersen kayıp ekranı Rahat denemeyi önerir (canavar %{Math.round((1 - RAHAT.slow) * 100)} yavaş, {RAHAT.extraLives} can fazla). Her seferinde sen seçersin, ücretsizdir ve satılmaz. Rahat deneme en çok {RAHAT.maxStars} yıldız verir; lig, düello ve takım puanı yazmaz. Yıldızını sonra normal denemeyle yükseltebilirsin.</p>
         <p className="muted">Lig puanı satın alınamaz; puanı sunucu hesaplar.</p>
       </div>
       <div className="card info">

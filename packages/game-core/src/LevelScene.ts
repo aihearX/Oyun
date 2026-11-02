@@ -626,7 +626,8 @@ export class LevelScene extends Phaser.Scene {
       // guarded: kalkanın/Klinik korumasının karşıladığı vuruş (damageTaken'in içinde; sonuç kartı nedenini söylesin, karar 37); klinik: biri Klinik'ti
       extra: { cochleas: s.cochleas, cochleasTotal, ...(s.guarded > 0 ? { guarded: s.guarded, ...(this.revirStart && !s.revir ? { klinik: true } : {}) } : {}), ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
     };
-    return { ...base, ...scoreRun(this.spec, base) };
+    // Rahat deneme (karar 42): sonuç kartı, kayıt ve sunucu gönderimi bu bayrağa bakar
+    return { ...base, ...scoreRun(this.spec, base), ...(this.spec.rahat ? { rahat: true } : {}) };
   }
   private objectiveMet(completed: boolean): boolean {
     if (!completed) return false; const o = this.spec.objective; const s = this.sim;

@@ -322,6 +322,13 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-why-tip { display:flex; align-items:flex-start; gap:6px; font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
 .result-why-tip .rwt-art { flex:none; margin-top:-1px; }
 .result-why-tip > span { min-width:0; }
+/* Rahat deneme (karar 42, YN-110): kayıpta teklif kartı (sayfa akışında, neden kartının altında) ve Rahat geçişin sonuç kartı */
+.result-screen .result-rahat { width:100%; display:flex; flex-direction:column; gap:6px; text-align:left; padding:10px 12px; color:var(--text); }
+.result-rahat-t { font-size:0.9375rem; font-weight:900; line-height:1.3; overflow-wrap:anywhere; }
+.result-rahat-l { display:flex; align-items:flex-start; gap:6px; font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
+.result-rahat-l > span { min-width:0; }
+.result-rahat-l b { color:var(--text); }
+.abtn.tile .act-rahat { color:var(--text-2); font-weight:800; text-align:center; line-height:1.25; white-space:normal; }
 /* kayıpta neden kartı sayfa akışında, kutuların altında (OT-ilk-kez-oyun-20: yapışkan bölgede büyüyüp kutuların üstüne biniyordu):
    başlık ve ayrıntı tek akış, ipucu altında */
 .result-screen .result-why { width:100%; display:flex; flex-direction:column; gap:3px; text-align:left; padding:8px 12px; }

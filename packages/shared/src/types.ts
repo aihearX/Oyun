@@ -106,6 +106,11 @@ export interface BossSpec {
   /** zorluk düğmeleri: uyarı (telegraf) süresi çarpanı (1 = varsayılan) ve saldırı temposu çarpanı (>1 daha sık) */
   warn?: number;
   tempo?: number;
+  /**
+   * Rahat deneme (karar 42): canavarın kendi saatinin hızı (1 = normal; `RAHAT.slow` = 0,8). Uyarılar, saldırı araları, saplı
+   * yumruğun yerde kaldığı süre, çığlık/sersemleme süreleri ÷pace uzar; top ve dalga hızı ×pace yavaşlar (boss.ts).
+   */
+  pace?: number;
 }
 
 export interface LevelSpec {
@@ -136,6 +141,11 @@ export interface LevelSpec {
   cochleasTotal?: number;
   /** ilk bölümlerin bağışlayıcılığı (docs/12 §4): yoksa motorun varsayılanları */
   assist?: LevelAssist;
+  /**
+   * Rahat deneme (sahip kararı 42, YN-110): yalnız canavar bölümünde, oyuncu kayıp ekranında kendisi seçince. Canavar %20 yavaş
+   * (`RAHAT`), +1 can; en çok 1 yıldız, rekabet puanı yok. Hiçbir zaman kendiliğinden açılmaz.
+   */
+  rahat?: boolean;
 }
 
 /** İlk bölümlerin yardımları — bölüm düğmesi; motor deterministik kalır (aynı bölüm + girdi → aynı sonuç). */
@@ -169,6 +179,8 @@ export interface RunResult {
   extra?: Record<string, number | string | boolean>;
   /** Tedavi Odası: bu koşuda kullanılan malzemeler (LevelOptions.remedies'ten; sunucu envanterden düşer). docs/14-kamp.md */
   remediesUsed?: { id: string; count: number }[];
+  /** Rahat denemeyle oynandı (LevelSpec.rahat; karar 42): yıldız en çok 1, lig/düello/savaş/baskın/sıralama puanı yazılmaz */
+  rahat?: boolean;
 }
 
 export interface PlayerSkills {

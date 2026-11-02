@@ -1,4 +1,4 @@
-import { GROUND_Y } from '@odi/shared';
+import { GROUND_Y, RAHAT } from '@odi/shared';
 import type { AbilityId } from '@odi/shared';
 import * as C from './consts';
 import { near, type WEnt, type World } from './world';
@@ -76,7 +76,7 @@ export function initState(w: World, o: InitOpts = {}): SimState {
   const h = newHero(w.startX, w.startY);
   const spot: SafeSpot = { x: w.startX, y: w.startY, dir: 1, odo: 0 };
   const s: SimState = {
-    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, guarded: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
+    t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3) + (w.spec.rahat ? RAHAT.extraLives : 0), shield: o.shield ?? (w.skills.shield > 0 ? 1 : 0), revir: !!o.revir, deaths: 0, damageTaken: 0, guarded: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
     rem: initRemedies(o.remedies), remUsed: {}, cured: new Set(),
     coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,

@@ -50,7 +50,13 @@ export function defaultMeta(): MetaState {
   };
 }
 
-export interface LevelProgressLite { stars: number; best: number; plays: number; lastResult?: RunResult }
+export interface LevelProgressLite {
+  stars: number; best: number; plays: number; lastResult?: RunResult;
+  /** bu bölümde art arda kayıp (normal geçişte sıfırlanır; Rahat denemeyle geçiş sıfırlamaz). Rahat deneme teklifi buna bakar (karar 42) */
+  fails?: number;
+  /** yıldız yalnız Rahat denemeyle alındı (en çok 1); normal denemeyle geçilince kalkar ve yıldız normal kurala göre yükselir */
+  rahat?: boolean;
+}
 /** Meta mantığının çalıştığı oyuncu çekirdeği (store bunun üst kümesidir). */
 export interface PlayerCore {
   progress: Record<number, LevelProgressLite>;

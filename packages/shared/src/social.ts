@@ -226,10 +226,13 @@ export function inboxReasonText(it: Pick<InboxItem, 'reason' | 'kind'>): string 
 }
 
 // ---------- İlerleme bildirimi (her bölüm sonunda)
-export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[] }
+export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[];
+  /** Rahat deneme (karar 42): yalnız canavar bölümünde, yarışta değil; sunucu en çok 1 yıldız kabul eder, lig/düello/savaş/baskın/sıralama puanı yazmaz */ rahat?: boolean }
 export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet;
   /** true: bu bölüm bu lig haftasında LEAGUE_FULL_RUNS_PER_LEVEL kez tam puan yazdı; bu koşu LEAGUE_REPLAY_POINTS yazdı (karar 26). Eski sunucu göndermez. */
-  leagueReplay?: boolean }
+  leagueReplay?: boolean;
+  /** true: Rahat denemeydi; rekabet puanları bilerek 0 (karar 42). Eski sunucu göndermez. */
+  rahat?: boolean }
 
 
 // =====================================================================

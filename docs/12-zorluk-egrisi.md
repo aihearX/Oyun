@@ -246,6 +246,22 @@ Profil artık yalnızca **yumuşak bir yardım**dır (`generateLevel` → `level
   finalden bir sınav odası düşer, yalnız görsel değiştiriciler kalır), **5 başarısızlık → iki kademe**;
 - usta oyuncu (son 5 bölüm ortalaması ≥ 2,8 yıldız) yalnızca 6. bölümden sonra, final ve boss olmayan bölümlerde çok küçük bir
   ek alır (λ +0,06). **İlk bölümler asla zorlaşmaz.**
+- Bu yardım **canavar (boss) bölümlerinde hiçbir şeyi değiştirmez** (can, uyarı, tempo sabit; `levelEase` 0, söylenmez). Canavarda
+  tek yardım oyuncunun kendi seçtiği **Rahat deneme**dir (aşağıda); ikisi üst üste binmez. Normal bölümde kolaylaştırma bölüm kartında
+  ve sonuçta açıkça yazılır (YN-113).
+
+**Rahat deneme (sahip kararı 42, YN-110):** aynı canavar bölümünde (20 Serumen Golemi, 40 Gürültü Canavarı; `mechanic: 'boss'`)
+üst üste **3 kayıptan** sonra kayıp ekranı açıkça "Rahat deneme" teklif eder; oyuncu her seferinde kendisi seçer ("Tekrar dene"
+normal denemedir, hiçbir deneme kendiliğinden Rahat olmaz). Rahat denemede canavarın saati ×0,8 (`BossSpec.pace`, `play/boss.ts`):
+uyarılar, saldırı araları, saplı yumruğun yerde kaldığı süre, çığlık/sersemleme ÷0,8 uzar, top ve dalga ×0,8 yavaşlar (darbenin
+0,12 sn'lik inişi ve damlanın gölge/düşüş zamanlaması aynı); **+1 can**. Koşu **en çok 1 yıldız** verir (`scoreRun`), en iyi skora
+yazılmaz; sunucu lig, düello, savaş, baskın, takım katkısı, sıralama ve meydan okuma puanı yazmaz (`progress.ts` `isRahat`).
+Bölüm geçilmiş sayılır (sonraki açılır); sonuç kartı "Rahat denemeyle geçildi" der, haritadaki bölüm kartı da. Sonraki normal
+geçiş yıldızı normal kuralla yükseltir ve işareti kaldırır. Kayıp sayacı bölüme özeldir (`LevelProgressLite.fails`), normal
+geçişte sıfırlanır. Bölüm içinde giriş şeridi "Rahat deneme: canavar %20 yavaş, 1 can fazla. En çok 1 yıldız." yazar.
+Ölçüm (insan modeli, ilk kez oynayan, 6 tohum; `play/rahat.test.ts`): kalan canavar gücü toplamı 20'de 54 → 44 (/14), 40'ta
+93 → 29 (/32); galibiyet 20'de 0 → 0, 40'ta 0 → 2. Modelin canavardaki ileri bakışı sabit 0,6 sn olduğundan uzayan uyarıyı okuma
+süresi olarak kullanamaz; 20'de yardımın modeldeki etkisi çoğunlukla fazladan candan gelir.
 
 ## 5. Dürüstlük kuralları
 

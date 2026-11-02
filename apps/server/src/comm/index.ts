@@ -41,7 +41,8 @@ export const commHandlers: Handlers = {
 function onRun(app: App, pid: string, d: ProgressSubmit, prev: { stars: number } | undefined, prevHighest: number): void {
   trackPlayDay(app, pid);
   feedFromRun(app, pid, d, prev);
-  if (d.completed) { resolveHelp(app, pid, d.level); checkChallenges(app, pid, d.level, Math.round(d.score)); }
+  // Rahat deneme (karar 42) meydan okumayı geçmez (skor rekabeti); yardım isteği yine "geçti" olur
+  if (d.completed) { resolveHelp(app, pid, d.level); if (d.rahat !== true) checkChallenges(app, pid, d.level, Math.round(d.score)); }
   duoAddNotes(app, pid, Math.min(400, Math.max(0, Math.round(d.coins))));
   mentorProgress(app, pid, prevHighest);
 }
@@ -57,7 +58,8 @@ export function withCommHooks(h: Handlers): Handlers {
     // sıralama: yarış birinciliğine bağlantı tüketilmeden bakılır (progress.submit yarış derecesini bağlar)
     const raceWin = !dup && !!d.raceId && raceWinFor(app, s.pid, d.raceId);
     const ack = submit(app, s, d) as OpMap['progress.submit']['res'];
-    if (!dup) { onRun(app, s.pid, d, prev, prevHighest); rankOnRun(app, s.pid, d, raceWin); }
+    // sıralama tablolarına Rahat deneme girmez (karar 42): sonraki normal koşu yıldızı rank_level'a ilk kez yazar
+    if (!dup) { onRun(app, s.pid, d, prev, prevHighest); if (d.rahat !== true) rankOnRun(app, s.pid, d, raceWin); }
     return ack;
   };
   const wrappedGive: Handler<'team.help.give'> = (app, s, d) => {

@@ -1,6 +1,6 @@
 import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, modifierNames, BIOMES, type RewardItem } from '@odi/content';
-import { earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
+import { RAHAT_TEXT, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -32,6 +32,11 @@ interface Props {
   reveal?: MapReveal | null;
   /** bu denemenin kolaylaştırma satırı ve kayıpta sonraki denemenin (level-gen easeLine / easeNextLine; YN-113) */
   ease?: string; easeNext?: string;
+  /**
+   * Rahat deneme (sahip kararı 42, YN-110): kayıpta teklif açık mı (canavar bölümü, aynı bölümde 3 kayıp; meta rahatOffer) ve
+   * oyuncu seçerse sonraki denemeyi Rahat başlatan geri çağrı. "Tekrar dene" her zaman normal denemedir.
+   */
+  rahatOffer?: boolean; onRahat?: () => void;
 }
 
 const STAR_AT = 380, STAR_GAP = 380, SCORE_MS = 900;
@@ -50,7 +55,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 }
 
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
-export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro, reveal, ease, easeNext }: Props) {
+export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro, reveal, ease, easeNext, rahatOffer, onRahat }: Props) {
   const store = useStore();
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
@@ -85,7 +90,10 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
   const loss = result.completed ? null : lossView(result, spec, attempt);
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
-  const starNext = !result.completed ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
+  // Rahat denemeyle geçişte yıldız 1'de kalır: sıradaki yıldızın kartı yerine Rahat kartı (karar 42)
+  const rahat = !!result.rahat;
+  const offerRahat = !result.completed && !!rahatOffer && !!onRahat;
+  const starNext = !result.completed || rahat ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
   // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Yankı"); sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme
   const mods = modifierNames(spec.modifiers ?? []);
   const dark = !result.completed && !store.highVis && (spec.modifiers ?? []).some((m) => m === 'sis' || m === 'gece');
@@ -171,14 +179,16 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     return () => ts.forEach(clearTimeout);
   }, [step]);
 
-  const share = async () => {
+  // Rahat denemenin skoru meydan okumaya gitmez (rekabet puanı yok; karar 42)
+  const meydan = rahat ? null : raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>;
+  async function share() {
     const link = inviteUrl({ level: spec.number, score: result.completed ? result.score : 0, stars: result.stars });
     // uygulama dışına giden metin: emoji yok (OT-rekabetci-14)
     const text = result.completed ? `ODİ: ${spec.number}. bölümü ${result.stars} yıldızla, ${result.score} puanla geçtim. Kulak kabartır mısın, beni geçebilir misin? ${link}` : `ODİ'de ${spec.number}. bölümde takıldım. Sen geçebilir misin? ${link}`;
     const r = await platform().share(text);
     if (r !== 'cancelled' && !demo) store.recordShare();
     if (r === 'copied') { setToast('Bağlantı kopyalandı: arkadaşına yapıştır, skorunu geçmeye çalışsın.'); setTimeout(() => setToast(''), 3200); }
-  };
+  }
 
 
   return (
@@ -196,13 +206,15 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         <div className="score-line" ref={scoreRef}>
           <div className="score">{score.toLocaleString('tr-TR')}</div>
           {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
-          {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, result.score).toLocaleString('tr-TR')}</div>}
+          {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, rahat ? 0 : result.score).toLocaleString('tr-TR')}</div>}
         </div>
 
         {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
         {/* gizli kolaylaştırma yok (YN-113): yardım bu denemede devredeyse ve kayıpta sonraki deneme kolaylaşacaksa tek satır */}
         {ease && <div className="result-mods" data-testid="sonuc-kolay">{ease}</div>}
         {easeNext && <div className="result-mods" data-testid="sonuc-kolay-sonraki">{easeNext}</div>}
+        {/* Rahat denemeyle kaybedildiyse bu deneme de açıkça söylenir (karar 42) */}
+        {rahat && !result.completed && <div className="result-mods" data-testid="sonuc-rahat-kayip">{RAHAT_TEXT.lostNote}</div>}
 
         {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
             kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
@@ -215,6 +227,15 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             {dark && <span className="result-why-hv" data-testid="sonuc-gorunurluk"><Art name="gear" size={16} className="art-inline" />Zor mu görüyorsun? Ayarlar › Yüksek görünürlük</span>}
           </div>
         )}
+        {/* Rahat deneme teklifi (karar 42): yalnız canavar bölümünde 3 kayıptan sonra, açıkça; oyuncu her seferinde kendisi seçer.
+            Kart sayfa akışında anlatır, "Rahat dene" düğmesi yapışkan alanda (320 px'te de ilk ekranda; üstünde ne değiştiği yazar) */}
+        {offerRahat && (
+          <div className="card result-obj result-rahat" data-testid="rahat-teklif" onClick={(e) => e.stopPropagation()}>
+            <small className="result-obj-h">{RAHAT_TEXT.title}</small>
+            <span className="result-rahat-t">{RAHAT_TEXT.offer(Math.max(3, store.progress[spec.number]?.fails ?? 3))}</span>
+            <span className="result-rahat-l"><Art name="heart" size={20} className="art-inline" /><span><b>{RAHAT_TEXT.what}</b> {RAHAT_TEXT.rules}</span></span>
+          </div>
+        )}
         {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
         <div className="stats has-wide">
@@ -224,6 +245,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
           <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
           {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
+          {rahat && result.completed && (
+            <div className="card result-obj result-rahat" data-testid="sonuc-rahat">
+              <small className="result-obj-h">{RAHAT_TEXT.title}</small>
+              <b className="result-rahat-t">{RAHAT_TEXT.passed}</b>
+              <span className="result-rahat-l">{RAHAT_TEXT.passedNote}</span>
+            </div>
+          )}
           {starNext && (
             <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
               <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
@@ -276,7 +304,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
         )}
 
         {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
-        {result.completed && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
+        {result.completed && !rahat && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
 
         {challenge && challenge.level === spec.number && challenge.score > 0 && (
           <div className="card" style={{ width: '100%' }}>
@@ -324,7 +352,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
               <div className="abtn-grid">
                 <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+                {meydan}
               </div>
             </>
           ) : result.completed && !last ? (
@@ -332,7 +360,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
               <div className="abtn-grid">
                 <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+                {meydan}
                 <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
               </div>
             </>
@@ -340,7 +368,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             <>
               <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
               <div className="abtn-grid">
-                {raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>}
+                {offerRahat ? <ActionButton tone="teal" tile icon="play" data-testid="rahat-dene" data-act="rahat" onClick={onRahat}>{RAHAT_TEXT.button}<small className="act-lock act-rahat">{RAHAT_TEXT.short}</small></ActionButton> : meydan}
                 <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
               </div>
             </>

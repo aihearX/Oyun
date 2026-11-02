@@ -221,12 +221,11 @@ function syncCampUnlocks(camp: CampState): void {
 // ------------------------------------------------------------------ bölüm sonu
 const sanitizeMechanic = (m: string) => (MECHANICS.has(m) ? m : 'kosu') as ProgressSubmit['mechanic'];
 /** Her koşu sunucuya gider (çevrimdışıysa kalıcı kuyruğa). Dönen runId sonuç ekranında katkı satırlarını eşler. */
-export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): string {
-  const runId = newRunId();
-  const base: LastRun = { runId, state: 'gonderiliyor', biome: spec.biome, level: spec.number, completed: r.completed, ...(raceId ? { raceId } : {}) };
-  if (!client) { useSocial.setState({ lastRun: { ...base, state: 'yok' } }); return runId; }
-  const data: ProgressSubmit = {
-    runId, level: spec.number, completed: r.completed, stars: r.completed ? r.stars : 0, score: Math.max(0, Math.min(50_000, Math.round(r.score))),
+/** progress.submit gövdesi (saf; sınırlar sunucunun şemasıyla aynı) */
+export function runPayload(runId: string, spec: LevelSpec, r: RunResult, raceId?: string): ProgressSubmit {
+  return {
+    // Rahat deneme (karar 42): bayrakla gider, sunucu en çok 1 yıldız kabul eder ve rekabet puanı yazmaz
+    runId, level: spec.number, completed: r.completed, stars: r.completed ? (r.rahat ? Math.min(1, r.stars) : r.stars) : 0, ...(r.rahat && !raceId ? { rahat: true } : {}), score: Math.max(0, Math.min(50_000, Math.round(r.score))),
     timeSec: Math.max(5, Math.min(3600, Math.round(r.timeSec))), coins: Math.max(0, Math.min(400, Math.round(r.coins))),
     biome: spec.biome as ProgressSubmit['biome'], mechanic: sanitizeMechanic(spec.mechanic), ...(raceId ? { raceId } : {}),
     // altın koklea (Takım Akışı kartı): bölümün bildirdiği sayı, 0-3
@@ -234,6 +233,13 @@ export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): strin
     // Tedavi Odası: bölümde kullanılan malzemeler (sunucu envanterden bir kez düşer); yarışta malzeme yok
     ...(!raceId && r.remediesUsed?.length ? { remediesUsed: r.remediesUsed.filter((u) => u.count > 0).slice(0, 12).map((u) => ({ id: u.id, count: Math.min(9, Math.floor(u.count)) })) } : {}),
   };
+}
+
+export function submitRun(spec: LevelSpec, r: RunResult, raceId?: string): string {
+  const runId = newRunId();
+  const base: LastRun = { runId, state: 'gonderiliyor', biome: spec.biome, level: spec.number, completed: r.completed, ...(raceId ? { raceId } : {}) };
+  if (!client) { useSocial.setState({ lastRun: { ...base, state: 'yok' } }); return runId; }
+  const data = runPayload(runId, spec, r, raceId);
   useSocial.setState({ lastRun: { ...base, state: client.status === 'bağlı' ? 'gonderiliyor' : 'kuyrukta' } });
   const set = (p: Partial<LastRun>) => useSocial.setState((s) => (s.lastRun?.runId === runId ? { lastRun: { ...s.lastRun, ...p } } : {}));
   client.submitProgress(data).then((ack) => {

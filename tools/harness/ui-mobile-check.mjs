@@ -13,6 +13,7 @@
 //         (belge kaydırılamaz) taklit edilir — telefondaki koşulların aynısı.
 // Kullanım: node tools/harness/ui-mobile-check.mjs [--target web|dom|both] [--browsers chromium,webkit]
 //           [--sizes 390x844,320x640] [--tag after] [--no-build] [--build-dom] [--inset 47] [--only takma-ad,bugun,pratik,profil,kamp,takim,iletisim,etkinlik,sonuc,gorev]
+//           [--sonuc rahat,kolay] (yalnız adında bu parçalar geçen sonuç ekranları)
 //           [--buyuk-yazi]  (Ayarlar → Büyük yazı açık başlar: kayıt tohumu bigText; kök yazı 18,4 px olmalı)
 //           [--kontrast-yok] (metin kontrastı ölçümünü kapatır; varsayılan: her ekranda WCAG AA, özet kontrast.json)
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
@@ -42,6 +43,8 @@ const sizes = opt('sizes', '390x844,320x640').split(',').map((s) => s.split('x')
 const INSET = Number(opt('inset', 47)), INSET_B = 34;
 const only = opt('only', '') ? opt('only').split(',') : null;
 const want = (k) => !only || only.includes(k);
+// --sonuc rahat,kolay: sonuç ekranlarından yalnız adında bu parçalardan biri geçenler (uzun listede tek değişikliği hızlı denetlemek için)
+const SONUC = opt('sonuc', '') ? opt('sonuc').split(',') : null;
 // Büyük yazı kipi: oyuncu kaydı bigText:true ile tohumlanır; her ekranda kök yazı ölçeği de denetlenir
 const BIG = has('buyuk-yazi');
 // metin kontrastı (MK-017, WCAG AA) her ekranda ölçülür; --kontrast-yok ile kapanır
@@ -1182,7 +1185,10 @@ async function suite(browserName, target, [W, H]) {
         // YN-113: 3 kayıptan sonra kolaylaşmış bölümün sonucu (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin kolaylaşacağı
         // YN-114: bölge sonu (Golem) ilk geçişte "Haritaya dön" + "Kulak Kanalı haritada canlanacak."
         ['demo=sonuc&bolum=33&yildiz=2&skor=1700&kolay=3&kutlama=0', 'sonuc-kolay'], ['demo=sonuc&bolum=33&yildiz=0&skor=420&kolay=2&kutlama=0', 'sonuc-kaybetti-kolay-sonraki'],
-        ['demo=sonuc&bolum=20&yildiz=3&skor=3100&acilim=1&harita=1&kutlama=0', 'sonuc-harita-canlanma']]) {
+        ['demo=sonuc&bolum=20&yildiz=3&skor=3100&acilim=1&harita=1&kutlama=0', 'sonuc-harita-canlanma'],
+        // YN-110 (karar 42): canavarda 3 kayıptan sonra Rahat deneme teklifi; Rahat denemeyle geçişin sonucu (1 yıldız, rekabet yok)
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat']]) {
+        if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
@@ -1190,8 +1196,10 @@ async function suite(browserName, target, [W, H]) {
         const ilk = await page.evaluate(() => {
           // yapışkan bölgenin üst dolgusu saydam degrade: sınır ilk düğmenin (ya da kartın) üstü
           const act = document.querySelector('.result-actions'); const aTop = act?.firstElementChild ? act.firstElementChild.getBoundingClientRect().top : innerHeight;
-          return ['[data-testid="sonuc-yildiz2"]', '[data-testid="sonuc-yildiz3"]', '[data-testid="sonuc-neden"]', '[data-testid="yardim-iste"]', '[data-testid="yardim-iste-dugme"]'].map((sel) => {
+          return ['[data-testid="sonuc-yildiz2"]', '[data-testid="sonuc-yildiz3"]', '[data-testid="sonuc-neden"]', '[data-testid="yardim-iste"]', '[data-testid="yardim-iste-dugme"]', '[data-testid="rahat-teklif"]', '[data-testid="rahat-dene"]', '[data-testid="sonuc-rahat"]'].map((sel) => {
             const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); const inAct = !!act?.contains(el);
+            // Rahat deneme kartı (YN-110): başlığı ve ilk satırı ilk ekranda yeter; düğmesi yapışkan alanda, ne değiştiği üstünde yazılı
+            if (sel === '[data-testid="rahat-teklif"]') return { sel, ok: r.top >= 0 && r.top + 60 <= aTop + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(aTop) };
             return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
           }).filter(Boolean);
         });
@@ -1206,6 +1214,8 @@ async function suite(browserName, target, [W, H]) {
           for (const c of document.querySelectorAll('.result .stats .card, .result-earn, .goal-card')) if (hit(w, box(c))) out.push(`neden kartı ${c.className} ile örtüşüyor`);
           const first = act.firstElementChild; if (first && hit(w, box(first))) out.push('neden kartı düğmelerin altında kalıyor');
           const help = document.querySelector('[data-testid="yardim-iste"]'); if (help && act.contains(help)) out.push('yardım kartı yapışkan düğme alanında');
+          const rh = document.querySelector('[data-testid="rahat-teklif"]'); if (rh && act.contains(rh)) out.push('Rahat deneme kartı yapışkan düğme alanında');
+          if (rh) for (const c of document.querySelectorAll('.result .stats .card, .result-earn, .goal-card')) if (hit(box(rh), box(c))) out.push(`Rahat deneme kartı ${c.className} ile örtüşüyor`);
           return out;
         });
         const rec = await check(label);
@@ -1222,6 +1232,17 @@ async function suite(browserName, target, [W, H]) {
         if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
         if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
         if (!/kolay/.test(label) && (kolay || kolaySonra)) fail(rec, `yardım yokken kolaylaştırma satırı: "${kolay}${kolaySonra}"`);
+        // YN-110 (karar 42): Rahat deneme teklifi yalnız istenen ekranda, açıkça (ne değişir, ne verir); Rahat geçişte kart ve Meydan oku yok
+        const teklif = (await page.locator('[data-testid="rahat-teklif"]').textContent().catch(() => null)) ?? '';
+        if (label === 'sonuc-kaybetti-rahat-teklif' && (!/Canavar %20 yavaş, 1 can fazla\./.test(teklif) || !/En çok 1 yıldız verir; lig, düello ve takım puanı yazılmaz\./.test(teklif) || !/%20 yavaş, \+1 can, en çok 1 yıldız/.test((await page.locator('.result-actions [data-testid="rahat-dene"]').textContent().catch(() => '')) ?? ''))) fail(rec, `Rahat deneme teklifi eksik: "${teklif}"`);
+        if (label !== 'sonuc-kaybetti-rahat-teklif' && teklif) fail(rec, `Rahat deneme teklifi istenmeyen ekranda: "${teklif}"`);
+        if (label === 'sonuc-kaybetti-rahat-teklif' && !(await page.locator('.result-actions button').allTextContents()).map((t) => t.trim()).includes('Tekrar dene')) fail(rec, '"Tekrar dene" (normal deneme) düğmesi yok');
+        const rahatKart = (await page.locator('[data-testid="sonuc-rahat"]').textContent().catch(() => null)) ?? '';
+        if (label === 'sonuc-rahat') {
+          if (!/Rahat denemeyle geçildi/.test(rahatKart) || !/Normal denemede daha çok yıldız alırsan yıldızın yükselir/.test(rahatKart)) fail(rec, `Rahat sonuç kartı: "${rahatKart}"`);
+          if (await page.locator('.star-slot.on').count() !== 1) fail(rec, `Rahat geçişte ${await page.locator('.star-slot.on').count()} yıldız yanıyor (en çok 1)`);
+          if (await page.locator('[data-act="meydan"]').count()) fail(rec, 'Rahat geçişte Meydan oku düğmesi var');
+        } else if (rahatKart) fail(rec, `Rahat kartı istenmeyen ekranda: "${rahatKart}"`);
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
         const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
         if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
@@ -1235,6 +1256,9 @@ async function suite(browserName, target, [W, H]) {
           if (ort.length) fail(rec, `kayıp kartları örtüşüyor: ${ort.join('; ')}`);
           const hedef = (await page.locator('.goal-card').textContent().catch(() => '')) ?? '';
           if (label === 'sonuc-kaybetti-boss' && (/Kapıya/.test(hedef) || !/gücünün %\d+'(ı|i|u|ü|sı|si|su|sü) kaldı/.test(hedef))) fail(rec, `boss kaybında hedef cümlesi: "${hedef}"`);
+        } else if (label === 'sonuc-rahat') {
+          // Rahat geçiş: sıradaki yıldızın kartı yok (yıldız 1'de kalır; Rahat kartı yerinde)
+          if (await page.locator('[data-testid="sonuc-yildiz2"], [data-testid="sonuc-yildiz3"]').count()) fail(rec, 'Rahat geçişte sıradaki yıldız kartı görünüyor');
         } else if (label === 'sonuc-yildiz1') {
           // 1★: 3. yıldız kartı yerine 2. yıldızın koşulu
           const rows = await page.locator('[data-testid="sonuc-yildiz2"] li').allTextContents().catch(() => []);
