@@ -446,6 +446,9 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .cal-day.bugun { border-color:var(--gold); background:rgba(255,201,60,.16); box-shadow:0 0 0 3px rgba(255,201,60,.18), 0 0 16px rgba(255,201,60,.35); animation:pop .4s ease-out; }
 .cal-day.big { background:linear-gradient(180deg,rgba(255,201,60,.3),rgba(255,159,28,.12)); border-color:rgba(255,201,60,.55); }
 .cal-today { display:flex; gap:10px; align-items:center; margin-top:12px; }
+/* zaten sahip olunan şey: soluk resim, yazan sayı verilen jeton; altta "zaten sende: yerine N jeton" (OT-ekonomi-denetci-20) */
+.cal-day.swap:not(.alindi) .cd-i { opacity:.5; filter:grayscale(.7); }
+.cal-swap { font-size:0.8125rem; margin-top:4px; }
 .cal-today .btn, .quest .btn, .chest .btn { flex:none; }
 .quests { display:flex; flex-direction:column; gap:12px; margin-top:10px; }
 .quest { position:relative; display:flex; gap:10px; align-items:center; border-radius:16px; transition:background .3s; }
@@ -859,6 +862,13 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .limit-first { display:grid; grid-template-columns:minmax(0,1fr); gap:6px; }
 .limit-first .chip-btn { text-align:left; padding:8px 14px; }
 .limit-tag { font-weight:700; opacity:.85; }
+/* Mağaza üstü ilke: tek kısa cümle + "Neler satılmaz?" açılır bölüm (OT-ilk-kez-oyun-28) */
+.magaza-ilke { display:flex; flex-direction:column; gap:2px; font-size:0.875rem; line-height:1.35; }
+.ilke-detay summary { min-height:44px; display:flex; align-items:center; gap:6px; cursor:pointer; color:#ffd56b; font-weight:900; font-size:0.875rem; list-style:none; }
+.ilke-detay summary::-webkit-details-marker { display:none; }
+.ilke-detay summary::after { content:'›'; transition:transform .15s; }
+.ilke-detay[open] summary::after { transform:rotate(90deg); }
+.ilke-detay .small-note { line-height:1.4; }
 .pass-terms { margin:4px 0 0; padding-left:1.2em; display:flex; flex-direction:column; gap:4px; color:var(--text-2); font-weight:700; font-size:0.8125rem; line-height:1.35; }
 .pass-path { display:flex; gap:6px; overflow-x:auto; scrollbar-width:thin; padding-bottom:4px; }
 .pp-day { flex:none; width:64px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.1); border-radius:12px; padding:6px 4px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:0.75rem; }

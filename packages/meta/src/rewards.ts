@@ -1,22 +1,46 @@
 import { DUPLICATE_VALUE, MAX_STREAK_SHIELDS, type Reward, type RewardItem } from '@odi/content';
 import type { MetaState, PlayerCore } from './state';
 
+/** Zaten sahip olunan şeyin (ya da dolu seri koruyucunun) önceden yazılı jeton karşılığına dönüşmesi: ekranda "zaten sende: yerine N jeton" */
+export interface RewardSwap { from: RewardItem; jeton: number }
+
 /**
  * Ödülü oyuncunun durumuna göre "gerçek" haline çevirir: zaten sahip olunan kozmetik/kart ve
  * sınırı aşan seri koruyucu, önceden yazılı jeton karşılığına döner. Önizleme ve verme aynı fonksiyonu kullanır.
+ * `swaps` hangi kalemin neden jetona döndüğünü söyler (önizlemede ve açılış penceresinde yazılır).
  */
-export function resolveReward(meta: Pick<MetaState, 'cosmetics' | 'cards' | 'shields'>, reward: Reward): RewardItem[] {
+export function explainReward(meta: Pick<MetaState, 'cosmetics' | 'cards' | 'shields'>, reward: Reward): { items: RewardItem[]; swaps: RewardSwap[] } {
   const owned = new Set(meta.cosmetics.owned); const cards = new Set(meta.cards); let shields = meta.shields;
-  const out: RewardItem[] = []; let extra = 0;
+  const out: RewardItem[] = []; const swaps: RewardSwap[] = [];
   for (const it of reward) {
     if (it.amount <= 0) continue;
-    if (it.kind === 'kozmetik') { if (!it.ref || owned.has(it.ref)) extra += DUPLICATE_VALUE.kozmetik; else { owned.add(it.ref); out.push(it); } }
-    else if (it.kind === 'kart') { if (!it.ref || cards.has(it.ref)) extra += DUPLICATE_VALUE.kart; else { cards.add(it.ref); out.push(it); } }
-    else if (it.kind === 'koruyucu') { const room = Math.max(0, MAX_STREAK_SHIELDS - shields); const take = Math.min(room, it.amount); if (take > 0) { shields += take; out.push({ kind: 'koruyucu', amount: take }); } extra += (it.amount - take) * DUPLICATE_VALUE.koruyucu; }
+    if (it.kind === 'kozmetik') { if (!it.ref || owned.has(it.ref)) swaps.push({ from: { ...it }, jeton: DUPLICATE_VALUE.kozmetik }); else { owned.add(it.ref); out.push(it); } }
+    else if (it.kind === 'kart') { if (!it.ref || cards.has(it.ref)) swaps.push({ from: { ...it }, jeton: DUPLICATE_VALUE.kart }); else { cards.add(it.ref); out.push(it); } }
+    else if (it.kind === 'koruyucu') {
+      const room = Math.max(0, MAX_STREAK_SHIELDS - shields); const take = Math.min(room, it.amount);
+      if (take > 0) { shields += take; out.push({ kind: 'koruyucu', amount: take }); }
+      if (it.amount > take) swaps.push({ from: { kind: 'koruyucu', amount: it.amount - take }, jeton: (it.amount - take) * DUPLICATE_VALUE.koruyucu });
+    }
     else out.push({ ...it });
   }
+  const extra = swaps.reduce((a, w) => a + w.jeton, 0);
   if (extra > 0) { const j = out.find((i) => i.kind === 'jeton'); if (j) j.amount += extra; else out.push({ kind: 'jeton', amount: extra }); }
-  return out;
+  return { items: out, swaps };
+}
+export function resolveReward(meta: Pick<MetaState, 'cosmetics' | 'cards' | 'shields'>, reward: Reward): RewardItem[] { return explainReward(meta, reward).items; }
+
+/**
+ * Verilmiş (deftere yazılmış) kalemlerden dönüşümleri geri çıkarır: tanımda olup verilende olmayan kozmetik/kart ve eksik
+ * koruyucu jetona dönmüştür. Alınmış günü, alınmadan önce gösterilenle aynı anlatmak için (takvim).
+ */
+export function swapsOf(reward: Reward, applied: RewardItem[]): RewardSwap[] {
+  const swaps: RewardSwap[] = [];
+  for (const it of reward) {
+    if (it.amount <= 0) continue;
+    if (it.kind === 'kozmetik' || it.kind === 'kart') { if (!applied.some((a) => a.kind === it.kind && a.ref === it.ref)) swaps.push({ from: { ...it }, jeton: DUPLICATE_VALUE[it.kind] }); }
+    else if (it.kind === 'koruyucu') { const got = rewardSum(applied, 'koruyucu'); if (got < it.amount) swaps.push({ from: { kind: 'koruyucu', amount: it.amount - got }, jeton: (it.amount - got) * DUPLICATE_VALUE.koruyucu }); }
+  }
+  return swaps;
 }
 
 /** TEK ödül kapısı: tüm yerel ödüller buradan geçer ve deftere yazılır. Saf: yeni çekirdek döner. */

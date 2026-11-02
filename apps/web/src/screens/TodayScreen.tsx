@@ -1,16 +1,23 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { audio } from '@odi/audio';
 import { MAX_STREAK_SHIELDS, questById, type RewardItem } from '@odi/content';
-import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, highestUnlocked, questDone, resolveReward } from '@odi/meta';
+import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, explainReward, highestUnlocked, questDone, type CalendarDay, type RewardSwap } from '@odi/meta';
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, RewardGlyph, rewardLabel } from '../ui/bits';
+import { Bar, RewardChips, RewardGlyph, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
 import { Art, Glyph } from '../ui/art';
 import { useNav } from '../nav';
+
+/** takvim hücresinin okunuşu (ekran okuyucu ve uzun basış): dönüşüm de söylenir */
+function calDayText(d: CalendarDay): string {
+  const what = d.reward.map(rewardPlain).join(', ');
+  const swap = d.swaps.map((w) => swapText(w, d.state === 'alindi')).join('; ');
+  return `${d.day}. gün${d.state === 'alindi' ? ' (alındı)' : ''}: ${what}${swap ? ` (${swap})` : ''}`;
+}
 
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
@@ -19,10 +26,15 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
   const daily = dailyFor(s, today); const cal = calendarView(s, today);
-  const chestItems = resolveReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
+  const chest = explainReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
   const doneCount = daily.quests.filter(questDone).length;
-  /** sandık/takvim: kutlama katmanında açılır; gösterilen = verilen (store'un döndürdüğü öğeler aynen) */
-  const openChest = (title: string, items: RewardItem[] | null, big = false) => { if (items) void celebrate.chest({ title, items, tier: big ? 'altin' : chestTierFor(items) }); };
+  /**
+   * sandık/takvim: kutlama katmanında açılır; gösterilen = verilen (store'un döndürdüğü öğeler aynen). Zaten sahip olunan şeyin
+   * jetonu adıyla ayrı satırda ("Kulaklı Bere zaten dolabında" ×50); toplam aynı.
+   */
+  const openChest = (title: string, items: RewardItem[] | null, swaps: RewardSwap[], big = false) => { if (items) void celebrate.chest({ title, items: withSwapRows(items, swaps), tier: big ? 'altin' : chestTierFor(items) }); };
+  const calShown = (cal.claimedToday ? cal.days[(cal.dayIndex + 1) % 7] : cal.days[cal.dayIndex])!;
+  const calToday = cal.days[cal.dayIndex]!;
   /** görev: tamam sesi + kart parlaması; jetonlar düğmeden sayaca uçar, diğerleri şeritte yazılı */
   const claimQuest = (id: string, e: MouseEvent<HTMLButtonElement>) => {
     const r = e.currentTarget.getBoundingClientRect(); const items = s.claimQuest(id); if (!items) return;
@@ -54,17 +66,21 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="row between"><h2>Giriş takvimi</h2><span className="muted">{cal.cycle > 1 ? `${cal.cycle}. tur` : '7 gün'}</span></div>
         <div className="calendar">
           {cal.days.map((d) => (
-            <div key={d.day} className={`cal-day ${d.state}${d.big ? ' big' : ''}`}>
+            <div key={d.day} className={`cal-day ${d.state}${d.big ? ' big' : ''}${d.swaps.length ? ' swap' : ''}`} title={calDayText(d)} aria-label={calDayText(d)}>
               <span className="cd-n">{d.day}</span>
-              <span className="cd-i">{d.state === 'alindi' ? <Art name="check" size={22} /> : <RewardGlyph items={d.reward} size={22} />}</span>
+              {/* zaten sahip olunan şey soluk görünür; yazan sayı verilen jeton (alınmadan önce ve sonra aynı) */}
+              <span className="cd-i">{d.state === 'alindi' ? <Art name="check" size={22} /> : <RewardGlyph items={d.swaps.length ? d.swaps.map((w) => w.from) : d.reward} size={22} />}</span>
               <span className="cd-a">{d.reward.find((r) => r.kind === 'jeton')?.amount ?? ''}</span>
             </div>
           ))}
         </div>
         <div className="cal-today">
-          <div className="grow min0"><div className="muted">{cal.claimedToday ? 'Bugünün ödülü alındı. Yarın:' : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
-            <RewardChips items={(cal.claimedToday ? cal.days[(cal.dayIndex + 1) % 7] : cal.days[cal.dayIndex])!.reward} small /></div>
-          <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => openChest(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar(), !!cal.days[cal.dayIndex]?.big)}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>
+          <div className="grow min0">
+            {cal.claimedToday && calToday.swaps.map((w, i) => <div className="muted cal-swap" key={`b${i}`}>Bugün: {swapText(w, true)}</div>)}
+            <div className="muted">{cal.claimedToday ? 'Bugünün ödülü alındı. Yarın:' : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
+            <RewardChips items={calShown.reward} small />
+            {calShown.swaps.map((w, i) => <div className="muted cal-swap" key={i}>{swapText(w)}</div>)}</div>
+          <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => openChest(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar(), calToday.swaps, !!calToday.big)}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>
         </div>
       </section>
 
@@ -91,9 +107,10 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         <div className="grow min0">
           <h2>Günlük sandık</h2>
           <div className="muted">{daily.chestOpened ? 'Açıldı. Yarın yeni görevler, yeni sandık.' : ready ? 'Üç görev de tamam. Aç bakalım!' : `Üç görev bitince açılır (${doneCount}/3). İçinde:`}</div>
-          {!daily.chestOpened && <RewardChips items={chestItems} small />}
+          {!daily.chestOpened && <RewardChips items={chest.items} small />}
+          {!daily.chestOpened && chest.swaps.map((w, i) => <div className="muted cal-swap" key={i}>{swapText(w)}</div>)}
         </div>
-        {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest())}>Aç</button>}
+        {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest(), chest.swaps)}>Aç</button>}
       </section>
 
       {/* tek kişilik bilgi pratiği (YN-078): takımsız ve çevrimdışı da; ödülsüz, bu yüzden görev/sandık akışının dışında */}

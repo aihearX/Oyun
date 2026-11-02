@@ -7,7 +7,7 @@
  * (rank_rewards birincil anahtarı), takım sohbetine duyuru. Gün başında sıralar kaydedilir (rank_snap) → ▲▼ değişim.
  */
 import {
-  RANK_BOARDS, RANK_RULES, rankBoardById, type RankBoardId, type RankBoardView, type RankRowView, type RankScope,
+  INBOX_TEXT, RANK_BOARDS, RANK_RULES, rankBoardById, type RankBoardId, type RankBoardView, type RankRowView, type RankScope,
 } from '@odi/shared';
 import { fail, type App, type Handlers } from '../app';
 import { postCard, systemMessage, teamRoom } from '../chat';
@@ -135,7 +135,7 @@ export function rankWeekClose(app: App, oldWeek: string): void {
     for (const r of list) {
       app.db.run('INSERT OR IGNORE INTO rank_final(week, board, id, rank, value, name, color, hat, emblem) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)', oldWeek, b.id, r.id, r.rank, r.value, r.name, r.color ?? null, r.hat ?? null, r.emblem ?? null);
       const reward = rewardFor(b.team, r.rank); if (!reward) continue;
-      const why = `Sıralama: ${b.name} · geçen hafta ${r.rank}.`;
+      const why = INBOX_TEXT.rank(b.name, b.team, r.rank); // kimin sırası olduğu yazılır (takım tablosu: takımın)
       const pids = b.team ? app.teamMemberIds(r.id) : [r.id];
       for (const pid of pids) {
         if (isAdmin(app, pid)) continue; // yönetici hesabı haftalık ödül almaz

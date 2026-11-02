@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
-import { cardById, cosmeticById } from '@odi/content';
+import { cardById, cosmeticById, MAX_STREAK_SHIELDS } from '@odi/content';
+import type { RewardSwap } from '@odi/meta';
 import { IconButton } from './Button';
 import { Glyph, rich } from './art';
 import { useStore } from '../store';
@@ -40,8 +41,38 @@ export function rewardLabel(it: RewardItem): string {
     case 'xp': return `✨ ${it.amount} XP`;
     case 'koruyucu': return `🛡️ ${it.amount} koruyucu`;
     case 'kozmetik': { const c = cosmeticById(it.ref ?? ''); return `${c?.kind === 'renk' ? '🎨' : '🎩'} ${c?.name ?? 'Kozmetik'}`; }
-    case 'kart': { const c = cardById(it.ref ?? ''); return `🃏 ${c ? c.title : 'Kart'}`; }
+    // sandık önizlemesinde kart adı tek başına kart olduğunu söylemiyordu (OT-ekonomi-denetci-24)
+    case 'kart': { const c = cardById(it.ref ?? ''); return c ? `🃏 +1 Kulak Kartı: ${c.title}` : '🃏 +1 Kulak Kartı'; }
   }
+}
+/**
+ * Zaten sahip olunan şeyin jetona dönüşmesi (önceden yazılı karşılık). Önizlemede: "Kulaklı Bere zaten sende: yerine 50 jeton";
+ * açılış penceresinde ayrı satır: "Kulaklı Bere zaten dolabında" ×50 (OT-ekonomi-denetci-20).
+ */
+export function swapText(w: RewardSwap, done = false): string {
+  if (w.from.kind === 'koruyucu') return done ? `Seri koruyucun doluydu: +${w.jeton} jeton` : `Seri koruyucun dolu (${MAX_STREAK_SHIELDS}/${MAX_STREAK_SHIELDS}): yerine ${w.jeton} jeton`;
+  if (done) return `${swapName(w)} zaten ${w.from.kind === 'kart' ? 'albümündeydi' : 'dolabındaydı'}: +${w.jeton} jeton`;
+  return `${swapName(w)} zaten sende: yerine ${w.jeton} jeton`;
+}
+/** ödül kaleminin düz yazısı (ekran okuyucu): "20 jeton", "Kulaklı Bere" */
+export function rewardPlain(it: RewardItem): string {
+  if (it.kind === 'jeton') return `${it.amount} jeton`;
+  return rewardLabel(it).replace(/^\S+ /, '');
+}
+function swapName(w: RewardSwap): string {
+  if (w.from.kind === 'kozmetik') return cosmeticById(w.from.ref ?? '')?.name ?? 'Bu kozmetik';
+  if (w.from.kind === 'kart') return `${cardById(w.from.ref ?? '')?.title ?? 'Bu'} kartı`;
+  return 'Seri koruyucu';
+}
+/** açılış penceresi: dönüşen jeton ayrı, adıyla bir satır (toplam aynı; dönüşüm son jeton kaleminin içindedir) */
+export function withSwapRows(items: RewardItem[], swaps: RewardSwap[]): (RewardItem & { label?: string })[] {
+  const total = swaps.reduce((a, w) => a + w.jeton, 0); if (!total) return items;
+  const at = items.map((i) => i.kind).lastIndexOf('jeton');
+  const j = items[at];
+  if (!j || j.amount < total) return items;
+  const rest = items.flatMap((it, i) => (i !== at ? [it] : it.amount > total ? [{ ...it, amount: it.amount - total }] : []));
+  const where = (w: RewardSwap) => (w.from.kind === 'kozmetik' ? 'dolabında' : w.from.kind === 'kart' ? 'albümünde' : null);
+  return [...rest, ...swaps.map((w) => ({ kind: 'jeton' as const, amount: w.jeton, label: where(w) ? `${swapName(w)} zaten ${where(w)}` : 'Seri koruyucun dolu' }))];
 }
 export function rewardIcon(items: RewardItem[]): string {
   const cos = items.find((i) => i.kind === 'kozmetik'); const k = cos ? (cosmeticById(cos.ref ?? '')?.kind === 'renk' ? '🎨' : '🎩') : items.find((i) => i.kind === 'kart') ? '🃏' : items.find((i) => i.kind === 'koruyucu') ? '🛡️' : '🪙';

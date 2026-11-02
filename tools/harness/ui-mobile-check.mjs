@@ -805,6 +805,9 @@ async function suite(browserName, target, [W, H]) {
         await check('magaza-sinir-yukselt', { scroll: false });
         await page.keyboard.press('Escape'); await sleep(300);
         if (await page.locator('.sheet-wrap').count()) { await page.keyboard.press('Escape'); await sleep(300); }
+        // üstte tek kısa cümle; ayrıntı "Neler satılmaz?" açılınca (OT-ilk-kez-oyun-28)
+        await page.locator('[data-testid="magaza-ilke"] summary').click(); await sleep(200);
+        await check('magaza-ilke-acik', { scroll: false });
         await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // sıralama: bilgi sayfası (formül + ödüller) ve takım tabloları
       { await page.locator('.menu-tile[data-tile="ranking"]').click(); await page.getByTestId('siralama').waitFor(); await sleep(500);

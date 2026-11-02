@@ -1,9 +1,9 @@
 import { hashString, mulberry32 } from '@odi/shared';
 import { CALENDAR, DAILY_CHEST_BASE, QUESTS, R, questById, type QuestDef, type QuestMetric, type Reward, type RewardItem } from '@odi/content';
 import type { DailyState, PlayerCore } from './state';
-import { applyGrant, resolveReward } from './rewards';
+import { applyGrant, explainReward, swapsOf, type RewardSwap } from './rewards';
 import { nextChestCard } from './unlocks';
-import { daysBetween } from './time';
+import { dayKey, daysBetween } from './time';
 
 // ---------------------------------------------------------------- günlük görevler
 
@@ -115,14 +115,34 @@ export function advanceStreak<T extends PlayerCore>(core: T, today: string): { c
 
 // ---------------------------------------------------------------- 7 günlük giriş takvimi
 
-export interface CalendarView { dayIndex: number; claimedToday: boolean; cycle: number; days: { day: number; reward: RewardItem[]; state: 'alindi' | 'bugun' | 'sirada'; big: boolean }[] }
-/** Takvim günü seri sayacından gelir: seri 1 → 1. gün … seri 8 → yeni döngünün 1. günü. */
+export interface CalendarDay { day: number; reward: RewardItem[]; swaps: RewardSwap[]; state: 'alindi' | 'bugun' | 'sirada'; big: boolean }
+export interface CalendarView { dayIndex: number; claimedToday: boolean; cycle: number; days: CalendarDay[] }
+/**
+ * Takvim günü seri sayacından gelir: seri 1 → 1. gün … seri 8 → yeni döngünün 1. günü.
+ * Gelecek günler oyuncunun bugünkü durumuyla çözülür (zaten sahip olunan şey önceden "yerine N jeton" diye görünür).
+ * Alınmış gün yeniden çözülmez (alınca sahip olunduğu için kopya sayılırdı): defterdeki gerçek kalemler, defterde yoksa tanım.
+ * Böylece hücre alınmadan önce ve sonra aynı şeyi söyler.
+ */
 export function calendarView(core: PlayerCore, today: string): CalendarView {
   const s = Math.max(1, core.streak); const dayIndex = (s - 1) % 7; const claimedToday = core.meta.calendar.lastClaim === today;
   return {
     dayIndex, claimedToday, cycle: Math.floor((s - 1) / 7) + 1,
-    days: CALENDAR.map((c, i) => ({ day: c.day, big: !!c.big, reward: i >= dayIndex ? resolveReward(core.meta, c.reward) : c.reward, state: i < dayIndex || (i === dayIndex && claimedToday) ? 'alindi' : i === dayIndex ? 'bugun' : 'sirada' })),
+    days: CALENDAR.map((c, i) => {
+      const state = i < dayIndex || (i === dayIndex && claimedToday) ? 'alindi' : i === dayIndex ? 'bugun' : 'sirada';
+      if (state !== 'alindi') { const ex = explainReward(core.meta, c.reward); return { day: c.day, big: !!c.big, reward: ex.items, swaps: ex.swaps, state }; }
+      const got = calendarGrant(core, c.day, today);
+      return { day: c.day, big: !!c.big, reward: got ?? c.reward.map((x) => ({ ...x })), swaps: got ? swapsOf(c.reward, got) : [], state };
+    }),
   };
+}
+/** bu döngüde alınmış takvim gününün defterdeki kalemleri (aynı gün bir önceki döngüde en az 7 gün önce alınmıştır) */
+function calendarGrant(core: PlayerCore, day: number, today: string): RewardItem[] | null {
+  for (let i = core.meta.ledger.length - 1; i >= 0; i--) {
+    const g = core.meta.ledger[i]!; if (g.reason !== `takvim:${day}`) continue;
+    const ago = daysBetween(dayKey(new Date(g.at)), today);
+    return ago != null && ago >= 0 && ago < 7 ? g.items.map((x) => ({ ...x })) : null;
+  }
+  return null;
 }
 export function claimCalendar<T extends PlayerCore>(core: T, today: string, now = Date.now()): { core: T; applied: RewardItem[]; day: number } | null {
   if (core.lastDay !== today) return null; // önce gün işlenmeli (advanceStreak)

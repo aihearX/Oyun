@@ -128,6 +128,35 @@ describe('seri ve takvim', () => {
     expect(calendarView({ ...c, streak: 8 }, DAY).dayIndex).toBe(0); expect(calendarView({ ...c, streak: 8 }, DAY).cycle).toBe(2);
     expect(claimCalendar(core({ lastDay: '2026-10-17' }), DAY)).toBeNull();
   });
+  // OT-ogrenci-birinci-18, OT-ekonomi-denetci-20: alınmış gün yeniden çözülmez (bere alınınca sahipli olur, "70" yazıyordu)
+  const NOW = new Date(2026, 9, 18, 12).getTime();
+  it('takvim hücresi alınmadan önce ve sonra aynı (bere ilk kez gelir)', () => {
+    const c = core({ streak: 3, lastDay: DAY });
+    const before = calendarView(c, DAY).days[2]!;
+    expect(before.reward).toEqual([{ kind: 'kozmetik', amount: 1, ref: 'sapka-bere' }, { kind: 'jeton', amount: 20 }]); expect(before.swaps).toEqual([]);
+    const r = claimCalendar(c, DAY, NOW)!; expect(r.applied).toEqual(before.reward);
+    const after = calendarView(r.core, DAY).days[2]!;
+    expect(after.state).toBe('alindi'); expect(after.reward).toEqual(before.reward); expect(after.swaps).toEqual([]);
+  });
+  it('kopya kozmetikli gün: dönüşüm önceden görünür, alınınca aynı kalır', () => {
+    const owned = defaultMeta(); owned.cosmetics.owned = [...owned.cosmetics.owned, 'sapka-bere'];
+    const c = core({ streak: 3, lastDay: DAY, meta: owned });
+    const before = calendarView(c, DAY).days[2]!;
+    expect(before.reward).toEqual([{ kind: 'jeton', amount: 70 }]);
+    expect(before.swaps).toEqual([{ from: { kind: 'kozmetik', amount: 1, ref: 'sapka-bere' }, jeton: 50 }]);
+    const r = claimCalendar(c, DAY, NOW)!; expect(r.applied).toEqual(before.reward); expect(r.core.coins).toBe(70);
+    const after = calendarView(r.core, DAY).days[2]!;
+    expect(after.state).toBe('alindi'); expect(after.reward).toEqual(before.reward); expect(after.swaps).toEqual(before.swaps);
+    // dolu seri koruyucu: 4. gün önceden "yerine 30 jeton"
+    const full = core({ streak: 3, lastDay: DAY, meta: { ...owned, shields: MAX_STREAK_SHIELDS } });
+    const d4 = calendarView(full, DAY).days[3]!;
+    expect(d4.reward).toEqual([{ kind: 'jeton', amount: 50 }]); expect(d4.swaps).toEqual([{ from: { kind: 'koruyucu', amount: 1 }, jeton: 30 }]);
+  });
+  it('defterde kaydı olmayan geçmiş gün tanımıyla görünür (yeniden çözülmez)', () => {
+    const owned = defaultMeta(); owned.cosmetics.owned = [...owned.cosmetics.owned, 'sapka-bere'];
+    const d3 = calendarView(core({ streak: 5, lastDay: DAY, meta: owned }), DAY).days[2]!;
+    expect(d3.state).toBe('alindi'); expect(d3.reward).toEqual([{ kind: 'kozmetik', amount: 1, ref: 'sapka-bere' }, { kind: 'jeton', amount: 20 }]);
+  });
 });
 
 describe('bölüm işleme, başarımlar, albüm, kozmetik', () => {

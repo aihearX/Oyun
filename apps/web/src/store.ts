@@ -4,7 +4,7 @@ import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
-import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
+import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, TIER_REWARD, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
 import {
   advanceStreak, applyGrant, claimCalendar, claimQuest, dayKey, defaultMeta, ensureDaily, equipCosmetic, highestUnlocked, migrateMeta,
   openDailyChest, processRun, recordShare, settle, type MetaEvent, type MetaState, type PlayerCore, type RunSummary, type StreakEvent,
@@ -81,16 +81,20 @@ const core = (s: State): PlayerCore => ({ progress: s.progress, coins: s.coins, 
 const pick = (c: PlayerCore) => ({ progress: c.progress, coins: c.coins, xp: c.xp, streak: c.streak, lastDay: c.lastDay, failStreak: c.failStreak, skills: c.skills, meta: c.meta });
 
 let toastSeq = 1;
+/** başarımın verdiği (TIER_REWARD): bildirimde yazılır, her cüzdan artışı bir satırla söylenir (OT-ekonomi-denetci-20) */
+const tierGain = (tier: 1 | 2 | 3) => TIER_REWARD[tier].map((it) => (it.kind === 'jeton' ? `+${it.amount} jeton` : it.kind === 'xp' ? `+${it.amount} XP` : '')).filter(Boolean).join(', ');
+const tierJeton = (tier: 1 | 2 | 3) => TIER_REWARD[tier].filter((it) => it.kind === 'jeton').reduce((a, it) => a + it.amount, 0);
 export function toastsFor(events: MetaEvent[]): Toast[] {
-  const out: Toast[] = [];
+  const out: Toast[] = []; const jeton = new Map<number, number>();
   for (const e of events) {
-    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) out.push({ id: toastSeq++, icon: a.emoji, title: `${achievementName(a, e.tier)} · ${TIER_NAMES[e.tier]}`, text: 'Başarım açıldı!', tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); }
+    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) { out.push({ id: toastSeq++, icon: a.emoji, title: `${achievementName(a, e.tier)} · ${TIER_NAMES[e.tier]}`, text: `Başarım açıldı: ${tierGain(e.tier)}`, tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); jeton.set(out[out.length - 1]!.id, tierJeton(e.tier)); } }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); if (c && c.unlock.by !== 'default') out.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
     else if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ id: toastSeq++, icon: '🃏', title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
     else if (e.kind === 'albumBadge') out.push({ id: toastSeq++, icon: '🏅', title: `${BIOMES[e.biome].name} albümü tamam!`, text: 'Biyom rozeti kazandın', tone: 'gold' });
   }
   // aynı anda çok açılım: ilk 3'ü göster, kalanı tek satır
-  if (out.length > 3) { const rest = out.length - 2; return [...out.slice(0, 2), { id: toastSeq++, icon: '✨', title: `+${rest} yeni açılım daha`, text: 'Profilde hepsi seni bekliyor', tone: 'accent' }]; }
+  // toplanan bildirimdeki başarımların jetonu da yazılır (mesajsız cüzdan artışı kalmasın)
+  if (out.length > 3) { const rest = out.length - 2; const j = out.slice(2).reduce((a, t) => a + (jeton.get(t.id) ?? 0), 0); return [...out.slice(0, 2), { id: toastSeq++, icon: '✨', title: `+${rest} yeni açılım daha`, text: j > 0 ? `Başarımlardan +${j} jeton · Profilde hepsi` : 'Profilde hepsi seni bekliyor', tone: 'accent' }]; }
   return out;
 }
 function streakToast(e: StreakEvent): Toast | null {

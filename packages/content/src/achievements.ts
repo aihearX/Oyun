@@ -36,15 +36,19 @@ const biomeAch: AchievementDef[] = BIOME_ORDER.map((b) => {
   return { ...A(`biyom-${b}`, '🗺️', `${name} Ustası`, `${name} biyomunda toplam {n} yıldız topla`, `biomeStars:${b}`, [n, n * 2, n * 3]), tierNames: [`${name} Gezgini`, `${name} Kâşifi`, `${name} Ustası`] };
 });
 
+/**
+ * Açıklama saydığı şeyi söyler: bitirme/oynama sayaçları (clears, noDamage, underPar, perfect, plays) her koşuyu sayar, aynı bölümün
+ * tekrarı ve yarış koşusu da dahil: "{n} kez … (tekrarlar da sayılır)" (OT-ogrenci-birinci-20). Farklı bölüm sayanlar "{n} bölümde".
+ */
 export const ACHIEVEMENTS: AchievementDef[] = [
-  A('ilk-ses', '🎵', 'İlk Ses', '{n} bölüm bitir', 'clears', [1, 25, 100]),
+  A('ilk-ses', '🎵', 'İlk Ses', '{n} kez bölüm bitir (tekrarlar da sayılır)', 'clears', [1, 25, 100]),
   A('yildiz-avcisi', '⭐', 'Yıldız Avcısı', 'Toplam {n} yıldız topla', 'stars', [10, 50, 120]),
   A('kusursuz-kulak', '🌟', 'Kusursuz Kulak', '{n} bölümde 3 yıldız al', 'threeStars', [3, 15, 40]),
-  A('jeton-kumbarasi', '🪙', 'Jeton Kumbarası', 'Bölümlerde toplam {n} jeton topla', 'coins', [100, 1000, 5000]),
+  A('jeton-kumbarasi', '🪙', 'Jeton Kumbarası', 'Bölümlerde toplam {n} nota topla', 'coins', [100, 1000, 5000]),
   A('altin-kulak', '🐚', 'Altın Kulak', '{n} farklı altın koklea bul', 'secrets', [1, 2, 4]),
-  A('tuy-gibi', '🪶', 'Tüy Gibi', '{n} bölümü hiç hasar almadan bitir', 'noDamage', [1, 10, 30]),
+  A('tuy-gibi', '🪶', 'Tüy Gibi', '{n} kez hiç hasar almadan bitir (tekrarlar da sayılır)', 'noDamage', [1, 10, 30]),
   A('gurultu-avcisi', '👹', 'Gürültü Avcısı', '{n} canavar yen', 'bosses', [1, 2]),
-  A('ses-hizinda', '💨', 'Ses Hızında', '{n} bölümü par süresinden hızlı bitir', 'underPar', [1, 10, 30]),
+  A('ses-hizinda', '💨', 'Ses Hızında', '{n} kez par süresinden hızlı bitir (tekrarlar da sayılır)', 'underPar', [1, 10, 30]),
   A('sansli-kulak', '🍀', 'Şanslı Kulak', '{n} Şanslı Nota topla', 'lucky', [1, 5, 15]),
   A('meydan-okuyucu', '📣', 'Meydan Okuyucu', '{n} kez arkadaşına meydan oku', 'shares', [1, 5, 20]),
   A('gorev-kulagi', '📋', 'Görev Kulağı', '{n} günlük görev tamamla', 'quests', [3, 30, 100]),
@@ -57,12 +61,12 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   A('kasif', '🧭', 'Kâşif', '{n} biyomun tüm bölümlerini bitir', 'biomesDone', [1, 5, 10]),
   A('kombo', '🔗', 'Seri Ustası', 'Tek bölümde art arda {n} nota topla', 'maxCombo', [10, 20, 35]),
   A('pes-etmeyen', '💪', 'Pes Etmeyen', 'Üst üste kaybettikten sonra {n} kez kazan', 'comebacks', [1, 5, 15]),
-  A('bir-daha', '🔁', 'Bir Daha!', '{n} bölüm oyna', 'plays', [10, 100, 500]),
+  A('bir-daha', '🔁', 'Bir Daha!', '{n} kez bölüm oyna (tekrarlar da sayılır)', 'plays', [10, 100, 500]),
   A('kulagi-muzikli', '🎼', 'Kulağı Müzikli', 'Melodi hedefini {n} kez tamamla', 'melody', [1, 3, 6]),
   A('fisilti-koruyucu', '🌬️', 'Fısıltı Koruyucusu', 'Fısıltıyı {n} kez sağ salim taşı', 'escort', [1, 3, 8]),
   A('saat-kulesi', '⏰', 'Saat Kulesi', 'Süreli hedefi {n} kez tamamla', 'timed', [1, 5, 15]),
   A('supurge-kulak', '🧹', 'Süpürge Kulak', '"Tüm jetonları topla" hedefini {n} kez tamamla', 'collectAll', [1, 5, 15]),
-  A('mukemmeliyetci', '💎', 'Mükemmeliyetçi', '{n} bölümü 3 yıldız ve hasarsız bitir', 'perfect', [1, 5, 20]),
+  A('mukemmeliyetci', '💎', 'Mükemmeliyetçi', '{n} kez 3 yıldız alıp hasarsız bitir (tekrarlar da sayılır)', 'perfect', [1, 5, 20]),
   A('seri-bekcisi', '🛡️', 'Seri Bekçisi', '{n} seri koruyucu kazan', 'shieldsEarned', [1, 3, 10]),
   A('beyin-jimnastigi', '🧠', 'Beyin Jimnastiği', '{n} yetenek aç', 'skills', [1, 5, 11]),
   A('uzun-yol', '🛤️', 'Uzun Yol', '{n}. bölüme ulaş', 'highest', [10, 25, 40]),

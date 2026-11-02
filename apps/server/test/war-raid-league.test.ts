@@ -102,6 +102,9 @@ describe('Bölge Savaşı', () => {
     const inbB = (await b1.call('inbox.list', {})).items.filter((i) => i.ref !== 'siralama'); // haftalık sıralama ödülleri ayrı (rank.test.ts)
     expect(inbB.map((i) => [i.kind, i.amount]).sort()).toEqual([['jeton', WAR_REWARD.jeton], ['kristal', WAR_REWARD.kristal]]);
     expect(inbB[0]!.reason).toContain('Kulak Kepçesi');
+    // aynı bölge ödülünün iki satırı ayrı adla, hafta tarihle (OT-buyuk-yazi-26)
+    expect(new Set(inbB.map((i) => i.reason)).size).toBe(2);
+    for (const i of inbB) { expect(i.reason).toMatch(/haftası: takımın Kulak Kepçesi bölgesini kazandı \(bölge ödülü: (jeton|kristal)\)$/); expect(i.reason).not.toMatch(/W\d\d/); }
     // A merkezi tuttu → iki üyeye de ödül
     expect((await a2.call('inbox.list', {})).items.filter((i) => i.reason.includes('Ninni Merkezi'))).toHaveLength(2);
     expect((await c1.call('inbox.list', {})).items.filter((i) => i.ref !== 'siralama')).toHaveLength(0);

@@ -97,6 +97,9 @@ describe('Sıralama', () => {
     expect(bi.some((i) => i.amount === 30 && i.reason.includes('Haftalık yıldız'))).toBe(true);
     expect(ci.some((i) => i.amount === 20 && i.reason.includes('Haftalık yıldız'))).toBe(true);
     expect(bi.some((i) => i.amount === 20 && i.reason.includes('Bölge Savaşı'))).toBe(true);
+    // kimin sırası: takım tablosu "Takımın …", oyuncu tablosu "… oldun" (OT-buyuk-yazi-26)
+    expect(bi.some((i) => i.reason === 'Takımın Bölge Savaşı sıralamasında geçen hafta 1. oldu')).toBe(true);
+    expect(ai.some((i) => i.reason === 'Haftalık yıldız sıralamasında geçen hafta 1. oldun')).toBe(true);
     // ikinci erişim / ikinci kapanış denemesi ödül vermez
     const n = (await inbox(a)).length;
     await board(a, 'nota'); env.srv.sweep();

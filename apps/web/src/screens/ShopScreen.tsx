@@ -78,7 +78,14 @@ function Shop() {
     <div className="stack">
       {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
       {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
-      <div className="muted small-note" data-testid="magaza-ilke">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. Atölye kalkanı ve Klinik seni bölümde korur ama korunan vuruş da hasar sayılır: “Hiç hasar alma” ve hasara bağlı yıldızlar bu yolla gelmez. Takım hediyesindeki jeton takım teknolojisine bağışlanamaz. İçerikler önceden yazılı, şans yok.</div>
+      {/* yeni oyuncu üstte tek kısa cümle okur; oyun kelimeleriyle ayrıntı açılır bölümde, içerik aynı (OT-ilk-kez-oyun-28) */}
+      <div className="magaza-ilke" data-testid="magaza-ilke">
+        <b>Burada bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz.</b>
+        <details className="ilke-detay">
+          <summary>Neler satılmaz?</summary>
+          <div className="muted small-note">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. Atölye kalkanı ve Klinik seni bölümde korur ama korunan vuruş da hasar sayılır: “Hiç hasar alma” ve hasara bağlı yıldızlar bu yolla gelmez. Takım hediyesindeki jeton takım teknolojisine bağışlanamaz. İçerikler önceden yazılı, şans yok.</div>
+        </details>
+      </div>
       {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">Fiyatlar TL liste fiyatıdır. {STORE_PRICE_NOTE}.</div>}
 
       <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />

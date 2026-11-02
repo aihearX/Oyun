@@ -1,4 +1,4 @@
-import { SOCIAL_LIMITS, WAR_REGIONS, type RegionScore, type RegionState, type WarState } from '@odi/shared';
+import { INBOX_TEXT, SOCIAL_LIMITS, WAR_REGIONS, type RegionScore, type RegionState, type WarState } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { requireTeam } from './teams';
@@ -82,10 +82,9 @@ export function warRollover(app: App, oldWeek: string): void {
   const owners = app.db.all<{ region: string; team_id: string }>('SELECT o.region, o.team_id FROM war_owner o JOIN teams t ON t.id = o.team_id WHERE o.week = ?', oldWeek);
   for (const o of owners) {
     const region = REGION_BY_ID.get(o.region)?.name ?? o.region;
-    const reason = `Bölge Savaşı ${oldWeek}: ${region} bölgesi sizin`;
     for (const m of app.teamMemberIds(o.team_id)) {
-      app.addInbox(m, { kind: 'kristal', amount: WAR_REWARD.kristal, ref: o.region }, reason);
-      app.addInbox(m, { kind: 'jeton', amount: WAR_REWARD.jeton, ref: o.region }, reason);
+      app.addInbox(m, { kind: 'kristal', amount: WAR_REWARD.kristal, ref: o.region }, INBOX_TEXT.war(oldWeek, region, 'kristal'));
+      app.addInbox(m, { kind: 'jeton', amount: WAR_REWARD.jeton, ref: o.region }, INBOX_TEXT.war(oldWeek, region, 'jeton'));
     }
     systemMessage(app, teamRoom(o.team_id), `Bölge Savaşı bitti: ${region} bölgesini kazandınız! Ödüller ödül kutunuzda.`, 'war', { region: o.region, week: oldWeek });
   }

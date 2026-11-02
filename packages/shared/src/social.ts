@@ -154,6 +154,48 @@ export interface LeagueState { tier: LeagueTier; week: string; endsAt: number; r
 export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
 export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: string; reason: string; at: number }
 
+const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+/** ISO hafta anahtarı ("2026-W44") → "26 Ekim–1 Kasım haftası" (oyuncu hafta kodunu okumuyor, OT-buyuk-yazi-26). Geçersizse null. */
+export function weekRangeText(key: string): string | null {
+  const m = /^(\d{4})-W(\d{2})$/.exec(key); if (!m) return null;
+  const jan4 = Date.UTC(Number(m[1]), 0, 4); const day = 86_400_000;
+  const start = new Date(jan4 - ((new Date(jan4).getUTCDay() + 6) % 7) * day + (Number(m[2]) - 1) * 7 * day); const end = new Date(start.getTime() + 6 * day);
+  const a = start.getUTCDate(), b = end.getUTCDate(), ma = AYLAR[start.getUTCMonth()]!, mb = AYLAR[end.getUTCMonth()]!;
+  return ma === mb ? `${a}–${b} ${mb} haftası` : `${a} ${ma}–${b} ${mb} haftası`;
+}
+/**
+ * Ödül kutusu satır metinleri (sunucu yazar; eski kayıtlar istemcide `inboxReasonText` ile aynı biçime getirilir).
+ * Kimin ödülü olduğu ve ne için olduğu açık yazılır (OT-ilk-kez-oyun-27, OT-buyuk-yazi-26).
+ */
+export const INBOX_TEXT = {
+  /** süresinde Takım › Hediyeler'den alınmayan hediye kaybolmaz, ödül kutusuna geçer */
+  giftMoved: (reason: string) => `Takım hediyesi (Takım'da alınmadı, buraya geçti): ${reason}`,
+  rank: (board: string, team: boolean, rank: number) => (team ? `Takımın ${board} sıralamasında geçen hafta ${rank}. oldu` : `${board} sıralamasında geçen hafta ${rank}. oldun`),
+  /** bölge ödülü kristal ve jeton olarak iki satır: aynı başlıkla durmasınlar */
+  war: (week: string, region: string, kind: InboxKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
+};
+/** "Hepsini al" bildirimi: yalnız gerçekten alınan türler ("+600 jeton, +200 kristal"; OT-ekonomi-denetci-22) */
+export function inboxGotText(got: readonly Pick<InboxItem, 'kind' | 'amount'>[]): string {
+  const sum = (k: InboxKind) => got.filter((x) => x.kind === k).reduce((a, x) => a + x.amount, 0);
+  const n = (v: number) => Math.round(v).toLocaleString('tr-TR');
+  const parts: string[] = [];
+  if (sum('jeton')) parts.push(`+${n(sum('jeton'))} jeton`);
+  if (sum('kristal')) parts.push(`+${n(sum('kristal'))} kristal`);
+  if (sum('kalkan')) parts.push(`+${sum('kalkan')} kalkan (bir sonraki bölümde)`);
+  if (sum('kozmetik')) parts.push(`+${sum('kozmetik')} kozmetik (Dolap'ta)`);
+  if (sum('kart')) parts.push(`+${sum('kart')} Kulak Kartı`);
+  return parts.join(', ');
+}
+/** eski sunucu metinlerini yeni biçime getirir (kayıt değişmez, yalnız görünüm) */
+export function inboxReasonText(it: Pick<InboxItem, 'reason' | 'kind'>): string {
+  const r = it.reason;
+  let m = /^Takım hediyesi \(alma süresi doldu\): (.*)$/s.exec(r); if (m) return INBOX_TEXT.giftMoved(m[1]!);
+  m = /^Sıralama: (.+) · geçen hafta (\d+)\.$/.exec(r);
+  if (m) { const name = m[1]; const b = RANK_BOARDS.find((x) => x.name === name); if (b) return INBOX_TEXT.rank(b.name, b.team, Number(m[2])); }
+  m = /^Bölge Savaşı (\d{4}-W\d{2}): (.+) bölgesi sizin$/.exec(r); if (m) return INBOX_TEXT.war(m[1]!, m[2]!, it.kind);
+  return r;
+}
+
 // ---------- İlerleme bildirimi (her bölüm sonunda)
 export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[] }
 export interface ProgressAck { highest: number; stars: number; warPoints: number; raidDamage: number; leaguePoints: number; newInbox: number; jeton: number; wallet: Wallet;
