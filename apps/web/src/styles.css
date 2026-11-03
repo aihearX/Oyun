@@ -389,12 +389,15 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
   .result-screen .result-top { padding-top:6px; }
   .result-screen .stats.has-wide .result-obj { padding:8px 10px; gap:4px; }
   .result-screen .result-star3 { gap:4px; }
-  /* kayıpta (320×640, kanca bölümünün uzun ipucu) neden kartı düğmelerin üstünde kalsın */
-  .result-screen.lost .star-row { height:50px; }
-  .result-screen.lost .star-slot { width:42px; height:42px; }
-  .result-screen.lost .star-slot:nth-child(2) { width:50px; height:50px; transform:translateY(-6px); }
+  /* kayıpta (320×640, kanca bölümünün uzun ipucu) neden kartı düğmelerin üstünde kalsın; boş yıldızlar Büyük yazıda da alçak (YN-131) */
+  .result-screen.lost .star-row, html.buyuk-yazi .result-screen.lost .star-row { height:44px; }
+  .result-screen.lost .star-slot, html.buyuk-yazi .result-screen.lost .star-slot { width:38px; height:38px; }
+  .result-screen.lost .star-slot:nth-child(2), html.buyuk-yazi .result-screen.lost .star-slot:nth-child(2) { width:44px; height:44px; transform:translateY(-5px); }
   .result-screen.lost .stats .card { padding:6px 4px; }
   .result-screen .result-why { padding:6px 10px; gap:2px; }
+  /* YN-131: kayıpta skor küçük (çoğu kez 0); 3 kayıptan sonra yardım kartı da düğmelerin üstünde, ilk ekranda tam görünsün */
+  .result-screen.lost .result .score { font-size:clamp(30px, 9vw, 36px); }
+  .result-screen.lost .result { gap:6px; }
   /* Büyük yazıda iki parçalı yıldız satırı ve neden kartı uzar: üst bölüm daha da alçak */
   html.buyuk-yazi .result-screen .result { gap:6px; }
   html.buyuk-yazi .result-screen .star-row { height:50px; }

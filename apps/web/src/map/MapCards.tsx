@@ -133,6 +133,8 @@ function ZoneCard({ z, stars, onClose }: { z: ZoneId; stars: StarMap; onClose: (
       </div>
       <div className="mc-dim">{b.blurb}</div>
       <Vital v={v} />
+      {/* aşamaların sırası bir cümleyle (OT-ilk-kez-oyun-36: "çiçeklendi" ile "canlanır" farkı anlaşılmadı); fiiller hedef kutusununkiler */}
+      <div className="mc-dim mc-vital-why" data-testid="bolge-asamalar">Bölgeler dört aşamada büyür: {([1, 2, 3, 4] as const).map((i) => VITALITY_WILL[i]).join(' → ')}.</div>
       {note && <NoteCard note={note} />}
       <div className="mc-rows">
         <div className="mc-row"><span><Art e="⭐" size="1.15em" className="art-inline" /></span><b>Yıldız</b><span className="mc-dim">{st.stars}/{st.maxStars} · {st.cleared}/{st.total} bölüm</span></div>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES, veteranTours } from './features';
+import { pickGoal } from '../map/goals';
 import { CAMP_TOURS, MAX_UNLOCK_TOURS_PER_LEVEL, countUnlockTour, mapIntroPending, mapIntroQueue, mapIntroView, mapRevealPending, tourShortName, type UnlockTally } from './map-intro';
 
 /**
@@ -87,16 +88,41 @@ describe('haritada bekleyen kutlama (mapRevealPending)', () => {
   });
   it('Gürültü Canavarı (40) ilk geçiş: bölge sonu kutlaması bekler', () => {
     const r = mapRevealPending(upTo(39), upTo(40), restoredBefore(40));
-    expect(r).toEqual({ zones: ['korteks', 'finale'], treasures: [40] });
+    expect(r).toEqual({ zones: ['korteks', 'finale'], grows: [], treasures: [40] });
     expect(mapIntroView([], r)).toMatchObject({ title: 'İşitme Korteksi haritada canlanacak.', note: 'Ninni Merkezi de ışıl ışıl yanacak. Hazine sandığını da orada göreceksin.', button: 'Haritaya dön' });
   });
-  it('yalnız hazine (10): sandık satırı; tanıtım da bekliyorsa Tüy Dede de söylenir', () => {
+  it('hazine ve çiçeklenme (10): başlık çiçeklenme, sandık notta; yalnız sandık bekliyorsa sandık satırı; tanıtım da bekliyorsa Tüy Dede de söylenir', () => {
     const r = mapRevealPending(upTo(9), upTo(10), restoredBefore(10));
-    expect(r).toEqual({ zones: [], treasures: [10] });
-    expect(mapIntroView([], r)).toMatchObject({ art: 'chest', title: 'Hazine sandığını haritada göreceksin.', note: 'Sıradaki bölüm haritadan.' });
-    expect(mapIntroView(['events'], r)?.note).toBe('Tüy Dede de anlatacak: Etkinlikler.');
+    expect(r).toEqual({ zones: [], grows: [{ zone: 'zar', to: 2 }], treasures: [10] });
+    expect(mapIntroView([], r)).toMatchObject({ art: 'sprout', title: 'Kulak Zarı haritada çiçeklenecek.', note: 'Hazine sandığını da orada göreceksin.' });
+    const chest = { zones: [], grows: [], treasures: [10] };
+    expect(mapIntroView([], chest)).toMatchObject({ art: 'chest', title: 'Hazine sandığını haritada göreceksin.', note: 'Sıradaki bölüm haritadan.' });
+    expect(mapIntroView(['events'], chest)?.note).toBe('Tüy Dede de anlatacak: Etkinlikler.');
     // 5. bölüm: Dış Kulak canlanır, sandık açılır, Takım ve Sıralama tanıtılır
     expect(mapIntroView(['team', 'siralama'], mapRevealPending(upTo(4), upTo(5), restoredBefore(5)))?.note).toBe('Hazine sandığını da orada göreceksin. Tüy Dede de anlatacak: Takım ve Sıralama.');
+  });
+  /**
+   * YN-136 (OT-ilk-kez-oyun-36): hedef kutusu "Bölüm 28 bitince Koklea · Apeks çiçeklenir" der; 28 geçilince "Sonraki" çiçeklenmeyi
+   * atlatıyordu (32'de İşitme Siniri de). Söz verilen her aşama haritada bekler: çiçeklenme ve canlanmış bölgenin ışıl ışıl olması.
+   */
+  it('çiçeklenme (28, 32, 3): "Haritaya dön" ve "… haritada çiçeklenecek."; hedef kutusunun söz verdiği bölümle aynı', () => {
+    for (const [n, zone, name] of [[28, 'koklea-3', 'Koklea · Apeks'], [32, 'sinir', 'İşitme Siniri'], [3, 'dis-kulak', 'Dış Kulak']] as const) {
+      const r = mapRevealPending(upTo(n - 1), upTo(n), restoredBefore(n));
+      expect(r, `${n}`).toEqual({ zones: [], grows: [{ zone, to: 2 }], treasures: [] });
+      expect(mapIntroView([], r), `${n}`).toEqual({ art: 'sprout', title: `${name} haritada çiçeklenecek.`, note: 'Sıradaki bölüm haritadan.', button: 'Haritaya dön' });
+      expect(pickGoal(upTo(n - 2))?.key === `b:${zone}:2` || pickGoal(upTo(n - 1))?.key === `b:${zone}:2`, `${n}: hedef kutusu söz veriyor`).toBe(true);
+    }
+    // uyanma tek başına beklemez (hedef kutusu söz vermez): 8'de Kulak Zarı uyanır ama başlık Kulak Kanalı'nın çiçeklenmesi
+    expect(mapRevealPending(upTo(7), upTo(8), restoredBefore(8))).toEqual({ zones: [], grows: [{ zone: 'kanal', to: 2 }], treasures: [] });
+    expect(mapRevealPending(upTo(38), upTo(39), restoredBefore(39))).toBeNull();
+  });
+  it('canlanmış bölge ışıl ışıl olur (eski bölüm tekrarında yıldız tamamlanınca): yine "Haritaya dön"', () => {
+    const all = restoredBefore(41); const five = { ...upTo(40), 1: 3, 2: 3, 3: 3, 4: 3 };
+    const r = mapRevealPending(five, { ...five, 5: 3 }, all);
+    expect(r).toEqual({ zones: [], grows: [{ zone: 'dis-kulak', to: 4 }], treasures: [] });
+    expect(mapIntroView([], r)?.title).toBe('Dış Kulak haritada ışıl ışıl olacak.');
+    // aynı dönüşte iki aşama: biri başlık, öbürü notta
+    expect(mapIntroView([], { zones: [], grows: [{ zone: 'zar', to: 4 }, { zone: 'kanal', to: 2 }], treasures: [] })).toMatchObject({ title: 'Kulak Zarı haritada ışıl ışıl olacak.', note: 'Ayrıca Kulak Kanalı çiçeklenecek.' });
   });
   it('sıradan bölüm, eski bölüm tekrarı (yıldız artsa da) ve hiç açılmamış harita: bekleyen yok → Sonraki', () => {
     for (const n of [2, 11, 13, 21]) expect(mapRevealPending(upTo(n - 1), upTo(n), restoredBefore(n)), `${n}`).toBeNull();

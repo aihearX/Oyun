@@ -1,6 +1,6 @@
 import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, modifierNames, BIOMES, type RewardItem } from '@odi/content';
-import { RAHAT_TEXT, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
+import { RAHAT_TEXT, damageNote, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -11,6 +11,7 @@ import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
 import { ActionButton } from '../ui/Button';
+import { Toasts } from '../ui/Toasts';
 import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
@@ -28,7 +29,7 @@ interface Props {
   spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string;
   /** haritaya gelinince kendiliğinden başlayacak anlatıcı turları (ftue/map-intro.ts mapIntroQueue): doluysa "Sonraki" yerine "Haritaya dön" */
   mapIntro?: readonly string[];
-  /** haritanın dönüş sahnesinde bekleyen bölge canlanması / hazine (ftue/map-intro.ts mapRevealPending): doluysa da "Haritaya dön" (YN-114) */
+  /** haritanın dönüş sahnesinde bekleyen bölge canlanması, çiçeklenmesi / hazine (ftue/map-intro.ts mapRevealPending): doluysa da "Haritaya dön" (YN-114, YN-136) */
   reveal?: MapReveal | null;
   /** bu denemenin kolaylaştırma satırı ve kayıpta sonraki denemenin (level-gen easeLine / easeNextLine; YN-113) */
   ease?: string; easeNext?: string;
@@ -77,7 +78,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const done = step >= FINAL;
   const last = spec.number >= HUMAN_JOURNEY.levels.length;
   // yeni yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey varsa ileri düğmesi haritaya götürür (bölüme atlatmaz; YN-066);
-  // bölge canlanması ya da hazine sandığı haritada bekliyorsa da (son bölümde de: Ninni Merkezi orada yanar; YN-114)
+  // bölge canlanması, hedef kutusunun söz verdiği çiçeklenme ya da hazine sandığı haritada bekliyorsa da (son bölümde de: Ninni Merkezi
+  // orada yanar; YN-114, YN-136)
   const intro = result.completed ? mapIntroView(last ? [] : mapIntro ?? [], reveal) : null;
   // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
   // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
@@ -89,6 +91,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
   const loss = result.completed ? null : lossView(result, spec, attempt);
+  const lossDetail = loss ? guardedDetail(loss.detail, result) : '';
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   // Rahat denemeyle geçişte yıldız 1'de kalır: sıradaki yıldızın kartı yerine Rahat kartı (karar 42)
   const rahat = !!result.rahat;
@@ -192,193 +195,200 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
 
   return (
-    <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
-      <div className="result-top">
-        <div className="muted ellipsis">{spec.number}. {spec.name}</div>
-        <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}><Art name="coin" size={19} className="art-inline" />{coinsShown.toLocaleString('tr-TR')}</div>
-      </div>
-
-      <div className="result">
-        <h1 className="result-title">{title}</h1>
-        <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
-          {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty"><StarHole /></span><span className="star-full"><Art name="star" size="100%" /></span></span>)}
-        </div>
-        <div className="score-line" ref={scoreRef}>
-          <div className="score">{score.toLocaleString('tr-TR')}</div>
-          {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
-          {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, rahat ? 0 : result.score).toLocaleString('tr-TR')}</div>}
+    <>
+      <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
+        <div className="result-top">
+          <div className="muted ellipsis">{spec.number}. {spec.name}</div>
+          <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}><Art name="coin" size={19} className="art-inline" />{coinsShown.toLocaleString('tr-TR')}</div>
         </div>
 
-        {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
-        {/* gizli kolaylaştırma yok (YN-113): yardım bu denemede devredeyse ve kayıpta sonraki deneme kolaylaşacaksa tek satır */}
-        {ease && <div className="result-mods" data-testid="sonuc-kolay">{ease}</div>}
-        {easeNext && <div className="result-mods" data-testid="sonuc-kolay-sonraki">{easeNext}</div>}
-        {/* Rahat denemeyle kaybedildiyse bu deneme de açıkça söylenir (karar 42) */}
-        {rahat && !result.completed && <div className="result-mods" data-testid="sonuc-rahat-kayip">{RAHAT_TEXT.lostNote}</div>}
-
-        {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
-            kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
-            yapışkan "Tekrar dene" çubuğunun arkasında yarım kalmasın (OT-ilk-kez-oyun-25) */}
-        {loss && (
-          <div className="card result-obj result-why" data-testid="sonuc-neden">
-            <small className="result-obj-h">Neden olmadı?</small>
-            <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{loss.detail && <span className="result-why-d">{loss.detail}</span>}</span>
-            {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
-            {dark && <span className="result-why-hv" data-testid="sonuc-gorunurluk"><Art name="gear" size={16} className="art-inline" />Zor mu görüyorsun? Ayarlar › Yüksek görünürlük</span>}
+        <div className="result">
+          <h1 className="result-title">{title}</h1>
+          <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
+            {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty"><StarHole /></span><span className="star-full"><Art name="star" size="100%" /></span></span>)}
           </div>
-        )}
-        {/* Rahat deneme teklifi (karar 42): yalnız canavar bölümünde 3 kayıptan sonra, açıkça; oyuncu her seferinde kendisi seçer.
-            Kart sayfa akışında anlatır, "Rahat dene" düğmesi yapışkan alanda (320 px'te de ilk ekranda; üstünde ne değiştiği yazar) */}
-        {offerRahat && (
-          <div className="card result-obj result-rahat" data-testid="rahat-teklif" onClick={(e) => e.stopPropagation()}>
-            <small className="result-obj-h">{RAHAT_TEXT.title}</small>
-            <span className="result-rahat-t">{RAHAT_TEXT.offer(Math.max(3, store.progress[spec.number]?.fails ?? 3))}</span>
-            <span className="result-rahat-l"><Art name="heart" size={20} className="art-inline" /><span><b>{RAHAT_TEXT.what}</b> {RAHAT_TEXT.rules}</span></span>
+          {/* sonuç ekranı açılırken gelen başarım bildirimi bu satırın altında durur: başlığı ve yıldızları örtmez (ui/Toasts.tsx; OT-buyuk-yazi-37) */}
+          <div className="score-line" ref={scoreRef} data-toast-under>
+            <div className="score">{score.toLocaleString('tr-TR')}</div>
+            {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
+            {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, rahat ? 0 : result.score).toLocaleString('tr-TR')}</div>}
           </div>
-        )}
-        {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
-        <div className="stats has-wide">
-          {spec.coinsTotal > 0
-            ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
-            : <div className="card"><div className="v"><Art name="heart" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
-          {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
-          <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
-          {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
-          {rahat && result.completed && (
-            <div className="card result-obj result-rahat" data-testid="sonuc-rahat">
+          {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
+          {/* gizli kolaylaştırma yok (YN-113): yardım bu denemede devredeyse ve kayıpta sonraki deneme kolaylaşacaksa tek satır */}
+          {ease && <div className="result-mods" data-testid="sonuc-kolay">{ease}</div>}
+          {easeNext && <div className="result-mods" data-testid="sonuc-kolay-sonraki">{easeNext}</div>}
+          {/* Rahat denemeyle kaybedildiyse bu deneme de açıkça söylenir (karar 42) */}
+          {rahat && !result.completed && <div className="result-mods" data-testid="sonuc-rahat-kayip">{RAHAT_TEXT.lostNote}</div>}
+
+          {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
+              kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
+              yapışkan "Tekrar dene" çubuğunun arkasında yarım kalmasın (OT-ilk-kez-oyun-25) */}
+          {loss && (
+            <div className="card result-obj result-why" data-testid="sonuc-neden">
+              <small className="result-obj-h">Neden olmadı?</small>
+              <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{lossDetail && <span className="result-why-d" data-testid="sonuc-neden-hasar">{lossDetail}</span>}</span>
+              {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
+              {dark && <span className="result-why-hv" data-testid="sonuc-gorunurluk"><Art name="gear" size={16} className="art-inline" />Zor mu görüyorsun? Ayarlar › Yüksek görünürlük</span>}
+            </div>
+          )}
+          {/* Rahat deneme teklifi (karar 42): yalnız canavar bölümünde 3 kayıptan sonra, açıkça; oyuncu her seferinde kendisi seçer.
+              Kart sayfa akışında anlatır, "Rahat dene" düğmesi yapışkan alanda (320 px'te de ilk ekranda; üstünde ne değiştiği yazar) */}
+          {offerRahat && (
+            <div className="card result-obj result-rahat" data-testid="rahat-teklif" onClick={(e) => e.stopPropagation()}>
               <small className="result-obj-h">{RAHAT_TEXT.title}</small>
-              <b className="result-rahat-t">{RAHAT_TEXT.passed}</b>
-              <span className="result-rahat-l">{RAHAT_TEXT.passedNote}</span>
+              <span className="result-rahat-t">{RAHAT_TEXT.offer(Math.max(3, store.progress[spec.number]?.fails ?? 3))}</span>
+              <span className="result-rahat-l"><Art name="heart" size={20} className="art-inline" /><span><b>{RAHAT_TEXT.what}</b> {RAHAT_TEXT.rules}</span></span>
             </div>
           )}
-          {starNext && (
-            <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
-              <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
-              <ul className="result-star3">
-                {starNext.v.rows.map((row, i) => (
-                  <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
-                    <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
-                    <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
-                    {/* iki parçalı koşulda tutan parça işaretli: "60 nota tamam · 2/3 altın koklea" (OT-rekabetci-17) */}
-                    <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ''}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.done && <Art name="check" size={13} className="art-inline" />}{p.text}</span>) : row.note || 'yapılmadı'}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+          {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
-
-        <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
-          <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>
-          <div className="bar tone-accent xp"><i style={{ width: `${xpWidth * 100}%`, transition: xpPhase === 2 && leveled && !reduced ? 'none' : undefined }} key={xpPhase === 2 && leveled ? 'n' : 'o'} /></div>
-          {leveled && xpPhase >= 1 && <div className="levelup" role="status"><Art name="party" size="1.2em" className="art-inline" /> Seviye {after.level}!</div>}
-        </div>
-
-        <div className="card result-earn" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
-          <div className="result-earn-head"><span>Bu bölümden{earn.length > 1 ? ' toplam' : ''}</span><b><Art name="coin" size={20} className="art-inline" />+{earnTotal.toLocaleString('tr-TR')} jeton</b></div>
-          {(earn.length > 1 || earn.some((l) => l.items || l.note)) && (
-            <ul className="result-earn-list" data-testid="sonuc-kazanc">
-              {earn.map((l, i) => (
-                <li key={i} className={l.items ? 'has-sub' : undefined}>
-                  <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}</span><b>{fmtJeton(l.jeton)}</b>
-                  {/* birden çok başarım: adları, kademeleri, koşulları ve tek tek ödülleri (OT-ekonomi-denetci-17) */}
-                  {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
-          <span className="gi"><Art name={result.completed ? (summary.goal.kind === 'hazine' ? 'chest' : 'target') : 'ear'} size={30} /></span>
-          <span><Rich text={summary.goal.text} /></span>
-        </div>
-
-        {bilgi && (
-          <aside className="result-bilgi" data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} aria-label="Biliyor muydun?">
-            <Art name="bulb" size={26} className="rb-art" />
-            <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
-          </aside>
-        )}
-
-        {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
-        {result.completed && !rahat && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
-
-        {challenge && challenge.level === spec.number && challenge.score > 0 && (
-          <div className="card" style={{ width: '100%' }}>
-            <div className="muted">Meydan okuma</div>
-            <h2 className="wrap">{result.completed && result.score > challenge.score ? `Arkadaşını ${(result.score - challenge.score).toLocaleString('tr-TR')} puan geçtin!` : result.completed ? `Arkadaşına ${(challenge.score - result.score).toLocaleString('tr-TR')} puan kaldı` : 'Arkadaşın bu bölümü geçti; bir daha dene'}</h2>
-            <div className="muted">Arkadaşın: {challenge.score.toLocaleString('tr-TR')} · Sen: {result.score.toLocaleString('tr-TR')}</div>
-          </div>
-        )}
-
-        {step >= S + 3 && (summary.quests.length > 0 || allUnlocks.length > 0) && (
-          <div className="unlocks">
-            {unlocks.map((u, i) => (
-              <div className={`unlock-card tone-${u.tone}`} key={i} style={{ animationDelay: `${reduced ? 0 : i * 140}ms` }}>
-                <span className="ui"><Glyph e={u.icon} size={32} /></span>
-                <span className="ub"><small><Rich text={u.kicker} /></small><b><Rich text={u.title} /></b>{u.text && <span className="muted"><Rich text={u.text} /></span>}{u.chips && <RewardChips items={u.chips} small />}</span>
+          <div className="stats has-wide">
+            {/* notasız (canavar) bölümde hasar: kalp değil (oyun boyunca kalp "can" demek; OT-buyuk-yazi-41 "2 can kaldı" okudu) */}
+            {spec.coinsTotal > 0
+              ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
+              : <div className="card" data-testid="sonuc-hasar"><div className="v"><Art name="boom" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
+            {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
+            <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
+            {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
+            {rahat && result.completed && (
+              <div className="card result-obj result-rahat" data-testid="sonuc-rahat">
+                <small className="result-obj-h">{RAHAT_TEXT.title}</small>
+                <b className="result-rahat-t">{RAHAT_TEXT.passed}</b>
+                <span className="result-rahat-l">{RAHAT_TEXT.passedNote}</span>
               </div>
-            ))}
-            {hidden > 0 && <ActionButton tone="plain" className="more-unlocks" onClick={(e) => { e.stopPropagation(); setShowAll(true); }}>+{hidden} açılım daha göster</ActionButton>}
-            {summary.quests.length > 0 && (
-              <div className="card quests-mini" style={{ animationDelay: `${reduced ? 0 : unlocks.length * 140}ms` }}>
-                <div className="muted">Bugünün görevleri</div>
-                {summary.quests.map((q) => (
-                  <div className="qm" key={q.id}>
-                    <span className="qe"><Glyph e={q.justDone ? '✅' : q.emoji} size={20} /></span>
-                    <span className="qt">{q.text}</span>
-                    <span className="qn">{q.after}/{q.target}</span>
-                    <div className="bar tone-green"><i style={{ width: `${(q.after / q.target) * 100}%` }} /></div>
-                  </div>
-                ))}
-                {summary.quests.some((q) => q.justDone) && <div className="muted small-note">Görev tamam! Ödülün Bugün sekmesinde seni bekliyor.</div>}
+            )}
+            {starNext && (
+              <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
+                <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
+                <ul className="result-star3">
+                  {starNext.v.rows.map((row, i) => (
+                    <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
+                      <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
+                      <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
+                      {/* iki parçalı koşulda tutan parça işaretli: "60 nota tamam · 2/3 altın koklea" (OT-rekabetci-17) */}
+                      <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ''}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.done && <Art name="check" size={13} className="art-inline" />}{p.text}</span>) : row.note || 'yapılmadı'}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>
-        )}
 
-        {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
-        <div className="result-actions" onClick={(e) => e.stopPropagation()}>
-          {intro ? (
-            <>
-              <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
-                <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
-                <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
-                <Art name={intro.art} size={30} className="ra-art" />
-              </div>
-              <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
-              <div className="abtn-grid">
-                <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                {meydan}
-              </div>
-            </>
-          ) : result.completed && !last ? (
-            <>
-              <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
-              <div className="abtn-grid">
-                <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                {meydan}
-                <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
-              </div>
-            </>
-          ) : (
-            <>
-              <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
-              <div className="abtn-grid">
-                {offerRahat ? <ActionButton tone="teal" tile icon="play" data-testid="rahat-dene" data-act="rahat" onClick={onRahat}>{RAHAT_TEXT.button}<small className="act-lock act-rahat">{RAHAT_TEXT.short}</small></ActionButton> : meydan}
-                <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
-              </div>
-            </>
+
+          <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
+            <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>
+            <div className="bar tone-accent xp"><i style={{ width: `${xpWidth * 100}%`, transition: xpPhase === 2 && leveled && !reduced ? 'none' : undefined }} key={xpPhase === 2 && leveled ? 'n' : 'o'} /></div>
+            {leveled && xpPhase >= 1 && <div className="levelup" role="status"><Art name="party" size="1.2em" className="art-inline" /> Seviye {after.level}!</div>}
+          </div>
+
+          <div className="card result-earn" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
+            <div className="result-earn-head"><span>Bu bölümden{earn.length > 1 ? ' toplam' : ''}</span><b><Art name="coin" size={20} className="art-inline" />+{earnTotal.toLocaleString('tr-TR')} jeton</b></div>
+            {(earn.length > 1 || earn.some((l) => l.items || l.note)) && (
+              <ul className="result-earn-list" data-testid="sonuc-kazanc">
+                {earn.map((l, i) => (
+                  <li key={i} className={l.items ? 'has-sub' : undefined}>
+                    <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}</span><b>{fmtJeton(l.jeton)}</b>
+                    {/* birden çok başarım: adları, kademeleri, koşulları ve tek tek ödülleri (OT-ekonomi-denetci-17) */}
+                    {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
+            <span className="gi"><Art name={result.completed ? (summary.goal.kind === 'hazine' ? 'chest' : 'target') : 'ear'} size={30} /></span>
+            <span><Rich text={summary.goal.text} /></span>
+          </div>
+
+          {bilgi && (
+            <aside className="result-bilgi" data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} aria-label="Biliyor muydun?">
+              <Art name="bulb" size={26} className="rb-art" />
+              <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
+            </aside>
           )}
-        </div>
-        {done && note && <NoteCard note={note} />}
-      </div>
 
-      {toast && <div className="toast">{toast}</div>}
-    </div>
+          {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
+          {result.completed && !rahat && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
+
+          {challenge && challenge.level === spec.number && challenge.score > 0 && (
+            <div className="card" style={{ width: '100%' }}>
+              <div className="muted">Meydan okuma</div>
+              <h2 className="wrap">{result.completed && result.score > challenge.score ? `Arkadaşını ${(result.score - challenge.score).toLocaleString('tr-TR')} puan geçtin!` : result.completed ? `Arkadaşına ${(challenge.score - result.score).toLocaleString('tr-TR')} puan kaldı` : 'Arkadaşın bu bölümü geçti; bir daha dene'}</h2>
+              <div className="muted">Arkadaşın: {challenge.score.toLocaleString('tr-TR')} · Sen: {result.score.toLocaleString('tr-TR')}</div>
+            </div>
+          )}
+
+          {step >= S + 3 && (summary.quests.length > 0 || allUnlocks.length > 0) && (
+            <div className="unlocks">
+              {unlocks.map((u, i) => (
+                <div className={`unlock-card tone-${u.tone}`} key={i} style={{ animationDelay: `${reduced ? 0 : i * 140}ms` }}>
+                  <span className="ui"><Glyph e={u.icon} size={32} /></span>
+                  <span className="ub"><small><Rich text={u.kicker} /></small><b><Rich text={u.title} /></b>{u.text && <span className="muted"><Rich text={u.text} /></span>}{u.chips && <RewardChips items={u.chips} small />}</span>
+                </div>
+              ))}
+              {hidden > 0 && <ActionButton tone="plain" className="more-unlocks" onClick={(e) => { e.stopPropagation(); setShowAll(true); }}>+{hidden} açılım daha göster</ActionButton>}
+              {summary.quests.length > 0 && (
+                <div className="card quests-mini" style={{ animationDelay: `${reduced ? 0 : unlocks.length * 140}ms` }}>
+                  <div className="muted">Bugünün görevleri</div>
+                  {summary.quests.map((q) => (
+                    <div className="qm" key={q.id}>
+                      <span className="qe"><Glyph e={q.justDone ? '✅' : q.emoji} size={20} /></span>
+                      <span className="qt">{q.text}</span>
+                      <span className="qn">{q.after}/{q.target}</span>
+                      <div className="bar tone-green"><i style={{ width: `${(q.after / q.target) * 100}%` }} /></div>
+                    </div>
+                  ))}
+                  {summary.quests.some((q) => q.justDone) && <div className="muted small-note">Görev tamam! Ödülün Bugün sekmesinde seni bekliyor.</div>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
+          <div className="result-actions" onClick={(e) => e.stopPropagation()}>
+            {intro ? (
+              <>
+                <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.grows.map((g) => `${g.zone}-${g.to}`), ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
+                  <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
+                  <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
+                  <Art name={intro.art} size={30} className="ra-art" />
+                </div>
+                <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
+                <div className="abtn-grid">
+                  <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
+                  {meydan}
+                </div>
+              </>
+            ) : result.completed && !last ? (
+              <>
+                <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
+                <div className="abtn-grid">
+                  <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
+                  {meydan}
+                  <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
+                </div>
+              </>
+            ) : (
+              <>
+                <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
+                <div className="abtn-grid">
+                  {offerRahat ? <ActionButton tone="teal" tile icon="play" data-testid="rahat-dene" data-act="rahat" onClick={onRahat}>{RAHAT_TEXT.button}<small className="act-lock act-rahat">{RAHAT_TEXT.short}</small></ActionButton> : meydan}
+                  <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
+                </div>
+              </>
+            )}
+          </div>
+          {done && note && <NoteCard note={note} />}
+        </div>
+
+        {toast && <div className="toast">{toast}</div>}
+      </div>
+      {/* başarım bildirimleri bu ekranla aynı anda çizilir (App'teki kutlama katmanı sonuçta bildirim göstermez): ilk karede skor
+          satırının altında, başlığı örtmeden (OT-buyuk-yazi-37). Ekranın dışında: sallanma dönüşümü sabit konumu kaydırmasın */}
+      <Toasts />
+    </>
   );
 }
 
@@ -400,6 +410,17 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
     else if (e.kind === 'albumBadge') out.push({ icon: '🏅', kicker: 'Albüm rozeti', title: `${BIOMES[e.biome].name} tamamlandı`, tone: 'gold' });
   }
   return out;
+}
+
+/**
+ * Kayıpta hasar cümlesi: kalkan ya da Klinik koruması bir vuruşu karşıladıysa kazançtaki satırla aynı söz (damageNote, karar 37;
+ * OT-sessiz-oyuncu-18: kalkanla başlanan kayıpta yalnız "3 kez hasar aldın" yazıyordu). "…, en son dikene değdin." kısmı kalır.
+ */
+function guardedDetail(detail: string, r: RunResult): string {
+  const g = r.extra?.guarded; const note = damageNote(r);
+  if (!(typeof g === 'number' && g > 0) || !note) return detail;
+  const head = `${r.damageTaken} kez hasar aldın`;
+  return detail.startsWith(head) ? `${note}${detail.slice(head.length)}` : [detail, `${note}.`].filter(Boolean).join(' ');
 }
 
 const fmtJeton = (n: number) => `${n > 0 ? '+' : ''}${n.toLocaleString('tr-TR')}`;

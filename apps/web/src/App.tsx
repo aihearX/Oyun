@@ -19,7 +19,7 @@ import { StoryScreen } from './ftue/Story';
 import { FEATURES, clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
 import { mapIntroQueue, mapRevealPending, type MapReveal } from './ftue/map-intro';
 import { loadMapSeen, starsOf, useMapSeen } from './map/mapSeen';
-import { useStore } from './store';
+import { toastsFor, useStore } from './store';
 import { TitleScreen } from './screens/TitleScreen';
 import type { ProfileLink } from './screens/ProfileScreen';
 import { TabBar, type Tab } from './ui/TabBar';
@@ -205,11 +205,12 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const completed = stars > 0;
   const ease = levelEase(HUMAN_JOURNEY.id, n, prof);
   // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…)
+  // &kalkan=1: takım kalkanı bir vuruşu karşıladı (hasar sayılır; sonuç kartı damageNote ile söyler, YN-136)
   const melodyTotal = spec.objective.id === 'melody' ? spec.objective.target ?? 7 : 0;
   const result: RunResult = {
     levelId: spec.id, completed, stars: rahatRun ? Math.min(stars, 1) as 0 | 1 : stars, score, ...(rahatRun ? { rahat: true } : {}), coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4)) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
     deaths: 0, damageTaken: stars === 3 ? 0 : completed ? 1 : 3, objectiveMet: stars === 3, secretFound: false,
-    extra: { maxCombo: 12, cochleas: stars === 3 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }) },
+    extra: { maxCombo: 12, cochleas: stars === 3 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }), ...(q.get('kalkan') ? { guarded: Number(q.get('kalkan')) } : {}) },
   };
   const progress: PlayerCore['progress'] = {};
   for (let i = 1; i < n; i++) progress[i] = { stars: 2, best: 600, plays: 1 };
@@ -221,6 +222,8 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const seen = starsOf(progress); const reveal = q.get('harita') === '1' ? mapRevealPending(seen, { ...seen, ...(completed ? { [n]: Math.max(seen[n] ?? 0, stars) } : {}) }, []) : null;
   const easeNext = completed ? '' : easeNextLine(ease, levelEase(HUMAN_JOURNEY.id, n, { ...prof, failStreak: fails + 1 }));
   const offer = !completed && (rq === 'teklif' || rahatRun) && spec.mechanic === 'boss';
+  // &bildirim=1: sonuç açılırken iki başarım bildirimi (en uzun adlar; başlığı örtmemeli, YN-136 / OT-buyuk-yazi-37)
+  if (q.get('bildirim') === '1') useStore.setState((s) => ({ toasts: [...s.toasts, ...toastsFor([{ kind: 'achievement', id: 'biyom-korteks', tier: 1 }, { kind: 'achievement', id: 'kasif', tier: 3 }])] }));
   return { name: 'result', spec, result, summary, demo: true, ease: easeLine(ease), easeNext, reveal, rahatOffer: offer, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}) };
 }
 
@@ -410,7 +413,7 @@ export function App() {
   } })();
   // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
   const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
-  return <><ArtDefs /><HataSiniri sifirla={route.name}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  return <><ArtDefs /><HataSiniri sifirla={route.name}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait' && route.name !== 'result'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
 
 /**

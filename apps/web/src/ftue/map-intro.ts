@@ -63,22 +63,32 @@ export const tourShortName = (id: FeatureId) => SHORT[id] ?? featureById(id).nam
  * (aşama 3 ve üstü, daha önce kutlanmamış; son bölge şeritle) ve açılan hazine sandıkları. `seen`: haritanın en son gösterdiği
  * yıldızlar (mapSeen); harita hiç açılmamışsa (null) ilk açılış sahnesiz kaydedilir, beklenen bir şey yoktur. Eski bölüm tekrarında
  * fark yoktur → null.
+ * `grows`: haritanın hedef kutusunun söz verdiği öbür aşamalar (map/goals.ts pickGoal): çiçeklenme (2) ve canlanmış bölgenin ışıl
+ * ışıl olması (4). Dönüş sahnesi bölgeyi büyütür, hedef kutusu "Koklea · Apeks çiçeklendi!" der (YN-136, OT-ilk-kez-oyun-36: 28.
+ * bölümden sonra "Sonraki" çiçeklenmeyi atlatıyordu). Uyanma (1) sayılmaz: hedef kutusu onu söz vermez; bölgeler başka bir aşamayla
+ * birlikte uyanır (son bölge 39'da sözsüz uyanır).
  */
-export interface MapReveal { zones: ZoneId[]; treasures: number[] }
+export interface MapReveal { zones: ZoneId[]; grows: { zone: ZoneId; to: 2 | 4 }[]; treasures: number[] }
 export function mapRevealPending(seen: StarMap | null, now: StarMap, restored: readonly string[]): MapReveal | null {
   if (!seen) return null;
   const steps = planReturn(seen, now);
   const zones = steps.flatMap((st) => (st.kind === 'zone' && st.to >= 3 && !restored.includes(st.zone) ? [st.zone] : []));
+  const grows = steps.flatMap((st) => (st.kind === 'zone' && st.zone !== 'finale' && !zones.includes(st.zone) && (st.to === 2 || st.to === 4) ? [{ zone: st.zone, to: st.to }] : []));
   const treasures = steps.flatMap((st) => (st.kind === 'treasure' ? [st.n] : []));
-  return zones.length || treasures.length ? { zones, treasures } : null;
+  return zones.length || grows.length || treasures.length ? { zones, grows, treasures } : null;
 }
 const andJoin = (xs: readonly string[]) => (xs.length > 1 ? `${xs.slice(0, -1).join(', ')} ve ${xs[xs.length - 1]}` : xs[0] ?? '');
-/** haritada bekleyen kutlamanın satırı: "Kulak Kanalı haritada canlanacak." / "Hazine sandığını haritada göreceksin." */
+/** dönüş sahnesinde bölgenin büyüyeceği aşamanın fiili (map/goals.ts VITALITY_WILL'in gelecek zamanı) */
+const GROW_WILL: Record<2 | 4, string> = { 2: 'çiçeklenecek', 4: 'ışıl ışıl olacak' };
+/** haritada bekleyen kutlamanın satırı: "Kulak Kanalı haritada canlanacak." / "Koklea · Apeks haritada çiçeklenecek." / "Hazine sandığını haritada göreceksin." */
 function revealView(r: MapReveal, tour: string): MapIntroView {
   const places = r.zones.flatMap((z) => (z === 'finale' ? [] : [BIOMES[z].name])); const finale = r.zones.includes('finale');
-  const title = places.length ? `${andJoin(places)} haritada canlanacak.` : finale ? 'Ninni Merkezi haritada ışıl ışıl yanacak.' : 'Hazine sandığını haritada göreceksin.';
-  const also = [places.length && finale ? 'Ninni Merkezi de ışıl ışıl yanacak.' : '', (places.length || finale) && r.treasures.length ? 'Hazine sandığını da orada göreceksin.' : '', tour].filter(Boolean);
-  return { art: places.length || finale ? 'sprout' : 'chest', title, note: also.join(' ') || 'Sıradaki bölüm haritadan.', button: 'Haritaya dön' };
+  // aşamalar sırayla: canlanma, ışıl ışıl, çiçeklenme; ilki başlık, öbürleri "Ayrıca …" notu
+  const grows = ([4, 2] as const).flatMap((to) => { const ns = r.grows.flatMap((g) => (g.to === to && g.zone !== 'finale' ? [BIOMES[g.zone].name] : [])); return ns.length ? [{ who: andJoin(ns), will: GROW_WILL[to] }] : []; });
+  const zone = places.length > 0 || finale || grows.length > 0; const first = !places.length && !finale ? grows[0] : undefined;
+  const title = places.length ? `${andJoin(places)} haritada canlanacak.` : finale ? 'Ninni Merkezi haritada ışıl ışıl yanacak.' : first ? `${first.who} haritada ${first.will}.` : 'Hazine sandığını haritada göreceksin.';
+  const also = [places.length && finale ? 'Ninni Merkezi de ışıl ışıl yanacak.' : '', ...grows.filter((g) => g !== first).map((g) => `Ayrıca ${g.who} ${g.will}.`), zone && r.treasures.length ? 'Hazine sandığını da orada göreceksin.' : '', tour].filter(Boolean);
+  return { art: zone ? 'sprout' : 'chest', title, note: also.join(' ') || 'Sıradaki bölüm haritadan.', button: 'Haritaya dön' };
 }
 
 /** sonuç ekranındaki dürüst satır ve düğme: neyin beklediği (emoji yok); haritada kutlama bekliyorsa önce o söylenir */

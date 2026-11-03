@@ -80,7 +80,8 @@ declare const __ODI_SERVER__: string | undefined;
  */
 let hapticsOn = true;
 export function setHaptics(on: boolean) { hapticsOn = on; }
-const webHaptic = (kind: HapticKind) => { try { if ('vibrate' in navigator) navigator.vibrate(kind === 'heavy' ? 40 : kind === 'medium' || kind === 'error' ? 20 : 8); } catch { /* yok */ } };
+// sayfaya henüz dokunulmadıysa tarayıcı titreşimi zaten engeller (konsolda uyarı); hiç denenmez (ör. sonuç açılırken gelen bildirim)
+const webHaptic = (kind: HapticKind) => { try { if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return; if ('vibrate' in navigator) navigator.vibrate(kind === 'heavy' ? 40 : kind === 'medium' || kind === 'error' ? 20 : 8); } catch { /* yok */ } };
 let deviceHaptic: Platform['haptic'] = webHaptic;
 const gatedHaptic: Platform['haptic'] = (kind) => { if (hapticsOn) deviceHaptic(kind); };
 /** cihaz titreyebilir mi: telefon kabuğu (expo-haptics) evet; tarayıcıda Vibration API varsa (iOS Safari'de yok) */

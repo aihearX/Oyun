@@ -110,5 +110,6 @@
 .mc-vital i.on { background: linear-gradient(90deg, #ffc93c, #ff9f1c); box-shadow: 0 0 8px rgba(255,201,60,.8); } .mc-vital b { margin-left: 6px; font-size: 0.875rem; }
 .mc-vital-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 4px; list-style: none; margin: -4px 0 0; padding: 0; font-size: 0.6875rem; font-weight: 800; color: #8a7bb8; }
 .mc-vital-steps li + li::before { content: "›"; margin-right: 4px; color: #b3a6dc; } .mc-vital-steps li.done { color: #5b4a8a; } .mc-vital-steps li.on { color: #2a1660; font-weight: 900; }
+.mc-vital-why { margin-top: -2px; text-align: center; font-size: 0.75rem; }
 .map-btn { font-size: 1.1875rem; padding: 14px 20px; width: 100%; margin-top: 4px; }
 .map-btn.locked { background: linear-gradient(180deg, #d7d0f2, #a99fd6); color: #3b2c7a; box-shadow: 0 5px 0 #6c5fa8; text-shadow: none; cursor: default; }

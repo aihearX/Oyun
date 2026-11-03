@@ -1197,11 +1197,24 @@ async function suite(browserName, target, [W, H]) {
         // YN-114: bölge sonu (Golem) ilk geçişte "Haritaya dön" + "Kulak Kanalı haritada canlanacak."
         ['demo=sonuc&bolum=33&yildiz=2&skor=1700&kolay=3&kutlama=0', 'sonuc-kolay'], ['demo=sonuc&bolum=33&yildiz=0&skor=420&kolay=2&kutlama=0', 'sonuc-kaybetti-kolay-sonraki'],
         ['demo=sonuc&bolum=20&yildiz=3&skor=3100&acilim=1&harita=1&kutlama=0', 'sonuc-harita-canlanma'],
+        // YN-136: hedef kutusunun söz verdiği çiçeklenme (28) de "Haritaya dön"; kalkanla kayıpta hasar cümlesi kalkanı söyler;
+        // sonuç açılırken gelen başarım bildirimi başlığı örtmez (Büyük yazıda iki satır)
+        ['demo=sonuc&bolum=28&yildiz=2&skor=1700&acilim=1&harita=1&kutlama=0', 'sonuc-harita-cicek'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kalkan=1&kutlama=0', 'sonuc-kaybetti-kalkan'],
+        ['demo=sonuc&bolum=40&yildiz=2&skor=1500&bildirim=1&kutlama=0', 'sonuc-bildirim'],
         // YN-110 (karar 42): canavarda 3 kayıptan sonra Rahat deneme teklifi; Rahat denemeyle geçişin sonucu (1 yıldız, rekabet yok)
         ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
+        // YN-136 (OT-buyuk-yazi-37): başarım bildirimi sonuç başlığını ve yıldızları örtmez (açılır açılmaz; ekran örtüşmeden önce ölçülür)
+        const bildirim = label !== 'sonuc-bildirim' ? null : await page.locator('.toast-top .tt-card').waitFor({ timeout: 5000 }).then(() => sleep(500)).then(() => page.evaluate(() => {
+          const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { t: Math.round(b.top), b: Math.round(b.bottom), l: Math.round(b.left), r: Math.round(b.right) } : null; };
+          const t = r('.toast-top .tt-card'); const out = [];
+          for (const sel of ['.result-title', '.star-row', '.score-line']) { const x = r(sel); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) out.push(`${sel} ${JSON.stringify(x)}`); }
+          return { toast: t, ort: out };
+        }), () => ({ toast: null, ort: [] }));
+        // açılış anının görüntüsü bildirimle; sonra bildirimler kapatılır (örtme ölçümü bildirimsiz ekranda)
+        if (bildirim) { await page.screenshot({ path: resolve(dir, `${label}-acilis.png`) }); await toastGone(); }
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
         // YN-081: kaydırmadan görünmesi gerekenler (yapışkan düğmelerin altında kalmadan): sıradaki yıldızın kartı, kayıpta neden kartı
         const ilk = await page.evaluate(() => {
@@ -1230,6 +1243,10 @@ async function suite(browserName, target, [W, H]) {
           return out;
         });
         const rec = await check(label);
+        if (bildirim && !bildirim.toast) fail(rec, 'başarım bildirimi görünmedi');
+        if (bildirim?.ort.length) fail(rec, `başarım bildirimi ${JSON.stringify(bildirim.toast)} örtüyor: ${bildirim.ort.join('; ')}`);
+        // YN-136 (OT-buyuk-yazi-41): notasız (canavar) bölümde hasar kalp simgesiyle gösterilmez (kalp "can" demek)
+        if (await page.locator('[data-testid="sonuc-hasar"] .art-heart').count()) fail(rec, 'hasar kartında kalp simgesi');
         const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
         if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
         // YN-102: değiştiricili bölümde "Değiştirici: …" satırı; sis/gece kaybında Yüksek görünürlük yönlendirmesi; yardım kartı çıktı mı
@@ -1262,6 +1279,9 @@ async function suite(browserName, target, [W, H]) {
           const why = (await page.locator('[data-testid="sonuc-neden"]').textContent().catch(() => '')) ?? '';
           if (!/Canların bitti/.test(why)) fail(rec, `kayıp nedeni yazmıyor: "${why}"`);
           if (label === 'sonuc-kaybetti-diken' && !/en son dikene değdin/.test(why)) fail(rec, `son hasar yazmıyor: "${why}"`);
+          // YN-136 (OT-sessiz-oyuncu-18): kalkan bir vuruşu karşıladıysa kayıp kartı da söyler (damageNote, karar 37)
+          if (label === 'sonuc-kaybetti-kalkan' && !/3\s?hasar aldın \(kalkan bir vuruşu karşıladı; o da sayılır\), en son dikene değdin\./.test(why)) fail(rec, `kalkan yazmıyor: "${why}"`);
+          if (label !== 'sonuc-kaybetti-kalkan' && /kalkan bir vuruşu/.test(why)) fail(rec, `kalkansız kayıpta kalkan satırı: "${why}"`);
           if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, 'kayıpta 3. yıldız kartı görünüyor');
           if (label === 'sonuc-kaybetti-kanca' && !/Kancanın yanında basılı tut/.test(why)) fail(rec, `kanca bölümünde kanca ipucu yok: "${why}"`);
           if (ort.length) fail(rec, `kayıp kartları örtüşüyor: ${ort.join('; ')}`);
@@ -1297,7 +1317,7 @@ async function suite(browserName, target, [W, H]) {
           if (await page.locator('.result-actions [data-act="sonraki"]').count()) fail(rec, 'bekleyen tanıtım varken Sonraki düğmesi var');
           if (!btn.some((b) => b.t === 'Haritaya dön')) fail(rec, `"Haritaya dön" düğmesi yok: ${btn.map((b) => b.t).join(', ')}`);
           const yazi = (await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').textContent().catch(() => '')) ?? '';
-          const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : label === 'sonuc-harita-canlanma' ? 'Kulak Kanalı haritada canlanacak.Hazine sandığını da orada göreceksin.' : 'Yeni: Kamp';
+          const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : label === 'sonuc-harita-canlanma' ? 'Kulak Kanalı haritada canlanacak.Hazine sandığını da orada göreceksin.' : label === 'sonuc-harita-cicek' ? 'Koklea · Apeks haritada çiçeklenecek.' : 'Yeni: Kamp';
           if (!yazi.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${yazi}"`);
         }
       }
