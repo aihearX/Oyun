@@ -112,7 +112,9 @@ anahtarıyla **tam bir kez**; ikinci istek `TEKRAR`. İstemcide düğme istek s�
   girişinde ve Tüy Dede'nin sözünde). **Yalnız sesle oynanır**: ekranda sesin çalıp çalmadığını ya da hangi sesin daha ince olduğunu ele
   veren hiçbir ipucu yoktur (dinleme penceresi her denemede aynıdır; "hangisi daha ince"de yalnız 1./2. sesin sırası yanar). Eski "görsel
   ipucu" seçeneği kaldırıldı (kayıtlı `odi.kg.gorsel` değeri bir kez silinir). Oyun sesi kapalı ya da efekt sesi ~0 ise tur başlamaz;
-  "Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)" kartı ve **Sesi aç** düğmesi çıkar; kulaklık önerilir.
+  "Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)" kartı ve **Sesi aç** düğmesi çıkar; kulaklık önerilir. Timpanogram Eşleştir
+  açıksa kart ortak hakkı da söyler ve **Timpanogram Eşleştir'e geç** düğmesi verir. Bina düğmesi ve Etkinlik listesi "sesle
+  oynanır" der.
 - **Timpanogram Eşleştir** (Timpanometri Kulesi): turda 5 soru; sorular `kamp-gorev-timpano.ts` bankasından (88 soru; genel havuz 36,
   odyoloji/öğrenci havuzu hepsi). Biçimler: eğri → bulgu, bulgu → eğri (3–4 küçük eğriden biri, aynı ölçekte), sayılar → Jerger tipi,
   kısa vaka (öykü + eğri, gerekirse otoskopi çizimi), sağ/sol karşılaştırma, bilgi (226 / 1000 Hz prob tonu, yaşa göre kanal hacmi,
@@ -124,6 +126,11 @@ anahtarıyla **tam bir kez**; ikinci istek `TEKRAR`. İstemcide düğme istek s�
   sorusunu alır (`ko_items`), deste bitince yeni deste kurulur ve son görülenler yeni destenin sonuna konur. Seçenek sırası tur tohumu
   ile karışır; puanlama sunucuda aynı `timpanoTuru(seed, duzey, items)` ile yapılır.
 - Tur tohumu sunucuda üretilir, cevaplar sunucuda puanlanır; tur en az 9,6 / 7,5 sn sürer; ödül tur başına 4 jeton + 5 Kamp XP.
+- **Ortak hak (sahip kararı 44)**: Ton Avı yalnız sesle oynandığı için ödüllü turları Timpanogram Eşleştir'de de sayılır. Timpanogram
+  önce kendi 5 turunu harcar, sonra Ton Avı'nın kalan ödüllü turlarını (yalnız Ton Avı açıksa: bölüm + Odyometri Odası). Harcanan tur
+  Ton Avı'nın günlük sayacından düşer (`ko-odul-ton`; bilgi için `ko-odul-ortak`), yani iki oyunun günlük ödüllü tur toplamı yine en
+  çok 5 + 5'tir. Sunucu oyuncunun sesini bilemez; toplam değişmediği için hak koşulsuzdur. `KgOyunGun.ortak` (Timpanogram'da sayılabilecek
+  Ton Avı turu) ve `paylasilan` (bugün Timpanogram'da kullanılan Ton Avı turu) ekrana sunucunun sayısıyla yazılır (`oyunGunMetni`).
 
 ## 6. Ödül ekonomisi ve sınırlar
 

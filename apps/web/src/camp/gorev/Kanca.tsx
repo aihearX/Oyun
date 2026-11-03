@@ -40,7 +40,7 @@ export function GorevHost() {
   if (!p) return null;
   if (p.kind === 'gorev') return <GorevPanel tab={p.tab} />;
   if (p.kind === 'klinik') return <KlinikPanel tab={p.tab} vakaId={p.vaka} replay={p.replay} />;
-  return <OyunPanel oyun={p.oyun} />;
+  return <OyunPanel key={p.oyun} oyun={p.oyun} />;
 }
 
 /** Odyoloji Kliniği kartı/paneli: Hasta Vakaları nerede, ne zaman açılır; açıksa giriş düğmesi */
@@ -73,6 +73,7 @@ export function KgBinaKanca({ id, onClose }: { id: BuildingId; onClose: () => vo
 /**
  * Kamp oyununun binadaki kalıcı girişi (Odyometri Odası → Ton Avı, Timpanometri Kulesi → Timpanogram Eşleştir): bina paneli ve liste
  * görünümünün kartı. Açıksa "Oyna"; değilse ne gerektiği (sunucunun dürüst nedeni: "Timpanometri Kulesi’ni kur", "Bölüm N’de açılır").
+ * Ton Avı'nın düğmesi sesle oynandığını söyler; Timpanogram'ınki Ton Avı'ndan sayılabilecek ödüllü turları da gösterir (karar 44).
  */
 export function KgOyunGiris({ id, onOpen }: { id: BuildingId; onOpen?: () => void }) {
   const kg = useKg((s) => s.kg);
@@ -82,7 +83,7 @@ export function KgOyunGiris({ id, onOpen }: { id: BuildingId; onOpen?: () => voi
   if (!g.open) return g.locked ? <div className="muted small-note kg-vaka-satir" data-testid={`giris-${g.oyun}-kilit`}><KgIcon name={o.art} size={16} className="art-inline" /> {o.ad}: {g.locked}</div> : null;
   return (
     <button className="btn kg-bina-btn" data-testid={`bina-${g.oyun}`} onClick={() => { audio.play('tap'); onOpen?.(); setTimeout(() => openPanel({ kind: 'oyun', oyun: g.oyun }), 0); }}>
-      <KgIcon name={o.art} size={22} /> {o.ad} oyna · ödüllü tur {Math.max(0, g.cap - g.rewarded)}
+      <KgIcon name={o.art} size={22} /> {o.ad} oyna{g.oyun === 'ton' ? ' · sesle oynanır' : ''} · ödüllü tur {Math.max(0, g.cap - g.rewarded)}{g.oyun === 'timpano' && g.ortak > 0 ? ` (+${g.ortak} Ton Avı’ndan)` : ''}
     </button>
   );
 }

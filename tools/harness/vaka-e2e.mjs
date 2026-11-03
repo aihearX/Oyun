@@ -274,12 +274,15 @@ try {
 
     step(`7 · [${bt}] Ton Avı ve Timpanogram Eşleştir birer tur`);
     await A.locator('[data-testid="kg-btn"]').click(); await A.locator('[data-tab="etkinlik"]').click();
+    check((await A.locator('[data-testid="etk-ton"]').innerText()).includes('Sesle oynanır'), 'Ton Avı listede "Sesle oynanır" diyor');
+    check(await A.locator('[data-testid="ortak-hak-not"]').count() === 1, 'Etkinlik: ortak hak notu (karar 44)');
     await A.locator('[data-testid="etk-ton"]').click();
     await A.locator('[data-testid="oyun-ton"]').waitFor();
     // yalnız ses: ses kapalıyken tur başlamaz, sesi açma kartı çıkar
     await A.evaluate(() => window.__kg.ses(false));
     await A.locator('[data-testid="ton-ses-kapali"]').waitFor({ timeout: 5000 });
     check(await A.locator('[data-testid="oyun-basla"]').count() === 0, 'Ton Avı: ses kapalıyken Başla yok, sesi aç kartı var');
+    check(await A.locator('[data-testid="ton-ortak-hak"]').count() === 1 && await A.locator('[data-testid="ton-timpanoya-gec"]').count() === 1, 'Ton Avı: ses kapalıyken ortak hak satırı ve Timpanogram Eşleştir’e geç düğmesi');
     await shot(A, 'ton-ses-kapali', 200);
     await A.locator('[data-testid="ton-sesi-ac"]').click();
     await A.locator('[data-testid="oyun-basla"]').waitFor({ timeout: 5000 });
@@ -300,6 +303,8 @@ try {
     await A.locator('.kg-sheet .bp-x').click();
     await A.locator('[data-testid="kg-btn"]').click(); await A.locator('[data-tab="etkinlik"]').click();
     await A.locator('[data-testid="etk-timpano"]').click();
+    await A.locator('[data-testid="ortak-hak-not"]').waitFor({ timeout: 5000 });
+    check((await A.locator('[data-testid="oyun-gun"]').innerText()).includes('Ton Avı’ndan 4 ödüllü tur daha'), 'Timpanogram: Ton Avı’ndan kalan ödüllü tur sayısı (sunucudan)');
     await A.locator('[data-testid="oyun-basla"]').click();
     const items = JSON.parse(db.get("SELECT items FROM ko_items ORDER BY rowid DESC LIMIT 1").items);
     check(items.length === 5 && new Set(items).size === 5, `Timpanogram: sunucu destesinden 5 farklı soru (${items.join(', ')})`);

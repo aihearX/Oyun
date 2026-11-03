@@ -6,7 +6,7 @@
 import { create } from 'zustand';
 import type { NetClient } from '@odi/net';
 import { useNet } from '@odi/net/store';
-import type { KampOdul, KgState, VakaState } from '@odi/shared';
+import type { KampOdul, KgOyunGun, KgState, VakaState } from '@odi/shared';
 import { decorById, remedyById } from '@odi/content';
 import { audio } from '@odi/audio';
 import { celebrate, type RewardItem } from '../../celebrate';
@@ -26,6 +26,20 @@ const set = useKg.setState;
 let client: NetClient | null = null;
 export const kgNet = () => client;
 export const openPanel = (p: KgPanel | null) => set({ panel: p });
+
+/** Ton Avı'nın ödüllü turları Timpanogram Eşleştir'de de sayılır (karar 44, ortak hak): oyuncuya söylenen tek açıklama satırı */
+export const ORTAK_HAK_NOTU = 'Ton Avı sesle oynanır; onun ödüllü turları Timpanogram Eşleştir’de de sayılır (önce Timpanogram’ın kendi turları). Günün toplam ödülü aynı kalır.';
+/** Kamp oyununun bugünkü ödüllü tur durumu, sunucunun sayılarıyla (ortak hak dahil) */
+export function oyunGunMetni(g: KgOyunGun): string {
+  const bitti = `Bugünün ödüllü turları bitti (${g.cap}/${g.cap}); eğlence için oynayabilirsin.`;
+  if (g.oyun === 'ton') {
+    const pay = g.paylasilan > 0 ? `${g.paylasilan} tanesi Timpanogram Eşleştir’de kullanıldı` : '';
+    if (g.rewarded < g.cap) return `Bugün ödüllü tur: ${g.rewarded}/${g.cap}${pay ? ` · ${pay}` : ''}`;
+    return pay ? `Bugünün ödüllü turları bitti (${g.cap}/${g.cap}; ${pay}); eğlence için oynayabilirsin.` : bitti;
+  }
+  if (g.rewarded < g.cap) return `Bugün ödüllü tur: ${g.rewarded}/${g.cap}${g.ortak > 0 ? ` · sonra Ton Avı’ndan ${g.ortak} ödüllü tur daha` : ''}`;
+  return g.ortak > 0 ? `Bu oyunun ödüllü turları bitti (${g.cap}/${g.cap}); Ton Avı’nın kalan ${g.ortak} ödüllü turu burada sayılır.` : bitti;
+}
 
 export async function refreshKg(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ kg: (await c.call('kg.state', {})).state }); } catch { /* sonra */ } }
 export async function refreshVaka(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ vaka: (await c.call('vaka.state', {})).vaka }); } catch { /* sonra */ } }

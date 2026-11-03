@@ -9,7 +9,7 @@ import { kgBump, kgCount, kgState } from '../src/camp-quests';
 import { startServer } from '../src/server';
 import { CAMP_GROWTH, applyPending, giveCampXp, setGrowth } from '../src/camp-quests-adapter';
 import { campXpOf } from '../src/camp-xp';
-import { DAY_MS } from '../src/time';
+import { DAY_MS, dayKey } from '../src/time';
 import { run, setup, type Env, type TC } from './helpers';
 
 let env: Env | undefined;
@@ -309,6 +309,52 @@ describe('Kamp oyunları', () => {
     const res = await a.call('koyun.finish', { id: round.id, answers: tur.map((b, i) => (i < 3 ? b.dogru : (b.dogru + 1) % b.secenek.length)) });
     expect(res.score).toBe(3); expect(res.total).toBe(5);
     expect((await err(a.call('koyun.finish', { id: round.id, answers: [0, 0, 0] }))).code).toBe('TEKRAR');
+  });
+  it('Ortak hak (karar 44): Timpanogram Eşleştir kendi turları bitince Ton Avı\'nın kalanını kullanır; toplam 5 + 5\'i aşmaz', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 6, { kule: 1, laboratuvar: 1 });
+    const cap = KG_KURAL.oyunOdulluTur;
+    const oyna = async (oyun: 'ton' | 'timpano') => {
+      const { round } = await a.call('koyun.start', { oyun, duzey: 'genel' });
+      const answers = oyun === 'ton' ? tonTuru(round.seed, 'genel').map((d) => (d.tur === 'var' ? (d.var ? 1 : 0) : d.dogru)) : timpanoTuru(round.seed, 'genel', round.items).map((b) => b.dogru);
+      env!.clock.advance(KG_KURAL.oyunEnAzMs[oyun]);
+      return { round, res: await a.call('koyun.finish', { id: round.id, answers }) };
+    };
+    const gun = (st: KgState, g: 'ton' | 'timpano') => st.oyun.find((x) => x.oyun === g)!;
+    // sesle 2 Ton Avı turu: Timpanogram'a 3 ortak tur kalır
+    for (let i = 0; i < 2; i++) expect((await oyna('ton')).res.reward).toMatchObject(KG_ODUL.oyunTur);
+    let st = (await a.call('kg.state', {})).state;
+    expect(gun(st, 'timpano')).toMatchObject({ rewarded: 0, cap, ortak: cap - 2 });
+    const w0 = (await a.call('wallet.get', {})).wallet.jeton;
+    let odullu = 0;
+    for (let i = 0; i < cap + 4; i++) {
+      const t = await oyna('timpano');
+      expect(t.round.rewarded).toBe(i < cap + 3);
+      if (Object.keys(t.res.reward).length) odullu++;
+    }
+    expect(odullu).toBe(cap + 3); // kendi 5 + Ton Avı'ndan kalan 3
+    expect((await a.call('wallet.get', {})).wallet.jeton - w0).toBe((cap + 3) * KG_ODUL.oyunTur.jeton);
+    st = (await a.call('kg.state', {})).state;
+    expect(gun(st, 'ton')).toMatchObject({ played: 2, rewarded: cap, paylasilan: 3 });
+    expect(gun(st, 'timpano')).toMatchObject({ played: cap + 4, rewarded: cap, ortak: 0 });
+    // Ton Avı'nın hakkı Timpanogram'da harcandı: Ton Avı turu artık ödülsüz
+    const ton = await oyna('ton');
+    expect(ton.round.rewarded).toBe(false); expect(ton.res.reward).toEqual({});
+    // toplam: iki oyunda bugün en çok 5 + 5 ödüllü tur
+    const app = env.srv.app; const day = dayKey(app.now());
+    expect(app.dailyCount(a.me!.id, day, 'ko-odul-ton') + app.dailyCount(a.me!.id, day, 'ko-odul-timpano')).toBe(2 * cap);
+  });
+  it('Ortak hak: Ton Avı açık değilse (Odyometri Odası kurulmadı) Timpanogram yalnız kendi 5 turunu ödüllendirir', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 6, { kule: 1 });
+    const cap = KG_KURAL.oyunOdulluTur;
+    expect((await a.call('kg.state', {})).state.oyun.find((x) => x.oyun === 'timpano')).toMatchObject({ ortak: 0 });
+    for (let i = 0; i <= cap; i++) {
+      const { round } = await a.call('koyun.start', { oyun: 'timpano', duzey: 'genel' });
+      env.clock.advance(KG_KURAL.oyunEnAzMs.timpano);
+      const res = await a.call('koyun.finish', { id: round.id, answers: timpanoTuru(round.seed, 'genel', round.items).map((b) => b.dogru) });
+      expect(round.rewarded).toBe(i < cap); expect(Object.keys(res.reward).length > 0).toBe(i < cap);
+    }
   });
   it('Timpanogram Eşleştir: kişisel deste — havuz bitmeden aynı soru tekrar gelmez; yeni deste son görülenlerle başlamaz', async () => {
     env = await setup();

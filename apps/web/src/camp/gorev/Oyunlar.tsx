@@ -4,6 +4,8 @@
  * daha ince olduğunu ele veren hiçbir ipucu yoktur. Oyun sesi kapalıysa tur başlamaz; sesi açmayı öneren bir kart çıkar.
  * Timpanogram Eşleştir (Timpanometri Kulesi): 5 soruluk tur; sorular büyük bir bankadan, oyuncunun sunucudaki destesinden gelir
  * (eğri → bulgu, bulgu → eğri, sayılar → tip, kısa vaka, sağ/sol, bilgi). Tur tohumu ve puanlama sunucudadır; günde 5 tur ödüllü.
+ * Ortak hak (karar 44): Timpanogram kendi 5 turu bitince Ton Avı'nın kalan ödüllü turlarını kullanır (sunucu sayar; toplam aynı).
+ * Sesi kapalı oyuncuya Ton Avı kartı bunu söyler ve Timpanogram Eşleştir'e geçiş düğmesi verir.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
@@ -17,7 +19,7 @@ import { OtoskopSvg, TimpanogramSvg } from './charts';
 import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { OdulChips } from './GorevPanel';
-import { celebrateReward, openPanel, useKg } from './state';
+import { ORTAK_HAK_NOTU, celebrateReward, openPanel, oyunGunMetni, useKg } from './state';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // eski "görsel ipucu" ayarı kaldırıldı: kayıtlı değeri bir kez temizle
@@ -34,6 +36,7 @@ function useSesAcik(): [boolean, () => void] {
 export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
   const def = KAMP_OYUN[oyun]; const kg = useKg((s) => s.kg); const duzey = useStore((s) => s.knowledge);
   const gun = kg?.oyun.find((g) => g.oyun === oyun);
+  const ton = kg?.oyun.find((g) => g.oyun === 'ton'); const timp = kg?.oyun.find((g) => g.oyun === 'timpano');
   const [round, setRound] = useState<KampOyunTur | null>(null);
   const [sonuc, setSonuc] = useState<{ score: number; total: number; reward: KampOdul } | null>(null);
   const [busy, setBusy] = useState(false); const [sesAcik, acSes] = useSesAcik();
@@ -66,12 +69,17 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
           <p>{def.plain}</p>
           {oyun === 'ton' && <ul className="kg-kural"><li>“Ses var mı?” denemesinde dinle; sonra ses olup olmadığını seç.</li><li>“Hangisi daha ince?” denemesinde iki ses çalar; daha ince (tiz) olanı seç.</li><li>Yalnız sesle oynanır; kulaklık önerilir.</li><li className="kg-uyari"><Art name="ear" size={16} /> Bu bir işitme testi değildir. Sesler rahat bir düzeyde çalınır. İşitmenle ilgili bir kaygın varsa bir odyoloğa ya da hekime danış.</li></ul>}
           {oyun === 'timpano' && <ul className="kg-kural"><li>Her turda {KG_KURAL.timpanoBulmaca} soru gelir: eğriler, sayılar, kısa vakalar ve bilgi soruları. Sorular büyük bir bankadan gelir; çoğunu görmeden tekrar gelmez.</li><li>Timpanogram tek başına tanı koydurmaz: eğrinin ne gösterdiğini seç.</li><li>{duzey === 'genel' ? 'İpucu: tepeli eğri zarın rahat hareket ettiğini, düz eğri hareket etmediğini gösterir.' : 'Tepe basıncına, yüksekliğine ve düz eğride kanal hacmine bak (Jerger).'}</li></ul>}
-          {gun && <small className="kg-note" data-testid="oyun-gun">{gun.rewarded < gun.cap ? `Bugün ödüllü tur: ${gun.rewarded}/${gun.cap}` : `Bugünün ödüllü turları bitti (${gun.cap}/${gun.cap}); dilediğin kadar eğlence için oynayabilirsin.`}</small>}
+          {gun && <small className="kg-note" data-testid="oyun-gun">{oyunGunMetni(gun)}</small>}
+          {oyun === 'timpano' && ton?.open && <small className="kg-note" data-testid="ortak-hak-not">{ORTAK_HAK_NOTU}</small>}
           {oyun === 'ton' && !sesAcik ? (
             <div className="kg-ses-kapali" data-testid="ton-ses-kapali" role="note">
               <b><Art name="ear" size={18} /> Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)</b>
               <span>Oyun sesi kapalı ya da çok kısık. Kulaklıkla oynamanı öneririz.</span>
               <button className="btn" data-testid="ton-sesi-ac" onClick={() => { acSes(); audio.play('tap'); }}>Sesi aç</button>
+              {timp?.open && <>
+                <span data-testid="ton-ortak-hak">Sesle oynayamıyorsan Ton Avı’nın ödüllü turları Timpanogram Eşleştir’de de sayılır; günün toplam ödülü aynı kalır.</span>
+                <button className="btn ghost" data-testid="ton-timpanoya-gec" onClick={() => { audio.play('tap'); openPanel({ kind: 'oyun', oyun: 'timpano' }); }}>Timpanogram Eşleştir’e geç</button>
+              </>}
             </div>
           ) : <button className="btn" data-testid="oyun-basla" disabled={busy || (gun ? !gun.open : false)} onClick={() => void start()}>{sonuc ? 'Bir tur daha' : 'Başla'}</button>}
           {gun && !gun.open && <small className="kg-kilit"><Art name="lock" size={14} /> {gun.locked}</small>}

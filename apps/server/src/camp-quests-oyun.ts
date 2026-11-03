@@ -2,6 +2,10 @@
  * Kamp oyunları: Ton Avı (Odyometri Odası) ve Timpanogram Eşleştir (Timpanometri Kulesi). Turun tohumu sunucuda üretilir,
  * cevaplar sunucuda puanlanır (aynı tur bir kez). Günde ilk 5 tur ödüllüdür; sonrası yalnız eğlence için (dürüstçe yazılır).
  * Ton Avı bir işitme testi DEĞİLDİR.
+ * Ortak hak (karar 44): Ton Avı yalnız sesle oynanır; sesi kapalı ya da sesle oynayamayan oyuncu Ton Avı'nın ödüllü turlarını
+ * Timpanogram Eşleştir'de kullanabilir. Timpanogram önce kendi 5 turunu harcar, sonra Ton Avı'nın kalanını (Ton Avı açıksa).
+ * Kullanılan tur Ton Avı'nın sayacından düşer: iki oyunun günlük ödüllü tur toplamı yine en çok 5 + 5 olur, kimse fazladan kazanmaz.
+ * Sunucu oyuncunun sesini bilemez; ortak hak koşulsuzdur, çünkü toplam aynıdır.
  */
 import { randomInt } from 'node:crypto';
 import type { KampOdul, KgOyunGun } from '@odi/shared';
@@ -18,12 +22,20 @@ function locked(app: App, pid: string, g: KampOyun): string | null {
   return null;
 }
 const dayKind = (g: KampOyun) => `ko-odul-${g}`;
+/** Timpanogram Eşleştir'de kullanılan Ton Avı ödüllü turları (bilgi için; Ton Avı sayacı da artar) */
+const ORTAK = 'ko-odul-ortak';
+const kalan = (app: App, pid: string, day: string, g: KampOyun) => Math.max(0, KG_KURAL.oyunOdulluTur - app.dailyCount(pid, day, dayKind(g)));
+/** Timpanogram'da ayrıca sayılabilecek Ton Avı turu: Ton Avı açık değilse (oda kurulmadı, bölüm geçilmedi) yok */
+const ortakKalan = (app: App, pid: string, day: string) => (locked(app, pid, 'ton') ? 0 : kalan(app, pid, day, 'ton'));
 export function oyunGun(app: App, pid: string): KgOyunGun[] {
   const day = dayKey(app.now());
   return (['ton', 'timpano'] as const).map((g) => {
     const l = locked(app, pid, g);
     const played = app.dailyCount(pid, day, `ko-tur-${g}`);
-    return { oyun: g, played, rewarded: app.dailyCount(pid, day, dayKind(g)), cap: KG_KURAL.oyunOdulluTur, open: !l, locked: l };
+    return {
+      oyun: g, played, rewarded: app.dailyCount(pid, day, dayKind(g)), cap: KG_KURAL.oyunOdulluTur, open: !l, locked: l,
+      ortak: g === 'timpano' ? ortakKalan(app, pid, day) : 0, paylasilan: g === 'ton' ? app.dailyCount(pid, day, ORTAK) : 0,
+    };
   });
 }
 
@@ -59,7 +71,8 @@ export const oyunHandlers: Handlers = {
     app.db.run('DELETE FROM ko_items WHERE round_id IN (SELECT id FROM ko_round WHERE player_id = ? AND done = 0 AND started_at < ?)', s.pid, now - 3_600_000);
     app.db.run('DELETE FROM ko_round WHERE player_id = ? AND done = 0 AND started_at < ?', s.pid, now - 3_600_000);
     app.db.run('INSERT INTO ko_round(id, player_id, game, seed, duzey, started_at) VALUES(?, ?, ?, ?, ?, ?)', id, s.pid, oyun, seed, duzey, now);
-    const left = Math.max(0, KG_KURAL.oyunOdulluTur - app.dailyCount(s.pid, dayKey(now), dayKind(oyun)));
+    const day = dayKey(now);
+    const left = kalan(app, s.pid, day, oyun) + (oyun === 'timpano' ? ortakKalan(app, s.pid, day) : 0);
     if (oyun === 'timpano') {
       const items = timpanoDagit(app, s.pid, duzey, KG_KURAL.timpanoBulmaca);
       app.db.run('INSERT INTO ko_items(round_id, items) VALUES(?, ?)', id, JSON.stringify(items));
@@ -81,7 +94,12 @@ export const oyunHandlers: Handlers = {
     if (!app.db.run('UPDATE ko_round SET done = 1, score = ? WHERE id = ? AND done = 0', score, id)) fail('TEKRAR', 'Bu tur zaten bitti.');
     const day = dayKey(now); app.dailyInc(s.pid, day, `ko-tur-${r.game}`);
     let reward: KampOdul = {};
-    if (app.dailyCount(s.pid, day, dayKind(r.game)) < KG_KURAL.oyunOdulluTur) { app.dailyInc(s.pid, day, dayKind(r.game)); reward = grantKampOdul(app, s.pid, { ...KG_ODUL.oyunTur }, `ko:${id}`); }
+    // önce oyunun kendi ödüllü turu; Timpanogram'da o bittiyse Ton Avı'nın kalanı (ortak hak; Ton Avı sayacından düşer)
+    const hak: string | null = kalan(app, s.pid, day, r.game) > 0 ? dayKind(r.game) : r.game === 'timpano' && ortakKalan(app, s.pid, day) > 0 ? dayKind('ton') : null;
+    if (hak) {
+      app.dailyInc(s.pid, day, hak); if (hak !== dayKind(r.game)) app.dailyInc(s.pid, day, ORTAK);
+      reward = grantKampOdul(app, s.pid, { ...KG_ODUL.oyunTur }, `ko:${id}`);
+    }
     kgBump(app, s.pid, r.game, 1, `ko:${id}`);
     if (r.game === 'ton' && score >= 7) kgBump(app, s.pid, 'ton-iyi', 1, `ko-iyi:${id}`);
     kgDirty(app, s.pid);

@@ -16,7 +16,7 @@ import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { act } from '../../net';
 import { useNav, type Nav } from '../../nav';
-import { claimKg, openPanel, refreshKg, useKg, type GorevSekme, type KgPanel } from './state';
+import { ORTAK_HAK_NOTU, claimKg, oyunGunMetni, openPanel, refreshKg, useKg, type GorevSekme, type KgPanel } from './state';
 
 const satir = (id: string) => { try { return lineText(id); } catch { return ''; } };
 const DINLENDI = 'odi.kg.dinlendi';
@@ -214,7 +214,7 @@ function Etkinlik({ s }: { s: KgState }) {
       {s.oyun.map((g) => (
         <button key={g.oyun} className={`kg-etk${g.open ? '' : ' locked'}`} data-testid={`etk-${g.oyun}`} disabled={!g.open} onClick={() => { audio.play('tap'); openPanel({ kind: 'oyun', oyun: g.oyun }); }}>
           <KgIcon name={KAMP_OYUN[g.oyun].art} size={40} /><span className="grow min0"><b>{KAMP_OYUN[g.oyun].ad}</b>
-            <small>{g.open ? (g.rewarded < g.cap ? `Bugün ödüllü tur: ${g.rewarded}/${g.cap}` : `Bugünün ödüllü turları bitti (${g.cap}/${g.cap}); eğlence için oynayabilirsin`) : g.locked}</small></span>
+            <small>{g.open ? `${g.oyun === 'ton' ? 'Sesle oynanır · ' : ''}${oyunGunMetni(g)}` : g.locked}</small></span>
         </button>
       ))}
       {s.takim && (
@@ -227,6 +227,7 @@ function Etkinlik({ s }: { s: KgState }) {
         </div>
       )}
       <small className="kg-note">Kamp oyunlarında günde {KG_KURAL.oyunOdulluTur} tur ödüllüdür; sonrası yalnız eğlence için. Ton Avı bir işitme testi değildir.</small>
+      <small className="kg-note" data-testid="ortak-hak-not">{ORTAK_HAK_NOTU}</small>
     </div>
   );
 }

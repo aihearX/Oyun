@@ -1536,7 +1536,12 @@ export interface KgBolum { no: number; title: string; intro: string; outro: stri
 export interface KgBasamak { need: number; reward: KampOdul; reached: boolean; claimed: boolean; ref: string }
 export interface KgHafta { id: string; text: string; art: string; progress: number; tiers: KgBasamak[] }
 export interface KgBasari { id: string; title: string; text: string; art: string; progress: number; tiers: KgBasamak[]; locked: string | null }
-export interface KgOyunGun { oyun: 'ton' | 'timpano'; played: number; rewarded: number; cap: number; open: boolean; locked: string | null }
+/**
+ * Kamp oyununun bugünkü durumu. rewarded/cap: oyunun kendi ödüllü turları. Ortak hak (karar 44): Ton Avı yalnız sesle oynandığı için
+ * Timpanogram Eşleştir kendi turları bitince Ton Avı'nın kalan ödüllü turlarını kullanabilir; toplam değişmez.
+ * ortak: (yalnız timpano) burada ayrıca sayılabilecek Ton Avı turu · paylasilan: (yalnız ton) bugün Timpanogram Eşleştir'de kullanılan Ton Avı turu.
+ */
+export interface KgOyunGun { oyun: 'ton' | 'timpano'; played: number; rewarded: number; cap: number; open: boolean; locked: string | null; ortak: number; paylasilan: number }
 export interface KgTakim { need: number; progress: number; reward: KampOdul; reached: boolean; claimed: boolean; contributed: boolean; ref: string }
 export interface KgState {
   day: string; dayEndsAt: number; week: string; weekEndsAt: number;
