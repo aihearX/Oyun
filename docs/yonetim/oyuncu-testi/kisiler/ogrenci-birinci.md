@@ -7,7 +7,7 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 85 yıldız (10 üç yıldız), 7 oturum, 49 deneme / 7 kayıp |
-| 2 | 2026-11-02 | | | sıfırlandı (sürüm bd976b22), henüz başlanmadı |
+| 2 | 2026-11-02 | | | sıfırlandı (sürüm bd976b22); ilk oturum 2026-11-03 (sürüm 20c7a256), 5/40 |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -122,3 +122,23 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 ### Tur 1 bitti (2026-11-02, sürüm bd976b22)
 - 40/40 bölüm, 85 yıldız (10 üç yıldız), 7 oturumda, 49 denemede 7 kayıp (en zorları 30, 39 ve 40). Oyuncu seviyesi 12.
 - Son değerlendirme: Bir odyoloji 1. sınıf öğrencisi olarak oyunu gerçekten sevdim. En güçlü yanı tıbbi içerik: Tüy Dede notları, Kulak Kartları ve özellikle Hasta Vakaları derste öğrendiklerimle birebir; "tarama tanı koymaz", "timpanogram tek başına tanı koydurmaz" gibi uyarılar doğru yerde, "Koklea" adı hep doğru. Bölümler kısa, ders arasına sığıyor, sonuç ekranı ne yapmam gerektiğini açıkça söylüyor; kayıpta "neden olmadı" kutusu yeniden denetiyor. Tur boyunca yazdığım sorunların çoğu (harita yıldızları, günlük görevler, 3. yıldız cümlesi, hazine/rehber çakışması, Kamp tanıtımlarının dokunuşu yutması, boş ekranlar, emojiler) düzeldi. Kalan zayıf yanlar: haritaya dönüşlerde art arda gelen pencereler ve uzun dönüş sahneleri kısa oturumda yoruyor; seviye pencerelerinde açılan şeylerin açıklaması yok; birikmiş takım hediyeleri bölüm ödüllerini küçük gösteriyor; ve 40 bölümü bitirince bir kapanış (Ninni'nin beyne ulaştığı bir sahne, bir özet) eksik. Yeni turda baştan, ilk açılışın şimdiki sürümde nasıl olduğuna bakacağım.
+
+## Oturum 8 · 2026-11-03 · sürüm 20c7a256 · tur 2
+- Başlangıç: 0/40 (sıfırlanmış hesap, takma ad Odi3588), 100 jeton. Bitiş: 5/40 (yıldızlar 1:2 2:2 3:2 4:3 5:2; 11 yıldız, 1 üç yıldız), oyuncu seviyesi 2, seri 1 gün, 733 jeton, 0 kristal. Kayıp yok (5 deneme).
+- Önceki geri bildirim kontrolü (durumu "yapildi:" olanlar; yeni turda görebildiklerim):
+  - OT-ogrenci-birinci-1: düzeldi. Haritada 1-3 yıldızlarıyla, Odi sıradaki bölümün üstünde (ekran/0663-dokun.png, 0689-dokun.png).
+  - OT-ogrenci-birinci-2: düzeldi. İlk günün görevleri yapılabilir (2 bölüm bitir, 3 bölümü 2+ yıldızla bitir, yıldızlı bölümü tekrar oyna), ilk görev ödülünü aldım (ekran/0680-bekle.png).
+  - OT-ogrenci-birinci-5: düzeldi. "3. yıldız · 89 nota · 3 nota kaldı", "biri yeter · ya da 50 saniyede bitir · tamam" çok anlaşılır (ekran/0655-sonuc.png, 0710-sonuc.png).
+  - OT-ogrenci-birinci-6: düzeldi. Bölüm içi karelerde "Bu bölümde x/y" balonu yok, tek sayaç.
+  - OT-ogrenci-birinci-7: düzeldi. Bölüm 5 hazinesi haritada tek başına geldi, "Cüzdanına eklendi · Tamam" çalıştı (ekran/0734-dokun.png). Arkasından "Dış Kulak yeniden canlandı" ve Takım tanıtımı geldi ama üst üste binmedi.
+  - OT-ogrenci-birinci-8: düzeldi. "Kontrol noktası" uçan yazısı ekranın içinde (ekran/0653-bolum-2.png).
+  - OT-ogrenci-birinci-18: düzeldi. Takvim 3. gün kutusu ödül resmi ve 20 ile tutarlı; 1. gün +20 aldım (ekran/0680-bekle.png).
+  - OT-ogrenci-birinci-14 / -17 / -22: hâlâ var (biçim değişti). Kamp'ta "Kur"a ilk dokunuşta inşaat başladı (bu kısım düzeldi), ama tanıtımlar ekran açıldıktan 2-3 sn sonra geliyor: Kamp açıldı, Liste'ye dokunacakken "Burası senin kampın" penceresi üstüne bindi, Liste kayboldu (ekran/0692-dokun.png → 0693-hata.png). Haritada, Bugün'de ve Sözlük'te de aynı. Yeni satır: OT-ogrenci-birinci-27.
+  - OT-ogrenci-birinci-10, -12, -13, -15, -16, -19, -20, -26: bu turda o yerlere henüz gelmedim (Bölüm 6 notu, Bölüm 15 hazinesi, Kulak Kanalı kartları, Bayrak Yarışı, 30. bölüm, 10.000 jeton); önceki oturumlarda düzeldi demiştim, sonraki oturumlarda yeniden bakacağım.
+  - İş listesindekiler: OT-3 hâlâ var (Profil "Kulak Sözlüğü 6/39 terim", Sözlük başlığı "6 / 60"; ekran/0721-dokun.png, 0722-dokun.png); OT-4 düzelmiş görünüyor (Sözlük boş ekran olmadan hemen açıldı).
+- Ne yaptım: Yeni turda baştan: açılış hikâyesi (7 adım; kepçe → zar → koklea → beyin yolu çizimi çok güzel), Bölüm 1, takma ad "EceOdyo" ve artık ilk açılışta sorulan "Bilgi düzeyi: Odyoloji öğrencisi", Bölüm 2-5 (Dış Kulak bitti, Bölüm 5 hazinesi). Bugün: takvim 1. gün (+20), "2 bölüm bitir" ödülü. Kamp: tanıtımla Kulak Deposu'nu kurdum (80 jeton, 1 dk). Profil › Kulak Sözlüğü (Dış Kulak 6 terim). Takım: davet koduyla "Ninni Tasiyicilari"na yeniden katıldım.
+- Hissettiğim: Yeni turun ilk açılışı eskisinden çok daha derli toplu: bilgi düzeyini baştan sormak çok iyi, Profil artık doğru sayıyı ("4/40 bölüm") gösteriyor, hazine tek başına geliyor. Notlar yine derste öğrendiklerimle uyuşuyor: konka rezonansı ~5 kHz, kıl ve serumen bezleri yalnız kanalın dış kıkırdak bölümünde, Kulak Deposu panelindeki "epitel göçü ile kulak kendini temizler". Kısa oturuma uygun, 5 bölüm 10 dakikada. Rahatsız eden: her yeni yerde Tüy Dede'nin ekran açıldıktan biraz sonra gelip dokunuşumu yutması; haritaya dönüşlerin 27-50 sn sürmesi (yazılım GL'de yavaş, gerçek telefonda kısa olabilir); seviye penceresinde açılanların ("Doğal Megafon", "Koklea Turkuazı", "Saat Kulesi") açıklamasız olması (OT-ilk-kez-oyun-5, bilinen).
+- Yazdığım geri bildirimler: OT-ogrenci-birinci-27 (Hâlâ: tanıtım sonradan gelip dokunuşu yutuyor), -28 ("daha uzağa" / "daha yükseğe"), -29 ("Takımlar ve sohbet seni bekliyor" ama Takım kilitli), -30 (çiçeklendi / canlanır farkı belli değil).
+- Başkasının yazdığını gördüm, yeniden yazmadım: takım sohbetinde art arda "Silinmiş Oyuncu takımdan ayrıldı" satırları ve silinmiş oyuncunun açtığı Takım Yarışı lobisi duyurusu (OT-sinav-adayi-29; ekran/0745-dokun.png); "Bölüm 2: Tüm notaları topla (99)" ile sonuçta "3. yıldız: 90 nota topla" (OT-rekabetci-7); seviye penceresinde açıklamasız açılanlar (OT-ilk-kez-oyun-5).
+- Yarım kalan / sonraki oturum: Bölüm 6'dan devam (Kulak Kanalı); OT-10'u (Bölüm 6 notu) kontrol etmek; Kulak Kartları albümüne bakmak; günlük görevlerin kalan ikisi ve sandık; Kulak Deposu hazır.
+- Sosyal: yeni arkadaş kodum YHAXWD (takma ad EceOdyo; eski kod KYM4WW artık geçersiz). Takımım "Ninni Tasiyicilari" (üye; davet kodu 8XJUU4 ile katıldım; lider AyseTeyze, 4/30 üye, takımda SinanSinav da var). KaptanTuba'nın yeni kodu RZ5A8W (takma ad Odi8386); bana gelen arkadaşlık ya da takım daveti yoktu, bu oturumda istek göndermedim (komut bütçem bitti), bir sonraki oturumda ekleyeceğim.

@@ -7,6 +7,7 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 85 yıldız (12 tane 3 yıldız), 44 deneme / 4 kayıp |
+| 2 | 2026-11-03 | | | sürüyor |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -133,3 +134,24 @@ Cihaz: 390×844 chromium · beceri 0.6 · ses açık. Ayrıntı: tools/harness/o
 ### Tur 1 bitti · 2026-11-02 · sürüm bd976b22
 - 40/40, 85 yıldız (12 tane 3 yıldız), 7 oturum, 44 deneme / 4 kayıp (36, 39, 40×2). 27 geri bildirim yazdım; "yapildi" olanların hepsini sonraki sürümde düzelmiş buldum (yalnız teşhis satırı test derlemesine özgü diye reddedildi).
 - Son değerlendirme (sınava hazırlanan öğrenci gözüyle): ODİ'nin bilgi içeriği şaşırtıcı derecede doğru ve yoğun. Yedi oturumda tek bir yanlış tıbbi bilgi görmedim; kafa karıştıran yerler (otoskleroz kartı ile not, Orta Kıvrım–Corti organı, "tüylü hücre") hızla düzeltildi. "Koklea" her yerde doğru, timpanogram hiçbir yerde tek başına tanı koydurmuyor. En değerli üç şey: Odyoloji Kliniği vakaları (test seçimi + sonuçta "İsteseydin şunu görecektin" yorumları + kaynak), Bugün › Bilgi pratiği ("Yanlışların" listesiyle) ve Koklea'dan sonraki biyomların bölüm sonu notları. Zayıf kalanlar: bu üçünün yeri hâlâ dağınık (vaka Kamp'ta, pratik Bugün'ün altında, Günün Sorusu takım sohbetinin en üstünde gizli); bölümler 35'e kadar beceri 0,6 ile fazla kolay, sonra birden zorlaşıyor; kart albümünün son %30'u (gizli altın koklea, günlük sandık, 3 yıldız) bilgiyle değil tekrar oynamakla açılıyor ve neyi tekrar oynayacağını söylemiyor. Sınava çalışırken açıp gerçekten not alacağım bir oyun; yeni turda vakalara ve canlı bilgi yarışmasına öncelik vereceğim.
+
+## Oturum 8 · 2026-11-03 · sürüm 20c7a256 · tur 2
+- Başlangıç: 0/40 (sıfırlanmış hesap, yeni tur), seri 0. Bitiş: 6/40, 13 yıldız (3 yıldız: Bölüm 4), seviye 2, 930 jeton, seri 1 gün, Bronz Ligi 3. sıra. 6 deneme, kayıp yok.
+- Eski geri bildirimlerin kontrolü (durumu "yapildi:" olanlar):
+  - OT-sinav-adayi-1: düzeldi (Kulak Kartları albümünde açık kartların resmi çizim simgesi; 0756-dokun.png).
+  - OT-sinav-adayi-2: düzeldi (sonuçta "82/98 nota" nota simgesiyle, jeton ayrı "Bu bölümden toplam" satırında).
+  - OT-sinav-adayi-5: düzeldi (takvim 1. gün: "Al" → sandık penceresinde "Topla"; 0704-bekle.png).
+  - OT-sinav-adayi-12: düzeldi (Bölüm 4: "3. yıldız · biri yeter · tamam … ya da 50 saniyede bitir · tamam", 46,7 sn).
+  - OT-sinav-adayi-13: düzeldi (Dış Kulak biyomu bitince albümde biyom kartı açık; kilitli kalan yalnız altın koklea ve günlük sandık kartları).
+  - OT-sinav-adayi-15: düzeldi (asma kilit yalnız kilitli kartlarda).
+  - OT-sinav-adayi-17: düzeldi (Bölüm 5 hazinesi haritada tek pencere: "Hazine · Bölüm 5 · ×50 jeton +20 XP · Cüzdanına eklendi · Tamam").
+  - OT-sinav-adayi-23: düzeldi (haritada "Dış Kulak yeniden canlandı!" penceresi; "Yokluğunda" yok).
+  - OT-sinav-adayi-24: düzeldi (hedef kartı "Hazine açıldı, Dış Kulak canlandı! Sıradaki: 3 bölüm sonra Kulak Kanalı çiçeklenir").
+  - OT-sinav-adayi-3, -4, -9, -10, -14, -16, -18, -19, -21, -22, -27: bu oturumda o ekranlara (Ayarlar, Bilgi pratiği, Klinik vakaları, otoskleroz kartı) henüz ulaşmadım (yeni turda Hasta Vakaları Bölüm 7'de, Günün Sorusu 9'da açılıyor); tur 1'de doğrulanmıştı, sonraki oturumda bakılacak.
+- Ne yaptım: açılış hikâyesini yeniden okudum; Bölüm 1-6 (Dış Kulak 1-5, Kulak Kanalı 6), hepsi ilk denemede. Takma ad penceresinde artık "Bilgi düzeyi" seçimi var: Odyoloji öğrencisi seçtim (OT-6'nın ikinci yarısı bu yeni pencereyle çözülmüş görünüyor); Bölüm 6 notunun ayrıntısı kendiliğinden açıldı. Bugün: takvim 1. gün + "2 bölüm bitir" görevi. Kamp ve Takım rehberlerini atladım. Takım'a davet koduyla katıldım. Profil › Kulak Kartları 5/50, "Çubuk Yok!" kartını okudum.
+- Bilgi içeriği (sınav gözüyle): notlar bu turda 2. bölümden itibaren geliyor ve doğru: Hertz tanımı; konka rezonansı yaklaşık 5 kHz; kıl, yağ ve serumen bezlerinin yalnız kanalın kıkırdak bölümünde olması; kanalın bir ucu kapalı tüp gibi 2,5-3 kHz rezonansı ve 10-15 dB kazanç; Arnold siniri (vagus kulak dalı) ve öksürük refleksi; pamuklu çubuğun kiri iteleyip tıkayıcı serumenin iletim tipi kayba yol açabilmesi. Yanlış bilgi görmedim, "Koklea" doğru kullanılıyor.
+- Hissettiğim: tur 1'e göre ilk bölümler bilgi açısından belirgin biçimde daha dolu; takma ad penceresindeki bilgi düzeyi seçimi tam aradığım şey. Bölümler beceri 0,6 ile yine kolay (6/6, kayıp yok). Ama bilgi notları sonuç ekranında kaydırmadan görünmüyor, büyük "Haritaya dön" düğmesi önümde (OT-28). Takıma katılınca sohbetin "Silinmiş Oyuncu takımdan ayrıldı" satırlarıyla dolu olması moral bozdu (OT-29).
+- Yazdığım geri bildirimler: OT-sinav-adayi-28 (Biliyor muydun? notu sonuçta kaydırmadan görünmüyor; öneri, önem 2), -29 (yeni üyeye art arda Silinmiş Oyuncu ayrıldı satırları; öneri), -30 ("Jeton Kumbarası" başarımı nota sayıyor; metin).
+- Bakıp yazmadıklarım: sonuçtaki "par 94 sn" ilk bölümlerde 3. yıldızı etkilemiyor (par yalnız "Ses Hızında" başarımı için; tasarım). Takım sohbetinin altında "şimdilik hazır sözler ve emoji" yazıyor; tepkilere girmedim, emoji gerçekten var mı bakmadım. Takım akışı "Ödül hediye kutusunda" diyor, benim ödül kutum 0 (ben sonradan katıldım; büyük olasılıkla tasarım).
+- Yarım kalan / sonraki oturum: Bölüm 7 (Hasta Vakaları açılacak), 9 (Günün Sorusu). Ayarlar'da OT-3'ü yeniden kontrol, Bilgi pratiği ve Klinik vakaları (OT-16, -19, -27).
+- Sosyal: arkadaş kodum 47VQUJ (takma ad SinanSinav; tur 1'deki EQ3TAW artık geçersiz). Takımım "Ninni Tasiyicilari" (davet kodu 8XJUU4, lider AyseTeyze), rolüm üye, takım 3/30. Bekleyen arkadaşlık ya da takım daveti görmedim; arkadaş listem şimdilik boş.

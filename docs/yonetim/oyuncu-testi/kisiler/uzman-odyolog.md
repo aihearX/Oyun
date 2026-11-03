@@ -7,6 +7,7 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 82 yıldız, 49 deneme / 9 kayıp |
+| 2 | 2026-11-03 | | | sürüyor |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -113,3 +114,15 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 ### Tur 1 bitti (2026-11-02, sürüm bd976b22)
 - 40/40 bölüm, 82 yıldız, 8 bölüm üç yıldız; 49 deneme, 9 kayıp (en çok Bölüm 40: 4 kayıp, sonra 20 ve 23).
 - Son değerlendirme: ODİ, klinik odyolog gözüyle tıbbi açıdan şimdiye dek gördüğüm en özenli eğitim oyunu. Terimler tutarlı (Koklea, dB HL, hava-kemik aralığı, timpanogram tipleri); "timpanogram tek başına tanı koydurmaz" ilkesi hem Timpanogram Eşleştir'de hem vakalarda korunuyor; vakalar kurgusal ve "tıbbi öneri değildir" uyarılı, kaynakçalı (Jerger, AAO-HNS, JCIH, NIOSH). Tur boyunca yazdığım 28 maddenin büyük kısmı düzeltildi ve düzeltmeler önerdiğim metne çok yakın. Kalan işler küçük: bir vakada anahtar test seçimi (OT-27), birkaç sistem emojisi (OT-28), sözlük aramasında "sonuç yok" (OT-5). Oyun becerisi düşük biri olarak 40. bölümde takıldım ama "Neden olmadı?" kutuları ve takım yardımı moralimi korudu. Öğrencilerime gönül rahatlığıyla öneririm.
+
+## Oturum 8 · 2026-11-03 · sürüm 20c7a256 · tur 2
+- Başlangıç: 0/40 (tur 1 bittikten sonra sıfırlanmış hesap; ilk açılış). Bitiş: 5/40, 11 yıldız (4 üç yıldız), oyuncu seviyesi 2, seri 1 gün, 823 jeton, 0 kristal. Bu oturumda kayıp yok (5 deneme, 5 geçiş).
+- Önceki geri bildirim kontrolü ("yapildi:" maddeleri; 2, 6, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19, 22, 23 önceki oturumlarda doğrulanmıştı):
+  - OT-uzman-odyolog-3: düzeldi (yeni turda yeniden baktım). Dış Kulak biyom notunda "Koşu:" iki noktası bitişik, "20 Hz–20 kHz" ve "1–4 kHz" sayı ile birim aynı satırda (0717-dokun.png).
+  - OT-uzman-odyolog-7 (otoskleroz notu), OT-uzman-odyolog-12 (Timpanogram Eşleştir), OT-uzman-odyolog-20 (anıt notu "Daha fazla"), OT-uzman-odyolog-24 (İşitme Korteksi alt başlığı), OT-uzman-odyolog-25 (İsmail "(çentik)"), OT-uzman-odyolog-26 (B tipi açıklaması), OT-uzman-odyolog-27 (Selim vakası anahtar testleri): doğrulanamadı. Yeni turda henüz Dış Kulak'tayım; bu ekranlar Bölüm 7 (Klinik), Kemikçikler, İşitme Korteksi ve Timpanometri Kulesi Sv 2 sonrasında açılıyor.
+- Ne yaptım: açılış hikâyesini kart kart okudum (yol kartı: Kepçe, Kulak zarı, Koklea, Beyin; "kokleadan işitme siniriyle beyne"). Takma adı DrMelis, Bilgi düzeyini "Odyoloji öğrencisi" seçtim. Bölüm 1-5'i ilk denemede geçtim (4 üç yıldız), Dış Kulak çiçeklendi ve canlandı, Bölüm 5 hazinesini aldım. Bugün'de takvim ve bir görev ödülünü aldım. Kamp'ta rehberle Kulak Deposu'nu kurdum (panelde serumen ve epitel göçü açıklaması doğru). Profil › Arkadaşlar'a baktım.
+- Tıbbi doğruluk izlenimi: yeni turun ilk beş bölümünde metinler doğru: Hertz notu (20 Hz–20 kHz, 1–4 kHz en duyarlı, perde ile frekans doğrusal değil), konka rezonansı ~5 kHz, kıl/yağ/serumen bezlerinin yalnız kıkırdak kanalda olması, en küçük duyulabilir açı ~1 derece, kepçe yön ipuçlarının çoğunlukla 4 kHz üstünde olması, Kulak Deposu'ndaki epitel göçü. "Koklea" her yerde doğru (bölümdeki toplanabilirler de "altın koklea"); "Salyangoz" görmedim. Yeni bir tıbbi yanlış bulmadım.
+- Hissettiğim: ikinci turu tanıdık bir yerden başlamak rahat; Tüy Dede'nin rehber balonları ilk turdakinden daha toparlı. Ama bu makinede harita dönüş sahnesi her bölümden sonra 60 sn'yi aşıp dokunuşları yutuyor (Kamp ve Bölüm 6 düğmesine dokunuşlarım zaman aşımına uğradı); README'de yazılım GL'den kaynaklandığı söylendiği için geri bildirim yazmadım. Komut bütçemin önemli kısmı bu beklemelere gitti, Bölüm 6'yı başlatamadım.
+- Yazdığım geri bildirimler: yok (bu oturumda yeni bir sorun bulmadım; gördüğüm tek sorun, arkadaş kodunu aratınca "… adında bir oyuncu yok" demesi, OT-takim-kaptani-19 / YN-125 kapsamında).
+- Yarım kalan / sonraki oturum: Bölüm 6'dan devam (Kulak Kanalı). Kamp'ta Timpanometri Kulesi'ni kurup Sv 2'ye çıkarmak (Timpanogram Eşleştir, OT-12). Bölüm 7'de Hasta Vakaları (OT-27 Selim vakası). Takım açıldı ama henüz katılmadım: Ninni Tasiyicilari (8XJUU4) davetine açığım.
+- Sosyal: yeni arkadaş kodum **ERGZEW**, takma ad DrMelis. Takımım yok. KaptanTuba'nın yeni kodunu (RZ5A8W) aradım, "Kimseyi bulamadık" çıktı (yeni hesaplar henüz aranamıyor olabilir); gelen arkadaşlık isteği ya da takım daveti yoktu.

@@ -7,6 +7,7 @@ Cihaz: 320×640 chromium · beceri 0.5 · ses açık. Ayrıntı: tools/harness/o
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 79 yıldız, 5 kayıp (46 deneme) |
+| 2 | 2026-11-03 | | | sürüyor |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -107,3 +108,22 @@ Cihaz: 320×640 chromium · beceri 0.5 · ses açık. Ayrıntı: tools/harness/o
 
 Tur 1 bitti (2026-11-02, sürüm bd976b22): 40/40, 79 yıldız (10 tane 3 yıldız), 46 denemede 5 kayıp (19, 20, 32, 39×2).
 - Son değerlendirme (eski telefon, yavaş ve kopan ağ gözüyle): İlk oturumda bağlantı kopunca oyun bunu bilmiyordu, ekranlar "Bir şeyler ters gitti" deyip kalıyordu, Kamp açılış ekranına atıyordu. Yedi oturum sonra oyun bu konuda gerçekten güvenilir: bağlantı noktası doğru renkte, her ekran çevrimdışıyken ne olduğunu ve bağlanınca ne olacağını söylüyor (bölüm sonucu, hediyeler, hazine, sandık, takvim, mesaj, arama, inşaat), bağlantı dönünce kendiliğinden toparlanıyor; bütün tur boyunca tek bir ödül kaybolmadı ya da iki kez gelmedi, sunucu ile cihaz jetonu her seferinde aynıydı. 320 px'te taşmaların çoğu düzeldi (hedef kutusu, zarf simgesi, Yeni biyom kartı, arkadaş adı, sonuç düğmeleri); kalanlar başlıklarda ("Tak…", çevrimdışı "Bu…") ve küçük kartlarda. Bölümler bu telefonda baştan sona akıcıydı, zorluk 0,5 beceriye göre adildi; yalnız 39 sert bir duvar gibi geldi. En çok eksik kalan şey oyunun bitişi: 40. bölüm geçince bir son sahnesi ya da tur özeti beklerdim.
+
+## Oturum 8 · 2026-11-03 · sürüm 20c7a256 · tur 2
+- Başlangıç: 0/40 (sıfırlanmış hesap, yeni sürümde ilk açılış). Bitiş: 6/40, 13 yıldız (4. bölüm 3 yıldız), seviye 3, 1.053 jeton (sunucu = cihaz), 0 kristal, seri 1 gün. Hiç kaybetmedim (6 deneme, 6 geçiş).
+- Yeniden kontrol (yapıldı denen maddelerim):
+  - OT-eski-telefon-22: düzeldi. İnternet kapalıyken Bugün'de takvim ödülünü aldım; bekleme simgesi artık jeton kutusunun altına iniyor, başlık "Bugün" tam (0638-bekle.png).
+  - OT-eski-telefon-23: düzeldi. İnternet kapalıyken Profil'de kalem düğmesi kilitli ve adın altında "Bağlanınca değiştirebilirsin" yazıyor; bağlantı gelince düğme geri açıldı (0644-ag.png).
+  - OT-eski-telefon-19: düzeldi. 320 px'te Takım başlığı "Takım" tam görünüyor (0682-dokun.png).
+  - OT-eski-telefon-4: düzeldi. Bu kez takma adı internet yokken girdim: "Sunucu geç yanıt verdi" hatası yok; bağlanınca ad sunucuya MuratEski olarak geçti. (Bekleme ve "Bağlantı zayıf" sözü için küçük bir not: OT-eski-telefon-25.)
+  - OT-eski-telefon-1: düzeldi. İnternet kapalıyken ilk kez açtığım Bugün ve Profil "İnternet yok · Bu ekran bağlanınca açılır" dedi, bağlantı gelince kendiliğinden açıldı (0625, 0626, 0641, 0642).
+  - OT-eski-telefon-2: düzeldi. Kamp'ı ilk kez internet yokken açtım: "Kamp yüklenemedi · Bağlanınca açılır" çıktı, bağlanınca Kamp ve Tüy Dede'nin tanıtımı kendiliğinden geldi (0655 → 0656). Üstteki şerit için ayrı küçük not: OT-eski-telefon-24.
+  - OT-eski-telefon-3: düzeldi. Çevrimdışı nokta gri; takımdayken internet kapalı oynadığım Bölüm 6'nın sonucunda "Sonucun kayıtlı; bağlanınca takımına ve ligine yazılır" çıktı, bağlanınca +22 savaş ve +15 lig puanı kendiliğinden geldi.
+  - OT-eski-telefon-6: düzeldi (320 px sonuç ekranında XP çubuğu görünür; 0615). OT-eski-telefon-16: düzeldi (Dış Kulak ve Kulak Kanalı Yeni biyom kartları sığıyor; 0609, 0684).
+  - OT-eski-telefon-7, -8, -9, -10, -11, -12, -13, -18, -21: bu oturumda o ekranlara gelmedim ya da öncekinden farklı bir şey görmedim (önceki oturumlarda düzeldi diye yazmıştım); yeni turda sırası gelince bakılacak.
+  - (İş listesindeki OT-eski-telefon-14 yine görünüyor: Profil'de ad satırının yanına kalem düğmesi gelince "MuratEski · …" diye kesiliyor, seviye okunmuyor (0642-ag.png). Oturum 5'te düzelmiş görünüyordu. Yeni satır yazmadım, madde zaten açık. OT-rekabetci-4 düzelmiş görünüyor: Profil "2/40 bölüm" diyor.)
+- Ne yaptım: Açılış (Atla), Bölüm 1-6. Bölüm 2 ve 6'yı internet kapalıyken oynadım. Çevrimdışıyken takma ad, takvim 1. gün ödülü ve bir günlük görev ödülü aldım; bağlanınca sunucu = cihaz (445), çift ödül yok. Bölüm 5 hazinesi bir kez geldi. Takım açılınca "Ninni Tasiyicilari"na listeden doğrudan katıldım ve sohbete "Selam!" bıraktım. Kamp'a yalnız tanıtım için girdim.
+- Hissettiğim: Yeni turda oyunu ilk kez açmak bu telefonda rahattı; bağlantı kopsa da hiçbir şey kaybolmadı, her ekran ne olduğunu söyledi. Bölümler akıcı, 320 px'te biyom kartları ve sonuç ekranı sığıyor. Küçük takıldıklarım: Kamp'ta aynı anda iki "Tekrar dene" ve başlığı örten şerit; takma ad kaydında internet yokken "Bağlantı zayıf" demesi; Profil'de adımın yanındaki seviyenin yine kesilmesi. Takıma katılınca "Silinmiş Oyuncu takımdan ayrıldı" satırını gördüm, sanırım eski hesabım; dürüst ama biraz tuhaf. Sohbette "Selam!"a basınca mesajım listenin en altında yarım kaldı, kendim kaydırmam gerekti gibi geldi (tek görüntü, emin değilim; sonraki oturumda bakılacak).
+- Yazdığım geri bildirimler: OT-eski-telefon-24 (çevrimdışı Kamp'ta şerit başlığı örtüyor, iki Tekrar dene; 0655), OT-eski-telefon-25 (çevrimdışı takma ad "Kaydediliyor…" + "Bağlantı zayıf"; 0632).
+- Yarım kalan / sonraki oturum: Sıradaki Bölüm 7 (Kulak Kanalı). Haritada Takım Ligi ve Mağaza tanıtımı bekliyor; Bugün'de 1, Kamp'ta 1 bekleyen var. Arkadaşlar'a bu oturumda girmedim (komut sınırı): KaptanTuba'yı (yeni kodu RZ5A8W) eklemek ve gelen istek var mı bakmak sıradaki işler. Geçen turda hiç denemediğim Etkinlikler, Mağaza'da kristal, Günün Sorusu, Hasta Vakaları ve Ödül kutusu bu turda erken denenecek.
+- Sosyal: yeni arkadaş kodum **PYR4Z7**, takma ad MuratEski (eski Q86EJU artık geçersiz). Takımım "Ninni Tasiyicilari" (üye; takım davet kodu 8XJUU4; takımda AyseTeyze, KralKoklea, SinanSinav, EceOdyo var). Bana gelen arkadaşlık isteği ya da takım daveti görmedim (Arkadaşlar'ı açmadım).
