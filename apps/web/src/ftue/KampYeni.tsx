@@ -43,10 +43,12 @@ export function KampYeniKart({ onShow, calm }: { onShow(id: string): void; calm(
   const list = items.filter((id) => !done.includes(id));
   const [ok, setOk] = useState(false); const [pos, setPos] = useState<CSSProperties>({}); const [armed, setArmed] = useState(false);
   const want = list.length > 0 && !touring;
-  // alt sayfa, kutlama ya da pencere açıkken kart görünmez (üstüne binmez); kapanınca geri gelir
+  // alt sayfa, kutlama ya da pencere açıkken kart görünmez (üstüne binmez); kapanınca geri gelir. Tüy Dede'nin kamp notu (yeni anıt,
+  // yeni arazi; konuşması bitse de X'e dek ekranda kalır) açıkken de kart bekler: ikisi aynı yerde üst üste açılmaz, sırayla gelir
+  // (OT-eski-telefon-27)
   useEffect(() => {
     if (!want) { setOk(false); return; }
-    const tick = () => { const c = calm(); setOk(c); if (c) setPos(place()); };
+    const tick = () => { const c = calm() && !document.querySelector('[data-testid="kamp-dede"]'); setOk(c); if (c) setPos(place()); };
     tick(); const h = setInterval(tick, 300); return () => clearInterval(h);
   }, [want]);
   const show = want && ok;
