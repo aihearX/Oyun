@@ -129,6 +129,7 @@ export class LevelScene extends Phaser.Scene {
     this.fx = createFx(this, this.biome);
     this.hud = createHud(this, heroColor, this.hudTop, textK);
     if (!w.boss) this.hud.setCheckpoints(w.sectionX.slice(1).map((x) => x / w.gateX));
+    this.hud.belowBossBar(this.bossBarBottom());
     this.hud.onPause(() => this.opts.onPauseRequest?.());
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
     if (this.spec.assist) this.input_.hSwipePx = this.spec.assist.swipePx;
@@ -306,7 +307,8 @@ export class LevelScene extends Phaser.Scene {
     }
   }
   private onHurt(e: SimEvent) {
-    if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan kırıldı', COLORS.accent); return; }
+    // sesi kapalı oyuncu da görsün (YN-099): kalkan vuruşu karşıladı; vuruş yine hasar sayılır (karar 37), göstergede sayı düşer
+    if (e.s === 'shield') { sfx.hit(); floatText(this, e.x, e.y - 70, 'Kalkan bir vuruşu karşıladı', COLORS.accent); return; }
     if (e.s === 'revir') { sfx.power(); floatText(this, e.x, e.y - 70, 'Klinik korudu!', COLORS.accent2); return; }
     this.lastHurtAt = this.sim.t; this.clearPraise();
     sfx.hit(); this.fx.hitFlash(); this.cameras.main.shake(160, 0.01); this.emit({ type: 'haptic', kind: 'heavy' }); this.emit({ type: 'damage', lives: this.sim.lives });
@@ -448,7 +450,7 @@ export class LevelScene extends Phaser.Scene {
     // melodi hedefi: "Nota 3/8" baştan sona (sırayla toplananlar; YN-102)
     const melody = o.id === 'melody' && this.world.notesTotal > 0 ? { n: this.sim.notes, total: o.target ?? this.world.notesTotal } : null;
     this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft,
-      escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null, melody });
+      escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null, melody, shield: this.sim.shield });
   }
   /** yeniden çizilen görünüm patoloji durumunu korur (rozet, etkisiz) */
   private patState(id: number, v: EntityView) { if (this.patSighted.has(id)) v.patho('sighted'); if (this.sim.cured.has(id)) v.patho('cured'); }
@@ -684,13 +686,15 @@ export class LevelScene extends Phaser.Scene {
   /** uzun görünümün üst payı: göstergenin güvenli alan inişi kadar (oyun alanı göstergenin altında eski yerinde); kalanı altta */
   private camUp(): number { return Math.min(Math.max(0, this.vh - GAME_H), this.hudTop); }
   /** boot.ts: ebeveyn boyutu değişti, oyun boyutu yeniden ayarlandı → gösterge, arka plan, efekt, kamera yeni görünüme (duraklatılmışken de) */
+  /** canavar can çubuğunun alt kenarı (render/boss.ts: merkez top + 124, panel 40 px; Büyük yazıda 58) — kalkan sayacı altına iner */
+  private bossBarBottom(): number | null { return this.sim.boss ? this.hudTop + 124 + (this.opts.bigText ? 36 : 27) : null; }
   onViewResize() {
     if (!this.hud || !this.sim) return;
     const ow = this.vw, oh = this.vh, oTop = this.hudTop, oUp = this.camUp();
     this.measureView();
     if (this.vw === ow && this.vh === oh && this.hudTop === oTop) return;
     this.hud.resize(this.vw, this.vh, this.hudTop); this.fx.resize(this.vw, this.vh); this.backdrop?.resize(this.vw, this.vh);
-    this.bossView?.layout?.(this.vw, this.hudTop); this.race?.relayout(this.hudTop);
+    this.bossView?.layout?.(this.vw, this.hudTop); this.hud.belowBossBar(this.bossBarBottom()); this.race?.relayout(this.hudTop);
     // kamera hedefindeki görünüm payı kadar kaydır (yumuşak izleme durumu korunur), sınırla, çiz
     if (this.sim.hero.dir > 0) this.camX -= this.vw - ow;
     this.camY -= this.camUp() - oUp;

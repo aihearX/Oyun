@@ -1,5 +1,5 @@
 /**
- * Oyun içi gösterge (HUD): koyu cam paneller + altın. Nota sayacı (uçan nota), 3 altın koklea yuvası, canlar,
+ * Oyun içi gösterge (HUD): koyu cam paneller + altın. Nota sayacı (uçan nota), 3 altın koklea yuvası, canlar, kalkanlar,
  * ilerleme çubuğu (kontrol noktası çentikleri, yarış hayaletleri), seri/çarpan rozeti ve övgü sözleri, duraklat düğmesi,
  * öğretici el işareti. Ekran-sabit (scrollFactor 0); kamera yakınlaştırması/kökeni ne olursa olsun tasarım biriminde konumlanır.
  */
@@ -43,6 +43,12 @@ const heartIcon = (s: Phaser.Scene, full: boolean) => T(s, `hud-heart-${full ? 1
     heartPath(ctx, 13, 12, 20); const g = ctx.createLinearGradient(0, 2, 0, 22); g.addColorStop(0, '#ffb3c8'); g.addColorStop(0.45, css(THEME.coral)); g.addColorStop(1, '#c0204e'); ctx.fillStyle = g; ctx.fill();
     ctx.strokeStyle = '#6a0a28'; ctx.lineWidth = 1.3; ctx.stroke(); ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.ellipse(8.4, 7.6, 2.6, 1.6, -0.6, 0, Math.PI * 2); ctx.fill();
   } else { heartPath(ctx, 13, 12, 20); ctx.fillStyle = 'rgba(20,10,60,0.6)'; ctx.fill(); ctx.strokeStyle = 'rgba(201,193,255,0.45)'; ctx.lineWidth = 1.4; ctx.stroke(); }
+});
+/** kalkan sayacının baloncuğu: Odi'nin çevresindeki kalkanla aynı camgöbeği baloncuk (hero.ts shieldTex), küçük */
+const shieldIcon = (s: Phaser.Scene) => T(s, 'hud-kalkan', 28, 28, (ctx) => {
+  const g = ctx.createRadialGradient(14, 14, 5, 14, 14, 12); g.addColorStop(0, 'rgba(46,230,214,0.12)'); g.addColorStop(0.75, 'rgba(46,230,214,0.4)'); g.addColorStop(1, 'rgba(200,255,250,0.85)');
+  ctx.beginPath(); ctx.arc(14, 14, 11.5, 0, Math.PI * 2); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = '#dcfffc'; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(14, 14, 7.5, Math.PI * 1.1, Math.PI * 1.5); ctx.stroke();
 });
 const pauseTex = (s: Phaser.Scene) => T(s, 'hud-pause', 56, 56, (ctx) => {
   ctx.save(); ctx.shadowColor = 'rgba(5,0,25,0.55)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3; ctx.beginPath(); ctx.arc(28, 27, 20, 0, Math.PI * 2);
@@ -138,6 +144,10 @@ export class LevelHud {
   private pathoC?: Phaser.GameObjects.Container; private pathoQ: string[] = [];
   /** nota ve koklea panellerinin görünür genişliği (içeriğe göre büyür; Büyük yazıda yazılar büyüdüğü için) */
   private notesW = 112; private cochW = 92;
+  /** bölüm başı kalkanlar (YN-099): ikinci satırın sağında baloncuk + "×2"; kalkan yoksa gizli (seri rozeti o zaman yukarıda) */
+  private shieldPanel: Phaser.GameObjects.Image; private shieldIco: Phaser.GameObjects.Image; private shieldText: Phaser.GameObjects.Text; private shields = 0;
+  /** canavar bölümü: can çubuğunun alt kenarı (kamera tasarım px'i); kalkan sayacı ikinci satır yerine onun altında, sağda */
+  private bossBottom: number | null = null;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
   private pause: Phaser.GameObjects.Image; private pauseCb: (() => void) | null = null;
   private bar: Phaser.GameObjects.Container; private track: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private fill: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private head: Phaser.GameObjects.Image; private headDot: Phaser.GameObjects.Arc; private flag: Phaser.GameObjects.Image;
@@ -177,6 +187,10 @@ export class LevelHud {
     this.melPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
     this.melIco = I(s, melodyIcon(s)).setVisible(false);
     this.melText = txt(16, '#fff6e5'); this.melText.setStroke('#140c35', 4).setVisible(false);
+    // kalkanlar (yalnız kalkan varken)
+    this.shieldPanel = I(s, panelTex(s, 64, 32, 16)).setOrigin(0.5).setVisible(false);
+    this.shieldIco = I(s, shieldIcon(s)).setVisible(false);
+    this.shieldText = txt(17, '#dcfffc'); this.shieldText.setStroke('#140c35', 4).setVisible(false);
     // canlar
     this.livesPanel = I(s, panelTex(s, 86, 40, 20)).setOrigin(0, 0);
     for (let i = 0; i < 5; i++) { this.heartsOff.push(I(s, heartIcon(s, false))); this.hearts.push(I(s, heartIcon(s, true))); }
@@ -198,7 +212,7 @@ export class LevelHud {
     this.comboMult = s.add.text(-18, -1, '×2', { fontFamily: FONT, fontSize: '26px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0.5);
     this.comboCount = s.add.text(20, 0, 'Seri\n12', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#c9c1ff', align: 'center', lineSpacing: -2, resolution: R() }).setOrigin(0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.shieldPanel, this.shieldIco, this.shieldText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -219,7 +233,7 @@ export class LevelHud {
     this.setW(this.track, this.barW, 16); this.flag.setPosition(this.barW - 2, -3);
     for (const k of this.ticks) { k.off.setPosition(k.pct * this.barW, 0); k.on.setPosition(k.pct * this.barW, 0); }
     for (const [, g] of this.ghosts) g.x = (g.getData('pct') as number) * this.barW;
-    this.combo.setPosition(W - 64, t + 100);
+    this.placeShield();
     this.setProgress(this.pct);
   }
   private setW(o: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image, w: number, h: number) {
@@ -327,6 +341,27 @@ export class LevelHud {
     this.escIco.setPosition(l + 18, y - 1); this.escText.setPosition(l + 34, y - 1);
     this.placeRow2();
   }
+  /**
+   * Kalan kalkan sayısı (YN-099): baloncuk + "×2". Kalkan bir vuruşu karşılayınca sayı düşer ve baloncuk zıplar; 0'da gizlenir.
+   * Sesi kapalı oyuncu da kalkanı olduğunu ve harcandığını görsün (patlama sesine dayanmaz).
+   */
+  setShield(n: number) {
+    n = Math.max(0, n); if (n === this.shields) return; const lost = n < this.shields; this.shields = n;
+    for (const o of [this.shieldPanel, this.shieldIco, this.shieldText]) o.setVisible(n > 0);
+    this.shieldText.setText(`×${n}`); this.placeShield();
+    if (n > 0 && !motionReduced()) this.bump(this.shieldIco, lost ? 0.8 : 1.3);
+  }
+  /** ikinci satırın sağı, görünür sağ kenar ilerleme çubuğuyla hizalı; seri rozeti kalkan varken bir alta iner (üst üste binmez) */
+  private placeShield() {
+    const t = this.top / this.k + 10; const W = this.iw; const boss = this.bossBottom != null; const y = boss ? (this.bossBottom! + 4) / this.k + 18 : t + 88;
+    const w = Math.ceil((this.shieldText.width + 44) / 4) * 4;
+    if (this.shieldPanel.getData('w') !== w) { this.shieldPanel.setData('w', w); this.shieldPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
+    const l = W - 18 - w; this.shieldPanel.setPosition(l + w / 2, y);
+    this.shieldIco.setPosition(l + 17, y - 1); this.shieldText.setPosition(l + 32, y - 1);
+    this.combo.setPosition(W - 64, t + 100 + (this.shields > 0 && !boss ? 40 : 0));
+  }
+  /** canavar bölümünde ikinci satırın yerinde can çubuğu var: kalkan sayacı çubuğun altına iner (bottom: çubuğun alt kenarı) */
+  belowBossBar(bottom: number | null) { this.bossBottom = bottom; this.placeShield(); }
   /** bölümün değiştiricileri (boş liste gizler): "Hız · Yankı" ve her birinin çizili simgesi */
   setModifiers(list: { id: string; name: string }[]) {
     for (const o of this.modIcons) o.destroy(); this.modIcons = [];

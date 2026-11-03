@@ -181,7 +181,9 @@ export interface HudSnapshot { notes: number; notesTotal: number; cochleas: numb
   /** eskort bölümünde fısıltının durumu (yoksa null) */
   escort: RD.EscortHud;
   /** melodi hedefli bölümde sırayla toplanan notalar / hedef ("Nota 3/8"); yoksa null */
-  melody?: { n: number; total: number } | null }
+  melody?: { n: number; total: number } | null;
+  /** kalan kalkan (bölüm başı + güçlendirme); 0 gizler */
+  shield?: number }
 export type HintKind = RD.HintKind;
 export interface LevelHudView {
   update(h: HudSnapshot): void;
@@ -200,6 +202,8 @@ export interface LevelHudView {
   /** bölge patolojisinin adı: üst bantta çizili uyarı simgesiyle (Odi'nin ve yolun üstünde değil); aynı anda birden çoksa sırayla */
   pathology(text: string): void;
   setCheckpoints(pcts: number[]): void;
+  /** canavar bölümü: kalkan sayacı can çubuğunun (alt kenarı, tasarım px) altında */
+  belowBossBar(bottom: number | null): void;
   onPause(cb: () => void): void;
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
   pauseHit(x: number, y: number): boolean; pressPause(): void; pauseCenter(): { x: number; y: number };
@@ -216,6 +220,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
       if (!last || last.cochleas !== h.cochleas || last.cochleasTotal !== h.cochleasTotal) hud.setCochleas(h.cochleas, h.cochleasTotal);
       hud.setTimer(h.timeLeft); hud.setEscort(h.escort); hud.setMelody(h.melody ? h.melody.n : null, h.melody?.total ?? 0);
       if (!last || last.lives !== h.lives) hud.setLives(h.lives);
+      hud.setShield(h.shield ?? 0);
       if (!last || Math.abs(last.pct - h.pct) > 0.002) hud.setProgress(h.pct);
       last = { ...h };
     },
@@ -226,6 +231,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     toast: (t, ms) => hud.toast(t, ms),
     setModifiers: (l) => hud.setModifiers(l), announce: (t, ms) => hud.announce(t, ms), pathology: (t) => hud.pathology(t),
     setCheckpoints: (p) => hud.setCheckpoints(p),
+    belowBossBar: (b) => hud.belowBossBar(b),
     onPause: (cb) => hud.onPause(cb),
     pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),
     resize: (w, h, top) => hud.resize(w, h, top),

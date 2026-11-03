@@ -3,7 +3,7 @@ import { GROUND_Y as G } from '@odi/shared';
 import * as C from './consts';
 import { testSpec, setup, press, run } from './testkit';
 import { cloneState, hurt, initState, solidAt, step, type SimInput, type SimState } from './sim';
-import { DEFAULT_SKILLS } from '@odi/content';
+import { DEFAULT_SKILLS, runShields, SHIELD_MAX } from '@odi/content';
 import type { WEnt, World } from './world';
 
 const flat = (extra: Parameters<typeof testSpec>[0] = [], o: Parameters<typeof testSpec>[1] = {}) => setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, ...extra], o));
@@ -174,6 +174,30 @@ describe('kalkan ve Klinik koruması (sahip kararı 37, YN-088)', () => {
     const { w, s } = flatShield(); run(w, s, 10); s.freeFalls = 0;
     hurt(w, s, 'fall');
     expect(s.shield).toBe(1); expect(s.guarded).toBe(0); expect(s.lives).toBe(2);
+  });
+  /** n vuruş (düşüş değil); her vuruştan önce dokunulmazlık sıfırlanır */
+  const hits = (w: World, s: SimState, n: number) => { for (let i = 0; i < n; i++) { s.hero.invuln = 0; hurt(w, s, 'dusman', s.hero.x + 30); } };
+  const flatSkills = (shield: number) => setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }]), { ...DEFAULT_SKILLS, shield });
+  it('Çift Kalkan (düzey 2) bölüme 2 kalkanla başlatır; iki vuruş karşılanır, ikisi de hasar sayılır (YN-099)', () => {
+    const { w, s } = flatSkills(2); run(w, s, 10);
+    expect(s.shield).toBe(2);
+    hits(w, s, 2);
+    expect(s.shield).toBe(0); expect(s.lives).toBe(3); expect(s.guarded).toBe(2); expect(s.damageTaken).toBe(2);
+    hits(w, s, 1);
+    expect(s.lives).toBe(2); expect(s.guarded).toBe(2); expect(s.damageTaken).toBe(3);
+  });
+  it('takım/Atölye kalkanı yetenek kalkanlarına bir tane ekler (en çok 3); kalkansız oyuncuda 3 can + 1 kalkan = 4 vuruşta kayıp', () => {
+    expect([0, 1, 2].map(runShields)).toEqual([1, 2, 3]); expect(runShields(SHIELD_MAX)).toBe(SHIELD_MAX);
+    const a = flatSkills(runShields(2)); run(a.w, a.s, 10); expect(a.s.shield).toBe(3);
+    // takım kalkanıyla başlayan kalkansız oyuncu (OT-sessiz-oyuncu-18): kalkan verildi, vuruşta harcanır ve guarded'a yazılır
+    const { w, s } = flatSkills(runShields(0)); run(w, s, 10);
+    expect(s.shield).toBe(1);
+    hits(w, s, 3); expect(s.failed).toBeNull(); expect(s.lives).toBe(1); expect(s.guarded).toBe(1);
+    hits(w, s, 1); expect(s.failed).toBe('dusman'); expect(s.damageTaken).toBe(4); expect(s.guarded).toBe(1);
+  });
+  it('kalkan güçlendirmesi bölüme 3 kalkanla başlayanın kalkanını düşürmez', () => {
+    const { w, s } = setup(testSpec([{ type: 'platform', x: 0, y: G, w: 3000, h: 200 }, { type: 'powerup', x: 200, y: G - 40, props: { kind: 'shield' } }]), { ...DEFAULT_SKILLS, shield: 3 });
+    expect(s.shield).toBe(3); run(w, s, 120); expect(s.collected.size).toBeGreaterThan(0); expect(s.shield).toBe(3);
   });
   it('bağışlanan vuruş (öğretici odası, dikene ilk değiş) kalkanı harcamaz, hasar da sayılmaz', () => {
     const { w, s } = flatShield(); run(w, s, 10);

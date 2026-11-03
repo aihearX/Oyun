@@ -3,7 +3,7 @@
 // konsol hatalarını ve sonuçları toplar, ekran görüntüsü alır.
 // Kullanım: node tools/harness/bot.mjs [--levels 1-40 | 20,23,26] [--browser chromium|webkit] [--parallel 3] [--ts 1] [--skills all] [--no-build] [--timeout 180] [--tag isim] [--shots 1] [--json 1]
 //           [--gorunurluk] (Ayarlar → Yüksek görünürlük açık: kayıt tohumu highVis) [--buyuk-yazi] (Büyük yazı açık) [--shot-at 6] (--shots ile: başlangıçtan N sn sonra bir kare daha, -mid.png)
-// Bot varsayılan yeteneklerle (kalkansız) ve Klinik koruması olmadan oynar; --skills all kalkanla başlatır. Kalkanın karşıladığı vuruş
+// Bot varsayılan yeteneklerle (kalkansız) ve Klinik koruması olmadan oynar; --skills all Çift Kalkanla (2 kalkan) başlatır. Kalkanın karşıladığı vuruş
 // hasar sayılır (karar 37, YN-088): "dmg" sütununa girer, "(kalkan N)" kaçının kalkanla karşılandığını gösterir.
 // --tag: ayrı derleme ve çıktı klasörü (tools/harness/out/<tag>/) — aynı anda birden çok harness çalıştırmak için.
 import { spawn } from 'node:child_process';

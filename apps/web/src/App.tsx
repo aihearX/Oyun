@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
-import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
+import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY, runShields } from '@odi/content';
 import {
   calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rahatOffer, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
@@ -459,12 +459,16 @@ function useSocialBadges(coins: number) {
 /** yarışta da oyuncunun kendi Odi'si (renk + şapka); rakipler sunucu profilindeki rengi görür */
 function raceExtras(): Extras { const l = odiLook(useStore.getState()); return { cosmetic: { color: l.custom ? l.color : undefined, hat: l.hat } }; }
 
-/** bu koşunun yetenekleri: takım kalkanı varsa bir tanesi kullanılır; yoksa Atölye/Ortak Kalkan şansı (oranı Kamp'ta yazılı) */
+/**
+ * bu koşunun yetenekleri: yetenek kalkanlarına (düzey kadar) bir ek kalkan eklenir (en çok 3; content `runShields`, YN-099):
+ * takım kalkanı varsa bir tanesi kullanılır; yoksa Atölye/Ortak Kalkan şansı (oranı Kamp'ta yazılı)
+ */
 function runSkills(skills: PlayerSkills): PlayerSkills {
-  if (skills.shield > 0) return skills;
-  if (useStore.getState().consumeTeamShield()) { toast('🛡️', 'Takım kalkanı devrede', 'Bu bölüme kalkanla başlıyorsun.', 'accent'); return { ...skills, shield: 1 }; }
+  const n = runShields(skills.shield); if (n <= skills.shield) return skills;
+  const text = `bu bölüme ${n > 1 ? `${n} ` : ''}kalkanla başlıyorsun.`;
+  if (useStore.getState().consumeTeamShield()) { toast('🛡️', 'Takım kalkanı devrede', `Bir kalkan eklendi: ${text}`, 'accent'); return { ...skills, shield: n }; }
   const pct = useSocial.getState().bonuses?.shieldChancePct ?? 0;
-  if (pct > 0 && Math.random() * 100 < pct) { toast('🛠️', 'Atölye kalkanı!', `%${pct} şansla bu bölüme kalkanla başlıyorsun.`, 'green'); return { ...skills, shield: 1 }; }
+  if (pct > 0 && Math.random() * 100 < pct) { toast('🛠️', 'Atölye kalkanı!', `%${pct} şansla ${text}`, 'green'); return { ...skills, shield: n }; }
   return skills;
 }
 

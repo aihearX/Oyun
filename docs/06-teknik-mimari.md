@@ -74,6 +74,12 @@ oyun/
   (`hud.ts` `pathology`); engelin üstündeki rozet de üçgen (tedavide yeşil artı). İşitme Siniri'nde arka plan lifleri soluk,
   platform dudağı koyu kalın kenarlı (`palette.ts` `edge`), gürültü bulutu açık konturlu ve kapalı evresinde daha opak.
   Su altı nefes göstergesi kalkan baloncuğunun üstünde, kabarcık simgeli kalın çubuk (Büyük yazıda büyür).
+- **Kalkan (YN-099):** bölüm başı kalkan = yetenek düzeyi (Kalkan 1, Çift Kalkan 2) + bir ek kalkan (takım kalkanı, yoksa
+  Atölye/Ortak Kalkan şansı), en çok 3 (`content/skills.ts` `runShields`, `SHIELD_MAX`; kabukta `App.tsx` `runSkills`). Her kalkan
+  bir vuruşu karşılar (düşüşü değil), vuruş hasar sayılır (karar 37: `damageTaken` + `extra.guarded`). Göstergede ikinci satırın
+  sağında baloncuk + "×N" (`hud.ts` `setShield`; seri rozeti o zaman bir alta iner; canavar bölümünde can çubuğunun
+  altında); karşılanan vuruşta uçan yazı "Kalkan bir
+  vuruşu karşıladı" (sesi kapalı oyuncu da görür). Kalkan güçlendirmesi 2'ye kadar ekler, fazlasını düşürmez.
 - **Yakınlaştırma (web):** `index.html`'de `user-scalable=no` yok; tarayıcıda iki parmakla yakınlaştırılabilir. Çift dokunuşla
   yakınlaştırma `html { touch-action:manipulation }` ile kapalı (hızlı dokunuşlar sayfayı büyütmesin); bölüm ekranı
   (`.level-host`), harita ve kamp tuvali `touch-action:none` (oyun içinde tarayıcı hareketi yok; Phaser dokunuşları zaten yakalar).

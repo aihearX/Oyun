@@ -187,7 +187,7 @@ export interface PlayerSkills {
   doubleJump: boolean;
   longSlide: boolean;
   magnet: number;     // 0-3
-  shield: number;     // 0-2 (bölüm başı kalkan)
+  shield: number;     // bölüm başı kalkan: yetenek düzeyi 0-2; koşuda takım/Atölye kalkanıyla +1 (en çok 3, content SHIELD_MAX)
   breath: number;     // 0-3 yüzme nefesi
   echoSight: boolean; // gece/sis bölümlerinde görüş
 }
