@@ -206,6 +206,10 @@ günlüklerden bulur.
   (uygulama anormal kapanış görür; bağlantı noktası griye döner); `ag ac` ağı geri getirir, uygulama kendisi yeniden bağlanır.
   Service worker kapalı olduğundan çevrimdışıyken önceden indirilmemiş ekran açılmaz ("İnternet yok", bağlanınca kendiliğinden açılır);
   yayındaki web sürümünde service worker parçaları önbellekten verir.
+  Komutlar arasında sayfa donuk durur (canlandırmalar, Phaser), ama zamanlayıcılar sürer: sen bakarken açılan Tüy Dede turu ya da
+  pencere donukken görünmez kalabilir. Eylem komutu (`dokun`, `yaz`, `kaydir`, `surukle`, `geri`) son ekrandan beri yeni bir katman
+  belirdiyse eylemi yapmaz, ekranı gösterir ve "Sen bakarken Tüy Dede konuşmaya başladı; dokunuş yapılmadı" notunu yazar (gerçek
+  telefonda tur 0,2 sn'de görünür, oyuncu dokunmadan önce görür): bu bir hata değildir, ekrana bakıp yeniden karar ver.
 - **Geliştirici komutları** (oyuncu ajanları kullanmaz): `gelistirici-ac <n> --kisi K` 1..n−1 bölümleri geçilmiş sayar ve rehberi kapatır
   (duman testi); `ODI_OYUNCU_KISILER=<dosya>` başka bir kişi dosyası (harness'in kendi testleri için); `ODI_OYUNCU_HIZ` bot hızı
   (varsayılan 2; sonucu değiştirmez, el modeli oyun saatiyle çalışır).

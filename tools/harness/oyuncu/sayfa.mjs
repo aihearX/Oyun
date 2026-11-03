@@ -8,6 +8,8 @@
  *  4) açık WebSocket'lerin listesi: `ag kapat` onları gerçek uçak modu gibi koparır (Playwright'ın setOffline'ı açık bağlantıya
  *     dokunmaz; uygulama "bağlı" sanır, istekler zaman aşımına düşerdi)
  * Harita dönüş sahnesi (yıldız uçuşu, yürüyüş) dondurmadan önce biter: daemon ekran görüntüsünden önce bekler (daemon.mjs diziBekle).
+ * Donukken zamanlayıcılar sürer: ajan düşünürken açılan katman (Tüy Dede turu) ilk karesinde, görünmez ama dokunuş alır hâlde kalır;
+ * eylem komutu bunu katmanImzasi ile yakalar (daemon.mjs yeniKatman).
  */
 export function oyuncuInit(seed) {
   if (window.top !== window) return;
@@ -163,6 +165,17 @@ export function ekranOzeti({ maxMetin }) {
   const o = window.__odi;
   const bolum = lh ? { ad: o?.spec ? `${o.spec.number}. ${o.spec.name}` : '?', bitti: !!o?.done } : null;
   return { metin, dok, asagi, yukari, tuval, bolum };
+}
+
+/**
+ * Etkileşimli katmanların imzası: { tür: sayı } (yalnız DOM'da olup display:none olmayanlar; opaklığa bakılmaz: donuk açılış
+ * canlandırmasında katman görünmez ama dokunuş alır). Ekran görüntüsünde kaydedilir; eylem komutu çözdükten sonra yenisiyle karşılaştırır.
+ */
+export function katmanImzasi() {
+  const T = { tur: '.coach', 'kamp-yeni': '[data-testid="kamp-yeni"]', kutlama: '.cel-stage', pencere: '[aria-modal="true"]', 'alt-sayfa': '.sheet-wrap, .map-sheet-wrap, .bp-wrap', ortu: '.overlay' };
+  const o = {};
+  for (const [k, sel] of Object.entries(T)) { const n = [...document.querySelectorAll(sel)].filter((e) => e.getClientRects().length > 0).length; if (n) o[k] = n; }
+  return o;
 }
 
 /** kaydırma: ekranın ortasındaki en yakın kaydırılabilir kutu (yoksa belge) — tuvalde (harita) tekerlek olayı ayrıca gönderilir */

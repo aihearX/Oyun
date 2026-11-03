@@ -8,7 +8,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, webkit } from 'playwright';
 import { BOSTA_MS, CHROMIUM, DB, HIZ, OUT, PORTLAR, durumOku, kisi, kisiDir, rel, sleep, soket, yuvaAl } from './ortak.mjs';
-import { ekranOzeti, kaydirKutu, oyuncuInit } from './sayfa.mjs';
+import { ekranOzeti, katmanImzasi, kaydirKutu, oyuncuInit } from './sayfa.mjs';
 
 const ID = process.argv[2];
 const K = kisi(ID);
@@ -25,6 +25,8 @@ let ctx = null; let page = null; let cdp = null; let yukluSurum = ''; let sonKom
 let hatalar = [];
 /** bölüm bittiğinde CLI kopmuşsa (Bash zaman aşımı) sonuç burada bekler; bir sonraki `bolum` yazar */
 let bekleyenSonuc = null;
+/** son ekran görüntüsündeki etkileşimli katmanlar (sayfa.mjs katmanImzasi; null: bu sayfada henüz ekran gösterilmedi) */
+let sonKatman = null;
 let shotNo = Math.max(0, ...readdirSync(EKRAN).map((f) => Number(f.slice(0, 4)) || 0));
 const shotYolu = (etiket) => resolve(EKRAN, `${String(++shotNo).padStart(4, '0')}-${etiket}.png`);
 
@@ -77,7 +79,7 @@ async function agYavaslat() { if (cdp) await cdp.send('Network.emulateNetworkCon
 async function yukle() {
   const st = durumOku();
   await page.goto(url(), { waitUntil: 'load', timeout: 120_000 });
-  yukluSurum = st.webCommit ?? '';
+  yukluSurum = st.webCommit ?? ''; sonKatman = null;
   // uygulama kendini kurana kadar (yükte birkaç saniye): ilk düğme ya da bölüm ekranı, yazı tipleri; sonra DOM durulsun
   await page.waitForFunction(() => !!document.querySelector('#root button, #root [role=button], .level-host'), null, { timeout: 60_000 }).catch(() => undefined);
   await page.evaluate(() => document.fonts?.ready).catch(() => undefined);
@@ -129,6 +131,8 @@ async function diziBekle(ms = 60_000) {
 async function ekran(etiket = 'ekran', { notlar = [] } = {}) {
   const dizi = await diziBekle(); if (dizi) { notlar.push(dizi); await durul(1500); }
   await sleep(150);
+  // görüntüden önce: arada açılan katman görülmemiş sayılır (en kötü bir kez fazladan ekran gösterilir, dokunuş yutulmaz)
+  sonKatman = await page.evaluate(katmanImzasi).catch(() => null);
   const yol = shotYolu(etiket);
   await page.screenshot({ path: yol, scale: 'css', timeout: 30_000 }).catch((e) => notlar.push(`ekran görüntüsü alınamadı: ${e.message.split('\n')[0]}`));
   const o = await page.evaluate(ekranOzeti, { maxMetin: 1500 });
@@ -152,6 +156,21 @@ async function ekran(etiket = 'ekran', { notlar = [] } = {}) {
 }
 
 // ---------------------------------------------------------------- eylemler
+const EYLEM = new Set(['dokun', 'yaz', 'kaydir', 'surukle', 'geri']);
+/**
+ * Ajan son ekrana bakarken (sayfa donukken; zamanlayıcılar sürer) yeni bir etkileşimli katman açıldı mı: Tüy Dede turu (Director.tsx,
+ * son dokunuştan ~2,7 sn sonra) donuk açılış canlandırmasında görünmez kalır ama dokunuş alır, eylem körlemesine ona düşerdi.
+ * Eylem komutu çözdükten sonra katman açılsın/hedefini bulsun diye kısa bekleyip sorar; gerçek telefonda tur 0,2 sn'de görünür
+ * (oyuncu dokunmadan önce görür). Dönüş: not (yeni katman yoksa ya da bu sayfada henüz ekran gösterilmediyse null).
+ */
+async function yeniKatman(komut) {
+  if (!sonKatman) return null;
+  const simdi = await page.evaluate(katmanImzasi).catch(() => null); if (!simdi) return null;
+  const yeni = Object.keys(simdi).filter((k) => simdi[k] > (sonKatman[k] ?? 0));
+  if (!yeni.length) return null;
+  const ne = yeni.includes('tur') || yeni.includes('kamp-yeni') ? 'Tüy Dede konuşmaya başladı' : `yeni pencere açıldı (${yeni.join(', ')})`;
+  return `Sen bakarken ${ne}; ${komut === 'dokun' ? 'dokunuş' : `"${komut}"`} yapılmadı. Ekrana bak, yeniden karar ver.`;
+}
 async function hedef(arg) {
   // numaralar son `ekran`dan; sayfa yenilendiyse ya da metinle aranıyorsa yeniden numarala (metin araması güncel ekranda olsun)
   const numarali = await page.evaluate(() => !!document.querySelector('[data-oyuncu-no]'));
@@ -181,10 +200,15 @@ async function hedef(arg) {
 async function dokun(arg) {
   const m = /^@?(\d+)\s*[,x ]\s*(\d+)$/.exec(arg.trim());
   if (m) { await page.touchscreen.tap(Number(m[1]), Number(m[2])); return `dokunuldu: (${m[1]}, ${m[2]})`; }
-  const { loc, ad } = await hedef(arg);
+  // metinle aranan öğe yeni katmanın arkasında kaldıysa "bulunamadı" yerine katman notu
+  const h = await hedef(arg).catch(async (e) => ({ not: await yeniKatman('dokun'), e }));
+  if (h.e) { if (h.not) return h.not; throw h.e; }
+  const { loc, ad } = h;
   await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => undefined);
   try { await loc.tap({ timeout: 6000 }); } catch (e) {
-    // örtülü ya da hareket eden öğe: tıklamayı dene, o da olmazsa zorla
+    // örtülü: denetimden sonra açılan katman (tur açılışı dokunuşla yarıştı) zorla tıklamayla körlemesine ona düşmesin
+    const k = await yeniKatman('dokun'); if (k) return k;
+    // hareket eden öğe: tıklamayı dene, o da olmazsa zorla
     try { await loc.click({ timeout: 4000 }); } catch { await loc.click({ force: true, timeout: 4000 }).catch(() => { throw e; }); }
   }
   return `dokunuldu: ${ad}`;
@@ -372,7 +396,9 @@ async function yurut({ komut, arg = '', secenek = {} }) {
 }
 async function yurutIc(komut, arg, secenek, notlar, t0) {
   let cikti;
-  switch (komut) {
+  const katman = EYLEM.has(komut) && sonKatman ? await sleep(500).then(() => yeniKatman(komut)) : null;
+  if (katman) { notlar.push(katman); cikti = await ekran('katman', { notlar }); }
+  else switch (komut) {
     case 'ekran': await durul(1500); cikti = await ekran('ekran', { notlar }); break;
     case 'dokun': { const m = await dokun(arg); await sleep(350); await durul(); notlar.unshift(m); cikti = await ekran('dokun', { notlar }); break; }
     case 'yaz': { const m = await yaz(arg, !!secenek.enter); await durul(); notlar.unshift(m); cikti = await ekran('yaz', { notlar }); break; }
