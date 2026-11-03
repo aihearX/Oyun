@@ -5,7 +5,7 @@ import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { Bar } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
-import { BEKLEYEN_INSAAT, DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, buildKey, canQueue, effect, insaatIstegi, queueSupported, shortOf, sureTam, useBekleyenInsaat, type CampActions } from './model';
+import { BEKLEYEN_INSAAT, BONUS_KURAL, DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, bonusArtisi, buildKey, canQueue, effect, insaatIstegi, kurulumYazisi, queueSupported, shortOf, sureTam, useBekleyenInsaat, type CampActions, type CampBonuses } from './model';
 import { useKg } from './gorev/state';
 import { BinaIcon, KgIcon } from './gorev/art';
 import { hikayeBinasi } from './hikaye-bina';
@@ -18,7 +18,7 @@ import { GorevChips, GorevHost, KgOyunGiris, KlinikVakaSatiri } from './gorev/Ka
 /** Liste görünümü (erişilebilirlik): binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
 export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   camp: CampState; wallet: Wallet; team: boolean; fast: number; sNow: number; actions: CampActions;
-  bonuses: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } | null;
+  bonuses: CampBonuses | null;
 }) {
   const [confirm, setConfirm] = useState<BuildingDef | null>(null);
   const [burst, setBurst] = useState<string | null>(null);
@@ -28,6 +28,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   const merkez = lv('merkez'); const depot = lv('depo');
   const { stored, max: depotMax } = depotStored(depot, camp.depotStoredAt, sNow, depotCapHours(lv('denge')));
   const [levelPanel, setLevelPanel] = useState(false);
+  const [bonusKural, setBonusKural] = useState(false);
   // bağlantı yokken basılan yükseltme bağlanınca bir kez gider; o arada kart bekliyor der, düğmeler kilitli (model.ts insaatIstegi)
   const bekleyen = useBekleyenInsaat((st) => st.id);
   const upgrade = async (d: BuildingDef) => { setConfirm(null); await insaatIstegi(d.id, () => (active && queueSupported(camp) ? actions.queue(d.id) : actions.upgrade(d.id))); };
@@ -58,10 +59,14 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
 
       {bonuses && Object.values(bonuses).some((v) => v > 0) && (
         <div className="card bonus-card" aria-label="Kamp ve takım etkileri">
-          <span className="muted small-note">Kamp + takım etkilerin · savaş ve baskın yüzdesi yalnız takım teknolojisinden; kamp binaları takım puanlarına eklenmez</span>
+          {/* sade başlık; sıfır olanın nasıl artacağı tek satır; kaynak kuralı (karar 29) dokununca (YN-153) */}
+          <span className="bonus-baslik">Binalarının ve takımının sana verdiği ek ödüller</span>
           <div className="bonus-row">
             <span><b>+%{bonuses.coinPct}</b><Art e="🪙" size="1.15em" className="art-inline" /> jeton</span><span><b>%{bonuses.shieldChancePct}</b><Art e="🛡️" size="1.15em" className="art-inline" /> kalkan</span><span><b>%{bonuses.firstHitIgnorePct}</b><KgIcon name="klinik" size="1.15em" className="art-inline" /> klinik</span><span><b>+%{bonuses.warPct}</b><Art e="⚔️" size="1.15em" className="art-inline" /> savaş</span><span><b>+%{bonuses.raidPct}</b><Art e="👹" size="1.15em" className="art-inline" /> baskın</span>
           </div>
+          {(() => { const t = bonusArtisi(bonuses, team); return t && <span className="muted small-note" data-testid="etki-artisi">{t}</span>; })()}
+          <button type="button" className="linkish bonus-kural-btn" aria-expanded={bonusKural} onClick={() => setBonusKural((v) => !v)}>{bonusKural ? 'Daha az' : 'Nereden geliyor?'}</button>
+          {bonusKural && <span className="muted small-note" data-testid="etki-kurali">{BONUS_KURAL}</span>}
         </div>)}
 
       {BUILDINGS.map((d) => { const b = camp.buildings.find((x) => x.id === d.id)!; const to = b.level + 1; const cost = buildCost(d.id, to); const max = b.level >= d.maxLevel;
@@ -71,7 +76,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
           <div className={`card building${b.upgradingTo ? ' building-now' : ''}${inQueue ? ' building-queued' : ''}`} key={d.id}>
             <div className="row">
               <span className="b-i" aria-hidden><BinaIcon id={d.id} size={32} /></span>
-              <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">Sv {b.level}</span></div><div className="muted">{effect(d.id, b.level)}</div><div className="b-desc">{d.desc}</div></div>
+              <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">{kurulumYazisi(b) ?? `Sv ${b.level}`}</span></div><div className="muted">{effect(d.id, b.level)}</div><div className="b-desc">{d.desc}</div></div>
             </div>
             {!max && <div className="row b-up">
               <span className="muted grow">Sv {to}: {effect(d.id, to)}<br /><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(cost.jeton)} · <Art name="timer" size="1.15em" className="art-inline" /> {sureTam(dur(cost.seconds))}</span>

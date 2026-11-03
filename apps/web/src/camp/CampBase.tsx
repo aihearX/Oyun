@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { BuildingId, CampState, CheerKind, Wallet } from '@odi/shared';
 import { CAMP_CHEERS } from '@odi/shared';
 import type { CampHandle, CampTeam } from '@odi/game-core/lite';
@@ -39,6 +39,11 @@ export interface CampBaseProps {
   onHelped?: (fn: (building: BuildingId, seconds: number) => void) => () => void;
   onList: () => void;
   demo?: boolean;
+  /**
+   * bağlantı şeridi (CampScreen): başlık ve kaynakların altında, akışta gösterilir (üstlerini örtmez); sahnenin kendi "Kamp
+   * yüklenemedi" kartı görünürken gösterilmez, ekranda tek "Tekrar dene" kalır (YN-154, OT-eski-telefon-24)
+   */
+  netBanner?: ReactNode;
   /** başkasının kampı (salt okunur; inşaat, süsleme ve toplama yok; hazır tepki bırakılır) */
   visit?: CampVisitView;
 }
@@ -207,6 +212,7 @@ export function CampBase(p: CampBaseProps) {
           {!p.demo && !visit && <GorevChips />}
         </div>
         {p.demo && <div className="camp-demo-tag">ÖNİZLEME · sunucuya bir şey gitmez</div>}
+        {!agYok && p.netBanner}
       </div>
 
       <div className="camp-bottom">

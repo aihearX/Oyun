@@ -5,7 +5,7 @@ import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, explainRe
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, RewardGlyph, claimedText, ownItems, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
+import { Bar, RewardChips, RewardGlyph, SHIELD_RULE, claimedText, ownItems, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
@@ -25,6 +25,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   useEffect(() => { s.touchDay(); }, []);
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
+  const [shieldInfo, setShieldInfo] = useState(false);
   const daily = dailyFor(s, today); const cal = calendarView(s, today);
   const chest = explainReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
   const doneCount = daily.quests.filter(questDone).length;
@@ -59,7 +60,11 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
       <div className="card streak-card">
         <div className="sc-flame" aria-hidden><Art name="flame" size={46} /></div>
         <div className="grow min0"><b className="big">{Math.max(1, s.streak)}. gün</b><div className="muted">Seri: her gün bir uğra, takvim ilerlesin.</div></div>
-        <div className="shield-pill" title="Seri koruyucu: bir günü kaçırırsan serini korur"><Art name="shield" size="1.25em" className="art-inline" /> {s.meta.shields}/{MAX_STREAK_SHIELDS}</div>
+        {/* etiketli hap; dokununca koruyucunun kuralı tek cümle (YN-151) */}
+        <button type="button" className="shield-pill" aria-expanded={shieldInfo} aria-controls="seri-koruyucu-kural" data-testid="seri-koruyucu" onClick={() => setShieldInfo((v) => !v)}>
+          <Art name="shield" size="1.25em" className="art-inline" /> Seri koruyucu <b>{s.meta.shields}/{MAX_STREAK_SHIELDS}</b>
+        </button>
+        {shieldInfo && <div className="sc-rule" id="seri-koruyucu-kural" role="note" data-testid="seri-koruyucu-kural">{SHIELD_RULE}</div>}
       </div>
 
       <section className="card">

@@ -482,11 +482,16 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .node .name { overflow-wrap:anywhere; }
 
 /* ---------------------------------------------------------------- Bugün */
-.streak-card { display:flex; gap:12px; align-items:center; background:linear-gradient(135deg, #5a2a8f 0%, var(--panel-2) 55%, var(--panel) 100%); }
+.streak-card { display:flex; flex-wrap:wrap; gap:12px; align-items:center; background:linear-gradient(135deg, #5a2a8f 0%, var(--panel-2) 55%, var(--panel) 100%); }
 .sc-flame { font-size:40px; animation:flame 1.8s ease-in-out infinite; transform-origin:50% 90%; filter:drop-shadow(0 0 10px rgba(255,159,28,.7)); }
 @keyframes flame { 50% { transform:scale(1.1) rotate(-4deg); } }
 .big { font-size:1.5rem; font-weight:900; }
-.shield-pill { flex:none; background:var(--glass); border:2px solid rgba(255,255,255,.15); border-radius:999px; padding:6px 10px; font-weight:900; font-size:0.875rem; }
+.streak-card > .grow { flex:1 1 150px; }
+/* seri koruyucu: etiketli hap (dar ekranda metnin altına iner) ve dokununca açılan tek cümle (YN-151) */
+.shield-pill { flex:none; margin-left:auto; display:inline-flex; align-items:center; gap:4px; font:inherit; color:inherit; cursor:pointer; background:var(--glass); border:2px solid rgba(255,255,255,.15); border-radius:999px; padding:6px 10px; font-weight:800; font-size:0.875rem; white-space:nowrap; }
+.shield-pill b { font-weight:900; }
+.shield-pill[aria-expanded="true"] { border-color:rgba(255,255,255,.4); }
+.sc-rule { flex:1 1 100%; font-size:0.875rem; line-height:1.4; }
 .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; margin-top:10px; }
 .cal-day { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 0; border-radius:12px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); min-width:0; }
 .cal-day .cd-n { font-size:0.6875rem; font-weight:900; color:var(--text-2); }
@@ -548,6 +553,12 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .ph-icon { font-size:48px; }
 .profile-hero { display:flex; gap:14px; align-items:center; }
 .profile-hero h2 { font-size:1.125rem; margin-bottom:8px; }
+/* arkadaş kodu: kendi satırında, iri, eş aralıklı ve harf aralıklı, tam beyaz (YN-152); rem: Büyük yazıyla büyür */
+.fcode { margin-top:8px; display:flex; flex-direction:column; gap:2px; }
+.fcode-k { color:var(--text-2); font-weight:700; font-size:0.8125rem; }
+.fcode-row { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.fcode .fcode-v { font-family:ui-monospace,Menlo,Consolas,'Roboto Mono','Courier New',monospace; font-size:1.375rem; font-weight:900; letter-spacing:.14em; color:var(--text); font-variant-ligatures:none; overflow-wrap:anywhere; }
+.fcode-copy.btn.small { flex:none; padding:6px 14px; min-height:36px; font-size:0.8125rem; }
 .avatar-btn { appearance:none; border:3px solid rgba(255,201,60,.6); background:radial-gradient(circle at 50% 40%, var(--panel-2), var(--bg-1)); border-radius:50%; padding:4px; cursor:pointer; flex:none; box-shadow:0 0 18px rgba(255,201,60,.25), 0 4px 0 rgba(0,0,0,.3); }
 .pstats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .pstat { background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); border-radius:14px; padding:10px 6px; display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; }
@@ -922,6 +933,9 @@ button.msg-sys.msg-fold { font-family:inherit; cursor:pointer; min-height:32px; 
 .bonus-row span { display:flex; flex-direction:column; align-items:center; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); border-radius:12px; padding:4px 2px; font-weight:800; font-size:0.625rem; color:var(--text-2); white-space:nowrap; }
 .bonus-row b { font-size:0.8125rem; color:var(--text); }
 /* Büyük yazı: etiket ve simge gövde yazısı boyunda, kutucuklar üç sütunda iki satıra sarar; açıklama gövde boyunda (OT-buyuk-yazi-27) */
+.bonus-baslik { font-weight:800; font-size:0.875rem; color:var(--text); }
+.bonus-card > .small-note { line-height:1.4; }
+.bonus-kural-btn { align-self:flex-start; padding:4px 0; min-height:32px; font-size:0.8125rem; }
 html.buyuk-yazi .bonus-card > .small-note { font-size:0.875rem; line-height:1.4; }
 html.buyuk-yazi .bonus-row { grid-template-columns:repeat(auto-fit,minmax(5.2rem,1fr)); gap:6px; }
 html.buyuk-yazi .bonus-row span { font-size:0.875rem; white-space:normal; text-align:center; padding:6px 4px; gap:2px; }

@@ -55,7 +55,8 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
           <RozetCipleri p={me} />
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
-          {me && <div className="muted small-note">Arkadaş kodun: <b className="mono">{me.friendCode}</b>{me.teamName ? <> · <TeamEmblem e={me.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{me.teamName}</span></> : ''}</div>}
+          {me && <FriendCode code={me.friendCode} />}
+          {me?.teamName && <div className="muted small-note"><TeamEmblem e={me.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{me.teamName}</span></div>}
         </div>
       </div>
       <div className="pstats">
@@ -83,6 +84,24 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
       {note && <div className="lock-toast" role="status"><Art name="lock" size={18} /> {note}</div>}
       {rename && me && <Rename current={me.name} onClose={() => setRename(false)} />}
       {codeSheet && <CodeSheet onClose={() => setCodeSheet(false)} />}
+    </div>
+  );
+}
+
+/**
+ * Arkadaş kodu kendi satırında, iri ve eş aralıklı (5/S, 0/O karışmasın; Büyük yazıyla büyür), yüksek kontrastlı; pano varsa
+ * yanında Kopyala (YN-152). Ekran okuyucu kodu harf harf okur.
+ */
+function FriendCode({ code }: { code: string }) {
+  const canCopy = typeof navigator !== 'undefined' && typeof navigator.clipboard?.writeText === 'function';
+  const copy = async () => { try { await navigator.clipboard.writeText(code); toast('📋', 'Kod kopyalandı', code); } catch { toast('📋', 'Kopyalanamadı', 'Kodu elle yazabilirsin.'); } };
+  return (
+    <div className="fcode" data-testid="arkadas-kodu">
+      <span className="fcode-k">Arkadaş kodun</span>
+      <span className="fcode-row">
+        <b className="mono fcode-v" aria-label={`Arkadaş kodun ${code.split('').join(' ')}`}>{code}</b>
+        {canCopy && <button type="button" className="btn small fcode-copy" onClick={() => void copy()} aria-label="Arkadaş kodunu kopyala">Kopyala</button>}
+      </span>
     </div>
   );
 }

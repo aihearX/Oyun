@@ -8,6 +8,8 @@ import { platform } from '../platform';
 import { OdiAvatar } from './OdiAvatar';
 import { useStore } from '../store';
 import { useCoach } from '../ftue/Coach';
+import { featureById } from '../ftue/features';
+import { featureOpen } from '../ftue/useFeatures';
 
 const COLORS = [0x6c4cf1, 0xff7a59, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
 export const isDefaultName = (n: string) => /^Odi\d{4}$/.test(n);
@@ -16,7 +18,8 @@ export const isDefaultName = (n: string) => /^Odi\d{4}$/.test(n);
  * Bağlantı zayıfken seçilen ad (YN-047): istek gitmiş ama yanıtı gelmemiş ya da bağlantı bekleniyor olabilir. Kart en çok
  * BEKLE ms bekler, sonra "bağlanınca kaydedilecek" der; bağlanınca ad (hâlâ varsayılansa) bir kez daha gönderilir. Aynı ad iki kez
  * yazılsa da sonuç aynıdır (sunucu adı üzerine yazar); yanıtı beklenen istek varken yenisi gönderilmez. Uygulama kapanırsa kayıt
- * cihazda kalır, bir sonraki bağlanışta gönderilir.
+ * cihazda kalır, bir sonraki bağlanışta gönderilir. İnternet hiç yokken (YN-154, OT-eski-telefon-25) beklenmez: kart hemen
+ * "İnternet yok" der, ad bağlanınca (aşağıdaki abonelik) bir kez gönderilir; "zayıf" yalnız bağlıyken yanıt gecikince.
  */
 interface Bekleyen { name: string; color: number }
 const KEY = 'odi.adBekliyor';
@@ -24,6 +27,18 @@ const BEKLE = 5000;
 const okunan = (): Bekleyen | null => { try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) as Bekleyen : null; } catch { return null; } };
 const useAdKaydi = create<{ bekleyen: Bekleyen | null }>()(() => ({ bekleyen: okunan() }));
 const bekleyenYaz = (b: Bekleyen | null) => { useAdKaydi.setState({ bekleyen: b }); try { if (b) localStorage.setItem(KEY, JSON.stringify(b)); else localStorage.removeItem(KEY); } catch { /* gizli mod */ } };
+/** ad kaydının bekleme metni: internet yok (hemen) ya da bağlıyken yanıt gecikti (BEKLE ms sonra) */
+export const AD_INTERNET_YOK = 'İnternet yok; adın bağlanınca kaydedilecek. Bu arada oynamaya devam edebilirsin.';
+export const AD_ZAYIF = 'Bağlantı zayıf; adın bağlanınca kaydedilecek. Bu arada oynamaya devam edebilirsin.';
+/** çevrimdışı: tarayıcı ağ yok diyor ya da sunucu bağlantısı açık değil (soket kapalı/bağlanıyor) */
+export const cevrimdisi = (): boolean => (typeof navigator !== 'undefined' && navigator.onLine === false) || useNet.getState().status !== 'bağlı';
+/**
+ * ad kaydolunca karşılama (YN-154, OT-ogrenci-birinci-29): takım henüz kilitliyse o an yapılabilecek şey ve takımın açıldığı bölüm
+ * (eşik features.ts'ten; sabit yazılmaz)
+ */
+export function merhabaMetni(): string {
+  return featureOpen('team') ? 'Takımlar ve sohbet seni bekliyor.' : `İlk bölümler seni bekliyor; takımlar ${featureById('team').at}. bölümde açılır.`;
+}
 /** bağlantı kaynaklı hata: sunucu işlemiş olabilir ya da istek hiç gitmedi; ikisinde de bağlanınca yeniden gönderilir */
 const baglantiHatasi = (e: unknown) => e instanceof NetError && ['CEVRIMDISI', 'KAPALI', 'KOPTU', 'ZAMAN_ASIMI'].includes(e.code);
 
@@ -34,7 +49,7 @@ function gonder(b: Bekleyen): Promise<unknown> {
   if (ucus) return ucus;
   const p = n.call('profile.update', { name: b.name, color: b.color }).then(() => {
     bekleyenYaz(null); useStore.getState().setOdiColor(b.color, true);
-    toast('👋', `Merhaba ${b.name}!`, 'Takımlar ve sohbet seni bekliyor.', 'green');
+    toast('👋', `Merhaba ${b.name}!`, merhabaMetni(), 'green');
   }, (e: unknown) => { if (!baglantiHatasi(e)) bekleyenYaz(null); throw e; });
   ucus = p.finally(() => { ucus = null; });
   return ucus;
@@ -77,8 +92,8 @@ export function Onboarding() {
   const bekleyen = useAdKaydi((s) => s.bekleyen);
   const [name, setName] = useState(''); const [color, setColor] = useState<number | null>(null);
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
-  // yanıt BEKLE ms'de gelmedi ya da bağlantı yok: ad cihazda bekliyor
-  const [gecikti, setGecikti] = useState(false);
+  // ad cihazda bekliyor: 'yok' internet/bağlantı yok (beklemeden), 'zayif' bağlıyken yanıt BEKLE ms'de gelmedi
+  const [gecikti, setGecikti] = useState<'yok' | 'zayif' | null>(null);
   // açılmış kart bağlantı koparsa kaybolmaz (yazılan ad bağlanınca kaydedilir)
   const acildi = useRef(false);
   // Bilgi düzeyi sorusu yalnız bir kez (karar 31): kart açılırken karar verilir, seçince kart içinde kalır
@@ -94,14 +109,17 @@ export function Onboarding() {
   const c = color ?? useStore.getState().odiColor ?? me.color;
   const save = async () => {
     const b = { name: name.trim(), color: c };
-    setBusy(true); setErr(''); bekleyenYaz(b); useStore.getState().knowledgeAskedDone();
+    setErr(''); bekleyenYaz(b); useStore.getState().knowledgeAskedDone();
+    // internet yok: beklemeden söyle; ad cihazda, bağlanınca abonelik bir kez gönderir
+    if (cevrimdisi()) { setGecikti('yok'); return; }
+    setBusy(true);
     let sure: ReturnType<typeof setTimeout> | undefined;
     try {
       // en çok BEKLE ms: yanıt gelmezse istek sürer, kart dürüstçe "bağlanınca kaydedilecek" der
       const r = await Promise.race([gonder(b).then(() => 'tamam' as const), new Promise<'bekle'>((res) => { sure = setTimeout(() => res('bekle'), BEKLE); })]);
-      if (r === 'tamam') platform().haptic('success'); else setGecikti(true);
+      if (r === 'tamam') platform().haptic('success'); else setGecikti(cevrimdisi() ? 'yok' : 'zayif');
     } catch (e) {
-      if (baglantiHatasi(e)) setGecikti(true); else { setErr(errText(e)); platform().haptic('error'); }
+      if (baglantiHatasi(e)) setGecikti(cevrimdisi() ? 'yok' : 'zayif'); else { setErr(errText(e)); platform().haptic('error'); }
     } finally { clearTimeout(sure); }
     setBusy(false);
   };
@@ -111,7 +129,7 @@ export function Onboarding() {
         <div className="card onboard" role="dialog" aria-label="Takma adın">
           <OdiAvatar size={84} color={bekleyen.color} />
           <h2>{bekleyen.name}</h2>
-          <div className="muted" role="status">Bağlantı zayıf; adın bağlanınca kaydedilecek. Bu arada oynamaya devam edebilirsin.</div>
+          <div className="muted" role="status" data-testid="ad-bekliyor" data-durum={gecikti}>{gecikti === 'yok' ? AD_INTERNET_YOK : AD_ZAYIF}</div>
           <button type="button" className="btn" onClick={() => useSocial.setState({ onboardDismissed: true })}>Tamam</button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
-import { MAX_STREAK_SHIELDS, cardById, cosmeticById } from '@odi/content';
+import { DUPLICATE_VALUE, MAX_STREAK_SHIELDS, cardById, cosmeticById } from '@odi/content';
 import type { RewardSwap } from '@odi/meta';
 import { IconButton } from './Button';
 import { Glyph, rich } from './art';
@@ -45,6 +45,12 @@ export function rewardLabel(it: RewardItem): string {
     case 'kart': { const c = cardById(it.ref ?? ''); return c ? `🃏 +1 Kulak Kartı: ${c.title}` : '🃏 +1 Kulak Kartı'; }
   }
 }
+/**
+ * Seri koruyucunun kuralı tek cümle (YN-151): Bugün'deki "Seri koruyucu 0/2" hapına dokununca. Kural koddan: kaçırılan her gün
+ * bir koruyucu harcar, yetmezse seri baştan başlar (`advanceStreak`); en çok MAX_STREAK_SHIELDS birikir, doluyken gelen koruyucu
+ * önceden yazılı jetona döner (`explainReward`, DUPLICATE_VALUE.koruyucu).
+ */
+export const SHIELD_RULE = `Uğramadığın her gün için bir koruyucu harcanır, yettiği sürece serin bozulmaz; en çok ${MAX_STREAK_SHIELDS} tane birikir, doluyken gelen koruyucunun yerine ${DUPLICATE_VALUE.koruyucu} jeton alırsın.`;
 /**
  * Zaten sahip olunan şeyin jetona dönüşmesi (önceden yazılı karşılık). Önizlemede: "Kulaklı Bere zaten sende: yerine +50 jeton"
  * (çiplerde bu jeton yok: `ownItems`); açılış penceresinde ayrı satır: "Kulaklı Bere zaten dolabında" ×50 (OT-ekonomi-denetci-20).

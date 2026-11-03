@@ -102,10 +102,11 @@ function RealCamp({ view, setView }: { view: View; setView: (v: View) => void })
     if (enabled && (!tried || st === 'bağlanıyor')) return <ListShell setView={setView}><ContentLoading /></ListShell>;
     return <ListShell setView={setView}><CampOffline /></ListShell>;
   }
-  const banner = st !== 'bağlı' && <div className="net-banner camp-net"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
+  const banner = st !== 'bağlı' && <div className="net-banner camp-net"><Art name="signal" size={18} /><span className="grow min0">Bağlantı koptu — yeniden bağlanıyor…</span><button className="linkish" onClick={reconnect}>Tekrar dene</button></div>;
   // kamp verisi hiç gelmeden bağlantı koptu: iskelet yerine dürüst kart; bağlanınca (st → bağlı) kamp kendiliğinden yüklenir
   if (!camp || !wallet) return <ListShell setView={setView}>{st === 'bağlı' ? <ContentLoading /> : <CampOffline />}</ListShell>;
-  if (view === 'us') return <>{banner}<CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} /></>;
+  // şerit başlığın ve jetonun altında akışta (eskiden üstte sabitti, 320 px'te ikisini örtüyordu; YN-154)
+  if (view === 'us') return <CampBase camp={camp} wallet={wallet} team={teamView} helpCount={helpCount} fast={fast} now={serverNow} actions={actions} onHelped={onHelped} onList={() => setView('liste')} netBanner={banner} />;
   return <ListShell setView={setView}>{banner}<CampList camp={camp} wallet={wallet} team={!!team} fast={fast} sNow={sNow} actions={actions} bonuses={bonuses} /></ListShell>;
 }
 

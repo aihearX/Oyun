@@ -61,6 +61,34 @@ export const shortOf = (id: BuildingId) => defOf(id).short ?? defOf(id).name.spl
 export const ITEMS = [{ k: 'm5', label: '5 dk', sec: 300 }, { k: 'm60', label: '60 dk', sec: 3600 }, { k: 's8', label: '8 sa', sec: 28_800 }] as const;
 export type SpeedItem = 'm5' | 'm60' | 's8' | 'kristal';
 
+/**
+ * Kurulmamış binanın rozeti (YN-153): ilk inşaat sürerken "Kuruluyor", yoksa "Kurulmadı"; kurulu binada null (rozet "Sv N" yazar).
+ * Panelde ve listede aynı kural (panel "Sv 1 yapılıyor" derken rozet "Kurulmadı" kalıyordu).
+ */
+export const kurulumYazisi = (b: Pick<BuildingState, 'level' | 'upgradingTo'>): string | null => (b.level > 0 ? null : b.upgradingTo ? 'Kuruluyor' : 'Kurulmadı');
+
+/** Kamp + takım etkileri (sunucuda bonusesFor): kaynakları sunucuyla aynı */
+export interface CampBonuses { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number }
+/**
+ * Sıfır kalan etkiler nasıl artar, tek satır (YN-153; ilk kez oynayan beş "%0" kutucuğunu yanlış bir şey yapıyor sanıyordu). Binalı
+ * kaynak: jeton Odyometri + Kule, kalkan Atölye, klinik yalnız Klinik; savaş ve baskın yalnız takım teknolojisi (karar 29). Hepsi
+ * sıfır değilse null.
+ */
+export function bonusArtisi(b: CampBonuses, team: boolean): string | null {
+  const bina: string[] = [];
+  if (b.coinPct <= 0) bina.push(`${shortOf('laboratuvar')} ve ${shortOf('kule')} (jeton)`);
+  if (b.shieldChancePct <= 0) bina.push(`${shortOf('atolye')} (kalkan)`);
+  if (b.firstHitIgnorePct <= 0) bina.push(`${shortOf('revir')} (klinik)`);
+  const tk = [b.warPct <= 0 && 'savaş', b.raidPct <= 0 && 'baskın'].filter(Boolean).join(' ve ');
+  const parts = [
+    bina.length ? `Artırmak için yükselt: ${bina.join(', ')}.` : '',
+    tk ? `${tk[0]!.toLocaleUpperCase('tr')}${tk.slice(1)} ${team ? 'takımının teknolojisiyle' : 'bir takıma katılınca takım teknolojisiyle'} artar.` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' ') : null;
+}
+/** etkilerin kaynağı (dokununca): karar 29, binalar takım rekabetine girmez */
+export const BONUS_KURAL = 'Jeton ve kalkan: kamp binaları ve takım teknolojisi; klinik: yalnız kamp binası. Savaş ve baskın yüzdesi yalnız takım teknolojisinden gelir; kamp binaları takım puanlarına eklenmez.';
+
 /** bu oturumda yardım istenen inşaatlar (sunucu "istendi" bilgisini döndürmüyor) */
 export const askedHelp = new Set<string>();
 export const buildKey = (b: BuildingState) => `${b.id}:${b.upgradingTo}:${b.startedAt}`;

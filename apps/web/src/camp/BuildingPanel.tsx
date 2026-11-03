@@ -4,7 +4,7 @@ import { CAMP_POWER_LEVEL, buildCost, crystalsToFinish, type BuildingId, type Ca
 import { CAMP_TIER_NAMES, buildingCanvas, depotStored, tierOf } from '@odi/game-core/lite';
 import { audio } from '@odi/audio';
 import { fmtLeft, fmtNum } from '../ui/social';
-import { BEKLEYEN_INSAAT, DEPOT_RATE, ITEMS, KRISTAL_KURAL, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, insaatIstegi, queueSupported, shortOf, sureTam, unlockLabel, useBekleyenInsaat, type CampActions } from './model';
+import { BEKLEYEN_INSAAT, DEPOT_RATE, ITEMS, KRISTAL_KURAL, POWER_BUILDINGS, activeOf, askedHelp, buildKey, canQueue, canUpgrade, defOf, effect, infoOf, insaatIstegi, kurulumYazisi, queueSupported, shortOf, sureTam, unlockLabel, useBekleyenInsaat, type CampActions } from './model';
 import { depotCapHours, libStored, nextCampUnlock, campUnlocksAt, type CampUnlock } from '@odi/content';
 import { MoreLine } from '../ftue/Notes';
 import { TedaviPanel } from './TedaviPanel';
@@ -82,7 +82,7 @@ export function BuildingPanel({ id, camp, wallet, team, fast, sNow, actions, onC
           <BuildingThumb id={id} level={b.level} />
           <div className="grow min0">
             <h2>{d.name}</h2>
-            <div className="bp-lv"><span className={`bp-tier t${Math.max(0, tierOf(b.level))}`}>{b.level > 0 ? `Sv ${b.level} · ${CAMP_TIER_NAMES[tierOf(b.level)]}` : 'Kurulmadı'}</span><span className="bp-max">en çok Sv {d.maxLevel}</span></div>
+            <div className="bp-lv"><span className={`bp-tier t${Math.max(0, tierOf(b.level))}`}>{kurulumYazisi(b) ?? `Sv ${b.level} · ${CAMP_TIER_NAMES[tierOf(b.level)]}`}</span><span className="bp-max">en çok Sv {d.maxLevel}</span></div>
             <div className="bp-desc">{d.desc}</div>
             {story && story.id === id && b.level < story.need && <div className="bp-desc" data-testid="hikaye-ipucu"><KgIcon name="bolum" size="1.1em" className="art-inline" /> Kampın Hikâyesi (“{story.bolum}”) bu binayı Sv {story.need} istiyor</div>}
           </div>
