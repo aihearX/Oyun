@@ -61,8 +61,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
   const note = useNote(spec.biome, 'result', !demo && result.completed && spec.number >= 2 && !useCoach.getState().tour && Math.random() < (store.knowledge === 'odyoloji' ? 0.8 : 0.45), spec.number + result.score);
-  // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı
-  const bilgi = biliyorMuydun(spec.number, store.knowledge);
   const [toast, setToast] = useState('');
   const reduced = useMemo(prefersReducedMotion, []);
   /** önizleme bayrağı: ?demo=sonuc&kutlama=0 → seviye kutlaması açılmaz (yalnızca ekran görüntüsü için) */
@@ -91,6 +89,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
   const loss = result.completed ? null : lossView(result, spec, attempt);
+  // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı. Aynı bölümün
+  // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127)
+  const bilgi = biliyorMuydun(spec.number, store.knowledge, attempt - 1);
   const lossDetail = loss ? guardedDetail(loss.detail, result) : '';
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   // Rahat denemeyle geçişte yıldız 1'de kalır: sıradaki yıldızın kartı yerine Rahat kartı (karar 42)
@@ -121,6 +122,25 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // her yıldız: ekranı sallayarak iner + büyüyen çan sesi + titreşim + ışıltı
   const starsRef = useRef<HTMLDivElement>(null); const scoreRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  // "Biliyor muydun?" ilk ekranda (YN-145, OT-sinav-adayi-28): satır sıradaki yıldızın kartının (kayıpta kutuların) hemen altında;
+  // orada yapışkan düğmelerin altında kalıyorsa düğme alanının üstünde tek satırlık kısa hâli, dokununca tamamı. Ölçü kaydırmadan
+  // bağımsız (satırın sayfadaki yeri, düğmenin ekrandaki yeri); kartlar büyüyünce (yardım kartı, yazı tipi) yeniden ölçülür
+  const bilgiRef = useRef<HTMLElement>(null); const actRef = useRef<HTMLDivElement>(null);
+  const [bilgiKisa, setBilgiKisa] = useState(false); const [bilgiAcik, setBilgiAcik] = useState(false);
+  useLayoutEffect(() => {
+    const el = bilgiRef.current; const act = actRef.current; const page = rootRef.current;
+    if (!el || !act || !page) return;
+    const olc = () => {
+      const btn = act.querySelector(':scope > :not([data-testid="biliyor-muydun-kisa"])'); if (!btn) return;
+      let kayma = 0; for (let p = page.parentElement; p; p = p.parentElement) kayma += p.scrollTop;
+      // kısa hâle geçince üst bölüm sıkışır (styles.css .bilgi-kisa); satır o yüzden sığar görünse de kısa kalır (gidip gelmesin)
+      if (el.getBoundingClientRect().bottom - kayma > btn.getBoundingClientRect().top + 1) setBilgiKisa(true);
+    };
+    olc();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(olc); ro.observe(page); ro.observe(el);
+    return () => ro.disconnect();
+  }, [bilgi]);
   const shake = (px: number) => { try { rootRef.current?.animate([{ transform: 'none' }, { transform: `translate(${-px}px, ${px * 0.6}px)` }, { transform: `translate(${px}px, ${-px * 0.6}px)` }, { transform: `translate(${-px / 2}px, ${px / 3}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' }); } catch { /* yok */ } };
   useEffect(() => {
     if (reduced) return;
@@ -196,7 +216,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
   return (
     <>
-      <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
+      <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}${bilgi && bilgiKisa ? ' bilgi-kisa' : ''}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
         <div className="result-top">
           <div className="muted ellipsis">{spec.number}. {spec.name}</div>
           <div className={`pill wallet${hudCoins.bump && coinsFlying ? ' hud-pop' : ''}`} ref={walletRef} data-hud="jeton" key={`w${hudCoins.bump}`}><Art name="coin" size={19} className="art-inline" />{coinsShown.toLocaleString('tr-TR')}</div>
@@ -207,8 +227,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
             {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty"><StarHole /></span><span className="star-full"><Art name="star" size="100%" /></span></span>)}
           </div>
-          {/* sonuç ekranı açılırken gelen başarım bildirimi bu satırın altında durur: başlığı ve yıldızları örtmez (ui/Toasts.tsx; OT-buyuk-yazi-37) */}
-          <div className="score-line" ref={scoreRef} data-toast-under>
+          <div className="score-line" ref={scoreRef}>
             <div className="score">{score.toLocaleString('tr-TR')}</div>
             {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
             {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, rahat ? 0 : result.score).toLocaleString('tr-TR')}</div>}
@@ -243,7 +262,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
           {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
-          <div className="stats has-wide">
+          {/* sonuç ekranı açılırken gelen başarım bildirimi kutuların altında durur: başlığı, yıldızları, skoru ve nota/süre kutularını
+              örtmez; yapışkan düğmelere kadar yer yoksa bekler (ui/Toasts.tsx; OT-buyuk-yazi-37, OT-buyuk-yazi-42) */}
+          <div className="stats has-wide" data-toast-under>
             {/* notasız (canavar) bölümde hasar: kalp değil (oyun boyunca kalp "can" demek; OT-buyuk-yazi-41 "2 can kaldı" okudu) */}
             {spec.coinsTotal > 0
               ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
@@ -275,6 +296,12 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             )}
           </div>
 
+          {bilgi && (
+            <aside className="result-bilgi" ref={bilgiRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} data-kisa={bilgiKisa ? '1' : undefined} aria-label="Biliyor muydun?">
+              <Art name="bulb" size={26} className="rb-art" />
+              <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
+            </aside>
+          )}
 
           <div className={`card xp-card${xpPhase === 1 ? ' burst' : ''}`}>
             <div className="row between"><b>Seviye {xpLevel}</b><span className="muted">+{summary.xpAfter - summary.xpBefore} XP</span></div>
@@ -301,13 +328,6 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             <span className="gi"><Art name={result.completed ? (summary.goal.kind === 'hazine' ? 'chest' : 'target') : 'ear'} size={30} /></span>
             <span><Rich text={summary.goal.text} /></span>
           </div>
-
-          {bilgi && (
-            <aside className="result-bilgi" data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} aria-label="Biliyor muydun?">
-              <Art name="bulb" size={26} className="rb-art" />
-              <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
-            </aside>
-          )}
 
           {runId && step >= S + 3 && <TeamContribution runId={runId} reduced={reduced} />}
           {result.completed && !rahat && step >= S + 3 && <ResultComm level={spec.number} completed demo={demo} />}
@@ -347,7 +367,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
 
           {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
-          <div className="result-actions" onClick={(e) => e.stopPropagation()}>
+          <div className="result-actions" ref={actRef} data-toast-floor onClick={(e) => e.stopPropagation()}>
+            {bilgi && bilgiKisa && (
+              <button type="button" className={`result-bilgi-kisa${bilgiAcik ? ' acik' : ''}`} data-testid="biliyor-muydun-kisa" aria-expanded={bilgiAcik} onClick={() => setBilgiAcik((a) => !a)}>
+                <Art name="bulb" size={18} className="rbk-art" />
+                <span className="rbk-t"><b>Biliyor muydun?</b> {bilgi}</span>
+              </button>
+            )}
             {intro ? (
               <>
                 <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.grows.map((g) => `${g.zone}-${g.to}`), ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
@@ -385,8 +411,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
         {toast && <div className="toast">{toast}</div>}
       </div>
-      {/* başarım bildirimleri bu ekranla aynı anda çizilir (App'teki kutlama katmanı sonuçta bildirim göstermez): ilk karede skor
-          satırının altında, başlığı örtmeden (OT-buyuk-yazi-37). Ekranın dışında: sallanma dönüşümü sabit konumu kaydırmasın */}
+      {/* başarım bildirimleri bu ekranla aynı anda çizilir (App'teki kutlama katmanı sonuçta bildirim göstermez): kutuların altında,
+          hiçbir yazıyı örtmeden; seviye penceresi açıkken bekler (OT-buyuk-yazi-37, -42). Ekranın dışında: sallanma dönüşümü sabit konumu kaydırmasın */}
       <Toasts />
     </>
   );

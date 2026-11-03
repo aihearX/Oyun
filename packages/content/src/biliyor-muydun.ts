@@ -8,6 +8,7 @@
  * ya da tedavi önerisi yok; timpanogram tek başına tanı koydurmaz; iç kulak organının adı her yerde "Koklea". Tüy Dede notlarını ve
  * Kulak Kartlarını kelimesi kelimesine tekrar etmez (birim testi). Sayı ile birim arasında bölünmez boşluk (U+00A0).
  */
+import { HUMAN_JOURNEY } from './journeys';
 import { bolunmezYap } from './metin';
 
 export interface BiliyorMuydun {
@@ -148,8 +149,18 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
     src: `${K}, gürültüde konuşma testleri` },
 ]);
 
-/** bölümün "Biliyor muydun?" satırı oyuncunun Bilgi düzeyine göre; listede olmayan bölümde (ör. üretilmiş bölüm) null */
-export function biliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji'): string | null {
+const biyomu = (bolum: number) => HUMAN_JOURNEY.levels.find((l) => l.number === bolum)?.biome;
+
+/**
+ * bölümün "Biliyor muydun?" satırı oyuncunun Bilgi düzeyine göre; listede olmayan bölümde (ör. üretilmiş bölüm) null.
+ * `tekrar`: aynı bölümün kaçıncı tekrarı (0 = ilk oynayış). Tekrarda hep aynı satır çıkmasın diye (YN-127) biyomun öteki
+ * bölümlerinin satırlarından sıradaki gelir (bölüm sırasıyla, başa sararak); yeni metin yok, yalnız bu onaylı listeden seçim.
+ */
+export function biliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar = 0): string | null {
   const b = BILIYOR_MUYDUN.find((x) => x.bolum === bolum);
-  return b ? (duzey === 'odyoloji' ? b.odyoloji : b.genel) : null;
+  if (!b) return null;
+  const biyom = biyomu(bolum);
+  const sira = biyom ? BILIYOR_MUYDUN.filter((x) => biyomu(x.bolum) === biyom) : [b];
+  const s = sira[(sira.indexOf(b) + Math.max(0, Math.floor(tekrar))) % sira.length] ?? b;
+  return duzey === 'odyoloji' ? s.odyoloji : s.genel;
 }

@@ -708,7 +708,8 @@ async function suite(browserName, target, [W, H]) {
     return rec;
   }
   const tab = async (label) => { await page.locator('nav.tabbar .tab', { hasText: label }).click(); await sleep(500); };
-  const toastGone = async () => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.locator('.toast-top').first().click({ timeout: 500 }).catch(() => undefined); await sleep(150); } };
+  // yer bekleyen (gizli, YN-145) bildirim de kapatılır: tıklama DOM'dan (görünmeyen öğeye fare tıklaması gitmez)
+  const toastGone = async () => { for (let i = 0; i < 8 && await page.locator('.toast-top').count(); i++) { await page.evaluate(() => document.querySelector('.toast-top')?.click()).catch(() => undefined); await sleep(150); } };
   const back = async () => { const b = page.getByRole('button', { name: 'Geri' }).first(); if (await b.count()) await b.click(); await sleep(400); };
 
   try {
@@ -1184,6 +1185,8 @@ async function suite(browserName, target, [W, H]) {
       await check('giris-devam', { scroll: false });
     }
     if (want('sonuc')) {
+      // olmayan öğenin yazısı: boş (locator.textContent öğeyi 30 sn bekliyordu; ekran başına dakikalar)
+      const yazi = async (sel) => ((await page.locator(sel).count()) ? (await page.locator(sel).first().textContent()) ?? '' : '');
       // YN-066: haritada bekleyen tanıtım (Kamp; iki açılım en uzun satır) → Sonraki yerine "Haritaya dön"
       for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki'],
         // YN-081: 1★ (2. yıldızın koşulu ilk ekranda), süreli hedef 0,4 sn kaçtı, kanca bölümünde kayıp (mekaniğin ipucu), boss kaybı
@@ -1201,20 +1204,42 @@ async function suite(browserName, target, [W, H]) {
         // sonuç açılırken gelen başarım bildirimi başlığı örtmez (Büyük yazıda iki satır)
         ['demo=sonuc&bolum=28&yildiz=2&skor=1700&acilim=1&harita=1&kutlama=0', 'sonuc-harita-cicek'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kalkan=1&kutlama=0', 'sonuc-kaybetti-kalkan'],
         ['demo=sonuc&bolum=40&yildiz=2&skor=1500&bildirim=1&kutlama=0', 'sonuc-bildirim'],
+        // YN-145 (OT-buyuk-yazi-42): seviye atlanan sonuçta başarım bildirimi Seviye penceresi açıkken bekler, kapanınca kutuların altında
+        ['demo=sonuc&bolum=4&yildiz=3&skor=2210&seviye=1&bildirim=1', 'sonuc-bildirim-seviye'],
+        // YN-145 (OT-sinav-adayi-28): ilk geçişte "Haritaya dön" + Biliyor muydun? (Bölüm 6: yeni yer, iki satırlık anlatım şeridi)
+        ['demo=sonuc&bolum=6&yildiz=2&skor=2115&acilim=1&anlatim=team,shop&kutlama=0', 'sonuc-bilgi-anlatim'],
         // YN-110 (karar 42): canavarda 3 kayıptan sonra Rahat deneme teklifi; Rahat denemeyle geçişin sonucu (1 yıldız, rekabet yok)
         ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
-        // YN-136 (OT-buyuk-yazi-37): başarım bildirimi sonuç başlığını ve yıldızları örtmez (açılır açılmaz; ekran örtüşmeden önce ölçülür)
-        const bildirim = label !== 'sonuc-bildirim' ? null : await page.locator('.toast-top .tt-card').waitFor({ timeout: 5000 }).then(() => sleep(500)).then(() => page.evaluate(() => {
-          const r = (sel) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b ? { t: Math.round(b.top), b: Math.round(b.bottom), l: Math.round(b.left), r: Math.round(b.right) } : null; };
-          const t = r('.toast-top .tt-card'); const out = [];
-          for (const sel of ['.result-title', '.star-row', '.score-line']) { const x = r(sel); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) out.push(`${sel} ${JSON.stringify(x)}`); }
+        // YN-136 (OT-buyuk-yazi-37), YN-145 (OT-buyuk-yazi-42): başarım bildirimi başlığı, yıldızları, skoru, nota/süre kutularını (ve
+        // sıradaki yıldızın kartını) ve yapışkan düğmeleri örtmez; yer yoksa görünmeden bekler (data-bekliyor). Seviye penceresi açıkken
+        // hiç görünmez, pencere kapanınca gelir
+        const ortme = () => page.evaluate(() => {
+          const r = (el) => { const b = el?.getBoundingClientRect(); return b ? { t: Math.round(b.top), b: Math.round(b.bottom), l: Math.round(b.left), r: Math.round(b.right) } : null; };
+          const el = document.querySelector('.toast-top'); if (!el) return { toast: null, ort: [] };
+          if (el.dataset.bekliyor) return { toast: null, bekliyor: el.dataset.bekliyor, gizli: el.style.visibility === 'hidden', ort: [] };
+          const t = r(el.querySelector('.tt-card')); const out = [];
+          for (const sel of ['.result-title', '.star-row', '.score-line', '.result .stats .card', '.result-actions > *']) for (const e of document.querySelectorAll(sel)) { const x = r(e); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) out.push(`${sel} ${JSON.stringify(x)}`); }
           return { toast: t, ort: out };
-        }), () => ({ toast: null, ort: [] }));
+        });
+        const seviye = label !== 'sonuc-bildirim-seviye' ? null : await (async () => {
+          const out = { pencere: false, ustunde: 0, sonra: null };
+          await page.locator('.cel-stage.lvl-stage').waitFor({ timeout: 8000 }).then(() => { out.pencere = true; }, () => undefined);
+          if (!out.pencere) return out;
+          for (let i = 0; i < 12; i++) { if (await page.evaluate(() => !!document.querySelector('.cel-stage') && [...document.querySelectorAll('.toast-top')].some((e) => getComputedStyle(e).visibility !== 'hidden'))) out.ustunde++; await sleep(100); }
+          await page.screenshot({ path: resolve(dir, `${label}-pencere.png`) });
+          await page.locator('.cel-stage .cel-cta .btn').click({ timeout: 5000 }).catch(() => undefined);
+          await page.locator('.cel-stage').waitFor({ state: 'detached', timeout: 5000 }).catch(() => undefined);
+          await page.locator('.toast-top').waitFor({ state: 'attached', timeout: 3000 }).then(() => sleep(400), () => undefined);
+          out.sonra = await ortme();
+          if (out.sonra.toast) await page.screenshot({ path: resolve(dir, `${label}-sonra.png`) });
+          await toastGone(); return out;
+        })();
+        const bildirim = label !== 'sonuc-bildirim' ? null : await page.locator('.toast-top').waitFor({ state: 'attached', timeout: 5000 }).then(() => sleep(500)).then(ortme, () => ({ toast: null, ort: [] }));
         // açılış anının görüntüsü bildirimle; sonra bildirimler kapatılır (örtme ölçümü bildirimsiz ekranda)
-        if (bildirim) { await page.screenshot({ path: resolve(dir, `${label}-acilis.png`) }); await toastGone(); }
+        if (bildirim && (bildirim.toast || bildirim.bekliyor)) { await page.screenshot({ path: resolve(dir, `${label}-acilis.png`) }); await toastGone(); }
         await page.locator('.result-title').click().catch(() => undefined); await sleep(900);
         // YN-081: kaydırmadan görünmesi gerekenler (yapışkan düğmelerin altında kalmadan): sıradaki yıldızın kartı, kayıpta neden kartı
         const ilk = await page.evaluate(() => {
@@ -1226,6 +1251,23 @@ async function suite(browserName, target, [W, H]) {
             if (sel === '[data-testid="rahat-teklif"]') return { sel, ok: r.top >= 0 && r.top + 60 <= aTop + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(aTop) };
             return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
           }).filter(Boolean);
+        });
+        // YN-145 (OT-sinav-adayi-28): "Biliyor muydun?" ilk ekranda: sıradaki yıldızın kartının (kayıpta kutuların) hemen altında ve
+        // yapışkan düğmelerin üstünde; yer yoksa düğme alanının en üstünde tek satırlık kısa hâli (görünür, ekranın içinde)
+        const bilgiYer = await page.evaluate(() => {
+          const act = document.querySelector('.result-actions'); const aTop = act?.firstElementChild ? act.firstElementChild.getBoundingClientRect().top : innerHeight;
+          const full = document.querySelector('[data-testid="biliyor-muydun"]'); const kisa = document.querySelector('[data-testid="biliyor-muydun-kisa"]');
+          if (!full) return { sorun: 'satır yok' };
+          const f = full.getBoundingClientRect(); const out = { tam: { top: Math.round(f.top), bottom: Math.round(f.bottom), limit: Math.round(aTop) } };
+          if (!full.previousElementSibling?.matches('.stats')) out.sorun = `satır kutuların hemen altında değil (önceki: ${full.previousElementSibling?.className})`;
+          else if (!full.dataset.kisa && f.top >= 0 && f.bottom <= aTop + 1) out.yer = 'tam';
+          else if (kisa) {
+            const k = kisa.getBoundingClientRect(); out.kisa = { top: Math.round(k.top), bottom: Math.round(k.bottom), h: Math.round(k.height) };
+            if (!act?.contains(kisa) || act.firstElementChild !== kisa) out.sorun = 'kısa satır düğme alanının en üstünde değil';
+            else if (k.top < 0 || k.bottom > innerHeight || k.height > 48 || getComputedStyle(kisa).visibility === 'hidden') out.sorun = 'kısa satır ekranda görünmüyor ya da tek satır değil';
+            else out.yer = 'kisa';
+          } else out.sorun = 'satır ilk ekranda değil ve kısa hâli yok';
+          return out;
         });
         // YN-093 (OT-ilk-kez-oyun-20): neden kartı sayfa akışında; kutularla ve yapışkan düğme alanıyla örtüşmez
         const ort = !label.startsWith('sonuc-kaybetti') ? [] : await page.evaluate(() => {
@@ -1243,40 +1285,53 @@ async function suite(browserName, target, [W, H]) {
           return out;
         });
         const rec = await check(label);
-        if (bildirim && !bildirim.toast) fail(rec, 'başarım bildirimi görünmedi');
+        rec.bilgi = bilgiYer;
+        if (bilgiYer.sorun) fail(rec, `"Biliyor muydun?" ilk ekranda değil: ${bilgiYer.sorun} ${JSON.stringify(bilgiYer)}`);
+        if (bildirim) rec.bildirim = bildirim;
+        if (bildirim && !bildirim.toast && !bildirim.bekliyor) fail(rec, 'başarım bildirimi görünmedi');
+        if (bildirim?.bekliyor && !bildirim.gizli) fail(rec, 'yer bekleyen başarım bildirimi görünür');
+        if (seviye) {
+          rec.seviye = seviye;
+          if (!seviye.pencere) fail(rec, 'Seviye penceresi açılmadı');
+          if (seviye.ustunde) fail(rec, `Seviye penceresi açıkken başarım bildirimi görünür (${seviye.ustunde}/12 örnek)`);
+          if (seviye.sonra && !seviye.sonra.toast && !seviye.sonra.bekliyor) fail(rec, 'Seviye penceresi kapanınca başarım bildirimi gelmedi');
+          if (seviye.sonra?.bekliyor && !seviye.sonra.gizli) fail(rec, 'yer bekleyen başarım bildirimi görünür');
+          if (seviye.sonra?.ort.length) fail(rec, `pencere kapanınca başarım bildirimi ${JSON.stringify(seviye.sonra.toast)} örtüyor: ${seviye.sonra.ort.join('; ')}`);
+        }
         if (bildirim?.ort.length) fail(rec, `başarım bildirimi ${JSON.stringify(bildirim.toast)} örtüyor: ${bildirim.ort.join('; ')}`);
         // YN-136 (OT-buyuk-yazi-41): notasız (canavar) bölümde hasar kalp simgesiyle gösterilmez (kalp "can" demek)
         if (await page.locator('[data-testid="sonuc-hasar"] .art-heart').count()) fail(rec, 'hasar kartında kalp simgesi');
         const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
         if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
         // YN-102: değiştiricili bölümde "Değiştirici: …" satırı; sis/gece kaybında Yüksek görünürlük yönlendirmesi; yardım kartı çıktı mı
-        const degis = (await page.locator('[data-testid="sonuc-degistirici"]').textContent().catch(() => null)) ?? '';
+        const degis = await yazi('[data-testid="sonuc-degistirici"]');
         if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Yankı$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
         if (label === 'sonuc-kaybetti-sis' && (!/Sis/.test(degis) || !(await page.locator('[data-testid="sonuc-gorunurluk"]').count()))) fail(rec, `sis kaybında değiştirici satırı ya da Yüksek görünürlük yönlendirmesi yok: "${degis}"`);
         if (label === 'sonuc-kaybetti-yardim' && !(await page.locator('[data-testid="yardim-iste-dugme"]').count())) fail(rec, 'yardım kartı/düğmesi yok');
         // YN-113: kolaylaştırma satırı yalnız yardım devredeyken (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin satırı
-        const kolay = (await page.locator('[data-testid="sonuc-kolay"]').textContent().catch(() => null)) ?? '';
-        const kolaySonra = (await page.locator('[data-testid="sonuc-kolay-sonraki"]').textContent().catch(() => null)) ?? '';
+        const kolay = await yazi('[data-testid="sonuc-kolay"]');
+        const kolaySonra = await yazi('[data-testid="sonuc-kolay-sonraki"]');
         if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
         if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
         if (!/kolay/.test(label) && (kolay || kolaySonra)) fail(rec, `yardım yokken kolaylaştırma satırı: "${kolay}${kolaySonra}"`);
         // YN-110 (karar 42): Rahat deneme teklifi yalnız istenen ekranda, açıkça (ne değişir, ne verir); Rahat geçişte kart ve Meydan oku yok
-        const teklif = (await page.locator('[data-testid="rahat-teklif"]').textContent().catch(() => null)) ?? '';
-        if (label === 'sonuc-kaybetti-rahat-teklif' && (!/Canavar %20 yavaş, 1 can fazla\./.test(teklif) || !/En çok 1 yıldız verir; lig, düello ve takım puanı yazılmaz\./.test(teklif) || !/%20 yavaş, \+1 can, en çok 1 yıldız/.test((await page.locator('.result-actions [data-testid="rahat-dene"]').textContent().catch(() => '')) ?? ''))) fail(rec, `Rahat deneme teklifi eksik: "${teklif}"`);
+        const teklif = await yazi('[data-testid="rahat-teklif"]');
+        if (label === 'sonuc-kaybetti-rahat-teklif' && (!/Canavar %20 yavaş, 1 can fazla\./.test(teklif) || !/En çok 1 yıldız verir; lig, düello ve takım puanı yazılmaz\./.test(teklif) || !/%20 yavaş, \+1 can, en çok 1 yıldız/.test(await yazi('.result-actions [data-testid="rahat-dene"]')))) fail(rec, `Rahat deneme teklifi eksik: "${teklif}"`);
         if (label !== 'sonuc-kaybetti-rahat-teklif' && teklif) fail(rec, `Rahat deneme teklifi istenmeyen ekranda: "${teklif}"`);
         if (label === 'sonuc-kaybetti-rahat-teklif' && !(await page.locator('.result-actions button').allTextContents()).map((t) => t.trim()).includes('Tekrar dene')) fail(rec, '"Tekrar dene" (normal deneme) düğmesi yok');
-        const rahatKart = (await page.locator('[data-testid="sonuc-rahat"]').textContent().catch(() => null)) ?? '';
+        const rahatKart = await yazi('[data-testid="sonuc-rahat"]');
         if (label === 'sonuc-rahat') {
           if (!/Rahat denemeyle geçildi/.test(rahatKart) || !/Normal denemede daha çok yıldız alırsan yıldızın yükselir/.test(rahatKart)) fail(rec, `Rahat sonuç kartı: "${rahatKart}"`);
           if (await page.locator('.star-slot.on').count() !== 1) fail(rec, `Rahat geçişte ${await page.locator('.star-slot.on').count()} yıldız yanıyor (en çok 1)`);
           if (await page.locator('[data-act="meydan"]').count()) fail(rec, 'Rahat geçişte Meydan oku düğmesi var');
         } else if (rahatKart) fail(rec, `Rahat kartı istenmeyen ekranda: "${rahatKart}"`);
         // "Biliyor muydun?" (karar 31): her bölüm sonucunda tek satır görünür
-        const bilgi = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]');
-        if (!(await bilgi.count()) || !(await bilgi.isVisible())) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
+        // (YN-145: ilk ekrana sığmayınca düğme alanında kısa hâli; tam satır o zaman sayfa akışında çizilmez)
+        const bilgiTam = page.locator('[data-testid="biliyor-muydun"][data-show="yes"]'); const bilgiKisa = page.locator('[data-testid="biliyor-muydun-kisa"]');
+        if (!((await bilgiTam.count()) && (await bilgiTam.isVisible())) && !((await bilgiKisa.count()) && (await bilgiKisa.isVisible()))) fail(rec, '"Biliyor muydun?" satırı görünmüyor');
         // YN-070: kayıpta neden kartı (3. yıldız kartı yok); kazançta 3. yıldız kartı, tutmayan her satırın ilerlemesi yazıyla
         if (label.startsWith('sonuc-kaybetti')) {
-          const why = (await page.locator('[data-testid="sonuc-neden"]').textContent().catch(() => '')) ?? '';
+          const why = await yazi('[data-testid="sonuc-neden"]');
           if (!/Canların bitti/.test(why)) fail(rec, `kayıp nedeni yazmıyor: "${why}"`);
           if (label === 'sonuc-kaybetti-diken' && !/en son dikene değdin/.test(why)) fail(rec, `son hasar yazmıyor: "${why}"`);
           // YN-136 (OT-sessiz-oyuncu-18): kalkan bir vuruşu karşıladıysa kayıp kartı da söyler (damageNote, karar 37)
@@ -1285,7 +1340,7 @@ async function suite(browserName, target, [W, H]) {
           if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, 'kayıpta 3. yıldız kartı görünüyor');
           if (label === 'sonuc-kaybetti-kanca' && !/Kancanın yanında basılı tut/.test(why)) fail(rec, `kanca bölümünde kanca ipucu yok: "${why}"`);
           if (ort.length) fail(rec, `kayıp kartları örtüşüyor: ${ort.join('; ')}`);
-          const hedef = (await page.locator('.goal-card').textContent().catch(() => '')) ?? '';
+          const hedef = await yazi('.goal-card');
           if (label === 'sonuc-kaybetti-boss' && (/Kapıya/.test(hedef) || !/gücünün %\d+'(ı|i|u|ü|sı|si|su|sü) kaldı/.test(hedef))) fail(rec, `boss kaybında hedef cümlesi: "${hedef}"`);
         } else if (label === 'sonuc-rahat') {
           // Rahat geçiş: sıradaki yıldızın kartı yok (yıldız 1'de kalır; Rahat kartı yerinde)
@@ -1316,9 +1371,9 @@ async function suite(browserName, target, [W, H]) {
           if (!strip || strip.x < 0 || strip.x + strip.width > W || strip.y + strip.height > H) fail(rec, `bekleyen tanıtım satırı görünmüyor ya da taşıyor: ${JSON.stringify(strip)}`);
           if (await page.locator('.result-actions [data-act="sonraki"]').count()) fail(rec, 'bekleyen tanıtım varken Sonraki düğmesi var');
           if (!btn.some((b) => b.t === 'Haritaya dön')) fail(rec, `"Haritaya dön" düğmesi yok: ${btn.map((b) => b.t).join(', ')}`);
-          const yazi = (await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').textContent().catch(() => '')) ?? '';
+          const serit = await yazi('.result-actions [data-testid="anlatim-bekliyor"]');
           const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : label === 'sonuc-harita-canlanma' ? 'Kulak Kanalı haritada canlanacak.Hazine sandığını da orada göreceksin.' : label === 'sonuc-harita-cicek' ? 'Koklea · Apeks haritada çiçeklenecek.' : 'Yeni: Kamp';
-          if (!yazi.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${yazi}"`);
+          if (!serit.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${serit}"`);
         }
       }
     }

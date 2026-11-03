@@ -139,4 +139,22 @@ describe('odyoloji içeriği', () => {
     expect(biliyorMuydun(1, 'odyoloji')).toBe(BILIYOR_MUYDUN[0]!.odyoloji);
     expect(biliyorMuydun(n + 1, 'genel')).toBeNull();
   });
+
+  it('Biliyor muydun? tekrarda biyomun öteki satırlarından sıradakini verir (YN-127)', () => {
+    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
+    for (const b of BILIYOR_MUYDUN) {
+      const ayni = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(b.bolum));
+      expect(biliyorMuydun(b.bolum, 'genel', 0)).toBe(b.genel);
+      const goru = [0, 1, 2].map((k) => biliyorMuydun(b.bolum, 'genel', k));
+      // biyomda birden çok satır varsa art arda iki oynayış aynı satırı göstermez; hepsi biyomun onaylı satırlarından
+      if (ayni.length > 1) expect(goru[1], `${b.bolum}`).not.toBe(goru[0]);
+      for (const t of goru) expect(ayni.map((x) => x.genel)).toContain(t);
+      // sıradaki: bölüm sırasıyla bir sonraki satır (başa sararak); odyoloji düzeyi de aynı bölümün satırı
+      const i = ayni.indexOf(b); const sonraki = ayni[(i + 1) % ayni.length]!;
+      expect(biliyorMuydun(b.bolum, 'genel', 1)).toBe(sonraki.genel);
+      expect(biliyorMuydun(b.bolum, 'odyoloji', 1)).toBe(sonraki.odyoloji);
+      // biyomun bütün satırları dönünce başa döner
+      expect(biliyorMuydun(b.bolum, 'genel', ayni.length)).toBe(b.genel);
+    }
+  });
 });

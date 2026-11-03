@@ -258,6 +258,13 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-bilgi .rb-art { flex:none; margin-top:2px; }
 .result-bilgi .rb-body { display:flex; flex-direction:column; gap:2px; min-width:0; font-size:0.875rem; font-weight:700; line-height:1.4; color:var(--text); overflow-wrap:anywhere; }
 .result-bilgi .rb-body small { font-size:0.6875rem; font-weight:900; text-transform:uppercase; letter-spacing:.4px; color:var(--gold); }
+/* YN-145: tam satır ilk ekranda yapışkan düğmelerin altında kalıyorsa düğme alanının üstünde tek satırlık kısa hâli; dokununca tamamı */
+.result-bilgi-kisa { display:flex; align-items:center; gap:8px; width:100%; min-height:36px; margin:0; padding:5px 12px 5px 8px; text-align:left; font:inherit; color:var(--text); background:var(--bg-1); border:2px solid rgba(169,147,255,.45); border-radius:14px; cursor:pointer; }
+.result-bilgi-kisa .rbk-art { flex:none; }
+.result-bilgi-kisa .rbk-t { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:0.8125rem; font-weight:700; line-height:1.35; }
+.result-bilgi-kisa .rbk-t b { font-weight:900; color:var(--gold); }
+.result-bilgi-kisa.acik { align-items:flex-start; }
+.result-bilgi-kisa.acik .rbk-t { white-space:normal; overflow-wrap:anywhere; }
 .unlocks { width:100%; display:flex; flex-direction:column; gap:10px; text-align:left; }
 .unlock-card, .quests-mini { animation:slideUp .45s cubic-bezier(.2,1.2,.4,1) both; }
 .unlock-card { position:relative; display:flex; gap:12px; align-items:flex-start; background:linear-gradient(180deg,#fffaf0,var(--cream)); color:var(--ink); border:2px solid #fff; border-radius:var(--radius); padding:12px 14px; box-shadow:var(--shadow); overflow:hidden; }
@@ -406,6 +413,40 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
   html.buyuk-yazi .result-screen .result .score { font-size:34px; }
   html.buyuk-yazi .result-screen .result-title { font-size:27px; }
   html.buyuk-yazi .result-screen.lost .stats .card { gap:0; }
+}
+/* YN-145: kısa ekranda "Biliyor muydun?" kısa satırı düğme alanına girince o kadar yer üst bölümden ve düğme alanından açılır
+   (sıradaki yıldızın kartı, neden ve yardım kartı ilk ekranda kalsın) */
+/* kısa hâl düğme alanındayken sayfa akışındaki tam satır çizilmez (aynı satır iki kez, yarısı düğme alanının arkasında görünmesin);
+   düğme alanının üst geçişi kısa: arkada kalan satır yarı saydam görünmez */
+.result-screen.bilgi-kisa .result-bilgi[data-kisa] { display:none; }
+.result-screen.bilgi-kisa .result-actions { padding-top:14px; gap:8px; background:linear-gradient(rgba(20,12,53,0), var(--bg-0) 6px); }
+.result-screen.bilgi-kisa .result-actions::before { top:6px; }
+@media (max-height:700px) {
+  .result-screen.bilgi-kisa .result-actions { padding-top:8px; gap:6px; }
+  .result-screen.bilgi-kisa .result-actions::before { top:3px; }
+  .result-screen.bilgi-kisa .result-actions .abtn.primary { min-height:46px; }
+  .result-screen.bilgi-kisa .result-bilgi-kisa { min-height:32px; padding:3px 10px 3px 8px; }
+  .result-screen.bilgi-kisa .result-top { padding-top:2px; }
+  .result-screen.bilgi-kisa .result, html.buyuk-yazi .result-screen.bilgi-kisa .result { gap:5px; }
+  .result-screen.bilgi-kisa.lost .result, html.buyuk-yazi .result-screen.bilgi-kisa.lost .result { gap:4px; }
+  .result-screen.bilgi-kisa:not(.lost) .star-row, html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-row { height:52px; }
+  .result-screen.bilgi-kisa:not(.lost) .star-slot, html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-slot { width:44px; height:44px; }
+  .result-screen.bilgi-kisa:not(.lost) .star-slot:nth-child(2), html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-slot:nth-child(2) { width:52px; height:52px; transform:translateY(-6px); }
+  /* kayıpta (yardım kartı) boş yıldızlar, başlık ve skor biraz daha alçak */
+  .result-screen.bilgi-kisa .result { padding-top:0; }
+  .result-screen.bilgi-kisa.lost .star-row, html.buyuk-yazi .result-screen.bilgi-kisa.lost .star-row { height:36px; }
+  .result-screen.bilgi-kisa.lost .star-slot, html.buyuk-yazi .result-screen.bilgi-kisa.lost .star-slot { width:30px; height:30px; }
+  .result-screen.bilgi-kisa.lost .star-slot:nth-child(2), html.buyuk-yazi .result-screen.bilgi-kisa.lost .star-slot:nth-child(2) { width:36px; height:36px; transform:translateY(-4px); }
+  .result-screen.bilgi-kisa.lost .result-title { font-size:27px; }
+  .result-screen.bilgi-kisa.lost .result .score { font-size:28px; }
+  .result-screen.bilgi-kisa .result-why { padding:5px 10px; }
+  /* Büyük yazıda sıradaki yıldızın iki satırlı kartı uzun: yıldızlar, başlık ve skor biraz daha alçak */
+  html.buyuk-yazi .result-screen.bilgi-kisa .result { gap:4px; }
+  html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-row { height:44px; }
+  html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-slot { width:36px; height:36px; }
+  html.buyuk-yazi .result-screen.bilgi-kisa:not(.lost) .star-slot:nth-child(2) { width:44px; height:44px; transform:translateY(-5px); }
+  html.buyuk-yazi .result-screen.bilgi-kisa .result-title { font-size:24px; }
+  html.buyuk-yazi .result-screen.bilgi-kisa .result .score { font-size:30px; }
 }
 @media (min-height:701px) and (max-height:760px) {
   html.buyuk-yazi .result-screen .star-row { height:70px; }
