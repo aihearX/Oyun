@@ -120,7 +120,9 @@ export const relayHandlers: Handlers = {
     const { p, t } = requireTeam(app, s.pid);
     checkRun(d);
     const period = relayPeriod(app);
-    if (app.db.get('SELECT 1 AS x FROM ev_relay_run WHERE player_id = ? AND run_id = ?', p.id, d.runId)) return { relay: relayState(app, t.id), improved: false };
+    // ayağın parkura sayılan süresi (rekor) yanıtta: yavaş koşu "rekor X sn, senin koşun Y sn" diye anlatılır (OT-buyuk-yazi-48)
+    const answer = (improved: boolean) => { const relay = relayState(app, t.id); return { relay, improved, record: relay.legs[d.leg]?.best ?? null }; };
+    if (app.db.get('SELECT 1 AS x FROM ev_relay_run WHERE player_id = ? AND run_id = ?', p.id, d.runId)) return answer(false);
     const r = ensure(app, period.key, t.id);
     if (d.leg < 0 || d.leg >= RELAY_LEGS) fail('GECERSIZ', 'Geçersiz ayak.');
     const firstPass = r.current < RELAY_LEGS;
@@ -132,7 +134,7 @@ export const relayHandlers: Handlers = {
     const time = Math.round(d.timeSec * 10) / 10;
     const sn = time.toLocaleString('tr-TR', { maximumFractionDigits: 1 }); // akış satırı: Türkçe ondalık virgül (56,6 sn)
     app.db.run('INSERT INTO ev_relay_run(player_id, run_id, period, team_id, leg, time_sec, completed, at) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', p.id, d.runId, period.key, t.id, d.leg, time, d.completed ? 1 : 0, now);
-    if (!d.completed) { broadcastRelay(app, t.id); return { relay: relayState(app, t.id), improved: false }; }
+    if (!d.completed) { broadcastRelay(app, t.id); return answer(false); }
     const leg = app.db.get<LegRow>('SELECT leg, best_sec, best_by, first_by, first_at FROM ev_relay_leg WHERE period = ? AND team_id = ? AND leg = ?', period.key, t.id, d.leg);
     const improved = !leg || leg.best_sec == null || time < leg.best_sec;
     if (improved) app.db.run(`INSERT INTO ev_relay_leg(period, team_id, leg, best_sec, best_by, first_by, first_at) VALUES(?, ?, ?, ?, ?, ?, ?)
@@ -156,6 +158,6 @@ export const relayHandlers: Handlers = {
       systemMessage(app, teamRoom(t.id), `${p.name} ${d.leg + 1}. ayakta yeni en iyi süre: ${sn} sn!`, 'system', { event: 'bayrak' });
     }
     broadcastRelay(app, t.id);
-    return { relay: relayState(app, t.id), improved };
+    return answer(improved);
   },
 };

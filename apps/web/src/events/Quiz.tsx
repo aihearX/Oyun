@@ -93,8 +93,10 @@ export function QuizView() {
       {q.phase === 'bitti' && (
         <div className="ev-quiz-hero done" data-tone="lime">
           <span className="ev-art big" aria-hidden><Art e="🏆" size="1.15em" className="art-inline" /></span>
-          <b>Takım ortalaması</b>
-          <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span>
+          {/* katılımcısız yarışmanın ortalaması yok: "0 puan" yazılmaz (OT-sinav-adayi-32) */}
+          {q.players.length === 0 ? <b data-testid="quiz-katilan-yok">Bu bilgi yarışmasına takımdan kimse katılmadı.</b> : <>
+            <b>Takım ortalaması</b>
+            <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span></>}
           {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/10 doğru{rich(c > 0 ? ` · 🪙 ${c * 10} ödül kutunda` : ' · bir dahaki yarışmada!')}</span>; })()}
           <div className="row pratik-son"><button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button><PratikLink /></div>
         </div>

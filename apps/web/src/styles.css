@@ -538,6 +538,13 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .pratik-kart .pk-icon { flex:none; filter:drop-shadow(0 4px 0 rgba(0,0,0,.3)); }
 .pratik-kart .pk-icon .art { display:block; }
 .pratik-kart .pk-btn { margin-top:8px; }
+/* canlı Kulak Bilgi Yarışması göstergesi (Bugün ve Bilgi pratiği; events/QuizLive.tsx, YN-161) */
+.quiz-canli { display:flex; gap:12px; align-items:flex-start; border:2px solid var(--gold); }
+.quiz-canli .qc-ic { flex:none; line-height:0; }
+.quiz-canli .qc-baslik { display:block; overflow-wrap:anywhere; }
+.quiz-canli .muted { display:block; margin-top:2px; }
+.quiz-canli .qc-canli { display:inline-block; margin-right:6px; padding:1px 8px; border-radius:999px; background:var(--gold); color:var(--gold-ink); font-size:0.75rem; font-weight:900; vertical-align:middle; }
+.quiz-canli .qc-btn { margin-top:8px; }
 /* cevaptan sonra kendiliğinden görünür alana kaydırılan düğme: alt güvenli alanın (ana çizgi) altında kalmasın */
 .pratik-sonraki { scroll-margin-bottom:calc(var(--sab) + 16px); }
 .pratik-son { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }

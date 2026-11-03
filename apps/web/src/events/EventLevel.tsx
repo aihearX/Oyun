@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import type { EventKind, LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import type { LevelOptions } from '@odi/game-core/lite';
-import { DEFAULT_SKILLS } from '@odi/content';
+import { DEFAULT_SKILLS, FIRSTS } from '@odi/content';
 import { newRunId } from '@odi/net';
 import { LevelHost } from '../screens/LevelHost';
 import { useStore } from '../store';
 import { applyOverview, evNet, useEvents } from './store';
-import { errText } from './common';
+import { errText, fmtSecs } from './common';
+import { relayRunText } from './bayrak';
 
 /** Bir etkinlik koşusu: hangi etkinliğe gönderileceği */
 export type EventPlay = { kind: 'ralli'; rallyId: string } | { kind: 'bayrak'; leg: number } | { kind: 'meydan' } | { kind: 'turnuva'; slot: number };
@@ -33,6 +34,17 @@ const BOT_HAND: Promise<LevelOptions['botHand']> | undefined = PLAY_BOT && E2E_Q
   ? import('../e2e/oyuncu-eli').then((m) => m.oyuncuEli(Number(E2E_Q!.get('oyun-beceri')), E2E_Q!.has('oyun-tohum') ? Number(E2E_Q!.get('oyun-tohum')) : null))
   : undefined;
 
+/**
+ * Bölüm içi öğretici anlar ve "ilk kez" anları (LevelOptions.firsts): süre/skor yarışmalı ayaklarda (Bayrak, Meydan Okuma, Turnuva)
+ * hiç yok — herkes aynı koşulda, ağır çekimli öğretici süreye ve el işaretine girmez (YN-160); Ralli'de haritadaki gibi yalnız henüz
+ * görülmemişler. Eskiden hiç verilmezdi: oyuncu haritada öğrendiği yeteneğin öğreticisini etkinlik ayağında yeniden görüyordu.
+ */
+function eventFirsts(play: EventPlay): string[] {
+  if (play.kind !== 'ralli') return [];
+  const seen = useStore.getState().meta.firsts;
+  return Object.keys(FIRSTS).filter((f) => !seen.includes(f));
+}
+
 /** Mevcut LevelHost ile etkinlik bölümünü oynatır; bitince sonucu ilgili etkinliğe (runId ile idempotent) gönderir. */
 export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: EventPlay; onExit: (kind: EventKind, flash?: EventFlash) => void }) {
   const done = useRef(false);
@@ -47,7 +59,7 @@ export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: Even
     const h = setInterval(() => { const o = window.__odi; if (o?.done && o.result && o.spec?.id === spec.id) { clearInterval(h); finish(o.result); } }, 250);
     return () => clearInterval(h);
   }, [spec.id]);
-  return <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} onDone={finish} onQuit={() => onExit(play.kind)} />;
+  return <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={{ firsts: eventFirsts(play) }} onDone={finish} onQuit={() => onExit(play.kind)} />;
 }
 
 async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
@@ -66,7 +78,7 @@ async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
         const x = await c.call('relay.submit', { leg: play.leg, ...run });
         useEvents.setState({ relay: x.relay });
         if (!run.completed) return { icon: '🚩', title: 'Ayak tamamlanmadı', text: 'Bayrak hâlâ sende; bir daha dene!', tone: 'warn' };
-        return { icon: '🚩', title: `${play.leg + 1}. ayak: ${run.timeSec.toLocaleString('tr-TR')} sn`, text: x.improved ? 'Ayağın en iyi süresi senin!' : 'Koşu kaydedildi.', tone: 'ok' };
+        return { icon: '🚩', title: `${play.leg + 1}. ayak: ${fmtSecs(run.timeSec)}`, text: relayRunText(run.timeSec, x.improved, x.record), tone: 'ok' };
       }
       case 'meydan': {
         const x = await c.call('challenge.submit', run);

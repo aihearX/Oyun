@@ -197,7 +197,13 @@ günlüklerden bulur.
   (kimse bilmez; depodaki varsayılan kullanılmaz). Baskın penceresi, serbest yazı eşiği vb. gerçek ayarlarda.
 - **Bot kipinin gerçek oyundan farkları:** bölüm içi Şanslı Nota çıkmaz; Revir bonusu (ilk hasarı yok sayma) uygulanmaz; bölüm içi ses
   kapalıdır (başsız tarayıcı zaten duymaz — sesle ilgili geri bildirim metin/görsel karşılık üzerinden verilir); kişinin dokunuşları
-  yerine el modeli oynar (dokunma hassasiyeti, kaydırma algısı gibi şeyler ölçülmez). Canlı yarışta yarış başlayınca hemen `bolum`.
+  yerine el modeli oynar (dokunma hassasiyeti, kaydırma algısı gibi şeyler ölçülmez). Canlı yarışta yarış başlayınca hemen `bolum`. **El modeli kancada takılabilir (YN-160):**
+  bazı tohumlarda planlayıcı + el kanca (asılma) noktasında ileri-geri sallanıp dakikalarca ilerleyemez; oyun saati (`sim.t`) akar,
+  hasar/düşme olmaz, sonunda geçer. Ölçüm (rekabetci, Bayrak 3. ayak = Bölüm 15, tuz 394, `deneme` 682012522, beceri 0,95): tarayıcıda
+  227,5 sn (aynı tohum haritadaki Bölüm 15'te 70,7 sn; aynı ayak başka tohumla 77,7 sn); Phaser'sız tekrar aynı 227,5 sn — x ≈ 14 000'deki
+  kancada oyun saati 72 → 223 sn arası ileri-geri. Öğretici an (ağır çekim ×0,3) bu süreye en çok ~2 sn ekler, takılmanın nedeni değil
+  (yalnız el modelinin rastgele dizisini değiştirir). Böyle uç süreler (ayağın rekorunun 2-3 katı, hasarsız) gerçek oyuncunun değil
+  el modelinin sonucudur; denge/zorluk geri bildirimi olarak yazılmaz.
   Etkinlik ayakları (Ralli, Bayrak, Meydan Okuma, Turnuva) da bot kipinde haritadaki bölümle aynı elle oynanır (`oyun-bot`/`oyun-beceri`
   EventLevel'a da ulaşır; YN-068): "Dokun ve başla" kartı çıkmaz, sonuç etkinliğin kendi yoluyla (ör. `relay.submit`) yazılır; `bolum`
   sonuç kartını (`ETKİNLİK SONUCU`) yazar. Bölüm 90 sn'de başlamazsa `bolum` bekleyip durmaz, hata notuyla döner.

@@ -19,7 +19,7 @@ export { EVENTS_SCHEMA } from './schema';
 export function eventsOverview(app: App, pid: string): EventsOverview {
   const teamId = app.player(pid).team_id;
   const base = { serverTime: app.now(), fast: app.cfg.eventsFast, challenge: challengeState(app, pid), tourney: tourneyState(app, pid) };
-  if (!teamId) return { ...base, inTeam: false, rally: null, rallyStartsLeft: 0, duel: null, relay: null, hunt: null, quiz: null, quizInfo: null, quests: null };
+  if (!teamId) return { ...base, inTeam: false, rally: null, rallyStartsLeft: 0, duel: null, relay: null, hunt: null, quiz: null, quizInfo: quizInfo(app, pid, null), quests: null };
   return {
     ...base, inTeam: true, rally: teamRally(app, teamId), rallyStartsLeft: rallyStartsLeft(app, teamId), duel: duelState(app, pid), relay: relayState(app, teamId),
     hunt: huntState(app, teamId), quiz: teamQuiz(app, pid, teamId), quizInfo: quizInfo(app, pid, teamId), quests: questsState(app, teamId),

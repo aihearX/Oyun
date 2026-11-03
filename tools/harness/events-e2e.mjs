@@ -224,6 +224,7 @@ try {
   await A.page.locator('[data-testid="ralli-oda"][data-hp="200"]').waitFor({ timeout: 10_000 });
   check(/şu an 2 katılımcıya göre/.test(await tid(A, 'ralli-can-temel').innerText()), 'ralli: can 2 katılımcıya göre (200) ve ilk vuruşta sabitleneceği yazıyor');
   await shot(A, 'ralli-odasi');
+  const walletA0 = (await net(A, 'wallet.get')).wallet;
   const rallyRuns = [];
   for (let round = 0; round < 3; round++) {
     const status = await A.page.evaluate(() => window.__etkinlik.events.getState().rally?.status);
@@ -239,10 +240,17 @@ try {
   check(true, 'ralli kazanıldı (iki üye de bölümü bitirdi, can sıfır)');
   await sleep(600);
   await shot(A, 'ralli-kazanildi-sandik');
+  check(await A.page.locator('.cel-cta button', { hasText: 'Topla' }).waitFor({ timeout: 10_000 }).then(() => true, () => false), 'ralli: kazanma sandığında "Topla" (ödül kutusundaki satırlar alınacak)');
   await settle(A); await settle(B);
   await shot(B, 'ralli-kazanildi');
-  const inboxA = (await net(A, 'inbox.list')).items.filter((i) => i.reason.startsWith('Ralli kazanıldı'));
-  check(inboxA.length === 2, 'Ayşe ödül kutusu: ralli ödülü (150 jeton + 10 kristal)');
+  // "Topla" gerçekten toplar (OT-ekonomi-denetci-32): o rallinin ödül kutusu satırları alındı, cüzdan sunucuyla aynı
+  const rallyRows = async (p) => (await net(p, 'inbox.list')).items.filter((i) => i.reason.startsWith('Ralli kazanıldı'));
+  for (let i = 0; i < 20 && ((await rallyRows(A)).length || (await rallyRows(B)).length); i++) await sleep(500);
+  check((await rallyRows(A)).length === 0 && (await rallyRows(B)).length === 0, 'ralli: "Topla" sonrası Ödül kutusunda o rallinin satırı kalmadı (Ayşe ve Bora)');
+  const walletA = (await net(A, 'wallet.get')).wallet;
+  check(walletA.jeton - walletA0.jeton === 150 && walletA.kristal - walletA0.kristal === 10, `ralli: ödül bir kez cüzdana girdi (+${walletA.jeton - walletA0.jeton} jeton, +${walletA.kristal - walletA0.kristal} kristal)`);
+  const shownA = await A.page.evaluate(() => window.__etkinlik.netStore.getState().wallet);
+  check(shownA?.jeton === walletA.jeton && shownA?.kristal === walletA.kristal, 'ralli: istemci cüzdanı sunucu cüzdanıyla eşit');
 
   // ---- QUIZ (iki üye aynı anda cevaplar)
   await openEvents(A, 'quiz');

@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, type RallyHit, type RallyParticipant, type RallyState } from '@odi/shared';
+import { RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason, type RallyHit, type RallyParticipant, type RallyState } from '@odi/shared';
 import { fail, rid, type App, type Handlers } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { addTeamXp, broadcastExtra } from '../teamextra';
@@ -88,20 +88,29 @@ function win(app: App, r: RallyRow): void {
   const m = monsterDef(r.monster);
   const day = dayKey(now);
   const parts = app.db.all<{ player_id: string }>('SELECT player_id FROM ev_rally_part WHERE rally_id = ?', r.id).map((x) => x.player_id);
-  const capped: string[] = [];
+  const capped: string[] = []; const cappedIds = new Set<string>();
   for (const pid of parts) {
     const p = app.playerOrNull(pid);
     if (!p || p.team_id !== r.team_id) continue;
-    if (app.dailyCount(pid, day, 'ev_ralli_odul') >= RALLY_RULES.rewardsPerPlayerDay) { capped.push(p.name); continue; }
+    if (app.dailyCount(pid, day, 'ev_ralli_odul') >= RALLY_RULES.rewardsPerPlayerDay) { capped.push(p.name); cappedIds.add(pid); continue; }
     app.dailyInc(pid, day, 'ev_ralli_odul');
-    giveRewards(app, pid, m.reward, `Ralli kazanıldı: ${m.name}`);
+    giveRewards(app, pid, m.reward, rallyRewardReason(m.name));
     addDuelPoints(app, r.team_id, pid, RALLY_RULES.duelPoints);
   }
   addTeamXp(app, r.team_id, m.teamXp);
   questProgress(app, r.team_id, 'ralli', 1);
   const secs = Math.round((now - r.starts_at) / 1000);
-  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${parts.length} kahraman ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. Ödüller ödül kutusunda, takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kazanildi' });
-  notify(app, app.teamMemberIds(r.team_id), { kind: 'ralli', icon: '🏆', title: `${m.name} yenildi!`, text: 'Ralli kazanıldı. Ödüller ödül kutusunda!', target: 'ralli', ref: r.id });
+  // kahraman = hasar veren katılımcı (OT-takim-kaptani-29); hasarsız katılan da ödül alır, ama "kahraman" sayılmaz
+  const heroes = app.db.all<{ id: string; name: string }>('SELECT p.id, p.name FROM ev_rally_part x JOIN players p ON p.id = x.player_id WHERE x.rally_id = ? AND x.damage > 0 ORDER BY x.damage DESC, x.joined_at', r.id);
+  const who = heroes.length === 1 ? `${heroes[0]!.name} tek başına` : `${heroes.length} kahraman`;
+  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${who} ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. Ödüller katılan herkesin ödül kutusunda, takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kazanildi' });
+  // katılımcıya kendi haberi: başlatan bölümdeyken ralli kazanılmış olabilir (OT-takim-kaptani-29)
+  const winText = (pid: string) => {
+    if (!parts.includes(pid)) return 'Ralli kazanıldı. Katılanların ödülü ödül kutusunda.';
+    if (cappedIds.has(pid)) return `Ralli kazanıldı. Bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülün dolmuştu.`;
+    return heroes.some((h) => h.id === pid) ? 'Ralli kazanıldı. Ödülün ödül kutunda.' : `${heroes.map((h) => h.name).join(', ')} yendi. Katıldığın için ödülün ödül kutunda.`;
+  };
+  for (const pid of app.teamMemberIds(r.team_id)) notify(app, [pid], { kind: 'ralli', icon: '🏆', title: `${m.name} yenildi!`, text: winText(pid), target: 'ralli', ref: r.id });
   broadcastExtra(app, r.team_id);
 }
 
@@ -147,7 +156,17 @@ export const rallyHandlers: Handlers = {
     const hp = rallyMaxHp(monsterDef(r.monster), count);
     app.db.run('UPDATE ev_rally SET hp = ?, max_hp = ? WHERE id = ?', hp, hp, r.id);
     r = rowById(app, r.id)!;
-    if (count === RALLY_RULES.minPlayers) notify(app, app.teamMemberIds(t.id), { kind: 'ralli', icon: '⚔️', title: 'Ralli hazır!', text: `${p.name} katıldı — saldırı başlayabilir!`, target: 'ralli', ref: r.id });
+    if (count === RALLY_RULES.minPlayers) {
+      // saldırı açıldı: başlatan (çoğu zaman bölümde ya da haritada bekliyor) ve diğer katılımcılar adıyla haber alır (OT-takim-kaptani-29);
+      // takımın geri kalanı "Ralli hazır!" (katılım ilk vuruşa dek açık)
+      const parts = new Set(app.db.all<{ player_id: string }>('SELECT player_id FROM ev_rally_part WHERE rally_id = ?', r.id).map((x) => x.player_id));
+      const m = monsterDef(r.monster);
+      for (const pid of app.teamMemberIds(t.id)) {
+        if (pid === p.id) continue;
+        if (parts.has(pid)) notify(app, [pid], { kind: 'ralli', icon: '⚔️', title: pid === r.starter ? `${p.name} ralline katıldı` : `${p.name} ralliye katıldı`, text: `Saldırı açıldı: ${m.name}. Saldır!`, target: 'ralli', ref: r.id });
+        else notify(app, [pid], { kind: 'ralli', icon: '⚔️', title: 'Ralli hazır!', text: `${p.name} katıldı, saldırı açıldı. Sen de katıl!`, target: 'ralli', ref: r.id });
+      }
+    }
     broadcast(app, r);
     return { rally: view(app, r) };
   },

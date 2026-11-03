@@ -52,6 +52,7 @@
 .ev-cta { align-self:stretch; }
 .ev-rally-mini { display:flex; align-items:center; gap:10px; }
 .ev-rally-mini b { font-size:0.9375rem; }
+.ev-ralli-sonuc b, .ev-ralli-sonuc small { display:block; } .ev-ralli-sonuc small { font-size:0.8125rem; font-weight:700; margin-top:2px; }
 .ev-mon-s { line-height:0; filter:drop-shadow(0 0 10px color-mix(in srgb, var(--coral) 70%, transparent)); animation:ev-bob 1.8s ease-in-out infinite; }
 .ev-mons { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .ev-mons > span { line-height:0; filter:drop-shadow(0 3px 4px rgba(0,0,0,.4)); }
@@ -143,10 +144,12 @@
 .ev-leg.cur { border-color:var(--gold); box-shadow:0 0 0 3px color-mix(in srgb, var(--gold) 25%, transparent); }
 .ev-leg.cur .ev-leg-dot { border-color:var(--gold); animation:ev-pulse 1.4s ease-in-out infinite; }
 .ev-leg .btn.small { padding:8px 10px; min-height:40px; }
-/* Bayrak: parkur bitince her ayağı yeniden koşma düğmesi yazılı (OT-ilk-kez-oyun-21); dar ekranda simge düşer, yazı kalır */
-.ev-leg .btn.ev-rerun { flex:none; white-space:nowrap; font-size:0.8125rem; gap:4px; }
-@media (max-width:360px) { .ev-rerun-ic { display:none; } }
-html.buyuk-yazi .ev-rerun-ic { display:none; }
+/* Bayrak: parkur bitince her ayağı yeniden koşma düğmesi yazılı (OT-ilk-kez-oyun-21); ayak adı ve rekor sahibi tam görünsün diye
+   yazının altında (OT-rekabetci-38) */
+.ev-leg .btn.ev-rerun { display:inline-flex; margin-top:6px; white-space:nowrap; font-size:0.8125rem; gap:4px; }
+.ev-leg small.ev-leg-not { font-weight:700; margin-top:2px; }
+.ev-feed .ev-parkurda { flex:none; font-size:0.6875rem; padding:2px 8px; }
+.ev-parkur-not { display:block; margin-top:2px; }
 .ev-carrier { display:flex; flex-direction:column; gap:8px; }
 /* Bayrağı al / Devret: yazı kırılmaz, sığmazsa düğmeler alt alta iner (OT-rekabetci-16) */
 .ev-take-row { flex-wrap:wrap; gap:8px; } .ev-take-row > .btn { flex:1 1 auto; white-space:nowrap; }

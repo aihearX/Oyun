@@ -11,6 +11,7 @@ import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
 import { Art, Glyph } from '../ui/art';
 import { useNav } from '../nav';
+import { QuizLiveCard } from '../events/QuizLive';
 
 /** takvim hücresinin okunuşu (ekran okuyucu ve uzun basış): dönüşüm de söylenir */
 function calDayText(d: CalendarDay): string {
@@ -56,6 +57,8 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
     <div className="screen fade-in with-tabs">
       <TopBar title="Bugün" />
       <div className="muted cap">{dateLabel}</div>
+      {/* canlı bilgi yarışması sürüyorsa en üstte: "Şu an canlı · Katıl" (YN-161) */}
+      <QuizLiveCard />
 
       <div className="card streak-card">
         <div className="sc-flame" aria-hidden><Art name="flame" size={46} /></div>

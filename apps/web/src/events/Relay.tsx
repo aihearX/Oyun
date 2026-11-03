@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DELETED_PLAYER_NAME } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { platform } from '../platform';
 import { OdiAvatar } from '../ui/OdiAvatar';
@@ -27,6 +28,9 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
   // son ayağı ben koştum ve takımda başkası var: aynı kişi art arda iki ayak koşamaz
   const backToBack = r.lastRunner?.id === meId && others.length > 0;
   const leg = !done ? r.legs[r.current]! : null;
+  // "Bayrağı taşıyanlar"da parkura sayılan koşu: ayağın rekoru (aynı kişi, aynı süre); eşit süreli tekrarlarda ilk koşan (rekor ilk kez onunla yazıldı)
+  const counted = new Map<number, number>();
+  r.history.forEach((h, i) => { const b = r.legs[h.leg]?.best; if (b && b.id === h.id && b.timeSec === h.timeSec) counted.set(h.leg, i); });
 
   return (
     <div className="stack ev-relay" data-testid="bayrak" data-current={r.current} data-carrier={r.carrier?.name ?? ''}>
@@ -37,9 +41,12 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
           {r.legs.map((l, i) => (
             <div key={i} className={`ev-leg${l.firstBy ? ' done' : ''}${i === r.current ? ' cur' : ''}`} data-testid={`bayrak-ayak-${i}`}>
               <span className="ev-leg-dot"><Glyph e={l.firstBy ? '🚩' : LEG_ICON[i] ?? '🏃'} size={20} /></span>
-              <div className="min0 grow"><b className="ellipsis">{i + 1}. ayak · {levelName(l.level)}</b>
-                <small className="ellipsis">{rich(l.best ? `⏱️ ${fmtSecs(l.best.timeSec)} · ${l.best.name}` : i === r.current && r.carrier ? `🏃 ${r.carrier.name} koşuyor` : 'Henüz koşulmadı')}</small></div>
-              {done && <button className="btn small ghost ev-rerun" data-testid={`bayrak-yeniden-${i}`} aria-label={`${i + 1}. ayağı yeniden koş`} onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'bayrak', leg: i })}><span className="ev-rerun-ic" aria-hidden><Art e="⏱️" size="1.15em" className="art-inline" /></span> Yeniden koş</button>}
+              {/* ad, bölüm adı ve rekor sahibi tam yazılır (kesilmez); "Yeniden koş" altta (OT-rekabetci-38) */}
+              <div className="min0 grow"><b className="wrap">{i + 1}. ayak · {levelName(l.level)}</b>
+                <small className="wrap">{rich(l.best ? `⏱️ Rekor ${fmtSecs(l.best.timeSec)} · ${l.best.name}` : i === r.current && r.carrier ? `🏃 ${r.carrier.name} koşuyor` : 'Henüz koşulmadı')}</small>
+                {l.best?.name === DELETED_PLAYER_NAME && <small className="wrap ev-leg-not" data-testid={`bayrak-silinmis-${i}`}>Hesabı silinmiş bir oyuncunun süresi; parkurda sayılmaya devam eder.</small>}
+                {done && <button className="btn small ghost ev-rerun" data-testid={`bayrak-yeniden-${i}`} aria-label={`${i + 1}. ayağı yeniden koş`} onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'bayrak', leg: i })}><Art e="⏱️" size="1.15em" className="art-inline" /> Yeniden koş</button>}
+              </div>
             </div>
           ))}
         </div>
@@ -65,7 +72,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
         </div>
       )}
       {!done && r.carrier && !mine && <div className="card ev-wait"><OdiAvatar color={0x2ee6d6} size={36} /><b>{r.carrier.name} {r.current + 1}. ayağı koşuyor</b><Countdown to={r.carrier.until} label="bayrak süresi" /></div>}
-      {done && <div className="card cream ev-result"><b><Art e="🏁" size="1.15em" className="art-inline" /> Parkur tamam: {fmtSecs(r.totalSec ?? 0)}</b><span>Artık her ayakta en iyi süre geçerli: istediğin ayağın yanındaki “Yeniden koş” düğmesiyle o ayağı tekrar koş, süreyi iyileştir.</span></div>}
+      {done && <div className="card cream ev-result"><b><Art e="🏁" size="1.15em" className="art-inline" /> Parkur tamam: {fmtSecs(r.totalSec ?? 0)}</b><span>Artık her ayakta en iyi süre geçerli: istediğin ayağın altındaki “Yeniden koş” düğmesiyle o ayağı tekrar koş, süreyi iyileştir.</span></div>}
 
       <div className="card">
         <b>Takımlar arası (toplam süre)</b>
@@ -73,7 +80,8 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
           <ol className="rank-list">{r.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{t.totalSec != null ? fmtSecs(t.totalSec) : `${t.legs}/4 ayak`}</b></li>)}</ol>
         )}
       </div>
-      {r.history.length > 0 && <div className="card"><b>Bayrağı taşıyanlar</b><ul className="ev-feed">{r.history.map((h, i) => <li key={i}><span className="grow ellipsis"><Art e="🚩" size="1.15em" className="art-inline" /> {h.name} · {h.leg + 1}. ayak</span><b>{fmtSecs(h.timeSec)}</b></li>)}</ul></div>}
+      {r.history.length > 0 && <div className="card"><b>Bayrağı taşıyanlar</b><small className="muted small-note ev-parkur-not">Her ayakta yalnız en iyi süre parkura sayılır (“parkurda”).</small>
+        <ul className="ev-feed">{r.history.map((h, i) => <li key={i} data-testid={i === counted.get(h.leg) ? `bayrak-parkurda-${h.leg}` : undefined}><span className="grow min0 wrap"><Art e="🚩" size="1.15em" className="art-inline" /> {h.name} · {h.leg + 1}. ayak</span>{i === counted.get(h.leg) && <span className="ev-tag ev-parkurda">parkurda</span>}<b>{fmtSecs(h.timeSec)}</b></li>)}</ul></div>}
       <div className="card ev-rw-grid"><b>Hafta sonu ödülleri (ayak koşan herkese)</b><Rewards items={r.rewards.finish} label="🏁 Parkuru bitiren takım" />{r.rewards.podium.map((p, i) => <Rewards key={i} items={p} label={`${['🥇', '🥈', '🥉'][i]} ${i + 1}. takım ek`} />)}</div>
       {passOpen && (
         <Sheet title="Bayrağı kime devredelim?" onClose={() => setPassOpen(false)}>

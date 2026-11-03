@@ -30,7 +30,8 @@ export function EventsScreen({ view = 'merkez', flash, rallyId, onBack, onPlay }
   const [shown, setShown] = useState<EventFlash | undefined>(flash);
   const inTeam = useEvents((s) => s.inTeam); const loaded = useEvents((s) => s.loaded); const status = useNet((s) => s.status);
   useEffect(() => { void refreshEvents(); }, [v, status]);
-  useEffect(() => { if (!shown) return; const h = setTimeout(() => setShown(undefined), 6000); return () => clearTimeout(h); }, [shown]);
+  // uzun sonuç (Bayrak: rekorla karşılaştırma) okunacak kadar kalır; dokununca kapanır
+  useEffect(() => { if (!shown) return; const h = setTimeout(() => setShown(undefined), Math.min(12_000, 6000 + Math.max(0, shown.text.length - 60) * 60)); return () => clearTimeout(h); }, [shown]);
   useEffect(() => { scrollAppTop(); }, [v]);
   const back = () => (v === 'merkez' ? onBack() : setV('merkez'));
   const needTeam = v !== 'merkez' && TEAM_ONLY.includes(v) && loaded && !inTeam;

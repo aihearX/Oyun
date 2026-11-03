@@ -105,6 +105,8 @@ export function isOpen(id: FeatureId, cleared: number, ftue: FtueState): boolean
   return !!ftue.bypass || !!ftue.admin || cleared >= featureById(id).at;
 }
 export const lockText = (id: FeatureId) => `Bölüm ${featureById(id).at}'${suffix(featureById(id).at)} açılır`;
+/** "Bölüm 7'den sonra" (ayrılma eki = bulunma eki + n): kilitli yerin ne zaman açılacağı cümle içinde (YN-161) */
+export const afterText = (id: FeatureId) => `Bölüm ${featureById(id).at}'${suffix(featureById(id).at)}n sonra`;
 /** Türkçe bulunma eki (son rakama göre): 1'de 2'de 3'te 4'te 5'te 6'da 7'de 8'de 9'da 10'da */
 function suffix(n: number): string {
   if (n % 10 === 0) return ({ 10: 'da', 20: 'de', 30: 'da', 40: 'ta', 50: 'de', 60: 'ta', 70: 'te', 80: 'de', 90: 'da' } as Record<number, string>)[n % 100] ?? 'de';

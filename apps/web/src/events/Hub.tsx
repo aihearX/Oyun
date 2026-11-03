@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { EventKind } from '@odi/shared';
-import { RALLY_MONSTERS } from '@odi/shared';
+import { RALLY_MONSTERS, rallyShownName } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
@@ -40,8 +40,12 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
   const now = useSrvNow();
   const meId = me?.id ?? '';
   const r = s.rally?.status === 'acik' && s.rally.endsAt > now ? s.rally : null;
+  // yakın zamanda biten ralli (sunucu 30 dk gösterir): kart "Ralli başlat" yerine sonucu söyler — başlatan bölümdeyken kazanılmış olabilir (OT-takim-kaptani-29)
+  const rDone = !r && s.rally && s.rally.status !== 'acik' ? s.rally : null;
   const rMon = r ? RALLY_MONSTERS.find((m) => m.id === r.monster)! : null;
   const rJoined = !!r?.participants.some((p) => p.id === meId);
+  const doneMon = rDone ? RALLY_MONSTERS.find((m) => m.id === rDone.monster)! : null;
+  const heroes = rDone ? rDone.participants.filter((p) => p.damage > 0).map((p) => rallyShownName(p.name)) : [];
   const relayMine = s.relay?.carrier?.id === meId;
   const q = s.quiz && s.quiz.phase !== 'bitti' ? s.quiz : null;
   const duel = s.duel;
@@ -50,13 +54,19 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
   if (s.inTeam) {
     team.push(
       <EvCard key="ralli" kind="ralli" live={r ? 'CANLI' : null} onOpen={() => open('ralli')}
-        clock={r ? <Countdown to={r.endsAt} urgentMs={120_000} /> : <span className="ev-note">Bugün {s.rallyStartsLeft} ralli hakkı</span>}
-        cta={r ? (rJoined ? (r.participants.length >= 2 ? '⚔️ Saldır' : 'Takım bekleniyor…') : r.attackStarted ? 'Saldırıyı izle' : '🔥 Katıl') : '🔥 Ralli başlat'}>
+        clock={r ? <><span className="ev-note" data-testid="ev-ralli-suruyor">Ralli sürüyor</span><Countdown to={r.endsAt} urgentMs={120_000} /></> : <span className="ev-note">Bugün {s.rallyStartsLeft} ralli hakkı</span>}
+        cta={r ? (rJoined ? (r.participants.length >= 2 ? '⚔️ Saldır' : 'Takım bekleniyor…') : r.attackStarted ? 'Saldırıyı izle' : '🔥 Katıl') : rDone ? 'Sonucu gör' : '🔥 Ralli başlat'} ctaTone={rDone ? 'ghost' : undefined}>
         {r && rMon ? (
           <div className="ev-rally-mini">
             <span className="ev-mon-s" aria-hidden><MonsterArt id={rMon.id} size={44} /></span>
             <div className="grow min0"><b className="ellipsis">{rMon.name}</b><div className="row"><Bar value={r.hp / r.maxHp} tone="coral" label="Canavarın canı" /><span className="qn">{fmtNum(r.hp)}/{fmtNum(r.maxHp)}</span></div></div>
             <Avatars list={r.participants} max={3} />
+          </div>
+        ) : rDone && doneMon ? (
+          <div className="ev-rally-mini ev-ralli-sonuc" data-testid="ev-ralli-sonuc" data-status={rDone.status}>
+            <span className="ev-mon-s" aria-hidden><MonsterArt id={doneMon.id} size={44} beaten={rDone.status === 'kazanildi'} /></span>
+            <div className="grow min0"><b className="wrap">{rDone.status === 'kazanildi' ? `${doneMon.name} yenildi` : `${doneMon.name} kaçtı`}</b>
+              <small className="muted wrap">{rDone.status === 'kazanildi' ? `${heroes.length === 1 ? `${heroes[0]} tek başına yendi` : `${heroes.join(', ')} yendi`}${rDone.participants.some((p) => p.id === meId) ? ' · ödülün ödül kutunda' : ''}` : 'Süre doldu. Yeni ralli başlatabilirsiniz.'}</small></div>
           </div>
         ) : <div className="ev-mons">{RALLY_MONSTERS.map((m) => <span key={m.id} title={m.name}><MonsterArt id={m.id} size={46} /></span>)}<small className="muted">3 canavar · en az 2 katılımcı · 10 dk</small></div>}
       </EvCard>,

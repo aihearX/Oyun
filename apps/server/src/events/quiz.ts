@@ -70,15 +70,17 @@ function broadcast(app: App, q: QuizRow): void {
 function finalize(app: App, q: QuizRow): void {
   const rows = playersOf(app, q.id);
   const avg = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
-  app.db.run('UPDATE ev_quiz SET finished_at = ?, avg = ? WHERE id = ? AND finished_at IS NULL', app.now(), avg, q.id);
+  // katılımcısız yarışmanın ortalaması yok (null): sıralamaya "0 puan" diye girmez (OT-sinav-adayi-32)
+  app.db.run('UPDATE ev_quiz SET finished_at = ?, avg = ? WHERE id = ? AND finished_at IS NULL', app.now(), rows.length ? avg : null, q.id);
   if (!app.team(q.team_id)) return;
+  if (!rows.length) { systemMessage(app, teamRoom(q.team_id), 'Bu bilgi yarışmasına takımdan kimse katılmadı.', 'system', { event: 'quiz', quizId: q.id }); return; }
   for (const r of rows) {
     if (r.correct <= 0 || app.dailyCount(r.player_id, q.day, 'ev_quiz_odul') >= QUIZ_REWARDED_PER_DAY) continue;
     app.dailyInc(r.player_id, q.day, 'ev_quiz_odul');
     giveRewards(app, r.player_id, rw(QUIZ_REWARDS.perCorrect * r.correct), `Kulak Bilgi Yarışması: ${r.correct}/${QUIZ_COUNT} doğru`);
     if (avg >= QUIZ_REWARDS.bonusAvg) giveRewards(app, r.player_id, QUIZ_REWARDS.bonus, `Kulak Bilgi Yarışması: takım ortalaması ${avg}`);
   }
-  if (rows.length) questProgress(app, q.team_id, 'quiz', 1);
+  questProgress(app, q.team_id, 'quiz', 1);
   const best = [...rows].sort((a, b) => b.score - a.score)[0];
   systemMessage(app, teamRoom(q.team_id), `Bilgi yarışması bitti! Takım ortalaması: ${avg} puan${best ? ` · en iyi: ${app.playerOrNull(best.player_id)?.name ?? '?'} (${best.correct}/${QUIZ_COUNT})` : ''}.`, 'system', { event: 'quiz', quizId: q.id });
 }
@@ -137,12 +139,13 @@ function startsLeft(app: App, teamId: string): number {
   return Math.max(0, QUIZ_STARTS_PER_DAY - n);
 }
 
-export function quizInfo(app: App, pid: string, teamId: string): QuizInfo {
+/** teamId null: takımsız oyuncu yalnız sabit saatin açık olup olmadığını görür (Pratik/Bugün'deki dürüst not; başlatamaz) */
+export function quizInfo(app: App, pid: string, teamId: string | null): QuizInfo {
   const slot = quizSlot(app);
   const role = app.player(pid).team_role;
-  const left = startsLeft(app, teamId);
+  const left = teamId ? startsLeft(app, teamId) : 0;
   const ranking = app.db.all<{ team_id: string; name: string; emblem: string; avg: number }>(
-    'SELECT q.team_id, t.name, t.emblem, MAX(q.avg) AS avg FROM ev_quiz q JOIN teams t ON t.id = q.team_id WHERE q.day = ? AND q.finished_at IS NOT NULL GROUP BY q.team_id ORDER BY avg DESC LIMIT 10', dayKey(app.now()))
+    'SELECT q.team_id, t.name, t.emblem, MAX(q.avg) AS avg FROM ev_quiz q JOIN teams t ON t.id = q.team_id WHERE q.day = ? AND q.finished_at IS NOT NULL AND q.avg IS NOT NULL GROUP BY q.team_id ORDER BY avg DESC LIMIT 10', dayKey(app.now()))
     .map((x) => ({ teamId: x.team_id, name: x.name, emblem: x.emblem, avg: Math.round(x.avg) }));
   return { nextSlotAt: slot.nextAt, slotOpen: slot.open, canStart: left > 0 && (slot.open || role === 'lider' || role === 'yardimci'), startsLeft: left, ranking, rewards: QUIZ_REWARDS };
 }

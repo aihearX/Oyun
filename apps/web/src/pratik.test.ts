@@ -104,9 +104,12 @@ describe('bilgi pratiği: hiçbir ödül ya da ilerleme yazmaz', () => {
   });
 
   it('ekran oyuncu kaydına, ağa, kutlamaya ya da etkinlik deposuna bağlı değil', () => {
-    const allowed = new Set(['react', '../ui/bits', '../ui/art', '../ui/icons', '../ui/viewport', './pratik', './events.css']);
+    // QuizLive: canlı yarışma göstergesi (YN-161) — etkinlik deposunu yalnız okur, Quiz ekranını açar; hiçbir şey yazmaz (aşağıda)
+    const allowed = new Set(['react', '../ui/bits', '../ui/art', '../ui/icons', '../ui/viewport', './pratik', './QuizLive', './events.css']);
     const got = imports('events/Pratik.tsx');
     expect(got.filter((m) => !allowed.has(m))).toEqual([]);
+    const live = src('events/QuizLive.tsx');
+    for (const bad of ['celebrate', 'claim', 'completeRun', 'submit', 'recordShare', '.call(', 'localStorage', 'setState']) expect(live, bad).not.toContain(bad);
     const s = src('events/Pratik.tsx');
     for (const bad of ['useStore', 'useNet', 'evNet', 'celebrate', 'claim', 'completeRun', 'submit', 'recordShare', '.call(', 'localStorage', 'questProgress', 'giveRewards']) expect(s, bad).not.toContain(bad);
   });

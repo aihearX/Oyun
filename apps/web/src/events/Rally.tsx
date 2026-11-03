@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyShownName, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
+import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyRewardReason, rallyShownName, type InboxItem, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
+import { claimInboxItem, toast } from '../net';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
 import { Sheet, fmtNum, fmtTime } from '../ui/social';
@@ -58,8 +59,7 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
   useEffect(() => {
     if (rally?.status !== 'kazanildi' || celebrated.current === rally.id || !rally.participants.some((p) => p.id === me?.id)) return;
     celebrated.current = rally.id;
-    const m = RALLY_MONSTERS.find((x) => x.id === rally.monster)!;
-    void celebrate.chest({ title: `${m.name} yenildi!`, items: m.reward.map((r) => ({ kind: r.kind, amount: r.amount, ref: r.ref })), tier: m.id === 'yanki-hayaleti' ? 'altin' : m.id === 'cinlama-cini' ? 'gumus' : 'bronz' });
+    void rallyChest(rally);
   }, [rally?.status, rally?.id]);
 
   const act = async (fn: () => Promise<unknown>) => { setBusy(true); setErr(null); try { await fn(); } catch (e) { setErr(errText(e)); platform().haptic('error'); } setBusy(false); };
@@ -148,6 +148,34 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
       <div className="muted small-note">Hasar: bölümü bitirirsen 60 + 30 × yıldız, bitiremezsen 15. Her katılımcının {RALLY_RULES.triesPerPlayer} hakkı var. Süre: {RALLY_RULES.durationMs / 60_000} dk.</div>
     </div>
   );
+}
+
+/** bu rallinin ödül kutusu satırları (sunucu kazanınca yazar: rallyRewardReason + kazanma anı); bağlı değilse null */
+async function rallyInboxRows(rally: RallyState, m: RallyMonsterDef): Promise<InboxItem[] | null> {
+  const c = evNet(); const wonAt = rally.wonAt;
+  if (!c || c.status !== 'bağlı' || wonAt == null) return null;
+  try {
+    const { items } = await c.call('inbox.list', {});
+    return items.filter((i) => i.reason === rallyRewardReason(m.name) && i.at >= wonAt && i.at < wonAt + 60_000);
+  } catch { return null; }
+}
+
+/**
+ * Kazanma sandığı (OT-ekonomi-denetci-32): sunucu ödülü ödül kutusuna yazar; "Topla" o rallinin satırlarını mevcut `inbox.claim` ile
+ * gerçekten alır (sayaç uçuş bitene dek eski değerde tutulur, sonra sunucu cüzdanı). Alınmış satır ikinci kez yazılmaz (idempotent:
+ * Ödül kutusundan önce alındıysa ya da bugünkü ralli ödülü dolduysa satır yoktur, sandık da açılmaz). Bağlı değilsek jeton uçmaz,
+ * not dürüst: "Bağlanınca Ödül kutundan alınır".
+ */
+async function rallyChest(rally: RallyState): Promise<void> {
+  const m = RALLY_MONSTERS.find((x) => x.id === rally.monster)!;
+  const title = `${m.name} yenildi!`; const tier = m.id === 'yanki-hayaleti' ? 'altin' : m.id === 'cinlama-cini' ? 'gumus' : 'bronz';
+  const rows = await rallyInboxRows(rally, m);
+  if (rows === null) { await celebrate.chest({ title, items: m.reward.map((r) => ({ kind: r.kind, amount: r.amount, ref: r.ref })), tier, granted: true, note: 'Bağlanınca Ödül kutundan alınır' }); return; }
+  if (!rows.length) return;
+  const shown = celebrate.chest({ title, items: rows.map((r) => ({ kind: r.kind, amount: r.amount, ref: r.ref })), tier });
+  const got = await Promise.all(rows.map((r) => claimInboxItem(r.id)));
+  await shown;
+  if (got.some((x) => !x)) toast('📬', 'Ödülün bir kısmı Ödül kutunda', 'Profil › Ödül kutusu’ndan alabilirsin.', 'bronze');
 }
 
 function Picker({ left, busy, err, onStart }: { left: number; busy: boolean; err: string | null; onStart: (id: RallyMonsterId) => void }) {

@@ -632,6 +632,11 @@ export function rallyPerPlayerNeed(m: Pick<RallyMonsterDef, 'hpBase' | 'hpPerMem
 export function rallyReachable(participants: readonly { tries: number }[]): number {
   return participants.reduce((a, p) => a + Math.max(0, RALLY_RULES.triesPerPlayer - p.tries) * RALLY_MAX_HIT, 0);
 }
+/**
+ * Ralli ödülünün ödül kutusu satırındaki nedeni (sunucu yazar). İstemci kazanma sandığında "Topla"ya basılınca o rallinin satırlarını
+ * bu neden + kazanma anıyla (inbox `at` ≥ `wonAt`) bulup `inbox.claim` ile alır (OT-ekonomi-denetci-32).
+ */
+export const rallyRewardReason = (monsterName: string) => `Ralli kazanıldı: ${monsterName}`;
 /** silinmiş hesabın adı (DELETED_PLAYER_NAME) ralli ekranında ve kartlarında böyle görünür; sunucu verisi değişmez (YN-116) */
 export const LEFT_PLAYER_LABEL = 'Ayrılan bir oyuncu';
 export function rallyShownName(name: string): string { return name === DELETED_PLAYER_NAME ? LEFT_PLAYER_LABEL : name; }
@@ -749,7 +754,11 @@ export interface OpMap {
   'relay.state': { req: Record<string, never>; res: { relay: RelayState } };
   'relay.take': { req: Record<string, never>; res: { relay: RelayState } };
   'relay.pass': { req: { to: string }; res: { relay: RelayState } };
-  'relay.submit': { req: EventRun & { leg: number }; res: { relay: RelayState; improved: boolean } };
+  /**
+   * improved: bu koşu ayağın en iyi süresi oldu. record: koşudan sonra ayağın parkura sayılan süresi (rekor; kim, kaç sn) — rekor kırılmadıysa
+   * sonuç kartı "Rekor 46,9 sn · senin koşun 47,1 sn" diye karşılaştırır (OT-buyuk-yazi-48)
+   */
+  'relay.submit': { req: EventRun & { leg: number }; res: { relay: RelayState; improved: boolean; record: RelayLeg['best'] } };
   'hunt.state': { req: Record<string, never>; res: { hunt: HuntState } };
   'quiz.state': { req: Record<string, never>; res: { quiz: QuizState | null; info: QuizInfo } };
   'quiz.start': { req: { level?: 'genel' | 'odyoloji' }; res: { quiz: QuizState } };

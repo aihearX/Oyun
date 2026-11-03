@@ -4,6 +4,7 @@ import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { scrollAppTop } from '../ui/viewport';
 import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikDuzeyNotu, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
+import { QuizLiveCard } from './QuizLive';
 import './events.css';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
@@ -28,6 +29,7 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
     <div className="screen fade-in ev-screen pratik" data-testid="pratik" data-faz={!tur ? 'giris' : bitti ? 'bitti' : sec == null ? 'soru' : 'cevap'}>
       <ScreenHead title="Bilgi pratiği" onBack={onBack} />
       <div className="stack ev-quiz">
+        <QuizLiveCard />
         {!tur && (
           <div className="ev-quiz-hero" data-tone="lime">
             <span className="ev-art big" aria-hidden><Art name="bulb" size="1.15em" className="art-inline" /></span>

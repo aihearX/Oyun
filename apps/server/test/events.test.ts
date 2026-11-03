@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { QUIZ_QUESTIONS } from '@odi/content';
-import { DUEL_RULES, RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp } from '@odi/shared';
+import { DUEL_RULES, RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason } from '@odi/shared';
 import { duelPeriods, huntPeriods, quizSlot } from '../src/events/common';
 import { DUEL_REWARDS } from '../src/events/duel';
 import { HUNT_TIERS } from '../src/events/hunt';
@@ -57,6 +57,39 @@ describe('Ralli', () => {
     expect((await err(a.c.call('rally.hit', { rallyId: rally.id, ...erun() }))).code).toBe('BITTI');
     expect((await a.c.call('rally.state', {})).startsLeft).toBe(5);
     expect(teamId).toBeTruthy();
+  });
+
+  it('başlatan bölümdeyken: katılım ve kazanım adıyla bildirilir; sohbet yalnız hasar vereni kahraman sayar (OT-takim-kaptani-29)', async () => {
+    env = await setup();
+    const [a, b, teamId] = await team2(env, ['Kaptan', 'Hesapli'], 'Haber Takımı');
+    const c = await connectW(env, 'Üçüncü');
+    await c.c.call('team.join', { teamId });
+    const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
+    await c.wait('events.notice', (n) => n.notice.title === 'Kaptan ralli başlattı!');
+    await b.c.call('rally.join', { rallyId: rally.id });
+    // başlatana kendi rallisinin haberi; katılmayan üyeye "Ralli hazır!"
+    expect((await a.wait('events.notice', (n) => n.notice.kind === 'ralli')).notice).toMatchObject({ title: 'Hesapli ralline katıldı', ref: rally.id });
+    expect((await a.wait('events.notice', () => true, 50).catch(() => null))).toBeNull();
+    expect((await c.wait('events.notice', (n) => n.notice.kind === 'ralli')).notice).toMatchObject({ title: 'Ralli hazır!', text: 'Hesapli katıldı, saldırı açıldı. Sen de katıl!' });
+    // Hesapli canavarı tek başına yener (2 vuruş), başlatanın hasarı 0
+    await b.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
+    const won = await b.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
+    expect(won.rally.status).toBe('kazanildi');
+    const win = await a.wait('events.notice', (n) => n.notice.title.includes('yenildi'));
+    expect(win.notice).toMatchObject({ kind: 'ralli', ref: rally.id, text: 'Hesapli yendi. Katıldığın için ödülün ödül kutunda.' });
+    expect((await b.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toBe('Ralli kazanıldı. Ödülün ödül kutunda.');
+    expect((await c.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toContain('Katılanların ödülü');
+    const msg = await c.wait('chat', (m) => m.msg.meta?.phase === 'kazanildi');
+    expect(msg.msg.text).toContain('Hesapli tek başına');
+    expect(msg.msg.text).not.toContain('2 kahraman');
+    // ödül (başlatana da) ödül kutusunda, rallinin nedeni ve kazanma anıyla: istemci "Topla"da bu satırları alır
+    const rows = (await a.c.call('inbox.list', {})).items.filter((i) => i.reason === rallyRewardReason('Serumen Yavrusu') && i.at >= won.rally.wonAt!);
+    expect(rows.map((i) => `${i.kind}:${i.amount}`).sort()).toEqual(['jeton:150', 'kristal:10']);
+    const w0 = (await a.c.call('wallet.get', {})).wallet;
+    for (const r of rows) await a.c.call('inbox.claim', { id: r.id });
+    expect((await err(a.c.call('inbox.claim', { id: rows[0]!.id }))).code).toBe('YOK'); // ikinci kez alınmaz
+    const w1 = (await a.c.call('wallet.get', {})).wallet;
+    expect([w1.jeton - w0.jeton, w1.kristal - w0.kristal]).toEqual([150, 10]);
   });
 
   it('süre dolunca kaçar (bildirim), deneme hakkı 3, günlük başlatma sınırı', async () => {
@@ -320,7 +353,10 @@ describe('Bayrak Yarışı', () => {
     const imp = await a.c.call('relay.submit', { leg: 3, ...erun({ timeSec: 25 }) });
     expect(imp.improved).toBe(true);
     expect(imp.relay.totalSec).toBe(131.4);
-    expect((await a.c.call('relay.submit', { leg: 1, ...erun({ timeSec: 50 }) })).improved).toBe(false);
+    // rekordan yavaş koşu: yanıtta ayağın parkura sayılan rekoru (kim, kaç sn) — sonuç kartı karşılaştırır (OT-buyuk-yazi-48)
+    const slow = await a.c.call('relay.submit', { leg: 1, ...erun({ timeSec: 50 }) });
+    expect(slow).toMatchObject({ improved: false, record: { name: 'Bora', timeSec: 40 } });
+    expect(imp.record).toMatchObject({ name: 'Ayşe', timeSec: 25 });
     env.clock.advance(61 * MIN);
     env.srv.sweep();
     for (const c of [a, b]) {
@@ -422,6 +458,28 @@ describe('Kulak Bilgi Yarışması', () => {
     const items = (await a.c.call('inbox.list', {})).items.filter((i) => i.reason.startsWith('Kulak Bilgi'));
     expect(items.map((i) => `${i.kind}:${i.amount}`).sort()).toEqual(['jeton:100', 'kristal:10']);
     expect((await b.c.call('inbox.list', {})).items.filter((i) => i.reason.startsWith('Kulak Bilgi'))).toHaveLength(0);
+  });
+
+  it('katılımcısız biten yarışma: sohbet "kimse katılmadı" der, ortalama yazmaz, sıralamaya girmez (OT-sinav-adayi-32)', async () => {
+    env = await setup();
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Sessizler');
+    env.clock.advance(8 * 60 * MIN + 5 * MIN); // 20:05: sabit saatli yarışma kendiliğinden açılır
+    const st = await b.c.call('quiz.state', {});
+    expect(st.quiz).toMatchObject({ phase: 'lobi', startedBy: 'sistem', players: [] });
+    env.clock.advance(MIN + 10 * (QUESTION_MS + REVEAL_MS) + 1000);
+    env.srv.sweep();
+    const msg = await a.wait('chat', (m) => m.msg.meta?.event === 'quiz' && m.msg.text.includes('kimse'));
+    expect(msg.msg.text).toBe('Bu bilgi yarışmasına takımdan kimse katılmadı.');
+    expect(a.seen.some((e) => e.ev === 'chat' && /ortalaması: 0/.test((e.data as { msg: { text: string } }).msg.text))).toBe(false);
+    expect((await a.c.call('quiz.state', {})).info.ranking).toHaveLength(0);
+  });
+
+  it('takımsız oyuncu sabit saatin açık olduğunu görür (Pratik/Bugün notu), başlatamaz (YN-161)', async () => {
+    env = await setup();
+    const a = await connectW(env, 'Yalnız');
+    expect((await a.c.call('events.overview', {})).overview.quizInfo).toMatchObject({ slotOpen: false, canStart: false, startsLeft: 0 });
+    env.clock.advance(65 * MIN); // 13:05
+    expect((await a.c.call('events.overview', {})).overview.quizInfo).toMatchObject({ slotOpen: true, canStart: false });
   });
 
   it('normal mod: üye sabit saat dışında başlatamaz; 13:00 penceresinde kendiliğinden açılır', async () => {
