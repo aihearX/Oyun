@@ -72,7 +72,7 @@ export function TitleScreen({ onStart, returning, invite, onChallenge }: { onSta
           <div className="muted">Bir arkadaşın seni çağırıyor</div>
           <h2>{invite.score > 0 ? <>{invite.level}. bölümü {Array.from({ length: invite.stars }, (_, i) => <Art key={i} name="star" size="1em" className="art-inline" />)} {invite.score.toLocaleString('tr-TR')} puanla geçti</> : `${invite.level}. bölümde takıldı`}</h2>
           <div className="muted">{invite.score > 0 ? 'Skorunu geçebilir misin?' : 'Sen geçebilir misin?'}</div>
-          <ActionButton block icon="megaphone" onClick={onChallenge}>Meydan okumayı kabul et</ActionButton>
+          <ActionButton block icon="flag" onClick={onChallenge}>Meydan okumayı kabul et</ActionButton>
         </div>
       )}
       <div className={`ts-cta${ready ? ' on' : ''}`}>

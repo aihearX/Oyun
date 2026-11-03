@@ -105,14 +105,15 @@ try {
   }
   await p.getByRole('button', { name: 'Topla' }).click(); await sleep(2500);
   // YN-094: sonuç ekranında verilmiş hazine haritada yeniden "toplanmaz": "Tamam", jeton uçmaz (OT-sinav-adayi-17)
-  await cel(p, 'chest', { title: 'Hazine · Bölüm 20', tier: 'gumus', granted: true, items: [{ kind: 'jeton', amount: 100 }, { kind: 'xp', amount: 30 }] });
+  // YN-158 (OT-uzman-odyolog-29): not geçmiş zamanla ve nerede verildiğini söyler (haritanın hazine töreni bu notu verir)
+  await cel(p, 'chest', { title: 'Hazine · Bölüm 20', tier: 'gumus', granted: true, note: 'Bölüm sonunda cüzdanına eklenmişti', items: [{ kind: 'jeton', amount: 100 }, { kind: 'xp', amount: 30 }] });
   await sleep(4400); await shot(p, '20b-hazine-verilmis');
-  if (!(await p.locator('.cel-stage', { hasText: 'Cüzdanına eklendi' }).count())) errors.push('verilmiş hazinede "Cüzdanına eklendi" yok');
+  if (!(await p.locator('.cel-stage', { hasText: 'Bölüm sonunda cüzdanına eklenmişti' }).count())) errors.push('verilmiş hazinede "Bölüm sonunda cüzdanına eklenmişti" yok');
   await p.getByRole('button', { name: 'Tamam' }).click(); await sleep(120);
   if (await p.locator('.cel-coin').count()) errors.push('verilmiş hazine jetonları sayaca yeniden uçtu');
   await sleep(1200);
   // birikmiş kutlamalar tek pencerede
-  await cel(p, 'recap', { title: 'Yolda kazandıkların', sub: '2 hazine, 2 bölge canlandı', note: 'Hazineler cüzdanına eklendi', rows: [{ icon: '🎁', text: 'Hazine · Bölüm 20', items: [{ kind: 'jeton', amount: 100 }] }, { icon: '🎁', text: 'Hazine · Bölüm 25', items: [{ kind: 'jeton', amount: 120 }, { kind: 'xp', amount: 40 }] }, { icon: '🌟', text: 'Kulak Kanalı yeniden canlandı!' }, { icon: '🌟', text: 'Koklea · Taban yeniden canlandı!' }] });
+  await cel(p, 'recap', { title: 'Yolda kazandıkların', sub: '2 hazine, 2 bölge canlandı', note: 'Hazineler bölüm sonunda cüzdanına eklenmişti', rows: [{ icon: '🎁', text: 'Hazine · Bölüm 20', items: [{ kind: 'jeton', amount: 100 }] }, { icon: '🎁', text: 'Hazine · Bölüm 25', items: [{ kind: 'jeton', amount: 120 }, { kind: 'xp', amount: 40 }] }, { icon: '🌟', text: 'Kulak Kanalı yeniden canlandı!' }, { icon: '🌟', text: 'Koklea · Taban yeniden canlandı!' }] });
   await sleep(2600); await shot(p, '20c-birikmis');
   await p.getByRole('button', { name: 'Tamam' }).click(); await sleep(1200);
   await cel(p, 'banner', { icon: '🏗️', title: 'Laboratuvar 3. seviye!', body: 'İnşaat bitti', tone: 'gold' });

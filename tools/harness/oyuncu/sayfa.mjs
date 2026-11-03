@@ -118,8 +118,23 @@ export function ekranOzeti({ maxMetin }) {
     // adı kendi yazısından geliyorsa (ve kısaysa) içindeki yazı metin bölümünde tekrar edilmez; büyük dokunulabilir kutuların
     // (ör. dokununca ilerleyen anlatıcı penceresi) yazısı metinde kalır
     const yazidan = !el.getAttribute('aria-label') && !el.getAttribute('aria-labelledby') && tr(el.innerText || '').length <= 80;
-    adaylar.push({ el, r, ad: kisalt(ad || '(simge, adsız)', 80), rol: rolu(el), durum: durum(el), yazidan });
+    adaylar.push({ el, r, ad: kisalt(ad || '(simge, adsız)', 80), rol: rolu(el), durum: durum(el), yazidan, etkin });
   }
+  // yalnız onClick'li kap (rolsüz div; ör. sonuç ekranının düğme alanı, dokunuşu durdurmak için) içindeki düğmelerin yazısını birleşik ad
+  // olarak alıyordu ("Biliyor muydun? … Haritaya dön Tekrar"): metin aramasında ve numarada ilk sıradaydı, dokunuş ortasındaki
+  // "Haritaya dön"e gidiyordu (OT-ogrenci-birinci-32, YN-158). Ortası içindeki bir adaya düşen ya da adı içindeki bir adayın adıyla
+  // başlayan kap listeye girmez (kendi başlığıyla başlayan dokunulabilir kart kalır)
+  const adayEl = new Set(adaylar.map((a) => a.el));
+  const kap = (a) => {
+    if (a.etkin) return false;
+    const ic = adaylar.filter((x) => x !== a && a.el.contains(x.el));
+    if (!ic.length) return false;
+    const t = document.elementFromPoint(Math.min(vw - 1, Math.max(0, a.r.left + a.r.width / 2)), Math.min(vh - 1, Math.max(0, a.r.top + a.r.height / 2)));
+    for (let e = t; e && e !== a.el; e = e.parentElement) if (adayEl.has(e)) return true;
+    const ad = adi(a.el);
+    return ic.some((x) => { const xa = adi(x.el); return !!xa && ad.startsWith(xa.slice(0, 40)); });
+  };
+  for (let i = adaylar.length - 1; i >= 0; i--) if (kap(adaylar[i])) adaylar.splice(i, 1);
   const dok = adaylar.map((a, i) => { a.el.setAttribute('data-oyuncu-no', String(i + 1)); return { no: i + 1, rol: a.rol, ad: a.ad, durum: a.durum }; });
   const dokEl = new Set(adaylar.filter((a) => a.yazidan).map((a) => a.el));
 

@@ -84,6 +84,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
   const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
+  // Büyük yazı (OT-buyuk-yazi-47): yapışkan alanda yalnız ana düğme; Tekrar, Meydan oku ve Tüy Dede'nin kartı sayfa akışında, düğmelerin
+  // hemen üstünde. Kazançta yıldızların altında "Bu bölümden toplam +N jeton" özeti ilk ekranda (döküm aşağıdaki kartta)
+  const big = store.bigText;
   const timed = spec.objective.id === 'timed';
   // ipucu bölümün kendi zorluğuna göre; aynı bölümde her denemede sıradaki cümle (OT-ilk-kez-oyun-19). Deneme sayısı ekran
   // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
@@ -202,17 +205,37 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     return () => ts.forEach(clearTimeout);
   }, [step]);
 
-  // Rahat denemenin skoru meydan okumaya gitmez (rekabet puanı yok; karar 42)
-  const meydan = rahat ? null : raceOpen ? <ActionButton tone="gold" tile icon="megaphone" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="megaphone" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>;
+  // Rahat denemenin skoru meydan okumaya gitmez (rekabet puanı yok; karar 42); kayıpta da yok (kaybedilen koşuya meydan okunmaz,
+  // OT-rekabetci-39). Simge bayrak: hoparlöre benzeyen megafon sesi kapalı oyuncuya "ses çalar" dedirtiyordu (OT-sessiz-oyuncu-23)
+  const meydan = rahat || !result.completed ? null : raceOpen ? <ActionButton tone="gold" tile icon="flag" data-act="meydan" onClick={share}>Meydan oku</ActionButton> : <ActionButton tone="plain" tile icon="flag" data-act="meydan" disabled aria-label={`Meydan oku: ${feat.lock('race')}`}>Meydan oku<small className="act-lock"><Art name="lock" size={12} /> Bölüm {feat.at('race')}</small></ActionButton>;
   async function share() {
-    const link = inviteUrl({ level: spec.number, score: result.completed ? result.score : 0, stars: result.stars });
+    const link = inviteUrl({ level: spec.number, score: result.score, stars: result.stars });
     // uygulama dışına giden metin: emoji yok (OT-rekabetci-14)
-    const text = result.completed ? `ODİ: ${spec.number}. bölümü ${result.stars} yıldızla, ${result.score} puanla geçtim. Kulak kabartır mısın, beni geçebilir misin? ${link}` : `ODİ'de ${spec.number}. bölümde takıldım. Sen geçebilir misin? ${link}`;
+    const text = `ODİ: ${spec.number}. bölümü ${result.stars} yıldızla, ${result.score} puanla geçtim. Kulak kabartır mısın, beni geçebilir misin? ${link}`;
     const r = await platform().share(text);
     if (r !== 'cancelled' && !demo) store.recordShare();
     if (r === 'copied') { setToast('Bağlantı kopyalandı: arkadaşına yapıştır, skorunu geçmeye çalışsın.'); setTimeout(() => setToast(''), 3200); }
   }
 
+
+  // alt düğmeler: ana düğme (Haritaya dön / Sonraki / Tekrar dene) her zaman yapışkan alanda; haritada bekleyen tanıtım kartı ve ikincil
+  // düğmeler normal yazıda da orada, Büyük yazıda sayfa akışında (yukarıda big)
+  const anlatim = intro && (
+    <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.grows.map((g) => `${g.zone}-${g.to}`), ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
+      <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
+      <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
+      <Art name={intro.art} size={30} className="ra-art" />
+    </div>
+  );
+  const ileri = !!intro || (result.completed && !last);
+  const ana = intro ? <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
+    : ileri ? <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
+    : <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>;
+  // Rahat deneme teklifinin düğmesi Büyük yazıda da yapışkan alanda kalır (ne değiştiği üstünde yazılı; karar 42, YN-110)
+  const rahatDene = offerRahat ? <ActionButton tone="teal" tile icon="play" data-testid="rahat-dene" data-act="rahat" onClick={onRahat}>{RAHAT_TEXT.button}<small className="act-lock act-rahat">{RAHAT_TEXT.short}</small></ActionButton> : null;
+  const harita = <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>;
+  const tekrar = <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>;
+  const ikincil = <div className="abtn-grid">{ileri ? <>{tekrar}{meydan}{!intro && harita}</> : <>{(big ? null : rahatDene) ?? meydan}{harita}</>}</div>;
 
   return (
     <>
@@ -232,6 +255,12 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
             {!summary.newRecord && summary.prevBest > 0 && step >= S + 2 && <div className="muted small-note">Rekorun: {Math.max(summary.prevBest, rahat ? 0 : result.score).toLocaleString('tr-TR')}</div>}
           </div>
+          {big && result.completed && earnTotal > 0 && (
+            <div className="result-ozet" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="sonuc-jeton-ozet">
+              <b><Art name="coin" size={20} className="art-inline" />Bu bölümden{earn.length > 1 ? ' toplam' : ''} +{earnTotal.toLocaleString('tr-TR')} jeton</b>
+              {earn.length > 1 && <small>{earn.map((l) => `${kisaAd(l.label)} ${fmtJeton(l.jeton)}`).join(' · ')}</small>}
+            </div>
+          )}
 
           {mods && <div className="result-mods" data-testid="sonuc-degistirici">Değiştirici: {mods}</div>}
           {/* gizli kolaylaştırma yok (YN-113): yardım bu denemede devredeyse ve kayıpta sonraki deneme kolaylaşacaksa tek satır */}
@@ -262,8 +291,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
           {!result.completed && <ResultComm level={spec.number} completed={false} demo={demo} />}
 
-          {/* sonuç ekranı açılırken gelen başarım bildirimi kutuların altında durur: başlığı, yıldızları, skoru ve nota/süre kutularını
-              örtmez; yapışkan düğmelere kadar yer yoksa bekler (ui/Toasts.tsx; OT-buyuk-yazi-37, OT-buyuk-yazi-42) */}
+          {/* sonuç ekranı açılırken gelen başarım bildirimi kutuların ve "Biliyor muydun?" satırının altında durur: başlığı, yıldızları,
+              skoru, jeton özetini, nota/süre kutularını ve bilgi satırını örtmez; yapışkan düğmelere kadar yer yoksa bekler (ui/Toasts.tsx;
+              OT-buyuk-yazi-37, OT-buyuk-yazi-42, OT-sessiz-oyuncu-24) */}
           <div className="stats has-wide" data-toast-under>
             {/* notasız (canavar) bölümde hasar: kalp değil (oyun boyunca kalp "can" demek; OT-buyuk-yazi-41 "2 can kaldı" okudu) */}
             {spec.coinsTotal > 0
@@ -297,7 +327,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           </div>
 
           {bilgi && (
-            <aside className="result-bilgi" ref={bilgiRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} data-kisa={bilgiKisa ? '1' : undefined} aria-label="Biliyor muydun?">
+            <aside className="result-bilgi" ref={bilgiRef} data-toast-under data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="biliyor-muydun" data-bolum={spec.number} data-kisa={bilgiKisa ? '1' : undefined} aria-label="Biliyor muydun?">
               <Art name="bulb" size={26} className="rb-art" />
               <span className="rb-body"><small>Biliyor muydun?</small><span>{bilgi}</span></span>
             </aside>
@@ -309,7 +339,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             {leveled && xpPhase >= 1 && <div className="levelup" role="status"><Art name="party" size="1.2em" className="art-inline" /> Seviye {after.level}!</div>}
           </div>
 
-          <div className="card result-earn" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
+          <div className="card result-earn" ref={big && result.completed && earnTotal > 0 ? undefined : coinRef} data-show={step >= S + 2 ? 'yes' : 'no'}>
             <div className="result-earn-head"><span>Bu bölümden{earn.length > 1 ? ' toplam' : ''}</span><b><Art name="coin" size={20} className="art-inline" />+{earnTotal.toLocaleString('tr-TR')} jeton</b></div>
             {(earn.length > 1 || earn.some((l) => l.items || l.note)) && (
               <ul className="result-earn-list" data-testid="sonuc-kazanc">
@@ -367,6 +397,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
 
           {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
+          {big && <div className="result-ek" data-testid="sonuc-ek-dugmeler" onClick={(e) => e.stopPropagation()}>{anlatim}{ikincil}</div>}
           <div className="result-actions" ref={actRef} data-toast-floor onClick={(e) => e.stopPropagation()}>
             {bilgi && bilgiKisa && (
               <button type="button" className={`result-bilgi-kisa${bilgiAcik ? ' acik' : ''}`} data-testid="biliyor-muydun-kisa" aria-expanded={bilgiAcik} onClick={() => setBilgiAcik((a) => !a)}>
@@ -374,37 +405,10 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                 <span className="rbk-t"><b>Biliyor muydun?</b> {bilgi}</span>
               </button>
             )}
-            {intro ? (
-              <>
-                <div className="result-anlatim" data-testid="anlatim-bekliyor" data-tours={last ? '' : (mapIntro ?? []).join(' ')} data-harita={reveal ? [...reveal.zones, ...reveal.grows.map((g) => `${g.zone}-${g.to}`), ...reveal.treasures.map((n) => `hazine-${n}`)].join(' ') : ''}>
-                  <span className="ra-td" aria-hidden><TuyDede size={44} mood="wink" /></span>
-                  <span className="ra-body"><b>{intro.title}</b><small>{intro.note}</small></span>
-                  <Art name={intro.art} size={30} className="ra-art" />
-                </div>
-                <ActionButton block icon="map" data-act="harita" data-anlatim="1" onClick={onMap}>{intro.button}</ActionButton>
-                <div className="abtn-grid">
-                  <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                  {meydan}
-                </div>
-              </>
-            ) : result.completed && !last ? (
-              <>
-                <ActionButton block icon="play" data-act="sonraki" onClick={onNext}>Sonraki</ActionButton>
-                <div className="abtn-grid">
-                  <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>
-                  {meydan}
-                  <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
-                </div>
-              </>
-            ) : (
-              <>
-                <ActionButton block icon="retry" onClick={onRetry}>{result.completed ? 'Tekrar' : 'Tekrar dene'}</ActionButton>
-                <div className="abtn-grid">
-                  {offerRahat ? <ActionButton tone="teal" tile icon="play" data-testid="rahat-dene" data-act="rahat" onClick={onRahat}>{RAHAT_TEXT.button}<small className="act-lock act-rahat">{RAHAT_TEXT.short}</small></ActionButton> : meydan}
-                  <ActionButton tone="plain" tile icon="map" data-act="harita" onClick={onMap}>Harita</ActionButton>
-                </div>
-              </>
-            )}
+            {!big && anlatim}
+            {ana}
+            {!big && ikincil}
+            {big && rahatDene && <div className="abtn-grid">{rahatDene}</div>}
           </div>
           {done && note && <NoteCard note={note} />}
         </div>
@@ -447,6 +451,15 @@ function guardedDetail(detail: string, r: RunResult): string {
   if (!(typeof g === 'number' && g > 0) || !note) return detail;
   const head = `${r.damageTaken} kez hasar aldın`;
   return detail.startsWith(head) ? `${note}${detail.slice(head.length)}` : [detail, `${note}.`].filter(Boolean).join(' ');
+}
+
+/** Büyük yazıdaki jeton özetinde dökümün kısa adı: "notalar +47 · hazine +60 · 3 başarım +70" (tam adlar aşağıdaki kartta) */
+function kisaAd(label: string): string {
+  if (label === 'Toplanan notalar') return 'notalar';
+  if (/hazinesi$/.test(label)) return 'hazine';
+  if (label.startsWith('Başarım')) return 'başarım';
+  if (label === 'Kamp/takım bonusu') return 'bonus';
+  return label.toLocaleLowerCase('tr');
 }
 
 const fmtJeton = (n: number) => `${n > 0 ? '+' : ''}${n.toLocaleString('tr-TR')}`;

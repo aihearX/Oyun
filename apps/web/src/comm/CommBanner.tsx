@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import './comm.css'; // paket bölme: bu bileşen Cards.tsx olmadan da çizilir (sonuç ekranı), stili kendisi yüklesin
 import { useNav } from '../nav';
 import { platform } from '../platform';
@@ -8,16 +8,20 @@ import { Icon } from '../ui/icons';
 import { Art, type ArtName } from '../ui/art';
 import { dismissNotice, useComm } from './state';
 import { useCoach } from '../ftue/Coach';
+import { useBaslikAltinda } from '../ui/Toasts';
 import type { CommNotice } from '@odi/shared';
 
 const ART: Record<CommNotice['kind'], ArtName> = { mention: 'bell', thanks: 'heart', mentor: 'crown', duo: 'users', challenge: 'finish', dq: 'bulb' };
 
 /** İletişim bildirim şeridi: bahsetme, teşekkür, usta–çırak, ikili görev, meydan okuma. 7 sn sonra kaybolur. Gerçek olaylardan gelir.
- *  Tüy Dede bir yeri gösterirken kart sırada bekler (rehberin çerçevesiyle üst üste binmez, görülmeden süresi dolmaz; OT-buyuk-yazi-20). */
+ *  Tüy Dede bir yeri gösterirken kart sırada bekler (rehberin çerçevesiyle üst üste binmez, görülmeden süresi dolmaz; OT-buyuk-yazi-20).
+ *  Ekran başlık çubuğunun altında durur: Geri her zaman dokunulabilir (OT-buyuk-yazi-49). */
 export function CommBanner() {
   const n = useComm((s) => s.notices[0]);
   const guide = useCoach((s) => !!s.tour);
   const nav = useNav();
+  // ekran başlığının (Geri) altında durur (OT-buyuk-yazi-49)
+  const ref = useRef<HTMLDivElement>(null); useBaslikAltinda(ref, n && !guide ? n.id : null);
   useEffect(() => {
     if (!n || guide) return;
     platform().haptic('light');
@@ -43,7 +47,7 @@ export function CommBanner() {
   if (n.kind === 'mention' && n.msgId) acts.push({ id: 'bak', label: 'Sohbete git', on: go });
   if (n.kind === 'mentor' || n.kind === 'duo') acts.push({ id: 'bak', label: 'Birlikte’ye git', on: go });
   return (
-    <div className="fr-banner cm-banner" role="status" aria-live="polite" key={n.id} data-testid="iletisim-bildirimi" data-kind={n.kind}>
+    <div className="fr-banner cm-banner" ref={ref} role="status" aria-live="polite" key={n.id} data-testid="iletisim-bildirimi" data-kind={n.kind}>
       <div className={`fr-banner-card k-${n.kind}`} onClick={acts.length ? undefined : go}>
         {n.from ? <Av p={n.from} size={42} dot={false} /> : <span className="cm-ic"><Art name={ART[n.kind]} size={26} /></span>}
         <span className="min0 grow fr-banner-text"><b className="ellipsis">{n.title}</b><small>{n.text}</small></span>

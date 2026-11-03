@@ -81,6 +81,38 @@ describe('sonuç ekranında bildirim kutuların altında; yer yoksa bekler', () 
   }, 30_000);
 });
 
+describe('bildirim bilgi satırını, kaydırılmış sonucu ve ekran başlığını örtmez (YN-158)', () => {
+  it('birden çok işaretli öğe varsa en alttakinin ("Biliyor muydun?" satırı) altında durur (OT-sessiz-oyuncu-24)', async () => {
+    const stats = document.createElement('div'); stats.dataset.toastUnder = ''; rect(stats, 300, 200); document.body.appendChild(stats);
+    const bilgi = document.createElement('aside'); bilgi.dataset.toastUnder = ''; rect(bilgi, 512, 70); document.body.appendChild(bilgi);
+    const floor = document.createElement('div'); floor.dataset.toastFloor = ''; rect(floor, 700, 144); document.body.appendChild(floor);
+    await host(); await tick(50);
+    expect(toast()?.style.visibility).toBe('');
+    expect(toast()?.style.top).toBe('590px');
+  }, 30_000);
+  it('kısa hâldeki (çizilmeyen) bilgi satırı sayılmaz; kutuların altında', async () => {
+    const stats = document.createElement('div'); stats.dataset.toastUnder = ''; rect(stats, 300, 200); document.body.appendChild(stats);
+    const bilgi = document.createElement('aside'); bilgi.dataset.toastUnder = ''; rect(bilgi, 0, 0); document.body.appendChild(bilgi);
+    await host(); await tick(50);
+    expect(toast()?.style.top).toBe('508px');
+  }, 30_000);
+  it('işaretli öğeler kaydırılıp yukarıda kaldıysa üstte görünmez, bekler (OT-buyuk-yazi-49: "+177 jeton" satırına biniyordu)', async () => {
+    const stats = document.createElement('div'); stats.dataset.toastUnder = ''; rect(stats, -400, 200); document.body.appendChild(stats);
+    const store = await host(); await tick(50);
+    expect(toast()?.style.visibility).toBe('hidden');
+    expect(toast()?.dataset.bekliyor).toBe('yer');
+    await tick(3000);
+    expect(store.getState().toasts).toHaveLength(1);
+  }, 30_000);
+  it('öteki ekranlarda başlık çubuğunun (Geri) altında durur', async () => {
+    const scr = document.createElement('div'); scr.className = 'screen';
+    const head = document.createElement('div'); head.className = 'screen-head'; rect(head, 0, 104); scr.appendChild(head); document.body.appendChild(scr);
+    await host(); await tick(50);
+    expect(toast()?.style.visibility).toBe('');
+    expect(toast()?.style.top).toBe('110px');
+  }, 30_000);
+});
+
 describe('"Biliyor muydun?" tekrarda farklı satır (YN-127)', () => {
   it('aynı bölümün ikinci oynayışında (kayıt plays) sıradaki satır gelir', () => {
     const prof = { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }; const DAY = '2026-11-03';

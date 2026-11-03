@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNav } from '../nav';
 import { platform } from '../platform';
 import { Av } from './common';
@@ -6,6 +6,7 @@ import { useFriends } from './state';
 import './friends.css';
 import { Icon } from '../ui/icons';
 import { Glyph, rich } from '../ui/art';
+import { useBaslikAltinda } from '../ui/Toasts';
 
 /**
  * Üstten kayan bildirim şeridi: yeni özel mesaj, arkadaşlık isteği/kabulü, arkadaş hediyesi.
@@ -14,6 +15,8 @@ import { Glyph, rich } from '../ui/art';
 export function FriendBanner() {
   const b = useFriends((s) => s.banner);
   const nav = useNav();
+  // ekran başlığının (Geri) altında durur (OT-buyuk-yazi-49)
+  const ref = useRef<HTMLDivElement>(null); useBaslikAltinda(ref, b?.id ?? null);
   useEffect(() => {
     if (!b) return;
     platform().haptic('light');
@@ -30,7 +33,7 @@ export function FriendBanner() {
   };
   const icon = b.kind === 'dm' ? '💬' : b.kind === 'istek' ? '👋' : b.kind === 'kabul' ? '🫂' : '🎁';
   return (
-    <div className="fr-banner" role="status" aria-live="polite" key={b.id} data-testid="mesaj-bildirimi">
+    <div className="fr-banner" ref={ref} role="status" aria-live="polite" key={b.id} data-testid="mesaj-bildirimi">
       <button className={`fr-banner-card k-${b.kind}`} onClick={go}>
         <Av p={b.from} size={42} dot={false} />
         <span className="min0 grow fr-banner-text"><b className="ellipsis"><span aria-hidden className="fr-b-ic"><Glyph e={icon} size="1.25em" /></span> {b.title}</b><small className="ellipsis">{rich(b.text)}</small></span>

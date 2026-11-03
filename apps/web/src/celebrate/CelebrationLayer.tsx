@@ -21,7 +21,7 @@ import './celebrate.css';
 
 type Tier = 'bronz' | 'gumus' | 'altin';
 type Scene =
-  | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number; granted: boolean }
+  | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number; granted: boolean; note?: string }
   | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
   | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number }
   | { kind: 'recap'; title: string; sub?: string; note?: string; rows: RecapRow[]; phase: 'list' | 'out'; shown: number; all?: boolean };
@@ -119,11 +119,11 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   };
 
   // ---------------------------------------------------------------- kutlamalar
-  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier; granted?: boolean }) => {
+  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier; granted?: boolean; note?: string }) => {
     const items = o.items; const tier = o.tier ?? 'bronz'; const granted = !!o.granted;
     // granted: içerik cüzdana zaten girdi ve sayaç onu saydı (sonuç ekranı): sayaç yeniden saymaz, jeton uçmaz (OT-sinav-adayi-17)
     if (!granted) for (const it of items) { const k = currency(it); if (k) hud.hold(k, it.amount); }
-    const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0, granted };
+    const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0, granted, ...(o.note ? { note: o.note } : {}) };
     audio.duck('kutlama', 6, 0.35);
     setScene({ ...base, phase: 'drop' }); audio.play('whoosh', { vol: 0.8 }); await wait(700);
     for (let i = 0; i < 3; i++) { setScene({ ...base, phase: 'shake', shake: i + 1 }); audio.play('chestShake', { semitones: i * 2 }); platform().haptic(i === 2 ? 'heavy' : 'medium'); await wait(560); }
@@ -275,7 +275,7 @@ function ChestScene({ s, chestRef, cardsRef, onTap, onCollect }: { s: Extract<Sc
       <div className={`cel-cards n${Math.min(6, s.items.length)}`} ref={cardsRef}>
         {opened && s.items.map((it, i) => <Card key={i} it={it} i={i} show={i < s.shown} />)}
       </div>
-      {s.granted && (s.phase === 'collect' || s.phase === 'out') && <div className="cel-note">Cüzdanına eklendi</div>}
+      {s.granted && (s.phase === 'collect' || s.phase === 'out') && <div className="cel-note">{s.note ?? 'Cüzdanına eklendi'}</div>}
       <div className="cel-cta">
         {s.phase === 'collect' ? <button className="btn gold big-cta" onClick={(e) => { e.stopPropagation(); onCollect(); }}>{s.granted ? 'Tamam' : 'Topla'}</button>
           : s.phase !== 'out' && <div className="cel-hint">Dokun: hızlandır</div>}

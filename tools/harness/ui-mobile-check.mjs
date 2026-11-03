@@ -31,6 +31,7 @@ import { createServer } from 'node:net';
 import { chromium, webkit } from 'playwright';
 import { measureHudFit } from './hud-fit.mjs';
 import { takimSekme } from './takim-sekme.mjs';
+import { ekranOzeti } from './oyuncu/sayfa.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
@@ -1221,7 +1222,7 @@ async function suite(browserName, target, [W, H]) {
           const el = document.querySelector('.toast-top'); if (!el) return { toast: null, ort: [] };
           if (el.dataset.bekliyor) return { toast: null, bekliyor: el.dataset.bekliyor, gizli: el.style.visibility === 'hidden', ort: [] };
           const t = r(el.querySelector('.tt-card')); const out = [];
-          for (const sel of ['.result-title', '.star-row', '.score-line', '.result .stats .card', '.result-actions > *']) for (const e of document.querySelectorAll(sel)) { const x = r(e); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) out.push(`${sel} ${JSON.stringify(x)}`); }
+          for (const sel of ['.result-title', '.star-row', '.score-line', '[data-testid="sonuc-jeton-ozet"]', '.result .stats .card', '[data-testid="biliyor-muydun"]', '.result-actions > *']) for (const e of document.querySelectorAll(sel)) { const x = r(e); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) out.push(`${sel} ${JSON.stringify(x)}`); }
           return { toast: t, ort: out };
         });
         const seviye = label !== 'sonuc-bildirim-seviye' ? null : await (async () => {
@@ -1269,6 +1270,32 @@ async function suite(browserName, target, [W, H]) {
           } else out.sorun = 'satır ilk ekranda değil ve kısa hâli yok';
           return out;
         });
+        // YN-158 (OT-buyuk-yazi-47): Büyük yazıda yapışkan alanda yalnız ana düğme (Rahat teklifinde "Rahat dene" de); Tekrar, Meydan oku
+        // ve Tüy Dede'nin kartı sayfa akışında. Kazançta yıldızların altındaki jeton özeti ilk ekranda (yapışkan alanın üstünde)
+        const buyuk = !BIG ? null : await page.evaluate(() => {
+          const act = document.querySelector('.result-actions'); const aTop = act?.firstElementChild ? act.firstElementChild.getBoundingClientRect().top : innerHeight;
+          const fazla = [...(act?.querySelectorAll('[data-act="tekrar"], [data-act="meydan"], [data-act="harita"]:not([data-anlatim]), [data-testid="anlatim-bekliyor"]') ?? [])].map((e) => e.getAttribute('data-act') ?? e.getAttribute('data-testid'));
+          const oz = document.querySelector('[data-testid="sonuc-jeton-ozet"]'); const r = oz?.getBoundingClientRect();
+          return { fazla, ozet: r ? { top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(aTop), ok: r.top >= 0 && r.bottom <= aTop + 1, yazi: oz.textContent } : null };
+        });
+        // YN-158 (OT-ogrenci-birinci-32): kısa "Biliyor muydun?" şeridine dokunmak yalnız notu açar (tamamı okunur, ekranın içinde) ve kapatır;
+        // harita açılmaz. Oyuncu ajanının ekran özeti (oyuncu/sayfa.mjs) "Biliyor muydun" yazısıyla şeridi bulur, düğme alanının kabını değil
+        const serit = !(await page.locator('[data-testid="biliyor-muydun-kisa"]').count()) ? null : await (async () => {
+          const out = {};
+          const ozet = await page.evaluate(ekranOzeti, { maxMetin: 0 }).catch((e) => ({ dok: [], hata: e.message }));
+          const ilkEs = ozet.dok.find((d) => d.ad.toLocaleLowerCase('tr').startsWith('biliyor muydun'));
+          out.ozetHedef = ilkEs ? await page.locator(`[data-oyuncu-no="${ilkEs.no}"]`).evaluate((e) => e.getAttribute('data-testid') ?? e.className) : null;
+          const kisa = page.locator('[data-testid="biliyor-muydun-kisa"]');
+          await kisa.tap({ timeout: 5000 }).catch(() => kisa.click({ timeout: 5000 })); await sleep(500);
+          out.acik = await page.evaluate(() => {
+            const k = document.querySelector('[data-testid="biliyor-muydun-kisa"]'); const t = k?.querySelector('.rbk-t'); const r = k?.getBoundingClientRect();
+            return { ekran: !!document.querySelector('.result-screen'), harita: !!document.querySelector('.map-screen, .map-host'), aria: k?.getAttribute('aria-expanded'), tam: !!t && t.scrollWidth <= t.clientWidth + 1 && t.scrollHeight <= t.clientHeight + 1, ici: !!r && r.top >= 0 && r.bottom <= innerHeight };
+          });
+          if (out.acik.ekran) await page.screenshot({ path: resolve(dir, `${label}-serit-acik.png`) });
+          await kisa.tap({ timeout: 5000 }).catch(() => kisa.click({ timeout: 5000 }).catch(() => undefined)); await sleep(300);
+          out.kapali = await page.evaluate(() => ({ ekran: !!document.querySelector('.result-screen'), aria: document.querySelector('[data-testid="biliyor-muydun-kisa"]')?.getAttribute('aria-expanded') }));
+          return out;
+        })();
         // YN-093 (OT-ilk-kez-oyun-20): neden kartı sayfa akışında; kutularla ve yapışkan düğme alanıyla örtüşmez
         const ort = !label.startsWith('sonuc-kaybetti') ? [] : await page.evaluate(() => {
           const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom }; };
@@ -1286,6 +1313,22 @@ async function suite(browserName, target, [W, H]) {
         });
         const rec = await check(label);
         rec.bilgi = bilgiYer;
+        if (serit) {
+          rec.serit = serit;
+          if (!serit.acik.ekran || serit.acik.harita || !serit.kapali.ekran) fail(rec, `"Biliyor muydun?" şeridine dokununca sonuç ekranı kapandı: ${JSON.stringify(serit)}`);
+          else if (serit.acik.aria !== 'true' || serit.kapali.aria !== 'false') fail(rec, `"Biliyor muydun?" şeridi açılıp kapanmadı: ${JSON.stringify(serit)}`);
+          else if (!serit.acik.tam || !serit.acik.ici) fail(rec, `açılan "Biliyor muydun?" notunun tamamı okunmuyor: ${JSON.stringify(serit.acik)}`);
+          if (serit.ozetHedef !== 'biliyor-muydun-kisa') fail(rec, `oyuncu ekran özetinde "Biliyor muydun" ilk eşleşmesi şerit değil: ${serit.ozetHedef}`);
+        }
+        // YN-158 (OT-rekabetci-39): kaybedilen koşuya meydan okunmaz
+        if (label.startsWith('sonuc-kaybetti') && await page.locator('[data-act="meydan"]').count()) fail(rec, 'kayıp ekranında Meydan oku düğmesi var');
+        if (buyuk) {
+          rec.buyuk = buyuk;
+          if (buyuk.fazla.length) fail(rec, `Büyük yazıda yapışkan alanda ana düğmeden başkası: ${buyuk.fazla.join(', ')}`);
+          const kazanc = !label.startsWith('sonuc-kaybetti') && label !== 'sonuc-rahat';
+          if (kazanc && !buyuk.ozet) fail(rec, 'Büyük yazıda jeton özeti yok');
+          else if (kazanc && !buyuk.ozet.ok) fail(rec, `Büyük yazıda jeton özeti ilk ekranda değil: ${JSON.stringify(buyuk.ozet)}`);
+        }
         if (bilgiYer.sorun) fail(rec, `"Biliyor muydun?" ilk ekranda değil: ${bilgiYer.sorun} ${JSON.stringify(bilgiYer)}`);
         if (bildirim) rec.bildirim = bildirim;
         if (bildirim && !bildirim.toast && !bildirim.bekliyor) fail(rec, 'başarım bildirimi görünmedi');
@@ -1367,13 +1410,15 @@ async function suite(browserName, target, [W, H]) {
         const bad = btn.filter((b) => b.l < 0 || b.r > W || b.b > H);
         if (bad.length) fail(rec, `sonuç düğmeleri görünüm dışında: ${JSON.stringify(bad)}`);
         if (label.startsWith('sonuc-anlatim') || label.startsWith('sonuc-harita')) {
-          const strip = await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').boundingBox().catch(() => null);
+          // Büyük yazıda tanıtım kartı sayfa akışında (ana düğmenin üstünde; YN-158): kaydırınca görünür
+          if (BIG) await page.locator('[data-testid="anlatim-bekliyor"]').scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => undefined);
+          const strip = await page.locator(`${BIG ? '.result-ek' : '.result-actions'} [data-testid="anlatim-bekliyor"]`).boundingBox().catch(() => null);
           if (!strip || strip.x < 0 || strip.x + strip.width > W || strip.y + strip.height > H) fail(rec, `bekleyen tanıtım satırı görünmüyor ya da taşıyor: ${JSON.stringify(strip)}`);
           if (await page.locator('.result-actions [data-act="sonraki"]').count()) fail(rec, 'bekleyen tanıtım varken Sonraki düğmesi var');
           if (!btn.some((b) => b.t === 'Haritaya dön')) fail(rec, `"Haritaya dön" düğmesi yok: ${btn.map((b) => b.t).join(', ')}`);
-          const serit = await yazi('.result-actions [data-testid="anlatim-bekliyor"]');
+          const anlatimYazi = await yazi(`${BIG ? '.result-ek' : '.result-actions'} [data-testid="anlatim-bekliyor"]`);
           const bek = label === 'sonuc-anlatim-iki' ? 'Yeni: Arkadaşlar ve Kulak Sözlüğü' : label === 'sonuc-harita-canlanma' ? 'Kulak Kanalı haritada canlanacak.Hazine sandığını da orada göreceksin.' : label === 'sonuc-harita-cicek' ? 'Koklea · Apeks haritada çiçeklenecek.' : 'Yeni: Kamp';
-          if (!serit.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${serit}"`);
+          if (!anlatimYazi.includes(bek)) fail(rec, `bekleyen tanıtım satırı "${bek}" demiyor: "${anlatimYazi}"`);
         }
       }
     }

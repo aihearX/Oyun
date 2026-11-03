@@ -12,8 +12,12 @@ export interface ScreenPoint { x: number; y: number }
 export interface RecapRow { icon: string; text: string; items?: JourneyReward[] }
 
 type Impl = {
-  /** granted: içerik cüzdana zaten girdi ve sayaçta görüldü (ör. sonuç ekranında verilen hazine): sayaç yeniden saymaz, düğme "Tamam" */
-  chest(o: { title: string; items: RewardItem[]; tier?: 'bronz' | 'gumus' | 'altin'; granted?: boolean }): Promise<void>;
+  /**
+   * granted: içerik cüzdana zaten girdi ve sayaçta görüldü (ör. sonuç ekranında verilen hazine): sayaç yeniden saymaz, düğme "Tamam".
+   * note: verilmiş sandığın notu (varsayılan "Cüzdanına eklendi"); daha önce verilmişse geçmiş zamanla ve nerede verildiği
+   * ("Bölüm sonunda cüzdanına eklenmişti"; OT-uzman-odyolog-29)
+   */
+  chest(o: { title: string; items: RewardItem[]; tier?: 'bronz' | 'gumus' | 'altin'; granted?: boolean; note?: string }): Promise<void>;
   coins(o: { amount: number; from?: ScreenPoint; kind?: 'jeton' | 'kristal' }): Promise<void>;
   /** title/kicker: başka bir seviye türü (ör. Kamp Seviyesi) için başlık ve rozet yazısı */
   levelUp(o: { level: number; unlocks?: string[]; title?: string; kicker?: string }): Promise<void>;

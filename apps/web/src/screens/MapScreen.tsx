@@ -32,6 +32,8 @@ declare const __ODI_E2E__: boolean | undefined;
  * başlamaz (ftue/Director.tsx quiet, `data-ulasildi`): "Yeni yer açıldı" kartı kutunun üstüne binmez (OT-sessiz-oyuncu-20)
  */
 const GOAL_REACHED_MS = 6000;
+/** haritadaki hazine töreni: içerik bölüm sonunda (sonuç ekranında) verildi; tören yeniden vermez (OT-uzman-odyolog-29) */
+const HAZINE_VERILDI = 'Bölüm sonunda cüzdanına eklenmişti';
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
@@ -97,8 +99,10 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onTreasure: async (n) => {
           const items = treasureItems(useStore.getState().meta, n);
           if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; return; }
-          // hazine bölüm bitince verildi ve sonuç ekranında sayıldı: burada yalnız gösterilir, sayaç yeniden saymaz
-          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true });
+          // hazine bölüm bitince verildi ve sonuç ekranında sayıldı: burada yalnız gösterilir, sayaç yeniden saymaz. Not geçmiş zamanla
+          // ve nerede verildiğini söyler (oturum arada kapandıysa da; "Cüzdanına eklendi" deyip cüzdan artmayınca sahte ödül sanıldı,
+          // OT-uzman-odyolog-29)
+          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true, note: HAZINE_VERILDI });
         },
         onZoneRise: async (z, _from, to) => {
           const ms = useMapSeen.getState(); if (to < 3 || ms.restored.includes(z)) return;
@@ -130,7 +134,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
     if (!rows?.length) return;
     const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
     // pencere kapanınca sıradaki bölüm yine görünür alanın ortasında (kart/düğmeler değişmiş olabilir)
-    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note: t ? (t > 1 ? 'Hazineler cüzdanına eklendi' : 'Hazine cüzdanına eklendi') : undefined }).then(() => handle.current?.focusCurrent());
+    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note: t ? (t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`) : undefined }).then(() => handle.current?.focusCurrent());
   };
   // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
   useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);

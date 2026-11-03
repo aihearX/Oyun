@@ -6,13 +6,15 @@ import type { ReactNode } from 'react';
  */
 export type IconName =
   | 'check' | 'list' | 'smile' | 'play' | 'retry' | 'megaphone' | 'map' | 'sun' | 'tent' | 'team' | 'user' | 'friends' | 'chat' | 'inbox' | 'gem' | 'globe'
-  | 'trophy' | 'cards' | 'hat' | 'bolt' | 'sliders' | 'info' | 'pencil' | 'back' | 'close' | 'dots' | 'send' | 'copy' | 'chevron';
+  | 'trophy' | 'cards' | 'hat' | 'bolt' | 'sliders' | 'info' | 'pencil' | 'back' | 'close' | 'dots' | 'send' | 'copy' | 'chevron' | 'flag';
 
 const D = (d: string, fill = false) => <path d={d} className={fill ? 'ic-fill' : undefined} />;
 const P: Record<IconName, ReactNode> = {
   play: <>{D('M8 5.2v13.6a1 1 0 0 0 1.5.86l10.6-6.8a1 1 0 0 0 0-1.72L9.5 4.34A1 1 0 0 0 8 5.2z', true)}{D('M8 5.2v13.6a1 1 0 0 0 1.5.86l10.6-6.8a1 1 0 0 0 0-1.72L9.5 4.34A1 1 0 0 0 8 5.2z')}</>,
   retry: <>{D('M19.5 12a7.5 7.5 0 1 1-2.2-5.3')}{D('M19.8 4.2v4.6h-4.6')}</>,
   megaphone: <>{D('M3.5 10.2v3.6c0 .7.5 1.2 1.2 1.2H7l6.5 4V5L7 9H4.7c-.7 0-1.2.5-1.2 1.2z', true)}{D('M3.5 10.2v3.6c0 .7.5 1.2 1.2 1.2H7l6.5 4V5L7 9H4.7c-.7 0-1.2.5-1.2 1.2z')}{D('M17 9.2a4 4 0 0 1 0 5.6')}{D('M19.6 6.6a7.6 7.6 0 0 1 0 10.8')}{D('M7 15l1 4.5')}</>,
+  // meydan okuma: dama bayrağı (çizimli "finish" simgesinin çizgi hâli; megafon küçükken hoparlöre benziyordu, OT-sessiz-oyuncu-23)
+  flag: <>{D('M5.5 4.6c2.7-1.2 5 1.2 7.7 0 1.9-.8 3.5-.9 5.3-.3v8.6c-1.8-.6-3.4-.5-5.3.3-2.7 1.2-5-1.2-7.7 0z', true)}{D('M5.5 4.6c2.7-1.2 5 1.2 7.7 0 1.9-.8 3.5-.9 5.3-.3v8.6c-1.8-.6-3.4-.5-5.3.3-2.7 1.2-5-1.2-7.7 0z')}{D('M5.5 3.2v17.6')}{D('M9.4 4.4v8.6M13.2 4.6v8.6M5.5 8.9c2.7-1.2 5 1.2 7.7 0 1.9-.8 3.5-.9 5.3-.3')}</>,
   map: <>{D('M3.5 6.6 9 4.3l6 2.4 5.5-2.3v13l-5.5 2.3-6-2.4-5.5 2.3z', true)}{D('M3.5 6.6 9 4.3l6 2.4 5.5-2.3v13l-5.5 2.3-6-2.4-5.5 2.3z')}{D('M9 4.3v13')}{D('M15 6.7v13')}</>,
   sun: <><circle cx="12" cy="12" r="4.2" className="ic-fill" /><circle cx="12" cy="12" r="4.2" />{D('M12 2.8v2M12 19.2v2M2.8 12h2M19.2 12h2M5.5 5.5l1.4 1.4M17.1 17.1l1.4 1.4M5.5 18.5l1.4-1.4M17.1 6.9l1.4-1.4')}</>,
   tent: <>{D('M12 4.5 3.8 19.5h16.4z', true)}{D('M12 4.5 3.8 19.5h16.4z')}{D('M12 4.5 10.6 2M12 4.5 13.4 2')}{D('M12 12.5 8.6 19.5M12 12.5l3.4 7')}{D('M2.5 19.5h19')}</>,
