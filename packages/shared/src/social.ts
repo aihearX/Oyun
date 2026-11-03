@@ -99,7 +99,8 @@ export interface TeamSummary {
   /** Çalışma Grubu modu (Günün Sorusu öğrenci düzeyinden) */
   study?: boolean;
 }
-export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number }
+/** finished: son bölümü bitirdi (Üyeler'de "Bitirdi"; yoksa alan da yok) */
+export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number; finished?: boolean }
 /** passed: isteyen o bölümü geçti; istek kapandı, kalkan gönderilemez (YN-115) */
 export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number; passed?: boolean }
 export interface TeamDetail extends TeamSummary { roster: TeamMember[]; help: HelpRequest[]; weekPoints: number }

@@ -15,6 +15,7 @@ import { Icon } from '../ui/icons';
 import { featureOpen } from '../ftue/useFeatures';
 import { PhraseStrip, SafeChatSheet } from '../comm/Cards';
 import { useCanFreeText, useComm } from '../comm/state';
+import { refreshTeamRace, useTeamRace } from '../teamrace/state';
 
 /** simge paneli: her biri çizimle görünür (ui/art.tsx EMOJI_ART); iletiye emoji kodu yazılır, balonda çizim çıkar (YN-071) */
 const EMOJIS = ['😀', '😂', '😮', '😢', '😡', '👋', '👍', '👏', '💪', '🔥', '❤️', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '😴'];
@@ -235,6 +236,22 @@ function useRallyInvite(id: string | undefined): RallyState['status'] | 'yok' | 
   return rally.status === 'acik' && rally.endsAt <= srvNow() ? 'kaybedildi' : rally.status;
 }
 
+/**
+ * Takım Yarışı davet kartının durumu (OT-takim-kaptani-21): kart takımın lobisine çağırır (meta.roomId = takım). Lobi takımın canlı
+ * durumundan (trace.state / trace.updated) okunur: açık ve yarış başlamamışsa 'acik'; lobi yoksa, yarış başladıysa ya da kart başka
+ * takımınsa 'kapali'; undefined: yükleniyor ya da Takım Yarışı kartı değil.
+ */
+function useTeamRaceInvite(teamId: string | undefined): 'acik' | 'kapali' | undefined {
+  const myTeam = useNet((s) => s.team?.id ?? null);
+  const loaded = useTeamRace((s) => s.state !== null);
+  const open = useTeamRace((s) => !!s.state?.lobby && s.state.lobby.status !== 'eslesti');
+  useEffect(() => { if (teamId && myTeam === teamId && !loaded) void refreshTeamRace(); }, [teamId, myTeam, loaded]);
+  if (!teamId) return undefined;
+  if (myTeam !== teamId) return 'kapali';
+  if (!loaded) return undefined;
+  return open ? 'acik' : 'kapali';
+}
+
 /** gönderilmeyi bekleyen mesaj: gri balon, altında durumu (bağlanınca gidecek / gönderiliyor / reddedildi: Tekrar dene, Sil) */
 function PendingBubble({ p, online, sender }: { p: PendingDm; online: boolean; sender: Pick<PublicProfile, 'color' | 'hat'> | null }) {
   const body = p.kind === 'sticker' ? <div className="dm-free">{sender && <Sticker id={p.text} color={sender.color} hat={sender.hat} />}</div>
@@ -263,7 +280,8 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   const counts = new Map<string, number>(); for (const [, e] of reacts) counts.set(e, (counts.get(e) ?? 0) + 1);
   const meta = <span className="dm-meta">{time}{ticks}</span>;
   const rally = useRallyInvite(m.kind === 'davet' && m.meta?.type === 'ralli' && typeof m.meta.roomId === 'string' ? m.meta.roomId : undefined);
-  const rallyOver = rally !== undefined && rally !== 'acik';
+  const lobby = useTeamRaceInvite(m.kind === 'davet' && m.meta?.type === 'tyaris' && typeof m.meta.roomId === 'string' ? m.meta.roomId : undefined);
+  const rallyOver = (rally !== undefined && rally !== 'acik') || lobby === 'kapali';
   let body;
   if (m.deleted) body = <div className="dm-bubble deleted"><Art e="🚫" size="1.15em" className="art-inline" /> Bu mesaj silindi {meta}</div>;
   else if (m.kind === 'sticker') body = <div className="dm-free">{sender && <Sticker id={m.text} color={sender.color} hat={sender.hat} />}{meta}</div>;
@@ -271,11 +289,11 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
   else if (m.kind === 'davet') {
     const yaris = m.meta?.type === 'yaris'; const takim = m.meta?.type === 'takim';
     body = (
-      <div className={`dm-invite${rallyOver ? ' closed' : ''}`} data-testid="davet-karti" data-durum={rally ?? ''}>
+      <div className={`dm-invite${rallyOver ? ' closed' : ''}`} data-testid="davet-karti" data-durum={rally ?? lobby ?? ''}>
         <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : takim ? 'users' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
         {/* eski ralli davetlerinin sonundaki sistem emojisi gösterilmez (yeni davetlerde yok, YN-107) */}
         <div className="dm-inv-text">{m.meta?.type === 'ralli' ? m.text.replace(/\s*🔥\s*$/u, '') : m.text}</div>
-        {rallyOver && <div className="dm-inv-state" role="status" data-testid="davet-bitti">{rally === 'yok' ? 'Bu ralli artık açık değil' : `Bu ralli bitti${rally === 'kazanildi' ? ': canavar yenildi' : ': canavar kaçtı'}`}</div>}
+        {rallyOver && <div className="dm-inv-state" role="status" data-testid="davet-bitti">{lobby === 'kapali' ? 'Bu lobi kapandı' : rally === 'yok' ? 'Bu ralli artık açık değil' : `Bu ralli bitti${rally === 'kazanildi' ? ': canavar yenildi' : ': canavar kaçtı'}`}</div>}
         <button className={`btn small ${mine ? 'ghost' : ''}`} disabled={rallyOver} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : takim ? (mine ? 'Takımına git' : 'Takıma katıl') : 'Davete git'}</button>
         {meta}
       </div>

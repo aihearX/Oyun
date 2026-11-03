@@ -5,6 +5,7 @@ import { feedEvent, onHelpCard } from './comm';
 import { veriyiTemizle } from './account-veri';
 import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
+import { MAX_LEVEL } from './progress';
 import { addContrib, broadcastExtra } from './teamextra';
 import { dayKey, DAY_MS } from './time';
 import { recomputeOwner } from './war';
@@ -17,9 +18,18 @@ const TEAM_NAME_MIN = 3;
 const ROLE_ORDER: Record<TeamRole, number> = { lider: 0, yardimci: 1, uye: 2 };
 export const teamNameKey = (s: string) => s.replace(/\s+/g, ' ').trim().toLocaleLowerCase('tr');
 
+/** oyuncu bu bölümü geçmiş mi: sonraki bölüm açık ya da bitirilmiş kaydı var (son bölümde highest ilerlemez) */
+export const levelPassed = (app: App, p: PlayerRow, level: number) => level < p.highest || !!app.db.get('SELECT 1 AS x FROM level_best WHERE player_id = ? AND level = ?', p.id, level);
+
 interface HelpRow { id: string; team_id: string; from_id: string; level: number; helpers: string; max: number; at: number }
+/** passed: istek çözüldü ya da isteyenin bilinen en yüksek bölümü istek bölümünü geçti (başka cihaz, Rahat deneme …; YN-133) */
+export function helpPassed(app: App, r: Pick<HelpRow, 'id' | 'from_id' | 'level'>): boolean {
+  if (app.db.get('SELECT 1 AS x FROM help_resolved WHERE request_id = ?', r.id)) return true;
+  const asker = app.playerOrNull(r.from_id);
+  return !!asker && levelPassed(app, asker, r.level);
+}
 function toHelp(app: App, r: HelpRow): HelpRequest {
-  const passed = !!app.db.get('SELECT 1 AS x FROM help_resolved WHERE request_id = ?', r.id);
+  const passed = helpPassed(app, r);
   return { id: r.id, from: r.from_id, name: app.playerOrNull(r.from_id)?.name ?? '?', level: r.level, helpers: parseJson<string[]>(r.helpers, []), max: r.max, at: r.at, expiresAt: r.at + HELP_TTL_MS, ...(passed ? { passed } : {}) };
 }
 
@@ -31,8 +41,6 @@ export function emitHelp(app: App, requestId: string): void {
   for (const m of app.teamMemberIds(r.team_id)) app.emit(m, 'team.help', { request });
 }
 
-/** oyuncu bu bölümü geçmiş mi: sonraki bölüm açık ya da bitirilmiş kaydı var (son bölümde highest ilerlemez) */
-const levelPassed = (app: App, p: PlayerRow, level: number) => level < p.highest || !!app.db.get('SELECT 1 AS x FROM level_best WHERE player_id = ? AND level = ?', p.id, level);
 
 export function teamSummary(app: App, t: TeamRow): TeamSummary {
   const agg = app.db.get<{ n: number; power: number }>('SELECT COUNT(*) AS n, COALESCE(SUM(stars), 0) AS power FROM players WHERE team_id = ?', t.id)!;
@@ -45,7 +53,9 @@ export function teamDetail(app: App, teamId: string): TeamDetail | null {
   const week = app.week().key;
   const rows = app.db.all<PlayerRow & { wp: number | null }>(
     'SELECT p.*, w.war_points AS wp FROM players p LEFT JOIN player_week w ON w.player_id = p.id AND w.week = ? WHERE p.team_id = ?', week, teamId);
-  const roster: TeamMember[] = rows.map((r) => ({ ...app.publicProfile(r), role: r.team_role ?? 'uye', weekPoints: r.wp ?? 0, joinedAt: r.team_joined_at ?? 0 }));
+  // son bölümü bitirenler (Üyeler'de "Bitirdi"; son bölümde highest ilerlemez, yönetici açılışı highest'ı atlatmaz)
+  const done = new Set(app.db.all<{ player_id: string }>('SELECT b.player_id FROM level_best b JOIN players p ON p.id = b.player_id WHERE p.team_id = ? AND b.level = ? AND p.highest >= ?', teamId, MAX_LEVEL, MAX_LEVEL).map((x) => x.player_id));
+  const roster: TeamMember[] = rows.map((r) => ({ ...app.publicProfile(r), role: r.team_role ?? 'uye', weekPoints: r.wp ?? 0, joinedAt: r.team_joined_at ?? 0, ...(done.has(r.id) ? { finished: true } : {}) }));
   roster.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || b.weekPoints - a.weekPoints || a.joinedAt - b.joinedAt);
   const help = app.db.all<HelpRow>('SELECT * FROM help_requests WHERE team_id = ? AND at > ? ORDER BY at DESC LIMIT 30', teamId, app.now() - HELP_TTL_MS).map((r) => toHelp(app, r));
   const weekPoints = app.db.get<{ points: number }>('SELECT points FROM team_week WHERE week = ? AND team_id = ?', week, teamId)?.points ?? 0;
@@ -209,7 +219,7 @@ export const teamHandlers: Handlers = {
     if (!r || r.team_id !== t.id) return fail('YOK', 'Yardım isteği bulunamadı.');
     if (r.at <= app.now() - HELP_TTL_MS) fail('SURE', 'Bu yardım isteğinin süresi doldu.');
     if (r.from_id === p.id) fail('GECERSIZ', 'Kendi isteğine yardım edemezsin.');
-    if (app.db.get('SELECT 1 AS x FROM help_resolved WHERE request_id = ?', r.id)) fail('BITTI', 'Bu bölüm geçildi; yardım isteği kapandı.');
+    if (helpPassed(app, r)) fail('BITTI', 'Bu bölüm geçildi; yardım isteği kapandı.');
     const helpers = parseJson<string[]>(r.helpers, []);
     if (helpers.includes(p.id)) fail('TEKRAR', 'Bu isteğe zaten yardım ettin.');
     if (helpers.length >= r.max) fail('DOLU', 'Bu istek için yeterince yardım toplandı.');

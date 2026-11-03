@@ -2,7 +2,7 @@ import { COMM_RULES, phraseById, type OpMap } from '@odi/shared';
 import { fail, parseJson, type App, type Handler, type Session } from '../app';
 import { postCard, sendAs, teamRoom, updateCard } from '../chat';
 import { raceHandlers } from '../race';
-import { emitHelp } from '../teams';
+import { emitHelp, helpPassed, levelPassed } from '../teams';
 import { DAY_MS } from '../time';
 import { feedEvent } from './feed';
 import { commNotice, metric } from './settings';
@@ -11,6 +11,7 @@ import { commNotice, metric } from './settings';
  * Yardım İste (genişletilmiş): takım sohbetindeki yardım kartı (kind 'help') üç gerçek eylem taşır —
  * ipucu (kartın konusuna yanıt), kalkan (team.help.give: ödül kutusuna gerçek kalkan), birlikte yarış (help.race).
  * İsteyen o bölümü 24 saat içinde geçerse istek BİR KEZ çözülür: isteyene 15, her yardım edene 20 jeton + teşekkür bildirimi.
+ * Kimse yardım etmediyse ödül yoktur; kart da teşekkür demez (YN-133).
  */
 const TTL = DAY_MS;
 interface HelpRow { id: string; team_id: string; from_id: string; level: number; helpers: string; max: number; at: number }
@@ -23,11 +24,20 @@ export function onHelpCard(app: App, requestId: string, msgId: string): void {
   metric(app, 'help.request');
 }
 
+/** yardım edenler ilk yardım sırasıyla (ipucu/kalkan/yarış kayıtları + eski kalkan listesi); isteyen ve silinmiş hesaplar hariç */
+function helperIds(app: App, r: HelpRow): string[] {
+  const ids = new Set<string>([...app.db.all<{ helper_id: string }>('SELECT helper_id, MIN(at) AS t, MIN(rowid) AS o FROM help_actions WHERE request_id = ? GROUP BY helper_id ORDER BY t, o', r.id).map((x) => x.helper_id), ...parseJson<string[]>(r.helpers, [])]);
+  ids.delete(r.from_id);
+  return [...ids].filter((h) => !!app.playerOrNull(h));
+}
+
+/** kart sayaçları; helpers: teşekkür ödülü giden (gidecek) kişi sayısı, kart "N kişiye teşekkür" yazısını buradan alır */
 function refreshCard(app: App, requestId: string): void {
   const card = helpCardId(app, requestId); if (!card) return;
+  const r = reqById(app, requestId); if (!r) return;
   const n = (k: string) => app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM help_actions WHERE request_id = ? AND kind = ?', requestId, k)!.n;
   const done = !!app.db.get('SELECT 1 AS x FROM help_resolved WHERE request_id = ?', requestId);
-  updateCard(app, card, null, { ipucu: n('ipucu'), kalkan: n('kalkan'), yaris: n('yaris'), done });
+  updateCard(app, card, null, { ipucu: n('ipucu'), kalkan: n('kalkan'), yaris: n('yaris'), helpers: helperIds(app, r).length, done });
 }
 
 export function recordHelp(app: App, requestId: string, helperId: string, kind: 'ipucu' | 'kalkan' | 'yaris'): boolean {
@@ -36,39 +46,41 @@ export function recordHelp(app: App, requestId: string, helperId: string, kind: 
   return added;
 }
 
-/** açık (süresi dolmamış, çözülmemiş) ve benim takımımdaki, başkasına ait istek */
+/** açık (süresi dolmamış, çözülmemiş, isteyenin geçmediği) ve benim takımımdaki, başkasına ait istek */
 function openRequestFor(app: App, pid: string, requestId: string): HelpRow {
   const p = app.player(pid);
   const r = reqById(app, requestId);
   if (!r || r.team_id !== p.team_id) return fail('YOK', 'Yardım isteği bulunamadı.');
   if (r.at <= app.now() - TTL) fail('SURE', 'Bu yardım isteğinin süresi doldu.');
-  if (app.db.get('SELECT 1 AS x FROM help_resolved WHERE request_id = ?', r.id)) fail('BITTI', 'Bu bölüm geçildi; yardım isteği kapandı.');
+  if (helpPassed(app, r)) fail('BITTI', 'Bu bölüm geçildi; yardım isteği kapandı.');
   if (r.from_id === pid) fail('GECERSIZ', 'Kendi isteğine yardım edemezsin.');
   return r;
 }
 
-/** isteyen o bölümü geçti: istek bir kez çözülür, ödüller ve teşekkür */
+
+/**
+ * isteyen bir bölümü geçti: o bölümün ve artık geçilmiş sayılan (bilinen en yüksek bölümü ileride) açık istekleri bir kez çözülür,
+ * ödül ve teşekkür yalnız gerçek yardım edenler varsa
+ */
 export function resolveHelp(app: App, pid: string, level: number): void {
-  const reqs = app.db.all<HelpRow>('SELECT * FROM help_requests WHERE from_id = ? AND level = ? AND at > ?', pid, level, app.now() - TTL);
+  const p = app.player(pid);
+  const reqs = app.db.all<HelpRow>('SELECT * FROM help_requests WHERE from_id = ? AND at > ?', pid, app.now() - TTL)
+    .filter((r) => r.level === level || levelPassed(app, p, r.level));
   for (const r of reqs) {
     if (!app.db.run('INSERT OR IGNORE INTO help_resolved(request_id, at) VALUES(?, ?)', r.id, app.now())) continue;
-    // yardım edenler ilk yardım sırasıyla (ipucu/kalkan/yarış kayıtları + eski kalkan listesi)
-    const helpers = new Set<string>([...app.db.all<{ helper_id: string }>('SELECT helper_id, MIN(at) AS t, MIN(rowid) AS o FROM help_actions WHERE request_id = ? GROUP BY helper_id ORDER BY t, o', r.id).map((x) => x.helper_id), ...parseJson<string[]>(r.helpers, [])]);
-    helpers.delete(pid);
+    const helpers = helperIds(app, r);
     refreshCard(app, r.id);
     emitHelp(app, r.id);
-    if (!helpers.size) continue;
+    if (!helpers.length) continue;
     metric(app, 'help.resolved');
-    const p = app.player(pid);
-    const names = [...helpers].map((h) => app.playerOrNull(h)?.name).filter(Boolean) as string[];
-    app.addInbox(pid, { kind: 'jeton', amount: COMM_RULES.helpAskerJeton, ref: 'yardim' }, `${level}. bölümü takımınla geçtin`);
+    const names = helpers.map((h) => app.playerOrNull(h)?.name).filter(Boolean) as string[];
+    app.addInbox(pid, { kind: 'jeton', amount: COMM_RULES.helpAskerJeton, ref: 'yardim' }, `${r.level}. bölümü takımınla geçtin`);
     const card = helpCardId(app, r.id);
     for (const h of helpers) {
-      if (!app.playerOrNull(h)) continue;
-      app.addInbox(h, { kind: 'jeton', amount: COMM_RULES.helpHelperJeton, ref: 'yardim' }, `Teşekkür: ${p.name} ${level}. bölümü geçti`);
-      commNotice(app, h, { kind: 'thanks', title: `${p.name} ${level}. bölümü geçti!`, text: `Yardımın için teşekkür ediyor. Ödül kutuna ${COMM_RULES.helpHelperJeton} jeton düştü.`, from: app.publicProfile(p), room: teamRoom(r.team_id), ...(card ? { msgId: card } : {}) });
+      app.addInbox(h, { kind: 'jeton', amount: COMM_RULES.helpHelperJeton, ref: 'yardim' }, `Teşekkür: ${p.name} ${r.level}. bölümü geçti`);
+      commNotice(app, h, { kind: 'thanks', title: `${p.name} ${r.level}. bölümü geçti!`, text: `Yardımın için teşekkür ediyor. Ödül kutuna ${COMM_RULES.helpHelperJeton} jeton düştü.`, from: app.publicProfile(p), room: teamRoom(r.team_id), ...(card ? { msgId: card } : {}) });
     }
-    feedEvent(app, pid, 'yardim', { level, helpers: names.slice(0, 5).join(', ') });
+    feedEvent(app, pid, 'yardim', { level: r.level, helpers: names.slice(0, 5).join(', ') });
   }
 }
 

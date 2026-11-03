@@ -292,8 +292,49 @@ describe('Yardım İste', () => {
     await climb(a, 2);
     const req = (await a.call('team.help.request', { level: 2 })).request;
     expect((await err(b.call('help.tip', { requestId: req.id, text: 'şurada zıpla' }))).code).toBe('SERBEST_KAPALI');
+    const card = (await b.waitFor('chat', (x) => x.msg.kind === 'help')).msg;
     await a.call('progress.submit', run(2));
     expect(await inboxSum(a, 'jeton', 'yardim')).toBe(0);
+    // kart "kimse yardım etmedi" bilgisini taşır: istemci teşekkür ödülü yazmaz (YN-133)
+    expect((await b.waitFor('chat.updated', (u) => u.msg.id === card.id && u.msg.meta?.done === true)).msg.meta).toMatchObject({ ipucu: 0, kalkan: 0, yaris: 0, helpers: 0 });
+  });
+
+  it('isteyenin en yüksek bölümü istek bölümünü geçtiyse istek kapalı: Geçti, gönderilemez; sonraki geçişte bir kez çözülür (YN-133)', async () => {
+    env = await setup();
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora'); const c = await env!.connect('Cem');
+    await team(a, b, c);
+    await climb(a, 3);
+    const req = (await a.call('team.help.request', { level: 3 })).request;
+    const card = (await b.waitFor('chat', (x) => x.msg.kind === 'help')).msg;
+    await c.call('team.help.give', { requestId: req.id });
+    // başka yoldan ilerledi (ör. başka cihaz): bilinen en yüksek bölüm 5, istek bölümü 3 tam o anda geçilmedi
+    env!.srv.app.db.run('UPDATE players SET highest = 5 WHERE id = ?', a.me!.id);
+    const view = (await b.call('team.detail', {})).team!.help.find((h) => h.id === req.id)!;
+    expect(view.passed).toBe(true);
+    expect((await err(b.call('team.help.give', { requestId: req.id }))).code).toBe('BITTI');
+    expect((await err(b.call('help.tip', { requestId: req.id, phrase: 'ipucu-bas' }))).code).toBe('BITTI');
+    expect(await inboxSum(a, 'kalkan')).toBe(1); // reddedilen kalkan alıcıya düşmez
+    // isteyen bir sonraki bölümü geçince geçilmiş istek de çözülür: gerçek yardım eden teşekkür ödülünü alır, bir kez
+    await a.call('progress.submit', run(5));
+    expect((await b.waitFor('chat.updated', (u) => u.msg.id === card.id && u.msg.meta?.done === true)).msg.meta).toMatchObject({ kalkan: 1, helpers: 1 });
+    expect(await inboxSum(c, 'jeton', 'yardim')).toBe(20);
+    expect(await inboxSum(a, 'jeton', 'yardim')).toBe(15);
+    await a.call('progress.submit', run(4));
+    expect(await inboxSum(c, 'jeton', 'yardim')).toBe(20);
+  });
+
+  it('Üyeler güncel: bölüm geçince takım ayrıntısı yayınlanır; son bölümü bitiren "finished" (OT-takim-kaptani-26)', async () => {
+    env = await setup();
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');
+    await team(a, b);
+    b.drain();
+    await a.call('progress.submit', run(1));
+    const row = (await b.waitFor('team.updated', (u) => u.team?.roster.find((m) => m.id === a.me!.id)?.highest === 2)).team!.roster.find((m) => m.id === a.me!.id)!;
+    expect(row.finished).toBeUndefined();
+    env!.srv.app.db.run('UPDATE players SET highest = 40 WHERE id = ?', a.me!.id);
+    b.drain();
+    await a.call('progress.submit', run(40));
+    expect((await b.waitFor('team.updated', (u) => !!u.team?.roster.find((m) => m.id === a.me!.id)?.finished)).team!.roster.find((m) => m.id === a.me!.id)!.highest).toBe(40);
   });
 });
 

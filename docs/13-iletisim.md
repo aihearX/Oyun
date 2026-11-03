@@ -77,7 +77,10 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
 3. İsteyen o bölümü 24 saat içinde **geçerse** (sunucu `progress.submit` ile görür): istek çözülür (bir kez):
    isteyene 15 jeton ("Takımınla geçtin"), her yardım edene 20 jeton (ödül kutusu) + `help.thanks` olayı ("Ayşe 7. bölümü
    geçti, yardımın için teşekkür ediyor") ve "Rica ederim" düğmesi (hazır söz `rica`, kartın konusuna yanıt). Akışa `yardim` kartı.
-   Ödüller mütevazı ve sabittir; yardım eden başına istek başına bir kez.
+   Ödüller mütevazı ve sabittir; yardım eden başına istek başına bir kez. Kimse yardım etmediyse ödül yoktur ve kart da teşekkür
+   demez ("Geçtin! Bu sefer yardım gelmeden başardın."); yardım varsa kart `meta.helpers` sayısıyla "N kişiye teşekkür ödülü gitti" der.
+   İsteyenin bilinen en yüksek bölümü istek bölümünü geçtiyse (başka cihaz vb.) istek kapalı sayılır: liste "Geçti", gönderim
+   `BITTI` ile reddedilir; isteyenin bir sonraki tamamlanan bölümünde istek bir kez çözülür (YN-133).
 
 ### 3.4 Takıma meydan oku
 `feed.challenge { level }`: sunucu, oyuncunun **kendi kayıtlı en iyi skorunu** (level_best) kullanır — istemcinin söylediği skor değil.

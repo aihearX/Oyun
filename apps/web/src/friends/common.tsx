@@ -8,6 +8,7 @@ import { TIER } from '../ui/social';
 import { Art, TeamEmblem } from '../ui/art';
 import type { ReactNode } from 'react';
 import { hatKey } from '../screens/team/TeamMembers';
+import { openTeamTab } from '../screens/team/teamTabs';
 import { friendsNet, sendDm, useFriends } from './state';
 
 /** çevrimiçi mi (presence olayı profil bilgisinden yenidir) */
@@ -102,6 +103,8 @@ export function openInvite(meta: Record<string, string | number | boolean> | und
     void act('team.join', { code }).then((r) => { if (r) { useNet.setState({ team: r.team }); toast('🤝', `${r.team.name} takımına katıldın`, undefined, 'green'); nav.tab('team'); } });
     return;
   }
+  // Takım Yarışı lobisi: Takım › Rekabet › Takım Yarışı sekmesi (son açık sekme değil; OT-takim-kaptani-21)
+  if (meta.type === 'tyaris') { openTeamTab('tyaris'); nav.tab('team'); return; }
   // diğer takım etkinlikleri takım ekranında
   nav.tab('team');
 }

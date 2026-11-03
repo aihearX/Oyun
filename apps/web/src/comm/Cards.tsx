@@ -194,6 +194,17 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
   );
 }
 
+/**
+ * çözülmüş yardım kartının yazısı (YN-133): teşekkür ödülü yalnız gerçek yardım edenlere gider (sunucu resolveHelp). helpers:
+ * ödül giden kişi sayısı (kart verisi; eski kartlarda yok, o zaman yalnız ipucu/kalkan/yarış sayılarından "var/yok" bilinir).
+ */
+export function helpDoneText(mine: boolean, name: string, meta: Record<string, unknown> | undefined): string {
+  const acts = n(meta?.ipucu) + n(meta?.kalkan) + n(meta?.yaris);
+  const people = typeof meta?.helpers === 'number' ? meta.helpers : acts > 0 ? null : 0;
+  if (mine) return people === 0 ? 'Geçtin! Bu sefer yardım gelmeden başardın.' : people === null ? 'Geçtin! Yardım edenlere teşekkür ödülü gitti.' : `Geçtin! ${people} kişiye teşekkür ödülü gitti.`;
+  return people === 0 ? `${name} bölümü geçti.` : `${name} bölümü geçti. Teşekkürler!`;
+}
+
 /** Yardım kartı: ipucu, kalkan, birlikte yarış */
 export function HelpCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
   const me = useNet((x) => x.me); const team = useNet((x) => x.team);
@@ -202,23 +213,25 @@ export function HelpCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
   const reqId = s(m.meta?.requestId); const level = n(m.meta?.level); const asker = s(m.meta?.pid);
   const req = team?.help.find((h) => h.id === reqId);
   const mine = asker === me?.id || req?.from === me?.id;
-  const done = !!m.meta?.done; const expired = !!req && req.expiresAt < Date.now();
+  // done: sunucu isteği çözdü (ödüller dağıtıldı); closed: isteyen bölümü başka yoldan geçti, istek kapalı (ödül yazısı yok)
+  const done = !!m.meta?.done; const closed = done || !!req?.passed; const expired = !!req && req.expiresAt < Date.now();
   const gave = !!req && !!me && req.helpers.includes(me.id);
   const tipped = (m.thread ?? []).concat(live).some((r) => r.from === me?.id && r.meta?.tip);
   const shield = async () => { setBusy('k'); const r = await act('team.help.give', { requestId: reqId }); setBusy(''); if (r) { platform().haptic('success'); toast('🛡️', 'Kalkan gönderildi', `${req?.name ?? 'Takım arkadaşın'} bir sonraki denemesine kalkanla başlar.`, 'green'); } };
   const race = async () => { setBusy('y'); const r = await act('help.race', { requestId: reqId }); setBusy(''); if (r) nav.open({ name: 'race', inviteRoomId: r.room.id }); };
   const name = s(m.meta?.pname) || req?.name || 'Takım arkadaşın';
   return (
-    <div className={`fcard t-help${done ? ' done' : ''}`} data-testid="yardim-karti" data-id={m.id} data-done={done ? '1' : '0'}>
+    <div className={`fcard t-help${closed ? ' done' : ''}`} data-testid="yardim-karti" data-id={m.id} data-done={closed ? '1' : '0'}>
       <div className="fc-head">
         <button type="button" className="fc-av" onClick={() => asker && openProfile(asker)} aria-label={`${name} profili`}>
           <OdiAvatar size={38} color={n(m.meta?.pc) || 0x8b6bff} hat={hatKey(s(m.meta?.ph))} mood="wow" />
-          <span className="fc-badge"><Art name={done ? 'check' : 'help'} size={16} /></span>
+          <span className="fc-badge"><Art name={closed ? 'check' : 'help'} size={16} /></span>
         </button>
-        <div className="fc-txt min0"><small>{done ? 'Geçildi' : 'Yardım istiyor'} · {fmtTime(m.at)}</small><b>{mine ? `${level}. bölüm için yardım istedin` : `${name}, ${level}. bölümde takıldı`}</b></div>
+        <div className="fc-txt min0"><small>{closed ? 'Geçildi' : 'Yardım istiyor'} · {fmtTime(m.at)}</small><b>{mine ? `${level}. bölüm için yardım istedin` : `${name}, ${level}. bölümde takıldı`}</b></div>
       </div>
       <div className="fc-help-stats"><span><Art name="bulb" size={16} /> {n(m.meta?.ipucu)} ipucu</span><span><Art name="shield" size={16} /> {n(m.meta?.kalkan)} kalkan</span><span><Art name="finish" size={16} /> {n(m.meta?.yaris)} yarış</span></div>
-      {done ? <div className="fc-done"><Art name="party" size={18} /> {mine ? 'Geçtin! Yardım edenlere teşekkür ödülü gitti.' : `${name} bölümü geçti. Teşekkürler!`}</div>
+      {done ? <div className="fc-done" data-testid="yardim-bitti"><Art name="party" size={18} /> {helpDoneText(mine, name, m.meta)}</div>
+        : closed ? <div className="fc-done" data-testid="yardim-bitti"><Art name="check" size={18} /> {mine ? 'Bölümü geçtin; istek kapandı.' : `${name} bölümü geçti; istek kapandı.`}</div>
         : mine ? <div className="muted small-note">Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir. Geçince ikinize de ödül.</div>
           : expired ? <div className="muted small-note">Bu isteğin süresi doldu.</div>
             : (

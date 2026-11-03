@@ -11,8 +11,10 @@ import { checkChallenges, feedFromRun, postChallenge, trackPlayDay } from './fee
 import { helpHandlers, recordHelp, resolveHelp } from './help';
 import { mentorEnd, mentorOffer, mentorProgress, mentorRespond, mentorState } from './mentor';
 import { commSettings, setCommSettings } from './settings';
+import { MAX_LEVEL } from '../progress';
 import { raceWinFor } from '../race';
 import { rankOnRun } from '../rank';
+import { broadcastTeam } from '../teams';
 
 export { COMM_SCHEMA } from './schema';
 export { COMM_SCHEMAS } from './schemas';
@@ -45,6 +47,9 @@ function onRun(app: App, pid: string, d: ProgressSubmit, prev: { stars: number }
   if (d.completed) { resolveHelp(app, pid, d.level); if (d.rahat !== true) checkChallenges(app, pid, d.level, Math.round(d.score)); }
   duoAddNotes(app, pid, Math.min(400, Math.max(0, Math.round(d.coins))));
   mentorProgress(app, pid, prevHighest);
+  // Üyeler satırı güncel kalsın: sıradaki bölüm ilerledi ya da son bölüm ilk kez bitti ("Bitirdi"; OT-takim-kaptani-26)
+  const p = app.player(pid);
+  if (p.team_id && (p.highest !== prevHighest || (d.completed && d.level === MAX_LEVEL && !prev))) broadcastTeam(app, p.team_id);
 }
 
 /** progress.submit ve team.help.give işleyicilerini iletişim kancalarıyla sarar */

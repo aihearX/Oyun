@@ -23,7 +23,7 @@ import { TEAM_APPLY_RULES, canApprove, joinModeOf } from '@odi/shared';
 import { TeamApplications } from './TeamApplications';
 import { ModeTag } from './TeamProfile';
 import { useTeamApply } from './apply';
-import { GROUP_OF, openTeamTab, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
+import { GROUP_OF, openTeamTab, sendableHelpCount, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
 
 export type { TeamTab } from './teamTabs';
 
@@ -42,7 +42,7 @@ export function TeamHome() {
   const myRole = team.roster.find((m) => m.id === me.id)?.role ?? 'uye';
   const approver = canApprove(myRole);
   const apps = useTeamApply((s) => s.pending?.length ?? 0);
-  const levelHelp = team.help.filter((h) => h.from !== me.id && !h.helpers.includes(me.id) && h.helpers.length < h.max && h.expiresAt > Date.now()).length;
+  const levelHelp = sendableHelpCount(team.help, me.id, Date.now());
   // Takım Yarışı rozeti: açık lobi (ben içinde değilsem) ya da gelen dostluk daveti
   const raceBadge = useTeamRace((x) => { const l = x.state?.lobby; const me = useNet.getState().me?.id; return (l && l.status !== 'eslesti' && !l.members.some((m) => m.id === me) ? 1 : 0) + (l?.incoming.length ?? 0); });
   const claimableGoals = extra ? extra.goals.reduce((a, g) => a + g.tiers.filter((t, i) => g.progress >= t.need && !g.claimedTiers.includes(i)).length, 0) : 0;
