@@ -268,7 +268,7 @@ export const VAKALAR: Vaka[] = /* @__PURE__ */ bolunmezYap([
       refleks: { R: 'var', L: 'yok' }, oae: { R: 'var', L: 'yok' }, abr: ABR_GEREKMEZ,
       konusma: { srt: { R: 10, L: 25 }, sds: { R: 100, L: 96 } }, islemleme: ISLEM_GEREKMEZ,
     },
-    kayip: { R: 'normal', L: 'iletim' }, anahtar: ['otoskopi', 'timpanometri'],
+    kayip: { R: 'normal', L: 'iletim' }, anahtar: ['otoskopi', 'odyometri'],
     tani: { dogru: 'perforasyon', yanlis: ['ome', 'serumen', 'zincir'] },
     yonetim: [
       { id: 'hekim', sade: 'KBB hekimine yönlendir; zar iyileşene kadar kulağa su kaçırmamasını anlat (travmatik deliklerin çoğu kendiliğinden kapanır).' },
@@ -277,7 +277,7 @@ export const VAKALAR: Vaka[] = /* @__PURE__ */ bolunmezYap([
       { id: 'cihaz', sade: 'Sol kulağa işitme cihazı uygula.', teknik: 'Amplifikasyon.' },
     ],
     aciklama: {
-      sade: 'Otoskopide zarda delik görülüyor; timpanogram düz ama kanal hacmi büyük: prob, deliğin ardındaki orta kulak boşluğunu da ölçüyor. Hafif iletim tipi kayıp var. Travmatik deliklerin çoğu haftalar içinde kendiliğinden kapanır; hekim izler, kulak kuru tutulur.',
+      sade: 'Otoskopide zarda delik görülüyor. Odyogramda sol hava yolu 20–30 dB, kemik yolu 5–10 dB: hafif iletim tipi kayıp, iç kulak etkilenmemiş. Timpanogram düz ama kanal hacmi büyük: prob, deliğin ardındaki orta kulak boşluğunu da ölçüyor. Travmatik deliklerin çoğu haftalar içinde kendiliğinden kapanır; hekim izler, kulak kuru tutulur.',
       teknik: 'Yetişkinde eşdeğer kanal hacmi yaklaşık 0,6–1,5 ml’dir; düz eğriyle birlikte yaklaşık 2 ml’nin üstü perforasyonu ya da açık ventilasyon tüpünü düşündürür. Küçük travmatik perforasyonların çoğu 2–3 ayda iyileşir; kapanmazsa miringoplasti seçenektir. Baş dönmesi ya da sensörinöral kayıp eşlik ederse acil değerlendirme gerekir.',
     },
     terim: 'timpanik-membran', kaynak: `${K}, timpanometri; ${E}, zar perforasyonu`,

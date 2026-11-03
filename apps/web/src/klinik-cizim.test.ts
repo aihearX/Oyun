@@ -123,3 +123,37 @@ describe('Klinik odyogram ve bulgu metinleri (YN-090)', () => {
     }
   });
 });
+
+describe('Klinik sonucu (YN-132)', () => {
+  it('tarama vakasında "Tanı" değil "Sonuç"; test adı düğmedeki adla aynı', async () => {
+    const { SonucOzeti } = await import('./camp/gorev/Klinik');
+    const sonuc = (id: string, efficient: boolean) => renderToStaticMarkup(createElement(SonucOzeti, { v: vakaById(id)!, res: { stars: efficient ? 3 : 2, dxOk: true, mgOk: true, efficient, correctDx: vakaById(id)!.tani.dogru }, duzey: 'genel' }));
+    for (const ok of [true, false]) {
+      const kv08 = sonuc('kv08', ok);
+      expect(kv08).not.toMatch(/Tanı|tanı/);
+      expect(kv08).toContain('Sonuç: ');
+    }
+    expect(sonuc('kv10', true)).toContain('Tanı: ');
+    const kv10 = sonuc('kv10', false);
+    expect(kv10).toContain('anahtar testler: Otoskopi, Saf ses odyometrisi (en çok 3 test)');
+  });
+  it('"İsteseydin" bölümü bu vakada yapılmayan testleri vakadaki nedeniyle gösterir', async () => {
+    const { Bulgular } = await import('./camp/gorev/Klinik');
+    const v = vakaById('kv08')!;
+    const html = renderToStaticMarkup(createElement(Bulgular, { v, istenen: ['oae'], duzey: 'genel' }));
+    expect(html).toContain('data-testid="bulgu-istenmeyen"');
+    expect(html).toContain('İsteseydin şunu görecektin');
+    for (const t of VAKA_TESTLERI) {
+      const x = v.testler[t.id];
+      if (t.id === 'oae') { expect(html).not.toContain(`data-yapilmadi="${t.id}"`); continue; }
+      expect(isYok(x), t.id).toBe(true);
+      expect(html, t.id).toContain(`data-yapilmadi="${t.id}"`);
+    }
+    expect(html.replace(/\u2060/g, '').replace(/\u00a0/g, ' ')).toContain('<b>Timpanometri:</b> Taramada kullanılmaz; gerekirse 1000 Hz prob tonla yapılır.');
+    // istenen yapılmayan test "İsteseydin" bölümünde tekrar edilmez; yapılabilen testler ayrı (data-bulgu) satırda
+    const kv01 = vakaById('kv01')!;
+    const h1 = renderToStaticMarkup(createElement(Bulgular, { v: kv01, istenen: ['otoskopi', 'abr'], duzey: 'genel' }));
+    expect(h1).not.toContain('data-yapilmadi="abr"');
+    expect(h1).toContain('data-bulgu="timpanometri"');
+  });
+});

@@ -165,13 +165,13 @@ bölge ayrıca söylenir; 8 kHz'te en az 10 dB düzelme varsa çentiğin frekans
 > etkisini kesin olarak dışlamaz; çınlama sürer ya da tekrarlarsa işitme yeniden kontrol edilmeli. Yeni tıbbi cümle olduğu için oyuna
 > eklenmedi; sahip onaylarsa vakanın açıklamasına eklenir.
 
-| # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (teknik) | sözlük | kaynak |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| # | kademe | başlık | hasta | kategori | doğru tanı | anahtar testler | odyogram (SSO 500–2000 Hz) | timpanogram | doğru yönetim | açıklama (sade) | açıklama (teknik) | sözlük | kaynak |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 ${KG.VAKALAR.map((v) => {
   const T = v.testler; const o = KG.isYok(T.odyometri) ? null : T.odyometri; const tp = KG.isYok(T.timpanometri) ? null : T.timpanometri;
   const ody = o ? ['R', 'L'].map((e) => `${e === 'R' ? 'Sağ' : 'Sol'} ${Math.round(KG.pta3(o.ac[e]))} dB (${v.kayip?.[e] ?? KG.kayipTipi(o, e)})`).join('; ') : '—';
   const tim = tp ? ['R', 'L'].map((e) => (tp[e] ? `${e === 'R' ? 'Sağ' : 'Sol'} ${tp[e].tip} (${tp[e].hacim} ml)` : `${e === 'R' ? 'Sağ' : 'Sol'} —`)).join('; ') : '—';
-  return `| \`${v.id}\` | ${v.kademe} | **${esc(v.baslik)}** | ${esc(v.hasta.ad)}, ${esc(v.hasta.yas)} | ${v.kat} | ${esc(KG.taniById(v.tani.dogru).teknik)} | ${v.anahtar.join(', ')} | ${esc(ody)} | ${esc(tim)} | ${esc(v.yonetim[0].sade)} | ${esc(v.aciklama.teknik)} | \`${v.terim}\` | ${esc(v.kaynak)} |`;
+  return `| \`${v.id}\` | ${v.kademe} | **${esc(v.baslik)}** | ${esc(v.hasta.ad)}, ${esc(v.hasta.yas)} | ${v.kat} | ${esc(KG.taniById(v.tani.dogru).teknik)} | ${v.anahtar.join(', ')} | ${esc(ody)} | ${esc(tim)} | ${esc(v.yonetim[0].sade)} | ${esc(v.aciklama.sade)} | ${esc(v.aciklama.teknik)} | \`${v.terim}\` | ${esc(v.kaynak)} |`;
 }).join('\n')}
 
 ### İstenmeyen testlerin yorumu (YN-090)

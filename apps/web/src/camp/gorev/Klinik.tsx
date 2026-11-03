@@ -168,7 +168,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
         <div className="kg-testler" data-testid="test-adim">
           <div className="kg-note">Gerekli testleri seç: az testle doğru karar +1 yıldız. İstenen test: <b data-testid="test-sayisi">{tests.length}</b></div>
           <div className="kg-test-grid">
-            {VAKA_TESTLERI.map((t) => <button key={t.id} className={`kg-test${tests.includes(t.id) ? ' on' : ''}`} data-test={t.id} onClick={() => order(t.id)} aria-pressed={tests.includes(t.id)}><TestIcon id={t.id} size={26} /><span>{duzey === 'genel' ? t.kisa : t.ad}</span></button>)}
+            {VAKA_TESTLERI.map((t) => <button key={t.id} className={`kg-test${tests.includes(t.id) ? ' on' : ''}`} data-test={t.id} onClick={() => order(t.id)} aria-pressed={tests.includes(t.id)}><TestIcon id={t.id} size={24} /><b className="kg-test-ad">{t.ad}</b><small className="kg-test-sade">{t.sade}</small></button>)}
           </div>
           {tests.map((id) => <SonucKart key={id} v={v} id={id} duzey={duzey} />)}
           {team && !replay && (
@@ -182,7 +182,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 
       {adim === 'tani' && (
         <div className="kg-karar" data-testid="tani-adim">
-          <h3>Olası tanı</h3>
+          <h3>{v.kat === 'tarama' ? 'Tarama sonucu' : 'Olası tanı'}</h3>
           <div className="kg-opts">{dxOpts.map((o) => <button key={o.id} className={`kg-opt${dx === o.id ? ' on' : ''}`} data-dx={o.id} onClick={() => { audio.play('tap'); setDx(o.id); }}>{duzey === 'genel' ? o.sade : o.teknik}</button>)}</div>
           <h3>Ne yaparsın?</h3>
           <div className="kg-opts">{mgOpts.map((o) => <button key={o.id} className={`kg-opt${mg === o.id ? ' on' : ''}`} data-mg={o.id} onClick={() => { audio.play('tap'); setMg(o.id); }}>{o.sade}</button>)}</div>
@@ -192,12 +192,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 
       {adim === 'sonuc' && res && (
         <div className="kg-sonuc" data-testid="vaka-sonuc" data-stars={res.stars}>
-          <div className="kg-sonuc-top"><Stars n={res.stars} size={30} /><b>{res.stars === 0 ? 'Bu sefer olmadı' : res.stars === 3 ? 'Mükemmel karar!' : 'Doğru tanı!'}</b></div>
-          <ul className="kg-check">
-            <li className={res.dxOk ? 'ok' : 'no'}><Art name={res.dxOk ? 'check' : 'cross'} size={18} /> Tanı: {taniById(res.correctDx)?.[duzey === 'genel' ? 'sade' : 'teknik']}</li>
-            <li className={res.mgOk ? 'ok' : 'no'}><Art name={res.mgOk ? 'check' : 'cross'} size={18} /> Yönetim: {v.yonetim[0].sade}</li>
-            <li className={res.efficient ? 'ok' : 'no'}><Art name={res.efficient ? 'check' : 'cross'} size={18} /> Test seçimi: {res.efficient ? 'verimli' : `anahtar testler: ${v.anahtar.map((k) => VAKA_TESTLERI.find((t) => t.id === k)!.kisa).join(', ')} (en çok ${v.anahtar.length + 1} test)`}</li>
-          </ul>
+          <SonucOzeti v={v} res={res} duzey={duzey} />
           <Bulgular v={v} istenen={[...tests].reverse()} duzey={duzey} />
           <Terim id={v.terim} />
           {odulOgeleri(res.reward).length > 0 && <div className="kg-odul" data-testid="vaka-odul">{odulOgeleri(res.reward).map((i, k) => <span key={k} className="kg-odul-chip">{i.label ?? `${i.amount} ${i.kind === 'jeton' ? 'jeton' : 'kristal'}`}</span>)}</div>}
@@ -214,19 +209,45 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 }
 
 /**
+ * Sonucun özeti: yıldızlar, tanı, yönetim ve test seçimi. Tarama vakasında (YN-132) tarama sonucu tanı değildir: "Tanı" yerine
+ * "Sonuç" yazılır. Test adları test düğmesindeki adla aynıdır.
+ */
+export function SonucOzeti({ v, res, duzey }: { v: Vaka; res: Pick<VakaSonuc, 'stars' | 'dxOk' | 'mgOk' | 'efficient' | 'correctDx'>; duzey: 'genel' | 'odyoloji' }) {
+  const tarama = v.kat === 'tarama';
+  return (
+    <>
+      <div className="kg-sonuc-top"><Stars n={res.stars} size={30} /><b>{res.stars === 0 ? 'Bu sefer olmadı' : res.stars === 3 ? 'Mükemmel karar!' : tarama ? 'Doğru sonuç!' : 'Doğru tanı!'}</b></div>
+      <ul className="kg-check">
+        <li className={res.dxOk ? 'ok' : 'no'}><Art name={res.dxOk ? 'check' : 'cross'} size={18} /> {tarama ? 'Sonuç' : 'Tanı'}: {taniById(res.correctDx)?.[duzey === 'genel' ? 'sade' : 'teknik']}</li>
+        <li className={res.mgOk ? 'ok' : 'no'}><Art name={res.mgOk ? 'check' : 'cross'} size={18} /> Yönetim: {v.yonetim[0].sade}</li>
+        <li className={res.efficient ? 'ok' : 'no'}><Art name={res.efficient ? 'check' : 'cross'} size={18} /> Test seçimi: {res.efficient ? 'verimli' : `anahtar testler: ${v.anahtar.map((k) => VAKA_TESTLERI.find((t) => t.id === k)!.ad).join(', ')} (en çok ${v.anahtar.length + 1} test)`}</li>
+      </ul>
+    </>
+  );
+}
+
+/**
  * Sonuçtaki bulgular (YN-080): klinikte karar eldeki bulguya dayanır. "İstediğin testler" yalnız oyuncunun istediklerini, "İsteseydin
- * şunu görecektin" istenmeyen (bu vakada yapılabilen) testleri gösterir; açıklama paragrafı bütün testlere dayandığı için öyle adlandırılır.
+ * şunu görecektin" istenmeyen (bu vakada yapılabilen) testleri, altında bu vakada yapılmayan testleri ve vakadaki nedenini (YN-132)
+ * gösterir; açıklama paragrafı bütün testlere dayandığı için öyle adlandırılır.
  * İstenmeyen test satırının altında, vakada varsa tek cümlelik yorum (YN-090): tanıyı söylemez, bulgunun neyle uyumlu olduğunu söyler.
  */
-function Bulgular({ v, istenen, duzey }: { v: Vaka; istenen: string[]; duzey: 'genel' | 'odyoloji' }) {
+export function Bulgular({ v, istenen, duzey }: { v: Vaka; istenen: string[]; duzey: 'genel' | 'odyoloji' }) {
   const T = v.testler as unknown as Record<string, unknown>;
-  const ad = (id: string) => { const t = VAKA_TESTLERI.find((x) => x.id === id)!; return duzey === 'genel' ? t.kisa : t.ad; };
-  const istenmeyen = VAKA_TESTLERI.filter((t) => !istenen.includes(t.id) && !isYok(T[t.id])).map((t) => t.id);
+  const ad = (id: string) => VAKA_TESTLERI.find((x) => x.id === id)!.ad;
+  const diger = VAKA_TESTLERI.filter((t) => !istenen.includes(t.id));
+  const istenmeyen = diger.filter((t) => !isYok(T[t.id])).map((t) => t.id);
+  const yapilmayan = diger.filter((t) => isYok(T[t.id])).map((t) => t.id);
   const satir = (id: string, yorum: string | null = null) => <li key={id} data-bulgu={id}><b>{ad(id)}:</b> {testSatirlari(v, id, duzey).join(' · ')}{yorum && <div className="kg-note" data-bulgu-yorum={id}>{yorum}</div>}</li>;
   return (
     <>
       <div className="kg-bulgu" data-testid="bulgu-istenen"><h4>İstediğin testler</h4><ul>{istenen.map((id) => satir(id))}</ul></div>
-      {istenmeyen.length > 0 && <div className="kg-bulgu diger" data-testid="bulgu-istenmeyen"><h4>İsteseydin şunu görecektin</h4><ul>{istenmeyen.map((id) => satir(id, testYorumu(v, id)))}</ul></div>}
+      {(istenmeyen.length > 0 || yapilmayan.length > 0) && (
+        <div className="kg-bulgu diger" data-testid="bulgu-istenmeyen"><h4>İsteseydin şunu görecektin</h4>
+          {istenmeyen.length > 0 && <ul>{istenmeyen.map((id) => satir(id, testYorumu(v, id)))}</ul>}
+          {yapilmayan.length > 0 && <><p className="kg-bulgu-alt">Bu vakada yapılmayan testler ve nedeni</p><ul data-testid="bulgu-yapilmayan">{yapilmayan.map((id) => <li key={id} data-yapilmadi={id}><b>{ad(id)}:</b> {testSatirlari(v, id, duzey).join(' · ')}</li>)}</ul></>}
+        </div>
+      )}
       <div className="kg-aciklama"><h4>{istenmeyen.length > 0 ? 'Tam tablo (bütün testlerle)' : 'Açıklama'}</h4><p>{v.aciklama.sade}</p><MoreLine text={v.aciklama.teknik} /></div>
     </>
   );

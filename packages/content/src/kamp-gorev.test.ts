@@ -107,6 +107,28 @@ describe('Hasta Vakaları: içerik', () => {
     // aynı test iki kez sayılmaz, bilinmeyen test yok sayılır
     expect(vakaPuanla(v, { tests: ['otoskopi', 'otoskopi', 'timpanometri', 'yok-boyle'], dx: 'ome', mg }).stars).toBe(3);
   });
+  it('kv10 travmatik perforasyon (YN-132): anahtar otoskopi + odyogram; timpanogram eklenirse de verimli, tek başına yetmez', () => {
+    const v = VAKALAR.find((x) => x.id === 'kv10')!;
+    const dx = v.tani.dogru; const mg = v.yonetim[0].id;
+    expect(v.anahtar).toEqual(['otoskopi', 'odyometri']);
+    expect(vakaPuanla(v, { tests: ['otoskopi', 'odyometri'], dx, mg })).toMatchObject({ stars: 3, efficient: true });
+    expect(vakaPuanla(v, { tests: ['otoskopi', 'odyometri', 'timpanometri'], dx, mg })).toMatchObject({ stars: 3, efficient: true });
+    expect(vakaPuanla(v, { tests: ['otoskopi', 'timpanometri'], dx, mg })).toMatchObject({ stars: 2, efficient: false });
+    expect(vakaTutarsizliklari(v)).toEqual([]);
+    // sade açıklama odyogram bulgusunu söyler: hava yolu 20–30 dB, kemik yolu 5–10 dB (vaka verisiyle aynı)
+    const o = v.testler.odyometri; if (isYok(o)) throw new Error('kv10 odyogram');
+    expect([Math.min(...o.ac.L), Math.max(...o.ac.L), Math.min(...o.bc.L), Math.max(...o.bc.L)]).toEqual([20, 30, 5, 10]);
+    expect(v.aciklama.sade.replace(/\u2060/g, '').replace(/\u00a0/g, ' ')).toMatch(/hava yolu 20–30 dB, kemik yolu 5–10 dB: hafif iletim tipi kayıp, iç kulak etkilenmemiş/);
+  });
+  it('kv08 yenidoğan taraması (YN-132): istenmeyen her testin "neden yapılmadı" notu vakada var', () => {
+    const v = VAKALAR.find((x) => x.id === 'kv08')!;
+    expect(v.kat).toBe('tarama');
+    const yapilmayan = VAKA_TESTLERI.filter((t) => !v.anahtar.includes(t.id) && isYok(v.testler[t.id]));
+    expect(yapilmayan.map((t) => t.id)).toEqual(['otoskopi', 'odyometri', 'timpanometri', 'refleks', 'abr', 'konusma', 'islemleme']);
+    for (const t of yapilmayan) { const x = v.testler[t.id]; if (isYok(x)) sane(x.yok, `kv08 ${t.id}`); }
+    // bütün vakalarda yapılmayan testin nedeni boş değil (sonuç ekranında gösterilir)
+    for (const w of VAKALAR) for (const t of VAKA_TESTLERI) { const x = w.testler[t.id]; if (isYok(x)) expect(x.yok.length, `${w.id} ${t.id}`).toBeGreaterThan(5); }
+  });
   it('odyogram sınıflaması (hava–kemik aralığı)', () => {
     const o = (ac: number[], bc: number[]) => ({ ac: { R: ac, L: ac }, bc: { R: bc, L: bc } });
     expect(kayipTipi(o([10, 10, 10, 10, 10, 10, 10, 10], [5, 5, 5, 5]), 'R')).toBe('normal');
