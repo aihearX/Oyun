@@ -15,7 +15,7 @@ export interface AbilityDef {
 }
 
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
-  zipla: { id: 'zipla', name: 'Zıpla', how: 'Dokun: zıpla · Basılı tut: daha yükseğe', gesture: 'dokun', level: 1 },
+  zipla: { id: 'zipla', name: 'Zıpla', how: 'Dokun: zıpla · Basılı tut: daha yükseğe ve uzağa', gesture: 'dokun', level: 1 },
   // yön değiştirme 1. bölümden beri çalışır; öğretici an, geri dönmenin ilk gerektiği yerde (2. bölüm) açılır
   don: { id: 'don', name: 'Geri Dön', how: 'Parmağını koşunun tersine kaydır: Odi döner ve o yöne koşar', gesture: 'geri', level: 2 },
   kayma: { id: 'kayma', name: 'Kayma', how: 'Aşağı kaydır: engelin altından kay', gesture: 'asagi', level: 3 },

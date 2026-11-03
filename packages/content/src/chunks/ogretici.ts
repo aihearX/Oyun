@@ -13,7 +13,7 @@ export const OGRETICI_CHUNKS: ChunkSpec[] = [
   // zıpla: önce kısa dokunuş (alçak yay), sonra basılı tutma — tam yükseklikteki nota yayı yalnız basılı tutana
   chunk('ogret-zipla', 'kosu', 1, 1500, [
     ground(0, 420), text(220, G - 190, 'Dokun: zıpla'), tutor(300, 110, 'zipla'), ...jumpArc(372, 3, 0.1),
-    ground(530, 520), spike(760, 40), ...jumpArc(659, 6, 1), text(700, G - 250, 'Basılı tut: daha yükseğe'),
+    ground(530, 520), spike(760, 40), ...jumpArc(659, 6, 1), text(700, G - 250, 'Basılı tut: daha yükseğe ve uzağa'),
     plat(930, G - 110, 120), ...coins(940, G - 150, 3, 40),
     ground(1190, 310), ...jumpArc(1010, 5, 0.75), spike(1330, 36), ...jumpArc(1227, 4, 1), secret(990, G - 270),
   ], { tags: ['ogretici', 'bosluk'] }),

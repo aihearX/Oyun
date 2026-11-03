@@ -332,7 +332,7 @@ Kaynak: `packages/content/src/biomes.ts`. Harita kartındaki tek cümle (anlatı
 | Koklea (orta kıvrım) | **Koklea · Orta Kıvrım** | Konuşma frekanslarının (yaklaşık 500-4000 Hz) işlendiği kıvrım. | Konuşma seslerinin önemli kısmı yaklaşık 500-4000 Hz arasındadır; bu frekanslar kokleanın orta bölümlerinde işlenir. |
 | Koklea (tonotopi) | **Koklea · Apeks** | Kalın (alçak frekanslı) seslerin tepesi; bas ve uğultu. | Apeks kalın (düşük frekanslı) sesleri algılar; 125 Hz apekse yakın işlenir. |
 | İşitme siniri | **İşitme Siniri** | VIII. kafa siniri: sen artık bir elektrik impulsusun. Hızlan. | İşitme siniri yaklaşık 30.000 liften oluşur. |
-| Beyin sapı | **Beyin Sapı** | Sağ ve sol ses superior oliver komplekste buluşur; yön doğar. | Beyin sapı, iki kulaktan gelen sesin zaman farkıyla yön hesaplar. |
+| Beyin sapı | **Beyin Sapı** | Sağ ve sol kulağın sesi burada buluşur: iki kulağımız sayesinde sesin nereden geldiğini buluruz. | Beyin sapı, iki kulaktan gelen sesin zaman farkıyla yön hesaplar. |
 | İşitsel korteks | **İşitme Korteksi** | Heschl girusunda ses çözümlenir, çevresindeki alanlarda anlama dönüşür: rüya dünyası. | Birincil işitme korteksi şakak (temporal) lobundaki Heschl girusundadır. |
 
 ## Bölge patolojileri (18)

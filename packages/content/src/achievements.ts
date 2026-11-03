@@ -44,7 +44,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   A('ilk-ses', '🎵', 'İlk Ses', '{n} kez bölüm bitir (tekrarlar da sayılır)', 'clears', [1, 25, 100]),
   A('yildiz-avcisi', '⭐', 'Yıldız Avcısı', 'Toplam {n} yıldız topla', 'stars', [10, 50, 120]),
   A('kusursuz-kulak', '🌟', 'Kusursuz Kulak', '{n} bölümde 3 yıldız al', 'threeStars', [3, 15, 40]),
-  A('jeton-kumbarasi', '🪙', 'Jeton Kumbarası', 'Bölümlerde toplam {n} nota topla', 'coins', [100, 1000, 5000]),
+  A('jeton-kumbarasi', '🎶', 'Nota Kumbarası', 'Bölümlerde toplam {n} nota topla', 'coins', [100, 1000, 5000]),
   A('altin-kulak', '🐚', 'Altın Kulak', '{n} farklı altın koklea bul', 'secrets', [1, 2, 4]),
   A('tuy-gibi', '🪶', 'Tüy Gibi', '{n} kez hiç hasar almadan bitir (tekrarlar da sayılır)', 'noDamage', [1, 10, 30]),
   A('gurultu-avcisi', '👹', 'Gürültü Avcısı', '{n} canavar yen', 'bosses', [1, 2]),

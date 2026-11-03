@@ -600,9 +600,10 @@ export class LevelScene extends Phaser.Scene {
     if (!this.opts.firsts?.includes(id) || this.firstsDone.includes(id)) return;
     this.firstsDone.push(id); banner(this, FIRSTS[id] ?? 'İlk kez!', 0x6c4cf1, 1500); sfx.power();
   }
+  /** seri: 4 sn içinde art arda tam zamanlı vuruş, ezme ya da kıl payı; yazı sayıyı söyler (ses kapalı oyuncunun ipucu, OT-sessiz-oyuncu-19) */
   private chainHit() {
     const now = this.sim.t; this.chain = now - this.chainAt < 4 ? this.chain + 1 : 1; this.chainAt = now;
-    if (this.chain >= 2) { sfx.perfect(this.chain); this.praise(this.chain >= 4 ? 'Kulak ustası!' : this.chain === 3 ? 'Mükemmel!' : 'İkiledin!'); }
+    if (this.chain >= 2) { sfx.perfect(this.chain); this.praise(this.chain >= 4 ? `Seri x${this.chain}!` : this.chain === 3 ? "3'lü seri!" : "2'li seri!"); }
   }
   /** Şanslı Nota: yolun ortasındaki bir notanın üstüne yerleşir; o notayla birlikte toplanır */
   private armLucky() {
