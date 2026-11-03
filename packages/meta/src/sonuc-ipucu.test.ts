@@ -45,10 +45,10 @@ describe('kayıpta ipucu bölüme göre ve dönüşümlü (OT-ilk-kez-oyun-19)',
   // 19 Makine Melodisi: sis + "Notaları sırayla topla"; 4 kayıpta aynı cümle gelmez
   const l19 = spec(19, { id: 'melody', target: 7, label: 'Notaları sırayla topla (7)' }, { modifiers: ['sis'] });
   const fall = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'fall' } });
-  it('19. bölüm: ilk ipucu sisin, sonra son hasar, melodi, mekanik; art arda 4 kayıpta 4 farklı cümle', () => {
+  it('19. bölüm: ilk ipucu son hasarın nedeni, sonra sis, melodi, mekanik; art arda 4 kayıpta 4 farklı cümle (OT-ilk-kez-oyun-50)', () => {
     const tips = [1, 2, 3, 4].map((a) => lossView(fall, l19, a).tip);
-    expect(tips[0]).toMatch(/^Siste yalnız Odi'nin çevresi aydınlık/);
-    expect(tips[1]).toBe('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+    expect(tips[0]).toBe('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+    expect(tips[1]).toMatch(/^Siste yalnız Odi'nin çevresi aydınlık/);
     expect(tips[2]).toMatch(/soldan sağa, hiç atlamadan topla/);
     expect(tips[3]).toMatch(/^Kancanın yanında basılı tut/);
     expect(new Set(tips).size).toBe(4);
@@ -57,14 +57,37 @@ describe('kayıpta ipucu bölüme göre ve dönüşümlü (OT-ilk-kez-oyun-19)',
     for (const t of all) expect(EMOJI.test(t)).toBe(false);
   });
   it('gece, yankı ve canavar bölümleri kendi ipuçlarını verir; yeni mekaniğin ilk bölümü önce mekaniği anlatır', () => {
-    expect(lossView(fall, spec(26, { id: 'secret', label: 'x' }, { modifiers: ['gece'] })).tip).toMatch(/^Gecede yalnız Odi'nin çevresi görünür/);
+    // neden bilinmiyorsa değiştiricinin ipucu önde
+    const unknown = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: '' } });
+    expect(lossView(unknown, spec(26, { id: 'secret', label: 'x' }, { modifiers: ['gece'] })).tip).toMatch(/^Gecede yalnız Odi'nin çevresi görünür/);
+    expect(lossTips('fall', spec(26, { id: 'secret', label: 'x' }, { modifiers: ['gece'] }))[1]).toMatch(/^Gecede yalnız Odi'nin çevresi görünür/);
     expect(lossTips('fall', spec(36, { id: 'reach', label: 'x' }, { modifiers: ['yanki'] }))).toContain('Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.');
     const boss = spec(20, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
     const hit = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'yumruk' } });
-    expect([1, 2].map((a) => lossView(hit, boss, a).tip)).toEqual(['Zayıf noktasına vur, saldırısını atlat', expect.stringMatching(/uyarı görünür/)]);
+    expect([1, 2].map((a) => lossView(hit, boss, a).tip)).toEqual(['Zayıf noktası açılınca havadan aşağı kaydırıp üstüne in · Saldırıdan önceki uyarıyı görünce kaç', expect.stringMatching(/uyarı görünür/)]);
     expect(lossView(fall, spec(13, { id: 'reach', label: 'x' })).tip).toMatch(/^Kancanın yanında basılı tut/);
     // yarış bitti: ipucu yok
     expect(lossView(run({ completed: false, stars: 0, extra: { reason: 'yaris-bitti' } }), l19, 2).tip).toBe('');
+  });
+});
+
+describe('kayıp ipucu: neden önce, yetenek önerisi yok, canavara nasıl vurulur (OT-ilk-kez-oyun-46, -50)', () => {
+  const lost = (reason: string) => run({ completed: false, stars: 0, damageTaken: 3, extra: { reason } });
+  it('39. bölümde gürültü duvarına çarpınca (sis/gece olsa da) önce duvarın ipucu; hiçbir bölümde jetonlu yetenek önerilmez', () => {
+    for (const mods of [[], ['sis'], ['gece'], ['sis', 'hiz']] as const) {
+      const sp = spec(39, { id: 'timed', target: 70, label: 'x' }, { modifiers: [...mods] });
+      expect(lossView(lost('gurultu'), sp, 1).tip).toBe('Gürültü duvarına koşu yönüne kaydırarak fırla: kırılır. Fırlamadan değersen hasar alırsın.');
+    }
+    for (const l of HUMAN_JOURNEY.levels) for (const reason of ['fall', 'diken', 'gurultu', 'dusman', '']) for (const modifiers of [['sis'], ['gece'], ['yanki', 'hiz']] as const) {
+      for (const t of lossTips(reason, spec(l.number, { id: l.objective, label: 'x' }, { modifiers: [...modifiers] }))) expect(t, `${l.number} ${reason}`).not.toMatch(/Yankı Görüşü|yetene/i);
+    }
+  });
+  it('40. bölüm: ilk ipucu kalbe nasıl vurulacağını kartlardaki fiillerle söyler', () => {
+    const sp = spec(40, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
+    const tips = [1, 2].map((a) => lossView(lost('dalga'), sp, a).tip);
+    expect(tips[0]).toBe('Bağırınca çıkan 3 notayı topla: kalbi açılınca ileri fırla ya da havadan aşağı kaydırıp üstüne in.');
+    expect(tips[1]).toMatch(/uyarı görünür/);
+    for (const t of lossTips('dalga', sp)) expect(t).not.toMatch(/atıl|çakıl\b/i);
   });
 });
 

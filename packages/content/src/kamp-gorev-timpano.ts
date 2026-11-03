@@ -197,7 +197,7 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'tv07', duzey: 'odyoloji', bicim: 'vinyet', grup: 'yetiskin', yas: '34 yaş', otoskopi: 'normal', sinif: 'As', egri: T('As', 0, 0.18, 1.1), kaynak: KATZ,
     hikaye: 'Ayşe Hanım’ın işitmesi son doğumundan beri iki kulakta yavaşça azalıyor. Otoskopi normal; odyogramda iletim tipi kayıp ve kemik yolunda 2 kHz çentiği var.',
     secenek: ['Otosklerozla uyumlu (sert sistem + Carhart çentiği); kesin değerlendirme KBB’de', 'Orta kulakta sıvı', 'Kemikçik zinciri kopukluğu', 'Koklear kayıp, orta kulak normal'],
-    aciklama: 'Normal otoskopi, iletim tipi kayıp, 2 kHz kemik yolu çentiği ve sığ eğri birlikte otosklerozu düşündürür. Otosklerozda timpanogram çoğu zaman normal A da olabilir; tek başına ayırt ettirmez.' },
+    aciklama: 'Normal otoskopi, iletim tipi kayıp, 2 kHz kemik yolu çentiği ve sığ eğri birlikte otosklerozu düşündürür. Otosklerozda timpanogram As (sığ) olabileceği gibi sık sık normal A da çıkar; timpanogram tek başına ayırt ettirmez.' },
   { id: 'tv08', duzey: 'odyoloji', bicim: 'vinyet', grup: 'yetiskin', yas: '22 yaş', otoskopi: 'normal', sinif: 'Ad', egri: T('Ad', -10, 2.8, 1.2), kaynak: KATZ,
     hikaye: 'Can bisiklet kazasında başını çarptı. Otoskopi normal; odyogramda yaklaşık 40 dB iletim tipi kayıp var.',
     secenek: ['Kemikçik zinciri kopukluğuyla uyumlu (aşırı hareketli sistem + iletim kaybı)', 'Otoskleroz', 'Orta kulakta sıvı', 'Zarda delik'],

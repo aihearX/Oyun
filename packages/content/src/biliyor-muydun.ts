@@ -19,6 +19,8 @@ export interface BiliyorMuydun {
   /** Odyoloji öğrencisi düzeyi */
   odyoloji: string;
   src: string;
+  /** uzman incelemesi için not (oyunda gösterilmez; docs/odyoloji-icerik.md tablosunda satırın yanında) */
+  inceleme?: string;
 }
 
 const G = 'Gelfand, Hearing: An Introduction to Psychological and Physiological Acoustics';
@@ -49,7 +51,8 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
     odyoloji: 'Serumen tipini ABCC11 genindeki tek bir varyant belirler; kuru tip Doğu Asya’da yaygındır.',
     src: `${KBB}, serumen; Yoshiura ve ark. (2006), Nature Genetics` },
   { bolum: 8, genel: 'Kulağa çok soğuk ya da sıcak su girmesi, iç kulaktaki denge organını uyarıp baş döndürebilir.',
-    odyoloji: 'Kalorik test bu ilkeyi kullanır: kanala 30 ve 44 °C su ya da hava verilerek yatay yarım daire kanalı uyarılır.',
+    odyoloji: 'Kalorik testte kanala vücut ısısının biraz altında ve üstünde su (30, 44 °C) verilir; yatay yarım daire kanalı uyarılır.',
+    inceleme: 'tur 9 düzeltmesi: hava kaloriği sıcaklığı çıkarıldı',
     src: `${K}, vestibüler değerlendirme (kalorik test)` },
   { bolum: 9, genel: 'Kulak zarı yarı saydamdır; ışık tutulunca üzerinde parlak bir üçgen yansıma görülür.',
     odyoloji: 'Sağlıklı zarda ışık konisi umbodan ön-alt bölüme uzanır: sağ kulakta saat 5, sol kulakta saat 7 yönünde.',

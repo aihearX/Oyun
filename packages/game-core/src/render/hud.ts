@@ -130,8 +130,11 @@ export class LevelHud {
   private w: number; private h: number;
   private notesPanel: Phaser.GameObjects.Image; private noteIco: Phaser.GameObjects.Image; private notesText: Phaser.GameObjects.Text; private notesTotal: Phaser.GameObjects.Text;
   private cochPanel: Phaser.GameObjects.Image; private coch: Phaser.GameObjects.Image[] = []; private cochOn: Phaser.GameObjects.Image[] = []; private cochText: Phaser.GameObjects.Text; private cochTotal = 3;
-  /** süreli bölümün geri sayımı (ikinci satırın ortası); yalnız setTimer çağrılırsa görünür */
-  private timerPanel: Phaser.GameObjects.Image; private timerIco: Phaser.GameObjects.Image; private timerText: Phaser.GameObjects.Text; private timerShown = -999;
+  /**
+   * süreli bölümün geri sayımı (ikinci satırın ortası); yalnız setTimer çağrılırsa görünür. Süre yalnız 3. yıldızın koşulu: panelde
+   * "3. yıldız" etiketi yazar (OT-ilk-kez-oyun-47: oyuncu süre bitince kaybedeceğini sandı)
+   */
+  private timerPanel: Phaser.GameObjects.Image; private timerIco: Phaser.GameObjects.Image; private timerLabel: Phaser.GameObjects.Text; private timerText: Phaser.GameObjects.Text; private timerShown = -999;
   /** eskort bölümünde fısıltının durumu (ikinci satırın solu; sesi kapalı oyuncu da tehlikeyi ve kaybı görsün) */
   private escPanel: Phaser.GameObjects.Image; private escIco: Phaser.GameObjects.Image; private escText: Phaser.GameObjects.Text; private escState: EscortHud = null;
   /** bölüm değiştiricileri (YN-102): ikinci satırın solunda küçük kalıcı rozet (çizili simge + ad); süre/fısıltı varsa bir alt satıra iner */
@@ -149,10 +152,12 @@ export class LevelHud {
   /** canavar bölümü: can çubuğunun alt kenarı (kamera tasarım px'i); kalkan sayacı ikinci satır yerine onun altında, sağda */
   private bossBottom: number | null = null;
   private livesPanel: Phaser.GameObjects.Image; private hearts: Phaser.GameObjects.Image[] = []; private heartsOff: Phaser.GameObjects.Image[] = []; private lives = 3;
+  /** can yuvası sayısı: bölümde görülen en yüksek can (en az 3, en çok 5); Rahat denemenin fazladan canı hasardan sonra boş yuva olarak kalır (OT-ilk-kez-oyun-49) */
+  private slots = 3; private heartK = 1;
   private pause: Phaser.GameObjects.Image; private pauseCb: (() => void) | null = null;
   private bar: Phaser.GameObjects.Container; private track: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private fill: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private head: Phaser.GameObjects.Image; private headDot: Phaser.GameObjects.Arc; private flag: Phaser.GameObjects.Image;
   private ticks: { pct: number; off: Phaser.GameObjects.Image; on: Phaser.GameObjects.Image }[] = []; private ghosts = new Map<string, Phaser.GameObjects.Container>();
-  private combo: Phaser.GameObjects.Container; private comboBg: Phaser.GameObjects.Image; private comboMult: Phaser.GameObjects.Text; private comboCount: Phaser.GameObjects.Text; private comboShown = false;
+  private combo: Phaser.GameObjects.Container; private comboBg: Phaser.GameObjects.Image; private comboMult: Phaser.GameObjects.Text; private comboCount: Phaser.GameObjects.Text; private comboShown = false; private comboW = 96;
   private hint?: Phaser.GameObjects.Container; private hintTweens: Phaser.Tweens.Tween[] = []; private hintTimer?: Phaser.Time.TimerEvent;
   private toastC?: Phaser.GameObjects.Container; private toastTimer?: Phaser.Time.TimerEvent;
   private pct = 0; private notes = 0;
@@ -176,6 +181,7 @@ export class LevelHud {
     // süre (yalnız süreli bölüm)
     this.timerPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
     this.timerIco = I(s, clockTex(s)).setVisible(false);
+    this.timerLabel = txt(13, '#ffe08a', '800'); this.timerLabel.setStroke('#140c35', 4).setVisible(false);
     this.timerText = txt(18, '#fff6e5'); this.timerText.setStroke('#140c35', 4).setVisible(false);
     // fısıltı (yalnız eskort bölümü)
     this.escPanel = I(s, panelTex(s, 100, 32, 16)).setOrigin(0.5).setVisible(false);
@@ -207,12 +213,12 @@ export class LevelHud {
     this.headDot = s.add.circle(0, 0, 6.5, heroColor).setStrokeStyle(2, 0xfff6e5);
     this.flag = I(s, flagTex(s)).setOrigin(0.2, 0.95);
     this.bar.add([this.track, this.fill, this.flag, this.head, this.headDot]);
-    // seri rozeti
-    this.comboBg = I(s, panelTex(s, 96, 46, 16)).setOrigin(0.5);
-    this.comboMult = s.add.text(-18, -1, '×2', { fontFamily: FONT, fontSize: '26px', fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0.5);
-    this.comboCount = s.add.text(20, 0, 'Seri\n12', { fontFamily: FONT, fontSize: '11px', fontStyle: '900', color: '#c9c1ff', align: 'center', lineSpacing: -2, resolution: R() }).setOrigin(0.5);
+    // seri rozeti: "×2  Seri 5" tek satır; seri sayısı da okunur boyda (OT-sessiz-oyuncu-22: sesi kapalı oyuncu seriyi buradan izliyor)
+    this.comboBg = I(s, panelTex(s, 96, 40, 16)).setOrigin(0.5);
+    this.comboMult = s.add.text(0, -2, '×2', { fontFamily: FONT, fontSize: `${Math.round(26 * ts)}px`, fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0, 0.5);
+    this.comboCount = s.add.text(0, -2, 'Seri 12', { fontFamily: FONT, fontSize: `${Math.round(16 * ts)}px`, fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 4, resolution: R() }).setOrigin(0, 0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.shieldPanel, this.shieldIco, this.shieldText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerLabel, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.shieldPanel, this.shieldIco, this.shieldText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -225,7 +231,7 @@ export class LevelHud {
     const t = this.top / this.k + 10; const W = this.iw;
     this.notesPanel.setPosition(4, t - 6); this.noteIco.setPosition(30, t + 20); this.notesText.setPosition(46, t + 19); this.positionTotal();
     this.pause.setPosition(W - 32, t + 19);
-    this.livesPanel.setPosition(W - 154, t - 6); this.placeHearts();
+    this.placeHearts();
     this.fitTop();
     this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer(); this.escPanel.y = t + 88; this.placeEscort(); this.placeRow2();
     this.barX = 18; this.barW = W - 36; this.barY = t + 58;
@@ -249,17 +255,26 @@ export class LevelHud {
     const notesW = Math.max(112, Math.ceil((this.notesTotal.x + this.notesTotal.width + 10 - 12) / 4) * 4);
     if (notesW !== this.notesW) { this.notesW = notesW; this.notesPanel.setTexture(panelTex(this.scene, notesW, 40, 20)); }
     const left = 12 + this.notesW + 6; const limit = this.livesPanel.x + 8 - 6; const textW = this.cochText.width;
-    // yuva aralığı 21 (sığmazsa en az 18); yazı son yuvanın 11 px sağında
-    const sp = Math.max(18, Math.min(21, (limit - left - 14 - 11 - textW - 9) / 2));
+    // yuva aralığı 21 (sığmazsa en az 16; 4-5 can yuvasında can paneli genişler); yazı son yuvanın 11 px sağında
+    const sp = Math.max(16, Math.min(21, (limit - left - 14 - 11 - textW - 9) / 2));
     const x0 = left + 14; this.coch.forEach((c, i) => { c.setPosition(x0 + i * sp, t + 20); this.cochOn[i]!.setPosition(x0 + i * sp, t + 20); });
     this.cochText.setPosition(x0 + 2 * sp + 11, t + 19);
     const cochW = Math.ceil((this.cochText.x + textW + 9 - left) / 4) * 4;
     if (cochW !== this.cochW) { this.cochW = cochW; this.cochPanel.setTexture(panelTex(this.scene, cochW, 40, 20)); }
     this.cochPanel.setPosition(left - 8, t - 6);
   }
+  /**
+   * Can paneli: yuva sayısı `slots`; 3'ten fazla yuvada kalpler küçülüp sıklaşır ve panel sola genişler (sağ kenarı ve duraklat
+   * düğmesi yerinde kalır; koklea yuvaları fitTop'ta gerekirse sıklaşır).
+   */
   private placeHearts() {
-    const n = Math.max(3, Math.min(5, this.lives)); const x0 = this.livesPanel.x + 8 + 43 - ((n - 1) * 25) / 2;
-    for (let i = 0; i < 5; i++) { const vis = i < n; const x = x0 + i * 25, y = this.livesPanel.y + 26; this.heartsOff[i]!.setPosition(x, y).setVisible(vis); this.hearts[i]!.setPosition(x, y).setVisible(vis && i < this.lives); }
+    const n = Math.max(3, Math.min(5, this.slots)); const sp = n <= 3 ? 25 : n === 4 ? 19 : 17; const pw = Math.max(86, (n - 1) * sp + 34);
+    const hk = n <= 3 ? 1 : n === 4 ? 0.85 : 0.78;
+    if (hk !== this.heartK) { this.heartK = hk; for (const h of [...this.hearts, ...this.heartsOff]) { this.scene.tweens.killTweensOf(h); h.setScale(hk / R()); } }
+    if (this.livesPanel.getData('w') !== pw) { this.livesPanel.setData('w', pw); this.livesPanel.setTexture(panelTex(this.scene, pw, 40, 20)); }
+    this.livesPanel.setPosition(this.iw - 68 - pw, this.top / this.k + 10 - 6);
+    const x0 = this.livesPanel.x + 8 + pw / 2 - ((n - 1) * sp) / 2;
+    for (let i = 0; i < 5; i++) { const vis = i < n; const x = x0 + i * sp, y = this.livesPanel.y + 26; this.heartsOff[i]!.setPosition(x, y).setVisible(vis); this.hearts[i]!.setPosition(x, y).setVisible(vis && i < this.lives); }
   }
   /** kısa zıplama; taban ölçek bir kez saklanır (üst üste çağrılar büyümez) */
   private bump(o: Phaser.GameObjects.Image, k = 1.25) {
@@ -299,29 +314,33 @@ export class LevelHud {
     }
   }
   setLives(n: number) {
-    const lost = n < this.lives; this.lives = Math.max(0, n); this.placeHearts();
-    if (lost) { const h = this.heartsOff[this.lives]; if (h) { const b = 1 / R(); this.scene.tweens.killTweensOf(h); h.setScale(b * 1.5); this.scene.tweens.add({ targets: h, scale: b, duration: 300, ease: 'Back.Out' }); } this.scene.tweens.add({ targets: this.livesPanel, x: this.livesPanel.x + 4, duration: 50, yoyo: true, repeat: 2 }); }
+    const lost = n < this.lives; this.lives = Math.max(0, n);
+    const slots = Math.min(5, Math.max(this.slots, this.lives)); const grew = slots !== this.slots; this.slots = slots;
+    this.placeHearts(); if (grew) this.fitTop();
+    if (lost) { const h = this.heartsOff[this.lives]; if (h) { const b = this.heartK / R(); this.scene.tweens.killTweensOf(h); h.setScale(b * 1.5); this.scene.tweens.add({ targets: h, scale: b, duration: 300, ease: 'Back.Out' }); } this.scene.tweens.add({ targets: this.livesPanel, x: this.livesPanel.x + 4, duration: 50, yoyo: true, repeat: 2 }); }
   }
   /**
-   * Süreli bölümün geri sayımı (kalan oyun saniyesi; null gizler). Son 10 saniyede yalnız renk değil yazı da değişir
-   * ("Son 8 sn!"), süre bitince "Süre doldu" (bölüm sürer; hedef tutmadı).
+   * Süreli bölümün geri sayımı (kalan oyun saniyesi; null gizler): "3. yıldız 1:04". Son 10 saniyede yalnız renk değil yazı da
+   * değişir ("Son 8 sn!"), süre bitince "Süre doldu · yine de kapıya git" (bölüm sürer; yalnız 3. yıldızın süre koşulu tutmadı).
    */
   setTimer(left: number | null) {
-    if (left == null) { for (const o of [this.timerPanel, this.timerIco, this.timerText]) o.setVisible(false); this.timerShown = -999; return; }
+    const parts = [this.timerPanel, this.timerIco, this.timerLabel, this.timerText];
+    if (left == null) { for (const o of parts) o.setVisible(false); if (this.timerShown !== -999) { this.timerShown = -999; this.placeShield(); } return; }
     const sec = Math.max(0, Math.ceil(left)); if (sec === this.timerShown) return;
     const prev = this.timerShown; this.timerShown = sec;
-    for (const o of [this.timerPanel, this.timerIco, this.timerText]) o.setVisible(true);
-    const label = sec <= 0 ? 'Süre doldu' : sec <= 10 ? `Son ${sec} sn!` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
-    this.timerText.setText(label).setColor(sec <= 0 ? '#c9c1ff' : sec <= 10 ? '#ff9ab8' : '#fff6e5');
+    for (const o of parts) o.setVisible(true);
+    const label = sec <= 0 ? 'yine de kapıya git' : sec <= 10 ? `Son ${sec} sn!` : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    this.timerLabel.setText(sec <= 0 ? 'Süre doldu ·' : '3. yıldız').setColor(sec <= 0 ? '#c9c1ff' : '#ffe08a');
+    this.timerText.setText(label).setColor(sec <= 0 ? '#fff6e5' : sec <= 10 ? '#ff9ab8' : '#fff6e5').setFontSize(`${Math.round((sec <= 0 ? 15 : 18) * this.ts)}px`);
     this.placeTimer();
     if (sec > 0 && sec <= 10 && sec !== prev) this.bump(this.timerIco, 1.3);
   }
   private placeTimer() {
-    const w = Math.ceil((this.timerText.width + 44) / 4) * 4; const x = this.timerPanel.x, y = this.timerPanel.y;
+    const lw = this.timerLabel.width + 6; const w = Math.ceil((lw + this.timerText.width + 44) / 4) * 4; const x = this.timerPanel.x, y = this.timerPanel.y;
     if (this.timerPanel.getData('w') !== w) { this.timerPanel.setData('w', w); this.timerPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
     // panel dokusu gölge payıyla (8, 6) kaydırılmış: görünür merkez dokunun merkezinin 2 px üstünde
-    const l = x - w / 2; this.timerIco.setPosition(l + 16, y - 1); this.timerText.setPosition(l + 30, y - 1);
-    this.placeRow2();
+    const l = x - w / 2; this.timerIco.setPosition(l + 16, y - 1); this.timerLabel.setPosition(l + 30, y - 1); this.timerText.setPosition(l + 30 + lw, y - 1);
+    this.placeRow2(); this.placeShield();
   }
   setEscort(st: EscortHud) {
     if (st === this.escState) return; const prev = this.escState; this.escState = st;
@@ -351,14 +370,22 @@ export class LevelHud {
     this.shieldText.setText(`×${n}`); this.placeShield();
     if (n > 0 && !motionReduced()) this.bump(this.shieldIco, lost ? 0.8 : 1.3);
   }
-  /** ikinci satırın sağı, görünür sağ kenar ilerleme çubuğuyla hizalı; seri rozeti kalkan varken bir alta iner (üst üste binmez) */
+  /**
+   * ikinci satırın sağı, görünür sağ kenar ilerleme çubuğuyla hizalı; süre paneline değecekse bir alt satıra iner. Seri rozeti
+   * kalkanın ya da süre panelinin altına iner (üst üste binmez).
+   */
   private placeShield() {
-    const t = this.top / this.k + 10; const W = this.iw; const boss = this.bossBottom != null; const y = boss ? (this.bossBottom! + 4) / this.k + 18 : t + 88;
+    if (!this.combo) return;
+    const t = this.top / this.k + 10; const W = this.iw; const boss = this.bossBottom != null;
     const w = Math.ceil((this.shieldText.width + 44) / 4) * 4;
     if (this.shieldPanel.getData('w') !== w) { this.shieldPanel.setData('w', w); this.shieldPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
-    const l = W - 18 - w; this.shieldPanel.setPosition(l + w / 2, y);
+    const l = W - 18 - w; const timerOn = this.timerPanel.visible && !boss;
+    const timerR = timerOn ? this.timerPanel.x + Number(this.timerPanel.getData('w') ?? 100) / 2 : -Infinity;
+    const y = boss ? (this.bossBottom! + 4) / this.k + 18 : timerR + 6 > l ? t + 124 : t + 88;
+    this.shieldPanel.setPosition(l + w / 2, y);
     this.shieldIco.setPosition(l + 17, y - 1); this.shieldText.setPosition(l + 32, y - 1);
-    this.combo.setPosition(W - 64, t + 100 + (this.shields > 0 && !boss ? 40 : 0));
+    const below = boss ? 0 : Math.max(this.shields > 0 ? y + 52 : 0, timerOn ? t + 140 : 0);
+    this.combo.setPosition(W - 18 - this.comboW / 2, Math.max(t + 100, below));
   }
   /** canavar bölümünde ikinci satırın yerinde can çubuğu var: kalkan sayacı çubuğun altına iner (bottom: çubuğun alt kenarı) */
   belowBossBar(bottom: number | null) { this.bossBottom = bottom; this.placeShield(); }
@@ -471,7 +498,10 @@ export class LevelHud {
   }
   setCombo(n: number, mult: number) {
     if (n < 2 || mult < 2) { if (this.comboShown) { this.comboShown = false; this.scene.tweens.add({ targets: this.combo, alpha: 0, scale: 0.8, duration: 200 }); } return; }
-    this.comboMult.setText(`×${mult}`); this.comboCount.setText(`Seri\n${n}`);
+    this.comboMult.setText(`×${mult}`); this.comboCount.setText(`Seri ${n}`);
+    const gap = 8; const inner = this.comboMult.width + gap + this.comboCount.width; const w = Math.ceil((inner + 28) / 4) * 4;
+    this.comboMult.x = -inner / 2; this.comboCount.x = -inner / 2 + this.comboMult.width + gap;
+    if (w !== this.comboW || this.comboBg.getData('w') !== w) { this.comboW = w; this.comboBg.setData('w', w).setTexture(panelTex(this.scene, w, 40, 16)); this.placeShield(); }
     const hot = mult >= 4 ? '#ff5c8a' : mult >= 3 ? '#ff9f1c' : '#ffc93c'; this.comboMult.setColor(hot);
     this.scene.tweens.killTweensOf(this.combo);
     if (!this.comboShown) { this.comboShown = true; this.combo.setAlpha(1).setScale(0.4); this.scene.tweens.add({ targets: this.combo, scale: 1, duration: 260, ease: 'Back.Out' }); }

@@ -14,12 +14,14 @@ const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 function moves(spec: LevelSpec): string[] {
   const a = spec.abilities ?? []; const fresh = spec.newAbilities ?? [];
   const lines = a.length && a.every((x) => fresh.includes(x)) ? a.flatMap((x) => ABILITIES[x].how.split(' · ')) : MECHANICS[spec.mechanic].hint.split(' · ');
-  // bu biyomda melodi bölümü varsa sıralı notanın ekranda nasıl göründüğü (sesi kapalı oynayan da bilsin; YN-070)
-  if (HUMAN_JOURNEY.levels.some((l) => l.biome === spec.biome && l.objective === 'melody')) lines.push(MELODY_HOW);
   return lines.map((l) => l.trim()).filter(Boolean);
 }
-/** melodi hedefi: nota biçimli toplanabilirler x sırasıyla (game-core world.ts), her doğru notada "Nota 3/7" yazar */
-const MELODY_HOW = 'Melodi: nota biçimli olanları soldan sağa, atlamadan topla ("Nota 3/7" yazar)';
+/**
+ * Melodi hedefi: nota biçimli toplanabilirler x sırasıyla (game-core world.ts), her doğru notada "Nota 3/7" yazar. Bu biyomda melodi
+ * bölümü varsa sesi kapalı oynayan da bilsin (YN-070); mekaniğin başlığının altında değil kendi başlığıyla (OT-ilk-kez-oyun-48:
+ * "Yerçekimi:" altındaki melodi maddesi yerçekimiyle ilgili sanıldı).
+ */
+const MELODY_HOW = 'Nota biçimli olanları soldan sağa, atlamadan topla ("Nota 3/7" yazar)';
 /** İlk kez girilen biyom için kısa sinematik kart. Tek dokunuşla geçilir. */
 export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }) {
   const b = BIOMES[spec.biome]; const m = MECHANICS[spec.mechanic];
@@ -27,6 +29,7 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
   // ekran başına en çok bir bilgi: Tüy Dede'nin Notu varsa biyom bilgisinin yerini alır
   const note = useNote(spec.biome, 'biome', true, spec.number);
   useEffect(() => { platform().haptic('medium'); const t = setTimeout(() => setReady(true), 500); return () => clearTimeout(t); }, []);
+  const melody = HUMAN_JOURNEY.levels.some((l) => l.biome === spec.biome && l.objective === 'melody');
   const dark = ['kanal', 'sinir', 'beyin-sapi'].includes(spec.biome);
   return (
     <div className={`biome-intro${dark ? ' dark' : ''}`} style={{ ['--b1' as string]: hex(b.palette.bgFar), ['--b2' as string]: hex(b.palette.bgNear), ['--ba' as string]: hex(b.palette.accent) }} onClick={() => { if (ready) onGo(); }}>
@@ -40,6 +43,10 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
         <div className="bi-mech">
           <div className="bi-mech-head"><Glyph e={m.icon} size="1.2em" /> {`${m.name}:`}</div>
           <ul className="bi-moves">{moves(spec).map((l) => <li key={l}>{l}</li>)}</ul>
+          {melody && <>
+            <div className="bi-mech-head bi-mech-head2"><Glyph e="🎵" size="1.2em" /> Melodi:</div>
+            <ul className="bi-moves"><li>{MELODY_HOW}</li></ul>
+          </>}
         </div>
         {note ? <NoteCard note={note} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
       </div></div>

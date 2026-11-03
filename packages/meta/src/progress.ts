@@ -192,13 +192,14 @@ function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
 }
 /**
  * Bölümün kendi zorluğuna göre kayıp ipuçları (OT-ilk-kez-oyun-19): değiştiriciler, hedef, canavar. Her cümle oyunda görünen
- * bir şeye dayanır, yalnız sese değil: sis/gece LevelScene.buildFog (Odi'nin çevresinde aydınlık halka; Yankı Görüşü onu
- * genişletir), yankı sim effectiveInput (dokunuş 0,14 sn geç işler), melodi LevelScene (nota biçimli altın notalar soldan sağa,
- * her doğruda "Nota 3/7" yazısı), canavar render/boss.ts telegrafları (gölge, parlayan duvar, ok).
+ * bir şeye dayanır, yalnız sese değil: sis/gece LevelScene.buildFog (Odi'nin çevresinde aydınlık halka), yankı sim effectiveInput
+ * (dokunuş 0,14 sn geç işler), melodi LevelScene (nota biçimli altın notalar soldan sağa, her doğruda "Nota 3/7" yazısı), canavar
+ * render/boss.ts telegrafları (gölge, parlayan duvar, ok). Jetonla alınan yetenek önerilmez (OT-ilk-kez-oyun-50: gürültü duvarına
+ * çarpıp kaybedene "Yankı Görüşü" önerisi hem ilgisizdi hem satın almaya yönlendiriyordu).
  */
 const MOD_TIPS: Partial<Record<ModifierId, string[]>> = {
-  sis: ['Siste yalnız Odi\'nin çevresi aydınlık: engel o ışık halkasına girince zıpla.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
-  gece: ['Gecede yalnız Odi\'nin çevresi görünür: halkanın kenarına bak, engel orada belirir.', 'Yankı Görüşü yeteneği siste ve gecede ışık halkanı genişletir.'],
+  sis: ['Siste yalnız Odi\'nin çevresi aydınlık: engel o ışık halkasına girince zıpla.'],
+  gece: ['Gecede yalnız Odi\'nin çevresi görünür: halkanın kenarına bak, engel orada belirir.'],
   yanki: ['Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.'],
   hiz: ['Bu bölümde Odi daha hızlı koşar: engel ekrana girer girmez hazırlan.'],
 };
@@ -206,23 +207,32 @@ const OBJECTIVE_TIPS: Partial<Record<ObjectiveId, string>> = {
   melody: 'Nota biçimli altın notaları soldan sağa, hiç atlamadan topla: her doğru notada "Nota 3/7" gibi sırası yazar.',
 };
 const BOSS_TIPS = ['Her saldırıdan önce bir uyarı görünür (yere düşen gölge, parlayan duvar, ok): onu görünce oradan uzaklaş.'];
+/**
+ * Canavarın kendi vuruş yolu (OT-ilk-kez-oyun-46), play/boss.ts kuralıyla: Gürültü Canavarı bağırınca 3 nota belirir, hepsi toplanınca
+ * kalbi yere iner; ses darbesiyle (koşu yönüne kaydırma) ya da çakılmayla vurulur. Fiiller kartlardaki gibi (OT-ilk-kez-oyun-16/-37).
+ */
+const BOSS_HIT_TIP: Record<string, string> = {
+  'gurultu-canavari': 'Bağırınca çıkan 3 notayı topla: kalbi açılınca ileri fırla ya da havadan aşağı kaydırıp üstüne in.',
+};
 type LossSpec = Pick<RunSpecLite, 'number' | 'mechanic'> & Partial<Pick<LevelSpec, 'modifiers' | 'objective'>>;
 /**
  * Bir bölümün kayıp ipuçları, gösterilme sırasıyla. Yeni bir mekaniğin ilk iki bölümünde önce mekaniğin kendisi (kanca
- * bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15; yüzmenin kendi nedenleri nefes/diyapazon ve MECH_REASON_TIP kendi cümlesiyle), sonra bölümün
- * zorluğu (değiştirici, canavar), son hasarın nedeni, hedef ve mekaniğin ipucu. Her gruptan birer cümle sırayla alınır (art arda kayıpta aynı türden iki cümle üst üste gelmez).
+ * bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15; yüzmenin kendi nedenleri nefes/diyapazon ve MECH_REASON_TIP kendi cümlesiyle), sonra
+ * son hasarın nedeni (bilinen nedende önce o: OT-ilk-kez-oyun-50), bölümün zorluğu (değiştirici, canavar), hedef ve mekaniğin ipucu.
+ * Her gruptan birer cümle sırayla alınır (art arda kayıpta aynı türden iki cümle üst üste gelmez).
  */
 export function lossTips(reason: string, spec?: LossSpec): string[] {
   const mechTip = spec ? MECH_REASON_TIP[spec.mechanic]?.[reason] : undefined;
   const own = MECHANIC_OWN_TIP.has(reason) || mechTip !== undefined; const reasonTip = mechTip ?? LOSS_TIP[reason];
   if (!spec) return reasonTip ? [reasonTip] : [];
-  const mech = MECHANICS[spec.mechanic].hint; const fresh = newMechanic(spec) && !own;
+  // canavar bölümünde mekaniğin genel cümlesi yerine o canavarın vuruş yolu (varsa)
+  const bossId = spec.mechanic === 'boss' ? HUMAN_JOURNEY.levels.find((l) => l.number === spec.number)?.boss : undefined;
+  const mech = (bossId && BOSS_HIT_TIP[bossId]) || MECHANICS[spec.mechanic].hint; const fresh = newMechanic(spec) && !own;
   const groups: string[][] = [
     fresh ? [mech] : [],
-    own && reasonTip ? [reasonTip] : [],
+    reasonTip ? [reasonTip] : [],
     (spec.modifiers ?? []).flatMap((m) => MOD_TIPS[m] ?? []),
     spec.mechanic === 'boss' ? [mech, ...BOSS_TIPS] : [],
-    !own && reasonTip ? [reasonTip] : [],
     spec.objective && OBJECTIVE_TIPS[spec.objective.id] ? [OBJECTIVE_TIPS[spec.objective.id]!] : [],
     // koşunun ipucu beş hareketlik bir liste (temel mekanik; ipuçlarını nedenler verir)
     spec.mechanic === 'kosu' ? [] : [mech],

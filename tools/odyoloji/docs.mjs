@@ -72,7 +72,7 @@ ${EAR_NOTES.map((n) => `| ${REGION[n.region]} | ${esc(n.plain)} | ${esc(n.tech)}
 
 | bölüm | genel | odyoloji öğrencisi | kaynak |
 |---|---|---|---|
-${BILIYOR_MUYDUN.map((b) => `| ${b.bolum} | ${esc(b.genel)} | ${esc(b.odyoloji)} | ${esc(b.src)} |`).join('\n')}
+${BILIYOR_MUYDUN.map((b) => `| ${b.bolum} | ${esc(b.genel)} | ${esc(b.odyoloji)}${b.inceleme ? ` *(${esc(b.inceleme)})*` : ''} | ${esc(b.src)} |`).join('\n')}
 
 ## Kulak Kartları (${CARDS.length})
 

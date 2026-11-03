@@ -299,7 +299,7 @@ export class LevelScene extends Phaser.Scene {
       case 'bossPhase': this.hint(bossPhaseText(this.sim.boss?.kind ?? 'golem', Number(e.n ?? 2)), 2600, undefined, `boss-faz-${e.n}`); this.bossStripId = `boss-faz-${e.n}`; sfx.toneAt(110, 0.5); break;
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
-      case 'bossStun': this.hint('Kalbi açıkta! Atıl ya da üstüne çakıl', 2200, undefined, 'boss-sersem'); sfx.power(); break;
+      case 'bossStun': this.hint('Kalbi açıkta! İleri fırla ya da havadan aşağı kaydırıp üstüne in', 2600, undefined, 'boss-sersem'); sfx.power(); break;
       case 'bossDown': flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
         floatText(this, GAME_W / 2, GROUND_Y - 220, this.sim.boss?.kind === 'canavar' ? 'Ninni beyne ulaştı' : 'Kanal açıldı!', COLORS.accent); break;
