@@ -58,6 +58,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'team.role': z.object({ id, role: z.enum(['lider', 'yardimci', 'uye']) }),
   'team.help.request': z.object({ level }),
   'team.help.give': z.object({ requestId: id }),
+  'team.leader.seen': empty,
   'war.state': empty,
   'war.targets': z.object({ regions: z.array(z.string().max(20)).max(SOCIAL_LIMITS.targetsMax) }),
   'raid.state': empty,

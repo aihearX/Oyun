@@ -23,7 +23,7 @@ import { TEAM_APPLY_RULES, canApprove, joinModeOf } from '@odi/shared';
 import { TeamApplications } from './TeamApplications';
 import { ModeTag } from './TeamProfile';
 import { useTeamApply } from './apply';
-import { GROUP_OF, openTeamTab, sendableHelpCount, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
+import { GROUP_OF, claimableTierCount, openTeamTab, sendableHelpCount, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
 
 export type { TeamTab } from './teamTabs';
 
@@ -45,7 +45,8 @@ export function TeamHome() {
   const levelHelp = sendableHelpCount(team.help, me.id, Date.now());
   // Takım Yarışı rozeti: açık lobi (ben içinde değilsem) ya da gelen dostluk daveti
   const raceBadge = useTeamRace((x) => { const l = x.state?.lobby; const me = useNet.getState().me?.id; return (l && l.status !== 'eslesti' && !l.members.some((m) => m.id === me) ? 1 : 0) + (l?.incoming.length ?? 0); });
-  const claimableGoals = extra ? extra.goals.reduce((a, g) => a + g.tiers.filter((t, i) => g.progress >= t.need && !g.claimedTiers.includes(i)).length, 0) : 0;
+  const claimableGoals = extra ? claimableTierCount(extra.goals) : 0;
+  const joinedAt = team.roster.find((m) => m.id === me.id)?.joinedAt;
 
   useEffect(() => {
     const c = getNet(); if (!c) return;
@@ -121,8 +122,9 @@ export function TeamHome() {
       {noTarget && (approver
         ? <button type="button" className="card war-warn" onClick={() => setTab('savas')} data-testid="savas-hedef-uyari"><Art name="target" size={24} /><span className="grow min0"><b>Savaş hedefi seçilmedi</b><small>Seçilene dek kazanılan savaş puanı bölgeye yazılmaz, sonradan da yazılmaz.</small></span><Icon name="chevron" size={20} /></button>
         : <div className="card war-warn note" role="note" data-testid="savas-hedef-uyari"><Art name="target" size={24} /><small className="grow min0">Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz.</small></div>)}
+      {team.leaderNotice && myRole === 'lider' && <LeaderNotice />}
       <div className="team-body" key={tab}>
-        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} />}
+        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} since={joinedAt} />}
         {tab === 'basvuru' && (approver ? <TeamApplications /> : <TeamMembers />)}
         {tab === 'uyeler' && <TeamMembers />}
         {tab === 'yardim' && <TeamHelp />}
@@ -154,6 +156,27 @@ export function TeamHome() {
         </Sheet>
       )}
     </>
+  );
+}
+
+/**
+ * Liderlik kendiliğinden geçti (önceki lider ayrıldı ya da hesabını sildi): bir kez kişisel kart (YN-148). "Tamam" sunucuya görüldü
+ * yazar; kapatılmazsa bir sonraki girişte yine gelir. Önceki liderin adı yazılmaz.
+ */
+function LeaderNotice() {
+  const seen = () => {
+    useNet.setState((s) => (s.team ? { team: { ...s.team, leaderNotice: undefined } } : {}));
+    void getNet()?.call('team.leader.seen', {}).catch(() => undefined);
+  };
+  return (
+    <div className="card lead-notice" role="status" data-testid="lider-karti">
+      <Art name="crown" size={26} />
+      <div className="grow min0">
+        <b>Artık takımın lideri sensin</b>
+        <small>Önceki lider ayrıldı. Lider üyeleri yönetir ve başvuruları onaylar; istersen liderliği Üyeler'den devredebilirsin.</small>
+      </div>
+      <button type="button" className="btn small" data-testid="lider-karti-tamam" onClick={seen}>Tamam</button>
+    </div>
   );
 }
 

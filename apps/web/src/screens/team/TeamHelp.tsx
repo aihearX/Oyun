@@ -8,6 +8,7 @@ import { platform } from '../../platform';
 import { useNav } from '../../nav';
 import { Empty, FloatBurst, buildingDef, fmtLeft, useNow } from '../../ui/social';
 import { Art, Glyph } from '../../ui/art';
+import { helpLeftOf, setHelpLeft } from './teamTabs';
 
 /** Yardım: kamp inşaatları + bölüm yardım istekleri; tek dokunuşla "Herkese yardım et". */
 export function TeamHelp() {
@@ -34,7 +35,8 @@ export function TeamHelp() {
     if (r) { platform().haptic('light'); setBurst('+1 yardım'); }
   };
   const giveShield = async (id: string) => { setBusy(id); const r = await act('team.help.give', { requestId: id }); setBusy(''); if (r) { platform().haptic('success'); setBurst('+1 🛡️ gönderildi'); } };
-  const askLevel = async () => { const r = await act('team.help.request', { level: stuck }); if (r) toast('🙋', `${r.request.level}. bölüm için yardım istedin`, 'Takım arkadaşların sana kalkan gönderebilir.'); };
+  const askLevel = async () => { const r = await act('team.help.request', { level: stuck }); if (r) { if (r.helpLeft !== undefined) setHelpLeft(r.helpLeft); toast('🙋', `${r.request.level}. bölüm için yardım istedin`, 'Takım arkadaşların sana kalkan gönderebilir.'); } };
+  const left = helpLeftOf(team, now + off);
 
   const levelReqs = team.help.filter((h) => h.expiresAt > now);
   const others = levelReqs.filter((h) => h.from !== me.id);
@@ -56,8 +58,8 @@ export function TeamHelp() {
           <button className="btn small" disabled={busy === r.playerId + r.building} onClick={() => void helpOne(r.playerId, r.building)}>Yardım et</button>
         </div>); })}
 
-      <div className="row between section-head"><h2>Bölüm yardımı</h2><button className="btn ghost small" onClick={() => void askLevel()}><Art e="🙋" size="1.15em" className="art-inline" /> Yardım iste</button></div>
-      <div className="muted small-note" data-testid="yardim-iste-not">Takılırsan iste: istek takıldığın {stuck}. bölüm için açılır. Her yardım sana bir kalkan, yardım edene 5 jeton. Günde 3 istek.</div>
+      <div className="row between section-head"><h2>Bölüm yardımı</h2><button className="btn ghost small" disabled={left === 0} onClick={() => void askLevel()}><Art e="🙋" size="1.15em" className="art-inline" /> Yardım iste</button></div>
+      <div className="muted small-note" data-testid="yardim-iste-not">Takılırsan iste: istek takıldığın {stuck}. bölüm için açılır. Her yardım sana bir kalkan, yardım edene 5 jeton. Günde 3 istek{left === undefined ? '' : left > 0 ? `; bugün ${left} hak kaldı` : '; bugünkü hakların bitti, yarın yeniden isteyebilirsin'}.</div>
       {others.length === 0 ? <Empty icon="🫶" title="Şu an yardım isteyen yok" text="Biri takılırsa burada görünür; tek dokunuşla kalkan gönderebilirsin." /> : others.map((h) => { const done = h.helpers.includes(me.id); const full = h.helpers.length >= h.max; const passed = !!h.passed; return (
         // satır yerinde kalır: gönderince yalnız düğme değişir (sıra ekran yeniden açılınca güncellenir; net.ts team.help yerinde günceller)
         <div className={`card help-row${passed ? ' passed' : ''}`} key={h.id} data-testid="yardim-satiri" data-passed={passed ? '1' : '0'}>

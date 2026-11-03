@@ -85,7 +85,10 @@ export function TeamGifts() {
 
 const METRIC = { yildiz: { icon: '⭐', unit: 'yıldız' }, bolum: { icon: '🗺️', unit: 'bölüm' }, baskin: { icon: '👹', unit: 'hasar' } } as const;
 
-/** Hedefler: haftalık 3 hedef, kademe çubukları, ödül önizlemesi, alınabilir kademeler. */
+/**
+ * Hedefler: haftalık 3 hedef, kademe çubukları, ödül önizlemesi, alınabilir kademeler. Takıma katılmadan önce dolan kademe gri
+ * "Katılmadan önce doldu" (ödülü o anki üyelere düştü; Al yok, rozete sayılmaz) ve sıradaki kademe "Seninle dolacak" (YN-146).
+ */
 export function TeamGoals() {
   const extra = useNet((s) => s.extra); const now = useNow(30_000);
   const [busy, setBusy] = useState('');
@@ -99,19 +102,23 @@ export function TeamGoals() {
   const ends = extra.goals[0]?.endsAt ?? 0;
   return (
     <div className="stack">
-      <div className="muted">Bu haftanın takım hedefleri · bitişe {fmtLeft(ends - now)}. Herkesin bölümü sayılır; kademe dolunca ödül tüm üyelere düşer.</div>
-      {extra.goals.map((g) => { const m = METRIC[g.metric]; const top = g.tiers[g.tiers.length - 1]!.need; return (
+      <div className="muted">Bu haftanın takım hedefleri · bitişe {fmtLeft(ends - now)}. Herkesin bölümü sayılır; kademe dolunca ödül o anki tüm üyelere düşer.</div>
+      {extra.goals.map((g) => { const m = METRIC[g.metric]; const top = g.tiers[g.tiers.length - 1]!.need; const missed = g.missedTiers ?? []; const next = missed.length ? g.tiers.findIndex((t) => g.progress < t.need) : -1; return (
         <div className="card goal" key={g.id}>
           <div className="row between"><b><Glyph e={m.icon} size="1.2em" /> {g.name}</b><span className="qn">{fmtNum(g.progress)}/{fmtNum(top)} {m.unit}</span></div>
           <div className="goal-track"><Bar value={g.progress / top} tone="green" label={g.name} />{g.tiers.map((t, i) => <i key={i} className={`tick${g.progress >= t.need ? ' hit' : ''}`} style={{ left: `${(t.need / top) * 100}%` }} />)}</div>
           <div className="tiers">
-            {g.tiers.map((t, i) => { const reached = g.progress >= t.need; const claimed = g.claimedTiers.includes(i); return (
-              <div className={`tier${reached ? ' hit' : ''}${claimed ? ' claimed' : ''}`} key={i}>
+            {g.tiers.map((t, i) => { const reached = g.progress >= t.need; const claimed = g.claimedTiers.includes(i); const before = missed.includes(i); return (
+              <div className={`tier${reached && !before ? ' hit' : ''}${claimed ? ' claimed' : ''}${before ? ' missed' : ''}${i === next ? ' yours' : ''}`} key={i} data-testid={before ? 'kademe-katilmadan' : i === next ? 'kademe-seninle' : undefined}>
                 <span className="t-need">{i + 1}. kademe · {fmtNum(t.need)}</span>
                 <ItemChips items={t.reward} small />
-                {reached && !claimed ? <button className="btn small" disabled={busy === `${g.id}:${i}`} onClick={() => void claim(g.id, i)}>Al</button> : <span className="t-state">{claimed ? <Art name="check" size={22} /> : reached ? '' : <Art name="lock" size={22} />}</span>}
+                {before ? <span className="t-note">Katılmadan önce doldu</span>
+                  : reached && !claimed ? <button className="btn small" disabled={busy === `${g.id}:${i}`} onClick={() => void claim(g.id, i)}>Al</button>
+                  : i === next ? <span className="t-note">Seninle dolacak</span>
+                  : <span className="t-state">{claimed ? <Art name="check" size={22} /> : reached ? '' : <Art name="lock" size={22} />}</span>}
               </div>); })}
           </div>
+          {missed.length > 0 && <div className="muted small-note">Katılmadan önce dolan kademelerin ödülü o anki üyelere düştü. Bundan sonra dolan her kademenin ödülü sana da düşer.</div>}
         </div>); })}
     </div>
   );

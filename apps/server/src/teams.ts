@@ -7,7 +7,7 @@ import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
 import { MAX_LEVEL } from './progress';
 import { addContrib, broadcastExtra } from './teamextra';
-import { dayKey, DAY_MS } from './time';
+import { dayKey, dayNumber, dayNumberStart, DAY_MS } from './time';
 import { recomputeOwner } from './war';
 
 export const HELP_PER_DAY = 3;
@@ -47,7 +47,17 @@ export function teamSummary(app: App, t: TeamRow): TeamSummary {
   return { id: t.id, name: t.name, emblem: t.emblem, description: t.description, members: agg.n, max: SOCIAL_LIMITS.teamMax, power: agg.power, open: !!t.open, code: t.code, minLevel: t.min_level };
 }
 
-export function teamDetail(app: App, teamId: string): TeamDetail | null {
+/** bugün kalan bölüm yardımı isteği hakkı (YN-147) */
+export const helpLeft = (app: App, pid: string) => Math.max(0, HELP_PER_DAY - app.dailyCount(pid, dayKey(app.now()), 'help_req'));
+
+/** kendi takımının ayrıntısında bakan oyuncuya özel alanlar: kalan yardım hakkı (YN-147), kendiliğinden liderlik kartı (YN-148) */
+function viewerPart(app: App, pid: string): Pick<TeamDetail, 'helpLeft' | 'helpResetAt' | 'leaderNotice'> {
+  const p = app.playerOrNull(pid);
+  return { helpLeft: helpLeft(app, pid), helpResetAt: dayNumberStart(dayNumber(app.now()) + 1), ...(p?.lead_notice && p.team_role === 'lider' ? { leaderNotice: true as const } : {}) };
+}
+
+/** viewer verilirse (yalnız o oyuncunun kendi takımı için) ona özel alanlar da eklenir */
+export function teamDetail(app: App, teamId: string, viewer?: string): TeamDetail | null {
   const t = app.team(teamId);
   if (!t) return null;
   const week = app.week().key;
@@ -59,13 +69,13 @@ export function teamDetail(app: App, teamId: string): TeamDetail | null {
   roster.sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || b.weekPoints - a.weekPoints || a.joinedAt - b.joinedAt);
   const help = app.db.all<HelpRow>('SELECT * FROM help_requests WHERE team_id = ? AND at > ? ORDER BY at DESC LIMIT 30', teamId, app.now() - HELP_TTL_MS).map((r) => toHelp(app, r));
   const weekPoints = app.db.get<{ points: number }>('SELECT points FROM team_week WHERE week = ? AND team_id = ?', week, teamId)?.points ?? 0;
-  return { ...teamSummary(app, t), roster, help, weekPoints };
+  return { ...teamSummary(app, t), roster, help, weekPoints, ...(viewer ? viewerPart(app, viewer) : {}) };
 }
 
-/** her çevrimiçi üyeye güncel takım ayrıntısı */
+/** her çevrimiçi üyeye güncel takım ayrıntısı (ortak kısım bir kez hesaplanır, üyeye özel alanlar ayrı) */
 export function broadcastTeam(app: App, teamId: string): void {
   const d = teamDetail(app, teamId);
-  app.emitEach(app.teamMemberIds(teamId), 'team.updated', () => ({ team: d }));
+  app.emitEach(app.teamMemberIds(teamId), 'team.updated', (pid) => ({ team: d && { ...d, ...viewerPart(app, pid) } }));
 }
 
 export function requireTeam(app: App, pid: string): { p: PlayerRow; t: TeamRow } {
@@ -86,19 +96,23 @@ export function joinTeam(app: App, p: PlayerRow, t: TeamRow, role: TeamRole): vo
   for (const h of app.teamJoinHooks) h(p.id, t.id);
 }
 
-/** üyeyi takımdan çıkar: lider ayrılırsa en kıdemli yardımcıya, yoksa en kıdemli üyeye devreder; son kişi çıkarsa takım silinir */
+/**
+ * üyeyi takımdan çıkar: lider ayrılırsa en kıdemli yardımcıya, yoksa en kıdemli üyeye devreder; son kişi çıkarsa takım silinir.
+ * Devralan bir kez kişisel kart görür (players.lead_notice; görülünce team.leader.seen siler): sohbetteki "Yeni lider" satırını kaçırabilir (YN-148).
+ * Kartta önceki liderin adı yoktur, satırda da tutulmaz (hesap silmede ad kalmaz; account-veri.ts).
+ */
 export function removeMember(app: App, pid: string, how: 'ayrildi' | 'atildi'): void {
   const p = app.player(pid);
   const teamId = p.team_id;
   if (!teamId) return;
-  app.db.run('UPDATE players SET team_id = NULL, team_role = NULL, team_joined_at = NULL WHERE id = ?', pid);
+  app.db.run('UPDATE players SET team_id = NULL, team_role = NULL, team_joined_at = NULL, lead_notice = 0 WHERE id = ?', pid);
   app.unsubscribe(pid, teamRoom(teamId));
   const rest = app.db.all<PlayerRow>('SELECT * FROM players WHERE team_id = ? ORDER BY team_joined_at', teamId);
   if (!rest.length) { deleteTeam(app, teamId); return; }
   systemMessage(app, teamRoom(teamId), how === 'atildi' ? `${p.name} takımdan çıkarıldı.` : `${p.name} takımdan ayrıldı.`);
   if (p.team_role === 'lider') {
     const heir = rest.find((r) => r.team_role === 'yardimci') ?? rest[0]!;
-    app.db.run("UPDATE players SET team_role = 'lider' WHERE id = ?", heir.id);
+    app.db.run("UPDATE players SET team_role = 'lider', lead_notice = 1 WHERE id = ?", heir.id);
     systemMessage(app, teamRoom(teamId), `Yeni lider: ${heir.name}.`);
   }
   broadcastTeam(app, teamId);
@@ -140,7 +154,7 @@ export const teamHandlers: Handlers = {
       id, clean, key, emblem, desc, open === false ? 0 : 1, code, min, app.now());
     joinTeam(app, p, app.team(id)!, 'lider');
     systemMessage(app, teamRoom(id), `${p.name} takımı kurdu. Hoş geldiniz!`);
-    return { team: teamDetail(app, id)! };
+    return { team: teamDetail(app, id, p.id)! };
   },
   'team.join': (app, s, { teamId, code }) => {
     const p = app.player(s.pid);
@@ -155,7 +169,7 @@ export const teamHandlers: Handlers = {
     feedEvent(app, p.id, 'uye', {}); // Takım Akışı kartı: "X takıma katıldı." (+ Hoş geldin)
     broadcastTeam(app, t.id);
     announcePresence(app, p.id, true);
-    return { team: teamDetail(app, t.id)! };
+    return { team: teamDetail(app, t.id, p.id)! };
   },
   'team.leave': (app, s) => {
     requireTeam(app, s.pid);
@@ -165,7 +179,7 @@ export const teamHandlers: Handlers = {
   'team.detail': (app, s, { teamId }) => {
     const mine = app.player(s.pid).team_id;
     const id = teamId ?? mine;
-    const d = id ? teamDetail(app, id) : null;
+    const d = id ? teamDetail(app, id, id === mine ? s.pid : undefined) : null;
     // davet kodu yalnızca üyelere: kod, başvuruyla üye alan takıma doğrudan katılım kısayoludur
     return { team: d && d.id !== mine ? { ...d, code: '' } : d };
   },
@@ -178,7 +192,7 @@ export const teamHandlers: Handlers = {
     if (p.team_role === 'yardimci' && target.team_role !== 'uye') fail('YETKI', 'Yardımcılar yalnızca üyeleri atabilir.');
     removeMember(app, target.id, 'atildi');
     app.emit(target.id, 'team.updated', { team: null });
-    return { team: teamDetail(app, t.id)! };
+    return { team: teamDetail(app, t.id, p.id)! };
   },
   'team.role': (app, s, { id, role }) => {
     const { p, t } = requireTeam(app, s.pid);
@@ -187,7 +201,7 @@ export const teamHandlers: Handlers = {
     if (!target || target.team_id !== t.id) return fail('YOK', 'Bu oyuncu takımında değil.');
     if (target.id === p.id) fail('GECERSIZ', 'Kendi rolünü değiştiremezsin; liderliği başka birine devret.');
     if (role === 'lider') {
-      app.db.run("UPDATE players SET team_role = 'yardimci' WHERE id = ?", p.id);
+      app.db.run("UPDATE players SET team_role = 'yardimci', lead_notice = 0 WHERE id = ?", p.id);
       app.db.run("UPDATE players SET team_role = 'lider' WHERE id = ?", target.id);
       systemMessage(app, teamRoom(t.id), `${p.name} liderliği ${target.name} adlı üyeye devretti.`);
     } else {
@@ -195,7 +209,7 @@ export const teamHandlers: Handlers = {
       systemMessage(app, teamRoom(t.id), role === 'yardimci' ? `${target.name} artık yardımcı.` : `${target.name} artık üye.`);
     }
     broadcastTeam(app, t.id);
-    return { team: teamDetail(app, t.id)! };
+    return { team: teamDetail(app, t.id, p.id)! };
   },
   'team.help.request': (app, s, { level }) => {
     const { p, t } = requireTeam(app, s.pid);
@@ -211,7 +225,11 @@ export const teamHandlers: Handlers = {
     for (const m of app.teamMemberIds(t.id)) app.emit(m, 'team.help', { request });
     const card = systemMessage(app, teamRoom(t.id), `${p.name} ${level}. bölüm için yardım istiyor.`, 'help', { requestId: id, level, pid: p.id, pname: p.name, pc: p.color, ph: p.hat });
     onHelpCard(app, id, card.id);
-    return { request };
+    return { request, helpLeft: helpLeft(app, p.id) };
+  },
+  'team.leader.seen': (app, s) => {
+    app.db.run('UPDATE players SET lead_notice = 0 WHERE id = ?', s.pid);
+    return {};
   },
   'team.help.give': (app, s, { requestId }) => {
     const { p, t } = requireTeam(app, s.pid);

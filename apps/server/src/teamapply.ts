@@ -255,7 +255,7 @@ function decide(app: App, pid: string, applicationId: string, accept: boolean, r
     systemMessage(app, teamRoom(t.id), `${p.name}, ${target.name} adlı oyuncunun başvurusunu kabul etmedi.`);
   }
   notifyApprovers(app, t.id);
-  return { application: toView(app, done), applications: pendingFor(app, t.id), team: teamDetail(app, t.id)! };
+  return { application: toView(app, done), applications: pendingFor(app, t.id), team: teamDetail(app, t.id, pid)! };
 }
 
 function settings(app: App, pid: string, d: { joinMode?: 'acik' | 'basvuru'; minLevel?: number }) {
@@ -273,7 +273,7 @@ function settings(app: App, pid: string, d: { joinMode?: 'acik' | 'basvuru'; min
   }
   for (const n of notes) systemMessage(app, teamRoom(t.id), n);
   if (notes.length) broadcastTeam(app, t.id);
-  return { team: teamDetail(app, t.id)! };
+  return { team: teamDetail(app, t.id, pid)! };
 }
 
 export const teamApplyHandlers: Handlers = {

@@ -503,10 +503,10 @@ export const ANONIM_OYUNCU_SQL = `UPDATE players SET name = ?, token_hash = ?, f
   spend_pending_at = NULL WHERE id = ?`;
 
 /**
- * Göç 7–9'un eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı, satın alma hediyesi jetonu). ANONIM_OYUNCU_SQL'den ayrı:
- * göç 2 bu sütunlar eklenmeden önce de çalışır (eski veritabanı); hesap silmede ikisi birlikte uygulanır.
+ * Göç 7–9 ve 13'ün eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı, satın alma hediyesi jetonu, lider devri kartı).
+ * ANONIM_OYUNCU_SQL'den ayrı: göç 2 bu sütunlar eklenmeden önce de çalışır (eski veritabanı); hesap silmede ikisi birlikte uygulanır.
  */
-export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0 WHERE id = ?';
+export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0, lead_notice = 0 WHERE id = ?';
 
 /** anonim oyuncu satırı + silindi işareti (hesap silme ve göç) */
 export function anonimOyuncu(db: Sorgu, pid: string, at: number, ekAlanlar = false): void {

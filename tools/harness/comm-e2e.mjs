@@ -275,6 +275,7 @@ async function webSuite(bt) {
     const yb = await tid(C, 'yardim-iste').boundingBox(); const tb = await C.page.locator('.result-actions .abtn.primary').boundingBox();
     S.check(!!yb && !!tb && yb.y >= 0 && yb.y + yb.height <= tb.y + 1 && tb.y + tb.height <= VH, `yardım kartı kaydırmadan görünür, "Tekrar dene"nin üstünde (${JSON.stringify(yb)} / ${JSON.stringify(tb)})`);
     await tid(C, 'yardim-iste').scrollIntoViewIfNeeded();
+    S.check(/Bugün 3 hak kaldı\./.test(await tid(C, 'yardim-iste-not').innerText()), 'yardım kartında kalan günlük hak yazılı (YN-147)');
     await S.shot(C, 'sonuc-yardim-iste');
     await tid(C, 'yardim-iste-dugme').click();
     await tid(C, 'yardim-iste').locator('b', { hasText: 'Yardım istedin' }).waitFor({ timeout: 8000 });
@@ -349,6 +350,20 @@ async function webSuite(bt) {
     await tid(C, 'takima-meydan-dugme').click(); await tid(C, 'takima-meydan-onay').click();
     await tid(C, 'takima-meydan').locator('b', { hasText: 'Meydan okudun!' }).waitFor({ timeout: 8000 });
     S.check((await feedCount()) === once + 1, 'onaydan sonra meydan okuma kartı takım sohbetinde');
+    // ---- YN-147: günlük yardım hakkı bitince sonuç kartı düğmesiz, sakin not (kayıpta ikinci bir ret kutusu yok). Cem 3. bölümde
+    //      takılı; 2. bölüm için yaptığı istekle birlikte bugünkü 3 hak biter. Kart 4. bölümün kayıp ekranında denetlenir (3. bölümde
+    //      kendi açık isteği olduğu için kart doğru olarak "Yardım istedin" der; sonuç ekranı önizlemesi bölüm kilidine bakmaz)
+    await net(C, 'team.help.request', { level: 3 }); await net(C, 'team.help.request', { level: 3 });
+    await C.page.evaluate(() => { const raw = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); raw.state = { ...(raw.state ?? {}), failStreak: 3 }; localStorage.setItem('odi-v1', JSON.stringify(raw)); });
+    await C.page.goto(`${base}&demo=sonuc&yildiz=0&skor=310&bolum=4&kutlama=0`, { waitUntil: 'load' });
+    await C.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 25_000 });
+    await syncTeam(C);
+    await C.page.locator('.result-title').click().catch(() => undefined);
+    await tid(C, 'yardim-iste').locator('b', { hasText: 'Bugünkü yardım hakların bitti' }).waitFor({ timeout: 15_000 }).catch(() => undefined);
+    S.check(!(await tid(C, 'yardim-iste-dugme').count()) && /Yarın yeniden isteyebilirsin\. Takım sohbetindeki kartların açık\./.test(await tid(C, 'yardim-iste').innerText()),
+      'yardım hakkı bitince sonuç kartı düğmesiz, sakin not (YN-147)');
+    await tid(C, 'yardim-iste').scrollIntoViewIfNeeded();
+    await S.shot(C, 'sonuc-yardim-hakki-bitti');
     await C.page.goto(base, { waitUntil: 'load' });
     await C.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 25_000 });
     await C.page.getByRole('button', { name: /Yola çık|Devam et/ }).click(); await C.page.locator('nav.tabbar').waitFor(); await settle(C);

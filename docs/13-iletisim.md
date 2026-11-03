@@ -67,7 +67,8 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
 
 ### 3.3 Yardım İste
 1. Sonuç ekranı: aynı bölümde art arda 3 başarısızlık (ya da `failStreak ≥ 3`) ve takımdaysa → "Takımdan yardım iste" kartı.
-   (Takım sekmesindeki Yardım > Bölüm yardımı da aynı işlem.) Günde 3 istek (mevcut kural).
+   (Takım sekmesindeki Yardım > Bölüm yardımı da aynı işlem.) Günde 3 istek (mevcut kural); kartta "Bugün N hak kaldı", hak bitince
+   düğme yerine "Bugünkü yardım hakların bitti" notu (ret kutusu yok; YN-147).
 2. Takım sohbetine **yardım kartı** düşer (`kind: 'help'`, `meta.requestId/level`). Kartta üç gerçek eylem:
    - **İpucu ver** — `help.tip { requestId, phrase | text }`: ipucu sözü ya da (serbest yazı açıksa) kısa metin; kartın altına yanıt
      olarak yazılır. Kişi başı istek başına 1 ipucu.

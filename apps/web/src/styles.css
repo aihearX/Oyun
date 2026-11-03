@@ -784,6 +784,20 @@ html.buyuk-yazi .mem-stats { font-size:0.8125rem; }
 .tier.hit { border-color:rgba(142,240,176,.5); } .tier.claimed { opacity:.6; }
 .t-need { font-size:0.75rem; font-weight:900; color:var(--text-2); min-width:96px; }
 .t-state { font-size:1rem; }
+/* YN-146: katılmadan önce dolan kademe (ödülü o anki üyelerin) gri; sıradaki kademe yeni üyeyle dolacak */
+.tier.missed { opacity:.55; filter:grayscale(1); }
+.tier.yours { border-color:rgba(255,201,60,.6); background:rgba(255,201,60,.08); }
+.t-note { font-size:0.75rem; font-weight:900; color:var(--text-2); }
+.tier.yours .t-note { color:var(--gold); }
+/* YN-148: liderlik kendiliğinden geçen oyuncuya bir kez kişisel kart */
+/* üst satırda taç + başlık + Tamam, açıklama altta tam genişlik: sohbet açıkken mesaj kutusundan az yer alır */
+.lead-notice { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; column-gap:10px; row-gap:4px; align-items:center; padding:8px 10px 10px 12px; border:2px solid rgba(255,201,60,.55); background:rgba(255,201,60,.1); }
+.lead-notice > .grow { display:contents; }
+.lead-notice > svg { grid-column:1; grid-row:1; }
+.lead-notice b { grid-column:2; grid-row:1; font-size:0.875rem; }
+.lead-notice small { grid-column:1 / -1; grid-row:2; font-size:0.75rem; font-weight:700; color:var(--text-2); line-height:1.3; }
+.lead-notice .btn { grid-column:3; grid-row:1; }
+html.kb-open .team-screen:has(.team-body > .chat) .lead-notice { display:none; }
 
 /* savaş */
 .war-head { display:flex; flex-direction:column; gap:8px; }
@@ -838,6 +852,8 @@ html.buyuk-yazi .mem-stats { font-size:0.8125rem; }
 .msg-sys { align-self:center; max-width:94%; text-align:center; background:rgba(139,107,255,.16); border:2px dashed rgba(201,193,255,.35); color:#e2dbff; border-radius:999px; padding:5px 12px; font-size:0.75rem; font-weight:900; line-height:1.35; }
 .msg-sys.kind-war { border-color:rgba(255,92,138,.5); color:#ffc2d4; background:rgba(255,92,138,.12); }
 .msg-sys.kind-help { border-color:rgba(142,240,176,.5); color:#c6ffd9; background:rgba(142,240,176,.1); }
+/* katılmadan önceki sistem satırları katlı (YN-148): dokununca açılır */
+button.msg-sys.msg-fold { font-family:inherit; cursor:pointer; min-height:32px; opacity:.85; }
 .quick-row { display:flex; gap:4px; overflow-x:auto; scrollbar-width:none; }
 .quick-row::-webkit-scrollbar { display:none; }
 .quick { appearance:none; flex:none; width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.35); font-size:1.25rem; cursor:pointer; display:inline-grid; place-items:center; padding:0; }

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import './comm.css'; // paket bölme: bu bileşen Cards.tsx olmadan da çizilir (sonuç ekranı), stili kendisi yüklesin
 import { useNet } from '@odi/net/store';
+import { NetError } from '@odi/net';
 import { COMM_RULES } from '@odi/shared';
-import { act, toast } from '../net';
+import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { featureOpen } from '../ftue/useFeatures';
 import { useStore } from '../store';
 import { Art } from '../ui/art';
+import { helpLeftOf, setHelpLeft } from '../screens/team/teamTabs';
 import { noteRun, useComm } from './state';
 
 /**
  * Sonuç ekranı iletişim kartları:
- *  - Yardım İste: aynı bölümde art arda 3 başarısızlıkta (ya da 3+ başarısızlık serisinde) "Takımdan yardım iste".
+ *  - Yardım İste: aynı bölümde art arda 3 başarısızlıkta (ya da 3+ başarısızlık serisinde) "Takımdan yardım iste". Kalan günlük hak
+ *    yazılır; hak bitince düğme yerine sakin bir not (kayıp ekranına ikinci bir ret kutusu düşmesin; OT-ilk-kez-oyun-43).
  *  - Takıma meydan oku: geçilen bölümde, sunucudaki en iyi skorla takım sohbetine kart. Gönderilen kart geri alınamaz (sunucuda
  *    silme yolu yok): "Takıma gönder" önce tek adımlı onay ister (başka bir dokunuş yanlışlıkla sohbete düşürmesin; OT-ekonomi-denetci-14).
  */
@@ -29,17 +32,31 @@ export function ResultComm({ level, completed, demo }: { level: number; complete
   if (!completed && (demoFails || fails >= COMM_RULES.helpFailsToAsk || failStreak >= COMM_RULES.helpFailsToAsk)) {
     const ask = async () => {
       if (demoFails) { setState('done'); return; }
+      const c = getNet(); if (!c) return;
       setState('busy');
-      const r = await act('team.help.request', { level });
-      if (r) { setState('done'); useComm.setState((s) => ({ asked: [...s.asked, level] })); platform().haptic('success'); toast('🙋', 'Takımına haber verdin', 'İpucu, kalkan ya da birlikte yarış gelebilir. Geçince ikinize de ödül.', 'green'); }
-      else setState('');
+      try {
+        const r = await c.call('team.help.request', { level });
+        if (r.helpLeft !== undefined) setHelpLeft(r.helpLeft);
+        setState('done'); useComm.setState((s) => ({ asked: [...s.asked, level] })); platform().haptic('success');
+        toast('🙋', 'Takımına haber verdin', 'İpucu, kalkan ya da birlikte yarış gelebilir. Geçince ikinize de ödül.', 'green');
+      } catch (e) {
+        setState('');
+        // hak başka cihazda bitmiş olabilir: ret kutusu yerine kart sakin nota döner
+        if (e instanceof NetError && e.code === 'LIMIT') setHelpLeft(0);
+        else { platform().haptic('error'); toast('🙈', 'Olmadı', errText(e), 'bronze'); }
+      }
     };
     const done = state === 'done' || asked || mine;
+    const left = demoFails ? undefined : helpLeftOf(team, getNet()?.serverNow() ?? Date.now());
+    const out = !done && left === 0;
     return (
       <div className="comm-result" data-testid="yardim-iste" onClick={(e) => e.stopPropagation()}>
         <span className="cr-ic"><Art name="help" size={30} /></span>
-        <span className="cr-t"><b>{done ? 'Yardım istedin' : 'Takımından yardım iste'}</b><small>{done ? 'Takım sohbetinde kartın var; ipucu ve kalkanlar oraya gelir.' : `${level}. bölümü ${Math.max(fails, failStreak, demoFails)} kez denedin. Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.`}</small></span>
-        {!done && <button type="button" className="btn small" data-testid="yardim-iste-dugme" disabled={state === 'busy'} onClick={() => void ask()}>Yardım iste</button>}
+        <span className="cr-t"><b>{done ? 'Yardım istedin' : out ? 'Bugünkü yardım hakların bitti' : 'Takımından yardım iste'}</b>
+          <small data-testid="yardim-iste-not">{done ? 'Takım sohbetinde kartın var; ipucu ve kalkanlar oraya gelir.'
+            : out ? 'Yarın yeniden isteyebilirsin. Takım sohbetindeki kartların açık.'
+            : `${level}. bölümü ${Math.max(fails, failStreak, demoFails)} kez denedin. Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.${left !== undefined ? ` Bugün ${left} hak kaldı.` : ''}`}</small></span>
+        {!done && !out && <button type="button" className="btn small" data-testid="yardim-iste-dugme" disabled={state === 'busy'} onClick={() => void ask()}>Yardım iste</button>}
       </div>
     );
   }

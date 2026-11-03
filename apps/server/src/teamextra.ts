@@ -115,10 +115,14 @@ export function teamExtra(app: App, teamId: string, viewer: string): TeamExtra {
     `SELECT g.*, r.claimed FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? WHERE g.team_id = ? AND g.at > ? ORDER BY g.at DESC LIMIT 50`,
     viewer, teamId, now - GIFT_LIST_MS).map((g) => toGift(g, g.claimed));
   const goals: TeamGoal[] = TEAM_GOALS.map((d) => {
-    const claimedTiers = app.db.all<{ goal_ref: string }>(
-      `SELECT g.goal_ref FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? AND r.claimed = 1 WHERE g.team_id = ? AND g.goal_ref LIKE ?`,
-      viewer, teamId, `${w.key}:${d.metric}:%`).map((r) => Number(r.goal_ref.split(':').pop()));
-    return { id: `${w.key}:${d.metric}`, name: d.name, metric: d.metric, progress: goalProgress(app, w.key, teamId, d.metric), tiers: d.tiers, claimedTiers: claimedTiers.sort(), endsAt: w.endsAt };
+    // kademe ödülü dolduğu andaki üyelere düşer (addGoalProgress): alıcı satırı olmayan dolu kademe bu oyuncunun değil (YN-146)
+    const mine = app.db.all<{ goal_ref: string; claimed: number }>(
+      `SELECT g.goal_ref, r.claimed FROM team_gifts g JOIN gift_recipients r ON r.gift_id = g.id AND r.player_id = ? WHERE g.team_id = ? AND g.goal_ref LIKE ?`,
+      viewer, teamId, `${w.key}:${d.metric}:%`).map((r) => ({ tier: Number(r.goal_ref.split(':').pop()), claimed: r.claimed === 1 }));
+    const claimedTiers = mine.filter((r) => r.claimed).map((r) => r.tier).sort();
+    const progress = goalProgress(app, w.key, teamId, d.metric);
+    const missedTiers = d.tiers.flatMap((t, i) => (progress >= t.need && !mine.some((r) => r.tier === i) ? [i] : []));
+    return { id: `${w.key}:${d.metric}`, name: d.name, metric: d.metric, progress, tiers: d.tiers, claimedTiers, endsAt: w.endsAt, ...(missedTiers.length ? { missedTiers } : {}) };
   });
   const contributionWeek = app.db.all<{ id: string; name: string; donated: number | null; helps: number | null; stars: number | null }>(
     `SELECT p.id, p.name, c.donated, c.helps, c.stars FROM players p LEFT JOIN contrib c ON c.player_id = p.id AND c.team_id = p.team_id AND c.week = ? WHERE p.team_id = ?`, w.key, teamId)

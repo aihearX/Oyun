@@ -1,5 +1,5 @@
 import { openProfile } from '../friends/state';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, REACTION_LABEL, SOCIAL_LIMITS, type ChatMessage, type ChatReaction } from '@odi/shared';
 import { newRunId } from '@odi/net';
@@ -11,6 +11,7 @@ import { Art, Glyph, rich } from './art';
 import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard, REACTION_ART, RallyChatCard, ReactionBar, ThreadPreview, ThreadSheet, isRallyStart, rallyEnds } from '../comm/Cards';
 import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
+import { foldSystemRows, type ChatRow } from '../comm/sysfold';
 import { featureOpen } from '../ftue/useFeatures';
 
 /** hızlı tepki satırı: mesaj kartı tepkileriyle aynı çizili set (YN-071). İletiye eşlenen emoji kodu yazılır (sunucu 'emoji' türünü
@@ -52,8 +53,9 @@ function withMentions(text: string, names: string[]): ReactNode {
 }
 
 /** Gerçek zamanlı sohbet odası: takım, özel (dm) ya da genel. Takımda: akış kartları, yardım kartları, Günün Sorusu, konular,
- *  bahsetme ve "Kim çevrimiçi". Uzun bas: tepki / yanıtla / şikâyet / sessize al. */
-export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emptyText, members }: { room: string; offset?: number; placeholder?: string; emptyText?: string; members?: ChatMember[] }) {
+ *  bahsetme ve "Kim çevrimiçi". Uzun bas: tepki / yanıtla / şikâyet / sessize al. since: bakan oyuncunun takıma katıldığı an; ondan önceki
+ *  art arda sistem satırları katlanır, art arda ayrılma satırları tek satır olur (comm/sysfold.ts, YN-148). */
+export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emptyText, members, since }: { room: string; offset?: number; placeholder?: string; emptyText?: string; members?: ChatMember[]; since?: number }) {
   const me = useNet((s) => s.me);
   const msgs = useNet((s) => s.messages[room] ?? EMPTY);
   const free = useCanFreeText(); const freeAt = useComm((s) => s.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel);
@@ -110,6 +112,8 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
     return { top: t, repliesOf: by };
   }, [msgs, muted, dqOpen]);
 
+  const rows = useMemo<ChatRow[]>(() => (team ? foldSystemRows(top, since) : top.map((m, i) => ({ kind: 'msg' as const, m, i }))), [top, since, team]);
+  const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
   const ralliEnds = useMemo(() => (team ? rallyEnds(msgs) : new Map()), [msgs, team]);
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
   // takım sohbeti görünür ve sona kaydırılmışsa son iletiye kadar okundu (sunucu imleci; Takım sekmesi rozeti, YN-071)
@@ -176,11 +180,26 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
     );
   };
 
+  const renderRow = (r: ChatRow): ReactNode => {
+    if (r.kind === 'msg') return render(r.m, r.i);
+    if (r.kind === 'left') return <div key={r.id} className="msg-sys kind-system" data-testid="sohbet-ayrilanlar"><span aria-hidden><Glyph e="🚪" size="1.2em" /></span> {r.n} oyuncu takımdan ayrıldı.</div>;
+    const shown = unfolded.has(r.id);
+    return (
+      <Fragment key={r.id}>
+        <button type="button" className="msg-sys msg-fold" aria-expanded={shown} data-testid="sohbet-katlanmis"
+          onClick={() => setUnfolded((s) => { const n = new Set(s); if (shown) n.delete(r.id); else n.add(r.id); return n; })}>
+          <span aria-hidden><Glyph e="📣" size="1.2em" /></span> Sen katılmadan önce: {r.n} takım duyurusu · {shown ? 'Gizle' : 'Göster'}
+        </button>
+        {shown && r.rows.map(renderRow)}
+      </Fragment>
+    );
+  };
+
   return (
     <div className="chat">
       {team && members && <OnlineRow members={members} />}
       <div className="chat-box" ref={box} onScroll={onScroll} style={{ ['--chat-off' as string]: `${offset}px` }}>
-        {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : top.map(render)}
+        {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : rows.map(renderRow)}
       </div>
       {phrases
         ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Tepkilere geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>

@@ -82,6 +82,8 @@ export interface PlayerRow {
   spend_chosen: number; pass_start: number; pass_days: number; pass_paid: number; created_at: number; last_seen: number;
   /** göç 9 (YN-065): `jeton`un içindeki satın alma hediyesi jetonu; takım teknolojisine bağışlanamaz (her zaman ≤ jeton) */
   gift_jeton: number;
+  /** göç 13 (YN-148): liderlik kendiliğinden bu oyuncuya geçti, "Artık lider sensin" kartı henüz görülmedi (0/1) */
+  lead_notice: number;
 }
 export interface TeamRow { id: string; name: string; name_key: string; emblem: string; description: string; open: number; code: string; min_level: number; xp: number; targets: string; created_at: number }
 

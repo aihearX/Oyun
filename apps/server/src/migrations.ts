@@ -47,6 +47,8 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  *    yeniden kurulur (comm/bina-metni.ts); veri biçimi değişmez.
  * 11: YN-095 — Bölge Savaşı dökümü: `player_week.region_points` (oyuncunun bu hafta bölgelere yazılan savaş puanı). Var olan satırlar
  *    0 ile başlar: göçten önce bölgeye yazılan kişisel pay ayırt edilemez (takımın bölge toplamı war_points'te doğru).
+ * 13: YN-148 — `players.lead_notice`: lider ayrılınca liderlik kendiliğinden geçen oyuncuya bir kez gösterilen kart (görülünce 0).
+ *    Var olan satırlar 0 ile başlar: göçten önceki devirler için kart çıkmaz. Ad ya da önceki liderin kimliği tutulmaz.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -86,6 +88,7 @@ export const MIGRATIONS: Migration[] = [
   } },
   { name: 'savas-bolge-payi', up: (db) => { addColumn(db, 'player_week', 'region_points', 'INTEGER NOT NULL DEFAULT 0'); } },
   { name: 'adsiz-takim-hediyesi', up: (db) => { adsizTakimHediyesi(db); } },
+  { name: 'lider-devri-karti', up: (db) => { addColumn(db, 'players', 'lead_notice', 'INTEGER NOT NULL DEFAULT 0'); } },
 ];
 
 /** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */

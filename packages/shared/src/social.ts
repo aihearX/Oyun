@@ -103,7 +103,12 @@ export interface TeamSummary {
 export interface TeamMember extends PublicProfile { role: TeamRole; weekPoints: number; joinedAt: number; finished?: boolean }
 /** passed: isteyen o bölümü geçti; istek kapandı, kalkan gönderilemez (YN-115) */
 export interface HelpRequest { id: string; from: string; name: string; level: number; helpers: string[]; max: number; at: number; expiresAt: number; passed?: boolean }
-export interface TeamDetail extends TeamSummary { roster: TeamMember[]; help: HelpRequest[]; weekPoints: number }
+/**
+ * Yalnız kendi takımının ayrıntısında, bakan oyuncuya özel alanlar (eski sunucu göndermez; yoksa istemci eski davranışa döner):
+ * helpLeft: bugün kalan bölüm yardımı isteği hakkı; helpResetAt: hakkın yenilendiği an (İstanbul gece yarısı, YN-147).
+ * leaderNotice: önceki lider ayrıldığı için liderlik kendiliğinden bu oyuncuya geçti; kart görülene dek gelir (team.leader.seen, YN-148).
+ */
+export interface TeamDetail extends TeamSummary { roster: TeamMember[]; help: HelpRequest[]; weekPoints: number; helpLeft?: number; helpResetAt?: number; leaderNotice?: true }
 
 // ---------- Bölge Savaşı (haftalık)
 export interface RegionScore { teamId: string; name: string; emblem: string; points: number }
@@ -348,7 +353,8 @@ export interface TeamGift { id: string; from: string; fromName: string; reason: 
   /** alınmadan süresi doldu, içeriği ödül kutusuna geçti (claimed da true; hediye kaybolmaz) */
   toInbox?: true }
 export interface TeamGoalTier { need: number; reward: { kind: InboxKind; amount: number; ref: string }[] }
-export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number }
+/** missedTiers: dolmuş ama bakan oyuncu o an takımda olmadığı için ödülü hak etmediği kademeler (Al yok, rozete sayılmaz; YN-146). Yoksa hiç yok. */
+export interface TeamGoal { id: string; name: string; metric: 'yildiz' | 'bolum' | 'baskin'; progress: number; tiers: TeamGoalTier[]; claimedTiers: number[]; endsAt: number; missedTiers?: number[] }
 export interface TeamExtra { level: number; xp: number; xpNext: number; tech: TechState[]; gifts: TeamGift[]; goals: TeamGoal[]; contributionWeek: { id: string; name: string; donated: number; helps: number; stars: number }[] }
 
 // ---------- Mağaza (uygulama içi satın alma)
@@ -437,7 +443,10 @@ export interface OpMap {
   'team.detail': { req: { teamId?: string }; res: { team: TeamDetail | null } };
   'team.kick': { req: { id: string }; res: { team: TeamDetail } };
   'team.role': { req: { id: string; role: TeamRole }; res: { team: TeamDetail } };
-  'team.help.request': { req: { level: number }; res: { request: HelpRequest } };
+  /** helpLeft: istekten sonra bugün kalan hak (YN-147; eski sunucu göndermez) */
+  'team.help.request': { req: { level: number }; res: { request: HelpRequest; helpLeft?: number } };
+  /** kendiliğinden lider olma kartı görüldü (TeamDetail.leaderNotice bir daha gelmez; YN-148) */
+  'team.leader.seen': { req: Record<string, never>; res: Record<string, never> };
   'team.help.give': { req: { requestId: string }; res: { request: HelpRequest } };
   'war.state': { req: Record<string, never>; res: { war: WarState } };
   'war.targets': { req: { regions: string[] }; res: { war: WarState } };
