@@ -1359,14 +1359,14 @@ async function suite(browserName, target, [W, H]) {
         if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
         // YN-102: değiştiricili bölümde "Değiştirici: …" satırı; sis/gece kaybında Yüksek görünürlük yönlendirmesi; yardım kartı çıktı mı
         const degis = await yazi('[data-testid="sonuc-degistirici"]');
-        if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Yankı$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
+        if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Gecikme$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
         if (label === 'sonuc-kaybetti-sis' && (!/Sis/.test(degis) || !(await page.locator('[data-testid="sonuc-gorunurluk"]').count()))) fail(rec, `sis kaybında değiştirici satırı ya da Yüksek görünürlük yönlendirmesi yok: "${degis}"`);
         if (label === 'sonuc-kaybetti-yardim' && !(await page.locator('[data-testid="yardim-iste-dugme"]').count())) fail(rec, 'yardım kartı/düğmesi yok');
         // YN-113: kolaylaştırma satırı yalnız yardım devredeyken (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin satırı
         const kolay = await yazi('[data-testid="sonuc-kolay"]');
         const kolaySonra = await yazi('[data-testid="sonuc-kolay-sonraki"]');
-        if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
-        if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
+        if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
+        if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Gecikme kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
         if (!/kolay/.test(label) && (kolay || kolaySonra)) fail(rec, `yardım yokken kolaylaştırma satırı: "${kolay}${kolaySonra}"`);
         // YN-110 (karar 42): Rahat deneme teklifi yalnız istenen ekranda, açıkça (ne değişir, ne verir); Rahat geçişte kart ve Meydan oku yok
         const teklif = await yazi('[data-testid="rahat-teklif"]');

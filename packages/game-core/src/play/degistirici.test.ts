@@ -14,7 +14,7 @@ import { BOSS_CALM_S, INTRO_S, bossPhaseText, bossStrip } from './boss';
 const flat = () => [{ type: 'platform' as const, x: 0, y: GROUND_Y, w: 3000, h: 200 }];
 
 describe('değiştirici açıklamaları kodla aynı', () => {
-  it('Yankı: açıklama girdi gecikmesini söyler ve sim dokunuşu tam o kadar geç işler', () => {
+  it('Gecikme: açıklama girdi gecikmesini söyler ve sim dokunuşu tam o kadar geç işler', () => {
     const d = MODIFIERS.yanki.desc.replace(/\u00a0/g, ' ');
     expect(d).toContain(`${String(C.ECHO_DELAY_S).replace('.', ',')} sn geç`);
     expect(d).not.toMatch(/gölge/i);
@@ -51,7 +51,7 @@ describe('değiştiricili bölümlerin duyurusu ve adı', () => {
       expect(modifierNames(spec.modifiers)).toBe(spec.modifiers.map((m) => MODIFIERS[m].name).join(', '));
     }
     expect(seen).toBeGreaterThanOrEqual(8);
-    expect(modifierAnnounce('yanki')).toBe('Yankı: dokunuşun biraz geç işler, erken bas');
+    expect(modifierAnnounce('yanki')).toBe('Gecikme: dokunuşun biraz geç işler, erken bas');
   });
 });
 

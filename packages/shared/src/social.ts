@@ -937,7 +937,7 @@ export const QUICK_PHRASES: QuickPhrase[] = [
   { id: 'ipucu-yercekimi', text: 'İpucu: mor bölgede dokun, yerçekimi döner.', ctx: ['ipucu'], when: ['ruya'] },
   { id: 'ipucu-canavar', text: 'İpucu: saldırıdan önce gölge ya da parlama çıkar, onu görünce kaç.', ctx: ['ipucu'], when: ['boss'] },
   { id: 'ipucu-sis', text: 'İpucu: siste engel Odi\'nin ışık halkasına girince zıpla.', ctx: ['ipucu'], when: ['sis', 'gece'] },
-  { id: 'ipucu-yanki', text: 'İpucu: yankıda dokunuşun geç işler, biraz erken bas.', ctx: ['ipucu'], when: ['yanki'] },
+  { id: 'ipucu-yanki', text: 'İpucu: gecikmede dokunuşun geç işler, biraz erken bas.', ctx: ['ipucu'], when: ['yanki'] },
   { id: 'ipucu-melodi', text: 'İpucu: altın notaları soldan sağa, hiç atlamadan topla.', ctx: ['ipucu'], when: ['melody'] },
 ];
 /** "İpucu ver" listesi: bölümün özelliklerine (mekanik, değiştiriciler, hedef) uyanlar önde, sonra genel ipuçları; fits: uyan var mı */

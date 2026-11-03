@@ -219,7 +219,7 @@ function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
 }
 /**
  * Bölümün kendi zorluğuna göre kayıp ipuçları (OT-ilk-kez-oyun-19): değiştiriciler, hedef, canavar. Her cümle oyunda görünen
- * bir şeye dayanır, yalnız sese değil: sis/gece LevelScene.buildFog (Odi'nin çevresinde aydınlık halka), yankı sim effectiveInput
+ * bir şeye dayanır, yalnız sese değil: sis/gece LevelScene.buildFog (Odi'nin çevresinde aydınlık halka), gecikme sim effectiveInput
  * (dokunuş 0,14 sn geç işler), melodi LevelScene (nota biçimli altın notalar soldan sağa, her doğruda "Nota 3/7" yazısı), canavar
  * render/boss.ts telegrafları (gölge, parlayan duvar, ok). Jetonla alınan yetenek önerilmez (OT-ilk-kez-oyun-50: gürültü duvarına
  * çarpıp kaybedene "Yankı Görüşü" önerisi hem ilgisizdi hem satın almaya yönlendiriyordu).
@@ -227,7 +227,7 @@ function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
 const MOD_TIPS: Partial<Record<ModifierId, string[]>> = {
   sis: ['Siste yalnız Odi\'nin çevresi aydınlık: engel o ışık halkasına girince zıpla.'],
   gece: ['Gecede yalnız Odi\'nin çevresi görünür: halkanın kenarına bak, engel orada belirir.'],
-  yanki: ['Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.'],
+  yanki: ['Gecikmede dokunuşun bir an geç işler: zıplamaya biraz erken bas.'],
   hiz: ['Bu bölümde Odi daha hızlı koşar: engel ekrana girer girmez hazırlan.'],
 };
 const OBJECTIVE_TIPS: Partial<Record<ObjectiveId, string>> = {

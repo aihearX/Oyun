@@ -109,7 +109,7 @@ yakın kaçış yoğunluğu (dakikada 20 = 1 puan, en çok 1). Tek tanım: `scor
 | Gösteri parçası | bölge girişinde biyomun en kolay, finalde en zor gösterisi (tahmini can kaybı ≤ λ/2) | İlk Ninni Yolu | en kolay | en zor |
 | Sınav odası | yalnız bölge finalinde, gösteriden hemen önce: Kanal `kn-damla-asansor`, Zar `zr-ritim-merdiven` + `zr-ritim-koridor`, Kemikçikler `km-disli`, Koklea `k1-sinav-havuz` / `k3-sinav-bas`, Sinir `sn-sinav` + `sn-sinav-kopru`, Beyin Sapı `bs-sinav`, Korteks `kx-sinav-karma` + `kx-sinav-ritim`. Zar, Koklea Orta, Koklea Apeks, Sinir, Beyin Sapı ve Korteks finallerinde iki sınav; Beyin Sapı girişi (34) ve Korteks'in diğer bölümleri (37, 38) birer "prova" sınavı (tahminen en ağırı) alır; yardım kademesi başına bir sınav düşer | – | – | 1-2 oda |
 | Kalibrasyon varyantı | aynı düğmelerle üretilebilen bölümlerden, insan modeliyle ölçülünce hedefe en yakın olanı; finalde hedefin altı, girişte üstü ek cezalı (`level-gen/src/kalibrasyon.ts`, üretilmiş). Önceki iki bölümün odalarına bakan çeşitlilik kuralı komşuların varsayılan varyantını kullanır: bir bölümün kalibrasyonu komşusunu değiştirmez | | | |
-| Değiştiriciler | yalnızca ileri bölgelerde, çoğunlukla finallerde, sabit tablo (rastgele değil); tek can ve ters yerçekimi yolculukta yok | yok | yok | 19 sis · 23 sis · 26 gece · 29 sis · 30 hız+yankı · 32 gece · 33 hız+yankı · 35 sis · 36 yankı · 38 gece · 39 hız+gece |
+| Değiştiriciler | yalnızca ileri bölgelerde, çoğunlukla finallerde, sabit tablo (rastgele değil); tek can ve ters yerçekimi yolculukta yok | yok | yok | 19 sis · 23 sis · 26 gece · 29 sis · 30 hız+gecikme · 32 gece · 33 hız+gecikme · 35 sis · 36 gecikme · 38 gece · 39 hız+gece |
 | Boss | can, uyarı (telegraf, en az ×0,6) ve saldırı temposu (mermi hızı √tempo) | | | 20: can 14, uyarı ×1,0, tempo ×1,2 · 40: can 32, uyarı ×0,8, tempo ×1,8 |
 | Kontrol noktası / güvenli zemin | her bölüm 3 bölüm-içi bölüm, 2. ve 3. kontrol noktası odasıyla başlar; düşen son güvenli zemine döner | | | |
 
@@ -672,7 +672,7 @@ Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bö
   kolaydır (önce 13 = 0,56, 27 = 0,67, 37 = 0,85 idi).
 - **Bölge içinde gürültü düzeyinde kalan dalgalar:** Kemikçikler 14 (0,60; orta kulak sıvısı odası) > 15 (0,31) ve 17 (0,77) ≈ 18 (0,73).
 - **Nasıl ayarlandı:** final hedefleri (λ, §1) yükseltildi; Koklea Orta ve Beyin Sapı finalleri ikinci sınav odasını aldı;
-  Sinir finali (33) `hız + yankı` aldı (`sis`/`gece` insan modelinin ölçümünü değiştirmez: model konumu kusursuz görür); Kanal
+  Sinir finali (33) `hız + gecikme` aldı (`sis`/`gece` insan modelinin ölçümünü değiştirmez: model konumu kusursuz görür); Kanal
   finali `gain 0,65` ile hafifletildi; bölüm varyantları 48 oyunculuk taramayla seçildi (`kalibrasyon.ts`: 8, 11-13, 18, 19,
   22-27, 30, 32-34, 36, 37, 39). Kalibrasyon aracının 32 oyunculuk seçimi farklı tohumlarla ölçtüğünden tek başına yetmedi.
 - **Üretici düzeltmeleri (ikinci geçiş):** zarlı çukurla başlayan bölümde boşta oyuncu sonsuza dek sekiyordu (11, 39) — zarlı çukur

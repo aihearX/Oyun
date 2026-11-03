@@ -56,12 +56,12 @@ describe('kayıpta ipucu bölüme göre ve dönüşümlü (OT-ilk-kez-oyun-19)',
     const all = lossTips('fall', l19); expect(lossView(fall, l19, all.length + 1).tip).toBe(tips[0]);
     for (const t of all) expect(EMOJI.test(t)).toBe(false);
   });
-  it('gece, yankı ve canavar bölümleri kendi ipuçlarını verir; yeni mekaniğin ilk bölümü önce mekaniği anlatır', () => {
+  it('gece, gecikme ve canavar bölümleri kendi ipuçlarını verir; yeni mekaniğin ilk bölümü önce mekaniği anlatır', () => {
     // neden bilinmiyorsa değiştiricinin ipucu önde
     const unknown = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: '' } });
     expect(lossView(unknown, spec(26, { id: 'secret', label: 'x' }, { modifiers: ['gece'] })).tip).toMatch(/^Gecede yalnız Odi'nin çevresi görünür/);
     expect(lossTips('fall', spec(26, { id: 'secret', label: 'x' }, { modifiers: ['gece'] }))[1]).toMatch(/^Gecede yalnız Odi'nin çevresi görünür/);
-    expect(lossTips('fall', spec(36, { id: 'reach', label: 'x' }, { modifiers: ['yanki'] }))).toContain('Yankıda dokunuşun bir an geç işler: zıplamaya biraz erken bas.');
+    expect(lossTips('fall', spec(36, { id: 'reach', label: 'x' }, { modifiers: ['yanki'] }))).toContain('Gecikmede dokunuşun bir an geç işler: zıplamaya biraz erken bas.');
     const boss = spec(20, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
     const hit = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'yumruk' } });
     expect([1, 2].map((a) => lossView(hit, boss, a).tip)).toEqual(['Zayıf noktası açılınca havadan aşağı kaydırıp üstüne in · Saldırıdan önceki uyarıyı görünce kaç', expect.stringMatching(/uyarı görünür/)]);

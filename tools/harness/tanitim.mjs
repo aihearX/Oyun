@@ -405,7 +405,7 @@ async function captureLevel(n) {
   });
 }
 const slugify = (s) => String(s).toLocaleLowerCase('tr').replace(/[âà]/g, 'a').replace(/[îì]/g, 'i').replace(/[ûù]/g, 'u').replace(/ç/g, 'c').replace(/ğ/g, 'g').replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ş/g, 's').replace(/ü/g, 'u').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const modName = (m) => ({ sis: 'sis', gece: 'gece', hiz: 'hız', yanki: 'yankı', ayna: 'ayna', 'tek-can': 'tek can', 'ters-yercekimi': 'ters yerçekimi', 'cihaz-kapali': 'cihaz kapalı' })[m] ?? m;
+const modName = (m) => ({ sis: 'sis', gece: 'gece', hiz: 'hız', yanki: 'gecikme', ayna: 'ayna', 'tek-can': 'tek can', 'ters-yercekimi': 'ters yerçekimi', 'cihaz-kapali': 'cihaz kapalı' })[m] ?? m;
 /** Tedavi Odası malzemesinin bölümdeki etkisi: botun koşusunda (bot modunda çanta verilmez) sim durumuna malzeme konur */
 /** imza odaları (yalnız kendi bölümünde): odanın başından dx px sonra çekilir */
 const SETPIECES = {

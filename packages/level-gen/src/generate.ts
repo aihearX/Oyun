@@ -66,7 +66,7 @@ export function levelEase(journeyId: string, number: number, profile: PlayerProf
   return { ease: knobs.ease, failStreak: profile.failStreak, removed };
 }
 /**
- * Bölüm kartı ve sonuç ekranının tek satırı: "Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller
+ * Bölüm kartı ve sonuç ekranının tek satırı: "Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller
  * biraz seyreldi." Her kademe engelleri seyreltir ve bölümü kısaltır (`knobsFor`); süre bölüme göre uzayabilir de kısalabilir de,
  * o yüzden söylenmez. Yardım yoksa boş.
  */
@@ -75,7 +75,7 @@ export function easeLine(e: LevelEase): string {
   const mods = e.removed.length ? `${modList(e.removed)} kaldırıldı, ` : '';
   return `Üst üste ${e.failStreak} kayıptan sonra bölüm biraz ${e.ease > 1 ? 'daha ' : ''}kolaylaştı: ${mods}engeller biraz seyreldi.`;
 }
-/** kayıpta, yalnız gerçekse: bir sonraki deneme bu denemeden kolay olacak ("Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak.") */
+/** kayıpta, yalnız gerçekse: bir sonraki deneme bu denemeden kolay olacak ("Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Gecikme kalkacak.") */
 export function easeNextLine(now: LevelEase, next: LevelEase): string {
   if (next.ease <= now.ease) return '';
   const more = next.removed.filter((m) => !now.removed.includes(m));

@@ -389,7 +389,7 @@ export class LevelHud {
   }
   /** canavar bölümünde ikinci satırın yerinde can çubuğu var: kalkan sayacı çubuğun altına iner (bottom: çubuğun alt kenarı) */
   belowBossBar(bottom: number | null) { this.bossBottom = bottom; this.placeShield(); }
-  /** bölümün değiştiricileri (boş liste gizler): "Hız · Yankı" ve her birinin çizili simgesi */
+  /** bölümün değiştiricileri (boş liste gizler): "Hız · Gecikme" ve her birinin çizili simgesi */
   setModifiers(list: { id: string; name: string }[]) {
     for (const o of this.modIcons) o.destroy(); this.modIcons = [];
     this.modShown = list.length > 0; this.modPanel.setVisible(this.modShown); this.modText.setVisible(this.modShown);

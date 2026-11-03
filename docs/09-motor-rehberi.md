@@ -40,7 +40,7 @@ Komutlar (kökten): `npm run typecheck`, `npm run lint`, `npm test`, `npm run bu
 - Girdi (`SimInput`): `down/pressed/released` (dokun/basılı), `swipeDown` (kay / havada çakıl), `dash` (koşu yönüne kaydır), `turn`
   (koşunun tersine kaydır: geri dön — her zaman açık; `switch` props.by 'temas' anahtarları ve geri oyuklar bunu ister).
   Dokunmatik girdide basış 70 ms içinde kaydırma olmazsa kesinleşir (kaydırma ile zıplama karışmaz).
-- Değiştiriciler simde: `yanki` girdileri 140 ms geciktirir, `hiz` ×1,3, `tek-can`, `ters-yercekimi` (tavan güvenliyse 8 sn'de bir),
+- Değiştiriciler simde: `yanki` (oyuncuya görünen adı Gecikme) girdileri 140 ms geciktirir, `hiz` ×1,3, `tek-can`, `ters-yercekimi` (tavan güvenliyse 8 sn'de bir),
   `ayna` ileri kaydırmayı sola çevirir; `sis/gece/cihaz-kapali` yalnızca görsel/ses.
 
 ## Oda yazmak (`packages/content/src/chunks/<biyom>.ts`)

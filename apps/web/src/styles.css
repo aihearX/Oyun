@@ -348,7 +348,7 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 /* sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme (YN-102) */
 .result-why-hv { display:flex; align-items:center; gap:6px; font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text); overflow-wrap:anywhere; }
 .result-why-hv .art-inline { flex:none; }
-/* bölümün değiştiricileri (YN-102): "Değiştirici: Hız, Yankı" */
+/* bölümün değiştiricileri (YN-102): "Değiştirici: Hız, Gecikme" */
 .result-mods { font-size:0.875rem; font-weight:800; color:var(--text-2); line-height:1.3; margin-top:-4px; }
 /* "Bağlantı kopyalandı: …" (OT-rekabetci-14): iki satıra inebilir; düğmelerin üstünde değil, ekranın üstünde */
 .result-screen .toast { bottom:auto; top:calc(var(--sat) + 12px); width:max-content; max-width:calc(100vw - 32px); border-radius:18px; text-align:center; line-height:1.35; }

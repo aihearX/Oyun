@@ -29,7 +29,7 @@ export const HINT_IDS = {
   'perde-kay': 'kıl perdesi önünde "aşağı kaydır" ipucu (3-8, ilk üç perde)',
   giris: 'bölümün giriş cümlesi',
   // bölüm başı değiştirici duyurusu (YN-102; her değiştirici için `mod-<kimlik>`, yazı content MODIFIERS: ad + ne yapmalı)
-  'mod-hiz': 'Hız değiştiricisi', 'mod-sis': 'Sis değiştiricisi', 'mod-ayna': 'Ayna değiştiricisi', 'mod-tek-can': 'Tek Can değiştiricisi', 'mod-yanki': 'Yankı değiştiricisi',
+  'mod-hiz': 'Hız değiştiricisi', 'mod-sis': 'Sis değiştiricisi', 'mod-ayna': 'Ayna değiştiricisi', 'mod-tek-can': 'Tek Can değiştiricisi', 'mod-yanki': 'Gecikme değiştiricisi',
   'mod-gece': 'Gece değiştiricisi', 'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
   eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
   'boss-ogret': 'ilk canavarın öğretici anı (20, ilk saplı yumruk)', 'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',

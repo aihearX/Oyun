@@ -101,7 +101,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const rahat = !!result.rahat;
   const offerRahat = !result.completed && !!rahatOffer && !!onRahat;
   const starNext = !result.completed || rahat ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
-  // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Yankı"); sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme
+  // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Gecikme"); sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme
   const mods = modifierNames(spec.modifiers ?? []);
   const dark = !result.completed && !store.highVis && (spec.modifiers ?? []).some((m) => m === 'sis' || m === 'gece');
 

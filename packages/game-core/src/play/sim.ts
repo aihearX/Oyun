@@ -266,7 +266,7 @@ function heroBox(h: HeroS, hh: number) {
 const heroH = (h: HeroS) => (h.slide > 0 ? C.HERO_SLIDE_H : C.HERO_H);
 const overlap = (a: { l: number; r: number; t: number; b: number }, b: { l: number; r: number; t: number; b: number }) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
 
-/** girdi gecikmesi (yankı değiştiricisi) */
+/** girdi gecikmesi (Gecikme değiştiricisi, kimlik `yanki`) */
 function effectiveInput(w: World, s: SimState, raw: SimInput): SimInput {
   if (!w.mods.yanki) return raw;
   s.delayQ.push({ at: s.t + C.ECHO_DELAY_S, inp: { ...raw } });

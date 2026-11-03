@@ -6,7 +6,7 @@ Kullanıcı geri bildirimi: "Genel görünüm çok güzel. Ama oyun içleri çok
 - `packages/game-core/src/bridge.ts`: `LevelOptions`, `GameEvent`, `LevelHandle`, `startLevel(parent, opts)` imzaları geriye uyumlu kalır (alan EKLENEBİLİR, silinemez). Kabuk, yarış, etkinlikler, sonuç ekranı buna bağlı.
 - `RunResult` biçimi aynı (ek alanlar serbest: `maxCombo`, `pct`, `luckyNote`, `firsts` vb. korunur).
 - `window.__odi` test köprüsü ve `globalThis.__odiScene` (harness) çalışmaya devam eder; bot modu (`opts.bot`), boşta modu (`opts.botIdle`), `timeScale` desteklenir.
-- Korunan özellikler: canlı yarış hayaletleri (`race.ts`, `opts.race`), kozmetik şapka/renk, Şanslı Nota, seri çarpanı ve "Güzel/Mükemmel" sözleri, Revir bonusu (`firstHitIgnorePct`), kalkan, değiştiriciler (sis, gece, ayna, yankı, hız, tek can, ters yerçekimi, cihaz kapalı), son güvenli zeminden yeniden doğma, ses motoru çağrıları (`@odi/audio`).
+- Korunan özellikler: canlı yarış hayaletleri (`race.ts`, `opts.race`), kozmetik şapka/renk, Şanslı Nota, seri çarpanı ve "Güzel/Mükemmel" sözleri, Revir bonusu (`firstHitIgnorePct`), kalkan, değiştiriciler (sis, gece, ayna, gecikme, hız, tek can, ters yerçekimi, cihaz kapalı), son güvenli zeminden yeniden doğma, ses motoru çağrıları (`@odi/audio`).
 - Kabul: `node tools/harness/bot.mjs --levels 1-40` → 40/40; `--idle 1` → 0/40 (dokunmadan hiçbir bölüm bitmez); tüm e2e betikleri geçer.
 
 ## 2. Kontroller (tek el, otomatik koşu)

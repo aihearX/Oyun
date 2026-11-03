@@ -133,12 +133,12 @@ describe('yardım açıkça söylenir (YN-113)', () => {
     expect(at(26, 3).removed).toEqual([]); // gece kalır
   });
   it('metin: kalkan değiştiriciler adıyla; yoksa yalnız seyrelme; ikinci kademe "daha"', () => {
-    expect(easeLine(at(33, 3))).toBe('Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Yankı kaldırıldı, engeller biraz seyreldi.');
-    expect(easeLine(at(36, 4))).toBe('Üst üste 4 kayıptan sonra bölüm biraz kolaylaştı: Yankı kaldırıldı, engeller biraz seyreldi.');
+    expect(easeLine(at(33, 3))).toBe('Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller biraz seyreldi.');
+    expect(easeLine(at(36, 4))).toBe('Üst üste 4 kayıptan sonra bölüm biraz kolaylaştı: Gecikme kaldırıldı, engeller biraz seyreldi.');
     expect(easeLine(at(12, 5))).toBe('Üst üste 5 kayıptan sonra bölüm biraz daha kolaylaştı: engeller biraz seyreldi.');
   });
   it('kayıpta sonraki deneme yalnız gerçekten kolaylaşacaksa söylenir', () => {
-    expect(easeNextLine(at(33, 2), at(33, 3))).toBe('Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Yankı kalkacak.');
+    expect(easeNextLine(at(33, 2), at(33, 3))).toBe('Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Gecikme kalkacak.');
     expect(easeNextLine(at(12, 4), at(12, 5))).toBe('Sonraki denemede bölüm biraz daha kolaylaşacak.');
     expect(easeNextLine(at(12, 1), at(12, 2))).toBe('');
     expect(easeNextLine(at(33, 3), at(33, 4))).toBe('');
