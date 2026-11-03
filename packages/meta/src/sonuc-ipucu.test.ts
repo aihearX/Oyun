@@ -68,6 +68,45 @@ describe('kayıpta ipucu bölüme göre ve dönüşümlü (OT-ilk-kez-oyun-19)',
   });
 });
 
+describe('kayıpta ipucu mekaniğe uyar: Ses Darbesi ve Yerçekimi (OT-ilk-kez-oyun-37)', () => {
+  const lost = (reason: string) => run({ completed: false, stars: 0, damageTaken: 3, extra: { reason } });
+  const JUMP = /zıpla/i;
+  it('impuls + gurultu: ipucu gürültü duvarını ve nasıl kırılacağını anlatır; yeni mekaniğin ilk bölümünde de mekanik listesinden önce', () => {
+    for (const n of [31, 32, 33, 34]) {
+      const sp = spec(n, { id: 'reach', label: 'x' }); expect(sp.mechanic).toBe('impuls');
+      const v = lossView(lost('gurultu'), sp, 1);
+      expect(v.detail).toBe('3 kez hasar aldın, en son bir engele çarptın.');
+      expect(v.tip).toBe('Gürültü duvarına koşu yönüne kaydırarak fırla: kırılır. Fırlamadan değersen hasar alırsın.');
+      const all = lossTips('gurultu', sp);
+      expect(all[0]).toBe(v.tip);
+      for (const t of all) { expect(JUMP.test(t)).toBe(false); expect(EMOJI.test(t)).toBe(false); }
+    }
+  });
+  it('impuls bölümünde boşluğa düşünce koşunun "zıpla" ipucu gelmez; fırlama ve yankı yolu anlatılır', () => {
+    for (const n of [31, 32, 33, 34, 39]) {
+      const all = lossTips('fall', spec(n, { id: 'reach', label: 'x' }));
+      expect(all).not.toContain('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+      expect(all[0]).toMatch(/^Yankı yoluna gelmeden koşu yönüne kaydır/);
+      for (const t of all) expect(JUMP.test(t)).toBe(false);
+    }
+  });
+  it('ruya: yerçekimi bölgesi okuyla anılır, dokunuşun orada zıplatmadığı söylenir; gurultu kendi cümlesiyle', () => {
+    for (const n of [35, 36, 37, 38]) {
+      const sp = spec(n, { id: 'reach', label: 'x' }); expect(sp.mechanic).toBe('ruya');
+      const fall = lossTips('fall', sp);
+      expect(fall).not.toContain('Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.');
+      expect(fall[0]).toBe('Oklu mor bölgede dokunuş zıplatmaz, yerçekimini çevirir: zemin bitmeden tavana, tavan bitmeden zemine çevir.');
+      expect(fall).toContain('Oklu mor bölgede dokun: yerçekimini çevir');
+      expect(lossTips('gurultu', sp)[0]).toMatch(/^Gürültü duvarına koşu yönüne kaydırarak fırla/);
+    }
+  });
+  it('koşu bölümünde gurultu genel engel cümlesini alır; ötekiler değişmez', () => {
+    const kosu = spec(4, { id: 'reach', label: 'x' }); expect(kosu.mechanic).toBe('kosu');
+    expect(lossTips('gurultu', kosu)).toEqual(['Engele değme: üstünden zıpla, sarkan perdenin altından aşağı kaydırıp kay, yanıp sönen engelde söndüğü anı bekle.']);
+    expect(lossTips('fall', kosu)).toEqual(['Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.']);
+  });
+});
+
 describe('"Bu bölümden" dökümü ve biyom başarımı (OT-ekonomi-denetci-17, OT-ogrenci-birinci-16)', () => {
   const g = (reason: string, jeton: number) => ({ reason, items: [{ kind: 'jeton' as const, amount: jeton }, { kind: 'xp' as const, amount: 5 }] });
   it('birden çok başarım: toplam satırının altında adları, kademeleri ve tek tek ödülleri; toplam cüzdanla tutar', () => {

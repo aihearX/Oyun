@@ -60,12 +60,12 @@ export const OGRETICI_CHUNKS: ChunkSpec[] = [
     block(1160, G, 340, 460), spike(1320, 40), ...jumpArc(1219, 3, 0.6), secret(700, G + 220),
   ], { tags: ['ogretici', 'su'], needs: ['yuz'] }),
   chunk('ogret-darbe', 'impuls', 1, 1300, [
-    ground(0, 1300), text(150, G - 220, 'İleri kaydır: ses darbesi'), tutor(260, 140, 'darbe'), barrier(450, G - 160),
-    ...coins(520, G - 60, 3, 36), barrier(780, G - 160), text(900, G - 300, 'Darbe yankı yollarını gösterir'),
+    ground(0, 1300), text(150, G - 220, 'Koşu yönüne kaydır: ileri fırla'), tutor(260, 140, 'darbe'), barrier(450, G - 160),
+    ...coins(520, G - 60, 3, 36), barrier(780, G - 160), text(900, G - 300, 'Fırlayınca gizli yankı yolları belirir'),
     echo(930, G - 110, 110), echo(1070, G - 210, 110), ...coins(950, G - 160, 3, 36), secret(1125, G - 280), enemy(1220, G, 'devriye', 30),
   ], { tags: ['ogretici', 'darbe'] }),
   chunk('ogret-cevir', 'ruya', 1, 1300, [
-    ground(0, 1300), plat(300, G - 300, 820, 40), text(150, G - 230, 'Mor bölgede dokun: yerçekimini çevir'), tutor(260, 120, 'cevir'),
+    ground(0, 1300), plat(300, G - 300, 820, 40), text(150, G - 230, 'Oklu mor bölgede dokun: yerçekimini çevir'), tutor(260, 120, 'cevir'),
     grav(300, G - 260, 820, 260), spike(480, 120), hazard(650, G - 264, 110, 26, 'diken'), spike(820, 140), ...coins(470, G - 236, 4, 40), ...coins(650, G - 40, 3, 40), ...coins(810, G - 236, 4, 40), secret(1000, G - 240), spike(1230, 30), ...jumpArc(1170, 2, 0.3),
   ], { tags: ['ogretici', 'cevir'] }),
 ];

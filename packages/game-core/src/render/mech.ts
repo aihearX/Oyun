@@ -4,7 +4,7 @@
  * hareketli/yükselen/tırmanılır/çatlak/ritim/yankı platformları. Etkileşim = altın/turkuaz parıltı.
  */
 import Phaser from 'phaser';
-import type { BiomeArt } from './palette';
+import { GRAV_ZONE, type BiomeArt } from './palette';
 import { EntityView } from './view';
 import { I, R, T, glassPanel, softGlowTex, sparkTex, ringTex } from './tex';
 import { motionReduced } from './flash';
@@ -73,6 +73,15 @@ const chevronTex = (s: Phaser.Scene, c: number, key: string) => T(s, `mc-chev-${
 const chevronUpTex = (s: Phaser.Scene, c: number, key: string) => T(s, `mc-chevup-${key}`, 64, 64, (ctx) => {
   ctx.strokeStyle = css(c, 0.9); ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   for (const y of [16, 48]) for (const x of [16, 48]) { ctx.beginPath(); ctx.moveTo(x - 8, y + 4); ctx.lineTo(x, y - 4); ctx.lineTo(x + 8, y + 4); ctx.stroke(); }
+});
+/** yerçekimi bölgesinin deseni: yukarı ve aşağı bakan çift oklar, koyu konturlu açık çizgi (açık da koyu da gökte seçilir) */
+const gravArrowTex = (s: Phaser.Scene) => T(s, 'mc-gravok', 64, 96, (ctx) => {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const arrow = (x: number, y: number, d: 1 | -1) => { ctx.beginPath(); ctx.moveTo(x, y + d * 14); ctx.lineTo(x, y - d * 14); ctx.moveTo(x - 9, y - d * 5); ctx.lineTo(x, y - d * 14); ctx.lineTo(x + 9, y - d * 5); ctx.stroke(); };
+  for (const [lw, c] of [[7, css(GRAV_ZONE.dark, 0.85)], [3.2, css(GRAV_ZONE.line)]] as [number, string][]) {
+    ctx.strokeStyle = c; ctx.lineWidth = lw;
+    arrow(20, 26, 1); arrow(44, 26, -1); arrow(20, 74, -1); arrow(44, 74, 1);
+  }
 });
 const flipTex = (s: Phaser.Scene) => T(s, 'mc-flip', 56, 56, (ctx) => {
   glow(ctx, 28, 28, 28, THEME.violet, 0.55);
@@ -319,14 +328,26 @@ export function buildWater(v: EntityView, A: BiomeArt, w: number, h: number) {
   const nb = Math.min(8, Math.max(2, Math.round(w * h / 30000)));
   for (let i = 0; i < nb; i++) { const b = s.add.image(8 + Math.random() * (w - 16), h - 6, sparkTex(s)).setScale(0.18 + Math.random() * 0.2).setAlpha(0.8).setTint(0xdffcff); v.add(b); v.tw({ targets: b, y: 10, alpha: 0, duration: 2600 + Math.random() * 2200, delay: Math.random() * 2400, repeat: -1 }); }
 }
+/**
+ * Yerçekimi bölgesi. Renkten bağımsız da tanınır (OT-buyuk-yazi-36: Beyin Sapı/Korteksin göğü, zemini, ışıkları da mor-pembe):
+ * gökten koyu iç dolgu, dört yanda koyu bant üstünde açık kesik çizgi ve içeride ikinci ince çizgi (çift kenar), içinde yukarı-aşağı
+ * ok deseni. Oklar yavaşça kayar; azaltılmış harekette durağan. Yüksek görünürlükte LevelScene.drawHiVis üstüne kalın çerçeve çizer.
+ */
 export function buildGravZone(v: EntityView, w: number, h: number) {
-  const s = v.scene;
+  const s = v.scene; const Z = GRAV_ZONE;
   const body = s.add.graphics(); v.add(body);
-  body.fillStyle(THEME.violet, 0.16); body.fillRect(0, 0, w, h);
-  for (const x of [0, w]) { const e = s.add.image(x, h / 2, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.violet).setDisplaySize(26, h * 1.05).setAlpha(0.8); v.add(e); }
-  body.lineStyle(2, 0xd6c8ff, 0.8); body.lineBetween(0, 0, 0, h); body.lineBetween(w, 0, w, h);
-  const ts = s.add.tileSprite(w / 2, h / 2, w - 6, h, chevronUpTex(s, 0xd6c8ff, 'grav')).setBlendMode(ADD).setAlpha(0.4).setTileScale(1 / R(), 1 / R()); v.add(ts);
-  v.tw({ targets: ts, tilePositionY: { from: 64 * R(), to: 0 }, duration: 1100, repeat: -1 });
+  body.fillStyle(Z.fill, 0.5); body.fillRect(0, 0, w, h);
+  for (const x of [0, w]) { const e = s.add.image(x, h / 2, softGlowTex(s)).setBlendMode(ADD).setTint(Z.glow).setDisplaySize(26, h * 1.05).setAlpha(0.6); v.add(e); }
+  const ts = s.add.tileSprite(w / 2, h / 2, w - 16, h - 16, gravArrowTex(s)).setAlpha(0.8).setTileScale(1 / R(), 1 / R()); v.add(ts);
+  const edge = s.add.graphics(); v.add(edge);
+  edge.lineStyle(6, Z.dark, 0.8); edge.strokeRect(0, 0, w, h);
+  // kesik dış çizgi: 14 px çizgi, 9 px ara
+  edge.lineStyle(3, Z.line, 1);
+  const dash = (x0: number, y0: number, x1: number, y1: number) => { const L = Math.hypot(x1 - x0, y1 - y0); for (let d = 0; d < L; d += 23) { const a = d / L, b = Math.min(L, d + 14) / L; edge.lineBetween(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a, x0 + (x1 - x0) * b, y0 + (y1 - y0) * b); } };
+  dash(0, 0, w, 0); dash(w, 0, w, h); dash(w, h, 0, h); dash(0, h, 0, 0);
+  // içteki düz ince çizgi (çift kenar)
+  edge.lineStyle(1.5, Z.line, 0.75); edge.strokeRect(7, 7, w - 14, h - 14);
+  if (!motionReduced()) v.tw({ targets: ts, tilePositionY: { from: 96 * R(), to: 0 }, duration: 4000, repeat: -1 });
 }
 export function buildCheckpoint(v: EntityView) {
   const s = v.scene;

@@ -280,7 +280,7 @@ describe('ilerleme geri bildirimi', () => {
   });
   it('kayıpta neden yazılır (YN-070)', () => {
     expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'diken' } }))).toEqual({ title: 'Canların bitti', detail: '3 kez hasar aldın, en son dikene değdin.', tip: 'Dikenin üstünden zıpla; basılı tutarsan daha yükseğe çıkarsın.' });
-    expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'gurultu' } })).tip).toBe('');
+    expect(lossView(run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'gurultu' } })).tip).toMatch(/^Engele değme: üstünden zıpla/);
     expect(lossView(run({ completed: false, stars: 0, damageTaken: 2, extra: { reason: 'bilinmeyen' } })).detail).toBe('2 kez hasar aldın.');
     expect(lossView(run({ completed: false, stars: 0, extra: { reason: 'yaris-bitti' } })).title).toBe('Yarış bitti');
   });

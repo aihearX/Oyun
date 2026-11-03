@@ -138,5 +138,12 @@ export const BIOME_ART: Record<string, BiomeArt> = {
   },
 };
 
+/**
+ * Yerçekimi bölgesinin renkleri (OT-buyuk-yazi-36): Beyin Sapı ve Korteksin göğü, zemini ve ışıkları mor-pembe olduğundan bölge
+ * oradaki morla karışmasın: koyu çivit iç dolgu (gökten koyu), mavimsi mor kenar ışığı, açık lavanta kesik kenar ve oklar,
+ * okların altında koyu kontur. Renk tek işaret değil: kesik çift kenar ve ok deseni gri tonlamada da seçilir.
+ */
+export const GRAV_ZONE = { fill: 0x160c4a, glow: 0x6f7dff, line: 0xf2eeff, dark: 0x07041a } as const;
+
 export function artOf(biomeId: string): BiomeArt { return BIOME_ART[biomeId] ?? BIOME_ART['dis-kulak']!; }
 export const BIOME_IDS = Object.keys(BIOME_ART);

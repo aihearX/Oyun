@@ -761,7 +761,8 @@ export class LevelScene extends Phaser.Scene {
       } else if (e.cls === 'hazard' && e.type !== 'gear') {
         if (e.type === 'hazard' && !hazardAt(this.world, this.sim, e, t)) continue;
         const r = e.type === 'hazard' ? lastRect() : e; box(r.l, r.t, r.r, r.b, 0xffd6e2, 3, false);
-      } else if (e.cls === 'enemy') { const p = enemyAt(e, t); g.lineStyle(6, 0x0a0620, 0.75); g.strokeCircle(p.x, p.y - 16, 22); g.lineStyle(3, 0xffd6e2, 1); g.strokeCircle(p.x, p.y - 16, 22); }
+      } else if (e.type === 'gravzone') box(e.l + 3, e.t + 3, e.r - 3, e.b - 3, 0xfff6e5, 4, false); // yerçekimi bölgesi: kalın çerçeve (OT-buyuk-yazi-36)
+      else if (e.cls === 'enemy') { const p = enemyAt(e, t); g.lineStyle(6, 0x0a0620, 0.75); g.strokeCircle(p.x, p.y - 16, 22); g.lineStyle(3, 0xffd6e2, 1); g.strokeCircle(p.x, p.y - 16, 22); }
     }
   }
   private buildFog(strength: number) {

@@ -1,4 +1,4 @@
-import { RAHAT, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
+import { RAHAT, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type MechanicId, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
 import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
@@ -161,12 +161,30 @@ const LOSS_WHAT: Record<string, string> = {
 const LOSS_TIP: Record<string, string> = {
   fall: 'Boşluklarda bir an önce zıpla; basılı tutarsan daha uzağa gidersin.',
   diken: 'Dikenin üstünden zıpla; basılı tutarsan daha yükseğe çıkarsın.',
+  // sim'de "gurultu": fırlamadan gürültü duvarına dayanmak ya da diken dışı bir engele (perde, buşon, bulut) değmek
+  gurultu: 'Engele değme: üstünden zıpla, sarkan perdenin altından aşağı kaydırıp kay, yanıp sönen engelde söndüğü anı bekle.',
   dusman: 'Gürültü yaratıklarının çoğunu üstüne zıplayarak ezebilirsin.',
   nefes: 'Arada yüzeye çıkıp nefes al.',
   freq: 'Kapıdan önce diyapazona değ: rengin kapıyla aynı olsun.',
 };
 /** yüzme mekaniğinin kendi nedenleri: ipuçları mekaniğin ipucundan daha yerinde (nefes, diyapazon) */
 const MECHANIC_OWN_TIP = new Set(['nefes', 'freq']);
+/**
+ * Mekaniğe göre neden ipucu (OT-ilk-kez-oyun-37): koşunun genel cümlesinin yerine o mekaniğin hareketiyle. Kurallar sim.ts'den:
+ * gürültü duvarı yalnız fırlarken (ses darbesi) kırılır, fırlamadan dayanınca hasar verir; yankı yolu fırladıktan sonra ~3 sn
+ * görünür ve katıdır; fırlama havada bir kez yapılabilir; oklu yerçekimi bölgesinde dokunuş zıplatmaz, yerçekimini çevirir.
+ * Mekaniğin kendi cümlesi olduğundan yeni mekaniğin ilk bölümlerinde de mekanik listesinden önce gelir.
+ */
+const MECH_REASON_TIP: Partial<Record<MechanicId, Partial<Record<string, string>>>> = {
+  impuls: {
+    gurultu: 'Gürültü duvarına koşu yönüne kaydırarak fırla: kırılır. Fırlamadan değersen hasar alırsın.',
+    fall: 'Yankı yoluna gelmeden koşu yönüne kaydır: fırlayınca yol 3 saniye belirir. Havadayken de bir kez fırlayabilirsin.',
+  },
+  ruya: {
+    gurultu: 'Gürültü duvarına koşu yönüne kaydırarak fırla: kırılır. Fırlamadan değersen hasar alırsın.',
+    fall: 'Oklu mor bölgede dokunuş zıplatmaz, yerçekimini çevirir: zemin bitmeden tavana, tavan bitmeden zemine çevir.',
+  },
+};
 /** bölüm, mekaniğinin yolculuktaki ilk iki bölümünden biri mi (koşu temel mekanik: ipuçlarını nedenler verir) */
 function newMechanic(spec: Pick<RunSpecLite, 'number' | 'mechanic'>): boolean {
   if (spec.mechanic === 'kosu') return false;
@@ -191,11 +209,12 @@ const BOSS_TIPS = ['Her saldırıdan önce bir uyarı görünür (yere düşen g
 type LossSpec = Pick<RunSpecLite, 'number' | 'mechanic'> & Partial<Pick<LevelSpec, 'modifiers' | 'objective'>>;
 /**
  * Bir bölümün kayıp ipuçları, gösterilme sırasıyla. Yeni bir mekaniğin ilk iki bölümünde önce mekaniğin kendisi (kanca
- * bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15; yüzmenin kendi nedenleri nefes/diyapazon kendi cümlesiyle), sonra bölümün
+ * bölümünde zıplama anlatılmasın; OT-ilk-kez-oyun-15; yüzmenin kendi nedenleri nefes/diyapazon ve MECH_REASON_TIP kendi cümlesiyle), sonra bölümün
  * zorluğu (değiştirici, canavar), son hasarın nedeni, hedef ve mekaniğin ipucu. Her gruptan birer cümle sırayla alınır (art arda kayıpta aynı türden iki cümle üst üste gelmez).
  */
 export function lossTips(reason: string, spec?: LossSpec): string[] {
-  const own = MECHANIC_OWN_TIP.has(reason); const reasonTip = LOSS_TIP[reason];
+  const mechTip = spec ? MECH_REASON_TIP[spec.mechanic]?.[reason] : undefined;
+  const own = MECHANIC_OWN_TIP.has(reason) || mechTip !== undefined; const reasonTip = mechTip ?? LOSS_TIP[reason];
   if (!spec) return reasonTip ? [reasonTip] : [];
   const mech = MECHANICS[spec.mechanic].hint; const fresh = newMechanic(spec) && !own;
   const groups: string[][] = [
