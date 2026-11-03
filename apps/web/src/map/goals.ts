@@ -66,15 +66,26 @@ const name = (b: BiomeId) => BIOMES[b].name;
 /** "da/de" bağlacı: son ünlüye göre (Kulak Zarı da, Kemikçikler de) */
 const daDe = (w: string) => (/[aıou][^aıoueiöü]*$/i.test(w) ? 'da' : 'de');
 /**
- * hedef metni: her zaman yer adı ve ne zaman (OT-sinav-adayi-24: "Sıradaki: Bu bölümün sonunda canlanır" neyin canlanacağını ve
- * hangi bölümü söylemiyordu). Sıradaki bölümde gerçekleşecekse bölüm numarası: "Bölüm 33 bitince İşitme Siniri canlanır".
+ * canlanmanın getirdiği, tek sözle (OT-ogrenci-birinci-30: "canlanır" ne getirir belli değildi). Bölge, bütün bölümleri geçilince
+ * canlanır (layout.ts vitalityOf); o son bölüm bitince açılan bölüm yeni bir bölgenin ilk bölümüyse o bölge açılır
+ * ("Dış Kulak canlanır: Kulak Kanalı açılır"), değilse (Kemikçikler 19 → Kulak Kanalı 20, zaten açık) bölge tamamlanır.
  */
-function goalText(g: GoalPick): string {
+function riseGain(g: GoalPick, levels: LevelPlan[]): string {
+  if (!g.biome || g.biome.to !== 3 || !g.level) return '';
+  const next = levels.find((l) => l.number === g.level! + 1);
+  const opens = !!next && next.biome !== g.biome.id && levels.find((l) => l.biome === next.biome)?.number === next.number;
+  return opens ? `: ${name(next.biome)} açılır` : ': bölge tamamlanır';
+}
+/**
+ * hedef metni: her zaman yer adı ve ne zaman (OT-sinav-adayi-24: "Sıradaki: Bu bölümün sonunda canlanır" neyin canlanacağını ve
+ * hangi bölümü söylemiyordu). Sıradaki bölümde gerçekleşecekse bölüm numarası: "Bölüm 33 bitince İşitme Siniri canlanır: Beyin Sapı açılır".
+ */
+function goalText(g: GoalPick, levels: LevelPlan[] = HUMAN_JOURNEY.levels): string {
   if (g.stars) return `${g.stars.n} yıldız daha: ${name(g.stars.id)} ışıl ışıl olur`;
   if (!g.treasure && !g.biome) return 'Ninni beyne ulaştı!';
   const when = g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
-  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}.`; }
-  if (g.biome) return `${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}`;
+  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}.`; }
+  if (g.biome) return `${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}`;
   return g.left <= 1 ? `${when} hazine!` : `${when} hazine`;
 }
 const goalIcon = (g: GoalPick) => (g.treasure ? '🎁' : g.biome ? STAGE_ICON[g.biome.to] : g.stars ? '✨' : '👑');
@@ -96,7 +107,7 @@ function reached(g: GoalPick, stars: StarMap): boolean {
 
 /**
  * Haritadaki tek "Sıradaki hedef". `before`: haritanın en son gösterdiği yıldızlar (mapSeen; ilk açılışta null).
- * Önceki hedefe bu dönüşte ulaşıldıysa bir kez söylenir: "Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır".
+ * Önceki hedefe bu dönüşte ulaşıldıysa bir kez söylenir: "Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır".
  */
 export function mapGoal(stars: StarMap, before: StarMap | null): Goal {
   const was = before ? pickGoal(before) : null;

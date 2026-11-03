@@ -70,6 +70,9 @@
 .cp-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:6px; }
 .cp-name { font-size:0.75rem; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; color:var(--teal); }
 .cp-text { position:relative; margin:0; font-size:1.03125rem; font-weight:800; line-height:1.38; min-height:2.76em; overflow-wrap:anywhere; }
+/* yazının altındaki bilgi satırı (ör. arkadaş kodu): sayfadaki satırı panel örtse de okunur (OT-sessiz-oyuncu-21) */
+.cp-note { align-self:flex-start; font-size:0.9375rem; font-weight:800; color:var(--text-2); background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); border-radius:12px; padding:5px 10px; overflow-wrap:anywhere; }
+.cp-note b { color:#fff6e5; font-size:1.0625rem; }
 .cp-ghost { visibility:hidden; }
 .cp-foot { display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; min-height:44px; }
 .cp-dots { display:flex; gap:5px; }

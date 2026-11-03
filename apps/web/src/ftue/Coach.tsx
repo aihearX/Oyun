@@ -44,6 +44,11 @@ export interface CoachStep {
   silent?: boolean;
   /** hedef ekranda değilse sayfa kendiliğinden kaydırılmaz (oyuncu kaydırınca halka belirir) */
   noScroll?: boolean;
+  /**
+   * yazının altında panelde gösterilen kısa bilgi (ör. arkadaş kodu): satırın sayfadaki yeri panelin altında kalsa ya da sayfa
+   * hedefe kaymışken ekran dışında olsa da oyuncu görür (OT-sessiz-oyuncu-21). Seslendirilmez; onaylı satırın metni değişmez
+   */
+  note?: () => ReactNode;
 }
 export interface Tour {
   id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void;
@@ -120,9 +125,10 @@ export function useTypewriter(text: string, key: unknown) {
 
 /** anlatıcı konuşma paneli: koyu cam, portre, daktilo yazı, İleri, Atla, ilerleme noktaları.
  * İleri tek dokunuşta sonraki cümleye geçer (yazı bitmeyi beklemez; sahip isteği). Ekrana dokunmak ise önce yazıyı tamamlar. */
-export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra, compact, tuck, panelRef }: {
+export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra, note, compact, tuck, panelRef }: {
   text: string; typed: string; typing: boolean; place?: 'top' | 'bottom' | 'center'; index: number; total: number;
   onNext?: () => void; onSkip?: () => void; waiting?: boolean; hint?: string; mood?: 'happy' | 'wow' | 'wink'; extra?: ReactNode;
+  /** yazının altındaki kısa bilgi satırı (adımın `note`'u) */ note?: ReactNode;
   /** kısa ekran: küçük portre panelin içinde */ compact?: boolean;
   /** portre panelden taşmasın (hemen üstte vurgulanan hedef var) */ tuck?: boolean;
   panelRef?: Ref<HTMLDivElement>;
@@ -134,6 +140,7 @@ export function SpeechPanel({ text, typed, typing, place = 'bottom', index, tota
         <div className="cp-name">{NARRATOR_NAME}</div>
         {extra}
         <p className="cp-text" aria-live="polite"><span className="cp-typed">{rich(typed)}</span><span className="cp-ghost" aria-hidden>{text.slice(typed.length)}</span></p>
+        {note && <div className="cp-note" data-testid="anlatici-not">{note}</div>}
         <div className="cp-foot">
           {total > 1 && <span className="cp-dots" aria-label={`${index + 1}/${total}`}>{Array.from({ length: total }, (_, i) => <i key={i} className={i === index ? 'on' : i < index ? 'past' : ''} />)}</span>}
           <span className="grow" />
@@ -305,7 +312,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
       {hole && <div className="coach-ring" style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} />}
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
-      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} compact={compact} tuck={tuck} panelRef={panelRef}
+      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} note={st.note?.()} compact={compact} tuck={tuck} panelRef={panelRef}
         waiting={wait !== 'next'} hint={st.hint} onNext={() => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
     </div>
   );

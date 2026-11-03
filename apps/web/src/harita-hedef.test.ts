@@ -52,13 +52,29 @@ describe('mapGoal', () => {
     // Kulak Zarı 9-12: 10'da çiçeklenir (hazine de 10'da), 12'de canlanır
     const g = mapGoal(upTo(10), upTo(9));
     expect(g.small).toBe('Hedefe ulaştın!');
-    expect(g.text).toBe('Hazine açıldı, Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır');
+    expect(g.text).toBe('Hazine açıldı, Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır');
     // haritaya bir sonraki gelişte (gösterilen durum güncel) yalnız hedef
-    expect(mapGoal(upTo(10), upTo(10))).toEqual({ icon: '🌟', text: '2 bölüm sonra Kulak Zarı canlanır' });
+    expect(mapGoal(upTo(10), upTo(10))).toEqual({ icon: '🌟', text: '2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır' });
   });
 
   it('birlikte gerçekleşen hazine ve aşama tek cümlede, doğru bağlaçla', () => {
     expect(mapGoal(upTo(9), null).text).toBe('Bölüm 10 bitince hazine! Kulak Zarı da çiçeklenir.');
+  });
+
+  it('canlanmanın getirdiği tek sözle: son bölümden sonra açılan yeni bölge ya da bölgenin tamamlanması (OT-ogrenci-birinci-30)', () => {
+    // 3. bölümden sonra (tur 8 kanıtı): 5. bölüm bitince Dış Kulak canlanır ve 6. bölümle Kulak Kanalı açılır
+    expect(mapGoal(upTo(3), upTo(2)).text).toBe('Dış Kulak çiçeklendi! Sıradaki: 2 bölüm sonra hazine! Dış Kulak da canlanır: Kulak Kanalı açılır.');
+    // Kemikçikler 19'da canlanır; 20. bölüm Kulak Kanalı'nın (zaten açık): yeni bölge vaadi yok
+    expect(mapGoal(upTo(16), null).text).toBe('3 bölüm sonra Kemikçikler canlanır: bölge tamamlanır');
+    // her canlanma hedefi: "açılır" dediği bölge gerçekten o bölümden sonra ilk kez açılan bölge
+    const levels = HUMAN_JOURNEY.levels;
+    for (let n = 0; n < levels.length; n++) {
+      const pick = pickGoal(upTo(n)); if (pick?.biome?.to !== 3) continue;
+      const m = /canlanır: (.+) açılır/.exec(mapGoal(upTo(n), null).text); if (!m) continue;
+      const next = levels.find((l) => l.number === pick.level! + 1)!;
+      expect(BIOMES[next.biome].name).toBe(m[1]);
+      expect(levels.find((l) => l.biome === next.biome)!.number).toBe(next.number);
+    }
   });
 
   it('her durumda yer adı ve (sıradaki bölümse) bölüm numarası yazar (OT-sinav-adayi-24)', () => {
@@ -76,7 +92,7 @@ describe('mapGoal', () => {
     }
     // tur 5 kanıtı (İşitme Siniri 31-33): 32 geçildi, sinir çiçeklendi; sıradaki 33. bölümde canlanır
     expect(HUMAN_JOURNEY.levels.filter((l) => l.biome === 'sinir').map((l) => l.number)).toEqual([31, 32, 33]);
-    expect(mapGoal(upTo(32), upTo(31)).text).toBe('İşitme Siniri çiçeklendi! Sıradaki: Bölüm 33 bitince İşitme Siniri canlanır');
+    expect(mapGoal(upTo(32), upTo(31)).text).toBe('İşitme Siniri çiçeklendi! Sıradaki: Bölüm 33 bitince İşitme Siniri canlanır: Beyin Sapı açılır');
   });
 });
 

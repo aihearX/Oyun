@@ -68,6 +68,9 @@ oyun/
 - **Hareket azaltma:** `prefers-reduced-motion` desteklenir (animasyonlar kısalır). Bölüm içinde `motionReduced()` (`render/flash.ts`)
   açıkken süs hareketleri durur: kontrol noktası ışını ve dönen fener ışınları, büyüyen halka/ışıklar, seri konfetisi, gökte kayan
   yıldız kuyrukları, sisin kendi kayması, huzme nabzı ve sürüklenen toz yok; oynanış hareketleri ve kısa parıltılar kalır (YN-082).
+  Haritaya dönüş sahnesi (`map/MapScene.ts` `play`) hareket azaltmada anındadır: yıldızlar yuvasında, yol bir kerede çizili, Odi
+  yeni düğümde, sandık sallanmadan açık, bölge büyümesi yok; kutlama pencereleri ve `onSequence` sırası aynı. Her kipte haritaya
+  dokunmak sahneyi sonuna atlatır (`skip`; YN-149).
 - **Bölüm içi okunurluk (YN-119):** dünya içi uçan yazılar (`ui.ts` `floatText`, `fx.ts` övgü) `render/float-lane.ts`
   şeridinden geçer: yerleşirken ve her karede (kenara yaslanıp kamerayla kayan ya da yükselişi yetişen yazı başkasına binmez,
   yenisi üste çıkar). Bölge patolojisinin adı Odi'nin üstünde değil göstergenin üst bandında, çizili uyarı üçgeniyle ve sırayla

@@ -81,7 +81,7 @@
 .shine::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.75), transparent); transform: skewX(-20deg); animation: shine 2.8s ease-in-out infinite; }
 @keyframes shine { 0%, 55% { left: -60%; } 85%, 100% { left: 130%; } }
 @keyframes play-breathe { 50% { transform: scale(1.04); } }
-@media (prefers-reduced-motion: reduce) { .map-play, .shine::after, .map-today.hot, .map-goal { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .map-play, .shine::after, .map-today.hot, .map-goal, .map-skip { animation: none; } }
 
 /* kartlar (alt tabaka) */
 .map-sheet-wrap { position: fixed; inset: 0; z-index: 90; background: rgba(8,4,24,.55); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease-out; }

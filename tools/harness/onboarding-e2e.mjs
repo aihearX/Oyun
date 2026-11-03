@@ -7,6 +7,8 @@
 // Her adımda: kilit durumları, anlatıcı metni (Türkçe) ve konuşma köprüsünün Türkçe metinle çağrıldığı denetlenir;
 // her anlatıcı adımının ekran görüntüsü alınır (çentik 47 px bandı işaretli).
 //   web Chromium: 6–10. bölüm de oynanır; her açılım turu yürütülür, bölüm başına tur sayısı (anlatıcı yükü) raporlanır.
+//   Bağlam hareketi azaltır (reducedMotion): haritanın dönüş sahnesi anında olmalı, bölüm başına ≤ 1,5 sn (Chromium, gerçek zaman,
+//   kutlama penceresi hariç; YN-149). Ayrıca hareket azaltma kapalıyken dokunuş dönüş sahnesini sonuna atlatır.
 // Hedefler: web (Chromium + WebKit, test derlemesi VITE_ODI_E2E=1: `?oyun-bot=1` bölümleri harness botu oynar)
 //           dom (Expo DOM telefon paketi: bot yok → kayıt tohumlanmış kontrol noktaları: hikâye+1. bölüm başlangıcı,
 //                harita turu, Bugün, Kamp öğreticisi (gerçek inşaat), Takım)
@@ -90,6 +92,23 @@ function webSetup([top, bottom, maleVoice]) {
   else if (ss) { const orig = ss.speak.bind(ss); ss.speak = (u) => { window.__spoken.push(u.text); try { orig(u); } catch { /* yok */ } }; }
   else Object.defineProperty(window, 'speechSynthesis', { value: { speak: (u) => window.__spoken.push(u.text), cancel() {}, getVoices: () => [] } });
 }
+/**
+ * haritanın dönüş sahnesi süresi (gerçek zaman): "Dokun: atla" belirdiğinden sahne bitene (data-donus="bitti") kadar; arada açık
+ * kutlama penceresinin süresi sayılmaz (oyuncu kapatır). window.__donus: [ms, …]; sahne bitmeden harita kapandıysa sayılmaz
+ */
+function donusOlc() {
+  window.__donus = []; let cur = null;
+  const tick = () => {
+    const now = performance.now(); const seq = !!document.querySelector('.map-skip'); const cel = !!document.querySelector('.cel-stage');
+    if (seq && !cur) cur = { t0: now, cel: 0, celAt: 0 };
+    if (!cur) return;
+    if (cel && !cur.celAt) cur.celAt = now;
+    if (!cel && cur.celAt) { cur.cel += now - cur.celAt; cur.celAt = 0; }
+    if (!seq) { if (document.querySelector('.map-screen[data-donus="bitti"]')) window.__donus.push(Math.round(now - cur.t0 - cur.cel)); cur = null; }
+  };
+  const start = () => new MutationObserver(tick).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-donus'] });
+  if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
+}
 /** dom: Expo DOM köprüsü (tohumlanmış kayıt + konuşma çağrıları kaydı) + yerel scrollEnabled:false kilidi */
 function domBridge([serverUrl, top, bottom, seed, manifest]) {
   const store = { ...(seed || {}) }; window.__spoken = []; window.__speakArgs = [];
@@ -140,12 +159,12 @@ async function suite(target, browserName, [W, H]) {
   const B = browserName === 'webkit' ? webkit : chromium;
   const browser = await B.launch({ headless: true, executablePath: browserName === 'chromium' ? process.env.PLAYWRIGHT_CHROMIUM || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined, args: browserName === 'chromium' ? ['--use-gl=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] : [] });
   let n = 0; const errors = [];
-  async function newPage(seed, manifestOverride, maleVoice) {
-    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 3, hasTouch: true, ...(browserName === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
+  async function newPage(seed, manifestOverride, maleVoice, reducedMotion = 'reduce') {
+    const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 3, hasTouch: true, ...(browserName === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion });
     const page = await ctx.newPage();
     page.on('pageerror', (e) => errors.push(e.message));
     page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
-    await page.addInitScript(paintInsets, [INSET, INSET_B]);
+    await page.addInitScript(paintInsets, [INSET, INSET_B]); await page.addInitScript(donusOlc);
     if (target === 'dom') {
       await ctx.exposeFunction('__nativeVoice', (f) => { const p = resolve(root, 'apps/web/public/voice', String(f).replace(/[^a-z0-9.-]/gi, '')); return existsSync(p) ? readFileSync(p).toString('base64') : null; });
       await page.addInitScript(domBridge, [wsUrl, INSET, INSET_B, seed, manifestOverride ?? MANIFEST]);
@@ -203,18 +222,19 @@ async function suite(target, browserName, [W, H]) {
     check(!(await page.locator(`[data-testid="anlatici-tur"][data-tour="${tourId}"]`).count()), `tur bitti: ${tourId}`);
   }
   /** tur bekle (ekran sakinleştikten sonra en çok ms). Yönetmen haritanın dönüş sahnesi, kamp yüklenmesi, Tüy Dede'nin sesli kamp
-   *  satırı ve kutlama bitmeden tur başlatmaz (YN-067): bunlar sürerken süre işlemez (en çok 90 sn); dönüş sahnesi oyuncu gibi
-   *  haritaya dokunarak hızlandırılır (yazılımla çizen test tarayıcısında sahne yavaş) */
+   *  satırı, kutlama ve haritanın "Hedefe ulaştın!" kutusu bitmeden tur başlatmaz (YN-067, YN-150): bunlar sürerken süre işlemez (en çok 90 sn). Hareket azaltmada dönüş sahnesi
+   *  anındadır (süresi ölçülür, donusOlc); 2,5 sn'de bitmezse oyuncu gibi haritaya dokunarak sonuna atlatılır */
   async function waitTour(page, sel, ms) {
-    const start = Date.now(); let t0 = start;
+    const start = Date.now(); let t0 = start; let skipAt = 0;
     for (;;) {
       if (await page.locator(sel).count()) return true;
-      if (await page.locator('.map-screen[data-donus="suruyor"], .camp-loading, [data-testid="kamp-dede"]:not([data-line=""]), .cel-stage').count()) { t0 = Date.now(); if (t0 - start > 90_000) return false; }
+      // haritanın "Hedefe ulaştın!" kutusu da (dönüşten sonra birkaç saniye; YN-150) yönetmeni bekletir
+      if (await page.locator('.map-screen[data-donus="suruyor"], .map-goal[data-ulasildi], .camp-loading, [data-testid="kamp-dede"]:not([data-line=""]), .cel-stage').count()) { t0 = Date.now(); if (t0 - start > 90_000) return false; }
       else if (Date.now() - t0 > ms) return false;
       // kutlama penceresi kendiliğinden kapanmaz (YN-094, WCAG 2.2.1): oyuncu gibi düğmesine dokun
       if (await page.locator('.cel-cta .btn').count()) await page.locator('.cel-cta .btn').first().click({ timeout: 2000 }).catch(() => undefined);
-      else if (await page.locator('.map-skip').count()) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined);
-      // hızlandırma dokunuşu sahne biterken bir bölge/bölüm kartı açtıysa oyuncu gibi kapat: açık pencere varken tur başlamaz (YN-084)
+      else if (await page.locator('.map-skip').count()) { skipAt ||= Date.now(); if (Date.now() - skipAt > 2500) await page.touchscreen.tap(W / 2, H * 0.45).catch(() => undefined); }
+      // atlatma dokunuşu sahne biterken bir bölge/bölüm kartı açtıysa oyuncu gibi kapat: açık pencere varken tur başlamaz (YN-084)
       else if (await page.locator('.map-sheet-wrap').count()) await page.locator('.map-sheet-wrap').click({ position: { x: 8, y: 8 } }).catch(() => undefined);
       await sleep(500);
     }
@@ -470,7 +490,10 @@ async function suite(target, browserName, [W, H]) {
       check(!(await page.locator('nav.tabbar').count()), 'Sonraki haritaya uğramadan sıradaki bölümü başlattı');
       await waitResult(page, 4); await resultForward(page, 4, 'friends glossary');
       await resultAct(page, 'harita');
-      await driveTour(page, 'friends', 'arkadaslar-turu');
+      await driveTour(page, 'friends', 'arkadaslar-turu', {
+        // "Arkadaş kodunu paylaş": balon sayfadaki kod satırını örtse de kod balonda yazar (YN-150, OT-sessiz-oyuncu-21)
+        2: async (p) => { const t = await p.locator('[data-testid="anlatici-not"]').textContent().catch(() => null); check(/^Arkadaş kodun: [A-Z0-9]{6}$/.test(t ?? ''), `arkadas-02: arkadaş kodu balonda görünür (${t ?? '-'})`); },
+      });
       // Kulak Sözlüğü (4. bölümden sonra, arkadaşlardan hemen sonra): kutucuğa dokun → sözlük açılır → ilk terim
       await driveTour(page, 'glossary', 'sozluk-turu');
       check(await page.locator('[data-testid="sozluk"] .gl-term').count() >= 5, `Kulak Sözlüğü açıldı (${await page.locator('[data-testid="sozluk"] .gl-term').count()} terim)`);
@@ -519,6 +542,10 @@ async function suite(target, browserName, [W, H]) {
         check(!miss.length, `10. bölüme kadar bütün açılım turları görüldü${miss.length ? `; eksik: ${miss.join(', ')}` : ''}`);
         check(!(await page.locator('[data-testid="anlatici-tur"]').count()), '10. bölümden sonra bekleyen tur kalmadı');
       }
+      // hareket azaltmada dönüş sahnesi anında (YN-149): bölüm başına süre, kutlama penceresi hariç
+      const donus = await page.evaluate(() => window.__donus ?? []); const enUzun = Math.max(0, ...donus);
+      if (browserName === 'chromium') check(donus.length >= 4 && enUzun <= 1500, `hareket azaltmada harita dönüşü ${donus.length} kez: ${donus.join(', ')} ms (en uzun ${enUzun}, sınır 1500)`);
+      else ok(`hareket azaltmada harita dönüşü ${donus.length} kez: ${donus.join(', ')} ms`);
       const played = await page.evaluate(() => window.__played ?? []);
       const spoken = await page.evaluate(() => window.__spoken ?? []);
       const need = ['hikaye-01.mp3', 'sonuc-01.mp3', 'kamp-insa-02-depo.mp3', 'sozluk-03.mp3', 'takim-03.mp3'].filter((f) => !played.includes(f));
@@ -532,6 +559,21 @@ async function suite(target, browserName, [W, H]) {
       const resp = await page.request.get(new URL('voice/hikaye-01.mp3', page.url()).href);
       check(resp.ok() && /audio\/mpeg/.test(resp.headers()['content-type'] ?? '') && (await resp.body()).length > 4000, `voice/hikaye-01.mp3 sunuluyor (${resp.status()}, ${resp.headers()['content-type']}); tarayıcı çözümü: ${probe.r}${probe.dur ? ` ${probe.dur.toFixed(1)} sn` : ''}`);
       await ctx.close();
+      // hareket azaltma kapalı: dönüş sahnesi tam oynar, dokunuş sonuna atlatır (yıldızlar yuvasında, Odi yeni düğümde; YN-149)
+      if (browserName === 'chromium') {
+        const all = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary'];
+        const seen = { 'odi-map-seen': JSON.stringify({ state: { init: true, stars: { 1: 2, 2: 2, 3: 2 }, restored: [] }, version: 1 }) };
+        const { page: p3, ctx: c3 } = await newPage({ ...seedFor(4, all), ...seen }, undefined, false, 'no-preference');
+        await p3.goto(url(), { waitUntil: 'load' }); await p3.getByRole('button', { name: /Devam et/ }).click({ timeout: 45_000 });
+        await p3.locator('.map-skip').waitFor({ timeout: 30_000 }); await sleep(600);
+        if (await p3.locator('.onboard').count()) await nickname(p3);
+        const tapAt = Date.now(); await p3.touchscreen.tap(W / 2, H * 0.45);
+        const done = await p3.locator('.map-screen[data-donus="bitti"]').waitFor({ timeout: 15_000 }).then(() => Date.now() - tapAt, () => -1);
+        // tam sahne (yıldız uçuşu + yol + yürüyüş) yazılımla çizen bu tarayıcıda ~13 sn; atlanınca birkaç kare kalır (dokunuş, süren
+        // adımın bitişi, bitiş), burada kare başına yüzlerce ms (telefonda 16 ms)
+        check(done >= 0 && done <= 4000, `dokunuş dönüş sahnesini sonuna atlattı: ${done} ms (sınır 4000; atlanmazsa ~13 sn)`);
+        await shot(p3, 'donus-atlandi'); await c3.close();
+      }
       // yedek 1: kaydı olmayan satır + cihazda erkek Türkçe ses yok → SESSİZ (kadın sesle asla konuşmaz), altyazı ekranda
       { const { page: p2, ctx: c2 } = await newPage(undefined, MANIFEST_NO_H1);
         await p2.goto(url(), { waitUntil: 'load' }); await p2.getByRole('button', { name: /Yola çık/ }).click({ timeout: 45_000 });

@@ -22,16 +22,24 @@ import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import { Art, Glyph, Rich, artSvg, emblemArt } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
+import { useCoach } from '../ftue/Coach';
 import { Icon } from '../ui/icons';
 import '../map/map.css';
 declare const __ODI_E2E__: boolean | undefined;
+
+/**
+ * "Hedefe ulaştın!" kutusu dönüş sahnesi bittikten sonra bu kadar kalır, sonra yalnız sıradaki hedef. O sürerken Tüy Dede turu
+ * başlamaz (ftue/Director.tsx quiet, `data-ulasildi`): "Yeni yer açıldı" kartı kutunun üstüne binmez (OT-sessiz-oyuncu-20)
+ */
+const GOAL_REACHED_MS = 6000;
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
 
 /**
  * Yaşayan Kulak Haritası: tam ekran Phaser haritası + React katmanı (cam HUD, Bugün çipi, sıradaki hedef rozeti,
- * pusula, büyük "Bölüm N ▶" düğmesi, bölüm/hazine/bölge kartları). Bölümden dönünce dönüş sahnesi oynar.
+ * pusula, büyük "Bölüm N ▶" düğmesi, bölüm/hazine/bölge kartları). Bölümden dönünce dönüş sahnesi oynar (hareket azaltmada anında,
+ * dokununca sonuna atlar).
  */
 export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; onToday: () => void }) {
   const progress = useStore((s) => s.progress); const meta = useStore((s) => s.meta); const coins = useStore((s) => s.coins); const xp = useStore((s) => s.xp);
@@ -141,6 +149,12 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const todayHot = chestReady(daily) || calReady;
   // tek hedef, ulaşılana kadar aynı (öncelik kuralı: map/goals.ts pickGoal)
   const goal = useMemo(() => mapGoal(stars, before), [stars, before]);
+  // ulaşılan hedef okunacak kadar kalır; sonra gösterilen durum güncel sayılır (kutu yalnız sıradaki hedefi söyler)
+  useEffect(() => {
+    if (!settled || !goal.small) return;
+    const h = setTimeout(() => setBefore(starsOf(useStore.getState().progress)), GOAL_REACHED_MS);
+    return () => clearTimeout(h);
+  }, [settled, goal.small]);
   // kesilen hedef metni dokununca tam açılır (tam genişlik, düğmelerin altında; OT-buyuk-yazi-18)
   const [openText, setOpenText] = useState<string | null>(null); const goalOpen = openText === goal.text;
   // sağ üstteki kısa karta sığmayan hedef kendiliğinden tam genişlikte, düğmelerin altında sarar: kesilmez (OT-sinav-adayi-24)
@@ -156,9 +170,12 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   };
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
   const feat = useFeatures();
+  // Tüy Dede'nin "Yeni yer açıldı" kartı (yeri gösterilmeyen rozet) ekranın üst ortasında: kutu o sürece gizli, kart yazısının
+  // arkasında ikinci bir haber kalmaz (OT-sessiz-oyuncu-20); kart kapanınca kutu yerinde
+  const unlockCard = useCoach((s) => { const st = s.tour?.steps[s.step]; return !!st?.art && !st.target; });
 
   return (
-    <div className="map-screen" data-donus={settled ? 'bitti' : 'suruyor'} onPointerDown={() => audio.unlock()}>
+    <div className="map-screen" data-donus={settled ? 'bitti' : 'suruyor'} onPointerDown={() => { audio.unlock(); if (seq) handle.current?.skip(); }}>
       <div className="map-stage" ref={host} aria-label="Yolculuk haritası" role="img" />
       {!stage && <EngineLoading inStage />}
       <MapFrame />
@@ -177,11 +194,12 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goalOpen || goalWide ? ' open' : ''}`} key={goal.text} ref={goalRef} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
+      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goalOpen || goalWide ? ' open' : ''}`} key={goal.text} ref={goalRef} data-ulasildi={goal.small ? '1' : undefined} style={unlockCard ? { visibility: 'hidden' } : undefined} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
         <small>{goal.small ?? 'Sıradaki hedef'}</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
       </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
-      {seq && <div className="map-skip" aria-live="polite">Dokun: hızlandır <Art name="booster" size="1.15em" className="art-inline" /></div>}
+      {/* dönüş sahnesi sürerken ekranın her yerine (hedef kutusu, HUD dahil) dokunuş sahneyi sonuna atlatır (YN-149) */}
+      {seq && <div className="map-skip" aria-live="polite">Dokun: atla <Art name="booster" size="1.15em" className="art-inline" /></div>}
       <div className="map-play-wrap" ref={playRef}>
         <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done && <Art name="crown" size="1.1em" className="art-inline" />}Bölüm {unlocked} <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>

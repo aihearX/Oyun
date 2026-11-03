@@ -1,7 +1,8 @@
 /**
  * Yaşayan Kulak Haritası sahnesi: dikey kaydırmalı, el çizimi harita görünümlü saga yolu.
  * Kamera atalet ile kayar; yalnız görünen bölgelerin animasyonları çalışır. Dönüşte yeni yıldızlar uçar,
- * yol parlayarak çizilir, Odi zıplaya zıplaya ilerler, bölgeler mürekkep gibi renklenerek canlanır.
+ * yol parlayarak çizilir, Odi zıplaya zıplaya ilerler, bölgeler mürekkep gibi renklenerek canlanır. Hareket azaltmada dönüş
+ * anında olur; her kipte dokunuş sahneyi sonuna atlatır.
  */
 import Phaser from 'phaser';
 import { BIOMES } from '@odi/content';
@@ -29,6 +30,11 @@ export class MapScene extends Phaser.Scene {
   private viewTop = 0; private vel = 0; private drag: { y: number; t: number; moved: number; startTop: number } | null = null;
   private follow: (() => number) | null = null; private autoTarget: number | null = null;
   private busy = false; private queue: StarMap | null = null; private speed = 1; private curVisible = true;
+  /**
+   * dönüş sahnesi anında: yıldızlar yuvasında, yol bir kerede çizili, Odi yeni düğümde, sandık sallanmadan açık; kutlama pencereleri
+   * ve onSequence sırası aynı. Hareket azaltmada baştan; her kipte dokununca kalan adımlar (OT-buyuk-yazi-43)
+   */
+  private instant = false;
   /** dönüş sahnesi başlamak üzere (açılıştan 450 ms sonra): hafif modda döngü bu arada uyumasın (yoksa sahne dokunulana dek başlamaz) */
   private pending = false;
   private progS = 0;
@@ -96,7 +102,7 @@ export class MapScene extends Phaser.Scene {
   }
 
   private setupInput() {
-    // dokunuş (sahneyi hızlandırma, düğüme dokunma) kameranın odaklanmasını kesmez; yalnız sürükleme keser
+    // dokunuş (sahneyi atlatma, düğüme dokunma) kameranın odaklanmasını kesmez; yalnız sürükleme keser
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => { this.poke(); this.drag = { y: p.y, t: p.event.timeStamp || performance.now(), moved: 0, startTop: this.viewTop }; this.vel = 0; });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
       const d = this.drag; if (!d || !p.isDown) return; this.poke();
@@ -114,7 +120,7 @@ export class MapScene extends Phaser.Scene {
     this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => { this.poke(); if (this.busy) return; this.autoTarget = null; this.viewTop = this.clampTop(this.viewTop + dy / this.cameras.main.zoom * this.dpr * 0.6); });
   }
   private tap(p: Phaser.Input.Pointer) {
-    if (this.busy) { this.speedUp(); return; }
+    if (this.busy) { this.skip(); return; }
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
     for (const nv of this.nodes) if (nv.chest && Phaser.Math.Distance.Between(w.x, w.y, nv.chest.x, nv.chest.y) < 26) { this.opts.sfx?.('tap'); this.wiggle(nv.chest); this.opts.onTreasureTap?.(nv.n.n); return; }
     let best: NodeView | null = null; let bd = 1e9;
@@ -245,7 +251,12 @@ export class MapScene extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- dönüş sahnesi
-  speedUp() { this.poke(); if (!this.busy) return; this.speed = Math.min(6, this.speed * 2.5); this.tweens.timeScale = this.speed; this.time.timeScale = this.speed; }
+  /** dokunuş: sahne sonuna atlar (süren adım bir iki karede biter, kalan adımlar anında); kutlama pencereleri yine sırayla açılır */
+  skip() { this.poke(); if (!this.busy || this.instant) return; this.instant = true; this.tweens.timeScale = 40; this.time.timeScale = 40; }
+  /** atlandıktan sonra süren adım bitti: sahne saati normale döner (kutlama penceresinin arkasında bölge döngüleri hızlı oynamasın) */
+  private calmSpeed() { if (this.instant) { this.tweens.timeScale = 1; this.time.timeScale = 1; } }
+  /** hareket azaltmada yıldızlar yerine konunca kısa duraklama (gerçek zaman; yazılımla çizen yavaş tarayıcıda da uzamaz): Odi yeni düğümde belirmeden yıldızlar görülsün */
+  private hold() { return this.opts.reducedMotion ? new Promise<void>((res) => setTimeout(res, 250)) : Promise.resolve(); }
   updateProgress(stars: StarMap, treasures: number[]) {
     this.poke();
     this.opts.treasuresOpen = treasures;
@@ -255,16 +266,16 @@ export class MapScene extends Phaser.Scene {
   async play(target: StarMap) {
     const steps = planReturn(this.shown, target);
     if (!steps.length) { this.shown = { ...target }; this.opts.onSequence?.('done'); return; }
-    this.busy = true; this.opts.onSequence?.('start'); this.refreshInsets();
-    // birden çok bölümün birikmiş dönüşü (ör. 5 bölüm: ~21-29 sn): sahne en çok ~8 sn sürsün diye baştan hızlanır; dokununca daha
-    // da (speedUp). Tek bölümün dönüşü (sandık + bölge canlanması dahil) tasarlandığı hızda kalır.
+    this.busy = true; this.instant = !!this.opts.reducedMotion; this.opts.onSequence?.('start'); this.refreshInsets();
+    // birden çok bölümün birikmiş dönüşü (ör. 5 bölüm: ~21-29 sn): sahne en çok ~8 sn sürsün diye baştan hızlanır; dokununca sonuna
+    // atlar (skip). Tek bölümün dönüşü (sandık + bölge canlanması dahil) tasarlandığı hızda kalır.
     const multi = steps.filter((s) => s.kind === 'stars').length > 1;
-    this.speed = multi ? Math.min(6, Math.max(1, returnDurationMs(steps, this.L) / RETURN_MAX_MS)) : 1; this.tweens.timeScale = this.speed; this.time.timeScale = this.speed;
-    try { for (const st of steps) { if (!this.sys.isActive()) return; await this.step(st, target); } }
+    this.speed = multi && !this.instant ? Math.min(6, Math.max(1, returnDurationMs(steps, this.L) / RETURN_MAX_MS)) : 1; this.tweens.timeScale = this.speed; this.time.timeScale = this.speed;
+    try { for (const st of steps) { if (!this.sys.isActive()) return; await this.step(st, target); this.calmSpeed(); } }
     finally {
       if (this.sys.isActive()) {
         this.shown = { ...target }; this.syncNodes(); this.drawProgress(this.progressS(this.shown)); this.placeOdi(false);
-        this.busy = false; this.follow = null; this.tweens.timeScale = 1; this.time.timeScale = 1;
+        this.busy = false; this.instant = false; this.follow = null; this.tweens.timeScale = 1; this.time.timeScale = 1;
         this.opts.onSequence?.('done');
         const q = this.queue; this.queue = null; if (q) void this.play(q); else this.focusCurrent();
       }
@@ -279,9 +290,15 @@ export class MapScene extends Phaser.Scene {
     }
   }
   private async flyStars(n: number, from: number, to: number) {
-    const nv = this.nodes[n - 1]!; this.follow = null; this.focusY(nv.n.y); await wait(this, 550);
+    const nv = this.nodes[n - 1]!; this.follow = null;
+    if (this.instant) {
+      this.focusY(nv.n.y, false); this.shown = { ...this.shown, [n]: to }; this.setNodeVisual(nv); this.opts.sfx?.('nodePop'); this.opts.haptic?.('medium');
+      for (const p of this.pulse) p.destroy(); this.pulse = [];
+      await this.hold(); return;
+    }
+    this.focusY(nv.n.y); await wait(this, 550);
     nv.stars.forEach((s) => s.setVisible(true));
-    for (let i = from; i < to; i++) {
+    for (let i = from; i < to && !this.instant; i++) {
       const slot = nv.stars[i]!; const startX = this.L.width / 2 + (i - 1) * 40, startY = this.viewTop + 40;
       const s = this.add.image(startX, startY, starTex(this, this.R, true)).setDepth(20).setScale(2.4 / this.R);
       const trail = this.add.particles(0, 0, sparkleTex(this, this.R), { follow: s, lifespan: 380, scale: { start: 0.7 / this.R, end: 0 }, frequency: 30, blendMode: Phaser.BlendModes.ADD, maxAliveParticles: 14 }).setDepth(19);
@@ -294,13 +311,13 @@ export class MapScene extends Phaser.Scene {
       s.destroy(); slot.setTexture(starTex(this, this.R, true)); this.tweens.add({ targets: slot, scale: { from: 1.8 / this.R, to: 0.9 / this.R }, duration: 320, ease: 'Back.Out' });
       this.burst(slot.x, slot.y, 6, 30); this.opts.haptic?.('light');
     }
+    // dokunuşla atlandıysa kalan yıldızlar da yuvasında (setNodeVisual)
     this.shown = { ...this.shown, [n]: to };
     this.setNodeVisual(nv); this.opts.sfx?.('nodePop'); this.opts.haptic?.('medium');
-    this.tweens.add({ targets: nv.med, scale: { from: 1.35 / this.R, to: 1 / this.R }, duration: 420, ease: 'Back.Out' });
-    this.burst(nv.n.x, nv.n.y, 12, nv.r + 30);
+    if (!this.instant) { this.tweens.add({ targets: nv.med, scale: { from: 1.35 / this.R, to: 1 / this.R }, duration: 420, ease: 'Back.Out' }); this.burst(nv.n.x, nv.n.y, 12, nv.r + 30); }
     // geçilen düğüm artık "mevcut" değil: nabız halkaları güncellensin (Odi henüz yürümedi)
     for (const p of this.pulse) p.destroy(); this.pulse = [];
-    await wait(this, 380);
+    if (!this.instant) await wait(this, 380);
   }
   private burst(x: number, y: number, n: number, dist: number) {
     for (let i = 0; i < n; i++) {
@@ -310,27 +327,35 @@ export class MapScene extends Phaser.Scene {
   }
   private async openChest(n: number) {
     const nv = this.nodes[n - 1]!; const ch = nv.chest; if (!ch) return;
-    this.focusY(nv.n.y); await wait(this, 300);
-    this.opts.sfx?.('chestShake'); this.opts.haptic?.('medium');
-    await new Promise<void>((res) => this.tweens.add({ targets: ch, angle: { from: -12, to: 12 }, scale: 1.25 / this.R, duration: 90, yoyo: true, repeat: 5, onComplete: () => { ch.setAngle(0); res(); } }));
-    this.burst(ch.x, ch.y, 14, 50);
+    // anında: sandık sallanmadan açılır (kutlama penceresi yine açılır)
+    if (this.instant) { this.focusY(nv.n.y, false); this.opts.haptic?.('medium'); }
+    else {
+      this.focusY(nv.n.y); await wait(this, 300);
+      this.opts.sfx?.('chestShake'); this.opts.haptic?.('medium');
+      await new Promise<void>((res) => this.tweens.add({ targets: ch, angle: { from: -12, to: 12 }, scale: 1.25 / this.R, duration: 90, yoyo: true, repeat: 5, onComplete: () => { ch.setAngle(0); res(); } }));
+      if (!this.instant) this.burst(ch.x, ch.y, 14, 50);
+    }
     this.treasures.add(n); ch.setTexture(chestTex(this, this.R, true)).setScale(1 / this.R).setAlpha(0.8);
+    this.calmSpeed();
     if (this.opts.onTreasure) { const prevT = this.tweens.timeScale; await this.opts.onTreasure(n); this.tweens.timeScale = prevT; }
   }
   private async walk(from: number, to: number | 'finale', target: StarMap) {
     const a = this.nodes[from - 1]!; const sA = a.n.s; const sB = to === 'finale' ? this.L.finale.s : this.nodes[to - 1]!.n.s;
     this.odiIdle?.remove();
-    // yol parlayarak çizilir
-    this.opts.sfx?.('pathDraw');
-    const drawn = { s: this.progS };
-    const lead = this.add.image(0, 0, glowTex(this, this.R, 0xfff3b0, 'm-glow-shine')).setScale(1.1).setBlendMode(Phaser.BlendModes.ADD).setDepth(5.2);
-    this.follow = () => pointAt(this.L, drawn.s).y;
-    await new Promise<void>((res) => this.tweens.add({ targets: drawn, s: sB, duration: Math.min(2600, 500 + (sB - drawn.s) * 2.2), ease: 'Sine.easeInOut', onUpdate: () => { this.drawProgress(drawn.s); const p = pointAt(this.L, drawn.s); lead.setPosition(p.x, p.y); }, onComplete: () => res() }));
-    lead.destroy();
-    // Odi zıplayarak yürür
+    if (this.instant) this.drawProgress(sB); // yol bir kerede çizilir
+    else {
+      // yol parlayarak çizilir
+      this.opts.sfx?.('pathDraw');
+      const drawn = { s: this.progS };
+      const lead = this.add.image(0, 0, glowTex(this, this.R, 0xfff3b0, 'm-glow-shine')).setScale(1.1).setBlendMode(Phaser.BlendModes.ADD).setDepth(5.2);
+      this.follow = () => pointAt(this.L, drawn.s).y;
+      await new Promise<void>((res) => this.tweens.add({ targets: drawn, s: sB, duration: Math.min(2600, 500 + (sB - drawn.s) * 2.2), ease: 'Sine.easeInOut', onUpdate: () => { this.drawProgress(drawn.s); const p = pointAt(this.L, drawn.s); lead.setPosition(p.x, p.y); }, onComplete: () => res() }));
+      lead.destroy();
+    }
+    // Odi zıplayarak yürür (anında: yeni düğümde belirir)
     const hop = 52; const total = sB - sA; const hops = Math.max(2, Math.round(total / hop));
     this.follow = () => this.odi.y;
-    for (let i = 1; i <= hops; i++) {
+    for (let i = 1; i <= hops && !this.instant; i++) {
       const s0 = sA + (total * (i - 1)) / hops, s1 = sA + (total * i) / hops; const c = { t: 0 };
       this.opts.sfx?.('odiStep', { semitones: (i % 4) });
       await new Promise<void>((res) => this.tweens.add({ targets: c, t: 1, duration: 230, onUpdate: () => {
@@ -344,6 +369,11 @@ export class MapScene extends Phaser.Scene {
     for (const [k, v] of Object.entries(target)) if (Number(k) < (to === 'finale' ? 99 : to)) this.shown[Number(k)] = Math.max(this.shown[Number(k)] ?? 0, v);
     this.syncNodes();
     const p = this.odiAt();
+    if (this.instant) {
+      this.odi.setPosition(p.x, p.y); this.odiBody.setScale(1 / this.R);
+      this.opts.sfx?.('nodePop', { semitones: 5 }); this.opts.haptic?.('success');
+      this.startIdle(); this.follow = null; return;
+    }
     this.odiBody.setTexture(`${this.odiKey}-wow`);
     await new Promise<void>((res) => this.tweens.add({ targets: this.odi, x: p.x, y: p.y, duration: 260, ease: 'Back.Out', onComplete: () => res() }));
     this.tweens.add({ targets: this.odiBody, scaleX: 1.2 / this.R, scaleY: 0.85 / this.R, duration: 90, yoyo: true });
@@ -359,10 +389,11 @@ export class MapScene extends Phaser.Scene {
     const zone = rv.zone; const L = this.L;
     // mürekkep, bölgenin Odi'ye en yakın noktasından yayılır
     const odiY = this.odi.y; const oy = Math.max(zone.top + 40, Math.min(zone.bottom - 40, odiY)); const ox = odiY >= zone.top && odiY <= zone.bottom ? this.odi.x : L.width / 2;
-    this.follow = null; this.focusY(Math.max(zone.top + this.viewH * 0.35, Math.min(zone.bottom - this.viewH * 0.35, (zone.top + zone.bottom) / 2 * 0.5 + oy * 0.5)));
-    await wait(this, 500);
+    this.follow = null; this.focusY(Math.max(zone.top + this.viewH * 0.35, Math.min(zone.bottom - this.viewH * 0.35, (zone.top + zone.bottom) / 2 * 0.5 + oy * 0.5)), !this.instant);
+    if (!this.instant) await wait(this, 500);
     this.opts.sfx?.(from === 0 ? 'restore' : 'biomeAwaken'); this.opts.haptic?.('heavy');
-    await rv.setLevel(to as 0, true, { x: ox, y: oy });
+    await rv.setLevel(to as 0, !this.instant, { x: ox, y: oy });
+    this.calmSpeed();
     if (this.opts.onZoneRise) { const prevT = this.tweens.timeScale; await this.opts.onZoneRise(z, from as 0, to as 0); this.tweens.timeScale = prevT; }
   }
 

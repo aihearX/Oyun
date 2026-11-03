@@ -27,6 +27,8 @@ const TAB_LINE: Record<string, [string, string]> = { today: ['sekme-bugun', 'Bug
 const tapTab = (t: string): CoachStep => { const [id, hint] = TAB_LINE[t]!; return { id, say: lineText(id), target: tab(t), wait: { until: () => exists(`${tab(t)}[aria-current="page"]`) }, hint }; };
 const unlockCard = (id: FeatureId, line: string): CoachStep => ({ id: line, say: lineText(line), art: featureById(id).art, kicker: 'Yeni yer açıldı!', mood: 'wow' });
 const exists = (sel: string) => !!document.querySelector(sel);
+/** oyuncunun arkadaş kodu (sunucuya bağlı değilse yok: Profil'de de yazmaz) */
+const friendCodeNote = () => { const c = useNet.getState().me?.friendCode; return c ? <>Arkadaş kodun: <b className="mono">{c}</b></> : null; };
 /** takvim/sandık kutlamasının Topla düğmesi (sandık açılınca belirir) */
 const TOPLA = '.chest-stage .cel-cta .btn';
 /** öğe önce belirip sonra kaybolunca true (henüz belirmediyse beklemeye devam) */
@@ -35,10 +37,13 @@ const gone = (sel: string) => { let seen = false; return () => { if (exists(sel)
 /** açık (cevaplanabilir) Günün Sorusu kartı; cevaplanmış ya da açıklanmış soru sayılmaz */
 const openQuestion = () => [...document.querySelectorAll('[data-testid="gunun-sorusu"]')].find((e) => !!e.querySelector('.dq-opt:not(:disabled)')) ?? null;
 
-function quiet(allowSheets = false): boolean {
+export function quiet(allowSheets = false): boolean {
   if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return false;
   // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden; kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
   if (exists('.map-screen:not([data-donus="bitti"])') || exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
+  // haritanın "Hedefe ulaştın!" kutusu görünürken (dönüşten sonra birkaç saniye, MapScreen GOAL_REACHED_MS): "Yeni yer açıldı" kartı
+  // kutunun üstüne binmez, sesi kapalı oyuncu iki haberi de okur (OT-sessiz-oyuncu-20)
+  if (exists('.map-goal[data-ulasildi]')) return false;
   // bildirim/teşekkür kartı görünürken rehber başlamaz (üst üste binmez; oyuncu kartı görür, OT-buyuk-yazi-20). Rehber sürerken
   // gelen kartlar sırada bekler (CommBanner)
   if (exists('[data-testid="iletisim-bildirimi"]')) return false;
@@ -165,7 +170,9 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
       steps.push(
         unlockCard('friends', 'arkadas-01'),
         ...(route === 'profile' ? [] : [tapTab('profile')]),
-        { id: 'arkadas-02', say: lineText('arkadas-02'), target: '.menu-tile[data-tile="friends"]' },
+        // "Arkadaş kodunu paylaş" derken kod balonda da yazar: balon sayfadaki kod satırını örtse de (üstte) ya da sayfa karoya
+        // kaymışken (küçük ekran) oyuncu kodu görür (OT-sessiz-oyuncu-21)
+        { id: 'arkadas-02', say: lineText('arkadas-02'), target: '.menu-tile[data-tile="friends"]', note: friendCodeNote },
       ); break;
     case 'glossary':
       steps.push(

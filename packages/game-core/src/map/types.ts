@@ -21,6 +21,7 @@ export interface MapOptions {
   insets: { top: number; bottom: number };
   /** güncel paylar (HUD öğeleri sonradan değişebilir: hedef kartı, Etkinlik düğmesi); odaklanmadan önce sorulur */
   getInsets?(): { top: number; bottom: number };
+  /** hareketi azalt: dönüş sahnesi anında (yıldız uçuşu, yol çizimi, Odi'nin yürüyüşü, sandık sallanması, bölge büyümesi yok) */
   reducedMotion?: boolean;
   /** hafif mod (düşük güç): sürekli animasyon yok, boşta döngü uyur. Verilmezse: test tarayıcısı ya da azaltılmış harekette açık */
   light?: boolean;
@@ -46,8 +47,8 @@ export interface MapHandle {
   focusCurrent(animate?: boolean): void;
   /** sıradaki düğüm + Odi'nin ekrandaki dikdörtgeni (CSS px; harita açık değilse null) — ölçüm/test için */
   currentRect(): { left: number; right: number; top: number; bottom: number } | null;
-  /** dönüş sahnesini hızlandır (dokunuş) */
-  speedUp(): void;
+  /** dönüş sahnesini sonuna atlat (dokunuş; kutlama pencereleri yine sırayla açılır) */
+  skip(): void;
   /** oyuncunun Odi rengi değişti: haritadaki kahraman yerinde yeniden boyanır */
   setHeroColor(color: number): void;
 }
