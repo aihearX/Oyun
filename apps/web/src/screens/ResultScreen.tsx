@@ -1,6 +1,6 @@
 import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, modifierNames, BIOMES, type RewardItem } from '@odi/content';
-import { RAHAT_TEXT, damageNote, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, sureYazi, type RunSummary } from '@odi/meta';
+import { RAHAT_TEXT, damageNote, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, starHead, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { platform } from '../platform';
@@ -311,7 +311,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             )}
             {starNext && (
               <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
-                <small className="result-obj-h">{starNext.n}. yıldız{starNext.v.rows.length > 1 ? ' · biri yeter' : ''}{starNext.v.done ? ' · tamam' : ''}</small>
+                <small className="result-obj-h">{starHead(starNext.n, starNext.v.rows.length)}{starNext.v.done ? ' · tamam' : ''}</small>
                 <ul className="result-star3">
                   {starNext.v.rows.map((row, i) => (
                     <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>

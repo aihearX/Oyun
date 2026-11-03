@@ -38,6 +38,9 @@ const HAZINE_VERILDI = 'Bölüm sonunda cüzdanına eklenmişti';
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
 
+/** `?harita-kart=N` (1–40): kart kapatılana kadar (harita açılışta yeniden kurulabilir) */
+let demoCard = (() => { try { const n = Number(new URLSearchParams(location.search).get('harita-kart')); return Number.isInteger(n) && n >= 1 && n <= HUMAN_JOURNEY.levels.length ? n : 0; } catch { return 0; } })();
+
 /**
  * Yaşayan Kulak Haritası: tam ekran Phaser haritası + React katmanı (cam HUD, Bugün çipi, sıradaki hedef rozeti,
  * pusula, büyük "Bölüm N ▶" düğmesi, bölüm/hazine/bölge kartları). Bölümden dönünce dönüş sahnesi oynar (hareket azaltmada anında,
@@ -53,7 +56,8 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   // Odi rengi harita açıkken değişirse (takma ad sayfası haritanın üstünde açılır) kahraman yerinde yeniden boyanır
   const heroColor = useOdiLook().color;
   useEffect(() => { handle.current?.setHeroColor(heroColor); if (host.current) host.current.dataset.odiColor = heroColor.toString(16).padStart(6, '0'); }, [heroColor]);
-  const [card, setCard] = useState<MapCard | null>(null);
+  // geliştirme önizlemesi `?harita-kart=16`: haritanın ilk açılışında o bölümün kartı açık (ui-mobile-check bölüm kartı adımı; YN-162)
+  const [card, setCard] = useState<MapCard | null>(() => (demoCard ? { kind: 'node', n: demoCard } : null));
   // yalnız test derlemesi: bölüm kartını aç (kamp-e2e çanta adımı); sıradaki düğümün ekrandaki yeri (YN-105 ölçümü)
   useEffect(() => { if (typeof __ODI_E2E__ === 'undefined' || !__ODI_E2E__) return; (window as unknown as { __harita?: unknown }).__harita = { card: (n: number) => setCard({ kind: 'node', n }), odak: () => handle.current?.currentRect() ?? null }; return () => { delete (window as unknown as { __harita?: unknown }).__harita; }; }, []);
   const [seq, setSeq] = useState(false); const [away, setAway] = useState<null | 'up' | 'down'>(null);
@@ -207,7 +211,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
       <div className="map-play-wrap" ref={playRef}>
         <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done && <Art name="crown" size="1.1em" className="art-inline" />}Bölüm {unlocked} <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
-      <MapCards card={card} stars={stars} unlocked={unlocked} onClose={() => setCard(null)} onPlay={onPlay} />
+      <MapCards card={card} stars={stars} unlocked={unlocked} onClose={() => { demoCard = 0; setCard(null); }} onPlay={onPlay} />
     </div>
   );
 }

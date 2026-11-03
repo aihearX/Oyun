@@ -1,6 +1,6 @@
 /** Haritanın "Sıradaki hedef" rozeti ve kart metinleri: gerçek ilerlemeden, dürüst sayılar. */
 import { BIOME_ORDER, BIOMES, HUMAN_JOURNEY, TREASURES, treasureAt, type LevelPlan, type RewardItem } from '@odi/content';
-import type { MetaState } from '@odi/meta';
+import { passText, star3Rules, starHead, type MetaState, type RunSpecLite } from '@odi/meta';
 import { journeyDone, nextVitalityNeed, planReturn, unlockedOf, vitalityOf, type StarMap, type Vitality } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 
@@ -129,4 +129,14 @@ export function treasureItems(meta: Pick<MetaState, 'ledger'>, n: number): Rewar
  */
 export function returnCelebrations(seen: StarMap, now: StarMap, restored: readonly string[]): number {
   return planReturn(seen, now).filter((st) => st.kind === 'treasure' || (st.kind === 'zone' && st.to >= 3 && st.zone !== 'finale' && !restored.includes(st.zone))).length;
+}
+
+/**
+ * Bölüm kartının hedef satırları (YN-162): geçme koşulu her zaman ayrı ("Kapıya ulaş", canavarda "Canavarı yen"); 3. yıldız
+ * satırı sonuç ekranının 3. yıldız kartıyla aynı işlevden (meta star3Rules/starHead): "90 nota ya da 3 altın kokleayı bul ve 60 nota".
+ * Bölüm hedefi (altın koklea, süre…) geçmek için gerekmez; yalnız 3. yıldızın bir yoludur.
+ */
+export function nodeGoalLines(spec: Pick<RunSpecLite, 'mechanic' | 'objective' | 'coinsTotal'>): { pass: string; star3Head: string; star3: string } {
+  const rows = star3Rules(spec);
+  return { pass: passText(spec), star3Head: starHead(3, rows.length), star3: rows.join(' ya da ') };
 }

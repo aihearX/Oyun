@@ -8,7 +8,7 @@ import { nextVitalityNeed, VITALITY_NAMES, ZONE_PLACE, zoneVitality, type StarMa
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
 import { RewardChips } from '../ui/bits';
-import { treasureItems, VITALITY_WILL } from './goals';
+import { nodeGoalLines, treasureItems, VITALITY_WILL } from './goals';
 import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { NoteCard, useNote } from '../ftue/Notes';
@@ -56,8 +56,9 @@ export function MapCards({ card, stars, unlocked, onClose, onPlay }: { card: Map
 function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: number; onClose: () => void; onPlay: (n: number) => void }) {
   const l = HUMAN_JOURNEY.levels[n - 1]!; const b = BIOMES[l.biome]; const m = MECHANICS[l.mechanic];
   const p = useStore((s) => s.progress[n]); const locked = n > unlocked;
-  // hedef: oynanacak bölümün gerçek hedef metni (üretici aynı girdilerle aynı bölümü kurar)
-  const goal = useMemo(() => { const s = useStore.getState(); try { return generateLevel(s.journey, n, { recentStars: 2, failStreak: s.failStreak, skills: s.skills }).objective.label; } catch { return ''; } }, [n]);
+  // hedef: oynanacak bölümün gerçek geçme koşulu ve 3. yıldız koşulları (üretici aynı girdilerle aynı bölümü kurar); bölüm
+  // hedefi (ör. "3 altın kokleayı bul") geçmek için gerekmez, 3. yıldızın bir yoludur: sonuç ekranıyla aynı metin (YN-162)
+  const goal = useMemo(() => { const s = useStore.getState(); try { return nodeGoalLines(generateLevel(s.journey, n, { recentStars: 2, failStreak: s.failStreak, skills: s.skills })); } catch { return null; } }, [n]);
   // uyarlanabilir yardım devredeyse açıkça (YN-113): hangi değiştiriciler kalktı; 0-2 kayıpta ve boss bölümünde boş
   const ease = useMemo(() => { const s = useStore.getState(); return easeLine(levelEase(s.journey, n, { recentStars: 2, failStreak: s.failStreak, skills: s.skills })); }, [n]);
   const tr = treasureAt(n); const boss = l.boss ? BOSSES[l.boss] : null;
@@ -73,7 +74,8 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
       <Stars n={p?.stars ?? 0} big />
       <div className="mc-rows">
         <div className="mc-row"><span><Glyph e={m.icon} size={22} /></span><b>{m.name}</b><span className="mc-dim">{m.hint}</span></div>
-        {goal && <div className="mc-row"><span><Art e="🎯" size="1.15em" className="art-inline" /></span><b>Hedef</b><span className="mc-dim">{goal}</span></div>}
+        {goal && <div className="mc-row" data-testid="bolum-gecme"><span><Art e="🎯" size="1.15em" className="art-inline" /></span><b>Geçmek için</b><span className="mc-dim">{goal.pass}</span></div>}
+        {goal && <div className="mc-row stack" data-testid="bolum-yildiz3"><span><Art name="star" size="1.15em" className="art-inline" /></span><span className="min0"><b>{goal.star3Head}</b><span className="mc-dim">{goal.star3}</span></span></div>}
         {boss && <div className="mc-row"><span><Art e="👹" size="1.15em" className="art-inline" /></span><b>{boss.name}</b><span className="mc-dim">{boss.hp} can · {boss.phases} evre</span></div>}
         {ease && !locked && <div className="mc-row" data-testid="bolum-kolay"><span><Art name="sprout" size="1.15em" className="art-inline" /></span><b>Yardım</b><span className="mc-dim">{ease}</span></div>}
         {/* yıldız yalnız Rahat denemeyle alındıysa (karar 42): "Oyna" normal denemedir, yıldızı yükseltebilir */}

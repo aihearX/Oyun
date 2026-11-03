@@ -1184,6 +1184,17 @@ async function suite(browserName, target, [W, H]) {
       await page.goto(url(), { waitUntil: 'load' });
       await page.getByRole('button', { name: /Devam et/ }).waitFor({ timeout: 45_000 }); await sleep(700);
       await check('giris-devam', { scroll: false });
+      // YN-162 (OT-rekabetci-35): haritada 16'nın bölüm kartı (önizleme bağlantısıyla açılır; düğüm tuvalde): geçme koşulu ayrı
+      // ("Kapıya ulaş"), altın koklea yalnız 3. yıldızın ikinci yolu, sonuç kartıyla aynı metin; 320 px ve Büyük yazıda taşmaz
+      await page.goto(url('harita-kart=16'), { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Devam et/ }).click({ timeout: 45_000 });
+      await page.locator('.map-sheet [data-testid="bolum-yildiz3"]').waitFor({ timeout: 20_000 }); await sleep(600);
+      const rec = await check('harita-bolum-karti', { scroll: false });
+      const kart = await page.evaluate(() => ({ gec: document.querySelector('[data-testid="bolum-gecme"]')?.textContent ?? '', y3: document.querySelector('[data-testid="bolum-yildiz3"]')?.textContent ?? '' }));
+      rec.kart = kart;
+      if (!/Kapıya ulaş$/.test(kart.gec)) fail(rec, `geçme satırı "Kapıya ulaş" değil: ${JSON.stringify(kart.gec)}`);
+      if (!/^3\. yıldız · biri yeter\d+ nota ya da 3 altın kokleayı bul ve \d+ nota$/.test(kart.y3)) fail(rec, `3. yıldız satırı sonuç kartıyla aynı değil: ${JSON.stringify(kart.y3)}`);
+      await page.keyboard.press('Escape'); await sleep(300);
     }
     if (want('sonuc')) {
       // olmayan öğenin yazısı: boş (locator.textContent öğeyi 30 sn bekliyordu; ekran başına dakikalar)

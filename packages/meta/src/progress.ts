@@ -1,5 +1,5 @@
 import { RAHAT, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type MechanicId, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
-import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
+import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, objective, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
 /** XP çubuğu: bu seviyenin başı/sonu ve doluluk. levelFromXp ile aynı formül. */
@@ -105,22 +105,49 @@ export function damageNote(r: RunResult): string {
 }
 
 /**
+ * 3. yıldızın koşul metinleri (tek kaynak: sonuç kartı star3View ve harita bölüm kartı; YN-162). Birden çok satır "ya da"dır
+ * (biri yeter). Notasız (boss) bölümde hasarsız; "Tüm notaları topla" 90 notanın içinde kaldığından tek satır; hedefli
+ * bölümde ikinci satır hedef ve (gerekirse) %60 nota: "3 altın kokleayı bul ve 60 nota".
+ */
+export function star3Rules(spec: Pick<RunSpecLite, 'mechanic' | 'objective' | 'coinsTotal'>): string[] {
+  if (spec.coinsTotal <= 0) return ['Hiç hasar alma'];
+  const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
+  const n3 = notesAt(th.star3); const o = spec.objective;
+  const rows = [o.id === 'collect-all' ? `${n3} nota topla` : `${n3} nota`];
+  if (o.id !== 'reach' && o.id !== 'collect-all' && th.star3Objective !== null) {
+    const need = notesAt(th.star3Objective);
+    rows.push(`${o.label}${need > 0 ? ` ve ${need} nota` : ''}`);
+  }
+  return rows;
+}
+/** yıldız kartının başlığı (sonuç ekranı ve harita bölüm kartı): "3. yıldız · biri yeter" */
+export function starHead(n: number, rows: number): string { return `${n}. yıldız${rows > 1 ? ' · biri yeter' : ''}`; }
+/**
+ * Bölümü geçme koşulu (harita bölüm kartı; YN-162): canavar bölümünde canavarı yenmek, öbürlerinde kapıya ulaşmak. Bölüm
+ * hedefi (altın koklea, süre, Fısıltı…) geçmeyi değil yalnız 3. yıldızı etkiler (scoreRun; LevelScene.objectiveMet).
+ */
+export function passText(spec: Pick<RunSpecLite, 'mechanic' | 'objective'>): string {
+  return objective(spec.mechanic === 'boss' || spec.objective.id === 'boss' ? 'boss' : 'reach').label;
+}
+
+/**
  * 3. yıldızın koşulları, sonuç kartı için (yıldız kuralıyla aynı yerden: shared economy.ts → scoreRun / noteThresholds).
  * "Ya da"lı kural iki satır olur (biri yeter), her satır kendi ilerlemesini söyler: "7 nota kaldı", "1 hasar aldın", "3/7 sırayla".
  * "Tüm notaları topla" 90 notanın içinde kaldığından tek satır: "90 nota topla". Notasız (boss) bölümde 3★ hasarsız bitirmektir.
  */
 export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
   const num = (k: string) => { const v = r.extra?.[k]; return typeof v === 'number' ? v : 0; };
-  const dmg: StarRow = { text: 'Hiç hasar alma', done: r.damageTaken === 0, note: damageNote(r) };
+  const texts = star3Rules(spec);
+  const dmg: StarRow = { text: texts[0]!, done: r.damageTaken === 0, note: damageNote(r) };
   if (spec.coinsTotal <= 0) return { rows: [dmg], done: r.stars === 3 };
   const th = noteThresholds(spec); const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
   const n3 = notesAt(th.star3); const o = spec.objective;
-  const rows: StarRow[] = [{ text: o.id === 'collect-all' ? `${n3} nota topla` : `${n3} nota`, done: r.coins >= n3, note: r.coins >= n3 ? '' : `${n3 - r.coins}\u00a0nota kaldı` }];
-  if (o.id !== 'reach' && o.id !== 'collect-all' && th.star3Objective !== null) {
+  const rows: StarRow[] = [{ text: texts[0]!, done: r.coins >= n3, note: r.coins >= n3 ? '' : `${n3 - r.coins}\u00a0nota kaldı` }];
+  if (texts.length > 1 && th.star3Objective !== null) {
     // hedefle 3★ için %60 nota da gerekir (yüzmede 2★ %45 notayla gelir): koşul her zaman tam yazılır, nota şartı tuttu diye
     // yazıdan düşmez; not iki parçanın ilerlemesini söyler, tutan parça "tamam" (OT-rekabetci-17): "60 nota tamam · 2/3 altın koklea"
     const need = notesAt(th.star3Objective); const short = need > r.coins;
-    const text = `${o.label}${need > 0 ? ` ve ${need} nota` : ''}`;
+    const text = texts[1]!;
     const prog = o.id === 'no-damage' ? (r.objectiveMet ? 'hasar almadın' : dmg.note)
       : o.id === 'secret' ? `${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`
       : o.id === 'melody' ? `${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`
