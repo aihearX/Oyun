@@ -23,6 +23,7 @@
 //   arkadas (g) ağ kopukken (sunucu açık; YN-085, YN-076): arkadaş araması hemen "bağlı değilsin" der, bağlanınca kendisi yineler,
 //               Enter aynı yazıyla yeniden arar; özel mesaj ekranı sonsuz "Yükleniyor…" yerine açık durum gösterir, yazılan iki mesaj
 //               gri "bağlanınca gidecek" balonu olur (kutu boşalır), bağlanınca sırayla birer kez gider, hız uyarısı çıkmaz.
+//               Profil kopukken (YN-142): ad düğmesi devre dışı ve "Bağlanınca değiştirebilirsin", lig satırı gri; 320 px'te başlık tam (YN-124).
 //   yaris   (d) yarış odasında: sunucu yeniden başlarsa oda silinir → açık ileti + menü, yeni oda kurulur; yalnız ağ kopması
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
 // Her kopmada: "Bağlantı koptu" şeridi görünür; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanır; cüzdan, kamp, ilerleme
@@ -806,6 +807,34 @@ async function suiteArkadas(A, B) {
   console.log(`    · bağlanınca HIZ yanıtı: ${A.proxy.hiz - hiz0}`);
   await shot(A, 'dm-sonra');
   await A.page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined);
+
+  // g3: Profil kopukken (YN-142): "Takma adı değiştir" kaybolmaz, devre dışı ve nedeni yazılı; lig satırı son bilinen değerle gri.
+  // 320 px'te kopukken "Profil" ve "Bugün" başlıkları kesilmez: haplar daralır ya da alt satıra iner (YN-124)
+  for (let i = 0; i < 3 && !(await A.page.locator('nav.tabbar').isVisible().catch(() => false)); i++) { await A.page.getByRole('button', { name: 'Geri' }).first().click({ timeout: 3000 }).catch(() => undefined); await sleep(400); }
+  await tab(A, 'Profil');
+  const ad = A.page.getByTestId('ad-degistir'); await ad.waitFor({ timeout: 10_000 });
+  const ligAcik = await A.page.locator('.league-card').first().waitFor({ timeout: 5000 }).then(() => true, () => false);
+  await offline();
+  check(await ad.isVisible() && await ad.isDisabled(), 'kopukken "Takma adı değiştir" görünür ve devre dışı');
+  const adNot = await A.page.getByTestId('ad-cevrimdisi').innerText().catch(() => '');
+  check(adNot.includes('Bağlanınca değiştirebilirsin'), `kopukken ad düğmesinin notu: "${adNot}"`);
+  if (ligAcik) {
+    const lig = (await A.page.getByTestId('lig-cevrimdisi').innerText().catch(() => '')).replace(/\s+/g, ' ');
+    check(/Ligi · \d+\. sıra/.test(lig) && lig.includes('Çevrimdışı'), `kopukken lig satırı son bilinen değerle, açıklamalı: "${lig}"`);
+  } else console.log('    · lig bu oyuncuda açık değil: lig satırı denetimi atlandı');
+  await shot(A, 'profil-kopuk');
+  await A.page.setViewportSize({ width: 320, height: 640 });
+  for (const t of ['Profil', 'Bugün']) {
+    await tab(A, t); await sleep(500);
+    const cut = await A.page.evaluate(() => [...document.querySelectorAll('.tb-title h1')].filter((h) => h.getBoundingClientRect().width > 0 && h.scrollWidth > h.clientWidth + 1).map((h) => h.textContent));
+    check(!cut.length, `320 px kopukken "${t}" başlığı tam${cut.length ? ` (kesik: ${cut.join(', ')})` : ''}`);
+    await shot(A, `kopuk-320-${t === 'Bugün' ? 'bugun' : 'profil'}`);
+  }
+  await A.page.setViewportSize({ width: 390, height: 844 });
+  await tab(A, 'Profil');
+  await online('profil');
+  await A.page.waitForFunction(() => !document.querySelector('[data-testid="ad-degistir"]')?.disabled, null, { timeout: 5000 }).catch(() => undefined);
+  check(await ad.isEnabled() && !(await A.page.getByTestId('ad-cevrimdisi').count()), 'bağlanınca ad düğmesi açık, not kalktı');
   await consistent(A, 'arkadas');
 }
 

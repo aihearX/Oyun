@@ -581,14 +581,16 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 @keyframes wave { 0% { transform:scale(.3); opacity:.6; } 100% { transform:scale(5); opacity:0; } }
 
 /* ===================================================================== sosyal katman (takım, kamp, sohbet, mağaza) */
-.topbar2 { display:flex; align-items:center; justify-content:space-between; gap:8px; padding-top:16px; min-height:60px; }
+.topbar2 { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 8px; padding-top:16px; min-height:60px; }
 .tb-title { display:flex; align-items:center; gap:6px; min-width:0; }
 .tb-title h1 { font-size:26px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:2.6em; }
 .tb-pills { display:flex; gap:6px; align-items:center; flex:none; }
 .tb-pill { position:relative; font-size:0.875rem; padding:0 10px; height:36px; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; font-variant-numeric:tabular-nums; color:var(--text); font-family:inherit; }
 .tb-pill.tap { cursor:pointer; min-width:40px; justify-content:center; }
 .tb-pill.tap::after { content:''; position:absolute; inset:-4px -2px; } /* 44 px dokunma alanı */
-.tb-pill .pend { font-style:normal; font-size:0.6875rem; margin-left:2px; }
+/* bekleyen jeton (kum saati): sayıya bitişik küçük rozet, hapın köşesinde; genişlik almaz, başlığı daraltmaz (YN-124) */
+.tb-pill .pend { position:absolute; right:-9px; bottom:-7px; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-style:normal; background:var(--bg-1); box-shadow:0 0 0 2px var(--bg-1), inset 0 0 0 1.5px rgba(255,201,60,.6); }
+.tb-pill .pend .art { width:11px; height:11px; }
 /* bağlıyken sunucu onayı beklenen jeton (MK-038): kum saati hafifçe nabız atar; azaltılmış harekette durağan */
 .tb-pill .pend.kayit { animation:kayit 1.1s ease-in-out infinite alternate; }
 @keyframes kayit { from { opacity:1; } to { opacity:.5; } }
@@ -918,6 +920,8 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .lg-zone { font-size:0.75rem; font-weight:900; }
 .league-card.z-up { border-color:rgba(142,240,176,.55); background:linear-gradient(135deg, #1f6b62, var(--panel) 70%); } .z-up .lg-zone { color:var(--lime); }
 .league-card.z-down { border-color:rgba(255,92,138,.55); } .z-down .lg-zone { color:var(--coral); }
+/* çevrimdışı: son bilinen lig satırı gri, dokunulmaz (YN-142) */
+.league-card.off { cursor:default; } .league-card.off .lg-tier { filter:grayscale(1); opacity:.55; } .league-card.off .lg-zone { color:var(--text-2); }
 .league-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
 .league-list li { display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:12px; background:rgba(5,2,20,.35); border:2px solid rgba(255,255,255,.08); font-weight:800; font-size:0.875rem; min-width:0; }
 .league-list li.up { border-left:4px solid var(--lime); } .league-list li.down { border-left:4px solid var(--coral); }
@@ -1001,10 +1005,8 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 :root .race-actions { background:linear-gradient(to top, var(--bg-0) 75%, rgba(20,12,53,0)); }
 :root .race-state { background:rgba(5,2,20,.45); } :root .race-state.on { background:#3fcf7a; color:#05332f; }
 
-/* telefon genişliği: üst çubuk hapları biraz sıkışır ki ekran başlığı kesilmesin */
-@media (max-width:420px) { .tb-pills { gap:5px; } .tb-pill { padding:0 8px; } }
 /* Büyük yazı: telefonda üst çubuk (başlık + gösterge hapları) normal boyda kalır ki başlık kesilmesin; ekran içeriği büyür */
-@media (max-width:420px) { html.buyuk-yazi .tb-pill { font-size:14px; } html.buyuk-yazi .tb-pill .pend { font-size:11px; } }
+@media (max-width:420px) { html.buyuk-yazi .tb-pill { font-size:14px; } }
 /* dar ekranlar */
 @media (max-width:360px) {
   .screen { padding-left:12px; padding-right:12px; }
@@ -1055,8 +1057,10 @@ body:has(.fr-banner) .ev-notice { top:calc(var(--sat) + 88px); }
 .tab.on .ti .ic .ic-fill { fill-opacity:.38; }
 .tb-pill.ico { width:40px; padding:0; justify-content:center; color:var(--cream); }
 .tb-pill.ico .ic { color:#ffe08a; }
-.tb-pills { min-width:0; }
-.tb-title { flex:1 1 auto; }
+/* üst çubukta başlık daralmaz: önce haplar sıkışır, yine sığmazsa haplar başlığın altına, sağa yaslı ikinci satıra iner;
+   sayı hiçbir genişlikte kısaltılmaz (YN-087, YN-124) */
+.tb-pills { min-width:0; max-width:100%; margin-left:auto; flex-wrap:wrap; justify-content:flex-end; row-gap:6px; }
+.tb-title { flex:1 0 auto; max-width:100%; }
 
 /* sohbet ekranları (Takım › Sohbet, Genel sohbet): ekran görünüme sabitlenir, mesaj listesi kalan yeri doldurur,
    giriş kutusu her zaman sekme çubuğunun (ya da açık klavyenin) hemen üstünde durur */
@@ -1118,9 +1122,9 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
 .pstat b { line-height:1.1; }
 .mh-pill .art, .tb-pill .art { flex:none; }
 .tb-pill { gap:4px; }
-/* üst çubuk sayıları: dar ekranda kısa biçim (4,3B), başlık okunur kalsın; haplar biraz sıkışır */
-.tb-pill .hn-d { display:none; }
-@media (max-width:360px) { .tb-pill .hn-w { display:none; } .tb-pill .hn-d { display:inline; } .tb-pill { gap:2px; padding:0 6px; } }
+/* telefon ve dar ekran: üst çubukta önce başlık değil haplar daralır (sayı her genişlikte tam, YN-087, YN-124) */
+@media (max-width:420px) { .tb-pills { gap:4px; } .tb-pill:not(.ico) { padding:0 6px; gap:3px; } .tb-pill.ico { width:36px; min-width:36px; } }
+@media (max-width:360px) { .tb-pills { gap:3px; } .tb-pill:not(.ico) { gap:2px; } .tb-pill.ico { width:32px; min-width:32px; } }
 .chip .art-inline { margin:0 .12em 0 0; }
 .ph-icon { display:flex; justify-content:center; }
 .sc-flame .art { filter:drop-shadow(0 0 12px rgba(255,159,28,.7)); }

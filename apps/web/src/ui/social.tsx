@@ -38,19 +38,19 @@ export function fmtDur(sec: number): string {
   return `${s} sn`;
 }
 export const fmtNum = (n: number) => Math.round(n).toLocaleString('tr-TR');
-/** üst çubuk hapları için kısa sayı (haritayla aynı dil): 9.999'a kadar tam, sonra 49B (bin, aşağı yuvarlanır), 1,2M.
- *  dar: dar ekranlarda (≤360 px) 1.000'den sonra kısalt (4,3B). Tam değer title/aria'da. */
-export const fmtHud = (n: number, dar = false) => {
+/**
+ * üst çubuk ve harita hapları için sayı: 99.999'a kadar tam (11.070), sonra "123 bin" (aşağı yuvarlanır), "1,2 mn".
+ * "B" kısaltması yok: Türkçede yerleşik değil, İngilizce "billion" gibi okunuyor (YN-087). Tam değer title/aria'da.
+ */
+export const fmtHud = (n: number) => {
   const v = Math.max(0, Math.round(n));
-  if (v < (dar ? 1000 : 10_000)) return v.toLocaleString('tr-TR');
-  if (v < 10_000) return `${(Math.floor(v / 100) / 10).toLocaleString('tr-TR')}B`;
-  if (v < 1_000_000) return `${Math.floor(v / 1000)}B`;
-  return `${(Math.floor(v / 100_000) / 10).toLocaleString('tr-TR')}M`;
+  if (v < 100_000) return v.toLocaleString('tr-TR');
+  if (v < 1_000_000) return `${Math.floor(v / 1000)} bin`;
+  return `${(Math.floor(v / 100_000) / 10).toLocaleString('tr-TR')} mn`;
 };
-/** hap sayısı: geniş ve dar biçim farklıysa ikisi de yazılır, CSS ekran genişliğine göre birini gösterir (üst çubuk ve harita) */
+/** hap sayısı (üst çubuk ve harita): her genişlikte aynı biçim; dar ekranda sayı değil hap aralıkları daralır */
 export function HudNum({ v }: { v: number }) {
-  const a = fmtHud(v); const b = fmtHud(v, true);
-  return a === b ? <>{a}</> : <><span className="hn-w">{a}</span><span className="hn-d">{b}</span></>;
+  return <>{fmtHud(v)}</>;
 }
 export { fmtTry } from '../shopPrice';
 export const fmtTime = (t: number) => new Date(t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });

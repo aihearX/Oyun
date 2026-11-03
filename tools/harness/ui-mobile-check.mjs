@@ -894,7 +894,8 @@ async function suite(browserName, target, [W, H]) {
       if (await b.count()) { await b.evaluate((el) => el.click()); await sleep(600); await check('kamp-bina', { scroll: false }); await page.getByRole('button', { name: 'Kapat' }).first().click().catch(() => undefined); await sleep(300); }
       const l = page.getByRole('button', { name: 'Liste görünümü' });
       if (await l.count()) { await l.click(); await sleep(600); await check('kamp-liste'); await back(); }
-      // büyük cüzdan (5 basamak jeton + 4 basamak kristal): ekran başlığı "K…" diye kesilmemeli (kısa sayı: 98B; ≤360 px'te kristal de 4,3B)
+      // büyük cüzdan (5 basamak jeton + 4 basamak kristal): ekran başlığı "K…" diye kesilmemeli; sayılar her genişlikte tam
+      // (98.765, 4.321; "B" kısaltması yok, YN-087): sığmazsa haplar başlığın altına iner
       const { DatabaseSync } = await import('node:sqlite');
       const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000'); sq.prepare('UPDATE players SET jeton = 98765, kristal = 4321').run(); sq.close();
       await tab('Harita'); await tab('Kamp'); await sleep(1500); await toastGone();
@@ -902,7 +903,7 @@ async function suite(browserName, target, [W, H]) {
       const rec = await check('kamp-buyuk-cuzdan', { scroll: false });
       const hud = await page.evaluate(() => ({ title: document.querySelector('.tb-title h1')?.textContent ?? '', j: document.querySelector('.tb-pill[data-hud="jeton"]')?.innerText ?? '', k: document.querySelector('.tb-pill[data-hud="kristal"]')?.innerText ?? '', w: [...document.querySelectorAll('.topbar2 .tb-title h1, .topbar2 .tb-pills > *')].map((e) => Math.round(e.getBoundingClientRect().width)) }));
       rec.hud = hud;
-      if (hud.j.trim() !== '98B' || hud.k.trim() !== (W <= 360 ? '4,3B' : '4.321')) fail(rec, `büyük cüzdan görünmedi: ${JSON.stringify(hud)}`);
+      if (hud.j.trim() !== '98.765' || hud.k.trim() !== '4.321') fail(rec, `büyük cüzdan tam görünmedi: ${JSON.stringify(hud)}`);
       // boş deniz (MK-028): kamp yeni açıldı (açılış yakınlaştırması); zemin dışı (deniz / gök) pay hem bütün tuvalde hem üst çubuk
       // ile sekme çubuğu arasındaki açık bantta ≤ %15
       await page.waitForFunction(() => window.__kamp?.still?.(), null, { timeout: 5000 }).catch(() => undefined);
@@ -919,7 +920,17 @@ async function suite(browserName, target, [W, H]) {
       else if (rec.bosDeniz.acik > 15 || rec.bosDeniz.tum > 15) fail(rec, `kampta boş deniz: açık bant %${rec.bosDeniz.acik}, tüm tuval %${rec.bosDeniz.tum} (en çok %15; yakınlaştırma ${rec.bosDeniz.zoom})`);
       { const b = rec.bosDeniz; console.log(`    boş deniz ${W}x${H}: açık bant %${b?.acik} · tüm tuval %${b?.tum} · yakınlaştırma ${b?.zoom} · doku ${b?.dokuMB} MB (eski kural: %${b?.eski?.acik} · %${b?.eski?.tum} · ${b?.eski?.zoom})`); }
       // aynı cüzdanla diğer sekme başlıkları da okunur kalmalı
-      for (const t of ['Bugün', 'Profil', 'Harita']) { await tab(t); await sleep(900); await toastGone(); await check(`buyuk-cuzdan-${t.toLocaleLowerCase('tr').replace('ü', 'u')}`, { scroll: false }); }
+      for (const t of ['Bugün', 'Profil', 'Harita']) {
+        await tab(t); await sleep(900); await toastGone(); const r = await check(`buyuk-cuzdan-${t.toLocaleLowerCase('tr').replace('ü', 'u')}`, { scroll: false });
+        // üst çubuk ve harita hapları aynı sayıyı tam yazar (YN-087: "98B" yok)
+        const hap = await page.evaluate(() => [...document.querySelectorAll('.tb-pill[data-hud], .mh-pill[data-hud]')].filter((e) => e.getBoundingClientRect().width > 0).map((e) => `${e.dataset.hud}:${e.innerText.trim()}`));
+        r.hap = hap;
+        if (hap.join('|') !== 'jeton:98.765|kristal:4.321') fail(r, `büyük cüzdan hapları tam değil: ${JSON.stringify(hap)}`);
+        // harita camı kırpar (taşma denetimi görmez): her hap camın içinde kalmalı
+        const tasan = await page.evaluate(() => { const h = document.querySelector('.map-hud'); if (!h || !h.getBoundingClientRect().width) return []; const hr = h.getBoundingClientRect();
+          return [...h.children].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.left < hr.left - 0.5 || r.right > hr.right + 0.5); }).map((e) => (e.getAttribute('aria-label') || e.className).slice(0, 30)); });
+        if (tasan.length) fail(r, `harita camından taşan hap: ${tasan.join(', ')}`);
+      }
     }
     if (want('takim')) {
       // takım bulma ve başvuru (docs/16-takim-rekabeti.md §5): gerçek ikinci oyuncu başvuruyla üye alan bir takım kurar

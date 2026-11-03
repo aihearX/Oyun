@@ -5,7 +5,7 @@ import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, explainRe
 import { useStore } from '../store';
 import { platform } from '../platform';
 import { inviteUrl } from '../invite';
-import { Bar, RewardChips, RewardGlyph, ownItems, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
+import { Bar, RewardChips, RewardGlyph, claimedText, ownItems, rewardLabel, rewardPlain, swapText, withSwapRows } from '../ui/bits';
 import { celebrate } from '../celebrate';
 import { chestTierFor } from '../celebrate/CelebrationLayer';
 import { TopBar } from '../ui/social';
@@ -76,8 +76,9 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         </div>
         <div className="cal-today">
           <div className="grow min0">
-            {cal.claimedToday && calToday.swaps.map((w, i) => <div className="muted cal-swap" key={`b${i}`}>Bugün: {swapText(w, true)}</div>)}
-            <div className="muted">{cal.claimedToday ? 'Bugünün ödülü alındı. Yarın:' : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
+            {/* alındıktan sonra dönüşüm varsa tek cümle: toplam ve parçaları (YN-138) */}
+            {cal.claimedToday && calToday.swaps.length > 0 && <div className="muted cal-swap" data-testid="takvim-alindi">{claimedText('Bugün', calToday.reward, calToday.swaps)}</div>}
+            <div className="muted">{cal.claimedToday ? (calToday.swaps.length ? 'Yarın:' : 'Bugünün ödülü alındı. Yarın:') : `Bugün (${cal.dayIndex + 1}. gün):`}</div>
             <RewardChips items={ownItems(calShown.reward, calShown.swaps)} small />
             {calShown.swaps.map((w, i) => <div className="muted cal-swap" key={i}>{swapText(w)}</div>)}</div>
           <button className="btn small" disabled={cal.claimedToday || s.lastDay !== today} onClick={() => openChest(`Takvim · ${cal.dayIndex + 1}. gün`, s.claimCalendar(), calToday.swaps, !!calToday.big)}>{cal.claimedToday ? 'Alındı' : 'Al'}</button>

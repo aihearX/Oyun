@@ -73,6 +73,10 @@ export const FRESH_FTUE: FtueState = { v: 1, story: false, tours: [] };
 export function clearedCount(progress: Record<number, { stars: number } | undefined>): number {
   let n = 0; while (progress[n + 1] && progress[n + 1]!.stars > 0) n++; return n;
 }
+/** geçilen farklı bölüm sayısı (1..total arasında yıldızlı olanlar): aynı bölümün tekrarı sayılmaz (Profil "40/40 bölüm", YN-048) */
+export function passedCount(progress: Record<number, { stars: number } | undefined>, total: number): number {
+  let n = 0; for (let i = 1; i <= total; i++) if ((progress[i]?.stars ?? 0) > 0) n++; return n;
+}
 
 /**
  * Kayıttan gelen durumu doğrula. Eski kayıt (ftue alanı yok) ama ilerlemesi olan oyuncu: hikâye ve şimdiye kadar

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { COSMETICS, DAILY_CHEST_BASE, DEFAULT_SKILLS, MAX_STREAK_SHIELDS, TIER_REWARD } from '@odi/content';
 import { calendarView, claimCalendar, defaultMeta, explainReward, rewardSum, settle, type PlayerCore } from '@odi/meta';
 import { toastsFor } from './store';
-import { ownItems, swapText, withSwapRows } from './ui/bits';
+import { claimedText, ownItems, swapText, withSwapRows } from './ui/bits';
 
 const DAY = '2026-11-02'; const NOW = new Date(2026, 10, 2, 12).getTime();
 const core = (meta = defaultMeta()): PlayerCore => ({ progress: {}, coins: 4572, xp: 0, streak: 3, lastDay: DAY, failStreak: 0, skills: { ...DEFAULT_SKILLS }, meta });
@@ -34,6 +34,23 @@ describe('cüzdan artışı = gösterilen satırlar', () => {
     const rows = withSwapRows(r.applied, swaps);
     expect(rows).toEqual([{ kind: 'jeton', amount: 20 }, { kind: 'jeton', amount: 50, label: 'Kulaklı Bere zaten dolabında' }]);
     expect(rows.reduce((a, x) => a + x.amount, 0)).toBe(r.core.coins - c.coins);
+    // alındıktan sonra Bugün'deki satır: toplam ve parçaları (YN-138)
+    const d = calendarView(r.core, DAY).days[2]!;
+    expect(d.state).toBe('alindi'); expect(d.swaps.map((w) => swapText(w, true))).toEqual(['Kulaklı Bere zaten dolabındaydı, yerine 50 jeton']);
+    expect(claimedText('Bugün', d.reward, d.swaps)).toBe('Bugün +70 jeton alındı (20 + Kulaklı Bere zaten dolabındaydı, yerine 50)');
+  });
+  it('takvim 4. gün, koruyucu dolu: alındıktan sonra tek cümlede +50 = 20 + yerine 30 (OT-ekonomi-denetci-31)', () => {
+    const m = defaultMeta(); m.shields = MAX_STREAK_SHIELDS;
+    const c = { ...core(m), streak: 4 };
+    const before = calendarView(c, DAY).days[3]!;
+    expect(before.swaps.map((w) => swapText(w))).toEqual(['Seri koruyucun dolu: yerine +30 jeton']); // önizleme aynı kalır
+    const r = claimCalendar(c, DAY, NOW)!;
+    const d = calendarView(r.core, DAY).days[3]!;
+    const got = r.core.coins - c.coins;
+    expect(d.state).toBe('alindi');
+    expect(claimedText('Bugün', d.reward, d.swaps)).toBe(`Bugün +${got} jeton alındı (${got - 30} + seri koruyucun zaten doluydu (${MAX_STREAK_SHIELDS}/${MAX_STREAK_SHIELDS}), yerine 30)`);
+    expect(got).toBe(50);
+    expect(claimedText('Bugün', d.reward, [])).toBeNull();
   });
   it('günlük sandık önizlemesi, koruyucu dolu: çipte sandığın 50 jetonu, ayrı satırda +30; açılışta aynı iki kutu (OT-eski-telefon-21)', () => {
     const m = defaultMeta(); m.shields = MAX_STREAK_SHIELDS;

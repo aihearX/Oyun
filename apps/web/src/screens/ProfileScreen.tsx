@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ACHIEVEMENTS, CARDS, COSMETICS } from '@odi/content';
+import { ACHIEVEMENTS, CARDS, COSMETICS, HUMAN_JOURNEY } from '@odi/content';
 import { albumProgress, levelProgress } from '@odi/meta';
 import { odiLook } from '../look';
 import { useNet } from '@odi/net/store';
@@ -16,7 +16,7 @@ import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
 import { Art, TeamEmblem, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
-import { clearedCount, type FeatureId } from '../ftue/features';
+import { clearedCount, passedCount, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
 import { CodeSheet } from '../codes/Codes';
 import { reachedRegions } from './GlossaryScreen';
@@ -31,6 +31,8 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const dms = useFriends((x) => x.dmUnread); const reqs = useFriends((x) => x.incoming.length);
   const [rename, setRename] = useState(false); const [codeSheet, setCodeSheet] = useState(false);
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
+  // geçilen farklı bölüm (stats.clears tekrarları da sayıyordu: 40/40'ta "41 bölüm", OT-ekonomi-denetci-29)
+  const levels = HUMAN_JOURNEY.levels.length; const passed = passedCount(s.progress, levels);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
   const album = albumProgress(s.meta.cards);
   const glossOpen = useMemo(() => { const r = reachedRegions(clearedCount(s.progress)); return GLOSSARY.filter((g) => r.has(g.region)).length; }, [s.progress]);
@@ -47,7 +49,9 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
       <div className="card profile-hero">
         <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><Cerceve p={me} size={88}><OdiAvatar size={88} color={look.color} hat={look.hat} /></Cerceve><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
         <div className="grow min0">
-          <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{online && <IconButton icon="pencil" label="Takma adı değiştir" tone="gold" small onClick={() => setRename(true)} />}</h2>
+          <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{me && <IconButton icon="pencil" label={online ? 'Takma adı değiştir' : 'Takma adı değiştir: bağlanınca değiştirebilirsin'} tone="gold" small disabled={!online} onClick={() => setRename(true)} data-testid="ad-degistir" />}</h2>
+          {/* çevrimdışıyken düğme kaybolmaz, devre dışı ve nedeni yazılı (YN-142) */}
+          {me && !online && <div className="muted small-note" data-testid="ad-cevrimdisi">Bağlanınca değiştirebilirsin</div>}
           <RozetCipleri p={me} />
           <Bar value={lp.pct} label="Seviye ilerlemesi" />
           <div className="muted small-note">{s.xp - lp.from}/{lp.to - lp.from} XP · sonraki seviyeye {lp.to - s.xp} XP</div>
@@ -55,9 +59,9 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         </div>
       </div>
       <div className="pstats">
-        {stat('star', stars, 'yıldız')}{stat('flag', s.meta.stats.clears, 'bölüm')}{stat('coin', fmtNum(s.coins), pending > 0 && st !== 'bağlı' ? `jeton · ${pending} bekleyen` : 'jeton')}{stat('flame', Math.max(s.streak, 0), 'gün serisi')}{wallet ? stat('crystal', fmtNum(wallet.kristal), 'kristal') : stat('bolt', `×${s.meta.stats.maxCombo}`, 'jeton serisi rekoru')}{stat('shield', `${s.meta.shields}${s.teamShields ? ` +${s.teamShields}` : ''}`, s.teamShields ? 'koruyucu + kalkan' : 'koruyucu')}
+        {stat('star', stars, 'yıldız')}{stat('flag', `${passed}/${levels}`, 'bölüm')}{stat('coin', fmtNum(s.coins), pending > 0 && st !== 'bağlı' ? `jeton · ${pending} bekleyen` : 'jeton')}{stat('flame', Math.max(s.streak, 0), 'gün serisi')}{wallet ? stat('crystal', fmtNum(wallet.kristal), 'kristal') : stat('bolt', `×${s.meta.stats.maxCombo}`, 'jeton serisi rekoru')}{stat('shield', `${s.meta.shields}${s.teamShields ? ` +${s.teamShields}` : ''}`, s.teamShields ? 'koruyucu + kalkan' : 'koruyucu')}
       </div>
-      {online && feat.open('league') && <LeagueCard onOpen={() => onOpen('league')} />}
+      {me && feat.open('league') && <LeagueCard offline={!online} onOpen={() => onOpen('league')} />}
       <div className="menu-grid">
         <button className={tileCls('friends')} data-tile="friends" onClick={guard('friends', () => onOpen('friends'))}><span className="mi teal rel"><Icon name="friends" />{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b>{lockNote('friends') ?? <span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span>}</button>
         <button className={tileCls('friends')} data-tile="messages" onClick={guard('friends', () => nav.open({ name: 'messages' }))}><span className="mi teal rel"><Icon name="chat" />{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b>{lockNote('friends') ?? <span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span>}</button>

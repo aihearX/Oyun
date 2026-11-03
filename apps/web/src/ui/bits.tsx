@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { RewardItem } from '@odi/content';
-import { cardById, cosmeticById } from '@odi/content';
+import { MAX_STREAK_SHIELDS, cardById, cosmeticById } from '@odi/content';
 import type { RewardSwap } from '@odi/meta';
 import { IconButton } from './Button';
 import { Glyph, rich } from './art';
@@ -48,11 +48,28 @@ export function rewardLabel(it: RewardItem): string {
 /**
  * Zaten sahip olunan şeyin jetona dönüşmesi (önceden yazılı karşılık). Önizlemede: "Kulaklı Bere zaten sende: yerine +50 jeton"
  * (çiplerde bu jeton yok: `ownItems`); açılış penceresinde ayrı satır: "Kulaklı Bere zaten dolabında" ×50 (OT-ekonomi-denetci-20).
+ * Alındıktan sonra (done): "seri koruyucun zaten doluydu (2/2), yerine 30 jeton" — `claimedText` cümlesinin parçası.
  */
 export function swapText(w: RewardSwap, done = false): string {
-  if (w.from.kind === 'koruyucu') return done ? `Seri koruyucun doluydu: +${w.jeton} jeton` : `Seri koruyucun dolu: yerine +${w.jeton} jeton`;
-  if (done) return `${swapName(w)} zaten ${w.from.kind === 'kart' ? 'albümündeydi' : 'dolabındaydı'}: +${w.jeton} jeton`;
+  if (done) return `${swapWas(w)}, yerine ${w.jeton} jeton`;
+  if (w.from.kind === 'koruyucu') return `Seri koruyucun dolu: yerine +${w.jeton} jeton`;
   return `${swapName(w)} zaten sende: yerine +${w.jeton} jeton`;
+}
+/** alınmış ödülde dönüşen kalemin geçmiş zamanlı adı: "seri koruyucun zaten doluydu (2/2)", "Kulaklı Bere zaten dolabındaydı" */
+function swapWas(w: RewardSwap): string {
+  if (w.from.kind === 'koruyucu') return `seri koruyucun zaten doluydu (${MAX_STREAK_SHIELDS}/${MAX_STREAK_SHIELDS})`;
+  return `${swapName(w)} zaten ${w.from.kind === 'kart' ? 'albümündeydi' : 'dolabındaydı'}`;
+}
+/**
+ * alınmış ödülün jeton cümlesi, toplam ve parçalarıyla (YN-138): "Bugün +50 jeton alındı (20 + seri koruyucun zaten doluydu (2/2),
+ * yerine 30)". Toplam verilen kalemlerden (dönüşen jeton içinde), parçalar dönüşümlerden; dönüşüm yoksa null.
+ */
+export function claimedText(when: string, items: RewardItem[], swaps: RewardSwap[]): string | null {
+  if (!swaps.length) return null;
+  const total = items.filter((i) => i.kind === 'jeton').reduce((a, i) => a + i.amount, 0);
+  const base = total - swaps.reduce((a, w) => a + w.jeton, 0);
+  const parts = [...(base > 0 ? [String(base)] : []), ...swaps.map((w) => `${swapWas(w)}, yerine ${w.jeton}`)];
+  return `${when} +${total} jeton alındı (${parts.join(' + ')})`;
 }
 /** ödül kaleminin düz yazısı (ekran okuyucu): "20 jeton", "Kulaklı Bere" */
 export function rewardPlain(it: RewardItem): string {

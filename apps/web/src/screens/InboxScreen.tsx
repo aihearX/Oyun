@@ -64,10 +64,22 @@ export function leagueRuleText(tier: LeagueTier, n: number, up: number, down: nu
 }
 
 /** Profildeki haftalık lig kartı */
-export function LeagueCard({ onOpen }: { onOpen: () => void }) {
+/** son bilinen lig durumu: çevrimdışıyken Profil'deki lig satırı bununla gri görünür (YN-142) */
+let lastLeague: LeagueState | null = null;
+export function LeagueCard({ onOpen, offline = false }: { onOpen: () => void; offline?: boolean }) {
   const st = useNet((s) => s.status);
-  const [lg, setLg] = useState<LeagueState | null>(null); const now = useNow(30_000);
-  useEffect(() => { if (st === 'bağlı') void getNet()?.call('league.state', {}).then((r) => setLg(r.league)).catch(() => undefined); }, [st]);
+  const [lg, setLg] = useState<LeagueState | null>(lastLeague); const now = useNow(30_000);
+  useEffect(() => { if (st === 'bağlı') void getNet()?.call('league.state', {}).then((r) => { lastLeague = r.league; setLg(r.league); }).catch(() => undefined); }, [st]);
+  // çevrimdışı: satır kaybolmaz; son bilinen değer gri, Kamp'taki "Bağlanınca başlayacak" diliyle
+  if (offline) return (
+    <div className="card league-card off" data-testid="lig-cevrimdisi" aria-disabled="true">
+      <span className="lg-tier" aria-hidden><Glyph e={lg ? TIER[lg.tier].icon : '🏆'} size={40} /></span>
+      <span className="grow min0"><b>{lg ? `${TIER[lg.tier].name} Ligi · ${lg.rank}. sıra` : 'Haftalık lig'}</b>
+        <span className="muted">{lg ? `${fmtNum(lg.points)} puan · son bilinen` : 'Sıran bağlanınca görünecek'}</span>
+        <span className="lg-zone">Çevrimdışı · bağlanınca güncellenecek</span>
+      </span>
+    </div>
+  );
   if (!lg) return null;
   const t = TIER[lg.tier]; const n = lg.group.length;
   const zone = lg.rank <= lg.promoteTop && lg.tier !== 'koklea' ? 'up' : lg.tier !== 'bronz' && lg.rank > Math.max(lg.promoteTop, n - lg.demoteBottom) ? 'down' : 'safe';
