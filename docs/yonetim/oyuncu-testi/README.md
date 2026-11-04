@@ -212,6 +212,9 @@ günlüklerden bulur.
   (uygulama anormal kapanış görür; bağlantı noktası griye döner); `ag ac` ağı geri getirir, uygulama kendisi yeniden bağlanır.
   Service worker kapalı olduğundan çevrimdışıyken önceden indirilmemiş ekran açılmaz ("İnternet yok", bağlanınca kendiliğinden açılır);
   yayındaki web sürümünde service worker parçaları önbellekten verir.
+  Haritadaki bölüm "Dokun ve başla" ekranı bot kipinde atlanır (bölüm hemen başlar): bölüm başı şeridi (3. yıldız koşulu, eklenen
+  kalkan; YN-176) yalnız koşunun ilk ~4 sn'sinde görünür ve ara karelere düşmeyebilir; koşulu haritadaki düğüm kartında ya da sonuçta
+  görürsün. Bu bir hata değildir.
   Komutlar arasında sayfa donuk durur (canlandırmalar, Phaser), ama zamanlayıcılar sürer: sen bakarken açılan Tüy Dede turu ya da
   pencere donukken görünmez kalabilir. Eylem komutu (`dokun`, `yaz`, `kaydir`, `surukle`, `geri`) son ekrandan beri yeni bir katman
   belirdiyse eylemi yapmaz, ekranı gösterir ve "Sen bakarken Tüy Dede konuşmaya başladı; dokunuş yapılmadı" notunu yazar (gerçek
