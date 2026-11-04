@@ -44,6 +44,18 @@ export function rewardLabel(r: CampLevelReward): string {
     case 'yer': return `+${r.n} süs yeri`;
   }
 }
+/**
+ * Kutlama penceresinin ödül satırları: önemli ödüller önce (arazi, bina, kozmetik, çanta), en çok 6 satır; kalanı panelde.
+ * Unvan yalnız bu seviyelerden birinde değiştiyse yazılır: değişmeyen unvan ödül değildir (OT-ekonomi-denetci-38).
+ */
+export function seviyeSatirlari(levels: readonly number[]): string[] {
+  const all = levels.flatMap((l) => campLevelRewards(l));
+  const order = { arazi: 0, bina: 1, kozmetik: 2, canta: 3, yer: 4, sus: 5, unvan: 6 } as const;
+  const rest = all.filter((r) => r.kind !== 'unvan').sort((a, b) => order[a.kind] - order[b.kind]);
+  const shown = rest.slice(0, 6);
+  const unvan = all.some((r) => r.kind === 'unvan') ? campTitle(levels[levels.length - 1]!) : null;
+  return [...(unvan ? [`Unvan: ${unvan}`] : []), ...shown.map(rewardLabel), ...(rest.length > shown.length ? [`ve ${rest.length - shown.length} ödül daha (Kamp Seviyesi panelinde)`] : [])];
+}
 export const rewardIcon = (r: CampLevelReward): ArtName => ({ arazi: 'map', bina: 'tent', sus: 'gift', kozmetik: 'hat', canta: 'chest', unvan: 'crown', yer: 'plus' } as const)[r.kind];
 
 /**
@@ -79,20 +91,14 @@ export function useCampLevelCelebration(owner: string | null | undefined, camp: 
     // çok büyük sıçrama (ör. yönetici/eşitleme) bir kutlama değil, eşitlemedir: sessizce görülmüş sayılır (built.ts ile aynı ilke)
     if (!levels.length || levels.length > 5) return;
     const top = levels[levels.length - 1]!;
-    const all = levels.flatMap((l) => campLevelRewards(l));
-    // önemli ödüller önce (arazi, bina, kozmetik, çanta), en çok 6 satır; kalanı panelde
-    const order = { arazi: 0, bina: 1, kozmetik: 2, canta: 3, yer: 4, sus: 5, unvan: 6 } as const;
-    const sorted = [...all].sort((a, b) => order[a.kind] - order[b.kind]);
-    const rewards = sorted.slice(0, 6);
-    const land = all.find((r) => r.kind === 'arazi');
+    const land = levels.flatMap((l) => campLevelRewards(l)).find((r) => r.kind === 'arazi');
     const wait: Bekleyen = { owner, top, prev: levels[0]! - 1, h: undefined };
     bekleyen.add(wait);
     wait.h = setTimeout(() => {
       bekleyen.delete(wait);
       platform().haptic('success'); audio.play('fanfare');
-      const more = all.filter((r) => r.kind !== 'unvan').length - rewards.filter((r) => r.kind !== 'unvan').length;
       const tap = tabTapUnder();
-      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: [`Unvan: ${campTitle(top)}`, ...rewards.filter((r) => r.kind !== 'unvan').map(rewardLabel), ...(more > 0 ? [`ve ${more} ödül daha (Kamp Seviyesi panelinde)`] : [])] })
+      void celebrate.levelUp({ level: top, kicker: 'KAMP', title: `Kamp Seviyesi ${top}!`, unlocks: seviyeSatirlari(levels) })
         .then(() => openTab(tap.stop()));
       // aynı anda bir bina da bittiyse Tüy Dede önce binanın satırını bitirsin
       const dede = () => { if (land && land.kind === 'arazi') sayDede(`kamp-bolge-${land.district}`, `Yeni arazi · ${districtById(land.district)?.name ?? ''}`, districtById(land.district)?.plain); else sayDede('kamp-seviye-up', `Kamp Seviyesi ${top}`); };

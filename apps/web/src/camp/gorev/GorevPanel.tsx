@@ -11,6 +11,7 @@ import { TuyDede } from '../../ftue/Narrator';
 import { lineText } from '../../ftue/script';
 import { speakLine, stopVoiceIf } from '../../ftue/voice';
 import { Art } from '../../ui/art';
+import { BEKLEYEN_AL, BekleyenSatir } from '../../ui/bekleyen';
 import { fmtLeft, useNow } from '../../ui/social';
 import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
@@ -25,6 +26,10 @@ const from = (e: MouseEvent<HTMLElement>) => { const r = e.currentTarget.getBoun
 
 export function OdulChips({ r, small }: { r: KampOdul; small?: boolean }) {
   return <span className={`kg-odul${small ? ' small' : ''}`}>{odulMetni(r).map((t) => <i key={t} className="kg-odul-chip">{t}</i>)}</span>;
+}
+/** bağlantı yokken basılan "Al": ödülün kartında "Bağlanınca alınacak" (OT-eski-telefon-26) */
+function AlBekliyor({ r }: { r: string }) {
+  return useKg((x) => x.bekleyen) === r ? <BekleyenSatir text={BEKLEYEN_AL} /> : null;
 }
 export function sekmeRozet(s: KgState): Record<GorevSekme, number> {
   const tiers = (t: KgBasamak[]) => t.filter((x) => x.reached && !x.claimed).length;
@@ -116,7 +121,7 @@ function Hikaye({ s }: { s: KgState }) {
       </div>
       <div className="kg-adimlar">{c.steps.map((t) => <Adim key={t.id} t={t} />)}</div>
       <div className="kg-claim-row">
-        <div className="grow min0"><small>Bölüm ödülü</small><OdulChips r={c.reward} small /></div>
+        <div className="grow min0"><small>Bölüm ödülü</small><OdulChips r={c.reward} small /><AlBekliyor r={c.ref} /></div>
         <button className="btn gold" data-testid="kg-al" data-ref={c.ref} disabled={!c.done || busy === c.ref} onClick={(e) => void claim(e)}>{c.done ? 'Ödülü al' : `${c.steps.filter((x) => x.done).length}/${c.steps.length}`}</button>
       </div>
       {s.story.next && <small className="kg-note">Sonra: Bölüm {s.story.next.no} · {s.story.next.title}</small>}
@@ -164,6 +169,7 @@ function Gunluk({ s }: { s: KgState }) {
             <div className="grow min0"><b>{t.text}</b>
               {t.locked && !t.done ? <small className="kg-kilit"><Art name="lock" size={14} /> {t.locked}</small> : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.round((t.progress / t.need) * 100)}%` }} /></div><small>{t.progress}/{t.need}</small></div>}
               {t.reward && <OdulChips r={t.reward} small />}
+              <AlBekliyor r={t.ref} />
               {!t.done && hak > 0 && sor !== t.id && <button type="button" className="kg-degis" data-testid="kg-degistir" disabled={!!degis} onClick={() => { audio.play('tap'); setSor(t.id); }}><Art name="refresh" size={14} /> Değiştir</button>}
               {!t.done && hak > 0 && sor === t.id && (
                 <div className="kg-degis-onay" role="group" aria-label="Görev değiştirme onayı" data-testid="kg-degistir-soru">
@@ -196,6 +202,7 @@ function Haftalik({ s }: { s: KgState }) {
           <div key={t.ref} className={`kg-tier-box${t.claimed ? ' claimed' : t.reached ? ' ready' : ''}`}>
             <small>{i + 1}. basamak · {t.need}</small><OdulChips r={t.reward} small />
             {t.claimed ? <span className="kg-alindi">Alındı</span> : t.reached ? <button className="btn small gold" data-testid="kg-al" data-ref={t.ref} disabled={busy === t.ref} onClick={(e) => void claimKg(t.ref, `Haftalık hedef: ${i + 1}. basamak`, { from: from(e), big: i === 2 })}>Al</button> : <span className="kg-kalan">{t.need - w.progress} kaldı</span>}
+            <AlBekliyor r={t.ref} />
           </div>
         ))}
       </div>
@@ -222,7 +229,7 @@ function Etkinlik({ s }: { s: KgState }) {
           <div className="kg-sec-head"><b><KgIcon name="takim" size={20} /> Takım kliniği</b><small>bu hafta</small></div>
           <div className="kg-hafta-text">Takımca ilk kez çözülen vaka: <b>{s.takim.progress}/{s.takim.need}</b></div>
           <div className="kg-bar"><i style={{ width: `${Math.min(100, Math.round((s.takim.progress / s.takim.need) * 100))}%` }} /></div>
-          <div className="kg-claim-row"><div className="grow min0"><OdulChips r={s.takim.reward} small />{!s.takim.contributed && <small className="kg-note">Ödül için bu hafta en az bir vaka çöz.</small>}</div>
+          <div className="kg-claim-row"><div className="grow min0"><OdulChips r={s.takim.reward} small />{!s.takim.contributed && <small className="kg-note">Ödül için bu hafta en az bir vaka çöz.</small>}<AlBekliyor r={s.takim.ref} /></div>
             {s.takim.claimed ? <span className="kg-alindi">Alındı</span> : <button className="btn small gold" data-testid="kg-al" data-ref={s.takim.ref} disabled={!s.takim.reached || !s.takim.contributed || busy === s.takim.ref} onClick={(e) => void claimKg(s.takim!.ref, 'Takım kliniği hedefi!', { from: from(e) })}>Al</button>}</div>
         </div>
       )}
@@ -247,6 +254,7 @@ function Basari({ s }: { s: KgState }) {
               {a.locked && !ready ? <small className="kg-kilit"><Art name="lock" size={14} /> {a.locked}</small>
                 : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.min(100, Math.round((a.progress / target.need) * 100))}%` }} /></div><small>{Math.min(a.progress, target.need)}/{target.need}</small></div>}
               {next && <OdulChips r={next.reward} small />}
+              {ready && <AlBekliyor r={ready.ref} />}
             </div>
             {ready ? <button className="btn small gold" data-testid="kg-al" data-ref={ready.ref} disabled={busy === ready.ref} onClick={(e) => void claimKg(ready.ref, `Başarı: ${a.title}`, { from: from(e), big: !!ready.reward.dekor })}>Al</button>
               : !next ? <Art name="trophy" size={26} /> : null}

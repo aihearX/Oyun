@@ -195,6 +195,8 @@ export const INBOX_TEXT = {
   rank: (board: string, team: boolean, rank: number) => (team ? `Takımın ${board} sıralamasında geçen hafta ${rank}. oldu` : `${board} sıralamasında geçen hafta ${rank}. oldun`),
   /** bölge ödülü kristal ve jeton olarak iki satır: aynı başlıkla durmasınlar */
   war: (week: string, region: string, kind: InboxKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
+  /** yardım ettiğin oyuncu bölümü geçti (neye teşekkür edildiği yazılır); silinmiş hesapta ad yerine "bir oyuncu" (OT-ilk-kez-oyun-56) */
+  helped: (name: string, level: number) => `Yardım ettiğin ${name === DELETED_PLAYER_NAME ? 'bir oyuncu' : name} ${level}. bölümü geçti`,
 };
 /**
  * Takım hediyeli paket satın alınınca takıma giden duyuru ve hediye kartı ADSIZDIR (karar 39, YN-097):
@@ -228,6 +230,8 @@ export function inboxReasonText(it: Pick<InboxItem, 'reason' | 'kind'>): string 
   m = /^Sıralama: (.+) · geçen hafta (\d+)\.$/.exec(r);
   if (m) { const name = m[1]; const b = RANK_BOARDS.find((x) => x.name === name); if (b) return INBOX_TEXT.rank(b.name, b.team, Number(m[2])); }
   m = /^Bölge Savaşı (\d{4}-W\d{2}): (.+) bölgesi sizin$/.exec(r); if (m) return INBOX_TEXT.war(m[1]!, m[2]!, it.kind);
+  // eski "Teşekkür: ‹ad› N. bölümü geçti" ve hesabı sonradan silinen ("Silinmiş Oyuncu") yardım satırı
+  m = /^(?:Teşekkür: |Yardım ettiğin )(.+) (\d+)\. bölümü geçti$/.exec(r); if (m) return INBOX_TEXT.helped(m[1]!, Number(m[2]));
   return r;
 }
 

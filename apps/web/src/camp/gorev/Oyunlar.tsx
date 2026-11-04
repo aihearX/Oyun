@@ -74,7 +74,7 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
           {oyun === 'ton' && !sesAcik ? (
             <div className="kg-ses-kapali" data-testid="ton-ses-kapali" role="note">
               <b><Art name="ear" size={18} /> Ton Avı sesle oynanır: sesi aç (Ayarlar › Ses)</b>
-              <span>Oyun sesi kapalı ya da çok kısık. Kulaklıkla oynamanı öneririz.</span>
+              <span>Oyun sesi kapalı ya da çok kısık. Kulaklıkla ya da işitme cihazın telefondan doğrudan ses alıyorsa (Bluetooth) onunla oynayabilirsin.</span>
               <button className="btn" data-testid="ton-sesi-ac" onClick={() => { acSes(); audio.play('tap'); }}>Sesi aç</button>
               {timp?.open && <>
                 <span data-testid="ton-ortak-hak">Sesle oynayamıyorsan Ton Avı’nın ödüllü turları Timpanogram Eşleştir’de de sayılır; günün toplam ödülü aynı kalır.</span>

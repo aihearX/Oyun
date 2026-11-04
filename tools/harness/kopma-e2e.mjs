@@ -12,6 +12,7 @@
 //               runId ile yeniden gönderilir → ödül tek (progress_runs 1, jeton bir kez), sonuç ekranı katkı satırlarını gösterir.
 //   kamp    (a) inşaat sürerken + sıraya alınırken (yanıt kaybolur) SIGTERM; sunucu kapalıyken inşaat biter → sıradaki inşaat bitiş
 //               anında başlar; sonra kopukken "kristalle bitir" → bağlanınca bir kez işlenir.
+//               Kopukken açılan Klinik "İnternet yok" der, bağlanınca pencere kapatılmadan yüklenir (YN-188).
 //   sohbet  (c) takım sohbetine kopukken yazılan ileti bağlanınca bir kez gider; yanıtı kaybolan ileti aynı cid ile yeniden
 //               denenir (tek kayıt); kopukken başkasının yazdığı ileti yeniden katılımda gelir; uzun kopuklukta açık hata, metin kutuda kalır.
 //   cuzdan  (f) görev/başarım jetonu outbox'ı (MK-035): wallet.local yanıtı kaybolur + ağ kopar / sunucu çöker; aracı HIZ, ZAMAN_ASIMI,
@@ -480,6 +481,22 @@ async function suiteKamp(A) {
   const j4 = q1('SELECT jeton FROM players WHERE id = ?', A.pid).jeton;
   check(mz.upgrading_to === m0 + 1 && j3 - j4 > 0 && !(await A.page.getByTestId('bekleyen-insaat').count()), `bağlanınca yükseltme bir kez başladı (Merkez → Sv ${m0 + 1}, ${j3 - j4} jeton), bekliyor yazısı kalktı`);
   await consistent(A, 'kamp/yukselt');
+
+  step('(a4) Kopukken Klinik açılır (YN-188, OT-eski-telefon-32): "İnternet yok"; bağlanınca hastalar kendiliğinden gelir');
+  await toastGone(A);
+  const vakaYok = await A.page.evaluate(() => window.__kg?.state().vaka == null);
+  const klinik = A.page.getByTestId('klinik-panel');
+  await outage('klinik', { sig: 'SIGTERM', players: [A], bannerOf: (P) => P.page.locator('.net-banner.camp-net'),
+    whileDown: async () => {
+      await A.page.evaluate(() => window.__kg.open({ kind: 'klinik', tab: 'salon' }));
+      const off = await klinik.getByTestId('klinik-cevrimdisi').waitFor({ timeout: 5000 }).then(() => true, () => false);
+      check(!vakaYok || off, `kopukken Klinik: "İnternet yok · bağlanınca hastalar gelir"${vakaYok ? '' : ' (vaka önceden yüklü: denetim atlandı)'}`);
+      await shot(A, 'klinik-kopuk');
+    } });
+  const geldi = await klinik.locator('.kg-salon, .kg-locked').first().waitFor({ timeout: 15_000 }).then(() => true, () => false);
+  check(geldi && !(await klinik.getByText('Klinik yükleniyor').count()) && !(await klinik.getByTestId('klinik-cevrimdisi').count()), 'bağlanınca Klinik pencere kapatılmadan kendiliğinden yüklendi');
+  await shot(A, 'klinik-sonra');
+  await A.page.evaluate(() => window.__kg.open(null));
   await shot(A, 'kamp-sonra');
   return { ...t1, kristal: t2[A.tag] };
 }

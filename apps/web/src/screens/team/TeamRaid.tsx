@@ -28,7 +28,7 @@ export function TeamRaid() {
         <div className="monster" aria-hidden><Art name="monster" size={88} className={defeated ? 'defeated' : undefined} />{hit > 0 && <span className="dmg">−{hit}</span>}</div>
         <div className="hp-row"><Bar value={pct} tone="coral" label="Canavarın canı" /><span className="qn">{fmtNum(raid.hp)}/{fmtNum(raid.maxHp)}</span></div>
         <div className="muted small-note">
-          {rich(defeated ? `Yenildi! Süre: ${Math.max(1, Math.round((raid.defeatedAt! - raid.opensAt) / 60_000))} dk. Herkesin hediye kutusuna 💎 30 + 🪙 200 düştü.`
+          {rich(defeated ? `Yenildi! Süre: ${Math.max(1, Math.round((raid.defeatedAt! - raid.opensAt) / 60_000))} dk. Herkese 💎 30 + 🪙 200 takım hediyesi düştü: Takım › Hediyeler.`
             : raid.open ? 'Her tamamlanan bölüm vurur: 5 + 5 × yıldız hasar, boss bölümlerinde iki kat. Can: 400 + 120 × üye.'
             : `Pencere: Cuma 20:00 – Cumartesi 20:00 (${fmtDate(raid.opensAt)}). Hazırlanın: teknolojide “Baskın Gücü” hasarı artırır.`)}
         </div>

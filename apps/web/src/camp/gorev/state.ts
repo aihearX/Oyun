@@ -12,6 +12,7 @@ import { audio } from '@odi/audio';
 import { celebrate, type RewardItem } from '../../celebrate';
 import { platform } from '../../platform';
 import { act } from '../../net';
+import { cevrimdisi } from '../../ui/bekleyen';
 import { useStore } from '../../store';
 
 export type GorevSekme = 'hikaye' | 'gunluk' | 'etkinlik' | 'basari';
@@ -19,8 +20,9 @@ export type KgPanel =
   | { kind: 'gorev'; tab: GorevSekme }
   | { kind: 'klinik'; tab: 'salon' | 'defter'; vaka?: string; replay?: boolean }
   | { kind: 'oyun'; oyun: 'ton' | 'timpano' };
-export interface KgStore { kg: KgState | null; vaka: VakaState | null; panel: KgPanel | null; busy: string | null }
-export const useKg = create<KgStore>()(() => ({ kg: null, vaka: null, panel: null, busy: null }));
+/** `bekleyen`: bağlantı yokken basılan "Al"ın ödülü (istek bağlanınca bir kez gider; düğmenin yanında "Bağlanınca alınacak") */
+export interface KgStore { kg: KgState | null; vaka: VakaState | null; panel: KgPanel | null; busy: string | null; bekleyen: string | null }
+export const useKg = create<KgStore>()(() => ({ kg: null, vaka: null, panel: null, busy: null, bekleyen: null }));
 const set = useKg.setState;
 
 let client: NetClient | null = null;
@@ -45,7 +47,8 @@ export function oyunGunMetni(g: KgOyunGun): string {
 }
 
 export async function refreshKg(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ kg: (await c.call('kg.state', {})).state }); } catch { /* sonra */ } }
-export async function refreshVaka(): Promise<void> { const c = client; if (!c || c.status !== 'bağlı') return; try { set({ vaka: (await c.call('vaka.state', {})).vaka }); } catch { /* sonra */ } }
+/** Klinik durumu; dönüş: true geldi, false sunucu hatası (Klinik "Yeniden dene" der), null bağlantı yok (bağlanınca yeniden istenir) */
+export async function refreshVaka(): Promise<boolean | null> { const c = client; if (!c || c.status !== 'bağlı') return null; try { set({ vaka: (await c.call('vaka.state', {})).vaka }); return true; } catch { return false; } }
 
 /** sunucunun ödülünü kutlama öğelerine çevir (gösterilen = verilen) */
 export function odulOgeleri(r: KampOdul): RewardItem[] {
@@ -68,14 +71,14 @@ export const odulBos = (r: KampOdul) => odulOgeleri(r).length === 0;
  */
 export async function claimKg(ref: string, title: string, o: { from?: { x: number; y: number }; big?: boolean } = {}): Promise<KampOdul | null> {
   if (useKg.getState().busy) return null;
-  set({ busy: ref });
+  set({ busy: ref, bekleyen: cevrimdisi() ? ref : null });
   try {
     const r = await act('kg.claim', { ref });
     if (!r) return null;
     set({ kg: r.state }); useNet.setState({ wallet: r.wallet });
     celebrateReward(title, r.reward, o);
     return r.reward;
-  } finally { set({ busy: null }); }
+  } finally { set({ busy: null, bekleyen: null }); }
 }
 let celebrations = 0;
 export function celebrateReward(title: string, reward: KampOdul, o: { from?: { x: number; y: number }; big?: boolean } = {}): void {

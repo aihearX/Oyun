@@ -272,6 +272,8 @@ describe('Yardım İste', () => {
     expect(await inboxSum(a, 'jeton', 'yardim')).toBe(15);
     expect(await inboxSum(b, 'jeton', 'yardim')).toBe(20);
     expect(await inboxSum(c, 'jeton', 'yardim')).toBe(20);
+    // Ödül kutusu satırı neye teşekkür edildiğini söyler (OT-ilk-kez-oyun-56)
+    expect((await b.call('inbox.list', {})).items.find((i) => i.ref === 'yardim')?.reason).toBe('Yardım ettiğin Ayşe 3. bölümü geçti');
     // ikinci kez geçmek ödül vermez; kapanan isteğe ipucu yok
     await a.call('progress.submit', run(3));
     expect(await inboxSum(b, 'jeton', 'yardim')).toBe(20);

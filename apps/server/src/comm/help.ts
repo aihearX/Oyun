@@ -1,4 +1,4 @@
-import { COMM_RULES, phraseById, type OpMap } from '@odi/shared';
+import { COMM_RULES, INBOX_TEXT, phraseById, type OpMap } from '@odi/shared';
 import { fail, parseJson, type App, type Handler, type Session } from '../app';
 import { postCard, sendAs, teamRoom, updateCard } from '../chat';
 import { raceHandlers } from '../race';
@@ -77,7 +77,7 @@ export function resolveHelp(app: App, pid: string, level: number): void {
     app.addInbox(pid, { kind: 'jeton', amount: COMM_RULES.helpAskerJeton, ref: 'yardim' }, `${r.level}. bölümü takımınla geçtin`);
     const card = helpCardId(app, r.id);
     for (const h of helpers) {
-      app.addInbox(h, { kind: 'jeton', amount: COMM_RULES.helpHelperJeton, ref: 'yardim' }, `Teşekkür: ${p.name} ${r.level}. bölümü geçti`);
+      app.addInbox(h, { kind: 'jeton', amount: COMM_RULES.helpHelperJeton, ref: 'yardim' }, INBOX_TEXT.helped(p.name, r.level));
       commNotice(app, h, { kind: 'thanks', title: `${p.name} ${r.level}. bölümü geçti!`, text: `Yardımın için teşekkür ediyor. Ödül kutuna ${COMM_RULES.helpHelperJeton} jeton düştü.`, from: app.publicProfile(p), room: teamRoom(r.team_id), ...(card ? { msgId: card } : {}) });
     }
     feedEvent(app, pid, 'yardim', { level: r.level, helpers: names.slice(0, 5).join(', ') });

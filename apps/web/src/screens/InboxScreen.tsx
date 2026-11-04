@@ -8,11 +8,19 @@ import { ScreenHead } from '../ui/bits';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Empty, ItemChips, Online, Skeleton, TIER, fmtDate, fmtLeft, fmtNum, useNow } from '../ui/social';
 import { Art, Glyph, Rich } from '../ui/art';
+import { BEKLEYEN_AL, BekleyenSatir, cevrimdisi } from '../ui/bekleyen';
 
 /** eski kayıtların nedeni sistem emojisiyle başlayabilir ("🎁 Ayşe sana arkadaş hediyesi gönderdi"): baştaki emoji ayıklanır, satırın simgesi zaten çizim (OT-sessiz-oyuncu-8) */
 const LEAD_EMOJI = /^(?:\p{Extended_Pictographic}|\u{FE0F}|\u{200D})+\s*/u;
 /** eski kayıtların metni (hafta kodu, kimin sırası belirsiz) görünümde yeni biçime gelir: inboxReasonText (YN-103) */
 const inboxReason = (it: InboxItem) => inboxReasonText({ kind: it.kind, reason: it.reason.replace(LEAD_EMOJI, '') });
+
+/**
+ * Boş Ödül kutusunun metni: buraya gerçekten gelenler (sunucuda addInbox: etkinlikler, Bölge Savaşı, haftalık sıralama, takım
+ * yardımı, arkadaş hediyesi, Sezon Kartı). Takım görevi, hedef, Ses Avı ve baskın sandıkları takım hediyesidir: Takım › Hediyeler
+ * (alınmazsa süresi dolunca buraya geçer) (OT-takim-kaptani-35, OT-ogrenci-birinci-41).
+ */
+export const INBOX_BOS = 'Etkinlik ödülleri (bilgi yarışması, düello, turnuva), Bölge Savaşı, haftalık sıralama, Sezon Kartı, yardım teşekkürleri ve arkadaş hediyeleri buraya gelir. Takım görevi ve hedef sandıkları Takım › Hediyeler’de.';
 
 /** Ödül kutusu: sunucunun verdiği ödüller; tek tek ya da "Hepsini al". */
 export function InboxScreen({ onBack }: { onBack: () => void }) {
@@ -26,23 +34,26 @@ export function InboxScreen({ onBack }: { onBack: () => void }) {
 
 function Inbox() {
   const [items, setItems] = useState<InboxItem[] | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  /** bağlantı yokken basılan Al / Hepsini al: bağlanınca bir kez alınır, düğmenin altında söylenir (OT-eski-telefon-30) */
+  const [bekle, setBekle] = useState(false);
   const load = () => getNet()?.call('inbox.list', {}).then((r) => { setItems(r.items); useNet.setState({ inboxCount: r.items.length }); }, (e) => setErr(errText(e)));
   useEffect(() => { void load(); const off = getNet()?.on('inbox.new', ({ item }) => setItems((l) => (l ? [item, ...l] : l))); return off; }, []);
   /** alınan jeton/kristal sayaca uçar (miktar = alınan öğeler) */
   const fly = (got: InboxItem[]) => { for (const kind of ['jeton', 'kristal'] as const) { const n = got.filter((x) => x.kind === kind).reduce((a, x) => a + x.amount, 0); if (n > 0) void celebrate.coins({ amount: n, kind }); } };
-  const one = async (it: InboxItem) => { setBusy(true); if (await claimInboxItem(it.id)) { setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); platform().haptic('success'); fly([it]); } setBusy(false); };
+  const one = async (it: InboxItem) => { setBusy(true); setBekle(cevrimdisi()); if (await claimInboxItem(it.id)) { setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); platform().haptic('success'); fly([it]); } setBusy(false); setBekle(false); };
   /** bildirim yalnız gerçekten alınan türleri sayar (OT-ekonomi-denetci-22) */
   const all = async () => {
-    if (!items) return; setBusy(true); let n = 0; const got: InboxItem[] = [];
+    if (!items) return; setBusy(true); setBekle(cevrimdisi()); let n = 0; const got: InboxItem[] = [];
     for (const it of items) if (await claimInboxItem(it.id)) { n++; got.push(it); setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); }
-    setBusy(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, inboxGotText(got), 'gold'); }
+    setBusy(false); setBekle(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, inboxGotText(got), 'gold'); }
   };
   if (err) return <div className="chat-err">{err}</div>;
   if (!items) return <Skeleton rows={3} />;
   return (
     <div className="stack">
       {items.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({items.length})</button>}
-      {items.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text="Savaş zaferleri, takım yardımları ve Sezon Kartı ödülleri buraya gelir." /> : items.map((it) => (
+      {busy && bekle && <BekleyenSatir text={BEKLEYEN_AL} />}
+      {items.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text={INBOX_BOS} /> : items.map((it) => (
         <div className="card gift" key={it.id}>
           <span className="gift-i" aria-hidden><Art name={it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
           <div className="grow min0"><b className="wrap">{inboxReason(it)}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={[it]} small /></div>

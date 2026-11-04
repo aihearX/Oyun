@@ -94,7 +94,7 @@ export function addGoalProgress(app: App, teamId: string, metric: GoalMetric, n:
     if (before < t.need && after >= t.need) {
       const members = app.teamMemberIds(teamId);
       createGift(app, teamId, { id: 'sistem', name: 'Takım' }, `Takım hedefi: ${def.name} ${i + 1}. kademe`, t.reward as Grant[], members, { expiresAt: w.endsAt, goalRef: `${w.key}:${metric}:${i}` });
-      systemMessage(app, teamRoom(teamId), `Takım hedefi tamamlandı: ${def.name} ${i + 1}. kademe! Ödüller herkesin hediye kutusunda.`);
+      systemMessage(app, teamRoom(teamId), `Takım hedefi tamamlandı: ${def.name} ${i + 1}. kademe! Ödüller herkesin Takım › Hediyeler bölümünde.`);
     }
   });
 }

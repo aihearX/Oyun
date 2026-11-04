@@ -16,6 +16,7 @@ import { useStore } from '../../store';
 import { MoreLine } from '../../ftue/Notes';
 import { Art } from '../../ui/art';
 import { Icon } from '../../ui/icons';
+import { BEKLEYEN_GONDER, BekleyenSatir, cevrimdisi } from '../../ui/bekleyen';
 import { fmtTime } from '../../ui/social';
 import { sayDede } from '../dede';
 import { HastaSvg, OdyogramLejant, OdyogramSvg, OtoskopSvg, TimpanogramSvg } from './charts';
@@ -24,6 +25,7 @@ import { celebrateReward, odulOgeleri, openPanel, refreshVaka, useKg } from './s
 import { KULAK, testSatirlari } from './yorum';
 
 export const KLINIK_NOT = 'Vakalar kurgusaldır ve eğitim içindir; gerçek kişiler değildir ve tıbbi öneri değildir. Gerçek hayatta tanı ve tedaviyi hekim ve odyolog birlikte koyar.';
+export const KLINIK_CEVRIMDISI = 'İnternet yok · bağlanınca hastalar gelir';
 const terimOf = (id: string) => GLOSSARY.find((g) => g.id === id) ?? CAMP_TERMS.find((t) => t.id === id);
 
 /**
@@ -49,8 +51,16 @@ export function Stars({ n, of = 3, size = 18 }: { n: number; of?: number; size?:
 }
 
 export function KlinikPanel({ tab, vakaId, replay }: { tab: 'salon' | 'defter'; vakaId?: string; replay?: boolean }) {
-  const vaka = useKg((s) => s.vaka);
-  useEffect(() => { void refreshVaka(); }, []);
+  const vaka = useKg((s) => s.vaka); const st = useNet((s) => s.status);
+  const [hata, setHata] = useState(false); const [deneme, setDeneme] = useState(0);
+  // açılışta ve bağlantı her geldiğinde istenir: çevrimdışı açılan pencere bağlanınca kendine gelir; sunucu hatasında "Yeniden dene"
+  // (OT-eski-telefon-32). "Yükleniyor" yalnız bağlıyken istek sürerken görünür.
+  useEffect(() => {
+    if (st !== 'bağlı') return;
+    let on = true; setHata(false);
+    void refreshVaka().then((ok) => { if (on && ok === false) setHata(true); });
+    return () => { on = false; };
+  }, [st, deneme]);
   const close = () => { audio.play('tap'); openPanel(null); };
   const setTab = (t: 'salon' | 'defter') => { audio.play('tab'); openPanel({ kind: 'klinik', tab: t }); };
   if (vakaId) { const v = vakaById(vakaId); if (v) return <VakaAkisi v={v} replay={!!replay} onBack={() => openPanel({ kind: 'klinik', tab: replay ? 'defter' : 'salon' })} onClose={close} />; }
@@ -61,7 +71,9 @@ export function KlinikPanel({ tab, vakaId, replay }: { tab: 'salon' | 'defter'; 
         <button role="tab" aria-selected={tab === 'salon'} className={tab === 'salon' ? 'on' : ''} onClick={() => setTab('salon')}><KgIcon name="salon" size={18} /> Bekleme salonu{vaka?.waiting.length ? <i className="kg-badge">{vaka.waiting.length}</i> : null}</button>
         <button role="tab" aria-selected={tab === 'defter'} className={tab === 'defter' ? 'on' : ''} onClick={() => setTab('defter')} data-testid="defter-tab"><KgIcon name="defter" size={18} /> Vaka Defteri <small>{solved.length}/{vaka?.total ?? VAKALAR.length}</small></button>
       </div>
-      {!vaka ? <div className="kg-note">Klinik yükleniyor…</div>
+      {!vaka ? (st !== 'bağlı' ? <div className="kg-note" role="status" data-testid="klinik-cevrimdisi"><Art name="signal" size={16} className="art-inline" /> {KLINIK_CEVRIMDISI}</div>
+        : hata ? <div className="kg-note" role="alert" data-testid="klinik-hata">Klinik açılamadı. <button className="btn small ghost" data-testid="klinik-yeniden" onClick={() => { audio.play('tap'); setDeneme((n) => n + 1); }}>Yeniden dene</button></div>
+          : <div className="kg-note">Klinik yükleniyor…</div>)
         : vaka.locked ? <div className="kg-locked"><Art name="lock" size={22} /> {vaka.locked}</div>
           : tab === 'salon' ? <Salon /> : <Defter />}
       <p className="kg-disclaimer">{KLINIK_NOT}</p>
@@ -131,15 +143,17 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
   const [tests, setTests] = useState<string[]>([]);
   const [dx, setDx] = useState<string | null>(null); const [mg, setMg] = useState<string | null>(null);
   const [res, setRes] = useState<VakaSonuc | null>(null); const [busy, setBusy] = useState(false);
+  /** karar bağlantı yokken gönderildi: bağlanınca bir kez gider (OT-eski-telefon-33) */
+  const [bekle, setBekle] = useState(false);
   const attempt = useMemo(() => yeniDeneme(v.id), [v.id]);
   const dxOpts = useMemo(() => taniSecenekleri(v, duzey), [v.id, duzey]);
   const mgOpts = useMemo(() => yonetimSecenekleri(v, duzey), [v.id, duzey]);
   const konsult = vaka?.konsult.find((k) => k.caseId === v.id);
   const order = (id: string) => { if (tests.includes(id)) return; audio.play('pop'); setTests((t) => [id, ...t]); };
   const send = async () => {
-    if (!dx || !mg || busy) return; setBusy(true);
+    if (!dx || !mg || busy) return; setBusy(true); setBekle(cevrimdisi());
     const r = await act('vaka.answer', { caseId: v.id, attempt, tests: [...tests].reverse(), dx, mg });
-    setBusy(false); if (!r) return;
+    setBusy(false); setBekle(false); if (!r) return;
     useKg.setState({ vaka: r.vaka }); useNet.setState({ wallet: r.wallet }); setRes(r.result); setAdim('sonuc');
     if (r.result.stars > 0) {
       audio.play(r.result.stars === 3 ? 'star3' : r.result.stars === 2 ? 'star2' : 'star1');
@@ -187,6 +201,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
           <h3>Ne yaparsın?</h3>
           <div className="kg-opts">{mgOpts.map((o) => <button key={o.id} className={`kg-opt${mg === o.id ? ' on' : ''}`} data-mg={o.id} onClick={() => { audio.play('tap'); setMg(o.id); }}>{o.sade}</button>)}</div>
           <div className="row gap"><button className="btn ghost small" onClick={() => setAdim('test')}>Testlere dön</button><button className="btn grow" data-testid="karar-gonder" disabled={!dx || !mg || busy} onClick={() => void send()}>Kararı gönder</button></div>
+          {busy && bekle && <BekleyenSatir text={BEKLEYEN_GONDER} />}
         </div>
       )}
 
