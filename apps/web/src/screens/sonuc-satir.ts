@@ -1,15 +1,20 @@
-import type { LevelSpec, RunResult } from '@odi/shared';
+import { timeBonus, type LevelSpec, type RunResult } from '@odi/shared';
 import type { RewardItem } from '@odi/content';
-import type { EarnLine } from '@odi/meta';
+import { sureYazi, type EarnLine } from '@odi/meta';
 import { itemView } from '../celebrate/CelebrationLayer';
 
 /**
  * Süre kutusunun alt yazısı. Süreli bölümde yıldızı hedef süre belirler: yalnız "süre" (OT-rekabetci-2). Öbürlerinde
- * `parTimeSec` süre bonusunun ölçüsüdür (shared scoreRun: altında kalan her saniye puan): "120 sn altı bonus". "par" kelimesi
- * oyuncuya yazılmaz, "para" sanıldı (OT-ilk-kez-oyun-54).
+ * `parTimeSec` süre bonusunun ölçüsüdür (shared timeBonus, scoreRun'daki hesap): bonus alındıysa gerçek değeri ve neye
+ * eklendiği ("skora +20 süre bonusu"), kaçtıysa kaç saniyeyle ("113 sn'yi 1 sn kaçırdın"; OT-eski-telefon-34: "113 sn altı bonus"
+ * 114 sn'de alınıp alınmadığını söylemiyordu). Kayıpta bonus yoktur: yalnız "süre". Yazı kısa: 360 px'te tek satır (kutular
+ * büyüyüp kayıpta neden/yardım kartını ilk ekrandan itmesin). "par" kelimesi oyuncuya yazılmaz, "para" sanıldı (OT-ilk-kez-oyun-54).
  */
-export function sureAlt(spec: Pick<LevelSpec, 'objective' | 'parTimeSec'>): string {
-  return spec.objective.id === 'timed' ? 'süre' : `${spec.parTimeSec} sn altı bonus`;
+export function sureAlt(spec: Pick<LevelSpec, 'objective' | 'parTimeSec'>, r: Pick<RunResult, 'completed' | 'timeSec'>): string {
+  if (spec.objective.id === 'timed' || !r.completed) return 'süre';
+  const par = spec.parTimeSec; const bonus = timeBonus(spec, r);
+  if (bonus > 0) return `skora +${bonus.toLocaleString('tr-TR')} süre bonusu`;
+  return r.timeSec > par ? `${par}\u00a0sn'yi ${sureYazi(r.timeSec - par)}\u00a0sn kaçırdın` : `süre bonusu yok (tam ${par}\u00a0sn)`;
 }
 
 /**

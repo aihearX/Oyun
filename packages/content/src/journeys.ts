@@ -7,6 +7,11 @@ export interface LevelPlan {
   focus?: string[];
   /** gösteri parçasını zorla */
   setPiece?: boolean;
+  /**
+   * yol başka bir bölgeden bu bölüme geri dönüyorsa haritanın hedef kartında söylenen iş (map/goals.ts; YN-195): Kemikçikler'den
+   * sonra Bölüm 20 yeniden dış kulak yolundadır, serumen zarın ötesinde sanılmasın
+   */
+  back?: string;
 }
 export interface Journey { id: string; name: string; blurb: string; levels: LevelPlan[] }
 
@@ -37,7 +42,7 @@ export const HUMAN_JOURNEY: Journey = {
     L(17, 'kanal', 'kosu', 'escort', 'Fısıltıyı Taşı', { targetChunks: 7, focus: ['duvar', 'yapiskan', 'tirmanis'] }),
     L(18, 'kemikcikler', 'trambolin', 'timed', 'Kemik Trambolini', { targetChunks: 7, focus: ['zar', 'kanca'] }),
     L(19, 'kemikcikler', 'makine', 'melody', 'Makine Melodisi', { targetChunks: 7, focus: ['anahtar', 'asansor', 'disli'] }),
-    L(20, 'kanal', 'boss', 'boss', 'Serumen Golemi', { boss: 'serumen-golemi', intro: 'Kanalın sonunda serumenden bir dev. Yolu kapatıyor.' }),
+    L(20, 'kanal', 'boss', 'boss', 'Serumen Golemi', { boss: 'serumen-golemi', intro: 'Dış kulak yoluna geri dön: zarın dışında serumenden bir dev kanalı tıkıyor.', back: "dış kulak yolunu tıkayan Serumen Golemi'ni temizle" }),
     L(21, 'koklea-1', 'yuzme', 'reach', 'Suya Dalış', { tutorial: true, intro: 'Oval pencereden kokleanın sıvısına (perilenf). Burada yüzeceksin.', targetChunks: 5, focus: ['su'] }),
     L(22, 'koklea-1', 'yuzme', 'collect-all', 'İnce Sesler', { targetChunks: 6, focus: ['su', 'jeton'] }),
     L(23, 'koklea-1', 'yuzme', 'timed', 'Akıntı', { targetChunks: 6, focus: ['akinti', 'su'] }),

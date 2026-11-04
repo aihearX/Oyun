@@ -78,7 +78,9 @@ oyun/
   platform dudağı koyu kalın kenarlı (`palette.ts` `edge`), gürültü bulutu açık konturlu ve kapalı evresinde daha opak.
   Su altı nefes göstergesi kalkan baloncuğunun üstünde, kabarcık simgeli kalın çubuk (Büyük yazıda büyür).
 - **Kalkan (YN-099):** bölüm başı kalkan = yetenek düzeyi (Kalkan 1, Çift Kalkan 2) + bir ek kalkan (takım kalkanı, yoksa
-  Atölye/Ortak Kalkan şansı), en çok 3 (`content/skills.ts` `runShields`, `SHIELD_MAX`; kabukta `App.tsx` `runSkills`). Her kalkan
+  Atölye/Ortak Kalkan şansı), en çok 3 (`content/skills.ts` `runShields`, `SHIELD_MAX`; kabukta `screens/bolum-basi.ts` `runSkills`).
+  Eklenen kalkan bildirim kuyruğuna değil bölüm başı şeridine (`LevelHost` `startLines`: "Dokun ve başla" ekranında ve koşunun ilk
+  saniyelerinde, 3. yıldızın koşuluyla birlikte) ve sonuç ekranına gider; vuruş gelmese de söylenir (`kalkan.ts`; YN-192, YN-176). Her kalkan
   bir vuruşu karşılar (düşüşü değil), vuruş hasar sayılır (karar 37: `damageTaken` + `extra.guarded`). Göstergede ikinci satırın
   sağında baloncuk + "×N" (`hud.ts` `setShield`; seri rozeti o zaman bir alta iner; canavar bölümünde can çubuğunun
   altında); karşılanan vuruşta uçan yazı "Kalkan bir

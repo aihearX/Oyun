@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // YN-173 (oyuncu testi tur 10): sonuç ekranının küçükleri, gerçek parçalarla (üretici, yıldız kuralı, meta kaydı, ekran).
 //  1) sis/gece kaybında "Yüksek görünürlüğü aç" düğmesi store'daki ayarı açar, yerinde söyler (OT-buyuk-yazi-52)
-//  2) süre kutusunda "par" yok: "120 sn altı bonus"; süreli bölümde "süre" (OT-ilk-kez-oyun-54, OT-rekabetci-2)
+//  2) süre kutusunda "par" yok: "skora +20 süre bonusu" ya da "120 sn'yi 1 sn kaçırdın"; süreli bölümde "süre"
+//     (OT-ilk-kez-oyun-54, OT-rekabetci-2, OT-eski-telefon-34)
 //  3) her başarım satırı koşulunu {n} doldurulmuş yazar (OT-ekonomi-denetci-35)
 //  4) melodi bölümünde "Melodi tamam" / "Melodi: 5/7 sırayla" (OT-sinav-adayi-35)
 //  5) hazine satırı jeton dışı ödülleri de yazar; toplam cüzdanla birebir (OT-sinav-adayi-36, OT-ekonomi-denetci-1)
@@ -64,13 +65,24 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
     expect(q('sonuc-gorunurluk-durum')?.textContent).toBe('Yüksek görünürlük açık');
   });
 
-  it('süre kutusu: "par" yazmaz; süre bonusunun ölçüsü oyuncu diliyle, süreli bölümde "süre"', async () => {
-    const spec = levelOf((s) => s.objective.id !== 'timed' && s.coinsTotal > 0);
-    expect(sureAlt(spec)).toBe(`${spec.parTimeSec} sn altı bonus`);
-    expect(sureAlt({ objective: { id: 'timed', label: '', target: 60 }, parTimeSec: 90 } as LevelSpec)).toBe('süre');
-    const r = run(spec, true); const { summary } = processRun(core(spec.number), spec, r, DAY);
+  it('süre kutusu: "par" yazmaz; süre bonusu alındıysa gerçek değeri ve skora eklendiği, kaçtıysa kaç saniyeyle (OT-eski-telefon-34)', async () => {
+    const spec = levelOf((s) => s.objective.id !== 'timed' && s.coinsTotal > 0); const par = spec.parTimeSec;
+    const nb = (t: string) => t.replace(/\u00a0/g, ' ');
+    // 4 sn erken: bonus skorun içinde gerçekten 20 puan (scoreRun'un hesabıyla aynı)
+    const r = run(spec, true);
+    const { score: parScore } = scoreRun(spec, { ...r, timeSec: par });
+    expect(r.score - parScore).toBe(20);
+    expect(nb(sureAlt(spec, r))).toBe('skora +20 süre bonusu');
+    // OT-eski-telefon-34: 114 sn'de "113 sn altı bonus" yerine kaçtığı
+    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 1 }))).toBe(`${par} sn'yi 1 sn kaçırdın`);
+    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 0.4 }))).toBe(`${par} sn'yi 0,4 sn kaçırdın`);
+    expect(nb(sureAlt(spec, { completed: true, timeSec: par }))).toBe(`süre bonusu yok (tam ${par} sn)`);
+    // kayıpta bonus yok: yalnız süre
+    expect(sureAlt(spec, { completed: false, timeSec: 20 })).toBe('süre');
+    expect(sureAlt({ objective: { id: 'timed', label: '', target: 60 }, parTimeSec: 90 } as LevelSpec, r)).toBe('süre');
+    const { summary } = processRun(core(spec.number), spec, r, DAY);
     await show(spec, r, summary);
-    expect(q('sonuc-sure-alt')?.textContent).toBe(`${spec.parTimeSec} sn altı bonus`);
+    expect(q('sonuc-sure-alt')?.textContent).toBe('skora +20 süre bonusu');
     expect(document.querySelector('.result .stats')?.textContent).not.toMatch(/\bpar\b/);
   });
 

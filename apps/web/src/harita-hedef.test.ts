@@ -87,7 +87,8 @@ describe('mapGoal', () => {
         expect(next).not.toMatch(/Bu bölüm/);
         if (pick.biome) expect(next).toContain(`${BIOMES[pick.biome.id].name} `);
         else if (pick.treasure) expect(next).toMatch(/hazine/);
-        if (pick.left === 1 && (pick.biome || pick.treasure)) expect(next).toMatch(new RegExp(`^Bölüm ${n + 1} bitince `));
+        // geri dönülen bölümde (YN-195) önce ne yapılacağı, bölüm numarasıyla: "Geri dön (Bölüm 20): …. Bitince …"
+        if (pick.left === 1 && (pick.biome || pick.treasure)) expect(next).toMatch(new RegExp(HUMAN_JOURNEY.levels[n]!.back ? `^Geri dön \\(Bölüm ${n + 1}\\): .+\\. Bitince ` : `^Bölüm ${n + 1} bitince `));
       }
     }
     // tur 5 kanıtı (İşitme Siniri 31-33): 32 geçildi, sinir çiçeklendi; sıradaki 33. bölümde canlanır
@@ -119,5 +120,26 @@ describe('dönüş kutlamaları (returnCelebrations)', () => {
     expect(returnCelebrations(upTo(4, 3), upTo(5, 3), ['dis-kulak'])).toBe(1);
     // 1-10 birden: iki hazine ve en az bir canlanma → üç ya da daha çok (tek pencere)
     expect(returnCelebrations({}, upTo(10, 3), [])).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// YN-195 (OT-uzman-odyolog-35): Kemikçikler'den sonra yol Bölüm 20'de dış kulak yoluna (Serumen Golemi) geri döner; hedef kartı
+// ve bölümün giriş yazısı bunu söyler, serumen zarın ötesinde sanılmasın. Bölüm dizilimi değişmez.
+describe('Serumen Golemi: geri dönüş', () => {
+  it('Kemikçikler canlanınca hedef geri dönüşü ve Koklea\'yı söyler', () => {
+    const g = mapGoal(upTo(19), upTo(18));
+    expect(g.small).toBe('Hedefe ulaştın!');
+    expect(g.text).toBe("Kemikçikler canlandı! Sıradaki: Geri dön (Bölüm 20): dış kulak yolunu tıkayan Serumen Golemi'ni temizle. Bitince hazine! Kulak Kanalı da canlanır: Koklea · Taban açılır.");
+    expect(mapGoal(upTo(19), upTo(19)).text).toMatch(/^Geri dön \(Bölüm 20\): dış kulak yolunu tıkayan Serumen Golemi'ni temizle\./);
+    // geri dönüş yalnız sıradaki bölümse söylenir (daha uzaktaki hedef "N bölüm sonra" kalır)
+    expect(mapGoal(upTo(16), null).text).not.toMatch(/Geri dön/);
+  });
+  it('bölüm dizilimi aynı; 20. bölümün girişi dış kulak yolunu ve zarın dışını söyler', () => {
+    const l20 = HUMAN_JOURNEY.levels.find((l) => l.number === 20)!;
+    expect([l20.biome, l20.mechanic, l20.boss]).toEqual(['kanal', 'boss', 'serumen-golemi']);
+    expect(HUMAN_JOURNEY.levels.slice(12, 19).map((l) => l.biome)).toEqual(['kemikcikler', 'kemikcikler', 'kemikcikler', 'kemikcikler', 'kanal', 'kemikcikler', 'kemikcikler']);
+    expect(l20.intro).toBe('Dış kulak yoluna geri dön: zarın dışında serumenden bir dev kanalı tıkıyor.');
+    expect(HUMAN_JOURNEY.levels.filter((l) => l.back).map((l) => l.number)).toEqual([20]);
+    for (const l of HUMAN_JOURNEY.levels) expect(`${l.intro ?? ''} ${l.back ?? ''}`).not.toMatch(/Salyangoz/i);
   });
 });

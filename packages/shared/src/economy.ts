@@ -32,11 +32,19 @@ export function noteThresholds(spec: Pick<LevelSpec, 'mechanic' | 'objective'>):
  * 2★ `target2` saniyede, 3★ hedef süresinde (`target`) bitir — eşikler insan modeliyle ölçülür.
  * Skor: mesafe + nota + süre bonusu − hasar + altın koklealar + hedef.
  */
+/**
+ * Skorun süre bonusu (scoreRun ile aynı hesap; sonuç ekranının süre kutusu da bunu yazar, OT-eski-telefon-34): `parTimeSec`in
+ * altında kalan her saniye 5 puan; kayıpta bonus yok.
+ */
+export function timeBonus(spec: Pick<LevelSpec, 'parTimeSec'>, r: Pick<RunResult, 'completed' | 'timeSec'>): number {
+  return r.completed ? Math.max(0, Math.round((spec.parTimeSec - r.timeSec) * 5)) : 0;
+}
+
 export function scoreRun(spec: LevelSpec, r: Omit<RunResult, 'score' | 'stars'>): Pick<RunResult, 'score' | 'stars'> {
   if (!r.completed) return { score: Math.round(r.coins * 10), stars: 0 };
   const cochleas = typeof r.extra?.cochleas === 'number' ? r.extra.cochleas : r.secretFound ? 1 : 0;
-  const timeBonus = Math.max(0, Math.round((spec.parTimeSec - r.timeSec) * 5));
-  const score = Math.round(spec.lengthPx / 10 + r.coins * 10 + timeBonus - r.damageTaken * 50 + cochleas * 150 + (r.secretFound ? 300 : 0) + (r.objectiveMet ? 200 : 0));
+  const bonus = timeBonus(spec, r);
+  const score = Math.round(spec.lengthPx / 10 + r.coins * 10 + bonus - r.damageTaken * 50 + cochleas * 150 + (r.secretFound ? 300 : 0) + (r.objectiveMet ? 200 : 0));
   let stars: 1 | 2 | 3 = 1;
   if (spec.coinsTotal <= 0) {
     if (r.damageTaken <= 1) stars = 2;

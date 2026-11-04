@@ -24,7 +24,7 @@ const ciz = async (el: ReturnType<typeof createElement>) => {
 afterEach(() => { useStore.setState({ bilgiSon: 0, notesSeen: [], noteAt: 0, knowledge: 'genel' }); document.body.innerHTML = ''; });
 
 const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
-const spec = (number: number) => ({ number, biome: biyom(number), mechanic: HUMAN_JOURNEY.levels.find((l) => l.number === number)!.mechanic, abilities: [], newAbilities: [] }) as unknown as LevelSpec;
+const spec = (number: number) => ({ number, biome: biyom(number), mechanic: HUMAN_JOURNEY.levels.find((l) => l.number === number)!.mechanic, abilities: [], newAbilities: [], objective: { id: 'reach', label: 'Kapıya ulaş' }, coinsTotal: 60 }) as unknown as LevelSpec;
 
 describe('Biliyor muydun? son gösterilenden farklı (YN-175)', () => {
   it('Bölüm 13 tekrarı ve ardından Bölüm 14 ilk geçişi aynı satırı göstermez', async () => {

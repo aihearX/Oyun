@@ -1335,8 +1335,15 @@ async function suite(browserName, target, [W, H]) {
         // YN-145 (OT-sinav-adayi-28): ilk geçişte "Haritaya dön" + Biliyor muydun? (Bölüm 6: yeni yer, iki satırlık anlatım şeridi)
         ['demo=sonuc&bolum=6&yildiz=2&skor=2115&acilim=1&anlatim=team,shop&kutlama=0', 'sonuc-bilgi-anlatim'],
         // YN-110 (karar 42): canavarda 3 kayıptan sonra Rahat deneme teklifi; Rahat denemeyle geçişin sonucu (1 yıldız, rekabet yok)
-        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat']]) {
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat'],
+        // YN-191 (OT-ilk-kez-oyun-57): bölge sonu ilk geçişte iki satırlık 3. yıldız kartı + haritada bekleyen canlanma ve tanıtım (yapışkan alan
+        // en uzun); 3. yıldız yalnız hedefle (tutmayan nota satırı soluk, OT-buyuk-yazi-58); YN-192: takım kalkanıyla başlanan bölüm
+        ['demo=sonuc&bolum=5&yildiz=2&skor=1917&acilim=1&harita=1&anlatim=team&kutlama=0', 'sonuc-yildiz-devam'], ['demo=sonuc&bolum=16&yildiz=3&skor=2600&hedef=1&kutlama=0', 'sonuc-yildiz-hedef'],
+        ['demo=sonuc&bolum=7&yildiz=2&skor=1500&hediye=takim&kutlama=0', 'sonuc-kalkan-takim']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
+        // her sonuç ekranı ilk gösterim gibi: "Biliyor muydun?" son gösterilen satır kaydı (YN-175, bilgiSon) sıfırlanır, yoksa önceki
+        // ekranın satırı sıradakinin satırını değiştirir ve ölçümler ekran sırasına bağlı olur
+        await page.evaluate(() => { try { const v = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); if (v.state) { v.state.bilgiSon = 0; localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } }).catch(() => undefined);
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         // YN-136 (OT-buyuk-yazi-37), YN-145 (OT-buyuk-yazi-42): başarım bildirimi başlığı, yıldızları, skoru, nota/süre kutularını (ve
@@ -1378,6 +1385,29 @@ async function suite(browserName, target, [W, H]) {
             return { sel, ok: r.top >= 0 && r.bottom <= (inAct ? innerHeight : aTop) + 1, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(inAct ? innerHeight : aTop) };
           }).filter(Boolean);
         });
+        // YN-191 (OT-ilk-kez-oyun-57): sıradaki yıldızın kartı ilk ekranda tamamen görünmüyorsa yapışkan alanın üstünde "Aşağıda devamı
+        // var" ipucu (ekranın içinde, ilk düğmenin üstünde); ipucuna dokununca kartın son satırı yapışkan alanın üstüne çıkar (örtüşme yok)
+        const yildizKart = ilk.find((x) => /sonuc-yildiz[23]/.test(x.sel));
+        const devam = !yildizKart || yildizKart.ok ? null : await (async () => {
+          const out = await page.evaluate(() => {
+            const act = document.querySelector('.result-actions'); const first = act?.querySelector(':scope > :not(.result-devam)');
+            const aTop = first ? first.getBoundingClientRect().top : innerHeight;
+            const h = document.querySelector('[data-testid="sonuc-devam"]'); if (!h) return { ipucu: null };
+            const r = h.getBoundingClientRect();
+            return { ipucu: { st: document.getElementById('root')?.scrollTop ?? 0, top: Math.round(r.top), bottom: Math.round(r.bottom), limit: Math.round(aTop), yazi: h.textContent.trim(), ok: r.top >= 0 && r.bottom <= aTop + 1 && getComputedStyle(h).visibility !== 'hidden' } };
+          });
+          if (!out.ipucu) return out;
+          await page.getByTestId('sonuc-devam').click({ timeout: 5000 }).catch(() => undefined); await sleep(900);
+          out.sonra = await page.evaluate(() => {
+            const act = document.querySelector('.result-actions'); const first = act?.querySelector(':scope > :not(.result-devam)');
+            const aTop = first ? first.getBoundingClientRect().top : innerHeight;
+            const c = document.querySelector('[data-testid="sonuc-yildiz3"], [data-testid="sonuc-yildiz2"]').getBoundingClientRect();
+            return { top: Math.round(c.top), bottom: Math.round(c.bottom), limit: Math.round(aTop), ok: c.top >= 0 && c.bottom <= aTop + 1, ipucuKalkti: !document.querySelector('[data-testid="sonuc-devam"]') };
+          });
+          // ölçümden önceki kaydırma konumuna dön (kaydırılmış ekran görüntüsü check() içinde ayrıca alınır)
+          await page.evaluate((y) => { const r = document.getElementById('root'); if (r) r.scrollTo({ top: y, behavior: 'instant' }); }, out.ipucu.st); await sleep(500);
+          return out;
+        })();
         // YN-145 (OT-sinav-adayi-28): "Biliyor muydun?" ilk ekranda: sıradaki yıldızın kartının (kayıpta kutuların) hemen altında ve
         // yapışkan düğmelerin üstünde; yer yoksa düğme alanının en üstünde tek satırlık kısa hâli (görünür, ekranın içinde)
         const bilgiYer = await page.evaluate(() => {
@@ -1469,8 +1499,20 @@ async function suite(browserName, target, [W, H]) {
         if (bildirim?.ort.length) fail(rec, `başarım bildirimi ${JSON.stringify(bildirim.toast)} örtüyor: ${bildirim.ort.join('; ')}`);
         // YN-136 (OT-buyuk-yazi-41): notasız (canavar) bölümde hasar kalp simgesiyle gösterilmez (kalp "can" demek)
         if (await page.locator('[data-testid="sonuc-hasar"] .art-heart').count()) fail(rec, 'hasar kartında kalp simgesi');
-        const gizli = ilk.filter((x) => !x.ok && (x.sel !== '[data-testid="sonuc-yildiz3"]' || /yildiz-ya-da|sure-gec/.test(label)));
+        // sıradaki yıldızın kartı: ilk ekranda tamamen ya da "Aşağıda devamı var" ipucu + dokununca yapışkan alanın üstünde (YN-191)
+        const gizli = ilk.filter((x) => !x.ok && !/sonuc-yildiz[23]/.test(x.sel));
         if (gizli.length) fail(rec, `ilk ekranda görünmüyor: ${JSON.stringify(gizli)}`);
+        if (devam) {
+          rec.devam = devam;
+          if (!devam.ipucu) fail(rec, `sıradaki yıldızın kartı yapışkan alanın arkasında ve "Aşağıda devamı var" ipucu yok: ${JSON.stringify(yildizKart)}`);
+          else if (!devam.ipucu.ok || devam.ipucu.yazi !== 'Aşağıda devamı var') fail(rec, `"Aşağıda devamı var" ipucu görünmüyor ya da yanlış yerde: ${JSON.stringify(devam.ipucu)}`);
+          else if (!devam.sonra?.ok || !devam.sonra.ipucuKalkti) fail(rec, `ipucuna dokununca kartın son satırı yapışkan alanın üstüne çıkmadı: ${JSON.stringify(devam.sonra)}`);
+        } else if (yildizKart && await page.evaluate(() => {
+          // ipucu ancak kart gerçekten yapışkan alanın arkasındayken: aynı anda ölçülür (kaydırma ve açılan şerit kartın yerini değiştirir)
+          const h = document.querySelector('[data-testid="sonuc-devam"]'); if (!h) return false;
+          const first = document.querySelector('.result-actions > :not(.result-devam)'); const c = document.querySelector('[data-testid="sonuc-yildiz3"], [data-testid="sonuc-yildiz2"]');
+          return !!first && !!c && c.getBoundingClientRect().bottom <= first.getBoundingClientRect().top + 1;
+        })) fail(rec, 'kart görünürken "Aşağıda devamı var" ipucu var');
         // YN-102: değiştiricili bölümde "Değiştirici: …" satırı; sis/gece kaybında Yüksek görünürlük yönlendirmesi; yardım kartı çıktı mı
         const degis = await yazi('[data-testid="sonuc-degistirici"]');
         if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Gecikme$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
@@ -1495,6 +1537,18 @@ async function suite(browserName, target, [W, H]) {
         // YN-173: süre kutusunda "par" yok (OT-ilk-kez-oyun-54); melodi bölümünde melodi satırı (OT-sinav-adayi-35); hazine satırı jeton
         // dışını da yazar (OT-sinav-adayi-36)
         if (/\bpar\b/.test(await yazi('.result .stats'))) fail(rec, `süre kutusunda "par": "${await yazi('.result .stats')}"`);
+        // YN-191 (OT-eski-telefon-34): süre kutusu bonusun alınıp alınmadığını ve skora eklendiğini söyler ("N sn altı bonus" değil)
+        const sureAltYazi = (await yazi('[data-testid="sonuc-sure-alt"]')).replace(/\u00a0/g, ' ');
+        if (!/^(süre|skora \+\d+ süre bonusu|\d+ sn'yi \d+(,\d)? sn kaçırdın|süre bonusu yok \(tam \d+ sn\))$/.test(sureAltYazi)) fail(rec, `süre kutusunun alt yazısı: "${sureAltYazi}"`);
+        // YN-192: takım kalkanıyla başlanan bölümde vuruş gelmese de sonuç söyler; kalkansız bölümde satır yok
+        const kalkanYazi = await yazi('[data-testid="sonuc-kalkan"]');
+        if (label === 'sonuc-kalkan-takim' && kalkanYazi !== 'Takım kalkanı bu bölümde seninleydi, vuruş gelmedi. Takım kalkanı bölüm başında harcanır.') fail(rec, `takım kalkanı satırı: "${kalkanYazi}"`);
+        if (label !== 'sonuc-kalkan-takim' && kalkanYazi) fail(rec, `kalkansız bölümde kalkan satırı: "${kalkanYazi}"`);
+        // OT-buyuk-yazi-58: 3. yıldız hedefle alındı: tutan satır işaretli ve yeşil "tamam", tutmayan satırın "kaldı"sı soluk (sarı uyarı değil)
+        if (label === 'sonuc-yildiz-hedef') {
+          const y3 = await page.evaluate(() => [...document.querySelectorAll('[data-testid="sonuc-yildiz3"] li')].map((li) => ({ met: li.classList.contains('met'), not: getComputedStyle(li.querySelector('.rs3-n')).color, yazi: li.querySelector('.rs3-n').textContent })));
+          if (y3.length !== 2 || y3[0].met || !y3[1].met || y3[1].yazi !== 'tamam' || y3[0].not === 'rgb(255, 201, 60)' || y3[1].not !== 'rgb(142, 240, 176)') fail(rec, `3. yıldız kartı tutan/tutmayan çizimi: ${JSON.stringify(y3)}`);
+        }
         if ((label === 'sonuc-melodi' || label === 'sonuc-kaybetti-sis') && !/^Melodi(: \d+\/\d+\s?sırayla| tamam)$/.test(await yazi('[data-testid="sonuc-melodi"]'))) fail(rec, `melodi satırı: "${await yazi('[data-testid="sonuc-melodi"]')}"`);
         const hazine = await page.locator('[data-testid="sonuc-kazanc"] li', { hasText: 'hazinesi' }).allTextContents();
         if (label === 'sonuc-hazine' && !hazine.some((t) => /Bölüm 10 hazinesi/.test(t) && /Ayrıca: ×1 Seri koruyucu/.test(t))) fail(rec, `Bölüm 10 hazine satırı: ${JSON.stringify(hazine)}`);

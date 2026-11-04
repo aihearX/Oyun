@@ -83,10 +83,14 @@ function riseGain(g: GoalPick, levels: LevelPlan[]): string {
 function goalText(g: GoalPick, levels: LevelPlan[] = HUMAN_JOURNEY.levels): string {
   if (g.stars) return `${g.stars.n} yıldız daha: ${name(g.stars.id)} ışıl ışıl olur`;
   if (!g.treasure && !g.biome) return 'Ninni beyne ulaştı!';
-  const when = g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
-  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}.`; }
-  if (g.biome) return `${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}`;
-  return g.left <= 1 ? `${when} hazine!` : `${when} hazine`;
+  // yol başka bölgeden bu bölüme geri dönüyorsa önce ne yapılacağı (YN-195, OT-uzman-odyolog-35: Kemikçikler'den sonra Bölüm 20
+  // yine dış kulak yolunda): "Geri dön (Bölüm 20): dış kulak yolunu tıkayan Serumen Golemi'ni temizle. Bitince hazine! …"
+  const back = g.left <= 1 && g.level ? levels.find((l) => l.number === g.level)?.back : undefined;
+  const head = back ? `Geri dön (Bölüm ${g.level}): ${back}. ` : '';
+  const when = back ? 'Bitince' : g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
+  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${head}${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}.`; }
+  if (g.biome) return `${head}${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}`;
+  return `${head}${g.left <= 1 ? `${when} hazine!` : `${when} hazine`}`;
 }
 const goalIcon = (g: GoalPick) => (g.treasure ? '🎁' : g.biome ? STAGE_ICON[g.biome.to] : g.stars ? '✨' : '👑');
 /** ulaşılan hedefin kutlama cümlesi */
@@ -139,4 +143,12 @@ export function returnCelebrations(seen: StarMap, now: StarMap, restored: readon
 export function nodeGoalLines(spec: Pick<RunSpecLite, 'mechanic' | 'objective' | 'coinsTotal'>): { pass: string; star3Head: string; star3: string } {
   const rows = star3Rules(spec);
   return { pass: passText(spec), star3Head: starHead(3, rows.length), star3: rows.join(' ya da ') };
+}
+/**
+ * 3. yıldızın tek satırı (YN-176): bölüm başı şeridi ve yeni biyom kartı, bölüm kartı ve sonuçla aynı kaynaktan (nodeGoalLines →
+ * meta star3Rules): "3. yıldız: 89 nota ya da 88 saniyede bitir". Bölüm kartını atlayan ("Sonraki", haritanın büyük "Bölüm N"
+ * düğmesi) oyuncu da koşulu bölüm başında okur.
+ */
+export function star3Line(spec: Pick<RunSpecLite, 'mechanic' | 'objective' | 'coinsTotal'>): string {
+  return `3. yıldız: ${nodeGoalLines(spec).star3}`;
 }

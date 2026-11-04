@@ -16,8 +16,7 @@ import { celebrate } from '../celebrate';
 import { fx } from '../celebrate/fx';
 import { useHudCount } from '../celebrate/hud';
 import { Art, Glyph, Rich } from '../ui/art';
-import { NoteCard, useNote } from '../ftue/Notes';
-import { biliyorMuydun } from '@odi/content/biliyor-muydun';
+import { NoteCard, useBiliyorMuydun, useNote } from '../ftue/Notes';
 import { useCoach } from '../ftue/Coach';
 import { useFeatures } from '../ftue/useFeatures';
 import { mapIntroView, type MapReveal } from '../ftue/map-intro';
@@ -25,6 +24,9 @@ import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
 import { hazineNotlu, melodiSatir, sureAlt } from './sonuc-satir';
+import { Icon } from '../ui/icons';
+import { appScroller } from '../ui/viewport';
+import { shieldResultLine, type ShieldGift } from '../kalkan';
 
 interface Props {
   spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string;
@@ -39,6 +41,8 @@ interface Props {
    * oyuncu seçerse sonraki denemeyi Rahat başlatan geri çağrı. "Tekrar dene" her zaman normal denemedir.
    */
   rahatOffer?: boolean; onRahat?: () => void;
+  /** bu bölüme eklenen takım/Atölye kalkanı (App runSkills; YN-192): vuruş gelmese de sonuçta söylenir */
+  gift?: ShieldGift;
 }
 
 const STAR_AT = 380, STAR_GAP = 380, SCORE_MS = 900;
@@ -57,7 +61,7 @@ function useCountUp(from: number, to: number, active: boolean, ms: number, insta
 }
 
 /** Ödül anı: yıldızlar tek tek uçar, skor sayar, rekor rozeti, XP dolar, jetonlar cüzdana uçar, açılımlar kartla gelir. */
-export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro, reveal, ease, easeNext, rahatOffer, onRahat }: Props) {
+export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, challenge, demo, runId, mapIntro, reveal, ease, easeNext, rahatOffer, onRahat, gift }: Props) {
   const store = useStore();
   const feat = useFeatures(); const raceOpen = feat.open('race');
   // Tüy Dede'nin Notu: ara sıra (ilk bölümde anlatıcı turu var; sıklık sınırı pickNote'ta), tamamlanınca altta
@@ -93,9 +97,10 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
   const loss = result.completed ? null : lossView(result, spec, attempt);
   // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı. Aynı bölümün
-  // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127)
-  const bilgi = biliyorMuydun(spec.number, store.knowledge, attempt - 1);
-  const lossDetail = loss ? guardedDetail(loss.detail, result) : '';
+  // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127); son gösterilen satır art arda tekrar etmez (YN-175, kayıtta bilgiSon)
+  const bilgi = useBiliyorMuydun(spec.number, store.knowledge, attempt - 1);
+  const kalkan = gift ? shieldResultLine(gift, result) : '';
+  const lossDetail = loss ? guardedDetail(loss.detail, result, kalkan) : '';
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   // Rahat denemeyle geçişte yıldız 1'de kalır: sıradaki yıldızın kartı yerine Rahat kartı (karar 42)
   const rahat = !!result.rahat;
@@ -131,7 +136,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // "Biliyor muydun?" ilk ekranda (YN-145, OT-sinav-adayi-28): satır sıradaki yıldızın kartının (kayıpta kutuların) hemen altında;
   // orada yapışkan düğmelerin altında kalıyorsa düğme alanının üstünde tek satırlık kısa hâli, dokununca tamamı. Ölçü kaydırmadan
   // bağımsız (satırın sayfadaki yeri, düğmenin ekrandaki yeri); kartlar büyüyünce (yardım kartı, yazı tipi) yeniden ölçülür
-  const bilgiRef = useRef<HTMLElement>(null); const actRef = useRef<HTMLDivElement>(null);
+  const bilgiRef = useRef<HTMLElement>(null); const actRef = useRef<HTMLDivElement>(null); const nextRef = useRef<HTMLDivElement>(null);
   const [bilgiKisa, setBilgiKisa] = useState(false); const [bilgiAcik, setBilgiAcik] = useState(false);
   useLayoutEffect(() => {
     const el = bilgiRef.current; const act = actRef.current; const page = rootRef.current;
@@ -147,6 +152,22 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     const ro = new ResizeObserver(olc); ro.observe(page); ro.observe(el);
     return () => ro.disconnect();
   }, [bilgi]);
+  // sıradaki yıldızın kartı yapışkan alanın arkasında kalıyorsa (320 px, haritada bekleyen tanıtım, Büyük yazı; OT-ilk-kez-oyun-57)
+  // yapışkan alanın üstünde "Aşağıda devamı var" ipucu: dokununca kart yapışkan alanın üstüne kayar; kart görününce kaybolur
+  const [devam, setDevam] = useState(false);
+  const altSinir = () => actRef.current?.querySelector(':scope > :not(.result-devam)')?.getBoundingClientRect().top ?? innerHeight;
+  useLayoutEffect(() => {
+    const card = nextRef.current; const act = actRef.current; if (!card || !act) { setDevam(false); return; }
+    const olc = () => setDevam(card.getBoundingClientRect().bottom > altSinir() + 1);
+    olc();
+    // ekranın giriş kayması (screenIn) ve kartların belirmesi yer değiştirir ama boyut değiştirmez: bitince yeniden ölçülür
+    const page = rootRef.current; const sc = appScroller();
+    sc?.addEventListener('scroll', olc, { passive: true }); window.addEventListener('resize', olc);
+    page?.addEventListener('animationend', olc); page?.addEventListener('transitionend', olc);
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(olc); ro?.observe(card); ro?.observe(act);
+    return () => { sc?.removeEventListener('scroll', olc); window.removeEventListener('resize', olc); page?.removeEventListener('animationend', olc); page?.removeEventListener('transitionend', olc); ro?.disconnect(); };
+  }, [starNext?.n]);
+  const devamGit = () => { const card = nextRef.current; if (!card) return; appScroller()?.scrollBy({ top: card.getBoundingClientRect().bottom - altSinir() + 12, behavior: reduced ? 'auto' : 'smooth' }); };
   const shake = (px: number) => { try { rootRef.current?.animate([{ transform: 'none' }, { transform: `translate(${-px}px, ${px * 0.6}px)` }, { transform: `translate(${px}px, ${-px * 0.6}px)` }, { transform: `translate(${-px / 2}px, ${px / 3}px)` }, { transform: 'none' }], { duration: 280, easing: 'ease-out' }); } catch { /* yok */ } };
   useEffect(() => {
     if (reduced) return;
@@ -272,6 +293,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {/* Rahat denemeyle kaybedildiyse bu deneme de açıkça söylenir (karar 42) */}
           {rahat && !result.completed && <div className="result-mods" data-testid="sonuc-rahat-kayip">{RAHAT_TEXT.lostNote}</div>}
           {/* melodi bölümünde sıralı notaların sonucu, koşunun kendi sayısıyla (OT-sinav-adayi-35) */}
+          {/* takım/Atölye kalkanı: vuruş gelmese de söylenir (YN-192); kayıpta neden kartındaki hasar cümlesinde */}
+          {kalkan && result.completed && <div className="result-mods" data-testid="sonuc-kalkan">{kalkan}</div>}
           {melodi && <div className="result-mods" data-testid="sonuc-melodi"><Art name={melodi === 'Melodi tamam' ? 'check' : 'note'} size={16} className="art-inline" />{melodi}</div>}
 
           {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
@@ -311,7 +334,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
               : <div className="card" data-testid="sonuc-hasar"><div className="v"><Art name="boom" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
             {/* süreli bölümde yıldızı hedef süresi belirler; süre bonusunun ölçüsü yan yana çelişmesin diye yazılmaz */}
-            <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k" data-testid="sonuc-sure-alt">{sureAlt(spec)}</div></div>
+            <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k" data-testid="sonuc-sure-alt">{sureAlt(spec, result)}</div></div>
             {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
             {rahat && result.completed && (
               <div className="card result-obj result-rahat" data-testid="sonuc-rahat">
@@ -321,12 +344,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               </div>
             )}
             {starNext && (
-              <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`}>
+              <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`} ref={nextRef}>
                 <small className="result-obj-h">{starHead(starNext.n, starNext.v.rows.length)}{starNext.v.done ? ' · tamam' : ''}</small>
                 <ul className="result-star3">
                   {starNext.v.rows.map((row, i) => (
                     <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
-                      <Art name={row.done ? 'check' : 'empty'} size={16} className="art-inline" />
+                      {/* tutan koşul yeşil çizili tikle ve belirgin; yıldız alındıysa tutmayanın "kaldı"sı soluk (OT-buyuk-yazi-58) */}
+                      <Art name={row.done ? 'check' : 'empty'} size={row.done ? 20 : 16} className="art-inline" />
                       <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
                       {/* iki parçalı koşulda tutan parça işaretli: "60 nota tamam · 2/3 altın koklea" (OT-rekabetci-17) */}
                       <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ''}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.done && <Art name="check" size={13} className="art-inline" />}{p.text}</span>) : row.note || 'yapılmadı'}</span>
@@ -409,7 +433,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
 
           {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
           {big && <div className="result-ek" data-testid="sonuc-ek-dugmeler" onClick={(e) => e.stopPropagation()}>{anlatim}{ikincil}</div>}
-          <div className="result-actions" ref={actRef} data-toast-floor onClick={(e) => e.stopPropagation()}>
+          <div className={`result-actions${devam ? ' devam' : ''}`} ref={actRef} data-toast-floor onClick={(e) => e.stopPropagation()}>
             {bilgi && bilgiKisa && (
               <button type="button" className={`result-bilgi-kisa${bilgiAcik ? ' acik' : ''}`} data-testid="biliyor-muydun-kisa" aria-expanded={bilgiAcik} onClick={() => setBilgiAcik((a) => !a)}>
                 <Art name="bulb" size={18} className="rbk-art" />
@@ -420,6 +444,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             {ana}
             {!big && ikincil}
             {big && rahatDene && <div className="abtn-grid">{rahatDene}</div>}
+            {devam && <button type="button" className="result-devam" data-testid="sonuc-devam" onClick={devamGit}><span>Aşağıda devamı var</span><Icon name="chevron" size="0.9em" className="ic-inline rd-ic" /></button>}
           </div>
           {done && note && <NoteCard note={note} />}
         </div>
@@ -456,10 +481,11 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
 /**
  * Kayıpta hasar cümlesi: kalkan ya da Klinik koruması bir vuruşu karşıladıysa kazançtaki satırla aynı söz (damageNote, karar 37;
  * OT-sessiz-oyuncu-18: kalkanla başlanan kayıpta yalnız "3 kez hasar aldın" yazıyordu). "…, en son dikene değdin." kısmı kalır.
+ * Bölüme takım/Atölye kalkanıyla başlanıp hiçbir vuruş karşılanmadıysa bu da söylenir (`kalkan`: shieldResultLine; YN-192).
  */
-function guardedDetail(detail: string, r: RunResult): string {
+function guardedDetail(detail: string, r: RunResult, kalkan = ''): string {
   const g = r.extra?.guarded; const note = damageNote(r);
-  if (!(typeof g === 'number' && g > 0) || !note) return detail;
+  if (!(typeof g === 'number' && g > 0) || !note) return [detail, kalkan].filter(Boolean).join(' ');
   const head = `${r.damageTaken} kez hasar aldın`;
   return detail.startsWith(head) ? `${note}${detail.slice(head.length)}` : [detail, `${note}.`].filter(Boolean).join(' ');
 }

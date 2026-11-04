@@ -30,14 +30,20 @@ function safeAreaTop(): number {
   return Math.max(v, native);
 }
 
+/** bölüm başı şeridi koşu başladıktan sonra bu kadar ms daha görünür ("Dokun ve başla" ekranında da görünür; YN-176) */
+const START_STRIP_MS = 4000;
+
 declare global { interface Window { __odi?: { events: GameEvent[]; result?: RunResult; done?: boolean; spec?: LevelSpec; race?: RaceRoom; /** bölüme verilen görünüm (Odi rengi/şapka) */ cosmetic?: LevelOptions['cosmetic']; /** bölüme verilen Tedavi Odası malzemeleri (test kancası) */ remedies?: LevelOptions['remedies'] } } }
 
 /**
  * Phaser bölümünü bir div'e bağlar; olayları kabuğa ve (test için) window.__odi'ye aktarır.
+ * `startLines`: bölüm başı şeridi (web katmanı; YN-176, YN-192): 3. yıldızın koşulu ve bölüme eklenen kalkan. "Dokun ve başla"
+ * ekranında ve koşunun ilk saniyelerinde görünür, ek dokunuş istemez; giriş cümlesi olan bölümde (aynı alt şerit) koşu başlayınca
+ * hemen söner.
  * `race` verilirse canlı yarış: rakip hayaletleri + üst şerit + sunucu saatine hizalı geri sayım; bölüm bitince
  * `race.finish` gönderilir ve onDone(sonuç, güncel oda) çağrılır. `raceBotDelayMs` yalnızca test harness'i içindir (bot ile).
  */
-export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeScale, renderScale, hints, extras, race, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; /** yalnız test derlemesi: botun insan eli (App.tsx `oyun-beceri`) */ botHand?: Promise<LevelOptions['botHand']>; timeScale?: number; renderScale?: number; /** false: bölüm içi ipuçları gizli (tuval + Tüy Dede sesi; yalnız test/çekim) */ hints?: boolean; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
+export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeScale, renderScale, hints, extras, race, startLines, raceBotDelayMs, onDone, onQuit }: { spec: LevelSpec; skills: PlayerSkills; sounds: boolean; bot?: boolean; botIdle?: boolean; /** yalnız test derlemesi: botun insan eli (App.tsx `oyun-beceri`) */ botHand?: Promise<LevelOptions['botHand']>; timeScale?: number; renderScale?: number; /** false: bölüm içi ipuçları gizli (tuval + Tüy Dede sesi; yalnız test/çekim) */ hints?: boolean; extras?: Pick<LevelOptions, 'cosmetic' | 'lucky' | 'firsts' | 'remedies'>; race?: RaceRoom; startLines?: readonly string[]; raceBotDelayMs?: number; onDone: (r: RunResult, raceRoom?: RaceRoom) => void; onQuit: () => void }) {
   const ref = useRef<HTMLDivElement>(null); const handle = useRef<LevelHandle | null>(null);
   const [paused, setPaused] = useState(false); const [lives, setLives] = useState<number | null>(null);
   const [raceMenu, setRaceMenu] = useState(false); const [raceNote, setRaceNote] = useState<{ title: string; text: string; closed?: boolean } | null>(null);
@@ -48,9 +54,11 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
   const [runKey, setRunKey] = useState(0);
   /** Phaser parçası yüklenene kadar (ilk bölümde; sonra önbellekte) sakin bir yükleniyor göstergesi */
   const [loading, setLoading] = useState(true);
+  const [startOn, setStartOn] = useState(true);
   useEffect(() => {
     if (!ref.current) return;
     const el = ref.current; let dead = false; let h: LevelHandle | null = null;
+    setStartOn(true); let startOff = 0;
     const bus: NonNullable<Window['__odi']> = { events: [], spec, race, cosmetic: extras?.cosmetic, remedies: race ? undefined : extras?.remedies }; window.__odi = bus;
     let finished = false;
     /** bölüm içinde Tüy Dede'nin söylediği / sıraya aldığı cümleler: bölümden çıkınca susar */
@@ -131,6 +139,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
           bus.events.push(e);
           if (bot) console.log('ODI_EVENT ' + JSON.stringify(e));
           if (e.type === 'damage') setLives(e.lives);
+          // giriş cümlesi de alttaki bilgi şeridinde: o bölümde koşu başlayınca şerit ona yer bırakır
+          if (e.type === 'started') startOff = window.setTimeout(() => setStartOn(false), spec.intro ? 0 : START_STRIP_MS);
           if (e.type === 'haptic' && !bot) platform().haptic(e.kind);
           // bölge patolojisi ilk kez: Tüy Dede'nin cümlesi sesli (oyun akar; başka satırın üstüne binmez)
           if (e.type === 'pathology' && e.first) { const t = sayPathology(e.id); if (t) talks.push(t); }
@@ -148,7 +158,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
     };
     // parça indirilemezse bölümden çıkılır (web'de sayfa yenilenir: engine.ts chunkFailed)
     Promise.all([loadLevel(), botHand]).then(start, (e: unknown) => { if (dead) return; onQuit(); try { chunkFailed(e); } catch { /* yenileniyor */ } });
-    return () => { dead = true; for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
+    return () => { dead = true; clearTimeout(startOff); for (const o of offs) o(); for (const t of talks) t.cancel(); h?.destroy(); handle.current = null; };
   }, [spec.id, runKey]);
   // duraklatınca müzik kısılır (durmaz), devam edince geri gelir — yalnız duraklatmanın kısması kalkar (anlatıcı/kutlama sürer)
   const togglePause = () => { if (paused) { handle.current?.resume(); setPaused(false); audio.unduck('duraklat'); } else { handle.current?.pause(); setPaused(true); audio.duck('duraklat', 3600, 0.25); } };
@@ -161,6 +171,9 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
     <>
       <div className="level-host" ref={ref} />
       {loading && <EngineLoading />}
+      {!loading && startOn && !!startLines?.length && (
+        <div className="level-start" role="status" data-testid="bolum-basi">{startLines.map((l) => <span key={l}>{l}</span>)}</div>
+      )}
       {race?.team && <TeamRaceHud room={race} />}
       {raceOffline && <div className="net-banner race-net" role="status" data-testid="yaris-ici-kopuk"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… Koşmaya devam et.</div>}
       {paused && (

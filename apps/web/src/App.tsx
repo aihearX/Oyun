@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode } from 'react';
 import type { LevelSpec, PlayerSkills, RaceRoom, RunResult } from '@odi/shared';
-import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY, runShields } from '@odi/content';
+import { DEFAULT_SKILLS, FIRSTS, HUMAN_JOURNEY } from '@odi/content';
 import {
   calendarView, chestReady, dayKey, defaultMeta, ensureDaily, needsBiomeIntro, processRun, questDone, rahatOffer, rollLucky, settle, xpThreshold,
   type PlayerCore, type RunSummary,
@@ -28,7 +28,9 @@ import { FriendBanner, useSocialUnread } from './friends/Banner';
 import { ProfileCardHost } from './friends/ProfileCard';
 import { Onboarding } from './ui/Onboarding';
 import { EVENT_TITLE, NavContext, SCREEN_TITLE, type Nav, type SocialRoute } from './nav';
-import { startNet, submitRun, toast, useSocial } from './net';
+import { startNet, submitRun, useSocial } from './net';
+import type { ShieldGift } from './kalkan';
+import { runSkills, startLines } from './screens/bolum-basi';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost } from '@odi/shared';
 import { RaceInviteBanner } from './race/useRaceInvites';
@@ -164,14 +166,14 @@ const TAB_TITLE: Record<Tab, string> = { map: '', today: 'Bugün', camp: 'Kamp',
 type Route =
   | { name: 'title' } | { name: 'wait' } | { name: Tab } | { name: Sub; back: Tab } | { name: 'story'; replay?: boolean; back?: Tab }
   | (SocialRoute & { back: Tab; key?: number })
-  | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; ease?: LevelEase }
-  /** ease: bu denemenin uyarlanabilir yardımı (YN-113; bölüm üretildiği andaki kayıp serisiyle) */
-  | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom; ease?: LevelEase }
+  | { name: 'intro'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; ease?: LevelEase; gift?: ShieldGift }
+  /** ease: bu denemenin uyarlanabilir yardımı (YN-113; bölüm üretildiği andaki kayıp serisiyle); gift: bölüme eklenen kalkan (YN-192) */
+  | { name: 'level'; spec: LevelSpec; extras: Extras; skills?: PlayerSkills; race?: RaceRoom; ease?: LevelEase; gift?: ShieldGift }
   | { name: 'raceResult'; room: RaceRoom; result: RunResult; back: Tab }
   /** fromHub: etkinliğe merkezden gelinmişti; koşudan dönüşte Geri yine merkeze (nav.ts eventBackTo, YN-107) */
   | { name: 'eventLevel'; spec: LevelSpec; play: EventPlay; back: Tab; fromHub?: boolean }
   /** ease / easeNext: kolaylaştırma satırları (YN-113); reveal: yalnız önizlemede, haritada bekleyen kutlama (gerçek akışta mapSeen'den) */
-  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string; ease?: string; easeNext?: string; reveal?: MapReveal | null;
+  | { name: 'result'; spec: LevelSpec; result: RunResult; summary: RunSummary; demo?: boolean; runId?: string; ease?: string; easeNext?: string; reveal?: MapReveal | null; gift?: ShieldGift;
     /** yalnız önizlemede: Rahat deneme teklifi (gerçek akışta kayıttan, meta rahatOffer) */ rahatOffer?: boolean };
 
 /** `?bot=1&level=N[&ts=2][&skills=all][&salt=K][&hd=2][&human=1][&ipucu=0]` → test modu: harness bölümü otomatik oynatır (hd: pazarlama çekimi için tuval piksel oranı;
@@ -207,9 +209,12 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const ease = levelEase(HUMAN_JOURNEY.id, n, prof);
   // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…)
   // &kalkan=1: takım kalkanı bir vuruşu karşıladı (hasar sayılır; sonuç kartı damageNote ile söyler, YN-136)
+  // &hediye=takim: bölüme takım kalkanıyla başlandı (YN-192; vuruş gelmese de sonuç söyler)
+  // &hedef=1 (3★): 3. yıldız yalnız hedefle geldi (nota %60'ta; tutmayan "nota" satırı soluk, OT-buyuk-yazi-58)
+  const viaObj = stars === 3 && q.get('hedef') === '1';
   const melodyTotal = spec.objective.id === 'melody' ? spec.objective.target ?? 7 : 0;
   const result: RunResult = {
-    levelId: spec.id, completed, stars: rahatRun ? Math.min(stars, 1) as 0 | 1 : stars, score, ...(rahatRun ? { rahat: true } : {}), coins: completed ? Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4)) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
+    levelId: spec.id, completed, stars: rahatRun ? Math.min(stars, 1) as 0 | 1 : stars, score, ...(rahatRun ? { rahat: true } : {}), coins: completed ? (viaObj ? Math.ceil(spec.coinsTotal * 0.6) : Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4))) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
     deaths: 0, damageTaken: stars === 3 ? 0 : completed ? 1 : 3, objectiveMet: stars === 3, secretFound: false,
     extra: { maxCombo: 12, cochleas: stars === 3 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }), ...(q.get('kalkan') ? { guarded: Number(q.get('kalkan')) } : {}) },
   };
@@ -225,7 +230,7 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const offer = !completed && (rq === 'teklif' || rahatRun) && spec.mechanic === 'boss';
   // &bildirim=1: sonuç açılırken iki başarım bildirimi (en uzun adlar; başlığı örtmemeli, YN-136 / OT-buyuk-yazi-37)
   if (q.get('bildirim') === '1') useStore.setState((s) => ({ toasts: [...s.toasts, ...toastsFor([{ kind: 'achievement', id: 'biyom-korteks', tier: 1 }, { kind: 'achievement', id: 'kasif', tier: 3 }])] }));
-  return { name: 'result', spec, result, summary, demo: true, ease: easeLine(ease), easeNext, reveal, rahatOffer: offer, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}) };
+  return { name: 'result', spec, result, summary, demo: true, ease: easeLine(ease), easeNext, reveal, rahatOffer: offer, ...(q.get('katki') === '1' ? { runId: 'demo' } : {}), ...(q.get('hediye') === 'takim' ? { gift: { from: 'takim' as const, n: 2 } } : {}) };
 }
 
 export function App() {
@@ -326,8 +331,8 @@ export function App() {
       // Tedavi Odası çantası (bölüm kartında seçilen; kullanılan adet sonuçla sunucuya gider)
       remedies: takeRemedies(),
     };
-    const skills = runSkills(s.skills);
-    setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills, ease } : { name: 'level', spec, extras, skills, ease });
+    const { skills, gift } = runSkills(s.skills);
+    setRoute(needsBiomeIntro(s.meta, spec.biome) ? { name: 'intro', spec, extras, skills, ease, gift } : { name: 'level', spec, extras, skills, ease, gift });
   };
 
   if (gallery) return <><ArtDefs /><Suspense fallback={null}><ArtGallery /></Suspense></>;
@@ -391,8 +396,9 @@ export function App() {
     case 'events': return sub(<EventsScreen key={route.key} view={route.view} flash={route.flash} rallyId={route.rallyId} fromHub={route.fromHub} onBack={back(route)} onPlay={(spec, p, fromHub) => setRoute({ name: 'eventLevel', spec, play: p, back: route.back, fromHub })} />);
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, fromHub: route.fromHub, key: Date.now() })} />;
     case 'raceResult': if (route.room.team) return sub(<TeamRaceResultScreen room={route.room} result={route.result} />); return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
-    case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills, ease: route.ease }); }} />;
+    case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills, ease: route.ease, gift: route.gift }); }} />;
     case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} botHand={PLAY_BOT ? BOT_HAND : undefined} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} hints={NO_HINTS ? false : undefined} extras={r.extras} race={r.race}
+      startLines={r.race || NO_HINTS ? undefined : startLines(r.spec, r.gift)}
       onDone={levelDone.current = (result, room) => {
         if (r.race) {
           // yarış bölümü açık bölümlerdense ilerlemeye ve takıma sayılır (rövanşta açılmamış bölüm sayılmaz)
@@ -400,10 +406,10 @@ export function App() {
           setRoute({ name: 'raceResult', room: room ?? r.race, result, back: curTab }); return;
         }
         const summary = store.completeRun(r.spec, result); const runId = submitRun(r.spec, result);
-        setRoute({ name: 'result', spec: r.spec, result, summary, runId, ...easeLines(r.spec, r.ease, result.completed) });
+        setRoute({ name: 'result', spec: r.spec, result, summary, runId, gift: r.gift, ...easeLines(r.spec, r.ease, result.completed) });
       }}
       onQuit={() => setRoute(r.race ? (r.race.team ? { name: 'team' } : { name: 'race', back: 'team', key: Date.now() }) : { name: 'map' })} />; }
-    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} mapIntro={route.demo ? demoMapIntro() : mapIntroQueue(cleared, store.ftue)} reveal={route.demo ? route.reveal : mapReveal(store.progress)} ease={route.ease} easeNext={route.easeNext} rahatOffer={route.demo ? !!route.rahatOffer : rahatOffer(route.spec, store.progress[route.spec.number])} onRetry={() => play(route.spec.number)} onRahat={() => play(route.spec.number, { rahat: true })} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
+    case 'result': return <NavContext.Provider value={nav}><ResultScreen key={`${route.spec.id}-${route.result.score}-${route.summary.xpAfter}`} spec={route.spec} result={route.result} summary={route.summary} demo={route.demo} runId={route.runId} challenge={invite} mapIntro={route.demo ? demoMapIntro() : mapIntroQueue(cleared, store.ftue)} reveal={route.demo ? route.reveal : mapReveal(store.progress)} ease={route.ease} easeNext={route.easeNext} gift={route.gift} rahatOffer={route.demo ? !!route.rahatOffer : rahatOffer(route.spec, store.progress[route.spec.number])} onRetry={() => play(route.spec.number)} onRahat={() => play(route.spec.number, { rahat: true })} onNext={() => play(route.spec.number + 1)} onMap={() => setRoute({ name: 'map' })} /></NavContext.Provider>;
     case 'skills': return <SkillsScreen onBack={() => setRoute({ name: route.back })} />;
     case 'settings': return <SettingsScreen onBack={() => setRoute({ name: route.back })} onReplay={() => setRoute({ name: 'story', replay: true, back: route.back })} onReset={() => setRoute({ name: 'title' })} />;
     case 'achievements': return <AchievementsScreen onBack={() => setRoute({ name: route.back })} />;
@@ -462,17 +468,3 @@ function useSocialBadges(coins: number) {
 
 /** yarışta da oyuncunun kendi Odi'si (renk + şapka); rakipler sunucu profilindeki rengi görür */
 function raceExtras(): Extras { const l = odiLook(useStore.getState()); return { cosmetic: { color: l.custom ? l.color : undefined, hat: l.hat } }; }
-
-/**
- * bu koşunun yetenekleri: yetenek kalkanlarına (düzey kadar) bir ek kalkan eklenir (en çok 3; content `runShields`, YN-099):
- * takım kalkanı varsa bir tanesi kullanılır; yoksa Atölye/Ortak Kalkan şansı (oranı Kamp'ta yazılı)
- */
-function runSkills(skills: PlayerSkills): PlayerSkills {
-  const n = runShields(skills.shield); if (n <= skills.shield) return skills;
-  const text = `bu bölüme ${n > 1 ? `${n} ` : ''}kalkanla başlıyorsun.`;
-  if (useStore.getState().consumeTeamShield()) { toast('🛡️', 'Takım kalkanı devrede', `Bir kalkan eklendi: ${text}`, 'accent'); return { ...skills, shield: n }; }
-  const pct = useSocial.getState().bonuses?.shieldChancePct ?? 0;
-  if (pct > 0 && Math.random() * 100 < pct) { toast('🛠️', 'Atölye kalkanı!', `%${pct} şansla ${text}`, 'green'); return { ...skills, shield: n }; }
-  return skills;
-}
-

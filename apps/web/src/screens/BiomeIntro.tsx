@@ -5,6 +5,7 @@ import { platform } from '../platform';
 import { Art, Glyph } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { NoteCard, useNote } from '../ftue/Notes';
+import { star3Line } from '../map/goals';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 /**
@@ -48,6 +49,8 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
             <ul className="bi-moves"><li>{MELODY_HOW}</li></ul>
           </>}
         </div>
+        {/* 3. yıldızın koşulu bölüm kartı, bölüm başı şeridi ve sonuçla aynı satır (YN-176): "Haydi!" ile doğrudan bölüme girilir */}
+        <div className="bi-star3" data-testid="biyom-yildiz3"><Art name="star" size="1.2em" className="art-inline" /> {star3Line(spec)}</div>
         {/* teknik satır kapalı başlar ("Daha fazla" ile açılır): öğrenci düzeyinde de kart kısa kalır (YN-175) */}
         {note ? <NoteCard note={note} techOpen={false} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
       </div></div>

@@ -291,6 +291,12 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .qm .bar { grid-column:2 / span 2; height:8px; }
 .result-actions { width:calc(100% + 32px); margin:4px -16px 0; display:flex; flex-direction:column; gap:12px; position:sticky; bottom:0; z-index:20; padding:22px 16px calc(var(--sab) + 14px); background:linear-gradient(rgba(20,12,53,0), var(--bg-0) 20px); }
 .result-actions::before { content:''; position:absolute; left:16px; right:16px; top:10px; height:1px; background:linear-gradient(90deg, transparent, rgba(255,201,60,.35), transparent); }
+/* sıradaki yıldızın kartı yapışkan alanın arkasında kalınca (OT-ilk-kez-oyun-57) üstte "Aşağıda devamı var": alan ipucu kadar yukarı
+   uzar, ipucu düğmelerin üstünde ortada; dokununca kart yapışkan alanın üstüne kayar */
+.result-actions.devam, .result-screen.bilgi-kisa .result-actions.devam { padding-top:42px; }
+.result-actions.devam::before { display:none; }
+.result-devam { position:absolute; top:6px; left:50%; transform:translateX(-50%); display:inline-flex; align-items:center; gap:6px; min-height:30px; max-width:calc(100% - 32px); padding:4px 14px; font:inherit; font-size:0.8125rem; font-weight:900; line-height:1.2; color:var(--gold-ink); background:var(--gold); border:2px solid #fff3c4; border-radius:999px; box-shadow:0 3px 0 var(--gold-edge); cursor:pointer; white-space:nowrap; }
+.result-devam .rd-ic { transform:rotate(90deg); }
 /* YN-066: haritada bekleyen tanıtım (Tüy Dede + ne açıldı); ileri düğmesi "Haritaya dön" */
 .result-anlatim { display:flex; align-items:center; gap:10px; text-align:left; background:rgba(46,230,214,.12); border:2px solid rgba(46,230,214,.42); border-radius:var(--radius); padding:6px 12px 6px 6px; }
 .result-anlatim .ra-td { flex:none; display:flex; }
@@ -319,7 +325,10 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .rs3-t { min-width:0; overflow-wrap:anywhere; }
 .rs3-or { font-size:0.75rem; font-weight:800; color:var(--text-2); }
 .rs3-n { font-size:0.8125rem; font-weight:900; color:var(--gold); text-align:right; white-space:nowrap; }
-.result-star3 li.met .rs3-n { color:var(--text-2); }
+.result-star3 li.met .rs3-n { color:var(--lime); }
+/* yıldız alındı (kart .met): tutan koşul belirgin, tutmayanın satırı ve "kaldı"sı soluk; uyarı gibi okunmasın (OT-buyuk-yazi-58) */
+.result-obj.met .result-star3 li:not(.met) { color:var(--text-3); font-weight:800; }
+.result-obj.met .result-star3 li:not(.met) .rs3-n { color:var(--text-3); font-weight:700; }
 /* OT-rekabetci-17: iki parçalı koşulun ilerlemesi alt satırda; tutan parça soluk ve işaretli ("60 nota tamam · 2/3 altın koklea") */
 .result-star3 li.two { grid-template-columns:auto minmax(0,1fr); }
 .result-star3 li.two .rs3-n { grid-column:2; text-align:left; white-space:normal; }
@@ -657,6 +666,9 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .bi-moves li { position:relative; padding-left:16px; }
 .bi-moves li::before { content:''; position:absolute; left:3px; top:.5em; width:7px; height:7px; border-radius:50%; background:var(--ba); box-shadow:0 0 0 1.5px rgba(19,22,42,.35); }
 .biome-intro.dark .bi-mech { background:rgba(20,12,53,.82); border-color:rgba(255,255,255,.28); color:#fff; }
+/* 3. yıldızın koşulu (YN-176): bölüm kartıyla aynı satır, koyu hap (her biyom renginde okunur) */
+.bi-star3 { display:flex; align-items:center; gap:6px; align-self:stretch; text-align:left; background:rgba(20,12,53,.86); color:#fff6e5; border:2px solid rgba(255,201,60,.5); border-radius:16px; padding:8px 14px; font-weight:900; font-size:0.9375rem; line-height:1.35; overflow-wrap:anywhere; animation:slideUp .6s .6s both; }
+.bi-star3 .art { flex:none; }
 .bi-body .btn { transition:opacity .3s; }
 .bi-rings i { position:absolute; left:50%; top:35%; width:120px; height:120px; margin:-60px; border-radius:50%; border:3px solid var(--ba); opacity:0; animation:wave 2.4s ease-out infinite; }
 .bi-rings i:nth-child(2) { animation-delay:.8s; } .bi-rings i:nth-child(3) { animation-delay:1.6s; }
@@ -684,6 +696,11 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .net-banner { background:rgba(255,201,60,.14); border:2px solid rgba(255,201,60,.4); border-radius:14px; padding:8px 12px; font-weight:800; font-size:0.8125rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .net-banner .linkish { padding:0; font-size:0.8125rem; }
 /* canlı yarışta (oyun ekranının üstünde) bağlantı şeridi: oyun sürer (MK-031) */
+/* bölüm başı şeridi (YN-176, YN-192): 3. yıldızın koşulu ve bölüme eklenen kalkan; "Dokun ve başla" ekranında ve koşunun ilk
+   saniyelerinde, ekranın altında (üstte gösterge, canavar çubuğu, kalkan rozeti, değiştirici duyurusu ve Şanslı Nota şeridi var).
+   Dokunuşu tutmaz (oyun altta sürer) */
+.level-start { position:fixed; z-index:40; left:50%; transform:translateX(-50%); bottom:calc(var(--sab) + 20px); width:max-content; max-width:calc(100vw - 32px); display:flex; flex-direction:column; align-items:center; gap:2px; padding:8px 14px; border-radius:14px; background:rgba(20,12,53,.92); border:2px solid rgba(255,201,60,.5); color:#fff6e5; font-weight:800; font-size:0.875rem; line-height:1.35; text-align:center; overflow-wrap:anywhere; pointer-events:none; animation:fade .3s both; }
+.level-start span:first-child { font-weight:900; color:var(--gold); }
 .net-banner.race-net { position:fixed; z-index:40; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top, 0px) + 124px); width:max-content; max-width:calc(100vw - 32px); background:rgba(36,24,6,.9); color:#fff6e5; pointer-events:none; }
 .offline-card, .empty { display:flex; flex-direction:column; gap:8px; align-items:center; text-align:center; padding:24px 16px; }
 .offline-card code { background:rgba(5,2,20,.45); border:1px solid var(--line); border-radius:6px; padding:1px 5px; font-size:0.8125rem; }
