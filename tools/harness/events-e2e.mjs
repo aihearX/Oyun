@@ -251,6 +251,12 @@ try {
   check(walletA.jeton - walletA0.jeton === 150 && walletA.kristal - walletA0.kristal === 10, `ralli: ödül bir kez cüzdana girdi (+${walletA.jeton - walletA0.jeton} jeton, +${walletA.kristal - walletA0.kristal} kristal)`);
   const shownA = await A.page.evaluate(() => window.__etkinlik.netStore.getState().wallet);
   check(shownA?.jeton === walletA.jeton && shownA?.kristal === walletA.kristal, 'ralli: istemci cüzdanı sunucu cüzdanıyla eşit');
+  // "Topla"dan sonra Etkinlikler kartı ödülü doğru yerde söyler: cüzdanında, ödül kutunda değil (YN-171, OT-takim-kaptani-31)
+  { const back = A.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) await back.click();
+    await tid(A, 'ev-ralli-sonuc').waitFor({ timeout: 10_000 });
+    let t = ''; for (let i = 0; i < 20 && !(t = await tid(A, 'ev-ralli-sonuc').innerText()).includes('cüzdanında'); i++) await sleep(300);
+    check(t.includes('ödülün cüzdanında') && !t.includes('ödül kutunda'), `ralli: Etkinlikler kartı "ödülün cüzdanında" diyor (${t.replace(/\s+/g, ' ').trim()})`);
+    await shot(A, 'ralli-sonuc-karti-cuzdan'); }
 
   // ---- QUIZ (iki üye aynı anda cevaplar)
   await openEvents(A, 'quiz');

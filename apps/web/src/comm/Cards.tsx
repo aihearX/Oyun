@@ -331,7 +331,11 @@ export function RallyChatCard({ m, end }: { m: ChatMessage; end?: RallyEnd }) {
   );
 }
 
-/** Günün Sorusu kartı (Tüy Dede) */
+/**
+ * Günün Sorusu kartı (Tüy Dede). Takım sohbetinin görünen alanı 390×844'te bile ~200–320 px (üstte takım kartı + sekmeler, altta
+ * tepkiler + yazı kutusu): soru başı ve dört şık birlikte görünsün diye şıklar 2×2 ızgara, ikincil satırlar tek satır (YN-172).
+ * Sığmazsa sohbet ilk açılışta kartın başına hizalanır (ui/Chat.tsx).
+ */
 export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
   const dq = useComm((x) => x.dq);
   const [thread, setThread] = useState(false); const [board, setBoard] = useState(false); const [busy, setBusy] = useState(false);
@@ -350,14 +354,14 @@ export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] 
   return (
     <div className={`fcard t-soru${rev ? ' revealed' : ''}`} data-testid="gunun-sorusu" data-id={m.id} data-rev={rev ? '1' : '0'}>
       <div className="fc-head">
-        <span className="fc-av dede"><TuyDede size={40} mood={rev ? 'wink' : 'happy'} /></span>
+        <span className="fc-av dede"><TuyDede size={30} mood={rev ? 'wink' : 'happy'} /></span>
         <div className="fc-txt min0"><small>Günün Sorusu{s(m.meta?.lvl) === 'odyoloji' ? ' · Çalışma Grubu' : ''} · Tüy Dede</small><b>{m.text}</b></div>
       </div>
       <div className="dq-choices">
         {choices.map((c, i) => {
           const cls = rev ? (i === ans ? ' ok' : i === my ? ' bad' : ' dim') : i === my ? ' picked' : '';
           return <button key={i} type="button" className={`dq-opt${cls}`} data-choice={i} disabled={busy || my !== null || rev} onClick={() => void answer(i)}>
-            <span className="dq-l">{'ABCD'[i]}</span><span className="dq-t">{c}</span>{rev && i === ans && <Art name="check" size={18} />}{rev && i === my && i !== ans && <Art name="cross" size={18} />}
+            <span className="dq-t"><span className="dq-l">{'ABCD'[i]}</span>{c}</span>{rev && i === ans && <Art name="check" size={18} />}{rev && i === my && i !== ans && <Art name="cross" size={18} />}
           </button>;
         })}
       </div>
@@ -368,9 +372,10 @@ export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] 
           <small className="muted">{n(m.meta?.okn) ? `Doğru bilenler (${n(m.meta?.okn)}): ${s(m.meta?.ok)}` : 'Bu kez doğru bilen olmadı; yarın yeni soru!'}{my === ans && my !== null ? ` · ödül kutuna ${dq?.reward ?? COMM_RULES.dqCorrectJeton} jeton` : ''}</small>
         </div>
       ) : (
-        <div className="muted small-note dq-wait">{my !== null ? 'Cevabın kaydedildi. ' : ''}{n(m.meta?.n)} kişi cevapladı · cevap {revealAt ? fmtTime(revealAt) : '20:00'}’de açıklanır{my === null ? ' · doğru bilene jeton' : ''}</div>
+        <div className="muted small-note dq-wait" data-testid="dq-bekle">{/* tek satır: dar ekranda sondan kısalır, önemli olan başta (YN-172) */}
+          {my !== null ? 'Cevabın kaydedildi' : `Doğru bilene ${dq?.reward ?? COMM_RULES.dqCorrectJeton} jeton`} · cevap {revealAt ? fmtTime(revealAt) : '20:00'}’de · {n(m.meta?.n)} kişi cevapladı</div>
       )}
-      <div className="fc-foot">
+      <div className="fc-foot dq-foot">
         <ReactionBar msg={m} compact />
         <span className="grow" />
         <button type="button" className="fc-reply linkish" onClick={() => setBoard(true)}>Haftalık tablo</button>

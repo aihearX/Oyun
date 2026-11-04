@@ -751,6 +751,15 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .st-ok::before { content:''; position:absolute; width:28px; height:28px; border-radius:50%; background:rgba(26,14,66,.92); border:1.5px solid rgba(255,255,255,.28); box-shadow:0 2px 6px rgba(0,0,0,.35); }
 .st-ok .ic { position:relative; }
 .st-ok.sol { left:2px; } .st-ok.sag { right:2px; }
+/* takım sekme satırları: ok düğmesi sekmeyi (ve sayı rozetini) örtmez, kendi yerini alır; kaydırma alanı oktan önce biter
+   (OT-eski-telefon-31, YN-124). Ok yerleşimi öznitelik kuralına değil düğmenin varlığına bağlı: programla kaydırmadan sonra bayat kalmaz */
+.subtabs-wrap[data-subtabs^="takim"] { display:flex; align-items:center; }
+.subtabs-wrap[data-subtabs^="takim"] > .subtabs { flex:1 1 auto; min-width:0; }
+.subtabs-wrap[data-subtabs^="takim"] > .st-ok { position:relative; top:0; left:auto; right:auto; flex:none; align-self:stretch; margin-bottom:6px; }
+.subtabs-wrap[data-subtabs^="takim"] > .st-ok.sol { order:-1; }
+.subtabs-wrap[data-subtabs^="takim"][data-sag] > .subtabs { -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 18px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 18px), transparent); }
+.subtabs-wrap[data-subtabs^="takim"][data-sol] > .subtabs { -webkit-mask-image:linear-gradient(90deg, transparent, #000 18px); mask-image:linear-gradient(90deg, transparent, #000 18px); }
+.subtabs-wrap[data-subtabs^="takim"][data-sol][data-sag] > .subtabs { -webkit-mask-image:linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image:linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 18px), transparent); }
 /* iki düzeyli Takım sekmeleri: üst sıra (Sohbet · Etkinlikler · Takım · Rekabet) alt sekme çubuğu gibi simge üstte, ad altta, genişliği
    paylaşır; Büyük yazıda 320 px'te de dört düğme sığar. Rozet köşede (yazıya yer kalsın). Alt sıra grubun hemen altında */
 .subtabs-wrap[data-subtabs="takim-grup"] .subtab { flex:1 0 auto; position:relative; flex-direction:column; justify-content:center; gap:1px; padding:5px 4px 4px; min-height:52px; border-radius:16px; font-size:0.75rem; }

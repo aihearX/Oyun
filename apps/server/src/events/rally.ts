@@ -22,6 +22,14 @@ function view(app: App, r: RallyRow): RallyState {
   const participants: RallyParticipant[] = app.db.all<{ id: string; name: string; color: number; hat: string; damage: number; tries: number; joined_at: number }>(
     'SELECT p.id, p.name, p.color, p.hat, x.damage, x.tries, x.joined_at FROM ev_rally_part x JOIN players p ON p.id = x.player_id WHERE x.rally_id = ? ORDER BY x.joined_at, x.rowid', r.id)
     .map((x) => ({ id: x.id, name: x.name, color: x.color, hat: x.hat, damage: x.damage, tries: x.tries, joinedAt: x.joined_at }));
+  if (r.status === 'kazanildi' && r.won_at != null) {
+    // ödül kutusu satırları (rallinin nedeni + kazanma anı, istemcinin "Topla"sıyla aynı pencere): kart "ödül kutunda" mı "cüzdanında" mı der (YN-171)
+    const rows = new Map(app.db.all<{ player_id: string; open: number }>(
+      `SELECT player_id, SUM(claimed = 0) AS open FROM inbox
+        WHERE player_id IN (SELECT player_id FROM ev_rally_part WHERE rally_id = ?) AND reason = ? AND at >= ? AND at < ? GROUP BY player_id`,
+      r.id, rallyRewardReason(monsterDef(r.monster).name), r.won_at, r.won_at + 60_000).map((x) => [x.player_id, x]));
+    for (const p of participants) { const x = rows.get(p.id); p.reward = !x ? 'yok' : x.open > 0 ? 'kutuda' : 'alindi'; }
+  }
   const hits: RallyHit[] = app.db.all<{ id: string; name: string; damage: number; stars: number; completed: number; at: number }>(
     'SELECT p.id, p.name, h.damage, h.stars, h.completed, h.at FROM ev_rally_hit h JOIN players p ON p.id = h.player_id WHERE h.rally_id = ? ORDER BY h.at DESC, h.rowid DESC LIMIT 20', r.id)
     .map((h) => ({ id: h.id, name: h.name, damage: h.damage, stars: h.stars, completed: !!h.completed, at: h.at }));
@@ -103,12 +111,14 @@ function win(app: App, r: RallyRow): void {
   // kahraman = hasar veren katılımcı (OT-takim-kaptani-29); hasarsız katılan da ödül alır, ama "kahraman" sayılmaz
   const heroes = app.db.all<{ id: string; name: string }>('SELECT p.id, p.name FROM ev_rally_part x JOIN players p ON p.id = x.player_id WHERE x.rally_id = ? AND x.damage > 0 ORDER BY x.damage DESC, x.joined_at', r.id);
   const who = heroes.length === 1 ? `${heroes[0]!.name} tek başına` : `${heroes.length} kahraman`;
-  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${who} ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. Ödüller katılan herkesin ödül kutusunda, takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kazanildi' });
+  systemMessage(app, teamRoom(r.team_id), `${m.name} yenildi! ${who} ${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')} sürede bitirdi. ${capped.length ? 'Katılanlar' : 'Katılan herkes'} ödül kazandı (pencereden ya da Ödül kutusundan alınır), takıma +${m.teamXp} XP.${capped.length ? ` (${capped.join(', ')}: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)` : ''}`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kazanildi' });
   // katılımcıya kendi haberi: başlatan bölümdeyken ralli kazanılmış olabilir (OT-takim-kaptani-29)
   const winText = (pid: string) => {
-    if (!parts.includes(pid)) return 'Ralli kazanıldı. Katılanların ödülü ödül kutusunda.';
+    // ödül kazanma penceresindeki "Topla" ile hemen cüzdana da geçebilir: metin alındıktan sonra da doğru kalır (YN-171)
+    if (!parts.includes(pid)) return 'Ralli kazanıldı. Katılanlar ödül kazandı.';
     if (cappedIds.has(pid)) return `Ralli kazanıldı. Bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülün dolmuştu.`;
-    return heroes.some((h) => h.id === pid) ? 'Ralli kazanıldı. Ödülün ödül kutunda.' : `${heroes.map((h) => h.name).join(', ')} yendi. Katıldığın için ödülün ödül kutunda.`;
+    const take = 'pencereden ya da Ödül kutusundan alınır';
+    return heroes.some((h) => h.id === pid) ? `Ralli kazanıldı. Ödülün hazır: ${take}.` : `${heroes.map((h) => h.name).join(', ')} yendi. Katıldığın için ödül kazandın: ${take}.`;
   };
   for (const pid of app.teamMemberIds(r.team_id)) notify(app, [pid], { kind: 'ralli', icon: '🏆', title: `${m.name} yenildi!`, text: winText(pid), target: 'ralli', ref: r.id });
   broadcastExtra(app, r.team_id);

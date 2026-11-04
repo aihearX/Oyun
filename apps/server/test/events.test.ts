@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { QUIZ_QUESTIONS } from '@odi/content';
-import { DUEL_RULES, RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason } from '@odi/shared';
+import { DUEL_RULES, RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason, type RallyState } from '@odi/shared';
 import { duelPeriods, huntPeriods, quizSlot } from '../src/events/common';
 import { DUEL_REWARDS } from '../src/events/duel';
 import { HUNT_TIERS } from '../src/events/hunt';
 import { QUESTION_MS, REVEAL_MS } from '../src/events/quiz';
+import { dayKey } from '../src/time';
 import { run, setup, T0, type Env } from './helpers';
 import { connectW, erun, err, team2 } from './events-util';
 
@@ -76,12 +77,15 @@ describe('Ralli', () => {
     const won = await b.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
     expect(won.rally.status).toBe('kazanildi');
     const win = await a.wait('events.notice', (n) => n.notice.title.includes('yenildi'));
-    expect(win.notice).toMatchObject({ kind: 'ralli', ref: rally.id, text: 'Hesapli yendi. Katıldığın için ödülün ödül kutunda.' });
-    expect((await b.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toBe('Ralli kazanıldı. Ödülün ödül kutunda.');
-    expect((await c.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toContain('Katılanların ödülü');
+    // metin "Topla"dan sonra da doğru: ödül pencereden ya da Ödül kutusundan alınır (YN-171)
+    expect(win.notice).toMatchObject({ kind: 'ralli', ref: rally.id, text: 'Hesapli yendi. Katıldığın için ödül kazandın: pencereden ya da Ödül kutusundan alınır.' });
+    expect((await b.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toBe('Ralli kazanıldı. Ödülün hazır: pencereden ya da Ödül kutusundan alınır.');
+    expect((await c.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toBe('Ralli kazanıldı. Katılanlar ödül kazandı.');
     const msg = await c.wait('chat', (m) => m.msg.meta?.phase === 'kazanildi');
     expect(msg.msg.text).toContain('Hesapli tek başına');
     expect(msg.msg.text).not.toContain('2 kahraman');
+    expect(msg.msg.text).toContain('Katılan herkes ödül kazandı (pencereden ya da Ödül kutusundan alınır)');
+    expect(msg.msg.text).not.toContain('ödül kutusunda');
     // ödül (başlatana da) ödül kutusunda, rallinin nedeni ve kazanma anıyla: istemci "Topla"da bu satırları alır
     const rows = (await a.c.call('inbox.list', {})).items.filter((i) => i.reason === rallyRewardReason('Serumen Yavrusu') && i.at >= won.rally.wonAt!);
     expect(rows.map((i) => `${i.kind}:${i.amount}`).sort()).toEqual(['jeton:150', 'kristal:10']);
@@ -90,6 +94,27 @@ describe('Ralli', () => {
     expect((await err(a.c.call('inbox.claim', { id: rows[0]!.id }))).code).toBe('YOK'); // ikinci kez alınmaz
     const w1 = (await a.c.call('wallet.get', {})).wallet;
     expect([w1.jeton - w0.jeton, w1.kristal - w0.kristal]).toEqual([150, 10]);
+    // Etkinlikler kartı oyuncu bazında: alan için "cüzdanında", almayan için "ödül kutunda", katılmayana durum yok (YN-171)
+    const reward = (st: { rally: RallyState | null }) => Object.fromEntries(st.rally!.participants.map((p) => [p.name, p.reward]));
+    expect(reward(await c.c.call('rally.state', {}))).toEqual({ Kaptan: 'alindi', Hesapli: 'kutuda' });
+    expect(reward(await b.c.call('rally.state', { rallyId: rally.id }))).toEqual({ Kaptan: 'alindi', Hesapli: 'kutuda' });
+  });
+
+  it('günlük ralli ödülü dolan katılımcı: durum "yok", sohbet sınır notunu korur; alınmayan ödül kutuda kalır (YN-171)', async () => {
+    env = await setup();
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Sınırlılar');
+    const { rally } = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
+    const joined = (await b.c.call('rally.join', { rallyId: rally.id })).rally;
+    const bora = joined.participants.find((p) => p.name === 'Bora')!.id;
+    for (let i = 0; i < RALLY_RULES.rewardsPerPlayerDay; i++) env.srv.app.dailyInc(bora, dayKey(env.clock.now()), 'ev_ralli_odul');
+    await a.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) });
+    const won = (await a.c.call('rally.hit', { rallyId: rally.id, ...erun({ stars: 3 }) })).rally;
+    expect(won.status).toBe('kazanildi');
+    expect(Object.fromEntries(won.participants.map((p) => [p.name, p.reward]))).toEqual({ Ayşe: 'kutuda', Bora: 'yok' });
+    const msg = await b.wait('chat', (m) => m.msg.meta?.phase === 'kazanildi');
+    expect(msg.msg.text).toContain(`Katılanlar ödül kazandı (pencereden ya da Ödül kutusundan alınır)`);
+    expect(msg.msg.text).toContain(`(Bora: bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülü doldu)`);
+    expect((await b.wait('events.notice', (n) => n.notice.title.includes('yenildi'))).notice.text).toBe(`Ralli kazanıldı. Bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülün dolmuştu.`);
   });
 
   it('süre dolunca kaçar (bildirim), deneme hakkı 3, günlük başlatma sınırı', async () => {

@@ -495,6 +495,36 @@ const KONTRAST_ISTISNA = [
   ['.kg-legend b.r, .kg-legend b.l', 'odyogram işareti (“<”, “[”: grafikteki maskeleme simgesinin glifi, sözcük değil) — WCAG 1.4.11 grafik nesne, eşik 3:1; renk grafikteki sağ/sol kulak rengiyle aynı kalmalı', 3],
 ];
 
+/** sayfada: takım sohbeti yazı kutusunun ipucu kutuya sığıyor mu; takım sekme satırlarında görünen bir sekme ok düğmesinin altında mı */
+function ipucuVeSekme() {
+  const el = document.querySelector('.chat-input input'); const cs = el && getComputedStyle(el);
+  const ctx = document.createElement('canvas').getContext('2d'); if (ctx && cs) ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const ipucu = el?.placeholder ?? ''; const ipucuGen = ctx ? Math.ceil(ctx.measureText(ipucu).width) : 0;
+  const kutuGen = el ? Math.floor(el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)) : 0;
+  const okAltinda = [];
+  for (const w of document.querySelectorAll('[data-subtabs^="takim"]')) {
+    const sc = w.querySelector('.subtabs')?.getBoundingClientRect(); if (!sc) continue;
+    for (const ok of w.querySelectorAll('.st-ok')) {
+      const o = ok.getBoundingClientRect();
+      for (const t of w.querySelectorAll('.subtab')) {
+        const r = t.getBoundingClientRect(); const l = Math.max(r.left, sc.left), rr = Math.min(r.right, sc.right);
+        if (rr - l > 1 && Math.min(rr, o.right) - Math.max(l, o.left) > 1) okAltinda.push(`${t.textContent.trim()} [sekme ${Math.round(l)}–${Math.round(rr)}, ok ${Math.round(o.left)}–${Math.round(o.right)}, ${ok.className}, kayan ${Math.round(sc.left)}–${Math.round(sc.right)}]`);
+      }
+    }
+  }
+  return { ipucu, ipucuGen, kutuGen, ipucuSigar: !!el && ipucuGen <= kutuGen, okAltinda };
+}
+/** sayfada: son Günün Sorusu kartının soru başı ve dört şıkkı sohbet kutusunun içinde mi (kaydırmadan, ilk kare) */
+function gununSorusuOlc() {
+  const box = document.querySelector('.chat-box'); const cards = document.querySelectorAll('.chat-box [data-testid="gunun-sorusu"]'); const c = cards[cards.length - 1];
+  if (!box || !c) return null;
+  const b = box.getBoundingClientRect(); const q = c.querySelector('.fc-txt').getBoundingClientRect();
+  const opts = [...c.querySelectorAll('.dq-opt')].map((o) => o.getBoundingClientRect());
+  const inBox = (r) => r.top >= b.top - 0.5 && r.bottom <= b.bottom + 0.5;
+  return { kutu: { top: Math.round(b.top), bottom: Math.round(b.bottom), h: Math.round(b.height) }, kart: Math.round(c.getBoundingClientRect().height), soru: Math.round(q.top),
+    siklar: opts.map((r) => `${Math.round(r.top)}-${Math.round(r.bottom)}`), tam: opts.length === 4 && inBox(q) && opts.every(inBox) };
+}
+
 /** sayfadaki oyuncunun takma adı (sunucu veritabanında bu oyuncuyu bulmak için; yardımcı istemciler Bora/Komşu/Aday) */
 const PAGE_NAME = 'Kulakçı Ayşegül1';
 /** tarayıcısız gerçek oyuncu (sunucuya doğrudan WebSocket; social-e2e.mjs ile aynı) */
@@ -965,7 +995,11 @@ async function suite(browserName, target, [W, H]) {
           const n = [...document.querySelectorAll('.chat-box .bubble')].filter((b) => { const r = b.getBoundingClientRect(); const v = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top); return v >= Math.min(24, r.height - 1); }).length;
           return { balon: n, kutu: Math.round(box.height) }; });
         rec.sohbetAlani = vis;
-        if (!vis || vis.balon < 3) fail(rec, `sohbette yalnız ${vis?.balon ?? 0} balon görünüyor (kutu ${vis?.kutu ?? 0} px; en az 3)`); }
+        if (!vis || vis.balon < 3) fail(rec, `sohbette yalnız ${vis?.balon ?? 0} balon görünüyor (kutu ${vis?.kutu ?? 0} px; en az 3)`);
+        // yazı kutusu ipucu ve sekme satırı kesilmiyor (OT-eski-telefon-31, YN-124)
+        const ipucuSekme = await page.evaluate(ipucuVeSekme); rec.ipucuSekme = ipucuSekme;
+        if (!ipucuSekme.ipucuSigar) fail(rec, `yazı kutusu ipucu kesik: "${ipucuSekme.ipucu}" (${ipucuSekme.ipucuGen} px > ${ipucuSekme.kutuGen} px)`);
+        if (ipucuSekme.okAltinda.length) fail(rec, `sekme ok düğmesinin altında: ${ipucuSekme.okAltinda.join(', ')}`); }
       // başvuru: lider ekranında rozet + Başvurular sekmesi (aşağıdaki alt sekme turunda denetlenir); katılım başvuruyla
       { const myTeam = `Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
         const aday = rawClient(wsUrl); await aday.call('hello', { version: 1, name: `Aday${sno}` });
@@ -1029,6 +1063,23 @@ async function suite(browserName, target, [W, H]) {
         await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300);
         const q = page.locator('[data-testid="gunun-sorusu"] .fc-reply', { hasText: 'Haftalık tablo' });
         if (await q.count()) { await q.first().click(); await page.locator('.sheet').waitFor(); await check('takim-haftalik-tablo', { scroll: false }); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300); }
+        // Günün Sorusu sohbetin son iletisiyken (yeni günün sorusu): ilk karede soru başı + dört şık sohbet kutusunda tam görünür;
+        // kart sığmıyorsa sohbet kartın başına hizalanır (YN-172, OT-sinav-adayi-34)
+        { const { DatabaseSync } = await import('node:sqlite');
+          const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000');
+          const tid = sq.prepare('SELECT team_id FROM players WHERE name = ? ORDER BY created_at DESC LIMIT 1').get(PAGE_NAME).team_id;
+          // ölçüm her koşuda aynı soruyla (günün sorusu takım kimliğine göre değişir): genel düzey havuzunun %75'lik diliminde bir soru
+          // (soru 61 harf, en uzun şık 25 harf; packages/content/src/quiz.ts). Daha uzun sorularda kart başına hizalanır (ui/Chat.tsx)
+          const row = sq.prepare("SELECT id, meta FROM chat WHERE room = ? AND kind = 'soru' ORDER BY at DESC LIMIT 1").get(`takim:${tid}`);
+          const meta = { ...JSON.parse(row.meta), c0: 'Arka kafa (oksipital) lob', c1: 'Beyincik', c2: 'Omurilik', c3: 'Şakak (temporal) lob' };
+          sq.prepare('UPDATE chat SET at = ?, text = ?, meta = ? WHERE id = ?').run(Date.now(), 'Beyinde sesleri anlamlandıran işitme korteksi hangi lobdadır?', JSON.stringify(meta), row.id); sq.close(); }
+        await takimSekme(page, 'Üyeler'); await sleep(300);
+        await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click();
+        await page.locator('[data-testid="gunun-sorusu"] .dq-opt').first().waitFor({ timeout: 10_000 }); await sleep(900);
+        { const rec = await check('takim-gunun-sorusu', { chat: true, scroll: false });
+          const g = await page.evaluate(gununSorusuOlc); rec.gununSorusu = g;
+          if (!g) fail(rec, 'Günün Sorusu kartı sohbette yok');
+          else if (!g.tam) fail(rec, `Günün Sorusu ilk karede tam görünmüyor: kutu ${g.kutu.top}–${g.kutu.bottom}, soru başı ${g.soru}, şıklar ${g.siklar.join('/')} (kart ${g.kart} px)`); }
         // Birlikte (İkili Görev, Usta–Çırak, sohbet ayarları)
         await tab('Profil'); await page.locator('.menu-tile[data-tile="together"]').click();
         await page.getByTestId('birlikte').waitFor(); await sleep(500);

@@ -641,7 +641,14 @@ export const rallyRewardReason = (monsterName: string) => `Ralli kazanıldı: ${
 export const LEFT_PLAYER_LABEL = 'Ayrılan bir oyuncu';
 export function rallyShownName(name: string): string { return name === DELETED_PLAYER_NAME ? LEFT_PLAYER_LABEL : name; }
 export type RallyStatus = 'acik' | 'kazanildi' | 'kaybedildi';
-export interface RallyParticipant { id: string; name: string; color: number; hat: string; damage: number; tries: number; joinedAt: number }
+export interface RallyParticipant {
+  id: string; name: string; color: number; hat: string; damage: number; tries: number; joinedAt: number;
+  /**
+   * kazanılan rallide katılımcının ödülü (YN-171): 'kutuda' Ödül kutusunda bekliyor, 'alindi' alındı (kazanma penceresindeki
+   * "Topla" ya da Ödül kutusu: cüzdanda), 'yok' bugünkü ralli ödülü dolmuştu. Ralli kazanılmadıysa yok.
+   */
+  reward?: 'kutuda' | 'alindi' | 'yok';
+}
 export interface RallyHit { id: string; name: string; damage: number; stars: number; completed: boolean; at: number }
 export interface RallyState {
   id: string; teamId: string; monster: RallyMonsterId; salt: number; starterId: string; starterName: string;

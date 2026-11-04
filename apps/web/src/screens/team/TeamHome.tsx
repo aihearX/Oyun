@@ -124,7 +124,7 @@ export function TeamHome() {
         : <div className="card war-warn note" role="note" data-testid="savas-hedef-uyari"><Art name="target" size={24} /><small className="grow min0">Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz.</small></div>)}
       {team.leaderNotice && myRole === 'lider' && <LeaderNotice />}
       <div className="team-body" key={tab}>
-        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} since={joinedAt} />}
+        {tab === 'sohbet' && <ChatRoom room={`takim:${team.id}`} offset={420} placeholder={`${team.name} takımına yaz…`} placeholderShort="Takıma yaz…" emptyText="Takımına bir merhaba de; hedefleri birlikte konuşun." members={team.roster} since={joinedAt} />}
         {tab === 'basvuru' && (approver ? <TeamApplications /> : <TeamMembers />)}
         {tab === 'uyeler' && <TeamMembers />}
         {tab === 'yardim' && <TeamHelp />}

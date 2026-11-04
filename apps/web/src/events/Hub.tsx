@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { EventKind } from '@odi/shared';
-import { RALLY_MONSTERS, rallyShownName } from '@odi/shared';
+import type { EventKind, RallyParticipant } from '@odi/shared';
+import { RALLY_MONSTERS, RALLY_RULES, rallyShownName } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
@@ -28,6 +28,14 @@ export function EvCard({ kind, live, clock, cta, ctaTone, onOpen, children, test
       </div>
     </div>
   );
+}
+
+/** biten ralli kartında oyuncunun kendi ödülü: "Topla" ile alındıysa cüzdanda, alınmadıysa ödül kutusunda (YN-171) */
+function rewardNote(reward: RallyParticipant['reward']): string {
+  if (reward === 'alindi') return ' · ödülün cüzdanında';
+  if (reward === 'kutuda') return ' · ödülün ödül kutunda';
+  if (reward === 'yok') return ` · bugünkü ${RALLY_RULES.rewardsPerPlayerDay} ralli ödülün dolmuştu`;
+  return '';
 }
 
 function Avatars({ list, max = 5 }: { list: { id: string; color: number; hat: string }[]; max?: number }) {
@@ -66,7 +74,7 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
           <div className="ev-rally-mini ev-ralli-sonuc" data-testid="ev-ralli-sonuc" data-status={rDone.status}>
             <span className="ev-mon-s" aria-hidden><MonsterArt id={doneMon.id} size={44} beaten={rDone.status === 'kazanildi'} /></span>
             <div className="grow min0"><b className="wrap">{rDone.status === 'kazanildi' ? `${doneMon.name} yenildi` : `${doneMon.name} kaçtı`}</b>
-              <small className="muted wrap">{rDone.status === 'kazanildi' ? `${heroes.length === 1 ? `${heroes[0]} tek başına yendi` : `${heroes.join(', ')} yendi`}${rDone.participants.some((p) => p.id === meId) ? ' · ödülün ödül kutunda' : ''}` : 'Süre doldu. Yeni ralli başlatabilirsiniz.'}</small></div>
+              <small className="muted wrap">{rDone.status === 'kazanildi' ? `${heroes.length === 1 ? `${heroes[0]} tek başına yendi` : `${heroes.join(', ')} yendi`}${rewardNote(rDone.participants.find((p) => p.id === meId)?.reward)}` : 'Süre doldu. Yeni ralli başlatabilirsiniz.'}</small></div>
           </div>
         ) : <div className="ev-mons">{RALLY_MONSTERS.map((m) => <span key={m.id} title={m.name}><MonsterArt id={m.id} size={46} /></span>)}<small className="muted">3 canavar · en az 2 katılımcı · 10 dk</small></div>}
       </EvCard>,

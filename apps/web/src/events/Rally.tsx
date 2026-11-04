@@ -7,7 +7,7 @@ import { claimInboxItem, toast } from '../net';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { Bar } from '../ui/bits';
 import { Sheet, fmtNum, fmtTime } from '../ui/social';
-import { evNet, useEvents } from './store';
+import { evNet, refreshEvents, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, levelName, useSrvNow } from './common';
 import type { PlayFn } from './EventsScreen';
 import { MonsterArt } from './MonsterArt';
@@ -175,6 +175,8 @@ async function rallyChest(rally: RallyState): Promise<void> {
   const shown = celebrate.chest({ title, items: rows.map((r) => ({ kind: r.kind, amount: r.amount, ref: r.ref })), tier });
   const got = await Promise.all(rows.map((r) => claimInboxItem(r.id)));
   await shown;
+  // Etkinlikler kartı oyuncunun ödülünü sunucudan okur ("ödülün cüzdanında" / "ödül kutunda", YN-171)
+  void refreshEvents();
   if (got.some((x) => !x)) toast('📬', 'Ödülün bir kısmı Ödül kutunda', 'Profil › Ödül kutusu’ndan alabilirsin.', 'bronze');
 }
 

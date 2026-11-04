@@ -52,10 +52,25 @@ function withMentions(text: string, names: string[]): ReactNode {
   return out;
 }
 
+/** başı kesik (alt kısmı görünen) Günün Sorusu kartını sohbet kutusunun başına getirecek kaydırma (negatif px); gerekmiyorsa null (YN-172) */
+function questionShift(box: { top: number; bottom: number }, card: { top: number; bottom: number }, pad: number): number | null {
+  if (card.top >= box.top + pad - 1 || card.bottom <= box.top) return null;
+  return Math.round(card.top - box.top - pad);
+}
+
+let fitCanvas: HTMLCanvasElement | null = null;
+/** ipucu yazı kutusuna sığıyor mu (kutunun kendi yazı tipiyle ölçülür); ölçülemezse sığıyor sayılır */
+function placeholderFits(el: HTMLInputElement, text: string): boolean {
+  const ctx = (fitCanvas ??= document.createElement('canvas')).getContext('2d'); if (!ctx) return true;
+  const cs = getComputedStyle(el); ctx.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  return ctx.measureText(text).width <= el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+}
+
 /** Gerçek zamanlı sohbet odası: takım, özel (dm) ya da genel. Takımda: akış kartları, yardım kartları, Günün Sorusu, konular,
  *  bahsetme ve "Kim çevrimiçi". Uzun bas: tepki / yanıtla / şikâyet / sessize al. since: bakan oyuncunun takıma katıldığı an; ondan önceki
- *  art arda sistem satırları katlanır, art arda ayrılma satırları tek satır olur (comm/sysfold.ts, YN-148). */
-export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emptyText, members, since }: { room: string; offset?: number; placeholder?: string; emptyText?: string; members?: ChatMember[]; since?: number }) {
+ *  art arda sistem satırları katlanır, art arda ayrılma satırları tek satır olur (comm/sysfold.ts, YN-148).
+ *  placeholderShort: uzun ipucu kutuya sığmazsa (320 px, Büyük yazı, uzun takım adı) yazılan kısa ipucu (OT-eski-telefon-31). */
+export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', placeholderShort, emptyText, members, since }: { room: string; offset?: number; placeholder?: string; placeholderShort?: string; emptyText?: string; members?: ChatMember[]; since?: number }) {
   const me = useNet((s) => s.me);
   const msgs = useNet((s) => s.messages[room] ?? EMPTY);
   const free = useCanFreeText(); const freeAt = useComm((s) => s.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel);
@@ -72,6 +87,14 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   const press = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const team = room.startsWith('takim:');
+  const [shortPh, setShortPh] = useState(false);
+  useLayoutEffect(() => {
+    const el = inputRef.current; if (!el || !placeholderShort) { setShortPh(false); return; }
+    const fit = () => setShortPh(!placeholderFits(el, placeholder));
+    fit(); void document.fonts?.ready.then(fit); // yazı tipi geç yüklenirse yeniden ölç
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
+  }, [placeholder, placeholderShort]);
   const richFeed = featureOpen('akis'); const dqOpen = featureOpen('soru');
   const names = useMemo(() => (members ?? []).filter((m) => m.id !== me?.id).map((m) => m.name), [members, me?.id]);
 
@@ -116,6 +139,18 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
   const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
   const ralliEnds = useMemo(() => (team ? rallyEnds(msgs) : new Map()), [msgs, team]);
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
+  // Günün Sorusu sohbetin görünen alanına sığmıyorsa (sona kaydırınca başı kesik): ilk açılışta kartın başına hizalanır, soru ve şıklar
+  // görünür (YN-172). Cevaplanmış ya da açıklanmış soruda ve kart tümüyle yukarıda kaldıysa sohbet sonda kalır.
+  const aligned = useRef(false);
+  useLayoutEffect(() => {
+    const b = box.current; if (!team || loading || !b || aligned.current) return;
+    aligned.current = true;
+    const cards = b.querySelectorAll<HTMLElement>('[data-testid="gunun-sorusu"][data-rev="0"]');
+    const card = cards[cards.length - 1]; if (!card?.querySelector('.dq-opt:not(:disabled)')) return;
+    const q = useComm.getState().dq?.question; if (q && q.msgId === card.dataset.id && q.myChoice != null) return;
+    const d = questionShift(b.getBoundingClientRect(), card.getBoundingClientRect(), parseFloat(getComputedStyle(b).paddingTop) || 0);
+    if (d) { b.scrollTop += d; stick.current = false; }
+  }, [loading]);
   // takım sohbeti görünür ve sona kaydırılmışsa son iletiye kadar okundu (sunucu imleci; Takım sekmesi rozeti, YN-071)
   const readAt = useRef(0);
   const markRead = () => {
@@ -211,7 +246,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', emp
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}
           onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } }}
-          placeholder={free ? placeholder : 'Yazı kapalı'} aria-describedby={free ? undefined : `kilit-${room}`} aria-label="Mesaj" enterKeyHint="send" />
+          placeholder={free ? (shortPh && placeholderShort ? placeholderShort : placeholder) : 'Yazı kapalı'} aria-describedby={free ? undefined : `kilit-${room}`} aria-label="Mesaj" enterKeyHint="send" />
         <IconButton type="submit" icon="send" label="Gönder" tone="solid" disabled={free && !text.trim()} />
       </form>
       {menu && (
