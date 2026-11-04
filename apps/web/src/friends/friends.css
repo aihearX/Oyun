@@ -71,6 +71,8 @@
 .fr-badge b { font-size:0.9375rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
 .fr-badge small { font-size:0.6875rem; font-weight:800; color:var(--text-2); }
 .fr-badge.wide { flex-basis:60%; }
+/* lig adı kesilmez (320 px, Büyük yazı: "Gü…", OT-eski-telefon-17): sığmazsa simge ile ad iki satıra iner */
+.fr-badge.lig b { white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:normal; line-height:1.15; }
 .fr-card-actions { display:flex; flex-direction:column; gap:10px; }
 .fr-card-quiet { display:flex; justify-content:center; flex-wrap:wrap; gap:4px 18px; padding-top:2px; }
 .fr-card-quiet .linkish { color:var(--text-2); font-size:0.8125rem; }

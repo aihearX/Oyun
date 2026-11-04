@@ -19,6 +19,13 @@ export function seenAgo(online: boolean, lastSeen: number, now = Date.now()): st
   return `${Math.max(1, Math.round(d / 86_400_000))} gün önce`;
 }
 
+/** listelerdeki satır: "çevrimiçi" ya da "son görülme 5 dk önce" (çağırma pencereleri ve Bayrak devret listesi aynı; YN-107) */
+export const seenLine = (online: boolean, lastSeen: number, now = Date.now()): string => (online ? 'çevrimiçi' : `son görülme ${seenAgo(false, lastSeen, now)}`);
+
+/** çevrimiçiler üstte, sonra en son görülen (çağırma pencereleri ve Bayrak devret listesi) */
+export const byPresence = <T extends Pick<TeamMember, 'lastSeen'>>(list: T[], online: (m: T) => boolean): T[] =>
+  [...list].sort((a, b) => Number(online(b)) - Number(online(a)) || b.lastSeen - a.lastSeen);
+
 /**
  * Takım arkadaşını özel mesajla çağır (DM davet kartı). Listede çevrimiçi noktası ve son görülme; çevrimiçiler üstte
  * (Bayrak Yarışı devret penceresindeki ev-dot deseni). Ralli odası ve Takım Yarışı lobisi aynı pencereyi kullanır (OT-takim-kaptani-12).
@@ -30,8 +37,7 @@ export function TeammateCall({ joined, text, meta, label, sheetTitle, note, test
   const team = useNet((s) => s.team); const me = useNet((s) => s.me); const presence = useNet((s) => s.presence);
   const [open, setOpen] = useState(false); const [sent, setSent] = useState<Record<string, string>>({});
   const online = (m: TeamMember) => presence[m.id] ?? m.online;
-  const list = (team?.roster ?? []).filter((m) => m.id !== me?.id && !joined.includes(m.id))
-    .sort((a, b) => Number(online(b)) - Number(online(a)) || b.lastSeen - a.lastSeen);
+  const list = byPresence((team?.roster ?? []).filter((m) => m.id !== me?.id && !joined.includes(m.id)), online);
   if (!list.length) return null;
   const call = async (to: string) => {
     try { await getNet()!.call('dm.send', { to, text, kind: 'davet', meta }); setSent((s) => ({ ...s, [to]: 'ok' })); platform().haptic('light'); }
@@ -47,7 +53,7 @@ export function TeammateCall({ joined, text, meta, label, sheetTitle, note, test
           {list.map((m) => { const on = online(m); return (
             <div key={m.id} className="ev-pass" data-testid="cagir-uye" data-online={on ? '1' : '0'}>
               <OdiAvatar color={m.color} hat={m.hat} size={36} />
-              <span className="grow min0 ev-call-who"><b className="ellipsis">{m.name}</b><small className="muted"><span className={`ev-dot${on ? ' on' : ''}`} role="img" aria-label={on ? 'çevrimiçi' : 'çevrimdışı'} /> {seenAgo(on, m.lastSeen, now)}</small></span>
+              <span className="grow min0 ev-call-who"><b className="ellipsis">{m.name}</b><small className="muted"><span className={`ev-dot${on ? ' on' : ''}`} role="img" aria-label={on ? 'çevrimiçi' : 'çevrimdışı'} /> {seenLine(on, m.lastSeen, now)}</small></span>
               {sent[m.id] === 'ok' ? <span className="ev-tag">Gönderildi <Icon name="check" size="1.1em" className="ic-inline" /></span> : <button className="btn small" aria-label={`${m.name} çağır`} onClick={() => void call(m.id)}>Çağır</button>}
               {sent[m.id] && sent[m.id] !== 'ok' && <small className="ev-note" style={{ flexBasis: '100%' }}>{sent[m.id]}</small>}
             </div>); })}

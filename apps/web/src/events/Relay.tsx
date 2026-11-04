@@ -9,12 +9,14 @@ import { evNet, useEvents } from './store';
 import { Countdown, Rewards, errText, eventSpec, fmtSecs, levelName } from './common';
 import type { PlayFn } from './EventsScreen';
 import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
+import { byPresence, seenLine } from './Call';
+import { relayTeamBestLine, relayTeamLegs } from './bayrak';
 
 const LEG_ICON = ['🏃', '🤸', '⚙️', '🏊'];
 
 /** Bayrak Yarışı: 4 ayaklı parkur, bayrağın yolu ve kim taşıdı, devir, takım sıralaması */
 export function RelayView({ onPlay }: { onPlay: PlayFn }) {
-  const r = useEvents((s) => s.relay); const me = useNet((s) => s.me); const team = useNet((s) => s.team);
+  const r = useEvents((s) => s.relay); const me = useNet((s) => s.me); const team = useNet((s) => s.team); const presence = useNet((s) => s.presence);
   const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [passOpen, setPassOpen] = useState(false);
   if (!r) return <ContentLoading rows={3} />;
   const meId = me?.id ?? '';
@@ -24,7 +26,11 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
   const take = () => act(async () => { const x = await evNet()!.call('relay.take', {}); useEvents.setState({ relay: x.relay }); platform().haptic('heavy'); });
   const pass = (to: string) => act(async () => { const x = await evNet()!.call('relay.pass', { to }); useEvents.setState({ relay: x.relay }); setPassOpen(false); });
   const canPass = !done && (mine || (!r.carrier && r.lastRunner?.id === meId));
-  const others = (team?.roster ?? []).filter((m) => m.id !== meId);
+  // devret listesi: çevrimiçiler üstte, satırda "çevrimiçi" / "son görülme N dk önce" (çağırma pencereleriyle aynı; YN-107, OT-takim-kaptani-16)
+  const isOn = (m: { id: string; online: boolean }) => presence[m.id] ?? m.online;
+  const others = byPresence((team?.roster ?? []).filter((m) => m.id !== meId), isOn);
+  const teamLegs = relayTeamLegs(r.legs);
+  const now = Date.now();
   // son ayağı ben koştum ve takımda başkası var: aynı kişi art arda iki ayak koşamaz
   const backToBack = r.lastRunner?.id === meId && others.length > 0;
   const leg = !done ? r.legs[r.current]! : null;
@@ -37,6 +43,9 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
       {err && <div className="ev-err" role="alert">{err}</div>}
       <div className="ev-track" data-tone="teal">
         <div className="row between ev-track-top"><span className="ev-tag" data-testid="bayrak-hap">{rich(done ? `🏁 Parkur tamam · ${fmtSecs(r.totalSec ?? 0)}` : `${r.current + 1}. ayak sırada`)}</span><Countdown to={r.period.endsAt} /></div>
+        {/* bugünkü takım (YN-194): rekorların bir kısmı ayrılan ya da hesabı silinen oyuncularda olabilir; şimdiki üyelerin koştuğu ayak sayısı
+            (hiç rekor yokken satır yok: her ayak zaten "Henüz koşulmadı") */}
+        {teamLegs != null && r.legs.some((l) => l.best) && <small className="ev-team-legs" data-testid="bayrak-takim-ayak">Bugünkü takımın koştuğu ayak: {teamLegs}/{r.legs.length}</small>}
         <div className="ev-path">
           {r.legs.map((l, i) => (
             <div key={i} className={`ev-leg${l.firstBy ? ' done' : ''}${i === r.current ? ' cur' : ''}`} data-testid={`bayrak-ayak-${i}`}>
@@ -45,6 +54,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
               <div className="min0 grow"><b className="wrap">{i + 1}. ayak · {levelName(l.level)}</b>
                 <small className="wrap">{rich(l.best ? `⏱️ Rekor ${fmtSecs(l.best.timeSec)} · ${l.best.name}` : i === r.current && r.carrier ? `🏃 ${r.carrier.name} koşuyor` : 'Henüz koşulmadı')}</small>
                 {l.best?.name === DELETED_PLAYER_NAME && <small className="wrap ev-leg-not" data-testid={`bayrak-silinmis-${i}`}>Hesabı silinmiş bir oyuncunun süresi; parkurda sayılmaya devam eder.</small>}
+                {relayTeamBestLine(l) && <small className="wrap ev-leg-team" data-testid={`bayrak-takimda-${i}`}>{relayTeamBestLine(l)}</small>}
                 {done && <button className="btn small ghost ev-rerun" data-testid={`bayrak-yeniden-${i}`} aria-label={`${i + 1}. ayağı yeniden koş`} onClick={() => onPlay(eventSpec(l.level, l.salt), { kind: 'bayrak', leg: i })}><Art e="⏱️" size="1.15em" className="art-inline" /> Yeniden koş</button>}
               </div>
             </div>
@@ -87,8 +97,10 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
         <Sheet title="Bayrağı kime devredelim?" onClose={() => setPassOpen(false)}>
           <div className="muted small-note">Seçtiğin takım arkadaşına "Bayrak sende!" bildirimi gider.</div>
           {others.map((m) => (
-            <button key={m.id} className="ev-pass" data-testid={`bayrak-devret-${m.name}`} disabled={busy} onClick={() => void pass(m.id)}>
-              <OdiAvatar color={m.color} hat={m.hat} size={36} /><b className="grow ellipsis">{m.name}</b><span className={`ev-dot${m.online ? ' on' : ''}`} aria-label={m.online ? 'çevrimiçi' : 'çevrimdışı'} /><span><Art e="🚩" size="1.15em" className="art-inline" /></span>
+            <button key={m.id} className="ev-pass" data-testid={`bayrak-devret-${m.name}`} data-online={isOn(m) ? '1' : '0'} disabled={busy} onClick={() => void pass(m.id)}>
+              <OdiAvatar color={m.color} hat={m.hat} size={36} />
+              <span className="grow min0 ev-call-who"><b className="ellipsis">{m.name}</b><small className="muted"><span className={`ev-dot${isOn(m) ? ' on' : ''}`} role="img" aria-label={isOn(m) ? 'çevrimiçi' : 'çevrimdışı'} /> {seenLine(isOn(m), m.lastSeen, now)}</small></span>
+              <span><Art e="🚩" size="1.15em" className="art-inline" /></span>
             </button>
           ))}
           {others.length === 0 && <div className="muted">Takımında başka üye yok.</div>}

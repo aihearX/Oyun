@@ -19,8 +19,18 @@ export type SocialRoute =
   | { name: 'pratik' }
   /** arkadaşın ya da takım arkadaşının kampı (salt okunur, hazır tepki; camp/Ziyaret.tsx) */
   | { name: 'kamp'; id: string }
-  /** etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu; rallyId: davet/sohbet kartının kendi rallisi, YN-116) */
-  | { name: 'events'; view?: EventView; flash?: EventFlash; rallyId?: string };
+  /**
+   * etkinlik merkezi ya da tek bir etkinlik (flash: etkinlik koşusunun kısa sonucu; rallyId: davet/sohbet kartının kendi rallisi, YN-116;
+   * fromHub: tek etkinliğe Etkinlikler merkezinden gelindi, Geri merkeze döner — bkz. eventBackTo)
+   */
+  | { name: 'events'; view?: EventView; flash?: EventFlash; rallyId?: string; fromHub?: boolean };
+
+/**
+ * Etkinlik ekranında Geri (YN-107, OT-ogrenci-birinci-21, OT-buyuk-yazi-59): tek etkinliğe merkezden gelindiyse merkeze; doğrudan
+ * açıldıysa (Takım › Etkinlikler, Bugün, duyuru, davet kartı) geldiği yere. Eskiden hep merkeze dönüyordu: Takım › Etkinlikler'den
+ * açılan Bayrak Yarışı'ndan çıkmak için iki kez Geri gerekiyordu. Etkinlik koşusundan dönüşte de aynı kalır (fromHub rotada taşınır).
+ */
+export const eventBackTo = (view: EventView, fromHub: boolean): 'merkez' | 'geldigi-yer' => (view !== 'merkez' && fromHub ? 'merkez' : 'geldigi-yer');
 
 /**
  * Alt ekranların adı (ScreenHead başlığıyla aynı): parça yüklenirken başlık ve Geri hemen çizilir, ekran "donmuş" görünmez

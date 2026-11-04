@@ -829,8 +829,9 @@ async function netPlayer(S, name, { cleared = 12, q = '', color = null, knowledg
 async function toTab(p, id) { for (let i = 0; i < 8 && !(await p.page.locator('nav.tabbar').count()); i++) { await p.page.locator('button[aria-label="Geri"]').first().click().catch(() => undefined); await sleep(350); } await closeBanners(p.page); await tab(p.page, id); await sleep(500); }
 async function openEvents(p, view) {
   await p.page.evaluate(() => document.getElementById('root')?.scrollTo(0, 0));
-  if (await tid(p, 'etkinlikler').count()) { if (view) { const back = p.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) await back.click(); } }
-  else { await toTab(p, 'map'); await tid(p, 'ev-fab').click({ timeout: 20_000 }); }
+  // doğrudan açılan etkinlikte Geri etkinlik ekranından çıkar (YN-107): o zaman merkez yeniden açılır
+  if (view && await tid(p, 'etkinlikler').count()) { const back = p.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) { await back.click(); await sleep(300); } }
+  if (!(await tid(p, 'etkinlikler').count())) { await toTab(p, 'map'); await tid(p, 'ev-fab').click({ timeout: 20_000 }); }
   await tid(p, 'etkinlikler').waitFor();
   if (view) { await tid(p, `ev-kart-${view}`).locator('.ev-band').click(); await p.page.locator(`[data-testid="etkinlikler"][data-view="${view}"]`).waitFor(); }
   await sleep(700);

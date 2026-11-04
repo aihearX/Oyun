@@ -694,7 +694,14 @@ export function duelStarPoints(stars: number, fullRunsBefore: number): { points:
 }
 
 // ---------- Bayrak Yarışı (haftalık, 4 ayak, asenkron)
-export interface RelayLeg { index: number; level: number; salt: number; best: { id: string; name: string; timeSec: number } | null; firstBy: { id: string; name: string } | null }
+export interface RelayLeg {
+  index: number; level: number; salt: number; best: { id: string; name: string; timeSec: number } | null; firstBy: { id: string; name: string } | null;
+  /**
+   * takımın şimdiki üyelerinden bu ayağın en iyi süresi (YN-194): rekor ayrılan ya da hesabı silinen birindeyse bugünkü takımın
+   * hangi ayağı ne sürede koştuğu buradan görünür. Rekor ve toplam kuralı değişmez (parkura `best` sayılır). Eski sunucuda yok.
+   */
+  teamBest?: { id: string; name: string; timeSec: number } | null;
+}
 export interface RelayState {
   period: EventPeriod;
   legs: RelayLeg[];

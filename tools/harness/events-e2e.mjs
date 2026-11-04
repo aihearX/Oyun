@@ -130,9 +130,9 @@ async function settle(p, ms = 400) {
 }
 async function openEvents(p, view) {
   await p.page.evaluate(() => document.getElementById('root')?.scrollTo(0, 0));
-  if (await tid(p, 'etkinlikler').count()) {
-    if (view) { const back = p.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) await back.click(); }
-  } else {
+  // doğrudan açılan etkinlikte (duyuru, Takım sekmesi) Geri etkinlik ekranından çıkar (YN-107): o zaman merkez yeniden açılır
+  if (view && await tid(p, 'etkinlikler').count()) { const back = p.page.locator('.ev-head button[aria-label="Geri"]'); if (await back.count()) { await back.click(); await sleep(300); } }
+  if (!(await tid(p, 'etkinlikler').count())) {
     const fab = tid(p, 'ev-fab');
     if (await fab.count()) await fab.click();
     else {
@@ -226,18 +226,31 @@ try {
   await shot(A, 'ralli-odasi');
   const walletA0 = (await net(A, 'wallet.get')).wallet;
   const rallyRuns = [];
-  for (let round = 0; round < 3; round++) {
-    const status = await A.page.evaluate(() => window.__etkinlik.events.getState().rally?.status);
-    if (status === 'kazanildi') break;
-    const act = [];
-    for (const p of [A, B]) if (await tid(p, 'ralli-saldir').isEnabled()) { await tid(p, 'ralli-saldir').click(); act.push(p); }
-    if (round === 0) { await sleep(6000); await shot(B, 'ralli-bolum-bot'); }
-    for (const p of act) rallyRuns.push({ who: p.name, ...(await waitLevelDone(p)) });
-    await sleep(1200);
+  // Bora bölümü bot ile oynar (bir vuruş); Ayşe bölümdeyken Bora'nın kalan vuruşları canavarı yener (YN-193, OT-takim-kaptani-34):
+  // Ayşe bölüm içinde "Canavar yenildi! Ralli kazanıldı" şeridini görür ve "Çık" ile tek dokunuşla ralli ekranına döner
+  await tid(B, 'ralli-saldir').click();
+  await sleep(6000); await shot(B, 'ralli-bolum-bot');
+  rallyRuns.push({ who: B.name, ...(await waitLevelDone(B)) });
+  await A.page.locator('[data-testid="ralli-oda"]:not([data-hp="200"])').waitFor({ timeout: 15_000 }).catch(() => fail('Bora\'nın vuruşu yazılmadı'));
+  await tid(A, 'ralli-saldir').click();
+  await A.page.locator('.level-host canvas').waitFor({ timeout: 30_000 });
+  await sleep(2500);
+  check(!(await tid(A, 'ralli-bolum-yenildi').count()), 'ralli: canavar yenilmeden bölüm içinde şerit yok');
+  const rallyId = await A.page.evaluate(() => window.__etkinlik.events.getState().rally?.id);
+  for (let i = 0; i < 2; i++) {
+    const x = await net(B, 'rally.hit', { rallyId, runId: `e2e-ralli-${Date.now().toString(36)}-${i}`, completed: true, stars: 3, score: 1500, timeSec: 30 });
+    rallyRuns.push({ who: `${B.name} (istemci)`, damage: x.damage, hp: x.rally.hp });
+    if (x.rally.status === 'kazanildi') break;
   }
   log('ralli koşuları:', JSON.stringify(rallyRuns));
+  const serit = await tid(A, 'ralli-bolum-yenildi').waitFor({ timeout: 10_000 }).then(() => tid(A, 'ralli-bolum-yenildi').innerText(), () => '');
+  check(serit.includes('Canavar yenildi! Ralli kazanıldı') && !!(await A.page.locator('.level-host canvas').count()), `ralli: Ayşe bölümdeyken canavar yenildi, bölüm içinde şerit ("${serit.replace(/\s+/g, ' ').trim()}")`);
+  await shot(A, 'ralli-bolum-ici-yenildi');
+  await tid(A, 'ralli-bolum-cik').click();
+  const cikis = await tid(A, 'ev-flash').waitFor({ timeout: 10_000 }).then(() => tid(A, 'ev-flash').innerText(), () => '');
+  check(cikis.includes('Ralli kazanıldı') && !(await A.page.locator('.level-host').count()), `ralli: "Çık" ile tek dokunuşla ralli ekranına dönüldü ("${cikis.replace(/\s+/g, ' ').trim()}")`);
   await A.page.locator('[data-testid="ralli-oda"][data-status="kazanildi"]').waitFor({ timeout: 15_000 }).catch(() => fail('ralli kazanılmadı'));
-  check(true, 'ralli kazanıldı (iki üye de bölümü bitirdi, can sıfır)');
+  check(true, 'ralli kazanıldı (can sıfır)');
   await sleep(600);
   await shot(A, 'ralli-kazanildi-sandik');
   check(await A.page.locator('.cel-cta button', { hasText: 'Topla' }).waitFor({ timeout: 10_000 }).then(() => true, () => false), 'ralli: kazanma sandığında "Topla" (ödül kutusundaki satırlar alınacak)');
@@ -327,6 +340,14 @@ try {
   await B.page.locator('.subtab', { hasText: 'Etkinlikler' }).click();
   await tid(B, 'takim-etkinlikler').waitFor();
   await shot(B, 'takim-etkinlik-sekmesi');
+  // Takım › Etkinlikler'den açılan Bayrak Yarışı: bugünkü takım satırı (YN-194); tek Geri Takım › Etkinlikler'e döner (YN-107, OT-buyuk-yazi-59)
+  await tid(B, 'takim-etkinlikler').locator('[data-testid="ev-kart-bayrak"] .ev-band').click();
+  await B.page.locator('[data-testid="etkinlikler"][data-view="bayrak"]').waitFor();
+  { const t = await tid(B, 'bayrak-takim-ayak').innerText().catch(() => '');
+    check(t === 'Bugünkü takımın koştuğu ayak: 2/4', `bayrak: başlıkta bugünkü takım ("${t}")`); }
+  await B.page.locator('.ev-head button[aria-label="Geri"]').click();
+  await tid(B, 'takim-etkinlikler').waitFor({ timeout: 5000 }).catch(() => undefined);
+  check(!!(await tid(B, 'takim-etkinlikler').count()) && !(await tid(B, 'etkinlikler').count()), 'bayrak: Takım › Etkinlikler\'den açılınca tek Geri Takım › Etkinlikler sekmesine döner');
   await net(B, 'progress.submit', { runId: `e2e-${Date.now()}-3`, level: 1, completed: true, stars: 2, score: 800, timeSec: 22, coins: 180, biome: 'dis-kulak', mechanic: 'kosu' });
   await openEvents(A, 'gorev'); await tid(A, 'takim-gorevleri').waitFor(); await shot(A, 'takim-gorevleri');
   await openEvents(A, 'avi'); await tid(A, 'ses-avi').waitFor(); await shot(A, 'ses-avi');

@@ -61,7 +61,7 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
         <div className="fr-badges">
           <span className="fr-badge"><b><Art e="⭐" size="1.15em" className="art-inline" /> {p.stars}</b><small>yıldız</small></span>
           <span className="fr-badge"><b><Art e="🗺️" size="1.15em" className="art-inline" /> {p.highest}</b><small>en yüksek bölüm</small></span>
-          <span className="fr-badge"><b>{rich(tierLabel(p))}</b><small>lig</small></span>
+          <span className="fr-badge lig" data-testid="profil-lig"><b>{rich(tierLabel(p))}</b><small>lig</small></span>
           <span className="fr-badge"><b>Sv {p.level}</b><small>seviye</small></span>
           {p.teamName && <span className="fr-badge wide"><b><TeamEmblem e={p.teamEmblem} size="1.1em" className="art-inline" /> <span data-ugc>{p.teamName}</span></b><small>takım</small></span>}
           <span className="fr-badge"><b><Art e="🫂" size="1.15em" className="art-inline" /> {card.friendCount}</b><small>{card.mutualFriends ? `${card.mutualFriends} ortak` : 'arkadaş'}</small></span>

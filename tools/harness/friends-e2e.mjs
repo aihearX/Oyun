@@ -258,6 +258,12 @@ try {
   await A.getByRole('button', { name: 'Cem profili' }).click();
   await A.locator('[data-testid="profil-karti"]').waitFor();
   await shot(A, 'A-profil-karti-cem');
+  // 320 px + Büyük yazı: lig adı kesilmez, sığmazsa iki satır (OT-eski-telefon-17, "Gü…")
+  { const vp = A.viewportSize(); await A.setViewportSize({ width: 320, height: 640 }); await A.evaluate(() => document.documentElement.classList.add('buyuk-yazi')); await A.waitForTimeout(300);
+    const lig = await A.locator('[data-testid="profil-lig"] b').evaluate((e) => ({ yazi: e.textContent.trim(), kesik: e.scrollWidth > e.clientWidth + 1 || getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth }));
+    await shot(A, 'A-profil-karti-320-buyuk');
+    await A.evaluate(() => document.documentElement.classList.remove('buyuk-yazi')); await A.setViewportSize(vp);
+    check(!lig.kesik && lig.yazi.length > 2, `profil kartı 320 px Büyük yazı: lig adı kesilmeden ("${lig.yazi}")`); }
   await A.locator('.fr-card-quiet .linkish', { hasText: 'Engelle' }).click();
   await shot(A, 'A-engelle-onay');
   await A.locator('.fr-card-actions .btn.coral', { hasText: 'Engelle' }).click();

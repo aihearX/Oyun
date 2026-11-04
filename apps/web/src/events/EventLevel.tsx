@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EventKind, LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import type { LevelOptions } from '@odi/game-core/lite';
 import { DEFAULT_SKILLS, FIRSTS } from '@odi/content';
@@ -8,6 +8,8 @@ import { useStore } from '../store';
 import { applyOverview, evNet, useEvents } from './store';
 import { errText, fmtSecs } from './common';
 import { relayRunText } from './bayrak';
+import './events.css';
+import { RALLY_LATE_RUN, RALLY_WON_EXIT, rallyAlreadyWon, rallyWonWhilePlaying } from './ralli-bolum';
 
 /** Bir etkinlik koşusu: hangi etkinliğe gönderileceği */
 export type EventPlay = { kind: 'ralli'; rallyId: string } | { kind: 'bayrak'; leg: number } | { kind: 'meydan' } | { kind: 'turnuva'; slot: number };
@@ -48,18 +50,32 @@ function eventFirsts(play: EventPlay): string[] {
 /** Mevcut LevelHost ile etkinlik bölümünü oynatır; bitince sonucu ilgili etkinliğe (runId ile idempotent) gönderir. */
 export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: EventPlay; onExit: (kind: EventKind, flash?: EventFlash) => void }) {
   const done = useRef(false);
+  const [running, setRunning] = useState(true);
   const skills: PlayerSkills = play.kind === 'ralli' ? useStore.getState().skills : DEFAULT_SKILLS; // yarışmalı etkinliklerde herkes eşit
+  // bölüm sürerken ralli kazanıldı (takım arkadaşının son darbesi, rally.updated yayını): bölüm içi şerit (YN-193, ralli-bolum.ts)
+  const rallyWon = useEvents((s) => play.kind === 'ralli' && rallyWonWhilePlaying(s.rally, play.rallyId));
   const finish = (r: RunResult) => {
-    if (done.current) return; done.current = true;
+    if (done.current) return; done.current = true; setRunning(false);
     void submit(play, r).then((flash) => onExit(play.kind, flash));
   };
+  const quitWon = () => { if (done.current) return; done.current = true; onExit(play.kind, RALLY_WON_EXIT); };
   // bot modunda LevelHost onDone çağırmaz: sonucu window.__odi'den al
   useEffect(() => {
     if (!BOT) return;
     const h = setInterval(() => { const o = window.__odi; if (o?.done && o.result && o.spec?.id === spec.id) { clearInterval(h); finish(o.result); } }, 250);
     return () => clearInterval(h);
   }, [spec.id]);
-  return <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={{ firsts: eventFirsts(play) }} onDone={finish} onQuit={() => onExit(play.kind)} />;
+  return (
+    <>
+      <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={{ firsts: eventFirsts(play) }} onDone={finish} onQuit={() => onExit(play.kind)} />
+      {rallyWon && running && (
+        <div className="ev-level-won" role="status" data-testid="ralli-bolum-yenildi">
+          <span className="min0"><b>Canavar yenildi! Ralli kazanıldı</b><small>Bu koşu artık hasar yazmaz.</small></span>
+          <button className="btn small" data-testid="ralli-bolum-cik" onClick={quitWon}>Çık</button>
+        </div>
+      )}
+    </>
+  );
 }
 
 async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
@@ -93,6 +109,7 @@ async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
     }
   } catch (e) {
     void c.call('events.overview', {}).then((o) => applyOverview(o.overview)).catch(() => undefined);
+    if (play.kind === 'ralli' && rallyAlreadyWon(e)) return RALLY_LATE_RUN;
     return { icon: '🙈', title: 'Sonuç işlenemedi', text: errText(e), tone: 'warn' };
   }
 }

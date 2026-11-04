@@ -392,6 +392,26 @@ describe('Bayrak Yarışı', () => {
   });
 });
 
+describe('Bayrak Yarışı: bugünkü takım (YN-194, OT-rekabetci-43)', () => {
+  it('ayakta rekor kalır; takımdaki en iyi yalnız şimdiki üyelerden, silinen hesabın süresi sayılmaya devam eder', async () => {
+    env = await setup({ eventsFast: true });
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Bayrakçılar');
+    await a.c.call('relay.take', {});
+    let relay = (await a.c.call('relay.submit', { leg: 0, ...erun({ timeSec: 31.4 }) })).relay;
+    expect(relay.legs[0]!.teamBest).toMatchObject({ name: 'Ayşe', timeSec: 31.4 });
+    expect(relay.legs[1]!.teamBest).toBeNull();
+    await a.c.call('relay.pass', { to: b.c.me!.id });
+    await b.c.call('relay.submit', { leg: 1, ...erun({ timeSec: 40 }) });
+    // Ayşe hesabını siler: rekoru parkurda kalır, takımdaki en iyi artık şimdiki üyelerden (yok)
+    await a.c.call('account.delete', {});
+    relay = (await b.c.call('relay.state', {})).relay;
+    expect(relay.legs[0]!.best).toMatchObject({ timeSec: 31.4 });
+    expect(relay.legs[0]!.teamBest).toBeNull();
+    expect(relay.legs[1]!.teamBest).toMatchObject({ name: 'Bora', timeSec: 40 });
+    expect(relay.legs.filter((l) => l.teamBest).length).toBe(1);
+  });
+});
+
 describe('Ses Avı ve günlük takım görevleri', () => {
   it('bölüm jetonları ortak melodiye yazılır; 8 kademe hediye, %100 şarkı; aynı runId bir kez', async () => {
     env = await setup({ eventsFast: true });

@@ -39,9 +39,16 @@ export function relayState(app: App, teamId: string): RelayState {
   const period = relayPeriod(app);
   const r = ensure(app, period.key, teamId);
   const legRows = new Map(app.db.all<LegRow>('SELECT leg, best_sec, best_by, first_by, first_at FROM ev_relay_leg WHERE period = ? AND team_id = ?', period.key, teamId).map((x) => [x.leg, x]));
+  // takımdaki en iyi (YN-194): yalnız şimdiki üyelerin bu haftaki bitirdiği koşular; eşit sürede önce koşan
+  const teamBest = new Map<number, { id: string; name: string; timeSec: number }>();
+  for (const x of app.db.all<{ leg: number; player_id: string; name: string; time_sec: number }>(
+    `SELECT r.leg, r.player_id, p.name, r.time_sec FROM ev_relay_run r JOIN players p ON p.id = r.player_id
+     WHERE r.period = ? AND r.team_id = ? AND r.completed = 1 AND p.team_id = ? ORDER BY r.time_sec, r.at`, period.key, teamId, teamId)) {
+    if (!teamBest.has(x.leg)) teamBest.set(x.leg, { id: x.player_id, name: x.name, timeSec: x.time_sec });
+  }
   const legs: RelayLeg[] = relayLegs(period).map((l, i) => {
     const x = legRows.get(i);
-    return { index: i, level: l.level, salt: l.salt, best: x?.best_sec != null ? { id: x.best_by!, name: nameOf(app, x.best_by), timeSec: x.best_sec } : null, firstBy: x?.first_by ? { id: x.first_by, name: nameOf(app, x.first_by) } : null };
+    return { index: i, level: l.level, salt: l.salt, best: x?.best_sec != null ? { id: x.best_by!, name: nameOf(app, x.best_by), timeSec: x.best_sec } : null, firstBy: x?.first_by ? { id: x.first_by, name: nameOf(app, x.first_by) } : null, teamBest: teamBest.get(i) ?? null };
   });
   const totalSec = legs.every((l) => l.best) ? Math.round(legs.reduce((a, l) => a + l.best!.timeSec, 0) * 10) / 10 : null;
   const ranking = app.db.all<{ team_id: string; name: string; emblem: string; n: number; total: number }>(

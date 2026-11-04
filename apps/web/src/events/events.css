@@ -152,6 +152,9 @@
    yazının altında (OT-rekabetci-38) */
 .ev-leg .btn.ev-rerun { display:inline-flex; margin-top:6px; white-space:nowrap; font-size:0.8125rem; gap:4px; }
 .ev-leg small.ev-leg-not { font-weight:700; margin-top:2px; }
+/* bugünkü takım (YN-194): başlıktaki koşulan ayak sayısı ve ayağın altındaki "Takımdaki en iyi" satırı */
+.ev-team-legs { display:block; font-size:0.75rem; font-weight:800; color:var(--text-2); }
+.ev-leg small.ev-leg-team { margin-top:2px; color:var(--text); }
 .ev-feed .ev-parkurda { flex:none; font-size:0.6875rem; padding:2px 8px; }
 .ev-parkur-not { display:block; margin-top:2px; }
 .ev-carrier { display:flex; flex-direction:column; gap:8px; }
@@ -239,6 +242,15 @@
 .ev-flash.warn { background:color-mix(in srgb, var(--coral) 85%, white); }
 .ev-flash b { display:block; font-size:1rem; } .ev-flash small { display:block; font-weight:800; font-size:0.8125rem; color:var(--ink-2); }
 .ev-flash-i { font-size:30px; }
+
+/* ---- ralli bölümü sürerken canavar yenildi (YN-193): bölüm içi şerit, tuvalin üstünde; yalnız "Çık" dokunuş alır */
+.ev-level-won { position:fixed; z-index:40; left:50%; transform:translateX(-50%); top:calc(env(safe-area-inset-top, 0px) + 124px); width:min(440px, calc(100vw - 32px));
+  display:flex; align-items:center; gap:10px; padding:8px 10px 8px 14px; border-radius:16px; background:rgba(36,24,6,.92); border:2px solid var(--gold); color:#fff6e5;
+  box-shadow:0 10px 24px rgba(5,2,20,.55); pointer-events:none; animation:ev-drop .35s cubic-bezier(.2,1.3,.3,1); }
+.ev-level-won > span { flex:1; }
+.ev-level-won b { display:block; font-size:0.9375rem; }
+.ev-level-won small { display:block; font-size:0.75rem; font-weight:800; color:#e9dcc0; }
+.ev-level-won .btn { flex:none; pointer-events:auto; }
 
 /* ---- bildirim şeridi ve yüzen düğme */
 .ev-notice { position:fixed; top:calc(var(--sat) + 8px); left:50%; transform:translateX(-50%); width:min(460px, calc(100vw - 20px)); z-index:75; display:flex; align-items:stretch; border-radius:18px; overflow:hidden;
