@@ -288,12 +288,30 @@ export function moveRule(tier: TeamLeagueTier, n: number, up: number, down: numb
 /**
  * Haftalık sınırlı kaynağın sezon dökümü (OT-rekabetci-26): "Bu sezon (2 hafta): 1. hafta 46 + bu hafta 7 (792 savaş puanı)".
  * Ham sayı (savaş puanı, baskın hasarı) yalnız bu hafta için: Savaş/Baskın ekranının bu haftaki sayısıyla karşılaştırılabilsin.
+ * Bu haftanın tavanı (`capWeek`, sunucu teamrace/league.ts aynı sınırla keser) dolduysa söylenir: "bu hafta 60/60 (6.658 savaş puanı)
+ * · tavan doldu" (OT-rekabetci-41).
  */
 export function weekLine(k: 'war' | 'raid' | 'quiz', weeks: TeamLeagueWeek[] | undefined, cur: number | undefined): string | null {
   if (!weeks?.length || cur == null) return null;
   const raw = (w: TeamLeagueWeek) => (k === 'war' ? ` (${fmtNum(w.warRaw)} savaş puanı)` : k === 'raid' ? ` (${fmtNum(w.raidRaw)} hasar)` : '');
-  const parts = weeks.slice(0, cur + 1).map((w, i) => (i === cur ? `${cur === 0 ? '1. hafta (bu hafta)' : 'bu hafta'} ${fmtNum(w[k])}${raw(w)}` : `${i + 1}. hafta ${fmtNum(w[k])}`));
+  const cap = TEAM_LEAGUE_RULES.sources[k].capWeek;
+  const now = (w: TeamLeagueWeek) => (w[k] >= cap ? `${fmtNum(w[k])}/${fmtNum(cap)}${raw(w)} · tavan doldu` : `${fmtNum(w[k])}${raw(w)}`);
+  const parts = weeks.slice(0, cur + 1).map((w, i) => (i === cur ? `${cur === 0 ? '1. hafta (bu hafta)' : 'bu hafta'} ${now(w)}` : `${i + 1}. hafta ${fmtNum(w[k])}`));
   return `Bu sezon (${weeks.length} hafta): ${parts.join(' + ')}`;
+}
+
+/**
+ * Haftalık tavanı dolan kaynak varsa bu hafta hâlâ puan getirenler (OT-rekabetci-41): kural tablosundaki kaynaklardan tavanı dolmamış
+ * olanlar; Düello ve Takım Yarışı'nın haftalık tavanı yok (yarışın günlük sınırı kendi satırında). Tavan dolmadıysa satır yok.
+ */
+export function stillCounts(weeks: TeamLeagueWeek[] | undefined, cur: number | undefined): string | null {
+  const w = cur == null ? undefined : weeks?.[cur];
+  if (!w) return null;
+  const S = TEAM_LEAGUE_RULES.sources;
+  const capped = (['war', 'raid', 'quiz'] as const).filter((k) => w[k] >= S[k].capWeek);
+  if (!capped.length) return null;
+  const open = (['war', 'raid', 'quiz', 'duel', 'race'] as const).filter((k) => !(capped as readonly string[]).includes(k)).map((k) => S[k].label);
+  return `Bu hafta tavanı dolan: ${capped.map((k) => S[k].label).join(', ')}. Bu hafta hâlâ puan getiren: ${open.join(', ')}.`;
 }
 
 /**
@@ -348,6 +366,7 @@ export function TeamLeagueView() {
           <div key={k} className="tl-src"><Art name={a} size={20} /><span className="grow min0"><b>{S[k].label}</b><small>{S[k].desc}</small>
             {k !== 'duel' && k !== 'race' && weekLine(k, s.mine.weeks, s.mine.curWeek) && <small className="tl-hafta" data-testid={`tl-hafta-${k}`}>{weekLine(k, s.mine.weeks, s.mine.curWeek)}</small>}</span><b>{fmtNum(s.mine[k])}</b></div>
         ))}
+        {stillCounts(s.mine.weeks, s.mine.curWeek) && <small className="tl-not" data-testid="tl-hala-sayilan">{stillCounts(s.mine.weeks, s.mine.curWeek)}</small>}
         {/* hangi etkinlik sayılır, hangisi sayılmaz (sahip kararı 40, YN-098; OT-rekabetci-18, -22) */}
         <small className="muted tl-not" data-testid="tl-sayilan">{scope.counted}</small>
         <small className="muted tl-not" data-testid="tl-sayilmayan">{scope.notCounted}</small>

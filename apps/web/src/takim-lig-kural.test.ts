@@ -1,6 +1,6 @@
 // Takım Ligi kuralı (OT-rekabetci-18): sunucunun yükselme kuralıyla aynı cümle; yükselme yoksa "İlk – takım" yerine açık cümle.
 import { describe, expect, it } from 'vitest';
-import { moveRule, rewardRule, weekLine } from './teamrace/TeamRace';
+import { moveRule, rewardRule, stillCounts, weekLine } from './teamrace/TeamRace';
 
 describe('Takım Ligi yükselme cümlesi', () => {
   it('grupta tek ya da iki takım: yükselme yok, nedeni yazılı; boşluk/tire hatası yok', () => {
@@ -27,6 +27,17 @@ describe('Takım Ligi sezon dökümü ve ödül cümlesi (OT-rekabetci-26, 27)',
     expect(weekLine('war', [w(7, 792), w(0, 0)], 0)).toBe('Bu sezon (2 hafta): 1. hafta (bu hafta) 7 (792 savaş puanı)');
     expect(weekLine('quiz', [{ war: 0, raid: 0, quiz: 12, warRaw: 0, raidRaw: 0 }, w(0, 0)], 1)).toBe('Bu sezon (2 hafta): 1. hafta 12 + bu hafta 0');
     expect(weekLine('war', undefined, undefined)).toBeNull();
+  });
+  it('haftalık tavan dolunca söylenir (OT-rekabetci-41): 60/60 · tavan doldu; hâlâ puan getirenler', () => {
+    const weeks = [w(46, 4650), w(60, 6658)];
+    expect(weekLine('war', weeks, 1)).toBe('Bu sezon (2 hafta): 1. hafta 46 + bu hafta 60/60 (6.658 savaş puanı) · tavan doldu');
+    expect(stillCounts(weeks, 1)).toBe('Bu hafta tavanı dolan: Bölge Savaşı. Bu hafta hâlâ puan getiren: Baskın, Bilgi, Düello, Takım Yarışı.');
+    const iki = [{ war: 60, raid: 0, quiz: 30, warRaw: 7000, raidRaw: 0 }];
+    expect(weekLine('quiz', iki, 0)).toBe('Bu sezon (1 hafta): 1. hafta (bu hafta) 30/30 · tavan doldu');
+    expect(stillCounts(iki, 0)).toBe('Bu hafta tavanı dolan: Bölge Savaşı, Bilgi. Bu hafta hâlâ puan getiren: Baskın, Düello, Takım Yarışı.');
+    // tavan dolmadıysa satır yok; geçmiş haftanın dolu tavanı bu haftayı etkilemez
+    expect(stillCounts([w(60, 6000), w(7, 792)], 1)).toBeNull();
+    expect(stillCounts(undefined, undefined)).toBeNull();
   });
   it('ödül: çarpanlar okunur, kademe örneği gerçek tutarla, Bronz 3. sıra yuvarlaması yazılı', () => {
     const t = rewardRule('bronz');

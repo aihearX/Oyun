@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
 import { platform } from '../platform';
@@ -7,6 +7,7 @@ import type { EventView } from './EventsScreen';
 import { Art, Glyph, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { useCoach } from '../ftue/Coach';
+import { useBaslikAltinda } from '../ui/Toasts';
 import './events.css';
 
 const SHOW_MS = 7000;
@@ -15,10 +16,12 @@ const SHOW_MS = 7000;
  * Gerçek zamanlı etkinlik bildirimi şeridi (ralli başladı, bayrak sende, quiz başlıyor, düello son 2 saat…). Dokununca ilgili ekran.
  * Tüy Dede tanıtımı sürerken şerit sırada bekler, süresi işlemez; tanıtım kapanınca yeniden görünür (OT-takim-kaptani-32: ralli
  * bildirimi tanıtımın altında kayboldu). Şerit görünürken de tanıtım başlamaz (ftue/Director.tsx quiet).
+ * Ekran başlık çubuğunun (Geri) altında durur (OT-buyuk-yazi-51).
  */
 export function EventNoticeStrip({ onOpen }: { onOpen: (v: EventView) => void }) {
   const n = useEvents((s) => s.notices[s.notices.length - 1]); const dismiss = useEvents((s) => s.dismiss);
   const guide = useCoach((s) => !!s.tour);
+  const ref = useRef<HTMLDivElement>(null); useBaslikAltinda(ref, n && !guide ? n.id : null);
   useEffect(() => {
     if (!n || guide) return;
     platform().haptic('medium'); audio.play('notify', { vol: 0.8 });
@@ -26,7 +29,7 @@ export function EventNoticeStrip({ onOpen }: { onOpen: (v: EventView) => void })
   }, [n?.id, guide]);
   if (!n || guide) return null;
   return (
-    <div className="ev-notice" role="alert" data-testid="ev-bildirim" data-kind={n.kind} key={n.id}>
+    <div className="ev-notice" ref={ref} role="alert" data-testid="ev-bildirim" data-kind={n.kind} key={n.id}>
       <button className="ev-notice-main" onClick={() => { dismiss(n.id); onOpen(n.target); }}>
         <span className="ev-notice-i" aria-hidden><Glyph e={n.icon} size={28} /></span>
         <span className="min0"><b className="ellipsis">{rich(n.title)}</b><small className="ellipsis">{rich(n.text)}</small></span>

@@ -865,7 +865,19 @@ async function suite(browserName, target, [W, H]) {
         await page.getByTestId('kod-girdi').fill(TEST_ADMIN_CODE.toLowerCase()); await page.getByTestId('kod-kullan').click(); await page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici modu' }).waitFor();
         await page.keyboard.press('Escape'); await sleep(300);
         await page.locator('.menu-tile[data-tile="settings"]').click(); await page.getByTestId('yonetici-rozet').waitFor();
-        await page.getByTestId('kod-ayar').scrollIntoViewIfNeeded(); await check('ayarlar-yonetici');
+        await page.getByTestId('kod-ayar').scrollIntoViewIfNeeded();
+        { const rec = await check('ayarlar-yonetici');
+          // YN-181 (OT-buyuk-yazi-53): kaydırılmış Ayarlar'da yapışık başlık çubuğunun zemini opak; arkadan kayan düğme ("Hikâyeyi yeniden
+          // izle") başlıktan okunmaz. Zemin rengi saydamlıksız, bulanıklık yok; çubuk ekranın üstünde ve içerik onun altında kalıyor
+          const bas = await page.evaluate(() => {
+            const h = document.querySelector('.screen > .screen-head'); if (!h) return null; const cs = getComputedStyle(h); const b = h.getBoundingClientRect();
+            const m = /rgba?\(([^)]+)\)/.exec(cs.backgroundColor); const a = m ? (m[1].split(',')[3] ?? '1').trim() : '0';
+            const ust = document.elementFromPoint(b.left + 4, b.top + Math.max(2, b.height / 2));
+            return { renk: cs.backgroundColor, opak: Number(a) >= 1, kaydi: (document.scrollingElement?.scrollTop ?? 0) > 0 || b.top <= 0, ustte: !!ust && h.contains(ust) };
+          });
+          rec.baslik = bas;
+          if (!bas || !bas.opak || !bas.ustte) fail(rec, `kaydırılmış Ayarlar'da başlık çubuğu opak değil ya da içerik üstünde: ${JSON.stringify(bas)}`);
+        }
         await page.getByTestId('kod-paneli-ac').click(); await page.getByTestId('kod-paneli').waitFor(); await sleep(400); await check('kod-paneli', { scroll: false });
         await page.keyboard.press('Escape'); await sleep(300);
         // yönetici modunu kapat (diğer ekranlar gerçek ilerlemeyle denetlensin)
@@ -1215,6 +1227,10 @@ async function suite(browserName, target, [W, H]) {
       }
     }
     if (want('etkinlik')) {
+      // takım kodu (Bayrak ekranındaki takım bildirimi denetimi için gerçek bir takım arkadaşı katılır; takım yoksa denetim atlanır)
+      let takimKodu = null;
+      { await tab('Takım'); const menu = page.getByLabel('Takım menüsü');
+        if (await menu.count()) { await menu.click(); await page.locator('.sheet').waitFor(); takimKodu = (await page.locator('.big-code').innerText()).trim(); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300); } }
       await tab('Harita'); await sleep(800);
       await page.getByTestId('ev-fab').click(); await page.getByTestId('etkinlikler').waitFor({ timeout: 10_000 });
       await check('etkinlikler');
@@ -1224,7 +1240,36 @@ async function suite(browserName, target, [W, H]) {
         if (!(await btn.count())) continue;
         await c.locator('.ev-band').first().click().catch(() => undefined); await sleep(500);
         if (await page.locator('[data-testid="etkinlikler"][data-view="merkez"]').count()) continue;
-        await check(`etkinlik-${k}`);
+        const rec = await check(`etkinlik-${k}`);
+        if (k === 'bayrak') {
+          // YN-177 (OT-buyuk-yazi-54): parkurun üst hapı ("Parkur tamam · 281,9 sn") kesilmez; sığmazsa kırılır
+          const hap = await page.evaluate(() => { const e = document.querySelector('[data-testid="bayrak-hap"]'); const r = e?.getBoundingClientRect(); return e ? { yazi: e.textContent, kesik: e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1, tasar: r.left < 0 || r.right > innerWidth } : null; });
+          rec.hap = hap;
+          if (hap && (hap.kesik || hap.tasar)) fail(rec, `Bayrak parkur hapı kesik ya da taşıyor: ${JSON.stringify(hap)}`);
+          // YN-177 (OT-buyuk-yazi-51): takım hediyesi bildirimi etkinlik başlığının (Geri, "Bayrak Yarışı") altında iner. Gerçek olay:
+          // tarayıcısız bir takım arkadaşı test mağazasından takıma hediyeli paket alır, sunucu sayfaya team.gift gönderir; sonra takımdan çıkar
+          const hediyeci = takimKodu ? rawClient(wsUrl) : null;
+          let hediyeHata = null;
+          if (hediyeci) {
+            try {
+              await hediyeci.call('hello', { version: 1, name: `Hediyeci${sno}` }); await hediyeci.call('team.join', { code: takimKodu });
+              await hediyeci.call('shop.limit', { limitTry: 100 }); await hediyeci.call('shop.purchase', { productId: 'odi.baslangic', store: 'test' });
+            } catch (e) { hediyeHata = e.message; }
+          }
+          const bil = !hediyeci || hediyeHata ? null : await page.locator('.toast-top', { hasText: 'Takım hediyesi geldi' }).waitFor({ state: 'attached', timeout: 8000 }).then(() => sleep(500)).then(() => page.evaluate(() => {
+            const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; };
+            const t = r(document.querySelector('.toast-top .tt-card')); const ort = [];
+            for (const sel of ['.ev-head button[aria-label="Geri"]', '.ev-head h1']) { const x = r(document.querySelector(sel)); if (t && x && t.t < x.b - 1 && t.b > x.t + 1 && t.l < x.r - 1 && t.r > x.l + 1) ort.push(`${sel} ${JSON.stringify(x)}`); }
+            return { toast: t, ort };
+          }), () => null);
+          if (bil?.toast) await page.screenshot({ path: resolve(dir, `etkinlik-bayrak-bildirim-${W}x${H}${BIG ? '-buyuk' : ''}.png`) });
+          rec.bildirim = bil;
+          if (hediyeHata) fail(rec, `takım hediyesi gönderilemedi: ${hediyeHata}`);
+          else if (hediyeci && !bil?.toast) fail(rec, 'Bayrak ekranında takım bildirimi görünmedi');
+          else if (bil?.ort.length) fail(rec, `takım bildirimi Bayrak başlığını örtüyor: ${bil.ort.join('; ')}`);
+          if (hediyeci) { await hediyeci.call('team.leave', {}).catch(() => undefined); hediyeci.close(); }
+          await toastGone();
+        }
         await page.locator('.ev-head button[aria-label="Geri"]').first().click().catch(() => undefined); await sleep(400);
       }
       await back();

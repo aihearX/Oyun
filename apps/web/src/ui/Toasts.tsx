@@ -12,18 +12,20 @@ const PENCERE = '.cel-stage, [aria-modal="true"]';
 /**
  * Ekran başlık çubuğunun (Geri düğmesi, sekme başlığı) alt kenarı: üstten inen bildirim kartları (bu dosya, comm/CommBanner) onun altında
  * durur, Geri her zaman dokunulabilir kalır (OT-buyuk-yazi-49: Büyük yazıda iki satırlık kart başlığı ve Geri'yi örtüyordu). Görünür
- * başlık yoksa (harita, kaydırılıp yukarıda kalmış sekme başlığı) 0.
+ * başlık yoksa (harita, kaydırılıp yukarıda kalmış sekme başlığı) 0. Etkinlik ekranlarının kendi başlığı da sayılır (Bayrak Yarışı'nda
+ * "Takım hediyesi geldi!" Büyük yazıda Geri'yi ve başlığı örtüyordu; OT-buyuk-yazi-51).
  */
+const BASLIK = '.screen > .screen-head, .screen > .ev-head, .screen > .ev-hub-head, .topbar2, .dm-head';
 export function baslikAlti(): number {
   let alt = 0;
-  for (const e of document.querySelectorAll('.screen > .screen-head, .topbar2, .dm-head')) {
+  for (const e of document.querySelectorAll(BASLIK)) {
     const r = e.getBoundingClientRect();
     if (r.height > 0 && r.bottom > 0 && r.top < innerHeight / 3) alt = Math.max(alt, r.bottom);
   }
   return alt;
 }
 
-/** üstten inen şerit (comm/CommBanner, friends/Banner) başlık çubuğunun altında: her karede yerleşir (başlık yapışkan, sayfa kayar) */
+/** üstten inen şerit (comm/CommBanner, friends/Banner, events/Notices) başlık çubuğunun altında: her karede yerleşir (başlık yapışkan, sayfa kayar) */
 export function useBaslikAltinda(ref: RefObject<HTMLElement | null>, key: unknown) {
   useLayoutEffect(() => {
     const el = ref.current; if (!el) return;

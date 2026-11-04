@@ -163,9 +163,10 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .linkish { appearance:none; background:none; border:0; color:#ffd56b; font:inherit; font-weight:900; font-size:0.875rem; padding:6px 0; cursor:pointer; text-align:left; }
 .screen-head { display:grid; grid-template-columns:44px 1fr 44px; align-items:center; gap:8px; padding-top:16px; }
 /* alt ekran başlığı yapışık: uzun ekranın dibinde de Geri görünür (alt ekranlarda sekme çubuğu yok). Ekranın güvenli alan payını
-   ve yan boşluğunu başlık üstlenir ki arkadan kayan içerik çentiğin altında ve kenarlarda görünmesin; ilk görünüş aynı kalır. */
+   ve yan boşluğunu başlık üstlenir ki arkadan kayan içerik çentiğin altında ve kenarlarda görünmesin; ilk görünüş aynı kalır. Zemin opak
+   (tema zemini --bg-0): yarı saydam çubukta kaydırılan düğmeler ("Hikâyeyi yeniden izle") başlığın arkasından okunuyordu (OT-buyuk-yazi-53). */
 .screen > .screen-head { position:sticky; top:0; z-index:30; margin:calc(-1 * var(--sat)) -16px 0; padding:calc(var(--sat) + 16px) 16px 8px;
-  background:var(--bg-0); background:color-mix(in srgb, var(--bg-0) 90%, transparent); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); }
+  background:var(--bg-0); box-shadow:0 6px 12px -8px rgba(5,2,20,.8); }
 @media (max-width:360px) { .screen > .screen-head { margin-left:-12px; margin-right:-12px; padding-left:12px; padding-right:12px; } }
 .screen-head h1 { text-align:center; font-size:1.5rem; overflow-wrap:anywhere; }
 .screen-head .btn.small { padding:8px 0; width:44px; text-align:center; }

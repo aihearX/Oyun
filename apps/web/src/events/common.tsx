@@ -53,5 +53,6 @@ export function EvHead({ kind, title, onBack, right }: { kind: EventKind; title?
   );
 }
 
-export const fmtSecs = (s: number) => `${s.toLocaleString('tr-TR', { maximumFractionDigits: 1 })} sn`;
+/** Bayrak süreleri: tek ondalıklı (events/bayrak.ts) */
+export { fmtSecs } from './bayrak';
 export const hexColor = (n: number) => `#${(n & 0xffffff).toString(16).padStart(6, '0')}`;

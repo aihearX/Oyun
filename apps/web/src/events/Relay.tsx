@@ -36,7 +36,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
     <div className="stack ev-relay" data-testid="bayrak" data-current={r.current} data-carrier={r.carrier?.name ?? ''}>
       {err && <div className="ev-err" role="alert">{err}</div>}
       <div className="ev-track" data-tone="teal">
-        <div className="row between"><span className="ev-tag">{rich(done ? `🏁 Parkur tamam · ${fmtSecs(r.totalSec ?? 0)}` : `${r.current + 1}. ayak sırada`)}</span><Countdown to={r.period.endsAt} /></div>
+        <div className="row between ev-track-top"><span className="ev-tag" data-testid="bayrak-hap">{rich(done ? `🏁 Parkur tamam · ${fmtSecs(r.totalSec ?? 0)}` : `${r.current + 1}. ayak sırada`)}</span><Countdown to={r.period.endsAt} /></div>
         <div className="ev-path">
           {r.legs.map((l, i) => (
             <div key={i} className={`ev-leg${l.firstBy ? ' done' : ''}${i === r.current ? ' cur' : ''}`} data-testid={`bayrak-ayak-${i}`}>
