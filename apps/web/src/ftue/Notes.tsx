@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { EAR_NOTES, type EarNote } from '@odi/content/odyoloji';
+import { biliyorMuydunSatiri, type BiliyorMuydun } from '@odi/content/biliyor-muydun';
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
 import { Icon } from '../ui/icons';
@@ -10,20 +11,45 @@ import { speakLine, stopVoiceIf } from './voice';
  * "Tüy Dede'nin Notu · Biliyor muydun?" — doğal duraklarda (biyom tanıtımı, sonuç ekranı, harita bölge kartı) tek cümlelik,
  * dostça ve doğru bir bilgi. Ekran başına en çok bir not, kapatılabilir, hiçbir şeyi engellemez, sıklığı sınırlı.
  * İki derinlik: herkes için sade cümle + isteyene "Daha fazla" (öğrenci düzeyi). Bilgi düzeyi "Odyoloji öğrencisi" ise
- * teknik satır açık gelir ve notlar daha sık çıkar.
+ * teknik satır açık gelir (biyom tanıtımında kapalı: kart kısa kalsın, "Haydi!" ilk ekranda; YN-175) ve notlar daha sık çıkar.
  */
 export type NotePlace = 'biome' | 'result' | 'map';
 /** iki not arası en az süre (biyom tanıtımı hariç: orası zaten doğal bir duraktır) */
 const CAP_MS = { genel: 150_000, odyoloji: 60_000 } as const;
+
+/**
+ * Biyom tanıtımının ilk notu: bölgenin görevini anlatan onaylı satır (EAR_NOTES). Kemikçikler, Koklea · Apeks ve İşitme Siniri'nde
+ * böyle bir not yok (zardan oval pencereye kaldıraç satırı yeni seslendirme ve onay ister); orada listedeki ilk not gelir.
+ */
+const BIOME_FIRST: Partial<Record<BiomeId, string>> = {
+  'dis-kulak': 'kepce-yon', kanal: 'kanal-rezonans', zar: 'empedans', 'koklea-1': 'dalga', 'koklea-2': 'prestin', 'beyin-sapi': 'yon', korteks: 'kokteyl',
+};
 
 export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote | null {
   const s = useStore.getState();
   if (place !== 'biome' && Date.now() - s.noteAt < CAP_MS[s.knowledge]) return null;
   const pool = EAR_NOTES.filter((n) => n.region === region);
   const fresh = pool.filter((n) => !s.notesSeen.includes(n.id));
+  // biyom tanıtımı: önce bölgenin ne iş yaptığını anlatan onaylı not, yoksa (ya da görüldüyse) listedeki ilk görülmemiş not (YN-175)
+  if (place === 'biome') return fresh.find((n) => n.id === BIOME_FIRST[region]) ?? fresh[0] ?? null;
   // hepsi görüldüyse yalnız haritada (oyuncunun açtığı kartta) tekrar edilir
   const list = fresh.length ? fresh : place === 'map' ? pool : [];
   return list.length ? list[Math.abs(seed) % list.length]! : null;
+}
+
+/**
+ * Sonuç ekranının "Biliyor muydun?" satırı (karar 31): tekrarda biyomun sıradaki satırı (YN-127) ve son gösterilenden farklı
+ * (kayıttaki `bilgiSon`; Bölüm 13 tekrarı ile ardından Bölüm 14 aynı satırı göstermesin, YN-175). Yalnız seçer, kaydetmez.
+ */
+export function pickBilgi(bolum: number, tekrar: number): BiliyorMuydun | null {
+  return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSon || undefined);
+}
+
+/** ekran açılırken bir kez seçilen "Biliyor muydun?" satırı (yeniden çizimlerde değişmez); gösterilince kayda son satır yazılır */
+export function useBiliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar: number): string | null {
+  const [s] = useState(() => pickBilgi(bolum, tekrar));
+  useEffect(() => { if (s) useStore.getState().bilgiGoruldu(s.bolum); }, [s]);
+  return s ? s[duzey] : null;
 }
 
 /** ekran açılırken bir kez seçilen not (yeniden çizimlerde değişmez) */
@@ -46,7 +72,8 @@ export function MoreLine({ text, initial }: { text: string; initial?: boolean })
   );
 }
 
-export function NoteCard({ note, voice = true }: { note: EarNote; voice?: boolean }) {
+/** `techOpen`: teknik satırın başlangıcı (verilmezse Bilgi düzeyine göre; biyom tanıtımı kapalı verir) */
+export function NoteCard({ note, voice = true, techOpen }: { note: EarNote; voice?: boolean; techOpen?: boolean }) {
   const [gone, setGone] = useState(false);
   const talk = useRef(-1);
   useEffect(() => {
@@ -61,7 +88,7 @@ export function NoteCard({ note, voice = true }: { note: EarNote; voice?: boolea
       <div className="en-body">
         <div className="en-k">Tüy Dede’nin Notu · Biliyor muydun?</div>
         <p className="en-plain">{note.plain}</p>
-        <MoreLine text={note.tech} />
+        <MoreLine text={note.tech} initial={techOpen} />
       </div>
       <button type="button" className="en-x" aria-label="Notu kapat" onClick={(e) => { e.stopPropagation(); stopVoiceIf(talk.current); setGone(true); }}><Icon name="close" size="0.95em" /></button>
     </aside>

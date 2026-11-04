@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from './cards';
 import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from './quiz';
 import { EAR_NOTES, GLOSSARY } from './odyoloji';
-import { BILIYOR_MUYDUN, biliyorMuydun } from './biliyor-muydun';
+import { BILIYOR_MUYDUN, biliyorMuydun, biliyorMuydunSatiri } from './biliyor-muydun';
 import { HUMAN_JOURNEY } from './journeys';
 
 /** bozuk kodlama (mojibake), yer tutucu ve boşluk hataları */
@@ -155,6 +155,25 @@ describe('odyoloji içeriği', () => {
       expect(biliyorMuydun(b.bolum, 'odyoloji', 1)).toBe(sonraki.odyoloji);
       // biyomun bütün satırları dönünce başa döner
       expect(biliyorMuydun(b.bolum, 'genel', ayni.length)).toBe(b.genel);
+    }
+  });
+
+  it('Biliyor muydun? son gösterilen satırı (onceki) biyomda başka satır varsa tekrar etmez (YN-175)', () => {
+    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
+    // oyuncu testi: Bölüm 13 tekrarı Bölüm 14'ün satırını gösterdi, ardından Bölüm 14'ün ilk geçişi aynı satırı
+    const tekrar13 = biliyorMuydunSatiri(13, 1)!;
+    expect(tekrar13.bolum).toBe(14);
+    expect(biliyorMuydunSatiri(14, 0, tekrar13.bolum)!.bolum).not.toBe(14);
+    for (const b of BILIYOR_MUYDUN) {
+      const ayni = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(b.bolum));
+      for (const t of [0, 1, 2]) for (const x of ayni) {
+        const s = biliyorMuydunSatiri(b.bolum, t, x.bolum)!;
+        expect(ayni).toContain(s);
+        if (ayni.length > 1) expect(s.bolum, `${b.bolum}/${t}/${x.bolum}`).not.toBe(x.bolum);
+        // önceki başka bir satırsa kural değişmez
+        if (biliyorMuydunSatiri(b.bolum, t)!.bolum !== x.bolum) expect(s).toBe(biliyorMuydunSatiri(b.bolum, t));
+      }
+      expect(biliyorMuydun(b.bolum, 'odyoloji', 0, b.bolum)).toBe(biliyorMuydunSatiri(b.bolum, 0, b.bolum)!.odyoloji);
     }
   });
 });

@@ -48,7 +48,8 @@ export function BiomeIntro({ spec, onGo }: { spec: LevelSpec; onGo: () => void }
             <ul className="bi-moves"><li>{MELODY_HOW}</li></ul>
           </>}
         </div>
-        {note ? <NoteCard note={note} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
+        {/* teknik satır kapalı başlar ("Daha fazla" ile açılır): öğrenci düzeyinde de kart kısa kalır (YN-175) */}
+        {note ? <NoteCard note={note} techOpen={false} /> : <div className="bi-fact"><Art name="ear" size="1.2em" className="art-inline" /> {b.fact}</div>}
       </div></div>
       <div className="bi-foot">
         <button className="btn" style={{ opacity: ready ? 1 : 0 }} onClick={(e) => { e.stopPropagation(); onGo(); }}>Haydi! <Icon name="play" size="0.9em" className="ic-inline" /></button>

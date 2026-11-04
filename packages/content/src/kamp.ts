@@ -215,16 +215,16 @@ export interface Monument {
 }
 /** kulaktan beyne: haritada bölgeye ulaşınca kampta o bölgenin anıtı yükselir */
 export const MONUMENTS: Monument[] = /* @__PURE__ */ bolunmezYap([
-  { region: 'dis-kulak', name: 'Kulak Kepçesi Heykeli', line: 'anit-dis-kulak', plain: 'Kepçenin kıvrımları sesi toplar ve yönünü anlamamıza yardım eder.' },
-  { region: 'kanal', name: 'Kanal Kemeri', line: 'anit-kanal', plain: 'Yaklaşık 2,5 cm’lik kanal, 2,5–3 kHz civarındaki sesleri güçlendirir.' },
-  { region: 'zar', name: 'Kulak Zarı Davulu', line: 'anit-zar', plain: 'İnci grisi zar sesle titreşir; ön-alt kısmında ışık üçgeni parlar.' },
-  { region: 'kemikcikler', name: 'Üç Kemikçik Anıtı', line: 'anit-kemikcikler', plain: 'Çekiç, örs ve üzengi: vücudumuzun en küçük kemikleri.' },
-  { region: 'koklea-1', name: 'Koklea Sarmalı', line: 'anit-koklea-1', plain: 'İki buçuk tur dönen koklea, titreşimi sinir sinyaline hazırlar.' },
-  { region: 'koklea-2', name: 'Tüy Hücresi Demeti', line: 'anit-koklea-2', plain: 'Basamak gibi dizilen stereosilya eğilince sinyal başlar.' },
-  { region: 'koklea-3', name: 'Tonotopi Arpı', line: 'anit-koklea-3', plain: 'Kokleanın tabanı ince, tepesi kalın seslere yanıt verir.' },
-  { region: 'sinir', name: 'Sinir Lifi Feneri', line: 'anit-sinir', plain: 'İşitme siniri sinyali binlerce lifle beyin sapına taşır.' },
-  { region: 'beyin-sapi', name: 'İki Kulak Kavşağı', line: 'anit-beyin-sapi', plain: 'İki kulağın sesi beyin sapında buluşur; sesin yönü böyle bulunur.' },
-  { region: 'korteks', name: 'Heschl Işığı', line: 'anit-korteks', plain: 'İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür.' },
+  { region: 'dis-kulak', name: 'Kulak Kepçesi Heykeli', line: 'anit-dis-kulak', plain: 'Kepçenin kıvrımları sesi geldiği yöne göre biraz değiştirir; beyin bundan sesin yukarıdan mı aşağıdan mı geldiğini anlar.' },
+  { region: 'kanal', name: 'Kanal Kemeri', line: 'anit-kanal', plain: 'Yetişkinde yaklaşık 2,5 cm olan kanal hafif S biçimlidir; dış üçte biri kıkırdak, iç üçte ikisi kemiktir.' },
+  { region: 'zar', name: 'Kulak Zarı Davulu', line: 'anit-zar', plain: 'Sağlıklı zar inci grisidir; otoskopla bakınca ön-alt kısmında ışık üçgeni parlar.' },
+  { region: 'kemikcikler', name: 'Üç Kemikçik Anıtı', line: 'anit-kemikcikler', plain: 'Kulak zarının titreşimini oval pencereye taşır ve güçlendirirler.' },
+  { region: 'koklea-1', name: 'Koklea Sarmalı', line: 'anit-koklea-1', plain: 'Koklea yaklaşık iki buçuk tur kıvrılır; içi sıvıyla dolu üç bölmeden oluşur.' },
+  { region: 'koklea-2', name: 'Tüy Hücresi Demeti', line: 'anit-koklea-2', plain: 'Corti organında bir sıra iç, üç sıra dış tüy hücresi bulunur; stereosilyaları basamak gibi sıralanır.' },
+  { region: 'koklea-3', name: 'Tonotopi Arpı', line: 'anit-koklea-3', plain: 'Baziler membran tabanda dar ve sert, tepede geniş ve esnektir; her frekansın kendi yeri vardır (tonotopi).' },
+  { region: 'sinir', name: 'Sinir Lifi Feneri', line: 'anit-sinir', plain: 'İşitme siniri denge siniriyle birlikte VIII. kafa sinirini oluşturur; liflerinin çoğu iç tüy hücrelerinden bilgi taşır.' },
+  { region: 'beyin-sapi', name: 'İki Kulak Kavşağı', line: 'anit-beyin-sapi', plain: 'Superior oliver kompleks, sesin iki kulağa varış zamanı ve şiddet farkını karşılaştırır.' },
+  { region: 'korteks', name: 'Heschl Işığı', line: 'anit-korteks', plain: 'Birincil işitsel korteks şakak lobundaki Heschl girusundadır; orada da her frekansın kendi yeri vardır.' },
 ]);
 export const monumentOf = (region: string): Monument | undefined => MONUMENTS.find((m) => m.region === region);
 

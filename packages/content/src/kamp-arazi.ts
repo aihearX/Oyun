@@ -33,15 +33,15 @@ export interface District {
 /** Kamp Seviyesiyle açılan bölgeler (ana adanın çevresinde uydu adalar; köprüyle bağlanır) */
 export const DISTRICTS: District[] = [
   { id: 'koru', name: 'Sessiz Koru', level: 3, seed: 11, cx: -780, cy: -405, rx: 280, ry: 160, buildings: ['kabin'],
-    plain: 'Ağaçların sesi yuttuğu sakin koru. Akustik Kabin burada kurulur; en hafif ses ancak sessizlikte duyulur.' },
+    plain: 'Ortam gürültüsü en hafif sesleri maskeler; bu yüzden işitme eşikleri ses yalıtımlı bir kabinde ölçülür. Akustik Kabin burada kurulur.' },
   { id: 'koy', name: 'Koklea Koyu', level: 6, seed: 23, cx: 1090, cy: 80, rx: 320, ry: 190, buildings: ['tarama', 'park'],
-    plain: 'Sarmal bir lagün: kokleanın iki buçuk turu gibi kıvrılır. Yenidoğan Tarama Birimi ve Rehabilitasyon Parkı burada.' },
+    plain: 'Yenidoğan Tarama Birimi ve Rehabilitasyon Parkı burada: işitme kaybını erken bulmak ve erken desteklemek el ele gider.' },
   { id: 'tepe', name: 'Denge Tepesi', level: 12, seed: 37, cx: -800, cy: 420, rx: 280, ry: 160, buildings: ['denge'],
-    plain: 'Üç patikası üç yarım daire kanalı gibi birbirine dik uzanan tepe. Vestibüler Laboratuvar dengeyi burada ölçer.' },
+    plain: 'Yarım daire kanalları başın dönme hareketlerini algılar. Vestibüler Laboratuvar dengeyi burada ölçer.' },
   { id: 'yerleske', name: 'Araştırma Yerleşkesi', level: 16, seed: 41, cx: 700, cy: -445, rx: 290, ry: 150, buildings: ['kutuphane'],
     plain: 'Taş döşeli bilim mahallesi: kitaplar, makaleler ve sorular. Odyoloji Kütüphanesi burada.' },
   { id: 'orman', name: 'Kulak Kılı Ormanı', level: 20, seed: 53, cx: 740, cy: 515, rx: 290, ry: 140, buildings: [],
-    plain: 'İnce, sık kulak kıllarından bir orman: kanalın girişindeki kıllar gibi tozu ve böcekleri tutar. Süsler için geniş bir alan.' },
+    plain: 'Kulak kiri de kanalı korur; kanal derisi kiri yavaş yavaş kendiliğinden dışarı taşır. Süsler için geniş bir alan.' },
 ];
 export const districtById = (id: string): District | undefined => DISTRICTS.find((d) => d.id === id);
 /** bu Kamp Seviyesinde açık bölgeler */

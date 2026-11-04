@@ -22,4 +22,13 @@ describe('Tüy Dede: Kulak Kampı satırları', () => {
       expect(l.context.length).toBeGreaterThan(10); expect(l.emotion).toBeTruthy();
     }
   });
+  it('yeni anıt / yeni arazi kartında altındaki yazı seslendirilen satırı tekrar etmez, yeni bir bilgi verir (YN-175)', () => {
+    // dört harften uzun kelimeler; yazının kelimelerinin çoğu satırda geçiyorsa aynı cümle iki kez okunuyor demektir
+    const kelime = (t: string) => t.toLocaleLowerCase('tr').replace(/\u2060/g, '').split(/[^a-zçğıöşüâî0-9]+/).filter((x) => x.length >= 4);
+    const satirlar = [...MONUMENTS.map((m) => [m.line, m.plain] as const), ...DISTRICTS.map((d) => [`kamp-bolge-${d.id}`, d.plain] as const)];
+    for (const [id, yazi] of satirlar) {
+      const soz = new Set(kelime(lineText(id))); const k = kelime(yazi);
+      expect(k.filter((x) => soz.has(x)).length / k.length, `${id}: “${yazi}”`).toBeLessThan(0.4);
+    }
+  });
 });

@@ -139,7 +139,7 @@ isteğe bağlı teknik ayrıntı ("Daha fazla").
 | 33 | Sinir sinyalleri ışıktan çok yavaştır; en hızlı sinir liflerinde bile saniyede yaklaşık 100 metreyi bulur. | ABR’de I. ve V. dalga arası süre (I–V aralığı) yetişkinde yaklaşık 4 ms’dir. | standart sinir fizyolojisi; Katz, Handbook of Clinical Audiology, işitsel beyin sapı yanıtı |
 | 34 | Her kulaktan gelen sinyal beynin iki yarısına da ulaşır; ama çoğu karşı tarafa geçer. | Koklear çekirdekten çıkan liflerin önemli bir kısmı trapezoid cisimde karşı tarafa geçer. | Pickles, An Introduction to the Physiology of Hearing, merkezi işitme yolları |
 | 35 | Ses duvarlardan yansıyıp yeniden gelse de beyin, yönü ilk ulaşan sese göre belirler. | Öncelik (Haas) etkisi: kısa gecikmeyle gelen yansımalar ayrı yankı gibi değil, ilk sesle birleşik duyulur. | Gelfand, Hearing: An Introduction to Psychological and Physiological Acoustics, öncelik etkisi |
-| 36 | Ani ve yüksek bir seste irkilmemiz, beyin sapındaki çok hızlı bir refleks yolu sayesinde olur. | İnferior kollikulus, yükselen işitme yollarının neredeyse hepsinin uğradığı zorunlu aktarma durağıdır. | Pickles, An Introduction to the Physiology of Hearing, merkezi işitme yolları |
+| 36 | Ani ve yüksek bir seste irkilmemiz, beyin sapındaki çok hızlı bir refleks yolu sayesinde olur. | Yükselen işitme liflerinin neredeyse tamamı inferior kollikulusta sinaps yapar; yolun ana aktarma istasyonudur. | Pickles, An Introduction to the Physiology of Hearing, merkezi işitme yolları |
 | 37 | Bebekler doğduklarında birçok dilin seslerini ayırt edebilir; ilk yıl içinde ana dillerinin seslerine uzmanlaşır. | Sağ elini kullananların yaklaşık %95’inde dil işlevleri ağırlıklı olarak sol yarıkürededir. | Gelfand, Hearing: An Introduction to Psychological and Physiological Acoustics, konuşma algısının gelişimi; standart nöroanatomi (dil lateralizasyonu) |
 | 38 | Yenidoğanlar annelerinin sesini başka kadın seslerinden ayırt edebilir ve onu tercih eder. | ABR dalga latansları yaklaşık 2 yaşına kadar kısalarak yetişkin değerlerine ulaşır. | DeCasper ve Fifer (1980), Science; Katz, Handbook of Clinical Audiology, işitsel beyin sapı yanıtının gelişimi |
 | 39 | Müzik dinlerken beynin yalnızca işitme bölgeleri değil, hareket ve duygu bölgeleri de çalışır. | Koklear implanttan sonra beyin yeni sinyale alışır; konuşmayı anlama genellikle aylar içinde gelişir. | Katz, Handbook of Clinical Audiology, koklear implant ve işitsel rehabilitasyon |
@@ -278,16 +278,16 @@ Jerger ve Hayes (1976) çapraz kontrol ilkesi; Clark (1981) işitme kaybı derec
 
 | bölge | anıt | açıklama |
 |---|---|---|
-| Dış kulak | **Kulak Kepçesi Heykeli** | Kepçenin kıvrımları sesi toplar ve yönünü anlamamıza yardım eder. |
-| Dış kulak yolu | **Kanal Kemeri** | Yaklaşık 2,5 cm’lik kanal, 2,5–3 kHz civarındaki sesleri güçlendirir. |
-| Kulak zarı ve orta kulak | **Kulak Zarı Davulu** | İnci grisi zar sesle titreşir; ön-alt kısmında ışık üçgeni parlar. |
-| Kemikçikler | **Üç Kemikçik Anıtı** | Çekiç, örs ve üzengi: vücudumuzun en küçük kemikleri. |
-| Koklea (giriş) | **Koklea Sarmalı** | İki buçuk tur dönen koklea, titreşimi sinir sinyaline hazırlar. |
-| Koklea (orta kıvrım) | **Tüy Hücresi Demeti** | Basamak gibi dizilen stereosilya eğilince sinyal başlar. |
-| Koklea (tonotopi) | **Tonotopi Arpı** | Kokleanın tabanı ince, tepesi kalın seslere yanıt verir. |
-| İşitme siniri | **Sinir Lifi Feneri** | İşitme siniri sinyali binlerce lifle beyin sapına taşır. |
-| Beyin sapı | **İki Kulak Kavşağı** | İki kulağın sesi beyin sapında buluşur; sesin yönü böyle bulunur. |
-| İşitsel korteks | **Heschl Işığı** | İşitsel korteks sesi anlamlı bir kelimeye, bir ninniye dönüştürür. |
+| Dış kulak | **Kulak Kepçesi Heykeli** | Kepçenin kıvrımları sesi geldiği yöne göre biraz değiştirir; beyin bundan sesin yukarıdan mı aşağıdan mı geldiğini anlar. |
+| Dış kulak yolu | **Kanal Kemeri** | Yetişkinde yaklaşık 2,5 cm olan kanal hafif S biçimlidir; dış üçte biri kıkırdak, iç üçte ikisi kemiktir. |
+| Kulak zarı ve orta kulak | **Kulak Zarı Davulu** | Sağlıklı zar inci grisidir; otoskopla bakınca ön-alt kısmında ışık üçgeni parlar. |
+| Kemikçikler | **Üç Kemikçik Anıtı** | Kulak zarının titreşimini oval pencereye taşır ve güçlendirirler. |
+| Koklea (giriş) | **Koklea Sarmalı** | Koklea yaklaşık iki buçuk tur kıvrılır; içi sıvıyla dolu üç bölmeden oluşur. |
+| Koklea (orta kıvrım) | **Tüy Hücresi Demeti** | Corti organında bir sıra iç, üç sıra dış tüy hücresi bulunur; stereosilyaları basamak gibi sıralanır. |
+| Koklea (tonotopi) | **Tonotopi Arpı** | Baziler membran tabanda dar ve sert, tepede geniş ve esnektir; her frekansın kendi yeri vardır (tonotopi). |
+| İşitme siniri | **Sinir Lifi Feneri** | İşitme siniri denge siniriyle birlikte VIII. kafa sinirini oluşturur; liflerinin çoğu iç tüy hücrelerinden bilgi taşır. |
+| Beyin sapı | **İki Kulak Kavşağı** | Superior oliver kompleks, sesin iki kulağa varış zamanı ve şiddet farkını karşılaştırır. |
+| İşitsel korteks | **Heschl Işığı** | Birincil işitsel korteks şakak lobundaki Heschl girusundadır; orada da her frekansın kendi yeri vardır. |
 
 ### Kamp süsleri (24, docs/14-kamp.md §10)
 
@@ -606,7 +606,7 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 | 18 | Meraklı | saglik | Gürültüye bağlı işitme kaybından korunmanın en iyi yolu hangisidir? | **Sesi kısmak, uzaklaşmak, kulak koruyucu takmak** · Sesi sonuna kadar açmak · Kulağa pamuklu çubuk sokmak · Hiçbir şey yapmamak | Gürültüden kaynaklanan işitme kaybı önlenebilir: süreyi ve şiddeti azaltmak en etkili yoldur. |
 | 19 | Meraklı | saglik | Kulaklıkla müzik dinlerken hangisi doğrudur? | En yüksek seste uzun süre dinlemek · Gürültüyü bastırmak için sesi hep açmak · Uyurken en yüksek seste dinlemek · **Sesi orta düzeyde tutup ara vermek** | Yaygın bir öneri: ses düzeyini yaklaşık %60'ın altında tutmak ve düzenli mola vermek. |
 | 20 | Meraklı | saglik | Kulakta dışarıda olmayan bir çınlama ya da uğultu duyulmasına ne denir? | Miyopi · Astım · **Tinnitus (çınlama)** · Vertigo | Tinnitus bir belirtidir; sürekli olursa bir uzmana başvurmak gerekir. |
-| 21 | Meraklı | saglik | Etrafın dönüyormuş gibi hissedildiği baş dönmesine ne denir? | Migren · **Vertigo** · Tinnitus · Otoskop | Vertigo çoğu zaman iç kulaktaki denge sistemiyle ilgilidir. |
+| 21 | Meraklı | saglik | Kişinin kendisinin ya da çevresinin dönüyormuş gibi hissettiği baş dönmesine ne denir? | Migren · **Vertigo** · Tinnitus · Otoskop | Vertigo çoğu zaman iç kulaktaki denge sistemiyle ilgilidir. |
 | 22 | Meraklı | saglik | Yaşa bağlı işitme kaybının tıbbi adı nedir? | **Presbiakuzi** · Presbiyopi · Astigmatizma · Bronşit | Presbiakuzi yaşla yavaş yavaş gelişen işitme kaybıdır. |
 | 23 | Meraklı | saglik | Yaşla birlikte genellikle önce hangi sesleri duymak zorlaşır? | Kalın (bas) sesler · Tüm sesler aynı anda · Yalnızca fısıltılar kolaylaşır · **İnce (tiz) sesler** | Yaşa bağlı kayıp genellikle yüksek frekanslardan başlar. |
 | 24 | Meraklı | saglik | İşitme testinin sonucunu gösteren grafiğe ne denir? | Röntgen · Termogram · **Odyogram** · Elektrokardiyogram | Odyogram, farklı frekanslarda duyulabilen en hafif sesleri gösterir. |
@@ -676,7 +676,7 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 | 88 | Odyoloji | anatomi | Medial superior olive ağırlıklı olarak hangi ipucunu işler? | Sesin rengi (tını) · Dokunma bilgisi · **İki kulak arası zaman farkı (ITD)** · İki kulak arası şiddet farkı (ILD) | MSO çoğunlukla ITD’yi, lateral superior olive ise ILD’yi işler. |
 | 89 | Odyoloji | anatomi | Talamusun işitsel çekirdeği hangisidir? | Amigdala · **Medial genikulat cisim** · Lateral genikulat cisim · Hipokampus | Medial genikulat cisim işitsel, lateral genikulat cisim görsel bilgiyi kortekse aktarır. |
 | 90 | Odyoloji | anatomi | Birincil işitsel korteks hangi girusta yer alır? | **Transvers temporal girus (Heschl girusu)** · Presantral girus · Oksipital lob · Singulat girus | Birincil işitsel korteks temporal lobun üst yüzündeki Heschl girusundadır ve tonotopik düzenlidir. |
-| 91 | Odyoloji | anatomi | Yükselen işitme yollarının neredeyse tamamının sinaps yaptığı orta beyin yapısı hangisidir? | Superior kollikulus · Korpus kallozum · Serebellum · **İnferior kollikulus** | İnferior kollikulus yükselen işitme yolunun zorunlu aktarma istasyonudur. |
+| 91 | Odyoloji | anatomi | Yükselen işitme yollarının neredeyse tamamının sinaps yaptığı orta beyin yapısı hangisidir? | Superior kollikulus · Korpus kallozum · Serebellum · **İnferior kollikulus** | Yükselen işitme liflerinin neredeyse tamamı inferior kollikulusta sinaps yapar; bu yüzden yolun ana aktarma istasyonu sayılır. |
 | 92 | Odyoloji | saglik | ABR’de eşik tahmininde en çok izlenen dalga hangisidir? | II. dalga · VII. dalga · **V. dalga** · I. dalga | V. dalga en belirgin ve eşiğe en yakın düzeylere kadar izlenebilen dalgadır. |
 | 93 | Odyoloji | saglik | ABR’de I. dalganın kaynağı genel kabul olarak hangisidir? | Orta kulak kasları · **İşitme sinirinin distal kısmı** · İşitsel korteks · Talamus | I. dalga işitme sinirinin kokleaya yakın (distal) kısmından kaynaklanır. |
 | 94 | Odyoloji | ses | Odyogramda 0 dB HL neyi ifade eder? | **Normal işitenlerin o frekanstaki ortalama eşiği** · Hiç ses olmaması · Ağrı eşiği · 20 µPa ses basıncı | dB HL her frekansta normal işitenlerin ortalama eşiğine göre kalibre edilir; 20 µPa dB SPL’nin referansıdır. |
@@ -689,13 +689,13 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 | 101 | Odyoloji | saglik | Otosklerozda kemik yolunda yaklaşık 2 kHz’te görülebilen çentiğin adı nedir? | Rinne çentiği · **Carhart çentiği** · Gürültü çentiği · Békésy çentiği | Carhart çentiği, stapes fiksasyonunun kemik yolu ölçümünü etkilemesiyle ilişkilidir. |
 | 102 | Odyoloji | saglik | Jerger sınıflamasında düz (tepesiz) timpanogram hangi tiptir? | **B tipi** · A tipi · As tipi · C tipi | B tipi düz eğridir. Kanal hacmi normalse orta kulakta sıvı, büyükse zarda delik ya da açık tüp, küçükse buşon ya da probun kanal duvarına dayanması olabilir; tanı otoskopi ve odyogramla birlikte konur. |
 | 103 | Odyoloji | saglik | Negatif orta kulak basıncını gösteren timpanogram tipi hangisidir? | A tipi · Ad tipi · As tipi · **C tipi** | C tipinde tepe negatif basınçtadır; östaki borusu işlev bozukluğunda görülür. |
-| 104 | Odyoloji | saglik | Kemikçik zinciri kopukluğunda beklenen timpanogram tipi hangisidir? | C tipi · As tipi · **Ad tipi** · B tipi | Zincir kopukluğunda sistem aşırı hareketlidir; tepe yüksektir (Ad). |
+| 104 | Odyoloji | saglik | Kemikçik zinciri kopukluğunda beklenen timpanogram tipi hangisidir? | C tipi · As tipi · **Ad tipi** · B tipi | Zincir kopukluğunda sistem aşırı hareketlidir; tepe yüksektir (Ad). Ad, ince ya da skarlı bir zarda da görülür; kopukluğu odyogramdaki büyük hava-kemik aralığı ve otoskopiyle birlikte düşünürüz. |
 | 105 | Odyoloji | saglik | Otosklerozda timpanogram çoğunlukla hangi tiptir? | C tipi · **As tipi** · Ad tipi · B tipi | Sertleşmiş sistemde tepe basıncı normal, tepe yüksekliği düşüktür (As). |
 | 106 | Odyoloji | saglik | Efüzyonlu otitis mediada tipik timpanogram hangisidir? | **B tipi** · A tipi · Ad tipi · As tipi | Orta kulakta sıvı varken zar hareketi kısıtlanır ve eğri düzleşir. |
 | 107 | Odyoloji | saglik | Normal işitenlerde akustik refleks eşikleri tipik olarak hangi aralıktadır? | Yaklaşık 0–10 dB HL · Yaklaşık 20–30 dB HL · Yaklaşık 130–150 dB HL · **Yaklaşık 70–100 dB HL** | Stapedius refleksi yüksek şiddetli uyaranla tetiklenir; tipik eşikler yaklaşık 70–100 dB HL’dir. |
 | 108 | Odyoloji | saglik | Rinne testinde normal kulakta beklenen sonuç nedir? | Diyapazon hiç duyulmaz · Yalnızca kemik yolu duyulur · **Hava yolu kemik yolundan daha uzun duyulur** · Kemik yolu hava yolundan daha uzun duyulur | Normalde (ve sensörinöral kayıpta) Rinne pozitiftir; iletim tipi kayıpta negatifleşir. |
 | 109 | Odyoloji | saglik | Sol kulakta iletim tipi kayıp varken Weber testinde ses nerede duyulur? | Her zaman tam ortada · **Sol kulakta** · Sağ kulakta · Hiç duyulmaz | Weber testinde ses iletim tipi kayıpta etkilenen kulağa lateralize olur. |
-| 110 | Odyoloji | saglik | Sağ kulakta sensörinöral kayıp varken Weber testinde ses nereye lateralize olur? | **Sol (sağlam) kulağa** · Sağ kulağa · Hiçbir yere · Sırayla iki kulağa | Sensörinöral kayıpta ses daha iyi işiten (sağlam) kulakta duyulur. |
+| 110 | Odyoloji | saglik | Sağ kulakta sensörinöral kayıp varken Weber testinde ses nereye lateralize olur? | **Sol (sağlam) kulağa** · Sağ kulağa · Hiçbir yere · Sırayla iki kulağa | Sensörinöral kayıpta ses daha iyi işiten (sağlam) kulakta duyulur. İletim tipi kayıpta ise ses kayıplı kulağa lateralize olur. |
 | 111 | Odyoloji | saglik | Klinik maskeleme neden yapılır? | Hastayı rahatlatmak için · Kulak kanalını temizlemek için · Kulak zarını korumak için · **Test edilmeyen kulağın teste karışmasını önlemek için** | Çapraz işitme olasılığı varsa test edilmeyen kulağa maskeleme gürültüsü verilir. |
 | 112 | Odyoloji | saglik | Kemik yolunda interaural attenüasyon yaklaşık kaç dB kabul edilir? | Yaklaşık 70 dB · Yaklaşık 100 dB · **Yaklaşık 0 dB** · Yaklaşık 40 dB | Kemik yoluyla uyarı iki kokleaya neredeyse eşit ulaşır; bu yüzden kemik yolunda maskeleme sık gerekir. |
 | 113 | Odyoloji | saglik | Supra-aural kulaklıkla hava yolunda interaural attenüasyon için genellikle kabul edilen en düşük değer nedir? | Yaklaşık 120 dB · **Yaklaşık 40 dB** · Yaklaşık 0 dB · Yaklaşık 5 dB | Temkinli kabul yaklaşık 40 dB’dir; kulak içi kulaklıklarla bu değer daha yüksektir. |

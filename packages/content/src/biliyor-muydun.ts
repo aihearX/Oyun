@@ -136,7 +136,7 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
     odyoloji: 'Öncelik (Haas) etkisi: kısa gecikmeyle gelen yansımalar ayrı yankı gibi değil, ilk sesle birleşik duyulur.',
     src: `${G}, öncelik etkisi` },
   { bolum: 36, genel: 'Ani ve yüksek bir seste irkilmemiz, beyin sapındaki çok hızlı bir refleks yolu sayesinde olur.',
-    odyoloji: 'İnferior kollikulus, yükselen işitme yollarının neredeyse hepsinin uğradığı zorunlu aktarma durağıdır.',
+    odyoloji: 'Yükselen işitme liflerinin neredeyse tamamı inferior kollikulusta sinaps yapar; yolun ana aktarma istasyonudur.',
     src: `${P}, merkezi işitme yolları` },
   { bolum: 37, genel: 'Bebekler doğduklarında birçok dilin seslerini ayırt edebilir; ilk yıl içinde ana dillerinin seslerine uzmanlaşır.',
     odyoloji: 'Sağ elini kullananların yaklaşık %95’inde dil işlevleri ağırlıklı olarak sol yarıkürededir.',
@@ -158,12 +158,21 @@ const biyomu = (bolum: number) => HUMAN_JOURNEY.levels.find((l) => l.number === 
  * bölümün "Biliyor muydun?" satırı oyuncunun Bilgi düzeyine göre; listede olmayan bölümde (ör. üretilmiş bölüm) null.
  * `tekrar`: aynı bölümün kaçıncı tekrarı (0 = ilk oynayış). Tekrarda hep aynı satır çıkmasın diye (YN-127) biyomun öteki
  * bölümlerinin satırlarından sıradaki gelir (bölüm sırasıyla, başa sararak); yeni metin yok, yalnız bu onaylı listeden seçim.
+ * `onceki`: son sonuç ekranında gösterilen satırın bölümü (kayıtta, apps/web store `bilgiSon`). Seçilen satır o ise ve biyomda
+ * başka satır varsa sıradaki gelir: başka bir bölümün tekrarı ile ardından gelen bölüm art arda aynı satırı göstermez (YN-175).
  */
-export function biliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar = 0): string | null {
+export function biliyorMuydunSatiri(bolum: number, tekrar = 0, onceki?: number): BiliyorMuydun | null {
   const b = BILIYOR_MUYDUN.find((x) => x.bolum === bolum);
   if (!b) return null;
   const biyom = biyomu(bolum);
   const sira = biyom ? BILIYOR_MUYDUN.filter((x) => biyomu(x.bolum) === biyom) : [b];
-  const s = sira[(sira.indexOf(b) + Math.max(0, Math.floor(tekrar))) % sira.length] ?? b;
-  return duzey === 'odyoloji' ? s.odyoloji : s.genel;
+  const i = sira.indexOf(b) + Math.max(0, Math.floor(tekrar));
+  const s = sira[i % sira.length] ?? b;
+  return s.bolum === onceki && sira.length > 1 ? sira[(i + 1) % sira.length] ?? s : s;
+}
+
+/** satırın metni Bilgi düzeyine göre (seçim kuralı: biliyorMuydunSatiri) */
+export function biliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar = 0, onceki?: number): string | null {
+  const s = biliyorMuydunSatiri(bolum, tekrar, onceki);
+  return s ? (duzey === 'odyoloji' ? s.odyoloji : s.genel) : null;
 }
