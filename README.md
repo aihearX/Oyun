@@ -41,6 +41,7 @@ node tools/harness/bot.mjs --levels 1-40 --parallel 3            # otomatik oyun
 node tools/harness/bot.mjs --levels 1-40 --idle 1 --parallel 4   # boşta oyuncu: hiçbir bölüm dokunmadan bitmemeli
 node tools/harness/social-e2e.mjs   # iki oyunculu takım/sohbet/kamp/mağaza/baskın testi
 node tools/harness/race-e2e.mjs     # üç oyunculu canlı yarış testi
+node tools/harness/uzun-oturum.mjs --dongu 20   # uzun oturum: harita → bölüm → alt ekran döngüsünde bellek, Phaser, dinleyici birikmesi (tek tablo)
 npm run kabul                       # bütün kabul takımı tek komutla (sırayla; çıktıları siler; özet tools/harness/out/kabul/ozet.json)
 npm run kabul -- --yalniz vitest,social   # yalnız seçilen takımlar (--liste: hepsi)
 ```

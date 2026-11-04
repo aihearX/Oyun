@@ -66,6 +66,9 @@ export class MapScene extends Phaser.Scene {
     if (this.opts.social) this.setSocial(this.opts.social);
     this.events.once('shutdown', () => this.cleanup());
     if (this.opts.seen) { this.pending = true; this.time.delayedCall(450, () => { this.pending = false; void this.play(this.opts.stars); }); }
+    // ölçüm kancası (LevelScene __odiScene gibi): uzun oturum ölçümü haritanın Phaser nesnelerini sayar (tools/harness/uzun-oturum.mjs)
+    (globalThis as unknown as { __odiMap?: MapScene }).__odiMap = this;
+    this.events.once('destroy', () => { const g = globalThis as unknown as { __odiMap?: MapScene }; if (g.__odiMap === this) g.__odiMap = undefined; });
   }
 
   // ---------------------------------------------------------------- kamera

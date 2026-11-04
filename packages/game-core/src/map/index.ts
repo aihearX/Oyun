@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MapScene } from './MapScene';
 import type { MapHandle, MapOptions } from './types';
+import { createGame } from '../teardown';
 
 export * from './layout';
 export * from './types';
@@ -17,7 +18,8 @@ export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
   const size = () => ({ w: Math.max(1, Math.round(parent.clientWidth * dpr)), h: Math.max(1, Math.round(parent.clientHeight * dpr)) });
   const s0 = size();
-  const game = new Phaser.Game({
+  // createGame: uyuyan döngüde de tam yıkım, Phaser'ın bıraktığı dinleyici ve ortak kamera tutucuları (YN-163)
+  const { game, destroy: kill } = createGame({
     type: Phaser.AUTO, parent, width: s0.w, height: s0.h, backgroundColor: '#140c35', transparent: false,
     scale: { mode: Phaser.Scale.NONE, zoom: 1 / dpr },
     render: { antialias: true, pixelArt: false, roundPixels: false, powerPreference: 'high-performance' },
@@ -38,7 +40,7 @@ export function startMap(parent: HTMLElement, opts: MapOptions): MapHandle {
   document.addEventListener('visibilitychange', vis);
   let dead = false;
   return {
-    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); document.removeEventListener('visibilitychange', vis); parent.removeEventListener('pointerdown', poke, { capture: true }); parent.removeEventListener('wheel', poke, { capture: true }); try { game.destroy(true); } catch { /* yok sayılır */ } },
+    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); document.removeEventListener('visibilitychange', vis); parent.removeEventListener('pointerdown', poke, { capture: true }); parent.removeEventListener('wheel', poke, { capture: true }); kill(); },
     setSocial: (s) => { opts.social = s; scene()?.setSocial(s); },
     update: (stars, treasures) => { opts.stars = stars; opts.treasuresOpen = treasures; scene()?.updateProgress(stars, treasures); },
     focusCurrent: (a = true) => scene()?.focusCurrent(a),

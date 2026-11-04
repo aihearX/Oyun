@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { BuildingId, CampState } from '@odi/shared';
 import { CampScene, type CampSceneOpts, type CampTeam } from './CampScene';
+import { createGame } from '../teardown';
 
 export type { CampSceneOpts as CampOptions, CampTeam } from './CampScene';
 export { buildingCanvas, PAINT_BOX, TIER_ACCENT } from './buildings';
@@ -76,7 +77,7 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
   let pending: (() => void)[] = [];
   const userReady = opts.onReady;
   scene.opts.onReady = () => { for (const f of pending) f(); pending = []; userReady?.(); };
-  const game = new Phaser.Game({
+  const { game, destroy: kill } = createGame({
     type: Phaser.AUTO, parent, width: s0.w, height: s0.h, backgroundColor: '#1b1446', banner: false,
     scale: { mode: Phaser.Scale.NONE, zoom: 1 / dpr },
     input: { activePointers: 3, touch: { capture: true } }, render: { antialias: true, pixelArt: false, roundPixels: false, powerPreference: 'high-performance' },
@@ -150,6 +151,6 @@ export function startCamp(parent: HTMLElement, opts: CampSceneOpts): CampHandle 
     unfocus: () => run(() => { boost(1200); scene.unfocus(); }),
     focus: (id, above) => run(() => { boost(1500); scene.focus(id, above); }),
     sleep: (on) => { if (!game.loop) return; if (on) game.loop.sleep(); else { game.loop.wake(); boost(); } },
-    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); clearInterval(idleTimer); document.removeEventListener('visibilitychange', onVis); for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.removeEventListener(ev, onInput); for (const ev of ['pointerdown', 'touchstart', 'mousedown'] as const) parent.removeEventListener(ev, onDown, { capture: true }); try { game.destroy(true); } catch { /* yok */ } },
+    destroy: () => { if (dead) return; dead = true; ro?.disconnect(); clearInterval(idleTimer); document.removeEventListener('visibilitychange', onVis); for (const ev of ['pointerdown', 'pointermove', 'wheel', 'touchstart'] as const) parent.removeEventListener(ev, onInput); for (const ev of ['pointerdown', 'touchstart', 'mousedown'] as const) parent.removeEventListener(ev, onDown, { capture: true }); kill(); },
   };
 }

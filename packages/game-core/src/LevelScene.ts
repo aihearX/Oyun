@@ -168,7 +168,9 @@ export class LevelScene extends Phaser.Scene {
     }
 
     (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = this;
-    this.events.once('shutdown', () => { (globalThis as unknown as { __odiScene?: LevelScene }).__odiScene = undefined; });
+    // oyun yok edilince 'shutdown' gelmez, yalnız 'destroy': kanca yok edilen sahneyi (ve oyununu) bir sonraki bölüme kadar tutmasın
+    const unhook = () => { const g = globalThis as unknown as { __odiScene?: LevelScene }; if (g.__odiScene === this) g.__odiScene = undefined; };
+    this.events.once('shutdown', unhook); this.events.once('destroy', unhook);
   }
 
   override update(_t: number, dtMs: number) {

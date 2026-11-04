@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { LevelHandle, LevelOptions } from './bridge';
 import { LevelScene } from './LevelScene';
+import { createGame } from './teardown';
 import { setSoundsEnabled } from './audio';
 import { levelView, levelZoom, ZOOM_MAX, ZOOM_MAX_SHOT, type ViewSize } from './view';
 
@@ -21,7 +22,7 @@ export function startLevel(parent: HTMLElement | string, opts: LevelOptions): Le
   const zoom = levelZoom(c0.w, c0.h, view, ratio, opts.renderScale ? ZOOM_MAX_SHOT : ZOOM_MAX);
   const px = (v: ViewSize) => ({ w: Math.round(v.w * zoom), h: Math.round(v.h * zoom) });
   const g0 = px(view);
-  const game = new Phaser.Game({
+  const { game, destroy: kill } = createGame({
     type: Phaser.AUTO, parent, width: g0.w, height: g0.h, backgroundColor: '#140c35',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 1400 }, debug: false } },
@@ -43,7 +44,7 @@ export function startLevel(parent: HTMLElement | string, opts: LevelOptions): Le
   try { if (el && typeof ResizeObserver !== 'undefined') { ro = new ResizeObserver(relayout); ro.observe(el); } } catch { /* yok */ }
   if (typeof window !== 'undefined') window.addEventListener('resize', relayout);
   return {
-    destroy: () => { ro?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', relayout); try { game.destroy(true); } catch { /* yok sayılır */ } },
+    destroy: () => { ro?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', relayout); kill(); },
     pause: () => { const s = game.scene.getScene('level'); if (s && game.scene.isActive('level')) { s.scene.pause(); } },
     resume: () => { const s = game.scene.getScene('level'); if (s && game.scene.isPaused('level')) { s.scene.resume(); } },
     end: (reason) => { const s = game.scene.getScene('level') as LevelScene | null; if (s?.state && !s.state.finished) { if (game.scene.isPaused('level')) s.scene.resume(); s.fail(reason); } },
