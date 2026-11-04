@@ -21,7 +21,7 @@ Play Billing'de satın alma onaylanıp tüketilir, bunu RevenueCat SDK'sı yapar
 
 | Ürün kimliği | TR ad | EN ad | İçerik | Sınır | Takım hediyesi | Önerilen fiyat (TRY) |
 |---|---|---|---|---|---|---|
-| `odi.baslangic` | Başlangıç Paketi | Starter Pack | 300 kristal, 10 × 5 dk hızlandırıcı, Kaşif şapkası | Hesap başına 1 | Var | 49,99 |
+| `odi.baslangic` | Başlangıç Paketi | Starter Pack | 300 kristal, 10 × 5 dk hızlandırıcı, Kâşif Şapkası | Hesap başına 1 | Var | 49,99 |
 | `odi.kristal.1` | Avuç Kristal | Handful of Crystals | 120 kristal | — | Yok | 29,99 |
 | `odi.kristal.2` | Kese Kristal | Pouch of Crystals | 650 kristal (+%8) | — | Var | 149,99 |
 | `odi.kristal.3` | Sandık Kristal | Chest of Crystals | 1400 kristal (+%17) | — | Var | 299,99 |

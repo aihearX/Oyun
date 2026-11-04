@@ -993,6 +993,8 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .product.tag-en-iyi-deger { border-color:rgba(142,240,176,.6); } .product.tag-baslangic { border-color:rgba(139,107,255,.7); }
 .ribbon { align-self:flex-start; font-size:0.6875rem; font-weight:900; text-transform:uppercase; letter-spacing:.4px; border-radius:999px; padding:3px 10px; background:var(--violet); color:#fff; }
 .tag-en-iyi-deger .ribbon { background:#3fcf7a; color:#05332f; }
+/* uzun rozet ("Kristal paketlerinde en iyi değer", YN-073) dar ekranda/Büyük yazıda iki satıra iner: TEST çipinin altına girmez */
+.product > .ribbon { max-width:calc(100% - 64px); border-radius:12px; text-wrap:balance; }
 .test-chip { position:absolute; top:12px; right:12px; font-size:0.625rem; font-weight:900; color:#4a2c00; background:#ffe9a8; border:1px solid #f2b400; border-radius:6px; padding:1px 6px; }
 .team-gift-line { background:rgba(255,201,60,.14); border:2px solid rgba(255,201,60,.4); border-radius:12px; padding:6px 10px; font-weight:900; font-size:0.8125rem; line-height:1.35; }
 .prod-foot { gap:8px; }

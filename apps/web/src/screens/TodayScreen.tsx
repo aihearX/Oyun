@@ -1,6 +1,6 @@
 import { useEffect, useState, type MouseEvent } from 'react';
 import { audio } from '@odi/audio';
-import { MAX_STREAK_SHIELDS, questById, type RewardItem } from '@odi/content';
+import { MAX_STREAK_SHIELDS, TIER_NAMES, achievementById, achievementName, questById, type RewardItem } from '@odi/content';
 import { calendarView, chestReady, dailyChestReward, dailyFor, dayKey, explainReward, highestUnlocked, questDone, type CalendarDay, type RewardSwap } from '@odi/meta';
 import { useStore } from '../store';
 import { platform } from '../platform';
@@ -27,6 +27,8 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
   const [shieldInfo, setShieldInfo] = useState(false);
+  /** görevle birlikte açılan başarımın jetonu (cüzdan görev ödülünden fazla artınca söylenir; OT-ekonomi-denetci-8) */
+  const [bonus, setBonus] = useState<{ id: string; text: string } | null>(null);
   const daily = dailyFor(s, today); const cal = calendarView(s, today);
   const chest = explainReward(s.meta, dailyChestReward(s)); const ready = chestReady(daily);
   const doneCount = daily.quests.filter(questDone).length;
@@ -39,11 +41,16 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const calToday = cal.days[cal.dayIndex]!;
   /** görev: tamam sesi + kart parlaması; jetonlar düğmeden sayaca uçar, diğerleri şeritte yazılı */
   const claimQuest = (id: string, e: MouseEvent<HTMLButtonElement>) => {
-    const r = e.currentTarget.getBoundingClientRect(); const items = s.claimQuest(id); if (!items) return;
+    const r = e.currentTarget.getBoundingClientRect(); const before = useStore.getState(); const items = s.claimQuest(id); if (!items) return;
     audio.play('questDone'); platform().haptic('success'); setJust(id); setTimeout(() => setJust((j) => (j === id ? null : j)), 900);
     const coins = items.filter((i) => i.kind === 'jeton').reduce((a, i) => a + i.amount, 0);
-    if (coins > 0) void celebrate.coins({ amount: coins, kind: 'jeton', from: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
-    celebrate.banner({ icon: '✅', title: 'Görev tamam!', body: items.map(rewardLabel).join(' · '), tone: 'green' });
+    // görev sayacı bir başarımı açarsa onun jetonu da cüzdana girer: ek satırla söylenir, toplam cüzdan artışına eşit
+    const after = useStore.getState(); const total = after.coins - before.coins; const extra = total - coins;
+    const ach = Object.entries(after.meta.achievements).filter(([k, t]) => t > (before.meta.achievements[k] ?? 0)).map(([k, t]) => { const a = achievementById(k); return a ? `${achievementName(a, t as 1 | 2 | 3)} · ${TIER_NAMES[t as 1 | 2 | 3]}` : ''; }).filter(Boolean);
+    const line = extra > 0 ? `${ach.length ? `Başarım da açıldı (${ach.join(', ')})` : 'Açılımlardan'}: +${extra} jeton. Cüzdana toplam +${total} jeton.` : '';
+    setBonus(line ? { id, text: line } : null);
+    if (total > 0) void celebrate.coins({ amount: total, kind: 'jeton', from: { x: r.left + r.width / 2, y: r.top + r.height / 2 } });
+    celebrate.banner({ icon: '✅', title: 'Görev tamam!', body: [items.map(rewardLabel).join(' · '), line].filter(Boolean).join(' · '), tone: 'green' });
   };
   const challenge = async () => {
     const lvl = Math.max(1, highestUnlocked(s.progress) - 1); const p = s.progress[lvl];
@@ -103,6 +110,7 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
                 <div className="qt">{d.text}</div>
                 <div className="row qbar"><Bar value={q.progress / d.target} tone="green" label={d.text} /><span className="qn">{q.progress}/{d.target}</span></div>
                 <RewardChips items={d.reward} small />
+                {bonus?.id === q.id && <div className="muted small-note" data-testid="gorev-ek-odul">{bonus.text}</div>}
               </div>
               {q.claimed ? <span className="muted">Alındı</span>
                 : ok ? <button className="btn small" onClick={(e) => claimQuest(q.id, e)}>Al</button>

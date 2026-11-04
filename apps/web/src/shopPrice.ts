@@ -1,13 +1,18 @@
 /**
  * Mağaza fiyat gösterimi (YN-032). Oyuncu ödeyeceği tutarı mağazanın kendi biçimiyle görür: mobil kabuk RevenueCat'ten
  * ürünlerin `priceString` değerini köprüyle verir. Fiyat gelmezse (web, Expo Go, çevrimdışı, RevenueCat yok) gösterilen tek fiyat
- * `SHOP.priceTry` TL liste fiyatıdır ve yanında "Mağaza fiyatı satın alırken gösterilir" notu durur.
+ * `SHOP.priceTry` TL liste fiyatıdır: gerçek mağazada notu "ödenecek tutarı mağazanın onay penceresi gösterir", TEST mağazasında
+ * "para çekilmez" (olmayan bir mağaza fiyatı vaat edilmez; YN-073, OT-ekonomi-denetci-7).
  * Yanlış para birimi gösterilmez: ya listedeki her ürünün mağaza fiyatı (hepsi aynı para biriminde) ya da hepsi TL.
  * Sunucu satın almayı ve aylık harcama sınırını TL liste fiyatıyla sayar; sınır her zaman TL gösterilir.
  */
-import type { StorePrice } from '@odi/shared';
+import type { ShopProduct, SpendState, StorePrice } from '@odi/shared';
 
-export const STORE_PRICE_NOTE = 'Mağaza fiyatı satın alırken gösterilir';
+/** gerçek mağaza, mağaza fiyatı gelmediğinde: ödenecek tutarı mağazanın kendi onay penceresi gösterir */
+export const STORE_PRICE_NOTE = 'Ödeyeceğin tutarı App Store / Google Play kendi onay penceresinde gösterir';
+
+/** mağaza kipi: gerçek satın alma, TEST mağazası (para çekilmez) ya da kapalı */
+export type ShopMode = 'real' | 'test' | 'closed';
 
 /** TL liste fiyatı (sunucunun saydığı tutar; aylık sınır ve satın alma geçmişi) */
 export const fmtTry = (n: number) => `${n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`;
@@ -61,3 +66,44 @@ export async function loadStorePrices(
     return storePriceMap(ids, raw);
   } catch { return null; } finally { if (timer) clearTimeout(timer); }
 }
+
+/** listenin üstündeki not (yalnız TL liste fiyatı gösterilirken): TEST'te para çekilmez, gerçekte mağazanın penceresi */
+export function listPriceNote(mode: ShopMode): string {
+  return `Fiyatlar TL liste fiyatıdır. ${mode === 'test' ? 'TEST mağazasında para çekilmez' : STORE_PRICE_NOTE}.`;
+}
+
+/** satın alma penceresindeki "ödenecek tutar" cümlesi: tek ve net; TEST'te ödeme yok, gerçekte mağaza fiyatı ya da mağazanın penceresi */
+export function payLine(mode: ShopMode, p: { id: string; priceTry: number }, prices: StorePriceMap): string {
+  if (mode === 'test') return `Bu bir test alımı: hesabından para çekilmez (liste fiyatı ${fmtTry(p.priceTry)}).`;
+  const s = prices?.get(p.id);
+  return s ? `Ödenecek tutar: ${s.priceString} (mağaza fiyatı).` : `${STORE_PRICE_NOTE}; liste fiyatı ${fmtTry(p.priceTry)}.`;
+}
+
+/**
+ * Aylık harcama sınırı engeli (karar 28; sunucu shop.ts ile aynı kural): liste düğmesi ve onay penceresi bunu kullanır.
+ * null = alınabilir. Sınır henüz seçilmediyse engel yok: ilk alımdan önce oyuncu sınırı seçer (OT-ekonomi-denetci-18).
+ */
+export function limitBlock(sp: Pick<SpendState, 'limitChosen' | 'monthTry' | 'limitTry'>, priceTry: number): string | null {
+  if (!sp.limitChosen) return null;
+  if (sp.monthTry + priceTry <= sp.limitTry + 1e-9) return null;
+  return sp.limitTry <= 0 ? 'Satın alma kapalı (aylık sınır)' : 'Aylık sınırını aşıyor';
+}
+
+export const BEST_VALUE_LABEL = 'Kristal paketlerinde en iyi değer';
+/** yalnız kristal içeren, sınırsız alınan paketler (Başlangıç ve Sezon Kartı tek seferlik, karışık içerikli: karşılaştırmaya girmez) */
+export const isCrystalPack = (p: Pick<ShopProduct, 'limit' | 'contents'>) => p.limit === 0 && p.contents.length > 0 && p.contents.every((c) => c.kind === 'kristal');
+/** TL liste fiyatıyla lira başına kristal */
+export const crystalsPerTry = (p: Pick<ShopProduct, 'priceTry' | 'contents'>) => p.contents.reduce((a, c) => a + (c.kind === 'kristal' ? c.amount : 0), 0) / p.priceTry;
+
+/**
+ * "En iyi değer" rozeti gerçek oranlardan hesaplanır (OT-ekonomi-denetci-34): kristal paketleri arasında lira başına en çok kristal
+ * veren tek paket; eşitlik ya da ikiden az paket varsa rozet yok. Sezon Kartı 28 güne yayıldığı için karşılaştırmada değil, bu yüzden
+ * rozet bağlamını söyler: "Kristal paketlerinde en iyi değer".
+ */
+export function bestValue(products: readonly Pick<ShopProduct, 'id' | 'limit' | 'contents' | 'priceTry'>[]): { id: string; perTry: number } | null {
+  const packs = products.filter(isCrystalPack).map((p) => ({ id: p.id, perTry: crystalsPerTry(p) })).sort((a, b) => b.perTry - a.perTry);
+  if (packs.length < 2 || packs[0]!.perTry - packs[1]!.perTry < 1e-9) return null;
+  return packs[0]!;
+}
+/** "4,7": bir ondalık, Türkçe virgül */
+export const fmtPerTry = (n: number) => n.toLocaleString('tr-TR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

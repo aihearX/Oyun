@@ -7,13 +7,12 @@ import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
-import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtTry } from '../ui/social';
+import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtHud, fmtTry } from '../ui/social';
 import { Art, Rich, TeamEmblem } from '../ui/art';
-import { STORE_PRICE_NOTE, loadStorePrices, priceLabel, type StorePriceMap } from '../shopPrice';
+import { BEST_VALUE_LABEL, bestValue, fmtPerTry, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, type ShopMode, type StorePriceMap } from '../shopPrice';
 
 type Product = ShopProduct & { bought: number };
 type List = OpMap['shop.list']['res'];
-const TAG = { 'en-iyi-deger': 'En iyi değer', baslangic: 'Başlangıç' } as const;
 const SHOP_IDS = SHOP.map((p) => p.id);
 /** bu oturumda mağazadan gelen son fiyatlar (oyuncu başına): mağaza yeniden açılınca beklemeden gösterilir */
 let priceCache: { playerId: string; map: StorePriceMap } | null = null;
@@ -23,7 +22,7 @@ export function ShopScreen({ onBack }: { onBack: () => void }) {
   const wallet = useNet((s) => s.wallet); const k = useHudCount('kristal', wallet?.kristal ?? 0);
   return (
     <div className="screen fade-in">
-      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className={`pill${k.bump ? ' hud-pop' : ''}`} key={`k${k.bump}`} data-hud="kristal"><Art name="crystal" size={18} className="art-inline" />{k.value}</span> : undefined} />
+      <ScreenHead title="Mağaza" onBack={onBack} right={wallet ? <span className={`pill${k.bump ? ' hud-pop' : ''}`} key={`k${k.bump}`} data-hud="kristal"><Art name="crystal" size={18} className="art-inline" />{fmtHud(k.value)}</span> : undefined} />
       <Online what="Mağaza"><Shop /></Online>
     </div>
   );
@@ -47,10 +46,12 @@ function Shop() {
     return () => { live = false; };
   }, [real, storeFn, me.id]);
   if (!data || (storeMap === undefined && !err)) return err ? <div className="chat-err">{err}</div> : <Skeleton rows={4} />;
-  const mode: 'real' | 'test' | 'closed' = real ? 'real' : data.testStore ? 'test' : 'closed';
+  const mode: ShopMode = real ? 'real' : data.testStore ? 'test' : 'closed';
   // yanlış para birimi gösterilmez: listedeki her ürünün mağaza fiyatı varsa hepsi mağazadan, yoksa hepsi TL
   const prices: StorePriceMap = mode === 'real' && storeMap && data.products.every((p) => storeMap.has(p.id)) ? storeMap : null;
   const sp = data.spend;
+  // "En iyi değer" gerçek kristal/TL oranından (sabit etiket değil); bağlamı söyler: yalnız kristal paketleri arasında
+  const best = bestValue(data.products);
 
   const buy = async (p: Product) => {
     const c = getNet(); if (!c) return;
@@ -86,22 +87,27 @@ function Shop() {
           <div className="muted small-note">Mağazada savaş, baskın, yarış ya da lig puanı satılmaz. Hızlandırıcılar yalnız kamp inşaatını kısaltır; kamp binaları takım puanlarına ve lige hiç eklenmez. Atölye kalkanı ve Klinik seni bölümde korur ama korunan vuruş da hasar sayılır: “Hiç hasar alma” ve hasara bağlı yıldızlar bu yolla gelmez. Takım hediyesindeki jeton takım teknolojisine bağışlanamaz. İçerikler önceden yazılı, şans yok.</div>
         </details>
       </div>
-      {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">Fiyatlar TL liste fiyatıdır. {STORE_PRICE_NOTE}.</div>}
+      {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">{listPriceNote(mode)}</div>}
 
       <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />
 
-      {data.products.map((p) => { const soldOut = p.limit > 0 && p.bought >= p.limit; return (
-        <div className={`card product${p.tag ? ` tag-${p.tag}` : ''}`} key={p.id}>
-          {p.tag && <span className="ribbon">{TAG[p.tag]}</span>}
+      {data.products.map((p) => {
+        // aylık sınırı aşan paket listede de gri ve sebebi yazılı; pencere aynı kuralı kullanır (limitBlock)
+        const soldOut = p.limit > 0 && p.bought >= p.limit; const block = soldOut || mode === 'closed' ? null : limitBlock(sp, p.priceTry);
+        const isBest = best?.id === p.id; return (
+        <div className={`card product${isBest ? ' tag-en-iyi-deger' : p.tag === 'baslangic' ? ' tag-baslangic' : ''}`} key={p.id}>
+          {isBest ? <span className="ribbon" data-testid="en-iyi-deger">{BEST_VALUE_LABEL}</span> : p.tag === 'baslangic' && <span className="ribbon">Başlangıç</span>}
           {mode === 'test' && <span className="test-chip">TEST</span>}
           <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
           <ItemChips items={p.contents} small />
           {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Rich text={`🎁 Takımındaki herkese: ${p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}`} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
+          {isBest && <div className="muted small-note" data-testid="en-iyi-deger-hesap">TL liste fiyatıyla lira başına {fmtPerTry(best.perTry)} kristal: kristal paketleri arasında en çok. Sezon Kartı kristalini 28 güne yayar, bu karşılaştırmada yok.</div>}
           {p.id === 'odi.pass' && <><PassPath /><PassTerms /></>}
           <div className="row between prod-foot">
             <span className="muted small-note">{p.limit > 0 ? `Kişi başı ${p.limit} · alındı ${p.bought}/${p.limit}` : p.bought ? `${p.bought} kez alındı` : ''}</span>
-            <button className="btn small" disabled={mode === 'closed' || soldOut} onClick={() => setSel(p)}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
+            <button className="btn small" disabled={mode === 'closed' || soldOut || !!block} onClick={() => setSel(p)}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
           </div>
+          {block && <div className="muted small-note sinir-asiyor" data-testid="sinir-asiyor">{block}</div>}
         </div>); })}
 
       <div className="card">
@@ -115,11 +121,11 @@ function Shop() {
         <Sheet title="Önce aylık harcama sınırı" onClose={() => setSel(null)}>
           <FirstLimit onSaved={(s) => setData({ ...data, spend: s })} onCancel={() => setSel(null)} />
         </Sheet>)}
-      {sel && sp.limitChosen && (() => { const over = sp.monthTry + sel.priceTry > sp.limitTry + 1e-9; const pl = priceLabel(sel, prices); return (
+      {sel && sp.limitChosen && (() => { const over = limitBlock(sp, sel.priceTry) != null; const pl = priceLabel(sel, prices); return (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           {mode === 'test' && <div className="test-banner small"><Art name="flask" size="1.2em" className="art-inline" /> TEST — gerçek para çekilmez</div>}
           <div className="confirm-price" data-testid="onay-fiyat">{pl.text}</div>
-          {!pl.store && <div className="muted small-note">TL liste fiyatı. {STORE_PRICE_NOTE}.</div>}
+          <div className="muted small-note" data-testid="odenecek-tutar">{payLine(mode, sel, prices)}</div>
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
           {sel.id === 'odi.pass' && <PassTerms />}
           {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <TeamEmblem e={team.emblem} size="1.1em" className="art-inline" /> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}

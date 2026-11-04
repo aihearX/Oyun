@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { COSMETICS, DEFAULT_COLOR_ID, cosmeticUnlockText, type CosmeticDef } from '@odi/content';
+import { SHOP } from '@odi/shared';
 import { odiLook } from '../look';
 import { useStore } from '../store';
 import { OdiAvatar } from '../ui/OdiAvatar';
@@ -9,6 +10,12 @@ import { Art } from '../ui/art';
 import { useNet } from '@odi/net/store';
 import { act } from '../net';
 import { Cerceve, kurucuMu } from '../kurucu/rozet';
+
+/** kilit metni; mağaza kozmetiği hangi paketle geldiğini adıyla söyler ("Mağaza: Odi Sezon Kartı"; OT-ekonomi-denetci-19) */
+export function unlockText(c: CosmeticDef): string {
+  const u = c.unlock; const prod = u.by === 'shop' ? SHOP.find((p) => p.id === u.product) : undefined;
+  return prod ? `Mağaza: ${prod.name}` : cosmeticUnlockText(u);
+}
 
 /** Dolap: Odi renkleri ve şapkaları. Yalnızca görünüm; seçilen kozmetik oyunda da görünür. */
 export function WardrobeScreen({ onBack }: { onBack: () => void }) {
@@ -24,7 +31,7 @@ export function WardrobeScreen({ onBack }: { onBack: () => void }) {
       <button key={c.id} className={`wtile${has ? '' : ' locked'}${on ? ' on' : ''}`} disabled={!has} onClick={() => { s.equip(c.id); platform().haptic('light'); }} aria-pressed={on} aria-label={`${c.name}${has ? '' : ', kilitli'}`}>
         <OdiAvatar size={52} color={c.kind === 'renk' ? c.color : baseColor} hat={c.kind === 'sapka' ? c.hat : c.hat} />
         <b>{c.name}</b>
-        <span className="muted">{has ? (on ? 'Giyili' : 'Giy') : <><Art name="lock" size="1.15em" className="art-inline" /> {cosmeticUnlockText(c.unlock)}</>}</span>
+        <span className="muted">{has ? (on ? 'Giyili' : 'Giy') : <><Art name="lock" size="1.15em" className="art-inline" /> {unlockText(c)}</>}</span>
       </button>
     );
   };

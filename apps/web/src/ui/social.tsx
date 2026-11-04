@@ -164,6 +164,24 @@ export function Sheet({ title, onClose, children }: { title?: string; onClose: (
   );
 }
 
+/**
+ * Jeton harcama onayı (YN-073, OT-ekonomi-denetci-13): geri alınamayan her jeton harcaması (takım teknolojisi bağışı, yetenek)
+ * önce "N jeton harcansın mı?" diye sorar; ne için olduğu ve cüzdanın önce → sonra hali yazılı.
+ */
+export function SpendConfirm({ jeton, have, what, note, yes, busy, onYes, onClose }: { jeton: number; have: number; what: ReactNode; note?: ReactNode; yes: string; busy?: boolean; onYes: () => void; onClose: () => void }) {
+  return (
+    <Sheet title={`${fmtNum(jeton)} jeton harcansın mı?`} onClose={onClose}>
+      <div className="stack" data-testid="jeton-onay">
+        <div>{what}</div>
+        <div className="muted">Cüzdan: {fmtNum(have)} → <b>{fmtNum(have - jeton)}</b> jeton. Geri alınamaz.</div>
+        {note && <div className="muted small-note">{note}</div>}
+        <button className="btn" data-testid="jeton-onay-evet" disabled={busy} onClick={onYes}>{busy ? 'İşleniyor…' : yes}</button>
+        <button className="btn ghost" onClick={onClose}>Vazgeç</button>
+      </div>
+    </Sheet>
+  );
+}
+
 /** yatay kaydırılan alt sekmeler (rozetli). Taşarsa parmakla (fareyle de) sürüklenir; kesik kenarda solma ve ok görünür, ok
  *  dokunuşla kaydırır (OT-buyuk-yazi-14). `name`: şeridin adı (data-subtabs; iki düzeyli Takım sekmelerinde grup/alt). */
 export function SubTabs<T extends string>({ tabs, active, onChange, name }: { tabs: { id: T; label: string; icon?: string; art?: ArtName; badge?: number }[]; active: T; onChange: (t: T) => void; name?: string }) {

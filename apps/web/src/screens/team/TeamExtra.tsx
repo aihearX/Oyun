@@ -4,7 +4,7 @@ import { PURCHASE_GIFT_REF, TEAM_TECH, type TeamGift } from '@odi/shared';
 import { act, applyServerItems, getNet, toast } from '../../net';
 import { platform } from '../../platform';
 import { Bar } from '../../ui/bits';
-import { Empty, FloatBurst, ItemChips, Skeleton, fmtLeft, fmtNum, useNow } from '../../ui/social';
+import { Empty, FloatBurst, ItemChips, Skeleton, SpendConfirm, fmtLeft, fmtNum, useNow } from '../../ui/social';
 import { Art, Glyph } from '../../ui/art';
 
 const DONATE = [100, 500, 1000];
@@ -15,6 +15,8 @@ const unitOf = (desc: string) => /[+-]%?$/.exec(desc)?.[0] ?? '';
 export function TeamTech() {
   const extra = useNet((s) => s.extra); const wallet = useNet((s) => s.wallet);
   const [busy, setBusy] = useState(''); const [burst, setBurst] = useState<{ id: string; text: string } | null>(null);
+  // bağış geri alınamaz: düğme önce onay sorar (YN-073)
+  const [ask, setAsk] = useState<{ tech: string; jeton: number } | null>(null);
   if (!extra) return <Skeleton rows={4} />;
   // satın alma hediyesinden gelen jeton bağışlanamaz (sunucu da uygular: karar 29 / YN-065)
   const locked = wallet?.bagislanamaz ?? 0;
@@ -22,7 +24,7 @@ export function TeamTech() {
   const donate = async (tech: string, jeton: number) => {
     setBusy(tech + jeton);
     const r = await act('team.donate', { tech: tech as never, jeton });
-    setBusy('');
+    setBusy(''); setAsk(null);
     if (r) { useNet.setState({ extra: r.extra, wallet: r.wallet }); platform().haptic('success'); setBurst({ id: tech, text: `+${fmtNum(jeton)} 🪙` }); }
   };
   return (
@@ -40,10 +42,14 @@ export function TeamTech() {
           </div>
           {!max ? <>
             <div className="row qbar"><Bar value={st.progress / Math.max(1, st.cost)} tone="amber" label={`${d.name} ilerlemesi`} /><span className="qn">{fmtNum(st.progress)}/{fmtNum(st.cost)}</span></div>
-            <div className="donate-row">{DONATE.map((n) => <button key={n} className="btn ghost small" disabled={!wallet || free < n || busy === d.id + n} onClick={() => void donate(d.id, n)}><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(n)}</button>)}</div>
+            <div className="donate-row">{DONATE.map((n) => <button key={n} className="btn ghost small" disabled={!wallet || free < n || busy === d.id + n} onClick={() => setAsk({ tech: d.id, jeton: n })}><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(n)}</button>)}</div>
           </> : <div className="muted">En yüksek seviye. Harika iş!</div>}
           {burst?.id === d.id && <FloatBurst text={burst.text} onDone={() => setBurst(null)} />}
         </div>); })}
+      {ask && (() => { const d = TEAM_TECH.find((t) => t.id === ask.tech); return (
+        <SpendConfirm jeton={ask.jeton} have={wallet?.jeton ?? 0} yes="Evet, bağışla" busy={busy === ask.tech + ask.jeton} onClose={() => setAsk(null)} onYes={() => void donate(ask.tech, ask.jeton)}
+          what={<>Takım teknolojisine bağış: <b>{d?.name ?? ask.tech}</b>. Etkisi tüm üyelere uygulanır.</>}
+          note={locked > 0 ? `Satın alma hediyesinden gelen ${fmtNum(locked)} jeton bağışlanamaz; bağış öteki jetonlarından düşer.` : undefined} />); })()}
     </div>
   );
 }

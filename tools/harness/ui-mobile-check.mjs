@@ -19,7 +19,7 @@
 //           [--ek-css oneri.css] (her sayfaya ek stil: görsel önerinin önce/sonra görüntüleri için)
 //           [--dist-ek ad] (web ve dom derlemesi dist-<ad> klasörlerinde: aynı ağaçta iki koşu ayrı derlemeyle)
 //           [--magaza-fiyat] (yalnız dom: köprü gerçek satın alma + mağaza fiyatı verir (sahte EUR priceString, YN-032);
-//                             yoksa köprüde fiyat yok → TL liste fiyatı ve "Mağaza fiyatı satın alırken gösterilir" notu)
+//                             yoksa köprüde fiyat yok → TL liste fiyatı ve fiyat notu; YN-073)
 // Çıktı: tools/harness/out/ui-mobile/<tag>/<hedef>-<tarayıcı>-<GxY>/NN-ad.png + rapor.json
 import { randomBytes, scryptSync } from 'node:crypto';
 import { spawn } from 'node:child_process';
@@ -827,6 +827,8 @@ async function suite(browserName, target, [W, H]) {
         if (await page.getByTestId('ilk-sinir').count()) {
           await check('magaza-ilk-sinir', { scroll: false });
           await page.getByTestId('ilk-sinir-kaydet').click(); await page.getByTestId('onay-fiyat').waitFor({ timeout: 10_000 }); await sleep(400);
+          // "Aylık sınırın kaydedildi" bildirimi TEST şeridinin üstüne düşer: gölgesi kontrast ölçümünü bozmasın
+          await toastGone();
         }
         const r = await check('magaza-onay', { scroll: false });
         const onay = (await page.getByTestId('onay-fiyat').textContent())?.trim();
