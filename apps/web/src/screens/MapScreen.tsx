@@ -9,7 +9,8 @@ import type { MapHandle, MapSocial, StarMap, ZoneId } from '@odi/game-core/lite'
 import { chunkFailed, loadMap } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
-import { getNet, useSocial } from '../net';
+import { getNet, odulNe, useSocial } from '../net';
+import { hazinePenceresi, sinirSatiri } from '../odul-durum';
 import { useNav } from '../nav';
 import { platform } from '../platform';
 import { HudNum, StatusDot, fmtNum } from '../ui/social';
@@ -34,6 +35,16 @@ declare const __ODI_E2E__: boolean | undefined;
 const GOAL_REACHED_MS = 6000;
 /** haritadaki hazine töreni: içerik bölüm sonunda (sonuç ekranında) verildi; tören yeniden vermez (OT-uzman-odyolog-29) */
 const HAZINE_VERILDI = 'Bölüm sonunda cüzdanına eklenmişti';
+
+/**
+ * Hazine penceresinin içeriği ve notu, hesaba geçenle (YN-200, OT-rekabetci-44): günlük yerel ödül sınırı jetonu kestiyse kart hesaba
+ * geçeni gösterir, not eklenmeyeni söyler; jeton sunucuya henüz gitmediyse (çevrimdışı) "eklenmişti" denmez.
+ */
+function hazineGorunum(n: number) {
+  const meta = useStore.getState().meta;
+  const rec = [...meta.ledger].reverse().find((g) => g.reason === `hazine:${n}`);
+  return hazinePenceresi(treasureItems(meta, n), rec ? odulNe(rec) : { k: 'tam' }, HAZINE_VERILDI);
+}
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
 const fullMotion = (): { light?: boolean } => { try { return new URLSearchParams(location.search).get('harita') === 'tam' ? { light: false } : {}; } catch { return {}; } };
@@ -69,7 +80,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [before, setBefore] = useState<StarMap | null>(null);
   // dönüş sahnesinin başladığı (haritada gösterilen) durum ve birikmiş kutlamalar: üç ve daha çok pencere açılacaksa sahne sürerken
   // biriktirilir, sahne bitince tek pencerede gösterilir (OT-sinav-adayi-17: 20-25 art arda → dört pencere peş peşe)
-  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0 });
+  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0, eksik: 0, bekliyor: false });
   const goalRef = useRef<HTMLButtonElement>(null);
   /**
    * haritanın görünür alanı: üstte HUD, hedef kartı, Bugün/pusula ve Etkinlik düğmesinin altı; altta Bölüm düğmesinin üstü (CSS px).
@@ -101,12 +112,15 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         sfx: (x, o) => audio.play(x, o), haptic: (k) => platform().haptic(k),
         onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
         onTreasure: async (n) => {
-          const items = treasureItems(useStore.getState().meta, n);
-          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; return; }
+          const h = hazineGorunum(n); const items = h.items;
+          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; batchCount.current.eksik += h.eksik; batchCount.current.bekliyor ||= h.bekliyor; return; }
+          // pencere açıldığı anda görüldü (YN-201, OT-sinav-adayi-42): Tamam'a basılmadan ya da sahne bitmeden uygulama kapanırsa da
+          // aynı hazine bir daha açılmaz (sahnenin sonundaki kayıt yenilemede hiç yazılmıyordu)
+          useMapSeen.getState().markShown(n, starsOf(useStore.getState().progress)[n] ?? 1);
           // hazine bölüm bitince verildi ve sonuç ekranında sayıldı: burada yalnız gösterilir, sayaç yeniden saymaz. Not geçmiş zamanla
           // ve nerede verildiğini söyler (oturum arada kapandıysa da; "Cüzdanına eklendi" deyip cüzdan artmayınca sahte ödül sanıldı,
           // OT-uzman-odyolog-29)
-          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true, note: HAZINE_VERILDI });
+          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true, note: h.note });
         },
         onZoneRise: async (z, _from, to) => {
           const ms = useMapSeen.getState(); if (to < 3 || ms.restored.includes(z)) return;
@@ -118,7 +132,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onSequence: (p) => {
           setSeq(p === 'start'); setSettled(p === 'done');
           const cur = starsOf(useStore.getState().progress);
-          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0 }; }
+          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0, eksik: 0, bekliyor: false }; }
           if (p === 'done') { useMapSeen.getState().commit(cur); shownRef.current = cur; flushBatch(); }
         },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
@@ -134,11 +148,13 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
    * olan bir şey değildir.
    */
   const flushBatch = () => {
-    const rows = batch.current; const { t, z } = batchCount.current; batch.current = null;
+    const rows = batch.current; const { t, z, eksik, bekliyor } = batchCount.current; batch.current = null;
     if (!rows?.length) return;
     const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
     // pencere kapanınca sıradaki bölüm yine görünür alanın ortasında (kart/düğmeler değişmiş olabilir)
-    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note: t ? (t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`) : undefined }).then(() => handle.current?.focusCurrent());
+    // hazine jetonu: sınır kestiyse eklenmeyen, çevrimdışıysa "bağlanınca" (YN-200); satırlar hesaba geçeni gösterir
+    const note = !t ? undefined : eksik > 0 ? `${sinirSatiri(eksik)}.` : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
+    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note }).then(() => handle.current?.focusCurrent());
   };
   // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
   useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);

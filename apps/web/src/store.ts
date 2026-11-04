@@ -14,7 +14,13 @@ export interface LevelProgress { stars: number; best: number; plays: number; las
   /** bu bölümde art arda kayıp; yıldız yalnız Rahat denemeyle mi (meta LevelProgressLite; karar 42) */
   fails?: number; rahat?: boolean }
 /** Üstte kısa kutlama bildirimi (kalıcı değil) */
-export interface Toast { id: number; icon: string; title: string; text?: string; tone?: 'gold' | 'silver' | 'bronze' | 'accent' | 'green' | 'coral' }
+export interface Toast { id: number; icon: string; title: string; text?: string; tone?: 'gold' | 'silver' | 'bronze' | 'accent' | 'green' | 'coral';
+  /** bölüm sonucunun bildirimi (completeRun): sonuç ekranı kapanınca sıradan düşer, kart aynısını yazdı; sonraki bölümün sonucunda bir daha çıkmaz (YN-200) */
+  kosu?: boolean;
+  /** başarım bildiriminin ödülü: defter kayıtları (`basarim:id:kademe`), yazdığı jeton, tek başarımsa kademesi; `eksik`: sunucunun günlük sınırla kestiği (YN-200) */
+  odul?: { reasons: string[]; jeton: number; tier?: 1 | 2 | 3; eksik?: number };
+  /** genel "Günlük ödül sınırı doldu" bildirimi: eklenmeyen toplam (tek bildirim, toplam büyür; net.ts) */
+  sinir?: number }
 
 interface State extends PlayerCore {
   journey: string; progress: Record<number, LevelProgress>; sounds: boolean; recentStars: number[];
@@ -41,6 +47,10 @@ interface State extends PlayerCore {
   setOdiColor(color: number, chosen?: boolean): void;
   markBiomeSeen(biome: string): void;
   dismissToast(id: number): void;
+  /** sonuç ekranı kapandı: o bölümün sırada kalan bildirimleri düşer (kartta yazdı; sonraki sonuçta tekrar çıkmaz, YN-200) */
+  dropRunToasts(): void;
+  /** sunucu günlük yerel ödül sınırıyla kesti: kaydın başarım bildirimi hesaba geçeni yazar (net.ts, YN-200) */
+  odulKesildi(reason: string, eksik: number): void;
   buySkill(id: string): boolean;
   /** takım/ödül kutusundan gelen kalkanlar: bir sonraki bölüme kalkanla başlatır */
   teamShields: number;
@@ -89,17 +99,25 @@ let toastSeq = 1;
 /** başarımın verdiği (TIER_REWARD): bildirimde yazılır, her cüzdan artışı bir satırla söylenir (OT-ekonomi-denetci-20) */
 const tierGain = (tier: 1 | 2 | 3) => TIER_REWARD[tier].map((it) => (it.kind === 'jeton' ? `+${it.amount} jeton` : it.kind === 'xp' ? `+${it.amount} XP` : '')).filter(Boolean).join(', ');
 const tierJeton = (tier: 1 | 2 | 3) => TIER_REWARD[tier].filter((it) => it.kind === 'jeton').reduce((a, it) => a + it.amount, 0);
+/** hesaba geçen jetonla kazanç: "+15 jeton, +10 XP"; tamamı kesildiyse "+10 XP" */
+const tierGainWith = (tier: 1 | 2 | 3, jeton: number) => TIER_REWARD[tier].map((it) => (it.kind === 'jeton' ? (jeton > 0 ? `+${jeton} jeton` : '') : it.kind === 'xp' ? `+${it.amount} XP` : '')).filter(Boolean).join(', ');
+/** başarım bildiriminin metni; sınır kestiyse hesaba geçen ve eklenmeyen (odul-durum sinirSatiri ile aynı söz) */
+function odulText(o: NonNullable<Toast['odul']>): string {
+  const e = Math.min(o.jeton, o.eksik ?? 0); const sinir = e > 0 ? ` · Günlük ödül sınırı doldu: ${e} jeton eklenmedi` : '';
+  if (o.tier) return `Başarım açıldı: ${tierGainWith(o.tier, o.jeton - e)}${sinir}`;
+  return `${o.jeton - e > 0 ? `Başarımlardan +${o.jeton - e} jeton · ` : ''}Profilde hepsi${sinir}`;
+}
 export function toastsFor(events: MetaEvent[]): Toast[] {
   const out: Toast[] = []; const jeton = new Map<number, number>();
   for (const e of events) {
-    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) { out.push({ id: toastSeq++, icon: a.emoji, title: `${achievementName(a, e.tier)} · ${TIER_NAMES[e.tier]}`, text: `Başarım açıldı: ${tierGain(e.tier)}`, tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze' }); jeton.set(out[out.length - 1]!.id, tierJeton(e.tier)); } }
+    if (e.kind === 'achievement') { const a = achievementById(e.id); if (a) { out.push({ id: toastSeq++, icon: a.emoji, title: `${achievementName(a, e.tier)} · ${TIER_NAMES[e.tier]}`, text: `Başarım açıldı: ${tierGain(e.tier)}`, tone: e.tier === 3 ? 'gold' : e.tier === 2 ? 'silver' : 'bronze', odul: { reasons: [`basarim:${e.id}:${e.tier}`], jeton: tierJeton(e.tier), tier: e.tier } }); jeton.set(out[out.length - 1]!.id, tierJeton(e.tier)); } }
     else if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); if (c && c.unlock.by !== 'default') out.push({ id: toastSeq++, icon: '🎩', title: `Dolaba yeni: ${c.name}`, tone: 'accent' }); }
     else if (e.kind === 'card') { const c = cardById(e.id); if (c) out.push({ id: toastSeq++, icon: '🃏', title: `Yeni Kulak Kartı: ${c.title}`, tone: 'green' }); }
     else if (e.kind === 'albumBadge') out.push({ id: toastSeq++, icon: '🏅', title: `${BIOMES[e.biome].name} albümü tamam!`, text: 'Biyom rozeti kazandın', tone: 'gold' });
   }
   // aynı anda çok açılım: ilk 3'ü göster, kalanı tek satır
   // toplanan bildirimdeki başarımların jetonu da yazılır (mesajsız cüzdan artışı kalmasın)
-  if (out.length > 3) { const rest = out.length - 2; const j = out.slice(2).reduce((a, t) => a + (jeton.get(t.id) ?? 0), 0); return [...out.slice(0, 2), { id: toastSeq++, icon: '✨', title: `+${rest} yeni açılım daha`, text: j > 0 ? `Başarımlardan +${j} jeton · Profilde hepsi` : 'Profilde hepsi seni bekliyor', tone: 'accent' }]; }
+  if (out.length > 3) { const rest = out.length - 2; const j = out.slice(2).reduce((a, t) => a + (jeton.get(t.id) ?? 0), 0); const reasons = out.slice(2).flatMap((t) => t.odul?.reasons ?? []); return [...out.slice(0, 2), { id: toastSeq++, icon: '✨', title: `+${rest} yeni açılım daha`, text: j > 0 ? `Başarımlardan +${j} jeton · Profilde hepsi` : 'Profilde hepsi seni bekliyor', tone: 'accent', ...(reasons.length ? { odul: { reasons, jeton: j } } : {}) }]; }
   return out;
 }
 function streakToast(e: StreakEvent): Toast | null {
@@ -131,7 +149,7 @@ export const useStore = create<State>()(persist((set, get) => {
     completeRun(spec, r) {
       const today = ensureToday(); const s = get();
       const { core: c, summary } = processRun(core(s), spec, r, today);
-      set({ ...pick(c), recentStars: [...s.recentStars, r.stars].slice(-5), toasts: [...s.toasts, ...toastsFor(summary.events.filter((e) => e.kind === 'achievement' || e.kind === 'albumBadge'))] });
+      set({ ...pick(c), recentStars: [...s.recentStars, r.stars].slice(-5), toasts: [...s.toasts, ...toastsFor(summary.events.filter((e) => e.kind === 'achievement' || e.kind === 'albumBadge')).map((t) => ({ ...t, kosu: true }))] });
       return summary;
     },
     grant(reward, reason) {
@@ -152,6 +170,11 @@ export const useStore = create<State>()(persist((set, get) => {
     setOdiColor(color, chosen) { if (!Number.isInteger(color) || color < 0 || color > 0xffffff) return; set({ odiColor: color, ...(chosen ? { chosenColor: color } : {}) }); },
     markBiomeSeen(biome) { const m = get().meta; if (!m.seenBiomes.includes(biome)) set({ meta: { ...m, seenBiomes: [...m.seenBiomes, biome] } }); },
     dismissToast(id) { set({ toasts: get().toasts.filter((t) => t.id !== id) }); },
+    dropRunToasts() { if (get().toasts.some((t) => t.kosu)) set({ toasts: get().toasts.filter((t) => !t.kosu) }); },
+    odulKesildi(reason, eksik) {
+      if (!get().toasts.some((t) => t.odul?.reasons.includes(reason))) return;
+      set({ toasts: get().toasts.map((t) => { if (!t.odul?.reasons.includes(reason)) return t; const odul = { ...t.odul, eksik: (t.odul.eksik ?? 0) + eksik }; return { ...t, odul, text: odulText(odul) }; }) });
+    },
     buySkill(id) {
       const node = SKILL_TREE.find((n) => n.id === id); if (!node) return false;
       const s = get(); if (s.coins < node.cost) return false;

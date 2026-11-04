@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
-import { SKILL_TREE } from '@odi/content';
+import { DEFAULT_SKILLS, HUMAN_JOURNEY, SKILL_TREE } from '@odi/content';
+import { generateLevel } from '@odi/level-gen';
+import { defaultMeta, earnLines, processRun, type PlayerCore, type RunSummary } from '@odi/meta';
+import { scoreRun, type RunResult } from '@odi/shared';
 import { DEVIR_MAX, LOCAL_JETON_DAILY_MAX } from '../src/wallet';
 import { setup, run, type Env } from './helpers';
 
@@ -60,6 +63,61 @@ describe('yerel ödül cüzdanı (wallet.local)', () => {
     expect((await err(a.call('wallet.local', { ledgerId: 'boşluk var', jeton: 5, reason: 'x' }))).code).toBe('GECERSIZ');
     expect((await err(a.call('wallet.local', { ledgerId: 'ok', jeton: 0, reason: 'x' }))).code).toBe('GECERSIZ');
     expect((await err(a.call('wallet.local', { ledgerId: 'ok', jeton: -5, reason: 'x' }))).code).toBe('GECERSIZ');
+  });
+});
+
+/**
+ * YN-200 (OT-rekabetci-44): rekabetçi oyuncu aynı gün Bölüm 20-40'ı oynadı; 39'un 2 başarımı (+115) ve 40'ın hazinesi + 5 başarımı
+ * (+435) cüzdana girmedi, 34-36'da kartlar +462, cüzdan +317. Kök neden: yerel ödüller (hazine, başarım, Şanslı Nota, görev, sandık)
+ * istemcide hesaplanıp `wallet.local` ile gider; sunucunun günlük yerel ödül sınırı (1.500) maraton gününde Bölüm 35-36 civarında
+ * dolar, sonrası `credited: 0`. Sonuç kartı istenen tutarı yazıyordu; artık hesaba geçeni (earnLines `eksik`).
+ */
+describe('maraton günü: hazine ve başarım jetonu günlük sınırda (YN-200)', () => {
+  const prof = { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS };
+  const jetonOf = (g: { items: { kind: string; amount: number }[] }) => g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0);
+  /** rekabetçi koşu (0,95 beceri): 2-3 yıldız, par altında; bölüm jetonu ayrı (progress.submit), yerel ödüller defterden */
+  function oyna(c: PlayerCore, n: number, day: string, now: number): { core: PlayerCore; summary: RunSummary } {
+    const spec = generateLevel(HUMAN_JOURNEY.id, n, prof); const stars = (n % 3 === 0 ? 3 : 2) as 2 | 3;
+    const base = { levelId: spec.id, completed: true, coins: Math.round(spec.coinsTotal * 0.7), timeSec: spec.parTimeSec - 3, deaths: 0, damageTaken: stars === 3 ? 0 : 1, objectiveMet: true, secretFound: false, extra: { maxCombo: 20 } };
+    return processRun(c, spec, { ...base, ...scoreRun(spec, base), stars } as RunResult, day, now);
+  }
+
+  it('sınır dolunca hazine ve başarım kredisi kesilir; sonuç dökümünün toplamı = sunucunun hesaba geçirdiği', async () => {
+    env = await setup();
+    const a = await env.connect('Rekabetci');
+    let c: PlayerCore = { progress: {}, coins: 0, xp: 0, streak: 1, lastDay: '2026-10-13', failStreak: 0, skills: { ...DEFAULT_SKILLS }, meta: defaultMeta() };
+    let t = env.clock.now() - 86_400_000;
+    for (let n = 1; n <= 19; n++) c = oyna(c, n, '2026-10-13', t += 60_000).core; // önceki gün (bu testte sunucuya gitmez)
+    const start = (await a.call('wallet.get', {})).wallet.jeton;
+    let istenen = 0; let gecen = 0; let ilkKesik = 0;
+    const kesik: Record<number, number> = {};
+    for (let n = 20; n <= 40; n++) {
+      const r = oyna(c, n, '2026-10-14', t += 60_000); c = r.core;
+      // istemcinin gönderdiği gibi (net.ts scanLedger): bölüm jetonu hariç her defter kaydı, ledgerId = at:reason
+      const grants: (RunSummary['grants'][number] & { eksik?: number })[] = [];
+      for (const g of r.summary.grants) {
+        const j = jetonOf(g);
+        if (g.reason.startsWith('bolum:') || j <= 0) { grants.push(g); continue; }
+        const res = await a.call('wallet.local', { ledgerId: `${g.at}:${g.reason}`.replace(/[^A-Za-z0-9_.:-]/g, '_').slice(0, 80), jeton: j, reason: g.reason.slice(0, 60) });
+        istenen += j; gecen += res.credited;
+        if (res.credited < j) { kesik[n] = (kesik[n] ?? 0) + j - res.credited; ilkKesik ||= n; }
+        grants.push(res.credited < j ? { ...g, eksik: j - res.credited } : g);
+      }
+      // sonuç kartının dökümü (ResultScreen: earnLines + odul-durum hesabaGecen): yerel satırların toplamı = bu bölümde hesaba geçen
+      const lines = earnLines({ grants });
+      const yerel = lines.filter((l) => l.label !== 'Toplanan notalar').reduce((x, l) => x + l.jeton, 0);
+      const credited = grants.filter((g) => !g.reason.startsWith('bolum:')).reduce((x, g) => x + jetonOf(g) - (g.eksik ?? 0), 0);
+      expect(yerel).toBe(credited);
+      expect(lines.reduce((x, l) => x + (l.eksik ?? 0), 0)).toBe(kesik[n] ?? 0);
+    }
+    // maraton gününde istenen yerel jeton sınırı aşar (MK-009'un bilinen riski); sunucu sınırdan fazlasını yazmaz
+    expect(istenen).toBeGreaterThan(LOCAL_JETON_DAILY_MAX);
+    expect(gecen).toBe(LOCAL_JETON_DAILY_MAX);
+    expect((await a.call('wallet.get', {})).wallet.jeton - start).toBe(gecen);
+    // yalnız bölüm ödülleriyle sınır Bölüm 36-39'da dolar (oyuncu aynı gün görev, takvim ve sandık da aldı: daha erken, 34-36);
+    // 39 ve 40'ın başarım ve hazine jetonu hesaba geçmez (oyuncunun gördüğü)
+    expect(ilkKesik).toBeGreaterThanOrEqual(33); expect(ilkKesik).toBeLessThanOrEqual(39);
+    expect(kesik[39]).toBeGreaterThan(0); expect(kesik[40]).toBeGreaterThanOrEqual(200);
   });
 });
 

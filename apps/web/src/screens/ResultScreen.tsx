@@ -1,4 +1,4 @@
-import type { LevelSpec, MechanicId, RunResult } from '@odi/shared';
+import { LOCAL_JETON_DAILY_MAX, type LevelSpec, type MechanicId, type RunResult } from '@odi/shared';
 import { HUMAN_JOURNEY, MECHANICS, TIER_NAMES, achievementById, achievementDesc, achievementName, cardById, cosmeticById, modifierNames, BIOMES, type RewardItem } from '@odi/content';
 import { RAHAT_TEXT, damageNote, earnLines, levelProgress, lossView, runTimeSec, star2View, star3View, starHead, sureYazi, type RunSummary } from '@odi/meta';
 import { audio } from '@odi/audio';
@@ -6,7 +6,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode }
 import { platform } from '../platform';
 import { useStore } from '../store';
 import { inviteUrl, type Invite } from '../invite';
-import { useSocial } from '../net';
+import { useOdulKaynak, useSocial } from '../net';
+import { bekleyenSatiri, hesabaGecen, sinirSatiri } from '../odul-durum';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
@@ -85,13 +86,21 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // orada yanar; YN-114, YN-136)
   const intro = result.completed ? mapIntroView(last ? [] : mapIntro ?? [], reveal) : null;
   // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
-  // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
+  // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042). Yerel ödüller (hazine, başarım, Şanslı Nota)
+  // sunucunun hesaba geçirdiği kadar: günlük yerel ödül sınırı kestiyse satır hesaba geçeni, altında eklenmeyeni yazar; çevrimdışıyken
+  // "bağlanınca eklenecek" (YN-200, OT-rekabetci-44)
   const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
-  const earn = useMemo(() => hazineNotlu(earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), summary.grants), [summary, ackJeton, result.coins]);
+  const odulKaynak = useOdulKaynak();
+  const kredi = useMemo(() => hesabaGecen(summary.grants, odulKaynak), [summary, odulKaynak]);
+  const earn = useMemo(() => hazineNotlu(earnLines({ grants: kredi.grants }, ackJeton === undefined ? 0 : ackJeton - result.coins), summary.grants), [kredi, summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   // Büyük yazı (OT-buyuk-yazi-47): yapışkan alanda yalnız ana düğme; Tekrar, Meydan oku ve Tüy Dede'nin kartı sayfa akışında, düğmelerin
   // hemen üstünde. Kazançta yıldızların altında "Bu bölümden toplam +N jeton" özeti ilk ekranda (döküm aşağıdaki kartta)
   const big = store.bigText;
+  // kısa ekranda (320×640) haritada bekleyen tanıtım kartı (çiçeklenecek, canlanacak, Yeni: …) yapışkan alandan sayfa akışına iner,
+  // ana düğmenin hemen üstünde: yapışkan alan ekranın ~1/3'ünü geçmesin, XP çubuğu görünsün (YN-204, OT-eski-telefon-37)
+  const kisaEkran = useMedia('(max-height: 700px)');
+  const anlatimAkista = big || kisaEkran;
   // ipucu bölümün kendi zorluğuna göre; aynı bölümde her denemede sıradaki cümle (OT-ilk-kez-oyun-19). Deneme sayısı ekran
   // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
@@ -100,6 +109,11 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127); son gösterilen satır art arda tekrar etmez (YN-175, kayıtta bilgiSon)
   const bilgi = useBiliyorMuydun(spec.number, store.knowledge, attempt - 1);
   const kalkan = gift ? shieldResultLine(gift, result) : '';
+  // sonuç ekranı kapanınca bu bölümün sırada kalan bildirimleri (başarım, albüm rozeti) düşer: kartta yazdı, sonraki bölümün sonucunda
+  // bir daha çıkmaz (OT-rekabetci-44: Bölüm 39'un başarımı 40'ın sonucunda yeniden geliyordu). Genel bildirimler (sınır, takım) kalır
+  // (StrictMode'un deneme sökümünde düşmesin: söküm bir tık sonra, ekran hâlâ takılı değilse)
+  const takili = useRef(false);
+  useEffect(() => { takili.current = true; return () => { takili.current = false; if (!demo) setTimeout(() => { if (!takili.current) useStore.getState().dropRunToasts(); }, 0); }; }, []);
   const lossDetail = loss ? guardedDetail(loss.detail, result, kalkan) : '';
   // 1★: 3. yıldızın koşulları yanıltır (2★ yok); kartta 2. yıldızın koşulları (OT-buyuk-yazi-16, OT-ogrenci-birinci-11)
   // Rahat denemeyle geçişte yıldız 1'de kalır: sıradaki yıldızın kartı yerine Rahat kartı (karar 42)
@@ -193,8 +207,10 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const score = useCountUp(0, result.score, step >= S + 1, SCORE_MS, reduced);
   // cüzdan: jetonlar uçarken sayaç varışlarla birlikte sayarak artar (sonunda gerçek değer)
   const [coinsFlying, setCoinsFlying] = useState(false);
-  const hudCoins = useHudCount('jeton', summary.coinsAfter);
-  const coinsShown = reduced || done || coinsFlying ? hudCoins.value : step >= S + 2 && summary.coinsAfter <= summary.coinsBefore ? summary.coinsAfter : summary.coinsBefore;
+  // sınırın kestiği jeton sayaca girmez (haritaya dönünce düşmesin: 6.722 → 6.617, OT-rekabetci-44)
+  const coinsAfter = summary.coinsAfter - kredi.eksik;
+  const hudCoins = useHudCount('jeton', coinsAfter);
+  const coinsShown = reduced || done || coinsFlying ? hudCoins.value : step >= S + 2 && coinsAfter <= summary.coinsBefore ? coinsAfter : summary.coinsBefore;
 
   // XP çubuğu: seviye atlarsa önce doldur, patlat, sonra yeni seviyede devam et
   const before = levelProgress(summary.xpBefore), after = levelProgress(summary.xpAfter);
@@ -208,9 +224,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // jetonların cüzdana uçuşu (celebrate.coins: eğrisel yollar, her varışta tık + sayaç zıplar)
   const walletRef = useRef<HTMLDivElement>(null); const coinRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
-    if (reduced || step !== S + 2 || summary.coinsAfter <= summary.coinsBefore || coinsFlying) return;
+    if (reduced || step !== S + 2 || coinsAfter <= summary.coinsBefore || coinsFlying) return;
     const a = coinRef.current?.getBoundingClientRect();
-    void celebrate.coins({ amount: summary.coinsAfter - summary.coinsBefore, kind: 'jeton', ...(a ? { from: { x: a.left + a.width / 2, y: a.top + a.height / 2 } } : {}) });
+    void celebrate.coins({ amount: coinsAfter - summary.coinsBefore, kind: 'jeton', ...(a ? { from: { x: a.left + a.width / 2, y: a.top + a.height / 2 } } : {}) });
     setCoinsFlying(true);
   }, [step]);
   // seviye atladıysa büyük kutlama (XP çubuğu dolup patladıktan sonra); açılan şeyler bu koşuda gerçekten açılanlar
@@ -282,7 +298,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {big && result.completed && earnTotal > 0 && (
             <div className="result-ozet" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="sonuc-jeton-ozet">
               <b><Art name="coin" size={20} className="art-inline" />Bu bölümden{earn.length > 1 ? ' toplam' : ''} +{earnTotal.toLocaleString('tr-TR')} jeton</b>
-              {earn.length > 1 && <small>{earn.map((l) => `${kisaAd(l.label)} ${fmtJeton(l.jeton)}`).join(' · ')}</small>}
+              {earn.length > 1 && <small>{earn.map((l) => `${kisaAd(l.label)}\u00a0${fmtJeton(l.jeton)}`).join(' · ')}</small>}
+              {kredi.eksik > 0 && <small data-testid="sonuc-ozet-sinir">{sinirSatiri(kredi.eksik)}</small>}
             </div>
           )}
 
@@ -380,13 +397,16 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <ul className="result-earn-list" data-testid="sonuc-kazanc">
                 {earn.map((l, i) => (
                   <li key={i} className={l.items ? 'has-sub' : undefined}>
-                    <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}</span><b>{fmtJeton(l.jeton)}</b>
+                    <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}{l.eksik ? <small className="rel-sinir">{sinirSatiri(l.eksik)}</small> : null}</span><b>{fmtJeton(l.jeton)}</b>
                     {/* birden çok başarım: adları, kademeleri, koşulları ve tek tek ödülleri (OT-ekonomi-denetci-17) */}
-                    {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
+                    {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}{x.eksik ? <small className="rel-sinir">{x.eksik.toLocaleString('tr-TR')}{'\u00a0'}jeton eklenmedi</small> : null}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
                   </li>
                 ))}
               </ul>
             )}
+            {/* günlük yerel ödül sınırı (sunucu, MK-009): kesildiyse açıkça; çevrimdışıyken tutar bağlanınca kesinleşir (YN-200) */}
+            {kredi.eksik > 0 && <div className="result-earn-not" data-testid="sonuc-sinir"><b>{sinirSatiri(kredi.eksik)}.</b> Hazine, başarım, görev ve sandık jetonlarından günde en çok {LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer; sınır yarın yenilenir.</div>}
+            {kredi.bekleyen > 0 && !kredi.bagli && <div className="result-earn-not" data-testid="sonuc-bekleyen">{bekleyenSatiri(kredi.bekleyen)} (günlük ödül sınırı {LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')}).</div>}
           </div>
 
           <div className={`goal-card${result.completed ? '' : ' near'}`} data-show={step >= S + 2 ? 'yes' : 'no'}>
@@ -432,7 +452,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           )}
 
           {!done && <div className="muted skip-hint">Dokun: hızlı geç</div>}
-          {big && <div className="result-ek" data-testid="sonuc-ek-dugmeler" onClick={(e) => e.stopPropagation()}>{anlatim}{ikincil}</div>}
+          {big ? <div className="result-ek" data-testid="sonuc-ek-dugmeler" onClick={(e) => e.stopPropagation()}>{anlatim}{ikincil}</div>
+            : anlatimAkista && anlatim && <div className="result-ek" onClick={(e) => e.stopPropagation()}>{anlatim}</div>}
           <div className={`result-actions${devam ? ' devam' : ''}`} ref={actRef} data-toast-floor onClick={(e) => e.stopPropagation()}>
             {bilgi && bilgiKisa && (
               <button type="button" className={`result-bilgi-kisa${bilgiAcik ? ' acik' : ''}`} data-testid="biliyor-muydun-kisa" aria-expanded={bilgiAcik} onClick={() => setBilgiAcik((a) => !a)}>
@@ -440,7 +461,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                 <span className="rbk-t"><b>Biliyor muydun?</b> {bilgi}</span>
               </button>
             )}
-            {!big && anlatim}
+            {!anlatimAkista && anlatim}
             {ana}
             {!big && ikincil}
             {big && rahatDene && <div className="abtn-grid">{rahatDene}</div>}
@@ -456,6 +477,17 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
       <Toasts />
     </>
   );
+}
+
+/** medya sorgusu tutuyor mu (pencere boyu değişince yeniden); matchMedia yoksa (test ortamı) false */
+function useMedia(q: string): boolean {
+  const [on, setOn] = useState(() => typeof matchMedia === 'function' && matchMedia(q).matches);
+  useEffect(() => {
+    if (typeof matchMedia !== 'function') return;
+    const m = matchMedia(q); const f = () => setOn(m.matches); f();
+    m.addEventListener?.('change', f); return () => m.removeEventListener?.('change', f);
+  }, [q]);
+  return on;
 }
 
 /** boş yıldız yuvası: koyu oyuk (emoji/yazı karakteri yerine) */

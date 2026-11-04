@@ -577,3 +577,29 @@ bittikten sonraki Merkez seviyesine göre. Simülasyon temeli bu kural (`H.sira`
 - Ölçüm farkı (ilk Ö3 denemesine göre): sıradaki inşaata takım yardımı gelmez (sunucu kuralı), "inşaat başlat" görevi başlayınca
   sayılır, sıradaki inşaat kuyruk "dolu" süresine eklenir, Merkez sınırı süren Merkez bitince olacak seviyeye göre.
   Testler: `apps/server/test/camp-queue.test.ts`.
+
+## 8. Öneri Ö6 (YN-200; ölçüldü, uygulanmadı: PY / sahip kararı)
+
+**Ne oldu** (OT-rekabetci-44, tur 12): rekabetçi oyuncu aynı gün Bölüm 20-40'ı oynadı. 34-36'da kartların +462'sinin 317'si, 39'un
+2 başarımının (+115) ve 40'ın hazinesi ile 5 başarımının (+435) hiçbiri cüzdana girmedi. Kök neden günlük yerel ödül sınırı
+(`LOCAL_JETON_DAILY_MAX` 1.500, §7 Ö1): hazine, başarım, Şanslı Nota, görev, takvim ve sandık jetonu istemcide hesaplanıp
+`wallet.local` ile gider; sınır dolunca sunucu `credited: 0` döner. Sınırın dışında bir düşme bulunmadı: ledgerId tek (aynı kayıt
+yeniden gönderilse de sunucunun kayıtlı yanıtı döner), outbox kaydı yanıt gelmeden silinmez, haritada üst sayacın düşmesi (6.722 →
+6.617) istemcinin sunucu cüzdanına uyması. Hata sınırda değil, ekrandaydı: sonuç kartı, Hazine penceresi ve başarım bildirimi
+istenen tutarı "eklendi" diye yazıyordu. Düzeltme (YN-200): ekranlar hesaba geçeni yazar, sınır kestiyse eksik açıkça söylenir.
+
+**Ölçüm** (`apps/server/test/wallet.test.ts` "maraton günü" testi; gerçek `processRun` ve gerçek sunucu; 0,95 becerili rekabetçi
+koşu, 2-3 yıldız, par altında): tek günde Bölüm 20-40 yalnız bölüm sonu yerel ödülleri **2.030 jeton** ister (hazine 540, başarım
+1.490); 1-20: 1.000 (hazine 250, başarım 750), 21-30: 810, 31-40: 990. Görev, takvim ve sandık eklenince sınır Bölüm 34-36'da dolar
+(oyuncunun gördüğü). §3'teki altı profilde (günde en çok 6 oturum) en yoğun gün 1.230-1.270: sınıra çarpan yalnız maraton günü.
+Simülasyon (`simule.mjs`) tek günde 20 bölümü modellemez; sınırın değeri değişmediği için tablolar yeniden üretilmedi.
+
+**Öneri Ö6 · tek seferlik ödülleri günlük sınırın dışına alın, sunucu her birini kimlik başına bir kez doğrulasın.**
+- Hazine (`hazine:N`): sunucu içeriği bilir (`TREASURES`) ve oyuncunun N'yi geçtiğini (`level_best`) görür: tutar içerikten, oyuncu
+  başına bir kez. Sahte istemci hiçbir şey kazanamaz. Oyunun tamamında 690 jeton.
+- Başarım (`basarim:id:kademe`): tutar `TIER_REWARD`'dan (15 / 40 / 100), (oyuncu, id, kademe) başına bir kez. Sunucu koşulu
+  doğrulayamaz; sahte istemcinin alabileceği üst sınır hesap başına bir kez 42 × 155 = 6.510 jeton (sınırsız değil). Bu payı kabul
+  etmek istemeyen sahip için ara yol: başarım sınır içinde kalır, yalnız hazine dışarı çıkar (maraton günü 2.030 → 1.490 + görev/sandık).
+- Kalan yerel ödüller (görev, takvim, sandık, Şanslı Nota, kart/kozmetik karşılığı) 1.500 sınırında kalır; görev, takvim ve sandık
+  günde birer kez verilir (bu kalemlerin maraton günündeki toplamı bu ölçümde ayrıca sayılmadı; uygulanırsa testle ölçülmeli).
+- Pay-to-win yok, yeni para birimi yok; değişiklik yalnız `apps/server/src/wallet.ts` (`wallet.local` reason'a göre kural) ve testi.

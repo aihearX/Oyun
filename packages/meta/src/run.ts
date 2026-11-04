@@ -21,8 +21,11 @@ export interface RunSummary {
   events: MetaEvent[];
   goal: NextGoal;
   firsts: string[];
-  /** bu koşunun ödül defteri kayıtları (bölüm, Şanslı Nota, hazine, başarım…): jetonları toplamı coinsAfter − coinsBefore, XP'leri xpAfter − xpBefore */
-  grants: { reason: string; items: RewardItem[] }[];
+  /**
+   * bu koşunun ödül defteri kayıtları (bölüm, Şanslı Nota, hazine, başarım…): jetonları toplamı coinsAfter − coinsBefore, XP'leri xpAfter − xpBefore.
+   * `at`: kaydın zamanı (defterdeki gibi; sunucuya giden ledgerId bununla kurulur, sonuç ekranı hesaba geçeni bununla bulur, YN-200)
+   */
+  grants: { reason: string; items: RewardItem[]; at?: number }[];
 }
 
 /** Bölüm sonucunu işler: ilerleme, sayaçlar, ödüller (hepsi applyGrant'tan), görevler, açılımlar. Saf. */
@@ -87,7 +90,7 @@ export function processRun<T extends PlayerCore>(core: T, spec: RunSpecLite, r: 
     lucky: luckyApplied, treasure: treasureApplied, quests: changes,
     announcements: firstClear ? unlockAnnouncements(n) : [], events: settled.events,
     goal: nextGoal(spec, r, c.progress), firsts,
-    grants: c.meta.ledger.filter((g) => !oldLedger.has(g)).map((g) => ({ reason: g.reason, items: g.items })),
+    grants: c.meta.ledger.filter((g) => !oldLedger.has(g)).map((g) => ({ reason: g.reason, items: g.items, at: g.at })),
   };
   return { core: c, summary };
 }

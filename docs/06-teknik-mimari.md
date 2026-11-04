@@ -81,7 +81,9 @@ oyun/
   Atölye/Ortak Kalkan şansı), en çok 3 (`content/skills.ts` `runShields`, `SHIELD_MAX`; kabukta `screens/bolum-basi.ts` `runSkills`).
   Eklenen kalkan bildirim kuyruğuna değil bölüm başı şeridine (`LevelHost` `startLines`: "Dokun ve başla" ekranında ve koşunun ilk
   saniyelerinde, 3. yıldızın koşuluyla birlikte) ve sonuç ekranına gider; vuruş gelmese de söylenir (`kalkan.ts`; YN-192, YN-176). Her kalkan
-  bir vuruşu karşılar (düşüşü değil), vuruş hasar sayılır (karar 37: `damageTaken` + `extra.guarded`). Göstergede ikinci satırın
+  bir vuruşu karşılar (düşüşü değil), vuruş hasar sayılır (karar 37: `damageTaken` + `extra.guarded`). Kalkanla başlanan bölümde
+  karşılanan vuruş yokken alınan hasar düşüştendir: sonuç satırı "vuruş gelmedi" değil nedenini söyler ("Kalkan düşmeyi karşılamaz:
+  1 hasar aldın"; YN-202). Göstergede ikinci satırın
   sağında baloncuk + "×N" (`hud.ts` `setShield`; seri rozeti o zaman bir alta iner; canavar bölümünde can çubuğunun
   altında); karşılanan vuruşta uçan yazı "Kalkan bir
   vuruşu karşıladı" (sesi kapalı oyuncu da görür). Kalkan güçlendirmesi 2'ye kadar ekler, fazlasını düşürmez.

@@ -405,7 +405,7 @@ async function suite(target, browserName, [W, H]) {
    *  `want`: beklenen tur kimlikleri (boşluklu; '' = bekleyen yok). Bekleyen turları döndürür. */
   async function resultForward(page, lv, want, label) {
     await page.locator('.result-actions [data-act="harita"]').waitFor({ timeout: 10_000 }); await sleep(500);
-    const strip = page.locator('.result-actions [data-testid="anlatim-bekliyor"]');
+    const strip = page.locator('[data-testid="anlatim-bekliyor"]');
     const tours = (await strip.count()) ? (await strip.getAttribute('data-tours')) ?? '' : '';
     const next = await page.locator('.result-actions [data-act="sonraki"]').count();
     const fwd = page.locator('.result-actions [data-act="harita"]');
@@ -534,7 +534,7 @@ async function suite(target, browserName, [W, H]) {
           await toMap(page, perLevel[`${lv - 1}-kamp`] ?? perLevel[lv - 1], `b${lv - 1}-gecis`);
           await playFromMap(page, lv); const bekleyen = await resultForward(page, lv);
           // YN-114: hazine sandığı / bölge canlanması da haritada bekler (10. bölüm: hazine) → "Haritaya dön"
-          const harita = (await page.locator('.result-actions [data-testid="anlatim-bekliyor"]').getAttribute('data-harita').catch(() => '')) ?? '';
+          const harita = (await page.locator('[data-testid="anlatim-bekliyor"]').getAttribute('data-harita').catch(() => '')) ?? '';
           check(bekleyen || harita ? !(await page.locator('.result-actions [data-act="sonraki"]').count()) : (await page.locator('.result-actions [data-act="sonraki"]').count()) === 1, `${lv}. bölüm sonucu: ${bekleyen || harita ? `haritada bekleyen ${[bekleyen, harita].filter(Boolean).join(' + ')} → Haritaya dön` : 'bekleyen yok → Sonraki'}`);
           if (lv === 10) check(harita.split(' ').includes('hazine-10'), `10. bölüm sonucu: hazine sandığı haritada bekliyor (${harita || '-'})`);
           await resultAct(page, 'harita');

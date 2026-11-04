@@ -71,15 +71,22 @@ describe('takım kalkanı bölüm başında (YN-192)', () => {
     expect(nb(shieldResultLine({ from: 'takim', n: 3 }, { extra: { guarded: 2 } }))).toBe('Takım kalkanı bu bölümde seninleydi: kalkan 2 vuruşu karşıladı (hasar yine sayılır).');
     expect(shieldResultLine({ from: 'atolye', n: 1, pct: 10 }, { extra: {} })).toBe('Atölye kalkanı bu bölümde seninleydi, vuruş gelmedi.');
   });
-
+  it('sonuç: karşılanan vuruş yokken hasar varsa nedeni (kalkan düşüşü karşılamaz; YN-202, OT-ilk-kez-oyun-60)', () => {
+    expect(nb(shieldResultLine({ from: 'takim', n: 1 }, { extra: {}, damageTaken: 0 }))).toBe('Takım kalkanı bu bölümde seninleydi, vuruş gelmedi. Takım kalkanı bölüm başında harcanır.');
+    expect(nb(shieldResultLine({ from: 'takim', n: 1 }, { extra: {}, damageTaken: 1 }))).toBe('Takım kalkanı bu bölümde seninleydi. Kalkan düşmeyi karşılamaz: 1 hasar aldın. Takım kalkanı bölüm başında harcanır.');
+    expect(nb(shieldResultLine({ from: 'atolye', n: 2 }, { extra: {}, damageTaken: 2 }))).toBe('Atölye kalkanı bu bölümde seninleydi. Kalkan düşmeyi karşılamaz: 2 hasar aldın.');
+    // karşıladıysa (karar 37: vuruş yine hasar sayılır) sayı; hasar karşılanandan fazlaysa da aynı cümle (çelişki yok)
+    expect(nb(shieldResultLine({ from: 'takim', n: 2 }, { extra: { guarded: 1 }, damageTaken: 3 }))).toBe('Takım kalkanı bu bölümde seninleydi: kalkan bir vuruşu karşıladı (hasar yine sayılır).');
+  });
   it('sonuç ekranı: kazançta kalkan satırı, kayıpta neden kartının hasar cümlesinde', async () => {
     const spec = generateLevel(HUMAN_JOURNEY.id, 7, prof);
     await show(spec, run(spec), { from: 'takim', n: 2 });
     expect(q('sonuc-kalkan')?.textContent).toBe('Takım kalkanı bu bölümde seninleydi, vuruş gelmedi. Takım kalkanı bölüm başında harcanır.');
     await act(async () => { root!.unmount(); }); document.body.innerHTML = '';
-    await show(spec, run(spec, { completed: false, damageTaken: 3, coins: 4, extra: { reason: 'diken', pct: 0.6 } }), { from: 'takim', n: 2 });
+    // kalkanla başlanan kayıpta karşılanan vuruş yoksa hasar düşüştendir (kalkan çarpmayı karşılardı; YN-202)
+    await show(spec, run(spec, { completed: false, damageTaken: 3, coins: 4, extra: { reason: 'fall', pct: 0.6 } }), { from: 'takim', n: 2 });
     expect(q('sonuc-kalkan')).toBeNull();
-    expect(nb(q('sonuc-neden-hasar')?.textContent)).toMatch(/Takım kalkanı bu bölümde seninleydi, vuruş gelmedi\. Takım kalkanı bölüm başında harcanır\.$/);
+    expect(nb(q('sonuc-neden-hasar')?.textContent)).toMatch(/Takım kalkanı bu bölümde seninleydi\. Kalkan düşmeyi karşılamaz: 3 hasar aldın\. Takım kalkanı bölüm başında harcanır\.$/);
     // kalkansız koşuda satır yok
     await act(async () => { root!.unmount(); }); document.body.innerHTML = '';
     await show(spec, run(spec));

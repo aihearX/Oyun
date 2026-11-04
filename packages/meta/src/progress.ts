@@ -315,27 +315,32 @@ export const RAHAT_TEXT = {
   mapNote: 'Rahat denemeyle geçildi: normal denemeyle yıldızını yükseltebilirsin.',
 } as const;
 
-/** "Bu bölümden" dökümünün bir satırı; birden çok başarım tek satırda toplanır, altında her biri (items) adıyla ve ödülüyle */
-export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[] }
+/**
+ * "Bu bölümden" dökümünün bir satırı; birden çok başarım tek satırda toplanır, altında her biri (items) adıyla ve ödülüyle.
+ * `eksik`: sunucunun günlük yerel ödül sınırıyla hesaba geçmeyen jeton (YN-200); `jeton` hesaba geçendir.
+ */
+export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[]; eksik?: number }
 /**
  * "Bu bölümden" dökümü: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus). Toplam =
  * cüzdana giren (YN-042). Başarımlar tek tek: "Yıldız Avcısı · Gümüş +40", altında koşulu (OT-ekonomi-denetci-17,
- * OT-ogrenci-birinci-16); ikiden çoksa "6 başarım +215" satırının altında.
+ * OT-ogrenci-birinci-16); ikiden çoksa "6 başarım +215" satırının altında. Kaydın `eksik`i varsa (sunucu günlük sınırla kesti)
+ * satır hesaba geçeni yazar, eksik ayrı alanda (YN-200; tamamı kesilen kayıt da "+0" ile satırda kalır).
  */
-export function earnLines(s: { grants: { reason: string; items: RewardItem[] }[] }, serverBonus = 0): EarnLine[] {
+export function earnLines(s: { grants: { reason: string; items: RewardItem[]; eksik?: number }[] }, serverBonus = 0): EarnLine[] {
   const out: EarnLine[] = []; const ach: EarnLine[] = [];
   for (const g of s.grants) {
-    const jeton = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!jeton) continue;
+    const asked = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!asked) continue;
+    const eksik = Math.max(0, Math.min(asked, g.eksik ?? 0)); const jeton = asked - eksik; const cut = eksik ? { eksik } : {};
     const [kind, id, t] = g.reason.split(':');
     if (kind === 'basarim') {
       const a = achievementById(id ?? ''); const tier = Math.max(1, Math.min(3, Number(t) || 1)) as Tier;
-      ach.push(a ? { label: `${achievementName(a, tier)} · ${TIER_NAMES[tier]}`, jeton, note: achievementDesc(a, tier) } : { label: 'Başarım', jeton });
+      ach.push(a ? { label: `${achievementName(a, tier)} · ${TIER_NAMES[tier]}`, jeton, note: achievementDesc(a, tier), ...cut } : { label: 'Başarım', jeton, ...cut });
       continue;
     }
-    out.push({ label: kind === 'bolum' ? 'Toplanan notalar' : kind === 'sansli-nota' ? 'Şanslı Nota' : kind === 'hazine' ? `Bölüm ${id} hazinesi` : kind === 'kart' ? 'Kart karşılığı' : kind === 'kozmetik' ? 'Kozmetik karşılığı' : 'Ödül', jeton });
+    out.push({ label: kind === 'bolum' ? 'Toplanan notalar' : kind === 'sansli-nota' ? 'Şanslı Nota' : kind === 'hazine' ? `Bölüm ${id} hazinesi` : kind === 'kart' ? 'Kart karşılığı' : kind === 'kozmetik' ? 'Kozmetik karşılığı' : 'Ödül', jeton, ...cut });
   }
   if (ach.length === 1) out.push({ ...ach[0]!, label: `Başarım: ${ach[0]!.label}` });
-  else if (ach.length) out.push({ label: `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0), items: ach });
+  else if (ach.length) { const e = ach.reduce((a, x) => a + (x.eksik ?? 0), 0); out.push({ label: `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0), items: ach, ...(e ? { eksik: e } : {}) }); }
   if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
   return out;
 }

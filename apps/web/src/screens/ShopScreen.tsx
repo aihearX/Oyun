@@ -8,7 +8,7 @@ import { celebrate } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
 import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtHud, fmtTry } from '../ui/social';
-import { Art, Rich, TeamEmblem } from '../ui/art';
+import { Art, TeamEmblem } from '../ui/art';
 import { BEST_VALUE_LABEL, bestValue, fmtPerTry, kalanSatiri, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, type ShopMode, type StorePriceMap } from '../shopPrice';
 
 type Product = ShopProduct & { bought: number };
@@ -79,7 +79,7 @@ function Shop() {
   };
 
   return (
-    <div className="stack">
+    <div className="stack magaza">
       {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
       {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
       {/* yeni oyuncu üstte tek kısa cümle okur; oyun kelimeleriyle ayrıntı açılır bölümde, içerik aynı (OT-ilk-kez-oyun-28) */}
@@ -103,7 +103,7 @@ function Shop() {
           {mode === 'test' && <span className="test-chip">TEST</span>}
           <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
           <ItemChips items={p.contents} small />
-          {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Rich text={`🎁 Takımındaki herkese: ${p.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')}`} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
+          {p.teamGift && p.teamGiftContents && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> Takımındaki herkese: <GiftParts items={p.teamGiftContents} />{!team && <span className="muted"> (bir takımdaysan)</span>}</div>}
           {isBest && <div className="muted small-note" data-testid="en-iyi-deger-hesap">TL liste fiyatıyla lira başına {fmtPerTry(best.perTry)} kristal: kristal paketleri arasında en çok. Sezon Kartı kristalini 28 güne yayar, bu karşılaştırmada yok.</div>}
           {p.id === 'odi.pass' && <><PassPath /><PassTerms /></>}
           <div className="row between prod-foot">
@@ -133,7 +133,7 @@ function Shop() {
           <div className="muted small-note" data-testid="odenecek-tutar">{payLine(mode, sel, prices)}</div>
           <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
           {sel.id === 'odi.pass' && <PassTerms />}
-          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <TeamEmblem e={team.emblem} size="1.1em" className="art-inline" /> {team.name} takımındaki diğer {team.members - 1} kişiye: <Rich text={sel.teamGiftContents.map((g) => `${g.kind === 'kristal' ? '💎' : '🪙'} ${g.amount}`).join(' + ')} /></div>}
+          {sel.teamGift && sel.teamGiftContents && team && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> <TeamEmblem e={team.emblem} size="1.1em" className="art-inline" /> {team.name} takımındaki diğer {team.members - 1} kişiye: <GiftParts items={sel.teamGiftContents} /></div>}
           {sel.teamGift && team && <div className="muted small-note" data-testid="adsiz-hediye">{TEAM_GIFT_ANON.shopNote}</div>}
           <div className="muted small-note">Aylık sınır (TL liste fiyatıyla): {fmtTry(sp.monthTry)} → {fmtTry(sp.monthTry + sel.priceTry)} / {fmtTry(sp.limitTry)}</div>
           {over && <div className="chat-err">Bu satın alma aylık sınırını aşıyor. Sınırı mağazadaki "Sınırı ayarla"dan değiştirebilirsin (yükseltme ayrıca onay ister, 24 saat sonra geçerli olur).</div>}
@@ -143,6 +143,14 @@ function Shop() {
       {limitOpen && <LimitSheet sp={sp} onClose={() => setLimitOpen(false)} onSaved={(s) => { setData({ ...data, spend: s }); setLimitOpen(false); }} />}
     </div>
   );
+}
+
+/**
+ * takım hediyesinin içeriği yazıyla ve simgesi, sayısı, adı tek parça: "100 kristal + 200 jeton" (OT-buyuk-yazi-60: Büyük yazıda
+ * "100 ◆ + ●" satır sonunda, "200" tek başına alt satırdaydı; "jeton" sözcüğü yoktu)
+ */
+function GiftParts({ items }: { items: readonly { kind: string; amount: number }[] }) {
+  return <>{items.map((g, i) => <span key={i}>{i > 0 && ' + '}<span className="sayi-parca"><Art name={g.kind === 'kristal' ? 'crystal' : 'coin'} size="1.1em" className="art-inline" />{g.amount.toLocaleString('tr-TR')}{'\u00a0'}{g.kind === 'kristal' ? 'kristal' : 'jeton'}</span></span>)}</>;
 }
 
 /** aylık harcama: sunucu TL liste fiyatıyla sayar (mağaza fiyatı gösterilse de); her zaman TL */

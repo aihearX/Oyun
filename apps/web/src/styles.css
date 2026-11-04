@@ -385,6 +385,10 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .result-earn-list li.has-sub { flex-wrap:wrap; }
 .result-earn-sub { list-style:none; width:100%; margin:2px 0 0; padding:0 0 0 10px; border-left:2px solid rgba(255,255,255,.14); display:flex; flex-direction:column; gap:5px; }
 .result-earn-sub b { color:var(--text-2); }
+/* günlük yerel ödül sınırı kestiyse (YN-200): satırın altında eklenmeyen, kartın altında kural; çevrimdışıyken bekleyen */
+.result-earn-list .rel-l small.rel-sinir { color:var(--coral-text); opacity:1; }
+.result-earn-not { margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,.12); font-size:0.8125rem; font-weight:700; line-height:1.4; color:var(--text-2); }
+.result-earn-not b { color:var(--coral-text); }
 /* Büyük yazı (OT-buyuk-yazi-47): yıldızların altında jeton özeti ilk ekranda (döküm "Bu bölümden" kartında); Tekrar, Meydan oku ve
    Tüy Dede'nin kartı yapışkan alan yerine sayfa akışında, ana düğmenin hemen üstünde */
 .result-ozet { display:flex; flex-direction:column; align-items:center; gap:2px; max-width:100%; text-align:center; line-height:1.3; opacity:0; transition:opacity .35s; }
@@ -1017,6 +1021,10 @@ html.buyuk-yazi .bonus-row b { font-size:1rem; }
 .product > .ribbon { max-width:calc(100% - 64px); border-radius:12px; text-wrap:balance; }
 .test-chip { position:absolute; top:12px; right:12px; font-size:0.625rem; font-weight:900; color:#4a2c00; background:#ffe9a8; border:1px solid #f2b400; border-radius:6px; padding:1px 6px; }
 .team-gift-line { background:rgba(255,201,60,.14); border:2px solid rgba(255,201,60,.4); border-radius:12px; padding:6px 10px; font-weight:900; font-size:0.8125rem; line-height:1.35; }
+/* sayı simgesi ve adıyla tek parça: satır sonunda bölünmez (OT-buyuk-yazi-60) */
+.sayi-parca { white-space:nowrap; }
+/* mağazanın küçük satırları (fiyat notu, "Henüz seçmedin…", "Kişi başı 1 · alındı 0/1") Büyük yazıda öteki yazılardan belirgin küçük kalmasın */
+html.buyuk-yazi .magaza .small-note { font-size:0.875rem; line-height:1.4; }
 .prod-foot { gap:8px; }
 .history { list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
 .history li { display:flex; gap:8px; align-items:center; font-size:0.8125rem; font-weight:800; flex-wrap:wrap; }

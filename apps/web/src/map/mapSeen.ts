@@ -14,12 +14,15 @@ interface MapSeen {
   /** "canlandı" kutlaması gösterilmiş bölgeler */
   restored: string[];
   commit(stars: Record<number, number>): void;
+  /** tek düğüm gösterildi (hazine penceresi açıldığı anda; YN-201): yenilemede o düğümün sandığı yeniden açılmaz */
+  markShown(n: number, stars: number): void;
   markRestored(zone: string): void;
 }
 
 export const useMapSeen = create<MapSeen>()(persist((set, get) => ({
   init: false, stars: {}, restored: [],
   commit(stars) { set({ init: true, stars: { ...stars } }); },
+  markShown(n, stars) { if ((get().stars[n] ?? 0) < stars) set({ init: true, stars: { ...get().stars, [n]: stars } }); },
   markRestored(zone) { if (!get().restored.includes(zone)) set({ restored: [...get().restored, zone] }); },
 }), {
   name: 'odi-map-seen', version: 1, storage: createJSONStorage(() => platformStorage), skipHydration: true,
