@@ -65,8 +65,18 @@ const TOUCH_CALM_MS = 1200;
 /** bırakma olayı kaçarsa (parmak pencere dışına çıktı) basılı sayılmanın üst sınırı */
 const HELD_MAX_MS = 4000;
 const touch = { last: -Infinity, held: false };
+/**
+ * Takma ad penceresindeki dokunuşlar (ad yazma, renk, Başla/Sonra) ekrana uzanma sayılmaz: pencere ekranı kapatır, oyuncu orada
+ * haritada bir yere uzanmıyor. Pencere kapanınca sonucun söz verdiği harita turu dönüşteki gibi beklemeden gelir (OT-ilk-kez-oyun-59:
+ * "Başla"dan sonra tur 1,2 sn + sakin yoklamaları bekledi, oyuncunun "Bölüm 2" dokunuşuyla aynı anda açıldı).
+ */
+const AD_PENCERESI = '.onboard-wrap';
 if (typeof document !== 'undefined') {
-  const mark = (held?: boolean) => () => { touch.last = performance.now(); if (held !== undefined) touch.held = held; };
+  const mark = (held?: boolean) => (e: Event) => {
+    if (held !== undefined) touch.held = held;
+    if (e.target instanceof Element && e.target.closest(AD_PENCERESI)) return;
+    touch.last = performance.now();
+  };
   const o = { capture: true, passive: true };
   document.addEventListener('pointerdown', mark(true), o);
   document.addEventListener('pointerup', mark(false), o);

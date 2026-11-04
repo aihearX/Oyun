@@ -83,6 +83,49 @@ describe('sonuçtan haritaya dönüş: söz verilen tanıtım hemen', () => {
   }, 15_000);
 });
 
+describe('takma ad penceresinden sonra söz verilen harita turu hemen (YN-196, OT-ilk-kez-oyun-59)', () => {
+  /** 1. bölümü yeni geçmiş oyuncu: sonuç turu bitti, "Haritaya git" harita turunu söz verdi */
+  async function at1() {
+    const { useStore } = await import('../store');
+    useStore.setState({ ftue: { v: 1, story: true, tours: ['result1'] }, progress: { 1: { stars: 2 } } as never });
+  }
+  /** haritanın üstünde takma ad penceresi (Onboarding.tsx: .overlay.onboard-wrap > .onboard) */
+  function adPenceresi() {
+    const w = document.createElement('div'); w.className = 'overlay onboard-wrap';
+    w.innerHTML = '<form class="card onboard" role="dialog" aria-modal="true"><input aria-label="Takma ad"><button>Başla</button></form>';
+    document.body.appendChild(w); return w;
+  }
+  /** pencere içindeki dokunuş ve yazı (ad, renk, Başla) */
+  const icindeDokun = (el: Element) => { for (const t of ['pointerdown', 'pointerup']) el.dispatchEvent(new Event(t, { bubbles: true })); el.dispatchEvent(new Event('keydown', { bubbles: true })); };
+  async function haritaVePencere() {
+    await at1();
+    await director('result');
+    tap(); // "Haritaya git"
+    mapScreen('bitti');
+    const play = document.createElement('button'); play.className = 'map-play'; document.body.appendChild(play);
+    const w = adPenceresi();
+    await director('map');
+    await tick(2200);
+    expect(await tourId()).toBeNull(); // pencere açıkken tur yok
+    await act(async () => { icindeDokun(w.querySelector('input')!); });
+    await tick(600);
+    await act(async () => { icindeDokun(w.querySelector('button')!); });
+    return w;
+  }
+  it('ad yazılıp "Başla"ya basılınca pencere kapanır kapanmaz (≤ ~1 sn) harita turu başlar; araya dokunuş gerekmez', async () => {
+    const w = await haritaVePencere();
+    await act(async () => { w.remove(); });
+    await tick(1050);
+    expect(await tourId()).toBe('map');
+  }, 15_000);
+  it('pencere kapandıktan sonra haritada dokunan oyuncuda yine sakinlik kuralı (dokunuş yutulmaz)', async () => {
+    const w = await haritaVePencere();
+    await act(async () => { w.remove(); tap(); });
+    await tick(1050);
+    expect(await tourId()).toBeNull();
+  }, 15_000);
+});
+
 describe('söz verilen ikinci tur, ilki oyuncuyu başka sekmeye götürdüyse', () => {
   /** sonuçtan haritaya dönüş; Takım Ligi turu başlar, "Takım'a dokun" adımıyla Takım sekmesi açılır, tur biter */
   async function tligToTeam() {

@@ -239,15 +239,20 @@ async function suite(target, browserName, [W, H]) {
       await sleep(500);
     }
   }
+  /** takma ad penceresi: ad yazılır, Başla. Pencere açıkken başarım bildirimi üstüne binmez (YN-196, OT-ilk-kez-oyun-59).
+   *  Pencere kapandıysa kapandığı an (Date.now), açılmadıysa 0 */
   async function nickname(page) {
     for (let i = 0; i < 20; i++) {
       if (await page.locator('.onboard').count()) {
+        await sleep(400);
+        check(!(await page.locator('.toast-top').count()), 'takma ad penceresi açıkken üstünde bildirim yok (pencere kapanınca gelir)');
         await page.getByRole('textbox', { name: 'Takma ad' }).fill(`Yeni${browserName.slice(0, 2)}${W}`.slice(0, 16));
-        await page.getByRole('button', { name: 'Başla' }).click(); await page.locator('.onboard').waitFor({ state: 'detached' }); return;
+        await page.getByRole('button', { name: 'Başla' }).click(); await page.locator('.onboard').waitFor({ state: 'detached' }); return Date.now();
       }
-      if (await page.locator('[data-testid="anlatici-tur"]').count()) return;
+      if (await page.locator('[data-testid="anlatici-tur"]').count()) return 0;
       await sleep(300);
     }
+    return 0;
   }
   async function dismissCel(page) {
     for (let i = 0; i < 12 && await page.locator('.cel-stage').count(); i++) {
@@ -457,7 +462,13 @@ async function suite(target, browserName, [W, H]) {
       await resultForward(page, 1, 'map');
       await driveTour(page, 'result1', 'sonuc-turu');
       // ---- 3 · harita turu
-      await page.locator('.map-play').waitFor({ timeout: 20_000 }); await nickname(page);
+      await page.locator('.map-play').waitFor({ timeout: 20_000 });
+      // YN-196 (OT-ilk-kez-oyun-59): ad penceresi kapanır kapanmaz söz verilen harita turu kendiliğinden başlar (araya dokunuş yok)
+      const adKapandi = await nickname(page);
+      if (adKapandi) {
+        const gorundu = await page.locator('[data-testid="anlatici-tur"][data-tour="map"]').waitFor({ timeout: 2500 }).then(() => true, () => false);
+        check(gorundu, `ad penceresinden sonra harita turu dokunuşsuz başladı (${gorundu ? `${((Date.now() - adKapandi) / 1000).toFixed(1)} sn` : '2,5 sn içinde yok'})`);
+      }
       const l1 = await lockedTabs(page); check(['today', 'camp', 'team'].every((t) => l1.includes(t)), `harita: kilitli sekmeler ${l1.join(', ')}`);
       check(!(await page.locator('[data-testid="ev-fab"]').count()), 'harita: Etkinlik çadırı henüz yok');
       await driveTour(page, 'map', 'harita-turu');

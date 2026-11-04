@@ -115,6 +115,23 @@ describe('mağaza', () => {
     expect((await a.call('wallet.get', {})).wallet.kristal).toBe(650 + 120 + 650);
   });
 
+  it('harcama sayacı takvim ayı (İstanbul): resetAt sonraki ayın 1’i 00:00; o an sayaç sıfırlanır (YN-197)', async () => {
+    env = await setup();
+    const a = await env.connect('Ayşe');
+    await sinirSec(a, 50);
+    await a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'test' }); // 29.99 / 50
+    const sp = (await a.call('shop.list', {})).spend;
+    // T0: 14 Ekim 2026 → 1 Kasım 2026 00:00 İstanbul (UTC+3) = 31 Ekim 21:00 UTC
+    expect(sp).toMatchObject({ monthTry: 29.99, limitTry: 50, resetAt: Date.UTC(2026, 9, 31, 21, 0, 0) });
+    expect((await err(a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'test' }))).code).toBe('HARCAMA_SINIRI');
+    // sıfırlanmadan bir dakika önce sayaç hâlâ dolu; resetAt'te boş, yeni resetAt 1 Aralık
+    env.clock.t = sp.resetAt - 60_000;
+    expect((await a.call('shop.list', {})).spend).toMatchObject({ monthTry: 29.99, resetAt: sp.resetAt });
+    env.clock.t = sp.resetAt;
+    expect((await a.call('shop.list', {})).spend).toMatchObject({ monthTry: 0, resetAt: Date.UTC(2026, 10, 30, 21, 0, 0) });
+    await a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'test' });
+  });
+
   it('gerçek mağaza makbuzu anahtarsız reddedilir; test mağazası kapalıysa reddedilir', async () => {
     env = await setup({ testStore: false, revenueCatKey: null });
     const a = await env.connect('Ayşe');

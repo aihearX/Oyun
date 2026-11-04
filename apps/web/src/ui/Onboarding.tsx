@@ -62,7 +62,9 @@ useNet.subscribe((s) => {
 });
 
 /** başka bir akış sürerken kart açılmaz (oyuncu testi: takma ad penceresi harita turu ve başarım kutlamasıyla aynı anda çıkıyordu):
- *  anlatıcı turu, kutlama, açılış hikâyesi ve bölge tanıtımı bitince açılır. Tur da açık kartın üstüne başlamaz (Director `quiet`). */
+ *  anlatıcı turu, kutlama, açılış hikâyesi ve bölge tanıtımı bitince açılır. Tur da açık kartın üstüne başlamaz (Director `quiet`);
+ *  kart kapanınca söz verilen tur beklemeden gelir (kart içindeki dokunuşlar sakinlik kuralına sayılmaz, Director `AD_PENCERESI`).
+ *  Kart kipli penceredir (`aria-modal`): başarım bildirimleri üstüne binmez, kapanınca gelir (Toasts; OT-ilk-kez-oyun-59). */
 const mesgulDom = () => !!document.querySelector('.cel-stage, .story, .biome-intro');
 function useSakin(): boolean {
   const tur = useCoach((s) => s.tour);
@@ -126,7 +128,7 @@ export function Onboarding() {
   if (gecikti && bekleyen) {
     return (
       <div className="overlay onboard-wrap">
-        <div className="card onboard" role="dialog" aria-label="Takma adın">
+        <div className="card onboard" role="dialog" aria-modal="true" aria-label="Takma adın">
           <OdiAvatar size={84} color={bekleyen.color} />
           <h2>{bekleyen.name}</h2>
           <div className="muted" role="status" data-testid="ad-bekliyor" data-durum={gecikti}>{gecikti === 'yok' ? AD_INTERNET_YOK : AD_ZAYIF}</div>
@@ -137,7 +139,7 @@ export function Onboarding() {
   }
   return (
     <div className="overlay onboard-wrap">
-      <form className="card onboard" role="dialog" aria-label="Takma adını seç" onSubmit={(e) => { e.preventDefault(); void save(); }}>
+      <form className="card onboard" role="dialog" aria-modal="true" aria-label="Takma adını seç" onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <OdiAvatar size={84} color={c} />
         <h2>Sana ne diyelim?</h2>
         <div className="muted">Takım arkadaşların ve sohbette bu adı görecek. Gerçek adını yazmak zorunda değilsin.</div>

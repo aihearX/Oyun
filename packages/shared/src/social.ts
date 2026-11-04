@@ -414,7 +414,9 @@ export const SPEND_LIMIT_FIRST_CHOICES = [0, 50, 100, 250, 500] as const;
 export const SPEND_LIMIT_OPTIONS = [0, 50, 100, 250, 500, 1000, 2000, 5000] as const;
 export interface SpendState { monthTry: number; limitTry: number; purchases: PurchaseRecord[]; /** yükseltme isteği 24 saat sonra geçerli olur */ pendingLimitTry: number | null; pendingLimitAt: number | null;
   /** false: oyuncu sınırı henüz seçmedi; satın almadan önce seçmeli (limitTry o zaman önerilen değeri gösterir) */
-  limitChosen: boolean }
+  limitChosen: boolean;
+  /** harcama sayacının sıfırlanacağı an: sayaç takvim ayıdır (İstanbul), sonraki ayın 1'i 00:00 */
+  resetAt: number }
 
 // ---------- İstek/yanıt sözleşmesi
 export interface OpMap {

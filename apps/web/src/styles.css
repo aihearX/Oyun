@@ -97,7 +97,9 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .btn.coral.small { box-shadow:inset 0 2px 0 rgba(255,255,255,.4), 0 4px 0 #b8255a, 0 6px 10px rgba(10,4,30,.4); }
 .btn.small:active:not(:disabled) { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.3); }
 .btn.small::after { top:3px; border-radius:10px 10px 16px 16px; }
-.btn:disabled { cursor:default; filter:grayscale(.85) brightness(.75); opacity:.6; }
+.btn:disabled, .btn[aria-disabled="true"] { cursor:default; filter:grayscale(.85) brightness(.75); opacity:.6; }
+/* dokunulabilir ama işi yok (dokununca sebebini yazar; Mağaza'da aylık sınır): basılma hareketi yok */
+.btn[aria-disabled="true"]:active, .btn.small[aria-disabled="true"]:active { transform:none; }
 .btn:focus-visible, .tab:focus-visible, .linkish:focus-visible { outline:3px solid var(--teal); outline-offset:3px; }
 .btn.big-cta { font-size:1.25rem; padding:16px 40px; min-width:200px; }
 

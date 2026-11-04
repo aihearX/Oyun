@@ -842,6 +842,20 @@ async function suite(browserName, target, [W, H]) {
         await check('magaza-sinir-yukselt', { scroll: false });
         await page.keyboard.press('Escape'); await sleep(300);
         if (await page.locator('.sheet-wrap').count()) { await page.keyboard.press('Escape'); await sleep(300); }
+        // YN-197 (OT-ekonomi-denetci-39): harcama kutusunda bu ay kalan tutar ve sayacın sıfırlanma günü; sınırı aşan paketin gri
+        // düğmesine dokununca aynı bilgi kısa notla (dokunuş sessizce yutulmaz). Düşürme hemen geçerli: 50 TL'de 50 TL üstü paketler engelli
+        { await page.getByRole('button', { name: 'Sınırı ayarla' }).click(); await page.locator('.sheet .limit-grid').waitFor();
+          await page.locator('.sheet .limit-grid .chip-btn', { hasText: /^50 TL$/ }).click(); await page.getByTestId('sinir-kaydet').click();
+          await page.locator('.sheet-wrap').waitFor({ state: 'detached', timeout: 10_000 }); await toastGone();
+          const kalan = (await page.getByTestId('kalan-tutar').textContent())?.trim() ?? '';
+          const engelli = page.locator('.card.product .btn.small[aria-disabled="true"]').first();
+          // Playwright aria-disabled düğmeyi tıklanamaz sayar; oyuncunun parmağı gibi konumuna dokunulur
+          await engelli.scrollIntoViewIfNeeded(); await engelli.click({ force: true });
+          const notu = await page.getByTestId('sinir-notu').waitFor({ timeout: 3000 }).then(() => page.getByTestId('sinir-notu').textContent(), () => '');
+          const r = await check('magaza-sinir-notu', { scroll: false });
+          const yanlis = [!/^Kalan: 50,00 TL · 1 \S+’(ta|da|te|de) sıfırlanır$/.test(kalan) && `kalan satırı “${kalan}”`, !(notu ?? '').startsWith(kalan) && `dokunuş notu “${notu || '-'}”`, (await page.locator('.sheet-wrap').count()) > 0 && 'engelli paket onay sayfası açtı'].filter(Boolean);
+          if (yanlis.length) { fail(r, `aylık sınır: ${yanlis.join(', ')}`); console.log(`  ✗ ${name} · magaza-sinir-notu — ${yanlis.join(', ')}`); }
+          await page.evaluate(() => scrollTo(0, 0)); await sleep(200); }
         // üstte tek kısa cümle; ayrıntı "Neler satılmaz?" açılınca (OT-ilk-kez-oyun-28)
         await page.locator('[data-testid="magaza-ilke"] summary').click(); await sleep(200);
         await check('magaza-ilke-acik', { scroll: false });

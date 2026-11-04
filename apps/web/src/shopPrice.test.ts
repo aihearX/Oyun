@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SHOP } from '@odi/shared';
-import { BEST_VALUE_LABEL, STORE_PRICE_NOTE, bestValue, crystalsPerTry, fmtPerTry, fmtTry, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, storePriceMap } from './shopPrice';
+import { BEST_VALUE_LABEL, STORE_PRICE_NOTE, bestValue, crystalsPerTry, fmtPerTry, fmtTry, kalanSatiri, kalanTry, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, sifirlanmaGunu, storePriceMap } from './shopPrice';
 
 const IDS = SHOP.map((p) => p.id);
 /** sahte mağaza ürünleri: ör. Almanya mağazası (EUR, mağazanın kendi biçimi) */
@@ -84,6 +84,24 @@ describe('aylık sınır: liste ve pencere aynı kural (OT-ekonomi-denetci-18)',
   it('sınır 0 = satın alma kapalı; sınır seçilmediyse engel yok (önce sınır seçilir)', () => {
     expect(limitBlock({ limitChosen: true, monthTry: 0, limitTry: 0 }, 29.99)).toBe('Satın alma kapalı (aylık sınır)');
     expect(limitBlock({ limitChosen: false, monthTry: 0, limitTry: 100 }, 299.99)).toBeNull();
+  });
+});
+
+describe('aylık sınır: kalan tutar ve sayacın sıfırlanma günü (YN-197, OT-ekonomi-denetci-39)', () => {
+  // sunucunun resetAt'i: sonraki ayın 1'i 00:00 İstanbul (UTC+3) → 30 Kasım 21:00 UTC
+  const ARALIK = Date.UTC(2026, 10, 30, 21, 0, 0);
+  it('29,99 / 50 TL: "Kalan: 20,01 TL · 1 Aralık’ta sıfırlanır" (tr-TR)', () => {
+    const sp = { limitChosen: true, monthTry: 29.99, limitTry: 50, resetAt: ARALIK };
+    expect(kalanTry(sp)).toBe(20.01);
+    expect(kalanSatiri(sp)).toBe('Kalan: 20,01 TL · 1 Aralık’ta sıfırlanır');
+    // sınır düşürülüp harcamanın altına inince kalan eksi değil 0
+    expect(kalanSatiri({ ...sp, limitTry: 25 })).toBe('Kalan: 0,00 TL · 1 Aralık’ta sıfırlanır');
+    expect(kalanSatiri({ ...sp, monthTry: 1234.5, limitTry: 5000 })).toBe('Kalan: 3.765,50 TL · 1 Aralık’ta sıfırlanır');
+  });
+  it('gün İstanbul saatiyle (cihaz başka saat diliminde olsa da ayın 1’i); ay adına doğru ek', () => {
+    expect(sifirlanmaGunu(ARALIK)).toBe('1 Aralık’ta');
+    const ay = (m: number) => sifirlanmaGunu(Date.UTC(2027, m, 1) - 3 * 3_600_000);
+    expect(Array.from({ length: 12 }, (_, m) => ay(m))).toEqual(['1 Ocak’ta', '1 Şubat’ta', '1 Mart’ta', '1 Nisan’da', '1 Mayıs’ta', '1 Haziran’da', '1 Temmuz’da', '1 Ağustos’ta', '1 Eylül’de', '1 Ekim’de', '1 Kasım’da', '1 Aralık’ta']);
   });
 });
 

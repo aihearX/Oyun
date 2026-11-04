@@ -79,6 +79,27 @@ export function payLine(mode: ShopMode, p: { id: string; priceTry: number }, pri
   return s ? `Ödenecek tutar: ${s.priceString} (mağaza fiyatı).` : `${STORE_PRICE_NOTE}; liste fiyatı ${fmtTry(p.priceTry)}.`;
 }
 
+/** bu ay kalan harcama (TL liste fiyatıyla, sunucunun saydığı); sınır aşıldıysa 0 */
+export const kalanTry = (sp: Pick<SpendState, 'monthTry' | 'limitTry'>) => Math.max(0, Math.round((sp.limitTry - sp.monthTry) * 100) / 100);
+const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+/** ay adına bulunma eki (ünlü uyumu ve sertleşmeyle): Ocak’ta, Nisan’da, Eylül’de … */
+const AY_EKI = ['’ta', '’ta', '’ta', '’da', '’ta', '’da', '’da', '’ta', '’de', '’de', '’da', '’ta'];
+/**
+ * sayacın sıfırlanacağı gün, ekiyle ("1 Aralık’ta"). Sunucunun `resetAt`'i İstanbul'da ayın 1'i 00:00'dır (takvim ayı, shop.ts):
+ * gün ve ay İstanbul saatiyle okunur, başka saat dilimindeki cihazda bir önceki güne kaymaz
+ */
+export function sifirlanmaGunu(t: number): string {
+  let gun: number; let ay: number;
+  try {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'Europe/Istanbul', day: 'numeric', month: 'numeric' }).formatToParts(new Date(t));
+    gun = Number(p.find((x) => x.type === 'day')?.value); ay = Number(p.find((x) => x.type === 'month')?.value) - 1;
+    if (!(gun >= 1 && ay >= 0 && ay < 12)) throw new Error('tarih');
+  } catch { const d = new Date(t + 3 * 3_600_000); gun = d.getUTCDate(); ay = d.getUTCMonth(); } // ICU yoksa Türkiye'nin sabit +03:00'ı
+  return `${gun} ${AYLAR[ay]}${AY_EKI[ay]}`;
+}
+/** harcama kutusunun ve engelli fiyat düğmesine dokununca çıkan notun satırı: "Kalan: 20,01 TL · 1 Aralık’ta sıfırlanır" (YN-197) */
+export const kalanSatiri = (sp: Pick<SpendState, 'monthTry' | 'limitTry' | 'resetAt'>) => `Kalan: ${fmtTry(kalanTry(sp))}${sp.resetAt > 0 ? ` · ${sifirlanmaGunu(sp.resetAt)} sıfırlanır` : ''}`;
+
 /**
  * Aylık harcama sınırı engeli (karar 28; sunucu shop.ts ile aynı kural): liste düğmesi ve onay penceresi bunu kullanır.
  * null = alınabilir. Sınır henüz seçilmediyse engel yok: ilk alımdan önce oyuncu sınırı seçer (OT-ekonomi-denetci-18).

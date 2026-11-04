@@ -9,7 +9,7 @@ import { useHudCount } from '../celebrate/hud';
 import { ScreenHead, Bar } from '../ui/bits';
 import { ItemChips, Online, Sheet, Skeleton, fmtDate, fmtHud, fmtTry } from '../ui/social';
 import { Art, Rich, TeamEmblem } from '../ui/art';
-import { BEST_VALUE_LABEL, bestValue, fmtPerTry, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, type ShopMode, type StorePriceMap } from '../shopPrice';
+import { BEST_VALUE_LABEL, bestValue, fmtPerTry, kalanSatiri, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, type ShopMode, type StorePriceMap } from '../shopPrice';
 
 type Product = ShopProduct & { bought: number };
 type List = OpMap['shop.list']['res'];
@@ -33,6 +33,9 @@ function Shop() {
   const [data, setData] = useState<List | null>(null); const [err, setErr] = useState('');
   const [sel, setSel] = useState<Product | null>(null); const [busy, setBusy] = useState(false);
   const [limitOpen, setLimitOpen] = useState(false);
+  // aylık sınırı aşan paketin fiyatına dokunuldu: altında kalan tutar ve sıfırlanma günü (dokunuş sessizce yutulmaz, YN-197)
+  const [sinirNotu, setSinirNotu] = useState<string | null>(null);
+  useEffect(() => { if (!sinirNotu) return; const h = setTimeout(() => setSinirNotu(null), 6000); return () => clearTimeout(h); }, [sinirNotu]);
   const real = platform().purchase; const storeFn = platform().storePrices;
   // mağaza fiyatı yalnız gerçek satın almayla birlikte istenir; undefined = bekleniyor (en çok 6 sn), null = yok → TL liste fiyatı
   const cached = priceCache?.playerId === me.id ? priceCache.map : undefined;
@@ -105,9 +108,11 @@ function Shop() {
           {p.id === 'odi.pass' && <><PassPath /><PassTerms /></>}
           <div className="row between prod-foot">
             <span className="muted small-note">{p.limit > 0 ? `Kişi başı ${p.limit} · alındı ${p.bought}/${p.limit}` : p.bought ? `${p.bought} kez alındı` : ''}</span>
-            <button className="btn small" disabled={mode === 'closed' || soldOut || !!block} onClick={() => setSel(p)}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
+            {/* sınırı aşan paketin düğmesi gri ama dokunulabilir: dokununca kalan tutar ve sıfırlanma günü yazılır */}
+            <button className="btn small" disabled={mode === 'closed' || soldOut} aria-disabled={block ? true : undefined} onClick={() => (block ? setSinirNotu(p.id) : setSel(p))}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
           </div>
           {block && <div className="muted small-note sinir-asiyor" data-testid="sinir-asiyor">{block}</div>}
+          {block && sinirNotu === p.id && <div className="small-note sinir-notu" role="status" data-testid="sinir-notu">{sp.limitTry > 0 ? `${kalanSatiri(sp)}.` : 'Aylık sınırın “Kapalı”: satın alma yok.'} Sınırı yukarıdaki “Sınırı ayarla”dan değiştirebilirsin.</div>}
         </div>); })}
 
       <div className="card">
@@ -152,6 +157,8 @@ function SpendCard({ sp, storePrices, onEdit }: { sp: SpendState; storePrices: b
     <div className="card spend">
       <div className="row between"><b>Bu ayki harcama (TL)</b><button className="linkish" onClick={onEdit}>Sınırı ayarla</button></div>
       <div className="row qbar"><Bar value={sp.limitTry ? sp.monthTry / sp.limitTry : 1} tone={sp.monthTry >= sp.limitTry ? 'coral' : 'green'} label="Aylık harcama" /><span className="qn">{fmtTry(sp.monthTry)} / {fmtTry(sp.limitTry)}</span></div>
+      {/* sayaç takvim ayı (sunucu shop.ts resetAt): bu ay ne kadar kaldığı ve ne zaman sıfırlandığı (YN-197, OT-ekonomi-denetci-39) */}
+      {sp.limitTry > 0 && <div className="small-note" data-testid="kalan-tutar">{kalanSatiri(sp)}</div>}
       {sp.pendingLimitTry != null && sp.pendingLimitAt != null && <div className="muted small-note">Yeni sınır {fmtTry(sp.pendingLimitTry)}: {fmtDate(sp.pendingLimitAt)} itibarıyla geçerli.</div>}
       {storePrices && <div className="muted small-note">Sınır, ürünlerin TL liste fiyatıyla sayılır.</div>}
     </div>

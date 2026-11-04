@@ -3,12 +3,14 @@ import { fail, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { passDaily } from './players';
 import { createGift } from './teamextra';
-import { DAY_MS, dayNumber, dayNumberStart, monthStart } from './time';
+import { DAY_MS, dayNumber, dayNumberStart, monthStart, nextMonthStart } from './time';
 
 /**
  * Aylık harcama sınırı (karar 28): varsayılan sınır yok; oyuncu ilk satın almadan önce kendisi seçer (`spend_chosen`, göç 7).
  * Seçim ekranında önerilen değer SPEND_LIMIT_SUGGESTED_TRY (100 TL); seçilene kadar gösterilen sınır da odur.
  * Seçilmeden satın alma yapılamaz (SINIR_SEC). Düşürmek hemen; yükseltmek ayrı onay (confirmRaise) + LIMIT_RAISE_DELAY_MS.
+ * Harcama sayacı takvim ayıdır (İstanbul): ayın 1'i 00:00'dan bu yana alınanlar sayılır; sonraki ayın 1'i 00:00'da sıfırlanır
+ * (`resetAt`; mağaza "Kalan: … · 1 Aralık’ta sıfırlanır" diye bunu yazar, YN-197).
  */
 export const SPEND_LIMIT_MAX_TRY = 10_000;
 export const LIMIT_RAISE_DELAY_MS = DAY_MS;
@@ -66,7 +68,7 @@ export function spendState(app: App, pid: string): SpendState {
   const monthTry = app.db.get<{ s: number | null }>('SELECT SUM(amount_try) AS s FROM purchases WHERE player_id = ? AND at >= ?', pid, since)!.s ?? 0;
   const purchases = app.db.all<PurchaseRecord>('SELECT id, product_id AS productId, at, store, amount_try AS amountTry FROM purchases WHERE player_id = ? ORDER BY at DESC LIMIT 30', pid).map((r) => ({ ...r }));
   const p = app.player(pid);
-  return { monthTry: Math.round(monthTry * 100) / 100, limitTry, purchases, pendingLimitTry: p.spend_pending ?? null, pendingLimitAt: p.spend_pending_at ?? null, limitChosen: !!p.spend_chosen };
+  return { monthTry: Math.round(monthTry * 100) / 100, limitTry, purchases, pendingLimitTry: p.spend_pending ?? null, pendingLimitAt: p.spend_pending_at ?? null, limitChosen: !!p.spend_chosen, resetAt: nextMonthStart(app.now()) };
 }
 
 const boughtCount = (app: App, pid: string, productId: string) => app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM purchases WHERE player_id = ? AND product_id = ?', pid, productId)!.n;

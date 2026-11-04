@@ -35,6 +35,8 @@ export function dayNumber(t: number): number { const l = local(t); return Math.r
 export function dayNumberStart(n: number): number { const utc = n * DAY_MS; return utc - istanbulOffsetMs(utc); }
 export function monthKey(t: number): string { const l = local(t); return `${l.y}-${pad(l.m + 1)}`; }
 export function monthStart(t: number): number { const l = local(t); return Date.UTC(l.y, l.m, 1) - l.off; }
+/** bir sonraki takvim ayının başladığı an (İstanbul, ayın 1'i 00:00); ay en çok 31 gün: ay başından 32 gün sonrası sonraki aydadır */
+export function nextMonthStart(t: number): number { return monthStart(monthStart(t) + 32 * DAY_MS); }
 
 export interface WeekInfo { key: string; startsAt: number; endsAt: number }
 /** ISO hafta: Pazartesi 00:00 (İstanbul) başlar, bir sonraki Pazartesi 00:00'da biter (endsAt hariç). */
