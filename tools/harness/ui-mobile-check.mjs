@@ -572,7 +572,8 @@ async function suite(browserName, target, [W, H]) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
+  // ChunkOffline: bağlantı yokken istenmeyen parça (pratik adımı, YN-205); çökme değil, "İnternet yok" kartı ayrıca denetlenir
+  page.on('console', (m) => { if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|WebSocket|ERR_CONNECTION|ERR_FILE|ChunkOffline/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   await page.addInitScript(paintInsets, [INSET, INSET_B]);
   // KARE_OLC=1: kare aralığı (rAF) ve uzun görevler (ana iş parçacığı > 50 ms) ölçülür, her ekranda yazılır (MK-020 tanı: donma mı, yük mü)
   if (process.env.KARE_OLC) await page.addInitScript(() => {
@@ -792,7 +793,37 @@ async function suite(browserName, target, [W, H]) {
       const kayit = () => (target === 'web' ? page.evaluate(() => { const st = JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state ?? {}; return JSON.stringify({ c: st.coins, x: st.xp, m: st.meta }); }) : Promise.resolve(''));
       const once = await kayit();
       await check('bugun-pratik-karti', { scroll: false });
-      await ac.click(); await page.getByTestId('pratik').waitFor({ timeout: 10_000 });
+      // YN-205 (OT-eski-telefon-35): bağlantı yokken parça açılamaz → "İnternet yok" kartında Geri ve sekmeler; geri tuşu (Escape)
+      // Bugün'e döner; bağlantı gelince ekran kendiliğinden açılır (YN-047). Yalnız web: DOM paketi tek dosya (parça indirmez)
+      if (target === 'web') {
+        // ilk açılış / service worker yokken (oyuncu harness'i gibi): parça önbellekte değil, bağlantısızken hiç istenmez (engine.ts
+        // chunkImport). Önizlemede service worker parçaları önbellekten verirdi: yalnız bu adımda denetleyici yokmuş gibi davranılır
+        const swYok = (on) => page.evaluate((on) => { const sw = navigator.serviceWorker; if (!sw) return; if (on) Object.defineProperty(sw, 'controller', { configurable: true, get: () => null }); else delete sw.controller; }, on);
+        await swYok(true); await ctx.setOffline(true); await ac.click();
+        const ag = page.getByTestId('hata-ag');
+        const kart = await Promise.race([ag.waitFor({ timeout: 10_000 }).then(() => true), page.getByTestId('pratik').waitFor({ timeout: 10_000 }).then(() => false)]).catch(() => null);
+        if (kart) {
+          const rec = await check('pratik-cevrimdisi', { scroll: false });
+          if (!(await ag.getByRole('button', { name: 'Geri' }).count())) fail(rec, '"İnternet yok" kartında Geri yok');
+          if (!(await page.locator('nav.tabbar').isVisible())) fail(rec, '"İnternet yok" kartında sekmeler yok');
+          if (!(await ag.textContent())?.includes('Bilgi pratiği')) fail(rec, '"İnternet yok" kartında ekranın adı yok');
+          await page.keyboard.press('Escape'); await sleep(500);
+          if (!(await ac.isVisible().catch(() => false)) || await ag.count()) fail(rec, 'geri tuşu (Escape) "İnternet yok" kartından Bugün\'e dönmedi');
+          await ac.scrollIntoViewIfNeeded(); await ac.click(); await ag.waitFor({ timeout: 10_000 });
+          await ag.getByRole('button', { name: 'Geri' }).click(); await sleep(500);
+          if (!(await ac.isVisible().catch(() => false))) fail(rec, '"İnternet yok" kartında Geri Bugün\'e dönmedi');
+          await ac.scrollIntoViewIfNeeded(); await ac.click(); await ag.waitFor({ timeout: 10_000 });
+          await ctx.setOffline(false);
+          if (!(await page.getByTestId('pratik').waitFor({ timeout: 10_000 }).then(() => true, () => false))) fail(rec, 'bağlantı gelince pratik kendiliğinden açılmadı');
+          await swYok(false);
+        } else {
+          await ctx.setOffline(false); await swYok(false);
+          if (kart === null) fail(recs[recs.length - 1], 'bağlantı yokken pratik ne açıldı ne "İnternet yok" dedi');
+          else console.log(`  · ${name} · pratik parçası önbellekten geldi: "İnternet yok" kartı denetimi atlandı`);
+          await back(); await tab('Bugün'); await ac.scrollIntoViewIfNeeded(); await ac.click();
+        }
+      } else await ac.click();
+      await page.getByTestId('pratik').waitFor({ timeout: 10_000 });
       await check('pratik-giris');
       await page.getByTestId('pratik-basla').click(); await page.getByTestId('pratik-secenek-0').waitFor();
       await check('pratik-soru');
@@ -894,6 +925,30 @@ async function suite(browserName, target, [W, H]) {
       // dolap: avatar düğmesi; takma ad sayfası (alt sayfa)
       const rn = page.getByRole('button', { name: 'Takma adı değiştir' });
       if (await rn.count()) { await rn.click(); await page.locator('.sheet').waitFor(); await check('profil-takma-ad-sayfasi', { scroll: false }); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); }
+      // arkadaş kartı (YN-206, YN-140): gerçek ikinci oyuncu arkadaşlık ister, sayfadaki oyuncu kabul eder; gönderilen hediye düğmesi
+      // "Hediye gönderildi" yazar ("Gitti" değil), takım amblemi takım adıyla; listede silinen hesap bilgi satırı
+      { const tuba = rawClient(wsUrl); await tuba.call('hello', { version: 1, name: `Tuba${sno}` });
+        await tuba.call('team.create', { name: `Kulaklar ${sno}`, emblem: '🐚', description: 'Arkadaş kartı denetimi.', open: true }).catch(() => undefined);
+        // ad bütün koşularda aynı (aynı sunucu): sayfadaki en son oyuncu arkadaş koduyla bulunur
+        { const { DatabaseSync } = await import('node:sqlite'); const sq = new DatabaseSync(dbFile); sq.exec('PRAGMA busy_timeout = 3000');
+          const kod = sq.prepare('SELECT friend_code AS c FROM players WHERE name = ? ORDER BY created_at DESC LIMIT 1').get(PAGE_NAME).c; sq.close();
+          await tuba.call('friends.request', { code: kod }); }
+        await page.locator('.menu-tile', { hasText: 'Arkadaşlar' }).first().click();
+        const istek = page.locator('[data-testid="gelen-istek"]', { hasText: `Tuba${sno}` });
+        await istek.waitFor({ timeout: 10_000 }); await istek.getByRole('button', { name: 'Kabul' }).click();
+        await page.locator('.subtab[data-sekme="arkadaslar"]').click();
+        const satir = page.locator('[data-testid="arkadas-satiri"]', { hasText: `Tuba${sno}` }); await satir.waitFor({ timeout: 10_000 });
+        await satir.getByRole('button', { name: `Tuba${sno} için hediye gönder` }).click();
+        const gitti = satir.getByRole('button', { name: `Tuba${sno} için bugünkü hediye gönderildi` }); await gitti.waitFor({ timeout: 10_000 });
+        await toastGone(); await page.getByRole('button', { name: 'Bildirimi kapat' }).click().catch(() => undefined); await sleep(300);
+        const rec = await check('arkadas-karti');
+        const yazi = (await gitti.innerText()).replace(/\s+/g, ' ').trim();
+        if (!yazi.includes('Hediye gönderildi') || /Gitti/.test(yazi)) fail(rec, `gönderilmiş hediye düğmesi: "${yazi}"`);
+        const alt = (await satir.locator('.fr-row-text small').innerText()).replace(/\s+/g, ' ');
+        if (!alt.includes(`Kulaklar ${sno}`)) fail(rec, `arkadaş satırında takım adı yok: "${alt}"`);
+        if (!(await page.getByTestId('silinen-hesap-notu').isVisible())) fail(rec, 'silinen hesap bilgi satırı yok');
+        // takım keşfi denetimleri (takim) bu takımı görmesin: son üye ayrılınca takım silinir
+        await tuba.call('team.leave', {}).catch(() => undefined); tuba.close(); await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // Kod Gir: yanlış kod mesajı; test yönetici kodu → Ayarlar'da yönetici kutusu ve kod paneli
       { await page.locator('.menu-tile[data-tile="kod"]').click(); await page.getByTestId('kod-sayfasi').waitFor();
         await page.getByTestId('kod-girdi').fill('yanlis kod'); await page.getByTestId('kod-kullan').click(); await page.getByTestId('kod-sonuc').waitFor();

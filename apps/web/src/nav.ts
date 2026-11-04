@@ -32,6 +32,24 @@ export type SocialRoute =
  */
 export const eventBackTo = (view: EventView, fromHub: boolean): 'merkez' | 'geldigi-yer' => (view !== 'merkez' && fromHub ? 'merkez' : 'geldigi-yer');
 
+type TabName = 'map' | 'today' | 'camp' | 'team' | 'profile';
+const TAB_NAMES: readonly string[] = ['map', 'today', 'camp', 'team', 'profile'];
+/**
+ * Ekran sınırı kartında ("İnternet yok", "Bir şeyler ters gitti"; ui/HataSiniri.tsx) Geri nereye (YN-205, OT-eski-telefon-35):
+ * 'gecmis': alt ekran, ekranın kendi Geri'si (geri yığını: geldiği ekran, yığın boşsa geldiği sekme); sekme adı: o sekmeye
+ * (Profil/Bugün kök alt ekranı, etkinlik koşusu, yarış sonucu: geldiği sekme; sekme ekranı, bölüm, tanıtım, sonuç: Harita);
+ * null: Geri yok (başlık, hikâye, bekleme; Harita'nın kendisi: sekme çubuğu zaten yerinde). Telefonun geri tuşu ve Escape aynı işi
+ * yapar (ScreenHead). Bağlantı gelince kart kendiliğinden ekranı açar (YN-047), Geri yalnız beklemek istemeyene çıkış.
+ */
+export function errorBackTo(r: { name: string; back?: string }, subs: readonly string[]): 'gecmis' | TabName | null {
+  if (r.name === 'title' || r.name === 'wait' || r.name === 'story' || r.name === 'map') return null;
+  if (TAB_NAMES.includes(r.name)) return 'map';
+  const back = r.back && TAB_NAMES.includes(r.back) ? r.back as TabName : null;
+  if (!back) return 'map';
+  if (subs.includes(r.name) || r.name === 'raceResult' || r.name === 'eventLevel') return back;
+  return 'gecmis';
+}
+
 /**
  * Alt ekranların adı (ScreenHead başlığıyla aynı): parça yüklenirken başlık ve Geri hemen çizilir, ekran "donmuş" görünmez
  * (YN-072; App.tsx ScreenLoading). Adı değişken ekranlar (sohbet: oda adı; dm, kamp ziyareti) burada yok. Eşleşme nav.test.ts'te.

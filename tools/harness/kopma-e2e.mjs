@@ -825,6 +825,29 @@ async function suiteArkadas(A, B) {
   await shot(A, 'dm-sonra');
   await A.page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined);
 
+  // g2b: hediye (YN-206, OT-eski-telefon-36) — kopukken basılan Hediye satırda "Bağlanınca gönderilecek" der (düğme sessizce
+  // griye dönmez); bağlanınca istek bir kez gider, düğme "Hediye gönderildi" yazar ("Gitti" değil)
+  const satir = A.page.locator('[data-testid="arkadas-satiri"]', { hasText: B.name });
+  const hediye = satir.getByRole('button', { name: `${B.name} için hediye gönder` });
+  const hediyeN = () => q1('SELECT COUNT(*) AS n FROM friend_gifts WHERE from_id = ? AND to_id = ?', A.pid, B.pid).n;
+  if (await hediye.waitFor({ timeout: 8000 }).then(() => true, () => false)) {
+    await offline();
+    await hediye.click();
+    const bek = await satir.getByTestId('bekleyen-istek').waitFor({ timeout: 3000 }).then(() => satir.getByTestId('bekleyen-istek').innerText(), () => '');
+    check(bek.includes('Bağlanınca gönderilecek'), `kopukken Hediye satırında "${bek}"`);
+    check(hediyeN() === 0, 'kopukken sunucuda hediye kaydı yok');
+    await shot(A, 'hediye-kopuk');
+    await online('hediye');
+    const gitti = satir.getByRole('button', { name: `${B.name} için bugünkü hediye gönderildi` });
+    await gitti.waitFor({ timeout: 15_000 }).catch(() => undefined);
+    const yazi = (await gitti.innerText().catch(() => '')).replace(/\s+/g, ' ');
+    check(yazi.includes('Hediye gönderildi') && !/Gitti/.test(yazi), `bağlanınca düğme "${yazi}"`);
+    await sleep(1200);
+    check(hediyeN() === 1, `bağlanınca hediye bir kez gitti (sunucuda ${hediyeN()})`);
+    check(!(await satir.getByTestId('bekleyen-istek').count()), 'bağlanınca "Bağlanınca gönderilecek" satırı kalktı');
+    await shot(A, 'hediye-sonra');
+  } else check(false, 'arkadaş satırında "Hediye" düğmesi yok');
+
   // g3: Profil kopukken (YN-142): "Takma adı değiştir" kaybolmaz, devre dışı ve nedeni yazılı; lig satırı son bilinen değerle gri.
   // 320 px'te kopukken "Profil" ve "Bugün" başlıkları kesilmez: haplar daralır ya da alt satıra iner (YN-124)
   for (let i = 0; i < 3 && !(await A.page.locator('nav.tabbar').isVisible().catch(() => false)); i++) { await A.page.getByRole('button', { name: 'Geri' }).first().click({ timeout: 3000 }).catch(() => undefined); await sleep(400); }

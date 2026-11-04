@@ -42,7 +42,14 @@
 .fr-act small { font-size:0.625rem; font-weight:900; color:var(--text-2); letter-spacing:.2px; }
 .fr-act:active:not(:disabled) { transform:translateY(2px); box-shadow:0 1px 0 rgba(8,4,26,.45); }
 .fr-act.race { border-color:color-mix(in srgb, var(--coral) 55%, transparent); background:color-mix(in srgb, var(--coral) 16%, transparent); }
-.fr-act.done, .fr-act:disabled { opacity:.6; cursor:default; }
+.fr-act:disabled { opacity:.6; cursor:default; }
+/* gönderilmiş hediye: "Hediye gönderildi", okunur renkte (soluk değil; "Gitti" gri üstüne gri okunmuyordu, OT-buyuk-yazi-61) */
+.fr-act.done, .fr-act.done:disabled { opacity:1; width:auto; min-width:48px; padding:2px 6px; border-color:color-mix(in srgb, var(--lime) 40%, transparent); background:color-mix(in srgb, var(--lime) 10%, rgba(5,2,20,.35)); box-shadow:none; }
+.fr-act.done small { color:var(--lime); max-width:6.2em; line-height:1.1; text-align:center; }
+/* Büyük yazı: Mesaj / Hediye / Yarış altyazıları kartın öbür yazılarıyla aynı boyda */
+html.buyuk-yazi .fr-act { min-width:56px; width:auto; padding:2px 6px; }
+html.buyuk-yazi .fr-act small { font-size:0.78125rem; }
+.fr-bekle { flex:1 1 100%; }
 .fr-act .sbadge.abs { top:-7px; right:-6px; box-shadow:0 0 0 2px var(--panel); }
 .fr-row.wrap { flex-wrap:wrap; row-gap:10px; }
 /* arkadaş satırı (OT-eski-telefon-11): ad en az ~12 harf sığmıyorsa (320 px, Büyük yazı) Mesaj/Hediye/Yarış adın altına iner, sağa yaslı */

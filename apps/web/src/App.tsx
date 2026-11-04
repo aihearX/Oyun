@@ -27,7 +27,7 @@ import { readInvite } from './invite';
 import { FriendBanner, useSocialUnread } from './friends/Banner';
 import { ProfileCardHost } from './friends/ProfileCard';
 import { Onboarding } from './ui/Onboarding';
-import { EVENT_TITLE, NavContext, SCREEN_TITLE, type Nav, type SocialRoute } from './nav';
+import { EVENT_TITLE, NavContext, SCREEN_TITLE, errorBackTo, type Nav, type SocialRoute } from './nav';
 import { startNet, submitRun, useSocial } from './net';
 import type { ShieldGift } from './kalkan';
 import { runSkills, startLines } from './screens/bolum-basi';
@@ -360,14 +360,27 @@ export function App() {
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
   const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => { void raceSpec(room).then((spec) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room }), chunkFailed); }} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, fromHub: true, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
-  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route}><Suspense fallback={<ScreenLoading tabs top={active === 'map' ? undefined : <TopBar title={TAB_TITLE[active]} />} />}>{el}</Suspense></HataSiniri><TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} /><Onboarding /></NavContext.Provider>;
-  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route}><Suspense fallback={<ScreenLoading {...loadingHead(route)} />}>{el}</Suspense></HataSiniri></NavContext.Provider>;
+  const tabBar = (active: Tab) => <TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} />;
+  const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route} {...errorCard(route)}><Suspense fallback={<ScreenLoading tabs top={active === 'map' ? undefined : <TopBar title={TAB_TITLE[active]} />} />}>{el}</Suspense></HataSiniri>{tabBar(active)}<Onboarding /></NavContext.Provider>;
+  const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route} {...errorCard(route)}><Suspense fallback={<ScreenLoading {...loadingHead(route)} />}>{el}</Suspense></HataSiniri></NavContext.Provider>;
   const openSub = (back: Tab) => (l: ProfileLink | Sub | SocialRoute['name']) => setRoute({ name: l, back } as Route);
   const back = (r: { back: Tab }) => () => { const prev = stack.current.pop(); setRoute(prev ?? { name: r.back }); };
   // parça yüklenirken ekranın adı ve Geri ilk karede (YN-072): sekmede üst çubuk, alt ekranda ScreenHead; Geri ekranın kendi Geri'siyle aynı yere
   const loadingHead = (r: Route): { title?: string; onBack?: () => void } => {
     if (r.name === 'story' || r.name === 'raceResult' || r.name === 'eventLevel' || !('back' in r)) return {};
     return { title: r.name === 'chat' ? r.title : r.name === 'events' ? EVENT_TITLE[r.view ?? 'merkez'] : SCREEN_TITLE[r.name] ?? '', onBack: SUBS.includes(r.name as Sub) ? () => setRoute({ name: r.back }) : back(r) };
+  };
+  /**
+   * ekran sınırı kartı (YN-205): Geri (ekranın kendi Geri'siyle aynı yere, yoksa geldiği sekmeye ya da Harita'ya; nav.ts errorBackTo),
+   * ekranın adı ve sekme çubuğu olmayan rotada sekmeler. Telefonun geri tuşu / Escape ScreenHead'den.
+   */
+  const errorCard = (r: Route): { geri?: () => void; baslik?: string; sekmeler?: ReactNode } => {
+    const to = errorBackTo(r, SUBS); if (!to) return {};
+    const head = loadingHead(r);
+    const baslik = head.title || ((['today', 'camp', 'team', 'profile'] as string[]).includes(r.name) ? TAB_TITLE[r.name as Tab] : '');
+    const geri = to === 'gecmis' ? back(r as { back: Tab }) : () => tab(to);
+    // sekme ekranında çubuk sınırın dışında zaten yerinde
+    return { geri, baslik, sekmeler: (['today', 'camp', 'team', 'profile'] as string[]).includes(r.name) ? undefined : tabBar(curTab) };
   };
 
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
@@ -420,7 +433,7 @@ export function App() {
   } })();
   // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
   const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
-  return <><ArtDefs /><HataSiniri sifirla={route.name}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait' && route.name !== 'result'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  return <><ArtDefs /><HataSiniri sifirla={route.name} {...errorCard(route)}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait' && route.name !== 'result'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
 }
 
 /**

@@ -9,8 +9,9 @@ import { Av, giftFriend, infoLine, raceWith, requestFriend, useOnline } from './
 import { friendsNet, openProfile, refreshFriends, useFriends } from './state';
 import './friends.css';
 import { IconButton } from '../ui/Button';
-import { Art, Glyph, TeamEmblem, rich } from '../ui/art';
+import { Art, Glyph, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { BEKLEYEN_GONDER, BekleyenSatir, cevrimdisi } from '../ui/bekleyen';
 
 type T = 'arkadaslar' | 'istekler' | 'oneriler';
 
@@ -119,26 +120,34 @@ function SearchResults({ q, again }: { q: string; again: number }) {
   );
 }
 
+/**
+ * Arkadaş satırı. Gönderilmiş hediye "Hediye gönderildi" yazar, okunur renkte ("Gitti" "arkadaşım oyundan gitti" diye okunuyordu,
+ * OT-buyuk-yazi-61); takım amblemi takım adıyla birlikte (infoLine). Bağlantı yokken basılan Hediye: istek bağlanınca bir kez gider,
+ * o arada satırda "Bağlanınca gönderilecek" (ui/bekleyen.tsx; OT-eski-telefon-36).
+ */
 function FriendRow({ f, raceReady }: { f: PublicProfile; raceReady: boolean }) {
   const nav = useNav();
   const online = useOnline(f);
   const gifted = useFriends((s) => s.gifted.includes(f.id));
   const unread = useFriends((s) => s.threads?.find((t) => t.other.id === f.id)?.unread ?? 0);
   const [busy, setBusy] = useState(false);
+  const [bekle, setBekle] = useState(false);
+  const gift = async () => { setBusy(true); setBekle(cevrimdisi()); try { await giftFriend(f); } finally { setBusy(false); setBekle(false); } };
   return (
     <div className={`card fr-row fr-friend${online ? ' online' : ''}`} data-testid="arkadas-satiri">
       <button className="fr-row-main" onClick={() => openProfile(f.id)} aria-label={`${f.name} profili`}>
         <Av p={f} />
         <span className="min0 grow fr-row-text">
           <b className="ellipsis">{f.name}</b>
-          <small className="ellipsis">{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{f.highest}. bölüm{f.teamEmblem ? <> · <TeamEmblem e={f.teamEmblem} size="1.1em" className="art-inline" /></> : ''}</small>
+          <small className="ellipsis" title={f.teamName ? `${f.highest}. bölüm · Takımı: ${f.teamName}` : undefined}>{online && <span className="fr-on" aria-label="çevrimiçi">● </span>}{infoLine(f)}</small>
         </span>
       </button>
       <div className="fr-acts">
         <button className="fr-act rel" onClick={() => nav.open({ name: 'dm', id: f.id })} aria-label={`${f.name} ile mesajlaş`}><span aria-hidden><Art e="💬" size="1.15em" className="art-inline" /></span><small>Mesaj</small>{unread > 0 && <span className="sbadge abs">{unread}</span>}</button>
-        <button className={`fr-act${gifted ? ' done' : ''}`} disabled={gifted || busy} onClick={async () => { setBusy(true); await giftFriend(f); setBusy(false); }} aria-label={gifted ? `${f.name} için bugünkü hediye gönderildi` : `${f.name} için hediye gönder`}><span aria-hidden><Art name={gifted ? 'check' : 'gift'} size={24} /></span><small>{gifted ? 'Gitti' : 'Hediye'}</small></button>
+        <button className={`fr-act${gifted ? ' done' : ''}`} disabled={gifted || busy} onClick={() => void gift()} aria-label={gifted ? `${f.name} için bugünkü hediye gönderildi` : `${f.name} için hediye gönder`}><span aria-hidden><Art name={gifted ? 'check' : 'gift'} size={24} /></span><small>{gifted ? 'Hediye gönderildi' : 'Hediye'}</small></button>
         {raceReady && <button className="fr-act race" onClick={() => void raceWith(f, nav)} aria-label={`${f.name} ile yarış`}><span aria-hidden><Art e="🏁" size="1.15em" className="art-inline" /></span><small>Yarış</small></button>}
       </div>
+      {busy && bekle && <div className="fr-bekle"><BekleyenSatir text={BEKLEYEN_GONDER} /></div>}
     </div>
   );
 }
@@ -162,6 +171,8 @@ function FriendList({ raceReady, onFind }: { raceReady: boolean; onFind: () => v
             <div className="fr-sub muted small-note">{rich(onlineN > 0 ? `🟢 ${onlineN} arkadaşın şu an çevrimiçi` : 'Şu an kimse çevrimiçi değil; mesaj bırakabilirsin.')}</div>
             {sorted.map((f) => <FriendRow key={f.id} f={f} raceReady={raceReady} />)}
           </>}
+      {/* YN-140 (OT-takim-kaptani-25): silinen hesap listeden sessizce çıkıyordu; gizlilik gereği ondan ad ya da sayı tutulmaz, satır sabit */}
+      <p className="muted small-note fr-sub" data-testid="silinen-hesap-notu">Hesabını silen oyuncular arkadaş listenden kendiliğinden çıkar.</p>
       <div className="fr-foot">
         <button className="linkish" onClick={() => nav.open({ name: 'chat', room: 'genel', title: 'Genel sohbet' })}><Art e="🌍" size="1.15em" className="art-inline" /> Genel sohbet</button>
         <button className="linkish" onClick={() => setBlocked(true)}><Art e="🚫" size="1.15em" className="art-inline" /> Engellenenler</button>
