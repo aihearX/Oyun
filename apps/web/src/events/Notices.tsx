@@ -6,19 +6,25 @@ import { pendingCount, useEvents } from './store';
 import type { EventView } from './EventsScreen';
 import { Art, Glyph, rich } from '../ui/art';
 import { Icon } from '../ui/icons';
+import { useCoach } from '../ftue/Coach';
 import './events.css';
 
 const SHOW_MS = 7000;
 
-/** Gerçek zamanlı etkinlik bildirimi şeridi (ralli başladı, bayrak sende, quiz başlıyor, düello son 2 saat…). Dokununca ilgili ekran. */
+/**
+ * Gerçek zamanlı etkinlik bildirimi şeridi (ralli başladı, bayrak sende, quiz başlıyor, düello son 2 saat…). Dokununca ilgili ekran.
+ * Tüy Dede tanıtımı sürerken şerit sırada bekler, süresi işlemez; tanıtım kapanınca yeniden görünür (OT-takim-kaptani-32: ralli
+ * bildirimi tanıtımın altında kayboldu). Şerit görünürken de tanıtım başlamaz (ftue/Director.tsx quiet).
+ */
 export function EventNoticeStrip({ onOpen }: { onOpen: (v: EventView) => void }) {
   const n = useEvents((s) => s.notices[s.notices.length - 1]); const dismiss = useEvents((s) => s.dismiss);
+  const guide = useCoach((s) => !!s.tour);
   useEffect(() => {
-    if (!n) return;
+    if (!n || guide) return;
     platform().haptic('medium'); audio.play('notify', { vol: 0.8 });
     const h = setTimeout(() => dismiss(n.id), SHOW_MS); return () => clearTimeout(h);
-  }, [n?.id]);
-  if (!n) return null;
+  }, [n?.id, guide]);
+  if (!n || guide) return null;
   return (
     <div className="ev-notice" role="alert" data-testid="ev-bildirim" data-kind={n.kind} key={n.id}>
       <button className="ev-notice-main" onClick={() => { dismiss(n.id); onOpen(n.target); }}>

@@ -27,8 +27,11 @@ let client: NetClient | null = null;
 export const kgNet = () => client;
 export const openPanel = (p: KgPanel | null) => set({ panel: p });
 
-/** Ton Avı'nın ödüllü turları Timpanogram Eşleştir'de de sayılır (karar 44, ortak hak): oyuncuya söylenen tek açıklama satırı */
-export const ORTAK_HAK_NOTU = 'Ton Avı sesle oynanır; onun ödüllü turları Timpanogram Eşleştir’de de sayılır (önce Timpanogram’ın kendi turları). Günün toplam ödülü aynı kalır.';
+/**
+ * Ton Avı'nın ödüllü turları Timpanogram Eşleştir'de de sayılır (karar 44, ortak hak: iki oyun günde 5 + 5; Timpanogram önce kendi
+ * turlarını, sonra Ton Avı'nın kalanını kullanır): oyuncuya söylenen tek sade cümle (OT-ilk-kez-oyun-53)
+ */
+export const ORTAK_HAK_NOTU = 'Sesin kapalıysa Ton Avı’nın ödüllü turlarını, Timpanogram Eşleştir’in kendi turları bitince orada oynayabilirsin; günün toplam ödülü değişmez.';
 /** Kamp oyununun bugünkü ödüllü tur durumu, sunucunun sayılarıyla (ortak hak dahil) */
 export function oyunGunMetni(g: KgOyunGun): string {
   const bitti = `Bugünün ödüllü turları bitti (${g.cap}/${g.cap}); eğlence için oynayabilirsin.`;

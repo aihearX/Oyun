@@ -45,6 +45,11 @@ export interface CoachStep {
   /** hedef ekranda değilse sayfa kendiliğinden kaydırılmaz (oyuncu kaydırınca halka belirir) */
   noScroll?: boolean;
   /**
+   * bu koşul sağlanınca adım beklediği dokunuşu beklemeden ilerler (ör. arsaya dokunuş bina penceresini açtı: çerçeve ve balon
+   * pencerenin Kur düğmesinin üstünde kalmaz, OT-eski-telefon-29)
+   */
+  endIf?: () => boolean;
+  /**
    * yazının altında panelde gösterilen kısa bilgi (ör. arkadaş kodu): satırın sayfadaki yeri panelin altında kalsa ya da sayfa
    * hedefe kaymışken ekran dışında olsa da oyuncu görür (OT-sessiz-oyuncu-21). Seslendirilmez; onaylı satırın metni değişmez
    */
@@ -239,11 +244,11 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
     const h = setTimeout(() => { if (typeof o === 'object' ? !document.querySelector(o.el) : !resolve(st.target)) go(); }, 1500);
     return () => clearTimeout(h);
   }, [tour.id, index]);
-  // bekleme: öğe belirdi / koşul sağlandı
+  // bekleme: öğe belirdi / koşul sağlandı (ya da adımın `endIf`i)
   useEffect(() => {
-    if (typeof wait !== 'object') return;
+    if (typeof wait !== 'object' && !st.endIf) return;
     const h = setInterval(() => {
-      const ok = 'el' in wait ? !!document.querySelector(wait.el) : wait.until();
+      const ok = (typeof wait === 'object' && ('el' in wait ? !!document.querySelector(wait.el) : wait.until())) || !!st.endIf?.();
       if (ok) { clearInterval(h); setTimeout(go, 250); }
     }, 200);
     return () => clearInterval(h);

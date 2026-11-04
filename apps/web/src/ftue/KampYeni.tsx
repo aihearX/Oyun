@@ -22,9 +22,11 @@ export function kampYeniBekleyen(): string[] {
   return useKampYeni.getState().items.filter((id) => !done.includes(id));
 }
 
-/** klinik kurulmamışken Hasta Vakaları satırının alt notu */
-const NOT: Record<string, string> = { 'vaka-kur': 'Önce Odyoloji Kliniği’ni kur' };
-export const kampYeniAd = (id: string) => (id === 'vaka-kur' ? featureById('vaka').name : featureById(id as FeatureId).name);
+/** klinik (kamp oyunlarında Odyometri Odası) kurulmamışken satırın alt notu */
+const NOT: Record<string, string> = { 'vaka-kur': 'Önce Odyoloji Kliniği’ni kur', 'oyun-kur': 'Önce Odyometri Odası’nı kur' };
+/** "önce kur" yazısının satırı tanıttığı özelliğin adıyla görünür */
+const KUR_OF: Record<string, FeatureId> = { 'vaka-kur': 'vaka', 'oyun-kur': 'kampoyun' };
+export const kampYeniAd = (id: string) => featureById(KUR_OF[id] ?? (id as FeatureId)).name;
 export const kampYeniBaslik = (ids: readonly string[]) => `Kamp’ta yeni ${ids.length} şey: ${ids.map(kampYeniAd).join(', ')}`;
 /** belirdikten sonra dokunuş almaya başladığı an (o an yoldaki dokunuş alttakine geçer) */
 const ARM_MS = 450;

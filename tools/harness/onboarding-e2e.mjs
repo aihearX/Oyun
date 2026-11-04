@@ -308,8 +308,17 @@ async function suite(target, browserName, [W, H]) {
     check(title === 'Kamp’ta yeni 2 şey: Kamp Görevleri, Kamp oyunları' && await card.locator('[data-testid="kamp-yeni-goster"]').count() === 2, `kamp: tek kart “${title}”, her biri için Göster`);
     await sleep(3000); await shot(page, 'kamp-yeni-kart');
     check(!(await page.locator('[data-testid="anlatici-tur"]').count()), 'kamp: kart açıkken tanıtım kendiliğinden başlamadı');
-    for (const id of ['gorev', 'kampoyun']) {
+    // YN-169 (OT-ilk-kez-oyun-52): Odyometri Odası ve Kule kurulmamışken kamp oyunları seslendirilmiş "…seni bekliyor" satırıyla
+    // değil, yazıyla ("önce Odyometri Odası'nı kur", `oyun-kur`) tanıtılır; oyunlardan biri açıksa asıl tanıtım (`kampoyun`)
+    const oyunId = (await card.locator('[data-testid="kamp-yeni-goster"][data-tour="oyun-kur"]').count()) ? 'oyun-kur' : 'kampoyun';
+    const oyunAcik = await page.evaluate(() => [...document.querySelectorAll('[data-testid="giris-ton-kilit"], [data-testid="giris-timpano-kilit"]')].length < 2);
+    check(oyunId === (oyunAcik ? 'kampoyun' : 'oyun-kur'), `kamp: kamp oyunları ${oyunAcik ? 'açık → asıl tanıtım' : 'kilitli → “önce kur” yazısı'} (${oyunId})`);
+    for (const id of ['gorev', oyunId]) {
       await card.locator(`[data-testid="kamp-yeni-goster"][data-tour="${id}"]`).click();
+      if (id === 'oyun-kur') {
+        await page.locator('[data-testid="anlatici"]').waitFor({ timeout: 8000 }).catch(() => undefined);
+        check(await say(page) === 'Önce Odyometri Odası’nı kur; Ton Avı oradan açılır.', 'kamp: oyun-kur yazısı (kg-oyun-01 çalmadı)');
+      }
       await driveTour(page, id, `kamp-yeni-${id}`); seen.push(id);
       if (await page.locator('.sheet-wrap, [data-testid="kg-panel"]').count()) { await page.keyboard.press('Escape').catch(() => undefined); await sleep(400); }
       // zincir yok: tur bitince sıradaki kendiliğinden başlamaz; kalan kartta bekler
@@ -537,8 +546,9 @@ async function suite(target, browserName, [W, H]) {
         const most = Math.max(...Object.values(perLevel).map((v) => v.length));
         check(most <= 2, `bir bölümde en çok ${most} açılım turu art arda (sınır 2; fazlası sonraki bölüme)`);
         const tours = await page.evaluate(() => JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.ftue?.tours ?? []);
-        const want = ['siralama', 'tlig', 'shop', 'akis', 'events', 'race', 'yazi', 'tyaris', 'soru', 'ikili', 'gorev', 'kampoyun', 'vaka'];
-        const miss = want.filter((t) => !tours.includes(t));
+        // kamp oyunları: Odyometri Odası kurulmadıysa asıl tanıtım yerine "önce kur" yazısı görülür (YN-169)
+        const want = ['siralama', 'tlig', 'shop', 'akis', 'events', 'race', 'yazi', 'tyaris', 'soru', 'ikili', 'gorev', 'kampoyun|oyun-kur', 'vaka'];
+        const miss = want.filter((t) => !t.split('|').some((x) => tours.includes(x)));
         check(!miss.length, `10. bölüme kadar bütün açılım turları görüldü${miss.length ? `; eksik: ${miss.join(', ')}` : ''}`);
         check(!(await page.locator('[data-testid="anlatici-tur"]').count()), '10. bölümden sonra bekleyen tur kalmadı');
       }
