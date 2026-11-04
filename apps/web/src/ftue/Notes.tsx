@@ -20,13 +20,13 @@ const CAP_MS = { genel: 150_000, odyoloji: 60_000 } as const;
 /**
  * Biyom tanıtımının notu: o yapıyı anlatan onaylı satırlar (EAR_NOTES), sırayla ilk görülmemişi; hepsi görüldüyse ilki yine gelir
  * (tanıtım biyom başına bir kez). Başka bir yapının notu tanıtımda çıkmaz (YN-122): Apeks'te tabanın presbiakuzi notu, İşitme
- * Siniri'nde yenidoğan taraması, Beyin Sapı'nda maskeleme yok. Yeni metin yok; tam uyan onaylı not olmayan yerde en yakını:
- * Apeks'te implant (teknik satırı apikal elektrotların alçak frekansları taşıdığını söyler), Sinir'de ABR (I. dalga işitme
- * sinirinden). Kemikçikler'de kaldıraç satırı yeni seslendirme ve onay ister; stapedius refleksi ve üzengi tabanı notları kullanılır.
+ * Siniri'nde yenidoğan taraması, Beyin Sapı'nda maskeleme yok. Yeni metin yok: o yapıyı anlatan onaylı not olmayan Apeks ve İşitme
+ * Siniri'nde not çıkmaz, kart biyomun onaylı bilgisini (BIOMES fact) gösterir (yeni not sahip onayı ister). Kemikçikler'de kaldıraç
+ * satırı yeni seslendirme ve onay ister; stapedius refleksi ve üzengi tabanı notları kullanılır.
  */
 const BIOME_NOTES: Record<BiomeId, string[]> = {
   'dis-kulak': ['kepce-yon'], kanal: ['kanal-rezonans', 'serumen-temiz'], zar: ['empedans', 'timpanometri'], kemikcikler: ['akustik-refleks', 'otoskleroz'],
-  'koklea-1': ['dalga', 'presbiakuzi'], 'koklea-2': ['prestin', 'oae-not'], 'koklea-3': ['implant'], sinir: ['abr-not'], 'beyin-sapi': ['yon'], korteks: ['kokteyl'],
+  'koklea-1': ['dalga', 'presbiakuzi'], 'koklea-2': ['prestin', 'oae-not'], 'koklea-3': [], sinir: [], 'beyin-sapi': ['yon'], korteks: ['kokteyl'],
 };
 
 export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote | null {

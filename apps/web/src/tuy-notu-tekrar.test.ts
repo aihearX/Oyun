@@ -96,25 +96,34 @@ describe('Biyom kartı: Tüy Dede notu kısa (YN-175)', () => {
     useStore.setState({ notesSeen: ['akustik-refleks'] });
     expect(pickNote('kemikcikler', 'biome', 13)!.id).toBe('otoskleroz');
   });
-  it('biyom tanıtımında yalnız o yapıyı anlatan onaylı not: Apeks’te taban notu yok, Sinir’de tarama, Beyin Sapı’nda maskeleme yok (YN-122)', () => {
+  it('biyom tanıtımında yalnız o yapıyı anlatan onaylı not: Apeks’te taban notu yok, Sinir’de tarama, Beyin Sapı’nda maskeleme yok (YN-122)', async () => {
     // presbiakuzi (önce ince sesler) tabanın notu: Koklea · Taban'da, Apeks'te değil
     expect(EAR_NOTES.find((n) => n.id === 'presbiakuzi')!.region).toBe('koklea-1');
     const tumu = EAR_NOTES.map((n) => n.id);
     for (const seen of [[], tumu]) {
       useStore.setState({ notesSeen: seen });
-      expect(pickNote('koklea-3', 'biome', 27)!.id).toBe('implant');
-      expect(pickNote('sinir', 'biome', 31)!.id).toBe('abr-not');
+      // Apeks ve İşitme Siniri'ni anlatan onaylı not yok: not çıkmaz, kart biyomun onaylı bilgisini gösterir
+      expect(pickNote('koklea-3', 'biome', 27)).toBeNull();
+      expect(pickNote('sinir', 'biome', 31)).toBeNull();
       expect(pickNote('beyin-sapi', 'biome', 34)!.id).toBe('yon');
       expect(pickNote('koklea-1', 'biome', 21)!.id).toBe('dalga');
     }
     useStore.setState({ notesSeen: ['dalga'] });
     expect(pickNote('koklea-1', 'biome', 21)!.id).toBe('presbiakuzi');
+    // Apeks kartı: Tüy Dede notu yerine biyomun onaylı bilgisi (alçak frekanslar), tabanın notu değil
+    useStore.setState({ notesSeen: [] });
+    const apeks = await ciz(createElement(BiomeIntro, { spec: spec(27), onGo: () => undefined }));
+    expect(apeks).not.toContain('data-testid="tuy-notu"');
+    expect(apeks).toContain('Apeks kalın');
+    expect(apeks).not.toContain('ince seslerin');
     // hiçbir biyomda tanıtım notu başka bölgenin ya da bilinen yanlış eşleşmenin notu değil
-    const yasak = ['presbiakuzi@koklea-3', 'gurultu-centik@koklea-3', 'ototoksik@koklea-3', 'tarama@sinir', 'hl-spl@sinir', 'maskeleme@beyin-sapi', 'rinne-weber@beyin-sapi'];
-    for (const seen of [[], ['kepce-yon', 'kanal-rezonans', 'empedans', 'akustik-refleks', 'dalga', 'prestin', 'implant', 'abr-not', 'yon', 'kokteyl'], tumu]) {
+    const yasak = ['presbiakuzi@koklea-3', 'gurultu-centik@koklea-3', 'ototoksik@koklea-3', 'implant@koklea-3', 'tarama@sinir', 'hl-spl@sinir', 'abr-not@sinir', 'maskeleme@beyin-sapi', 'rinne-weber@beyin-sapi'];
+    for (const seen of [[], ['kepce-yon', 'kanal-rezonans', 'empedans', 'akustik-refleks', 'dalga', 'prestin', 'yon', 'kokteyl'], tumu]) {
       useStore.setState({ notesSeen: seen });
       for (const b of new Set(HUMAN_JOURNEY.levels.map((l) => l.biome))) {
-        const n = pickNote(b, 'biome', 1); expect(n, b).not.toBeNull();
+        const n = pickNote(b, 'biome', 1);
+        if (b === 'koklea-3' || b === 'sinir') { expect(n, b).toBeNull(); continue; }
+        expect(n, b).not.toBeNull();
         expect(n!.region).toBe(b); expect(yasak).not.toContain(`${n!.id}@${b}`);
       }
     }
