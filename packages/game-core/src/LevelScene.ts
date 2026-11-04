@@ -14,9 +14,9 @@ import { luckyNoteTexture, tonotopyFreq } from './art';
 import { RaceLayer } from './race';
 import { DT, HERO_H, HERO_HW, BREATH } from './play/consts';
 import { buildWorld, near, type WEnt, type World } from './play/world';
-import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
+import { beatState, colorMatch, crumbleDelay, enemyAt, enemyKind, hazardAt, hazardWarn, initState, lastRect, melodyBehind, NO_INPUT, projectiles, solidAt, step, type SimEvent, type SimInput, type SimState } from './play/sim';
 import { Planner } from './play/planner';
-import { INTRO_S, bossPhaseText, bossStrip, liveWaves } from './play/boss';
+import { INTRO_S, bossStrip, liveWaves } from './play/boss';
 import { escortDanger } from './play/escort';
 import { bossTutorial, REFRESH_KEY, REFRESH_TEXT, Tutorial, TUTORIAL_MAX_S, TUTORIAL_SLOW } from './play/tutorial';
 import {
@@ -263,6 +263,8 @@ export class LevelScene extends Phaser.Scene {
       case 'collect': S.score += 50; this.fx.comboBurst(e.x, e.y, 16); this.hud.flyNote(e.x, e.y); sfx.combo(10); floatText(this, e.x, e.y - 20, '+5 nota', COLORS.amber); break;
       case 'note': { const ent = this.world.ents[e.id!]!; sfx.toneAt(tonotopyFreq(1 - Number(ent.p.t ?? 0.5)), 0.25); floatText(this, e.x, e.y - 10, `Nota ${e.n}/${this.spec.objective.target ?? this.world.notesTotal}`, COLORS.accent); S.score += 40; break; }
       case 'noteWrong': sfx.tick(); floatText(this, e.x, e.y - 10, 'sıra değil', COLORS.coral); break;
+      // sıra bozuldu (YN-183): gösterge kalıcı değişir (syncHud); kural bir kez yazılır
+      case 'melodyBroken': this.hint('Sıra bozuldu: melodi notaları soldan sağa, atlamadan toplanır', 3000, undefined, 'melodi-sira'); break;
       case 'cochlea': S.score += 200; sfx.levelUp(); this.afterPraise(() => this.fx.cochleaPickup(e.x, e.y)); this.emit({ type: 'haptic', kind: 'success' }); break;
       case 'power': {
         sfx.power(); this.emit({ type: 'haptic', kind: 'success' }); this.firstTime('guc');
@@ -298,11 +300,13 @@ export class LevelScene extends Phaser.Scene {
       case 'bossWarn': sfx.tick(); break;
       case 'bossSlam': this.cameras.main.shake(160, 0.014); sfx.hit(); break;
       case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral, 28); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
-      case 'bossPhase': this.hint(bossPhaseText(this.sim.boss?.kind ?? 'golem', Number(e.n ?? 2)), 2600, undefined, `boss-faz-${e.n}`); this.bossStripId = `boss-faz-${e.n}`; sfx.toneAt(110, 0.5); break;
-      case 'bossScream': this.hint('Bağırıyor! 3 notayı topla', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
+      // faz talimatı alt şeride bossStripTick'ten gelir (canavarın fazından okunur; çubukla aynı karede değişir, YN-184)
+      case 'bossPhase': sfx.toneAt(110, 0.5); break;
+      case 'bossScream': this.hint('Bağırıyor! 3 notayı topla: kalbi açılır', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
       case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
       case 'bossStun': this.hint('Kalbi açıkta! İleri fırla ya da havadan aşağı kaydırıp üstüne in', 2600, undefined, 'boss-sersem'); sfx.power(); break;
-      case 'bossDown': flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
+      // yenildi: çubuk "Yenildi!" der, şeritte son fazın talimatı kalmasın
+      case 'bossDown': this.hud.toast('', 0, true); flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
         floatText(this, GAME_W / 2, GROUND_Y - 220, this.sim.boss?.kind === 'canavar' ? 'Ninni beyne ulaştı' : 'Kanal açıldı!', COLORS.accent); break;
       default: break;
@@ -450,7 +454,9 @@ export class LevelScene extends Phaser.Scene {
     // süreli bölüm: hedef süreden geri sayım (yarışta yok: yarışın kendi şeridi var)
     const o = this.spec.objective; const timeLeft = o.id === 'timed' && !this.opts.race ? (o.target ?? this.spec.parTimeSec) - this.sim.t : null;
     // melodi hedefi: "Nota 3/8" baştan sona (sırayla toplananlar; YN-102)
-    const melody = o.id === 'melody' && this.world.notesTotal > 0 ? { n: this.sim.notes, total: o.target ?? this.world.notesTotal } : null;
+    // sıra bozulunca "Sıra bozuldu · 2/8"; sıradaki nota geride ve dönülebiliyorsa yön oku + "3. nota geride" (YN-183)
+    const behind = o.id === 'melody' && !this.sim.melodyBroken ? melodyBehind(this.world, this.sim) : 0;
+    const melody = o.id === 'melody' && this.world.notesTotal > 0 ? { n: this.sim.notes, total: o.target ?? this.world.notesTotal, broken: !!this.sim.melodyBroken, behind } : null;
     this.hud.update({ notes: this.sim.coins, notesTotal: this.world.coinsTotal, cochleas: this.sim.cochleas, cochleasTotal: this.world.cochleasTotal, lives: this.sim.lives, pct: this.pct(), timeLeft,
       escort: this.sim.escort ? (!this.sim.escort.alive ? 'lost' : this.escWarn ? 'danger' : 'ok') : null, melody, shield: this.sim.shield });
   }
@@ -721,11 +727,12 @@ export class LevelScene extends Phaser.Scene {
   }
   /** ekranda kısa ipucu; `kind` verilirse göstergenin el işaretiyle (dokun / basılı / aşağı / ileri) */
   /** ipucu yazısı; id verilirse kabuğa 'hint' olayı gider (seslendirme için; kimlikler bridge.ts → HINT_IDS) */
-  hint(text: string, ms = 2500, kind?: HintKind, id?: string) {
+  /** now: şerit eski yazıyı geçişsiz bırakır, yenisi o karede tam görünür (canavar fazı: çubukla aynı karede) */
+  hint(text: string, ms = 2500, kind?: HintKind, id?: string, now = false) {
     if (id) this.emit({ type: 'hint', id, text });
     if (!this.hintsOn) return;
     if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
-    this.hud.toast(text, ms);
+    this.hud.toast(text, ms, now);
   }
   /**
    * İpuçlarını aç/kapat (araçlar: tools/reels clip.html ve studio.html temiz çekimde kapatır; kabuk `?ipucu=0` ile LevelOptions.hints).
@@ -736,13 +743,14 @@ export class LevelScene extends Phaser.Scene {
     this.hintTimer?.remove(); this.hud.hideHint(); this.hud.toast('', 0); this.tutorial?.hide();
   }
   /**
-   * Boss alt şeridi (YN-102): giriş yazısı INTRO_S oyun saniyesi, sonra Faz 1 talimatı. Oyun saniyesiyle karar verilir (bot/yük
-   * altında sahne zamanlayıcısı simülasyonun gerisinde kalsa da hikâye cümlesi Faz 1 boyunca ekranda kalmaz).
+   * Boss alt şeridi (YN-102, YN-184): giriş yazısı INTRO_S oyun saniyesi, sonra Faz 1 talimatı; faz 2/3 başlayınca o fazın talimatı.
+   * Oyun saniyesiyle ve canavarın fazından karar verilir (bot/yük altında sahne zamanlayıcısı simülasyonun gerisinde kalsa da hikâye
+   * cümlesi Faz 1 boyunca ekranda kalmaz); faz yazısı geçişsiz gelir: eski fazın yazısı can çubuğu yeni fazı gösterirken sönmeye devam etmez.
    */
   private bossStripTick() {
     const b = this.sim.boss!; const want = bossStrip(b, this.sim.t, !!this.spec.intro);
     if (!want || want.id === this.bossStripId) return;
-    this.bossStripId = want.id; this.hint(want.text, Math.max(1500, (want.untilS - this.sim.t) * 1000), undefined, want.id);
+    this.bossStripId = want.id; this.hint(want.text, Math.max(1500, (want.untilS - this.sim.t) * 1000), undefined, want.id, true);
   }
   /** Yüksek görünürlük: görünen zemin üst/yan kenarları, engeller ve düşmanlar açık konturla (koyu alt çizgiyle; her zeminde seçilir) */
   private drawHiVis() {

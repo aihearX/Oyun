@@ -33,6 +33,7 @@ export const HINT_IDS = {
   'mod-gece': 'Gece değiştiricisi', 'mod-cihaz-kapali': 'Cihaz kapalı değiştiricisi', 'mod-ters-yercekimi': 'Ters yerçekimi değiştiricisi',
   eskort: 'fısıltı eskortu başladı', 'eskort-kayip': 'fısıltı yaralandı', kovalama: 'ışık treni kovalıyor',
   'boss-ogret': 'ilk canavarın öğretici anı (20, ilk saplı yumruk)', 'boss-bagir': 'boss bağırıyor (3 nota)', 'boss-sersem': 'boss sersemledi', 'bolum-nota': 'bölüm içi kısım sonu nota özeti ("Bu kısımda n/m nota")',
+  'melodi-sira': 'melodi sırası bozuldu (kural: soldan sağa, atlamadan)',
 } as const;
 
 /** Canlı yarışta bir rakip (görünüm bilgisi) */

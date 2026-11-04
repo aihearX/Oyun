@@ -8,6 +8,7 @@ import type { BiomeArt } from './palette';
 import { EntityView } from './view';
 import { I, R, T, drawGoldCochlea, drawGoldNote, drawMelodyNote, softGlowTex, sparkTex, ringTex } from './tex';
 import { circle, css, darken, FONT, glow, heartPath, lighten, mix, rng, THEME, tono } from './util';
+import { keepClear } from './float-lane';
 
 const ADD = Phaser.BlendModes.ADD;
 export const num = (v: unknown, d: number) => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : d);
@@ -274,7 +275,11 @@ export function buildCurtain(v: EntityView, kind: string, w: number, h: number, 
   const ar = s.add.graphics(); v.add(ar);
   const cx = w / 2, ay = h + Math.max(6, gap * 0.3);
   ar.lineStyle(3, 0xfff3b0, 1); for (const dy of [0, 7]) { ar.beginPath(); ar.moveTo(cx - 8, ay + dy); ar.lineTo(cx, ay + dy + 6); ar.lineTo(cx + 8, ay + dy); ar.strokePath(); }
-  const tx = s.add.text(cx, Math.max(14, h - 26), 'KAY ↓', { fontFamily: 'system-ui, sans-serif', fontSize: '13px', fontStyle: '700', color: '#3a1030' }).setOrigin(0.5).setAlpha(0.85); v.add(tx);
+  // "KAY ↓": krem yazı, koyu çerçeve ve koyu zemin — mor/turuncu/pembe perdenin her renginde okunur (sesi kapalı oyuncunun tek
+  // ipucu, YN-179); uçan yazılar ("Seri x5 +20") bu işaretin üstüne binmez, üstüne çıkar (float-lane keepClear)
+  const tx = s.add.text(cx, Math.max(14, h - 26), 'KAY ↓', { fontFamily: FONT, fontSize: '14px', fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 4, resolution: R(), padding: { x: 2, y: 1 } }).setOrigin(0.5);
+  const pill = s.add.graphics(); pill.fillStyle(0x140c35, 0.72); pill.fillRoundedRect(cx - tx.width / 2 - 4, tx.y - tx.height / 2, tx.width + 8, tx.height, Math.min(9, tx.height / 2));
+  v.add(pill); v.add(tx); keepClear(s, tx);
   v.tw({ targets: ar, y: { from: -2, to: 3 }, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   v.tw({ targets: lit, alpha: { from: 0.35, to: 0.7 }, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
   v.tw({ targets: strands, x: { from: -1.5, to: 1.5 }, duration: 1100, yoyo: true, repeat: -1, ease: 'Sine.InOut' });

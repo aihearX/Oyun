@@ -5,7 +5,7 @@ import { GROUND_Y } from '@odi/shared';
 import * as C from './consts';
 import { NO_INPUT, step } from './sim';
 import { press, setup, testSpec } from './testkit';
-import { BOSS_CALM_S, INTRO_S, bossPhaseText, bossStrip } from './boss';
+import { BOSS_CALM_S, INTRO_S, PHASE_TEXT_S, bossPhaseText, bossStrip } from './boss';
 
 /**
  * YN-102 (OT-sessiz-oyuncu-12, OT-ilk-kez-oyun-23): değiştiricilerin yazısı oyunun gerçek davranışını söyler; değiştiricili her
@@ -67,7 +67,9 @@ describe('boss alt şeridi: her faz kendi talimatı', () => {
       const at4 = bossStrip(b, s.t, !!spec.intro); expect(at4?.id).toBe('boss-faz-1'); expect(at4?.text).toMatch(/^Faz 1: /);
       // talimat ilk saldırı uyarısından önce ekranda (YN-091: ilk uyarı BOSS_CALM_S'den önce gelmez)
       expect(bossStrip(b, BOSS_CALM_S, true)?.id).toBe('boss-faz-1');
-      expect(bossStrip({ ...b, phase: 2 }, s.t, true)).toBeNull();
+      // faz 2/3 yazısı faz başladığı andan PHASE_TEXT_S boyunca (YN-184); eski bir faz değişiminin yazısı geri gelmez
+      expect(bossStrip({ ...b, phase: 2, phaseAt: s.t - PHASE_TEXT_S - 0.1 }, s.t, true)).toBeNull();
+      expect(bossStrip({ ...b, phase: 2, phaseAt: s.t }, s.t, true)?.id).toBe('boss-faz-2');
     }
   });
   it('Faz 1 cümleleri motorun gerçek vuruş yolunu söyler; Faz 2/3 eskisi gibi', () => {

@@ -31,14 +31,18 @@ export function bossPhaseText(kind: BossState['kind'], phase: number): string {
   if (kind === 'golem') return phase === 1 ? 'Faz 1: Gölgeden kaç. Yumruk saplanınca üstüne zıpla, havada aşağı kaydır' : phase === 2 ? 'Faz 2: Serumen topları! Üstlerinden zıpla' : 'Faz 3: Çift yumruk ve damlalar!';
   return phase === 1 ? 'Faz 1: Alçak dalganın üstünden zıpla. Bağırınca 3 notayı topla, kalbine atıl' : phase === 2 ? 'Faz 2: Yüksek dalgada kay · Bulutlara dikkat' : 'Faz 3: Çift dalga!';
 }
-/** Faz 1 talimatı şeritte bu kadar oyun saniyesi kalır (sonra şerit boşalır; faz 2/3 uyarıları 2,6 sn) */
+/** Faz 1 talimatı şeritte bu kadar oyun saniyesi kalır (sonra şerit boşalır) */
 export const PHASE1_TEXT_S = 7;
+/** Faz 2/3 talimatı faz başından bu kadar oyun saniyesi kalır: faz arası (1,4 sn) ve yeni fazın ilk saldırısı boyunca */
+export const PHASE_TEXT_S = 4;
 /**
- * Şeritte şu an hangi yazı olmalı (oyun saniyesiyle; LevelScene her karede sorar, değişince gösterir): giriş yazısı INTRO_S'ye
- * kadar, sonra Faz 1 talimatı. null: şeride boss karışmaz (faz 2/3 uyarıları 'bossPhase' olayıyla gelir).
+ * Şeritte şu an hangi yazı olmalı (oyun saniyesiyle; LevelScene her karede sorar, değişince hemen gösterir): giriş yazısı INTRO_S'ye
+ * kadar, sonra Faz 1 talimatı; faz 2/3 başladığı adımdan PHASE_TEXT_S boyunca o fazın talimatı. Yazı canavarın fazından okunur
+ * (can çubuğuyla aynı kaynak): çubuk ve şerit hiçbir karede farklı faz söylemez (YN-184). null: şeride boss karışmaz.
  */
-export function bossStrip(b: Pick<BossState, 'kind' | 'phase' | 'defeated'>, t: number, intro: boolean): { id: string; text: string; untilS: number } | null {
-  if (b.defeated || b.phase !== 1) return null;
+export function bossStrip(b: Pick<BossState, 'kind' | 'phase' | 'defeated' | 'phaseAt'>, t: number, intro: boolean): { id: string; text: string; untilS: number } | null {
+  if (b.defeated) return null;
+  if (b.phase !== 1) return t < b.phaseAt + PHASE_TEXT_S ? { id: `boss-faz-${b.phase}`, text: bossPhaseText(b.kind, b.phase), untilS: b.phaseAt + PHASE_TEXT_S } : null;
   const from = intro ? INTRO_S : 0;
   if (t < from) return null;
   return t < from + PHASE1_TEXT_S ? { id: 'boss-faz-1', text: bossPhaseText(b.kind, 1), untilS: from + PHASE1_TEXT_S } : null;
@@ -52,7 +56,7 @@ export interface Ball { x: number; vx: number; t0: number }
 export interface Drop { x: number; t0: number }
 export interface Wave { x: number; dir: 1 | -1; kind: 'low' | 'high'; t0: number }
 export interface BossState {
-  kind: 'golem' | 'canavar'; name: string; hp: number; maxHp: number; phase: number; defeated: boolean; defeatAt: number;
+  kind: 'golem' | 'canavar'; name: string; hp: number; maxHp: number; phase: number; /** şimdiki fazın başladığı oyun saniyesi */ phaseAt: number; defeated: boolean; defeatAt: number;
   mode: 'idle' | 'attack' | 'scream' | 'stun' | 'dead'; until: number; nextAttack: number; nextBall: number; nextDrop: number; nextScream: number;
   fists: Fist[]; balls: Ball[]; drops: Drop[]; waves: Wave[]; warnWall: { side: -1 | 1; at: number; kind: 'low' | 'high' | 'ball'; pair: boolean } | null;
   notes: { x: number; y: number; got: boolean }[]; core: { x: number; until: number; immune: number } | null;
@@ -76,7 +80,7 @@ export function bossInit(w: World, s: SimState): void {
   const hp = spec?.hp ?? (kind === 'golem' ? 12 : 18);
   const calm = w.spec.intro ? BOSS_CALM_S : 0;
   s.boss = {
-    kind, name: spec?.name ?? (kind === 'golem' ? 'Serumen Golemi' : 'Gürültü Canavarı'), hp, maxHp: hp, phase: 1, defeated: false, defeatAt: 0,
+    kind, name: spec?.name ?? (kind === 'golem' ? 'Serumen Golemi' : 'Gürültü Canavarı'), hp, maxHp: hp, phase: 1, phaseAt: 0, defeated: false, defeatAt: 0,
     mode: 'idle', until: 2.4, nextAttack: Math.max(calm, (kind === 'canavar' ? 1.6 : 2.4) / paceK(w)), nextBall: 6 / paceK(w), nextDrop: 4 / paceK(w), nextScream: kind === 'canavar' ? 7 / paceK(w) : 1e9,
     fists: [], balls: [], drops: [], waves: [], warnWall: null, notes: [], core: null, seed: (w.spec.seed ^ 0x5bd1e995) >>> 0, lastHit: -9, respawned: false, fistIds, hits: 0, tutored: false,
   };
@@ -125,7 +129,7 @@ function damageBoss(w: World, s: SimState, n: number, by: string) {
   if (s.events) s.events.push({ k: 'bossHit', x: s.hero.x, y: s.hero.y, n, s: by });
   const t2 = Math.round(b.maxHp * 2 / 3), t3 = Math.round(b.maxHp / 3);
   const np = b.hp <= t3 ? 3 : b.hp <= t2 ? 2 : 1;
-  if (np > b.phase) { b.phase = np; b.mode = 'idle'; b.until = s.t + 1.4; b.nextAttack = s.t + 1.4; b.core = null; b.fists = []; b.balls = []; b.waves = []; b.drops = []; b.warnWall = null; if (s.events) s.events.push({ k: 'bossPhase', x: 195, y: GROUND_Y - 300, n: np }); }
+  if (np > b.phase) { b.phase = np; b.phaseAt = s.t; b.mode = 'idle'; b.until = s.t + 1.4; b.nextAttack = s.t + 1.4; b.core = null; b.fists = []; b.balls = []; b.waves = []; b.drops = []; b.warnWall = null; if (s.events) s.events.push({ k: 'bossPhase', x: 195, y: GROUND_Y - 300, n: np }); }
   if (b.hp <= 0) { b.defeated = true; b.defeatAt = s.t; b.mode = 'dead'; b.fists = []; b.balls = []; b.drops = []; b.waves = []; b.notes = []; b.core = null; b.warnWall = null; if (s.events) s.events.push({ k: 'bossDown', x: 195, y: GROUND_Y - 200 }); }
   void w;
 }

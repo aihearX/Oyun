@@ -42,5 +42,14 @@ describe('uçan yazı yeri (render/float-lane.ts)', () => {
     const y = yeni.y - b!;
     expect(y).toBeLessThanOrEqual(eski.y - 36 - 4);
   });
+  it('engel işareti ("KAY ↓") sabit kutu: üstüne gelen uçan yazı onun üstüne çıkar, işaret yerinde kalır (YN-179)', () => {
+    const kay = { x: 500, y: 400, w: 44, h: 20 };
+    const seri = { x: 510, y: 404, w: 150, h: 34 };
+    const [lift] = settle([{ box: seri, lift: 0 }], 4, [kay]);
+    const y = seri.y - lift!;
+    expect(y + seri.h / 2 + 4).toBeLessThanOrEqual(kay.y - kay.h / 2);
+    // uzaktaki yazı etkilenmez
+    expect(settle([{ box: { ...seri, x: 800 }, lift: 0 }], 4, [kay])).toEqual([0]);
+  });
 });
 

@@ -9,6 +9,8 @@ import { css, FONT, heartPath, screenOrigin, THEME, type Ctx } from './util';
 import { motionReduced } from './flash';
 import { spiritTex } from './mech';
 import { paintWarning } from './patoloji';
+import type { Box } from './float-lane';
+import { dropBelow, praiseY } from './hud-yer';
 
 const ADD = Phaser.BlendModes.ADD;
 /** koklea yuvası ölçeği: üç yuva + "n/3" yazısı nota ve can panelleri arasına aralıklı sığsın */
@@ -19,6 +21,8 @@ export type HintKind = 'tap' | 'hold' | 'swipeDown' | 'swipeRight' | 'swipeLeft'
 /** Fısıltıyı Taşı göstergesi: yanında / tehlikede (düşman yaklaşıyor) / yolda kaldı (simge gri); null gizler */
 export type EscortHud = 'ok' | 'danger' | 'lost' | null;
 export interface GhostMark { id: string; pct: number; color: number; label?: string }
+/** melodi hapının durumu (YN-183): sırada / sıra bozuldu (kalıcı) / sıradaki nota geride (dönülebilir) */
+export type MelodyHud = 'ok' | 'broken' | 'behind';
 
 // ---------------------------------------------------------------- dokular
 const panelTex = (s: Phaser.Scene, w: number, h: number, r: number) => T(s, `hud-panel-${w}x${h}-${r}`, w + 16, h + 16, (ctx) => glassPanel(ctx, 8, 6, w, h, r));
@@ -79,6 +83,11 @@ const markerTex = (s: Phaser.Scene, c: number) => T(s, `hud-mark-${c.toString(16
 });
 /** melodi sayacının simgesi: sahnedeki melodi notasıyla aynı çizim (camgöbeği nota + halka) */
 const melodyIcon = (s: Phaser.Scene) => T(s, 'hud-melodi', 28, 28, (ctx) => drawMelodyNote(ctx, 14, 14, 16));
+/** melodi hapında geride kalan notanın yönü: sola bakan kalın ok (amber, koyu çerçeve; emoji değil) */
+const backArrowTex = (s: Phaser.Scene) => T(s, 'hud-geri-ok', 28, 28, (ctx) => {
+  ctx.beginPath(); ctx.moveTo(3, 14); ctx.lineTo(13, 4.5); ctx.lineTo(13, 10); ctx.lineTo(25, 10); ctx.lineTo(25, 18); ctx.lineTo(13, 18); ctx.lineTo(13, 23.5); ctx.closePath();
+  ctx.lineJoin = 'round'; ctx.strokeStyle = '#140c35'; ctx.lineWidth = 4; ctx.stroke(); ctx.fillStyle = '#ffe08a'; ctx.fill();
+});
 /** değiştirici rozetinin çizili simgeleri (22×22, krem çizgi; emoji yok) */
 const modIcon = (s: Phaser.Scene, id: string) => T(s, `hud-mod-${id}`, 22, 22, (ctx) => {
   ctx.strokeStyle = '#fff6e5'; ctx.fillStyle = '#fff6e5'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -139,7 +148,10 @@ export class LevelHud {
   private escPanel: Phaser.GameObjects.Image; private escIco: Phaser.GameObjects.Image; private escText: Phaser.GameObjects.Text; private escState: EscortHud = null;
   /** bölüm değiştiricileri (YN-102): ikinci satırın solunda küçük kalıcı rozet (çizili simge + ad); süre/fısıltı varsa bir alt satıra iner */
   private modPanel: Phaser.GameObjects.Image; private modIcons: Phaser.GameObjects.Image[] = []; private modText: Phaser.GameObjects.Text; private modShown = false;
-  /** melodi hedefi (YN-102): "Nota 3/8" sayacı baştan sona (ikinci satırın ortası; süre de varsa bir alt satır) */
+  /**
+   * melodi hedefi (YN-102): "Nota 3/8" sayacı baştan sona (ikinci satırın ortası; süre de varsa bir alt satır). Sıra bozulunca
+   * kalıcı olarak "Sıra bozuldu · 2/8" (pembe yazı, gri nota); sıradaki nota geride ve dönülebiliyorsa sola ok + "3. nota geride" (YN-183)
+   */
   private melPanel: Phaser.GameObjects.Image; private melIco: Phaser.GameObjects.Image; private melText: Phaser.GameObjects.Text; private melKey = '';
   /** bölüm başı değiştirici duyurusu (göstergenin altında, birkaç saniye) */
   private announceC?: Phaser.GameObjects.Container;
@@ -286,6 +298,8 @@ export class LevelHud {
     const up = n > this.notes; this.notes = n;
     const w0 = this.notesText.width + this.notesTotal.width;
     this.notesText.setText(String(n)); this.notesTotal.setText(total > 0 ? `/${total}` : ''); this.positionTotal();
+    // toplanacak nota yoksa (canavar arenası) "0" sayacı gizli: canavarın 3 notası bu sayaca girmez, oyuncu boşuna bakmasın (YN-179)
+    const shown = total > 0 || n > 0; for (const o of [this.notesPanel, this.noteIco, this.notesText, this.notesTotal]) o.setVisible(shown);
     if (this.notesText.width + this.notesTotal.width > w0) this.fitTop();
     if (up && !motionReduced()) { this.bump(this.noteIco, 1.25); }
   }
@@ -371,8 +385,8 @@ export class LevelHud {
     if (n > 0 && !motionReduced()) this.bump(this.shieldIco, lost ? 0.8 : 1.3);
   }
   /**
-   * ikinci satırın sağı, görünür sağ kenar ilerleme çubuğuyla hizalı; süre paneline değecekse bir alt satıra iner. Seri rozeti
-   * kalkanın ya da süre panelinin altına iner (üst üste binmez).
+   * ikinci satırın sağı, görünür sağ kenar ilerleme çubuğuyla hizalı; süre paneline ya da melodi hapına değecekse onun altına iner.
+   * Seri rozeti kalkanın, süre panelinin ya da melodi hapının altına iner (üst üste binmez).
    */
   private placeShield() {
     if (!this.combo) return;
@@ -380,12 +394,14 @@ export class LevelHud {
     const w = Math.ceil((this.shieldText.width + 44) / 4) * 4;
     if (this.shieldPanel.getData('w') !== w) { this.shieldPanel.setData('w', w); this.shieldPanel.setTexture(panelTex(this.scene, w, 32, 16)); }
     const l = W - 18 - w; const timerOn = this.timerPanel.visible && !boss;
-    const timerR = timerOn ? this.timerPanel.x + Number(this.timerPanel.getData('w') ?? 100) / 2 : -Infinity;
-    const y = boss ? (this.bossBottom! + 4) / this.k + 18 : timerR + 6 > l ? t + 124 : t + 88;
+    const y = boss ? (this.bossBottom! + 4) / this.k + 18 : dropBelow({ x: l + w / 2, y: t + 86, w, h: 32 }, this.rowBoxes(this.shieldPanel)) + 2;
     this.shieldPanel.setPosition(l + w / 2, y);
     this.shieldIco.setPosition(l + 17, y - 1); this.shieldText.setPosition(l + 32, y - 1);
     const below = boss ? 0 : Math.max(this.shields > 0 ? y + 52 : 0, timerOn ? t + 140 : 0);
-    this.combo.setPosition(W - 18 - this.comboW / 2, Math.max(t + 100, below));
+    // ikinci satırdaki bir panele (melodi hapı, süre, kalkan) değecekse onun altına iner: hap hiç örtülmez (YN-183)
+    const cx = W - 18 - this.comboW / 2, cy = Math.max(t + 100, below);
+    // (rozet her seride ×1,18 zıplar: boşluk o taşmayı da karşılar)
+    this.combo.setPosition(cx, boss ? cy : dropBelow({ x: cx, y: cy - 2, w: this.comboW, h: 40 }, this.rowBoxes(), 10) + 2);
   }
   /** canavar bölümünde ikinci satırın yerinde can çubuğu var: kalkan sayacı çubuğun altına iner (bottom: çubuğun alt kenarı) */
   belowBossBar(bottom: number | null) { this.bossBottom = bottom; this.placeShield(); }
@@ -398,15 +414,27 @@ export class LevelHud {
     for (const m of list) { const ic = I(this.scene, modIcon(this.scene, m.id)).setScale(0.8 / R()); this.modIcons.push(ic); this.root.add(ic); }
     this.placeRow2();
   }
-  /** melodi hedefi sayacı: sırayla toplanan / hedef (null gizler) */
-  setMelody(n: number | null, total = 0) {
-    const key = n == null ? '' : `${n}/${total}`; if (key === this.melKey) return;
-    const up = !!this.melKey && n != null && n > Number(this.melKey.split('/')[0]); this.melKey = key;
+  /** melodi hedefi sayacı: sırayla toplanan / hedef (null gizler); st: sırada / sıra bozuldu / sıradaki nota (`next`. nota) geride */
+  setMelody(n: number | null, total = 0, st: MelodyHud = 'ok', next = 0) {
+    const key = n == null ? '' : `${n}/${total}/${st}/${next}`; if (key === this.melKey) return;
+    const prev = this.melKey.split('/'); const up = !!this.melKey && n != null && n > Number(prev[0]); const stChanged = !!this.melKey && prev[2] !== st; this.melKey = key;
     for (const o of [this.melPanel, this.melIco, this.melText]) o.setVisible(n != null);
-    if (n == null) return;
-    this.melText.setText(`Nota ${n}/${total}`).setColor(n >= total ? '#8ef0b0' : '#fff6e5');
+    if (n == null) { this.placeRow2(); return; }
+    // renk + yazı birlikte (yalnız renge dayanmaz): bozulunca pembe yazı ve gri nota; geride amber ok ve yazı
+    const done = n >= total;
+    this.melIco.setTexture(st === 'behind' ? backArrowTex(this.scene) : melodyIcon(this.scene)).setTint(st === 'broken' ? 0x8e8aa6 : 0xffffff).setAlpha(st === 'broken' ? 0.7 : 1);
+    this.melText.setText(st === 'broken' ? `Sıra bozuldu · ${n}/${total}` : st === 'behind' ? `${next}. nota geride · ${n}/${total}` : `Nota ${n}/${total}`)
+      .setColor(st === 'broken' ? '#ffb3c8' : st === 'behind' ? '#ffe08a' : done ? '#8ef0b0' : '#fff6e5');
     this.placeRow2();
-    if (up && !motionReduced()) this.bump(this.melIco, 1.35);
+    if ((up || (stChanged && st !== 'ok')) && !motionReduced()) this.bump(this.melIco, 1.35);
+  }
+  /** ikinci satırda görünen panellerin görünür kutuları (doku 8, 6 gölge payıyla: görünür merkez dokunun 2 px üstünde) */
+  private rowBoxes(...skip: Phaser.GameObjects.Image[]): Box[] {
+    const out: Box[] = [];
+    for (const [p, h] of [[this.timerPanel, 32], [this.escPanel, 32], [this.modPanel, 30], [this.melPanel, 32], [this.shieldPanel, 32]] as const) {
+      if (p.visible && !skip.includes(p)) out.push({ x: p.x, y: p.y - 2, w: Number(p.getData('w') ?? 100), h });
+    }
+    return out;
   }
   /**
    * İkinci satır: solda fısıltı ya da değiştirici rozeti, ortada süre ya da melodi sayacı. Sığmayan (sol rozet ortadakine
@@ -414,8 +442,11 @@ export class LevelHud {
    */
   private placeRow2() {
     if (!this.modPanel || !this.melPanel) return;
+    this.placeRow2Panels(); this.placeShield();
+  }
+  private placeRow2Panels() {
     const y2 = this.timerPanel.y, y3 = y2 + 36; const W = this.iw;
-    const timerOn = this.timerPanel.visible, escOn = this.escPanel.visible;
+    const timerOn = this.timerPanel.visible;
     // melodi sayacı: ortada; süre de görünüyorsa bir alt satırda
     if (this.melPanel.visible) {
       const w = Math.ceil((this.melText.width + 46) / 4) * 4;
@@ -426,9 +457,8 @@ export class LevelHud {
     if (!this.modShown) return;
     const n = this.modIcons.length; const w = Math.ceil((this.modText.width + 18 * n + 24) / 4) * 4;
     if (this.modPanel.getData('w') !== w) { this.modPanel.setData('w', w); this.modPanel.setTexture(panelTex(this.scene, w, 30, 15)); }
-    const l = 18; const mid = timerOn ? this.timerPanel : this.melPanel.visible ? this.melPanel : null;
-    const midL = mid ? mid.x - Number(mid.getData('w') ?? 100) / 2 : Infinity;
-    const y = escOn || l + w + 6 > midL ? (mid === this.melPanel && timerOn ? y3 + 36 : y3) : y2;
+    // fısıltı, süre ya da melodi hapına değecekse onun altına iner (süre + melodi birlikteyse ikisinin de altına)
+    const l = 18; const y = dropBelow({ x: l + w / 2, y: y2 - 2, w, h: 30 }, this.rowBoxes(this.modPanel, this.shieldPanel)) + 2;
     this.modPanel.setPosition(l + w / 2, y);
     this.modIcons.forEach((ic, i) => ic.setPosition(l + 14 + i * 18, y - 1));
     this.modText.setPosition(l + 8 + 18 * n, y - 1);
@@ -510,10 +540,12 @@ export class LevelHud {
   /** övgü sözü: "Güzel!", "Mükemmel!" — ekranın üst-ortasında altın, büyüyüp süzülür */
   praise(text: string) {
     const s = this.scene; const p = this.pathoC;
-    // patoloji adı açıksa övgü onun altında (üst üste binmez)
-    const y0 = Math.max(this.top / this.k + 168, p ? p.y + Number(p.getData('h') ?? 0) / 2 + 34 : 0);
     const prev = this.root.getByName('praise') as Phaser.GameObjects.Container | null; prev?.destroy();
     const t = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: '38px', fontStyle: '900', color: '#ffc93c', stroke: '#2a0f4a', strokeThickness: 8, resolution: R(), padding: { x: 6, y: 6 } }).setOrigin(0.5);
+    // patoloji adı açıksa övgü onun altında; açılışı ve yükselişi boyunca ikinci satırın panellerine (melodi hapı) ve seri rozetine
+    // değmez (YN-183: "Güzel!" hapın üstüne düşüyordu)
+    const blocks = this.rowBoxes(); if (this.comboShown) blocks.push({ x: this.combo.x, y: this.combo.y - 2, w: this.comboW * 1.18, h: 48 });
+    const y0 = praiseY(this.iw / 2, Math.max(this.top / this.k + 168, p ? p.y + Number(p.getData('h') ?? 0) / 2 + 34 : 0), t.width, t.height, 26, blocks);
     const grd = t.context.createLinearGradient(0, 0, 0, t.height); grd.addColorStop(0.2, '#fff6c4'); grd.addColorStop(0.55, '#ffc93c'); grd.addColorStop(0.9, '#ff8a1c'); t.setFill(grd);
     t.setShadow(0, 4, 'rgba(20,0,40,0.6)', 6, true, true);
     const g = s.add.image(0, 0, softGlowTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDisplaySize(t.width * 1.4, 90).setAlpha(0.5);
@@ -536,18 +568,22 @@ export class LevelHud {
   /** duraklat düğmesine basıldı: küçük basılma animasyonu + geri çağrı */
   pressPause() { this.scene.tweens.killTweensOf(this.pause); this.pause.setScale(1 / R()); this.scene.tweens.add({ targets: this.pause, scale: 0.88 / R(), duration: 70, yoyo: true }); this.pauseCb?.(); }
 
-  /** alt-orta bilgi şeridi: koyu cam üstünde krem yazı (bölüm girişi, faz uyarıları). Boş metin gizler. */
-  toast(text: string, ms = 2500) {
+  /**
+   * alt-orta bilgi şeridi: koyu cam üstünde krem yazı (bölüm girişi, faz uyarıları). Boş metin gizler. now: geçişsiz — eski yazı
+   * aynı karede kalkar, yenisi o karede tam görünür (canavar fazı: çubuk yeni fazı gösterirken eski fazın yazısı sönmeye devam etmesin)
+   */
+  toast(text: string, ms = 2500, now = false) {
     const s = this.scene; this.toastTimer?.remove(false);
     const prev = this.toastC; this.toastC = undefined;
-    if (prev) s.tweens.add({ targets: prev, alpha: 0, duration: 140, onComplete: () => prev.destroy() });
+    if (prev && now) { s.tweens.killTweensOf(prev); prev.destroy(); }
+    else if (prev) s.tweens.add({ targets: prev, alpha: 0, duration: 140, onComplete: () => prev.destroy() });
     if (!text) return;
     const label = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${Math.round(15 * this.ts)}px`, fontStyle: '800', color: '#fff6e5', align: 'center', lineSpacing: 2, wordWrap: { width: this.iw - 64 }, resolution: R() }).setOrigin(0.5);
     const pw = Math.round(Math.min(this.iw - 32, label.width + 40)), ph = Math.round(label.height + 20);
     const bg = I(s, panelTex(s, pw, ph, Math.min(18, Math.round(ph / 2)))).setPosition(0, 2);
     const c = s.add.container(this.iw / 2, this.ih - 74, [bg, label]).setScrollFactor(0, 0, true).setAlpha(0);
     this.root.add(c); this.toastC = c;
-    s.tweens.add({ targets: c, alpha: 1, y: c.y - 6, duration: 220, ease: 'Cubic.Out' });
+    if (now) c.setAlpha(1).setY(c.y - 6); else s.tweens.add({ targets: c, alpha: 1, y: c.y - 6, duration: 220, ease: 'Cubic.Out' });
     this.toastTimer = s.time.delayedCall(ms, () => { if (this.toastC !== c) return; this.toastC = undefined; s.tweens.add({ targets: c, alpha: 0, duration: 300, onComplete: () => c.destroy() }); });
   }
 

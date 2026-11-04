@@ -4,7 +4,7 @@ import { DEFAULT_SKILLS } from '@odi/content';
 import { setup } from './testkit';
 import { Planner } from './planner';
 import { NO_INPUT, step } from './sim';
-import { ARENA_W, INTRO_S, RUN_L, RUN_R, WALL_W, liveWaves } from './boss';
+import { ARENA_W, INTRO_S, RUN_L, RUN_R, WALL_W, bossPhaseText, bossStrip, liveWaves } from './boss';
 import { BOSS_LOOK_MS, firstTimerOf, humanPrefs, humanSeed, playerOf, runHuman } from './human';
 
 /** Gürültü Canavarı faz 3: "Çift dalga!" gerçekten iki dalga olarak arenada görünür ve bot yine yener. */
@@ -32,11 +32,15 @@ describe('boss: Gürültü Canavarı', () => {
   }
 });
 
-/** Arena kapalıdır: insan modelinin kusurlu oyuncuları (saplanan yumruğun altında kalan dahil) hiçbir zaman duvarların dışına çıkmaz. */
-describe('boss: arena sınırı', () => {
+/**
+ * Arena kapalıdır: insan modelinin kusurlu oyuncuları (saplanan yumruğun altında kalan dahil) hiçbir zaman duvarların dışına çıkmaz.
+ * Aynı koşularda faz değişiminde şerit metni (YN-184, OT-sessiz-oyuncu-26): faz değiştiği adımda alt şerit yeni fazın talimatı;
+ * hiçbir adımda şerit can çubuğundan (b.phase) farklı faz söylemez.
+ */
+describe('boss: arena sınırı ve faz şeridi', () => {
   for (const n of [20, 40]) {
-    it(`bölüm ${n}: kahraman hep iki duvarın arasında, arenadan düşmez`, () => {
-      const out: string[] = [];
+    it(`bölüm ${n}: kahraman hep iki duvarın arasında, arenadan düşmez; şerit fazı çubukla aynı`, () => {
+      const out: string[] = []; const phases = new Set<number>();
       for (let k = 0; k < 6; k++) {
         const spec = generateLevel('insan', n, { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS });
         const { w, s } = setup(spec); s.events = [];
@@ -45,10 +49,17 @@ describe('boss: arena sınırı', () => {
           step(w, s, p.next(s));
           if (s.hero.x < RUN_L - 0.5 || s.hero.x > RUN_R + 0.5) out.push(`k${k} t=${s.t.toFixed(2)} x=${s.hero.x.toFixed(0)}`);
           for (const e of s.events!) if (e.k === 'hurt' && e.s === 'fall') out.push(`k${k} t=${s.t.toFixed(2)} düştü`);
+          const b = s.boss!; const strip = bossStrip(b, s.t, !!spec.intro);
+          if (strip && strip.id !== `boss-faz-${b.phase}`) out.push(`k${k} t=${s.t.toFixed(2)} şerit ${strip.id}, çubuk faz ${b.phase}`);
+          for (const e of s.events!) if (e.k === 'bossPhase') {
+            phases.add(Number(e.n));
+            if (strip?.id !== `boss-faz-${e.n}` || strip.text !== bossPhaseText(b.kind, Number(e.n))) out.push(`k${k} t=${s.t.toFixed(2)} faz ${e.n} başladı, şerit ${strip?.id ?? 'boş'}`);
+          }
           s.events!.length = 0;
         }
       }
       expect(out.slice(0, 5)).toEqual([]);
+      expect([...phases].sort()).toEqual([2, 3]);
     }, 450_000); // MK-020: bölüm 40 CPU 21,5 sn (yük 15'te duvar 62 sn), bölüm 20 CPU 13 sn; sınır ≈ CPU × 20
   }
 });

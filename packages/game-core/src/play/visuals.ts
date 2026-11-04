@@ -180,8 +180,11 @@ export interface HudSnapshot { notes: number; notesTotal: number; cochleas: numb
   timeLeft: number | null;
   /** eskort bölümünde fısıltının durumu (yoksa null) */
   escort: RD.EscortHud;
-  /** melodi hedefli bölümde sırayla toplanan notalar / hedef ("Nota 3/8"); yoksa null */
-  melody?: { n: number; total: number } | null;
+  /**
+   * melodi hedefli bölümde sırayla toplanan notalar / hedef ("Nota 3/8"); yoksa null. broken: sıra bozuldu ("Sıra bozuldu · 2/8");
+   * behind: sıradaki nota geride ve dönülebiliyor → onun sıra numarası (yön oku + "3. nota geride"), değilse 0
+   */
+  melody?: { n: number; total: number; broken?: boolean; behind?: number } | null;
   /** kalan kalkan (bölüm başı + güçlendirme); 0 gizler */
   shield?: number }
 export type HintKind = RD.HintKind;
@@ -193,8 +196,8 @@ export interface LevelHudView {
   /** övgü sözünü hemen kaldır (hasar anı) */
   clearPraise(): void;
   showHint(kind: HintKind, text: string): void; hideHint(): void;
-  /** alt-orta bilgi şeridi (bölüm girişi, faz uyarıları); boş metin gizler */
-  toast(text: string, ms: number): void;
+  /** alt-orta bilgi şeridi (bölüm girişi, faz uyarıları); boş metin gizler. now: geçişsiz (eski yazı hemen kalkar, yenisi tam görünür) */
+  toast(text: string, ms: number, now?: boolean): void;
   /** bölümün değiştiricileri: göstergede küçük kalıcı rozet (çizili simge + ad); boş liste gizler */
   setModifiers(list: { id: string; name: string }[]): void;
   /** bölüm başı duyurusu (değiştiriciler; göstergenin altında, ms sonra söner) */
@@ -218,7 +221,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     update: (h) => {
       if (!last || last.notes !== h.notes || last.notesTotal !== h.notesTotal) hud.setNotes(h.notes, h.notesTotal);
       if (!last || last.cochleas !== h.cochleas || last.cochleasTotal !== h.cochleasTotal) hud.setCochleas(h.cochleas, h.cochleasTotal);
-      hud.setTimer(h.timeLeft); hud.setEscort(h.escort); hud.setMelody(h.melody ? h.melody.n : null, h.melody?.total ?? 0);
+      hud.setTimer(h.timeLeft); hud.setEscort(h.escort); hud.setMelody(h.melody ? h.melody.n : null, h.melody?.total ?? 0, h.melody?.broken ? 'broken' : h.melody?.behind ? 'behind' : 'ok', h.melody?.behind ?? 0);
       if (!last || last.lives !== h.lives) hud.setLives(h.lives);
       hud.setShield(h.shield ?? 0);
       if (!last || Math.abs(last.pct - h.pct) > 0.002) hud.setProgress(h.pct);
@@ -228,7 +231,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     setCombo: (n, m) => hud.setCombo(n, m),
     praise: (t) => hud.praise(t), clearPraise: () => hud.clearPraise(),
     showHint: (k, t) => hud.showHint(k, t), hideHint: () => hud.hideHint(),
-    toast: (t, ms) => hud.toast(t, ms),
+    toast: (t, ms, now) => hud.toast(t, ms, now),
     setModifiers: (l) => hud.setModifiers(l), announce: (t, ms) => hud.announce(t, ms), pathology: (t) => hud.pathology(t),
     setCheckpoints: (p) => hud.setCheckpoints(p),
     belowBossBar: (b) => hud.belowBossBar(b),

@@ -46,6 +46,12 @@ export interface SimState {
   /** Tedavi Odası malzemeleri (remedy.ts): kalan ve kullanılan adetler, etkisiz kılınan patoloji engelleri */
   rem: Record<string, number>; remUsed: Record<string, number>; cured: Set<number>;
   coins: number; cochleas: number; notes: number; nextNote: number; stomps: number;
+  /**
+   * Melodi sırası bozuldu mu (YN-183): 'yanlis' sıradaki olmayan nota alındı (o nota gitti, melodi tamamlanamaz); 'geride' sıradaki
+   * nota kahramanın gerisinde ekrandan çıktı ve geri dönülemiyor (geri dönüş yok ya da ilk bölümlerdeki gibi kısıtlı). Kahraman
+   * düşüp notanın gerisinde dirilir ve onu sırayla alırsa 'geride' kalkar. Skor/yıldız kuralı değişmez (yalnız gösterge ve ipucu).
+   */
+  melodyBroken: 'yanlis' | 'geride' | null;
   finished: boolean; failed: string | null;
   cp: SafeSpot; cpX: number; safe: SafeSpot[]; lastGroundOdo: number;
   collected: Set<number>; killed: Map<number, number>; broken: Set<number>; opened: Set<string>;
@@ -79,7 +85,7 @@ export function initState(w: World, o: InitOpts = {}): SimState {
   const s: SimState = {
     t: 0, n: 0, hero: h, lives: w.mods.tekCan ? 1 : (o.lives ?? 3) + (w.spec.rahat ? RAHAT.extraLives : 0), shield: o.shield ?? Math.max(0, Math.min(SHIELD_MAX, w.skills.shield)), revir: !!o.revir, deaths: 0, damageTaken: 0, guarded: 0, freeFalls: w.assist.freeFalls, graceFalls: w.assist.grace.length ? 3 : 0, softHits: 0, spikeRoom: -1,
     rem: initRemedies(o.remedies), remUsed: {}, cured: new Set(),
-    coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, finished: false, failed: null,
+    coins: 0, cochleas: 0, notes: 0, nextNote: 0, stomps: 0, melodyBroken: null, finished: false, failed: null,
     cp: spot, cpX: w.startX, safe: [spot], lastGroundOdo: 0,
     collected: new Set(), killed: new Map(), broken: new Set(), opened: new Set(), crumble: new Map(), timers: new Map(), lifts: new Map(),
     escort: null, magnetUntil: 0, speedUntil: 0, modInverted: false, modNext: C.MOD_FLIP_EVERY,
@@ -123,6 +129,20 @@ function setG(h: HeroS, g: 1 | -1) { if (h.g === g) return; h.y += -h.g * (h.sli
 const breathMax = (w: World) => C.BREATH + 2 * (w.skills.breath ?? 0);
 const speedOf = (w: World, s: SimState) => w.assist.runK * (w.mods.hiz ? C.HIZ_K : 1) * (s.speedUntil > s.t ? 1.25 : 1);
 const ev = (s: SimState, k: string, x: number, y: number, extra?: Partial<SimEvent>) => { if (s.events) s.events.push({ k, x, y, ...extra }); };
+/** sıradaki melodi notası kahramanın bu kadar gerisinde kalınca ekrandan çıkmış sayılır (px; kamera kahramanı görünümün ~%30'unda tutar) */
+export const MELODY_BEHIND_PX = 220;
+/** geride kalan melodi notasına dönülebilir mi: geri dönüş açık ve kısıtsız (ilk bölümlerin turnGate'i yalnız anahtar yakınında döndürür) */
+export const melodyCanReturn = (w: World) => has(w, 'don') && !w.assist.turnGate;
+/** sıradaki melodi notası kahramanın gerisinde ekrandan çıktıysa onun sıra numarası (1'den), yoksa 0 */
+export function melodyBehind(w: World, s: SimState): number {
+  const id = w.melodyIds[s.nextNote]; if (id == null || s.collected.has(id)) return 0;
+  return w.ents[id]!.x < s.hero.x - MELODY_BEHIND_PX ? s.nextNote + 1 : 0;
+}
+function melodyBreak(s: SimState, why: 'yanlis' | 'geride', x: number, y: number) {
+  if (s.melodyBroken === why || s.melodyBroken === 'yanlis') return;
+  const first = !s.melodyBroken; s.melodyBroken = why;
+  if (first) ev(s, 'melodyBroken', x, y, { n: s.nextNote + 1, s: why });
+}
 
 // ------------------------------------------------------------------ dinamik geometri
 
@@ -483,6 +503,8 @@ export function step(w: World, s: SimState, raw: SimInput): void {
   // eskort
   if (s.escort && s.escort.alive) { s.escort.x += (h.x - 56 * h.dir - s.escort.x) * 0.08; s.escort.y += (h.y - 40 - s.escort.y) * 0.08; }
   if (w.boss && s.boss) bossStep(w, s);
+  // melodi: sıradaki nota geride kaldı ve dönülemiyor → sıra bozuldu (dönülebiliyorsa gösterge yönünü gösterir; LevelScene)
+  if (!s.melodyBroken && w.melodyIds.length && !melodyCanReturn(w) && melodyBehind(w, s)) melodyBreak(s, 'geride', h.x, h.y);
 }
 
 function modFlip(w: World, s: SimState) {
@@ -781,8 +803,8 @@ function pickup(w: World, s: SimState, e: WEnt) {
     case 'collect': s.collected.add(e.id); s.coins += 5; ev(s, 'collect', e.x, e.y, { id: e.id }); break;
     case 'note': {
       s.collected.add(e.id);
-      if (e.ord === s.nextNote) { s.nextNote++; s.notes++; ev(s, 'note', e.x, e.y, { id: e.id, n: s.notes }); }
-      else ev(s, 'noteWrong', e.x, e.y, { id: e.id });
+      if (e.ord === s.nextNote) { s.nextNote++; s.notes++; if (s.melodyBroken === 'geride') s.melodyBroken = null; ev(s, 'note', e.x, e.y, { id: e.id, n: s.notes }); }
+      else { ev(s, 'noteWrong', e.x, e.y, { id: e.id }); melodyBreak(s, 'yanlis', e.x, e.y); }
       break;
     }
     case 'secret': s.collected.add(e.id); s.cochleas++; ev(s, 'cochlea', e.x, e.y, { id: e.id, n: s.cochleas }); break;

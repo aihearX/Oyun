@@ -49,6 +49,8 @@ export interface World {
   /** bölüm-içi bölüm başlangıç x'leri */
   sectionX: number[];
   notesTotal: number;
+  /** melodi notalarının kimlikleri, sırayla (ord → id) */
+  melodyIds: number[];
   coinsTotal: number;
   cochleasTotal: number;
   boss: boolean;
@@ -199,7 +201,7 @@ export function buildWorld(spec: LevelSpec, o: BuildOpts): World {
     gateX: gate ? gate.x : worldW - 150, gateY: gate ? gate.y : GROUND_Y,
     abilities: new Set(spec.abilities ?? abilitiesAt(spec.number)), skills: o.skills, mods,
     beatDur: 60 / (o.bpm ?? 100), sectionX,
-    notesTotal: notes.length, coinsTotal, cochleasTotal: ents.filter((e) => e.type === 'secret').length,
+    notesTotal: notes.length, melodyIds: notes.map((n) => n.id), coinsTotal, cochleasTotal: ents.filter((e) => e.type === 'secret').length,
     boss: isBoss, stamp: new Int32Array(ents.length + 64), stampN: 1, ceilings, assist: worldAssist(spec),
     patZones: ents.filter((e) => e.type === 'decor' && e.p.kind === 'patoloji' && typeof e.p.patoloji === 'string').map((e) => ({ l: e.x, r: e.x + e.w, id: String(e.p.patoloji), eid: e.id })),
   };
