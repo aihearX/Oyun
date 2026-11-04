@@ -1,5 +1,5 @@
 import {
-  FRIEND_LIMITS, type FriendRequest, type FriendSuggestion, type ProfileCard, type Relation, type SearchHit, type SuggestReason,
+  FRIEND_LIMITS, FRIENDS_OPEN_AFTER, type FriendRequest, type FriendSuggestion, type ProfileCard, type Relation, type SearchHit, type SuggestReason,
 } from '@odi/shared';
 import { fail, parseJson, rid, type App, type Handlers, type PlayerRow } from './app';
 import { recentRivalIds } from './race';
@@ -257,16 +257,23 @@ export const friendHandlers: Handlers = {
     const pg = Math.max(0, page ?? 0);
     const per = FRIEND_LIMITS.searchPage;
     const code = /^[A-Za-z0-9]{6}$/.test(raw) ? raw.toUpperCase() : '';
+    // ad aramasında hiç oynamamış varsayılan adlı hesaplar elenir (gürültü); tam arkadaş kodu eşleşmesi her zaman bulunur:
+    // sıfırlayıp baştan başlayan arkadaş yeni kodunu verir, henüz oynamamış olabilir (YN-125)
     const rows = app.db.all<PlayerRow>(
       `SELECT * FROM players WHERE id != ? AND (odi_key(name) LIKE ? ESCAPE '\\' OR friend_code = ?)
          AND id NOT IN (SELECT b FROM blocks WHERE a = ?) AND id NOT IN (SELECT a FROM blocks WHERE b = ?)
-         AND NOT (name GLOB 'Odi[0-9][0-9][0-9][0-9]' AND stars = 0 AND xp = 0)
+         AND (friend_code = ? OR NOT (name GLOB 'Odi[0-9][0-9][0-9][0-9]' AND stars = 0 AND xp = 0))
          AND id NOT IN (SELECT player_id FROM deleted_players)
        ORDER BY (friend_code = ?) DESC, (odi_key(name) = ?) DESC, (odi_key(name) LIKE ? ESCAPE '\\') DESC, stars DESC, last_seen DESC
        LIMIT ? OFFSET ?`,
-      s.pid, `%${likeEsc(key)}%`, code, s.pid, s.pid, code, key, `${likeEsc(key)}%`, per + 1, pg * per);
+      s.pid, `%${likeEsc(key)}%`, code, s.pid, s.pid, code, code, key, `${likeEsc(key)}%`, per + 1, pg * per);
     const hasMore = rows.length > per;
-    const players: SearchHit[] = rows.slice(0, per).map((p) => ({ profile: app.publicProfile(p), relation: relationOf(app, s.pid, p.id).relation }));
+    const players: SearchHit[] = rows.slice(0, per).map((p) => {
+      const hit: SearchHit = { profile: app.publicProfile(p), relation: relationOf(app, s.pid, p.id).relation };
+      // highest = açık en yüksek bölüm, art arda geçilen = highest - 1; Arkadaşlar açılmadıysa istek bekler, açılınca görür
+      if (code && p.friend_code === code && p.highest - 1 < FRIENDS_OPEN_AFTER) hit.note = `Yeni başladı: Arkadaşlar ona ${FRIENDS_OPEN_AFTER} bölüm geçince açılır. İsteğini şimdi gönderebilirsin, açılınca görür.`;
+      return hit;
+    });
     return { players, hasMore };
   },
   'players.block': (app, s, { id }) => {

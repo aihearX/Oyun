@@ -8,6 +8,9 @@ import { DELETED_PLAYER_NAME } from '@odi/shared';
 import type { App, Handlers } from './app';
 import { removeMember } from './teams';
 import { rankInvalidate } from './rank';
+import { leaveRace } from './race';
+import { teamRaceForget } from './teamrace';
+import { rallyForget } from './events/rally';
 import { anonimOyuncu, PURCHASE_RETAIN_YEARS, REPORT_RETAIN_AFTER_DELETE_MS, REPORT_RETAIN_MS, veriyiTemizle } from './account-veri';
 
 export const isDeleted = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM deleted_players WHERE player_id = ?', pid);
@@ -18,6 +21,10 @@ export function deleteAccount(app: App, pid: string): void {
     // önce ad anonim: takımdan ayrılma iletisi ve sonraki kartlar adı taşımasın
     app.db.run('UPDATE players SET name = ? WHERE id = ?', DELETED_PLAYER_NAME, pid);
     if (p.team_id) removeMember(app, pid, 'ayrildi'); // son üyeyse takım silinir (teams.ts deleteTeam → takım verisi)
+    // açık lobiler ve bekleyen katılımlar: koltuğu ve "Hazır"ı kalmaz (YN-207). Bu bağlantı kapanınca disconnect çalışmaz (aşağıda pid = null).
+    teamRaceForget(app, pid); // Takım Yarışı lobisi (açanı silinen lobi kalan üyeye geçer, boşsa kapanır)
+    leaveRace(app, pid); // canlı yarış odası: lobide listeden çıkar, başlamış yarışta ayrıldı sayılır
+    rallyForget(app, pid); // saldırısı başlamamış ralli katılımı (düello takım kaydıdır, oyuncu bekletmez)
     // arkadaşlar: karşı tarafın listesinden düşsün
     for (const r of app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid)) app.emit(r.b, 'friend.removed', { id: pid });
     // sınıflandırmaya göre: sil / anonimleştir / gerekçeyle tut (account-veri.ts)

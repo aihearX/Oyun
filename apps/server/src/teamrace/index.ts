@@ -48,6 +48,11 @@ function requireLead(app: App, pid: string): string {
 const teamPower = (app: App, teamId: string) => boardValue(app, 't-guc', teamId);
 
 // ------------------------------------------------------------------ görünüm
+/**
+ * Lobide oturan üyeler: yalnız hâlâ bu takımda olanlar. Takımdan ayrılan ya da hesabı silinen koltukta kalmaz; görünüm (koltuk) ve
+ * arama/eşleşme sayısı (readyOnline) aynı listeden okunur, "Hazır" koltuk ile "N hazır" çelişmez (YN-207).
+ */
+const seated = (app: App, l: Lobby) => [...l.members.entries()].filter(([id]) => app.playerOrNull(id)?.team_id === l.teamId);
 function lobbyView(app: App, l: Lobby): TeamRaceLobby {
   const now = app.now();
   const inc = [...(st(app).incoming.get(l.teamId) ?? new Map()).entries()].filter(([, c]) => c.until > now).flatMap(([teamId, c]): TeamRaceChallenge[] => {
@@ -56,7 +61,7 @@ function lobbyView(app: App, l: Lobby): TeamRaceLobby {
   const out = l.outgoing && l.outgoing.until > now ? app.team(l.outgoing.teamId) : null;
   return {
     teamId: l.teamId, size: l.size, status: l.status, openedBy: l.openedBy, searchingSince: l.searchingSince, raceId: l.raceId, note: l.note,
-    members: [...l.members.entries()].flatMap(([id, m]) => { const p = app.playerOrNull(id); return p ? [{ id, name: p.name, color: p.color, hat: p.hat, ready: m.ready, online: app.online.has(id) }] : []; }),
+    members: seated(app, l).map(([id, m]) => { const p = app.player(id); return { id, name: p.name, color: p.color, hat: p.hat, ready: m.ready, online: app.online.has(id) }; }),
     incoming: inc, outgoing: out && l.outgoing ? { teamId: out.id, name: out.name, emblem: out.emblem, size: l.size, until: l.outgoing.until } : null,
   };
 }
@@ -66,7 +71,7 @@ function push(app: App, teamId: string): void {
   const v = l ? lobbyView(app, l) : null;
   for (const pid of app.teamMemberIds(teamId)) app.emit(pid, 'trace.updated', { lobby: v });
 }
-const readyOnline = (app: App, l: Lobby) => [...l.members.entries()].filter(([id, m]) => m.ready && app.online.has(id) && app.playerOrNull(id)?.team_id === l.teamId).map(([id]) => id);
+const readyOnline = (app: App, l: Lobby) => seated(app, l).filter(([id, m]) => m.ready && app.online.has(id)).map(([id]) => id);
 function myLobby(app: App, teamId: string): Lobby {
   const l = st(app).lobbies.get(teamId);
   if (!l) return fail('YOK', 'Takımının açık bir Takım Yarışı lobisi yok.');
@@ -244,6 +249,27 @@ export function teamRaceSweep(app: App): void {
   app.run(() => tryMatch(app));
   // sonuç bekleyen (yıldız süresi doldu) yarışlar
   for (const m of app.db.all<{ id: string }>('SELECT id FROM tr_match WHERE finalized = 0 AND ended_at IS NOT NULL AND ended_at <= ?', now - R.starWaitMs)) finalize(app, m.id);
+}
+/**
+ * Hesap silindi (account.ts, aynı işlem içinde; takımdan zaten çıkarıldı): oyuncu bütün lobilerden düşer, kimliği bellekte kalmaz (YN-207).
+ * Açanı silinen lobi kapanmaz, kalan ilk üyeye geçer: katılıp "Hazırım" demiş üyeler yeniden toplanmak zorunda kalmasın; lobiyi
+ * yönetme yetkisi zaten açana değil role bağlı (lider/yardımcı). Lobide kimse kalmazsa lobi kapanır, takım "Lobi boş" görür.
+ * Takım ekranı açık üyelere güncel lobi hemen gider.
+ */
+export function teamRaceForget(app: App, pid: string): void {
+  const s = st(app);
+  s.lastReact.delete(pid);
+  for (const l of [...s.lobbies.values()]) {
+    if (!l.members.has(pid) && l.openedBy !== pid) continue;
+    l.members.delete(pid);
+    const rest = seated(app, l);
+    if (!rest.length && l.status !== 'eslesti') s.lobbies.delete(l.teamId);
+    else {
+      if (l.openedBy === pid) l.openedBy = rest[0]?.[0] ?? '';
+      if (l.status === 'ariyor') tryMatch(app);
+    }
+    push(app, l.teamId);
+  }
 }
 export function teamRaceShutdown(app: App): void { const s = stores.get(app); if (s) for (const h of s.timers) clearTimeout(h); stores.delete(app); }
 export function teamRaceDisconnect(app: App, pid: string): void { raceDisconnect(app, pid, app.cfg.teamRaceGraceMs ?? R.graceMs); }

@@ -836,7 +836,13 @@ export const DM_STICKERS: { id: string; emoji: string; label: string; mood: 'hap
 /** iki oyuncu arasındaki durum (bakan kişiye göre) */
 export type Relation = 'ben' | 'arkadas' | 'istek-giden' | 'istek-gelen' | 'engelledin' | 'yok';
 export interface FriendRequest { id: string; from: PublicProfile; to: PublicProfile; at: number }
-export interface SearchHit { profile: PublicProfile; relation: Relation }
+export interface SearchHit {
+  profile: PublicProfile; relation: Relation;
+  /** tam arkadaş kodu eşleşmesi ve karşı tarafta Arkadaşlar henüz açılmadı: bunu söyleyen dürüst not (YN-125) */
+  note?: string;
+}
+/** Arkadaşlar ve mesajlar bu kadar bölüm (art arda) geçilince açılır; istemcide apps/web/src/ftue/features.ts 'friends' (at) ile aynı */
+export const FRIENDS_OPEN_AFTER = 4;
 export type SuggestReason = 'takim' | 'yaris' | 'lig' | 'ortak';
 export interface FriendSuggestion { profile: PublicProfile; kind: SuggestReason; /** "Takım arkadaşın", "Seninle yarıştı" … */ reason: string }
 export interface ProfileCard {

@@ -74,6 +74,7 @@
 | Şikâyetleri inceler, uzun süre susturabiliriz | `npm run kod -- sikayetler`, `npm run kod -- sustur KOD --gun N` (`yonetim.ts`) |
 | Harcama sınırı ilk alımdan önce oyuncu seçer (önerilen 100 TL), yükseltme ayrı onay + 24 saat (karar 28) | `@odi/shared` `SPEND_LIMIT_SUGGESTED_TRY`, `shop.ts` `LIMIT_RAISE_DELAY_MS` |
 | Hesap silme: sil / anonim / tut ayrıntısı | `account-veri.ts` `VERI_SINIFI` (128 tablo, test `account.test.ts`) |
+| Silinen hesap açık lobilerde ve bekleyen katılımlarda kalmaz (Takım Yarışı lobisi, canlı yarış odası, saldırısı başlamamış ralli; bellekte kimlik tutulmaz) | `account.ts` `deleteAccount` → `teamrace` `teamRaceForget`, `race.ts` `leaveRace`, `events/rally.ts` `rallyForget` (test `silinen-hesap-lobi.test.ts`, YN-207) |
 | Uygulama dışı silme: arkadaş kodu, 14 gün bağlanmamış, 30 gün içinde yanıt | `yonetim.ts` `hesapSilIstegi`, `HESAP_SIL_BEKLEME_GUN` |
 | Uygulamayı kaldırmak hesabı silmez | Anahtar yalnız cihazda; sunucuda hareketsiz hesap temizliği yok |
 | Bağlantı TLS | Caddy (https/wss); mağaza derlemesinde `EXPO_PUBLIC_ODI_SERVER=wss://…` (`apps/mobile/eas.json`, `docs/10-sunucu.md`) |

@@ -64,6 +64,22 @@ export function rallyTick(app: App): void {
   }
 }
 
+/**
+ * Hesap silindi (account.ts, aynı işlem içinde): saldırısı başlamamış açık rallideki bekleyen katılım geri alınır, can kalan
+ * katılımcılarla yeniden hesaplanır (en az katılımcı şartını silinen hesap doldurmasın; YN-207). Saldırı başladıysa satır kalır
+ * (can o sayıyla sabitlendi; VERI_SINIFI ev_rally_part anonim).
+ */
+export function rallyForget(app: App, pid: string): void {
+  const open = app.db.all<RallyRow>("SELECT r.* FROM ev_rally r JOIN ev_rally_part x ON x.rally_id = r.id WHERE x.player_id = ? AND r.status = 'acik'", pid);
+  for (const r of open) {
+    if (attackStarted(app, r.id)) continue;
+    app.db.run('DELETE FROM ev_rally_part WHERE rally_id = ? AND player_id = ?', r.id, pid);
+    const hp = rallyMaxHp(monsterDef(r.monster), partCount(app, r.id));
+    app.db.run('UPDATE ev_rally SET hp = ?, max_hp = ? WHERE id = ?', hp, hp, r.id);
+    broadcast(app, rowById(app, r.id)!);
+  }
+}
+
 /** takımın açık rallisi ya da yakın zamanda biten son rallisi */
 export function teamRally(app: App, teamId: string): RallyState | null {
   rallyTick(app);

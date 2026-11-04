@@ -175,6 +175,10 @@ async function webSuite(bt) {
     // A lideri lobi açar (arayüz)
     await teamTab(A[0], 'Takım Yarışı');
     await A[0].page.getByTestId('takim-yarisi').waitFor();
+    // lobi yokken lider/yardımcı "Lobi boş, sen aç" görür (YN-207: silinen açanın boş lobisi de kapanınca bu hal)
+    await A[0].page.getByTestId('tr-lobi-bos').waitFor();
+    S.check((await A[0].page.getByTestId('tr-lobi-bos').innerText()).includes('Lobi boş, sen aç'), 'lobi yok: “Lobi boş, sen aç”');
+    await S.shot(A[0], 'lobi-bos');
     await A[0].page.getByTestId('tr-ac-3').click();
     await A[0].page.getByTestId('tr-lobi').waitFor();
     S.check(true, 'lider 3’e 3 lobi açtı');

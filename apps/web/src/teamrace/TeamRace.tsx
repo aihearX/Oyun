@@ -50,8 +50,9 @@ export function TeamRaceView() {
       )}
       {!l && !live && (
         s.canLead ? (
-          <div className="tr-open">
-            <div className="muted small-note">Lobi aç; üyeler katılıp “Hazırım” desin, sonra rakip arayın.</div>
+          <div className="tr-open" data-testid="tr-lobi-bos">
+            <b>Lobi boş, sen aç</b>
+            <div className="muted small-note">Üyeler katılıp “Hazırım” desin, sonra rakip arayın.</div>
             <div className="row">
               {R.sizes.map((n) => <button key={n} className="btn grow" data-testid={`tr-ac-${n}`} disabled={busy} onClick={() => void run(() => act('trace.open', { size: n }))}><Art name="users" size={20} className="art-inline" /> {n}’e {n} lobi aç</button>)}
             </div>
@@ -71,9 +72,12 @@ export function TeamRaceView() {
   );
 }
 
+/** koltuktaki "Hazır" ile alttaki "N hazır" aynı kural: hazır ve çevrimiçi (sunucu readyOnline; takımdan çıkan zaten listede yok, YN-207) */
+const isReady = (m: TeamRaceLobby['members'][number]) => m.ready && m.online;
+
 function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searching }: { l: TeamRaceLobby; meId: string; mine: boolean; meReady: boolean; canLead: boolean; busy: boolean; run: (f: () => Promise<unknown>) => Promise<void>; onPick: () => void; searching: number }) {
   const now = useNow(1000);
-  const ready = l.members.filter((m) => m.ready && m.online).length;
+  const ready = l.members.filter(isReady).length;
   const slots = Math.max(l.size, l.members.length);
   const label = l.status === 'ariyor' ? 'Rakip aranıyor' : l.status === 'eslesti' ? 'Eşleşti' : 'Toplanıyor';
   return (
@@ -82,8 +86,8 @@ function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searchi
       {/* boş yuva dokunulmaz: üye lobiye kendisi katılır (sohbete "lobi açtı" satırı düşer); sahte oyuncu yok (OT-takim-kaptani-11) */}
       <div className="tr-slots">
         {Array.from({ length: slots }, (_, i) => l.members[i]).map((m, i) => m ? (
-          <span key={m.id} className={`tr-slot${m.ready ? ' ready' : ''}${m.online ? '' : ' off'}${m.id === meId ? ' me' : ''}`} data-testid="tr-uye" data-ready={m.ready ? '1' : '0'}>
-            <OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} /><b className="ellipsis">{m.name}</b><small>{m.ready ? 'Hazır' : m.online ? 'Bekliyor' : 'Çevrimdışı'}</small>
+          <span key={m.id} className={`tr-slot${isReady(m) ? ' ready' : ''}${m.online ? '' : ' off'}${m.id === meId ? ' me' : ''}`} data-testid="tr-uye" data-ready={isReady(m) ? '1' : '0'}>
+            <OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} /><b className="ellipsis">{m.name}</b><small>{isReady(m) ? 'Hazır' : m.online ? 'Bekliyor' : 'Çevrimdışı'}</small>
           </span>
         ) : <span key={`e${i}`} className="tr-slot empty" data-testid="tr-bos"><Art name="hourglass" size={22} /><small>Üye bekleniyor</small></span>)}
       </div>
