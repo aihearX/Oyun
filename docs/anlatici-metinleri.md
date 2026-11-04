@@ -211,10 +211,10 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `not-dalga` | Kokleadaki dalga tabandan tepeye doğru ilerler; her ses kendi noktasında en büyük olur. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-pil` | Kokleanın içinde, küçük bir pil gibi bir elektrik gerilimi vardır. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-denge` | İç kulak yalnızca işitmez, dengemizi de sağlar. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-presbiakuzi` | Yaşla birlikte genellikle önce ince seslerin duyulması azalır. | Tüy Dede'nin Notu · koklea-1 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-oae-not` | Sağlıklı bir kulak kendi çok hafif sesini üretir; bebeklerin işitmesi bununla taranabilir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-prestin` | Dış tüy hücreleri sesle birlikte dans eder ve hafif sesleri güçlendirir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-rekrutman` | İç kulak kaynaklı işitme kaybında sesler bir noktadan sonra hızla fazla yüksek gelebilir. | Tüy Dede'nin Notu · koklea-2 | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-presbiakuzi` | Yaşla birlikte genellikle önce ince seslerin duyulması azalır. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-gurultu-centik` | Uzun süre yüksek sese maruz kalmak tüy hücrelerine kalıcı zarar verebilir. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-implant` | Koklear implant, sesi elektrik sinyaline çevirip işitme sinirini doğrudan uyarır. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-ototoksik` | Bazı ilaçlar iç kulağa zarar verebilir; bu yüzden hekim kontrolünde kullanılırlar. | Tüy Dede'nin Notu · koklea-3 | bilge, sıcak, merak uyandıran (wise, warm) |

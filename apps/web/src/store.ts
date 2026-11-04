@@ -4,7 +4,7 @@ import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
-import { DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, TIER_REWARD, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
+import { BILGI_YAKIN, DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, TIER_REWARD, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
 import {
   advanceStreak, applyGrant, claimCalendar, claimQuest, dayKey, defaultMeta, ensureDaily, equipCosmetic, highestUnlocked, migrateMeta,
   openDailyChest, processRun, recordShare, settle, type MetaEvent, type MetaState, type PlayerCore, type RunSummary, type StreakEvent,
@@ -68,8 +68,9 @@ interface State extends PlayerCore {
   knowledgeAsked: boolean;
   /** gösterilen Tüy Dede notları ve son gösterim (sıklık sınırı) */
   notesSeen: string[]; noteAt: number;
-  /** sonuç ekranında son gösterilen "Biliyor muydun?" satırının bölümü (0: yok); sıradaki sonuç onu tekrar etmez (YN-175) */
-  bilgiSon: number;
+  /** sonuç ekranında son gösterilen "Biliyor muydun?" satırlarının bölümleri (eskiden sona; en çok BILGI_YAKIN): sıradaki sonuç
+   *  bunları tekrar etmez (YN-175, YN-212). Eski kayıttaki tek `bilgiSon` bu listeye taşınır. */
+  bilgiSonlar: number[];
   ftueStoryDone(): void;
   ftueTourDone(id: string): void;
   ftueBypass(): void;
@@ -127,7 +128,7 @@ function streakToast(e: StreakEvent): Toast | null {
   return null;
 }
 
-const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', knowledgeAsked: false, notesSeen: [] as string[], noteAt: 0, bilgiSon: 0, bigText: false, highVis: false, haptics: true, reduceMotion: false, odiColor: null as number | null, chosenColor: null as number | null };
+const INITIAL = { teamShields: 0, journey: HUMAN_JOURNEY.id, progress: {} as Record<number, LevelProgress>, coins: 0, xp: 0, skills: { ...DEFAULT_SKILLS } as PlayerSkills, sounds: true, musicVol: 0.6, sfxVol: 0.9, voiceVol: 0.9, failStreak: 0, recentStars: [] as number[], streak: 0, lastDay: '', meta: defaultMeta(), ftue: { ...FRESH_FTUE } as FtueState, narratorVoice: true, knowledge: 'genel' as 'genel' | 'odyoloji', knowledgeAsked: false, notesSeen: [] as string[], noteAt: 0, bilgiSonlar: [] as number[], bigText: false, highVis: false, haptics: true, reduceMotion: false, odiColor: null as number | null, chosenColor: null as number | null };
 
 export const useStore = create<State>()(persist((set, get) => {
   /** ödül/sayaç değişiminden sonra: başarım, kart, kozmetik açılımlarını yerleştir ve kutla */
@@ -209,7 +210,7 @@ export const useStore = create<State>()(persist((set, get) => {
     setHighVis(v) { set({ highVis: v }); },
     setHaptics(v) { set({ haptics: v }); },
     setReduceMotion(v) { set({ reduceMotion: v }); },
-    bilgiGoruldu(bolum) { if (get().bilgiSon !== bolum) set({ bilgiSon: bolum }); },
+    bilgiGoruldu(bolum) { const l = get().bilgiSonlar; if (l[l.length - 1] !== bolum) set({ bilgiSonlar: [...l.filter((x) => x !== bolum), bolum].slice(-BILGI_YAKIN) }); },
     noteShown(id) { const seen = get().notesSeen; set({ notesSeen: seen.includes(id) ? seen : [...seen, id], noteAt: Date.now() }); },
     playerLevel() { return levelFromXp(get().xp); },
   };
@@ -219,7 +220,7 @@ export const useStore = create<State>()(persist((set, get) => {
   storage: createJSONStorage(() => platformStorage),
   // kayıt, platform köprüsü kurulduktan sonra yüklenir (main.tsx / mobil WebApp: useStore.persist.rehydrate())
   skipHydration: true,
-  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, knowledgeAsked: s.knowledgeAsked, notesSeen: s.notesSeen, noteAt: s.noteAt, bilgiSon: s.bilgiSon, bigText: s.bigText, highVis: s.highVis, haptics: s.haptics, reduceMotion: s.reduceMotion, odiColor: s.odiColor, chosenColor: s.chosenColor }),
+  partialize: (s) => ({ teamShields: s.teamShields, journey: s.journey, progress: s.progress, coins: s.coins, xp: s.xp, skills: s.skills, sounds: s.sounds, musicVol: s.musicVol, sfxVol: s.sfxVol, voiceVol: s.voiceVol, failStreak: s.failStreak, recentStars: s.recentStars, streak: s.streak, lastDay: s.lastDay, meta: s.meta, ftue: s.ftue, narratorVoice: s.narratorVoice, knowledge: s.knowledge, knowledgeAsked: s.knowledgeAsked, notesSeen: s.notesSeen, noteAt: s.noteAt, bilgiSonlar: s.bilgiSonlar, bigText: s.bigText, highVis: s.highVis, haptics: s.haptics, reduceMotion: s.reduceMotion, odiColor: s.odiColor, chosenColor: s.chosenColor }),
   /** v0/v1 (meta yok) → v2: meta ilerlemeden dürüstçe doldurulur; eski alanlar korunur */
   migrate: (persisted, version) => {
     const p = (persisted ?? {}) as Record<string, unknown> & { progress?: Record<number, LevelProgress>; meta?: unknown };
@@ -230,7 +231,7 @@ export const useStore = create<State>()(persist((set, get) => {
     if (!persisted || typeof persisted !== 'object') return current;
     const p = persisted as Partial<State>;
     // ftue: v3 öncesi kayıtta yok → ilerlemesi olan oyuncu hikâyeyi ve açılmış yerlerin turlarını görmüş sayılır
-    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', knowledgeAsked: p.knowledgeAsked === true || p.knowledge === 'odyoloji', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bilgiSon: typeof p.bilgiSon === 'number' ? p.bilgiSon : 0, bigText: p.bigText === true, highVis: p.highVis === true, haptics: p.haptics !== false, reduceMotion: p.reduceMotion === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
+    return { ...current, ...p, voiceVol: migrateVoiceVol(p), meta: p.meta ? migrateMeta(p.meta, p.progress ?? {}) : migrateMeta(undefined, p.progress ?? {}), ftue: normalizeFtue(p.ftue, p.progress ?? {}), narratorVoice: p.narratorVoice ?? true, knowledge: p.knowledge === 'odyoloji' ? 'odyoloji' : 'genel', knowledgeAsked: p.knowledgeAsked === true || p.knowledge === 'odyoloji', notesSeen: Array.isArray(p.notesSeen) ? p.notesSeen.filter((x) => typeof x === 'string') : [], noteAt: typeof p.noteAt === 'number' ? p.noteAt : 0, bilgiSonlar: migrateBilgiSon(p), bigText: p.bigText === true, highVis: p.highVis === true, haptics: p.haptics !== false, reduceMotion: p.reduceMotion === true, odiColor: validColor(p.odiColor), chosenColor: validColor(p.chosenColor) } as State;
   },
 }));
 
@@ -247,6 +248,13 @@ export function migrateVoiceVol(p: { voiceVol?: unknown; sfxVol?: unknown }): nu
   if (typeof p.voiceVol === 'number' && Number.isFinite(p.voiceVol)) return Math.max(0, Math.min(1, p.voiceVol));
   const sfx = typeof p.sfxVol === 'number' && Number.isFinite(p.sfxVol) ? p.sfxVol : INITIAL.sfxVol;
   return Math.max(0.2, Math.min(1, sfx));
+}
+
+/** "Biliyor muydun?" son gösterilenler: eski kayıtta tek sayı (`bilgiSon`, 0 = yok) → bir öğeli liste (YN-212) */
+export function migrateBilgiSon(p: { bilgiSonlar?: unknown; bilgiSon?: unknown }): number[] {
+  const ok = (x: unknown): x is number => typeof x === 'number' && Number.isInteger(x) && x > 0;
+  if (Array.isArray(p.bilgiSonlar)) return p.bilgiSonlar.filter(ok).slice(-BILGI_YAKIN);
+  return ok(p.bilgiSon) ? [p.bilgiSon] : [];
 }
 
 const validColor = (v: unknown): number | null => (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 0xffffff ? v : null);

@@ -12,8 +12,16 @@ export interface LevelPlan {
    * sonra Bölüm 20 yeniden dış kulak yolundadır, serumen zarın ötesinde sanılmasın
    */
   back?: string;
+  /**
+   * bölüm haritada başka bir bölgenin içinde duruyorsa (17 ve 20: kanal bölümleri Kemikçikler bölgesinde) haritadaki kalıcı düğüm
+   * kartının üst satırı ve yer satırı (YN-213): serumen yalnız dış kulak yolundadır, kemikçiklerle koklea arasında sanılmasın
+   */
+  backCard?: { title: string; place: string };
 }
 export interface Journey { id: string; name: string; blurb: string; levels: LevelPlan[] }
+
+/** Kemikçikler'den Kulak Kanalı'na dönen bölümlerin harita kartı */
+const KANALA_DONUS = { title: 'Kulak Kanalı’na dönüş', place: 'Dış kulak yolu, zarın dışında' };
 
 const L = (number: number, biome: BiomeId, mechanic: MechanicId, objective: ObjectiveId, name: string, extra: Partial<LevelPlan> = {}): LevelPlan => ({ number, biome, mechanic, objective, name, ...extra });
 
@@ -39,10 +47,10 @@ export const HUMAN_JOURNEY: Journey = {
     L(14, 'kemikcikler', 'makine', 'collect-all', 'Örs', { targetChunks: 6, focus: ['kanca', 'asansor'] }),
     L(15, 'kemikcikler', 'makine', 'no-damage', 'Üzengi', { targetChunks: 6, focus: ['cakil', 'ufalanan'] }),
     L(16, 'kemikcikler', 'makine', 'secret', 'Kayıp Dişli', { targetChunks: 7, focus: ['anahtar', 'gizli'] }),
-    L(17, 'kanal', 'kosu', 'escort', 'Fısıltıyı Taşı', { targetChunks: 7, focus: ['duvar', 'yapiskan', 'tirmanis'] }),
+    L(17, 'kanal', 'kosu', 'escort', 'Fısıltıyı Taşı', { targetChunks: 7, focus: ['duvar', 'yapiskan', 'tirmanis'], backCard: KANALA_DONUS }),
     L(18, 'kemikcikler', 'trambolin', 'timed', 'Kemik Trambolini', { targetChunks: 7, focus: ['zar', 'kanca'] }),
     L(19, 'kemikcikler', 'makine', 'melody', 'Makine Melodisi', { targetChunks: 7, focus: ['anahtar', 'asansor', 'disli'] }),
-    L(20, 'kanal', 'boss', 'boss', 'Serumen Golemi', { boss: 'serumen-golemi', intro: 'Dış kulak yoluna geri dön: zarın dışında serumenden bir dev kanalı tıkıyor.', back: "dış kulak yolunu tıkayan Serumen Golemi'ni temizle" }),
+    L(20, 'kanal', 'boss', 'boss', 'Serumen Golemi', { boss: 'serumen-golemi', intro: 'Dış kulak yoluna geri dön: zarın dışında serumenden bir dev kanalı tıkıyor.', back: "dış kulak yolunu tıkayan Serumen Golemi'ni temizle", backCard: KANALA_DONUS }),
     L(21, 'koklea-1', 'yuzme', 'reach', 'Suya Dalış', { tutorial: true, intro: 'Oval pencereden kokleanın sıvısına (perilenf). Burada yüzeceksin.', targetChunks: 5, focus: ['su'] }),
     L(22, 'koklea-1', 'yuzme', 'collect-all', 'İnce Sesler', { targetChunks: 6, focus: ['su', 'jeton'] }),
     L(23, 'koklea-1', 'yuzme', 'timed', 'Akıntı', { targetChunks: 6, focus: ['akinti', 'su'] }),

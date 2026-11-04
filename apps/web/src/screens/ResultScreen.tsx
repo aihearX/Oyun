@@ -106,7 +106,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
   const loss = result.completed ? null : lossView(result, spec, attempt);
   // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı. Aynı bölümün
-  // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127); son gösterilen satır art arda tekrar etmez (YN-175, kayıtta bilgiSon)
+  // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127); yakın zamanda gösterilen satırlar tekrar etmez (YN-175, YN-212; kayıtta bilgiSonlar)
   const bilgi = useBiliyorMuydun(spec.number, store.knowledge, attempt - 1);
   const kalkan = gift ? shieldResultLine(gift, result) : '';
   // sonuç ekranı kapanınca bu bölümün sırada kalan bildirimleri (başarım, albüm rozeti) düşer: kartta yazdı, sonraki bölümün sonucunda

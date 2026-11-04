@@ -99,6 +99,7 @@
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--acc) 55%, white), var(--acc) 60%, color-mix(in srgb, var(--acc) 70%, black)); border: 4px solid #ffc93c; box-shadow: 0 4px 0 #b8620a, 0 8px 14px rgba(0,0,0,.25); }
 /* bölüm numarası ve üst satır krem zeminde/bölge renginde okunur koyulukta (YN-162 kart adımı: beyaz numara açık bölge renginde 2:1'di) */
 .mc-kicker { font-size: 0.75rem; font-weight: 900; color: #5a3fd6; text-transform: uppercase; letter-spacing: .05em; }
+.mc-place { font-size: 0.8125rem; font-weight: 700; color: #7a4a2c; margin-top: 2px; }
 /* yıldızlar resimli çizilir (renk almaz): alınmamış yıldız gri ve soluk, alınan dolu ve parlak (OT-eski-telefon-10) */
 .mc-stars { display: flex; gap: 6px; justify-content: center; } .mc-stars i { font-style: normal; font-size: 1.5rem; display: inline-flex; filter: grayscale(1) opacity(.3); } .mc-stars.big i { font-size: 34px; } .mc-stars i.on { filter: drop-shadow(0 2px 0 #b8620a) drop-shadow(0 0 6px rgba(255,201,60,.7)); }
 .mc-rows { display: flex; flex-direction: column; gap: 6px; }

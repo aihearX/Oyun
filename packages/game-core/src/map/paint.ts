@@ -269,11 +269,25 @@ const kemik: Painter = (ctx, w, h, rnd, z, L) => {
   plateau(() => { ctx.beginPath(); ctx.moveTo(26, h * 0.08); ctx.lineTo(144, h * 0.08); ctx.lineTo(144, h * 0.11); ctx.lineTo(128, h * 0.11); ctx.quadraticCurveTo(112, h * 0.27, 85, h * 0.28); ctx.quadraticCurveTo(58, h * 0.27, 42, h * 0.11); ctx.lineTo(26, h * 0.11); ctx.closePath(); ctx.moveTo(62, h * 0.11); ctx.quadraticCurveTo(70, h * 0.22, 85, h * 0.23); ctx.quadraticCurveTo(100, h * 0.22, 108, h * 0.11); ctx.closePath(); });
   placeName(ctx, 'Çekiç Tepesi', 70, h * 0.8 + 52, 11, 0, 0.6); placeName(ctx, 'Örs Platosu', w - 70, h * 0.5 - 52, 11, 0, 0.6); placeName(ctx, 'Üzengi Kemeri', 85, h * 0.08 - 12, 11, 0, 0.6);
   for (let i = 0; i < 6; i++) mountain(ctx, rnd() < 0.5 ? 20 + rnd() * 40 : w - 20 - rnd() * 40, 40 + rnd() * (h - 80), 10 + rnd() * 5, 0xa8b8cc, rnd);
-  // kanala dönüş: serumen mağaraları (17 ve 20. bölümler kanal bölümüdür)
+  // kanala dönüş (17 ve 20. bölümler kanal bölümüdür; YN-213): düğümün çevresi Kulak Kanalı'nın kendisi gibi çizilir: sıcak toprak
+  // zemin, iki yanda taramalı kaya duvarları, tünel kemerleri, serumen damlaları ve "Kulak Kanalı'na dönüş" yazısı. Serumen kemikçikler
+  // ile koklea arasında değil, dış kulak yolundadır: harita bu düğümü oraya açılan bir geçit olarak gösterir.
   for (const n of nodesIn(L, z).filter((x) => x.biome === 'kanal')) {
-    const R = n.boss ? 92 : 62; const cave = blobPath(ctx, n.x, n.y, R, R * 0.8, rnd, 0.14);
-    wash(ctx, cave, 0x8a5a43, 0.7, 0.7); hatch(ctx, cave, w, h, 0.7, 5, INK, 0.25); ink(ctx, cave, 2);
-    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + rnd(); drop(ctx, n.x + Math.cos(a) * R * 0.78, n.y + Math.sin(a) * R * 0.64, 4 + rnd() * 3, 0xffb347, 0.95); }
+    const R = n.boss ? 92 : 62; const ry = R * 0.8; const cave = blobPath(ctx, n.x, n.y, R, ry, rnd, 0.14);
+    wash(ctx, cave, 0xd98f62, 0.85, 0.6);
+    ctx.save(); cave(); ctx.clip();
+    for (const side of [-1, 1]) {
+      const wall = () => { ctx.beginPath(); const x0 = n.x + side * (R + 20); ctx.moveTo(x0, n.y - ry - 20); for (let y = n.y - ry - 20; y <= n.y + ry + 20; y += 8) ctx.lineTo(n.x + side * (R * 0.62 + Math.sin(y / 23 + side) * 6), y); ctx.lineTo(x0, n.y + ry + 20); ctx.closePath(); };
+      wash(ctx, wall, 0x8a5a43, 0.8, 0.6); hatch(ctx, wall, w, h, side * 0.6, 5, INK, 0.3); ink(ctx, wall, 1.6, 0.7);
+    }
+    ctx.strokeStyle = css(INK, 0.4); ctx.lineWidth = 2; ctx.setLineDash([4, 5]);
+    for (const dy of [-0.55, 0.05, 0.62]) { ctx.beginPath(); ctx.ellipse(n.x, n.y + dy * ry, R * 0.62, 14, 0, Math.PI * 1.05, Math.PI * 1.95); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.restore();
+    ink(ctx, cave, 2.2);
+    for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2 + rnd(); drop(ctx, n.x + Math.cos(a) * R * 0.78, n.y + Math.sin(a) * ry * 0.8, 4 + rnd() * 3, 0xffb347, 0.95); }
+    // yazı yolun yanında (yol üstte çizilir): düğüm sağdaysa sola, soldaysa ya da ortadaysa sağa
+    const lx = n.x > w / 2 + 20 ? n.x - R - 6 : n.x + R + 6;
+    placeName(ctx, 'Kulak Kanalı’na', lx, n.y + ry * 0.55, 11, 0, 0.85); placeName(ctx, 'dönüş', lx, n.y + ry * 0.55 + 14, 11, 0, 0.85);
   }
 };
 

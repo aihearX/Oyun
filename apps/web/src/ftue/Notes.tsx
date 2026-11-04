@@ -18,11 +18,15 @@ export type NotePlace = 'biome' | 'result' | 'map';
 const CAP_MS = { genel: 150_000, odyoloji: 60_000 } as const;
 
 /**
- * Biyom tanıtımının ilk notu: bölgenin görevini anlatan onaylı satır (EAR_NOTES). Kemikçikler, Koklea · Apeks ve İşitme Siniri'nde
- * böyle bir not yok (zardan oval pencereye kaldıraç satırı yeni seslendirme ve onay ister); orada listedeki ilk not gelir.
+ * Biyom tanıtımının notu: o yapıyı anlatan onaylı satırlar (EAR_NOTES), sırayla ilk görülmemişi; hepsi görüldüyse ilki yine gelir
+ * (tanıtım biyom başına bir kez). Başka bir yapının notu tanıtımda çıkmaz (YN-122): Apeks'te tabanın presbiakuzi notu, İşitme
+ * Siniri'nde yenidoğan taraması, Beyin Sapı'nda maskeleme yok. Yeni metin yok; tam uyan onaylı not olmayan yerde en yakını:
+ * Apeks'te implant (teknik satırı apikal elektrotların alçak frekansları taşıdığını söyler), Sinir'de ABR (I. dalga işitme
+ * sinirinden). Kemikçikler'de kaldıraç satırı yeni seslendirme ve onay ister; stapedius refleksi ve üzengi tabanı notları kullanılır.
  */
-const BIOME_FIRST: Partial<Record<BiomeId, string>> = {
-  'dis-kulak': 'kepce-yon', kanal: 'kanal-rezonans', zar: 'empedans', 'koklea-1': 'dalga', 'koklea-2': 'prestin', 'beyin-sapi': 'yon', korteks: 'kokteyl',
+const BIOME_NOTES: Record<BiomeId, string[]> = {
+  'dis-kulak': ['kepce-yon'], kanal: ['kanal-rezonans', 'serumen-temiz'], zar: ['empedans', 'timpanometri'], kemikcikler: ['akustik-refleks', 'otoskleroz'],
+  'koklea-1': ['dalga', 'presbiakuzi'], 'koklea-2': ['prestin', 'oae-not'], 'koklea-3': ['implant'], sinir: ['abr-not'], 'beyin-sapi': ['yon'], korteks: ['kokteyl'],
 };
 
 export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote | null {
@@ -30,22 +34,26 @@ export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote |
   if (place !== 'biome' && Date.now() - s.noteAt < CAP_MS[s.knowledge]) return null;
   const pool = EAR_NOTES.filter((n) => n.region === region);
   const fresh = pool.filter((n) => !s.notesSeen.includes(n.id));
-  // biyom tanıtımı: önce bölgenin ne iş yaptığını anlatan onaylı not, yoksa (ya da görüldüyse) listedeki ilk görülmemiş not (YN-175)
-  if (place === 'biome') return fresh.find((n) => n.id === BIOME_FIRST[region]) ?? fresh[0] ?? null;
+  // biyom tanıtımı: yalnız o yapıyı anlatan onaylı notlar; ilk görülmemişi, hepsi görüldüyse ilki (YN-175, YN-122)
+  if (place === 'biome') {
+    const own = BIOME_NOTES[region].flatMap((id) => pool.filter((n) => n.id === id));
+    return own.find((n) => !s.notesSeen.includes(n.id)) ?? own[0] ?? null;
+  }
   // hepsi görüldüyse yalnız haritada (oyuncunun açtığı kartta) tekrar edilir
   const list = fresh.length ? fresh : place === 'map' ? pool : [];
   return list.length ? list[Math.abs(seed) % list.length]! : null;
 }
 
 /**
- * Sonuç ekranının "Biliyor muydun?" satırı (karar 31): tekrarda biyomun sıradaki satırı (YN-127) ve son gösterilenden farklı
- * (kayıttaki `bilgiSon`; Bölüm 13 tekrarı ile ardından Bölüm 14 aynı satırı göstermesin, YN-175). Yalnız seçer, kaydetmez.
+ * Sonuç ekranının "Biliyor muydun?" satırı (karar 31): tekrarda biyomun sıradaki satırı (YN-127) ve yakın zamanda gösterilenlerden
+ * farklı (kayıttaki `bilgiSonlar`; Bölüm 13 tekrarı ile ardından Bölüm 14 (YN-175), 24 → 25 → 26 tekrarı (YN-212) aynı satırı
+ * göstermesin). Yalnız seçer, kaydetmez.
  */
 export function pickBilgi(bolum: number, tekrar: number): BiliyorMuydun | null {
-  return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSon || undefined);
+  return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSonlar);
 }
 
-/** ekran açılırken bir kez seçilen "Biliyor muydun?" satırı (yeniden çizimlerde değişmez); gösterilince kayda son satır yazılır */
+/** ekran açılırken bir kez seçilen "Biliyor muydun?" satırı (yeniden çizimlerde değişmez); gösterilince kayda (son gösterilenler) yazılır */
 export function useBiliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar: number): string | null {
   const [s] = useState(() => pickBilgi(bolum, tekrar));
   useEffect(() => { if (s) useStore.getState().bilgiGoruldu(s.bolum); }, [s]);

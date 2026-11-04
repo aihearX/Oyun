@@ -67,8 +67,10 @@ function NodeCard({ n, unlocked, onClose, onPlay }: { n: number; unlocked: numbe
       <div className="mc-head" style={{ ['--acc' as string]: hex(b.palette.accent) }}>
         <div className="mc-medal">{boss ? <Art name="monster" size={30} /> : n}</div>
         <div className="min0">
-          <div className="mc-kicker">{b.name} · Bölüm {n}</div>
+          {/* başka bölgenin içindeki geri dönüş bölümü (17, 20): kart dönüşü ve gerçek yeri söyler (YN-213) */}
+          <div className="mc-kicker" data-testid="bolum-ust">{l.backCard?.title ?? b.name} · Bölüm {n}</div>
           <h2>{l.name}</h2>
+          {l.backCard && <div className="mc-place" data-testid="bolum-yer">{l.backCard.place}</div>}
         </div>
       </div>
       <Stars n={p?.stars ?? 0} big />

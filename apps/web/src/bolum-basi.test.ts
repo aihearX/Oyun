@@ -4,7 +4,7 @@
 //    sonuç vuruş gelmese de söyler.
 //  - Bölüm başı şeridinin 3. yıldız satırı bölüm kartıyla aynı kaynaktan.
 //  - 3. yıldız kartı: yıldız alındıysa tutan koşul belirgin, tutmayanın "kaldı"sı soluk (sınıflar; renk styles.css).
-//  - Sonuç ekranının "Biliyor muydun?" satırı son gösterilenden farklı kuralıyla seçilir (useBiliyorMuydun → kayıtta bilgiSon).
+//  - Sonuç ekranının "Biliyor muydun?" satırı son gösterilenden farklı kuralıyla seçilir (useBiliyorMuydun → kayıtta bilgiSonlar).
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -37,7 +37,7 @@ let root: Root | null = null;
 afterEach(async () => {
   await act(async () => { root?.unmount(); });
   root = null; document.body.innerHTML = '';
-  useStore.setState({ teamShields: 0, toasts: [], bilgiSon: 0, skills: { ...DEFAULT_SKILLS } });
+  useStore.setState({ teamShields: 0, toasts: [], bilgiSonlar: [], skills: { ...DEFAULT_SKILLS } });
 });
 async function show(spec: LevelSpec, result: RunResult, gift?: ShieldGift) {
   const { ResultScreen } = await import('./screens/ResultScreen');
@@ -112,15 +112,15 @@ describe('3. yıldız kartı (YN-191)', () => {
 });
 
 describe('Biliyor muydun? sonuç ekranında son gösterilenden farklı (YN-175)', () => {
-  it('ResultScreen useBiliyorMuydun ile seçer: gösterilen satır kayda (bilgiSon) yazılır, aynı biyomda art arda tekrar etmez', async () => {
+  it('ResultScreen useBiliyorMuydun ile seçer: gösterilen satır kayda (bilgiSonlar) yazılır, aynı biyomda art arda tekrar etmez', async () => {
     const spec13 = generateLevel(HUMAN_JOURNEY.id, 13, prof);
     await show(spec13, run(spec13));
     const a = q('biliyor-muydun')?.textContent; expect(a).toBeTruthy();
-    expect(useStore.getState().bilgiSon).toBe(13);
+    expect(useStore.getState().bilgiSonlar.at(-1)).toBe(13);
     await act(async () => { root!.unmount(); }); document.body.innerHTML = '';
     // aynı bölüm yine ilk denemeymiş gibi açılsa da (tekrar 0) az önce gösterilen satır gelmez: Kemikçikler'in öteki satırı
     await show(spec13, run(spec13));
     expect(q('biliyor-muydun')?.textContent).not.toBe(a);
-    expect(useStore.getState().bilgiSon).not.toBe(13);
+    expect(useStore.getState().bilgiSonlar.at(-1)).not.toBe(13);
   });
 });

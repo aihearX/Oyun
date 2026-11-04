@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from './cards';
 import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from './quiz';
 import { EAR_NOTES, GLOSSARY } from './odyoloji';
-import { BILIYOR_MUYDUN, biliyorMuydun, biliyorMuydunSatiri } from './biliyor-muydun';
+import { BILGI_YAKIN, BILIYOR_MUYDUN, biliyorMuydun, biliyorMuydunSatiri } from './biliyor-muydun';
 import { HUMAN_JOURNEY } from './journeys';
 
 /** bozuk kodlama (mojibake), yer tutucu ve boşluk hataları */
@@ -175,5 +175,36 @@ describe('odyoloji içeriği', () => {
       }
       expect(biliyorMuydun(b.bolum, 'odyoloji', 0, b.bolum)).toBe(biliyorMuydunSatiri(b.bolum, 0, b.bolum)!.odyoloji);
     }
+  });
+
+  it('Biliyor muydun? yakın zamanda gösterilen satırları tekrar etmez: 24 → 25 → 26, 13 tekrarı → 14 (YN-212)', () => {
+    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
+    /** sonuç ekranları sırayla: kayıttaki son BILGI_YAKIN satırı gibi tutulur; dizide hiçbir satır yakındakilerden biri değil */
+    const oyna = (dizi: [number, number][]) => {
+      const son: number[] = []; const out: number[] = [];
+      for (const [bolum, tekrar] of dizi) {
+        const s = biliyorMuydunSatiri(bolum, tekrar, son)!;
+        expect(son, `${dizi.map((d) => d.join('/')).join(' ')}: ${bolum}/${tekrar}`).not.toContain(s.bolum);
+        out.push(s.bolum); son.splice(0, son.length, ...[...son.filter((x) => x !== s.bolum), s.bolum].slice(-BILGI_YAKIN));
+      }
+      return out;
+    };
+    // oyuncu testi: 24 sonucu, 25 sonucu, 26 (tekrar) sonucu 24'ün satırını kelimesi kelimesine yeniden gösterdi
+    for (const t24 of [0, 1, 2, 3]) for (const t25 of [0, 1, 2, 3]) for (const t26 of [0, 1, 2, 3]) {
+      const g = oyna([[24, t24], [25, t25], [26, t26]]);
+      expect(new Set(g).size).toBe(3);
+      for (const x of g) expect(biyom(x)).toBe('koklea-2');
+    }
+    expect(oyna([[13, 1], [14, 0]])).toEqual([14, 15]);
+    // biyomda gösterilmemiş satır kalmadıysa önceki biyomdan (Koklea · Orta Kıvrım'dan önce Koklea · Taban)
+    const s = biliyorMuydunSatiri(26, 0, [24, 25, 26])!;
+    expect(biyom(s.bolum)).toBe('koklea-1');
+    // eski kayıt: tek sayı da kabul edilir (YN-175 kuralı)
+    expect(biliyorMuydunSatiri(14, 0, 14)!.bolum).toBe(biliyorMuydunSatiri(14, 0, [14])!.bolum);
+    // uzun ve karışık oynayışta (tekrarlar, geri dönüşler) yakındaki satır hiç tekrar etmez
+    let x = 7;
+    const r = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
+    const dizi: [number, number][] = Array.from({ length: 400 }, () => [1 + Math.floor(r() * BILIYOR_MUYDUN.length), Math.floor(r() * 4)]);
+    oyna(dizi);
   });
 });

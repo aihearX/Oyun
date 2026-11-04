@@ -1425,9 +1425,9 @@ async function suite(browserName, target, [W, H]) {
         ['demo=sonuc&bolum=5&yildiz=2&skor=1917&acilim=1&harita=1&anlatim=team&kutlama=0', 'sonuc-yildiz-devam'], ['demo=sonuc&bolum=16&yildiz=3&skor=2600&hedef=1&kutlama=0', 'sonuc-yildiz-hedef'],
         ['demo=sonuc&bolum=7&yildiz=2&skor=1500&hediye=takim&kutlama=0', 'sonuc-kalkan-takim']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
-        // her sonuç ekranı ilk gösterim gibi: "Biliyor muydun?" son gösterilen satır kaydı (YN-175, bilgiSon) sıfırlanır, yoksa önceki
+        // her sonuç ekranı ilk gösterim gibi: "Biliyor muydun?" son gösterilen satırlar kaydı (YN-175, bilgiSonlar) sıfırlanır, yoksa önceki
         // ekranın satırı sıradakinin satırını değiştirir ve ölçümler ekran sırasına bağlı olur
-        await page.evaluate(() => { try { const v = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); if (v.state) { v.state.bilgiSon = 0; localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } }).catch(() => undefined);
+        await page.evaluate(() => { try { const v = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); if (v.state) { v.state.bilgiSonlar = []; delete v.state.bilgiSon; localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } }).catch(() => undefined);
         await page.goto(url(q), { waitUntil: 'load' });
         await page.locator('.result-actions').waitFor({ timeout: 30_000 });
         // YN-136 (OT-buyuk-yazi-37), YN-145 (OT-buyuk-yazi-42): başarım bildirimi başlığı, yıldızları, skoru, nota/süre kutularını (ve

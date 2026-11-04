@@ -9,8 +9,11 @@ const NB = '\u00A0'; const WJ = '\u2060';
 /** satır sonunda bölünebilecek sayı: "1,1 ml" (düz boşluk), "2,5–3" (tirenin iki yanında WORD JOINER yok) */
 const SAYI_BIRIM = /\d (?:dBA|dB|kHz|Hz|daPa|ml|mm|cm|ms|µPa|mV|sn|dk)(?![\p{L}\d])/u;
 const ARALIK = /(?:\d|Hz|dB|ml|ms|mm|cm|daPa)[ \u00A0]?(?:–|…)|(?:–|…)[ \u00A0]?[\d−+]/u;
+/** ASCII tireyle sayı aralığı ("500-4000", "2,5 - 3"); "1-3-6" gibi zincirler ve harfe bitişik kimlikler aralık değil (YN-210) */
+const ASCII_ARALIK = /(?<![\p{L}\d,.\-–])\d+(?:,\d+)?[ \u00A0]?-[ \u00A0]?\d+(?:,\d+)?(?![\d,]|[ \u00A0]?-[ \u00A0]?\d)/u;
 function bolunebilir(s: string): string | null {
   if (SAYI_BIRIM.test(s)) return 'sayı + boşluk + birim';
+  const a = ASCII_ARALIK.exec(s); if (a) return `ASCII tireli aralık: “${a[0]}”`;
   for (const m of s.matchAll(new RegExp(ARALIK.source, 'gu'))) {
     const at = m.index! + m[0].search(/[–…]/u);
     const once = s.slice(Math.max(0, at - 2), at); const sonra = s.slice(at + 1, at + 3);
@@ -36,12 +39,22 @@ describe('satır sonunda bölünmeyen sayılar (YN-069)', () => {
     expect(bolunmez('eşik 30 dB HL, 226 Hz’lik prob')).toBe(`eşik 30${NB}dB${NB}HL, 226${NB}Hz’lik prob`);
     // sayı olmayan tireler ve kelimeler dokunulmaz
     for (const s of ['hava–kemik aralığı', 'Hughson–Westlake', 'dalga I–V', 'kv01', '3 yaş', 'Sv 2']) expect(bolunmez(s)).toBe(s);
+    // ASCII tireli sayı aralığı en tireye çevrilir ve bağlanır, birim de bölünmez (YN-210); zincir ve kimlik dokunulmaz
+    expect(bolunmez('Konuşma frekanslarının (yaklaşık 500-4000 Hz) işlendiği kıvrım.')).toBe(`Konuşma frekanslarının (yaklaşık 500${WJ}–${WJ}4000${NB}Hz) işlendiği kıvrım.`);
+    expect(bolunmez('yaklaşık 2,5-3 kHz civarı')).toBe(`yaklaşık 2,5${WJ}–${WJ}3${NB}kHz civarı`);
+    expect(bolunmez('6-12. bölümlerde')).toBe(`6${WJ}–${WJ}12. bölümlerde`);
+    for (const s of ['JCIH 1-3-6 ilkesi', '1-2-3 aylık hedef', 'kv-01', 'tarama-136', '2019-11-04']) expect(bolunmez(s)).toBe(s);
+    for (const s of ['500-4000 Hz', '2,5-3 kHz', '3-6 kHz bölgesi']) {
+      const b = bolunmez(s); expect(bolunmez(b)).toBe(b); expect(bicimsiz(b).replace(/\u00A0/g, ' ')).toBe(s.replace('-', '–'));
+      expect(bolunebilir(s), s).not.toBeNull(); expect(bolunebilir(b), s).toBeNull();
+    }
+    expect(bolunebilir('1-3-6 ilkesi')).toBeNull();
     for (const s of ['2,5–3 kHz', '1 Hz – 100 Hz', '−100…+50 daPa', 'sol 1,1 ml', `2,5–3${NB}kHz`]) {
       const b = bolunmez(s); expect(bolunmez(b)).toBe(b); expect(bicimsiz(b).replace(/\u00A0/g, ' ')).toBe(s.replace(/\u00A0/g, ' '));
       expect(bolunebilir(s), s).not.toBeNull(); expect(bolunebilir(b), s).toBeNull();
     }
   });
-  it('bütün içerik dizelerinde sayı–birim ve aralık satır sonunda bölünmez (sözlük, notlar, kartlar, quiz, kamp, vakalar, Eşleştir)', () => {
+  it('bütün içerik dizelerinde sayı–birim ve aralık satır sonunda bölünmez, ASCII tireli aralık kalmaz (sözlük, notlar, kartlar, biyomlar, quiz, kamp, vakalar, Eşleştir)', () => {
     const out: [string, string][] = [];
     for (const [k, v] of Object.entries({ ...ICERIK, ...ODYOLOJI })) metinler(v, k, out);
     // Timpanogram Eşleştir sorularının ekran hâli (sayı satırı turda kurulur)
