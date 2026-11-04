@@ -12,10 +12,14 @@ import { featureById, type FeatureId } from './features';
  * "Kamp'ta yeni 2 şey: Kamp Görevleri, Kamp oyunları", her biri için "Göster". Kart hiçbir şeyi engellemez (ekranı karartmaz);
  * belirdiği ilk anda dokunuş almaz, o an yolda olan dokunuş alttaki hedefine (ör. Liste) gider. Tur yalnız oyuncu "Göster"e
  * dokununca başlar; bitince kart kalanlarla geri gelir. Kapatmak (X) listedekileri görülmüş sayar. Yazı seslendirilmez.
+ * Kart bir kez gelir: ekranda belirdiği an listedekiler "kartta gösterildi" diye kaydedilir (`kartta`); oyuncu Göster'e dokunmadan
+ * kamptan çıksa da sonraki girişlerde aynı şeyler yeniden "yeni" diye sayılmaz (OT-ogrenci-birinci-43).
  */
 export const useKampYeni = create<{ items: string[] }>()(() => ({ items: [] }));
 export const showKampYeni = (items: string[]) => useKampYeni.setState({ items });
 export const hideKampYeni = () => useKampYeni.setState({ items: [] });
+/** kartta gösterildi kaydı (ftue.tours içinde; turun kendisi görülmüş sayılmaz, kartın Göster'i bu girişte açık kalır) */
+export const kartta = (id: string) => `kamp-yeni:${id}`;
 /** kartta hâlâ gösterilecekler (turu görülen düşer) */
 export function kampYeniBekleyen(): string[] {
   const done = useStore.getState().ftue.tours;
@@ -54,7 +58,11 @@ export function KampYeniKart({ onShow, calm }: { onShow(id: string): void; calm(
     tick(); const h = setInterval(tick, 300); return () => clearInterval(h);
   }, [want]);
   const show = want && ok;
-  useEffect(() => { if (!show) { setArmed(false); return; } const h = setTimeout(() => setArmed(true), ARM_MS); return () => clearTimeout(h); }, [show]);
+  useEffect(() => {
+    if (!show) { setArmed(false); return; }
+    const h = setTimeout(() => { setArmed(true); const s = useStore.getState(); for (const id of kampYeniBekleyen()) s.ftueTourDone(kartta(id)); }, ARM_MS);
+    return () => clearTimeout(h);
+  }, [show]);
   if (!show) return null;
   const close = () => { const s = useStore.getState(); for (const id of list) s.ftueTourDone(id); hideKampYeni(); };
   const card = (

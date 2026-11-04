@@ -12,7 +12,7 @@ import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
 import { useKg } from '../camp/gorev/state';
-import { KampYeniKart, hideKampYeni, kampYeniBekleyen, showKampYeni } from './KampYeni';
+import { KampYeniKart, hideKampYeni, kampYeniBekleyen, kartta, showKampYeni } from './KampYeni';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
@@ -256,6 +256,10 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
       steps.push(
         unlockCard('shop', 'magaza-01'),
         ...(route === 'profile' ? [] : [tapTab('profile')]),
+        // başlığın saydığı üç yer sırayla: Ödül kutusu simgesi, Mağaza girişi, Dolap (OT-ilk-kez-oyun-63). İlk ikisinin kayıtlı sesi
+        // yok (yazı); onaylı magaza-01/02 metni aynı
+        { say: ODUL_KUTUSU_YERI, silent: true, target: '.topbar2 .tb-pill.env', optional: true },
+        { say: MAGAZA_YERI, silent: true, target: '.menu-tile[data-tile="shop"]', optional: true },
         { id: 'magaza-02', say: lineText('magaza-02'), target: '.menu-tile[data-tile="wardrobe"]' },
       ); break;
     case 'events':
@@ -297,7 +301,9 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
       steps.push(
         unlockCard('akis', 'akis-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
-        { ...line('akis-02'), enter: () => openTeamTab('sohbet'), target: () => document.querySelector('[data-testid="akis-karti"]') ?? document.querySelector('.quick-line'), optional: true, mood: 'wink' },
+        // Tebrik et'i olan en yeni kart parlar (sayfa ona kayar); yoksa en yeni kartın tepkileri ve yön notu yalnız tepkiden söz eder
+        // (OT-ilk-kez-oyun-62: en eski "Hoş geldin" kartı parlıyordu). Onaylı satırın metni aynı
+        { ...line('akis-02'), enter: () => openTeamTab('sohbet'), target: () => tebrikKarti() ?? sonKart()?.querySelector('.react-bar') ?? document.querySelector('.quick-line'), note: akisNotu, optional: true, mood: 'wink' },
       ); break;
     case 'soru':
       steps.push(
@@ -355,15 +361,35 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
 }
 
 const TAB_ROUTES = ['map', 'today', 'camp', 'team', 'profile'];
+/** Mağaza turunda Ödül kutusu simgesi ve Mağaza girişi (kayıtlı ses yok; yazı) */
+export const ODUL_KUTUSU_YERI = 'Ödül kutun burada: etkinlik ve sıralama ödüllerin, arkadaş hediyelerin buraya gelir.';
+export const MAGAZA_YERI = 'Mağaza burada. Bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz.';
+/** Takım Akışı kartları (sohbette eskiden yeniye) */
+const akisKartlari = () => [...document.querySelectorAll('[data-testid="akis-karti"]')];
+const sonKart = (): Element | null => akisKartlari().pop() ?? null;
+/** Tebrik et'i olan en yeni kart: oyuncunun kendi kartında Tebrik et yok, yeni üye kartında düğme "Hoş geldin de" */
+export const tebrikKarti = (): Element | null => akisKartlari().filter((c) => c.getAttribute('data-type') !== 'uye' && c.querySelector('[data-testid="tebrik-et"]')).pop() ?? null;
+/** akis-02'nin seslendirilmeyen yön notu: parlayan kartta ne yapılabileceği */
+const akisNotu = () => (tebrikKarti() ? 'Tepki bırak ya da Tebrik et’e dokun' : sonKart() ? 'Karta bir tepki bırak' : null);
 /** klinik kurulmamışken Hasta Vakaları tanıtımının yerine (kayıtlı ses yok; yazı) */
 export const VAKA_KUR = 'Önce Odyoloji Kliniği’ni kur; Hasta Vakaları oradan açılır.';
 /** hiçbir kamp oyunu açık değilken kamp oyunları tanıtımının yerine (kayıtlı ses yok; yazı) */
 export const OYUN_KUR = 'Önce Odyometri Odası’nı kur; Ton Avı oradan açılır.';
 
-/** oyuncu en az bir vaka çözdü mü (kamp görevleri özetindeki Vaka Defteri başarısı ya da açılmış Vaka Defteri) */
+/** oyuncu en az bir vaka açtı ya da çözdü mü (kamp görevleri özetindeki Vaka Defteri başarısı ya da defterde oynanmış/çözülmüş vaka) */
 export function vakaCozuldu(): boolean {
   const { kg, vaka } = useKg.getState();
-  return (kg?.achievements.find((a) => a.id === 'b-defter')?.progress ?? 0) > 0 || !!vaka?.book.some((b) => b.solvedAt != null);
+  return (kg?.achievements.find((a) => a.id === 'b-defter')?.progress ?? 0) > 0 || !!vaka?.book.some((b) => b.solvedAt != null || b.plays > 0);
+}
+/**
+ * oyuncu bir Kamp Görevleri ödülü aldı (hikâye bölümü ya da adımı, günlük görev, haftalık ya da başarı basamağı, takım hedefi):
+ * Görevler'e kendi girmiş, "yeni" diye gösterilmez (OT-ogrenci-birinci-43)
+ */
+export function gorevAlindi(): boolean {
+  const kg = useKg.getState().kg; if (!kg) return false;
+  const ch = kg.story?.chapter;
+  return (kg.story?.claimed ?? 0) > 0 || !!ch?.claimed || !!ch?.steps?.some((g) => g.claimed) || !!kg.daily?.tasks.some((g) => g.claimed)
+    || !!kg.weekly?.tiers.some((t) => t.claimed) || !!kg.achievements?.some((a) => a.tiers?.some((t) => t.claimed)) || !!kg.takim?.claimed;
 }
 /** Hasta Vakaları oyuncuda: 'acik' (klinik kurulu), 'kur' (bölümü geldi, klinik yok), 'yapiliyor' (klinik inşaatta); null: bölümü gelmedi */
 export type VakaDurum = 'acik' | 'kur' | 'yapiliyor' | null;
@@ -388,21 +414,25 @@ export const oyunOynandi = (): boolean => !!useKg.getState().kg?.oyun.some((g) =
  * vaka çözdü; Hasta Vakaları'na kendi girmiş, "yeni" diye gösterilmez (visitedTours ilkesi, OT-ilk-kez-oyun-51).
  * Kamp oyunları da aynı kuralla (OT-ilk-kez-oyun-52): `oyun` en az biri açıkken 'acik'; hiçbiri açık değilse yerine bir kez "önce
  * Odyometri Odası'nı kur" yazısı (`oyun-kur`), oda (ya da kule) kurulunca asıl tanıtım. `oynadi`: oyuncu bir kamp oyunu oynadı.
+ * Oyuncunun kullandığı özellik "yeni" sayılmaz (OT-ogrenci-birinci-43): `aldi` görev ödülü alındı; klinik "önce kur" yazısı gelmeden
+ * kurulduysa (oyuncu kliniği kendisi kurdu) Hasta Vakaları da. "Kamp'ta yeni" kartında bir kez gösterilen (`kartta`) yeniden gelmez.
  */
-export function campQueue(cleared: number, done: readonly string[], vaka: VakaDurum, cozdu = false, oyun: VakaDurum = 'acik', oynadi = false): string[] {
+export function campQueue(cleared: number, done: readonly string[], vaka: VakaDurum, cozdu = false, oyun: VakaDurum = 'acik', oynadi = false, aldi = false): string[] {
   const out: string[] = [];
+  const seen = (id: string) => done.includes(id) || done.includes(kartta(id));
   for (const f of FEATURES) {
-    if (!f.tour || !CAMP_TOURS.has(f.id) || cleared < f.at || done.includes(f.id)) continue;
-    if ((f.id === 'vaka' && cozdu) || (f.id === 'kampoyun' && oynadi)) continue;
-    if (f.id === 'kampoyun') { if (oyun === 'acik') out.push(f.id); else if (oyun === 'kur' && !done.includes('oyun-kur')) out.push('oyun-kur'); }
+    if (!f.tour || !CAMP_TOURS.has(f.id) || cleared < f.at || seen(f.id)) continue;
+    if ((f.id === 'vaka' && cozdu) || (f.id === 'kampoyun' && oynadi) || (f.id === 'gorev' && aldi)) continue;
+    if (f.id === 'kampoyun') { if (oyun === 'acik') out.push(f.id); else if (oyun === 'kur' && !seen('oyun-kur')) out.push('oyun-kur'); }
     else if (f.id !== 'vaka') out.push(f.id);
-    else if (vaka === 'acik') out.push('vaka');
-    else if (vaka === 'kur' && !done.includes('vaka-kur')) out.push('vaka-kur');
+    else if (vaka === 'acik') { if (seen('vaka-kur')) out.push('vaka'); }
+    else if (vaka === 'kur' && !seen('vaka-kur')) out.push('vaka-kur');
   }
   return out;
 }
 /**
- * Bu kamp girişinde duyurulmuş (tur ya da tek kart) kamp tanıtımları; kamptan çıkınca sıfırlanır. Biri bitince sıradaki kendiliğinden
+ * Bu kamp girişinde duyurulmuş (tur ya da tek kart) kamp tanıtımları; kamptan çıkınca sıfırlanır (tek kartta görünenler ayrıca
+ * kalıcı kaydedilir, bkz. KampYeni.tsx `kartta`). Biri bitince sıradaki kendiliğinden
  * başlamaz (zincir yok: oyuncunun sonraki dokunuşu başka bir tanıtıma dönüşmez); girişten sonra açılan (klinik kuruldu) yine gelir.
  */
 const campVisit = new Set<string>();
@@ -448,7 +478,7 @@ function nextTour(route: string, zincir: readonly string[] = []): string | null 
   // kamp görevleri turları yalnız kamptayken başlar (oyuncu kampa döndüğünde; başka bir akışı bölmez); sunucunun kamp görevleri özeti
   // gelmeden karar verilmez (Hasta Vakaları klinik kurulu mu). Birden çok yeni şey varsa tek kart, art arda tur yok
   if (route === 'camp' && exists('.camp-base, .camp-list-screen') && useKg.getState().kg) {
-    const q = campQueue(cleared, f.tours, vakaDurum(), vakaCozuldu(), oyunDurum(), oyunOynandi()).filter((id) => !campVisit.has(id));
+    const q = campQueue(cleared, f.tours, vakaDurum(), vakaCozuldu(), oyunDurum(), oyunOynandi(), gorevAlindi()).filter((id) => !campVisit.has(id));
     if (q.length >= 2) { campCard = q; return KAMP_YENI; }
     // "önce kur" yazısı liste görünümünde binanın kartı ekrandayken gelir (sayfa onu göstermek için kaymaz)
     if (q[0] === 'vaka-kur' || q[0] === 'oyun-kur') { if (!exists('.camp-list-screen') || onScreen(kurKart(q[0]))) return q[0]; }
@@ -522,7 +552,8 @@ export function startTour(id: string, route: string, goster = false): void {
 export function FtueDirector({ route }: { route: string }) {
   const active = useCoach((s) => s.tour);
   const bypass = useStore((s) => s.ftue.bypass);
-  // kamptan çıkınca: bu girişin duyuruları ve tek kart sıfırlanır (bekleyenler bir sonraki girişte yine duyurulur)
+  // kamptan çıkınca: bu girişin duyuruları ve tek kart sıfırlanır (bekleyen turlar bir sonraki girişte yine duyurulur; tek kartta
+  // görünmüş olanlar yeniden "yeni" sayılmaz)
   useEffect(() => { if (route !== 'camp') { campVisit.clear(); hideKampYeni(); } }, [route]);
   // bölüm açıldı: sürmekte olan açılım tanıtımı (bölüme dokunuşla yarışıp açılmış olabilir) görülmüş sayılmadan çekilir, bölümden
   // sonra yeniden gelir (anlatıcı yükü sayacı geri alınır, OT-uzman-odyolog-34)
@@ -571,6 +602,8 @@ export function FtueDirector({ route }: { route: string }) {
         if (route === 'camp' && id !== 'vaka' && !st.ftue.tours.includes('vaka') && vakaCozuldu()) st.ftueTourDone('vaka');
         // kamp oyunu oynamış oyuncu da kamp oyunlarına kendi girmiş
         if (route === 'camp' && id !== 'kampoyun' && !st.ftue.tours.includes('kampoyun') && oyunOynandi()) st.ftueTourDone('kampoyun');
+        // görev ödülü almış oyuncu Görevler'e kendi girmiş
+        if (route === 'camp' && id !== 'gorev' && !st.ftue.tours.includes('gorev') && gorevAlindi()) st.ftueTourDone('gorev');
       }
       if (!id) return;
       if (id === KAMP_YENI) { for (const c of campCard) campVisit.add(c); showKampYeni(campCard); return; }

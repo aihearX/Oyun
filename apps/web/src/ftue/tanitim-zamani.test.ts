@@ -178,7 +178,9 @@ describe('vaka çözmüş oyuncuya Hasta Vakaları "yeni" değil', () => {
     expect(campQueue(7, [], 'acik', true)).toEqual(['gorev', 'kampoyun']);
     expect(campQueue(7, ['gorev'], 'acik', true)).toEqual(['kampoyun']);
     expect(campQueue(7, ['gorev', 'kampoyun'], 'kur', true)).toEqual([]);
-    expect(campQueue(7, ['gorev'], 'acik')).toEqual(['kampoyun', 'vaka']);
+    expect(campQueue(7, ['gorev', 'vaka-kur'], 'acik')).toEqual(['kampoyun', 'vaka']);
+    // klinik "önce kur" yazısı gelmeden kurulduysa oyuncu kliniği kendisi kurmuş: "yeni" değil (YN-208)
+    expect(campQueue(7, ['gorev'], 'acik')).toEqual(['kampoyun']);
   });
   it('vakaCozuldu: kamp görevleri özetindeki Vaka Defteri başarısı ya da defterdeki çözülmüş vaka', async () => {
     const { vakaCozuldu } = await import('./Director'); const { useKg } = await import('../camp/gorev/state');
