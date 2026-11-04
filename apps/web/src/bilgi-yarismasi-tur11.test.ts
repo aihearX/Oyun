@@ -15,6 +15,8 @@ import { QuizView, quizGoRule, quizLevelLine, quizStartRule, quizTeamRewardLine 
 const src = (p: string) => readFileSync(resolve(__dirname, p), 'utf8');
 // sunucunun QUIZ_REWARDS'ı (jsdom'da sunucu modülü yüklenmez; aşağıda kaynakla karşılaştırılır)
 const rewards: QuizInfo['rewards'] = { perCorrect: 10, bonusAvg: 700, bonus: [{ kind: 'kristal', amount: 10, ref: 'etkinlik' }] as EventReward[] };
+/** sıralama satırındaki yarışma saatleri (yerel saatle 13:00 ve 20:00) */
+const AT13 = new Date(2026, 10, 4, 13, 0).getTime(); const AT20 = new Date(2026, 10, 4, 20, 0).getTime();
 const info = (o: Partial<QuizInfo> = {}): QuizInfo => ({ nextSlotAt: 0, slotOpen: false, canStart: false, startsLeft: 5, ranking: [], rewards, ...o });
 
 /** sahte ağ istemcisi: olay dinleyicilerini tutar, `quiz.state` ve `events.overview` çağrılarını cevaplar */
@@ -46,7 +48,7 @@ describe('bitişte takım sıralaması tazelenir (YN-185, OT-sinav-adayi-38)', (
     const n0 = stateCalls();
     f.emit('quiz.updated', { quiz: quiz({ phase: 'soru' }) });
     expect(stateCalls()).toBe(n0);
-    net.info = info({ ranking: [{ teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640 }] });
+    net.info = info({ ranking: [{ teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640, at: AT13 }] });
     f.emit('quiz.updated', { quiz: quiz() });
     expect(stateCalls()).toBe(n0 + 1);
     await vi.waitFor(() => expect(useEvents.getState().quizInfo?.ranking).toHaveLength(1));
@@ -54,7 +56,7 @@ describe('bitişte takım sıralaması tazelenir (YN-185, OT-sinav-adayi-38)', (
   });
 
   it('sonuç ekranı sonradan açılınca da tazelenir', async () => {
-    net.info = info({ ranking: [{ teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640 }] });
+    net.info = info({ ranking: [{ teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640, at: AT13 }] });
     const n0 = stateCalls();
     const html = renderWith({ quiz: quiz(), quizInfo: info() }); // eski bilgi: sıralama boş
     expect(html).toContain('Bugün henüz yarışma bitiren takım yok');
@@ -104,11 +106,16 @@ describe('sonuç: takım ödülü ve düzey satırı (YN-185, YN-187)', () => {
   });
 
   it('sonuç ekranı: kişisel satır, takım ödülü, düzey ve sıralamada kendi takımı vurgulu', () => {
-    const html = renderWith({ quiz: quiz(), quizInfo: info({ ranking: [{ teamId: 't0', name: 'Başkası', emblem: '🌱', avg: 800 }, { teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640 }] }) });
+    const html = renderWith({ quiz: quiz(), quizInfo: info({ ranking: [{ teamId: 't0', name: 'Başkası', emblem: '🌱', avg: 800, at: AT20 }, { teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640, at: AT13 }] }) });
     expect(html).toContain('Takım ortalaması 640: takım ödülü eşiği 700, 60 puan eksik kaldı');
     expect(html).toContain('Sorular: genel düzey');
     expect(html).not.toContain('Bugün henüz yarışma bitiren takım yok');
     expect(html).toMatch(/<li class="me">.*?Öğlenciler/);
+    // sıralama kuralı ve puanın geldiği yarışmanın saati (YN-209): üstteki ortalama bu yarışmanın, satır günün en iyisi
+    expect(html).toContain('Bu yarışmada takım ortalaması');
+    expect(html).toContain('Her takımın bugünkü en iyi yarışması (puan · yarışma saati)');
+    expect(html).toMatch(/Öğlenciler.*?640<small class="muted"> · 13:00/);
+    expect(html).toMatch(/Başkası.*?800<small class="muted"> · 20:00/);
   });
 });
 

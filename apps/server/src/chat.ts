@@ -143,10 +143,20 @@ export function cardMeta(app: App, msgId: string): Meta | null {
   return r ? parseJson<Meta>(r.meta ?? '{}', {}) : null;
 }
 
+/**
+ * Son historySize ileti. Takım odasında en son Günün Sorusu kartı pencerenin dışında kaldıysa başa eklenir: kalabalık bir günde
+ * akış ve sistem satırları (oyuncu testinde soru kartından sonra 80 ileti) kartı geçmişten düşürüyordu, soru sohbette hiç
+ * görünmüyordu (YN-074, OT-sinav-adayi-40).
+ */
 export function history(app: App, pid: string, room: string): ChatMessage[] {
   const muted = mutedBy(app, pid);
   const rows = app.db.all<ChatRow>('SELECT * FROM chat WHERE room = ? AND hidden = 0 AND id NOT IN (SELECT msg_id FROM chat_thread) ORDER BY at DESC, rowid DESC LIMIT ?', room, SOCIAL_LIMITS.historySize + muted.size * 5);
-  return rows.filter((r) => !hides(app, pid, r.from_id, muted)).slice(0, SOCIAL_LIMITS.historySize).reverse().map((r) => decorate(app, pid, toMsg(r), muted));
+  const shown = rows.filter((r) => !hides(app, pid, r.from_id, muted)).slice(0, SOCIAL_LIMITS.historySize).reverse();
+  if (teamOfRoom(room)) {
+    const dq = app.db.get<ChatRow>("SELECT * FROM chat WHERE room = ? AND kind = 'soru' AND hidden = 0 ORDER BY at DESC, rowid DESC LIMIT 1", room);
+    if (dq && !shown.some((r) => r.id === dq.id)) shown.unshift(dq);
+  }
+  return shown.map((r) => decorate(app, pid, toMsg(r), muted));
 }
 
 /** okunmamış takım iletileri (Takım sekmesi rozeti): imleçten sonra, başkasının yazdığı (kendi iletin ve seninle ilgili akış kartı

@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS help_resolved(request_id TEXT PRIMARY KEY, at INTEGER
 CREATE TABLE IF NOT EXISTS dq(team_id TEXT NOT NULL, day TEXT NOT NULL, week TEXT NOT NULL, qidx INTEGER NOT NULL, msg_id TEXT NOT NULL, level TEXT NOT NULL, created_at INTEGER NOT NULL, reveal_at INTEGER NOT NULL, revealed INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(team_id, day));
 CREATE INDEX IF NOT EXISTS dq_reveal ON dq(revealed, reveal_at);
 CREATE TABLE IF NOT EXISTS dq_answers(team_id TEXT NOT NULL, day TEXT NOT NULL, player_id TEXT NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL, PRIMARY KEY(team_id, day, player_id));
+-- takımsız oyuncunun Günün Sorusu cevabı (karar 35): ödül, takım puanı, lig ve sıralamaya girmez
+CREATE TABLE IF NOT EXISTS dq_solo(day TEXT NOT NULL, player_id TEXT NOT NULL, choice INTEGER NOT NULL, correct INTEGER NOT NULL DEFAULT 0, at INTEGER NOT NULL, PRIMARY KEY(day, player_id));
 CREATE TABLE IF NOT EXISTS dq_rewards(player_id TEXT NOT NULL, day TEXT NOT NULL, PRIMARY KEY(player_id, day));
 CREATE TABLE IF NOT EXISTS team_comm(team_id TEXT PRIMARY KEY, study INTEGER NOT NULL DEFAULT 0);
 -- İkili Görev

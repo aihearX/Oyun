@@ -763,7 +763,29 @@ async function suite(browserName, target, [W, H]) {
     await page.locator('.net-dot.on').first().waitFor({ timeout: 10_000 }).catch(() => undefined);
     await check('harita', { scroll: false });
 
-    if (want('bugun')) { await tab('Bugün'); await check('bugun'); }
+    if (want('bugun')) {
+      await tab('Bugün'); await check('bugun');
+      // Günün Sorusu (YN-074, karar 35): takımsız oyuncu Bugün'den tek dokunuşla açar ve cevaplar; durum satırı "Cevapladın" der
+      const kart = page.getByTestId('bugun-soru'); const ac = page.getByTestId('bugun-soru-ac');
+      await ac.waitFor({ timeout: 10_000 }).catch(() => undefined);
+      if (!await ac.count()) fail(await check('bugun-gunun-sorusu', { scroll: false }), `Bugün'de Günün Sorusu açılamıyor (durum: ${await kart.getAttribute('data-durum').catch(() => 'yok')})`);
+      else {
+        await ac.scrollIntoViewIfNeeded(); await sleep(200);
+        const rec0 = await check('bugun-gunun-sorusu', { scroll: false });
+        if (!/Ödül, takım puanı ve lig yalnız takım cevaplarından/.test(await page.getByTestId('bugun-soru-kural').textContent() ?? '')) fail(rec0, 'takımsız oyuncuya ödül/takım puanı kuralı yazmıyor');
+        await ac.click(); await page.getByTestId('bugun-soru-sayfa').waitFor({ timeout: 5000 }); await sleep(300);
+        const opt = page.locator('[data-testid="bugun-soru-sayfa"] .dq-opt:not(:disabled)').first();
+        const acik = await opt.count();
+        await check('bugun-gunun-sorusu-sayfa', { scroll: false });
+        if (acik) {
+          await opt.click(); await page.locator('[data-testid="bugun-soru-sayfa"] .dq-opt.picked').waitFor({ timeout: 5000 }); await sleep(200);
+          await check('bugun-gunun-sorusu-cevap', { scroll: false });
+        }
+        await page.keyboard.press('Escape'); await sleep(300);
+        const durum = await page.getByTestId('bugun-soru-durum').textContent() ?? '';
+        if (acik && !durum.startsWith('Cevapladın')) fail(rec0, `cevaptan sonra durum satırı: ${durum}`);
+      }
+    }
     if (want('pratik')) {
       // Bilgi pratiği (YN-078): Bugün'den açılır (takımsız oyuncu); giriş, soru, cevap + açıklama, sonuç. Ödülsüz: kayıttaki jeton/XP/meta değişmez (web)
       await tab('Bugün'); const ac = page.getByTestId('bugun-pratik-ac'); await ac.scrollIntoViewIfNeeded(); await sleep(200);
@@ -1108,6 +1130,13 @@ async function suite(browserName, target, [W, H]) {
           const g = await page.evaluate(gununSorusuOlc); rec.gununSorusu = g;
           if (!g) fail(rec, 'Günün Sorusu kartı sohbette yok');
           else if (!g.tam) fail(rec, `Günün Sorusu ilk karede tam görünmüyor: kutu ${g.kutu.top}–${g.kutu.bottom}, soru başı ${g.soru}, şıklar ${g.siklar.join('/')} (kart ${g.kart} px)`); }
+        // aynı soru Bugün'de (YN-074): takımlı oyuncuya takım sorusu, sohbet kartına geçiş düğmesi
+        { await tab('Bugün'); const ac = page.getByTestId('bugun-soru-ac'); await ac.waitFor({ timeout: 10_000 }); await ac.scrollIntoViewIfNeeded(); await sleep(200);
+          const rec = await check('takim-bugun-gunun-sorusu', { scroll: false });
+          if (!/Takım sohbetindeki soruyla aynı/.test(await page.getByTestId('bugun-soru-kural').textContent() ?? '')) fail(rec, 'takımlı oyuncunun Bugün kartı takım sorusunu göstermiyor');
+          await ac.click(); await page.getByTestId('bugun-soru-sohbet').waitFor({ timeout: 5000 }); await sleep(300);
+          await check('takim-bugun-gunun-sorusu-sayfa', { scroll: false });
+          await page.getByTestId('bugun-soru-sohbet').click(); await page.locator('[data-testid="gunun-sorusu"]').first().waitFor({ timeout: 10_000 }); await sleep(300); }
         // Birlikte (İkili Görev, Usta–Çırak, sohbet ayarları)
         await tab('Profil'); await page.locator('.menu-tile[data-tile="together"]').click();
         await page.getByTestId('birlikte').waitFor(); await sleep(500);

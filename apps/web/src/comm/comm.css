@@ -247,3 +247,22 @@ html.kb-open .chat .quick-line, html.kb-open .chat .online-row { display:none; }
 /* kısa ekran: Kim çevrimiçi satırı inceltilir */
 .online-row.none .or-dot { background:#7d74a8; box-shadow:none; }
 @media (max-height:720px) { .online-row.none { display:none; } .online-row { min-height:28px; } .or-av { width:26px; height:26px; } .or-av svg { width:22px; height:22px; } }
+
+/* Bugün › Günün Sorusu (YN-074): durum, soru başı, dünkü cevap; alt sayfada şıklar tek sütun (uzun şık 320 px'te de sığar) */
+.dq-bugun { display:flex; flex-direction:column; gap:8px; }
+.dq-bugun .dqb-head { gap:12px; align-items:center; }
+.dq-bugun .dqb-icon { flex:none; filter:drop-shadow(0 4px 0 rgba(0,0,0,.3)); }
+.dq-bugun .dqb-icon .art { display:block; }
+.dq-bugun .dqb-q { font-weight:800; font-size:0.9375rem; line-height:1.3; overflow-wrap:anywhere; }
+.dq-bugun .dqb-rule { display:block; font-size:0.75rem; line-height:1.35; }
+.dq-bugun .dqb-btn { align-self:flex-start; }
+.dqb-dun { display:flex; flex-direction:column; gap:3px; padding:8px 10px; border-radius:12px; background:rgba(5,2,20,.3); }
+.dqb-dun .dqb-dun-q { font-size:0.8125rem; line-height:1.3; overflow-wrap:anywhere; }
+.dqb-dun .dqb-dun-a { font-weight:800; font-size:0.8125rem; color:var(--lime); overflow-wrap:anywhere; }
+.dqb-dun p { margin:0; font-size:0.8125rem; line-height:1.4; }
+.dqb-sheet { display:flex; flex-direction:column; gap:10px; }
+.dqb-sheet .dqb-sheet-q { font-size:1rem; line-height:1.35; overflow-wrap:anywhere; }
+.dqb-choices { display:flex; flex-direction:column; gap:6px; }
+.dqb-choices .dq-opt { padding:8px 10px; min-height:44px; }
+.dqb-choices .dq-opt .dq-t { font-size:0.875rem; }
+.dqb-sheet .dqb-exp { font-weight:600; }

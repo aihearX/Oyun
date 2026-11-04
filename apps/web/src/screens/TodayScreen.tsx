@@ -12,6 +12,7 @@ import { TopBar } from '../ui/social';
 import { Art, Glyph } from '../ui/art';
 import { useNav } from '../nav';
 import { QuizLiveCard } from '../events/QuizLive';
+import { DqTodayCard } from '../comm/DqToday';
 
 /** takvim hücresinin okunuşu (ekran okuyucu ve uzun basış): dönüşüm de söylenir */
 function calDayText(d: CalendarDay): string {
@@ -76,6 +77,9 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         </button>
         {shieldInfo && <div className="sc-rule" id="seri-koruyucu-kural" role="note" data-testid="seri-koruyucu-kural">{SHIELD_RULE}</div>}
       </div>
+
+      {/* Günün Sorusu: takımlı ve takımsız (karar 35); sohbetteki kart aynı soruya kısayol (YN-074) */}
+      <DqTodayCard />
 
       <section className="card">
         <div className="row between"><h2>Giriş takvimi</h2><span className="muted">{cal.cycle > 1 ? `${cal.cycle}. tur` : '7 gün'}</span></div>

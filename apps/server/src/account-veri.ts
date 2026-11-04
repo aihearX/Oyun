@@ -250,6 +250,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   dq: { takim: { team_id: SIL }, degil: ['msg_id'] },
   dq_answers: { oyuncu: { player_id: SIL }, takim: { team_id: SIL }, not: 'Takım ligi ve sıralama silinen hesapları zaten saymaz (ADMIN_IDS_SQL).' },
   dq_rewards: { oyuncu: { player_id: SIL } },
+  dq_solo: { oyuncu: { player_id: SIL } },
   team_comm: { takim: { team_id: SIL } },
   duo: { oyuncu: { a: SIL, b: SIL }, degil: ['id'], not: 'Ortak bu haftanın İkili Görevinden çıkar; yeni ortak seçebilir.' },
   duo_invites: { oyuncu: { from_id: SIL, to_id: SIL }, degil: ['id'] },

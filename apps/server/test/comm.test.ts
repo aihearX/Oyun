@@ -3,6 +3,7 @@ import type { NetError } from '@odi/net';
 import { QUIZ_QUESTIONS } from '@odi/content';
 import { setup, run, type Env, type TC } from './helpers';
 import { feedEvent } from '../src/comm';
+import { systemMessage } from '../src/chat';
 import { maskProfanity } from '../src/profanity';
 
 let env: Env | undefined;
@@ -407,6 +408,80 @@ describe('Günün Sorusu', () => {
     expect(next.msgId).not.toBe(card.id);
     expect(QUIZ_QUESTIONS.find((x) => x.text === next.text)!.level).toBe('odyoloji');
   });
+
+  it('Bugün kartı ve sohbet kartı aynı soru: çift cevap yok; ertesi gün dünkü sorunun cevabı ve açıklaması (YN-074)', async () => {
+    env = await setup();
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');
+    const t = await team(a, b);
+    // Bugün kartı (dq.state) sohbetten önce açılsa da aynı kart: sohbete girince ikinci kart açılmaz
+    const st = await a.call('dq.state', {});
+    expect(st).toMatchObject({ solo: false, yesterday: null, reward: 10 });
+    const cards = (await a.call('chat.join', { room: t.room })).history.filter((m) => m.kind === 'soru');
+    expect(cards.map((m) => m.id)).toEqual([st.question!.msgId]);
+    const def = QUIZ_QUESTIONS.find((x) => x.text === st.question!.text)!;
+    await a.call('dq.answer', { choice: def.answer });
+    // aynı soru sohbet kartından ikinci kez cevaplanamaz (aynı işlem, aynı birincil anahtar); kart sayacı 1
+    expect((await err(a.call('dq.answer', { choice: (def.answer + 1) % 4 }))).code).toBe('TEKRAR');
+    expect((await b.call('chat.join', { room: t.room })).history.find((m) => m.kind === 'soru')!.meta?.n).toBe(1);
+    // ertesi gün (zamanlayıcı çalışmasa da): dünkü soru açıklanmış, doğru cevap + açıklama + benim cevabım; ödül bir kez
+    env!.clock.advance(24 * 3_600_000);
+    const next = await a.call('dq.state', {});
+    expect(next.question!.msgId).not.toBe(st.question!.msgId);
+    expect(next.yesterday).toEqual({ day: st.question!.day, text: def.text, choices: def.choices, answer: def.answer, explain: def.explain, myChoice: def.answer });
+    expect((await b.call('dq.state', {})).yesterday).toMatchObject({ answer: def.answer, myChoice: null });
+    expect(await inboxSum(a, 'jeton', 'gunun-sorusu')).toBe(10);
+  });
+
+  it('takımsız oyuncu (karar 35): aynı gün herkese aynı soru, bir kez cevap, 20:00 açıklama; ödül, sıralama ve takım puanı yok', async () => {
+    env = await setup();
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora'); const c = await env!.connect('Cem'); const d = await env!.connect('Dila');
+    const st = await a.call('dq.state', {});
+    expect(st).toMatchObject({ solo: true, week: [], reward: 0, yesterday: { myChoice: null } });
+    const q = st.question!;
+    expect(q).toMatchObject({ msgId: '', level: 'merakli', revealed: false, answer: null, explain: null, myChoice: null, correct: null, answered: 0 });
+    expect((await b.call('dq.state', {})).question!.text).toBe(q.text);
+    const def = QUIZ_QUESTIONS.find((x) => x.text === q.text)!;
+    expect(def.level).toBe('merakli');
+    expect(st.yesterday!.text).not.toBe(q.text);
+    expect((await a.call('dq.answer', { choice: def.answer })).question).toMatchObject({ myChoice: def.answer, answered: 1, answer: null });
+    expect((await err(a.call('dq.answer', { choice: (def.answer + 1) % 4 }))).code).toBe('TEKRAR');
+    await b.call('dq.answer', { choice: (def.answer + 1) % 4 });
+    // takımlı oyuncunun cevabı ayrı: takım sorusu, takım tablosu
+    const t = await team(c, d);
+    await c.call('chat.join', { room: t.room });
+    const tq = await c.call('dq.state', {});
+    await c.call('dq.answer', { choice: QUIZ_QUESTIONS.find((x) => x.text === tq.question!.text)!.answer });
+    // 20:00 (test saati 12:00): açıklanır, artık cevaplanmaz
+    env!.clock.advance(8 * 3_600_000 + 1000);
+    env!.srv.sweep();
+    const rev = await a.call('dq.state', {});
+    expect(rev.question).toMatchObject({ revealed: true, answer: def.answer, explain: def.explain, myChoice: def.answer, correct: null });
+    expect((await err(b.call('dq.answer', { choice: 0 }))).code).toBe('SURE');
+    expect(await inboxSum(a, 'jeton', 'gunun-sorusu')).toBe(0);
+    expect(await inboxSum(c, 'jeton', 'gunun-sorusu')).toBe(10);
+    const board = (await a.call('rank.board', { board: 'soru', scope: 'herkes' })).view.rows.map((r) => r.name);
+    expect(board).not.toContain('Ayşe');
+    expect(board).toContain('Cem');
+    // ertesi gün: dünkü soru, doğru cevap, açıklama ve cevabı
+    env!.clock.advance(16 * 3_600_000);
+    expect((await a.call('dq.state', {})).yesterday).toEqual({ day: q.day, text: def.text, choices: def.choices, answer: def.answer, explain: def.explain, myChoice: def.answer });
+    // takıma girince takım sorusu (sohbet kartıyla)
+    await a.call('team.join', { teamId: t.id });
+    expect((await a.call('dq.state', {})).solo).toBe(false);
+  });
+
+  it('kalabalık sohbet: bugünün soru kartı 50 iletilik geçmiş penceresinden düşmez (YN-074, OT-sinav-adayi-40)', async () => {
+    env = await setup();
+    const a = await env!.connect('Ayşe'); const b = await env!.connect('Bora');
+    const t = await team(a, b);
+    const card = (await a.call('chat.join', { room: t.room })).history.find((m) => m.kind === 'soru')!;
+    const app = env!.srv.app;
+    app.run(() => { for (let i = 0; i < 80; i++) { env!.clock.advance(1000); systemMessage(app, t.room, `Akış satırı ${i}`); } });
+    const h = (await b.call('chat.join', { room: t.room })).history;
+    expect(h.filter((m) => m.kind === 'soru').map((m) => m.id)).toEqual([card.id]);
+    expect(h[0]!.id).toBe(card.id);
+    expect(h.at(-1)!.text).toBe('Akış satırı 79');
+  });
 });
 
 describe('İkili Görev', () => {
@@ -510,7 +585,7 @@ describe('protokol', () => {
       ['help.tip', { requestId: 'x', phrase: 'Büyük Harf' }], ['help.race', {}], ['dq.answer', { choice: 7 }], ['team.study', {}],
       ['duo.invite', {}], ['duo.respond', { inviteId: 'x' }], ['mentor.offer', { id: 'x', as: 'kral' }], ['mentor.respond', { offerId: 'x' }], ['mentor.end', {}],
     ] as const) expect((await err(a.call(op as never, data as never))).code, op).toBe('GECERSIZ');
-    expect((await err(a.call('dq.state', {}))).code).toBe('TAKIM_YOK');
+    expect((await a.call('dq.state', {})).solo).toBe(true); // takımsız: Bugün'deki soru (karar 35)
     expect((await err(a.call('chat.send', { room: 'genel', text: 'x', replyTo: 'm-yok!' }))).code).toBe('GECERSIZ');
   });
 });

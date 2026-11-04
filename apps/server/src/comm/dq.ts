@@ -1,4 +1,4 @@
-import { COMM_RULES, type DailyQuestion, type DqBoardRow, type DqState } from '@odi/shared';
+import { COMM_RULES, type DailyQuestion, type DqBoardRow, type DqPast, type DqState } from '@odi/shared';
 import { QUIZ_QUESTIONS } from '@odi/content';
 import { fail, type App } from '../app';
 import { postCard, systemMessage, teamRoom, updateCard } from '../chat';
@@ -12,6 +12,8 @@ import { metric } from './settings';
  * Seçim gün + takım anahtarından sabit (herkese aynı, tekrar etmeden döner). Çalışma Grubu modunda öğrenci düzeyi.
  * Açıklama 20:00 (gece 20:00'den sonra açılan soru 23:59'da); hızlı test modunda açıldıktan 45 sn sonra.
  * Doğru bilene 10 jeton (günde bir). Açıklanmadan önce yalnızca KAÇ kişinin cevapladığı görünür.
+ * Takımsız oyuncu (karar 35, YN-074): Bugün'de gün anahtarından sabit bir genel düzey soru; cevabı `dq_solo`'ya yazılır, 20:00'de
+ * açıklanır. Ödül, takım puanı, lig ve sıralama yalnız takım cevaplarından (`dq_answers`); solo cevap bunların hiçbirine girmez.
  */
 export const DQ_NAME = 'Tüy Dede';
 interface DqRow { team_id: string; day: string; week: string; qidx: number; msg_id: string; level: 'merakli' | 'odyoloji'; created_at: number; reveal_at: number; revealed: number }
@@ -72,6 +74,13 @@ export function dqTick(app: App): void {
   for (const tid of teams) ensureQuestion(app, tid);
 }
 
+/** Istanbul günü anahtarının bir öncesi (dün) */
+const yesterdayOf = (now: number) => dayKey(dayBounds(now).startsAt - HOUR_MS);
+const past = (day: string, qidx: number, myChoice: number | null): DqPast => {
+  const q = QUIZ_QUESTIONS[qidx]!;
+  return { day, text: q.text, choices: [...q.choices], answer: q.answer, explain: q.explain, myChoice };
+};
+
 function view(app: App, r: DqRow, pid: string): DailyQuestion {
   if (!r.revealed && r.reveal_at <= app.now()) { reveal(app, r); r = rowOf(app, r.team_id, r.day)!; }
   const q = QUIZ_QUESTIONS[r.qidx]!;
@@ -82,17 +91,55 @@ function view(app: App, r: DqRow, pid: string): DailyQuestion {
   return { day: r.day, msgId: r.msg_id, text: q.text, choices: [...q.choices], level: r.level, revealAt: r.reveal_at, revealed: rev, answer: rev ? q.answer : null, explain: rev ? q.explain : null, answered, myChoice: mine, correct, ...(rev && q.oneren ? { oneren: q.oneren } : {}) };
 }
 
+/** dünkü takım sorusu (o gün açıldıysa; vakti geçtiyse açıklanır) */
+function teamYesterday(app: App, teamId: string, pid: string): DqPast | null {
+  let r = rowOf(app, teamId, yesterdayOf(app.now())); if (!r) return null;
+  if (!r.revealed) { if (r.reveal_at > app.now()) return null; reveal(app, r); r = rowOf(app, teamId, r.day)!; }
+  const mine = app.db.get<{ choice: number }>('SELECT choice FROM dq_answers WHERE team_id = ? AND day = ? AND player_id = ?', teamId, r.day, pid)?.choice ?? null;
+  return past(r.day, r.qidx, mine);
+}
+
+// ---------- takımsız oyuncu (karar 35)
+const SOLO_KEY = 'solo';
+const soloIdx = (day: string) => POOL.merakli[(dayNum(day) + hash32(SOLO_KEY)) % POOL.merakli.length]!;
+const soloChoice = (app: App, day: string, pid: string) => app.db.get<{ choice: number }>('SELECT choice FROM dq_solo WHERE day = ? AND player_id = ?', day, pid)?.choice ?? null;
+/** solo cevap 20:00'de açıklanır (sohbet kartı ve zamanlayıcı yok; görünüm saatten hesaplanır) */
+const soloRevealAt = (now: number) => dayBounds(now).startsAt + COMM_RULES.dqRevealHour * HOUR_MS;
+
+function soloState(app: App, pid: string): DqState {
+  const now = app.now(); const day = dayKey(now); const qidx = soloIdx(day); const q = QUIZ_QUESTIONS[qidx]!;
+  const revealAt = soloRevealAt(now); const rev = now >= revealAt;
+  const answered = app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM dq_solo WHERE day = ?', day)!.n;
+  const question: DailyQuestion = { day, msgId: '', text: q.text, choices: [...q.choices], level: 'merakli', revealAt, revealed: rev, answer: rev ? q.answer : null, explain: rev ? q.explain : null, answered, myChoice: soloChoice(app, day, pid), correct: null, ...(rev && q.oneren ? { oneren: q.oneren } : {}) };
+  const yday = yesterdayOf(now);
+  return { question, week: [], study: false, reward: 0, solo: true, yesterday: past(yday, soloIdx(yday), soloChoice(app, yday, pid)) };
+}
+
+function soloAnswer(app: App, pid: string, choice: number): DqState {
+  const now = app.now(); const day = dayKey(now); const q = QUIZ_QUESTIONS[soloIdx(day)]!;
+  if (now >= soloRevealAt(now)) fail('SURE', 'Bugünün sorusunun cevabı açıklandı; yarın yeni soru gelir.');
+  if (choice < 0 || choice >= q.choices.length) fail('GECERSIZ', 'Geçersiz şık.');
+  if (!app.db.run('INSERT OR IGNORE INTO dq_solo(day, player_id, choice, correct, at) VALUES(?, ?, ?, ?, ?)', day, pid, choice, choice === q.answer ? 1 : 0, now)) fail('TEKRAR', 'Bugünün sorusunu zaten cevapladın.');
+  metric(app, 'dq.solo');
+  return soloState(app, pid);
+}
+
+const hasTeam = (app: App, pid: string) => { const tid = app.player(pid).team_id; return !!tid && !!app.team(tid); };
+
 export function dqState(app: App, pid: string): DqState {
+  if (!hasTeam(app, pid)) return soloState(app, pid);
   const { t } = requireTeam(app, pid);
   const r = ensureQuestion(app, t.id);
   const week = app.db.all<{ player_id: string; correct: number; answered: number }>(
     'SELECT a.player_id, SUM(a.correct) AS correct, COUNT(*) AS answered FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE a.team_id = ? AND d.week = ? GROUP BY a.player_id ORDER BY correct DESC, answered DESC LIMIT 30', t.id, app.week().key);
   const board: DqBoardRow[] = [];
   for (const w of week) { const p = app.playerOrNull(w.player_id); if (p && p.team_id === t.id) board.push({ id: p.id, name: p.name, color: p.color, correct: w.correct, answered: w.answered }); }
-  return { question: r ? view(app, r, pid) : null, week: board, study: isStudy(app, t.id), reward: COMM_RULES.dqCorrectJeton };
+  return { question: r ? view(app, r, pid) : null, week: board, study: isStudy(app, t.id), reward: COMM_RULES.dqCorrectJeton, solo: false, yesterday: teamYesterday(app, t.id, pid) };
 }
 
+/** Bugün kartı ve sohbet kartı aynı işlemi çağırır: aynı soru, birincil anahtar tek cevabı garanti eder */
 export function dqAnswer(app: App, pid: string, choice: number): DqState {
+  if (!hasTeam(app, pid)) return soloAnswer(app, pid, choice);
   const { t } = requireTeam(app, pid);
   const r = ensureQuestion(app, t.id);
   if (!r) return fail('YOK', 'Bugün soru yok.');

@@ -50,8 +50,9 @@ export function dismissNotice(id: string): void { set((s) => ({ notices: s.notic
 export function clearMentions(room: string): void { set((s) => (s.mentions[room]?.length ? { mentions: { ...s.mentions, [room]: [] } } : {})); }
 export const mentionCount = (s: CommStore, room: string | null | undefined) => (room ? s.mentions[room]?.length ?? 0 : 0);
 
+/** takımsız oyuncu da alır (karar 35: Bugün'de aynı gün herkese aynı soru, `solo`) */
 export async function refreshDq(): Promise<void> {
-  const c = client; if (!c || c.status !== 'bağlı' || !useNet.getState().team) return;
+  const c = client; if (!c || c.status !== 'bağlı') return;
   try { set({ dq: await c.call('dq.state', {}) }); } catch { /* sonra */ }
 }
 /** sohbet ayarlarını yeniden al (ör. yönetici modu değişince serbest yazı) */
@@ -98,7 +99,8 @@ export function bindComm(c: NetClient): () => void {
     c.on('wallet.updated', () => { if (useComm.getState().settings?.canFreeText === false) void c.call('comm.state', {}).then((r) => set({ settings: r.settings })).catch(() => undefined); }),
     c.on('duo.updated', ({ duo }) => set({ duo })),
     c.on('mentor.updated', ({ mentor }) => set({ mentor })),
-    c.on('team.updated', ({ team }) => { if (!team) set({ dq: null }); else if (!useComm.getState().dq) void refreshDq(); }),
+    // takıma girince/çıkınca soru değişir (takım sorusu ↔ takımsız soru)
+    c.on('team.updated', ({ team }) => { const dq = useComm.getState().dq; if (!dq || dq.solo !== !team) { set({ dq: null }); void refreshDq(); } }),
   ];
   return () => { for (const o of offs) o(); };
 }

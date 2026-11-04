@@ -147,9 +147,11 @@ export function quizInfo(app: App, pid: string, teamId: string | null): QuizInfo
   const slot = quizSlot(app);
   const role = app.player(pid).team_role;
   const left = teamId ? startsLeft(app, teamId) : 0;
-  const ranking = app.db.all<{ team_id: string; name: string; emblem: string; avg: number }>(
-    'SELECT q.team_id, t.name, t.emblem, MAX(q.avg) AS avg FROM ev_quiz q JOIN teams t ON t.id = q.team_id WHERE q.day = ? AND q.finished_at IS NOT NULL AND q.avg IS NOT NULL GROUP BY q.team_id ORDER BY avg DESC LIMIT 10', dayKey(app.now()))
-    .map((x) => ({ teamId: x.team_id, name: x.name, emblem: x.emblem, avg: Math.round(x.avg) }));
+  // her takımın bugünkü en iyi yarışması; satırda o yarışmanın saati (sabit saatli: 13:00/20:00, elle başlatılan: açıldığı an; YN-209).
+  // SQLite: tek MAX'lı toplamada çıplak sütunlar (slot, created_at) en büyük değerin satırından gelir.
+  const ranking = app.db.all<{ team_id: string; name: string; emblem: string; avg: number; slot: string | null; created_at: number }>(
+    'SELECT q.team_id, t.name, t.emblem, MAX(q.avg) AS avg, q.slot, q.created_at FROM ev_quiz q JOIN teams t ON t.id = q.team_id WHERE q.day = ? AND q.finished_at IS NOT NULL AND q.avg IS NOT NULL GROUP BY q.team_id ORDER BY avg DESC LIMIT 10', dayKey(app.now()))
+    .map((x) => ({ teamId: x.team_id, name: x.name, emblem: x.emblem, avg: Math.round(x.avg), at: /^\d+$/.test(x.slot ?? '') ? Number(x.slot) : x.created_at }));
   return { nextSlotAt: slot.nextAt, slotOpen: slot.open, canStart: left > 0 && (slot.open || role === 'lider' || role === 'yardimci'), startsLeft: left, ranking, rewards: QUIZ_REWARDS };
 }
 

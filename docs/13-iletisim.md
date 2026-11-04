@@ -95,7 +95,13 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
 - `dq.answer { choice }` (bir kez, değiştirilemez). Açıklanmadan önce yalnızca **kaç kişinin** cevapladığı görünür.
 - Açıklama **20:00** (İstanbul; 20:00'den sonra açılan soru 23:59'da; `ODI_EVENTS_FAST=1` testte soru açıldıktan 45 sn sonra): doğru şık, açıklama, doğru bilenler.
   Doğru bilene 10 jeton (ödül kutusu, günde bir). Kartın konusu tartışma alanıdır.
-- `dq.state`: bugünün sorusu, benim cevabım, haftalık takım tablosu (doğru sayısı).
+- `dq.state`: bugünün sorusu, benim cevabım, haftalık takım tablosu (doğru sayısı), dünkü soru (`yesterday`: doğru cevap, açıklama, benim cevabım).
+- Takım sohbeti geçmişi (son 50 ileti) en son soru kartını her zaman içerir: kalabalık günde akış ve sistem satırları kartı geçmişten düşürüyordu (YN-074).
+- **Bugün › Günün Sorusu** (`apps/web/src/comm/DqToday.tsx`, YN-074): kalıcı kart; durum (cevapladın/cevaplamadın, açıklama saati,
+  açıklandıysa sonuç), soru başı, dünkü sorunun doğru cevabı ve açıklaması. Dokununca alt sayfada soru ve şıklar; takımlıda sohbet kartıyla
+  aynı soru ve aynı `dq.answer` (tek cevap), "Takım sohbetinde tartış". Çevrimdışıyken "Bağlanınca gelir".
+- **Takımsız oyuncu (karar 35):** `dq.state` `solo: true`: gün anahtarından sabit, herkese aynı genel düzey soru; sohbet kartı yok; cevap `dq_solo`'ya
+  bir kez yazılır, 20:00'de açıklanır. Ödül yok (`reward: 0`); takım puanı, lig ve sıralama yalnız takım cevaplarından (`dq_answers`).
 - **Çalışma Grubu:** lider/yardımcı `team.study { on }` ile açar; takım kartında "Çalışma Grubu" rozeti, sorular öğrenci düzeyinden.
 
 ### 3.6 İkili Görev

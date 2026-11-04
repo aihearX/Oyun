@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, DELETED_PLAYER_NAME, LEFT_PLAYER_LABEL, QUICK_PHRASES, RALLY_RULES, REACTION_LABEL, tipPhrasesFor, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
-import { HUMAN_JOURNEY } from '@odi/content';
+import { HUMAN_JOURNEY, quizChoiceLabels } from '@odi/content';
 import { newRunId } from '@odi/net';
 import { act, callSafe, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
@@ -361,7 +361,7 @@ export function QuestionCard({ m, live }: { m: ChatMessage; live: ChatMessage[] 
         {choices.map((c, i) => {
           const cls = rev ? (i === ans ? ' ok' : i === my ? ' bad' : ' dim') : i === my ? ' picked' : '';
           return <button key={i} type="button" className={`dq-opt${cls}`} data-choice={i} disabled={busy || my !== null || rev} onClick={() => void answer(i)}>
-            <span className="dq-t"><span className="dq-l">{'ABCD'[i]}</span>{c}</span>{rev && i === ans && <Art name="check" size={18} />}{rev && i === my && i !== ans && <Art name="cross" size={18} />}
+            <span className="dq-t"><span className="dq-l">{quizChoiceLabels(choices)[i]}</span>{c}</span>{rev && i === ans && <Art name="check" size={18} />}{rev && i === my && i !== ans && <Art name="cross" size={18} />}
           </button>;
         })}
       </div>

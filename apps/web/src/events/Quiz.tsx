@@ -4,7 +4,7 @@ import { audio } from '@odi/audio';
 import { QUIZ_ROUND, quizChoiceLabels } from '@odi/content';
 import type { EventReward, QuizInfo, QuizState } from '@odi/shared';
 import { platform } from '../platform';
-import { fmtDate, fmtNum, itemLabel } from '../ui/social';
+import { fmtDate, fmtNum, fmtTime, itemLabel } from '../ui/social';
 import { evNet, refreshQuizInfo, useEvents } from './store';
 import { Countdown, Rewards, errText, hexColor, useSrvNow } from './common';
 import { Art, TeamEmblem, rich } from '../ui/art';
@@ -127,7 +127,7 @@ export function QuizView() {
           <span className="ev-art big" aria-hidden><Art e="🏆" size="1.15em" className="art-inline" /></span>
           {/* katılımcısız yarışmanın ortalaması yok: "0 puan" yazılmaz (OT-sinav-adayi-32) */}
           {q.players.length === 0 ? <b data-testid="quiz-katilan-yok">Bu bilgi yarışmasına takımdan kimse katılmadı.</b> : <>
-            <b>Takım ortalaması</b>
+            <b>Bu yarışmada takım ortalaması</b>
             <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span></>}
           {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/{QUIZ_ROUND} doğru{rich(c > 0 && info ? ` · 🪙 ${fmtNum(c * info.rewards.perCorrect)} ödül kutunda` : c > 0 ? '' : ' · bir dahaki yarışmada!')}</span>; })()}
           {q.players.length > 0 && info && <span className="muted" data-testid="quiz-takim-odulu">{rich(quizTeamRewardLine(q.teamAvg, info.rewards))}</span>}
@@ -158,7 +158,10 @@ function Ranking() {
   return (
     <div className="card">
       <b>Bugünün takım sıralaması</b>
-      {info.ranking.length === 0 ? <div className="muted small-note">Bugün henüz yarışma bitiren takım yok.</div> : <ol className="rank-list">{info.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b>{fmtNum(t.avg)}</b></li>)}</ol>}
+      {/* sıralama her takımın günün en iyi yarışmasını alır; satırda o yarışmanın saati: üstteki "Takım ortalaması" bu yarışmanınki,
+          satırdaki başka bir yarışmadan olabilir (YN-209, OT-sinav-adayi-41) */}
+      <div className="muted small-note" data-testid="quiz-siralama-kurali">Her takımın bugünkü en iyi yarışması (puan · yarışma saati)</div>
+      {info.ranking.length === 0 ? <div className="muted small-note">Bugün henüz yarışma bitiren takım yok.</div> : <ol className="rank-list">{info.ranking.map((t, i) => <li key={t.teamId} className={t.teamId === team?.id ? 'me' : ''}><span className="rk">{i + 1}</span><span className="grow ellipsis"><TeamEmblem e={t.emblem} size="1.15em" className="art-inline" /> {t.name}</span><b data-testid="quiz-siralama-puan">{fmtNum(t.avg)}{t.at ? <small className="muted"> · {fmtTime(t.at)}</small> : null}</b></li>)}</ol>}
     </div>
   );
 }

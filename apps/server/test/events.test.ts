@@ -522,6 +522,7 @@ describe('Kulak Bilgi Yarışması', () => {
   it('13:00 yarışması bitince quiz.state sıralamasında takım var; sohbet "en iyi" satırı açık; düzey soru dizisinden (YN-185, YN-141 (2), YN-187)', async () => {
     env = await setup();
     const [a, b, teamId] = await team2(env, ['Ayşe', 'Bora'], 'Öğlenciler');
+    const at13 = env.clock.t + 60 * MIN; // test saati 12:00
     env.clock.advance(65 * MIN); // 13:05: sabit saatli yarışma kendiliğinden açılır
     const st = await b.c.call('quiz.state', {});
     expect(st.quiz).toMatchObject({ phase: 'lobi', startedBy: 'sistem', levels: { odyoloji: 0, genel: 10 } }); // sabit saat: genel (karar 47 bekliyor)
@@ -540,7 +541,8 @@ describe('Kulak Bilgi Yarışması', () => {
     expect(done.quiz.levels).toEqual({ odyoloji: 0, genel: 10 });
     const after = await b.c.call('quiz.state', {});
     expect(after.quiz?.phase).toBe('bitti');
-    expect(after.info.ranking).toEqual([expect.objectContaining({ teamId, name: 'Öğlenciler', avg: after.quiz!.teamAvg })]);
+    // satırda puanın geldiği yarışmanın saati: sabit saatli yarışmada 13:00 (YN-209)
+    expect(after.info.ranking).toEqual([expect.objectContaining({ teamId, name: 'Öğlenciler', avg: after.quiz!.teamAvg, at: at13 })]);
     const best = after.quiz!.players[0]!;
     expect(best).toMatchObject({ name: 'Ayşe', correct: 3 });
     const msg = await a.wait('chat', (m) => m.msg.meta?.event === 'quiz' && m.msg.text.startsWith('Bilgi yarışması bitti'));

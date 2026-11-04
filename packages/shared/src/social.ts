@@ -728,7 +728,7 @@ export interface QuizQuestionView { index: number; total: number; text: string; 
 export interface QuizPlayer { id: string; name: string; color: number; score: number; correct: number; answered: boolean; lastCorrect: boolean | null }
 export interface QuizState { id: string; teamId: string; phase: QuizPhase; startedBy: string; lobbyEndsAt: number; endsAt: number; players: QuizPlayer[]; question: QuizQuestionView | null; teamAvg: number; questionMs: number; revealMs: number;
   /** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; bekleme odası ve sonuçtaki dürüst düzey satırı, YN-187) */ levels: { odyoloji: number; genel: number } }
-export interface QuizInfo { nextSlotAt: number; slotOpen: boolean; canStart: boolean; startsLeft: number; ranking: { teamId: string; name: string; emblem: string; avg: number }[]; rewards: { perCorrect: number; bonusAvg: number; bonus: EventReward[] } }
+export interface QuizInfo { nextSlotAt: number; slotOpen: boolean; canStart: boolean; startsLeft: number; ranking: { teamId: string; name: string; emblem: string; avg: number; /** puanın geldiği yarışmanın saati (her takımın bugünkü en iyi yarışması; YN-209) */ at: number }[]; rewards: { perCorrect: number; bonusAvg: number; bonus: EventReward[] } }
 
 // ---------- Günlük takım görevleri
 export type TeamQuestKind = 'bolum' | 'yildiz' | 'uye' | 'ralli' | 'quiz' | 'bayrak' | 'avi';
@@ -1040,7 +1040,13 @@ export interface DailyQuestion {
   correct: { id: string; name: string }[] | null;
 }
 export interface DqBoardRow { id: string; name: string; color: number; correct: number; answered: number }
-export interface DqState { question: DailyQuestion | null; week: DqBoardRow[]; study: boolean; reward: number }
+/** dünkü soru (açıklanmış): Bugün kartında doğru cevap ve kısa açıklama */
+export interface DqPast { day: string; text: string; choices: string[]; answer: number; explain: string; myChoice: number | null }
+/**
+ * solo: takımsız oyuncu (karar 35): aynı gün herkese aynı soru, Bugün'de; cevap kaydedilir, akşam açıklanır. Ödül (reward 0),
+ * takım puanı, lig ve sıralama yalnız takım cevaplarından; sohbet kartı yok (msgId boş).
+ */
+export interface DqState { question: DailyQuestion | null; week: DqBoardRow[]; study: boolean; reward: number; solo: boolean; yesterday: DqPast | null }
 
 // ---------- İkili Görev
 export interface DuoMember { id: string; name: string; color: number; hat: string; notes: number; online: boolean }
