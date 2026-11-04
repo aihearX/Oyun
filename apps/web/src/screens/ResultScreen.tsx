@@ -24,6 +24,7 @@ import { mapIntroView, type MapReveal } from '../ftue/map-intro';
 import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
+import { hazineNotlu, melodiSatir, sureAlt } from './sonuc-satir';
 
 interface Props {
   spec: LevelSpec; result: RunResult; summary: RunSummary; onRetry: () => void; onNext: () => void; onMap: () => void; challenge?: Invite | null; demo?: boolean; runId?: string;
@@ -82,12 +83,11 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // "Bu bölümden" dökümü: bu koşunun ödül defteri (bölüm, Şanslı Nota, hazine, başarım); çevrimiçiyse bölüm jetonu sunucunun
   // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042).
   const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
-  const earn = useMemo(() => earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), [summary, ackJeton, result.coins]);
+  const earn = useMemo(() => hazineNotlu(earnLines(summary, ackJeton === undefined ? 0 : ackJeton - result.coins), summary.grants), [summary, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   // Büyük yazı (OT-buyuk-yazi-47): yapışkan alanda yalnız ana düğme; Tekrar, Meydan oku ve Tüy Dede'nin kartı sayfa akışında, düğmelerin
   // hemen üstünde. Kazançta yıldızların altında "Bu bölümden toplam +N jeton" özeti ilk ekranda (döküm aşağıdaki kartta)
   const big = store.bigText;
-  const timed = spec.objective.id === 'timed';
   // ipucu bölümün kendi zorluğuna göre; aynı bölümde her denemede sıradaki cümle (OT-ilk-kez-oyun-19). Deneme sayısı ekran
   // açılırken bir kez okunur (kayıt sonradan değişse de ipucu ekranda yer değiştirmez)
   const [attempt] = useState(() => store.progress[spec.number]?.plays ?? 1);
@@ -101,9 +101,12 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const rahat = !!result.rahat;
   const offerRahat = !result.completed && !!rahatOffer && !!onRahat;
   const starNext = !result.completed || rahat ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
-  // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Gecikme"); sis/gece kaybında Yüksek görünürlük ayarına tek satır yönlendirme
+  // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Gecikme"); sis/gece kaybında Yüksek görünürlüğü yerinde açan düğme
+  // (Ayarlar'daki anahtarla aynı durum; OT-buyuk-yazi-52), ayar açıksa yalnız "açık" yazısı
   const mods = modifierNames(spec.modifiers ?? []);
-  const dark = !result.completed && !store.highVis && (spec.modifiers ?? []).some((m) => m === 'sis' || m === 'gece');
+  const dark = !result.completed && (spec.modifiers ?? []).some((m) => m === 'sis' || m === 'gece');
+  const [hvAcildi, setHvAcildi] = useState(false);
+  const melodi = melodiSatir(spec, result);
 
   // zaman çizelgesi
   useEffect(() => {
@@ -268,6 +271,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {easeNext && <div className="result-mods" data-testid="sonuc-kolay-sonraki">{easeNext}</div>}
           {/* Rahat denemeyle kaybedildiyse bu deneme de açıkça söylenir (karar 42) */}
           {rahat && !result.completed && <div className="result-mods" data-testid="sonuc-rahat-kayip">{RAHAT_TEXT.lostNote}</div>}
+          {/* melodi bölümünde sıralı notaların sonucu, koşunun kendi sayısıyla (OT-sinav-adayi-35) */}
+          {melodi && <div className="result-mods" data-testid="sonuc-melodi"><Art name={melodi === 'Melodi tamam' ? 'check' : 'note'} size={16} className="art-inline" />{melodi}</div>}
 
           {/* kayıpta neden + ipucu ve (3 kayıpta) yardım kartı sayfa akışında, kutulardan ÖNCE: yapışkan düğme alanında büyüyüp
               kutuların üstüne binmesin (OT-ilk-kez-oyun-20), ilk ekranda görünsün (OT-ilk-kez-oyun-15) ve "Yardım iste" düğmesi
@@ -277,7 +282,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <small className="result-obj-h">Neden olmadı?</small>
               <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{lossDetail && <span className="result-why-d" data-testid="sonuc-neden-hasar">{lossDetail}</span>}</span>
               {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
-              {dark && <span className="result-why-hv" data-testid="sonuc-gorunurluk"><Art name="gear" size={16} className="art-inline" />Zor mu görüyorsun? Ayarlar › Yüksek görünürlük</span>}
+              {/* düğme yerini durum satırına bırakır; durum satırı hep yerinde (ekran okuyucu "açıldı"yı duyurur) */}
+              {dark && (
+                <span className="result-why-hv" data-testid="sonuc-gorunurluk" data-acik={store.highVis ? '1' : undefined}>
+                  {!store.highVis && <button type="button" className="result-why-hv-btn" data-testid="sonuc-gorunurluk-ac" onClick={(e) => { e.stopPropagation(); store.setHighVis(true); setHvAcildi(true); }}><Art name="sun" size={20} className="art-inline" /><span>Yüksek görünürlüğü aç</span></button>}
+                  <span className="result-why-hv-d" role="status" data-testid="sonuc-gorunurluk-durum">{store.highVis && <><Art name="check" size={16} className="art-inline" />{hvAcildi ? 'Yüksek görünürlük açıldı: sis ve gece sonraki denemede daha belirgin' : 'Yüksek görünürlük açık'}</>}</span>
+                </span>
+              )}
             </div>
           )}
           {/* Rahat deneme teklifi (karar 42): yalnız canavar bölümünde 3 kayıptan sonra, açıkça; oyuncu her seferinde kendisi seçer.
@@ -299,8 +310,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             {spec.coinsTotal > 0
               ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
               : <div className="card" data-testid="sonuc-hasar"><div className="v"><Art name="boom" size={20} className="art-inline" />{result.damageTaken}</div><div className="k">hasar</div></div>}
-            {/* süreli bölümde yıldızı hedef süresi belirler; par (günlük görev/başarım ölçüsü) yan yana çelişmesin diye yazılmaz */}
-            <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k">{timed ? 'süre' : `par ${spec.parTimeSec} sn`}</div></div>
+            {/* süreli bölümde yıldızı hedef süresi belirler; süre bonusunun ölçüsü yan yana çelişmesin diye yazılmaz */}
+            <div className="card"><div className="v"><Art name="timer" size={20} className="art-inline" />{sureYazi(runTimeSec(spec, result))} sn</div><div className="k" data-testid="sonuc-sure-alt">{sureAlt(spec)}</div></div>
             {/* kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070); kayıpta neden kartı "Tekrar dene"nin üstünde */}
             {rahat && result.completed && (
               <div className="card result-obj result-rahat" data-testid="sonuc-rahat">

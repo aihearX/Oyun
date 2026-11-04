@@ -1206,6 +1206,8 @@ async function suite(browserName, target, [W, H]) {
         ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss'],
         // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
         ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis'],
+        // YN-173 (OT-sinav-adayi-36): hazine satırı jeton dışını da yazar ("Ayrıca: ×1 Seri koruyucu", haritadaki pencereyle aynı)
+        ['demo=sonuc&bolum=10&yildiz=2&skor=1500&acilim=1&kutlama=0', 'sonuc-hazine'],
         // YN-102: ilk canavarda 4. kayıp, takımdan yardım kartı ("Yardım iste" düğmesi yapışkan çubuğun arkasında kalmaz); değiştiricili bölüm sonucu
         ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici'],
         // YN-113: 3 kayıptan sonra kolaylaşmış bölümün sonucu (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin kolaylaşacağı
@@ -1362,6 +1364,29 @@ async function suite(browserName, target, [W, H]) {
         if (label === 'sonuc-degistirici' && !/^Değiştirici: Hız, Gecikme$/.test(degis)) fail(rec, `değiştirici satırı: "${degis}"`);
         if (label === 'sonuc-kaybetti-sis' && (!/Sis/.test(degis) || !(await page.locator('[data-testid="sonuc-gorunurluk"]').count()))) fail(rec, `sis kaybında değiştirici satırı ya da Yüksek görünürlük yönlendirmesi yok: "${degis}"`);
         if (label === 'sonuc-kaybetti-yardim' && !(await page.locator('[data-testid="yardim-iste-dugme"]').count())) fail(rec, 'yardım kartı/düğmesi yok');
+        // YN-173 (OT-buyuk-yazi-52): sis/gece kaybında satır gerçek düğme ("Yüksek görünürlüğü aç"), en az 44 px, ekrana sığar; dokununca
+        // Ayarlar'daki ayar açılır ve kart yerinde söyler. Sonra ayar geri kapatılır (sonraki ekranlar etkilenmesin)
+        if (label === 'sonuc-kaybetti-sis') {
+          const ac = page.getByTestId('sonuc-gorunurluk-ac'); const b = (await ac.count()) ? await ac.boundingBox() : null; const vw = page.viewportSize()?.width ?? 0;
+          if (!b || (await ac.textContent())?.trim() !== 'Yüksek görünürlüğü aç') fail(rec, 'sis kaybında "Yüksek görünürlüğü aç" düğmesi yok');
+          else {
+            if (b.height < 44) fail(rec, `Yüksek görünürlük düğmesi ${Math.round(b.height)} px (en az 44)`);
+            if (b.x < 0 || b.x + b.width > vw + 0.5) fail(rec, `Yüksek görünürlük düğmesi ekrandan taşıyor: ${JSON.stringify(b)}`);
+            await ac.click(); await sleep(150);
+            const durum = await yazi('[data-testid="sonuc-gorunurluk-durum"]');
+            const acik = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('odi-v1') ?? '{}')?.state?.highVis === true; } catch { return false; } });
+            if (!/^Yüksek görünürlük açıldı/.test(durum) || !acik || (await ac.count())) fail(rec, `düğme ayarı açmadı ya da söylemedi: "${durum}" (kayıtta ${acik ? 'açık' : 'kapalı'})`);
+            await check(`${label}-acildi`, { scroll: false });
+            await page.evaluate(() => { try { const v = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); if (v.state) { v.state.highVis = false; localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } });
+          }
+        }
+        // YN-173: süre kutusunda "par" yok (OT-ilk-kez-oyun-54); melodi bölümünde melodi satırı (OT-sinav-adayi-35); hazine satırı jeton
+        // dışını da yazar (OT-sinav-adayi-36)
+        if (/\bpar\b/.test(await yazi('.result .stats'))) fail(rec, `süre kutusunda "par": "${await yazi('.result .stats')}"`);
+        if ((label === 'sonuc-melodi' || label === 'sonuc-kaybetti-sis') && !/^Melodi(: \d+\/\d+\s?sırayla| tamam)$/.test(await yazi('[data-testid="sonuc-melodi"]'))) fail(rec, `melodi satırı: "${await yazi('[data-testid="sonuc-melodi"]')}"`);
+        const hazine = await page.locator('[data-testid="sonuc-kazanc"] li', { hasText: 'hazinesi' }).allTextContents();
+        if (label === 'sonuc-hazine' && !hazine.some((t) => /Bölüm 10 hazinesi/.test(t) && /Ayrıca: ×1 Seri koruyucu/.test(t))) fail(rec, `Bölüm 10 hazine satırı: ${JSON.stringify(hazine)}`);
+        if (hazine.some((t) => !/Ayrıca: /.test(t))) fail(rec, `hazine satırında jeton dışı ödül yazmıyor: ${JSON.stringify(hazine)}`);
         // YN-113: kolaylaştırma satırı yalnız yardım devredeyken (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin satırı
         const kolay = await yazi('[data-testid="sonuc-kolay"]');
         const kolaySonra = await yazi('[data-testid="sonuc-kolay-sonraki"]');
