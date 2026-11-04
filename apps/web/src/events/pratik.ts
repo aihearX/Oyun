@@ -4,7 +4,7 @@
  * 10 sorunun hepsi öğrenci düzeyinden (canlı yarışma karışık kalır: 6 öğrenci + 4 genel). Saf durum: hiçbir yere yazmaz; ödül, XP, takım/lig puanı,
  * başarım ya da günlük görev ilerlemesi YOK (pratik.test.ts bu dosyanın ve ekranın yalnız içerik paketine dayandığını denetler).
  */
-import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions, type QuizQuestion } from '@odi/content';
+import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions, quizChoiceLabels, type QuizQuestion } from '@odi/content';
 
 export interface PratikTur {
   /** QUIZ_QUESTIONS sıra numaraları (canlı yarışmadaki gibi) */
@@ -55,3 +55,6 @@ export const pratikHavuz = (level: 'genel' | 'odyoloji'): number => QUIZ_QUESTIO
 export const pratikDuzeyNotu = (level: 'genel' | 'odyoloji'): string => level === 'odyoloji'
   ? `Odyoloji öğrencisi: ${PRATIK_SORU} sorunun hepsi öğrenci düzeyinden.`
   : `Genel: ${PRATIK_SORU} sorunun hepsi genel düzeyden.`;
+
+/** şıkların etiketleri: A–D; şık kendisi harf gibi başlıyorsa (timpanogram "C tipi") 1–4. Canlı yarışmayla aynı kural (YN-186) */
+export const pratikEtiketler = (q: QuizQuestion): readonly string[] => quizChoiceLabels(q.choices);

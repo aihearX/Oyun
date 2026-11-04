@@ -265,6 +265,9 @@ try {
   await tid(B, 'ev-bildirim').filter({ hasText: 'Bilgi yarışması' }).waitFor({ timeout: 10_000 });
   await tid(B, 'ev-bildirim').locator('.ev-notice-main').click();
   await tid(B, 'quiz-katil').click();
+  { const kural = await tid(B, 'quiz-hemen-kurali').innerText(); const duzey = await tid(B, 'quiz-duzey').innerText();
+    check(/^Hemen başlat: .*günlük hakkından düşmez\.$/.test(kural), `quiz: bekleme odasında "Hemen başlat" kuralı yazılı ("${kural}")`);
+    check(/^Sorular: (genel düzey|öğrenci düzeyi|karışık \(\d+ öğrenci \+ \d+ genel\))$/.test(duzey), `quiz: bekleme odasında düzey satırı ("${duzey}")`); }
   await shot(B, 'quiz-lobi');
   await tid(A, 'quiz-hemen').click();
   const qAnswers = [];
@@ -360,6 +363,12 @@ try {
   await openEvents(B, 'quiz');
   await B.page.locator('[data-testid="quiz"][data-phase="bitti"]').waitFor({ timeout: 240_000 }).catch(() => fail('quiz bitmedi'));
   check(true, 'quiz bitti: takım ortalaması hesaplandı');
+  // bitişte sıralama tazelenir, kendi takımı vurgulu; takım ödülü ve düzey satırı (YN-185, YN-187)
+  await B.page.locator('[data-testid="quiz"] .rank-list li.me').filter({ hasText: 'Koklea Kartalları' }).last().waitFor({ timeout: 10_000 }).catch(() => fail('quiz: takım sıralamasında kendi takımı yok'));
+  { const odul = await tid(B, 'quiz-takim-odulu').innerText(); const duzey = await tid(B, 'quiz-duzey').innerText();
+    check(/^Takım ortalaması [\d.]+(, eşik 700: doğru cevabı olan herkese \+10 kristal \(ödül kutunda\)|: takım ödülü eşiği 700, [\d.]+ puan eksik kaldı)$/.test(odul), `quiz: sonuçta takım ödülü satırı ("${odul}")`);
+    check(duzey.startsWith('Sorular: '), `quiz: sonuçta düzey satırı ("${duzey}")`); }
+  check(!(await B.page.locator('[data-testid="quiz"]').innerText()).includes('Bugün henüz yarışma bitiren takım yok'), 'quiz: bitince "henüz yarışma bitiren takım yok" yazmıyor');
   await shot(B, 'quiz-sonuc');
 
   // ---- tek kişilik rallinin süresi doldu: hak sayısı değişmedi (sunucu ve ekrandaki sayı), sohbet hakkın geri verildiğini söyledi

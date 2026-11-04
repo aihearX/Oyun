@@ -173,3 +173,14 @@ export function pickQuizQuestions(level: 'genel' | 'odyoloji', randInt: (n: numb
   const mixed = [...take(idx('odyoloji'), tech), ...take(idx('merakli'), count - tech)];
   return take(mixed, mixed.length); // karıştır
 }
+
+const HARFLER = ['A', 'B', 'C', 'D'] as const;
+const RAKAMLAR = ['1', '2', '3', '4'] as const;
+/**
+ * Şıkların önündeki etiketler (YN-186). Bir şık kendisi harf gibi başlıyorsa (timpanogram "A tipi", "As tipi", "C tipi"; "D vitamini")
+ * "D) C tipi" karışır: o soruda harf yerine 1–4. Diğer sorular A–D. Pratik, canlı yarışma ve "Doğru cevap" satırı bunu ortak kullanır;
+ * içerik ve doğru cevap değişmez.
+ */
+export function quizChoiceLabels(choices: readonly string[]): readonly string[] {
+  return choices.some((c) => /^[A-D][a-zçğıöşü]?(?=[\s).,:]|$)/.test(c)) ? RAKAMLAR : HARFLER;
+}

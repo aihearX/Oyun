@@ -60,7 +60,9 @@ function view(app: App, q: QuizRow, viewer: string): QuizState {
       ...(phase === 'cevap' && def.oneren ? { oneren: def.oneren } : {}) };
   }
   const teamAvg = players.length ? Math.round(players.reduce((a, r) => a + r.score, 0) / players.length) : 0;
-  return { id: q.id, teamId: q.team_id, phase, startedBy: q.started_by, lobbyEndsAt: q.lobby_ends, endsAt: endsAtOf(q), players, question, teamAvg, questionMs: QUESTION_MS, revealMs: REVEAL_MS };
+  const odyoloji = qs.filter((i) => QUIZ_QUESTIONS[i]?.level === 'odyoloji').length;
+  return { id: q.id, teamId: q.team_id, phase, startedBy: q.started_by, lobbyEndsAt: q.lobby_ends, endsAt: endsAtOf(q), players, question, teamAvg, questionMs: QUESTION_MS, revealMs: REVEAL_MS,
+    levels: { odyoloji, genel: qs.length - odyoloji } };
 }
 
 function broadcast(app: App, q: QuizRow): void {
@@ -82,7 +84,8 @@ function finalize(app: App, q: QuizRow): void {
   }
   questProgress(app, q.team_id, 'quiz', 1);
   const best = [...rows].sort((a, b) => b.score - a.score)[0];
-  systemMessage(app, teamRoom(q.team_id), `Bilgi yarışması bitti! Takım ortalaması: ${avg} puan${best ? ` · en iyi: ${app.playerOrNull(best.player_id)?.name ?? '?'} (${best.correct}/${QUIZ_COUNT})` : ''}.`, 'system', { event: 'quiz', quizId: q.id });
+  // "1/10" sıra değil doğru sayısı: açıkça yazılır, katılan sayısıyla (YN-141 (2))
+  systemMessage(app, teamRoom(q.team_id), `Bilgi yarışması bitti! Takım ortalaması: ${avg} puan${best ? ` · en iyi: ${app.playerOrNull(best.player_id)?.name ?? '?'} · ${best.correct}/${QUIZ_COUNT} doğru · ${best.score} puan` : ''} · ${rows.length} kişi katıldı.`, 'system', { event: 'quiz', quizId: q.id });
 }
 
 /** faz geçişlerini işle ve değişince yayınla (zamanlayıcı + sweep + istek anında) */

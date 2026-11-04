@@ -3,11 +3,9 @@ import { ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
 import { Icon } from '../ui/icons';
 import { scrollAppTop } from '../ui/viewport';
-import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikDuzeyNotu, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
+import { PRATIK_SORU, pratikBaslat, pratikBitti, pratikCevapla, pratikDogru, pratikDuzeyNotu, pratikEtiketler, pratikHavuz, pratikSecim, pratikSonraki, pratikSoru, pratikYanlislar, type PratikTur } from './pratik';
 import { QuizLiveCard } from './QuizLive';
 import './events.css';
-
-const LETTERS = ['A', 'B', 'C', 'D'];
 
 /**
  * Bilgi pratiği (YN-078): tek başına, ödülsüz, süresiz; canlı Kulak Bilgi Yarışması'nın soru havuzu (Odyoloji öğrencisinde yalnız öğrenci
@@ -49,12 +47,12 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
                 const isaret = sec == null ? null : i === q.answer
                   ? <span className="pk-isaret" role="img" aria-label={i === sec ? 'Senin cevabın, doğru' : 'Doğru cevap'}><Icon name="check" size="1.1em" className="ic-inline" /></span>
                   : i === sec ? <span className="pk-isaret" role="img" aria-label="Senin cevabın, yanlış"><Art name="cross" size="1.25em" className="art-inline" /></span> : null;
-                return <button key={i} className={`ev-choice${cls}`} data-testid={`pratik-secenek-${i}`} disabled={sec != null} onClick={() => setTur(pratikCevapla(tur, i))}><span className="ev-letter">{LETTERS[i]}</span><span className="grow">{c}</span>{isaret}</button>;
+                return <button key={i} className={`ev-choice${cls}`} data-testid={`pratik-secenek-${i}`} disabled={sec != null} onClick={() => setTur(pratikCevapla(tur, i))}><span className="ev-letter">{pratikEtiketler(q)[i]}</span><span className="grow">{c}</span>{isaret}</button>;
               })}
             </div>
             {sec != null && (
               <div className="card cream ev-explain" data-testid="pratik-aciklama" role="status">
-                <b>{sec === q.answer ? <><Art name="party" size="1.15em" className="art-inline" /> Doğru!</> : <><Art name="bulb" size="1.15em" className="art-inline" /> Doğru cevap: {LETTERS[q.answer]}) {q.choices[q.answer]}</>}</b>
+                <b>{sec === q.answer ? <><Art name="party" size="1.15em" className="art-inline" /> Doğru!</> : <><Art name="bulb" size="1.15em" className="art-inline" /> Doğru cevap: {pratikEtiketler(q)[q.answer]}) {q.choices[q.answer]}</>}</b>
                 <span>{q.explain}</span>
                 {q.oneren && <small className="ev-oneren">Öneren: <span data-ugc>{q.oneren}</span></small>}
               </div>
@@ -82,8 +80,8 @@ export function PratikScreen({ level, onBack }: { level: 'genel' | 'odyoloji'; o
               {pratikYanlislar(tur).map(({ soru, secim }) => (
                 <li key={soru.id} data-soru={soru.id}>
                   <b>{soru.text}</b>
-                  <span className="pk-satir"><Art name="cross" size="1.15em" className="art-inline" /> Senin cevabın: {LETTERS[secim]}) {soru.choices[secim]}</span>
-                  <span className="pk-satir"><Icon name="check" size="1.1em" className="ic-inline pk-dogru" /> Doğru cevap: {LETTERS[soru.answer]}) {soru.choices[soru.answer]}</span>
+                  <span className="pk-satir"><Art name="cross" size="1.15em" className="art-inline" /> Senin cevabın: {pratikEtiketler(soru)[secim]}) {soru.choices[secim]}</span>
+                  <span className="pk-satir"><Icon name="check" size="1.1em" className="ic-inline pk-dogru" /> Doğru cevap: {pratikEtiketler(soru)[soru.answer]}) {soru.choices[soru.answer]}</span>
                   <span className="pk-aciklama">{soru.explain}</span>
                 </li>
               ))}

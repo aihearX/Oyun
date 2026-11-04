@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
+import { QUIZ_ROUND, quizChoiceLabels } from '@odi/content';
+import type { EventReward, QuizInfo, QuizState } from '@odi/shared';
 import { platform } from '../platform';
-import { fmtDate, fmtNum } from '../ui/social';
-import { evNet, useEvents } from './store';
+import { fmtDate, fmtNum, itemLabel } from '../ui/social';
+import { evNet, refreshQuizInfo, useEvents } from './store';
 import { Countdown, Rewards, errText, hexColor, useSrvNow } from './common';
 import { Art, TeamEmblem, rich } from '../ui/art';
 import { useStore } from '../store';
@@ -16,7 +18,32 @@ export function PratikLink() {
   return <button className="btn small ghost" data-testid="pratik-ac" onClick={() => nav.open({ name: 'pratik' })}><Art name="bulb" size="1.15em" className="art-inline" /> Tek başına pratik yap</button>;
 }
 
-const LETTERS = ['A', 'B', 'C', 'D'];
+/** başlatma kuralı, sunucudaki `canStart` ile aynı (YN-185): sabit saat açıkken herkes, kapalıyken lider ya da yardımcı; her başlatma takımın günlük hakkından düşer */
+export function quizStartRule(info: QuizInfo): string {
+  if (info.startsLeft <= 0) return 'Takımın bugünkü başlatma hakkı bitti; yarışma sabit saatte kendiliğinden açılır.';
+  const left = `takımın bugün kalan hakkı: ${info.startsLeft}`;
+  if (info.slotOpen) return `Sabit saat açık: herkes başlatabilir · ${left}`;
+  return info.canStart ? `Lider ve yardımcılar her an başlatabilir · ${left}` : `Lider ya da yardımcı başlatabilir · ${left}`;
+}
+
+/** bekleme odasında "Hemen başlat" kuralı (sunucu `quiz.go` ile aynı); yeni yarışma açmaz, günlük haktan düşmez */
+export const quizGoRule = (q: QuizState): string => q.startedBy === 'sistem'
+  ? 'Hemen başlat: sabit saat yarışmasında katılan herkes basabilir; takımın günlük hakkından düşmez.'
+  : 'Hemen başlat: yarışmayı başlatan, lider ya da yardımcı basabilir; takımın günlük hakkından düşmez.';
+
+/** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; seçim kuralı sahip kararı 47'de, YN-187) */
+export function quizLevelLine({ odyoloji, genel }: QuizState['levels']): string {
+  if (!odyoloji) return 'Sorular: genel düzey';
+  if (!genel) return 'Sorular: öğrenci düzeyi';
+  return `Sorular: karışık (${odyoloji} öğrenci + ${genel} genel)`;
+}
+
+const rewardWords = (items: EventReward[]) => items.map((r) => (r.kind === 'jeton' || r.kind === 'kristal' ? `${fmtNum(r.amount)} ${r.kind}` : itemLabel(r.kind, r.amount, r.ref))).join(' + ');
+/** sonuçtaki takım ödülü satırı: sayılar sunucunun QUIZ_REWARDS'ından (eşik ve ödül), takım ortalaması yarışmadan (YN-185) */
+export function quizTeamRewardLine(avg: number, rewards: QuizInfo['rewards']): string {
+  if (avg >= rewards.bonusAvg) return `Takım ortalaması ${fmtNum(avg)}, eşik ${fmtNum(rewards.bonusAvg)}: doğru cevabı olan herkese +${rewardWords(rewards.bonus)} (ödül kutunda)`;
+  return `Takım ortalaması ${fmtNum(avg)}: takım ödülü eşiği ${fmtNum(rewards.bonusAvg)}, ${fmtNum(rewards.bonusAvg - avg)} puan eksik kaldı`;
+}
 
 /** Kulak Bilgi Yarışması: lobi → 10 soru × 15 sn (herkese aynı anda) → cevap + kısa açıklama → takım ortalaması */
 export function QuizView() {
@@ -24,6 +51,8 @@ export function QuizView() {
   const now = useSrvNow(200);
   const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const lastPhase = useRef('');
+  // sonuç ekranı açılınca sıralamayı tazele (bitiş yayını da tazeler; ekran sonradan açılırsa da güncel olsun, YN-185)
+  useEffect(() => { if (useEvents.getState().quiz?.phase === 'bitti') void refreshQuizInfo(); }, []);
   const meId = me?.id ?? '';
   const joined = !!q?.players.some((p) => p.id === meId);
   const key = q ? `${q.phase}:${q.question?.index ?? -1}` : '';
@@ -48,7 +77,7 @@ export function QuizView() {
         {info?.canStart ? <button className="btn ev-big" data-testid="quiz-baslat" disabled={busy} onClick={() => void start()}><Art e="🧠" size="1.15em" className="art-inline" /> Yarışmayı başlat</button>
           : <div className="ev-tag">Sabit saat: {info ? fmtDate(info.nextSlotAt) : '13:00 / 20:00'}</div>}
         {info && !info.slotOpen && <Countdown to={info.nextSlotAt} label="sabit saate" />}
-        {info && <small className="muted">Lider ve yardımcılar her an başlatabilir · bugün kalan: {info.startsLeft}</small>}
+        {info && <small className="muted" data-testid="quiz-baslatma-kurali">{quizStartRule(info)}</small>}
         <small className="muted">Beklerken: aynı sorularla tek başına pratik (ödülsüz, takım puanına sayılmaz).</small>
         <PratikLink />
       </div>
@@ -58,6 +87,7 @@ export function QuizView() {
   );
 
   const qv = q.question;
+  const labels = qv ? quizChoiceLabels(qv.choices) : [];
   const canGo = q.phase === 'lobi' && q.players.length > 0 && (q.startedBy === meId || q.startedBy === 'sistem' || team?.roster.find((m) => m.id === meId)?.role !== 'uye');
   const timeLeft = qv ? Math.max(0, qv.endsAt - now) : 0;
   return (
@@ -72,6 +102,8 @@ export function QuizView() {
           {!joined && <button className="btn ev-big" data-testid="quiz-katil" disabled={busy} onClick={() => void join()}><Art e="🙋" size="1.15em" className="art-inline" /> Katıl</button>}
           {joined && canGo && <button className="btn ghost" data-testid="quiz-hemen" disabled={busy} onClick={() => void go()}><Art e="⚡" size="1.15em" className="art-inline" /> Hemen başlat</button>}
           {joined && !canGo && <small className="muted">Hazırsın! Süre bitince ilk soru gelir.</small>}
+          <small className="muted" data-testid="quiz-hemen-kurali">{quizGoRule(q)}</small>
+          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels)}</small>
         </div>
       )}
       {(q.phase === 'soru' || q.phase === 'cevap') && qv && (
@@ -82,11 +114,11 @@ export function QuizView() {
           <div className="ev-choices">
             {qv.choices.map((c, i) => {
               const cls = q.phase === 'cevap' ? (i === qv.answer ? ' right' : i === qv.myChoice ? ' wrong' : ' dim') : qv.myChoice === i ? ' picked' : qv.myChoice != null ? ' dim' : '';
-              return <button key={i} className={`ev-choice${cls}`} data-testid={`quiz-secenek-${i}`} disabled={!joined || q.phase !== 'soru' || qv.myChoice != null || busy} onClick={() => void answer(i)}><span className="ev-letter">{LETTERS[i]}</span><span className="grow">{c}</span>{q.phase === 'cevap' && i === qv.answer && <span><Icon name="check" size="1.1em" className="ic-inline" /></span>}</button>;
+              return <button key={i} className={`ev-choice${cls}`} data-testid={`quiz-secenek-${i}`} disabled={!joined || q.phase !== 'soru' || qv.myChoice != null || busy} onClick={() => void answer(i)}><span className="ev-letter">{labels[i]}</span><span className="grow">{c}</span>{q.phase === 'cevap' && i === qv.answer && <span><Icon name="check" size="1.1em" className="ic-inline" /></span>}</button>;
             })}
           </div>
           {q.phase === 'soru' && qv.myChoice != null && <div className="ev-note"><Art e="🔒" size="1.15em" className="art-inline" /> Cevabın kilitlendi — süre bitince açıklanır.</div>}
-          {q.phase === 'cevap' && qv.explain && <div className="card cream ev-explain"><b>{rich(qv.myChoice === qv.answer ? '🎉 Doğru!' : qv.myChoice == null ? '⏰ Süre doldu' : '💡 Doğru cevap: ' + LETTERS[qv.answer!])}</b><span>{qv.explain}</span>{qv.oneren && <small className="ev-oneren">Öneren: <span data-ugc>{qv.oneren}</span></small>}</div>}
+          {q.phase === 'cevap' && qv.explain && <div className="card cream ev-explain"><b>{rich(qv.myChoice === qv.answer ? '🎉 Doğru!' : qv.myChoice == null ? '⏰ Süre doldu' : `💡 Doğru cevap: ${labels[qv.answer!]}) ${qv.choices[qv.answer!]}`)}</b><span>{qv.explain}</span>{qv.oneren && <small className="ev-oneren">Öneren: <span data-ugc>{qv.oneren}</span></small>}</div>}
           {!joined && <button className="btn small" data-testid="quiz-katil" onClick={() => void join()}><Art e="🙋" size="1.15em" className="art-inline" /> Sonraki sorudan katıl</button>}
         </div>
       )}
@@ -97,7 +129,9 @@ export function QuizView() {
           {q.players.length === 0 ? <b data-testid="quiz-katilan-yok">Bu bilgi yarışmasına takımdan kimse katılmadı.</b> : <>
             <b>Takım ortalaması</b>
             <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span></>}
-          {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/10 doğru{rich(c > 0 ? ` · 🪙 ${c * 10} ödül kutunda` : ' · bir dahaki yarışmada!')}</span>; })()}
+          {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/{QUIZ_ROUND} doğru{rich(c > 0 && info ? ` · 🪙 ${fmtNum(c * info.rewards.perCorrect)} ödül kutunda` : c > 0 ? '' : ' · bir dahaki yarışmada!')}</span>; })()}
+          {q.players.length > 0 && info && <span className="muted" data-testid="quiz-takim-odulu">{rich(quizTeamRewardLine(q.teamAvg, info.rewards))}</span>}
+          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels)}</small>
           <div className="row pratik-son"><button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button><PratikLink /></div>
         </div>
       )}

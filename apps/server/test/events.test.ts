@@ -499,6 +499,41 @@ describe('Kulak Bilgi Yarışması', () => {
     expect((await a.c.call('quiz.state', {})).info.ranking).toHaveLength(0);
   });
 
+  it('13:00 yarışması bitince quiz.state sıralamasında takım var; sohbet "en iyi" satırı açık; düzey soru dizisinden (YN-185, YN-141 (2), YN-187)', async () => {
+    env = await setup();
+    const [a, b, teamId] = await team2(env, ['Ayşe', 'Bora'], 'Öğlenciler');
+    env.clock.advance(65 * MIN); // 13:05: sabit saatli yarışma kendiliğinden açılır
+    const st = await b.c.call('quiz.state', {});
+    expect(st.quiz).toMatchObject({ phase: 'lobi', startedBy: 'sistem', levels: { odyoloji: 0, genel: 10 } }); // sabit saat: genel (karar 47 bekliyor)
+    expect(st.info.ranking).toHaveLength(0);
+    await a.c.call('quiz.join', { quizId: st.quiz!.id });
+    await b.c.call('quiz.join', { quizId: st.quiz!.id });
+    await b.c.call('quiz.go', { quizId: st.quiz!.id }); // sabit saat yarışmasında katılan üye de hemen başlatır
+    for (let i = 0; i < 10; i++) {
+      const view = (await a.c.call('quiz.state', {})).quiz!;
+      const def = QUIZ_QUESTIONS.find((x) => x.text === view.question!.text)!;
+      if (i < 3) await a.c.call('quiz.answer', { quizId: st.quiz!.id, index: i, choice: def.answer });
+      env.clock.advance(QUESTION_MS + REVEAL_MS);
+      env.srv.sweep();
+    }
+    const done = await b.wait('quiz.updated', (x) => x.quiz.phase === 'bitti');
+    expect(done.quiz.levels).toEqual({ odyoloji: 0, genel: 10 });
+    const after = await b.c.call('quiz.state', {});
+    expect(after.quiz?.phase).toBe('bitti');
+    expect(after.info.ranking).toEqual([expect.objectContaining({ teamId, name: 'Öğlenciler', avg: after.quiz!.teamAvg })]);
+    const best = after.quiz!.players[0]!;
+    expect(best).toMatchObject({ name: 'Ayşe', correct: 3 });
+    const msg = await a.wait('chat', (m) => m.msg.meta?.event === 'quiz' && m.msg.text.startsWith('Bilgi yarışması bitti'));
+    expect(msg.msg.text).toBe(`Bilgi yarışması bitti! Takım ortalaması: ${after.quiz!.teamAvg} puan · en iyi: Ayşe · 3/10 doğru · ${best.score} puan · 2 kişi katıldı.`);
+  });
+
+  it('öğrenci düzeyinde elle başlatılan yarışma karışık: düzey satırı 6 öğrenci + 4 genel (YN-187)', async () => {
+    env = await setup({ eventsFast: true });
+    const [a] = await team2(env, ['Ayşe', 'Bora'], 'Öğrenciler');
+    const { quiz } = await a.c.call('quiz.start', { level: 'odyoloji' });
+    expect(quiz.levels).toEqual({ odyoloji: 6, genel: 4 });
+  });
+
   it('takımsız oyuncu sabit saatin açık olduğunu görür (Pratik/Bugün notu), başlatamaz (YN-161)', async () => {
     env = await setup();
     const a = await connectW(env, 'Yalnız');

@@ -713,7 +713,8 @@ export type QuizPhase = 'lobi' | 'soru' | 'cevap' | 'bitti';
 export interface QuizQuestionView { index: number; total: number; text: string; choices: string[]; startsAt: number; endsAt: number; answer: number | null; explain: string | null; myChoice: number | null; answered: number;
   /** soruyu öneren oyuncunun takma adı (izinle; açıklanınca, varsa) */ oneren?: string | null }
 export interface QuizPlayer { id: string; name: string; color: number; score: number; correct: number; answered: boolean; lastCorrect: boolean | null }
-export interface QuizState { id: string; teamId: string; phase: QuizPhase; startedBy: string; lobbyEndsAt: number; endsAt: number; players: QuizPlayer[]; question: QuizQuestionView | null; teamAvg: number; questionMs: number; revealMs: number }
+export interface QuizState { id: string; teamId: string; phase: QuizPhase; startedBy: string; lobbyEndsAt: number; endsAt: number; players: QuizPlayer[]; question: QuizQuestionView | null; teamAvg: number; questionMs: number; revealMs: number;
+  /** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; bekleme odası ve sonuçtaki dürüst düzey satırı, YN-187) */ levels: { odyoloji: number; genel: number } }
 export interface QuizInfo { nextSlotAt: number; slotOpen: boolean; canStart: boolean; startsLeft: number; ranking: { teamId: string; name: string; emblem: string; avg: number }[]; rewards: { perCorrect: number; bonusAvg: number; bonus: EventReward[] } }
 
 // ---------- Günlük takım görevleri

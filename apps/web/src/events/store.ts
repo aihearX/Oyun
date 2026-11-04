@@ -45,6 +45,16 @@ export function refreshEvents(): Promise<void> {
   return inflight;
 }
 
+/**
+ * Yalnız bilgi yarışması bilgisini (bugünün takım sıralaması, başlatma hakkı) tazele: sıralama yarışma bitince değişir, `quiz.updated`
+ * onu taşımaz (YN-185). Bitiş yayınında ve sonuç ekranı açılınca çağrılır.
+ */
+export function refreshQuizInfo(): Promise<void> {
+  const c = client;
+  if (!c || c.status !== 'bağlı' || !useEvents.getState().inTeam) return Promise.resolve();
+  return c.call('quiz.state', {}).then((r) => useEvents.setState({ quizInfo: r.info }), () => undefined);
+}
+
 const NOTICE_MAX = 3;
 export function bindEvents(c: NetClient): () => void {
   client = c;
@@ -57,7 +67,7 @@ export function bindEvents(c: NetClient): () => void {
     c.on('duel.updated', ({ duel }) => set({ duel })),
     c.on('relay.updated', ({ relay }) => set({ relay })),
     c.on('hunt.updated', ({ hunt }) => set({ hunt })),
-    c.on('quiz.updated', ({ quiz }) => set((s) => ({ quiz: !s.quiz || s.quiz.id === quiz.id || quiz.phase !== 'bitti' ? quiz : s.quiz }))),
+    c.on('quiz.updated', ({ quiz }) => { set((s) => ({ quiz: !s.quiz || s.quiz.id === quiz.id || quiz.phase !== 'bitti' ? quiz : s.quiz })); if (quiz.phase === 'bitti') void refreshQuizInfo(); }),
     c.on('tquests.updated', ({ quests }) => set({ quests })),
     c.on('events.notice', ({ notice }) => set((s) => ({ notices: [...s.notices.filter((n) => n.id !== notice.id), notice].slice(-NOTICE_MAX) }))),
     c.on('team.updated', ({ team }) => { const was = useEvents.getState().inTeam; if (!!team !== was) void refreshEvents(); }),
