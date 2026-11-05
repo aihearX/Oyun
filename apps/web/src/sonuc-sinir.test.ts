@@ -39,6 +39,7 @@ const num = (t: string | null | undefined) => Number(nb(t).replace(/[^\d-]/g, ''
 
 let root: Root | null = null;
 afterEach(async () => {
+  vi.useRealTimers();
   await act(async () => { root?.unmount(); });
   root = null; document.body.innerHTML = '';
   useStore.setState({ toasts: [] }); useSocial.setState({ enabled: false, krediler: {}, outbox: [] }); useNet.setState({ status: 'kapalı' } as never);
@@ -126,6 +127,8 @@ describe('Hazine penceresi ve başarım bildirimi sınırı söyler (YN-200)', (
 
 describe('aynı başarım bir kez bildirilir (YN-200)', () => {
   it('sonuç ekranı kapanınca o bölümün sırada kalan bildirimleri düşer; sonraki bölümün sonucunda yeniden çıkmaz', async () => {
+    // saat kaydın günü (DAY): completeRun bugünü dayKey() ile alır; gerçek gün DAY'den sonraysa seri bildirimi de eklenir ve test tarihe bağlı düşerdi
+    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date(`${DAY}T12:00:00`));
     useStore.setState({ ...core(39), toasts: [] });
     const s39 = generateLevel(HUMAN_JOURNEY.id, 39, prof);
     useStore.getState().completeRun(s39, run(s39));
@@ -140,6 +143,7 @@ describe('aynı başarım bir kez bildirilir (YN-200)', () => {
     await act(async () => { root!.unmount(); }); root = null;
     await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
     expect(useStore.getState().toasts.map((t) => t.id)).toEqual([99]);
+    vi.useRealTimers();
   });
 });
 
