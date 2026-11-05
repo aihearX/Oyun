@@ -8,6 +8,8 @@
 .cel-back { position:absolute; inset:0; z-index:0; background:radial-gradient(70% 55% at 50% 42%, rgba(60,32,140,.82), rgba(8,4,26,.97) 75%); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); animation:celFade .3s ease-out both; }
 .cel-back.out { animation:celFadeOut .3s ease-in both; }
 .cel-back.biome { background:radial-gradient(75% 60% at 50% 40%, var(--b1, #8b6bff), var(--b2, #2d1d6e) 60%, rgba(8,4,26,.96)); }
+/* Yüksek görünürlük / hareketi azalt: parlama koyu (bölge rengi korunur, açık şeftali yazının çevresini aydınlatmaz; YN-261) */
+.cel-back.biome.dim { background:radial-gradient(75% 60% at 50% 40%, color-mix(in srgb, var(--b1, #8b6bff) 45%, #0e0622), color-mix(in srgb, var(--b2, #2d1d6e) 70%, #0e0622) 60%, rgba(8,4,26,.98)); }
 @keyframes celFade { from { opacity:0; } to { opacity:1; } }
 @keyframes celFadeOut { to { opacity:0; } }
 .cel-stage { position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:calc(var(--sat) + 24px) 16px calc(var(--sab) + 28px); text-align:center; color:#fff; }
@@ -100,7 +102,10 @@
 .bm-wave { position:absolute; left:50%; top:42%; width:0; height:0; pointer-events:none; }
 .bm-wave i { position:absolute; left:-90px; top:-90px; width:180px; height:180px; border-radius:50%; border:4px solid rgba(255,255,255,.7); opacity:0; animation:wave 2.4s ease-out infinite; }
 .bm-wave i:nth-child(2) { animation-delay:.8s; } .bm-wave i:nth-child(3) { animation-delay:1.6s; }
-.bm-name { font-weight:900; font-size:clamp(36px, 12vw, 54px); line-height:1.05; color:#fff; text-shadow:0 4px 0 rgba(0,0,0,.35), 0 0 30px rgba(255,255,255,.45); animation:nameIn .8s cubic-bezier(.2,1.4,.4,1) both; max-width:100%; overflow-wrap:anywhere; }
+/* bölge adı koyu plakada ve tek satırda (YN-261, OT-buyuk-yazi-73: beyaz ad açık şeftali parlamada ~2:1 idi; plakada ≥ 4,5:1.
+   YN-216: uzun ad iki satıra kırılmaz, sığmazsa CelebrationLayer useFitLine yazıyı küçültür) */
+.bm-name { width:100%; line-height:1.1; animation:nameIn .8s cubic-bezier(.2,1.4,.4,1) both; }
+.bm-name span { display:inline-block; white-space:nowrap; font-weight:900; font-size:clamp(34px, 11vw, 50px); color:#fff; padding:4px 20px 8px; border-radius:22px; background:rgba(14,6,34,.88); box-shadow:0 6px 18px rgba(0,0,0,.4); text-shadow:0 3px 0 #000; }
 @keyframes nameIn { 0% { opacity:0; transform:scale(2.2); filter:blur(8px); } 100% { opacity:1; transform:none; filter:none; } }
 /* alt satır koyu şeritte (sarı yazı bölgenin turuncu-kahve zemininde soluktu; kontrast ≥ 4,5:1, OT-sessiz-oyuncu-11) */
 .bm-sub { font-weight:900; font-size:clamp(20px, 6.5vw, 26px); color:var(--gold); animation:titleDrop .5s .45s cubic-bezier(.2,1.5,.4,1) both; }

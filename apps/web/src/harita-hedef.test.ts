@@ -1,7 +1,7 @@
 // Haritanın "Sıradaki hedef"i (OT-ilk-kez-oyun-13): tek hedef, ulaşılana kadar aynı; ulaşılan aşama bir kez söylenir.
 import { describe, expect, it } from 'vitest';
 import { BIOMES, HUMAN_JOURNEY } from '@odi/content';
-import { mapGoal, pickGoal, returnCelebrations } from './map/goals';
+import { bolumeEk, mapGoal, pickGoal, returnCelebrations, stageLabel } from './map/goals';
 
 /** ilk n bölüm geçilmiş (her biri k yıldız) */
 const upTo = (n: number, k = 2): Record<number, number> => Object.fromEntries(Array.from({ length: n }, (_, i) => [i + 1, k]));
@@ -44,7 +44,7 @@ describe('pickGoal', () => {
 
 describe('mapGoal', () => {
   it('ilk açılış ve aynı hedef: yalnız hedef', () => {
-    expect(mapGoal(upTo(1), null)).toEqual({ icon: '🌱', text: '2 bölüm sonra Dış Kulak çiçeklenir' });
+    expect(mapGoal(upTo(1), null)).toEqual({ icon: '🌱', text: '2 bölüm sonra Dış Kulak çiçeklenir', stage: { biome: 'dis-kulak', at: 1 } });
     expect(mapGoal(upTo(2), upTo(1)).text).toBe('Bölüm 3 bitince Dış Kulak çiçeklenir');
   });
 
@@ -54,7 +54,7 @@ describe('mapGoal', () => {
     expect(g.small).toBe('Hedefe ulaştın!');
     expect(g.text).toBe('Hazine açıldı, Kulak Zarı çiçeklendi! Sıradaki: 2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır');
     // haritaya bir sonraki gelişte (gösterilen durum güncel) yalnız hedef
-    expect(mapGoal(upTo(10), upTo(10))).toEqual({ icon: '🌟', text: '2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır' });
+    expect(mapGoal(upTo(10), upTo(10))).toEqual({ icon: '🌟', text: '2 bölüm sonra Kulak Zarı canlanır: Kemikçikler açılır', stage: { biome: 'zar', at: 2 } });
   });
 
   it('birlikte gerçekleşen hazine ve aşama tek cümlede, doğru bağlaçla', () => {
@@ -160,5 +160,45 @@ describe('Serumen Golemi: geri dönüş', () => {
     expect(l20.intro).toBe('Dış kulak yoluna geri dön: zarın dışında serumenden bir dev kanalı tıkıyor.');
     expect(HUMAN_JOURNEY.levels.filter((l) => l.back).map((l) => l.number)).toEqual([20]);
     for (const l of HUMAN_JOURNEY.levels) expect(`${l.intro ?? ''} ${l.back ?? ''}`).not.toMatch(/Salyangoz/i);
+  });
+});
+
+// YN-260 (tur 15): hedef kutusunda aşama sırası; yıldız hedefi dokununca bölgenin bölümüne götürür
+describe('hedef kutusu: aşama sırası ve gidilecek bölüm (YN-260)', () => {
+  it('dört adım: ulaşılanlar geçmiş zamanla, sıradakiler gelecek zamanla (OT-ilk-kez-oyun-76)', () => {
+    expect([1, 2, 3, 4].map((v) => stageLabel(v as 1, 2))).toEqual(['uyandı', 'çiçeklendi', 'canlanır', 'ışıl ışıl']);
+    expect([1, 2, 3, 4].map((v) => stageLabel(v as 1, 3))).toEqual(['uyandı', 'çiçeklendi', 'canlandı', 'ışıl ışıl']);
+    // "Koklea · Taban çiçeklendi! Sıradaki: Bölüm 23 bitince Koklea · Taban canlanır": kutunun aşaması çiçeklendi (2)
+    const levels = HUMAN_JOURNEY.levels; const taban = levels.filter((l) => l.biome === 'koklea-1').map((l) => l.number);
+    const n = taban[Math.ceil(taban.length / 2) - 1]!;
+    const g = mapGoal(upTo(n), upTo(n - 1));
+    expect(g.small).toBe('Hedefe ulaştın!'); expect(g.stage).toEqual({ biome: 'koklea-1', at: 2 });
+    // her bölge hedefinde aşama hedefin söylediği bölgeninki ve hedeften bir önceki aşama
+    for (let k = 0; k < levels.length; k++) {
+      const p = pickGoal(upTo(k)); const m = mapGoal(upTo(k), null);
+      if (p?.biome) expect(m.stage).toEqual({ biome: p.biome.id, at: p.biome.to - 1 });
+      else if (p?.stars) expect(m.stage).toEqual({ biome: p.stars.id, at: 3 });
+      else expect(m.stage).toBeUndefined();
+      // yolculuk sürerken kutu bölüm kartı açmaz (dokunuş sıradaki bölüme odaklar)
+      expect(m.go).toBeUndefined();
+    }
+  });
+
+  it('yolculuk bitince yıldız hedefi bölgenin 3 yıldızı eksik ilk bölümüne götürür (OT-uzman-odyolog-47)', () => {
+    const total = HUMAN_JOURNEY.levels.length;
+    const all2 = upTo(total, 2); const p = pickGoal(all2)!;
+    const g = mapGoal(all2, all2);
+    const first = HUMAN_JOURNEY.levels.find((l) => l.biome === p.stars!.id)!.number;
+    expect(g.go).toBe(first);
+    // o bölüm 3 yıldızsa sıradaki eksik bölüm
+    const g2 = mapGoal({ ...all2, [first]: 3 }, { ...all2, [first]: 3 });
+    expect(g2.go).toBeGreaterThan(first); expect(HUMAN_JOURNEY.levels[g2.go! - 1]!.biome).toBe(p.stars!.id);
+    // bitiş anı (final) kutusu bölüm kartı açmaz; hepsi 3 yıldızsa gidilecek yer yok
+    expect(mapGoal(upTo(total), upTo(total - 1)).go).toBeUndefined();
+    expect(mapGoal(upTo(total, 3), upTo(total, 3)).go).toBeUndefined();
+  });
+
+  it('bölüm numarasının yönelme eki', () => {
+    expect([1, 2, 3, 6, 9, 10, 20, 22, 30, 40].map((n) => `${n}${bolumeEk(n)}`)).toEqual(["1'e", "2'ye", "3'e", "6'ya", "9'a", "10'a", "20'ye", "22'ye", "30'a", "40'a"]);
   });
 });

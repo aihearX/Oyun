@@ -5,7 +5,7 @@ import { odiLook, useOdiLook } from '../look';
 import { WAR_REGIONS, type PublicProfile } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { audio } from '@odi/audio';
-import type { MapHandle, MapSocial, StarMap, ZoneId } from '@odi/game-core/lite';
+import type { MapHandle, MapSocial, StarMap, Vitality, ZoneId } from '@odi/game-core/lite';
 import { chunkFailed, loadMap } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
@@ -18,7 +18,7 @@ import { prefersReducedMotion } from '../ui/bits';
 import { celebrate, type RecapRow } from '../celebrate';
 import { useHudCount } from '../celebrate/hud';
 import { loadMapSeen, starsOf, useMapSeen } from '../map/mapSeen';
-import { mapGoal, returnCelebrations, treasureItems } from '../map/goals';
+import { bolumeEk, mapGoal, returnCelebrations, stageLabel, treasureItems, type Goal } from '../map/goals';
 import { MapCards, type MapCard } from '../map/MapCards';
 import { Compass, MapFrame } from '../map/MapChrome';
 import { Art, Glyph, Rich, artSvg, emblemArt } from '../ui/art';
@@ -42,10 +42,28 @@ const HAZINE_VERILDI = 'Bölüm sonunda cüzdanına eklenmişti';
  * Hazine penceresinin içeriği ve notu, hesaba geçenle (YN-200, OT-rekabetci-44): günlük yerel ödül sınırı jetonu kestiyse kart hesaba
  * geçeni gösterir, not eklenmeyeni söyler; jeton sunucuya henüz gitmediyse (çevrimdışı) "eklenmişti" denmez.
  */
-function hazineGorunum(n: number) {
+function hazineGorunum(n: number, verildi = HAZINE_VERILDI) {
   const meta = useStore.getState().meta;
-  const rec = [...meta.ledger].reverse().find((g) => g.reason === `hazine:${n}`);
-  return hazinePenceresi(treasureItems(meta, n), rec ? odulNe(rec) : { k: 'tam' }, HAZINE_VERILDI);
+  return hazinePenceresi(treasureItems(meta, n), hazineDurum(n), verildi);
+}
+function hazineDurum(n: number) {
+  const rec = [...useStore.getState().meta.ledger].reverse().find((g) => g.reason === `hazine:${n}`);
+  return rec ? odulNe(rec) : { k: 'tam' as const };
+}
+/** pencere açılırken hazine jetonlarından biri sunucuya gitmeyi ya da yanıtı bekliyor mu (bekliyorsa not canlı izlenir) */
+const hazineBekliyor = (ns: readonly number[]) => ns.some((n) => hazineDurum(n).k === 'bekliyor');
+/**
+ * Pencere açıkken bağlantı gelip jeton hesaba geçerse not güncellenir (YN-260 (3), OT-eski-telefon-46: bağlantıdan sonra da
+ * "bağlanınca cüzdanına eklenecek" diyordu). Outbox ve bağlantı durumu her değiştiğinde not yeniden hesaplanır; bekleyen jeton
+ * hesaba geçince "Cüzdanına eklendi" (bölüm sonunda değil, şimdi eklendi), sınır kestiyse eklenmeyen. Bekleyen yoksa izleme yok.
+ */
+function canliNot<T>(bekliyor: boolean, hesap: () => T) {
+  if (!bekliyor) return undefined;
+  return (set: (v: T) => void) => {
+    const f = () => set(hesap());
+    const a = useSocial.subscribe(f); const b = useNet.subscribe(f);
+    return () => { a(); b(); };
+  };
 }
 
 /** `?harita=tam`: test tarayıcısında da tam animasyonlu harita (ekran görüntüleri için; varsayılan davranışı değiştirmez) */
@@ -82,7 +100,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [before, setBefore] = useState<StarMap | null>(null);
   // dönüş sahnesinin başladığı (haritada gösterilen) durum ve birikmiş kutlamalar: üç ve daha çok pencere açılacaksa sahne sürerken
   // biriktirilir, sahne bitince tek pencerede gösterilir (OT-sinav-adayi-17: 20-25 art arda → dört pencere peş peşe)
-  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0, eksik: 0, bekliyor: false });
+  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0, eksik: 0, bekliyor: false, ns: [] as number[] });
   const goalRef = useRef<HTMLButtonElement>(null);
   /**
    * haritanın görünür alanı: üstte HUD, hedef kartı, Bugün/pusula ve Etkinlik düğmesinin altı; altta Bölüm düğmesinin üstü (CSS px).
@@ -91,10 +109,12 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const measureInsets = () => {
     const vh = innerHeight; let top = hudRef.current?.getBoundingClientRect().bottom ?? 70;
     const tops = [goalRef.current, host.current?.parentElement?.querySelector('.map-side-l'), document.querySelector('.ev-fab')];
-    for (const el of tops) { const r = el?.getBoundingClientRect(); if (r && r.height > 0 && r.top < vh / 2) top = Math.max(top, r.bottom); }
+    // yolculuğun bitişinde hedef kutusu alttadır (YN-241): Ninni Merkezi kutunun üstündeki alanın ortasına gelir. Alttaki kutu (aşama
+    // adımlarıyla 320 px'te Büyük yazıda ekranın ortasını geçebilir) üst pay sayılmaz
+    const alt = !!goalRef.current?.matches('.final, .done.open, .buyuk-yazi .done');
+    for (const el of tops) { if (alt && el === goalRef.current) continue; const r = el?.getBoundingClientRect(); if (r && r.height > 0 && r.top < vh / 2) top = Math.max(top, r.bottom); }
     let pb = playRef.current?.getBoundingClientRect().top ?? vh - 140;
-    // yolculuğun bitişinde hedef kutusu alttadır (YN-241): Ninni Merkezi kutunun üstündeki alanın ortasına gelir
-    const g = goalRef.current?.getBoundingClientRect(); if (g && g.height > 0 && g.top >= vh / 2) pb = Math.min(pb, g.top);
+    const g = goalRef.current?.getBoundingClientRect(); if (g && g.height > 0 && (alt || g.top >= vh / 2)) pb = Math.min(pb, g.top);
     return { top: top + 8, bottom: Math.max(90, vh - pb + 10) };
   };
 
@@ -117,14 +137,15 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
         onTreasure: async (n) => {
           const h = hazineGorunum(n); const items = h.items;
-          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; batchCount.current.eksik += h.eksik; batchCount.current.bekliyor ||= h.bekliyor; return; }
+          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; batchCount.current.eksik += h.eksik; batchCount.current.bekliyor ||= h.bekliyor; batchCount.current.ns.push(n); return; }
           // pencere açıldığı anda görüldü (YN-201, OT-sinav-adayi-42): Tamam'a basılmadan ya da sahne bitmeden uygulama kapanırsa da
           // aynı hazine bir daha açılmaz (sahnenin sonundaki kayıt yenilemede hiç yazılmıyordu)
           useMapSeen.getState().markShown(n, starsOf(useStore.getState().progress)[n] ?? 1);
           // hazine bölüm bitince verildi ve sonuç ekranında sayıldı: burada yalnız gösterilir, sayaç yeniden saymaz. Not geçmiş zamanla
           // ve nerede verildiğini söyler (oturum arada kapandıysa da; "Cüzdanına eklendi" deyip cüzdan artmayınca sahte ödül sanıldı,
           // OT-uzman-odyolog-29)
-          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true, note: h.note });
+          const live = canliNot(hazineBekliyor([n]), () => { const g = hazineGorunum(n, 'Cüzdanına eklendi'); return { note: g.note, items: g.items }; });
+          await celebrate.chest({ title: `Hazine · Bölüm ${n}`, items, tier: items.some((i) => i.kind === 'kozmetik') ? 'altin' : n >= 20 ? 'gumus' : 'bronz', granted: true, note: h.note, live });
         },
         onZoneRise: async (z, _from, to) => {
           const ms = useMapSeen.getState(); if (to < 3 || ms.restored.includes(z)) return;
@@ -136,7 +157,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onSequence: (p) => {
           setSeq(p === 'start'); setSettled(p === 'done');
           const cur = starsOf(useStore.getState().progress);
-          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0, eksik: 0, bekliyor: false }; }
+          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0, eksik: 0, bekliyor: false, ns: [] }; }
           if (p === 'done') { useMapSeen.getState().commit(cur); shownRef.current = cur; flushBatch(); }
         },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
@@ -152,13 +173,19 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
    * olan bir şey değildir.
    */
   const flushBatch = () => {
-    const rows = batch.current; const { t, z, eksik, bekliyor } = batchCount.current; batch.current = null;
+    const rows = batch.current; const { t, z, eksik, bekliyor, ns } = batchCount.current; batch.current = null;
     if (!rows?.length) return;
     const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
     // pencere kapanınca sıradaki bölüm yine görünür alanın ortasında (kart/düğmeler değişmiş olabilir)
     // hazine jetonu: sınır kestiyse eklenmeyen, çevrimdışıysa "bağlanınca" (YN-200); satırlar hesaba geçeni gösterir
     const note = !t ? undefined : eksik > 0 ? `${sinirSatiri(eksik)}.` : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
-    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note }).then(() => handle.current?.focusCurrent());
+    // pencere açıkken bekleyen jeton hesaba geçerse not güncellenir (YN-260 (3)); satırlar o anki hesaba geçeni gösterir
+    const live = canliNot(hazineBekliyor(ns), () => {
+      const hs = ns.map((n) => hazineGorunum(n)); const e = hs.reduce((a, h) => a + h.eksik, 0); const d = ns.map(hazineDurum);
+      return e > 0 ? `${sinirSatiri(e)}.` : d.some((x) => x.k === 'bekliyor' && !x.bagli) ? 'Hazine jetonu bağlanınca cüzdanına eklenecek'
+        : d.some((x) => x.k === 'bekliyor') ? 'Hazine jetonu hesabına kaydediliyor' : t > 1 ? 'Hazine jetonları cüzdanına eklendi' : 'Hazine jetonu cüzdanına eklendi';
+    });
+    void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note, live }).then(() => handle.current?.focusCurrent());
   };
   // ilerleme harita açıkken değişirse (ör. sunucu eşitlemesi) farkı oynat
   useEffect(() => { handle.current?.update(stars, meta.treasures); }, [stars, meta.treasures]);
@@ -189,13 +216,19 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [wideText, setWideText] = useState<string | null>(null); const goalWide = wideText === goal.text;
   useLayoutEffect(() => {
     if (goalWide || goalOpen || goal.final) return;
-    const t = goalRef.current?.querySelector('span'); if (t && t.scrollHeight > t.clientHeight + 1) setWideText(goal.text);
+    const t = goalRef.current?.querySelector('.mg-text'); if (t && t.scrollHeight > t.clientHeight + 1) setWideText(goal.text);
   }, [goal.text, goalWide, goalOpen]);
+  // aşama adımları olan kutu tam genişlikte (adımlar sağ üstteki dar karta sığmaz; Etkinlik düğmesinin altında kalmaz)
+  const goalFull = goalOpen || goalWide || !!goal.stage;
   const onGoal = (b: HTMLElement) => {
-    const t = b.querySelector('span');
-    if (!goalWide && !goal.final && (goalOpen || (t && t.scrollHeight > t.clientHeight + 1))) { setOpenText(goalOpen ? null : goal.text); return; }
+    const t = b.querySelector('.mg-text');
+    if (!goalWide && !goal.stage && !goal.final && (goalOpen || (t && t.scrollHeight > t.clientHeight + 1))) { setOpenText(goalOpen ? null : goal.text); return; }
+    // yıldız hedefi uzaktaki bölgeyi söyler: dokununca o bölümün kartı (Tekrar oyna), sürüklemeden (YN-260, OT-uzman-odyolog-47)
+    if (goal.go) { setCard({ kind: 'node', n: goal.go }); return; }
     handle.current?.focusCurrent();
   };
+  // büyük düğme: yolculuk bitince yıldız hedefinin bölümü (yoksa açık son bölüm)
+  const playN = goal.go ?? unlocked;
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
   const feat = useFeatures();
   // Tüy Dede'nin "Yeni yer açıldı" kartı (yeri gösterilmeyen rozet) ekranın üst ortasında: kutu o sürece gizli, kart yazısının
@@ -222,17 +255,37 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goal.final ? ' final' : goalOpen || goalWide ? ' open' : ''}${done ? ' done' : ''}`} key={goal.text} ref={goalRef} data-ulasildi={goal.small ? '1' : undefined} style={unlockCard ? { visibility: 'hidden' } : undefined} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
-        <small>{goal.small ?? 'Sıradaki hedef'}</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
+      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goal.final ? ' final' : goalFull ? ' open' : ''}${done ? ' done' : ''}`} key={goal.text} ref={goalRef} data-ulasildi={goal.small ? '1' : undefined} data-git={goal.go} style={unlockCard ? { visibility: 'hidden' } : undefined} onClick={(e) => onGoal(e.currentTarget)} aria-label={goalLabel(goal)}>
+        <span className="mg-head"><small>{goal.small ?? 'Sıradaki hedef'}</small>{goal.stage && <Stages at={goal.stage.at} />}</span>
+        <span className="mg-text"><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
+        {goal.go && <span className="mg-go" data-testid="hedef-git">Bölüm {goal.go}{bolumeEk(goal.go)} git <Icon name="play" size="0.85em" className="ic-inline" /></span>}
       </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}
       {/* dönüş sahnesi sürerken ekranın her yerine (hedef kutusu, HUD dahil) dokunuş sahneyi sonuna atlatır (YN-149) */}
       {seq && <div className="map-skip" aria-live="polite">Dokun: atla <Art name="booster" size="1.15em" className="art-inline" /></div>}
       <div className="map-play-wrap" ref={playRef}>
-        <button className="map-play shine" onClick={() => onPlay(unlocked)}>{done && <Art name="crown" size="1.1em" className="art-inline" />}Bölüm {unlocked} <Icon name="play" size="0.9em" className="ic-inline" /></button>
+        <button className="map-play shine" onClick={() => onPlay(playN)}>{done && <Art name="crown" size="1.1em" className="art-inline" />}Bölüm {playN} <Icon name="play" size="0.9em" className="ic-inline" /></button>
       </div>
       <MapCards card={card} stars={stars} unlocked={unlocked} onClose={() => { demoCard = 0; setCard(null); }} onPlay={onPlay} />
     </div>
+  );
+}
+
+const STAGES: Vitality[] = [1, 2, 3, 4];
+/** kutunun okunan adı: aşama sırası ve gidilecek bölüm de söylenir */
+function goalLabel(g: Goal): string {
+  const st = g.stage ? ` Aşamalar: ${STAGES.map((v) => `${stageLabel(v, g.stage!.at)}${v === g.stage!.at ? ' (şimdi)' : ''}`).join(', ')}.` : '';
+  return `${g.small ?? 'Sıradaki hedef'}: ${g.text}${st}${g.go ? ` Dokun: Bölüm ${g.go} kartı.` : ''}`;
+}
+/**
+ * bölgenin dört aşaması kısaca (YN-260 (2), OT-ilk-kez-oyun-76: "çiçeklendi" ile "canlanır" farkı belirsizdi): ulaşılanlar geçmiş
+ * zamanla ve dolu nokta, bulunulan aşama kalın ve elmas, sıradakiler gelecek zamanla ve boş halka (yazı + şekil; renk tek ayırt edici değil)
+ */
+function Stages({ at }: { at: Vitality }) {
+  return (
+    <span className="mg-steps" data-testid="hedef-asama" data-asama={at} aria-hidden>
+      {STAGES.map((v) => <span key={v} className={v < at ? 'ok' : v === at ? 'cur' : 'next'}><i />{stageLabel(v, at)}</span>)}
+    </span>
   );
 }
 

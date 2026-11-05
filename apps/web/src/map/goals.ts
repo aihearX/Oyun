@@ -8,11 +8,23 @@ export interface Goal {
   icon: string; text: string; /** hedefe ulaşılınca bir kez söylenir */ small?: string;
   /** yolculuk bu dönüşte bitti (son bölüm ilk kez geçildi): kutu Ninni Merkezi başlığını örtmez, "Sıradaki" yıldız hedefi söylenmez */
   final?: boolean;
+  /**
+   * hedefin bölgesinin aşama sırası (YN-260, OT-ilk-kez-oyun-76: "çiçeklendi" ile "canlanır" farkı belirsizdi): kutu dört küçük adımı
+   * yazıyla gösterir, `at` bölgenin bulunduğu aşama (1 uyandı … 4 ışıl ışıl). Yalnız bir bölgenin aşamasını söyleyen hedefte
+   */
+  stage?: { biome: BiomeId; at: Vitality };
+  /**
+   * yıldız hedefinin götürdüğü bölüm (YN-260, OT-uzman-odyolog-47): bölgenin 3 yıldızı eksik ilk bölümü. Kutuya dokununca o bölümün
+   * kartı açılır, büyük düğme o bölümü önerir (yolculuk bitince "Bölüm 40" uzaktaki bölgeye götürmüyordu)
+   */
+  go?: number;
 }
 
 /** aşama fiilleri: gelecek ("çiçeklenir") ve ulaşıldı ("çiçeklendi"); sıra VITALITY_NAMES ile aynı (uyanır → çiçeklenir → canlanır → ışıl ışıl) */
 export const VITALITY_WILL: Record<Vitality, string> = { 0: '', 1: 'uyanır', 2: 'çiçeklenir', 3: 'canlanır', 4: 'ışıl ışıl olur' };
 const DID: Record<Vitality, string> = { 0: '', 1: 'uyandı', 2: 'çiçeklendi', 3: 'canlandı', 4: 'ışıl ışıl oldu' };
+/** kutudaki aşama adımının yazısı: ulaşılan aşama geçmiş zamanla ("çiçeklendi"), sıradakiler gelecek zamanla ("canlanır", "ışıl ışıl") */
+export function stageLabel(v: Vitality, at: Vitality): string { return v <= at ? DID[v] : v === 4 ? 'ışıl ışıl' : VITALITY_WILL[v]; }
 const STAGE_ICON: Record<Vitality, string> = { 0: '🌱', 1: '🌱', 2: '🌱', 3: '🌟', 4: '✨' };
 
 /** seçilen tek hedef: hangi olay(lar), kaç bölüm/yıldız sonra */
@@ -135,12 +147,25 @@ export function mapGoal(stars: StarMap, before: StarMap | null): Goal {
   const was = before ? pickGoal(before) : null;
   const now = pickGoal(stars, undefined, was);
   const text = now ? goalText(now) : 'Ninni beyne ulaştı!'; const icon = now ? goalIcon(now) : '👑';
-  if (!was || was.key === now?.key || !reached(was, stars)) return { icon, text };
+  const where = now ? goalWhere(now, stars) : {};
+  if (!was || was.key === now?.key || !reached(was, stars)) return { icon, text, ...where };
   // yolculuk bu dönüşte bitti (YN-241, OT-sessiz-oyuncu-33): bitiş anında "Sıradaki: 2 yıldız daha: …" öne çıkmaz, ulaşılan ve
   // Ninni; yıldız hedefi kutu kapanınca (GOAL_REACHED_MS) her zamanki gibi
   const total = HUMAN_JOURNEY.levels.length;
   if (before && !journeyDone(before, total) && journeyDone(stars, total)) return { icon: '👑', small: 'Hedefe ulaştın!', text: `${reachedText(was)} Ninni beyne ulaştı!`, final: true };
-  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now, undefined, true)}` : `${reachedText(was)} Ninni beyne ulaştı!` };
+  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now, undefined, true)}` : `${reachedText(was)} Ninni beyne ulaştı!`, ...where };
+}
+/** hedefin bölgesi ve aşaması (kutudaki adımlar) ile yıldız hedefinin bölümü (dokununca o bölümün kartı) */
+function goalWhere(g: GoalPick, stars: StarMap, levels: LevelPlan[] = HUMAN_JOURNEY.levels): Pick<Goal, 'stage' | 'go'> {
+  const b = g.biome?.id ?? g.stars?.id; if (!b) return {};
+  const at = vitalityOf(b, stars, levels); if (at < 1) return {};
+  const go = g.stars ? levels.find((l) => l.biome === b && (stars[l.number] ?? 0) < 3)?.number : undefined;
+  return { stage: { biome: b, at }, ...(go ? { go } : {}) };
+}
+/** bölüm numarasının yönelme eki: "Bölüm 22'ye", "Bölüm 40'a" (sayının okunuşunun son ünlüsüne göre) */
+export function bolumeEk(n: number): string {
+  const birler = ["'a", "'e", "'ye", "'e", "'e", "'e", "'ya", "'ye", "'e", "'a"]; const onlar = ["'e", "'a", "'ye", "'a", "'a", "'ye", "'a", "'e", "'e", "'a"];
+  return n % 10 ? birler[n % 10]! : n % 100 ? onlar[Math.floor(n / 10) % 10]! : "'e";
 }
 
 /** hazinenin GERÇEK verilen içeriği: defterdeki kayıt (tekrar gelen kozmetik jetona dönmüş olabilir); yoksa tanım */

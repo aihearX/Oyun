@@ -1422,6 +1422,52 @@ async function suite(browserName, target, [W, H]) {
       if (!/Kapıya ulaş$/.test(kart.gec)) fail(rec, `geçme satırı "Kapıya ulaş" değil: ${JSON.stringify(kart.gec)}`);
       if (!/^3\. yıldız · biri yeter\d+ nota ya da 3 altın kokleayı bul ve \d+ nota$/.test(kart.y3)) fail(rec, `3. yıldız satırı sonuç kartıyla aynı değil: ${JSON.stringify(kart.y3)}`);
       await page.keyboard.press('Escape'); await sleep(300);
+      // YN-260 (2) (OT-ilk-kez-oyun-76): hedef kutusunda bölgenin dört aşaması (yazı + şekil), bulunulan işaretli; kutu haritanın
+      // üst yarısını kaplamaz (YN-241)
+      {
+        await page.locator('.map-goal [data-testid="hedef-asama"]').waitFor({ timeout: 10_000 }).catch(() => undefined); await toastGone(); await sleep(500);
+        const r = await check('harita-hedef-asama', { scroll: false });
+        const k = await page.evaluate(() => {
+          const g = document.querySelector('.map-goal'); const st = g?.querySelector('[data-testid="hedef-asama"]'); if (!g || !st) return null;
+          const b = g.getBoundingClientRect();
+          return { adim: [...st.children].map((c) => `${c.className}:${c.textContent}`), asama: st.getAttribute('data-asama'), ust: Math.round(b.top), alt: Math.round(b.bottom), yari: innerHeight / 2, sol: b.left, sag: b.right };
+        });
+        r.hedef = k;
+        if (!k) fail(r, 'hedef kutusunda aşama adımları yok');
+        else {
+          if (k.adim.length !== 4 || k.adim.filter((a) => a.startsWith('cur:')).length !== 1) fail(r, `aşama adımları dört değil ya da bulunulan işaretsiz: ${JSON.stringify(k.adim)}`);
+          if (k.alt - k.ust > k.yari / 2 || k.alt > k.yari + 40) fail(r, `hedef kutusu haritanın üst yarısını kaplıyor: ${k.ust}–${k.alt} px (yarı ${k.yari})`);
+          if (k.sol < 0 || k.sag > (await page.evaluate(() => innerWidth)) + 0.5) fail(r, 'hedef kutusu ekrandan taşıyor');
+        }
+      }
+      // YN-261 / YN-216 (OT-buyuk-yazi-73, OT-sessiz-oyuncu-29): "yeniden canlandı" kutlaması; bölge adı koyu plakada, tek satır.
+      // Kontrast ölçümü (check) bu karelerde de yapılır: önce hareketli kipte Dış Kulak'ın açık şeftali parlaması (bildirilen durum),
+      // sonra hareketi azaltta (bu koşunun varsayılanı) en uzun ad ve koyu parlama
+      for (const az of [false, true]) {
+        if (!az) await page.emulateMedia({ reducedMotion: 'no-preference' });
+        await page.goto(url('kutlama=1'), { waitUntil: 'load' });
+        await page.getByRole('button', { name: /Devam et/ }).click({ timeout: 45_000 });
+        await page.locator('.map-screen').waitFor({ timeout: 20_000 }); await sleep(800);
+        await page.evaluate((o) => { void window.__celebrate?.biomeRestored(o); }, az ? { biome: 'koklea-2', name: 'Koklea · Orta Kıvrım' } : { biome: 'dis-kulak', name: 'Dış Kulak' });
+        await page.locator('.biome-stage.ph-reward').waitFor({ timeout: 15_000 }); await sleep(900);
+        // hareketli kipte kutlamanın arkasındaki "Bölüm N" düğmesi nefes alır ve parıltısı geçer: kırpılma ölçümü bunu kırpılma saymasın
+        if (!az) await page.addStyleTag({ content: '.map-play { animation: none !important; } .map-play.shine::after { display: none !important; }' });
+        const r = await check(az ? 'kutlama-canlandi-az' : 'kutlama-canlandi', { scroll: false });
+        const ad = await page.evaluate(() => {
+          const s = document.querySelector('[data-testid="kutlama-bolge"] > span'); if (!s) return null;
+          const rg = document.createRange(); rg.selectNodeContents(s); const satir = new Set([...rg.getClientRects()].map((x) => Math.round(x.top))).size;
+          const b = s.getBoundingClientRect(); return { satir, sol: b.left, sag: b.right, w: innerWidth, fs: getComputedStyle(s).fontSize, dim: !!document.querySelector('.cel-back.biome.dim') };
+        });
+        r.kutlama = ad;
+        if (!ad) fail(r, 'kutlamada bölge adı yok');
+        else {
+          if (ad.satir !== 1) fail(r, `bölge adı ${ad.satir} satır (tek satır olmalı)`);
+          if (ad.sol < 0 || ad.sag > ad.w + 0.5) fail(r, `bölge adı ekrandan taşıyor (${Math.round(ad.sol)}–${Math.round(ad.sag)} / ${ad.w})`);
+          if (az !== ad.dim) fail(r, az ? 'hareketi azaltta parlama koyulaşmadı' : 'hareketli kipte parlama koyu (Yüksek görünürlük kapalı)');
+        }
+        await page.getByRole('button', { name: 'Devam' }).click().catch(() => undefined); await sleep(500);
+        if (!az) await page.emulateMedia({ reducedMotion: 'reduce' });
+      }
     }
     if (want('sonuc')) {
       // olmayan öğenin yazısı: boş (locator.textContent öğeyi 30 sn bekliyordu; ekran başına dakikalar)

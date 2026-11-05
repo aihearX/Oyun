@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { audio } from '@odi/audio';
 import { BIOMES, cardById, cosmeticById } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
-import { celebrate as celebrateRef, registerCelebrations, useCelebrating, type RecapRow, type RewardItem, type ScreenPoint } from './index';
+import { celebrate as celebrateRef, registerCelebrations, useCelebrating, type Live, type RecapRow, type RewardItem, type ScreenPoint } from './index';
 import { Particles } from './particles';
 import { hud, type HudKind } from './hud';
 import { setFxEngine } from './fx';
@@ -124,11 +124,20 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   };
 
   // ---------------------------------------------------------------- kutlamalar
-  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier; granted?: boolean; note?: string }) => {
+  const runChest = async (o: { title: string; items: RewardItem[]; tier?: Tier; granted?: boolean; note?: string; live?: Live<{ note: string; items?: RewardItem[] }> }) => {
     const items = o.items; const tier = o.tier ?? 'bronz'; const granted = !!o.granted;
     // granted: içerik cüzdana zaten girdi ve sayaç onu saydı (sonuç ekranı): sayaç yeniden saymaz, jeton uçmaz (OT-sinav-adayi-17)
     if (!granted) for (const it of items) { const k = currency(it); if (k) hud.hold(k, it.amount); }
-    const base = { kind: 'chest' as const, title: o.title, items, tier, shake: 0, shown: 0, granted, ...(o.note ? { note: o.note } : {}) };
+    const base: Omit<Extract<Scene, { kind: 'chest' }>, 'phase'> = { kind: 'chest', title: o.title, items, tier, shake: 0, shown: 0, granted, ...(o.note ? { note: o.note } : {}) };
+    // not pencere açıkken değişebilir (hazine jetonu bağlantı gelince hesaba geçti; YN-260): sonraki evreler de yeni notu taşır
+    const stop = o.live?.((v) => {
+      if (v.note === base.note && (!v.items || JSON.stringify(v.items) === JSON.stringify(base.items))) return;
+      base.note = v.note; if (v.items) base.items = v.items;
+      setScene((s) => (s?.kind === 'chest' ? { ...s, note: base.note, items: base.items } : s));
+    });
+    try { await chestSteps(base, items, granted); } finally { stop?.(); }
+  };
+  const chestSteps = async (base: Omit<Extract<Scene, { kind: 'chest' }>, 'phase'>, items: RewardItem[], granted: boolean) => {
     audio.duck('kutlama', 6, 0.35);
     setScene({ ...base, phase: 'drop' }); audio.play('whoosh', { vol: 0.8 }); await wait(700);
     for (let i = 0; i < 3; i++) { setScene({ ...base, phase: 'shake', shake: i + 1 }); audio.play('chestShake', { semitones: i * 2 }); platform().haptic(i === 2 ? 'heavy' : 'medium'); await wait(560); }
@@ -182,8 +191,13 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   };
 
   /** birikmiş kutlamalar tek pencerede (haritaya dönüş: hazineler, canlanan bölgeler; her biri satır) */
-  const runRecap = async (o: { title: string; sub?: string; note?: string; rows: RecapRow[] }) => {
+  const runRecap = async (o: { title: string; sub?: string; note?: string; rows: RecapRow[]; live?: Live<string> }) => {
     const base = { kind: 'recap' as const, title: o.title, sub: o.sub, note: o.note, rows: o.rows };
+    const stop = o.live?.((note) => { if (note === base.note) return; base.note = note; setScene((s) => (s?.kind === 'recap' ? { ...s, note } : s)); });
+    try { await recapSteps(base); } finally { stop?.(); }
+  };
+  const recapSteps = async (base: Omit<Extract<Scene, { kind: 'recap' }>, 'phase' | 'shown' | 'all'>) => {
+    const o = base;
     audio.duck('kutlama', 3, 0.3);
     setScene({ ...base, phase: 'list', shown: 0 }); audio.play('biomeAwaken'); platform().haptic('success');
     const cx = window.innerWidth / 2; P()?.confetti(cx, window.innerHeight * 0.3, 90, 1);
@@ -217,6 +231,9 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
   useLayoutEffect(() => { useCelebrating.setState({ on }); }, [on]);
   useEffect(() => () => useCelebrating.setState({ on: false }), []);
 
+  // Yüksek görünürlük ya da hareketi azalt açıkken biyom sahnesinin parlaması koyu (YN-261, OT-buyuk-yazi-73: açık şeftali parlama)
+  const highVis = useStore((s) => s.highVis);
+  const dim = scene?.kind === 'biome' && (highVis || prefersReducedMotion());
   const tapStage = () => { if (skipFn.current) skipFn.current(); else if (scene?.kind === 'levelUp' && waitBtn.current) waitBtn.current(); };
 
   return (
@@ -224,7 +241,7 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
       {toasts && <Toasts />}
       {/* biyom sahnesinde parçacıklar (notalar, konfeti) yazının arkasında kalır (OT-sessiz-oyuncu-11) */}
       <div className={`cel-root${scene ? ' on' : ''}${scene?.kind === 'biome' ? ' fx-back' : ''}`} aria-live="polite">
-        {scene && <div className={`cel-back${scene.phase === 'out' ? ' out' : ''}${scene.kind === 'biome' ? ' biome' : ''}`} style={scene.kind === 'biome' ? biomeVars(scene.biome) : undefined} onClick={tapStage} />}
+        {scene && <div className={`cel-back${scene.phase === 'out' ? ' out' : ''}${scene.kind === 'biome' ? ' biome' : ''}${dim ? ' dim' : ''}`} style={scene.kind === 'biome' ? biomeVars(scene.biome) : undefined} onClick={tapStage} />}
         {scene?.kind === 'chest' && <ChestScene s={scene} chestRef={chestRef} cardsRef={cardsRef} onTap={tapStage} onCollect={ok} />}
         {scene?.kind === 'levelUp' && <LevelUpScene s={scene} onTap={tapStage} onOk={ok} />}
         {scene?.kind === 'biome' && <BiomeScene s={scene} cardsRef={cardsRef} onTap={tapStage} onOk={ok} />}
@@ -306,12 +323,34 @@ function LevelUpScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'levelUp' 
   );
 }
 
+/**
+ * yazıyı tek satıra sığdırır: kabına sığmazsa yazı boyu orantılı küçülür (YN-216: "Koklea · Orta Kıvrım" iki satıra kırılıyor,
+ * notalar ikinci satırın üstünden geçiyordu). Yazı tipi geç yüklenirse ve ekran boyu değişirse yeniden ölçülür.
+ */
+function useFitLine(ref: RefObject<HTMLElement | null>, on: boolean, text: string) {
+  useLayoutEffect(() => {
+    const el = ref.current; if (!on || !el) return;
+    const fit = () => {
+      const box = el.parentElement; if (!box) return;
+      el.style.fontSize = '';
+      const cs = getComputedStyle(el); const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const max = box.clientWidth - pad; const w = el.offsetWidth - pad;
+      if (w > max && max > 0) el.style.fontSize = `${Math.floor(parseFloat(cs.fontSize) * max / w * 10) / 10}px`;
+    };
+    fit(); addEventListener('resize', fit);
+    let live = true; void document.fonts?.ready.then(() => { if (live) fit(); });
+    return () => { live = false; removeEventListener('resize', fit); };
+  }, [ref, on, text]);
+}
+
 function BiomeScene({ s, cardsRef, onTap, onOk }: { s: Extract<Scene, { kind: 'biome' }>; cardsRef: RefObject<HTMLDivElement | null>; onTap: () => void; onOk: () => void }) {
   const titled = s.phase !== 'rise';
+  const nameRef = useRef<HTMLSpanElement>(null); useFitLine(nameRef, titled, s.name);
   return (
     <div className={`cel-stage biome-stage ph-${s.phase}`} onClick={onTap} role="dialog" aria-label={`${s.name} yeniden canlandı`}>
       <div className="bm-wave" aria-hidden><i /><i /><i /></div>
-      {titled && <div className="bm-name">{s.name}</div>}
+      {/* bölge adı koyu plakada, tek satır (YN-261: beyaz yazı açık parlamada ~2:1 okunmuyordu; plakayla ≥ 4,5:1) */}
+      {titled && <div className="bm-name" data-testid="kutlama-bolge"><span ref={nameRef}>{s.name}</span></div>}
       {titled && <div className="bm-sub"><span>yeniden canlandı!</span></div>}
       <div className={`cel-cards n${Math.min(6, s.reward.length)}`} ref={cardsRef}>
         {s.reward.map((it, i) => <Card key={i} it={it} i={i} show={i < s.shown} />)}

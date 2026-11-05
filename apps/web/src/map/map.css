@@ -59,16 +59,27 @@
   padding: 7px 12px 8px 14px; border-radius: 16px 0 0 16px; border: 1px solid rgba(255,201,60,.55); border-right: 0;
   background: linear-gradient(135deg, rgba(255,92,138,.92), rgba(139,107,255,.92)); box-shadow: 0 8px 20px rgba(5,2,20,.5); animation: goal-in .5s cubic-bezier(.2,1.4,.4,1); }
 .map-goal small { display: block; font-size: 0.625rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; color: #ffe7a3; }
-.map-goal span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 0.8125rem; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
+.map-goal .mg-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 0.8125rem; font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
 /* kart hiçbir düğmenin (Etkinlik, ▲ Odi, Bugün) altında kalmaz (OT-buyuk-yazi-18): sağ üstte en çok iki satır; Büyük yazıda ve
    dokununca açılınca tam genişlik, düğmelerin altında (Büyük yazıda en çok üç satır, kesilirse dokununca tamamı) */
 .map-goal.open, .buyuk-yazi .map-goal { left: 10px; right: 10px; max-width: none; top: calc(var(--sat) + 216px); border-radius: 16px; border-right: 1px solid rgba(255,201,60,.55); }
-.buyuk-yazi .map-goal span { -webkit-line-clamp: 3; }
-.map-goal.open span { display: block; overflow: visible; }
+.buyuk-yazi .map-goal .mg-text { -webkit-line-clamp: 3; }
+.map-goal.open .mg-text { display: block; overflow: visible; }
 /* yolculuğun bitişi (YN-241, OT-sessiz-oyuncu-33): "Hedefe ulaştın!" kutusu ve yolculuk bittikten sonra tam genişliğe açılan kutu
    Ninni Merkezi başlığını örtmesin; altta, atla yazısının ve Bölüm düğmesinin üstünde, tam genişlik, tam metin */
 .map-goal.final, .map-goal.done.open, .buyuk-yazi .map-goal.done { left: 10px; right: 10px; max-width: none; top: auto; bottom: calc(var(--tabbar-h, 64px) + var(--sab) + 128px); border-radius: 16px; border-right: 1px solid rgba(255,201,60,.55); animation-name: goal-up; }
-.map-goal.final span { display: block; overflow: visible; }
+.map-goal.final .mg-text { display: block; overflow: visible; }
+/* aşama sırası (YN-260 (2)): dört küçük adım koyu şeritte; ulaşılan dolu nokta, bulunulan kalın + elmas, sıradaki boş halka (yazı + şekil) */
+.map-goal .mg-head { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; margin-bottom: 2px; }
+.mg-steps { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 1px 7px; padding: 2px 8px 3px; border-radius: 999px; background: rgba(20,12,53,.72); font-size: 0.65rem; font-weight: 800; line-height: 1.25; }
+.mg-steps > span { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; color: #d9cffd; }
+.mg-steps > span.ok { color: #fff; }
+.mg-steps > span.cur { color: #ffe7a3; font-weight: 900; text-decoration: underline; text-underline-offset: 2px; }
+.mg-steps i { flex: none; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; }
+.mg-steps .ok i { background: currentColor; }
+.mg-steps .cur i { width: 8px; height: 8px; border-radius: 1px; transform: rotate(45deg); background: #ffc93c; border-color: #ffc93c; }
+/* yıldız hedefi: dokununca o bölümün kartı (YN-260 (1)); kutunun kendisi düğme, bu satır ne yapacağını söyler */
+.map-goal .mg-go { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; padding: 3px 10px; border-radius: 999px; background: var(--m-gold); color: var(--m-ink); font-size: 0.75rem; font-weight: 900; }
 @keyframes goal-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes goal-in { from { transform: translateX(110%); } to { transform: translateX(0); } }
 
