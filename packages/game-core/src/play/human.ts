@@ -130,6 +130,8 @@ export function skillHand(skill: number, k: number): HumanParams | null {
   if (skill < 0.25) return firstTimerOf(k);
   return playerAt((0.95 - skill) / 0.55);
 }
+/** oyuncu ajanının k. denemesindeki elin tohumu (apps/web/src/e2e/oyuncu-eli.ts; testkit `playHand` aynı denemeyi yeniden üretir) */
+export const skillSeed = (k: number) => hashString(`oyuncu:${k}`);
 
 export interface HumanRun {
   finished: boolean; failed: string | null; t: number;
@@ -140,20 +142,22 @@ export interface HumanRun {
   searches: number;
   /** toplanan nota (yıldız ölçümü için) */
   coins: number;
+  /** el kancada takılıp kaç kez çözüldü (planner.ts HOOK_STALL_S; takılmayan koşuda 0) */
+  unsticks: number;
 }
 
 /** kahraman kutusu ile dikdörtgen arasındaki boşluk (px; çakışmada 0) */
 const gap = (hl: number, ht: number, hr: number, hb: number, l: number, t: number, r: number, b: number) => Math.max(0, Math.max(l - hr, hl - r), Math.max(t - hb, ht - b));
 
-/** hazır dünyayı insan modeliyle oyna (dünya + başlangıç durumu dışarıda kurulur) */
-export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number; params?: HumanParams } = {}): HumanRun {
+/** hazır dünyayı insan modeliyle oyna (dünya + başlangıç durumu dışarıda kurulur); `phase: false`: saat oyundaki gibi 0'dan başlar */
+export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number; params?: HumanParams; phase?: boolean } = {}): HumanRun {
   const ctl = humanHand(w, seed, o.params ?? HUMAN); const p = new Planner(w, ctl.prefs); const maxT = (o.maxT ?? 300);
   // öğretici an (LevelScene): yeni yeteneğin ilk karşılaşmasında oyun ×0,3 yavaşlar, oyuncu hareketi yapınca (ya da 8 gerçek sn
   // sonra) normale döner — ilk kez oynayan oyuncu o an bolca zaman bulur. İlk canavarın anı ('bossTutor') yumruk kalkınca da biter
   const ownEvents = !s.events; if (ownEvents) s.events = []; let tut: string | null = null; let tutEnd = 0;
   // faz: zamanlamalı öğelerin (hareketli platform, düşman, nabız, ritim) varışta hangi evrede olduğu tasarımın değil şansın
   // işidir; ölçüm her tohumda saati rastgele bir evreden başlatır → zorluk evrelere göre beklenen değerdir (boss hariç)
-  const t0 = w.boss ? 0 : mulberry32((seed ^ 0x9e3779b9) >>> 0)() * PHASE_SPAN; s.t += t0;
+  const t0 = w.boss || o.phase === false ? 0 : mulberry32((seed ^ 0x9e3779b9) >>> 0)() * PHASE_SPAN; s.t += t0;
   const close = new Set<number>(); let nearMisses = 0; let wasGrounded = true; const PJ: { x: number; y: number }[] = [];
   while (!s.finished && !s.failed && s.t - t0 < maxT) {
     step(w, s, p.next(s));
@@ -186,7 +190,7 @@ export function runHuman(w: World, s: SimState, seed: number, o: { maxT?: number
     wasGrounded = h.grounded;
   }
   if (ownEvents) s.events = null;
-  return { finished: s.finished, failed: s.failed, t: s.t - t0, damage: s.finished ? s.damageTaken : Math.max(s.damageTaken, 3), deaths: s.deaths, nearMisses, searches: p.stats.searches, coins: s.coins };
+  return { finished: s.finished, failed: s.failed, t: s.t - t0, damage: s.finished ? s.damageTaken : Math.max(s.damageTaken, 3), deaths: s.deaths, nearMisses, searches: p.stats.searches, coins: s.coins, unsticks: p.stats.unsticks };
 }
 
 /** tohum: bölüm + koşu numarası */

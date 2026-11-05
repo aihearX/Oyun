@@ -6,7 +6,7 @@ import { generateLevel } from '@odi/level-gen';
 import { buildWorld, type World } from './world';
 import { initState, step, NO_INPUT, type SimInput, type SimState } from './sim';
 import { Planner, type PlanPrefs } from './planner';
-import { runHuman, humanSeed, playerOf, scoreRuns, type HumanParams, type HumanRun, type LevelScore } from './human';
+import { runHuman, humanSeed, playerOf, scoreRuns, skillHand, skillSeed, type HumanParams, type HumanRun, type LevelScore } from './human';
 import type { PlayerProfile } from '@odi/level-gen';
 import { olcumOnbellek } from './olcum-onbellek';
 
@@ -94,6 +94,19 @@ export function playHuman(n: number, o: { k?: number; salt?: number; profile?: P
     const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, o.salt ?? 0, { variant: o.variant });
     const { w, s } = setup(spec); s.events = null;
     return runHuman(w, s, humanSeed(n, o.k ?? 0), { maxT: o.maxT, params: o.params ?? playerOf(o.k ?? 0) });
+  });
+}
+
+/**
+ * oyuncu ajanının bir denemesini (apps/web/src/e2e/oyuncu-eli.ts: beceri + deneme numarası) Phaser'sız yeniden üret: aynı el ve
+ * tohum, saat oyundaki gibi 0'dan (başlangıç evresi kaydırılmaz). Beceri 0,99 ve üstü (kusursuz bot) için değil. `profile`: oyuncunun
+ * o anki profili (ör. üst üste kayıp; varsayılan: 2 yıldız, kayıpsız).
+ */
+export function playHand(n: number, beceri: number, deneme: number, o: { profile?: PlayerProfile; maxT?: number } = {}): HumanRun {
+  return olcumOnbellek('playHand', [n, beceri, deneme, o], () => {
+    const spec = generateLevel('insan', n, o.profile ?? { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS }, 0);
+    const { w, s } = setup(spec); s.events = null;
+    return runHuman(w, s, skillSeed(deneme), { maxT: o.maxT, params: skillHand(beceri, deneme)!, phase: false });
   });
 }
 

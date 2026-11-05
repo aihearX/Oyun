@@ -20,6 +20,13 @@ const H_DEF = 114;      // ufuk (adım) ≈ 1,9 sn
 const TAIL = 120;       // ufuk sonrası (girdisiz) yere inene kadar: yavaş süzülerek çukura düşüş de yakalansın
 const D = 3;            // karar aralığı (adım)
 const HOLDS = [2, 7, 12, 18, 26, 40, 60, 90];
+/**
+ * insan eli kancada takılırsa (YN-219): aynı kancada x ilerlemesi (yön boyunca en ileri noktayı STALL_PX aşmak) olmadan bu kadar
+ * oyun saati (sn) asılı kalınca sonraki adım kusursuz planlayıcıyla seçilir; aynı kancada yine takılırsa kanca bırakılır — gerçek
+ * oyuncu kancayı kendisi bırakır. Takılmayan koşuda hiçbir şey değişmez (yalnız durum okunur; el modelinin rastgele dizisi aynı kalır).
+ */
+export const HOOK_STALL_S = 15;
+const STALL_PX = 8;
 
 export interface SimOutcome { ok: boolean; failAt: number; score: number; end: SimState; states: SimState[] | null; prog: number }
 
@@ -149,9 +156,12 @@ export class Planner {
   private sinceVerify = 0;
   /** ilerlemesiz plan araması en son ne zaman yapıldı (sık tekrarlanmasın) */
   private poorAt = -999;
-  stats = { searches: 0, sims: 0, steps: 0 };
+  /** unsticks: kancada takılan insan elinin kaç kez çözüldüğü (YN-219; takılmayan koşuda 0) */
+  stats = { searches: 0, sims: 0, steps: 0, unsticks: 0 };
   /** studio/harness: son kararın görünür hali */
   last: SimInput = { ...NO_INPUT };
+  /** kancada takılma izi (yalnız insan eli): son kanca, o kancada yön boyunca en ileri x, ilerlemesiz asılı geçen oyun saati, kaçıncı takılma */
+  private stall = { hook: -1, dir: 0, x: 0, t: 0, at: 0, n: 0 };
 
   /** greedy: notaları da kovalar (araçlar/testler için "bu nota ulaşılabilir mi" ölçümü; oyundaki bot varsayılanı değil) */
   private greedy: boolean; private pr: PlanPrefs; private turnRooms: boolean;
@@ -179,6 +189,7 @@ export class Planner {
 
   /** bu adımın girdisi (her sim adımından önce çağrılır) */
   next(s: SimState): SimInput {
+    if (this.pr.react && this.hookStalled(s)) { this.unstick(s); this.sinceVerify = D * 2; }
     if (this.sinceVerify <= 0) { this.sinceVerify = D * 2; this.verify(s); }
     this.sinceVerify--;
     const inp = inputAt(this.plan, this.cursor, { ...NO_INPUT });
@@ -187,6 +198,28 @@ export class Planner {
     if (this.cursor > 400) this.rebase();
     this.last = inp;
     return inp;
+  }
+
+  /** insan eli aynı kancada HOOK_STALL_S oyun saati x ilerlemesi olmadan asılı mı (YN-219) */
+  private hookStalled(s: SimState): boolean {
+    const h = s.hero; const st = this.stall; const dt = s.t - st.at; st.at = s.t;
+    if (h.hookId < 0) return false;
+    const fx = h.x * h.dir;
+    if (h.hookId !== st.hook || h.dir !== st.dir) { st.hook = h.hookId; st.dir = h.dir; st.x = fx; st.t = 0; st.n = 0; return false; }
+    if (fx > st.x + STALL_PX) { st.x = fx; st.t = 0; st.n = 0; return false; }
+    st.t += dt;
+    if (st.t < HOOK_STALL_S) return false;
+    st.t = 0; return true;
+  }
+  /**
+   * takılan insan eli: ilk kez sonraki adımı kusursuz planlayıcı seçer (tepki gecikmesi, sapma, kısa ufuk yok; aynı rota tercihleri),
+   * aynı kancada yeniden takılırsa basılı tutma şimdi biter (kanca bırakılır). Rastgele sayı çekilmez.
+   */
+  private unstick(s: SimState) {
+    this.stats.unsticks++; this.rebase();
+    if (this.stall.n++ > 0) { this.plan = this.plan.map((a) => (a.kind === 'press' && a.at < 0 && a.at + a.hold > 0 ? { ...a, hold: -a.at } : a)); return; }
+    const pr = this.pr; this.pr = { greedy: pr.greedy, secrets: pr.secrets, ...(pr.goal ? { goal: pr.goal } : {}), ...(pr.notes ? { notes: pr.notes } : {}) };
+    try { this.search(s, simulatePlan(this.w, s, this.plan, 0, false, this.pr)); } finally { this.pr = pr; }
   }
 
   private rebase() {

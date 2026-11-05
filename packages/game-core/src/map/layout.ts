@@ -24,6 +24,8 @@ export interface MapLayout {
 }
 
 const BOTTOM = 200, ENTRY = 150, STEP = 158, BOSS_GAP = 205, EXIT = 96, FINALE_H = 560;
+/** iki düğüm arası (dünya birimi; boss düğümünün önü/arkası daha geniş) */
+export const NODE_STEP = STEP;
 const SAMPLES = 22;
 
 /** Bölge sırası: bölüm sırayla yürür; geri dönen biyom (ör. 17 ve 20: kanal) içinde bulunduğu bölgede kalır. */

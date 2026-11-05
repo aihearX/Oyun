@@ -1,5 +1,4 @@
-import { humanHand, skillHand } from '@odi/game-core/play/human';
-import { hashString } from '@odi/shared';
+import { humanHand, skillHand, skillSeed } from '@odi/game-core/play/human';
 import type { LevelOptions } from '@odi/game-core/lite';
 
 /**
@@ -22,6 +21,6 @@ export function oyuncuEli(beceri: number, tohum: number | null): LevelOptions['b
     const params = skillHand(beceri, k);
     window.__odiEl = { beceri, deneme: k, model: params ? (beceri < 0.25 ? 'ilk-kez' : 'kitle') : 'kusursuz' };
     if (!params) return { prefs: {} };
-    return humanHand(w, hashString(`oyuncu:${k}`), params);
+    return humanHand(w, skillSeed(k), params);
   };
 }

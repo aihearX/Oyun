@@ -235,6 +235,13 @@ async function kaydir(yon) {
 async function surukle(arg) {
   const m = /^@?(\d+),(\d+)\s+@?(\d+),(\d+)$/.exec(arg.trim()); if (!m) throw new Error('surukle x1,y1 x2,y2');
   const [x1, y1, x2, y2] = m.slice(1).map(Number);
+  // sürükleme tuvalde (harita, kamp) olur: başlangıç bir DOM öğesinin (ör. düğme) üstündeyse tuvale hiç ulaşmaz (YN-223)
+  const oge = await page.evaluate(([x, y]) => {
+    const e = document.elementFromPoint(x, y); if (!e || e.tagName === 'CANVAS') return null;
+    const b = e.closest('button,[role=button],a,input,label,[aria-label]') ?? e;
+    return (b.getAttribute('aria-label') || b.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 40) || b.tagName.toLowerCase();
+  }, [x1, y1]);
+  if (oge) return `sürüklenmedi: başlangıç noktası "${oge}" üstünde; haritayı sürüklemek için boş bir yerden başla`;
   await page.mouse.move(x1, y1); await page.mouse.down(); await page.mouse.move(x2, y2, { steps: 15 }); await page.mouse.up();
   return `sürüklendi: (${x1},${y1}) → (${x2},${y2})`;
 }
@@ -252,6 +259,16 @@ async function geri() {
 }
 
 // ---------------------------------------------------------------- bölüm
+/** açık bölümden oyuncunun yoluyla çık: duraklat düğmesi → "Haritaya dön" / "Yarıştan çık"; bölüm ekranı kapandıysa true */
+async function bolumdenCik() {
+  try {
+    await page.evaluate(() => globalThis.__odiScene?.hud?.pressPause());
+    const dugme = page.getByRole('button', { name: /^(Haritaya dön|Yarıştan çık)$/ }).first();
+    await dugme.click({ timeout: 5000 });
+    for (let i = 0; i < 40; i++) { if (!(await page.evaluate(() => !!document.querySelector('.level-host')))) return true; await sleep(250); }
+  } catch { /* duraklat menüsü açılmadı */ }
+  return false;
+}
 async function bolum({ zamanSn = 600 } = {}) {
   if (!(await bolumAcik())) {
     if (bekleyenSonuc) { const s = bekleyenSonuc; bekleyenSonuc = null; return `(önceki bölümün sonucu; o sırada komut kopmuştu)\n${s}`; }
@@ -261,7 +278,7 @@ async function bolum({ zamanSn = 600 } = {}) {
   const y = await yuvaAl(ID, { bekliyor: () => log('bölüm: yuva bekleniyor') });
   const notlar = []; if (y.beklemeMs > 1500) notlar.push(`yuva için ${Math.round(y.beklemeMs / 1000)} sn beklendi`);
   const kareler = [];
-  let sonuc; let spec; let el; let cikti = false; let etkinlik = null;
+  let sonuc; let spec; let el; let cikti = false; let etkinlik = null; let takildi = false;
   try {
     await page.evaluate(() => { window.__oyuncu.izin = true; window.__oyuncu.dondur(false); });
     const tb = Date.now(); const esik = [0.25, 0.5, 0.75]; let ei = 0;
@@ -279,10 +296,13 @@ async function bolum({ zamanSn = 600 } = {}) {
       }
       // bot bağlı değilse sahne "Dokun ve başla"da bekler (YN-068: etkinlik ayağında böyleydi): 600 sn boşa beklenmesin
       if (!d.started && gecen > 90) { notlar.push('bölüm 90 sn\'de başlamadı ("Dokun ve başla"da bekliyor olabilir: bot bu bölüme bağlanmamış — hata olarak yaz): donduruldu'); break; }
-      if (gecen > zamanSn) { notlar.push(`bölüm ${zamanSn} sn'de bitmedi: donduruldu (bot takılmış olabilir — hata olarak yaz)`); break; }
+      if (gecen > zamanSn) { takildi = true; break; }
     }
     const r = await page.evaluate(() => ({ result: window.__odi?.result ?? null, spec: window.__odi?.spec ? { number: window.__odi.spec.number, name: window.__odi.spec.name, mechanic: window.__odi.spec.mechanic, biome: window.__odi.spec.biome, objective: window.__odi.spec.objective?.label, coinsTotal: window.__odi.spec.coinsTotal, par: window.__odi.spec.parTimeSec, modifiers: window.__odi.spec.modifiers } : null, el: window.__odiEl ?? null }));
     sonuc = r.result; spec = r.spec; el = r.el;
+    // süre doldu (YN-219): bölüm donuk ve açık kalmasın — duraklat → "Haritaya dön" (etkinlikte etkinliğe, yarışta "Yarıştan çık");
+    // çıkış kayıp sayılmaz, deneme kaydı yazılmaz
+    if (takildi && !sonuc && !(await bolumdenCik())) notlar.push('bölümden çıkılamadı (duraklat menüsü açılmadı): bölüm açık ve donduruldu — hata olarak yaz');
     // sonuç ekranı (App levelDone 250 ms'de bir yoklar) + kutlama animasyonları. Etkinlik ayağı (Ralli, Bayrak, Meydan Okuma,
     // Turnuva; EventLevel) önce sonucu sunucuya gönderir, sonra etkinlik ekranına kısa sonuç kartıyla (ev-flash, 6 sn) döner
     if (sonuc) {
@@ -307,7 +327,8 @@ async function bolum({ zamanSn = 600 } = {}) {
     s.push(`el: ${el ? `${el.model} (beceri ${el.beceri}, deneme ${el.deneme})` : 'kusursuz bot'} · gerçek süre ${sure} sn`);
     if (etkinlik) s.push(`ETKİNLİK SONUCU (${etkinlik.gorunum}): ${etkinlik.kart}`);
     kayit({ komut: 'bolum', bolum: spec?.number, ...(etkinlik ? { etkinlik: etkinlik.gorunum, etkinlikKart: etkinlik.kart } : {}), gecti: x.completed, yildiz: x.stars, nota: x.coins, notaTop: spec?.coinsTotal, sure: Math.round(x.timeSec), dusme: x.deaths, hasar: x.damageTaken, neden: x.extra?.reason, el, duvar: sure, tur: tur(), surum: yukluSurum.slice(0, 8) });
-  } else if (cikti) s.push('bölüm ekranı kapandı (çıkıldı ya da sayfa değişti); sonuç yok');
+  } else if (takildi) s.push(`${spec ? `${spec.number}. ${spec.name}: ` : ''}bölüm ${zamanSn} sn'de bitmedi (el takıldı), deneme sayılmadı — tekrar başlatabilirsin${el ? ` (el: ${el.model}, beceri ${el.beceri}, deneme ${el.deneme})` : ''}`);
+  else if (cikti) s.push('bölüm ekranı kapandı (çıkıldı ya da sayfa değişti); sonuç yok');
   else s.push('sonuç yok');
   if (kareler.length) s.push(`bölüm içi kareler: ${kareler.join(' · ')}`);
   return s.join('\n') + '\n' + (await ekran('sonuc', { notlar }));

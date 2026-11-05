@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { BIOMES } from '@odi/content';
 import { hatTexture, heroTexture, svgTexture } from '../art';
-import { buildLayout, journeyDone, planReturn, pointAt, RETURN_MAX_MS, returnDurationMs, unlockedOf, zoneVitality, type MapLayout, type MapNode, type ReturnStep, type StarMap, type ZoneId } from './layout';
+import { buildLayout, journeyDone, NODE_STEP, planReturn, pointAt, RETURN_MAX_MS, returnDurationMs, unlockedOf, zoneVitality, type MapLayout, type MapNode, type ReturnStep, type StarMap, type ZoneId } from './layout';
 import { darken } from './paint';
 import { RegionView, wait } from './region';
 import { avatarTex, chestTex, flagTex, glowTex, NODE_D, nodeTex, pulseRingTex, shadowTex, sparkleTex, starTex, targetTex, type NodeState } from './sprites';
@@ -120,7 +120,13 @@ export class MapScene extends Phaser.Scene {
       const d = this.drag; this.drag = null; if (!d) return;
       if (d.moved < 10 * this.dpr) { this.vel = 0; this.tap(p); }
     });
-    this.input.on('wheel', (_p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => { this.poke(); if (this.busy) return; this.autoTarget = null; this.viewTop = this.clampTop(this.viewTop + dy / this.cameras.main.zoom * this.dpr * 0.6); });
+    // fare tekerleği (web; YN-223): bir teker hamlesi (~100 px) ≈ bir düğüm aralığı, tek olayda en çok ekranın %40'ı (önceden hamle
+    // başına ~60 CSS px, ekranın ~%6'sı); satır/sayfa kipindeki teker piksele çevrilir
+    this.input.on('wheel', (p: Phaser.Input.Pointer, _o: unknown, _dx: number, dy: number) => {
+      this.poke(); if (this.busy) return; this.autoTarget = null;
+      const mode = (p.event as WheelEvent | undefined)?.deltaMode; const px = dy * (mode === 1 ? 40 : mode === 2 ? 800 : 1);
+      this.viewTop = this.clampTop(this.viewTop + Math.sign(px) * Math.min((Math.abs(px) / 100) * NODE_STEP, 0.4 * this.viewH));
+    });
   }
   private tap(p: Phaser.Input.Pointer) {
     if (this.busy) { this.skip(); return; }
