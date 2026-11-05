@@ -799,8 +799,12 @@ export interface RankRow { id: string; name: string; color: number; score: numbe
 export interface ChallengeState {
   day: string; endsAt: number; level: number; salt: number; tries: number; maxTries: number; best: number | null;
   rank: number | null; total: number; top: RankRow[]; friends: RankRow[];
-  rewards: { label: string; items: EventReward[] }[];
-  last: { day: string; rank: number; score: number; total: number } | null;
+  /** min: kademenin verilmesi için gereken en az katılımcı (puanı olan) sayısı (sahip kararı 53) */
+  rewards: { label: string; items: EventReward[]; min: number }[];
+  /** eşik altında kalan katılımda puanı olan herkese verilen tek ödül; minFirst: 1.'lik ödülünün, minAll: 2.–10. ödüllerinin eşiği */
+  participation: EventReward[]; minFirst: number; minAll: number;
+  /** son oynadığım gün: gün sonu sırası, o günün gerçek katılan sayısı ve aldığım ödül (sıra/katılım; ilk 10 ve ilk %10 dışıysa null) */
+  last: { day: string; rank: number; score: number; total: number; prize: { kind: 'sira' | 'katilim'; items: EventReward[] } | null } | null;
 }
 
 // ---------- Haftalık Turnuva (bireysel, 50 kişilik grup)

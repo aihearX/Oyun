@@ -349,6 +349,9 @@ try {
   await A.page.locator('[data-testid="siralama"] li').nth(2).waitFor({ timeout: 10_000 }).catch(() => undefined);
   const board = await A.page.$$eval('[data-testid="siralama"] li', (els) => els.map((e) => `${e.getAttribute('data-rank')}:${e.getAttribute('data-name')}`));
   check(board.length === 3, `meydan okuma genel sıralama: ${board.join(', ')}`);
+  // karar 53: kart kuralı ve gerçek katılan sayısını yazar (3 kişi: sıra ödülü eşiğin altında, herkese katılım ödülü)
+  const kural = (await tid(A, 'meydan-kural').textContent()) ?? '';
+  check(kural.includes('3 kişi katıldı') && kural.includes('en az 5') && kural.includes('herkese katılım ödülü'), `meydan okuma ödül kuralı: ${kural}`);
   await settle(A);
   await shot(A, 'meydan-siralama');
 

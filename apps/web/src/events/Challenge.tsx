@@ -26,12 +26,34 @@ export function ChallengeView({ onPlay }: { onPlay: PlayFn }) {
         <button className="btn ev-big" data-testid="meydan-oyna" disabled={left <= 0} onClick={() => onPlay(eventSpec(c.level, c.salt), { kind: 'meydan' })}>{left > 0 ? <><Art name="play" size="1.15em" className="art-inline" /> Meydan oku ({left} deneme)</> : 'Yarın yeni meydan okuma!'}</button>
         <small className="muted">Herkes aynı bölümü aynı tohumla, yeteneksiz (eşit şartlarda) oynar. En iyi skorun geçerli.</small>
       </div>
-      {c.last && <div className="card ev-last"><b>Dünkü sonucun: {c.last.rank}. / {c.last.total}</b><span className="muted">Skor {fmtNum(c.last.score)}</span></div>}
+      {c.last && (
+        <div className="card ev-last" data-testid="meydan-dun" data-prize={c.last.prize?.kind ?? 'yok'}>
+          <b>Dünkü sonucun: {c.last.rank}. / {c.last.total}</b><span className="muted">Skor {fmtNum(c.last.score)}</span>
+          {c.last.prize?.kind === 'katilim' && <Rewards items={c.last.prize.items} label={`Katılım ödülü: o gün ${c.last.total} kişi katıldı, sıra ödülü için ${c.last.rank === 1 ? c.minFirst : c.minAll} katılım gerekiyordu.`} />}
+          {c.last.prize?.kind === 'sira' && <Rewards items={c.last.prize.items} label={`${c.last.rank}. sıra ödülü`} />}
+        </div>
+      )}
       <SubTabs<'genel' | 'arkadas'> active={tab} onChange={setTab} tabs={[{ id: 'genel', icon: '🌍', label: 'Genel' }, { id: 'arkadas', icon: '🫂', label: 'Arkadaşlar' }]} />
       <Board rows={tab === 'genel' ? c.top : c.friends} meId={me?.id} empty={tab === 'genel' ? 'Bugün ilk skoru sen koy!' : 'Arkadaşların bugün henüz oynamadı.'} />
-      <div className="card ev-rw-grid"><b>Gün sonu ödülleri</b>{c.rewards.map((r) => <Rewards key={r.label} items={r.items} label={r.label} />)}<small className="muted">"İlk %10": ilk 10'un dışında kalıp katılanların ilk %10'una girenler.</small></div>
+      <div className="card ev-rw-grid" data-testid="meydan-odul" data-total={c.total}>
+        <b>Gün sonu ödülleri</b>
+        <span data-testid="meydan-kural">{challengeRule(c.total, c.minFirst, c.minAll)}</span>
+        {c.rewards.map((r) => <Rewards key={r.label} items={r.items} label={r.label === 'İlk %10' ? r.label : `${r.label} (en az ${r.min} katılımda)`} />)}
+        <Rewards items={c.participation} label={`Katılım ödülü (sıra ödülünün eşiği altında kalan, puanı olan herkese)`} />
+        <small className="muted">"İlk %10": ilk 10'un dışında kalıp katılanların ilk %10'una girenler. Katılan: bugün puanı olan oyuncu sayısı.</small>
+      </div>
     </div>
   );
+}
+
+/** sıra ödülü kuralı ve bugünkü gerçek katılan sayısı (sahip kararı 53); gün bitmediği için "gün böyle biterse" */
+export function challengeRule(total: number, minFirst: number, minAll: number): string {
+  const kural = `1.'lik ödülü en az ${minFirst}, 2.–10. ödülleri en az ${minAll} katılımda verilir`;
+  if (total === 0) return `Bugün henüz kimse katılmadı. ${kural}; daha az katılımda puanı olan herkes katılım ödülü alır.`;
+  const once = `Bugün şu ana kadar ${fmtNum(total)} kişi katıldı; ${kural}.`;
+  if (total < minFirst) return `${once} Gün böyle biterse puanı olan herkese katılım ödülü.`;
+  if (total < minAll) return `${once} Gün böyle biterse 1.'ye sıra ödülü, diğer herkese katılım ödülü.`;
+  return `${once} Sıra ödülleri geçerli.`;
 }
 
 export function Board({ rows, meId, empty }: { rows: RankRow[]; meId?: string; empty: string }) {

@@ -647,9 +647,11 @@ describe('Bireysel: Günün Meydan Okuması ve Haftalık Turnuva', () => {
     env.clock.advance(24 * 3600_000);
     const next = (await a.c.call('challenge.state', {})).challenge;
     expect(next).toMatchObject({ tries: 0, last: { rank: 2, score: 1500, total: 3 } });
+    // 3 katılımcı: sıra ödülü eşiğin altında (karar 53: 1. en az 5, 2.–3. en az 8), herkese katılım ödülü
     const items = (await c.c.call('inbox.list', {})).items;
-    expect(items.map((i) => `${i.kind}:${i.amount}`).sort()).toEqual(['jeton:300', 'kristal:50']);
-    expect((await a.c.call('inbox.list', {})).items.map((i) => i.amount).sort((x, y) => x - y)).toEqual([30, 200]);
+    expect(items.map((i) => `${i.kind}:${i.amount}`).sort()).toEqual(['jeton:60', 'kristal:8']);
+    expect((await a.c.call('inbox.list', {})).items.map((i) => i.amount).sort((x, y) => x - y)).toEqual([8, 60]);
+    expect(next.last?.prize?.kind).toBe('katilim');
   });
 
   it('turnuva: 5 bölüm, bölüm başına en iyi skor toplamı, 50 kişilik grup, hafta sonu ödülü', async () => {
