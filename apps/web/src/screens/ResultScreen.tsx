@@ -24,7 +24,7 @@ import { mapIntroView, type MapReveal } from '../ftue/map-intro';
 import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
-import { hazineNotlu, melodiSatir, seviyeAcilanlar, sureAlt } from './sonuc-satir';
+import { hazineNotlu, melodiSatir, seviyeAcilanlar, sureAlt, yildizSirasi } from './sonuc-satir';
 import { Icon } from '../ui/icons';
 import { appScroller } from '../ui/viewport';
 import { shieldResultLine, type ShieldGift } from '../kalkan';
@@ -122,6 +122,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const rahat = !!result.rahat;
   const offerRahat = !result.completed && !!rahatOffer && !!onRahat;
   const starNext = !result.completed || rahat ? null : S === 1 ? { n: 2, v: star2View(spec, result) } : { n: 3, v: star3View(spec, result) };
+  // hedef tuttu ama 2★ eksik (yıldızlar sırayla): yıldızların altında tek cümle, 2. yıldızın kartı kutulardan önce (OT-ilk-kez-oyun-78)
+  const sira = starNext?.n === 2 ? yildizSirasi(spec, result) : null;
   // bölümün değiştiricileri adıyla (YN-102: "Değiştirici: Hız, Gecikme"); sis/gece kaybında Yüksek görünürlüğü yerinde açan düğme
   // (Ayarlar'daki anahtarla aynı durum; OT-buyuk-yazi-52), ayar açıksa yalnız "açık" yazısı
   const mods = modifierNames(spec.modifiers ?? []);
@@ -280,6 +282,25 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const tekrar = <ActionButton tone="teal" tile icon="retry" data-act="tekrar" onClick={onRetry}>Tekrar</ActionButton>;
   const ikincil = <div className="abtn-grid">{ileri ? <>{tekrar}{meydan}{!intro && harita}</> : <>{(big ? null : rahatDene) ?? meydan}{harita}</>}</div>;
 
+  // kazançta sıradaki yıldızın tam koşulu ve her yarının ilerlemesi (YN-070)
+  const yildizKart = starNext && (
+    <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`} ref={nextRef}>
+      <small className="result-obj-h">{starHead(starNext.n, starNext.v.rows.length)}{starNext.v.done ? ' · tamam' : ''}</small>
+      <ul className="result-star3">
+        {starNext.v.rows.map((row, i) => (
+          <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
+            {/* tutan koşul yeşil çizili tikle ve belirgin; yıldız alındıysa tutmayanın "kaldı"sı soluk (OT-buyuk-yazi-58) */}
+            <Art name={row.done ? 'check' : 'empty'} size={row.done ? 20 : 16} className="art-inline" />
+            <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
+            {/* iki parçalı koşulda her parça ilerlemesiyle (OT-rekabetci-17); koşulun tamamı tutmadıkça tik ve "tamam" yok: tutan
+                parça nötr "59 nota: var", eksik olan belirgin "0/3 altın koklea: eksik" (OT-buyuk-yazi-74) */}
+            <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ' eksik'}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.text}</span>) : row.note || 'yapılmadı'}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   return (
     <>
       <div className={`screen fade-in result-screen${result.completed ? '' : ' lost'}${bilgi && bilgiKisa ? ' bilgi-kisa' : ''}`} ref={rootRef} onClick={() => { if (!done) skip(); }}>
@@ -293,6 +314,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           <div className={`star-row${result.completed ? '' : ' dim'}`} aria-label={`${S} yıldız`} ref={starsRef}>
             {[0, 1, 2].map((i) => <span key={i} className={`star-slot${i < S && step > i ? ' on' : ''}`} aria-hidden><span className="star-empty"><StarHole /></span><span className="star-full"><Art name="star" size="100%" /></span></span>)}
           </div>
+          {sira && <div className="result-mods result-sira" data-testid="sonuc-yildiz-sirasi">{sira}</div>}
           <div className="score-line" ref={scoreRef}>
             <div className="score">{score.toLocaleString('tr-TR')}</div>
             {summary.newRecord && step >= S + 2 && <div className="badge-record">Yeni rekor!</div>}
@@ -349,6 +371,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               skoru, jeton özetini, nota/süre kutularını ve bilgi satırını örtmez; yapışkan düğmelere kadar yer yoksa bekler (ui/Toasts.tsx;
               OT-buyuk-yazi-37, OT-buyuk-yazi-42, OT-sessiz-oyuncu-24) */}
           <div className="stats has-wide" data-toast-under>
+            {sira && yildizKart}
             {/* notasız (canavar) bölümde hasar: kalp değil (oyun boyunca kalp "can" demek; OT-buyuk-yazi-41 "2 can kaldı" okudu) */}
             {spec.coinsTotal > 0
               ? <div className="card"><div className="v"><Art name="note" size={20} className="art-inline" /><span>{result.coins}<span className="result-of">/{spec.coinsTotal}</span></span></div><div className="k">nota</div></div>
@@ -363,23 +386,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                 <span className="result-rahat-l">{RAHAT_TEXT.passedNote}</span>
               </div>
             )}
-            {starNext && (
-              <div className={`card result-obj${starNext.v.done ? ' met' : ''}`} data-testid={`sonuc-yildiz${starNext.n}`} ref={nextRef}>
-                <small className="result-obj-h">{starHead(starNext.n, starNext.v.rows.length)}{starNext.v.done ? ' · tamam' : ''}</small>
-                <ul className="result-star3">
-                  {starNext.v.rows.map((row, i) => (
-                    <li key={i} className={`${row.done ? 'met' : ''}${row.parts ? ' two' : ''}`}>
-                      {/* tutan koşul yeşil çizili tikle ve belirgin; yıldız alındıysa tutmayanın "kaldı"sı soluk (OT-buyuk-yazi-58) */}
-                      <Art name={row.done ? 'check' : 'empty'} size={row.done ? 20 : 16} className="art-inline" />
-                      <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
-                      {/* iki parçalı koşulda her parça ilerlemesiyle (OT-rekabetci-17); koşulun tamamı tutmadıkça tik ve "tamam" yok: tutan
-                          parça nötr "59 nota: var", eksik olan belirgin "0/3 altın koklea: eksik" (OT-buyuk-yazi-74) */}
-                      <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ' eksik'}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.text}</span>) : row.note || 'yapılmadı'}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {!sira && yildizKart}
           </div>
 
           {bilgi && (

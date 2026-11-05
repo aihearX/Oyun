@@ -1,19 +1,20 @@
 // @vitest-environment jsdom
 // YN-173 (oyuncu testi tur 10): sonuç ekranının küçükleri, gerçek parçalarla (üretici, yıldız kuralı, meta kaydı, ekran).
 //  1) sis/gece kaybında "Yüksek görünürlüğü aç" düğmesi store'daki ayarı açar, yerinde söyler (OT-buyuk-yazi-52)
-//  2) süre kutusunda "par" yok: "skora +20 süre bonusu" ya da "120 sn'yi 1 sn kaçırdın"; süreli bölümde "süre"
-//     (OT-ilk-kez-oyun-54, OT-rekabetci-2, OT-eski-telefon-34)
+//  2) süre kutusunda "par" yok: "skora +20 süre bonusu" ya da suçlamadan "süre bonusu yok (120 sn altında gelir)"; süreli bölümde "süre"
+//     (OT-ilk-kez-oyun-54, OT-rekabetci-2, OT-eski-telefon-34, OT-ilk-kez-oyun-79)
 //  3) her başarım satırı koşulunu {n} doldurulmuş yazar (OT-ekonomi-denetci-35)
 //  4) melodi bölümünde "Melodi tamam" / "Melodi: 5/7 sırayla" (OT-sinav-adayi-35)
 //  5) hazine satırı jeton dışı ödülleri de yazar; toplam cüzdanla birebir (OT-sinav-adayi-36, OT-ekonomi-denetci-1)
+//  6) YN-271: hedef tuttu ama 2. yıldız eksikse yıldızların altında sıra cümlesi, eksik nota sayısıyla (OT-ilk-kez-oyun-78)
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { ACHIEVEMENTS, COSMETICS, DEFAULT_SKILLS, HUMAN_JOURNEY, TIER_NAMES, type Tier } from '@odi/content';
 import { generateLevel } from '@odi/level-gen';
 import { defaultMeta, earnLines, processRun, xpThreshold, type PlayerCore, type RunSummary } from '@odi/meta';
-import { scoreRun, type LevelSpec, type RunResult } from '@odi/shared';
-import { hazineNotlu, hazineNotu, melodiSatir, sureAlt } from './screens/sonuc-satir';
+import { noteThresholds, scoreRun, type LevelSpec, type RunResult } from '@odi/shared';
+import { hazineNotlu, hazineNotu, melodiSatir, sureAlt, yildizSirasi } from './screens/sonuc-satir';
 import { itemPrefix } from './celebrate/CelebrationLayer';
 
 vi.mock('@odi/audio', () => ({ audio: { play: () => undefined, music: () => undefined } }));
@@ -66,7 +67,7 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
     expect(q('sonuc-gorunurluk-durum')?.textContent).toBe('Yüksek görünürlük açık');
   });
 
-  it('süre kutusu: "par" yazmaz; süre bonusu alındıysa gerçek değeri ve skora eklendiği, kaçtıysa kaç saniyeyle (OT-eski-telefon-34)', async () => {
+  it('süre kutusu: "par" yazmaz; süre bonusu alındıysa gerçek değeri ve skora eklendiği, kaçtıysa suçlamadan neyle geldiği (OT-eski-telefon-34, OT-ilk-kez-oyun-79)', async () => {
     const spec = levelOf((s) => s.objective.id !== 'timed' && s.coinsTotal > 0); const par = spec.parTimeSec;
     const nb = (t: string) => t.replace(/\u00a0/g, ' ');
     // 4 sn erken: bonus skorun içinde gerçekten 20 puan (scoreRun'un hesabıyla aynı)
@@ -74,9 +75,10 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
     const { score: parScore } = scoreRun(spec, { ...r, timeSec: par });
     expect(r.score - parScore).toBe(20);
     expect(nb(sureAlt(spec, r))).toBe('skora +20 süre bonusu');
-    // OT-eski-telefon-34: 114 sn'de "113 sn altı bonus" yerine kaçtığı
-    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 1 }))).toBe(`${par} sn'yi 1 sn kaçırdın`);
-    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 0.4 }))).toBe(`${par} sn'yi 0,4 sn kaçırdın`);
+    // OT-eski-telefon-34: 114 sn'de bonusun alınmadığı açık; OT-ilk-kez-oyun-79: "kaçırdın" yok (hedefi süre olmayan bölümde ödül kaybı sanıldı)
+    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 1 }))).toBe(`süre bonusu yok (${par} sn altında gelir)`);
+    expect(nb(sureAlt(spec, { completed: true, timeSec: par + 11 }))).toBe(`süre bonusu yok (${par} sn altında gelir)`);
+    expect(sureAlt(spec, { completed: true, timeSec: par + 0.4 })).not.toMatch(/kaçırdın/);
     expect(nb(sureAlt(spec, { completed: true, timeSec: par }))).toBe(`süre bonusu yok (tam ${par} sn)`);
     // kayıpta bonus yok: yalnız süre
     expect(sureAlt(spec, { completed: false, timeSec: 20 })).toBe('süre');
@@ -144,5 +146,49 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
     // hazine penceresinin öneki aynı kuraldan: sayılan birim "+", eşya "×"
     expect([itemPrefix({ kind: 'xp' }), itemPrefix({ kind: 'kristal' }), itemPrefix({ kind: 'jeton' }), itemPrefix({ kind: 'koruyucu' })]).toEqual(['+', '+', '+', '×']);
     expect(hazineNotu([{ kind: 'xp', amount: 20 }, { kind: 'koruyucu', amount: 1 }])).toBe('Ayrıca: +20 XP · ×1 Seri koruyucu');
+  });
+
+  it('YN-271: hasarsız bitti ama 2. yıldız eksik: yıldızların altında sıra cümlesi ve eksik nota; 2. yıldızın kartı kutulardan önce (OT-ilk-kez-oyun-78)', async () => {
+    const nb = (t: string | null | undefined) => (t ?? '').replace(/\u00a0/g, ' ');
+    // Bölüm 25 (Tüy Hücresi Tarlası): 3. yıldız "hiç hasar alma ve N nota"; 2. yıldız N nota
+    const spec = generateLevel(HUMAN_JOURNEY.id, 25, prof);
+    expect(spec.objective.id).toBe('no-damage');
+    const n2 = Math.ceil(spec.coinsTotal * noteThresholds(spec).star2 - 1e-9);
+    const mk = (coins: number, damageTaken: number, objectiveMet: boolean): RunResult => {
+      const base = { levelId: spec.id, completed: true, coins, timeSec: spec.parTimeSec - 4, deaths: 0, damageTaken, objectiveMet, secretFound: false, extra: { maxCombo: 5 } };
+      return { ...base, ...scoreRun(spec, base) };
+    };
+    // (a) 1 yıldız + hasarsız: cümle var, eksik nota sayısı doğru
+    const r1 = mk(n2 - 12, 0, true); expect(r1.stars).toBe(1);
+    expect(nb(yildizSirasi(spec, r1))).toBe(`Hasarsız bitirdin: 3. yıldızın hedefi var, ama önce 2. yıldız gerekir (${n2} nota, 12 eksik).`);
+    const { summary } = processRun(core(spec.number), spec, r1, DAY);
+    await show(spec, r1, summary);
+    expect(nb(q('sonuc-yildiz-sirasi')?.textContent)).toContain(`(${n2} nota, 12 eksik)`);
+    // 2. yıldızın kartı nota/süre kutularından önce
+    const stats = document.querySelector('.result .stats'); expect(stats?.firstElementChild?.getAttribute('data-testid')).toBe('sonuc-yildiz2');
+    // (b) hedef tutmadı, 2 yıldız, 3 yıldız, Rahat deneme: cümle yok
+    expect(yildizSirasi(spec, mk(n2 - 12, 1, false))).toBeNull();
+    const r2 = mk(n2, 0, true); expect(r2.stars).toBe(3); expect(yildizSirasi(spec, r2)).toBeNull();
+    expect(yildizSirasi(spec, { ...r1, stars: 2 })).toBeNull();
+    expect(yildizSirasi(spec, { ...r1, rahat: true })).toBeNull();
+    // hedef 3★'ı kendi başına verenlerde (süreli) ve hedef saymayan bölümde (yalnız kapı) cümle yok
+    expect(yildizSirasi({ ...spec, objective: { id: 'timed', label: '', target: 60 } }, r1)).toBeNull();
+    expect(yildizSirasi({ ...spec, objective: { id: 'reach', label: '' } }, r1)).toBeNull();
+    // cümle yokken 2. yıldızın kartı yerinde (kutulardan sonra)
+    const r3 = mk(n2 - 12, 1, false); const s3 = processRun(core(spec.number), spec, r3, DAY).summary;
+    await act(async () => { root!.unmount(); }); document.body.innerHTML = '';
+    await show(spec, r3, s3);
+    expect(q('sonuc-yildiz-sirasi')).toBeNull();
+    expect(document.querySelector('.result .stats')?.lastElementChild?.getAttribute('data-testid')).toBe('sonuc-yildiz2');
+  });
+
+  it('YN-271: yüzmede 2. yıldız %45, hedefle 3. yıldız %60 nota ister: cümle ikisini de söyler', () => {
+    const nb = (t: string | null) => (t ?? '').replace(/\u00a0/g, ' ');
+    const spec = levelOf((s) => s.mechanic === 'yuzme' && s.objective.id === 'secret' && s.coinsTotal > 0);
+    const th = noteThresholds(spec); const at = (x: number) => Math.ceil(spec.coinsTotal * x - 1e-9);
+    const n2 = at(th.star2); const need = at(th.star3Objective!); expect(need).toBeGreaterThan(n2);
+    const base = { levelId: spec.id, completed: true, coins: n2 - 1, timeSec: spec.parTimeSec, deaths: 0, damageTaken: 0, objectiveMet: true, secretFound: true, extra: { cochleas: 3, cochleasTotal: 3 } };
+    const r = { ...base, ...scoreRun(spec, base) }; expect(r.stars).toBe(1);
+    expect(nb(yildizSirasi(spec, r))).toBe(`Altın kokleaların hepsini buldun: 3. yıldızın hedefi var, ama önce 2. yıldız (${n2} nota) ve hedefle ${need} nota gerekir (${need - n2 + 1} eksik).`);
   });
 });

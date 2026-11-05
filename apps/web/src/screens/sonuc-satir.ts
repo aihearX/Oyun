@@ -1,20 +1,46 @@
-import { timeBonus, type LevelSpec, type RunResult } from '@odi/shared';
+import { noteThresholds, timeBonus, type LevelSpec, type RunResult } from '@odi/shared';
 import { achievementById, achievementName, cosmeticById, type RewardItem } from '@odi/content';
-import { sureYazi, type EarnLine, type RunSummary } from '@odi/meta';
+import type { EarnLine, RunSummary } from '@odi/meta';
 import { itemPrefix, itemView } from '../celebrate/CelebrationLayer';
 
 /**
  * Süre kutusunun alt yazısı. Süreli bölümde yıldızı hedef süre belirler: yalnız "süre" (OT-rekabetci-2). Öbürlerinde
  * `parTimeSec` süre bonusunun ölçüsüdür (shared timeBonus, scoreRun'daki hesap): bonus alındıysa gerçek değeri ve neye
- * eklendiği ("skora +20 süre bonusu"), kaçtıysa kaç saniyeyle ("113 sn'yi 1 sn kaçırdın"; OT-eski-telefon-34: "113 sn altı bonus"
- * 114 sn'de alınıp alınmadığını söylemiyordu). Kayıpta bonus yoktur: yalnız "süre". Yazı kısa: 360 px'te tek satır (kutular
+ * eklendiği ("skora +20 süre bonusu"), kaçtıysa suçlamadan ne olduğu ve neyle geldiği ("süre bonusu yok (113 sn altında gelir)";
+ * OT-eski-telefon-34: "113 sn altı bonus" 114 sn'de alınıp alınmadığını söylemiyordu; OT-ilk-kez-oyun-79: "90 sn'yi 11 sn kaçırdın"
+ * hedefi süre olmayan 3 yıldızlı bölümde ödül kaybedildi sanıldı). Kayıpta bonus yoktur: yalnız "süre". Yazı kısa (kutular
  * büyüyüp kayıpta neden/yardım kartını ilk ekrandan itmesin). "par" kelimesi oyuncuya yazılmaz, "para" sanıldı (OT-ilk-kez-oyun-54).
  */
 export function sureAlt(spec: Pick<LevelSpec, 'objective' | 'parTimeSec'>, r: Pick<RunResult, 'completed' | 'timeSec'>): string {
   if (spec.objective.id === 'timed' || !r.completed) return 'süre';
   const par = spec.parTimeSec; const bonus = timeBonus(spec, r);
   if (bonus > 0) return `skora +${bonus.toLocaleString('tr-TR')} süre bonusu`;
-  return r.timeSec > par ? `${par}\u00a0sn'yi ${sureYazi(r.timeSec - par)}\u00a0sn kaçırdın` : `süre bonusu yok (tam ${par}\u00a0sn)`;
+  return r.timeSec > par ? `süre bonusu yok (${par}\u00a0sn altında gelir)` : `süre bonusu yok (tam ${par}\u00a0sn)`;
+}
+
+/** bölüm hedefinin tuttuğunu söyleyen baş (yıldız sırası cümlesi); hedefin adı objectives.ts'deki etiketlerle aynı */
+const HEDEF_TUTTU: Partial<Record<LevelSpec['objective']['id'], string>> = {
+  'no-damage': 'Hasarsız bitirdin', secret: 'Altın kokleaların hepsini buldun', melody: 'Notaları sırayla topladın', escort: 'Fısıltıyı kapıya götürdün',
+};
+/**
+ * Yıldızlar sırayla gelir (shared scoreRun: 3★ 2★'ın üstüne): bölüm hedefi tuttuğu hâlde 2. yıldız eksikse tek yıldız kalır ve
+ * yalnız 2. yıldızın kartı görünür; oyuncu hasarsız bitirip neden yıldız gelmediğini anlamıyordu (OT-ilk-kez-oyun-78). Yıldızların
+ * altındaki tek cümle bunu söyler: "Hasarsız bitirdin: 3. yıldızın hedefi var, ama önce 2. yıldız gerekir (58 nota, 12 eksik)."
+ * 3. yıldızın hedefli koşulunda nota da vardır ("hiç hasar alma ve 58 nota"): koşulun tamamı tutmadıkça "tamam" denmez, tutan
+ * yarı "var", eksik olan "eksik" (YN-262, OT-buyuk-yazi-74). Eşikler yıldız kuralıyla aynı yerden (noteThresholds); yüzmede 2★ %45
+ * notayla gelir ama hedefle 3★ %60 ister: o zaman ikisi de yazılır. Süreli bölümde hedef süre 3★'ı tek başına verir, "Tüm notaları
+ * topla" 2★'ın üstündedir, notasız bölümde hasarsız 3★'dır: bu durumlar oluşmaz, cümle yok (null).
+ */
+export function yildizSirasi(spec: Pick<LevelSpec, 'mechanic' | 'objective' | 'coinsTotal'>, r: Pick<RunResult, 'completed' | 'stars' | 'coins' | 'objectiveMet' | 'rahat'>): string | null {
+  const lead = HEDEF_TUTTU[spec.objective.id];
+  const th = noteThresholds(spec);
+  if (!lead || !r.completed || r.rahat || r.stars !== 1 || !r.objectiveMet || spec.coinsTotal <= 0 || th.star3Objective === null) return null;
+  const notesAt = (q: number) => Math.ceil(spec.coinsTotal * q - 1e-9);
+  const n2 = notesAt(th.star2); const need = Math.max(n2, notesAt(th.star3Objective));
+  if (r.coins >= need) return null;
+  const eksik = `${need - r.coins}\u00a0eksik`;
+  return need === n2 ? `${lead}: 3. yıldızın hedefi var, ama önce 2. yıldız gerekir (${n2}\u00a0nota, ${eksik}).`
+    : `${lead}: 3. yıldızın hedefi var, ama önce 2. yıldız (${n2}\u00a0nota) ve hedefle ${need}\u00a0nota gerekir (${eksik}).`;
 }
 
 /**

@@ -1511,6 +1511,8 @@ async function suite(browserName, target, [W, H]) {
         // en uzun); 3. yıldız yalnız hedefle (tutmayan nota satırı soluk, OT-buyuk-yazi-58); YN-192: takım kalkanıyla başlanan bölüm
         ['demo=sonuc&bolum=5&yildiz=2&skor=1917&acilim=1&harita=1&anlatim=team&kutlama=0', 'sonuc-yildiz-devam'], ['demo=sonuc&bolum=16&yildiz=3&skor=2600&hedef=1&kutlama=0', 'sonuc-yildiz-hedef'],
         ['demo=sonuc&bolum=7&yildiz=2&skor=1500&hediye=takim&kutlama=0', 'sonuc-kalkan-takim'],
+        // YN-271 (OT-ilk-kez-oyun-78): hasarsız bitti ama 2. yıldızın notası eksik: yıldızların altında sıra cümlesi, 2. yıldızın kartı kutulardan önce
+        ['demo=sonuc&bolum=25&yildiz=1&skor=1200&hedef=1&kutlama=0', 'sonuc-yildiz1-hedef'],
         // YN-229 (OT-sessiz-oyuncu-31): takım kalkanıyla başlanan kayıp, hasarların hepsi düşüş: hasar sayısı kartta bir kez
         ['demo=sonuc&bolum=36&yildiz=0&skor=420&neden=fall&hediye=takim&kutlama=0', 'sonuc-kaybetti-kalkan-dusme']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
@@ -1712,7 +1714,15 @@ async function suite(browserName, target, [W, H]) {
         if (/\bpar\b/.test(await yazi('.result .stats'))) fail(rec, `süre kutusunda "par": "${await yazi('.result .stats')}"`);
         // YN-191 (OT-eski-telefon-34): süre kutusu bonusun alınıp alınmadığını ve skora eklendiğini söyler ("N sn altı bonus" değil)
         const sureAltYazi = (await yazi('[data-testid="sonuc-sure-alt"]')).replace(/\u00a0/g, ' ');
-        if (!/^(süre|skora \+\d+ süre bonusu|\d+ sn'yi \d+(,\d)? sn kaçırdın|süre bonusu yok \(tam \d+ sn\))$/.test(sureAltYazi)) fail(rec, `süre kutusunun alt yazısı: "${sureAltYazi}"`);
+        // YN-271 (OT-ilk-kez-oyun-79): kaçtıysa suçlamadan "süre bonusu yok (N sn altında gelir)"
+        if (!/^(süre|skora \+\d+ süre bonusu|süre bonusu yok \(\d+ sn altında gelir\)|süre bonusu yok \(tam \d+ sn\))$/.test(sureAltYazi)) fail(rec, `süre kutusunun alt yazısı: "${sureAltYazi}"`);
+        // YN-271 (OT-ilk-kez-oyun-78): hedef tuttu, 2. yıldız eksik: sıra cümlesi yıldızların altında, 2. yıldızın kartı ilk ekranda
+        const siraYazi = (await yazi('[data-testid="sonuc-yildiz-sirasi"]')).replace(/\u00a0/g, ' ');
+        if (label === 'sonuc-yildiz1-hedef') {
+          if (!/^Hasarsız bitirdin: 3\. yıldızın hedefi var, ama önce 2\. yıldız gerekir \(\d+ nota, \d+ eksik\)\.$/.test(siraYazi)) fail(rec, `yıldız sırası cümlesi: "${siraYazi}"`);
+          const ilk = await page.evaluate(() => document.querySelector('.result .stats')?.firstElementChild?.getAttribute('data-testid'));
+          if (ilk !== 'sonuc-yildiz2') fail(rec, `2. yıldızın kartı kutulardan önce değil (ilk: ${ilk})`);
+        } else if (siraYazi) fail(rec, `beklenmeyen yıldız sırası cümlesi: "${siraYazi}"`);
         // YN-192: takım kalkanıyla başlanan bölümde vuruş gelmese de sonuç söyler; kalkansız bölümde satır yok
         const kalkanYazi = await yazi('[data-testid="sonuc-kalkan"]');
         // önizleme 2★: 1 hasar, karşılanan vuruş yok → hasar düşüştendir, satır nedenini söyler ("vuruş gelmedi" değil; YN-202), hasar sayısını değil (YN-229)
@@ -1764,8 +1774,8 @@ async function suite(browserName, target, [W, H]) {
         } else if (label === 'sonuc-rahat') {
           // Rahat geçiş: sıradaki yıldızın kartı yok (yıldız 1'de kalır; Rahat kartı yerinde)
           if (await page.locator('[data-testid="sonuc-yildiz2"], [data-testid="sonuc-yildiz3"]').count()) fail(rec, 'Rahat geçişte sıradaki yıldız kartı görünüyor');
-        } else if (label === 'sonuc-yildiz1') {
-          // 1★: 3. yıldız kartı yerine 2. yıldızın koşulu
+        } else if (label === 'sonuc-yildiz1' || label === 'sonuc-yildiz1-hedef') {
+          // 1★: 3. yıldız kartı yerine 2. yıldızın koşulu (hedef tuttuysa da; YN-271)
           const rows = await page.locator('[data-testid="sonuc-yildiz2"] li').allTextContents().catch(() => []);
           if (!rows.length || !/nota kaldı/.test(rows[0] ?? '')) fail(rec, `2. yıldız kartı yok ya da ilerlemesiz: ${JSON.stringify(rows)}`);
           if (await page.locator('[data-testid="sonuc-yildiz3"]').count()) fail(rec, '1★ sonuçta 3. yıldız kartı görünüyor');
