@@ -79,10 +79,20 @@ const touch = { last: -Infinity, held: false };
  * "Başla"dan sonra tur 1,2 sn + sakin yoklamaları bekledi, oyuncunun "Bölüm 2" dokunuşuyla aynı anda açıldı).
  */
 const AD_PENCERESI = '.onboard-wrap';
+/**
+ * Haritanın dönüş sahnesine dokunuş (sahneyi geçer, "Dokun: atla") da ekrana uzanma sayılmaz: sonucun söz verdiği tanıtım sahne
+ * biter bitmez gelir, oyuncu temiz haritada Bölüm düğmesine uzanırken değil (OT-ogrenci-birinci-55). Sahne sürerken Bölüm'e dokunan
+ * oyuncunun bölümü başlar (bolumNiyeti), tanıtım bölümden sonraya kalır. Basma sahnedeyse bırakması da sayılmaz (sahne o arada biter).
+ */
+const DONUS_SAHNESI = '.map-screen[data-donus="suruyor"]';
+let sahneDokunusu = false;
 if (typeof document !== 'undefined') {
   const mark = (held?: boolean) => (e: Event) => {
     if (held !== undefined) touch.held = held;
-    if (e.target instanceof Element && e.target.closest(AD_PENCERESI)) return;
+    const t = e.target instanceof Element ? e.target : null;
+    if (t?.closest(AD_PENCERESI)) return;
+    if (held === true) sahneDokunusu = !!t?.closest(DONUS_SAHNESI);
+    if (sahneDokunusu) { if (held === false) sahneDokunusu = false; return; }
     touch.last = performance.now();
   };
   const o = { capture: true, passive: true };
@@ -118,15 +128,16 @@ const BOLUM_YARIS_MS = FIRST_TAP_GRACE_MS + 400;
  * Sekme değiştiren tanıtım açıkken oyuncunun ilk dokunuşu karartılmış zeminde bir bölüm düğmesinin ("Bölüm N") üstüne düştüyse
  * tanıtım görülmüş sayılmadan çekilir ve bölüm başlar; tanıtım bölümden sonra yeniden gelir. Yalnız turun ilk dokunuşu sayılır.
  * Tanıtım açılır açılmaz (BOLUM_YARIS_MS) gelen dokunuş balona ya da karta düşse de altındaki bölüm düğmesine sayılır: oyuncu
- * tanıtımı görmeden "Bölüm N"e uzanmıştı, dokunuşu yutulmaz.
+ * tanıtımı görmeden "Bölüm N"e uzanmıştı, dokunuşu yutulmaz. `yalnizAcilis`: sekme değiştirmeyen açılım tanıtımında (yalnız "Yeni yer
+ * açıldı" kartı, ör. Canlı yarış) yalnız bu açılış payı sayılır; sonra karta dokunuş tanıtımı ilerletir (OT-ogrenci-birinci-55).
  */
-export function watchBolum(): { stop(): void } {
+export function watchBolum(yalnizAcilis = false): { stop(): void } {
   let first = true; const born = performance.now();
   const on = (e: MouseEvent) => {
     const t = e.target instanceof Element ? e.target : null;
     if (!first || !t?.closest('.coach')) return;
     first = false;
-    if (!t.closest('.coach-block') && performance.now() - born > BOLUM_YARIS_MS) return;
+    if ((yalnizAcilis || !t.closest('.coach-block')) && performance.now() - born > BOLUM_YARIS_MS) return;
     let hit: HTMLElement | null = null;
     for (const x of document.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
       if (x.closest('.coach')) continue;
@@ -477,12 +488,15 @@ export { MAX_UNLOCK_TOURS_PER_LEVEL } from './map-intro';
 
 /**
  * "Atla": o an sırada bekleyen bütün turlar (art arda gelecek Tüy Dede balonları) birlikte geçilir; oyuncu her birini tek tek
- * atlamaz. Kamp turları ve diğerleri ayrı dizidir. Yerler açık kalır; sonraki bölümlerde açılan yerler yine duyurulur.
+ * atlamaz. Atlanan bir daha gelmez (kalıcı kayıt); yerler açık kalır; sonraki bölümlerde açılan YENİ yerler yine duyurulur.
+ * Kamp turları ve diğerleri ayrı dizidir; yalnız Kamp'ın kendi tanıtımı (ya da kamp öğreticisi) atlanınca bekleyen kamp turları da
+ * geçilir: Kamp'a ilk girişte "Atla"dan sonra "Yeni: Kamp Görevleri!" açılıp oyuncunun ilk dokunuşunu yutmaz (OT-uzman-odyolog-50).
  */
+export const KAMP_GIRIS: ReadonlySet<string> = new Set(['camp', 'camp-build']);
 export function pendingTours(skipped: string, cleared: number, done: readonly string[]): string[] {
-  const g = groupOf(skipped); const out: string[] = [];
+  const g = groupOf(skipped); const kamp = g === 'kamp' || KAMP_GIRIS.has(skipped); const out: string[] = [];
   if (g === 'genel') { if (cleared >= 1) out.push('result1', 'map'); if (cleared >= featureById('camp').at) out.push('camp-build'); }
-  for (const f of FEATURES) if (f.tour && cleared >= f.at && groupOf(f.id) === g) out.push(f.id);
+  for (const f of FEATURES) if (f.tour && cleared >= f.at && (groupOf(f.id) === g || (kamp && groupOf(f.id) === 'kamp'))) out.push(f.id);
   return out.filter((id) => id !== skipped && !done.includes(id));
 }
 /** oyuncunun kendi girdiği yer: tanıtımı sonradan gösterilmez (Takım'a girmiş oyuncuya bir bölüm sonra "Yeni: Takım!" gelmez) */
@@ -568,12 +582,22 @@ export function startTour(id: string, route: string, goster = false): void {
   countUnlockTour(id, cleared);
   // kendiliğinden başlayan kamp tanıtımında oyuncunun ilk dokunuşu (bkz. rememberTap)
   const tap = CAMP_TOURS.has(id) && !goster ? rememberTap() : null;
-  // oyuncuyu başka sekmeye götüren tanıtımda bölüm düğmesine düşen ilk dokunuş (bkz. watchBolum)
-  const bolum = !CAMP_TOURS.has(id) && sekmeDegistirir(t) ? watchBolum() : null;
+  // oyuncuyu başka sekmeye götüren tanıtımda bölüm düğmesine düşen ilk dokunuş (bkz. watchBolum); haritadaki öbür açılım
+  // tanıtımlarında yalnız açılış payında (oyuncu tanıtımı görmeden "Bölüm N"e uzanmıştı)
+  const sekme = sekmeDegistirir(t);
+  const bolum = !CAMP_TOURS.has(id) && (sekme || FEATURES.some((f) => f.id === id && f.tour)) ? watchBolum(!sekme) : null;
   useCoach.getState().start({ ...t, onDone: (skipped) => {
     tap?.stop(); bolum?.stop(); replayTap(tap?.take() ?? null);
     if (!skipped) return; const s = useStore.getState();
-    for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) if ((p !== 'vaka' || vakaDurum() === 'acik') && (p !== 'kampoyun' || oyunDurum() === 'acik')) s.ftueTourDone(p);
+    for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) {
+      // Hasta Vakaları klinik kurulmadan, kamp oyunları hiçbiri açılmadan geçilmiş sayılmaz (açılınca yeni yer olarak gelir); o an
+      // sırada bekleyen "önce kur" yazısı geçilir
+      if (p === 'vaka' && vakaDurum() !== 'acik') { if (vakaDurum() === 'kur') s.ftueTourDone('vaka-kur'); continue; }
+      if (p === 'kampoyun' && oyunDurum() !== 'acik') { if (oyunDurum() === 'kur') s.ftueTourDone('oyun-kur'); continue; }
+      s.ftueTourDone(p);
+    }
+    // kampta atlandı: bu girişte başka kamp tanıtımı kendiliğinden gelmez, Atla'dan sonraki ilk dokunuş yeni bir tanıtıma düşmez
+    if ((CAMP_TOURS.has(id) || KAMP_GIRIS.has(id)) && exists('.camp-base, .camp-list-screen')) for (const c of CAMP_TOURS) campVisit.add(c);
   }, onDefer: () => {
     tap?.stop(); bolum?.stop();
     // açılırken oyuncu başka yere dokundu: sayılmaz, bu girişte yine sırada (ekran sakinleşince)

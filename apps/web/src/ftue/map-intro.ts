@@ -36,10 +36,14 @@ export function countUnlockTour(id: string, cleared: number, tally: UnlockTally 
 }
 export const groupFull = (id: string, cleared: number, tally: UnlockTally = unlockTally) => tally.cleared === cleared && tally[groupOf(id)] >= MAX_UNLOCK_TOURS_PER_LEVEL;
 
-/** sekme ekranlarında (harita dahil) sırayla başlayacak genel açılım turları; bu geçişin sınırı kadar */
+/**
+ * sekme ekranlarında (harita dahil) sırayla başlayacak genel açılım turları; bu geçişin sınırı kadar. Önce daha önce açılmış (bekleyen)
+ * yerler: bir bölüm önce söz verilip anlatılamayan (oyuncu bölüme geçti) tanıtım, yeni açılan yerin arkasına düşmez, sonuç ekranı aynı
+ * sözü yineler (OT-sessiz-oyuncu-35: Bölüm 8 "Canlı yarış ve Serbest yazı" dedi, Bölüm 9 "Takım Yarışı ve Canlı yarış")
+ */
 export function genelUnlockQueue(cleared: number, done: readonly string[], tally: UnlockTally = unlockTally): FeatureId[] {
   const used = tally.cleared === cleared ? tally.genel : 0;
-  const out = FEATURES.filter((f) => f.tour && groupOf(f.id) === 'genel' && cleared >= f.at && !done.includes(f.id)).map((f) => f.id);
+  const out = FEATURES.filter((f) => f.tour && groupOf(f.id) === 'genel' && cleared >= f.at && !done.includes(f.id)).sort((a, b) => a.at - b.at).map((f) => f.id);
   return out.slice(0, Math.max(0, MAX_UNLOCK_TOURS_PER_LEVEL - used));
 }
 

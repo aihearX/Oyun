@@ -41,7 +41,8 @@ describe('haritada bekleyen tanıtım (mapIntroQueue)', () => {
     countUnlockTour('tlig', 6, t); countUnlockTour('shop', 6, t);
     const after6 = [...seenUpTo(5), 'tlig', 'shop'];
     expect(mapIntroQueue(6, ftue(after6), t)).toEqual([]); // akis bekliyor ama bu geçişte başlamaz
-    expect(mapIntroQueue(7, ftue(after6), t)).toEqual(['events', 'akis']); // yeni geçiş: sayaç sıfırlanır
+    // yeni geçiş: sayaç sıfırlanır; bekleyen Takım Akışı yeni açılan Etkinlikler'in önünde (YN-267, OT-sessiz-oyuncu-35)
+    expect(mapIntroQueue(7, ftue(after6), t)).toEqual(['akis', 'events']);
   });
 
   it('kamp turları (Görevler, oyunlar, vakalar) haritada başlamaz: sonuç ekranını yönlendirmez', () => {
