@@ -9,6 +9,7 @@ import { TouchInput } from './input';
 import { flash, floatText, tapToStart, COLORS, banner, endCard } from './ui';
 import { prefersReducedMotion, setFlashPolicy } from './render/flash';
 import { setHighVisibility } from './render/quality';
+import { zeminKonturu, type KonturCizgi } from './render/kontur';
 import { remedyName } from './play/remedy';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
 import { luckyNoteTexture, tonotopyFreq } from './art';
@@ -761,31 +762,31 @@ export class LevelScene extends Phaser.Scene {
     // "Kalbi açıkta!" yazısı kalp görünürken durur: sersemlik bitince ya da vuruş fazı değiştirince (kalp kalkar) aynı karede kalkar
     if (this.stunHint && !(b.mode === 'stun' && b.core)) { this.stunHint = false; this.hud.toast('', 0, true); }
   }
-  /** Yüksek görünürlük: görünen zemin üst/yan kenarları, engeller ve düşmanlar açık konturla (koyu alt çizgiyle; her zeminde seçilir) */
+  /** Yüksek görünürlük: görünen zemin üst/yan kenarları (asılı sütun ve tavanın bütün dış kenarı: render/kontur.ts), engeller ve düşmanlar açık konturla (koyu alt çizgiyle; her zeminde seçilir) */
   private drawHiVis() {
     const g = this.hiVis; if (!g) return;
     g.clear(); const cam = this.cameras.main; const L = cam.scrollX - 40, Rr = cam.scrollX + this.vw + 40; const t = this.sim.t;
     const ids = [...new Set(near(this.world, L, Rr))];
-    const terr = ids.map((id) => this.world.ents[id]!).filter((e) => (e.type === 'platform' || e.type === 'wall') && !e.p.boss);
-    // yan kenar yalnız gerçek kenarda (boşluk, basamak): aynı yükseklikte bitişik zemin varsa ek yeri çizilmez
-    const joined = (e: WEnt, x: number) => terr.some((o) => o !== e && o.l <= x + 2 && o.r >= x - 2 && o.t <= e.t + 6 && o.b > e.t + 6);
-    const box = (l: number, tp: number, r: number, b: number, c: number, wdt: number, sides: false | [boolean, boolean] = false) => {
-      const bot = Math.min(b, tp + 140);
+    // zemin: yan kenar yalnız gerçek kenarda (boşluk, basamak); duvar sütunu ve tavan asılıdır: bütün dış kenarı ve boştaki alt ucu (YN-268)
+    const terr = new Map(ids.map((id) => this.world.ents[id]!).filter((e) => (e.type === 'platform' || e.type === 'wall') && !e.p.boss)
+      .map((e) => [e, { l: e.l, t: e.t, r: e.r, b: e.b, asili: e.type === 'wall' || !!e.p.tavan }] as const));
+    const kr = [...terr.values()];
+    const lines = (ls: KonturCizgi[], c: number, wdt: number) => {
       for (const [lw, col, a] of [[wdt + 3, 0x0a0620, 0.75], [wdt, c, 1]] as const) {
-        g.lineStyle(lw, col, a); g.beginPath();
-        if (sides) { g.moveTo(l, sides[0] ? bot : tp); g.lineTo(l, tp); g.lineTo(r, tp); g.lineTo(r, sides[1] ? bot : tp); } else { g.moveTo(l, tp); g.lineTo(r, tp); g.lineTo(r, b); g.lineTo(l, b); g.closePath(); }
-        g.strokePath();
+        g.lineStyle(lw, col, a);
+        for (const { pts, kapali } of ls) { g.beginPath(); g.moveTo(pts[0]!, pts[1]!); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i]!, pts[i + 1]!); if (kapali) g.closePath(); g.strokePath(); }
       }
     };
+    const box = (l: number, tp: number, r: number, b: number, c: number, wdt: number) => lines([{ pts: [l, tp, r, tp, r, b, l, b], kapali: true }], c, wdt);
     for (const id of ids) {
       const e = this.world.ents[id]!; if (e.sr < L || e.sl > Rr || this.gone(e) || this.sim.cured.has(id)) continue;
-      if (e.type === 'platform' || e.type === 'wall') { if (!e.p.boss) box(e.l, e.t, e.r, e.b, 0xfff6e5, 2.5, [!joined(e, e.l), !joined(e, e.r)]); }
+      if (e.type === 'platform' || e.type === 'wall') { const k = terr.get(e); if (k) lines(zeminKonturu(k, kr), 0xfff6e5, 2.5); }
       else if (e.type === 'moving' || e.type === 'lift' || e.type === 'crumble' || e.type === 'beat' || e.type === 'echo' || e.type === 'door' || e.type === 'barrier' || e.type === 'freqgate') {
-        solidAt(this.world, this.sim, e, t); const r = lastRect(); box(r.l, r.t, r.r, r.b, 0xfff6e5, 2.5, false);
+        solidAt(this.world, this.sim, e, t); const r = lastRect(); box(r.l, r.t, r.r, r.b, 0xfff6e5, 2.5);
       } else if (e.cls === 'hazard' && e.type !== 'gear') {
         if (e.type === 'hazard' && !hazardAt(this.world, this.sim, e, t)) continue;
-        const r = e.type === 'hazard' ? lastRect() : e; box(r.l, r.t, r.r, r.b, 0xffd6e2, 3, false);
-      } else if (e.type === 'gravzone') box(e.l + 3, e.t + 3, e.r - 3, e.b - 3, 0xfff6e5, 4, false); // yerçekimi bölgesi: kalın çerçeve (OT-buyuk-yazi-36)
+        const r = e.type === 'hazard' ? lastRect() : e; box(r.l, r.t, r.r, r.b, 0xffd6e2, 3);
+      } else if (e.type === 'gravzone') box(e.l + 3, e.t + 3, e.r - 3, e.b - 3, 0xfff6e5, 4); // yerçekimi bölgesi: kalın çerçeve (OT-buyuk-yazi-36)
       else if (e.cls === 'enemy') { const p = enemyAt(e, t); g.lineStyle(6, 0x0a0620, 0.75); g.strokeCircle(p.x, p.y - 16, 22); g.lineStyle(3, 0xffd6e2, 1); g.strokeCircle(p.x, p.y - 16, 22); }
     }
   }
