@@ -83,7 +83,8 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
 
 /**
  * Sonuç ekranındaki 3. yıldız kartının bir satırı: koşul, tutturuldu mu, tutmadıysa ne kadar yapıldığı (yazıyla; simge tek başına yetmez).
- * İki parçalı koşulda ("3 altın kokleayı bul ve 60 nota") parts her parçanın ilerlemesi; note bunların " · " ile birleşimi.
+ * İki parçalı koşulda ("3 altın kokleayı bul ve 60 nota") parts her parçanın ilerlemesi; note bunların " · " ile birleşimi. Koşulun
+ * tamamı tutmadıkça tutan parça "tamam" demez, nötr "var" der; eksik parça açıkça "eksik" ya da "kaldı" (OT-buyuk-yazi-74, YN-262).
  */
 export interface StarRow { text: string; done: boolean; note: string; parts?: { text: string; done: boolean }[] }
 export interface Star3View { rows: StarRow[]; done: boolean }
@@ -150,19 +151,21 @@ export function star3View(spec: RunSpecLite, r: RunResult): Star3View {
   const rows: StarRow[] = [{ text: texts[0]!, done: r.coins >= n3, note: r.coins >= n3 ? '' : `${n3 - r.coins}\u00a0nota kaldı` }];
   if (texts.length > 1 && th.star3Objective !== null) {
     // hedefle 3★ için %60 nota da gerekir (yüzmede 2★ %45 notayla gelir): koşul her zaman tam yazılır, nota şartı tuttu diye
-    // yazıdan düşmez; not iki parçanın ilerlemesini söyler, tutan parça "tamam" (OT-rekabetci-17): "60 nota tamam · 2/3 altın koklea"
+    // yazıdan düşmez; not iki parçanın ilerlemesini söyler (OT-rekabetci-17). Koşulun tamamı tutmadıkça tutan parça "tamam" demez
+    // (OT-buyuk-yazi-74: "59 nota tamam" 3. yıldız alındı sanıldı): "59 nota: var · 0/3 altın koklea: eksik"
     const need = notesAt(th.star3Objective); const short = need > r.coins;
     const text = texts[1]!;
+    const sayi = (s: string) => `${s}: ${r.objectiveMet ? 'var' : 'eksik'}`;
     const prog = o.id === 'no-damage' ? (r.objectiveMet ? 'hasar almadın' : dmg.note)
-      : o.id === 'secret' ? `${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`
-      : o.id === 'melody' ? `${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`
-      : o.id === 'timed' ? (r.objectiveMet ? 'süre tamam' : lateNote(runTimeSec(spec, r), o.target ?? spec.parTimeSec))
+      : o.id === 'secret' ? sayi(`${num('cochleas')}/${num('cochleasTotal') || 3}\u00a0altın koklea`)
+      : o.id === 'melody' ? sayi(`${num('melody')}/${num('melodyTotal') || o.target || 0}\u00a0sırayla`)
+      : o.id === 'timed' ? (r.objectiveMet ? 'süreye yetiştin' : lateNote(runTimeSec(spec, r), o.target ?? spec.parTimeSec))
       : o.id === 'escort' ? (r.objectiveMet ? 'Fısıltı kapıda' : 'Fısıltı yolda kaldı')
-      : r.objectiveMet ? 'hedef tamam' : '';
+      : r.objectiveMet ? 'hedef: var' : '';
     const done = r.objectiveMet && !short;
     const objPart = { text: prog, done: r.objectiveMet };
     // tutan parça önde, eksik olan sonda
-    const parts = need <= 0 ? [objPart] : !short ? [{ text: `${need}\u00a0nota tamam`, done: true }, objPart] : [...(r.objectiveMet ? [objPart] : []), { text: `${need - r.coins}\u00a0nota kaldı`, done: false }, ...(r.objectiveMet ? [] : [objPart])];
+    const parts = need <= 0 ? [objPart] : !short ? [{ text: `${need}\u00a0nota: var`, done: true }, objPart] : [...(r.objectiveMet ? [objPart] : []), { text: `${need - r.coins}\u00a0nota kaldı`, done: false }, ...(r.objectiveMet ? [] : [objPart])];
     const shown = parts.filter((x) => x.text);
     rows.push({ text, done, note: done ? '' : shown.map((x) => x.text).join(' · '), ...(done || shown.length < 2 ? {} : { parts: shown }) });
   }
@@ -196,10 +199,14 @@ const LOSS_TIP: Record<string, string> = {
   // sim'de "gurultu": fırlamadan gürültü duvarına dayanmak ya da diken dışı bir engele (perde, buşon, bulut) değmek
   gurultu: 'Engele değme: üstünden zıpla, sarkan perdenin altından aşağı kaydırıp kay, yanıp sönen engelde söndüğü anı bekle.',
   dusman: 'Gürültü yaratıklarının çoğunu üstüne zıplayarak ezebilirsin.',
-  nefes: 'Arada yüzeye çıkıp nefes al.',
+  nefes: 'Su altında nefesin azalır (Odi\'nin üstündeki çubuk): yüzeye çık ya da kabarcığa değ.',
   freq: 'Kapıdan önce diyapazona değ: rengin kapıyla aynı olsun.',
 };
-/** yüzme mekaniğinin kendi nedenleri: ipuçları mekaniğin ipucundan daha yerinde (nefes, diyapazon) */
+/**
+ * yüzme mekaniğinin kendi nedenleri: ipuçları mekaniğin ipucundan daha yerinde (nefes, diyapazon). Bu nedenle kaybedince ipucu
+ * her denemede önce o nedeni anlatır, öbür ipuçları yalnız ikinci satırda sırayla gelir (OT-ilk-kez-oyun-73, YN-254: 7 nefes
+ * kaybının yalnız ilkinde nefes anlatılmıştı)
+ */
 const MECHANIC_OWN_TIP = new Set(['nefes', 'freq']);
 /**
  * Mekaniğe göre neden ipucu (OT-ilk-kez-oyun-37): koşunun genel cümlesinin yerine o mekaniğin hareketiyle. Kurallar sim.ts'den:
@@ -277,15 +284,18 @@ export function lossTips(reason: string, spec?: LossSpec): string[] {
  * Kayıpta neden (OT-ilk-kez-oyun-8): "Tekrar dene"nin üstünde. Canlar mı bitti, en son neye çarptı; tek cümle ipucu, bölümün
  * kendi zorluğuna göre (lossTips). attempt: bu bölümdeki deneme sayısı (1'den); aynı bölümde art arda kayıpta sıradaki cümle
  * gelir (OT-ilk-kez-oyun-19: 7 kayıptan 6'sında aynı "Boşluklarda…" cümlesi).
- * reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti').
+ * reason: LevelScene.fail (sim'in son hasar nedeni ya da 'yaris-bitti'). Nefes ve diyapazon kaybında tip her denemede o nedenin
+ * cümlesi, tip2 sıradaki öbür ipucu (MECHANIC_OWN_TIP).
  */
-export function lossView(r: RunResult, spec?: LossSpec, attempt = 1): { title: string; detail: string; tip: string } {
+export function lossView(r: RunResult, spec?: LossSpec, attempt = 1): { title: string; detail: string; tip: string; tip2?: string } {
   const reason = typeof r.extra?.reason === 'string' ? r.extra.reason : '';
   if (reason === 'yaris-bitti') return { title: 'Yarış bitti', detail: 'Sen kapıya varmadan yarış kapandı.', tip: '' };
   const n = r.damageTaken; const what = LOSS_WHAT[reason];
   const detail = n > 0 ? `${n} kez hasar aldın${what ? `, en son ${what}` : ''}.` : what ? `${what.charAt(0).toLocaleUpperCase('tr-TR')}${what.slice(1)}.` : '';
-  const tips = lossTips(reason, spec);
-  const tip = tips.length ? tips[(Math.max(1, Math.floor(attempt)) - 1) % tips.length]! : '';
+  const tips = lossTips(reason, spec); const i = Math.max(1, Math.floor(attempt)) - 1;
+  const own = MECHANIC_OWN_TIP.has(reason) ? LOSS_TIP[reason] : undefined;
+  if (own) { const rest = tips.filter((t) => t !== own); return { title: 'Canların bitti', detail, tip: own, ...(rest.length ? { tip2: rest[i % rest.length]! } : {}) }; }
+  const tip = tips.length ? tips[i % tips.length]! : '';
   return { title: 'Canların bitti', detail, tip };
 }
 

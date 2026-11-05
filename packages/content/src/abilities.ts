@@ -24,7 +24,7 @@ export const ABILITIES: Record<AbilityId, AbilityDef> = {
   trambolin: { id: 'trambolin', name: 'Zar Sıçrayışı', how: 'Zara değdiğin an dokun: güçlü sıçra', gesture: 'dokun', level: 9 },
   kanca: { id: 'kanca', name: 'Kanca', how: 'Kancanın yanında basılı tut: sallan · Bırak: fırla', gesture: 'basili', level: 13 },
   cakil: { id: 'cakil', name: 'Yere Çakılma', how: 'Havada aşağı kaydır: çatlak zemini kır, anahtara bas', gesture: 'asagi', level: 15 },
-  yuz: { id: 'yuz', name: 'Yüzme', how: 'Sıvıda basılı tut: yüksel · Bırak: dal', gesture: 'basili', level: 21 },
+  yuz: { id: 'yuz', name: 'Yüzme', how: 'Sıvıda basılı tut: yüksel · Bırak: dal · Su altında nefesin azalır: yüzeye çık', gesture: 'basili', level: 21 },
   darbe: { id: 'darbe', name: 'Ses Darbesi', how: 'Koşu yönüne kaydır: ileri fırla · Gürültü duvarına fırlayarak çarp: kırılır', gesture: 'ileri', level: 31 },
   cevir: { id: 'cevir', name: 'Yerçekimi Çevirme', how: 'Oklu mor bölgede dokun: yerçekimini çevir', gesture: 'dokun', level: 35 },
 };

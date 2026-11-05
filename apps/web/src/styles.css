@@ -329,11 +329,13 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 /* yıldız alındı (kart .met): tutan koşul belirgin, tutmayanın satırı ve "kaldı"sı soluk; uyarı gibi okunmasın (OT-buyuk-yazi-58) */
 .result-obj.met .result-star3 li:not(.met) { color:var(--text-3); font-weight:800; }
 .result-obj.met .result-star3 li:not(.met) .rs3-n { color:var(--text-3); font-weight:700; }
-/* OT-rekabetci-17: iki parçalı koşulun ilerlemesi alt satırda; tutan parça soluk ve işaretli ("60 nota tamam · 2/3 altın koklea") */
+/* OT-rekabetci-17: iki parçalı koşulun ilerlemesi alt satırda; tutan parça nötr ve tiksiz ("59 nota: var"), eksik olan belirgin
+   ("0/3 altın koklea: eksik"; OT-buyuk-yazi-74: yeşil tik 3. yıldız alındı sandırıyordu) */
 .result-star3 li.two { grid-template-columns:auto minmax(0,1fr); }
 .result-star3 li.two .rs3-n { grid-column:2; text-align:left; white-space:normal; }
-.rs3-p.ok { color:var(--text-2); }
-.rs3-p .art { vertical-align:-2px; margin-right:2px; }
+.rs3-p.ok { color:var(--text-2); font-weight:800; }
+.rs3-p.eksik { color:var(--gold); font-weight:900; }
+.result-obj.met .rs3-p { color:inherit; font-weight:inherit; }
 .rs3-sep { color:var(--text-2); }
 .result-why { color:var(--text); }
 .result-why-t { font-size:1rem; font-weight:900; line-height:1.25; }
@@ -341,6 +343,8 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 .result-why-tip { display:flex; align-items:flex-start; gap:6px; font-size:0.8125rem; font-weight:800; line-height:1.35; color:var(--text-2); overflow-wrap:anywhere; }
 .result-why-tip .rwt-art { flex:none; margin-top:-1px; }
 .result-why-tip > span { min-width:0; }
+/* nefes/diyapazon kaybında ikinci satır: öbür ipucu (birinci satır her denemede o neden; YN-254) */
+.result-why-tip2 { display:block; margin-top:3px; font-weight:700; }
 /* Rahat deneme (karar 42, YN-110): kayıpta teklif kartı (sayfa akışında, neden kartının altında) ve Rahat geçişin sonuç kartı */
 .result-screen .result-rahat { width:100%; display:flex; flex-direction:column; gap:6px; text-align:left; padding:10px 12px; color:var(--text); }
 .result-rahat-t { font-size:0.9375rem; font-weight:900; line-height:1.3; overflow-wrap:anywhere; }
@@ -372,6 +376,8 @@ h2 { font-size:1.25rem; margin:0; line-height:1.2; font-weight:900; }
 @media (max-width:360px) { .result-star3 li { grid-template-columns:auto minmax(0,1fr); } .result-star3 li .rs3-n { grid-column:2; text-align:left; white-space:normal; } }
 html.buyuk-yazi .result-star3 li { grid-template-columns:auto minmax(0,1fr); }
 html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-space:normal; }
+/* Büyük yazıda satır başındaki koşul kutusu (boş yuva / tik) yazıyla birlikte büyür (OT-buyuk-yazi-74) */
+html.buyuk-yazi .result-star3 li > .art { width:24px; height:24px; }
 .result-earn { width:100%; display:flex; flex-direction:column; gap:6px; text-align:left; opacity:0; transform:translateY(8px); transition:opacity .35s, transform .35s; }
 .result-earn[data-show="yes"] { opacity:1; transform:none; }
 .result-earn-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:900; }

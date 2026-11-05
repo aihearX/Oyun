@@ -14,15 +14,15 @@ const EMOJI = /\p{Extended_Pictographic}/u;
 describe('3. yıldız kartı: koşul her zaman tam (OT-rekabetci-17)', () => {
   // 26 Derin Kıvrım: yüzme + altın koklea; 62 notada da 54 notada da aynı koşul metni
   const secret = spec(26, { id: 'secret', label: '3 altın kokleayı bul' });
-  it('altın koklea (yüzme bölümü): nota şartı tutunca yazıdan düşmez, tutan parça işaretli', () => {
+  it('altın koklea (yüzme bölümü): nota şartı tutunca yazıdan düşmez, tutan parça nötr "var", eksik parça "eksik" (OT-buyuk-yazi-74)', () => {
     expect(secret.mechanic).toBe('yuzme');
     const at62 = star3View(secret, run({ coins: 62, extra: { cochleas: 2, cochleasTotal: 3 } })).rows[1]!;
-    expect(at62).toEqual({ text: '3 altın kokleayı bul ve 60 nota', done: false, note: '60 nota tamam · 2/3 altın koklea', parts: [{ text: '60 nota tamam', done: true }, { text: '2/3 altın koklea', done: false }] });
+    expect(at62).toEqual({ text: '3 altın kokleayı bul ve 60 nota', done: false, note: '60 nota: var · 2/3 altın koklea: eksik', parts: [{ text: '60 nota: var', done: true }, { text: '2/3 altın koklea: eksik', done: false }] });
     const at54 = star3View(secret, run({ coins: 54, extra: { cochleas: 2, cochleasTotal: 3 } })).rows[1]!;
     expect(at54.text).toBe(at62.text);
-    expect(at54.note).toBe('6 nota kaldı · 2/3 altın koklea');
+    expect(at54.note).toBe('6 nota kaldı · 2/3 altın koklea: eksik');
     // hedef tuttu, nota eksik: tutan parça önde
-    expect(star3View(secret, run({ coins: 54, objectiveMet: true, extra: { cochleas: 3, cochleasTotal: 3 } })).rows[1]).toMatchObject({ done: false, note: '3/3 altın koklea · 6 nota kaldı', parts: [{ done: true }, { done: false }] });
+    expect(star3View(secret, run({ coins: 54, objectiveMet: true, extra: { cochleas: 3, cochleasTotal: 3 } })).rows[1]).toMatchObject({ done: false, note: '3/3 altın koklea: var · 6 nota kaldı', parts: [{ done: true }, { done: false }] });
     // ikisi de tamam: satır tamam, not yok
     expect(star3View(secret, run({ coins: 62, stars: 3, objectiveMet: true, extra: { cochleas: 3, cochleasTotal: 3 } })).rows[1]).toEqual({ text: '3 altın kokleayı bul ve 60 nota', done: true, note: '' });
     expect(nextGoal(secret, run({ coins: 62 })).text).toBe(nextGoal(secret, run({ coins: 54 })).text);
@@ -30,11 +30,11 @@ describe('3. yıldız kartı: koşul her zaman tam (OT-rekabetci-17)', () => {
   });
   it('melodi, hasarsız, eskort: aynı tam metin ve iki parçanın ilerlemesi', () => {
     const melody = spec(19, { id: 'melody', target: 7, label: 'Notaları sırayla topla (7)' });
-    expect(star3View(melody, run({ coins: 70, extra: { melody: 4, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'notaları sırayla topla (7) ve 60 nota', note: '60 nota tamam · 4/7 sırayla' });
+    expect(star3View(melody, run({ coins: 70, extra: { melody: 4, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'notaları sırayla topla (7) ve 60 nota', note: '60 nota: var · 4/7 sırayla: eksik' });
     const nd = spec(15, { id: 'no-damage', label: 'Hiç hasar alma' });
-    expect(star3View(nd, run({ coins: 70, damageTaken: 2 })).rows[1]).toMatchObject({ text: 'hiç hasar alma ve 60 nota', note: '60 nota tamam · 2 hasar aldın' });
+    expect(star3View(nd, run({ coins: 70, damageTaken: 2 })).rows[1]).toMatchObject({ text: 'hiç hasar alma ve 60 nota', note: '60 nota: var · 2 hasar aldın' });
     const esc = spec(17, { id: 'escort', label: 'Fısıltıyı kapıya taşı' });
-    expect(star3View(esc, run({ coins: 70 })).rows[1]).toMatchObject({ text: 'Fısıltıyı kapıya taşı ve 60 nota', note: '60 nota tamam · Fısıltı yolda kaldı' });
+    expect(star3View(esc, run({ coins: 70 })).rows[1]).toMatchObject({ text: 'Fısıltıyı kapıya taşı ve 60 nota', note: '60 nota: var · Fısıltı yolda kaldı' });
     // süreli hedefte nota şartı yok (star3Objective 0): metin yalnız süre
     const timed = spec(18, { id: 'timed', target: 64, target2: 75, label: '64 saniyede bitir' });
     expect(star3View(timed, run({ coins: 70, timeSec: 66 })).rows[1]!.text).toBe('64 saniyede bitir');

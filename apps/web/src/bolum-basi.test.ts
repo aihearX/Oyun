@@ -111,6 +111,20 @@ describe('3. yıldız kartı (YN-191)', () => {
     expect(rows[1]!.querySelector('svg')?.getAttribute('width')).toBe('20');
     expect(rows[0]!.querySelector('svg')?.getAttribute('width')).toBe('16');
   });
+  it('"ya da" koşulunun yalnız nota parçası tuttu: tik ve "tamam" yok, parça nötr "var", eksik parça "eksik" (OT-buyuk-yazi-74, YN-262)', async () => {
+    const spec = generateLevel(HUMAN_JOURNEY.id, 16, prof); expect(spec.objective.id).toBe('secret');
+    const r = run(spec, { coins: Math.ceil(spec.coinsTotal * 0.62), objectiveMet: false, extra: { maxCombo: 5, cochleas: 0, cochleasTotal: 3 } });
+    expect(r.stars).toBe(2);
+    await show(spec, r);
+    const card = q('sonuc-yildiz3')!; expect(card.classList.contains('met')).toBe(false);
+    const li = [...card.querySelectorAll('li')][1]!;
+    expect(li.classList.contains('met')).toBe(false);
+    expect(li.querySelectorAll('svg.art-check')).toHaveLength(0);
+    expect(nb(li.querySelector('.rs3-n')?.textContent)).toMatch(/^\d+ nota: var · 0\/3 altın koklea: eksik$/);
+    expect(nb(li.querySelector('.rs3-p.ok')?.textContent)).toMatch(/^\d+ nota: var$/);
+    expect(nb(li.querySelector('.rs3-p.eksik')?.textContent)).toMatch(/0\/3 altın koklea: eksik$/);
+    expect(card.textContent).not.toMatch(/tamam/);
+  });
 });
 
 describe('Biliyor muydun? sonuç ekranında son gösterilenden farklı (YN-175)', () => {

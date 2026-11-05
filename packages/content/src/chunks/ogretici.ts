@@ -54,7 +54,7 @@ export const OGRETICI_CHUNKS: ChunkSpec[] = [
     crumble(1060, G - 110, 110), secret(1115, G - 170),
   ], { tags: ['ogretici', 'cakil', 'anahtar'] }),
   chunk('ogret-yuz', 'yuzme', 1, 1500, [
-    block(0, G, 300, 460), text(150, G - 190, 'Sıvıda basılı tut: yüksel · Bırak: dal'), tutor(300, 260, 'yuz'),
+    block(0, G, 300, 460), text(150, G - 190, 'Sıvıda basılı tut: yüksel · Bırak: dal'), text(760, G - 190, 'Su altında nefesin azalır: yüzeye çık ya da kabarcığa değ'), tutor(300, 260, 'yuz'),
     ...pool(300, 860, 250),
     spike(560, 60, G + 250), spike(840, 60, G + 250), hazard(660, G - 10, 90, 120, 'gurultu'), bubble(760, G + 160), ...coins(420, G + 170, 3, 40), ...coins(950, G + 60, 4, 40),
     block(1160, G, 340, 460), spike(1320, 40), ...jumpArc(1219, 3, 0.6), secret(700, G + 220),

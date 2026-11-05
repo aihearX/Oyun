@@ -4,6 +4,7 @@ import { GROUND_Y } from '@odi/shared';
 import type { BiomeDef } from '@odi/content';
 import * as RD from '../render';
 import { luckyNoteTexture } from '../art';
+import { FONT } from '../render/util';
 
 /**
  * ============================================================================================
@@ -18,7 +19,8 @@ import { luckyNoteTexture } from '../art';
  *        toplanınca view.collect(), kırılınca/ölünce view.shatter()
  *        e: DÜNYA koordinatlı Entity (dikdörtgenler sol-üst; spike sol+taban; ayaklılar alt-orta; noktalar merkez)
  *        v: x,y (anlık bağlantı noktası), visible, alpha, warn 0..1 (telegraf), on (açık/basılı/katı), phase (ritim evresi), t, face
- *  createHeroView(scene, cosmetic, x, y, color): HeroView             — Odi; her kare update(h: HeroVisual), anlar için fx(kind)
+ *  createHeroView(scene, cosmetic, x, y, color, o?): HeroView         — Odi; her kare update(h: HeroVisual), anlar için fx(kind);
+ *        o.breathIntro: nefes çubuğu bu bölümde ilk kez görünür (yüzmenin açıldığı bölüm): bir kez "Nefes" etiketiyle tanıtılır
  *  createHud(scene, heroColor, top, textScale): LevelHudView           — nota sayacı + uçan nota, altın koklea (n/3), can, ilerleme, süre, seri, övgü, el işareti
  *  createFx(scene, biome): LevelFx                                      — iniş tozu, zıplama pufu, parıltı, vuruş flaşı, halka, koklea, vinyet
  *  createBossView(scene, kind, name, groundY, biome): BossView         — boss ve saldırıları
@@ -124,7 +126,7 @@ export interface HeroVisual {
 /** yarış katmanı ve araçlar kahramanın x/y'sini okur */
 export interface HeroHandle { readonly x: number; readonly y: number; readonly sprite: Phaser.GameObjects.Container }
 export interface HeroView { hero: HeroHandle; update(h: HeroVisual): void; land(impact: number): void; destroy(): void }
-export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?: string } | undefined, x: number, y: number, defaultColor = 0x6c4cf1): HeroView {
+export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?: string } | undefined, x: number, y: number, defaultColor = 0x6c4cf1, o: { breathIntro?: boolean } = {}): HeroView {
   const hv = RD.createHeroVisual(s, { color: cosmetic?.color ?? defaultColor, hat: cosmetic?.hat ?? null });
   hv.setPosition(x, y); hv.setDepth(RD.DEPTH.hero);
   const rope = s.add.graphics().setDepth(RD.DEPTH.hero - 1);
@@ -145,6 +147,12 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
     breathBar.lineStyle(2, 0xe9fffd, 1).strokeCircle(ix, y, r).lineStyle(1.5, 0xe9fffd, 1).strokeCircle(sx, sy, sr);
     breathBar.lineStyle(1.6, 0xffffff, 0.95).beginPath().arc(ix, y, r * 0.6, Math.PI * 1.1, Math.PI * 1.45).strokePath();
   };
+  // çubuğun yazısı (YN-254, OT-ilk-kez-oyun-73: çubuğun nefes olduğu tahmin ediliyordu; ses kapalı oyuncu uyarıyı duymaz): ilk
+  // göründüğü bölümde çubuk toplam ~4 sn görünene dek "Nefes", azalınca (%30 altı) her bölümde "Nefesin azaldı: yüzeye çık"
+  const k0 = Number(s.registry?.get('textScale')) || 1;
+  const breathText = s.add.text(0, 0, '', { fontFamily: FONT, fontSize: `${Math.round(15 * k0)}px`, fontStyle: '900', color: '#e9fffd', stroke: '#140c35', strokeThickness: Math.round(5 * k0), resolution: Math.max(1, Math.min(3, s.cameras.main.zoom || 1)), padding: { x: 3, y: 3 } })
+    .setOrigin(0.5, 1).setDepth(30).setVisible(false);
+  let introLeft = o.breathIntro ? 4 : 0; let lastT = -1;
   let shield = -1; let pose: RD.HeroPose | '' = '';
   const handle: HeroHandle = { get x() { return hv.root.x; }, get y() { return hv.root.y; }, get sprite() { return hv.root; } };
   return {
@@ -161,9 +169,15 @@ export function createHeroView(s: Phaser.Scene, cosmetic: { color?: number; hat?
       rope.clear(); if (h.hook) { rope.lineStyle(2.5, 0xfff6e5, 0.9); rope.beginPath(); rope.moveTo(h.hook.x, h.hook.y + 8); rope.lineTo(h.x, cy); rope.strokePath(); }
       const breath = h.water && h.breath < h.breathMax - 0.05; breathBar.setVisible(breath);
       if (breath) drawBreath(h.x, cy - 54, Math.max(0, h.breath / h.breathMax), h.breath < 2);
+      const dt = lastT < 0 ? 0 : Math.max(0, Math.min(0.1, h.t - lastT)); lastT = h.t;
+      if (breath && introLeft > 0) introLeft -= dt;
+      const warn = breath && h.breath / h.breathMax < 0.3;
+      const label = warn ? 'Nefesin azaldı: yüzeye çık' : breath && introLeft > 0 ? 'Nefes' : '';
+      breathText.setVisible(!!label);
+      if (label) { if (breathText.text !== label) breathText.setText(label).setColor(warn ? '#ff9a9a' : '#e9fffd'); breathText.setPosition(h.x, cy - 54 - 12 * k0); }
     },
     land: (impact) => hv.land(impact),
-    destroy: () => { hv.destroy(); rope.destroy(); breathBar.destroy(); },
+    destroy: () => { hv.destroy(); rope.destroy(); breathBar.destroy(); breathText.destroy(); },
   };
 }
 

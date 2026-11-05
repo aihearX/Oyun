@@ -324,7 +324,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             <div className="card result-obj result-why" data-testid="sonuc-neden">
               <small className="result-obj-h">Neden olmadı?</small>
               <span className="result-why-l"><b className="result-why-t">{loss.title}</b>{lossDetail && <span className="result-why-d" data-testid="sonuc-neden-hasar">{lossDetail}</span>}</span>
-              {loss.tip && <span className="result-why-tip"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}</span></span>}
+              {loss.tip && <span className="result-why-tip" data-testid="sonuc-ipucu"><Art name="bulb" size={20} className="rwt-art" /><span>{loss.tip}{loss.tip2 && <span className="result-why-tip2">{loss.tip2}</span>}</span></span>}
               {/* düğme yerini durum satırına bırakır; durum satırı hep yerinde (ekran okuyucu "açıldı"yı duyurur) */}
               {dark && (
                 <span className="result-why-hv" data-testid="sonuc-gorunurluk" data-acik={store.highVis ? '1' : undefined}>
@@ -372,8 +372,9 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
                       {/* tutan koşul yeşil çizili tikle ve belirgin; yıldız alındıysa tutmayanın "kaldı"sı soluk (OT-buyuk-yazi-58) */}
                       <Art name={row.done ? 'check' : 'empty'} size={row.done ? 20 : 16} className="art-inline" />
                       <span className="rs3-t">{i > 0 && <small className="rs3-or">ya da </small>}{row.text}</span>
-                      {/* iki parçalı koşulda tutan parça işaretli: "60 nota tamam · 2/3 altın koklea" (OT-rekabetci-17) */}
-                      <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ''}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.done && <Art name="check" size={13} className="art-inline" />}{p.text}</span>) : row.note || 'yapılmadı'}</span>
+                      {/* iki parçalı koşulda her parça ilerlemesiyle (OT-rekabetci-17); koşulun tamamı tutmadıkça tik ve "tamam" yok: tutan
+                          parça nötr "59 nota: var", eksik olan belirgin "0/3 altın koklea: eksik" (OT-buyuk-yazi-74) */}
+                      <span className={`rs3-n${row.parts ? ' parts' : ''}`}>{row.done ? 'tamam' : row.parts ? row.parts.map((p, j) => <span key={j} className={`rs3-p${p.done ? ' ok' : ' eksik'}`}>{j > 0 && <span className="rs3-sep" aria-hidden> · </span>}{p.text}</span>) : row.note || 'yapılmadı'}</span>
                     </li>
                   ))}
                 </ul>

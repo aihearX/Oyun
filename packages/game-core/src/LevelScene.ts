@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import type { AbilityId, Entity, LevelSpec, RunResult } from '@odi/shared';
 import { GROUND_Y, GAME_W, GAME_H, scoreRun } from '@odi/shared';
-import { BIOMES, FIRSTS, MODIFIERS, PATOLOJILER, journeyById, modifierAnnounce, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
+import { ABILITIES, BIOMES, FIRSTS, MODIFIERS, PATOLOJILER, journeyById, modifierAnnounce, patolojiKey, tutorialKey, type BiomeDef, type PatolojiId } from '@odi/content';
 import { resolveTrack } from '@odi/audio';
 import { yuzdeIyelik } from '@odi/meta';
 import type { GameEvent, LevelOptions } from './bridge';
@@ -128,7 +128,7 @@ export class LevelScene extends Phaser.Scene {
     for (const e of w.ents) if (isTerrain(e)) terrain.push({ l: e.l, t: e.t, r: e.r, b: e.b, kind: e.type === 'wall' ? 'wall' : e.p.tavan ? 'ceiling' : 'platform' });
     this.terrain = makeTerrain(this, terrain, this.biome);
     const heroColor = this.opts.cosmetic?.color ?? (this.spec.biome.startsWith('koklea') ? 0x0e9c98 : 0x6c4cf1);
-    this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, heroColor);
+    this.heroView = createHeroView(this, this.opts.cosmetic, w.startX, w.startY, heroColor, { breathIntro: this.spec.number === ABILITIES.yuz.level });
     this.projLayer = createProjectileLayer(this, this.biome);
     if (this.sim.boss) { this.bossView = createBossView(this, this.sim.boss.kind, this.sim.boss.name, GROUND_Y, this.biome); this.bossView.layout?.(this.vw, this.hudTop); }
     this.fx = createFx(this, this.biome);
