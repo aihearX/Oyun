@@ -289,6 +289,9 @@ export const BUILDINGS: BuildingDef[] = [
   { id: 'denge', name: 'Vestibüler Laboratuvar', short: 'Denge', emoji: '🌀', desc: 'Denge sistemini ölçer; kamp da dengede kalır: depo dolma süresi +30 dk/seviye.', maxLevel: 20, campLevel: 12 },
   { id: 'kutuphane', name: 'Odyoloji Kütüphanesi', short: 'Kütüphane', emoji: '📚', desc: 'Okudukça kamp büyür: okuma köşesinde saatte seviye × 2 Kamp XP birikir.', maxLevel: 20, campLevel: 16 },
 ];
+/** binanın kurma cümlesindeki adı ("Odyometri Odası’nı kur"): ilk kurulum penceresi ve görev kilidi aynı yazar */
+export const BINA_KUR: Record<BuildingId, string> = { merkez: 'Odyoloji Merkezi’ni', laboratuvar: 'Odyometri Odası’nı', atolye: 'İşitme Cihazı Atölyesi’ni', depo: 'Kulak Deposu’nu', kule: 'Timpanometri Kulesi’ni', revir: 'Odyoloji Kliniği’ni', tedavi: 'Tedavi Odası’nı',
+  kabin: 'Akustik Kabin’i', tarama: 'Yenidoğan İşitme Tarama Birimi’ni', park: 'İşitsel Rehabilitasyon Parkı’nı', denge: 'Vestibüler Laboratuvar’ı', kutuphane: 'Odyoloji Kütüphanesi’ni' };
 /** campV < 2 istemcilerin bildiği binalar (eski istemciler yalnız bunları alır) */
 export const LEGACY_BUILDINGS: BuildingId[] = ['merkez', 'laboratuvar', 'atolye', 'depo', 'kule', 'revir', 'tedavi'];
 /**

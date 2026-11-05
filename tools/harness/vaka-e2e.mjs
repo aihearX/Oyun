@@ -214,14 +214,18 @@ try {
     check((await A.evaluate(() => window.__olay.banner.filter((b) => /Kamp görevi/.test(b)).length)) - banD === 1 && (await A.evaluate(() => window.__kg.celebrations())) - celD === 1, 'günlük görev: tek kutlama, tek afiş');
     // YN-104: her satırda Git/Oyna; Değiştir ayrı ve onaylı (Vazgeç hakkı korur)
     check(await A.locator('[data-gorev="g-ton"] [data-testid="kg-git"]').textContent() === 'Oyna', 'günlük görev satırında Oyna düğmesi');
-    await A.locator('[data-gorev="g-ton"] [data-testid="kg-degistir"]').click();
+    await A.locator('[data-gorev="g-vaka"] [data-testid="kg-degistir"]').click();
     check(/Bugün 1 değiştirme hakkın var/.test(await A.locator('[data-testid="kg-degistir-soru"]').textContent()), 'Değiştir onay soruyor');
     await A.locator('[data-testid="kg-degistir-soru"]').getByRole('button', { name: 'Vazgeç' }).click();
-    check(await A.locator('[data-gorev="g-ton"]').count() === 1, 'Vazgeç: görev yerinde');
+    check(await A.locator('[data-gorev="g-vaka"]').count() === 1, 'Vazgeç: görev yerinde');
+    await A.locator('[data-gorev="g-vaka"] [data-testid="kg-degistir"]').click();
+    await A.locator('[data-gorev="g-vaka"] [data-testid="kg-degistir-onay"]').click();
+    await A.locator('[data-gorev="g-vaka"]').waitFor({ state: 'detached', timeout: 8000 });
+    check(await A.evaluate(() => window.__kg.state().kg.daily.rerollLeft) === 0 && await A.locator('[data-gorev]:not([data-gorev^="g-ton"]) [data-testid="kg-degistir"]').count() === 0, 'değiştirme hakkı kullanıldı (bir kez)');
+    // YN-227: sesle oynanan görev (Ton Avı) hak bitse de değişir, hak harcamaz (OT-sessiz-oyuncu-30)
     await A.locator('[data-gorev="g-ton"] [data-testid="kg-degistir"]').click();
-    await A.locator('[data-gorev="g-ton"] [data-testid="kg-degistir-onay"]').click();
-    await A.locator('[data-gorev="g-ton"]').waitFor({ state: 'detached', timeout: 8000 });
-    check(await A.locator('[data-testid="kg-degistir"]').count() === 0, 'değiştirme hakkı kullanıldı (bir kez)');
+    check(/hakkından düşmez/.test(await A.locator('[data-testid="kg-degistir-soru"]').textContent()), 'Ton Avı görevi: değiştirmek hak harcamaz');
+    await A.locator('[data-testid="kg-degistir-soru"]').getByRole('button', { name: 'Vazgeç' }).click();
     await toastGone(A);
 
     step(`5 · [${bt}] Klinik: ilk hasta → testler → tanı + yönetim → 3 yıldız`);

@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { KampOdul, KgBasamak, KgGorev, KgState } from '@odi/shared';
-import { KAMP_OYUN, KG_GUNLUK, KG_KURAL, odulMetni, type KgOlcut } from '@odi/content';
+import { KAMP_OYUN, KG_GUNLUK, KG_KURAL, kgSesli, odulMetni, type KgOlcut } from '@odi/content';
 import { audio } from '@odi/audio';
 import { TuyDede } from '../../ftue/Narrator';
 import { lineText } from '../../ftue/script';
@@ -17,11 +17,13 @@ import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { act } from '../../net';
 import { useNav, type Nav } from '../../nav';
-import { ORTAK_HAK_NOTU, claimKg, oyunGunMetni, openPanel, refreshKg, useKg, type GorevSekme, type KgPanel } from './state';
+import { ORTAK_HAK_NOTU, claimKg, oyunGunMetni, openPanel, refreshKg, useKg, useSesKapali, type GorevSekme, type KgPanel } from './state';
 
 const satir = (id: string) => { try { return lineText(id); } catch { return ''; } };
 const DINLENDI = 'odi.kg.dinlendi';
 function dinlendi(id: string): boolean { try { const l = JSON.parse(localStorage.getItem(DINLENDI) ?? '[]') as string[]; if (l.includes(id)) return true; localStorage.setItem(DINLENDI, JSON.stringify([...l, id].slice(-60))); return false; } catch { return true; } }
+/** kalan süre tek parça ("19 sa 09 dk" satır sonunda bölünmez; OT-buyuk-yazi-65) */
+const sureTek = (ms: number) => fmtLeft(Math.max(0, ms)).replace(/ /g, '\u00a0');
 const from = (e: MouseEvent<HTMLElement>) => { const r = e.currentTarget.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
 
 export function OdulChips({ r, small }: { r: KampOdul; small?: boolean }) {
@@ -158,22 +160,24 @@ function Gunluk({ s }: { s: KgState }) {
   const [sor, setSor] = useState<string | null>(null);
   const reroll = async (id: string) => { setSor(null); setDegis(id); const r = await act('kg.reroll', { id }); setDegis(null); if (r) { useKg.setState({ kg: r.state }); audio.play('whoosh'); } };
   const hak = s.daily.rerollLeft;
+  // sesle oynanan görev (Ton Avı) hak harcamadan değişir; sesi kapalıyken kendiliğinden değişir (state.ts sesliGorevDegistir)
+  const sessiz = useSesKapali();
   return (
     <div className="kg-gunluk">
       {s.weekly && <Haftalik s={s} />}
-      <div className="kg-sec-head"><b>Bugünün kamp görevleri</b><small>Yenilenme: {fmtLeft(Math.max(0, s.dayEndsAt - now))}</small></div>
+      <div className="kg-sec-head"><b>Bugünün kamp görevleri</b><small>Yenilenme: {sureTek(s.dayEndsAt - now)}</small></div>
       <div className="kg-gorevler">
-        {s.daily.tasks.map((t) => (
+        {s.daily.tasks.map((t) => { const sesli = kgSesli(t.id); const degisir = !t.done && (hak > 0 || sesli); return (
           <div key={t.id} className={`kg-gorev${t.done ? ' done' : ''}${t.claimed ? ' claimed' : ''}`} data-gorev={t.id}>
             <span className="kg-adim-ic"><KgIcon name={t.art} size={28} /></span>
             <div className="grow min0"><b>{t.text}</b>
               {t.locked && !t.done ? <small className="kg-kilit"><Art name="lock" size={14} /> {t.locked}</small> : <div className="kg-ilerleme"><div className="kg-bar"><i style={{ width: `${Math.round((t.progress / t.need) * 100)}%` }} /></div><small>{t.progress}/{t.need}</small></div>}
               {t.reward && <OdulChips r={t.reward} small />}
               <AlBekliyor r={t.ref} />
-              {!t.done && hak > 0 && sor !== t.id && <button type="button" className="kg-degis" data-testid="kg-degistir" disabled={!!degis} onClick={() => { audio.play('tap'); setSor(t.id); }}><Art name="refresh" size={14} /> Değiştir</button>}
-              {!t.done && hak > 0 && sor === t.id && (
+              {degisir && sor !== t.id && <button type="button" className="kg-degis" data-testid="kg-degistir" disabled={!!degis} onClick={() => { audio.play('tap'); setSor(t.id); }}><Art name="refresh" size={14} /> Değiştir</button>}
+              {degisir && sor === t.id && (
                 <div className="kg-degis-onay" role="group" aria-label="Görev değiştirme onayı" data-testid="kg-degistir-soru">
-                  <small>Bugün {hak} değiştirme hakkın var. Değiştirilsin mi?</small>
+                  <small>{sesli ? 'Ton Avı sesle oynanır: bu görevi değiştirmek hakkından düşmez. Değiştirilsin mi?' : `Bugün ${hak} değiştirme hakkın var. Değiştirilsin mi?`}</small>
                   <span className="row"><button type="button" className="btn small ghost" data-testid="kg-degistir-onay" disabled={!!degis} onClick={() => void reroll(t.id)}>Değiştir</button><button type="button" className="btn small ghost" onClick={() => setSor(null)}>Vazgeç</button></span>
                 </div>
               )}
@@ -182,9 +186,9 @@ function Gunluk({ s }: { s: KgState }) {
               : t.done ? <button className="btn small gold" data-testid="kg-al" data-ref={t.ref} disabled={busy === t.ref} onClick={(e) => void claimKg(t.ref, 'Kamp görevi tamam!', { from: from(e) })}>Al</button>
                 : !t.locked ? (() => { const g = gorevGit(t.id); return <button className="btn small" data-testid="kg-git" onClick={() => { audio.play('tap'); g.go(nav); }}>{g.label}</button>; })() : null}
           </div>
-        ))}
+        ); })}
       </div>
-      <small className="kg-note">{hak > 0 ? `Bugün ${hak} görevi değiştirebilirsin (onay sorulur).` : 'Bugünün değiştirme hakkı kullanıldı.'} Günlük görevler her gün gece yarısı yenilenir.</small>
+      <small className="kg-note">{hak > 0 ? `Bugün ${hak} görevi değiştirebilirsin (onay sorulur).` : 'Bugünün değiştirme hakkı kullanıldı.'} Günlük görevler her gün gece yarısı yenilenir.{sessiz ? ' Sesin kapalı: sesle oynanan Ton Avı görevi verilmez.' : ''}</small>
     </div>
   );
 }
@@ -193,14 +197,14 @@ function Haftalik({ s }: { s: KgState }) {
   const w = s.weekly!; const busy = useKg((x) => x.busy); const max = w.tiers[w.tiers.length - 1]!.need; const now = useNow(60_000);
   return (
     <div className="kg-hafta" data-testid="kg-hafta">
-      <div className="kg-sec-head"><b><KgIcon name={w.art} size={20} /> Haftalık kamp hedefi</b><small>{fmtLeft(Math.max(0, s.weekEndsAt - now))}</small></div>
+      <div className="kg-sec-head"><b><KgIcon name={w.art} size={20} /> Haftalık kamp hedefi</b><small>{sureTek(s.weekEndsAt - now)}</small></div>
       <div className="kg-hafta-text">{w.text}: <b>{w.progress}</b></div>
       <div className="kg-hafta-bar"><div className="kg-bar"><i style={{ width: `${Math.min(100, Math.round((w.progress / max) * 100))}%` }} /></div>
         {w.tiers.map((t) => <span key={t.ref} className={`kg-tier-mark${t.reached ? ' on' : ''}`} style={{ left: `${(t.need / max) * 100}%` }}>{t.need}</span>)}</div>
       <div className="kg-tiers">
         {w.tiers.map((t, i) => (
           <div key={t.ref} className={`kg-tier-box${t.claimed ? ' claimed' : t.reached ? ' ready' : ''}`}>
-            <small>{i + 1}. basamak · {t.need}</small><OdulChips r={t.reward} small />
+            <small className="kg-tier-ad">{`${i + 1}.\u00a0basamak ·\u00a0${t.need}`}</small><OdulChips r={t.reward} small />
             {t.claimed ? <span className="kg-alindi">Alındı</span> : t.reached ? <button className="btn small gold" data-testid="kg-al" data-ref={t.ref} disabled={busy === t.ref} onClick={(e) => void claimKg(t.ref, `Haftalık hedef: ${i + 1}. basamak`, { from: from(e), big: i === 2 })}>Al</button> : <span className="kg-kalan">{t.need - w.progress} kaldı</span>}
             <AlBekliyor r={t.ref} />
           </div>

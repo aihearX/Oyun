@@ -360,7 +360,7 @@ async function suite(target, browserName, [W, H]) {
     await page.locator('.camp-listbtn').click(); await page.locator('.camp-list-screen').waitFor();
     const kart = page.locator('.card.building', { hasText: 'Odyoloji Kliniği' });
     await kart.scrollIntoViewIfNeeded(); await kart.getByRole('button', { name: 'Kur' }).click();
-    await page.locator('.sheet-wrap').getByRole('button', { name: 'Yükselt' }).click();
+    await page.locator('.sheet-wrap').getByRole('button', { name: 'Kur', exact: true }).click(); // ilk kurulum penceresi "Kur" der (YN-227)
     const bitti = page.locator('.card.building', { hasText: 'Odyoloji Kliniği' }).locator('.lvl-pill', { hasText: 'Sv 1' });
     for (let i = 0; i < 100 && !(await bitti.count()); i++) { await dismissCel(page); await sleep(1000); }
     check(await bitti.count() === 1, 'Odyoloji Kliniği kuruldu (Sv 1)');

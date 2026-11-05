@@ -84,7 +84,7 @@
 .kg-takim { background:rgba(46,230,214,.07); border-color:rgba(46,230,214,.32); }
 .kg-hafta-text { font-size:0.8125rem; } .kg-hafta-text b { color:var(--gold); font-variant-numeric:tabular-nums; }
 .kg-hafta-bar { position:relative; display:flex; padding-bottom:16px; }
-.kg-tier-mark { position:absolute; bottom:0; transform:translateX(-100%); font-size:0.65625rem; font-weight:900; color:var(--text-2); }
+.kg-tier-mark { position:absolute; bottom:0; transform:translateX(-100%); font-size:0.75rem; font-weight:900; color:var(--text-2); }
 .kg-tier-mark.on { color:#8ef0b0; }
 .kg-tiers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .kg-tier-box { display:flex; flex-direction:column; gap:4px; align-items:stretch; background:rgba(255,255,255,.05); border:1px solid var(--panel-edge); border-radius:12px; padding:6px; min-width:0; }
@@ -92,6 +92,16 @@
 .kg-tier-box.ready { border-color:var(--gold); } .kg-tier-box.claimed { opacity:.65; }
 .kg-tier-box .btn { padding:6px; }
 .kg-kalan { font-size:0.71875rem; font-weight:800; color:var(--text-2); text-align:center; }
+.kg-tier-box .kg-odul-chip { text-align:center; }
+/* Büyük yazı: basamaklar alt alta (ad, ödül hapları, durum yan yana); haplar bölünmez, sayılar okunur boyda (OT-buyuk-yazi-65) */
+html.buyuk-yazi .kg-hafta-bar { padding-bottom:20px; }
+html.buyuk-yazi .kg-tiers { grid-template-columns:minmax(0,1fr); }
+html.buyuk-yazi .kg-tier-box { flex-direction:row; flex-wrap:wrap; align-items:center; gap:6px 8px; padding:8px 10px; }
+html.buyuk-yazi .kg-tier-box > .kg-tier-ad { flex-basis:100%; font-size:0.75rem; }
+html.buyuk-yazi .kg-tier-box > .kg-odul { flex:1 1 auto; min-width:0; margin-top:0; }
+html.buyuk-yazi .kg-tier-box .kg-odul-chip { white-space:nowrap; }
+html.buyuk-yazi .kg-tier-box > .kg-kalan, html.buyuk-yazi .kg-tier-box > .kg-alindi, html.buyuk-yazi .kg-tier-box > .btn { margin-left:auto; flex:none; }
+html.buyuk-yazi .kg-tier-box > .small-note { flex-basis:100%; }
 .kg-etk { appearance:none; font:inherit; color:#fff; text-align:left; display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.05); border:1.5px solid var(--panel-edge); border-radius:16px; padding:10px 12px; cursor:pointer; }
 .kg-etk b { display:block; font-size:0.9375rem; } .kg-etk small { display:block; font-size:0.75rem; color:var(--text-2); }
 .kg-etk.locked { opacity:.6; cursor:default; }

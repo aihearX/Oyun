@@ -162,7 +162,7 @@ try {
   await B.getByRole('button', { name: 'Liste görünümü' }).click(); // erişilebilir liste görünümü: aynı işlevler
   await B.locator('.building').first().waitFor();
   await B.locator('.building', { hasText: 'Odyometri Odası' }).getByRole('button', { name: /^(Kur|Yükselt)$/ }).click(); // Sv 0 binada etiket "Kur" (80c3641)
-  await B.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
+  await B.locator('.sheet').getByRole('button', { name: /^(Kur|Yükselt)$/ }).click(); // onay penceresi de Sv 0'da "Kur" (YN-227)
   await B.locator('.construction').waitFor();
   await toastGone(B);
   await B.getByRole('button', { name: /Takımdan yardım iste/ }).click();

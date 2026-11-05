@@ -154,7 +154,11 @@ export const KG_HIKAYE: KgBolumDef[] = [
 
 // ---------------------------------------------------------------- günlük kamp görevleri
 
-export interface KgGunlukDef extends KgAdim { /** havuzda seçilme ağırlığı */ w: number }
+export interface KgGunlukDef extends KgAdim {
+  /** havuzda seçilme ağırlığı */ w: number;
+  /** yalnız sesle oynanır (Ton Avı, karar 44): sesi kapalı oyuncuya atanmaz; atanmışsa değiştirmek hak harcamaz (OT-sessiz-oyuncu-30) */
+  ses?: true;
+}
 export const KG_GUNLUK: KgGunlukDef[] = [
   { id: 'g-depo', text: 'Kulak Deposu’ndan jeton topla', olcut: 'depo-topla', need: 1, art: 'depo', w: 3, sart: { bina: ['depo', 1] } },
   { id: 'g-insaat', text: 'Kampta bir inşaat başlat', olcut: 'insaat', need: 1, art: 'insaat', w: 2 },
@@ -162,14 +166,17 @@ export const KG_GUNLUK: KgGunlukDef[] = [
   { id: 'g-malzeme-kullan', text: 'Bir bölüme malzemeyle çık ve kullan', olcut: 'malzeme-kullan', need: 1, art: 'bolum', w: 1, sart: { bina: ['tedavi', 1] } },
   { id: 'g-vaka', text: 'Klinikte bir vaka çöz', olcut: 'vaka', need: 1, art: 'klinik', w: 4, sart: { ozellik: 'vaka', bina: ['revir', 1] } },
   { id: 'g-vaka-tekrar', text: 'Vaka Defteri’nden bir vakayı yeniden çöz', olcut: 'vaka-tekrar', need: 1, art: 'defter', w: 1, sart: { ozellik: 'vaka', bina: ['revir', 1] } },
-  { id: 'g-ton', text: 'Bir tur Ton Avı oyna', olcut: 'ton', need: 1, art: 'ton', w: 3, sart: { ozellik: 'oyun', bina: ['laboratuvar', 1] } },
-  { id: 'g-ton-iyi', text: 'Ton Avı’nda 8’de 7 ya da daha iyi yap', olcut: 'ton-iyi', need: 1, art: 'ton', w: 1, sart: { ozellik: 'oyun', bina: ['laboratuvar', 1] } },
+  { id: 'g-ton', text: 'Bir tur Ton Avı oyna', olcut: 'ton', need: 1, art: 'ton', w: 3, ses: true, sart: { ozellik: 'oyun', bina: ['laboratuvar', 1] } },
+  { id: 'g-ton-iyi', text: 'Ton Avı’nda 8’de 7 ya da daha iyi yap', olcut: 'ton-iyi', need: 1, art: 'ton', w: 1, ses: true, sart: { ozellik: 'oyun', bina: ['laboratuvar', 1] } },
   { id: 'g-timpano', text: 'Bir tur Timpanogram Eşleştir oyna', olcut: 'timpano', need: 1, art: 'timpano', w: 3, sart: { ozellik: 'oyun', bina: ['kule', 1] } },
   { id: 'g-yardim', text: 'Takım arkadaşlarının inşaatına 2 yardım et', olcut: 'yardim', need: 2, art: 'takim', w: 2, sart: { takim: true } },
   { id: 'g-bolum', text: 'Haritada bir bölüm geç', olcut: 'bolum', need: 1, art: 'bolum', w: 1 },
   { id: 'g-dekor', text: 'Kampına bir süs yerleştir', olcut: 'dekor-yerlestir', need: 1, art: 'dekor', w: 1 },
   { id: 'g-ziyaret', text: 'Bir arkadaşının ya da takım arkadaşının kampını ziyaret et', olcut: 'ziyaret', need: 1, art: 'ziyaret', w: 1, sart: { takim: true } },
 ];
+
+/** günlük görev sesle mi oynanır (sesi kapalı oyuncuya atanmaz, değiştirmesi hak harcamaz) */
+export const kgSesli = (id: string): boolean => !!KG_GUNLUK.find((g) => g.id === id)?.ses;
 
 // ---------------------------------------------------------------- haftalık kamp hedefi
 

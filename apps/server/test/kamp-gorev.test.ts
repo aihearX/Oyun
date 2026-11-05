@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BUILDINGS, type KgState } from '@odi/shared';
-import { KG_KURAL, KG_ODUL, VAKALAR, konsultSecenekleri, timpanoHavuzu, timpanoTuru, tonTuru, vakaById } from '@odi/content';
+import { KG_KURAL, KG_ODUL, VAKALAR, kgSesli, konsultSecenekleri, timpanoHavuzu, timpanoTuru, tonTuru, vakaById } from '@odi/content';
 import type { NetError } from '@odi/net';
 import { kgBump, kgCount, kgState } from '../src/camp-quests';
 import { startServer } from '../src/server';
@@ -80,15 +80,41 @@ describe('Kamp Görevleri (sunucu yetkili)', () => {
     expect(kgCount(env.srv.app, pid, 'gunluk', 'week')).toBe(1);
     // alınmış görev değiştirilemez; diğeri bir kez değişir
     expect((await err(a.call('kg.reroll', { id: t0.id }))).code).toBe('GECERSIZ');
-    const t1 = s.daily.tasks[1]!;
+    // (sesle oynanan görevin değiştirilmesi hak harcamaz: ayrı testte; burada sesle oynanmayan görev)
+    const t1 = s.daily.tasks.slice(1).find((x) => !kgSesli(x.id))!;
     const r = await a.call('kg.reroll', { id: t1.id });
     expect(r.state.daily.tasks.map((x) => x.id)).not.toContain(t1.id);
     expect(r.state.daily.rerollLeft).toBe(0);
-    expect((await err(a.call('kg.reroll', { id: r.state.daily.tasks[2]!.id }))).code).toBe('LIMIT');
+    expect((await err(a.call('kg.reroll', { id: r.state.daily.tasks.find((x) => x.id !== t0.id && !kgSesli(x.id))!.id }))).code).toBe('LIMIT');
     env.clock.advance(DAY_MS);
     const n = (await a.call('kg.state', {})).state;
     expect(n.day).not.toBe(s.day); expect(n.daily.rerollLeft).toBe(1);
     expect(n.daily.tasks.every((x) => !x.claimed)).toBe(true);
+  });
+
+  it('sesle oynanan günlük görev (Ton Avı): değiştirmek hak harcamaz, hak bitse de değişir, yerine sesle oynanan gelmez (OT-sessiz-oyuncu-30)', async () => {
+    env = await setup();
+    const a = await player(env, 'Ayşe', 10, { depo: 1, laboratuvar: 1, kule: 1, revir: 1, tedavi: 1 }); const pid = a.me!.id;
+    const s = (await a.call('kg.state', {})).state;
+    // sunucu ses ayarını bilmez: seçim eskisi gibi (aynı tohum, aynı havuz); testte günün görevlerini sabitle
+    env.srv.app.db.run('UPDATE kg_daily SET tasks = ?, rerolls = ? WHERE player_id = ? AND day = ?', JSON.stringify(['g-ton', 'g-depo', 'g-ton-iyi']), 1, pid, s.day);
+    expect((await a.call('kg.state', {})).state.daily.rerollLeft).toBe(0);
+    expect((await err(a.call('kg.reroll', { id: 'g-depo' }))).code).toBe('LIMIT');
+    const r1 = await a.call('kg.reroll', { id: 'g-ton' });
+    const ids1 = r1.state.daily.tasks.map((x) => x.id);
+    expect(ids1).not.toContain('g-ton'); expect(ids1).toContain('g-ton-iyi'); expect(ids1).toHaveLength(3);
+    expect(r1.state.daily.rerollLeft).toBe(0);
+    const r2 = await a.call('kg.reroll', { id: 'g-ton-iyi' });
+    const ids2 = r2.state.daily.tasks.map((x) => x.id);
+    expect(ids2.filter((x) => x === 'g-ton' || x === 'g-ton-iyi')).toEqual([]);
+    expect(r2.state.daily.rerollLeft).toBe(0);
+    expect(env.srv.app.db.get<{ rerolls: number }>('SELECT rerolls FROM kg_daily WHERE player_id = ? AND day = ?', pid, s.day)!.rerolls).toBe(1);
+    // bir oyuncunun değiştirmesi başkasının görevlerine dokunmaz; hak varken de sesli görev hakkı düşürmez
+    const b = await player(env, 'Burak', 10, { depo: 1, laboratuvar: 1, kule: 1, revir: 1, tedavi: 1 }); const bid = b.me!.id;
+    const sb = (await b.call('kg.state', {})).state;
+    env.srv.app.db.run('UPDATE kg_daily SET tasks = ? WHERE player_id = ? AND day = ?', JSON.stringify(['g-ton', 'g-depo', 'g-vaka']), bid, sb.day);
+    expect((await b.call('kg.reroll', { id: 'g-ton' })).state.daily.rerollLeft).toBe(1);
+    expect((await a.call('kg.state', {})).state.daily.tasks.map((x) => x.id)).toEqual(ids2);
   });
 
   it('idempotent sayaçlar: aynı koşu iki kez gönderilse de bir bölüm sayılır; malzeme kullanımı bir kez', async () => {

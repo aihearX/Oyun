@@ -19,13 +19,12 @@ import { OtoskopSvg, TimpanogramSvg } from './charts';
 import { KgIcon } from './art';
 import { KgSheet } from './Klinik';
 import { OdulChips } from './GorevPanel';
-import { ORTAK_HAK_NOTU, celebrateReward, openPanel, oyunGunMetni, useKg } from './state';
+import { ORTAK_HAK_NOTU, celebrateReward, openPanel, oyunGunMetni, sesKapali, useKg } from './state';
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // eski "görsel ipucu" ayarı kaldırıldı: kayıtlı değeri bir kez temizle
 try { localStorage.removeItem('odi.kg.gorsel'); } catch { /* gizli mod */ }
 
-const sesAcikSimdi = () => { const st = useStore.getState(); return st.sounds && (st.sfxVol ?? 0) >= 0.05; };
 /** Ton Avı yalnız sesle oynanır: oyun sesi açık ve efekt düzeyi duyulur olmalı */
 function useSesAcik(): [boolean, () => void] {
   const sounds = useStore((s) => s.sounds); const sfx = useStore((s) => s.sfxVol);
@@ -43,7 +42,7 @@ export function OyunPanel({ oyun }: { oyun: 'ton' | 'timpano' }) {
   const basladi = useRef(0); const [bekle, setBekle] = useState(false);
   const close = () => { audio.play('tap'); audio.music('menu'); openPanel(null); };
   const start = async () => {
-    if (oyun === 'ton' && !sesAcikSimdi()) return;
+    if (oyun === 'ton' && sesKapali()) return;
     setBusy(true); const r = await act('koyun.start', { oyun, duzey }); setBusy(false);
     if (!r) return; audio.unlock(); if (oyun === 'ton') audio.music(null); setSonuc(null); basladi.current = Date.now(); setRound(r.round);
   };

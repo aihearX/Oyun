@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AC_HZ, EGRI_ADI, KAMP_OYUN, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_SAYACLAR,
+  AC_HZ, EGRI_ADI, KAMP_OYUN, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_SAYACLAR, kgSesli,
   EGRI_ACIKLAMA, TANILAR, TIMP_SORULAR, VAKALAR, VAKA_TESTLERI, egriSinifi, isYok, kayipTipi, odulMetni, taniSecenekleri, timpBulmaca, timpSoruHatalari,
   timpanoDestesi, timpanoHavuzu, timpanoPuani, timpanoTuru,
   tonPuani, tonTuru, uygunsuzNotlari, vakaKademesi, vakaPuanla, vakaTutarsizliklari, yonetimSecenekleri, type Vaka,
@@ -192,6 +192,12 @@ describe('Kamp Görevleri: tanımlar', () => {
     for (const g of KG_GUNLUK) { sane(g.text, g.id); expect(g.w).toBeGreaterThan(0); }
     // şartsız en az iki günlük görev var: yeni oyuncu da 3 görev alır
     expect(KG_GUNLUK.filter((g) => !g.sart && !KG_BUYUME_OLCUT.includes(g.olcut)).length).toBeGreaterThanOrEqual(2);
+    // sesle oynanan günlük görevler (Ton Avı; sesi kapalı oyuncuya atanmaz, değiştirmesi hak harcamaz: OT-sessiz-oyuncu-30)
+    expect(KG_GUNLUK.filter((g) => g.ses).map((g) => g.id)).toEqual(['g-ton', 'g-ton-iyi']);
+    expect(KG_GUNLUK.filter((g) => g.olcut === 'ton' || g.olcut === 'ton-iyi').every((g) => kgSesli(g.id))).toBe(true);
+    expect(kgSesli('g-timpano')).toBe(false); expect(kgSesli('yok')).toBe(false);
+    // sesi kapalı oyuncu için de günlük 3 görev çıkabilir: sesle oynanmayan şartsız görevler yeter
+    expect(KG_GUNLUK.filter((g) => !g.ses).length).toBeGreaterThanOrEqual(KG_KURAL.gunlukGorev + 1);
     for (const h of KG_HAFTA) { sane(h.text, h.id); expect(KG_SAYACLAR).toContain(h.olcut); expect(h.tiers[0]).toBeLessThan(h.tiers[2]); }
     expect(KG_HAFTA.some((h) => !h.sart)).toBe(true);
     for (const b of KG_BASARI) {

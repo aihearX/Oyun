@@ -3,10 +3,10 @@
  * vaka, kamp oyunları, bölüm sonucu) sayaçları artırır — her olay bir kez (kg_seen); görev/hikâye/başarı ilerlemesi sayaçlardan ve
  * anlık durumdan (bina seviyeleri, Vaka Defteri, bölge) hesaplanır. Her ödül tam bir kez alınır (kg_claim birincil anahtarı).
  */
-import { BUILDINGS, type BuildingId, type KampOdul, type KgBasamak, type KgBolum, type KgGorev, type KgGorevYa, type KgHafta, type KgState, type OpMap } from '@odi/shared';
+import { BINA_KUR, BUILDINGS, type BuildingId, type KampOdul, type KgBasamak, type KgBolum, type KgGorev, type KgGorevYa, type KgHafta, type KgState, type OpMap } from '@odi/shared';
 import {
   HUMAN_JOURNEY, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_ODUL, KG_SAYACLAR,
-  PATHOLOGY_IDS, REMEDY_INV_CAP, VAKALAR, kgHash, kgRng, remedyById,
+  PATHOLOGY_IDS, REMEDY_INV_CAP, VAKALAR, kgHash, kgRng, kgSesli, remedyById,
   type KgAdim, type KgOlcut, type KgOzellik, type KgSart, type KgSayac, type KgYaAdim,
 } from '@odi/content';
 import { fail, type App, type Handler, type Handlers } from './app';
@@ -27,14 +27,12 @@ function ek(n: number): string {
   return ['', 'de', 'de', 'te', 'te', 'te', 'da', 'de', 'de', 'da'][n % 10]!;
 }
 export const bolumKilit = (f: KgOzellik) => `Bölüm ${KG_ACILIS[f]}’${ek(KG_ACILIS[f])} açılır`;
-const KUR: Record<BuildingId, string> = { merkez: 'Odyoloji Merkezi’ni', laboratuvar: 'Odyometri Odası’nı', atolye: 'İşitme Cihazı Atölyesi’ni', depo: 'Kulak Deposu’nu', kule: 'Timpanometri Kulesi’ni', revir: 'Odyoloji Kliniği’ni', tedavi: 'Tedavi Odası’nı',
-  kabin: 'Akustik Kabin’i', tarama: 'Yenidoğan İşitme Tarama Birimi’ni', park: 'İşitsel Rehabilitasyon Parkı’nı', denge: 'Vestibüler Laboratuvar’ı', kutuphane: 'Odyoloji Kütüphanesi’ni' };
 const bname = (id: BuildingId) => BUILDINGS.find((b) => b.id === id)!.name;
 /** şart karşılanmıyorsa dürüst neden, karşılanıyorsa null */
 export function sartKilit(app: App, pid: string, s: KgSart | undefined): string | null {
   if (!s) return null;
   if (s.ozellik && !featureOpen(app, pid, s.ozellik)) return bolumKilit(s.ozellik);
-  if (s.bina) { const [id, lv] = s.bina; if (levelOf(app, pid, id) < lv) return lv <= 1 ? `${KUR[id]} kur` : `${bname(id)} Sv ${lv} gerekli`; }
+  if (s.bina) { const [id, lv] = s.bina; if (levelOf(app, pid, id) < lv) return lv <= 1 ? `${BINA_KUR[id]} kur` : `${bname(id)} Sv ${lv} gerekli`; }
   if (s.takim && !app.player(pid).team_id) return 'Bir takıma katıl';
   return null;
 }
@@ -274,13 +272,16 @@ function claim(app: App, pid: string, ref: string): KampOdul {
 function reroll(app: App, pid: string, id: string): void {
   if (!featureOpen(app, pid, 'gorev')) fail('KILIT', `Kamp Görevleri ${bolumKilit('gorev')}.`);
   const day = dayKey(app.now()); const { ids, rerolls } = dailyIds(app, pid);
-  if (rerolls >= KG_KURAL.degistirme) fail('LIMIT', 'Bugün görev değiştirme hakkını kullandın.');
+  // sesle oynanan görev (Ton Avı): değiştirmek hak harcamaz ve yerine sesle oynanan gelmez (OT-sessiz-oyuncu-30). Sunucu oyuncunun
+  // sesini bilemez (ses ayarı cihazda kalır), kural koşulsuzdur (karar 44 gibi); sesi kapalı istemci bu görevi kendisi değiştirir.
+  const sesli = kgSesli(id);
+  if (!sesli && rerolls >= KG_KURAL.degistirme) fail('LIMIT', 'Bugün görev değiştirme hakkını kullandın.');
   if (!ids.includes(id)) fail('YOK', 'Bu görev bugünün görevi değil.');
   if (claimed(app, pid, `gunluk:${day}:${id}`)) fail('GECERSIZ', 'Ödülü alınmış görev değiştirilemez.');
-  const pool = KG_GUNLUK.filter((g) => !ids.includes(g.id) && available(app, pid, g));
+  const pool = KG_GUNLUK.filter((g) => !ids.includes(g.id) && !(sesli && g.ses) && available(app, pid, g));
   if (!pool.length) fail('YOK', 'Şu an değiştirilecek başka görev yok.');
   const pick = pickWeighted(pool, 1, kgRng(kgHash(`${pid}:${day}:r`)))[0]!;
-  app.db.run('UPDATE kg_daily SET tasks = ?, rerolls = rerolls + 1 WHERE player_id = ? AND day = ?', JSON.stringify(ids.map((x) => (x === id ? pick.id : x))), pid, day);
+  app.db.run('UPDATE kg_daily SET tasks = ?, rerolls = rerolls + ? WHERE player_id = ? AND day = ?', JSON.stringify(ids.map((x) => (x === id ? pick.id : x))), sesli ? 0 : 1, pid, day);
 }
 
 export const kgHandlers: Handlers = {

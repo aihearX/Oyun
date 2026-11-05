@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { create } from 'zustand';
 import { useNet } from '@odi/net/store';
 import { quizChoiceLabels } from '@odi/content';
 import type { DailyQuestion, DqPast, DqState } from '@odi/shared';
@@ -9,6 +10,7 @@ import { useFeatures } from '../ftue/useFeatures';
 import { afterText } from '../ftue/features';
 import { Sheet, fmtTime } from '../ui/social';
 import { Art } from '../ui/art';
+import { BEKLEYEN_GONDER, BekleyenSatir } from '../ui/bekleyen';
 import { openTeamTab } from '../screens/team/teamTabs';
 import { refreshDq, useComm } from './state';
 import './comm.css';
@@ -50,6 +52,7 @@ export function DqTodayCard() {
   // takımlıyken gelen durum takımsız kalmış olabilir (ya da tersi): eşleşmeyen durum gösterilmez
   const st = dq && dq.solo === !teamId ? dq : null;
   const q = st?.question ?? null;
+  const giden = useDqGiden((x) => (q && x.giden?.day === q.day && q.myChoice === null ? x.giden : null));
   const durum = locked ? 'kilitli' : status !== 'bağlı' ? 'cevrimdisi' : !q ? 'yukleniyor' : q.revealed ? 'aciklandi' : q.myChoice === null ? 'bekliyor' : 'cevapladin';
   return (
     <section className="card dq-bugun" data-testid="bugun-soru" data-durum={durum}>
@@ -66,7 +69,8 @@ export function DqTodayCard() {
       {!locked && q && st && <>
         <div className="dqb-q">{q.text}</div>
         <small className="muted dqb-rule" data-testid="bugun-soru-kural">{dqRuleLine(st)}</small>
-        <button type="button" className="btn small dqb-btn" data-testid="bugun-soru-ac" onClick={() => setOpen(true)}>{q.revealed || q.myChoice !== null ? 'Soruyu gör' : 'Cevapla'}</button>
+        <button type="button" className="btn small dqb-btn" data-testid="bugun-soru-ac" onClick={() => setOpen(true)}>{q.revealed || q.myChoice !== null || giden ? 'Soruyu gör' : 'Cevapla'}</button>
+        {giden && <BekleyenSatir text={BEKLEYEN_GONDER} />}
         {st.yesterday && <Yesterday y={st.yesterday} />}
       </>}
       {open && st && q && <DqSheet st={st} q={q} onClose={() => setOpen(false)} />}
@@ -74,15 +78,24 @@ export function DqTodayCard() {
   );
 }
 
-function DqSheet({ st, q, onClose }: { st: DqState; q: DailyQuestion; onClose: () => void }) {
-  const nav = useNav(); const [busy, setBusy] = useState(false);
-  const labels = quizChoiceLabels(q.choices); const my = q.myChoice; const ans = q.answer;
-  const answer = async (i: number) => {
-    setBusy(true);
-    const r = await act('dq.answer', { choice: i });
-    setBusy(false);
+/**
+ * gönderilmekte olan cevap (sorunun günü + şık). Bağlantı yokken istek bağlantıyı bekler (net.ts `offlineWaitMs`) ve bağlanınca bir
+ * kez gider; pencere kapanıp yeniden açılsa da seçilen şık işaretli, şıklar kilitli kalır, ikinci istek gitmez (OT-eski-telefon-38)
+ */
+export const useDqGiden = create<{ giden: { day: string; choice: number } | null }>(() => ({ giden: null }));
+export async function dqCevapla(day: string, choice: number): Promise<void> {
+  if (useDqGiden.getState().giden) return;
+  useDqGiden.setState({ giden: { day, choice } });
+  try {
+    const r = await act('dq.answer', { choice });
     if (r) { useComm.setState({ dq: r }); platform().haptic('light'); }
-  };
+  } finally { useDqGiden.setState({ giden: null }); }
+}
+
+function DqSheet({ st, q, onClose }: { st: DqState; q: DailyQuestion; onClose: () => void }) {
+  const nav = useNav(); const gidenSoru = useDqGiden((x) => x.giden);
+  const giden = gidenSoru?.day === q.day ? gidenSoru.choice : null;
+  const labels = quizChoiceLabels(q.choices); const my = q.myChoice ?? giden; const ans = q.answer;
   const toChat = () => { onClose(); openTeamTab('sohbet'); nav.tab('team'); };
   return (
     <Sheet title="Günün Sorusu" onClose={onClose}>
@@ -91,7 +104,7 @@ function DqSheet({ st, q, onClose }: { st: DqState; q: DailyQuestion; onClose: (
         <div className="dqb-choices">
           {q.choices.map((c, i) => {
             const cls = q.revealed ? (i === ans ? ' ok' : i === my ? ' bad' : ' dim') : i === my ? ' picked' : '';
-            return <button key={i} type="button" className={`dq-opt${cls}`} data-choice={i} disabled={busy || my !== null || q.revealed} onClick={() => void answer(i)}>
+            return <button key={i} type="button" className={`dq-opt${cls}`} data-choice={i} disabled={!!gidenSoru || my !== null || q.revealed} onClick={() => void dqCevapla(q.day, i)}>
               <span className="dq-t"><span className="dq-l">{labels[i]}</span>{c}</span>{q.revealed && i === ans && <Art name="check" size={18} />}{q.revealed && i === my && i !== ans && <Art name="cross" size={18} />}
             </button>;
           })}
@@ -103,8 +116,9 @@ function DqSheet({ st, q, onClose }: { st: DqState; q: DailyQuestion; onClose: (
             {q.oneren && <small className="dq-oneren">Öneren: <span data-ugc>{q.oneren}</span></small>}
           </div>
         ) : (
-          <div className="muted small-note" data-testid="bugun-soru-bekle">{my !== null ? 'Cevabın kaydedildi.' : 'Bir şık seç.'} Doğru cevap ve açıklama saat {fmtTime(q.revealAt)} itibarıyla burada.{st.solo ? '' : ` Takımdan ${q.answered} kişi cevapladı.`}</div>
+          <div className="muted small-note" data-testid="bugun-soru-bekle">{q.myChoice !== null ? 'Cevabın kaydedildi.' : giden !== null ? 'Cevabın gönderiliyor.' : 'Bir şık seç.'} Doğru cevap ve açıklama saat {fmtTime(q.revealAt)} itibarıyla burada.{st.solo ? '' : ` Takımdan ${q.answered} kişi cevapladı.`}</div>
         )}
+        {giden !== null && <BekleyenSatir text={BEKLEYEN_GONDER} />}
         <small className="muted">{dqRuleLine(st)}</small>
         {!st.solo && <button type="button" className="btn ghost small" data-testid="bugun-soru-sohbet" onClick={toChat}><Art name="chat" size="1.15em" className="art-inline" /> Takım sohbetinde tartış</button>}
       </div>

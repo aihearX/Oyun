@@ -7,7 +7,7 @@ import { create } from 'zustand';
 import type { NetClient } from '@odi/net';
 import { useNet } from '@odi/net/store';
 import type { KampOdul, KgOyunGun, KgState, VakaState } from '@odi/shared';
-import { decorById, remedyById } from '@odi/content';
+import { decorById, kgSesli, remedyById } from '@odi/content';
 import { audio } from '@odi/audio';
 import { celebrate, type RewardItem } from '../../celebrate';
 import { platform } from '../../platform';
@@ -91,12 +91,39 @@ export function celebrateReward(title: string, reward: KampOdul, o: { from?: { x
   celebrate.banner({ icon: '✅', title, body: items.map((i) => i.label ?? `${i.amount} ${i.kind}`).join(' · '), tone: 'green' });
 }
 
+/** oyun sesi kapalı mı (Ayarlar › Ses): sesler kapalı ya da efekt düzeyi duyulmaz. Ton Avı'nın kuralı (Oyunlar.tsx) aynı */
+const kapali = (st: { sounds: boolean; sfxVol: number }) => !st.sounds || (st.sfxVol ?? 0) < 0.05;
+export const sesKapali = (): boolean => kapali(useStore.getState());
+export const useSesKapali = (): boolean => useStore(kapali);
+const sesliDenenen = new Set<string>();
+/**
+ * Sesi kapalı oyuncuya sesle oynanan günlük görev (Ton Avı) kalmasın (OT-sessiz-oyuncu-30): bitmemişse kendiliğinden değiştirilir.
+ * Sunucuda bu görevi değiştirmek koşulsuz hak harcamaz ve yerine sesle oynanan gelmez; ses ayarı cihazda kalır, sunucuya gitmez
+ * (gizlilik metni: "ses tercihleri … bize gelmez"). Gün ve görev başına bir kez denenir (sessiz; hata gösterilmez); olmazsa görev
+ * "Değiştir" ile elle değişir, yine hak harcamaz.
+ */
+export async function sesliGorevDegistir(): Promise<void> {
+  const c = client; const kg = useKg.getState().kg;
+  if (!c || c.status !== 'bağlı' || !kg?.open.gorev || !sesKapali()) return;
+  const t = kg.daily.tasks.find((x) => kgSesli(x.id) && !x.done && !x.claimed && !sesliDenenen.has(`${kg.day}:${x.id}`));
+  if (!t) return;
+  sesliDenenen.add(`${kg.day}:${t.id}`);
+  try { set({ kg: (await c.call('kg.reroll', { id: t.id })).state }); } catch { /* elle "Değiştir" kalır */ }
+}
+
 let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 /** kamp durumu değişince (inşaat bitti, seviye) görevleri tazele (kısa gecikmeyle, art arda gelenler birleşir) */
 function soon(): void { if (refreshTimer) clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { refreshTimer = null; void refreshKg(); }, 600); }
 
+let izliyor = false;
 export function bindKg(c: NetClient): void {
   client = c;
+  // görevler gelince ya da ses kapanınca sesle oynanan günlük görevi değiştir (ikinci sesli görev yeni durumla sıradaki turda)
+  if (!izliyor) {
+    izliyor = true;
+    useKg.subscribe((st, prev) => { if (st.kg !== prev.kg) void sesliGorevDegistir(); });
+    useStore.subscribe((st, prev) => { if (st.sounds !== prev.sounds || st.sfxVol !== prev.sfxVol) void sesliGorevDegistir(); });
+  }
   c.on('kg.updated', ({ state }) => set({ kg: state }));
   c.on('vaka.updated', ({ vaka }) => set({ vaka }));
   c.on('camp.updated', () => soon());

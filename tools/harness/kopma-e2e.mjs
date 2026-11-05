@@ -15,6 +15,7 @@
 //               Kopukken açılan Klinik "İnternet yok" der, bağlanınca pencere kapatılmadan yüklenir (YN-188).
 //   sohbet  (c) takım sohbetine kopukken yazılan ileti bağlanınca bir kez gider; yanıtı kaybolan ileti aynı cid ile yeniden
 //               denenir (tek kayıt); kopukken başkasının yazdığı ileti yeniden katılımda gelir; uzun kopuklukta açık hata, metin kutuda kalır.
+//               Günün Sorusu kopukken (YN-228): seçilen şık işaretli + "Bağlanınca gönderilecek"; pencere kapansa da bağlanınca bir kez gider.
 //   cuzdan  (f) görev/başarım jetonu outbox'ı (MK-035): wallet.local yanıtı kaybolur + ağ kopar / sunucu çöker; aracı HIZ, ZAMAN_ASIMI,
 //               SUNUCU yanıtı enjekte eder ya da isteği yanıtsız bırakır; wallet.updated olayı kaybolur. Her birinde: outbox ≤ 2 sn'de boşalır
 //               (yanıtsız istekte istemci zaman aşımından sonra), ödül sunucuda tek, üst çubuk bağlıyken hiçbir örnekte eksik/fazla değil.
@@ -420,7 +421,7 @@ async function suiteKamp(A) {
   await consistent(A, 'kamp açılışı');
   const j0 = q1('SELECT jeton FROM players WHERE id = ?', A.pid).jeton;
   await card('Kulak Deposu').getByRole('button', { name: 'Kur' }).click();
-  await A.page.locator('.sheet').getByRole('button', { name: 'Yükselt' }).click();
+  await A.page.locator('.sheet').getByRole('button', { name: 'Kur', exact: true }).click(); // ilk kurulum penceresi "Kur" der (YN-227)
   await A.page.locator('.card.construction', { hasText: 'Kulak Deposu' }).waitFor({ timeout: 10_000 });
   check(q1("SELECT upgrading_to FROM buildings WHERE player_id = ? AND id = 'depo'", A.pid).upgrading_to === 1, 'Kulak Deposu inşaatı sürüyor');
   // sıraya alma: sunucu yazar, yanıt gelmeden sunucu kapanır
@@ -749,8 +750,45 @@ async function suiteSohbet(A, B) {
   await A.page.getByRole('button', { name: 'Gönder', exact: true }).click();
   await seenOnce(m4, 'uzun kopukluktan sonra yeniden gönderilen ileti');
   await shot(A, 'sohbet-sonra'); await shot(B, 'sohbet-sonra');
+  const t5 = await gununSorusuKopuk(A);
   await consistent(A, 'sohbet'); await consistent(B, 'sohbet');
-  return { kopuk: t1, yanit: t2, aradaki: t3, uzun: t4 };
+  return { kopuk: t1, yanit: t2, aradaki: t3, uzun: t4, soru: t5 };
+}
+
+/**
+ * (c5) Günün Sorusu kopukken (YN-228, OT-eski-telefon-38): şıkka dokununca seçilen şık hemen işaretli ve "Bağlanınca gönderilecek";
+ * pencere kapatılır; bağlanınca cevap bir kez gider (dq_answers tek satır), pencere açılınca "Cevabın kaydedildi" ve aynı şık.
+ */
+async function gununSorusuKopuk(A) {
+  step('(c5) Günün Sorusu kopukken (YN-228): seçilen şık işaretli + "Bağlanınca gönderilecek"; pencere kapansa da bağlanınca bir kez gider');
+  await tab(A, 'Bugün'); await toastGone(A);
+  const kart = A.page.getByTestId('bugun-soru');
+  const durum = await A.page.locator('[data-testid="bugun-soru"][data-durum="bekliyor"]').waitFor({ timeout: 15_000 }).then(() => 'bekliyor', async () => kart.getAttribute('data-durum').catch(() => null));
+  if (durum !== 'bekliyor') { check(true, `Günün Sorusu cevaplanabilir değil (durum ${durum}): adım atlandı`); return null; }
+  const cevap = () => q1('SELECT COUNT(*) AS n FROM dq_answers WHERE player_id = ?', A.pid).n;
+  const n0 = cevap();
+  const sayfa = A.page.getByTestId('bugun-soru-sayfa');
+  // Bugün'de genel şerit yok: kopukluk kartın durumunda görünür ("Bağlanınca gelir")
+  const t = await outage('soru-kopuk', { sig: 'SIGTERM', players: [A], bannerOf: (P) => P.page.locator('[data-testid="bugun-soru"][data-durum="cevrimdisi"]'), whileDown: async () => {
+    await kart.getByTestId('bugun-soru-ac').click(); await sayfa.waitFor({ timeout: 5000 });
+    await sayfa.locator('.dq-opt[data-choice="1"]').click();
+    const isaretli = await sayfa.locator('.dq-opt.picked').getAttribute('data-choice').catch(() => null);
+    const bekle = await sayfa.getByTestId('bekleyen-istek').textContent({ timeout: 3000 }).catch(() => '');
+    check(isaretli === '1' && /Bağlanınca gönderilecek/.test(bekle ?? '') && !(await sayfa.getByText('Bir şık seç.').count()), `kopukken şık: seçilen işaretli (${isaretli}), "Bağlanınca gönderilecek"`);
+    await shot(A, 'soru-kopuk-secim');
+    await A.page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
+    check(/Bağlanınca gönderilecek/.test((await kart.textContent()) ?? ''), 'pencere kapandı: kartta "Bağlanınca gönderilecek"');
+    check(cevap() === n0, 'kopukken sunucuda cevap yok');
+  } });
+  let n = cevap(); for (let i = 0; i < 100 && n === n0; i++) { await sleep(100); n = cevap(); }
+  await sleep(1500);
+  check(cevap() === n0 + 1, `bağlanınca cevap bir kez gitti (dq_answers +${cevap() - n0})`);
+  await kart.getByTestId('bugun-soru-ac').click(); await sayfa.waitFor({ timeout: 5000 });
+  const kayit = await sayfa.getByTestId('bugun-soru-bekle').textContent().catch(() => '');
+  check(/Cevabın kaydedildi/.test(kayit ?? '') && (await sayfa.locator('.dq-opt.picked').getAttribute('data-choice').catch(() => null)) === '1', 'bağlanınca: "Cevabın kaydedildi", aynı şık işaretli');
+  await shot(A, 'soru-sonra');
+  await A.page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
+  return t;
 }
 
 async function suiteArkadas(A, B) {

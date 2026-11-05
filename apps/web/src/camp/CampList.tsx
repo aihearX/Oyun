@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState, type QueuedBuild, type Wallet } from '@odi/shared';
+import { BINA_KUR, BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState, type QueuedBuild, type Wallet } from '@odi/shared';
 import { depotStored } from '@odi/game-core/lite';
 import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
@@ -92,12 +92,13 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
             {d.id === 'tedavi' && b.level > 0 && <TedaviPanel camp={camp} sNow={sNow} actions={actions} compact />}
           </div>); })}
 
-      {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); return (
-        <Sheet title={`${confirm.name} → Sv ${b.level + 1}`} onClose={() => setConfirm(null)}>
+      {confirm && (() => { const b = camp.buildings.find((x) => x.id === confirm.id)!; const c = buildCost(confirm.id, b.level + 1); const kur = b.level === 0; return (
+        // ilk kurulum "… kur" / "Kur" der; Sv 2+ "Yükselt" (bina panelindeki düğmeyle aynı; OT-takim-kaptani-37)
+        <Sheet title={kur ? `${BINA_KUR[confirm.id]} kur` : `${confirm.name} → Sv ${b.level + 1}`} onClose={() => setConfirm(null)}>
           <div className="muted">{effect(confirm.id, b.level + 1)}</div>
           <div className="chips"><span className="chip"><Art e="🪙" size="1.15em" className="art-inline" /> {fmtNum(c.jeton)}</span><span className="chip"><Art e="⏱" size="1.15em" className="art-inline" /> {sureTam(dur(c.seconds))}</span>{fast > 0 && <span className="chip"><Art e="🏗️" size="1.15em" className="art-inline" /> takım −%{fast}</span>}</div>
           {qOn && <div className="muted small-note">{shortOf(active!.id)} bitince kendiliğinden başlar. Bedel şimdi ödenir; sıradan çıkarırsan tamamı geri gelir.</div>}
-          <button className="btn" onClick={() => void upgrade(confirm)}>{qOn ? 'Sıraya al' : 'Yükselt'}</button>
+          <button className="btn" data-testid="insaat-onay" onClick={() => void upgrade(confirm)}>{qOn ? 'Sıraya al' : kur ? 'Kur' : 'Yükselt'}</button>
           <button className="btn ghost" onClick={() => setConfirm(null)}>Vazgeç</button>
         </Sheet>); })()}
     </div>
