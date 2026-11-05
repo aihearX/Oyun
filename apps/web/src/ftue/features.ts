@@ -35,7 +35,7 @@ export const FEATURES: FeatureDef[] = [
   { id: 'shop', at: 6, name: 'Mağaza, Dolap ve Ödül kutusu', art: 'crystal', tour: true },
   { id: 'events', at: 7, name: 'Etkinlikler', art: 'bigtop', tour: true },
   { id: 'race', at: 8, name: 'Canlı yarış ve meydan okuma', art: 'finish', tour: true },
-  // güvenli sohbet ZORUNLU: 8 bölüme kadar yalnız hazır sözler ve emoji; 8 geçilince serbest yazı kendiliğinden açılır (kurallar bir kez)
+  // güvenli sohbet ZORUNLU: 8 bölüme kadar yalnız hazır sözler ve tepkiler; 8 geçilince serbest yazı kendiliğinden açılır (kurallar bir kez)
   { id: 'yazi', at: 8, name: 'Serbest yazı', art: 'pencil', tour: true },
   // iletişim: takım sohbetinden sonra, adım adım (yeni oyuncuyu boğmadan)
   { id: 'akis', at: 6, name: 'Takım Akışı ve tepkiler', art: 'chat', tour: true },

@@ -450,7 +450,7 @@ export function SafeChatSheet({ onClose }: { onClose: () => void }) {
   const left = Math.max(0, lim - Math.max(0, (me?.highest ?? 1) - 1));
   return (
     <Sheet title="Güvenli sohbet" onClose={onClose}>
-      <div className="muted wrap" data-testid="serbest-not">Serbest yazı {lim}. bölümden sonra açılır{left > 0 ? ` (${left} bölüm kaldı)` : ''}. O zamana kadar hazır sözler ve emojiyle konuşursun; böylece herkes güvende başlar.</div>
+      <div className="muted wrap" data-testid="serbest-not">Serbest yazı {lim}. bölümden sonra açılır{left > 0 ? ` (${left} bölüm kaldı)` : ''}. O zamana kadar hazır sözler ve tepkilerle konuşursun; böylece herkes güvende başlar.</div>
       <ul className="rules">
         <li><Art name="shield" size={18} /> Kötü sözler yıldızla kapatılır.</li>
         <li><Art name="flag" size={18} /> Bir mesajı üç farklı kişi şikâyet ederse gizlenir, gönderen 10 dk yazamaz.</li>

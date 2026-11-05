@@ -5,7 +5,7 @@ import { dayKey } from '../time';
 
 /**
  * Kişisel iletişim ayarları: akışta paylaşım (varsayılan açık). Serbest yazı bir ayar DEĞİLDİR: güvenli sohbet zorunludur —
- * cfg.freeTextCleared (8) bölüm geçilene kadar yalnızca hazır sözler ve emoji; geçilince kendiliğinden açılır (açma/kapama yok).
+ * cfg.freeTextCleared (8) bölüm geçilene kadar yalnızca hazır sözler ve tepkiler; geçilince kendiliğinden açılır (açma/kapama yok).
  * (comm_settings.free_text sütunu eski sürümden kalır, artık okunmaz.)
  */
 interface SetRow { feed_share: number }
@@ -29,7 +29,7 @@ export const feedShareOn = (app: App, pid: string) => !!row(app, pid).feed_share
 /** güvenli sohbet: yeterince bölüm geçilmediyse Türkçe hata (açma seçeneği yok) */
 export function requireFreeText(app: App, p: PlayerRow): void {
   if (canFreeText(app, p)) return;
-  fail('SERBEST_KAPALI', `Serbest yazı ${app.cfg.freeTextCleared}. bölümden sonra açılır; o zamana kadar hazır sözler ve emoji kullanılır.`);
+  fail('SERBEST_KAPALI', `Serbest yazı ${app.cfg.freeTextCleared}. bölümden sonra açılır; o zamana kadar hazır sözler ve tepkiler kullanılır.`);
 }
 
 /** gizlilik dostu günlük sayaç (kişisel veri yok) */

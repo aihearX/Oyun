@@ -1051,7 +1051,7 @@ export const phraseById = (id: string) => QUICK_PHRASES.find((p) => p.id === id)
 
 /** sabit kurallar (sunucu ve istemci aynı değeri gösterir) */
 export const COMM_RULES = {
-  /** ZORUNLU güvenli sohbet: bu kadar bölüm GEÇİLENE kadar yalnızca hazır sözler ve emoji (açma seçeneği yok); sonra kendiliğinden açılır */
+  /** ZORUNLU güvenli sohbet: bu kadar bölüm GEÇİLENE kadar yalnızca hazır sözler ve tepkiler (açma seçeneği yok); sonra kendiliğinden açılır */
   freeTextLevel: 8,
   feedMergeMs: 30 * 60_000, feedPerTeamHour: 20, threadMax: 50, threadPreview: 2, mentionsMax: 3,
   reactMinMs: 250, reactPerMin: 60,
@@ -1083,7 +1083,7 @@ export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | '
   | 'yaris';
 
 export interface CommSettings {
-  /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve emoji, açma seçeneği yok) */
+  /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve tepkiler, açma seçeneği yok) */
   canFreeText: boolean;
   /** başarılarım Takım Akışı'nda görünsün */
   feedShare: boolean;

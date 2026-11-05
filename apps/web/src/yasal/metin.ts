@@ -67,7 +67,7 @@ export const GIZLILIK_TR: Belge = {
     { t: 'h2', x: '5. Çocuklar ve sohbet güvenliği', id: 'cocuklar' },
     { t: 'ul', x: [
       'Oyun **13 yaş ve üzeri** içindir. 13 yaşından küçük bir kullanıcıya ait olduğunu öğrendiğimiz hesabı sileriz.',
-      'Serbest yazılı sohbet ve özel mesaj, oyunda **8 bölüm geçilene kadar kapalıdır**; o zamana kadar yalnızca hazır sözler ve emoji kullanılır. Bu kısıt kaldırılamaz.',
+      'Serbest yazılı sohbet ve özel mesaj, oyunda **8 bölüm geçilene kadar kapalıdır**; o zamana kadar yalnızca hazır sözler ve tepkiler kullanılır. Bu kısıt kaldırılamaz.',
       'Sohbette ve özel mesajlarda küfür süzgeci vardır; takma adlar ve takım adları da süzülür.',
       'Her oyuncu bir iletiyi ya da oyuncuyu **şikâyet edebilir** ve **engelleyebilir**. Üç farklı oyuncunun şikâyet ettiği ileti gizlenir; bir gün içinde üç farklı oyuncunun şikâyet ettiği oyuncu bir süre mesaj gönderemez. Şikâyetleri inceler, gerekirse hesabın mesaj göndermesini uzun süre kapatırız.',
       'Mesajlar uçtan uca şifreli değildir; kötüye kullanım incelemesi için şikâyet edilen iletileri görebiliriz.',
@@ -168,7 +168,7 @@ export const GIZLILIK_EN: Belge = {
     { t: 'h2', x: '5. Children and chat safety', id: 'children' },
     { t: 'ul', x: [
       'The game is intended for players **aged 13 and over**. If we learn that an account belongs to a child under 13, we delete it.',
-      'Free-text chat and private messages stay **locked until 8 levels are cleared**; before that only preset phrases and emoji are available. This cannot be switched off.',
+      'Free-text chat and private messages stay **locked until 8 levels are cleared**; before that only preset phrases and reactions are available. This cannot be switched off.',
       'Chat and private messages pass a profanity filter; nicknames and team names are filtered too.',
       'Every player can **report** a message or a player and **block** players. A message reported by three different players is hidden; a player reported by three different players within a day cannot send messages for a while. We review reports and can disable an account\'s messaging for a long period.',
       'Messages are not end-to-end encrypted; we can see reported messages to review abuse.',

@@ -30,7 +30,7 @@ const P = 'Pickles, An Introduction to the Physiology of Hearing';
 const KBB = 'Cummings Otolaryngology; Scott-Brown’s Otorhinolaryngology';
 
 export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
-  { bolum: 1, genel: 'Ses, havadaki basınç dalgalarıdır; uzay gibi havasız bir boşlukta ses yayılamaz.',
+  { bolum: 1, genel: 'Ses, hava, su ya da kemik gibi bir ortamda ilerleyen basınç dalgalarıdır; uzay gibi boşlukta yayılamaz.',
     odyoloji: 'Ses havada 20 °C’de yaklaşık 343 m/sn hızla ilerler; suda bu hız yaklaşık dört kat fazladır.',
     src: `${G}, fiziksel akustik` },
   { bolum: 2, genel: 'Kulak kepçesi kıkırdaktan yapılmıştır; ama kulak memesinde kıkırdak yoktur.',

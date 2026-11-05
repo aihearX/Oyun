@@ -255,7 +255,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
       {err && <div className="chat-err" role="alert">{err}</div>}
       {sending && st !== 'bağlı' && <div className="net-banner chat-wait" role="status" data-testid="sohbet-bekliyor">Bağlantı bekleniyor; iletin bağlanınca gönderilecek.</div>}
       {suggest.length > 0 && <div className="at-suggest" role="listbox" aria-label="Bahset">{suggest.map((m) => <button key={m.id} type="button" role="option" aria-selected={false} onClick={() => pickMention(m.name)}><span className="at-dot" style={{ background: hex(m.color) }} />@{m.name}</button>)}</div>}
-      {!free && <div className="chat-lock-note" id={`kilit-${room}`} data-testid="serbest-kilit">Serbest yazı {freeAt}. bölümden sonra açılır; şimdilik hazır sözler ve emoji.</div>}
+      {!free && <div className="chat-lock-note" id={`kilit-${room}`} data-testid="serbest-kilit">Serbest yazı {freeAt}. bölümden sonra açılır; şimdilik hazır sözler ve tepkiler.</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}
           onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } }}

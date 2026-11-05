@@ -29,7 +29,7 @@ const RAW: Record<BiomeId, Raw[]> = {
     ['ear', 'Kıvrımlı Pusula', 'Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder.', 'Aurikula (pinna) elastik kıkırdaktandır; yüksek frekanslarda geliş açısına bağlı spektral tepe ve çentikler oluşturarak dikey yön ve ön-arka ayrımına ipucu verir.'],
     ['megaphone', 'Doğal Megafon', 'Kepçe ve kulak kanalı birlikte, konuşma için önemli olan orta-tiz sesleri güçlendirir.', 'Baş, kepçe ve kanalın birleşik aktarım işlevi yaklaşık 2–4 kHz bölgesinde belirgin kazanç sağlar; kanal rezonansı tek başına yaklaşık 2,5–3 kHz civarındadır.'],
     ['finish', 'Milisaniye Yarışı', 'Yandan gelen ses bir kulağa diğerinden biraz önce varır; beyin bu farkla yön bulur.', 'En büyük iki kulak arası zaman farkı (ITD) yetişkin başında yaklaşık 0,6–0,7 ms’dir; düşük frekanslarda yön bulmanın baskın ipucudur.'],
-    ['wave', 'Hertz Nedir?', 'Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur.', 'Genç ve sağlıklı kulak yaklaşık 20 Hz–20 kHz arasını duyar ve yaklaşık 1–4 kHz arasında en duyarlıdır (mutlak eşik eğrisi).'],
+    ['wave', 'Hertz Nedir?', 'Hertz (Hz), frekansın birimidir: sesin saniyedeki titreşim sayısını söyler. Çok titreşen ses ince duyulur.', 'Genç ve sağlıklı kulak yaklaşık 20 Hz–20 kHz arasını duyar ve yaklaşık 1–4 kHz arasında en duyarlıdır (mutlak eşik eğrisi).'],
     ['sound', 'Desibel Merdiveni', 'Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışıdır.', 'SPL = 20·log10(p/p0), p0 = 20 µPa. Ses basıncı iki katına çıkınca yaklaşık 6 dB, on katına çıkınca 20 dB artış olur.'],
   ],
   'kanal': [

@@ -143,7 +143,7 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
   bahsetmesi bildirim üretmez; usta/çırak ve ikili görev davetleri engelde reddedilir.
 - **Hız sınırları:** sohbet 1,2 sn (yanıtlar dahil); tepki 0,25 sn aralık + dakikada 60; meydan okuma günde 3; yardım isteği günde 3;
   ipucu istek başına 1; usta teklifi günde 5; ikili davet günde 5; akış toplama 30 dk + takım başına saatte 20 kart.
-- **Yeni oyuncu kuralı (zorunlu):** 8 bölüm geçilene kadar yalnız hazır sözler ve emoji; açma seçeneği yok — sunucuda zorunlu.
+- **Yeni oyuncu kuralı (zorunlu):** 8 bölüm geçilene kadar yalnız hazır sözler ve tepkiler; açma seçeneği yok — sunucuda zorunlu.
 - **Sunucu doğrulaması:** her işlem zod şemasıyla; skor/ödüller sunucunun kendi kayıtlarından; ödüller idempotent (tablo birincil anahtarları).
 
 ## 5. Protokol eklemeleri (`packages/shared/src/social.ts`, yalnızca ekleme)

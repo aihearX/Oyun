@@ -163,7 +163,7 @@ function SettingsCard() {
       <div className="tg-head"><span className="tg-ic"><Art name="chat" size={30} /></span><div className="min0"><h2>Sohbet ayarları</h2><small>Görünürlüğün ve güvenliğin sende</small></div></div>
       <div className="tg-toggle"><span className="grow"><b>Başarılarım akışta görünsün</b><small>Bölüm, boss, koklea ve kamp başarıların takım sohbetine kart olarak düşer.</small></span>
         <button type="button" className="switch" role="switch" aria-checked={st.feedShare} aria-label="Başarılarım akışta görünsün" onClick={() => void set({ feedShare: !st.feedShare })} /></div>
-      <div className="tg-toggle" data-testid="serbest-durum"><span className="grow"><b>Serbest yazı</b><small>{st.canFreeText ? `${st.freeTextLevel} bölüm geçtiğin için açık. Nazik ol; kötü sözler yıldızla kapatılır.` : `Serbest yazı ${st.freeTextLevel}. bölümden sonra açılır. O zamana kadar hazır sözler ve emoji.`}</small></span>
+      <div className="tg-toggle" data-testid="serbest-durum"><span className="grow"><b>Serbest yazı</b><small>{st.canFreeText ? `${st.freeTextLevel} bölüm geçtiğin için açık. Nazik ol; kötü sözler yıldızla kapatılır.` : `Serbest yazı ${st.freeTextLevel}. bölümden sonra açılır. O zamana kadar hazır sözler ve tepkiler.`}</small></span>
         <span className={`pill${st.canFreeText ? ' on' : ''}`}>{st.canFreeText ? 'Açık' : 'Kapalı'}</span></div>
     </div>
   );
