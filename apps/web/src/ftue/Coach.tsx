@@ -60,6 +60,11 @@ export interface CoachStep {
    * hedefe kaymışken ekran dışında olsa da oyuncu görür (OT-sessiz-oyuncu-21). Seslendirilmez; onaylı satırın metni değişmez
    */
   note?: () => ReactNode;
+  /**
+   * adımın işi yapıldı ama sonucu bekleniyor (ör. internetsiz "Kur": istek bağlanınca gider; OT-eski-telefon-45): dönen yazı balonda
+   * not olarak çıkar, el ve "dokun" yönergesi gizlenir; adım beklediğini (`wait`) beklemeyi sürdürür, sonuç gelince her zamanki gibi ilerler
+   */
+  bekleniyor?: () => string | null;
 }
 export interface Tour {
   id: string; steps: CoachStep[]; onDone?: (skipped: boolean) => void;
@@ -167,20 +172,38 @@ export function SpeechPanel({ text, typed, typing, place = 'bottom', index, tota
   );
 }
 
+/**
+ * ekranın asıl içeriği yok: "İnternet yok" (parça yüklenemedi), sunucuya bağlanılamadı kartı, yükleniyor iskeleti (`data-icerik-yok`).
+ * Tanıtım başlamaz (Director quiet) ve süren tur duraklar; içerik gelince (bağlanınca) kaldığı adımdan sürer (OT-eski-telefon-44)
+ */
+export const ICERIK_YOK = '[data-icerik-yok]';
+function useIcerikYok(on: boolean): boolean {
+  const [yok, setYok] = useState(false);
+  useEffect(() => {
+    if (!on) { setYok(false); return; }
+    const bak = () => setYok(!!document.querySelector(ICERIK_YOK)); bak();
+    const h = setInterval(bak, 300); return () => clearInterval(h);
+  }, [on]);
+  return yok;
+}
+
 /** kökte bir kez: etkin tur varsa çizer */
 export function CoachHost() {
   const tour = useCoach((s) => s.tour); const step = useCoach((s) => s.step);
   const celebrating = useCelebrating((s) => s.on);
+  const icerikYok = useIcerikYok(!!tour);
   if (!tour) return null;
   // kutlama sürerken tur duraklar (adım yeniden çizilince baştan okunur); Topla/Devam soluk kalmaz, ilk dokunuş kutlamaya gider
   if (celebrating && !tour.steps[step]?.cel) return null;
+  // ekranda anlatılacak içerik yok (internetsiz açılan Bugün): tur görülmüş sayılmadan duraklar, bağlanınca sürer
+  if (icerikYok) return null;
   // gövdeye taşınır: #root sabit konumlu (kendi yığın bağlamı) ve alt sayfalar (bina paneli) gövdeye taşındığı için üstte kalmalı
   const v = <CoachView key={`${tour.id}:${step}`} tour={tour} index={step} />;
   return typeof document !== 'undefined' ? createPortal(v, document.body) : v;
 }
 
 /** turun ilk adımı açıldıktan sonra bu süre içindeki dokunuş (açılırken zaten yoldaydı) turu ilerletmez */
-const FIRST_TAP_GRACE_MS = 450;
+export const FIRST_TAP_GRACE_MS = 450;
 /** işaretli adımda halka en geç bu kadar beklenir; gelmezse yazı yine de çıkar (oyuncu açıklamasız kalmasın) */
 const MARK_WAIT_MS = 6000;
 
@@ -196,6 +219,13 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [pre, setPre] = useState<DOMRect | null>(null);
   const [nudge, setNudge] = useState(0);
+  // adımın sonucu bekleniyor (internetsiz Kur): not balonda, el ve "dokun" yönergesi gizli
+  const [bekle, setBekle] = useState<string | null>(() => st.bekleniyor?.() ?? null);
+  useEffect(() => {
+    if (!st.bekleniyor) return;
+    const h = setInterval(() => setBekle(st.bekleniyor?.() ?? null), 250);
+    return () => clearInterval(h);
+  }, [tour.id, index]);
   const next = useCoach((s) => s.next); const end = useCoach((s) => s.end);
   const advanced = useRef(false);
   const go = () => { if (advanced.current) return; advanced.current = true; stopVoice(); audio.play('tap'); next(); };
@@ -326,10 +356,10 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
       {/* işi olan yer: halkanın içi tuvale geçmez, işi yapar (sürükleme/kaydırma sayılmaz) */}
       {passThrough && hole && act && <button type="button" className="coach-act" data-testid="anlatici-hedef" aria-label={st.hint ?? 'Parlayan yere dokun'} style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} onClick={act} />}
       {hole && <div className="coach-ring" style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} />}
-      {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
+      {hole && wait !== 'next' && !bekle && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
-      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} note={st.note?.()} compact={compact} tuck={tuck} panelRef={panelRef}
-        waiting={wait !== 'next'} hint={st.hint} onHint={act} onNext={() => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
+      <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} note={bekle ?? st.note?.()} compact={compact} tuck={tuck} panelRef={panelRef}
+        waiting={wait !== 'next' && !bekle} hint={st.hint} onHint={act} onNext={bekle ? undefined : () => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
     </div>
   );
 }

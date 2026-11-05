@@ -31,7 +31,7 @@ export function CampScreen() {
   // süs görevinin "Git"i liste görünümünden de süsleme kipine götürür: önce üs görünümü (istek CampBase'te karşılanır)
   const susle = useKampIstek((s) => s.susle);
   useEffect(() => { if (susle && view !== 'us') setView('us'); }, [susle]);
-  useEffect(() => () => useKampIstek.setState({ bina: null, susle: false }), []);
+  useEffect(() => () => useKampIstek.setState({ bina: null, susle: false, goster: null }), []);
   return demo ? <DemoCamp p={demo} view={view} setView={setView} /> : <RealCamp view={view} setView={setView} />;
 }
 
@@ -48,7 +48,7 @@ function ListShell({ children, setView }: { children: ReactNode; setView: (v: Vi
 function CampOffline() {
   const enabled = useSocial((s) => s.enabled); const st = useNet((s) => s.status);
   return (
-    <div className="card offline-card fade-in camp-offline">
+    <div className="card offline-card fade-in camp-offline" data-icerik-yok>
       <div className="ph-icon" aria-hidden><Art name="tent" size={48} /></div>
       <h2>Kampın sunucuda tutulur — bağlanınca görünür</h2>
       <div className="muted">{enabled ? 'Şu an sunucuya ulaşamıyoruz. Bu arada bölüm oynamaya devam edebilirsin; jetonların ve ilerlemen kaybolmaz.' : 'Kulak Kampı için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.'}</div>

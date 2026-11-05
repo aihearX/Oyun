@@ -10,17 +10,20 @@ import { ScreenHead } from './bits';
 export function ScreenLoading({ tabs, title, onBack, top }: { tabs?: boolean; title?: string; onBack?: () => void; top?: ReactNode }) {
   const head = top ?? (title != null || onBack ? <ScreenHead title={title ?? ''} onBack={onBack} /> : <div className="lazy-head" aria-hidden><i /><i /><i /></div>);
   return (
-    <div className={`screen lazy-screen${tabs ? ' with-tabs' : ''}`}>
+    <div className={`screen lazy-screen${tabs ? ' with-tabs' : ''}`} data-icerik-yok>
       {head}
       <ContentLoading />
     </div>
   );
 }
 
-/** Ekranın içerik alanı yüklenirken (veri bekleniyor; başlık ve Geri zaten çizili): iri, okunur "Yükleniyor…" + iskelet (YN-072, YN-085) */
+/**
+ * Ekranın içerik alanı yüklenirken (veri bekleniyor; başlık ve Geri zaten çizili): iri, okunur "Yükleniyor…" + iskelet (YN-072, YN-085).
+ * `data-icerik-yok`: ekranda anlatılacak içerik yok, Tüy Dede tanıtımı başlamaz ya da duraklar (ftue/Coach.tsx ICERIK_YOK)
+ */
 export function ContentLoading({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="lazy-body" role="status" aria-busy="true">
+    <div className="lazy-body" role="status" aria-busy="true" data-icerik-yok>
       <p className="lazy-text">Yükleniyor…</p>
       <div className="skel-list" aria-hidden>
         {Array.from({ length: rows }, (_, i) => <div className="skel card" key={i}><i className="sk-a" /><span><i className="sk-b" /><i className="sk-c" /></span></div>)}

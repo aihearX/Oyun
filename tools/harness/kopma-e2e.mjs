@@ -30,7 +30,9 @@
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
 // Her kopmada: "Bağlantı koptu" şeridi görünür; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanır; cüzdan, kamp, ilerleme
 // sunucu (SQLite) ve istemcide aynı; bekleyen kuyruk/outbox boş.
-// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,arkadas,yaris,yaris-ici] [--cuzdan bolum,olay,…] [--no-build] [--headed]
+//   tanitim     Tüy Dede tanıtımı kopukken (YN-263): Bugün tanıtımı internetsiz "İnternet yok" ekranının üstünde anlatılmaz, bağlanınca
+//               sürer; kamp öğreticisinde kopukken "Kur" balonu dürüst ("İnternet gelince inşaat başlayacak"), el yok, bağlanınca sürer.
+// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,arkadas,yaris,yaris-ici,tanitim] [--cuzdan bolum,olay,…] [--no-build] [--headed]
 // Çıktı: tools/harness/out/kopma/<tarayıcı>/*.png, sonuc.json
 import { spawn } from 'node:child_process';
 import net from 'node:net';
@@ -237,10 +239,21 @@ const KAYIT = () => {
   const start = () => new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) scan(n); }).observe(document.documentElement, { childList: true, subtree: true });
   if (document.documentElement) start(); else document.addEventListener('DOMContentLoaded', start);
 };
-async function newPlayer(browser, bt, tag, name) {
+/**
+ * `rehber`: Tüy Dede tanıtımları açık oyuncu (tanitim bölümü): verilen bölüm sayısı geçilmiş, verilen turlar görülmüş; kamp üs
+ * görünümünde. Yoksa ilk açılış rehberi atlanır (bkz. onboarding-e2e), kamp liste görünümünde açılır (erişilebilir düğmeler, kanvas
+ * dokunuşu yok)
+ */
+async function newPlayer(browser, bt, tag, name, rehber = null) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
-  // ilk açılış rehberi atlanır (bkz. onboarding-e2e); kamp liste görünümünde açılır (erişilebilir düğmeler, kanvas dokunuşu yok)
-  await ctx.addInitScript(() => { try { if (!localStorage.getItem('odi-v1')) { localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); localStorage.setItem('odi.kamp.gorunum', 'liste'); } } catch { /* yok */ } });
+  await ctx.addInitScript((r) => {
+    try {
+      if (localStorage.getItem('odi-v1')) return;
+      if (!r) { localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: [], bypass: true } }, version: 3 })); localStorage.setItem('odi.kamp.gorunum', 'liste'); return; }
+      const progress = {}; for (let i = 1; i <= r.cleared; i++) progress[i] = { stars: 2, best: 800, plays: 1 };
+      localStorage.setItem('odi-v1', JSON.stringify({ state: { progress, ftue: { v: 1, story: true, tours: r.tours } }, version: 3 }));
+    } catch { /* yok */ }
+  }, rehber);
   await ctx.addInitScript(KAYIT);
   const page = await ctx.newPage();
   // kutlama penceresi (ör. Kamp Seviyesi) kendiliğinden kapanmaz (YN-094, WCAG 2.2.1): bir işlem onun altında kalırsa oyuncu gibi düğmesine dokunulur
@@ -248,7 +261,8 @@ async function newPlayer(browser, bt, tag, name) {
   const P = { tag, name, ctx, page, errors: [], proxy: await makeProxy(tag), pid: null, dir: resolve(outRoot, bt), n: 0 };
   mkdirSync(P.dir, { recursive: true });
   page.on('pageerror', (e) => P.errors.push(String(e.message ?? e)));
-  page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|manifest|WebSocket|ERR_CONNECTION|Failed to load resource|net::/i.test(t)) P.errors.push(t); });
+  // ChunkOffline: ekran parçası internetsizken istenmedi, hata sınırı "İnternet yok" der (beklenen; tanitim bölümü)
+  page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' && !/favicon|AudioContext|WebGL|GPU|Autoplay|manifest|WebSocket|ERR_CONNECTION|Failed to load resource|net::|ChunkOffline/i.test(t)) P.errors.push(t); });
   return P;
 }
 const appUrl = (P) => `${host}/?sunucu=${encodeURIComponent(P.proxy.url)}&oyun-bot=1&oyun-hiz=4`;
@@ -365,9 +379,9 @@ async function consistent(P, label, ms = 15_000) {
 const toastsSince = (P, t) => P.page.evaluate((s) => window.__kopma.toasts.filter((x) => x.at >= s).map((x) => x.text), t);
 
 // ======================================================================== akış
-async function onboard(P) {
+async function onboard(P, giris = /Yola çık/) {
   await P.page.goto(appUrl(P), { waitUntil: 'load' });
-  await P.page.getByRole('button', { name: /Yola çık/ }).click({ timeout: 30_000 });
+  await P.page.getByRole('button', { name: giris }).click({ timeout: 30_000 });
   await P.page.locator('.onboard').waitFor({ timeout: 30_000 });
   await P.page.getByRole('textbox', { name: 'Takma ad' }).fill(P.name);
   await P.page.getByRole('button', { name: 'Başla' }).click();
@@ -376,6 +390,79 @@ async function onboard(P) {
   for (let i = 0; i < 50 && !P.pid; i++) { P.pid = q1('SELECT id FROM players WHERE name = ?', P.name)?.id ?? null; if (!P.pid) await sleep(200); }
   check(!!P.pid, `${P.tag} sunucuda (${P.name})`);
   await toastGone(P);
+}
+
+/**
+ * Tüy Dede tanıtımı kopukken (YN-263): (t1) Bugün tanıtımı sürerken internetsiz açılan Bugün "İnternet yok" der; tanıtım o boş ekranın
+ * üstünde anlatılmaz, görülmüş sayılmaz, bağlanınca ekran yüklenip kaldığı yerden sürer (OT-eski-telefon-44). (t2) Kamp öğreticisinde
+ * kopukken "Kur": balon "İnternet gelince inşaat başlayacak" der, el ve "Düğmeye dokun" gizli; bağlanınca inşaat başlar, tanıtım sürer
+ * (OT-eski-telefon-45).
+ */
+const BUGUN_PARCASI = '**/assets/TodayScreen-*.js';
+const bugunTutulan = [];
+async function suiteTanitim(T) {
+  const tur = (id) => T.page.locator(`[data-testid="anlatici-tur"][data-tour="${id}"]`);
+  const gorulen = () => T.page.evaluate(() => { try { return JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.ftue?.tours ?? []; } catch { return []; } });
+  /** turu yürüt: İleri'ye bas, dokunma adımında halkanın ortasına dokun; `dur(adım metni)` true dönünce bırak */
+  async function yurut(id, dur = () => false) {
+    for (let i = 0; i < 40 && await tur(id).count(); i++) {
+      const say = await T.page.locator('[data-testid="anlatici"]').getAttribute('data-say', { timeout: 1000 }).catch(() => null);
+      if (say && dur(say)) return say;
+      const ileri = T.page.locator('[data-testid="anlatici-ileri"]');
+      if (await ileri.count()) { await ileri.click().catch(() => undefined); await sleep(500); continue; }
+      if (await T.page.locator('[data-testid="anlatici-ipucu"]').count()) {
+        let r = null;
+        for (let k = 0; k < 12 && !r; k++) { const a = await T.page.locator('.coach-ring').boundingBox().catch(() => null); await sleep(150); const b = await T.page.locator('.coach-ring').boundingBox().catch(() => null); if (a && b && Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < 1) r = b; }
+        if (r) { await T.page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2 + 6); await sleep(900); continue; }
+      }
+      await sleep(400);
+    }
+    return null;
+  }
+  step('(t1) Bugün tanıtımı internetsiz açılan Bugün\'de durur, bağlanınca sürer (YN-263, OT-eski-telefon-44)');
+  await tur('today').waitFor({ timeout: 40_000 });
+  // "Bugün'e dokun" adımına dek İleri; sonra ağ kesilir ve sekmeye dokunulur (Bugün'ün ekran parçası yüklenemez)
+  const ipucu = () => T.page.locator('[data-testid="anlatici-ipucu"]').textContent({ timeout: 500 }).catch(() => '');
+  for (let i = 0; i < 20 && !/Bugün/.test((await ipucu()) ?? ''); i++) { const ileri = T.page.locator('[data-testid="anlatici-ileri"]'); if (await ileri.count()) await ileri.click().catch(() => undefined); await sleep(400); }
+  await T.ctx.setOffline(true);
+  await T.page.locator('nav.tabbar .tab[data-tab="today"]').click();
+  const hata = await T.page.getByTestId('hata-ag').waitFor({ timeout: 10_000 }).then(() => true, () => false);
+  await sleep(2000);
+  await shot(T, 'tanitim-bugun-kopuk');
+  const ustunde = await T.page.locator('[data-testid="anlatici"]').count();
+  check(hata && ustunde === 0 && !(await gorulen()).includes('today'), `kopukken Bugün "İnternet yok" (${hata ? 'göründü' : 'yok'}); Tüy Dede boş ekranın üstünde anlatmıyor (balon ${ustunde}), tanıtım görülmüş sayılmadı`);
+  await T.ctx.setOffline(false); await T.page.unroute(BUGUN_PARCASI);
+  for (const r of bugunTutulan.splice(0)) await r.continue().catch(() => undefined);
+  const geldi = await T.page.locator('[data-testid="anlatici"]').waitFor({ timeout: 20_000 }).then(() => true, () => false);
+  const icerik = await T.page.locator('.quests, .cal-today').count();
+  await shot(T, 'tanitim-bugun-baglandi');
+  check(geldi && icerik > 0 && !(await T.page.getByTestId('hata-ag').count()), `bağlanınca Bugün yüklendi ve tanıtım kaldığı yerden sürdü ("${(await T.page.locator('[data-testid="anlatici"]').getAttribute('data-say').catch(() => '')) ?? ''}")`);
+  await yurut('today');
+  check((await gorulen()).includes('today'), 'Bugün tanıtımı bitti (görüldü)');
+
+  step('(t2) Kamp öğreticisinde kopukken "Kur": balon dürüst, el yok; bağlanınca inşaat başlar (YN-263, OT-eski-telefon-45)');
+  await toastGone(T);
+  await tab(T, 'Kamp');
+  await tur('camp-build').waitFor({ timeout: 40_000 });
+  await yurut('camp-build', (s) => /düğmeye dokun ve inşaatı başlat/.test(s));
+  check(await T.page.locator('[data-testid="anlatici-ipucu"]').count() === 1, 'kamp-insa-04: "Düğmeye dokun" (bağlıyken)');
+  let not = ''; let el = -1; let yonerge = -1;
+  await outage('tanitim-kur', { sig: 'SIGTERM', players: [T], bannerOf: (P) => P.page.locator('.net-banner.camp-net'),
+    whileDown: async () => {
+      const r = await T.page.locator('.coach-ring').boundingBox();
+      if (r) await T.page.touchscreen.tap(r.x + r.width / 2, r.y + r.height / 2); else await T.page.locator('.bp-up .btn').first().click();
+      await T.page.locator('.bp [data-testid="bekleyen-insaat"]').waitFor({ timeout: 5000 }).catch(() => undefined);
+      await sleep(800);
+      not = (await T.page.getByTestId('anlatici-not').textContent().catch(() => '')) ?? '';
+      el = await T.page.locator('.coach-hand').count(); yonerge = await T.page.locator('[data-testid="anlatici-ipucu"]').count();
+      await shot(T, 'tanitim-kur-kopuk');
+      check(not === 'İnternet gelince inşaat başlayacak' && el === 0 && yonerge === 0, `kopukken Kur: balonda "${not}", el ${el}, "Düğmeye dokun" ${yonerge}`);
+    } });
+  const basladi = await T.page.locator('.bp-build').waitFor({ timeout: 25_000 }).then(() => true, () => false);
+  let say = ''; for (let i = 0; i < 20 && !/inşaat başladı/.test(say); i++) { say = (await T.page.locator('[data-testid="anlatici"]').getAttribute('data-say').catch(() => '')) ?? ''; await sleep(300); }
+  await shot(T, 'tanitim-kur-baglandi');
+  check(basladi && /inşaat başladı/.test(say), `bağlanınca inşaat başladı, tanıtım sürdü ("${say}")`);
+  await yurut('camp-build');
 }
 
 async function suiteOdul(A) {
@@ -1216,13 +1303,18 @@ try {
     await section('etkinlik', () => suiteEtkinlik(A));
     await section('arkadas', () => suiteArkadas(A, B));
     await section('yaris', () => suiteYaris(A, B));
+    let T = null;
+    if (want('tanitim')) { T = await newPlayer(browser, bt, 'T', `Tuy${bt[0]}`, { cleared: 3, tours: ['result1', 'map', 'camp'] }); }
+    // Bugün'ün ekran parçasının isteği (boştaki önden yükleme) bağlanana dek yanıtsız tutulur: oyuncu Bugün'ü ilk kez internetsizken
+    // açar, test derlemesinde service worker yokken olduğu gibi "İnternet yok" görür (OT-eski-telefon-44); bağlanınca istek sürer
+    await section('tanitim', async () => { await T.page.route(BUGUN_PARCASI, (r) => { bugunTutulan.push(r); }); await onboard(T, /Devam et/); return suiteTanitim(T); });
     if (want('yaris-ici')) C = await newPlayer(browser, bt, 'C', `Cem${bt[0]}`);
     await section('yaris-ici', () => suiteYarisIci([A, B, C], 'SIGTERM'), 'yaris-ici/SIGTERM');
     await section('yaris-ici', () => suiteYarisIci([A, B, C], 'SIGKILL'), 'yaris-ici/SIGKILL');
     cur = { bt, bolum: 'sayfa' };
-    for (const P of [A, B, C].filter(Boolean)) { const e = [...new Set(P.errors)]; try { check(!e.length, `${P.tag}: sayfa hatası yok${e.length ? ` — ${e.slice(0, 3).join(' | ')}` : ''}`); } catch { /* kayıtlı */ } }
+    for (const P of [A, B, C, T].filter(Boolean)) { const e = [...new Set(P.errors)]; try { check(!e.length, `${P.tag}: sayfa hatası yok${e.length ? ` — ${e.slice(0, 3).join(' | ')}` : ''}`); } catch { /* kayıtlı */ } }
     await browser.close();
-    for (const P of [A, B, C].filter(Boolean)) await P.proxy.close();
+    for (const P of [A, B, C, T].filter(Boolean)) await P.proxy.close();
     await stopSrv('SIGTERM');
     db.close(); db = null;
   }

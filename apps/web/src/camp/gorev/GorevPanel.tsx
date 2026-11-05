@@ -4,7 +4,7 @@
  * "Al" düğmesi bir ödülü tam bir kez alır (kutlama yalnız başarılı yanıtta, bir kez).
  */
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
-import type { KampOdul, KgBasamak, KgGorev, KgState } from '@odi/shared';
+import type { BuildingId, KampOdul, KgBasamak, KgGorev, KgState } from '@odi/shared';
 import { KAMP_OYUN, KG_GUNLUK, KG_KURAL, kgSesli, odulMetni, type KgOlcut } from '@odi/content';
 import { audio } from '@odi/audio';
 import { TuyDede } from '../../ftue/Narrator';
@@ -18,7 +18,7 @@ import { KgSheet } from './Klinik';
 import { act } from '../../net';
 import { useNav, type Nav } from '../../nav';
 import { ORTAK_HAK_NOTU, claimKg, oyunGunMetni, openPanel, refreshKg, useKg, useSesKapali, type GorevSekme, type KgPanel } from './state';
-import { kampSusle } from '../istek';
+import { kampGoster, kampSusle } from '../istek';
 
 const satir = (id: string) => { try { return lineText(id); } catch { return ''; } };
 const DINLENDI = 'odi.kg.dinlendi';
@@ -135,21 +135,25 @@ function Hikaye({ s }: { s: KgState }) {
 /**
  * Günlük görevin yeri (OT-uzman-odyolog-22): "Git"/"Oyna" oyuncuyu görevin yapıldığı yere götürür. Kamp oyunu ve klinik paneli açılır;
  * kampın içindeki iş (depo, inşaat, malzeme, yardım) için panel kapanır, kamp görünür; bölüm ve ziyaret için harita ve Arkadaşlar.
- * Süs görevi üs görünümüne geçip süsleme kipini açar: liste görünümünde Süsle yok (OT-buyuk-yazi-68).
+ * Süs görevi üs görünümüne geçip süsleme kipini açar: liste görünümünde Süsle yok (OT-buyuk-yazi-68). Görevin binası belliyse (depo,
+ * Tedavi Odası) bina ekrana getirilip parlatılır; oyuncu oraya giderken araya anıt kartı ya da tanıtım girmez (camp/istek.ts
+ * kampGoster, OT-ilk-kez-oyun-74).
  */
-const GOREV_YERI: Partial<Record<KgOlcut, KgPanel | 'harita' | 'arkadas' | 'susle'>> = {
+const GOREV_YERI: Partial<Record<KgOlcut, KgPanel | 'harita' | 'arkadas' | 'susle' | { bina: BuildingId }>> = {
   vaka: { kind: 'klinik', tab: 'salon' }, 'vaka-tekrar': { kind: 'klinik', tab: 'defter' },
   ton: { kind: 'oyun', oyun: 'ton' }, 'ton-iyi': { kind: 'oyun', oyun: 'ton' }, timpano: { kind: 'oyun', oyun: 'timpano' },
   bolum: 'harita', 'malzeme-kullan': 'harita', ziyaret: 'arkadas', 'dekor-yerlestir': 'susle',
+  'depo-topla': { bina: 'depo' }, malzeme: { bina: 'tedavi' },
 };
 export function gorevGit(id: string): { label: 'Git' | 'Oyna'; go(nav: Nav): void } {
   const olcut = KG_GUNLUK.find((g) => g.id === id)?.olcut; const yer = olcut ? GOREV_YERI[olcut] : undefined;
-  const oyun = typeof yer === 'object' && yer.kind === 'oyun';
+  const oyun = typeof yer === 'object' && 'kind' in yer && yer.kind === 'oyun';
   return {
     label: oyun ? 'Oyna' : 'Git',
     go: (nav) => {
-      if (typeof yer === 'object') { openPanel(yer); return; }
+      if (typeof yer === 'object' && 'kind' in yer) { openPanel(yer); return; }
       openPanel(null);
+      if (typeof yer === 'object') { kampGoster(yer.bina); return; }
       if (yer === 'harita') nav.tab('map'); else if (yer === 'arkadas') nav.open({ name: 'friends' }); else if (yer === 'susle') kampSusle();
     },
   };

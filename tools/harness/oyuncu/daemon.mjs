@@ -197,21 +197,44 @@ async function hedef(arg) {
   }
   throw new Error(`"${arg}" ekranda bulunamadı (numarayla dene; önce ekran)`);
 }
+/**
+ * Dokunuş, tam o anda açılan Tüy Dede tanıtımıyla yarıştı mı (OT-ogrenci-birinci-53): komut başındaki denetim (500 ms) sayfa yeni
+ * çözülmüşken yapılır; harita dönüş sahnesi donukken bitmemiş olur, tanıtım ancak sahne bitince, dokunuş sürerken açılır. `once`:
+ * tıklamadan hemen önceki katman imzası; tıklamadan sonra kısa süre içinde tur (ya da "Kamp'ta yeni" kartı) açıldıysa not döner.
+ */
+const YARIS_MS = 300;
+async function yaristi(once) {
+  if (!once) return null;
+  await sleep(YARIS_MS);
+  const simdi = await page.evaluate(katmanImzasi).catch(() => null); if (!simdi) return null;
+  return ['tur', 'kamp-yeni'].some((k) => (simdi[k] ?? 0) > (once[k] ?? 0)) ? 'dokunuş açılan Tüy Dede tanıtımıyla yarıştı: dokunduğun şey olmadıysa (ör. bölüm açılmadıysa) ekrana bak, yeniden dokun' : null;
+}
 async function dokun(arg) {
   const m = /^@?(\d+)\s*[,x ]\s*(\d+)$/.exec(arg.trim());
-  if (m) { await page.touchscreen.tap(Number(m[1]), Number(m[2])); return `dokunuldu: (${m[1]}, ${m[2]})`; }
+  if (m) {
+    // tıklamadan hemen önce: son ekrandan beri açılan katman (tanıtım) varsa dokunuş körlemesine ona düşmesin
+    const k = await yeniKatman('dokun'); if (k) return k;
+    const once = await page.evaluate(katmanImzasi).catch(() => null);
+    await page.touchscreen.tap(Number(m[1]), Number(m[2]));
+    const y = await yaristi(once);
+    return `dokunuldu: (${m[1]}, ${m[2]})${y ? `\n! ${y}` : ''}`;
+  }
   // metinle aranan öğe yeni katmanın arkasında kaldıysa "bulunamadı" yerine katman notu
   const h = await hedef(arg).catch(async (e) => ({ not: await yeniKatman('dokun'), e }));
   if (h.e) { if (h.not) return h.not; throw h.e; }
   const { loc, ad } = h;
   await loc.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => undefined);
+  // tıklamadan hemen önce yeniden: komut başındaki denetimden sonra açılan tanıtım
+  const k0 = await yeniKatman('dokun'); if (k0) return k0;
+  const once = await page.evaluate(katmanImzasi).catch(() => null);
   try { await loc.tap({ timeout: 6000 }); } catch (e) {
     // örtülü: denetimden sonra açılan katman (tur açılışı dokunuşla yarıştı) zorla tıklamayla körlemesine ona düşmesin
     const k = await yeniKatman('dokun'); if (k) return k;
     // hareket eden öğe: tıklamayı dene, o da olmazsa zorla
     try { await loc.click({ timeout: 4000 }); } catch { await loc.click({ force: true, timeout: 4000 }).catch(() => { throw e; }); }
   }
-  return `dokunuldu: ${ad}`;
+  const y = await yaristi(once);
+  return `dokunuldu: ${ad}${y ? `\n! ${y}` : ''}`;
 }
 async function yaz(metin, enter) {
   let loc = null;
@@ -421,7 +444,7 @@ async function yurutIc(komut, arg, secenek, notlar, t0) {
   if (katman) { notlar.push(katman); cikti = await ekran('katman', { notlar }); }
   else switch (komut) {
     case 'ekran': await durul(1500); cikti = await ekran('ekran', { notlar }); break;
-    case 'dokun': { const m = await dokun(arg); await sleep(350); await durul(); notlar.unshift(m); cikti = await ekran('dokun', { notlar }); break; }
+    case 'dokun': { const m = await dokun(arg); await sleep(50); await durul(); notlar.unshift(m); cikti = await ekran('dokun', { notlar }); break; }
     case 'yaz': { const m = await yaz(arg, !!secenek.enter); await durul(); notlar.unshift(m); cikti = await ekran('yaz', { notlar }); break; }
     case 'kaydir': { const m = await kaydir(arg.trim()); await sleep(400); await durul(1500); notlar.unshift(m); cikti = await ekran('kaydir', { notlar }); break; }
     case 'surukle': { const m = await surukle(arg); await sleep(400); await durul(1500); notlar.unshift(m); cikti = await ekran('surukle', { notlar }); break; }

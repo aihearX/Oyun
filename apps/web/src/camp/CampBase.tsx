@@ -13,7 +13,7 @@ import { BIOMES, decorById, districtById, monumentOf } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
 import { clearedCount } from '../ftue/features';
 import { DedeCard, sayDede, showDede, useDede } from './dede';
-import { useKampIstek } from './istek';
+import { kampGitSuruyor, useKampIstek } from './istek';
 import { useCoach } from '../ftue/Coach';
 import { markSeen, monumentToCelebrate, regionsNow } from './anit';
 import { Art } from '../ui/art';
@@ -24,6 +24,28 @@ import { useStore } from '../store';
 import { GorevChips, GorevHost } from './gorev/Kanca';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
 import { SusPanel, type SusSel } from './SusPanel';
+
+/** Görevler › Git'in gösterdiği binanın halkası bu kadar görünür (oyuncu dokununca da kalkar) */
+const HEDEF_MS = 4000;
+/** gösterilen binanın çevresinde parlayan halka: kamera kayarken binayı izler, durunca bina bir kez zıplar (scene bounce) */
+function HedefHalka({ id, handle, onEnd }: { id: BuildingId; handle: { current: CampHandle | null }; onEnd: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let raf = 0; let zipladi = false; const t0 = performance.now();
+    const loop = () => {
+      const c = handle.current; const b = c?.box(id); const el = ref.current;
+      if (el) { if (b) { el.style.cssText = `left:${b.x - 6}px;top:${b.y - 6}px;width:${b.w + 12}px;height:${b.h + 12}px`; } else el.style.display = 'none'; }
+      if (!zipladi && c?.still()) { zipladi = true; c.bounce(id); }
+      if (performance.now() - t0 > HEDEF_MS) { onEnd(); return; }
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+    const dokundu = () => onEnd();
+    document.addEventListener('pointerdown', dokundu, true);
+    return () => { cancelAnimationFrame(raf); document.removeEventListener('pointerdown', dokundu, true); };
+  }, [id]);
+  return <div ref={ref} className="camp-hedef" data-testid="kamp-hedef" data-bina={id} aria-hidden />;
+}
 
 /** başka bir oyuncunun kampını gezme (salt okunur) */
 export interface CampVisitView {
@@ -134,7 +156,8 @@ export function CampBase(p: CampBaseProps) {
           if (fresh) {
             const kutla = () => {
               if (handle.current !== cur) return;
-              if (useCoach.getState().tour || document.querySelector('[data-testid="kamp-yeni"]')) { setTimeout(kutla, 400); return; }
+              // Görevler açıkken ya da oyuncu Görevler › Git ile bir binaya giderken de (kart araya girmez, OT-ilk-kez-oyun-74)
+              if (useCoach.getState().tour || document.querySelector('[data-testid="kamp-yeni"], [data-testid="kg-panel"]') || kampGitSuruyor()) { setTimeout(kutla, 400); return; }
               cur.update({ regions, celebrate: fresh }); markSeen(regions);
               setTimeout(() => { if (handle.current === cur) setAnit((a) => (a === 'bekliyor' ? null : a)); }, 8000);
             };
@@ -197,7 +220,18 @@ export function CampBase(p: CampBaseProps) {
     if (!ready || visit) return;
     if (istek.bina) { const id = istek.bina; useKampIstek.setState({ bina: null }); setEdit(false); setSel(id); }
     if (istek.susle) { useKampIstek.setState({ susle: false }); if (p.camp.decor) { setSel(null); setLevelPanel(false); setEdit(true); } }
-  }, [istek.bina, istek.susle, ready]);
+    if (istek.goster) { const id = istek.goster; useKampIstek.setState({ goster: null }); setEdit(false); setSel(null); setLevelPanel(false); gosterBina(id); }
+  }, [istek.bina, istek.susle, istek.goster, ready]);
+  // Görevler › Git: bina ekranda değilse (üst gösterge ile alt kartların arasında) kamera ona kayar, sonra halka ile parlar (OT-ilk-kez-oyun-74)
+  const [hedef, setHedef] = useState<BuildingId | null>(null);
+  const gosterBina = (id: BuildingId) => {
+    const c = handle.current; if (!c) return;
+    const b = c.box(id); const base = host.current?.parentElement;
+    const top = base?.querySelector('.camp-top')?.getBoundingClientRect().bottom ?? 120;
+    const bottom = base?.querySelector('.camp-bottom')?.getBoundingClientRect().top ?? innerHeight - 200;
+    if (!b || b.y < top || b.y + b.h > bottom || b.x < 8 || b.x + b.w > innerWidth - 8) c.focus(id);
+    setHedef(id);
+  };
   // açık paneldeki inşaat bitti (kristal, hızlandırıcı, süre, takım yardımı): panel kapanır ki kutlama, sahnedeki yükseliş ve Tüy Dede görünsün
   const selLevel = sel ? p.camp.buildings.find((b) => b.id === sel)?.level ?? 0 : -1;
   const selSeen = useRef<{ id: BuildingId; level: number } | null>(null);
@@ -216,8 +250,9 @@ export function CampBase(p: CampBaseProps) {
     <div className={`camp-base${edit ? ' editing' : ''}${visit ? ' visiting' : ''}`} data-anit={anit ?? undefined}
       onPointerDownCapture={() => { if (anit === 'goruldu' && !useDede.getState().say) setAnit(null); }}>
       <div className="camp-canvas" ref={host} aria-label={visit ? `${visit.name} adlı oyuncunun kampı` : 'Kulak Kampı üs görünümü'} role="img" />
+      {hedef && <HedefHalka id={hedef} handle={handle} onEnd={() => setHedef(null)} />}
       {!ready && (agYok
-        ? <div className="camp-loading camp-agyok" role="status"><div className="card offline-card"><h2>Kamp yüklenemedi</h2><div className="muted">Bağlanınca açılır. İlerlemen cihazında kayıtlı.</div><button type="button" className="btn" onClick={() => { audio.play('tap'); yenidenDene(); }}>Tekrar dene</button></div></div>
+        ? <div className="camp-loading camp-agyok" role="status"><div className="card offline-card" data-icerik-yok><h2>Kamp yüklenemedi</h2><div className="muted">Bağlanınca açılır. İlerlemen cihazında kayıtlı.</div><button type="button" className="btn" onClick={() => { audio.play('tap'); yenidenDene(); }}>Tekrar dene</button></div></div>
         : <div className="camp-loading" aria-hidden><span><Art e="🏕️" size="1.15em" className="art-inline" /></span></div>)}
       <div className="camp-top">
         {visit

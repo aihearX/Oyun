@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost, type BuildingId } from '@odi/shared';
 import { useStore } from '../store';
-import { useCoach, type CoachStep, type Tour } from './Coach';
+import { FIRST_TAP_GRACE_MS, ICERIK_YOK, useCoach, type CoachStep, type Tour } from './Coach';
 import { lineText } from './script';
 
 const line = (id: string) => ({ id, say: lineText(id) });
@@ -13,7 +13,7 @@ import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
 import { useKg } from '../camp/gorev/state';
 import { KampYeniKart, hideKampYeni, kampYeniBekleyen, kartta, showKampYeni } from './KampYeni';
-import { kampBinaAc } from '../camp/istek';
+import { kampBinaAc, kampGitSuruyor } from '../camp/istek';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
@@ -56,6 +56,10 @@ export function quiet(allowSheets = false): boolean {
   if (exists('[data-testid="ev-bildirim"], [data-testid="yaris-davet-karti"]')) return false;
   // oyuncu bir bölümü başlatmak için dokundu, bölüm yükleniyor: tanıtım bölümden sonraya kalır (OT-uzman-odyolog-34)
   if (bolumBasliyor()) return false;
+  // ekranda anlatılacak içerik yok ("İnternet yok", bağlanılamadı kartı, yükleniyor): tanıtım bağlanınca, içerik gelince başlar
+  // (OT-eski-telefon-44; süren tur da duraklar, Coach.tsx). Görevler › Git ile kampta bir yere gidiliyor: tanıtım ve yeni anıt
+  // kutlaması oyuncu oraya dokunana ya da kısa süre geçene dek bekler (OT-ilk-kez-oyun-74; camp/istek.ts)
+  if (exists(ICERIK_YOK) || kampGitSuruyor()) return false;
   if (!allowSheets && (exists('.sheet-wrap') || exists('.map-sheet-wrap') || exists('.bp-wrap') || exists('.overlay') || exists('[aria-modal="true"]'))) return false;
   return true;
 }
@@ -106,16 +110,23 @@ if (typeof document !== 'undefined') {
 /** turun bir adımı oyuncuyu başka bir alt sekmeye götürüyor mu ("Takım'a dokun") */
 export const sekmeDegistirir = (t: Tour) => t.steps.some((s) => typeof s.target === 'string' && s.target.startsWith('nav.tabbar .tab['));
 /**
+ * Tanıtım görünür olduktan (açılış payı bitip katman dokunuş almaya başladıktan) sonraki bu süre içinde gelen dokunuş, balona ya da
+ * "Yeni yer açıldı" kartına düşse de, bölüme uzanırken açılan tanıtıma düşmüştür (OT-ogrenci-birinci-53)
+ */
+const BOLUM_YARIS_MS = FIRST_TAP_GRACE_MS + 400;
+/**
  * Sekme değiştiren tanıtım açıkken oyuncunun ilk dokunuşu karartılmış zeminde bir bölüm düğmesinin ("Bölüm N") üstüne düştüyse
  * tanıtım görülmüş sayılmadan çekilir ve bölüm başlar; tanıtım bölümden sonra yeniden gelir. Yalnız turun ilk dokunuşu sayılır.
+ * Tanıtım açılır açılmaz (BOLUM_YARIS_MS) gelen dokunuş balona ya da karta düşse de altındaki bölüm düğmesine sayılır: oyuncu
+ * tanıtımı görmeden "Bölüm N"e uzanmıştı, dokunuşu yutulmaz.
  */
 export function watchBolum(): { stop(): void } {
-  let first = true;
+  let first = true; const born = performance.now();
   const on = (e: MouseEvent) => {
     const t = e.target instanceof Element ? e.target : null;
     if (!first || !t?.closest('.coach')) return;
     first = false;
-    if (!t.closest('.coach-block')) return;
+    if (!t.closest('.coach-block') && performance.now() - born > BOLUM_YARIS_MS) return;
     let hit: HTMLElement | null = null;
     for (const x of document.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
       if (x.closest('.coach')) continue;
@@ -232,7 +243,9 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
         { id: 'kamp-insa-01', say: lineText('kamp-insa-01') },
         { ...line(b === 'depo' ? 'kamp-insa-02-depo' : 'kamp-insa-02'), target: () => buildingRect(b), wait: { el: '.bp' }, hint: 'Binaya dokun', enter: () => kamp()?.focus?.(b) },
         { id: 'kamp-insa-03', say: lineText('kamp-insa-03'), target: '.bp-eff' },
-        { id: 'kamp-insa-04', say: lineText('kamp-insa-04'), target: '.bp-up .btn', wait: { el: '.bp-build' }, hint: 'Düğmeye dokun' },
+        // internetsiz Kur: istek bağlanınca gider, düğme "Bağlanınca başlayacak" ile kilitli; balon dürüst not verir, el gizlenir
+        // (OT-eski-telefon-45). Bağlanınca inşaat başlar, adım her zamanki gibi ilerler
+        { id: 'kamp-insa-04', say: lineText('kamp-insa-04'), target: '.bp-up .btn', wait: { el: '.bp-build' }, hint: 'Düğmeye dokun', bekleniyor: () => (exists('.bp [data-testid="bekleyen-insaat"]') ? INSAAT_BEKLIYOR : null) },
         { id: 'kamp-insa-05', say: lineText('kamp-insa-05'), target: '.bp-build', mood: 'wink' },
       ); break;
     }
@@ -335,13 +348,17 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
         { ...line('kg-tur-02'), target: '[data-testid="kg-btn"]', wait: { el: '[data-testid="kg-panel"]' }, hint: 'Görevler’e dokun', optional: true, mood: 'wink' },
       ); break;
     // kamp oyunları yalnız en az biri açıkken (Odyometri Odası ya da Timpanometri Kulesi kurulu) tanıtılır (campQueue); seslendirilmiş
-    // satır "…seni bekliyor" der (OT-ilk-kez-oyun-52)
-    case 'kampoyun':
+    // satır "…seni bekliyor" der (OT-ilk-kez-oyun-52): yalnız ikisi de açıkken. Biri açıkken yerine seslendirilmeyen yazı, kurulmamış
+    // bina "bekliyor" diye anılmaz (OT-ilk-kez-oyun-75)
+    case 'kampoyun': {
+      const acik = (o: 'ton' | 'timpano') => !!useKg.getState().kg?.oyun.some((g) => g.oyun === o && g.open);
+      const ikisi = acik('ton') && acik('timpano');
       steps.push(
-        unlockCard('kampoyun', 'kg-oyun-01'),
+        ikisi ? unlockCard('kampoyun', 'kg-oyun-01') : { say: acik('timpano') && !acik('ton') ? OYUN_TIMPANO : OYUN_TON, silent: true, art: featureById('kampoyun').art, kicker: 'Yeni yer açıldı!', mood: 'wow' },
         ...(route === 'camp' ? [] : [tapTab('camp')]),
         { ...line('kg-oyun-02'), target: '[data-testid="kg-btn"]', optional: true, mood: 'wink' },
       ); break;
+    }
     // Hasta Vakaları yalnız Odyoloji Kliniği kuruluyken tanıtılır (campQueue) ve çerçeve gerçek girişi gösterir (Görevler değil)
     case 'vaka':
       steps.push(
@@ -383,6 +400,14 @@ const akisNotu = () => (tebrikKarti() ? 'Tepki bırak ya da Tebrik et’e dokun'
 export const VAKA_KUR = 'Önce Odyoloji Kliniği’ni kur; Hasta Vakaları oradan açılır.';
 /** hiçbir kamp oyunu açık değilken kamp oyunları tanıtımının yerine (kayıtlı ses yok; yazı) */
 export const OYUN_KUR = 'Önce Odyometri Odası’nı kur; Ton Avı oradan açılır.';
+/**
+ * kamp oyunlarından yalnız biri açıkken seslendirilmiş kg-oyun-01'in ("…Ton Avı, kulede Timpanogram Eşleştir seni bekliyor") yerine
+ * (kayıtlı ses yok; yazı): kurulmamış bina "bekliyor" diye anılmaz (OT-ilk-kez-oyun-75)
+ */
+export const OYUN_TON = 'Yeni: Kamp oyunları! Odyometri Odası’nda Ton Avı seni bekliyor; Timpanogram Eşleştir, Timpanometri Kulesi’ni kurunca açılır.';
+export const OYUN_TIMPANO = 'Yeni: Kamp oyunları! Timpanometri Kulesi’nde Timpanogram Eşleştir seni bekliyor; Ton Avı, Odyometri Odası’nı kurunca açılır.';
+/** kamp öğreticisinde internetsiz basılan Kur'un notu (seslendirilmez) */
+export const INSAAT_BEKLIYOR = 'İnternet gelince inşaat başlayacak';
 
 /** oyuncu en az bir vaka açtı ya da çözdü mü (kamp görevleri özetindeki Vaka Defteri başarısı ya da defterde oynanmış/çözülmüş vaka) */
 export function vakaCozuldu(): boolean {

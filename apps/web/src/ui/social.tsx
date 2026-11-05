@@ -120,11 +120,11 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
   );
 }
 
-/** sunucu yoksa/bağlanamadıysa nazik kart */
+/** sunucu yoksa/bağlanamadıysa nazik kart (ekranın içeriği yok: Tüy Dede tanıtımı bağlanınca gelir, ftue/Coach.tsx ICERIK_YOK) */
 export function OfflineCard({ what = 'Takım, sohbet ve savaş' }: { what?: string }) {
   const enabled = useSocial((s) => s.enabled); const st = useNet((s) => s.status);
   return (
-    <div className="card offline-card fade-in">
+    <div className="card offline-card fade-in" data-icerik-yok>
       <div className="ph-icon" aria-hidden><Art name="signal" size={48} /></div>
       <h2>{enabled ? 'Sunucuya bağlanılamadı' : 'Sosyal sunucu ayarlı değil'}</h2>
       <div className="muted">{enabled ? <>Aynı Wi-Fi'da <code>npm run server</code> açık mı? {what} bağlanınca gelir; bu arada oyuna devam edebilirsin, ilerlemen kaybolmaz.</> : `${what} için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.`}</div>
@@ -138,12 +138,13 @@ export function Online({ children, what, skeleton = 4 }: { children: ReactNode; 
   const st = useNet((s) => s.status); const me = useNet((s) => s.me); const tried = useSocial((s) => s.tried); const enabled = useSocial((s) => s.enabled);
   // bağlıyken de kopukken de aynı ağaç (şerit yuvası sabit): kopup gelince ekran baştan kurulmaz, yazılan metin ve bekleyen işlem kaybolmaz
   if (me) return <>{st !== 'bağlı' && <div className="net-banner"><Art name="signal" size={18} /> Bağlantı koptu — yeniden bağlanıyor… <button className="linkish" onClick={reconnect}>Tekrar dene</button></div>}{children}</>;
-  if (enabled && (!tried || st === 'bağlanıyor')) return <Skeleton rows={skeleton} />;
+  if (enabled && (!tried || st === 'bağlanıyor')) return <Skeleton rows={skeleton} ekran />;
   return <OfflineCard what={what} />;
 }
 
-export function Skeleton({ rows = 3 }: { rows?: number }) {
-  return <div className="skel-list" aria-busy="true" aria-label="Yükleniyor">{Array.from({ length: rows }, (_, i) => <div className="skel card" key={i}><i className="sk-a" /><span><i className="sk-b" /><i className="sk-c" /></span></div>)}</div>;
+/** `ekran`: ekranın bütün içeriği bu (sosyal ekranın kapısı): Tüy Dede tanıtımı başlamaz ya da duraklar (ftue/Coach.tsx ICERIK_YOK) */
+export function Skeleton({ rows = 3, ekran }: { rows?: number; ekran?: boolean }) {
+  return <div className="skel-list" aria-busy="true" aria-label="Yükleniyor" data-icerik-yok={ekran || undefined}>{Array.from({ length: rows }, (_, i) => <div className="skel card" key={i}><i className="sk-a" /><span><i className="sk-b" /><i className="sk-c" /></span></div>)}</div>;
 }
 
 export function Empty({ icon, title, text, children }: { icon: string; title: string; text?: string; children?: ReactNode }) {

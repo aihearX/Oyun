@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BINA_KUR, BUILDINGS, buildCost, crystalsToFinish, type BuildingDef, type BuildingState, type CampState, type QueuedBuild, type Wallet } from '@odi/shared';
 import { depotStored } from '@odi/game-core/lite';
 import { depotCapHours } from '@odi/content';
 import { CampLevelChip, CampLevelPanel } from './KampSeviye';
-import { Bar } from '../ui/bits';
+import { Bar, prefersReducedMotion } from '../ui/bits';
 import { FloatBurst, Sheet, fmtDur, fmtLeft, fmtNum } from '../ui/social';
 import { BEKLEYEN_INSAAT, BONUS_KURAL, DEPOT_RATE, ITEMS, KRISTAL_KURAL, askedHelp, bonusArtisi, buildKey, canQueue, effect, insaatIstegi, kurulumYazisi, queueSupported, shortOf, sureTam, useBekleyenInsaat, type CampActions, type CampBonuses } from './model';
 import { useKg } from './gorev/state';
@@ -14,6 +14,7 @@ import { DedeCard } from './dede';
 import { SiraIpucu } from './SiraIpucu';
 import { Art, rich } from '../ui/art';
 import { GorevChips, GorevHost, KgOyunGiris, KlinikVakaSatiri } from './gorev/Kanca';
+import { useKampIstek } from './istek';
 
 /** Liste görünümü (erişilebilirlik): binalar, canlı geri sayım, takımdan yardım, hızlandırıcılar, kristalle bitirme, depo. */
 export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
@@ -35,6 +36,16 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
   const qOn = !!active && queueSupported(camp);
   const story = hikayeBinasi(useKg((st) => st.kg)); // hikâyenin istediği bina (MK-016)
   const collect = async () => { const n = await actions.collect(); if (n) setBurst(`+${fmtNum(n)} 🪙`); };
+  // Görevler › Git (camp/istek.ts kampGoster): binanın kartına (depo için Topla'lı depo kartına) kaydırılır, kart bir süre parlar
+  const goster = useKampIstek((st) => st.goster);
+  useEffect(() => {
+    if (!goster) return;
+    useKampIstek.setState({ goster: null });
+    const el = document.querySelector<HTMLElement>(goster === 'depo' ? '.card.depot' : `.card.building[data-bina="${goster}"]`); if (!el) return;
+    el.scrollIntoView?.({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' }); el.classList.add('kamp-hedef');
+    const bitir = () => { el.classList.remove('kamp-hedef'); clearTimeout(h); document.removeEventListener('pointerdown', bitir, true); };
+    const h = setTimeout(bitir, 4000); document.addEventListener('pointerdown', bitir, true);
+  }, [goster]);
 
   return (
     <div className="stack">
@@ -73,7 +84,7 @@ export function CampList({ camp, wallet, team, fast, sNow, actions, bonuses }: {
         const blocked = d.id !== 'merkez' && to > merkez; const busy = !!active || !!bekleyen; const poor = wallet.jeton < cost.jeton; const locked = !!d.campLevel && (camp.xp?.level ?? 1) < d.campLevel;
         const inQueue = camp.queued?.id === d.id; const qv = qOn && !b.upgradingTo ? canQueue(camp, wallet, d.id) : null;
         return (
-          <div className={`card building${b.upgradingTo ? ' building-now' : ''}${inQueue ? ' building-queued' : ''}`} key={d.id}>
+          <div className={`card building${b.upgradingTo ? ' building-now' : ''}${inQueue ? ' building-queued' : ''}`} key={d.id} data-bina={d.id}>
             <div className="row">
               <span className="b-i" aria-hidden><BinaIcon id={d.id} size={32} /></span>
               <div className="grow min0"><div className="row between"><b>{d.name}</b><span className="lvl-pill">{kurulumYazisi(b) ?? `Sv ${b.level}`}</span></div><div className="muted">{effect(d.id, b.level)}</div><div className="b-desc">{d.desc}</div></div>

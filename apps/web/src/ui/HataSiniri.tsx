@@ -28,7 +28,8 @@ interface Props {
  * (hata.ts; kişisel veri yok). Kök sınır main.tsx ve telefon kabuğunda (WebApp.tsx), ekran sınırları App.tsx'te.
  * Ekran parçası bağlantı yokken yüklenemediyse (YN-047) bu bir çökme değildir: rapor gitmez, kart "İnternet yok" der ve
  * bağlantı dönünce ('online') kendiliğinden yeniden dener. Ekran sınırı kartında (kök hariç) Geri ve sekmeler hep vardır: oyuncu
- * internetsiz çalışan haritaya ve bölümlere dönebilir, kart bir çıkmaz değildir (YN-205, OT-eski-telefon-35).
+ * internetsiz çalışan haritaya ve bölümlere dönebilir, kart bir çıkmaz değildir (YN-205, OT-eski-telefon-35). Kart görünürken Tüy Dede
+ * tanıtımı başlamaz, süren tur duraklar (`data-icerik-yok`; boş "İnternet yok" ekranında günlük görevler anlatılmaz, OT-eski-telefon-44).
  */
 export class HataSiniri extends Component<Props, { hata: boolean; ag: boolean }> {
   override state = { hata: false, ag: false };
@@ -45,7 +46,7 @@ export class HataSiniri extends Component<Props, { hata: boolean; ag: boolean }>
     const { kok, geri, baslik, sekmeler } = this.props;
     return (
       <>
-        <div className={`screen${sekmeler ? ' with-tabs' : ''}`} data-testid={kok ? 'hata-kok' : ag ? 'hata-ag' : 'hata-ekran'}>
+        <div className={`screen${sekmeler ? ' with-tabs' : ''}`} data-testid={kok ? 'hata-kok' : ag ? 'hata-ag' : 'hata-ekran'} data-icerik-yok>
           {!kok && geri && <ScreenHead title={baslik ?? ''} onBack={geri} />}
           <div role="alert" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 14, textAlign: 'center' }}>
             <h2>{ag ? 'İnternet yok' : 'Bir şeyler ters gitti'}</h2>
