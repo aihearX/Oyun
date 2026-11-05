@@ -153,37 +153,34 @@ export const BILIYOR_MUYDUN: BiliyorMuydun[] = /* @__PURE__ */ bolunmezYap([
 ]);
 
 const biyomu = (bolum: number) => HUMAN_JOURNEY.levels.find((l) => l.number === bolum)?.biome;
-/** biyomlar yolculukta ilk göründükleri sırayla (Bölüm 17 ve 20 kanala dönse de kanalın öncesi Dış Kulak'tır) */
-const BIYOM_SIRA = [...new Set(HUMAN_JOURNEY.levels.map((l) => l.biome))];
+/** biyomların havuzu: o biyomun bölümlerinin satırları, bölüm sırasıyla */
+const havuz = (bolum: number): BiliyorMuydun[] => { const b = biyomu(bolum); return b ? BILIYOR_MUYDUN.filter((x) => biyomu(x.bolum) === b) : []; };
 
-/** kayıtta tutulan son gösterilen satır sayısı (apps/web store `bilgiSonlar`; YN-212): bunlar yeniden seçilmez */
-export const BILGI_YAKIN = 3;
+/**
+ * kayıtta tutulan son gösterilen satır sayısı (apps/web store `bilgiSonlar`; YN-212, YN-222): en büyük biyom havuzu kadar, böylece
+ * bir biyomun bütün satırları dönmeden hiçbiri yeniden gelmez (Kemikçikler 6 satır; art arda 5 sonuçta da tekrar yok)
+ */
+export const BILGI_YAKIN = /* @__PURE__ */ Math.max(...BILIYOR_MUYDUN.map((x) => havuz(x.bolum).length));
 
 /**
  * bölümün "Biliyor muydun?" satırı oyuncunun Bilgi düzeyine göre; listede olmayan bölümde (ör. üretilmiş bölüm) null.
- * `tekrar`: aynı bölümün kaçıncı tekrarı (0 = ilk oynayış). Tekrarda hep aynı satır çıkmasın diye (YN-127) biyomun öteki
- * bölümlerinin satırlarından sıradaki gelir (bölüm sırasıyla, başa sararak); yeni metin yok, yalnız bu onaylı listeden seçim.
- * `onceki`: yakın zamanda sonuç ekranında gösterilen satırların bölümleri (kayıtta, apps/web store `bilgiSonlar`, en çok
- * BILGI_YAKIN; tek sayı da olur). Seçilen satır bunlardan biriyse biyomun sıradaki gösterilmemiş satırı gelir: başka bir bölümün
- * tekrarı ile ardından gelen bölüm (YN-175) ya da 24 → 25 → 26 tekrarı (YN-212) aynı satırı göstermez. Biyomda gösterilmemiş
- * satır kalmadıysa önceki biyomun gösterilmemiş satırı, o da yoksa bölümün kendi satırı (son gösterilen o değilse) gelir.
+ * Kazançta da kayıpta da satır bölümün biyom havuzundan gelir (YN-222, OT-uzman-odyolog-40: Apeks'in infrases satırı İşitme
+ * Siniri'nin kaybında yeniden geliyordu); yeni metin yok, yalnız bu onaylı listeden seçim (karar 31).
+ * `tekrar`: aynı bölümün kaçıncı tekrarı (0 = ilk oynayış). Tekrarda hep aynı satır çıkmasın diye (YN-127) havuzun sıradaki
+ * satırı gelir (bölüm sırasıyla, başa sararak).
+ * `onceki`: yakın zamanda sonuç ekranında gösterilen satırların bölümleri, eskiden yeniye (kayıtta, apps/web store `bilgiSonlar`,
+ * en çok BILGI_YAKIN; tek sayı da olur). Seçilen satır bunlardan biriyse havuzun sıradaki gösterilmemiş satırı gelir (YN-175,
+ * YN-212). Havuzun hepsi yakında gösterildiyse havuzdan en önce gösterilen gelir: son gösterilen art arda gelmez, başka biyomun
+ * satırına geçilmez.
  */
 export function biliyorMuydunSatiri(bolum: number, tekrar = 0, onceki?: number | readonly number[]): BiliyorMuydun | null {
   const b = BILIYOR_MUYDUN.find((x) => x.bolum === bolum);
   if (!b) return null;
   const yakin = onceki == null ? [] : typeof onceki === 'number' ? [onceki] : onceki;
-  const biyom = biyomu(bolum);
-  const sira = biyom ? BILIYOR_MUYDUN.filter((x) => biyomu(x.bolum) === biyom) : [b];
+  const sira = havuz(bolum).length ? havuz(bolum) : [b];
   const i = sira.indexOf(b) + Math.max(0, Math.floor(tekrar));
-  const s = sira[i % sira.length] ?? b;
-  if (!yakin.includes(s.bolum)) return s;
-  for (let k = 1; k < sira.length; k++) { const t = sira[(i + k) % sira.length]!; if (!yakin.includes(t.bolum)) return t; }
-  const ob = biyom ? BIYOM_SIRA[BIYOM_SIRA.indexOf(biyom) - 1] : undefined;
-  const yedek = ob ? BILIYOR_MUYDUN.find((x) => biyomu(x.bolum) === ob && !yakin.includes(x.bolum)) : undefined;
-  if (yedek) return yedek;
-  // hepsi yakında gösterildi: bölümün kendi satırı; en azından son gösterilen art arda gelmesin (YN-175)
-  const son = yakin[yakin.length - 1];
-  return b.bolum !== son ? b : sira.find((x) => x.bolum !== son) ?? b;
+  for (let k = 0; k < sira.length; k++) { const t = sira[(i + k) % sira.length]!; if (!yakin.includes(t.bolum)) return t; }
+  return sira.reduce((a, x) => (yakin.indexOf(x.bolum) < yakin.indexOf(a.bolum) ? x : a));
 }
 
 /** satırın metni Bilgi düzeyine göre (seçim kuralı: biliyorMuydunSatiri) */

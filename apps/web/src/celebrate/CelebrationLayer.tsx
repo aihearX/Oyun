@@ -22,7 +22,7 @@ import './celebrate.css';
 type Tier = 'bronz' | 'gumus' | 'altin';
 type Scene =
   | { kind: 'chest'; title: string; items: RewardItem[]; tier: Tier; phase: 'drop' | 'shake' | 'open' | 'reveal' | 'collect' | 'out'; shake: number; shown: number; granted: boolean; note?: string }
-  | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string }
+  | { kind: 'levelUp'; level: number; unlocks: string[]; phase: 'burst' | 'list' | 'out'; shown: number; title?: string; kicker?: string; listTitle?: string }
   | { kind: 'biome'; biome: string; name: string; reward: RewardItem[]; phase: 'rise' | 'title' | 'reward' | 'out'; shown: number }
   | { kind: 'recap'; title: string; sub?: string; note?: string; rows: RecapRow[]; phase: 'list' | 'out'; shown: number; all?: boolean };
 
@@ -142,10 +142,10 @@ export function CelebrationLayer({ toasts = true }: { toasts?: boolean }) {
     await sleep(reduced.current ? 0 : granted ? 300 : 150);
   };
 
-  const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string }) => {
+  const runLevelUp = async (o: { level: number; unlocks?: string[]; title?: string; kicker?: string; listTitle?: string }) => {
     const unlocks = o.unlocks ?? [];
     // başlık ve rozet yazısı (ör. "Kamp Seviyesi 5!") her evrede korunur; yalnız ilk evrede değil (OT-ekonomi-denetci-27)
-    const base = { kind: 'levelUp' as const, level: o.level, unlocks, title: o.title, kicker: o.kicker };
+    const base = { kind: 'levelUp' as const, level: o.level, unlocks, title: o.title, kicker: o.kicker, listTitle: o.listTitle };
     audio.duck('kutlama', 3, 0.3);
     setScene({ ...base, phase: 'burst', shown: 0 });
     audio.play('levelUp'); platform().haptic('success');
@@ -291,7 +291,8 @@ function LevelUpScene({ s, onTap, onOk }: { s: Extract<Scene, { kind: 'levelUp' 
       <div className="lvl-badge"><span className="lb-k">{s.kicker ?? 'SEVİYE'}</span><span className="lb-n">{s.level}</span><span className="lb-star" aria-hidden><Art name="star" size={30} /></span></div>
       <div className="cel-title big">{s.title ?? `Seviye ${s.level}!`}</div>
       {s.unlocks.length > 0 && (
-        <div className="lvl-list">
+        <div className="lvl-list" data-testid="seviye-listesi">
+          {s.listTitle && <div className="lvl-list-k">{s.listTitle}</div>}
           {s.unlocks.map((u, i) => <div key={i} className={`lvl-item${i < s.shown ? ' in' : ''}`}><span aria-hidden><Art name="unlock" size={20} /></span><b><Rich text={u} /></b></div>)}
         </div>
       )}

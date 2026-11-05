@@ -24,7 +24,7 @@ import { mapIntroView, type MapReveal } from '../ftue/map-intro';
 import { TuyDede } from '../ftue/Narrator';
 import { ResultComm } from '../comm/ResultComm';
 import { odiLook } from '../look';
-import { hazineNotlu, melodiSatir, sureAlt } from './sonuc-satir';
+import { hazineNotlu, melodiSatir, seviyeAcilanlar, sureAlt } from './sonuc-satir';
 import { Icon } from '../ui/icons';
 import { appScroller } from '../ui/viewport';
 import { shieldResultLine, type ShieldGift } from '../kalkan';
@@ -229,12 +229,13 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
     void celebrate.coins({ amount: coinsAfter - summary.coinsBefore, kind: 'jeton', ...(a ? { from: { x: a.left + a.width / 2, y: a.top + a.height / 2 } } : {}) });
     setCoinsFlying(true);
   }, [step]);
-  // seviye atladıysa büyük kutlama (XP çubuğu dolup patladıktan sonra); açılan şeyler bu koşuda gerçekten açılanlar
+  // seviye atladıysa büyük kutlama (XP çubuğu dolup patladıktan sonra); listede yalnız seviyeyle açılanlar (hazine, başarım, kart bu
+  // bölümün kazancı: sonuç kartında yazar, pencerede seviyeyle açılmış gibi görünmesin; YN-229)
   const leveledShown = useRef(false);
   useEffect(() => {
     if (leveledShown.current || !leveled || xpPhase !== 2 || step < S + 2 || demoNoCelebrate) return;
     leveledShown.current = true;
-    levelTimer.current = window.setTimeout(() => void celebrate.levelUp({ level: after.level, unlocks: allUnlocks.slice(0, 4).map((u) => u.title) }), reduced ? 0 : 500);
+    levelTimer.current = window.setTimeout(() => void celebrate.levelUp({ level: after.level, unlocks: seviyeAcilanlar(summary), listTitle: 'Seviyeyle açılanlar' }), reduced ? 0 : 500);
   }, [xpPhase, step]);
   const levelTimer = useRef(0);
   useEffect(() => () => clearTimeout(levelTimer.current), []);
@@ -513,11 +514,13 @@ function buildUnlocks(s: RunSummary, odiColor: number): UnlockView[] {
 /**
  * Kayıpta hasar cümlesi: kalkan ya da Klinik koruması bir vuruşu karşıladıysa kazançtaki satırla aynı söz (damageNote, karar 37;
  * OT-sessiz-oyuncu-18: kalkanla başlanan kayıpta yalnız "3 kez hasar aldın" yazıyordu). "…, en son dikene değdin." kısmı kalır.
- * Bölüme takım/Atölye kalkanıyla başlanıp hiçbir vuruş karşılanmadıysa bu da söylenir (`kalkan`: shieldResultLine; YN-192).
+ * Bölüme takım/Atölye kalkanıyla başlandıysa kalkan satırı eklenir (`kalkan`: shieldResultLine; YN-192): ne karşıladığını ve kaç
+ * kez düşüldüğünü söyler, hasar sayısı yalnız baştaki cümlede kalır (YN-229, OT-sessiz-oyuncu-31: "3 hasar" iki kez geçiyordu).
  */
 function guardedDetail(detail: string, r: RunResult, kalkan = ''): string {
+  if (kalkan) return [detail, kalkan].filter(Boolean).join(' ');
   const g = r.extra?.guarded; const note = damageNote(r);
-  if (!(typeof g === 'number' && g > 0) || !note) return [detail, kalkan].filter(Boolean).join(' ');
+  if (!(typeof g === 'number' && g > 0) || !note) return detail;
   const head = `${r.damageTaken} kez hasar aldın`;
   return detail.startsWith(head) ? `${note}${detail.slice(head.length)}` : [detail, `${note}.`].filter(Boolean).join(' ');
 }

@@ -1423,7 +1423,9 @@ async function suite(browserName, target, [W, H]) {
         // YN-191 (OT-ilk-kez-oyun-57): bölge sonu ilk geçişte iki satırlık 3. yıldız kartı + haritada bekleyen canlanma ve tanıtım (yapışkan alan
         // en uzun); 3. yıldız yalnız hedefle (tutmayan nota satırı soluk, OT-buyuk-yazi-58); YN-192: takım kalkanıyla başlanan bölüm
         ['demo=sonuc&bolum=5&yildiz=2&skor=1917&acilim=1&harita=1&anlatim=team&kutlama=0', 'sonuc-yildiz-devam'], ['demo=sonuc&bolum=16&yildiz=3&skor=2600&hedef=1&kutlama=0', 'sonuc-yildiz-hedef'],
-        ['demo=sonuc&bolum=7&yildiz=2&skor=1500&hediye=takim&kutlama=0', 'sonuc-kalkan-takim']]) {
+        ['demo=sonuc&bolum=7&yildiz=2&skor=1500&hediye=takim&kutlama=0', 'sonuc-kalkan-takim'],
+        // YN-229 (OT-sessiz-oyuncu-31): takım kalkanıyla başlanan kayıp, hasarların hepsi düşüş: hasar sayısı kartta bir kez
+        ['demo=sonuc&bolum=36&yildiz=0&skor=420&neden=fall&hediye=takim&kutlama=0', 'sonuc-kaybetti-kalkan-dusme']]) {
         if (SONUC && !SONUC.some((x) => label.includes(x))) continue;
         // her sonuç ekranı ilk gösterim gibi: "Biliyor muydun?" son gösterilen satırlar kaydı (YN-175, bilgiSonlar) sıfırlanır, yoksa önceki
         // ekranın satırı sıradakinin satırını değiştirir ve ölçümler ekran sırasına bağlı olur
@@ -1626,8 +1628,8 @@ async function suite(browserName, target, [W, H]) {
         if (!/^(süre|skora \+\d+ süre bonusu|\d+ sn'yi \d+(,\d)? sn kaçırdın|süre bonusu yok \(tam \d+ sn\))$/.test(sureAltYazi)) fail(rec, `süre kutusunun alt yazısı: "${sureAltYazi}"`);
         // YN-192: takım kalkanıyla başlanan bölümde vuruş gelmese de sonuç söyler; kalkansız bölümde satır yok
         const kalkanYazi = await yazi('[data-testid="sonuc-kalkan"]');
-        // önizleme 2★: 1 hasar, karşılanan vuruş yok → hasar düşüştendir, satır nedenini söyler ("vuruş gelmedi" değil; YN-202)
-        if (label === 'sonuc-kalkan-takim' && kalkanYazi.replace(/\u00a0/g, ' ') !== 'Takım kalkanı bu bölümde seninleydi. Kalkan düşmeyi karşılamaz: 1 hasar aldın. Takım kalkanı bölüm başında harcanır.') fail(rec, `takım kalkanı satırı: "${kalkanYazi}"`);
+        // önizleme 2★: 1 hasar, karşılanan vuruş yok → hasar düşüştendir, satır nedenini söyler ("vuruş gelmedi" değil; YN-202), hasar sayısını değil (YN-229)
+        if (label === 'sonuc-kalkan-takim' && kalkanYazi.replace(/\u00a0/g, ' ') !== 'Kalkan kullanılmadı: hasarların hepsi düşmeydi (kalkan düşmeyi karşılamaz).') fail(rec, `takım kalkanı satırı: "${kalkanYazi}"`);
         if (label !== 'sonuc-kalkan-takim' && kalkanYazi) fail(rec, `kalkansız bölümde kalkan satırı: "${kalkanYazi}"`);
         // OT-buyuk-yazi-58: 3. yıldız hedefle alındı: tutan satır işaretli ve yeşil "tamam", tutmayan satırın "kaldı"sı soluk (sarı uyarı değil)
         if (label === 'sonuc-yildiz-hedef') {

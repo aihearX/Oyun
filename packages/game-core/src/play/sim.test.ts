@@ -174,6 +174,10 @@ describe('kalkan ve Klinik koruması (sahip kararı 37, YN-088)', () => {
     const { w, s } = flatShield(); run(w, s, 10); s.freeFalls = 0;
     hurt(w, s, 'fall');
     expect(s.shield).toBe(1); expect(s.guarded).toBe(0); expect(s.lives).toBe(2);
+    // can götüren düşüş ayrıca sayılır (sonuç kartının kalkan satırı; YN-229); karşılanan çarpma düşüş sayılmaz
+    expect(s.falls).toBe(1); expect(s.damageTaken).toBe(1);
+    s.hero.invuln = 0; hurt(w, s, 'dusman', s.hero.x + 30);
+    expect(s.falls).toBe(1); expect(s.guarded).toBe(1); expect(s.damageTaken).toBe(2);
   });
   /** n vuruş (düşüş değil); her vuruştan önce dokunulmazlık sıfırlanır */
   const hits = (w: World, s: SimState, n: number) => { for (let i = 0; i < n; i++) { s.hero.invuln = 0; hurt(w, s, 'dusman', s.hero.x + 30); } };

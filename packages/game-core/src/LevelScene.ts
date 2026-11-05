@@ -637,8 +637,9 @@ export class LevelScene extends Phaser.Scene {
       levelId: this.spec.id, completed, coins: s.coins, timeSec: Math.round(s.t * 10) / 10, deaths: s.deaths, damageTaken: s.damageTaken,
       objectiveMet: this.objectiveMet(completed), secretFound: cochleasTotal > 0 && s.cochleas >= cochleasTotal,
       // melodi: sırayla toplanan nota sayısı (sonuç kartı "7 notanın 3'ü sırayla" diyebilsin);
-      // guarded: kalkanın/Klinik korumasının karşıladığı vuruş (damageTaken'in içinde; sonuç kartı nedenini söylesin, karar 37); klinik: biri Klinik'ti
-      extra: { cochleas: s.cochleas, cochleasTotal, ...(s.guarded > 0 ? { guarded: s.guarded, ...(this.revirStart && !s.revir ? { klinik: true } : {}) } : {}), ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
+      // guarded: kalkanın/Klinik korumasının karşıladığı vuruş (damageTaken'in içinde; sonuç kartı nedenini söylesin, karar 37); klinik: biri Klinik'ti;
+      // falls: can götüren düşüş (sonuç kartının kalkan satırı: "Kalkan 1 çarpmayı karşıladı; 2 kez düştün", YN-229)
+      extra: { cochleas: s.cochleas, cochleasTotal, ...(s.guarded > 0 ? { guarded: s.guarded, ...(this.revirStart && !s.revir ? { klinik: true } : {}) } : {}), ...(s.falls > 0 ? { falls: s.falls } : {}), ...(this.world.notesTotal > 0 ? { melody: s.notes, melodyTotal: this.spec.objective.target ?? this.world.notesTotal } : {}) } as Record<string, number | string | boolean>,
     };
     // Rahat deneme (karar 42): sonuç kartı, kayıt ve sunucu gönderimi bu bayrağa bakar
     return { ...base, ...scoreRun(this.spec, base), ...(this.spec.rahat ? { rahat: true } : {}) };

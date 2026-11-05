@@ -93,6 +93,7 @@
 .lvl-item { display:flex; gap:10px; align-items:center; background:linear-gradient(180deg,#fffdf6,var(--cream)); color:var(--ink); border:3px solid #fff; border-radius:16px; padding:10px 14px; text-align:left; box-shadow:0 4px 0 rgba(0,0,0,.28); opacity:0; transform:translateX(-40px); }
 .lvl-item.in { animation:itemIn .45s cubic-bezier(.2,1.4,.4,1) forwards; }
 .lvl-item b { font-weight:900; font-size:0.9375rem; overflow-wrap:anywhere; }
+.lvl-list-k { font-weight:900; font-size:0.875rem; text-align:left; padding-left:4px; text-shadow:0 2px 0 rgba(0,0,0,.35); }
 @keyframes itemIn { to { opacity:1; transform:none; } }
 
 /* ---------------------------------------------------------------- biyom canlandı */

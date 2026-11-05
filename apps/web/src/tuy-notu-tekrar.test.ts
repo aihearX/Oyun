@@ -58,7 +58,7 @@ describe('Biliyor muydun? son gösterilenler listesi (YN-212)', () => {
     expect(migrateBilgiSon({ bilgiSon: 24 })).toEqual([24]);
     expect(migrateBilgiSon({ bilgiSon: 0 })).toEqual([]);
     expect(migrateBilgiSon({})).toEqual([]);
-    expect(migrateBilgiSon({ bilgiSonlar: [3, 'x', 24, 25, 26, -1], bilgiSon: 9 })).toEqual([24, 25, 26].slice(-BILGI_YAKIN));
+    expect(migrateBilgiSon({ bilgiSonlar: [3, 'x', 24, 25, 26, -1], bilgiSon: 9 })).toEqual([3, 24, 25, 26].slice(-BILGI_YAKIN));
     const st = useStore.getState();
     for (const n of [24, 25, 25, 26, 24]) st.bilgiGoruldu(n);
     expect(useStore.getState().bilgiSonlar).toEqual([25, 26, 24].slice(-BILGI_YAKIN));

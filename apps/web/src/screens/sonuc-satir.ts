@@ -1,6 +1,6 @@
 import { timeBonus, type LevelSpec, type RunResult } from '@odi/shared';
-import type { RewardItem } from '@odi/content';
-import { sureYazi, type EarnLine } from '@odi/meta';
+import { achievementById, achievementName, cosmeticById, type RewardItem } from '@odi/content';
+import { sureYazi, type EarnLine, type RunSummary } from '@odi/meta';
 import { itemView } from '../celebrate/CelebrationLayer';
 
 /**
@@ -44,4 +44,18 @@ export function hazineNotlu(lines: EarnLine[], grants: readonly { reason: string
     const note = hazineNotu(grants.find((g) => g.reason === `hazine:${n}`)?.items ?? []);
     return note ? { ...l, note } : l;
   });
+}
+
+/**
+ * Oyuncu Seviye penceresinin listesi: yalnız oyuncu seviyesiyle gerçekten açılanlar (seviye koşullu kozmetik, "Seviye N ol"
+ * başarımı). Bu bölümün hazinesi, öteki başarımlar, kart, Şanslı Nota ve yeni hareket bölümün kendi kazancıdır, sonuç kartında
+ * yazar; pencerede seviyeyle açılmış gibi görünmesin (YN-229, OT-ogrenci-birinci-46; YN-050 ailesi). Boşsa pencerede liste yok.
+ */
+export function seviyeAcilanlar(s: Pick<RunSummary, 'events'>): string[] {
+  const out: string[] = [];
+  for (const e of s.events) {
+    if (e.kind === 'cosmetic') { const c = cosmeticById(e.id); if (c?.unlock.by === 'level') out.push(`Dolaba yeni: ${c.name}`); }
+    else if (e.kind === 'achievement') { const a = achievementById(e.id); if (a?.metric === 'playerLevel') out.push(`Başarım: ${achievementName(a, e.tier)}`); }
+  }
+  return out;
 }

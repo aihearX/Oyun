@@ -19,8 +19,11 @@ type Impl = {
    */
   chest(o: { title: string; items: RewardItem[]; tier?: 'bronz' | 'gumus' | 'altin'; granted?: boolean; note?: string }): Promise<void>;
   coins(o: { amount: number; from?: ScreenPoint; kind?: 'jeton' | 'kristal' }): Promise<void>;
-  /** title/kicker: başka bir seviye türü (ör. Kamp Seviyesi) için başlık ve rozet yazısı */
-  levelUp(o: { level: number; unlocks?: string[]; title?: string; kicker?: string }): Promise<void>;
+  /**
+   * title/kicker: başka bir seviye türü (ör. Kamp Seviyesi) için başlık ve rozet yazısı; listTitle: listenin başlığı (oyuncu
+   * seviyesinde "Seviyeyle açılanlar"; YN-229)
+   */
+  levelUp(o: { level: number; unlocks?: string[]; title?: string; kicker?: string; listTitle?: string }): Promise<void>;
   biomeRestored(o: { biome: string; name: string; reward?: RewardItem[] }): Promise<void>;
   /** birikmiş kutlamalar tek pencerede (her biri satır); ödül vermez, yalnız gösterir */
   recap(o: { title: string; sub?: string; note?: string; rows: RecapRow[] }): Promise<void>;

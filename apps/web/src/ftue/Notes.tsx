@@ -45,9 +45,10 @@ export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote |
 }
 
 /**
- * Sonuç ekranının "Biliyor muydun?" satırı (karar 31): tekrarda biyomun sıradaki satırı (YN-127) ve yakın zamanda gösterilenlerden
- * farklı (kayıttaki `bilgiSonlar`; Bölüm 13 tekrarı ile ardından Bölüm 14 (YN-175), 24 → 25 → 26 tekrarı (YN-212) aynı satırı
- * göstermesin). Yalnız seçer, kaydetmez.
+ * Sonuç ekranının "Biliyor muydun?" satırı (karar 31), kazançta da kayıpta da bölümün biyom havuzundan (YN-222): tekrarda havuzun
+ * sıradaki satırı (YN-127) ve yakın zamanda gösterilenlerden farklı (kayıttaki `bilgiSonlar`, son BILGI_YAKIN; Bölüm 13 tekrarı ile
+ * ardından Bölüm 14 (YN-175), 24 → 25 → 26 tekrarı (YN-212) aynı satırı göstermesin); havuzun hepsi yakında gösterildiyse havuzun en
+ * önce gösterileni, başka biyomun satırı değil. Yalnız seçer, kaydetmez.
  */
 export function pickBilgi(bolum: number, tekrar: number): BiliyorMuydun | null {
   return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSonlar);

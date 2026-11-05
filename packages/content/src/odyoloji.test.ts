@@ -179,12 +179,19 @@ describe('odyoloji içeriği', () => {
 
   it('Biliyor muydun? yakın zamanda gösterilen satırları tekrar etmez: 24 → 25 → 26, 13 tekrarı → 14 (YN-212)', () => {
     const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
-    /** sonuç ekranları sırayla: kayıttaki son BILGI_YAKIN satırı gibi tutulur; dizide hiçbir satır yakındakilerden biri değil */
+    /**
+     * sonuç ekranları sırayla: kayıttaki son BILGI_YAKIN satırı gibi tutulur; satır hep bölümün biyomundan, biyomda gösterilmemiş satır
+     * varken yakındakilerden biri değil; yoksa (havuz kayıttan küçük) son gösterilen değil (YN-222)
+     */
     const oyna = (dizi: [number, number][]) => {
       const son: number[] = []; const out: number[] = [];
       for (const [bolum, tekrar] of dizi) {
         const s = biliyorMuydunSatiri(bolum, tekrar, son)!;
-        expect(son, `${dizi.map((d) => d.join('/')).join(' ')}: ${bolum}/${tekrar}`).not.toContain(s.bolum);
+        const msg = `${dizi.map((d) => d.join('/')).join(' ')}: ${bolum}/${tekrar}`;
+        expect(biyom(s.bolum), msg).toBe(biyom(bolum));
+        const havuz = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(bolum));
+        if (havuz.some((x) => !son.includes(x.bolum))) expect(son, msg).not.toContain(s.bolum);
+        else expect(s.bolum, msg).not.toBe(son[son.length - 1]);
         out.push(s.bolum); son.splice(0, son.length, ...[...son.filter((x) => x !== s.bolum), s.bolum].slice(-BILGI_YAKIN));
       }
       return out;
@@ -196,9 +203,9 @@ describe('odyoloji içeriği', () => {
       for (const x of g) expect(biyom(x)).toBe('koklea-2');
     }
     expect(oyna([[13, 1], [14, 0]])).toEqual([14, 15]);
-    // biyomda gösterilmemiş satır kalmadıysa önceki biyomdan (Koklea · Orta Kıvrım'dan önce Koklea · Taban)
-    const s = biliyorMuydunSatiri(26, 0, [24, 25, 26])!;
-    expect(biyom(s.bolum)).toBe('koklea-1');
+    // biyomda gösterilmemiş satır kalmadıysa yine biyomun havuzundan, en önce gösterilen (başka biyoma geçilmez; YN-222)
+    expect(biliyorMuydunSatiri(26, 0, [24, 25, 26])!.bolum).toBe(24);
+    expect(biliyorMuydunSatiri(24, 0, [26, 24, 25])!.bolum).toBe(26);
     // eski kayıt: tek sayı da kabul edilir (YN-175 kuralı)
     expect(biliyorMuydunSatiri(14, 0, 14)!.bolum).toBe(biliyorMuydunSatiri(14, 0, [14])!.bolum);
     // uzun ve karışık oynayışta (tekrarlar, geri dönüşler) yakındaki satır hiç tekrar etmez
@@ -206,5 +213,42 @@ describe('odyoloji içeriği', () => {
     const r = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
     const dizi: [number, number][] = Array.from({ length: 400 }, () => [1 + Math.floor(r() * BILIYOR_MUYDUN.length), Math.floor(r() * 4)]);
     oyna(dizi);
+  });
+
+  it('Biliyor muydun? satırı bölümün biyom havuzundan; havuz yettikçe art arda sonuçlarda tekrar yok (YN-222, OT-uzman-odyolog-40)', () => {
+    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
+    const havuz = (no: number) => BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(no)).map((x) => x.bolum);
+    // kayıt en büyük havuz kadar satır tutar: hiçbir biyomun satırları dönmeden tekrar etmez
+    expect(BILGI_YAKIN).toBe(Math.max(...BILIYOR_MUYDUN.map((x) => havuz(x.bolum).length)));
+    expect(BILGI_YAKIN).toBeGreaterThanOrEqual(5);
+    /** sonuç ekranları sırayla (kazanç ya da kayıp aynı seçim): kayıttaki son BILGI_YAKIN satır gibi */
+    const oyna = (dizi: [number, number][], son: number[] = []) => dizi.map(([bolum, tekrar]) => {
+      const s = biliyorMuydunSatiri(bolum, tekrar, son)!;
+      son.splice(0, son.length, ...[...son.filter((x) => x !== s.bolum), s.bolum].slice(-BILGI_YAKIN));
+      return s.bolum;
+    });
+    // oyuncu testi: Bölüm 30 sonucu (Apeks) infrases satırı (27), ardından 31, 32, 33 ve 33'ün iki kaybı: 33'te Apeks satırı gelmez
+    const g = oyna([[30, 1], [31, 0], [32, 0], [33, 0], [33, 1], [33, 2]]);
+    expect(g[0]).toBe(27);
+    for (const x of g.slice(1)) expect(havuz(33)).toContain(x);
+    // 31-35 her bölüm, her tekrar ve önceki her gecmis için: satır o bölümün biyom havuzundan
+    for (let n = 31; n <= 35; n++) for (const t of [0, 1, 2, 3, 4]) for (const once of [[], [27, 28, 29, 30], [31, 32, 33], [34, 35, 36], [n]]) {
+      expect(havuz(n), `${n}/${t}/${once.join(',')}`).toContain(biliyorMuydunSatiri(n, t, once)!.bolum);
+    }
+    // art arda 5 sonuç aynı biyomda: havuz yettikçe tekrar yok, yetmeyince yine havuzdan ve son gösterilen art arda gelmez
+    for (let n = 1; n <= BILIYOR_MUYDUN.length; n++) for (const t0 of [0, 1, 2]) {
+      const h = havuz(n); const dizi = Array.from({ length: 5 }, (_, k): [number, number] => [n, t0 + k]);
+      for (const gecmis of [[], h.slice(0, -1)]) {
+        const out = oyna(dizi, [...gecmis]);
+        for (const x of out) expect(h).toContain(x);
+        const ilk = out.slice(0, Math.min(5, h.length));
+        expect(new Set(ilk).size, `${n}/${t0}: ${out.join(',')}`).toBe(ilk.length);
+        for (let k = 1; k < out.length; k++) if (h.length > 1) expect(out[k]).not.toBe(out[k - 1]);
+      }
+    }
+    // karışık sırada (31 → 34 → 33 → 35 → 32): her biri kendi biyomundan, hiçbiri tekrar etmez
+    const k = oyna([[31, 0], [34, 0], [33, 1], [35, 0], [32, 2]]);
+    k.forEach((x, i) => expect(biyom(x)).toBe(biyom([31, 34, 33, 35, 32][i]!)));
+    expect(new Set(k).size).toBe(5);
   });
 });

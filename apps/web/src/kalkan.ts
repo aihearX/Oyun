@@ -17,17 +17,23 @@ export function shieldStartLine(g: ShieldGift): string {
 
 /**
  * Sonuç ekranının kalkan satırı. Kalkan hiçbir vuruşu karşılamadıysa da söylenir (kural değişmez: takım kalkanı bölüm başında
- * harcanır, vuruş gelmese de geri gelmez). Karşıladıysa kaç vuruşu (karar 37: vuruş yine hasar sayılır).
+ * harcanır, vuruş gelmese de geri gelmez). Karşıladıysa kaç çarpmayı ve kaç kez düşüldüğünü (karar 37: vuruş yine hasar sayılır).
  * Kalkan düşüşü karşılamaz (sim.ts hurt: yalnız çarpmalar). Bölüme en az bir kalkanla başlandığı için karşılanan vuruş yokken alınan
- * her hasar düşüştendir: "vuruş gelmedi" yerine nedeni söylenir (YN-202, OT-ilk-kez-oyun-60: 3 düşme, 1 hasar, "vuruş gelmedi").
+ * her hasar düşüştendir: "vuruş gelmedi" yerine nedeni söylenir (YN-202). Hasar sayısı satırda geçmez: kayıpta neden kartı, kazançta
+ * hasar kutusu söyler; aynı sayı kartta iki kez geçiyordu (YN-229, OT-sessiz-oyuncu-31).
+ * Düşme sayısı `r.extra.falls` (game-core LevelScene: can götüren düşüş); yoksa (önizleme) karşılanmayan hasar.
  */
 export function shieldResultLine(g: ShieldGift, r: Pick<RunResult, 'extra'> & Partial<Pick<RunResult, 'damageTaken'>>): string {
   const g0 = r.extra?.guarded; const hit = typeof g0 === 'number' && g0 > 0 ? Math.floor(g0) : 0;
-  // Klinik koruması da vuruş karşılar (r.extra.klinik): hangisinin karşıladığı ayrı bilinmez, sayı söylenmez (sonuç kartı damageNote söyler)
-  if (hit > 0 && r.extra?.klinik === true) return `${WHO[g.from]} bu bölümde seninleydi.`;
-  if (hit > 0) return `${WHO[g.from]} bu bölümde seninleydi: kalkan ${hit === 1 ? 'bir vuruşu' : `${hit}\u00a0vuruşu`} karşıladı (hasar yine sayılır).`;
   const harca = g.from === 'takim' ? ' Takım kalkanı bölüm başında harcanır.' : '';
   const dmg = Math.max(0, Math.floor(r.damageTaken ?? 0));
-  if (dmg > 0) return `${WHO[g.from]} bu bölümde seninleydi. Kalkan düşmeyi karşılamaz: ${dmg}\u00a0hasar aldın.${harca}`;
+  const f0 = r.extra?.falls; const falls = typeof f0 === 'number' ? Math.max(0, Math.floor(f0)) : Math.max(0, dmg - hit);
+  if (hit > 0) {
+    // Klinik koruması da vuruş karşılar (r.extra.klinik; damageNote ile aynı ad): önce kalkan, sonra Klinik
+    const who = r.extra?.klinik === true ? (hit >= 2 ? 'Kalkan ve Klinik' : 'Klinik') : 'Kalkan';
+    return `${who} ${hit}\u00a0çarpmayı karşıladı${falls > 0 ? `; ${falls}\u00a0kez düştün` : ''}.`;
+  }
+  // satır kısa (320 px büyük yazıda neden kartı düğmelerin altında kalmasın): "harcanır" kuralı vuruşsuz satırda ve bölüm başı şeridinde
+  if (dmg > 0) return 'Kalkan kullanılmadı: hasarların hepsi düşmeydi (kalkan düşmeyi karşılamaz).';
   return `${WHO[g.from]} bu bölümde seninleydi, vuruş gelmedi.${harca}`;
 }
