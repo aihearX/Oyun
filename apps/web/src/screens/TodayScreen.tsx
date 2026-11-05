@@ -13,6 +13,10 @@ import { Art, Glyph } from '../ui/art';
 import { useNav } from '../nav';
 import { QuizLiveCard } from '../events/QuizLive';
 import { DqTodayCard } from '../comm/DqToday';
+import { useNet } from '@odi/net/store';
+import { getNet, gunlukYenile, useSocial } from '../net';
+import { gunlukSatiri, type GunlukSatir } from '../odul-durum';
+import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 
 /** takvim hücresinin okunuşu (ekran okuyucu ve uzun basış): dönüşüm de söylenir */
 function calDayText(d: CalendarDay): string {
@@ -21,10 +25,29 @@ function calDayText(d: CalendarDay): string {
   return `${d.day}. gün${d.state === 'alindi' ? ' (alındı)' : ''}: ${what}${swap ? ` (${swap})` : ''}`;
 }
 
+/**
+ * Günlük ödül jetonu satırı (YN-269, OT-rekabetci-54): sunucunun bugün hesaba geçirdiği yerel ödül jetonu / günlük sınır. Sınır
+ * dolmadan önce görünür; %80'den sonra ve dolunca belirgin. Değer bilinmiyorsa sayı yok. Kural Nasıl çalışır? sayfasında.
+ */
+export function GunlukJetonSatiri({ satir, onInfo }: { satir: GunlukSatir; onInfo: () => void }) {
+  return (
+    <section className={`card gunluk-jeton ${satir.seviye}`} data-testid="bugun-gunluk-jeton" data-seviye={satir.seviye}>
+      <div className="gj-metin" data-testid="bugun-gunluk-jeton-metin"><b>{satir.metin}</b></div>
+      {satir.gecen != null && <Bar value={satir.gecen / LOCAL_JETON_DAILY_MAX} tone={satir.seviye === 'normal' ? 'green' : satir.seviye === 'yakin' ? 'amber' : 'coral'} label="Günlük ödül jetonu" />}
+      {satir.not && <div className="muted small-note gj-not" data-testid="bugun-gunluk-jeton-not">{satir.not}</div>}
+      <button type="button" className="linkish gj-kural" onClick={onInfo}>Hangi jetonlar sayılır? Kural →</button>
+    </section>
+  );
+}
+
 /** Bugün: 7 günlük giriş takvimi, 3 günlük görev, içeriği önceden görünen günlük sandık, seri ve koruyucu. */
 export function TodayScreen({ onInfo }: { onInfo: () => void }) {
   const s = useStore(); const today = dayKey(); const nav = useNav();
   useEffect(() => { s.touchDay(); }, []);
+  // günlük ödül jetonu sınırı (YN-269): bağlıyken sunucudan okunur; çevrimdışıyken son bilinen
+  const gunluk = useSocial((x) => x.gunluk); const sosyal = useSocial((x) => x.enabled); const bagli = useNet((x) => x.status === 'bağlı');
+  useEffect(() => { if (bagli) gunlukYenile(); }, [bagli]);
+  const gunlukS = gunlukSatiri(gunluk, { sosyal, bagli, now: getNet()?.serverNow() ?? Date.now() });
   const [note, setNote] = useState('');
   const [just, setJust] = useState<string | null>(null);
   const [shieldInfo, setShieldInfo] = useState(false);
@@ -133,6 +156,8 @@ export function TodayScreen({ onInfo }: { onInfo: () => void }) {
         </div>
         {!daily.chestOpened && <button className="btn small" disabled={!ready} onClick={() => openChest('Günlük sandık', s.openChest(), chest.swaps)}>Aç</button>}
       </section>
+
+      {gunlukS && <GunlukJetonSatiri satir={gunlukS} onInfo={onInfo} />}
 
       {/* tek kişilik bilgi pratiği (YN-078): takımsız ve çevrimdışı da; ödülsüz, bu yüzden görev/sandık akışının dışında */}
       <section className="card pratik-kart" data-testid="bugun-pratik">

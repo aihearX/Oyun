@@ -766,6 +766,16 @@ async function suite(browserName, target, [W, H]) {
 
     if (want('bugun')) {
       await tab('Bugün'); await check('bugun');
+      // günlük ödül jetonu satırı (YN-269): bağlıyken sunucunun değeri "Günlük ödül jetonu: X / 1.500"
+      { const g = page.getByTestId('bugun-gunluk-jeton'); const metin = page.getByTestId('bugun-gunluk-jeton-metin');
+        await page.locator('[data-testid="bugun-gunluk-jeton-metin"]', { hasText: '/' }).waitFor({ timeout: 10_000 }).catch(() => undefined);
+        if (!await g.count()) fail(await check('bugun-gunluk-jeton', { scroll: false }), 'Bugün\'de günlük ödül jetonu satırı yok');
+        else {
+          await g.scrollIntoViewIfNeeded(); await sleep(200); const rec = await check('bugun-gunluk-jeton', { scroll: false });
+          const t = (await metin.textContent() ?? '').replace(/\u00a0/g, ' ');
+          if (!/^Günlük ödül jetonu: [\d.]+ \/ [\d.]+$/.test(t)) fail(rec, `günlük ödül jetonu satırı sayı yazmıyor: ${t}`);
+        }
+        await page.evaluate(resetScroll); await sleep(200); }
       // Günün Sorusu (YN-074, karar 35): takımsız oyuncu Bugün'den tek dokunuşla açar ve cevaplar; durum satırı "Cevapladın" der
       const kart = page.getByTestId('bugun-soru'); const ac = page.getByTestId('bugun-soru-ac');
       await ac.waitFor({ timeout: 10_000 }).catch(() => undefined);

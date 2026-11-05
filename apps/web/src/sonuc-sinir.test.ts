@@ -71,7 +71,7 @@ describe('sonuç kartı = hesaba geçen (YN-200)', () => {
     await show(spec, summary, result);
     const head = document.querySelector('.result-earn-head b')?.textContent;
     expect(num(head)).toBe(result.coins + credited);
-    expect(nb(q('sonuc-sinir')?.textContent)).toContain(`Günlük ödül sınırı doldu: ${(istenen - credited).toLocaleString('tr-TR')} jeton eklenmedi.`);
+    expect(nb(q('sonuc-sinir')?.textContent)).toContain(`${nb(sinirSatiri(istenen - credited))}.`);
     expect(nb(q('sonuc-kazanc')?.textContent)).toMatch(/Bölüm 40 hazinesi/);
     // satır toplamı = başlık (döküm ile toplam aynı söz)
     const lines = [...document.querySelectorAll('[data-testid="sonuc-kazanc"] > li > b')].map((b) => num(b.textContent));
@@ -107,7 +107,7 @@ describe('Hazine penceresi ve başarım bildirimi sınırı söyler (YN-200)', (
     const j = jetonOf({ items });
     const kesik = hazinePenceresi(items, { k: 'kesik', eksik: j }, 'Bölüm sonunda cüzdanına eklenmişti');
     expect(kesik.items.some((i) => i.kind === 'jeton')).toBe(false); expect(kesik.items.length).toBe(items.length - 1);
-    expect(nb(kesik.note)).toBe(`Günlük ödül sınırı doldu: ${j} jeton eklenmedi`);
+    expect(nb(kesik.note)).toBe(`${nb(sinirSatiri(j))}. Kural: Profil › Nasıl çalışır?`);
     expect(gecenOgeler([{ kind: 'jeton', amount: 200 }], 40)).toEqual([{ kind: 'jeton', amount: 160 }]);
     expect(hazinePenceresi(items, { k: 'bekliyor', bagli: false }, 'x').note).toBe('Jetonu bağlanınca cüzdanına eklenecek');
     expect(hazinePenceresi(items, { k: 'tam' }, 'Bölüm sonunda cüzdanına eklenmişti').note).toBe('Bölüm sonunda cüzdanına eklenmişti');
@@ -121,7 +121,7 @@ describe('Hazine penceresi ve başarım bildirimi sınırı söyler (YN-200)', (
     useStore.setState({ toasts: many });
     const top = many[2]!; const j = top.odul!.jeton;
     useStore.getState().odulKesildi(top.odul!.reasons[0]!, 15);
-    expect(useStore.getState().toasts[2]!.text).toBe(`Başarımlardan +${j - 15} jeton · Profilde hepsi · Günlük ödül sınırı doldu: 15 jeton eklenmedi`);
+    expect(nb(useStore.getState().toasts[2]!.text)).toBe(`Başarımlardan +${j - 15} jeton · Profilde hepsi · ${nb(sinirSatiri(15))}`);
   });
 });
 

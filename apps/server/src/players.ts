@@ -4,6 +4,7 @@ import { fail, randomCode, rid, sendJson, type App, type Conn, type Handlers, ty
 import { hasProfanity } from './profanity';
 import { setBadgePrefs } from './rozet';
 import { dayNumber } from './time';
+import { gunlukSinir } from './wallet';
 
 export const START_JETON = 100;
 const COLORS = [0xff7a59, 0x7c5cff, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
@@ -140,7 +141,8 @@ export const playerHandlers: Handlers = {
     if (!p) return fail('YOK', 'Oyuncu bulunamadı.');
     return { profile: app.publicProfile(p) };
   },
-  'wallet.get': (app, s) => ({ wallet: app.wallet(s.pid) }),
+  // günlük yerel ödül sınırı da (YN-269): Bugün sekmesi "Günlük ödül jetonu: X / 1.500" yazar
+  'wallet.get': (app, s) => ({ wallet: app.wallet(s.pid), ...gunlukSinir(app, s.pid) }),
   'inbox.list': (app, s) => {
     passDaily(app, s.pid);
     const items = app.db.all<InboxItem>('SELECT id, kind, amount, ref, reason, at FROM inbox WHERE player_id = ? AND claimed = 0 ORDER BY at DESC LIMIT 100', s.pid);

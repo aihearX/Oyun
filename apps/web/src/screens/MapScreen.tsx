@@ -10,7 +10,7 @@ import { chunkFailed, loadMap } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { useStore } from '../store';
 import { getNet, odulNe, useSocial } from '../net';
-import { hazinePenceresi, sinirSatiri } from '../odul-durum';
+import { hazinePenceresi, sinirNotu } from '../odul-durum';
 import { useNav } from '../nav';
 import { platform } from '../platform';
 import { HudNum, StatusDot, fmtNum } from '../ui/social';
@@ -178,11 +178,11 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
     const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
     // pencere kapanınca sıradaki bölüm yine görünür alanın ortasında (kart/düğmeler değişmiş olabilir)
     // hazine jetonu: sınır kestiyse eklenmeyen, çevrimdışıysa "bağlanınca" (YN-200); satırlar hesaba geçeni gösterir
-    const note = !t ? undefined : eksik > 0 ? `${sinirSatiri(eksik)}.` : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
+    const note = !t ? undefined : eksik > 0 ? sinirNotu(eksik) : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
     // pencere açıkken bekleyen jeton hesaba geçerse not güncellenir (YN-260 (3)); satırlar o anki hesaba geçeni gösterir
     const live = canliNot(hazineBekliyor(ns), () => {
       const hs = ns.map((n) => hazineGorunum(n)); const e = hs.reduce((a, h) => a + h.eksik, 0); const d = ns.map(hazineDurum);
-      return e > 0 ? `${sinirSatiri(e)}.` : d.some((x) => x.k === 'bekliyor' && !x.bagli) ? 'Hazine jetonu bağlanınca cüzdanına eklenecek'
+      return e > 0 ? sinirNotu(e) : d.some((x) => x.k === 'bekliyor' && !x.bagli) ? 'Hazine jetonu bağlanınca cüzdanına eklenecek'
         : d.some((x) => x.k === 'bekliyor') ? 'Hazine jetonu hesabına kaydediliyor' : t > 1 ? 'Hazine jetonları cüzdanına eklendi' : 'Hazine jetonu cüzdanına eklendi';
     });
     void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note, live }).then(() => handle.current?.focusCurrent());

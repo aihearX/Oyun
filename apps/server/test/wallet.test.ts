@@ -43,6 +43,33 @@ describe('yerel ödül cüzdanı (wallet.local)', () => {
     expect((await a.call('wallet.local', { ledgerId: 'a4', jeton: 30, reason: 'gorev:x' })).credited).toBe(30);
   });
 
+  it('günlük sınırın durumu okunur (YN-269): wallet.get dailyLeft kredilendikçe azalır, İstanbul gece yarısı yenilenir', async () => {
+    env = await setup();
+    const a = await env.connect('Ayşe');
+    const g0 = await a.call('wallet.get', {});
+    expect(g0.dailyLeft).toBe(LOCAL_JETON_DAILY_MAX);
+    // sıradaki İstanbul gece yarısı: gelecekte, en çok 24 saat sonra, İstanbul saatiyle 00:00 (UTC 21:00)
+    const reset = g0.dailyResetAt!;
+    expect(reset).toBeGreaterThan(env.clock.now()); expect(reset - env.clock.now()).toBeLessThanOrEqual(24 * 3600_000);
+    expect(new Date(reset).getUTCHours()).toBe(21); expect(new Date(reset).getUTCMinutes()).toBe(0);
+    const r1 = await a.call('wallet.local', { ledgerId: 'y1', jeton: 110, reason: 'hazine:25' });
+    expect(r1.dailyLeft).toBe(LOCAL_JETON_DAILY_MAX - 110); expect(r1.dailyResetAt).toBe(reset);
+    expect((await a.call('wallet.get', {})).dailyLeft).toBe(LOCAL_JETON_DAILY_MAX - 110);
+    await a.call('wallet.local', { ledgerId: 'y2', jeton: 40, reason: 'basarim:x:2' });
+    expect((await a.call('wallet.get', {})).dailyLeft).toBe(LOCAL_JETON_DAILY_MAX - 150);
+    // aynı kaydın yeniden gönderimi düşürmez; devir sayılmaz
+    expect((await a.call('wallet.local', { ledgerId: 'y2', jeton: 40, reason: 'basarim:x:2' })).dailyLeft).toBe(LOCAL_JETON_DAILY_MAX - 150);
+    await a.call('wallet.local', { ledgerId: 'devir', jeton: 500, reason: 'devir' });
+    expect((await a.call('wallet.get', {})).dailyLeft).toBe(LOCAL_JETON_DAILY_MAX - 150);
+    // sınır dolunca 0, altına inmez
+    await a.call('wallet.local', { ledgerId: 'y3', jeton: LOCAL_JETON_DAILY_MAX, reason: 'takvim:7' });
+    expect((await a.call('wallet.get', {})).dailyLeft).toBe(0);
+    // yenilenme anında yeni gün: tam sınır, sıradaki gece yarısı bir gün sonra
+    env.clock.advance(reset - env.clock.now());
+    const g1 = await a.call('wallet.get', {});
+    expect(g1.dailyLeft).toBe(LOCAL_JETON_DAILY_MAX); expect(g1.dailyResetAt).toBe(reset + 24 * 3600_000);
+  });
+
   it('devir: yeni hesapta bir kez, en çok 3000, günlük sınırı tüketmez; 24 saatten sonra yok', async () => {
     env = await setup();
     const a = await env.connect('Ayşe');

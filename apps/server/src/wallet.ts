@@ -2,11 +2,12 @@ import { SKILL_TREE } from '@odi/content';
 import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
 import { MAX_LEVEL } from './progress';
-import { dayKey } from './time';
+import { dayKey, dayNumber, dayNumberStart } from './time';
 
 /**
  * Yerel meta ödülleri (görev, takvim, sandık, hazine, Şanslı Nota, başarım) istemcide hesaplanır, jetonu buradan yazılır (ledgerId ile idempotent). Günlük üst sınır sunucuda uygulanır, sahte istemcinin sınırsız jeton basmasını engeller.
  * Değer ölçüldü (tools/ekonomi/simule.mjs, docs/yonetim/ekonomi-olcum.md Ö1): dürüst oyunun en yoğun günü 1.270 jeton (6 oturum, 1. gün), altı profilin hiçbiri sınıra çarpmaz; eski 600 dürüst oyunu kesiyordu.
+ * Ölçülenden uzun oynayan dürüst oyuncu yine çarpabilir (tur 16: aynı gün 21-25, 460 jeton eklenmedi; kural kararı YN-270).
  */
 export { LOCAL_JETON_DAILY_MAX };
 /** Hesap ilk kez açılırken cihazdaki çevrimdışı jetonun devri: hesap başına bir kez, ilk 24 saatte, en çok bu kadar (günlük sınırdan ayrı) */
@@ -17,6 +18,14 @@ export function localCreditedToday(app: App, pid: string): number {
   return app.db.get<{ s: number | null }>('SELECT SUM(credited) AS s FROM local_grants WHERE player_id = ? AND day = ?', pid, dayKey(app.now()))!.s ?? 0;
 }
 
+/**
+ * Günlük yerel ödül sınırının bugünkü durumu (YN-269, Bugün göstergesi): kalan jeton ve sınırın yenileneceği an (sıradaki İstanbul
+ * gece yarısı). `wallet.local` ve `wallet.get` yanıtına eklenir; istemci "X / 1.500" yazar, an geçince son bilinen değeri göstermez.
+ */
+export function gunlukSinir(app: App, pid: string): { dailyLeft: number; dailyResetAt: number } {
+  return { dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, pid)), dailyResetAt: dayNumberStart(dayNumber(app.now()) + 1) };
+}
+
 export function skillsOf(app: App, pid: string): string[] {
   return app.db.all<{ skill_id: string }>('SELECT skill_id FROM player_skills WHERE player_id = ? ORDER BY at, skill_id', pid).map((r) => r.skill_id);
 }
@@ -24,7 +33,7 @@ export function skillsOf(app: App, pid: string): string[] {
 export const walletHandlers: Handlers = {
   'wallet.local': (app, s, { ledgerId, jeton, reason }) => {
     const prev = app.db.get<{ credited: number }>('SELECT credited FROM local_grants WHERE player_id = ? AND ledger_id = ?', s.pid, ledgerId);
-    if (prev) return { wallet: app.wallet(s.pid), credited: prev.credited, dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid)) };
+    if (prev) return { wallet: app.wallet(s.pid), credited: prev.credited, ...gunlukSinir(app, s.pid) };
     if (reason === 'devir') {
       // cihazdaki çevrimdışı birikim: yalnızca yeni hesapta, bir kez
       const p = app.player(s.pid);
@@ -32,14 +41,14 @@ export const walletHandlers: Handlers = {
       const credited = done || app.now() - p.created_at > DEVIR_WINDOW_MS ? 0 : Math.min(jeton, DEVIR_MAX);
       app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)', s.pid, ledgerId, jeton, credited, reason, 'devir', app.now());
       app.addCurrency(s.pid, 'jeton', credited);
-      return { wallet: app.walletChanged(s.pid), credited, dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid)) };
+      return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
     }
     const left = Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid));
     const credited = Math.min(jeton, left);
     app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)',
       s.pid, ledgerId, jeton, credited, reason, dayKey(app.now()), app.now());
     app.addCurrency(s.pid, 'jeton', credited);
-    return { wallet: app.walletChanged(s.pid), credited, dailyLeft: left - credited };
+    return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
   },
   'wallet.spend': (app, s, { jeton, reason }) => {
     const m = /^yetenek:(.+)$/.exec(reason);

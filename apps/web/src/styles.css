@@ -564,6 +564,15 @@ html.buyuk-yazi .result-star3 li > .art { width:24px; height:24px; }
 .pratik-kart .pk-icon { flex:none; filter:drop-shadow(0 4px 0 rgba(0,0,0,.3)); }
 .pratik-kart .pk-icon .art { display:block; }
 .pratik-kart .pk-btn { margin-top:8px; }
+/* Bugün: günlük ödül jetonu satırı (YN-269); %80'den sonra altın, dolunca mercan çerçeve ve yazı */
+.gunluk-jeton { display:flex; flex-direction:column; gap:8px; padding:12px 16px; }
+.gunluk-jeton .gj-metin { overflow-wrap:anywhere; }
+.gunluk-jeton.yakin { border-color:var(--gold); }
+.gunluk-jeton.dolu { border-color:var(--coral); }
+.gunluk-jeton.dolu .gj-metin b { color:var(--coral-text); }
+.gunluk-jeton .gj-not { line-height:1.4; }
+html.buyuk-yazi .gunluk-jeton .gj-not { font-size:0.875rem; }
+.gunluk-jeton .gj-kural { padding:0; align-self:flex-start; }
 /* canlı Kulak Bilgi Yarışması göstergesi (Bugün ve Bilgi pratiği; events/QuizLive.tsx, YN-161) */
 .quiz-canli { display:flex; gap:12px; align-items:flex-start; border:2px solid var(--gold); }
 .quiz-canli .qc-ic { flex:none; line-height:0; }

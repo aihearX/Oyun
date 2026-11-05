@@ -4,6 +4,7 @@ import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
 import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
+import { sinirSatiri } from './odul-durum';
 import { BILGI_YAKIN, DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, TIER_REWARD, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
 import {
   advanceStreak, applyGrant, claimCalendar, claimQuest, dayKey, defaultMeta, ensureDaily, equipCosmetic, highestUnlocked, migrateMeta,
@@ -105,7 +106,7 @@ const tierJeton = (tier: 1 | 2 | 3) => TIER_REWARD[tier].filter((it) => it.kind 
 const tierGainWith = (tier: 1 | 2 | 3, jeton: number) => TIER_REWARD[tier].map((it) => (it.kind === 'jeton' ? (jeton > 0 ? `+${jeton} jeton` : '') : it.kind === 'xp' ? `+${it.amount} XP` : '')).filter(Boolean).join(', ');
 /** başarım bildiriminin metni; sınır kestiyse hesaba geçen ve eklenmeyen (odul-durum sinirSatiri ile aynı söz) */
 function odulText(o: NonNullable<Toast['odul']>): string {
-  const e = Math.min(o.jeton, o.eksik ?? 0); const sinir = e > 0 ? ` · Günlük ödül sınırı doldu: ${e} jeton eklenmedi` : '';
+  const e = Math.min(o.jeton, o.eksik ?? 0); const sinir = e > 0 ? ` · ${sinirSatiri(e)}` : '';
   if (o.tier) return `Başarım açıldı: ${tierGainWith(o.tier, o.jeton - e)}${sinir}`;
   return `${o.jeton - e > 0 ? `Başarımlardan +${o.jeton - e} jeton · ` : ''}Profilde hepsi${sinir}`;
 }

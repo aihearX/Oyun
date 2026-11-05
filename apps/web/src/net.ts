@@ -22,12 +22,12 @@ import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
 import { createCoinEstimate, createOutbox, reconcileCoins, type OutItem } from './outbox';
-import { ledgerKey, odulDurumu, type DurumKaynak, type Kredi, type OdulDurum } from './odul-durum';
+import { ledgerKey, odulDurumu, type DurumKaynak, type GunlukSinir, type Kredi, type OdulDurum } from './odul-durum';
 
 declare const __ODI_E2E__: boolean | undefined;
 /** yalnız uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemci durumunu okur (kopma-e2e) */
 const E2E = typeof __ODI_E2E__ !== 'undefined' && !!__ODI_E2E__;
-const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent', kredi: 'odi.net.kredi' } as const;
+const K = { token: 'odi.net.token', queue: 'odi.net.queue', outbox: 'odi.net.outbox', sent: 'odi.net.sent', kredi: 'odi.net.kredi', gunluk: 'odi.net.gunluk' } as const;
 const MECHANICS = new Set(['kosu', 'yuzme', 'trambolin', 'makine', 'impuls', 'ruya', 'boss']);
 /** wallet.local şeması: tek kayıtta en çok bu kadar jeton (apps/server/src/schemas.ts); devir zaten DEVIR_MAX (3000) ile sınırlı */
 const LOCAL_JETON_PER_CALL = 10_000;
@@ -49,8 +49,13 @@ interface SocialState {
    * bildirimi hesaba geçeni yazar, günlük sınır kestiyse eksik kısmı söyler (YN-200, odul-durum.ts)
    */
   krediler: Record<string, Kredi>;
+  /**
+   * günlük yerel ödül sınırının sunucudan son okunan durumu (kalıcı; YN-269): Bugün sekmesi "Günlük ödül jetonu: X / 1.500" yazar,
+   * çevrimdışıyken son bilinen değer; `resetAt` geçince (yeni gün) sayı yazılmaz. Bilinmiyorsa null.
+   */
+  gunluk: GunlukSinir | null;
 }
-export const useSocial = create<SocialState>()(() => ({ enabled: false, tried: false, queued: 0, queuedCoins: 0, outbox: [], lastRun: null, bonuses: null, onboardDismissed: false, krediler: {} }));
+export const useSocial = create<SocialState>()(() => ({ enabled: false, tried: false, queued: 0, queuedCoins: 0, outbox: [], lastRun: null, bonuses: null, onboardDismissed: false, krediler: {}, gunluk: null }));
 
 let client: NetClient | null = null;
 export const getNet = () => client;
@@ -117,6 +122,17 @@ function kayitKredi(id: string, k: Kredi): void {
   const keys = Object.keys(all); const krediler = keys.length > KREDI_MAX ? Object.fromEntries(keys.slice(-KREDI_MAX).map((x) => [x, all[x]!])) : all;
   useSocial.setState({ krediler }); writeJson(K.kredi, krediler);
 }
+/** sunucu yanıtındaki günlük sınır durumu (wallet.local, wallet.get); eski sunucu `dailyResetAt` göndermez: o zaman kaydedilmez */
+function kayitGunluk(r: { dailyLeft?: number; dailyResetAt?: number }): void {
+  if (typeof r.dailyLeft !== 'number' || typeof r.dailyResetAt !== 'number') return;
+  const gunluk = { left: r.dailyLeft, resetAt: r.dailyResetAt };
+  useSocial.setState({ gunluk }); writeJson(K.gunluk, gunluk);
+}
+/** Bugün sekmesi açılınca günlük sınırı sunucudan oku (bağlı değilse son bilinen kalır) */
+export function gunlukYenile(): void {
+  const c = client; if (!c || c.status !== 'bağlı') return;
+  void c.call('wallet.get', {}).then(kayitGunluk).catch(() => undefined);
+}
 function durumKaynak(s = useSocial.getState()): DurumKaynak {
   return { krediler: s.krediler, bekleyen: new Set(s.outbox.flatMap((o) => (o.k === 'local' ? [o.ledgerId] : []))), sosyal: s.enabled, bagli: useNet.getState().status === 'bağlı' };
 }
@@ -169,6 +185,7 @@ const outbox_ = createOutbox({
   save: (outbox) => { useSocial.setState({ outbox }); writeJson(K.outbox, outbox); mirrorCoins(); },
   onWallet: (wallet) => useNet.setState({ wallet }),
   onLocal: (item, r) => {
+    kayitGunluk(r);
     if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); return; }
     // aynı kaydın yeniden gönderimi (yanıtı kaybolmuştu, ya da gönderilen listesi kısaldı) sunucunun kayıtlı yanıtını döner: bir kez söylenir
     const once = useSocial.getState().krediler[item.ledgerId];
@@ -194,7 +211,8 @@ async function reconcile(): Promise<void> {
   if (!c || c.status !== 'bağlı' || reconciling || !idle()) return;
   reconciling = true;
   try {
-    const { wallet } = await c.call('wallet.get', {});
+    const res = await c.call('wallet.get', {}); const { wallet } = res;
+    kayitGunluk(res);
     if (c.status !== 'bağlı' || !idle()) return; // arada yeni kayıt geldi: bir sonraki boşalmada
     uzlasma.runs++;
     const shown = useStore.getState().coins; const known = useNet.getState().wallet?.jeton ?? null;
@@ -326,6 +344,8 @@ export function startNet(): void {
     sent = new Set(await readJson<string[]>(K.sent, []));
     const krediler = await readJson<Record<string, Kredi>>(K.kredi, {});
     if (krediler && typeof krediler === 'object' && !Array.isArray(krediler)) useSocial.setState({ krediler });
+    const gunluk = await readJson<GunlukSinir | null>(K.gunluk, null);
+    if (gunluk && typeof gunluk.left === 'number' && typeof gunluk.resetAt === 'number') useSocial.setState({ gunluk: { left: gunluk.left, resetAt: gunluk.resetAt } });
     let outbox = await readJson<OutItem[]>(K.outbox, []);
     if (!Array.isArray(outbox)) outbox = [];
     // ilk kez hesap açılacaksa: cihazdaki çevrimdışı jeton bir kez hesaba devredilir (sunucu: yeni hesapta, en çok 3000);

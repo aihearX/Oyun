@@ -514,7 +514,11 @@ export interface OpMap {
   'league.state': { req: Record<string, never>; res: { league: LeagueState } };
   'inbox.list': { req: Record<string, never>; res: { items: InboxItem[] } };
   'inbox.claim': { req: { id: string }; res: { item: InboxItem; wallet: Wallet } };
-  'wallet.get': { req: Record<string, never>; res: { wallet: Wallet } };
+  /**
+   * `dailyLeft` / `dailyResetAt` (YN-269, yalnız ekleme): günlük yerel ödül sınırında (`LOCAL_JETON_DAILY_MAX`) bugün kalan jeton ve
+   * sınırın yenileneceği an (sıradaki İstanbul gece yarısı, sunucu saati). Eski sunucu göndermez; istemci o zaman sayı yazmaz.
+   */
+  'wallet.get': { req: Record<string, never>; res: { wallet: Wallet; dailyLeft?: number; dailyResetAt?: number } };
   'camp.state': { req: Record<string, never>; res: { camp: CampState; wallet: Wallet } };
   'camp.upgrade': { req: { id: BuildingId }; res: { camp: CampState; wallet: Wallet } };
   /**
@@ -543,7 +547,7 @@ export interface OpMap {
   'shop.limit': { req: { limitTry: number; confirmRaise?: boolean }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
   /** yerel meta ödüllerinin (görev/takvim/sandık/hazine…) jetonu: ledgerId ile idempotent, günlük üst sınırlı */
-  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number } };
+  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number; /** sınırın yenileneceği an (YN-269; eski sunucu göndermez) */ dailyResetAt?: number } };
   /** jeton harcama (şimdilik yalnızca `yetenek:<id>`; sunucu maliyeti doğrular, aynı yetenek iki kez alınmaz) */
   'wallet.spend': { req: { jeton: number; reason: string }; res: { wallet: Wallet; skills: string[] } };
   /** sunucuda kayıtlı yetenekler (SKILL_TREE kimlikleri) */
