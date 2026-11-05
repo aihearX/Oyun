@@ -233,3 +233,23 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 
 ### Tur 2 bitti (2026-11-05)
 Son değerlendirme: İkinci turda oyun az gören biri için gözle görülür biçimde rahatladı. Menüler, sonuç ekranları, hazine/sandık pencereleri, Kulak Kartları ve Hasta Vakaları Büyük yazıda tam okunuyor; ilk turda yazdığım 50'yi aşkın sorunun çoğu düzeldi (kesik sekmeler, sayı-simge bölünmesi, bildirim kartlarının Geri'yi örtmesi, harita dönüşünün uzunluğu, sisli/gece bölümleri). Yüksek görünürlük ayarı ve canavarda Rahat deneme benim gibi oyuncuyu oyunda tutan iki şey. Hâlâ zor olanlar çoğunlukla tuvalin içinde: canavar saldırı uyarıları, uçan yazıların yeri, haritadaki küçük adlar (YN-049) ve grafiklerin kendi yazıları. Dürüstlük tarafında rahatsız olduğum bir şey görmedim: mağaza açık, ödüller önceden yazılı, Rahat deneme ne vermediğini söylüyor. Oyunun sonu ise hâlâ bir kutlama ve özet bekliyor.
+
+## Oturum 15 · 2026-11-05 · sürüm 69571460 · tur 3
+- Başlangıç: 0/40 (tur 3, profil sıfırlanmıştı; Büyük yazı ve hareket azaltma açık). Bitiş: 5/40, 11 yıldız (4'te 3 yıldız; 1, 2, 3, 5'te 2), oyuncu seviyesi 3, 883 jeton, seri 1 gün. 5 bölüm, 5 deneme, kayıp yok.
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlar; yeni turun ilk bölümlerinde görebildiklerim):
+  - OT-buyuk-yazi-28: düzeldi. Bilgi pratiğinde yanlış şıkkım pembe dolgu + kırmızı çarpıyla, doğrusu yeşil çerçeve + tikle belli; öteki şıklar soluk ama okunuyor (1329).
+  - OT-buyuk-yazi-46: düzeldi. Kulak Deposu inşaatı başlayınca panel "Kuruluyor" diyor, "Sv 1 yapılıyor 0:59" (1346).
+  - OT-buyuk-yazi-49: düzeldi. Arkadaş isteği gönderince "İstek gönderildi" kartı başlığın altına iniyor, Geri ve "Arkadaşlar" başlığı açık kalıyor (1367).
+  - OT-buyuk-yazi-42: düzeldi. Seviye 2 ve 3 pencerelerinin üstüne başarım kartı binmedi (1355, 1374).
+  - OT-buyuk-yazi-43: düzeldi. Harita dönüşü 3-6 sn.
+  - OT-buyuk-yazi-45: düzeldi. Bugün'de "Seri koruyucu 0/2" yazıyor (1317).
+  - OT-buyuk-yazi-44: düzeldi. Arkadaş kodu Profil'de ve Tüy Dede kartında büyük, okunur (1360).
+  - OT-buyuk-yazi-47, -58: düzeldi. Sonuç ekranları ilk bakışta okunuyor; Bölüm 4'te 3. yıldız satırı yeşil "tamam" (1313, 1356).
+  - OT-buyuk-yazi-15: düzeldi (görebildiğim kadarıyla). Bölüm 3'te kontrol noktasında yalnız yumuşak bir parıltı var, patlama yok (1334).
+  - OT-buyuk-yazi-17: düzeldi. Bugün'de Tüy Dede rehberi "Al"a dokunuşumu yutmadı; görev ödüllerini sorunsuz aldım (1323).
+  - Bakamadıklarım (bu turda henüz o bölümlere/özelliklere varmadım): OT-13, -14, -16, -24, -25, -26, -27, -29, -30, -32, -33, -34, -48, -51 ... -56, -60 ... -72.
+- Ne yaptım: Hikâyeyi baştan izledim, takma adı yine "HasanBey" yaptım (Genel düzey). Bölüm 1-5 (hepsi ilk denemede). Bugün: takvim 1. gün (+20), iki günlük görev ödülü; günlük sandık hazır ama açmadım. Bilgi pratiğinde 2 soru (1 doğru, 1 yanlış), sonra çıktım. Kamp: Tüy Dede turu, Kulak Deposu'nu kurdum (80 jeton, 1 dk). Arkadaşlar: bekleyen istek yoktu; KaptanTuba'nın yeni koduna (9687SK, Odi6055) istek gönderdim.
+- Hissettiğim: Yeni turun başı benim gözüme çok daha rahat. Hikâye, Tüy Dede kartları, sonuç ekranları, Bugün ve Kamp panelleri Büyük yazıda düzgün; ilk turda yazdığım şikâyetlerin çoğunu bu kez hiç görmedim. Tek zorlandığım an Dış Kulak canlanınca gelen tam ekran kutlamaydı: açık şeftali zeminde beyaz "Dış Kulak" yazısını gözümü kısarak okudum. Bölüm 5 sonucunda yeşil tik bir an 3. yıldızı aldığımı düşündürdü. Haritadaki küçük adlar ("Konka Koyu", "1 adım = 1 bölüm") hâlâ küçük (YN-049, yazmadım).
+- Yazdığım geri bildirimler: OT-buyuk-yazi-73 (canlandı kutlamasında beyaz başlık açık zeminde), -74 (tutmayan 3. yıldız koşulunda yeşil tik + "tamam").
+- Yarım kalan / sonraki oturum: Haritada Bölüm 6 sırada. Günlük sandık açılmadı; Bugün'de 1 görev ("3 bölüm oyna") ödülü alınmadı. Takım açıldı ama henüz bakmadım; "Ninni Tasiyicilari"ya (davet kodu 8XJUU4) yeniden katılmayı düşünüyorum. Kulak Deposu kuruldu, toplanacak. Mağaza (Bölüm 6), Ayarlar, Kulak Kartları bu oturumda denenmedi (komut sınırı).
+- Sosyal: yeni arkadaş kodum **6H4DRJ**, takma ad HasanBey. Arkadaş isteği gönderdim: KaptanTuba (yeni adı Odi6055, kod 9687SK) — kabul bekliyor. Takımım henüz yok.

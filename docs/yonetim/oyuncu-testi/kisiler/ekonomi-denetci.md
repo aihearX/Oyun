@@ -7,7 +7,8 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 90 yıldız |
-| 2 | | | | sıfırlandı 2026-11-02 |
+| 2 | 2026-11-02 | 2026-11-05 | 3832f6b0 | 40/40, 86 yıldız |
+| 3 | 2026-11-05 | | | sıfırlandı 2026-11-05 |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -247,3 +248,20 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 
 Tur 2 bitti (2026-11-05, sürüm 3832f6b0): 40/40, 86 yıldız, 46 deneme / 4 kayıp.
 Son değerlendirme: ODİ'nin ekonomisi bu turda dürüst ve şeffaf. Her ödül sonuç ekranında kaynağıyla ve koşuluyla yazıyor, hazine iki kez sayılmıyor, büyük harcamalar (bağış, yetenek, inşaat) onay soruyor ve cüzdanın önce/sonra hâlini gösteriyor. Mağazada "TEST" etiketi, "bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz" cümlesi, aylık sınır, kalan tutar, sıfırlanma tarihi ve gecikmeli sınır yükseltmesi var; sahte kıtlık, sahte geri sayım ya da paralı devam görmedim. Kalan işler: cüzdan geçmişi (OT-41, YN-230), hesap silmede adsız kalan kayıtların söylenmesi (OT-42), gizlilik metnindeki adres/e-posta yer tutucuları (OT-11, sahip kararı) ve bazı küçük metin tutarlılıkları.
+
+## Oturum 15 · 2026-11-05 · sürüm 69571460 · tur 3
+- Başlangıç: 0/40 (sıfırlamadan sonra ilk açılış), 100 jeton. Bitiş: 6/40, 13 yıldız (1:2 2:2 3:2 4:3 5:2 6:2), seviye 3, seri 1 gün, 1.120 jeton, 120 kristal (TEST alımı). 6 deneme, kayıp yok.
+- Yeniden kontrol (yapildi olanlar):
+  - OT-ekonomi-denetci-7: düzeldi. Avuç Kristal TEST alım penceresi: "TEST — gerçek para çekilmez · 29,99 TL · Bu bir test alımı: hesabından para çekilmez (liste fiyatı 29,99 TL) · İçerik: 120 · Aylık sınır (TL liste fiyatıyla): 0,00 TL -> 29,99 TL / 50,00 TL". "Mağaza fiyatı satın alırken gösterilir" cümlesi yok (1587). Alım sonrası 0 -> 120 kristal, "29,99 TL / 50,00 TL · Kalan: 20,01 TL · 1 Aralık'ta sıfırlanır", tam.
+  - OT-ekonomi-denetci-42: düzeldi. Hesabı sil penceresi: "Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız ("Silinmiş Oyuncu") kalır; seni tanıtmaz." ve "Gizlilik: neler silinir, neler kalır" bağlantısı (1601). Ayarlar sayfasındaki kısa özet bunu söylemiyor: küçük metin önerisi OT-46.
+  - OT-ekonomi-denetci-4 (sahip kararı YN-056) da çözülmüş görünüyor: sınır artık varsayılan değil; ilk satın almadan önce "Önce aylık harcama sınırı" penceresi çıkıyor (Satın alma kapalı / 50 / 100 önerilen / 250 / 500 TL; düşürmek hemen, yükseltmek onaylı ve 24 saat sonra). 50 TL seçtim (1585).
+  - OT-ekonomi-denetci-9: düzeldi (yeniden doğrulandı). "3 bölüm oyna" Al: "20 · 10 XP · Başarım da açıldı (Görev Kulağı · Bronz): +15 jeton. Cüzdana toplam +35 jeton."
+  - OT-ekonomi-denetci-1, -17, -35: düzeldi (yeniden doğrulandı). 1 +156 (81 + beş bronz 75), 2 +98, 3 +91, 4 +247 (77 + Seri Ustası gümüş 40 + altın 100 + iki bronz 30), 5 +221 (71 + hazine 50 + 100: dört bronz + Dış Kulak Kâşifi gümüş 40), 6 +97. Hepsinde koşul yazılı. Bölüm 5 hazinesi haritada "Bölüm sonunda cüzdanına eklenmişti", iki kez saymadı.
+  - OT-ekonomi-denetci-24: düzeldi (yeniden doğrulandı). Günlük sandık önizlemesi "50 · 25 XP · 1 koruyucu · +1 Kulak Kartı: Hertz Nedir?", açınca aynısı geldi.
+  - OT-ekonomi-denetci-37 (takım kalkanı), -43 (kamp bonusu satırı), -44 (Kamp Seviyesi 5 unvanı): denenemedi; takımım yok, Odyometri Odası kurulu değil, kamp seviyesi 1.
+- Ne yaptım: Sıfırlamadan sonra baştan: takma ad Hesapli, Bölüm 1-6 (hepsi ilk denemede; 4'te 3 yıldız, 5'te hazine), Bugün (takvim 1. gün +20, üç görev 20 + 30 + 25, Görev Kulağı +15, günlük sandık +50 ve Seri Bekçisi +15), Kamp (Tüy Dede turu, Kulak Deposu 80 jetona), Başarımlar, Mağaza (sınır seçimi, bir TEST alımı), Ayarlar › Hesabı sil penceresi (vazgeçtim).
+- Cüzdan sayımı: 100 başlangıç + notalar 470 + başarımlar + hazine 50 + takvim 20 + görevler 75 + sandık 50 - Kulak Deposu 80 = 1.120; durum da 1.120 diyor. Bölüm 3'ten sonraki ara sayımda 15 jeton fazla gördüm; Profil "10/125 kademe" diyordu ve ben bildirimlerde dokuz başarım saymıştım, onuncusu hangisiydi bulamadım (cüzdan geçmişi olmadığı için; OT-41 / YN-230 hâlâ iş listesinde). Bugün sayfasındaki jeton sayacı ödülden sonra birkaç saniye sayarak artıyor (374 -> 392 -> 404); acele bakınca eksik gelmiş sanılıyor, ama sonunda tam.
+- Hissettiğim: Üçüncü kez baştan başlıyorum ve ilk iş beni en çok rahatsız eden şeyin, yüksek varsayılan harcama sınırının, tamamen gittiğini gördüm: satın almadan önce sınırı ben seçiyorum ve "Satın alma kapalı" da bir seçenek. Mağaza üstündeki "bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz" ve "korunan vuruş da hasar sayılır" açıklaması net. Bu oturumda hiçbir kalemde fark yok; yazdığım iki şey küçük metin/öneri.
+- Yazdığım geri bildirimler: OT-ekonomi-denetci-45, -46
+- Yarım kalan / sonraki oturum: Bölüm 7'den devam. Takıma girersem Başlangıç Paketi'nin "Takımındaki herkese: 20 kristal + 50 jeton" hediyesinin gerçekten gelip gelmediğini ve takım kalkanı bildirimini (OT-37) say. Odyometri Odası kurulunca dökümdeki bonus satırına bak (OT-43). Kulak Deposu birikimini topla ve say. Kalan sınır 20,01 TL: en ucuz paket 29,99, engeli yeniden gör.
+- Sosyal: arkadaş kodum GPRK7K (takma ad Hesapli; sıfırlamadan sonra yeni kod). Takımım yok (Takım bu oturumun sonunda açıldı). Bu oturumda gelen arkadaşlık ya da takım daveti görmedim (Arkadaşlar/Mesajlar'a bakmadım; sonraki oturumda bakacağım).
