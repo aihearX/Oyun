@@ -947,6 +947,23 @@ async function suite(browserName, target, [W, H]) {
         const alt = (await satir.locator('.fr-row-text small').innerText()).replace(/\s+/g, ' ');
         if (!alt.includes(`Kulaklar ${sno}`)) fail(rec, `arkadaş satırında takım adı yok: "${alt}"`);
         if (!(await page.getByTestId('silinen-hesap-notu').isVisible())) fail(rec, 'silinen hesap bilgi satırı yok');
+        // YN-266 (OT-takim-kaptani-43): üç sekme ("Arkadaşlar 1", İstekler, Öneriler) kaydırmadan, oksuz ve kesiksiz sığar;
+        // normal yazıda eşit genişlikte ve tek sırada (Büyük yazıda geniş ad payını alır ya da alt sıraya iner; yalnız kesilmez)
+        const serit = await page.evaluate(() => {
+          const w = document.querySelector('[data-subtabs="arkadas"]'); const sc = w?.querySelector('.subtabs'); if (!w || !sc) return null;
+          const k = sc.getBoundingClientRect();
+          const sekmeler = [...w.querySelectorAll('.subtab')].map((t) => { const r = t.getBoundingClientRect(); return { ad: t.textContent.trim().replace(/\s+/g, ' '), l: r.left, r: r.right, top: Math.round(r.top), gen: r.width, tasar: t.scrollWidth > t.clientWidth + 1 }; });
+          return { ok: w.querySelectorAll('.st-ok').length, kaydirma: sc.scrollWidth > sc.clientWidth + 1, sekmeler, kesik: sekmeler.filter((t) => t.tasar || t.l < k.left - 0.5 || t.r > k.right + 0.5 || t.l < -0.5 || t.r > innerWidth + 0.5).map((t) => t.ad),
+            tekSira: new Set(sekmeler.map((t) => t.top)).size === 1, fark: Math.max(...sekmeler.map((t) => t.gen)) - Math.min(...sekmeler.map((t) => t.gen)) };
+        });
+        rec.arkadasSekme = serit;
+        const sekmeSorun = !serit || serit.sekmeler.length !== 3 ? ['Arkadaşlar sekme şeridi bulunamadı'] : [
+          (serit.ok || serit.kaydirma) && `Arkadaşlar sekmeleri sığmıyor (ok ${serit.ok}, kaydırma ${serit.kaydirma})`,
+          serit.kesik.length && `Arkadaşlar sekmesi kesik: ${serit.kesik.join(', ')}`,
+          !BIG && !serit.tekSira && 'Arkadaşlar sekmeleri normal yazıda iki sıraya indi',
+          !BIG && serit.fark > 1.5 && `Arkadaşlar sekmeleri eşit genişlikte değil (fark ${serit.fark.toFixed(1)} px)`,
+        ].filter(Boolean);
+        for (const m of sekmeSorun) { fail(rec, m); console.log(`  ✗ ${name} · arkadas-karti — ${m}`); }
         // takım keşfi denetimleri (takim) bu takımı görmesin: son üye ayrılınca takım silinir
         await tuba.call('team.leave', {}).catch(() => undefined); tuba.close(); await back(); if (!(await page.locator('.menu-tile').count())) await tab('Profil'); }
       // Kod Gir: yanlış kod mesajı; test yönetici kodu → Ayarlar'da yönetici kutusu ve kod paneli

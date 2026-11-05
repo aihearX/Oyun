@@ -186,8 +186,9 @@ export function SpendConfirm({ jeton, have, what, note, yes, busy, onYes, onClos
 }
 
 /** yatay kaydırılan alt sekmeler (rozetli). Taşarsa parmakla (fareyle de) sürüklenir; kesik kenarda solma ve ok görünür, ok
- *  dokunuşla kaydırır (OT-buyuk-yazi-14). `name`: şeridin adı (data-subtabs; iki düzeyli Takım sekmelerinde grup/alt). */
-export function SubTabs<T extends string>({ tabs, active, onChange, name }: { tabs: { id: T; label: string; icon?: string; art?: ArtName; badge?: number }[]; active: T; onChange: (t: T) => void; name?: string }) {
+ *  dokunuşla kaydırır (OT-buyuk-yazi-14). `name`: şeridin adı (data-subtabs; iki düzeyli Takım sekmelerinde grup/alt).
+ *  `count`: nötr sayı rozeti (ör. arkadaş sayısı; `badge` gibi "seni bekleyen" anlamı taşımaz). */
+export function SubTabs<T extends string>({ tabs, active, onChange, name }: { tabs: { id: T; label: string; icon?: string; art?: ArtName; badge?: number; count?: number }[]; active: T; onChange: (t: T) => void; name?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ l: false, r: false });
   const measure = useCallback(() => {
@@ -219,7 +220,7 @@ export function SubTabs<T extends string>({ tabs, active, onChange, name }: { ta
       <div className="subtabs" ref={ref} role="tablist" onScroll={measure} onPointerDown={onPointerDown}>
         {tabs.map((t) => (
           <button key={t.id} role="tab" aria-selected={active === t.id} className={`subtab${active === t.id ? ' on' : ''}`} data-sekme={t.id} onClick={() => onChange(t.id)}>
-            <span aria-hidden className="st-ic">{t.art ? <Art name={t.art} size={18} /> : <Glyph e={t.icon} size={18} />}</span> {t.label}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
+            <span aria-hidden className="st-ic">{t.art ? <Art name={t.art} size={18} /> : <Glyph e={t.icon} size={18} />}</span> {t.label}{t.count !== undefined && <span className="st-sayi">{t.count}</span>}{(t.badge ?? 0) > 0 && <span className="sbadge">{t.badge}</span>}
           </button>
         ))}
       </div>

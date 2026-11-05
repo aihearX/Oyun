@@ -36,8 +36,9 @@ export function FriendsHub({ raceReady = true }: { raceReady?: boolean }) {
       </div>
       {searching ? <SearchResults q={q.trim()} again={again} /> : (
         <>
-          <SubTabs<T> active={tab} onChange={setTab} tabs={[
-            { id: 'arkadaslar', icon: '🫂', label: `Arkadaşlar${friends ? ` ${friends.length}` : ''}` },
+          {/* üç sekme eşit genişlikte, 320 px'te de oksuz sığar; arkadaş sayısı yazıya değil rozete (YN-266, OT-takim-kaptani-43) */}
+          <SubTabs<T> name="arkadas" active={tab} onChange={setTab} tabs={[
+            { id: 'arkadaslar', icon: '🫂', label: 'Arkadaşlar', count: friends?.length },
             { id: 'istekler', icon: '📨', label: 'İstekler', badge: incoming },
             { id: 'oneriler', icon: '✨', label: 'Öneriler' },
           ]} />
@@ -166,6 +167,8 @@ function FriendList({ raceReady, onFind }: { raceReady: boolean; onFind: () => v
       {sorted.length === 0
         ? <Empty icon="🫂" title="Henüz arkadaşın yok" text="Kodunu paylaş, yukarıdan isimle ara ya da önerilere göz at. Birlikte konuşup yarışabilir, her gün hediye gönderebilirsiniz.">
             <button className="btn small" onClick={onFind}><Art e="✨" size="1.15em" className="art-inline" /> Önerilere bak</button>
+            {/* arkadaşsız da yarışılır: Hızlı yarış gerçek bir rakip bekler (YN-255, YN-247) */}
+            {raceReady && <button className="linkish" data-testid="bos-hizli-yaris" onClick={() => nav.open({ name: 'race' })}>Arkadaşın yoksa Hızlı yarış'ı dene</button>}
           </Empty>
         : <>
             <div className="fr-sub muted small-note">{rich(onlineN > 0 ? `🟢 ${onlineN} arkadaşın şu an çevrimiçi` : 'Şu an kimse çevrimiçi değil; mesaj bırakabilirsin.')}</div>

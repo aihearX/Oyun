@@ -804,6 +804,13 @@ html.buyuk-yazi .result-star3 li > .art { width:24px; height:24px; }
    hepsi tam görünür (OT-buyuk-yazi-22). Üst sıra (takim-grup) zaten sığar. */
 html.buyuk-yazi .subtabs-wrap:not([data-subtabs="takim-grup"]) .subtabs { flex-wrap:wrap; overflow-x:visible; scroll-snap-type:none; -webkit-mask-image:none; mask-image:none; }
 html.buyuk-yazi .subtabs-wrap:not([data-subtabs="takim-grup"]) .subtab { flex:1 1 auto; justify-content:center; padding:0 10px; }
+/* Arkadaşlar sekmeleri (YN-266, OT-takim-kaptani-43): üçü eşit genişlikte, kaydırmadan ve oksuz sığar (390 ve 320 px); simge üstte, ad
+   altta, arkadaş sayısı ve istek rozeti köşede. Büyük yazıda uzun ad (min-width) geniş payı alır, yine sığmazsa alt sıraya iner:
+   kesilmez; ok yalnız normal yazıda gerçekten sığmayınca */
+.st-sayi { min-width:18px; height:18px; padding:0 5px; margin-left:2px; border-radius:999px; background:rgba(255,255,255,.16); color:var(--text); font-size:0.6875rem; font-weight:900; display:inline-flex; align-items:center; justify-content:center; }
+.subtab.on .st-sayi { background:rgba(40,20,0,.18); color:var(--gold-ink); }
+.subtabs-wrap[data-subtabs="arkadas"] .subtab, html.buyuk-yazi .subtabs-wrap[data-subtabs="arkadas"] .subtab { flex:1 1 0; min-width:max-content; position:relative; flex-direction:column; justify-content:center; gap:1px; padding:5px 8px 4px; min-height:52px; border-radius:16px; font-size:0.8125rem; }
+.subtabs-wrap[data-subtabs="arkadas"] .subtab :is(.st-sayi, .sbadge) { position:absolute; top:3px; right:4px; margin:0; min-width:16px; height:16px; padding:0 4px; font-size:0.625rem; }
 .float-burst { position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:900; font-size:1.5rem; color:var(--lime); pointer-events:none; animation:burstUp 1.4s ease-out forwards; text-shadow:0 2px 0 rgba(0,0,0,.45); white-space:nowrap; z-index:5; }
 @keyframes burstUp { 0% { opacity:0; transform:translate(-50%,10px) scale(.6); } 20% { opacity:1; transform:translate(-50%,-10px) scale(1.15); } 100% { opacity:0; transform:translate(-50%,-60px) scale(1); } }
 
