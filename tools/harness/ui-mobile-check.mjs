@@ -1160,6 +1160,20 @@ async function suite(browserName, target, [W, H]) {
         await takimSekme(page, 'Üyeler'); await sleep(300);
         await page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click(); await sleep(700);
         await check('takim-sohbet-kartlar', { chat: true });
+        // sohbet tam ekran (YN-248, OT-buyuk-yazi-69): takım kartı, sekmeler ve alt çubuk gizlenir; en az üç kart/mesaj görünür (kısa
+        // ekranda, 640 px, iki: Büyük yazıda yardım kartı ~230 px) (kutunun içinde yüksekliğinin %80'i ya da 120 px'i); geri tuşu
+        // (Escape) tam ekranı kapatır, Takım ekranı yerinde kalır
+        await page.getByTestId('sohbet-tam-ekran').click(); await sleep(500);
+        { const rec = await check('takim-sohbet-tam-ekran', { scroll: false });
+          const vis = await page.evaluate(() => { const box = document.querySelector('.chat-box')?.getBoundingClientRect(); if (!box) return null;
+            const n = [...document.querySelectorAll('.chat-box > *')].filter((b) => { const r = b.getBoundingClientRect(); const v = Math.min(r.bottom, box.bottom) - Math.max(r.top, box.top); return r.height > 0 && v >= Math.min(r.height * 0.8, 120); }).length;
+            const gizli = ['.team-head', '.tabbar'].filter((q) => { const e = document.querySelector(q); return e && e.getBoundingClientRect().height > 0; });
+            return { kart: n, kutu: Math.round(box.height), gorunenUst: gizli, gerek: innerHeight >= 800 ? 3 : 2 }; });
+          rec.tamEkran = vis;
+          if (!vis || vis.kart < vis.gerek) fail(rec, `tam ekran sohbette yalnız ${vis?.kart ?? 0} kart görünüyor (kutu ${vis?.kutu ?? 0} px; en az ${vis?.gerek ?? 3})`);
+          if (vis?.gorunenUst.length) fail(rec, `tam ekranda hâlâ görünüyor: ${vis.gorunenUst.join(', ')}`); }
+        await page.keyboard.press('Escape'); await page.locator('.team-head').waitFor({ timeout: 4000 });
+        if (await page.locator('.chat.full').count()) throw new Error('Escape tam ekran sohbeti kapatmadı');
         await page.locator('[data-testid="akis-karti"]').last().getByRole('button', { name: 'Yanıtla' }).click();
         await page.getByTestId('konu-sayfasi').waitFor(); await check('takim-konu-sayfasi', { scroll: false });
         await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300);

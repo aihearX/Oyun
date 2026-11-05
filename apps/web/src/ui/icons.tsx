@@ -6,7 +6,9 @@ import type { ReactNode } from 'react';
  */
 export type IconName =
   | 'check' | 'list' | 'smile' | 'play' | 'retry' | 'megaphone' | 'map' | 'sun' | 'tent' | 'team' | 'user' | 'friends' | 'chat' | 'inbox' | 'gem' | 'globe'
-  | 'trophy' | 'cards' | 'hat' | 'bolt' | 'sliders' | 'info' | 'pencil' | 'back' | 'close' | 'dots' | 'send' | 'copy' | 'chevron' | 'flag';
+  | 'trophy' | 'cards' | 'hat' | 'bolt' | 'sliders' | 'info' | 'pencil' | 'back' | 'close' | 'dots' | 'send' | 'copy' | 'chevron' | 'flag'
+  /** sohbet tam ekran aç / kapat (YN-248) */
+  | 'expand' | 'shrink';
 
 const D = (d: string, fill = false) => <path d={d} className={fill ? 'ic-fill' : undefined} />;
 const P: Record<IconName, ReactNode> = {
@@ -38,6 +40,8 @@ const P: Record<IconName, ReactNode> = {
   smile: <><circle cx="12" cy="12" r="9" className="ic-fill" /><circle cx="12" cy="12" r="9" />{D('M8.5 14.2c.9 1.4 2.1 2.1 3.5 2.1s2.6-.7 3.5-2.1M9 9.6h.01M15 9.6h.01')}</>,
   chevron: D('M9 5l7 7-7 7'),
   close: D('M6.5 6.5l11 11M17.5 6.5l-11 11'),
+  expand: D('M4.5 9.5v-5h5M14.5 4.5h5v5M19.5 14.5v5h-5M9.5 19.5h-5v-5'),
+  shrink: D('M9.5 4.5v5h-5M19.5 9.5h-5v-5M14.5 19.5v-5h5M4.5 14.5h5v5'),
   dots: <>{D('M5.5 12h.01M12 12h.01M18.5 12h.01')}</>,
   send: <>{D('M4 11.6 20 4.5l-6.2 15.8-2.6-6.6z', true)}{D('M4 11.6 20 4.5l-6.2 15.8-2.6-6.6z')}{D('M11.2 13.7 20 4.5')}</>,
   copy: <><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2" className="ic-fill" /><rect x="8.5" y="8.5" width="11.5" height="11.5" rx="2.2" />{D('M15.5 8.5V6.2A2.2 2.2 0 0 0 13.3 4H6.2A2.2 2.2 0 0 0 4 6.2v7.1a2.2 2.2 0 0 0 2.2 2.2h2.3')}</>,

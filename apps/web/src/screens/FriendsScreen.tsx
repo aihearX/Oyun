@@ -45,7 +45,7 @@ export function ChatScreen({ room, title, onBack }: { room: string; title: strin
       <ScreenHead title={title} onBack={onBack} />
       <Online what="Sohbet">
         {room === 'genel' && <div className="muted small-note">Herkese açık oda. Nazik ol; kişisel bilgi paylaşma. Uzun bas: şikâyet / sessize al.</div>}
-        <ChatRoom room={room} offset={room === 'genel' ? 250 : 220} placeholder={room === 'genel' ? 'Herkese yaz…' : `${title} kişisine yaz…`} emptyText={room === 'genel' ? 'Oda sessiz. Bir selam ver, belki yarış arkadaşı bulursun.' : 'İlk mesajı sen yaz.'} />
+        <ChatRoom room={room} offset={room === 'genel' ? 250 : 220} placeholder={room === 'genel' ? 'Herkese yaz…' : `${title} kişisine yaz…`} placeholderShort="Mesaj yaz…" emptyText={room === 'genel' ? 'Oda sessiz. Bir selam ver, belki yarış arkadaşı bulursun.' : 'İlk mesajı sen yaz.'} />
       </Online>
     </div>
   );

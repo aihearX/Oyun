@@ -5,7 +5,7 @@ import { BUILDINGS, type InboxKind } from '@odi/shared';
 import { cardById, cosmeticById } from '@odi/content';
 import { useStore } from '../store';
 import { reconnect, usePending, useSocial } from '../net';
-import { useNav } from '../nav';
+import { useBackLayer, useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
 import { IconButton } from './Button';
 import { Icon } from './icons';
@@ -151,12 +151,15 @@ export function Empty({ icon, title, text, children }: { icon: string; title: st
 }
 
 /** alttan açılan sayfa (onay, menü, form) */
-export function Sheet({ title, onClose, children }: { title?: string; onClose: () => void; children: ReactNode }) {
-  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; addEventListener('keydown', k); return () => removeEventListener('keydown', k); }, [onClose]);
+/** alt sayfa: geri tuşu / Escape yalnız en üstteki sayfayı kapatır (nav.ts geri katmanları). closeX: başlıksız sayfada da yapışık
+ *  Kapat düğmesi (profil kartı, OT-rekabetci-49) */
+export function Sheet({ title, onClose, children, closeX }: { title?: string; onClose: () => void; children: ReactNode; closeX?: boolean }) {
+  useBackLayer(onClose);
   return (
     <div className="sheet-wrap" onClick={onClose}>
       <div className="sheet" role="dialog" aria-label={title} onClick={(e) => e.stopPropagation()}>
         <div className="sheet-grip" aria-hidden />
+        {!title && closeX && <IconButton icon="close" label="Kapat" onClick={onClose} className="sheet-x" />}
         {title && <div className="row between"><h2><Rich text={title} /></h2><IconButton icon="close" label="Kapat" onClick={onClose} /></div>}
         {children}
       </div>

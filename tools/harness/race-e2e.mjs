@@ -109,6 +109,21 @@ await B.page.evaluate((c) => window.__yaris.net().call('friends.add', { code: c 
 const codeB = await B.page.evaluate(() => window.__yaris.net().me.friendCode);
 await A.page.evaluate((c) => window.__yaris.net().call('friends.add', { code: c }), codeB);
 
+// Hızlı yarış (YN-247): kimse beklemiyorken Ayşe yeni oda açar ve ekran bunu açıkça söyler; Bora art arda dokununca aynı odaya gelir
+await tid(A, 'yaris-hizli').click();
+await A.page.locator('[data-testid="yaris-bekleme"][data-durum="yeni-oda"]').waitFor({ timeout: 10_000 });
+{ const t = await tid(A, 'yaris-kimse-yok').innerText();
+  if (!t.includes('bekleyen başka oyuncu yok')) await fail(`hızlı yarış: kimse yok yazısı eksik ("${t}")`); }
+const quickId = await tid(A, 'yaris-kod').getAttribute('data-code');
+await shot(A, '00-ayse-hizli-kimse-yok.png');
+await tid(B, 'yaris-hizli').click();
+await B.page.locator('[data-testid="yaris-oyuncu"][data-name="Ayşe"]').waitFor({ timeout: 10_000 });
+if ((await tid(B, 'yaris-kod').getAttribute('data-code')) !== quickId) await fail('hızlı yarış: Bora aynı odaya gelmedi');
+await A.page.locator('[data-testid="yaris-oyuncu"][data-name="Bora"]').waitFor({ timeout: 10_000 });
+if (await tid(A, 'yaris-bekleme').count()) await fail('hızlı yarış: rakip gelince bekleme kartı kalktı olmalı');
+log(`hızlı yarış: Ayşe yeni oda açtı (kimse yok yazılı), Bora aynı odaya geldi (${quickId})`);
+for (const p of [A, B]) { await tid(p, 'yaris-ayril').click(); await tid(p, 'yaris-oda-kur').waitFor(); }
+
 // Ayşe oda kurar (yeni oyuncu: yalnızca 1. bölüm açık)
 await tid(A, 'yaris-oda-kur').click();
 await tid(A, 'yaris-seviye-1').click();

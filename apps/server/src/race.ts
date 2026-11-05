@@ -3,6 +3,7 @@ import { DELETED_PLAYER_NAME, SOCIAL_LIMITS, type RacePlayer, type RaceRoom, typ
 import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app';
 import { areFriends } from './chat';
 import { isBlocked } from './friends';
+import { feedEvent } from './comm/feed';
 
 /**
  * Canlı yarış odaları bellekte yaşar. Başlamış yarışlar (geri sayım, yarış, bitti) ayrıca `race_room` tablosuna yazılır
@@ -10,7 +11,7 @@ import { isBlocked } from './friends';
  * yarışı bitirir, derece ve lig puanı bir kez bağlanır. Lobi (başlamamış oda) yazılmaz: yeniden başlatmada kapanır.
  * Yalnızca gerçek oyuncular; bot ya da sahte rakip yok.
  */
-interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null; /** bitti anı (sunucu saati) */ endedAt?: number | null; /** takım yarışı: yarış bitince (bir kez) */ onEnd?: (room: RaceRoom) => void }
+interface Room extends RaceRoom { timers: ReturnType<typeof setTimeout>[]; linked: Set<string>; firstFinishAt: number | null; /** bitti anı (sunucu saati) */ endedAt?: number | null; /** takım yarışı: yarış bitince (bir kez) */ onEnd?: (room: RaceRoom) => void; /** odayı takım sohbetine duyuranlar (oda başına bir kez) */ announced?: Set<string> }
 /** son biten yarışın rakipleri: rövanş daveti (arkadaş olmasalar da) ve aynı bölümde yeniden oda kurma için */
 interface Recent { rivals: Set<string>; level: number; until: number }
 interface RaceStore { rooms: Map<string, Room>; byPlayer: Map<string, string>; recent: Map<string, Recent> }
@@ -320,8 +321,22 @@ export const raceHandlers: Handlers = {
     const open = [...store(app).rooms.values()]
       .filter((r) => r.status === 'lobi' && active(r).length < r.max && !r.players.some((p) => p.id === s.pid) && now - r.createdAt < LOBBY_TTL_MS)
       .sort((a, b) => a.createdAt - b.createdAt)[0];
-    if (open) { joinRoom(app, s.pid, open); return { room: view(open) }; }
-    return { room: view(createRoom(app, s.pid, app.player(s.pid).highest)) };
+    if (open) { joinRoom(app, s.pid, open); return { room: view(open), created: false }; }
+    // bekleyen oda yok: yeni oda açılır ve yanıt bunu söyler (istemci "bekleyen başka oyuncu yok" der; eşleştirme kuralı aynı, YN-247)
+    return { room: view(createRoom(app, s.pid, app.player(s.pid).highest)), created: true };
+  },
+  /** bekleyen lobiyi takım sohbetine duyur (Takım Akışı davet kartı; oda başına bir kez, takımın saatlik kart sınırı geçerli) */
+  'race.announce': (app, s) => {
+    const r = myRoom(app, s.pid);
+    if (r.team || r.status !== 'lobi') fail('BASLADI', 'Yarış başladı; yalnız bekleyen oda duyurulabilir.');
+    if (active(r).length >= r.max) fail('DOLU', 'Yarış odası dolu.');
+    if (!app.player(s.pid).team_id) fail('TAKIM_YOK', 'Duyurmak için bir takımda olmalısın.');
+    const done = (r.announced ??= new Set());
+    if (done.has(s.pid)) fail('TEKRAR', 'Bu odayı takımına zaten duyurdun.');
+    const msg = feedEvent(app, s.pid, 'yaris', { roomId: r.id, level: r.level }, { force: true });
+    if (!msg) return fail('LIMIT', 'Takım sohbetine bu saat çok kart düştü; biraz sonra yeniden dene.');
+    done.add(s.pid);
+    return { msg };
   },
   'race.invite': (app, s, { friendId }) => {
     const r = myRoom(app, s.pid);

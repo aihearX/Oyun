@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { EVENT_TITLE, SCREEN_TITLE } from './nav';
+import { EVENT_TITLE, SCREEN_TITLE, closeTopLayer, pushBackLayer } from './nav';
 
 const FILE: Record<string, string> = {
   skills: 'screens/SkillsScreen.tsx', settings: 'screens/SettingsScreen.tsx', achievements: 'screens/AchievementsScreen.tsx', album: 'screens/AlbumScreen.tsx',
@@ -27,5 +27,30 @@ describe('etkinlik yükleme başlığı (EVENT_TITLE)', () => {
   it.each(Object.entries(EVENT_TITLE))('%s → "%s" ekranın başlığıyla aynı', (view, title) => {
     if (view === 'merkez') expect(hub.includes(`<h1>${title}</h1>`), `EventsScreen.tsx içinde <h1>${title}</h1> yok`).toBe(true);
     else expect(src.includes(`${view}: { name: '${title}'`), `events/common.tsx EVENT_META.${view}.name "${title}" değil`).toBe(true);
+  });
+});
+
+describe('geri katmanları (YN-248, OT-rekabetci-49)', () => {
+  it('geri tuşu yalnız en üstteki katmanı kapatır; katman yoksa geri ekrana kalır', () => {
+    const closed: string[] = [];
+    const offA = pushBackLayer(() => closed.push('sayfa'));
+    const offB = pushBackLayer(() => closed.push('profil'));
+    expect(closeTopLayer()).toBe(true);
+    expect(closed).toEqual(['profil']);
+    offB(); // kart kapandı: yığından çıkar
+    expect(closeTopLayer()).toBe(true);
+    expect(closed).toEqual(['profil', 'sayfa']);
+    offA(); offA(); // ikinci çağrı bir şey yapmaz
+    expect(closeTopLayer()).toBe(false);
+  });
+  it('alttaki katman önce kapanırsa sıra bozulmaz', () => {
+    const closed: string[] = [];
+    const offA = pushBackLayer(() => closed.push('alt'));
+    const offB = pushBackLayer(() => closed.push('ust'));
+    offA();
+    expect(closeTopLayer()).toBe(true);
+    expect(closed).toEqual(['ust']);
+    offB();
+    expect(closeTopLayer()).toBe(false);
   });
 });

@@ -17,6 +17,8 @@ import { PhraseStrip } from '../comm/Cards';
 import { Icon } from '../ui/icons';
 
 type View = 'menu' | 'pick' | 'code' | 'room' | 'busy';
+/** tek başına bu kadar beklenince "Hâlâ kimse yok" notu ve Çık (YN-247) */
+const LONG_WAIT_MS = 60_000;
 
 /**
  * Canlı yarış lobisi: Hızlı yarış (yalnızca gerçek oyuncular), Oda kur (açık bölümlerden), Kodla katıl, arkadaş daveti,
@@ -29,6 +31,8 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
   const [room, setRoom] = useState<RaceRoom | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [code, setCode] = useState('');
+  // Hızlı yarış yeni oda açtıysa (bekleyen kimse yoktu; sunucu yanıtı söyler) o odanın kimliği; biri katılınca düşer (YN-247)
+  const [fresh, setFresh] = useState<string | null>(null);
   const played = useRef<string | null>(null);
   const roomRef = useRef<RaceRoom | null>(null); roomRef.current = room;
   // bölüm üreticisi lobide önden yüklenir: geri sayım başlayınca bölüm beklemeden kurulur
@@ -72,6 +76,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
     return net.on('race.updated', ({ room: r }) => {
       const cur = roomRef.current; if (!cur || r.id !== cur.id) return;
       if (r.status === 'bitti' && cur.status === 'lobi') { setRoom(null); setView('menu'); setError('Oda uzun süre başlamadığı için kapandı.'); return; }
+      if (r.players.filter((p) => !p.left).length >= 2) setFresh((f) => (f === r.id ? null : f));
       setRoom(r);
     });
   }, [net]);
@@ -105,7 +110,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
     </Shell>
   );
 
-  if (view === 'room' && room) return <RoomView room={room} meId={meId} error={error} onLeave={leave} onBack={close} />;
+  if (view === 'room' && room) return <RoomView room={room} meId={meId} error={error} fresh={fresh === room.id} onLeave={leave} onBack={close} />;
 
   return (
     <Shell title="Canlı yarış" onBack={close}>
@@ -118,7 +123,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
             <h2>Arkadaşlarınla aynı anda koş!</h2>
             <div className="muted">Herkes aynı bölümü oynar, birbirinizi yarı saydam görürsünüz. Rakiplerin hepsi gerçek oyuncu.</div>
           </div>
-          <button className="btn race-big" data-testid="yaris-hizli" onClick={() => void run(async () => (await net.call('race.quick', {})).room)}><Art e="⚡" size="1.15em" className="art-inline" /> Hızlı yarış</button>
+          <button className="btn race-big" data-testid="yaris-hizli" onClick={() => void run(async () => { const r = await net.call('race.quick', {}); setFresh(r.created ? r.room.id : null); return r.room; })}><Art e="⚡" size="1.15em" className="art-inline" /> Hızlı yarış</button>
           <div className="row">
             <button className="btn ghost grow" data-testid="yaris-oda-kur" onClick={() => setView('pick')}><Art e="🏗️" size="1.15em" className="art-inline" /> Oda kur</button>
             <button className="btn ghost grow" data-testid="yaris-kod-gir" onClick={() => setView('code')}><Art e="🔑" size="1.15em" className="art-inline" /> Kodla katıl</button>
@@ -159,9 +164,12 @@ function Shell({ title, onBack, children }: { title: string; onBack: () => void;
   );
 }
 
-function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId: string | null; error: string | null; onLeave: () => void; onBack: () => void }) {
+/** fresh: Hızlı yarış bu odayı yeni açtı (o an bekleyen başka oyuncu yoktu): ekran bunu açıkça söyler, sayaç "aranıyor" gibi durmaz */
+function RoomView({ room, meId, error, fresh, onLeave, onBack }: { room: RaceRoom; meId: string | null; error: string | null; fresh: boolean; onLeave: () => void; onBack: () => void }) {
   const { net } = useRaceNet();
+  const myTeam = useNet((s) => s.team);
   const [busy, setBusy] = useState(false);
+  const [told, setTold] = useState<'busy' | 'ok' | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [joinedAt] = useState(() => Date.now());
@@ -177,6 +185,12 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
     setBusy(true); setErr(null);
     try { await net.call('race.ready', { ready: !mine.ready }); platform().haptic('light'); } catch (e) { setErr(errText(e)); }
     setBusy(false);
+  };
+  // takım sohbetine davet kartı (Takım Akışı; oda başına bir kez)
+  const announce = async () => {
+    if (!net || told) return;
+    setTold('busy'); setErr(null);
+    try { await net.call('race.announce', {}); setTold('ok'); platform().haptic('light'); } catch (e) { setTold(null); setErr(errText(e)); }
   };
   const share = async () => {
     const r = await platform().share(`ODİ canlı yarışına gel! ${room.level}. bölüm · Oda kodu: ${room.id}`);
@@ -212,10 +226,24 @@ function RoomView({ room, meId, error, onLeave, onBack }: { room: RaceRoom; meId
       </div>
 
       {alone && (
-        <div className="card race-wait" data-testid="yaris-bekleme">
-          <div className="race-wait-top"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Rakip bekleniyor</b><span className="pill">{fmtClock(now - joinedAt)}</span></div>
-          <div className="muted small-note">Burada yalnızca gerçek oyuncular yarışır. Biri katılınca "Hazırım" de, yarış başlasın.</div>
-          <button className="btn small" data-testid="yaris-bekleme-davet" onClick={() => setInviteOpen(true)}><Art e="👋" size="1.15em" className="art-inline" /> Arkadaşını davet et</button>
+        <div className="card race-wait" data-testid="yaris-bekleme" data-durum={fresh ? 'yeni-oda' : 'bekliyor'}>
+          {fresh ? <>
+            <div className="race-wait-top"><b>Bekleyen başka oyuncu yok</b></div>
+            <div className="small-note" data-testid="yaris-kimse-yok">Şu an hızlı yarışta bekleyen başka oyuncu yok. Oda açıldı: biri Hızlı yarış'a dokununca buraya gelir.</div>
+          </> : <>
+            <div className="race-wait-top"><span className="race-dots" aria-hidden><i /><i /><i /></span><b>Rakip bekleniyor</b><span className="pill">{fmtClock(now - joinedAt)}</span></div>
+            <div className="muted small-note">Burada yalnızca gerçek oyuncular yarışır. Biri katılınca "Hazırım" de, yarış başlasın.</div>
+          </>}
+          {now - joinedAt >= LONG_WAIT_MS && (
+            <div className="race-wait-long" role="status" data-testid="yaris-hala-yok">
+              <span className="grow min0"><b>Hâlâ kimse yok.</b> Takımına duyurabilir, arkadaşını çağırabilir ya da çıkıp sonra yeniden deneyebilirsin.</span>
+              <button className="btn small ghost" data-testid="yaris-bekleme-cik" onClick={onLeave}>Çık</button>
+            </div>
+          )}
+          <div className="race-wait-acts">
+            {myTeam && room.status === 'lobi' && <button className="btn small" data-testid="yaris-takima-duyur" disabled={told != null} onClick={() => void announce()}><Icon name="megaphone" size="1.1em" className="ic-inline" /> {told === 'ok' ? 'Takımına duyuruldu' : 'Takımına duyur'}</button>}
+            <button className="btn small" data-testid="yaris-bekleme-davet" onClick={() => setInviteOpen(true)}><Art e="👋" size="1.15em" className="art-inline" /> Arkadaşını davet et</button>
+          </div>
         </div>
       )}
       {!alone && !inviteOpen && players.length < room.max && room.status === 'lobi' && <button className="linkish" data-testid="yaris-davet-ac" onClick={() => setInviteOpen(true)}>+ Arkadaşını davet et</button>}

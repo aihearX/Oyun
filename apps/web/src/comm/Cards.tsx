@@ -16,14 +16,15 @@ import { hatKey } from '../screens/team/TeamMembers';
 import { openProfile } from '../friends/state';
 import { TuyDede } from '../ftue/Narrator';
 import { loadLevelGen } from '../engine';
+import { useFeatures } from '../ftue/useFeatures';
 import { patchMessage, refreshDq, useCanFreeText, useComm } from './state';
 import { BEKLEYEN_GONDER, BekleyenSatir } from '../ui/bekleyen';
 import './comm.css';
 
 /** tepki → resimli ikon (emoji değil) */
 export const REACTION_ART: Record<ChatReaction, ArtName> = { alkis: 'party', kalp: 'heart', ates: 'flame', yildiz: 'star', guc: 'bolt' };
-const FEED_ART: Record<string, ArtName> = { bolum: 'star', boss: 'monster', koklea: 'shell', bina: 'hammer', uye: 'users', seri: 'flame', yardim: 'help', meydan: 'finish', sira: 'trophy', tyaris: 'flag' };
-const FEED_KICKER: Record<string, string> = { bolum: 'Bölüm geçti', boss: 'Canavar yenildi', koklea: 'Altın koklea', bina: 'Kamp', uye: 'Yeni üye', seri: 'Oyun serisi', yardim: 'Birlikte başardınız', meydan: 'Meydan okuma', sira: 'Sıralama', tyaris: 'Takım Yarışı' };
+const FEED_ART: Record<string, ArtName> = { bolum: 'star', boss: 'monster', koklea: 'shell', bina: 'hammer', uye: 'users', seri: 'flame', yardim: 'help', meydan: 'finish', sira: 'trophy', tyaris: 'flag', yaris: 'finish' };
+const FEED_KICKER: Record<string, string> = { bolum: 'Bölüm geçti', boss: 'Canavar yenildi', koklea: 'Altın koklea', bina: 'Kamp', uye: 'Yeni üye', seri: 'Oyun serisi', yardim: 'Birlikte başardınız', meydan: 'Meydan okuma', sira: 'Sıralama', tyaris: 'Takım Yarışı', yaris: 'Canlı yarış' };
 const cap = (t: string) => t.charAt(0).toLocaleUpperCase('tr') + t.slice(1);
 const s = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : '');
 const n = (v: unknown) => (typeof v === 'number' ? v : Number(v) || 0);
@@ -162,6 +163,7 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
   const nav = useNav();
   const highest = useStore((x) => x.highestUnlocked());
   const cheering = useCheerGiden((x) => x.ids.includes(m.id));
+  const feat = useFeatures();
   if (!rich) return <div className="msg-sys kind-feed"><Art name={FEED_ART[type] ?? 'spark'} size="1.2em" className="art-inline" /> {m.text}</div>;
   const own = s(m.meta?.pid) === me;
   const cheerId = type === 'uye' ? 'hosgeldin' : 'tebrik';
@@ -179,6 +181,16 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
         <span className="fc-score"><b>{fmtNum(n(m.meta?.score))}</b><small>puan · {level}. bölüm</small></span>
         {n(m.meta?.beaten) > 0 && <span className="fc-beaten">{n(m.meta?.beaten)} kişi geçti</span>}
         {!own && <button type="button" className="btn small" data-testid="meydan-oyna" disabled={level > highest} onClick={() => nav.play(level)}>{level > highest ? `${level}. bölüm kilitli` : 'Oyna'}</button>}
+      </div>
+    );
+  } else if (type === 'yaris') {
+    // hızlı yarış / oda daveti (YN-247): Katıl lobiye gider; oda başlamış ya da kapanmışsa lobi bunu açıkça söyler
+    body = (
+      <div className="fc-duel">
+        <span className="fc-score"><b>{level}.</b><small>bölüm · canlı yarış</small></span>
+        {!own && (feat.open('race')
+          ? <button type="button" className="btn small" data-testid="yaris-akis-katil" onClick={() => nav.open({ name: 'race', inviteRoomId: s(m.meta?.roomId) })}>Katıl</button>
+          : <button type="button" className="btn small" disabled>{feat.lock('race')}</button>)}
       </div>
     );
   } else if (type === 'tyaris') {

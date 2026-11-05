@@ -65,6 +65,7 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'race.create': z.object({ level: level.optional() }),
   'race.join': z.object({ roomId: id }),
   'race.quick': empty,
+  'race.announce': empty,
   'race.invite': z.object({ friendId: id }),
   'race.ready': z.object({ ready: z.boolean() }),
   'race.leave': empty,

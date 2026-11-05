@@ -67,7 +67,7 @@ html.buyuk-yazi .fr-act small { font-size:0.78125rem; }
 
 /* ---------------------------------------------------------------- profil kartı */
 .fr-card { display:flex; flex-direction:column; gap:14px; }
-.fr-card-hero { display:flex; align-items:center; gap:14px; }
+.fr-card-hero { display:flex; align-items:center; gap:14px; padding-right:40px; /* yapışık Kapat'ın altında ad kalmasın */ }
 .fr-card-hero h2 { font-size:1.5rem; }
 .fr-seen { font-size:0.8125rem; font-weight:800; color:var(--text-2); }
 .fr-seen.on { color:var(--lime); }

@@ -13,6 +13,8 @@ import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { foldSystemRows, type ChatRow } from '../comm/sysfold';
 import { featureOpen } from '../ftue/useFeatures';
+import { Icon } from './icons';
+import { useBackLayer } from '../nav';
 
 /** hızlı tepki satırı: mesaj kartı tepkileriyle aynı çizili set (YN-071). İletiye eşlenen emoji kodu yazılır (sunucu 'emoji' türünü
  *  böyle doğrular, eski istemciler de okur); balonda kod değil çizim görünür (artFor / EMOJI_ART, eski 😂 gibi kayıtlar dahil). */
@@ -69,8 +71,9 @@ function placeholderFits(el: HTMLInputElement, text: string): boolean {
 /** Gerçek zamanlı sohbet odası: takım, özel (dm) ya da genel. Takımda: akış kartları, yardım kartları, Günün Sorusu, konular,
  *  bahsetme ve "Kim çevrimiçi". Uzun bas: tepki / yanıtla / şikâyet / sessize al. since: bakan oyuncunun takıma katıldığı an; ondan önceki
  *  art arda sistem satırları katlanır, art arda ayrılma satırları tek satır olur (comm/sysfold.ts, YN-148).
- *  placeholderShort: uzun ipucu kutuya sığmazsa (320 px, Büyük yazı, uzun takım adı) yazılan kısa ipucu (OT-eski-telefon-31). */
-export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', placeholderShort, emptyText, members, since }: { room: string; offset?: number; placeholder?: string; placeholderShort?: string; emptyText?: string; members?: ChatMember[]; since?: number }) {
+ *  placeholderShort: uzun ipucu kutuya sığmazsa (320 px, Büyük yazı, uzun takım adı) yazılan kısa ipucu (OT-eski-telefon-31).
+ *  expandable: sohbet tam ekran açılabilir (takım kartı, sekmeler ve alt çubuk gizlenir; geri tuşu / Escape kapatır; YN-248). */
+export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', placeholderShort, emptyText, members, since, expandable }: { room: string; offset?: number; placeholder?: string; placeholderShort?: string; emptyText?: string; members?: ChatMember[]; since?: number; expandable?: boolean }) {
   const me = useNet((s) => s.me);
   const msgs = useNet((s) => s.messages[room] ?? EMPTY);
   const free = useCanFreeText(); const freeAt = useComm((s) => s.settings?.freeTextLevel ?? COMM_RULES.freeTextLevel);
@@ -87,6 +90,10 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
   const press = useRef<ReturnType<typeof setTimeout> | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const team = room.startsWith('takim:');
+  const [full, setFull] = useState(false);
+  useBackLayer(() => setFull(false), full);
+  // tam ekrana geçince ya da çıkınca kutu boyu değişir: sondaysa sonda kalsın
+  useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [full]);
   const [shortPh, setShortPh] = useState(false);
   useLayoutEffect(() => {
     const el = inputRef.current; if (!el || !placeholderShort) { setShortPh(false); return; }
@@ -231,8 +238,14 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
   };
 
   return (
-    <div className="chat">
-      {team && members && <OnlineRow members={members} />}
+    <div className={`chat${full ? ' full' : ''}`}>
+      {((team && members) || expandable) && (
+        <div className="chat-top">
+          {team && members && <OnlineRow members={members} />}
+          {expandable && <button type="button" className="chat-full-btn" data-testid="sohbet-tam-ekran" aria-pressed={full} onClick={() => { setFull(!full); platform().haptic('light'); }}
+            aria-label={full ? 'Tam ekrandan çık' : 'Sohbeti tam ekran aç'} title={full ? 'Tam ekrandan çık' : 'Sohbeti tam ekran aç'}><Icon name={full ? 'shrink' : 'expand'} size={20} /></button>}
+        </div>
+      )}
       <div className="chat-box" ref={box} onScroll={onScroll} style={{ ['--chat-off' as string]: `${offset}px` }}>
         {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : rows.map(renderRow)}
       </div>

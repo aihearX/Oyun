@@ -42,7 +42,8 @@ etkinlik takvimi, ders grubu (sınıf) davet bağlantısı.
 - Sunucu, **yalnızca gerçek olaylardan** kart üretir (sohbet türü `feed`, gönderen `sistem`, `meta.type`):
   `bolum` (ilk kez geçilen bölüm ya da ilk 3★), `boss` (boss ilk kez yenildi), `koklea` (bölümde altın koklea bulundu — istemci
   sonuçla bildirir, bölüm başına en çok 3), `bina` (kamp binası seviye atladı, sunucunun inşaat tamamlama anı), `uye` (yeni üye),
-  `seri` (sunucunun saydığı ardışık oyun günü: 3, 7, 14, 30, 60, 100), `yardim` (yardımla geçti), `meydan` (meydan okuma).
+  `seri` (sunucunun saydığı ardışık oyun günü: 3, 7, 14, 30, 60, 100), `yardim` (yardımla geçti), `meydan` (meydan okuma),
+  `yaris` (canlı yarış lobisi, oyuncu "Takımına duyur" dedi: kartta Katıl; oda başına bir kez, saatlik kart sınırına girer; YN-247).
 - **Spam önleme (toplama):** aynı oyuncunun aynı türdeki kartı 30 dk içinde yeniden gelirse yeni kart açılmaz; mevcut kart
   güncellenir ("Ayşe 3 bölüm geçti: 4, 5, 6 · 8★") ve `chat.updated` yayınlanır. Takım başına saatte en çok 20 yeni kart; aşılırsa
   yalnızca mevcut kartlar güncellenir. Oyuncu Profil › Birlikte › Sohbet ayarları'ndan "Başarılarım akışta görünsün" seçeneğini

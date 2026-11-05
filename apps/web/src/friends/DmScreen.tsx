@@ -185,7 +185,8 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
           )}
           <form className="dm-compose" onSubmit={(e) => { e.preventDefault(); void send(text); }}>
             <button type="button" className={`dm-emo-btn${panel ? ' on' : ''}`} onClick={() => setPanel(panel ? '' : 'emoji')} aria-label="Emoji ve çıkartmalar"><Icon name={panel ? 'list' : 'smile'} size={22} /></button>
-            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? `${name} kişisine yaz…` : `Serbest yazı ${freeAt}. bölümden sonra`} aria-label="Mesaj" enterKeyHint="send" readOnly={!free}
+            {/* yer tutucu kısa: Büyük yazıda tek satıra sığar (OT-buyuk-yazi-70); kişinin adı erişilebilir adda */}
+            <textarea ref={input} className="dm-input" rows={1} value={text} maxLength={FRIEND_LIMITS.dmMax} placeholder={free ? 'Mesaj yaz…' : 'Yazı kapalı'} aria-label={free ? `${name} kişisine mesaj` : `${name} kişisine mesaj: serbest yazı ${freeAt}. bölümden sonra açılır`} enterKeyHint="send" readOnly={!free}
               onFocus={() => { if (!free) { input.current?.blur(); setPanel('soz'); setOptIn(true); return; } setPanel(''); stick.current = true; }}
               onChange={(e) => onType(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text); } }} />

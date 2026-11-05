@@ -492,7 +492,13 @@ export interface OpMap {
   'raid.state': { req: Record<string, never>; res: { raid: RaidState } };
   'race.create': { req: { level?: number }; res: { room: RaceRoom } };
   'race.join': { req: { roomId: string }; res: { room: RaceRoom } };
-  'race.quick': { req: Record<string, never>; res: { room: RaceRoom } };
+  /**
+   * lobide bekleyen açık oda varsa ona katar, yoksa en yüksek bölümde yeni oda açar. created: bekleyen oda yoktu, bu istekle yeni
+   * oda açıldı (o an hızlı yarışta bekleyen başka oyuncu yok; istemci bunu açıkça söyler, YN-247)
+   */
+  'race.quick': { req: Record<string, never>; res: { room: RaceRoom; created: boolean } };
+  /** bulunduğu lobiyi takım sohbetine duyur: Takım Akışı'na davet kartı (FeedType 'yaris'; oda başına bir kez, YN-247) */
+  'race.announce': { req: Record<string, never>; res: { msg: ChatMessage } };
   'race.invite': { req: { friendId: string }; res: Record<string, never> };
   'race.ready': { req: { ready: boolean }; res: { room: RaceRoom } };
   'race.leave': { req: Record<string, never>; res: Record<string, never> };
@@ -1058,7 +1064,9 @@ export type FeedType = 'bolum' | 'boss' | 'koklea' | 'bina' | 'uye' | 'seri' | '
   /** haftalık sıralama kapanışında ilk 3 (docs/15-siralama.md) */
   | 'sira'
   /** Takım Yarışı sonucu (docs/16-takim-rekabeti.md) */
-  | 'tyaris';
+  | 'tyaris'
+  /** canlı yarış lobisine davet: oyuncu "Takımına duyur" dedi (meta roomId, level; YN-247) */
+  | 'yaris';
 
 export interface CommSettings {
   /** serbest yazı açık mı (freeTextLevel bölüm geçildi; öncesinde yalnızca hazır sözler ve emoji, açma seçeneği yok) */

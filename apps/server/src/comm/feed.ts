@@ -39,6 +39,7 @@ function textFor(type: FeedType, name: string, d: Data): string {
     case 'meydan': return `${name} ${d.level}. bölümde ${fmt(Number(d.score))} puanla meydan okuyor. Geçebilir misin?`;
     case 'sira': return `${name} geçen haftanın sıralamasında ${d.rank}. oldu!`;
     case 'tyaris': return `${name} Takım Yarışında koştu.`;
+    case 'yaris': return `${name} ${d.level}. bölümde canlı yarış için rakip bekliyor.`;
   }
 }
 function metaFor(type: FeedType, p: PlayerRow, d: Data): Meta {

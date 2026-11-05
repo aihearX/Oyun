@@ -744,6 +744,8 @@ html.buyuk-yazi .result-star3 li .rs3-n { grid-column:2; text-align:left; white-
 .sheet { width:100%; max-width:480px; max-height:calc(100% - var(--sat) - 16px); overflow:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; background:linear-gradient(180deg, var(--panel-2), var(--panel) 40%, var(--bg-1)); border:2px solid var(--panel-edge); border-bottom:0; border-radius:26px 26px 0 0; padding:10px 16px calc(var(--sab) + 18px); display:flex; flex-direction:column; gap:12px; animation:sheetUp .3s cubic-bezier(.2,1.2,.3,1); box-shadow:0 -10px 30px rgba(5,2,20,.5); }
 .sheet h2 { min-width:0; overflow-wrap:anywhere; }
 .sheet-grip { width:44px; height:5px; border-radius:999px; background:rgba(255,255,255,.25); align-self:center; }
+/* başlıksız alt sayfada Kapat (profil kartı): kaydırınca da görünür (yapışık), yer kaplamaz (OT-rekabetci-49; haritadaki bölüm kartı gibi) */
+.sheet-x { position:sticky; top:0; z-index:2; flex:none; align-self:flex-end; margin:-12px -6px -56px 0; }
 @keyframes sheetUp { from { transform:translateY(60px); opacity:.4; } to { transform:none; opacity:1; } }
 
 /* form */
@@ -1217,6 +1219,19 @@ body:has(.fr-banner) .ev-notice { top:calc(var(--sat) + 88px); }
 .team-screen:has(.team-body > .chat) .subtabs-wrap { flex:none; } .team-screen:has(.team-body > .chat) .subtabs { padding-bottom:4px; }
 .team-screen:has(.team-body > .chat) .st-ok { bottom:4px; }
 .chat > * { flex-shrink:0; } .chat > .chat-box { flex-shrink:1; }
+/* sohbetin üst satırı: çevrimiçiler + tam ekran düğmesi */
+.chat-top { display:flex; align-items:center; gap:6px; min-width:0; }
+.chat-top > .online-row { flex:1 1 auto; } .chat-top > .online-row small { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.chat-full-btn { flex:none; margin-left:auto; width:40px; height:40px; display:grid; place-items:center; border-radius:12px; border:2px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--cream); padding:0; cursor:pointer; }
+.chat-full-btn[aria-pressed="true"] { border-color:var(--teal); color:var(--teal); }
+.chat-full-btn:focus-visible { outline:3px solid #8b6bff; outline-offset:2px; }
+/* sohbet tam ekran (YN-248, OT-buyuk-yazi-69): üst çubuk, takım kartı, sekmeler, uyarılar ve alt sekme çubuğu gizlenir; mesaj alanı
+   ekranın çoğunu alır (Büyük yazıda 390×844'te en az üç kart). Geri tuşu / Escape ya da düğme kapatır. */
+.team-screen:has(.team-body > .chat.full) :is(.topbar2, .team-top, .war-warn, .lead-notice) { display:none; }
+html:has(.team-screen .chat.full) .tabbar { display:none; }
+.team-screen:has(.team-body > .chat.full) { padding-bottom:calc(var(--sab) + 10px); }
+/* klavye açık: üst satır (çevrimiçiler, tam ekran) yer açar */
+html.kb-open .chat .chat-top { display:none; }
 /* klavye açık: sekme çubuğu gizlenir, alt pay klavye kadar; takım başlığı ve hızlı tepkiler yer açar */
 html.kb-open .tabbar { display:none; }
 html.kb-open .team-screen:has(.team-body > .chat), html.kb-open .screen.chat-screen { padding-bottom:calc(var(--kb) + 8px); }
@@ -1244,6 +1259,12 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
   /* savaş hedefi uyarısı kısa ekranda sohbetten yer almaz (başvuru şeridi gibi): öteki bütün sekmelerde görünür */
   .team-screen:has(.team-body > .chat) .war-warn { display:none; }
   .screen.chat-screen .chat-box, .team-body > .chat .chat-box { min-height:120px; }
+  /* tam ekran düğmesi çevrimiçi satırından yüksek olmasın (satır 28 px); çevrimiçi satırı gizliyse (kimse yok) kendi satırını
+     açmaz, mesaj kutusunun sağ üst köşesinde durur: mesajlara ayrılan yer azalmaz */
+  .chat-full-btn { width:32px; height:32px; border-radius:10px; }
+  .chat { position:relative; }
+  .chat-top:not(:has(.online-row:not(.none))) { position:absolute; top:6px; right:6px; z-index:2; }
+  .chat-top:not(:has(.online-row:not(.none))) .chat-full-btn { background:rgba(26,14,64,.9); }
 }
 /* Takım ekranında üst çubukta tek sosyal kısayol (Arkadaşlar, rozetinde okunmamış mesajlar da var): başlık her genişlikte sığar */
 .team-screen .tb-pill[data-testid="mesaj-rozeti"], .camp-list-screen .tb-pill[data-testid="mesaj-rozeti"] { display:none; }

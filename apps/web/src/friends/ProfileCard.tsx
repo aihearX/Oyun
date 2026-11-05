@@ -15,6 +15,7 @@ import './friends.css';
 /**
  * Profil kartı: herhangi bir ekrandan `openProfile(oyuncuId)` ile açılır (App bir kez <ProfileCardHost /> bağlar).
  * Avatar (Odi rengi + şapka), rozetler, aramızdaki durum ve eylemler: Arkadaş ekle / Mesaj / Takıma davet / Hediye / Yarış / Engelle / Şikâyet.
+ * Kapat düğmesi, karartılmış alan ve geri tuşu / Escape kartı kapatır; arkadaki ekran geri gitmez (OT-rekabetci-49).
  */
 export function ProfileCardHost() {
   const id = useFriends((s) => s.profileId);
@@ -40,14 +41,14 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
 
   if (!card) {
     return (
-      <Sheet onClose={onClose}>
+      <Sheet onClose={onClose} closeX>
         {err ? <div className="chat-err" role="alert">{err}</div> : <div className="fr-card-skel" aria-busy="true" aria-label="Profil yükleniyor"><i /><b /><b /></div>}
       </Sheet>
     );
   }
   const p = card.profile; const rel = card.relation;
   return (
-    <Sheet onClose={onClose}>
+    <Sheet onClose={onClose} closeX>
       <div className="fr-card" data-testid="profil-karti">
         <div className="fr-card-hero">
           <Cerceve p={p} size={96}><Av p={p} size={96} /></Cerceve>

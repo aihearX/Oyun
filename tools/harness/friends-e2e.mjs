@@ -258,6 +258,13 @@ try {
   await A.getByRole('button', { name: 'Cem profili' }).click();
   await A.locator('[data-testid="profil-karti"]').waitFor();
   await shot(A, 'A-profil-karti-cem');
+  // geri tuşu (Escape) önce kartı kapatır, arkadaki Arkadaşlar ekranı geri gitmez; kartta görünür Kapat var (OT-rekabetci-49)
+  check(await A.locator('.sheet').getByRole('button', { name: 'Kapat' }).isVisible(), 'profil kartında görünür Kapat düğmesi');
+  await A.keyboard.press('Escape');
+  await A.locator('[data-testid="profil-karti"]').waitFor({ state: 'detached', timeout: 4000 });
+  check(await A.getByRole('textbox', { name: 'Oyuncu ara' }).isVisible(), 'Escape profil kartını kapattı, Arkadaşlar ekranı yerinde');
+  await A.getByRole('button', { name: 'Cem profili' }).click();
+  await A.locator('[data-testid="profil-karti"]').waitFor();
   // 320 px + Büyük yazı: lig adı kesilmez, sığmazsa iki satır (OT-eski-telefon-17, "Gü…")
   { const vp = A.viewportSize(); await A.setViewportSize({ width: 320, height: 640 }); await A.evaluate(() => document.documentElement.classList.add('buyuk-yazi')); await A.waitForTimeout(300);
     const lig = await A.locator('[data-testid="profil-lig"] b').evaluate((e) => ({ yazi: e.textContent.trim(), kesik: e.scrollWidth > e.clientWidth + 1 || getComputedStyle(e).textOverflow === 'ellipsis' && e.scrollWidth > e.clientWidth }));

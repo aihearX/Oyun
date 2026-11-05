@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import type { EventView } from './events/EventsScreen';
 import type { EventFlash } from './events/EventLevel';
 
@@ -75,3 +75,36 @@ export interface Nav {
 }
 export const NavContext = createContext<Nav>({ open: () => undefined, play: () => undefined, tab: () => undefined });
 export const useNav = () => useContext(NavContext);
+
+/**
+ * Geri katmanları (YN-248, OT-rekabetci-49): ekranın üstünde açık alt sayfa, kart ya da tam ekran sohbet. Telefonun geri tuşu ve
+ * Escape önce en üstteki katmanı kapatır; arkadaki ekran geri gitmez (ScreenHead açık pencere varken Geri yapmaz). İç içe iki katman
+ * açıksa yalnız üstteki kapanır. Haritadaki bölüm kartı aynı kuralı kendi içinde uygular (OT-eski-telefon-13).
+ */
+const layers: { close: () => void }[] = [];
+const onKey = (e: KeyboardEvent) => {
+  if (e.key !== 'Escape' || e.repeat || e.defaultPrevented) return;
+  if (closeTopLayer()) e.preventDefault();
+};
+/** katman aç: dönen işlev katmanı yığından çıkarır (kapatmaz) */
+export function pushBackLayer(close: () => void): () => void {
+  const l = { close };
+  layers.push(l);
+  if (layers.length === 1 && typeof addEventListener === 'function') addEventListener('keydown', onKey);
+  return () => {
+    const i = layers.indexOf(l); if (i < 0) return;
+    layers.splice(i, 1);
+    if (!layers.length && typeof removeEventListener === 'function') removeEventListener('keydown', onKey);
+  };
+}
+/** en üstteki katmanı kapat (geri tuşu); kapatacak katman yoksa false: geri ekrana kalır */
+export function closeTopLayer(): boolean {
+  const l = layers[layers.length - 1]; if (!l) return false;
+  l.close();
+  return true;
+}
+/** açıkken geri katmanı olan bileşen (alt sayfa, tam ekran sohbet); onClose her çizimde değişebilir, katmanın sırası değişmez */
+export function useBackLayer(onClose: () => void, open = true): void {
+  const close = useRef(onClose); close.current = onClose;
+  useEffect(() => (open ? pushBackLayer(() => close.current()) : undefined), [open]);
+}

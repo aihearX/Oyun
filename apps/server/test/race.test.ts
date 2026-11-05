@@ -206,6 +206,36 @@ describe('canlı yarış', () => {
   });
 });
 
+describe('hızlı yarış: kimse yokken dürüst yanıt ve takıma duyuru (YN-247)', () => {
+  it('bekleyen oda yoksa created: true; ikinci Hızlı yarış aynı odaya katar (created: false); duyuru takım sohbetine bir kez kart', async () => {
+    env = await setup();
+    const [a, b, c] = [await env.connect('Ayşe'), await env.connect('Bora'), await env.connect('Cem')];
+    const q1 = await a.call('race.quick', {});
+    expect(q1.created).toBe(true);
+    expect(q1.room.players.map((p) => p.name)).toEqual(['Ayşe']);
+    // takımsız oyuncu duyuramaz
+    expect((await err(a.call('race.announce', {}))).code).toBe('TAKIM_YOK');
+    const t = (await a.call('team.create', { name: 'Kulak Hızlı', emblem: '👂' })).team;
+    await c.call('team.join', { teamId: t.id });
+    await c.call('chat.join', { room: `takim:${t.id}` });
+    const card = c.waitFor('chat', (x) => x.msg.kind === 'feed' && x.msg.meta?.type === 'yaris');
+    const { msg } = await a.call('race.announce', {});
+    expect(msg.room).toBe(`takim:${t.id}`);
+    expect(msg.meta).toMatchObject({ type: 'yaris', roomId: q1.room.id, level: q1.room.level, pname: 'Ayşe' });
+    expect((await card).msg.id).toBe(msg.id);
+    // aynı oda ikinci kez duyurulmaz
+    expect((await err(a.call('race.announce', {}))).code).toBe('TEKRAR');
+    // eşleştirme kuralı aynı: art arda Hızlı yarış aynı odada buluşturur
+    const q2 = await b.call('race.quick', {});
+    expect(q2.created).toBe(false);
+    expect(q2.room.id).toBe(q1.room.id);
+    expect(q2.room.players.map((p) => p.name)).toEqual(['Ayşe', 'Bora']);
+    // odada değilken duyuru yok
+    await b.call('race.leave', {});
+    expect((await err(b.call('race.announce', {}))).code).toBe('YOK');
+  });
+});
+
 describe('canlı yarış kaydı (race_room)', () => {
   it('lobi yazılmaz; başlamış yarış yazılır; yarış sürerken hesabını silenin adı kayıtta kalmaz', async () => {
     env = await setup({ raceCountdownMs: 50, raceFinishGraceMs: 60_000 });
