@@ -77,6 +77,12 @@ oyun/
   (`hud.ts` `pathology`); engelin üstündeki rozet de üçgen (tedavide yeşil artı). İşitme Siniri'nde arka plan lifleri soluk,
   platform dudağı koyu kalın kenarlı (`palette.ts` `edge`), gürültü bulutu açık konturlu ve kapalı evresinde daha opak.
   Su altı nefes göstergesi kalkan baloncuğunun üstünde, kabarcık simgeli kalın çubuk (Büyük yazıda büyür).
+- **Yüksek görünürlükte arka plan ışıkları (YN-225):** `LevelScene` `LevelOptions.highVisibility`'yi sahne kurulurken
+  `render/quality.ts` `setHighVisibility` ile yazar (arka plan dokuları `-yg` anahtarıyla ayrı boyanır): gökteki şafak hüzmesi yok,
+  ana ışık parlak çekirdeksiz ve sönük, ses halkaları yarı saydam, toplamsal ışık huzmeleri kapalı, Beyin Sapı'nın kesişen ışık
+  çizgileri yok. Her kipte şafak hüzmesi tepelerin ardından çıkar, normal karışımla ve dipte saydam çizilir (beyaza doymaz);
+  Beyin Sapı çizgileri kesiksiz ve soluk. Yankı yolu (`mech.ts` `echoTex`) her biyomda koyu kalın kontur + krem-beyaz kalın kenarlı;
+  parıltı nabzı azaltılmış harekette sabit.
 - **Kalkan (YN-099):** bölüm başı kalkan = yetenek düzeyi (Kalkan 1, Çift Kalkan 2) + bir ek kalkan (takım kalkanı, yoksa
   Atölye/Ortak Kalkan şansı), en çok 3 (`content/skills.ts` `runShields`, `SHIELD_MAX`; kabukta `screens/bolum-basi.ts` `runSkills`).
   Eklenen kalkan bildirim kuyruğuna değil bölüm başı şeridine (`LevelHost` `startLines`: "Dokun ve başla" ekranında ve koşunun ilk

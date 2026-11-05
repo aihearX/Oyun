@@ -8,6 +8,7 @@ import type { GameEvent, LevelOptions } from './bridge';
 import { TouchInput } from './input';
 import { flash, floatText, tapToStart, COLORS, banner, endCard } from './ui';
 import { prefersReducedMotion, setFlashPolicy } from './render/flash';
+import { setHighVisibility } from './render/quality';
 import { remedyName } from './play/remedy';
 import { sfx, unlock, setSoundsEnabled, music, beatClock } from './audio';
 import { luckyNoteTexture, tonotopyFreq } from './art';
@@ -91,6 +92,8 @@ export class LevelScene extends Phaser.Scene {
     setSoundsEnabled(this.opts.sounds !== false && !this.spec.modifiers.includes('cihaz-kapali'));
     // ışığa duyarlılık: flaşlar sınırlı (≤ 3/sn, beyaza yakın tam ekran kare yok); azaltılmış harekette hiç (render/flash.ts)
     setFlashPolicy({ reduced: this.opts.reducedMotion ?? prefersReducedMotion() });
+    // Yüksek görünürlük: arka planın ışık süsleri soluk (render/quality.ts; arka plan boyanmadan önce yazılır, YN-225)
+    setHighVisibility(!!this.opts.highVisibility);
     const ts = this.opts.timeScale ?? 1;
     // parçacıklar da sahne hız çarpanıyla (ağır çekim kayıt: tools/reels)
     this.sys.events.on(Phaser.Scenes.Events.ADDED_TO_SCENE, (o: Phaser.GameObjects.GameObject) => { if (o instanceof Phaser.GameObjects.Particles.ParticleEmitter) o.timeScale = this.opts.timeScale ?? 1; });

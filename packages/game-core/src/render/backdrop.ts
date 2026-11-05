@@ -7,6 +7,7 @@ import Phaser from 'phaser';
 import type { BiomeBackdrop } from './types';
 import { artOf, variantArt, type BiomeArt } from './palette';
 import { motionReduced } from './flash';
+import { highVisibility } from './quality';
 import { screenOrigin, viewTopLeft, canvasTex, circle, css, darken, glow, glowEllipse, grain, hashStr, lighten, mix, renderResolution, ridgeFn, rng, softFill, sparkle, taperHair, tono, wrapX, type Ctx, type Rnd } from './util';
 
 const TW = 1024;          // katman döşeme genişliği (tasarım px)
@@ -54,14 +55,15 @@ function blurred(ctx: Ctx, px: number, draw: (c: Ctx) => void) {
 function blurShape(ctx: Ctx, path: () => void, c: number, a: number, blur: number) { softFill(ctx, path, css(c, a), blur); }
 
 // ---------------------------------------------------------------- gök (sabit, ekran boyutunda)
-function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm = false) {
+/** soluk: yüksek görünürlük (quality.ts); ana ışık parlak çekirdeksiz ve sönük, gökteki hüzme yok, ses halkaları yarı saydam (YN-225) */
+function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm = false, soluk = false) {
   const [t, m, hz] = A.sky;
   const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, css(t)); g.addColorStop(0.5, css(m)); g.addColorStop(0.86, css(mix(m, hz, 0.75))); g.addColorStop(1, css(hz));
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
   // ana ışık
   const L = A.light; const lx = L.x * W, ly = L.y * H;
-  glow(ctx, lx, ly, L.r * H, L.c, 0.42);
-  glow(ctx, lx, ly, L.r * H * 0.4, lighten(L.c, 0.3), 0.35);
+  glow(ctx, lx, ly, L.r * H, L.c, soluk ? 0.24 : 0.42);
+  if (!soluk) glow(ctx, lx, ly, L.r * H * 0.4, lighten(L.c, 0.3), 0.35);
   // yıldızlar (üst yarı yoğun)
   const nStars = A.underwater ? 40 : 120;
   for (let i = 0; i < nStars; i++) {
@@ -70,7 +72,7 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm = 
     glow(ctx, x, y, r * 4, c, 0.18 + rnd() * 0.2); ctx.fillStyle = css(c, 0.5 + rnd() * 0.5); circle(ctx, x, y, r * 0.6); ctx.fill();
   }
   for (let i = 0; i < 6; i++) sparkle(ctx, rnd() * W, rnd() * H * 0.45, 2 + rnd() * 2.5, A.motes[i % A.motes.length]!, 0.8);
-  if (A.skyAccent) paintSkyAccent(ctx, W, H, rnd, A, calm);
+  if (A.skyAccent) paintSkyAccent(ctx, W, H, rnd, A, calm, soluk);
   switch (A.motif) {
     case 'cortex': {
       // aurora şeritleri
@@ -105,16 +107,18 @@ function paintSky(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm = 
   }
 }
 
+/** gökteki şafak huzmesinin en yüksek saydamlığı (normal karışım, YN-225) */
+const HUZME_A = 0.1;
 /**
  * bölüm kimliği: gökte tek, hafif bir motif (oynanış alanının üstünde kalır, okunaklılığı bozmaz).
  * calm: azaltılmış hareket; hareket izlenimi veren çizimler (kayan yıldız kuyruğu) yerine durağan karşılığı çizilir.
  */
-function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm: boolean) {
+function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, calm: boolean, soluk: boolean) {
   const L = A.light; const lx = L.x * W, ly = L.y * H;
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   switch (A.skyAccent) {
     case 'halkalar': { // ışığın çevresinde ses dalgası halkaları (Odi küçük bir ses)
-      for (let i = 0; i < 5; i++) { ctx.strokeStyle = css(lighten(L.c, 0.4), 0.16 - i * 0.025); ctx.lineWidth = 2.2 - i * 0.3; ctx.beginPath(); ctx.arc(lx, ly, 60 + i * 34, 0, Math.PI * 2); ctx.stroke(); }
+      for (let i = 0; i < 5; i++) { ctx.strokeStyle = css(lighten(L.c, 0.4), (0.16 - i * 0.025) * (soluk ? 0.5 : 1)); ctx.lineWidth = 2.2 - i * 0.3; ctx.beginPath(); ctx.arc(lx, ly, 60 + i * 34, 0, Math.PI * 2); ctx.stroke(); }
       break;
     }
     case 'ay': { // hilal ay + yoğun yıldız
@@ -130,10 +134,15 @@ function paintSkyAccent(ctx: Ctx, W: number, H: number, rnd: Rnd, A: BiomeArt, c
       break;
     }
     case 'huzme': { // ufuktan yükselen yumuşak ışık huzmeleri (şafak)
+      // YN-225 (OT-buyuk-yazi-64): huzmeler oyun alanındaki ışıktan değil tepelerin ardından çıkar, toplamsal değil (dipte üst üste
+      // binip beyaza doymaz) ve dipte saydam: notaların arkasındaki gök hüzmede çevresinden pek açık değil. Yüksek görünürlükte yok.
+      ctx.globalCompositeOperation = 'source-over';
+      const oy = Math.max(ly, H * 0.94);
       for (let i = 0; i < 7; i++) {
-        const a = -Math.PI / 2 + (i - 3) * 0.2 + (rnd() - 0.5) * 0.08; const len = H * (0.55 + rnd() * 0.25); const wd = 18 + rnd() * 26;
-        ctx.save(); ctx.translate(lx, ly); ctx.rotate(a + Math.PI / 2);
-        const g = ctx.createLinearGradient(0, 0, 0, -len); g.addColorStop(0, css(L.c, 0.2)); g.addColorStop(1, css(L.c, 0));
+        const a = -Math.PI / 2 + (i - 3) * 0.2 + (rnd() - 0.5) * 0.08; const len = H * (0.55 + rnd() * 0.25) + (oy - ly); const wd = 18 + rnd() * 26;
+        if (soluk) continue;
+        ctx.save(); ctx.translate(lx, oy); ctx.rotate(a + Math.PI / 2);
+        const g = ctx.createLinearGradient(0, 0, 0, -len); g.addColorStop(0, css(L.c, 0)); g.addColorStop(0.3, css(L.c, HUZME_A)); g.addColorStop(1, css(L.c, 0));
         ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-wd * 0.3, 0); ctx.lineTo(wd * 0.3, 0); ctx.lineTo(wd, -len); ctx.lineTo(-wd, -len); ctx.closePath(); ctx.fill(); ctx.restore();
       }
       break;
@@ -617,20 +626,29 @@ function neuron(ctx: Ctx, x: number, y: number, r: number, c: number, g: number,
 }
 
 // ---------------------------------------------------------------- STEM · Beyin Sapı (kesişen yollar, köprüler, çekirdekler)
+/**
+ * Beyin Sapı'nın kesişen yolları (YN-225, OT-buyuk-yazi-64): ekranı platform yüksekliğinde kesen ince turkuaz/pembe kesik çizgiler
+ * yankı yolu ve ritim platformu hayaletine (kesik kenar) benziyordu. Çizgiler kesiksiz, göğe karartılmış (STEM_DIM) ve düşük
+ * saydamlıkta; yüksek görünürlükte hiç yok, uzak ışık küreleri yarı saydam.
+ */
+const STEM_DIM = 0.4;
 const stem: Record<string, Painter> = {
   far: (ctx, W, H, rnd, A) => {
+    const soluk = highVisibility();
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 7; k++) {
-      const y0 = H - OVER - 160 - rnd() * 380; const c = k % 2 ? A.accent : A.accent2; const span = 260 + rnd() * 200; const x0 = rnd() * W;
+      const y0 = H - OVER - 160 - rnd() * 380; const c = mix(k % 2 ? A.accent : A.accent2, A.sky[1], STEM_DIM); const span = 260 + rnd() * 200; const x0 = rnd() * W;
+      if (soluk) continue;
       for (const s of [1, -1]) {
-        for (const [lw, a] of [[10, 0.05], [3, 0.2], [1.2, 0.6]] as [number, number][]) {
-          ctx.strokeStyle = css(c, a); ctx.lineWidth = lw; ctx.setLineDash(lw < 2 ? [6, 6] : []);
+        for (const [lw, a] of [[10, 0.04], [3, 0.12], [1.2, 0.3]] as [number, number][]) {
+          ctx.strokeStyle = css(c, a); ctx.lineWidth = lw;
           wrapX(W, x0, span, (x) => { ctx.beginPath(); ctx.moveTo(x - span, y0 - s * 60); ctx.bezierCurveTo(x - span * 0.3, y0 - s * 60, x + span * 0.3, y0 + s * 60, x + span, y0 + s * 60); ctx.stroke(); });
         }
       }
     }
-    ctx.setLineDash([]); ctx.restore();
-    for (let i = 0; i < 3; i++) { const x = rnd() * W, y = H - OVER - 260 - rnd() * 200; wrapX(W, x, 80, (xx) => { glow(ctx, xx, y, 70, A.accent, 0.25); glow(ctx, xx, y, 26, lighten(A.accent, 0.5), 0.5); }); }
+    ctx.restore();
+    const k = soluk ? 0.4 : 1;
+    for (let i = 0; i < 3; i++) { const x = rnd() * W, y = H - OVER - 260 - rnd() * 200; wrapX(W, x, 80, (xx) => { glow(ctx, xx, y, 70, A.accent, 0.25 * k); glow(ctx, xx, y, 26, lighten(A.accent, 0.5), 0.5 * k); }); }
     const f = ridgeFn(W, rnd, 30, 4, 2); const base = H - OVER - 160;
     silhouette(ctx, () => ridgePath(ctx, W, H, base, f), base - 40, A.far, H, A.light.c, 0.5, 2, A.fog, 0.35);
     grainOver(ctx, W, H, rnd);
@@ -775,13 +793,15 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
   const R = low ? 1 : renderResolution(); const cam = scene.cameras.main;
   // azaltılmış hareket (flash.ts; sahne kurulurken yazılır): süs hareketleri durur, oynanış alanı aynı kalır
   const calm = motionReduced();
+  // yüksek görünürlük (quality.ts): gökteki hüzme ve ışıklı çizgiler soluk/yok, toplamsal ışık huzmeleri kapalı (YN-225)
+  const soluk = highVisibility(); const yg = soluk ? '-yg' : '';
   let vw = cam.width / cam.zoom, vh = cam.height / cam.zoom;
   const seed = hashStr(A.id);
   const objects: Phaser.GameObjects.GameObject[] = [];
   cam.setBackgroundColor(A.sky[0]);
 
   // gök: tasarım boyutunda bir kez (görünüme gerilir)
-  const skyKey = canvasTex(scene, `bd-sky-${A.id}${calm ? '-sakin' : ''}`, 390, 844, 1, (ctx, W, H) => paintSky(ctx, W, H, rng(seed ^ 1), A, calm));
+  const skyKey = canvasTex(scene, `bd-sky-${A.id}${calm ? '-sakin' : ''}${yg}`, 390, 844, 1, (ctx, W, H) => paintSky(ctx, W, H, rng(seed ^ 1), A, calm, soluk));
   const sky = scene.add.image(0, 0, skyKey).setOrigin(0, 0).setScrollFactor(0).setDepth(-100);
   objects.push(sky);
 
@@ -798,7 +818,7 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
   interface L { def: LayerDef; ts: Phaser.GameObjects.TileSprite; top: boolean }
   const layers: L[] = [];
   const mk = (def: LayerDef) => {
-    const key = canvasTex(scene, `bd-${A.id}-${def.name}-${def.R}`, TW, def.h, def.R, (ctx, W, H) => {
+    const key = canvasTex(scene, `bd-${A.id}-${def.name}-${def.R}${yg}`, TW, def.h, def.R, (ctx, W, H) => {
       def.paint(ctx, W, H, rng(seed ^ hashStr(def.name)), A);
       // üst kenar yumuşak sönüm + alt kenarda iki boş satır: döşeme sarmasında çizgi oluşmaz
       ctx.save(); ctx.globalCompositeOperation = 'destination-in';
@@ -811,7 +831,7 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
   defs.forEach(mk);
 
   // ışık huzmeleri (toplamsal), sis bandı
-  const shafts = scene.add.tileSprite(0, 0, vw, 700, shaftsTex(scene, A)).setOrigin(0, 0).setScrollFactor(0).setDepth(-65).setBlendMode(Phaser.BlendModes.ADD).setAlpha(1).setVisible(!low);
+  const shafts = scene.add.tileSprite(0, 0, vw, 700, shaftsTex(scene, A)).setOrigin(0, 0).setScrollFactor(0).setDepth(-65).setBlendMode(Phaser.BlendModes.ADD).setAlpha(1).setVisible(!low && !soluk);
   const fog = scene.add.tileSprite(0, 0, vw, 160, fogTex(scene, A)).setOrigin(0, 1).setScrollFactor(0).setDepth(-55).setAlpha(0.55).setVisible(!low);
   objects.push(shafts, fog);
   fgDefs.forEach(mk);
@@ -873,7 +893,7 @@ export function paintBiome(scene: Phaser.Scene, biomeId: string, worldW: number,
     },
     resize(w, h) { vw = w; vh = h; layout(); mkMotes(); },
     setForegroundAlpha(a) { fgA = a; for (const l of layers) if (l.def.depth > 0) l.ts.setAlpha(fgA); },
-    setQuality(q) { const l = q === 'low'; if (l === low) return; low = l; shafts.setVisible(!low); fog.setVisible(!low); mkMotes(); },
+    setQuality(q) { const l = q === 'low'; if (l === low) return; low = l; shafts.setVisible(!low && !soluk); fog.setVisible(!low); mkMotes(); },
     destroy() { for (const o of objects) o.destroy(); for (const m of motes) m.destroy(); },
   };
   void worldW;
