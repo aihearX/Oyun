@@ -77,8 +77,10 @@ const ASHA = 'ASHA (1997, 2016). Guidelines for audiologic screening; çocukta o
 const JCIH = 'JCIH (2019). Year 2019 Position Statement; bebekte 1000 Hz prob tonu önerisi';
 const HUNTER = 'Hunter LL, Shahnaz N. (2014). Acoustic Immittance Measures: Basic and Advanced Practice. Plural';
 const OME = 'AAO-HNS (2016). Clinical Practice Guideline: Otitis Media with Effusion (Update)';
-/** OME kılavuzu çocuk timpanometri normu vermez; tüp kontrolü vakalarında hacim normu buradan (YN-237, OT-uzman-odyolog-41) */
+/** OME kılavuzu çocuk timpanometri normu vermez; hacme dayanan çocuk sorularında hacim normu buradan (YN-237, YN-250) */
 const COCUK_HACIM = `${MARGOLIS} (okul öncesi çocukta eşdeğer kanal hacminin %90 aralığı yaklaşık 0,4–1,0 ml); ${ASHA} (çocukta yaklaşık 0,3–0,9 ml)`;
+/** kaynakta çocuk normu var mı (Margolis ya da ASHA): yoksa ekranda "açıklamadaki kaynağa bak" denmez (YN-250) */
+export const kaynaktaCocukNormu = (kaynak: string): boolean => /Margolis|ASHA/.test(kaynak);
 
 const GB: EgriTur[] = ['A', 'B-normal', 'C', 'B-buyuk', 'B-kucuk'];
 /** eğri → bulgu: doğru + 3 yanıltıcı (sıra soruda karıştırılır) */
@@ -102,7 +104,7 @@ const st = (id: string, egri: Timp, grup: YasGrubu = 'yetiskin', yas?: string): 
     'A': ['As', 'Ad', 'C'], 'As': ['A', 'Ad', 'B-normal'], 'Ad': ['A', 'As', 'C'], 'C': ['A', 'B-normal', 'As'],
     'B-normal': ['B-buyuk', 'B-kucuk', 'As'], 'B-buyuk': ['B-normal', 'B-kucuk', 'Ad'], 'B-kucuk': ['B-normal', 'B-buyuk', 'As'],
   };
-  return { id, duzey: 'odyoloji', bicim: 'sayi-tip', egri, secenek: [dogru, ...pick[dogru].filter((x) => yan.includes(x))], grup, yas, kaynak: grup === 'cocuk' ? MARGOLIS : JERGER };
+  return { id, duzey: 'odyoloji', bicim: 'sayi-tip', egri, secenek: [dogru, ...pick[dogru].filter((x) => yan.includes(x))], grup, yas, kaynak: grup === 'cocuk' ? COCUK_HACIM : JERGER };
 };
 
 export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
@@ -111,11 +113,11 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
   eb('te02', 'genel', T('A', 15, 1.2, 1.3)),
   eb('te03', 'genel', T('A', -30, 0.5, 0.7), 'cocuk', '5 yaş', MARGOLIS),
   eb('te04', 'genel', T('B', null, 0.1, 1.0)),
-  eb('te05', 'genel', T('B', null, 0.08, 0.6), 'cocuk', '4 yaş', MARGOLIS),
+  eb('te05', 'genel', T('B', null, 0.08, 0.6), 'cocuk', '4 yaş', COCUK_HACIM),
   eb('te06', 'genel', T('B', null, 0.1, 3.2)),
-  eb('te07', 'genel', T('B', null, 0.05, 1.6), 'cocuk', '6 yaş', MARGOLIS),
+  eb('te07', 'genel', T('B', null, 0.05, 1.6), 'cocuk', '6 yaş', COCUK_HACIM),
   eb('te08', 'genel', T('B', null, 0.05, 0.3)),
-  eb('te09', 'genel', T('B', null, 0.04, 0.2), 'cocuk', '7 yaş', MARGOLIS),
+  eb('te09', 'genel', T('B', null, 0.04, 0.2), 'cocuk', '7 yaş', COCUK_HACIM),
   eb('te10', 'genel', T('C', -180, 0.6, 1.2)),
   eb('te11', 'genel', T('C', -250, 0.4, 0.7), 'cocuk', '5 yaş', MARGOLIS),
   eb('te12', 'genel', T('C', -130, 0.9, 1.0)),
@@ -144,7 +146,7 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'tb06', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'As', secenek: [T('As', -10, 0.17, 1.1), T('A', -10, 0.9, 1.1), T('Ad', -10, 2.5, 1.1), T('C', -180, 0.5, 1.1)], kaynak: JERGER },
   { id: 'tb07', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'Ad', secenek: [T('Ad', 0, 2.7, 1.2), T('A', 0, 1.0, 1.2), T('As', 0, 0.2, 1.2), T('B', null, 0.1, 1.2)], kaynak: JERGER },
   { id: 'tb08', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'C', grup: 'cocuk', yas: '5 yaş', secenek: [T('C', -280, 0.4, 0.7), T('A', -40, 0.5, 0.7), T('B', null, 0.1, 0.7), T('As', -20, 0.2, 0.7)], kaynak: MARGOLIS },
-  { id: 'tb09', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'B-buyuk', grup: 'cocuk', yas: '6 yaş', secenek: [T('B', null, 0.05, 1.5), T('B', null, 0.08, 0.7), T('B', null, 0.03, 0.2), T('Ad', 0, 2.1, 0.8)], kaynak: MARGOLIS },
+  { id: 'tb09', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'B-buyuk', grup: 'cocuk', yas: '6 yaş', secenek: [T('B', null, 0.05, 1.5), T('B', null, 0.08, 0.7), T('B', null, 0.03, 0.2), T('Ad', 0, 2.1, 0.8)], kaynak: COCUK_HACIM },
   { id: 'tb10', duzey: 'odyoloji', bicim: 'bulgu-egri', bulgu: 'A', secenek: [T('A', -30, 1.0, 1.2), T('As', -30, 0.2, 1.2), T('Ad', -30, 2.3, 1.2), T('C', -140, 0.9, 1.2)], kaynak: JERGER },
 
   // ---- sayılar → Jerger tipi (odyoloji)
@@ -163,19 +165,19 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
 
   // ---- sağ / sol
   { id: 'ts01', duzey: 'genel', bicim: 'sag-sol', sor: 'B', sag: T('A', -10, 0.8, 1.1), sol: T('B', null, 0.1, 1.1), kaynak: JERGER },
-  { id: 'ts02', duzey: 'genel', bicim: 'sag-sol', sor: 'B', sag: T('B', null, 0.1, 0.7), sol: T('B', null, 0.08, 0.6), grup: 'cocuk', yas: '4 yaş', kaynak: OME },
+  { id: 'ts02', duzey: 'genel', bicim: 'sag-sol', sor: 'B', sag: T('B', null, 0.1, 0.7), sol: T('B', null, 0.08, 0.6), grup: 'cocuk', yas: '4 yaş', kaynak: `${OME}; ${COCUK_HACIM}` },
   { id: 'ts03', duzey: 'genel', bicim: 'sag-sol', sor: 'A', sag: T('C', -190, 0.6, 1.0), sol: T('A', 0, 0.9, 1.0), kaynak: JERGER },
   { id: 'ts04', duzey: 'genel', bicim: 'sag-sol', sor: 'C', sag: T('C', -200, 0.6, 1.2), sol: T('A', -10, 0.9, 1.2), kaynak: JERGER },
   { id: 'ts05', duzey: 'genel', bicim: 'sag-sol', sor: 'B', sag: T('A', 10, 1.0, 1.3), sol: T('C', -170, 0.7, 1.3), kaynak: JERGER },
   { id: 'ts06', duzey: 'odyoloji', bicim: 'sag-sol', sor: 'buyuk', sag: T('B', null, 0.1, 3.0), sol: T('B', null, 0.1, 1.1), kaynak: HUNTER },
   { id: 'ts07', duzey: 'odyoloji', bicim: 'sag-sol', sor: 'C', sag: T('A', -50, 0.8, 1.0), sol: T('A', 20, 1.1, 1.1), kaynak: JERGER },
-  { id: 'ts08', duzey: 'odyoloji', bicim: 'sag-sol', sor: 'buyuk', sag: T('B', null, 0.05, 1.4), sol: T('B', null, 0.08, 0.7), grup: 'cocuk', yas: '6 yaş', kaynak: MARGOLIS },
+  { id: 'ts08', duzey: 'odyoloji', bicim: 'sag-sol', sor: 'buyuk', sag: T('B', null, 0.05, 1.4), sol: T('B', null, 0.08, 0.7), grup: 'cocuk', yas: '6 yaş', kaynak: COCUK_HACIM },
 
   // ---- kısa vaka (otoskopi verildiğinde tanı düzeyinde cevap kullanılabilir)
-  { id: 'tv01', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '4 yaş', otoskopi: 'efuzyon', sinif: 'B-normal', egri: T('B', null, 0.1, 0.6), kaynak: OME,
+  { id: 'tv01', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '4 yaş', otoskopi: 'efuzyon', sinif: 'B-normal', egri: T('B', null, 0.1, 0.6), kaynak: `${OME}; ${COCUK_HACIM}`,
     hikaye: 'Ali iki haftadır, soğuk algınlığından beri televizyonun sesini açıyor. Otoskopide zar mat; arkasında sıvı seviyesi görülüyor.',
     secenek: ['Otoskopi ve düz eğri (normal hacim) birlikte orta kulakta sıvıyla uyumlu', 'Zarda delik var', 'Kanal kirle tıkalı', 'Kulak normal'],
-    aciklama: 'Düz eğri tek başına sıvı demek değildir; burada otoskopide zarın arkasında sıvı görüldüğü ve kanal hacmi normal olduğu için tablo efüzyonla uyumludur. Çocukta çoğu kendiliğinden geçer; hekim izler.' },
+    aciklama: 'Düz eğri tek başına sıvı demek değildir; burada otoskopide zarın arkasında sıvı görüldüğü ve kanal hacmi normal olduğu için tablo efüzyonla uyumludur. Bu yaşta kanal hacmi çoğu zaman yaklaşık 0,3–1,0 ml’dir; 0,6 ml normal aralıktadır. Çocukta çoğu kendiliğinden geçer; hekim izler.' },
   { id: 'tv02', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '7 yaş', sinif: 'B-buyuk', egri: T('B', null, 0.05, 1.5), kaynak: `${OME}; ${COCUK_HACIM}`,
     hikaye: 'Elif’e altı ay önce ventilasyon tüpü takıldı; bugün kontrol ölçümü yapılıyor.',
     secenek: ['Tüp açık ve çalışıyor olabilir: büyük hacim beklenen bulgu', 'Tüp tıkanmış, kulak sıvıyla dolu', 'Kanal kirle tıkalı', 'Kulakta tüp yok, kulak normal'],
@@ -189,13 +191,13 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
     secenek: ['Orta kulak basıncı düşük; Östaki borusu basıncı dengeleyememiş olabilir', 'Zarda delik var', 'Kanal kirle tıkalı', 'Kemikçik zinciri kopmuş'],
     aciklama: 'Negatif tepe ve içe çekik zar, orta kulak basıncının dışarıya göre düşük kaldığını gösterir. Uçuş ve burun tıkanıklığı Östaki borusunun açılmasını zorlaştırabilir; çoğu zaman günler içinde düzelir.' },
   { id: 'tv05', duzey: 'genel', bicim: 'vinyet', grup: 'yetiskin', yas: '30 yaş', otoskopi: 'perforasyon', sinif: 'B-buyuk', egri: T('B', null, 0.05, 2.8), kaynak: HUNTER,
-    hikaye: 'Murat kulağına sert bir tokat yedi; ağrı ve hafif kanama oldu. Otoskopide zarda yırtık görülüyor.',
+    hikaye: 'Murat iki hafta önce kulağına sert bir tokat yedi. Kontrolde kanama yok, ağrı geçti; otoskopide zarda hâlâ küçük bir delik görülüyor.',
     secenek: ['Zardaki açıklık yüzünden kanal ve orta kulak birlikte ölçülüyor (büyük hacim)', 'Orta kulakta sıvı var, zar sağlam', 'Kanal kirle tıkalı', 'Normal kulak'],
-    aciklama: 'Zarda açıklık olunca prob kanalla birlikte orta kulak boşluğunu da ölçer; hacim büyük, eğri düz çıkar. Küçük travmatik delikler çoğu zaman kendiliğinden kapanır; hekim izler.' },
-  { id: 'tv06', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '9 yaş', otoskopi: 'normal', sinif: 'B-kucuk', egri: T('B', null, 0.02, 0.2), kaynak: HUNTER,
+    aciklama: 'Zarda açıklık olunca prob kanalla birlikte orta kulak boşluğunu da ölçer; hacim büyük, eğri düz çıkar. Taze yaralanmada ve kanamada prob takılmaz; ölçüm kontrolde alınır. Küçük travmatik delikler çoğu zaman kendiliğinden kapanır; hekim izler.' },
+  { id: 'tv06', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '9 yaş', otoskopi: 'normal', sinif: 'B-kucuk', egri: T('B', null, 0.02, 0.2), kaynak: `${HUNTER}; ${COCUK_HACIM}`,
     hikaye: 'Deniz ölçüm sırasında çok kıpırdadı. Eğri düz, kanal hacmi 0,2 ml çıktı. Otoskopide kanal temiz, zar normal.',
     secenek: ['Prob kanal duvarına dayanmış olabilir; prob yeniden yerleştirilip ölçüm tekrarlanmalı', 'Orta kulakta kesin sıvı var', 'Zarda delik var', 'Kulak normal, sonuç güvenilir'],
-    aciklama: 'Kanal temizken küçük hacimli düz eğri çoğu zaman ölçüm hatasıdır: prob ucu kanal duvarına dayanınca ses zara ulaşmaz. Prob yeniden yerleştirilir ve ölçüm tekrarlanır.' },
+    aciklama: 'Bu yaşta kanal hacmi çoğu zaman yaklaşık 0,3–1,0 ml’dir; 0,2 ml bu yaş için küçüktür. Kanal temizken küçük hacimli düz eğri çoğu zaman ölçüm hatasıdır: prob ucu kanal duvarına dayanınca ses zara ulaşmaz. Prob yeniden yerleştirilir ve ölçüm tekrarlanır.' },
   { id: 'tv07', duzey: 'odyoloji', bicim: 'vinyet', grup: 'yetiskin', yas: '34 yaş', otoskopi: 'normal', sinif: 'As', egri: T('As', 0, 0.18, 1.1), kaynak: KATZ,
     hikaye: 'Ayşe Hanım’ın işitmesi son doğumundan beri iki kulakta yavaşça azalıyor. Otoskopi normal; odyogramda iletim tipi kayıp ve kemik yolunda 2 kHz çentiği var.',
     secenek: ['Otosklerozla uyumlu (sert sistem + Carhart çentiği); kesin değerlendirme KBB’de', 'Orta kulakta sıvı', 'Kemikçik zinciri kopukluğu', 'Koklear kayıp, orta kulak normal'],
@@ -316,6 +318,30 @@ function sagSolDogru(sor: SagSolSoru, sag: Timp, sol: Timp, grup: YasGrubu): num
   return r && l ? 2 : r ? 0 : l ? 1 : 3;
 }
 const egriSec = (e: EgriTur): TimpSecenek => ({ anahtar: e, metin: EGRI_ADI[e].sade, teknik: EGRI_ADI[e].teknik });
+const egriB = (e: EgriTur) => e.startsWith('B');
+/** cevap kanal hacmine dayanıyor mu (düz eğride hacim sınıfı bulguyu belirler; sağ/sol'da iki eğriden biri düzse açıklama hacmi söyler) */
+export function timpHacmeDayali(def: TimpSoruDef): boolean {
+  const g = def.grup ?? 'yetiskin';
+  switch (def.bicim) {
+    case 'egri-bulgu': case 'sayi-tip': return egriB(egriSinifi(def.egri, g));
+    case 'bulgu-egri': return egriB(def.bulgu);
+    case 'vinyet': return egriB(def.sinif);
+    case 'sag-sol': return def.sor === 'buyuk' || def.sag.tip === 'B' || def.sol.tip === 'B';
+    case 'bilgi': return false;
+  }
+}
+const HACIM_YORUM = { kucuk: 'bu yaş için küçüktür', normal: 'normal aralıktadır', buyuk: 'bu yaş için büyüktür' } as const;
+/**
+ * çocukta hacme dayanan cevabın yaşa göre norm cümlesi (YN-250, OT-uzman-odyolog-43): gölgeli kutu yetişkin normudur, çocuk normu
+ * açıklamada yazılır. Aralık Margolis ve Heller (0,4–1,0 ml) ile ASHA (0,3–0,9 ml) birlikte; sınıf `hacimSinifi` ile aynı.
+ */
+function cocukHacimCumlesi(h: { ad?: string; ml: number }[]): string {
+  const parca = (['buyuk', 'kucuk', 'normal'] as const).flatMap((k) => {
+    const xs = h.filter((x) => hacimSinifi(x.ml, 'cocuk') === k);
+    return xs.length ? [`${xs.map((x) => `${x.ad ? `${x.ad} ` : ''}${n1(x.ml)} ml`).join(' ve ')} ${HACIM_YORUM[k]}`] : [];
+  });
+  return `Bu yaşta kanal hacmi çoğu zaman yaklaşık 0,3–1,0 ml’dir; ${parca.join(', ')}.`;
+}
 
 /** tek bir sorunun ekran hâli; seçenek sırası tur tohumu ve soru kimliğiyle karışır (sayı satırı burada kurulur: bölünmez yapılır) */
 export const timpBulmaca = (def: TimpSoruDef, seed: number): TimpanoBulmaca => bolunmezYap(bulmacaKur(def, seed));
@@ -324,23 +350,25 @@ function bulmacaKur(def: TimpSoruDef, seed: number): TimpanoBulmaca {
   const grup = def.grup ?? 'yetiskin';
   const base = { id: def.id, bicim: def.bicim, grup, yas: def.yas, kaynak: def.kaynak };
   const mix = (opts: TimpSecenek[], dogru = 0) => { const idx = karistir(opts.map((_, i) => i), r); return { secenek: idx.map((i) => opts[i]!), dogru: idx.indexOf(dogru) }; };
+  // çocukta hacme dayanan cevap: açıklamanın sonuna yaşa göre norm (vinyetlerde norm açıklamanın içinde yazılı)
+  const norm = (h: { ad?: string; ml: number }[]) => (grup === 'cocuk' && def.bicim !== 'vinyet' && timpHacmeDayali(def) ? ` ${cocukHacimCumlesi(h)}` : '');
   switch (def.bicim) {
     case 'egri-bulgu': {
       const s = egriSinifi(def.egri, grup);
-      return { ...base, soru: 'Bu eğri ne gösteriyor?', egri: def.egri, ...mix(def.secenek.map(egriSec)), aciklama: EGRI_ACIKLAMA[s] };
+      return { ...base, soru: 'Bu eğri ne gösteriyor?', egri: def.egri, ...mix(def.secenek.map(egriSec)), aciklama: EGRI_ACIKLAMA[s] + norm([{ ml: def.egri.hacim }]) };
     }
     case 'sayi-tip': {
       const s = egriSinifi(def.egri, grup);
-      return { ...base, soru: 'Bu değerler hangi Jerger tipine uyar?', egri: def.egri, sayilar: true, ...mix(def.secenek.map((e) => ({ anahtar: e, metin: EGRI_ADI[e].teknik }))), aciklama: `${sayiMetni(def.egri)}. ${EGRI_ACIKLAMA[s]}` };
+      return { ...base, soru: 'Bu değerler hangi Jerger tipine uyar?', egri: def.egri, sayilar: true, ...mix(def.secenek.map((e) => ({ anahtar: e, metin: EGRI_ADI[e].teknik }))), aciklama: `${sayiMetni(def.egri)}. ${EGRI_ACIKLAMA[s]}${norm([{ ml: def.egri.hacim }])}` };
     }
     case 'bulgu-egri':
-      return { ...base, soru: 'Bu bulguyu gösteren eğri hangisi?', bulgu: def.bulgu, ...mix(def.secenek.map((t, i) => ({ anahtar: `e${i}`, egri: t }))), aciklama: EGRI_ACIKLAMA[def.bulgu] };
+      return { ...base, soru: 'Bu bulguyu gösteren eğri hangisi?', bulgu: def.bulgu, ...mix(def.secenek.map((t, i) => ({ anahtar: `e${i}`, egri: t }))), aciklama: EGRI_ACIKLAMA[def.bulgu] + norm([{ ml: def.secenek[0]!.hacim }]) };
     case 'vinyet':
       return { ...base, soru: 'Hangi açıklama en uygun?', hikaye: def.hikaye, egri: def.egri, otoskopi: def.otoskopi, ...mix(def.secenek.map((m, i) => ({ anahtar: `v${i}`, metin: m }))), aciklama: def.aciklama };
     case 'sag-sol': {
       const d = sagSolDogru(def.sor, def.sag, def.sol, grup);
       // sağ/sol/ikisi/hiçbiri sırası sabit kalır (okunurluk)
-      return { ...base, soru: SAG_SOL_SORU[def.sor], sag: def.sag, sol: def.sol, secenek: SAG_SOL_SECENEK.map((m, i) => ({ anahtar: `k${i}`, metin: m })), dogru: d, aciklama: `Sağ: ${EGRI_ADI[egriSinifi(def.sag, grup)].sade}. Sol: ${EGRI_ADI[egriSinifi(def.sol, grup)].sade}.` };
+      return { ...base, soru: SAG_SOL_SORU[def.sor], sag: def.sag, sol: def.sol, secenek: SAG_SOL_SECENEK.map((m, i) => ({ anahtar: `k${i}`, metin: m })), dogru: d, aciklama: `Sağ: ${EGRI_ADI[egriSinifi(def.sag, grup)].sade}. Sol: ${EGRI_ADI[egriSinifi(def.sol, grup)].sade}.${norm([{ ad: 'sağ', ml: def.sag.hacim }, { ad: 'sol', ml: def.sol.hacim }])}` };
     }
     case 'bilgi':
       return { ...base, soru: def.soru, ...mix(def.secenek.map((m, i) => ({ anahtar: `b${i}`, metin: m }))), aciklama: def.aciklama };

@@ -359,7 +359,7 @@ export const VAKALAR: Vaka[] = /* @__PURE__ */ bolunmezYap([
     ],
     aciklama: {
       sade: 'Zarın bir bölümü içe çökmüş ve cep oluşturmuş; timpanogram belirgin negatif basınçta (Tip C): orta kulak uzun süredir havalanamıyor. Hafif iletim tipi kayıp var. Retraksiyon cebi hekimin düzenli izlemesini gerektirir.',
-      teknik: 'Kronik Östaki tüpü disfonksiyonunda (ör. adenoid büyümesi) zarın pars flaccida ya da arka-üst pars tensa bölümü içe çöker. Derinleşen, dibi görülemeyen ya da keratin biriktiren ceplerde kolesteatom gelişebilir; bu yüzden KBB izlemi ve gerektiğinde ventilasyon tüpü ya da cerrahi düşünülür.',
+      teknik: 'Kronik Östaki borusu işlev bozukluğunda (ör. adenoid büyümesi) zarın pars flaccida ya da arka-üst pars tensa bölümü içe çöker. Derinleşen, dibi görülemeyen ya da keratin biriktiren ceplerde kolesteatom gelişebilir; bu yüzden KBB izlemi ve gerektiğinde ventilasyon tüpü ya da cerrahi düşünülür.',
     },
     terim: 'ostaki', kaynak: `${E}, retraksiyon cebi ve kolesteatom; ${K}, timpanometri`,
   },

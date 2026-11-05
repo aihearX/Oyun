@@ -88,7 +88,7 @@ export const TANILAR: TaniDef[] = /* @__PURE__ */ bolunmezYap([
   { id: 'timpanoskleroz', kat: 'timpanoskleroz', sade: 'Zarda sertleşme plakları', teknik: 'Timpanoskleroz (miringoskleroz)' },
   { id: 'retraksiyon', kat: 'retraksiyon', sade: 'Zarın içe çökmesi (cep)', teknik: 'Retraksiyon cebi' },
   { id: 'ome', kat: 'otitis-media', sade: 'Orta kulakta sıvı', teknik: 'Efüzyonlu otitis media (OME)' },
-  { id: 'ostaki', kat: 'ostaki', sade: 'Östaki borusu çalışmıyor (basınç düşük)', teknik: 'Östaki tüpü disfonksiyonu' },
+  { id: 'ostaki', kat: 'ostaki', sade: 'Östaki borusu çalışmıyor (basınç düşük)', teknik: 'Östaki borusu işlev bozukluğu' },
   { id: 'otoskleroz', kat: 'otoskleroz', sade: 'Üzengi kemiği takılması', teknik: 'Otoskleroz' },
   { id: 'zincir', kat: 'zincir-kopuk', sade: 'Kemikçik zinciri kopukluğu', teknik: 'Kemikçik zinciri diskontinüitesi' },
   { id: 'gurultu', kat: 'gurultu-hasari', sade: 'Gürültüye bağlı işitme kaybı', teknik: 'Gürültüye bağlı sensörinöral işitme kaybı' },

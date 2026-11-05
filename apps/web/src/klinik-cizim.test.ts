@@ -167,3 +167,31 @@ describe('Klinik sonucu (YN-132)', () => {
     expect(h1).toContain('data-bulgu="timpanometri"');
   });
 });
+
+describe('Timpanogram sağ/sol çakışması (YN-250, OT-uzman-odyolog-46)', () => {
+  const T = (tip: Timp['tip'], basinc: number | null, uyum: number, hacim: number): Timp => ({ tip, basinc, uyum, hacim });
+  it('iki düz eğri üst üste binince kırmızı sağ kalın kesintisiz altta, mavi sol ince kesikli üstte; grafikte yazı çıkar', () => {
+    const svg = renderToStaticMarkup(createElement(TimpanogramSvg, { R: T('B', null, 0.1, 0.7), L: T('B', null, 0.08, 0.6) }));
+    expect(svg).toContain('İki eğri üst üste');
+    const egri = [...svg.matchAll(/<path class="kg-egri"[^>]*>/gu)].map((m) => m[0]);
+    expect(egri.length).toBe(2);
+    const [sag, sol] = egri as [string, string];
+    // çizim sırası: önce sağ (alt), sonra sol (üst); koyu kenarlar ikisinin de altında
+    expect(sag).toContain('stroke="#ff6b7f"'); expect(sag).not.toContain('stroke-dasharray');
+    expect(sol).toContain('stroke="#6fb7ff"'); expect(sol).toContain('stroke-dasharray');
+    const kalinlik = (p: string) => Number(/stroke-width="([\d.]+)"/u.exec(p)![1]);
+    expect(kalinlik(sag)).toBeGreaterThan(kalinlik(sol) + 1.5);
+    expect(svg.lastIndexOf('kg-egri-kenar')).toBeLessThan(svg.indexOf(sag));
+    // aynı değerlerde sol eğri 1–2 px yukarı kaydırılır: kırmızı altından görünür
+    const ayni = renderToStaticMarkup(createElement(TimpanogramSvg, { R: T('B', null, 0.1, 0.7), L: T('B', null, 0.1, 0.7) }));
+    const ilkY = (p: string) => Number(/d="M[\d.]+ ([\d.]+)/u.exec(p)![1]);
+    const [s2, l2] = [...ayni.matchAll(/<path class="kg-egri"[^>]*>/gu)].map((m) => m[0]) as [string, string];
+    const dy = ilkY(s2) - ilkY(l2);
+    expect(dy).toBeGreaterThanOrEqual(1); expect(dy).toBeLessThanOrEqual(3);
+  });
+  it('eğriler ayrıysa yazı çıkmaz, iki eğri aynı kalınlıkta', () => {
+    const svg = renderToStaticMarkup(createElement(TimpanogramSvg, { R: T('A', -10, 0.8, 1.1), L: T('B', null, 0.1, 1.1) }));
+    expect(svg).not.toContain('İki eğri üst üste');
+    expect(svg).not.toContain('data-cakisma');
+  });
+});

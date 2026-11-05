@@ -85,7 +85,7 @@ export const PATOLOJILER: Record<PatolojiId, Patoloji> = /* @__PURE__ */ bolunme
     mekanik: 'Alçak çanakta yükselip çekilen sıvı (nabızlı; 0,65 sn önce parlar): çekilince çanaktan geç ya da üstteki raftan atla.', kaynak: `${K.kbb}; ${K.katz}`,
   },
   ostaki: {
-    id: 'ostaki', ad: 'Östaki borusu tıkanıklığı', terim: 'Östaki tüpü disfonksiyonu', bolge: ['kemikcikler'], ilkBolum: 13,
+    id: 'ostaki', ad: 'Östaki borusu tıkanıklığı', terim: 'Östaki borusu işlev bozukluğu', bolge: ['kemikcikler'], ilkBolum: 13,
     sade: 'Östaki borusu yutkununca açılır ve basıncı eşitler. Geçit kapalıysa "yutkunma" anahtarına dokun!',
     teknik: 'Boru açılamazsa orta kulakta negatif basınç, kulak dolgunluğu ve sıvı birikimi olabilir.',
     mekanik: 'Kapalı basınç kapısı: geri dönüp anahtara dokununca açılır.', kaynak: `${K.kbb}; ${K.gelfand}`,

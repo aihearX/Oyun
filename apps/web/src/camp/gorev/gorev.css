@@ -155,6 +155,8 @@ html.buyuk-yazi .kg-tier-box > .small-note { flex-basis:100%; }
    eğrileri kalınlaşır. Eğrinin koyu kenar çizgisi (TimpanogramSvg) düz Tip B eğrisini eksen ve kutu çizgisinden renksiz de ayırır */
 html.buyuk-yazi .kg-ax { font-size:0.8125rem; } html.buyuk-yazi .kg-ax.small { font-size:0.75rem; } html.buyuk-yazi .kg-ax.val { font-size:0.8125rem; }
 html.buyuk-yazi .kg-timp:not(.mini) .kg-egri { stroke-width:3.8; } html.buyuk-yazi .kg-timp:not(.mini) .kg-egri-kenar { stroke-width:7.8; }
+/* sağ/sol eğri çakışınca kırmızı sağ kalın altta, mavi sol ince kesikli üstte kalır (OT-uzman-odyolog-46) */
+html.buyuk-yazi .kg-timp:not(.mini) .kg-egri[data-cakisma="r"] { stroke-width:5.6; } html.buyuk-yazi .kg-timp:not(.mini) .kg-egri[data-cakisma="l"] { stroke-width:2.4; }
 .kg-legend { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:0.6875rem; color:var(--text-2); font-weight:700; }
 .kg-legend span { display:inline-flex; align-items:center; gap:4px; }
 .kg-legend .sym { display:inline-block; width:12px; height:12px; }

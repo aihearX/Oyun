@@ -10,7 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import type { KampOdul, KampOyunTur } from '@odi/shared';
-import { EGRI_ADI, KAMP_OYUN, KG_KURAL, TIMP_BICIM_ADI, bolunmez, timpanoTuru, tonTuru, type TimpanoBulmaca, type TimpSecenek, type TonDeneme } from '@odi/content';
+import { EGRI_ADI, KAMP_OYUN, KG_KURAL, TIMP_BICIM_ADI, bolunmez, kaynaktaCocukNormu, timpanoTuru, tonTuru, type TimpanoBulmaca, type TimpSecenek, type TonDeneme } from '@odi/content';
 import { audio } from '@odi/audio';
 import { act } from '../../net';
 import { useStore } from '../../store';
@@ -176,7 +176,7 @@ function TimpanoTur({ round, onDone }: { round: KampOyunTur; onDone: (a: number[
         </div>
       )}
       {(b.sag || b.sol) && <TimpanogramSvg R={b.sag} L={b.sol} title="Sağ ve sol timpanogram" />}
-      {(b.grup === 'cocuk' || b.grup === 'bebek') && ((b.egri && !b.sayilar) || b.sag || b.sol || egriSecenek) && <small className="kg-note" data-testid="timp-norm-not">Gölgeli kutu yetişkin normudur; çocukta ve bebekte normal aralıklar farklıdır (açıklamadaki kaynağa bak).</small>}
+      {(b.grup === 'cocuk' || b.grup === 'bebek') && ((b.egri && !b.sayilar) || b.sag || b.sol || egriSecenek) && <small className="kg-note" data-testid="timp-norm-not">Gölgeli kutu yetişkin normudur; çocukta ve bebekte normal aralıklar farklıdır{kaynaktaCocukNormu(b.kaynak) ? ' (açıklamadaki kaynağa bak)' : ''}.</small>}
       {b.sag && b.sol && <small className="kg-note">Sağ: kırmızı kesintisiz çizgi · Sol: mavi kesikli çizgi · kanal hacmi sağ {ml(b.sag.hacim)}, sol {ml(b.sol.hacim)}</small>}
       {!genel && b.egri && !b.sayilar && <small className="kg-note">{b.egri.basinc === null ? 'Tepe yok' : `Tepe ${daPa(b.egri)}`} · admitans {ml(b.egri.uyum)} · kanal hacmi {ml(b.egri.hacim)}</small>}
       <div className={`kg-opts${egriSecenek ? ' egri' : ''}`}>

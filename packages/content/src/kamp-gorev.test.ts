@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   AC_HZ, EGRI_ADI, KAMP_OYUN, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_SAYACLAR, kgSesli,
-  EGRI_ACIKLAMA, TANILAR, TIMP_SORULAR, VAKALAR, VAKA_TESTLERI, egriSinifi, isYok, kayipTipi, odulMetni, taniSecenekleri, timpBulmaca, timpSoruHatalari,
+  EGRI_ACIKLAMA, TANILAR, TIMP_SORULAR, VAKALAR, VAKA_TESTLERI, egriSinifi, hacimSinifi, isYok, kayipTipi, kaynaktaCocukNormu, odulMetni, taniSecenekleri, timpBulmaca,
+  timpHacmeDayali, timpSoruById, timpSoruHatalari,
   timpanoDestesi, timpanoHavuzu, timpanoPuani, timpanoTuru,
   tonPuani, tonTuru, uygunsuzNotlari, vakaKademesi, vakaPuanla, vakaTutarsizliklari, yonetimSecenekleri, type Vaka,
 } from './kamp-gorev';
@@ -9,6 +10,7 @@ import { PATHOLOGY_IDS, REMEDIES } from './remedies';
 import { GLOSSARY } from './odyoloji';
 import { CAMP_TERMS } from './kamp';
 import { DECORATIONS, decorById } from './kamp-susler';
+import { bicimsiz } from './metin';
 
 /** bozuk kodlama, yer tutucu ve boşluk hataları (kamp.test.ts ile aynı ölçüt) */
 const BAD = /Ã|Ä|Å|Ð|Þ|�|\s{2,}|\s[,.;:!?]|TODO|XXX|lorem/i;
@@ -261,6 +263,35 @@ describe('Kamp oyunları', () => {
       if ((q.bicim === 'egri-bulgu' || q.bicim === 'sayi-tip')) expect(b.secenek[b.dogru]!.anahtar, q.id).toBe(egriSinifi(q.egri, q.grup ?? 'yetiskin'));
       if (q.bicim === 'bulgu-egri') expect(egriSinifi(b.secenek[b.dogru]!.egri!, q.grup ?? 'yetiskin'), q.id).toBe(q.bulgu);
     }
+  });
+  it('Timpanogram: çocukta hacme dayanan her soruda yaşa göre norm açıklamada, Margolis/ASHA normu kaynakta (YN-250, OT-uzman-odyolog-43)', () => {
+    const cocuk = TIMP_SORULAR.filter((q) => q.grup === 'cocuk');
+    const hacimli = cocuk.filter(timpHacmeDayali);
+    expect(hacimli.length).toBeGreaterThanOrEqual(10);
+    for (const id of ['ts02', 'tv01', 'tv02', 'tv06', 'tv12', 'te05', 'tn10', 'tb09', 'ts08']) expect(hacimli.map((q) => q.id), id).toContain(id);
+    for (const q of hacimli) {
+      expect(q.kaynak, `${q.id} kaynak`).toMatch(/Margolis RH, Heller JW/);
+      expect(kaynaktaCocukNormu(q.kaynak), q.id).toBe(true);
+      const a = bicimsiz(timpBulmaca(q, 5).aciklama).replace(/\u00A0/g, ' ');
+      expect(a, `${q.id} açıklama`).toMatch(/yaklaşık 0,3–1,0 ml|yaklaşık 1 ml’nin altında|bu yaşta normal aralıkta/);
+    }
+    // norm cümlesi (0,3–1,0 ml) ile hacimSinifi aynı sınırda: 0,3–0,4 ml arası çocuk değeri yok (cümle ile sınıf çelişmesin)
+    const hacimler = cocuk.flatMap((q) => q.bicim === 'sag-sol' ? [q.sag.hacim, q.sol.hacim] : q.bicim === 'bulgu-egri' ? q.secenek.map((t) => t.hacim) : 'egri' in q ? [q.egri.hacim] : []);
+    for (const h of hacimler) expect(h >= 0.3 && h < 0.4, `${h} ml`).toBe(false);
+    // ts02: iki kulak 0,7 / 0,6 ml, ikisi de bu yaşta normal; açıklama bunu söyler
+    const ts02 = bicimsiz(timpBulmaca(timpSoruById('ts02')!, 1).aciklama).replace(/\u00A0/g, ' ');
+    expect(hacimSinifi(0.7, 'cocuk')).toBe('normal');
+    expect(ts02).toContain('sağ 0,7 ml ve sol 0,6 ml normal aralıktadır');
+    // kaynağında çocuk normu olmayan yetişkin sorusunda "kaynağa bak" denmez
+    expect(kaynaktaCocukNormu(timpSoruById('tv04')!.kaynak)).toBe(false);
+  });
+  it('Timpanogram: taze travmada prob takılmaz; tv05 kontrol ziyareti, kanama yok (YN-250, OT-uzman-odyolog-44)', () => {
+    const q = timpSoruById('tv05')!;
+    if (q.bicim !== 'vinyet') throw new Error('tv05 vinyet olmalı');
+    expect(q.hikaye).toMatch(/iki hafta önce/); expect(q.hikaye).toMatch(/kanama yok/);
+    expect(q.hikaye).not.toMatch(/hafif kanama oldu/);
+    expect(q.aciklama).toContain('Taze yaralanmada ve kanamada prob takılmaz; ölçüm kontrolde alınır.');
+    expect(q.sinif).toBe('B-buyuk'); expect(q.kaynak).toMatch(/Hunter/);
   });
   it('Timpanogram: timpanogram tek başına tanı koydurmaz (bulgu cevaplarında sıvı/efüzyon/tanı adı yok)', () => {
     const tani = /sıvı|efüzyon|efuzyon|otit|otoskleroz|kopuk|perforasyon|Östaki|serumen|kir\b/i;
