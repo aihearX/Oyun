@@ -8,7 +8,7 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 82 yıldız, 49 deneme / 9 kayıp |
 | 2 | 2026-11-03 | 2026-11-05 | 69571460 | 40/40, 78 yıldız, 53 deneme / 13 kayıp |
-| 3 | | | | 2026-11-05 sıfırlandı; sonraki oturumda baştan |
+| 3 | 2026-11-05 | | | 2026-11-05 sıfırlandı; oturum 16'da baştan başladı (6/40) |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -233,3 +233,16 @@ Cihaz: 768×1024 chromium · beceri 0.4 · ses açık. Ayrıntı: tools/harness/
 ### Tur 2 bitti (2026-11-05, sürüm 69571460)
 - 40/40 bölüm, 78 yıldız, 6 bölüm üç yıldız; 53 deneme, 13 kayıp (en çok Bölüm 39: 3 kayıp, sonra 33, 36, 38: ikişer).
 - Son değerlendirme: ikinci turda ODİ, tıbbi içerik açısından ilk turdan da iyi. Tur 2'de yazdığım 20 maddenin (29-48) çoğu düzeltildi ve düzeltmeler önerdiğim metinlere çok yakın: İsmail'in 4 kHz çentiği, Ad tipi açıklaması, vertigo tanımı, İşitme Korteksi tanıtımı, Biliyor muydun? notlarının biyoma uyması. Terimler tutarlı (Koklea, dB HL, hava-kemik aralığı, Jerger tipleri); "timpanogram tek başına tanı koydurmaz" ilkesi Timpanogram Eşleştir'de, kartlarda ve vakalarda korunuyor; vakalar kurgusal, uyarılı ve kaynakçalı; "isteseydin şunu görecektin" bölümü öğretim açısından çok değerli. Kalan işler küçük ve çoğu öğretim tutarlılığı: çocuk timpanometri normu (OT-43), kanamalı taze perforasyonda timpanometri (OT-44), timpanometri kartındaki B tipi (OT-45), birkaç biyom kartı (OT-36/37/38, doğrulanamadı). Oyuncu olarak beceri düşük biri için son bölümler zor ama "Neden olmadı?", "Yüksek görünürlük" ve otomatik kolaylaşma adil hissettiriyor. En büyük oyun içi sıkıntı haritada geriye gitmenin zahmeti. Öğrencilerime gönül rahatlığıyla öneririm.
+
+## Oturum 16 · 2026-11-05 · sürüm c978d67d · tur 3
+- Başlangıç: 0/40 (sıfırlanmış hesap, yeni tur). Bitiş: 6/40, 13 yıldız (4. bölüm 3 yıldız), oyuncu seviyesi 2, seri 1 gün, 938 jeton. 6 deneme, kayıp yok.
+- Önceki geri bildirim kontrolü ("yapildi:" maddeleri):
+  - OT-uzman-odyolog-3: düzeldi (yeniden). Kulak Kanalı biyom kartında "2–3 kHz", "2,5–3 kHz", "10–15 dB" satır sonunda bölünmüyor; "Koşu:" iki nokta bitişik (1554-dokun.png).
+  - OT-uzman-odyolog-1 (sahip-karari, yapildi değil ama not): Kulak Kanalı notu artık "bir ucu kapalı bir boru gibi çınlar … yaklaşık 2,5 cm'lik tüp, rezonans 2,5–3 kHz, 10–15 dB" diyor; şişe ağzı/Helmholtz benzetmesi yok. Doğru.
+  - OT-uzman-odyolog-2, 19, 20, 22, 27, 35, 36, 37, 38, 40-47: doğrulanamadı. Yeni turun başındayım; bu metinler Timpanometri Kulesi (Sv 0), Klinik/Hasta Vakaları (Bölüm 7'de açılır), Kemikçikler, Koklea, İşitme Siniri, Beyin Sapı ve oyun sonu ekranlarında. O yerlere gelince bakacağım.
+- Ne yaptım: açılış hikâyesini kart kart okudum (yol kartı: Kepçe, Kulak zarı, Koklea, Beyin). Takma ad DrMelis, Bilgi düzeyi "Odyoloji öğrencisi". Bölüm 1-6'yı ilk denemede geçtim; Dış Kulak çiçeklendi ve canlandı, Bölüm 5 hazinesi, Kulak Kanalı biyomuna geçtim. Bugün'de takvim (1. gün) ve bir görev ödülünü aldım. Kamp ilk kez açıldı, tanıtımları atladım (bu üçüncü turum).
+- Tıbbi doğruluk izlenimi: Dış Kulak ve Kulak Kanalı notları çok iyi: kepçenin spektral çentikleri (dikey ve ön-arka ipucu), konka rezonansı ~5 kHz, kepçe ipuçlarının 4 kHz üstünde olması, kıl ve serumen bezlerinin yalnız kıkırdak bölümde olması, en küçük duyulabilir açı ~1 derece, Arnold siniri (vagus) ve öksürük refleksi, kanalın çeyrek dalga rezonansı. "Koklea" doğru; "Salyangoz" görmedim. Tek kesinlik önerim Bölüm 1 genel notu: ses yalnız "havadaki" basınç dalgası diye tanımlanıyor (OT-49).
+- Hissettiğim: yeni turda Dış Kulak hızlı ve keyifli geçiyor; notlar ilk turdakinden daha zengin. Tanıtımlar tanıdık olduğu için "Atla" kullandım; Kamp'ta Atla'dan hemen sonra ikinci bir tanıtımın araya girmesi biraz sinir bozucuydu. Tablette Kamp ortada dar bir şerit. Harita dönüş sahnesi yine iki kez 60 sn'yi aştı (README: yazılım GL; yazmadım).
+- Yazdığım geri bildirimler: OT-uzman-odyolog-49 (Bölüm 1 notu: ses yalnız havada), OT-uzman-odyolog-50 (Kamp'ta Atla sonrası ikinci tanıtım dokunuşu yutuyor), OT-uzman-odyolog-51 (tablette Kamp dar şerit).
+- Yarım kalan / sonraki oturum: Bölüm 7'den devam; Hasta Vakaları burada açılıyor (öncelikli denetim; OT-27 Selim, OT-48 2. kademe hasta). Timpanometri Kulesi'ni kurup Timpanogram Eşleştir'de OT-41/43/44/46'yı, Kulak Kartları'nda OT-45'i kontrol. Kemikçikler sonrası yol ve Bölüm 20 kartı (OT-35/36). Takım sekmesi açıldı ama bakmadım; Mağaza ve Etkinlikler'e de bakılacak.
+- Sosyal: yeni hesap, arkadaş kodum **KMZBW8**, takma ad DrMelis. Takımım yok (önceki turdaki "Ninni Tasiyicilari" liderliği sıfırlamayla düştü). Bu oturumda gelen arkadaşlık ya da takım daveti görmedim; takim-kaptani davet ederse kabul ederim.

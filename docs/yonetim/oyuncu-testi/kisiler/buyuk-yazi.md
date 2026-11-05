@@ -253,3 +253,30 @@ Son değerlendirme: İkinci turda oyun az gören biri için gözle görülür bi
 - Yazdığım geri bildirimler: OT-buyuk-yazi-73 (canlandı kutlamasında beyaz başlık açık zeminde), -74 (tutmayan 3. yıldız koşulunda yeşil tik + "tamam").
 - Yarım kalan / sonraki oturum: Haritada Bölüm 6 sırada. Günlük sandık açılmadı; Bugün'de 1 görev ("3 bölüm oyna") ödülü alınmadı. Takım açıldı ama henüz bakmadım; "Ninni Tasiyicilari"ya (davet kodu 8XJUU4) yeniden katılmayı düşünüyorum. Kulak Deposu kuruldu, toplanacak. Mağaza (Bölüm 6), Ayarlar, Kulak Kartları bu oturumda denenmedi (komut sınırı).
 - Sosyal: yeni arkadaş kodum **6H4DRJ**, takma ad HasanBey. Arkadaş isteği gönderdim: KaptanTuba (yeni adı Odi6055, kod 9687SK) — kabul bekliyor. Takımım henüz yok.
+
+## Oturum 16 · 2026-11-05 · sürüm c978d67d · tur 3
+- Başlangıç: 5/40, 11 yıldız, seri 1 gün. Bitiş: 11/40, 24 yıldız (7 ve 11'de 3 yıldız; 9'da 1), oyuncu seviyesi 4, 1546 jeton. 6 bölüm, 6 deneme, kayıp yok. Bütün yerler açıldı.
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlardan bu oturumda görebildiklerim):
+  - OT-buyuk-yazi-74: düzeldi. Bölüm 7 ve 11 sonucunda tutan koşul yeşil tik + "tamam", tutmayan koşul boş kesikli kutu ve soluk yazı; başlıkta "biri yeter · tamam" (1425, 1460).
+  - OT-buyuk-yazi-14, -22: düzeldi. Takım içi sekmeler (Üyeler/Yardım/Teknoloji/Hediyeler/Hedefler) iki satıra iniyor, kelimeler tam (1398). (Takımlar listesindeki süzgeç şeridi ayrı, yeni yazdım: -77.)
+  - OT-buyuk-yazi-38: düzeldi. Üye kartlarında sayıların altında "bağış, yardım, yıldız, savaş" yazıyor (1398).
+  - OT-buyuk-yazi-32, -35: düzeldi. Arkadaşın geçtiği bölümün isteği "Bölümü geçti; istek kapandı" ve devre dışı "Geçti" ile duruyor (1399).
+  - OT-buyuk-yazi-49: düzeldi. Takıma katılınca "hoş geldin" kartı başlığın altına iniyor, "Takım" başlığı açık (1396).
+  - OT-buyuk-yazi-69: düzeldi. Takım sohbetinde aynı anda 4 mesaj kartı görüyorum (1396).
+  - OT-buyuk-yazi-61: düzeldi. Arkadaş kartında "Hediye" düğmesi simgeli ve okunur (1400).
+  - OT-buyuk-yazi-60: düzeldi. Mağaza'da "100 kristal" simgesiyle bir arada, "+ 200 jeton" alt satıra sayı ve simgesiyle birlikte iniyor (1404).
+  - OT-buyuk-yazi-12: düzeldi. Başlangıç Paketi'nde iki yerde de "Kâşif Şapkası" (1403).
+  - OT-buyuk-yazi-1: düzeldi. Kulak Kartları'nda kilitli kartların koşulu tam yazıyor, kesik yok (1409).
+  - OT-buyuk-yazi-5: düzeldi. Ayarlar'da kaydırıcıların adı yazılı: Müzik, Efektler, Anlatıcı (1414).
+  - OT-buyuk-yazi-53: düzeldi. Ayarlar'da kaydırınca üst çubuk koyu, arkasından yazı görünmüyor (1415).
+  - OT-buyuk-yazi-10: düzeldi (görebildiğim kadarıyla). Kulak Kartları, Ayarlar, Mağaza hemen açıldı; boş mor ekran görmedim.
+  - OT-buyuk-yazi-11, -4: düzeldi. Bölüm içi üst sayaçlar (nota, altın koklea 0/3 ve 1/3, kalpler) üst üste binmiyor (1384, 1441).
+  - OT-buyuk-yazi-3, -9: düzeldi (gördüğüm kadarıyla). "Kontrol noktası" uçan yazısı büyük, turkuaz ve koyu çerçeveli; okunuyor (1431). "Altın Koklea!" etiketini bu oturumda görmedim.
+  - OT-buyuk-yazi-16, -47: düzeldi. Bölüm 6-11 sonuçlarında alttaki "Haritaya dön" düğmesi hiçbir satırın üstüne binmiyor, kazandıklarım görünüyor (1386, 1453).
+  - OT-buyuk-yazi-42: düzeldi. Seviye 4 penceresinin üstüne başarım kartı binmedi (1452).
+  - Bakamadıklarım: OT-13 (Birlikte), -73 (bu oturumda tam ekran "canlandı" kutlaması gelmedi; Bölüm 12'de Kulak Zarı canlanacak), -15, -24 ... -30, -33, -34, -36, -37, -41, -48, -51, -52, -54 ... -56, -58, -62 ... -68, -70 ... -72 (henüz o bölümlere/özelliklere varmadım).
+- Ne yaptım: Bölüm 6-11 (hepsi ilk denemede). Takım açılınca "Ninni Tasiyicilari"ya (listeden Katıl) yeniden katıldım, sohbete "Selam!" yazdım; Üyeler ve Yardım sekmelerine baktım. Arkadaşlar: KaptanTuba isteğimi kabul etmiş. Mağaza'yı (yalnız baktım, almadım), Kulak Kartları'nı ve Ayarlar'ı gezdim; Ayarlar'da Yüksek görünürlüğü açtım.
+- Hissettiğim: Bu sürüm benim gözüme çok rahat. Ekranların hiçbirinde kesik başlık ya da üst üste binen kart görmedim; ilk turdaki şikâyetlerimin neredeyse hepsi gitmiş. Yüksek görünürlük açıkken Kulak Kanalı'nda zemin kenarlarının beyaz çizgisi çok işime yaradı; yalnız Bölüm 11'de tavandan sarkan sütunların ucunu seçemedim. Her bölüm dönüşünde yeni bir Tüy Dede tanıtımı (Takım, Sıralama, Etkinlikler, Canlı yarış, Takım Yarışı, İkili Görev) biraz yorucu ama her birini Atla ile geçebildim. Haritada aşama şeridi bir an kafamı karıştırdı. Profil'den Ayarlar'a her dönüşte baştan kaydırmak az gören biri için yorucu.
+- Yazdığım geri bildirimler: OT-buyuk-yazi-75 (aşama şeridi başka biyomu gösteriyor), -76 (Bölüm 11'de sarkan sütunların ucu Yüksek görünürlükte çizgisiz), -77 (Takımlar süzgecinde "Başvuru" kesik), -78 (Profil'e Geri ile dönünce sayfa en başa dönüyor).
+- Yarım kalan / sonraki oturum: Haritada Bölüm 12 sırada (Kulak Zarı canlanacak; OT-73'e orada bakacağım). 9'da 1 yıldız, sonra tekrar denenebilir. Günlük sandık hâlâ açılmadı; Bugün'de 2 bekleyen şey var. Kamp'ta Kulak Deposu toplanacak. Etkinlikler (1 etkinlik bekliyor), Hasta Vakaları, Günün Sorusu, Kulak Sözlüğü bu oturumda denenmedi (komut sınırı).
+- Sosyal: arkadaş kodum **6H4DRJ**, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; Sv 5, 6/30; lider AyseTeyze; üyeler arasında KralKoklea, EceOdyo, KaptanTuba). Arkadaşım KaptanTuba (kod 9687SK, 8. bölümde, aynı takımda). Bekleyen arkadaşlık ya da takım isteği yoktu.
