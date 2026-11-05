@@ -3,7 +3,7 @@ import {
   AC_HZ, EGRI_ADI, KAMP_OYUN, KG_ACILIS, KG_BASARI, KG_BUYUME_OLCUT, KG_GUNLUK, KG_HAFTA, KG_HAFTA_ODUL, KG_HIKAYE, KG_KURAL, KG_SAYACLAR,
   EGRI_ACIKLAMA, TANILAR, TIMP_SORULAR, VAKALAR, VAKA_TESTLERI, egriSinifi, isYok, kayipTipi, odulMetni, taniSecenekleri, timpBulmaca, timpSoruHatalari,
   timpanoDestesi, timpanoHavuzu, timpanoPuani, timpanoTuru,
-  tonPuani, tonTuru, vakaKademesi, vakaPuanla, vakaTutarsizliklari, yonetimSecenekleri, type Vaka,
+  tonPuani, tonTuru, uygunsuzNotlari, vakaKademesi, vakaPuanla, vakaTutarsizliklari, yonetimSecenekleri, type Vaka,
 } from './kamp-gorev';
 import { PATHOLOGY_IDS, REMEDIES } from './remedies';
 import { GLOSSARY } from './odyoloji';
@@ -119,6 +119,17 @@ describe('Hasta Vakaları: içerik', () => {
     const o = v.testler.odyometri; if (isYok(o)) throw new Error('kv10 odyogram');
     expect([Math.min(...o.ac.L), Math.max(...o.ac.L), Math.min(...o.bc.L), Math.max(...o.bc.L)]).toEqual([20, 30, 5, 10]);
     expect(v.aciklama.sade.replace(/\u2060/g, '').replace(/\u00a0/g, ' ')).toMatch(/hava yolu 20–30 dB, kemik yolu 5–10 dB: hafif iletim tipi kayıp, iç kulak etkilenmemiş/);
+  });
+  it('kv02 tam tıkalı kanal (karar 46, YN-167): timpanometri verimliliği götürmez ama sonuçta not çıkar; öbür vakalarda alan yok', () => {
+    const v = VAKALAR.find((x) => x.id === 'kv02')!;
+    const dx = v.tani.dogru; const mg = v.yonetim[0].id;
+    expect(vakaPuanla(v, { tests: ['otoskopi', 'timpanometri'], dx, mg })).toMatchObject({ stars: 3, efficient: true });
+    const not = 'Otoskopi yeterliydi; tam tıkalı kanala prob takmak yerine önce kir temizlenir, timpanometri sonra yapılır.';
+    expect(uygunsuzNotlari(v, ['otoskopi', 'timpanometri']).map((n) => n.replace(/\u2060/g, ''))).toEqual([not]);
+    expect(uygunsuzNotlari(v, ['otoskopi', 'odyometri'])).toEqual([]);
+    expect(VAKALAR.filter((x) => x.uygunsuz).map((x) => x.id)).toEqual(['kv02']);
+    for (const x of VAKALAR) for (const n of Object.values(x.uygunsuz ?? {})) sane(n!, `${x.id} uygunsuz`);
+    expect(vakaTutarsizliklari(v)).toEqual([]);
   });
   it('kv08 yenidoğan taraması (YN-132): istenmeyen her testin "neden yapılmadı" notu vakada var', () => {
     const v = VAKALAR.find((x) => x.id === 'kv08')!;

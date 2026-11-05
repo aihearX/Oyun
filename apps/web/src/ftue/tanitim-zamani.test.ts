@@ -14,7 +14,7 @@ vi.mock('../net', () => ({ act: async () => null, toast: () => undefined }));
  *  - Genel açılım turları Bugün/Takım'da kendiliğinden başlamaz; oyuncu haritaya dönünce başlar.
  *  - Vaka çözmüş oyuncuya kampta Hasta Vakaları "yeni" denmez.
  *  - Tüy Dede'nin kamp notu (yeni anıt) açıkken "Kamp'ta yeni" kartı görünmez; not kapanınca gelir.
- *  - tlig-02: onaylı satır aynı, balonda Lig'in yolu.
+ *  - tlig-02: satır Lig'in sekmesini doğru söyler ("Rekabet sekmesindeki Lig'e bak", sahip kararı 48), balonda Lig'in yolu.
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 let root: Root | null = null;
@@ -214,5 +214,19 @@ describe('Takım Ligi tanıtımı: Lig\'in yolu', () => {
     const step = tourFor('tlig', 'team')!.steps.find((s) => s.id === 'tlig-02')!;
     expect(step.say).toBe(lineText('tlig-02'));
     expect(step.note?.()).toBe('Takım › Rekabet › Lig');
+    expect(lineText('tlig-02')).toBe('Lig puanı savaştan, baskından, bilgi sorularından, düellodan ve takım yarışından gelir. Rekabet sekmesindeki Lig’e bak.');
+  });
+});
+
+describe('Serbest yazı kuralları: "yıldızla kapatılır" (sahip kararı 50, YN-218)', () => {
+  it('yazi-02 ve seslendirilmeyen eşleri aynı sözü kullanır; "yıldızlanır" kalmadı', async () => {
+    const { lineText } = await import('./script');
+    expect(lineText('yazi-02')).toBe('Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızla kapatılır; üç kişinin şikâyet ettiği mesaj gizlenir.');
+    const { readFileSync } = await import('node:fs');
+    for (const f of ['../comm/Together.tsx', '../comm/Cards.tsx']) {
+      const src = readFileSync(new URL(f, import.meta.url), 'utf8');
+      expect(src, f).toMatch(/[Kk]ötü sözler yıldızla kapatılır\./);
+      expect(src, f).not.toContain('yıldızlanır');
+    }
   });
 });

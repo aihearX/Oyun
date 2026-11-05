@@ -329,7 +329,7 @@ Kaynak: `packages/content/src/biomes.ts`. Harita kartındaki tek cümle (anlatı
 | Kulak zarı ve orta kulak | **Kulak Zarı** | Titreyen zar (timpanik membran), dev bir trambolin. | Kulak zarı yaklaşık 0,1 mm kalınlığındadır ve sesin frekansıyla titreşir. |
 | Kemikçikler | **Kemikçikler** | Çekiç (malleus), örs (inkus), üzengi (stapes): vücudun en küçük makinesi. | Üzengi (stapes), yaklaşık 3 mm ile vücuttaki en küçük kemiktir. |
 | Koklea (giriş) | **Koklea · Taban** | İnce (yüksek frekanslı) seslerin kıvrımı; perilenfin (kokleanın içindeki sıvı) içinde yüz. | Kokleanın tabanı (baz) ince, yüksek frekanslı sesleri algılar. |
-| Koklea (orta kıvrım) | **Koklea · Orta Kıvrım** | Konuşma frekanslarının (yaklaşık 500–4000 Hz) işlendiği kıvrım. | Konuşma seslerinin önemli kısmı yaklaşık 500–4000 Hz arasındadır; bu frekanslar kokleanın orta bölümlerinde işlenir. |
+| Koklea (orta kıvrım) | **Koklea · Orta Kıvrım** | Orta frekansların (kabaca 0,5–2 kHz) işlendiği kıvrım; konuşmanın birçok sesi buradan geçer. | Konuşma seslerinin önemli kısmı yaklaşık 500–4000 Hz arasındadır; alçak ve orta kısmı (kabaca 0,5–2 kHz) orta kıvrımda, ince sesler (s, ş, f; 4 kHz civarı) tabana yakın işlenir. Sınırlar kişiden kişiye değişir. |
 | Koklea (tonotopi) | **Koklea · Apeks** | Kalın (alçak frekanslı) seslerin tepesi; bas ve uğultu. | Apeks kalın (düşük frekanslı) sesleri algılar; 125 Hz apekse yakın işlenir. |
 | İşitme siniri | **İşitme Siniri** | VIII. kafa siniri: sen artık bir elektrik impulsusun. Hızlan. | İşitme siniri yaklaşık 30.000 liften oluşur. |
 | Beyin sapı | **Beyin Sapı** | Sağ ve sol kulağın sesi burada buluşur: iki kulağımız sayesinde sesin nereden geldiğini buluruz. | Beyin sapı, iki kulaktan gelen sesin zaman farkıyla yön hesaplar. |
@@ -379,6 +379,7 @@ değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konu�
 Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
 ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv 1 / 2 / 3.
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
+Vakada uygun olmayan test (`uygunsuz`, karar 46) puanı değiştirmez; istenirse sonuçta kısa not çıkar: `kv02` Hakan, timpanometri: "Otoskopi yeterliydi; tam tıkalı kanala prob takmak yerine önce kir temizlenir, timpanometri sonra yapılır."
 Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
 bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
 Odyogram özeti (`yorum.ts` → `odyoSatir`, YN-101/YN-118): saf ses ortalaması dar bir yüksek frekans düşüşünü göstermediği için en kötü

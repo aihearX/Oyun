@@ -138,6 +138,11 @@ export interface Vaka {
   /** yönetim seçenekleri: ilki doğrudur (ekranda vaka kimliğine göre sabit karıştırılır) */
   yonetim: [YonetimSecenek, YonetimSecenek, YonetimSecenek, YonetimSecenek];
   aciklama: { sade: string; teknik: string };
+  /**
+   * Bu vakada istenmesi uygun olmayan test → sonuçta çıkan kısa not (karar 46, YN-167). Puanlamayı değiştirmez (verimlilik yıldızı
+   * yine anahtar + 1 kuralıyla sayılır); yalnız oyuncuya klinik sırayı söyler. İsteğe bağlı; çoğu vakada yok.
+   */
+  uygunsuz?: Partial<Record<TestId, string>>;
   /** eşleşen Kulak Sözlüğü terimi (GLOSSARY ya da CAMP_TERMS kimliği) */
   terim: string;
   kaynak: string;
@@ -233,6 +238,12 @@ export function vakaPuanla(v: Vaka, a: { tests: string[]; dx: string; mg: string
   return { stars, dxOk, mgOk, efficient, extra: Math.max(0, tests.length - v.anahtar.length) };
 }
 
+/** istenen testlerden bu vakada uygun olmayanların notları (karar 46); sıra test listesindeki sıradır */
+export function uygunsuzNotlari(v: Pick<Vaka, 'uygunsuz'>, tests: readonly string[]): string[] {
+  if (!v.uygunsuz) return [];
+  return VAKA_TESTLERI.filter((t) => tests.includes(t.id) && v.uygunsuz![t.id]).map((t) => v.uygunsuz![t.id]!);
+}
+
 // ---------------------------------------------------------------- tıbbi tutarlılık denetimi
 
 const ears: Ear[] = ['R', 'L'];
@@ -268,6 +279,7 @@ export function vakaTutarsizliklari(v: Vaka): string[] {
   if (dx?.kat === 'mikst' && !(v.kayip && (v.kayip.R === 'mikst' || v.kayip.L === 'mikst'))) err('mikst tanı ama mikst kulak yok');
   if (!v.anahtar.length) err('anahtar test yok');
   for (const k of v.anahtar) if (isYok(T[k])) err(`anahtar test ${k} yapılmamış`);
+  for (const k of Object.keys(v.uygunsuz ?? {}) as TestId[]) { if (v.anahtar.includes(k)) err(`uygunsuz test ${k} anahtar testlerde`); if (!testById(k)) err(`bilinmeyen uygunsuz test ${k}`); }
 
   // odyogram
   if (o) {

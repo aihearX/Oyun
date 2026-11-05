@@ -74,6 +74,7 @@ export const VAKALAR: Vaka[] = /* @__PURE__ */ bolunmezYap([
       sade: 'Otoskopide kanalı tamamen kapatan kir görülüyor. Timpanogram düz ama kanal hacmi küçük: prob kire dayanıyor. Kemik yolu normal, hava yolu düşük: iletim tipi hafif kayıp. Pamuklu çubuk kiri daha derine iter; temizliği sağlık profesyoneli yapar.',
       teknik: 'AAO-HNS serumen kılavuzu (2017): belirti yapan ya da muayeneyi engelleyen serumen temizlenir (serumenolitik, irrigasyon ya da mikroskop altında manuel). Tip B eğride eşdeğer kanal hacmine bakılır: küçük hacim tıkanmayı, büyük hacim perforasyonu, normal hacim efüzyonu düşündürür.',
     },
+    uygunsuz: { timpanometri: 'Otoskopi yeterliydi; tam tıkalı kanala prob takmak yerine önce kir temizlenir, timpanometri sonra yapılır.' },
     terim: 'serumen', kaynak: `AAO-HNS Serumen Klinik Kılavuzu (2017); ${K}, timpanometri; ${J}`,
   },
   {

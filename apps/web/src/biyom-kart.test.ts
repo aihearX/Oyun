@@ -48,3 +48,13 @@ describe('Biyom kartı: 3. yıldız satırı', () => {
     expect(star3Line(generateLevel(HUMAN_JOURNEY.id, 20, prof))).toBe('3. yıldız: Hiç hasar alma');
   });
 });
+
+// Karar 49 (YN-211): orta kıvrım kabaca 0,5–2 kHz; 4 kHz civarı tabana yakın (oyunun "yüksek frekans tabanda" notlarıyla tutarlı)
+describe('Koklea · Orta Kıvrım: frekans aralığı', () => {
+  const yalin = (s: string) => s.replace(/\u2060/g, '').replace(/\u00a0/g, ' ');
+  it('kart ve bölge bilgisi sahibin onayladığı metin; orta kıvrıma 500–4000 Hz denmez', () => {
+    expect(yalin(BIOMES['koklea-2'].blurb)).toBe('Orta frekansların (kabaca 0,5–2 kHz) işlendiği kıvrım; konuşmanın birçok sesi buradan geçer.');
+    expect(yalin(BIOMES['koklea-2'].fact)).toBe('Konuşma seslerinin önemli kısmı yaklaşık 500–4000 Hz arasındadır; alçak ve orta kısmı (kabaca 0,5–2 kHz) orta kıvrımda, ince sesler (s, ş, f; 4 kHz civarı) tabana yakın işlenir. Sınırlar kişiden kişiye değişir.');
+    for (const b of Object.values(BIOMES)) for (const t of [b.blurb, b.fact]) expect(yalin(t), b.id).not.toMatch(/kokleanın orta bölümlerinde|(500|0,5)[-–]4000? ?Hz\) işlendiği/);
+  });
+});

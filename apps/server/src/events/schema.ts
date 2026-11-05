@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS ev_hunt_contrib(period TEXT NOT NULL, team_id TEXT NO
 CREATE TABLE IF NOT EXISTS ev_quiz(id TEXT PRIMARY KEY, team_id TEXT NOT NULL, day TEXT NOT NULL, slot TEXT, started_by TEXT NOT NULL, created_at INTEGER NOT NULL, lobby_ends INTEGER NOT NULL, questions TEXT NOT NULL, finished_at INTEGER, avg REAL);
 CREATE INDEX IF NOT EXISTS ev_quiz_team ON ev_quiz(team_id, created_at);
 CREATE INDEX IF NOT EXISTS ev_quiz_day ON ev_quiz(day, finished_at);
-CREATE TABLE IF NOT EXISTS ev_quiz_player(quiz_id TEXT NOT NULL, player_id TEXT NOT NULL, joined_at INTEGER NOT NULL, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, answers TEXT NOT NULL DEFAULT '{}', PRIMARY KEY(quiz_id, player_id));
+CREATE TABLE IF NOT EXISTS ev_quiz_player(quiz_id TEXT NOT NULL, player_id TEXT NOT NULL, joined_at INTEGER NOT NULL, score INTEGER NOT NULL DEFAULT 0, correct INTEGER NOT NULL DEFAULT 0, answers TEXT NOT NULL DEFAULT '{}', level TEXT NOT NULL DEFAULT 'genel', PRIMARY KEY(quiz_id, player_id));
 CREATE TABLE IF NOT EXISTS ev_tquest(day TEXT NOT NULL, team_id TEXT NOT NULL, quests TEXT NOT NULL, PRIMARY KEY(day, team_id));
 CREATE TABLE IF NOT EXISTS ev_tquest_prog(day TEXT NOT NULL, team_id TEXT NOT NULL, kind TEXT NOT NULL, progress INTEGER NOT NULL, PRIMARY KEY(day, team_id, kind));
 CREATE TABLE IF NOT EXISTS ev_tquest_member(day TEXT NOT NULL, team_id TEXT NOT NULL, player_id TEXT NOT NULL, PRIMARY KEY(day, team_id, player_id));

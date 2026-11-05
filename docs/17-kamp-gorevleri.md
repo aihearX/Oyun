@@ -36,7 +36,9 @@ gölgeli; kanal hacmi), akustik refleks, OAE, ABR, konuşma odyometrisi (SRT, ay
   `docs/yonetim/ekonomi-olcum.md`, Ö4; eski Sv 1/4/7 ile günde 1 oturum oynayanda vaka açık günlerin yalnız 4/12'sinde yeni hasta vardı).
 - **Puan**: doğru tanı 1★ (vaka çözülür), doğru yönetim +1★, **verimli test** (anahtar testlerin hepsi istendi ve toplam ≤ anahtar + 1)
   +1★. Yanlış tanıda 0★, hasta salonda kalır; açıklama yine gösterilir (öğrenmek için). Sunucu puanlar (`vakaPuanla`); aynı deneme
-  kimliği ikinci kez sayılmaz (ağ tekrarı aynı sonucu döndürür).
+  kimliği ikinci kez sayılmaz (ağ tekrarı aynı sonucu döndürür). Vakada uygun olmayan test (`uygunsuz`, karar 46) puanı değiştirmez,
+  istenirse sonuçta kısa not çıkar: Hakan'da (`kv02`, tam tıkalı kanal) timpanometri için "Otoskopi yeterliydi; tam tıkalı kanala prob
+  takmak yerine önce kir temizlenir, timpanometri sonra yapılır."
 - **Dürüst takvim**: her İstanbul günü ilk girişte en çok **3 yeni hasta** gelir; bekleme salonu **6** kişi; hastalar bekler (süre
   baskısı yok). Salon doluysa o gün gelmez. Ekranda "Yeni hastalar yarın gelir" ya da "yeni vakalar Odyoloji Kliniği Sv N ile" (sıradaki kademe) yazar.
 - **Vaka Defteri**: 32 yuva, tamamlanma %, yıldız toplamı, görülen patoloji sayısı (18'den). Çözülen vaka yeniden oynanır; yalnız

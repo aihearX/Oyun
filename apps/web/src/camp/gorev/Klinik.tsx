@@ -8,7 +8,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNet } from '@odi/net/store';
 import { GLOSSARY } from '@odi/content/odyoloji';
-import { CAMP_TERMS, KG_KURAL, PATHOLOGY_IDS, PATHOLOGY_NAMES, REMEDY_DISCLAIMER, VAKALAR, VAKA_TESTLERI, isYok, taniById, taniSecenekleri, testYorumu, vakaById, yonetimSecenekleri, type Ear, type Odyogram, type Otoskopi, type Timp, type Vaka } from '@odi/content';
+import { CAMP_TERMS, KG_KURAL, PATHOLOGY_IDS, PATHOLOGY_NAMES, REMEDY_DISCLAIMER, VAKALAR, VAKA_TESTLERI, isYok, taniById, taniSecenekleri, testYorumu, uygunsuzNotlari, vakaById, yonetimSecenekleri, type Ear, type Odyogram, type Otoskopi, type Timp, type Vaka } from '@odi/content';
 import type { VakaSonuc } from '@odi/shared';
 import { audio } from '@odi/audio';
 import { act } from '../../net';
@@ -207,7 +207,7 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 
       {adim === 'sonuc' && res && (
         <div className="kg-sonuc" data-testid="vaka-sonuc" data-stars={res.stars}>
-          <SonucOzeti v={v} res={res} duzey={duzey} />
+          <SonucOzeti v={v} res={res} duzey={duzey} istenen={tests} />
           <Bulgular v={v} istenen={[...tests].reverse()} duzey={duzey} />
           <Terim id={v.terim} />
           {odulOgeleri(res.reward).length > 0 && <div className="kg-odul" data-testid="vaka-odul">{odulOgeleri(res.reward).map((i, k) => <span key={k} className="kg-odul-chip">{i.label ?? `${i.amount} ${i.kind === 'jeton' ? 'jeton' : 'kristal'}`}</span>)}</div>}
@@ -225,10 +225,12 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
 
 /**
  * Sonucun özeti: yıldızlar, tanı, yönetim ve test seçimi. Tarama vakasında (YN-132) tarama sonucu tanı değildir: "Tanı" yerine
- * "Sonuç" yazılır. Test adları test düğmesindeki adla aynıdır.
+ * "Sonuç" yazılır. Test adları test düğmesindeki adla aynıdır. Vakada uygun olmayan bir test istendiyse (karar 46: tam tıkalı kanalda
+ * timpanometri) puan değişmez, test satırının altında vakanın kısa notu çıkar.
  */
-export function SonucOzeti({ v, res, duzey }: { v: Vaka; res: Pick<VakaSonuc, 'stars' | 'dxOk' | 'mgOk' | 'efficient' | 'correctDx'>; duzey: 'genel' | 'odyoloji' }) {
+export function SonucOzeti({ v, res, duzey, istenen = [] }: { v: Vaka; res: Pick<VakaSonuc, 'stars' | 'dxOk' | 'mgOk' | 'efficient' | 'correctDx'>; duzey: 'genel' | 'odyoloji'; istenen?: readonly string[] }) {
   const tarama = v.kat === 'tarama';
+  const notlar = uygunsuzNotlari(v, istenen);
   return (
     <>
       <div className="kg-sonuc-top"><Stars n={res.stars} size={30} /><b>{res.stars === 0 ? 'Bu sefer olmadı' : res.stars === 3 ? 'Mükemmel karar!' : tarama ? 'Doğru sonuç!' : 'Doğru tanı!'}</b></div>
@@ -237,6 +239,7 @@ export function SonucOzeti({ v, res, duzey }: { v: Vaka; res: Pick<VakaSonuc, 's
         <li className={res.mgOk ? 'ok' : 'no'}><Art name={res.mgOk ? 'check' : 'cross'} size={18} /> Yönetim: {v.yonetim[0].sade}</li>
         <li className={res.efficient ? 'ok' : 'no'}><Art name={res.efficient ? 'check' : 'cross'} size={18} /> Test seçimi: {res.efficient ? 'verimli' : `anahtar testler: ${v.anahtar.map((k) => VAKA_TESTLERI.find((t) => t.id === k)!.ad).join(', ')} (en çok ${v.anahtar.length + 1} test)`}</li>
       </ul>
+      {notlar.map((n) => <div key={n} className="kg-note" data-testid="uygunsuz-test">{n}</div>)}
     </>
   );
 }

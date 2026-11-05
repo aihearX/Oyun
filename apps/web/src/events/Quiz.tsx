@@ -31,11 +31,14 @@ export const quizGoRule = (q: QuizState): string => q.startedBy === 'sistem'
   ? 'Hemen başlat: sabit saat yarışmasında katılan herkes basabilir; takımın günlük hakkından düşmez.'
   : 'Hemen başlat: yarışmayı başlatan, lider ya da yardımcı basabilir; takımın günlük hakkından düşmez.';
 
-/** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; seçim kuralı sahip kararı 47'de, YN-187) */
-export function quizLevelLine({ odyoloji, genel }: QuizState['levels']): string {
-  if (!odyoloji) return 'Sorular: genel düzey';
-  if (!genel) return 'Sorular: öğrenci düzeyi';
-  return `Sorular: karışık (${odyoloji} öğrenci + ${genel} genel)`;
+/**
+ * Bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır, YN-187). Sabit saatli yarışmanın bekleme odasında sorular henüz
+ * seçilmedi (`levelsBy: 'katilanlar'`, sahip kararı 47): satır şu anki katılanlara göre seçilecek düzeyi ve kuralı söyler.
+ */
+export function quizLevelLine({ odyoloji, genel }: QuizState['levels'], by?: QuizState['levelsBy']): string {
+  const line = !odyoloji ? 'Sorular: genel düzey' : !genel ? 'Sorular: öğrenci düzeyi' : `Sorular: karışık (${odyoloji} öğrenci + ${genel} genel)`;
+  if (by !== 'katilanlar') return line;
+  return odyoloji ? `${line}, katılanlarda Odyoloji öğrencisi var` : `${line}; katılanlardan biri Odyoloji öğrencisiyse karışık olur`;
 }
 
 const rewardWords = (items: EventReward[]) => items.map((r) => (r.kind === 'jeton' || r.kind === 'kristal' ? `${fmtNum(r.amount)} ${r.kind}` : itemLabel(r.kind, r.amount, r.ref))).join(' + ');
@@ -63,7 +66,7 @@ export function QuizView() {
   }, [key]);
   const call = async (fn: () => Promise<void>) => { setBusy(true); setErr(null); try { await fn(); } catch (e) { setErr(errText(e)); } setBusy(false); };
   const start = () => call(async () => { const r = await evNet()!.call('quiz.start', { level: useStore.getState().knowledge }); useEvents.setState({ quiz: r.quiz }); });
-  const join = () => call(async () => { const r = await evNet()!.call('quiz.join', { quizId: q!.id }); useEvents.setState({ quiz: r.quiz }); platform().haptic('medium'); });
+  const join = () => call(async () => { const r = await evNet()!.call('quiz.join', { quizId: q!.id, level: useStore.getState().knowledge }); useEvents.setState({ quiz: r.quiz }); platform().haptic('medium'); });
   const go = () => call(async () => { const r = await evNet()!.call('quiz.go', { quizId: q!.id }); useEvents.setState({ quiz: r.quiz }); });
   const answer = (i: number) => call(async () => { const r = await evNet()!.call('quiz.answer', { quizId: q!.id, index: q!.question!.index, choice: i }); useEvents.setState({ quiz: r.quiz }); audio.play('tap'); });
 
@@ -103,7 +106,7 @@ export function QuizView() {
           {joined && canGo && <button className="btn ghost" data-testid="quiz-hemen" disabled={busy} onClick={() => void go()}><Art e="⚡" size="1.15em" className="art-inline" /> Hemen başlat</button>}
           {joined && !canGo && <small className="muted">Hazırsın! Süre bitince ilk soru gelir.</small>}
           <small className="muted" data-testid="quiz-hemen-kurali">{quizGoRule(q)}</small>
-          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels)}</small>
+          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels, q.levelsBy)}</small>
         </div>
       )}
       {(q.phase === 'soru' || q.phase === 'cevap') && qv && (
@@ -131,7 +134,7 @@ export function QuizView() {
             <span className="ev-big-num" data-testid="quiz-ortalama">{fmtNum(q.teamAvg)}</span></>}
           {joined && (() => { const c = q.players.find((p) => p.id === meId)?.correct ?? 0; return <span className="muted">Sen: {c}/{QUIZ_ROUND} doğru{rich(c > 0 && info ? ` · 🪙 ${fmtNum(c * info.rewards.perCorrect)} ödül kutunda` : c > 0 ? '' : ' · bir dahaki yarışmada!')}</span>; })()}
           {q.players.length > 0 && info && <span className="muted" data-testid="quiz-takim-odulu">{rich(quizTeamRewardLine(q.teamAvg, info.rewards))}</span>}
-          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels)}</small>
+          <small className="muted" data-testid="quiz-duzey">{quizLevelLine(q.levels, q.levelsBy)}</small>
           <div className="row pratik-son"><button className="btn ghost small" onClick={() => useEvents.setState({ quiz: null })}>Tamam</button><PratikLink /></div>
         </div>
       )}

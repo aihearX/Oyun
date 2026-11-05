@@ -105,6 +105,12 @@ describe('sonuç: takım ödülü ve düzey satırı (YN-185, YN-187)', () => {
     expect(quizLevelLine({ odyoloji: 10, genel: 0 })).toBe('Sorular: öğrenci düzeyi');
   });
 
+  it('sabit saatli yarışmanın bekleme odası: sorular katılanlara göre seçilecek, kural yazılı (karar 47)', () => {
+    expect(quizLevelLine({ odyoloji: 0, genel: 10 }, 'katilanlar')).toBe('Sorular: genel düzey; katılanlardan biri Odyoloji öğrencisiyse karışık olur');
+    expect(quizLevelLine({ odyoloji: 6, genel: 4 }, 'katilanlar')).toBe('Sorular: karışık (6 öğrenci + 4 genel), katılanlarda Odyoloji öğrencisi var');
+    expect(src('events/Quiz.tsx')).toContain("call('quiz.join', { quizId: q!.id, level: useStore.getState().knowledge })");
+  });
+
   it('sonuç ekranı: kişisel satır, takım ödülü, düzey ve sıralamada kendi takımı vurgulu', () => {
     const html = renderWith({ quiz: quiz(), quizInfo: info({ ranking: [{ teamId: 't0', name: 'Başkası', emblem: '🌱', avg: 800, at: AT20 }, { teamId: 't1', name: 'Öğlenciler', emblem: '🦉', avg: 640, at: AT13 }] }) });
     expect(html).toContain('Takım ortalaması 640: takım ödülü eşiği 700, 60 puan eksik kaldı');

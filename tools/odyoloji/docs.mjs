@@ -154,6 +154,7 @@ değildir. Her vakanın odyogramı, timpanogramı, refleksi, OAE/ABR'si ve konu�
 Jerger timpanogram değerleri; otoskopi ↔ timpanogram ↔ kanal hacmi; OAE ↔ orta kulak ve eşik; refleks ↔ iletim kaybı; SRT ↔ saf ses
 ortalaması ±10 dB; kategoriye özgü örüntüler) her vaka için birim testinde sınanır. Kademe: Odyoloji Kliniği Sv ${KG.KG_KURAL.kademeSv.join(' / ')}.
 Puanlama: doğru tanı 1★, doğru yönetim +1★, verimli test seçimi (anahtar testlerin hepsi ve toplam ≤ anahtar + 1) +1★.
+Vakada uygun olmayan test (\`uygunsuz\`, karar 46) puanı değiştirmez; istenirse sonuçta kısa not çıkar: ${KG.VAKALAR.filter((v) => v.uygunsuz).flatMap((v) => Object.entries(v.uygunsuz).map(([t, n]) => `\`${v.id}\` ${esc(v.hasta.ad)}, ${t}: "${esc(n)}"`)).join('; ')}
 Sonuç ekranı (YN-080): bulgular "İstediğin testler" (yalnız oyuncunun istedikleri) ve "İsteseydin şunu görecektin" (istenmeyen,
 bu vakada yapılabilen testler) diye ayrılır; aşağıdaki açıklama bütün testlere dayandığı için "Tam tablo (bütün testlerle)" başlığıyla gösterilir.
 Odyogram özeti (\`yorum.ts\` → \`odyoSatir\`, YN-101/YN-118): saf ses ortalaması dar bir yüksek frekans düşüşünü göstermediği için en kötü

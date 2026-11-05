@@ -137,6 +137,16 @@ describe('Klinik sonucu (YN-132)', () => {
     const kv10 = sonuc('kv10', false);
     expect(kv10).toContain('anahtar testler: Otoskopi, Saf ses odyometrisi (en çok 3 test)');
   });
+  it('kv02 tam tıkalı kanalda timpanometri istenirse (karar 46) test satırı verimli kalır, altında kısa not çıkar', async () => {
+    const { SonucOzeti } = await import('./camp/gorev/Klinik');
+    const v = vakaById('kv02')!;
+    const sonuc = (istenen: string[]) => renderToStaticMarkup(createElement(SonucOzeti, { v, res: { stars: 3, dxOk: true, mgOk: true, efficient: true, correctDx: v.tani.dogru }, duzey: 'genel', istenen })).replace(/\u2060/g, '');
+    const html = sonuc(['otoskopi', 'timpanometri']);
+    expect(html).toContain('Test seçimi: verimli');
+    expect(html).toContain('data-testid="uygunsuz-test"');
+    expect(html).toContain('Otoskopi yeterliydi; tam tıkalı kanala prob takmak yerine önce kir temizlenir, timpanometri sonra yapılır.');
+    expect(sonuc(['otoskopi'])).not.toContain('uygunsuz-test');
+  });
   it('"İsteseydin" bölümü bu vakada yapılmayan testleri vakadaki nedeniyle gösterir', async () => {
     const { Bulgular } = await import('./camp/gorev/Klinik');
     const v = vakaById('kv08')!;

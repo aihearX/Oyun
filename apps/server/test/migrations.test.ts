@@ -117,6 +117,19 @@ describe('şema sürümü ve göçler', () => {
     db.close();
   });
 
+  it('göç 14 (YN-187, karar 47): Bilgi Yarışması katılanının düzeyi sütunu eklenir; eski katılımlar genel sayılır', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    old.run('INSERT INTO ev_quiz_player(quiz_id, player_id, joined_at, score) VALUES(?, ?, 0, 120)', 'q1', 'p1');
+    old.raw.exec('ALTER TABLE ev_quiz_player DROP COLUMN level; PRAGMA user_version = 13');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    expect(db.get('SELECT score, level FROM ev_quiz_player WHERE quiz_id = ?', 'q1')).toEqual({ score: 120, level: 'genel' });
+    db.close();
+  });
+
   it('bekleyenler sırayla uygulanır, addColumn tekrar güvenli; hatalı göç geri alınır ve sürüm ilerlemez; yeni şema uyarı verir', () => {
     const raw = new DatabaseSync(':memory:');
     raw.exec('CREATE TABLE t(id INTEGER PRIMARY KEY, a TEXT); INSERT INTO t(a) VALUES (\'x\')');

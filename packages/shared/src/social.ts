@@ -727,7 +727,8 @@ export interface QuizQuestionView { index: number; total: number; text: string; 
   /** soruyu öneren oyuncunun takma adı (izinle; açıklanınca, varsa) */ oneren?: string | null }
 export interface QuizPlayer { id: string; name: string; color: number; score: number; correct: number; answered: boolean; lastCorrect: boolean | null }
 export interface QuizState { id: string; teamId: string; phase: QuizPhase; startedBy: string; lobbyEndsAt: number; endsAt: number; players: QuizPlayer[]; question: QuizQuestionView | null; teamAvg: number; questionMs: number; revealMs: number;
-  /** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; bekleme odası ve sonuçtaki dürüst düzey satırı, YN-187) */ levels: { odyoloji: number; genel: number } }
+  /** bu yarışmanın soruları hangi düzeyden (soru dizisinden sayılır; bekleme odası ve sonuçtaki dürüst düzey satırı, YN-187) */ levels: { odyoloji: number; genel: number };
+  /** 'katilanlar': sorular henüz seçilmedi (sabit saatli yarışmanın bekleme odası); levels şu anki katılanlara göre seçilecek olanı söyler (karar 47) */ levelsBy?: 'katilanlar' }
 export interface QuizInfo { nextSlotAt: number; slotOpen: boolean; canStart: boolean; startsLeft: number; ranking: { teamId: string; name: string; emblem: string; avg: number; /** puanın geldiği yarışmanın saati (her takımın bugünkü en iyi yarışması; YN-209) */ at: number }[]; rewards: { perCorrect: number; bonusAvg: number; bonus: EventReward[] } }
 
 // ---------- Günlük takım görevleri
@@ -783,7 +784,7 @@ export interface OpMap {
   'hunt.state': { req: Record<string, never>; res: { hunt: HuntState } };
   'quiz.state': { req: Record<string, never>; res: { quiz: QuizState | null; info: QuizInfo } };
   'quiz.start': { req: { level?: 'genel' | 'odyoloji' }; res: { quiz: QuizState } };
-  'quiz.join': { req: { quizId: string }; res: { quiz: QuizState } };
+  'quiz.join': { req: { quizId: string; level?: 'genel' | 'odyoloji' }; res: { quiz: QuizState } };
   'quiz.go': { req: { quizId: string }; res: { quiz: QuizState } };
   'quiz.answer': { req: { quizId: string; index: number; choice: number }; res: { quiz: QuizState } };
   'tquests.state': { req: Record<string, never>; res: { quests: TeamQuestsState } };

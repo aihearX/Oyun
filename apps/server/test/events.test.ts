@@ -525,7 +525,7 @@ describe('Kulak Bilgi Yarışması', () => {
     const at13 = env.clock.t + 60 * MIN; // test saati 12:00
     env.clock.advance(65 * MIN); // 13:05: sabit saatli yarışma kendiliğinden açılır
     const st = await b.c.call('quiz.state', {});
-    expect(st.quiz).toMatchObject({ phase: 'lobi', startedBy: 'sistem', levels: { odyoloji: 0, genel: 10 } }); // sabit saat: genel (karar 47 bekliyor)
+    expect(st.quiz).toMatchObject({ phase: 'lobi', startedBy: 'sistem', levels: { odyoloji: 0, genel: 10 }, levelsBy: 'katilanlar' }); // katılan yok: genel (karar 47)
     expect(st.info.ranking).toHaveLength(0);
     await a.c.call('quiz.join', { quizId: st.quiz!.id });
     await b.c.call('quiz.join', { quizId: st.quiz!.id });
@@ -547,6 +547,46 @@ describe('Kulak Bilgi Yarışması', () => {
     expect(best).toMatchObject({ name: 'Ayşe', correct: 3 });
     const msg = await a.wait('chat', (m) => m.msg.meta?.event === 'quiz' && m.msg.text.startsWith('Bilgi yarışması bitti'));
     expect(msg.msg.text).toBe(`Bilgi yarışması bitti! Takım ortalaması: ${after.quiz!.teamAvg} puan · en iyi: Ayşe · 3/10 doğru · ${best.score} puan · 2 kişi katıldı.`);
+  });
+
+  it('sabit saatli yarışma (karar 47): sorular bekleme odası bitince seçilir; katılanlardan biri öğrenciyse karışık, değilse genel', async () => {
+    env = await setup();
+    const [a, b] = await team2(env, ['Ayşe', 'Bora'], 'Akşamcılar');
+    env.clock.advance(65 * MIN); // 13:05
+    const st = (await b.c.call('quiz.state', {})).quiz!;
+    // genel düzeyde katılan: bekleme odası genel der, sorular henüz seçilmedi
+    let lobi = (await a.c.call('quiz.join', { quizId: st.id, level: 'genel' })).quiz;
+    expect(lobi).toMatchObject({ phase: 'lobi', levels: { odyoloji: 0, genel: 10 }, levelsBy: 'katilanlar' });
+    // öğrenci katılınca bekleme odası karışık der (herkese yayınlanır)
+    lobi = (await b.c.call('quiz.join', { quizId: st.id, level: 'odyoloji' })).quiz;
+    expect(lobi).toMatchObject({ levels: { odyoloji: 6, genel: 4 }, levelsBy: 'katilanlar' });
+    expect((await a.wait('quiz.updated', (x) => x.quiz.levels.odyoloji === 6)).quiz.levelsBy).toBe('katilanlar');
+    // bekleme odası süre dolunca biter: sorular o an seçilir, karışık (6 öğrenci + 4 genel), düzey artık soru dizisinden
+    env.clock.advance(MIN + 100);
+    env.srv.sweep();
+    const q = (await a.c.call('quiz.state', {})).quiz!;
+    expect(q.phase).toBe('soru');
+    expect(q.levels).toEqual({ odyoloji: 6, genel: 4 });
+    expect(q.levelsBy).toBeUndefined();
+    const def = QUIZ_QUESTIONS.find((x) => x.text === q.question!.text)!;
+    expect(def).toBeDefined();
+    // ödül ve puan kuralı aynı: doğru cevap 100 + hız payı
+    env.clock.advance(1500);
+    const ra = await a.c.call('quiz.answer', { quizId: st.id, index: 0, choice: def.answer });
+    expect(ra.quiz.question?.myChoice).toBe(def.answer);
+    env.clock.advance(QUESTION_MS);
+    env.srv.sweep();
+    expect((await a.c.call('quiz.state', {})).quiz!.players.find((p) => p.name === 'Ayşe')!.score).toBe(100 + Math.round((50 * (QUESTION_MS - 1500)) / QUESTION_MS));
+    // 20:00 yarışmasına yalnız genel düzeyde katılan: sorular genel
+    env.clock.advance(7 * 60 * MIN); // ≈20:06
+    const ak = (await a.c.call('quiz.state', {})).quiz!;
+    expect(ak.id).not.toBe(st.id);
+    await a.c.call('quiz.join', { quizId: ak.id, level: 'genel' });
+    await a.c.call('quiz.join', { quizId: ak.id, level: 'odyoloji' }); // ikinci katılma düzeyi değiştirmez
+    const g = (await a.c.call('quiz.go', { quizId: ak.id })).quiz;
+    expect(g.phase).toBe('soru');
+    expect(g.levels).toEqual({ odyoloji: 0, genel: 10 });
+    expect(g.question).not.toBeNull();
   });
 
   it('öğrenci düzeyinde elle başlatılan yarışma karışık: düzey satırı 6 öğrenci + 4 genel (YN-187)', async () => {

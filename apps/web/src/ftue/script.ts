@@ -93,7 +93,7 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
 
   // ---- İletişim (docs/13-iletisim.md) — kayıtlı ses yok: tools/voice/generate.mjs ile yeniden üretilmeli (o zamana dek altyazı / cihaz sesi)
   { id: 'yazi-01', text: 'Sekiz bölümü geçtin! Artık sohbette kendi sözlerinle de yazabilirsin.', context: 'Açılış kutlaması: serbest yazı (8. bölümden sonra; öncesinde yalnız hazır sözler)', emotion: 'gururlu, sıcak (proud, warm)' },
-  { id: 'yazi-02', text: 'Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızlanır; üç kişinin şikâyet ettiği mesaj gizlenir.', context: 'Serbest yazı kuralları (bir kez gösterilir)', emotion: 'bilge, şefkatli (wise, caring)' },
+  { id: 'yazi-02', text: 'Birkaç kural: nazik ol ve kişisel bilgini paylaşma. Kötü sözler yıldızla kapatılır; üç kişinin şikâyet ettiği mesaj gizlenir.', context: 'Serbest yazı kuralları (bir kez gösterilir)', emotion: 'bilge, şefkatli (wise, caring)' },
   { id: 'akis-01', text: 'Yeni: Takım Akışı! Takım arkadaşın bölüm geçince, canavar yenince ya da altın koklea bulunca sohbette bir kart belirir.', context: 'Açılış kutlaması: Takım Akışı (6. bölümden sonra)', emotion: 'coşkulu (celebratory)' },
   { id: 'akis-02', text: 'Karta bir tepki bırak ya da Tebrik et’e dokun. Hazır sözlerle tek dokunuşta konuşursun; takılırsan takımından yardım iste!', context: 'Takım sohbeti: akış kartı ve hazır sözler vurgulanır', emotion: 'sıcak, cesaret veren (warm, encouraging)' },
   // ---- Sıralama (docs/15-siralama.md, 5. bölümden sonra) — kayıtlı ses yok: tools/voice/generate.mjs ile üretilmeli
@@ -102,7 +102,7 @@ export const NARRATOR_LINES: readonly NarratorLine[] = [
   { id: 'sira-03', text: 'Senin satırın hep en altta durur. Oklar dünden beri kaç sıra yükseldiğini gösterir; haftanın ilk sıralarına kristal var!', context: 'Sıralama: kendi satırı vurgulanır', emotion: 'göz kırpan, cesaret veren (playful, encouraging)' },
   // ---- Takım rekabeti (docs/16-takim-rekabeti.md) — kayıtlı ses yok: tools/voice/generate.mjs ile üretilmeli
   { id: 'tlig-01', text: 'Yeni: Takım Ligi! Takımın iki haftalık sezonlarda benzer takımlarla bir grupta yarışır. İlk üç bir üst kademeye çıkar.', context: 'Açılış kutlaması: Takım Ligi (6. bölümden sonra)', emotion: 'heyecanlı (excited)' },
-  { id: 'tlig-02', text: 'Lig puanı savaştan, baskından, bilgi sorularından, düellodan ve takım yarışından gelir. Takım sekmesindeki Lig’e bak.', context: 'Takım: Lig sekmesi vurgulanır', emotion: 'açıklayıcı, sıcak (explaining, warm)' },
+  { id: 'tlig-02', text: 'Lig puanı savaştan, baskından, bilgi sorularından, düellodan ve takım yarışından gelir. Rekabet sekmesindeki Lig’e bak.', context: 'Takım: Lig sekmesi vurgulanır', emotion: 'açıklayıcı, sıcak (explaining, warm)' },
   { id: 'tyaris-01', text: 'Yeni: Canlı Takım Yarışı! İki takım aynı bölümü aynı anda koşar; bitiş sıran ve yıldızların takımına puan olur.', context: 'Açılış kutlaması: Canlı Takım Yarışı (9. bölümden sonra)', emotion: 'coşkulu, meydan okuyan (celebratory, competitive)' },
   { id: 'tyaris-02', text: 'Lider lobi açar, sen katılıp Hazırım dersin. Rakip takımlar gerçek oyunculardır; kimse yoksa bunu açıkça söylerim.', context: 'Takım: Takım Yarışı sekmesi vurgulanır', emotion: 'bilge, dürüst (wise, honest)' },
   { id: 'soru-01', text: 'Yeni: Günün Sorusu! Her gün takım sohbetine bir kulak sorusu bırakırım. Akşam sekizde cevabını ve açıklamasını söylerim; birlikte tartışın!', context: 'Açılış kutlaması: Günün Sorusu (9. bölümden sonra)', emotion: 'bilge, meraklandıran (wise, curious)' },

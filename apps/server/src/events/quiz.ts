@@ -9,6 +9,8 @@ import { giveRewards, notify, quizSlot, rw } from './common';
 import { questProgress } from './quests';
 
 export const QUIZ_COUNT = QUIZ_ROUND;
+/** karışık yarışmada öğrenci sorusu sayısı (@odi/content `pickQuizQuestions` ile aynı: 10 sorunun %60'ı) */
+const QUIZ_MIXED_ODYOLOJI = Math.round(QUIZ_COUNT * 0.6);
 export const QUESTION_MS = 15_000;
 export const REVEAL_MS = 6_000;
 const lobbyMs = (app: App) => (app.cfg.eventsFast ? 20_000 : 60_000);
@@ -20,7 +22,8 @@ export const QUIZ_REWARDS = { perCorrect: 10, bonusAvg: 700, bonus: rw(0, 10) };
 const SHOW_DONE_MS = 10 * 60_000;
 
 interface QuizRow { id: string; team_id: string; day: string; slot: string | null; started_by: string; created_at: number; lobby_ends: number; questions: string; finished_at: number | null; avg: number | null }
-interface PRow { player_id: string; joined_at: number; score: number; correct: number; answers: string }
+/** level: katılanın bilgi düzeyi (Ayarlar; katılırken gönderilir). Sabit saatli yarışmanın soruları buna göre seçilir (karar 47) */
+interface PRow { player_id: string; joined_at: number; score: number; correct: number; answers: string; level: string }
 /** g: bu sorudan kazanılan puan (soru açıkken puan tablosunda gizlenir; böylece cevap erken sızmaz) */
 type Answers = Record<string, { c: number; ms: number; g: number }>;
 
@@ -36,11 +39,33 @@ function phaseAt(q: QuizRow, t: number): { phase: QuizPhase; index: number; qSta
   const qStart = q.lobby_ends + k * (QUESTION_MS + REVEAL_MS);
   return { phase: t - qStart < QUESTION_MS ? 'soru' : 'cevap', index: k, qStart };
 }
+/** sabit saatli yarışmada sorular bekleme odası bitene kadar seçilmez ('[]'); seçilince dizi dolar */
+const PENDING = '[]';
+/**
+ * Sabit saatli yarışmanın sorularını bekleme odası bitince seç (sahip kararı 47, YN-187): katılanlardan en az biri "Odyoloji
+ * öğrencisi" ise karışık (6 öğrenci + 4 genel), değilse genel. Elle başlatılan yarışma başlatanın düzeyiyle açılırken seçilir.
+ * Tekrar çalışması güvenli (yalnız boş diziyi doldurur); güncel satırı döndürür.
+ */
+function pickPending(app: App, q: QuizRow): QuizRow {
+  if (q.questions !== PENDING || app.now() < q.lobby_ends) return q;
+  app.db.run('UPDATE ev_quiz SET questions = ? WHERE id = ? AND questions = ?', JSON.stringify(pickQuestions(joinedLevel(app, q.id))), q.id, PENDING);
+  return rowById(app, q.id)!;
+}
+/** katılanlardan en az biri öğrenci düzeyindeyse 'odyoloji' (karışık seçim), değilse 'genel' */
+const joinedLevel = (app: App, id: string): 'genel' | 'odyoloji' => (app.db.get("SELECT 1 AS x FROM ev_quiz_player WHERE quiz_id = ? AND level = 'odyoloji'", id) ? 'odyoloji' : 'genel');
+/** soru dizisindeki düzeyler; sorular henüz seçilmediyse (sabit saatli yarışmanın bekleme odası) katılanlara göre seçilecek olan */
+function levelsOf(app: App, q: QuizRow): QuizState['levels'] {
+  if (q.questions === PENDING) return joinedLevel(app, q.id) === 'odyoloji' ? { odyoloji: QUIZ_MIXED_ODYOLOJI, genel: QUIZ_COUNT - QUIZ_MIXED_ODYOLOJI } : { odyoloji: 0, genel: QUIZ_COUNT };
+  const qs = parseJson<number[]>(q.questions, []);
+  const odyoloji = qs.filter((i) => QUIZ_QUESTIONS[i]?.level === 'odyoloji').length;
+  return { odyoloji, genel: qs.length - odyoloji };
+}
 const endsAtOf = (q: QuizRow) => q.lobby_ends + QUIZ_COUNT * (QUESTION_MS + REVEAL_MS);
 const rowById = (app: App, id: string) => app.db.get<QuizRow>('SELECT * FROM ev_quiz WHERE id = ?', id) ?? null;
 const playersOf = (app: App, id: string) => app.db.all<PRow>('SELECT * FROM ev_quiz_player WHERE quiz_id = ? ORDER BY joined_at', id);
 
-function view(app: App, q: QuizRow, viewer: string): QuizState {
+function view(app: App, q0: QuizRow, viewer: string): QuizState {
+  const q = pickPending(app, q0);
   const { phase, index, qStart } = phaseAt(q, app.now());
   const qs = parseJson<number[]>(q.questions, []);
   const rows = playersOf(app, q.id);
@@ -60,9 +85,8 @@ function view(app: App, q: QuizRow, viewer: string): QuizState {
       ...(phase === 'cevap' && def.oneren ? { oneren: def.oneren } : {}) };
   }
   const teamAvg = players.length ? Math.round(players.reduce((a, r) => a + r.score, 0) / players.length) : 0;
-  const odyoloji = qs.filter((i) => QUIZ_QUESTIONS[i]?.level === 'odyoloji').length;
   return { id: q.id, teamId: q.team_id, phase, startedBy: q.started_by, lobbyEndsAt: q.lobby_ends, endsAt: endsAtOf(q), players, question, teamAvg, questionMs: QUESTION_MS, revealMs: REVEAL_MS,
-    levels: { odyoloji, genel: qs.length - odyoloji } };
+    levels: levelsOf(app, q), ...(q.questions === PENDING ? { levelsBy: 'katilanlar' as const } : {}) };
 }
 
 function broadcast(app: App, q: QuizRow): void {
@@ -91,7 +115,8 @@ function finalize(app: App, q: QuizRow): void {
 /** faz geçişlerini işle ve değişince yayınla (zamanlayıcı + sweep + istek anında) */
 export function quizTick(app: App): void {
   const s = store(app);
-  for (const q of app.db.all<QuizRow>('SELECT * FROM ev_quiz WHERE finished_at IS NULL')) {
+  for (const q0 of app.db.all<QuizRow>('SELECT * FROM ev_quiz WHERE finished_at IS NULL')) {
+    const q = pickPending(app, q0);
     const ph = phaseAt(q, app.now());
     const key = `${ph.phase}:${ph.index}`;
     if (ph.phase === 'bitti') { finalize(app, q); s.last.delete(q.id); broadcast(app, rowById(app, q.id)!); continue; }
@@ -121,18 +146,21 @@ function activeRow(app: App, teamId: string): QuizRow | null {
   return q;
 }
 
-/** Soru seçimi: havuz ve kural @odi/content `pickQuizQuestions` (tek kişilik Pratik de aynısını kullanır, YN-078). Sabit saatli (sistem) yarışmalar hep genel. */
+/**
+ * Soru seçimi: havuz ve kural @odi/content `pickQuizQuestions` (tek kişilik Pratik de aynısını kullanır, YN-078). Elle başlatılan
+ * yarışma başlatanın düzeyiyle, sabit saatli (sistem) yarışma bekleme odası bitince katılanların düzeyiyle (`pickPending`, karar 47).
+ */
 const pickQuestions = (level: 'genel' | 'odyoloji'): number[] => pickQuizQuestions(level, (n) => randomInt(0, n), QUIZ_COUNT);
 
 function create(app: App, teamId: string, by: string, slot: string | null, level: 'genel' | 'odyoloji' = 'genel'): QuizRow {
   const now = app.now();
-  const pickd = pickQuestions(level);
+  const questions = by === 'sistem' ? PENDING : JSON.stringify(pickQuestions(level));
   const id = rid('q');
-  app.db.run('INSERT INTO ev_quiz(id, team_id, day, slot, started_by, created_at, lobby_ends, questions) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, teamId, dayKey(now), slot, by, now, now + lobbyMs(app), JSON.stringify(pickd));
+  app.db.run('INSERT INTO ev_quiz(id, team_id, day, slot, started_by, created_at, lobby_ends, questions) VALUES(?, ?, ?, ?, ?, ?, ?, ?)', id, teamId, dayKey(now), slot, by, now, now + lobbyMs(app), questions);
   const who = by === 'sistem' ? 'Sabit saat geldi' : `${app.playerOrNull(by)?.name ?? '?'} başlattı`;
   systemMessage(app, teamRoom(teamId), `Kulak Bilgi Yarışması başlıyor! ${who}. 10 soru, her biri 15 sn. Katıl!`, 'system', { event: 'quiz', quizId: id });
   notify(app, app.teamMemberIds(teamId).filter((x) => x !== by), { kind: 'quiz', icon: '🧠', title: 'Bilgi yarışması başlıyor!', text: `${who} · ${Math.round(lobbyMs(app) / 1000)} sn içinde katıl`, target: 'quiz', ref: id });
-  if (by !== 'sistem') app.db.run('INSERT INTO ev_quiz_player(quiz_id, player_id, joined_at) VALUES(?, ?, ?)', id, by, now);
+  if (by !== 'sistem') app.db.run('INSERT INTO ev_quiz_player(quiz_id, player_id, joined_at, level) VALUES(?, ?, ?, ?)', id, by, now, level);
   app.after(() => schedule(app, id));
   return rowById(app, id)!;
 }
@@ -184,10 +212,10 @@ export const quizHandlers: Handlers = {
     broadcast(app, q);
     return { quiz: view(app, q, p.id) };
   },
-  'quiz.join': (app, s, { quizId }) => {
+  'quiz.join': (app, s, { quizId, level }) => {
     const { p, t } = requireTeam(app, s.pid);
     const q = myQuiz(app, quizId, t.id);
-    if (app.db.run('INSERT OR IGNORE INTO ev_quiz_player(quiz_id, player_id, joined_at) VALUES(?, ?, ?)', q.id, p.id, app.now())) broadcast(app, q);
+    if (app.db.run('INSERT OR IGNORE INTO ev_quiz_player(quiz_id, player_id, joined_at, level) VALUES(?, ?, ?, ?)', q.id, p.id, app.now(), level ?? 'genel')) broadcast(app, q);
     return { quiz: view(app, q, p.id) };
   },
   'quiz.go': (app, s, { quizId }) => {
@@ -197,9 +225,9 @@ export const quizHandlers: Handlers = {
     if (q.started_by !== p.id && q.started_by !== 'sistem' && p.team_role === 'uye') fail('YETKI', 'Yarışmayı başlatan ya da lider/yardımcı hemen başlatabilir.');
     if (!playersOf(app, q.id).length) fail('SART', 'Önce en az bir kişi katılmalı.');
     app.db.run('UPDATE ev_quiz SET lobby_ends = ? WHERE id = ?', app.now(), q.id);
-    const nq = rowById(app, q.id)!;
     store(app).last.delete(q.id);
     quizTick(app);
+    const nq = rowById(app, q.id)!;
     app.after(() => schedule(app, q.id));
     return { quiz: view(app, nq, p.id) };
   },

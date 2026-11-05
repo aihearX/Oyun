@@ -422,7 +422,7 @@ export function SafeChatSheet({ onClose }: { onClose: () => void }) {
     <Sheet title="Güvenli sohbet" onClose={onClose}>
       <div className="muted wrap" data-testid="serbest-not">Serbest yazı {lim}. bölümden sonra açılır{left > 0 ? ` (${left} bölüm kaldı)` : ''}. O zamana kadar hazır sözler ve emojiyle konuşursun; böylece herkes güvende başlar.</div>
       <ul className="rules">
-        <li><Art name="shield" size={18} /> Kötü sözler otomatik yıldızlanır.</li>
+        <li><Art name="shield" size={18} /> Kötü sözler yıldızla kapatılır.</li>
         <li><Art name="flag" size={18} /> Bir mesajı üç farklı kişi şikâyet ederse gizlenir, gönderen 10 dk yazamaz.</li>
         <li><Art name="mute" size={18} /> Rahatsız olduğun kişiyi sessize alabilir ya da engelleyebilirsin.</li>
         <li><Art name="lock" size={18} /> Kişisel bilgini (adres, telefon, okul) paylaşma.</li>

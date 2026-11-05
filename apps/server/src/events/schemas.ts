@@ -25,7 +25,8 @@ export const EVENT_SCHEMAS = {
   'quiz.state': empty,
   /** level: başlatanın bilgi düzeyi (Ayarlar); 'odyoloji' soruların bir kısmını öğrenci düzeyinden seçer */
   'quiz.start': z.object({ level: z.enum(['genel', 'odyoloji']).optional() }),
-  'quiz.join': z.object({ quizId: id }),
+  /** level: katılanın bilgi düzeyi; sabit saatli yarışmada katılanlardan biri 'odyoloji' ise sorular karışık seçilir (karar 47) */
+  'quiz.join': z.object({ quizId: id, level: z.enum(['genel', 'odyoloji']).optional() }),
   'quiz.go': z.object({ quizId: id }),
   'quiz.answer': z.object({ quizId: id, index: z.number().int().min(0).max(19), choice: z.number().int().min(0).max(3) }),
   'tquests.state': empty,
