@@ -24,8 +24,14 @@ const EMPTY: VoiceManifest = { version: 1, lines: {} };
 
 // ---- durum (Ayarlar'daki küçük gösterge + test günlüğü)
 export type VoiceMode = 'kayıt' | 'cihaz sesi' | 'sessiz';
-export interface VoiceStatus { mode: VoiceMode | null; line: string | null; error: string | null; at: number; source: 'köprü' | 'indirme' | null; decoded: number }
-export const useVoiceStatus = create<VoiceStatus>()(() => ({ mode: null, line: null, error: null, at: 0, source: null, decoded: 0 }));
+export interface VoiceStatus {
+  mode: VoiceMode | null; line: string | null; error: string | null; at: number; source: 'köprü' | 'indirme' | null; decoded: number;
+  /** ses listesi bağlantı olmadan okunamadı: bağlantı dönünce (ya da "Sesi dene"de) yeniden indirilecek */
+  waiting: boolean;
+  /** "Sesi dene" sürüyor (yavaş ağda liste ve kayıt inerken eski durum "aynı" görünmesin) */
+  trying: boolean;
+}
+export const useVoiceStatus = create<VoiceStatus>()(() => ({ mode: null, line: null, error: null, at: 0, source: null, decoded: 0, waiting: false, trying: false }));
 type LogItem = { mode: VoiceMode; id: string | null; file: string | null; error?: string; at: number };
 const log: LogItem[] = [];
 /** sıraya alınabilen istekler (bölüm içi patoloji cümlesi): ne olduğu — test günlüğü */
@@ -35,12 +41,14 @@ const requests: RequestItem[] = [];
 /** son istekler (en çok 100; test / tanı) */
 export const voiceRequests = (): RequestItem[] => requests;
 const request = (id: string, outcome: RequestOutcome) => { requests.push({ id, outcome, at: Date.now() }); if (requests.length > 100) requests.splice(0, requests.length - 100); };
-if (typeof window !== 'undefined') (window as unknown as { __odiVoice?: unknown }).__odiVoice = { log, requests, status: () => useVoiceStatus.getState() };
+// reset: önbellekleri boşalt (uçtan uca test: ses listesinin ilk isteği çevrimdışı olsun; kopma-e2e 'ses')
+if (typeof window !== 'undefined') (window as unknown as { __odiVoice?: unknown }).__odiVoice = { log, requests, status: () => useVoiceStatus.getState(), reset: () => resetVoiceManifest() };
 function report(mode: VoiceMode, id: string | null, file: string | null, error?: string) {
   log.push({ mode, id, file, ...(error ? { error } : {}), at: Date.now() }); if (log.length > 200) log.splice(0, log.length - 200);
-  useVoiceStatus.setState((s) => ({ mode, line: id, at: Date.now(), ...(error ? { error } : mode === 'kayıt' ? { error: null } : { error: s.error }) }));
+  useVoiceStatus.setState((s) => ({ mode, line: id, at: Date.now(), trying: false, ...(error ? { error } : mode === 'kayıt' ? { error: null } : { error: s.error }) }));
 }
 const fail = (error: string) => useVoiceStatus.setState({ error, at: Date.now() });
+const LIST_ERROR = 'liste okunamadı';
 
 let manifestP: Promise<VoiceManifest> | null = null;
 /** son başarısız (hata ya da boş) liste denemesinin zamanı: art arda istekler bu kadar bekler, sonra yeniden dener */
@@ -59,20 +67,31 @@ export function voiceManifest(): Promise<VoiceManifest> {
       const raw = pl.voiceManifest ? await pl.voiceManifest() : fileUrl ? null : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
       const m = raw ? (JSON.parse(raw) as VoiceManifest) : null;
       return m && typeof m === 'object' && m.lines && typeof m.lines === 'object' ? m : EMPTY;
-    } catch (e) { fail(`liste okunamadı: ${String(e).slice(0, 80)}`); return EMPTY; }
+    } catch (e) { fail(`${LIST_ERROR}: ${String(e).slice(0, 80)}`); useVoiceStatus.setState({ waiting: true }); return EMPTY; }
   })();
   manifestP = p;
   void p.then((m) => {
     if (manifestP !== p) return;
-    if (Object.keys(m.lines).length) { manifestFailAt = 0; return; }
+    if (Object.keys(m.lines).length) {
+      // liste indi: kopukken kalan "liste okunamadı" artık doğru değil (Ayarlar eski hatayı göstermesin)
+      manifestFailAt = 0;
+      useVoiceStatus.setState((s) => ({ waiting: false, ...(s.error?.startsWith(LIST_ERROR) ? { error: null } : {}) }));
+      return;
+    }
     manifestP = null; manifestFailAt = Date.now();
   });
   return p;
 }
 /** platform değişince (mobil köprü kurulunca) / sıfırlamada önbellekleri boşalt */
 export function resetVoiceManifest() { manifestP = null; manifestFailAt = 0; buffers.clear(); }
-/** bağlantı dönünce / "Sesi dene"de: liste daha önce okunamadıysa beklemeden yeniden dene (dolu liste korunur) */
-export function retryVoiceManifest() { manifestFailAt = 0; }
+/** bağlantı dönünce / "Sesi dene"de: liste daha önce okunamadıysa beklemeden HEMEN yeniden indir (dolu liste korunur).
+ *  Yalnız beklemeyi kaldırmak yetmiyordu (YN-272): sıradaki satıra dek kimse istemediği için anlatıcı susuyor, Ayarlar eski hatayı
+ *  gösteriyordu. İlk deneme ağ yeni gelirken düşerse sunucunun 'bağlı'ya dönüşü ya da "Sesi dene" yine dener. */
+export function retryVoiceManifest() {
+  if (!manifestFailAt) return;
+  manifestFailAt = 0;
+  void voiceManifest();
+}
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('online', retryVoiceManifest);
 // sunucu bağlantısı dönünce de (window 'online' her ağ değişiminde gelmeyebilir; köprülü mobil kabukta da)
 // (birim testlerinde depo sahte olabilir: abonelik yoksa atlanır)
@@ -183,6 +202,14 @@ export function speakLine(text: string, id?: string): number {
   return my;
 }
 
+/** Ayarlar › "Sesi dene": liste daha önce okunamadıysa beklemeden yeniden indirilir, sonra ilk hikâye satırı çalınır */
+export function tryVoice(text: string, id: string) {
+  retryVoiceManifest();
+  speakLine(text, id);
+  // satır sonuçlanınca (report) ya da kesilince (halt) kalkar; ayar kapalıysa hiç konmaz
+  if (voiceBusy()) useVoiceStatus.setState({ trying: true });
+}
+
 // ---- sıra: bölüm içindeki cümleler (patoloji) başka bir anlatıcı satırının üstüne binmez
 type Queued = { text: string; id: string; at: number; maxWaitMs: number; started?: number; cancelled?: boolean };
 const queue: Queued[] = [];
@@ -222,6 +249,7 @@ export function stopVoice() {
 /** süren satırı kes (sıra kalır: speakLine yeni satıra geçerken) */
 function halt() {
   token++; active = null;
+  if (useVoiceStatus.getState().trying) useVoiceStatus.setState({ trying: false });
   const c = current; current = null;
   try { c?.stop(); } catch { /* yok */ }
   try { platform().stopSpeaking(); } catch { /* yok */ }

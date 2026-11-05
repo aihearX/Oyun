@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, useSyncExternalStore } from 'react';
 import { audio } from '@odi/audio';
 import { useStore } from '../store';
 import { ScreenHead, systemPrefersReducedMotion } from '../ui/bits';
@@ -8,7 +8,7 @@ import { ActionButton } from '../ui/Button';
 import { Art, Glyph } from '../ui/art';
 import { Sheet } from '../ui/social';
 import { resetEverything } from '../reset';
-import { retryVoiceManifest, speakLine, useVoiceStatus } from '../ftue/voice';
+import { tryVoice as tryVoiceLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { GeriBildirimKart } from './GeriBildirimKart';
 import { KurucuSecim } from '../kurucu/Kurucular';
@@ -102,13 +102,13 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       <CodeSettingsCard />
       <KurucuSecim />
       <GeriBildirimKart />
-      <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div>
+      <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar, kristaller (satın aldıkların dahil) ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div>
         {/* silme penceresindeki adsız kalanlar cümlesinin kısa hâli (YN-258, OT-ekonomi-denetci-46) */}
         <div className="muted" data-testid="hesap-sil-anonim">Takım etkinliklerindeki süre ve puan katkıların adsız kalır. <button type="button" className="linkish legal-link" data-testid="hesap-sil-gizlilik" onClick={() => { setLegalDonus(false); setLegalBolum('silme'); setLegal('gizlilik'); }}>Gizlilik</button></div></div><button className="btn coral small" data-testid="sifirla" onClick={() => { setLegal(null); setAsk(true); }}>Hesabı sil</button></div>
       {ask && (
         <Sheet title="Hesabın silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
           <div className="reset-sheet" data-testid="sifirla-onay">
-            <p className="rs-warn"><Art name="trash" size={22} /> Silinecek: hesabın, ilerleme, jetonlar, satın aldıkların, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
+            <p className="rs-warn"><Art name="trash" size={22} /> Silinecek: hesabın, ilerleme, jetonlar, kristallerin (satın aldıkların dahil), Sezon Kartı ve hızlandırıcılar, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
             {/* gizlilik metni § 7 "Anonimleşir" ile aynı (account-veri.ts: katkı satırları, ayak rekoru, akıştaki olay satırları; YN-244) */}
             <p className="muted" data-testid="sifirla-anonim">Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz. <button type="button" className="linkish legal-link" data-testid="sifirla-gizlilik" disabled={busy} onClick={() => { setAsk(false); setLegal('gizlilik'); setLegalBolum('silme'); setLegalDonus(true); }}>Gizlilik: neler silinir, neler kalır</button></p>
             <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.{me ? <> O durumda silmeyi e-postayla isteyebilmek için arkadaş kodunu not al: <b className="mono">{me.friendCode}</b>.</> : null}</p>
@@ -137,20 +137,29 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
  * test derlemesinde ve yönetici modunda: oyuncuya geliştirici ayrıntısı gösterilmez.
  */
 /** liste daha önce okunamadıysa (bağlantı kopmuştu) beklemeden yeniden indirilir */
-const tryVoice = () => { retryVoiceManifest(); speakLine(lineText('hikaye-01'), 'hikaye-01'); };
+const tryVoice = () => tryVoiceLine(lineText('hikaye-01'), 'hikaye-01');
+const onlineSub = (f: () => void) => { window.addEventListener('online', f); window.addEventListener('offline', f); return () => { window.removeEventListener('online', f); window.removeEventListener('offline', f); }; };
+const isOffline = () => navigator.onLine === false;
 function VoiceReadout({ details }: { details: boolean }) {
   const v = useVoiceStatus();
+  const offline = useSyncExternalStore(onlineSub, isOffline, () => false);
+  // ses listesi internetsizken okunamadı: oyuncuya dürüstçe söyle (bağlanınca kendiliğinden yeniden indirilir; YN-272)
+  const note = v.waiting && offline ? <div className="set-note" role="status" data-testid="ses-cevrimdisi">İnternet yok: Tüy Dede’nin sesi indirilemedi. Bağlanınca yeniden denenecek.</div> : null;
   if (!details) return (
-    <div className="row between voice-try"><span className="muted">Tüy Dede’nin sesini dinle</span>
-      <button type="button" className="btn small ghost" onClick={tryVoice}>Sesi dene</button></div>
+    <>
+      <div className="row between voice-try"><span className="muted">{v.trying ? 'Yükleniyor…' : 'Tüy Dede’nin sesini dinle'}</span>
+        <button type="button" className="btn small ghost" onClick={tryVoice}>Sesi dene</button></div>
+      {note}
+    </>
   );
-  const label = v.mode === 'kayıt' ? 'kayıt ✓' : v.mode === 'cihaz sesi' ? 'cihaz sesi (erkek)' : v.mode === 'sessiz' ? 'sessiz (erkek ses yok, yazı var)' : 'henüz konuşmadı';
+  const label = v.trying ? 'yükleniyor…' : v.mode === 'kayıt' ? 'kayıt ✓' : v.mode === 'cihaz sesi' ? 'cihaz sesi (erkek)' : v.mode === 'sessiz' ? 'sessiz (erkek ses yok, yazı var)' : 'henüz konuşmadı';
   return (
     <div className="voice-readout" data-testid="ses-durumu" data-mode={v.mode ?? ''}>
       <div className="row between"><span><b>Anlatıcı sesi:</b> {label}</span>
         <button type="button" className="btn small ghost" onClick={tryVoice}>Sesi dene</button></div>
       <small className="muted">{v.source ? `kaynak: ${v.source} · ` : ''}çözülen kayıt: {v.decoded}{v.line ? ` · son satır: ${v.line}` : ''}</small>
       {v.error && <small className="vr-err">Son hata: {v.error}</small>}
+      {note}
     </div>
   );
 }

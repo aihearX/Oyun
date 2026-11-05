@@ -30,9 +30,11 @@
 //               (sunucu açık) → oda yeniden katılımla geri gelir.
 // Her kopmada: "Bağlantı koptu" şeridi görünür; sunucu döndükten sonra ≤ 15 sn'de kendiliğinden bağlanır; cüzdan, kamp, ilerleme
 // sunucu (SQLite) ve istemcide aynı; bekleyen kuyruk/outbox boş.
+//   ses         anlatıcı sesi kopukken (YN-272): ağ kesilince ses listesi düşer; bağlanınca (online / sunucu bağlı) ve "Sesi dene"de
+//               yeniden istenir, Tüy Dede kayıtla konuşur, teşhis satırındaki eski hata kalkar; kopukken "Sesi dene" "İnternet yok" der.
 //   tanitim     Tüy Dede tanıtımı kopukken (YN-263): Bugün tanıtımı internetsiz "İnternet yok" ekranının üstünde anlatılmaz, bağlanınca
 //               sürer; kamp öğreticisinde kopukken "Kur" balonu dürüst ("İnternet gelince inşaat başlayacak"), el yok, bağlanınca sürer.
-// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,arkadas,yaris,yaris-ici,tanitim] [--cuzdan bolum,olay,…] [--no-build] [--headed]
+// Kullanım: node tools/harness/kopma-e2e.mjs [--browsers chromium,webkit] [--only odul,kamp,cuzdan,sohbet,etkinlik,arkadas,yaris,ses,yaris-ici,tanitim] [--cuzdan bolum,olay,…] [--no-build] [--headed]
 // Çıktı: tools/harness/out/kopma/<tarayıcı>/*.png, sonuc.json
 import { spawn } from 'node:child_process';
 import net from 'node:net';
@@ -1039,6 +1041,79 @@ async function suiteEtkinlik(A) {
   return t;
 }
 
+/**
+ * Anlatıcı sesi bağlantı koptuktan sonra (YN-272, OT-eski-telefon-42; YN-242 yeniden): Ayarlar açıkken ağ kesilir (uçak modu gibi:
+ * çevrimdışı + açık WebSocket kopar), ses listesi önbelleği boşaltılır ve "Sesi dene" listeyi internetsiz ister → düşer. Ağ açılır:
+ * (a) window 'online' / sunucu 'bağlı'dan sonra liste kendiliğinden yeniden istenir, (b) ağ açıkken "Sesi dene" listeyi ister,
+ * (c) teşhis satırı güncellenir (kayıt ✓, çözülen kayıt > 0, eski "Son hata" yok). Kopukken "Sesi dene" dürüst durum der.
+ */
+async function suiteSes(A) {
+  step('(s) Anlatıcı sesi: ağ kopunca liste düşer, bağlanınca ve "Sesi dene"de geri gelir (YN-272, OT-eski-telefon-42)');
+  const cdp = cur.bt === 'chromium' ? await A.ctx.newCDPSession(A.page) : null;
+  const istek = []; const izle = (r) => { if (r.url().includes('/voice/manifest.json')) istek.push(Date.now()); };
+  A.page.on('request', izle);
+  const durum = () => A.page.evaluate(() => window.__odiVoice.status());
+  const kutu = A.page.getByTestId('ses-durumu');
+  const dene = () => kutu.getByRole('button', { name: 'Sesi dene' }).click();
+  const kopar = async () => {
+    A.proxy.mode = 'refuse'; A.proxy.drop(); await A.ctx.setOffline(true);
+    await A.page.waitForFunction(() => window.__ag?.net()?.status !== 'bağlı', null, { timeout: 8000, polling: 100 });
+    // liste bu oturumda zaten indiyse önbellekten çıkar: ilk istek çevrimdışı olsun
+    await A.page.evaluate(() => window.__odiVoice.reset());
+  };
+  const bagla = async () => { await A.ctx.setOffline(false); A.proxy.mode = 'pass'; return waitOnline(A, RECONNECT_MAX_MS + 10_000); };
+  /** `t`den sonra liste istendi mi (en çok `ms` bekler) */
+  const istendi = async (t, ms = 6000) => { for (let i = 0; i < ms / 100 && !istek.some((x) => x >= t); i++) await sleep(100); return istek.some((x) => x >= t); };
+  try {
+    await tab(A, 'Profil'); await A.page.locator('.menu-tile[data-tile="settings"]').click();
+    await kutu.waitFor({ timeout: 10_000 });
+
+    // 1) kopukken: liste düşer; "Sesi dene" dürüst durum söyler
+    await kopar();
+    const t0 = Date.now(); await dene();
+    check(await istendi(t0), 'kopukken "Sesi dene" listeyi istedi');
+    let d = null; for (let i = 0; i < 50 && !(d = await durum()).error; i++) await sleep(100);
+    console.log(`    · kopukken durum: ${JSON.stringify(d)}`);
+    check(/liste okunamadı/.test(d.error ?? ''), `kopukken liste okunamadı (yeniden üretildi: "${d.error}")`);
+    const cevrimdisi = await A.page.getByTestId('ses-cevrimdisi').textContent({ timeout: 3000 }).catch(() => null);
+    await shot(A, 'ses-kopuk');
+    check(/İnternet yok/.test(cevrimdisi ?? ''), `kopukken "Sesi dene" dürüst: "${cevrimdisi}"`);
+
+    // 2) (a) bağlanınca liste kendiliğinden yeniden istenir; (c) eski hata kalkar
+    const tUp = await bagla();
+    check(await istendi(tUp - 3000, 8000), '(a) bağlanınca (online / sunucu bağlı) liste kendiliğinden yeniden istendi');
+    for (let i = 0; i < 50 && (d = await durum()).error; i++) await sleep(100);
+    check(!d.error, `(c) bağlanınca eski "Son hata" kalktı (${d.error ?? 'yok'})`);
+    check(!(await A.page.getByTestId('ses-cevrimdisi').count()), 'bağlanınca "İnternet yok" notu kalktı');
+
+    // 3) (b) bir daha kop; bağlanırken ilk otomatik deneme de düşer (yavaş ağda bağlantı henüz oturmamış); ağ açıkken "Sesi dene" listeyi ister
+    await kopar();
+    await dene(); for (let i = 0; i < 50 && !(await durum()).error; i++) await sleep(100);
+    await A.page.route('**/voice/manifest.json', (r) => r.abort('internetdisconnected'));
+    await bagla(); await sleep(1500);
+    await A.page.unroute('**/voice/manifest.json');
+    // eski telefonun yavaş ağı (≈1,5 Mbit/s, 400 ms gecikme; oyuncu/daemon.mjs): liste ve kayıt inerken kutu eski durumu göstermesin
+    if (cdp) await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 1.5e6 / 8, uploadThroughput: 0.75e6 / 8 });
+    const t1 = Date.now(); const n0 = (await durum()).decoded;
+    await dene();
+    const hemen = await kutu.innerText();
+    check(/yükleniyor/.test(hemen), `"Sesi dene"ye basınca kutu hemen "yükleniyor…" diyor (eski hata "aynı" görünmüyor)`);
+    check(await istendi(t1), '(b) ağ açıkken "Sesi dene" listeyi yeniden istedi (otomatik deneme düştükten hemen sonra)');
+    for (let i = 0; i < 100 && (d = await durum()).mode !== 'kayıt'; i++) await sleep(100);
+    const metin = await kutu.innerText();
+    await shot(A, 'ses-baglandi');
+    console.log(`    · bağlıyken durum: ${JSON.stringify(d)} · kutu: ${metin.replace(/\s+/g, ' ')}`);
+    check(d.mode === 'kayıt' && d.decoded > n0 && d.line === 'hikaye-01', `(b) Tüy Dede kayıtla konuştu (${d.mode}, çözülen kayıt ${n0} → ${d.decoded})`);
+    check(/kayıt ✓/.test(metin) && !/Son hata/.test(metin), '(c) teşhis satırı güncel: "kayıt ✓", "Son hata" yok');
+  } finally {
+    if (cdp) await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }).then(() => cdp.detach()).catch(() => undefined);
+    A.page.off('request', izle);
+    await A.page.unroute('**/voice/manifest.json').catch(() => undefined);
+    await A.ctx.setOffline(false); A.proxy.mode = 'pass';
+    await A.page.getByRole('button', { name: 'Geri' }).first().click().catch(() => undefined);
+  }
+}
+
 async function suiteYaris(A, B) {
   step('(d) Yarış odasında: sunucu yeniden başlar → oda kapandı iletisi; ağ kopması → odaya yeniden katılım');
   for (const P of [A, B]) {
@@ -1302,6 +1377,8 @@ try {
     await section('sohbet', () => suiteSohbet(A, B));
     await section('etkinlik', () => suiteEtkinlik(A));
     await section('arkadas', () => suiteArkadas(A, B));
+    // yarıştan önce: yaris bölümü A'yı yarış sayfasında bırakır
+    await section('ses', () => suiteSes(A));
     await section('yaris', () => suiteYaris(A, B));
     let T = null;
     if (want('tanitim')) { T = await newPlayer(browser, bt, 'T', `Tuy${bt[0]}`, { cleared: 3, tours: ['result1', 'map', 'camp'] }); }

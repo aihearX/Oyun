@@ -1,9 +1,10 @@
+// @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // YN-242: ses listesi bir kez okunamadı diye anlatıcı oturum boyu susmasın
 vi.mock('@odi/audio', () => ({ audio: { decode: async () => ({ duration: 3 }) } }));
 
-const { recordedFile, resetVoiceManifest, retryVoiceManifest, voiceBuffer, voiceManifest } = await import('./voice');
+const { recordedFile, resetVoiceManifest, retryVoiceManifest, tryVoice, useVoiceStatus, voiceBuffer, voiceManifest } = await import('./voice');
 const { textHash } = await import('./script');
 const { installPlatform } = await import('../platform');
 const { useNet } = await import('@odi/net/store');
@@ -46,6 +47,49 @@ describe('anlatıcı ses listesi: hata önbellekte kalmaz', () => {
     expect(await recordedFile('hikaye-01', 'Merhaba.')).toBeNull();
     useNet.setState({ status: 'bağlı' });
     expect(await recordedFile('hikaye-01', 'Merhaba.')).toBe('hikaye-01.mp3');
+  });
+
+  // YN-272 (OT-eski-telefon-42): uçak modundan sonra bağlıyken Ayarlar hâlâ "liste okunamadı" diyor, anlatıcı susuyordu
+  it('bağlantı dönünce liste kendiliğinden yeniden iner, eski hata ve "internet yok" durumu kalkar', async () => {
+    const fetch = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue(ok(manifest));
+    vi.stubGlobal('fetch', fetch);
+    useVoiceStatus.setState({ error: null, waiting: false });
+    await voiceManifest();
+    await Promise.resolve();
+    expect(useVoiceStatus.getState()).toMatchObject({ error: 'liste okunamadı: TypeError: Failed to fetch', waiting: true });
+    // window 'online' (ya da sunucu 'bağlı'): sıradaki satırı beklemeden listeyi ister
+    window.dispatchEvent(new Event('online'));
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(Object.keys((await voiceManifest()).lines)).toEqual(['hikaye-01']);
+    await Promise.resolve();
+    expect(useVoiceStatus.getState()).toMatchObject({ error: null, waiting: false });
+    // liste zaten doluyken bağlantı olayı yeni istek açmaz
+    window.dispatchEvent(new Event('online'));
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('"Sesi dene": otomatik deneme düştükten hemen sonra da listeyi ister ve kaydı çalar', async () => {
+    const fetch = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue(ok(manifest));
+    vi.stubGlobal('fetch', fetch);
+    useVoiceStatus.setState({ mode: 'sessiz', error: null, decoded: 0 });
+    await voiceManifest(); await Promise.resolve();
+    // bağlantı döndü ama ilk deneme de düştü (ağ henüz oturmamış): bekleme süresi yeniden başlar
+    window.dispatchEvent(new Event('online')); await voiceManifest(); await Promise.resolve();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(useVoiceStatus.getState().error).toMatch(/liste okunamadı/);
+    // bekleme dolmadan "Sesi dene": liste yeniden istenir, kayıt iner ve çalınır
+    const played = vi.fn(() => ({ stop() {}, done: Promise.resolve() }));
+    const { audio } = await import('@odi/audio');
+    Object.assign(audio, { voice: played, unlock: () => undefined, running: () => true });
+    const { useStore } = await import('../store');
+    useStore.setState({ sounds: true, narratorVoice: true });
+    tryVoice('Merhaba.', 'hikaye-01');
+    expect(useVoiceStatus.getState().trying).toBe(true);
+    await vi.waitFor(() => expect(useVoiceStatus.getState().mode).toBe('kayıt'));
+    expect(fetch).toHaveBeenCalledTimes(4); // liste + kayıt dosyası
+    expect(played).toHaveBeenCalledTimes(1);
+    expect(useVoiceStatus.getState()).toMatchObject({ line: 'hikaye-01', error: null, waiting: false, trying: false });
+    expect(useVoiceStatus.getState().decoded).toBeGreaterThan(0);
   });
 
   it('indirilemeyen kayıt dosyası önbellekte tutulmaz', async () => {
