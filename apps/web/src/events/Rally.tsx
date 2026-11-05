@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyRewardReason, rallyShownName, type InboxItem, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
+import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyRewardReason, rallyShownName, type InboxItem, type RallyCall, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
@@ -13,6 +13,7 @@ import type { PlayFn } from './EventsScreen';
 import { MonsterArt } from './MonsterArt';
 import { Art, rich } from '../ui/art';
 import { TeammateCall } from './Call';
+import { Icon } from '../ui/icons';
 import '../race/race.css'; // race-dots / race-live / race-actions: yarış ekranları açılmadan da stilli (YN-026)
 
 /**
@@ -214,8 +215,41 @@ function Picker({ left, busy, err, onStart }: { left: number; busy: boolean; err
   );
 }
 
-/** Ralliye takım arkadaşını özel mesajla çağır (DM davet kartı → Etkinlikler › Ralli); çevrimiçiler üstte */
+/** çağrılanın durumu (YN-224): katıldıysa "katıldı", değilse davetin okunup okunmadığı (sunucu: özel mesajdaki çift tikle aynı kaynak) */
+export const rallyCallState = (c: Pick<RallyCall, 'seen'>, joined: boolean): string => (joined ? 'katıldı' : c.seen ? 'gördü' : 'henüz görmedi');
+
+/** bu ralliye benim çağırdıklarım (sunucu `rally.calls`); çağrılan daveti okuyunca gelen 'dm.read' ile ve yeni davette yenilenir */
+function useRallyCalls(rallyId: string): { calls: RallyCall[]; refresh: () => void } {
+  const [calls, setCalls] = useState<RallyCall[]>([]); const [n, setN] = useState(0);
+  const ids = useRef<string[]>([]); ids.current = calls.map((c) => c.id);
+  useEffect(() => {
+    let on = true;
+    void evNet()?.call('rally.calls', { rallyId }).then((r) => { if (on) setCalls(r.calls); }, () => undefined);
+    return () => { on = false; };
+  }, [rallyId, n]);
+  useEffect(() => evNet()?.on('dm.read', ({ by }) => { if (ids.current.includes(by)) setN((x) => x + 1); }), []);
+  return { calls, refresh: () => setN((x) => x + 1) };
+}
+
+/**
+ * Ralliye takım arkadaşını özel mesajla çağır (DM davet kartı → Etkinlikler › Ralli); çevrimiçiler üstte. Altında kimin çağrıldığı ve
+ * davetin görülüp görülmediği (OT-takim-kaptani-39): "Çağrıldı: Hesapli · gördü / henüz görmedi". Tahmin ya da sahte "gördü" yok.
+ */
 function RallyCall({ rallyId, title, joined }: { rallyId: string; title: string; joined: string[] }) {
-  return <TeammateCall joined={joined} testId="ralli-cagir" label="Takım arkadaşını çağır" sheetTitle="Kimi ralliye çağıralım?" note="Özel mesajla davet kartı gider; dokununca ralli açılır."
-    text={`Ralliye katıl! ${title} seni bekliyor`} meta={{ type: 'ralli', roomId: rallyId, title }} />;
+  const { calls, refresh } = useRallyCalls(rallyId);
+  return (
+    <>
+      <TeammateCall joined={joined} testId="ralli-cagir" label="Takım arkadaşını çağır" sheetTitle="Kimi ralliye çağıralım?" note="Özel mesajla davet kartı gider; dokununca ralli açılır."
+        text={`Ralliye katıl! ${title} seni bekliyor`} meta={{ type: 'ralli', roomId: rallyId, title }} onSent={refresh} />
+      {calls.length > 0 && (
+        <ul className="ev-calls" data-testid="ralli-cagrilar">
+          {calls.map((c) => { const st = rallyCallState(c, joined.includes(c.id)); return (
+            <li key={c.id} data-testid="ralli-cagrilan" data-durum={st}>
+              <span className="min0">Çağrıldı: <b>{rallyShownName(c.name)}</b></span>
+              <span className={`ev-call-st${st === 'henüz görmedi' ? ' muted' : ''}`}>· {st !== 'henüz görmedi' && <Icon name="check" size="1em" className="ic-inline" />}{st}</span>
+            </li>); })}
+        </ul>
+      )}
+    </>
+  );
 }

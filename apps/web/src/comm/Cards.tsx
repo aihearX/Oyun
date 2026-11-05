@@ -236,8 +236,9 @@ export function HelpCard({ m, live }: { m: ChatMessage; live: ChatMessage[] }) {
           : expired ? <div className="muted small-note">Bu isteğin süresi doldu.</div>
             : (
               <div className="fc-actions">
-                <button type="button" className="btn small teal" data-testid="ipucu-ver" aria-label="İpucu ver" disabled={tipped} onClick={() => setTip(true)}><Art name="bulb" size={16} className="art-inline" /> {tipped ? 'Verdin' : 'İpucu'}</button>
-                <button type="button" className="btn small" data-testid="kalkan-gonder" aria-label="Kalkan gönder" disabled={gave || busy === 'k' || (!!req && req.helpers.length >= req.max)} onClick={() => void shield()}><Art name="shield" size={16} className="art-inline" /> {gave ? 'Gönderildi' : 'Kalkan'}</button>
+                {/* verildi durumu kısa ve tikli: Büyük yazıda dar sütunda kesilmez, devre dışı yazı okunur kontrastta (OT-buyuk-yazi-62) */}
+                <button type="button" className="btn small teal" data-testid="ipucu-ver" aria-label={tipped ? 'İpucu verdin' : 'İpucu ver'} disabled={tipped} onClick={() => setTip(true)}><Art name={tipped ? 'check' : 'bulb'} size={16} className="art-inline" /> {tipped ? 'Verdin' : 'İpucu'}</button>
+                <button type="button" className="btn small" data-testid="kalkan-gonder" aria-label={gave ? 'Kalkan gönderildi' : 'Kalkan gönder'} disabled={gave || busy === 'k' || (!!req && req.helpers.length >= req.max)} onClick={() => void shield()}><Art name={gave ? 'check' : 'shield'} size={16} className="art-inline" /> {gave ? 'Verdin' : 'Kalkan'}</button>
                 <button type="button" className="btn small coral" data-testid="birlikte-yaris" aria-label="Birlikte yarış" disabled={busy === 'y'} onClick={() => void race()}><Art name="finish" size={16} className="art-inline" /> Yarış</button>
               </div>
             )}

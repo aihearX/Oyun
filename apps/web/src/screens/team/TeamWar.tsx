@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { SOCIAL_LIMITS, type RegionState } from '@odi/shared';
+import { SOCIAL_LIMITS, type RegionState, type WarState } from '@odi/shared';
 import { BIOMES, HUMAN_JOURNEY } from '@odi/content';
 import { act, getNet } from '../../net';
 import { platform } from '../../platform';
@@ -14,6 +14,15 @@ import { Icon } from '../../ui/icons';
 const SNAKE = [0, 1, 2, 5, 4, 3, 6, 7, 8, 11, 10, 9];
 const CX = [50, 150, 250];
 const PATH = SNAKE.map((_, i) => { const row = Math.floor(i / 3); const col = row % 2 === 0 ? i % 3 : 2 - (i % 3); return `${CX[col]},${row * 100 + 50}`; }).join(' ');
+
+/**
+ * Bölge Savaşı kutusunun üst cümlesi (OT-ilk-kez-oyun-66): ne yapılacağı ve bu hafta takıma getirdiğin puan (sunucu: myTeamPoints;
+ * takıma katılmadan önce kazanılan sayılmaz). Hedef yokken puan bölgeye gitmez: cümle bunu söyler.
+ */
+export function warLede(war: Pick<WarState, 'targets' | 'myTeamPoints'>): string {
+  const brought = `Bu hafta ${fmtNum(war.myTeamPoints)} puan getirdin.`;
+  return war.targets.length ? `Bölüm oyna, puanın takımın hedef bölgesine gider. ${brought}` : `Bölüm oyna, puanın takıma sayılır; hedef bölge seçilince bölgeye de yazılır. ${brought}`;
+}
 
 /** Bölge Savaşı: 12 bölge, sahip amblemleri, hedefler, ilk 5, geri sayım; lider/yardımcı hedef seçer. */
 export function TeamWar() {
@@ -42,26 +51,37 @@ export function TeamWar() {
   const biomes = new Set(war.targets.includes('merkez') ? Object.keys(BIOMES) : war.regions.filter((r) => war.targets.includes(r.id)).flatMap((r) => r.biomes));
   const fit = HUMAN_JOURNEY.levels.filter((l) => l.number <= unlocked && biomes.has(l.biome)).pop();
   const ordered = SNAKE.map((i) => war.regions[i]!).filter(Boolean);
+  const preJoin = Math.max(0, war.myPoints - war.myTeamPoints);
 
   return (
     <div className="stack">
+      {/* üstte tek cümle ve tek eylem; sayılar ve kurallar "Nasıl çalışır?" altında kapalı (OT-ilk-kez-oyun-66). Sayılar sunucudan (war.ts warState) */}
       <div className="card war-head">
         <div className="row between"><b><Art e="⚔️" size="1.15em" className="art-inline" /> Bölge Savaşı</b><span className="countdown"><Art e="⏳" size="1.15em" className="art-inline" /> {fmtLeft(war.endsAt - now)}</span></div>
-        <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen (bölgelerde): <b data-testid="savas-sen">{fmtNum(war.myRegionPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
-        {/* döküm sunucudan (war.ts warState): bölgelere yazılan + hedefe yazılmayan = takım toplamı (OT-rekabetci-21) */}
-        <div className="muted small-note war-dokum" data-testid="savas-dokum" data-bolge={war.regionPoints} data-disari={war.teamPoints - war.regionPoints} data-toplam={war.teamPoints}>
-          Bölgelere yazılan <b>{fmtNum(war.regionPoints)}</b> · hedef bölgeye yazılmayan <b>{fmtNum(war.teamPoints - war.regionPoints)}</b> (bölge kazandırmaz; Takım Ligi’ne ve haftalık Sıralama’ya sayıldı).
-          {war.myPoints > 0 && <> Senin bu haftaki savaş puanın {fmtNum(war.myPoints)}; {fmtNum(war.myRegionPoints)} kadarı bölgelere yazıldı.</>}
-        </div>
-        <div className="muted small-note">Bölüm oyna → puanın hedef bölgeye yazılır. Biyomu eşleşen ilk hedefe gider; “Ninni Merkezi” hedefse her biyom sayılır. Hedef yokken ya da biyom hiçbir hedefe uymazken kazanılan puan bölgeye yazılmaz; yalnız Takım Ligi’ne ve haftalık Sıralama’ya sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
-        {war.targets.length === 0 ? <div className="war-cta muted">{canLead ? 'Henüz hedef yok: aşağıdan en çok 3 bölge seç. Seçilene dek kazanılan savaş puanı bölgeye yazılmaz.' : 'Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz. Sohbette öner!'}</div>
-          : fit ? <button className="btn" onClick={() => nav.play(fit.number)}><Icon name="play" size="0.9em" className="ic-inline" /> {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
+        <p className="war-lede" data-testid="savas-ozet">{warLede(war)}</p>
+        {war.targets.length === 0
+          ? canLead ? <button className="btn" data-testid="savas-eylem" onClick={() => setEdit([])}><Art name="target" size="1.15em" className="art-inline" /> Hedef bölge seç</button>
+            : <div className="war-cta muted">Lider henüz hedef bölge seçmedi; bu sürede kazanılan savaş puanı bölgeye yazılmaz. Sohbette öner!</div>
+          : fit ? <button className="btn" data-testid="savas-eylem" onClick={() => nav.play(fit.number)}><Icon name="play" size="0.9em" className="ic-inline" /> {fit.number}. bölümü oyna · {BIOMES[fit.biome].name}</button>
           : <div className="war-cta muted">Hedef bölgelerin henüz açmadığın biyomlarda. Haritada ilerledikçe açılır.</div>}
+        <details className="ilke-detay war-detay" data-testid="savas-nasil">
+          <summary>Nasıl çalışır?</summary>
+          <div className="war-stats"><span>Takım: <b>{fmtNum(war.teamPoints)}</b></span><span>Sen (bölgelerde): <b data-testid="savas-sen">{fmtNum(war.myRegionPoints)}</b></span><span>Hedef: <b>{war.targets.length}/{SOCIAL_LIMITS.targetsMax}</b></span></div>
+          {/* döküm sunucudan (war.ts warState): bölgelere yazılan + hedefe yazılmayan = takım toplamı (OT-rekabetci-21) */}
+          <div className="muted small-note war-dokum" data-testid="savas-dokum" data-bolge={war.regionPoints} data-disari={war.teamPoints - war.regionPoints} data-toplam={war.teamPoints}>
+            Bölgelere yazılan <b>{fmtNum(war.regionPoints)}</b> · hedef bölgeye yazılmayan <b>{fmtNum(war.teamPoints - war.regionPoints)}</b> (bölge kazandırmaz; Takım Ligi’ne ve haftalık Sıralama’ya sayıldı).
+            {war.myTeamPoints > 0 && <> Takıma getirdiğin {fmtNum(war.myTeamPoints)} puanın {fmtNum(war.myRegionPoints)} kadarı bölgelere yazıldı.</>}
+          </div>
+          {/* takıma katılmadan önce (takımsızken ya da önceki takımda) kazanılan pay bu takıma sayılmaz (YN-141) */}
+          {preJoin > 0 && <div className="muted small-note" data-testid="savas-katilmadan-once">{fmtNum(preJoin)} puanın takıma katılmadan önce kazanıldı; takım puanına sayılmaz.</div>}
+          <div className="muted small-note">Puan, biyomu eşleşen ilk hedef bölgeye yazılır; “Ninni Merkezi” hedefse her biyom sayılır. Hedef yokken ya da biyom hiçbir hedefe uymazken kazanılan puan bölgeye yazılmaz; yalnız Takım Ligi’ne ve haftalık Sıralama’ya sayılır. Puan parayla alınamaz. Hafta bitince bölge sahibi takımın her üyesine bölge başına <Art name="crystal" size="1.15em" className="art-inline" /> 50 + <Art name="coin" size="1.15em" className="art-inline" /> 300.</div>
+        </details>
       </div>
 
+      {/* hedef yokken düzenleme kutudaki "Hedef bölge seç" ile açılır (tek eylem) */}
       {canLead && (edit
         ? <div className="row"><span className="muted grow">Seç: {edit.length}/{SOCIAL_LIMITS.targetsMax}</span><button className="btn ghost small" onClick={() => setEdit(null)}>Vazgeç</button><button className="btn small" onClick={() => void save()}>Kaydet</button></div>
-        : <button className="btn ghost small" onClick={() => setEdit([...war.targets])}><Art e="🎯" size="1.15em" className="art-inline" /> Hedefleri düzenle</button>)}
+        : war.targets.length > 0 && <button className="btn ghost small" onClick={() => setEdit([...war.targets])}><Art e="🎯" size="1.15em" className="art-inline" /> Hedefleri düzenle</button>)}
 
       <div className={`war-map${edit ? ' editing' : ''}`}>
         <svg className="war-path" viewBox="0 0 300 400" preserveAspectRatio="none" aria-hidden><polyline points={PATH} /></svg>

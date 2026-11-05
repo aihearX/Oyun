@@ -941,7 +941,7 @@ async function sectionEtkinlik() {
     });
     await step('savas', async () => {
       await teamSub(A, 'Savaş'); await A.page.locator('.war-map').waitFor({ timeout: 10_000 });
-      await A.page.getByRole('button', { name: /Hedefleri düzenle/ }).click(); await A.page.locator('.region', { hasText: 'Kepçesi' }).first().click(); await A.page.locator('.region', { hasText: 'Ninni Merkezi' }).first().click();
+      await A.page.getByRole('button', { name: /Hedef bölge seç|Hedefleri düzenle/ }).click(); await A.page.locator('.region', { hasText: 'Kepçesi' }).first().click(); await A.page.locator('.region', { hasText: 'Ninni Merkezi' }).first().click();
       await A.page.getByRole('button', { name: 'Kaydet' }).click(); await sleep(800);
       for (let i = 0; i < 4; i++) await net(B, 'progress.submit', runOf(1 + i, { coins: 60 }));
       await sleep(1500);

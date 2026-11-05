@@ -1,9 +1,10 @@
 import { randomInt } from 'node:crypto';
-import { RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason, type RallyHit, type RallyParticipant, type RallyState } from '@odi/shared';
+import { RALLY_MONSTERS, RALLY_RULES, rallyDamageFor, rallyMaxHp, rallyRewardReason, type RallyCall, type RallyHit, type RallyParticipant, type RallyState } from '@odi/shared';
 import { fail, rid, type App, type Handlers } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { addTeamXp, broadcastExtra } from '../teamextra';
 import { requireTeam } from '../teams';
+import { readSeq } from '../dm';
 import { dayKey } from '../time';
 import { checkRun, giveRewards, notify } from './common';
 import { addDuelPoints } from './duel';
@@ -140,6 +141,21 @@ function win(app: App, r: RallyRow): void {
   broadcastExtra(app, r.team_id);
 }
 
+/**
+ * Bu ralliye pid'in özel mesajla çağırdıkları (YN-224, OT-takim-kaptani-39): "Takım arkadaşını çağır" davet kartları (dm, meta.type
+ * 'ralli', meta.roomId = ralli), kişi başına son davet. Okundu: çağrılanın okuma işareti (dm_reads) davete ulaştı mı; özel mesajdaki
+ * çift tikle aynı kaynak, tahmin yok. Silinen davet listede yok.
+ */
+export function rallyCalls(app: App, pid: string, rallyId: string): RallyCall[] {
+  const rows = app.db.all<{ to_id: string; seq: number; at: number }>(
+    `SELECT to_id, MAX(seq) AS seq, MAX(at) AS at FROM dm WHERE from_id = ? AND kind = 'davet' AND deleted = 0
+       AND json_extract(meta, '$.type') = 'ralli' AND json_extract(meta, '$.roomId') = ? GROUP BY to_id ORDER BY seq DESC`, pid, rallyId);
+  return rows.flatMap((x) => {
+    const p = app.playerOrNull(x.to_id);
+    return p ? [{ id: p.id, name: p.name, at: x.at, seen: readSeq(app, x.to_id, pid) >= x.seq }] : [];
+  });
+}
+
 export const rallyHandlers: Handlers = {
   'rally.state': (app, s, { rallyId }) => {
     const { t } = requireTeam(app, s.pid);
@@ -148,6 +164,11 @@ export const rallyHandlers: Handlers = {
     rallyTick(app);
     const r = rowById(app, rallyId);
     return { rally: r && r.team_id === t.id ? view(app, r) : null, startsLeft: rallyStartsLeft(app, t.id) };
+  },
+  'rally.calls': (app, s, { rallyId }) => {
+    const { t } = requireTeam(app, s.pid);
+    const r = rowById(app, rallyId);
+    return { calls: r && r.team_id === t.id ? rallyCalls(app, s.pid, r.id) : [] };
   },
   'rally.start': (app, s, { monster }) => {
     const { p, t } = requireTeam(app, s.pid);

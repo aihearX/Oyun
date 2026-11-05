@@ -217,6 +217,23 @@ try {
   check((await tid(B, 'ev-bildirim').innerText()).includes('Ayşe ralli başlattı'), 'Bora: "Ayşe ralli başlattı! 10:00" bildirimi');
   await shot(B, 'bildirim-ralli');
   await tid(B, 'ev-bildirim').locator('.ev-notice-main').click();
+  await tid(B, 'ralli-katil').waitFor();
+  // ---- çağrı kaydı (YN-224, OT-takim-kaptani-39): Ayşe Bora'yı özel mesajla çağırır; ralli ekranında "Çağrıldı: Bora · henüz görmedi".
+  // Bora özel mesajı okuyunca (dm.read: özel mesajdaki çift tikle aynı kaynak) "gördü"; okunmadan "gördü" yazmaz.
+  await tid(A, 'ralli-cagir').click();
+  await A.page.locator('.sheet [data-testid="cagir-uye"]').filter({ hasText: 'Bora' }).getByRole('button', { name: 'Bora çağır' }).click();
+  await A.page.locator('.sheet [data-testid="cagir-uye"]').filter({ hasText: 'Gönderildi' }).waitFor({ timeout: 10_000 });
+  await A.page.keyboard.press('Escape');
+  const cagri = A.page.locator('[data-testid="ralli-cagrilan"]').filter({ hasText: 'Bora' });
+  await cagri.waitFor({ timeout: 10_000 });
+  check((await cagri.getAttribute('data-durum')) === 'henüz görmedi' && (await cagri.innerText()).includes('Çağrıldı'), 'ralli: çağrılan satırı "Çağrıldı: Bora · henüz görmedi" (okunmadan "gördü" yok)');
+  await shot(A, 'ralli-cagri-gormedi');
+  const idA = await A.page.evaluate(() => window.__etkinlik.net().me.id);
+  await net(B, 'dm.read', { id: idA });
+  await A.page.locator('[data-testid="ralli-cagrilan"][data-durum="gördü"]').waitFor({ timeout: 10_000 }).catch(() => fail('ralli: Bora daveti okuyunca "gördü" yazmadı'));
+  check(true, 'ralli: Bora daveti okuyunca satır "gördü" (sunucunun okundu bilgisi)');
+  await shot(A, 'ralli-cagri-gordu');
+  for (let i = 0; i < 3 && await B.page.locator('[data-testid="mesaj-bildirimi"] .fr-banner-x').count(); i++) await B.page.locator('[data-testid="mesaj-bildirimi"] .fr-banner-x').first().click({ timeout: 800 }).catch(() => undefined);
   await tid(B, 'ralli-katil').click();
   await tid(B, 'ralli-saldir').waitFor();
   await tid(A, 'ralli-saldir').waitFor();

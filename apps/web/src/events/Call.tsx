@@ -30,9 +30,11 @@ export const byPresence = <T extends Pick<TeamMember, 'lastSeen'>>(list: T[], on
  * Takım arkadaşını özel mesajla çağır (DM davet kartı). Listede çevrimiçi noktası ve son görülme; çevrimiçiler üstte
  * (Bayrak Yarışı devret penceresindeki ev-dot deseni). Ralli odası ve Takım Yarışı lobisi aynı pencereyi kullanır (OT-takim-kaptani-12).
  */
-export function TeammateCall({ joined, text, meta, label, sheetTitle, note, testId }: {
+export function TeammateCall({ joined, text, meta, label, sheetTitle, note, testId, onSent }: {
   joined: string[]; text: string; meta: { type: string; roomId: string; title: string };
   label: string; sheetTitle: string; note: string; testId: string;
+  /** davet gitti (ralli ekranı çağrı listesini yeniler, YN-224) */
+  onSent?: (to: string) => void;
 }) {
   const team = useNet((s) => s.team); const me = useNet((s) => s.me); const presence = useNet((s) => s.presence);
   const [open, setOpen] = useState(false); const [sent, setSent] = useState<Record<string, string>>({});
@@ -40,7 +42,7 @@ export function TeammateCall({ joined, text, meta, label, sheetTitle, note, test
   const list = byPresence((team?.roster ?? []).filter((m) => m.id !== me?.id && !joined.includes(m.id)), online);
   if (!list.length) return null;
   const call = async (to: string) => {
-    try { await getNet()!.call('dm.send', { to, text, kind: 'davet', meta }); setSent((s) => ({ ...s, [to]: 'ok' })); platform().haptic('light'); }
+    try { await getNet()!.call('dm.send', { to, text, kind: 'davet', meta }); setSent((s) => ({ ...s, [to]: 'ok' })); platform().haptic('light'); onSent?.(to); }
     catch (e) { setSent((s) => ({ ...s, [to]: errText(e) })); }
   };
   const now = Date.now();

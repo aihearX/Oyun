@@ -46,6 +46,9 @@ export function addWarPoints(app: App, pid: string, teamId: string | null, biome
   const week = app.week().key;
   app.db.run('INSERT INTO player_week(week, player_id, war_points) VALUES(?, ?, ?) ON CONFLICT(week, player_id) DO UPDATE SET war_points = war_points + excluded.war_points', week, pid, points);
   if (!teamId) return null;
+  // kişinin şimdiki takımına getirdiği pay (YN-224, YN-141): takım değiştiyse yeni takımla sıfırdan sayılır, bölge payı da (göç 15)
+  app.db.run(`UPDATE player_week SET team_points = CASE WHEN team_id = ? THEN team_points + ? ELSE ? END,
+    region_points = CASE WHEN team_id = ? THEN region_points ELSE 0 END, team_id = ? WHERE week = ? AND player_id = ?`, teamId, points, points, teamId, teamId, week, pid);
   app.db.run('INSERT INTO team_week(week, team_id, points) VALUES(?, ?, ?) ON CONFLICT(week, team_id) DO UPDATE SET points = points + excluded.points', week, teamId, points);
   const region = regionFor(teamTargets(app, teamId), biome);
   if (!region) return null;
@@ -73,8 +76,13 @@ export function warState(app: App, pid: string): WarState {
   const teamPoints = p.team_id ? app.db.get<{ points: number }>('SELECT points FROM team_week WHERE week = ? AND team_id = ?', w.key, p.team_id)?.points ?? 0 : 0;
   // döküm (OT-rekabetci-21): bölgelere yazılan + hedefe yazılmayan (bölge kazandırmaz; Takım Ligi ve haftalık sıralama) = teamPoints
   const regionPoints = p.team_id ? app.db.get<{ v: number }>('SELECT COALESCE(SUM(points), 0) AS v FROM war_points WHERE week = ? AND team_id = ?', w.key, p.team_id)!.v : 0;
-  const mine = app.db.get<{ war_points: number; region_points: number }>('SELECT war_points, region_points FROM player_week WHERE week = ? AND player_id = ?', w.key, pid);
-  return { week: w.key, startsAt: w.startsAt, endsAt: w.endsAt, regions, targets: teamTargets(app, p.team_id), teamPoints, myPoints: mine?.war_points ?? 0, regionPoints, myRegionPoints: mine?.region_points ?? 0 };
+  const mine = app.db.get<{ war_points: number; region_points: number; team_id: string | null; team_points: number }>('SELECT war_points, region_points, team_id, team_points FROM player_week WHERE week = ? AND player_id = ?', w.key, pid);
+  // şimdiki takıma getirilen; kalanı takıma katılmadan önce (takımsız ya da önceki takımda) kazanıldı (YN-141)
+  const here = !!p.team_id && mine?.team_id === p.team_id;
+  return {
+    week: w.key, startsAt: w.startsAt, endsAt: w.endsAt, regions, targets: teamTargets(app, p.team_id), teamPoints, myPoints: mine?.war_points ?? 0, regionPoints,
+    myRegionPoints: here ? mine.region_points : 0, myTeamPoints: here ? mine.team_points : 0,
+  };
 }
 
 /** hafta kapanışı: bölge sahibi takımların üyelerine ödül kutusu (puanlar hafta anahtarıyla tutulduğundan kendiliğinden sıfırlanır) */

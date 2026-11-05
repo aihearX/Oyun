@@ -302,7 +302,11 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   goal_progress: { takim: { team_id: SIL } },
   war_points: { takim: { team_id: { karar: 'tut', neden: 'Bu haftanın satırı teams.ts deleteTeam\'de silinir (harita yeniden hesaplanır); geçmiş haftalar bölge sonucudur (diğer takımların sonucu bunlara göre).', sure: 'süresiz (kişisel veri yok)' } } },
   war_owner: { takim: { team_id: { karar: 'tut', neden: 'Bu haftanın satırı deleteTeam\'de silinir; geçmiş haftaların bölge sahibi diğer takımların geçmişidir.', sure: 'süresiz (kişisel veri yok)' } } },
-  player_week: { oyuncu: { player_id: SIL }, not: 'Takımın savaş puanı war_points\'te ayrı tutulur.' },
+  player_week: {
+    oyuncu: { player_id: SIL },
+    takim: { team_id: { karar: 'tut', neden: 'Yalnız oyuncunun şimdiki takımıyla karşılaştırılır ("Bu hafta N puan getirdin", YN-224); takım silinince hiçbir takımı göstermez, satır oyuncuyla birlikte silinir.', sure: 'oyuncu silinene dek (kişisel veri yok)' } },
+    not: 'Takımın savaş puanı war_points\'te ayrı tutulur.',
+  },
   raids: { takim: { team_id: SIL }, degil: ['raid_id'] },
   raid_damage: { oyuncu: { player_id: SIL }, takim: { team_id: SIL }, degil: ['raid_id'], not: 'Takım ligi ve baskın sıralaması silinen hesapları zaten saymaz (ADMIN_IDS_SQL); can raids.hp\'de.' },
   league_groups: { degil: ['id'], not: 'Lig grubu; kimlik yok.' },

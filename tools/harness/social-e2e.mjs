@@ -256,7 +256,7 @@ try {
   step('11 · Savaş hedefi');
   await sub(A, 'Savaş');
   await A.locator('.war-map').waitFor();
-  await A.getByRole('button', { name: /Hedefleri düzenle/ }).click();
+  await A.getByRole('button', { name: /Hedef bölge seç|Hedefleri düzenle/ }).click();
   await A.locator('.region', { hasText: 'Kepçesi' }).click();
   await A.locator('.region', { hasText: 'Ninni Merkezi' }).click();
   await A.getByRole('button', { name: 'Kaydet' }).click();

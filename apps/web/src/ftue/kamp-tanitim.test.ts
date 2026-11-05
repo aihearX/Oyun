@@ -144,7 +144,10 @@ describe('rehber sürerken bildirim/teşekkür kartı sırada bekler', () => {
       expect(useComm.getState().notices).toHaveLength(1); // görülmeden kaybolmadı
       await act(async () => { useCoach.getState().end(false); });
       expect(document.querySelector('[data-testid="iletisim-bildirimi"]')?.textContent).toContain('Rica ederim');
+      // düğmeli kart kendiliğinden kapanmaz (OT-buyuk-yazi-63); X ile kapanır
       await act(async () => { vi.advanceTimersByTime(7_100); });
+      expect(useComm.getState().notices).toHaveLength(1);
+      await act(async () => { (document.querySelector('.fr-banner-x') as HTMLElement).click(); });
       expect(useComm.getState().notices).toHaveLength(0);
     } finally { vi.useRealTimers(); }
   });

@@ -167,6 +167,11 @@
 /* çağırma penceresi: ad + çevrimiçi noktası ve son görülme (OT-takim-kaptani-12) */
 .ev-call-who { display:flex; flex-direction:column; gap:2px; }
 .ev-call-who small { display:flex; align-items:center; gap:6px; font-size:0.75rem; font-weight:800; }
+/* ralli: kimin çağrıldığı ve davetin görülüp görülmediği (YN-224); ad uzunsa durum alt satıra iner, kesilmez */
+.ev-calls { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; width:100%; text-align:left; }
+.ev-calls li { display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; font-size:0.8125rem; font-weight:700; line-height:1.3; }
+.ev-calls li b { overflow-wrap:anywhere; }
+.ev-call-st { display:inline-flex; align-items:center; gap:4px; font-weight:900; white-space:nowrap; }
 
 /* ---- ses avı */
 .ev-melody { display:flex; flex-direction:column; gap:12px; padding:14px 12px; border-radius:26px; background:radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--gold) 30%, var(--bg-2)), var(--bg-1) 75%); border:2px solid color-mix(in srgb, var(--gold) 50%, transparent); box-shadow:var(--shadow); }

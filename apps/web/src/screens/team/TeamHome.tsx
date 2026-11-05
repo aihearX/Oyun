@@ -23,7 +23,7 @@ import { TEAM_APPLY_RULES, canApprove, joinModeOf } from '@odi/shared';
 import { TeamApplications } from './TeamApplications';
 import { ModeTag } from './TeamProfile';
 import { useTeamApply } from './apply';
-import { GROUP_OF, claimableTierCount, openTeamTab, sendableHelpCount, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
+import { GROUP_OF, claimableTierCount, openTeamTab, sendableHelpCount, teamXpProgress, useTeamTab, type TeamGroup, type TeamTab } from './teamTabs';
 
 export type { TeamTab } from './teamTabs';
 
@@ -67,7 +67,7 @@ export function TeamHome() {
     if (r) { useNet.setState({ team: null, extra: null, giftCount: 0, campHelp: [], war: null, raid: null }); toast('👋', 'Takımdan ayrıldın', 'Yeni bir takım seni bekliyor.'); }
   };
 
-  const xpFrom = extra ? prevThreshold(extra.level) : 0;
+  const xp = extra ? teamXpProgress(extra.level, extra.xp, extra.xpNext) : null;
   const all: { id: TeamTab; icon: string; label: string; badge?: number }[] = [
     { id: 'sohbet', icon: '💬', label: 'Sohbet', badge: tab === 'sohbet' ? 0 : unread + mentions },
     ...(featureOpen('events') ? [{ id: 'etkinlik' as const, icon: '🎪', label: 'Etkinlikler', badge: evBadge }] : []),
@@ -113,7 +113,8 @@ export function TeamHome() {
           {/* Takım sekmesi rozeti alınmamış hediyeleri de sayar: nerede beklediği görünsün (YN-071) */}
           {gifts > 0 && tab !== 'hediye' && <button type="button" className="ta-head-pill" onClick={() => setTab('hediye')} data-testid="hediye-rozeti"><Art name="gift" size={16} /> {gifts} hediye seni bekliyor</button>}
           <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span title="Üyelerin toplam yıldızı"><Art e="⭐" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
-          {extra && <div className="row th-xp"><Bar value={(extra.xp - xpFrom) / Math.max(1, extra.xpNext - xpFrom)} tone="green" label="Takım XP" /><span className="qn">{fmtNum(extra.xp)}/{fmtNum(extra.xpNext)}</span></div>}
+          {/* sayı çubukla aynı şeyi söyler: seviye içi ilerleme (OT-ilk-kez-oyun-65) */}
+          {extra && xp && <div className="row th-xp" data-testid="takim-xp" title={`Sv ${extra.level + 1} için ${fmtNum(xp.left)} XP kaldı`}><Bar value={xp.ratio} tone="green" label={`Takım XP: Sv ${extra.level + 1} için ${fmtNum(xp.left)} XP kaldı`} /><span className="qn">{fmtNum(xp.have)}/{fmtNum(xp.need)}</span></div>}
         </div>
       </div>
       <SubTabs<TeamGroup> name="takim-grup" active={group} onChange={openGroup} tabs={groups} />
@@ -179,9 +180,6 @@ function LeaderNotice() {
     </div>
   );
 }
-
-/** takım seviye eşiği (sunucudaki formülün aynısı: 300 × (l−1)^1,6) */
-function prevThreshold(level: number): number { return Math.round(300 * Math.pow(Math.max(0, level - 1), 1.6)); }
 
 /** takım menüsünde katılım: herkes modu görür; lider Açık / Başvuruyla ve en az bölüm şartını değiştirir */
 function JoinSettings({ lider }: { lider: boolean }) {

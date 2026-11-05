@@ -51,6 +51,9 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  *    Var olan satırlar 0 ile başlar: göçten önceki devirler için kart çıkmaz. Ad ya da önceki liderin kimliği tutulmaz.
  * 14: YN-187 / karar 47 — `ev_quiz_player.level`: Bilgi Yarışması'na katılanın bilgi düzeyi ('genel' | 'odyoloji'); sabit saatli
  *    yarışmanın soruları bekleme odası bitince katılanların düzeyine göre seçilir. Var olan satırlar 'genel' ile başlar (bitmiş yarışmalar).
+ * 15: YN-224 / YN-141 — Bölge Savaşı "Bu hafta N puan getirdin": `player_week.team_id` (puanın yazıldığı son takım) ve `team_points`
+ *    (o takıma getirilen savaş puanı). Göçten önce takımsızken kazanılan pay ayırt edilemez: var olan satırlar oyuncunun şimdiki takımına
+ *    ve bütün puanına yazılır (eski görünümün aynısı; "katılmadan önce" diye yanlış bir satır çıkmaz), hafta dönünce kendiliğinden doğru.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -92,6 +95,11 @@ export const MIGRATIONS: Migration[] = [
   { name: 'adsiz-takim-hediyesi', up: (db) => { adsizTakimHediyesi(db); } },
   { name: 'lider-devri-karti', up: (db) => { addColumn(db, 'players', 'lead_notice', 'INTEGER NOT NULL DEFAULT 0'); } },
   { name: 'bilgi-yarismasi-katilan-duzeyi', up: (db) => { addColumn(db, 'ev_quiz_player', 'level', "TEXT NOT NULL DEFAULT 'genel'"); } },
+  { name: 'savas-takim-payi', up: (db) => {
+    addColumn(db, 'player_week', 'team_id', 'TEXT');
+    addColumn(db, 'player_week', 'team_points', 'INTEGER NOT NULL DEFAULT 0');
+    db.exec('UPDATE player_week SET team_id = (SELECT team_id FROM players WHERE players.id = player_week.player_id), team_points = war_points WHERE team_id IS NULL');
+  } },
 ];
 
 /** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */

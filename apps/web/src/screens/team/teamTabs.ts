@@ -38,3 +38,15 @@ export function helpLeftOf(team: Pick<TeamDetail, 'helpLeft' | 'helpResetAt'> | 
 }
 /** istek yanıtındaki kalan hak (ya da LIMIT) takım ayrıntısına yazılır: sonuç kartı ve Yardım sekmesi hemen güncellenir */
 export const setHelpLeft = (n: number) => useNet.setState((s) => (s.team ? { team: { ...s.team, helpLeft: n } } : {}));
+
+/** takım seviye eşiği (sunucudaki formülün aynısı, teamextra.ts teamXpFor: 300 × (l−1)^1,6) */
+export const teamXpFor = (level: number): number => Math.round(300 * Math.pow(Math.max(0, level - 1), 1.6));
+/**
+ * Takım başlığındaki XP çubuğu ve yanındaki sayı aynı şeyi söyler (OT-ilk-kez-oyun-65): ikisi de seviye içi ilerleme. have / need
+ * yazılır, çubuk have / need dolar; left: bir sonraki seviyeye kalan XP (birikmiş toplam "2.902 / 3.940" yazılmaz).
+ */
+export function teamXpProgress(level: number, xp: number, xpNext: number): { have: number; need: number; left: number; ratio: number } {
+  const from = teamXpFor(level);
+  const need = Math.max(1, xpNext - from); const have = Math.min(need, Math.max(0, xp - from));
+  return { have, need, left: need - have, ratio: have / need };
+}

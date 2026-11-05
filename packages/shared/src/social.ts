@@ -131,8 +131,13 @@ export interface WarState {
   myPoints: number;
   /** teamPoints'in bölgelere yazılan kısmı; kalanı hedef seçilmeden (ya da biyom hedefe uymadan) kazanıldı: bölge kazandırmaz, Takım Ligi'ne ve haftalık sıralamaya sayılır */
   regionPoints: number;
-  /** myPoints'in bölgelere yazılan kısmı */
+  /** myPoints'in şimdiki takımla bölgelere yazılan kısmı */
   myRegionPoints: number;
+  /**
+   * myPoints'in şimdiki takıma yazılan kısmı (YN-224, YN-141): "Bu hafta N puan getirdin". Kalanı (myPoints − myTeamPoints) takıma
+   * katılmadan önce (takımsızken ya da önceki takımda) kazanıldı; bu takımın puanına sayılmaz.
+   */
+  myTeamPoints: number;
 }
 
 // ---------- Baskın (haftalık, takım ortak can barı)
@@ -665,6 +670,11 @@ export interface RallyState {
   attackStarted: boolean;
   participants: RallyParticipant[]; hits: RallyHit[];
 }
+/**
+ * "Takım arkadaşını çağır" kaydı (YN-224, OT-takim-kaptani-39): bu ralliye benim gönderdiğim özel mesaj davetleri, kişi başına son davet.
+ * seen: çağrılan, özel mesajlarda bu daveti okudu (dm_reads; özel mesajdaki çift tikle aynı kaynak). Tahmin yok: okunmadıysa false.
+ */
+export interface RallyCall { id: string; name: string; at: number; seen: boolean }
 
 // ---------- Takım Düellosu (48 saat, haftada 2 dönem)
 export interface DuelSide { teamId: string; name: string; emblem: string; power: number; points: number; top: { id: string; name: string; points: number }[] }
@@ -772,6 +782,8 @@ export interface OpMap {
   'rally.start': { req: { monster: RallyMonsterId }; res: { rally: RallyState } };
   'rally.join': { req: { rallyId: string }; res: { rally: RallyState } };
   'rally.hit': { req: EventRun & { rallyId: string }; res: { rally: RallyState; damage: number } };
+  /** bu ralliye özel mesajla çağırdıklarım ve davetin okunup okunmadığı (YN-224) */
+  'rally.calls': { req: { rallyId: string }; res: { calls: RallyCall[] } };
   'duel.state': { req: Record<string, never>; res: { duel: DuelState } };
   'relay.state': { req: Record<string, never>; res: { relay: RelayState } };
   'relay.take': { req: Record<string, never>; res: { relay: RelayState } };

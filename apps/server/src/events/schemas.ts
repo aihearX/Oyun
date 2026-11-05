@@ -16,6 +16,7 @@ export const EVENT_SCHEMAS = {
   'rally.start': z.object({ monster: z.enum(RALLY_MONSTERS.map((m) => m.id) as [string, ...string[]]) }),
   'rally.join': z.object({ rallyId: id }),
   'rally.hit': z.object({ rallyId: id, ...run }),
+  'rally.calls': z.object({ rallyId: id }),
   'duel.state': empty,
   'relay.state': empty,
   'relay.take': empty,

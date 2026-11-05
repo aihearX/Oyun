@@ -38,18 +38,19 @@ export function TeamMembers() {
       {roster.map((m) => { const c = contrib.get(m.id); return (
         <button className="card member" key={m.id} onClick={() => (canManage(m) ? setSel(m) : openProfile(m.id))} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`} data-testid="uye-satiri">
           <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
-          <span className="grow min0 mem-body">
+          <span className="min0 mem-body">
             {/* ad kesilmez, "(sen)" ve rol etiketi sığmazsa alt satıra iner (OT-takim-kaptani-26) */}
             <span className="row mem-top"><b className="mem-name">{m.name}{m.id === me.id && <span className="mem-you"> (sen)</span>}</b><RozetMini p={m} />{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{rich(ROLE_LABEL[m.role])}</span>}</span>
-            {/* bu haftaki katkı: her sayının altında ne olduğu yazar (OT-buyuk-yazi-38) */}
-            <span className="mem-stats" aria-label="Bu hafta">
-              <span className="mem-stat"><span><Art e="🪙" size="1.25em" className="art-inline" /> {fmtNum(c?.donated ?? 0)}</span><small>bağış</small></span>
-              <span className="mem-stat"><span><Art e="🤝" size="1.25em" className="art-inline" /> {c?.helps ?? 0}</span><small>yardım</small></span>
-              <span className="mem-stat"><span><Art e="⭐" size="1.25em" className="art-inline" /> {c?.stars ?? 0}</span><small>yıldız</small></span>
-              <span className="mem-stat"><span><Art e="⚔️" size="1.25em" className="art-inline" /> {fmtNum(m.weekPoints)}</span><small>savaş</small></span>
-            </span>
           </span>
           <span className={`mem-lvl${m.finished ? ' done' : ' muted'}`} data-testid="uye-bolum">{memberLevel(m)}</span>
+          {/* bu haftaki katkı: her sayının altında ne olduğu yazar (OT-buyuk-yazi-38); kartın tam genişliğinde dört eşit sütun, sayı büyüse
+              de bütün kartlarda aynı hizada (OT-takim-kaptani-38) */}
+          <span className="mem-stats" aria-label="Bu hafta">
+            <span className="mem-stat"><span><Art e="🪙" size="1.25em" className="art-inline" /> {fmtNum(c?.donated ?? 0)}</span><small>bağış</small></span>
+            <span className="mem-stat"><span><Art e="🤝" size="1.25em" className="art-inline" /> {c?.helps ?? 0}</span><small>yardım</small></span>
+            <span className="mem-stat"><span><Art e="⭐" size="1.25em" className="art-inline" /> {c?.stars ?? 0}</span><small>yıldız</small></span>
+            <span className="mem-stat"><span><Art e="⚔️" size="1.25em" className="art-inline" /> {fmtNum(m.weekPoints)}</span><small>savaş</small></span>
+          </span>
         </button>); })}
       <div className="muted small-note">{myRole !== 'uye' ? 'Bir üyeye dokun: profil, rol ver ya da takımdan çıkar.' : 'Bir üyeye dokun: profil kartı.'}</div>
       {sel && (
