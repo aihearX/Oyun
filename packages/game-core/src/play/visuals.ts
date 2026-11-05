@@ -255,7 +255,13 @@ export interface BossVisual {
   /** ilk canavarın öğretici anı: zayıf nokta (saplı yumruk) parlar */
   focus?: boolean;
 }
-export interface BossView { update(b: BossVisual, groundY: number): void; destroy(): void; /** ekran-sabit can çubuğu: görünüm genişliği ve gösterge inişi (tasarım px) */ layout?(viewW: number, top: number): void }
+export interface BossView {
+  update(b: BossVisual, groundY: number): void; destroy(): void;
+  /** ekran-sabit can çubuğu: görünüm genişliği ve gösterge inişi (tasarım px) */
+  layout?(viewW: number, top: number): void;
+  /** uçan yazı can çubuğunun altında (YN-233): 'hit' → "Canavar −3", 'note' → "Nota 2/3"; ayrı satırlar, gövdenin dışında */
+  say?(what: 'hit' | 'note', n: number, total?: number): void;
+}
 /** Boss ve saldırıları: render/boss.ts (boyalı kukla, telegraf, vuruş flaşı, faz dönüşümü, yenilgi patlaması, can çubuğu). */
 export function createBossView(s: Phaser.Scene, kind: 'golem' | 'canavar', name: string, groundY: number, biome: BiomeDef): BossView {
   return RD.createBossArt(s, kind, name, groundY, biome.id);

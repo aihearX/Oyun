@@ -58,6 +58,8 @@ export class LevelScene extends Phaser.Scene {
   private hiVis?: Phaser.GameObjects.Graphics;
   /** boss alt şeridinde en son gösterilen boss yazısı (play/boss.ts bossStrip) */
   private bossStripId = '';
+  /** alt şeritte "Kalbi açıkta!" ipucu duruyor mu (kalp kaybolunca aynı karede kalkar) */
+  private stunHint = false;
   private fx!: LevelFx; private terrain!: TerrainLayer; private dpr = 1;
   /** görünüm (tasarım px; en az 390×780 — uzun/geniş ekranda fazlası: view.ts) ve oyun içi göstergenin güvenli alan inişi (tasarım px) */
   private vw = GAME_W; private vh = GAME_H; private hudTop = 0; private praiseFree = 0; private comboShown = 0;
@@ -302,12 +304,13 @@ export class LevelScene extends Phaser.Scene {
       case 'bubble': sfx.tick(); break;
       case 'bossWarn': sfx.tick(); break;
       case 'bossSlam': this.cameras.main.shake(160, 0.014); sfx.hit(); break;
-      case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); floatText(this, e.x, e.y - 60, `-${e.n}`, COLORS.coral, 28); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
+      case 'bossHit': sfx.bounce(); flash(this, 0xffe066, 0.3); this.cameras.main.shake(160, 0.012); this.bossView?.say?.('hit', Number(e.n)); this.emit({ type: 'haptic', kind: 'heavy' }); S.score += 100; break;
       // faz talimatı alt şeride bossStripTick'ten gelir (canavarın fazından okunur; çubukla aynı karede değişir, YN-184)
       case 'bossPhase': sfx.toneAt(110, 0.5); break;
       case 'bossScream': this.hint('Bağırıyor! 3 notayı topla: kalbi açılır', 2000, undefined, 'boss-bagir'); sfx.toneAt(80, 0.5); this.cameras.main.shake(200, 0.008); break;
-      case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); floatText(this, e.x, e.y - 10, `Nota ${e.n}/3`, COLORS.accent); break;
-      case 'bossStun': this.hint('Kalbi açıkta! İleri fırla ya da havadan aşağı kaydırıp üstüne in', 2600, undefined, 'boss-sersem'); sfx.power(); break;
+      case 'bossNote': sfx.toneAt(440 * Math.pow(2, Number(e.n ?? 1) / 12), 0.18); this.bossView?.say?.('note', Number(e.n ?? 1), 3); break;
+      // ipucu kalp göründüğü karede çıkar, kalp kaybolduğu karede kalkar (bossStripTick; YN-233)
+      case 'bossStun': this.hint('Kalbi açıkta! İleri fırla ya da havadan aşağı kaydırıp üstüne in', 30000, undefined, 'boss-sersem', true); this.stunHint = true; sfx.power(); break;
       // yenildi: çubuk "Yenildi!" der, şeritte son fazın talimatı kalmasın
       case 'bossDown': this.hud.toast('', 0, true); flash(this, 0xffe08a, 0.35, 320); this.cameras.main.shake(420, 0.02); this.emit({ type: 'haptic', kind: 'success' }); this.fx.comboBurst(e.x, e.y, 60);
         if (this.sim.boss?.kind === 'canavar') [392, 392, 440, 392, 330, 294, 262, 294, 330, 262].forEach((f, i) => this.time.delayedCall(120 + i * 180, () => sfx.toneAt(f, 0.22)));
@@ -733,6 +736,7 @@ export class LevelScene extends Phaser.Scene {
   /** ipucu yazısı; id verilirse kabuğa 'hint' olayı gider (seslendirme için; kimlikler bridge.ts → HINT_IDS) */
   /** now: şerit eski yazıyı geçişsiz bırakır, yenisi o karede tam görünür (canavar fazı: çubukla aynı karede) */
   hint(text: string, ms = 2500, kind?: HintKind, id?: string, now = false) {
+    if (!kind) this.stunHint = false;
     if (id) this.emit({ type: 'hint', id, text });
     if (!this.hintsOn) return;
     if (kind) { this.hud.showHint(kind, text); this.hintTimer?.remove(); this.hintTimer = this.time.delayedCall(ms, () => this.hud.hideHint()); return; }
@@ -753,8 +757,9 @@ export class LevelScene extends Phaser.Scene {
    */
   private bossStripTick() {
     const b = this.sim.boss!; const want = bossStrip(b, this.sim.t, !!this.spec.intro);
-    if (!want || want.id === this.bossStripId) return;
-    this.bossStripId = want.id; this.hint(want.text, Math.max(1500, (want.untilS - this.sim.t) * 1000), undefined, want.id, true);
+    if (want && want.id !== this.bossStripId) { this.bossStripId = want.id; this.hint(want.text, Math.max(1500, (want.untilS - this.sim.t) * 1000), undefined, want.id, true); }
+    // "Kalbi açıkta!" yazısı kalp görünürken durur: sersemlik bitince ya da vuruş fazı değiştirince (kalp kalkar) aynı karede kalkar
+    if (this.stunHint && !(b.mode === 'stun' && b.core)) { this.stunHint = false; this.hud.toast('', 0, true); }
   }
   /** Yüksek görünürlük: görünen zemin üst/yan kenarları, engeller ve düşmanlar açık konturla (koyu alt çizgiyle; her zeminde seçilir) */
   private drawHiVis() {

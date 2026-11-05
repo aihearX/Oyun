@@ -13,8 +13,9 @@ import { entitySprite } from './entities';
 import type { EntityView } from './view';
 import { I, R, T, softGlowTex, sparkTex, ringTex, puffTex, drawGoldNote } from './tex';
 import { circle, css, FONT, glow, heartPath, makeCanvas, rng, screenOrigin, taperHair, THEME, tono, type Ctx } from './util';
-import { fxQuality } from './quality';
+import { fxQuality, highVisibility } from './quality';
 import { blinkOn, flashesEnabled, HIT_FILL, motionReduced } from './flash';
+import { bossHitLabel, WARN_EDGE, WARN_INK, WARN_RING, warnPulse } from './uyari';
 
 const ADD = Phaser.BlendModes.ADD;
 type Img = Phaser.GameObjects.Image;
@@ -29,7 +30,13 @@ export interface BossArtState {
   /** öğretici an (ilk canavar): saplı yumruk parlar — hareket azaltmada yanıp sönmez, sabit vurgu */
   focus?: boolean;
 }
-export interface BossArt { update(b: BossArtState, groundY: number): void; destroy(): void; /** can çubuğu: görünüm genişliğinde ortalı, oyun içi göstergenin inişi kadar aşağıda (tasarım px) */ layout(viewW: number, top: number): void }
+export interface BossArt {
+  update(b: BossArtState, groundY: number): void; destroy(): void;
+  /** can çubuğu: görünüm genişliğinde ortalı, oyun içi göstergenin inişi kadar aşağıda (tasarım px) */
+  layout(viewW: number, top: number): void;
+  /** canavar bölümünün uçan yazısı (YN-233): can çubuğunun altında, gövdenin dışında; hasar ("Canavar −3") ve nota sayacı ayrı satırda */
+  say(what: 'hit' | 'note', n: number, total?: number): void;
+}
 
 // ================================================================ boyama yardımcıları
 type Sil = (c: Ctx) => void;
@@ -83,10 +90,19 @@ function cracks(c: Ctx, seed: number, starts: [number, number, number][], len: n
 }
 
 // ================================================================ ortak dokular
-const targetTex = (s: Phaser.Scene) => T(s, 'bs-target', 124, 36, (c) => {
-  const g = c.createRadialGradient(62, 18, 2, 62, 18, 58); g.addColorStop(0, 'rgba(255,255,255,0.75)'); g.addColorStop(0.6, 'rgba(255,255,255,0.3)'); g.addColorStop(1, 'rgba(255,255,255,0)');
-  c.save(); c.translate(62, 18); c.scale(1, 0.28); c.translate(-62, -18); c.fillStyle = g; circle(c, 62, 18, 58); c.fill();
-  c.strokeStyle = 'rgba(255,255,255,0.95)'; c.lineWidth = 5; circle(c, 62, 18, 50); c.stroke(); c.lineWidth = 3; c.setLineDash([10, 8]); circle(c, 62, 18, 32); c.stroke(); c.restore();
+/**
+ * yere düşen gölge uyarısı (YN-233): dolu koyu oval, koyu kontur, içinde saldırının açık renkli halkası ve kesikli iç halka —
+ * açık zeminde koyu leke, koyu zeminde açık halka seçilir (render/uyari.ts, her biyomda ≥ 3:1). Boyalı; renk verilmez (tint yok).
+ */
+const shadowTex = (s: Phaser.Scene, ring: number) => T(s, `bs-shadow-${ring.toString(16)}`, 124, 36, (c) => {
+  const oval = (rx: number, ry: number) => { c.beginPath(); c.ellipse(62, 18, rx, ry, 0, 0, Math.PI * 2); };
+  oval(57, 15); c.fillStyle = css(WARN_INK); c.fill(); c.strokeStyle = css(WARN_EDGE); c.lineWidth = 4; c.stroke();
+  oval(46, 10.5); c.strokeStyle = css(ring); c.lineWidth = 3.5; c.stroke();
+  c.setLineDash([9, 7]); oval(27, 5.5); c.lineWidth = 2.5; c.stroke(); c.setLineDash([]);
+});
+/** duvar uyarısının dolu şeridi (beyaz dolgu + koyu kontur; dolgu saldırı rengine boyanır, kontur koyu kalır) */
+const wallBarTex = (s: Phaser.Scene) => T(s, 'bs-wallbar', 20, 124, (c) => {
+  c.beginPath(); c.roundRect(3, 3, 14, 118, 7); c.fillStyle = '#ffffff'; c.fill(); c.strokeStyle = css(WARN_EDGE); c.lineWidth = 3.5; c.stroke();
 });
 const beamTex = (s: Phaser.Scene) => T(s, 'bs-beam', 40, 160, (c) => {
   const g = c.createLinearGradient(0, 0, 40, 0); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 40, 160);
@@ -98,7 +114,8 @@ const wallGlowTex = (s: Phaser.Scene) => T(s, 'bs-wall', 60, 120, (c) => {
   c.globalCompositeOperation = 'destination-in'; const v = c.createLinearGradient(0, 0, 0, 120); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.25, 'rgba(0,0,0,1)'); v.addColorStop(0.75, 'rgba(0,0,0,1)'); v.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = v; c.fillRect(0, 0, 60, 120);
 });
 const chevTex = (s: Phaser.Scene) => T(s, 'bs-chev', 30, 30, (c) => {
-  c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = 'rgba(20,0,30,0.55)'; c.lineWidth = 8; c.beginPath(); c.moveTo(9, 5); c.lineTo(21, 15); c.lineTo(9, 25); c.stroke();
+  // koyu kontur tam opak (YN-233): ok her zeminde seçilir; beyaz çekirdek saldırı rengine boyanır
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = css(WARN_EDGE); c.lineWidth = 9.5; c.beginPath(); c.moveTo(9, 5); c.lineTo(21, 15); c.lineTo(9, 25); c.stroke();
   c.strokeStyle = '#ffffff'; c.lineWidth = 5; c.beginPath(); c.moveTo(9, 5); c.lineTo(21, 15); c.lineTo(9, 25); c.stroke();
 });
 /** zıpla / kay rozeti (dalga türünü okutur) */
@@ -356,6 +373,17 @@ const bracketTex = (s: Phaser.Scene) => T(s, 'bs-bracket', 100, 100, (c) => {
   c.strokeStyle = css(THEME.gold); c.lineWidth = 4; c.lineCap = 'round'; c.shadowColor = css(THEME.gold); c.shadowBlur = 6;
   for (let i = 0; i < 4; i++) { c.beginPath(); c.arc(50, 50, 42, i * Math.PI / 2 + 0.25, i * Math.PI / 2 + Math.PI / 2 - 0.25); c.stroke(); }
 });
+/** "kalbi açıkta" hedefi (YN-233): kalbin arkasında koyu dolu disk, koyu kontur, altın halka — pembe zeminde ve canavarın önünde seçilir */
+const plateTex = (s: Phaser.Scene) => T(s, 'bs-c-plate', 96, 96, (c) => {
+  circle(c, 48, 48, 41); c.fillStyle = css(WARN_INK); c.fill(); c.strokeStyle = css(WARN_EDGE); c.lineWidth = 5; c.stroke();
+  circle(c, 48, 48, 35); c.strokeStyle = css(WARN_RING.gold); c.lineWidth = 4; c.stroke();
+});
+/** kalbin üstünde "buraya in" oku: kalın altın ok, koyu kontur */
+const landArrowTex = (s: Phaser.Scene) => T(s, 'bs-c-arrow', 48, 60, (c) => {
+  c.beginPath(); c.moveTo(16, 4); c.lineTo(32, 4); c.lineTo(32, 30); c.lineTo(44, 30); c.lineTo(24, 56); c.lineTo(4, 30); c.lineTo(16, 30); c.closePath();
+  c.lineJoin = 'round'; c.strokeStyle = css(WARN_EDGE); c.lineWidth = 6; c.stroke(); c.fillStyle = css(WARN_RING.gold); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.55)'; c.fillRect(19, 7, 4, 22);
+});
 
 // ================================================================ ortak kurulum
 interface Fx { chips: Phaser.GameObjects.Particles.ParticleEmitter; puffs: Phaser.GameObjects.Particles.ParticleEmitter; sparks: Phaser.GameObjects.Particles.ParticleEmitter; notes: Phaser.GameObjects.Particles.ParticleEmitter; }
@@ -412,10 +440,31 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
     phaseT.setText(b.defeated ? 'Yenildi!' : `Faz ${b.phase}`).setColor(b.defeated ? '#8ef0b0' : b.phase === 3 ? '#ff5c8a' : b.phase === 2 ? '#ff9f1c' : '#ffc93c');
   };
 
+  // ---- uçan yazılar (YN-233): canavarın yüzüne binmesin, kime olduğu belli olsun — can çubuğunun altında iki ayrı satır
+  // (0: hasar, 1: nota sayacı), her satırda tek yazı (yenisi eskisinin yerini alır); koyu dolu zemin, koyu konturlu yazı
+  const sayRows: (Phaser.GameObjects.Container | undefined)[] = [];
+  const rowH = (row: number) => Math.round((row ? 17 : 21) * tk * 1.45) + 8;
+  const say = (what: 'hit' | 'note', n: number, total = 3) => {
+    const row = what === 'hit' ? 0 : 1; const old = sayRows[row];
+    if (old) { s.tweens.killTweensOf(old); old.destroy(); }
+    const text = what === 'hit' ? bossHitLabel(kind, n) : `Nota ${n}/${total}`; const color = what === 'hit' ? '#ff9ab8' : '#ffe08a';
+    const size = Math.round((row ? 17 : 21) * tk);
+    const tx = s.add.text(0, 0, text, { fontFamily: FONT, fontSize: `${size}px`, fontStyle: '900', color, stroke: '#140c35', strokeThickness: Math.max(4, Math.round(size / 4)), resolution: R() }).setOrigin(0.5);
+    const w = Math.round(tx.width + 20), h = rowH(row) - 4;
+    const bg = s.add.graphics(); bg.fillStyle(WARN_INK, 0.94); bg.fillRoundedRect(-w / 2, -h / 2, w, h, h / 2); bg.lineStyle(2, Phaser.Display.Color.HexStringToColor(color).color, 0.9); bg.strokeRoundedRect(-w / 2, -h / 2, w, h, h / 2);
+    const top = bar.y - cy + 6 + D.h + 6; const y = top + (row ? rowH(0) : 0) + rowH(row) / 2;
+    const c = s.add.container(bar.x, y, [bg, tx]).setScrollFactor(0).setDepth(103); sayRows[row] = c;
+    if (!motionReduced()) { c.setScale(1.15); s.tweens.add({ targets: c, scale: 1, duration: 160, ease: 'Back.Out' }); }
+    s.tweens.add({ targets: c, alpha: 0, delay: 1100, duration: 300, onComplete: () => { if (sayRows[row] === c) sayRows[row] = undefined; c.destroy(); } });
+  };
+
   // ---- ortak saldırı nesneleri
-  const mkTarget = (tint: number) => img(targetTex(s)).setDepth(6).setTint(tint).setVisible(false);
-  const target = (tint: number) => add(mkTarget(tint));
+  // uyarılar (gölge, duvar şeridi, ok) normalde hafif nabızla, yüksek görünürlükte / azaltılmış harekette tam opak ve sabit (render/uyari.ts)
+  const steady = () => highVisibility() || motionReduced();
+  const mkTarget = (ring: number) => img(shadowTex(s, ring)).setDepth(6).setVisible(false);
+  const target = (ring: number) => add(mkTarget(ring));
   const wallGlow = add(img(wallGlowTex(s)).setOrigin(0, 0.5).setBlendMode(ADD).setDepth(14).setVisible(false));
+  const wallBar = add(img(wallBarTex(s)).setDepth(15).setVisible(false));
   const chevs = [0, 1, 2].map(() => add(img(chevTex(s)).setDepth(15).setVisible(false)));
   const badge = add(img(badgeTex(s, true)).setDepth(15).setVisible(false));
   const pools = new Map<string, Img[]>();
@@ -456,7 +505,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
       const down = img(downTex(s), 0, -96).setAlpha(0);
       c.add([gl, im, cr, down]);
       const beam = add(img(beamTex(s)).setOrigin(0.5, 1).setBlendMode(ADD).setTint(THEME.hazard).setDepth(5).setVisible(false));
-      return { c, gl, im, cr, down, beam, tg: target(THEME.hazard), st: '', t0: 0, plantedAt: -9, hitShown: false };
+      return { c, gl, im, cr, down, beam, tg: target(WARN_RING.golem), st: '', t0: 0, plantedAt: -9, hitShown: false };
     });
     const ballGlowKey = softGlowTex(s);
     const peek = add(img(golemBallTex(s)).setDepth(13).setVisible(false));
@@ -533,7 +582,7 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
           y = gy - 300 - (1 - ease(p * 3)) * 140 - Math.sin(p * Math.PI) * 18 + Math.sin(t * 34) * (2 + p * 4); ang = Math.sin(t * 28) * (2 + p * 5);
           a = clamp01(p * 4);
           v.gl.setAlpha(0.25 + p * 0.6 + Math.sin(t * 30) * 0.1).setTint(p > 0.6 ? 0xff3d1c : 0xff8a1c);
-          v.tg.setPosition(f.x, gy - 2).setScale((0.45 + p * 0.55) / R(), (0.45 + p * 0.55) / R()).setAlpha(0.5 + p * 0.5 * Math.abs(Math.sin(t * 16)));
+          v.tg.setPosition(f.x, gy - 2).setScale((0.45 + p * 0.55) / R(), (0.45 + p * 0.55) / R()).setAlpha(warnPulse(t, steady()));
           v.beam.setPosition(f.x, gy).setDisplaySize(36 + p * 30, Math.max(10, gy - y + 40)).setAlpha(0.12 + p * 0.3);
           v.im.setTint(p > 0.55 && Math.sin(t * 40) > 0 ? 0xffb090 : 0xffffff);
         } else if (f.st === 'slam') {
@@ -563,10 +612,10 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
       wallUpdate(b, t, gy, 0xff9f1c, gy - 18, 60, true);
       if (b.warnWall) { const sd = b.warnWall.side; const p = clamp01((t - warnAt) / 0.7); peek.setVisible(true).setPosition(sd > 0 ? 364 - p * 16 : 26 + p * 16, gy - 18).setAngle(t * 200 * -sd).setAlpha(0.4 + p * 0.6); } else peek.setVisible(false);
       // --- tavan damlaları
-      dropUpdate(b, t, gy, 0.8, 0.25, 300, golemDripTex(s), 0xff9f1c, (x) => { fx.puffs.setParticleTint(0xffc25c); fx.puffs.explode(q(8), x, gy - 4); fx.chips.setTexture(chipKeys[0]!); fx.chips.explode(q(5), x, gy - 6); ring(x, gy - 4, 0xffc25c, 0.1, 0.8, 360, 0.3); });
+      dropUpdate(b, t, gy, 0.8, 0.25, 300, golemDripTex(s), 0xff9f1c, WARN_RING.golem, (x) => { fx.puffs.setParticleTint(0xffc25c); fx.puffs.explode(q(8), x, gy - 4); fx.chips.setTexture(chipKeys[0]!); fx.chips.explode(q(5), x, gy - 6); ring(x, gy - 4, 0xffc25c, 0.1, 0.8, 360, 0.3); });
       lastMode = b.mode;
     };
-    return { update, destroy, layout };
+    return { update, destroy, layout, say };
   }
 
   // ============================================================ CANAVAR
@@ -589,7 +638,9 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
   const tether = add(s.add.graphics().setDepth(4).setBlendMode(ADD));
   const coreC = add(s.add.container(0, 0).setDepth(16).setVisible(false));
   const coreGl = glowI(0xff4fd8, 160, 0.7); const coreI = img(coreTex(s)); const brk = img(bracketTex(s));
-  coreC.add([coreGl, coreI, brk]);
+  // koyu hedef diski (pembe zeminde/canavarın önünde seçilir) ve üstünde "buraya in" oku (YN-233)
+  const plate = img(plateTex(s)); const arrow = add(img(landArrowTex(s)).setOrigin(0.5, 1).setDepth(16).setVisible(false));
+  coreC.add([coreGl, plate, coreI, brk]);
   // notalar (çığlık)
   let coreSeen = false; let nextRing = 0; let nextGlitch = 0; let glitchUntil = 0;
 
@@ -672,12 +723,16 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
     if (b.core) {
       const cx = b.core.x, cy = gy - 40;
       if (!coreSeen) { coreSeen = true; ring(cx, cy, 0xff4fd8, 0.1, 1.6, 500); fx.sparks.setParticleTint(0xff9ad8); fx.sparks.explode(q(16), cx, cy); }
-      coreC.setVisible(true).setPosition(cx, cy + Math.sin(t * 5) * 3);
-      coreI.setScale((1 + Math.sin(t * 10) * 0.08) / R()); coreGl.setAlpha(0.55 + Math.sin(t * 10) * 0.2); brk.setAngle(t * 90).setScale((1 + Math.sin(t * 6) * 0.06) / R()).setAlpha(0.95);
+      // kalp nabız gibi atar; hareket azaltmada sabit işaret (yanıp sönme, dönme, sallanma yok)
+      const calm = motionReduced();
+      coreC.setVisible(true).setPosition(cx, cy + (calm ? 0 : Math.sin(t * 5) * 3));
+      plate.setScale(1 / R());
+      coreI.setScale((calm ? 1 : 1 + Math.sin(t * 10) * 0.08) / R()); coreGl.setAlpha(calm ? 0.6 : 0.55 + Math.sin(t * 10) * 0.2); brk.setAngle(calm ? 0 : t * 90).setScale((calm ? 1 : 1 + Math.sin(t * 6) * 0.06) / R()).setAlpha(0.95);
+      arrow.setVisible(true).setPosition(cx, cy - 46 + (calm ? 0 : -Math.abs(Math.sin(t * 5)) * 8)).setScale(1 / R());
       if (sinceHit < 0.09 && flashesEnabled()) coreI.setTintFill(HIT_FILL); else coreI.clearTint();
       tether.clear(); tether.lineStyle(6, 0xff4fd8, 0.25); tether.beginPath(); tether.moveTo(rx, ry + 40); tether.lineTo(cx + Math.sin(t * 7) * 10, (ry + cy) / 2); tether.lineTo(cx, cy - 20); tether.strokePath();
       tether.lineStyle(2, 0xffc4ee, 0.85); tether.beginPath(); tether.moveTo(rx, ry + 40); tether.lineTo(cx + Math.sin(t * 7) * 10, (ry + cy) / 2); tether.lineTo(cx, cy - 20); tether.strokePath();
-    } else { if (coreSeen) { coreSeen = false; } coreC.setVisible(false); tether.clear(); }
+    } else { if (coreSeen) { coreSeen = false; } coreC.setVisible(false); arrow.setVisible(false); tether.clear(); }
     // --- notalar (çığlıkta beliren 3 nota)
     const openNotes = b.notes.filter((n) => !n.got);
     while (noteViews.length < openNotes.length) { noteViews.push(entitySprite(s, { type: 'note', x: 0, y: 0 }, biomeId).setDepth(16)); noteGl.push(add(s.add.image(0, 0, ringTex(s)).setBlendMode(ADD).setTint(THEME.gold).setDepth(15))); }
@@ -689,34 +744,39 @@ export function createBossArt(scene: Phaser.Scene, kind: 'golem' | 'canavar', na
     for (const w of b.waves) if (Math.random() < 0.35 * fxQuality()) { fx.sparks.setParticleTint(w.kind === 'low' ? THEME.coral : 0xb069ff); fx.sparks.emitParticleAt(w.x - (w.dir ?? 1) * 14, w.kind === 'low' ? gy - 12 : gy - 52, 1); }
     wallUpdate(b, t, gy, b.warnWall?.kind === 'high' ? 0xb069ff : THEME.coral, b.warnWall?.kind === 'high' ? gy - 52 : gy - 18, b.warnWall?.kind === 'high' ? 70 : 52, false);
     // --- gürültü bulutları
-    dropUpdate(b, t, gy, 0.85, 0.3, 320, cloudTex(s), 0x8b3dff, (x) => { fx.puffs.setParticleTint(0xb069ff); fx.puffs.explode(q(10), x, gy - 6); ring(x, gy - 4, 0xff4fd8, 0.1, 0.9, 380, 0.3); });
+    dropUpdate(b, t, gy, 0.85, 0.3, 320, cloudTex(s), 0x8b3dff, WARN_RING.canavar, (x) => { fx.puffs.setParticleTint(0xb069ff); fx.puffs.explode(q(10), x, gy - 6); ring(x, gy - 4, 0xff4fd8, 0.1, 0.9, 380, 0.3); });
   };
-  return { update, destroy, layout };
+  return { update, destroy, layout, say };
 
   // ============================================================ yardımcılar (kapanış)
   function wallUpdate(b: BossArtState, t: number, gy: number, color: number, y: number, hgt: number, ball: boolean) {
     const key = b.warnWall ? `${b.warnWall.side}:${b.warnWall.kind}` : null;
     if (key !== lastWarn) { lastWarn = key; warnAt = t; }
-    if (!b.warnWall) { wallGlow.setVisible(false); chevs.forEach((c) => c.setVisible(false)); badge.setVisible(false); return; }
-    const sd = b.warnWall.side; const p = clamp01((t - warnAt) / 0.75); const blinkA = 0.55 + 0.45 * Math.abs(Math.sin(t * 14));
+    if (!b.warnWall) { wallGlow.setVisible(false); wallBar.setVisible(false); chevs.forEach((c) => c.setVisible(false)); badge.setVisible(false); return; }
+    const sd = b.warnWall.side; const p = clamp01((t - warnAt) / 0.75); const calm = steady(); const blinkA = warnPulse(t, calm);
+    // açık renk (koyu kontur ve koyu zemin üstünde seçilir): golem topu turuncu, alçak dalga pembe, yüksek dalga lila
+    const ringC = ball ? WARN_RING.golem : b.warnWall.kind === 'high' ? WARN_RING.high : WARN_RING.wave;
     wallGlow.setVisible(true).setFlipX(sd > 0).setOrigin(sd > 0 ? 1 : 0, 0.5).setPosition(sd > 0 ? 364 : 26, y).setTint(color).setDisplaySize(70 + p * 40, hgt * 2.2).setAlpha((0.35 + p * 0.5) * blinkA);
-    chevs.forEach((c, i) => { const x = sd > 0 ? 330 - i * 22 - p * 10 : 60 + i * 22 + p * 10; c.setVisible(true).setPosition(x, y).setFlipX(sd > 0).setTint(color).setAlpha(clamp01(p * 3 - i * 0.4) * blinkA).setScale((0.8 + 0.1 * Math.sin(t * 12 - i)) / R()); });
-    if (!ball) badge.setVisible(true).setTexture(badgeTex(s, b.warnWall.kind !== 'high')).setPosition(sd > 0 ? 330 : 60, y - (b.warnWall.kind === 'high' ? 54 : 46)).setScale((0.9 + Math.sin(t * 10) * 0.08) / R()).setAlpha(clamp01(p * 4));
+    // duvarın iç kenarında dolu, koyu konturlu şerit (parıltı açık zeminde seçilmiyordu)
+    const barB = Math.min(gy - 2, y + hgt * 0.85);
+    wallBar.setVisible(true).setOrigin(0.5, 1).setPosition(sd > 0 ? 357 : 33, barB).setTint(ringC).setDisplaySize(16, barB - (y - hgt * 0.85)).setAlpha(clamp01(p * 4) * blinkA);
+    chevs.forEach((c, i) => { const x = sd > 0 ? 330 - i * 22 - p * 10 : 60 + i * 22 + p * 10; c.setVisible(true).setPosition(x, y).setFlipX(sd > 0).setTint(ringC).setAlpha(clamp01(p * 3 - i * 0.4) * blinkA).setScale((calm ? 0.9 : 0.85 + 0.08 * Math.sin(t * 12 - i)) / R()); });
+    if (!ball) badge.setVisible(true).setTexture(badgeTex(s, b.warnWall.kind !== 'high')).setPosition(sd > 0 ? 330 : 60, y - (b.warnWall.kind === 'high' ? 54 : 46)).setScale((calm ? 0.95 : 0.9 + Math.sin(t * 10) * 0.08) / R()).setAlpha(clamp01(p * 4));
     else badge.setVisible(false);
   }
-  function dropUpdate(b: BossArtState, t: number, gy: number, wait: number, fall: number, height: number, key: string, color: number, splat: (x: number) => void) {
+  function dropUpdate(b: BossArtState, t: number, gy: number, wait: number, fall: number, height: number, key: string, color: number, ring: number, splat: (x: number) => void) {
     dropFrame.clear();
     for (const d of b.drops) {
       dropFrame.add(d.t0);
       let v = drops.get(d.t0);
-      if (!v) { v = { o: img(key).setOrigin(0.5, 0.92).setDepth(15), sh: mkTarget(color), gl: glowI(color, 120, 0).setDepth(14), x: d.x, fell: false, seen: t }; drops.set(d.t0, v); }
+      if (!v) { v = { o: img(key).setOrigin(0.5, 0.92).setDepth(15), sh: mkTarget(ring), gl: glowI(color, 120, 0).setDepth(14), x: d.x, fell: false, seen: t }; drops.set(d.t0, v); }
       const age = t - d.t0; v.x = d.x;
-      if (age < wait) { const p = age / wait; v.o.setPosition(d.x, gy - height + 6 + Math.sin(t * 20) * 1.5 * p).setScale((0.35 + p * 0.65) / R(), (0.35 + p * 0.75 + Math.sin(t * 18) * 0.05) / R()).setAlpha(clamp01(p * 3)); v.sh.setVisible(true).setPosition(d.x, gy - 2).setScale((0.25 + p * 0.45) / R()).setAlpha(0.4 + p * 0.5 * Math.abs(Math.sin(t * 14))); v.gl.setPosition(d.x, gy - height).setAlpha(0.3 + p * 0.4); }
+      if (age < wait) { const p = age / wait; v.o.setPosition(d.x, gy - height + 6 + Math.sin(t * 20) * 1.5 * p).setScale((0.35 + p * 0.65) / R(), (0.35 + p * 0.75 + Math.sin(t * 18) * 0.05) / R()).setAlpha(clamp01(p * 3)); v.sh.setVisible(true).setPosition(d.x, gy - 2).setScale((0.4 + p * 0.3) / R()).setAlpha(warnPulse(t, steady())); v.gl.setPosition(d.x, gy - height).setAlpha(0.3 + p * 0.4); }
       else if (age < wait + fall) { const p = (age - wait) / fall; v.o.setPosition(d.x, gy - height + p * height).setScale(0.9 / R(), 1.2 / R()).setAlpha(1); v.sh.setScale(0.7 / R()).setAlpha(1); v.gl.setPosition(d.x, gy - height + p * height - 20).setAlpha(0.5); v.fell = true; }
       else { if (v.o.visible) { v.o.setVisible(false); v.sh.setVisible(false); v.gl.setAlpha(0); splat(d.x); v.fell = false; } }
     }
     for (const [k, v] of drops) if (!dropFrame.has(k)) { if (v.o.visible && v.fell) splat(v.x); v.o.destroy(); v.sh.destroy(); v.gl.destroy(); drops.delete(k); }
     void b;
   }
-  function destroy() { for (const o of all) o.destroy(); noteViews.forEach((o) => o.destroy()); for (const v of drops.values()) { v.o.destroy(); v.sh.destroy(); v.gl.destroy(); } }
+  function destroy() { for (const o of all) o.destroy(); sayRows.forEach((o) => o?.destroy()); noteViews.forEach((o) => o.destroy()); for (const v of drops.values()) { v.o.destroy(); v.sh.destroy(); v.gl.destroy(); } }
 }
