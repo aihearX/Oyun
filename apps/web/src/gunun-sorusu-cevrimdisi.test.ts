@@ -53,7 +53,9 @@ describe('Bugün › Günün Sorusu çevrimdışı', () => {
     // pencereyi kapat: kartta da bekliyor yazar; yeniden açınca seçim durur, ikinci dokunuş istek göndermez
     await act(async () => { el.querySelector<HTMLButtonElement>('.sheet [aria-label="Kapat"]')!.click(); });
     expect(sayfa()).toBeNull();
-    expect(el.querySelector('[data-testid="bugun-soru"]')!.textContent).toContain('Bağlanınca gönderilecek');
+    // soru cihazda: "soru sunucudan gelir" denmez, kartın satırı cevabın beklediğini söyler (OT-eski-telefon-43)
+    expect(el.querySelector('[data-testid="bugun-soru-durum"]')!.textContent).toContain('Cevabın bağlanınca gider');
+    expect(el.textContent).not.toContain('Bağlanınca gelir');
     await ac();
     expect(opts()[2]!.className).toContain('picked');
     await act(async () => { opts()[1]!.click(); });

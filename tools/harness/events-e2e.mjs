@@ -412,19 +412,19 @@ try {
   // ---- tek kişilik rallinin süresi doldu: hak sayısı değişmedi (sunucu ve ekrandaki sayı), sohbet hakkın geri verildiğini söyledi
   const soloWait = Math.max(0, soloRally.endsAt - (Date.now() + (await C.page.evaluate(() => window.__etkinlik.events.getState().offset))));
   log(`tek kişilik ralli: süre dolana dek ${Math.round(soloWait / 1000)} sn bekleniyor`);
-  await C.page.waitForFunction((id) => { const s = window.__etkinlik.events.getState(); return s.rally?.id === id && s.rally.status === 'kaybedildi'; }, soloRally.id, { timeout: soloWait + 60_000, polling: 1000 })
-    .catch(() => fail('tek kişilik ralli kaybedildi olmadı'));
+  await C.page.waitForFunction((id) => { const s = window.__etkinlik.events.getState(); return s.rally?.id === id && s.rally.status === 'sayilmadi'; }, soloRally.id, { timeout: soloWait + 60_000, polling: 1000 })
+    .catch(() => fail('tek kişilik ralli "sayilmadi" olmadı (YN-245)'));
   const soloSt = await net(C, 'rally.state');
   const soloUi = await C.page.evaluate(() => window.__etkinlik.events.getState().rallyStartsLeft);
   check(soloSt.startsLeft === soloLeft0 && soloUi === soloLeft0, `ralli (tek kişi): süre dolunca günlük hak değişmedi (önce ${soloLeft0}, sonra sunucu ${soloSt.startsLeft} / ekran ${soloUi})`);
   const soloChat = (await net(C, 'chat.join', { room: `takim:${soloRally.teamId}` })).history.filter((m) => m.meta?.event === 'ralli' && m.text.includes('kaçtı'));
   check(soloChat.some((m) => m.text.includes('hakkı geri verildi')), `ralli (tek kişi): sohbet "${soloChat.at(-1)?.text ?? '—'}"`);
   await openEvents(C, 'ralli'); await tid(C, 'ralli-oda').waitFor(); await shot(C, 'ralli-tek-kisi-kacti');
-  // takım sohbetindeki ralli kartı (YN-116): süresi dolunca geri sayım ve düğme yok, "Bitti: canavar kaçtı" der
+  // takım sohbetindeki ralli kartı (YN-116): süresi dolunca geri sayım ve düğme yok; kimse katılmadığı için "ralli sayılmadı" der, "kaçtı" değil (YN-245)
   await toTab(C, 'Takım'); await C.page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click();
   const rcard = C.page.locator('[data-testid="ralli-karti"]').last(); await rcard.waitFor({ timeout: 10_000 });
   const rtext = (await rcard.innerText()).replace(/\s+/g, ' ');
-  check((await rcard.getAttribute('data-durum')) === 'kacti' && rtext.includes('Bitti: canavar kaçtı') && !(await rcard.getByTestId('ralli-karti-git').count()), `ralli sohbet kartı: "${rtext}"`);
+  check((await rcard.getAttribute('data-durum')) === 'sayilmadi' && rtext.includes('Kimse katılmadı; ralli sayılmadı') && !rtext.includes('kaçtı') && !(await rcard.getByTestId('ralli-karti-git').count()), `ralli sohbet kartı: "${rtext}"`);
   await rcard.scrollIntoViewIfNeeded(); await shot(C, 'ralli-sohbet-karti-bitti');
 
   const errors = players.map((p) => ({ player: p.name, errors: [...new Set(p.errors)] }));

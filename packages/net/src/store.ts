@@ -3,7 +3,7 @@
  * bileşenler `useNet((s) => s.wallet)` gibi seçicilerle okur. React ve zustand peer dependency'dir.
  */
 import { create } from 'zustand';
-import type { CampState, ChatMessage, EvtMap, MyProfile, RaceRoom, RaidState, TeamDetail, TeamExtra, WarState, Wallet } from '@odi/shared';
+import { inboxGroups, sameInboxGroup, type CampState, type ChatMessage, type EvtMap, type InboxItem, type MyProfile, type RaceRoom, type RaidState, type TeamDetail, type TeamExtra, type WarState, type Wallet } from '@odi/shared';
 import type { NetClient, NetStatus } from './client';
 
 export type CampHelpRequest = EvtMap['team.campHelpNeeded']['requests'][number];
@@ -57,7 +57,7 @@ export function bindNet(client: NetClient): () => void {
   const refresh = async () => {
     try {
       const [w, t, inbox] = await Promise.all([client.call('wallet.get', {}), client.call('team.detail', {}), client.call('inbox.list', {})]);
-      set({ wallet: w.wallet, team: t.team, inboxCount: inbox.items.length });
+      set({ wallet: w.wallet, team: t.team, inboxCount: inboxGroups(inbox.items).length });
       if (t.team) {
         const x = await client.call('team.extra', {}); set({ extra: x.extra, giftCount: giftsOf(x.extra) });
         // okunmamış takım iletileri sunucudaki okunma imlecinden (yeniden açılışta da doğru; YN-071); sohbet açıksa 0 kalır
@@ -80,7 +80,9 @@ export function bindNet(client: NetClient): () => void {
   offs.push(client.on('raid.updated', ({ raid }) => set({ raid })));
   offs.push(client.on('race.updated', ({ room }) => set({ race: room.status === 'bitti' && !room.players.some((p) => p.id === get().me?.id) ? null : room })));
   offs.push(client.on('race.invited', (inv) => set({ raceInvite: inv })));
-  offs.push(client.on('inbox.new', () => set((s) => ({ inboxCount: s.inboxCount + 1 }))));
+  // Takım'dan geçen hediye her ödül için bir kayıt (jeton, kristal) yazar ama Ödül kutusunda tek satırdır (YN-246)
+  let lastNew: InboxItem | null = null;
+  offs.push(client.on('inbox.new', ({ item }) => { const same = !!lastNew && sameInboxGroup(lastNew, item); lastNew = item; if (!same) set((s) => ({ inboxCount: s.inboxCount + 1 })); }));
   offs.push(client.on('presence', ({ id, online }) => set((s) => ({ presence: { ...s.presence, [id]: online } }))));
   offs.push(client.on('kicked', ({ reason }) => set({ kickedReason: reason })));
   offs.push(client.on('chat', ({ msg }) => set((s) => {

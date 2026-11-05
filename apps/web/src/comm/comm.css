@@ -83,6 +83,8 @@
 .fc-cheer { appearance:none; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px 0 10px; border-radius:999px; font:inherit; font-weight:900; font-size:0.84375rem; cursor:pointer;
   color:#fff3b0; border:2px solid rgba(255,201,60,.6); background:linear-gradient(180deg, rgba(255,201,60,.28), rgba(255,159,28,.12)); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 3px 0 rgba(150,80,0,.45); white-space:nowrap; }
 .fc-cheer:active { transform:translateY(2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.2); }
+.fc-cheer:disabled { opacity:.55; cursor:default; transform:none; }
+.fc-bekle { flex:1 1 100%; }
 .fc-ibtn { appearance:none; flex:none; width:34px; height:34px; border-radius:12px; border:2px solid rgba(46,230,214,.35); background:rgba(46,230,214,.1); display:grid; place-items:center; cursor:pointer; }
 .fc-stars3 { display:flex; gap:4px; }
 .fc-stars3 span { opacity:.25; filter:grayscale(1); }

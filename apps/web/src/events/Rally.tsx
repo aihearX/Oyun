@@ -88,10 +88,10 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
   return (
     <div className="stack ev-rally" data-testid="ralli-oda" data-status={rally.status} data-hp={rally.hp}>
       {err && <div className="ev-err" role="alert">{err}</div>}
-      <div className={`ev-stage tone-coral${hit ? ' shake' : ''}${rally.status === 'kazanildi' ? ' won' : ''}${rally.status === 'kaybedildi' ? ' lost' : ''}`}>
+      <div className={`ev-stage tone-coral${hit ? ' shake' : ''}${rally.status === 'kazanildi' ? ' won' : ''}${rally.status === 'kaybedildi' || rally.status === 'sayilmadi' ? ' lost' : ''}`}>
         <div className="row between ev-stage-top">
           <span className="ev-tag">{rallyShownName(rally.starterName)} başlattı · {fmtTime(rally.startsAt)}</span>
-          {open ? <Countdown to={rally.endsAt} urgentMs={120_000} /> : <span className="ev-tag strong">{rich(rally.status === 'kazanildi' ? '🏆 Kazanıldı' : '💨 Kaçtı')}</span>}
+          {open ? <Countdown to={rally.endsAt} urgentMs={120_000} /> : <span className="ev-tag strong">{rich(rally.status === 'kazanildi' ? '🏆 Kazanıldı' : rally.status === 'sayilmadi' ? 'Sayılmadı' : '💨 Kaçtı')}</span>}
         </div>
         <div className="ev-monster" aria-hidden>
           <span className="ev-mon-glow" />
@@ -142,7 +142,7 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
 
       <div className="card">
         <b>Hasar akışı</b>
-        {rally.hits.length === 0 ? <div className="muted small-note" data-testid="ralli-akis-bos">{!open ? 'Bu rallide hiç darbe vurulmadı.' : ready ? 'Henüz darbe yok. İlk vuruş canı sabitler ve yeni katılımı kapatır.' : !mine && rally.participants.length + 1 >= RALLY_RULES.minPlayers ? 'Sen katılınca saldırı açılır.' : 'Bir takım arkadaşın katılınca saldırı açılır.'}</div> : (
+        {rally.hits.length === 0 ? <div className="muted small-note" data-testid="ralli-akis-bos">{!open ? (rally.status === 'sayilmadi' ? 'Kimse katılmadı; ralli sayılmadı, takımın günlük ralli hakkı geri verildi.' : 'Bu rallide hiç darbe vurulmadı.') : ready ? 'Henüz darbe yok. İlk vuruş canı sabitler ve yeni katılımı kapatır.' : !mine && rally.participants.length + 1 >= RALLY_RULES.minPlayers ? 'Sen katılınca saldırı açılır.' : 'Bir takım arkadaşın katılınca saldırı açılır.'}</div> : (
           <ul className="ev-feed">{rally.hits.map((h, i) => <li key={`${h.at}-${i}`}><span className="grow ellipsis">{rich(h.completed ? '⭐'.repeat(Math.max(1, h.stars)) : '🩹')} {rallyShownName(h.name)}</span><b className="coral-t">−{h.damage}</b></li>)}</ul>
         )}
       </div>

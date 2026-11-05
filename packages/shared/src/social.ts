@@ -240,6 +240,24 @@ export function inboxReasonText(it: Pick<InboxItem, 'reason' | 'kind'>): string 
   return r;
 }
 
+/**
+ * Ödül kutusunda tek satır (YN-246, OT-ogrenci-birinci-51): Takım'da alınmayıp kutuya geçen hediye içerdiği her ödül için bir kayıt
+ * (60 jeton, 5 kristal) olarak yazılır; ekranda Takım › Hediyeler'deki gibi tek satır, tek "Al" ikisini alır. Aynı hediyenin parçaları:
+ * aynı neden, aynı an (sunucu expireGifts tek zaman yazar; eski kayıtlar için 1 sn pay). Kayıtlar ve `inbox.claim` aynı kalır.
+ */
+export const INBOX_GROUP_MS = 1000;
+export function inboxGroups<T extends Pick<InboxItem, 'reason' | 'kind' | 'at'>>(items: readonly T[]): T[][] {
+  const out: T[][] = [];
+  for (const it of items) {
+    const r = inboxReasonText(it);
+    const g = r.startsWith(INBOX_TEXT.giftMoved('')) ? out.find((x) => inboxReasonText(x[0]!) === r && Math.abs(x[0]!.at - it.at) <= INBOX_GROUP_MS) : undefined;
+    if (g) g.push(it); else out.push([it]);
+  }
+  return out;
+}
+/** aynı ödülün parçası mı (canlı gelen `inbox.new` sayacı: bir hediye iki kayıt, bir ödül sayılır) */
+export const sameInboxGroup = (a: Pick<InboxItem, 'reason' | 'kind' | 'at'>, b: Pick<InboxItem, 'reason' | 'kind' | 'at'>): boolean => inboxGroups([a, b]).length === 1;
+
 // ---------- İlerleme bildirimi (her bölüm sonunda)
 export interface ProgressSubmit { /** istemcinin ürettiği benzersiz koşu kimliği: aynı koşu iki kez sayılmaz */ runId: string; level: number; completed: boolean; stars: number; score: number; timeSec: number; coins: number; biome: string; mechanic: string; raceId?: string; /** bu koşuda bulunan altın koklea (0-3; Takım Akışı kartı için) */ cochleas?: number; /** bölümde kullanılan Tedavi Odası malzemeleri (sunucu envanterden düşer; runId ile bir kez) */ remediesUsed?: { id: string; count: number }[];
   /** Rahat deneme (karar 42): yalnız canavar bölümünde, yarışta değil; sunucu en çok 1 yıldız kabul eder, lig/düello/savaş/baskın/sıralama puanı yazmaz */ rahat?: boolean }
@@ -661,7 +679,11 @@ export const rallyRewardReason = (monsterName: string) => `Ralli kazanıldı: ${
 /** silinmiş hesabın adı (DELETED_PLAYER_NAME) ralli ekranında ve kartlarında böyle görünür; sunucu verisi değişmez (YN-116) */
 export const LEFT_PLAYER_LABEL = 'Ayrılan bir oyuncu';
 export function rallyShownName(name: string): string { return name === DELETED_PLAYER_NAME ? LEFT_PLAYER_LABEL : name; }
-export type RallyStatus = 'acik' | 'kazanildi' | 'kaybedildi';
+/**
+ * 'kaybedildi': saldırı açıldı (en az RALLY_RULES.minPlayers katılımcı), süre doldu, canavar kaçtı. 'sayilmadi': süre en az katılımcıya
+ * ulaşmadan doldu; saldırı hiç açılmadı, ralli günlük hakka sayılmaz (YN-245; sunucuda satır 'kaybedildi', ayrım katılımcı sayısından).
+ */
+export type RallyStatus = 'acik' | 'kazanildi' | 'kaybedildi' | 'sayilmadi';
 export interface RallyParticipant {
   id: string; name: string; color: number; hat: string; damage: number; tries: number; joinedAt: number;
   /**

@@ -784,7 +784,7 @@ async function gununSorusuKopuk(A) {
   const cevap = () => q1('SELECT COUNT(*) AS n FROM dq_answers WHERE player_id = ?', A.pid).n;
   const n0 = cevap();
   const sayfa = A.page.getByTestId('bugun-soru-sayfa');
-  // Bugün'de genel şerit yok: kopukluk kartın durumunda görünür ("Bağlanınca gelir")
+  // Bugün'de genel şerit yok: kopukluk kartın data-durum'unda görünür (soru cihazdaysa yazı kartın kendi durumu, YN-243)
   const t = await outage('soru-kopuk', { sig: 'SIGTERM', players: [A], bannerOf: (P) => P.page.locator('[data-testid="bugun-soru"][data-durum="cevrimdisi"]'), whileDown: async () => {
     await kart.getByTestId('bugun-soru-ac').click(); await sayfa.waitFor({ timeout: 5000 });
     await sayfa.locator('.dq-opt[data-choice="1"]').click();
@@ -793,7 +793,8 @@ async function gununSorusuKopuk(A) {
     check(isaretli === '1' && /Bağlanınca gönderilecek/.test(bekle ?? '') && !(await sayfa.getByText('Bir şık seç.').count()), `kopukken şık: seçilen işaretli (${isaretli}), "Bağlanınca gönderilecek"`);
     await shot(A, 'soru-kopuk-secim');
     await A.page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
-    check(/Bağlanınca gönderilecek/.test((await kart.textContent()) ?? ''), 'pencere kapandı: kartta "Bağlanınca gönderilecek"');
+    const kartYazi = (await kart.textContent()) ?? '';
+    check(/Cevabın bağlanınca gider/.test(kartYazi) && !/Bağlanınca gelir/.test(kartYazi), 'pencere kapandı: kartta "Cevabın bağlanınca gider" (soru cihazda: "Bağlanınca gelir" yok, YN-243)');
     check(cevap() === n0, 'kopukken sunucuda cevap yok');
   } });
   let n = cevap(); for (let i = 0; i < 100 && n === n0; i++) { await sleep(100); n = cevap(); }

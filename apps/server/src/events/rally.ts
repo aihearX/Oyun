@@ -34,7 +34,9 @@ function view(app: App, r: RallyRow): RallyState {
   const hits: RallyHit[] = app.db.all<{ id: string; name: string; damage: number; stars: number; completed: number; at: number }>(
     'SELECT p.id, p.name, h.damage, h.stars, h.completed, h.at FROM ev_rally_hit h JOIN players p ON p.id = h.player_id WHERE h.rally_id = ? ORDER BY h.at DESC, h.rowid DESC LIMIT 20', r.id)
     .map((h) => ({ id: h.id, name: h.name, damage: h.damage, stars: h.stars, completed: !!h.completed, at: h.at }));
-  return { id: r.id, teamId: r.team_id, monster: r.monster as RallyState['monster'], salt: r.salt, starterId: r.starter, starterName: r.starter_name, status: r.status as RallyState['status'],
+  // en az katılımcıya ulaşmadan süresi dolan ralli sayılmaz (rallyStartsLeft ile aynı kural): "kaçtı" değil, ayrı durum (YN-245)
+  const status = (r.status === 'kaybedildi' && participants.length < RALLY_RULES.minPlayers ? 'sayilmadi' : r.status) as RallyState['status'];
+  return { id: r.id, teamId: r.team_id, monster: r.monster as RallyState['monster'], salt: r.salt, starterId: r.starter, starterName: r.starter_name, status,
     hp: r.hp, maxHp: r.max_hp, startsAt: r.starts_at, endsAt: r.ends_at, wonAt: r.won_at,
     // katılım saldırı başlayınca kapandığı için canın dayandığı sayı katılımcı sayısıdır (YN-117)
     hpPlayers: participants.length, attackStarted: attackStarted(app, r.id), participants, hits };
@@ -55,7 +57,7 @@ export function rallyTick(app: App): void {
     const parts = app.db.all<{ player_id: string }>('SELECT player_id FROM ev_rally_part WHERE rally_id = ?', r.id).length;
     if (parts < RALLY_RULES.minPlayers) {
       // saldırı hiç açılmadı: ralli günlük hakka sayılmaz (rallyStartsLeft), hak geri verilir (OT-takim-kaptani-13)
-      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı: süre doldu, saldırı için en az ${RALLY_RULES.minPlayers} katılımcı gerekiyordu. Bu ralli sayılmadı, takımın günlük ralli hakkı geri verildi (bugün kalan ${rallyStartsLeft(app, r.team_id)}).`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kacti' });
+      systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı: süre doldu, saldırı için en az ${RALLY_RULES.minPlayers} katılımcı gerekiyordu. Bu ralli sayılmadı, takımın günlük ralli hakkı geri verildi (bugün kalan ${rallyStartsLeft(app, r.team_id)}).`, 'system', { event: 'ralli', rallyId: r.id, phase: 'sayilmadi' });
       notify(app, app.teamMemberIds(r.team_id), { kind: 'ralli', icon: m.emoji, title: `${m.name} kaçtı`, text: 'Kimse katılmadı; ralli sayılmadı, günlük hakkınız geri verildi.', target: 'ralli', ref: r.id });
     } else {
       systemMessage(app, teamRoom(r.team_id), `${m.name} kaçtı! Süre doldu (kalan can ${r.hp}/${r.max_hp}). Bir dahaki rallide!`, 'system', { event: 'ralli', rallyId: r.id, phase: 'kacti' });

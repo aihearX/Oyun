@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { create } from 'zustand';
 import { useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, DELETED_PLAYER_NAME, LEFT_PLAYER_LABEL, QUICK_PHRASES, RALLY_RULES, REACTION_LABEL, tipPhrasesFor, type ChatMessage, type ChatReaction, type PhraseCtx } from '@odi/shared';
 import { HUMAN_JOURNEY, quizChoiceLabels } from '@odi/content';
@@ -16,6 +17,7 @@ import { openProfile } from '../friends/state';
 import { TuyDede } from '../ftue/Narrator';
 import { loadLevelGen } from '../engine';
 import { patchMessage, refreshDq, useCanFreeText, useComm } from './state';
+import { BEKLEYEN_GONDER, BekleyenSatir } from '../ui/bekleyen';
 import './comm.css';
 
 /** tepki → resimli ikon (emoji değil) */
@@ -140,6 +142,18 @@ export function ThreadSheet({ parent, onClose, ctx = ['tebrik', 'genel', 'tesekk
   );
 }
 
+/**
+ * gönderilmekte olan "Tebrik et / Hoş geldin de" (akış kartının kimliği). Bağlantı yokken istek bağlantıyı bekler ve bağlanınca bir kez
+ * gider; o arada düğme kilitli, kartta "Bağlanınca gönderilecek" (ui/bekleyen.tsx; OT-eski-telefon-41). Kart yeniden çizilse de
+ * ikinci basış ikinci istek açmaz.
+ */
+export const useCheerGiden = create<{ ids: string[] }>(() => ({ ids: [] }));
+export async function cheerFeed(m: ChatMessage, cheerId: string): Promise<void> {
+  if (useCheerGiden.getState().ids.includes(m.id)) return;
+  useCheerGiden.setState((x) => ({ ids: [...x.ids, m.id] }));
+  try { await sendIn(m.room, cheerId, 'hazir', m.id); } finally { useCheerGiden.setState((x) => ({ ids: x.ids.filter((id) => id !== m.id) })); }
+}
+
 /** Takım Akışı kartı */
 export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatMessage[]; rich?: boolean }) {
   const me = useNet((x) => x.me?.id);
@@ -147,6 +161,7 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
   const [thread, setThread] = useState(false);
   const nav = useNav();
   const highest = useStore((x) => x.highestUnlocked());
+  const cheering = useCheerGiden((x) => x.ids.includes(m.id));
   if (!rich) return <div className="msg-sys kind-feed"><Art name={FEED_ART[type] ?? 'spark'} size="1.2em" className="art-inline" /> {m.text}</div>;
   const own = s(m.meta?.pid) === me;
   const cheerId = type === 'uye' ? 'hosgeldin' : 'tebrik';
@@ -185,8 +200,9 @@ export function FeedCard({ m, live, rich = true }: { m: ChatMessage; live: ChatM
       <div className="fc-foot">
         <ReactionBar msg={m} />
         <span className="grow" />
-        {!own && <button type="button" className="fc-cheer" data-testid="tebrik-et" onClick={() => void sendIn(m.room, cheerId, 'hazir', m.id)}><Art name={type === 'uye' ? 'users' : 'party'} size={18} />{type === 'uye' ? 'Hoş geldin de' : 'Tebrik et'}</button>}
+        {!own && <button type="button" className="fc-cheer" data-testid="tebrik-et" disabled={cheering} aria-busy={cheering || undefined} onClick={() => void cheerFeed(m, cheerId)}><Art name={type === 'uye' ? 'users' : 'party'} size={18} />{type === 'uye' ? 'Hoş geldin de' : 'Tebrik et'}</button>}
         <button type="button" className="fc-ibtn" onClick={() => setThread(true)} aria-label="Yanıtla"><Art name="chat" size={18} /></button>
+        {cheering && <div className="fc-bekle"><BekleyenSatir text={BEKLEYEN_GONDER} /></div>}
       </div>
       <ThreadPreview parent={m} live={live} onOpen={() => setThread(true)} />
       {thread && <ThreadSheet parent={m} onClose={() => setThread(false)} />}
@@ -284,16 +300,17 @@ function TipSheet({ requestId, name, level, onClose }: { requestId: string; name
 }
 
 // ---------- Ralli sohbet kartı (YN-116)
-type RallyEnd = 'kazanildi' | 'kacti';
+/** 'sayilmadi': en az katılımcıya ulaşmadan süresi doldu, saldırı açılmadı (YN-245); 'kacti' yalnız sayılan ve süresi dolan ralli */
+type RallyEnd = 'kazanildi' | 'kacti' | 'sayilmadi';
 /** ralli başladı iletisi (yeni: meta.phase; eski iletiler metinden) */
 export const isRallyStart = (m: ChatMessage) => m.from === 'sistem' && m.meta?.event === 'ralli' && !!m.meta.rallyId && (m.meta.phase === 'basladi' || (!m.meta.phase && / ralli başlattı! /.test(m.text)));
-/** odadaki ralli sonuç iletilerinden: hangi ralli kazanıldı / kaçtı */
+/** odadaki ralli sonuç iletilerinden: hangi ralli kazanıldı / kaçtı / sayılmadı (eski iletilerde evre 'kacti', metin "sayılmadı" der) */
 export function rallyEnds(msgs: ChatMessage[]): Map<string, RallyEnd> {
   const out = new Map<string, RallyEnd>();
   for (const m of msgs) {
     if (m.from !== 'sistem' || m.meta?.event !== 'ralli' || isRallyStart(m)) continue;
     const id = s(m.meta.rallyId); const ph = s(m.meta.phase);
-    const end: RallyEnd | null = ph === 'kazanildi' || ph === 'kacti' ? ph : / yenildi! /.test(m.text) ? 'kazanildi' : / kaçtı/.test(m.text) ? 'kacti' : null;
+    const end: RallyEnd | null = ph === 'sayilmadi' || / sayılmadı/.test(m.text) ? 'sayilmadi' : ph === 'kazanildi' || ph === 'kacti' ? ph : / yenildi! /.test(m.text) ? 'kazanildi' : / kaçtı/.test(m.text) ? 'kacti' : null;
     if (id && end) out.set(id, end);
   }
   return out;
@@ -309,7 +326,7 @@ export function RallyChatCard({ m, end }: { m: ChatMessage; end?: RallyEnd }) {
   const endsAt = n(m.meta?.endsAt) || m.at + RALLY_RULES.durationMs;
   const live = useEvents((x) => (x.rally?.id === id ? x.rally : null));
   const [now, setNow] = useState(srvNow);
-  const outcome: RallyEnd | null = live?.status === 'kazanildi' ? 'kazanildi' : live?.status === 'kaybedildi' ? 'kacti' : end ?? null;
+  const outcome: RallyEnd | null = live?.status === 'kazanildi' ? 'kazanildi' : live?.status === 'kaybedildi' ? 'kacti' : live?.status === 'sayilmadi' ? 'sayilmadi' : end ?? null;
   const open = !outcome && endsAt > now;
   useEffect(() => { if (!open) return; const h = setInterval(() => setNow(srvNow()), 1000); return () => clearInterval(h); }, [open]);
   const hit = /^(.*) ralli başlattı! (.+?) · \d+:\d+ içinde katıl/.exec(m.text);
@@ -325,7 +342,7 @@ export function RallyChatCard({ m, end }: { m: ChatMessage; end?: RallyEnd }) {
       <div className="fc-duel">
         {open
           ? <span className="fc-rally-left"><Art name="hourglass" size="1.1em" className="art-inline" /> {fmtLeft(endsAt - now)} kaldı</span>
-          : <span className="fc-rally-left">{outcome === 'kazanildi' ? 'Bitti: canavar yenildi' : outcome === 'kacti' ? 'Bitti: canavar kaçtı' : 'Bitti'}</span>}
+          : <span className="fc-rally-left">{outcome === 'kazanildi' ? 'Bitti: canavar yenildi' : outcome === 'kacti' ? 'Bitti: canavar kaçtı' : outcome === 'sayilmadi' ? 'Kimse katılmadı; ralli sayılmadı' : 'Bitti'}</span>}
         {open && <button type="button" className="btn small coral" data-testid="ralli-karti-git" onClick={() => nav.open({ name: 'events', view: 'ralli', rallyId: id })}>Ralliye git</button>}
       </div>
     </div>

@@ -60,9 +60,10 @@ export function DqTodayCard() {
         <span className="dqb-icon" aria-hidden><Art name="question" size={40} /></span>
         <div className="grow min0">
           <h2>Günün Sorusu</h2>
+          {/* çevrimdışı: soru cihazdaysa kartın kendi durumu (OT-eski-telefon-43); "bağlanınca gelir" yalnız soru hiç gelmediyse */}
           {locked ? <div className="muted">{afterText('soru')} açılır.</div>
-            : status !== 'bağlı' ? <div className="muted" data-testid="bugun-soru-cevrimdisi">Bağlanınca gelir: soru her gün sunucudan gelir.</div>
-            : !q || !st ? <div className="muted">Yükleniyor…</div>
+            : !q || !st ? (status !== 'bağlı' ? <div className="muted" data-testid="bugun-soru-cevrimdisi">Bağlanınca gelir: soru her gün sunucudan gelir.</div> : <div className="muted">Yükleniyor…</div>)
+            : giden ? <div className="muted" data-testid="bugun-soru-durum" data-giden={status !== 'bağlı' ? 'bekliyor' : 'gidiyor'}>{status !== 'bağlı' ? 'Cevabın bağlanınca gider' : 'Cevabın gönderiliyor'} · açıklama saati {fmtTime(q.revealAt)}</div>
             : <div className="muted" data-testid="bugun-soru-durum">{dqStatusLine(q)}</div>}
         </div>
       </div>
@@ -70,7 +71,6 @@ export function DqTodayCard() {
         <div className="dqb-q">{q.text}</div>
         <small className="muted dqb-rule" data-testid="bugun-soru-kural">{dqRuleLine(st)}</small>
         <button type="button" className="btn small dqb-btn" data-testid="bugun-soru-ac" onClick={() => setOpen(true)}>{q.revealed || q.myChoice !== null || giden ? 'Soruyu gör' : 'Cevapla'}</button>
-        {giden && <BekleyenSatir text={BEKLEYEN_GONDER} />}
         {st.yesterday && <Yesterday y={st.yesterday} />}
       </>}
       {open && st && q && <DqSheet st={st} q={q} onClose={() => setOpen(false)} />}

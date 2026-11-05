@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { INBOX_TEXT, inboxGotText, inboxReasonText, weekRangeText, type InboxKind } from './social';
+import { INBOX_TEXT, inboxGotText, inboxGroups, inboxReasonText, sameInboxGroup, weekRangeText, type InboxItem, type InboxKind } from './social';
 
 // YN-103: Ödül kutusu satırları kimin ödülü olduğunu ve hangi hafta olduğunu okunur yazar; eski kayıtlar görünümde aynı biçime gelir
 describe('ödül kutusu metinleri', () => {
@@ -32,5 +32,22 @@ describe('ödül kutusu metinleri', () => {
     const got: { kind: InboxKind; amount: number }[] = [...[...Array(5)].map(() => ({ kind: 'kristal' as const, amount: 40 })), { kind: 'jeton', amount: 300 }, { kind: 'jeton', amount: 300 }];
     expect(inboxGotText(got)).toBe('+600 jeton, +200 kristal');
     expect(inboxGotText([{ kind: 'kalkan', amount: 1 }, { kind: 'jeton', amount: 1500 }])).toBe('+1.500 jeton, +1 kalkan (bir sonraki bölümde)');
+  });
+  it('Takım\'dan geçen hediye tek satır: aynı neden ve an; başka ödüller ayrı kalır (YN-246, OT-ogrenci-birinci-51)', () => {
+    const it = (id: string, kind: InboxKind, amount: number, reason: string, at: number): InboxItem => ({ id, kind, amount, ref: '', reason, at });
+    const hed = INBOX_TEXT.giftMoved('Takım hedefi: Yıldız Avı 4. kademe');
+    const items = [
+      it('a', 'jeton', 60, hed, 5000), it('b', 'kristal', 5, hed, 5000),
+      // eski kayıt (parçalar birkaç ms arayla, eski metin) da tek satır
+      it('c', 'jeton', 40, 'Takım hediyesi (alma süresi doldu): Takım görevi', 3000), it('d', 'kristal', 2, INBOX_TEXT.giftMoved('Takım görevi'), 3004),
+      // aynı hediye metni ama başka gün: ayrı satır
+      it('e', 'jeton', 60, hed, 90_000_000),
+      // hediye olmayan iki parçalı ödül (Bölge Savaşı) bilerek ayrı satır
+      it('f', 'kristal', 10, 'Bölge Savaşı 2026-W44: Ninni Merkezi bölgesi sizin', 1000), it('g', 'jeton', 100, 'Bölge Savaşı 2026-W44: Ninni Merkezi bölgesi sizin', 1000),
+    ];
+    expect(inboxGroups(items).map((g) => g.map((x) => x.id).join(''))).toEqual(['ab', 'cd', 'e', 'f', 'g']);
+    expect(inboxGotText(inboxGroups(items)[0]!)).toBe('+60 jeton, +5 kristal');
+    expect(sameInboxGroup(items[0]!, items[1]!)).toBe(true);
+    expect(sameInboxGroup(items[0]!, items[4]!)).toBe(false);
   });
 });

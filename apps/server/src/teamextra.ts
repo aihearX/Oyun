@@ -58,7 +58,9 @@ export function expireGifts(app: App, pid?: string): void {
       WHERE r.claimed = 0 AND g.expires_at <= ?${pid ? ' AND r.player_id = ?' : ''} LIMIT 500`, ...(pid ? [app.now(), pid] : [app.now()]));
   for (const d of due) {
     if (!app.db.run('UPDATE gift_recipients SET claimed = ? WHERE gift_id = ? AND player_id = ? AND claimed = 0', GIFT_TO_INBOX, d.gift_id, d.player_id)) continue;
-    for (const c of parseJson<Grant[]>(d.contents, [])) app.addInbox(d.player_id, c, INBOX_TEXT.giftMoved(d.reason));
+    // parçalar tek zamanla: Ödül kutusunda tek satır "60 jeton + 5 kristal", tek "Al" (YN-246, inboxGroups)
+    const at = app.now();
+    for (const c of parseJson<Grant[]>(d.contents, [])) app.addInbox(d.player_id, c, INBOX_TEXT.giftMoved(d.reason), at);
   }
 }
 

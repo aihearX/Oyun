@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { audio } from '@odi/audio';
 import { platform } from '../platform';
 import { useStore } from '../store';
+import { useNet } from '@odi/net/store';
 import { stripEmoji } from '../ui/art';
 import { textHash } from './script';
 import { NARRATOR_TTS } from './voicePick';
@@ -42,24 +43,40 @@ function report(mode: VoiceMode, id: string | null, file: string | null, error?:
 const fail = (error: string) => useVoiceStatus.setState({ error, at: Date.now() });
 
 let manifestP: Promise<VoiceManifest> | null = null;
-/** gömülü ses listesi (bir kez yüklenir; yoksa boş) */
+/** son başarısız (hata ya da boş) liste denemesinin zamanı: art arda istekler bu kadar bekler, sonra yeniden dener */
+let manifestFailAt = 0;
+const MANIFEST_RETRY_MS = 3000;
+/** gömülü ses listesi. Yalnız dolu liste önbellekte kalır; hata ya da boş yanıtta bir sonraki istek (kısa beklemeden sonra)
+ *  yeniden indirir: bağlantı bir kez koptu diye anlatıcı oturum boyu susmasın. */
 export function voiceManifest(): Promise<VoiceManifest> {
-  if (!manifestP) {
-    manifestP = (async () => {
-      try {
-        const p = platform();
-        // telefon paketi (file://) dosyayı yalnız köprüden okur: köprü yoksa indirme denenmez (file:// isteği konsol hatası verir)
-        const fileUrl = typeof location !== 'undefined' && location.protocol === 'file:';
-        const raw = p.voiceManifest ? await p.voiceManifest() : fileUrl ? null : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
-        const m = raw ? (JSON.parse(raw) as VoiceManifest) : null;
-        return m && typeof m === 'object' && m.lines && typeof m.lines === 'object' ? m : EMPTY;
-      } catch (e) { fail(`liste okunamadı: ${String(e).slice(0, 80)}`); return EMPTY; }
-    })();
-  }
-  return manifestP;
+  if (manifestP) return manifestP;
+  if (manifestFailAt && Date.now() - manifestFailAt < MANIFEST_RETRY_MS) return Promise.resolve(EMPTY);
+  const p: Promise<VoiceManifest> = (async () => {
+    try {
+      const pl = platform();
+      // telefon paketi (file://) dosyayı yalnız köprüden okur: köprü yoksa indirme denenmez (file:// isteği konsol hatası verir)
+      const fileUrl = typeof location !== 'undefined' && location.protocol === 'file:';
+      const raw = pl.voiceManifest ? await pl.voiceManifest() : fileUrl ? null : await fetch(voiceUrl('manifest.json')).then((r) => (r.ok ? r.text() : null));
+      const m = raw ? (JSON.parse(raw) as VoiceManifest) : null;
+      return m && typeof m === 'object' && m.lines && typeof m.lines === 'object' ? m : EMPTY;
+    } catch (e) { fail(`liste okunamadı: ${String(e).slice(0, 80)}`); return EMPTY; }
+  })();
+  manifestP = p;
+  void p.then((m) => {
+    if (manifestP !== p) return;
+    if (Object.keys(m.lines).length) { manifestFailAt = 0; return; }
+    manifestP = null; manifestFailAt = Date.now();
+  });
+  return p;
 }
 /** platform değişince (mobil köprü kurulunca) / sıfırlamada önbellekleri boşalt */
-export function resetVoiceManifest() { manifestP = null; buffers.clear(); }
+export function resetVoiceManifest() { manifestP = null; manifestFailAt = 0; buffers.clear(); }
+/** bağlantı dönünce / "Sesi dene"de: liste daha önce okunamadıysa beklemeden yeniden dene (dolu liste korunur) */
+export function retryVoiceManifest() { manifestFailAt = 0; }
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('online', retryVoiceManifest);
+// sunucu bağlantısı dönünce de (window 'online' her ağ değişiminde gelmeyebilir; köprülü mobil kabukta da)
+// (birim testlerinde depo sahte olabilir: abonelik yoksa atlanır)
+if (typeof useNet.subscribe === 'function') useNet.subscribe((s, prev) => { if (s.status === 'bağlı' && prev.status !== 'bağlı') retryVoiceManifest(); });
 
 function voiceUrl(file: string): string {
   try { return new URL(`voice/${file}`, document.baseURI).href; } catch { return `voice/${file}`; }
@@ -109,7 +126,8 @@ export function voiceBuffer(file: string): Promise<AudioBuffer | null> {
     } catch (e) { fail(`yüklenemedi: ${file} · ${String(e).slice(0, 80)}`); return null; }
   })();
   buffers.set(file, p);
-  void p.then((b) => { if (!b) buffers.delete(file); });
+  // başarısız indirme / çözme önbellekte kalmaz: sonraki istek yeniden dener
+  void p.then((b) => { if (!b && buffers.get(file) === p) buffers.delete(file); });
   while (buffers.size > 16) buffers.delete(buffers.keys().next().value!);
   return p;
 }

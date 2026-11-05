@@ -78,8 +78,16 @@ describe('Bugün › Günün Sorusu kartı', () => {
     expect(h).toMatch(/data-testid="bugun-soru-ac"[^>]*>Soruyu gör</);
   });
 
-  it('çevrimdışı: "bağlanınca gelir"; kilitliyken açılış bölümü', async () => {
+  it('çevrimdışı: soru yoksa "bağlanınca gelir"; soru cihazdaysa kartın durumu (OT-eski-telefon-43); kilitliyken açılış bölümü', async () => {
     useNet.setState({ status: 'çevrimdışı' });
+    let h = await html();
+    expect(h).not.toContain('Bağlanınca gelir');
+    expect(h).toContain('Cevaplamadın · açıklama saati 20:00');
+    useComm.setState({ dq: state({}, { myChoice: 1 }) });
+    h = await html();
+    expect(h).not.toContain('Bağlanınca gelir');
+    expect(h).toContain('Cevapladın · açıklama saati 20:00');
+    useComm.setState({ dq: null });
     expect(await html()).toContain('Bağlanınca gelir');
     useStore.setState({ progress: {}, ftue: { ...useStore.getState().ftue, bypass: false } });
     expect(await html()).toContain('data-durum="kilitli"');

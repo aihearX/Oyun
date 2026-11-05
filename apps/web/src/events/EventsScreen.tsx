@@ -15,6 +15,7 @@ import { QuestsView } from './Quests';
 import { ChallengeView } from './Challenge';
 import { TourneyView } from './Tourney';
 import type { EventFlash, EventPlay } from './EventLevel';
+import { rallyHitText } from './ralli-bolum';
 import { eventBackTo } from '../nav';
 import { scrollAppTop } from '../ui/viewport';
 import './events.css';
@@ -33,6 +34,7 @@ export function EventsScreen({ view = 'merkez', flash, rallyId, fromHub = false,
   const [v, setV] = useState<EventView>(view);
   const [hub, setHub] = useState(fromHub);
   const [shown, setShown] = useState<EventFlash | undefined>(flash);
+  const liveRally = useEvents((s) => s.rally);
   const inTeam = useEvents((s) => s.inTeam); const loaded = useEvents((s) => s.loaded); const status = useNet((s) => s.status);
   useEffect(() => { void refreshEvents(); }, [v, status]);
   // uzun sonuç (Bayrak: rekorla karşılaştırma) okunacak kadar kalır; dokununca kapanır
@@ -44,7 +46,7 @@ export function EventsScreen({ view = 'merkez', flash, rallyId, fromHub = false,
   return (
     <div className="screen fade-in ev-screen" data-testid="etkinlikler" data-view={v}>
       {v === 'merkez' ? <EvHeadHub onBack={onBack} /> : <EvHead kind={v} onBack={back} />}
-      {shown && <div className={`ev-flash ${shown.tone}`} role="status" data-testid="ev-flash" onClick={() => setShown(undefined)}><span className="ev-flash-i"><Glyph e={shown.icon} size={30} /></span><span className="min0"><b>{shown.title}</b><small>{shown.text}</small></span></div>}
+      {shown && <div className={`ev-flash ${shown.tone}`} role="status" data-testid="ev-flash" onClick={() => setShown(undefined)}><span className="ev-flash-i"><Glyph e={shown.icon} size={30} /></span><span className="min0"><b>{shown.title}</b><small>{shown.rally ? rallyHitText(shown.rally, liveRally) : shown.text}</small></span></div>}
       <Online what="Etkinlikler">
         {needTeam ? <div className="card muted stack">Bu etkinlik için bir takımda olmalısın.{v === 'quiz' && <PratikLink />}</div> : (
           <>

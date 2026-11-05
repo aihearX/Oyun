@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NetError } from '@odi/net';
-import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, inboxGroups } from '@odi/shared';
 import { teamGiftFor } from '../src/shop';
 import { setup, type Env, type TC } from './helpers';
 
@@ -55,6 +55,9 @@ describe('mağaza', () => {
     const moved = (await c.call('inbox.list', {})).items.filter((i) => i.reason.includes('buraya geçti'));
     const key = (x: { kind: string; amount: number; ref: string }) => `${x.kind}:${x.amount}:${x.ref}`;
     expect(moved.map(key).sort()).toEqual(teamGiftFor(49.99).map(key).sort());
+    // aynı hediyenin parçaları tek zamanla yazılır: Ödül kutusunda tek satır, tek "Al" (YN-246)
+    expect(new Set(moved.map((i) => i.at)).size).toBe(1);
+    expect(inboxGroups(moved)).toHaveLength(1);
     expect((await c.call('team.extra', {})).extra.gifts[0]).toMatchObject({ id: g.gift.id, claimed: true, toInbox: true });
     expect((await err(c.call('team.gift.claim', { giftId: g.gift.id }))).code).toBe('KUTUDA');
     env.srv.sweep(); // ikinci kez taşınmaz; hediyeyi zamanında alan b'nin kutusuna da düşmez

@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { useNet } from '@odi/net/store';
-import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, phraseById, type DmMessage, type PublicProfile, type RallyState } from '@odi/shared';
+import { COMM_RULES, DM_REACTIONS, DM_STICKERS, FRIEND_LIMITS, RALLY_RULES, phraseById, type DmMessage, type PublicProfile, type RallyState } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
 import { srvNow, useEvents } from '../events/store';
 import { platform } from '../platform';
@@ -209,7 +209,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
 const rallyDone = new Map<string, RallyState | null>();
 /**
  * Ralli davet kartının durumu (YN-116): kartın kendi rallisi (meta.roomId) sunucudan sorulur; takımın güncel rallisiyse canlı.
- * 'acik' | 'kazanildi' | 'kaybedildi' | 'yok' (bulunamadı / takımının değil); undefined: yükleniyor ya da ralli kartı değil.
+ * 'acik' | 'kazanildi' | 'kaybedildi' | 'sayilmadi' | 'yok' (bulunamadı / takımının değil); undefined: yükleniyor ya da ralli kartı değil.
  */
 function useRallyInvite(id: string | undefined): RallyState['status'] | 'yok' | undefined {
   const live = useEvents((s) => (id && s.rally?.id === id ? s.rally : null));
@@ -233,7 +233,8 @@ function useRallyInvite(id: string | undefined): RallyState['status'] | 'yok' | 
   }, [rally?.status, rally?.endsAt]);
   if (!id || rally === undefined) return undefined;
   if (!rally) return 'yok';
-  return rally.status === 'acik' && rally.endsAt <= srvNow() ? 'kaybedildi' : rally.status;
+  // süre doldu, sunucu henüz kapatmadı: en az katılımcıya ulaşmadıysa sayılmaz (sunucu events/rally.ts ile aynı kural)
+  return rally.status === 'acik' && rally.endsAt <= srvNow() ? (rally.participants.length < RALLY_RULES.minPlayers ? 'sayilmadi' : 'kaybedildi') : rally.status;
 }
 
 /**
@@ -293,7 +294,7 @@ function Bubble({ m, mine, tail, seen, sender, meId, onMenu, onInvite }: { m: Dm
         <div className="dm-inv-top"><span className="dm-inv-ico" aria-hidden><Art name={yaris ? 'finish' : takim ? 'users' : 'mail'} size={30} /></span><span className="min0"><b>{yaris ? 'Canlı yarış daveti' : typeof m.meta?.title === 'string' ? m.meta.title : 'Davet'}</b>{typeof m.meta?.level === 'number' && <small>{m.meta.level}. bölüm · en çok 4 oyuncu</small>}</span></div>
         {/* eski ralli davetlerinin sonundaki sistem emojisi gösterilmez (yeni davetlerde yok, YN-107) */}
         <div className="dm-inv-text">{m.meta?.type === 'ralli' ? m.text.replace(/\s*🔥\s*$/u, '') : m.text}</div>
-        {rallyOver && <div className="dm-inv-state" role="status" data-testid="davet-bitti">{lobby === 'kapali' ? 'Bu lobi kapandı' : rally === 'yok' ? 'Bu ralli artık açık değil' : `Bu ralli bitti${rally === 'kazanildi' ? ': canavar yenildi' : ': canavar kaçtı'}`}</div>}
+        {rallyOver && <div className="dm-inv-state" role="status" data-testid="davet-bitti">{lobby === 'kapali' ? 'Bu lobi kapandı' : rally === 'yok' ? 'Bu ralli artık açık değil' : rally === 'sayilmadi' ? 'Kimse katılmadı; ralli sayılmadı' : `Bu ralli bitti${rally === 'kazanildi' ? ': canavar yenildi' : ': canavar kaçtı'}`}</div>}
         <button className={`btn small ${mine ? 'ghost' : ''}`} disabled={rallyOver} onClick={onInvite}>{yaris ? (mine ? 'Lobiye dön' : 'Yarışa katıl') : takim ? (mine ? 'Takımına git' : 'Takıma katıl') : 'Davete git'}</button>
         {meta}
       </div>

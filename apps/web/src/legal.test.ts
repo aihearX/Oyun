@@ -9,7 +9,7 @@ import { AYAR, belgeDoldur, degerler, doldur, duzMetin, gecerliAdres, satirParca
 import { CHAT_RETAIN_MS } from '../../server/src/chat';
 import { RUN_RETAIN_MS } from '../../server/src/progress';
 import { PROMO_LOG_RETAIN_MS } from '../../server/src/codes';
-import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS } from '../../server/src/account-veri';
+import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS, VERI_SINIFI } from '../../server/src/account-veri';
 import { LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
 import { HESAP_SIL_BEKLEME_GUN } from '../../server/src/yonetim';
 import { CRASH_RETAIN_MS } from '../../server/src/hata';
@@ -108,6 +108,21 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(duzMetin(HESAP_SIL)).toContain('Hesabı sil');
     expect(duzMetin(HESAP_SIL)).toContain('Her şeyi sil');
     expect(duzMetin(GIZLILIK_TR)).toContain('Profil › Ayarlar › Hesabı sil');
+  });
+
+  it('anonimleşen kayıtlar kodla aynı; hesap silme penceresi bunu söyler (YN-244, OT-ekonomi-denetci-42)', () => {
+    // kod: Bayrak ayak rekoru ve ilk koşan anonim satıra işaret eder; takım akışındaki sistem satırlarında ad "Silinmiş Oyuncu" olur
+    expect(VERI_SINIFI.ev_relay_leg!.oyuncu!.best_by!.karar).toBe('anonim');
+    expect(VERI_SINIFI.ev_relay_leg!.oyuncu!.first_by!.karar).toBe('anonim');
+    expect(VERI_SINIFI.chat!.metinAd).toEqual([expect.objectContaining({ sutun: 'text', kosul: "from_id = 'sistem'" })]);
+    // metin: Gizlilik § 7 (TR + EN) ve hesap silme sayfası § 3 (TR + EN) aynı kalemleri sayar
+    const anonim = (b: Belge, bas: RegExp) => b.bloklar.flatMap((x) => (x.t === 'ul' ? x.x : x.t === 'p' ? [x.x] : [])).filter((x) => bas.test(x)).join(' ');
+    for (const b of [GIZLILIK_TR, HESAP_SIL]) expect(anonim(b, /Anonimleşir/)).toMatch(/Bayrak Yarışı ayak rekorları ve takım akışındaki olay satırları/);
+    for (const b of [GIZLILIK_EN, HESAP_SIL]) expect(anonim(b, /Anonymised/)).toMatch(/Flag Relay.*leg records and event lines in the team feed/);
+    const ayarlar = readFileSync(resolve(root, 'apps/web/src/screens/SettingsScreen.tsx'), 'utf8');
+    expect(ayarlar).toContain('Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz.');
+    expect(ayarlar).toMatch(/data-testid="sifirla-gizlilik"[^\n]{0,160}setLegal\('gizlilik'\)/);
+    expect(ayarlar).not.toContain('Her şey silinecek');
   });
 
   it('Türkçe karakterler doğru (ASCII yazım yok)', () => {

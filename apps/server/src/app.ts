@@ -270,8 +270,9 @@ export class App {
     }
   }
 
-  addInbox(pid: string, g: Grant, reason: string): InboxItem {
-    const item: InboxItem = { id: rid('i'), kind: g.kind, amount: g.amount, ref: g.ref, reason, at: this.now() };
+  /** at: aynı ödülün parçaları (ör. Takım'dan geçen hediyenin jetonu ve kristali) aynı zamanla yazılır, Ödül kutusunda tek satır olur (inboxGroups) */
+  addInbox(pid: string, g: Grant, reason: string, at = this.now()): InboxItem {
+    const item: InboxItem = { id: rid('i'), kind: g.kind, amount: g.amount, ref: g.ref, reason, at };
     this.db.run('INSERT INTO inbox(id, player_id, kind, amount, ref, reason, at) VALUES(?, ?, ?, ?, ?, ?, ?)', item.id, pid, g.kind, g.amount, g.ref, reason, item.at);
     this.emit(pid, 'inbox.new', { item });
     return item;

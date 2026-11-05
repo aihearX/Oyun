@@ -8,7 +8,7 @@ import { ActionButton } from '../ui/Button';
 import { Art, Glyph } from '../ui/art';
 import { Sheet } from '../ui/social';
 import { resetEverything } from '../reset';
-import { speakLine, useVoiceStatus } from '../ftue/voice';
+import { retryVoiceManifest, speakLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { GeriBildirimKart } from './GeriBildirimKart';
 import { KurucuSecim } from '../kurucu/Kurucular';
@@ -48,6 +48,8 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
   const s = useStore();
   const lastPreview = useRef(0);
   const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false); const [legal, setLegal] = useState<YasalSayfa | null>(null);
+  /** silme penceresinden açılan Gizlilik: § 7'den başlar, kapanınca silme penceresine döner */
+  const [legalBolum, setLegalBolum] = useState<string | null>(null);
   const me = useNet((x) => x.me);
   void onReset; // eski arayüz: sıfırlama artık uygulamayı baştan kurar
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
@@ -104,7 +106,9 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       {ask && (
         <Sheet title="Hesabın silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
           <div className="reset-sheet" data-testid="sifirla-onay">
-            <p className="rs-warn"><Art name="trash" size={22} /> Her şey silinecek: hesabın, ilerleme, jetonlar, satın aldıkların, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
+            <p className="rs-warn"><Art name="trash" size={22} /> Silinecek: hesabın, ilerleme, jetonlar, satın aldıkların, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
+            {/* gizlilik metni § 7 "Anonimleşir" ile aynı (account-veri.ts: katkı satırları, ayak rekoru, akıştaki olay satırları; YN-244) */}
+            <p className="muted" data-testid="sifirla-anonim">Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz. <button type="button" className="linkish legal-link" data-testid="sifirla-gizlilik" disabled={busy} onClick={() => { setAsk(false); setLegal('gizlilik'); setLegalBolum('silme'); }}>Gizlilik: neler silinir, neler kalır</button></p>
             <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.{me ? <> O durumda silmeyi e-postayla isteyebilmek için arkadaş kodunu not al: <b className="mono">{me.friendCode}</b>.</> : null}</p>
             <div className="rs-actions">
               <button type="button" className="btn ghost" disabled={busy} onClick={() => setAsk(false)}>Vazgeç</button>
@@ -115,12 +119,12 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       )}
       <div className="card legal-card" data-testid="gizlilik-hesap"><div><h2>Gizlilik ve hesap</h2><div className="muted">Hangi veriyi neden tuttuğumuz, hesabını nasıl sileceğin, bize nasıl ulaşacağın.</div></div>
         <div className="legal-nav">
-          <button type="button" className="btn small ghost" data-testid="gizlilik-ac" onClick={() => setLegal('gizlilik')}>Gizlilik</button>
-          <button type="button" className="btn small ghost" data-testid="hesap-sil-ac" onClick={() => setLegal('hesap-sil')}>Hesap silme</button>
-          <button type="button" className="btn small ghost" data-testid="hakkinda-ac" onClick={() => setLegal('hakkinda')}>Hakkında / iletişim</button>
+          <button type="button" className="btn small ghost" data-testid="gizlilik-ac" onClick={() => { setLegalBolum(null); setLegal('gizlilik'); }}>Gizlilik</button>
+          <button type="button" className="btn small ghost" data-testid="hesap-sil-ac" onClick={() => { setLegalBolum(null); setLegal('hesap-sil'); }}>Hesap silme</button>
+          <button type="button" className="btn small ghost" data-testid="hakkinda-ac" onClick={() => { setLegalBolum(null); setLegal('hakkinda'); }}>Hakkında / iletişim</button>
         </div>
       </div>
-      {legal && <LegalSheet sayfa={legal} onClose={() => setLegal(null)} onDelete={() => { setLegal(null); setAsk(true); }} />}
+      {legal && <LegalSheet sayfa={legal} bolum={legalBolum ?? undefined} onClose={() => { setLegal(null); if (legalBolum) { setLegalBolum(null); setAsk(true); } }} onDelete={() => { setLegal(null); setLegalBolum(null); setAsk(true); }} />}
       <div className="muted" data-testid="surum">ODİ: Sesin Yolu · sürüm {APP_VERSION} · {AYAR.YAYINCI}</div>
     </div>
   );
@@ -130,17 +134,19 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
  * "Sesi dene" bir satır çalar. Teşhis satırı (kayıt ✓ / cihaz sesi / sessiz, kaynak, çözülen kayıt, son hata) yalnız uçtan uca
  * test derlemesinde ve yönetici modunda: oyuncuya geliştirici ayrıntısı gösterilmez.
  */
+/** liste daha önce okunamadıysa (bağlantı kopmuştu) beklemeden yeniden indirilir */
+const tryVoice = () => { retryVoiceManifest(); speakLine(lineText('hikaye-01'), 'hikaye-01'); };
 function VoiceReadout({ details }: { details: boolean }) {
   const v = useVoiceStatus();
   if (!details) return (
     <div className="row between voice-try"><span className="muted">Tüy Dede’nin sesini dinle</span>
-      <button type="button" className="btn small ghost" onClick={() => speakLine(lineText('hikaye-01'), 'hikaye-01')}>Sesi dene</button></div>
+      <button type="button" className="btn small ghost" onClick={tryVoice}>Sesi dene</button></div>
   );
   const label = v.mode === 'kayıt' ? 'kayıt ✓' : v.mode === 'cihaz sesi' ? 'cihaz sesi (erkek)' : v.mode === 'sessiz' ? 'sessiz (erkek ses yok, yazı var)' : 'henüz konuşmadı';
   return (
     <div className="voice-readout" data-testid="ses-durumu" data-mode={v.mode ?? ''}>
       <div className="row between"><span><b>Anlatıcı sesi:</b> {label}</span>
-        <button type="button" className="btn small ghost" onClick={() => speakLine(lineText('hikaye-01'), 'hikaye-01')}>Sesi dene</button></div>
+        <button type="button" className="btn small ghost" onClick={tryVoice}>Sesi dene</button></div>
       <small className="muted">{v.source ? `kaynak: ${v.source} · ` : ''}çözülen kayıt: {v.decoded}{v.line ? ` · son satır: ${v.line}` : ''}</small>
       {v.error && <small className="vr-err">Son hata: {v.error}</small>}
     </div>

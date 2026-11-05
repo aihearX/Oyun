@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { LEAGUE_DEMOTE_BOTTOM, LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_GROUP_SIZE, LEAGUE_PROMOTE_TOP, LEAGUE_REPLAY_POINTS, inboxGotText, inboxReasonText, type InboxItem, type LeagueState, type LeagueTier } from '@odi/shared';
+import { LEAGUE_DEMOTE_BOTTOM, LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_GROUP_SIZE, LEAGUE_PROMOTE_TOP, LEAGUE_REPLAY_POINTS, inboxGotText, inboxGroups, inboxReasonText, type InboxItem, type LeagueState, type LeagueTier } from '@odi/shared';
 import { claimInboxItem, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
@@ -36,29 +36,38 @@ function Inbox() {
   const [items, setItems] = useState<InboxItem[] | null>(null); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   /** bağlantı yokken basılan Al / Hepsini al: bağlanınca bir kez alınır, düğmenin altında söylenir (OT-eski-telefon-30) */
   const [bekle, setBekle] = useState(false);
-  const load = () => getNet()?.call('inbox.list', {}).then((r) => { setItems(r.items); useNet.setState({ inboxCount: r.items.length }); }, (e) => setErr(errText(e)));
+  const load = () => getNet()?.call('inbox.list', {}).then((r) => { setItems(r.items); useNet.setState({ inboxCount: inboxGroups(r.items).length }); }, (e) => setErr(errText(e)));
   useEffect(() => { void load(); const off = getNet()?.on('inbox.new', ({ item }) => setItems((l) => (l ? [item, ...l] : l))); return off; }, []);
   /** alınan jeton/kristal sayaca uçar (miktar = alınan öğeler) */
   const fly = (got: InboxItem[]) => { for (const kind of ['jeton', 'kristal'] as const) { const n = got.filter((x) => x.kind === kind).reduce((a, x) => a + x.amount, 0); if (n > 0) void celebrate.coins({ amount: n, kind }); } };
-  const one = async (it: InboxItem) => { setBusy(true); setBekle(cevrimdisi()); if (await claimInboxItem(it.id)) { setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); platform().haptic('success'); fly([it]); } setBusy(false); setBekle(false); };
+  /** bir satırın (aynı ödülün parçaları, inboxGroups) kayıtlarını alır; her kayıt sunucuda bir kez (inbox.claim) */
+  const take = async (group: InboxItem[]): Promise<InboxItem[]> => {
+    const got: InboxItem[] = [];
+    for (const it of group) if (await claimInboxItem(it.id)) { got.push(it); setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); }
+    return got;
+  };
+  /** sayaç satır sayısıdır (bir hediye iki kayıt, bir satır; YN-246) */
+  const recount = () => setItems((l) => { if (l) useNet.setState({ inboxCount: inboxGroups(l).length }); return l; });
+  const one = async (group: InboxItem[]) => { setBusy(true); setBekle(cevrimdisi()); const got = await take(group); if (got.length) { platform().haptic('success'); fly(got); } recount(); setBusy(false); setBekle(false); };
   /** bildirim yalnız gerçekten alınan türleri sayar (OT-ekonomi-denetci-22) */
   const all = async () => {
     if (!items) return; setBusy(true); setBekle(cevrimdisi()); let n = 0; const got: InboxItem[] = [];
-    for (const it of items) if (await claimInboxItem(it.id)) { n++; got.push(it); setItems((l) => l?.filter((x) => x.id !== it.id) ?? null); }
-    setBusy(false); setBekle(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, inboxGotText(got), 'gold'); }
+    for (const g of inboxGroups(items)) { const x = await take(g); if (x.length) { n++; got.push(...x); } }
+    recount(); setBusy(false); setBekle(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, inboxGotText(got), 'gold'); }
   };
   if (err) return <div className="chat-err">{err}</div>;
   if (!items) return <Skeleton rows={3} />;
+  const groups = inboxGroups(items);
   return (
     <div className="stack">
-      {items.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({items.length})</button>}
+      {groups.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({groups.length})</button>}
       {busy && bekle && <BekleyenSatir text={BEKLEYEN_AL} />}
-      {items.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text={INBOX_BOS} /> : items.map((it) => (
-        <div className="card gift" key={it.id}>
-          <span className="gift-i" aria-hidden><Art name={it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
-          <div className="grow min0"><b className="wrap">{inboxReason(it)}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={[it]} small /></div>
-          <button className="btn small" disabled={busy} onClick={() => void one(it)}>Al</button>
-        </div>))}
+      {groups.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text={INBOX_BOS} /> : groups.map((g) => { const it = g[0]!; return (
+        <div className="card gift" key={it.id} data-testid="kutu-satiri" data-parca={g.length}>
+          <span className="gift-i" aria-hidden><Art name={g.length > 1 ? 'gift' : it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
+          <div className="grow min0"><b className="wrap">{inboxReason(it)}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={g} small /></div>
+          <button className="btn small" disabled={busy} onClick={() => void one(g)}>Al</button>
+        </div>); })}
     </div>
   );
 }

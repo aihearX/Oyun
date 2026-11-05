@@ -150,13 +150,13 @@ describe('Ralli', () => {
     await a.c.call('dm.send', { to: b.c.me!.id, text: 'Ralliye katıl! Serumen Yavrusu seni bekliyor', kind: 'davet', meta: { type: 'ralli', roomId: r1.id, title: 'Serumen Yavrusu' } });
     // ralli kaçar, takım başka bir ralli başlatır
     env.clock.advance(10 * MIN + 1); env.srv.sweep();
-    expect((await b.wait('chat', (m) => m.msg.meta?.rallyId === r1.id && m.msg.meta?.phase === 'kacti')).msg.text).toContain('kaçtı');
+    expect((await b.wait('chat', (m) => m.msg.meta?.rallyId === r1.id && m.msg.meta?.phase === 'sayilmadi')).msg.text).toContain('Bu ralli sayılmadı');
     const r2 = (await a.c.call('rally.start', { monster: 'yanki-hayaleti' })).rally;
     const card = (await b.c.call('dm.open', { id: a.c.me!.id })).messages.find((m) => m.kind === 'davet')!;
     expect(card.meta).toMatchObject({ type: 'ralli', roomId: r1.id });
-    // kartın kimliği o ralliyi açar (bitti: "kaybedildi"); kimliksiz durum takımın yeni rallisini verir
+    // kartın kimliği o ralliyi açar (bitti; tek katılımcıyla doldu: "sayilmadi", YN-245); kimliksiz durum takımın yeni rallisini verir
     const own = (await b.c.call('rally.state', { rallyId: String(card.meta!.roomId) })).rally!;
-    expect(own).toMatchObject({ id: r1.id, monster: 'serumen-yavrusu', status: 'kaybedildi' });
+    expect(own).toMatchObject({ id: r1.id, monster: 'serumen-yavrusu', status: 'sayilmadi' });
     expect((await b.c.call('rally.state', {})).rally).toMatchObject({ id: r2.id, monster: 'yanki-hayaleti', status: 'acik' });
     // başka takımın oyuncusu kimliği bilse de göremez; bilinmeyen kimlik null
     expect((await other.c.call('rally.state', { rallyId: r1.id })).rally).toBeNull();
@@ -212,7 +212,9 @@ describe('Ralli', () => {
     expect((await b.wait('events.notice', (x) => x.notice.title.includes('kaçtı'))).notice.text).toContain('günlük hakkınız geri verildi');
     expect((await b.wait('rally.updated', (x) => x.rally.id === rally.id)).startsLeft).toBe(6);
     const st = await a.c.call('rally.state', {});
-    expect(st.rally!.status).toBe('kaybedildi');
+    // ayrı durum (YN-245): kart "canavar kaçtı" değil "ralli sayılmadı" der; sohbet iletisinin evresi de ayrı
+    expect(st.rally!.status).toBe('sayilmadi');
+    expect(msg.msg.meta?.phase).toBe('sayilmadi');
     expect(st.startsLeft).toBe(6);
     // 2 katılımcıya ulaşıp kaçan ralli sayılır (hak geri gelmez)
     const r2 = await a.c.call('rally.start', { monster: 'serumen-yavrusu' });
@@ -222,6 +224,7 @@ describe('Ralli', () => {
     env.srv.sweep();
     expect((await a.wait('chat', (m) => m.msg.meta?.event === 'ralli' && m.msg.text.includes('kaçtı'))).msg.text).not.toContain('geri verildi');
     expect((await a.c.call('rally.state', {})).startsLeft).toBe(5);
+    expect((await a.c.call('rally.state', {})).rally!.status).toBe('kaybedildi'); // sayılan ve süresi dolan: "kaçtı"
     // tek kişilik ralliler hakkı tüketmez: 6'dan fazla da başlatılabilir, ama aynı anda yalnız bir açık ralli
     for (let i = 0; i < 6; i++) { await a.c.call('rally.start', { monster: 'serumen-yavrusu' }); env.clock.advance(10 * MIN + 1); env.srv.sweep(); }
     expect((await a.c.call('rally.state', {})).startsLeft).toBe(5);

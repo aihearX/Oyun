@@ -9,12 +9,13 @@ import { applyOverview, evNet, useEvents } from './store';
 import { errText, fmtSecs } from './common';
 import { relayRunText } from './bayrak';
 import './events.css';
-import { RALLY_LATE_RUN, RALLY_WON_EXIT, rallyAlreadyWon, rallyWonWhilePlaying } from './ralli-bolum';
+import { RALLY_LATE_RUN, RALLY_WON_EXIT, rallyAlreadyWon, rallyHitText, rallyWonWhilePlaying, type RallyHitFlash } from './ralli-bolum';
+import { useNet } from '@odi/net/store';
 
 /** Bir etkinlik koşusu: hangi etkinliğe gönderileceği */
 export type EventPlay = { kind: 'ralli'; rallyId: string } | { kind: 'bayrak'; leg: number } | { kind: 'meydan' } | { kind: 'turnuva'; slot: number };
 /** koşudan sonra etkinlik ekranında gösterilen kısa sonuç */
-export interface EventFlash { icon: string; title: string; text: string; tone: 'ok' | 'warn'; won?: boolean }
+export interface EventFlash { icon: string; title: string; text: string; tone: 'ok' | 'warn'; won?: boolean; /** ralli vuruşu: yazı canlı ralli durumundan (rallyHitText) */ rally?: RallyHitFlash }
 
 /**
  * Yalnızca uçtan uca test derlemesi (VITE_ODI_E2E=1) + `?etkinlik-bot=1`: bölümü harness botu oynar.
@@ -88,7 +89,10 @@ async function submit(play: EventPlay, r: RunResult): Promise<EventFlash> {
         const x = await c.call('rally.hit', { rallyId: play.rallyId, ...run });
         useEvents.setState({ rally: x.rally });
         if (x.rally.status === 'kazanildi') return { icon: '🏆', title: 'Canavar yenildi!', text: `Son darbe senden: −${x.damage} can`, tone: 'ok', won: true };
-        return { icon: run.completed ? '💥' : '🩹', title: `−${x.damage} hasar!`, text: run.completed ? `${run.stars} yıldızla vurdun. Kalan can: ${x.rally.hp}` : `Bölüm yarım kaldı ama yine de vurdun. Kalan can: ${x.rally.hp}`, tone: 'ok' };
+        const me = useNet.getState().me?.id ?? '';
+        const mine = x.rally.hits.find((h) => h.id === me);
+        const rally: RallyHitFlash = { id: x.rally.id, me, at: mine?.at ?? Date.now(), hp: x.rally.hp, lead: run.completed ? `${run.stars} yıldızla vurdun.` : 'Bölüm yarım kaldı ama yine de vurdun.' };
+        return { icon: run.completed ? '💥' : '🩹', title: `−${x.damage} hasar!`, text: rallyHitText(rally, x.rally), tone: 'ok', rally };
       }
       case 'bayrak': {
         const x = await c.call('relay.submit', { leg: play.leg, ...run });

@@ -73,8 +73,8 @@ export function Hub({ open }: { open: (k: EventKind) => void }) {
         ) : rDone && doneMon ? (
           <div className="ev-rally-mini ev-ralli-sonuc" data-testid="ev-ralli-sonuc" data-status={rDone.status}>
             <span className="ev-mon-s" aria-hidden><MonsterArt id={doneMon.id} size={44} beaten={rDone.status === 'kazanildi'} /></span>
-            <div className="grow min0"><b className="wrap">{rDone.status === 'kazanildi' ? `${doneMon.name} yenildi` : `${doneMon.name} kaçtı`}</b>
-              <small className="muted wrap">{rDone.status === 'kazanildi' ? `${heroes.length === 1 ? `${heroes[0]} tek başına yendi` : `${heroes.join(', ')} yendi`}${rewardNote(rDone.participants.find((p) => p.id === meId)?.reward)}` : 'Süre doldu. Yeni ralli başlatabilirsiniz.'}</small></div>
+            <div className="grow min0"><b className="wrap">{rDone.status === 'kazanildi' ? `${doneMon.name} yenildi` : rDone.status === 'sayilmadi' ? 'Ralli sayılmadı' : `${doneMon.name} kaçtı`}</b>
+              <small className="muted wrap">{rDone.status === 'kazanildi' ? `${heroes.length === 1 ? `${heroes[0]} tek başına yendi` : `${heroes.join(', ')} yendi`}${rewardNote(rDone.participants.find((p) => p.id === meId)?.reward)}` : rDone.status === 'sayilmadi' ? 'Kimse katılmadı; günlük ralli hakkı geri verildi.' : 'Süre doldu. Yeni ralli başlatabilirsiniz.'}</small></div>
           </div>
         ) : <div className="ev-mons">{RALLY_MONSTERS.map((m) => <span key={m.id} title={m.name}><MonsterArt id={m.id} size={46} /></span>)}<small className="muted">3 canavar · en az 2 katılımcı · 10 dk</small></div>}
       </EvCard>,

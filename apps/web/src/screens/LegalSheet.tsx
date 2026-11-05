@@ -3,7 +3,7 @@
  * Metin src/yasal/metin.ts'ten (herkese açık /gizlilik, /en/privacy, /hesap-sil sayfalarıyla aynı kaynak); uygulamanın içinde
  * çizilir, bu yüzden telefonda (Expo DOM) ve bağlantısızken de açılır. Web'de ayrıca herkese açık sayfanın bağlantısı görünür.
  */
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
 import { Sheet } from '../ui/social';
 import { platform } from '../platform';
@@ -30,7 +30,7 @@ function Satir({ s, onYol }: { s: string; onYol: (yol: string) => void }) {
 function BlokCiz({ b, onYol }: { b: Blok; onYol: (yol: string) => void }): ReactNode {
   const S = (x: string) => <Satir s={x} onYol={onYol} />;
   switch (b.t) {
-    case 'h2': return <h3>{S(b.x)}</h3>;
+    case 'h2': return <h3 data-bolum={b.id}>{S(b.x)}</h3>;
     case 'h3': return <h4>{S(b.x)}</h4>;
     case 'p': return <p>{S(b.x)}</p>;
     case 'not': return <p className="legal-not">{S(b.x)}</p>;
@@ -45,8 +45,10 @@ function BlokCiz({ b, onYol }: { b: Blok; onYol: (yol: string) => void }): React
   }
 }
 
-export function LegalSheet({ sayfa: ilk, onClose, onDelete }: { sayfa: YasalSayfa; onClose: () => void; onDelete?: () => void }) {
+export function LegalSheet({ sayfa: ilk, bolum, onClose, onDelete }: { sayfa: YasalSayfa; /** açılınca bu bölüme kaydır (ör. 'silme') */ bolum?: string; onClose: () => void; onDelete?: () => void }) {
   const [sayfa, setSayfa] = useState<YasalSayfa>(ilk);
+  const kok = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (bolum) kok.current?.querySelector(`[data-bolum="${bolum}"]`)?.scrollIntoView?.({ block: 'start' }); }, [bolum]);
   const me = useNet((s) => s.me);
   const belge = useMemo(() => belgeDoldur(BELGE[sayfa], undefined, APP_VERSION), [sayfa]);
   const onYol = (yol: string) => { const s = YOLDAN[yol]; if (s) setSayfa(s); };
@@ -55,7 +57,7 @@ export function LegalSheet({ sayfa: ilk, onClose, onDelete }: { sayfa: YasalSayf
   const web = platform().kind === 'web';
   return (
     <Sheet title={belge.baslik} onClose={onClose}>
-      <div className="legal-sheet" data-testid={`yasal-${sayfa}`} lang={belge.dil}>
+      <div ref={kok} className="legal-sheet" data-testid={`yasal-${sayfa}`} lang={belge.dil}>
         {sayfa === 'hesap-sil' && (
           <div className="legal-not legal-me" data-testid="hesap-sil-kimlik">
             <span>{me ? <>Arkadaş kodun: <b className="mono">{me.friendCode}</b>. Oyunu açamadığın bir gün e-postayla silme istersen bu kodu yaz.</> : <>Sunucuya bağlı değilsin: hesabını silmek için internete bağlan.</>}</span>
