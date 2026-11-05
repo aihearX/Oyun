@@ -8,7 +8,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { treasureAt } from '@odi/content';
 import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
-import { SINIR_IPUCU, gunlukSatiri, hazinePenceresi, sinirSatiri } from './odul-durum';
+import { SINIR_IPUCU, bekleyenGun, gunlukSatiri, hazinePenceresi, hesabaGecen, ledgerKey, odulDurumu, sinirKurali, sinirSatiri } from './odul-durum';
 
 vi.mock('@odi/audio', () => ({ audio: { play: () => undefined, music: () => undefined, duck: () => undefined } }));
 vi.mock('./ftue/voice', () => ({ speakLine: () => -1, stopVoiceIf: () => undefined }));
@@ -70,12 +70,12 @@ describe('Bugün › Günlük ödül jetonu satırı', () => {
 });
 
 describe('Nasıl çalışır? › Günlük ödül jetonu sınırı', () => {
-  it('kural sabitten üretilir: sayılan, sayılmayan, İstanbul günü, dolunca eklenmez', async () => {
+  it('kural sabitten üretilir: sayılan, sayılmayan, İstanbul günü, dolunca aşan kısım bekleyen ödül olur (karar 54)', async () => {
     const { InfoScreen } = await import('./screens/InfoScreen');
     const h = await mount(createElement(InfoScreen, { onBack: () => undefined }));
     const k = h.querySelector('[data-testid="bilgi-gunluk-sinir"]')!.textContent!;
     expect(k).toContain(`${tr(MAX)} jeton`);
-    for (const w of ['hazine', 'başarım', 'görev', 'sandık', 'takvim', 'Şanslı Nota', 'eklenmez', 'gece yarısı', 'İstanbul', 'bölümde topladığın jeton', 'takım hediyesi']) expect(k).toContain(w);
+    for (const w of ['hazine', 'başarım', 'görev', 'sandık', 'takvim', 'Şanslı Nota', 'kaybolmaz', 'bekleyen ödül', 'sonraki güne', 'gece yarısı', 'İstanbul', 'bölümde topladığın jeton', 'takım hediyesi']) expect(k).toContain(w);
     // sabit yazılmaz: değer LOCAL_JETON_DAILY_MAX'tan gelir
     expect(src('screens/InfoScreen.tsx')).not.toContain(tr(MAX));
     expect(src('screens/InfoScreen.tsx')).toContain('tr(LOCAL_JETON_DAILY_MAX)');
@@ -90,5 +90,46 @@ describe('Hazine penceresi ve sonuç satırı: eklenmeyenin nedeni', () => {
     expect(nb(h.note)).toBe(`110 jeton eklenmedi: bugünkü ${tr(MAX)} jetonluk ödül sınırı doldu. ${SINIR_IPUCU}`);
     // toplu "Yolda kazandıkların" penceresi de aynı notu kullanır
     expect(src('screens/MapScreen.tsx').match(/sinirNotu\(/g)?.length).toBe(2);
+  });
+});
+
+describe('karar 54 (YN-270): sınırı aşan jeton bekleyen ödül olur, sonraki günlerde geçer', () => {
+  const g = { at: 1, reason: 'hazine:25', items: [{ kind: 'jeton' as const, amount: 110 }] };
+  const kaynak = (k: Record<string, { jeton: number; credited: number; gun?: number }>) => ({ krediler: k, bekleyen: new Set<string>(), sosyal: true, bagli: true });
+  it('bekleyen gün sayısı: her gün en çok sınır kadar', () => {
+    expect([0, 1, MAX, MAX + 1, 3 * MAX].map(bekleyenGun)).toEqual([1, 1, 1, 2, 3]);
+  });
+  it('sonuç ve hazine cümlesi gerçek sayıyı ve ne zaman geçeceğini söyler; güncellenmemiş sunucuda eski "eklenmedi"', () => {
+    expect(nb(sinirSatiri(110, 1))).toBe(`110 jeton yarın hesabına geçecek: bugünkü ${tr(MAX)} jetonluk ödül sınırı doldu`);
+    expect(nb(sinirSatiri(110, 3))).toBe(`110 jeton 3 gün içinde hesabına geçecek: bugünkü ${tr(MAX)} jetonluk ödül sınırı doldu`);
+    expect(nb(sinirSatiri(110))).toContain('eklenmedi');
+    expect(sinirKurali(1)).toContain('aşan kısım kaybolmaz'); expect(sinirKurali()).toContain('sınır yarın yenilenir');
+    const items = [{ kind: 'jeton' as const, amount: 110 }];
+    const h = hazinePenceresi(items, { k: 'kesik', eksik: 70, gun: 1 }, 'x');
+    expect(nb(h.note)).toBe(`70 jeton yarın hesabına geçecek: bugünkü ${tr(MAX)} jetonluk ödül sınırı doldu. ${SINIR_IPUCU}`);
+    expect(h.items).toEqual([{ kind: 'jeton', amount: 40 }]); expect(h.gun).toBe(1);
+  });
+  it('sunucu yanıtındaki bekleyen (gun) kayda ve sonuç kartına geçer; karışık (eski sunucu) kayıtta "eklenmedi" kalır', () => {
+    const id = ledgerKey(1, 'hazine:25');
+    expect(odulDurumu(g, kaynak({ [id]: { jeton: 110, credited: 40, gun: 1 } }))).toEqual({ k: 'kesik', eksik: 70, gun: 1 });
+    expect(odulDurumu(g, kaynak({ [id]: { jeton: 110, credited: 40 } }))).toEqual({ k: 'kesik', eksik: 70 });
+    const r = hesabaGecen([g], kaynak({ [id]: { jeton: 110, credited: 40, gun: 2 } }));
+    expect(r.eksik).toBe(70); expect(r.gun).toBe(2);
+    const g2 = { at: 2, reason: 'basarim:x:1', items: [{ kind: 'jeton' as const, amount: 40 }] };
+    expect(hesabaGecen([g, g2], kaynak({ [id]: { jeton: 110, credited: 40, gun: 1 }, [ledgerKey(2, 'basarim:x:1')]: { jeton: 40, credited: 0 } })).gun).toBeUndefined();
+  });
+  it('Bugün: bekleyen miktar ve ne zaman geçeceği; dolunca "kaybolmaz"; bugün bekleyenden geçen söylenir; eski sunucuda satır yok', async () => {
+    const dolu = gunlukSatiri({ left: 0, resetAt: RESET, carry: 110, carried: 0 }, bag)!;
+    expect(nb(dolu.bekleyen)).toBe('Bekleyen ödül: 110 jeton, yarın hesabına geçecek.');
+    expect(dolu.not).toContain('kaybolmaz'); expect(dolu.not).not.toContain('eklenmez');
+    const cok = gunlukSatiri({ left: 0, resetAt: RESET, carry: 2 * MAX + 10, carried: MAX }, bag)!;
+    expect(nb(cok.bekleyen)).toBe(`Bekleyen ödül: ${tr(2 * MAX + 10)} jeton, 3 gün içinde hesabına geçecek (günde en çok ${tr(MAX)}).`);
+    expect(nb(cok.not)).toContain(`Bugün bekleyen ödülden ${tr(MAX)} jeton hesabına geçti`);
+    expect(gunlukSatiri({ left: 0, resetAt: RESET, carry: 0, carried: 0 }, bag)!.bekleyen).toBeUndefined();
+    const eski = gunlukSatiri({ left: 0, resetAt: RESET }, bag)!;
+    expect(eski.bekleyen).toBeUndefined(); expect(eski.not).toContain('eklenmez');
+    const { GunlukJetonSatiri } = await import('./screens/TodayScreen');
+    const h = await mount(createElement(GunlukJetonSatiri, { satir: dolu, onInfo: () => undefined }));
+    expect(nb(h.querySelector('[data-testid="bugun-bekleyen"]')!.textContent)).toBe('Bekleyen ödül: 110 jeton, yarın hesabına geçecek.');
   });
 });

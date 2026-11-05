@@ -517,8 +517,10 @@ export interface OpMap {
   /**
    * `dailyLeft` / `dailyResetAt` (YN-269, yalnız ekleme): günlük yerel ödül sınırında (`LOCAL_JETON_DAILY_MAX`) bugün kalan jeton ve
    * sınırın yenileneceği an (sıradaki İstanbul gece yarısı, sunucu saati). Eski sunucu göndermez; istemci o zaman sayı yazmaz.
+   * `carry` / `carriedToday` (karar 54, YN-270, yalnız ekleme): sınırı aşıp sonraki günlere bekleyen ödül jetonu ve bugün bekleyenden
+   * hesaba geçen. Gün döndüyse wallet.get önce bekleyeni sınır içinde hesaba geçirir. Eski sunucu göndermez (aşan kısım kaybolur).
    */
-  'wallet.get': { req: Record<string, never>; res: { wallet: Wallet; dailyLeft?: number; dailyResetAt?: number } };
+  'wallet.get': { req: Record<string, never>; res: { wallet: Wallet; dailyLeft?: number; dailyResetAt?: number; carry?: number; carriedToday?: number } };
   'camp.state': { req: Record<string, never>; res: { camp: CampState; wallet: Wallet } };
   'camp.upgrade': { req: { id: BuildingId }; res: { camp: CampState; wallet: Wallet } };
   /**
@@ -547,7 +549,7 @@ export interface OpMap {
   'shop.limit': { req: { limitTry: number; confirmRaise?: boolean }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
   /** yerel meta ödüllerinin (görev/takvim/sandık/hazine…) jetonu: ledgerId ile idempotent, günlük üst sınırlı */
-  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number; /** sınırın yenileneceği an (YN-269; eski sunucu göndermez) */ dailyResetAt?: number } };
+  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number; /** sınırın yenileneceği an (YN-269; eski sunucu göndermez) */ dailyResetAt?: number; /** karar 54: sonraki günlere bekleyen ödül jetonu (bu kaydın hesaba geçmeyen kısmı dahil; eski sunucu göndermez) */ carry?: number; carriedToday?: number } };
   /** jeton harcama (şimdilik yalnızca `yetenek:<id>`; sunucu maliyeti doğrular, aynı yetenek iki kez alınmaz) */
   'wallet.spend': { req: { jeton: number; reason: string }; res: { wallet: Wallet; skills: string[] } };
   /** sunucuda kayıtlı yetenekler (SKILL_TREE kimlikleri) */
@@ -1725,7 +1727,8 @@ export interface OpMap {
 
 /**
  * Yerel meta ödüllerinin (`wallet.local`: günlük görev, takvim, sandık, hazine, Şanslı Nota, başarım) İstanbul günü başına jeton
- * üst sınırı. Sunucu uygular (apps/server/src/wallet.ts); istemci yalnız bildirimde gösterir. Gerekçe: ölçülen en yoğun dürüst gün
+ * üst sınırı. Sunucu uygular (apps/server/src/wallet.ts); istemci yalnız bildirimde gösterir. Sınırı aşan jeton kaybolmaz: "bekleyen
+ * ödül" olarak sonraki günlere devreder, her gün yine en çok bu kadarı hesaba geçer (sahip kararı 54, YN-270). Gerekçe: ölçülen en yoğun dürüst gün
  * 1.270 jeton (günde 6 oturum, 1. gün: ilk başarım ve hazine patlaması; docs/yonetim/ekonomi-olcum.md, Ö1) + Şanslı Nota ve
  * oturum uzunluğu sapması için pay. Eski sınır 600, 3 ve 6 oturumlu dürüst oyuncunun ilk 3 gününde 616 / 963 jetonunu kesiyordu.
  */

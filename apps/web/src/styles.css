@@ -571,6 +571,7 @@ html.buyuk-yazi .result-star3 li > .art { width:24px; height:24px; }
 .gunluk-jeton.dolu { border-color:var(--coral); }
 .gunluk-jeton.dolu .gj-metin b { color:var(--coral-text); }
 .gunluk-jeton .gj-not { line-height:1.4; }
+.gunluk-jeton .gj-bekleyen { line-height:1.4; overflow-wrap:anywhere; font-weight:600; }
 html.buyuk-yazi .gunluk-jeton .gj-not { font-size:0.875rem; }
 .gunluk-jeton .gj-kural { padding:0; align-self:flex-start; }
 /* canlı Kulak Bilgi Yarışması göstergesi (Bugün ve Bilgi pratiği; events/QuizLive.tsx, YN-161) */

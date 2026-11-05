@@ -79,7 +79,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     oyuncu: { id: { karar: 'anonim', neden: 'Geçmiş takım kayıtları (düello puanı, yarış yıldızı, rozet) bu kimliğe bağlı; satır anonimleşir: ad "Silinmiş Oyuncu", anahtar özeti hiçbir anahtarla eşleşmez, arkadaş kodu yenilenir, ilerleme/cüzdan/kozmetik sıfırlanır (account.ts).' } },
     takim: { team_id: { karar: 'tut', neden: 'Takım yalnız son üye ayrılınca silinir; o anda bu sütun hiçbir satırda takımı göstermez.', sure: 'yok (sütun o anda boş)' } },
     adKopyasi: { name: 'id' },
-    not: 'Cüzdan sütunları (jeton, kristal, hızlandırıcılar, gift_jeton: göç 9, satın alma hediyesi jetonu) hesap silinince 0 olur (ANONIM_OYUNCU_SQL / _EK_SQL).',
+    not: 'Cüzdan sütunları (jeton, kristal, hızlandırıcılar, gift_jeton: göç 9, satın alma hediyesi jetonu; carry_jeton: göç 16, bekleyen ödül jetonu) hesap silinince 0 olur (ANONIM_OYUNCU_SQL / _EK_SQL).',
   },
   deleted_players: {
     oyuncu: { player_id: { karar: 'tut', neden: 'Tasarım gereği: silinen hesabı sıralama, arama ve /saglik dışında tutar; ad ya da iletişim yok.', sure: 'süresiz' } },
@@ -520,7 +520,7 @@ export const ANONIM_OYUNCU_SQL = `UPDATE players SET name = ?, token_hash = ?, f
  * Göç 7–9 ve 13'ün eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı, satın alma hediyesi jetonu, lider devri kartı).
  * ANONIM_OYUNCU_SQL'den ayrı: göç 2 bu sütunlar eklenmeden önce de çalışır (eski veritabanı); hesap silmede ikisi birlikte uygulanır.
  */
-export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0, lead_notice = 0 WHERE id = ?';
+export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0, lead_notice = 0, carry_jeton = 0 WHERE id = ?';
 
 /** anonim oyuncu satırı + silindi işareti (hesap silme ve göç) */
 export function anonimOyuncu(db: Sorgu, pid: string, at: number, ekAlanlar = false): void {

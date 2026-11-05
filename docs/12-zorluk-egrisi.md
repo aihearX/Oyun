@@ -263,6 +263,16 @@ geçişte sıfırlanır. Bölüm içinde giriş şeridi "Rahat deneme: canavar %
 93 → 29 (/32); galibiyet 20'de 0 → 0, 40'ta 0 → 2. Modelin canavardaki ileri bakışı sabit 0,6 sn olduğundan uzayan uyarıyı okuma
 süresi olarak kullanamaz; 20'de yardımın modeldeki etkisi çoğunlukla fazladan candan gelir.
 
+**İkinci kademe yok (sahip kararı 52 (c), YN-249):** ilk kez oynayan oyuncu ajanı 20'yi 3 normal ve 2 Rahat denemede kaybetti; kural
+aynı kaldı (canavarda ikinci kolaylaştırma kademesi eklenmedi). Ölçüm (`node tools/harness/zorluk.mjs --canavar`, ayrıntı
+[`yonetim/canavar-olcum.md`](yonetim/canavar-olcum.md)): beceri 0,1 elle normalde %6, Rahat'ta %16 bitirme (32 tohum, kayıpların çoğu
+Faz 1-2'de yumruk); aynı el uyarının tamamını okuyabilseydi (ileri bakış = yumruk gölgesinin süresi) %72 ve %100. Kayıpların büyük
+kısmı el modelinin 0,6 sn'lik ileri bakışından (oyuncu ajanı da bu eli kullanır), gerçek zorluk ilk kez oynayana orta düzeyde.
+Kayıp ekranı artık kaybettiren saldırıya ve faza göre somut ipucu verir (`meta/progress.ts` `GOLEM_TIP`, `LevelScene.fail` →
+`extra.faz`): yumrukta "gölge büyürken zıpla" (yumruk yalnız yerdekine değer; motorda gölge büyürken zıplayan vurulmadı, ters
+yöne dönen uyarıların %20-80'inde vuruldu), topta "üstünden zıpla", damlada "ters yöne kaydırıp dön"; sonuç "en son Faz 2'de
+yumruğa yakalandın" der.
+
 ## 5. Dürüstlük kuralları
 
 - Fizik 13. bölümden itibaren sabittir (koşu 260 px/sn, coyote 0,1 sn, tampon 0,12 sn); ilk on iki bölümün yardımları (§4) bölüm

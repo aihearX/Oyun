@@ -7,7 +7,10 @@ import { dayKey, dayNumber, dayNumberStart } from './time';
 /**
  * Yerel meta ödülleri (görev, takvim, sandık, hazine, Şanslı Nota, başarım) istemcide hesaplanır, jetonu buradan yazılır (ledgerId ile idempotent). Günlük üst sınır sunucuda uygulanır, sahte istemcinin sınırsız jeton basmasını engeller.
  * Değer ölçüldü (tools/ekonomi/simule.mjs, docs/yonetim/ekonomi-olcum.md Ö1): dürüst oyunun en yoğun günü 1.270 jeton (6 oturum, 1. gün), altı profilin hiçbiri sınıra çarpmaz; eski 600 dürüst oyunu kesiyordu.
- * Ölçülenden uzun oynayan dürüst oyuncu yine çarpabilir (tur 16: aynı gün 21-25, 460 jeton eklenmedi; kural kararı YN-270).
+ * Ölçülenden uzun oynayan dürüst oyuncu yine çarpabilir (tur 16: aynı gün 21-25, 460 jeton eklenmedi). Sahip kararı 54 (YN-270): sınırı
+ * aşan jeton kaybolmaz, `players.carry_jeton`da (göç 16) "bekleyen ödül" olarak durur ve sonraki günlerde yine sınır içinde hesaba geçer
+ * (`bekleyenAktar`). Günde hesaba geçen yerel ödül jetonu (bekleyenden gelen dahil) yine en çok LOCAL_JETON_DAILY_MAX: sahte istemciye
+ * karşı koruma aynı.
  */
 export { LOCAL_JETON_DAILY_MAX };
 /** Hesap ilk kez açılırken cihazdaki çevrimdışı jetonun devri: hesap başına bir kez, ilk 24 saatte, en çok bu kadar (günlük sınırdan ayrı) */
@@ -18,12 +21,41 @@ export function localCreditedToday(app: App, pid: string): number {
   return app.db.get<{ s: number | null }>('SELECT SUM(credited) AS s FROM local_grants WHERE player_id = ? AND day = ?', pid, dayKey(app.now()))!.s ?? 0;
 }
 
+/** bekleyen ödülün hesaba geçtiği günün defter kimliği: istemci kimliği bu biçimde olamaz ('#' wallet.local şemasında yasak) */
+const BEKLEYEN_REASON = 'bekleyen';
+const bekleyenLedger = (day: string) => `${BEKLEYEN_REASON}#${day}`;
+
+/**
+ * Bekleyen ödül jetonunu (karar 54) bugünkü sınırın kalanı kadar hesaba geçirir; geçen miktarı döndürür. Gün dönünce ilk
+ * `wallet.get` / `wallet.local` çağrısında (bağlanınca ve her yerel ödülde) çalışır; yeni ödülden önce gelir (eski bekleyen önce).
+ * Geçen kısım bugünün sınırından sayılır (`local_grants`, reason 'bekleyen'): bir günde hesaba geçen yine en çok LOCAL_JETON_DAILY_MAX.
+ */
+export function bekleyenAktar(app: App, pid: string): number {
+  const carry = app.player(pid).carry_jeton;
+  if (carry <= 0) return 0;
+  const n = Math.min(carry, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, pid));
+  if (n <= 0) return 0;
+  const day = dayKey(app.now());
+  app.db.run('UPDATE players SET carry_jeton = carry_jeton - ? WHERE id = ?', n, pid);
+  app.db.run(`INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(player_id, ledger_id) DO UPDATE SET jeton = jeton + excluded.jeton, credited = credited + excluded.credited, at = excluded.at`,
+  pid, bekleyenLedger(day), n, n, BEKLEYEN_REASON, day, app.now());
+  app.addCurrency(pid, 'jeton', n);
+  return n;
+}
+
 /**
  * Günlük yerel ödül sınırının bugünkü durumu (YN-269, Bugün göstergesi): kalan jeton ve sınırın yenileneceği an (sıradaki İstanbul
  * gece yarısı). `wallet.local` ve `wallet.get` yanıtına eklenir; istemci "X / 1.500" yazar, an geçince son bilinen değeri göstermez.
+ * Karar 54: `carry` sonraki günlere bekleyen ödül jetonu, `carriedToday` bugün bekleyenden hesaba geçen (ikisi de yalnız ekleme;
+ * eski sunucu göndermez, istemci o zaman eski kuralı yazar).
  */
-export function gunlukSinir(app: App, pid: string): { dailyLeft: number; dailyResetAt: number } {
-  return { dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, pid)), dailyResetAt: dayNumberStart(dayNumber(app.now()) + 1) };
+export function gunlukSinir(app: App, pid: string): { dailyLeft: number; dailyResetAt: number; carry: number; carriedToday: number } {
+  const carriedToday = app.db.get<{ s: number | null }>('SELECT credited AS s FROM local_grants WHERE player_id = ? AND ledger_id = ?', pid, bekleyenLedger(dayKey(app.now())))?.s ?? 0;
+  return {
+    dailyLeft: Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, pid)), dailyResetAt: dayNumberStart(dayNumber(app.now()) + 1),
+    carry: app.player(pid).carry_jeton, carriedToday,
+  };
 }
 
 export function skillsOf(app: App, pid: string): string[] {
@@ -43,11 +75,14 @@ export const walletHandlers: Handlers = {
       app.addCurrency(s.pid, 'jeton', credited);
       return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
     }
+    // önce dünden bekleyen (gün döndüyse), sonra bu ödül; sınırı aşan kısım kaybolmaz, bekleyen ödüle eklenir (karar 54)
+    bekleyenAktar(app, s.pid);
     const left = Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid));
     const credited = Math.min(jeton, left);
     app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)',
       s.pid, ledgerId, jeton, credited, reason, dayKey(app.now()), app.now());
     app.addCurrency(s.pid, 'jeton', credited);
+    if (jeton > credited) app.db.run('UPDATE players SET carry_jeton = carry_jeton + ? WHERE id = ?', jeton - credited, s.pid);
     return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
   },
   'wallet.spend': (app, s, { jeton, reason }) => {

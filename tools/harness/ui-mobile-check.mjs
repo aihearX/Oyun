@@ -1486,13 +1486,13 @@ async function suite(browserName, target, [W, H]) {
       for (const [q, label] of [['demo=sonuc&yildiz=3&skor=2480&rekor=1&acilim=1&sans=1&kutlama=0', 'sonuc-kazandi'], ['demo=sonuc&yildiz=0&skor=310&kutlama=0', 'sonuc-kaybetti'], ['demo=sonuc&bolum=7&yildiz=0&skor=660&neden=diken&kutlama=0', 'sonuc-kaybetti-diken'], ['demo=sonuc&bolum=7&yildiz=2&skor=1720&kutlama=0', 'sonuc-yildiz-ya-da'], ['demo=sonuc&bolum=8&yildiz=2&skor=2705&kutlama=0', 'sonuc-yildiz-hepsi'], ['demo=sonuc&bolum=12&yildiz=2&skor=1900&kutlama=0', 'sonuc-melodi'], ['demo=sonuc&bolum=3&yildiz=2&skor=1480&acilim=1&anlatim=camp&kutlama=0', 'sonuc-anlatim-kamp'], ['demo=sonuc&bolum=4&yildiz=3&skor=2210&acilim=1&anlatim=friends,glossary&kutlama=0', 'sonuc-anlatim-iki'],
         // YN-081: 1★ (2. yıldızın koşulu ilk ekranda), süreli hedef 0,4 sn kaçtı, kanca bölümünde kayıp (mekaniğin ipucu), boss kaybı
         ['demo=sonuc&bolum=7&yildiz=1&skor=980&kutlama=0', 'sonuc-yildiz1'], ['demo=sonuc&bolum=18&yildiz=2&skor=1650&sure=gec&kutlama=0', 'sonuc-sure-gec'],
-        ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss'],
+        ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&faz=2&kutlama=0', 'sonuc-kaybetti-boss'],
         // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
         ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis'],
         // YN-173 (OT-sinav-adayi-36): hazine satırı jeton dışını da yazar ("Ayrıca: ×1 Seri koruyucu", XP "+60 XP"; haritadaki pencereyle aynı, YN-240)
         ['demo=sonuc&bolum=10&yildiz=2&skor=1500&acilim=1&kutlama=0', 'sonuc-hazine'],
         // YN-102: ilk canavarda 4. kayıp, takımdan yardım kartı ("Yardım iste" düğmesi yapışkan çubuğun arkasında kalmaz); değiştiricili bölüm sonucu
-        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici'],
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&faz=2&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici'],
         // YN-113: 3 kayıptan sonra kolaylaşmış bölümün sonucu (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin kolaylaşacağı
         // YN-114: bölge sonu (Golem) ilk geçişte "Haritaya dön" + "Kulak Kanalı haritada canlanacak."
         ['demo=sonuc&bolum=33&yildiz=2&skor=1700&kolay=3&kutlama=0', 'sonuc-kolay'], ['demo=sonuc&bolum=33&yildiz=0&skor=420&kolay=2&kutlama=0', 'sonuc-kaybetti-kolay-sonraki'],
@@ -1506,7 +1506,7 @@ async function suite(browserName, target, [W, H]) {
         // YN-145 (OT-sinav-adayi-28): ilk geçişte "Haritaya dön" + Biliyor muydun? (Bölüm 6: yeni yer, iki satırlık anlatım şeridi)
         ['demo=sonuc&bolum=6&yildiz=2&skor=2115&acilim=1&anlatim=team,shop&kutlama=0', 'sonuc-bilgi-anlatim'],
         // YN-110 (karar 42): canavarda 3 kayıptan sonra Rahat deneme teklifi; Rahat denemeyle geçişin sonucu (1 yıldız, rekabet yok)
-        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat'],
+        ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&faz=2&rahat=teklif&kutlama=0', 'sonuc-kaybetti-rahat-teklif'], ['demo=sonuc&bolum=20&yildiz=1&skor=1800&rahat=1&kutlama=0', 'sonuc-rahat'],
         // YN-191 (OT-ilk-kez-oyun-57): bölge sonu ilk geçişte iki satırlık 3. yıldız kartı + haritada bekleyen canlanma ve tanıtım (yapışkan alan
         // en uzun); 3. yıldız yalnız hedefle (tutmayan nota satırı soluk, OT-buyuk-yazi-58); YN-192: takım kalkanıyla başlanan bölüm
         ['demo=sonuc&bolum=5&yildiz=2&skor=1917&acilim=1&harita=1&anlatim=team&kutlama=0', 'sonuc-yildiz-devam'], ['demo=sonuc&bolum=16&yildiz=3&skor=2600&hedef=1&kutlama=0', 'sonuc-yildiz-hedef'],

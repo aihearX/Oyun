@@ -147,4 +147,16 @@ describe('şema sürümü ve göçler', () => {
     expect(runMigrations(raw, list.slice(0, 1)).warning).toMatch(/yeni/);
     raw.close();
   });
+  it('göç 16 (karar 54): bekleyen ödül jetonu sütunu eklenir; var olan oyuncular 0 ile başlar', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    old.run('INSERT INTO players(id, token_hash, name, color, friend_code, depot_at, created_at, last_seen, jeton) VALUES(?, ?, ?, 0, ?, 0, 0, 0, 500)', 'p1', 'h1', 'p1', 'K1');
+    old.raw.exec('ALTER TABLE players DROP COLUMN carry_jeton; PRAGMA user_version = 15');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    expect(db.get('SELECT jeton, carry_jeton FROM players WHERE id = ?', 'p1')).toEqual({ jeton: 500, carry_jeton: 0 });
+    db.close();
+  });
 });

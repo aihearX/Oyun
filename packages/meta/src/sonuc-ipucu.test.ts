@@ -64,7 +64,8 @@ describe('kayıpta ipucu bölüme göre ve dönüşümlü (OT-ilk-kez-oyun-19)',
     expect(lossTips('fall', spec(36, { id: 'reach', label: 'x' }, { modifiers: ['yanki'] }))).toContain('Gecikmede dokunuşun bir an geç işler: zıplamaya biraz erken bas.');
     const boss = spec(20, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
     const hit = run({ completed: false, stars: 0, damageTaken: 3, extra: { reason: 'yumruk' } });
-    expect([1, 2].map((a) => lossView(hit, boss, a).tip)).toEqual(['Zayıf noktası açılınca havadan aşağı kaydırıp üstüne in · Saldırıdan önceki uyarıyı görünce kaç', expect.stringMatching(/uyarı görünür/)]);
+    // faz bilinmeyen (eski) sonuçta: önce golemin vuruş yolu (öğretici anla aynı söz), sonra uyarıların ne olduğu
+    expect([1, 2].map((a) => lossView(hit, boss, a).tip)).toEqual(['Yere saplanan yumruk parlar: üstüne zıpla, havada aşağı kaydırıp çakıl.', expect.stringMatching(/uyarı görünür/)]);
     expect(lossView(fall, spec(13, { id: 'reach', label: 'x' })).tip).toMatch(/^Kancanın yanında basılı tut/);
     // yarış bitti: ipucu yok
     expect(lossView(run({ completed: false, stars: 0, extra: { reason: 'yaris-bitti' } }), l19, 2).tip).toBe('');
@@ -180,5 +181,37 @@ describe('yenilik duyurusu: "mekanik" kelimesi ve emoji yok (OT-ilk-kez-oyun-22)
     expect(unlockAnnouncements(19).find((a) => a.kind === 'mekanik')?.title).toBe('Yeni: Canavar bölümleri');
     expect(unlockAnnouncements(12).find((a) => a.kind === 'mekanik')?.title).toBe('Yeni: Kanca ve Çakılma');
     for (let n = 1; n < HUMAN_JOURNEY.levels.length; n++) for (const a of unlockAnnouncements(n)) { expect(a.title).not.toMatch(/mekanik/i); expect(EMOJI.test(a.title)).toBe(false); }
+  });
+});
+
+describe('Serumen Golemi: kayıp ipucu kaybettiren saldırıya ve faza göre (sahip kararı 52 (c), YN-249)', () => {
+  const boss = spec(20, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
+  const lost = (reason: string, faz: number) => run({ completed: false, stars: 0, damageTaken: 3, extra: { reason, faz } });
+  it('Faz 2 yumruk gölgesi: her denemede aynı, ne yapılacağını söyleyen tek cümle (zıpla); Rahat teklifi ilk ekranda kalsın diye ikinci satır yok', () => {
+    const v = [1, 2, 3].map((a) => lossView(lost('yumruk', 2), boss, a));
+    for (const x of v) {
+      expect(x.tip).toBe('Faz 2\'de de yumruk sürer: gölge büyürken zıpla.');
+      expect(x.detail).toBe('3 kez hasar aldın, en son Faz 2\'de yumruğa yakalandın.');
+      expect(x.tip2).toBeUndefined();
+    }
+    // faz 1: aynı kural, yumruğun ne olduğu
+    expect(lossView(lost('yumruk', 1), boss).tip).toBe('Gölge yumruğun ineceği yer: gölge büyürken zıpla.');
+  });
+  it('faz ve saldırı türüne göre ayrı cümle; söz kısa, emoji yok, "uzaklaş" denmez', () => {
+    expect(lossView(lost('yumruk', 3), boss).tip).toMatch(/^Faz 3'te iki yumruk/);
+    expect(lossView(lost('top', 2), boss).tip).toMatch(/üstünden zıpla/);
+    expect(lossView(lost('top', 2), boss).detail).toBe('3 kez hasar aldın, en son Faz 2\'de yuvarlanan topa çarptın.');
+    expect(lossView(lost('damla', 3), boss).detail).toBe('3 kez hasar aldın, en son Faz 3\'te tavandan düşen damla sana değdi.');
+    expect(lossView(lost('yumruk', 1), boss).detail).toBe('3 kez hasar aldın, en son Faz 1\'de yumruğa yakalandın.');
+    for (const [r, f] of [['yumruk', 1], ['yumruk', 2], ['yumruk', 3], ['top', 2], ['top', 3], ['damla', 3]] as const) {
+      const all = lossTips(r, boss, f);
+      for (const t of all) { expect(EMOJI.test(t)).toBe(false); expect(t).not.toMatch(/uzaklaş/); }
+      expect(all[0]!.length).toBeLessThanOrEqual(65);
+    }
+  });
+  it('Gürültü Canavarı ve faz bilgisi olmayan sonuç eskisi gibi', () => {
+    const b40 = spec(40, { id: 'boss', label: 'x' }, { coinsTotal: 0 });
+    expect(lossView(lost('dalga', 2), b40, 1).tip).toBe('Bağırınca çıkan 3 notayı topla: kalbi açılınca ileri fırla ya da havadan aşağı kaydırıp üstüne in.');
+    expect(lossView(lost('dalga', 2), b40).detail).toBe('3 kez hasar aldın, en son canavarın saldırısına yakalandın.');
   });
 });

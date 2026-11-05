@@ -98,7 +98,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `soru-02` | İşte bugünün sorusu. Bir şık seç; doğru bilene jeton var. | Takım sohbeti: Günün Sorusu kartı vurgulanır | göz kırpan (playful) |
 | `ikili-01` | Yeni: İkili Görev! Bir arkadaşınla haftalık ortak hedef seçin; ikinizin notaları birlikte sayılır, sandığı birlikte açarsınız. | Açılış kutlaması: İkili Görev (10. bölümden sonra) | coşkulu (celebratory) |
 | `ikili-02` | Birlikte burada, Profil’in içinde. Arkadaşını seç ve davet et. | Profil: Birlikte kutucuğu vurgulanır | davet eden (inviting) |
-| `usta-01` | Artık yeni başlayan birine yol gösterebilirsin! Bir arkadaşına çırak teklif et; o ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
+| `usta-01` | Arkadaşını davet et, birlikte ilerleyin: sen biraz öndesin, o da senden öğrenir. O ilerledikçe ikiniz de ödül alırsınız. | Açılış kutlaması: Usta–Çırak (11. bölümden sonra) | gururlu, sıcak (proud, warm) |
 | `kamp-sv-merkez-1` | Merkez büyüdükçe kampın da büyür. Odyolojide tek bir test yetmez; testler birbirini doğrular. | Kamp: Odyoloji Merkezi yükseldi (Sv 1, 4, 7, 10, 13) | gururlu, bilge (proud, wise) |
 | `kamp-sv-merkez-2` | Bir odyolog işitmeyi de dengeyi de değerlendirir. Merkezin artık diğer binalara daha yüksek kat açıyor. | Kamp: Odyoloji Merkezi yükseldi (Sv 2, 5, 8, 11, 14) | sıcak, öğretici (warm, explaining) |
 | `kamp-sv-merkez-3` | Erken tanı, erken destek demektir. Merkezin büyüdü; şimdi diğer binaları da yükseltebilirsin. | Kamp: Odyoloji Merkezi yükseldi (Sv 3, 6, 9, 12, 15) | cesaret veren (encouraging) |
@@ -197,7 +197,7 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `ipucu-ogret-darbe` | Koşu yönüne kaydır: ses darbesiyle gürültü duvarını kır! | 31. bölüm: Ses Darbesi öğretici anı | güçlü, coşkulu (strong, rousing) |
 | `ipucu-ogret-cevir` | Mor bölgede dokun: yerçekimi ters döner! | 35. bölüm: Yerçekimi Çevirme öğretici anı | gizemli, heyecanlı (mysterious, excited) |
 | `not-kepce-yon` | Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-hz` | Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-hz` | Hertz, frekansın birimidir: sesin saniyede kaç kez titreştiğini söyler. Çok titreşen ses ince duyulur. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-db` | Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir. | Tüy Dede'nin Notu · dis-kulak | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-kanal-rezonans` | Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli 2–3 kHz civarındaki sesleri kendiliğinden güçlendirir.<br><small>okunuş: Kulak kanalı, bir ucu kapalı bir boru gibi çınlar: konuşmada önemli iki-üç kilohertz civarındaki sesleri kendiliğinden güçlendirir.</small> | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-serumen-temiz` | Kulak kendi kendini temizler; pamuklu çubuk kiri çoğu zaman daha derine iter. | Tüy Dede'nin Notu · kanal | bilge, sıcak, merak uyandıran (wise, warm) |
@@ -225,8 +225,8 @@ yok); yalnız sessizlik kırpma, uzun duraksamaları ≤ 400 ms'ye kısaltma, 5.
 | `not-yon` | İki kulağımız sayesinde sesin nereden geldiğini buluruz. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-maskeleme` | Bir ses başka bir sesi bastırabilir; buna maskeleme denir. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-rinne-weber` | Diyapazon testleri, basit bir çatalla işitme kaybının türü hakkında ipucu verir. | Tüy Dede'nin Notu · beyin-sapi | bilge, sıcak, merak uyandıran (wise, warm) |
-| `not-konusma-muzu` | Konuşma seslerinin odyogramda kapladığı alan muza benzediği için “konuşma muzu” denir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-kokteyl` | Beyin, kalabalık bir odada tek bir konuşmaya odaklanabilir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
+| `not-konusma-muzu` | Konuşma seslerinin odyogramda kapladığı alan muza benzediği için “konuşma muzu” denir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-cihaz` | İşitme cihazları sesi her frekans için ayrı ayrı ayarlayarak yükseltir. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `not-tinnitus` | Kulak çınlaması, dışarıda bir ses yokken ses duyma hissidir ve oldukça yaygındır. | Tüy Dede'nin Notu · korteks | bilge, sıcak, merak uyandıran (wise, warm) |
 | `pat-serumen-tikaci` | Kulak kiri normalde kendiliğinden dışarı çıkar; birikip tıkaç olursa sesin yolunu kapatır. Üstünden atla! | Bölümde ilk karşılaşma: Kulak kiri tıkacı (Serumen tıkacı (buşon)) · 6. bölüm | bilge, sakin, yol gösteren (wise, calm, guiding) |

@@ -210,7 +210,7 @@ export const GLOSSARY: GlossaryTerm[] = /* @__PURE__ */ bolunmezYap([
 export const EAR_NOTES: EarNote[] = /* @__PURE__ */ bolunmezYap([
   { id: 'kepce-yon', region: 'dis-kulak', plain: 'Kulak kepçesinin kıvrımları, sesin yukarıdan mı aşağıdan mı geldiğini anlamamıza yardım eder.',
     tech: 'Kepçe, sesin geliş açısına göre yüksek frekanslarda farklı tepe ve çentikler oluşturur; beyin bu spektral ipuçlarını dikey yön ve ön-arka ayrımı için kullanır.', src: `${G}, ses kaynağının yerini belirleme` },
-  { id: 'hz', region: 'dis-kulak', plain: 'Hertz, sesin saniyedeki titreşim sayısıdır; çok titreşen ses ince duyulur.',
+  { id: 'hz', region: 'dis-kulak', plain: 'Hertz, frekansın birimidir: sesin saniyede kaç kez titreştiğini söyler. Çok titreşen ses ince duyulur.',
     tech: 'Genç ve sağlıklı insan kulağı yaklaşık 20 Hz–20 kHz arasını duyar ve yaklaşık 1–4 kHz arasında en duyarlıdır. Perde algısı frekansla ilişkilidir ama doğrusal değildir.', src: `${G}, mutlak eşikler` },
   { id: 'db', region: 'dis-kulak', plain: 'Desibel ölçeği logaritmiktir: küçük bir sayı artışı büyük bir enerji artışı demektir.',
     tech: 'Ses basıncı düzeyi = 20·log10(p/p0), p0 = 20 µPa. 6 dB artış ses basıncını yaklaşık iki katına, 20 dB artış on katına çıkarır; 10 dB artış ses şiddetini (enerjiyi) on katına çıkarır.', src: `${G}, fiziksel akustik` },

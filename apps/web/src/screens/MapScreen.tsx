@@ -100,7 +100,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   const [before, setBefore] = useState<StarMap | null>(null);
   // dönüş sahnesinin başladığı (haritada gösterilen) durum ve birikmiş kutlamalar: üç ve daha çok pencere açılacaksa sahne sürerken
   // biriktirilir, sahne bitince tek pencerede gösterilir (OT-sinav-adayi-17: 20-25 art arda → dört pencere peş peşe)
-  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0, eksik: 0, bekliyor: false, ns: [] as number[] });
+  const shownRef = useRef<StarMap>({}); const batch = useRef<RecapRow[] | null>(null); const batchCount = useRef({ t: 0, z: 0, eksik: 0, gun: 0, bekliyor: false, ns: [] as number[] });
   const goalRef = useRef<HTMLButtonElement>(null);
   /**
    * haritanın görünür alanı: üstte HUD, hedef kartı, Bugün/pusula ve Etkinlik düğmesinin altı; altta Bölüm düğmesinin üstü (CSS px).
@@ -137,7 +137,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onNodeTap: (n) => setCard({ kind: 'node', n }), onTreasureTap: (n) => setCard({ kind: 'treasure', n }), onZoneTap: (z) => setCard({ kind: 'zone', z }),
         onTreasure: async (n) => {
           const h = hazineGorunum(n); const items = h.items;
-          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; batchCount.current.eksik += h.eksik; batchCount.current.bekliyor ||= h.bekliyor; batchCount.current.ns.push(n); return; }
+          if (batch.current) { batch.current.push({ icon: '🎁', text: `Hazine · Bölüm ${n}`, items }); batchCount.current.t++; batchCount.current.eksik += h.eksik; batchCount.current.gun = Math.max(batchCount.current.gun, h.gun ?? 0); batchCount.current.bekliyor ||= h.bekliyor; batchCount.current.ns.push(n); return; }
           // pencere açıldığı anda görüldü (YN-201, OT-sinav-adayi-42): Tamam'a basılmadan ya da sahne bitmeden uygulama kapanırsa da
           // aynı hazine bir daha açılmaz (sahnenin sonundaki kayıt yenilemede hiç yazılmıyordu)
           useMapSeen.getState().markShown(n, starsOf(useStore.getState().progress)[n] ?? 1);
@@ -157,7 +157,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         onSequence: (p) => {
           setSeq(p === 'start'); setSettled(p === 'done');
           const cur = starsOf(useStore.getState().progress);
-          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0, eksik: 0, bekliyor: false, ns: [] }; }
+          if (p === 'start') { started = true; batch.current = returnCelebrations(shownRef.current, cur, useMapSeen.getState().restored) >= 3 ? [] : null; batchCount.current = { t: 0, z: 0, eksik: 0, gun: 0, bekliyor: false, ns: [] }; }
           if (p === 'done') { useMapSeen.getState().commit(cur); shownRef.current = cur; flushBatch(); }
         },
         onCurrentVisible: (v, d) => setAway(v ? null : d),
@@ -173,16 +173,16 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
    * olan bir şey değildir.
    */
   const flushBatch = () => {
-    const rows = batch.current; const { t, z, eksik, bekliyor, ns } = batchCount.current; batch.current = null;
+    const rows = batch.current; const { t, z, eksik, gun, bekliyor, ns } = batchCount.current; batch.current = null;
     if (!rows?.length) return;
     const sub = [t ? `${t} hazine` : '', z ? `${z} bölge canlandı` : ''].filter(Boolean).join(', ');
     // pencere kapanınca sıradaki bölüm yine görünür alanın ortasında (kart/düğmeler değişmiş olabilir)
-    // hazine jetonu: sınır kestiyse eklenmeyen, çevrimdışıysa "bağlanınca" (YN-200); satırlar hesaba geçeni gösterir
-    const note = !t ? undefined : eksik > 0 ? sinirNotu(eksik) : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
+    // hazine jetonu: sınır kestiyse bugün geçmeyen (karar 54: bekleyen ödülde, gun gün içinde), çevrimdışıysa "bağlanınca" (YN-200); satırlar hesaba geçeni gösterir
+    const note = !t ? undefined : eksik > 0 ? sinirNotu(eksik, gun || undefined) : bekliyor ? 'Hazine jetonu bağlanınca cüzdanına eklenecek' : t > 1 ? 'Hazineler bölüm sonunda cüzdanına eklenmişti' : `Hazine ${HAZINE_VERILDI.toLocaleLowerCase('tr')}`;
     // pencere açıkken bekleyen jeton hesaba geçerse not güncellenir (YN-260 (3)); satırlar o anki hesaba geçeni gösterir
     const live = canliNot(hazineBekliyor(ns), () => {
-      const hs = ns.map((n) => hazineGorunum(n)); const e = hs.reduce((a, h) => a + h.eksik, 0); const d = ns.map(hazineDurum);
-      return e > 0 ? sinirNotu(e) : d.some((x) => x.k === 'bekliyor' && !x.bagli) ? 'Hazine jetonu bağlanınca cüzdanına eklenecek'
+      const hs = ns.map((n) => hazineGorunum(n)); const e = hs.reduce((a, h) => a + h.eksik, 0); const g = Math.max(0, ...hs.map((h) => h.gun ?? 0)); const d = ns.map(hazineDurum);
+      return e > 0 ? sinirNotu(e, g || undefined) : d.some((x) => x.k === 'bekliyor' && !x.bagli) ? 'Hazine jetonu bağlanınca cüzdanına eklenecek'
         : d.some((x) => x.k === 'bekliyor') ? 'Hazine jetonu hesabına kaydediliyor' : t > 1 ? 'Hazine jetonları cüzdanına eklendi' : 'Hazine jetonu cüzdanına eklendi';
     });
     void celebrate.recap({ title: 'Yolda kazandıkların', sub, rows, note, live }).then(() => handle.current?.focusCurrent());

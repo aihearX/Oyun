@@ -494,6 +494,12 @@ sütunu eski kuralı simülasyon kancasıyla aynı ölçüm ve aynı modelle yen
   yeni yüzme yıldızlarının açtığı başarımlar. Hiçbir profilde 14 gün boyunca kesilen jeton kalmadı.
 - 14 günlük gelir +%1,6-2,5 (3 oturum takımsız 38.284 → 38.952; 6 oturum 59.963 → 61.369); taşkın günü değişimi ±1.
 - Kod yorumu ölçülen gerekçeyi yazar (eski "dürüst oyunda aşılmaz" ölçümle çelişiyordu). Test: `apps/server/test/wallet.test.ts`.
+- **Sahip kararı 54 (YN-270, tur 16):** ölçülenden uzun oynayan dürüst oyuncu yine çarptı (aynı gün 21-25, 460 jeton). Sınır aynı
+  kaldı, ama aşan jeton artık kaybolmaz: "bekleyen ödül" olarak sonraki günlere devreder ve her gün yine en çok 1.500 jeton hesaba
+  geçer (bekleyenden gelen dahil; `players.carry_jeton`, göç 16, `apps/server/src/wallet.ts` `bekleyenAktar`). Sahte istemcinin günlük
+  tavanı değişmez (1.500); yalnız dürüst oyuncunun bir kez kazanılan hazine ve başarım jetonu artık silinmez. Sonuç ve hazine penceresi
+  "110 jeton yarın hesabına geçecek" der, Bugün sekmesi bekleyeni gösterir. Test: `apps/server/test/wallet.test.ts` (aşma, devretme,
+  birkaç güne yayılma, tavanın korunması), `apps/web/src/gunluk-sinir.test.ts`.
 
 **Ö4 · Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3** (`KG_KURAL.kademeSv`, `packages/content/src/kamp-gorev.ts:30`). Günde 3 hasta,
 salon 6 ve Bilgi düzeyi kuralları değişmedi; vakalar yine kademe sırasıyla gelir.

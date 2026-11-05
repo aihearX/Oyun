@@ -19,7 +19,7 @@ export interface Toast { id: number; icon: string; title: string; text?: string;
   /** bölüm sonucunun bildirimi (completeRun): sonuç ekranı kapanınca sıradan düşer, kart aynısını yazdı; sonraki bölümün sonucunda bir daha çıkmaz (YN-200) */
   kosu?: boolean;
   /** başarım bildiriminin ödülü: defter kayıtları (`basarim:id:kademe`), yazdığı jeton, tek başarımsa kademesi; `eksik`: sunucunun günlük sınırla kestiği (YN-200) */
-  odul?: { reasons: string[]; jeton: number; tier?: 1 | 2 | 3; eksik?: number };
+  odul?: { reasons: string[]; jeton: number; tier?: 1 | 2 | 3; eksik?: number; /** karar 54: eksik bekleyen ödülde, bu kadar gün içinde geçer */ gun?: number };
   /** genel "Günlük ödül sınırı doldu" bildirimi: eklenmeyen toplam (tek bildirim, toplam büyür; net.ts) */
   sinir?: number }
 
@@ -51,7 +51,7 @@ interface State extends PlayerCore {
   /** sonuç ekranı kapandı: o bölümün sırada kalan bildirimleri düşer (kartta yazdı; sonraki sonuçta tekrar çıkmaz, YN-200) */
   dropRunToasts(): void;
   /** sunucu günlük yerel ödül sınırıyla kesti: kaydın başarım bildirimi hesaba geçeni yazar (net.ts, YN-200) */
-  odulKesildi(reason: string, eksik: number): void;
+  odulKesildi(reason: string, eksik: number, gun?: number): void;
   buySkill(id: string): boolean;
   /** takım/ödül kutusundan gelen kalkanlar: bir sonraki bölüme kalkanla başlatır */
   teamShields: number;
@@ -106,7 +106,7 @@ const tierJeton = (tier: 1 | 2 | 3) => TIER_REWARD[tier].filter((it) => it.kind 
 const tierGainWith = (tier: 1 | 2 | 3, jeton: number) => TIER_REWARD[tier].map((it) => (it.kind === 'jeton' ? (jeton > 0 ? `+${jeton} jeton` : '') : it.kind === 'xp' ? `+${it.amount} XP` : '')).filter(Boolean).join(', ');
 /** başarım bildiriminin metni; sınır kestiyse hesaba geçen ve eklenmeyen (odul-durum sinirSatiri ile aynı söz) */
 function odulText(o: NonNullable<Toast['odul']>): string {
-  const e = Math.min(o.jeton, o.eksik ?? 0); const sinir = e > 0 ? ` · ${sinirSatiri(e)}` : '';
+  const e = Math.min(o.jeton, o.eksik ?? 0); const sinir = e > 0 ? ` · ${sinirSatiri(e, o.gun)}` : '';
   if (o.tier) return `Başarım açıldı: ${tierGainWith(o.tier, o.jeton - e)}${sinir}`;
   return `${o.jeton - e > 0 ? `Başarımlardan +${o.jeton - e} jeton · ` : ''}Profilde hepsi${sinir}`;
 }
@@ -174,9 +174,9 @@ export const useStore = create<State>()(persist((set, get) => {
     markBiomeSeen(biome) { const m = get().meta; if (!m.seenBiomes.includes(biome)) set({ meta: { ...m, seenBiomes: [...m.seenBiomes, biome] } }); },
     dismissToast(id) { set({ toasts: get().toasts.filter((t) => t.id !== id) }); },
     dropRunToasts() { if (get().toasts.some((t) => t.kosu)) set({ toasts: get().toasts.filter((t) => !t.kosu) }); },
-    odulKesildi(reason, eksik) {
+    odulKesildi(reason, eksik, gun) {
       if (!get().toasts.some((t) => t.odul?.reasons.includes(reason))) return;
-      set({ toasts: get().toasts.map((t) => { if (!t.odul?.reasons.includes(reason)) return t; const odul = { ...t.odul, eksik: (t.odul.eksik ?? 0) + eksik }; return { ...t, odul, text: odulText(odul) }; }) });
+      set({ toasts: get().toasts.map((t) => { if (!t.odul?.reasons.includes(reason)) return t; const odul = { ...t.odul, eksik: (t.odul.eksik ?? 0) + eksik, ...(gun ? { gun: Math.max(gun, t.odul.gun ?? 0) } : {}) }; return { ...t, odul, text: odulText(odul) }; }) });
     },
     buySkill(id) {
       const node = SKILL_TREE.find((n) => n.id === id); if (!node) return false;

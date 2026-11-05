@@ -5,9 +5,15 @@
 //  yildiz <n...> --k N [--ilk|--notaci]  → bölüm: {n, total, runs:[{fin, r (nota oranı), s (yıldız), t}]} (oyundaki gibi scoreRun)
 //  odanota <id...> --k N                 → oda: {id, total, kitle:{col, fin, dmg}, notaci:{col, fin, dmg}} (toplanan nota oranı; MK-015)
 //  bolum <n...> --k N [--salt S] [--fail F] [--stars R] [--ilk: ilk kez oynayan kademe]  → her bölüm için {n, runs:[{fin, dmg, deaths, nm, t}]}
+//  canavar <n:beceri...> --k N  → canavar bölümü (YN-249; ör. 20:0.1): normal/Rahat × göz (model: BOSS_LOOK_MS; okur: uyarının
+//        tamamı) için {id, n, beceri, rahat, goz, runs:[{fin, why, faz, hp, t, hits:[[neden, faz], ...]}]}
 import { ALL_CHUNKS, DEFAULT_SKILLS } from '@odi/content';
 import { playHuman, playHumanStars, playRoomHuman } from '../../packages/game-core/src/play/testkit';
-import { NOVICE, firstTimerOf, notaciOf, playerOf } from '../../packages/game-core/src/play/human';
+import { BOSS_LOOK_MS, NOVICE, firstTimerOf, humanControl, notaciOf, playerOf, skillHand, skillSeed, type HumanParams } from '../../packages/game-core/src/play/human';
+import { setup } from '../../packages/game-core/src/play/testkit';
+import { Planner } from '../../packages/game-core/src/play/planner';
+import { step } from '../../packages/game-core/src/play/sim';
+import { BOSS_TUTOR_SUCCESS, TUTORIAL_MAX_S, TUTORIAL_SLOW } from '../../packages/game-core/src/play/tutorial';
 import { generateLevel, levelKnobs, predictDmg, tuneRoom } from '@odi/level-gen';
 
 const argv = process.argv.slice(2);
@@ -82,5 +88,40 @@ if (mode === 'odanota') {
       row[name] = { col: col / K, fin: fin / K, dmg: dmg / K };
     }
     console.log(JSON.stringify(row));
+  }
+}
+
+if (mode === 'canavar') {
+  // YN-249 / karar 52: canavarda kayıp anı (faz, saldırı türü) ve el modelinin uyarıyı okuyamamasının payı. runHuman'ın canavar
+  // döngüsünün aynısı (öğretici anın ağır çekimi dahil), yalnız ileri bakış seçilir: "model" = oyundaki ölçüm kuralı (BOSS_LOOK_MS,
+  // 0,6 sn), "okur" = uyarının (yumruk gölgesi) tamamı: oyuncu gölgeyi belirdiği an görür (Rahat'ta uyarı ÷pace uzar).
+  const prof = { recentStars: 2, failStreak: 3, skills: DEFAULT_SKILLS };
+  for (const id of items) {
+    const [n, beceri] = id.split(':').map(Number) as [number, number];
+    for (const rahat of [false, true]) {
+      const spec = generateLevel('insan', n, prof, 0, { rahat });
+      const warnMs = Math.round((850 * Math.max(0.6, spec.boss?.warn ?? 1)) / Math.max(0.5, Math.min(1, spec.boss?.pace ?? 1)));
+      for (const goz of ['model', 'okur'] as const) {
+        const runs = [];
+        for (let k = 0; k < K; k++) {
+          const hand = skillHand(beceri, k)!; const look = goz === 'model' ? Math.min(hand.lookMs, BOSS_LOOK_MS) : warnMs;
+          const { w, s } = setup(spec); s.events = [];
+          const ctl = humanControl(skillSeed(k), { ...hand, lookMs: look } as HumanParams); const p = new Planner(w, ctl.prefs);
+          let tut = false; let tutEnd = 0; const hits: [string, number][] = [];
+          while (!s.finished && !s.failed && s.t < 300) {
+            step(w, s, p.next(s));
+            for (const e of s.events) {
+              if (e.k === 'bossTutor' && !tut) { tut = true; tutEnd = s.t + TUTORIAL_MAX_S * TUTORIAL_SLOW; ctl.slow(TUTORIAL_SLOW); }
+              else if (tut && BOSS_TUTOR_SUCCESS.includes(e.k)) { tut = false; ctl.slow(1); }
+              if (e.k === 'hurt' && e.s !== 'shield' && e.s !== 'revir') hits.push([String(e.s), s.boss!.phase]);
+            }
+            if (tut && (s.t > tutEnd || !s.boss?.fists.some((f) => f.st === 'planted'))) { tut = false; ctl.slow(1); }
+            s.events.length = 0;
+          }
+          runs.push({ fin: s.finished ? 1 : 0, why: s.failed, faz: s.boss!.phase, hp: s.boss!.hp, t: Math.round(s.t * 10) / 10, hits });
+        }
+        console.log(JSON.stringify({ id, n, beceri, rahat, goz, look: goz === 'model' ? 'el' : warnMs, runs }));
+      }
+    }
   }
 }

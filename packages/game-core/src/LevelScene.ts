@@ -680,7 +680,8 @@ export class LevelScene extends Phaser.Scene {
     const sub = this.world.boss ? `${this.sim.boss?.name ?? this.spec.boss?.name ?? 'Canavar'} gücünün %${left}'${yuzdeIyelik(left)} kaldı`
       : pct >= 0.5 ? `Kapıya %${left} kaldı` : `Yolun %${done}'${yuzdeIyelik(done)} geride`;
     endCard(this, { title: reason === 'fall' ? 'Düştün…' : reason === 'yaris-bitti' ? 'Yarış bitti!' : 'Odi yoruldu…', sub });
-    this.sendResult('levelFailed', { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000 } });
+    // canavar bölümünde kaybın fazı: kayıp ipucu o fazın saldırısına göre (meta lossView; sahip kararı 52, YN-249)
+    this.sendResult('levelFailed', { ...r, extra: { ...r.extra, reason, pct: Math.round(pct * 1000) / 1000, ...(this.sim.boss ? { faz: this.sim.boss.phase } : {}) } });
   }
   private sendResult(type: 'levelComplete' | 'levelFailed', result: RunResult) {
     if (this.resultSent) return; this.resultSent = true;

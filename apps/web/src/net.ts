@@ -22,7 +22,7 @@ import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
 import { createCoinEstimate, createOutbox, reconcileCoins, type OutItem } from './outbox';
-import { ledgerKey, odulDurumu, type DurumKaynak, type GunlukSinir, type Kredi, type OdulDurum } from './odul-durum';
+import { bekleyenGun, bekleyenNe, ledgerKey, odulDurumu, type DurumKaynak, type GunlukSinir, type Kredi, type OdulDurum } from './odul-durum';
 
 declare const __ODI_E2E__: boolean | undefined;
 /** yalnız uçtan uca test derlemesi (VITE_ODI_E2E=1): harness istemci durumunu okur (kopma-e2e) */
@@ -122,11 +122,18 @@ function kayitKredi(id: string, k: Kredi): void {
   const keys = Object.keys(all); const krediler = keys.length > KREDI_MAX ? Object.fromEntries(keys.slice(-KREDI_MAX).map((x) => [x, all[x]!])) : all;
   useSocial.setState({ krediler }); writeJson(K.kredi, krediler);
 }
-/** sunucu yanıtındaki günlük sınır durumu (wallet.local, wallet.get); eski sunucu `dailyResetAt` göndermez: o zaman kaydedilmez */
-function kayitGunluk(r: { dailyLeft?: number; dailyResetAt?: number }): void {
+/**
+ * sunucu yanıtındaki günlük sınır durumu (wallet.local, wallet.get); eski sunucu `dailyResetAt` göndermez: o zaman kaydedilmez.
+ * Karar 54: bekleyen ödül (`carry`) ve bugün bekleyenden hesaba geçen (`carriedToday`); bugün yeni geçen kısım bir kez söylenir
+ * (son bilinen durum kalıcı: aynı günün ikinci okuması yeniden söylemez).
+ */
+function kayitGunluk(r: { dailyLeft?: number; dailyResetAt?: number; carry?: number; carriedToday?: number }): void {
   if (typeof r.dailyLeft !== 'number' || typeof r.dailyResetAt !== 'number') return;
-  const gunluk = { left: r.dailyLeft, resetAt: r.dailyResetAt };
+  const prev = useSocial.getState().gunluk;
+  const gunluk: GunlukSinir = { left: r.dailyLeft, resetAt: r.dailyResetAt, ...(typeof r.carry === 'number' ? { carry: r.carry, carried: r.carriedToday ?? 0 } : {}) };
   useSocial.setState({ gunluk }); writeJson(K.gunluk, gunluk);
+  const yeni = (gunluk.carried ?? 0) - (prev && prev.resetAt === gunluk.resetAt ? prev.carried ?? 0 : 0);
+  if (yeni > 0) toast('🪙', 'Bekleyen ödül hesabında', `Günlük sınırı aşıp bekleyen ${yeni.toLocaleString('tr-TR')} jeton bugün hesabına geçti.${(gunluk.carry ?? 0) > 0 ? ` ${gunluk.carry!.toLocaleString('tr-TR')} jeton daha bekliyor.` : ''}`, 'green');
 }
 /** Bugün sekmesi açılınca günlük sınırı sunucudan oku (bağlı değilse son bilinen kalır) */
 export function gunlukYenile(): void {
@@ -149,12 +156,13 @@ export function useOdulKaynak(): DurumKaynak {
  * bildirimi tek kalır, eksik toplamı büyür (her kesilen kayıt için ayrı bildirim yoktu ama art arda altı tane geliyordu).
  * Bildirim bölüm rotasında bekler, sonuç ekranında ve haritada görünür; sonuç kartı ayrıca satırla söyler.
  */
-function sinirKesti(reason: string, eksik: number): void {
-  useStore.getState().odulKesildi(reason, eksik);
+function sinirKesti(reason: string, eksik: number, gun?: number): void {
+  useStore.getState().odulKesildi(reason, eksik, gun);
   useStore.setState((s) => {
     const i = s.toasts.findIndex((t) => t.sinir != null);
     const toplam = (i >= 0 ? s.toasts[i]!.sinir! : 0) + eksik;
-    const t: Toast = { id: i >= 0 ? s.toasts[i]!.id : Date.now() + Math.random(), icon: '🪙', title: 'Günlük ödül sınırı doldu', text: `Görev, sandık, hazine ve başarım jetonlarından günde en çok ${LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer. ${toplam.toLocaleString('tr-TR')} jeton eklenmedi; sınır yarın yenilenir.`, tone: 'bronze', sinir: toplam };
+    const ne = gun ? `${toplam.toLocaleString('tr-TR')} jeton kaybolmadı: bekleyen ödül olarak ${bekleyenNe(gun)} hesabına geçecek.` : `${toplam.toLocaleString('tr-TR')} jeton eklenmedi; sınır yarın yenilenir.`;
+    const t: Toast = { id: i >= 0 ? s.toasts[i]!.id : Date.now() + Math.random(), icon: '🪙', title: 'Günlük ödül sınırı doldu', text: `Görev, sandık, hazine ve başarım jetonlarından günde en çok ${LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer. ${ne}`, tone: 'bronze', sinir: toplam };
     return { toasts: i >= 0 ? s.toasts.map((x, j) => (j === i ? t : x)) : [...s.toasts, t] };
   });
 }
@@ -189,8 +197,10 @@ const outbox_ = createOutbox({
     if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); return; }
     // aynı kaydın yeniden gönderimi (yanıtı kaybolmuştu, ya da gönderilen listesi kısaldı) sunucunun kayıtlı yanıtını döner: bir kez söylenir
     const once = useSocial.getState().krediler[item.ledgerId];
-    kayitKredi(item.ledgerId, { jeton: item.jeton, credited: r.credited });
-    if (!once && r.credited < item.jeton) sinirKesti(item.reason, item.jeton - r.credited);
+    // karar 54: yanıtta bekleyen ödül varsa aşan kısım kaybolmadı (sonraki günlerde geçer); yoksa sunucu eski kuralla kesti
+    const gun = typeof r.carry === 'number' && r.credited < item.jeton ? bekleyenGun(r.carry) : undefined;
+    kayitKredi(item.ledgerId, { jeton: item.jeton, credited: r.credited, ...(gun ? { gun } : {}) });
+    if (!once && r.credited < item.jeton) sinirKesti(item.reason, item.jeton - r.credited, gun);
   },
   onSpend: (_, r) => applyServerSkills(r.skills),
   onAck: (_, jeton) => tahmin.credit(jeton),

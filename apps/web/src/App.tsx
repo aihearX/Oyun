@@ -207,7 +207,8 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const spec = generateLevel(HUMAN_JOURNEY.id, n, prof, 0, rahatRun ? { rahat: true } : {});
   const completed = stars > 0;
   const ease = levelEase(HUMAN_JOURNEY.id, n, prof);
-  // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…)
+  // 2★: "ya da"lı 3. yıldızın iki yarısı da tutmamış (nota eksik, hedef yok); 3★: ikisi de tamam; kayıp: canlar bitti (&neden=diken…;
+  // canavarda &faz=2: kaybın fazı, golemin faz ipucu için; karar 52)
   // &kalkan=1: takım kalkanı bir vuruşu karşıladı (hasar sayılır; sonuç kartı damageNote ile söyler, YN-136)
   // &hediye=takim: bölüme takım kalkanıyla başlandı (YN-192; vuruş gelmese de sonuç söyler)
   // &hedef=1 (3★): 3. yıldız yalnız hedefle geldi (nota %60'ta; tutmayan "nota" satırı soluk, OT-buyuk-yazi-58)
@@ -218,7 +219,7 @@ function demoResult({ generateLevel, levelEase, easeLine, easeNextLine }: LevelG
   const result: RunResult = {
     levelId: spec.id, completed, stars: rahatRun ? Math.min(stars, 1) as 0 | 1 : stars, score, ...(rahatRun ? { rahat: true } : {}), coins: completed ? (viaObj ? Math.ceil(spec.coinsTotal * 0.6) : Math.round(spec.coinsTotal * (stars === 3 ? 0.9 : stars === 2 ? 0.8 : 0.4))) : 6, timeSec: q.get('sure') === 'gec' ? (spec.objective.target ?? spec.parTimeSec) + 0.4 : spec.parTimeSec - 4,
     deaths: 0, damageTaken: stars === 3 || objNo2 ? 0 : completed ? 1 : 3, objectiveMet: stars === 3 || objNo2, secretFound: false,
-    extra: { maxCombo: 12, cochleas: stars === 3 || objNo2 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92 }), ...(q.get('kalkan') ? { guarded: Number(q.get('kalkan')) } : {}) },
+    extra: { maxCombo: 12, cochleas: stars === 3 || objNo2 ? 3 : 1, cochleasTotal: 3, ...(melodyTotal ? { melody: stars === 3 ? melodyTotal : 3, melodyTotal } : {}), ...(lucky ? { luckyNote: true } : {}), ...(completed ? {} : { reason: q.get('neden') ?? 'fall', pct: 0.92, ...(q.get('faz') ? { faz: Number(q.get('faz')) } : {}) }), ...(q.get('kalkan') ? { guarded: Number(q.get('kalkan')) } : {}) },
   };
   const progress: PlayerCore['progress'] = {};
   for (let i = 1; i < n; i++) progress[i] = { stars: 2, best: 600, plays: 1 };

@@ -246,13 +246,51 @@ const OBJECTIVE_TIPS: Partial<Record<ObjectiveId, string>> = {
   melody: 'Nota biçimli altın notaları soldan sağa, hiç atlamadan topla: her doğru notada "Nota 3/7" gibi sırası yazar.',
 };
 const BOSS_TIPS = ['Her saldırıdan önce bir uyarı görünür (yere düşen gölge, parlayan duvar, ok): onu görünce oradan uzaklaş.'];
+/** golemde genel "uzaklaş" yerine uyarıların ne olduğu: yumruktan kaçmanın güvenilir yolu zıplamak (GOLEM_TIP ölçümü) */
+const BOSS_TIPS_BY: Record<string, string[]> = {
+  'serumen-golemi': ['Her saldırıdan önce bir uyarı görünür: yumrukta yere düşen gölge, topta parlayan duvar, damlada yere düşen küçük gölge.'],
+};
 /**
  * Canavarın kendi vuruş yolu (OT-ilk-kez-oyun-46), play/boss.ts kuralıyla: Gürültü Canavarı bağırınca 3 nota belirir, hepsi toplanınca
  * kalbi yere iner; ses darbesiyle (koşu yönüne kaydırma) ya da çakılmayla vurulur. Fiiller kartlardaki gibi (OT-ilk-kez-oyun-16/-37).
  */
 const BOSS_HIT_TIP: Record<string, string> = {
   'gurultu-canavari': 'Bağırınca çıkan 3 notayı topla: kalbi açılınca ileri fırla ya da havadan aşağı kaydırıp üstüne in.',
+  // öğretici anla aynı söz (tutorial.ts BOSS_TUTOR_TEXT): saplı yumruğa çakılma −2 (play/boss.ts golem)
+  'serumen-golemi': 'Yere saplanan yumruk parlar: üstüne zıpla, havada aşağı kaydırıp çakıl.',
 };
+/**
+ * Serumen Golemi'nde kaybettiren saldırıya ve faza göre somut ipucu (sahip kararı 52 (c), YN-249; ölçüm docs/yonetim/canavar-olcum.md).
+ * play/boss.ts golem() kuralıyla: yumruk gölgenin düştüğü yere iner ve yalnız yerdekine değer; gölge belirdikten sonra (gölge
+ * büyürken, tam boyuna gelmeden) zıplayan hiç vurulmadı (normal ve Rahat, 20'şer uyarı), ters yöne dönen uyarıların %20-80'inde
+ * yine vuruldu. Faz 2'den sonra parlayan duvardan top yuvarlanır (üstünden zıplanır), Faz 3'te iki yumruk ve tavandan damla
+ * (gölgesi yere düşer; koşu yönüne göre nişanlanır). Kayıp ekranında bu ipucu her denemede tek başına (ikinci satır yok: Rahat
+ * deneme teklifi ve takım yardımı kartı 320×640'ta ilk ekranda kalsın; faz ve saldırı "en son Faz 2'de yumruğa yakalandın" satırında).
+ * "Gölge büyürken": normalde gölge tam boyundayken (0,92 sn) zıplayan vuruldu.
+ */
+const GOLEM_TIP: Record<string, Partial<Record<1 | 2 | 3, string>>> = {
+  yumruk: {
+    1: 'Gölge yumruğun ineceği yer: gölge büyürken zıpla.',
+    2: 'Faz 2\'de de yumruk sürer: gölge büyürken zıpla.',
+    3: 'Faz 3\'te iki yumruk iner: iki gölgeye de bak, büyürken zıpla.',
+  },
+  top: {
+    2: 'Duvar parlayınca top yuvarlanır: yaklaşınca üstünden zıpla.',
+    3: 'Duvar parlayınca top yuvarlanır: yaklaşınca üstünden zıpla.',
+  },
+  damla: {
+    3: 'Damlanın gölgesine doğru koşuyorsan ters yöne kaydırıp dön.',
+  },
+};
+/** canavarın kaybettiren saldırısının adı (sonuç "en son …"; genel söz LOSS_WHAT) */
+const GOLEM_WHAT: Record<string, string> = { yumruk: 'yumruğa yakalandın', top: 'yuvarlanan topa çarptın', damla: 'tavandan düşen damla sana değdi' };
+/** bölüm canavar bölümüyse canavarın kimliği (yolculuktan) */
+const bossOf = (spec?: Pick<RunSpecLite, 'number' | 'mechanic'>) => (spec?.mechanic === 'boss' ? HUMAN_JOURNEY.levels.find((l) => l.number === spec.number)?.boss : undefined);
+/** golemin faz ipucu (yoksa undefined): kaybettiren saldırı ve o andaki faz (LevelScene.fail → extra.faz) */
+export function golemTip(reason: string, faz: number | undefined, spec?: Pick<RunSpecLite, 'number' | 'mechanic'>): string | undefined {
+  if (bossOf(spec) !== 'serumen-golemi' || !faz) return undefined;
+  return GOLEM_TIP[reason]?.[Math.max(1, Math.min(3, Math.round(faz))) as 1 | 2 | 3];
+}
 type LossSpec = Pick<RunSpecLite, 'number' | 'mechanic'> & Partial<Pick<LevelSpec, 'modifiers' | 'objective'>>;
 /**
  * Bir bölümün kayıp ipuçları, gösterilme sırasıyla. Yeni bir mekaniğin ilk iki bölümünde önce mekaniğin kendisi (kanca
@@ -260,18 +298,18 @@ type LossSpec = Pick<RunSpecLite, 'number' | 'mechanic'> & Partial<Pick<LevelSpe
  * son hasarın nedeni (bilinen nedende önce o: OT-ilk-kez-oyun-50), bölümün zorluğu (değiştirici, canavar), hedef ve mekaniğin ipucu.
  * Her gruptan birer cümle sırayla alınır (art arda kayıpta aynı türden iki cümle üst üste gelmez).
  */
-export function lossTips(reason: string, spec?: LossSpec): string[] {
-  const mechTip = spec ? MECH_REASON_TIP[spec.mechanic]?.[reason] : undefined;
+export function lossTips(reason: string, spec?: LossSpec, faz?: number): string[] {
+  const mechTip = (spec ? MECH_REASON_TIP[spec.mechanic]?.[reason] : undefined) ?? golemTip(reason, faz, spec);
   const own = MECHANIC_OWN_TIP.has(reason) || mechTip !== undefined; const reasonTip = mechTip ?? LOSS_TIP[reason];
   if (!spec) return reasonTip ? [reasonTip] : [];
   // canavar bölümünde mekaniğin genel cümlesi yerine o canavarın vuruş yolu (varsa)
-  const bossId = spec.mechanic === 'boss' ? HUMAN_JOURNEY.levels.find((l) => l.number === spec.number)?.boss : undefined;
+  const bossId = bossOf(spec);
   const mech = (bossId && BOSS_HIT_TIP[bossId]) || MECHANICS[spec.mechanic].hint; const fresh = newMechanic(spec) && !own;
   const groups: string[][] = [
     fresh ? [mech] : [],
     reasonTip ? [reasonTip] : [],
     (spec.modifiers ?? []).flatMap((m) => MOD_TIPS[m] ?? []),
-    spec.mechanic === 'boss' ? [mech, ...BOSS_TIPS] : [],
+    spec.mechanic === 'boss' ? [mech, ...((bossId && BOSS_TIPS_BY[bossId]) || BOSS_TIPS)] : [],
     spec.objective && OBJECTIVE_TIPS[spec.objective.id] ? [OBJECTIVE_TIPS[spec.objective.id]!] : [],
     // koşunun ipucu beş hareketlik bir liste (temel mekanik; ipuçlarını nedenler verir)
     spec.mechanic === 'kosu' ? [] : [mech],
@@ -290,10 +328,14 @@ export function lossTips(reason: string, spec?: LossSpec): string[] {
 export function lossView(r: RunResult, spec?: LossSpec, attempt = 1): { title: string; detail: string; tip: string; tip2?: string } {
   const reason = typeof r.extra?.reason === 'string' ? r.extra.reason : '';
   if (reason === 'yaris-bitti') return { title: 'Yarış bitti', detail: 'Sen kapıya varmadan yarış kapandı.', tip: '' };
-  const n = r.damageTaken; const what = LOSS_WHAT[reason];
+  // canavar bölümünde kaybın fazı (LevelScene.fail; karar 52): golemde ipucu o fazın o saldırısına göre, sonuç "en son Faz 2'de …"
+  const faz = typeof r.extra?.faz === 'number' ? r.extra.faz : undefined;
+  const golem = golemTip(reason, faz, spec);
+  const n = r.damageTaken; const what = golem && GOLEM_WHAT[reason] ? `Faz ${faz}'${faz === 3 ? 'te' : 'de'} ${GOLEM_WHAT[reason]}` : LOSS_WHAT[reason];
   const detail = n > 0 ? `${n} kez hasar aldın${what ? `, en son ${what}` : ''}.` : what ? `${what.charAt(0).toLocaleUpperCase('tr-TR')}${what.slice(1)}.` : '';
-  const tips = lossTips(reason, spec); const i = Math.max(1, Math.floor(attempt)) - 1;
+  const tips = lossTips(reason, spec, faz); const i = Math.max(1, Math.floor(attempt)) - 1;
   const own = MECHANIC_OWN_TIP.has(reason) ? LOSS_TIP[reason] : undefined;
+  if (golem) return { title: 'Canların bitti', detail, tip: golem };
   if (own) { const rest = tips.filter((t) => t !== own); return { title: 'Canların bitti', detail, tip: own, ...(rest.length ? { tip2: rest[i % rest.length]! } : {}) }; }
   const tip = tips.length ? tips[i % tips.length]! : '';
   return { title: 'Canların bitti', detail, tip };

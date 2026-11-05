@@ -15,6 +15,9 @@
 //   node tools/harness/zorluk.mjs --yildiz [--levels 21,22,27,28] [--k 48] [--tag yildiz] [--once yildiz-once] [--ilk | --notaci]
 //        bölümleri oyundaki yıldız kuralıyla (scoreRun) oynar: bitirenlerin nota oranı ve yıldız dağılımı; --once ile önce/sonra tablosu;
 //        --notaci: notaya dalan kademe (human.ts → notaciOf)
+//   node tools/harness/zorluk.mjs --canavar [--levels 20] [--beceri 0.1,0.25,0.4] [--k 16] [--tag canavar]
+//        canavar bölümünde kayıp anı (YN-249, karar 52): beceri × normal/Rahat × göz (model: oyundaki ölçüm kuralı, ileri bakış 0,6 sn;
+//        okur: yumruk gölgesinin tamamı) → bitirme, kalan güç, kaybın fazı ve saldırı türü (docs/yonetim/canavar-olcum.md)
 //   node tools/harness/zorluk.mjs --belge [--once once] [--sonra sonra] [--ilk ilk]
 //        tabloyu docs/12-zorluk-egrisi.md içine (işaretler arasına) ve grafiği docs/img/zorluk-egrisi.svg'ye yazar
 import { spawn } from 'node:child_process';
@@ -187,6 +190,25 @@ if (args.yildiz) {
     const B = Object.fromEntries(JSON.parse(readFileSync(of, 'utf8')).rows.map((r) => [r.n, stat(r)]));
     console.log(`\n| Bölüm | Bitirme | Bitirenlerin nota medyanı | Önce: ★≥2 / ★3 (bitirenler) | Sonra: ★≥2 / ★3 (bitirenler) |\n|---|---|---|---|---|`);
     for (const r of rows) { const a = stat(r), b = B[r.n]; console.log(`| ${r.n} | ${pc(a.fin)} | ${pc(a.med)} | ${b ? `${pc(b.s2)} / ${pc(b.s3)}` : '–'} | ${pc(a.s2)} / ${pc(a.s3)} |`); }
+  }
+  console.log(`→ tools/harness/out/zorluk/${tag}.json`);
+}
+
+if (args.canavar) {
+  const levels = String(args.levels ?? '20').split(',').map(Number);
+  const beceri = String(args.beceri ?? '0.1,0.25,0.4').split(',').map(Number);
+  const file = await worker(); const tag = args.tag ?? 'canavar';
+  const rows = await runAll(file, 'canavar', levels.flatMap((n) => beceri.map((b) => `${n}:${b}`)), [], resolve(outDir, `${tag}.part.jsonl`));
+  rows.sort((a, b) => a.n - b.n || a.beceri - b.beceri || Number(a.rahat) - Number(b.rahat) || (a.goz === 'model' ? -1 : 1));
+  writeFileSync(resolve(outDir, `${tag}.json`), JSON.stringify({ k: K, rows }, null, 1));
+  rmSync(resolve(outDir, `${tag}.part.jsonl`), { force: true });
+  const pc = (x) => `${Math.round(x * 100)}%`;
+  console.log('\n| Bölüm | Beceri | Deneme | Göz | Bitirme | Kalan güç (ort.) | Kayıp fazı 1/2/3 | Kaybettiren saldırı | Bütün can kayıpları (faz: tür) |\n|---|---|---|---|---|---|---|---|---|');
+  for (const r of rows) {
+    const lost = r.runs.filter((x) => !x.fin); const faz = [1, 2, 3].map((f) => lost.filter((x) => x.faz === f).length).join(' / ');
+    const cnt = (xs) => Object.entries(xs.reduce((a, k) => ({ ...a, [k]: (a[k] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`).join(', ');
+    const hp = r.runs.reduce((a, x) => a + x.hp, 0) / r.runs.length;
+    console.log(`| ${r.n} | ${r.beceri} | ${r.rahat ? 'Rahat' : 'normal'} | ${r.goz === 'model' ? 'model (0,6 sn)' : `okur (${(r.look / 1000).toFixed(2).replace('.', ',')} sn)`} | ${pc(r.runs.filter((x) => x.fin).length / r.runs.length)} | ${hp.toFixed(1).replace('.', ',')} | ${faz} | ${cnt(lost.map((x) => x.why)) || '–'} | ${cnt(r.runs.flatMap((x) => x.hits.map(([w, f]) => `F${f}: ${w}`))) || '–'} |`);
   }
   console.log(`→ tools/harness/out/zorluk/${tag}.json`);
 }

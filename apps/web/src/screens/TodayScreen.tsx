@@ -27,13 +27,15 @@ function calDayText(d: CalendarDay): string {
 
 /**
  * Günlük ödül jetonu satırı (YN-269, OT-rekabetci-54): sunucunun bugün hesaba geçirdiği yerel ödül jetonu / günlük sınır. Sınır
- * dolmadan önce görünür; %80'den sonra ve dolunca belirgin. Değer bilinmiyorsa sayı yok. Kural Nasıl çalışır? sayfasında.
+ * dolmadan önce görünür; %80'den sonra ve dolunca belirgin. Değer bilinmiyorsa sayı yok. Kural Nasıl çalışır? sayfasında. Sınırı aşıp
+ * sonraki günlere bekleyen ödül jetonu (karar 54) ayrı satırda.
  */
 export function GunlukJetonSatiri({ satir, onInfo }: { satir: GunlukSatir; onInfo: () => void }) {
   return (
     <section className={`card gunluk-jeton ${satir.seviye}`} data-testid="bugun-gunluk-jeton" data-seviye={satir.seviye}>
       <div className="gj-metin" data-testid="bugun-gunluk-jeton-metin"><b>{satir.metin}</b></div>
       {satir.gecen != null && <Bar value={satir.gecen / LOCAL_JETON_DAILY_MAX} tone={satir.seviye === 'normal' ? 'green' : satir.seviye === 'yakin' ? 'amber' : 'coral'} label="Günlük ödül jetonu" />}
+      {satir.bekleyen && <div className="gj-bekleyen" data-testid="bugun-bekleyen">{satir.bekleyen}</div>}
       {satir.not && <div className="muted small-note gj-not" data-testid="bugun-gunluk-jeton-not">{satir.not}</div>}
       <button type="button" className="linkish gj-kural" onClick={onInfo}>Hangi jetonlar sayılır? Kural →</button>
     </section>

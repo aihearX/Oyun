@@ -7,7 +7,7 @@ import { platform } from '../platform';
 import { useStore } from '../store';
 import { inviteUrl, type Invite } from '../invite';
 import { useOdulKaynak, useSocial } from '../net';
-import { bekleyenSatiri, hesabaGecen, sinirSatiri } from '../odul-durum';
+import { bekleyenNe, bekleyenSatiri, hesabaGecen, sinirKurali, sinirSatiri } from '../odul-durum';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { RewardChips, prefersReducedMotion } from '../ui/bits';
 import { TeamContribution } from '../ui/TeamContribution';
@@ -324,7 +324,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
             <div className="result-ozet" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="sonuc-jeton-ozet">
               <b><Art name="coin" size={20} className="art-inline" />Bu bölümden{earn.length > 1 ? ' toplam' : ''} +{earnTotal.toLocaleString('tr-TR')} jeton</b>
               {earn.length > 1 && <small>{earn.map((l) => `${l.kisa ?? kisaAd(l.label)}\u00a0${fmtJeton(l.jeton)}`).join(' · ')}</small>}
-              {kredi.eksik > 0 && <small data-testid="sonuc-ozet-sinir">{sinirSatiri(kredi.eksik)}</small>}
+              {kredi.eksik > 0 && <small data-testid="sonuc-ozet-sinir">{sinirSatiri(kredi.eksik, kredi.gun)}</small>}
             </div>
           )}
 
@@ -408,15 +408,15 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
               <ul className="result-earn-list" data-testid="sonuc-kazanc">
                 {earn.map((l, i) => (
                   <li key={i} className={l.items ? 'has-sub' : undefined}>
-                    <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}{l.eksik ? <small className="rel-sinir">{sinirSatiri(l.eksik)}</small> : null}</span><b>{fmtJeton(l.jeton)}</b>
+                    <span className="rel-l"><span>{l.label}</span>{l.note && <small>{l.note}</small>}{l.eksik ? <small className="rel-sinir">{sinirSatiri(l.eksik, kredi.gun)}</small> : null}</span><b>{fmtJeton(l.jeton)}</b>
                     {/* birden çok başarım: adları, kademeleri, koşulları ve tek tek ödülleri (OT-ekonomi-denetci-17) */}
-                    {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}{x.eksik ? <small className="rel-sinir">{x.eksik.toLocaleString('tr-TR')}{'\u00a0'}jeton eklenmedi</small> : null}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
+                    {l.items && <ul className="result-earn-sub">{l.items.map((x, j) => <li key={j}><span className="rel-l"><span>{x.label}</span>{x.note && <small>{x.note}</small>}{x.eksik ? <small className="rel-sinir">{x.eksik.toLocaleString('tr-TR')}{'\u00a0'}jeton {kredi.gun ? `${bekleyenNe(kredi.gun)} hesabına geçecek` : 'eklenmedi'}</small> : null}</span><b>{fmtJeton(x.jeton)}</b></li>)}</ul>}
                   </li>
                 ))}
               </ul>
             )}
             {/* günlük yerel ödül sınırı (sunucu, MK-009): kesildiyse açıkça; çevrimdışıyken tutar bağlanınca kesinleşir (YN-200) */}
-            {kredi.eksik > 0 && <div className="result-earn-not" data-testid="sonuc-sinir"><b>{sinirSatiri(kredi.eksik)}.</b> Hazine, başarım, görev ve sandık jetonlarından günde en çok {LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer; sınır yarın yenilenir.</div>}
+            {kredi.eksik > 0 && <div className="result-earn-not" data-testid="sonuc-sinir"><b>{sinirSatiri(kredi.eksik, kredi.gun)}.</b> {sinirKurali(kredi.gun)}</div>}
             {kredi.bekleyen > 0 && !kredi.bagli && <div className="result-earn-not" data-testid="sonuc-bekleyen">{bekleyenSatiri(kredi.bekleyen)} (günlük ödül sınırı {LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')}).</div>}
           </div>
 

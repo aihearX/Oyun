@@ -84,6 +84,8 @@ export interface PlayerRow {
   gift_jeton: number;
   /** göç 13 (YN-148): liderlik kendiliğinden bu oyuncuya geçti, "Artık lider sensin" kartı henüz görülmedi (0/1) */
   lead_notice: number;
+  /** göç 16 (karar 54, YN-270): günlük yerel ödül sınırını aşan, sonraki günlerde sınır içinde hesaba geçecek jeton (wallet.ts bekleyenAktar) */
+  carry_jeton: number;
 }
 export interface TeamRow { id: string; name: string; name_key: string; emblem: string; description: string; open: number; code: string; min_level: number; xp: number; targets: string; created_at: number }
 
