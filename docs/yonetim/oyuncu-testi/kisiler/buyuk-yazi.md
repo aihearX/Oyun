@@ -7,7 +7,8 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 82 yıldız (8 tane 3 yıldız), 53 deneme / 13 kayıp; oturum 7 sonunda bitti, profil sıfırlandı |
-| 2 | 2026-11-02 (sıfırlama) | | | bir sonraki oturumda yeni sürümde baştan |
+| 2 | 2026-11-02 (sıfırlama) | 2026-11-05 | 3832f6b0 | 40/40, 82 yıldız (11 tane 3 yıldız), 50 deneme / 9 kayıp; 40 Rahat denemeyle (1 yıldız); oturum 14 sonunda bitti, profil sıfırlandı |
+| 3 | 2026-11-05 (sıfırlama) | | | bir sonraki oturumda yeni sürümde baştan |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -211,3 +212,24 @@ Cihaz: 390×844 webkit · beceri 0.4 · ses açık. Ayrıntı: tools/harness/oyu
 - Yazdığım geri bildirimler: OT-buyuk-yazi-62 (sohbet yardım kartında "Gönderild" kesik), -63 (düğmeli teşekkür kartı kendiliğinden kayboluyor), -64 (Beyin Sapı'nda parlak hüzme ve çizgiler), -65 (Kamp Görevleri'nde "dk" ve basamak numarası bölünüyor).
 - Yarım kalan / sonraki oturum: Kamp › Görevler › Günlük penceresi açık kaldı. Haritada Bölüm 38 sırada (İşitme Korteksi; 3 bölüm kaldı, 40 son canavar). Günlük görevler 2/3 ("Bir arkadaşa meydan oku" kaldı), günlük sandık kaldı. Ödül kutusunda 1 ödül bekliyor. İnşaatçı boşta (İşitme Cihazı Atölyesi kurulmadı). Günün Sorusu cevabı 20:00'de bakılacak. Ton Avı (OT-31 / YN-123), Hasta Vakaları, Kulak Kartları, Ayarlar bu oturumda denenmedi (komut sınırı).
 - Sosyal: arkadaş kodum **7S9DWF**, takma ad HasanBey. Takımım "Ninni Tasiyicilari" (üye; Sv 5, 10/30 üye; takım davet kodu için oturum 9'a bak: 8XJUU4). Arkadaşım KaptanTuba (RZ5A8W, 29. bölümde); bugünkü hediyeyi gönderdim. AyseTeyze'ye (13. bölümde) kalkan gönderdim. Bekleyen arkadaşlık ya da takım isteği yoktu.
+
+## Oturum 14 · 2026-11-05 · sürüm 3832f6b0 · tur 2
+- Başlangıç: 37/40, 77 yıldız, oyuncu seviyesi 11, seri 3 gün. Bitiş: 40/40, 82 yıldız (39'da 3 yıldız; 38 ve 40'ta 1), oyuncu seviyesi 12, 6.262 jeton, 95 kristal. 3 bölüm, 7 deneme, 4 kayıp (hepsi 40'ta).
+- Önceki geri bildirimlerin kontrolü (durumu "yapildi:" olanlar):
+  - OT-buyuk-yazi-35: düzeldi. Takım › Yardım'da geçilmiş bölümlerin istekleri "Bölümü geçti; istek kapandı" ve "Geçti" diyor, "Gönder" yok (AyseTeyze 16, Deniz 36; 1198). Sohbetteki yardım kartı da "AyseTeyze bölümü geçti." diye kapanmış (1191).
+  - OT-buyuk-yazi-55: düzeldi (görebildiğim kadarıyla). Bölüm 38 melodi bölümüydü; "Nota 2/9", "3/9", "4/9" hapı üç ara karede de açık, üstüne seri rozeti binmiyor (1183-1185).
+  - OT-buyuk-yazi-56: düzeldi (kısmen görebildim). Sonuçta artık "Melodi: 5/9 sırayla" satırı var (1186); kaçırma anı ara karelere düşmediği için oyun içindeki uyarıyı göremedim.
+  - OT-buyuk-yazi-65: düzeldi. Kamp Görevleri'nde "1. basamak · 4" ve "Yenilenme: 12 sa 11 dk" bölünmüyor, ödül hapları düzgün (1242).
+  - OT-buyuk-yazi-62, -63: bakamadım; bu oturumda kalkan gönderebileceğim açık yardım kartı ya da düğmeli teşekkür kartı gelmedi.
+  - OT-buyuk-yazi-64: bakamadım; Beyin Sapı'na dönmedim (38-40 İşitme Korteksi).
+  - OT-buyuk-yazi-52: bakamadım; 40'taki kayıplarda Yüksek görünürlük zaten açık olduğundan öneri satırı çıkmadı.
+  - Eski düzelenler sağlam: OT-47 (sonuç ekranları ilk bakışta okunuyor, 1186, 1204, 1281), OT-58 (39'da 3. yıldız kartında yeşil "tamam", 1204), OT-41 (40'ta hasar turuncu yıldızla, kalp yok, 1208), OT-43 (harita dönüşü 2-3 sn), OT-61 (arkadaş kartında "Hediye gönderildi").
+  - İş listesindekiler (not): OT-57 / YN-199 "Herkese yardım et" devre dışıyken hâlâ etkin gibi duruyor (1198); OT-40 / YN-139 Albüm açıklaması hâlâ küçük (1237).
+- Ne yaptım: Bölüm 38 (melodi + gece) 1 yıldız; 39 Son Koşu (hız + gece) 3 yıldız; 40 Gürültü Canavarı'nı 4 kez kaybettim, takımımdan yardım istedim, sonra "Rahat dene" ile (canavar %20 yavaş, +1 can) hasarsız geçtim: 1 yıldız, Ninni Tacı + 200 jeton, Seviye 12, İşitme Korteksi canlandı, "Ninni beyne ulaştı!". Takım: AyseTeyze'yi 16. bölüm için tebrik ettim, 2 takım hediyesi (+120 jeton, +10 kristal). Bugün: üç günlük görev ve günlük sandık (Yürüyen Bant kartı, +50 jeton, +30). Ödül kutusu (AyseTeyze yardım teşekkürü +20). Kamp: depoyu topladım, Odyoloji Kliniği'ni kurdum (80 jeton, 1 dk), ilk süsü (Otoskop Lambası) yerleştirdim, ilk Hasta Vakası'nı (Hakan, kulak kiri tıkacı) "Mükemmel karar" ile çözdüm. Kulak Kartları'nda Yürüyen Bant kartını okudum.
+- Hissettiğim: Oyunu ikinci kez bitirdim. 40'ta çok bocaladım: canavar saldırısının uyarısını (yerdeki gölge) gözüm seçemiyor; dördüncü kayıptan sonra oyunun bana kendiliğinden "Rahat deneme" sunması çok iyi geldi, üstelik dürüstçe "en çok 1 yıldız, lig/takım puanı yazılmaz" diyor. Sonuç ekranları, kartlar, Hasta Vakaları metinleri Büyük yazıda rahat. Takım sohbeti ise Büyük yazıda dar bir şeride sıkışıyor. Oyunun sonu yine sessiz geçti: yalnız üstte kısa bir "Ninni beyne ulaştı!" kartı, haritadaki "Ninni Merkezi · Yolculuğun Sonu" levhası "Hedefe ulaştın" kartının altında kaldı (1284; bitiş özeti YN-129 / OT-rekabetci-32 ile aynı konu, ayrıca yazmadım).
+- Yazdığım geri bildirimler: OT-buyuk-yazi-66 (canavarın yerdeki gölge uyarısı soluk), -67 (canavar bölümünde uçan yazılar canavarın yüzüne biniyor), -68 (süs görevindeki Git yalnız paneli kapatıyor), -69 (takım sohbeti Büyük yazıda dar), -70 (özel mesaj yer tutucusu kesik), -71 (vaka testlerinde seçili kart belli değil), -72 (timpanogram grafiği yazıları küçük).
+- Yarım kalan / sonraki oturum: Tur bitti, profil sıfırlandı; bir sonraki oturumda oyunu baştan, yeni sürümde açacağım. Ton Avı (OT-31 / YN-123), Ayarlar, Mağaza bu oturumda denenmedi.
+- Sosyal: arkadaş kodum **7S9DWF** idi, takma ad HasanBey; takımım "Ninni Tasiyicilari" (üye; Sv 5, 9/30; takım davet kodu oturum 9'da: 8XJUU4). Arkadaşım KaptanTuba (RZ5A8W, 35. bölümde). Bekleyen arkadaşlık ya da takım isteği yoktu. Sıfırlamadan sonra hesap silinir; yeni arkadaş kodumu bir sonraki oturumda buraya yazacağım.
+
+### Tur 2 bitti (2026-11-05)
+Son değerlendirme: İkinci turda oyun az gören biri için gözle görülür biçimde rahatladı. Menüler, sonuç ekranları, hazine/sandık pencereleri, Kulak Kartları ve Hasta Vakaları Büyük yazıda tam okunuyor; ilk turda yazdığım 50'yi aşkın sorunun çoğu düzeldi (kesik sekmeler, sayı-simge bölünmesi, bildirim kartlarının Geri'yi örtmesi, harita dönüşünün uzunluğu, sisli/gece bölümleri). Yüksek görünürlük ayarı ve canavarda Rahat deneme benim gibi oyuncuyu oyunda tutan iki şey. Hâlâ zor olanlar çoğunlukla tuvalin içinde: canavar saldırı uyarıları, uçan yazıların yeri, haritadaki küçük adlar (YN-049) ve grafiklerin kendi yazıları. Dürüstlük tarafında rahatsız olduğum bir şey görmedim: mağaza açık, ödüller önceden yazılı, Rahat deneme ne vermediğini söylüyor. Oyunun sonu ise hâlâ bir kutlama ve özet bekliyor.

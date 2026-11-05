@@ -7,7 +7,8 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 | Tur | Başladı | Bitti | Sürüm (bitiş) | Not |
 |---|---|---|---|---|
 | 1 | 2026-10-31 | 2026-11-02 | bd976b22 | 40/40, 85 yıldız (10 üç yıldız), 7 oturum, 49 deneme / 7 kayıp |
-| 2 | 2026-11-02 | | | sıfırlandı (sürüm bd976b22); ilk oturum 2026-11-03 (sürüm 20c7a256), 5/40 |
+| 2 | 2026-11-02 | 2026-11-05 | 3832f6b0 | 40/40, 74 yıldız (2 üç yıldız), 7 oturum (8-14), 47 deneme / 6 kayıp; ilk oturum 2026-11-03 (sürüm 20c7a256) |
+| 3 | 2026-11-05 | | | sıfırlandı (sürüm 3832f6b0); bir sonraki oturumda baştan |
 
 <!-- Oturumlar aşağıya eklenir: ## Oturum N · YYYY-AA-GG · sürüm xxxxxxxx · tur T -->
 
@@ -222,3 +223,24 @@ Cihaz: 390×844 webkit · beceri 0.5 · ses açık. Ayrıntı: tools/harness/oyu
 - Başkasının yazdığını gördüm, yeniden yazmadım: takvimde "Yarın: 20 · Seri koruyucun dolu: yerine +30 jeton" ama 4. gün kutusunda 50 yazıyor (OT-ilk-kez-oyun-38'e yakın; 1096-ekran.png).
 - Yarım kalan / sonraki oturum: Bölüm 36'dan devam (36 bitince Beyin Sapı canlanır, İşitme Korteksi açılır); 34 ve 35'in 2. yıldızı. Takım › Hediyeler'de 5 hediye bekliyor; Kamp'a girmedim (1 bildirim). Canlı bilgi yarışması saatinde OT-39/40'ı kontrol etmek.
 - Sosyal: arkadaş kodum YHAXWD (takma ad EceOdyo). Arkadaşım KaptanTuba (kod RZ5A8W; artık o da "Ninni Tasiyicilari"nda, 29. bölümde). Takımım "Ninni Tasiyicilari" (üye; davet kodu 8XJUU4; 9/30 üye, Sv 5; DrMelis de takımda). Bu oturumda bekleyen arkadaşlık ya da takım isteği yoktu. Bronz Ligi.
+
+## Oturum 14 · 2026-11-05 · sürüm 3832f6b0 · tur 2
+- Başlangıç: 35/40, seri 3 gün, 4940 jeton, 25 kristal, Sv 10. Bitiş: 40/40 (yıldızlar 36:2 37:2 38:1 39:2 40:1; toplam 74 yıldız, 2 üç yıldız), oyuncu seviyesi 11, seri 3 gün, 6668 jeton, 105 kristal. 8 deneme, 3 kayıp (38'i 2. yıldız için bir kez tekrar oynayıp kaybettim; 39'da iki kayıp, üçüncüde geçtim).
+- Önceki geri bildirim kontrolü (durumu "yapildi:" olanlar):
+  - OT-ogrenci-birinci-34: düzeldi. Kamp'ta yeni Odyometri Odası notunda kalın satır ("…en hafif sesi ararız. Ölçtükçe daha çok öğrenir…") ile alttaki metin (saf ses odyometrisi, hava–kemik aralığı) farklı; aynı cümle iki kez yazmıyor (1252-dokun.png).
+  - OT-ogrenci-birinci-43: düzeldi (görünürde). Kamp'a girince "Kamp'ta yeni N şey" kartı gelmedi; "Yeni yer açıldı" yalnız Odyometri Odası kurulunca Ton Avı için geldi, gerçekten yeniydi (1256-kaydir.png).
+  - OT-ogrenci-birinci-45: düzeldi (görünürde). Yeni İşitme Korteksi kartında not başlığı alt başlığın aynısı değil (1188-dokun.png); Beyin Sapı kartını yeniden açmadım. Ama bu kartta başka bir şey var (OT-52).
+  - OT-ogrenci-birinci-46: düzeldi (görünürde). Seviye 11 penceresinde yalnız "Seviye 11!" ve "Harika!" var, kafa karıştıran satır yok (1242-katman.png).
+  - OT-ogrenci-birinci-31 / -27: düzeldi (haritada). Beyin Sapı ve İşitme Korteksi canlanması, Bölüm 40 hazinesi: pencereler sırayla geldi. Kamp'ta Tüy Dede yine birkaç saniye sonra geldi, harness dokunuşu yapmadı (1217-katman.png); asıl sorun vurgunun yarım görünmesi (OT-48).
+  - OT-ogrenci-birinci-35: düzeldi (art arda tekrar yok), ama son biyomda notlar kısa aralıkla tekrar ediyor: OT-50.
+  - OT-ogrenci-birinci-39, -40 (canlı yarışma; bu saatte yarışma yoktu), -42 (biyom kartında Hz aralığı yoktu), -44 (Apeks kartına dönmedim), -47 (günlük görevler zaten 3/3'tü), -26 (jeton 10.000'e ulaşmadı): kontrol edemedim.
+- Ne yaptım: Bugün (takvim 3. gün alınmış, Günün Sorusu cevaplı). Bölüm 36 (Beyin Sapı canlandı, İşitme Korteksi açıldı), 37, 38 (1 yıldız; tekrar kaybettim), 39 (iki kayıp, takımdan yardım istedim, Hız kalkınca geçtim, Seviye 11), 40 Gürültü Canavarı (1 yıldız; hazine Ninni Tacı + 200 jeton, "Ninni beyne ulaştı"). Ödül kutusu (4 ödül, +120 jeton +10 kristal), Takım › Hediyeler (5 hediye, +680 jeton +70 kristal, 1 kalkan), KaptanTuba'ya hediye. Kamp: Odyometri Odası'nı kurdum (Liste'den), kamp görevi ödülü, Ton Avı'nı açtım (ses duyulmuyor; bir deneme yapıp kapattım).
+- Hissettiğim: Son beş bölümü tek oturumda bitirmek çok güzeldi; yerçekimi + melodi ve Gece değiştiricisi zorladı, 39'da iki kez düşünce "Hız kalkacak" yazısı ve takım yardımı moral verdi. Notlar yine derste gördüklerimle uyuşuyor: inferior kollikulus ana aktarma istasyonu, sağ ellilerde dil ~%95 sol yarıküre, ABR latansları ~2 yaşına kadar kısalır, SNR, implant sonrası beynin alışması, saf ses odyometrisi 250–8000 Hz hava/kemik yolu ve hava–kemik aralığı, Ton Avı'nın "bir işitme testi değildir" demesi. Yoran: haritaya dönüşler hâlâ 20-60 sn (yazılım GL), Kamp'ta Tüy Dede'nin yarım gösterdiği arsa, son biyomda aynı notları ikinci kez okumak. Finalin sade bitmesi (küçük "Ninni beyne ulaştı" bildirimi, büyük düğme yine "Bölüm 40") bende de oldu; OT-rekabetci-32 zaten yazmış (YN-129), yeniden yazmadım.
+- Yazdığım geri bildirimler: OT-ogrenci-birinci-48 (Kamp'ta Tüy Dede'nin vurguladığı arsa ekranın kenarında yarım, dokununca kamera kayıyor), -49 ("39. bölümü 3 kez denedin" iki denemede), -50 (İşitme Korteksi'nde notlar ikişer kez; başlıkta "6 sonuç ekranı" yazdım, doğrusu 8), -51 (Ödül kutusunda aynı takım hediyesi iki satır), -52 (İşitme Korteksi kartında not açık geliyor ve konuşma muzunu anlatıyor).
+- Başkasının yazdığını gördüm, yeniden yazmadım: final sonrası bitiş özeti yok (OT-rekabetci-32); Ton Avı yalnız sesle oynanıyor (OT-sessiz-oyuncu-16; başsız tarayıcıda ben de duyamadım). Takvimde "Yarın: 20 · seri koruyucu dolu: +30" ile 4. gün kutusundaki 50 aslında tutarlı (20+30), geçen oturumki şüphem yersizmiş.
+- Yarım kalan / sonraki oturum: Tur 2 bitti; profil sıfırlanıyor, bir sonraki oturumda yeni sürümde baştan.
+- Sosyal: arkadaş kodum YHAXWD (takma ad EceOdyo; sıfırlamadan sonra değişecek, yeni kodu bir sonraki oturumda yazacağım). Arkadaşım KaptanTuba (kod RZ5A8W; 35. bölümde). Takımım "Ninni Tasiyicilari" (üye; davet kodu 8XJUU4; 10/30 üye, Sv 5). Bekleyen arkadaşlık ya da takım isteği yoktu. Bronz Ligi.
+
+Tur 2 bitti (2026-11-05, sürüm 3832f6b0): 40/40, 74 yıldız, 47 deneme / 6 kayıp, 7 oturum.
+
+Son değerlendirme (tur 2): Oyun ders arasına çok uygun: her oturumda 5-6 bölüm, kısa ve anlaşılır sonuç ekranları, "ne eksik kaldı" açıkça yazıyor. Tur 1'e göre en büyük fark tanıtımların artık dokunuşumu yememesi ve haritanın ilerlememi doğru göstermesi; yazdığım maddelerin çoğu düzelmiş. Odi'nin yolculuğu dış kulaktan kortekse ders sırasıyla gidiyor; Tüy Dede notları, Biliyor muydun? şeritleri ve Kamp notları derste öğrendiklerimle uyuşuyor (Koklea, timpanogramın tek başına tanı koydurmaması, ABR dalgaları, ANSD, hava–kemik aralığı), birinci sınıf için gerçekten öğretici. Yarışma ve bilgi pratiğinin "odyoloji öğrencisi" düzeyi işe yarıyor. Geliştirilecekler: haritaya dönüş süresi (bu makinede uzun), Kamp tanıtımının kamerayı vurguladığı yere getirmemesi, son biyomda not havuzunun küçüklüğü ve finalin sade kalması. Para baskısı ya da sahte kıtlık hissetmedim; jeton ve kristal oynadıkça ve takımla geliyor.
