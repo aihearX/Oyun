@@ -16,7 +16,7 @@ const yukle = async (rel, external = ['@odi/shared']) => {
 const { GLOSSARY, EAR_NOTES } = await yukle('packages/content/src/odyoloji.ts');
 const { CARDS } = await yukle('packages/content/src/cards.ts');
 const { QUIZ_QUESTIONS } = await yukle('packages/content/src/quiz.ts');
-const { BILIYOR_MUYDUN } = await yukle('packages/content/src/biliyor-muydun.ts');
+const { BILIYOR_MUYDUN, BIYOM_EK } = await yukle('packages/content/src/biliyor-muydun.ts');
 // Kulak Kampı
 const { BUILDING_INFO, CAMP_TERMS, MONUMENTS, CAMP_COSMETICS } = await yukle('packages/content/src/kamp.ts');
 const { REMEDIES, PATHOLOGY_NAMES } = await yukle('packages/content/src/remedies.ts');
@@ -46,7 +46,7 @@ Acoustics*; Katz, *Handbook of Clinical Audiology*; Pickles, *An Introduction to
 Sayılar yaklaşık ve aralık olarak verilir. Emin olunmayan bilgi eklenmez. Her madde iki derinliktedir: herkes için sade cümle +
 isteğe bağlı teknik ayrıntı ("Daha fazla").
 
-**Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${BILIYOR_MUYDUN.length} bölüm sonu "Biliyor muydun?" satırı (×2 düzey) · ${CARDS.length} Kulak Kartı ·
+**Sayılar:** ${GLOSSARY.length} sözlük terimi · ${EAR_NOTES.length} Tüy Dede notu · ${BILIYOR_MUYDUN.length} bölüm sonu "Biliyor muydun?" satırı + ${BIYOM_EK.length} biyom ek satırı (×2 düzey) · ${CARDS.length} Kulak Kartı ·
 ${QUIZ_QUESTIONS.length} quiz sorusu (${byLevel('merakli')} Meraklı, ${byLevel('odyoloji')} Odyoloji) · Kulak Kampı: ${Object.keys(BUILDING_INFO).length} bina,
 ${CAMP_TERMS.length} kamp terimi, ${REMEDIES.length} Tedavi Odası malzemesi, ${MONUMENTS.length} bölge anıtı ·
 ${PATOLOJI_IDS.length} bölge patolojisi (${PATOLOJI_IDS.filter((id) => PATOLOJILER[id].ilkBolum > 0).length} tanesi bölümlerde) · ${KG.VAKALAR.length} kurgusal hasta vakası (Kamp Kliniği).
@@ -63,16 +63,19 @@ ${GLOSSARY.map((g) => `| ${REGION[g.region]} | **${esc(g.term)}** | ${esc(g.plai
 |---|---|---|---|
 ${EAR_NOTES.map((n) => `| ${REGION[n.region]} | ${esc(n.plain)} | ${esc(n.tech)} | ${esc(n.src)} |`).join('\n')}
 
-## Biliyor muydun? — Sahip onayı bekliyor (karar 31) (${BILIYOR_MUYDUN.length})
+## Biliyor muydun? — Sahip onayı bekliyor (karar 31) (${BILIYOR_MUYDUN.length + BIYOM_EK.length})
 
 > **Sahip onayı bekliyor (karar 31, YN-059).** Satırlar oyunda yayında; sahip listeyi gözden geçirecek. Kaynak:
 > \`packages/content/src/biliyor-muydun.ts\`. Her bölümün sonuç ekranında tek satır, seslendirilmez. Ayarlar › Bilgi düzeyi
 > "Genel" ise **genel**, "Odyoloji öğrencisi" ise **odyoloji** satırı gösterilir. Her satır tek cümle, en çok 120 karakter;
-> Tüy Dede notlarını, sözlüğü ve kartları kelimesi kelimesine tekrar etmez; tanı ya da tedavi önerisi yoktur.
+> Tüy Dede notlarını, sözlüğü ve kartları kelimesi kelimesine tekrar etmez; tanı ya da tedavi önerisi yoktur. Bir sonuç ekranındaki
+> satır bölümün biyom havuzundan seçilir (havuz = biyomun bölüm satırları + bölüme bağlı olmayan **biyom ek satırları**; yakın zamanda
+> gösterilen tekrar etmez); oyunun son bölümü (40) kazanılınca o bölümün kendi satırı gelir (YN-236).
 
 | bölüm | genel | odyoloji öğrencisi | kaynak |
 |---|---|---|---|
 ${BILIYOR_MUYDUN.map((b) => `| ${b.bolum} | ${esc(b.genel)} | ${esc(b.odyoloji)}${b.inceleme ? ` *(${esc(b.inceleme)})*` : ''} | ${esc(b.src)} |`).join('\n')}
+${BIYOM_EK.map((b) => `| ek · ${REGION[b.biyom]} | ${esc(b.genel)} | ${esc(b.odyoloji)}${b.inceleme ? ` *(${esc(b.inceleme)})*` : ''} | ${esc(b.src)} |`).join('\n')}
 
 ## Kulak Kartları (${CARDS.length})
 
@@ -206,4 +209,4 @@ ${QUIZ_QUESTIONS.map((q) => `| ${q.id} | ${lvl[q.level]} | ${q.topic} | ${esc(q.
 `;
 // satır sonu bölünmesin diye içerikteki görünmez WORD JOINER (metin.ts) belgede gerekmez
 writeFileSync(join(root, 'docs/odyoloji-icerik.md'), md.replace(/\u2060/g, ''));
-console.log(`✓ docs/odyoloji-icerik.md · ${GLOSSARY.length} terim, ${EAR_NOTES.length} not, ${BILIYOR_MUYDUN.length} biliyor muydun, ${CARDS.length} kart, ${QUIZ_QUESTIONS.length} soru`);
+console.log(`✓ docs/odyoloji-icerik.md · ${GLOSSARY.length} terim, ${EAR_NOTES.length} not, ${BILIYOR_MUYDUN.length}+${BIYOM_EK.length} biliyor muydun, ${CARDS.length} kart, ${QUIZ_QUESTIONS.length} soru`);

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CARDS } from './cards';
 import { QUIZ_QUESTIONS, QUIZ_ROUND, pickQuizQuestions } from './quiz';
 import { EAR_NOTES, GLOSSARY } from './odyoloji';
-import { BILGI_YAKIN, BILIYOR_MUYDUN, biliyorMuydun, biliyorMuydunSatiri } from './biliyor-muydun';
+import { BILGI_YAKIN, BILIYOR_MUYDUN, BIYOM_EK, bilgiHavuzu, biliyorMuydun, biliyorMuydunSatiri } from './biliyor-muydun';
 import { HUMAN_JOURNEY } from './journeys';
 
 /** bozuk kodlama (mojibake), yer tutucu ve boşluk hataları */
@@ -18,6 +18,26 @@ function sane(s: string, where: string) {
   expect((s.match(/“/g) ?? []).length, `${where} tırnak`).toBe((s.match(/”/g) ?? []).length);
 }
 const dupes = (xs: string[]) => xs.filter((x, i) => xs.indexOf(x) !== i);
+/** oyunun son bölümü (final) ve kayıpta / öteki sonuçlarda seçilen havuz: finalin satırı yalnız final kazanılınca gelir (YN-236) */
+const SON = HUMAN_JOURNEY.levels.length;
+const sira = (n: number) => bilgiHavuzu(n).filter((x) => x.bolum !== SON);
+const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
+/** satır kimliğinin (`no`: bölüm ya da 101, 102, … ek satır) biyomu */
+const noBiyom = (no: number) => BILIYOR_MUYDUN.flatMap((b) => bilgiHavuzu(b.bolum)).find((x) => x.no === no)!.biyom;
+/**
+ * sonuç ekranları sırayla (kayıttaki son BILGI_YAKIN satırın kimliği gibi tutulur): satır hep bölümün biyomundan, havuzda gösterilmemiş
+ * satır varken yakındakilerden biri değil; yoksa son gösterilen değil (YN-212, YN-222). [bölüm, tekrar, kazanıldı]
+ */
+const oyna = (dizi: [number, number, boolean?][], son: number[] = []) => dizi.map(([bolum, tekrar, kaz]) => {
+  const s = biliyorMuydunSatiri(bolum, tekrar, son, kaz)!;
+  const msg = `${dizi.map((d) => d.join('/')).join(' ')}: ${bolum}/${tekrar}`;
+  expect(s.biyom, msg).toBe(biyom(bolum));
+  const h = kaz && bolum === SON ? bilgiHavuzu(bolum) : sira(bolum);
+  if (h.some((x) => !son.includes(x.no))) expect(son, msg).not.toContain(s.no);
+  else expect(s.no, msg).not.toBe(son[son.length - 1]);
+  son.splice(0, son.length, ...[...son.filter((x) => x !== s.no), s.no].slice(-BILGI_YAKIN));
+  return s.no;
+});
 
 describe('odyoloji içeriği', () => {
   it('sözlük: eşsiz kimlik ve terim, sade + teknik tanım, kaynak', () => {
@@ -112,15 +132,17 @@ describe('odyoloji içeriği', () => {
   it('Biliyor muydun? (karar 31): her bölümde bir satır, iki düzey, kısa, tek cümle, tekrar yok', () => {
     const n = HUMAN_JOURNEY.levels.length;
     expect(BILIYOR_MUYDUN.map((b) => b.bolum)).toEqual(Array.from({ length: n }, (_, i) => i + 1));
-    const all = BILIYOR_MUYDUN.flatMap((b) => [b.genel, b.odyoloji]);
+    // biyom ek satırları da aynı kurallarla (YN-236)
+    const satirlar = [...BILIYOR_MUYDUN.map((b) => ({ ...b, ad: `bölüm ${b.bolum}` })), ...BIYOM_EK.map((b, i) => ({ ...b, ad: `ek ${i + 1} (${b.biyom})` }))];
+    const all = satirlar.flatMap((b) => [b.genel, b.odyoloji]);
     expect(dupes(all)).toEqual([]);
     // Tüy Dede notları, sözlük ve Kulak Kartlarıyla kelimesi kelimesine aynı değil
     const eski = [...EAR_NOTES.flatMap((x) => [x.plain, x.tech]), ...GLOSSARY.flatMap((g) => [g.plain, g.tech]), ...CARDS.flatMap((c) => [c.fact, c.tech])];
-    for (const b of BILIYOR_MUYDUN) {
-      expect(b.src.length, `${b.bolum}`).toBeGreaterThan(10);
+    for (const b of satirlar) {
+      expect(b.src.length, b.ad).toBeGreaterThan(10);
       for (const t of [b.genel, b.odyoloji]) {
-        sane(t, `bölüm ${b.bolum}`);
-        expect(t.length, `${b.bolum}: “${t}”`).toBeLessThanOrEqual(120);
+        sane(t, b.ad);
+        expect(t.length, `${b.ad}: “${t}”`).toBeLessThanOrEqual(120);
         expect(t.endsWith('.'), t).toBe(true);
         // tek cümle: cümle sonu yalnız en sonda (kısaltma/ondalık yok sayılır)
         expect(/[.!?]\s+\p{Lu}/u.test(t.slice(0, -1)), `tek cümle: ${t}`).toBe(false);
@@ -141,16 +163,21 @@ describe('odyoloji içeriği', () => {
   });
 
   it('Biliyor muydun? tekrarda biyomun öteki satırlarından sıradakini verir (YN-127)', () => {
-    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
     for (const b of BILIYOR_MUYDUN) {
-      const ayni = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(b.bolum));
+      // final: kazanılınca kendi satırı, kayıpta havuzun öteki satırları (YN-236)
+      if (b.bolum === SON) {
+        for (const t of [0, 1, 2, 3]) expect(biliyorMuydun(SON, 'genel', t, [], true)).toBe(b.genel);
+        for (const t of [0, 1, 2, 3]) expect(sira(SON).map((x) => x.genel)).toContain(biliyorMuydun(SON, 'genel', t));
+        continue;
+      }
+      const ayni = sira(b.bolum);
       expect(biliyorMuydun(b.bolum, 'genel', 0)).toBe(b.genel);
       const goru = [0, 1, 2].map((k) => biliyorMuydun(b.bolum, 'genel', k));
       // biyomda birden çok satır varsa art arda iki oynayış aynı satırı göstermez; hepsi biyomun onaylı satırlarından
       if (ayni.length > 1) expect(goru[1], `${b.bolum}`).not.toBe(goru[0]);
       for (const t of goru) expect(ayni.map((x) => x.genel)).toContain(t);
       // sıradaki: bölüm sırasıyla bir sonraki satır (başa sararak); odyoloji düzeyi de aynı bölümün satırı
-      const i = ayni.indexOf(b); const sonraki = ayni[(i + 1) % ayni.length]!;
+      const i = ayni.findIndex((x) => x.no === b.bolum); const sonraki = ayni[(i + 1) % ayni.length]!;
       expect(biliyorMuydun(b.bolum, 'genel', 1)).toBe(sonraki.genel);
       expect(biliyorMuydun(b.bolum, 'odyoloji', 1)).toBe(sonraki.odyoloji);
       // biyomun bütün satırları dönünce başa döner
@@ -159,85 +186,59 @@ describe('odyoloji içeriği', () => {
   });
 
   it('Biliyor muydun? son gösterilen satırı (onceki) biyomda başka satır varsa tekrar etmez (YN-175)', () => {
-    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
     // oyuncu testi: Bölüm 13 tekrarı Bölüm 14'ün satırını gösterdi, ardından Bölüm 14'ün ilk geçişi aynı satırı
     const tekrar13 = biliyorMuydunSatiri(13, 1)!;
-    expect(tekrar13.bolum).toBe(14);
-    expect(biliyorMuydunSatiri(14, 0, tekrar13.bolum)!.bolum).not.toBe(14);
+    expect(tekrar13.no).toBe(14);
+    expect(biliyorMuydunSatiri(14, 0, tekrar13.no)!.no).not.toBe(14);
     for (const b of BILIYOR_MUYDUN) {
-      const ayni = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(b.bolum));
+      const ayni = sira(b.bolum);
       for (const t of [0, 1, 2]) for (const x of ayni) {
-        const s = biliyorMuydunSatiri(b.bolum, t, x.bolum)!;
+        const s = biliyorMuydunSatiri(b.bolum, t, x.no)!;
         expect(ayni).toContain(s);
-        if (ayni.length > 1) expect(s.bolum, `${b.bolum}/${t}/${x.bolum}`).not.toBe(x.bolum);
+        if (ayni.length > 1) expect(s.no, `${b.bolum}/${t}/${x.no}`).not.toBe(x.no);
         // önceki başka bir satırsa kural değişmez
-        if (biliyorMuydunSatiri(b.bolum, t)!.bolum !== x.bolum) expect(s).toBe(biliyorMuydunSatiri(b.bolum, t));
+        if (biliyorMuydunSatiri(b.bolum, t)!.no !== x.no) expect(s).toBe(biliyorMuydunSatiri(b.bolum, t));
       }
       expect(biliyorMuydun(b.bolum, 'odyoloji', 0, b.bolum)).toBe(biliyorMuydunSatiri(b.bolum, 0, b.bolum)!.odyoloji);
     }
   });
 
   it('Biliyor muydun? yakın zamanda gösterilen satırları tekrar etmez: 24 → 25 → 26, 13 tekrarı → 14 (YN-212)', () => {
-    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
-    /**
-     * sonuç ekranları sırayla: kayıttaki son BILGI_YAKIN satırı gibi tutulur; satır hep bölümün biyomundan, biyomda gösterilmemiş satır
-     * varken yakındakilerden biri değil; yoksa (havuz kayıttan küçük) son gösterilen değil (YN-222)
-     */
-    const oyna = (dizi: [number, number][]) => {
-      const son: number[] = []; const out: number[] = [];
-      for (const [bolum, tekrar] of dizi) {
-        const s = biliyorMuydunSatiri(bolum, tekrar, son)!;
-        const msg = `${dizi.map((d) => d.join('/')).join(' ')}: ${bolum}/${tekrar}`;
-        expect(biyom(s.bolum), msg).toBe(biyom(bolum));
-        const havuz = BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(bolum));
-        if (havuz.some((x) => !son.includes(x.bolum))) expect(son, msg).not.toContain(s.bolum);
-        else expect(s.bolum, msg).not.toBe(son[son.length - 1]);
-        out.push(s.bolum); son.splice(0, son.length, ...[...son.filter((x) => x !== s.bolum), s.bolum].slice(-BILGI_YAKIN));
-      }
-      return out;
-    };
     // oyuncu testi: 24 sonucu, 25 sonucu, 26 (tekrar) sonucu 24'ün satırını kelimesi kelimesine yeniden gösterdi
     for (const t24 of [0, 1, 2, 3]) for (const t25 of [0, 1, 2, 3]) for (const t26 of [0, 1, 2, 3]) {
       const g = oyna([[24, t24], [25, t25], [26, t26]]);
       expect(new Set(g).size).toBe(3);
-      for (const x of g) expect(biyom(x)).toBe('koklea-2');
+      for (const x of g) expect(noBiyom(x)).toBe('koklea-2');
     }
     expect(oyna([[13, 1], [14, 0]])).toEqual([14, 15]);
     // biyomda gösterilmemiş satır kalmadıysa yine biyomun havuzundan, en önce gösterilen (başka biyoma geçilmez; YN-222)
-    expect(biliyorMuydunSatiri(26, 0, [24, 25, 26])!.bolum).toBe(24);
-    expect(biliyorMuydunSatiri(24, 0, [26, 24, 25])!.bolum).toBe(26);
+    expect(biliyorMuydunSatiri(26, 0, [24, 25, 26])!.no).toBe(24);
+    expect(biliyorMuydunSatiri(24, 0, [26, 24, 25])!.no).toBe(26);
     // eski kayıt: tek sayı da kabul edilir (YN-175 kuralı)
-    expect(biliyorMuydunSatiri(14, 0, 14)!.bolum).toBe(biliyorMuydunSatiri(14, 0, [14])!.bolum);
+    expect(biliyorMuydunSatiri(14, 0, 14)!.no).toBe(biliyorMuydunSatiri(14, 0, [14])!.no);
     // uzun ve karışık oynayışta (tekrarlar, geri dönüşler) yakındaki satır hiç tekrar etmez
     let x = 7;
     const r = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
-    const dizi: [number, number][] = Array.from({ length: 400 }, () => [1 + Math.floor(r() * BILIYOR_MUYDUN.length), Math.floor(r() * 4)]);
+    const dizi: [number, number, boolean][] = Array.from({ length: 400 }, () => [1 + Math.floor(r() * BILIYOR_MUYDUN.length), Math.floor(r() * 4), r() < 0.5]);
     oyna(dizi);
   });
 
   it('Biliyor muydun? satırı bölümün biyom havuzundan; havuz yettikçe art arda sonuçlarda tekrar yok (YN-222, OT-uzman-odyolog-40)', () => {
-    const biyom = (no: number) => HUMAN_JOURNEY.levels.find((l) => l.number === no)!.biome;
-    const havuz = (no: number) => BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === biyom(no)).map((x) => x.bolum);
+    const havuz = (no: number) => bilgiHavuzu(no).map((x) => x.no);
     // kayıt en büyük havuz kadar satır tutar: hiçbir biyomun satırları dönmeden tekrar etmez
     expect(BILGI_YAKIN).toBe(Math.max(...BILIYOR_MUYDUN.map((x) => havuz(x.bolum).length)));
     expect(BILGI_YAKIN).toBeGreaterThanOrEqual(5);
-    /** sonuç ekranları sırayla (kazanç ya da kayıp aynı seçim): kayıttaki son BILGI_YAKIN satır gibi */
-    const oyna = (dizi: [number, number][], son: number[] = []) => dizi.map(([bolum, tekrar]) => {
-      const s = biliyorMuydunSatiri(bolum, tekrar, son)!;
-      son.splice(0, son.length, ...[...son.filter((x) => x !== s.bolum), s.bolum].slice(-BILGI_YAKIN));
-      return s.bolum;
-    });
     // oyuncu testi: Bölüm 30 sonucu (Apeks) infrases satırı (27), ardından 31, 32, 33 ve 33'ün iki kaybı: 33'te Apeks satırı gelmez
     const g = oyna([[30, 1], [31, 0], [32, 0], [33, 0], [33, 1], [33, 2]]);
     expect(g[0]).toBe(27);
     for (const x of g.slice(1)) expect(havuz(33)).toContain(x);
     // 31-35 her bölüm, her tekrar ve önceki her gecmis için: satır o bölümün biyom havuzundan
     for (let n = 31; n <= 35; n++) for (const t of [0, 1, 2, 3, 4]) for (const once of [[], [27, 28, 29, 30], [31, 32, 33], [34, 35, 36], [n]]) {
-      expect(havuz(n), `${n}/${t}/${once.join(',')}`).toContain(biliyorMuydunSatiri(n, t, once)!.bolum);
+      expect(havuz(n), `${n}/${t}/${once.join(',')}`).toContain(biliyorMuydunSatiri(n, t, once)!.no);
     }
     // art arda 5 sonuç aynı biyomda: havuz yettikçe tekrar yok, yetmeyince yine havuzdan ve son gösterilen art arda gelmez
     for (let n = 1; n <= BILIYOR_MUYDUN.length; n++) for (const t0 of [0, 1, 2]) {
-      const h = havuz(n); const dizi = Array.from({ length: 5 }, (_, k): [number, number] => [n, t0 + k]);
+      const h = sira(n).map((x) => x.no); const dizi = Array.from({ length: 5 }, (_, k): [number, number] => [n, t0 + k]);
       for (const gecmis of [[], h.slice(0, -1)]) {
         const out = oyna(dizi, [...gecmis]);
         for (const x of out) expect(h).toContain(x);
@@ -248,7 +249,38 @@ describe('odyoloji içeriği', () => {
     }
     // karışık sırada (31 → 34 → 33 → 35 → 32): her biri kendi biyomundan, hiçbiri tekrar etmez
     const k = oyna([[31, 0], [34, 0], [33, 1], [35, 0], [32, 2]]);
-    k.forEach((x, i) => expect(biyom(x)).toBe(biyom([31, 34, 33, 35, 32][i]!)));
+    k.forEach((x, i) => expect(noBiyom(x)).toBe(biyom([31, 34, 33, 35, 32][i]!)));
     expect(new Set(k).size).toBe(5);
+  });
+
+  it('Biliyor muydun? Beyin Sapı ve Korteks havuzları ek satırlarla büyür; final kendi satırıyla biter (YN-236, OT-ogrenci-birinci-50, OT-takim-kaptani-41)', () => {
+    const ek = (b: string) => BIYOM_EK.filter((x) => x.biyom === b);
+    expect(ek('beyin-sapi').length).toBeGreaterThanOrEqual(3);
+    expect(ek('korteks').length).toBeGreaterThanOrEqual(2);
+    // ABR olgunlaşması beyin sapı konusu: Beyin Sapı havuzunda, Korteks havuzunda değil (OT-uzman-odyolog-42)
+    const abr = /ABR dalga latansları/;
+    expect(bilgiHavuzu(34).some((x) => abr.test(x.odyoloji))).toBe(true);
+    expect(bilgiHavuzu(38).some((x) => abr.test(x.odyoloji))).toBe(false);
+    expect(BILIYOR_MUYDUN.find((x) => x.bolum === 38)!.odyoloji).toMatch(/[Kk]ortikal/);
+    // art arda 5 sonuç (kazanç ve kayıp karışık, tekrarlar, her geçmişle): Beyin Sapı ve Korteks'te aynı satır gelmez
+    let x = 11;
+    const r = () => { x = (x * 1103515245 + 12345) % 2147483648; return x / 2147483648; };
+    for (const bolumler of [[34, 35, 36], [37, 38, 39, 40]]) for (let d = 0; d < 300; d++) {
+      const dizi = Array.from({ length: 5 }, (): [number, number, boolean] => [bolumler[Math.floor(r() * bolumler.length)]!, Math.floor(r() * 5), r() < 0.5]);
+      const h = bilgiHavuzu(bolumler[0]!).map((y) => y.no);
+      const gecmis = h.filter(() => r() < 0.5).slice(0, 4);
+      const out = oyna(dizi, gecmis);
+      expect(new Set(out).size, `${dizi.map((y) => y.join('/')).join(' ')} ← ${gecmis.join(',')}: ${out.join(',')}`).toBe(5);
+    }
+    // oyuncu testi: Beyin Sapı'nda 6 sonuç ekranı (kayıplarla) hiç tekrar etmez
+    const bs = oyna([[34, 0], [34, 1], [35, 0], [35, 1], [36, 0], [36, 1]]);
+    expect(new Set(bs).size).toBe(6);
+    // oyuncu testi: 37'nin satırı 40'ın zaferinde yeniden çıktı; final kazanılınca 40'ın kendi satırı gelir (kayıplardan sonra da)
+    const k = oyna([[37, 0, true], [38, 0, true], [39, 0, true], [40, 0], [40, 1], [40, 2, true]]);
+    expect(k.at(-1)).toBe(40);
+    expect(new Set(k).size).toBe(6);
+    expect(biliyorMuydunSatiri(40, 3, sira(40).map((y) => y.no), true)!.no).toBe(40);
+    // 40'ın satırı kayıpta ve 37–39'un tekrarlarında gelmez (finale saklı)
+    for (const n of [37, 38, 39, 40]) for (const t of [0, 1, 2, 3, 4, 5]) expect(biliyorMuydunSatiri(n, t)!.no).not.toBe(40);
   });
 });

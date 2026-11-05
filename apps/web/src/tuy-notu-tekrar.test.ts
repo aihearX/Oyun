@@ -7,11 +7,12 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HUMAN_JOURNEY } from '@odi/content';
-import { BILIYOR_MUYDUN } from '@odi/content/biliyor-muydun';
+import { BILIYOR_MUYDUN, bilgiHavuzu } from '@odi/content/biliyor-muydun';
 import { EAR_NOTES } from '@odi/content/odyoloji';
 import type { LevelSpec } from '@odi/shared';
 import { NoteCard, pickBilgi, pickNote, useBiliyorMuydun } from './ftue/Notes';
 import { BiomeIntro } from './screens/BiomeIntro';
+import { MapCards } from './map/MapCards';
 import { migrateBilgiSon, useStore } from './store';
 import { BILGI_YAKIN } from '@odi/content/biliyor-muydun';
 
@@ -43,12 +44,11 @@ describe('Biliyor muydun? son gösterilenden farklı (YN-175)', () => {
     expect(BILIYOR_MUYDUN.filter((x) => biyom(x.bolum) === 'kemikcikler').map((x) => x.odyoloji)).toContain(b);
     expect(useStore.getState().bilgiSonlar.at(-1)).not.toBe(14);
   });
-  it('kayıtta son satır yoksa ya da başkasıysa kural aynı (ilk oynayışta bölümün kendi satırı)', () => {
+  it('kayıtta son satır yoksa ya da başkasıysa kural aynı (ilk oynayışta bölümün kendi satırı; finalin satırı kazanılınca)', () => {
     for (const x of BILIYOR_MUYDUN) {
-      useStore.setState({ bilgiSonlar: [] }); expect(pickBilgi(x.bolum, 0)!.bolum).toBe(x.bolum);
+      useStore.setState({ bilgiSonlar: [] }); expect(pickBilgi(x.bolum, 0, true)!.no).toBe(x.bolum);
       useStore.setState({ bilgiSonlar: [x.bolum] });
-      const ayni = BILIYOR_MUYDUN.filter((y) => biyom(y.bolum) === biyom(x.bolum));
-      if (ayni.length > 1) expect(pickBilgi(x.bolum, 0)!.bolum, `${x.bolum}`).not.toBe(x.bolum);
+      if (bilgiHavuzu(x.bolum).length > 1) expect(pickBilgi(x.bolum, 0)!.no, `${x.bolum}`).not.toBe(x.bolum);
     }
   });
 });
@@ -64,7 +64,7 @@ describe('Biliyor muydun? son gösterilenler listesi (YN-212)', () => {
     expect(useStore.getState().bilgiSonlar).toEqual([25, 26, 24].slice(-BILGI_YAKIN));
   });
   it('24 → 25 → 26 tekrarı sonuç ekranlarında aynı satırı göstermez (kayıttan seçim)', () => {
-    const goster = (bolum: number, tekrar: number) => { const s = pickBilgi(bolum, tekrar)!; useStore.getState().bilgiGoruldu(s.bolum); return s.genel; };
+    const goster = (bolum: number, tekrar: number) => { const s = pickBilgi(bolum, tekrar)!; useStore.getState().bilgiGoruldu(s.no); return s.genel; };
     for (const t26 of [0, 1, 2]) {
       useStore.setState({ bilgiSonlar: [] });
       const g = [goster(24, 0), goster(25, 0), goster(26, t26)];
@@ -81,11 +81,29 @@ describe('Biyom kartı: Tüy Dede notu kısa (YN-175)', () => {
     expect(html).not.toContain('ml-tech');
     expect(html).toMatch(/aria-expanded="false"[^>]*>Daha fazla/);
   });
-  it('öteki yerlerde (sonuç, harita) öğrenci düzeyinde teknik satır açık gelir, genel düzeyde kapalı', async () => {
+  it('öteki yerlerde (sonuç) öğrenci düzeyinde teknik satır açık gelir, genel düzeyde kapalı', async () => {
     useStore.setState({ knowledge: 'odyoloji' });
     expect(await ciz(createElement(NoteCard, { note: EAR_NOTES[0]!, voice: false }))).toContain('ml-tech');
     useStore.setState({ knowledge: 'genel' });
     expect(await ciz(createElement(NoteCard, { note: EAR_NOTES[0]!, voice: false }))).not.toContain('ml-tech');
+  });
+  it('harita bölge kartında (İşitme Korteksi) not kapalı başlar ve ilk not korteks konusu (YN-238, OT-ogrenci-birinci-52)', async () => {
+    useStore.setState({ knowledge: 'odyoloji', notesSeen: [], noteAt: 0 });
+    // Beyin Sapı bitti: İşitme Korteksi uyanır
+    const stars = Object.fromEntries(Array.from({ length: 36 }, (_, i) => [i + 1, 2]));
+    // kart portal ile body'ye çizilir
+    const h = document.createElement('div'); document.body.appendChild(h); const r = createRoot(h);
+    await act(async () => { r.render(createElement(MapCards, { card: { kind: 'zone', z: 'korteks' }, stars, unlocked: 37, onClose: () => undefined, onPlay: () => undefined })); });
+    const html = document.body.innerHTML; await act(async () => { r.unmount(); });
+    expect(html).toContain('data-note="kokteyl"');
+    expect(html).not.toContain('ml-tech');
+    expect(html).toMatch(/aria-expanded="false"[^>]*>Daha fazla/);
+    // korteks bölgesinin ilk notu korteks konusu; konuşma muzu (odyogram) sonraki notlardan
+    const korteks = EAR_NOTES.filter((n) => n.region === 'korteks').map((n) => n.id);
+    expect(korteks[0]).toBe('kokteyl');
+    expect(korteks).toContain('konusma-muzu');
+    useStore.setState({ notesSeen: ['kokteyl'], noteAt: 0 });
+    expect(pickNote('korteks', 'map', 5)!.id).toBe('konusma-muzu');
   });
   it('biyomun ilk notu bölgenin görevini anlatan not; Kemikçikler otosklerozla başlamaz', () => {
     expect(pickNote('kemikcikler', 'biome', 13)!.id).not.toBe('otoskleroz');

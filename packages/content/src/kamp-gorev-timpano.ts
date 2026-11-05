@@ -77,6 +77,8 @@ const ASHA = 'ASHA (1997, 2016). Guidelines for audiologic screening; çocukta o
 const JCIH = 'JCIH (2019). Year 2019 Position Statement; bebekte 1000 Hz prob tonu önerisi';
 const HUNTER = 'Hunter LL, Shahnaz N. (2014). Acoustic Immittance Measures: Basic and Advanced Practice. Plural';
 const OME = 'AAO-HNS (2016). Clinical Practice Guideline: Otitis Media with Effusion (Update)';
+/** OME kılavuzu çocuk timpanometri normu vermez; tüp kontrolü vakalarında hacim normu buradan (YN-237, OT-uzman-odyolog-41) */
+const COCUK_HACIM = `${MARGOLIS} (okul öncesi çocukta eşdeğer kanal hacminin %90 aralığı yaklaşık 0,4–1,0 ml); ${ASHA} (çocukta yaklaşık 0,3–0,9 ml)`;
 
 const GB: EgriTur[] = ['A', 'B-normal', 'C', 'B-buyuk', 'B-kucuk'];
 /** eğri → bulgu: doğru + 3 yanıltıcı (sıra soruda karıştırılır) */
@@ -174,10 +176,10 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
     hikaye: 'Ali iki haftadır, soğuk algınlığından beri televizyonun sesini açıyor. Otoskopide zar mat; arkasında sıvı seviyesi görülüyor.',
     secenek: ['Otoskopi ve düz eğri (normal hacim) birlikte orta kulakta sıvıyla uyumlu', 'Zarda delik var', 'Kanal kirle tıkalı', 'Kulak normal'],
     aciklama: 'Düz eğri tek başına sıvı demek değildir; burada otoskopide zarın arkasında sıvı görüldüğü ve kanal hacmi normal olduğu için tablo efüzyonla uyumludur. Çocukta çoğu kendiliğinden geçer; hekim izler.' },
-  { id: 'tv02', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '7 yaş', sinif: 'B-buyuk', egri: T('B', null, 0.05, 1.5), kaynak: OME,
+  { id: 'tv02', duzey: 'genel', bicim: 'vinyet', grup: 'cocuk', yas: '7 yaş', sinif: 'B-buyuk', egri: T('B', null, 0.05, 1.5), kaynak: `${OME}; ${COCUK_HACIM}`,
     hikaye: 'Elif’e altı ay önce ventilasyon tüpü takıldı; bugün kontrol ölçümü yapılıyor.',
     secenek: ['Tüp açık ve çalışıyor olabilir: büyük hacim beklenen bulgu', 'Tüp tıkanmış, kulak sıvıyla dolu', 'Kanal kirle tıkalı', 'Kulakta tüp yok, kulak normal'],
-    aciklama: 'Açık bir tüp, kanal ile orta kulak boşluğunu birleştirir; ölçülen hacim yaşına göre büyük çıkar ve eğri düzdür. Tüp kontrolünde bu beklenen bir bulgudur; otoskopiyle tüp görülerek doğrulanır.' },
+    aciklama: 'Açık bir tüp, kanal ile orta kulak boşluğunu birleştirir; ölçülen hacim yaşına göre büyük çıkar ve eğri düzdür. Bu yaştaki çocuklarda kanal hacmi çoğu zaman yaklaşık 1 ml’nin altındadır; 1,5 ml bu yaş için büyüktür. Tüp kontrolünde bu beklenen bir bulgudur; otoskopiyle tüp görülerek doğrulanır.' },
   { id: 'tv03', duzey: 'genel', bicim: 'vinyet', grup: 'yasli', yas: '68 yaş', otoskopi: 'serumen', sinif: 'B-kucuk', egri: T('B', null, 0.03, 0.3), kaynak: 'AAO-HNS (2017). Clinical Practice Guideline: Earwax (Cerumen Impaction) (Update)',
     hikaye: 'Kemal Bey bir kulağında dolgunluk hissediyor. Otoskopide kanal sarı-kahve kirle tamamen dolu.',
     secenek: ['Kanal kirle (serumen) tıkalı; ölçüm zara ulaşmıyor', 'Orta kulakta sıvı var', 'Zarda delik var', 'Östaki borusu çalışmıyor'],
@@ -214,10 +216,10 @@ export const TIMP_SORULAR: TimpSoruDef[] = /* @__PURE__ */ bolunmezYap([
     hikaye: 'Mert’in zarında, eski bir delikten kalma ince ve saydam bir iyileşme alanı (atrofik skar) var. Odyogramı normal.',
     secenek: ['Gevşek zar bölümü yüksek admitans verebilir; zincir sağlam olabilir', 'Kemikçik zinciri kesin kopuk', 'Orta kulakta sıvı', 'Kanal tıkalı'],
     aciklama: 'İnce, gevşek bir zar bölümü tepeyi yükseltir. İşitme normalse zincir kopukluğu beklenmez; Ad eğrisi tek başına zincir kopukluğu demek değildir.' },
-  { id: 'tv12', duzey: 'odyoloji', bicim: 'vinyet', grup: 'cocuk', yas: '5 yaş', sinif: 'B-normal', egri: T('B', null, 0.05, 0.6), kaynak: OME,
+  { id: 'tv12', duzey: 'odyoloji', bicim: 'vinyet', grup: 'cocuk', yas: '5 yaş', sinif: 'B-normal', egri: T('B', null, 0.05, 0.6), kaynak: `${OME}; ${COCUK_HACIM}`,
     hikaye: 'Ventilasyon tüpü takılı bir çocukta kontrol ölçümünde eğri düz, kanal hacmi 0,6 ml çıktı.',
     secenek: ['Tüp tıkanmış ya da yerinden çıkmış olabilir; otoskopiyle bakılmalı', 'Tüp açık ve çalışıyor', 'Zarda yeni bir delik var', 'Ölçüm normal, işlem gerekmez'],
-    aciklama: 'Açık tüp yaşına göre büyük hacim verir. Hacmin normal kalması tüpün tıkandığını ya da çıktığını düşündürür; otoskopi ile tüpe bakılır.' },
+    aciklama: 'Açık tüp yaşına göre büyük hacim verir; 0,6 ml ise bu yaşta normal aralıktadır, açık tüp beklenen büyük hacmi vermiyor. Hacmin normal kalması tüpün tıkandığını ya da çıktığını düşündürür; otoskopi ile tüpe bakılır.' },
 
   // ---- bilgi: ölçüm, prob tonu, yaşa göre normlar, akustik refleks
   { id: 'tk01', duzey: 'genel', bicim: 'bilgi', soru: 'Timpanometri neyi ölçer?', kaynak: KATZ,

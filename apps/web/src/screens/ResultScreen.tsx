@@ -107,7 +107,8 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   const loss = result.completed ? null : lossView(result, spec, attempt);
   // "Biliyor muydun?" (karar 31): her bölümün tek satırı, Bilgi düzeyine göre (genel / odyoloji öğrencisi); yalnız yazı. Aynı bölümün
   // tekrarında biyomun öteki onaylı satırlarından sıradaki (YN-127); yakın zamanda gösterilen satırlar tekrar etmez (YN-175, YN-212; kayıtta bilgiSonlar)
-  const bilgi = useBiliyorMuydun(spec.number, store.knowledge, attempt - 1);
+  // (final kazanılınca 40'ın kendi satırı; YN-236)
+  const bilgi = useBiliyorMuydun(spec.number, store.knowledge, attempt - 1, result.completed);
   const kalkan = gift ? shieldResultLine(gift, result) : '';
   // sonuç ekranı kapanınca bu bölümün sırada kalan bildirimleri (başarım, albüm rozeti) düşer: kartta yazdı, sonraki bölümün sonucunda
   // bir daha çıkmaz (OT-rekabetci-44: Bölüm 39'un başarımı 40'ın sonucunda yeniden geliyordu). Genel bildirimler (sınır, takım) kalır

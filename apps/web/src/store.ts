@@ -68,8 +68,9 @@ interface State extends PlayerCore {
   knowledgeAsked: boolean;
   /** gösterilen Tüy Dede notları ve son gösterim (sıklık sınırı) */
   notesSeen: string[]; noteAt: number;
-  /** sonuç ekranında son gösterilen "Biliyor muydun?" satırlarının bölümleri (eskiden sona; en çok BILGI_YAKIN): sıradaki sonuç
-   *  bunları tekrar etmez (YN-175, YN-212). Eski kayıttaki tek `bilgiSon` bu listeye taşınır. */
+  /** sonuç ekranında son gösterilen "Biliyor muydun?" satırlarının kimlikleri (eskiden sona; en çok BILGI_YAKIN; bölüm satırında
+   *  bölüm numarası, biyom ek satırında 101, 102, …; YN-236): sıradaki sonuç bunları tekrar etmez (YN-175, YN-212). Eski kayıttaki
+   *  tek `bilgiSon` bu listeye taşınır. */
   bilgiSonlar: number[];
   ftueStoryDone(): void;
   ftueTourDone(id: string): void;
@@ -90,7 +91,7 @@ interface State extends PlayerCore {
   reduceMotion: boolean;
   setReduceMotion(v: boolean): void;
   noteShown(id: string): void;
-  bilgiGoruldu(bolum: number): void;
+  bilgiGoruldu(no: number): void;
 }
 
 const core = (s: State): PlayerCore => ({ progress: s.progress, coins: s.coins, xp: s.xp, streak: s.streak, lastDay: s.lastDay, failStreak: s.failStreak, skills: s.skills, meta: s.meta });
@@ -210,7 +211,7 @@ export const useStore = create<State>()(persist((set, get) => {
     setHighVis(v) { set({ highVis: v }); },
     setHaptics(v) { set({ haptics: v }); },
     setReduceMotion(v) { set({ reduceMotion: v }); },
-    bilgiGoruldu(bolum) { const l = get().bilgiSonlar; if (l[l.length - 1] !== bolum) set({ bilgiSonlar: [...l.filter((x) => x !== bolum), bolum].slice(-BILGI_YAKIN) }); },
+    bilgiGoruldu(no) { const l = get().bilgiSonlar; if (l[l.length - 1] !== no) set({ bilgiSonlar: [...l.filter((x) => x !== no), no].slice(-BILGI_YAKIN) }); },
     noteShown(id) { const seen = get().notesSeen; set({ notesSeen: seen.includes(id) ? seen : [...seen, id], noteAt: Date.now() }); },
     playerLevel() { return levelFromXp(get().xp); },
   };

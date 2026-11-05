@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { EAR_NOTES, type EarNote } from '@odi/content/odyoloji';
-import { biliyorMuydunSatiri, type BiliyorMuydun } from '@odi/content/biliyor-muydun';
+import { biliyorMuydunSatiri, type BilgiSatiri } from '@odi/content/biliyor-muydun';
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
 import { Icon } from '../ui/icons';
@@ -39,6 +39,8 @@ export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote |
     const own = BIOME_NOTES[region].flatMap((id) => pool.filter((n) => n.id === id));
     return own.find((n) => !s.notesSeen.includes(n.id)) ?? own[0] ?? null;
   }
+  // harita bölge kartı: görülmemiş notların ilki (veri sırasıyla; bölgenin ilk notu o yapıyı anlatan not, YN-238)
+  if (place === 'map' && fresh.length) return fresh[0]!;
   // hepsi görüldüyse yalnız haritada (oyuncunun açtığı kartta) tekrar edilir
   const list = fresh.length ? fresh : place === 'map' ? pool : [];
   return list.length ? list[Math.abs(seed) % list.length]! : null;
@@ -48,16 +50,17 @@ export function pickNote(region: BiomeId, place: NotePlace, seed = 0): EarNote |
  * Sonuç ekranının "Biliyor muydun?" satırı (karar 31), kazançta da kayıpta da bölümün biyom havuzundan (YN-222): tekrarda havuzun
  * sıradaki satırı (YN-127) ve yakın zamanda gösterilenlerden farklı (kayıttaki `bilgiSonlar`, son BILGI_YAKIN; Bölüm 13 tekrarı ile
  * ardından Bölüm 14 (YN-175), 24 → 25 → 26 tekrarı (YN-212) aynı satırı göstermesin); havuzun hepsi yakında gösterildiyse havuzun en
- * önce gösterileni, başka biyomun satırı değil. Yalnız seçer, kaydetmez.
+ * önce gösterileni, başka biyomun satırı değil. Havuz bölüm satırları ile biyomun ek satırları (YN-236); final (son bölüm) kazanılınca
+ * kendi satırı. Yalnız seçer, kaydetmez.
  */
-export function pickBilgi(bolum: number, tekrar: number): BiliyorMuydun | null {
-  return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSonlar);
+export function pickBilgi(bolum: number, tekrar: number, kazanildi = false): BilgiSatiri | null {
+  return biliyorMuydunSatiri(bolum, tekrar, useStore.getState().bilgiSonlar, kazanildi);
 }
 
 /** ekran açılırken bir kez seçilen "Biliyor muydun?" satırı (yeniden çizimlerde değişmez); gösterilince kayda (son gösterilenler) yazılır */
-export function useBiliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar: number): string | null {
-  const [s] = useState(() => pickBilgi(bolum, tekrar));
-  useEffect(() => { if (s) useStore.getState().bilgiGoruldu(s.bolum); }, [s]);
+export function useBiliyorMuydun(bolum: number, duzey: 'genel' | 'odyoloji', tekrar: number, kazanildi = false): string | null {
+  const [s] = useState(() => pickBilgi(bolum, tekrar, kazanildi));
+  useEffect(() => { if (s) useStore.getState().bilgiGoruldu(s.no); }, [s]);
   return s ? s[duzey] : null;
 }
 
