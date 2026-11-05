@@ -12,7 +12,9 @@ import { ITEMS, askedHelp, buildKey, canUpgrade, defOf, shortOf, type CampAction
 import { BIOMES, decorById, districtById, monumentOf } from '@odi/content';
 import type { BiomeId } from '@odi/shared';
 import { clearedCount } from '../ftue/features';
-import { DedeCard, sayDede, showDede } from './dede';
+import { DedeCard, sayDede, showDede, useDede } from './dede';
+import { useKampIstek } from './istek';
+import { useCoach } from '../ftue/Coach';
 import { markSeen, monumentToCelebrate, regionsNow } from './anit';
 import { Art } from '../ui/art';
 import { prefersReducedMotion } from '../ui/bits';
@@ -75,6 +77,12 @@ export function CampBase(p: CampBaseProps) {
   const ownRegions = useMemo(() => regionsNow(clearedCount(progress)), [progress]);
   const regions = visit ? visit.regions : ownRegions;
   const celebrateRef = useRef<string | null>(null);
+  /**
+   * yeni anıt kutlaması (OT-ilk-kez-oyun-71): 'bekliyor' sahne kurulunca kutlanacak anıt varken notu çıkana dek, 'goruldu' not çıktıktan
+   * sonra oyuncu kampa (not kapalıyken) dokunana dek. İkisinde de tanıtım ve "Kamp'ta yeni" kartı beklemede (Director quiet,
+   * `data-anit`); kutlama da açık bir tanıtım ya da kart varken başlamaz. Anıt notu ile kart tek kuyrukta, art arda açılmaz
+   */
+  const [anit, setAnit] = useState<'bekliyor' | 'goruldu' | null>(null);
 
   // sahne: bir kez kurulur, ekrandan çıkınca yok edilir (parça bağlantı yokken yüklenemediyse yeniden denemede yeniden)
   useEffect(() => {
@@ -89,14 +97,14 @@ export function CampBase(p: CampBaseProps) {
       const st = useStore.getState(); const tutorialDone = !!st.ftue.bypass || st.ftue.tours.includes('camp-build');
       // yükleme sürerken gelen değişiklikler kaybolmasın: sahne en güncel kamp/takım/bölge ile kurulur
       const { camp, team, regions } = live.current;
-      const fresh = tutorialDone && !visit ? monumentToCelebrate(regions) : null; celebrateRef.current = fresh;
+      const fresh = tutorialDone && !visit ? monumentToCelebrate(regions) : null; celebrateRef.current = fresh; setAnit(fresh ? 'bekliyor' : null);
       const cur = startCamp(el, {
         heroColor, camp, team, canAskHelp: canAskRef.current, reducedMotion: reduced, readOnly: !!visit,
         regions: regions.filter((r) => r !== fresh),
         onMonument: (region, isNew) => {
           const m = monumentOf(region); if (!m) return;
           const name = BIOMES[region as BiomeId]?.name ?? region;
-          if (isNew) { audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
+          if (isNew) { setAnit('goruldu'); audio.play('fanfare'); platform().haptic('success'); sayDede(m.line, `Yeni anıt · ${m.name}`, m.plain); return; }
           audio.play('pop');
           if (live.current.regions.includes(region)) showDede(m.plain, `${m.name} · ${name}`, undefined, true);
           else showDede(`${name} bölgesine ulaşınca burada ${m.name} yükselecek.`, 'Kulak Yolu');
@@ -121,8 +129,17 @@ export function CampBase(p: CampBaseProps) {
         onBuilt: () => undefined,
         onReady: () => {
           setReady(true);
-          // yeni anıt: kamp yerine oturduktan sonra yükselir
-          if (fresh) setTimeout(() => { if (handle.current === cur) { cur.update({ regions, celebrate: fresh }); markSeen(regions); } }, 900);
+          // yeni anıt: kamp yerine oturduktan sonra yükselir; o an bir tanıtım ya da "Kamp'ta yeni" kartı açıksa o bitince (kamera
+          // tanıtımın gösterdiği yerden kaymaz, iki kart üst üste gelmez). Sahne notu hiç vermezse (döngü uyudu) bekleme sınırlı
+          if (fresh) {
+            const kutla = () => {
+              if (handle.current !== cur) return;
+              if (useCoach.getState().tour || document.querySelector('[data-testid="kamp-yeni"]')) { setTimeout(kutla, 400); return; }
+              cur.update({ regions, celebrate: fresh }); markSeen(regions);
+              setTimeout(() => { if (handle.current === cur) setAnit((a) => (a === 'bekliyor' ? null : a)); }, 8000);
+            };
+            setTimeout(kutla, 900);
+          }
           else if (tutorialDone && !visit) markSeen(regions);
           // Kamp Seviyesi tanıtımı (bir kez; kamp öğreticisi bittikten sonra, anıt kutlaması yoksa)
           if (visit) { if (once('odi.kamp.ziyaretTanitim')) setTimeout(() => sayDede('kamp-ziyaret-01', 'Kamp ziyareti'), 700); }
@@ -174,6 +191,13 @@ export function CampBase(p: CampBaseProps) {
   const actions: CampActions = { ...p.actions, ask: async (id) => { const ok = await p.actions.ask(id); if (ok) setAskTick((n) => n + 1); return ok; }, collect: async () => { await collect(); return 0; }, remedyCollect: collectRemedy, libCollect: collectLib };
 
   useEffect(() => { if (sel) handle.current?.focus(sel, true); else handle.current?.unfocus(); }, [sel]);
+  // dışarıdan istek (camp/istek.ts): tanıtımın bina penceresi, süs görevinin süsleme kipi
+  const istek = useKampIstek();
+  useEffect(() => {
+    if (!ready || visit) return;
+    if (istek.bina) { const id = istek.bina; useKampIstek.setState({ bina: null }); setEdit(false); setSel(id); }
+    if (istek.susle) { useKampIstek.setState({ susle: false }); if (p.camp.decor) { setSel(null); setLevelPanel(false); setEdit(true); } }
+  }, [istek.bina, istek.susle, ready]);
   // açık paneldeki inşaat bitti (kristal, hızlandırıcı, süre, takım yardımı): panel kapanır ki kutlama, sahnedeki yükseliş ve Tüy Dede görünsün
   const selLevel = sel ? p.camp.buildings.find((b) => b.id === sel)?.level ?? 0 : -1;
   const selSeen = useRef<{ id: BuildingId; level: number } | null>(null);
@@ -189,7 +213,8 @@ export function CampBase(p: CampBaseProps) {
   const [cheering, setCheering] = useState(false);
 
   return (
-    <div className={`camp-base${edit ? ' editing' : ''}${visit ? ' visiting' : ''}`}>
+    <div className={`camp-base${edit ? ' editing' : ''}${visit ? ' visiting' : ''}`} data-anit={anit ?? undefined}
+      onPointerDownCapture={() => { if (anit === 'goruldu' && !useDede.getState().say) setAnit(null); }}>
       <div className="camp-canvas" ref={host} aria-label={visit ? `${visit.name} adlı oyuncunun kampı` : 'Kulak Kampı üs görünümü'} role="img" />
       {!ready && (agYok
         ? <div className="camp-loading camp-agyok" role="status"><div className="card offline-card"><h2>Kamp yüklenemedi</h2><div className="muted">Bağlanınca açılır. İlerlemen cihazında kayıtlı.</div><button type="button" className="btn" onClick={() => { audio.play('tap'); yenidenDene(); }}>Tekrar dene</button></div></div>

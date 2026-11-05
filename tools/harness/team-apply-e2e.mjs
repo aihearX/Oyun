@@ -174,7 +174,7 @@ async function findInList(p, name, filter) {
 async function createTeamUi(p, name, basvuru) {
   await teamTabOnly(p);
   await p.page.getByRole('button', { name: '＋ Takım kur' }).first().click();
-  await p.page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(name);
+  await p.page.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(name);
   await p.page.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her akşam birlikte koşuyoruz.');
   if (basvuru) await p.page.locator('.sheet [role="radiogroup"][aria-label="Katılım"]').getByRole('radio', { name: 'Başvuruyla' }).click();
   return p;

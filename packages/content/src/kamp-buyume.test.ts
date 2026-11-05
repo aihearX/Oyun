@@ -40,7 +40,7 @@ describe('Kamp Seviyesi ödülleri', () => {
     expect(COSMETICS.filter((c) => c.unlock.by === 'kamp').map((c) => c.id).sort()).toEqual([...cos].sort());
   });
   it('unvan, süs yeri, çanta ve bina etkileri seviyeyle büyür', () => {
-    expect(campTitle(1)).toBe('Kamp Çırağı'); expect(campTitle(5)).toBe('Kulak Kaşifi'); expect(campTitle(30)).toBe('Kulak Adası Efsanesi');
+    expect(campTitle(1)).toBe('Kamp Çırağı'); expect(campTitle(5)).toBe('Kulak Kâşifi'); expect(campTitle(30)).toBe('Kulak Adası Efsanesi');
     expect(decorSlots(1, 0)).toBe(4); expect(decorSlots(30, 0)).toBeGreaterThan(30); expect(decorSlots(5, 3) - decorSlots(5, 0)).toBe(6);
     expect([1, 13, 14, 24, 30].map(remedyInvCap)).toEqual([9, 9, 12, 15, 15]);
     expect(taramaFactor(0)).toBe(1); expect(taramaFactor(10)).toBeCloseTo(0.8); expect(taramaFactor(40)).toBe(0.6);

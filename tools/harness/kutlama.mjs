@@ -79,7 +79,7 @@ try {
   await cel(p, 'coins', { amount: 120, from: { x: W / 2, y: H * 0.6 } });
   await sleep(520); await shot(p, '16-jeton-ucusu');
   await sleep(1800);
-  await cel(p, 'levelUp', { level: 7, unlocks: ['Yeni hareket: Çift zıplama', 'Kulak Kartı: Örs', 'Kostüm: Kaşif şapkası'] });
+  await cel(p, 'levelUp', { level: 7, unlocks: ['Yeni hareket: Çift zıplama', 'Kulak Kartı: Örs', 'Kostüm: Kâşif Şapkası'] });
   await sleep(450); await shot(p, '17-seviye-patlama');
   await sleep(1900); await shot(p, '18-seviye-liste');
   // YN-094: pencere kendiliğinden kapanmaz (WCAG 2.2.1, OT-buyuk-yazi-19): 20 sn sonra hâlâ açık
@@ -129,7 +129,7 @@ try {
     await b.goto(`${base}/?kutlama=1`, { waitUntil: 'load' });
     await b.getByRole('button', { name: /Yola çık|Devam et/ }).click(); await sleep(600);
     await b.locator('nav.tabbar .tab', { hasText: 'Bugün' }).click(); await sleep(700);
-    await cel(b, 'levelUp', { level: 8, unlocks: ['Yeni bölge: Kulak Kanalı', 'Kulak Kartı: Örs', 'Kostüm: Kaşif şapkası'] });
+    await cel(b, 'levelUp', { level: 8, unlocks: ['Yeni bölge: Kulak Kanalı', 'Kulak Kartı: Örs', 'Kostüm: Kâşif Şapkası'] });
     await sleep(20_000);
     if (!(await b.locator('.lvl-stage').count())) errors.push('Büyük yazı: seviye penceresi 20 sn içinde kendiliğinden kapandı');
     await shot(b, '24-buyuk-yazi-seviye-20sn');

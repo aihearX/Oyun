@@ -1086,7 +1086,7 @@ async function suite(browserName, target, [W, H]) {
       await page.locator('.ta-filters [data-filter="hepsi"]').click(); await sleep(300);
       komsu.close();
       await page.getByRole('button', { name: '＋ Takım kur' }).first().click();
-      await page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20));
+      await page.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(`Koklea Kâşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20));
       await page.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her gün biraz, hep birlikte; kulaktan beyne kadar birlikte koşuyoruz ve hiç durmuyoruz.');
       await check('takim-kur-sayfasi', { scroll: false });
       await page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
@@ -1106,7 +1106,7 @@ async function suite(browserName, target, [W, H]) {
         if (!ipucuSekme.ipucuSigar) fail(rec, `yazı kutusu ipucu kesik: "${ipucuSekme.ipucu}" (${ipucuSekme.ipucuGen} px > ${ipucuSekme.kutuGen} px)`);
         if (ipucuSekme.okAltinda.length) fail(rec, `sekme ok düğmesinin altında: ${ipucuSekme.okAltinda.join(', ')}`); }
       // başvuru: lider ekranında rozet + Başvurular sekmesi (aşağıdaki alt sekme turunda denetlenir); katılım başvuruyla
-      { const myTeam = `Koklea Kaşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
+      { const myTeam = `Koklea Kâşifleri ${String.fromCharCode(64 + sno)}${sno}`.slice(0, 20);
         const aday = rawClient(wsUrl); await aday.call('hello', { version: 1, name: `Aday${sno}` });
         const t = (await aday.call('team.list', { query: myTeam })).teams.find((x) => x.name === myTeam);
         if (t?.open) { await page.getByLabel('Takım menüsü').click(); await page.locator('[data-testid="katilim-ayari"] [role="radio"]', { hasText: 'Başvuruyla' }).click(); await sleep(500); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); }

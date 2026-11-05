@@ -15,7 +15,10 @@
 //    (hayalet sürükle, Yerleştir, yeniden açınca yerinde, Taşı, Depoya) → Kamp Sv 3'te Sessiz Koru açılır (Tüy Dede bölge satırı,
 //    Akustik Kabin kurulur) → arkadaş profil kartından "Kampını gez" → alkış (günde bir; sahibine bildirim) → eski istemci yalnız
 //    eski binaları alır; önizlemede Kamp Sv 1 / 9 / 30 ekran görüntüleri; dom: yüksek seviyeli kampta doku belleği sınırı.
-// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom|kutlama|buyume] [--browsers chromium,webkit] [--headed]
+// H) Tanıtım (YN-234; Chromium + WebKit): "önce Odyometri Odası'nı kur" çerçevesi ekranda tam, arsaya dokunuş ve "Odaya dokun" bina
+//    penceresini açar; günlük süs görevinin Git'i liste görünümünden süsleme kipine götürür; yeni anıt notu ile "Kamp'ta yeni" kartı
+//    tek kuyrukta (not kapanınca oyuncu dokunmadan kart gelmez), Göster sürerken başka kart açılmaz.
+// Kullanım: node tools/harness/camp-e2e.mjs [--no-build] [--build-dom] [--only demo|real|anit|dom|kutlama|buyume|tanitim] [--browsers chromium,webkit] [--headed]
 // Çıktı: tools/harness/out/kamp/<takım>/*.png
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -353,7 +356,7 @@ try {
     }
     await tab(A, 'Takım'); await A.locator('.team-hero').waitFor();
     await A.getByRole('button', { name: '＋ Takım kur' }).first().click();
-    await A.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Kampçılar ${bt}`);
+    await A.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(`Kampçılar ${bt}`);
     await A.locator('.emoji-opt[data-emblem="🐚"]').click();
     await A.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
     await A.locator('.team-head').waitFor(); await toastGone(A);
@@ -932,6 +935,126 @@ try {
       await shot(D, 'dom-kamp-sv30-uzak', 1500);
       await browser.close();
     }
+  }
+  // ======================================================================== H) tanıtım ve kart sırası (YN-234, oyuncu testi tur 14)
+  if (want('tanitim')) for (const bt of browsers) {
+    const browser = await launch(bt);
+    const shot = suite(`tanitim-${bt}`);
+    const ANITLAR = ['dis-kulak', 'kanal', 'zar', 'kemikcikler', 'koklea-1', 'koklea-2', 'koklea-3', 'sinir', 'beyin-sapi', 'korteks'];
+    const TURLAR = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'shop', 'events', 'race', 'yazi', 'siralama', 'tlig', 'tyaris', 'akis', 'soru', 'ikili', 'usta', 'gorev', 'profile', 'album', 'skills', 'league'];
+    /** anlatıcı turları açık (bypass yok); verilen turlar görülmüş, kamp oyunları (ve istenirse Hasta Vakaları) tanıtımı bekliyor */
+    const tanitimOyuncusu = async (tag, cleared, tours, seen) => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: Number(process.env.E2E_DSF ?? 2), hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR' });
+      await ctx.addInitScript(([c, t, sn]) => {
+        try {
+          if (localStorage.getItem('odi-v1')) return;
+          const progress = {}; for (let i = 1; i <= c; i++) progress[i] = { stars: 3, best: 1000, plays: 1 };
+          localStorage.setItem('odi-v1', JSON.stringify({ state: { ftue: { v: 1, story: true, tours: t }, progress }, version: 3 }));
+          localStorage.setItem('odi.kamp.anitlar', JSON.stringify(sn)); localStorage.setItem('odi.kamp.gorunum', 'us');
+        } catch { /* depolama yok */ }
+      }, [cleared, tours, seen]);
+      const page = await ctx.newPage(); await page.addInitScript(OLAY_SAYACI);
+      page.on('pageerror', (e) => errors.push(`${tag}: ${e.message}`));
+      const nm = `${tag}${Date.now() % 1000}`;
+      await page.goto(base, { waitUntil: 'load' });
+      await page.getByRole('button', { name: /Yola çık|Devam/ }).first().click();
+      await page.locator('.onboard').waitFor({ timeout: 20_000 });
+      await page.getByRole('textbox', { name: 'Takma ad' }).fill(nm); await page.getByRole('button', { name: 'Başla' }).click();
+      await page.locator('.onboard').waitFor({ state: 'detached' }); await settle(page);
+      let id = null; for (let i = 0; i < 40 && !(id = pidOf(nm)); i++) await sleep(250);
+      check(!!id, `${nm} sunucuda`);
+      db.run('UPDATE players SET highest = ? WHERE id = ?', cleared + 1, id); // sunucu: geçilen = highest − 1
+      return { page, id };
+    };
+    const kampaGir = async (page) => { await tab(page, 'Harita'); await sleep(300); await tab(page, 'Kamp'); await campReady(page); await page.evaluate(() => window.__kg?.refresh()); };
+    const turBekle = (page, id, ms = 30_000) => page.locator(`[data-testid="anlatici-tur"][data-tour="${id}"] .coach-ring`).waitFor({ timeout: ms }).catch(async (e) => {
+      await shot(page, `hata-${id}`, 0);
+      throw new Error(`${e.message.split('\n')[0]} · ${JSON.stringify(await page.evaluate(() => ({ tur: document.querySelector('[data-testid="anlatici-tur"]')?.getAttribute('data-tour') ?? null, kart: document.querySelector('[data-testid="kamp-yeni"]')?.getAttribute('data-items') ?? null, kg: window.__kg?.state()?.kg ? { open: window.__kg.state().kg.open, oyun: window.__kg.state().kg.oyun.map((g) => g.open) } : null, anit: document.querySelector('.camp-base')?.getAttribute('data-anit') ?? null, tours: JSON.parse(localStorage.getItem('odi-v1')).state.ftue })))}`);
+    });
+
+    step(`H1 · [${bt}] "önce Odyometri Odası’nı kur": arsa ekranda tam, dokunuş bina penceresini açar (OT-ogrenci-birinci-48)`);
+    {
+      const { page: T } = await tanitimOyuncusu(`Tanit${bt[0]}`, 6, TURLAR, ANITLAR);
+      await kampaGir(T);
+      await turBekle(T, 'oyun-kur'); await camStill(T); await sleep(500);
+      const ring = await T.locator('.coach-ring').boundingBox(); const lab = await T.evaluate(() => window.__kamp.box('laboratuvar'));
+      check(!!ring && ring.x >= 0 && ring.x + ring.width <= 390 && ring.y >= 0 && ring.y + ring.height <= 844, `çerçeve ekranda tam (${ring && [ring.x, ring.y, ring.width, ring.height].map(Math.round).join(',')})`);
+      check(!!lab && lab.x >= 0 && lab.x + lab.w <= 390, `Odyometri Odası arsası ekranda tam (x ${lab && Math.round(lab.x)}…${lab && Math.round(lab.x + lab.w)})`);
+      check(await T.locator('[data-testid="anlatici-ipucu"]').evaluate((e) => e.tagName) === 'BUTTON', '"Odaya dokun" bir düğme');
+      await shot(T, 'H1-once-kur-ortada', 200);
+      const view0 = await T.evaluate(() => window.__kamp.view());
+      await T.touchscreen.tap(ring.x + ring.width / 2, ring.y + ring.height / 2);
+      await T.locator('.bp').waitFor({ timeout: 8000 });
+      check((await T.locator('.bp').textContent()).includes('Odyometri Odası'), 'arsaya dokunuş Odyometri Odası penceresini açtı');
+      await T.locator('[data-testid="anlatici-tur"]').waitFor({ state: 'detached', timeout: 5000 });
+      ok('tanıtım ilerledi (pencere açılınca kapandı)');
+      const view1 = await T.evaluate(() => window.__kamp.view());
+      check(Math.abs(view1.zoom - view0.zoom) < 0.001, 'dokunuş yakınlaştırma sayılmadı');
+      await shot(T, 'H1-pencere', 400);
+      await closePanel(T);
+
+      step(`H2 · [${bt}] balondaki "Odaya dokun" düğmesi aynı pencereyi açar`);
+      await T.evaluate(() => { const v = JSON.parse(localStorage.getItem('odi-v1')); v.state.ftue.tours = v.state.ftue.tours.filter((x) => x !== 'oyun-kur'); localStorage.setItem('odi-v1', JSON.stringify(v)); });
+      await T.reload({ waitUntil: 'load' });
+      await T.getByRole('button', { name: /Yola çık|Devam/ }).first().click().catch(() => undefined);
+      await T.locator('nav.tabbar').waitFor({ timeout: 20_000 }); await settle(T);
+      await kampaGir(T);
+      await turBekle(T, 'oyun-kur'); await camStill(T); await sleep(600);
+      await T.locator('[data-testid="anlatici-ipucu"]').click();
+      await T.locator('.bp').waitFor({ timeout: 8000 });
+      check((await T.locator('.bp').textContent()).includes('Odyometri Odası'), '"Odaya dokun" Odyometri Odası penceresini açtı');
+      await T.locator('[data-testid="anlatici-tur"]').waitFor({ state: 'detached', timeout: 5000 });
+      await closePanel(T);
+
+      step(`H3 · [${bt}] Görevler › Günlük › "Kampına bir süs yerleştir" › Git: liste görünümünden süsleme kipine (OT-buyuk-yazi-68)`);
+      if (await T.getByTestId('susle').count()) {
+        const row = db.get("SELECT player_id, day, tasks FROM kg_daily WHERE player_id = (SELECT id FROM players WHERE name LIKE ? ORDER BY created_at DESC LIMIT 1) ORDER BY day DESC LIMIT 1", `Tanit${bt[0]}%`);
+        check(!!row, 'günlük görevler sunucuda');
+        const ids = JSON.parse(row.tasks); if (!ids.includes('g-dekor')) ids[0] = 'g-dekor';
+        db.run('UPDATE kg_daily SET tasks = ? WHERE player_id = ? AND day = ?', JSON.stringify(ids), row.player_id, row.day);
+        await T.locator('.camp-listbtn').click(); await T.locator('.camp-list-screen').waitFor();
+        await T.evaluate(() => window.__kg?.refresh()); await sleep(600);
+        await T.getByTestId('kg-btn').first().click(); await T.getByTestId('kg-panel').waitFor();
+        await T.locator('.kg-tabs [data-tab="gunluk"]').click();
+        await T.locator('[data-gorev="g-dekor"] [data-testid="kg-git"]').waitFor({ timeout: 10_000 });
+        await shot(T, 'H3-gunluk-sus', 200);
+        await T.locator('[data-gorev="g-dekor"] [data-testid="kg-git"]').click();
+        await T.locator('.camp-base').waitFor({ timeout: 20_000 });
+        await T.getByTestId('sus-panel').waitFor({ timeout: 20_000 });
+        ok('Git: üs görünümü + süsleme kipi açık');
+        await shot(T, 'H3-susle-kipi', 600);
+      } else console.log('  · kamp büyümesi açık değil (Süsle yok): H3 atlandı');
+      await T.context().close();
+    }
+
+    step(`H4 · [${bt}] yeni anıt notu ile "Kamp’ta yeni" kartı tek kuyrukta; Göster sürerken başka kart yok (OT-ilk-kez-oyun-71)`);
+    {
+      const { page: Y } = await tanitimOyuncusu(`Kuyruk${bt[0]}`, 12, TURLAR.filter((t) => t !== 'gorev'), []);
+      await kampaGir(Y);
+      await Y.locator('[data-testid="kamp-dede"][data-line^="anit-"]').waitFor({ timeout: 30_000 });
+      check(!(await Y.locator('[data-testid="kamp-yeni"], [data-testid="anlatici-tur"]').count()), 'anıt notu ilk: kart ve tanıtım yok');
+      await shot(Y, 'H4-anit-notu', 200);
+      await Y.locator('.dede-card .en-x').click();
+      await sleep(3500);
+      check(!(await Y.locator('[data-testid="kamp-yeni"], [data-testid="anlatici-tur"]').count()), 'not kapandı, oyuncu kampa dokunmadı: kart ya da tanıtım art arda açılmadı');
+      const h1 = await Y.locator('.camp-top h1').boundingBox(); await Y.touchscreen.tap(h1.x + 10, h1.y + h1.height / 2);
+      await Y.locator('[data-testid="kamp-yeni"].armed, [data-testid="anlatici-tur"]').first().waitFor({ timeout: 20_000 });
+      ok('oyuncu kampa dokununca sıradaki duyuru geldi');
+      const kart = Y.locator('[data-testid="kamp-yeni"]');
+      if (await kart.count()) {
+        await shot(Y, 'H4-kamp-yeni', 200);
+        const n0 = (await Y.evaluate(() => window.__olay.dede.length));
+        await kart.locator('[data-testid="kamp-yeni-goster"]').first().click();
+        await Y.locator('[data-testid="anlatici-tur"]').waitFor({ timeout: 10_000 });
+        for (let i = 0; i < 8 && await Y.locator('[data-testid="anlatici-tur"]').count(); i++) {
+          check(!(await Y.locator('[data-testid="kamp-yeni"], [data-testid="kamp-dede"]').count()), `Göster sürerken başka kart yok (${i + 1})`);
+          await sleep(500);
+        }
+        check((await Y.evaluate(() => window.__olay.dede.length)) === n0, 'tanıtım sırasında Tüy Dede kartı çıkmadı');
+      }
+      await Y.context().close();
+    }
+    await browser.close();
   }
 } catch (e) {
   failed = true;

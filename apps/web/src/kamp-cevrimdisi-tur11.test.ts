@@ -127,8 +127,8 @@ describe('Kamp Seviyesi penceresinde unvan (OT-ekonomi-denetci-38)', () => {
     expect(seviyeSatirlari([4]).some((x) => x.startsWith('Unvan'))).toBe(false);
     expect(seviyeSatirlari([4])).toHaveLength(2); // Sv 4: süs + süs yeri, unvan yok
     expect(seviyeSatirlari([4])).toContain('+1 süs yeri');
-    expect(seviyeSatirlari([5])[0]).toBe('Unvan: Kulak Kaşifi');
-    expect(seviyeSatirlari([3, 4, 5])[0]).toBe('Unvan: Kulak Kaşifi');
+    expect(seviyeSatirlari([5])[0]).toBe('Unvan: Kulak Kâşifi');
+    expect(seviyeSatirlari([3, 4, 5])[0]).toBe('Unvan: Kulak Kâşifi');
     expect(seviyeSatirlari([6, 7]).some((x) => x.startsWith('Unvan'))).toBe(false);
   });
 });

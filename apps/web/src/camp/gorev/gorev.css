@@ -140,7 +140,10 @@ html.buyuk-yazi .kg-tier-box > .small-note { flex-basis:100%; }
 .kg-test-ad, .kg-test-sade { min-width:0; hyphens:auto; -webkit-hyphens:auto; overflow-wrap:break-word; }
 .kg-test-ad { font-size:0.75rem; font-weight:800; line-height:1.15; }
 .kg-test-sade { grid-column:1 / -1; font-size:0.6875rem; font-weight:600; line-height:1.25; color:var(--text-2); }
-.kg-test.on { border-color:#8ef0b0; background:rgba(142,240,176,.12); }
+/* seçili test (OT-buyuk-yazi-71): kalın çerçeve (padding farkı kartın boyunu sabit tutar), dolu zemin ve adın yanında çizilmiş tik */
+.kg-test.on { border:3px solid #8ef0b0; padding:5.5px 6.5px; background:rgba(142,240,176,.24); }
+.kg-test-tik { display:inline-grid; place-items:center; width:1.25em; height:1.25em; margin-left:4px; vertical-align:-0.2em; border-radius:50%; background:#5fe39a; color:#0b2a17; }
+.kg-test-tik svg { stroke-width:3.4; }
 .kg-sonuc-kart { background:rgba(255,255,255,.05); border:1px solid var(--panel-edge); border-radius:16px; padding:8px 10px; display:flex; flex-direction:column; gap:6px; animation:fade .25s ease-out; }
 .kg-sonuc-kart.yok { opacity:.8; }
 .kg-sk-head { display:flex; align-items:center; gap:6px; }
@@ -148,6 +151,10 @@ html.buyuk-yazi .kg-tier-box > .small-note { flex-basis:100%; }
 .kg-chart { width:100%; height:auto; display:block; }
 .kg-ax { fill:#cfc3ff; font-size:0.625rem; font-weight:700; font-family:inherit; }
 .kg-ax.small { font-size:0.5625rem; } .kg-ax.kg-normal { fill:#8ef0b0; } .kg-ax.val { fill:#ffd66b; font-size:0.6875rem; }
+/* Büyük yazı (OT-buyuk-yazi-72): çizim viewBox'ıyla ölçeklendiğinden eksen yazıları kök ölçeğin (115 %) ötesinde büyütülür; timpanogram
+   eğrileri kalınlaşır. Eğrinin koyu kenar çizgisi (TimpanogramSvg) düz Tip B eğrisini eksen ve kutu çizgisinden renksiz de ayırır */
+html.buyuk-yazi .kg-ax { font-size:0.8125rem; } html.buyuk-yazi .kg-ax.small { font-size:0.75rem; } html.buyuk-yazi .kg-ax.val { font-size:0.8125rem; }
+html.buyuk-yazi .kg-timp:not(.mini) .kg-egri { stroke-width:3.8; } html.buyuk-yazi .kg-timp:not(.mini) .kg-egri-kenar { stroke-width:7.8; }
 .kg-legend { display:flex; flex-wrap:wrap; gap:4px 10px; font-size:0.6875rem; color:var(--text-2); font-weight:700; }
 .kg-legend span { display:inline-flex; align-items:center; gap:4px; }
 .kg-legend .sym { display:inline-block; width:12px; height:12px; }

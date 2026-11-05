@@ -59,7 +59,7 @@ const shots = []; const problems = [];
 
 // ---------------------------------------------------------------- oyuncu adları (kurgusal, oyun temalı; gerçek kişi adı değil)
 const AD = { ben: 'Nota Avcısı', zar: 'Zar Ustası', ors: 'Örs Kaptan', sal: 'Koklea Yolcusu', kem: 'Kemikçik', yol: 'Yolcu Odi' };
-const TEAM = { name: 'Koklea Kaşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' };
+const TEAM = { name: 'Koklea Kâşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' };
 
 // ---------------------------------------------------------------- içerik verisi (bölümler, kartlar, kamp seviyeleri)
 const veriFile = resolve(WORK, 'veri.mjs');

@@ -70,7 +70,7 @@ export const CAMP_LEVEL_REWARDS: Record<number, CampLevelReward[]> = {
   2: [{ kind: 'sus', id: 'odyogram-tarhi', n: 2 }, { kind: 'yer', n: 2 }],
   3: [{ kind: 'arazi', district: 'koru' }, { kind: 'bina', building: 'kabin' }, { kind: 'sus', id: 'stereosilya', n: 2 }],
   4: [{ kind: 'sus', id: 'kemikcik-banki', n: 2 }, { kind: 'yer', n: 1 }],
-  5: [{ kind: 'unvan', name: 'Kulak Kaşifi' }, { kind: 'sus', id: 'otoskop-lamba', n: 2 }, { kind: 'yer', n: 2 }],
+  5: [{ kind: 'unvan', name: 'Kulak Kâşifi' }, { kind: 'sus', id: 'otoskop-lamba', n: 2 }, { kind: 'yer', n: 2 }],
   6: [{ kind: 'arazi', district: 'koy' }, { kind: 'bina', building: 'tarama' }, { kind: 'sus', id: 'dalga-cit', n: 3 }],
   7: [{ kind: 'kozmetik', id: 'renk-koru' }, { kind: 'sus', id: 'kulaklik-salincak', n: 1 }],
   8: [{ kind: 'sus', id: 'koklea-cesme', n: 1 }, { kind: 'yer', n: 2 }],

@@ -13,6 +13,7 @@ import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
 import { useKg } from '../camp/gorev/state';
 import { KampYeniKart, hideKampYeni, kampYeniBekleyen, kartta, showKampYeni } from './KampYeni';
+import { kampBinaAc } from '../camp/istek';
 
 /**
  * Yönetmen: hangi anlatıcı turunun ne zaman başlayacağına karar verir (rota + ilerleme + kayıtlı turlar).
@@ -41,6 +42,9 @@ export function quiet(allowSheets = false): boolean {
   if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return false;
   // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden; kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
   if (exists('.map-screen:not([data-donus="bitti"])') || exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
+  // kampta yeni anıt kutlaması sırada ya da notu yeni kapandı (oyuncu kampa henüz dokunmadı): anıt notu ile tanıtım/"Kamp'ta yeni"
+  // kartı tek kuyrukta, oyuncu bir şey yapmadan art arda açılmaz (OT-ilk-kez-oyun-71; CampBase `data-anit`)
+  if (exists('.camp-base[data-anit]')) return false;
   // haritanın "Hedefe ulaştın!" kutusu görünürken (dönüşten sonra birkaç saniye, MapScreen GOAL_REACHED_MS): "Yeni yer açıldı" kartı
   // kutunun üstüne binmez, sesi kapalı oyuncu iki haberi de okur (OT-sessiz-oyuncu-20)
   if (exists('.map-goal[data-ulasildi]')) return false;
@@ -177,13 +181,15 @@ function onScreen(v: Element | DOMRect | null): boolean {
 const klinikGiris = (): Element | null => document.querySelector('[data-testid="klinik-btn"]') ?? document.querySelector('[data-testid="klinik-vaka-giris"]');
 /**
  * Üs görünümünde kamera yalnız binanın çerçevesi üst gösterge ile alt kartların arasında değilse kayar (OT-ilk-kez-oyun-33): bina
- * zaten görünüyorsa halka hemen oturur; kayan kamerayı bekleyen (yavaş telefonda saniyeler süren) boş ekran olmaz
+ * zaten görünüyorsa halka hemen oturur; kayan kamerayı bekleyen (yavaş telefonda saniyeler süren) boş ekran olmaz. Yanlardan da:
+ * ekranın kenarında yarım kalan arsa ekran ortasına alınır (OT-ogrenci-birinci-48)
  */
+const YAN_PAY = 8;
 function focusIfHidden(id: BuildingId): void {
   const b = kamp()?.box?.(id);
   const top = document.querySelector('.camp-base .camp-top')?.getBoundingClientRect().bottom ?? 120;
   const bottom = document.querySelector('.camp-base .camp-bottom')?.getBoundingClientRect().top ?? innerHeight - 200;
-  if (b && b.y >= top && b.y + b.h <= bottom) return;
+  if (b && b.y >= top && b.y + b.h <= bottom && b.x >= YAN_PAY && b.x + b.w <= innerWidth - YAN_PAY) return;
   kamp()?.focus?.(id);
 }
 
@@ -348,11 +354,13 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
     // başlayınca sayfa kaymaz, kart ekranda değilse oyuncu kaydırınca çerçeve belirir (OT-ogrenci-birinci-17); "Göster"le istenince
     // liste klinik kartına kayar (OT-ilk-kez-oyun-33)
     // Üs görünümünde arsaya dokunuş bina penceresini açar: yazı o an kapanır, çerçeve ve balon pencerenin Kur düğmesini örtmez
-    // (OT-eski-telefon-29). Kamp oyunlarında aynısı Odyometri Odası için (`oyun-kur`, OT-ilk-kez-oyun-52)
+    // (OT-eski-telefon-29). Kamp oyunlarında aynısı Odyometri Odası için (`oyun-kur`, OT-ilk-kez-oyun-52). Üs görünümünde pencereyi
+    // tur açar: çerçevenin içine dokunuş tuvale geçmez (sürükleme sayılıp kamerayı kaydırmaz), "Odaya dokun" düğmesi de aynı pencereyi
+    // açar; kenarda yarım kalan arsa önce ortalanır (OT-ogrenci-birinci-48)
     case 'vaka-kur':
     case 'oyun-kur': {
-      const liste = exists('.camp-list-screen'); const oyun = id === 'oyun-kur';
-      steps.push({ say: oyun ? OYUN_KUR : VAKA_KUR, silent: true, target: oyun ? odaKart : klinikKart, wait: 'tap', endIf: binaPenceresi, hint: liste ? 'Kur’a dokun' : oyun ? 'Odaya dokun' : 'Kliniğe dokun', noScroll: !goster, enter: () => focusIfHidden(oyun ? 'laboratuvar' : 'revir'), mood: 'wink' });
+      const liste = exists('.camp-list-screen'); const oyun = id === 'oyun-kur'; const bina: BuildingId = oyun ? 'laboratuvar' : 'revir';
+      steps.push({ say: oyun ? OYUN_KUR : VAKA_KUR, silent: true, target: oyun ? odaKart : klinikKart, wait: 'tap', endIf: binaPenceresi, hint: liste ? 'Kur’a dokun' : oyun ? 'Odaya dokun' : 'Kliniğe dokun', noScroll: !goster, enter: () => focusIfHidden(bina), act: liste ? undefined : () => kampBinaAc(bina), mood: 'wink' });
       break;
     }
     default: return null;

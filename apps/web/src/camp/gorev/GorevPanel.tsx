@@ -18,6 +18,7 @@ import { KgSheet } from './Klinik';
 import { act } from '../../net';
 import { useNav, type Nav } from '../../nav';
 import { ORTAK_HAK_NOTU, claimKg, oyunGunMetni, openPanel, refreshKg, useKg, useSesKapali, type GorevSekme, type KgPanel } from './state';
+import { kampSusle } from '../istek';
 
 const satir = (id: string) => { try { return lineText(id); } catch { return ''; } };
 const DINLENDI = 'odi.kg.dinlendi';
@@ -133,12 +134,13 @@ function Hikaye({ s }: { s: KgState }) {
 
 /**
  * Günlük görevin yeri (OT-uzman-odyolog-22): "Git"/"Oyna" oyuncuyu görevin yapıldığı yere götürür. Kamp oyunu ve klinik paneli açılır;
- * kampın içindeki iş (depo, inşaat, malzeme, süs, yardım) için panel kapanır, kamp görünür; bölüm ve ziyaret için harita ve Arkadaşlar.
+ * kampın içindeki iş (depo, inşaat, malzeme, yardım) için panel kapanır, kamp görünür; bölüm ve ziyaret için harita ve Arkadaşlar.
+ * Süs görevi üs görünümüne geçip süsleme kipini açar: liste görünümünde Süsle yok (OT-buyuk-yazi-68).
  */
-const GOREV_YERI: Partial<Record<KgOlcut, KgPanel | 'harita' | 'arkadas'>> = {
+const GOREV_YERI: Partial<Record<KgOlcut, KgPanel | 'harita' | 'arkadas' | 'susle'>> = {
   vaka: { kind: 'klinik', tab: 'salon' }, 'vaka-tekrar': { kind: 'klinik', tab: 'defter' },
   ton: { kind: 'oyun', oyun: 'ton' }, 'ton-iyi': { kind: 'oyun', oyun: 'ton' }, timpano: { kind: 'oyun', oyun: 'timpano' },
-  bolum: 'harita', 'malzeme-kullan': 'harita', ziyaret: 'arkadas',
+  bolum: 'harita', 'malzeme-kullan': 'harita', ziyaret: 'arkadas', 'dekor-yerlestir': 'susle',
 };
 export function gorevGit(id: string): { label: 'Git' | 'Oyna'; go(nav: Nav): void } {
   const olcut = KG_GUNLUK.find((g) => g.id === id)?.olcut; const yer = olcut ? GOREV_YERI[olcut] : undefined;
@@ -148,7 +150,7 @@ export function gorevGit(id: string): { label: 'Git' | 'Oyna'; go(nav: Nav): voi
     go: (nav) => {
       if (typeof yer === 'object') { openPanel(yer); return; }
       openPanel(null);
-      if (yer === 'harita') nav.tab('map'); else if (yer === 'arkadas') nav.open({ name: 'friends' });
+      if (yer === 'harita') nav.tab('map'); else if (yer === 'arkadas') nav.open({ name: 'friends' }); else if (yer === 'susle') kampSusle();
     },
   };
 }

@@ -995,7 +995,7 @@ async function sectionSosyal() {
   await group('sosyal', 'sosyal', async (G) => {
     const A = await netPlayer(S, 'Ayşe', { cleared: 14, color: 0xff4f7a }); const B = await netPlayer(S, 'Bora', { cleared: 10, color: 0x2ec4b6 }); const C = await netPlayer(S, 'Cem', { cleared: 5, color: 0xffb347 });
     log('sosyal: oyuncular hazır');
-    const team = (await net(A, 'team.create', { name: 'Koklea Kaşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' })).team;
+    const team = (await net(A, 'team.create', { name: 'Koklea Kâşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' })).team;
     await net(B, 'team.join', { code: team.code }); await net(C, 'team.join', { code: team.code });
     for (const p of [A, B, C]) await syncTeam(p);
     const code = (p) => p.page.evaluate(() => window.__etkinlik.net().me.friendCode);

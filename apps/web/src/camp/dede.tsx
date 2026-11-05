@@ -4,6 +4,7 @@ import { TuyDede } from '../ftue/Narrator';
 import { lineText } from '../ftue/script';
 import { speakLine, stopVoiceIf } from '../ftue/voice';
 import { MoreLine } from '../ftue/Notes';
+import { useCoach } from '../ftue/Coach';
 import { Icon } from '../ui/icons';
 
 /**
@@ -11,7 +12,8 @@ import { Icon } from '../ui/icons';
  * Hiçbir şeyi engellemez, kapatılabilir; kayıtlı ses varsa kayıt, yoksa cihaz sesi (ayar kapalıysa sessiz, altyazı ekranda).
  * Kısa satır bir süre sonra kendiliğinden kaybolur; "Daha fazla"sı olan not (anıt, yeni bina, arazi) ve anıta dokununca açılan not
  * yalnız X ile kapanır: okuyan oyuncunun elinden kaybolmaz (OT-uzman-odyolog-20). Konuşma süresi bitince satır kimliği düşer
- * (rehber turları "Tüy Dede konuşuyor" diye beklemez), not ekranda kalır.
+ * (rehber turları "Tüy Dede konuşuyor" diye beklemez), not ekranda kalır. Bir rehber turu (ör. "Kamp'ta yeni" kartındaki Göster) sürerken
+ * not görünmez ve konuşmaz, tur bitince gelir: tanıtımın arasına başka kart girmez (OT-ilk-kez-oyun-71).
  */
 export interface DedeSay {
   id?: string; text: string; kicker: string; tech?: string; key: number; /** seslendirilsin mi (dokunuşla açılan bilgi kartları sessizdir) */ voice: boolean;
@@ -31,16 +33,17 @@ export const hushDede = () => useDede.setState({ say: null });
 
 export function DedeCard({ className = '' }: { className?: string }) {
   const say = useDede((s) => s.say);
-  const talk = useRef(-1);
+  const touring = useCoach((s) => !!s.tour);
+  const talk = useRef(-1); const spoke = useRef(-1);
   useEffect(() => {
-    if (!say) return;
-    if (say.voice) talk.current = speakLine(say.text, say.id);
+    if (!say || touring) return;
+    if (say.voice && spoke.current !== say.key) { spoke.current = say.key; talk.current = speakLine(say.text, say.id); }
     // uzun süre açık kalmasın (dokunmadan da kaybolur); kalıcı not yalnız konuşan satır olmaktan çıkar
     const sticky = !!say.tech || !!say.keep;
     const h = setTimeout(() => useDede.setState((s) => (!s.say || s.say.key !== say.key ? {} : sticky ? { say: { ...s.say, id: undefined } } : { say: null })), say.tech ? 16_000 : 11_000);
     return () => { clearTimeout(h); stopVoiceIf(talk.current); };
-  }, [say?.key]);
-  if (!say) return null;
+  }, [say?.key, touring]);
+  if (!say || touring) return null;
   return (
     <aside key={say.key} className={`ear-note dede-card ${className}`} data-testid="kamp-dede" data-line={say.id ?? ''} data-key={say.key} onClick={(e) => e.stopPropagation()} aria-live="polite" aria-label="Tüy Dede">
       <span className="en-face" aria-hidden><TuyDede size={46} talking={false} mood="wink" /></span>

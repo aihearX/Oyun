@@ -182,7 +182,8 @@ function VakaAkisi({ v, replay, onBack, onClose }: { v: Vaka; replay: boolean; o
         <div className="kg-testler" data-testid="test-adim">
           <div className="kg-note">Gerekli testleri seç: az testle doğru karar +1 yıldız. İstenen test: <b data-testid="test-sayisi">{tests.length}</b></div>
           <div className="kg-test-grid">
-            {VAKA_TESTLERI.map((t) => <button key={t.id} className={`kg-test${tests.includes(t.id) ? ' on' : ''}`} data-test={t.id} onClick={() => order(t.id)} aria-pressed={tests.includes(t.id)}><TestIcon id={t.id} size={24} /><b className="kg-test-ad">{t.ad}</b><small className="kg-test-sade">{t.sade}</small></button>)}
+            {/* seçili test renkten başka bir işaretle de belli: kalın çerçeve, dolu zemin ve çizilmiş tik; ekran okuyucu "seçildi" der (OT-buyuk-yazi-71) */}
+            {VAKA_TESTLERI.map((t) => { const on = tests.includes(t.id); return <button key={t.id} className={`kg-test${on ? ' on' : ''}`} data-test={t.id} onClick={() => order(t.id)} aria-pressed={on}><TestIcon id={t.id} size={24} /><b className="kg-test-ad">{t.ad}{on && <span className="kg-test-tik" data-testid="test-secildi"><Icon name="check" size="0.9em" /><span className="sr-only">, seçildi</span></span>}</b><small className="kg-test-sade">{t.sade}</small></button>; })}
           </div>
           {tests.map((id) => <SonucKart key={id} v={v} id={id} duzey={duzey} />)}
           {team && !replay && (

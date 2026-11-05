@@ -152,7 +152,7 @@ function CreateTeam({ onClose, onDone }: { onClose: () => void; onDone: (name: s
   return (
     <Sheet title="Takım kur" onClose={onClose}>
       <div className="create-preview"><span className="cp-emblem" aria-hidden><TeamEmblem e={emblem} /></span><b className="ellipsis">{name.trim() || 'Takımının adı'}</b></div>
-      <label className="field"><span>İsim</span><input className="input" value={name} maxLength={SOCIAL_LIMITS.teamNameMax} onChange={(e) => setName(e.target.value)} placeholder="ör. Koklea Kaşifleri" autoFocus /></label>
+      <label className="field"><span>İsim</span><input className="input" value={name} maxLength={SOCIAL_LIMITS.teamNameMax} onChange={(e) => setName(e.target.value)} placeholder="ör. Koklea Kâşifleri" autoFocus /></label>
       <div className="field"><span>Amblem</span><div className="emoji-grid" role="radiogroup" aria-label="Amblem">{TEAM_EMBLEMS.map((e) => <button key={e} type="button" role="radio" aria-checked={emblem === e} aria-label={TEAM_EMBLEM_ART[e].name} data-emblem={e} className={`emoji-opt${emblem === e ? ' on' : ''}`} onClick={() => setEmblem(e)}><TeamEmblem e={e} /></button>)}</div></div>
       <label className="field"><span>Açıklama <i className="muted">(isteğe bağlı)</i></span><input className="input" value={desc} maxLength={140} onChange={(e) => setDesc(e.target.value)} placeholder="ör. Her gün biraz, hep birlikte." /></label>
       <div className="field"><div className="row between"><span>Katılım</span>

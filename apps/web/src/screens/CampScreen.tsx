@@ -12,6 +12,7 @@ import { askedHelp, buildKey, defOf, type CampActions } from '../camp/model';
 import { useBuiltCelebration } from '../camp/built';
 import { useCampLevelCelebration } from '../camp/seviye';
 import { sayDede } from '../camp/dede';
+import { useKampIstek } from '../camp/istek';
 import { demoCamp, demoParams, demoReduce, type DemoParams } from '../camp/demo';
 import { Art, artSvg, emblemArt } from '../ui/art';
 import '../camp/camp.css';
@@ -27,6 +28,10 @@ function useView(): [View, (v: View) => void] {
 export function CampScreen() {
   const demo = useMemo(demoParams, []);
   const [view, setView] = useView();
+  // süs görevinin "Git"i liste görünümünden de süsleme kipine götürür: önce üs görünümü (istek CampBase'te karşılanır)
+  const susle = useKampIstek((s) => s.susle);
+  useEffect(() => { if (susle && view !== 'us') setView('us'); }, [susle]);
+  useEffect(() => () => useKampIstek.setState({ bina: null, susle: false }), []);
   return demo ? <DemoCamp p={demo} view={view} setView={setView} /> : <RealCamp view={view} setView={setView} />;
 }
 
@@ -142,7 +147,7 @@ function DemoCamp({ p, view, setView }: { p: DemoParams; view: View; setView: (v
     decorStore: async (uid) => { const r = demoReduce(ref.current, { k: 'decorStore', uid }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return true; },
     libCollect: async () => { const r = demoReduce(ref.current, { k: 'lib' }); setS(() => ({ camp: r.camp, wallet: r.wallet })); return r.collected ?? 0; },
   }), []);
-  const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kaşifleri', emblemSvg: artSvg(emblemArt('🐚')) }), []);
+  const team = useMemo(() => ({ emblem: '🐚', name: 'Koklea Kâşifleri', emblemSvg: artSvg(emblemArt('🐚')) }), []);
   if (view === 'us') return <CampBase demo camp={s.camp} wallet={s.wallet} team={team} helpCount={2} fast={4} now={Date.now} actions={actions} onList={() => setView('liste')} />;
   return <ListShell setView={setView}><div className="camp-demo-tag static">ÖNİZLEME · sunucuya bir şey gitmez</div><CampList camp={s.camp} wallet={s.wallet} team fast={4} sNow={nowMs} actions={actions} bonuses={null} /></ListShell>;
 }

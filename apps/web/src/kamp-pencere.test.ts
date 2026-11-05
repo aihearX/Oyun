@@ -58,7 +58,7 @@ describe('Kamp Seviyesi penceresi (OT-ekonomi-denetci-27)', () => {
     const { CelebrationLayer } = await import('./celebrate/CelebrationLayer'); const { celebrate } = await import('./celebrate');
     await render(createElement(CelebrationLayer, { toasts: false }));
     let done = false;
-    await act(async () => { void celebrate.levelUp({ level: 5, kicker: 'KAMP', title: 'Kamp Seviyesi 5!', unlocks: ['Unvan: Kulak Kaşifi', '+2 süs yeri'] }).then(() => { done = true; }); });
+    await act(async () => { void celebrate.levelUp({ level: 5, kicker: 'KAMP', title: 'Kamp Seviyesi 5!', unlocks: ['Unvan: Kulak Kâşifi', '+2 süs yeri'] }).then(() => { done = true; }); });
     await tick(400);
     expect(document.querySelector('.lvl-item.in')).not.toBeNull(); // açılanlar evresi
     expect(document.querySelector('.cel-title')?.textContent).toBe('Kamp Seviyesi 5!');

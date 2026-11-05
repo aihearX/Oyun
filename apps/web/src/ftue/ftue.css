@@ -83,6 +83,10 @@
 .cp-next.abtn { min-height:48px; padding:0 18px 0 20px; font-size:1.0625rem; border-radius:16px; gap:6px; }
 .cp-next .ic { color:var(--gold-ink); }
 .cp-hint { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; font-size:0.8125rem; font-weight:900; color:var(--gold); padding:6px 12px; border-radius:999px; border:1.5px solid rgba(255,201,60,.5); background:rgba(255,201,60,.1); animation:pulse 1.4s ease-in-out infinite; }
+/* yönerge düğmesi (adımın işi var: "Odaya dokun" pencereyi açar) ve halkanın içindeki görünmez düğme */
+button.cp-hint { font:inherit; font-size:0.8125rem; font-weight:900; cursor:pointer; min-height:36px; }
+.coach-panel.compact button.cp-hint { font-size:0.78125rem; }
+.coach-act { position:absolute; pointer-events:auto; padding:0; border:0; border-radius:18px; background:transparent; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .cp-hint i { width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold); }
 
 /* ---------------------------------------------------------------- kilitli yerler */

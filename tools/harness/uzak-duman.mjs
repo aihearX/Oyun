@@ -418,7 +418,7 @@ try {
     if (sa) {
       await sekme(sa, 'Takım');
       await sa.page.getByRole('button', { name: '＋ Takım kur' }).first().click({ timeout: 15_000 });
-      await sa.page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(takimAdi);
+      await sa.page.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(takimAdi);
       await sa.page.locator('.emoji-opt').first().click();
       await sa.page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
       await sa.page.locator('.team-head').waitFor({ timeout: 15_000 });

@@ -146,7 +146,7 @@ async function suite(target) {
     await page.locator('nav.tabbar .tab[data-tab="team"]').click();
     await page.locator('.team-hero').waitFor({ timeout: 20_000 });
     await page.getByRole('button', { name: '＋ Takım kur' }).first().click();
-    await page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Sıfır ${target === 'dom' ? 'Telefon' : 'Web'}`);
+    await page.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(`Sıfır ${target === 'dom' ? 'Telefon' : 'Web'}`);
     await page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
     await page.locator('.team-head').waitFor({ timeout: 20_000 });
     ok('takım kuruldu');

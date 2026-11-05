@@ -225,7 +225,7 @@ Protokol (yalnız ekleme): `CampState.xp?: { level, total, into, need }`, `CampS
 | 2 | Odyogram Çiçek Tarhı ×2, +2 süs yeri |
 | 3 | **arazi: Sessiz Koru** + **bina: Akustik Kabin**, Stereosilya Çimi ×2 |
 | 4 | Kemikçik Bankı ×2, +1 yer |
-| 5 | unvan **Kulak Kaşifi**, Otoskop Lambası ×2, +2 yer |
+| 5 | unvan **Kulak Kâşifi**, Otoskop Lambası ×2, +2 yer |
 | 6 | **arazi: Koklea Koyu** + **bina: Yenidoğan İşitme Tarama Birimi**, Ses Dalgası Çiti ×3 |
 | 7 | Dolap: **Sessiz Koru Yeşili**, Kulaklık Salıncağı |
 | 8 | Koklea Çeşmesi, +2 yer |

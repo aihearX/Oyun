@@ -170,7 +170,7 @@ async function webSuite(bt) {
     const C = await newPlayer(bt, browser, 'Cem', 'cem', errors);
     log('üç oyuncu bağlandı');
     // kurulum (sunucu çağrıları; asıl akışlar aşağıda arayüzden)
-    const team = (await net(A, 'team.create', { name: `Koklea Kaşifleri ${tag}`, emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' })).team;
+    const team = (await net(A, 'team.create', { name: `Koklea Kâşifleri ${tag}`, emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.' })).team;
     await net(B, 'team.join', { code: team.code }); await net(C, 'team.join', { code: team.code });
     for (const p of [A, B, C]) await syncTeam(p);
     const code = async (p) => p.page.evaluate(() => window.__etkinlik.net().me.friendCode);

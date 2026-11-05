@@ -50,6 +50,12 @@ export interface CoachStep {
    */
   endIf?: () => boolean;
   /**
+   * dokunulacak yerin işi (ör. tuvaldeki binanın penceresini aç): halkanın içine dokunuş alttaki tuvale geçmez (kaydırma ya da
+   * yakınlaştırma sayılmaz, kamera kaymaz), bu işi yapar; balondaki yönerge ("Odaya dokun") de düğme olur, aynı işi yapar
+   * (OT-ogrenci-birinci-48). Adım `endIf`/`wait` ile ilerler
+   */
+  act?: () => void;
+  /**
    * yazının altında panelde gösterilen kısa bilgi (ör. arkadaş kodu): satırın sayfadaki yeri panelin altında kalsa ya da sayfa
    * hedefe kaymışken ekran dışında olsa da oyuncu görür (OT-sessiz-oyuncu-21). Seslendirilmez; onaylı satırın metni değişmez
    */
@@ -130,9 +136,9 @@ export function useTypewriter(text: string, key: unknown) {
 
 /** anlatıcı konuşma paneli: koyu cam, portre, daktilo yazı, İleri, Atla, ilerleme noktaları.
  * İleri tek dokunuşta sonraki cümleye geçer (yazı bitmeyi beklemez; sahip isteği). Ekrana dokunmak ise önce yazıyı tamamlar. */
-export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, mood, extra, note, compact, tuck, panelRef }: {
+export function SpeechPanel({ text, typed, typing, place = 'bottom', index, total, onNext, onSkip, waiting, hint, onHint, mood, extra, note, compact, tuck, panelRef }: {
   text: string; typed: string; typing: boolean; place?: 'top' | 'bottom' | 'center'; index: number; total: number;
-  onNext?: () => void; onSkip?: () => void; waiting?: boolean; hint?: string; mood?: 'happy' | 'wow' | 'wink'; extra?: ReactNode;
+  onNext?: () => void; onSkip?: () => void; waiting?: boolean; hint?: string; /** yönerge düğmesi (adımın `act`ı) */ onHint?: () => void; mood?: 'happy' | 'wow' | 'wink'; extra?: ReactNode;
   /** yazının altındaki kısa bilgi satırı (adımın `note`'u) */ note?: ReactNode;
   /** kısa ekran: küçük portre panelin içinde */ compact?: boolean;
   /** portre panelden taşmasın (hemen üstte vurgulanan hedef var) */ tuck?: boolean;
@@ -151,7 +157,9 @@ export function SpeechPanel({ text, typed, typing, place = 'bottom', index, tota
           <span className="grow" />
           {onSkip && <button type="button" className="cp-skip" onClick={onSkip}>Atla</button>}
           {waiting
-            ? <span className="cp-hint" data-testid="anlatici-ipucu"><i aria-hidden /> {hint ?? 'Parlayan yere dokun'}</span>
+            ? onHint
+              ? <button type="button" className="cp-hint cp-hint-btn" data-testid="anlatici-ipucu" onClick={onHint}><i aria-hidden /> {hint ?? 'Parlayan yere dokun'}</button>
+              : <span className="cp-hint" data-testid="anlatici-ipucu"><i aria-hidden /> {hint ?? 'Parlayan yere dokun'}</span>
             : onNext && <button type="button" className="abtn primary cp-next" data-testid="anlatici-ileri" data-yaziyor={typing ? '1' : undefined} onClick={onNext}><span className="lbl">İleri</span><Icon name="chevron" size={20} /></button>}
         </div>
       </div>
@@ -285,6 +293,7 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
   // tuck ↔ tuck'sız arasında sonsuz döngü olur (React #185; Sıralama turunda ekranın ortasındaki "benim satırım")
   useLayoutEffect(() => { const el = panelRef.current; if (!el || el.classList.contains('tuck')) return; const h = el.offsetHeight; if (h && h !== ph) setPh(h); });
   const tuck = !compact && place === 'bottom' && !!hole && hole.y + hole.h > H - insetSab - 14 - (ph || 190) - 52;
+  const act = st.act ? () => { if (!settled()) return; audio.play('tap'); try { st.act!(); } catch { /* yok */ } } : undefined;
   const onBack = () => { if (!settled()) return; if (!tw.done) { tw.finish(); return; } if (wait === 'next') go(); else setNudge((n) => n + 1); };
 
   if (!shown) {
@@ -314,11 +323,13 @@ function CoachView({ tour, index }: { tour: Tour; index: number }) {
         <div className="coach-block" style={{ left: 0, top: hole.y, width: Math.max(0, hole.x), height: hole.h }} onClick={onBack} />
         <div className="coach-block" style={{ left: hole.x + hole.w, top: hole.y, width: Math.max(0, W - hole.x - hole.w), height: hole.h }} onClick={onBack} />
       </> : !lost && <div className="coach-block" style={{ inset: 0 }} onClick={onBack} />}
+      {/* işi olan yer: halkanın içi tuvale geçmez, işi yapar (sürükleme/kaydırma sayılmaz) */}
+      {passThrough && hole && act && <button type="button" className="coach-act" data-testid="anlatici-hedef" aria-label={st.hint ?? 'Parlayan yere dokun'} style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} onClick={act} />}
       {hole && <div className="coach-ring" style={{ left: hole.x, top: hole.y, width: hole.w, height: hole.h }} />}
       {hole && wait !== 'next' && <PointHand key={nudge} hole={hole} H={H} />}
       {st.art && <div className={`coach-unlock${hole ? ' small' : ''}`}><span className="cu-burst" /><Art name={st.art} size={hole ? 54 : 96} />{st.kicker && <b>{st.kicker}</b>}</div>}
       <SpeechPanel text={st.say} typed={tw.shown} typing={!tw.done} place={place} index={index} total={tour.steps.length} mood={st.mood} note={st.note?.()} compact={compact} tuck={tuck} panelRef={panelRef}
-        waiting={wait !== 'next'} hint={st.hint} onNext={() => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
+        waiting={wait !== 'next'} hint={st.hint} onHint={act} onNext={() => { if (settled()) go(); }} onSkip={() => { if (settled()) end(true); }} />
     </div>
   );
 }

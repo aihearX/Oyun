@@ -304,7 +304,7 @@ async function domSuite(bt) {
     // telefoncu takım kurar (arayüz)
     await page.locator('nav.tabbar .tab[data-tab="team"]').click();
     await page.getByRole('button', { name: '＋ Takım kur' }).first().click();
-    await page.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill(`Telefon ${bt.slice(0, 2)}`);
+    await page.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill(`Telefon ${bt.slice(0, 2)}`);
     await page.locator('.sheet').getByRole('button', { name: /Takımı kur/ }).click();
     await page.locator('.team-head').waitFor({ timeout: 10_000 });
     await toastGone(T);

@@ -43,7 +43,7 @@ const TEAM = { name: 'Sessiz Operasyon', emblem: '🦉', description: 'Hedef: G�
 const OTHERS = [
   { lead: 'Davulcu Zar', name: 'Zar Davulcuları', emblem: '🎵', description: 'Titreşimi seven herkese açık.', open: true, lv: 22 },
   { lead: 'Bas Baykuşu', name: 'Bas Baykuşları', emblem: '🦉', description: 'Alçak frekansların ustaları.', open: false, lv: 30 },
-  { lead: 'Kıvrım Kuşu', name: 'Koklea Kaşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.', open: true, lv: 18 },
+  { lead: 'Kıvrım Kuşu', name: 'Koklea Kâşifleri', emblem: '🐚', description: 'Kulaktan beyne, hep birlikte.', open: true, lv: 18 },
 ];
 
 // ---------------------------------------------------------------- içerik verisi

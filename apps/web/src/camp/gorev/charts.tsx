@@ -94,16 +94,29 @@ export function hacimMetni({ R, L, tek }: { R?: Timp | null; L?: Timp | null; te
   const p = [R && `sağ ${fmt(R.hacim)} ml`, L && `sol ${fmt(L.hacim)} ml`].filter(Boolean);
   return p.length ? `Kanal hacmi: ${p.join(' · ')}` : null;
 }
-/** mini: seçenek kartı için küçük çizim; tüm mini eğriler aynı ölçekte (yükseklikler karşılaştırılabilir), eksen yazısı yok */
+/**
+ * mini: seçenek kartı için küçük çizim; tüm mini eğriler aynı ölçekte (yükseklikler karşılaştırılabilir), eksen yazısı yok.
+ * Büyük çizimde 0 ml çizgisi kutunun alt kenarından biraz yukarıda (alt pay `ylo`): düz (Tip B) eğri x ekseni ve kutu kenarıyla
+ * üst üste binmez; her eğrinin altında koyu kenar çizgisi var, eğri ızgaradan renksiz de ayrılır (OT-buyuk-yazi-72)
+ */
 export function TimpanogramSvg({ R, L, tek, values = false, title = 'Timpanogram', mini = false }: { R?: Timp | null; L?: Timp | null; tek?: Timp; values?: boolean; title?: string; mini?: boolean }) {
-  const W = 320, H = 200, x0 = mini ? 8 : 40, x1 = mini ? 312 : 306, y0 = 14, y1 = mini ? 190 : 168;
+  const W = 320, H = 200, x0 = mini ? 8 : 44, x1 = mini ? 312 : 306, y0 = 14, y1 = mini ? 190 : 168;
   const all = [R, L, tek].filter((t): t is Timp => !!t);
   // üstte hacim satırına yer kalsın: en yüksek tepenin üstünde boşluk
   const ymax = mini ? 3.2 : Math.max(2, ...all.map((t) => t.uyum + 0.55));
+  const ylo = mini ? 0 : -0.2;
   const hacim = mini || (tek && !values) ? null : hacimMetni({ R, L, tek });
   const xOf = (p: number) => x0 + ((p + 400) / 600) * (x1 - x0);
-  const yOf = (v: number) => y1 - (v / ymax) * (y1 - y0);
-  const line = (t: Timp, color: string, dash?: string, key = '') => <path key={key} d={curve(t).map(([p, v], i) => `${i ? 'L' : 'M'}${xOf(p).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ')} fill="none" stroke={color} strokeWidth={mini ? 5 : 2.6} strokeDasharray={dash} strokeLinecap="round" />;
+  const yOf = (v: number) => y1 - ((v - ylo) / (ymax - ylo)) * (y1 - y0);
+  const line = (t: Timp, color: string, dash?: string, key = '') => {
+    const d = curve(t).map(([p, v], i) => `${i ? 'L' : 'M'}${xOf(p).toFixed(1)} ${yOf(v).toFixed(1)}`).join(' ');
+    return (
+      <g key={key}>
+        {!mini && <path className="kg-egri-kenar" d={d} fill="none" stroke="#120a33" strokeOpacity=".9" strokeWidth={6.6} strokeLinecap="round" strokeLinejoin="round" />}
+        <path className="kg-egri" d={d} fill="none" stroke={color} strokeWidth={mini ? 5 : 2.6} strokeDasharray={dash} strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+    );
+  };
   return (
     <svg className={`kg-chart kg-timp${mini ? ' mini' : ''}`} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={title} data-testid={mini ? 'timpanogram-mini' : 'timpanogram'}>
       <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} rx="6" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.18)" />
@@ -113,7 +126,7 @@ export function TimpanogramSvg({ R, L, tek, values = false, title = 'Timpanogram
       {[0, 0.5, 1, 1.5, 2, 2.5, 3].filter((v) => v <= ymax).map((v) => <g key={v}><line x1={x0} x2={x1} y1={yOf(v)} y2={yOf(v)} stroke="rgba(255,255,255,.08)" />{!mini && <text x={x0 - 5} y={yOf(v) + 3.5} textAnchor="end" className="kg-ax">{fmt(v)}</text>}</g>)}
       {!mini && <text x={x1} y={H - 2} textAnchor="end" className="kg-ax small">daPa</text>}
       {!mini && <text x={x0} y={H - 2} className="kg-ax small kg-normal" data-testid="timp-norm">Kutu: yetişkin normu</text>}
-      {!mini && <text x={6} y={y0 + 4} className="kg-ax small" transform={`rotate(-90 6 ${y0 + 4})`} textAnchor="end">ml</text>}
+      {!mini && <text x={11} y={y0 + 4} className="kg-ax small" transform={`rotate(-90 11 ${y0 + 4})`} textAnchor="end">ml</text>}
       {tek && line(tek, '#ffd66b', undefined, 't')}
       {R && line(R, RED, undefined, 'r')}
       {L && line(L, BLUE, '7 4', 'l')}

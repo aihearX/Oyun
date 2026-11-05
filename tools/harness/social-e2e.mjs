@@ -114,7 +114,7 @@ try {
   await A.locator('.team-hero').waitFor();
   await shot(A, 'A-takimsiz');
   await A.getByRole('button', { name: '＋ Takım kur' }).first().click();
-  await A.locator('.sheet').getByPlaceholder('ör. Koklea Kaşifleri').fill('Koklea Kaşifleri');
+  await A.locator('.sheet').getByPlaceholder('ör. Koklea Kâşifleri').fill('Koklea Kâşifleri');
   await A.locator('.emoji-opt[data-emblem="🐚"]').click();
   await A.locator('.sheet').getByPlaceholder('ör. Her gün biraz, hep birlikte.').fill('Her gün biraz, hep birlikte.');
   await shot(A, 'A-takim-kur');
@@ -134,7 +134,7 @@ try {
   await B.locator('.code-join').getByRole('button', { name: 'Katıl' }).click();
   await B.locator('.team-head').waitFor();
   await toastGone(B);
-  check((await B.locator('.team-head h2').innerText()).includes('Koklea Kaşifleri'), 'B takımda');
+  check((await B.locator('.team-head h2').innerText()).includes('Koklea Kâşifleri'), 'B takımda');
 
   step('4 · Takım sohbeti: karşılıklı mesaj');
   await A.getByRole('textbox', { name: 'Mesaj' }).fill('Merhaba takım! Bu hafta kepçeyi alalım mı?');
