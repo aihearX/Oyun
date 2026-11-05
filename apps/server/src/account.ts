@@ -11,6 +11,7 @@ import { rankInvalidate } from './rank';
 import { leaveRace } from './race';
 import { teamRaceForget } from './teamrace';
 import { rallyForget } from './events/rally';
+import { isAdmin } from './codes';
 import { anonimOyuncu, PURCHASE_RETAIN_YEARS, REPORT_RETAIN_AFTER_DELETE_MS, REPORT_RETAIN_MS, veriyiTemizle } from './account-veri';
 
 export const isDeleted = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM deleted_players WHERE player_id = ?', pid);
@@ -27,6 +28,8 @@ export function deleteAccount(app: App, pid: string): void {
     rallyForget(app, pid); // saldırısı başlamamış ralli katılımı (düello takım kaydıdır, oyuncu bekletmez)
     // arkadaşlar: karşı tarafın listesinden düşsün
     for (const r of app.db.all<{ b: string }>('SELECT b FROM friends WHERE a = ?', pid)) app.emit(r.b, 'friend.removed', { id: pid });
+    // yönetici hesabının Günün Sorusu ve baskın katkısı takım toplamına hiç girmedi (ADMIN_FLAG_IDS_SQL); bayrağı silinince girmesin (YN-257)
+    if (isAdmin(app, pid)) for (const t of ['dq_answers', 'raid_damage']) app.db.run(`DELETE FROM ${t} WHERE player_id = ?`, pid);
     // sınıflandırmaya göre: sil / anonimleştir / gerekçeyle tut (account-veri.ts)
     veriyiTemizle(app.db, 'oyuncu', pid, { ad: p.name, createdAt: p.created_at });
     anonimOyuncu(app.db, pid, app.now(), true);

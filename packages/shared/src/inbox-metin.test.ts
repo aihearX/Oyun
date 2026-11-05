@@ -28,6 +28,12 @@ describe('ödül kutusu metinleri', () => {
     expect(inboxReasonText({ kind: 'jeton', reason: 'Teşekkür: Silinmiş Oyuncu 40. bölümü geçti' })).toBe('Yardım ettiğin bir oyuncu 40. bölümü geçti');
     expect(inboxReasonText({ kind: 'jeton', reason: 'Yardım ettiğin Silinmiş Oyuncu 12. bölümü geçti' })).toBe('Yardım ettiğin bir oyuncu 12. bölümü geçti');
   });
+  it('kalkan satırı: gönderen hesabını sildiyse ad yerine "bir takım arkadaşın (artık oyunda değil)"; eski kayıtlar da (YN-258, OT-ilk-kez-oyun-77)', () => {
+    expect(INBOX_TEXT.shieldSent('Ayşe', 13)).toBe('Ayşe 13. bölüm için sana kalkan gönderdi');
+    expect(INBOX_TEXT.shieldSent('Silinmiş Oyuncu', 13)).toBe('Bir takım arkadaşın (artık oyunda değil) 13. bölüm için sana kalkan göndermişti');
+    expect(inboxReasonText({ kind: 'kalkan', reason: 'Silinmiş Oyuncu 13. bölüm için sana kalkan gönderdi.' })).toBe('Bir takım arkadaşın (artık oyunda değil) 13. bölüm için sana kalkan göndermişti');
+    expect(inboxReasonText({ kind: 'kalkan', reason: 'Ayşe Nur 13. bölüm için sana kalkan gönderdi.' })).toBe('Ayşe Nur 13. bölüm için sana kalkan gönderdi');
+  });
   it('Hepsini al bildirimi yalnız alınan türleri sayar', () => {
     const got: { kind: InboxKind; amount: number }[] = [...[...Array(5)].map(() => ({ kind: 'kristal' as const, amount: 40 })), { kind: 'jeton', amount: 300 }, { kind: 'jeton', amount: 300 }];
     expect(inboxGotText(got)).toBe('+600 jeton, +200 kristal');

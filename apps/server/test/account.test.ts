@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import { DELETED_PLAYER_NAME } from '@odi/shared';
+import { QUIZ_QUESTIONS } from '@odi/content';
 import { VERI_SINIFI, type Kural } from '../src/account-veri';
 import { Db } from '../src/db';
 import { createGift } from '../src/teamextra';
@@ -76,6 +77,60 @@ describe('hesabı silme (account.delete)', () => {
     expect((await saglik()).players).toBe(1);
     await a.call('account.delete', {});
     expect((await saglik()).players).toBe(0);
+  });
+});
+
+describe('hesap silinince takım puanı katkısı anonim kalır (YN-257, OT-rekabetci-52)', () => {
+  it('Günün Sorusu doğrusu ve baskın hasarı Takım Ligi ile takım tablolarında kalır; silinen hesap bireysel tabloda görünmez, seçtiği şık silinir', async () => {
+    env = await setup({ raidAlways: true });
+    const app = env.srv.app;
+    const a = await env.connect('Ayşe'); const b = await env.connect('Bora');
+    const bid = b.me!.id;
+    const t = (await a.call('team.create', { name: 'Kulaklar', emblem: '👂' })).team;
+    await b.call('team.join', { teamId: t.id });
+    // Bora Günün Sorusu'nu doğru cevaplar, baskında hasar verir; Ayşe yanlış cevaplar
+    const q = (await b.call('dq.state', {})).question!;
+    const def = QUIZ_QUESTIONS.find((x) => x.text === q.text)!;
+    await b.call('dq.answer', { choice: def.answer });
+    await a.call('dq.answer', { choice: (def.answer + 1) % 4 });
+    expect((await b.call('progress.submit', run(1, { stars: 3 }))).raidDamage).toBeGreaterThan(0);
+    env.clock.advance(8 * 3_600_000 + 1000); env.srv.sweep(); // 20:00 açıklama
+    const lig = async () => (await a.call('tlig.state', {})).state.mine;
+    const tablo = async (board: 't-soru' | 't-baskin' | 'soru') => (await a.call('rank.board', { board, scope: 'herkes' })).view.rows.map((r) => [r.name, r.value]);
+    const once = { lig: await lig(), soru: await tablo('t-soru'), baskin: await tablo('t-baskin') };
+    expect(once.lig.quiz).toBe(1);
+    expect(once.lig.weeks!.reduce((x, w) => x + w.raidRaw, 0)).toBeGreaterThan(0);
+    expect(await tablo('soru')).toEqual([['Bora', 1]]);
+
+    expect(await b.call('account.delete', {})).toEqual({ deleted: true });
+
+    // takımın Takım Ligi toplamı (Bilgi ve Baskın dahil) ve takım tabloları aynı
+    expect(await lig()).toEqual(once.lig);
+    expect(await tablo('t-soru')).toEqual(once.soru);
+    expect(await tablo('t-baskin')).toEqual(once.baskin);
+    // bireysel tablo: silinen hesap yok
+    expect(await tablo('soru')).toEqual([]);
+    // satırlar anonim oyuncu kimliğinde; seçilen şık silindi
+    expect(app.db.all('SELECT choice, correct FROM dq_answers WHERE player_id = ?', bid)).toEqual([{ choice: -1, correct: 1 }]);
+    expect(app.player(bid).name).toBe(DELETED_PLAYER_NAME);
+  });
+
+  it('yönetici hesabının katkısı takım toplamına girmemişti; hesap silinince de girmez', async () => {
+    env = await setup({ raidAlways: true });
+    const app = env.srv.app;
+    const a = await env.connect('Ayşe'); const y = await env.connect('Yönetici');
+    const t = (await a.call('team.create', { name: 'Kulaklar', emblem: '👂' })).team;
+    await y.call('team.join', { teamId: t.id });
+    app.db.run('INSERT INTO player_flags(player_id, admin) VALUES(?, 1)', y.me!.id);
+    const q = (await y.call('dq.state', {})).question!;
+    await y.call('dq.answer', { choice: QUIZ_QUESTIONS.find((x) => x.text === q.text)!.answer });
+    await y.call('progress.submit', run(1, { stars: 3 }));
+    env.clock.advance(8 * 3_600_000 + 1000); env.srv.sweep();
+    const lig = async () => (await a.call('tlig.state', {})).state.mine;
+    const once = await lig();
+    expect([once.quiz, once.weeks!.reduce((x, w) => x + w.raidRaw, 0)]).toEqual([0, 0]);
+    await y.call('account.delete', {});
+    expect(await lig()).toEqual(once);
   });
 });
 

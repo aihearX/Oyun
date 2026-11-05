@@ -1,4 +1,4 @@
-import { SOCIAL_LIMITS, WAR_REGIONS, isTeamEmblem, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
+import { INBOX_TEXT, SOCIAL_LIMITS, WAR_REGIONS, isTeamEmblem, type HelpRequest, type TeamDetail, type TeamMember, type TeamRole, type TeamSummary } from '@odi/shared';
 import { fail, parseJson, randomCode, rid, type App, type Handlers, type PlayerRow, type TeamRow } from './app';
 import { systemMessage, teamRoom } from './chat';
 import { feedEvent, onHelpCard } from './comm';
@@ -243,7 +243,7 @@ export const teamHandlers: Handlers = {
     if (helpers.length >= r.max) fail('DOLU', 'Bu istek için yeterince yardım toplandı.');
     helpers.push(p.id);
     app.db.run('UPDATE help_requests SET helpers = ? WHERE id = ?', JSON.stringify(helpers), r.id);
-    app.addInbox(r.from_id, { kind: 'kalkan', amount: 1, ref: '' }, `${p.name} ${r.level}. bölüm için sana kalkan gönderdi.`);
+    app.addInbox(r.from_id, { kind: 'kalkan', amount: 1, ref: '' }, INBOX_TEXT.shieldSent(p.name, r.level));
     app.addCurrency(p.id, 'jeton', HELP_GIVE_JETON);
     app.walletChanged(p.id);
     addContrib(app, t.id, p.id, { helps: 1 });

@@ -14,7 +14,7 @@ import { postCard, systemMessage, teamRoom } from '../chat';
 import { dayKey, weekInfo, DAY_MS, WEEK_MS } from '../time';
 import { feedShareOn, metric } from '../comm/settings';
 import { seasonTable } from '../teamrace/league';
-import { ADMIN_IDS_SQL, isAdmin } from '../codes';
+import { ADMIN_FLAG_IDS_SQL, ADMIN_IDS_SQL, isAdmin } from '../codes';
 
 export const RANK_SCHEMA = `
 CREATE TABLE IF NOT EXISTS rank_level(player_id TEXT NOT NULL, level INTEGER NOT NULL, stars INTEGER NOT NULL, PRIMARY KEY(player_id, level));
@@ -69,9 +69,9 @@ function teamEntries(app: App, board: RankBoardId, week: string): Entry[] {
       LEFT JOIN (SELECT p.team_id, SUM(x.v) AS v FROM (${POWER_SQL}) x JOIN players p ON p.id = x.id WHERE p.team_id IS NOT NULL AND p.id NOT IN (${ADMIN_IDS_SQL}) GROUP BY p.team_id) m ON m.team_id = t.id
       LEFT JOIN (SELECT team_id, SUM(level) AS lv FROM team_tech GROUP BY team_id) k ON k.team_id = t.id`;
   else if (board === 't-savas') { sql = 'SELECT team_id AS id, points AS v FROM team_week WHERE week = ?'; args.push(week); }
-  else if (board === 't-baskin') { sql = `SELECT team_id AS id, SUM(damage) AS v FROM raid_damage WHERE raid_id = ? AND player_id NOT IN (${ADMIN_IDS_SQL}) GROUP BY team_id`; args.push(week); }
+  else if (board === 't-baskin') { sql = `SELECT team_id AS id, SUM(damage) AS v FROM raid_damage WHERE raid_id = ? AND player_id NOT IN (${ADMIN_FLAG_IDS_SQL}) GROUP BY team_id`; args.push(week); }
   else if (board === 't-lig') return seasonTable(app).filter((x) => x.value > 0);
-  else if (board === 't-soru') { sql = `SELECT a.team_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? AND a.player_id NOT IN (${ADMIN_IDS_SQL}) GROUP BY a.team_id`; args.push(week); }
+  else if (board === 't-soru') { sql = `SELECT a.team_id AS id, SUM(a.correct) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1 WHERE d.week = ? AND a.player_id NOT IN (${ADMIN_FLAG_IDS_SQL}) GROUP BY a.team_id`; args.push(week); }
   return app.db.all<TRow>(`SELECT t.id, t.name, t.emblem, x.v FROM (${sql}) x JOIN teams t ON t.id = x.id WHERE x.v > 0`, ...args)
     .map((r) => ({ id: r.id, value: r.v, name: r.name, emblem: r.emblem }));
 }

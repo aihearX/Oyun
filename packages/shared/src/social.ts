@@ -202,6 +202,10 @@ export const INBOX_TEXT = {
   war: (week: string, region: string, kind: InboxKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
   /** yardım ettiğin oyuncu bölümü geçti (neye teşekkür edildiği yazılır); silinmiş hesapta ad yerine "bir oyuncu" (OT-ilk-kez-oyun-56) */
   helped: (name: string, level: number) => `Yardım ettiğin ${name === DELETED_PLAYER_NAME ? 'bir oyuncu' : name} ${level}. bölümü geçti`,
+  /** yardım isteğine kalkan geldi; gönderen hesabını sonradan sildiyse ad yerine yumuşak dil (YN-258, OT-ilk-kez-oyun-77) */
+  shieldSent: (name: string, level: number) => (name === DELETED_PLAYER_NAME
+    ? `Bir takım arkadaşın (artık oyunda değil) ${level}. bölüm için sana kalkan göndermişti`
+    : `${name} ${level}. bölüm için sana kalkan gönderdi`),
 };
 /**
  * Takım hediyeli paket satın alınınca takıma giden duyuru ve hediye kartı ADSIZDIR (karar 39, YN-097):
@@ -237,6 +241,8 @@ export function inboxReasonText(it: Pick<InboxItem, 'reason' | 'kind'>): string 
   m = /^Bölge Savaşı (\d{4}-W\d{2}): (.+) bölgesi sizin$/.exec(r); if (m) return INBOX_TEXT.war(m[1]!, m[2]!, it.kind);
   // eski "Teşekkür: ‹ad› N. bölümü geçti" ve hesabı sonradan silinen ("Silinmiş Oyuncu") yardım satırı
   m = /^(?:Teşekkür: |Yardım ettiğin )(.+) (\d+)\. bölümü geçti$/.exec(r); if (m) return INBOX_TEXT.helped(m[1]!, Number(m[2]));
+  // kalkan satırı (eski kayıt sonda noktalı); gönderenin hesabı silindiyse kayıtta ad "Silinmiş Oyuncu" olmuştur (account-veri.ts metinAd)
+  m = /^(.+) (\d+)\. bölüm için sana kalkan gönderdi\.?$/.exec(r); if (m) return INBOX_TEXT.shieldSent(m[1]!, Number(m[2]));
   return r;
 }
 

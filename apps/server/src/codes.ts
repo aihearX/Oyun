@@ -42,9 +42,11 @@ export function checkAdminCode(app: App, code: string): boolean {
 }
 
 // ------------------------------------------------------------------ yönetici bayrağı
-/** yönetici olarak işaretli hesaplar (kalıcı; rekabet tablolarından ve ödüllerden çıkarılır) */
-/** rekabet tablolarından ve ödüllerden çıkarılanlar: yönetici hesapları + silinmiş hesaplar (account.ts) */
-export const ADMIN_IDS_SQL = 'SELECT player_id FROM player_flags WHERE admin = 1 UNION SELECT player_id FROM deleted_players';
+/** yönetici olarak işaretli hesaplar (kalıcı). Takım toplamları (Takım Ligi, takım sıralaması) yalnız bunları çıkarır: silinen
+ *  hesabın katkısı anonim kalır, takımın puanı düşmez (YN-257, account-veri.ts) */
+export const ADMIN_FLAG_IDS_SQL = 'SELECT player_id FROM player_flags WHERE admin = 1';
+/** bireysel rekabet tablolarından ve ödüllerden çıkarılanlar: yönetici hesapları + silinmiş hesaplar (account.ts) */
+export const ADMIN_IDS_SQL = `${ADMIN_FLAG_IDS_SQL} UNION SELECT player_id FROM deleted_players`;
 export const isAdmin = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM player_flags WHERE player_id = ? AND admin = 1', pid);
 export const isAdminOn = (app: App, pid: string) => !!app.db.get('SELECT 1 AS x FROM player_flags WHERE player_id = ? AND admin = 1 AND admin_on = 1', pid);
 export function adminState(app: App, pid: string): AdminState {

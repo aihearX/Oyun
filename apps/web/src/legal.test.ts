@@ -123,6 +123,12 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(ayarlar).toContain('Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz.');
     expect(ayarlar).toMatch(/data-testid="sifirla-gizlilik"[^\n]{0,160}setLegal\('gizlilik'\)/);
     expect(ayarlar).not.toContain('Her şey silinecek');
+    // Ayarlar › Hesabı sil kartı pencerenin cümlesinin kısa hâlini ve Gizlilik bağlantısını gösterir (YN-258, OT-ekonomi-denetci-46)
+    expect(ayarlar).toContain('Takım etkinliklerindeki süre ve puan katkıların adsız kalır.');
+    expect(ayarlar).toMatch(/data-testid="hesap-sil-gizlilik"[^\n]{0,160}setLegal\('gizlilik'\)/);
+    // takım puanına giren katkılar (Takım Ligi Bilgi ve Baskın) silinmez, anonimleşir (YN-257)
+    expect(VERI_SINIFI.dq_answers!.oyuncu!.player_id!.karar).toBe('anonim');
+    expect(VERI_SINIFI.raid_damage!.oyuncu!.player_id!.karar).toBe('anonim');
   });
 
   it('Türkçe karakterler doğru (ASCII yazım yok)', () => {

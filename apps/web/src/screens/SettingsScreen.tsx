@@ -48,8 +48,8 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
   const s = useStore();
   const lastPreview = useRef(0);
   const [ask, setAsk] = useState(false); const [busy, setBusy] = useState(false); const [legal, setLegal] = useState<YasalSayfa | null>(null);
-  /** silme penceresinden açılan Gizlilik: § 7'den başlar, kapanınca silme penceresine döner */
-  const [legalBolum, setLegalBolum] = useState<string | null>(null);
+  /** silme penceresinden ya da Hesabı sil kartından açılan Gizlilik § 7'den başlar; yalnız pencereden açıldıysa kapanınca pencereye döner */
+  const [legalBolum, setLegalBolum] = useState<string | null>(null); const [legalDonus, setLegalDonus] = useState(false);
   const me = useNet((x) => x.me);
   void onReset; // eski arayüz: sıfırlama artık uygulamayı baştan kurar
   const preview = () => { const t = performance.now(); if (t - lastPreview.current > 250) { lastPreview.current = t; audio.play('coin'); } };
@@ -102,13 +102,15 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       <CodeSettingsCard />
       <KurucuSecim />
       <GeriBildirimKart />
-      <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div></div><button className="btn coral small" data-testid="sifirla" onClick={() => { setLegal(null); setAsk(true); }}>Hesabı sil</button></div>
+      <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div>
+        {/* silme penceresindeki adsız kalanlar cümlesinin kısa hâli (YN-258, OT-ekonomi-denetci-46) */}
+        <div className="muted" data-testid="hesap-sil-anonim">Takım etkinliklerindeki süre ve puan katkıların adsız kalır. <button type="button" className="linkish legal-link" data-testid="hesap-sil-gizlilik" onClick={() => { setLegalDonus(false); setLegalBolum('silme'); setLegal('gizlilik'); }}>Gizlilik</button></div></div><button className="btn coral small" data-testid="sifirla" onClick={() => { setLegal(null); setAsk(true); }}>Hesabı sil</button></div>
       {ask && (
         <Sheet title="Hesabın silinsin mi?" onClose={() => { if (!busy) setAsk(false); }}>
           <div className="reset-sheet" data-testid="sifirla-onay">
             <p className="rs-warn"><Art name="trash" size={22} /> Silinecek: hesabın, ilerleme, jetonlar, satın aldıkların, takım üyeliği, arkadaşlar, mesajlar, ayarlar.</p>
             {/* gizlilik metni § 7 "Anonimleşir" ile aynı (account-veri.ts: katkı satırları, ayak rekoru, akıştaki olay satırları; YN-244) */}
-            <p className="muted" data-testid="sifirla-anonim">Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz. <button type="button" className="linkish legal-link" data-testid="sifirla-gizlilik" disabled={busy} onClick={() => { setAsk(false); setLegal('gizlilik'); setLegalBolum('silme'); }}>Gizlilik: neler silinir, neler kalır</button></p>
+            <p className="muted" data-testid="sifirla-anonim">Takım etkinliklerindeki sürelerin ve takım puanına katkıların adsız (“Silinmiş Oyuncu”) kalır; seni tanıtmaz. <button type="button" className="linkish legal-link" data-testid="sifirla-gizlilik" disabled={busy} onClick={() => { setAsk(false); setLegal('gizlilik'); setLegalBolum('silme'); setLegalDonus(true); }}>Gizlilik: neler silinir, neler kalır</button></p>
             <p className="muted">Bu cihazda yeni bir oyuncu olarak, hikâyeyle baştan başlarsın. Geri alınamaz. İnternet bağlantın yoksa sunucudaki hesabın silinemez; yalnızca bu cihaz sıfırlanır.{me ? <> O durumda silmeyi e-postayla isteyebilmek için arkadaş kodunu not al: <b className="mono">{me.friendCode}</b>.</> : null}</p>
             <div className="rs-actions">
               <button type="button" className="btn ghost" disabled={busy} onClick={() => setAsk(false)}>Vazgeç</button>
@@ -124,7 +126,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           <button type="button" className="btn small ghost" data-testid="hakkinda-ac" onClick={() => { setLegalBolum(null); setLegal('hakkinda'); }}>Hakkında / iletişim</button>
         </div>
       </div>
-      {legal && <LegalSheet sayfa={legal} bolum={legalBolum ?? undefined} onClose={() => { setLegal(null); if (legalBolum) { setLegalBolum(null); setAsk(true); } }} onDelete={() => { setLegal(null); setLegalBolum(null); setAsk(true); }} />}
+      {legal && <LegalSheet sayfa={legal} bolum={legalBolum ?? undefined} onClose={() => { setLegal(null); setLegalBolum(null); if (legalDonus) { setLegalDonus(false); setAsk(true); } }} onDelete={() => { setLegal(null); setLegalBolum(null); setLegalDonus(false); setAsk(true); }} />}
       <div className="muted" data-testid="surum">ODİ: Sesin Yolu · sürüm {APP_VERSION} · {AYAR.YAYINCI}</div>
     </div>
   );

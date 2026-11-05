@@ -8,7 +8,7 @@ import { TEAM_LEAGUE_RULES as R, TEAM_LEAGUE_TIERS, teamLeagueReward, type TeamL
 import { fail, rid, type App } from '../app';
 import { systemMessage, teamRoom } from '../chat';
 import { DAY_MS, WEEK_MS, weekInfo } from '../time';
-import { ADMIN_IDS_SQL, isAdmin } from '../codes';
+import { ADMIN_FLAG_IDS_SQL, isAdmin } from '../codes';
 
 export const TLIG_SCHEMA = `
 CREATE TABLE IF NOT EXISTS tl_team(team_id TEXT PRIMARY KEY, tier TEXT NOT NULL DEFAULT 'bronz');
@@ -51,10 +51,10 @@ export function seasonPoints(app: App, teamId: string, s: Season): TeamLeagueBre
   for (const w of s.weeks) {
     const wp = app.db.get<{ v: number }>('SELECT points AS v FROM team_week WHERE week = ? AND team_id = ?', w, teamId)?.v ?? 0;
     const ww = Math.min(R.sources.war.capWeek, Math.floor(wp / R.sources.war.per));
-    const rd = app.db.get<{ v: number }>(`SELECT COALESCE(SUM(damage), 0) AS v FROM raid_damage WHERE raid_id = ? AND team_id = ? AND player_id NOT IN (${ADMIN_IDS_SQL})`, w, teamId)!.v;
+    const rd = app.db.get<{ v: number }>(`SELECT COALESCE(SUM(damage), 0) AS v FROM raid_damage WHERE raid_id = ? AND team_id = ? AND player_id NOT IN (${ADMIN_FLAG_IDS_SQL})`, w, teamId)!.v;
     const wr = Math.min(R.sources.raid.capWeek, Math.floor(rd / R.sources.raid.per));
     const q = app.db.get<{ v: number }>(`SELECT COALESCE(SUM(a.correct), 0) AS v FROM dq_answers a JOIN dq d ON d.team_id = a.team_id AND d.day = a.day AND d.revealed = 1
-      WHERE d.week = ? AND a.team_id = ? AND a.player_id NOT IN (${ADMIN_IDS_SQL})`, w, teamId)!.v;
+      WHERE d.week = ? AND a.team_id = ? AND a.player_id NOT IN (${ADMIN_FLAG_IDS_SQL})`, w, teamId)!.v;
     const wq = Math.min(R.sources.quiz.capWeek, q);
     war += ww; raid += wr; quiz += wq;
     weeks.push({ war: ww, raid: wr, quiz: wq, warRaw: wp, raidRaw: rd });
