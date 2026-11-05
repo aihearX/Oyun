@@ -48,7 +48,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   A('altin-kulak', '🐚', 'Altın Kulak', '{n} farklı altın koklea bul', 'secrets', [1, 2, 4]),
   A('tuy-gibi', '🪶', 'Tüy Gibi', '{n} kez hiç hasar almadan bitir (tekrarlar da sayılır)', 'noDamage', [1, 10, 30]),
   A('gurultu-avcisi', '👹', 'Gürültü Avcısı', '{n} canavar yen', 'bosses', [1, 2]),
-  A('ses-hizinda', '💨', 'Ses Hızında', '{n} kez par süresinden hızlı bitir (tekrarlar da sayılır)', 'underPar', [1, 10, 30]),
+  A('ses-hizinda', '💨', 'Ses Hızında', '{n} kez süre bonusu alarak bitir (tekrarlar da sayılır)', 'underPar', [1, 10, 30]),
   A('sansli-kulak', '🍀', 'Şanslı Kulak', '{n} Şanslı Nota topla', 'lucky', [1, 5, 15]),
   A('meydan-okuyucu', '📣', 'Meydan Okuyucu', '{n} kez arkadaşına meydan oku', 'shares', [1, 5, 20]),
   A('gorev-kulagi', '📋', 'Görev Kulağı', '{n} günlük görev tamamla', 'quests', [3, 30, 100]),

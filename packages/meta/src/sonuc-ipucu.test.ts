@@ -30,9 +30,9 @@ describe('3. yıldız kartı: koşul her zaman tam (OT-rekabetci-17)', () => {
   });
   it('melodi, hasarsız, eskort: aynı tam metin ve iki parçanın ilerlemesi', () => {
     const melody = spec(19, { id: 'melody', target: 7, label: 'Notaları sırayla topla (7)' });
-    expect(star3View(melody, run({ coins: 70, extra: { melody: 4, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'Notaları sırayla topla (7) ve 60 nota', note: '60 nota tamam · 4/7 sırayla' });
+    expect(star3View(melody, run({ coins: 70, extra: { melody: 4, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'notaları sırayla topla (7) ve 60 nota', note: '60 nota tamam · 4/7 sırayla' });
     const nd = spec(15, { id: 'no-damage', label: 'Hiç hasar alma' });
-    expect(star3View(nd, run({ coins: 70, damageTaken: 2 })).rows[1]).toMatchObject({ text: 'Hiç hasar alma ve 60 nota', note: '60 nota tamam · 2 hasar aldın' });
+    expect(star3View(nd, run({ coins: 70, damageTaken: 2 })).rows[1]).toMatchObject({ text: 'hiç hasar alma ve 60 nota', note: '60 nota tamam · 2 hasar aldın' });
     const esc = spec(17, { id: 'escort', label: 'Fısıltıyı kapıya taşı' });
     expect(star3View(esc, run({ coins: 70 })).rows[1]).toMatchObject({ text: 'Fısıltıyı kapıya taşı ve 60 nota', note: '60 nota tamam · Fısıltı yolda kaldı' });
     // süreli hedefte nota şartı yok (star3Objective 0): metin yalnız süre

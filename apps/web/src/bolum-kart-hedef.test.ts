@@ -5,7 +5,7 @@ import { DEFAULT_SKILLS, HUMAN_JOURNEY } from '@odi/content';
 import { generateLevel } from '@odi/level-gen';
 import { star3View, starHead } from '@odi/meta';
 import { scoreRun, type LevelSpec, type RunResult } from '@odi/shared';
-import { nodeGoalLines } from './map/goals';
+import { nodeGoalLines, star3Line } from './map/goals';
 
 const prof = { recentStars: 2, failStreak: 0, skills: DEFAULT_SKILLS };
 /** sonuç ekranı 3. yıldız kartını 2★ kazançta gösterir: 2★ eşiğinde bir koşu (hedef tutmadı) */
@@ -26,7 +26,7 @@ describe('bölüm kartı: geçme koşulu ve 3. yıldız', () => {
       expect(card.pass, `bölüm ${l.number}`).toBe(spec.mechanic === 'boss' ? 'Canavarı yen' : 'Kapıya ulaş');
       if (spec.objective.id !== 'reach' && spec.objective.id !== 'boss') {
         expect(card.pass).not.toContain(spec.objective.label);
-        if (view.rows.length > 1) expect(card.star3).toContain(spec.objective.label);
+        if (view.rows.length > 1) expect(card.star3.toLocaleLowerCase('tr-TR')).toContain(spec.objective.label.toLocaleLowerCase('tr-TR'));
       }
     }
   });
@@ -44,6 +44,19 @@ describe('bölüm kartı: geçme koşulu ve 3. yıldız', () => {
     expect(spec.objective.id).toBe('reach');
     const n3 = Math.ceil(spec.coinsTotal * 0.9 - 1e-9);
     expect(nodeGoalLines(spec)).toEqual({ pass: 'Kapıya ulaş', star3Head: '3. yıldız', star3: `${n3} nota` });
+  });
+
+  it('"ya da"dan sonraki koşul küçük harfle (Türkçe "Hiç" → "hiç"); Fısıltı adı büyük kalır; tek başına satır aynı (YN-221)', () => {
+    const lines = HUMAN_JOURNEY.levels.map((l) => nodeGoalLines(generateLevel(HUMAN_JOURNEY.id, l.number, prof)).star3);
+    const sonra = lines.flatMap((s) => s.split(' ya da ').slice(1));
+    expect(sonra.length).toBeGreaterThan(5);
+    for (const s of sonra) expect(s.startsWith('Fısıltı') || !/^\p{Lu}/u.test(s), s).toBe(true);
+    const spec7 = generateLevel(HUMAN_JOURNEY.id, 7, prof);
+    expect(spec7.objective.id).toBe('no-damage');
+    expect(nodeGoalLines(spec7).star3).toMatch(/^\d+ nota ya da hiç hasar alma ve \d+ nota$/);
+    expect(star3View(spec7, run2(spec7)).rows[1]!.text).toMatch(/^hiç hasar alma ve \d+ nota$/);
+    expect(star3Line(spec7)).toMatch(/^3\. yıldız: \d+ nota ya da hiç hasar alma ve \d+ nota$/);
+    expect(nodeGoalLines(generateLevel(HUMAN_JOURNEY.id, 17, prof)).star3).toMatch(/ ya da Fısıltıyı sağ salim kapıya götür/);
   });
 
   it('canavar bölümü: geçmek canavarı yenmek, 3. yıldız hasarsız', () => {

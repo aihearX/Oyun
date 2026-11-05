@@ -70,7 +70,7 @@ export function nextGoal(spec: RunSpecLite, r: RunResult, progress: Record<numbe
     const n3 = `3. yıldız: ${notesAt(th.star3)} nota`;
     // "hepsini topla" 90 notanın içinde kalır: ikinci yarı yazılmaz (sonuç kartıyla aynı tek sayı; OT-rekabetci-7)
     if (spec.objective.id === 'reach' || spec.objective.id === 'collect-all') return { kind: 'yildiz', text: n3 };
-    const hedef = spec.objective.label.charAt(0).toLocaleLowerCase('tr-TR') + spec.objective.label.slice(1);
+    const hedef = yaDaSonrasi(spec.objective.label);
     // hedefle 3★ için %60 nota da gerekir: koşul her zaman tam yazılır, nota şartı tuttu diye yazıdan düşmez (OT-rekabetci-17)
     const withObj = th.star3Objective ? notesAt(th.star3Objective) : 0;
     return { kind: 'yildiz', text: `${n3} ya da ${hedef}${withObj > 0 ? ` ve ${withObj} nota` : ''}` };
@@ -105,6 +105,11 @@ export function damageNote(r: RunResult): string {
 }
 
 /**
+ * "ya da"dan sonra gelen koşul cümle içinde okunur, ilk harfi Türkçe küçük harf olur ("89 nota ya da hiç hasar alma ve 59 nota";
+ * OT-ogrenci-birinci-45). Fısıltı yoldaşın adıdır, büyük kalır. Tek başına ya da ilk satır olan koşul büyük harfle başlar.
+ */
+function yaDaSonrasi(s: string): string { return s.startsWith('Fısıltı') ? s : s.charAt(0).toLocaleLowerCase('tr-TR') + s.slice(1); }
+/**
  * 3. yıldızın koşul metinleri (tek kaynak: sonuç kartı star3View ve harita bölüm kartı; YN-162). Birden çok satır "ya da"dır
  * (biri yeter). Notasız (boss) bölümde hasarsız; "Tüm notaları topla" 90 notanın içinde kaldığından tek satır; hedefli
  * bölümde ikinci satır hedef ve (gerekirse) %60 nota: "3 altın kokleayı bul ve 60 nota".
@@ -116,7 +121,7 @@ export function star3Rules(spec: Pick<RunSpecLite, 'mechanic' | 'objective' | 'c
   const rows = [o.id === 'collect-all' ? `${n3} nota topla` : `${n3} nota`];
   if (o.id !== 'reach' && o.id !== 'collect-all' && th.star3Objective !== null) {
     const need = notesAt(th.star3Objective);
-    rows.push(`${o.label}${need > 0 ? ` ve ${need} nota` : ''}`);
+    rows.push(`${yaDaSonrasi(o.label)}${need > 0 ? ` ve ${need} nota` : ''}`);
   }
   return rows;
 }

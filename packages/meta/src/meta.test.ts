@@ -268,13 +268,13 @@ describe('ilerleme geri bildirimi', () => {
     const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
     expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false })).rows).toEqual([
       { text: '27 nota', done: false, note: '7\u00a0nota kaldı' },
-      { text: 'Hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · 1\u00a0hasar aldın', parts: [{ text: '18\u00a0nota tamam', done: true }, { text: '1\u00a0hasar aldın', done: false }] }]);
+      { text: 'hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · 1\u00a0hasar aldın', parts: [{ text: '18\u00a0nota tamam', done: true }, { text: '1\u00a0hasar aldın', done: false }] }]);
     expect(star3View(y, run({ stars: 3, coins: 20, damageTaken: 0, objectiveMet: true }))).toMatchObject({ done: true, rows: [{ done: false }, { done: true, note: '' }] });
     // 12 Zar Melodisi: kaçı sırayla
     const m = { ...spec(12), objective: { id: 'melody' as const, target: 7, label: 'Notaları sırayla topla (7)' } };
-    expect(star3View(m, run({ stars: 2, coins: 20, objectiveMet: false, extra: { melody: 3, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'Notaları sırayla topla (7) ve 18 nota', done: false, note: '18\u00a0nota tamam · 3/7\u00a0sırayla' });
+    expect(star3View(m, run({ stars: 2, coins: 20, objectiveMet: false, extra: { melody: 3, melodyTotal: 7 } })).rows[1]).toMatchObject({ text: 'notaları sırayla topla (7) ve 18 nota', done: false, note: '18\u00a0nota tamam · 3/7\u00a0sırayla' });
     // yüzme: hedef tuttu ama %60 nota yok → satır notayı da ister, tutan parça önde
-    expect(star3View(spec(28), run({ stars: 2, coins: 15, objectiveMet: true })).rows[1]).toMatchObject({ text: 'Hedef ve 18 nota', done: false, note: 'Fısıltı kapıda · 3\u00a0nota kaldı' });
+    expect(star3View(spec(28), run({ stars: 2, coins: 15, objectiveMet: true })).rows[1]).toMatchObject({ text: 'hedef ve 18 nota', done: false, note: 'Fısıltı kapıda · 3\u00a0nota kaldı' });
     // notasız (boss): hasarsız
     expect(star3View({ ...spec(20), coinsTotal: 0 }, run({ stars: 2, damageTaken: 1 })).rows).toEqual([{ text: 'Hiç hasar alma', done: false, note: '1\u00a0hasar aldın' }]);
   });
@@ -323,7 +323,7 @@ describe('ilerleme geri bildirimi', () => {
     const y = { ...spec(7), objective: { id: 'no-damage' as const, label: 'Hiç hasar alma' } };
     // kalkan tek vuruşu karşıladı: can gitmedi ama "Hiç hasar alma" yapılmadı
     expect(star3View(y, run({ stars: 2, coins: 20, damageTaken: 1, objectiveMet: false, extra: { guarded: 1 } })).rows[1])
-      .toMatchObject({ text: 'Hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · Kalkan bir vuruşu karşıladı, bu da hasar sayılır' });
+      .toMatchObject({ text: 'hiç hasar alma ve 18 nota', done: false, note: '18\u00a0nota tamam · Kalkan bir vuruşu karşıladı, bu da hasar sayılır' });
     expect(damageNote(run({ damageTaken: 1, extra: { guarded: 1, klinik: true } }))).toBe('Klinik bir vuruşu karşıladı, bu da hasar sayılır');
     expect(damageNote(run({ damageTaken: 2, extra: { guarded: 2, klinik: true } }))).toBe('Kalkan ve Klinik 2\u00a0vuruşu karşıladı, bunlar da hasar sayılır');
     expect(damageNote(run({ damageTaken: 3, extra: { guarded: 1 } }))).toBe('3\u00a0hasar aldın (kalkan bir vuruşu karşıladı; o da sayılır)');

@@ -25,11 +25,11 @@ export const QUESTS: QuestDef[] = [
   { id: 'iki-yildiz-3', slot: 'b', emoji: '⭐', text: '3 bölümü 2+ yıldızla bitir', metric: 'clears2', target: 3, reward: [R.jeton(30), R.xp(20)] },
   { id: 'uc-yildiz-1', slot: 'b', emoji: '🌟', text: 'Bir bölümde 3 yıldız al', metric: 'threeStar', target: 1, reward: [R.jeton(30), R.xp(20)] },
   { id: 'hasarsiz-1', slot: 'b', emoji: '🪶', text: 'Bir bölümü hiç hasar almadan bitir', metric: 'noDamage', target: 1, reward: [R.jeton(30), R.xp(20)] },
-  { id: 'par-1', slot: 'b', emoji: '💨', text: 'Bir bölümü par süresinden hızlı bitir', metric: 'underPar', target: 1, reward: [R.jeton(30), R.xp(20)] },
+  { id: 'par-1', slot: 'b', emoji: '💨', text: 'Bir bölümü süre bonusu alarak bitir', metric: 'underPar', target: 1, reward: [R.jeton(30), R.xp(20)] },
   { id: 'seri-10', slot: 'b', emoji: '🔗', text: 'Tek bölümde art arda 10 nota topla', metric: 'combo10', target: 1, reward: [R.jeton(30), R.xp(20)] },
   // c: çeşitlilik / sosyal
   // meydan okuma 8. bölümde açılır (apps/web ftue/features.ts 'race'); öncesinde bu yuvadan başka görev gelir
-  { id: 'meydan-1', slot: 'c', emoji: '📣', text: 'Bir arkadaşa meydan oku', metric: 'share', target: 1, reward: [R.jeton(25), R.xp(15)], after: 8 },
+  { id: 'meydan-1', slot: 'c', emoji: '📣', text: 'Bir arkadaşına meydan okuma bağlantısı gönder', metric: 'share', target: 1, reward: [R.jeton(25), R.xp(15)], after: 8 },
   { id: 'tekrar-1', slot: 'c', emoji: '🔁', text: 'Yıldızlı bir bölümü tekrar oyna', metric: 'replay', target: 1, reward: [R.jeton(25), R.xp(15)] },
   { id: 'jeton-120', slot: 'c', emoji: '💰', text: 'Bölümlerde 120 nota topla', metric: 'coins', target: 120, reward: [R.jeton(25), R.xp(15)] },
 ];
