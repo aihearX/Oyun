@@ -143,6 +143,24 @@ describe('"Bu bölümden" dökümü ve biyom başarımı (OT-ekonomi-denetci-17,
     expect(ach.items![0]).toEqual({ label: 'Yıldız Avcısı · Gümüş', jeton: 40, note: 'Toplam 50 yıldız topla' });
     expect(lines.map((l) => l.label)).toEqual(['Toplanan notalar', '4 başarım', 'Kamp/takım bonusu']);
   });
+  it('sunucu bonusu kaynak kaynak (YN-240, OT-ekonomi-denetci-43): bina adı, seviye, oran; toplam = sunucunun fazladan verdiği', () => {
+    const grants = [g('bolum:19', 86)];
+    // Odyometri Odası Sv 1 (%3): 86 notanın %3'ü = 3 (sunucu: round(86 × 1,03) = 89)
+    const one = earnLines({ grants }, 3, [{ kaynak: 'laboratuvar', seviye: 1, pct: 3, jeton: 3 }]);
+    expect(one.slice(1)).toEqual([{ label: "Odyometri Odası Sv 1: notaların %3'ü", jeton: 3, kisa: 'odyometri' }]);
+    // üç kaynak + yuvarlama farkı; toplam satırların toplamı, kaynak payları sunucunun tek sayısıyla aynı
+    const parts = [{ kaynak: 'laboratuvar' as const, seviye: 2, pct: 6, jeton: 5 }, { kaynak: 'kule' as const, seviye: 1, pct: 2, jeton: 2 }, { kaynak: 'takim' as const, seviye: 2, pct: 6, jeton: 5 }, { kaynak: 'yuvarlama' as const, pct: 0, jeton: -1 }];
+    const many = earnLines({ grants }, 11, parts);
+    expect(many.slice(1).map((l) => `${l.label} ${l.jeton}`)).toEqual(["Odyometri Odası Sv 2: notaların %6'sı 5", "Timpanometri Kulesi Sv 1: notaların %2'si 2", "Ortak Kazanç (takım) Sv 2: notaların %6'sı 5", 'Yuvarlama -1']);
+    expect(many.reduce((a, l) => a + l.jeton, 0)).toBe(86 + 11);
+    // dökümün dışında kalan fark (sunucunun nota tavanı) uydurma kaynağa yüklenmez: "Sunucu düzeltmesi"
+    const cut = earnLines({ grants }, -1, [{ kaynak: 'laboratuvar', seviye: 1, pct: 3, jeton: 3 }]);
+    expect(cut.slice(1).map((l) => [l.label, l.jeton])).toEqual([["Odyometri Odası Sv 1: notaların %3'ü", 3], ['Sunucu düzeltmesi', -4]]);
+    expect(cut.reduce((a, l) => a + l.jeton, 0)).toBe(85);
+    // eski sunucu (döküm yok): tek satır; eksi değer "Sunucu düzeltmesi"
+    expect(earnLines({ grants }, 3).slice(1)).toEqual([{ label: 'Kamp/takım bonusu', jeton: 3 }]);
+    expect(earnLines({ grants }, -2, []).slice(1)).toEqual([{ label: 'Sunucu düzeltmesi', jeton: -2 }]);
+  });
   it('biyom başarımı: bronz "Gezgini", altın "Ustası"; satır koşulu yazar; kimlik ve ödüller aynı', () => {
     const n = HUMAN_JOURNEY.levels.filter((l) => l.biome === 'kemikcikler').length;
     const [one] = earnLines({ grants: [g('basarim:biyom-kemikcikler:1', TIER_REWARD[1][0]!.amount)] });

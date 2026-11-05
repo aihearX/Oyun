@@ -44,6 +44,11 @@ export function itemView(it: RewardItem): { icon: string; name: string; amount: 
     case 'kart': { const c = cardById(it.ref ?? ''); return { icon: '🃏', name: it.label ?? c?.title ?? 'Kulak Kartı', amount: null, tone: 'lime' }; }
   }
 }
+/**
+ * miktarın öneki: sayılan birimler (jeton, kristal, XP) "+60 XP", eşya adetle "×1 Seri koruyucu". Hazine penceresi ve sonuç ekranının
+ * hazine satırı aynı yazar (YN-240, OT-sinav-adayi-44: "×60 XP" 60 kat gibi okundu).
+ */
+export const itemPrefix = (it: Pick<RewardItem, 'kind'>): '+' | '×' => (it.kind === 'jeton' || it.kind === 'kristal' || it.kind === 'xp' ? '+' : '×');
 const currency = (it: RewardItem): HudKind | null => (it.kind === 'jeton' || it.kind === 'kristal' ? it.kind : null);
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const center = (el: Element | null | undefined): ScreenPoint | null => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
@@ -245,7 +250,7 @@ function Card({ it, i, show }: { it: RewardItem; i: number; show: boolean }) {
   return (
     <div className={`cel-card tone-${v.tone}${show ? ' in' : ''}`} style={{ ['--i' as string]: i }}>
       <div className="cc-icon" aria-hidden>{it.kind === 'kozmetik' && cosmeticById(it.ref ?? '') ? <CosmeticThumb id={it.ref} size={56} /> : <Glyph e={v.icon} size={46} />}</div>
-      {v.amount != null && <CountUp to={v.amount} run={show} prefix={it.kind === 'xp' ? '+' : '×'} />}
+      {v.amount != null && <CountUp to={v.amount} run={show} prefix={itemPrefix(it)} />}
       <div className="cc-name">{v.name}</div>
     </div>
   );

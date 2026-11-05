@@ -66,14 +66,16 @@ export function levelEase(journeyId: string, number: number, profile: PlayerProf
   return { ease: knobs.ease, failStreak: profile.failStreak, removed };
 }
 /**
- * Bölüm kartı ve sonuç ekranının tek satırı: "Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller
+ * Bölüm kartı ve sonuç ekranının tek satırı: "Son 3 denemen kayıpla bitti; bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller
  * biraz seyreldi." Her kademe engelleri seyreltir ve bölümü kısaltır (`knobsFor`); süre bölüme göre uzayabilir de kısalabilir de,
- * o yüzden söylenmez. Yardım yoksa boş.
+ * o yüzden söylenmez. Yardım yoksa boş. Seri bölümler arasıdır (başka bölümdeki kayıp da sayılır): satır "bu bölümde üst üste" gibi
+ * okunmasın diye kaybın hangi bölümde olduğunu söylemez (YN-240, OT-ogrenci-birinci-49: 38'de 1, 39'da 2 kayıp "Üst üste 3 kayıptan
+ * sonra" diye okunuyordu).
  */
 export function easeLine(e: LevelEase): string {
   if (e.ease <= 0) return '';
   const mods = e.removed.length ? `${modList(e.removed)} kaldırıldı, ` : '';
-  return `Üst üste ${e.failStreak} kayıptan sonra bölüm biraz ${e.ease > 1 ? 'daha ' : ''}kolaylaştı: ${mods}engeller biraz seyreldi.`;
+  return `Son ${e.failStreak} denemen kayıpla bitti; bölüm biraz ${e.ease > 1 ? 'daha ' : ''}kolaylaştı: ${mods}engeller biraz seyreldi.`;
 }
 /** kayıpta, yalnız gerçekse: bir sonraki deneme bu denemeden kolay olacak ("Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Gecikme kalkacak.") */
 export function easeNextLine(now: LevelEase, next: LevelEase): string {

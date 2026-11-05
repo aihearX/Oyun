@@ -85,10 +85,11 @@ describe('mapGoal', () => {
         // "Sıradaki: …" kısmı (ulaşılan hedefin cümlesi ayrı) her zaman neyin olacağını söyler
         const next = g.text.split('Sıradaki: ').pop()!;
         expect(next).not.toMatch(/Bu bölüm/);
-        if (pick.biome) expect(next).toContain(`${BIOMES[pick.biome.id].name} `);
+        if (pick.biome) expect(next).toMatch(new RegExp(`${BIOMES[pick.biome.id].name}( |'na )`));
         else if (pick.treasure) expect(next).toMatch(/hazine/);
-        // geri dönülen bölümde (YN-195) önce ne yapılacağı, bölüm numarasıyla: "Geri dön (Bölüm 20): …. Bitince …"
-        if (pick.left === 1 && (pick.biome || pick.treasure)) expect(next).toMatch(new RegExp(HUMAN_JOURNEY.levels[n]!.back ? `^Geri dön \\(Bölüm ${n + 1}\\): .+\\. Bitince ` : `^Bölüm ${n + 1} bitince `));
+        // geri dönülen bölümde (YN-195, YN-241) önce bölüm ve ne yapılacağı: "Bölüm 20 · Kulak Kanalı'na dön, …. Bitince …" ("Hedefe
+        // ulaştın!" anında yalnız ne yapılacağı)
+        if (pick.left === 1 && (pick.biome || pick.treasure)) expect(next).toMatch(new RegExp(HUMAN_JOURNEY.levels[n]!.back ? `^Bölüm ${n + 1} · .+\\.(${g.small ? '$' : ' Bitince '})` : `^Bölüm ${n + 1} bitince `));
       }
     }
     // tur 5 kanıtı (İşitme Siniri 31-33): 32 geçildi, sinir çiçeklendi; sıradaki 33. bölümde canlanır
@@ -112,6 +113,20 @@ describe('yıldız hedefi (yolculuk bitti)', () => {
   });
 });
 
+describe('yolculuğun bitişi (YN-241, OT-sessiz-oyuncu-33)', () => {
+  it('40. bölüm ilk kez geçilince kutu "Sıradaki" yıldız hedefini öne çıkarmaz, alta yerleşir (final); sonra yıldız hedefi', () => {
+    const total = HUMAN_JOURNEY.levels.length;
+    const g = mapGoal(upTo(total), upTo(total - 1));
+    expect(g.final).toBe(true); expect(g.small).toBe('Hedefe ulaştın!');
+    expect(g.text).not.toMatch(/Sıradaki|yıldız daha/); expect(g.text).toMatch(/Ninni beyne ulaştı!$/);
+    // kutu kapandıktan sonra (gösterilen durum güncel) her zamanki yıldız hedefi, final değil
+    const after = mapGoal(upTo(total), upTo(total));
+    expect(after.final).toBeUndefined(); expect(after.text).toMatch(/yıldız daha: .+ ışıl ışıl olur$/);
+    // yolculuk zaten bitmişken ulaşılan yıldız hedefi final sayılmaz
+    expect(mapGoal({ ...upTo(total), 1: 3, 2: 3, 3: 3, 4: 3, 5: 3 }, upTo(total)).final).toBeUndefined();
+  });
+});
+
 describe('dönüş kutlamaları (returnCelebrations)', () => {
   it('tek bölüm: en çok hazine + canlanma; art arda bölümler: hepsi sayılır, kutlanmış bölge sayılmaz', () => {
     expect(returnCelebrations(upTo(3, 3), upTo(4, 3), [])).toBe(0);
@@ -126,13 +141,17 @@ describe('dönüş kutlamaları (returnCelebrations)', () => {
 // YN-195 (OT-uzman-odyolog-35): Kemikçikler'den sonra yol Bölüm 20'de dış kulak yoluna (Serumen Golemi) geri döner; hedef kartı
 // ve bölümün giriş yazısı bunu söyler, serumen zarın ötesinde sanılmasın. Bölüm dizilimi değişmez.
 describe('Serumen Golemi: geri dönüş', () => {
-  it('Kemikçikler canlanınca hedef geri dönüşü ve Koklea\'yı söyler', () => {
+  it('Kemikçikler canlanınca hedef geri dönüşü ve Koklea\'yı söyler; düğme gibi okunan "Geri dön" yok (YN-241)', () => {
     const g = mapGoal(upTo(19), upTo(18));
     expect(g.small).toBe('Hedefe ulaştın!');
-    expect(g.text).toBe("Kemikçikler canlandı! Sıradaki: Geri dön (Bölüm 20): dış kulak yolunu tıkayan Serumen Golemi'ni temizle. Bitince hazine! Kulak Kanalı da canlanır: Koklea · Taban açılır.");
-    expect(mapGoal(upTo(19), upTo(19)).text).toMatch(/^Geri dön \(Bölüm 20\): dış kulak yolunu tıkayan Serumen Golemi'ni temizle\./);
+    // "Hedefe ulaştın!" anında yalnız ne yapılacağı (kutu 320 px'te de üç satır); ödül kutu sıradaki hedefe dönünce
+    expect(g.text).toBe("Kemikçikler canlandı! Sıradaki: Bölüm 20 · Kulak Kanalı'na dön, kanalı tıkayan Serumen Golemi'ni temizle.");
+    expect(mapGoal(upTo(19), upTo(19)).text).toBe("Bölüm 20 · Kulak Kanalı'na dön, kanalı tıkayan Serumen Golemi'ni temizle. Bitince hazine ve yeni bölge: Koklea.");
     // geri dönüş yalnız sıradaki bölümse söylenir (daha uzaktaki hedef "N bölüm sonra" kalır)
-    expect(mapGoal(upTo(16), null).text).not.toMatch(/Geri dön/);
+    expect(mapGoal(upTo(16), null).text).not.toMatch(/Kulak Kanalı'na dön|Geri dön/);
+    for (let n = 0; n <= 40; n++) expect(mapGoal(upTo(n), n ? upTo(n - 1) : null).text).not.toMatch(/Geri dön/);
+    // "yeni bölge" gerçekten 20'den sonra ilk kez açılan bölge (21: Koklea · Taban)
+    expect(HUMAN_JOURNEY.levels[20]!.biome).toBe('koklea-1'); expect(HUMAN_JOURNEY.levels.findIndex((l) => l.biome === 'koklea-1')).toBe(20);
   });
   it('bölüm dizilimi aynı; 20. bölümün girişi dış kulak yolunu ve zarın dışını söyler', () => {
     const l20 = HUMAN_JOURNEY.levels.find((l) => l.number === 20)!;

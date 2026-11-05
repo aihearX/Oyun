@@ -70,6 +70,27 @@ describe('Sonuç ekranı yardım kartı: kalan günlük hak (YN-147)', () => {
     expect(document.querySelector('[data-testid="yardim-iste-not"]')!.textContent).toContain('Bugün 2 hak kaldı.');
   });
 
+  it('sayı yalnız o bölümün kaybı; kart bölümler arası seriyle açıldıysa "Üst üste N kayıp", bölüm adı olmadan (YN-240)', async () => {
+    // OT-ogrenci-birinci-49: 38'in tekrarında 1, 39'da 2 kayıp; seri 3, kart "39. bölümü 3 kez denedin" diyordu
+    const { useStore } = await import('./store');
+    const { useComm } = await import('./comm/state');
+    useComm.setState({ fails: { 39: 1 } });
+    useStore.setState({ progress: { 39: { stars: 0, best: 0, plays: 2, fails: 2 } } });
+    const { useNet } = await import('@odi/net/store');
+    useNet.setState({ team: team({ helpLeft: 2, helpResetAt: 2_000_000 }), status: 'bağlı', me: { id: 'me' } as never });
+    useStore.setState({ failStreak: 3 });
+    const { ResultComm } = await import('./comm/ResultComm');
+    await render(createElement(ResultComm, { level: 39, completed: false }));
+    const not = document.querySelector('[data-testid="yardim-iste-not"]')!.textContent!;
+    expect(not).toMatch(/^Üst üste 3 kayıp\. /); expect(not).not.toMatch(/39\. bölüm|kez denedin/);
+    await act(async () => { root?.unmount(); }); root = null; document.body.innerHTML = '';
+    // aynı bölümde 3. kayıp: bölüm adıyla o bölümün sayısı (oturumun sayısı ya da kayıtlı ilerleme, büyüğü)
+    useComm.setState({ fails: { 39: 2 } }); useStore.setState({ progress: { 39: { stars: 0, best: 0, plays: 3, fails: 3 } }, failStreak: 4 });
+    await render(createElement(ResultComm, { level: 39, completed: false }));
+    expect(document.querySelector('[data-testid="yardim-iste-not"]')!.textContent).toMatch(/^39\. bölümü 3 kez denedin\. /);
+    useComm.setState({ fails: {} }); useStore.setState({ progress: {}, failStreak: 0 });
+  });
+
   it('hak 0 iken düğme yok, sakin not; gün dönünce yeniden düğme', async () => {
     await show(team({ helpLeft: 0, helpResetAt: 2_000_000 }));
     expect(document.querySelector('[data-testid="yardim-iste-dugme"]')).toBeNull();

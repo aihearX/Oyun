@@ -575,6 +575,8 @@ async function bolumSonu(A, kind, { w0, g0 }) {
   step(`(f) Bölüm sonu jetonu: sunucu wallet.updated olayını progress.submit yanıtından önce yollar; ${ad}`);
   const r = A.proxy.lateRes('progress.submit', LATE, 'wallet.updated');
   const n0 = q1('SELECT COUNT(*) AS n FROM progress_runs WHERE player_id = ?', A.pid).n;
+  // YN-240: Odyometri Odası ve Timpanometri Kulesi Sv 1 (%3 + %2): sonuç dökümü bonusu kaynak kaynak yazar, liste toplamı = cüzdan farkı
+  if (kind === 'bolum') for (const b of ['laboratuvar', 'kule']) dbRun('INSERT INTO buildings(player_id, id, level) VALUES(?, ?, 1) ON CONFLICT(player_id, id) DO UPDATE SET level = MAX(level, 1)', A.pid, b);
   await tab(A, 'Harita');
   await A.page.locator('.map-play').click({ timeout: 20_000 });
   const tG = Date.now();
@@ -640,6 +642,20 @@ async function bolumSonu(A, kind, { w0, g0 }) {
   check(!eksik.length, `${kind}: kazanılan ödül üst çubukta hiçbir örnekte eksik değil (${eksik.length ? `${eksik.length} eksik, ör. ${eksik[0][1]} < ${alt(eksik[0])}` : `≥ ${w0} + yerel + ${cLocal}`})`);
   check(gorunme != null && gorunme <= DONMA_MS, `${kind}: bölüm jetonu üst çubukta ${gorunme ?? '—'} ms'de göründü (≤ ${DONMA_MS} ms)`);
   check(oturma != null && oturma <= DONMA_MS, `${kind}: sunucu yanıtından sonra üst çubuk ${oturma ?? '—'} ms'de son değere oturdu (≤ ${DONMA_MS} ms)`);
+  if (kind === 'bolum') {
+    // YN-240 (OT-ekonomi-denetci-43): "Bu bölümden" dökümünde bonus her kaynaktan ayrı satır (bina adı, seviye, oran); satırların toplamı
+    // sunucu cüzdanının farkıyla birebir
+    const liste = await A.page.evaluate(() => ({
+      toplam: Number((document.querySelector('.result-earn-head b')?.textContent ?? '').replace(/[^\d-]/g, '')),
+      satir: [...document.querySelectorAll('[data-testid="sonuc-kazanc"] > li')].map((li) => [li.querySelector('.rel-l > span')?.textContent ?? '', Number((li.querySelector(':scope > b')?.textContent ?? '').replace(/[^\d-]/g, ''))]),
+    })).catch(() => ({ toplam: NaN, satir: [] }));
+    const bonus = runs[0]?.jetonBonus ?? [];
+    console.log(`    · döküm: ${JSON.stringify(liste.satir)} toplam ${liste.toplam}; sunucu kaynakları ${JSON.stringify(bonus)}`);
+    check(liste.satir.reduce((a, [, j]) => a + j, 0) === liste.toplam, `döküm satırlarının toplamı başlıktaki toplamla aynı (+${liste.toplam})`);
+    check(liste.toplam === wEnd - w0, `döküm toplamı = cüzdan farkı (+${liste.toplam} = +${wEnd - w0})`);
+    check(bonus.length >= 2 && bonus.filter((p) => p.kaynak !== 'yuvarlama').every((p) => liste.satir.some(([l, j]) => l.endsWith(`Sv ${p.seviye}: notaların %${p.pct}'${p.pct === 3 ? 'ü' : 'si'}`) && j === p.jeton)),
+      `bonus kaynak kaynak satırda (Odyometri Odası Sv 1 %3, Timpanometri Kulesi Sv 1 %2): ${liste.satir.filter(([l]) => /notaların/.test(l)).map(([l, j]) => `${l} ${j}`).join(' · ') || 'yok'}`);
+  }
   if (!isaret) await A.page.locator('.result-actions [data-act="harita"]').click().catch(() => undefined);
 }
 

@@ -89,10 +89,11 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
   // yazdığı kadar (kamp/takım bonusu dahil, onaydan). Toplam = cüzdana giren (YN-042). Yerel ödüller (hazine, başarım, Şanslı Nota)
   // sunucunun hesaba geçirdiği kadar: günlük yerel ödül sınırı kestiyse satır hesaba geçeni, altında eklenmeyeni yazar; çevrimdışıyken
   // "bağlanınca eklenecek" (YN-200, OT-rekabetci-44)
-  const ackJeton = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack?.jeton : undefined));
+  const ack = useSocial((s) => (runId && s.lastRun?.runId === runId && s.lastRun.state === 'tamam' ? s.lastRun.ack : undefined));
+  const ackJeton = ack?.jeton;
   const odulKaynak = useOdulKaynak();
   const kredi = useMemo(() => hesabaGecen(summary.grants, odulKaynak), [summary, odulKaynak]);
-  const earn = useMemo(() => hazineNotlu(earnLines({ grants: kredi.grants }, ackJeton === undefined ? 0 : ackJeton - result.coins), summary.grants), [kredi, summary, ackJeton, result.coins]);
+  const earn = useMemo(() => hazineNotlu(earnLines({ grants: kredi.grants }, ackJeton === undefined ? 0 : ackJeton - result.coins, ack?.jetonBonus), summary.grants), [kredi, summary, ack, ackJeton, result.coins]);
   const earnTotal = earn.reduce((a, l) => a + l.jeton, 0);
   // Büyük yazı (OT-buyuk-yazi-47): yapışkan alanda yalnız ana düğme; Tekrar, Meydan oku ve Tüy Dede'nin kartı sayfa akışında, düğmelerin
   // hemen üstünde. Kazançta yıldızların altında "Bu bölümden toplam +N jeton" özeti ilk ekranda (döküm aşağıdaki kartta)
@@ -300,7 +301,7 @@ export function ResultScreen({ spec, result, summary, onRetry, onNext, onMap, ch
           {big && result.completed && earnTotal > 0 && (
             <div className="result-ozet" ref={coinRef} data-show={step >= S + 2 ? 'yes' : 'no'} data-testid="sonuc-jeton-ozet">
               <b><Art name="coin" size={20} className="art-inline" />Bu bölümden{earn.length > 1 ? ' toplam' : ''} +{earnTotal.toLocaleString('tr-TR')} jeton</b>
-              {earn.length > 1 && <small>{earn.map((l) => `${kisaAd(l.label)}\u00a0${fmtJeton(l.jeton)}`).join(' · ')}</small>}
+              {earn.length > 1 && <small>{earn.map((l) => `${l.kisa ?? kisaAd(l.label)}\u00a0${fmtJeton(l.jeton)}`).join(' · ')}</small>}
               {kredi.eksik > 0 && <small data-testid="sonuc-ozet-sinir">{sinirSatiri(kredi.eksik)}</small>}
             </div>
           )}

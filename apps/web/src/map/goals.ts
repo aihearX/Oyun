@@ -4,7 +4,11 @@ import { passText, star3Rules, starHead, type MetaState, type RunSpecLite } from
 import { journeyDone, nextVitalityNeed, planReturn, unlockedOf, vitalityOf, type StarMap, type Vitality } from '@odi/game-core/lite';
 import type { BiomeId } from '@odi/shared';
 
-export interface Goal { icon: string; text: string; /** hedefe ulaşılınca bir kez söylenir */ small?: string }
+export interface Goal {
+  icon: string; text: string; /** hedefe ulaşılınca bir kez söylenir */ small?: string;
+  /** yolculuk bu dönüşte bitti (son bölüm ilk kez geçildi): kutu Ninni Merkezi başlığını örtmez, "Sıradaki" yıldız hedefi söylenmez */
+  final?: boolean;
+}
 
 /** aşama fiilleri: gelecek ("çiçeklenir") ve ulaşıldı ("çiçeklendi"); sıra VITALITY_NAMES ile aynı (uyanır → çiçeklenir → canlanır → ışıl ışıl) */
 export const VITALITY_WILL: Record<Vitality, string> = { 0: '', 1: 'uyanır', 2: 'çiçeklenir', 3: 'canlanır', 4: 'ışıl ışıl olur' };
@@ -72,25 +76,39 @@ const daDe = (w: string) => (/[aıou][^aıoueiöü]*$/i.test(w) ? 'da' : 'de');
  */
 function riseGain(g: GoalPick, levels: LevelPlan[]): string {
   if (!g.biome || g.biome.to !== 3 || !g.level) return '';
-  const next = levels.find((l) => l.number === g.level! + 1);
-  const opens = !!next && next.biome !== g.biome.id && levels.find((l) => l.biome === next.biome)?.number === next.number;
-  return opens ? `: ${name(next.biome)} açılır` : ': bölge tamamlanır';
+  const opens = opensAfter(g, levels);
+  return opens ? `: ${name(opens)} açılır` : ': bölge tamamlanır';
 }
+/** hedef bölümü bitince ilk kez açılan bölge (yoksa null) */
+function opensAfter(g: GoalPick, levels: LevelPlan[]): BiomeId | null {
+  const next = g.level ? levels.find((l) => l.number === g.level! + 1) : undefined;
+  return next && next.biome !== g.biome?.id && levels.find((l) => l.biome === next.biome)?.number === next.number ? next.biome : null;
+}
+/** yeni bölgenin kısa adı: "Koklea · Taban" → "Koklea" (bölgenin ilk kısmı açılır; haritanın başlığı tam adı yazar) */
+const shortName = (b: BiomeId) => name(b).split(' · ')[0]!;
 /**
  * hedef metni: her zaman yer adı ve ne zaman (OT-sinav-adayi-24: "Sıradaki: Bu bölümün sonunda canlanır" neyin canlanacağını ve
  * hangi bölümü söylemiyordu). Sıradaki bölümde gerçekleşecekse bölüm numarası: "Bölüm 33 bitince İşitme Siniri canlanır: Beyin Sapı açılır".
  */
-function goalText(g: GoalPick, levels: LevelPlan[] = HUMAN_JOURNEY.levels): string {
+function goalText(g: GoalPick, levels: LevelPlan[] = HUMAN_JOURNEY.levels, short = false): string {
   if (g.stars) return `${g.stars.n} yıldız daha: ${name(g.stars.id)} ışıl ışıl olur`;
   if (!g.treasure && !g.biome) return 'Ninni beyne ulaştı!';
   // yol başka bölgeden bu bölüme geri dönüyorsa önce ne yapılacağı (YN-195, OT-uzman-odyolog-35: Kemikçikler'den sonra Bölüm 20
-  // yine dış kulak yolunda): "Geri dön (Bölüm 20): dış kulak yolunu tıkayan Serumen Golemi'ni temizle. Bitince hazine! …"
+  // yine dış kulak yolunda), kısa ve düğme gibi okunmadan (YN-241, OT-ilk-kez-oyun-72: "Geri dön (Bölüm 20)" düğme sanıldı, dört
+  // satır haritayı kapladı, "Koklea · Taban açılır" anlaşılmadı): "Bölüm 20 · Kulak Kanalı'na dön, kanalı tıkayan Serumen
+  // Golemi'ni temizle. Bitince hazine ve yeni bölge: Koklea." Kutu 320 px'te de en çok üç satır: "Hedefe ulaştın!" anında (`short`)
+  // yalnız ne yapılacağı, ödül kutu sıradaki hedefe dönünce
   const back = g.left <= 1 && g.level ? levels.find((l) => l.number === g.level)?.back : undefined;
-  const head = back ? `Geri dön (Bölüm ${g.level}): ${back}. ` : '';
-  const when = back ? 'Bitince' : g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
-  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${head}${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}.`; }
-  if (g.biome) return `${head}${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}`;
-  return `${head}${g.left <= 1 ? `${when} hazine!` : `${when} hazine`}`;
+  if (back && short) return `Bölüm ${g.level} · ${back}.`;
+  if (back) {
+    const opens = g.biome?.to === 3 ? opensAfter(g, levels) : null;
+    const gain = [g.treasure ? 'hazine' : '', opens ? `yeni bölge: ${shortName(opens)}` : g.biome ? `${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}` : ''].filter(Boolean).join(' ve ');
+    return `Bölüm ${g.level} · ${back}. Bitince ${gain}.`;
+  }
+  const when = g.left <= 1 && g.level ? `Bölüm ${g.level} bitince` : `${g.left} bölüm sonra`;
+  if (g.treasure && g.biome) { const who = name(g.biome.id); return `${when} hazine! ${who} ${daDe(who)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}.`; }
+  if (g.biome) return `${when} ${name(g.biome.id)} ${VITALITY_WILL[g.biome.to]}${riseGain(g, levels)}`;
+  return g.left <= 1 ? `${when} hazine!` : `${when} hazine`;
 }
 const goalIcon = (g: GoalPick) => (g.treasure ? '🎁' : g.biome ? STAGE_ICON[g.biome.to] : g.stars ? '✨' : '👑');
 /** ulaşılan hedefin kutlama cümlesi */
@@ -118,7 +136,11 @@ export function mapGoal(stars: StarMap, before: StarMap | null): Goal {
   const now = pickGoal(stars, undefined, was);
   const text = now ? goalText(now) : 'Ninni beyne ulaştı!'; const icon = now ? goalIcon(now) : '👑';
   if (!was || was.key === now?.key || !reached(was, stars)) return { icon, text };
-  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now)}` : `${reachedText(was)} Ninni beyne ulaştı!` };
+  // yolculuk bu dönüşte bitti (YN-241, OT-sessiz-oyuncu-33): bitiş anında "Sıradaki: 2 yıldız daha: …" öne çıkmaz, ulaşılan ve
+  // Ninni; yıldız hedefi kutu kapanınca (GOAL_REACHED_MS) her zamanki gibi
+  const total = HUMAN_JOURNEY.levels.length;
+  if (before && !journeyDone(before, total) && journeyDone(stars, total)) return { icon: '👑', small: 'Hedefe ulaştın!', text: `${reachedText(was)} Ninni beyne ulaştı!`, final: true };
+  return { icon, small: 'Hedefe ulaştın!', text: now && now.key !== 'son' ? `${reachedText(was)} Sıradaki: ${goalText(now, undefined, true)}` : `${reachedText(was)} Ninni beyne ulaştı!` };
 }
 
 /** hazinenin GERÇEK verilen içeriği: defterdeki kayıt (tekrar gelen kozmetik jetona dönmüş olabilir); yoksa tanım */

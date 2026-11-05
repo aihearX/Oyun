@@ -1,4 +1,4 @@
-import { RAHAT, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type MechanicId, type ModifierId, type ObjectiveId, type RunResult } from '@odi/shared';
+import { BUILDINGS, RAHAT, TEAM_TECH, levelFromXp, noteThresholds, type BiomeId, type LevelSpec, type MechanicId, type ModifierId, type JetonBonusPart, type ObjectiveId, type RunResult } from '@odi/shared';
 import { BIOMES, COSMETICS, HUMAN_JOURNEY, MECHANICS, TIER_NAMES, TREASURES, objective, achievementById, achievementDesc, achievementName, cosmeticById, type HatId, type Reward, type RewardItem, type Tier } from '@odi/content';
 import type { LevelProgressLite, MetaState } from './state';
 
@@ -324,14 +324,14 @@ export const RAHAT_TEXT = {
  * "Bu bölümden" dökümünün bir satırı; birden çok başarım tek satırda toplanır, altında her biri (items) adıyla ve ödülüyle.
  * `eksik`: sunucunun günlük yerel ödül sınırıyla hesaba geçmeyen jeton (YN-200); `jeton` hesaba geçendir.
  */
-export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[]; eksik?: number }
+export interface EarnLine { label: string; jeton: number; note?: string; items?: EarnLine[]; eksik?: number; /** büyük yazı özetindeki kısa ad (yoksa etiketten) */ kisa?: string }
 /**
  * "Bu bölümden" dökümü: bu koşunun ödül defteri kayıtlarındaki jeton (+ sunucunun bölüm jetonuna eklediği bonus). Toplam =
  * cüzdana giren (YN-042). Başarımlar tek tek: "Yıldız Avcısı · Gümüş +40", altında koşulu (OT-ekonomi-denetci-17,
  * OT-ogrenci-birinci-16); ikiden çoksa "6 başarım +215" satırının altında. Kaydın `eksik`i varsa (sunucu günlük sınırla kesti)
  * satır hesaba geçeni yazar, eksik ayrı alanda (YN-200; tamamı kesilen kayıt da "+0" ile satırda kalır).
  */
-export function earnLines(s: { grants: { reason: string; items: RewardItem[]; eksik?: number }[] }, serverBonus = 0): EarnLine[] {
+export function earnLines(s: { grants: { reason: string; items: RewardItem[]; eksik?: number }[] }, serverBonus = 0, parts?: readonly JetonBonusPart[]): EarnLine[] {
   const out: EarnLine[] = []; const ach: EarnLine[] = [];
   for (const g of s.grants) {
     const asked = g.items.reduce((a, i) => a + (i.kind === 'jeton' ? i.amount : 0), 0); if (!asked) continue;
@@ -346,8 +346,21 @@ export function earnLines(s: { grants: { reason: string; items: RewardItem[]; ek
   }
   if (ach.length === 1) out.push({ ...ach[0]!, label: `Başarım: ${ach[0]!.label}` });
   else if (ach.length) { const e = ach.reduce((a, x) => a + (x.eksik ?? 0), 0); out.push({ label: `${ach.length} başarım`, jeton: ach.reduce((a, x) => a + x.jeton, 0), items: ach, ...(e ? { eksik: e } : {}) }); }
-  if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
+  if (parts?.length) {
+    // sunucunun kaynak kaynak dökümü (YN-240): her kaynak ayrı satır; dökümün dışında kalan fark (ör. sunucunun nota tavanı) düzeltmedir
+    for (const p of parts) out.push(bonusLine(p));
+    const rest = serverBonus - parts.reduce((a, p) => a + p.jeton, 0);
+    if (rest) out.push({ label: 'Sunucu düzeltmesi', jeton: rest });
+  } else if (serverBonus) out.push({ label: serverBonus > 0 ? 'Kamp/takım bonusu' : 'Sunucu düzeltmesi', jeton: serverBonus });
   return out;
+}
+/** bonus kaynağının satırı, oyuncunun kampta gördüğü adla: "Odyometri Odası Sv 1: notaların %3'ü +3", "Ortak Kazanç (takım) Sv 2: …" */
+function bonusLine(p: JetonBonusPart): EarnLine {
+  if (p.kaynak === 'yuvarlama') return { label: 'Yuvarlama', jeton: p.jeton, note: 'Bonus toplamı tek seferde yuvarlanır, kaynak satırları ayrı ayrı.', kisa: 'yuvarlama' };
+  const b = p.kaynak === 'takim' ? null : BUILDINGS.find((x) => x.id === p.kaynak);
+  const ad = b ? b.name : `${TEAM_TECH.find((t) => t.id === 'jeton')!.name} (takım)`;
+  const sv = p.seviye ? ` Sv ${p.seviye}` : '';
+  return { label: `${ad}${sv}: notaların %${p.pct}'${yuzdeIyelik(p.pct)}`, jeton: p.jeton, kisa: b?.short?.toLocaleLowerCase('tr') ?? 'takım' };
 }
 
 /** Haritada görünür sıradaki hazine: "N bölüm sonra hazine". */

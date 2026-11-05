@@ -1402,7 +1402,7 @@ async function suite(browserName, target, [W, H]) {
         ['demo=sonuc&bolum=13&yildiz=0&skor=450&kutlama=0', 'sonuc-kaybetti-kanca'], ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&kutlama=0', 'sonuc-kaybetti-boss'],
         // YN-093: sisli + melodili bölümde kayıp (ipucu bölüme göre; neden kartı kutuların altında, hiçbir şeyi örtmez)
         ['demo=sonuc&bolum=19&yildiz=0&skor=130&kutlama=0', 'sonuc-kaybetti-sis'],
-        // YN-173 (OT-sinav-adayi-36): hazine satırı jeton dışını da yazar ("Ayrıca: ×1 Seri koruyucu", haritadaki pencereyle aynı)
+        // YN-173 (OT-sinav-adayi-36): hazine satırı jeton dışını da yazar ("Ayrıca: ×1 Seri koruyucu", XP "+60 XP"; haritadaki pencereyle aynı, YN-240)
         ['demo=sonuc&bolum=10&yildiz=2&skor=1500&acilim=1&kutlama=0', 'sonuc-hazine'],
         // YN-102: ilk canavarda 4. kayıp, takımdan yardım kartı ("Yardım iste" düğmesi yapışkan çubuğun arkasında kalmaz); değiştiricili bölüm sonucu
         ['demo=sonuc&bolum=20&yildiz=0&skor=0&neden=yumruk&yardim=4&kutlama=0', 'sonuc-kaybetti-yardim'], ['demo=sonuc&bolum=30&yildiz=2&skor=1500&kutlama=0', 'sonuc-degistirici'],
@@ -1643,7 +1643,7 @@ async function suite(browserName, target, [W, H]) {
         // YN-113: kolaylaştırma satırı yalnız yardım devredeyken (kalkan değiştiriciler adıyla); kayıpta sonraki denemenin satırı
         const kolay = await yazi('[data-testid="sonuc-kolay"]');
         const kolaySonra = await yazi('[data-testid="sonuc-kolay-sonraki"]');
-        if (label === 'sonuc-kolay' && (kolay !== 'Üst üste 3 kayıptan sonra bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
+        if (label === 'sonuc-kolay' && (kolay !== 'Son 3 denemen kayıpla bitti; bölüm biraz kolaylaştı: Hız ve Gecikme kaldırıldı, engeller biraz seyreldi.' || degis)) fail(rec, `kolaylaştırma satırı: "${kolay}" · değiştirici: "${degis}"`);
         if (label === 'sonuc-kaybetti-kolay-sonraki' && (kolay || !/^Sonraki denemede bölüm biraz kolaylaşacak: Hız ve Gecikme kalkacak\.$/.test(kolaySonra))) fail(rec, `sonraki deneme satırı: "${kolaySonra}" · bu deneme: "${kolay}"`);
         if (!/kolay/.test(label) && (kolay || kolaySonra)) fail(rec, `yardım yokken kolaylaştırma satırı: "${kolay}${kolaySonra}"`);
         // YN-110 (karar 42): Rahat deneme teklifi yalnız istenen ekranda, açıkça (ne değişir, ne verir); Rahat geçişte kart ve Meydan oku yok

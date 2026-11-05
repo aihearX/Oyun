@@ -13,7 +13,8 @@ import { ACHIEVEMENTS, COSMETICS, DEFAULT_SKILLS, HUMAN_JOURNEY, TIER_NAMES, typ
 import { generateLevel } from '@odi/level-gen';
 import { defaultMeta, earnLines, processRun, xpThreshold, type PlayerCore, type RunSummary } from '@odi/meta';
 import { scoreRun, type LevelSpec, type RunResult } from '@odi/shared';
-import { hazineNotlu, melodiSatir, sureAlt } from './screens/sonuc-satir';
+import { hazineNotlu, hazineNotu, melodiSatir, sureAlt } from './screens/sonuc-satir';
+import { itemPrefix } from './celebrate/CelebrationLayer';
 
 vi.mock('@odi/audio', () => ({ audio: { play: () => undefined, music: () => undefined } }));
 
@@ -129,8 +130,9 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
     expect(q('sonuc-melodi')?.textContent).toBe(`Melodi: 5/${total}\u00a0sırayla`);
   });
 
-  it('hazine: Bölüm 10 "Ayrıca: ×1 Seri koruyucu", Bölüm 15 "Ayrıca: Kulaklık"; toplam = cüzdan artışı', async () => {
-    for (const [n, note] of [[10, 'Ayrıca: ×1 Seri koruyucu'], [15, 'Ayrıca: Kulaklık']] as const) {
+  it('hazine: Bölüm 10 "Ayrıca: ×1 Seri koruyucu", Bölüm 15 "Ayrıca: Kulaklık", Bölüm 35 "Ayrıca: +60 XP"; toplam = cüzdan artışı', async () => {
+    // YN-240 (OT-sinav-adayi-44): XP "×60" (60 kat gibi) değil, haritadaki hazine penceresi gibi "+60 XP"
+    for (const [n, note] of [[10, 'Ayrıca: ×1 Seri koruyucu'], [15, 'Ayrıca: Kulaklık'], [35, 'Ayrıca: +60 XP']] as const) {
       const spec = generateLevel(HUMAN_JOURNEY.id, n, prof); const c = core(n);
       const r = run(spec, true); const { core: after, summary } = processRun(c, spec, r, DAY);
       const lines = hazineNotlu(earnLines(summary), summary.grants);
@@ -139,5 +141,8 @@ describe('sonuç ekranı küçükleri (YN-173)', () => {
       expect(lines.reduce((a, l) => a + l.jeton, 0)).toBe(after.coins - c.coins);
       if (n === 10) { await show(spec, r, summary); expect(q('sonuc-kazanc')?.textContent).toContain(note); }
     }
+    // hazine penceresinin öneki aynı kuraldan: sayılan birim "+", eşya "×"
+    expect([itemPrefix({ kind: 'xp' }), itemPrefix({ kind: 'kristal' }), itemPrefix({ kind: 'jeton' }), itemPrefix({ kind: 'koruyucu' })]).toEqual(['+', '+', '+', '×']);
+    expect(hazineNotu([{ kind: 'xp', amount: 20 }, { kind: 'koruyucu', amount: 1 }])).toBe('Ayrıca: +20 XP · ×1 Seri koruyucu');
   });
 });

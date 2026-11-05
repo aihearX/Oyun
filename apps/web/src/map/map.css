@@ -65,6 +65,11 @@
 .map-goal.open, .buyuk-yazi .map-goal { left: 10px; right: 10px; max-width: none; top: calc(var(--sat) + 216px); border-radius: 16px; border-right: 1px solid rgba(255,201,60,.55); }
 .buyuk-yazi .map-goal span { -webkit-line-clamp: 3; }
 .map-goal.open span { display: block; overflow: visible; }
+/* yolculuğun bitişi (YN-241, OT-sessiz-oyuncu-33): "Hedefe ulaştın!" kutusu ve yolculuk bittikten sonra tam genişliğe açılan kutu
+   Ninni Merkezi başlığını örtmesin; altta, atla yazısının ve Bölüm düğmesinin üstünde, tam genişlik, tam metin */
+.map-goal.final, .map-goal.done.open, .buyuk-yazi .map-goal.done { left: 10px; right: 10px; max-width: none; top: auto; bottom: calc(var(--tabbar-h, 64px) + var(--sab) + 128px); border-radius: 16px; border-right: 1px solid rgba(255,201,60,.55); animation-name: goal-up; }
+.map-goal.final span { display: block; overflow: visible; }
+@keyframes goal-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes goal-in { from { transform: translateX(110%); } to { transform: translateX(0); } }
 
 .map-back { position: absolute; z-index: 4; left: 50%; transform: translateX(-50%); appearance: none; font: inherit; font-weight: 900; font-size: 0.8125rem; color: var(--m-ink); background: var(--m-gold); border: 0; border-radius: 999px; padding: 9px 14px; min-height: 40px; box-shadow: 0 6px 14px rgba(0,0,0,.45); cursor: pointer; }

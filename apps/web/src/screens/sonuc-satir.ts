@@ -1,7 +1,7 @@
 import { timeBonus, type LevelSpec, type RunResult } from '@odi/shared';
 import { achievementById, achievementName, cosmeticById, type RewardItem } from '@odi/content';
 import { sureYazi, type EarnLine, type RunSummary } from '@odi/meta';
-import { itemView } from '../celebrate/CelebrationLayer';
+import { itemPrefix, itemView } from '../celebrate/CelebrationLayer';
 
 /**
  * Süre kutusunun alt yazısı. Süreli bölümde yıldızı hedef süre belirler: yalnız "süre" (OT-rekabetci-2). Öbürlerinde
@@ -30,11 +30,12 @@ export function melodiSatir(spec: Pick<LevelSpec, 'objective'>, r: Pick<RunResul
 }
 
 /**
- * Hazine satırı jeton dışındakileri de söyler (OT-sinav-adayi-36): haritadaki hazine penceresiyle aynı adlar (celebrate itemView,
- * aynı defter kaydı `hazine:N`): "Ayrıca: ×1 Seri koruyucu", "Ayrıca: Kulaklık". Jeton tutarı ve toplam değişmez.
+ * Hazine satırı jeton dışındakileri de söyler (OT-sinav-adayi-36): haritadaki hazine penceresiyle aynı adlar ve önek (celebrate itemView,
+ * itemPrefix; aynı defter kaydı `hazine:N`): "Ayrıca: +60 XP", "Ayrıca: ×1 Seri koruyucu", "Ayrıca: Kulaklık". Jeton tutarı ve toplam
+ * değişmez.
  */
 export function hazineNotu(items: readonly RewardItem[]): string {
-  const rest = items.filter((i) => i.kind !== 'jeton').map((i) => { const v = itemView(i); return v.amount == null ? v.name : `×${v.amount.toLocaleString('tr-TR')} ${v.name}`; });
+  const rest = items.filter((i) => i.kind !== 'jeton').map((i) => { const v = itemView(i); return v.amount == null ? v.name : `${itemPrefix(i)}${v.amount.toLocaleString('tr-TR')} ${v.name}`; });
   return rest.length ? `Ayrıca: ${rest.join(' · ')}` : '';
 }
 /** "Bu bölümden" dökümünde hazine satırına bu koşunun hazine kaydındaki jeton dışı ödüller (earnLines yalnız jetonu sayar) */

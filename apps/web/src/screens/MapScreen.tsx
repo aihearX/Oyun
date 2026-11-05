@@ -30,7 +30,9 @@ declare const __ODI_E2E__: boolean | undefined;
 
 /**
  * "Hedefe ulaştın!" kutusu dönüş sahnesi bittikten sonra bu kadar kalır, sonra yalnız sıradaki hedef. O sürerken Tüy Dede turu
- * başlamaz (ftue/Director.tsx quiet, `data-ulasildi`): "Yeni yer açıldı" kartı kutunun üstüne binmez (OT-sessiz-oyuncu-20)
+ * başlamaz (ftue/Director.tsx quiet, `data-ulasildi`): "Yeni yer açıldı" kartı kutunun üstüne binmez (OT-sessiz-oyuncu-20).
+ * Yolculuğun bittiği dönüşte (goal.final) ve yolculuk bittikten sonra tam genişliğe açılan kutu altta, Bölüm düğmesinin üstündedir:
+ * Ninni Merkezi başlığını örtmez (YN-241, OT-sessiz-oyuncu-33)
  */
 const GOAL_REACHED_MS = 6000;
 /** haritadaki hazine töreni: içerik bölüm sonunda (sonuç ekranında) verildi; tören yeniden vermez (OT-uzman-odyolog-29) */
@@ -90,7 +92,9 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
     const vh = innerHeight; let top = hudRef.current?.getBoundingClientRect().bottom ?? 70;
     const tops = [goalRef.current, host.current?.parentElement?.querySelector('.map-side-l'), document.querySelector('.ev-fab')];
     for (const el of tops) { const r = el?.getBoundingClientRect(); if (r && r.height > 0 && r.top < vh / 2) top = Math.max(top, r.bottom); }
-    const pb = playRef.current?.getBoundingClientRect().top ?? vh - 140;
+    let pb = playRef.current?.getBoundingClientRect().top ?? vh - 140;
+    // yolculuğun bitişinde hedef kutusu alttadır (YN-241): Ninni Merkezi kutunun üstündeki alanın ortasına gelir
+    const g = goalRef.current?.getBoundingClientRect(); if (g && g.height > 0 && g.top >= vh / 2) pb = Math.min(pb, g.top);
     return { top: top + 8, bottom: Math.max(90, vh - pb + 10) };
   };
 
@@ -184,12 +188,12 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   // sağ üstteki kısa karta sığmayan hedef kendiliğinden tam genişlikte, düğmelerin altında sarar: kesilmez (OT-sinav-adayi-24)
   const [wideText, setWideText] = useState<string | null>(null); const goalWide = wideText === goal.text;
   useLayoutEffect(() => {
-    if (goalWide || goalOpen) return;
+    if (goalWide || goalOpen || goal.final) return;
     const t = goalRef.current?.querySelector('span'); if (t && t.scrollHeight > t.clientHeight + 1) setWideText(goal.text);
   }, [goal.text, goalWide, goalOpen]);
   const onGoal = (b: HTMLElement) => {
     const t = b.querySelector('span');
-    if (!goalWide && (goalOpen || (t && t.scrollHeight > t.clientHeight + 1))) { setOpenText(goalOpen ? null : goal.text); return; }
+    if (!goalWide && !goal.final && (goalOpen || (t && t.scrollHeight > t.clientHeight + 1))) { setOpenText(goalOpen ? null : goal.text); return; }
     handle.current?.focusCurrent();
   };
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
@@ -218,7 +222,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         </button>}
         <Compass tilt={away === 'up' ? -14 : away === 'down' ? 14 : 0} />
       </div>
-      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goalOpen || goalWide ? ' open' : ''}`} key={goal.text} ref={goalRef} data-ulasildi={goal.small ? '1' : undefined} style={unlockCard ? { visibility: 'hidden' } : undefined} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
+      {feat.cleared >= 1 || feat.open('today') ? <button className={`map-goal${goal.final ? ' final' : goalOpen || goalWide ? ' open' : ''}${done ? ' done' : ''}`} key={goal.text} ref={goalRef} data-ulasildi={goal.small ? '1' : undefined} style={unlockCard ? { visibility: 'hidden' } : undefined} onClick={(e) => onGoal(e.currentTarget)} aria-label={`${goal.small ?? 'Sıradaki hedef'}: ${goal.text}`}>
         <small>{goal.small ?? 'Sıradaki hedef'}</small><span><Glyph e={goal.icon} size="1.15em" /> <Rich text={goal.text} /></span>
       </button> : null}
       {away && !seq && <button className={`map-back ${away}`} onClick={() => handle.current?.focusCurrent()} aria-label="Odi'ye dön">{away === 'up' ? '▲' : '▼'} Odi</button>}

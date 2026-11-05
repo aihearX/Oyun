@@ -247,7 +247,14 @@ export interface ProgressAck { highest: number; stars: number; warPoints: number
   /** true: bu bölüm bu lig haftasında LEAGUE_FULL_RUNS_PER_LEVEL kez tam puan yazdı; bu koşu LEAGUE_REPLAY_POINTS yazdı (karar 26). Eski sunucu göndermez. */
   leagueReplay?: boolean;
   /** true: Rahat denemeydi; rekabet puanları bilerek 0 (karar 42). Eski sunucu göndermez. */
-  rahat?: boolean }
+  rahat?: boolean;
+  /**
+   * bölüm jetonuna eklenen bonusun kaynakları (YN-240): bina (seviyesiyle), takım teknolojisi; her kaynağın yüzdesi ve payı. Payların
+   * toplamı = `jeton` − sayılan notalar (yuvarlama farkı varsa ayrı 'yuvarlama' kaynağı). Bonus yoksa boş. Eski sunucu göndermez.
+   */
+  jetonBonus?: JetonBonusPart[] }
+/** bölüm jetonu bonusunun bir kaynağı: `seviye` binanın (ya da takım teknolojisinin) seviyesi, `pct` uygulanan yüzde, `jeton` payı */
+export interface JetonBonusPart { kaynak: 'laboratuvar' | 'kule' | 'takim' | 'yuvarlama'; seviye?: number; pct: number; jeton: number }
 
 
 // =====================================================================

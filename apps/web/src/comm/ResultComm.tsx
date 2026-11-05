@@ -21,7 +21,7 @@ import { noteRun, useComm } from './state';
 export function ResultComm({ level, completed, demo }: { level: number; completed: boolean; demo?: boolean }) {
   const team = useNet((s) => s.team); const status = useNet((s) => s.status);
   const fails = useComm((s) => s.fails[level] ?? 0); const asked = useComm((s) => s.asked.includes(level));
-  const failStreak = useStore((s) => s.failStreak);
+  const failStreak = useStore((s) => s.failStreak); const levelFails = useStore((s) => s.progress[level]?.fails ?? 0);
   const [state, setState] = useState<'' | 'busy' | 'done'>('');
   const [duel, setDuel] = useState<'' | 'confirm' | 'busy' | 'done'>('');
   useEffect(() => { if (!demo) noteRun(level, completed); }, []);
@@ -49,13 +49,17 @@ export function ResultComm({ level, completed, demo }: { level: number; complete
     const done = state === 'done' || asked || mine;
     const left = demoFails ? undefined : helpLeftOf(team, getNet()?.serverNow() ?? Date.now());
     const out = !done && left === 0;
+    // bölümün adıyla yalnız o bölümün art arda kaybı (oturumun sayısı ya da kayıtlı ilerlemenin `fails`i, bu kayıp dahil); kart
+    // bölümler arası seriyle açıldıysa yalnız seri, bölüm adı olmadan: 38'deki kayıp "39. bölümü 3 kez denedin"e sayılmasın (YN-240,
+    // OT-ogrenci-birinci-49)
+    const tried = Math.max(fails, demo ? 0 : levelFails, demoFails);
     return (
       <div className="comm-result" data-testid="yardim-iste" onClick={(e) => e.stopPropagation()}>
         <span className="cr-ic"><Art name="help" size={30} /></span>
         <span className="cr-t"><b>{done ? 'Yardım istedin' : out ? 'Bugünkü yardım hakların bitti' : 'Takımından yardım iste'}</b>
           <small data-testid="yardim-iste-not">{done ? 'Takım sohbetinde kartın var; ipucu ve kalkanlar oraya gelir.'
             : out ? 'Yarın yeniden isteyebilirsin. Takım sohbetindeki kartların açık.'
-            : `${level}. bölümü ${Math.max(fails, failStreak, demoFails)} kez denedin. Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.${left !== undefined ? ` Bugün ${left} hak kaldı.` : ''}`}</small></span>
+            : `${tried >= COMM_RULES.helpFailsToAsk ? `${level}. bölümü ${tried} kez denedin.` : `Üst üste ${failStreak} kayıp.`} Takım arkadaşların ipucu, kalkan ya da birlikte yarış gönderebilir.${left !== undefined ? ` Bugün ${left} hak kaldı.` : ''}`}</small></span>
         {!done && !out && <button type="button" className="btn small" data-testid="yardim-iste-dugme" disabled={state === 'busy'} onClick={() => void ask()}>Yardım iste</button>}
       </div>
     );

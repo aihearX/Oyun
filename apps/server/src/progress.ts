@@ -1,11 +1,11 @@
-import { CAMP_POWER_LEVEL, RAHAT, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { CAMP_POWER_LEVEL, RAHAT, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type JetonBonusPart, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
 import { completeDue, useRemedies } from './camp';
 import { addLeaguePoints, leaguePointsForRun } from './league';
 import { racePlaceFor } from './race';
 import { raidHit } from './raid';
-import { addContrib, addGoalProgress, addTeamXp, broadcastExtra, techBonus } from './teamextra';
+import { addContrib, addGoalProgress, addTeamXp, broadcastExtra, techBonus, techLevel } from './teamextra';
 import { addWarPoints } from './war';
 
 export const MAX_LEVEL = 40;
@@ -40,6 +40,26 @@ export function bonusesFor(app: App, pid: string): Bonuses {
   };
 }
 
+/**
+ * Bölüm jetonu bonusunun dökümü (YN-240, OT-ekonomi-denetci-43): `bonusesFor().coinPct`'nin kaynakları (Odyometri Odası, Timpanometri
+ * Kulesi, takımın Ortak Kazanç teknolojisi), seviyesi, yüzdesi ve `base` notadan payı. Payların toplamı `jeton − base`e eşittir:
+ * kaynak kaynak yuvarlamanın farkı uydurma bir kaynağa yüklenmez, ayrı 'yuvarlama' kaynağı olarak söylenir.
+ */
+export function jetonBonusParts(app: App, pid: string, base: number, jeton: number): JetonBonusPart[] {
+  const teamId = app.player(pid).team_id;
+  const bld = new Map(app.db.all<{ id: string; level: number }>('SELECT id, level FROM buildings WHERE player_id = ?', pid).map((b) => [b.id, b.level]));
+  const lv = (id: string) => Math.min(CAMP_POWER_LEVEL, bld.get(id) ?? 0);
+  const src: Omit<JetonBonusPart, 'jeton'>[] = [
+    { kaynak: 'laboratuvar', seviye: bld.get('laboratuvar') ?? 0, pct: lv('laboratuvar') * LAB_PCT_PER_LEVEL },
+    { kaynak: 'kule', seviye: bld.get('kule') ?? 0, pct: lv('kule') * KULE_PCT_PER_LEVEL },
+    { kaynak: 'takim', seviye: techLevel(app, teamId, 'jeton'), pct: techBonus(app, teamId, 'jeton') },
+  ];
+  const out: JetonBonusPart[] = src.filter((x) => x.pct > 0).map((x) => ({ ...x, jeton: Math.round((base * x.pct) / 100) }));
+  const fark = jeton - base - out.reduce((a, x) => a + x.jeton, 0);
+  if (fark) out.push({ kaynak: 'yuvarlama', pct: 0, jeton: fark });
+  return out;
+}
+
 /** aynı runId için kayıtlı yanıt (idempotent gönderim) */
 export const RUN_RETAIN_MS = 30 * 86_400_000;
 export function pruneRuns(app: App): void { app.db.run('DELETE FROM progress_runs WHERE at < ?', app.now() - RUN_RETAIN_MS); }
@@ -72,8 +92,10 @@ export const progressHandlers: Handlers = {
 
     // jeton: sunucu yetkili cüzdan
     const coinMul = 1 + bonus.coinPct / 100;
-    const jeton = Math.round(Math.min(d.coins, MAX_COINS) * coinMul);
+    const base = Math.min(d.coins, MAX_COINS);
+    const jeton = Math.round(base * coinMul);
     app.addCurrency(s.pid, 'jeton', jeton);
+    const jetonBonus = jetonBonusParts(app, s.pid, base, jeton);
 
     // en iyi skor / yıldız
     const best = app.db.get<{ stars: number; score: number }>('SELECT stars, score FROM level_best WHERE player_id = ? AND level = ?', s.pid, d.level);
@@ -124,7 +146,7 @@ export const progressHandlers: Handlers = {
     const after = app.player(s.pid);
     const ack = {
       highest: after.highest, stars: after.stars, warPoints, raidDamage, leaguePoints, ...(lig.replay ? { leagueReplay: true } : {}), ...(rahat ? { rahat: true } : {}),
-      newInbox: app.unclaimedInbox(s.pid), jeton, wallet: app.walletChanged(s.pid),
+      newInbox: app.unclaimedInbox(s.pid), jeton, jetonBonus, wallet: app.walletChanged(s.pid),
     };
     app.db.run('INSERT INTO progress_runs(player_id, run_id, ack, at) VALUES(?, ?, ?, ?)', s.pid, d.runId, JSON.stringify(ack), app.now());
     return ack;
