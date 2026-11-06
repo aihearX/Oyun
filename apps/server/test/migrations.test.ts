@@ -159,4 +159,17 @@ describe('şema sürümü ve göçler', () => {
     expect(db.get('SELECT jeton, carry_jeton FROM players WHERE id = ?', 'p1')).toEqual({ jeton: 500, carry_jeton: 0 });
     db.close();
   });
+  it('göç 17 (bekleyen ödül tavanı): local_grants.carried eklenir; var olan kayıtlar NULL (bilinmiyor) kalır', () => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    old.run('INSERT INTO players(id, token_hash, name, color, friend_code, depot_at, created_at, last_seen, jeton) VALUES(?, ?, ?, 0, ?, 0, 0, 0, 500)', 'p1', 'h1', 'p1', 'K1');
+    old.raw.exec('ALTER TABLE local_grants DROP COLUMN carried; PRAGMA user_version = 16');
+    old.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)', 'p1', 'l1', 110, 40, 'hazine:25', '2026-11-05', 0);
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    expect(db.get('SELECT jeton, credited, carried FROM local_grants WHERE ledger_id = ?', 'l1')).toEqual({ jeton: 110, credited: 40, carried: null });
+    db.close();
+  });
 });

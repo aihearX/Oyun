@@ -5,19 +5,22 @@
  * kısım açıkça yazılır, yanıt gelmeden (çevrimdışı) "eklendi" denmez. Sahip kararı 54 (YN-270): sınırı aşan kısım kaybolmaz,
  * "bekleyen ödül" olarak sonraki günlere devreder ("110 jeton yarın hesabına geçecek"); sunucu bunu yanıttaki `carry` ile söyler.
  * `carry` göndermeyen (güncellenmemiş) sunucuda aşan kısım gerçekten eklenmez ve eski cümle yazar ("110 jeton eklenmedi").
+ * Bekleyen ödülün tavanı var (`LOCAL_JETON_CARRY_MAX`, 3.000): bekleyen doluyken aşan kısım eklenmez; sunucu bunu `carryAdded` ile
+ * söyler, ekran o kısmı "eklenmedi" diye ayrıca yazar (`kayip`).
  * Saf: React'e ve ağa bağlı değildir (birim testi: odul-durum.test.ts).
  */
 import type { RewardItem } from '@odi/content';
-import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
+import { LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 
 /** defter kaydının sunucu kimliği (net.ts scanLedger; sunucu ledgerId ile tek yazar) */
 export const ledgerKey = (at: number, reason: string) => `${at}:${reason}`.replace(/[^A-Za-z0-9_.:-]/g, '_').slice(0, 80);
 
 /**
  * sunucunun yanıtı: istenen ve hesaba geçen jeton. `gun` (karar 54): hesaba geçmeyen kısım bekleyen ödüle yazıldı; bekleyenin
- * tamamı en geç kaç gün sonra hesaba geçer (1 = yarın). Yoksa sunucu bekleyen ödülü bilmiyor: eksik kısım eklenmedi.
+ * tamamı en geç kaç gün sonra hesaba geçer (1 = yarın). Yoksa ve `kayip` de yoksa sunucu bekleyen ödülü bilmiyor: eksik kısım eklenmedi.
+ * `kayip` (bekleyen ödül tavanı): hesaba geçmeyen kısmın bekleyene de yazılmayan, yani eklenmeyen bölümü (bekleyen 3.000'de doluydu).
  */
-export interface Kredi { jeton: number; credited: number; gun?: number }
+export interface Kredi { jeton: number; credited: number; gun?: number; kayip?: number }
 /** bekleyen ödülün (yanıttaki `carry`) tamamının kaç günde hesaba geçeceği: her gün en çok sınır kadar (1 = yarın) */
 export const bekleyenGun = (carry: number) => Math.max(1, Math.ceil(carry / LOCAL_JETON_DAILY_MAX));
 
@@ -25,10 +28,10 @@ export const bekleyenGun = (carry: number) => Math.max(1, Math.ceil(carry / LOCA
  * Bir defter kaydının jetonu nerede:
  *  - `tam`: hesaba tamamı geçti (ya da sunucu yok: cüzdan yereldir)
  *  - `kesik`: sunucu günlük sınırla kesti; `eksik` jeton bugün hesaba geçmedi (`gun` varsa bekleyen ödülde, o kadar gün içinde geçer;
- *    yoksa güncellenmemiş sunucu: eklenmedi)
+ *    yoksa güncellenmemiş sunucu: eklenmedi). `kayip`: eksiğin bekleyen ödül tavanı yüzünden eklenmeyen kısmı (eksik içinde)
  *  - `bekliyor`: sunucuya gitmedi ya da yanıtı gelmedi; `bagli` değilse bağlanınca gidecek (kesin tutar henüz bilinmez)
  */
-export type OdulDurum = { k: 'tam' } | { k: 'kesik'; eksik: number; gun?: number } | { k: 'bekliyor'; bagli: boolean };
+export type OdulDurum = { k: 'tam' } | { k: 'kesik'; eksik: number; gun?: number; kayip?: number } | { k: 'bekliyor'; bagli: boolean };
 
 export interface DurumKaynak {
   /** ledgerId → sunucu yanıtı */
@@ -45,7 +48,7 @@ export function odulDurumu(g: { at?: number; reason: string }, d: DurumKaynak): 
   if (g.at == null || g.reason.startsWith('bolum:') || g.reason.startsWith('sunucu:')) return { k: 'tam' };
   const id = ledgerKey(g.at, g.reason);
   const kr = d.krediler[id];
-  if (kr) return kr.credited < kr.jeton ? { k: 'kesik', eksik: kr.jeton - kr.credited, ...(kr.gun ? { gun: kr.gun } : {}) } : { k: 'tam' };
+  if (kr) return kr.credited < kr.jeton ? { k: 'kesik', eksik: kr.jeton - kr.credited, ...(kr.gun ? { gun: kr.gun } : {}), ...(kr.kayip ? { kayip: Math.min(kr.kayip, kr.jeton - kr.credited) } : {}) } : { k: 'tam' };
   if (!d.sosyal) return { k: 'tam' };
   if (d.bekleyen.has(id)) return { k: 'bekliyor', bagli: d.bagli };
   return { k: 'tam' };
@@ -57,21 +60,23 @@ const jetonOf = (items: readonly RewardItem[]) => items.reduce((a, i) => a + (i.
  * Sonuç kartının defter kayıtları, hesaba geçenle: sınır kestiyse kaydın `eksik`i (earnLines satırı hesaba geçeni gösterir, eksik
  * notta), yanıtı beklenenlerin jetonu `bekleyen`de (çevrimdışı: bağlanınca). Toplam `eksik` kartın alt satırı ve üst sayaç içindir.
  * `gun` (karar 54): eksik kısım bekleyen ödülde, en geç bu kadar gün içinde hesaba geçer (kesilen kayıtların en büyüğü); kesilen
- * kayıtlardan biri bile bekleyen ödülsüz (güncellenmemiş sunucu) ise yok: eski "eklenmedi" cümlesi.
+ * kayıtlardan biri bile bekleyen ödülsüz (güncellenmemiş sunucu) ise yok: eski "eklenmedi" cümlesi. `kayip`: eksiğin bekleyen ödül
+ * tavanı yüzünden eklenmeyen kısmı (eski sunucuda yok: orada eksiğin tamamı eklenmedi).
  */
-export function hesabaGecen<G extends { at?: number; reason: string; items: RewardItem[] }>(grants: readonly G[], d: DurumKaynak): { grants: (G & { eksik?: number })[]; eksik: number; gun?: number; bekleyen: number; bagli: boolean } {
-  let eksik = 0; let bekleyen = 0; let gun = 0; let eski = false;
+export function hesabaGecen<G extends { at?: number; reason: string; items: RewardItem[] }>(grants: readonly G[], d: DurumKaynak): { grants: (G & { eksik?: number; kayip?: number })[]; eksik: number; gun?: number; kayip?: number; bekleyen: number; bagli: boolean } {
+  let eksik = 0; let bekleyen = 0; let gun = 0; let kayip = 0; let eski = false;
   const out = grants.map((g) => {
     const s = odulDurumu(g, d);
     if (s.k === 'kesik') {
       const e = Math.min(s.eksik, jetonOf(g.items)); eksik += e;
-      if (e > 0) { if (s.gun) gun = Math.max(gun, s.gun); else eski = true; }
-      return e > 0 ? { ...g, eksik: e } : g;
+      const ky = Math.min(e, s.kayip ?? 0); kayip += ky;
+      if (e > 0) { if (s.gun) gun = Math.max(gun, s.gun); else if (ky < e) eski = true; }
+      return e > 0 ? { ...g, eksik: e, ...(ky > 0 ? { kayip: ky } : {}) } : g;
     }
     if (s.k === 'bekliyor') bekleyen += jetonOf(g.items);
     return g;
   });
-  return { grants: out, eksik, ...(eksik > 0 && gun > 0 && !eski ? { gun } : {}), bekleyen, bagli: d.bagli };
+  return { grants: out, eksik, ...(eksik > 0 && gun > 0 && !eski ? { gun } : {}), ...(!eski && kayip > 0 ? { kayip } : {}), bekleyen, bagli: d.bagli };
 }
 
 /** ödül öğelerinde jetonu hesaba geçenle değiştir (0 kaldıysa jeton öğesi çıkar): pencerede yazan = verilen (Hazine penceresi) */
@@ -91,8 +96,8 @@ export function gecenOgeler(items: readonly RewardItem[], eksik: number): Reward
  * Sınır kestiyse bugün geçmeyen (karar 54: bekleyen ödülde, "yarın hesabına geçecek"); jeton sunucuya henüz gitmediyse (çevrimdışı)
  * "bağlanınca", gidiyorsa "kaydediliyor"; tamamsa `verildi`.
  */
-export function hazinePenceresi(items: readonly RewardItem[], d: OdulDurum, verildi: string): { items: RewardItem[]; note: string; eksik: number; gun?: number; bekliyor: boolean } {
-  if (d.k === 'kesik') return { items: gecenOgeler(items, d.eksik), note: sinirNotu(d.eksik, d.gun), eksik: d.eksik, ...(d.gun ? { gun: d.gun } : {}), bekliyor: false };
+export function hazinePenceresi(items: readonly RewardItem[], d: OdulDurum, verildi: string): { items: RewardItem[]; note: string; eksik: number; gun?: number; kayip?: number; bekliyor: boolean } {
+  if (d.k === 'kesik') return { items: gecenOgeler(items, d.eksik), note: sinirNotu(d.eksik, d.gun, d.kayip), eksik: d.eksik, ...(d.gun ? { gun: d.gun } : {}), ...(d.kayip ? { kayip: d.kayip } : {}), bekliyor: false };
   if (d.k === 'bekliyor') return { items: [...items], note: d.bagli ? 'Jetonu hesabına kaydediliyor' : 'Jetonu bağlanınca cüzdanına eklenecek', eksik: 0, bekliyor: !d.bagli };
   return { items: [...items], note: verildi, eksik: 0, bekliyor: false };
 }
@@ -104,18 +109,25 @@ export const bekleyenNe = (gun: number) => (gun <= 1 ? 'yarın' : `${gun} gün i
  * sınır cümlesi (sonuç kartı, Hazine penceresi, başarım bildirimi aynı söz): bugün geçmeyen ve kısa nedeni (YN-269, OT-rekabetci-53:
  * hazine sandığı konfetiyle açılıp yalnız "110 jeton eklenmedi" diyordu). Karar 54: `gun` varsa jeton kaybolmaz, bekleyen ödülde
  * ("110 jeton yarın hesabına geçecek"); yoksa sunucu güncellenmemiştir ve jeton gerçekten eklenmedi (eski kural, dürüst söz).
+ * `kayip` (eksik içinde): bekleyen ödül tavanı (`LOCAL_JETON_CARRY_MAX`) doluydu, o kısım bekleyene de yazılmadı: "eklenmedi" der.
  */
-export const sinirSatiri = (eksik: number, gun?: number) => (gun
-  ? `${tr(eksik)}\u00a0jeton ${bekleyenNe(gun)} hesabına geçecek: bugünkü ${tr(LOCAL_JETON_DAILY_MAX)}\u00a0jetonluk ödül sınırı doldu`
-  : `${tr(eksik)}\u00a0jeton eklenmedi: bugünkü ${tr(LOCAL_JETON_DAILY_MAX)}\u00a0jetonluk ödül sınırı doldu`);
-/** sonuç kartında sınır cümlesinin ardından kural (karar 54: aşan kısım devreder) */
-export const sinirKurali = (gun?: number) => (gun
-  ? `Hazine, başarım, görev ve sandık jetonlarından günde en çok ${tr(LOCAL_JETON_DAILY_MAX)} jeton hesaba geçer; aşan kısım kaybolmaz, bekleyen ödül olarak sonraki günlerde geçer.`
+export function sinirSatiri(eksik: number, gun?: number, kayip = 0): string {
+  const gunluk = `bugünkü ${tr(LOCAL_JETON_DAILY_MAX)}\u00a0jetonluk ödül sınırı doldu`;
+  const ky = Math.max(0, Math.min(eksik, kayip));
+  if (ky > 0) {
+    const neden = `${gunluk}, ${tr(LOCAL_JETON_CARRY_MAX)}\u00a0jetonluk bekleyen ödül sınırı da dolu`;
+    return gun && ky < eksik ? `${tr(eksik - ky)}\u00a0jeton ${bekleyenNe(gun)} hesabına geçecek, ${tr(ky)}\u00a0jeton eklenmedi: ${neden}` : `${tr(eksik)}\u00a0jeton eklenmedi: ${neden}`;
+  }
+  return gun ? `${tr(eksik)}\u00a0jeton ${bekleyenNe(gun)} hesabına geçecek: ${gunluk}` : `${tr(eksik)}\u00a0jeton eklenmedi: ${gunluk}`;
+}
+/** sonuç kartında sınır cümlesinin ardından kural (karar 54: aşan kısım devreder; bekleyen ödülün de tavanı var) */
+export const sinirKurali = (gun?: number, kayip = 0) => (gun || kayip > 0
+  ? `Hazine, başarım, görev ve sandık jetonlarından günde en çok ${tr(LOCAL_JETON_DAILY_MAX)} jeton hesaba geçer; aşan kısım kaybolmaz, bekleyen ödül olarak sonraki günlerde geçer (bekleyen en çok ${tr(LOCAL_JETON_CARRY_MAX)} jeton; fazlası eklenmez).`
   : `Hazine, başarım, görev ve sandık jetonlarından günde en çok ${tr(LOCAL_JETON_DAILY_MAX)} jeton hesaba geçer; sınır yarın yenilenir.`);
 /** kuralın yeri (Profil › Nasıl çalışır?, InfoScreen "Günlük ödül jetonu sınırı") */
 export const SINIR_IPUCU = 'Kural: Profil › Nasıl çalışır?';
 /** Hazine penceresinin notu: sınır cümlesi ve kuralın yeri */
-export const sinirNotu = (eksik: number, gun?: number) => `${sinirSatiri(eksik, gun)}. ${SINIR_IPUCU}`;
+export const sinirNotu = (eksik: number, gun?: number, kayip?: number) => `${sinirSatiri(eksik, gun, kayip)}. ${SINIR_IPUCU}`;
 /** çevrimdışı bekleyen ödülün cümlesi: tutar sunucuda kesinleşir, "eklendi" denmez */
 export const bekleyenSatiri = (jeton: number) => `${tr(jeton)}\u00a0jeton bağlanınca hesabına eklenecek`;
 
@@ -149,8 +161,11 @@ export function gunlukSatiri(g: GunlukSinir | null, o: { sosyal: boolean; bagli:
   const gecen = Math.max(0, Math.min(max, max - g.left)); const kalan = max - gecen;
   const seviye = kalan <= 0 ? 'dolu' : gecen >= max * GUNLUK_YAKIN ? 'yakin' : 'normal';
   const devreder = typeof g.carry === 'number';
+  const bekleyenDolu = devreder && g.carry! >= LOCAL_JETON_CARRY_MAX;
   const notlar = [
-    seviye === 'dolu' ? (devreder
+    seviye === 'dolu' ? (bekleyenDolu
+      ? `Sınır doldu ve bekleyen ödül de dolu (en çok ${tr(LOCAL_JETON_CARRY_MAX)} jeton): bugün gelen hazine, başarım, görev, sandık, takvim ve Şanslı Nota jetonu eklenmez. Yarın bekleyenden hesabına geçen kadar yer açılır.`
+      : devreder
       ? 'Sınır doldu: bugün gelen hazine, başarım, görev, sandık, takvim ve Şanslı Nota jetonu kaybolmaz, bekleyen ödül olarak yarın hesabına geçer.'
       : 'Sınır doldu: bugün gelen hazine, başarım, görev, sandık, takvim ve Şanslı Nota jetonu eklenmez. Gece yarısı yenilenir.')
       : seviye === 'yakin' ? `Sınıra ${tr(kalan)}\u00a0jeton kaldı.` : '',

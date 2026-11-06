@@ -1,5 +1,5 @@
 import { SKILL_TREE } from '@odi/content';
-import { LOCAL_JETON_DAILY_MAX } from '@odi/shared';
+import { LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
 import { MAX_LEVEL } from './progress';
 import { dayKey, dayNumber, dayNumberStart } from './time';
@@ -10,9 +10,10 @@ import { dayKey, dayNumber, dayNumberStart } from './time';
  * Ölçülenden uzun oynayan dürüst oyuncu yine çarpabilir (tur 16: aynı gün 21-25, 460 jeton eklenmedi). Sahip kararı 54 (YN-270): sınırı
  * aşan jeton kaybolmaz, `players.carry_jeton`da (göç 16) "bekleyen ödül" olarak durur ve sonraki günlerde yine sınır içinde hesaba geçer
  * (`bekleyenAktar`). Günde hesaba geçen yerel ödül jetonu (bekleyenden gelen dahil) yine en çok LOCAL_JETON_DAILY_MAX: sahte istemciye
- * karşı koruma aynı.
+ * karşı koruma aynı. Bekleyen ödülün de tavanı var (LOCAL_JETON_CARRY_MAX = 3.000, iki günlük tavan): bekleyen doluyken aşan kısım
+ * eklenmez (`carryAdded` yanıtta; ekran "eklenmedi" der). Tavansız bekleyen, sahte istemcinin her gün tam sınırı hesaba geçirmesine yol açardı.
  */
-export { LOCAL_JETON_DAILY_MAX };
+export { LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX };
 /** Hesap ilk kez açılırken cihazdaki çevrimdışı jetonun devri: hesap başına bir kez, ilk 24 saatte, en çok bu kadar (günlük sınırdan ayrı) */
 export const DEVIR_MAX = 3000;
 const DEVIR_WINDOW_MS = 24 * 3_600_000;
@@ -64,8 +65,9 @@ export function skillsOf(app: App, pid: string): string[] {
 
 export const walletHandlers: Handlers = {
   'wallet.local': (app, s, { ledgerId, jeton, reason }) => {
-    const prev = app.db.get<{ credited: number }>('SELECT credited FROM local_grants WHERE player_id = ? AND ledger_id = ?', s.pid, ledgerId);
-    if (prev) return { wallet: app.wallet(s.pid), credited: prev.credited, ...gunlukSinir(app, s.pid) };
+    const prev = app.db.get<{ credited: number; carried: number | null }>('SELECT credited, carried FROM local_grants WHERE player_id = ? AND ledger_id = ?', s.pid, ledgerId);
+    // yinelenen gönderim: kayıtlı yanıt; bekleyene yazılan kısım göç 17'den önceki kayıtta bilinmez (null: alan gönderilmez)
+    if (prev) return { wallet: app.wallet(s.pid), credited: prev.credited, ...(prev.carried != null ? { carryAdded: prev.carried } : {}), ...gunlukSinir(app, s.pid) };
     if (reason === 'devir') {
       // cihazdaki çevrimdışı birikim: yalnızca yeni hesapta, bir kez
       const p = app.player(s.pid);
@@ -75,15 +77,17 @@ export const walletHandlers: Handlers = {
       app.addCurrency(s.pid, 'jeton', credited);
       return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
     }
-    // önce dünden bekleyen (gün döndüyse), sonra bu ödül; sınırı aşan kısım kaybolmaz, bekleyen ödüle eklenir (karar 54)
+    // önce dünden bekleyen (gün döndüyse), sonra bu ödül; sınırı aşan kısım kaybolmaz, bekleyen ödüle eklenir (karar 54),
+    // bekleyen tavana (LOCAL_JETON_CARRY_MAX) kadar; tavanı aşan kısım eklenmez
     bekleyenAktar(app, s.pid);
     const left = Math.max(0, LOCAL_JETON_DAILY_MAX - localCreditedToday(app, s.pid));
     const credited = Math.min(jeton, left);
-    app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at) VALUES(?, ?, ?, ?, ?, ?, ?)',
-      s.pid, ledgerId, jeton, credited, reason, dayKey(app.now()), app.now());
+    const carryAdded = Math.max(0, Math.min(jeton - credited, LOCAL_JETON_CARRY_MAX - app.player(s.pid).carry_jeton));
+    app.db.run('INSERT INTO local_grants(player_id, ledger_id, jeton, credited, reason, day, at, carried) VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
+      s.pid, ledgerId, jeton, credited, reason, dayKey(app.now()), app.now(), carryAdded);
     app.addCurrency(s.pid, 'jeton', credited);
-    if (jeton > credited) app.db.run('UPDATE players SET carry_jeton = carry_jeton + ? WHERE id = ?', jeton - credited, s.pid);
-    return { wallet: app.walletChanged(s.pid), credited, ...gunlukSinir(app, s.pid) };
+    if (carryAdded > 0) app.db.run('UPDATE players SET carry_jeton = carry_jeton + ? WHERE id = ?', carryAdded, s.pid);
+    return { wallet: app.walletChanged(s.pid), credited, carryAdded, ...gunlukSinir(app, s.pid) };
   },
   'wallet.spend': (app, s, { jeton, reason }) => {
     const m = /^yetenek:(.+)$/.exec(reason);

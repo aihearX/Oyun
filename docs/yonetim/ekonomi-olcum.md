@@ -128,7 +128,7 @@ bölüm bittiğinde yıldız, hazine ve açılım işlenir. 40'tan sonra 1-40 s�
 | Takvim | 7 günlük döngü; 2. döngüde kozmetikler kopya → 50 jeton | `packages/content/src/daily.ts:33-41`, `packages/content/src/rewards.ts:21` |
 | Harita hazineleri | 5, 10, …, 40. bölüm | `packages/content/src/daily.ts:44-53` |
 | Başarımlar | Bronz 15 / Gümüş 40 / Altın 100 jeton. Ölçülen ölçütler: bitirme, yıldız, nota, oyun, görev, sandık, takvim, seri, gün, en yüksek bölüm, XP, 3★, hasarsız, par, boss, yetenek, koruyucu, biyom yıldızı | `packages/content/src/achievements.ts:15`, `:33-67` |
-| Yerel ödül sınırı | günlük 1.500 jeton (yukarıdaki yedi kaynak; Ö1 öncesi 600) | `packages/shared/src/social.ts` (`LOCAL_JETON_DAILY_MAX`), uygulama `apps/server/src/wallet.ts:37-38` |
+| Yerel ödül sınırı | günlük 1.500 jeton (yukarıdaki yedi kaynak; Ö1 öncesi 600); aşan kısım bekleyen ödül olur (karar 54), bekleyen en çok 3.000 | `packages/shared/src/social.ts` (`LOCAL_JETON_DAILY_MAX`), uygulama `apps/server/src/wallet.ts:37-38` |
 | Depo | `floor(min(geçen, dolma) / 1 sa × Sv × 20)`; dolma `8 + 0,5 × Denge Sv` sa; her 40 jetona 1 Kamp XP (en çok 20) | `apps/server/src/camp.ts:13`, `:229-236`; `packages/content/src/kamp-seviye.ts:46`, `:29` |
 | Kamp Görevleri | günlük 3 × (15 jeton + 15 XP); haftalık 40 jeton / 3 kristal / 5 kristal + 60 dk | `packages/content/src/kamp-gorev.ts:50`, `:183-187` |
 | Kampın Hikâyesi | 10 bölüm, sıralı (ilk alınmamış bölüm) | `packages/content/src/kamp-gorev.ts:96-153` (6–7. bölümde "ya da" adımları, Ö2); `apps/server/src/camp-quests.ts:157-180` |
@@ -500,6 +500,18 @@ sütunu eski kuralı simülasyon kancasıyla aynı ölçüm ve aynı modelle yen
   tavanı değişmez (1.500); yalnız dürüst oyuncunun bir kez kazanılan hazine ve başarım jetonu artık silinmez. Sonuç ve hazine penceresi
   "110 jeton yarın hesabına geçecek" der, Bugün sekmesi bekleyeni gösterir. Test: `apps/server/test/wallet.test.ts` (aşma, devretme,
   birkaç güne yayılma, tavanın korunması), `apps/web/src/gunluk-sinir.test.ts`.
+- **Bekleyen ödül tavanı (1.0.0 mağaza adayı, 2026-11-06):** bekleyen ödülün üst sınırı yoktu; sahte istemci bekleyene sınırsız
+  jeton yazdırabiliyordu. Günlük tavan bunu her gün 1.500'de tutuyordu, ama yığın kalıcıydı: istemci düzeltilse ya da hile sonradan
+  fark edilse bile birikmiş bekleyen aylarca günde 1.500 jeton ödemeye devam ederdi; sütun da sınırsız büyürdü. Şimdi bekleyen en çok
+  **3.000 jeton** (`LOCAL_JETON_CARRY_MAX` = 2 × `LOCAL_JETON_DAILY_MAX`, iki günlük tavan, `packages/shared/src/social.ts`).
+  Bekleyen doluyken günlük sınırı aşan kısım bekleyene yazılmaz, karar 54'ten önceki gibi "eklenmedi" sayılır. Sunucu kaydın bekleyene
+  yazılan kısmını `carryAdded` ile döner ve yinelenen gönderimde aynı yanıt için saklar (`local_grants.carried`, göç 17; eski satırlar
+  NULL: yanıtta alan yok, istemci tavandan önceki kuralla yazar). Ekran dürüst: sonuç kartı ve hazine penceresi "80 jeton 2 gün içinde
+  hesabına geçecek, 30 jeton eklenmedi: … 3.000 jetonluk bekleyen ödül sınırı da dolu", Bugün sekmesi bekleyen doluyken "eklenmez" der,
+  Nasıl çalışır? tavanı yazar. Dürüst oyuncu çarpmaz: tavanı bir günde doldurmak için günlük sınırın üstüne 3.000 jeton daha istemek
+  gerekir (ölçülen en yoğun dürüst gün 1.270, tur 16 rekabetçi oyuncunun günü 1.500 + 460 = 1.960; §8 maraton günü bölüm sonu ödülleri 2.030). Test:
+  `apps/server/test/wallet.test.ts` ("bekleyen ödül tavanı"), `apps/server/test/migrations.test.ts` (göç 17),
+  `apps/web/src/gunluk-sinir.test.ts`.
 
 **Ö4 · Vaka kademeleri Klinik Sv 1/4/7 → 1/2/3** (`KG_KURAL.kademeSv`, `packages/content/src/kamp-gorev.ts:30`). Günde 3 hasta,
 salon 6 ve Bilgi düzeyi kuralları değişmedi; vakalar yine kademe sırasıyla gelir.

@@ -1,5 +1,5 @@
 import { CALENDAR, DAILY_CHEST_BASE, LUCKY_NOTE, MAX_STREAK_SHIELDS, DUPLICATE_VALUE, TREASURES, TIER_REWARD } from '@odi/content';
-import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS, LOCAL_JETON_DAILY_MAX, RAHAT } from '@odi/shared';
+import { LEAGUE_FULL_RUNS_PER_LEVEL, LEAGUE_REPLAY_POINTS, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, RAHAT } from '@odi/shared';
 import { RewardChips, ScreenHead } from '../ui/bits';
 import { Glyph } from '../ui/art';
 
@@ -14,7 +14,7 @@ export function InfoScreen({ onBack }: { onBack: () => void }) {
       <div className="card info" data-testid="bilgi-gunluk-sinir">
         <h2><Glyph e="🪙" size="1.1em" /> Günlük ödül jetonu sınırı</h2>
         <p><b>Sayılanlar:</b> hazine, başarım, günlük görev, günlük sandık, giriş takvimi ve Şanslı Nota jetonu (zaten sahip olduğun şeyin jeton karşılığı da). Bunlardan günde en çok <b>{tr(LOCAL_JETON_DAILY_MAX)} jeton</b> hesabına geçer. Bugün ne kadarının geçtiği Bugün sekmesinde yazar.</p>
-        <p><b>Sınır dolunca:</b> o gün sınırı aşan jeton kaybolmaz, <b>bekleyen ödül</b> olarak sonraki güne geçer; XP, kart ve kozmetik hemen verilir. Ertesi gün oyunu açınca (internete bağlıyken) önce bekleyen ödül hesabına geçer; o gün de en çok {tr(LOCAL_JETON_DAILY_MAX)} jeton geçer, kalanı bir sonraki güne bekler. Kaç jetonun beklediği sonuçta, hazine penceresinde ve Bugün sekmesinde yazar.</p>
+        <p><b>Sınır dolunca:</b> o gün sınırı aşan jeton kaybolmaz, <b>bekleyen ödül</b> olarak sonraki güne geçer; XP, kart ve kozmetik hemen verilir. Ertesi gün oyunu açınca (internete bağlıyken) önce bekleyen ödül hesabına geçer; o gün de en çok {tr(LOCAL_JETON_DAILY_MAX)} jeton geçer, kalanı bir sonraki güne bekler. Bekleyen ödül en çok <b>{tr(LOCAL_JETON_CARRY_MAX)} jeton</b> olabilir (iki günlük sınır); bekleyen doluyken sınırı aşan jeton eklenmez. Kaç jetonun beklediği sonuçta, hazine penceresinde ve Bugün sekmesinde yazar.</p>
         <p><b>Yenilenme:</b> sınır Türkiye saatiyle gece yarısı (İstanbul günü) yenilenir. Çevrimdışı kazandığın ödül, sunucuya ulaştığı günün sınırına sayılır.</p>
         <p><b>Sayılmayanlar:</b> bölümde topladığın jeton (bölüm sonunda sunucu verir), takım hediyesi ve takım hedefi ödülü, Ödül kutusundan alınanlar, Kamp Görevleri ve yardım jetonları. Bunları sunucu kendisi hesaplar.</p>
         <p className="muted">Sınır, değiştirilmiş bir uygulamanın hesaba sınırsız jeton yazmasını önlemek için var. Satın alınarak aşılmaz.</p>

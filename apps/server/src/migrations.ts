@@ -57,6 +57,9 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 16: YN-270 / karar 54 — `players.carry_jeton`: günlük yerel ödül sınırını (LOCAL_JETON_DAILY_MAX) aşan jeton kaybolmaz, burada bekler
  *    ve sonraki günlerde sınır içinde hesaba geçer (wallet.ts `bekleyenAktar`). Var olan satırlar 0 ile başlar: göçten önce sınırda
  *    eklenmeyen jeton geri yazılmaz (o gün oyuncuya "eklenmedi" denmişti; sahte istemcinin eski isteklerinden ayırt da edilemez).
+ * 17: bekleyen ödül tavanı (LOCAL_JETON_CARRY_MAX) — `local_grants.carried`: kaydın bekleyen ödüle yazılan kısmı; yinelenen gönderimde
+ *    yanıt (`carryAdded`) aynı kalsın diye saklanır. Var olan satırlar NULL ile başlar (bilinmiyor: yanıtta alan yok, istemci eski
+ *    kuralla yazar); göçten önce bekleyene yazılan miktarlar değişmez.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -104,6 +107,7 @@ export const MIGRATIONS: Migration[] = [
     db.exec('UPDATE player_week SET team_id = (SELECT team_id FROM players WHERE players.id = player_week.player_id), team_points = war_points WHERE team_id IS NULL');
   } },
   { name: 'bekleyen-odul-jetonu', up: (db) => { addColumn(db, 'players', 'carry_jeton', 'INTEGER NOT NULL DEFAULT 0'); } },
+  { name: 'bekleyen-odul-tavani', up: (db) => { addColumn(db, 'local_grants', 'carried', 'INTEGER'); } },
 ];
 
 /** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */

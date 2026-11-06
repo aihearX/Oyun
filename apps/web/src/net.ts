@@ -9,7 +9,7 @@ import { create } from 'zustand';
 import { useMemo } from 'react';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { CAMP_CHEERS, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { CAMP_CHEERS, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { COSMETICS, SKILL_TREE, CARDS, campLevelCosmetics, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
@@ -156,13 +156,19 @@ export function useOdulKaynak(): DurumKaynak {
  * bildirimi tek kalır, eksik toplamı büyür (her kesilen kayıt için ayrı bildirim yoktu ama art arda altı tane geliyordu).
  * Bildirim bölüm rotasında bekler, sonuç ekranında ve haritada görünür; sonuç kartı ayrıca satırla söyler.
  */
-function sinirKesti(reason: string, eksik: number, gun?: number): void {
-  useStore.getState().odulKesildi(reason, eksik, gun);
+function sinirKesti(reason: string, eksik: number, gun?: number, kayip = 0): void {
+  useStore.getState().odulKesildi(reason, eksik, gun, kayip);
   useStore.setState((s) => {
     const i = s.toasts.findIndex((t) => t.sinir != null);
     const toplam = (i >= 0 ? s.toasts[i]!.sinir! : 0) + eksik;
-    const ne = gun ? `${toplam.toLocaleString('tr-TR')} jeton kaybolmadı: bekleyen ödül olarak ${bekleyenNe(gun)} hesabına geçecek.` : `${toplam.toLocaleString('tr-TR')} jeton eklenmedi; sınır yarın yenilenir.`;
-    const t: Toast = { id: i >= 0 ? s.toasts[i]!.id : Date.now() + Math.random(), icon: '🪙', title: 'Günlük ödül sınırı doldu', text: `Görev, sandık, hazine ve başarım jetonlarından günde en çok ${LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer. ${ne}`, tone: 'bronze', sinir: toplam };
+    const kayipTop = (i >= 0 ? s.toasts[i]!.sinirKayip ?? 0 : 0) + kayip;
+    const trs = (n: number) => n.toLocaleString('tr-TR');
+    // bekleyen ödül tavanı: tavanı aşan kısım eklenmedi, ayrıca söylenir (kalan kısım yine bekleyen ödülde)
+    const dolu = `bekleyen ödül en çok ${trs(LOCAL_JETON_CARRY_MAX)} jeton olabilir.`;
+    const ne = kayipTop > 0
+      ? (gun && kayipTop < toplam ? `${trs(toplam - kayipTop)} jeton bekleyen ödül olarak ${bekleyenNe(gun)} hesabına geçecek; ${trs(kayipTop)} jeton eklenmedi: ${dolu}` : `${trs(toplam)} jeton eklenmedi: ${dolu}`)
+      : gun ? `${trs(toplam)} jeton kaybolmadı: bekleyen ödül olarak ${bekleyenNe(gun)} hesabına geçecek.` : `${trs(toplam)} jeton eklenmedi; sınır yarın yenilenir.`;
+    const t: Toast = { id: i >= 0 ? s.toasts[i]!.id : Date.now() + Math.random(), icon: '🪙', title: 'Günlük ödül sınırı doldu', text: `Görev, sandık, hazine ve başarım jetonlarından günde en çok ${LOCAL_JETON_DAILY_MAX.toLocaleString('tr-TR')} jeton hesaba geçer. ${ne}`, tone: 'bronze', sinir: toplam, ...(kayipTop > 0 ? { sinirKayip: kayipTop } : {}) };
     return { toasts: i >= 0 ? s.toasts.map((x, j) => (j === i ? t : x)) : [...s.toasts, t] };
   });
 }
@@ -197,10 +203,15 @@ const outbox_ = createOutbox({
     if (item.reason === 'devir') { if (r.credited > 0) toast('🪙', 'Cihazdaki jetonların hesabında', `${r.credited} jeton aktarıldı.`, 'green'); return; }
     // aynı kaydın yeniden gönderimi (yanıtı kaybolmuştu, ya da gönderilen listesi kısaldı) sunucunun kayıtlı yanıtını döner: bir kez söylenir
     const once = useSocial.getState().krediler[item.ledgerId];
-    // karar 54: yanıtta bekleyen ödül varsa aşan kısım kaybolmadı (sonraki günlerde geçer); yoksa sunucu eski kuralla kesti
-    const gun = typeof r.carry === 'number' && r.credited < item.jeton ? bekleyenGun(r.carry) : undefined;
-    kayitKredi(item.ledgerId, { jeton: item.jeton, credited: r.credited, ...(gun ? { gun } : {}) });
-    if (!once && r.credited < item.jeton) sinirKesti(item.reason, item.jeton - r.credited, gun);
+    // karar 54: yanıtta bekleyen ödül varsa aşan kısım kaybolmadı (sonraki günlerde geçer); yoksa sunucu eski kuralla kesti.
+    // Bekleyen ödül tavanı: `carryAdded` bu kaydın bekleyene yazılan kısmı; kalan eklenmedi (`kayip`). Alan yoksa (eski sunucu ya da
+    // göç 17'den önceki kaydın yinelenen yanıtı) eksik kısmın tamamı bekleyende sayılır (tavandan önceki kural).
+    const eksik = Math.max(0, item.jeton - r.credited);
+    const tavanli = typeof r.carryAdded === 'number';
+    const kayip = tavanli ? Math.max(0, eksik - r.carryAdded!) : 0;
+    const gun = typeof r.carry === 'number' && eksik > 0 && kayip < eksik ? bekleyenGun(r.carry) : undefined;
+    kayitKredi(item.ledgerId, { jeton: item.jeton, credited: r.credited, ...(gun ? { gun } : {}), ...(kayip > 0 ? { kayip } : {}) });
+    if (!once && eksik > 0) sinirKesti(item.reason, eksik, gun, kayip);
   },
   onSpend: (_, r) => applyServerSkills(r.skills),
   onAck: (_, jeton) => tahmin.credit(jeton),

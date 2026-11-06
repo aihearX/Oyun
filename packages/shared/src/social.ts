@@ -543,13 +543,13 @@ export interface OpMap {
   'team.donate': { req: { tech: TechId; jeton: number }; res: { extra: TeamExtra; wallet: Wallet } };
   'team.gift.claim': { req: { giftId: string }; res: { extra: TeamExtra; wallet: Wallet } };
   'team.goal.claim': { req: { goalId: string; tier: number }; res: { extra: TeamExtra; wallet: Wallet } };
-  'shop.list': { req: Record<string, never>; res: { products: (ShopProduct & { bought: number })[]; spend: SpendState; testStore: boolean } };
+  'shop.list': { req: Record<string, never>; res: { products: (ShopProduct & { bought: number })[]; spend: SpendState; testStore: boolean; /** sunucu gerçek mağaza makbuzunu doğrulayabilir mi (REVENUECAT_API_KEY tanımlı). false ise istemci mağaza ödemesi başlatmaz: para çekilip ürün verilemeyen durum olmasın. Eski sunucu göndermez (yalnız ekleme) */ realStore?: boolean } };
   'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
   /** ilk seçim hemen geçerli; düşürmek hemen; yükseltmek confirmRaise: true ister (yoksa ONAY hatası) ve 24 saat sonra geçerli */
   'shop.limit': { req: { limitTry: number; confirmRaise?: boolean }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };
   /** yerel meta ödüllerinin (görev/takvim/sandık/hazine…) jetonu: ledgerId ile idempotent, günlük üst sınırlı */
-  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number; /** sınırın yenileneceği an (YN-269; eski sunucu göndermez) */ dailyResetAt?: number; /** karar 54: sonraki günlere bekleyen ödül jetonu (bu kaydın hesaba geçmeyen kısmı dahil; eski sunucu göndermez) */ carry?: number; carriedToday?: number } };
+  'wallet.local': { req: { ledgerId: string; jeton: number; reason: string }; res: { wallet: Wallet; credited: number; dailyLeft: number; /** sınırın yenileneceği an (YN-269; eski sunucu göndermez) */ dailyResetAt?: number; /** karar 54: sonraki günlere bekleyen ödül jetonu (bu kaydın hesaba geçmeyen kısmı dahil; eski sunucu göndermez) */ carry?: number; carriedToday?: number; /** bu kaydın bekleyen ödüle yazılan kısmı (LOCAL_JETON_CARRY_MAX; `jeton - credited - carryAdded` eklenmedi). Eski sunucu ve göç 17'den önceki kaydın yinelenen yanıtı göndermez */ carryAdded?: number } };
   /** jeton harcama (şimdilik yalnızca `yetenek:<id>`; sunucu maliyeti doğrular, aynı yetenek iki kez alınmaz) */
   'wallet.spend': { req: { jeton: number; reason: string }; res: { wallet: Wallet; skills: string[] } };
   /** sunucuda kayıtlı yetenekler (SKILL_TREE kimlikleri) */
@@ -1733,6 +1733,13 @@ export interface OpMap {
  * oturum uzunluğu sapması için pay. Eski sınır 600, 3 ve 6 oturumlu dürüst oyuncunun ilk 3 gününde 616 / 963 jetonunu kesiyordu.
  */
 export const LOCAL_JETON_DAILY_MAX = 1500;
+/**
+ * Bekleyen ödülün (karar 54, `players.carry_jeton`) üst sınırı: iki günlük tavan. Sınır olmadan sahte istemci bekleyene sınırsız
+ * yazdırıp her gün tam tavanı hesaba geçirebilirdi. Bekleyen bu kadarken günlük sınırı aşan jeton bekleyene eklenmez (eklenmedi
+ * sayılır, ekran açıkça yazar). Dürüst oyuncu buna çarpmaz: ölçülen en yoğun gün 1.270 jeton (ekonomi-olcum Ö1), yani bir günde
+ * günlük sınırın üstüne 3.000 jeton daha istemek gerekir.
+ */
+export const LOCAL_JETON_CARRY_MAX = 2 * LOCAL_JETON_DAILY_MAX;
 
 // =====================================================================
 // KURUCU YOLCULAR (YN-041; docs/10-sunucu.md "Rozetler"). Yalnızca EKLEME. Kalıcı rozetler ve unvanlar yalnız görünüştür:
