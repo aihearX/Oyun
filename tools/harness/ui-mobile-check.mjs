@@ -638,7 +638,9 @@ async function suite(browserName, target, [W, H]) {
           // görüntü alınırken kapanan / kayan / solan öğe (Tüy Dede kartı, bildirim): bu turdaki örnek geçersiz, bir kez daha denenir
           const sIds = now.filter((i) => i.sample && !pos[i.id].covered).map((i) => i.id);
           const after = await page.evaluate(contrastRects, sIds);
-          for (const id of sIds) { const a = after[id], b = pos[id]; if (!a || JSON.stringify(a.rects) !== JSON.stringify(b.rects) || Math.abs(a.op - b.op) > 0.02) moved.add(id); }
+          // görüntü alınırken üstüne gelen bildirim de geçersiz kılar (örtme durumu değişti; 1.0.0 adayı: dom-webkit-390 sonuç ekranında
+          // cihaz jetonu devri bildirimi XP kartının üstüne geldi, "Seviye 3" 1.06 ölçüldü)
+          for (const id of sIds) { const a = after[id], b = pos[id]; if (!a || JSON.stringify(a.rects) !== JSON.stringify(b.rects) || Math.abs(a.op - b.op) > 0.02 || (a.covered || null) !== (b.covered || null)) moved.add(id); }
         }
         let bad = false;
         for (const i of now) {
@@ -1648,6 +1650,9 @@ async function suite(browserName, target, [W, H]) {
           if (rh) for (const c of document.querySelectorAll('.result .stats .card, .result-earn, .goal-card')) if (hit(box(rh), box(c))) out.push(`Rahat deneme kartı ${c.className} ile örtüşüyor`);
           return out;
         });
+        // geç gelen bildirim (yeni hesabın cihaz jetonu devri) ölçümden önce kapatılır: sonuç ekranının ölçümü bildirimsiz (yukarıdaki not);
+        // bildirimin örtmesi ayrı denetlenir (ortme). 1.0.0 adayı: dom-webkit-390'da bildirim XP kartının üstündeydi, kontrast 1.06
+        await toastGone(); await sleep(200);
         const rec = await check(label);
         rec.bilgi = bilgiYer;
         if (serit) {
