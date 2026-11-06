@@ -195,6 +195,10 @@ try {
   await sub(A, 'Teknoloji');
   const tech = A.locator('.tech', { hasText: 'Ortak Kazanç' });
   await tech.getByRole('button', { name: '100', exact: true }).click();
+  // bağış geri alınamaz: önce onay penceresi (YN-073, d13d594); onaylanmadan jeton harcanmaz
+  await A.getByTestId('jeton-onay').waitFor({ timeout: 8000 });
+  check(await tech.locator('.qn', { hasText: '0/' }).first().isVisible(), 'onaydan önce bağış yazılmadı');
+  await A.getByTestId('jeton-onay-evet').click();
   await tech.locator('.qn', { hasText: '100/' }).waitFor({ timeout: 8000 });
   ok('bağış ilerlemeye yazıldı (100/…)');
   await shot(A, 'A-teknoloji-bagis');
@@ -222,7 +226,10 @@ try {
   step('10 · B hediyeyi görür ve alır');
   await tab(B, 'Takım');
   await sub(B, 'Hediyeler');
-  await B.locator('.gift', { hasText: 'Ayşe takıma hediye gönderdi' }).waitFor({ timeout: 8000 });
+  // satın alma hediyesi adsız (karar 39, YN-097: TEAM_GIFT_ANON): alıcının adı hediyede yazmaz
+  const hediye = B.locator('.gift', { hasText: 'Takım hediyesi (Başlangıç Paketi)' });
+  await hediye.waitFor({ timeout: 8000 });
+  check(!(await hediye.innerText()).includes('Ayşe'), 'hediye adsız (alıcının adı yok)');
   await shot(B, 'B-hediyeler');
   const crystalsBefore = await B.getByLabel('Kristal ve mağaza').innerText();
   await B.getByRole('button', { name: /Hepsini al/ }).click();
