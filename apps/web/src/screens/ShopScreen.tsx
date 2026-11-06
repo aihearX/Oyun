@@ -200,7 +200,7 @@ function BekleyenOdemeler({ playerId, onIslendi }: { playerId: string; onIslendi
     setBusy(false);
   };
   return (
-    <div className="card bekleyen-odeme" role="status" data-testid="bekleyen-odeme">
+    <div className="card stack bekleyen-odeme" role="status" data-testid="bekleyen-odeme">
       <b>Ödeme alındı; bağlantı dönünce hesabına işlenecek</b>
       <ul className="history">{list.map((o) => <li key={o.receipt}><span className="grow ellipsis">{SHOP.find((p) => p.id === o.productId)?.name ?? o.productId}</span><span className="muted">{fmtDate(o.at)}</span></li>)}</ul>
       <div className="muted small-note">Mağaza işlemi bu cihazda saklı. Sunucuya ulaşınca ürün kendiliğinden hesabına geçer; ikinci kez ödeme alınmaz.</div>
@@ -241,7 +241,7 @@ function GeriYukle({ playerId, onDone }: { playerId: string; onDone: (r: OpMap['
     } catch (e) { setSonuc(errText(e)); } finally { setBusy(false); }
   };
   return (
-    <div className="card geri-yukle" data-testid="geri-yukle">
+    <div className="card stack geri-yukle" data-testid="geri-yukle">
       <b>Satın alımları geri yükle</b>
       <div className="muted small-note">{kalicilar} bu oyun hesabına bağlıdır. Bu hesapta görünmüyorsa ya da ödemesi alınıp hesabına işlenmemiş bir satın alma varsa buradan geri yükle. Kristal ve hızlandırıcı paketleri harcanır: hesabına işlendikten sonra geri yüklenmez. Başka bir oyun hesabına işlenmiş satın alma bu hesaba ikinci kez verilmez.</div>
       <button className="btn small ghost" data-testid="geri-yukle-dugme" disabled={busy} onClick={() => void run()}>{busy ? 'Geri yükleniyor…' : 'Satın alımları geri yükle'}</button>
@@ -342,7 +342,7 @@ function LimitSheet({ sp, onClose, onSaved }: { sp: SpendState; onClose: () => v
 /**
  * Sezon Kartı'nın işleyişi (karar 30; sunucu: players.ts passDaily, shop.ts deliver): satın alınan takvim günü (Türkiye saati) 1. gün;
  * 28 günün her birine 30 kristal. Girilmeyen günlerin kristali birikir ve sonraki girişte ödül kutusuna toplu gelir; toplam tam 840,
- * 28. günden sonra hiçbir şey gelmez. Tek seferlik alım, kendiliğinden yenilenmez.
+ * 28. günden sonra hiçbir şey gelmez. Kendiliğinden yenilenmez (App Store türü: yenilenmeyen abonelik).
  */
 function PassTerms() {
   return (
@@ -351,7 +351,7 @@ function PassTerms() {
       <li>Her güne {PASS_DAILY_KRISTAL} kristal düşer; o günkü ilk girişinde ödül kutuna gelir.</li>
       <li>Oyuna girmediğin günlerin kristali kaybolmaz: birikir, bir sonraki girişinde ödül kutuna toplu gelir. Toplam {PASS_TOTAL_KRISTAL} kristal; {PASS_DAYS}. günden sonra kristal gelmez.</li>
       <li>Altın Koklea kostümü satın alır almaz dolabında.</li>
-      <li>Tek seferlik alımdır: abonelik değildir, kendiliğinden yenilenmez, yeniden ücret alınmaz.</li>
+      <li>Kendiliğinden yenilenmez, yeniden ücret alınmaz (App Store bunu “yenilenmeyen abonelik” diye gösterir). Hesap başına bir kez; kart bu oyun hesabına bağlıdır.</li>
     </ul>
   );
 }

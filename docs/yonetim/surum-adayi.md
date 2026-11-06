@@ -1,3 +1,36 @@
+# 1.0.0 mağaza adayı ek: ürün türleri, geri yükleme, bekleyen ödeme (2026-11-06)
+
+Önceki raporun iki gönderim riski kapatıldı (`0ef3afb`; kart aralığı ve Sezon Kartı metni bu bölümün commit'inde). Bu bölüm aşağıdaki raporun "Satın alma" maddesindeki "yedi ürünün
+hepsi tüketilebilir, geri yükleme düğmesi gerekmez" yargısının yerine geçer.
+
+- **Ürün türleri** (`SHOP.storeType` = `iap-urunler.json` `tur`; `denetle.mjs` karşılaştırır, 0 hata): `odi.baslangic` Apple
+  **Non-Consumable**, Play tek seferlik ürün + RevenueCat **Non-consumable** (kalıcı şapka, hesap başına bir kez); `odi.pass` Apple
+  **Non-Renewing Subscription**, Play tek seferlik ürün (Play'de bu tür yok; RevenueCat Consumable, Entitlement'a bağlanmaz); öteki
+  beşi Consumable. Üç tür de RevenueCat `non_subscriptions` altında gelir; sunucu orada arar (App Store işlem numarası sayı gelse de).
+  İstemcide ayrıca finish/consume yok: RevenueCat bitirir, Play'de türü panodaki işarete göre tüketir. Tablo ve gerekçe:
+  `marketing/magaza/iap-urunler.md` "Ürün türleri".
+- **Satın alımları geri yükle** (mağaza ekranının altında, yalnız gerçek mağaza kipinde): RevenueCat `restorePurchases` → sunucu
+  `shop.restore`. Hiçbir hesaba işlenmemiş işlem bu hesaba işlenir; bu hesaptaki Başlangıç Paketi / Sezon Kartı "zaten bu hesapta";
+  başka ya da silinen hesaba işlenmiş işlem verilmez (sahiplik `purchases.receipt`; RevenueCat "Transfer" işlemi yeni appUserID'ye
+  taşısa da). Kristal/hızlandırıcı paketleri geri yüklenmez; kart bunu yazar.
+- **YN-285:** makbuz önce cihazdaki kalıcı kuyruğa, sonra sunucuya; bağlanınca/açılışta yeniden gönderilir; sunucu aynı işlemi bir
+  kez işler (`already: true` başarı). Makbuzu gelmeyen yarım işlem ve onay bekleyen ödeme için 7 gün sunucu taraması. Doğrulanan
+  ödeme sınır yüzünden reddedilmez; sınırlar ödemeden önce `shop.check`. Hata metinleri RevenueCat koduna göre ("Mağaza ödeme almadı"
+  yalnız ödeme başlamadan çıkan hatalarda).
+- **Testler:** kabul `--yalniz typecheck,lint,vitest,ses,mobil-tsc,jest,expo-doctor,dom-paketi,domcheck,social,codes` hepsi geçti
+  (8 dk; vitest 160 dosya / 1208 test, jest 21, expo-doctor 20/20, social 95 sn). Yeni: sunucu 6 test (tür, idempotentlik, yeniden
+  deneme ve ödenmiş ürünün sınırla reddedilmemesi, geri yükleme, iki hesap + hesap silme, anahtarsız/RevenueCat düşük), vitest kuyruk
+  8, jest geri yükleme + hata türleri + AsyncStorage kuyruğu. ui-mobile `--only profil --magaza-fiyat` (gerçek mağaza kipi, geri
+  yükleme kartı ve sonucu) web + dom × Chromium + WebKit × 390/320: 360 ekran 0 sorun; Kart aralığı ve Sezon Kartı metni ("abonelik değildir" → "App Store bunu yenilenmeyen abonelik diye gösterir")
+  düzeltildikten sonra dom × Chromium + WebKit × 390/320 yeniden: 184 ekran 0 sorun.
+  kopma-e2e `--only cuzdan` (bağlanınca ilk istekler değişti): Chromium + WebKit 156 denetim geçti.
+- **Kalan riskler:** (1) gerçek mağazada hiç denenmedi: Sezon Kartı'nın yenilenmeyen abonelik olarak RevenueCat `non_subscriptions`
+  altında geldiği TestFlight sandbox'ında doğrulanmalı (YUKLEME-GUNU H4, adımlar yazılı). (2) Hesap kurtarma yok: uygulamayı silip
+  kuran oyuncu yeni hesap açar, eski hesaba işlenmiş Başlangıç Paketi yeni hesaba geri yüklenmez (kural gereği); Apple bunu sorarsa
+  seçenek yeni hesaba yalnız kalıcı kozmetiği vermek (sahip kararı). (3) RevenueCat panosunda `odi.baslangic` (Android)
+  "Non-consumable" işaretlenmezse Play'de tüketilir (sunucu yine bir kez verir). (4) Hesap silme cihazdaki bekleyen kuyruğu da siler;
+  hiçbir hesaba işlenmemiş ödeme yeni hesapta "Satın alımları geri yükle" ile işlenir (RevenueCat Transfer varsayılanıyla).
+
 # 1.0.0 mağaza adayı: tam kabul koşusu (2026-11-06)
 
 **Sonuç: yeşil.** Tam kabul `78f7796` üzerinde koştu: 25 takımdan 23'ü ilk denemede geçti. `social` ve `ui-mobile` gerçek
