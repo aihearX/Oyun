@@ -167,4 +167,7 @@ describe('bekleyen ödül tavanı (LOCAL_JETON_CARRY_MAX): tavanı aşan kısım
     expect(n).toContain('r.carryAdded'); expect(n).toContain('sinirKesti(item.reason, eksik, gun, kayip)');
     expect(src('screens/InfoScreen.tsx')).toContain('tr(LOCAL_JETON_CARRY_MAX)');
   });
+  it('açılışta son bilinen günlük durum bekleyen alanlarıyla geri yüklenir ("Bekleyen ödül hesabında" her açılışta tekrar çıkmaz)', () => {
+    expect(src('net.ts')).toMatch(/useSocial\.setState\(\{ gunluk: \{ left: gunluk\.left, resetAt: gunluk\.resetAt, \.\.\.\(typeof gunluk\.carry === 'number' \? \{ carry: gunluk\.carry, carried:/);
+  });
 });

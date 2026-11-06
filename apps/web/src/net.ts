@@ -366,7 +366,9 @@ export function startNet(): void {
     const krediler = await readJson<Record<string, Kredi>>(K.kredi, {});
     if (krediler && typeof krediler === 'object' && !Array.isArray(krediler)) useSocial.setState({ krediler });
     const gunluk = await readJson<GunlukSinir | null>(K.gunluk, null);
-    if (gunluk && typeof gunluk.left === 'number' && typeof gunluk.resetAt === 'number') useSocial.setState({ gunluk: { left: gunluk.left, resetAt: gunluk.resetAt } });
+    // bekleyen ödül alanları da geri yüklenir: yoksa her açılışta bugün bekleyenden geçen yeniden "yeni" sayılır ve
+    // "Bekleyen ödül hesabında" bildirimi gün boyunca her açılışta tekrar çıkar (kayitGunluk `carried` farkına bakar)
+    if (gunluk && typeof gunluk.left === 'number' && typeof gunluk.resetAt === 'number') useSocial.setState({ gunluk: { left: gunluk.left, resetAt: gunluk.resetAt, ...(typeof gunluk.carry === 'number' ? { carry: gunluk.carry, carried: typeof gunluk.carried === 'number' ? gunluk.carried : 0 } : {}) } });
     let outbox = await readJson<OutItem[]>(K.outbox, []);
     if (!Array.isArray(outbox)) outbox = [];
     // ilk kez hesap açılacaksa: cihazdaki çevrimdışı jeton bir kez hesaba devredilir (sunucu: yeni hesapta, en çok 3000);

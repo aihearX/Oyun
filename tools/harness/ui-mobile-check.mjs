@@ -293,6 +293,10 @@ function measureContrast([ISTISNA, BEKLEYEN]) {
     let r;
     if (textNode.nodeType === 3) { const rg = document.createRange(); rg.selectNodeContents(textNode); r = rg.getBoundingClientRect(); } else r = el.getBoundingClientRect();
     if (r.width < 1 || r.height < 1) return;
+    // geçici bildirimin (.toast-top, ~2,6 sn) altında kalan yazı ölçülmez: piksel örneği bildirimin kartını okur (1.0.0 adayı: dom-webkit-390
+    // sonuç ekranında "Seviye 3" 1.06; bildirim yeni hesabın cihaz jetonu devri). Bildirimin kendi yazısı ölçülür; örtme ayrıca denetlenir
+    { const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      if (cx >= 0 && cy >= 0 && cx < W && cy < H && !el.closest('.toast-top') && document.elementFromPoint(cx, cy)?.closest('.toast-top')) return; }
     const chain = []; for (let q = el; q; q = q.parentElement) chain.unshift(q);
     let opAll = 1; for (const q of chain) opAll *= st(q).op;
     if (opAll < 0.1) return; // görünmez (solma ya da gizli öğe)
@@ -1273,6 +1277,9 @@ async function suite(browserName, target, [W, H]) {
         const ok = page.locator('.cel-cta .btn'); if (await ok.count()) { await ok.first().click().catch(() => undefined); await sleep(600); continue; }
         if (!(await page.locator('.cel-title').count())) break; await page.mouse.click(10, 300); await sleep(700);
       }
+      // kutlama açıkken sırada bekleyen bildirim (ör. kamp seviyesinin "Dolaba yeni" ödülü) kutlama kapanınca hemen gelir:
+      // ölçüm onun giriş karesine denk gelmesin (1.0.0 adayı: dom-chromium-320 "üst pay: .toast-top top=30", giriş animasyonunun ilk karesi)
+      await sleep(300); await toastGone(); await sleep(200);
       await check('gorev-kamp-dugmeleri', { scroll: false });
       // görev çipleri + süren inşaat aynı bantta (en kalabalık üst bant)
       { const sq2 = new DatabaseSync(dbFile); sq2.exec('PRAGMA busy_timeout = 3000'); const t0 = Date.now();
