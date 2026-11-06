@@ -49,7 +49,8 @@ function Shop() {
     return () => { live = false; };
   }, [real, storeFn, me.id]);
   if (!data || (storeMap === undefined && !err)) return err ? <div className="chat-err">{err}</div> : <Skeleton rows={4} />;
-  const mode: ShopMode = real ? 'real' : data.testStore ? 'test' : 'closed';
+  // gerçek ödeme yalnız sunucu makbuzu doğrulayabiliyorsa (realStore; eski sunucu göndermez): yoksa ödeme alınıp ürün verilemezdi
+  const mode: ShopMode = real && data.realStore !== false ? 'real' : data.testStore ? 'test' : 'closed';
   // yanlış para birimi gösterilmez: listedeki her ürünün mağaza fiyatı varsa hepsi mağazadan, yoksa hepsi TL
   const prices: StorePriceMap = mode === 'real' && storeMap && data.products.every((p) => storeMap.has(p.id)) ? storeMap : null;
   const sp = data.spend;
@@ -59,11 +60,14 @@ function Shop() {
   const buy = async (p: Product) => {
     const c = getNet(); if (!c) return;
     setBusy(true);
+    // mağaza ödemeyi aldıktan sonra sunucu işleyemezse oyuncuya dürüstçe söylenir: "ödeme alınmadı" denmez (para mağazada çekildi)
+    let odendi = false;
     try {
       let res: OpMap['shop.purchase']['res'];
       if (mode === 'real' && real) {
         const pr = await real(p.id, me.id);
         if (!pr.ok) { if (!pr.cancelled) toast('🙈', 'Satın alma tamamlanmadı', pr.error, 'bronze'); setBusy(false); return; }
+        odendi = true;
         res = await c.call('shop.purchase', { productId: p.id, store: pr.store, receipt: pr.receipt });
       } else res = await c.call('shop.purchase', { productId: p.id, store: 'test' });
       const before = useNet.getState().wallet?.kristal ?? 0;
@@ -74,7 +78,10 @@ function Shop() {
       celebrate.banner({ icon: '🎉', title: `${p.name} hesabında`, body: res.teamGiftSent ? 'Takımındaki herkese adsız hediye gitti.' : undefined, tone: 'gold' });
       if (res.wallet.kristal > before) void celebrate.coins({ amount: res.wallet.kristal - before, kind: 'kristal' });
       setSel(null); await load();
-    } catch (e) { toast('🙈', 'Satın alınamadı', errText(e), 'bronze'); }
+    } catch (e) {
+      if (odendi) toast('🙈', 'Ödeme alındı, hesabına işlenemedi', `${errText(e)} Mağaza işlemi oyuncu kimliğinle kayıtlı; Ayarlar › Geri bildirim gönder ile bize yaz, elle ekleyelim ya da mağazadan iade iste.`, 'bronze');
+      else toast('🙈', 'Satın alınamadı', errText(e), 'bronze');
+    }
     setBusy(false);
   };
 

@@ -126,8 +126,9 @@ export function OfflineCard({ what = 'Takım, sohbet ve savaş' }: { what?: stri
   return (
     <div className="card offline-card fade-in" data-icerik-yok>
       <div className="ph-icon" aria-hidden><Art name="signal" size={48} /></div>
-      <h2>{enabled ? 'Sunucuya bağlanılamadı' : 'Sosyal sunucu ayarlı değil'}</h2>
-      <div className="muted">{enabled ? <>Aynı Wi-Fi'da <code>npm run server</code> açık mı? {what} bağlanınca gelir; bu arada oyuna devam edebilirsin, ilerlemen kaybolmaz.</> : `${what} için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.`}</div>
+      <h2>{enabled ? 'Sunucuya bağlanılamadı' : 'Çevrimiçi özellikler kapalı'}</h2>
+      {/* oyuncuya giden metin: geliştirici ipucu (npm run server) yok; mağaza derlemesinde de aynı söz */}
+      <div className="muted">{enabled ? `İnternet bağlantını kontrol et. ${what} bağlanınca gelir; bu arada oyuna devam edebilirsin, ilerlemen kaybolmaz.` : `${what} için sunucu bağlantısı gerekiyor; bu sürümde sunucu adresi yok. Oyunun geri kalanı çevrimdışı tamamen oynanır.`}</div>
       {enabled && <button className="btn" onClick={reconnect} disabled={st === 'bağlanıyor'}>{st === 'bağlanıyor' ? 'Bağlanıyor…' : 'Tekrar dene'}</button>}
     </div>
   );

@@ -145,7 +145,15 @@ describe('mağaza', () => {
     expect((await err(a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'play', receipt: 'abc' }))).code).toBe('MAKBUZ');
     expect((await err(a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'test' }))).code).toBe('TEST_KAPALI');
     expect((await a.call('shop.list', {})).testStore).toBe(false);
+    // istemci bunu görünce mağaza ödemesi başlatmaz (para çekilip ürün verilemeyen durum olmasın)
+    expect((await a.call('shop.list', {})).realStore).toBe(false);
     expect((await a.call('wallet.get', {})).wallet.kristal).toBe(0);
+  });
+
+  it('realStore: sunucu makbuzu doğrulayabiliyorsa (REVENUECAT_API_KEY) true', async () => {
+    env = await setup({ testStore: false, revenueCatKey: 'sk_test_ornek' });
+    const a = await env.connect('Ayşe');
+    expect((await a.call('shop.list', {})).realStore).toBe(true);
   });
 
   /** ödül kutusundaki Sezon Kartı kristallerini alır; alınan toplam */

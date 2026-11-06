@@ -33,7 +33,7 @@ export type ReceiptResult = { ok: true; transactionId: string } | { ok: false; e
  * İstemci RevenueCat'i appUserID = oyuncu kimliği ile yapılandırmalı; receipt = mağaza işlem kimliği.
  */
 export async function verifyReceipt(apiKey: string | null, store: 'app-store' | 'play', productId: string, receipt: string | undefined, playerId: string): Promise<ReceiptResult> {
-  if (!apiKey) return { ok: false, error: 'Gerçek mağaza satın alımları henüz doğrulanamıyor (sunucuda REVENUECAT_API_KEY tanımlı değil). Ödeme kabul edilmedi.' };
+  if (!apiKey) return { ok: false, error: 'Gerçek mağaza satın alımları bu sunucuda henüz doğrulanamıyor (sunucuda REVENUECAT_API_KEY tanımlı değil).' };
   if (!receipt) return { ok: false, error: 'Satın alma makbuzu (işlem kimliği) eksik.' };
   try {
     const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(playerId)}`, {
@@ -108,6 +108,7 @@ export const shopHandlers: Handlers = {
     products: SHOP.map((p) => ({ ...p, contents: p.contents.map((c) => ({ ...c })), ...(p.teamGift ? { teamGiftContents: teamGiftFor(p.priceTry) } : {}), bought: boughtCount(app, s.pid, p.id) })),
     spend: spendState(app, s.pid),
     testStore: app.cfg.testStore,
+    realStore: !!app.cfg.revenueCatKey,
   }),
   'shop.purchase': async (app, s, { productId, store, receipt }) => {
     const prod = SHOP.find((p) => p.id === productId);

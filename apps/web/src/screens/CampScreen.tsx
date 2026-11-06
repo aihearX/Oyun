@@ -51,7 +51,7 @@ function CampOffline() {
     <div className="card offline-card fade-in camp-offline" data-icerik-yok>
       <div className="ph-icon" aria-hidden><Art name="tent" size={48} /></div>
       <h2>Kampın sunucuda tutulur — bağlanınca görünür</h2>
-      <div className="muted">{enabled ? 'Şu an sunucuya ulaşamıyoruz. Bu arada bölüm oynamaya devam edebilirsin; jetonların ve ilerlemen kaybolmaz.' : 'Kulak Kampı için bir sunucu adresi gerekiyor. Oyunun geri kalanı çevrimdışı tamamen oynanır.'}</div>
+      <div className="muted">{enabled ? 'Şu an sunucuya ulaşamıyoruz. Bu arada bölüm oynamaya devam edebilirsin; jetonların ve ilerlemen kaybolmaz.' : 'Kulak Kampı için sunucu bağlantısı gerekiyor; bu sürümde sunucu adresi yok. Oyunun geri kalanı çevrimdışı tamamen oynanır.'}</div>
       {enabled && <button className="btn" onClick={reconnect} disabled={st === 'bağlanıyor'}>{st === 'bağlanıyor' ? 'Bağlanıyor…' : 'Tekrar dene'}</button>}
     </div>
   );

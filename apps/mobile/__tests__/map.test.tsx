@@ -61,3 +61,13 @@ describe('base64 köprüsü', () => {
     }
   });
 });
+
+describe('sunucu adresi (mağaza derlemesi)', () => {
+  it('yalnız EXPO_PUBLIC_ODI_SERVER; yayında yoksa boş (yerel/test adresine düşmez), geliştirmede Metro bilgisayarı', () => {
+    const { serverUrl } = jest.requireActual('../src/sunucu') as typeof import('../src/sunucu');
+    expect(serverUrl(undefined, false)).toBe('');
+    expect(serverUrl('', false)).toBe('');
+    expect(serverUrl('wss://ornek.invalid', false)).toBe('wss://ornek.invalid');
+    expect(serverUrl(undefined, true)).toBe('ws://192.168.1.20:8787');
+  });
+});

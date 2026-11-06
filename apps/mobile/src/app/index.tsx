@@ -3,24 +3,17 @@ import { Share, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativeStore } from '@/purchases';
 import { voiceData, voiceManifest } from '@/voice/player';
 import { installNativeCrashReporting, nativeAppInfo } from '@/hata';
+import { serverUrl } from '@/sunucu';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativeStore = createNativeStore();
 
-/** Sosyal sunucu adresi: EXPO_PUBLIC_ODI_SERVER > geliştirmede Metro'nun çalıştığı bilgisayar (aynı Wi-Fi) */
-function serverUrl(): string {
-  const env = process.env.EXPO_PUBLIC_ODI_SERVER;
-  if (env) return env;
-  const host = Constants.expoConfig?.hostUri?.split(':')[0];
-  return host ? `ws://${host}:8787` : '';
-}
 
 // çökme raporu (YN-011): yalnız yayın derlemesinde ve sunucu adresi varken; kişisel veri yok (src/hata.ts)
 const appInfo = nativeAppInfo();
