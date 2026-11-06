@@ -122,6 +122,8 @@ function webInsets([top, bottom]) {
 function domBridge([serverUrl, top, bottom, seed, base, prices]) {
   // ilk açılış rehberi (hikâye + anlatıcı turları + kilitler) bu denetimin konusu değil: atlanmış başlar (bkz. onboarding-e2e.mjs)
   const store = { 'odi-v1': JSON.stringify({ state: base, version: 3 }), ...(seed || {}) };
+  // denetim kaydı okuyabilsin: DOM'da oyun localStorage'a değil yerel depoya (bu nesne) yazar
+  window.__domStore = store;
   window.ReactNativeWebView = {
     injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', ...(prices ? ['purchase', 'storePrices'] : [])], props: { serverUrl, canPurchase: !!prices, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
@@ -1715,10 +1717,13 @@ async function suite(browserName, target, [W, H]) {
             if (b.x < 0 || b.x + b.width > vw + 0.5) fail(rec, `Yüksek görünürlük düğmesi ekrandan taşıyor: ${JSON.stringify(b)}`);
             await ac.click(); await sleep(150);
             const durum = await yazi('[data-testid="sonuc-gorunurluk-durum"]');
-            const acik = await page.evaluate(() => { try { return JSON.parse(localStorage.getItem('odi-v1') ?? '{}')?.state?.highVis === true; } catch { return false; } });
+            // kayıt: web'de localStorage, DOM'da yerel köprünün deposu (window.__domStore; oyun DOM'da localStorage'a yazmaz). Yazma köprüden
+            // eşzamansız geçer: en çok 1,5 sn beklenir (1.0.0 adayı: yalnız DOM koşan yapılandırmada 150 ms'de okunan kayıt "kapalı"ydı)
+            const kayitAcik = () => page.evaluate(() => { try { const raw = window.__domStore ? window.__domStore['odi-v1'] : localStorage.getItem('odi-v1'); return JSON.parse(raw ?? '{}')?.state?.highVis === true; } catch { return false; } });
+            let acik = await kayitAcik(); for (let i = 0; i < 10 && !acik; i++) { await sleep(150); acik = await kayitAcik(); }
             if (!/^Yüksek görünürlük açıldı/.test(durum) || !acik || (await ac.count())) fail(rec, `düğme ayarı açmadı ya da söylemedi: "${durum}" (kayıtta ${acik ? 'açık' : 'kapalı'})`);
             await check(`${label}-acildi`, { scroll: false });
-            await page.evaluate(() => { try { const v = JSON.parse(localStorage.getItem('odi-v1') ?? '{}'); if (v.state) { v.state.highVis = false; localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } });
+            await page.evaluate(() => { try { const st = window.__domStore; const v = JSON.parse((st ? st['odi-v1'] : localStorage.getItem('odi-v1')) ?? '{}'); if (v.state) { v.state.highVis = false; if (st) st['odi-v1'] = JSON.stringify(v); else localStorage.setItem('odi-v1', JSON.stringify(v)); } } catch { /* yok */ } });
           }
         }
         // YN-173: süre kutusunda "par" yok (OT-ilk-kez-oyun-54); melodi bölümünde melodi satırı (OT-sinav-adayi-35); hazine satırı jeton
