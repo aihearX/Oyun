@@ -22,7 +22,7 @@ const RAW: Raw[] = [
   ['saglik', 'Uçak inerken kulak tıkanırsa hangisi yardımcı olur?', 'Yutkunmak ya da esnemek', 'Kulağa pamuk itmek', 'Kulağı sertçe ovmak', 'Nefesi tutup eğilmek', 'Yutkunmak ve esnemek Östaki borusunu açar, basınç dengelenir.'],
   ['anatomi', 'Dengemizle ilgili iç kulak yapıları hangileridir?', 'Yarım daire kanalları', 'Kulak zarı', 'Çekiç kemiği', 'Kulak kepçesi', 'İç kulaktaki yarım daire kanalları başın dönme hareketlerini algılar.'],
   ['ses', 'Sesin şiddeti (yüksekliği) hangi birimle ölçülür?', 'Desibel (dB)', 'Hertz (Hz)', 'Newton', 'Lümen', 'Desibel ses şiddeti için kullanılan logaritmik bir birimdir.'],
-  ['ses', 'Sesin frekansı (inceliği-kalınlığı) hangi birimle ölçülür?', 'Hertz (Hz)', 'Desibel (dB)', 'Watt', 'Kilogram', 'Hertz, saniyedeki titreşim sayısıdır.'],
+  ['ses', 'Sesin frekansı (inceliği-kalınlığı) hangi birimle ölçülür?', 'Hertz (Hz)', 'Desibel (dB)', 'Watt', 'Kilogram', 'Frekans, sesin saniyedeki titreşim sayısıdır; birimi hertzdir (Hz).'],
   ['ses', 'Sağlıklı genç bir insan yaklaşık hangi frekans aralığını duyar?', '20 Hz – 20.000 Hz', '1 Hz – 100 Hz', '500 Hz – 2.000 Hz', '50.000 Hz – 100.000 Hz', 'İnsan kulağı yaklaşık 20 Hz ile 20.000 Hz arasını duyar; bu aralık yaşla daralır.'],
   ['ses', 'İnsanın duyabileceğinden daha ince (20.000 Hz üstü) seslere ne denir?', 'Ultrason', 'İnfrason', 'Yankı', 'Fısıltı', 'Ultrason, tıpta görüntüleme için de kullanılır.'],
   ['ses', 'İnsanın duyabileceğinden daha kalın (20 Hz altı) seslere ne denir?', 'İnfrason', 'Ultrason', 'Rezonans', 'Sonar', 'İnfrason çok düşük frekanslı seslerdir; bazı hayvanlar bunları duyabilir.'],

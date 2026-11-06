@@ -604,7 +604,7 @@ Doğru cevap **kalın**. Kaynak: Meraklı düzeyi genel bilgi; Odyoloji düzeyi 
 | 7 | Meraklı | saglik | Uçak inerken kulak tıkanırsa hangisi yardımcı olur? | Kulağa pamuk itmek · Kulağı sertçe ovmak · Nefesi tutup eğilmek · **Yutkunmak ya da esnemek** | Yutkunmak ve esnemek Östaki borusunu açar, basınç dengelenir. |
 | 8 | Meraklı | anatomi | Dengemizle ilgili iç kulak yapıları hangileridir? | Çekiç kemiği · Kulak kepçesi · **Yarım daire kanalları** · Kulak zarı | İç kulaktaki yarım daire kanalları başın dönme hareketlerini algılar. |
 | 9 | Meraklı | ses | Sesin şiddeti (yüksekliği) hangi birimle ölçülür? | Lümen · **Desibel (dB)** · Hertz (Hz) · Newton | Desibel ses şiddeti için kullanılan logaritmik bir birimdir. |
-| 10 | Meraklı | ses | Sesin frekansı (inceliği-kalınlığı) hangi birimle ölçülür? | **Hertz (Hz)** · Desibel (dB) · Watt · Kilogram | Hertz, saniyedeki titreşim sayısıdır. |
+| 10 | Meraklı | ses | Sesin frekansı (inceliği-kalınlığı) hangi birimle ölçülür? | **Hertz (Hz)** · Desibel (dB) · Watt · Kilogram | Frekans, sesin saniyedeki titreşim sayısıdır; birimi hertzdir (Hz). |
 | 11 | Meraklı | ses | Sağlıklı genç bir insan yaklaşık hangi frekans aralığını duyar? | 1 Hz – 100 Hz · 500 Hz – 2.000 Hz · 50.000 Hz – 100.000 Hz · **20 Hz – 20.000 Hz** | İnsan kulağı yaklaşık 20 Hz ile 20.000 Hz arasını duyar; bu aralık yaşla daralır. |
 | 12 | Meraklı | ses | İnsanın duyabileceğinden daha ince (20.000 Hz üstü) seslere ne denir? | Yankı · Fısıltı · **Ultrason** · İnfrason | Ultrason, tıpta görüntüleme için de kullanılır. |
 | 13 | Meraklı | ses | İnsanın duyabileceğinden daha kalın (20 Hz altı) seslere ne denir? | Sonar · **İnfrason** · Ultrason · Rezonans | İnfrason çok düşük frekanslı seslerdir; bazı hayvanlar bunları duyabilir. |
