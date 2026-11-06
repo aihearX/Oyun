@@ -5,7 +5,9 @@ import { maskProfanity } from './profanity';
 import { raceMemberIds } from './race';
 import { DAY_MS } from './time';
 
-const MUTE_MS = 10 * 60_000;
+/** üç farklı şikâyetle gizlenen iletinin göndereni bu kadar sohbete yazamaz (gizlilik metni § 5 aynı sayıyı yazar; legal.test.ts) */
+export const CHAT_REPORT_MUTE_MS = 10 * 60_000;
+const MUTE_MS = CHAT_REPORT_MUTE_MS;
 /** susturma iletisi (kısa susturma dakika, işletmenin uzun susturması gün olarak) */
 export function susturmaMetni(kalanMs: number): string {
   return kalanMs > DAY_MS ? `Şikâyetler nedeniyle ${Math.ceil(kalanMs / DAY_MS)} gün mesaj gönderemezsin.` : `Şikâyetler nedeniyle ${Math.ceil(kalanMs / 60_000)} dakika mesaj gönderemezsin.`;

@@ -6,7 +6,7 @@ import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
 import { AYAR, belgeDoldur, degerler, doldur, duzMetin, gecerliAdres, satirParcala, type Belge, type YasalAyar } from './yasal/yasal';
-import { CHAT_RETAIN_MS } from '../../server/src/chat';
+import { CHAT_REPORT_MUTE_MS, CHAT_RETAIN_MS } from '../../server/src/chat';
 import { RUN_RETAIN_MS } from '../../server/src/progress';
 import { PROMO_LOG_RETAIN_MS } from '../../server/src/codes';
 import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS, VERI_SINIFI } from '../../server/src/account-veri';
@@ -45,6 +45,7 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
 
   it('sayılar sunucu sabitleriyle aynı (kod değişirse metin de değişmeli)', () => {
     expect(CHAT_RETAIN_MS).toBe(30 * DAY);
+    expect(CHAT_REPORT_MUTE_MS).toBe(10 * 60_000);
     expect(RUN_RETAIN_MS).toBe(30 * DAY);
     expect(REPORT_RETAIN_MS).toBe(90 * DAY);
     expect(PROMO_LOG_RETAIN_MS).toBe(90 * DAY);
@@ -129,6 +130,21 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     // takım puanına giren katkılar (Takım Ligi Bilgi ve Baskın) silinmez, anonimleşir (YN-257)
     expect(VERI_SINIFI.dq_answers!.oyuncu!.player_id!.karar).toBe('anonim');
     expect(VERI_SINIFI.raid_damage!.oyuncu!.player_id!.karar).toBe('anonim');
+  });
+
+  it('eksik yazılmış üç kural kodla aynı: şikâyetle gizlenen iletinin göndereni susturulur, Bilgi Yarışması düzeyi gider, özel mesaj silinir', () => {
+    const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN);
+    const dk = CHAT_REPORT_MUTE_MS / 60_000;
+    expect(tr).toContain(`ileti gizlenir ve gönderen ${dk} dakika sohbete yazamaz`);
+    expect(en).toContain(`its sender cannot write in chat for ${dk} minutes`);
+    // bilgi düzeyi Ayarlar'daki adlarla; sunucu katılırken alır (quiz.join level, ev_quiz_player.level)
+    const ayarlar = readFileSync(resolve(root, 'apps/web/src/screens/SettingsScreen.tsx'), 'utf8');
+    for (const ad of ['Genel', 'Odyoloji öğrencisi']) { expect(ayarlar).toContain(`>${ad}</button>`); expect(tr).toContain(ad); expect(en).toContain(ad); }
+    expect(tr).toContain('Bilgi Yarışması'); expect(en).toContain('Bilgi Yarışması');
+    // kendi özel mesajını silme (dm.delete): ekrandaki söz metinde
+    expect(readFileSync(resolve(root, 'apps/web/src/friends/DmScreen.tsx'), 'utf8')).toContain('Bu mesaj silindi');
+    expect(tr).toContain('Kendi gönderdiğiniz bir mesajı istediğiniz zaman silebilirsiniz'); expect(tr).toContain('Bu mesaj silindi');
+    expect(en).toContain('You can delete any message you sent at any time'); expect(en).toContain('Bu mesaj silindi');
   });
 
   it('Türkçe karakterler doğru (ASCII yazım yok)', () => {
