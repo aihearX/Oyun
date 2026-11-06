@@ -32,14 +32,25 @@ temalı kurgusal takma adlardır (Nota Avcısı, Zar Ustası, Örs Kaptan, Kokle
 | 8 | `08-tuy-dede.png` | Yeni bölge tanıtımı ve Tüy Dede'nin Notu | Tüy Dede'den gerçek kulak bilgisi. |
 | 9 | `09-vaka.png` | Klinik: kurgusal hasta vakası, timpanogram ve odyogram | Kurgusal hasta vakalarında odyogram oku. |
 | 10 | `10-defter.png` | Vaka Defteri (on vaka çözülmüş) | Vaka Defteri'ni doldur, yıldızları topla. |
+| 11 | `11-yaris-ici.png` | Canlı yarış içi | **Elendi** (2026-11-06): iki çekimde de rakip hayaletleri karede görünmedi, solda kesik "Kontrol noktası" yazısı, yarış şeridi "Nota x/7" göstergesinin üstüne biniyor. Set ve zip'te yok |
+| 12 | `12-magaza.png` | Profil › Mağaza (mağaza derlemesindeki kip: TL liste fiyatı + "ödeyeceğin tutarı App Store / Google Play gösterir" notu, aylık harcama sınırı kartı) | Mağaza: içerik önceden yazılı, şans yok. (Vitrin için değil; asıl kullanım App Store inceleme görüntüsü) |
+
+**App Store inceleme görüntüleri (uygulama içi ürünler):** aynı çekimde `iap-inceleme/` klasörüne, yalnız iOS 6,9" boyutunda:
+her ürünün satın alma penceresi (`odi.baslangic.png` … `odi.pass.png`) ve ilk satın almadan önceki sınır seçimi
+(`harcama-siniri.png`). Hangi ürüne hangi dosya: dosya adı ürün kimliğidir ([`iap-urunler.md`](../../marketing/magaza/iap-urunler.md)).
+
+**2026-11-06 seti (sürüm 1.0.0 gönderimi için):** `node tools/harness/vitrin.mjs --out /home/user/magaza-ekranlar` (main 5f7c3df),
+sahibe `/home/user/magaza-ekranlar.zip`. 11 kare × 3 boyut + 8 inceleme karesi = 41 PNG; hepsi RGB (saydamlık yok, Apple'ın istediği
+gibi). Kareler tek tek gözle denetlendi: boş, test yazısı, gerçek kişi adı, "yönetici" ya da hata içeren kare yok. Küçük notlar:
+Android 07'de alttaki "Seviye 21!" yazısı kaydırma kenarında yarım görünüyor (iOS boyutlarında yok); 06'da oda kodu oyunun gerçek
+oda kimliği (uzun harf-rakam dizisi) olarak görünüyor.
 
 - **Öneri (ilk üç kare):** iOS ve Google Play'de ilk üç kare en çok görülür. Sıra önerisi: 1, 3, 2 (oyun, kamp, harita); sonra 5,
-  6, 8, 9.
+  6, 8, 9, 7, 10 (en çok 10 kare; 12 yalnız inceleme için). Google Play telefon için en az 2, en çok 8 kare: 1, 3, 2, 5, 6, 8, 9, 7.
 - **Alt yazılar:** 9 ve 10'da "oyun tanı koymaz, tıbbi tavsiye yerine geçmez" notu uzun açıklamada zaten var. Alt yazı "tanı koy"
   dememeli.
 - **Bilinen görünüm notları:**
   - Bölüm karesinde oyun tuvali 1:2 oranındadır. iOS karelerinde üstte ve altta, Android karesinde iki yanda koyu bant kalır.
     Cihazdaki görünüm de budur.
   - Bölüm karesinde üst gösterge, iOS durum çubuğunun yerine denk gelir. Çerçeve eklenecekse bu karede durum çubuğu çizilmemeli.
-  - Yarış içinden kare yoktur. Bot kipinde yarış tuvali 1x çizilir ve mağaza boyutunda bulanık kalır. Gerçek cihazda tuval en çok 2x
-    çizilir. Bu yüzden yarış için oda ekranı seçildi.
+  - Yarış içi kare (11) araçta var ama bu sette elendi (yukarıda). Yarış için oda ekranı (06) kullanılır.

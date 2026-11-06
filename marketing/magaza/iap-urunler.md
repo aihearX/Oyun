@@ -1,5 +1,7 @@
 # Uygulama içi ürün kataloğu (App Store + Google Play + RevenueCat)
 
+Sürüm 1.0.0 ile birlikte, ilk sürümde açık (sahip kararı, YN-032). Yükleme adımları: [`YUKLEME-GUNU.md`](YUKLEME-GUNU.md) (D, G, H).
+
 Kaynak: `packages/shared/src/social.ts` `SHOP` (sunucu `apps/server/src/shop.ts` bu listeyi satar). Yapıştırmaya hazır adlar ve
 açıklamalar: [`iap-urunler.json`](iap-urunler.json). `node tools/magaza/denetle.mjs` kimlik, fiyat ve sınırın kodla aynı olduğunu,
 adların (Apple ≤ 30, Google ≤ 55) ve açıklamaların (Apple ≤ 45, Google ≤ 200) sınırda olduğunu denetler.
@@ -50,12 +52,21 @@ harcanır, takım teknolojisine bağışlanamaz (YN-065).
   etiketlidir; Türkiye dışında ödenen tutar sınıra kur çevrimiyle değil liste fiyatıyla girer. İlk yayında yine **yalnız Türkiye**
   ve mağaza fiyatı tablodaki TRY değerine en yakın nokta önerilir (sınır ve geçmiş tutarları ödenenle aynı kalsın).
 
-### Apple inceleme ekran görüntüsü (her ürün için)
-Her üründe bir "Review Screenshot" (en az 640×920) istenir: ürünün oyunda satın alındığı yer.
-- Kare: Profil › **Mağaza** ekranı, ürünün kartı görünür (ad, içerik, fiyat, takım hediyesi satırı) ve aynı ürünün satın alma sayfası.
-- Üretim: `ui-mobile-check --only profil` mağaza karesi (`profil-mağaza`) ya da TestFlight derlemesinde sandbox hesabıyla ekran görüntüsü.
-  Sandbox'ta Apple'ın ödeme sayfası çıkınca ekran görüntüsü alınır (gerçek fiyat ve "Sandbox" etiketi görünür).
-- İnceleme notu (her ürün, EN): "Shop opens after 6 cleared levels: Profil › Mağaza. Contents are fixed and shown before purchase."
+### Apple inceleme ekran görüntüsü ve notu (her ürün için)
+Her üründe bir "Review Screenshot" (en az 640×920) ve kısa bir inceleme notu istenir. Ekran görüntüsü ürünün oyunda satın alındığı yeri
+göstermeli.
+- **Hazır kareler:** `node tools/harness/vitrin.mjs --only magaza --out <klasör>` → `<klasör>/iap-inceleme/<ürün kimliği>.png`
+  (iOS 6,9" 1320×2868): Profil › Mağaza'da o ürünün satın alma penceresi (ad, liste fiyatı, içerik, Sezon Kartı koşulları, "Mağazada
+  satın al"). Kare mağaza derlemesindeki gibi gerçek satın alma kipinde çekilir (TEST şeridi yok); mağaza fiyatı gelmediği için TL liste
+  fiyatı ve "Ödeyeceğin tutarı App Store / Google Play kendi onay penceresinde gösterir" notu görünür. Satın alma yapılmaz. Ayrıca
+  `harcama-siniri.png` (ilk satın almadan önceki sınır seçimi) ve `12-magaza.png` (liste) aynı çekimde.
+- **Daha iyisi (varsa):** TestFlight'ta sandbox satın alma sırasında Apple'ın ödeme penceresi açıkken alınan ekran görüntüsü (gerçek
+  fiyat ve "Sandbox" etiketi görünür). Yükleme günü zaman yoksa hazır kareler yeterlidir.
+- **İnceleme notu** (her ürüne aynı, EN; ≤ 4.000):
+  > The shop opens after 6 cleared levels: tab "Profil" › "Mağaza". Before the first purchase the player chooses a monthly spending
+  > limit (choose 500 TRY to test every product). Contents are fixed and shown before purchase; consumable, no random items.
+  `odi.pass` için ek cümle: "One-time purchase that delivers 30 crystals for each of 28 days to the in-game inbox (840 in total) and a
+  costume; it does not auto-renew and can be bought once per account."
 
 ## İnceleme riskleri
 
@@ -65,7 +76,7 @@ Her üründe bir "Review Screenshot" (en az 640×920) istenir: ürünün oyunda 
 | `odi.pass` | `limit: 1` hesap başına **ömür boyu** bir kez demek: "Sezon" adı her sezon yeniden alınabileceğini düşündürür | Düşük (inceleme), ürün kararı | Ad ve açıklama "hesap başına bir kez" diyor. Her sezon satılacaksa sunucuda sınır sezon başına yapılmalı (ürün sahibine) |
 | `odi.baslangic` | Kalıcı şapka içeren tüketilebilir ürün: inceleyici "geri yüklenebilir (non-consumable) olmalı" diyebilir | Düşük–orta | İçeriğin çoğu harcanır (kristal, hızlandırıcı); hesap kayıt sistemi olmadığından yeni cihaza geri yükleme yapılamaz. Açıklama "hesap başına bir kez" diyor; gerekirse inceleme notunda açıklanır |
 | Hepsi | Mağaza fiyatı alınamazsa (çevrimdışı, ürün RevenueCat'te eksik) oyun TL liste fiyatını gösterir | Düşük | TL fiyatın yanında "Mağaza fiyatı satın alırken gösterilir" notu; ödeme düğmesi tutar yazmaz; ödenen tutarı mağazanın ödeme sayfası gösterir (YN-032) |
-| Hepsi | Mağaza 6 bölümden sonra açılıyor: inceleyici ürünleri hemen göremez (2.1) | Orta | İnceleme notunda yol ve süre yazılı (yaklaşık 6–8 dk). İstenirse ekran kaydı eklenir |
+| Hepsi | Mağaza 6 bölümden sonra açılıyor: inceleyici ürünleri hemen göremez (2.1) | Orta | İnceleme notunda yol ve süre yazılı (yaklaşık 6–8 dk); her ürüne satın alma penceresinin ekran görüntüsü (`iap-inceleme/`). İstenirse ekran kaydı eklenir |
 | Hepsi | Ganimet kutusu / rastgele ücretli öğe | **Yok** | Olasılık beyanı gerekmez. Ücretsiz "Şanslı Nota" ihtimali (%10) oyunda (Profil › Nasıl çalışır?) yazılı |
 | Hepsi | Takım hediyesi: satın alma başkalarına ödül verir ("hediye" sayılırsa 3.1.1'de "başka kullanıcıya hediye" kuralı) | Düşük | Hediye oyun içi sabit kristal/jeton; satın alınan ürün devredilmez. Açıklamada yazılı |
-| Hepsi | `REVENUECAT_API_KEY` sunucuda yoksa her gerçek satın alma reddedilir; EAS'ta `EXPO_PUBLIC_REVENUECAT_*` yoksa mağaza derlemesi gerçek satın almayı açmaz (TEST mağazası da üretimde kapalı → satın alınamaz) | Yüksek (işlev) | YAYIN-LISTESI R1–R6; TestFlight / iç test kanalında sandbox satın almasıyla uçtan uca denenmeden gönderilmez |
+| Hepsi | `REVENUECAT_API_KEY` sunucuda yoksa her gerçek satın alma reddedilir; EAS'ta `EXPO_PUBLIC_REVENUECAT_*` yoksa mağaza derlemesi gerçek satın almayı açmaz (TEST mağazası da üretimde kapalı → satın alınamaz) | Yüksek (işlev) | [`YUKLEME-GUNU.md`](YUKLEME-GUNU.md) adım D ve H; TestFlight / iç test kanalında sandbox satın almasıyla uçtan uca denenmeden gönderilmez |

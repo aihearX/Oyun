@@ -4,7 +4,10 @@ Liste metinleri (başlık, kısa ve uzun açıklama; TR ve EN) [`metinler.json`]
 Sınırlar `node tools/magaza/denetle.mjs` ile denetlenir (başlık ≤ 30, kısa ≤ 80, uzun ≤ 4000). `<adres>` ve `{ILETISIM_EPOSTA}`
 yüklemede doldurulur. Ürünler: [`iap-urunler.md`](iap-urunler.md). Adımlar: [`YAYIN-LISTESI.md`](YAYIN-LISTESI.md).
 
-Bütün cevaplar kodun bugün yaptığına göre verildi; dayanaklar [`docs/yonetim/gizlilik.md`](../../docs/yonetim/gizlilik.md) "Kod karşılığı".
+**Yeniden denetim (2026-11-06, sürüm 1.0.0):** ekim sonundan beri eklenen sunucu göçleri ve tablolar (rozetler, bilgi yarışması
+katılan düzeyi, bekleyen ödül jetonu, harcama sınırı seçimi, Sezon Kartı birikimi, Günün Sorusu, İkili Görev, Usta–Çırak, Klinik, kamp
+oyunları) yeni bir Veri güvenliği **kategorisi** getirmiyor; mevcut satırlara eklendi. Düzeltilen tek cevap: "verinin bir kısmının
+silinmesi" (Hayır → Evet, aşağıda). Bütün cevaplar kodun bugün yaptığına göre verildi; dayanaklar [`docs/yonetim/gizlilik.md`](../../docs/yonetim/gizlilik.md) "Kod karşılığı".
 Play Console'daki soru metinleri zamanla değişir: yüklerken soruyu buradaki cevabın anlamıyla eşleştirin, emin olunmayan yerde
 daha kapsayıcı (daha çok beyan eden) seçeneği seçin.
 
@@ -13,6 +16,7 @@ daha kapsayıcı (daha çok beyan eden) seçeneği seçin.
 | Alan | Değer |
 |---|---|
 | Uygulama adı | ODİ: Sesin Yolu |
+| Sürüm | **1.0.0** (sürüm kodunu EAS verir). Sürüm notu ("Bu sürümdeki yenilikler", ≤ 500): `metinler.json` › `releaseNotes` |
 | Paket adı | `com.aiheartech.odi` |
 | Varsayılan dil | Türkçe (tr-TR); ek liste: İngilizce (en-US). Oyunun kendisi yalnız Türkçe; EN açıklama bunu söyler |
 | Uygulama mı oyun mu | Oyun |
@@ -41,8 +45,10 @@ Reklam kimliği (Advertising ID) kullanıyor mu? **Hayır.** `com.google.android
 "Bütün işlevler özel erişim gerektirmeden kullanılabilir." Kayıt ya da giriş yok; hesap ilk açılışta kendiliğinden oluşur.
 Not alanı (inceleme ekibine, EN):
 > No login. The game creates an anonymous account on first launch (random ID; optional nickname). Tap "Yola çık", skip the story
-> ("Atla"), choose a nickname or "Sonra". Friends and chat open after 4 cleared levels, the shop after 6, free-text chat after 8
-> (before that only preset phrases). Account deletion: Profil › Ayarlar › Hesabı sil.
+> ("Atla"), choose a nickname or "Sonra". Features unlock by cleared levels (about one minute each): Camp 3, Friends and private
+> messages 4, Team 5, Shop 6 (Profil › Mağaza), Events 7, live races and free-text chat 8 (before that only preset phrases and
+> reactions). Levels work offline; team, chat, races, events and purchases use our game server. Before the first purchase the player
+> chooses a monthly spending limit. Account deletion: Profil › Ayarlar › Hesabı sil › Her şeyi sil.
 
 ### İçerik derecelendirmesi (IARC anketi)
 Kategori: **Oyun**. E-posta: `{ILETISIM_EPOSTA}`.
@@ -54,7 +60,7 @@ Kategori: **Oyun**. E-posta: `{ILETISIM_EPOSTA}`.
 | Cinsellik, çıplaklık | Hayır | — |
 | Küfür / kaba dil (oyunun kendi içeriği) | Hayır | Oyun metinlerinde yok; oyuncu sohbeti ayrıca "kullanıcı etkileşimi" sorusunda |
 | Uyuşturucu, alkol, tütün | Hayır | — |
-| Kumar / kumar benzetimi | **Hayır** | Bahis, kart, slot yok |
+| Kumar / kumar benzetimi | **Hayır** | Bahis, kart, slot yok. Günün Meydan Okuması, Haftalık Turnuva, Bilgi Yarışması ve lig ödülleri beceriyle ve sırayla verilir, yalnız oyun içi (gerçek değer yok) |
 | Gerçek parayla rastgele öğe (ganimet kutusu) | **Hayır** | Mağazadaki her ürünün içeriği sabit (`packages/shared/src/social.ts` SHOP). Ücretsiz tek şans öğesi: %10 ihtimalli "Şanslı Nota" (25 jeton + 10 XP; satın alınamaz, ihtimal oyunda yazılı) |
 | Kullanıcılar etkileşir / içerik paylaşır | **Evet** | Takım ve genel sohbet, arkadaşlar arası özel mesaj, takma ad ve takım adı. Güvenli sohbet: 8 bölüme kadar yalnız hazır sözler; küfür süzgeci, şikâyet, engelleme |
 | Konum paylaşımı | Hayır | Konum hiç alınmaz |
@@ -71,7 +77,9 @@ Beklenen sonuç (kesin değil): PEGI 7 (hafif fantastik şiddet) ya da PEGI 3, e
   Google bu durumda uygulamayı inceler ve 13 yaş altını hedeflemediğinin gösterilmesini isteyebilir. Hazırlık:
   - liste metni ve ekran görüntüleri çocuğa yönelik dil kullanmaz ("13 yaş ve üzeri içindir" uzun açıklamada yazar);
   - reklam yok, kişisel veri istenmez, sohbet 8 bölüme kadar hazır sözlerle sınırlı;
-  - uygulamada yaş sorusu yok: Google isterse nötr bir yaş ekranı gerekir (is-listesi YN-034, sahip kararı).
+  - uygulamada yaş sorusu yok: Google isterse nötr bir yaş ekranı gerekir (is-listesi YN-034; 2026-11-06 itibarıyla **karar hâlâ
+    açık**, öneri a "şimdilik yok". Gönderim bu varsayımla yapılır; Google isterse yaş ekranı bir güncellemeyle eklenir).
+  - "Bilgi düzeyi: Genel / Odyoloji öğrencisi" seçimi yaş sorusu değildir; "Genel" düzey çocuklara yönelik bir kip olarak sunulmaz.
 - Mağaza listesinde "çocuklar için" ifadesi kullanılmaz.
 
 ### Haber uygulaması
@@ -93,7 +101,7 @@ Hayır.
 | Toplanan bütün kullanıcı verileri aktarım sırasında şifreleniyor mu? | **Evet** (https/wss; mağaza derlemesinde sunucu adresi `wss://`, bkz. `apps/mobile/README.md`; çökme raporu ve geri bildirim de aynı adrese `https://…/hata`, `https://…/geri-bildirim`) |
 | Uygulamanız hesap oluşturmaya izin veriyor mu? | **Evet → "Diğer"**: kendiliğinden anonim hesap (rastgele kimlik + cihazdaki anahtar), isteğe bağlı takma ad; kullanıcı adı/şifre, e-posta ya da OAuth yok |
 | Hesap silme bağlantısı (web) | `https://<adres>/hesap-sil` |
-| Kullanıcılar hesaplarını silmeden verilerinin bir kısmının silinmesini isteyebilir mi? | **Hayır** (oyunda yalnız tam silme var; takma ad oyunda değiştirilebilir, sohbet 30 günde kendiliğinden silinir) |
+| Kullanıcılar hesaplarını silmeden verilerinin bir kısmının silinmesini isteyebilir mi? | **Evet** (düzeltildi, 2026-11-06; önceki cevap "Hayır" eksikti): oyuncu kendi özel mesajını oyunda siler (`dm.delete`), takma adını değiştirir, Kurucular listesinden adını kaldırır; ayrıca KVKK m.11 başvurusuyla e-postayla kısmi silme isteyebilir (gizlilik metni § 6). Takım ve genel sohbet 30 günde kendiliğinden silinir |
 | Bağımsız güvenlik incelemesi | Hayır |
 | Aileler politikasına uygunluk taahhüdü | Uygulanmaz (Aileler programında değil) |
 
@@ -109,7 +117,7 @@ teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün)
 | Finansal bilgiler › Satın alma geçmişi | Evet | İsteğe bağlı | Uygulama işlevi, Dolandırıcılığı önleme / güvenlik | `purchases` tablosu (ürün, zaman, mağaza, tutar, işlem no); RevenueCat |
 | Mesajlar › Diğer uygulama içi mesajlar | Evet | İsteğe bağlı | Uygulama işlevi | Takım/genel sohbet (30 gün), özel mesajlar (son 500) |
 | Uygulama etkinliği › Kullanıcının oluşturduğu diğer içerik | Evet | İsteğe bağlı | Uygulama işlevi | Takım adı ve açıklaması, takım başvuru notu; beta geri bildirimi notu (Ayarlar › Geri bildirim gönder; isteğe bağlı): konu, temizlenmiş metin ≤ 500 karakter (e-posta, telefon, uzun rakam dizisi çıkarılır), geldiği ekranın adı, sürüm, platform; kendi sunucumuzda 90 gün, oyuncu kimliği yok. Kod: `packages/shared/src/geribildirim.ts`, `apps/server/src/geribildirim.ts` |
-| Uygulama etkinliği › Diğer işlemler | Evet | Zorunlu | Uygulama işlevi | Oyun ilerlemesi: bölüm sonuçları, yıldız, XP, kamp, görevler, etkinlik, lig |
+| Uygulama etkinliği › Diğer işlemler | Evet | Zorunlu | Uygulama işlevi | Oyun ilerlemesi: bölüm sonuçları, yıldız, XP, cüzdan (bekleyen jeton dahil), kamp ve Klinik vakaları, görevler, etkinlikler (Günün Meydan Okuması, Haftalık Turnuva, Günün Sorusu cevabı, canlı Bilgi Yarışması'na katılırken seçili bilgi düzeyi Genel / Odyoloji öğrencisi), lig, rozet ve unvanlar |
 | Uygulama etkinliği › Uygulama etkileşimleri | Hayır | — | — | Dokunma/ekran izlenmez; `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar; çökme raporundaki ekran adı yalnız hatanın olduğu ekran (aşağıda "Teşhis"); geri bildirimdeki ekran adı yalnız notu yazmadan önceki ekran |
 | Uygulama bilgileri ve performansı › Kilitlenme günlükleri (Crash logs) | Evet | Zorunlu (oyunda kapatma ayarı yok; kişisel veri taşımaz) | Analiz (Google tanımında "hataları ve çökmeleri teşhis edip düzeltmek") | Çökme raporu (YN-011): hata adı, temizlenmiş ileti (e-posta, uzun sayı, anahtar/kimlik benzeri metin çıkarılır), en çok 20 yığın satırı (dosya:satır). Kendi sunucumuz `POST /hata`; 30 gün; oyuncu kimliği, takma ad, cihaz kimliği yok. Kod: `packages/shared/src/hata.ts`, `apps/server/src/hata.ts` |
 | Uygulama bilgileri ve performansı › Teşhis (Diagnostics) | Evet | Zorunlu (çökme raporunun parçası) | Analiz | Yalnız çökme raporuyla: uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, hatanın olduğu ekranın adı, dakikaya yuvarlanmış zaman. Pil, yükleme süresi, kare hızı gibi performans ölçümü yok |

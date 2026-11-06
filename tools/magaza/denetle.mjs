@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Mağaza kiti denetimi (marketing/magaza): karakter sınırları, ürün kataloğu ↔ kod (SHOP), yasal yer tutucular.
+// Mağaza kiti denetimi (marketing/magaza): karakter sınırları, dil kuralları (Koklea, emoji yok, tıbbi uyarı), ürün kataloğu ↔ kod (SHOP),
+// yasal yer tutucular.
 //   node tools/magaza/denetle.mjs            → sınırlar + katalog; boş yasal alan UYARI
 //   node tools/magaza/denetle.mjs --yayin    → mağaza gönderimi öncesi: boş yasal alan da HATA (YAYIN-LISTESI.md)
 //   --adres <alan adı> --eposta <adres>      → <adres> ve {ILETISIM_EPOSTA} gerçek uzunlukla sayılır (verilmezse 40'ar karakter varsayılır)
@@ -46,6 +47,15 @@ for (const [magaza, diller] of [['google', metin.google], ['apple', metin.apple]
       for (const w of kel) if (adAlt.split(/[^\p{L}]+/u).includes(w)) U(`apple ${dil} keywords: "${w}" adda/alt başlıkta zaten var (gereksiz)`);
     }
   }
+}
+
+// ---------------------------------------------------------------- dil kuralları: "Koklea" (asla "Salyangoz"), emoji yok, tıbbi uyarı
+{
+  const tum = JSON.stringify([metin.google, metin.apple, iap.urunler]);
+  if (/salyangoz|snail/iu.test(tum)) H('metinlerde "Salyangoz"/"snail" var: oyunda her zaman "Koklea"');
+  const emo = tum.match(/\p{Extended_Pictographic}/u); if (emo) H(`metinlerde emoji var: ${emo[0]}`);
+  if (!cozum(metin.google['tr-TR'].fullDescription).includes('tanı koymaz, tıbbi tavsiye yerine geçmez')) H('TR uzun açıklamada "tanı koymaz, tıbbi tavsiye yerine geçmez" notu yok');
+  if (!cozum(metin.google['en-US'].fullDescription).includes('does not diagnose and is not medical advice')) H('EN uzun açıklamada "does not diagnose and is not medical advice" notu yok');
 }
 
 // ---------------------------------------------------------------- ürün kataloğu ↔ kod

@@ -23,11 +23,15 @@
 //   09-vaka         Klinik: hasta vakası (odyogram sonucu)
 //   10-defter       Vaka Defteri
 //   11-yaris-ici    canlı yarış içi (üç bot, rakip hayaletleri ve sıralama şeridi aynı karede; tuval 3x — hd=3)
-// Kullanım: node tools/harness/vitrin.mjs [--only bolum,harita,kamp,hikaye,sohbet,yaris,sonuc,dede,vaka,defter] (yaris: 06 + 11)
+//   12-magaza       Profil › Mağaza (mağaza derlemesindeki gibi gerçek satın alma kipi; TEST şeridi yok, mağaza fiyatı gelmemiş: TL liste
+//                   fiyatı ve "ödeyeceğin tutarı App Store / Google Play gösterir" notu). Ek olarak yalnız iOS 6,9" boyutunda
+//                   <out>/iap-inceleme/: App Store "inceleme ekran görüntüsü" (her ürünün satın alma penceresi, <ürün kimliği>.png) ve
+//                   ilk satın almadan önceki aylık harcama sınırı seçimi (harcama-siniri.png). Satın alma yapılmaz.
+// Kullanım: node tools/harness/vitrin.mjs [--only bolum,harita,kamp,hikaye,sohbet,yaris,sonuc,dede,vaka,defter,magaza] (yaris: 06 + 11)
 //           [--boyut ios69,ios65,android] [--out <klasör>] [--no-build] [--bolum 25] [--sonuc 25,28,33]
 // Çıktı: <out>/<boyut-klasörü>/<nn>-<ad>.png (varsayılan out: tools/harness/out/vitrin/png). Derleme: tools/harness/out/vitrin/.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -85,11 +89,21 @@ const LV = (n) => DATA.levels[n - 1];
 
 // ---------------------------------------------------------------- web test derlemesi + yarış sayfası, sunucu (aynı süreç), önizleme
 const vite = await import('vite');
+/** yalnız bu test derlemesinde: sayfada `globalThis.__vitrinMagaza` (mağaza fiyat listesi; boş = fiyat gelmedi) tanımlıysa platform
+ *  köprüsüne mağaza derlemesindeki gibi `purchase` + `storePrices` kurulur (12-magaza). purchase her zaman "iptal" döner: para ya da
+ *  makbuz yok. Kaynak dosya değişmez; öteki karelerde değişken tanımsız olduğundan hiçbir etkisi yok. */
+const vitrinMagazaKoprusu = () => ({
+  name: 'vitrin-magaza-koprusu',
+  transform(code, id) {
+    if (!id.replaceAll('\\', '/').endsWith('/apps/web/src/platform.ts')) return null;
+    return `${code}\n;try { const v = globalThis.__vitrinMagaza; if (Array.isArray(v)) installPlatform({ purchase: async () => ({ ok: false, cancelled: true, error: 'vitrin' }), storePrices: async () => v }); } catch { /* yok */ }\n`;
+  },
+});
 const distDir = resolve(WORK, 'dist');
 if (!has('no-build') || !existsSync(resolve(distDir, 'src/race/dev/yaris.html'))) {
   log('web test derlemesi…');
   process.env.VITE_ODI_E2E = '1';
-  await vite.build({ root: webRoot, configFile: resolve(webRoot, 'vite.config.ts'), logLevel: 'warn', build: { outDir: distDir, emptyOutDir: true, rollupOptions: { input: { main: resolve(webRoot, 'index.html'), yaris: resolve(webRoot, 'src/race/dev/yaris.html') } } } });
+  await vite.build({ root: webRoot, configFile: resolve(webRoot, 'vite.config.ts'), logLevel: 'warn', plugins: [vitrinMagazaKoprusu()], build: { outDir: distDir, emptyOutDir: true, rollupOptions: { input: { main: resolve(webRoot, 'index.html'), yaris: resolve(webRoot, 'src/race/dev/yaris.html') } } } });
   delete process.env.VITE_ODI_E2E;
 }
 const srvFile = resolve(WORK, 'server-inproc.mjs');
@@ -561,8 +575,69 @@ await step('yaris', async () => {
   } finally { for (const P of ps) await P.ctx.close().catch(() => undefined); }
 });
 
+// ================================================================ 12 · mağaza + App Store inceleme ekran görüntüleri (uygulama içi ürünler)
+/** tek boyutta (iOS 6,9") tek kare: aynı temiz kare denetimi */
+async function shootOne(page, dir, name) {
+  const Z = ALL_SIZES.ios69;
+  await page.setViewportSize({ width: Z.w, height: Z.h });
+  await page.evaluate(([t, b]) => { document.documentElement.style.setProperty('--safe-top', `${t}px`); document.documentElement.style.setProperty('--safe-bottom', `${b}px`); window.dispatchEvent(new Event('resize')); }, [Z.top, Z.bottom]);
+  await sleep(700);
+  let bad = [];
+  for (let i = 0; i < 4; i++) { await calm(page); bad = await page.evaluate(dirty, FORBIDDEN); if (!bad.length) break; await toastGone(page); await sleep(1200); }
+  if (bad.length) throw new Error(`${name}: karede istenmeyen öğe: ${bad.slice(0, 3).join(' | ')}`);
+  const txt = await page.evaluate(() => document.body.innerText);
+  if (/\bTEST\b/.test(txt)) throw new Error(`${name}: karede TEST yazısı var`);
+  const d = resolve(OUT, dir); mkdirSync(d, { recursive: true });
+  await page.screenshot({ path: resolve(d, `${name}.png`), type: 'png' });
+  log(`📸 ${dir}/${name}.png`);
+}
+await step('magaza', async () => {
+  const cleared = 12;
+  const { ctx, page } = await newPage({ seed: save(cleared), ls: { 'odi-map-seen': mapSeen(cleared, [...new Set(DATA.levels.slice(0, cleared).map((l) => l.biome))]) } });
+  await ctx.addInitScript(() => { globalThis.__vitrinMagaza = []; });
+  // mağaza "gerçek" kipte yalnız sunucu makbuz doğrulayabiliyorsa açılır (shop.list realStore = REVENUECAT_API_KEY var): bu adımda
+  // sunucuya sahte bir anahtar verilir. Satın alma köprüsü her zaman iptal döndüğü için sunucuya makbuz hiç gitmez, RevenueCat çağrılmaz.
+  const rcEski = srv.app.cfg.revenueCatKey; srv.app.cfg.revenueCatKey = 'vitrin-dogrulama-yok';
+  try {
+    await page.goto(url(), { waitUntil: 'load' });
+    await enter(page, AD.ben);
+    for (let l = 1; l <= cleared; l++) await net(page, 'progress.submit', runOf(l, { coins: 30 })).catch(() => undefined);
+    await page.reload({ waitUntil: 'load' }); await page.getByRole('button', { name: /Devam et|Yola çık/ }).click({ timeout: 60_000 });
+    await page.locator('nav.tabbar').waitFor({ timeout: 30_000 }); await sleep(1500); await settle(page);
+    const openShop = async () => {
+      await tab(page, 'profile'); await page.locator('.menu-tile[data-tile="shop"]').click();
+      await page.locator('.card.product .btn.small').first().waitFor({ timeout: 20_000 }); await sleep(600); await settle(page);
+    };
+    await openShop();
+    if (await page.locator('.test-banner, .test-chip').count()) throw new Error('mağaza TEST kipinde (köprü kurulmadı)');
+    if (!(await page.getByTestId('fiyat-notu').count())) throw new Error('TL liste fiyatı notu yok');
+    const top = async (p) => { await p.evaluate(() => { document.scrollingElement?.scrollTo(0, 0); for (const el of document.querySelectorAll('.screen, #root')) el.scrollTop = 0; }); await sleep(300); };
+    await shoot(page, '12', 'magaza', { title: 'Mağaza (Profil › Mağaza)' }, { prep: top });
+    // ilk satın almadan önce aylık sınır seçimi (karar 28): önerilen 100 TL seçili gelir
+    const card = (id) => page.locator('.card.product').filter({ has: page.locator('b', { hasText: new RegExp(`^${id.name}$`) }) });
+    const products = (await net(page, 'shop.list', {})).products;
+    await card(products[0]).locator('.btn.small').click(); await page.getByTestId('ilk-sinir').waitFor({ timeout: 10_000 }); await sleep(500);
+    await shootOne(page, 'iap-inceleme', 'harcama-siniri');
+    // inceleme görüntüleri için en yüksek ilk seçim (500 TL): en pahalı ürün de sınırın altında kalır, pencerede "aşıyor" uyarısı çıkmaz
+    await page.getByTestId('ilk-sinir-500').click(); await page.getByTestId('ilk-sinir-kaydet').click();
+    await page.getByTestId('onay-fiyat').waitFor({ timeout: 10_000 }); await sleep(400); await toastGone(page);
+    await page.locator('.sheet').getByRole('button', { name: 'Vazgeç' }).click(); await sleep(400);
+    for (const p of products) {
+      await card(p).scrollIntoViewIfNeeded(); await card(p).locator('.btn.small').click();
+      await page.getByTestId('onay-fiyat').waitFor({ timeout: 10_000 }); await sleep(500);
+      const sheet = await page.locator('.sheet').innerText();
+      if (!sheet.includes(p.name) || /aşıyor/.test(sheet)) throw new Error(`${p.id}: satın alma penceresi beklenen gibi değil`);
+      await shootOne(page, 'iap-inceleme', p.id);
+      await page.locator('.sheet').getByRole('button', { name: 'Vazgeç' }).click(); await sleep(400);
+    }
+  } finally { srv.app.cfg.revenueCatKey = rcEski; await ctx.close().catch(() => undefined); }
+});
+
 // ---------------------------------------------------------------- özet
 await shutdown();
+// --only ile yalnız bazı kareler çekildiyse öteki karelerin kaydı korunur
+const eski = (() => { try { return ONLY ? JSON.parse(readFileSync(resolve(OUT, 'vitrin.json'), 'utf8')).kareler ?? [] : []; } catch { return []; } })();
+for (const k of eski) if (!shots.some((x) => x.nn === k.nn)) shots.push(k);
 const man = { olusturma: new Date().toISOString(), boyutlar: Object.fromEntries(SIZES.map(([k, Z]) => [k, `${Z.w * DSF}×${Z.h * DSF}`])), kareler: shots.sort((a, b) => a.nn.localeCompare(b.nn)), sorunlar: problems };
 mkdirSync(OUT, { recursive: true }); writeFileSync(resolve(OUT, 'vitrin.json'), JSON.stringify(man, null, 1));
 for (const p of problems) log(`⚠ ${p}`);
