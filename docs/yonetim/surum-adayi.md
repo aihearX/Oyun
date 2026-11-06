@@ -136,9 +136,9 @@ Bulunan tek gerçek hata `expo-doctor`'du (YN-039). Expo SDK 58'in yeni yama sü
 - **Yerel ağ kısıtı (YN-030):** IP başına saatte 20 yeni hesap sınırı, okul ağında ya da CGNAT arkasında toplu kayıtta engel olabilir.
 
 ## Sürüm numarası (sahip kararı 20)
-- **Öneri:** `apps/mobile/app.json` `version` = **0.9.0** (kapalı beta; mağaza 1.0.0).
-- `/saglik` aynı numarayı göstersin diye kök ve `apps/server` `package.json` da aynı sürüme çekilmeli.
-- Bu iş sürümü değiştirmedi.
+- **KARAR (sahip, 2026-11-06): 1.0.0, doğrudan mağaza.** Uygulandı (1.0.0 mağaza adayı, en üstteki bölüm): `app.json` `version`,
+  Ayarlar ve yasal metinlerdeki sürüm (`APP_VERSION`), sunucu `/saglik` (`SERVER_VERSION`), kök ve çalışma alanı `package.json`'ları.
+- Eski öneri (kapalı beta 0.9.0) uygulanmadı.
 
 ## Beta notları
 [`marketing/magaza/beta-notlari.md`](../../marketing/magaza/beta-notlari.md) (test edenler için, Türkçe, 8 satır). İçeriği:

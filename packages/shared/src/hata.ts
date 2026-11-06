@@ -39,7 +39,7 @@ export interface CrashReport {
   message: string;
   /** parmak izi satırları: `işlev@dosya.js:satır:sütun` ya da `dosya.js:satır:sütun` */
   stack: string[];
-  /** uygulama sürümü (0.1.0) */
+  /** uygulama sürümü (1.0.0) */
   app: string;
   /** derleme (web: derleme kimliği; telefon: mağaza derleme numarası) */
   build: string;

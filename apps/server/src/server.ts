@@ -32,7 +32,7 @@ import { oyunHandlers } from './camp-quests-oyun';
 import { crashRateOk, crashRatePrune, crashSummary, pruneCrashes, receiveCrash } from './hata';
 import { feedbackRateOk, feedbackRatePrune, feedbackSummary, pruneFeedback, receiveFeedback } from './geribildirim';
 
-export const SERVER_VERSION = '0.1.0';
+export const SERVER_VERSION = '1.0.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
 /** geçersiz özet biçimi: hiçbir kod yönetici yapmaz (üretimde ODI_ADMIN_CODE_HASH verilmediyse) */
 export const ADMIN_DISABLED = 'kapali';

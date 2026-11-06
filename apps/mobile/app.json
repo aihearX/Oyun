@@ -2,7 +2,7 @@
   "expo": {
     "name": "ODİ: Sesin Yolu",
     "slug": "odi",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "runtimeVersion": { "policy": "appVersion" },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -12,7 +12,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.aiheartech.odi",
-      "buildNumber": "1",
       "infoPlist": { "ITSAppUsesNonExemptEncryption": false },
       "privacyManifests": {
         "NSPrivacyTracking": false,

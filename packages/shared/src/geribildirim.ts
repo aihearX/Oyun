@@ -36,7 +36,7 @@ export interface FeedbackReport {
   text: string;
   /** oyuncunun Ayarlar'a gelmeden önceki ekranı (map, level, camp …) */
   screen: string;
-  /** uygulama sürümü (0.1.0) */
+  /** uygulama sürümü (1.0.0) */
   app: string;
   /** derleme (web: git kısa özeti; telefon: mağaza derleme numarası; geliştirmede boş) */
   build: string;
