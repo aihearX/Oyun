@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
-import { applyServerItems, errText, getNet, toast } from '../net';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, isRestorable, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
+import { errText, getNet, odemeIslendi, odemeKuyrugu, odemeRetMetni, toast } from '../net';
+import type { BekleyenOdeme } from '../odeme-kuyrugu';
 import { platform } from '../platform';
 import { audio } from '@odi/audio';
 import { celebrate } from '../celebrate';
@@ -60,27 +61,45 @@ function Shop() {
   const buy = async (p: Product) => {
     const c = getNet(); if (!c) return;
     setBusy(true);
-    // mağaza ödemeyi aldıktan sonra sunucu işleyemezse oyuncuya dürüstçe söylenir: "ödeme alınmadı" denmez (para mağazada çekildi)
-    let odendi = false;
-    try {
-      let res: OpMap['shop.purchase']['res'];
-      if (mode === 'real' && real) {
-        const pr = await real(p.id, me.id);
-        if (!pr.ok) { if (!pr.cancelled) toast('🙈', 'Satın alma tamamlanmadı', pr.error, 'bronze'); setBusy(false); return; }
-        odendi = true;
-        res = await c.call('shop.purchase', { productId: p.id, store: pr.store, receipt: pr.receipt });
-      } else res = await c.call('shop.purchase', { productId: p.id, store: 'test' });
+    const basarili = async (res: OpMap['shop.purchase']['res']) => {
       const before = useNet.getState().wallet?.kristal ?? 0;
-      useNet.setState({ wallet: res.wallet });
-      applyServerItems(p.contents.filter((x) => x.kind === 'kozmetik').map((x) => ({ kind: 'kozmetik' as const, amount: 1, ref: x.ref ?? '' })));
-      void c.call('profile.update', {}).catch(() => undefined);
+      odemeIslendi([p.id], res.wallet);
       platform().haptic('success'); audio.play('fanfare');
       celebrate.banner({ icon: '🎉', title: `${p.name} hesabında`, body: res.teamGiftSent ? 'Takımındaki herkese adsız hediye gitti.' : undefined, tone: 'gold' });
       if (res.wallet.kristal > before) void celebrate.coins({ amount: res.wallet.kristal - before, kind: 'kristal' });
       setSel(null); await load();
+    };
+    // mağaza penceresi açıldıktan sonraki beklenmeyen hata: ödeme alınmış olabilir, "ödeme alınmadı" denmez
+    let odemeBasladi = false;
+    try {
+      if (mode === 'real' && real) {
+        // sınırlar ödemeden ÖNCE sunucuda (ödeme alındıktan sonra sınır yüzünden reddetmek parayı ürünsüz bırakırdı)
+        await c.call('shop.check', { productId: p.id });
+        odemeBasladi = true;
+        const pr = await real(p.id, me.id);
+        if (!pr.ok) {
+          // makbuzu gelmeyen ama ödemesi alınmış olabilecek işlem: RevenueCat SDK'sı tutar; sunucu bağlanınca RevenueCat'i tarar
+          if (pr.pending || pr.uncertain) void odemeKuyrugu.taramaIste(me.id);
+          if (pr.pending) toast('🧭', 'Ödeme onay bekliyor', pr.error);
+          else if (!pr.cancelled) toast('🙈', pr.uncertain ? 'Mağaza işlemi yarım kaldı' : 'Satın alma tamamlanmadı', pr.error, 'bronze');
+          setBusy(false); return;
+        }
+        // ödeme alındı: makbuz önce kalıcı kuyruğa, sonra sunucuya (YN-285). İşlenemezse bağlantı dönünce kendiliğinden yeniden gider.
+        const r = await odemeKuyrugu.odemeAlindi({ playerId: me.id, productId: p.id, store: pr.store, receipt: pr.receipt });
+        if (r.k === 'islendi' || r.k === 'zaten') { if (r.res) await basarili(r.res); else { setSel(null); await load(); } }
+        else if (r.k === 'ret') { toast('🙈', 'Satın alma bu hesaba işlenemedi', odemeRetMetni(r), 'bronze'); setSel(null); await load(); }
+        else {
+          toast('🧭', 'Ödeme alındı; bağlantı dönünce hesabına işlenecek', r.kalici
+            ? 'Mağaza işlemi bu cihazda saklandı. Sunucuya ulaşınca ürün kendiliğinden hesabına geçer; uygulamayı kapatsan da kaybolmaz.'
+            : 'Mağaza işlemi bu cihaza kaydedilemedi. Ürün bir süre içinde gelmezse Mağaza › Satın alımları geri yükle.', 'bronze');
+          setSel(null);
+        }
+      } else await basarili(await c.call('shop.purchase', { productId: p.id, store: 'test' }));
     } catch (e) {
-      if (odendi) toast('🙈', 'Ödeme alındı, hesabına işlenemedi', `${errText(e)} Mağaza işlemi oyuncu kimliğinle kayıtlı; Ayarlar › Geri bildirim gönder ile bize yaz, elle ekleyelim ya da mağazadan iade iste.`, 'bronze');
-      else toast('🙈', 'Satın alınamadı', errText(e), 'bronze');
+      if (odemeBasladi) {
+        void odemeKuyrugu.taramaIste(me.id);
+        toast('🙈', 'Mağaza işlemi yarım kaldı', 'Ödeme alındıysa bağlantı dönünce hesabına işlenir; gelmezse Mağaza › Satın alımları geri yükle.', 'bronze');
+      } else toast('🙈', 'Satın alınamadı', errText(e), 'bronze'); // ödeme başlamadan (shop.check) ya da test mağazası
     }
     setBusy(false);
   };
@@ -98,6 +117,7 @@ function Shop() {
         </details>
       </div>
       {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">{listPriceNote(mode)}</div>}
+      <BekleyenOdemeler playerId={me.id} onIslendi={() => void load()} />
 
       <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />
 
@@ -121,6 +141,8 @@ function Shop() {
           {block && <div className="muted small-note sinir-asiyor" data-testid="sinir-asiyor">{block}</div>}
           {block && sinirNotu === p.id && <div className="small-note sinir-notu" role="status" data-testid="sinir-notu">{sp.limitTry > 0 ? `${kalanSatiri(sp)}.` : 'Aylık sınırın “Kapalı”: satın alma yok.'} Sınırı yukarıdaki “Sınırı ayarla”dan değiştirebilirsin.</div>}
         </div>); })}
+
+      {mode === 'real' && platform().restorePurchases && <GeriYukle playerId={me.id} onDone={(r) => setData({ ...data, spend: r.spend })} />}
 
       <div className="card">
         <b>Satın alma geçmişi</b>{prices && sp.purchases.length > 0 && <span className="muted small-note"> · TL liste fiyatıyla</span>}
@@ -148,6 +170,82 @@ function Shop() {
           <button className="btn ghost" onClick={() => setSel(null)}>Vazgeç</button>
         </Sheet>); })()}
       {limitOpen && <LimitSheet sp={sp} onClose={() => setLimitOpen(false)} onSaved={(s) => { setData({ ...data, spend: s }); setLimitOpen(false); }} />}
+    </div>
+  );
+}
+
+/**
+ * Ödemesi alınıp hesaba henüz işlenmemiş mağaza satın almaları (YN-285, odeme-kuyrugu.ts): bağlantı dönünce kendiliğinden işlenir;
+ * oyuncu beklemek istemezse "Şimdi dene".
+ */
+function BekleyenOdemeler({ playerId, onIslendi }: { playerId: string; onIslendi: () => void }) {
+  const [list, setList] = useState<BekleyenOdeme[]>([]); const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    const yenile = () => { void odemeKuyrugu.bekleyenler(playerId).then((l) => { if (live) setList(l); }); };
+    yenile(); const off = odemeKuyrugu.abone(yenile);
+    return () => { live = false; off(); };
+  }, [playerId]);
+  if (!list.length) return null;
+  const dene = async () => {
+    setBusy(true);
+    const { sonuclar } = await odemeKuyrugu.bosalt(playerId);
+    const islenen = sonuclar.filter((r) => r.k === 'islendi' || r.k === 'zaten');
+    const son = [...islenen].reverse().find((r) => r.res)?.res;
+    if (son) odemeIslendi(sonuclar.filter((r) => r.k === 'islendi').map((r) => r.item.productId), son.wallet);
+    if (islenen.length) { toast('🎉', 'Satın alma hesabında', islenen.map((r) => SHOP.find((p) => p.id === r.item.productId)?.name ?? r.item.productId).join(', ')); onIslendi(); }
+    for (const r of sonuclar) if (r.k === 'ret') toast('🙈', 'Satın alma bu hesaba işlenemedi', odemeRetMetni(r), 'bronze');
+    const kalan = sonuclar.find((r) => r.k === 'bekle');
+    if (kalan && kalan.k === 'bekle') toast('🧭', 'Henüz işlenemedi', `${kalan.message} Kayıt bu cihazda duruyor; bağlantı dönünce yeniden denenir.`, 'bronze');
+    setBusy(false);
+  };
+  return (
+    <div className="card bekleyen-odeme" role="status" data-testid="bekleyen-odeme">
+      <b>Ödeme alındı; bağlantı dönünce hesabına işlenecek</b>
+      <ul className="history">{list.map((o) => <li key={o.receipt}><span className="grow ellipsis">{SHOP.find((p) => p.id === o.productId)?.name ?? o.productId}</span><span className="muted">{fmtDate(o.at)}</span></li>)}</ul>
+      <div className="muted small-note">Mağaza işlemi bu cihazda saklı. Sunucuya ulaşınca ürün kendiliğinden hesabına geçer; ikinci kez ödeme alınmaz.</div>
+      <button className="btn small ghost" disabled={busy} onClick={() => void dene()}>{busy ? 'Deneniyor…' : 'Şimdi dene'}</button>
+    </div>
+  );
+}
+
+/**
+ * Satın alımları geri yükle (Apple 3.1.1; tüketilmeyen ürün ve yenilenmeyen abonelik): mağaza hesabındaki işlemler RevenueCat'e iletilir,
+ * sunucu (`shop.restore`) bu oyun hesabına işlenmemiş olanları işler. Tüketilebilir paketler (kristal, hızlandırıcı) işlendikten sonra
+ * geri yüklenmez; başka bir oyun hesabına işlenmiş satın alma bu hesaba verilmez. Metin bunları açıkça söyler.
+ */
+function GeriYukle({ playerId, onDone }: { playerId: string; onDone: (r: OpMap['shop.restore']['res']) => void }) {
+  const [busy, setBusy] = useState(false); const [sonuc, setSonuc] = useState<string | null>(null);
+  const ad = (id: string) => SHOP.find((p) => p.id === id)?.name ?? id;
+  const kalicilar = SHOP.filter(isRestorable).map((p) => p.name).join(' ve ');
+  const run = async () => {
+    const c = getNet(); const fn = platform().restorePurchases; if (!c || !fn) return;
+    setBusy(true); setSonuc(null);
+    try {
+      const m = await fn(playerId);
+      if (!m.ok) { setSonuc(m.error); return; }
+      const r = await c.call('shop.restore', {});
+      void odemeKuyrugu.taramaBitti(playerId);
+      if (r.restored.length) {
+        odemeIslendi(r.restored.map((x) => x.productId), r.wallet);
+        platform().haptic('success');
+        celebrate.banner({ icon: '🎉', title: 'Satın alımların hesabında', body: r.restored.map((x) => ad(x.productId)).join(', '), tone: 'gold' });
+      }
+      const satir = [
+        r.restored.length ? `Hesabına işlendi: ${[...new Set(r.restored.map((x) => ad(x.productId)))].join(', ')}.` : '',
+        r.alreadyHere.length ? `Zaten bu hesapta: ${r.alreadyHere.map(ad).join(', ')}.` : '',
+        r.elsewhere.length ? `Başka bir oyun hesabına işlenmiş, bu hesaba verilmedi: ${r.elsewhere.map(ad).join(', ')}.` : '',
+      ].filter(Boolean);
+      setSonuc(satir.length ? satir.join(' ') : 'Bu mağaza hesabında bu oyun hesabına geri yüklenecek satın alma bulunamadı.');
+      onDone(r);
+    } catch (e) { setSonuc(errText(e)); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card geri-yukle" data-testid="geri-yukle">
+      <b>Satın alımları geri yükle</b>
+      <div className="muted small-note">{kalicilar} bu oyun hesabına bağlıdır. Bu hesapta görünmüyorsa ya da ödemesi alınıp hesabına işlenmemiş bir satın alma varsa buradan geri yükle. Kristal ve hızlandırıcı paketleri harcanır: hesabına işlendikten sonra geri yüklenmez. Başka bir oyun hesabına işlenmiş satın alma bu hesaba ikinci kez verilmez.</div>
+      <button className="btn small ghost" data-testid="geri-yukle-dugme" disabled={busy} onClick={() => void run()}>{busy ? 'Geri yükleniyor…' : 'Satın alımları geri yükle'}</button>
+      {sonuc && <div className="small-note" role="status" data-testid="geri-yukle-sonuc">{sonuc}</div>}
     </div>
   );
 }

@@ -147,7 +147,11 @@ geçişi kod tarafı yapıyor; GitHub Desktop'ta **Pull** sonrası denetleyin, d
    saatler sürebilir; beklerken devam edin).
 4. **[S/A]** Ürünler: G adımında mağazalarda oluşturulduktan sonra RevenueCat › Product catalog › **Products** › **Import**
    (iki mağaza). 7 kimlik: `odi.baslangic`, `odi.kristal.1`, `odi.kristal.2`, `odi.kristal.3`, `odi.hiz.1`, `odi.hiz.2`, `odi.pass`.
-   **Offering ve Entitlement gerekmez** (oyun ürünü kimlikle çeker).
+   **Offering ve Entitlement gerekmez** (oyun ürünü kimlikle çeker); Sezon Kartı'nı bir Entitlement'a **bağlamayın** (RevenueCat
+   yenilenmeyen aboneliği süresiz açık sayar). **Play ürün türü:** Products listesinde Android `odi.baslangic` › tür **Non-consumable**
+   (RevenueCat tüketmez); öteki altı Android ürünü **Consumable** kalır (Sezon Kartı dahil). iOS ürünlerinin türü App Store'dan gelir
+   (H2). Tablo: [`iap-urunler.md`](iap-urunler.md) "Ürün türleri".
+   **Restore behavior** (Project settings › General): varsayılan **Transfer to new App User ID** kalsın (sahipliği sunucu belirler).
 5. **[S]** **Herkese açık SDK anahtarları:** Project settings › **API keys**: `appl_...` (iOS) ve `goog_...` (Android) → A3'teki son
    iki komut.
 6. **[S]** **Gizli anahtar (sunucu):** API keys › **+ New secret API key** › API sürümü **V1** (sunucu `GET /v1/subscribers` kullanır)
@@ -206,7 +210,8 @@ npx eas-cli build -p ios --profile production
 3. **Uygulama içi ürünler:** Para kazanma › **Ürünler** › **Uygulama içi ürünler** (Console "Tek seferlik ürünler" diyebilir) ›
    **Ürün oluştur**, 7 kez: kimlik, ad, açıklama `iap-urunler.json` (`id`, `tr.ad`, `tr.uzun`), fiyat **TRY** (`fiyatTry`) ›
    **Etkinleştir**. Console "satın alma seçeneği" isterse tür "Satın al", fiyat aynı. Ürün kimliği sonradan değiştirilemez: harfi
-   harfine `iap-urunler.json`.
+   harfine `iap-urunler.json`. Yedisi de **tek seferlik ürün** (Sezon Kartı dahil; **Abonelikler** sayfasında oluşturulmaz: Play'de
+   yenilenmeyen abonelik yok). Tüketilip tüketilmemesi Play'de değil RevenueCat'te seçilir (D4: yalnız `odi.baslangic` Non-consumable).
 4. **Lisans testi:** Ayarlar › **Lisans testi** › kendi Google hesabınızı ekleyin (gerçek para çekilmez).
 5. Telefonda 2. maddedeki test bağlantısını açın › "Test kullanıcısı ol" › Play'den kurun. Denetim: açılış, 1. bölüm, haritada
    bağlantı noktası **yeşil**, 6 bölüm sonra Profil › Mağaza'da fiyatlar, bir ürün satın alma (test kartı) → kristal hesapta.
@@ -224,8 +229,10 @@ npx eas-cli build -p ios --profile production
    ```
    Görmeniz gereken: "Submitted your app to Apple App Store Connect"; 10–30 dk sonra App Store Connect › **TestFlight** sekmesinde
    derleme "İşleniyor" → "Test edilmeye hazır". Şifreleme sorusu sorulmaz (`ITSAppUsesNonExemptEncryption: false`).
-2. **Uygulama içi ürünler** (App Store Connect › uygulama › **Uygulama İçi Satın Almalar** › "+"), 7 kez: tür **Tüketilebilir**,
-   Referans adı = TR ad, Ürün Kimliği `iap-urunler.json` › `id`; **Fiyat**: temel ülke Türkiye, `fiyatTry`'ye en yakın nokta;
+2. **Uygulama içi ürünler** (App Store Connect › uygulama › **Uygulama İçi Satın Almalar** › "+"), 7 kez. **Tür** (`iap-urunler.json`
+   › `tur`; sonradan değiştirilemez): `odi.baslangic` **Tüketilmeyen** (Non-Consumable); `odi.pass` **Otomatik Yenilenmeyen Abonelik**
+   (Non-Renewing Subscription; App Store Connect bunu da Uygulama İçi Satın Almalar sayfasında "+" ile açar, Abonelikler sayfasında
+   değil); öteki beşi **Tüketilebilir** (Consumable). Referans adı = TR ad, Ürün Kimliği `iap-urunler.json` › `id`; **Fiyat**: temel ülke Türkiye, `fiyatTry`'ye en yakın nokta;
    **Yerelleştirme** Türkçe (`tr.ad`, `tr.aciklama`) ve İngilizce (`en.ad`, `en.aciklama`); **İnceleme bilgileri**: ekran görüntüsü
    `magaza-ekranlar.zip` › `iap-inceleme\<ürün kimliği>.png`, not `iap-urunler.md` "Apple inceleme ekran görüntüsü ve notu".
    Görmeniz gereken: her ürün **"Gönderilmeye Hazır"** (Paid Apps sözleşmesi Etkin değilse "Eksik Meta Veri" kalır).
@@ -234,7 +241,11 @@ npx eas-cli build -p ios --profile production
 4. Denetim (her ürün bir kez, en az Başlangıç Paketi ve Sezon Kartı): 6 bölüm › Profil › Mağaza → fiyatlar mağazadan gelir (TL
    işaretiyle, "liste fiyatı" notu yok) → bir fiyata dokun → aylık sınır **500 TL** → "Sınırı kaydet" → ödeme penceresi
    ("[Environment: Sandbox]") → onay → "… hesabında" ve kristal artar. İkinci kez Başlangıç Paketi düğmesi **"Alındı"**. Satın alma
-   sunucuya yansımazsa (kristal gelmezse) D6 eksiktir. Sonucu ve ekran görüntüsünü ajana iletin.
+   sunucuya yansımazsa (kristal gelmezse) D6 eksiktir. Sezon Kartı'ndan sonra ödül kutusunda 30 kristal olmalı (yenilenmeyen
+   abonelik RevenueCat'te `non_subscriptions` altında; gelmezse ajana iletin). Sonra mağazanın altındaki **"Satın alımları geri
+   yükle"** → "Zaten bu hesapta: Başlangıç Paketi, Odi Sezon Kartı" yazmalı, kristal artmamalı. Yeniden deneme denetimi (isteğe
+   bağlı): uçak kipinde değil, telefon bağlıyken sunucu kapalıysa ödeme sonrası "Ödeme alındı; bağlantı dönünce hesabına işlenecek"
+   kartı çıkar, sunucu dönünce ürün kendiliğinden gelir. Sonucu ve ekran görüntüsünü ajana iletin.
 
 ## I. Liste metinleri, ekran görüntüleri, beyanlar (Apple, 45 dk) [S/A]
 

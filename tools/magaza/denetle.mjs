@@ -70,7 +70,11 @@ for (const [id, u] of kat) {
   if (p.priceTry !== u.fiyatTry) H(`${id}: fiyat ${u.fiyatTry} ≠ SHOP ${p.priceTry}`);
   if (p.limit !== u.sinir) H(`${id}: sınır ${u.sinir} ≠ SHOP ${p.limit}`);
   if (!/^[a-z0-9][a-z0-9._]*$/.test(id)) H(`${id}: ürün kimliği Apple/Google biçimine uymuyor`);
-  if (u.tur !== 'consumable') U(`${id}: tür ${u.tur} (istemci getProducts NON_SUBSCRIPTION ile çağırır; sunucu non_subscriptions'ta arar)`);
+  // tür (Apple ürün türü): SHOP.storeType ile aynı. Üçü de RevenueCat'te non_subscriptions altında gelir (sunucu orada arar); istemci
+  // getProducts(NON_SUBSCRIPTION) ile çeker (iOS'ta tür yok sayılır, Android'de tek seferlik ürünler). Otomatik yenilenen abonelik yok.
+  if (!['consumable', 'non-consumable', 'non-renewing'].includes(u.tur)) H(`${id}: tür ${u.tur} desteklenmiyor (consumable, non-consumable, non-renewing)`);
+  else if (p.storeType !== u.tur) H(`${id}: tür ${u.tur} ≠ SHOP ${p.storeType}`);
+  if (u.tur !== 'consumable' && p.limit !== 1) H(`${id}: tüketilmeyen / yenilenmeyen ürün hesap başına 1 olmalı (geri yükleme ve "Alındı" buna dayanır)`);
   for (const dil of ['tr', 'en']) {
     const t = u[dil];
     for (const [alan, sinir, m] of [['ad', iap.sinirlar.apple.ad, 'apple'], ['aciklama', iap.sinirlar.apple.aciklama, 'apple'], ['ad', iap.sinirlar.google.ad, 'google'], ['uzun', iap.sinirlar.google.uzun, 'google']]) {

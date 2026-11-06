@@ -120,7 +120,7 @@ Vite (web) bunları ayrı parçalara böler. DOM paketinde durum şöyle:
 Gerçek ödeme yalnızca **App Store / Google Play** üzerinden ve **mağaza derlemesinde** (EAS build) çalışır. Expo Go'da gerçek ödeme yoktur; geliştirmede oyun sunucusunun açıkça **TEST MAĞAZASI** etiketli test satın almaları kullanılır (para çekilmez).
 
 Kurulum (bir kez):
-1. App Store Connect'te (ve Google Play Console'da) tüketilebilir ürünleri oluştur; kimlikler `packages/shared/src/social.ts` içindeki `SHOP` ile aynı olmalı: `odi.baslangic`, `odi.kristal.1`, `odi.kristal.2`, `odi.kristal.3`, `odi.hiz.1`, `odi.hiz.2`, `odi.pass`.
+1. App Store Connect'te (ve Google Play Console'da) ürünleri `marketing/magaza/iap-urunler.md` "Ürün türleri" tablosundaki türle oluştur (Başlangıç Paketi tüketilmeyen, Sezon Kartı Apple'da yenilenmeyen abonelik, ötekiler tüketilebilir); kimlikler `packages/shared/src/social.ts` içindeki `SHOP` ile aynı olmalı: `odi.baslangic`, `odi.kristal.1`, `odi.kristal.2`, `odi.kristal.3`, `odi.hiz.1`, `odi.hiz.2`, `odi.pass`.
 2. RevenueCat'te proje aç, iOS/Android uygulamalarını bağla, ürünleri içe aktar.
 3. Mobil derleme için anahtarlar (EAS ortam değişkeni, yukarıda "Mağaza derlemesi: ortam değişkenleri"): `EXPO_PUBLIC_REVENUECAT_IOS`, `EXPO_PUBLIC_REVENUECAT_ANDROID` (RevenueCat "public SDK key"). Ürün kataloğu ve inceleme riskleri: `marketing/magaza/iap-urunler.md`.
 4. Oyun sunucusuna gizli anahtar: `REVENUECAT_API_KEY` (RevenueCat "secret API key"). Sunucu her satın almayı RevenueCat'ten doğrular; doğrulanmayan makbuz kabul edilmez.

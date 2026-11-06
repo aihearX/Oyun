@@ -1,9 +1,9 @@
 {
-  "_not": "Uygulama içi ürün kataloğu. Kimlikler ve içerik packages/shared/src/social.ts SHOP ile aynı olmalı (tools/magaza/denetle.mjs karşılaştırır). Tür: hepsi tüketilebilir (Apple: Consumable, Google: tek seferlik ürün / consumable). Gerekçe ve riskler: iap-urunler.md.",
+  "_not": "Uygulama içi ürün kataloğu. Kimlikler, fiyat, sınır ve tür packages/shared/src/social.ts SHOP ile aynı olmalı (tools/magaza/denetle.mjs karşılaştırır). tur: consumable = Apple Consumable / Play tek seferlik ürün (RevenueCat tüketir); non-consumable = Apple Non-Consumable / Play tek seferlik ürün, RevenueCat'te Non-consumable (tüketilmez); non-renewing = Apple Non-Renewing Subscription / Play tek seferlik ürün (tüketilebilir; Play'de bu tür yok). Gerekçe ve riskler: iap-urunler.md.",
   "urunler": [
     {
       "id": "odi.baslangic",
-      "tur": "consumable",
+      "tur": "non-consumable",
       "fiyatTry": 49.99,
       "sinir": 1,
       "tr": { "ad": "Başlangıç Paketi", "aciklama": "300 kristal, 10 hızlandırıcı, Kâşif Şapkası", "uzun": "300 kristal, 10 adet 5 dakikalık hızlandırıcı ve Kâşif Şapkası. Hesap başına bir kez alınabilir. Takımındaki herkese küçük bir hediye gider." },
@@ -51,7 +51,7 @@
     },
     {
       "id": "odi.pass",
-      "tur": "consumable",
+      "tur": "non-renewing",
       "fiyatTry": 99.99,
       "sinir": 1,
       "tr": { "ad": "Odi Sezon Kartı", "aciklama": "28 gün her gün 30 kristal + kostüm", "uzun": "28 gün boyunca her güne 30 kristal, toplam 840: girmediğin günlerinki birikir, girince ödül kutuna gelir. Altın Koklea kostümü hemen. Yenilenmez, hesap başına bir kez. Takımına küçük hediye gider." },

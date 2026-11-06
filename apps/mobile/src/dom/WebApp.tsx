@@ -1,7 +1,7 @@
 'use dom';
 import { useEffect, useState } from 'react';
 import '../../../web/src/styles.css';
-import { installPlatform, type HapticKind } from '../../../web/src/platform';
+import { installPlatform, type HapticKind, type StorePurchaseResult, type StoreRestoreResult } from '../../../web/src/platform';
 import { App } from '../../../web/src/App';
 import { useStore } from '../../../web/src/store';
 import { NARRATOR_TTS } from '../../../web/src/ftue/voicePick';
@@ -27,7 +27,9 @@ export type WebAppProps = {
   clearAll?: () => Promise<void>;
   restartApp?: () => Promise<void>;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
-  purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
+  purchase?: (productId: string, playerId: string) => Promise<StorePurchaseResult>;
+  /** satın alımları geri yükle (RevenueCat restorePurchases; yalnız mağaza derlemesinde, purchase ile birlikte) */
+  restorePurchases?: (playerId: string) => Promise<StoreRestoreResult>;
   /** mağazanın yerel fiyatları (RevenueCat priceString; yalnız mağaza derlemesinde, purchase ile birlikte) */
   storePrices?: (productIds: string[], playerId: string) => Promise<{ id: string; priceString: string; currencyCode: string }[]>;
   canPurchase: boolean;
@@ -68,6 +70,7 @@ export default function WebApp(p: WebAppProps) {
       ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       ...(p.canPurchase && p.purchase && p.storePrices ? { storePrices: (ids: string[], pid: string) => p.storePrices!(ids, pid) } : {}),
+      ...(p.canPurchase && p.purchase && p.restorePurchases ? { restorePurchases: (pid: string) => p.restorePurchases!(pid) } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
       ...(p.appInfo ? { appInfo: p.appInfo } : {}),

@@ -83,7 +83,7 @@ const dbFile = resolve(outRoot, 'sunucu.db'); for (const f of [dbFile, `${dbFile
 // Kod Gir: test yönetici kodu (gerçek yönetici kodu depoda yoktur); sunucu bu özetle doğrular
 const TEST_ADMIN_CODE = 'TESTYONETICI';
 const TEST_ADMIN_HASH = (() => { const salt = randomBytes(16).toString('hex'); return `scrypt:${salt}:${scryptSync(TEST_ADMIN_CODE, salt, 32, { N: 16384, r: 8, p: 1 }).toString('hex')}`; })();
-const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: dbFile, ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */, ODI_ADMIN_CODE_HASH: TEST_ADMIN_HASH /* test yönetici kodu (gerçeği değil) */ }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['--disable-warning=ExperimentalWarning', 'apps/server/dist/server.mjs'], { cwd: root, env: { ...process.env, PORT: String(sport), HOST: '127.0.0.1', ODI_DB: dbFile, ODI_RAID_ALWAYS: '1', ODI_TEST_STORE: '1', ODI_LOG: '0', ODI_FREE_TEXT_AT: '0' /* yeni hesaplar serbest yazar (güvenli sohbet kuralı comm-e2e'de sınanır) */, ODI_ADMIN_CODE_HASH: TEST_ADMIN_HASH /* test yönetici kodu (gerçeği değil) */, ...(STORE_PRICES ? { REVENUECAT_API_KEY: 'sk_denetim_sahte' /* gerçek mağaza kipi (realStore); denetim hiçbir makbuz göndermez, RevenueCat'e istek gitmez */ } : {}) }, stdio: ['ignore', 'pipe', 'inherit'] });
 procs.push(server);
 await new Promise((res, rej) => { server.stdout.on('data', (d) => { if (String(d).includes('hazır')) res(); }); server.on('exit', (c) => rej(new Error('sunucu kapandı ' + c))); setTimeout(() => rej(new Error('sunucu başlamadı')), 15_000); });
 const wsUrl = `ws://127.0.0.1:${sport}`;
@@ -125,7 +125,7 @@ function domBridge([serverUrl, top, bottom, seed, base, prices]) {
   // denetim kaydı okuyabilsin: DOM'da oyun localStorage'a değil yerel depoya (bu nesne) yazar
   window.__domStore = store;
   window.ReactNativeWebView = {
-    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', ...(prices ? ['purchase', 'storePrices'] : [])], props: { serverUrl, canPurchase: !!prices, insetTop: top, insetBottom: bottom } } }),
+    injectedObjectJson: () => JSON.stringify({ EXPO_DOM_HOST_OS: 'ios', initialProps: { names: ['getItem', 'setItem', 'removeItem', 'haptic', 'share', ...(prices ? ['purchase', 'storePrices', 'restorePurchases'] : [])], props: { serverUrl, canPurchase: !!prices, insetTop: top, insetBottom: bottom } } }),
     postMessage: (s) => {
       try {
         const m = JSON.parse(s);
@@ -138,6 +138,8 @@ function domBridge([serverUrl, top, bottom, seed, base, prices]) {
         // mağaza köprüsü (--magaza-fiyat): istenen ürünlerin sahte fiyatları; satın alma denetimde yapılmaz (iptal)
         if (m.data.actionId === 'storePrices') result = (prices || []).filter((x) => (k || []).includes(x.id));
         if (m.data.actionId === 'purchase') result = { ok: false, cancelled: true, error: 'denetim' };
+        // geri yükleme (Apple 3.1.1): denetimde mağazaya gidilmez; köprü hata döner, kart dürüst sonucu yazar (sunucu RevenueCat'e gitmez)
+        if (m.data.actionId === 'restorePurchases') result = { ok: false, error: 'Mağaza satın alımları okunamadı; biraz sonra yeniden dene.' };
         setTimeout(() => window.dispatchEvent(new CustomEvent('$$dom_event', { detail: { type: '$$native_action_result', data: { uid: m.data.uid, actionId: m.data.actionId, result } } })), 0);
       } catch { /* yok */ }
     },
@@ -927,6 +929,20 @@ async function suite(browserName, target, [W, H]) {
           const yanlis = [!/^Kalan: 50,00 TL · 1 \S+’(ta|da|te|de) sıfırlanır$/.test(kalan) && `kalan satırı “${kalan}”`, !(notu ?? '').startsWith(kalan) && `dokunuş notu “${notu || '-'}”`, (await page.locator('.sheet-wrap').count()) > 0 && 'engelli paket onay sayfası açtı'].filter(Boolean);
           if (yanlis.length) { fail(r, `aylık sınır: ${yanlis.join(', ')}`); console.log(`  ✗ ${name} · magaza-sinir-notu — ${yanlis.join(', ')}`); }
           await page.evaluate(() => scrollTo(0, 0)); await sleep(200); }
+        // Satın alımları geri yükle (Apple 3.1.1): yalnız gerçek mağaza kipinde; köprünün hatası kartta dürüstçe yazılır
+        if (storeOn) {
+          const kart = page.getByTestId('geri-yukle');
+          await kart.scrollIntoViewIfNeeded(); await sleep(200);
+          const r1 = await check('magaza-geri-yukle', { scroll: false });
+          const metin = (await kart.textContent()) ?? '';
+          await page.getByTestId('geri-yukle-dugme').click();
+          const sonuc = await page.getByTestId('geri-yukle-sonuc').waitFor({ timeout: 5000 }).then(() => page.getByTestId('geri-yukle-sonuc').textContent(), () => '');
+          await kart.scrollIntoViewIfNeeded(); await sleep(200);
+          const r2 = await check('magaza-geri-yukle-sonuc', { scroll: false });
+          const yanlis = [!/geri yüklenmez/.test(metin) && 'tüketilebilir paket notu yok', !/ikinci kez verilmez/.test(metin) && 'başka hesap notu yok', !(sonuc ?? '').includes('okunamadı') && `sonuç “${sonuc || '-'}”`].filter(Boolean);
+          if (yanlis.length) { fail(yanlis.length > 2 ? r2 : r1, `geri yükleme: ${yanlis.join(', ')}`); console.log(`  ✗ ${name} · magaza-geri-yukle — ${yanlis.join(', ')}`); }
+          await page.evaluate(() => scrollTo(0, 0)); await sleep(200);
+        }
         // üstte tek kısa cümle; ayrıntı "Neler satılmaz?" açılınca (OT-ilk-kez-oyun-28)
         await page.locator('[data-testid="magaza-ilke"] summary').click(); await sleep(200);
         await check('magaza-ilke-acik', { scroll: false });

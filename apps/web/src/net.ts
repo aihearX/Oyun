@@ -9,7 +9,7 @@ import { create } from 'zustand';
 import { useMemo } from 'react';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { CAMP_CHEERS, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { CAMP_CHEERS, SHOP, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { COSMETICS, SKILL_TREE, CARDS, campLevelCosmetics, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
@@ -22,6 +22,7 @@ import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
 import { createCoinEstimate, createOutbox, reconcileCoins, type OutItem } from './outbox';
+import { createOdemeKuyrugu, type GonderSonuc } from './odeme-kuyrugu';
 import { bekleyenGun, bekleyenNe, ledgerKey, odulDurumu, type DurumKaynak, type GunlukSinir, type Kredi, type OdulDurum } from './odul-durum';
 
 declare const __ODI_E2E__: boolean | undefined;
@@ -337,9 +338,50 @@ export function regionForBiome(targets: string[], biome: string): { id: string; 
 }
 
 // ------------------------------------------------------------------ başlatma
+/**
+ * Bekleyen mağaza ödemeleri (YN-285, odeme-kuyrugu.ts): ödeme alınıp sunucuya işlenemeyen makbuz kalıcı depoda; bağlanınca
+ * (uygulama açılışı dahil) yeniden gönderilir. Sunucu aynı işlemi bir kez işler.
+ */
+export const odemeKuyrugu = createOdemeKuyrugu({
+  storage: { getItem: (k) => store().getItem(k), setItem: (k, v) => store().setItem(k, v) },
+  purchase: (req) => { const c = client; if (!c) return Promise.reject(new NetError('KAPALI', 'Sunucu adresi yok.')); return c.call('shop.purchase', req); },
+  restore: () => { const c = client; if (!c) return Promise.reject(new NetError('KAPALI', 'Sunucu adresi yok.')); return c.call('shop.restore', {}); },
+});
+const urunAdi = (id: string) => SHOP.find((p) => p.id === id)?.name ?? id;
+/** sunucunun işlediği mağaza ürünleri: cüzdan, kozmetik (Dolap), profil */
+export function odemeIslendi(productIds: string[], wallet: OpMap['shop.purchase']['res']['wallet']): void {
+  useNet.setState({ wallet });
+  applyServerItems(productIds.flatMap((id) => (SHOP.find((p) => p.id === id)?.contents ?? []).filter((x) => x.kind === 'kozmetik').map((x) => ({ kind: 'kozmetik' as const, amount: 1, ref: x.ref ?? '' }))));
+  void client?.call('profile.update', {}).catch(() => undefined);
+}
+/** kuyruktan kalıcı ret: ödeme alındı ama bu hesaba verilemiyor; nedeni dürüstçe */
+export function odemeRetMetni(r: Extract<GonderSonuc, { k: 'ret' }>): string {
+  return r.code === 'BASKA_HESAP'
+    ? `${urunAdi(r.item.productId)}: bu mağaza işlemi başka bir oyun hesabına işlenmiş; aynı işlem ikinci hesaba verilmez.`
+    : `${urunAdi(r.item.productId)}: ${r.message}`;
+}
+let odemeBosaltiliyor = false;
+async function bekleyenOdemeler(c: NetClient): Promise<void> {
+  const me = c.me; if (!me || odemeBosaltiliyor) return;
+  odemeBosaltiliyor = true;
+  try {
+    const { sonuclar, tarama } = await odemeKuyrugu.bosalt(me.id);
+    const islenen = sonuclar.filter((r) => r.k === 'islendi');
+    const son = [...sonuclar].reverse().find((r) => r.k === 'islendi' || r.k === 'zaten')?.res;
+    if (son) odemeIslendi(islenen.map((r) => r.item.productId), son.wallet);
+    if (islenen.length) toast('🎉', 'Bekleyen satın alma hesabında', `${islenen.map((r) => urunAdi(r.item.productId)).join(', ')}: ödemesi alınmıştı, şimdi hesabına işlendi.`, 'gold');
+    for (const r of sonuclar) if (r.k === 'ret') toast('🙈', 'Satın alma bu hesaba işlenemedi', odemeRetMetni(r), 'bronze');
+    if (tarama?.restored.length) {
+      odemeIslendi(tarama.restored.map((x) => x.productId), tarama.wallet);
+      toast('🎉', 'Bekleyen satın alma hesabında', `${tarama.restored.map((x) => urunAdi(x.productId)).join(', ')}: mağazada tamamlanan ödeme hesabına işlendi.`, 'gold');
+    }
+  } catch { /* bir sonraki bağlanışta */ } finally { odemeBosaltiliyor = false; }
+}
+
 async function onConnected(c: NetClient): Promise<void> {
   // çevrimdışı ilerlemeyi hesaba taşı (yalnızca açık bölüm ve yıldız; ödül vermez) — kuyruktan önce gitsin diye ilk istek
   const s = useStore.getState(); const me = c.me;
+  void bekleyenOdemeler(c);
   const best = Object.entries(s.progress).filter(([, p]) => p.stars > 0).map(([lvl, p]) => ({ level: Number(lvl), stars: p.stars, score: Math.min(50_000, p.best) }));
   const localTop = best.reduce((a, b) => Math.max(a, b.level), 0);
   if (me && localTop + 1 > me.highest && best.length) void c.call('progress.sync', { best: best.slice(0, 40) }).catch(() => undefined);

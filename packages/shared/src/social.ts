@@ -416,7 +416,18 @@ export interface ShopProduct {
   limit: number;
   /** yalnız ölçülebilir etiket: 'en-iyi-deger' kristal paketleri arasında kristal/TL hesabıyla (magaza.test.ts). Satış verisine dayanmayan sosyal kanıt rozeti yok (OT-ekonomi-denetci-25). */
   tag?: 'en-iyi-deger' | 'baslangic';
+  /**
+   * Mağazadaki ürün türü (App Store Connect'te seçilen; marketing/magaza/iap-urunler.json `tur` ile aynı, denetle.mjs karşılaştırır):
+   * 'consumable' tüketilebilir (Play: tek seferlik ürün, RevenueCat tüketir); 'non-consumable' tüketilmeyen (Play: tek seferlik ürün,
+   * RevenueCat'te Non-consumable işaretli, hiç tüketilmez); 'non-renewing' kendiliğinden yenilenmeyen abonelik (Play'de bu tür yok:
+   * tek seferlik ürün, tüketilebilir). Üçü de RevenueCat'te `non_subscriptions` altında gelir. Tüketilebilir olmayanlar "Satın
+   * alımları geri yükle" kapsamındadır (STORE_RESTORABLE).
+   */
+  storeType: StoreType;
 }
+export type StoreType = 'consumable' | 'non-consumable' | 'non-renewing';
+/** geri yükleme kapsamındaki türler: Apple tüketilmeyen ürün ve yenilenmeyen abonelik için "Satın alımları geri yükle" ister */
+export const isRestorable = (p: Pick<ShopProduct, 'storeType'>): boolean => p.storeType !== 'consumable';
 /**
  * Sezon Kartı (karar 30): satın alınan takvim günü (Türkiye saati) 1. gün olmak üzere PASS_DAYS gün, her güne PASS_DAILY_KRISTAL kristal.
  * Girilmeyen günün kristali yanmaz: birikir, bir sonraki girişte ödül kutusuna toplu düşer. Toplam tam PASS_DAYS × PASS_DAILY_KRISTAL;
@@ -426,13 +437,13 @@ export const PASS_DAYS = 28;
 export const PASS_DAILY_KRISTAL = 30;
 export const PASS_TOTAL_KRISTAL = PASS_DAYS * PASS_DAILY_KRISTAL;
 export const SHOP: ShopProduct[] = [
-  { id: 'odi.baslangic', name: 'Başlangıç Paketi', desc: '300 kristal, 10 adet 5 dk hızlandırıcı, Kâşif Şapkası', priceTry: 49.99, contents: [{ kind: 'kristal', amount: 300 }, { kind: 'm5', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'sapka-kasif' }], teamGift: true, limit: 1, tag: 'baslangic' },
-  { id: 'odi.kristal.1', name: 'Avuç Kristal', desc: '120 kristal', priceTry: 29.99, contents: [{ kind: 'kristal', amount: 120 }], teamGift: false, limit: 0 },
-  { id: 'odi.kristal.2', name: 'Kese Kristal', desc: '650 kristal (+%8)', priceTry: 149.99, contents: [{ kind: 'kristal', amount: 650 }], teamGift: true, limit: 0 },
-  { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, tag: 'en-iyi-deger' },
-  { id: 'odi.hiz.1', name: 'İnşaatçı Paketi', desc: '10 × 60 dk, 20 × 5 dk hızlandırıcı', priceTry: 79.99, contents: [{ kind: 'm60', amount: 10 }, { kind: 'm5', amount: 20 }], teamGift: true, limit: 0 },
-  { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0 },
-  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal, toplam 840 (girmediğin günlerin kristali birikir, girince alırsın) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: PASS_DAYS }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1 },
+  { id: 'odi.baslangic', name: 'Başlangıç Paketi', desc: '300 kristal, 10 adet 5 dk hızlandırıcı, Kâşif Şapkası', priceTry: 49.99, contents: [{ kind: 'kristal', amount: 300 }, { kind: 'm5', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'sapka-kasif' }], teamGift: true, limit: 1, tag: 'baslangic', storeType: 'non-consumable' },
+  { id: 'odi.kristal.1', name: 'Avuç Kristal', desc: '120 kristal', priceTry: 29.99, contents: [{ kind: 'kristal', amount: 120 }], teamGift: false, limit: 0, storeType: 'consumable' },
+  { id: 'odi.kristal.2', name: 'Kese Kristal', desc: '650 kristal (+%8)', priceTry: 149.99, contents: [{ kind: 'kristal', amount: 650 }], teamGift: true, limit: 0, storeType: 'consumable' },
+  { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, tag: 'en-iyi-deger', storeType: 'consumable' },
+  { id: 'odi.hiz.1', name: 'İnşaatçı Paketi', desc: '10 × 60 dk, 20 × 5 dk hızlandırıcı', priceTry: 79.99, contents: [{ kind: 'm60', amount: 10 }, { kind: 'm5', amount: 20 }], teamGift: true, limit: 0, storeType: 'consumable' },
+  { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0, storeType: 'consumable' },
+  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal, toplam 840 (girmediğin günlerin kristali birikir, girince alırsın) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: PASS_DAYS }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1, storeType: 'non-renewing' },
 ];
 /**
  * Mağazanın (App Store / Google Play, RevenueCat `getProducts`) döndürdüğü yerel fiyat: yalnız gösterim içindir.
@@ -544,7 +555,20 @@ export interface OpMap {
   'team.gift.claim': { req: { giftId: string }; res: { extra: TeamExtra; wallet: Wallet } };
   'team.goal.claim': { req: { goalId: string; tier: number }; res: { extra: TeamExtra; wallet: Wallet } };
   'shop.list': { req: Record<string, never>; res: { products: (ShopProduct & { bought: number })[]; spend: SpendState; testStore: boolean; /** sunucu gerçek mağaza makbuzunu doğrulayabilir mi (REVENUECAT_API_KEY tanımlı). false ise istemci mağaza ödemesi başlatmaz: para çekilip ürün verilemeyen durum olmasın. Eski sunucu göndermez (yalnız ekleme) */ realStore?: boolean } };
-  'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
+  /**
+   * Mağaza işlemi (receipt = mağaza işlem kimliği) idempotent işlenir: aynı işlem bu hesaba zaten işlendiyse yeniden verilmez,
+   * `already: true` ile başarı döner (bekleyen ödeme kuyruğu bunu "işlendi" sayar). Başka hesaba işlenmişse BASKA_HESAP.
+   * Doğrulanan gerçek ödeme sınır yüzünden reddedilmez (para alınmıştır): sınırlar ödemeden önce `shop.check` ile denetlenir.
+   */
+  'shop.purchase': { req: { productId: string; store: 'test' | 'app-store' | 'play'; receipt?: string }; res: { wallet: Wallet; spend: SpendState; teamGiftSent: boolean; already?: boolean } };
+  /** mağaza ödemesini başlatmadan hemen önce: ürün sınırı ve aylık harcama sınırı (ihlalde LIMIT / SINIR_SEC / HARCAMA_SINIRI) */
+  'shop.check': { req: { productId: string }; res: { ok: true } };
+  /**
+   * Satın alımları geri yükle (ve ödemesi alınıp hesaba hiç işlenmemiş işlemleri tamamla): sunucu RevenueCat'ten bu oyuncunun
+   * (appUserID = oyuncu kimliği) bütün mağaza işlemlerini okur; hiçbir hesaba işlenmemiş olanları bu hesaba işler. Bu hesaba işlenmiş
+   * olanlar `alreadyHere` (yalnız geri yüklenebilir türler), başka hesaba işlenmiş olanlar `elsewhere` (ikinci kez verilmez).
+   */
+  'shop.restore': { req: Record<string, never>; res: { restored: { productId: string; store: 'app-store' | 'play' }[]; alreadyHere: string[]; elsewhere: string[]; wallet: Wallet; spend: SpendState; teamGiftSent: boolean } };
   /** ilk seçim hemen geçerli; düşürmek hemen; yükseltmek confirmRaise: true ister (yoksa ONAY hatası) ve 24 saat sonra geçerli */
   'shop.limit': { req: { limitTry: number; confirmRaise?: boolean }; res: { spend: SpendState } };
   'me.bonuses': { req: Record<string, never>; res: { coinPct: number; shieldChancePct: number; firstHitIgnorePct: number; warPct: number; raidPct: number } };

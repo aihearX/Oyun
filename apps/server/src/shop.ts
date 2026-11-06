@@ -1,6 +1,7 @@
-import { PURCHASE_GIFT_REF, SHOP, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
+import { PURCHASE_GIFT_REF, SHOP, isRestorable, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type PurchaseRecord, type ShopProduct, type SpendState } from '@odi/shared';
 import { fail, rid, type App, type Grant, type Handlers } from './app';
 import { systemMessage, teamRoom } from './chat';
+import { PURCHASE_RETAIN_YEARS } from './account-veri';
 import { passDaily } from './players';
 import { createGift } from './teamextra';
 import { DAY_MS, dayNumber, dayNumberStart, monthStart, nextMonthStart } from './time';
@@ -25,31 +26,65 @@ export function teamGiftFor(priceTry: number): Grant[] {
   return [{ kind: 'kristal', amount: kristal, ref: '' }, { kind: 'jeton', amount: jeton, ref: PURCHASE_GIFT_REF }];
 }
 
-export type ReceiptResult = { ok: true; transactionId: string } | { ok: false; error: string };
+export type ReceiptResult = { ok: true; transactionId: string; at: number | null } | { ok: false; error: string };
+
+/** RevenueCat v1 `GET /subscribers/<id>` yanıtında bizi ilgilendiren alanlar (store_transaction_id App Store'da sayı gelebilir) */
+type RcTx = { id?: string; store_transaction_id?: string | number; store?: string; purchase_date?: string };
+type RcSubscriber = { non_subscriptions?: Record<string, RcTx[]>; subscriptions?: Record<string, RcTx> };
+type StoreName = 'app-store' | 'play';
+const RC_STORE: Record<string, StoreName> = { app_store: 'app-store', play_store: 'play' };
+
+/** mağaza işleminin sunucudaki tek anahtarı (`purchases.receipt`, UNIQUE): mağaza + mağazanın işlem numarası */
+const txKey = (store: StoreName, t: RcTx, fallback = '') => `${store}:${String(t.store_transaction_id ?? t.id ?? fallback)}`;
+const txAt = (t: RcTx): number | null => { const v = t.purchase_date ? Date.parse(t.purchase_date) : NaN; return Number.isFinite(v) ? v : null; };
 
 /**
- * Gerçek mağaza makbuzu doğrulaması (RevenueCat REST API).
- * REVENUECAT_API_KEY yoksa her zaman reddeder: sahte doğrulama yapılmaz.
- * İstemci RevenueCat'i appUserID = oyuncu kimliği ile yapılandırmalı; receipt = mağaza işlem kimliği.
+ * Bir ürünün RevenueCat'teki işlemleri. Tüketilebilir, tüketilmeyen ürün ve (Apple) yenilenmeyen abonelik RevenueCat'te
+ * `non_subscriptions[<ürün>]` altında gelir (RevenueCat yenilenmeyen aboneliği bitiş tarihi bilmediği için abonelik saymaz).
+ * Güvenlik payı: aynı kimlik bir gün `subscriptions` altında gelirse o kayıt da okunur.
  */
-export async function verifyReceipt(apiKey: string | null, store: 'app-store' | 'play', productId: string, receipt: string | undefined, playerId: string): Promise<ReceiptResult> {
-  if (!apiKey) return { ok: false, error: 'Gerçek mağaza satın alımları bu sunucuda henüz doğrulanamıyor (sunucuda REVENUECAT_API_KEY tanımlı değil).' };
-  if (!receipt) return { ok: false, error: 'Satın alma makbuzu (işlem kimliği) eksik.' };
+function productTxs(sub: RcSubscriber | undefined, productId: string): RcTx[] {
+  const list = [...(sub?.non_subscriptions?.[productId] ?? [])];
+  const s = sub?.subscriptions?.[productId];
+  if (s && (s.store_transaction_id != null || s.id)) list.push(s);
+  return list;
+}
+
+async function fetchSubscriber(apiKey: string, playerId: string): Promise<{ ok: true; sub: RcSubscriber | undefined } | { ok: false; error: string }> {
   try {
     const res = await fetch(`https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(playerId)}`, {
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return { ok: false, error: `Makbuz doğrulama servisi hata verdi (${res.status}).` };
-    const body = await res.json() as { subscriber?: { non_subscriptions?: Record<string, { id?: string; store_transaction_id?: string; store?: string }[]> } };
-    const list = body.subscriber?.non_subscriptions?.[productId] ?? [];
-    const wantStore = store === 'app-store' ? 'app_store' : 'play_store';
-    const hit = list.find((t) => (t.store_transaction_id === receipt || t.id === receipt) && (!t.store || t.store === wantStore));
-    if (!hit) return { ok: false, error: 'Makbuz doğrulanamadı: bu ürün için eşleşen bir işlem bulunamadı.' };
-    return { ok: true, transactionId: `${store}:${hit.store_transaction_id ?? hit.id ?? receipt}` };
+    return { ok: true, sub: (await res.json() as { subscriber?: RcSubscriber }).subscriber };
   } catch {
     return { ok: false, error: 'Makbuz doğrulama servisine ulaşılamadı; lütfen daha sonra tekrar dene.' };
   }
+}
+
+const NO_KEY = 'Gerçek mağaza satın alımları bu sunucuda henüz doğrulanamıyor (sunucuda REVENUECAT_API_KEY tanımlı değil).';
+
+/**
+ * Gerçek mağaza makbuzu doğrulaması (RevenueCat REST API).
+ * REVENUECAT_API_KEY yoksa her zaman reddeder: sahte doğrulama yapılmaz.
+ * İstemci RevenueCat'i appUserID = oyuncu kimliği ile yapılandırmalı; receipt = mağaza işlem kimliği.
+ */
+export async function verifyReceipt(apiKey: string | null, store: StoreName, productId: string, receipt: string | undefined, playerId: string): Promise<ReceiptResult> {
+  if (!apiKey) return { ok: false, error: NO_KEY };
+  if (!receipt) return { ok: false, error: 'Satın alma makbuzu (işlem kimliği) eksik.' };
+  const r = await fetchSubscriber(apiKey, playerId);
+  if (!r.ok) return r;
+  const wantStore = store === 'app-store' ? 'app_store' : 'play_store';
+  const hit = productTxs(r.sub, productId).find((t) => (String(t.store_transaction_id) === receipt || t.id === receipt) && (!t.store || t.store === wantStore));
+  if (!hit) return { ok: false, error: 'Makbuz doğrulanamadı: bu ürün için eşleşen bir işlem bulunamadı.' };
+  return { ok: true, transactionId: txKey(store, hit, receipt), at: txAt(hit) };
+}
+
+/** satın alma kayıtlarının saklama sınırı (prunePurchases ile aynı): bundan eski işlem geri yüklemede yeniden işlenmez */
+function purchaseCutoff(app: App): number {
+  const y = Number(new Date(app.now() + 3 * 3_600_000).toISOString().slice(0, 4));
+  return Date.UTC(y - PURCHASE_RETAIN_YEARS, 0, 1) - 3 * 3_600_000;
 }
 
 function effectiveLimit(app: App, pid: string): number {
@@ -103,6 +138,31 @@ function deliver(app: App, pid: string, prod: ShopProduct): void {
   }
 }
 
+/** satın almayı kaydet, içeriği ver, takım hediyesini gönder (app.run içinde çağrılır); takım hediyesi gitti mi */
+function recordAndDeliver(app: App, pid: string, prod: ShopProduct, store: 'test' | StoreName, txId: string | null, at: number): boolean {
+  app.db.run('INSERT INTO purchases(id, player_id, product_id, at, store, amount_try, receipt) VALUES(?, ?, ?, ?, ?, ?, ?)', rid('s'), pid, prod.id, at, store, prod.priceTry, txId);
+  deliver(app, pid, prod);
+  const p = app.player(pid);
+  if (!prod.teamGift || !p.team_id) return false;
+  const others = app.teamMemberIds(p.team_id).filter((id) => id !== p.id);
+  if (!others.length) return false;
+  // adsız (karar 39): alıcının kimliği yalnız sunucuda (hesap verisi için), ad hiçbir yerde yazılmaz
+  createGift(app, p.team_id, { id: p.id, name: TEAM_GIFT_ANON.fromName }, TEAM_GIFT_ANON.reason(prod.name), teamGiftFor(prod.priceTry), others);
+  systemMessage(app, teamRoom(p.team_id), TEAM_GIFT_ANON.chat, 'system', { product: prod.id });
+  return true;
+}
+
+/** mağaza işlemi kime işlendi: null (hiçbir hesaba), oyuncu kimliği ya da silinen hesapta "silinmis" */
+const processedFor = (app: App, txId: string) => app.db.get<{ player_id: string }>('SELECT player_id FROM purchases WHERE receipt = ?', txId)?.player_id ?? null;
+
+const BASKA_HESAP = 'Bu mağaza işlemi başka bir oyun hesabına işlenmiş; aynı işlem ikinci bir hesaba verilmez.';
+/** doğrulanan işlemin zamanı: mağazadaki satın alma anı (gelecekte ya da okunamazsa şimdi); aylık harcama ve geçmiş bu zamanla */
+const paidAt = (app: App, at: number | null) => (at != null && at <= app.now() ? at : app.now());
+
+/** geri yüklemede oyuncu başına en kısa aralık (RevenueCat isteği; düğmeye art arda basılınca) */
+export const RESTORE_MIN_INTERVAL_MS = 10_000;
+const lastRestore = new Map<string, number>();
+
 export const shopHandlers: Handlers = {
   'shop.list': (app, s) => ({
     products: SHOP.map((p) => ({ ...p, contents: p.contents.map((c) => ({ ...c })), ...(p.teamGift ? { teamGiftContents: teamGiftFor(p.priceTry) } : {}), bought: boughtCount(app, s.pid, p.id) })),
@@ -110,35 +170,80 @@ export const shopHandlers: Handlers = {
     testStore: app.cfg.testStore,
     realStore: !!app.cfg.revenueCatKey,
   }),
+  // ödeme başlamadan önce: ürün sınırı ve aylık sınır (ödeme alındıktan sonra sınır yüzünden reddetmek parayı ürünsüz bırakırdı)
+  'shop.check': (app, s, { productId }) => {
+    const prod = SHOP.find((p) => p.id === productId);
+    if (!prod) return fail('YOK', 'Ürün bulunamadı.');
+    checkLimits(app, s.pid, prod);
+    return { ok: true as const };
+  },
   'shop.purchase': async (app, s, { productId, store, receipt }) => {
     const prod = SHOP.find((p) => p.id === productId);
     if (!prod) return fail('YOK', 'Ürün bulunamadı.');
-    let txId: string | null = null;
     if (store === 'test') {
       if (!app.cfg.testStore) fail('TEST_KAPALI', 'Test mağazası bu sunucuda kapalı.');
-    } else {
-      app.run(() => checkLimits(app, s.pid, prod)); // ödeme başlamadan önce de istemci shop.list ile kontrol etmeli
-      const v = await verifyReceipt(app.cfg.revenueCatKey, store, productId, receipt, s.pid);
-      if (!v.ok) return fail('MAKBUZ', v.error);
-      txId = v.transactionId;
+      return app.run(() => {
+        checkLimits(app, s.pid, prod);
+        const teamGiftSent = recordAndDeliver(app, s.pid, prod, 'test', null, app.now());
+        return { wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent };
+      });
     }
+    // Gerçek mağaza: para alınmıştır. Aynı işlem idempotent (bekleyen ödeme kuyruğu ve geri yükleme yeniden gönderir): bu hesaba
+    // işlendiyse yeniden verilmez ama başarı döner (`already`); başka hesaba işlendiyse ikinci hesaba verilmez (BASKA_HESAP).
+    const already = () => ({ wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent: false, already: true });
+    if (receipt) {
+      const row = app.db.get<{ player_id: string; product_id: string }>('SELECT player_id, product_id FROM purchases WHERE receipt = ?', `${store}:${receipt}`);
+      if (row && row.player_id !== s.pid) return fail('BASKA_HESAP', BASKA_HESAP);
+      if (row && row.product_id !== prod.id) return fail('MAKBUZ', 'Makbuz doğrulanamadı: bu işlem başka bir ürüne ait.');
+      if (row) return app.run(already);
+    }
+    const v = await verifyReceipt(app.cfg.revenueCatKey, store, productId, receipt, s.pid);
+    if (!v.ok) return fail('MAKBUZ', v.error);
     return app.run(() => {
-      if (txId && app.db.get('SELECT 1 AS x FROM purchases WHERE receipt = ?', txId)) fail('TEKRAR', 'Bu makbuz zaten kullanıldı.');
-      checkLimits(app, s.pid, prod);
-      app.db.run('INSERT INTO purchases(id, player_id, product_id, at, store, amount_try, receipt) VALUES(?, ?, ?, ?, ?, ?, ?)', rid('s'), s.pid, prod.id, app.now(), store, prod.priceTry, txId);
-      deliver(app, s.pid, prod);
+      const owner = processedFor(app, v.transactionId);
+      if (owner === s.pid) return already();
+      if (owner) fail('BASKA_HESAP', BASKA_HESAP);
+      // doğrulanmış ödeme: ürün ve aylık sınır ödemeden önce (shop.check) denetlendi; burada reddedilmez
+      const teamGiftSent = recordAndDeliver(app, s.pid, prod, store, v.transactionId, paidAt(app, v.at));
+      return { wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent };
+    });
+  },
+  /**
+   * Satın alımları geri yükle (Apple 3.1.1: tüketilmeyen ürün ve yenilenmeyen abonelik) ve ödemesi alınıp hiç işlenmemiş işlemleri
+   * tamamla (YN-285: istemcinin kuyruğu kaybolsa da). RevenueCat'te bu oyuncunun (appUserID) bütün mağaza işlemleri okunur:
+   * - hiçbir hesaba işlenmemiş → bu hesaba işlenir (içerik ve takım hediyesi; sınırlar ödemeden önce denetlenmişti);
+   * - bu hesaba işlenmiş → yeniden verilmez (tüketilebilir paketler harcanmıştır; kalıcı içerik zaten hesapta);
+   * - başka hesaba (ya da silinen hesaba) işlenmiş → verilmez. RevenueCat geri yüklemede işlemi yeni appUserID'ye taşısa da
+   *   (Transfer davranışı) sahiplik sunucudaki `purchases.receipt` kaydıdır.
+   */
+  'shop.restore': async (app, s) => {
+    if (!app.cfg.revenueCatKey) return fail('MAKBUZ', NO_KEY);
+    const now = app.now();
+    const last = lastRestore.get(s.pid);
+    if (last != null && now - last < RESTORE_MIN_INTERVAL_MS && now >= last) return fail('HIZ', 'Geri yükleme az önce denendi; birkaç saniye sonra yeniden dene.');
+    lastRestore.set(s.pid, now);
+    if (lastRestore.size > 5000) for (const [k, t] of lastRestore) if (now - t > RESTORE_MIN_INTERVAL_MS) lastRestore.delete(k);
+    const r = await fetchSubscriber(app.cfg.revenueCatKey, s.pid);
+    if (!r.ok) return fail('MAKBUZ', r.error);
+    return app.run(() => {
+      const restored: { productId: string; store: StoreName }[] = []; const here = new Set<string>(); const elsewhere = new Set<string>();
       let teamGiftSent = false;
-      const p = app.player(s.pid);
-      if (prod.teamGift && p.team_id) {
-        const others = app.teamMemberIds(p.team_id).filter((id) => id !== p.id);
-        if (others.length) {
-          // adsız (karar 39): alıcının kimliği yalnız sunucuda (hesap verisi için), ad hiçbir yerde yazılmaz
-          createGift(app, p.team_id, { id: p.id, name: TEAM_GIFT_ANON.fromName }, TEAM_GIFT_ANON.reason(prod.name), teamGiftFor(prod.priceTry), others);
-          systemMessage(app, teamRoom(p.team_id), TEAM_GIFT_ANON.chat, 'system', { product: prod.id });
-          teamGiftSent = true;
+      const cutoff = purchaseCutoff(app);
+      for (const prod of SHOP) {
+        for (const t of productTxs(r.sub, prod.id)) {
+          const store = t.store ? RC_STORE[t.store] : undefined;
+          if (!store || (t.store_transaction_id == null && !t.id)) continue; // promosyon / başka mağaza: bizim satışımız değil
+          const at = txAt(t);
+          if (at != null && at < cutoff) continue; // saklama süresi geçmiş (kaydı silinmiş) eski işlem yeniden işlenmez
+          const key = txKey(store, t);
+          const owner = processedFor(app, key);
+          if (owner === s.pid) { if (isRestorable(prod)) here.add(prod.id); continue; }
+          if (owner) { elsewhere.add(prod.id); continue; }
+          if (recordAndDeliver(app, s.pid, prod, store, key, paidAt(app, at))) teamGiftSent = true;
+          restored.push({ productId: prod.id, store });
         }
       }
-      return { wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent };
+      return { restored, alreadyHere: [...here].filter((id) => !restored.some((x) => x.productId === id)), elsewhere: [...elsewhere], wallet: app.walletChanged(s.pid), spend: spendState(app, s.pid), teamGiftSent };
     });
   },
   'shop.limit': (app, s, { limitTry, confirmRaise }) => {

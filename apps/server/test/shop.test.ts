@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NetError } from '@odi/net';
-import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, inboxGroups } from '@odi/shared';
-import { teamGiftFor } from '../src/shop';
+import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, inboxGroups, isRestorable } from '@odi/shared';
+import { RESTORE_MIN_INTERVAL_MS, teamGiftFor } from '../src/shop';
 import { setup, type Env, type TC } from './helpers';
 
 let env: Env;
-afterEach(async () => { await env?.close(); });
+afterEach(async () => { await env?.close(); env = undefined as unknown as Env; });
 const err = async (p: Promise<unknown>): Promise<NetError> => { try { await p; } catch (e) { return e as NetError; } throw new Error('hata bekleniyordu'); };
 /** ilk satın almadan önce aylık sınır seçimi (karar 28) */
 const sinirSec = (c: TC, limitTry = 1000) => c.call('shop.limit', { limitTry });
@@ -236,5 +236,174 @@ describe('mağaza', () => {
     env.clock.advance(DAY);
     c = await yenidenGir(c);
     expect(await passAl(c)).toBe(0);
+  });
+});
+
+/**
+ * Gerçek mağaza (RevenueCat v1 REST sahte yanıtla; ağ yok): ürün türleri, idempotent işleme, yeniden deneme, geri yükleme,
+ * aynı işlemin iki hesaba verilmemesi.
+ */
+describe('mağaza: gerçek ödeme, geri yükleme (YN-285, Apple 3.1.1)', () => {
+  type Tx = { id?: string; store_transaction_id?: string | number; store?: string; purchase_date?: string };
+  /** RevenueCat'teki müşteri kayıtları: appUserID (oyuncu kimliği) → ürün → işlemler */
+  let rc: Map<string, Record<string, Tx[]>>;
+  let rcDown = false; let rcCalls = 0;
+  const realFetch = globalThis.fetch;
+  beforeEach(() => {
+    rc = new Map(); rcDown = false; rcCalls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (!url.startsWith('https://api.revenuecat.com/')) return realFetch(input, init);
+      rcCalls++;
+      expect(new Headers(init?.headers).get('authorization')).toBe('Bearer sk_test_ornek');
+      if (rcDown) return new Response('bakımda', { status: 503 });
+      const pid = decodeURIComponent(url.split('/subscribers/')[1]!);
+      return Response.json({ subscriber: { non_subscriptions: rc.get(pid) ?? {}, subscriptions: {} } });
+    });
+  });
+  afterEach(() => { vi.restoreAllMocks(); });
+  const T0 = Date.UTC(2026, 9, 14, 9, 0, 0);
+  const iso = (t: number) => new Date(t).toISOString();
+  const odedi = (pid: string, productId: string, tx: Tx) => {
+    const m = rc.get(pid) ?? {}; (m[productId] ??= []).push({ store: 'app_store', purchase_date: iso(T0), ...tx }); rc.set(pid, m);
+  };
+  const gercek = () => setup({ testStore: false, revenueCatKey: 'sk_test_ornek' });
+  const kristal = async (c: TC) => (await c.call('wallet.get', {})).wallet.kristal;
+
+  it('ürün türleri: Başlangıç Paketi tüketilmeyen, Sezon Kartı yenilenmeyen abonelik, öteki beşi tüketilebilir', () => {
+    const tur = Object.fromEntries(SHOP.map((p) => [p.id, p.storeType]));
+    expect(tur).toEqual({ 'odi.baslangic': 'non-consumable', 'odi.kristal.1': 'consumable', 'odi.kristal.2': 'consumable', 'odi.kristal.3': 'consumable', 'odi.hiz.1': 'consumable', 'odi.hiz.2': 'consumable', 'odi.pass': 'non-renewing' });
+    expect(SHOP.filter(isRestorable).map((p) => p.id)).toEqual(['odi.baslangic', 'odi.pass']);
+    // kalıcı ürünler hesap başına bir kez (ikinci alımda "Alındı")
+    for (const p of SHOP.filter(isRestorable)) expect(p.limit).toBe(1);
+  });
+
+  it('aynı işlem bir kez işlenir: ikinci gönderim "zaten işlendi" başarısıdır, ikinci hesaba verilmez (BASKA_HESAP)', async () => {
+    env = await gercek();
+    const a = await env.connect('Ayşe'); const b = await env.connect('Bora');
+    await sinirSec(a); await sinirSec(b);
+    // App Store işlem numarası JSON'da sayı gelebilir; istemcinin dizgesiyle eşleşir
+    odedi(a.me!.id, 'odi.kristal.1', { store_transaction_id: 2000000001 });
+    const r1 = await a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'app-store', receipt: '2000000001' });
+    expect(r1.already).toBeUndefined();
+    expect(r1.wallet.kristal).toBe(120);
+    expect(r1.spend.purchases[0]).toMatchObject({ productId: 'odi.kristal.1', store: 'app-store', amountTry: 29.99, at: T0 });
+    const once = rcCalls;
+    const r2 = await a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'app-store', receipt: '2000000001' });
+    expect(r2).toMatchObject({ already: true, teamGiftSent: false });
+    expect(r2.wallet.kristal).toBe(120);
+    expect(rcCalls).toBe(once); // işlenmiş makbuz RevenueCat'e sorulmadan yanıtlanır
+    expect((await a.call('shop.list', {})).spend.purchases).toHaveLength(1);
+    // RevenueCat işlemi başka appUserID'ye taşısa (Transfer) da sahiplik sunucudaki kayıttır
+    odedi(b.me!.id, 'odi.kristal.1', { store_transaction_id: 2000000001 });
+    expect((await err(b.call('shop.purchase', { productId: 'odi.kristal.1', store: 'app-store', receipt: '2000000001' }))).code).toBe('BASKA_HESAP');
+    expect(await kristal(b)).toBe(0);
+    // başka ürünün makbuzu bu ürün diye gönderilemez; başka mağazanın işlemi eşleşmez
+    expect((await err(a.call('shop.purchase', { productId: 'odi.kristal.3', store: 'app-store', receipt: '2000000001' }))).code).toBe('MAKBUZ');
+    expect(await kristal(a)).toBe(120);
+    odedi(a.me!.id, 'odi.kristal.2', { store_transaction_id: 'GPA.1', store: 'play_store' });
+    expect((await err(a.call('shop.purchase', { productId: 'odi.kristal.2', store: 'app-store', receipt: 'GPA.1' }))).code).toBe('MAKBUZ');
+    expect((await a.call('shop.purchase', { productId: 'odi.kristal.2', store: 'play', receipt: 'GPA.1' })).wallet.kristal).toBe(120 + 650);
+  });
+
+  it('yeniden deneme: RevenueCat düşükken MAKBUZ (kayıt yazılmaz), sonra aynı makbuz bir kez işlenir; ödenmiş ürün sınır yüzünden reddedilmez', async () => {
+    env = await gercek();
+    const a = await env.connect('Ayşe');
+    await sinirSec(a, 100);
+    // sınırlar ödemeden önce: shop.check
+    await a.call('shop.check', { productId: 'odi.kristal.2' }).then(() => { throw new Error('sınır aşılmalıydı'); }, (e: NetError) => expect(e.code).toBe('HARCAMA_SINIRI'));
+    expect(await a.call('shop.check', { productId: 'odi.pass' })).toEqual({ ok: true });
+    odedi(a.me!.id, 'odi.pass', { store_transaction_id: '3000000001' });
+    rcDown = true;
+    expect((await err(a.call('shop.purchase', { productId: 'odi.pass', store: 'app-store', receipt: '3000000001' }))).code).toBe('MAKBUZ');
+    expect((await a.call('shop.list', {})).spend.purchases).toHaveLength(0);
+    // bağlantı dönmeden önce oyuncu sınırı düşürdü: ödeme alınmış, yine işlenir
+    await a.call('shop.limit', { limitTry: 0 });
+    rcDown = false;
+    const r = await a.call('shop.purchase', { productId: 'odi.pass', store: 'app-store', receipt: '3000000001' });
+    expect(r.already).toBeUndefined();
+    expect((await a.call('inbox.list', {})).items.filter((x) => x.ref === 'odi.pass')).toHaveLength(1);
+    expect(JSON.parse(env.srv.app.player(a.me!.id).cosmetics)).toContain('kostum-altin');
+    // yanıtı kaybolan istek yeniden gelir: ikinci kez verilmez, gün sayısı uzamaz
+    expect((await a.call('shop.purchase', { productId: 'odi.pass', store: 'app-store', receipt: '3000000001' })).already).toBe(true);
+    expect(env.srv.app.player(a.me!.id).pass_days).toBe(PASS_DAYS);
+    // ödemeden önce: kalıcı ürün ikinci kez satılmaz (düğme "Alındı")
+    expect((await err(a.call('shop.check', { productId: 'odi.pass' }))).code).toBe('LIMIT');
+    expect((await a.call('shop.list', {})).products.find((p) => p.id === 'odi.pass')!.bought).toBe(1);
+  });
+
+  it('geri yükleme: işlenmemiş işlemler bir kez işlenir; kalıcı ürünler "zaten bu hesapta"; tüketilebilir yeniden verilmez', async () => {
+    env = await gercek();
+    const a = await env.connect('Ayşe');
+    await sinirSec(a, 500);
+    const pid = a.me!.id;
+    odedi(pid, 'odi.baslangic', { store_transaction_id: '4000000001' });
+    await a.call('shop.purchase', { productId: 'odi.baslangic', store: 'app-store', receipt: '4000000001' });
+    expect(await kristal(a)).toBe(300);
+    // ödemesi alınmış, hiç işlenmemiş iki işlem (istemci kuyruğu kayboldu): Sezon Kartı ve bir kristal paketi
+    odedi(pid, 'odi.pass', { store_transaction_id: '4000000002', purchase_date: iso(T0 - 3_600_000) });
+    odedi(pid, 'odi.kristal.2', { store_transaction_id: '4000000003' });
+    // bizim satışımız olmayanlar atlanır: promosyon, saklama süresi geçmiş eski işlem
+    odedi(pid, 'odi.kristal.3', { id: 'promo1', store: 'promotional' });
+    odedi(pid, 'odi.kristal.1', { store_transaction_id: '1000', purchase_date: '2014-01-01T00:00:00Z' });
+    const r1 = await a.call('shop.restore', {});
+    expect(r1.restored.map((x) => x.productId).sort()).toEqual(['odi.kristal.2', 'odi.pass']);
+    expect(r1.restored.every((x) => x.store === 'app-store')).toBe(true);
+    expect(r1.alreadyHere).toEqual(['odi.baslangic']);
+    expect(r1.elsewhere).toEqual([]);
+    expect(r1.wallet.kristal).toBe(300 + 650);
+    expect((await a.call('inbox.list', {})).items.filter((x) => x.ref === 'odi.pass')).toHaveLength(1);
+    // satın alma zamanı mağazadaki an (geçmiş ve aylık sayaç)
+    expect(r1.spend.purchases.find((x) => x.productId === 'odi.pass')!.at).toBe(T0 - 3_600_000);
+    // art arda basma: RevenueCat'e gitmeden HIZ
+    const calls = rcCalls;
+    expect((await err(a.call('shop.restore', {}))).code).toBe('HIZ');
+    expect(rcCalls).toBe(calls);
+    env.clock.advance(RESTORE_MIN_INTERVAL_MS);
+    const r2 = await a.call('shop.restore', {});
+    expect(r2.restored).toEqual([]);
+    // yalnız geri yüklenebilir türler "zaten bu hesapta" listesinde; kristal paketi değil
+    expect(r2.alreadyHere.sort()).toEqual(['odi.baslangic', 'odi.pass']);
+    expect(r2.wallet.kristal).toBe(300 + 650);
+    expect((await a.call('shop.list', {})).spend.purchases).toHaveLength(3);
+  });
+
+  it('geri yükleme başka hesaba vermez: RevenueCat işlemi yeni oyuncuya taşısa da (Transfer) ve hesap silinse de', async () => {
+    env = await gercek();
+    const a = await env.connect('Ayşe');
+    await sinirSec(a, 500);
+    odedi(a.me!.id, 'odi.baslangic', { store_transaction_id: '5000000001' });
+    odedi(a.me!.id, 'odi.kristal.1', { store_transaction_id: '5000000002' });
+    await a.call('shop.purchase', { productId: 'odi.baslangic', store: 'app-store', receipt: '5000000001' });
+    await a.call('shop.purchase', { productId: 'odi.kristal.1', store: 'app-store', receipt: '5000000002' });
+    // aynı mağaza hesabı, yeni oyun hesabı (uygulama silinip kuruldu): geri yükleme işlemleri yeni appUserID'ye taşır
+    const b = await env.connect('Bora');
+    rc.set(b.me!.id, rc.get(a.me!.id)!); rc.delete(a.me!.id);
+    const r = await b.call('shop.restore', {});
+    expect(r.restored).toEqual([]);
+    expect(r.elsewhere.sort()).toEqual(['odi.baslangic', 'odi.kristal.1']);
+    expect(r.wallet.kristal).toBe(0);
+    expect(JSON.parse(env.srv.app.player(b.me!.id).cosmetics)).not.toContain('sapka-kasif');
+    expect((await b.call('shop.list', {})).products.find((p) => p.id === 'odi.baslangic')!.bought).toBe(0);
+    // ilk hesap silinir: kayıt 10 yıl "silinmis" olarak kalır, işlem yine kimseye ikinci kez verilmez
+    await a.call('account.delete', {});
+    env.clock.advance(RESTORE_MIN_INTERVAL_MS);
+    expect((await b.call('shop.restore', {})).elsewhere.sort()).toEqual(['odi.baslangic', 'odi.kristal.1']);
+    expect((await err(b.call('shop.purchase', { productId: 'odi.baslangic', store: 'app-store', receipt: '5000000001' }))).code).toBe('BASKA_HESAP');
+  });
+
+  it('geri yükleme anahtarsız sunucuda MAKBUZ; RevenueCat düşükken MAKBUZ ve hiçbir şey yazılmaz', async () => {
+    env = await setup({ testStore: false, revenueCatKey: null });
+    const a = await env.connect('Ayşe');
+    expect((await err(a.call('shop.restore', {}))).code).toBe('MAKBUZ');
+    await env.close();
+    env = await gercek();
+    const b = await env.connect('Bora');
+    odedi(b.me!.id, 'odi.kristal.1', { store_transaction_id: '6000000001' });
+    rcDown = true;
+    expect((await err(b.call('shop.restore', {}))).code).toBe('MAKBUZ');
+    expect(await kristal(b)).toBe(0);
+    rcDown = false; env.clock.advance(RESTORE_MIN_INTERVAL_MS);
+    expect((await b.call('shop.restore', {})).restored).toEqual([{ productId: 'odi.kristal.1', store: 'app-store' }]);
   });
 });

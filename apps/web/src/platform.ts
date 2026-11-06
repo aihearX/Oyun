@@ -6,6 +6,15 @@
 import type { StorePrice } from '@odi/shared';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from './ftue/voicePick';
 
+/**
+ * Mağaza satın alma sonucu (telefon kabuğu, apps/mobile/src/purchases.ts). Hata türleri dürüst bildirim içindir:
+ * `cancelled` oyuncu vazgeçti; `pending` ödeme onay bekliyor (Ask to Buy, Play'de bekleyen ödeme); `uncertain` mağaza ödemeyi almış
+ * olabilir ama işlem tamamlanamadı (RevenueCat SDK'sı bitmemiş işlemi tutar, uygulama açılınca iletir); `alreadyOwned` tüketilmeyen
+ * ürün bu mağaza hesabında zaten var. Hiçbiri yoksa ödeme alınmadı.
+ */
+export type StorePurchaseResult = { ok: true; store: 'app-store' | 'play'; receipt: string }
+  | { ok: false; error: string; cancelled?: boolean; pending?: boolean; uncertain?: boolean; alreadyOwned?: boolean };
+export type StoreRestoreResult = { ok: true; store: 'app-store' | 'play' } | { ok: false; error: string };
 export interface SpeakOpts { rate?: number; pitch?: number; /** yalnız erkek tr-TR ses varsa oku (Tüy Dede kadın sesle konuşmaz) */ maleOnly?: boolean }
 export type HapticKind = 'light' | 'medium' | 'heavy' | 'success' | 'error';
 export interface Platform {
@@ -38,7 +47,12 @@ export interface Platform {
   clearAll?: () => Promise<void>;
   /** arayüzü baştan kur (mobil: WebView yeniden oluşturulur); yoksa sayfa yenilenir */
   restartApp?: () => void;
-  purchase?: (productId: string, playerId: string) => Promise<{ ok: true; store: 'app-store' | 'play'; receipt: string } | { ok: false; error: string; cancelled?: boolean }>;
+  purchase?: (productId: string, playerId: string) => Promise<StorePurchaseResult>;
+  /**
+   * Satın alımları geri yükle (yalnız mağaza derlemesinde, `purchase` ile birlikte): RevenueCat `restorePurchases` mağaza hesabındaki
+   * işlemleri RevenueCat'e iletir; ardından arayüz sunucuya `shop.restore` der, sunucu bu hesaba işlenmemiş olanları işler.
+   */
+  restorePurchases?: (playerId: string) => Promise<StoreRestoreResult>;
   /**
    * Mağazanın yerel fiyatları (yalnız mağaza derlemesinde, `purchase` ile birlikte): RevenueCat `getProducts` → ürün başına
    * `priceString` (mağazanın biçimi, vergi ve kur dahil). Tarayıcıda ve Expo Go'da tanımsız → arayüz TL liste fiyatını gösterir.

@@ -86,7 +86,7 @@ export default function Home() {
           voiceData={voiceData}
           clearAll={clearAll}
           restartApp={async () => setGen((g) => g + 1)}
-          {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices } : {})}
+          {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices, restorePurchases: nativeStore.restore } : {})}
           canPurchase={!!nativeStore}
           serverUrl={serverUrl()}
           {...(appInfo ? { appInfo } : {})}

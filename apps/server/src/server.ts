@@ -60,7 +60,7 @@ const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEvent
   ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers,
 }))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
-const ASYNC_OPS = new Set<Op>(['shop.purchase']);
+const ASYNC_OPS = new Set<Op>(['shop.purchase', 'shop.restore']);
 
 for (const op of Object.keys(SCHEMAS) as Op[]) if (!HANDLERS[op]) throw new Error(`İşleyici eksik: ${op}`);
 

@@ -107,7 +107,7 @@ App Store Connect › sürüm sayfası › **App Review Information**:
 - **Ek (isteğe bağlı):** mağaza ve satın alma penceresinin ekran görüntüleri `magaza-ekranlar/iap-inceleme/` (vitrin aracı) ya da
   TestFlight'ta sandbox satın alma ekran kaydı.
 
-Yapıştırılacak metin (EN, ~3.200 karakter; App Store Connect notes alanı 4.000 karakter):
+Yapıştırılacak metin (EN, ~3.400 karakter; App Store Connect notes alanı 4.000 karakter):
 
 > **No account or login is needed.** On first launch the game creates an anonymous account (random ID stored on the device; an
 > optional nickname). No name, e-mail, phone, location or contacts are asked for. The game UI is in Turkish.
@@ -118,9 +118,13 @@ Yapıştırılacak metin (EN, ~3.200 karakter; App Store Connect notes alanı 4.
 > free-text chat after 8. Levels work offline; teams, chat, live races, events and purchases use our game server, which stays online
 > during review.
 >
-> **In-app purchases** (7 products, all consumable): crystal packs, two camp booster packs, a one-time Starter Pack and the Odi Season
-> Card (30 crystals for each of 28 days plus a costume; one-time purchase, it does not auto-renew). Contents are fixed and listed
-> before purchase; there are no loot boxes or random paid items. Crystals only speed up camp construction; levels, team points and
+> **In-app purchases** (7 products): five consumables (crystal packs, two camp booster packs), the **Starter Pack (non-consumable,
+> once per game account)** and the **Odi Season Card (non-renewing subscription**: 30 crystals for each of 28 days plus a costume;
+> it does not auto-renew). Contents are fixed and listed before purchase; there are no loot boxes or random paid items. Purchases
+> belong to the game account and are kept on our server; **"Satın alımları geri yükle" (Restore Purchases)** at the bottom of the
+> shop restores them, and also delivers any paid purchase that could not reach our server. Crystal and booster packs are consumed
+> and are not restored.
+> Crystals only speed up camp construction; levels, team points and
 > league points cannot be bought. Purchases go through StoreKit via RevenueCat and are verified on our server. **Before the first
 > purchase the player must choose a monthly spending limit** (100 TRY suggested, 50/250/500 TRY, or "purchases off"). To test: clear
 > 6 levels → Profil › Mağaza → tap a price → choose a limit → "Sınırı kaydet" → tap "Mağazada satın al" → the App Store sheet opens
@@ -152,9 +156,12 @@ Türkçesi (sahip için):
 > serbest yazı 8. Bölümler internetsiz oynanır; takım, sohbet, canlı yarış, etkinlikler ve satın alma oyun sunucumuzu kullanır,
 > sunucu inceleme boyunca açık kalır.
 >
-> **Uygulama içi satın alma** (7 ürün, hepsi tüketilebilir): kristal paketleri, iki hızlandırıcı paketi, bir kezlik Başlangıç Paketi
-> ve Odi Sezon Kartı (28 günün her birine 30 kristal + kostüm; tek seferlik, kendiliğinden yenilenmez). İçerik sabit ve satın almadan
-> önce yazılı; ganimet kutusu yok. Kristal yalnız kamp inşaatını hızlandırır; bölüm, takım ya da lig puanı satılmaz. Satın alma
+> **Uygulama içi satın alma** (7 ürün): beş tüketilebilir (kristal paketleri, iki hızlandırıcı paketi), **Başlangıç Paketi
+> (tüketilmeyen, oyun hesabı başına bir kez)** ve **Odi Sezon Kartı (otomatik yenilenmeyen abonelik**: 28 günün her birine 30 kristal
+> + kostüm; kendiliğinden yenilenmez). İçerik sabit ve satın almadan önce yazılı; ganimet kutusu yok. Satın almalar oyun hesabına
+> bağlı ve sunucumuzda tutulur; mağazanın altındaki **"Satın alımları geri yükle"** bunları geri yükler, sunucumuza ulaşamamış ödenmiş
+> satın almayı da işler. Kristal ve hızlandırıcı paketleri harcanır, geri yüklenmez.
+> Kristal yalnız kamp inşaatını hızlandırır; bölüm, takım ya da lig puanı satılmaz. Satın alma
 > RevenueCat üzerinden StoreKit ile yapılır, sunucumuzda doğrulanır. **İlk satın almadan önce oyuncu aylık harcama sınırı seçer**
 > (önerilen 100 TL; 50/250/500 TL ya da "satın alma kapalı"). Deneme: 6 bölüm geç → Profil › Mağaza → bir fiyata dokun → sınırı seç →
 > "Sınırı kaydet" → "Mağazada satın al" → App Store penceresi (sandbox). Düşürmek hemen; yükseltmek ikinci onayla ve 24 saat sonra.
