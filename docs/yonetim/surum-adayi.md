@@ -1,3 +1,137 @@
+# 1.0.0 mağaza adayı: tam kabul koşusu (2026-11-06)
+
+**Sonuç: yeşil.** Tam kabul `78f7796` üzerinde koştu: 25 takımdan 23'ü ilk denemede geçti. `social` ve `ui-mobile` gerçek
+hata verdi; kök nedenleri bulundu ve düzeltildi. Son ağaçta (`5158d04`) hızlı takımlar ve `social` yeniden geçti, `ui-mobile`
+ikinci kez tam koştu, düşen iki yapılandırma düzeltmeden sonra tek başına yeniden koşup geçti (aşağıda). Oyun kodunda bulunan
+tek gerçek hata: bekleyen ödül bildiriminin her açılışta tekrar çıkması (`ced3f08`). Öteki bulguların hepsi denetim
+araçlarındaydı (eskimiş test adımı, bildirim zamanlaması, DOM'da yanlış depo okuması) ya da makinedeydi (disk doldu).
+
+## Hangi kod?
+- **Sürüm:** `app.json` `version` **1.0.0** (sahip kararı 20). iOS derleme numarası ve Android `versionCode` EAS'ta
+  (`appVersionSource: remote`, production `autoIncrement`); `ios.buildNumber` app.json'dan çıkarıldı (yok sayılıyordu).
+  Ayarlar ve yasal metinler (`APP_VERSION`), sunucu `/saglik` (`SERVER_VERSION`) ve `package.json`'lar 1.0.0.
+- **Tam kabul ağacı:** `78f7796` (main `b14871e` mağaza kiti + `3be5d74` sürüm ve Expo yamaları, `1f5f6e4` Hertz, `91f0950`
+  bekleyen ödül tavanı, `cf0e2bf` mağaza derlemesi denetimi, `78f7796` gizlilik metni).
+- **Son ağaç:** `5158d04` = `78f7796` + `c2182ad` (`social-e2e.mjs`) + `ced3f08` (`net.ts` tek satır geri yükleme, test,
+  `ui-mobile-check.mjs`) + `ddd256c`, `5158d04` (yalnız `ui-mobile-check.mjs`). Oyun kodu farkı yalnız `net.ts`'teki satır.
+- **Makine:** 4 çekirdek; takımlar `nice -n 5`. Aynı makinede eski oyuncu testi sunucusu açıktı (dokunulmadı).
+
+## Takımlar (tam kabul, `78f7796`)
+
+| Takım | Sonuç | Süre | Not |
+|---|---|---|---|
+| typecheck | geçti | 23 sn | |
+| lint | geçti | 15 sn | |
+| vitest | geçti | 151 sn | |
+| ses (`generate.mjs --check`) | geçti | 0 sn | |
+| mobil-tsc | geçti | 16 sn | |
+| jest | geçti | 1 sn | |
+| expo-doctor | geçti | 5 sn | 20/20. Koşudan önce 19/20 düşüyordu: Expo yeni SDK 58 yamaları → `3be5d74` (YN-039 gibi) |
+| dom-paketi (`expo export --platform ios`) | geçti | 15 sn | Android paketi ayrıca: `expo export --platform android` geçti (30 sn) |
+| domcheck | geçti | 106 sn | 1. bölüm 3 yıldız, dokunma, kaydırma |
+| bot 1–40 | geçti | 1417 sn | |
+| bot-bos | geçti | 248 sn | |
+| reset (web + dom) | geçti | 151 sn | |
+| onboarding (web + dom) | geçti | 4206 sn | sınır 4800 sn, **%88** (önceki aday %69): sınıra yaklaşıyor |
+| codes | geçti | 37 sn | |
+| team-apply | geçti | 55 sn | |
+| teamrace | geçti | 136 sn | |
+| comm | geçti | 568 sn | |
+| social | **düştü ×2 (gerçek)** | — | aşağıda 1; düzeltme `c2182ad` |
+| friends | geçti | 39 sn | |
+| events | geçti | 622 sn | |
+| race | geçti | 78 sn | |
+| kopma | geçti | 885 sn | |
+| camp | geçti | 1104 sn | sınır 3600 sn |
+| vaka | geçti | 160 sn | |
+| ui-mobile (web + dom × Chromium + WebKit × 320/390, kontrastlı) | **düştü (gerçek)** | 11156 sn | 1520 ekran, 11 sorun; sınır 19000 sn, %59. Aşağıda 2 |
+
+## Son ağaçta yeniden koşanlar
+
+| Koşu | Ağaç | Sonuç | Süre | Not |
+|---|---|---|---|---|
+| kabul `--yalniz typecheck,lint,vitest,ses,mobil-tsc,jest,expo-doctor,dom-paketi,domcheck,social` | `ced3f08` | hepsi geçti | 430 sn | vitest 159 dosya / 1194 test; jest 14; expo-doctor 20/20; social 90 sn, tüm adımlar |
+| ui-mobile tam (8 yapılandırma, kontrastlı) | `ced3f08` | düştü | ≈ 3 sa | 1474 ekran, 11 sorun: web-chromium-390 Chromium çöktü (disk doldu, aşağıda 3); dom-webkit-390 iki sonuç ekranında kontrast 10 (bildirim; `ddd256c`). Öteki 6 yapılandırma 0 sorun; `gorev-kamp-dugmeleri` 7 yapılandırmada geçti (`ced3f08` düzeltmesi) |
+| ui-mobile web-chromium-390 (tam yapılandırma) | `ddd256c` | geçti | 1879 sn | 197 ekran, 0 sorun, kontrast 0 ihlal |
+| ui-mobile dom-webkit-390 (tam yapılandırma) | `5158d04` | geçti | 1790 sn | 183 ekran, 0 sorun, kontrast 0 ihlal (sonuc-kaybetti-yardim, -rahat-teklif, -sis dahil) |
+| pwa-e2e (Chromium + WebKit) | `78f7796` | geçti | ≈ 130 sn | 10/10: manifest ve simgeler, ilk kareler koyu, çevrimdışı açılış + 1. bölüm, yasal sayfalar çevrimdışı, yeni sürüm |
+| `node tools/magaza/denetle.mjs` | `78f7796` | 0 hata | | 4 uyarı: `ayar.json` yayıncı bilgileri boş (aşağıda) |
+
+`ui-mobile`'ın üçüncü tam koşusu (≈ 3 saat) yapılmadı: ikinci tam koşuda 6 yapılandırma temizdi; düşen ikisi tek başına
+yeniden koştu ve son iki commit yalnız denetim aracını değiştirdi.
+
+## Bulunan ve düzeltilen hatalar
+1. **social (iki kez düştü):** test eskimişti, oyun doğruydu. 8. adım takım teknolojisine bağışta onay penceresini (YN-073,
+   `d13d594`) onaylamıyordu; 10. adım hediyeyi alıcının adıyla arıyordu, karar 39'dan beri hediye adsız. Test güncel arayüze
+   uyduruldu; onaydan önce bağışın yazılmadığı ve hediyenin adsız olduğu da denetleniyor (`c2182ad`). Bu takım tur sonu kabul
+   alt kümelerinde yoktu; tur sonu PY'ye eklenmesi önerilir.
+2. **ui-mobile (11 sorun, bildirim zamanlaması):** (a) `dom-chromium-320 gorev-kamp-dugmeleri` "üst pay: .toast-top top=30 <
+   47": kutlama açıkken sırada bekleyen bildirim kutlama kapanınca hemen geliyor, ölçüm giriş animasyonunun ilk karesine denk
+   geldi; adım artık kutlamadan sonra bildirimi kapatıp bekliyor (`ced3f08`). (b) `dom-webkit-390` iki sonuç ekranında kontrast
+   10 bulgu ("Seviye 3" 1,06): yeni hesabın cihaz jetonu devri bildirimi kontrast turları sırasında geliyor, XP kartı kaydırılınca
+   bildirimin altına giriyordu. Sonuç döngüsü ölçümden önce bildirimi kapatıyor (örtme ayrıca ölçülüyor); görüntü alınırken bir
+   yazının örtülme durumu değişirse örnek yineleniyor; bildirimin altındaki yazı ölçülmüyor (`ced3f08`, `ddd256c`).
+3. **Chromium çökmesi ("Target crashed", SIGSEGV), web-chromium-390:** kök neden diskin dolmasıydı (crashpad "No space left on
+   device"; `/` %100). Tek başına beş kez yeniden üretildi (`78f7796`teki `net.ts` ve önceki ölçüm koduyla da), yer açılınca geçti. Yalnız bu
+   çalışanın çıktıları ve Node derleme önbelleği (`/tmp/node-compile-cache`) silindi; oyuncu testi çıktılarına dokunulmadı.
+   **Not:** makinede yer azdır (`tools/harness/out` 6 GB, `oyuncular` 3,1 GB); uzun koşulardan önce `df -h /` bakılmalı.
+4. **DOM'da yüksek görünürlük kaydı (denetim):** `sonuc-kaybetti-sis` kaydı localStorage'dan okuyordu; DOM'da oyun yerel
+   köprüye yazar. Yalnız DOM koşan yapılandırmada "kayıtta kapalı" diye düştü (oyun ayarı açıyor ve söylüyordu); köprü deposundan
+   okunuyor (`5158d04`).
+5. **Bekleyen ödül bildirimi her açılışta (oyun kodu, karar 54):** açılışta son bilinen günlük durum `carry`/`carried` olmadan
+   geri yükleniyordu; o gün bekleyenden jeton geçtiyse "Bekleyen ödül hesabında" bildirimi her açılışta tekrar çıkıyordu
+   (`ced3f08`; ui-mobile bulgusunu incelerken kod okuyarak bulundu).
+6. **expo-doctor 19/20:** Expo SDK 58'in yeni yamaları (expo 58.0.23, expo-router 58.0.30, react-native-safe-area-context 5.11.1
+   ve 7 paket); `npx expo install --fix` (`3be5d74`). `@expo/cli`'nin iç zod 3 kopyası kilit dosyasından düştü.
+
+Disk doluyken koşan bir `--only gorev,sonuc` alt kümesinde ayrıca 320 px'te "yardım iste" kartının alt kenarı yapışkan alanın
+8 px altında ölçüldü (4 yapılandırma); aynı ekranlar aynı ağaçtaki ikinci tam koşuda 8 yapılandırmanın hepsinde geçti, düğme
+ve metin ekranda. Alt kümenin önceki adımları atlaması ekran durumunu değiştiriyor; ayrıca izlenebilir.
+
+## Bu adayda değişenler (kod)
+- **Hertz (karar 55):** quiz açıklaması "Frekans, sesin saniyedeki titreşim sayısıdır; birimi hertzdir (Hz)." (`1f5f6e4`).
+- **Bekleyen ödül tavanı:** en çok 3.000 jeton (`LOCAL_JETON_CARRY_MAX`); aşan kısım "eklenmedi" diye yazılır; göç 17
+  (`local_grants.carried`). Ayrıntı [`ekonomi-olcum.md`](ekonomi-olcum.md) (`91f0950`).
+- **Mağaza derlemesi (`cf0e2bf`):** sunucu adresi yalnız `EXPO_PUBLIC_ODI_SERVER`'dan, Metro bilgisayarına düşüş yalnız
+  geliştirmede; çevrimdışı kartı oyuncuya göre ("İnternet bağlantını kontrol et", eskiden `npm run server` ipucu); sunucu makbuzu
+  doğrulayamıyorsa (`REVENUECAT_API_KEY` yok) `shop.list` `realStore: false` ve uygulama mağaza ödemesini başlatmaz; ödeme
+  alınıp işlenemezse dürüst söz ("Ödeme alındı, hesabına işlenemedi").
+- **Gizlilik metni (`78f7796`):** şikâyetle gizlenen iletinin göndereni 10 dk susturulur; Bilgi Yarışması'na katılırken bilgi
+  düzeyi sunucuya gider; kendi özel mesajını silme (TR + EN).
+
+## Mağaza denetimi (kod okuyarak ve araçlarla)
+- **Sunucu adresi:** yalnız EAS ortam değişkeni; yoksa çevrimdışı oyun ve "Çevrimiçi özellikler kapalı"; depoda adres yok.
+- **Satın alma:** RevenueCat anahtarı yoksa `createNativeStore` yok → mağaza "bu sürümde kapalı", çökme yok; anahtar varsa ürünler
+  kimlikle `getProducts(..., NON_SUBSCRIPTION)`. Katalog = `SHOP` = mobil kod: `node tools/magaza/denetle.mjs` 0 hata
+  (4 uyarı: `ayar.json` yayıncı bilgileri boş). Yedi ürünün hepsi tüketilebilir: Apple "Satın alımları geri yükle" düğmesi
+  gerekmez (hak sunucuda, hesaba bağlı). `odi.baslangic` (hesap başına bir kez, kalıcı şapka) ve `odi.pass` (28 gün) App Store
+  incelemesinde tüketilebilir dışı tür istenirse geri yükleme düğmesi o zaman eklenmeli.
+- **Hesap silme** uygulama içinden (Profil › Ayarlar › Hesabı sil › Her şeyi sil → `account.delete`); bağlantı yoksa bunu açıkça söyler.
+  **Şikâyet ve engelleme:** sohbet ve özel mesajda şikâyet, profilde engelle.
+- **app.json:** `blockedPermissions` (depolama, SYSTEM_ALERT_WINDOW, mikrofon, konum, AD_ID), `privacyManifests`,
+  `ITSAppUsesNonExemptEncryption: false`, `supportsTablet: false`. İkon 1024×1024 RGB (alfa yok), adaptive ön/arka/tek renk
+  1024×1024, splash 1024×1024. Android hedef API 36, en düşük 24 (RN 0.88 varsayılanı; Play şartını karşılar).
+- **Mobil:** `tsc`, jest 14/14, expo-doctor 20/20, `expo export` iOS ve Android hatasız.
+
+## Kalan riskler (mağaza gönderimi)
+- **`apps/web/src/yasal/ayar.json` boş alanlar:** `YAYINCI_UNVAN`, `YAYINCI_ADRES`, `ILETISIM_EPOSTA`, `SUNUCU_BOLGESI`. Gizlilik
+  sayfası ve uygulama içi metin bunlar yerine "eklenecek" yazar; mağaza incelemesi için doldurulmalı
+  (`node tools/magaza/denetle.mjs --yayin --adres <alan adı>` hata vermemeli).
+- **İlk EAS derlemesi hiç denenmedi** (YN-024): `eas init` `extra.eas.projectId`'yi yazar; `eas.json` `ascAppId` yer tutucusu.
+- **Makbuz yeniden deneme kuyruğu yok** (YN-285): mağaza ödemesi alınıp sunucuya ulaşılamazsa ürün kendiliğinden verilmez.
+- **Yarış içi şerit HUD'a biniyor** (YN-284, görsel; dokunulmadı).
+- **onboarding süresi** sınırın %88'i.
+- Android çökme raporunda derleme numarası boş gelir (`Constants.platform.android.versionCode` yerelde yok); iOS doğru.
+
+## Sahibin yapacakları
+- Sunucu: `odi-guncelle` (göç 16 henüz uygulanmadıysa o da; göç 17 `local_grants.carried`, açılışta kendiliğinden).
+  `odi.env`'de `REVENUECAT_API_KEY` (yoksa uygulama gerçek ödemeyi başlatmaz), `NODE_ENV=production`, `ODI_TEST_STORE=0`
+  (`odi-durum` ikisini de uyarır).
+- EAS ortamı (production): `EXPO_PUBLIC_ODI_SERVER` (`wss://…`), `EXPO_PUBLIC_REVENUECAT_IOS`, `EXPO_PUBLIC_REVENUECAT_ANDROID`.
+- `ayar.json` yayıncı bilgileri; App Store Connect / Play Console'da yedi tüketilebilir ürün, RevenueCat projesi.
+
+---
+
 # Kapalı beta sürüm adayı: tam kabul koşusu (2026-10-29)
 
 **Sonuç: temiz.** Bütün kabul takımları, PWA, yerel üretim bayraklı sunucuda uzak duman ve 50 oyunculu yük denetimi geçti. Son koşuda hiçbir takım tekrar istemedi.
