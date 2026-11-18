@@ -59,6 +59,11 @@ export interface Platform {
    */
   storePrices?: (productIds: string[], playerId: string) => Promise<StorePrice[]>;
   /**
+   * Mağaza bu derlemede yok (yalnız telefon kabuğu): mağaza derlemesi RevenueCat anahtarı olmadan alındıysa (ilk sürüm satın almasız
+   * yayın, sahip kararı 2026-11-18) Mağaza girişi gösterilmez, kristal hapı mağazaya götürmez. Tarayıcıda ve Expo Go'da tanımsız.
+   */
+  shopHidden?: boolean;
+  /**
    * Çökme raporu bağlamı (yalnız telefon kabuğunun yayın derlemesinde; YN-011, hata.ts): platform, işletim sistemi ana sürümü,
    * uygulama sürümü ve mağaza derleme numarası. Kimlik taşımaz. Tarayıcıda tanımsız (sürüm/derleme web derlemesinden gelir).
    */

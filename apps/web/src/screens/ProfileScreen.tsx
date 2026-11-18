@@ -1,3 +1,4 @@
+import { platform } from '../platform';
 import { useMemo, useState } from 'react';
 import { ACHIEVEMENTS, CARDS, COSMETICS, HUMAN_JOURNEY } from '@odi/content';
 import { albumProgress, levelProgress } from '@odi/meta';
@@ -67,7 +68,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className={tileCls('friends')} data-tile="friends" onClick={guard('friends', () => onOpen('friends'))}><span className="mi teal rel"><Icon name="friends" />{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b>{lockNote('friends') ?? <span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span>}</button>
         <button className={tileCls('friends')} data-tile="messages" onClick={guard('friends', () => nav.open({ name: 'messages' }))}><span className="mi teal rel"><Icon name="chat" />{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b>{lockNote('friends') ?? <span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span>}</button>
         <button className={tileCls('shop')} data-tile="inbox" onClick={guard('shop', () => onOpen('inbox'))}><span className="mi gold rel"><Icon name="inbox" />{inbox > 0 && <span className="sbadge abs">{inbox}</span>}</span><b>Ödül kutusu</b>{lockNote('shop') ?? <span className="muted">{inbox ? `${inbox} ödül seni bekliyor` : 'Savaş ve takım ödülleri'}</span>}</button>
-        <button className={tileCls('shop')} data-tile="shop" onClick={guard('shop', () => onOpen('shop'))}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b>{lockNote('shop') ?? <span className="muted">İçerikler açık, sınır sende</span>}</button>
+        {!platform().shopHidden && <button className={tileCls('shop')} data-tile="shop" onClick={guard('shop', () => onOpen('shop'))}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b>{lockNote('shop') ?? <span className="muted">İçerikler açık, sınır sende</span>}</button>}
         <button className={tileCls('friends')} data-tile="together" onClick={guard('friends', () => nav.open({ name: 'birlikte' }))}><span className="mi gold"><Art name="users" size={26} /></span><b>Birlikte</b>{lockNote('friends') ?? <span className="muted">İkili Görev, Usta–Çırak</span>}</button>
         {/* arkadaşı olmayan oyuncunun da canlı yarışa yolu (YN-255, OT-rekabetci-50): lobi (Hızlı yarış, Oda kur, Kodla katıl); Geri Profil'e */}
         <button className={tileCls('race')} data-tile="race" onClick={guard('race', () => nav.open({ name: 'race' }))}><span className="mi coral"><Art name="finish" size={26} /></span><b>Canlı yarış</b>{lockNote('race') ?? <span className="muted">Hızlı yarış · Oda kur · Kodla katıl</span>}</button>

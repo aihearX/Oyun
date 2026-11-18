@@ -33,6 +33,8 @@ export type WebAppProps = {
   /** mağazanın yerel fiyatları (RevenueCat priceString; yalnız mağaza derlemesinde, purchase ile birlikte) */
   storePrices?: (productIds: string[], playerId: string) => Promise<{ id: string; priceString: string; currencyCode: string }[]>;
   canPurchase: boolean;
+  /** mağaza bu derlemede yok (RevenueCat anahtarsız mağaza derlemesi): Mağaza girişi gizlenir */
+  shopHidden?: boolean;
   /** sosyal sunucu (ws://bilgisayar-ip:8787 ya da wss://...) */
   serverUrl: string;
   insetTop: number;
@@ -71,6 +73,7 @@ export default function WebApp(p: WebAppProps) {
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       ...(p.canPurchase && p.purchase && p.storePrices ? { storePrices: (ids: string[], pid: string) => p.storePrices!(ids, pid) } : {}),
       ...(p.canPurchase && p.purchase && p.restorePurchases ? { restorePurchases: (pid: string) => p.restorePurchases!(pid) } : {}),
+      ...(p.shopHidden ? { shopHidden: true } : {}),
       serverUrl: () => p.serverUrl,
       insets: { top: p.insetTop, bottom: p.insetBottom },
       ...(p.appInfo ? { appInfo: p.appInfo } : {}),

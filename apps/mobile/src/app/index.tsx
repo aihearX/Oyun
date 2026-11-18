@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativeStore } from '@/purchases';
@@ -13,6 +14,8 @@ import { serverUrl } from '@/sunucu';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativeStore = createNativeStore();
+// mağaza derlemesi RevenueCat anahtarsız alındıysa (ilk sürüm satın almasız) Mağaza girişi gizlenir; Expo Go test mağazasını korur
+const shopHidden = !nativeStore && Constants.executionEnvironment !== 'storeClient';
 
 
 // çökme raporu (YN-011): yalnız yayın derlemesinde ve sunucu adresi varken; kişisel veri yok (src/hata.ts)
@@ -88,6 +91,7 @@ export default function Home() {
           restartApp={async () => setGen((g) => g + 1)}
           {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices, restorePurchases: nativeStore.restore } : {})}
           canPurchase={!!nativeStore}
+          shopHidden={shopHidden}
           serverUrl={serverUrl()}
           {...(appInfo ? { appInfo } : {})}
           insetTop={insets.top}

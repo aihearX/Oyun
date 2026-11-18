@@ -246,7 +246,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         <span className="mh-pill" aria-label={`${totalStars} yıldız`}><Art name="star" size={18} />{totalStars}</span>
         <span className="grow" />
         <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${fmtNum(coin.value)} jeton`}><Art name="coin" size={18} /><HudNum v={coin.value} /></span>
-        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => nav.open({ name: 'shop' })} aria-label="Kristal ve mağaza"><Art name="crystal" size={18} /><HudNum v={kristal.value} /></button>}
+        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => { if (!platform().shopHidden) nav.open({ name: 'shop' }); }} aria-label={platform().shopHidden ? 'Kristal' : 'Kristal ve mağaza'}><Art name="crystal" size={18} /><HudNum v={kristal.value} /></button>}
         {wallet && feat.open('shop') && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
       <div className="map-side-l">

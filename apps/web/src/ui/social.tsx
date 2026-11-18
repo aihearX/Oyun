@@ -4,6 +4,7 @@ import { useNet } from '@odi/net/store';
 import { BUILDINGS, type InboxKind } from '@odi/shared';
 import { cardById, cosmeticById } from '@odi/content';
 import { useStore } from '../store';
+import { platform } from '../platform';
 import { reconnect, usePending, useSocial } from '../net';
 import { useBackLayer, useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
@@ -113,7 +114,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
         {extra}
         {linked && feat.open('friends') && <DmTopPill />}
         <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" data-value={Math.round(jc.value)} aria-label={`Jeton: ${fmtNum(jc.value)}${saving ? ', kaydediliyor' : ''}`} title={offPend ? `${fmtNum(jc.value)} jeton · ${pending} jeton bağlanınca hesaba geçecek` : saving ? `${fmtNum(jc.value)} jeton · Kaydediliyor…` : `${fmtNum(jc.value)} jeton`}><Art name="coin" size={19} /><HudNum v={jc.value} />{(offPend || saving) && <i className={`pend${saving ? ' kayit' : ''}`} data-testid={saving ? 'jeton-kaydediliyor' : undefined}><Art name="hourglass" size={13} /></i>}</span>
-        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => nav.open({ name: 'shop' })} aria-label={`Kristal ve mağaza: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
+        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => { if (!platform().shopHidden) nav.open({ name: 'shop' }); }} aria-label={`${platform().shopHidden ? 'Kristal' : 'Kristal ve mağaza'}: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
         {shopOpen && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>
