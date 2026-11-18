@@ -8,11 +8,12 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { build } from 'esbuild';
+import { fileURLToPath } from 'node:url';
 
 const argv = process.argv.slice(2);
 const opt = (k) => { const i = argv.indexOf(`--${k}`); return i < 0 ? undefined : argv[i + 1]; };
 const yayin = argv.includes('--yayin');
-const root = resolve(new URL('../..', import.meta.url).pathname);
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const oku = (p) => JSON.parse(readFileSync(resolve(root, p), 'utf8'));
 const metin = oku('marketing/magaza/metinler.json');
 const iap = oku('marketing/magaza/iap-urunler.json');
