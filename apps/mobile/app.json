@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ODİ: Sesin Yolu",
+    "name": "ODI Sesin Yolu",
     "slug": "odi",
     "version": "1.0.0",
     "runtimeVersion": {
@@ -15,7 +15,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.aiheartech.odi",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleDisplayName": "ODİ: Sesin Yolu"
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,

@@ -34,14 +34,14 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
 
 const argv = process.argv.slice(2);
 const opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : '1'; };
 const has = (k) => argv.includes(`--${k}`);
-const root = resolve(new URL('../..', import.meta.url).pathname);
+const root = fileURLToPath(new URL('../..', import.meta.url));
 const webRoot = resolve(root, 'apps/web');
 const WORK = resolve(root, 'tools/harness/out/vitrin'); mkdirSync(WORK, { recursive: true });
 const OUT = resolve(opt('out', resolve(WORK, 'png')));

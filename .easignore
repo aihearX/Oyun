@@ -1,0 +1,21 @@
+# EAS Build arşivine girmeyecekler (.gitignore'un kopyası + derlemeye gerekmeyen büyük klasörler)
+node_modules/
+dist/
+dist-*/
+*.log
+.DS_Store
+tools/harness/out/
+tools/harness/scratch/
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+.env
+.env.*
+*.tsbuildinfo
+__pycache__/
+# derlemede kullanılmayan: tanıtım videoları, mağaza görselleri, belgeler, yerel notlar
+marketing/
+docs/
+*.mp4
+sunucu bilgileir.txt
+apps/mobile/ios-derle.ps1
