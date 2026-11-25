@@ -3,7 +3,7 @@
  * - Ödül kodu: oyuncu başına bir kez (promo_uses birincil anahtarı), toplam kullanım sınırı, başlangıç/bitiş tarihi, açık/kapalı.
  *   Ödüller mevcut yollardan: jeton/kristal/kalkan/kozmetik ödül kutusuna, hızlandırıcılar sunucu cüzdanına.
  * - Yönetici kodu: düz metni hiçbir yerde yok; sunucu yalnızca tuzlu scrypt özetini bilir (ODI_ADMIN_CODE_HASH, varsayılan aşağıda).
- *   Doğru girilince hesap yönetici olarak işaretlenir (player_flags.admin = 1, kalıcı) ve yönetici modu açılır (admin_on; kapatılabilir).
+ *   Doğru girilince hesap yönetici olarak işaretlenir (player_flags.admin = 1, kalıcı); "her şey açık" modu (admin_on) yönetici ekranından açılır.
  *   Yönetici hesapları adil rekabetten çıkarılır (Sıralama, Takım Ligi, takım yarışı ödülü, haftalık ödüller, savaş/baskın/lig puanı).
  * - Rozet kodları (YN-041): `ÖNEK-XXXX-XXXX`, tek kullanımlık (max_uses 1), yalnız sunucu makinesinde üretilir (createRozetCodes,
  *   `npm run kod -- kurucu --adet N`). Ödül kalıcı rozettir (rozet.ts). Rozeti zaten olan hesap ve yönetici hesabı kurucu kodunu
@@ -134,8 +134,10 @@ export function redeem(app: App, pid: string, ip: string, raw: string): CodeRede
   const r = app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code);
   // ödül kodu tablosunda yoksa yönetici kodu olabilir (ödül kodu yönetici koduyla aynı olamaz: createCode); sınama bütçeyle sınırlı
   if (!r && adminBudget(app) && checkAdminCode(app, code)) {
-    app.db.run(`INSERT INTO player_flags(player_id, admin, admin_on, admin_at) VALUES(?, 1, 1, ?)
-      ON CONFLICT(player_id) DO UPDATE SET admin = 1, admin_on = 1, admin_at = COALESCE(admin_at, excluded.admin_at)`, pid, now);
+    // 1.1.0: kod yalnız hesabı yönetici yapar (Profil › Admin görünür); "her şey açık" oynama modu (admin_on) kendiliğinden açılmaz,
+    // yönetici ekranındaki anahtarla açılır. Önceden açık olan mod olduğu gibi kalır.
+    app.db.run(`INSERT INTO player_flags(player_id, admin, admin_on, admin_at) VALUES(?, 1, 0, ?)
+      ON CONFLICT(player_id) DO UPDATE SET admin = 1, admin_at = COALESCE(admin_at, excluded.admin_at)`, pid, now);
     log('', 'yonetici');
     app.after(() => rankInvalidate(app)); // Sıralama önbelleği: yönetici hemen tablolardan çıkar
     return { kind: 'yonetici', admin: adminState(app, pid) };
@@ -223,7 +225,8 @@ export function setCodeActive(app: App, raw: string, active: boolean): PromoCode
   return toView(app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code)!);
 }
 
-const requireAdminOn = (app: App, s: Session) => { if (!isAdminOn(app, s.pid)) fail('YETKI', 'Bu panel yalnızca yönetici modunda açılır.'); };
+/** yönetici ekranı (kodlar, hediye, oyuncular): hesabın yönetici olması yeter, oynama modu (admin_on) gerekmez (1.1.0) */
+export const requireAdmin = (app: App, s: Session) => { if (!isAdmin(app, s.pid)) fail('YETKI', 'Bu ekran yalnız yönetici hesabında açılır.'); };
 
 export const codeHandlers: Handlers = {
   'code.redeem': (app, s, { code }) => ({ result: redeem(app, s.pid, s.conn.ip ?? '', code) }),
@@ -234,8 +237,8 @@ export const codeHandlers: Handlers = {
     return { admin: adminState(app, s.pid) };
   },
   // rozet kodları (kişiye özel, tek kullanımlık) uygulama panelinde gizli: yalnız sunucu makinesinin terminalinde görünür
-  'code.list': (app, s) => { requireAdminOn(app, s); return { codes: listCodes(app).map(maskRozetKodu) }; },
-  'code.create': (app, s, d) => { requireAdminOn(app, s); return { code: createCode(app, { ...d, by: s.pid }) }; },
-  'code.close': (app, s, { code, active }) => { requireAdminOn(app, s); return { code: setCodeActive(app, code, active ?? false) }; },
+  'code.list': (app, s) => { requireAdmin(app, s); return { codes: listCodes(app).map(maskRozetKodu) }; },
+  'code.create': (app, s, d) => { requireAdmin(app, s); return { code: createCode(app, { ...d, by: s.pid }) }; },
+  'code.close': (app, s, { code, active }) => { requireAdmin(app, s); return { code: setCodeActive(app, code, active ?? false) }; },
   'kurucu.liste': (app) => kurucuListesi(app),
 };

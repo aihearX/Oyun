@@ -10,8 +10,9 @@ vi.mock('../net', () => ({ act: async () => null, toast: () => undefined }));
 /**
  * Oyuncu testi tur 9 (YN-157): Tüy Dede tanıtımlarının zamanı ve yeri.
  *  - Sonuç ekranı "Tüy Dede haritada anlatacak" dedi, oyuncu "Haritaya dön"e bastı ve dokunmadı: söz verilen tanıtım dönüş sahnesi
- *    biter bitmez gelir (oyuncu okuyup bir yere uzanırken değil); birden çok söz art arda. Oyuncu dokunduysa sakinlik kuralı.
- *  - Genel açılım turları Bugün/Takım'da kendiliğinden başlamaz; oyuncu haritaya dönünce başlar.
+ *    biter bitmez gelir (oyuncu okuyup bir yere uzanırken değil); birden çok söz art arda. Açılım tanıtımında dokunuş sakinliği
+ *    beklenmez (1.1.0: bölüm kapısı bölümü başlatmaz).
+ *  - Genel açılım turları başka sekmede kendiliğinden başlamaz (yalnız kendi sekmesinde); oyuncu haritaya dönünce başlar.
  *  - Vaka çözmüş oyuncuya kampta Hasta Vakaları "yeni" denmez.
  *  - Tüy Dede'nin kamp notu (yeni anıt) açıkken "Kamp'ta yeni" kartı görünmez; not kapanınca gelir.
  *  - tlig-02: satır Lig'in sekmesini doğru söyler ("Rekabet sekmesindeki Lig'e bak", sahip kararı 48), balonda Lig'in yolu.
@@ -68,7 +69,7 @@ describe('sonuçtan haritaya dönüş: söz verilen tanıtım hemen', () => {
     expect(await tourId()).toBe('shop');
   }, 15_000);
 
-  it('oyuncu haritada dokunmaya başladıysa sakinlik kuralı (son dokunuştan 1,2 sn + sakin yoklamalar)', async () => {
+  it('haritada dokunan oyuncuda da açılım tanıtımı beklemez (1.1.0): bölüm kapısı bölümü başlatmaz, tanıtım dönüş sahnesinden hemen sonra', async () => {
     await at6();
     await director('result');
     tap();
@@ -77,8 +78,6 @@ describe('sonuçtan haritaya dönüş: söz verilen tanıtım hemen', () => {
     await tick(1200);
     await act(async () => { mapScreen('bitti'); tap(); });
     await tick(1050);
-    expect(await tourId()).toBeNull();
-    await tick(2000);
     expect(await tourId()).toBe('tlig');
   }, 15_000);
 });
@@ -157,19 +156,25 @@ describe('söz verilen ikinci tur, ilki oyuncuyu başka sekmeye götürdüyse', 
   }, 15_000);
 });
 
-describe('genel açılım turları yalnız haritada', () => {
-  for (const tab of ['today', 'team']) {
-    it(`${tab} sekmesinde başlamaz, haritaya dönünce başlar`, async () => {
-      await at6();
-      await director(tab);
-      await tick(3200);
-      expect(await tourId()).toBeNull();
-      mapScreen('bitti');
-      await director('map');
-      await tick(2200);
-      expect(await tourId()).toBe('tlig');
-    }, 15_000);
-  }
+describe('genel açılım turları haritada; başka sekmede yalnız kendi sekmesindeyse', () => {
+  it('Bugün sekmesinde Takım Ligi tanıtımı başlamaz, haritaya dönünce başlar', async () => {
+    await at6();
+    await director('today');
+    await tick(3200);
+    expect(await tourId()).toBeNull();
+    mapScreen('bitti');
+    await director('map');
+    await tick(2200);
+    expect(await tourId()).toBe('tlig');
+  }, 15_000);
+  it('oyuncu Takım sekmesine kendi girdiyse Takım Ligi tanıtımı görülmüş sayılmaz, orada (sekme değiştirmeden) gelir', async () => {
+    const { useStore } = await import('../store');
+    await at6();
+    await director('team');
+    await tick(3200);
+    expect(await tourId()).toBe('tlig');
+    expect(useStore.getState().ftue.tours).not.toContain('tlig');
+  }, 15_000);
 });
 
 describe('vaka çözmüş oyuncuya Hasta Vakaları "yeni" değil', () => {

@@ -62,7 +62,7 @@ Kategori: **Oyun**. E-posta: `{ILETISIM_EPOSTA}`.
 | Uyuşturucu, alkol, tütün | Hayır | — |
 | Kumar / kumar benzetimi | **Hayır** | Bahis, kart, slot yok. Günün Meydan Okuması, Haftalık Turnuva, Bilgi Yarışması ve lig ödülleri beceriyle ve sırayla verilir, yalnız oyun içi (gerçek değer yok) |
 | Gerçek parayla rastgele öğe (ganimet kutusu) | **Hayır** | Mağazadaki her ürünün içeriği sabit (`packages/shared/src/social.ts` SHOP). Ücretsiz tek şans öğesi: %10 ihtimalli "Şanslı Nota" (25 jeton + 10 XP; satın alınamaz, ihtimal oyunda yazılı) |
-| Kullanıcılar etkileşir / içerik paylaşır | **Evet** | Takım ve genel sohbet, arkadaşlar arası özel mesaj, takma ad ve takım adı. Güvenli sohbet: 8 bölüme kadar yalnız hazır sözler; küfür süzgeci, şikâyet, engelleme |
+| Kullanıcılar etkileşir / içerik paylaşır | **Evet** | Takım ve genel sohbet, arkadaşlar arası özel mesaj, takma ad ve takım adı, isteğe bağlı profil fotoğrafı (şikâyet edilebilir). Güvenli sohbet: 8 bölüme kadar yalnız hazır sözler; küfür süzgeci, şikâyet, engelleme |
 | Konum paylaşımı | Hayır | Konum hiç alınmaz |
 | Dijital ürün satın alma | **Evet** | Kristal, hızlandırıcı, Sezon Kartı |
 | Kişisel bilgi paylaşımı (üçüncü taraf) | Hayır | Yalnız hizmet sağlayıcılar (barındırma, RevenueCat) |
@@ -115,7 +115,8 @@ teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün)
 | Kişisel bilgiler › Kullanıcı kimlikleri | Evet | Zorunlu | Uygulama işlevi, Hesap yönetimi, Dolandırıcılığı önleme / güvenlik | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
 | Kişisel bilgiler › Diğer bilgiler | Evet | Zorunlu | Dolandırıcılığı önleme / güvenlik | IP adresi: bağlantıda bellekte (hesap açma sınırı, en çok ~2 saat), ödül kodu denemesinde 90 gün; çökme raporu ve geri bildirim hız sınırı için yalnız tuzlu özeti bellekte en çok 1 gün |
 | Finansal bilgiler › Satın alma geçmişi | Evet | İsteğe bağlı | Uygulama işlevi, Dolandırıcılığı önleme / güvenlik | `purchases` tablosu (ürün, zaman, mağaza, tutar, işlem no); RevenueCat |
-| Mesajlar › Diğer uygulama içi mesajlar | Evet | İsteğe bağlı | Uygulama işlevi | Takım/genel sohbet (30 gün), özel mesajlar (son 500) |
+| Mesajlar › Diğer uygulama içi mesajlar | Evet | İsteğe bağlı | Uygulama işlevi | Takım/genel sohbet (30 gün), özel mesajlar (son 500); sunucumuzda saklanır |
+| Fotoğraflar ve videolar › Fotoğraflar | Evet | İsteğe bağlı | Uygulama işlevi | İsteğe bağlı profil fotoğrafı (1.1.0): oyuncu Dolap'ta galeriden tek fotoğraf seçerse cihazda 256×256 JPEG'e küçültülüp sunucumuza gider; oyunda herkese görünür, şikâyet edilebilir; oyuncu kaldırana ya da hesap silinene kadar. Kod: `apps/web/src/foto/foto.ts`, `apps/server/src/foto.ts` |
 | Uygulama etkinliği › Kullanıcının oluşturduğu diğer içerik | Evet | İsteğe bağlı | Uygulama işlevi | Takım adı ve açıklaması, takım başvuru notu; beta geri bildirimi notu (Ayarlar › Geri bildirim gönder; isteğe bağlı): konu, temizlenmiş metin ≤ 500 karakter (e-posta, telefon, uzun rakam dizisi çıkarılır), geldiği ekranın adı, sürüm, platform; kendi sunucumuzda 90 gün, oyuncu kimliği yok. Kod: `packages/shared/src/geribildirim.ts`, `apps/server/src/geribildirim.ts` |
 | Uygulama etkinliği › Diğer işlemler | Evet | Zorunlu | Uygulama işlevi | Oyun ilerlemesi: bölüm sonuçları, yıldız, XP, cüzdan (bekleyen jeton dahil), kamp ve Klinik vakaları, görevler, etkinlikler (Günün Meydan Okuması, Haftalık Turnuva, Günün Sorusu cevabı, canlı Bilgi Yarışması'na katılırken seçili bilgi düzeyi Genel / Odyoloji öğrencisi), lig, rozet ve unvanlar |
 | Uygulama etkinliği › Uygulama etkileşimleri | Hayır | — | — | Dokunma/ekran izlenmez; `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar; çökme raporundaki ekran adı yalnız hatanın olduğu ekran (aşağıda "Teşhis"); geri bildirimdeki ekran adı yalnız notu yazmadan önceki ekran |
@@ -123,7 +124,7 @@ teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün)
 | Uygulama bilgileri ve performansı › Teşhis (Diagnostics) | Evet | Zorunlu (çökme raporunun parçası) | Analiz | Yalnız çökme raporuyla: uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, hatanın olduğu ekranın adı, dakikaya yuvarlanmış zaman. Pil, yükleme süresi, kare hızı gibi performans ölçümü yok |
 | Uygulama bilgileri ve performansı › Diğer uygulama performansı verileri | Hayır | — | — | — |
 | Cihaz veya diğer kimlikler | Hayır | — | — | Reklam kimliği yok; RevenueCat `collectDeviceIdentifiers` çağrılmaz. **Yüklemeden önce RevenueCat'in güncel "Google Play Data Safety" rehberiyle karşılaştırın** |
-| Konum, Kişiler, Takvim, Fotoğraf/video, Ses, Dosyalar, Sağlık, Web geçmişi, E-posta, Telefon, Ödeme bilgisi | Hayır | — | — | İzin isteyen modül yok; ödemeyi Google alır |
+| Konum, Kişiler, Takvim, Videolar, Ses, Dosyalar, Sağlık, Web geçmişi, E-posta, Telefon, Ödeme bilgisi | Hayır | — | — | Konum/kişiler izni yok; fotoğraf yalnız isteğe bağlı profil fotoğrafı (yukarıda); ödemeyi Google alır |
 
 ### Hesap silme (Account deletion)
 - Uygulama içi yol: Profil › Ayarlar › **Hesabı sil** › **Her şeyi sil**.

@@ -108,6 +108,12 @@ export interface LevelOptions {
   race?: RaceOptions;
   /** oyun içi göstergenin duraklat düğmesine basıldı (kabuk duraklatma/yarıştan çıkma menüsünü açar) */
   onPauseRequest?: () => void;
+  /**
+   * Göstergenin ses aç/kapat düğmesine basıldı (1.1.0; duraklat düğmesinin altında). Verilirse düğme görünür; kabuk oyuncunun genel
+   * ses ayarını değiştirir ve yeni durumu `LevelHandle.setSoundOn` ile bildirir. `soundOn`: düğmenin ilk hâli (varsayılan açık).
+   */
+  onSoundToggle?: () => void;
+  soundOn?: boolean;
   /** cihazın güvenli alan üst boşluğu (CSS px; çentik/kamera/saat): oyun içi gösterge bunun altına iner */
   safeTop?: number;
   /** güvenli alan üst boşluğunu yeniden ölç (CSS px; görünüm boyutu değişince — döndürme, geç gelen yerel inset); verilirse safeTop yerine */
@@ -124,4 +130,6 @@ export interface LevelHandle {
   destroy: () => void; pause: () => void; resume: () => void;
   /** koşuyu dışarıdan sonlandır (ör. canlı yarış sunucuda bitti): bitmemişse 'levelFailed' olayı gelir */
   end: (reason: string) => void;
+  /** göstergedeki ses düğmesinin hâli (oyuncunun genel ses ayarı değişti; yalnız görsel) */
+  setSoundOn?: (on: boolean) => void;
 }

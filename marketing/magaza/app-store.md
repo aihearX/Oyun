@@ -37,7 +37,8 @@ Hiçbiri **izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK
 |---|---|---|---|---|---|
 | Tanımlayıcılar › Kullanıcı Kimliği | Evet | Evet | Hayır | Uygulama İşlevi | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
 | Satın Almalar › Satın Alma Geçmişi | Evet | Evet | Hayır | Uygulama İşlevi, Analiz | Ürün, zaman, tutar, işlem no (sunucu + RevenueCat; RevenueCat panosunda satış raporları) |
-| Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Evet | Hayır | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet |
+| Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Evet | Hayır | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet (sunucumuzda saklanır) |
+| Kullanıcı İçeriği › Fotoğraflar veya Videolar | Evet | Evet | Hayır | Uygulama İşlevi | İsteğe bağlı profil fotoğrafı (1.1.0): oyuncu Dolap'ta galeriden tek fotoğraf seçerse cihazda 256×256 JPEG'e küçültülüp sunucumuza gider; oyunda herkese görünür, şikâyet edilebilir, oyuncu kaldırana ya da hesap silinene kadar. Kod: `apps/web/src/foto/foto.ts`, `apps/server/src/foto.ts` |
 | Kullanıcı İçeriği › Oyun İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | İlerleme, bölüm sonuçları, cüzdan (bekleyen jeton dahil), kamp ve Klinik vakaları, etkinlik kayıtları (Günün Meydan Okuması, Haftalık Turnuva, Günün Sorusu cevabı, canlı Bilgi Yarışması'na katılırken seçili bilgi düzeyi: Genel / Odyoloji öğrencisi), takım yarışı ve lig kayıtları, rozet ve unvanlar (Kurucu Yolcu, Hata Avcısı) |
 | Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu, "Adım listede görünsün" seçimi (Kurucular listesi; baştan kapalı); beta geri bildirimi notu (Ayarlar › Geri bildirim gönder: konu, temizlenmiş metin ≤ 500 karakter, geldiği ekranın adı, sürüm, platform; kendi sunucumuzda 90 gün; oyuncu kimliği yok, hesapla eşleştirilemez) |
 | Diğer Veriler › Diğer Veri Türleri | Evet | Evet | Hayır | Uygulama İşlevi (güvenlik, kötüye kullanımın önlenmesi) | IP adresi: ödül kodu denemesi kaydında 90 gün; bağlantıda yalnız bellekte (çökme raporu hız sınırı: tuzlu özeti bellekte en çok 1 gün) |
@@ -132,7 +133,8 @@ Yapıştırılacak metin (EN, ~3.400 karakter; App Store Connect notes alanı 4.
 >
 > **User-generated content (Guideline 1.2):** until the player has cleared 8 levels, chat and private messages allow only preset
 > phrases and reactions. After that, free text, nicknames and team names pass a profanity filter. Players can report a message
-> (long-press › "Şikâyet et"), report or block a player (player card › "Şikâyet et" / "Engelle"). A message reported by three players
+> (long-press › "Şikâyet et"), report or block a player (player card › "Şikâyet et" / "Engelle"), and report a player's optional
+> profile photo (player card › "Şikâyet et" › "Fotoğrafı şikâyet et"; a photo reported by three players is hidden automatically). A message reported by three players
 > is hidden automatically and its sender is muted; a player reported by three players within a day is muted. We review reports daily
 > and can mute an account for longer. Contact: {ILETISIM_EPOSTA}.
 >

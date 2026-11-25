@@ -1,7 +1,8 @@
 /**
- * Kod Gir: sürpriz ödül kodları ve yönetici modu (docs/10-sunucu.md "Kodlar"). Her doğrulama sunucuda; yönetici kodunun kendisi
- * istemcide yoktur. Yönetici modu sunucu onaylayınca yerelde de tutulur (çevrimdışı da açık kalır), sıfırlamada silinir;
- * bağlanınca sunucunun durumu esas alınır.
+ * Kod Gir: sürpriz ödül kodları ve yönetici hesabı (docs/10-sunucu.md "Kodlar"). Her doğrulama sunucuda; yönetici kodunun kendisi
+ * istemcide yoktur. 1.1.0: yönetici kodu hesabı yalnız yönetici yapar (Profil › Admin görünür); "her şey açık" oynama modu
+ * (tüm bölümler, tanıtımlar yok) kendiliğinden açılmaz, Admin ekranındaki anahtarla açılır. Mod açıkken yerelde de tutulur
+ * (çevrimdışı da açık kalır), sıfırlamada silinir; bağlanınca sunucunun durumu esas alınır.
  */
 import { useEffect, useState } from 'react';
 import { create } from 'zustand';
@@ -17,6 +18,7 @@ import { refreshComm } from '../comm/state';
 import { Sheet, fmtNum } from '../ui/social';
 import { Art } from '../ui/art';
 import './codes.css';
+import '../comm/comm.css'; // .switch (paket bölme: kod kartı comm.css olmadan da çizilebilir)
 
 interface CodesStore { server: AdminState | null }
 export const useCodes = create<CodesStore>()(() => ({ server: null }));
@@ -60,8 +62,9 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
     if (res.kind === 'hata') { platform().haptic('error'); setMsg({ tone: 'err', text: res.message }); return; }
     platform().haptic('success');
     if (res.kind === 'yonetici') {
-      useCodes.setState({ server: res.admin }); applyLocal(true); void refreshComm();
-      setMsg({ tone: 'ok', text: 'Yönetici modu açık: tüm bölümler ve yerler açıldı. Ayarlar’dan kapatabilirsin.' });
+      // oynama modu (admin_on) sunucunun söylediği gibi: kod onu açmaz, oyun ve tanıtımlar olduğu gibi kalır
+      useCodes.setState({ server: res.admin }); if (!!useStore.getState().ftue.admin !== res.admin.on) applyLocal(res.admin.on);
+      setMsg({ tone: 'ok', text: 'Yönetici hesabı tanındı. Profil › Admin’den yönetebilirsin.' });
       setRaw('');
       return;
     }
@@ -98,81 +101,90 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Ayarlar kartı: "Kod gir" + yönetici modu rozeti, açma/kapama ve kod paneli */
+/** Ayarlar kartı: "Kod gir" (yönetici işleri 1.1.0'dan beri Profil › Admin'de) */
 export function CodeSettingsCard() {
-  const admin = useStore((s) => !!s.ftue.admin);
-  const server = useCodes((s) => s.server);
-  const [sheet, setSheet] = useState(false); const [panel, setPanel] = useState(false); const [busy, setBusy] = useState(false);
-  const isAdmin = admin || !!server?.isAdmin;
-  const toggle = async () => {
-    setBusy(true);
-    const r = await act('admin.set', { on: !admin });
-    setBusy(false);
-    if (!r) return;
-    useCodes.setState({ server: r.admin }); applyLocal(r.admin.on); void refreshComm();
-    toast(r.admin.on ? '🛠️' : '🔒', r.admin.on ? 'Yönetici modu açık' : 'Yönetici modu kapalı', r.admin.on ? 'Tüm bölümler ve yerler açık.' : 'Bölümler gerçek ilerlemene göre kilitlendi.');
-  };
+  const [sheet, setSheet] = useState(false);
   return (
     <div className="card code-card" data-testid="kod-ayar">
       <div className="row between">
         <div className="min0"><h2>Kod gir</h2><div className="muted">Sürpriz ödül kodlarını buraya yaz.</div></div>
         <button className="btn small" data-testid="kod-ac-ayar" onClick={() => setSheet(true)}>Kod gir</button>
       </div>
-      {isAdmin && (
-        <div className="admin-box" data-testid="yonetici">
-          <div className="row between">
-            <span className={`pill admin-pill${admin ? ' on' : ''}`} data-testid="yonetici-rozet"><Art name="key" size={16} className="art-inline" /> {admin ? 'Yönetici modu açık' : 'Yönetici modu kapalı'}</span>
-            <button type="button" className="switch" role="switch" aria-checked={admin} aria-label="Yönetici modu" data-testid="yonetici-anahtar" disabled={busy} onClick={() => void toggle()} />
-          </div>
-          <div className="muted small-note">{admin ? 'Tüm bölümler ve yerler açık; yıldızların ve ilerlemen gerçek kalır. Bu hesap sıralama, lig ve haftalık ödüllere katılmaz.' : 'Kapalı: bölümler gerçek ilerlemene göre. Açmak için anahtara dokun.'}</div>
-          {admin && <button className="btn ghost small" data-testid="kod-paneli-ac" onClick={() => setPanel(true)}><Art name="gear" size={18} className="art-inline" /> Kod paneli</button>}
-        </div>
-      )}
       {sheet && <CodeSheet onClose={() => setSheet(false)} />}
-      {panel && <AdminPanel onClose={() => setPanel(false)} />}
+    </div>
+  );
+}
+
+/** Admin ekranı: "her şey açık" oynama modu (varsayılan kapalı). Açıkken tüm bölümler ve yerler açık, tanıtımlar çıkmaz. */
+export function AdminModeCard() {
+  const admin = useStore((s) => !!s.ftue.admin);
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    setBusy(true);
+    const r = await act('admin.set', { on: !admin });
+    setBusy(false);
+    if (!r) return;
+    useCodes.setState({ server: r.admin }); applyLocal(r.admin.on); void refreshComm();
+    toast(r.admin.on ? '🛠️' : '🔒', r.admin.on ? 'Her şey açık modu açık' : 'Her şey açık modu kapalı', r.admin.on ? 'Tüm bölümler ve yerler açık.' : 'Bölümler gerçek ilerlemene göre.');
+  };
+  return (
+    <div className="card admin-box" data-testid="yonetici">
+      <div className="row between">
+        <span className={`pill admin-pill${admin ? ' on' : ''}`} data-testid="yonetici-rozet"><Art name="key" size={16} className="art-inline" /> {admin ? 'Her şey açık: açık' : 'Her şey açık: kapalı'}</span>
+        <button type="button" className="switch" role="switch" aria-checked={admin} aria-label="Her şey açık modu" data-testid="yonetici-anahtar" disabled={busy} onClick={() => void toggle()} />
+      </div>
+      <div className="muted small-note">{admin ? 'Tüm bölümler ve yerler açık, tanıtımlar çıkmaz; yıldızların ve ilerlemen gerçek kalır.' : 'Kapalı: oyun normal akar (bölüm kilitleri, tanıtımlar). Test için anahtara dokun.'} Yönetici hesabı her durumda sıralama, lig ve haftalık ödüllere katılmaz.</div>
     </div>
   );
 }
 
 const rewardLine = (r: PromoReward) => [...rewardItems(r).map((i) => `${fmtNum(i.amount)} ${i.kind === 'kozmetik' ? i.label ?? 'kozmetik' : i.kind === 'hizlandirici' ? 'hızlandırıcı' : i.kind}`),
   ...(r.rozet ?? []).filter((x): x is keyof typeof ROZETLER => x in ROZETLER).map((x) => `${ROZETLER[x].ad} ${ROZETLER[x].tur}`)].join(' + ');
-const fmtDay = (t: number | null) => (t == null ? '—' : new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }));
+const fmtDay = (t: number | null) => (t == null ? 'yok' : new Date(t).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' }));
 
-/** yönetici paneli: kod oluştur, listele, kapat/aç (sunucu yalnızca yönetici modunda izin verir) */
-function AdminPanel({ onClose }: { onClose: () => void }) {
+const EMPTY = { code: '', jeton: '', kristal: '', kalkan: '', m5: '', m60: '', kozmetik: '', max: '', bitis: '', note: '' };
+/** Admin › Kodlar: kod oluştur, listele, kapat/aç (sunucu yalnız yönetici hesabına izin verir) */
+export function CodePanel() {
   const [codes, setCodes] = useState<PromoCodeView[] | null>(null);
   const [err, setErr] = useState('');
-  const [f, setF] = useState({ code: '', jeton: '', kristal: '', kalkan: '', max: '', bitis: '', note: '' });
+  const [f, setF] = useState(EMPTY);
   const load = () => { const c = getNet(); if (!c) return; c.call('code.list', {}).then((r) => { setCodes(r.codes); setErr(''); }, (e) => setErr(errText(e))); };
   useEffect(load, []);
   const n = (v: string) => (v.trim() ? Math.max(0, Math.floor(Number(v))) || undefined : undefined);
   const create = async () => {
     const endsAt = f.bitis ? Date.parse(`${f.bitis}T00:00:00+03:00`) + 86_400_000 : null;
-    const r = await act('code.create', { code: f.code, note: f.note.trim() || undefined, maxUses: n(f.max) ?? null, endsAt, rewards: { jeton: n(f.jeton), kristal: n(f.kristal), kalkan: n(f.kalkan) } });
-    if (r) { toast('✅', `${r.code.code} eklendi`, rewardLine(r.code.rewards), 'green'); setF({ code: '', jeton: '', kristal: '', kalkan: '', max: '', bitis: '', note: '' }); load(); }
+    const m5 = n(f.m5); const m60 = n(f.m60);
+    const r = await act('code.create', { code: f.code, note: f.note.trim() || undefined, maxUses: n(f.max) ?? null, endsAt, rewards: {
+      jeton: n(f.jeton), kristal: n(f.kristal), kalkan: n(f.kalkan), ...(f.kozmetik ? { kozmetik: [f.kozmetik] } : {}),
+      ...(m5 || m60 ? { hizlandirici: { ...(m5 ? { m5 } : {}), ...(m60 ? { m60 } : {}) } } : {}),
+    } });
+    if (r) { toast('✅', `${r.code.code} eklendi`, rewardLine(r.code.rewards), 'green'); setF(EMPTY); load(); }
   };
   const field = (k: keyof typeof f, label: string, o: { type?: string; ph?: string } = {}) => (
     <label className="field"><span>{label}</span><input className="input" data-testid={`panel-${k}`} type={o.type ?? 'text'} inputMode={o.type === 'number' ? 'numeric' : undefined} value={f[k]} placeholder={o.ph} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label>
   );
   return (
-    <Sheet title="Kod paneli" onClose={onClose}>
-      <div className="admin-panel" data-testid="kod-paneli">
-        <div className="muted small-note">Yeni kod oluştur. Her oyuncu bir kez kullanır; sınır ve bitiş isteğe bağlı.</div>
-        {field('code', 'Kod', { ph: 'ör. ODIYAKINDA' })}
-        <div className="panel-grid">{field('jeton', 'Jeton', { type: 'number' })}{field('kristal', 'Kristal', { type: 'number' })}{field('kalkan', 'Kalkan', { type: 'number' })}{field('max', 'En çok kullanım', { type: 'number', ph: 'sınırsız' })}</div>
-        <div className="panel-grid">{field('bitis', 'Bitiş günü', { type: 'date' })}{field('note', 'Başlık', { ph: 'Sürpriz ödül!' })}</div>
-        <button className="btn" data-testid="panel-olustur" disabled={!CODE_PATTERN.test(normalizeCode(f.code))} onClick={() => void create()}>Kodu oluştur</button>
-        {err && <div className="chat-err">{err}</div>}
-        <h3>Kodlar</h3>
-        <div className="code-list" data-testid="panel-liste">
-          {!codes ? <div className="muted">Yükleniyor…</div> : codes.length === 0 ? <div className="muted">Henüz kod yok.</div> : codes.map((c) => (
-            <div key={c.code} className={`code-row${c.active ? '' : ' off'}`} data-testid="panel-kod" data-code={c.code}>
-              <span className="grow min0"><b className="mono ellipsis">{c.code}</b><small className="muted">{rewardLine(c.rewards)} · {c.uses}/{c.maxUses ?? '∞'} · bitiş {fmtDay(c.endsAt)}</small></span>
-              <button className="btn small ghost" onClick={async () => { const r = await act('code.close', { code: c.code, active: !c.active }); if (r) load(); }}>{c.active ? 'Kapat' : 'Aç'}</button>
-            </div>
-          ))}
-        </div>
+    <div className="admin-panel" data-testid="kod-paneli">
+      <div className="muted small-note">Yeni kod oluştur. Her oyuncu bir kez kullanır; sınır ve bitiş isteğe bağlı.</div>
+      {field('code', 'Kod', { ph: 'ör. ODIYAKINDA' })}
+      <div className="panel-grid">{field('jeton', 'Jeton', { type: 'number' })}{field('kristal', 'Kristal', { type: 'number' })}{field('kalkan', 'Kalkan', { type: 'number' })}{field('max', 'En çok kullanım', { type: 'number', ph: 'sınırsız' })}</div>
+      <div className="panel-grid">{field('m5', '5 dk hızlandırıcı', { type: 'number' })}{field('m60', '1 sa hızlandırıcı', { type: 'number' })}
+        <label className="field"><span>Kozmetik</span><select className="input" data-testid="panel-kozmetik" value={f.kozmetik} onChange={(e) => setF({ ...f, kozmetik: e.target.value })}>
+          <option value="">Yok</option>{COSMETICS.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select></label>
       </div>
-    </Sheet>
+      <div className="panel-grid">{field('bitis', 'Bitiş günü', { type: 'date' })}{field('note', 'Başlık', { ph: 'Sürpriz ödül!' })}</div>
+      <button className="btn" data-testid="panel-olustur" disabled={!CODE_PATTERN.test(normalizeCode(f.code))} onClick={() => void create()}>Kodu oluştur</button>
+      {err && <div className="chat-err">{err}</div>}
+      <h3>Kodlar</h3>
+      <div className="code-list" data-testid="panel-liste">
+        {!codes ? <div className="muted">Yükleniyor…</div> : codes.length === 0 ? <div className="muted">Henüz kod yok.</div> : codes.map((c) => (
+          <div key={c.code} className={`code-row${c.active ? '' : ' off'}`} data-testid="panel-kod" data-code={c.code}>
+            <span className="grow min0"><b className="mono ellipsis">{c.code}</b><small className="muted">{rewardLine(c.rewards)} · {c.uses}/{c.maxUses ?? '∞'} · bitiş {fmtDay(c.endsAt)}</small></span>
+            <button className="btn small ghost" onClick={async () => { const r = await act('code.close', { code: c.code, active: !c.active }); if (r) load(); }}>{c.active ? 'Kapat' : 'Aç'}</button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

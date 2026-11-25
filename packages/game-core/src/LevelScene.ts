@@ -140,6 +140,12 @@ export class LevelScene extends Phaser.Scene {
     this.input_ = new TouchInput(this, this.spec.modifiers.includes('ayna'));
     if (this.spec.assist) this.input_.hSwipePx = this.spec.assist.swipePx;
     this.input_.blockZones.push({ hit: (x, y) => this.hud.pauseHit(x, y), onTap: () => this.hud.pressPause() });
+    // ses aç/kapat (1.1.0): kabuk geri çağrı verdiyse düğme görünür; isabeti duraklatınkinden önce denenir (alanları orta çizgide ayrılır)
+    if (this.opts.onSoundToggle) {
+      this.hud.setSound(this.soundOn ?? this.opts.soundOn !== false);
+      this.hud.onSound(() => this.opts.onSoundToggle?.());
+      this.input_.blockZones.unshift({ hit: (x, y) => this.hud.soundHit(x, y), onTap: () => this.hud.pressSound() });
+    }
     // sis/gece örtüsü; Yüksek görünürlükte daha açık (yalnız görsel) ve konturlar örtünün üstünde
     const hv = !!this.opts.highVisibility; const night = this.spec.modifiers.includes('gece');
     if (night || this.spec.modifiers.includes('sis')) this.buildFog(night ? (hv ? 0.6 : 0.96) : (hv ? 0.45 : 0.8));
@@ -689,6 +695,9 @@ export class LevelScene extends Phaser.Scene {
   }
 
   /** harness: duraklat düğmesinin sayfa (CSS px) konumu — mobil dokunuş testleri buraya dokunur */
+  /** göstergedeki ses düğmesinin hâli (kabuk bildirir); gösterge henüz kurulmadıysa kurulunca uygulanır */
+  private soundOn: boolean | null = null;
+  setSoundOn(on: boolean) { this.soundOn = on; if (this.opts?.onSoundToggle && this.hud) this.hud.setSound(on); }
   pauseButtonPage(): { x: number; y: number } { const b = this.scale.canvasBounds; const c = this.hud.pauseCenter(); const k = b.width / this.vw; return { x: b.x + c.x * k, y: b.y + c.y * k }; }
   /** cihaz güvenli alan üst boşluğu → tasarım pikseli (tuval sığdırılıp ortalandığından tuvalin üstündeki boşluk düşülür) */
   private safeTopDesign(): number {

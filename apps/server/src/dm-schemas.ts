@@ -22,7 +22,7 @@ export const FRIEND_SCHEMAS: Record<FriendOp & Op, z.ZodType> = {
   'players.block': z.object({ id }),
   'players.unblock': z.object({ id }),
   'players.blocked': empty,
-  'players.report': z.object({ id, reason: z.enum(['isim', 'taciz', 'diger']) }),
+  'players.report': z.object({ id, reason: z.enum(['isim', 'taciz', 'diger', 'foto']) }),
   'profile.card': z.object({ id }),
   'dm.threads': empty,
   'dm.open': z.object({ id, before: z.number().int().min(1).optional() }),

@@ -9,13 +9,13 @@ vi.mock('../net', () => ({ act: async () => null, toast: () => undefined, reconn
 
 /**
  * Oyuncu testi tur 16 (YN-267): Tüy Dede tanıtım sırası ve "Atla".
- *  (a) Harita dönüş sahnesi sürerken "Bölüm N"e dokunan oyuncunun bölümü başlar; söz verilen tanıtım görülmüş sayılmaz, bölümden
- *      sonra (sonuç ekranı aynı sözü yineler) gelir. Sahneyi geçen dokunuş tanıtımı geciktirmez (OT-ogrenci-birinci-55).
- *  (b) "Atla" ile geçilen tanıtımlar kalıcı kaydedilir: yeni oturumda gelmez; sonraki bölümde açılan YENİ yer yine duyurulur.
+ *  (a) 1.1.0 (sahip isteği): açılım tanıtımı bekliyorken "Bölüm N"e dokunuş bölümü başlatmaz; tanıtım dönüş sahnesi biter bitmez
+ *      gelir, sürerken dokunuş onu bozmaz. Sahneyi geçen dokunuş tanıtımı geciktirmez (OT-ogrenci-birinci-55).
+ *  (b) "Atla" yalnız o tanıtımı geçer ve kalıcı kaydedilir: yeni oturumda gelmez; bekleyen öbürleri sırayla gelir.
  *  (c) Kamp'a ilk girişte Kamp tanıtımı atlanınca bekleyen Kamp Görevleri tanıtımı aynı girişte açılmaz; oyuncunun sonraki dokunuşu
  *      (Liste görünümü) yerine gider (OT-uzman-odyolog-50).
- *  (d) Sonuç ekranının sözü haritanın oynatacağı kuyrukla aynı: "Hedefe ulaştın" kutusu kapanınca söz verilenler sırayla gelir,
- *      söz verilmeyen gelmez (OT-sessiz-oyuncu-35).
+ *  (d) Sonuç ekranının sözü haritanın oynatacağı kuyrukla aynı: "Hedefe ulaştın" kutusu okununca söz verilenler sırayla gelir
+ *      (OT-sessiz-oyuncu-35); bölüm başına sınır yok (1.1.0).
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 if (typeof globalThis.DOMRect === 'undefined') {
@@ -71,39 +71,41 @@ function map(donus: string, onPlay: () => void = () => undefined) {
   return { m, play };
 }
 
-describe('(a) dönüş sahnesi sürerken Bölüm dokunuşu bölümü başlatır, tanıtım bölümden sonra', () => {
-  it('Bölüm 9 sahne sürerken: bölüm başlar, Canlı yarış görülmüş sayılmaz; Bölüm 9 sonucu aynı sözü verir, haritada gelir', async () => {
+describe('(a) açılım tanıtımı bekliyorken Bölüm dokunuşu bölümü başlatmaz, tanıtım hemen gelir', () => {
+  it('Bölüm 9 sahne sürerken: bölüm başlamaz (1.1.0), sahne biter bitmez Canlı yarış gelir; Atla ile geçilince Serbest yazı, sonra bölüm', async () => {
     await at8();
-    const { mapIntroQueue, mapIntroView } = await import('./map-intro'); const { bolumBasliyor } = await import('./Director'); const { useStore } = await import('../store');
+    const { mapIntroQueue } = await import('./map-intro'); const { bolumBasliyor, levelGate } = await import('./Director'); const { useStore } = await import('../store');
+    const { useCoach } = await import('./Coach');
     expect(mapIntroQueue(8, useStore.getState().ftue)).toEqual(['race', 'yazi']);
     await director('result');
     dokun(); // "Haritaya dön"
     let played = 0;
-    const { play } = map('suruyor', () => { played++; });
+    // App.tsx play(): önce bölüm kapısı
+    const { play } = map('suruyor', () => { if (!levelGate('map')) played++; });
     await director('map');
     await tick(300);
     await act(async () => { dokun(play); });
+    expect(played).toBe(0);
+    expect(bolumBasliyor()).toBe(false);
+    expect(await tourId()).toBeNull(); // dönüş sahnesi sürüyor
+    await act(async () => { document.querySelector('.map-screen')!.setAttribute('data-donus', 'bitti'); });
+    await tick(600);
+    expect(await tourId()).toBe('race');
+    // tanıtım sürerken Bölüm dokunuşu tanıtımı bozmaz
+    await act(async () => { dokun(play); });
+    expect(played).toBe(0);
+    expect(await tourId()).toBe('race');
+    // Atla yalnız Canlı yarış'ı geçer; Serbest yazı hemen gelir
+    await act(async () => { useCoach.getState().end(true); });
+    expect(useStore.getState().ftue.tours).toContain('race');
+    expect(useStore.getState().ftue.tours).not.toContain('yazi');
+    await tick(1100);
+    expect(await tourId()).toBe('yazi');
+    await act(async () => { useCoach.getState().end(false); });
+    // hepsi dinlendi ya da atlandı: bölüm başlar
+    await act(async () => { dokun(play); });
     expect(played).toBe(1);
     expect(bolumBasliyor()).toBe(true);
-    // sahne biter, bölüm yüklenirken de tanıtım açılmaz
-    await act(async () => { document.querySelector('.map-screen')!.setAttribute('data-donus', 'bitti'); });
-    await tick(1600);
-    expect(await tourId()).toBeNull();
-    await director('level');
-    await tick(1100);
-    expect(await tourId()).toBeNull();
-    expect(useStore.getState().ftue.tours).not.toContain('race');
-    // Bölüm 9 geçildi: yeni açılan Takım Yarışı ve Günün Sorusu bekleyenlerin arkasında; söz değişmez
-    await player(9, useStore.getState().ftue.tours);
-    const q = mapIntroQueue(9, useStore.getState().ftue);
-    expect(q).toEqual(['race', 'yazi']);
-    expect(mapIntroView(q)?.title).toBe('Yeni: Canlı yarış ve Serbest yazı');
-    await director('result');
-    dokun();
-    map('bitti');
-    await director('map');
-    await tick(1100);
-    expect(await tourId()).toBe('race');
   }, 20_000);
 
   it('sahneyi geçen dokunuş ("Dokun: atla") tanıtımı geciktirmez: sahne biter bitmez gelir', async () => {
@@ -120,26 +122,26 @@ describe('(a) dönüş sahnesi sürerken Bölüm dokunuşu bölümü başlatır,
     expect(await tourId()).toBe('race');
   }, 15_000);
 
-  it('haritada temiz ekranda dokunan oyuncuda yine sakinlik kuralı (sahne dışındaki dokunuş sayılır)', async () => {
+  it('haritada bekleyen açılım tanıtımı dokunuş sakinliği beklemez; yalnız parmak ekrandayken başlamaz', async () => {
     await at8();
     await director('result');
     dokun();
     const { m } = map('bitti');
     await director('map');
     await tick(500);
-    await act(async () => { dokun(m); });
+    await act(async () => { m.dispatchEvent(new Event('pointerdown', { bubbles: true })); });
+    await tick(1600);
+    expect(await tourId()).toBeNull(); // parmak ekranda
+    await act(async () => { m.dispatchEvent(new Event('pointerup', { bubbles: true })); m.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     await tick(1100);
-    expect(await tourId()).toBeNull();
-    await tick(2200);
     expect(await tourId()).toBe('race');
   }, 15_000);
 
-  it('sekme değiştirmeyen tanıtım (Canlı yarış kartı) açılır açılmaz karta düşen dokunuş altındaki Bölüm düğmesine gider', async () => {
+  it('sekme değiştirmeyen tanıtım (Canlı yarış kartı) açılır açılmaz karta düşen dokunuş Bölüm düğmesine geçmez (1.1.0)', async () => {
     screen(); await at8();
-    const { startTour } = await import('./Director'); const { useCoach } = await import('./Coach'); const { useStore } = await import('../store');
-    const { genelUnlockQueue } = await import('./map-intro');
+    const { startTour, levelGate } = await import('./Director'); const { useStore } = await import('../store');
     let played = 0;
-    const { play } = map('bitti', () => { played++; });
+    const { play } = map('bitti', () => { if (!levelGate('map')) played++; });
     await director('map');
     await act(async () => { startTour('race', 'map'); });
     await tick(600);
@@ -147,11 +149,9 @@ describe('(a) dönüş sahnesi sürerken Bölüm dokunuşu bölümü başlatır,
     expect(block).not.toBeNull();
     (document as { elementsFromPoint?: unknown }).elementsFromPoint = () => [block, play];
     await act(async () => { block.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 190, clientY: 730 })); });
-    expect(useCoach.getState().tour).toBeNull();
     await tick(100);
-    expect(played).toBe(1);
-    expect(useStore.getState().ftue.tours).not.toContain('race');
-    expect(genelUnlockQueue(8, useStore.getState().ftue.tours)).toEqual(['race', 'yazi']);
+    expect(played).toBe(0);
+    expect(useStore.getState().ftue.tours).not.toContain('yazi');
   }, 15_000);
 
   it('aynı tanıtımda bir süre sonra karta dokunuş okumadır: tanıtım ilerler (görüldü), bölüm başlamaz', async () => {
@@ -172,19 +172,20 @@ describe('(a) dönüş sahnesi sürerken Bölüm dokunuşu bölümü başlatır,
 });
 
 describe('(b) Atla kalıcı: geçilen tanıtım yeni oturumda gelmez', () => {
-  it('Takım Ligi tanıtımı atlanınca Mağaza ve Takım Akışı da geçilir; kayıt yeniden yüklenince de; Bölüm 7\'de yalnız yeni Etkinlikler', async () => {
+  it('Takım Ligi tanıtımı atlanınca yalnız o geçilir (1.1.0); kayıt yeniden yüklenince de; Mağaza ve Takım Akışı sırayla gelir', async () => {
     screen();
     const { veteranTours } = await import('./features'); const { startTour } = await import('./Director'); const { useCoach } = await import('./Coach');
     const { useStore } = await import('../store'); const { mapIntroQueue } = await import('./map-intro');
     await player(6, veteranTours(5));
-    expect(mapIntroQueue(6, useStore.getState().ftue)).toEqual(['tlig', 'shop']);
+    expect(mapIntroQueue(6, useStore.getState().ftue)).toEqual(['tlig', 'shop', 'akis']);
     map('bitti');
     await director('map');
     await act(async () => { startTour('tlig', 'map'); });
     await tick(500);
     await act(async () => { (document.querySelector('.cp-skip') as HTMLElement).click(); });
     expect(useCoach.getState().tour).toBeNull();
-    for (const id of ['tlig', 'shop', 'akis']) expect(useStore.getState().ftue.tours).toContain(id);
+    expect(useStore.getState().ftue.tours).toContain('tlig');
+    for (const id of ['shop', 'akis']) expect(useStore.getState().ftue.tours).not.toContain(id);
     // yeni oturum: bellek sıfır, kayıt (odi-v1) yeniden yüklenir
     const { platformStorage } = await import('../platform');
     const kayit = await platformStorage.getItem('odi-v1');
@@ -194,14 +195,14 @@ describe('(b) Atla kalıcı: geçilen tanıtım yeni oturumda gelmez', () => {
     await platformStorage.setItem('odi-v1', kayit!);
     await useStore.persist.rehydrate();
     const f = useStore.getState().ftue;
-    for (const id of ['tlig', 'shop', 'akis']) expect(f.tours).toContain(id);
-    expect(mapIntroQueue(6, f)).toEqual([]);
+    expect(f.tours).toContain('tlig');
+    expect(mapIntroQueue(6, f)).toEqual(['shop', 'akis']);
     map('bitti');
     await director('map');
-    await tick(3200);
-    expect(await tourId()).toBeNull();
-    // sonraki bölümde açılan YENİ yer yine duyurulur, atlananlar değil
-    expect(mapIntroQueue(7, f)).toEqual(['events']);
+    await tick(1600);
+    expect(await tourId()).toBe('shop');
+    // sonraki bölümde açılan yer bekleyenlerin arkasında; atlanan gelmez
+    expect(mapIntroQueue(7, f)).toEqual(['shop', 'akis', 'events']);
   }, 20_000);
 });
 
@@ -237,7 +238,7 @@ describe('(c) Kamp\'ta Kamp tanıtımı atlanınca Kamp Görevleri aynı girişt
   it('Kamp Görevleri atlanınca yalnız kamp dizisi geçilir; harita tanıtımında Atla kamp turlarını geçmez', async () => {
     const { pendingTours } = await import('./Director');
     const seen = ['result1', 'map', 'today', 'camp', 'camp-build'];
-    expect(pendingTours('camp', 4, ['result1', 'map', 'today'])).toEqual(expect.arrayContaining(['camp-build', 'friends', 'glossary', 'gorev']));
+    expect(pendingTours('camp', 4, ['result1', 'map', 'today'])).toEqual(['camp-build', 'gorev']); // açılım tanıtımları tek tek (1.1.0)
     expect(pendingTours('camp-build', 7, seen)).toContain('gorev');
     expect(pendingTours('friends', 7, seen)).not.toContain('gorev');
     expect(pendingTours('gorev', 7, seen)).toEqual(['kampoyun', 'vaka']);
@@ -270,27 +271,27 @@ describe('(d) sonuç ekranının sözü haritada birebir', () => {
     for (const id of q) expect(useStore.getState().ftue.tours).toContain(id);
   }, 20_000);
 
-  it('söz verilmeyen (bu geçişin sınırını aşan) tanıtım haritada gelmez; bir sonraki sonuç onu söz verir', async () => {
+  it('sınır yok (1.1.0): bekleyen eski tanıtım ve bu geçişin hepsi sözde, haritada sırayla gelir', async () => {
     const { veteranTours } = await import('./features'); const { useStore } = await import('../store'); const { useCoach } = await import('./Coach');
     const { mapIntroQueue } = await import('./map-intro');
-    // Takım Akışı Bölüm 6'dan beri bekliyor: önce o, sonra Canlı yarış; Serbest yazı sınırın dışında
+    // Takım Akışı Bölüm 6'dan beri bekliyor: önce o, sonra Canlı yarış ve Serbest yazı
     await player(8, veteranTours(7).filter((id) => id !== 'akis'));
     const q = mapIntroQueue(8, useStore.getState().ftue);
-    expect(q).toEqual(['akis', 'race']);
+    expect(q).toEqual(['akis', 'race', 'yazi']);
     await director('result');
     dokun();
     map('bitti');
     await director('map');
     await tick(1100);
     expect(await tourId()).toBe('akis');
-    await act(async () => { useCoach.getState().end(false); });
-    await tick(1100);
-    expect(await tourId()).toBe('race');
+    for (const id of ['race', 'yazi']) {
+      await act(async () => { useCoach.getState().end(false); });
+      await tick(1100);
+      expect(await tourId()).toBe(id);
+    }
     await act(async () => { useCoach.getState().end(false); });
     await tick(3200);
     expect(await tourId()).toBeNull();
-    expect(useStore.getState().ftue.tours).not.toContain('yazi');
-    await player(9, useStore.getState().ftue.tours);
-    expect(mapIntroQueue(9, useStore.getState().ftue)[0]).toBe('yazi');
+    for (const id of q) expect(useStore.getState().ftue.tours).toContain(id);
   }, 25_000);
 });

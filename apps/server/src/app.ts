@@ -48,6 +48,8 @@ export interface ServerConfig {
   backupHours?: number;
   /** tutulacak yedek sayısı (ODI_BACKUP_KEEP, varsayılan 28 = 6 saatte bir 7 gün) */
   backupKeep?: number;
+  /** mağazadaki son sürüm (ODI_SON_SURUM_IOS / ODI_SON_SURUM_ANDROID; GET /surum, açılıştaki güncelleme sorusu). Yoksa alan yok. */
+  sonSurum?: { ios?: string; android?: string };
 }
 
 export class OdiError extends Error {
@@ -178,7 +180,10 @@ export class App {
 
   publicProfile(p: PlayerRow): PublicProfile {
     const t = p.team_id ? this.team(p.team_id) : null;
+    // profil fotoğrafı (1.1.0, foto.ts): görünür olanın sürümü
+    const photo = this.db.get<{ version: number }>('SELECT version FROM player_photos WHERE player_id = ? AND hidden = 0', p.id)?.version;
     return {
+      ...(photo ? { photo } : {}),
       id: p.id, name: p.name, color: p.color, hat: p.hat, level: levelFromXp(p.xp), highest: p.highest, stars: p.stars,
       teamId: t?.id ?? null, teamName: t?.name ?? null, teamEmblem: t?.emblem ?? null, league: p.league_tier,
       online: this.online.has(p.id), lastSeen: this.online.has(p.id) ? this.now() : p.last_seen,

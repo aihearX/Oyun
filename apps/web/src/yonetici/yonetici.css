@@ -1,0 +1,23 @@
+/* Profil › Admin (1.1.0): yalnız yönetici hesabı */
+.yn .yn-tabs { display:flex; flex-wrap:wrap; gap:6px; }
+.yn .yn-tabs button { appearance:none; border:2px solid rgba(255,255,255,.12); background:rgba(5,2,20,.4); color:var(--text-2); font:inherit; font-weight:900; font-size:0.8125rem; padding:6px 12px; min-height:38px; border-radius:999px; cursor:pointer; }
+.yn .yn-tabs button.on { background:linear-gradient(180deg,#a993ff,var(--violet)); color:#fff; border-color:transparent; }
+.yn-sec { display:flex; flex-direction:column; gap:10px; min-width:0; }
+.yn-list { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.yn-row { appearance:none; font:inherit; color:inherit; text-align:left; display:flex; align-items:center; gap:10px; min-width:0; width:100%; padding:8px 10px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); cursor:pointer; }
+.yn-row small { display:block; font-size:0.71875rem; line-height:1.35; overflow-wrap:anywhere; }
+.yn-row b { display:block; }
+.yn-on { color:#8ef0b0; font-weight:800; }
+.yn-msg { display:flex; flex-direction:column; gap:2px; min-width:0; padding:8px 10px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); }
+.yn-msg small { font-size:0.71875rem; }
+.yn-text { white-space:pre-wrap; overflow-wrap:anywhere; }
+.yn-detail { display:flex; flex-direction:column; gap:6px; min-width:0; }
+.yn-detail .row { gap:12px; align-items:center; }
+.yn-kv { display:flex; justify-content:space-between; gap:10px; font-size:0.8125rem; min-width:0; }
+.yn-kv b { text-align:right; overflow-wrap:anywhere; }
+.yn-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+.yn-photos { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; }
+.yn-photo { display:flex; flex-direction:column; gap:4px; min-width:0; padding:8px; border-radius:14px; background:rgba(5,2,20,.3); border:1.5px solid var(--panel-edge); }
+.yn-photo.gizli { border-color:rgba(255,92,138,.6); }
+.yn-photo .row { gap:6px; flex-wrap:wrap; }
+.yn-img { width:100%; aspect-ratio:1; border-radius:12px; object-fit:cover; background:rgba(255,255,255,.06); display:block; }

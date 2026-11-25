@@ -27,11 +27,13 @@ export const KANAL_CHUNKS: ChunkSpec[] = [
   chunk('kn-serumen-tepe', 'kosu', 1, 1000, [ground(0, 1000), block(260, G - 50, 120, 50), block(520, G - 90, 140, 90), sticky(780, 56), ...coins(270, G - 100, 3, 40), ...coins(530, G - 140, 3, 40), ...coins(760, G - 140, 3, 36, 20), damla(120), secret(590, G - 260), plat(540, G - 190, 100)], { tags: ['platform', 'yapiskan'], biomes: [...B] }),
   chunk('kn-akinti', 'kosu', 2, 1200, [ground(0, 280), moving(300, G - 20, 120, 200, 0, 3000), ground(640, 140), moving(800, G - 60, 110, 0, -120, 2600, 0.6), ground(960, 240), sticky(1080, 56), ...coins(320, G - 70, 4, 44), ...coins(660, G - 60, 3, 40), ...coins(810, G - 180, 3, 36), secret(860, G - 300), damla(700)], { tags: ['hareketli', 'yapiskan'], biomes: [...B] }),
   chunk('kn-cift-kuyu', 'kosu', 3, 1500, [ground(0, 60), ground(170, 1330), ...shaft(160, 280), ...shaft(700, 330), ...coins(500, G - 330, 3, 40), ...coins(1040, G - 380, 3, 40), plat(700, G - 560, 100), wall(660, G - 680, 120), secret(740, G - 600), sticky(1300, 56)], { tags: ['duvar'], biomes: [...B], needs: ['duvar'] }),
-  // gösteri: Serumen Bacası — üç katlı duvar bacası, damlalar, tepede nota yağmuru ve rüzgârla iniş
+  // gösteri: Serumen Bacası — üç katlı duvar bacası, damlalar, tepede nota yağmuru ve rüzgârla iniş. 1.1.0: fırlatıcı kahramanı
+  // doğrudan serumenin üstüne indiriyordu (havada kaçış yok, sahip bildirimi); serumen yayın altında, iniş yeri boş, sonraki serumene
+  // tepki payı var; girişte ve bacadan inişten sonra birer zıplama (ölü yol 4 sn altında)
   chunk('kn-sp-baca', 'kosu', 3, 1700, [
-    ground(0, 1700), wall(240, G - 820, 730), wall(420, G - 640, 640), plat(460, G - 640, 220), ...coinCol(330, G - 140, 9, 60),
+    ground(0, 1700), sticky(110, 40), wall(240, G - 820, 730), wall(420, G - 640, 640), plat(460, G - 640, 220), ...coinCol(330, G - 140, 9, 60),
     hazard(560, G - 760, 70, 60, 'serumen', { dx: 0, dy: 40, period: 1600 }), ...coins(480, G - 690, 5, 40), collect(640, G - 700), plat(140, G - 820, 100), wall(100, G - 940, 160), secret(180, G - 860),
-    sticky(820, 56), launcher(1050, G, 300, -700), ...launchArc(1050, 300, -700, 6), damla(900, 1.3), sticky(1250, 56), sticky(1450, 56), ...coins(1430, G - 140, 3, 36, 20),
+    sticky(1000, 40), launcher(1110, G, 300, -700), ...launchArc(1110, 300, -700, 6), damla(900, 1.3), sticky(1190, 56), sticky(1500, 56), ...coins(1480, G - 140, 3, 36, 20),
   ], { tags: ['gosteri', 'duvar'], biomes: [...B], setPiece: true, needs: ['duvar'] }),
   // ---- tırmanış odaları (6-10 duvar zıplaması): uzun baca, baca boyunca nota sütunu, sol duvarın tepesinde koklea rafı
   // (sağ duvarın tepesinden çıkmadan önce bir kez daha sola sıçrayan görür), çıkışta nota yağmurlu iniş

@@ -54,7 +54,7 @@ export function TeammateCall({ joined, text, meta, label, sheetTitle, note, test
           <div className="muted small-note">{note}</div>
           {list.map((m) => { const on = online(m); return (
             <div key={m.id} className="ev-pass" data-testid="cagir-uye" data-online={on ? '1' : '0'}>
-              <OdiAvatar color={m.color} hat={m.hat} size={36} />
+              <OdiAvatar color={m.color} hat={m.hat} size={36} pid={m.id} />
               <span className="grow min0 ev-call-who"><b className="ellipsis">{m.name}</b><small className="muted"><span className={`ev-dot${on ? ' on' : ''}`} role="img" aria-label={on ? 'çevrimiçi' : 'çevrimdışı'} /> {seenLine(on, m.lastSeen, now)}</small></span>
               {sent[m.id] === 'ok' ? <span className="ev-tag">Gönderildi <Icon name="check" size="1.1em" className="ic-inline" /></span> : <button className="btn small" aria-label={`${m.name} çağır`} onClick={() => void call(m.id)}>Çağır</button>}
               {sent[m.id] && sent[m.id] !== 'ok' && <small className="ev-note" style={{ flexBasis: '100%' }}>{sent[m.id]}</small>}

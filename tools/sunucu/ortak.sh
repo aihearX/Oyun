@@ -288,6 +288,8 @@ env_icerigi() { # $1 = özet satırının değeri (deneme modunda yer tutucu)
 # ODİ sosyal sunucusu ayarları: tools/sunucu/kur.sh yazdı (docs/18-sunucu-kurulum.md).
 # İzin 0600 root:root: systemd bu dosyayı root olarak okuyup servise verir; odi kullanıcısı dosyayı okuyamaz.
 # Elle değiştirince: sudo systemctl restart odi
+# Mağazadaki son sürüm (GET /surum, açılıştaki güncelleme sorusu): her yayında elle ekleyin/değiştirin, ör.
+# ODI_SON_SURUM_IOS=1.1.0 ve ODI_SON_SURUM_ANDROID=1.1.0 (yoksa soru çıkmaz). Elle eklenen satırlar kur.sh'te korunur.
 NODE_ENV=production
 HOST=$ODI_HOST
 PORT=$ODI_PORT
@@ -457,6 +459,21 @@ $1 {
 		request_body {
 			max_size 4KB
 		}
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
+	# Açılıştaki güncelleme sorusu (1.1.0): mağazadaki son sürüm (GET /surum; ODI_SON_SURUM_IOS / ODI_SON_SURUM_ANDROID). Kişisel veri yok.
+	handle /surum {
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
+	# Profil fotoğrafı (1.1.0): yükleme POST /foto (oturum anahtarıyla; gövde en çok 128 KB, sunucu ayrıca 80 KB JPEG ile sınırlar),
+	# herkese açık okuma GET /foto/<oyuncu>.jpg?v=<sürüm> (sürümlü adres, uzun önbellek). Erişim günlüğü (log) yok.
+	handle /foto {
+		request_body {
+			max_size 128KB
+		}
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
+	handle /foto/* {
 		reverse_proxy $ODI_HOST:$ODI_PORT
 	}
 

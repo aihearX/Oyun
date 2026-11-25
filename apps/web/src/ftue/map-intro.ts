@@ -13,9 +13,9 @@ import { FEATURES, featureById, type FeatureId, type FtueState } from './feature
  */
 
 /**
- * Anlatıcı yükü: bir bölüm geçişinden sonra en çok bu kadar açılım turu art arda gelir; fazlası bir sonraki bölüme kalır
- * (6. bölümde 3, kampa dönüşte 3 tur birikiyordu — docs/yonetim/is-listesi.md MK-007). Hikâye, sonuç, harita ve kamp
- * öğreticisi bu sayıya girmez. Sayaç bellektedir: uygulama yeniden açılınca sıfırlanır (bekleyen turlar kaybolmaz).
+ * Kamp içi anlatıcı yükü: bir bölüm geçişinden sonra kampta en çok bu kadar kamp turu art arda gelir; fazlası bir sonraki bölüme
+ * kalır (MK-007). Haritadaki genel açılım turlarında sınır yok (1.1.0, sahip isteği): açılan her yer anlatılır, anlatım bitmeden ya da
+ * "Atla"ya basılmadan sonraki bölüme girilmez (Director.tsx levelGate). Sayaç bellektedir: uygulama yeniden açılınca sıfırlanır.
  */
 export const MAX_UNLOCK_TOURS_PER_LEVEL = 2;
 /** kamp turları yalnız kampta başlar (oyuncu kampa girince; başka bir akışı bölmez). `vaka-kur`: klinik kurulmamışken Hasta Vakaları
@@ -37,27 +37,29 @@ export function countUnlockTour(id: string, cleared: number, tally: UnlockTally 
 export const groupFull = (id: string, cleared: number, tally: UnlockTally = unlockTally) => tally.cleared === cleared && tally[groupOf(id)] >= MAX_UNLOCK_TOURS_PER_LEVEL;
 
 /**
- * sekme ekranlarında (harita dahil) sırayla başlayacak genel açılım turları; bu geçişin sınırı kadar. Önce daha önce açılmış (bekleyen)
- * yerler: bir bölüm önce söz verilip anlatılamayan (oyuncu bölüme geçti) tanıtım, yeni açılan yerin arkasına düşmez, sonuç ekranı aynı
- * sözü yineler (OT-sessiz-oyuncu-35: Bölüm 8 "Canlı yarış ve Serbest yazı" dedi, Bölüm 9 "Takım Yarışı ve Canlı yarış")
+ * sekme ekranlarında (harita dahil) sırayla başlayacak genel açılım turları; hepsi (sınır yok, hiçbiri düşmez). Önce daha önce açılmış
+ * (bekleyen) yerler: bir bölüm önce söz verilip anlatılamayan tanıtım, yeni açılan yerin arkasına düşmez, sonuç ekranı aynı sözü yineler
+ * (OT-sessiz-oyuncu-35). Daha önce görülmüş ya da atlanmış olan gelmez; hiç anlatılmamış açık yer (eski oyuncu) bir kez gelir.
  */
-export function genelUnlockQueue(cleared: number, done: readonly string[], tally: UnlockTally = unlockTally): FeatureId[] {
-  const used = tally.cleared === cleared ? tally.genel : 0;
-  const out = FEATURES.filter((f) => f.tour && groupOf(f.id) === 'genel' && cleared >= f.at && !done.includes(f.id)).sort((a, b) => a.at - b.at).map((f) => f.id);
-  return out.slice(0, Math.max(0, MAX_UNLOCK_TOURS_PER_LEVEL - used));
+export function genelUnlockQueue(cleared: number, done: readonly string[]): FeatureId[] {
+  return FEATURES.filter((f) => f.tour && groupOf(f.id) === 'genel' && cleared >= f.at && !done.includes(f.id)).sort((a, b) => a.at - b.at).map((f) => f.id);
+}
+/** bölüm başlatma kapısı: haritada anlatılmayı bekleyen açılım tanıtımı var mı (test atlaması ve yönetici kipinde yok) */
+export function unlockIntroPending(cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>): boolean {
+  return !ftue.bypass && !ftue.admin && cleared >= 1 && genelUnlockQueue(cleared, ftue.tours).length > 0;
 }
 
 /**
  * Haritaya şimdi gelinirse kendiliğinden başlayacak turlar, başlama sırasıyla: önce harita turu (1. bölümden sonra bir kez),
- * sonra açılım turları (bölüm başına sınırla). Kamp turları ve kamp öğreticisi burada yok: onlar yalnız kampta başlar.
+ * sonra açılım turları (hepsi). Kamp turları ve kamp öğreticisi burada yok: onlar yalnız kampta başlar.
  * Test atlaması ve yönetici kipinde tur yoktur → boş.
  */
-export function mapIntroQueue(cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>, tally: UnlockTally = unlockTally): string[] {
+export function mapIntroQueue(cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>): string[] {
   if (ftue.bypass || ftue.admin || cleared < 1) return [];
-  return [...(ftue.tours.includes('map') ? [] : ['map']), ...genelUnlockQueue(cleared, ftue.tours, tally)];
+  return [...(ftue.tours.includes('map') ? [] : ['map']), ...genelUnlockQueue(cleared, ftue.tours)];
 }
 /** sonuç ekranının sorusu: haritada Tüy Dede'nin anlatacağı bir şey bekliyor mu */
-export const mapIntroPending = (cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>, tally: UnlockTally = unlockTally) => mapIntroQueue(cleared, ftue, tally).length > 0;
+export const mapIntroPending = (cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>) => mapIntroQueue(cleared, ftue).length > 0;
 
 /** sonuç ekranında kısa ad (uzun özellik adı yerine; "X ve Y" birleşimi) */
 const SHORT: Partial<Record<FeatureId, string>> = { friends: 'Arkadaşlar', shop: 'Mağaza', race: 'Canlı yarış', akis: 'Takım Akışı', tyaris: 'Takım Yarışı' };
@@ -99,7 +101,7 @@ function revealView(r: MapReveal, tour: string): MapIntroView {
 /** sonuç ekranındaki dürüst satır ve düğme: neyin beklediği (emoji yok); haritada kutlama bekliyorsa önce o söylenir */
 export interface MapIntroView { art: ArtName; title: string; note: string; button: string }
 export function mapIntroView(queue: readonly string[], reveal?: MapReveal | null): MapIntroView | null {
-  const ids = queue.filter((id): id is FeatureId => FEATURES.some((f) => f.id === id)); const names = ids.map(tourShortName).join(' ve ');
+  const ids = queue.filter((id): id is FeatureId => FEATURES.some((f) => f.id === id)); const names = andJoin(ids.map(tourShortName));
   if (reveal) return revealView(reveal, queue[0] === 'map' ? 'Tüy Dede de yolunu gösterecek.' : ids.length ? `Tüy Dede de anlatacak: ${names}.` : '');
   const first = queue[0]; if (!first) return null;
   if (first === 'map') return { art: 'map', title: 'Tüy Dede’nin anlatacakları var', note: 'Haritada yolunu gösterecek.', button: 'Haritaya git' };

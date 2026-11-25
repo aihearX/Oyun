@@ -61,6 +61,18 @@ const pauseTex = (s: Phaser.Scene) => T(s, 'hud-pause', 56, 56, (ctx) => {
   ctx.save(); ctx.beginPath(); ctx.arc(28, 27, 19, 0, Math.PI * 2); ctx.clip(); const sh = ctx.createLinearGradient(0, 7, 0, 27); sh.addColorStop(0, 'rgba(255,255,255,0.18)'); sh.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = sh; ctx.fillRect(0, 0, 56, 27); ctx.restore();
   for (const x of [21.5, 30.5]) { ctx.beginPath(); ctx.roundRect(x, 18, 4.5, 18, 2.2); const b = ctx.createLinearGradient(0, 18, 0, 36); b.addColorStop(0, '#fff3b0'); b.addColorStop(1, css(THEME.gold)); ctx.fillStyle = b; ctx.fill(); }
 });
+/** ses aç/kapat düğmesi (1.1.0): duraklat düğmesinin altında, ondan küçük; açıkken dalgalar, kapalıyken pembe çarpı */
+const soundTex = (s: Phaser.Scene, on: boolean) => T(s, `hud-ses-${on ? 1 : 0}`, 44, 44, (ctx) => {
+  ctx.save(); ctx.shadowColor = 'rgba(5,0,25,0.55)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2; ctx.beginPath(); ctx.arc(22, 21, 15, 0, Math.PI * 2);
+  const g = ctx.createLinearGradient(0, 6, 0, 36); g.addColorStop(0, css(0x3a2788, 0.92)); g.addColorStop(1, css(0x1a1046, 0.94)); ctx.fillStyle = g; ctx.fill(); ctx.restore();
+  ctx.beginPath(); ctx.arc(22, 21, 14.3, 0, Math.PI * 2); ctx.strokeStyle = css(THEME.gold, 0.6); ctx.lineWidth = 1.3; ctx.stroke();
+  // hoparlör gövdesi (altın)
+  ctx.beginPath(); ctx.moveTo(12.5, 18); ctx.lineTo(16, 18); ctx.lineTo(20.5, 14); ctx.lineTo(20.5, 28); ctx.lineTo(16, 24); ctx.lineTo(12.5, 24); ctx.closePath();
+  const b = ctx.createLinearGradient(0, 14, 0, 28); b.addColorStop(0, '#fff3b0'); b.addColorStop(1, css(THEME.gold)); ctx.fillStyle = b; ctx.fill();
+  ctx.lineCap = 'round'; ctx.lineWidth = 2;
+  if (on) { ctx.strokeStyle = '#2ee6d6'; ctx.beginPath(); ctx.arc(21, 21, 4.5, -0.8, 0.8); ctx.stroke(); ctx.beginPath(); ctx.arc(21, 21, 8.2, -0.85, 0.85); ctx.stroke(); }
+  else { ctx.strokeStyle = '#ff5c8a'; ctx.beginPath(); ctx.moveTo(24, 17.5); ctx.lineTo(31, 24.5); ctx.moveTo(31, 17.5); ctx.lineTo(24, 24.5); ctx.stroke(); }
+});
 const barTrackTex = (s: Phaser.Scene) => T(s, 'hud-track', 64, 16, (ctx) => {
   ctx.beginPath(); ctx.roundRect(1, 2, 62, 12, 6); ctx.fillStyle = css(0x120a36, 0.82); ctx.fill(); ctx.strokeStyle = css(THEME.gold, 0.45); ctx.lineWidth = 1.2; ctx.stroke();
   ctx.beginPath(); ctx.roundRect(3, 4, 58, 3, 1.5); ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
@@ -167,6 +179,8 @@ export class LevelHud {
   /** can yuvası sayısı: bölümde görülen en yüksek can (en az 3, en çok 5); Rahat denemenin fazladan canı hasardan sonra boş yuva olarak kalır (OT-ilk-kez-oyun-49) */
   private slots = 3; private heartK = 1;
   private pause: Phaser.GameObjects.Image; private pauseCb: (() => void) | null = null;
+  /** ses aç/kapat (1.1.0): kabuk geri çağrı verdiyse görünür (setSound); null = gizli, ilerleme çubuğu tam genişlik */
+  private snd: Phaser.GameObjects.Image; private sndCb: (() => void) | null = null; private sndOn: boolean | null = null;
   private bar: Phaser.GameObjects.Container; private track: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private fill: Phaser.GameObjects.NineSlice | Phaser.GameObjects.Image; private head: Phaser.GameObjects.Image; private headDot: Phaser.GameObjects.Arc; private flag: Phaser.GameObjects.Image;
   private ticks: { pct: number; off: Phaser.GameObjects.Image; on: Phaser.GameObjects.Image }[] = []; private ghosts = new Map<string, Phaser.GameObjects.Container>();
   private combo: Phaser.GameObjects.Container; private comboBg: Phaser.GameObjects.Image; private comboMult: Phaser.GameObjects.Text; private comboCount: Phaser.GameObjects.Text; private comboShown = false; private comboW = 96;
@@ -216,6 +230,7 @@ export class LevelHud {
     // duraklat: isabet testi oyunun girdi katmanında yapılır (pauseHit) — Phaser'ın kaydırma-çarpanı 0 + yakınlaştırılmış kamera
     // altındaki etkileşim eşlemesine güvenilmez (telefonda DPR > 1); dokunuş asla zıplama olarak da sayılmaz
     this.pause = I(s, pauseTex(s));
+    this.snd = I(s, soundTex(s, true)).setVisible(false);
     // ilerleme çubuğu
     this.bar = s.add.container(0, 0);
     const RR = R(); const gl = !!(s.sys.renderer as { gl?: unknown }).gl;
@@ -230,7 +245,7 @@ export class LevelHud {
     this.comboMult = s.add.text(0, -2, '×2', { fontFamily: FONT, fontSize: `${Math.round(26 * ts)}px`, fontStyle: '900', color: '#ffc93c', stroke: '#140c35', strokeThickness: 5, resolution: R() }).setOrigin(0, 0.5);
     this.comboCount = s.add.text(0, -2, 'Seri 12', { fontFamily: FONT, fontSize: `${Math.round(16 * ts)}px`, fontStyle: '900', color: '#fff6e5', stroke: '#140c35', strokeThickness: 4, resolution: R() }).setOrigin(0, 0.5);
     this.combo = s.add.container(0, 0, [this.comboBg, this.comboMult, this.comboCount]).setAlpha(0);
-    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerLabel, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.shieldPanel, this.shieldIco, this.shieldText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.bar, this.combo]);
+    this.root.add([this.notesPanel, this.noteIco, this.notesText, this.notesTotal, this.cochPanel, ...this.coch, ...this.cochOn, this.cochText, this.timerPanel, this.timerIco, this.timerLabel, this.timerText, this.escPanel, this.escIco, this.escText, this.modPanel, this.modText, this.melPanel, this.melIco, this.melText, this.shieldPanel, this.shieldIco, this.shieldText, this.livesPanel, ...this.heartsOff, ...this.hearts, this.pause, this.snd, this.bar, this.combo]);
     this.root.setScrollFactor(0, 0, true);
     this.layout(); this.setNotes(0, 0); this.setCochleas(0); this.setLives(3); this.setProgress(0);
   }
@@ -243,10 +258,12 @@ export class LevelHud {
     const t = this.top / this.k + 10; const W = this.iw;
     this.notesPanel.setPosition(4, t - 6); this.noteIco.setPosition(30, t + 20); this.notesText.setPosition(46, t + 19); this.positionTotal();
     this.pause.setPosition(W - 32, t + 19);
+    this.snd.setPosition(W - 32, t + 55);
     this.placeHearts();
     this.fitTop();
     this.timerPanel.setPosition(W / 2, t + 88); this.placeTimer(); this.escPanel.y = t + 88; this.placeEscort(); this.placeRow2();
-    this.barX = 18; this.barW = W - 36; this.barY = t + 58;
+    // ses düğmesi görünürken çubuk onun soluna kadar (düğme çubuğun sağ ucunun hizasında)
+    this.barX = 18; this.barW = W - 36 - (this.sndOn != null ? 36 : 0); this.barY = t + 58;
     this.bar.setPosition(this.barX, this.barY);
     this.setW(this.track, this.barW, 16); this.flag.setPosition(this.barW - 2, -3);
     for (const k of this.ticks) { k.off.setPosition(k.pct * this.barW, 0); k.on.setPosition(k.pct * this.barW, 0); }
@@ -567,6 +584,21 @@ export class LevelHud {
   pauseHit(x: number, y: number): boolean { const px = this.pause.x * this.k, py = this.pause.y * this.k; return Math.hypot(x - px, y - py) <= 34 * this.k; }
   /** duraklat düğmesine basıldı: küçük basılma animasyonu + geri çağrı */
   pressPause() { this.scene.tweens.killTweensOf(this.pause); this.pause.setScale(1 / R()); this.scene.tweens.add({ targets: this.pause, scale: 0.88 / R(), duration: 70, yoyo: true }); this.pauseCb?.(); }
+  /** ses düğmesi: on = sesler açık mı; null düğmeyi gizler. Görünürlük değişince çubuk yeniden yerleşir. */
+  setSound(on: boolean | null) {
+    const shownBefore = this.sndOn != null; this.sndOn = on;
+    if (on != null) this.snd.setTexture(soundTex(this.scene, on));
+    this.snd.setVisible(on != null);
+    if (shownBefore !== (on != null)) this.layout();
+  }
+  onSound(cb: () => void) { this.sndCb = cb; }
+  /** ses düğmesi isabeti: 26 px yarıçap; üst sınırı duraklat düğmesiyle arasındaki orta çizgi (iki düğmenin alanı çakışmaz) */
+  soundHit(x: number, y: number): boolean {
+    if (this.sndOn == null) return false;
+    const sx = this.snd.x * this.k, sy = this.snd.y * this.k, mid = ((this.pause.y + this.snd.y) / 2) * this.k;
+    return y >= mid && Math.hypot(x - sx, y - sy) <= 26 * this.k;
+  }
+  pressSound() { if (this.sndOn == null) return; this.scene.tweens.killTweensOf(this.snd); this.snd.setScale(1 / R()); this.scene.tweens.add({ targets: this.snd, scale: 0.86 / R(), duration: 70, yoyo: true }); this.sndCb?.(); }
 
   /**
    * alt-orta bilgi şeridi: koyu cam üstünde krem yazı (bölüm girişi, faz uyarıları). Boş metin gizler. now: geçişsiz — eski yazı

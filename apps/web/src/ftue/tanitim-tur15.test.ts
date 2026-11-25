@@ -11,8 +11,8 @@ vi.mock('../net', () => ({ act: async () => null, toast: () => undefined, reconn
 
 /**
  * Oyuncu testi tur 15 (YN-253, YN-263, YN-259): Tüy Dede tanıtımları.
- *  - Harita'da "Bölüm N"e uzanırken açılan tanıtım: açılır açılmaz gelen dokunuş balona ya da "Yeni yer açıldı" kartına düşse de
- *    altındaki bölüm düğmesine sayılır; tanıtım görülmüş sayılmadan çekilir, bölüm başlar, tanıtım sonra yeniden gelir (OT-ogrenci-birinci-53).
+ *  - Harita'da "Bölüm N"e uzanırken açılan tanıtım: balona ya da karta düşen dokunuş altındaki bölüm düğmesine geçmez; açılım
+ *    tanıtımı dinlenmeden ya da atlanmadan bölüm başlamaz (1.1.0, sahip isteği; eskiden OT-ogrenci-birinci-53 tanıtımı çekiyordu).
  *  - Ekranda içerik yokken ("İnternet yok", bağlanılamadı kartı, yükleniyor) tanıtım başlamaz, süren tur duraklar; içerik gelince sürer
  *    (OT-eski-telefon-44). Kamp öğreticisinde internetsiz Kur: balon dürüst not verir, el gizlenir (OT-eski-telefon-45).
  *  - Görevler › Git (depo): bina gösterilir, oyuncu oraya giderken tanıtım ve anıt kartı bekler (OT-ilk-kez-oyun-74).
@@ -55,8 +55,8 @@ async function at5() {
   useStore.setState({ ftue: { v: 1, story: true, tours: ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team'] }, progress: progress as never });
 }
 
-describe('bölüme uzanırken açılan tanıtım dokunuşu yutmaz (OT-ogrenci-birinci-53)', () => {
-  it('tur açılışından 200 ms sonra balona düşen dokunuş altındaki "Bölüm 6"yı başlatır; tanıtım görülmüş sayılmaz, sonra yeniden gelir', async () => {
+describe('bölüme uzanırken açılan açılım tanıtımı sürer (1.1.0)', () => {
+  it('tur açılışından 200 ms sonra balona düşen dokunuş "Bölüm 6"ya geçmez (1.1.0): tanıtım sürer, bölüm başlamaz', async () => {
     screen(); await at5();
     const { startTour } = await import('./Director'); const { CoachHost, useCoach } = await import('./Coach'); const { useStore } = await import('../store');
     const { genelUnlockQueue } = await import('./map-intro');
@@ -71,12 +71,10 @@ describe('bölüme uzanırken açılan tanıtım dokunuşu yutmaz (OT-ogrenci-bi
     expect(panel).not.toBeNull();
     (document as { elementsFromPoint?: unknown }).elementsFromPoint = () => [panel, panel.parentElement, play];
     await act(async () => { panel.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 160, clientY: 450 })); });
-    expect(useCoach.getState().tour).toBeNull();
-    expect(useStore.getState().ftue.tours).not.toContain('siralama');
     await tick(100);
-    expect(played).toBe(1);
-    // bölümden sonra yeniden sırada (anlatıcı yükü sayacı geri alındı)
-    expect(genelUnlockQueue(5, useStore.getState().ftue.tours)).toEqual(['siralama']);
+    expect(useCoach.getState().tour?.id).toBe('siralama');
+    expect(played).toBe(0);
+    expect(useStore.getState().ftue.tours).not.toContain('siralama');
   });
   it('tanıtım bir süredir açıkken balona dokunuş bölüm başlatmaz (oyuncu tanıtımı okuyor)', async () => {
     screen(); await at5();

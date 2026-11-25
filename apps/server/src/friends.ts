@@ -4,6 +4,7 @@ import {
 import { fail, parseJson, rid, type App, type Handlers, type PlayerRow } from './app';
 import { recentRivalIds } from './race';
 import { dayKey, DAY_MS } from './time';
+import { reportPhoto } from './foto';
 
 /**
  * Arkadaşlık: istek → kabul. Eski 'friends.add' {code} istek gönderir; iki taraf da birbirine istek attıysa anında arkadaş olurlar.
@@ -301,6 +302,8 @@ export const friendHandlers: Handlers = {
   'players.report': (app, s, { id, reason }) => {
     if (id === s.pid) fail('GECERSIZ', 'Kendini şikâyet edemezsin.');
     if (!app.playerOrNull(id)) fail('YOK', 'Oyuncu bulunamadı.');
+    // fotoğraf şikâyeti (1.1.0, foto.ts): eşikte fotoğraf gizlenir; sohbet susturması yok
+    if (reason === 'foto') { reportPhoto(app, s.pid, id); return {}; }
     addReport(app, id, s.pid, '', reason);
     return {};
   },

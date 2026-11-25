@@ -56,7 +56,7 @@ function DuoCard() {
         <div className="duo-pair">
           {a.members.map((m, i) => (
             <div key={m.id} className="dp-m" style={{ order: i * 2 }}>
-              <button type="button" className="fc-av" onClick={() => m.id !== me?.id && openProfile(m.id)} aria-label={`${m.name} profili`}><OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} /></button>
+              <button type="button" className="fc-av" onClick={() => m.id !== me?.id && openProfile(m.id)} aria-label={`${m.name} profili`}><OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} pid={m.id} /></button>
               <b>{m.id === me?.id ? 'Sen' : m.name}</b><small>{fmtNum(m.notes)} nota</small>
             </div>
           ))}

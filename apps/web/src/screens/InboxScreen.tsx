@@ -131,7 +131,7 @@ export function LeagueScreen({ onBack }: { onBack: () => void }) {
             <ol className="league-list">
               {lg.group.map((p, i) => { const up = i < lg.promoteTop && lg.tier !== 'koklea'; const down = lg.tier !== 'bronz' && i >= downFrom; return (
                 <li key={p.id} className={`${p.id === me?.id ? 'me ' : ''}${up ? 'up' : down ? 'down' : ''}`}>
-                  <span className="rk">{i + 1}</span><OdiAvatar size={28} color={p.color} /><span className="grow ellipsis">{p.name}{p.id === me?.id ? ' (sen)' : ''}</span><b>{fmtNum(p.points)}</b>
+                  <span className="rk">{i + 1}</span><OdiAvatar size={28} color={p.color} pid={p.id} /><span className="grow ellipsis">{p.name}{p.id === me?.id ? ' (sen)' : ''}</span><b>{fmtNum(p.points)}</b>
                 </li>); })}
             </ol>
           </div>); })()}

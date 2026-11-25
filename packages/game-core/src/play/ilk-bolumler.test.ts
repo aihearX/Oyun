@@ -54,11 +54,14 @@ describe('ilk bölümler: motor yardımları', () => {
     const b = setup(s2); run(b.w, b.s, 120);
     expect(b.s.lives).toBe(2);
   });
-  it('geri dönüş: yetenek açılmadan hiç; ilk bölümlerde yalnız anahtar/kapı yakınken; ileri yöne dönüş serbest', () => {
+  it('geri dönüş: yetenek açılmadan hiç; açıldıktan sonra ilk bölümlerde de koşarken her yerde', () => {
     const noDon = assisted([], {}, { abilities: ['zipla'], number: 1 }); run(noDon.w, noDon.s, 10);
     step(noDon.w, noDon.s, press({ turn: true })); expect(noDon.s.hero.dir).toBe(1);
+    // açık zeminde, yakında anahtar/kapı yokken de döner
     const free = assisted([], {}, { number: 3 }); run(free.w, free.s, 10);
-    expect(canTurn(free.w, free.s)).toBe(false);
+    expect(canTurn(free.w, free.s)).toBe(true);
+    step(free.w, free.s, press({ turn: true })); expect(free.s.hero.dir).toBe(-1);
+    run(free.w, free.s, 30);
     step(free.w, free.s, press({ turn: true })); expect(free.s.hero.dir).toBe(1);
     const sw: Entity = { type: 'switch', x: 300, y: G - 180, props: { id: 'k1', by: 'temas' } };
     const need = assisted([sw, { type: 'door', x: 700, y: G - 240, w: 36, h: 240, props: { id: 'k1' } }], {}, { number: 3 }); run(need.w, need.s, 10);

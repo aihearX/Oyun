@@ -11,7 +11,7 @@ vi.mock('@odi/audio', () => ({ audio: { play: () => undefined } }));
 /**
  * Oyuncu testi tur 1 (YN-045): rehber akışı.
  *  - İşaret (halka) görünmeden Tüy Dede "dokun" demez; sandık kapalıyken yalnız sandık "Sandığa dokun" ile gösterilir.
- *  - "Atla" o an sırada bekleyen turların hepsini geçer; oyuncunun kendi girdiği yerin tanıtımı sonradan gösterilmez.
+ *  - "Atla" yalnız o açılım tanıtımını geçer (1.1.0); oyuncunun kendi girdiği yer görülmüş sayılmaz, tanıtım o sekmede gelebilir.
  *  - Günlük "meydan oku" görevi meydan okumanın açıldığı bölümle aynı (Bölüm 8).
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -64,22 +64,25 @@ describe('rehber: işaret görünmeden dokun yazısı yok', () => {
 });
 
 describe('rehber: Atla ve ziyaret edilmiş yerler', () => {
-  it('Atla sıradaki bütün turları (aynı dizideki) geçer', async () => {
+  it('Atla yalnız o açılım tanıtımını geçer (1.1.0): bekleyen her yer ya anlatılır ya kendi Atla’sıyla geçilir; kamp turları ayrı dizi', async () => {
     const { pendingTours } = await import('./Director');
-    // 5 bölüm, yalnız sonuç turu görülmüş: harita, Bugün, Kamp, kamp öğreticisi, Arkadaşlar, Sözlük, Takım, Sıralama hep birlikte
-    expect(pendingTours('map', 5, ['result1']).sort()).toEqual(['camp', 'camp-build', 'friends', 'glossary', 'siralama', 'team', 'today'].sort());
-    expect(pendingTours('team', 5, ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary'])).toEqual(['siralama']);
+    // 5 bölüm, yalnız sonuç turu görülmüş: harita turu Atla'sı açılım tanıtımlarını geçmez (kamp öğreticisi geçilir)
+    expect(pendingTours('map', 5, ['result1'])).toEqual(['camp-build']);
+    expect(pendingTours('team', 5, ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary'])).toEqual([]);
     // kamp turları ayrı dizi
     const all = ['result1', 'map', 'today', 'camp', 'camp-build', 'friends', 'glossary', 'team', 'siralama'];
     expect(pendingTours('team', 40, all)).not.toContain('gorev');
     expect(pendingTours('gorev', 40, all).every((id) => ['kampoyun', 'vaka'].includes(id))).toBe(true);
   }, 30_000);
-  it('oyuncunun kendi girdiği yerin tanıtımı sonradan gösterilmez; şimdi başlayan tur hariç', async () => {
-    const { visitedTours } = await import('./Director');
-    expect(visitedTours('team', 6, ['result1', 'map', 'today', 'camp'], [null])).toEqual(['team']);
-    expect(visitedTours('team', 5, [], ['team'])).toEqual([]);
-    expect(visitedTours('team', 4, [], [null])).toEqual([]); // henüz açılmadı
-    expect(visitedTours('map', 9, [], [null])).toEqual([]);
+  it('oyuncunun kendi girdiği yer görülmüş sayılmaz; tanıtım o yerin kendi sekmesinde gelebilir (sekme değiştirmeden)', async () => {
+    const { kendiSekmesi } = await import('./Director');
+    expect(kendiSekmesi('team', 'team')).toBe(true);
+    expect(kendiSekmesi('today', 'today')).toBe(true);
+    expect(kendiSekmesi('friends', 'profile')).toBe(true);
+    expect(kendiSekmesi('team', 'profile')).toBe(false); // başka sekme: haritaya dönünce gelir
+    expect(kendiSekmesi('team', 'map')).toBe(false); // haritada her zaman gelir (kendi kuralı)
+    expect(kendiSekmesi('race', 'team')).toBe(false); // sekmesi olmayan tanıtım yalnız haritada
+    expect(kendiSekmesi('events', 'team')).toBe(false);
   }, 30_000);
   it('günlük "meydan oku" görevi meydan okumanın açıldığı bölümde gelir', async () => {
     const { featureById } = await import('./features');

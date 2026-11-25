@@ -39,7 +39,7 @@ export function RaceInviteBanner({ onAccept }: { onAccept: (roomId: string) => v
   if (!invite) return null;
   return (
     <div className="race-invite" role="alertdialog" aria-label="Yarış daveti" data-testid="yaris-davet-karti">
-      <OdiAvatar color={invite.from.color} hat={invite.from.hat} size={44} mood="wow" />
+      <OdiAvatar color={invite.from.color} hat={invite.from.hat} size={44} mood="wow" pid={invite.from.id} photo={invite.from.photo} />
       <div className="ri-body min0">
         <b className="ellipsis">{invite.from.name} seni yarışa çağırıyor!</b>
         <small className="muted ellipsis">{invite.room.level}. {levelName(invite.room.level)} · {invite.room.players.filter((p) => !p.left).length}/{invite.room.max} oyuncu</small>

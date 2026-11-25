@@ -106,7 +106,7 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
         <div className="ev-parts">
           {rally.participants.map((p) => (
             <div key={p.id} className={`ev-part${p.id === me?.id ? ' me' : ''}`} title={rallyShownName(p.name)}>
-              <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.damage > 0 ? 'wow' : 'happy'} />
+              <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.damage > 0 ? 'wow' : 'happy'} pid={p.id} />
               <b className="ellipsis">{rallyShownName(p.name)}</b><small><Art e="⚔️" size="1.15em" className="art-inline" /> {p.damage}</small>
             </div>
           ))}

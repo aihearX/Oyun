@@ -169,7 +169,7 @@ function TeamProfileSheet({ id }: { id: string }) {
           {t.roster.map((m) => (
             <li key={m.id}>
               <button type="button" className="ta-mem" onClick={() => { closeTeamProfile(); openProfile(m.id); }} aria-label={`${m.name}, ${ROLE[m.role].label}`}>
-                <OdiAvatar size={34} color={m.color} hat={hatKey(m.hat)} />
+                <OdiAvatar size={34} color={m.color} hat={hatKey(m.hat)} pid={m.id} />
                 <span className="grow min0 ellipsis">{m.name}</span>
                 <RozetMini p={m} />
                 {m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{ROLE[m.role].art && <Art name={ROLE[m.role].art!} size={12} />} {ROLE[m.role].label}</span>}

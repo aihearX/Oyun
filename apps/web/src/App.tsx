@@ -14,7 +14,8 @@ import { platform } from './platform';
 import { installViewport, scrollAppTop } from './ui/viewport';
 import { ArtDefs } from './ui/art';
 import { CoachHost } from './ftue/Coach';
-import { FtueDirector, useLockToast } from './ftue/Director';
+import { AcilisUyarilari } from './ui/AcilisUyarilari';
+import { FtueDirector, ONCE_DINLE, levelGate, useLockToast } from './ftue/Director';
 import { StoryScreen } from './ftue/Story';
 import { FEATURES, clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
 import { mapIntroQueue, mapRevealPending, type MapReveal } from './ftue/map-intro';
@@ -82,7 +83,7 @@ const load = {
   info: mod(() => import('./screens/InfoScreen')), visit: mod(() => import('./camp/Ziyaret')), shop: mod(() => import('./screens/ShopScreen')),
   inbox: mod(() => import('./screens/InboxScreen')), raceLobby: mod(() => import('./race/RaceLobby')), raceResult: mod(() => import('./race/RaceResult')),
   teamRace: mod(() => import('./teamrace/TeamRace')), events: mod(() => import('./events/EventsScreen')), eventLevel: mod(() => import('./events/EventLevel')),
-  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), pratik: mod(() => import('./events/Pratik')), gallery: mod(() => import('./ui/art')),
+  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), yonetici: mod(() => import('./yonetici/YoneticiScreen')), pratik: mod(() => import('./events/Pratik')), gallery: mod(() => import('./ui/art')),
 };
 const MapScreen = screen(load.map, 'MapScreen');
 const LevelHost = screen(load.level, 'LevelHost');
@@ -115,6 +116,7 @@ const EventLevel = screen(load.eventLevel, 'EventLevel');
 const TogetherScreen = screen(load.together, 'TogetherScreen');
 const RankScreen = screen(load.rank, 'RankScreen');
 const KurucularScreen = screen(load.kurucular, 'KurucularScreen');
+const YoneticiScreen = screen(load.yonetici, 'YoneticiScreen');
 const PratikScreen = screen(load.pratik, 'PratikScreen');
 const ArtGallery = screen(load.gallery, 'ArtGallery');
 
@@ -308,6 +310,8 @@ export function App() {
   const playSeq = useRef(0);
   /** o.rahat: oyuncu kayıp ekranında Rahat denemeyi kendisi seçti (karar 42; yalnız bu deneme, hiçbir zaman kendiliğinden değil) */
   const play = (number: number, o: { rahat?: boolean } = {}) => {
+    // bölüm kapısı: haritada anlatılmayı bekleyen açılım tanıtımı varsa bölüm başlamaz, Tüy Dede anlatır (ftue/Director.tsx levelGate)
+    if (!bot && levelGate(route.name)) { lockToast.show(ONCE_DINLE); if (route.name !== 'map') setRoute({ name: 'map' }); return; }
     const seq = ++playSeq.current;
     const lg = loadLevelGen.value;
     if (lg) { setStarting(false); startLevel(lg, number, o); return; }
@@ -402,6 +406,7 @@ export function App() {
     case 'birlikte': return sub(<TogetherScreen onBack={back(route)} />);
     case 'siralama': return sub(<RankScreen onBack={back(route)} />);
     case 'kurucular': return sub(<KurucularScreen onBack={back(route)} />);
+    case 'yonetici': return sub(<YoneticiScreen onBack={back(route)} />);
     case 'pratik': return sub(<PratikScreen level={store.knowledge} onBack={back(route)} />);
     case 'kamp': return sub(<CampVisitScreen key={route.id} id={route.id} onBack={back(route)} />);
     case 'dm': return sub(<DmRouteScreen key={route.id} id={route.id} onBack={back(route)} />);
@@ -413,7 +418,7 @@ export function App() {
     case 'eventLevel': return <EventLevel spec={route.spec} play={route.play} onExit={(kind, flash) => setRoute({ name: 'events', view: kind, flash, back: route.back, fromHub: route.fromHub, key: Date.now() })} />;
     case 'raceResult': if (route.room.team) return sub(<TeamRaceResultScreen room={route.room} result={route.result} />); return sub(<RaceResult room={route.room} result={route.result} onRematch={(id) => setRoute({ name: 'race', inviteRoomId: id, back: route.back, key: Date.now() })} onLobby={() => setRoute({ name: 'race', back: route.back, key: Date.now() })} />);
     case 'intro': return <BiomeIntro spec={route.spec} onGo={() => { store.markBiomeSeen(route.spec.biome); setRoute({ name: 'level', spec: route.spec, extras: route.extras, skills: route.skills, ease: route.ease, gift: route.gift }); }} />;
-    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={store.sounds && !PLAY_BOT} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} botHand={PLAY_BOT ? BOT_HAND : undefined} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} hints={NO_HINTS ? false : undefined} extras={r.extras} race={r.race}
+    case 'level': { const r = route; return <LevelHost key={r.spec.id + (r.race?.id ?? '')} spec={r.spec} skills={r.race ? DEFAULT_SKILLS : r.skills ?? store.skills} sounds={!PLAY_BOT /* genel ses ayarı motorda (yukarıdaki setVolumes): bölüm içinde aç/kapat hemen geçerli */} bot={PLAY_BOT && (!r.race || !!r.race.team) /* test: takım yarışını da bot koşar */} botHand={PLAY_BOT ? BOT_HAND : undefined} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} hints={NO_HINTS ? false : undefined} extras={r.extras} race={r.race}
       startLines={r.race || NO_HINTS ? undefined : startLines(r.spec, r.gift)}
       onDone={levelDone.current = (result, room) => {
         if (r.race) {
@@ -436,7 +441,7 @@ export function App() {
   } })();
   // bölüm ekranları koyu zeminde halka; diğerleri iskelet (sekme/alt ekranların kendi sınırı var: sekme çubuğu yerinde kalır)
   const playing = route.name === 'level' || route.name === 'eventLevel' || route.name === 'intro';
-  return <><ArtDefs /><HataSiniri sifirla={route.name} {...errorCard(route)}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait' && route.name !== 'result'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /></>}{lockToast.node}</>;
+  return <><ArtDefs /><HataSiniri sifirla={route.name} {...errorCard(route)}><Suspense fallback={playing ? <EngineLoading /> : <ScreenLoading {...loadingHead(route)} />}>{view}</Suspense></HataSiniri>{starting && <div style={STARTING} aria-busy="true"><EngineLoading /></div>}<CelebrationLayer toasts={route.name !== 'level' && route.name !== 'eventLevel' && route.name !== 'title' && route.name !== 'intro' && route.name !== 'story' && route.name !== 'wait' && route.name !== 'result'} />{!bot && <><FtueDirector route={route.name} /><CoachHost /><AcilisUyarilari hold={playing || starting} /></>}{lockToast.node}</>;
 }
 
 /**

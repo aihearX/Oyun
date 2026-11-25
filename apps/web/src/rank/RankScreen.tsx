@@ -111,7 +111,7 @@ function Reset({ at }: { at: number }) {
 
 function Face({ r, team, size }: { r: RankRowView; team: boolean; size: number }) {
   if (team) return <span className="rr-emb" aria-hidden style={{ fontSize: Math.round(size * 0.62), width: size, height: size }}><TeamEmblem e={r.emblem} /></span>;
-  return <OdiAvatar size={size} color={r.color} hat={hatKey(r.hat ?? '')} />;
+  return <OdiAvatar size={size} color={r.color} hat={hatKey(r.hat ?? '')} pid={r.id} />;
 }
 
 function Delta({ d }: { d: number | null }) {

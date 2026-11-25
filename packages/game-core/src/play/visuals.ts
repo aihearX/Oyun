@@ -224,6 +224,8 @@ export interface LevelHudView {
   onPause(cb: () => void): void;
   /** duraklat düğmesi isabeti (tasarım ekran koordinatı) ve basma */
   pauseHit(x: number, y: number): boolean; pressPause(): void; pauseCenter(): { x: number; y: number };
+  /** ses aç/kapat düğmesi (duraklatın altında): on = sesler açık; null gizler. Basınca onSound geri çağrısı */
+  setSound(on: boolean | null): void; onSound(cb: () => void): void; soundHit(x: number, y: number): boolean; pressSound(): void;
   /** görünüm boyutu / güvenli alan inişi değişti (tasarım px) */
   resize(w: number, h: number, top: number): void;
 }
@@ -251,6 +253,7 @@ export function createHud(s: Phaser.Scene, heroColor: number, top = 0, textScale
     belowBossBar: (b) => hud.belowBossBar(b),
     onPause: (cb) => hud.onPause(cb),
     pauseHit: (x, y) => hud.pauseHit(x, y), pressPause: () => hud.pressPause(), pauseCenter: () => hud.pauseCenter(),
+    setSound: (on) => hud.setSound(on), onSound: (cb) => hud.onSound(cb), soundHit: (x, y) => hud.soundHit(x, y), pressSound: () => hud.pressSound(),
     resize: (w, h, top) => hud.resize(w, h, top),
   };
 }

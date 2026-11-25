@@ -156,7 +156,7 @@ export interface LevelAssist {
   coyote: number; buffer: number;
   /** can kaybettirmeyen düşüş sayısı (bölümün ilk N çukuru) */
   freeFalls: number;
-  /** geri dönüş yalnız gerektiği yerde (kapalı kapı/anahtar ya da frekans kapısı yakınken): kazara yatay kaydırma döndürmez */
+  /** ilk bölümler: dönüş gerektiren oda seçilmez, basamağa takılan kahraman kendiliğinden dönmez (oyuncunun geri dönüşü her yerde serbest) */
   turnOnlyWhenNeeded: boolean;
   /** yatay kaydırmanın sayıldığı en kısa mesafe (px; varsayılan 42) */
   swipePx: number;

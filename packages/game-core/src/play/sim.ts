@@ -109,21 +109,11 @@ export function cloneState(s: SimState): SimState {
 
 export const has = (w: World, a: AbilityId) => w.abilities.has(a);
 /**
- * Geri dönüş: yetenek açılmadan hiç; ilk bölümlerde (assist.turnOnlyWhenNeeded) yalnız gerektiği yerde — kapısı kapalı bir
- * temas anahtarı yakınken (geride 900 / ileride 600 px) ya da frekans kapısı önündeyken; ileri yöne dönüş her zaman serbest.
- * Kazara yatay kaydırma böylece yeni oyuncuyu ters yöne koşturmaz.
+ * Geri dönüş: yetenek açılmadan hiç; açıldıktan sonra her yerde, koşarken de (öğretilen hareket her an çalışmalı).
+ * İlk bölümlerin turnGate'i artık yalnız duvara takılınca kendiliğinden dönmeyi ve oda seçimini etkiler.
  */
-export function canTurn(w: World, s: SimState): boolean {
-  if (!has(w, 'don')) return false;
-  const h = s.hero;
-  // ileri yöne geri dönmek her zaman serbest (anahtardan sonra kapıya dönüş)
-  if (!w.assist.turnGate || h.dir < 0) return true;
-  for (const id of near(w, h.x - 900, h.x + 600)) {
-    const e = w.ents[id]!;
-    if (e.type === 'switch' && e.p.by === 'temas' && !s.opened.has(e.key)) return true;
-    if (e.type === 'freqgate' && Math.abs(e.x - h.x) < 600) return true;
-  }
-  return false;
+export function canTurn(w: World, _s: SimState): boolean {
+  return has(w, 'don');
 }
 /** yerçekimi yönünü değiştir: gövde yerinde kalsın diye ayak noktası başın olduğu yere taşınır */
 function setG(h: HeroS, g: 1 | -1) { if (h.g === g) return; h.y += -h.g * (h.slide > 0 ? C.HERO_SLIDE_H : C.HERO_H); h.g = g; h.grounded = false; h.groundId = -1; }
@@ -132,8 +122,8 @@ const speedOf = (w: World, s: SimState) => w.assist.runK * (w.mods.hiz ? C.HIZ_K
 const ev = (s: SimState, k: string, x: number, y: number, extra?: Partial<SimEvent>) => { if (s.events) s.events.push({ k, x, y, ...extra }); };
 /** sıradaki melodi notası kahramanın bu kadar gerisinde kalınca ekrandan çıkmış sayılır (px; kamera kahramanı görünümün ~%30'unda tutar) */
 export const MELODY_BEHIND_PX = 220;
-/** geride kalan melodi notasına dönülebilir mi: geri dönüş açık ve kısıtsız (ilk bölümlerin turnGate'i yalnız anahtar yakınında döndürür) */
-export const melodyCanReturn = (w: World) => has(w, 'don') && !w.assist.turnGate;
+/** geride kalan melodi notasına dönülebilir mi: geri dönüş açıksa evet (her yerde dönülebilir) */
+export const melodyCanReturn = (w: World) => has(w, 'don');
 /** sıradaki melodi notası kahramanın gerisinde ekrandan çıktıysa onun sıra numarası (1'den), yoksa 0 */
 export function melodyBehind(w: World, s: SimState): number {
   const id = w.melodyIds[s.nextNote]; if (id == null || s.collected.has(id)) return 0;

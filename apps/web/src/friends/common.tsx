@@ -18,11 +18,11 @@ export function useOnline(p: Pick<PublicProfile, 'id' | 'online'> | null | undef
 }
 
 /** Odi avatarı + çevrimiçi noktası */
-export function Av({ p, size = 44, dot = true, mood }: { p: Pick<PublicProfile, 'id' | 'color' | 'hat' | 'online'>; size?: number; dot?: boolean; mood?: 'happy' | 'wow' }) {
+export function Av({ p, size = 44, dot = true, mood }: { p: Pick<PublicProfile, 'id' | 'color' | 'hat' | 'online'> & { photo?: number }; size?: number; dot?: boolean; mood?: 'happy' | 'wow' }) {
   const on = useOnline(p);
   return (
     <span className="fr-av" style={{ width: size, height: size }}>
-      <OdiAvatar size={Math.round(size * 0.92)} color={p.color} hat={hatKey(p.hat)} mood={mood} />
+      <OdiAvatar size={Math.round(size * 0.92)} color={p.color} hat={hatKey(p.hat)} mood={mood} pid={p.id} photo={p.photo} />
       {dot && <i className={`fr-dot${on ? ' on' : ''}`} aria-label={on ? 'çevrimiçi' : undefined} />}
     </span>
   );

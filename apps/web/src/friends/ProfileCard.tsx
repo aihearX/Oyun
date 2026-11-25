@@ -109,6 +109,8 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
             {([['isim', '🏷️ Uygunsuz isim'], ['taciz', '🚫 Rahatsız ediyor'], ['diger', '❓ Başka bir şey']] as const).map(([reason, label]) => (
               <button key={reason} className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (await act('players.report', { id: p.id, reason })) { toast('🙏', 'Teşekkürler', 'Şikâyetin alındı. İstersen onu engelleyebilirsin.', 'green'); setMode('main'); } })}>{rich(label)}</button>
             ))}
+            {/* profil fotoğrafı (1.1.0): birkaç farklı kişi şikâyet edince fotoğraf herkesten gizlenir */}
+            {p.photo !== undefined && <button className="btn ghost" data-testid="foto-sikayet" disabled={busy} onClick={() => void run(async () => { if (await act('players.report', { id: p.id, reason: 'foto' })) { toast('🙏', 'Teşekkürler', 'Fotoğraf şikâyetin alındı; inceleyeceğiz.', 'green'); setMode('main'); } })}>{rich('🖼️ Fotoğrafı şikâyet et')}</button>}
             <button className="btn ghost" onClick={() => setMode('main')}>Vazgeç</button>
           </div>
         )}

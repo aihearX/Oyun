@@ -88,7 +88,7 @@ export function RaceResult({ room: initial, result, onRematch, onLobby }: { room
           return (
             <li key={p.id} className={`race-row${p.id === meId ? ' me' : ''}${p.place === 1 ? ' first' : ''}`} data-testid="yaris-sonuc-sira" data-name={p.name} data-place={p.place ?? ''}>
               <span className="race-rank">{p.place != null ? <>{placeMedal(p.place) ? <Glyph e={placeMedal(p.place)} size={20} /> : null}<b>{p.place}.</b></> : <b>{done ? '–' : `${i + 1}`}</b>}</span>
-              <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.place === 1 ? 'wow' : 'happy'} />
+              <OdiAvatar color={p.color} hat={p.hat} size={40} mood={p.place === 1 ? 'wow' : 'happy'} pid={p.id} />
               <span className="race-row-main min0">
                 <b className="ellipsis">{p.name}{p.id === meId ? ' (sen)' : ''}</b>
                 <small className="muted">{status}{p.score != null ? ` · ${p.score.toLocaleString('tr-TR')} puan` : ''}</small>

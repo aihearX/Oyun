@@ -15,6 +15,7 @@ import { chunkFailed, loadLevel } from '../engine';
 import { EngineLoading } from '../ui/Loading';
 import { prefersReducedMotion } from '../ui/bits';
 import { useStore } from '../store';
+import { toggleSounds } from '../acilis';
 
 const PAUSE_BG = { background: 'rgba(8,4,24,.78)' } as const;
 const PAUSE_CARD = { background: 'linear-gradient(180deg, #2a1b63, #170d40)', border: '2px solid rgba(255,255,255,.14)', borderRadius: 22, padding: '22px 18px', boxShadow: '0 12px 40px rgba(0,0,0,.55)', color: '#fff6e5' } as const;
@@ -133,6 +134,8 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
         ...(hints === false ? { hints: false } : {}),
         // oyun içi göstergenin duraklat düğmesi: tek kişilikte duraklat, yarışta çıkış menüsü
         onPauseRequest: () => { if (race) setRaceMenu(true); else pauseRef.current(); },
+        // göstergenin ses aç/kapat düğmesi (1.1.0; duraklatın altında): oyuncunun genel ses ayarı (App.tsx motoru hemen kısar/açar)
+        ...(bot ? {} : { soundOn: useStore.getState().sounds, onSoundToggle: () => { toggleSounds(); } }),
         // Revir bonusu (Kamp + takım): yarışta herkes eşit başlasın diye kapalı
         firstHitIgnorePct: bot || raceOpt ? 0 : (useSocial.getState().bonuses?.firstHitIgnorePct ?? 0),
         onEvent: (e) => {
@@ -165,6 +168,9 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
   const restart = () => { setPaused(false); setLives(null); audio.unduck('duraklat'); setRunKey((k) => k + 1); };
   pauseRef.current = () => { if (!paused) togglePause(); };
   useEffect(() => () => audio.unduck('duraklat'), []);
+  // ses aç/kapat (gösterge düğmesi ve duraklatma menüsü): genel ayar; göstergedeki simge her değişimde güncellenir
+  const soundsOn = useStore((s) => s.sounds);
+  useEffect(() => { handle.current?.setSoundOn?.(soundsOn); }, [soundsOn, loading]);
   const leaveRace = () => { const net = getNet(); if (net) void net.call('race.leave', {}).catch(() => undefined); onQuit(); };
   const raceOffline = !!race && !!getNet() && netStatus !== 'bağlı' && !raceNote;
   return (
@@ -182,6 +188,7 @@ export function LevelHost({ spec, skills, sounds, bot, botIdle, botHand, timeSca
           <h2 style={{ color: '#fff6e5', margin: 0 }}>Duraklatıldı</h2><div style={{ color: '#c9c1ff', fontWeight: 700 }}>{spec.number}. {spec.name}{lives != null ? ` · ${lives} can` : ''}{spec.rahat ? ' · Rahat deneme' : ''}</div>
           <button className="btn" onClick={togglePause}>Devam</button>
           <button className="btn ghost" style={PAUSE_GHOST} onClick={restart}>Yeniden başla</button>
+          <button className="btn ghost" style={PAUSE_GHOST} onClick={() => { toggleSounds(); }} aria-pressed={soundsOn} aria-label={soundsOn ? 'Ses: Açık. Kapatmak için dokun' : 'Ses: Kapalı. Açmak için dokun'} data-testid="duraklat-ses"><Art name={soundsOn ? 'sound' : 'mute'} size={20} className="art-inline" /> Ses: {soundsOn ? 'Açık' : 'Kapalı'}</button>
           <button className="btn ghost" style={PAUSE_GHOST} onClick={onQuit}>Haritaya dön</button>
         </div></div>
       )}

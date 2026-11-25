@@ -68,6 +68,22 @@ export interface Platform {
    * uygulama sürümü ve mağaza derleme numarası. Kimlik taşımaz. Tarayıcıda tanımsız (sürüm/derleme web derlemesinden gelir).
    */
   appInfo?: { platform: 'ios' | 'android'; os: string; app: string; build: string };
+  /**
+   * Telefonun medya ses düzeyi 0..1 (1.1.0, açılıştaki "sesi açın" uyarısı için). Okunamazsa null. Tarayıcıda tanımsız.
+   */
+  getMediaVolume?: () => Promise<number | null>;
+  /** Dış bağlantıyı (mağaza sayfası) telefonun tarayıcısında / mağaza uygulamasında açar (1.1.0 güncelleme sorusu). */
+  openUrl?: (url: string) => void;
+  /**
+   * Profil fotoğrafı seçtirir (1.1.0): galeriden kare kırpılmış görsel, JPEG data URL (data:image/jpeg;base64,...). Vazgeçilirse null.
+   * Tarayıcıda tanımsız (web <input type="file"> kullanır).
+   */
+  pickPhoto?: () => Promise<string | null>;
+  /**
+   * Bu açılışta (uygulama süreci) ilk kez mi (1.1.0)? Anahtar başına ilk çağrıda true, sonra false. Telefon kabuğunda bayrak yerel
+   * tarafta tutulur: Sıfırla / restartApp WebView'i baştan kursa da "sesi açın" ve güncelleme sorusu soğuk açılışta bir kez çıkar.
+   */
+  onceThisLaunch?: (key: string) => Promise<boolean>;
 }
 
 const webStorage: Platform['storage'] = {

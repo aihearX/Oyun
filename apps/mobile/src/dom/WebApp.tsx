@@ -26,6 +26,12 @@ export type WebAppProps = {
   /** Sıfırla: cihazdaki bütün kayıtları sil ve WebView'i baştan kur */
   clearAll?: () => Promise<void>;
   restartApp?: () => Promise<void>;
+  /** 1.1.0: dış bağlantı (mağaza sayfası), profil fotoğrafı seçimi (JPEG data URL ya da null), açılış başına bir kez bayrağı */
+  openUrl?: (url: string) => Promise<void>;
+  pickPhoto?: () => Promise<string | null>;
+  onceThisLaunch?: (key: string) => Promise<boolean>;
+  /** telefonun medya ses düzeyi 0..1 (okunamazsa null) */
+  getMediaVolume?: () => Promise<number | null>;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
   purchase?: (productId: string, playerId: string) => Promise<StorePurchaseResult>;
   /** satın alımları geri yükle (RevenueCat restorePurchases; yalnız mağaza derlemesinde, purchase ile birlikte) */
@@ -69,6 +75,10 @@ export default function WebApp(p: WebAppProps) {
       ...(p.voiceData ? { voiceData: (f: string) => p.voiceData!(f).catch(() => null) } : {}),
       ...(p.clearAll ? { clearAll: () => p.clearAll!().catch(() => undefined) } : {}),
       ...(p.restartApp ? { restartApp: () => { void p.restartApp!().catch(() => undefined); } } : {}),
+      ...(p.openUrl ? { openUrl: (u: string) => { void p.openUrl!(u).catch(() => undefined); } } : {}),
+      ...(p.pickPhoto ? { pickPhoto: () => p.pickPhoto!().catch(() => null) } : {}),
+      ...(p.onceThisLaunch ? { onceThisLaunch: (k: string) => p.onceThisLaunch!(k).catch(() => false) } : {}),
+      ...(p.getMediaVolume ? { getMediaVolume: () => p.getMediaVolume!().catch(() => null) } : {}),
       ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
       ...(p.canPurchase && p.purchase && p.storePrices ? { storePrices: (ids: string[], pid: string) => p.storePrices!(ids, pid) } : {}),
@@ -85,8 +95,14 @@ export default function WebApp(p: WebAppProps) {
     // Expo'nun DOM sayfası viewport-fit=cover içermez → env(safe-area-inset-*) 0 kalır; ekle (köprü değerleri yine esas)
     const vp = document.querySelector('meta[name="viewport"]');
     if (vp && !/viewport-fit/.test(vp.getAttribute('content') ?? '')) vp.setAttribute('content', `${vp.getAttribute('content')}, viewport-fit=cover`);
+    // iOS: WebView'in Web Audio'su varsayılan olarak "ortam sesi"dir (sessiz anahtarına uyar). Sesler açıkken medya oynatımı
+    // (Audio Session API, iOS 17+; yoksa yok sayılır); sesler kapalıyken ortam: oyun susmuşken başka uygulamanın müziği kesilmez
+    const audioSession = (on: boolean) => {
+      try { const as = (navigator as Navigator & { audioSession?: { type: string } }).audioSession; const t = on ? 'playback' : 'ambient'; if (as && as.type !== t) as.type = t; } catch { /* yok */ }
+    };
+    useStore.subscribe((s, prev) => { if (s.sounds !== prev.sounds) audioSession(s.sounds); });
     // kayıt köprü kurulduktan sonra yerel depodan yüklenir
-    void Promise.resolve(useStore.persist.rehydrate()).finally(() => setReady(true));
+    void Promise.resolve(useStore.persist.rehydrate()).finally(() => { audioSession(useStore.getState().sounds); setReady(true); });
     // eslint yok: props köprüsü bir kez kurulur
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // güvenli alan payları ilk çizimden sonra gelebilir/değişebilir (SafeAreaProvider ölçümü, döndürme): her değişimde yaz

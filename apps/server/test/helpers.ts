@@ -24,7 +24,9 @@ const ALL_EVENTS: Evt[] = ['presence', 'chat', 'friend.updated', 'team.updated',
   // takım başvurusu
   'team.applications', 'team.apply.updated',
   // kamp görevleri
-  'kg.updated', 'vaka.updated'];
+  'kg.updated', 'vaka.updated',
+  // profil fotoğrafı (1.1.0)
+  'photo.changed'];
 
 export interface TC extends NetClient {
   token: string;

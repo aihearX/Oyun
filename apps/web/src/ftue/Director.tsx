@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { BUILDINGS, buildCost, type BuildingId } from '@odi/shared';
 import { useStore } from '../store';
-import { FIRST_TAP_GRACE_MS, ICERIK_YOK, useCoach, type CoachStep, type Tour } from './Coach';
+import { ICERIK_YOK, useCoach, type CoachStep, type Tour } from './Coach';
 import { lineText } from './script';
 
 const line = (id: string) => ({ id, say: lineText(id) });
 import { FEATURES, clearedCount, featureById, type FeatureId } from './features';
-import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, mapIntroQueue, unlockTally } from './map-intro';
+import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, mapIntroQueue, unlockIntroPending, unlockTally } from './map-intro';
 import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
@@ -38,16 +38,22 @@ const gone = (sel: string) => { let seen = false; return () => { if (exists(sel)
 /** açık (cevaplanabilir) Günün Sorusu kartı; cevaplanmış ya da açıklanmış soru sayılmaz */
 const openQuestion = () => [...document.querySelectorAll('[data-testid="gunun-sorusu"]')].find((e) => !!e.querySelector('.dq-opt:not(:disabled)')) ?? null;
 
-export function quiet(allowSheets = false): boolean {
-  if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return false;
-  // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden; kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
-  if (exists('.map-screen:not([data-donus="bitti"])') || exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
+/** geçici katmanlar: kutlama, hikâye, takma ad penceresi, biyom tanıtımı, haritanın dönüş sahnesi (kendiliğinden biterler) */
+function gecici(): boolean {
+  if (exists('.onboard') || exists('.cel-stage') || useCelebrating.getState().on || exists('.story') || exists('.biome-intro')) return true;
+  return exists('.map-screen:not([data-donus="bitti"])');
+}
+/** `goalOk`: haritanın "Hedefe ulaştın!" kutusu beklenmez (açılım tanıtımı kutu okunduktan sonra, bkz. GOAL_READ_MS) */
+export function quiet(allowSheets = false, goalOk = false): boolean {
+  if (gecici()) return false;
+  // haritanın dönüş sahnesi (yıldızlar, hazine, bölge canlanması) bitmeden (gecici); kamp yüklenirken ve Tüy Dede'nin kamp satırı (yeni anıt) sürerken
+  if (exists('.camp-loading') || exists('[data-testid="kamp-dede"]:not([data-line=""])')) return false;
   // kampta yeni anıt kutlaması sırada ya da notu yeni kapandı (oyuncu kampa henüz dokunmadı): anıt notu ile tanıtım/"Kamp'ta yeni"
   // kartı tek kuyrukta, oyuncu bir şey yapmadan art arda açılmaz (OT-ilk-kez-oyun-71; CampBase `data-anit`)
   if (exists('.camp-base[data-anit]')) return false;
   // haritanın "Hedefe ulaştın!" kutusu görünürken (dönüşten sonra birkaç saniye, MapScreen GOAL_REACHED_MS): "Yeni yer açıldı" kartı
-  // kutunun üstüne binmez, sesi kapalı oyuncu iki haberi de okur (OT-sessiz-oyuncu-20)
-  if (exists('.map-goal[data-ulasildi]')) return false;
+  // kutunun üstüne hemen binmez, sesi kapalı oyuncu iki haberi de okur (OT-sessiz-oyuncu-20); açılım tanıtımı kısa okuma payından sonra gelir
+  if (!goalOk && exists('.map-goal[data-ulasildi]')) return false;
   // bildirim/teşekkür kartı görünürken rehber başlamaz (üst üste binmez; oyuncu kartı görür, OT-buyuk-yazi-20). Rehber sürerken
   // gelen kartlar sırada bekler (CommBanner)
   if (exists('[data-testid="iletisim-bildirimi"]')) return false;
@@ -104,54 +110,40 @@ if (typeof document !== 'undefined') {
 }
 /**
  * Bölüm başlatan düğmeler: haritanın büyük "Bölüm N"si, bölüm kartının Oyna'sı, sonuçtaki Sonraki. Oyuncu bunlardan birine dokununca
- * bölüm yüklenene dek (yavaş telefonda saniyeler) yeni tanıtım başlamaz; bölüm açılınca sürmekte olan açılım tanıtımı ertelenir ve
- * bölümden sonra yeniden gelir (OT-uzman-odyolog-34: "Bölüm 10"a dokunan oyuncu Günün Sorusu tanıtımıyla Takım sohbetine gitti)
+ * bölüm yüklenene dek (yavaş telefonda saniyeler) yeni tanıtım başlamaz (OT-uzman-odyolog-34). Açılım tanıtımı bekliyorsa dokunuş
+ * bölümü başlatmaz (levelGate): tanıtım hemen gelir.
  */
 export const BOLUM_SEL = '.map-play, .map-btn.shine, .result-actions [data-act="sonraki"]';
 /** bölüme dokunuştan sonra tanıtımın beklediği en uzun süre (bölüm açılamadıysa tanıtımlar yine gelir) */
 const NIYET_MS = 15000;
 export const bolumNiyeti = { at: -Infinity };
 export const bolumBasliyor = (now = performance.now()) => now - bolumNiyeti.at < NIYET_MS;
-/** bölümün oynandığı rotalar: açılınca sürmekte olan açılım tanıtımı ertelenir */
+/** bölümün oynandığı rotalar: açılınca sürmekte olan açılım tanıtımı ertelenir (yarış, etkinlik bölümü; bölüm düğmeleri kapıdan geçer) */
 const PLAY_ROUTES = ['level', 'intro', 'eventLevel'];
+/** haritada anlatılmayı bekleyen açılım tanıtımı var mı (oyuncunun o anki kaydıyla) */
+const acilimBekliyor = () => { const s = useStore.getState(); return unlockIntroPending(clearedCount(s.progress), s.ftue); };
 if (typeof document !== 'undefined') {
-  document.addEventListener('click', (e) => { if (e.target instanceof Element && e.target.closest(BOLUM_SEL)) bolumNiyeti.at = performance.now(); }, { capture: true, passive: true });
+  document.addEventListener('click', (e) => { if (e.target instanceof Element && e.target.closest(BOLUM_SEL) && !acilimBekliyor()) bolumNiyeti.at = performance.now(); }, { capture: true, passive: true });
 }
 /** turun bir adımı oyuncuyu başka bir alt sekmeye götürüyor mu ("Takım'a dokun") */
 export const sekmeDegistirir = (t: Tour) => t.steps.some((s) => typeof s.target === 'string' && s.target.startsWith('nav.tabbar .tab['));
+
+/** oyuncu açılım tanıtımı beklerken bölüme dokundu: tanıtım sakinlik beklemeden, geçici katmanlar bitince gelir */
+export const acilimIstegi = { at: -Infinity };
+const ISTEK_MS = 10000;
+/** bölüm kapısında oyuncuya kısa not (App.tsx kilit notu) */
+export const ONCE_DINLE = 'Önce yeni açılan yeri dinle';
 /**
- * Tanıtım görünür olduktan (açılış payı bitip katman dokunuş almaya başladıktan) sonraki bu süre içinde gelen dokunuş, balona ya da
- * "Yeni yer açıldı" kartına düşse de, bölüme uzanırken açılan tanıtıma düşmüştür (OT-ogrenci-birinci-53)
+ * Bölüm kapısı (App.tsx play): haritada anlatılmayı bekleyen açılım tanıtımı varsa bölüm başlamaz; true döner. Haritadaysa ve ekranda
+ * kutlama/sahne yoksa tanıtım hemen başlar, değilse yönetmen haritaya gelinince bekletmeden başlatır. Tanıtım sürerken dokunuş turu
+ * bozmaz. Bütün açılım tanıtımları dinlenince ya da atlanınca (Atla yalnız o tanıtımı geçer) bölümler yine başlar. Test atlaması ve
+ * yönetici kipinde kapı yok.
  */
-const BOLUM_YARIS_MS = FIRST_TAP_GRACE_MS + 400;
-/**
- * Sekme değiştiren tanıtım açıkken oyuncunun ilk dokunuşu karartılmış zeminde bir bölüm düğmesinin ("Bölüm N") üstüne düştüyse
- * tanıtım görülmüş sayılmadan çekilir ve bölüm başlar; tanıtım bölümden sonra yeniden gelir. Yalnız turun ilk dokunuşu sayılır.
- * Tanıtım açılır açılmaz (BOLUM_YARIS_MS) gelen dokunuş balona ya da karta düşse de altındaki bölüm düğmesine sayılır: oyuncu
- * tanıtımı görmeden "Bölüm N"e uzanmıştı, dokunuşu yutulmaz. `yalnizAcilis`: sekme değiştirmeyen açılım tanıtımında (yalnız "Yeni yer
- * açıldı" kartı, ör. Canlı yarış) yalnız bu açılış payı sayılır; sonra karta dokunuş tanıtımı ilerletir (OT-ogrenci-birinci-55).
- */
-export function watchBolum(yalnizAcilis = false): { stop(): void } {
-  let first = true; const born = performance.now();
-  const on = (e: MouseEvent) => {
-    const t = e.target instanceof Element ? e.target : null;
-    if (!first || !t?.closest('.coach')) return;
-    first = false;
-    if ((yalnizAcilis || !t.closest('.coach-block')) && performance.now() - born > BOLUM_YARIS_MS) return;
-    let hit: HTMLElement | null = null;
-    for (const x of document.elementsFromPoint?.(e.clientX, e.clientY) ?? []) {
-      if (x.closest('.coach')) continue;
-      const b = x.closest(BOLUM_SEL); if (b instanceof HTMLElement && !(b as HTMLButtonElement).disabled) hit = b;
-      break;
-    }
-    if (!hit) return;
-    e.stopPropagation(); e.preventDefault();
-    bolumNiyeti.at = performance.now();
-    useCoach.getState().defer();
-    const el = hit; setTimeout(() => { if (el.isConnected && !useCoach.getState().tour) el.click(); }, 60);
-  };
-  document.addEventListener('click', on, true);
-  return { stop: () => document.removeEventListener('click', on, true) };
+export function levelGate(route: string): boolean {
+  if (!acilimBekliyor()) return false;
+  acilimIstegi.at = performance.now(); bolumNiyeti.at = -Infinity;
+  if (route === 'map' && !useCoach.getState().tour && !gecici()) { const id = nextTour('map'); if (id) startTour(id, 'map'); }
+  return true;
 }
 function handsOff(): boolean {
   const since = performance.now() - touch.last;
@@ -487,24 +479,26 @@ let campCard: string[] = [];
 export { MAX_UNLOCK_TOURS_PER_LEVEL } from './map-intro';
 
 /**
- * "Atla": o an sırada bekleyen bütün turlar (art arda gelecek Tüy Dede balonları) birlikte geçilir; oyuncu her birini tek tek
- * atlamaz. Atlanan bir daha gelmez (kalıcı kayıt); yerler açık kalır; sonraki bölümlerde açılan YENİ yerler yine duyurulur.
- * Kamp turları ve diğerleri ayrı dizidir; yalnız Kamp'ın kendi tanıtımı (ya da kamp öğreticisi) atlanınca bekleyen kamp turları da
- * geçilir: Kamp'a ilk girişte "Atla"dan sonra "Yeni: Kamp Görevleri!" açılıp oyuncunun ilk dokunuşunu yutmaz (OT-uzman-odyolog-50).
+ * "Atla": o tanıtım geçilir; atlanan bir daha gelmez (kalıcı kayıt), yer açık kalır. Haritadaki açılım tanıtımları tek tek geçilir
+ * (1.1.0, sahip isteği: açılan her yer ya anlatılır ya kendi Atla'sıyla geçilir); sıradaki hemen gelir. Kamp turları ayrı dizidir:
+ * bir kamp turu ya da Kamp'ın kendi tanıtımı (ya da kamp öğreticisi) atlanınca bekleyen kamp turları da geçilir: Kamp'a ilk girişte
+ * "Atla"dan sonra "Yeni: Kamp Görevleri!" açılıp oyuncunun ilk dokunuşunu yutmaz (OT-uzman-odyolog-50).
  */
 export const KAMP_GIRIS: ReadonlySet<string> = new Set(['camp', 'camp-build']);
 export function pendingTours(skipped: string, cleared: number, done: readonly string[]): string[] {
   const g = groupOf(skipped); const kamp = g === 'kamp' || KAMP_GIRIS.has(skipped); const out: string[] = [];
   if (g === 'genel') { if (cleared >= 1) out.push('result1', 'map'); if (cleared >= featureById('camp').at) out.push('camp-build'); }
-  for (const f of FEATURES) if (f.tour && cleared >= f.at && (groupOf(f.id) === g || (kamp && groupOf(f.id) === 'kamp'))) out.push(f.id);
+  // haritadaki açılım tanıtımları birlikte geçilmez (1.1.0, sahip isteği): her yeni yer ya anlatılır ya kendi "Atla"sıyla geçilir
+  for (const f of FEATURES) if (f.tour && cleared >= f.at && kamp && groupOf(f.id) === 'kamp') out.push(f.id);
   return out.filter((id) => id !== skipped && !done.includes(id));
 }
-/** oyuncunun kendi girdiği yer: tanıtımı sonradan gösterilmez (Takım'a girmiş oyuncuya bir bölüm sonra "Yeni: Takım!" gelmez) */
-const VISIT_ROUTE: Partial<Record<FeatureId, string>> = { today: 'today', camp: 'camp', team: 'team', friends: 'friends', glossary: 'glossary' };
-export function visitedTours(route: string, cleared: number, done: readonly string[], keep: readonly (string | null | undefined)[]): string[] {
-  return (Object.keys(VISIT_ROUTE) as FeatureId[]).filter((id) => VISIT_ROUTE[id] === route && cleared >= featureById(id).at && !done.includes(id) && !keep.includes(id));
-}
 
+/** açılım tanıtımının kendi sekmesi mi: haritadan başlasa sekme değiştirirdi, buradan başlayınca değiştirmez (ör. Takım'da "Yeni: Takım!") */
+export function kendiSekmesi(id: string, route: string): boolean {
+  if (route === 'map' || !TAB_ROUTES.includes(route)) return false;
+  const buradan = tourFor(id, route); const haritadan = tourFor(id, 'map');
+  return !!buradan && !!haritadan && sekmeDegistirir(haritadan) && !sekmeDegistirir(buradan);
+}
 /**
  * bir sonraki tur: sıra önemli (önce sonuç → harita → açılımlar). `zincir`: sonucun söz verdiği ve önceki tur biter bitmez
  * (oyuncu araya dokunmadan) art arda gelecek açılım turları; önceki tur oyuncuyu başka sekmeye götürdüyse orada da başlar
@@ -519,9 +513,11 @@ function nextTour(route: string, zincir: readonly string[] = []): string | null 
   }
   if (!TAB_ROUTES.includes(route)) return null;
   if (cleared >= 1 && !done('map')) return route === 'map' && exists('.map-play') ? 'map' : null;
-  // genel açılım turları: sonuç ekranının "Haritaya dön" kararıyla aynı kuyruk (map-intro.ts mapIntroQueue). Yalnız haritada başlar:
-  // Bugün/Kamp/Takım/Profil'de oyuncunun uzandığı düğmenin üstüne açılmaz, oyuncu haritaya dönünce gelir (OT-ogrenci-birinci-31)
-  const genel = genelUnlockQueue(cleared, f.tours)[0]; if (genel && (route === 'map' || zincir.includes(genel))) return genel;
+  // genel açılım turları: sonuç ekranının "Haritaya dön" kararıyla aynı kuyruk (map-intro.ts mapIntroQueue). Haritada başlar:
+  // Bugün/Kamp/Takım/Profil'de oyuncunun uzandığı düğmenin üstüne açılmaz, oyuncu haritaya dönünce gelir (OT-ogrenci-birinci-31).
+  // Oyuncu tanıtımı beklerken yerin kendi sekmesine girdiyse tanıtım orada gelir (sekme değiştirmeden); girdi diye görülmüş sayılmaz
+  const genel = genelUnlockQueue(cleared, f.tours)[0];
+  if (genel && (route === 'map' || zincir.includes(genel) || kendiSekmesi(genel, route))) return genel;
   // kamp görevleri turları yalnız kamptayken başlar (oyuncu kampa döndüğünde; başka bir akışı bölmez); sunucunun kamp görevleri özeti
   // gelmeden karar verilmez (Hasta Vakaları klinik kurulu mu). Birden çok yeni şey varsa tek kart, art arda tur yok
   if (route === 'camp' && exists('.camp-base, .camp-list-screen') && useKg.getState().kg) {
@@ -539,6 +535,8 @@ function nextTour(route: string, zincir: readonly string[] = []): string | null 
 const CALM_TICKS = 3;
 /** kampa girişte oyuncu dokunmadıysa yeterli sakin yoklama */
 const FRESH_TICKS = 2;
+/** haritanın "Hedefe ulaştın!" kutusu bu kadar okunduktan sonra açılım tanıtımı gelir (kutu MapScreen'de 6 sn kalır) */
+const GOAL_READ_MS = 2000;
 
 /**
  * Kamp tanıtımı açıkken oyuncunun ilk dokunuşu karartılmış zemine, altta kalan bir düğmenin (ör. "Görevler") üstüne düştüyse o düğme
@@ -573,7 +571,11 @@ function replayTap(el: HTMLElement | null): void {
   }, 120);
 }
 
-/** turu başlat; "Atla" o an sırada bekleyen turları da geçer (Hasta Vakaları klinik kurulmadan, kamp oyunları hiçbiri açılmadan geçilmiş sayılmaz) */
+/**
+ * turu başlat; kamp turunda "Atla" o an sırada bekleyen kamp turlarını da geçer (Hasta Vakaları klinik kurulmadan, kamp oyunları hiçbiri
+ * açılmadan geçilmiş sayılmaz). Açılım tanıtımının üstünden bölüm düğmesine dokunuş tanıtımı bozmaz: bölüm kapısı (levelGate) bölümü
+ * başlatmaz, tanıtım sürer.
+ */
 export function startTour(id: string, route: string, goster = false): void {
   const st = useStore.getState(); const t = tourFor(id, route, goster);
   if (!t) { st.ftueTourDone(id); return; }
@@ -582,12 +584,8 @@ export function startTour(id: string, route: string, goster = false): void {
   countUnlockTour(id, cleared);
   // kendiliğinden başlayan kamp tanıtımında oyuncunun ilk dokunuşu (bkz. rememberTap)
   const tap = CAMP_TOURS.has(id) && !goster ? rememberTap() : null;
-  // oyuncuyu başka sekmeye götüren tanıtımda bölüm düğmesine düşen ilk dokunuş (bkz. watchBolum); haritadaki öbür açılım
-  // tanıtımlarında yalnız açılış payında (oyuncu tanıtımı görmeden "Bölüm N"e uzanmıştı)
-  const sekme = sekmeDegistirir(t);
-  const bolum = !CAMP_TOURS.has(id) && (sekme || FEATURES.some((f) => f.id === id && f.tour)) ? watchBolum(!sekme) : null;
   useCoach.getState().start({ ...t, onDone: (skipped) => {
-    tap?.stop(); bolum?.stop(); replayTap(tap?.take() ?? null);
+    tap?.stop(); replayTap(tap?.take() ?? null);
     if (!skipped) return; const s = useStore.getState();
     for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) {
       // Hasta Vakaları klinik kurulmadan, kamp oyunları hiçbiri açılmadan geçilmiş sayılmaz (açılınca yeni yer olarak gelir); o an
@@ -599,7 +597,7 @@ export function startTour(id: string, route: string, goster = false): void {
     // kampta atlandı: bu girişte başka kamp tanıtımı kendiliğinden gelmez, Atla'dan sonraki ilk dokunuş yeni bir tanıtıma düşmez
     if ((CAMP_TOURS.has(id) || KAMP_GIRIS.has(id)) && exists('.camp-base, .camp-list-screen')) for (const c of CAMP_TOURS) campVisit.add(c);
   }, onDefer: () => {
-    tap?.stop(); bolum?.stop();
+    tap?.stop();
     // açılırken oyuncu başka yere dokundu: sayılmaz, bu girişte yine sırada (ekran sakinleşince)
     campVisit.delete(id);
     if (unlockTally.cleared === cleared && FEATURES.some((f) => f.id === id && f.tour)) unlockTally[groupOf(id)] = Math.max(0, unlockTally[groupOf(id)] - 1);
@@ -638,23 +636,34 @@ export function FtueDirector({ route }: { route: string }) {
     let calm = 0;
     // ekrana giriş ya da bir önceki turun bitişi (söz verilen turlar art arda gelir)
     const since = performance.now();
+    // haritanın "Hedefe ulaştın!" kutusunun göründüğü an
+    let goalAt = 0;
     const h = setInterval(() => {
       // kampa girdiğinden beri dokunmayan oyuncu: kısa bekleme (açılıştaki kutlama/satır kendini gösterebilsin). Sonuçtan haritaya
       // dönen oyuncu da: söz verilen tanıtım dönüş sahnesi ve hedef kutusu biter bitmez gelir, oyuncu okuyup bir yere uzanırken
       // değil (OT-ogrenci-birinci-31); dokunduysa her zamanki sakinlik kuralı
+      const now = performance.now();
       const tours = useStore.getState().ftue.tours;
       // girişten (girişi açan dokunuşun payıyla) ya da önceki turun bitişinden beri dokunulmadı
       const sessiz = !touch.held && touch.last <= Math.max(enteredAt.current + ENTRY_TOUCH_MS, since);
       const zincir = sessiz ? promised.current.filter((id) => !tours.includes(id)) : [];
-      const fresh = (route === 'camp' && untouchedSince(enteredAt.current)) || zincir.length > 0;
-      if (useCoach.getState().tour || !quiet() || (!fresh && !handsOff())) { calm = 0; return; }
+      // haritada açılım tanıtımı bekliyor (1.1.0): dönüş sahnesi biter bitmez gelir; dokunuş sakinliği beklenmez (bölüm kapısı bölümü
+      // zaten başlatmaz), yalnız parmak ekrandayken başlamaz; "Hedefe ulaştın!" kutusu GOAL_READ_MS okunduktan sonra. Oyuncu bölüme
+      // dokunduysa (levelGate) yalnız geçici katmanlar (kutlama, dönüş sahnesi) beklenir
+      const acilim = route === 'map' && acilimBekliyor();
+      const istendi = acilim && now - acilimIstegi.at < ISTEK_MS;
+      if (exists('.map-goal[data-ulasildi]')) { if (!goalAt) goalAt = now; } else goalAt = 0;
+      const fresh = (route === 'camp' && untouchedSince(enteredAt.current)) || zincir.length > 0 || acilim;
+      const sakin = istendi ? !gecici() : quiet(false, acilim && now - goalAt >= GOAL_READ_MS);
+      const elde = fresh ? touch.held && now - touch.last < HELD_MAX_MS : !handsOff();
+      if (useCoach.getState().tour || !sakin || elde) { calm = 0; return; }
       // kampın tek kartı açıkken başka tur başlamaz (oyuncu "Göster"le seçer)
       if (kampYeniBekleyen().length) { calm = 0; return; }
-      if (++calm < (fresh ? FRESH_TICKS : CALM_TICKS)) return;
+      if (++calm < (istendi ? 1 : fresh ? FRESH_TICKS : CALM_TICKS)) return;
       const st = useStore.getState(); const id = nextTour(route, zincir);
-      // oyuncu bir yere kendi girdiyse (turu henüz sırada beklerken) o yerin tanıtımı görülmüş sayılır; şimdi başlayacak tur hariç
+      // kendi girdiği yer görülmüş sayılmaz (1.1.0): açılım tanıtımı dinlenir ya da atlanır. Kamp içi tanıtımlarda oyuncunun kullandığı
+      // özellik "yeni" sayılmaz (bölüm başlatmayı beklemezler)
       if (!st.ftue.bypass && !st.ftue.admin) {
-        for (const v of visitedTours(route, clearedCount(st.progress), st.ftue.tours, [id])) st.ftueTourDone(v);
         // vaka çözmüş oyuncu Hasta Vakaları'na kendi girmiş (önceki oturumda da olsa)
         if (route === 'camp' && id !== 'vaka' && !st.ftue.tours.includes('vaka') && vakaCozuldu()) st.ftueTourDone('vaka');
         // kamp oyunu oynamış oyuncu da kamp oyunlarına kendi girmiş

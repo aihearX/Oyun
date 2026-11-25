@@ -15,6 +15,8 @@ export type SocialRoute =
   | { name: 'siralama' }
   /** Profil › Kurucular: kapalı betanın Kurucu Yolcuları (kurucu/Kurucular.tsx, YN-041) */
   | { name: 'kurucular' }
+  /** Profil › Admin: yönetici ekranı (yalnız yönetici hesabı; yonetici/YoneticiScreen.tsx, 1.1.0) */
+  | { name: 'yonetici' }
   /** tek kişilik, ödülsüz bilgi pratiği (canlı yarışmanın soru havuzu; takımsız ve çevrimdışı da; events/Pratik.tsx, YN-078) */
   | { name: 'pratik' }
   /** arkadaşın ya da takım arkadaşının kampı (salt okunur, hazır tepki; camp/Ziyaret.tsx) */
@@ -57,7 +59,7 @@ export function errorBackTo(r: { name: string; back?: string }, subs: readonly s
 export const SCREEN_TITLE: Record<string, string> = {
   skills: 'Yetenekler', settings: 'Ayarlar', achievements: 'Başarımlar', album: 'Kulak Kartları', glossary: 'Kulak Sözlüğü',
   wardrobe: 'Dolap', info: 'Ödüller nasıl çalışır?', friends: 'Arkadaşlar', messages: 'Mesajlar', shop: 'Mağaza', inbox: 'Ödül kutusu',
-  league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', race: 'Canlı yarış', pratik: 'Bilgi pratiği',
+  league: 'Haftalık lig', birlikte: 'Birlikte', siralama: 'Sıralama', kurucular: 'Kurucular', yonetici: 'Admin', race: 'Canlı yarış', pratik: 'Bilgi pratiği',
 };
 
 /** Etkinlikler ekranının yükleme başlığı (görünüme göre): merkez "Etkinlikler", tek etkinlikte adı (events/common.tsx EVENT_META,

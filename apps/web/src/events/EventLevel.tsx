@@ -68,7 +68,7 @@ export function EventLevel({ spec, play, onExit }: { spec: LevelSpec; play: Even
   }, [spec.id]);
   return (
     <>
-      <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT && useStore.getState().sounds} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={{ firsts: eventFirsts(play) }} onDone={finish} onQuit={() => onExit(play.kind)} />
+      <LevelHost key={spec.id + play.kind} spec={spec} skills={skills} sounds={!BOT /* genel ses ayarı motorda (App.tsx setVolumes): bölüm içinde aç/kapat hemen geçerli */} bot={BOT} botHand={BOT_HAND} timeScale={BOT_SPEED > 1 ? BOT_SPEED : undefined} extras={{ firsts: eventFirsts(play) }} onDone={finish} onQuit={() => onExit(play.kind)} />
       {rallyWon && running && (
         <div className="ev-level-won" role="status" data-testid="ralli-bolum-yenildi">
           <span className="min0"><b>Canavar yenildi! Ralli kazanıldı</b><small>Bu koşu artık hasar yazmaz.</small></span>

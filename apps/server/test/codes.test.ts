@@ -116,7 +116,7 @@ describe('Kod Gir: ödül kodları', () => {
     expect(configFromEnv({}).adminCodeHash).toBeUndefined();
   });
 
-  it('istek doğrulama ve yetki: panel yalnızca yönetici modunda', async () => {
+  it('istek doğrulama ve yetki: panel yalnızca yönetici hesabında', async () => {
     env = await adminEnv();
     const a = await env.connect('Ayşe');
     expect((await err(a.call('code.list', {}))).code).toBe('YETKI');
@@ -153,7 +153,10 @@ describe('Kod Gir: yönetici kodu', () => {
     expect((await a.call('rank.board', { board: 'guc', scope: 'herkes' })).view.rows.map((r) => r.name)).toEqual(['Ayşe', 'Bora']);
     // yönetici kodu
     const res = await redeem(a, ' deneme yönetici ');
-    expect(res).toEqual({ kind: 'yonetici', admin: { isAdmin: true, on: true } });
+    // 1.1.0: kod yalnız hesabı yönetici yapar; "her şey açık" modu yönetici ekranındaki anahtarla açılır
+    expect(res).toEqual({ kind: 'yonetici', admin: { isAdmin: true, on: false } });
+    expect((await err(a.call('progress.submit', run(30)))).code).toBe('GECERSIZ');
+    expect((await a.call('admin.set', { on: true })).admin).toEqual({ isAdmin: true, on: true });
     // 30. bölüm oynanabilir; highest (gerçek ilerleme) atlamaz; savaş/baskın/lig puanı yok
     const ack = await a.call('progress.submit', run(30, { stars: 3 }));
     expect([ack.highest, ack.warPoints, ack.raidDamage, ack.leaguePoints]).toEqual([2, 0, 0, 0]);

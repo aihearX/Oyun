@@ -31,8 +31,9 @@
 | Satın alma kaydı | İşlem yılının sonundan 10 yıl (VUK m.253, TTK m.82); hesap silinince oyuncu kimliği yerine `silinmis` | `account.ts` `prunePurchases`, `account-veri.ts` `PURCHASE_RETAIN_YEARS` |
 | Şikâyet kayıtları (`player_reports`, `chat_reports`) | 90 gün (hesap silinse de silinmese de) | `account.ts` `pruneReports` |
 | Ödül kodu denemeleri (IP ile) | 90 gün | `codes.ts` `prunePromoLog` |
-| Takım ve genel sohbet | 30 gün; hesap silinince yazdıkları hemen | `chat.ts` `CHAT_RETAIN_MS`, `account-veri.ts` |
-| Özel mesaj | Konuşma başına son 500; taraflardan biri silinince konuşma | `dm.ts` `prune`, `FRIEND_LIMITS.dmKeep` |
+| Takım ve genel sohbet (sunucuda, `chat`) | 30 gün; hesap silinince yazdıkları hemen | `chat.ts` `CHAT_RETAIN_MS`, `account-veri.ts` |
+| Özel mesaj (sunucuda, `dm`) | Konuşma başına son 500; taraflardan biri silinince konuşma | `dm.ts` `prune`, `FRIEND_LIMITS.dmKeep` |
+| Profil fotoğrafı (`player_photos`, isteğe bağlı, 1.1.0) | Oyuncu kaldırana ya da hesap silinene kadar; 3 farklı kişinin şikâyetiyle gizlenir, işletmen siler | `foto.ts` (`PHOTO_RULES`), `account-veri.ts` (`player_photos` "sil") |
 | Bölüm gönderim kayıtları (`progress_runs`) | 30 gün | `progress.ts` `RUN_RETAIN_MS` |
 | Hesap açma sınırı için IP (bellek) | En çok ~2 saat (saatlik bakım) | `players.ts` `pruneNewAccountIps` |
 | Sunucu günlüğü (journald) | 30 gün | `tools/sunucu/ortak.sh` `MaxRetentionSec=30day` |
@@ -50,7 +51,9 @@
 
 | İddia | Dayanak |
 |---|---|
-| Ad, e-posta, telefon, konum, rehber, fotoğraf, mikrofon, kamera, reklam kimliği istenmez | `apps/mobile/package.json` (izin isteyen modül yok: konum, kamera, kişiler, bildirim yok), `grep getUserMedia\|geolocation` → yok |
+| Ad, e-posta, telefon, konum, rehber, mikrofon, kamera, reklam kimliği istenmez; fotoğraf yalnız isteğe bağlı profil fotoğrafı (oyuncu galeriden tek fotoğraf seçer, cihazda 256×256 JPEG'e küçültülür) | `apps/mobile/package.json` (konum, kamera, kişiler, bildirim izni yok), `grep getUserMedia\|geolocation` → yok; fotoğraf: `platform().pickPhoto` / `<input type=file>` (`apps/web/src/foto/foto.ts`) |
+| Profil fotoğrafı sunucuda saklanır, herkese görünür (`GET /foto/<id>.jpg`), şikâyet edilebilir (3 kişi → gizlenir), hesapla silinir | `apps/server/src/foto.ts` (`receivePhoto`, `servePhoto`, `reportPhoto`), `account-veri.ts`; test `apps/server/test/yonetici-ekran.test.ts` |
+| Özel mesajlar ve sohbet iletileri sunucuda saklanır, uçtan uca şifreli değildir; kötüye kullanımı incelemek için görülebilir | `dm`, `chat` tabloları (`db.ts`); işletmen erişimi yalnız yönetici hesabıyla (`yonetici-ekran.ts`, oyunculara anlatılmaz) ve sunucu makinesinde |
 | Reklam, analitik, izleme aracı yok | Bağımlılıklarda reklam/analitik SDK yok; RevenueCat yalnız satın alma (`apps/mobile/src/purchases.ts`), `collectDeviceIdentifiers` çağrılmaz |
 | Kayıt formu yok; rastgele kimlik + anahtar; sunucuda özet | `players.ts` (hello → yeni oyuncu), `token_hash` |
 | Takma ad isteğe bağlı (OdiNNNN) | `ui/Onboarding.tsx` "Sonra", `isDefaultName` |
@@ -71,7 +74,7 @@
 | Serbest yazı 8 bölüm geçilene kadar kapalı | `COMM_RULES.freeTextLevel`, `comm/settings.ts` `requireFreeText` (sohbet ve özel mesaj) |
 | Küfür süzgeci (sohbet, DM, ad, takım adı/açıklama, başvuru notu) | `chat.ts`/`dm.ts` `maskProfanity`, `players.ts`, `teams.ts`, `teamapply.ts` `hasProfanity` |
 | 3 şikâyette ileti gizlenir, 1 günde 3 kişi → susturma | `chat.ts` `REPORTS_TO_HIDE`, `friends.ts` `addReport` (`FRIEND_LIMITS.reportsToMute`) |
-| Şikâyetleri inceler, uzun süre susturabiliriz | `npm run kod -- sikayetler`, `npm run kod -- sustur KOD --gun N` (`yonetim.ts`) |
+| Şikâyetleri inceler, uzun süre susturabiliriz | `npm run kod -- sikayetler`, `npm run kod -- sustur KOD --gun N` (`yonetim.ts`); uygulamada yönetici hesabıyla `admin.reports`, `admin.mute` (`yonetici-ekran.ts`) |
 | Harcama sınırı ilk alımdan önce oyuncu seçer (önerilen 100 TL), yükseltme ayrı onay + 24 saat (karar 28) | `@odi/shared` `SPEND_LIMIT_SUGGESTED_TRY`, `shop.ts` `LIMIT_RAISE_DELAY_MS` |
 | Hesap silme: sil / anonim / tut ayrıntısı | `account-veri.ts` `VERI_SINIFI` (128 tablo, test `account.test.ts`) |
 | Silinen hesap açık lobilerde ve bekleyen katılımlarda kalmaz (Takım Yarışı lobisi, canlı yarış odası, saldırısı başlamamış ralli; bellekte kimlik tutulmaz) | `account.ts` `deleteAccount` → `teamrace` `teamRaceForget`, `race.ts` `leaveRace`, `events/rally.ts` `rallyForget` (test `silinen-hesap-lobi.test.ts`, YN-207) |

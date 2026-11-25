@@ -98,7 +98,7 @@ export function RelayView({ onPlay }: { onPlay: PlayFn }) {
           <div className="muted small-note">Seçtiğin takım arkadaşına "Bayrak sende!" bildirimi gider.</div>
           {others.map((m) => (
             <button key={m.id} className="ev-pass" data-testid={`bayrak-devret-${m.name}`} data-online={isOn(m) ? '1' : '0'} disabled={busy} onClick={() => void pass(m.id)}>
-              <OdiAvatar color={m.color} hat={m.hat} size={36} />
+              <OdiAvatar color={m.color} hat={m.hat} size={36} pid={m.id} />
               <span className="grow min0 ev-call-who"><b className="ellipsis">{m.name}</b><small className="muted"><span className={`ev-dot${isOn(m) ? ' on' : ''}`} role="img" aria-label={isOn(m) ? 'çevrimiçi' : 'çevrimdışı'} /> {seenLine(isOn(m), m.lastSeen, now)}</small></span>
               <span><Art e="🚩" size="1.15em" className="art-inline" /></span>
             </button>

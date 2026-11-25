@@ -438,7 +438,7 @@ export function OnlineRow({ members }: { members: { id: string; name: string; co
   return (
     <div className={`online-row${on.length ? '' : ' none'}`} data-testid="kim-cevrimici" aria-label={`Çevrimiçi: ${on.length}`}>
       <span className="or-dot" aria-hidden /><small>{on.length ? `Senden başka ${on.length} kişi çevrimiçi` : 'Senden başka kimse çevrimiçi değil'}</small>
-      <span className="or-avs">{on.slice(0, 8).map((m) => <button key={m.id} type="button" className="or-av" onClick={() => openProfile(m.id)} aria-label={`${m.name} çevrimiçi`} title={m.name}><OdiAvatar size={26} color={m.color} hat={hatKey(m.hat)} /></button>)}{on.length > 8 && <span className="or-more">+{on.length - 8}</span>}</span>
+      <span className="or-avs">{on.slice(0, 8).map((m) => <button key={m.id} type="button" className="or-av" onClick={() => openProfile(m.id)} aria-label={`${m.name} çevrimiçi`} title={m.name}><OdiAvatar size={26} color={m.color} hat={hatKey(m.hat)} pid={m.id} /></button>)}{on.length > 8 && <span className="or-more">+{on.length - 8}</span>}</span>
     </div>
   );
 }

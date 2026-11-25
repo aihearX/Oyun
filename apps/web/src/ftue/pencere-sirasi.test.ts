@@ -13,7 +13,7 @@ vi.mock('@odi/audio', () => ({ audio: { play: () => undefined } }));
  *    kutlamanın içini gösteren adım (bugünün sandığı) duraklamaz.
  *  - "Profil'e dokun" ancak Profil gerçekten açılınca ilerler; üstü örtülü hedefe giden dokunuş adımı ilerletmez.
  *  - Gösterdiği yer ekranda yoksa panel üste çıkar ve ekranı kilitlemez (alt menü erişilebilir).
- *  - Kapanmış Günün Sorusu'na "Bir şık seç" denmez; oyuncunun kendi açtığı Sözlük/Arkadaşlar turu sonradan gelmez.
+ *  - Kapanmış Günün Sorusu'na "Bir şık seç" denmez; oyuncunun kendi açtığı Sözlük/Arkadaşlar görülmüş sayılmaz (1.1.0).
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 if (typeof globalThis.DOMRect === 'undefined') {
@@ -124,11 +124,18 @@ describe('Günün Sorusu ve görülmüş yerler', () => {
     await tick(400);
     expect(spoken).toContain('soru-02');
   }, 30_000);
-  it('oyuncu Sözlük’ü ya da Arkadaşlar’ı kendi açtıysa turu sonradan gelmez', async () => {
-    const { visitedTours } = await import('./Director');
-    expect(visitedTours('glossary', 4, ['result1', 'map'], [null])).toEqual(['glossary']);
-    expect(visitedTours('friends', 4, ['result1', 'map'], [null])).toEqual(['friends']);
-    expect(visitedTours('glossary', 3, [], [null])).toEqual([]); // henüz açılmadı
-    expect(visitedTours('glossary', 4, [], ['glossary'])).toEqual([]); // şimdi başlayan tur
+  it('oyuncu Sözlük’ü ya da Arkadaşlar’ı kendi açtıysa tanıtım görülmüş sayılmaz (1.1.0): dinlenir ya da atlanır', async () => {
+    const { FtueDirector } = await import('./Director'); const { useStore } = await import('../store'); const { veteranTours } = await import('./features');
+    const prev = useStore.getState();
+    useStore.setState({ progress: { 1: { stars: 1 }, 2: { stars: 1 }, 3: { stars: 1 }, 4: { stars: 1 } } as never, ftue: { v: 1, story: true, tours: veteranTours(3) } });
+    try {
+      await host();
+      for (const route of ['glossary', 'friends']) {
+        await act(async () => { root!.render(createElement(FtueDirector, { route })); });
+        await tick(1800);
+        expect(useStore.getState().ftue.tours).not.toContain('glossary');
+        expect(useStore.getState().ftue.tours).not.toContain('friends');
+      }
+    } finally { useStore.setState({ progress: prev.progress, ftue: prev.ftue }); }
   }, 30_000);
 });

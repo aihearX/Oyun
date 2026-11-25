@@ -25,6 +25,8 @@
 .mh-pill { appearance: none; border: 1px solid rgba(255,246,229,.18); background: rgba(10,6,30,.55); color: var(--m-cream); font: inherit; font-weight: 900; font-size: 0.875rem; border-radius: 999px; padding: 6px 10px; white-space: nowrap; display: inline-flex; align-items: center; gap: 3px; position: relative; flex: none; }
 .mh-pill.gold { border-color: rgba(255,201,60,.6); color: #ffe7a3; animation: mh-bump .35s ease-out; }
 .mh-pill.tap { cursor: pointer; min-height: 34px; }
+/* ses aç/kapat (1.1.0): yalnız simge, dar */
+.mh-pill.ses { padding-left: 7px; padding-right: 7px; }
 .mh-pill .dot { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--m-coral); color: #fff; font-size: 0.6875rem; display: flex; align-items: center; justify-content: center; }
 /* telefon ve dar ekran (320 px; Büyük yazıda da): bütün haplar sığsın — sayı her genişlikte tam kalır (98.765; YN-087), aralıklar ve
    simgeler daralır; hap yazısı üst çubuktaki gibi Büyük yazıda da normal boy */
@@ -38,6 +40,7 @@
   .mh-pill { padding: 4px 5px; font-size: 13px; }
   .mh-pill .art { width: 16px; height: 16px; }
   .mh-lvl { width: 34px; height: 34px; }
+  .mh-pill.ses { padding-left: 4px; padding-right: 4px; }
 }
 @keyframes mh-bump { 0% { transform: scale(1.18); } 100% { transform: scale(1); } }
 

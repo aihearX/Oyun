@@ -200,8 +200,8 @@ bölge finalleri için **sınav odaları** `k1-sinav-havuz`, `k3-sinav-bas`, `sn
 - **Her odada kontrol noktası** (1-12); 1-3'te hareketli, ritim, ufalanan, yankı ve asansör basamağı yok.
 - **Öğretici odasında can gitmez** (1-12): yeni hareketi öğrenirken çarpma yalnız geri iter, düşüş aynı yerden yeniden başlatır
   (en çok 3 kez — boşta oyuncu orada sonsuza dek kalmasın).
-- **Kazara kaydırma döndürmez:** geri dönüş 2. bölümde öğretilir (öncesinde hiç yok); 1-5'te yalnız kapısı kapalı bir temas
-  anahtarı ya da frekans kapısı yakınken çalışır (ileri yöne dönüş her zaman serbest); yatay kaydırma eşiği 42 yerine 64 px;
+- **Geri dönüş her zaman çalışır:** 2. bölümde öğretilir (öncesinde hiç yok); öğretildikten sonra koşarken de her yerde
+  dönülür (1.1.0: eskiden 1-5'te yalnız anahtar/kapı yakınında çalışıyordu); 1-5'te yatay kaydırma eşiği 42 yerine 50 px;
   basamağa takılan kahraman geri koşmaz, zıplamayı bekler (kapıda döner). Normal odalarda dönüş bulmacası 6. bölümden itibaren.
 - **Öğretici ağır çekim** ×0,35 yerine ×0,3 ve 6 yerine en çok 8 gerçek saniye.
 - Yavaş koşuda tempo kuralı aynı süreyi tutar: sessiz yol sınırı koşu hızıyla ölçeklenir, yayın/fırlatıcının uçuşu altında kalan

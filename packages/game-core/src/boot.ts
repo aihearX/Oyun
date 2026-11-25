@@ -47,6 +47,7 @@ export function startLevel(parent: HTMLElement | string, opts: LevelOptions): Le
     destroy: () => { ro?.disconnect(); if (typeof window !== 'undefined') window.removeEventListener('resize', relayout); kill(); },
     pause: () => { const s = game.scene.getScene('level'); if (s && game.scene.isActive('level')) { s.scene.pause(); } },
     resume: () => { const s = game.scene.getScene('level'); if (s && game.scene.isPaused('level')) { s.scene.resume(); } },
+    setSoundOn: (on) => { try { const s = game.scene.getScene('level') as LevelScene | null; s?.setSoundOn?.(on); } catch { /* sahne yok */ } },
     end: (reason) => { const s = game.scene.getScene('level') as LevelScene | null; if (s?.state && !s.state.finished) { if (game.scene.isPaused('level')) s.scene.resume(); s.fail(reason); } },
   };
 }

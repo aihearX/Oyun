@@ -15,8 +15,8 @@ vi.mock('../net', () => ({ act: async () => null, toast: () => undefined }));
  *    "önce Odyometri Odası'nı kur" yazısı, çerçeve odanın kartında; oda kurulunca asıl tanıtım bir kez.
  *  - "Önce kur" yazısı bina penceresi açılınca kapanır (çerçeve ve balon pencerenin Kur düğmesini örtmez).
  *  - Görevler › Etkinlik'in ortak hak notu tek sade cümle (karar 44).
- *  - Bölüme dokunan oyuncu: tanıtım bölüm yüklenirken başlamaz; açık tanıtımın üstünden "Bölüm N"e dokunuş tanıtımı erteler ve
- *    bölümü başlatır; bölüm açılınca sürmekte olan açılım tanıtımı ertelenir.
+ *  - Bölüme dokunan oyuncu: tanıtım bölüm yüklenirken başlamaz; açılım tanıtımı bekliyorsa bölüm başlamaz, tanıtım sürer (1.1.0);
+ *    yarış ya da etkinlik bölümü açılınca sürmekte olan açılım tanıtımı ertelenir.
  *  - Zamanlı takım bildirimi (ralli, yarış daveti) görünürken tanıtım başlamaz; tanıtım sürerken gelen ralli bildirimi beklenir.
  */
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -137,38 +137,19 @@ describe('Bölüme dokunan oyuncu tanıtıma takılmaz (OT-uzman-odyolog-34)', (
     (s.querySelector('button') as HTMLButtonElement).click();
     expect(quiet()).toBe(false);
   });
-  it('sekme değiştiren tanıtımın üstünden "Bölüm N"e dokunuş: tanıtım görülmüş sayılmadan çekilir, bölüm başlar', async () => {
-    const { watchBolum, sekmeDegistirir, tourFor, bolumBasliyor } = await import('./Director'); const { useCoach } = await import('./Coach'); const { useStore } = await import('../store');
-    expect(sekmeDegistirir(tourFor('soru', 'map')!)).toBe(true);
-    expect(sekmeDegistirir(tourFor('soru', 'team')!)).toBe(false);
-    expect(sekmeDegistirir(tourFor('ikili', 'map')!)).toBe(true);
-    let played = 0; let deferred = 0;
-    const play = document.createElement('button'); play.className = 'map-play'; play.addEventListener('click', () => { played++; }); document.body.appendChild(play);
-    const coach = document.createElement('div'); coach.className = 'coach'; const block = document.createElement('div'); block.className = 'coach-block'; coach.appendChild(block); document.body.appendChild(coach);
-    (document as { elementsFromPoint?: unknown }).elementsFromPoint = () => [block, play];
-    let advanced = 0; block.addEventListener('click', () => { advanced++; });
-    await act(async () => { useCoach.getState().start({ id: 'soru', steps: [{ say: 'Yeni: Günün Sorusu' }], onDefer: () => { deferred++; } }); });
-    const w = watchBolum();
-    block.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: 160, clientY: 560 }));
-    w.stop();
-    expect(advanced).toBe(0); // tanıtım ilerlemez
-    expect(useCoach.getState().tour).toBeNull();
-    expect(deferred).toBe(1);
-    expect(useStore.getState().ftue.tours).not.toContain('soru');
-    expect(bolumBasliyor()).toBe(true);
-    await tick(100);
-    expect(played).toBe(1);
-  });
-  it('başka bir yere düşen ilk dokunuş tanıtımı ertelemez', async () => {
-    const { watchBolum } = await import('./Director'); const { useCoach } = await import('./Coach');
-    const coach = document.createElement('div'); coach.className = 'coach'; const block = document.createElement('div'); block.className = 'coach-block'; coach.appendChild(block); document.body.appendChild(coach);
-    const other = document.createElement('div'); document.body.appendChild(other);
-    (document as { elementsFromPoint?: unknown }).elementsFromPoint = () => [block, other];
-    await act(async () => { useCoach.getState().start({ id: 'soru', steps: [{ say: 'Yeni: Günün Sorusu' }] }); });
-    const w = watchBolum();
-    block.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    w.stop();
-    expect(useCoach.getState().tour?.id).toBe('soru');
+  it('açılım tanıtımının üstünden "Bölüm N"e dokunuş tanıtımı bozmaz (1.1.0): bölüm kapısı bölümü başlatmaz, tanıtım sürer', async () => {
+    const { levelGate, bolumBasliyor } = await import('./Director'); const { useCoach } = await import('./Coach'); const { useStore } = await import('../store');
+    const { veteranTours } = await import('./features');
+    useStore.setState({ progress: { 1: { stars: 1 }, 2: { stars: 1 }, 3: { stars: 1 }, 4: { stars: 1 }, 5: { stars: 1 }, 6: { stars: 1 }, 7: { stars: 1 }, 8: { stars: 1 }, 9: { stars: 1 } } as never, ftue: { v: 1, story: true, tours: veteranTours(8) } });
+    try {
+      const play = document.createElement('button'); play.className = 'map-play'; document.body.appendChild(play);
+      await act(async () => { useCoach.getState().start({ id: 'soru', steps: [{ say: 'Yeni: Günün Sorusu' }] }); });
+      play.click();
+      expect(bolumBasliyor()).toBe(false); // bölüm başlamıyor: tanıtımlar beklemez
+      expect(levelGate('map')).toBe(true);
+      expect(useCoach.getState().tour?.id).toBe('soru');
+      expect(useStore.getState().ftue.tours).not.toContain('soru');
+    } finally { useStore.setState({ progress: {} }); }
   });
   it('bölüm açılınca sürmekte olan açılım tanıtımı ertelenir (bölümden sonra yeniden gelir)', async () => {
     const { FtueDirector } = await import('./Director'); const { useCoach } = await import('./Coach'); const { useStore } = await import('../store');

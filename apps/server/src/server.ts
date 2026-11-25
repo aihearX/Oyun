@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, SOCIAL_LIMITS, type Op } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, PHOTO_RULES, SOCIAL_LIMITS, type Op } from '@odi/shared';
 import { App, OdiError, sendJson, type Conn, type Handler, type Handlers, type ServerConfig } from './app';
 import { campHandlers, completeDue } from './camp';
 import { campGrowthHandlers } from './camp-buyume';
@@ -31,6 +31,8 @@ import { vakaHandlers } from './camp-quests-vaka';
 import { oyunHandlers } from './camp-quests-oyun';
 import { crashRateOk, crashRatePrune, crashSummary, pruneCrashes, receiveCrash } from './hata';
 import { feedbackRateOk, feedbackRatePrune, feedbackSummary, pruneFeedback, receiveFeedback } from './geribildirim';
+import { photoHandlers, receivePhoto, servePhoto } from './foto';
+import { adminScreenHandlers } from './yonetici-ekran';
 
 export const SERVER_VERSION = '1.0.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -57,7 +59,7 @@ const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEvent
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...teamApplyHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
-  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers,
+  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers,
 }))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase', 'shop.restore']);
@@ -84,6 +86,10 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   if (env.ODI_BACKUP_DIR) o.backupDir = env.ODI_BACKUP_DIR;
   if (env.ODI_BACKUP_HOURS && Number(env.ODI_BACKUP_HOURS) > 0) o.backupHours = Number(env.ODI_BACKUP_HOURS);
   if (env.ODI_BACKUP_KEEP && /^\d+$/.test(env.ODI_BACKUP_KEEP)) o.backupKeep = Number(env.ODI_BACKUP_KEEP);
+  // mağazadaki son sürüm (GET /surum): yalnız sürüm biçimindeki değer (1.2.3); yoksa alan yazılmaz
+  const surum = (v: string | undefined) => (v && /^\d{1,4}(\.\d{1,4}){0,3}$/.test(v.trim()) ? v.trim() : undefined);
+  const ios = surum(env.ODI_SON_SURUM_IOS); const android = surum(env.ODI_SON_SURUM_ANDROID);
+  if (ios || android) o.sonSurum = { ...(ios ? { ios } : {}), ...(android ? { android } : {}) };
   return o;
 }
 
@@ -185,6 +191,33 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       res.end(JSON.stringify({ ok: true, ...feedbackSummary(app) }));
       return;
     }
+    if (req.method === 'GET' && url === '/surum') {
+      // açılıştaki güncelleme sorusu (1.1.0): mağazadaki son sürüm; kimlik doğrulama yok, kişisel veri yok
+      res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300' });
+      res.end(JSON.stringify({ ...(cfg.sonSurum?.ios ? { ios: cfg.sonSurum.ios } : {}), ...(cfg.sonSurum?.android ? { android: cfg.sonSurum.android } : {}) }));
+      return;
+    }
+    if (url === '/foto') {
+      // profil fotoğrafı yükleme (1.1.0, foto.ts): oturum anahtarıyla; gövde JPEG ya da data URL (en çok ~110 KB)
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST', 'access-control-allow-headers': 'content-type, authorization', 'access-control-max-age': '600', 'cache-control': 'no-store' };
+      const bitir = (status: number, body: object) => { if (!res.headersSent) { res.writeHead(status, { ...cors, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); } };
+      if (req.method === 'OPTIONS') { if (!res.headersSent) { res.writeHead(204, cors); res.end(); } return; }
+      if (req.method !== 'POST') { bitir(405, { ok: false, error: 'Yalnız POST.' }); return; }
+      const max = Math.ceil(PHOTO_RULES.maxBytes * 4 / 3) + 64;
+      if (Number(req.headers['content-length'] ?? 0) > max) { req.resume(); bitir(413, { ok: false, error: 'Resim çok büyük.' }); return; }
+      const parts: Buffer[] = []; let size = 0; let tasti = false;
+      req.on('data', (c: Buffer) => { if (tasti) return; size += c.length; if (size > max) { tasti = true; parts.length = 0; return; } parts.push(c); });
+      req.on('error', () => bitir(400, { ok: false }));
+      req.on('end', () => {
+        if (tasti) { bitir(413, { ok: false, error: 'Resim çok büyük.' }); return; }
+        try {
+          const r = receivePhoto(app, req.headers.authorization, Buffer.concat(parts));
+          bitir(r.status, r.error ? { ok: false, error: r.error } : { ok: true, v: r.v });
+        } catch (e) { console.error('[fotoğraf]', e); bitir(500, { ok: false, error: 'Sunucuda bir hata oluştu.' }); }
+      });
+      return;
+    }
+    if (req.method === 'GET' && url?.startsWith('/foto/') && servePhoto(app, url, res)) return;
     if (req.method === 'GET' && url === '/') {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
       res.end('ODİ: Sesin Yolu sosyal sunucusu çalışıyor.\nOyun bu adrese WebSocket ile bağlanır (ws:// ya da wss://).\nSağlık kontrolü: /saglik\n');

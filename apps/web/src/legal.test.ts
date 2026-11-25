@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, PHOTO_RULES, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
 import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
@@ -145,6 +145,21 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(readFileSync(resolve(root, 'apps/web/src/friends/DmScreen.tsx'), 'utf8')).toContain('Bu mesaj silindi');
     expect(tr).toContain('Kendi gönderdiğiniz bir mesajı istediğiniz zaman silebilirsiniz'); expect(tr).toContain('Bu mesaj silindi');
     expect(en).toContain('You can delete any message you sent at any time'); expect(en).toContain('Bu mesaj silindi');
+  });
+
+  it('1.1.0: profil fotoğrafı ve mesajların sunucuda saklandığı yazılı; şikâyet eşiği kodla aynı; hesapla silinir', () => {
+    const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN); const hs = duzMetin(HESAP_SIL);
+    expect(PHOTO_RULES.reportsToHide).toBe(3);
+    expect(PHOTO_RULES.size).toBe(256);
+    for (const k of ['Profil fotoğrafı isteğe bağlıdır', 'İsteğe bağlı profil fotoğrafı', 'oyundaki herkese görünür', 'üç farklı oyuncunun şikâyet ettiği fotoğraf gizlenir', '256×256', 'profil fotoğrafınız',
+      'Takım ve genel sohbet mesajları (sunucumuzda saklanır)', 'Özel mesajlar (arkadaşlar arası; sunucumuzda saklanır)', 'Özel mesajlar ve sohbet iletileri sunucumuzda saklanır']) expect(tr).toContain(k);
+    for (const k of ['A profile photo is optional', 'Optional profile photo', 'visible to everyone in the game', 'a photo reported by three different players is hidden', '256×256', 'your profile photo',
+      'Team and public chat messages (stored on our server)', 'Private messages (between friends; stored on our server)', 'Private messages and chat messages are stored on our server']) expect(en).toContain(k);
+    expect(hs).toContain('profil fotoğrafınız'); expect(hs).toContain('profile photo');
+    // hesap silinince fotoğraf silinir (sınıflandırma)
+    expect(VERI_SINIFI.player_photos!.oyuncu!.player_id!.karar).toBe('sil');
+    // yönetim aracı oyunculara anlatılmaz
+    for (const b of tum) expect(duzMetin(b)).not.toMatch(/admin (panel|screen)|yönetici (paneli|ekranı)|yönetim paneli|Profil › Admin|Profile › Admin/i);
   });
 
   it('Türkçe karakterler doğru (ASCII yazım yok)', () => {

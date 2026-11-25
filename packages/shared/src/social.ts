@@ -33,6 +33,8 @@ export interface PublicProfile {
   rozetler?: RozetId[];
   /** giyilen profil çerçevesi (Dolap; yalnız rozeti olan seçebilir). Yoksa alan da yok. */
   cerceve?: CerceveId;
+  /** profil fotoğrafının sürümü (1.1.0; resim: `<sunucu>/foto/<id>.jpg?v=<photo>`). Fotoğraf yoksa alan da yok. */
+  photo?: number;
 }
 
 export interface MyProfile extends PublicProfile {
@@ -980,7 +982,7 @@ export interface OpMap {
   'players.block': { req: { id: string }; res: { blocked: string[] } };
   'players.unblock': { req: { id: string }; res: { blocked: string[] } };
   'players.blocked': { req: Record<string, never>; res: { players: PublicProfile[] } };
-  'players.report': { req: { id: string; reason: 'isim' | 'taciz' | 'diger' }; res: Record<string, never> };
+  'players.report': { req: { id: string; reason: 'isim' | 'taciz' | 'diger' | 'foto' }; res: Record<string, never> };
   'profile.card': { req: { id: string }; res: { card: ProfileCard } };
   'dm.threads': { req: Record<string, never>; res: { threads: DmThread[]; unread: number } };
   'dm.open': { req: { id: string; before?: number }; res: { other: PublicProfile; messages: DmMessage[]; hasMore: boolean; peerReadSeq: number; myReadSeq: number; canMessage: boolean; reason: string | null } };
@@ -1786,4 +1788,99 @@ export const ROZET_KOD_ONEKI: Partial<Record<RozetId, string>> = { 'kurucu': 'KU
 export interface OpMap {
   /** "Kurucular" ekranı: listede görünmeyi seçen kurucuların takma adları, kod kullanım sırasıyla; gizli = listede olmayan kurucu sayısı */
   'kurucu.liste': { req: Record<string, never>; res: { names: string[]; gizli: number } };
+}
+
+// =====================================================================
+// PROFİL FOTOĞRAFI (1.1.0): isteğe bağlı, herkese görünür; HTTP ile yüklenir (POST /foto, oturum anahtarıyla), herkese açık
+// GET /foto/<oyuncu>.jpg?v=<sürüm>. Şikâyet edilebilir; birkaç farklı kişi şikâyet ederse gizlenir. Hesap silinince silinir.
+// =====================================================================
+export const PHOTO_RULES = {
+  /** sunucunun kabul ettiği en büyük JPEG (bayt) */
+  maxBytes: 80 * 1024,
+  /** istemcinin ürettiği kare boyu (px) */
+  size: 256,
+  /** oyuncu başına saatte en çok yükleme */
+  perHour: 6,
+  /** fotoğraf Dolap'la birlikte açılır: bu kadar bölüm geçilmiş olmalı */
+  minCleared: 6,
+  /** bu kadar farklı kişi şikâyet edince fotoğraf herkesten gizlenir (yönetici geri açabilir ya da siler) */
+  reportsToHide: 3,
+} as const;
+/** sunucu adresinden (ws/wss/http/https) fotoğraf adresi; sürüm yoksa boş */
+export function photoUrl(serverUrl: string, id: string, v: number | undefined): string {
+  if (!v) return '';
+  const m = /^(ws|wss|http|https):\/\/([^/?#\s]+)/i.exec(serverUrl.trim());
+  if (!m) return '';
+  return `${/^(wss|https)$/i.test(m[1]!) ? 'https' : 'http'}://${m[2]}/foto/${encodeURIComponent(id)}.jpg?v=${v}`;
+}
+
+export interface OpMap {
+  /** görünen oyuncuların fotoğraf sürümleri (en çok 100 kimlik); fotoğrafı olmayan kimlik yanıtta yok */
+  'photo.of': { req: { ids: string[] }; res: { photos: Record<string, number> } };
+  /** kendi fotoğrafını kaldır */
+  'photo.remove': { req: Record<string, never>; res: { me: MyProfile } };
+}
+export interface EvtMap {
+  /** bir oyuncunun fotoğrafı değişti (v = 0: kaldırıldı); çevrimiçi herkese */
+  'photo.changed': { id: string; v: number };
+}
+
+// =====================================================================
+// YÖNETİCİ EKRANI (1.1.0): yalnız yönetici olarak işaretli hesap (player_flags.admin) kullanır. Oyunculara görünmez.
+// =====================================================================
+export interface AdminPlayerRow {
+  id: string; name: string; color: number; friendCode: string; highest: number; stars: number; level: number;
+  jeton: number; kristal: number; kalkan: number; teamName: string | null;
+  createdAt: number; lastSeen: number; online: boolean; mutedUntil: number;
+  photo?: number; admin?: boolean;
+}
+export interface AdminReport {
+  /** şikâyet edilen */
+  targetId: string; targetName: string; targetCode: string;
+  reporterName: string; reason: string; at: number;
+  kind: 'oyuncu' | 'dm' | 'sohbet' | 'foto';
+  msgId: string;
+  /** iletinin metni (bulunursa) */
+  text?: string;
+}
+export interface AdminPlayerDetail extends AdminPlayerRow {
+  xp: number; hat: string; league: LeagueTier; teamRole: TeamRole | null;
+  hizlandirici: { m5: number; m60: number; s8: number };
+  cosmetics: number; cards: number;
+  /** geçilen bölüm sayısı, 3 yıldızlı bölüm sayısı, son 10 bölümün yıldızı */
+  levels: { cleared: number; threeStars: number; recent: { level: number; stars: number; score: number }[] };
+  badges: string[];
+  adminOn: boolean;
+  friends: number; dmCount: number; chatCount: number; purchases: number;
+  reportsAgainst: AdminReport[]; reportsBy: number;
+  photoHidden?: boolean;
+}
+export interface AdminMessage {
+  id: string; kind: 'dm' | 'sohbet' | 'takim'; at: number; text: string;
+  fromId: string; fromName: string;
+  /** özel mesajda alıcı */
+  toId?: string; toName?: string;
+  /** sohbette oda (genel, takim:… → takım adı) */
+  room?: string;
+  hidden?: boolean; deleted?: boolean;
+}
+export interface AdminPhoto { id: string; name: string; friendCode: string; v: number; at: number; bytes: number; hidden: boolean; reports: number }
+export interface AdminGift { jeton?: number; kristal?: number; kalkan?: number; note?: string }
+export const ADMIN_PAGE = 30;
+
+export interface OpMap {
+  'admin.players': { req: { query?: string; offset?: number }; res: { players: AdminPlayerRow[]; total: number; hasMore: boolean } };
+  'admin.player': { req: { id: string }; res: { player: AdminPlayerDetail } };
+  /** id verilirse o oyuncunun (özel mesaj: iki yön; sohbet: yazdıkları), yoksa herkesin son iletileri; yeniden eskiye, before = at */
+  'admin.messages': { req: { id?: string; kind?: 'hepsi' | 'dm' | 'sohbet'; before?: number }; res: { messages: AdminMessage[]; hasMore: boolean } };
+  'admin.reports': { req: { before?: number }; res: { reports: AdminReport[]; hasMore: boolean } };
+  'admin.photos': { req: { filter?: 'yeni' | 'sikayet'; before?: number }; res: { photos: AdminPhoto[]; hasMore: boolean } };
+  'admin.photo.delete': { req: { id: string }; res: Record<string, never> };
+  'admin.photo.show': { req: { id: string }; res: Record<string, never> };
+  /** fotoğrafın kendisi (gizlenmiş olanı da; data:image/jpeg;base64,…) */
+  'admin.photo.data': { req: { id: string }; res: { data: string } };
+  /** sohbet ve özel mesajı gün sayısı kadar kapat (0: aç) */
+  'admin.mute': { req: { id: string; days: number }; res: { mutedUntil: number } };
+  /** tek oyuncuya (arkadaş koduyla) ya da herkese ödül kutusuna hediye */
+  'admin.gift': { req: { code?: string; all?: boolean } & AdminGift; res: { count: number } };
 }

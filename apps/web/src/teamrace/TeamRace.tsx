@@ -17,6 +17,7 @@ import { TeammateCall } from '../events/Call';
 import { refreshLeague, refreshTeamRace, trNet, useTeamRace } from './state';
 import '../race/race.css'; // race-big / race-dots / race-live / race-actions: yarış ekranları açılmadan da stilli (YN-026)
 import './teamrace.css';
+import '../comm/comm.css'; // .rules (paket bölme, YN-026)
 
 /**
  * Takım › Takım Yarışı: lobi (katıl, Hazırım), lider/yardımcı için rakip ara / dostluk daveti / lobiyi kapat, gelen davetler,
@@ -87,7 +88,7 @@ function LobbyCard({ l, meId, mine, meReady, canLead, busy, run, onPick, searchi
       <div className="tr-slots">
         {Array.from({ length: slots }, (_, i) => l.members[i]).map((m, i) => m ? (
           <span key={m.id} className={`tr-slot${isReady(m) ? ' ready' : ''}${m.online ? '' : ' off'}${m.id === meId ? ' me' : ''}`} data-testid="tr-uye" data-ready={isReady(m) ? '1' : '0'}>
-            <OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} /><b className="ellipsis">{m.name}</b><small>{isReady(m) ? 'Hazır' : m.online ? 'Bekliyor' : 'Çevrimdışı'}</small>
+            <OdiAvatar size={44} color={m.color} hat={hatKey(m.hat)} pid={m.id} /><b className="ellipsis">{m.name}</b><small>{isReady(m) ? 'Hazır' : m.online ? 'Bekliyor' : 'Çevrimdışı'}</small>
           </span>
         ) : <span key={`e${i}`} className="tr-slot empty" data-testid="tr-bos"><Art name="hourglass" size={22} /><small>Üye bekleniyor</small></span>)}
       </div>
@@ -253,7 +254,7 @@ export function TeamRaceResultScreen({ room, result: run }: { room: RaceRoom; re
           <ol className="tr-rows" aria-label="Bireysel puanlar">
             {res.rows.map((p) => (
               <li key={p.id} className={`tr-row ${p.side === mySide ? 'us' : 'them'}${p.id === meId ? ' me' : ''}`} data-testid="tr-satir" data-name={p.name}>
-                <b className="tr-place">{p.place ?? '–'}</b><OdiAvatar size={34} color={p.color} hat={hatKey(p.hat)} />
+                <b className="tr-place">{p.place ?? '–'}</b><OdiAvatar size={34} color={p.color} hat={hatKey(p.hat)} pid={p.id} />
                 <span className="grow min0"><b className="ellipsis">{p.name}{p.id === meId ? ' (sen)' : ''}</b><small className="muted">{p.place != null ? `${p.timeSec?.toLocaleString('tr-TR') ?? '–'} sn · ${p.stars} yıldız` : p.left ? 'Ayrıldı' : 'Bitiremedi'}</small></span>
                 <b className="tr-pts">+{p.points}</b>
               </li>

@@ -11,6 +11,7 @@ import { createNativeStore } from '@/purchases';
 import { voiceData, voiceManifest } from '@/voice/player';
 import { installNativeCrashReporting, nativeAppInfo } from '@/hata';
 import { serverUrl } from '@/sunucu';
+import { installAudioSession, onceThisLaunch, openUrl, pickPhoto } from '@/cihaz';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativeStore = createNativeStore();
@@ -21,6 +22,8 @@ const shopHidden = !nativeStore && Constants.executionEnvironment !== 'storeClie
 // çökme raporu (YN-011): yalnız yayın derlemesinde ve sunucu adresi varken; kişisel veri yok (src/hata.ts)
 const appInfo = nativeAppInfo();
 installNativeCrashReporting(serverUrl(), appInfo);
+// ses oturumu (1.1.0): oyun sesi medya ses düzeyini izler, sessiz anahtarı susturmaz (src/cihaz.ts)
+installAudioSession();
 
 async function haptic(kind: 'light' | 'medium' | 'heavy' | 'success' | 'error') {
   try {
@@ -89,6 +92,9 @@ export default function Home() {
           voiceData={voiceData}
           clearAll={clearAll}
           restartApp={async () => setGen((g) => g + 1)}
+          openUrl={async (u) => openUrl(u)}
+          pickPhoto={pickPhoto}
+          onceThisLaunch={onceThisLaunch}
           {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices, restorePurchases: nativeStore.restore } : {})}
           canPurchase={!!nativeStore}
           shopHidden={shopHidden}

@@ -10,6 +10,7 @@ import { Art } from '../ui/art';
 import { useNet } from '@odi/net/store';
 import { act } from '../net';
 import { Cerceve, kurucuMu } from '../kurucu/rozet';
+import { FotoKart } from '../foto/FotoKart';
 
 /** kilit metni; mağaza kozmetiği hangi paketle geldiğini adıyla söyler ("Mağaza: Odi Sezon Kartı"; OT-ekonomi-denetci-19) */
 export function unlockText(c: CosmeticDef): string {
@@ -39,6 +40,8 @@ export function WardrobeScreen({ onBack }: { onBack: () => void }) {
     <div className="screen fade-in">
       <ScreenHead title="Dolap" onBack={onBack} right={<span className="pill">{owned.size}/{COSMETICS.length}</span>} />
       <div className="card wardrobe-hero"><Cerceve p={me} size={120}><OdiAvatar size={120} color={look.color} hat={look.hat} mood="wow" /></Cerceve><div className="muted">Kozmetikler yalnızca görünüştür; oyun gücü vermez.</div></div>
+      {/* profil fotoğrafı (1.1.0): isteğe bağlı, herkese görünür */}
+      <FotoKart color={look.color} hat={look.hat} />
       <h2>Renkler</h2><div className="wgrid">
         {own != null && (
           <button className={`wtile${ownOn ? ' on' : ''}`} data-testid="kendi-rengin" onClick={() => { s.equip(DEFAULT_COLOR_ID); s.setOdiColor(own); platform().haptic('light'); }} aria-pressed={ownOn} aria-label="Kendi rengin">

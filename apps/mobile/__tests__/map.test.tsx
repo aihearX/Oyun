@@ -32,7 +32,7 @@ describe('Mobil kabuk', () => {
     const dom = p.dom as { scrollEnabled?: boolean; contentInsetAdjustmentBehavior?: string };
     expect(dom.scrollEnabled).toBe(false);
     expect(dom.contentInsetAdjustmentBehavior).toBe('never');
-    for (const k of ['getItem', 'setItem', 'removeItem', 'haptic', 'share', 'speak', 'stopSpeaking', 'voiceManifest', 'voiceData', 'clearAll', 'restartApp']) expect(typeof p[k]).toBe('function');
+    for (const k of ['getItem', 'setItem', 'removeItem', 'haptic', 'share', 'speak', 'stopSpeaking', 'voiceManifest', 'voiceData', 'clearAll', 'restartApp', 'openUrl', 'pickPhoto', 'onceThisLaunch']) expect(typeof p[k]).toBe('function');
     // yedek anlatıcı sesi (TTS): Türkçe, erkek ses tercih edilir, cümle cümle sıraya alınır
     const Speech = jest.requireMock('expo-speech') as { speak: jest.Mock };
     expect(await (p.speak as (t: string, r: number, pi: number, m: boolean) => Promise<boolean>)('Merhaba, ben Tüy Dede. Seni bekliyordum.', 0.86, 0.74, true)).toBe(true);

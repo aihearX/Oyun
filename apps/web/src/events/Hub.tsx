@@ -39,7 +39,7 @@ function rewardNote(reward: RallyParticipant['reward']): string {
 }
 
 function Avatars({ list, max = 5 }: { list: { id: string; color: number; hat: string }[]; max?: number }) {
-  return <span className="ev-avs">{list.slice(0, max).map((p) => <OdiAvatar key={p.id} color={p.color} hat={p.hat} size={30} />)}{list.length > max && <i>+{list.length - max}</i>}</span>;
+  return <span className="ev-avs">{list.slice(0, max).map((p) => <OdiAvatar key={p.id} color={p.color} hat={p.hat} size={30} pid={p.id} />)}{list.length > max && <i>+{list.length - max}</i>}</span>;
 }
 
 /** Etkinlik merkezi: tüm aktif/yaklaşan etkinlikler (Whiteout'un etkinlik sekmesi gibi) */

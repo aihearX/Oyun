@@ -37,7 +37,7 @@ export function TeamMembers() {
       <div className="row between"><span className="muted">{onlineCount} çevrimiçi · {team.members}/{team.max} üye</span><span className="muted">sayılar bu hafta</span></div>
       {roster.map((m) => { const c = contrib.get(m.id); return (
         <button className="card member" key={m.id} onClick={() => (canManage(m) ? setSel(m) : openProfile(m.id))} aria-label={`${m.name}, ${ROLE_LABEL[m.role]}`} data-testid="uye-satiri">
-          <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
+          <span className="mem-av"><OdiAvatar size={40} color={m.color} hat={hatKey(m.hat)} pid={m.id} photo={m.photo} /><i className={`on-dot${online(m) ? ' on' : ''}`} /></span>
           <span className="min0 mem-body">
             {/* ad kesilmez, "(sen)" ve rol etiketi sığmazsa alt satıra iner (OT-takim-kaptani-26) */}
             <span className="row mem-top"><b className="mem-name">{m.name}{m.id === me.id && <span className="mem-you"> (sen)</span>}</b><RozetMini p={m} />{m.role !== 'uye' && <span className={`role-badge ${m.role}`}>{rich(ROLE_LABEL[m.role])}</span>}</span>

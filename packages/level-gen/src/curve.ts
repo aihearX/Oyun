@@ -119,15 +119,16 @@ const ENEMY_FROM: Record<string, number> = { devriye: 3, ucan: 4, ziplayan: 9, a
 
 /**
  * İlk bölümlerin yardımları (gerçek cihazda ilk kez oynayan oyuncu için; docs/12 §4): koşu 190 → 260 px/sn'ye 7. bölümde
- * ulaşır (8. bölüm 260 ama diğer yardımlar sürer); 1-3'te coyote 0,16 / tampon 0,20 sn, 4-5'te 0,13 / 0,15; 1-2. bölümlerin ilk iki, 3-8'in ilk çukuru can götürmez; 6-8'de coyote 0,12 / tampon 0,14 sn; 1-5'te geri dönüş
- * yalnız gerektiği yerde ve yatay kaydırma eşiği 64 px.
+ * ulaşır (8. bölüm 260 ama diğer yardımlar sürer); 1-3'te coyote 0,16 / tampon 0,20 sn, 4-5'te 0,13 / 0,15; 1-2. bölümlerin ilk iki, 3-8'in ilk çukuru can götürmez; 6-8'de coyote 0,12 / tampon 0,14 sn; geri dönüş
+ * öğretildikten sonra her yerde serbest (1-5'te yalnız dönüş gerektiren oda seçilmez, duvarda kendiliğinden dönülmez) ve yatay
+ * kaydırma eşiği 50 px.
  */
 const EARLY_RUN: Record<number, number> = { 1: 190, 2: 205, 3: 220, 4: 235, 5: 242, 6: 248, 7: 255, 8: 260, 9: 260, 10: 260, 11: 260, 12: 260 };
 export function assistFor(n: number): LevelAssist | undefined {
   const run = EARLY_RUN[n]; if (run === undefined) return undefined;
   return {
     run, coyote: n <= 3 ? 0.16 : n <= 5 ? 0.13 : 0.12, buffer: n <= 3 ? 0.2 : n <= 5 ? 0.15 : 0.14,
-    freeFalls: n <= 2 || (n >= 7 && n <= 8) ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 64 : 42, spikeGrace: n >= 6,
+    freeFalls: n <= 2 || (n >= 7 && n <= 8) ? 2 : 1, turnOnlyWhenNeeded: n <= 5, swipePx: n <= 5 ? 50 : 42, spikeGrace: n >= 6,
   };
 }
 

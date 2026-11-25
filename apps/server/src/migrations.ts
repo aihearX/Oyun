@@ -9,6 +9,7 @@ import { silinmisArtiklariTemizle } from './account-veri';
 import { CRASH_SCHEMA } from './hata';
 import { FEEDBACK_SCHEMA } from './geribildirim';
 import { ROZET_SCHEMA } from './rozet';
+import { PHOTO_SCHEMA } from './foto-schema';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
 import { binaMetni } from './comm/bina-metni';
@@ -60,6 +61,9 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 17: bekleyen ödül tavanı (LOCAL_JETON_CARRY_MAX) — `local_grants.carried`: kaydın bekleyen ödüle yazılan kısmı; yinelenen gönderimde
  *    yanıt (`carryAdded`) aynı kalsın diye saklanır. Var olan satırlar NULL ile başlar (bilinmiyor: yanıtta alan yok, istemci eski
  *    kuralla yazar); göçten önce bekleyene yazılan miktarlar değişmez.
+ * 18: 1.1.0 — profil fotoğrafı tablosu (`player_photos`, foto.ts; isteğe bağlı, herkese görünür, hesap silinince silinir).
+ * 19: 1.1.0 — yönetici kodu artık "her şey açık" oynama modunu açmaz (Admin ekranındaki anahtar, varsayılan kapalı): eski kodla açılmış
+ *    mod (`player_flags.admin_on`) bir kez kapatılır; yönetici bayrağı (`admin`) kalır.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -108,6 +112,10 @@ export const MIGRATIONS: Migration[] = [
   } },
   { name: 'bekleyen-odul-jetonu', up: (db) => { addColumn(db, 'players', 'carry_jeton', 'INTEGER NOT NULL DEFAULT 0'); } },
   { name: 'bekleyen-odul-tavani', up: (db) => { addColumn(db, 'local_grants', 'carried', 'INTEGER'); } },
+  { name: 'profil-fotografi', up: (db) => { db.exec(PHOTO_SCHEMA); } },
+  { name: 'yonetici-modu-kapali', up: (db) => {
+    if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'player_flags'").get()) db.exec('UPDATE player_flags SET admin_on = 0');
+  } },
 ];
 
 /** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */

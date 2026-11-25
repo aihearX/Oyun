@@ -19,7 +19,7 @@ import { Art, TeamEmblem, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
 import { clearedCount, passedCount, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
-import { CodeSheet } from '../codes/Codes';
+import { CodeSheet, useCodes } from '../codes/Codes';
 import { reachedRegions } from './GlossaryScreen';
 import { Cerceve, RozetCipleri } from '../kurucu/rozet';
 
@@ -31,6 +31,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const pending = usePending(); const nav = useNav();
   const dms = useFriends((x) => x.dmUnread); const reqs = useFriends((x) => x.incoming.length);
   const [rename, setRename] = useState(false); const [codeSheet, setCodeSheet] = useState(false);
+  const isAdmin = useCodes((x) => !!x.server?.isAdmin);
   const stars = Object.values(s.progress).reduce((a, p) => a + p.stars, 0);
   // geçilen farklı bölüm (stats.clears tekrarları da sayıyordu: 40/40'ta "41 bölüm", OT-ekonomi-denetci-29)
   const levels = HUMAN_JOURNEY.levels.length; const passed = passedCount(s.progress, levels);
@@ -48,7 +49,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
     <div className="screen fade-in with-tabs">
       <TopBar title="Profil" />
       <div className="card profile-hero">
-        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><Cerceve p={me} size={88}><OdiAvatar size={88} color={look.color} hat={look.hat} /></Cerceve><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
+        <button className="avatar-btn" onClick={guard('shop', () => onOpen('wardrobe'))} aria-label="Dolabı aç"><Cerceve p={me} size={88}><OdiAvatar size={88} color={look.color} hat={look.hat} pid={me?.id} photo={me?.photo} /></Cerceve><span className="sr-only" data-testid="profil-odi-renk" data-color={look.color.toString(16).padStart(6, '0')} /></button>
         <div className="grow min0">
           <h2 className="row name-row"><span className="ellipsis">{me ? me.name : 'Odi'} · Sv {lp.level}</span>{me && <IconButton icon="pencil" label={online ? 'Takma adı değiştir' : 'Takma adı değiştir: bağlanınca değiştirebilirsin'} tone="gold" small disabled={!online} onClick={() => setRename(true)} data-testid="ad-degistir" />}</h2>
           {/* çevrimdışıyken düğme kaybolmaz, devre dışı ve nedeni yazılı (YN-142) */}
@@ -83,6 +84,8 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className="menu-tile" data-tile="settings" onClick={() => onOpen('settings')}><span className="mi plain"><Icon name="sliders" /></span><b>Ayarlar</b><span className="muted">Ses, kayıt</span></button>
         <button className="menu-tile" data-tile="info" onClick={() => onOpen('info')}><span className="mi plain"><Icon name="info" /></span><b>Nasıl çalışır?</b><span className="muted">Ödüller, ihtimaller</span></button>
         <button className="menu-tile" data-tile="kod" onClick={() => setCodeSheet(true)}><span className="mi gold"><Art name="key" size={26} /></span><b>Kod gir</b><span className="muted">Sürpriz ödül kodları</span></button>
+        {/* yalnız yönetici hesabında (sunucu onayı): yönetici ekranı (1.1.0) */}
+        {isAdmin && <button className="menu-tile" data-tile="yonetici" data-testid="admin-karo" onClick={() => nav.open({ name: 'yonetici' })}><span className="mi plain"><Art name="gear" size={26} /></span><b>Admin</b><span className="muted">Oyuncular, mesajlar, kodlar</span></button>}
       </div>
       {note && <div className="lock-toast" role="status"><Art name="lock" size={18} /> {note}</div>}
       {rename && me && <Rename current={me.name} onClose={() => setRename(false)} />}

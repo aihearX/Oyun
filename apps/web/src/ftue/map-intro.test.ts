@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURES, veteranTours } from './features';
 import { pickGoal } from '../map/goals';
-import { CAMP_TOURS, MAX_UNLOCK_TOURS_PER_LEVEL, countUnlockTour, mapIntroPending, mapIntroQueue, mapIntroView, mapRevealPending, tourShortName, type UnlockTally } from './map-intro';
+import { CAMP_TOURS, MAX_UNLOCK_TOURS_PER_LEVEL, countUnlockTour, mapIntroPending, mapIntroQueue, mapIntroView, mapRevealPending, tourShortName, unlockIntroPending, type UnlockTally } from './map-intro';
 
 /**
  * Sahip isteği 2026-10-31 (YN-066): bölüm geçilince yeni bir yer açıldıysa ya da Tüy Dede'nin haritada anlatacağı bir şey
@@ -14,44 +14,55 @@ const seenUpTo = (n: number) => veteranTours(n);
 
 describe('haritada bekleyen tanıtım (mapIntroQueue)', () => {
   it('1. bölümden sonra harita turu bekler; hiç bölüm geçilmediyse bir şey yok', () => {
-    expect(mapIntroQueue(1, ftue(['result1']), fresh())).toEqual(['map']);
-    expect(mapIntroQueue(0, ftue([]), fresh())).toEqual([]);
+    expect(mapIntroQueue(1, ftue(['result1']))).toEqual(['map']);
+    expect(mapIntroQueue(0, ftue([]))).toEqual([]);
   });
 
   it('açılım bölümleri: Bugün (2), Kamp (3), Arkadaşlar + Sözlük (4), Takım + Sıralama (5)', () => {
-    expect(mapIntroQueue(2, ftue(seenUpTo(1)), fresh())).toEqual(['today']);
-    expect(mapIntroQueue(3, ftue(seenUpTo(2)), fresh())).toEqual(['camp']);
-    expect(mapIntroQueue(4, ftue(seenUpTo(3)), fresh())).toEqual(['friends', 'glossary']);
-    expect(mapIntroQueue(5, ftue(seenUpTo(4)), fresh())).toEqual(['team', 'siralama']);
+    expect(mapIntroQueue(2, ftue(seenUpTo(1)))).toEqual(['today']);
+    expect(mapIntroQueue(3, ftue(seenUpTo(2)))).toEqual(['camp']);
+    expect(mapIntroQueue(4, ftue(seenUpTo(3)))).toEqual(['friends', 'glossary']);
+    expect(mapIntroQueue(5, ftue(seenUpTo(4)))).toEqual(['team', 'siralama']);
   });
 
   it('eski bölümü tekrar oynayan (her şeyi görmüş) oyuncuda bekleyen yok → normal Sonraki', () => {
-    for (const n of [1, 3, 5, 8, 12, 40]) expect(mapIntroPending(n, ftue(seenUpTo(n)), fresh())).toBe(false);
+    for (const n of [1, 3, 5, 8, 12, 40]) expect(mapIntroPending(n, ftue(seenUpTo(n)))).toBe(false);
   });
 
   it('test atlaması ve yönetici kipinde tur yok', () => {
-    expect(mapIntroQueue(3, ftue([], { bypass: true }), fresh())).toEqual([]);
-    expect(mapIntroQueue(3, ftue([], { admin: true }), fresh())).toEqual([]);
+    expect(mapIntroQueue(3, ftue([], { bypass: true }))).toEqual([]);
+    expect(mapIntroQueue(3, ftue([], { admin: true }))).toEqual([]);
   });
 
-  it('bölüm başına sınır: bu geçişte sınır dolduysa kalan tur bir sonraki bölüme kalır (haritada başlamayacak şey için yönlendirme yok)', () => {
-    const t = fresh();
-    expect(mapIntroQueue(6, ftue(seenUpTo(5)), t)).toEqual(['tlig', 'shop']);
-    expect(MAX_UNLOCK_TOURS_PER_LEVEL).toBe(2);
-    countUnlockTour('tlig', 6, t); countUnlockTour('shop', 6, t);
+  it('sınır yok (1.1.0): bu geçişte açılan bütün yerler anlatılır; bekleyen eski tanıtım yeni açılanın önünde', () => {
+    expect(mapIntroQueue(6, ftue(seenUpTo(5)))).toEqual(['tlig', 'shop', 'akis']);
+    expect(mapIntroView(['tlig', 'shop', 'akis'])?.title).toBe('Yeni: Takım Ligi, Mağaza ve Takım Akışı');
     const after6 = [...seenUpTo(5), 'tlig', 'shop'];
-    expect(mapIntroQueue(6, ftue(after6), t)).toEqual([]); // akis bekliyor ama bu geçişte başlamaz
-    // yeni geçiş: sayaç sıfırlanır; bekleyen Takım Akışı yeni açılan Etkinlikler'in önünde (YN-267, OT-sessiz-oyuncu-35)
-    expect(mapIntroQueue(7, ftue(after6), t)).toEqual(['akis', 'events']);
+    expect(mapIntroQueue(6, ftue(after6))).toEqual(['akis']); // bu geçişte de gelir, düşmez
+    // bekleyen Takım Akışı yeni açılan Etkinlikler'in önünde (YN-267, OT-sessiz-oyuncu-35)
+    expect(mapIntroQueue(7, ftue(after6))).toEqual(['akis', 'events']);
+    // hiç anlatılmamış açık yerler (eski oyuncu) bir kez gelir; görülmüş ya da atlanmış olan gelmez
+    expect(mapIntroQueue(9, ftue([...seenUpTo(5), 'tlig', 'akis', 'events', 'race']))).toEqual(['shop', 'yazi', 'tyaris', 'soru']);
+  });
+
+  it('bölüm kapısı (unlockIntroPending): açılım tanıtımı bekliyorsa true; harita turu ve kamp turları kapıyı tutmaz; yönetici ve test atlaması geçer', () => {
+    expect(unlockIntroPending(3, ftue(seenUpTo(2)))).toBe(true);
+    expect(unlockIntroPending(3, ftue(seenUpTo(3)))).toBe(false);
+    expect(unlockIntroPending(1, ftue(['result1']))).toBe(false); // yalnız harita turu bekliyor
+    expect(unlockIntroPending(7, ftue(seenUpTo(7).filter((id) => !CAMP_TOURS.has(id))))).toBe(false); // kamp turları bekliyor
+    expect(unlockIntroPending(3, ftue([], { admin: true }))).toBe(false);
+    expect(unlockIntroPending(3, ftue([], { bypass: true }))).toBe(false);
+    expect(unlockIntroPending(0, ftue([]))).toBe(false);
   });
 
   it('kamp turları (Görevler, oyunlar, vakalar) haritada başlamaz: sonuç ekranını yönlendirmez', () => {
     const genelSeen = seenUpTo(7).filter((id) => !CAMP_TOURS.has(id));
     expect(genelSeen).not.toContain('gorev');
-    expect(mapIntroQueue(7, ftue(genelSeen), fresh())).toEqual([]);
-    countUnlockTour('gorev', 4, fresh()); // kamp sayacı genel sırayı etkilemez
+    expect(mapIntroQueue(7, ftue(genelSeen))).toEqual([]);
+    // kamp sayacı genel sırayı etkilemez
     const t = fresh(); countUnlockTour('gorev', 4, t); countUnlockTour('kampoyun', 4, t);
-    expect(mapIntroQueue(4, ftue(seenUpTo(3)), t)).toEqual(['friends', 'glossary']);
+    expect(t.kamp).toBe(2); expect(MAX_UNLOCK_TOURS_PER_LEVEL).toBe(2);
+    expect(mapIntroQueue(4, ftue(seenUpTo(3)))).toEqual(['friends', 'glossary']);
   });
 });
 

@@ -20,6 +20,7 @@ const TUR: Record<string, string> = {
   'Kullanıcı İçeriği › E-postalar veya Metin Mesajları': 'EmailsOrTextMessages',
   'Kullanıcı İçeriği › Oyun İçeriği': 'GameplayContent',
   'Kullanıcı İçeriği › Diğer Kullanıcı İçeriği': 'OtherUserContent',
+  'Kullanıcı İçeriği › Fotoğraflar veya Videolar': 'PhotosorVideos',
   'Diğer Veriler › Diğer Veri Türleri': 'OtherDataTypes',
   'Teşhis › Çökme Verileri': 'CrashData',
 };
@@ -95,6 +96,16 @@ describe('Yerel derleme yapılandırması', () => {
     const engelli: string[] = app.android.blockedPermissions;
     for (const p of ['READ_EXTERNAL_STORAGE', 'WRITE_EXTERNAL_STORAGE', 'SYSTEM_ALERT_WINDOW', 'RECORD_AUDIO']) expect(engelli).toContain(`android.permission.${p}`);
     expect(engelli).toContain('com.google.android.gms.permission.AD_ID'); // reklam kimliği yok (Play "Veri güvenliği")
+    // 1.1.0 profil fotoğrafı sistem seçicisiyle (izinsiz; Play fotoğraf izni politikası), ses oturumu arka plansız ve kayıtsız
+    for (const p of ['CAMERA', 'READ_MEDIA_IMAGES', 'READ_MEDIA_VIDEO', 'READ_MEDIA_VISUAL_USER_SELECTED', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_MEDIA_PLAYBACK']) expect(engelli).toContain(`android.permission.${p}`);
+    const eklenti = (ad: string) => (app.plugins as unknown[]).find((x) => Array.isArray(x) && x[0] === ad) as [string, Record<string, unknown>] | undefined;
+    // iOS'ta kamera/mikrofon izni hiç istenmez; açıklama dizesi yalnız App Store'un ITMS-90683 denetimi için (kütüphanelerde bu API'ler var).
+    // Android'de RECORD_AUDIO / CAMERA yine engelli (yukarıda).
+    expect(eklenti('expo-audio')?.[1]).toMatchObject({ recordAudioAndroid: false, enableBackgroundPlayback: false, enableBackgroundRecording: false });
+    expect(String(eklenti('expo-audio')?.[1].microphonePermission)).toMatch(/kullanmaz/);
+    expect(String(eklenti('expo-image-picker')?.[1].cameraPermission)).toMatch(/kullanmaz/);
+    expect(String(eklenti('expo-image-picker')?.[1].microphonePermission)).toMatch(/kullanmaz/);
+    expect(String(eklenti('expo-image-picker')?.[1].photosPermission)).toMatch(/Profil fotoğrafı/);
     expect(app.android.permissions ?? []).toEqual([]);
     expect(JSON.stringify(app)).not.toMatch(/usesCleartextTraffic/);
   });

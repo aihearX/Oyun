@@ -1,10 +1,26 @@
 import type { HatId } from '@odi/content';
+import { markBadPhoto, usePhoto } from '../foto/foto-store';
 
 const hex = (n: number) => `#${n.toString(16).padStart(6, '0')}`;
 
 /** Odi'nin SVG hali (oyundaki heroTexture/hatTexture ile aynı koordinatlar: 64×64, gövde merkezi 32,32, yarıçap 22). */
-export function OdiAvatar({ color = 0x6c4cf1, hat, size = 64, mood = 'happy' }: { color?: number; hat?: HatId | string; size?: number | string; mood?: 'happy' | 'wow' }) {
+export function OdiAvatar({ color = 0x6c4cf1, hat, size = 64, mood = 'happy', pid, photo }: {
+  color?: number; hat?: HatId | string; size?: number | string; mood?: 'happy' | 'wow';
+  /** oyuncu kimliği: profil fotoğrafı varsa (1.1.0, foto/foto.ts) Odi yerine yuvarlak fotoğraf; yoksa ya da yüklenemezse Odi */
+  pid?: string;
+  /** profilde gelen fotoğraf sürümü (PublicProfile.photo); verilmezse gerekince sorulur */
+  photo?: number;
+}) {
   const c = hex(color);
+  const url = usePhoto(pid, photo);
+  if (url) {
+    return (
+      <span className="odi-avatar odi-photo" aria-hidden style={{ width: size, height: size, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+        <img src={url} alt="" draggable={false} decoding="async" onError={() => markBadPhoto(url)}
+          style={{ width: '78%', height: '78%', borderRadius: '50%', objectFit: 'cover', boxShadow: `0 0 0 2px ${c}`, background: c, display: 'block' }} />
+      </span>
+    );
+  }
   return (
     <svg width={size} height={size} viewBox="0 -4 64 68" aria-hidden className="odi-avatar">
       <circle cx="32" cy="32" r="22" fill={c} />

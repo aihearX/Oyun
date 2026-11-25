@@ -129,6 +129,23 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   }),
   'code.close': z.object({ code: z.string().min(1).max(64), active: z.boolean().optional() }),
   'kurucu.liste': empty,
+  // profil fotoğrafı (1.1.0; yükleme HTTP ile, foto.ts)
+  'photo.of': z.object({ ids: z.array(id).max(100) }),
+  'photo.remove': empty,
+  // yönetici ekranı (1.1.0, yonetici-ekran.ts): yalnız yönetici hesabı
+  'admin.players': z.object({ query: z.string().max(40).optional(), offset: z.number().int().min(0).max(1_000_000).optional() }),
+  'admin.player': z.object({ id }),
+  'admin.messages': z.object({ id: id.optional(), kind: z.enum(['hepsi', 'dm', 'sohbet']).optional(), before: z.number().int().min(0).optional() }),
+  'admin.reports': z.object({ before: z.number().int().min(0).optional() }),
+  'admin.photos': z.object({ filter: z.enum(['yeni', 'sikayet']).optional(), before: z.number().int().min(0).optional() }),
+  'admin.photo.delete': z.object({ id }),
+  'admin.photo.show': z.object({ id }),
+  'admin.photo.data': z.object({ id }),
+  'admin.mute': z.object({ id, days: z.number().int().min(0).max(3650) }),
+  'admin.gift': z.object({
+    code: z.string().max(12).optional(), all: z.boolean().optional(), note: z.string().max(60).optional(),
+    jeton: z.number().int().min(0).max(100_000).optional(), kristal: z.number().int().min(0).max(10_000).optional(), kalkan: z.number().int().min(0).max(50).optional(),
+  }).refine((d) => d.all === true || !!d.code, { message: 'kod ya da herkes' }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

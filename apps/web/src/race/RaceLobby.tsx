@@ -216,7 +216,7 @@ function RoomView({ room, meId, error, fresh, onLeave, onBack }: { room: RaceRoo
       <div className="race-players">
         {players.map((p) => (
           <div key={p.id} className={`race-player${p.ready ? ' ready' : ''}${p.id === meId ? ' me' : ''}`} data-testid="yaris-oyuncu" data-name={p.name} style={{ ['--pc' as string]: hexColor(p.color) }}>
-            <OdiAvatar color={p.color} hat={p.hat} size={52} mood={p.ready ? 'wow' : 'happy'} />
+            <OdiAvatar color={p.color} hat={p.hat} size={52} mood={p.ready ? 'wow' : 'happy'} pid={p.id} />
             <b className="ellipsis" onClick={() => { if (p.id !== meId) openProfile(p.id); }} role={p.id !== meId ? 'button' : undefined}>{p.name}{p.id === meId ? ' (sen)' : ''}</b>
             <span className={`race-state${p.ready ? ' on' : ''}`}>{p.ready ? 'Hazır ✓' : 'Bekliyor'}</span>
             {p.id === room.hostId && <i className="race-host" aria-label="oda kurucusu"><Art e="👑" size="1.15em" className="art-inline" /></i>}
@@ -284,7 +284,7 @@ function InviteList({ room, onClose }: { room: RaceRoom; onClose: () => void }) 
       {friends != null && !list.length && <div className="muted small-note">Şu an çevrimiçi arkadaşın yok. Oda kodunu paylaşarak da çağırabilirsin.</div>}
       {list.map((f) => (
         <div key={f.id} className="race-friend">
-          <OdiAvatar color={f.color} hat={f.hat} size={36} />
+          <OdiAvatar color={f.color} hat={f.hat} size={36} pid={f.id} photo={f.photo} />
           <b className="grow ellipsis">{f.name}</b>
           {sent[f.id] === 'ok'
             ? <span className="race-state on">Gönderildi <Icon name="check" size="1.1em" className="ic-inline" /></span>
