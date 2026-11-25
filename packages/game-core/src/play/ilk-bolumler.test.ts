@@ -89,6 +89,12 @@ describe('ilk bölümler: motor yardımları', () => {
     run(w, s, 60 * 6);
     expect(s.hero.dir).toBe(1); expect(s.hero.x).toBeGreaterThan(C.START_PAD + 360);
   });
+  it('ilk bölümlerde (kazara) geri dönen kahraman engelde ileri döner: ters yöne bakıp mahsur kalmaz', () => {
+    const { w, s } = assisted([{ type: 'platform', x: 400, y: G - 60, w: 200, h: 60 }], {}, { number: 3 }); run(w, s, 10);
+    step(w, s, press({ turn: true })); expect(s.hero.dir).toBe(-1);
+    run(w, s, 60 * 6);
+    expect(s.hero.dir).toBe(1);
+  });
 });
 
 describe('kıl perdesi: okunur "altından kay" engeli', () => {

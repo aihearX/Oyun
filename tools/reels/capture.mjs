@@ -62,7 +62,7 @@ export async function captureClip(browser, port, c, { force = false, log = conso
   await page.waitForFunction(() => window.clip.ready || window.clip.error, null, { timeout: 400_000, polling: 100 });
   const err = await page.evaluate(() => window.clip.error); if (err) throw new Error(`${clipId(c)}: ${err}`);
   const fps = c.fps ?? 30, end = c.fromT + c.dur + 0.1;
-  const frames = []; let i = 0, last = null;
+  const frames = []; let i = 0, last;
   for (;;) {
     const r = await page.evaluate((f) => window.frame(f), fps);
     const file = `f${String(++i).padStart(5, '0')}.jpg`;

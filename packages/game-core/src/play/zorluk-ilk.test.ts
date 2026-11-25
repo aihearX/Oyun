@@ -6,16 +6,17 @@ import { playHuman } from './testkit';
  * İlk kez oynayan mobil oyuncu (human.ts → firstTimerOf: tepki 320-450 ms, sapma σ 120-160 ms, %10-15 geç, %4-6 kaçan girdi,
  * kazara kaydırma, ~0,9 sn ileri bakış) ilk bölümleri rahatça geçer (docs/12 §2, §4): 1-3'te herkes bitirir ve oyuncu başına
  * en çok 0,1 can kaybeder; 4-6'da en az %90'ı, 7'de %80'i, 8'de (Kanal finali) %70'i, 9-12'de (Zar) %65'i bitirir.
- * 24 oyunculuk sabit tohumlu örneklem.
+ * 24 oyunculuk sabit tohumlu örneklem; Kanal bölgesinin (6-8) bitirme sıralaması 48 oyuncuyla (24'te 7 ile 8 tek oyuncuyla döner:
+ * 1.1.0'da `kn-sp-baca` değişince 7 → 21/24, 8 → 22/24; 48'de 7 → %85, 8 → %79, değişiklikten önce de aynı).
  */
 const K = 24;
+const K_KANAL = 48;
 describe('ilk kez oynayan oyuncu: ilk bölümler', () => {
-  const s: Record<number, LevelScore> = {};
+  const s: Record<number, LevelScore> = {}; const kanal: Record<number, LevelScore> = {};
+  const measure = (n: number, count: number) => scoreRuns(Array.from({ length: count }, (_, k) => { const r = playHuman(n, { k, params: firstTimerOf(k) }); return { fin: r.finished, damage: r.damage, deaths: r.deaths, nearMisses: r.nearMisses, t: r.t }; }));
   beforeAll(() => {
-    for (let n = 1; n <= 12; n++) {
-      const runs = Array.from({ length: K }, (_, k) => { const r = playHuman(n, { k, params: firstTimerOf(k) }); return { fin: r.finished, damage: r.damage, deaths: r.deaths, nearMisses: r.nearMisses, t: r.t }; });
-      s[n] = scoreRuns(runs);
-    }
+    for (let n = 1; n <= 12; n++) s[n] = measure(n, K);
+    for (const n of [6, 7, 8]) kanal[n] = measure(n, K_KANAL);
   }, 2_400_000);
   it('1-3: herkes bitirir, oyuncu başına en çok 0,1 can', () => {
     for (const n of [1, 2, 3]) { expect(s[n]!.fin, `${n} bitirme`).toBe(1); expect(s[n]!.dmg, `${n} can kaybı`).toBeLessThanOrEqual(0.1); }
@@ -34,7 +35,8 @@ describe('ilk kez oynayan oyuncu: ilk bölümler', () => {
     expect(s[8]!.fin, '8 < 5').toBeLessThan(s[5]!.fin); expect(s[12]!.fin, '12 < 8').toBeLessThan(s[8]!.fin);
     expect(s[8]!.score, '8 > 5').toBeGreaterThan(s[5]!.score); expect(s[12]!.score, '12 > 8').toBeGreaterThan(s[8]!.score);
     for (const [f, zone, easier] of [[5, [1, 2, 3, 4], [1, 2, 3]], [8, [6, 7], [6, 7]], [12, [9, 10, 11], [9, 10, 11]]] as const) {
-      for (const n of zone) expect(s[f]!.fin, `${f} bitirme ≤ ${n}`).toBeLessThanOrEqual(s[n]!.fin);
+      const z = f === 8 ? kanal : s;
+      for (const n of zone) expect(z[f]!.fin, `${f} bitirme ≤ ${n}`).toBeLessThanOrEqual(z[n]!.fin);
       for (const n of easier) expect(s[f]!.score, `${f} > ${n}`).toBeGreaterThan(s[n]!.score);
     }
   });

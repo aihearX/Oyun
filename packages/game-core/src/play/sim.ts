@@ -611,8 +611,10 @@ function groundStep(w: World, s: SimState, inp: SimInput, ids: number[], sp: num
     if (e.type === 'barrier' && h.dash <= 0) hurt(w, s, 'gurultu', h.x + h.dir * 20);
     if (e.type === 'door' && e.p.open !== true && !s.opened.has(e.key) && useRemedy(w, s, e)) { s.opened.add(e.key); ev(s, 'switch', e.x, e.y, { id: e.id, s: e.key }); }
     if (e.type === 'freqgate' && !colorMatch(h.color, Number(e.p.color ?? 0))) { ev(s, 'freqwrong', h.x, h.y, { id: e.id }); hurt(w, s, 'freq', h.x + h.dir * 20); }
-    // ilk bölümler: basamağa takılan kahraman geri koşmaz, zıplanmayı bekler (geri koşup önceki çukura düşmesin); kapıda döner
-    if (h.blockedT > 0.3 && h.grounded && (!w.assist.turnGate || e.type === 'door')) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; h.stall = 0; ev(s, 'turn', h.x, h.y); }
+    // ilk bölümler: basamağa takılan kahraman geri koşmaz, zıplanmayı bekler (geri koşup önceki çukura düşmesin); kapıda döner.
+    // Geriye bakarken (1.1.0: dönüş her yerde serbest, kazara kaydırma da döndürür) engelde ileri döner: başlangıç duvarında ya da
+    // bir basamağın dibinde ters yöne bakıp sonsuza dek beklemesin
+    if (h.blockedT > 0.3 && h.grounded && (!w.assist.turnGate || e.type === 'door' || h.dir < 0)) { h.dir = (h.dir === 1 ? -1 : 1); h.blockedT = 0; h.stall = 0; ev(s, 'turn', h.x, h.y); }
   } else { h.blockedT = 0; if (h.grounded && m.blocked < 0) h.stall = 0; }
   if (h.grounded) { h.airDash = false; h.airJumps = 0; s.lastGroundOdo = h.odo; }
 }

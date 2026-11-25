@@ -80,7 +80,7 @@ export const ROOM_RATINGS: Record<string, RoomRating> = {
   'kn-serumen-tepe': { dmg: 0, h0: 0, h1: 0, hit: 0, nm: 0.844, n: 16 },
   'kn-akinti': { dmg: 0.188, h0: 0, h1: 0.188, hit: 0.125, nm: 1.438, n: 16 },
   'kn-cift-kuyu': { dmg: 0.125, h0: 0.063, h1: 0.063, hit: 0.125, nm: 0.344, n: 16 },
-  'kn-sp-baca': { dmg: 0.063, h0: 0.063, h1: 0.063, hit: 0.063, nm: 2.188, n: 16 },
+  'kn-sp-baca': { dmg: 0.125, h0: 0.125, h1: 0.125, hit: 0.125, nm: 1.781, n: 16 },
   'kn-tirmanis': { dmg: 0, h0: 0, h1: 0, hit: 0, nm: 0.75, n: 16 },
   'kn-sp-buyuk-baca': { dmg: 0.188, h0: 0.5, h1: 0.438, hit: 0.188, nm: 0.844, n: 16 },
   'kn-sp-damla-sinavi': { dmg: 0.063, h0: 0.125, h1: 0, hit: 0.063, nm: 3.094, n: 16 },

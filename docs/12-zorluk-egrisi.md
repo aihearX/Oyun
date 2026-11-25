@@ -202,7 +202,8 @@ bölge finalleri için **sınav odaları** `k1-sinav-havuz`, `k3-sinav-bas`, `sn
   (en çok 3 kez — boşta oyuncu orada sonsuza dek kalmasın).
 - **Geri dönüş her zaman çalışır:** 2. bölümde öğretilir (öncesinde hiç yok); öğretildikten sonra koşarken de her yerde
   dönülür (1.1.0: eskiden 1-5'te yalnız anahtar/kapı yakınında çalışıyordu); 1-5'te yatay kaydırma eşiği 42 yerine 50 px;
-  basamağa takılan kahraman geri koşmaz, zıplamayı bekler (kapıda döner). Normal odalarda dönüş bulmacası 6. bölümden itibaren.
+  basamağa takılan kahraman geri koşmaz, zıplamayı bekler (kapıda döner); geriye bakarken (ör. kazara kaydırmayla dönmüşken) engelde
+  ileri döner, başlangıç duvarında ters yöne bakıp beklemez. Normal odalarda dönüş bulmacası 6. bölümden itibaren.
 - **Öğretici ağır çekim** ×0,35 yerine ×0,3 ve 6 yerine en çok 8 gerçek saniye.
 - Yavaş koşuda tempo kuralı aynı süreyi tutar: sessiz yol sınırı koşu hızıyla ölçeklenir, yayın/fırlatıcının uçuşu altında kalan
   diken girdi sayılmaz, odanın kendi sessiz yolları sınırı aşan odalar ilk bölümlerde seçilmez.
@@ -705,3 +706,6 @@ Sayılar 48 oyuncuyla ölçülen ortalama can kaybıdır (± standart hata); bö
   Yalnız gizli koklea rafı taşınan dört oda (`gn-kuyu`, `kn-kuyu-dusman`, `kx-kuyu-cevir`, `gn-geri-anahtar`) da yeniden ölçüldü;
   farklar 16 oyunculuk gürültü içindeydi (en çok 0,19 can) ve ana yolları değişmediği için eski puanlar tutuldu (yenileri seçimi
   oynatıp kalibre edilmiş bölümlerin odalarını değiştiriyordu).
+  1.1.0: `kn-sp-baca`nın fırlatıcı düzeltmesinden sonraki 16 oyunculuk yeniden ölçüm (0,063 / 0,063 / 0,063) de aynı nedenle
+  tutulmadı: 7 ve 8'in odalarını değiştirip Kanal finalini (8) kitle puanında 7'nin altına düşürüyordu (1,28 < 1,57). 48 oyuncuda
+  acemi 0,10 → 0,15, kitle h0/h1 0,13/0,17 → 0,02/0,02; puan yenilenecekse 7-8 `--kalibre` ile yeniden seçilmeli.

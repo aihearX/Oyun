@@ -244,8 +244,9 @@ export class Planner {
     if (has(this.w, 'kayma') || has(this.w, 'cakil')) o.push({ kind: 'swipe', hold: 0 });
     if (has(this.w, 'darbe')) o.push({ kind: 'dash', hold: 0 });
     // geri dön: yalnızca geri dönmenin gerektiği yerde aranır (yakında açılmamış dokunma anahtarı, kapalı kapı ya da
-    // renk tutmayan frekans kapısı) — her yerde açık olsa bot geride kalan notalar için döner, döngüye girebilir
-    if (this.turnRooms && this.needTurn(s)) o.push({ kind: 'turn', hold: 0 });
+    // renk tutmayan frekans kapısı) — her yerde açık olsa bot geride kalan notalar için döner, döngüye girebilir. İlk bölümlerde
+    // (turnGate) geriye bakan kahraman da: 1.1.0'dan beri dönüş her yerde çalışır, kazara kaydırmayla dönen kahramanı oyuncu ileri çevirir
+    if ((this.turnRooms || this.w.assist.turnGate) && this.needTurn(s)) o.push({ kind: 'turn', hold: 0 });
     return o;
   }
 

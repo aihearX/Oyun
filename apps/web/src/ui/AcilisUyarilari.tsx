@@ -26,7 +26,7 @@ export function AcilisUyarilari({ hold }: { hold: boolean }) {
     const t = setTimeout(() => {
       void (async () => {
         if (!(await onceThisLaunch('ses-uyarisi'))) return;
-        let vol: number | null = null;
+        let vol: number | null;
         try { vol = (await p.getMediaVolume?.()) ?? null; } catch { vol = null; }
         const w = soundWarning(useStore.getState().sounds, vol);
         if (!dead && w) setWarn(w);
