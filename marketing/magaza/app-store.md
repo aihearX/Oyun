@@ -27,7 +27,7 @@ Liste metinleri (ad ≤ 30, alt başlık ≤ 30, tanıtım metni ≤ 170, anahta
 **Veri toplama:** Evet, veri topluyoruz. **İzleme (tracking): Hayır** — hiçbir veri başka şirketlerin uygulama/sitelerinden gelen
 veriyle birleştirilmez, veri aracısına verilmez; ATT izni istenmez. **Reklam: yok.**
 
-Çökme verisi dışındaki bütün türler **kullanıcıya bağlıdır** (rastgele oyuncu kimliğiyle; ad/e-posta olmasa da Apple tanımında
+Çökme verisi dışındaki bütün türler **kullanıcıya bağlıdır** (rastgele oyuncu kimliğiyle; ad olmasa da Apple tanımında
 "linked"); çökme verisi **kullanıcıya bağlı değildir** (oyuncu kimliği, takma ad, cihaz kimliği taşımaz; hesapla eşleştirilemez).
 Beta geri bildirimi notu da kendi başına kullanıcıya bağlı değildir (oyuncu kimliği yok); ama Apple bağlılığı **tür başına tek cevapla**
 sorar ve aynı tür (Diğer Kullanıcı İçeriği: takma ad, takım adı) bağlı olduğu için tür "bağlı" beyan edilir (daha kapsayıcı cevap).
@@ -39,11 +39,12 @@ Hiçbiri **izleme için kullanılmaz**. Apple, bizim adımıza veri işleyen SDK
 | Satın Almalar › Satın Alma Geçmişi | Evet | Evet | Hayır | Uygulama İşlevi, Analiz | Ürün, zaman, tutar, işlem no (sunucu + RevenueCat; RevenueCat panosunda satış raporları) |
 | Kullanıcı İçeriği › E-postalar veya Metin Mesajları | Evet | Evet | Hayır | Uygulama İşlevi | Arkadaşlar arası özel mesajlar, takım ve genel sohbet (sunucumuzda saklanır) |
 | Kullanıcı İçeriği › Fotoğraflar veya Videolar | Evet | Evet | Hayır | Uygulama İşlevi | İsteğe bağlı profil fotoğrafı (1.1.0): oyuncu Dolap'ta galeriden tek fotoğraf seçerse cihazda 256×256 JPEG'e küçültülüp sunucumuza gider; oyunda herkese görünür, şikâyet edilebilir, oyuncu kaldırana ya da hesap silinene kadar. Kod: `apps/web/src/foto/foto.ts`, `apps/server/src/foto.ts` |
+| İletişim Bilgileri › E-posta Adresi | Evet | Evet | Hayır | Uygulama İşlevi | İsteğe bağlı hesap kurtarma e-postası (1.2.0): oyuncu takma ad kartında ya da Ayarlar › Hesap kurtarma e-postası'ndan eklerse; doğrulanmaz, oyunda kimseye gösterilmez, pazarlama için kullanılmaz. Tek amacı hesap kurtarma: yeni cihazda "Hesabın var mı? E-postayla giriş yap" deyince 6 haneli giriş kodu ekibimizce bu adrese elle gönderilir (bu sürümde e-posta hizmeti yok, adres başka şirkete gitmez). Oyuncu değiştirene/kaldırana ya da hesap silinene kadar. Kod: `apps/server/src/kurtarma.ts`, `apps/web/src/hesap/Kurtarma.tsx` |
 | Kullanıcı İçeriği › Oyun İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | İlerleme, bölüm sonuçları, cüzdan (bekleyen jeton dahil), kamp ve Klinik vakaları, etkinlik kayıtları (Günün Meydan Okuması, Haftalık Turnuva, Günün Sorusu cevabı, canlı Bilgi Yarışması'na katılırken seçili bilgi düzeyi: Genel / Odyoloji öğrencisi), takım yarışı ve lig kayıtları, rozet ve unvanlar (Kurucu Yolcu, Hata Avcısı) |
 | Kullanıcı İçeriği › Diğer Kullanıcı İçeriği | Evet | Evet | Hayır | Uygulama İşlevi | Takma ad, takım adı ve açıklaması, başvuru notu, "Adım listede görünsün" seçimi (Kurucular listesi; baştan kapalı); beta geri bildirimi notu (Ayarlar › Geri bildirim gönder: konu, temizlenmiş metin ≤ 500 karakter, geldiği ekranın adı, sürüm, platform; kendi sunucumuzda 90 gün; oyuncu kimliği yok, hesapla eşleştirilemez) |
 | Diğer Veriler › Diğer Veri Türleri | Evet | Evet | Hayır | Uygulama İşlevi (güvenlik, kötüye kullanımın önlenmesi) | IP adresi: ödül kodu denemesi kaydında 90 gün; bağlantıda yalnız bellekte (çökme raporu hız sınırı: tuzlu özeti bellekte en çok 1 gün) |
 | Teşhis › Çökme Verileri | Evet | Hayır | Hayır | Uygulama İşlevi (çökmeleri azaltmak) | Çökme raporu (YN-011): hata adı ve temizlenmiş iletisi, yığın satırları (dosya:satır), uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, ekran adı, dakikaya yuvarlanmış zaman; kendi sunucumuzda 30 gün. Oyuncu kimliği, takma ad, anahtar, sohbet metni, cihaz kimliği yok; IP yalnız hız sınırı için bellekte |
-| İletişim Bilgileri, Sağlık ve Fitness, Finansal Bilgi (ödeme), Konum, Hassas Bilgiler, Kişiler, Tarama/Arama Geçmişi, Kullanım Verileri, Teşhis › Performans Verileri ve Diğer Teşhis Verileri | **Hayır** | — | — | — | İstenmez, toplanmaz; dış çökme/analiz aracı yok |
+| İletişim Bilgileri (e-posta dışında: ad, telefon, adres, diğer), Sağlık ve Fitness, Finansal Bilgi (ödeme), Konum, Hassas Bilgiler, Kişiler, Tarama/Arama Geçmişi, Kullanım Verileri, Teşhis › Performans Verileri ve Diğer Teşhis Verileri | **Hayır** | — | — | — | İstenmez, toplanmaz; dış çökme/analiz aracı yok |
 
 Notlar:
 - **Yeniden denetim (2026-11-06, sürüm 1.0.0):** ekim sonundan beri sunucuya eklenen göçler (`apps/server/src/migrations.ts`:
@@ -52,6 +53,9 @@ Notlar:
   ve yeni tablolar (Günün Sorusu cevapları, İkili Görev, Usta–Çırak, Klinik, kamp oyunları) yeni bir Apple veri **türü** getirmiyor:
   hepsi Oyun İçeriği ya da Diğer Kullanıcı İçeriği altında, kullanıcıya bağlı, izleme yok. Yeni bir izin, SDK, bildirim (push) ya da
   cihaz kimliği yok. `app.json` › `ios.privacyManifests` bu yüzden değişmedi.
+- **Sürüm 1.2.0 (hesap kurtarma):** yeni tür **İletişim Bilgileri › E-posta Adresi** (isteğe bağlı kurtarma e-postası, kullanıcıya
+  bağlı, izleme yok, Uygulama İşlevi). `app.json` › `ios.privacyManifests`'e `NSPrivacyCollectedDataTypeEmailAddress` eklendi;
+  App Store Connect › App Privacy'de de bu tür işaretlenmeli.
 - "Kullanım Verileri › Ürün Etkileşimi" seçilmez: dokunma/ekran izlenmez; sunucudaki `/olcum` yalnız kişiye bağlı olmayan günlük toplamlar.
   Çökme raporundaki ekran adı yalnız hatanın olduğu ekrandır; geri bildirimdeki ekran adı yalnız oyuncunun notu yazmadan önceki
   ekranıdır (ikisi de etkileşim kaydı değil).
@@ -66,8 +70,8 @@ Notlar:
 - RevenueCat'in güncel "App Privacy" rehberine yüklemeden önce bakın; RevenueCat yeni bir tür ekliyorsa (ör. cihaz kimliği) bu tablo,
   gizlilik metni ve `apps/mobile/app.json` › `ios.privacyManifests` birlikte güncellenir.
 - **Gizlilik bildirimi (PrivacyInfo.xcprivacy):** `app.json` › `ios.privacyManifests` bu tablonun birebir karşılığıdır
-  (`NSPrivacyCollectedDataTypes`: UserID, PurchaseHistory, EmailsOrTextMessages, GameplayContent, OtherUserContent, OtherDataTypes
-  linked; CrashData linked değil; hepsinde tracking yok; `NSPrivacyTracking: false`). Mobil jest testi `__tests__/yapilandirma.test.ts`
+  (`NSPrivacyCollectedDataTypes`: UserID, PurchaseHistory, EmailsOrTextMessages, PhotosorVideos, EmailAddress (1.2.0, isteğe bağlı
+  kurtarma e-postası), GameplayContent, OtherUserContent, OtherDataTypes linked; CrashData linked değil; hepsinde tracking yok; `NSPrivacyTracking: false`). Mobil jest testi `__tests__/yapilandirma.test.ts`
   tabloyu (tür, amaç, bağlılık, izleme) okuyup karşılaştırır: biri değişip öteki değişmezse test düşer. Gerekçe isteyen API'ler (`NSPrivacyAccessedAPITypes`): UserDefaults `CA92.1`; dosya zamanı
   `C617.1`, `0A2A.1`, `3B52.1`; açılıştan beri geçen süre `35F9.1`; disk alanı `E174.1`, `85F4.1` (React Native, AsyncStorage,
   expo-constants, expo-file-system ve RevenueCat'in kendi bildirimlerindeki gerekçelerin birleşimi; statik bağlanan CocoaPods
@@ -111,7 +115,8 @@ App Store Connect › sürüm sayfası › **App Review Information**:
 Yapıştırılacak metin (EN, ~3.400 karakter; App Store Connect notes alanı 4.000 karakter):
 
 > **No account or login is needed.** On first launch the game creates an anonymous account (random ID stored on the device; an
-> optional nickname). No name, e-mail, phone, location or contacts are asked for. The game UI is in Turkish.
+> optional nickname and an optional, unverified recovery e-mail used only to get the account back on a new device). No name, phone,
+> location or contacts are asked for. The game UI is in Turkish.
 >
 > **Quick tour:** tap "Yola çık" (Start) → the short story → "Atla" (Skip) → choose a nickname or tap "Sonra" (Later) → level 1.
 > Levels take about one minute. The first levels teach the controls; features unlock as levels are cleared: Camp after 3 levels,
@@ -150,8 +155,9 @@ Yapıştırılacak metin (EN, ~3.400 karakter; App Store Connect notes alanı 4.
 
 Türkçesi (sahip için):
 
-> **Hesap ya da giriş gerekmez.** İlk açılışta oyun anonim bir hesap açar (cihazda rastgele kimlik; isteğe bağlı takma ad). Ad,
-> e-posta, telefon, konum, rehber istenmez. Oyunun arayüzü Türkçedir.
+> **Hesap ya da giriş gerekmez.** İlk açılışta oyun anonim bir hesap açar (cihazda rastgele kimlik; isteğe bağlı takma ad ve yalnız
+> yeni cihazda hesabı geri almak için isteğe bağlı, doğrulanmayan kurtarma e-postası). Ad, telefon, konum, rehber istenmez. Oyunun
+> arayüzü Türkçedir.
 >
 > **Kısa yol:** "Yola çık" → kısa hikâye → "Atla" → takma ad seç ya da "Sonra" → 1. bölüm. Bölümler yaklaşık bir dakika. Özellikler
 > geçilen bölümle açılır: Kamp 3, Arkadaşlar ve özel mesaj 4, Takım 5, **Mağaza 6** (Profil › Mağaza), etkinlikler 7, canlı yarış ve

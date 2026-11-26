@@ -91,6 +91,8 @@ export interface PlayerRow {
   lead_notice: number;
   /** göç 16 (karar 54, YN-270): günlük yerel ödül sınırını aşan, sonraki günlerde sınır içinde hesaba geçecek jeton (wallet.ts bekleyenAktar) */
   carry_jeton: number;
+  /** göç 21 (1.2.0 hesap kurtarma): isteğe bağlı kurtarma e-postası (küçük harf); yalnız oyuncunun kendisine ve yönetici ekranına */
+  recovery_email: string | null;
 }
 export interface TeamRow { id: string; name: string; name_key: string; emblem: string; description: string; open: number; code: string; min_level: number; xp: number; targets: string; created_at: number }
 
@@ -202,6 +204,8 @@ export class App {
       ...(listede === undefined ? {} : { listede }),
       // 1.2.0: kabul edilmiş kilit hediyeleri (hello yanıtıyla istemciye; istemci kendi kapılarında uygular)
       ...(() => { const acik = unlocksOf(this, p.id); return acik ? { acik } : {}; })(),
+      // 1.2.0 hesap kurtarma: yalnız kendi profilinde (publicProfile'da yok)
+      ...(p.recovery_email ? { kurtarmaEposta: p.recovery_email } : {}),
     };
   }
 

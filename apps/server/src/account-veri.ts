@@ -79,7 +79,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     oyuncu: { id: { karar: 'anonim', neden: 'Geçmiş takım kayıtları (düello puanı, yarış yıldızı, rozet) bu kimliğe bağlı; satır anonimleşir: ad "Silinmiş Oyuncu", anahtar özeti hiçbir anahtarla eşleşmez, arkadaş kodu yenilenir, ilerleme/cüzdan/kozmetik sıfırlanır (account.ts).' } },
     takim: { team_id: { karar: 'tut', neden: 'Takım yalnız son üye ayrılınca silinir; o anda bu sütun hiçbir satırda takımı göstermez.', sure: 'yok (sütun o anda boş)' } },
     adKopyasi: { name: 'id' },
-    not: 'Cüzdan sütunları (jeton, kristal, hızlandırıcılar, gift_jeton: göç 9, satın alma hediyesi jetonu; carry_jeton: göç 16, bekleyen ödül jetonu) hesap silinince 0 olur (ANONIM_OYUNCU_SQL / _EK_SQL).',
+    not: 'Cüzdan sütunları (jeton, kristal, hızlandırıcılar, gift_jeton: göç 9, satın alma hediyesi jetonu; carry_jeton: göç 16, bekleyen ödül jetonu) hesap silinince 0 olur (ANONIM_OYUNCU_SQL / _EK_SQL). recovery_email (göç 21, isteğe bağlı kurtarma e-postası; kimseye gösterilmez) hesap silinince NULL olur (_EK_SQL).',
   },
   deleted_players: {
     oyuncu: { player_id: { karar: 'tut', neden: 'Tasarım gereği: silinen hesabı sıralama, arama ve /saglik dışında tutar; ad ya da iletişim yok.', sure: 'süresiz' } },
@@ -94,6 +94,25 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     oyuncu: { player_id: { karar: 'tut', neden: 'Güvenlik kaydı (kod deneme sınırı, kötüye kullanım; IP ile).', sure: '90 gün, sonra otomatik silinir (prunePromoLog)' } },
   },
   promo_uses: { oyuncu: { player_id: SIL } },
+  kurtarma_istek: {
+    oyuncu: {
+      used_by: SIL,
+      eposta: { karar: 'sil', kosul: 'eposta IN (SELECT recovery_email FROM players WHERE id = ? AND recovery_email IS NOT NULL)' },
+    },
+    degil: ['id'],
+    not: 'Hesap kurtarma (1.2.0, kurtarma.ts): e-postayla giriş kodu istekleri (adres, 6 haneli kod; kod ekip tarafından elle gönderilir). Hesap silinince o hesaba giriş yapılan ve hesabın adresine ait istekler silinir; diğerleri süresi dolduktan 7 gün sonra silinir (pruneKurtarma).',
+  },
+  kurtarma_log: {
+    oyuncu: { player_id: { karar: 'tut', neden: 'Güvenlik kaydı (kurtarma kodu deneme sınırı, kötüye kullanım; IP ile). E-posta ve kod yazılmaz.', sure: '90 gün, sonra otomatik silinir (pruneKurtarma)' } },
+  },
+  geri_kod: {
+    oyuncu: {
+      player_id: SIL,
+      created_by: { karar: 'tut', neden: 'Yönetim denetimi: geri alma kodunu hangi yönetici hesabının ürettiği. Yalnız yönetici hesapları; kimlik anonim satıra işaret eder.', sure: 'kodun süresi dolduktan 7 gün sonra silinir (pruneKurtarma)' },
+    },
+    not: 'Hesap geri alma kodu (1.2.0, kurtarma.ts): yalnız kodun özeti, hangi hesaba ait, 24 saat geçerli.',
+  },
+  tasinan_anahtar: { oyuncu: { player_id: SIL }, not: 'Kurtarmayla geçersizleşen eski oturum anahtarının özeti (1.2.0, kurtarma.ts): eski cihaz "hesabın başka cihazda açıldı" görür. 1 yıl sonra silinir.' },
   player_photos: { oyuncu: { player_id: SIL }, not: 'İsteğe bağlı profil fotoğrafı (1.1.0, foto.ts): JPEG, sürüm, gizli işareti. Hesap silinince silinir; oyuncu Dolap’tan kendisi de kaldırabilir.' },
   player_unlocks: {
     oyuncu: {
@@ -526,10 +545,10 @@ export const ANONIM_OYUNCU_SQL = `UPDATE players SET name = ?, token_hash = ?, f
   spend_pending_at = NULL WHERE id = ?`;
 
 /**
- * Göç 7–9 ve 13'ün eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı, satın alma hediyesi jetonu, lider devri kartı).
+ * Göç 7, 8, 9, 13, 16 ve 21'in eklediği oyuncu alanları (aylık sınır seçimi, Sezon Kartı, satın alma hediyesi jetonu, lider devri kartı, bekleyen ödül, kurtarma e-postası).
  * ANONIM_OYUNCU_SQL'den ayrı: göç 2 bu sütunlar eklenmeden önce de çalışır (eski veritabanı); hesap silmede ikisi birlikte uygulanır.
  */
-export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0, lead_notice = 0, carry_jeton = 0 WHERE id = ?';
+export const ANONIM_OYUNCU_EK_SQL = 'UPDATE players SET spend_chosen = 0, pass_start = 0, pass_days = 0, pass_paid = 0, gift_jeton = 0, lead_notice = 0, carry_jeton = 0, recovery_email = NULL WHERE id = ?';
 
 /** anonim oyuncu satırı + silindi işareti (hesap silme ve göç) */
 export function anonimOyuncu(db: Sorgu, pid: string, at: number, ekAlanlar = false): void {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { create } from 'zustand';
 import { NetError } from '@odi/net';
 import { useNet } from '@odi/net/store';
-import { SOCIAL_LIMITS } from '@odi/shared';
+import { KURTARMA_KURALLARI, SOCIAL_LIMITS, epostaGecerli, normalizeEposta } from '@odi/shared';
 import { errText, getNet, toast, useSocial } from '../net';
 import { platform } from '../platform';
 import { OdiAvatar } from './OdiAvatar';
@@ -21,7 +21,8 @@ export const isDefaultName = (n: string) => /^Odi\d{4}$/.test(n);
  * cihazda kalır, bir sonraki bağlanışta gönderilir. İnternet hiç yokken (YN-154, OT-eski-telefon-25) beklenmez: kart hemen
  * "İnternet yok" der, ad bağlanınca (aşağıdaki abonelik) bir kez gönderilir; "zayıf" yalnız bağlıyken yanıt gecikince.
  */
-interface Bekleyen { name: string; color: number }
+/** eposta (1.2.0, isteğe bağlı): hesap kurtarma adresi; adla birlikte gönderilir (doğrulanmaz) */
+interface Bekleyen { name: string; color: number; eposta?: string }
 const KEY = 'odi.adBekliyor';
 const BEKLE = 5000;
 const okunan = (): Bekleyen | null => { try { const v = localStorage.getItem(KEY); return v ? JSON.parse(v) as Bekleyen : null; } catch { return null; } };
@@ -47,9 +48,17 @@ let ucus: Promise<unknown> | null = null;
 function gonder(b: Bekleyen): Promise<unknown> {
   const n = getNet(); if (!n) return Promise.reject(new NetError('KAPALI', 'Sunucu adresi yok.'));
   if (ucus) return ucus;
-  const p = n.call('profile.update', { name: b.name, color: b.color }).then(() => {
+  const p = n.call('profile.update', { name: b.name, color: b.color }).then(async () => {
     bekleyenYaz(null); useStore.getState().setOdiColor(b.color, true);
     toast('👋', `Merhaba ${b.name}!`, merhabaMetni(), 'green');
+    // kurtarma e-postası (isteğe bağlı): kaydedilen adres geri gösterilir, yanlış yazıldıysa fark edilsin (Ayarlar'dan değişir)
+    if (b.eposta) {
+      try {
+        const r = await n.call('eposta.ayarla', { eposta: b.eposta });
+        useNet.setState({ me: r.me });
+        toast('✉️', 'Kurtarma adresin kaydedildi', `Kurtarma adresin: ${r.me.kurtarmaEposta ?? b.eposta}. Yanlışsa Ayarlar › Hesap kurtarma e-postası’ndan düzelt.`, 'green');
+      } catch (e) { toast('✉️', 'Kurtarma adresi kaydedilemedi', `${errText(e)} Ayarlar’dan yeniden ekleyebilirsin.`, 'bronze'); }
+    }
   }, (e: unknown) => { if (!baglantiHatasi(e)) bekleyenYaz(null); throw e; });
   ucus = p.finally(() => { ucus = null; });
   return ucus;
@@ -92,7 +101,7 @@ function BilgiSorusu() {
 export function Onboarding() {
   const me = useNet((s) => s.me); const st = useNet((s) => s.status); const dismissed = useSocial((s) => s.onboardDismissed);
   const bekleyen = useAdKaydi((s) => s.bekleyen);
-  const [name, setName] = useState(''); const [color, setColor] = useState<number | null>(null);
+  const [name, setName] = useState(''); const [color, setColor] = useState<number | null>(null); const [eposta, setEposta] = useState('');
   const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   // ad cihazda bekliyor: 'yok' internet/bağlantı yok (beklemeden), 'zayif' bağlıyken yanıt BEKLE ms'de gelmedi
   const [gecikti, setGecikti] = useState<'yok' | 'zayif' | null>(null);
@@ -109,8 +118,10 @@ export function Onboarding() {
   acildi.current = true;
   const sonra = () => { useStore.getState().knowledgeAskedDone(); useSocial.setState({ onboardDismissed: true }); };
   const c = color ?? useStore.getState().odiColor ?? me.color;
+  const epostaHatali = eposta.trim() !== '' && !epostaGecerli(eposta);
   const save = async () => {
-    const b = { name: name.trim(), color: c };
+    if (epostaHatali) { setErr('E-posta adresi doğru görünmüyor; düzelt ya da boş bırak.'); return; }
+    const b: Bekleyen = { name: name.trim(), color: c, ...(eposta.trim() ? { eposta: normalizeEposta(eposta) } : {}) };
     setErr(''); bekleyenYaz(b); useStore.getState().knowledgeAskedDone();
     // internet yok: beklemeden söyle; ad cihazda, bağlanınca abonelik bir kez gönderir
     if (cevrimdisi()) { setGecikti('yok'); return; }
@@ -145,6 +156,11 @@ export function Onboarding() {
         <div className="muted">Takım arkadaşların ve sohbette bu adı görecek. Gerçek adını yazmak zorunda değilsin.</div>
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} maxLength={SOCIAL_LIMITS.nameMax} placeholder="Takma ad (3–16 harf)" aria-label="Takma ad" autoFocus />
         <div className="swatches" role="radiogroup" aria-label="Rengin">{COLORS.map((x) => <button type="button" key={x} role="radio" aria-checked={c === x} className={`swatch${c === x ? ' on' : ''}`} style={{ background: `#${x.toString(16).padStart(6, '0')}` }} onClick={() => setColor(x)} aria-label="Renk" />)}</div>
+        <div className="onboard-eposta" data-testid="onboard-eposta">
+          <input className="input" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={eposta}
+            onChange={(e) => { setEposta(e.target.value); setErr(''); }} maxLength={KURTARMA_KURALLARI.epostaMax} placeholder="E-posta (isteğe bağlı)" aria-label="Kurtarma e-postası (isteğe bağlı)" aria-invalid={epostaHatali || undefined} />
+          <div className="muted ob-not">İsteğe bağlı: telefonun değişirse ya da oyunu silersen hesabını bu adresle geri alırsın. Adresini doğrulamıyoruz, kimseye göstermiyoruz.</div>
+        </div>
         {bilgiSor.current && <BilgiSorusu />}
         {err && <div className="chat-err" role="alert">{err}</div>}
         <button className="btn" disabled={busy || name.trim().length < SOCIAL_LIMITS.nameMin}>{busy ? 'Kaydediliyor…' : 'Başla'}</button>

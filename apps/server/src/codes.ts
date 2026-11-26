@@ -12,13 +12,14 @@
  */
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import {
-  CODE_PATTERN, CODE_RULES, ROZET_KOD_ONEKI, ROZETLER, normalizeCode, type AdminState, type CodeError, type CodeRedeemResult, type PromoCodeView, type PromoReward, type RozetId,
+  CODE_PATTERN, CODE_RULES, GERI_KOD_ONEKI, ROZET_KOD_ONEKI, ROZETLER, normalizeCode, type AdminState, type CodeError, type CodeRedeemResult, type PromoCodeView, type PromoReward, type RozetId,
 } from '@odi/shared';
 import { COSMETICS } from '@odi/content';
 import { fail, parseJson, randomCode, type App, type Handlers, type Session } from './app';
 import { rankInvalidate } from './rank';
 import { grantBadge, hasBadge, isRozetId, revokeBadge } from './rozet';
 import { kurucuEkrani } from './kurucu-liste';
+import { geriKodKullan } from './kurtarma';
 
 export const CODES_SCHEMA = `
 CREATE TABLE IF NOT EXISTS promo_codes(code TEXT PRIMARY KEY, rewards TEXT NOT NULL, max_uses INTEGER, uses INTEGER NOT NULL DEFAULT 0, starts_at INTEGER, ends_at INTEGER,
@@ -132,6 +133,10 @@ export function redeem(app: App, pid: string, ip: string, raw: string): CodeRede
   if (limited(app, pid, ip)) return bad('cok');
   const code = normalizeCode(raw);
   if (!CODE_PATTERN.test(code)) { countWrong(app, pid, ip); return bad('gecersiz'); }
+  // 1.2.0 geri alma kodu (GERI-XXXX-XXXX, kurtarma.ts): bu cihaz yöneticinin kod ürettiği hesaba geçer. Kodun metni kaydedilmez.
+  const geri = geriKodKullan(app, pid, ip, code);
+  if (geri === 'yok') { countWrong(app, pid, ip); return bad('gecersiz'); }
+  if (geri) { log('', geri.kind === 'hesap' ? 'geri-kod' : `geri-${geri.kind === 'hata' ? geri.error : ''}`); return geri; }
   const r = app.db.get<Row>('SELECT * FROM promo_codes WHERE code = ?', code);
   // ödül kodu tablosunda yoksa yönetici kodu olabilir (ödül kodu yönetici koduyla aynı olamaz: createCode); sınama bütçeyle sınırlı
   if (!r && adminBudget(app) && checkAdminCode(app, code)) {
@@ -177,6 +182,7 @@ export function createCode(app: App, o: { code: string; rewards: PromoReward; ma
   const code = normalizeCode(o.code);
   if (!CODE_PATTERN.test(code)) fail('GECERSIZ', 'Kod 3–32 karakter olmalı: harf, rakam ve tire.');
   if (checkAdminCode(app, code)) fail('GECERSIZ', 'Bu kod kullanılamaz.');
+  if (code.startsWith(GERI_KOD_ONEKI)) fail('GECERSIZ', `${GERI_KOD_ONEKI} ile başlayan kodlar hesap geri alma kodlarına ayrıldı.`);
   const rewards = cleanRewards(o.rewards);
   if (!Object.keys(rewards).length) fail('GECERSIZ', 'En az bir ödül gir.');
   if (app.db.get('SELECT 1 AS x FROM promo_codes WHERE code = ?', code)) fail('VAR', 'Bu kod zaten var.');

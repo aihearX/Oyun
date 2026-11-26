@@ -28,3 +28,8 @@
 .yn-kurucu .row { gap:8px; align-items:center; }
 .yn-kurucu .kl-sira { flex:none; min-width:1.8em; font-weight:900; color:#ffe08a; }
 .yn-kurucu small { display:block; font-size:0.71875rem; overflow-wrap:anywhere; }
+/* 1.2.0 hesap kurtarma: sekme rozeti, giriş kodu ve geri alma kodu kutusu */
+.yn .yn-tabs .yn-sayi { display:inline-block; margin-left:6px; min-width:1.5em; padding:0 6px; border-radius:999px; background:#ff5c8a; color:#fff; font-size:0.6875rem; line-height:1.6; text-align:center; }
+.yn-geri { display:flex; flex-direction:column; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid rgba(255,255,255,.12); }
+.yn-kod-kutu { display:inline-flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 10px; border-radius:12px; background:rgba(255,201,60,.12); border:1.5px solid rgba(255,201,60,.4); }
+.yn-kod-kutu b { font-size:1.05rem; letter-spacing:.08em; user-select:all; }

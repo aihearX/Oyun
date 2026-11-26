@@ -21,6 +21,7 @@ const TUR: Record<string, string> = {
   'Kullanıcı İçeriği › Oyun İçeriği': 'GameplayContent',
   'Kullanıcı İçeriği › Diğer Kullanıcı İçeriği': 'OtherUserContent',
   'Kullanıcı İçeriği › Fotoğraflar veya Videolar': 'PhotosorVideos',
+  'İletişim Bilgileri › E-posta Adresi': 'EmailAddress',
   'Diğer Veriler › Diğer Veri Türleri': 'OtherDataTypes',
   'Teşhis › Çökme Verileri': 'CrashData',
 };

@@ -52,6 +52,8 @@ export interface MyProfile extends PublicProfile {
   listede?: boolean;
   /** 1.2.0: yöneticinin hediye ettiği (oyuncunun "Al"la kabul ettiği) kilit açılımları; yoksa alan yok */
   acik?: PlayerUnlocks;
+  /** 1.2.0 hesap kurtarma: oyuncunun isteğe bağlı kurtarma e-postası (yalnız kendisine döner; kimseye gösterilmez); yoksa alan yok */
+  kurtarmaEposta?: string;
 }
 
 /** feed: Takım Akışı kartı · hazir: hazır söz (Hızlı Sohbet) · soru: Günün Sorusu kartı (bkz. İLETİŞİM bölümü) */
@@ -1478,6 +1480,8 @@ export interface PromoCodeView {
 export type CodeRedeemResult =
   | { kind: 'odul'; code: string; title: string; rewards: PromoReward }
   | { kind: 'yonetici'; admin: AdminState }
+  /** 1.2.0: yöneticinin verdiği geri alma kodu (GERI-XXXX-XXXX): bu cihaz o hesaba geçer (yeni oturum anahtarı + ilerleme) */
+  | { kind: 'hesap'; token: string; name: string; ilerleme: KurtarmaIlerleme }
   /** dürüst hata (deneme sayılır ve kaydedilir; istek hatası değil) */
   | { kind: 'hata'; error: CodeError; message: string };
 export type CodeError = 'gecersiz' | 'kullanildi' | 'suresi' | 'tukendi' | 'baslamadi' | 'cok';
@@ -1871,6 +1875,8 @@ export interface AdminPlayerDetail extends AdminPlayerRow {
   photoHidden?: boolean;
   /** 1.2.0: kabul edilmiş kilit açılımları ve ödül kutusunda bekleyen kilit hediyesi sayısı */
   acik?: PlayerUnlocks; acikBekleyen?: number;
+  /** 1.2.0: kurtarma e-postası (yalnız yönetici ekranında; destek için) */
+  kurtarmaEposta?: string;
 }
 export interface AdminMessage {
   id: string; kind: 'dm' | 'sohbet' | 'takim'; at: number; text: string;
@@ -1962,4 +1968,71 @@ export interface OpMap {
   'admin.kurucu.remove': { req: { id: string }; res: Record<string, never> };
   /** sıraya taşı (1 = en üst) */
   'admin.kurucu.move': { req: { id: string; sira: number }; res: Record<string, never> };
+}
+
+// =====================================================================
+// 1.2.0: HESAP KURTARMA. Hesaplar anonimdir (cihazdaki oturum anahtarı). Oyuncu isterse bir kurtarma e-postası ekler (doğrulanmaz,
+// kimseye gösterilmez). Telefon değişince "Hesabın var mı? E-postayla giriş yap": sunucu 6 haneli kod üretir; bu sürümde kod
+// otomatik e-postayla GİTMEZ, yönetici ekranında (Kurtarma) görünür ve ekip elle e-postayla yollar. Kod 24 saat geçerli, tek
+// kullanımlık. Doğru kodla seçilen hesaba yeni oturum anahtarı verilir (eski cihazın anahtarı geçersizleşir). E-postası olmayan
+// hesap için yönetici "geri alma kodu" (GERI-XXXX-XXXX, 24 saat) üretir; oyuncu Kod Gir'e yazar.
+// Kurtarma istekleri oturumsuz da çalışsın diye HTTP ile: POST /kurtarma (apps/server/src/kurtarma.ts).
+// =====================================================================
+export const KURTARMA_KURALLARI = {
+  /** giriş kodu: 6 hane, 24 saat geçerli (gönderim elle), tek kullanımlık, kod başına en çok 5 yanlış deneme */
+  kodHane: 6, kodSureMs: 24 * 3_600_000, yanlisHak: 5,
+  /** geri alma kodu (yönetici): 24 saat */
+  geriSureMs: 24 * 3_600_000,
+  /** e-posta en çok 254 karakter */
+  epostaMax: 254,
+  /** kurtarma e-postası günde en çok bu kadar değişir */
+  degisimGunluk: 5,
+} as const;
+/** e-postayı karşılaştırılabilir biçime getir: boşluklar atılır, küçük harf (yalnız ASCII dönüşür; Türkçe İ/I sorunu yok) */
+export function normalizeEposta(raw: string): string {
+  return raw.normalize('NFKC').trim().replace(/[A-Z]/g, (c) => c.toLowerCase());
+}
+const EPOSTA_RE = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)*\.[^\s@.]{2,}$/u;
+/** yalnız biçim denetimi (adresi doğrulamıyoruz): a@b.cd */
+export function epostaGecerli(raw: string): boolean {
+  const e = normalizeEposta(raw);
+  return e.length <= KURTARMA_KURALLARI.epostaMax && EPOSTA_RE.test(e);
+}
+/** geri alma kodunun öneki (normalizeCode "GERİ" yazımını da GERI yapar) */
+export const GERI_KOD_ONEKI = 'GERI-';
+/** kurtarılan hesabın sunucudaki ilerlemesi: cihaz bunu yerel ilerleme olarak kurar (bölüm yıldızları, en iyi puan; XP) */
+export interface KurtarmaIlerleme { best: { level: number; stars: number; score: number }[]; xp: number }
+/** aynı e-postaya bağlı birden çok hesap varsa seçim listesi */
+export interface KurtarmaHesap { id: string; name: string; color: number; level: number; highest: number; lastSeen: number }
+/** POST /kurtarma gövdesi */
+export type KurtarmaIstek =
+  | { istek: 'kod'; eposta: string; /** cihazda rastgele üretilmiş kimlik (yalnız hız sınırı için) */ cihaz?: string }
+  | { istek: 'giris'; eposta: string; kod: string; id?: string };
+/** POST /kurtarma yanıtı (hata: ok false + error) */
+export type KurtarmaYanit =
+  | { ok: true; alindi: true }
+  | { ok: true; hesaplar: KurtarmaHesap[] }
+  | { ok: true; token: string; name: string; ilerleme: KurtarmaIlerleme }
+  | { ok: false; error: string };
+/** oyuncuya istekten sonra gösterilen genel metin (adresin kayıtlı olup olmadığını söylemez) */
+export const KURTARMA_ISTEK_ALINDI = 'İsteğin alındı. Giriş kodun en geç 24 saat içinde e-posta adresine gönderilecek. Kodu aldığında bu ekrana dönüp yaz.';
+
+export type AdminKurtarmaDurum = 'bekliyor' | 'kullanildi' | 'suresi' | 'yenilendi' | 'kilitlendi';
+/** yönetici ekranı › Kurtarma: bir giriş kodu isteği */
+export interface AdminKurtarma {
+  id: string; eposta: string; kod: string; at: number; expiresAt: number; durum: AdminKurtarmaDurum;
+  /** yönetici "gönderildi" dedi mi */
+  gonderildi: boolean; gonderildiAt?: number;
+  /** bu e-postaya bağlı hesaplar (boşsa "eşleşen hesap yok") */
+  hesaplar: { id: string; name: string; friendCode: string; level: number; highest: number; lastSeen: number }[];
+}
+export interface OpMap {
+  /** kurtarma e-postasını ekle / değiştir; boş metin kaldırır. Yanıt: kendi profilin (kurtarmaEposta) */
+  'eposta.ayarla': { req: { eposta: string }; res: { me: MyProfile } };
+  /** yönetici: giriş kodu istekleri (yeniden eskiye, sayfalı); bekleyen: gönderilmeyi bekleyen geçerli istek sayısı */
+  'admin.kurtarma.list': { req: { filtre?: 'bekleyen' | 'hepsi'; offset?: number }; res: { items: AdminKurtarma[]; total: number; hasMore: boolean; bekleyen: number } };
+  /** yönetici: "gönderildi" işareti */
+  'admin.kurtarma.gonderildi': { req: { id: string; on: boolean }; res: { item: AdminKurtarma } };
+  /** yönetici: bir hesap için tek kullanımlık geri alma kodu (GERI-XXXX-XXXX, 24 saat; aynı hesabın önceki kullanılmamış kodu geçersizleşir) */
+  'admin.geri.kod': { req: { id: string }; res: { code: string; expiresAt: number } };
 }

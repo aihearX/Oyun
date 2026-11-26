@@ -8,6 +8,8 @@ yüklemede doldurulur. Ürünler: [`iap-urunler.md`](iap-urunler.md). Adımlar: 
 katılan düzeyi, bekleyen ödül jetonu, harcama sınırı seçimi, Sezon Kartı birikimi, Günün Sorusu, İkili Görev, Usta–Çırak, Klinik, kamp
 oyunları) yeni bir Veri güvenliği **kategorisi** getirmiyor; mevcut satırlara eklendi. Düzeltilen tek cevap: "verinin bir kısmının
 silinmesi" (Hayır → Evet, aşağıda). Bütün cevaplar kodun bugün yaptığına göre verildi; dayanaklar [`docs/yonetim/gizlilik.md`](../../docs/yonetim/gizlilik.md) "Kod karşılığı".
+**Sürüm 1.2.0 (hesap kurtarma):** yeni tür **Kişisel bilgiler › E-posta adresi** (isteğe bağlı kurtarma e-postası; amaç Hesap
+yönetimi; paylaşılmaz). Yüklemeden önce Veri güvenliği formunda bu satırı işaretleyin.
 Play Console'daki soru metinleri zamanla değişir: yüklerken soruyu buradaki cevabın anlamıyla eşleştirin, emin olunmayan yerde
 daha kapsayıcı (daha çok beyan eden) seçeneği seçin.
 
@@ -99,7 +101,7 @@ Hayır.
 |---|---|
 | Uygulamanız gerekli kullanıcı veri türlerinden herhangi birini topluyor ya da paylaşıyor mu? | **Evet** |
 | Toplanan bütün kullanıcı verileri aktarım sırasında şifreleniyor mu? | **Evet** (https/wss; mağaza derlemesinde sunucu adresi `wss://`, bkz. `apps/mobile/README.md`; çökme raporu ve geri bildirim de aynı adrese `https://…/hata`, `https://…/geri-bildirim`) |
-| Uygulamanız hesap oluşturmaya izin veriyor mu? | **Evet → "Diğer"**: kendiliğinden anonim hesap (rastgele kimlik + cihazdaki anahtar), isteğe bağlı takma ad; kullanıcı adı/şifre, e-posta ya da OAuth yok |
+| Uygulamanız hesap oluşturmaya izin veriyor mu? | **Evet → "Diğer"**: kendiliğinden anonim hesap (rastgele kimlik + cihazdaki anahtar), isteğe bağlı takma ad; kullanıcı adı/şifre ya da OAuth yok. 1.2.0: isteğe bağlı kurtarma e-postası (doğrulanmaz) yalnız hesabı yeni cihazda geri almak için; giriş için zorunlu değil |
 | Hesap silme bağlantısı (web) | `https://<adres>/hesap-sil` |
 | Kullanıcılar hesaplarını silmeden verilerinin bir kısmının silinmesini isteyebilir mi? | **Evet** (düzeltildi, 2026-11-06; önceki cevap "Hayır" eksikti): oyuncu kendi özel mesajını oyunda siler (`dm.delete`), takma adını değiştirir, Kurucular listesinden adını kaldırır; ayrıca KVKK m.11 başvurusuyla e-postayla kısmi silme isteyebilir (gizlilik metni § 6). Takım ve genel sohbet 30 günde kendiliğinden silinir |
 | Bağımsız güvenlik incelemesi | Hayır |
@@ -113,6 +115,7 @@ teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün)
 |---|---|---|---|---|
 | Kişisel bilgiler › Ad | Evet | İsteğe bağlı (varsayılan "OdiNNNN") | Uygulama işlevi, Hesap yönetimi | Takma ad (`profile.update`); Google "ad" tanımına takma ad da girer |
 | Kişisel bilgiler › Kullanıcı kimlikleri | Evet | Zorunlu | Uygulama işlevi, Hesap yönetimi, Dolandırıcılığı önleme / güvenlik | Rastgele oyuncu kimliği, arkadaş kodu; RevenueCat `appUserID` |
+| Kişisel bilgiler › E-posta adresi | Evet | İsteğe bağlı | Hesap yönetimi | İsteğe bağlı hesap kurtarma e-postası (1.2.0): takma ad kartında ya da Ayarlar › Hesap kurtarma e-postası'ndan; doğrulanmaz, oyunda kimseye gösterilmez, pazarlama için kullanılmaz; yalnız yeni cihazda hesabı geri almak için giriş kodu ekibimizce bu adrese elle gönderilir (e-posta hizmeti yok, paylaşılmaz). Oyuncu kaldırana ya da hesap silinene kadar. Kod: `apps/server/src/kurtarma.ts` |
 | Kişisel bilgiler › Diğer bilgiler | Evet | Zorunlu | Dolandırıcılığı önleme / güvenlik | IP adresi: bağlantıda bellekte (hesap açma sınırı, en çok ~2 saat), ödül kodu denemesinde 90 gün; çökme raporu ve geri bildirim hız sınırı için yalnız tuzlu özeti bellekte en çok 1 gün |
 | Finansal bilgiler › Satın alma geçmişi | Evet | İsteğe bağlı | Uygulama işlevi, Dolandırıcılığı önleme / güvenlik | `purchases` tablosu (ürün, zaman, mağaza, tutar, işlem no); RevenueCat |
 | Mesajlar › Diğer uygulama içi mesajlar | Evet | İsteğe bağlı | Uygulama işlevi | Takım/genel sohbet (30 gün), özel mesajlar (son 500); sunucumuzda saklanır |
@@ -124,7 +127,7 @@ teşhis: toplanır, paylaşılmaz, aktarımda şifreli, geçici değil (30 gün)
 | Uygulama bilgileri ve performansı › Teşhis (Diagnostics) | Evet | Zorunlu (çökme raporunun parçası) | Analiz | Yalnız çökme raporuyla: uygulama sürümü ve derleme, platform ve işletim sistemi ana sürümü, hatanın olduğu ekranın adı, dakikaya yuvarlanmış zaman. Pil, yükleme süresi, kare hızı gibi performans ölçümü yok |
 | Uygulama bilgileri ve performansı › Diğer uygulama performansı verileri | Hayır | — | — | — |
 | Cihaz veya diğer kimlikler | Hayır | — | — | Reklam kimliği yok; RevenueCat `collectDeviceIdentifiers` çağrılmaz. **Yüklemeden önce RevenueCat'in güncel "Google Play Data Safety" rehberiyle karşılaştırın** |
-| Konum, Kişiler, Takvim, Videolar, Ses, Dosyalar, Sağlık, Web geçmişi, E-posta, Telefon, Ödeme bilgisi | Hayır | — | — | Konum/kişiler izni yok; fotoğraf yalnız isteğe bağlı profil fotoğrafı (yukarıda); ödemeyi Google alır |
+| Konum, Kişiler, Takvim, Videolar, Ses, Dosyalar, Sağlık, Web geçmişi, E-postalar (mesaj içeriği), Telefon, Ödeme bilgisi | Hayır | — | — | Konum/kişiler izni yok; fotoğraf yalnız isteğe bağlı profil fotoğrafı (yukarıda); ödemeyi Google alır |
 
 ### Hesap silme (Account deletion)
 - Uygulama içi yol: Profil › Ayarlar › **Hesabı sil** › **Her şeyi sil**.

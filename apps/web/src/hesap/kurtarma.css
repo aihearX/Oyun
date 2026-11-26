@@ -1,0 +1,13 @@
+/* 1.2.0 hesap kurtarma (Kurtarma.tsx): giriş sayfası ve Ayarlar kartı */
+.kr-sayfa { display: flex; flex-direction: column; gap: 12px; }
+.kr-form { display: flex; flex-direction: column; gap: 10px; }
+.kr-kod { font-size: 1.4rem; letter-spacing: .3em; text-align: center; font-variant-numeric: tabular-nums; }
+.kr-not { padding: 12px 14px; border-radius: 14px; background: rgba(46, 230, 214, .12); border: 1px solid rgba(46, 230, 214, .35); line-height: 1.45; }
+.kr-liste { display: flex; flex-direction: column; gap: 8px; }
+.kr-hesap { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .05); color: inherit; text-align: left; font: inherit; cursor: pointer; }
+.kr-hesap:disabled { opacity: .6; }
+.kr-hesap-metin { display: flex; flex-direction: column; min-width: 0; }
+.kr-kart { display: flex; flex-direction: column; gap: 10px; }
+.kr-eylem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.kr-adres { flex: 1 1 100%; overflow-wrap: anywhere; }
+.kr-link { margin-top: 4px; }

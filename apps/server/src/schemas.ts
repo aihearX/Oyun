@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, CAMP_CHEERS, CERCEVE_IDS, KILIT_OZELLIKLER, KILIT_SON_BOLUM, ROZET_IDS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, CAMP_CHEERS, CERCEVE_IDS, KILIT_OZELLIKLER, KILIT_SON_BOLUM, KURTARMA_KURALLARI, ROZET_IDS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -158,6 +158,11 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   }).refine((d) => !!d.code !== !!d.id, { message: 'kod ya da kimlik' }),
   'admin.kurucu.remove': z.object({ id }),
   'admin.kurucu.move': z.object({ id, sira: z.number().int().min(1).max(100_000) }),
+  // 1.2.0 hesap kurtarma (kurtarma.ts): oyuncunun kurtarma e-postası (biçimi işleyici denetler; boş: kaldır) ve yönetici işleri
+  'eposta.ayarla': z.object({ eposta: z.string().max(KURTARMA_KURALLARI.epostaMax + 20) }),
+  'admin.kurtarma.list': z.object({ filtre: z.enum(['bekleyen', 'hepsi']).optional(), offset: z.number().int().min(0).max(1_000_000).optional() }),
+  'admin.kurtarma.gonderildi': z.object({ id, on: z.boolean() }),
+  'admin.geri.kod': z.object({ id }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

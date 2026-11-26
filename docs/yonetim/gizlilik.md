@@ -34,6 +34,11 @@
 | Takım ve genel sohbet (sunucuda, `chat`) | 30 gün; hesap silinince yazdıkları hemen | `chat.ts` `CHAT_RETAIN_MS`, `account-veri.ts` |
 | Özel mesaj (sunucuda, `dm`) | Konuşma başına son 500; taraflardan biri silinince konuşma | `dm.ts` `prune`, `FRIEND_LIMITS.dmKeep` |
 | Profil fotoğrafı (`player_photos`, isteğe bağlı, 1.1.0) | Oyuncu kaldırana ya da hesap silinene kadar; 3 farklı kişinin şikâyetiyle gizlenir, işletmen siler | `foto.ts` (`PHOTO_RULES`), `account-veri.ts` (`player_photos` "sil") |
+| Kurtarma e-postası (`players.recovery_email`, isteğe bağlı, 1.2.0; doğrulanmaz, kimseye gösterilmez) | Oyuncu değiştirene/kaldırana ya da hesap silinene kadar | `kurtarma.ts` `epostaAyarla`, `account-veri.ts` `ANONIM_OYUNCU_EK_SQL` (`recovery_email = NULL`) |
+| Hesap kurtarma istekleri (`kurtarma_istek`: e-posta, 6 haneli kod; kod ekip tarafından elle e-postayla gönderilir) | Kodun süresi (24 saat) dolduktan 7 gün sonra; hesap silinince o hesabın adresine ait ve o hesaba giriş yapılan istekler hemen | `kurtarma.ts` `KURTARMA_ISTEK_TUT_MS`, `pruneKurtarma`; `account-veri.ts` (`kurtarma_istek` "sil") |
+| Hesap kurtarma deneme kaydı (`kurtarma_log`: zaman, IP, sonuç; e-posta ve kod yazılmaz) | 90 gün | `kurtarma.ts` `KURTARMA_LOG_TUT_MS` |
+| Kurtarma istek sınırı (IP, cihazda üretilen rastgele sayı; bellek) | En çok 1 gün | `kurtarma.ts` `izBudama` (saatlik bakım) |
+| Geri alma kodu (`geri_kod`, yalnız özeti) ve geçersizleşen oturum anahtarı özeti (`tasinan_anahtar`) | Kod: süresi (24 saat) dolduktan 7 gün sonra; anahtar özeti 1 yıl; ikisi de hesapla silinir | `kurtarma.ts` `pruneKurtarma`, `account-veri.ts` |
 | Bölüm gönderim kayıtları (`progress_runs`) | 30 gün | `progress.ts` `RUN_RETAIN_MS` |
 | Hesap açma sınırı için IP (bellek) | En çok ~2 saat (saatlik bakım) | `players.ts` `pruneNewAccountIps` |
 | Sunucu günlüğü (journald) | 30 gün | `tools/sunucu/ortak.sh` `MaxRetentionSec=30day` |
@@ -51,12 +56,14 @@
 
 | İddia | Dayanak |
 |---|---|
-| Ad, e-posta, telefon, konum, rehber, mikrofon, kamera, reklam kimliği istenmez; fotoğraf yalnız isteğe bağlı profil fotoğrafı (oyuncu galeriden tek fotoğraf seçer, cihazda 256×256 JPEG'e küçültülür) | `apps/mobile/package.json` (konum, kamera, kişiler, bildirim izni yok), `grep getUserMedia\|geolocation` → yok; fotoğraf: `platform().pickPhoto` / `<input type=file>` (`apps/web/src/foto/foto.ts`) |
+| Ad, telefon, konum, rehber, mikrofon, kamera, reklam kimliği istenmez; e-posta yalnız isteğe bağlı kurtarma e-postası (takma ad kartında ya da Ayarlar'da; doğrulanmaz); fotoğraf yalnız isteğe bağlı profil fotoğrafı (oyuncu galeriden tek fotoğraf seçer, cihazda 256×256 JPEG'e küçültülür) | `apps/mobile/package.json` (konum, kamera, kişiler, bildirim izni yok), `grep getUserMedia\|geolocation` → yok; fotoğraf: `platform().pickPhoto` / `<input type=file>` (`apps/web/src/foto/foto.ts`) |
 | Profil fotoğrafı sunucuda saklanır, herkese görünür (`GET /foto/<id>.jpg`), şikâyet edilebilir (3 kişi → gizlenir), hesapla silinir | `apps/server/src/foto.ts` (`receivePhoto`, `servePhoto`, `reportPhoto`), `account-veri.ts`; test `apps/server/test/yonetici-ekran.test.ts` |
 | Özel mesajlar ve sohbet iletileri sunucuda saklanır, uçtan uca şifreli değildir; kötüye kullanımı incelemek için görülebilir | `dm`, `chat` tabloları (`db.ts`); işletmen erişimi yalnız yönetici hesabıyla (`yonetici-ekran.ts`, oyunculara anlatılmaz) ve sunucu makinesinde |
 | Reklam, analitik, izleme aracı yok | Bağımlılıklarda reklam/analitik SDK yok; RevenueCat yalnız satın alma (`apps/mobile/src/purchases.ts`), `collectDeviceIdentifiers` çağrılmaz |
 | Kayıt formu yok; rastgele kimlik + anahtar; sunucuda özet | `players.ts` (hello → yeni oyuncu), `token_hash` |
 | Takma ad isteğe bağlı (OdiNNNN) | `ui/Onboarding.tsx` "Sonra", `isDefaultName` |
+| Kurtarma e-postası isteğe bağlı; yalnız oyuncunun kendi profilinde döner (`MyProfile.kurtarmaEposta`), herkese açık profilde yok; pazarlama yok; giriş kodu ekipçe kendi e-posta hesabımızdan elle gönderilir (bu sürümde e-posta hizmeti yok, adres başka şirkete gitmez) | `app.ts` `myProfile` / `publicProfile`, `kurtarma.ts`; test `apps/server/test/kurtarma.test.ts` (başka oyuncu adresi görmez, hiçbir dış adrese istek gitmez) |
+| Kurtarma: kod 6 hane, 24 saat, tek kullanımlık, kod başına 5 yanlış deneme; yanıt adresin kayıtlı olup olmadığını söylemez; doğru kodla yeni oturum anahtarı, eski cihaz oturumu kapanır | `kurtarma.ts` (`KURTARMA_KURALLARI`, `hesabiDevret`), `players.ts` hello `TASINDI` |
 | Çerez yok; web localStorage + önbellek | `platform.ts` `webStorage`, `sw/sw.js` |
 | IP diske yalnız kod denemesinde | `server.ts` `clientIp` (bellekte `Conn.ip`), `codes.ts` `promo_log`; Caddyfile'da erişim günlüğü (`log`) yok |
 | Sunucu günlüğünde oyuncu kimliği | `server.ts` `log('ayrıldı', pid)`, hata kayıtları |

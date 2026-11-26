@@ -11,6 +11,8 @@ export const START_JETON = 100;
 const COLORS = [0xff7a59, 0x7c5cff, 0x2ee6d6, 0xffc25c, 0xff4f7a, 0x5b8def, 0x4cd97b, 0xf28fe0];
 
 export const hashToken = (t: string) => createHash('sha256').update(t).digest('hex');
+/** kurtarmayla başka cihaza taşınmış anahtarla bağlanan eski cihaza (hello, TASINDI) */
+export const TASINDI_METNI = 'Bu hesap başka bir cihazda açıldı, bu cihazdaki oturum kapandı. Devam etmek için Ayarlar › Hesap kurtarma’dan yeniden giriş yapabilir ya da bu cihazda yeni hesapla başlayabilirsin.';
 
 const NAME_RE = /^[A-Za-z0-9ÇĞİÖŞÜçğıöşüÂâÎîÛû _]+$/;
 /** isim doğrulama: 3-16 karakter, harf/rakam/boşluk/_ (Türkçe harfler dahil), küfürsüz */
@@ -113,7 +115,11 @@ export const playerHandlers: Handlers = {
     let row: PlayerRow; let newToken: string | undefined;
     if (token) {
       const r = app.db.get<PlayerRow>('SELECT * FROM players WHERE token_hash = ?', hashToken(token));
-      if (!r) return fail('TOKEN', 'Oturum anahtarı tanınmadı; yeni hesapla devam etmek için anahtarsız bağlan.');
+      if (!r) {
+        // 1.2.0 hesap kurtarma: anahtar başka cihaza taşındı (kurtarma.ts hesabiDevret); eski cihaz sessizce yeni hesap açmasın
+        if (app.db.get('SELECT 1 AS x FROM tasinan_anahtar WHERE token_hash = ?', hashToken(token))) fail('TASINDI', TASINDI_METNI);
+        return fail('TOKEN', 'Oturum anahtarı tanınmadı; yeni hesapla devam etmek için anahtarsız bağlan.');
+      }
       row = r;
     } else {
       if (!allowNewAccount(app, s.conn.ip ?? '')) fail('HIZ', 'Bu bağlantıdan kısa sürede çok fazla yeni hesap açıldı. Biraz sonra yeniden dene.');

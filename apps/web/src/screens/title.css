@@ -50,3 +50,4 @@
 .ts-cta.on { opacity:1; transform:none; }
 @media (max-height:680px) { .ts-hero .odi-hero { width:128px; height:128px; } .title-screen { gap:12px; } }
 @media (prefers-reduced-motion: reduce) { .ts-sky::before, .ts-ring, .ts-note, .ts-hero, .oh-halo, .oh-waves, .oh-eyes { animation:none !important; } .ts-ring { display:none; } }
+.ts-hesap { display:block; margin:14px auto 0; padding:8px 12px; }

@@ -22,6 +22,7 @@ import { mapIntroQueue, mapRevealPending, type MapReveal } from './ftue/map-intr
 import { loadMapSeen, starsOf, useMapSeen } from './map/mapSeen';
 import { toastsFor, useStore } from './store';
 import { TitleScreen } from './screens/TitleScreen';
+import { kurtarmaUcu } from './hesap/istemci';
 import type { ProfileLink } from './screens/ProfileScreen';
 import { TabBar, type Tab } from './ui/TabBar';
 import { readInvite } from './invite';
@@ -83,7 +84,7 @@ const load = {
   info: mod(() => import('./screens/InfoScreen')), visit: mod(() => import('./camp/Ziyaret')), shop: mod(() => import('./screens/ShopScreen')),
   inbox: mod(() => import('./screens/InboxScreen')), raceLobby: mod(() => import('./race/RaceLobby')), raceResult: mod(() => import('./race/RaceResult')),
   teamRace: mod(() => import('./teamrace/TeamRace')), events: mod(() => import('./events/EventsScreen')), eventLevel: mod(() => import('./events/EventLevel')),
-  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), yonetici: mod(() => import('./yonetici/YoneticiScreen')), pratik: mod(() => import('./events/Pratik')), gallery: mod(() => import('./ui/art')),
+  together: mod(() => import('./comm/Together')), rank: mod(() => import('./rank/RankScreen')), kurucular: mod(() => import('./kurucu/Kurucular')), yonetici: mod(() => import('./yonetici/YoneticiScreen')), hesap: mod(() => import('./hesap/Kurtarma')), pratik: mod(() => import('./events/Pratik')), gallery: mod(() => import('./ui/art')),
 };
 const MapScreen = screen(load.map, 'MapScreen');
 const LevelHost = screen(load.level, 'LevelHost');
@@ -117,6 +118,7 @@ const TogetherScreen = screen(load.together, 'TogetherScreen');
 const RankScreen = screen(load.rank, 'RankScreen');
 const KurucularScreen = screen(load.kurucular, 'KurucularScreen');
 const YoneticiScreen = screen(load.yonetici, 'YoneticiScreen');
+const KurtarmaSheet = screen(load.hesap, 'KurtarmaSheet');
 const PratikScreen = screen(load.pratik, 'PratikScreen');
 const ArtGallery = screen(load.gallery, 'ArtGallery');
 
@@ -296,6 +298,8 @@ export function App() {
   useEffect(() => { if (route.name !== 'level' && route.name !== 'map') scrollAppTop(); }, [route.name, 'room' in route ? route.room : '']);
   // sıradaki ekranın parçaları (ve Phaser) boşta önden yüklenir; başlıkta ilk çizim ve dokunma önce gelsin diye biraz beklenir
   const returning = Object.keys(store.progress).length > 0;
+  // 1.2.0 hesap kurtarma: yeni kurulumdaki açılış ekranında "Hesabın var mı? E-postayla giriş yap"
+  const [hesapSayfa, setHesapSayfa] = useState(false);
   useEffect(() => {
     if (bot) return; const list = preloadFor(route.name, returning); if (!list.length) return;
     return whenIdle(() => { for (const f of list) void f().catch(() => undefined); }, route.name === 'title' ? 300 : 400);
@@ -394,7 +398,10 @@ export function App() {
   // kutlama katmanı (ve üst bildirimler) kök seviyede: ekran değişse de yaşar; oyun/başlık/tanıtımda bildirimler bekler
   const view = (() => { switch (route.name) {
     case 'wait': return <EngineLoading />;
-    case 'title': return <TitleScreen returning={returning} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} />;
+    case 'title': return <>
+      <TitleScreen returning={returning} invite={invite} onChallenge={() => { store.touchDay(); if (invite) play(invite.level); }} onStart={start} onHesap={!bot && kurtarmaUcu() ? () => setHesapSayfa(true) : undefined} />
+      {hesapSayfa && <Suspense fallback={null}><KurtarmaSheet onClose={() => setHesapSayfa(false)} /></Suspense>}
+    </>;
     case 'story': { const r = route; return <StoryScreen replay={r.replay} onDone={() => { store.ftueStoryDone(); if (r.replay) setRoute({ name: 'settings', back: r.back ?? 'profile' }); else play(1); }} />; }
     case 'map': return withTabs('map', <><MapScreen onPlay={play} onToday={() => tab('today')} />{isOpen('events', cleared, store.ftue) && <EventsFab onOpen={() => nav.open({ name: 'events' })} />}</>);
     case 'today': return withTabs('today', <TodayScreen onInfo={() => openSub('today')('info')} />);

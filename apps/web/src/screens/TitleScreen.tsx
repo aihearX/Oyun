@@ -49,7 +49,8 @@ export function OdiHero({ size = 168 }: { size?: number }) {
 }
 
 /** Açılış: Odi, logo, hikâye cümlesi, tek ana düğme. Kulak Gecesi zemini (yıldızlar, ses halkaları) yavaşça yaşar. */
-export function TitleScreen({ onStart, returning, invite, onChallenge }: { onStart: () => void; returning: boolean; invite?: { level: number; score: number; stars: number } | null; onChallenge?: () => void }) {
+/** onHesap (1.2.0 hesap kurtarma): yeni kurulumda "Hesabın var mı? E-postayla giriş yap" (sunucu adresi yoksa verilmez) */
+export function TitleScreen({ onStart, returning, invite, onChallenge, onHesap }: { onStart: () => void; returning: boolean; invite?: { level: number; score: number; stars: number } | null; onChallenge?: () => void; onHesap?: () => void }) {
   const [ready, setReady] = useState(false);
   useEffect(() => { const t = setTimeout(() => setReady(true), 250); return () => clearTimeout(t); }, []);
   return (
@@ -78,6 +79,7 @@ export function TitleScreen({ onStart, returning, invite, onChallenge }: { onSta
       <div className={`ts-cta${ready ? ' on' : ''}`}>
         {invite ? <ActionButton block tone="plain" icon="map" onClick={onStart}>{returning ? 'Devam et' : 'Yola çık'}</ActionButton>
           : <ActionButton block icon="play" onClick={onStart}>{returning ? 'Devam et' : 'Yola çık'}</ActionButton>}
+        {!returning && onHesap && <button type="button" className="linkish center ts-hesap" data-testid="hesap-var-mi" onClick={onHesap}>Hesabın var mı? E-postayla giriş yap</button>}
       </div>
     </div>
   );

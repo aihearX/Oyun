@@ -1113,6 +1113,9 @@ html.buyuk-yazi .magaza .small-note { font-size:0.875rem; line-height:1.4; }
 .onboard-bilgi .seg { max-width:100%; }
 .onboard-bilgi .seg button { padding:0 12px; }
 .onboard-bilgi .ob-not { font-size:0.75rem; line-height:1.35; }
+/* isteğe bağlı kurtarma e-postası (1.2.0 hesap kurtarma) */
+.onboard-eposta { width:100%; display:flex; flex-direction:column; gap:4px; }
+.onboard-eposta .ob-not { font-size:0.75rem; line-height:1.35; }
 /* kısa ekran (320×640): kart tek bakışta sığsın (Başla ve Sonra görünür kalsın) */
 @media (max-height:700px) {
   .onboard { gap:7px; padding-top:12px; padding-bottom:10px; }
@@ -1124,6 +1127,7 @@ html.buyuk-yazi .magaza .small-note { font-size:0.875rem; line-height:1.4; }
   .onboard-bilgi .seg button { min-height:36px; }
   /* büyük yazıda yardım satırı düşer (seçenekler yine Ayarlar'dakiyle aynı); Başla ve Sonra ana çizginin üstünde kalır */
   html.buyuk-yazi .onboard-bilgi .ob-not { display:none; }
+  .onboard-eposta .ob-not { font-size:0.6875rem; line-height:1.3; }
   html.buyuk-yazi .onboard > .muted:first-of-type { font-size:0.8125rem; }
 }
 .onboard { width:min(360px, 92vw); display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; animation:pop .4s cubic-bezier(.2,1.4,.4,1); }

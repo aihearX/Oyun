@@ -6,7 +6,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { KILIT_ADI, KILIT_OZELLIKLER, KILIT_SON_BOLUM, kilitHediyeMetni, kilitOzeti, photoUrl, type AdminKurucu, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport, type KilitOzellik } from '@odi/shared';
+import { KILIT_ADI, KILIT_OZELLIKLER, KILIT_SON_BOLUM, kilitHediyeMetni, kilitOzeti, photoUrl, type AdminKurtarma, type AdminKurucu, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport, type KilitOzellik } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { ScreenHead } from '../ui/bits';
@@ -16,10 +16,10 @@ import { AdminModeCard, CodePanel, useCodes } from '../codes/Codes';
 import '../comm/comm.css'; // .switch (her şey açık anahtarı, AdminModeCard)
 import './yonetici.css';
 
-type Tab = 'oyuncular' | 'mesajlar' | 'fotograflar' | 'kodlar' | 'hediye' | 'kurucular';
+type Tab = 'oyuncular' | 'mesajlar' | 'fotograflar' | 'kodlar' | 'hediye' | 'kurucular' | 'kurtarma';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'oyuncular', label: 'Oyuncular' }, { id: 'mesajlar', label: 'Mesajlar' }, { id: 'fotograflar', label: 'Fotoğraflar' },
-  { id: 'kodlar', label: 'Kodlar' }, { id: 'hediye', label: 'Hediye' }, { id: 'kurucular', label: 'Kurucular' },
+  { id: 'kodlar', label: 'Kodlar' }, { id: 'hediye', label: 'Hediye' }, { id: 'kurucular', label: 'Kurucular' }, { id: 'kurtarma', label: 'Kurtarma' },
 ];
 
 const fmtTime = (t: number) => new Date(t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -40,6 +40,9 @@ export function YoneticiScreen({ onBack }: { onBack: () => void }) {
   const [who, setWho] = useState<{ id: string; name: string } | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
   const [giftCode, setGiftCode] = useState('');
+  // 1.2.0 hesap kurtarma: e-postayla gönderilmeyi bekleyen giriş kodu sayısı (sekme rozeti)
+  const [bekleyen, setBekleyen] = useState(0);
+  useEffect(() => { if (!isAdmin || !online) return; getNet()?.call('admin.kurtarma.list', { filtre: 'bekleyen' }).then((r) => setBekleyen(r.bekleyen), () => undefined); }, [isAdmin, online]);
   return (
     <div className="screen fade-in yn" data-testid="yonetici-ekrani">
       <ScreenHead title="Admin" onBack={onBack} />
@@ -47,7 +50,7 @@ export function YoneticiScreen({ onBack }: { onBack: () => void }) {
         <>
           <AdminModeCard />
           <div className="yn-tabs" role="tablist" aria-label="Admin bölümleri">
-            {TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} data-testid={`yn-${t.id}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+            {TABS.map((t) => <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? 'on' : ''} data-testid={`yn-${t.id}`} onClick={() => setTab(t.id)}>{t.label}{t.id === 'kurtarma' && bekleyen > 0 ? <span className="yn-sayi" aria-label={`${bekleyen} bekleyen istek`}>{bekleyen}</span> : null}</button>)}
           </div>
           {tab === 'oyuncular' && <Players onOpen={setDetail} />}
           {tab === 'mesajlar' && <Messages who={who} onClear={() => setWho(null)} onOpen={setDetail} />}
@@ -55,6 +58,7 @@ export function YoneticiScreen({ onBack }: { onBack: () => void }) {
           {tab === 'kodlar' && <div className="card"><CodePanel /></div>}
           {tab === 'hediye' && <><Gift code={giftCode} setCode={setGiftCode} /><UnlockGift code={giftCode} setCode={setGiftCode} /></>}
           {tab === 'kurucular' && <Founders onOpen={setDetail} />}
+          {tab === 'kurtarma' && <Recovery onOpen={setDetail} onCount={setBekleyen} />}
           {detail && <PlayerSheet id={detail} onClose={() => setDetail(null)}
             onMessages={(p) => { setWho(p); setTab('mesajlar'); setDetail(null); }}
             onGift={(code) => { setGiftCode(code); setTab('hediye'); setDetail(null); }} />}
@@ -128,6 +132,7 @@ function PlayerSheet({ id, onClose, onMessages, onGift }: { id: string; onClose:
         {line('Şikâyet', `hakkında ${p.reportsAgainst.length} · yaptığı ${p.reportsBy}`)}
         {line('Susturma', muted ? `${fmtTime(p.mutedUntil)} tarihine kadar` : 'yok')}
         {p.admin && line('Admin', p.adminOn ? 'her şey açık modu açık' : 'evet')}
+        {line('Kurtarma e-postası', p.kurtarmaEposta ?? 'yok')}
         {(p.acik || p.acikBekleyen) && line('Kilit hediyesi', `${p.acik ? kilitOzeti(p.acik.levels, p.acik.features) : 'yok'}${p.acikBekleyen ? ` · ${p.acikBekleyen} kart bekliyor` : ''}`)}
         {p.levels.recent.length > 0 && <div className="muted small-note">Son bölümler: {p.levels.recent.map((l) => `${l.level} (${'★'.repeat(l.stars) || '0'})`).join(', ')}</div>}
         <div className="yn-actions">
@@ -140,9 +145,76 @@ function PlayerSheet({ id, onClose, onMessages, onGift }: { id: string; onClose:
           {[1, 7, 30].map((d) => <button key={d} className="btn small ghost" disabled={busy} onClick={() => void run(async () => { if (await act('admin.mute', { id: p.id, days: d })) toast('🔇', `${p.name} ${d} gün susturuldu`); })}>{d} gün sustur</button>)}
           {muted && <button className="btn small" disabled={busy} onClick={() => void run(async () => { if (await act('admin.mute', { id: p.id, days: 0 })) toast('🔊', 'Susturma kaldırıldı'); })}>Susturmayı kaldır</button>}
         </div>
+        <RestoreCode id={p.id} name={p.name} />
         {p.reportsAgainst.length > 0 && <><h3>Hakkındaki şikâyetler</h3><div className="yn-list">{p.reportsAgainst.map((r, i) => <ReportRow key={i} r={r} />)}</div></>}
       </div>
     </Sheet>
+  );
+}
+
+/** panoya kopyala (izin yoksa kod ekranda kalır, elle yazılır) */
+async function copyText(text: string, what: string): Promise<void> {
+  try { await navigator.clipboard.writeText(text); toast('📋', `${what} kopyalandı`, text); } catch { toast('📋', 'Kopyalanamadı', 'Kodu elle yaz.'); }
+}
+
+/** 1.2.0 hesap kurtarma: e-postası olmayan hesap için tek kullanımlık geri alma kodu (24 saat). Oyuncu yeni cihazda Kod Gir'e yazar. */
+function RestoreCode({ id, name }: { id: string; name: string }) {
+  const [r, setR] = useState<{ code: string; expiresAt: number } | null>(null); const [busy, setBusy] = useState(false);
+  const make = async () => { setBusy(true); const x = await act('admin.geri.kod', { id }); setBusy(false); if (x) setR(x); };
+  return (
+    <div className="yn-geri" data-testid="yn-geri">
+      <h3>Hesabı geri ver</h3>
+      <div className="muted small-note">Telefonunu değiştiren ya da oyunu silen oyuncu için. Kodu oyuncuya ilet; yeni cihazda Profil › Kod Gir’e yazınca o cihaz {name} hesabına geçer, eski cihazdaki oturum kapanır. Kod 24 saat geçerli, tek kullanımlık; yeni kod eskisini geçersiz kılar. Kod yalnız burada bir kez görünür.</div>
+      {r && <div className="yn-kod-kutu"><b className="mono" data-testid="yn-geri-kod">{r.code}</b><small className="muted">son geçerlilik {fmtTime(r.expiresAt)}</small>
+        <button className="btn small ghost" onClick={() => void copyText(r.code, 'Kod')}>Kopyala</button></div>}
+      <button className="btn ghost" data-testid="yn-geri-uret" disabled={busy} onClick={() => void make()}>{r ? 'Yeni geri alma kodu üret' : 'Geri alma kodu üret'}</button>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ Kurtarma istekleri (1.2.0)
+const DURUM: Record<AdminKurtarma['durum'], string> = { bekliyor: 'bekliyor', kullanildi: 'kullanıldı', suresi: 'süresi doldu', yenilendi: 'yenisi istendi', kilitlendi: 'çok yanlış deneme, kilitlendi' };
+/** e-postayla giriş kodu istekleri: kod bu sürümde otomatik gönderilmez; buradan kopyalanıp elle e-postayla yollanır */
+function Recovery({ onOpen, onCount }: { onOpen: (id: string) => void; onCount: (n: number) => void }) {
+  const [filtre, setFiltre] = useState<'bekleyen' | 'hepsi'>('bekleyen');
+  const [list, setList] = useState<AdminKurtarma[] | null>(null); const [total, setTotal] = useState(0); const [more, setMore] = useState(false); const [err, setErr] = useState('');
+  const load = (offset = 0) => {
+    const c = getNet(); if (!c) return;
+    c.call('admin.kurtarma.list', { filtre, offset }).then((r) => { setList((l) => (offset ? [...(l ?? []), ...r.items] : r.items)); setTotal(r.total); setMore(r.hasMore); onCount(r.bekleyen); setErr(''); }, (e) => setErr(errText(e)));
+  };
+  useEffect(() => { setList(null); load(); }, [filtre]);
+  const mark = async (k: AdminKurtarma) => {
+    const r = await act('admin.kurtarma.gonderildi', { id: k.id, on: !k.gonderildi });
+    if (r) { setList((l) => l?.map((x) => (x.id === k.id ? r.item : x)) ?? null); load(); }
+  };
+  return (
+    <div className="card yn-sec" data-testid="yn-kurtarma">
+      <div className="muted small-note">Oyuncu “Hesabın var mı? E-postayla giriş yap” deyince kod burada belirir; e-postayla otomatik gitmez. Eşleşen hesap varsa kodu o adrese elle gönder (konu: “ODİ giriş kodun”), sonra Gönderildi anahtarını aç. Kod 24 saat geçerli, tek kullanımlık; oyuncuya en geç 24 saat içinde gönderileceği söylendi.</div>
+      <div className="seg" role="tablist" aria-label="Kurtarma istekleri">
+        <button role="tab" aria-selected={filtre === 'bekleyen'} className={filtre === 'bekleyen' ? 'on' : ''} onClick={() => setFiltre('bekleyen')}>Geçerli</button>
+        <button role="tab" aria-selected={filtre === 'hepsi'} className={filtre === 'hepsi' ? 'on' : ''} onClick={() => setFiltre('hepsi')}>Hepsi</button>
+      </div>
+      {err && <div className="chat-err" role="alert">{err}</div>}
+      <div className="muted small-note">{list ? `${total} istek · en yeni önce` : 'Yükleniyor…'}</div>
+      <div className="yn-list">
+        {list?.length === 0 && <div className="muted">İstek yok.</div>}
+        {list?.map((k) => (
+          <div key={k.id} className="yn-msg" data-testid="yn-kurtarma-istek">
+            <div className="row between"><b className="ellipsis">{k.eposta}</b><small className={k.durum === 'bekliyor' ? 'yn-on' : 'muted'}>{DURUM[k.durum]}</small></div>
+            <small className="muted">istendi {fmtTime(k.at)} · son geçerlilik {fmtTime(k.expiresAt)}{k.gonderildiAt ? ` · gönderildi ${fmtTime(k.gonderildiAt)}` : ''}</small>
+            {k.hesaplar.length === 0 ? <small className="muted">eşleşen hesap yok (kod göndermeye gerek yok)</small> : k.hesaplar.map((h) => (
+              <button key={h.id} type="button" className="linkish" onClick={() => onOpen(h.id)}>{h.name} <small className="mono muted">{h.friendCode}</small> <small className="muted">Sv {h.level} · {h.highest}. bölüm · {ago(h.lastSeen)}</small></button>
+            ))}
+            <div className="yn-actions">
+              <span className="yn-kod-kutu"><b className="mono" data-testid="yn-kurtarma-kod">{k.kod}</b></span>
+              <button className="btn small ghost" onClick={() => void copyText(k.kod, 'Kod')}>Kopyala</button>
+              <button type="button" className={`btn small${k.gonderildi ? '' : ' ghost'}`} aria-pressed={k.gonderildi} data-testid="yn-kurtarma-gonderildi" onClick={() => void mark(k)}>{k.gonderildi ? 'Gönderildi ✓' : 'Gönderildi olarak işaretle'}</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {more && list && <button className="btn ghost" onClick={() => load(list.length)}>Daha fazla</button>}
+    </div>
   );
 }
 

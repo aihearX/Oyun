@@ -16,6 +16,7 @@ import { deletePhoto, announcePhoto } from './foto';
 import { badgeFields } from './rozet';
 import { unlocksOf } from './kilit';
 import { DAY_MS } from './time';
+import { geriKodUret, kurtarmaGonderildi, kurtarmaListesi } from './kurtarma';
 
 const NOT_DELETED = 'p.id NOT IN (SELECT player_id FROM deleted_players)';
 const likeEsc = (s: string) => s.replace(/[%_\\]/g, (c) => '\\' + c);
@@ -121,6 +122,7 @@ function playerDetail(app: App, id: string): AdminPlayerDetail {
     ...(photo?.hidden ? { photoHidden: true } : {}),
     ...(() => { const acik = unlocksOf(app, id); return acik ? { acik } : {}; })(),
     ...(() => { const n = cnt("SELECT COUNT(*) AS n FROM inbox WHERE player_id = ? AND kind = 'kilit' AND claimed = 0", id); return n ? { acikBekleyen: n } : {}; })(),
+    ...(p.recovery_email ? { kurtarmaEposta: p.recovery_email } : {}),
   };
 }
 
@@ -239,5 +241,20 @@ export const adminScreenHandlers: Handlers = {
     const n = app.db.run('DELETE FROM player_unlocks WHERE player_id = ?', id) + app.db.run("DELETE FROM inbox WHERE player_id = ? AND kind = 'kilit' AND claimed = 0", id);
     logAdmin(app, s, `kilit-kaldir:${id}:${n}`);
     return {};
+  },
+  // 1.2.0 hesap kurtarma (kurtarma.ts): giriş kodu istekleri (kod e-postayla elle gönderilir) ve geri alma kodu
+  'admin.kurtarma.list': (app, s, { filtre = 'bekleyen', offset = 0 }) => { requireAdmin(app, s); return kurtarmaListesi(app, filtre, offset); },
+  'admin.kurtarma.gonderildi': (app, s, { id, on }) => {
+    requireAdmin(app, s);
+    const item = kurtarmaGonderildi(app, id, on);
+    logAdmin(app, s, `kurtarma-gonderildi:${id}:${on ? 1 : 0}`);
+    return { item };
+  },
+  'admin.geri.kod': (app, s, { id }) => {
+    requireAdmin(app, s);
+    const r = geriKodUret(app, s.pid, id);
+    // kodun kendisi kayda yazılmaz (yalnız özeti geri_kod'da)
+    logAdmin(app, s, `geri-kod:${id}`);
+    return r;
   },
 };

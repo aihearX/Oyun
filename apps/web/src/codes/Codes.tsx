@@ -15,6 +15,7 @@ import { platform } from '../platform';
 import { useStore } from '../store';
 import { celebrate, type RewardItem } from '../celebrate';
 import { refreshComm } from '../comm/state';
+import { hesabaGec } from '../hesap/gecis';
 import { Sheet, fmtNum } from '../ui/social';
 import { Art } from '../ui/art';
 import './codes.css';
@@ -71,6 +72,12 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
       setRaw('');
       return;
     }
+    if (res.kind === 'hesap') {
+      // 1.2.0 geri alma kodu: bu cihaz o hesaba geçer (yeni anahtar, sunucudaki ilerleme; uygulama yeniden kurulur)
+      setMsg({ tone: 'ok', text: `${res.name} hesabın açılıyor…` });
+      await hesabaGec(res.token, res.ilerleme);
+      return;
+    }
     // kalıcı rozet (YN-041): profil sunucudan yenilenir (rozet, çerçeve); başka ödül yoksa sayfada kutlama notu
     const rozet = (res.rewards.rozet ?? []).filter((r): r is keyof typeof ROZETLER => r in ROZETLER);
     if (rozet.length) await getNet()!.call('profile.update', {}).catch(() => undefined);
@@ -89,7 +96,7 @@ export function CodeSheet({ onClose }: { onClose: () => void }) {
   return (
     <Sheet title="Kod gir" onClose={onClose}>
       <div className="code-sheet" data-testid="kod-sayfasi">
-        <div className="muted">Sana verilen kodu yaz. Her kod hesabına bir kez işler; ödüller ödül kutusuna gelir.</div>
+        <div className="muted">Sana verilen kodu yaz. Her kod hesabına bir kez işler; ödüller ödül kutusuna gelir. Hesabını geri almak için sana verilen GERİ kodu da buraya yazılır.</div>
         {/* kodun kaynağı ve dolandırıcılık uyarısı (OT-ekonomi-denetci-28): Profil ve Ayarlar aynı sayfayı açar */}
         <div className="muted code-safe" role="note" data-testid="kod-uyari">Kodlar yalnız ODİ duyurularında verilir, satılmaz. Kod için kimseye şifreni, telefonunu ya da para verme.</div>
         <form className="code-form" onSubmit={(e) => { e.preventDefault(); void submit(); }}>

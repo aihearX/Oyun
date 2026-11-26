@@ -476,6 +476,14 @@ $1 {
 	handle /foto/* {
 		reverse_proxy $ODI_HOST:$ODI_PORT
 	}
+	# Hesap kurtarma (1.2.0): POST /kurtarma (oturumsuz; e-postayla giriş kodu isteği ve kodla giriş; gövde en çok 1 KB, sunucu
+	# ayrıca sınırlar: IP, cihaz ve adres başına istek sınırı). Erişim günlüğü (log) yok.
+	handle /kurtarma {
+		request_body {
+			max_size 2KB
+		}
+		reverse_proxy $ODI_HOST:$ODI_PORT
+	}
 
 	# Web sürümü (apps/web derlemesi). Parmak izli dosyalar (/assets/*) bir yıl önbellekte kalır;
 	# index.html, ses dosyaları ve diğerleri her açılışta doğrulanır (güncellemeden sonra hemen yenisi gelir).

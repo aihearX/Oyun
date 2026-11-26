@@ -34,6 +34,7 @@ import { feedbackRateOk, feedbackRatePrune, feedbackSummary, pruneFeedback, rece
 import { photoHandlers, receivePhoto, servePhoto } from './foto';
 import { adminScreenHandlers } from './yonetici-ekran';
 import { kurucuAdminHandlers } from './kurucu-liste';
+import { kurtarmaHandlers, pruneKurtarma, receiveKurtarma } from './kurtarma';
 
 export const SERVER_VERSION = '1.0.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -60,7 +61,7 @@ const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEvent
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...teamApplyHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
-  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers, ...kurucuAdminHandlers,
+  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers, ...kurucuAdminHandlers, ...kurtarmaHandlers,
 }))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase', 'shop.restore']);
@@ -219,6 +220,27 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       return;
     }
     if (req.method === 'GET' && url?.startsWith('/foto/') && servePhoto(app, url, res)) return;
+    if (url === '/kurtarma') {
+      // 1.2.0 hesap kurtarma (kurtarma.ts): oturumsuz çalışır (yeni kurulum, başka cihaza taşınmış anahtar). Gövde JSON, en çok 1 KB.
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-methods': 'POST', 'access-control-allow-headers': 'content-type', 'access-control-max-age': '600', 'cache-control': 'no-store' };
+      const bitir = (status: number, body: object) => { if (!res.headersSent) { res.writeHead(status, { ...cors, 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(body)); } };
+      if (req.method === 'OPTIONS') { if (!res.headersSent) { res.writeHead(204, cors); res.end(); } return; }
+      if (req.method !== 'POST') { bitir(405, { ok: false, error: 'Yalnız POST.' }); return; }
+      const max = 1024;
+      if (Number(req.headers['content-length'] ?? 0) > max) { req.resume(); bitir(413, { ok: false, error: 'İstek çok büyük.' }); return; }
+      const ip = clientIp(req.headers['x-forwarded-for'], req.socket.remoteAddress, cfg.trustProxy ?? 0);
+      const parts: Buffer[] = []; let size = 0; let tasti = false;
+      req.on('data', (c: Buffer) => { if (tasti) return; size += c.length; if (size > max) { tasti = true; parts.length = 0; return; } parts.push(c); });
+      req.on('error', () => bitir(400, { ok: false }));
+      req.on('end', () => {
+        if (tasti) { bitir(413, { ok: false, error: 'İstek çok büyük.' }); return; }
+        try {
+          const r = receiveKurtarma(app, Buffer.concat(parts).toString('utf8'), ip);
+          bitir(r.status, r.body);
+        } catch (e) { console.error('[kurtarma]', e); bitir(500, { ok: false, error: 'Sunucuda bir hata oluştu.' }); }
+      });
+      return;
+    }
     if (req.method === 'GET' && url === '/') {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
       res.end('ODİ: Sesin Yolu sosyal sunucusu çalışıyor.\nOyun bu adrese WebSocket ile bağlanır (ws:// ya da wss://).\nSağlık kontrolü: /saglik\n');
@@ -329,7 +351,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         expireApplications(app);
         crashRatePrune(app); // gün değişince çökme sınırının IP özetleri bellekten silinir
         feedbackRatePrune(app); // geri bildirim sınırının IP özetleri de
-        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); pruneFeedback(app); }
+        if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); pruneFeedback(app); pruneKurtarma(app); }
       });
       sweepRaces(app);
       teamRaceSweep(app);

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, PHOTO_RULES, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
+import { COMM_RULES, CRASH_LIMITS, FEEDBACK_LIMITS, FRIEND_LIMITS, KURTARMA_KURALLARI, PHOTO_RULES, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON } from '@odi/shared';
 import { APP_VERSION } from './legal';
 import { GIZLILIK_EN, GIZLILIK_TR, HAKKINDA, HESAP_SIL, YASAL_SAYFALAR } from './yasal/metin';
 import { sayfaHtml } from './yasal/sayfa';
@@ -9,7 +9,8 @@ import { AYAR, belgeDoldur, degerler, doldur, duzMetin, gecerliAdres, satirParca
 import { CHAT_REPORT_MUTE_MS, CHAT_RETAIN_MS } from '../../server/src/chat';
 import { RUN_RETAIN_MS } from '../../server/src/progress';
 import { PROMO_LOG_RETAIN_MS } from '../../server/src/codes';
-import { PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS, VERI_SINIFI } from '../../server/src/account-veri';
+import { ANONIM_OYUNCU_EK_SQL, PURCHASE_RETAIN_YEARS, REPORT_RETAIN_MS, VERI_SINIFI } from '../../server/src/account-veri';
+import { KURTARMA_ISTEK_TUT_MS, KURTARMA_LOG_TUT_MS } from '../../server/src/kurtarma';
 import { LIMIT_RAISE_DELAY_MS } from '../../server/src/shop';
 import { HESAP_SIL_BEKLEME_GUN } from '../../server/src/yonetim';
 import { CRASH_RETAIN_MS } from '../../server/src/hata';
@@ -160,6 +161,25 @@ describe('Gizlilik, hesap silme ve hakkında metinleri', () => {
     expect(VERI_SINIFI.player_photos!.oyuncu!.player_id!.karar).toBe('sil');
     // yönetim aracı oyunculara anlatılmaz
     for (const b of tum) expect(duzMetin(b)).not.toMatch(/admin (panel|screen)|yönetici (paneli|ekranı)|yönetim paneli|Profil › Admin|Profile › Admin/i);
+  });
+
+  it('1.2.0: isteğe bağlı kurtarma e-postası: amaç yalnız hesap kurtarma, kimseye gösterilmez, pazarlama yok, kod 24 saat; hesapla silinir', () => {
+    const tr = duzMetin(GIZLILIK_TR); const en = duzMetin(GIZLILIK_EN); const hs = duzMetin(HESAP_SIL);
+    expect(KURTARMA_KURALLARI.kodSureMs).toBe(24 * 3_600_000);
+    expect(KURTARMA_KURALLARI.kodHane).toBe(6);
+    expect(KURTARMA_LOG_TUT_MS).toBe(90 * DAY);
+    expect(KURTARMA_ISTEK_TUT_MS).toBe(7 * DAY);
+    for (const k of ['Profil fotoğrafı ve hesap kurtarma e-postası isteğe bağlıdır', 'İsteğe bağlı kurtarma e-postası', 'Adresi doğrulamayız, oyunda kimseye göstermeyiz', 'Yalnızca hesap kurtarma',
+      'pazarlama ya da bülten için kullanılmaz', 'üçüncü kişilerle paylaşılmaz', '6 haneli', '24 saat', 'Hesabın var mı? E-postayla giriş yap', 'eski cihazdaki oturum kapanır', 'kurtarma e-postanız']) expect(tr).toContain(k);
+    for (const k of ['A profile photo and an account recovery e-mail are optional', 'Optional recovery e-mail', 'never show it to anyone in the game', 'Account recovery only',
+      'not used for marketing or newsletters', 'not shared with third parties', '6-digit', '24 hours', 'signs out the old device', 'your recovery e-mail']) expect(en).toContain(k);
+    expect(hs).toContain('kurtarma e-postanız'); expect(hs).toContain('recovery e-mail');
+    // gönderim elle (bu sürümde e-posta hizmeti yok): hizmet sağlayıcı adı geçmez
+    for (const b of tum) expect(duzMetin(b)).not.toMatch(/brevo|resend|sendgrid|mailgun/i);
+    // hesap silinince adres ve istekler silinir (sınıflandırma ve anonim oyuncu satırı)
+    expect(ANONIM_OYUNCU_EK_SQL).toContain('recovery_email = NULL');
+    expect(VERI_SINIFI.kurtarma_istek!.oyuncu!.eposta!.karar).toBe('sil');
+    expect(VERI_SINIFI.kurtarma_istek!.oyuncu!.used_by!.karar).toBe('sil');
   });
 
   it('Türkçe karakterler doğru (ASCII yazım yok)', () => {

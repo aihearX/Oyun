@@ -48,6 +48,11 @@ export interface ClientOptions {
   maxPerSec?: number;
   /** yeniden bağlanma bekleme üst sınırı (ms), varsayılan 15 000 */
   maxBackoffMs?: number;
+  /**
+   * Bağlantıyı kalıcı olarak durduran oturum hatası: 'SURUM' (uygulama eski) ya da 'TASINDI' (1.2.0 hesap kurtarma: bu cihazın
+   * anahtarı başka cihaza taşındı). İstemci yeniden denemez; arayüz oyuncuya söyler.
+   */
+  onFatal?: (code: string, message: string) => void;
 }
 
 export class NetError extends Error {
@@ -232,7 +237,12 @@ export function createClient(opts: ClientOptions): NetClient {
         onOpenReady();
         return;
       }
-      if (e instanceof NetError && e.code === 'SURUM') { wanted = false; setStatus('kapalı'); ws?.close(); return; }
+      // sürüm uyumsuz ya da anahtar başka cihaza taşındı (hesap kurtarma): yeni hesap açılmaz, yeniden denenmez
+      if (e instanceof NetError && (e.code === 'SURUM' || e.code === 'TASINDI')) {
+        wanted = false; setStatus('kapalı'); ws?.close();
+        try { opts.onFatal?.(e.code, e.message); } catch {}
+        return;
+      }
       ws?.close();
     }
   }

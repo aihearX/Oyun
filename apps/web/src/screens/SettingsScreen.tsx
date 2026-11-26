@@ -10,6 +10,7 @@ import { Sheet } from '../ui/social';
 import { resetEverything } from '../reset';
 import { tryVoice as tryVoiceLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
+import { KurtarmaKart } from '../hesap/Kurtarma';
 import { GeriBildirimKart } from './GeriBildirimKart';
 import { KurucuSecim } from '../kurucu/Kurucular';
 import { DmKimdenKart } from '../friends/DmKimden';
@@ -100,6 +101,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
           <button type="button" role="radio" aria-checked={s.knowledge === 'odyoloji'} className={s.knowledge === 'odyoloji' ? 'on' : ''} onClick={() => s.setKnowledge('odyoloji')}>Odyoloji öğrencisi</button>
         </div>
       </div>
+      <KurtarmaKart />
       <CodeSettingsCard />
       <KurucuSecim />
       <DmKimdenKart />

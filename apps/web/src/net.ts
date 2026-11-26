@@ -56,8 +56,10 @@ interface SocialState {
    * çevrimdışıyken son bilinen değer; `resetAt` geçince (yeni gün) sayı yazılmaz. Bilinmiyorsa null.
    */
   gunluk: GunlukSinir | null;
+  /** 1.2.0 hesap kurtarma: bu cihazın oturumu başka cihaza taşındı (sunucu TASINDI); bağlantı durur, Ayarlar seçenekleri söyler */
+  tasindi: string | null;
 }
-export const useSocial = create<SocialState>()(() => ({ enabled: false, tried: false, queued: 0, queuedCoins: 0, outbox: [], lastRun: null, bonuses: null, onboardDismissed: false, krediler: {}, gunluk: null }));
+export const useSocial = create<SocialState>()(() => ({ enabled: false, tried: false, queued: 0, queuedCoins: 0, outbox: [], lastRun: null, bonuses: null, onboardDismissed: false, krediler: {}, gunluk: null, tasindi: null }));
 
 let client: NetClient | null = null;
 export const getNet = () => client;
@@ -441,6 +443,8 @@ export function startNet(): void {
       onSubmitSettled: () => mirrorCoins(),
       // yanıt gelen koşunun hesaba geçen jetonu (yeniden gönderimde kayıtlı yanıt: cüzdanı eski olabilir, jetonu doğru)
       onSubmitAck: (_, ack) => tahmin.credit(ack.jeton),
+      // 1.2.0: hesap başka cihazda (kurtarmayla) açıldı: yeni hesap açılmaz, oyuncuya seçenekler söylenir (Ayarlar › Hesap kurtarma)
+      onFatal: (code, message) => { if (code === 'TASINDI') { useSocial.setState({ tasindi: message }); toast('📱', 'Hesabın başka bir cihazda açıldı', 'Ayarlar › Hesap kurtarma’dan devam edebilirsin.', 'bronze'); } },
     });
     const c = client;
     // bağlanınca İLK istek outbox: yanıtı kaybolmuş (sunucuda yazılmış) ödül, yenilemenin getirdiği cüzdandan önce kapanır;
@@ -480,6 +484,22 @@ export function startNet(): void {
     if (E2E && typeof window !== 'undefined') (window as unknown as { __ag?: unknown }).__ag = { social: useSocial, store: useStore, net: () => client, cuzdan: () => ({ ...outbox_.stats(), uzlasma: { ...uzlasma }, bekliyor: unanswered() }) };
     c.connect();
   })();
+}
+
+/**
+ * 1.2.0 hesap kurtarma (hesap/gecis.ts): cihazın oturum anahtarını değiştir (null: yeni hesap açılsın) ve önceki hesabın bekleyen
+ * kayıtlarını at (ilerleme kuyruğu, ödül/harcama kuyruğu, hesaba geçen kayıtlar, günlük sınır). `gonderilmis`: yeni hesabın yerel
+ * defterinde zaten sayılmış kayıtlar (kurtarılan ilerlemeden açılan başarımlar sunucuya ikinci kez gönderilmesin). Bağlantı kapanır;
+ * çağıran ardından uygulamayı yeniden kurar.
+ */
+export async function oturumuDegistir(token: string | null, gonderilmis: string[]): Promise<void> {
+  try { client?.close(); } catch { /* yok */ }
+  const st = store();
+  const yaz = (k: string, v: string | null) => (v == null ? st.removeItem(k) : st.setItem(k, v)).catch(() => undefined);
+  await Promise.all([
+    yaz(K.token, token), yaz(K.queue, null), yaz(K.outbox, null), yaz(K.kredi, null), yaz(K.gunluk, null),
+    yaz(K.sent, JSON.stringify(gonderilmis.slice(-300))),
+  ]);
 }
 
 /** bağlantıyı şimdi dene (bekleme süresini sıfırlar; bekleyen istekler ve kuyruk korunur) */

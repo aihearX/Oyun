@@ -11,6 +11,7 @@ import { FEEDBACK_SCHEMA } from './geribildirim';
 import { ROZET_SCHEMA } from './rozet';
 import { PHOTO_SCHEMA } from './foto-schema';
 import { KILIT_SCHEMA } from './kilit-schema';
+import { KURTARMA_SCHEMA } from './kurtarma-schema';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
 import { binaMetni } from './comm/bina-metni';
@@ -68,6 +69,8 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 20: 1.2.0, kilit hediyesi (`player_unlocks`, kilit.ts), yöneticinin düzenlediği Kurucular listesi (`kurucu_liste`, kurucu-liste.ts) ve
  *    "Kimler mesaj atabilir" (`comm_settings.dm_kimden`, varsayılan 'herkes'). Yeni tablolar boş başlar; Kurucular ekranı yönetici
  *    listeyi ilk kez düzenleyene dek eski kuralla (rozet + "Adım listede görünsün") çalışır.
+ * 21: 1.2.0 hesap kurtarma: isteğe bağlı kurtarma e-postası (`players.recovery_email`, küçük harf; aynı adres birden çok hesapta olabilir),
+ *    giriş kodu istekleri, deneme kaydı, geri alma kodları ve geçersizleşen oturum anahtarları (kurtarma-schema.ts). Var olan hesaplarda e-posta yok.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -123,6 +126,11 @@ export const MIGRATIONS: Migration[] = [
   { name: 'kilit-hediyesi-kurucular-mesaj-izni', up: (db) => {
     db.exec(KILIT_SCHEMA);
     if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'comm_settings'").get()) addColumn(db, 'comm_settings', 'dm_kimden', "TEXT NOT NULL DEFAULT 'herkes'");
+  } },
+  { name: 'hesap-kurtarma', up: (db) => {
+    addColumn(db, 'players', 'recovery_email', 'TEXT');
+    db.exec('CREATE INDEX IF NOT EXISTS players_recovery_email ON players(recovery_email)');
+    db.exec(KURTARMA_SCHEMA);
   } },
 ];
 
