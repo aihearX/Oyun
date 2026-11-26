@@ -38,7 +38,9 @@ export function CampScreen() {
 function ListShell({ children, setView }: { children: ReactNode; setView: (v: View) => void }) {
   return (
     <div className="screen fade-in with-tabs camp-list-screen">
-      <TopBar title="Kamp" extra={<button className="pill tb-pill tap ico" onClick={() => { audio.play('tap'); setView('us'); }} aria-label="Üs görünümü"><Art name="tent" size={22} /></button>} />
+      {/* 1.2.0: kamp görünümüne dönüş belirgin ve yazılı (sahip geri bildirimi: simgeli küçük düğme bulunmuyordu) */}
+      <TopBar title="Kamp" extra={<button className="pill tb-pill tap camp-usbtn" data-testid="kamp-gorunum-don" onClick={() => { audio.play('tap'); setView('us'); }}><Art name="tent" size={20} /> Kamp görünümü</button>} />
+      <button className="btn camp-usbtn-buyuk" onClick={() => { audio.play('tap'); setView('us'); }}><Art name="tent" size={22} /> Kamp görünümüne dön</button>
       {children}
     </div>
   );

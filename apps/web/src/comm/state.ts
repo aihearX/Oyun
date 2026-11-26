@@ -6,6 +6,8 @@
 import { create } from 'zustand';
 import type { NetClient } from '@odi/net';
 import { useNet } from '@odi/net/store';
+import { useStore } from '../store';
+import { giftOpen } from '../ftue/features';
 import { COMM_RULES, type ChatMessage, type CommNotice, type CommSettings, type DqState, type DuoState, type MentorState } from '@odi/shared';
 
 export interface CommStore {
@@ -28,11 +30,11 @@ let client: NetClient | null = null;
 export const commNet = () => client;
 const set = useComm.setState;
 
-/** serbest yazı açık mı (ayar gelmediyse: 10. bölüm kuralı yerelde) */
+/** serbest yazı açık mı (ayar gelmediyse: bölüm kuralı yerelde; her şey açık modu ve kilit hediyesi de açar, 1.2.0) */
 export function useCanFreeText(): boolean {
-  const s = useComm((x) => x.settings); const me = useNet((x) => x.me);
+  const s = useComm((x) => x.settings); const me = useNet((x) => x.me); const ftue = useStore((x) => x.ftue);
   if (s) return s.canFreeText;
-  return Math.max(0, (me?.highest ?? 1) - 1) >= COMM_RULES.freeTextLevel;
+  return Math.max(0, (me?.highest ?? 1) - 1) >= COMM_RULES.freeTextLevel || !!ftue.admin || giftOpen('yazi', ftue);
 }
 
 /** mesajı listede yerinde değiştir (yoksa dokunma) — konu yanıtıysa üst mesajın önizlemesini de tazele */

@@ -9,13 +9,13 @@ import { create } from 'zustand';
 import { useMemo } from 'react';
 import { createClient, NetError, newRunId, type NetClient } from '@odi/net';
 import { bindNet, useNet } from '@odi/net/store';
-import { CAMP_CHEERS, SHOP, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
+import { CAMP_CHEERS, SHOP, kilitOzeti, kilitRefOku, LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX, WAR_REGIONS, type CampState, type InboxItem, type LevelSpec, type OpMap, type ProgressAck, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { COSMETICS, SKILL_TREE, CARDS, campLevelCosmetics, earnedCampCosmetics } from '@odi/content';
 import { bindEvents } from './events/store';
 import { platform } from './platform';
 import { ownsSkill, useStore, type Toast } from './store';
 import { bindFriends } from './friends/state';
-import { bindComm } from './comm/state';
+import { bindComm, refreshComm } from './comm/state';
 import { bindTeamRace } from './teamrace/state';
 import { bindCodes } from './codes/Codes';
 import { bindPhotos } from './foto/foto-store';
@@ -497,6 +497,8 @@ export async function claimInboxItem(id: string): Promise<InboxItem | null> {
   try {
     const r = await client.call('inbox.claim', { id });
     useNet.setState((s) => ({ wallet: r.wallet, inboxCount: Math.max(0, s.inboxCount - 1) }));
+    // 1.2.0 kilit hediyesi: "Al" deyince kapılar hemen açılır (bölümler, yerler; serbest yazı sunucudan)
+    if (r.acik) { useStore.getState().setAcik(r.acik); void refreshComm(); toast('🔑', 'Kilit hediyesi açıldı', kilitOzeti(r.item.amount, kilitRefOku(r.item.ref)), 'green'); }
     applyServerItems([r.item]);
     return r.item;
   } catch (e) { toast('🙈', 'Alınamadı', errText(e), 'bronze'); return null; }

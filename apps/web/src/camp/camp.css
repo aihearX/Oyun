@@ -46,6 +46,9 @@
 .camp-net { margin-top:6px; background:rgba(36,24,6,.94); color:#fff6e5; } /* akışta, başlık ve kaynakların altında: üstlerini örtmez (YN-154) */
 .camp-list-screen > .camp-net { position:sticky; top:calc(var(--sat) + 6px); z-index:30; } /* listede kaydırınca görünür kalır; başlangıçta başlığın altında */
 .camp-offline h2 { overflow-wrap:anywhere; }
+/* 1.2.0: liste görünümünden kampa dönüş: üst çubukta yazılı, renkli düğme + listenin başında büyük düğme */
+.camp-usbtn { background:linear-gradient(180deg,#53e092,#1f9d5c); color:#fff; font-weight:700; border:none; box-shadow:0 4px 12px rgba(31,157,92,.4); gap:6px; }
+.camp-usbtn-buyuk { width:100%; margin:4px 0 10px; display:flex; align-items:center; justify-content:center; gap:8px; background:linear-gradient(180deg,#53e092,#1f9d5c); box-shadow:0 6px 18px rgba(31,157,92,.45), inset 0 -3px 0 rgba(0,0,0,.18); }
 
 /* bina paneli */
 .bp-wrap { position:fixed; inset:0; z-index:90; background:rgba(10,6,30,.28); display:flex; align-items:flex-end; justify-content:center; animation:fade .18s ease-out; }

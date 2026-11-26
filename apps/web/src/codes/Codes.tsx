@@ -28,8 +28,11 @@ function applyLocal(on: boolean): void {
   useStore.setState((s) => ({ ftue: { ...s.ftue, ...(on ? { admin: true } : { admin: undefined }) } }));
 }
 export function bindCodes(c: NetClient): void {
+  // 1.2.0 kilit hediyesi: hello yanıtındaki açılımlar (yoksa kalkar: yönetici kaldırmış olabilir)
+  c.onMe((me) => useStore.getState().setAcik(me.acik));
   c.onStatus((st) => {
     if (st !== 'bağlı') return;
+    if (c.me) useStore.getState().setAcik(c.me.acik);
     void c.call('admin.state', {}).then((r) => { useCodes.setState({ server: r.admin }); if (!!useStore.getState().ftue.admin !== r.admin.on) applyLocal(r.admin.on); }, () => undefined);
   });
 }

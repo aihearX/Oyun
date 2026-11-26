@@ -10,6 +10,7 @@ import { CRASH_SCHEMA } from './hata';
 import { FEEDBACK_SCHEMA } from './geribildirim';
 import { ROZET_SCHEMA } from './rozet';
 import { PHOTO_SCHEMA } from './foto-schema';
+import { KILIT_SCHEMA } from './kilit-schema';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
 import { binaMetni } from './comm/bina-metni';
@@ -64,6 +65,9 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  * 18: 1.1.0 — profil fotoğrafı tablosu (`player_photos`, foto.ts; isteğe bağlı, herkese görünür, hesap silinince silinir).
  * 19: 1.1.0 — yönetici kodu artık "her şey açık" oynama modunu açmaz (Admin ekranındaki anahtar, varsayılan kapalı): eski kodla açılmış
  *    mod (`player_flags.admin_on`) bir kez kapatılır; yönetici bayrağı (`admin`) kalır.
+ * 20: 1.2.0, kilit hediyesi (`player_unlocks`, kilit.ts), yöneticinin düzenlediği Kurucular listesi (`kurucu_liste`, kurucu-liste.ts) ve
+ *    "Kimler mesaj atabilir" (`comm_settings.dm_kimden`, varsayılan 'herkes'). Yeni tablolar boş başlar; Kurucular ekranı yönetici
+ *    listeyi ilk kez düzenleyene dek eski kuralla (rozet + "Adım listede görünsün") çalışır.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -115,6 +119,10 @@ export const MIGRATIONS: Migration[] = [
   { name: 'profil-fotografi', up: (db) => { db.exec(PHOTO_SCHEMA); } },
   { name: 'yonetici-modu-kapali', up: (db) => {
     if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'player_flags'").get()) db.exec('UPDATE player_flags SET admin_on = 0');
+  } },
+  { name: 'kilit-hediyesi-kurucular-mesaj-izni', up: (db) => {
+    db.exec(KILIT_SCHEMA);
+    if (db.prepare("SELECT 1 AS x FROM sqlite_master WHERE type = 'table' AND name = 'comm_settings'").get()) addColumn(db, 'comm_settings', 'dm_kimden', "TEXT NOT NULL DEFAULT 'herkes'");
   } },
 ];
 

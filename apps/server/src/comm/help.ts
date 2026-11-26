@@ -5,6 +5,7 @@ import { raceHandlers } from '../race';
 import { emitHelp, helpPassed, levelPassed } from '../teams';
 import { DAY_MS } from '../time';
 import { feedEvent } from './feed';
+import { levelCap } from '../kilit';
 import { commNotice, metric } from './settings';
 
 /**
@@ -101,7 +102,7 @@ export const helpHandlers: { 'help.tip': Handler<'help.tip'>; 'help.race': Handl
   'help.race': (app, s, { requestId }) => {
     const r = openRequestFor(app, s.pid, requestId);
     const p = app.player(s.pid);
-    if (p.highest < r.level) fail('SART', 'Bu bölümü henüz açmadın; ipucu ya da kalkan gönderebilirsin.');
+    if (levelCap(app, p) < r.level) fail('SART', 'Bu bölümü henüz açmadın; ipucu ya da kalkan gönderebilirsin.');
     if (!app.online.has(r.from_id)) fail('CEVRIMDISI', 'Arkadaşın şu an çevrimiçi değil; ipucu ya da kalkan gönderebilirsin.');
     const res = raceHandlers['race.create']!(app, s as Session, { level: r.level }) as OpMap['race.create']['res'];
     app.emit(r.from_id, 'race.invited', { room: res.room, from: app.publicProfile(p) });

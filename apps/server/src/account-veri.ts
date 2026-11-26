@@ -95,6 +95,14 @@ export const VERI_SINIFI: Record<string, Tablo> = {
   },
   promo_uses: { oyuncu: { player_id: SIL } },
   player_photos: { oyuncu: { player_id: SIL }, not: 'İsteğe bağlı profil fotoğrafı (1.1.0, foto.ts): JPEG, sürüm, gizli işareti. Hesap silinince silinir; oyuncu Dolap’tan kendisi de kaldırabilir.' },
+  player_unlocks: {
+    oyuncu: {
+      player_id: SIL,
+      granted_by: { karar: 'tut', neden: 'Yönetim denetimi: kilit hediyesini hangi yönetici hesabının verdiği. Yalnız yönetici hesapları; kimlik anonim satıra işaret eder.', sure: 'açılım durdukça (alan oyuncu hesabını silince satır silinir)' },
+    },
+    not: 'Kilit hediyesi (1.2.0, kilit.ts): yöneticinin verdiği, oyuncunun kabul ettiği bölüm sınırı ve açık yerler. Gerçek ilerleme ayrı. Hesap silinince silinir.',
+  },
+  kurucu_liste: { oyuncu: { player_id: SIL }, not: 'Kurucular ekranı (1.2.0, kurucu-liste.ts): yöneticinin seçtiği oyuncu, sıra, görünen ad ve unvan satırı. Hesap silinince satır silinir.' },
   player_badges: { oyuncu: { player_id: SIL }, not: 'Kalıcı rozetler (YN-041, rozet.ts): Kurucu Yolcu, Hata Avcısı; listede (Kurucular ekranı) ve çerçeve oyuncunun seçimi. Hesap silinince rozet ve liste kaydı silinir.' },
   purchases: {
     oyuncu: { player_id: { karar: 'tut', neden: 'Satın alma makbuzu: yasal saklama (ticari defter/vergi) ve aynı makbuzun ikinci kez kullanılmasını önleme. Oyuncu kimliği yerine "silinmis" işareti yazılır.', sure: '10 yıl, işlem yılının sonundan başlayarak (VUK m.253, TTK m.82), sonra otomatik silinir (prunePurchases)', degistir: { player_id: 'silinmis' } } },
@@ -211,7 +219,7 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     },
     degil: ['msg_id'],
   },
-  comm_settings: { oyuncu: { player_id: SIL } },
+  comm_settings: { oyuncu: { player_id: SIL }, not: 'Kişisel iletişim ayarları: akışta paylaşım ve 1.2.0 "Kimler mesaj atabilir" (dm_kimden, göç 20). Hesap silinince silinir.' },
   comm_metrics: { not: 'Günlük toplam sayaçlar (ör. hazır söz sayısı); oyuncu kimliği yok.' },
   feedback: { degil: ['id'], not: 'Beta geri bildirimi (geribildirim.ts): konu, temizlenmiş metin (e-posta, telefon, uzun rakam dizisi çıkarılır), ekran, sürüm, derleme, platform, dakikaya yuvarlı zaman; oyuncu kimliği, takma ad, IP yok, hesapla eşleştirilemez. 90 günde silinir (pruneFeedback). id yalnız satır sırası.' },
   crash_reports: { not: 'Çökme raporları (YN-011, hata.ts): hata adı, temizlenmiş ileti, yığın, sürüm, platform, ekran, sayaç; oyuncu kimliği, takma ad, IP yok. 30 günde silinir (pruneCrashes).' },

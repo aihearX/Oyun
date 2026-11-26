@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { platformStorage, setHaptics as setPlatformHaptics } from './platform';
 import { FRESH_FTUE, normalizeFtue, type FtueState } from './ftue/features';
-import type { LevelSpec, PlayerSkills, RunResult } from '@odi/shared';
+import type { LevelSpec, PlayerSkills, PlayerUnlocks, RunResult } from '@odi/shared';
 import { levelFromXp } from '@odi/shared';
 import { sinirSatiri } from './odul-durum';
 import { BILGI_YAKIN, DEFAULT_SKILLS, SKILL_TREE, HUMAN_JOURNEY, BIOMES, TIER_NAMES, TIER_REWARD, achievementById, achievementName, cardById, cosmeticById, type Reward, type RewardItem } from '@odi/content';
@@ -78,6 +78,8 @@ interface State extends PlayerCore {
   ftueStoryDone(): void;
   ftueTourDone(id: string): void;
   ftueBypass(): void;
+  /** 1.2.0 kilit hediyesi: sunucunun söylediği açılımlar (null: yok) */
+  setAcik(acik: PlayerUnlocks | null | undefined): void;
   setNarratorVoice(v: boolean): void;
   setKnowledge(v: 'genel' | 'odyoloji'): void;
   knowledgeAskedDone(): void;
@@ -150,7 +152,9 @@ export const useStore = create<State>()(persist((set, get) => {
       return event;
     },
     // yönetici modu (Kod Gir, sunucu doğruladı): tüm bölümler oynanabilir; yıldız/ilerleme gerçek kalır
-    highestUnlocked() { return get().ftue.admin ? HUMAN_JOURNEY.levels.length : highestUnlocked(get().progress, HUMAN_JOURNEY.levels.length); },
+    // her şey açık modu tüm bölümleri, kilit hediyesi ilk N bölümü açar (1.2.0); gerçek ilerleme (yıldızlar) değişmez
+    highestUnlocked() { const f = get().ftue; return f.admin ? HUMAN_JOURNEY.levels.length : Math.max(highestUnlocked(get().progress, HUMAN_JOURNEY.levels.length), Math.min(HUMAN_JOURNEY.levels.length, f.acik?.levels ?? 0)); },
+    setAcik(acik) { const f = get().ftue; if (JSON.stringify(f.acik ?? null) === JSON.stringify(acik ?? null)) return; set({ ftue: acik && (acik.levels > 0 || acik.features.length) ? { ...f, acik } : { ...f, acik: undefined } }); },
     completeRun(spec, r) {
       const today = ensureToday(); const s = get();
       const { core: c, summary } = processRun(core(s), spec, r, today);

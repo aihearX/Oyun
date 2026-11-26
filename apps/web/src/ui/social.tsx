@@ -1,7 +1,7 @@
 import { DmTopPill } from '../friends/Banner';
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { useNet } from '@odi/net/store';
-import { BUILDINGS, type InboxKind } from '@odi/shared';
+import { BUILDINGS, kilitOzeti, kilitRefOku, type InboxItemKind } from '@odi/shared';
 import { cardById, cosmeticById } from '@odi/content';
 import { useStore } from '../store';
 import { platform } from '../platform';
@@ -59,7 +59,7 @@ export const fmtDate = (t: number) => new Date(t).toLocaleDateString('tr-TR', { 
 export const buildingDef = (id: string) => BUILDINGS.find((b) => b.id === id);
 
 /** sunucu ödül/ürün içerik etiketi */
-export function itemLabel(kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass', amount: number, ref?: string): string {
+export function itemLabel(kind: InboxItemKind | 'm5' | 'm60' | 's8' | 'pass', amount: number, ref?: string): string {
   switch (kind) {
     case 'jeton': return `🪙 ${fmtNum(amount)}`;
     case 'kristal': return `💎 ${fmtNum(amount)}`;
@@ -70,9 +70,11 @@ export function itemLabel(kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass', amount
     case 'm60': return `⏩ ${amount} × 60 dk`;
     case 's8': return `⏩ ${amount} × 8 sa`;
     case 'pass': return `🎫 ${amount} gün Sezon Kartı`;
+    // 1.2.0 kilit hediyesi: ilk N bölüm ve açılan yerler
+    case 'kilit': return `🔑 ${kilitOzeti(amount, kilitRefOku(ref ?? ''))}`;
   }
 }
-export function ItemChips({ items, small }: { items: { kind: InboxKind | 'm5' | 'm60' | 's8' | 'pass'; amount: number; ref?: string }[]; small?: boolean }) {
+export function ItemChips({ items, small }: { items: { kind: InboxItemKind | 'm5' | 'm60' | 's8' | 'pass'; amount: number; ref?: string }[]; small?: boolean }) {
   return <span className={`chips${small ? ' small' : ''}`}>{items.map((it, i) => <span className="chip" key={i}>{it.kind === 'kozmetik' ? <CosmeticChip id={it.ref} fallback={itemLabel(it.kind, it.amount, it.ref)} /> : rich(itemLabel(it.kind, it.amount, it.ref))}</span>)}</span>;
 }
 

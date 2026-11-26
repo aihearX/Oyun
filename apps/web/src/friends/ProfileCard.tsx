@@ -70,6 +70,10 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
 
         {mode === 'main' && rel !== 'ben' && (
           <div className="fr-card-actions">
+            {/* 1.2.0: özel mesaj arkadaş ekle düğmesinin üstünde; alıcının seçimi ya da kilit izin vermiyorsa nedeni yazılır */}
+            {card.canMessage
+              ? <button className="btn teal" data-testid="mesaj-gonder" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}><Art e="💬" size="1.15em" className="art-inline" /> Mesaj gönder</button>
+              : rel !== 'engelledin' && card.dmReason && <div className="muted small-note fr-dm-kapali" role="note" data-testid="mesaj-kapali"><Art name="lock" size={16} className="art-inline" /> {card.dmReason}</div>}
             {rel === 'yok' && <button className="btn" disabled={busy} onClick={() => void run(() => requestFriend(p))}><Art e="➕" size="1.15em" className="art-inline" /> Arkadaş ekle</button>}
             {rel === 'istek-giden' && <button className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.cancel', { requestId: card.requestId })) { useFriends.setState((s) => ({ outgoing: s.outgoing.filter((r) => r.id !== card.requestId) })); toast('↩️', 'İstek geri çekildi'); } })}>↩️ İsteği geri çek</button>}
             {rel === 'istek-gelen' && (
@@ -78,7 +82,6 @@ export function ProfileCardSheet({ id, onClose }: { id: string; onClose: () => v
                 <button className="btn ghost grow" disabled={busy} onClick={() => void run(async () => { if (card.requestId && await act('friends.respond', { requestId: card.requestId, accept: false })) void refreshFriends(); })}>Reddet</button>
               </div>
             )}
-            {card.canMessage && <button className="btn teal" onClick={() => go(() => nav.open({ name: 'dm', id: p.id }))}><Art e="💬" size="1.15em" className="art-inline" /> Mesaj gönder</button>}
             {(rel === 'arkadas' || card.sameTeam) && featureOpen('camp') && <button className="btn ghost" data-testid="kampini-gez" onClick={() => go(() => nav.open({ name: 'kamp', id: p.id }))}><Art name="tent" size={20} className="art-inline" /> Kampını gez</button>}
             {card.canMessage && myTeam && !card.sameTeam && !p.teamName && <button className="btn ghost" data-testid="takima-davet" disabled={busy || invited} onClick={() => void run(async () => { if (await inviteToTeam(p)) setInvited(true); })}><Art name="users" size={20} className="art-inline" /> {invited ? 'Davet gönderildi' : <>Takıma davet et (<span data-ugc>{myTeam.emblem}</span> {myTeam.name})</>}</button>}
             {rel === 'arkadas' && (

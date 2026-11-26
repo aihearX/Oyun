@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { BUILDINGS, CAMP_CHEERS, CERCEVE_IDS, ROZET_IDS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
+import { BUILDINGS, CAMP_CHEERS, CERCEVE_IDS, KILIT_OZELLIKLER, KILIT_SON_BOLUM, ROZET_IDS, RANK_BOARDS, SOCIAL_LIMITS, TEAM_APPLY_RULES, TEAM_RACE_REACTIONS, TEAM_TECH, WAR_REGIONS, type Op } from '@odi/shared';
 import { MAX_COINS, MAX_LEVEL, MAX_SCORE, MIN_TIME_SEC } from './progress';
 import { SPEND_LIMIT_MAX_TRY } from './shop';
 import { EVENT_SCHEMAS } from './events/schemas';
@@ -146,6 +146,18 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
     code: z.string().max(12).optional(), all: z.boolean().optional(), note: z.string().max(60).optional(),
     jeton: z.number().int().min(0).max(100_000).optional(), kristal: z.number().int().min(0).max(10_000).optional(), kalkan: z.number().int().min(0).max(50).optional(),
   }).refine((d) => d.all === true || !!d.code, { message: 'kod ya da herkes' }),
+  // 1.2.0 (yonetici-ekran.ts, kurucu-liste.ts): yalnız yönetici hesabı
+  'admin.unlock.gift': z.object({
+    code: z.string().min(4).max(12), levels: z.number().int().min(0).max(KILIT_SON_BOLUM).optional(),
+    features: z.array(z.enum(KILIT_OZELLIKLER)).max(KILIT_OZELLIKLER.length).optional(), note: z.string().max(60).optional(),
+  }),
+  'admin.unlock.clear': z.object({ id }),
+  'admin.kurucu.list': z.object({ offset: z.number().int().min(0).max(1_000_000).optional() }),
+  'admin.kurucu.set': z.object({
+    code: z.string().min(4).max(12).optional(), id: id.optional(), gorunenAd: z.string().max(24).optional(), unvan: z.string().max(40).optional(), fotoGizli: z.boolean().optional(),
+  }).refine((d) => !!d.code !== !!d.id, { message: 'kod ya da kimlik' }),
+  'admin.kurucu.remove': z.object({ id }),
+  'admin.kurucu.move': z.object({ id, sira: z.number().int().min(1).max(100_000) }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

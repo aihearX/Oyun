@@ -6,8 +6,8 @@ import { ICERIK_YOK, useCoach, type CoachStep, type Tour } from './Coach';
 import { lineText } from './script';
 
 const line = (id: string) => ({ id, say: lineText(id) });
-import { FEATURES, clearedCount, featureById, type FeatureId } from './features';
-import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, mapIntroQueue, unlockIntroPending, unlockTally } from './map-intro';
+import { FEATURES, clearedCount, featureById, giftOpen, type FeatureId } from './features';
+import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, hediyeUnlockQueue, mapIntroQueue, unlockIntroPending, unlockTally } from './map-intro';
 import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
@@ -518,6 +518,9 @@ function nextTour(route: string, zincir: readonly string[] = []): string | null 
   // Oyuncu tanıtımı beklerken yerin kendi sekmesine girdiyse tanıtım orada gelir (sekme değiştirmeden); girdi diye görülmüş sayılmaz
   const genel = genelUnlockQueue(cleared, f.tours)[0];
   if (genel && (route === 'map' || zincir.includes(genel) || kendiSekmesi(genel, route))) return genel;
+  // kilit hediyesiyle açılan yerler (1.2.0): ilerlemeyle açılanlardan sonra, yalnız haritada; bölüm kapısını tutmaz (map-intro.ts)
+  const hediye = genel ? undefined : hediyeUnlockQueue(cleared, f)[0];
+  if (hediye && route === 'map') return hediye;
   // kamp görevleri turları yalnız kamptayken başlar (oyuncu kampa döndüğünde; başka bir akışı bölmez); sunucunun kamp görevleri özeti
   // gelmeden karar verilmez (Hasta Vakaları klinik kurulu mu). Birden çok yeni şey varsa tek kart, art arda tur yok
   if (route === 'camp' && exists('.camp-base, .camp-list-screen') && useKg.getState().kg) {
@@ -587,6 +590,9 @@ export function startTour(id: string, route: string, goster = false): void {
   useCoach.getState().start({ ...t, onDone: (skipped) => {
     tap?.stop(); replayTap(tap?.take() ?? null);
     if (!skipped) return; const s = useStore.getState();
+    // kilit hediyesi tanıtımında Atla: kalan hediye tanıtımları da geçilir (1.2.0)
+    const fd = FEATURES.find((x) => x.id === id);
+    if (fd && clearedCount(s.progress) < fd.at && giftOpen(fd.id, s.ftue)) for (const h of hediyeUnlockQueue(clearedCount(s.progress), s.ftue)) s.ftueTourDone(h);
     for (const p of pendingTours(id, clearedCount(s.progress), s.ftue.tours)) {
       // Hasta Vakaları klinik kurulmadan, kamp oyunları hiçbiri açılmadan geçilmiş sayılmaz (açılınca yeni yer olarak gelir); o an
       // sırada bekleyen "önce kur" yazısı geçilir

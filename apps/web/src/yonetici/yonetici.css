@@ -21,3 +21,10 @@
 .yn-photo.gizli { border-color:rgba(255,92,138,.6); }
 .yn-photo .row { gap:6px; flex-wrap:wrap; }
 .yn-img { width:100%; aspect-ratio:1; border-radius:12px; object-fit:cover; background:rgba(255,255,255,.06); display:block; }
+/* 1.2.0: kilit hediyesi yer seçimi ve Kurucular sırası */
+.yn-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.yn-chip { appearance:none; font:inherit; font-size:0.78125rem; font-weight:800; color:var(--text-2); padding:5px 10px; min-height:34px; border-radius:999px; background:rgba(5,2,20,.4); border:1.5px solid rgba(255,255,255,.14); cursor:pointer; }
+.yn-chip.on { background:linear-gradient(180deg,#a993ff,var(--violet)); color:#fff; border-color:transparent; }
+.yn-kurucu .row { gap:8px; align-items:center; }
+.yn-kurucu .kl-sira { flex:none; min-width:1.8em; font-weight:900; color:#ffe08a; }
+.yn-kurucu small { display:block; font-size:0.71875rem; overflow-wrap:anywhere; }

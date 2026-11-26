@@ -4,6 +4,7 @@ import { fail, parseJson, rid, type App, type Conn, type Handlers } from './app'
 import { areFriends } from './chat';
 import { isBlocked } from './friends';
 import { feedEvent } from './comm/feed';
+import { levelCap } from './kilit';
 
 /**
  * Canlı yarış odaları bellekte yaşar. Başlamış yarışlar (geri sayım, yarış, bitti) ayrıca `race_room` tablosuna yazılır
@@ -305,7 +306,7 @@ export const raceHandlers: Handlers = {
     const p = app.player(s.pid);
     const lv = level ?? p.highest;
     const rematch = store(app).recent.get(s.pid);
-    if (lv > p.highest && !(rematch && rematch.until > app.now() && rematch.level === lv)) fail('GECERSIZ', 'Henüz açmadığın bir bölümde yarış kuramazsın.');
+    if (lv > levelCap(app, p) && !(rematch && rematch.until > app.now() && rematch.level === lv)) fail('GECERSIZ', 'Henüz açmadığın bir bölümde yarış kuramazsın.');
     const r = createRoom(app, s.pid, lv);
     return { room: view(r) };
   },

@@ -10,6 +10,7 @@ import type http from 'node:http';
 import { PHOTO_RULES } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
 import { hashToken } from './players';
+import { hasUnlock } from './kilit';
 
 export { PHOTO_SCHEMA } from './foto-schema';
 
@@ -77,7 +78,8 @@ export function receivePhoto(app: App, auth: string | undefined, body: Buffer): 
   const p = app.db.get<{ id: string; highest: number; chat_muted_until: number }>('SELECT id, highest, chat_muted_until FROM players WHERE token_hash = ?', hashToken(token));
   if (!p || app.db.get('SELECT 1 AS x FROM deleted_players WHERE player_id = ?', p.id)) return { status: 401, error: 'Oturum tanınmadı.' };
   const isAdmin = !!app.db.get('SELECT 1 AS x FROM player_flags WHERE player_id = ? AND admin = 1', p.id);
-  if (!isAdmin && Math.max(0, p.highest - 1) < PHOTO_RULES.minCleared) return { status: 403, error: `Fotoğraf ${PHOTO_RULES.minCleared}. bölümden sonra açılır.` };
+  // fotoğraf Dolap'la açılır: her şey açık modu ya da Dolap (shop) kilit hediyesi de açar (1.2.0)
+  if (!isAdmin && Math.max(0, p.highest - 1) < PHOTO_RULES.minCleared && !hasUnlock(app, p.id, 'shop')) return { status: 403, error: `Fotoğraf ${PHOTO_RULES.minCleared}. bölümden sonra açılır.` };
   if (p.chat_muted_until > app.now()) return { status: 403, error: 'Şu an fotoğraf yükleyemezsin.' };
   let jpeg = body;
   const head = body.subarray(0, 32).toString('latin1');

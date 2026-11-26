@@ -50,6 +50,8 @@ export interface MyProfile extends PublicProfile {
   cards: string[];
   /** Kurucu Yolcu: adı "Kurucular" ekranında görünsün mü (oyuncunun seçimi; varsayılan kapalı) */
   listede?: boolean;
+  /** 1.2.0: yöneticinin hediye ettiği (oyuncunun "Al"la kabul ettiği) kilit açılımları; yoksa alan yok */
+  acik?: PlayerUnlocks;
 }
 
 /** feed: Takım Akışı kartı · hazir: hazır söz (Hızlı Sohbet) · soru: Günün Sorusu kartı (bkz. İLETİŞİM bölümü) */
@@ -181,7 +183,10 @@ export function leagueCuts(n: number): { up: number; down: number } {
 
 // ---------- Ödül kutusu (sunucu verdiği ödüller; istemci alınca yerel cüzdana ekler)
 export type InboxKind = 'jeton' | 'kristal' | 'kalkan' | 'kozmetik' | 'kart';
-export interface InboxItem { id: string; kind: InboxKind; amount: number; ref: string; reason: string; at: number }
+/** ödül kutusu kaydının türü; kilit: yöneticinin kilit hediyesi (1.2.0; amount = açık bölüm sınırı, ref = virgülle yerler; kilit.ts).
+ *  Takım hediyesi ve etkinlik ödülleri kilit içermez (InboxKind). */
+export type InboxItemKind = InboxKind | 'kilit';
+export interface InboxItem { id: string; kind: InboxItemKind; amount: number; ref: string; reason: string; at: number }
 
 const AYLAR = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 /** ISO hafta anahtarı ("2026-W44") → "26 Ekim–1 Kasım haftası" (oyuncu hafta kodunu okumuyor, OT-buyuk-yazi-26). Geçersizse null. */
@@ -201,7 +206,7 @@ export const INBOX_TEXT = {
   giftMoved: (reason: string) => `Takım hediyesi (Takım'da alınmadı, buraya geçti): ${reason}`,
   rank: (board: string, team: boolean, rank: number) => (team ? `Takımın ${board} sıralamasında geçen hafta ${rank}. oldu` : `${board} sıralamasında geçen hafta ${rank}. oldun`),
   /** bölge ödülü kristal ve jeton olarak iki satır: aynı başlıkla durmasınlar */
-  war: (week: string, region: string, kind: InboxKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
+  war: (week: string, region: string, kind: InboxItemKind) => `Bölge Savaşı, ${weekRangeText(week) ?? week}: takımın ${region} bölgesini kazandı (bölge ödülü: ${kind})`,
   /** yardım ettiğin oyuncu bölümü geçti (neye teşekkür edildiği yazılır); silinmiş hesapta ad yerine "bir oyuncu" (OT-ilk-kez-oyun-56) */
   helped: (name: string, level: number) => `Yardım ettiğin ${name === DELETED_PLAYER_NAME ? 'bir oyuncu' : name} ${level}. bölümü geçti`,
   /** yardım isteğine kalkan geldi; gönderen hesabını sonradan sildiyse ad yerine yumuşak dil (YN-258, OT-ilk-kez-oyun-77) */
@@ -232,6 +237,7 @@ export function inboxGotText(got: readonly Pick<InboxItem, 'kind' | 'amount'>[])
   if (sum('kalkan')) parts.push(`+${sum('kalkan')} kalkan (bir sonraki bölümde)`);
   if (sum('kozmetik')) parts.push(`+${sum('kozmetik')} kozmetik (Dolap'ta)`);
   if (sum('kart')) parts.push(`+${sum('kart')} Kulak Kartı`);
+  if (got.some((x) => x.kind === 'kilit')) parts.push('kilit hediyesi açıldı');
   return parts.join(', ');
 }
 /** eski sunucu metinlerini yeni biçime getirir (kayıt değişmez, yalnız görünüm) */
@@ -526,7 +532,8 @@ export interface OpMap {
   'race.state': { req: { roomId: string }; res: { room: RaceRoom } };
   'league.state': { req: Record<string, never>; res: { league: LeagueState } };
   'inbox.list': { req: Record<string, never>; res: { items: InboxItem[] } };
-  'inbox.claim': { req: { id: string }; res: { item: InboxItem; wallet: Wallet } };
+  /** kilit hediyesi alınınca `acik`: oyuncunun güncel açılımları (1.2.0) */
+  'inbox.claim': { req: { id: string }; res: { item: InboxItem; wallet: Wallet; acik?: PlayerUnlocks } };
   /**
    * `dailyLeft` / `dailyResetAt` (YN-269, yalnız ekleme): günlük yerel ödül sınırında (`LOCAL_JETON_DAILY_MAX`) bugün kalan jeton ve
    * sınırın yenileneceği an (sıradaki İstanbul gece yarısı, sunucu saati). Eski sunucu göndermez; istemci o zaman sayı yazmaz.
@@ -946,8 +953,10 @@ export interface ProfileCard {
   friendCount: number;
   mutualFriends: number;
   sameTeam: boolean;
-  /** özel mesaj gönderilebilir mi (arkadaş ya da takım arkadaşı, engel yok) */
+  /** özel mesaj gönderilebilir mi (engel yok; alıcının "Kimler mesaj atabilir" seçimi izin veriyor; 1.2.0) */
   canMessage: boolean;
+  /** gönderilemiyorsa kısa Türkçe neden (1.2.0; kartta düğme yerine yazılır) */
+  dmReason?: string;
   /** bugün bu arkadaşa hediye gönderildi mi */
   giftedToday: boolean;
 }
@@ -1117,7 +1126,13 @@ export interface CommSettings {
   feedShare: boolean;
   /** serbest yazının açılması için geçilmesi gereken bölüm sayısı */
   freeTextLevel: number;
+  /** 1.2.0: bana kimler özel mesaj atabilir (varsayılan herkes) */
+  dmKimden?: DmKimden;
 }
+/** özel mesaj izni (1.2.0, Ayarlar): herkes, takımım ve arkadaşlarım, yalnız arkadaşlarım. Engel her durumda keser. */
+export const DM_KIMDEN = ['herkes', 'takim', 'arkadas'] as const;
+export type DmKimden = typeof DM_KIMDEN[number];
+export const DM_KIMDEN_AD: Record<DmKimden, string> = { herkes: 'Herkes', takim: 'Takımım ve arkadaşlarım', arkadas: 'Yalnız arkadaşlarım' };
 /** gerçek zamanlı iletişim bildirimi (bahsetme, teşekkür, usta/ikili davet, meydan okuma geçildi…) */
 export interface CommNotice {
   id: string;
@@ -1178,7 +1193,7 @@ export interface OpMap {
   'chat.react': { req: { msgId: string; reaction: ChatReaction | '' }; res: { msg: ChatMessage } };
   'chat.thread': { req: { msgId: string }; res: { parent: ChatMessage; replies: ChatMessage[] } };
   'comm.state': { req: Record<string, never>; res: { settings: CommSettings } };
-  'comm.settings': { req: { feedShare?: boolean }; res: { settings: CommSettings } };
+  'comm.settings': { req: { feedShare?: boolean; dmKimden?: DmKimden }; res: { settings: CommSettings } };
   /** takıma meydan oku: sunucu oyuncunun kayıtlı en iyi skorunu kullanır */
   'feed.challenge': { req: { level: number }; res: { msg: ChatMessage } };
   'help.tip': { req: { requestId: string; phrase?: string; text?: string }; res: { msg: ChatMessage } };
@@ -1787,7 +1802,7 @@ export const ROZET_KOD_ONEKI: Partial<Record<RozetId, string>> = { 'kurucu': 'KU
 
 export interface OpMap {
   /** "Kurucular" ekranı: listede görünmeyi seçen kurucuların takma adları, kod kullanım sırasıyla; gizli = listede olmayan kurucu sayısı */
-  'kurucu.liste': { req: Record<string, never>; res: { names: string[]; gizli: number } };
+  'kurucu.liste': { req: Record<string, never>; res: { names: string[]; gizli: number; /** 1.2.0: yöneticinin düzenlediği liste (sırasıyla); varsa ekran bunu gösterir */ kisiler?: KurucuKisi[] } };
 }
 
 // =====================================================================
@@ -1854,6 +1869,8 @@ export interface AdminPlayerDetail extends AdminPlayerRow {
   friends: number; dmCount: number; chatCount: number; purchases: number;
   reportsAgainst: AdminReport[]; reportsBy: number;
   photoHidden?: boolean;
+  /** 1.2.0: kabul edilmiş kilit açılımları ve ödül kutusunda bekleyen kilit hediyesi sayısı */
+  acik?: PlayerUnlocks; acikBekleyen?: number;
 }
 export interface AdminMessage {
   id: string; kind: 'dm' | 'sohbet' | 'takim'; at: number; text: string;
@@ -1883,4 +1900,66 @@ export interface OpMap {
   'admin.mute': { req: { id: string; days: number }; res: { mutedUntil: number } };
   /** tek oyuncuya (arkadaş koduyla) ya da herkese ödül kutusuna hediye */
   'admin.gift': { req: { code?: string; all?: boolean } & AdminGift; res: { count: number } };
+}
+
+// =====================================================================
+// 1.2.0: KİLİT HEDİYESİ ve KURUCULAR LİSTESİ (yönetici)
+// - Kilit hediyesi: yönetici bir oyuncuya bölüm sınırı (ilk N bölüm açık) ve/veya yer açılımları gönderir. Ödül kutusuna "kilit"
+//   türünde tek kart düşer; oyuncu "Al" deyince açılır (player_unlocks). Gerçek ilerleme, yıldız ve sıralama değişmez.
+// - "Her şey açık" modu (admin_on) ve kilit hediyesi aynı kapılardan geçer (sunucu kilit.ts, istemci ftue/features.ts).
+// - Kurucular: yönetici listeyi kendisi düzenler: kim, hangi adla, hangi unvanla, hangi sırayla (kurucu-liste.ts).
+// =====================================================================
+/** hediye edilebilen kilitler: istemcinin yerleri (ftue/features.ts FeatureId, Profil hariç) + hepsi. Profil fotoğrafı Dolap'la (shop) açılır. */
+export const KILIT_OZELLIKLER = ['today', 'album', 'camp', 'skills', 'friends', 'glossary', 'team', 'league', 'siralama', 'tlig', 'tyaris', 'shop', 'events', 'race',
+  'yazi', 'akis', 'soru', 'ikili', 'usta', 'gorev', 'kampoyun', 'vaka', 'hepsi'] as const;
+export type KilitOzellik = typeof KILIT_OZELLIKLER[number];
+/** kartta ve yönetici ekranında kısa adlar */
+export const KILIT_ADI: Record<KilitOzellik, string> = {
+  today: 'Bugün', album: 'Başarımlar ve Kulak Kartları', camp: 'Kamp', skills: 'Yetenekler', friends: 'Arkadaşlar ve özel mesaj', glossary: 'Kulak Sözlüğü',
+  team: 'Takım', league: 'Lig', siralama: 'Sıralama', tlig: 'Takım Ligi', tyaris: 'Canlı Takım Yarışı', shop: 'Mağaza, Dolap ve Ödül kutusu', events: 'Etkinlikler',
+  race: 'Canlı yarış', yazi: 'Serbest yazı', akis: 'Takım Akışı', soru: 'Günün Sorusu', ikili: 'İkili Görev', usta: 'Usta-Çırak', gorev: 'Kamp Görevleri',
+  kampoyun: 'Kamp oyunları', vaka: 'Hasta Vakaları', hepsi: 'Her yer',
+};
+/** oyuncunun kabul ettiği açılımlar: ilk `levels` bölüm oynanabilir (0: yok), `features` açık yerler */
+export interface PlayerUnlocks { levels: number; features: KilitOzellik[] }
+export const isKilitOzellik = (x: string): x is KilitOzellik => (KILIT_OZELLIKLER as readonly string[]).includes(x);
+/** kilit hediyesi kartının ref alanı: virgülle yerler ("friends,yazi") */
+export const kilitRef = (f: readonly KilitOzellik[]) => [...new Set(f)].join(',');
+export const kilitRefOku = (ref: string): KilitOzellik[] => [...new Set(ref.split(',').filter(isKilitOzellik))];
+/** kilit hediyesinin en yüksek bölüm sınırı (yolculuk 40 bölüm) */
+export const KILIT_SON_BOLUM = 40;
+/** "ilk 12 bölüm açık, Arkadaşlar ve özel mesaj, Serbest yazı" */
+export function kilitOzeti(levels: number, features: readonly KilitOzellik[]): string {
+  const p: string[] = [];
+  if (levels > 0) p.push(`ilk ${levels} bölüm açık`);
+  if (features.includes('hepsi')) p.push('her yer açık');
+  else for (const f of features) p.push(KILIT_ADI[f]);
+  return p.join(', ');
+}
+/** ödül kutusundaki kartın başlığı (sunucu yazar) */
+export const kilitHediyeMetni = (levels: number, features: readonly KilitOzellik[], note?: string) =>
+  `Kilit hediyesi: ${kilitOzeti(levels, features)}${note ? ` (${note})` : ''}`;
+
+/** Kurucular ekranındaki bir kişi (yöneticinin düzenlediği liste) */
+export interface KurucuKisi { id: string; ad: string; unvan?: string; color: number; photo?: number }
+/** yönetici ekranında Kurucular satırı */
+export interface AdminKurucu {
+  id: string; name: string; friendCode: string; color: number; photo?: number;
+  sira: number; gorunenAd: string; unvan: string; fotoGizli: boolean;
+  /** Kurucu Yolcu rozeti var mı; varsa ve oyuncu "Adım listede görünsün"ü kapattıysa listede görünmez */
+  rozet: boolean; kendisiGizledi?: boolean;
+}
+
+export interface OpMap {
+  /** kilit hediyesi (arkadaş koduyla tek oyuncuya); ödül kutusuna "kilit" kartı düşer, oyuncu "Al" deyince açılır */
+  'admin.unlock.gift': { req: { code: string; levels?: number; features?: KilitOzellik[]; note?: string }; res: { item: InboxItem } };
+  /** oyuncunun hediye açılımlarını ve bekleyen kilit hediyelerini kaldır (gerçek ilerleme kalır) */
+  'admin.unlock.clear': { req: { id: string }; res: Record<string, never> };
+  /** düzenlenmiş Kurucular listesi (sırayla; sayfalı). kuratorlu: yönetici listeyi düzenlemeye başladı */
+  'admin.kurucu.list': { req: { offset?: number }; res: { items: AdminKurucu[]; total: number; hasMore: boolean; kuratorlu: boolean } };
+  /** ekle (code) ya da düzenle (id): görünen ad (boş: takma adı), unvan satırı, fotoğraf gizli mi */
+  'admin.kurucu.set': { req: { code?: string; id?: string; gorunenAd?: string; unvan?: string; fotoGizli?: boolean }; res: { item: AdminKurucu } };
+  'admin.kurucu.remove': { req: { id: string }; res: Record<string, never> };
+  /** sıraya taşı (1 = en üst) */
+  'admin.kurucu.move': { req: { id: string; sira: number }; res: Record<string, never> };
 }

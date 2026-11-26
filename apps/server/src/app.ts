@@ -7,9 +7,12 @@ import {
 import { Db } from './db';
 import { weekInfo } from './time';
 import { badgeFields } from './rozet';
+import { applyUnlock, unlocksOf } from './kilit';
 
 /** sunucunun ödül kutusuna / hediyeye koyabildiği tek ödül */
 export interface Grant { kind: InboxKind; amount: number; ref: string }
+/** ödül kutusu kaydı: ödüller ve 1.2.0 kilit hediyesi (kilit.ts) */
+export type InboxGrant = Grant | { kind: 'kilit'; amount: number; ref: string }
 
 export interface ServerConfig {
   port: number;
@@ -197,6 +200,8 @@ export class App {
       cosmetics: parseJson<string[]>(p.cosmetics, []),
       cards: Object.keys(parseJson<Record<string, number>>(p.cards, {})),
       ...(listede === undefined ? {} : { listede }),
+      // 1.2.0: kabul edilmiş kilit hediyeleri (hello yanıtıyla istemciye; istemci kendi kapılarında uygular)
+      ...(() => { const acik = unlocksOf(this, p.id); return acik ? { acik } : {}; })(),
     };
   }
 
@@ -251,7 +256,7 @@ export class App {
   }
 
   /** bir ödülü doğrudan oyuncuya uygular (ödül kutusundan alma, hediye alma) */
-  grant(pid: string, g: Grant): void {
+  grant(pid: string, g: InboxGrant): void {
     switch (g.kind) {
       case 'jeton':
         // satın alma hediyesinin jetonu ayrı sayılır: takım teknolojisine bağışlanamaz (karar 29 / YN-065)
@@ -274,11 +279,13 @@ export class App {
         this.db.run('UPDATE players SET cards = ? WHERE id = ?', JSON.stringify(cards), pid);
         break;
       }
+      // 1.2.0: yöneticinin kilit hediyesi (amount = bölüm sınırı, ref = yerler)
+      case 'kilit': applyUnlock(this, pid, g.amount, g.ref); break;
     }
   }
 
   /** at: aynı ödülün parçaları (ör. Takım'dan geçen hediyenin jetonu ve kristali) aynı zamanla yazılır, Ödül kutusunda tek satır olur (inboxGroups) */
-  addInbox(pid: string, g: Grant, reason: string, at = this.now()): InboxItem {
+  addInbox(pid: string, g: InboxGrant, reason: string, at = this.now()): InboxItem {
     const item: InboxItem = { id: rid('i'), kind: g.kind, amount: g.amount, ref: g.ref, reason, at };
     this.db.run('INSERT INTO inbox(id, player_id, kind, amount, ref, reason, at) VALUES(?, ?, ?, ?, ?, ?, ?)', item.id, pid, g.kind, g.amount, g.ref, reason, item.at);
     this.emit(pid, 'inbox.new', { item });

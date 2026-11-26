@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CHAT_REACTIONS, type Op } from '@odi/shared';
+import { CHAT_REACTIONS, DM_KIMDEN, type Op } from '@odi/shared';
 
 /** İletişim işlemlerinin giriş şemaları (schemas.ts'teki SCHEMAS'a yayılır). */
 const id = z.string().min(1).max(40).regex(/^[A-Za-z0-9]+$/);
@@ -10,7 +10,7 @@ export const COMM_SCHEMAS = {
   'chat.react': z.object({ msgId: id, reaction: z.union([z.enum(CHAT_REACTIONS), z.literal('')]) }),
   'chat.thread': z.object({ msgId: id }),
   'comm.state': empty,
-  'comm.settings': z.object({ feedShare: z.boolean().optional() }),
+  'comm.settings': z.object({ feedShare: z.boolean().optional(), dmKimden: z.enum(DM_KIMDEN).optional() }),
   'feed.challenge': z.object({ level: z.number().int().min(1).max(40) }),
   'help.tip': z.object({ requestId: id, phrase: phrase.optional(), text: z.string().min(1).max(800).optional() }),
   'help.race': z.object({ requestId: id }),

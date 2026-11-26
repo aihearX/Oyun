@@ -4,6 +4,8 @@ import type { ChatMessage, LevelSpec, PublicProfile, RaceRoom } from '@odi/share
 import { SOCIAL_LIMITS } from '@odi/shared';
 import { HUMAN_JOURNEY } from '@odi/content';
 import { useNet } from '@odi/net/store';
+import { useStore } from '../store';
+import { levelCapOf } from '../ftue/features';
 import { OdiAvatar } from '../ui/OdiAvatar';
 import { platform } from '../platform';
 import { newRunId } from '@odi/net';
@@ -26,7 +28,7 @@ const LONG_WAIT_MS = 60_000;
  */
 export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: LevelSpec, room: RaceRoom) => void; onClose: () => void; inviteRoomId?: string }) {
   const { net, online, meId } = useRaceNet();
-  const me = useNet((s) => s.me);
+  const me = useNet((s) => s.me); const ftue = useStore((s) => s.ftue);
   const [view, setView] = useState<View>(inviteRoomId ? 'busy' : 'menu');
   const [room, setRoom] = useState<RaceRoom | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -136,7 +138,7 @@ export function RaceLobby({ onPlay, onClose, inviteRoomId }: { onPlay: (spec: Le
           <div className="row between"><h2>Bölüm seç</h2><button className="linkish" onClick={() => setView('menu')}>Vazgeç</button></div>
           <div className="muted">Yalnızca açtığın bölümlerde oda kurabilirsin.</div>
           <div className="race-levels">
-            {HUMAN_JOURNEY.levels.filter((l) => l.number <= Math.max(1, me?.highest ?? 1)).map((l) => (
+            {HUMAN_JOURNEY.levels.filter((l) => l.number <= Math.max(1, levelCapOf(me?.highest ?? 1, ftue))).map((l) => (
               <button key={l.number} className="race-level" data-testid={`yaris-seviye-${l.number}`} onClick={() => void run(async () => (await net.call('race.create', { level: l.number })).room)}>
                 <b>{l.number}</b><small>{l.name}</small>{l.mechanic === 'boss' && <i aria-label="boss"><Art e="👾" size="1.15em" className="art-inline" /></i>}
               </button>

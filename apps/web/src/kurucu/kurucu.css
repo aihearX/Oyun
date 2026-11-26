@@ -26,3 +26,6 @@ html.buyuk-yazi .kurucu-secim { flex-wrap:wrap; }
 html.buyuk-yazi .kurucu-secim > .toggle-btn { margin-left:auto; }
 .wtile .rz-cerceve { margin:4px 0 2px; }
 .kurucu-list + .small-note { margin-top:10px; }
+/* 1.2.0: yöneticinin düzenlediği liste (avatar, ad, unvan satırı) */
+.kurucu-kisiler .kl-ad { display:flex; flex-direction:column; min-width:0; }
+.kurucu-kisiler .kl-ad small { font-size:0.75rem; line-height:1.3; overflow-wrap:anywhere; }

@@ -1,11 +1,12 @@
 /**
  * Profil › Admin (1.1.0): yalnız yönetici hesabında görünür (sunucu onayı: admin.state.isAdmin). Sunucu her işlemde ayrıca denetler
- * (apps/server/src/yonetici-ekran.ts). Bölümler: Oyuncular, Mesajlar, Fotoğraflar, Kodlar, Hediye. "Her şey açık" oynama modu
+ * (apps/server/src/yonetici-ekran.ts). Bölümler: Oyuncular, Mesajlar, Fotoğraflar, Kodlar, Hediye (1.2.0: kilit hediyesi de), Kurucular
+ * (1.2.0: liste, sıra, görünen ad ve unvan; apps/server/src/kurucu-liste.ts). "Her şey açık" oynama modu
  * en üstteki anahtardadır (varsayılan kapalı). Listeler sayfalıdır (Daha fazla).
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNet } from '@odi/net/store';
-import { photoUrl, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport } from '@odi/shared';
+import { KILIT_ADI, KILIT_OZELLIKLER, KILIT_SON_BOLUM, kilitHediyeMetni, kilitOzeti, photoUrl, type AdminKurucu, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport, type KilitOzellik } from '@odi/shared';
 import { act, errText, getNet, toast } from '../net';
 import { platform } from '../platform';
 import { ScreenHead } from '../ui/bits';
@@ -15,10 +16,10 @@ import { AdminModeCard, CodePanel, useCodes } from '../codes/Codes';
 import '../comm/comm.css'; // .switch (her şey açık anahtarı, AdminModeCard)
 import './yonetici.css';
 
-type Tab = 'oyuncular' | 'mesajlar' | 'fotograflar' | 'kodlar' | 'hediye';
+type Tab = 'oyuncular' | 'mesajlar' | 'fotograflar' | 'kodlar' | 'hediye' | 'kurucular';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'oyuncular', label: 'Oyuncular' }, { id: 'mesajlar', label: 'Mesajlar' }, { id: 'fotograflar', label: 'Fotoğraflar' },
-  { id: 'kodlar', label: 'Kodlar' }, { id: 'hediye', label: 'Hediye' },
+  { id: 'kodlar', label: 'Kodlar' }, { id: 'hediye', label: 'Hediye' }, { id: 'kurucular', label: 'Kurucular' },
 ];
 
 const fmtTime = (t: number) => new Date(t).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -52,7 +53,8 @@ export function YoneticiScreen({ onBack }: { onBack: () => void }) {
           {tab === 'mesajlar' && <Messages who={who} onClear={() => setWho(null)} onOpen={setDetail} />}
           {tab === 'fotograflar' && <Photos onOpen={setDetail} />}
           {tab === 'kodlar' && <div className="card"><CodePanel /></div>}
-          {tab === 'hediye' && <Gift code={giftCode} setCode={setGiftCode} />}
+          {tab === 'hediye' && <><Gift code={giftCode} setCode={setGiftCode} /><UnlockGift code={giftCode} setCode={setGiftCode} /></>}
+          {tab === 'kurucular' && <Founders onOpen={setDetail} />}
           {detail && <PlayerSheet id={detail} onClose={() => setDetail(null)}
             onMessages={(p) => { setWho(p); setTab('mesajlar'); setDetail(null); }}
             onGift={(code) => { setGiftCode(code); setTab('hediye'); setDetail(null); }} />}
@@ -126,10 +128,12 @@ function PlayerSheet({ id, onClose, onMessages, onGift }: { id: string; onClose:
         {line('Şikâyet', `hakkında ${p.reportsAgainst.length} · yaptığı ${p.reportsBy}`)}
         {line('Susturma', muted ? `${fmtTime(p.mutedUntil)} tarihine kadar` : 'yok')}
         {p.admin && line('Admin', p.adminOn ? 'her şey açık modu açık' : 'evet')}
+        {(p.acik || p.acikBekleyen) && line('Kilit hediyesi', `${p.acik ? kilitOzeti(p.acik.levels, p.acik.features) : 'yok'}${p.acikBekleyen ? ` · ${p.acikBekleyen} kart bekliyor` : ''}`)}
         {p.levels.recent.length > 0 && <div className="muted small-note">Son bölümler: {p.levels.recent.map((l) => `${l.level} (${'★'.repeat(l.stars) || '0'})`).join(', ')}</div>}
         <div className="yn-actions">
           <button className="btn teal" onClick={() => onMessages({ id: p.id, name: p.name })}>Mesajlarını gör</button>
-          <button className="btn ghost" onClick={() => onGift(p.friendCode)}>Hediye gönder</button>
+          <button className="btn ghost" onClick={() => onGift(p.friendCode)}>Hediye ya da kilit gönder</button>
+          {(p.acik || p.acikBekleyen) ? <button className="btn ghost" disabled={busy} data-testid="yn-kilit-kaldir" onClick={() => void run(async () => { if (await act('admin.unlock.clear', { id: p.id })) toast('🔒', 'Kilit hediyeleri kaldırıldı', 'Gerçek ilerlemesi olduğu gibi kaldı.'); })}>Kilit hediyelerini kaldır</button> : null}
           {p.photo !== undefined || p.photoHidden ? <button className="btn ghost" disabled={busy} onClick={() => void run(async () => { if (await act('admin.photo.delete', { id: p.id })) toast('🗑️', 'Fotoğraf silindi', p.name); })}>Fotoğrafı sil</button> : null}
         </div>
         <div className="yn-actions">
@@ -291,5 +295,112 @@ function Gift({ code, setCode }: { code: string; setCode: (c: string) => void })
         {confirm ? 'Eminim, herkese gönder' : all ? 'Herkese gönder' : 'Gönder'}
       </button>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------ Kilit hediyesi (1.2.0)
+/** tek oyuncuya: ilk N bölüm ve/veya yerler. Ödül kutusuna kilit kartı düşer, oyuncu "Al" deyince açılır. */
+function UnlockGift({ code, setCode }: { code: string; setCode: (c: string) => void }) {
+  const [levels, setLevels] = useState(''); const [sel, setSel] = useState<KilitOzellik[]>([]); const [note, setNote] = useState(''); const [busy, setBusy] = useState(false);
+  const lv = levels.trim() ? Math.max(0, Math.min(KILIT_SON_BOLUM, Math.floor(Number(levels)) || 0)) : 0;
+  const toggle = (f: KilitOzellik) => setSel((s) => (s.includes(f) ? s.filter((x) => x !== f) : [...s, f]));
+  const ok = (lv > 0 || sel.length > 0) && code.trim().length >= 4;
+  const send = async () => {
+    setBusy(true);
+    const r = await act('admin.unlock.gift', { code: code.trim(), levels: lv || undefined, features: sel.length ? sel : undefined, note: note.trim() || undefined });
+    setBusy(false);
+    if (r) { toast('🔑', 'Kilit hediyesi gönderildi', kilitOzeti(lv, sel), 'green'); setLevels(''); setSel([]); setNote(''); }
+  };
+  return (
+    <div className="card yn-sec" data-testid="yn-kilit">
+      <h3>Kilit hediyesi</h3>
+      <div className="muted small-note">Oyuncunun ödül kutusuna kilit kartı düşer; Al deyince açılır. Yıldızları, gerçek ilerlemesi ve sıralaması değişmez.</div>
+      <label className="field"><span>Arkadaş kodu</span><input className="input mono" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 12))} placeholder="ör. K7M2QX" data-testid="kilit-kod" /></label>
+      <label className="field"><span>İlk kaç bölüm açık olsun (en çok {KILIT_SON_BOLUM})</span><input className="input" type="number" inputMode="numeric" min={1} max={KILIT_SON_BOLUM} value={levels} onChange={(e) => setLevels(e.target.value)} data-testid="kilit-bolum" /></label>
+      <div className="yn-chips" role="group" aria-label="Açılacak yerler">
+        {KILIT_OZELLIKLER.map((f) => <button key={f} type="button" className={`yn-chip${sel.includes(f) ? ' on' : ''}`} aria-pressed={sel.includes(f)} data-testid={`kilit-${f}`} onClick={() => toggle(f)}>{KILIT_ADI[f]}</button>)}
+      </div>
+      <button type="button" className="btn small ghost" onClick={() => { setLevels(String(KILIT_SON_BOLUM)); setSel(['hepsi']); }}>Her şeyi seç ({KILIT_SON_BOLUM} bölüm ve her yer)</button>
+      <label className="field"><span>Not (kartta görünür)</span><input className="input" value={note} maxLength={60} onChange={(e) => setNote(e.target.value)} /></label>
+      <div className="muted small-note" data-testid="kilit-onizleme">{lv || sel.length ? `Kartta: ${kilitHediyeMetni(lv, sel, note.trim() || undefined)}` : 'Bir bölüm sınırı ya da en az bir yer seç.'}</div>
+      <button className="btn" data-testid="kilit-gonder" disabled={busy || !ok} onClick={() => void send()}>Kilit hediyesini gönder</button>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ Kurucular (1.2.0)
+/** Profil › Kurucular ekranında kim, hangi adla ve unvanla, hangi sırayla görünür */
+function Founders({ onOpen }: { onOpen: (id: string) => void }) {
+  const [list, setList] = useState<AdminKurucu[] | null>(null); const [total, setTotal] = useState(0); const [more, setMore] = useState(false);
+  const [curated, setCurated] = useState(true); const [err, setErr] = useState(''); const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
+  const [edit, setEdit] = useState<AdminKurucu | null>(null);
+  const load = (offset = 0) => {
+    const c = getNet(); if (!c) return;
+    c.call('admin.kurucu.list', { offset }).then((r) => { setList((l) => (offset ? [...(l ?? []), ...r.items] : r.items)); setTotal(r.total); setMore(r.hasMore); setCurated(r.kuratorlu); setErr(''); }, (e) => setErr(errText(e)));
+  };
+  useEffect(() => load(), []);
+  const run = async (f: () => Promise<unknown>) => { setBusy(true); try { await f(); } finally { setBusy(false); load(); } };
+  const add = () => void run(async () => { const r = await act('admin.kurucu.set', { code: code.trim() }); if (r) { toast('⭐', `${r.item.name} listeye eklendi`); setCode(''); } });
+  const move = (k: AdminKurucu, sira: number) => void run(() => act('admin.kurucu.move', { id: k.id, sira: Math.max(1, sira) }));
+  return (
+    <div className="card yn-sec" data-testid="yn-kurucular">
+      <div className="muted small-note">{curated
+        ? 'Profil › Kurucular ekranı tam bu listeyi bu sırayla gösterir.'
+        : 'Henüz düzenlenmedi: ekran rozeti olan ve adını göstermeyi seçen kurucuları kod sırasıyla gösteriyor. İlk değişiklikte bu kişiler listeye taşınır, sonra liste senin.'}
+      {' '}Adını gizlemeyi seçen Kurucu Yolcu listede olsa da ekranda görünmez.</div>
+      <div className="row">
+        <input className="input mono grow" value={code} onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 12))} placeholder="Arkadaş kodu" aria-label="Eklenecek oyuncunun arkadaş kodu" data-testid="kurucu-kod" />
+        <button className="btn small" disabled={busy || code.trim().length < 4} data-testid="kurucu-ekle" onClick={add}>Ekle</button>
+      </div>
+      {err && <div className="chat-err" role="alert">{err}</div>}
+      <div className="muted small-note">{list ? `${total} kişi` : 'Yükleniyor…'}</div>
+      <div className="yn-list">
+        {list?.map((k) => (
+          <div key={k.id} className="yn-msg yn-kurucu" data-testid="yn-kurucu">
+            <div className="row">
+              <span className="kl-sira mono">{k.sira}.</span>
+              <OdiAvatar size={36} color={k.color} pid={k.fotoGizli ? undefined : k.id} photo={k.fotoGizli ? undefined : k.photo} />
+              <span className="grow min0">
+                <button className="linkish ellipsis" onClick={() => onOpen(k.id)}>{k.gorunenAd || k.name}</button>
+                <small className="muted">{k.gorunenAd ? `takma adı ${k.name} · ` : ''}{k.friendCode}{k.unvan ? ` · ${k.unvan}` : ''}{k.fotoGizli ? ' · fotoğraf gizli' : ''}{k.rozet ? ' · rozetli' : ''}{k.kendisiGizledi ? ' · adını gizlemeyi seçti, görünmez' : ''}</small>
+              </span>
+            </div>
+            <div className="yn-actions">
+              <button className="btn small ghost" disabled={busy || k.sira <= 1} aria-label={`${k.name} yukarı`} onClick={() => move(k, k.sira - 1)}>Yukarı</button>
+              <button className="btn small ghost" disabled={busy || k.sira >= total} aria-label={`${k.name} aşağı`} onClick={() => move(k, k.sira + 1)}>Aşağı</button>
+              <button className="btn small ghost" disabled={busy} onClick={() => setEdit(k)}>Düzenle</button>
+              <button className="btn small coral" disabled={busy} onClick={() => void run(async () => { if (await act('admin.kurucu.remove', { id: k.id })) toast('🗑️', `${k.name} listeden çıkarıldı`); })}>Çıkar</button>
+            </div>
+          </div>
+        ))}
+      </div>
+      {more && list && <button className="btn ghost" onClick={() => load(list.length)}>Daha fazla</button>}
+      {edit && <FounderEdit k={edit} total={total} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />}
+    </div>
+  );
+}
+
+function FounderEdit({ k, total, onClose, onSaved }: { k: AdminKurucu; total: number; onClose: () => void; onSaved: () => void }) {
+  const [ad, setAd] = useState(k.gorunenAd); const [unvan, setUnvan] = useState(k.unvan); const [foto, setFoto] = useState(k.fotoGizli); const [sira, setSira] = useState(String(k.sira));
+  const [busy, setBusy] = useState(false);
+  const save = async () => {
+    setBusy(true);
+    const r = await act('admin.kurucu.set', { id: k.id, gorunenAd: ad.trim(), unvan: unvan.trim(), fotoGizli: foto });
+    const n = Math.floor(Number(sira));
+    const moved = r && Number.isFinite(n) && n >= 1 && n !== k.sira ? await act('admin.kurucu.move', { id: k.id, sira: Math.min(n, Math.max(1, total)) }) : true;
+    setBusy(false);
+    if (r && moved) { toast('✅', 'Kaydedildi', ad.trim() || k.name); onSaved(); }
+  };
+  return (
+    <Sheet title={`${k.name}: görünüş`} onClose={onClose}>
+      <div className="yn-sec" data-testid="kurucu-duzenle">
+        <label className="field"><span>Görünen ad (boş: takma adı)</span><input className="input" value={ad} maxLength={24} placeholder={k.name} onChange={(e) => setAd(e.target.value)} /></label>
+        <label className="field"><span>Unvan satırı (ör. Kurucu Yolcu, Ses tasarımı)</span><input className="input" value={unvan} maxLength={40} onChange={(e) => setUnvan(e.target.value)} /></label>
+        <label className="field"><span>Sıra (1 en üstte)</span><input className="input" type="number" inputMode="numeric" min={1} max={Math.max(1, total)} value={sira} onChange={(e) => setSira(e.target.value)} /></label>
+        <div className="tg-toggle"><span className="grow"><b>Fotoğrafı gösterme</b><small>Kurucular ekranında yalnız Odi görünür.</small></span>
+          <button type="button" className="switch" role="switch" aria-checked={foto} aria-label="Fotoğrafı gösterme" onClick={() => setFoto(!foto)} /></div>
+        <button className="btn" disabled={busy} onClick={() => void save()}>Kaydet</button>
+      </div>
+    </Sheet>
   );
 }

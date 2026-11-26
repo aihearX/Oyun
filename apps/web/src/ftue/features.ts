@@ -1,4 +1,5 @@
 import type { ArtName } from '../ui/art';
+import { KILIT_SON_BOLUM, type PlayerUnlocks } from '@odi/shared';
 import { KG_ACILIS } from '@odi/content/kamp-gorev-acilis';
 
 /**
@@ -64,6 +65,8 @@ export interface FtueState {
   bypass?: boolean;
   /** yönetici modu (Kod Gir; sunucu doğruladı): tüm yerler ve bölümler açık, tur yok. Sıfırlamada silinir. */
   admin?: boolean;
+  /** 1.2.0 kilit hediyesi (sunucudan: hello `me.acik` ve ödül kutusunda "Al"): ilk N bölüm ve açılan yerler. Gerçek ilerleme ayrı. */
+  acik?: PlayerUnlocks;
   /** Tüy Dede'nin bölüm içinde bir kez söylediği ipucu satırları (ftue/hints.ts; oyuncu başına bir kez) */
   said?: string[];
 }
@@ -86,7 +89,8 @@ export function normalizeFtue(raw: unknown, progress: Record<number, { stars: nu
   const r = raw && typeof raw === 'object' ? raw as Partial<FtueState> : null;
   if (r && r.v === 1) {
     const said = Array.isArray(r.said) ? r.said.filter((t) => typeof t === 'string') : [];
-    return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}), ...(r.admin ? { admin: true } : {}), ...(said.length ? { said } : {}) };
+    const acik = r.acik && typeof r.acik === 'object' && typeof r.acik.levels === 'number' && Array.isArray(r.acik.features) ? { acik: { levels: r.acik.levels, features: r.acik.features.filter((x) => typeof x === 'string') } } : {};
+    return { v: 1, story: !!r.story, tours: Array.isArray(r.tours) ? r.tours.filter((t) => typeof t === 'string') : [], ...(r.bypass ? { bypass: true } : {}), ...(r.admin ? { admin: true } : {}), ...acik, ...(said.length ? { said } : {}) };
   }
   const cleared = clearedCount(progress);
   if (cleared === 0 && !Object.keys(progress).length) return { ...FRESH_FTUE };
@@ -100,9 +104,22 @@ export function veteranTours(cleared: number): string[] {
   return out;
 }
 
-/** bir yer açık mı (test atlaması her şeyi açar) */
+/** yer kilit hediyesiyle açık mı (1.2.0; "hepsi" her yeri açar). Profil herkese açık. */
+export function giftOpen(id: FeatureId, ftue: Pick<FtueState, 'acik'>): boolean {
+  const f = ftue.acik?.features as readonly string[] | undefined;
+  return !!f && (f.includes('hepsi') || f.includes(id));
+}
+/** bir yer açık mı: ilerleme, test atlaması, "her şey açık" modu ya da kilit hediyesi */
 export function isOpen(id: FeatureId, cleared: number, ftue: FtueState): boolean {
-  return !!ftue.bypass || !!ftue.admin || cleared >= featureById(id).at;
+  return !!ftue.bypass || !!ftue.admin || cleared >= featureById(id).at || giftOpen(id, ftue);
+}
+/** oynanabilir en yüksek bölüm (sunucu kilit.ts levelCap ile aynı kural): gerçek ilerleme, hediye sınırı ya da her şey açık */
+export function levelCapOf(highest: number, ftue: Pick<FtueState, 'admin' | 'acik'>): number {
+  return ftue.admin ? KILIT_SON_BOLUM : Math.max(highest, Math.min(KILIT_SON_BOLUM, ftue.acik?.levels ?? 0));
+}
+/** Kulak Sözlüğü ve bölge sayımı için geçilmiş sayılan bölüm: her şey açık modunda hepsi, hediye sınırına kadar olanlar da ulaşılmış */
+export function reachCleared(cleared: number, ftue: Pick<FtueState, 'admin' | 'acik'>): number {
+  return ftue.admin ? KILIT_SON_BOLUM : Math.max(cleared, Math.min(KILIT_SON_BOLUM, ftue.acik?.levels ?? 0) - 1);
 }
 export const lockText = (id: FeatureId) => `Bölüm ${featureById(id).at}'${suffix(featureById(id).at)} açılır`;
 /** "Bölüm 7'den sonra" (ayrılma eki = bulunma eki + n): kilitli yerin ne zaman açılacağı cümle içinde (YN-161) */

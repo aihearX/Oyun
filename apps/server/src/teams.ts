@@ -6,6 +6,7 @@ import { veriyiTemizle } from './account-veri';
 import { hasProfanity } from './profanity';
 import { announcePresence } from './players';
 import { MAX_LEVEL } from './progress';
+import { levelCap } from './kilit';
 import { addContrib, broadcastExtra } from './teamextra';
 import { dayKey, dayNumber, dayNumberStart, DAY_MS } from './time';
 import { recomputeOwner } from './war';
@@ -213,7 +214,7 @@ export const teamHandlers: Handlers = {
   },
   'team.help.request': (app, s, { level }) => {
     const { p, t } = requireTeam(app, s.pid);
-    if (level > p.highest) fail('GECERSIZ', 'Henüz açılmamış bir bölüm için yardım istenemez.');
+    if (level > levelCap(app, p)) fail('GECERSIZ', 'Henüz açılmamış bir bölüm için yardım istenemez.');
     // eski bir bölüm numarası (ör. oturum başındaki ilerleme) günlük hakkı boşa harcamasın (YN-115)
     if (levelPassed(app, p, level)) fail('GECILDI', `${level}. bölümü zaten geçtin; yardımı takıldığın bölüm için iste.`);
     const day = dayKey(app.now());

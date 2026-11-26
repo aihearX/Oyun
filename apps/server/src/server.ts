@@ -33,6 +33,7 @@ import { crashRateOk, crashRatePrune, crashSummary, pruneCrashes, receiveCrash }
 import { feedbackRateOk, feedbackRatePrune, feedbackSummary, pruneFeedback, receiveFeedback } from './geribildirim';
 import { photoHandlers, receivePhoto, servePhoto } from './foto';
 import { adminScreenHandlers } from './yonetici-ekran';
+import { kurucuAdminHandlers } from './kurucu-liste';
 
 export const SERVER_VERSION = '1.0.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -59,7 +60,7 @@ const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEvent
   ...playerHandlers, ...friendHandlers, ...chatHandlers, ...teamHandlers, ...teamApplyHandlers, ...extraHandlers, ...campHandlers, ...campGrowthHandlers,
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
-  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers,
+  ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers, ...kurucuAdminHandlers,
 }))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase', 'shop.restore']);

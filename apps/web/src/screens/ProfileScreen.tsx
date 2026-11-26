@@ -17,7 +17,7 @@ import { LeagueCard } from './InboxScreen';
 import { useFriends } from '../friends';
 import { Art, TeamEmblem, type ArtName } from '../ui/art';
 import { useFeatures } from '../ftue/useFeatures';
-import { clearedCount, passedCount, type FeatureId } from '../ftue/features';
+import { clearedCount, passedCount, reachCleared, type FeatureId } from '../ftue/features';
 import { GLOSSARY } from '@odi/content/odyoloji';
 import { CodeSheet, useCodes } from '../codes/Codes';
 import { reachedRegions } from './GlossaryScreen';
@@ -37,7 +37,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const levels = HUMAN_JOURNEY.levels.length; const passed = passedCount(s.progress, levels);
   const tiers = Object.values(s.meta.achievements).reduce((a, t) => a + t, 0); const maxTiers = ACHIEVEMENTS.reduce((a, x) => a + x.tiers.length, 0);
   const album = albumProgress(s.meta.cards);
-  const glossOpen = useMemo(() => { const r = reachedRegions(clearedCount(s.progress)); return GLOSSARY.filter((g) => r.has(g.region)).length; }, [s.progress]);
+  const glossOpen = useMemo(() => { const r = reachedRegions(reachCleared(clearedCount(s.progress), s.ftue)); return GLOSSARY.filter((g) => r.has(g.region)).length; }, [s.progress, s.ftue]);
   const stat = (art: ArtName, v: string | number, k: string) => <div className="pstat"><Art name={art} size={26} className="ps-art" /><b>{v}</b><span>{k}</span></div>;
   const online = st === 'bağlı' && !!me;
   // ilk deneyim: henüz açılmamış yerler kilitli karo ("Bölüm N'de açılır"), dokununca kısa not

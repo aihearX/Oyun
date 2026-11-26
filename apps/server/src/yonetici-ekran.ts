@@ -5,13 +5,16 @@
  * - Mesajlar: bir oyuncunun özel mesajları (iki yön) ve sohbet / takım sohbeti iletileri ya da herkesin son iletileri; şikâyetler.
  * - Fotoğraflar: yeni ve şikâyet edilen profil fotoğrafları; sil, geri aç. Susturma (sohbet + özel mesaj, gün).
  * - Hediye: tek oyuncuya (arkadaş koduyla) ya da herkese ödül kutusuna jeton / kristal / kalkan.
+ * - 1.2.0 Kilit hediyesi: tek oyuncuya ilk N bölüm ve/veya yer açılımı; ödül kutusuna "kilit" kartı, oyuncu "Al"la açar (kilit.ts).
+ *   Kurucular listesi ayrı dosyada (kurucu-liste.ts).
  * Yanıtlar sayfalıdır (ADMIN_PAGE); her yönetim eylemi promo_log'a (ip 'panel') yazılır.
  */
-import { ADMIN_PAGE, levelFromXp, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport, type LeagueTier, type TeamRole } from '@odi/shared';
+import { ADMIN_PAGE, kilitHediyeMetni, kilitRef, levelFromXp, type InboxItem, type KilitOzellik, type AdminMessage, type AdminPhoto, type AdminPlayerDetail, type AdminPlayerRow, type AdminReport, type LeagueTier, type TeamRole } from '@odi/shared';
 import { fail, type App, type Handlers, type Session } from './app';
 import { requireAdmin } from './codes';
 import { deletePhoto, announcePhoto } from './foto';
 import { badgeFields } from './rozet';
+import { unlocksOf } from './kilit';
 import { DAY_MS } from './time';
 
 const NOT_DELETED = 'p.id NOT IN (SELECT player_id FROM deleted_players)';
@@ -35,7 +38,7 @@ function toRow(app: App, r: PRow): AdminPlayerRow {
   };
 }
 
-const logAdmin = (app: App, s: Session, what: string) =>
+export const logAdmin = (app: App, s: Session, what: string) =>
   app.db.run('INSERT INTO promo_log(at, player_id, ip, code, result) VALUES(?, ?, ?, ?, ?)', app.now(), s.pid, 'panel', '', what.slice(0, 200));
 
 const nameOf = (app: App, id: string) => (id === 'sistem' ? 'Sistem' : app.db.get<{ name: string }>('SELECT name FROM players WHERE id = ?', id)?.name ?? '?');
@@ -116,7 +119,23 @@ function playerDetail(app: App, id: string): AdminPlayerDetail {
     reportsAgainst: against.map((x) => reportView(app, x)),
     reportsBy: cnt('SELECT COUNT(*) AS n FROM player_reports WHERE reporter = ?', id) + cnt('SELECT COUNT(*) AS n FROM chat_reports WHERE reporter = ?', id),
     ...(photo?.hidden ? { photoHidden: true } : {}),
+    ...(() => { const acik = unlocksOf(app, id); return acik ? { acik } : {}; })(),
+    ...(() => { const n = cnt("SELECT COUNT(*) AS n FROM inbox WHERE player_id = ? AND kind = 'kilit' AND claimed = 0", id); return n ? { acikBekleyen: n } : {}; })(),
   };
+}
+
+/** kilit hediyesi (1.2.0): tek oyuncuya ödül kutusunda "kilit" kartı; oyuncu "Al" deyince açılır (players.ts inbox.claim, kilit.ts) */
+function unlockGift(app: App, s: Session, d: { code: string; levels?: number; features?: KilitOzellik[]; note?: string }): InboxItem {
+  const levels = d.levels ?? 0; const features = [...new Set(d.features ?? [])];
+  if (levels <= 0 && !features.length) fail('GECERSIZ', 'Açılacak bir bölüm sınırı ya da yer seç.');
+  const code = d.code.trim().toUpperCase();
+  const p = app.db.get<{ id: string; highest: number }>(`SELECT p.id, p.highest FROM players p WHERE p.friend_code = ? AND ${NOT_DELETED}`, code);
+  if (!p) fail('YOK', 'Bu arkadaş koduyla oyuncu yok.');
+  const note = d.note?.trim().slice(0, 60) || undefined;
+  const item = app.addInbox(p.id, { kind: 'kilit', amount: levels, ref: kilitRef(features) }, kilitHediyeMetni(levels, features, note));
+  // kartın kimliği kayıtta: oyuncu alınca veren yönetici player_unlocks.granted_by'a yazılır (kilit.ts applyUnlock)
+  logAdmin(app, s, `kilit:${code}:${item.id}:bolum=${levels}:${kilitRef(features)}`);
+  return item;
 }
 
 /** hediye: tek oyuncu ya da herkes (tek INSERT … SELECT); çevrimiçi olanlara ödül kutusu bildirimi */
@@ -212,4 +231,13 @@ export const adminScreenHandlers: Handlers = {
     return { mutedUntil: until };
   },
   'admin.gift': (app, s, d) => { requireAdmin(app, s); return { count: gift(app, s, d) }; },
+  'admin.unlock.gift': (app, s, d) => { requireAdmin(app, s); return { item: unlockGift(app, s, d) }; },
+  'admin.unlock.clear': (app, s, { id }) => {
+    requireAdmin(app, s);
+    if (!app.db.get(`SELECT 1 AS x FROM players p WHERE p.id = ? AND ${NOT_DELETED}`, id)) fail('YOK', 'Oyuncu bulunamadı.');
+    // hediye açılımları ve alınmamış kilit kartları kalkar; gerçek ilerleme olduğu gibi kalır (istemci bir sonraki bağlanışta uygular)
+    const n = app.db.run('DELETE FROM player_unlocks WHERE player_id = ?', id) + app.db.run("DELETE FROM inbox WHERE player_id = ? AND kind = 'kilit' AND claimed = 0", id);
+    logAdmin(app, s, `kilit-kaldir:${id}:${n}`);
+    return {};
+  },
 };

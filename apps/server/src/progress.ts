@@ -1,6 +1,7 @@
 import { CAMP_POWER_LEVEL, RAHAT, leaguePointsFor, raidDamageFor, warPointsFor, xpForRun, type JetonBonusPart, type ProgressSubmit, type RunResult } from '@odi/shared';
 import { fail, parseJson, type App, type Handlers } from './app';
 import { isAdmin, isAdminOn } from './codes';
+import { levelCap } from './kilit';
 import { completeDue, useRemedies } from './camp';
 import { addLeaguePoints, leaguePointsForRun } from './league';
 import { racePlaceFor } from './race';
@@ -79,9 +80,10 @@ export const progressHandlers: Handlers = {
     const prev = app.db.get<{ ack: string }>('SELECT ack FROM progress_runs WHERE player_id = ? AND run_id = ?', s.pid, d.runId);
     if (prev) return parseJson(prev.ack, null) ?? fail('SUNUCU', 'Kayıtlı yanıt okunamadı.');
     const p = app.player(s.pid);
-    // yönetici hesabı (Kod Gir): tüm bölümler oynanabilir ama gerçek ilerleme (highest) ileri atlamaz; rekabet puanı kazanmaz
+    // yönetici hesabı (Kod Gir): tüm bölümler oynanabilir ama gerçek ilerleme (highest) ileri atlamaz; rekabet puanı kazanmaz.
+    // 1.2.0: kilit hediyesinin bölüm sınırı da oynatır (levelCap); highest yine yalnız art arda geçilince ilerler (aşağıda)
     const admin = isAdmin(app, s.pid); const adminOn = admin && isAdminOn(app, s.pid);
-    if (d.level > p.highest + 1 && !adminOn) fail('GECERSIZ', 'Bu bölüm henüz açılmamış.');
+    if (d.level > Math.max(p.highest + 1, levelCap(app, p))) fail('GECERSIZ', 'Bu bölüm henüz açılmamış.');
     if (!d.completed && d.stars > 0) fail('GECERSIZ', 'Tamamlanmayan bölüm yıldız veremez.');
     const rahat = isRahat(d);
     if (rahat && (d.mechanic !== 'boss' || d.raceId)) fail('GECERSIZ', 'Rahat deneme yalnız canavar bölümünde, yarış dışında oynanır.');

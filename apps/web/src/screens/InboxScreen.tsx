@@ -52,17 +52,23 @@ function Inbox() {
   /** bildirim yalnız gerçekten alınan türleri sayar (OT-ekonomi-denetci-22) */
   const all = async () => {
     if (!items) return; setBusy(true); setBekle(cevrimdisi()); let n = 0; const got: InboxItem[] = [];
-    for (const g of inboxGroups(items)) { const x = await take(g); if (x.length) { n++; got.push(...x); } }
+    // kilit hediyesi "Hepsini al"a girmez: kendi kartındaki "Al"la açılır (1.2.0)
+    for (const g of inboxGroups(items)) { if (g[0]!.kind === 'kilit') continue; const x = await take(g); if (x.length) { n++; got.push(...x); } }
     recount(); setBusy(false); setBekle(false); if (n) { platform().haptic('success'); fly(got); toast('📬', `${n} ödül alındı`, inboxGotText(got), 'gold'); }
   };
   if (err) return <div className="chat-err">{err}</div>;
   if (!items) return <Skeleton rows={3} />;
-  const groups = inboxGroups(items);
+  const groups = inboxGroups(items); const odul = groups.filter((g) => g[0]!.kind !== 'kilit').length;
   return (
     <div className="stack">
-      {groups.length > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({groups.length})</button>}
+      {odul > 0 && <button className="btn" disabled={busy} onClick={() => void all()}><Art name="mail" size="1.2em" className="art-inline" /> Hepsini al ({odul})</button>}
       {busy && bekle && <BekleyenSatir text={BEKLEYEN_AL} />}
-      {groups.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text={INBOX_BOS} /> : groups.map((g) => { const it = g[0]!; return (
+      {groups.length === 0 ? <Empty icon="📭" title="Ödül kutun boş" text={INBOX_BOS} /> : groups.map((g) => { const it = g[0]!; if (it.kind === 'kilit') return (
+        <div className="card gift kilit-hediye" key={it.id} data-testid="kilit-hediyesi">
+          <span className="gift-i" aria-hidden><Art name="key" size={30} /></span>
+          <div className="grow min0"><b className="wrap">{inboxReason(it)}</b><div className="muted">{fmtDate(it.at)}</div><div className="muted small-note">Al deyince açılır. Yıldızların ve ilerlemen olduğu gibi kalır.</div></div>
+          <button className="btn small" disabled={busy} onClick={() => void one(g)}>Al</button>
+        </div>); return (
         <div className="card gift" key={it.id} data-testid="kutu-satiri" data-parca={g.length}>
           <span className="gift-i" aria-hidden><Art name={g.length > 1 ? 'gift' : it.kind === 'kalkan' ? 'shield' : it.kind === 'kristal' ? 'crystal' : it.kind === 'jeton' ? 'coin' : it.kind === 'kart' ? 'card' : 'hat'} size={30} /></span>
           <div className="grow min0"><b className="wrap">{inboxReason(it)}</b><div className="muted">{fmtDate(it.at)}</div><ItemChips items={g} small /></div>

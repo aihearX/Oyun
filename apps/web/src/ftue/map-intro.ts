@@ -2,7 +2,7 @@ import { BIOMES } from '@odi/content';
 // yalnız saf yerleşim hesabı (lite girişi harita boyamasını da taşır; bu dosya ilk parçada)
 import { planReturn, type StarMap, type ZoneId } from '@odi/game-core/map/layout';
 import type { ArtName } from '../ui/art';
-import { FEATURES, featureById, type FeatureId, type FtueState } from './features';
+import { FEATURES, featureById, giftOpen, type FeatureId, type FtueState } from './features';
 
 /**
  * Haritada (Kulak Kanalı) kendiliğinden başlayacak anlatıcı turları: tek doğruluk kaynağı.
@@ -43,6 +43,16 @@ export const groupFull = (id: string, cleared: number, tally: UnlockTally = unlo
  */
 export function genelUnlockQueue(cleared: number, done: readonly string[]): FeatureId[] {
   return FEATURES.filter((f) => f.tour && groupOf(f.id) === 'genel' && cleared >= f.at && !done.includes(f.id)).sort((a, b) => a.at - b.at).map((f) => f.id);
+}
+/**
+ * 1.2.0 kilit hediyesiyle ilerlemeden önce açılan yerlerin tanıtımları: haritada sırayla gelir (Director.tsx nextTour) ama bölüm
+ * kapısını TUTMAZ (unlockIntroPending yalnız ilerlemeyle açılanlara bakar): hediye alan oyuncu hiçbir zaman bölümden alıkonmaz.
+ * Birinde "Atla" denirse kalan hediye tanıtımları da geçilir. Anlatılmış ya da atlanmış yer, ilerlemeyle açıldığında yeniden gelmez.
+ */
+export function hediyeUnlockQueue(cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin' | 'acik' | 'story'>): FeatureId[] {
+  if (ftue.bypass || ftue.admin || !ftue.acik || !ftue.story) return [];
+  // serbest yazı tanıtımı "Sekiz bölümü geçtin!" der: hediyede söylenmez, oyuncu sekize gerçekten ulaşınca söylenir
+  return FEATURES.filter((f) => f.tour && f.id !== 'yazi' && groupOf(f.id) === 'genel' && cleared < f.at && giftOpen(f.id, ftue) && !ftue.tours.includes(f.id)).sort((a, b) => a.at - b.at).map((f) => f.id);
 }
 /** bölüm başlatma kapısı: haritada anlatılmayı bekleyen açılım tanıtımı var mı (test atlaması ve yönetici kipinde yok) */
 export function unlockIntroPending(cleared: number, ftue: Pick<FtueState, 'tours' | 'bypass' | 'admin'>): boolean {

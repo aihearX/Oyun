@@ -25,7 +25,7 @@ describe('Hızlı Sohbet ve güvenli varsayılan', () => {
     env = await setup({ freeTextCleared: 8 });
     const a = await env!.connect('Ayşe');
     const b = await env!.connect('Bora');
-    expect((await a.call('comm.state', {})).settings).toEqual({ canFreeText: false, feedShare: true, freeTextLevel: 8 });
+    expect((await a.call('comm.state', {})).settings).toEqual({ canFreeText: false, feedShare: true, freeTextLevel: 8, dmKimden: 'herkes' });
     await a.call('chat.join', { room: 'genel' });
     const e = await err(a.call('chat.send', { room: 'genel', text: 'merhaba' }));
     expect(e.code).toBe('SERBEST_KAPALI');

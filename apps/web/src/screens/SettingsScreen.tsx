@@ -12,6 +12,7 @@ import { tryVoice as tryVoiceLine, useVoiceStatus } from '../ftue/voice';
 import { CodeSettingsCard } from '../codes/Codes';
 import { GeriBildirimKart } from './GeriBildirimKart';
 import { KurucuSecim } from '../kurucu/Kurucular';
+import { DmKimdenKart } from '../friends/DmKimden';
 import { lineText } from '../ftue/script';
 import { LegalSheet, type YasalSayfa } from './LegalSheet';
 import { APP_VERSION } from '../legal';
@@ -101,6 +102,7 @@ export function SettingsScreen({ onBack, onReplay, onReset }: { onBack: () => vo
       </div>
       <CodeSettingsCard />
       <KurucuSecim />
+      <DmKimdenKart />
       <GeriBildirimKart />
       <div className="card skill" data-testid="hesap-sil-kart"><div><h2>Hesabı sil</h2><div className="muted">Sunucudaki hesabın (adın, takım üyeliğin, arkadaşların, mesajların) ve bu cihazdaki ilerleme, jetonlar, kristaller (satın aldıkların dahil) ve ayarlar silinir; oyun hikâyeyle baştan başlar.</div>
         {/* silme penceresindeki adsız kalanlar cümlesinin kısa hâli (YN-258, OT-ekonomi-denetci-46) */}

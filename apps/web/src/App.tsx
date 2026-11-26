@@ -360,7 +360,8 @@ export function App() {
   const start = () => {
     store.touchDay(); const s = useStore.getState();
     if (!s.ftue.story && !s.ftue.bypass) { setRoute({ name: 'story' }); return; }
-    if (!s.ftue.bypass && clearedCount(s.progress) === 0) { play(1); return; }
+    // her şey açık modu ya da kilit hediyesiyle bölümleri açık olan oyuncu haritadan seçer (1.2.0)
+    if (!s.ftue.bypass && !s.ftue.admin && (s.ftue.acik?.levels ?? 0) <= 1 && clearedCount(s.progress) === 0) { play(1); return; }
     setRoute({ name: 'map' });
   };
   const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';

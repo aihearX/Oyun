@@ -10,7 +10,8 @@ import {
   type KgAdim, type KgOlcut, type KgOzellik, type KgSart, type KgSayac, type KgYaAdim,
 } from '@odi/content';
 import { fail, type App, type Handler, type Handlers } from './app';
-import { isAdmin, isAdminOn } from './codes';
+import { isAdmin } from './codes';
+import { hasUnlock } from './kilit';
 import { GROWTH_OP_METRICS, campLevel, decorCount, giveCampXp, giveDecoration, growthOn, pendingOf } from './camp-quests-adapter';
 import { campState, onQueuedStart } from './camp';
 import { dayBounds } from './events/common';
@@ -20,7 +21,8 @@ import { dayKey } from './time';
 const levelOf = (app: App, pid: string, id: BuildingId) => app.db.get<{ level: number }>('SELECT level FROM buildings WHERE player_id = ? AND id = ?', pid, id)?.level ?? 0;
 /** geçilen bölüm sayısı (sunucu: en yüksek açık bölüm − 1) */
 export const clearedOf = (app: App, pid: string) => Math.max(0, app.player(pid).highest - 1);
-export function featureOpen(app: App, pid: string, f: KgOzellik): boolean { return clearedOf(app, pid) >= KG_ACILIS[f] || isAdminOn(app, pid); }
+/** her şey açık modu ve kilit hediyesi de açar (1.2.0; kamp oyunları istemcide 'kampoyun') */
+export function featureOpen(app: App, pid: string, f: KgOzellik): boolean { return clearedOf(app, pid) >= KG_ACILIS[f] || hasUnlock(app, pid, f === 'oyun' ? 'kampoyun' : f); }
 /** Türkçe bulunma eki (apps/web/src/ftue/features.ts ile aynı) */
 function ek(n: number): string {
   if (n % 10 === 0) return ({ 10: 'da', 20: 'de', 30: 'da', 40: 'ta' } as Record<number, string>)[n % 100] ?? 'de';

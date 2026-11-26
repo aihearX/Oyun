@@ -5,7 +5,7 @@ import { useNet } from '@odi/net/store';
 import { GLOSSARY, type GlossaryTerm } from '@odi/content/odyoloji';
 import type { BiomeId } from '@odi/shared';
 import { useStore } from '../store';
-import { clearedCount } from '../ftue/features';
+import { clearedCount, reachCleared } from '../ftue/features';
 import { MoreLine } from '../ftue/Notes';
 import { ScreenHead } from '../ui/bits';
 import { Art } from '../ui/art';
@@ -27,7 +27,9 @@ export function reachedRegions(cleared: number): Set<BiomeId> {
  */
 export function GlossaryScreen({ onBack }: { onBack: () => void }) {
   const progress = useStore((s) => s.progress);
-  const reached = useMemo(() => reachedRegions(clearedCount(progress)), [progress]);
+  // her şey açık modu ve kilit hediyesinin bölüm sınırı da bölgelere ulaştırır (1.2.0)
+  const ftue = useStore((s) => s.ftue);
+  const reached = useMemo(() => reachedRegions(reachCleared(clearedCount(progress), ftue)), [progress, ftue]);
   const [q, setQ] = useState('');
   const open = GLOSSARY.filter((g) => reached.has(g.region));
   // Kulak Kampı: bina seviyesiyle açılan terimler (kamp sunucudadır; bağlı değilse kilitli görünür)

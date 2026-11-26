@@ -3,6 +3,7 @@ import { BUILDINGS, PASS_DAILY_KRISTAL, PROTOCOL_VERSION, SOCIAL_LIMITS, type In
 import { fail, randomCode, rid, sendJson, type App, type Conn, type Handlers, type PlayerRow } from './app';
 import { hasProfanity } from './profanity';
 import { setBadgePrefs } from './rozet';
+import { applyUnlock } from './kilit';
 import { dayNumber } from './time';
 import { bekleyenAktar, gunlukSinir } from './wallet';
 
@@ -156,6 +157,8 @@ export const playerHandlers: Handlers = {
     const item = app.db.get<InboxItem>('SELECT id, kind, amount, ref, reason, at FROM inbox WHERE id = ? AND player_id = ? AND claimed = 0', id, s.pid);
     if (!item) return fail('YOK', 'Ödül bulunamadı ya da zaten alındı.');
     app.db.run('UPDATE inbox SET claimed = 1 WHERE id = ?', id);
+    // 1.2.0: kilit hediyesi yalnız "Al"la açılır; yanıt güncel açılımları taşır (istemci kapılarını hemen açar)
+    if (item.kind === 'kilit') return { item: { ...item }, wallet: app.wallet(s.pid), acik: applyUnlock(app, s.pid, item.amount, item.ref, item.id) };
     app.grant(s.pid, { kind: item.kind, amount: item.amount, ref: item.ref });
     return { item: { ...item }, wallet: app.walletChanged(s.pid) };
   },

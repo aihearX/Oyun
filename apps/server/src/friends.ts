@@ -5,6 +5,8 @@ import { fail, parseJson, rid, type App, type Handlers, type PlayerRow } from '.
 import { recentRivalIds } from './race';
 import { dayKey, DAY_MS } from './time';
 import { reportPhoto } from './foto';
+import { dmLockOpen } from './kilit';
+import { dmKimden } from './comm/settings';
 
 /**
  * Arkadaşlık: istek → kabul. Eski 'friends.add' {code} istek gönderir; iki taraf da birbirine istek attıysa anında arkadaş olurlar.
@@ -29,15 +31,26 @@ export function isBlocked(app: App, a: string, b: string): boolean {
 }
 export function sameTeam(app: App, a: PlayerRow, b: PlayerRow): boolean { return !!a.team_id && a.team_id === b.team_id; }
 
-/** Özel mesaj izni: arkadaş ya da aynı takım; engel yok. Dönüş: null = izinli, aksi halde Türkçe neden. */
+/**
+ * Özel mesaj izni (1.2.0). Engel her durumda keser. Arkadaşlar her zaman yazışır. Alıcının seçimi (Ayarlar › Kimler mesaj atabilir,
+ * comm_settings.dm_kimden): 'herkes' (varsayılan), 'takim' (takımı ve arkadaşları), 'arkadas' (yalnız arkadaşları). Arkadaş ya da
+ * takım arkadaşı olmayan biriyle yazışmak için iki tarafın da özel mesaj kilidi açık olmalı (FRIENDS_OPEN_AFTER bölüm, her şey açık
+ * modu ya da kilit hediyesi; kilit.ts dmLockOpen): yeni başlayan oyuncuya yabancıdan mesaj gelmez. Dönüş: null = izinli, aksi halde neden.
+ */
 export function dmBlockReason(app: App, from: string, to: string): string | null {
   if (from === to) return 'Kendine mesaj gönderemezsin.';
   const a = app.playerOrNull(from); const b = app.playerOrNull(to);
   if (!a || !b) return 'Oyuncu bulunamadı.';
   if (hasBlocked(app, from, to)) return 'Bu oyuncuyu engelledin. Mesaj göndermek için önce engeli kaldır.';
   if (hasBlocked(app, to, from)) return 'Bu oyuncuya mesaj gönderilemiyor.';
-  if (areFriends(app, from, to) || sameTeam(app, a, b)) return null;
-  return 'Özel mesaj yalnızca arkadaşlar ve takım arkadaşları arasında. Önce arkadaşlık isteği gönder.';
+  if (areFriends(app, from, to)) return null;
+  const kimden = dmKimden(app, to);
+  if (kimden === 'arkadas') return 'Bu oyuncu yalnız arkadaşlarından mesaj alıyor. Önce arkadaşlık isteği gönder.';
+  if (sameTeam(app, a, b)) return null;
+  if (kimden === 'takim') return 'Bu oyuncu yalnız takımından ve arkadaşlarından mesaj alıyor. Önce arkadaşlık isteği gönder.';
+  if (!dmLockOpen(app, a)) return `Özel mesaj ${FRIENDS_OPEN_AFTER} bölüm geçince açılır. O zamana kadar arkadaşlarınla ve takımınla yazışabilirsin.`;
+  if (!dmLockOpen(app, b)) return 'Bu oyuncu yeni başladı; mesaj kutusu henüz açılmadı. Arkadaşlık isteği gönderebilirsin.';
+  return null;
 }
 
 const friendCount = (app: App, id: string) => app.db.get<{ n: number }>('SELECT COUNT(*) AS n FROM friends WHERE a = ?', id)!.n;
@@ -321,6 +334,7 @@ export const friendHandlers: Handlers = {
     const card: ProfileCard = {
       profile: app.publicProfile(p), relation: rel.relation, requestId: rel.requestId, friendCount: friendCount(app, id), mutualFriends: mutual,
       sameTeam: id !== s.pid && sameTeam(app, me, p), canMessage: id !== s.pid && dmBlockReason(app, s.pid, id) === null,
+      ...(() => { const why = id === s.pid ? null : dmBlockReason(app, s.pid, id); return why ? { dmReason: why } : {}; })(),
       giftedToday: !!app.db.get('SELECT 1 AS x FROM friend_gifts WHERE day = ? AND from_id = ? AND to_id = ?', dayKey(app.now()), s.pid, id),
     };
     return { card };

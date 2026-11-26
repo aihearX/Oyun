@@ -17,7 +17,8 @@ import {
 import { COSMETICS } from '@odi/content';
 import { fail, parseJson, randomCode, type App, type Handlers, type Session } from './app';
 import { rankInvalidate } from './rank';
-import { grantBadge, hasBadge, isRozetId, kurucuListesi, revokeBadge } from './rozet';
+import { grantBadge, hasBadge, isRozetId, revokeBadge } from './rozet';
+import { kurucuEkrani } from './kurucu-liste';
 
 export const CODES_SCHEMA = `
 CREATE TABLE IF NOT EXISTS promo_codes(code TEXT PRIMARY KEY, rewards TEXT NOT NULL, max_uses INTEGER, uses INTEGER NOT NULL DEFAULT 0, starts_at INTEGER, ends_at INTEGER,
@@ -240,5 +241,6 @@ export const codeHandlers: Handlers = {
   'code.list': (app, s) => { requireAdmin(app, s); return { codes: listCodes(app).map(maskRozetKodu) }; },
   'code.create': (app, s, d) => { requireAdmin(app, s); return { code: createCode(app, { ...d, by: s.pid }) }; },
   'code.close': (app, s, { code, active }) => { requireAdmin(app, s); return { code: setCodeActive(app, code, active ?? false) }; },
-  'kurucu.liste': (app) => kurucuListesi(app),
+  // 1.2.0: yöneticinin düzenlediği liste varsa o (kurucu-liste.ts), yoksa eski kural
+  'kurucu.liste': (app) => kurucuEkrani(app),
 };

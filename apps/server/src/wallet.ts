@@ -2,6 +2,7 @@ import { SKILL_TREE } from '@odi/content';
 import { LOCAL_JETON_CARRY_MAX, LOCAL_JETON_DAILY_MAX } from '@odi/shared';
 import { fail, type App, type Handlers } from './app';
 import { MAX_LEVEL } from './progress';
+import { hasLevelGift } from './kilit';
 import { dayKey, dayNumber, dayNumberStart } from './time';
 
 /**
@@ -112,7 +113,10 @@ export const walletHandlers: Handlers = {
     }
     const agg = app.db.get<{ stars: number | null; top: number | null }>('SELECT SUM(stars) AS stars, MAX(CASE WHEN stars > 0 THEN level END) AS top FROM level_best WHERE player_id = ?', s.pid)!;
     const p = app.player(s.pid);
-    const highest = Math.max(p.highest, Math.min(MAX_LEVEL, (agg.top ?? 0) + 1));
+    // 1.2.0: hediye ya da "her şey açık" ile sıra dışı oynanan bölüm gerçek ilerlemeyi atlatmaz: yalnız art arda geçilenler sayılır
+    let top = agg.top ?? 0;
+    if (hasLevelGift(app, p)) { const done = new Set(app.db.all<{ level: number }>('SELECT level FROM level_best WHERE player_id = ? AND stars > 0', s.pid).map((r) => r.level)); top = 0; while (done.has(top + 1)) top++; }
+    const highest = Math.max(p.highest, Math.min(MAX_LEVEL, top + 1));
     const stars = Math.max(p.stars, agg.stars ?? 0);
     app.db.run('UPDATE players SET highest = ?, stars = ? WHERE id = ?', highest, stars, s.pid);
     return { highest, stars };

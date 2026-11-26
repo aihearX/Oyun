@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyRewardReason, rallyShownName, type InboxItem, type RallyCall, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
+import { RALLY_MAX_PER_PLAYER, RALLY_MONSTERS, RALLY_RULES, rallyMaxHp, rallyPerPlayerNeed, rallyReachable, rallyRewardReason, rallyShownName, type InboxItem, type InboxKind, type RallyCall, type RallyMonsterDef, type RallyMonsterId, type RallyState } from '@odi/shared';
 import { useNet } from '@odi/net/store';
 import { platform } from '../platform';
 import { celebrate } from '../celebrate';
@@ -152,12 +152,12 @@ export function RallyView({ onPlay, rallyId }: { onPlay: PlayFn; rallyId?: strin
 }
 
 /** bu rallinin ödül kutusu satırları (sunucu kazanınca yazar: rallyRewardReason + kazanma anı); bağlı değilse null */
-async function rallyInboxRows(rally: RallyState, m: RallyMonsterDef): Promise<InboxItem[] | null> {
+async function rallyInboxRows(rally: RallyState, m: RallyMonsterDef): Promise<(InboxItem & { kind: InboxKind })[] | null> {
   const c = evNet(); const wonAt = rally.wonAt;
   if (!c || c.status !== 'bağlı' || wonAt == null) return null;
   try {
     const { items } = await c.call('inbox.list', {});
-    return items.filter((i) => i.reason === rallyRewardReason(m.name) && i.at >= wonAt && i.at < wonAt + 60_000);
+    return items.filter((i): i is InboxItem & { kind: InboxKind } => i.kind !== 'kilit' && i.reason === rallyRewardReason(m.name) && i.at >= wonAt && i.at < wonAt + 60_000);
   } catch { return null; }
 }
 
