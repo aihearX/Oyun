@@ -19,10 +19,11 @@ describe('mağaza etiketleri', () => {
     for (const p of packs) if (p !== best[0]) expect(perTry(best[0]!)).toBeGreaterThan(perTry(p));
   });
   it('açıklamadaki "+%N" en küçük kristal paketine göre fazla kristal (yuvarlanmış)', () => {
-    const base = packs.reduce((a, p) => (perTry(p) < perTry(a) ? p : a));
+    // 1.3.0: temel en ucuz paket (Tutam); ondan farkı yuvarlanınca %0 olan paket (Avuç) etiketsiz
+    const base = packs.reduce((a, p) => (p.priceTry < a.priceTry ? p : a));
     for (const p of packs) {
       const m = /\+%(\d+)/.exec(p.desc);
-      if (p === base) { expect(m).toBeNull(); continue; }
+      if (p === base || Math.round((perTry(p) / perTry(base) - 1) * 100) === 0) { expect(m).toBeNull(); continue; }
       expect(Number(m?.[1])).toBe(Math.round((perTry(p) / perTry(base) - 1) * 100));
     }
   });

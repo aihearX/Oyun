@@ -7,6 +7,7 @@ import { dayKey, DAY_MS } from './time';
 import { reportPhoto } from './foto';
 import { dmLockOpen } from './kilit';
 import { dmKimden } from './comm/settings';
+import { pushArkadasHediyesi, pushArkadasIstegi, pushArkadasKabul } from './push';
 
 /**
  * Arkadaşlık: istek → kabul. Eski 'friends.add' {code} istek gönderir; iki taraf da birbirine istek attıysa anında arkadaş olurlar.
@@ -95,6 +96,7 @@ export function requestFriend(app: App, pid: string, other: PlayerRow): { status
     const mine = app.publicProfile(app.player(pid));
     app.emit(other.id, 'friend.accepted', { friend: mine });
     app.emit(other.id, 'friend.updated', { friend: mine });
+    pushArkadasKabul(app, app.player(pid), other.id);
     return { status: 'arkadas', request: null };
   }
   const have = app.db.get<ReqRow>('SELECT * FROM friend_requests WHERE from_id = ? AND to_id = ?', pid, other.id);
@@ -110,6 +112,7 @@ export function requestFriend(app: App, pid: string, other: PlayerRow): { status
   app.db.run('INSERT INTO friend_requests(id, from_id, to_id, at) VALUES(?, ?, ?, ?)', id, pid, other.id, app.now());
   const request = toRequest(app, app.db.get<ReqRow>('SELECT * FROM friend_requests WHERE id = ?', id)!);
   app.emit(other.id, 'friend.request', { request });
+  pushArkadasIstegi(app, app.player(pid), other.id);
   return { status: 'istek', request };
 }
 
@@ -199,6 +202,7 @@ export const friendHandlers: Handlers = {
     const mine = app.publicProfile(app.player(s.pid));
     app.emit(r.from_id, 'friend.accepted', { friend: mine });
     app.emit(r.from_id, 'friend.updated', { friend: mine });
+    pushArkadasKabul(app, app.player(s.pid), r.from_id);
     return { friend: app.publicProfile(app.player(r.from_id)) };
   },
   'friends.requests': (app, s) => {
@@ -232,6 +236,7 @@ export const friendHandlers: Handlers = {
     const me = app.player(s.pid);
     app.addInbox(id, { kind: 'jeton', amount: FRIEND_LIMITS.giftJeton, ref: 'arkadas' }, `${me.name} sana arkadaş hediyesi gönderdi`);
     app.emit(id, 'friend.gift', { from: app.publicProfile(me), amount: FRIEND_LIMITS.giftJeton });
+    pushArkadasHediyesi(app, me, id); // günde tek bildirim
     app.addCurrency(s.pid, 'jeton', FRIEND_LIMITS.giftThanksJeton);
     return { wallet: app.walletChanged(s.pid), thanks: FRIEND_LIMITS.giftThanksJeton, left: FRIEND_LIMITS.giftsPerDay - sent - 1 };
   },

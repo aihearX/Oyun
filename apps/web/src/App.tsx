@@ -15,6 +15,7 @@ import { installViewport, scrollAppTop } from './ui/viewport';
 import { ArtDefs } from './ui/art';
 import { CoachHost } from './ftue/Coach';
 import { AcilisUyarilari } from './ui/AcilisUyarilari';
+import { magazaDurumunuYukle } from './magaza-gorunum';
 import { FtueDirector, ONCE_DINLE, levelGate, useLockToast } from './ftue/Director';
 import { StoryScreen } from './ftue/Story';
 import { FEATURES, clearedCount, isOpen, lockText, type FeatureId } from './ftue/features';
@@ -30,6 +31,7 @@ import { FriendBanner, useSocialUnread } from './friends/Banner';
 import { ProfileCardHost } from './friends/ProfileCard';
 import { Onboarding } from './ui/Onboarding';
 import { EVENT_TITLE, NavContext, SCREEN_TITLE, errorBackTo, type Nav, type SocialRoute } from './nav';
+import { BildirimHost } from './bildirim/BildirimHost';
 import { startNet, submitRun, useSocial } from './net';
 import type { ShieldGift } from './kalkan';
 import { runSkills, startLines } from './screens/bolum-basi';
@@ -250,6 +252,8 @@ export function App() {
   const [route, setRoute] = useState<Route>(() => (!bot && wantsDemoResult() ? { name: 'wait' } : { name: 'title' }));
   // çökme raporundaki (YN-011) ve geri bildirimdeki ekran adı (yalnız rota adı)
   useEffect(() => { setCrashScreen(route.name); noteFeedbackScreen(route.name); }, [route.name]);
+  // 1.3.0: sunucu mağazayı gizli tutuyor mu (GET /surum "magaza":"gizli"); açılışta bir kez
+  useEffect(() => { void magazaDurumunuYukle(platform().serverUrl()); }, []);
   useEffect(() => {
     if (bot || !wantsDemoResult()) return;
     void loadLevelGen().then((lg) => { const d = demoResult(lg); if (d) { setDemo(d); setRoute(d); } }, chunkFailed);
@@ -371,7 +375,7 @@ export function App() {
   const curTab: Tab = 'back' in route ? route.back ?? 'profile' : (['map', 'today', 'camp', 'team', 'profile'] as string[]).includes(route.name) ? route.name as Tab : 'map';
   const isSub = (r: Route) => 'back' in r && r.name !== 'raceResult';
   const nav: Nav = { open: (r) => { if (isSub(route)) stack.current.push(route); else stack.current = []; setRoute({ ...r, back: curTab, key: Date.now() } as Route); }, play, tab };
-  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => { void raceSpec(room).then((spec) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room }), chunkFailed); }} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, fromHub: true, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
+  const banner = <><RaceInviteBanner onAccept={(id) => setRoute({ name: 'race', inviteRoomId: id, back: curTab, key: Date.now() })} /><FriendBanner /><CommBanner /><ProfileCardHost /><TeamProfileHost /><BildirimHost /><TeamRaceMatchWatcher busy={false} onPlay={(room) => { void raceSpec(room).then((spec) => setRoute({ name: 'level', spec, extras: raceExtras(), race: room }), chunkFailed); }} />{isOpen('events', cleared, store.ftue) && <EventNoticeStrip onOpen={(v) => (route.name === 'events' ? setRoute({ name: 'events', view: v, back: route.back, fromHub: true, key: Date.now() }) : nav.open({ name: 'events', view: v }))} />}</>;
   const tabBar = (active: Tab) => <TabBar active={active} onTab={tab} locked={{ today: tabLocked('today') ? lockText('today') : undefined, camp: tabLocked('camp') ? lockText('camp') : undefined, team: tabLocked('team') ? lockText('team') : undefined, profile: tabLocked('profile') ? lockText('profile') : undefined }} badges={{ today: todayBadge, camp: socialBadges.camp, team: socialBadges.team, profile: dmBadge }} />;
   const withTabs = (active: Tab, el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route} {...errorCard(route)}><Suspense fallback={<ScreenLoading tabs top={active === 'map' ? undefined : <TopBar title={TAB_TITLE[active]} />} />}>{el}</Suspense></HataSiniri>{tabBar(active)}<Onboarding /></NavContext.Provider>;
   const sub = (el: ReactNode) => <NavContext.Provider value={nav}>{banner}<HataSiniri sifirla={route} {...errorCard(route)}><Suspense fallback={<ScreenLoading {...loadingHead(route)} />}>{el}</Suspense></HataSiniri></NavContext.Provider>;

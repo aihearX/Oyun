@@ -17,6 +17,7 @@ import { badgeFields } from './rozet';
 import { unlocksOf } from './kilit';
 import { DAY_MS } from './time';
 import { geriKodUret, kurtarmaGonderildi, kurtarmaListesi } from './kurtarma';
+import { pushHediye, pushHediyeHerkese } from './push';
 
 const NOT_DELETED = 'p.id NOT IN (SELECT player_id FROM deleted_players)';
 const likeEsc = (s: string) => s.replace(/[%_\\]/g, (c) => '\\' + c);
@@ -135,6 +136,7 @@ function unlockGift(app: App, s: Session, d: { code: string; levels?: number; fe
   if (!p) fail('YOK', 'Bu arkadaş koduyla oyuncu yok.');
   const note = d.note?.trim().slice(0, 60) || undefined;
   const item = app.addInbox(p.id, { kind: 'kilit', amount: levels, ref: kilitRef(features) }, kilitHediyeMetni(levels, features, note));
+  pushHediye(app, p.id, true);
   // kartın kimliği kayıtta: oyuncu alınca veren yönetici player_unlocks.granted_by'a yazılır (kilit.ts applyUnlock)
   logAdmin(app, s, `kilit:${code}:${item.id}:bolum=${levels}:${kilitRef(features)}`);
   return item;
@@ -151,6 +153,7 @@ function gift(app: App, s: Session, d: { code?: string; all?: boolean; jeton?: n
     const p = app.db.get<{ id: string }>(`SELECT p.id FROM players p WHERE p.friend_code = ? AND ${NOT_DELETED}`, code);
     if (!p) fail('YOK', 'Bu arkadaş koduyla oyuncu yok.');
     for (const [kind, amount] of parts) app.addInbox(p.id, { kind: kind as 'jeton', amount, ref: 'hediye' }, reason, at);
+    pushHediye(app, p.id, false, reason);
     logAdmin(app, s, `hediye:${code}:${parts.map(([k, n]) => `${k}=${n}`).join(',')}`);
     return 1;
   }
@@ -164,6 +167,7 @@ function gift(app: App, s: Session, d: { code?: string; all?: boolean; jeton?: n
     for (const it of app.db.all<{ id: string; kind: 'jeton'; amount: number; ref: string; reason: string; at: number }>(
       "SELECT id, kind, amount, ref, reason, at FROM inbox WHERE player_id = ? AND ref = 'hediye' AND at = ? AND claimed = 0", pid, at)) app.emit(pid, 'inbox.new', { item: { ...it } });
   }
+  pushHediyeHerkese(app, reason);
   logAdmin(app, s, `hediye:hepsi:${count}:${parts.map(([k, n]) => `${k}=${n}`).join(',')}`);
   return count;
 }

@@ -255,4 +255,10 @@ describe('GET /surum (açılıştaki güncelleme sorusu)', () => {
     env = await setup();
     expect(await (await fetch(`${env.srv.httpUrl}/surum`)).json()).toEqual({});
   });
+  it('1.3.0: ODI_MAGAZA_GIZLI=1 iken "magaza":"gizli" (istemci Mağaza girişlerini gizler)', async () => {
+    expect(configFromEnv({ ODI_MAGAZA_GIZLI: '1' }).magazaGizli).toBe(true);
+    expect(configFromEnv({}).magazaGizli).toBeUndefined();
+    env = await setup({ magazaGizli: true, sonSurum: { ios: '1.3.0' } });
+    expect(await (await fetch(`${env.srv.httpUrl}/surum`)).json()).toEqual({ ios: '1.3.0', magaza: 'gizli' });
+  });
 });

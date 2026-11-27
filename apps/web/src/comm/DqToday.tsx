@@ -12,6 +12,7 @@ import { Sheet, fmtTime } from '../ui/social';
 import { Art } from '../ui/art';
 import { BEKLEYEN_GONDER, BekleyenSatir } from '../ui/bekleyen';
 import { openTeamTab } from '../screens/team/teamTabs';
+import { setChatPane } from './teamFeed';
 import { refreshDq, useComm } from './state';
 import './comm.css';
 
@@ -96,7 +97,7 @@ function DqSheet({ st, q, onClose }: { st: DqState; q: DailyQuestion; onClose: (
   const nav = useNav(); const gidenSoru = useDqGiden((x) => x.giden);
   const giden = gidenSoru?.day === q.day ? gidenSoru.choice : null;
   const labels = quizChoiceLabels(q.choices); const my = q.myChoice ?? giden; const ans = q.answer;
-  const toChat = () => { onClose(); openTeamTab('sohbet'); nav.tab('team'); };
+  const toChat = () => { onClose(); openTeamTab('sohbet'); setChatPane('mesaj'); nav.tab('team'); };
   return (
     <Sheet title="Günün Sorusu" onClose={onClose}>
       <div className="dqb-sheet" data-testid="bugun-soru-sayfa">

@@ -19,6 +19,7 @@ import { bindComm, refreshComm } from './comm/state';
 import { bindTeamRace } from './teamrace/state';
 import { bindCodes } from './codes/Codes';
 import { bindPhotos } from './foto/foto-store';
+import { bindPush } from './bildirim/bildirim';
 import { bindTeamApply } from './screens/team/apply';
 import { bindOdiColor } from './look';
 import { bindKg } from './camp/gorev/state';
@@ -458,6 +459,7 @@ export function startNet(): void {
     bindTeamRace(c); // takım rekabeti: Takım Yarışı lobisi/eşleşme/sonuç, Takım Ligi
     bindCodes(c); // Kod Gir: yönetici modu sunucu durumuyla eşitlenir
     bindPhotos(c); // profil fotoğrafları (1.1.0): değişiklik olayı ve görünen oyuncuların toplu sorgusu
+    bindPush(c); // anlık bildirimler (1.3.0): bağlanınca cihaz anahtarı ve bildirim ayarları
     bindTeamApply(c); // takım başvuruları: lider/yardımcı rozeti, karar bildirimi
     bindKg(c); // Kamp Görevleri: hikâye, günlük görevler, vakalar, kamp oyunları (docs/17-kamp-gorevleri.md)
     c.onStatus((st) => { if (st !== 'bağlanıyor') useSocial.setState({ tried: true }); if (st === 'bağlı') void onConnected(c); });

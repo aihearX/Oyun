@@ -8,6 +8,7 @@ import { Db } from './db';
 import { weekInfo } from './time';
 import { badgeFields } from './rozet';
 import { applyUnlock, unlocksOf } from './kilit';
+import type { PushTransport } from './push';
 
 /** sunucunun ödül kutusuna / hediyeye koyabildiği tek ödül */
 export interface Grant { kind: InboxKind; amount: number; ref: string }
@@ -51,8 +52,12 @@ export interface ServerConfig {
   backupHours?: number;
   /** tutulacak yedek sayısı (ODI_BACKUP_KEEP, varsayılan 28 = 6 saatte bir 7 gün) */
   backupKeep?: number;
+  /** 1.3.0 anlık bildirim gönderimi (push.ts; üretimde Expo Push API, ODI_PUSH=0 kapatır). Yoksa bildirim gitmez (testler sahte verir). */
+  push?: PushTransport | null;
   /** mağazadaki son sürüm (ODI_SON_SURUM_IOS / ODI_SON_SURUM_ANDROID; GET /surum, açılıştaki güncelleme sorusu). Yoksa alan yok. */
   sonSurum?: { ios?: string; android?: string };
+  /** 1.3.0: ODI_MAGAZA_GIZLI=1 iken GET /surum "magaza":"gizli" döndürür; 1.3.0+ istemci Mağaza girişlerini gizler (yeni derleme gerekmez) */
+  magazaGizli?: boolean;
 }
 
 export class OdiError extends Error {
@@ -73,6 +78,8 @@ export interface Conn {
   ip?: string;
   /** istemcinin anladığı kamp sürümü (hello.campV; yoksa 0 = eski istemci, yalnız eski binalar) */
   campV?: number;
+  /** 1.3.0: uygulama arka planda (push.away); bağlantı açık olsa da anlık bildirim gider */
+  away?: boolean;
 }
 
 export interface Session { conn: Conn; pid: string }

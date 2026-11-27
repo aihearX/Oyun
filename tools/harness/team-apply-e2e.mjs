@@ -248,7 +248,7 @@ async function webSuite(bt) {
     await A.page.locator('[data-testid="basvuru-rozeti"]').waitFor({ timeout: 10_000 });
     const tabDot = await A.page.locator('nav.tabbar .tab[data-tab="team"] .dot').innerText().catch(() => '0');
     S.check(Number(tabDot) >= 1, `Takım sekmesinde rozet (${tabDot})`);
-    S.check((await A.page.getByTestId('basvuru-rozeti').innerText()).includes('1 yeni başvuru'), 'takım başlığında “1 yeni başvuru”');
+    S.check((await A.page.getByTestId('basvuru-rozeti').textContent()).includes('1 yeni başvuru'), 'takım başlığında “1 yeni başvuru”');
     await S.shot(A, 'lider-rozet');
     await A.page.getByTestId('basvuru-rozeti').click();
     const card = A.page.locator(`[data-testid="basvuru"][data-player="Bora${k}"]`);
@@ -263,6 +263,7 @@ async function webSuite(bt) {
     await B.page.locator('.team-head').waitFor({ timeout: 10_000 });
     S.check((await B.page.locator('.team-head h2').innerText()).trim() === TN, 'B takımda (takım ekranı)');
     await A.page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click();
+    await A.page.getByTestId('sohbet-guncellemeler').click(); // katılma kartı Güncellemeler'de (1.3.0)
     await A.page.locator('.chat .msg, .chat [data-testid="akis-karti"]', { hasText: `Bora${k} takıma katıldı` }).first().waitFor({ timeout: 10_000 });
     S.check(true, 'takım akışı: “Bora takıma katıldı”');
     await S.shot(A, 'akis-katildi');

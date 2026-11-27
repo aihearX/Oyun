@@ -8,6 +8,8 @@ import { NARRATOR_TTS } from '../../../web/src/ftue/voicePick';
 import { resetVoiceManifest } from '../../../web/src/ftue/voice';
 import { installCrashReporting } from '../../../web/src/hata';
 import { HataSiniri } from '../../../web/src/ui/HataSiniri';
+import { pushDokunuldu, uygulamaOnde } from '../../../web/src/bildirim/bildirim';
+import type { PushIzin } from '../../../web/src/platform';
 
 export type WebAppProps = {
   /** yerel depolama köprüsü (AsyncStorage) */
@@ -32,6 +34,16 @@ export type WebAppProps = {
   onceThisLaunch?: (key: string) => Promise<boolean>;
   /** telefonun medya ses düzeyi 0..1 (okunamazsa null) */
   getMediaVolume?: () => Promise<number | null>;
+  /** 1.3.0 anlık bildirimler (src/bildirim.ts): izin, izin iste, Expo anahtarı, telefonun ODİ ayarları */
+  pushStatus?: () => Promise<PushIzin>;
+  pushRequest?: () => Promise<PushIzin>;
+  pushToken?: () => Promise<{ token: string; platform: 'ios' | 'android' } | null>;
+  openSettings?: () => Promise<void>;
+  /** dokunulan bildirim: pushTapN her dokunuşta artar, veri takePushTap ile bir kez alınır */
+  takePushTap?: () => Promise<{ kind: string; id: string } | null>;
+  pushTapN?: number;
+  /** uygulama önde mi (AppState); arka plandayken sunucu bildirim gönderir */
+  appActive?: boolean;
   /** gerçek mağaza satın alması (yalnız mağaza derlemesinde) */
   purchase?: (productId: string, playerId: string) => Promise<StorePurchaseResult>;
   /** satın alımları geri yükle (RevenueCat restorePurchases; yalnız mağaza derlemesinde, purchase ile birlikte) */
@@ -78,6 +90,10 @@ export default function WebApp(p: WebAppProps) {
       ...(p.openUrl ? { openUrl: (u: string) => { void p.openUrl!(u).catch(() => undefined); } } : {}),
       ...(p.pickPhoto ? { pickPhoto: () => p.pickPhoto!().catch(() => null) } : {}),
       ...(p.onceThisLaunch ? { onceThisLaunch: (k: string) => p.onceThisLaunch!(k).catch(() => false) } : {}),
+      ...(p.pushStatus && p.pushRequest && p.pushToken ? { push: {
+        status: () => p.pushStatus!().catch((): PushIzin => 'denied'), request: () => p.pushRequest!().catch((): PushIzin => 'denied'),
+        token: () => p.pushToken!().catch(() => null), openSettings: () => { void p.openSettings?.().catch(() => undefined); },
+      } } : {}),
       ...(p.getMediaVolume ? { getMediaVolume: () => p.getMediaVolume!().catch(() => null) } : {}),
       ...(p.stopSpeaking ? { stopSpeaking: () => { void p.stopSpeaking!().catch(() => undefined); } } : {}),
       ...(p.canPurchase && p.purchase ? { purchase: (id: string, pid: string) => p.purchase!(id, pid) } : {}),
@@ -107,6 +123,9 @@ export default function WebApp(p: WebAppProps) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // güvenli alan payları ilk çizimden sonra gelebilir/değişebilir (SafeAreaProvider ölçümü, döndürme): her değişimde yaz
   useEffect(() => { applyInsets(p.insetTop, p.insetBottom); }, [p.insetTop, p.insetBottom]);
+  // 1.3.0 bildirime dokunma (soğuk açılışta da: arayüz hazır olunca alınır) ve uygulamanın önde olup olmadığı
+  useEffect(() => { if (ready && p.takePushTap) void p.takePushTap().then(pushDokunuldu, () => undefined); }, [ready, p.pushTapN]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (p.appActive !== undefined) uygulamaOnde(p.appActive); }, [p.appActive]);
   if (!ready) return null;
   return <HataSiniri kok><App /></HataSiniri>;
 }

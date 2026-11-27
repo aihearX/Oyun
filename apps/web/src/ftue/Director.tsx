@@ -11,6 +11,7 @@ import { CAMP_TOURS, countUnlockTour, genelUnlockQueue, groupFull, groupOf, hedi
 import { Art } from '../ui/art';
 import { useCelebrating } from '../celebrate';
 import { openTeamTab } from '../screens/team/teamTabs';
+import { setChatPane } from '../comm/teamFeed';
 import { useKg } from '../camp/gorev/state';
 import { KampYeniKart, hideKampYeni, kampYeniBekleyen, kartta, showKampYeni } from './KampYeni';
 import { kampBinaAc, kampGitSuruyor } from '../camp/istek';
@@ -325,14 +326,14 @@ export function tourFor(id: string, route: string, goster = false): Tour | null 
         ...(route === 'team' ? [] : [tapTab('team')]),
         // Tebrik et'i olan en yeni kart parlar (sayfa ona kayar); yoksa en yeni kartın tepkileri ve yön notu yalnız tepkiden söz eder
         // (OT-ilk-kez-oyun-62: en eski "Hoş geldin" kartı parlıyordu). Onaylı satırın metni aynı
-        { ...line('akis-02'), enter: () => openTeamTab('sohbet'), target: () => tebrikKarti() ?? sonKart()?.querySelector('.react-bar') ?? document.querySelector('.quick-line'), note: akisNotu, optional: true, mood: 'wink' },
+        { ...line('akis-02'), enter: () => { openTeamTab('sohbet'); setChatPane('guncelleme'); }, target: () => tebrikKarti() ?? sonKart()?.querySelector('.react-bar') ?? document.querySelector('.quick-line'), note: akisNotu, optional: true, mood: 'wink' },
       ); break;
     case 'soru':
       steps.push(
         unlockCard('soru', 'soru-01'),
         ...(route === 'team' ? [] : [tapTab('team')]),
         // soru kapalıysa (cevaplanmış/açıklanmış) "Bir şık seç" denmez: adım konuşmadan geçilir, kart sıradaki saati yazar
-        { ...line('soru-02'), enter: () => openTeamTab('sohbet'), target: openQuestion, optional: true },
+        { ...line('soru-02'), enter: () => { openTeamTab('sohbet'); setChatPane('mesaj'); }, target: openQuestion, optional: true },
       ); break;
     case 'ikili':
       steps.push(

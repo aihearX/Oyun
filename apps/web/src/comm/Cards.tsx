@@ -432,13 +432,16 @@ function BoardSheet({ onClose }: { onClose: () => void }) {
 }
 
 /** Kim çevrimiçi: takım üyeleri (gerçek bağlantı); oyuncunun kendisi sayılmaz, metin bunu söyler (Üyeler sekmesi kendini de sayar) */
-export function OnlineRow({ members }: { members: { id: string; name: string; color: number; hat: string; online: boolean }[] }) {
+/** compact (Takım › Sohbet bölme satırında, 1.3.0): yazı yok, nokta + sayı + en çok 3 yüz; kimse yoksa hiç çizilmez */
+export function OnlineRow({ members, compact }: { members: { id: string; name: string; color: number; hat: string; online: boolean }[]; compact?: boolean }) {
   const pres = useNet((x) => x.presence); const me = useNet((x) => x.me?.id);
   const on = members.filter((m) => m.id !== me && (pres[m.id] ?? m.online));
+  if (compact && !on.length) return null;
+  const max = compact ? 3 : 8;
   return (
-    <div className={`online-row${on.length ? '' : ' none'}`} data-testid="kim-cevrimici" aria-label={`Çevrimiçi: ${on.length}`}>
-      <span className="or-dot" aria-hidden /><small>{on.length ? `Senden başka ${on.length} kişi çevrimiçi` : 'Senden başka kimse çevrimiçi değil'}</small>
-      <span className="or-avs">{on.slice(0, 8).map((m) => <button key={m.id} type="button" className="or-av" onClick={() => openProfile(m.id)} aria-label={`${m.name} çevrimiçi`} title={m.name}><OdiAvatar size={26} color={m.color} hat={hatKey(m.hat)} pid={m.id} /></button>)}{on.length > 8 && <span className="or-more">+{on.length - 8}</span>}</span>
+    <div className={`online-row${on.length ? '' : ' none'}${compact ? ' compact' : ''}`} data-testid="kim-cevrimici" aria-label={on.length ? `Senden başka ${on.length} kişi çevrimiçi` : 'Senden başka kimse çevrimiçi değil'} title={compact ? `Senden başka ${on.length} kişi çevrimiçi` : undefined}>
+      <span className="or-dot" aria-hidden />{compact ? <small aria-hidden>{on.length}</small> : <small>{on.length ? `Senden başka ${on.length} kişi çevrimiçi` : 'Senden başka kimse çevrimiçi değil'}</small>}
+      <span className="or-avs">{on.slice(0, max).map((m) => <button key={m.id} type="button" className="or-av" onClick={() => openProfile(m.id)} aria-label={`${m.name} çevrimiçi`} title={m.name}><OdiAvatar size={26} color={m.color} hat={hatKey(m.hat)} pid={m.id} /></button>)}{on.length > max && <span className="or-more">+{on.length - max}</span>}</span>
     </div>
   );
 }

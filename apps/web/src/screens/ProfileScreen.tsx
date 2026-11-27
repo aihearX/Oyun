@@ -1,4 +1,4 @@
-import { platform } from '../platform';
+import { useMagazaGizli } from '../magaza-gorunum';
 import { useMemo, useState } from 'react';
 import { ACHIEVEMENTS, CARDS, COSMETICS, HUMAN_JOURNEY } from '@odi/content';
 import { albumProgress, levelProgress } from '@odi/meta';
@@ -41,6 +41,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
   const stat = (art: ArtName, v: string | number, k: string) => <div className="pstat"><Art name={art} size={26} className="ps-art" /><b>{v}</b><span>{k}</span></div>;
   const online = st === 'bağlı' && !!me;
   // ilk deneyim: henüz açılmamış yerler kilitli karo ("Bölüm N'de açılır"), dokununca kısa not
+  const magazaKapali = useMagazaGizli();
   const feat = useFeatures(); const [note, setNote] = useState<string | null>(null);
   const tileCls = (f: FeatureId) => `menu-tile${feat.open(f) ? '' : ' locked'}`;
   const guard = (f: FeatureId, fn: () => void) => () => { if (feat.open(f)) fn(); else { setNote(feat.lock(f)); setTimeout(() => setNote(null), 1800); } };
@@ -69,7 +70,7 @@ export function ProfileScreen({ onOpen }: { onOpen: (l: ProfileLink) => void }) 
         <button className={tileCls('friends')} data-tile="friends" onClick={guard('friends', () => onOpen('friends'))}><span className="mi teal rel"><Icon name="friends" />{reqs > 0 && <span className="sbadge abs">{reqs}</span>}</span><b>Arkadaşlar</b>{lockNote('friends') ?? <span className="muted">{reqs ? `${reqs} arkadaşlık isteği` : 'Ara, ekle, hediye gönder'}</span>}</button>
         <button className={tileCls('friends')} data-tile="messages" onClick={guard('friends', () => nav.open({ name: 'messages' }))}><span className="mi teal rel"><Icon name="chat" />{dms > 0 && <span className="sbadge abs">{dms}</span>}</span><b>Mesajlar</b>{lockNote('friends') ?? <span className="muted">{dms ? `${dms} okunmamış mesaj` : 'Özel sohbetlerin'}</span>}</button>
         <button className={tileCls('shop')} data-tile="inbox" onClick={guard('shop', () => onOpen('inbox'))}><span className="mi gold rel"><Icon name="inbox" />{inbox > 0 && <span className="sbadge abs">{inbox}</span>}</span><b>Ödül kutusu</b>{lockNote('shop') ?? <span className="muted">{inbox ? `${inbox} ödül seni bekliyor` : 'Savaş ve takım ödülleri'}</span>}</button>
-        {!platform().shopHidden && <button className={tileCls('shop')} data-tile="shop" onClick={guard('shop', () => onOpen('shop'))}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b>{lockNote('shop') ?? <span className="muted">İçerikler açık, sınır sende</span>}</button>}
+        {!magazaKapali && <button className={tileCls('shop')} data-tile="shop" onClick={guard('shop', () => onOpen('shop'))}><span className="mi gold"><Icon name="gem" /></span><b>Mağaza</b>{lockNote('shop') ?? <span className="muted">İçerikler açık, sınır sende</span>}</button>}
         <button className={tileCls('friends')} data-tile="together" onClick={guard('friends', () => nav.open({ name: 'birlikte' }))}><span className="mi gold"><Art name="users" size={26} /></span><b>Birlikte</b>{lockNote('friends') ?? <span className="muted">İkili Görev, Usta–Çırak</span>}</button>
         {/* arkadaşı olmayan oyuncunun da canlı yarışa yolu (YN-255, OT-rekabetci-50): lobi (Hızlı yarış, Oda kur, Kodla katıl); Geri Profil'e */}
         <button className={tileCls('race')} data-tile="race" onClick={guard('race', () => nav.open({ name: 'race' }))}><span className="mi coral"><Art name="finish" size={26} /></span><b>Canlı yarış</b>{lockNote('race') ?? <span className="muted">Hızlı yarış · Oda kur · Kodla katıl</span>}</button>

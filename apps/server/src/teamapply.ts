@@ -26,6 +26,7 @@ import { teamPowerRanks } from './rank';
 import { currentTier } from './teamrace/league';
 import { broadcastTeam, joinTeam, requireTeam, teamDetail, teamNameKey } from './teams';
 import { dayKey } from './time';
+import { pushBasvuru } from './push';
 
 export { TEAM_APPLY_SCHEMA } from './teamapply-schema';
 
@@ -202,6 +203,7 @@ function apply(app: App, pid: string, teamId: string, noteId?: string, note?: st
   app.db.run('INSERT INTO team_apps(id, team_id, player_id, team_name, team_emblem, note, note_kind, status, at, expires_at, seen) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)',
     id, t.id, pid, t.name, t.emblem, n.note, n.kind, 'bekliyor', app.now(), app.now() + R.ttlMs);
   notifyApprovers(app, t.id);
+  pushBasvuru(app, p, t.id, t.name, approverIds(app, t.id)); // 1.3.0 anlık bildirim (lider ve yardımcılar)
   return toView(app, row(app, id)!);
 }
 

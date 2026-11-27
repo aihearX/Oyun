@@ -39,6 +39,7 @@
 | Hesap kurtarma deneme kaydı (`kurtarma_log`: zaman, IP, sonuç; e-posta ve kod yazılmaz) | 90 gün | `kurtarma.ts` `KURTARMA_LOG_TUT_MS` |
 | Kurtarma istek sınırı (IP, cihazda üretilen rastgele sayı; bellek) | En çok 1 gün | `kurtarma.ts` `izBudama` (saatlik bakım) |
 | Geri alma kodu (`geri_kod`, yalnız özeti) ve geçersizleşen oturum anahtarı özeti (`tasinan_anahtar`) | Kod: süresi (24 saat) dolduktan 7 gün sonra; anahtar özeti 1 yıl; ikisi de hesapla silinir | `kurtarma.ts` `pruneKurtarma`, `account-veri.ts` |
+| Anlık bildirim anahtarı (`push_tokens`: Expo bildirim anahtarı, platform; 1.3.0, yalnız telefonda izin verilirse) ve bildirim türleri (`push_settings`) | Bütün türler kapatılınca, telefonda izin kalkınca, Expo "cihaz kayıtlı değil" deyince, hesap başka cihaza geçince (eski cihazınki) ya da hesap silinince | `push.ts` (`push.settings`, `push.unregister`, `DeviceNotRegistered`, `pushAnahtarlariSil`), `account-veri.ts` (`push_tokens`, `push_settings` "sil") |
 | Bölüm gönderim kayıtları (`progress_runs`) | 30 gün | `progress.ts` `RUN_RETAIN_MS` |
 | Hesap açma sınırı için IP (bellek) | En çok ~2 saat (saatlik bakım) | `players.ts` `pruneNewAccountIps` |
 | Sunucu günlüğü (journald) | 30 gün | `tools/sunucu/ortak.sh` `MaxRetentionSec=30day` |

@@ -80,6 +80,15 @@ export interface ChatMessage {
 }
 
 /**
+ * Takım sohbetinde "güncelleme" mi (1.3.0, sahibin isteği): sistemin yazdığı her ileti (Takım Akışı kartı, yardım kartı, katıldı/ayrıldı,
+ * hediye, teknoloji, hedef, savaş, baskın, ralli, bayrak, yarış duyuruları). Takım ekranında Mesajlar'da değil Güncellemeler'de akar,
+ * Mesajlar okunmamış sayısına girmez. Günün Sorusu (kind 'soru') güncelleme değildir: takımın tartışma kartıdır, Mesajlar'da kalır.
+ * Oyuncunun yazdığı her şey (yazı, emoji, hazır söz, karta yanıt) mesajdır. Sunucudaki eşi: chat.ts HUMAN_SQL (okunmamış sayısı).
+ * Protokol değişmez: eski istemciler aynı iletileri tek akışta görür.
+ */
+export const isTeamUpdate = (m: Pick<ChatMessage, 'from' | 'kind'>): boolean => m.from === 'sistem' && m.kind !== 'soru';
+
+/**
  * Takım amblemleri (YN-044): 20 çizili amblem. Saklanan değer eski kayıtlarla uyum için (göç gerekmesin) emoji kod noktasıdır,
  * ama yalnızca bir ANAHTAR olarak: arayüz onu glif olarak çizmez, ui/art.tsx TeamEmblem çizime çevirir (listede olmayan eski
  * amblemler eşleme tablosuyla, eşleşmeyen varsayılan çizimle). Sunucu takım kurarken yalnız bu listeyi kabul eder.
@@ -447,13 +456,17 @@ export const PASS_DAYS = 28;
 export const PASS_DAILY_KRISTAL = 30;
 export const PASS_TOTAL_KRISTAL = PASS_DAYS * PASS_DAILY_KRISTAL;
 export const SHOP: ShopProduct[] = [
+  // 1.3.0 katalog: paketler (üstte), kristal paketleri, hızlandırıcılar. Mağaza ekranı içerikten kümeler (ShopScreen magazaKumesi).
   { id: 'odi.baslangic', name: 'Başlangıç Paketi', desc: '300 kristal, 10 adet 5 dk hızlandırıcı, Kâşif Şapkası', priceTry: 49.99, contents: [{ kind: 'kristal', amount: 300 }, { kind: 'm5', amount: 10 }, { kind: 'kozmetik', amount: 1, ref: 'sapka-kasif' }], teamGift: true, limit: 1, tag: 'baslangic', storeType: 'non-consumable' },
+  { id: 'odi.kamp', name: 'Kamp Kurucu Paketi', desc: '700 kristal, 5 adet 60 dk, 10 adet 5 dk hızlandırıcı', priceTry: 119.99, contents: [{ kind: 'kristal', amount: 700 }, { kind: 'm60', amount: 5 }, { kind: 'm5', amount: 10 }], teamGift: true, limit: 1, storeType: 'non-consumable' },
+  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal, toplam 840 (girmediğin günlerin kristali birikir, girince alırsın) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: PASS_DAYS }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1, storeType: 'non-renewing' },
+  { id: 'odi.kristal.0', name: 'Tutam Kristal', desc: '60 kristal', priceTry: 14.99, contents: [{ kind: 'kristal', amount: 60 }], teamGift: false, limit: 0, storeType: 'consumable' },
   { id: 'odi.kristal.1', name: 'Avuç Kristal', desc: '120 kristal', priceTry: 29.99, contents: [{ kind: 'kristal', amount: 120 }], teamGift: false, limit: 0, storeType: 'consumable' },
   { id: 'odi.kristal.2', name: 'Kese Kristal', desc: '650 kristal (+%8)', priceTry: 149.99, contents: [{ kind: 'kristal', amount: 650 }], teamGift: true, limit: 0, storeType: 'consumable' },
-  { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, tag: 'en-iyi-deger', storeType: 'consumable' },
+  { id: 'odi.kristal.3', name: 'Sandık Kristal', desc: '1400 kristal (+%17)', priceTry: 299.99, contents: [{ kind: 'kristal', amount: 1400 }], teamGift: true, limit: 0, storeType: 'consumable' },
+  { id: 'odi.kristal.4', name: 'Hazine Kristal', desc: '2600 kristal (+%30)', priceTry: 499.99, contents: [{ kind: 'kristal', amount: 2600 }], teamGift: true, limit: 0, tag: 'en-iyi-deger', storeType: 'consumable' },
   { id: 'odi.hiz.1', name: 'İnşaatçı Paketi', desc: '10 × 60 dk, 20 × 5 dk hızlandırıcı', priceTry: 79.99, contents: [{ kind: 'm60', amount: 10 }, { kind: 'm5', amount: 20 }], teamGift: true, limit: 0, storeType: 'consumable' },
   { id: 'odi.hiz.2', name: 'Usta İnşaatçı', desc: '5 × 8 saat, 20 × 60 dk hızlandırıcı', priceTry: 199.99, contents: [{ kind: 's8', amount: 5 }, { kind: 'm60', amount: 20 }], teamGift: true, limit: 0, storeType: 'consumable' },
-  { id: 'odi.pass', name: 'Odi Sezon Kartı', desc: '28 gün boyunca her gün 30 kristal, toplam 840 (girmediğin günlerin kristali birikir, girince alırsın) + Altın Koklea kostümü', priceTry: 99.99, contents: [{ kind: 'pass', amount: PASS_DAYS }, { kind: 'kozmetik', amount: 1, ref: 'kostum-altin' }], teamGift: true, limit: 1, storeType: 'non-renewing' },
 ];
 /**
  * Mağazanın (App Store / Google Play, RevenueCat `getProducts`) döndürdüğü yerel fiyat: yalnız gösterim içindir.
@@ -498,9 +511,10 @@ export interface OpMap {
   'chat.report': { req: { msgId: string }; res: Record<string, never> };
   'chat.mute': { req: { id: string; on: boolean }; res: { muted: string[] } };
   /** takım sohbeti okunma imleci (YN-071): `at` anına kadarki iletiler okundu (geri gitmez); yanıt kalan okunmamış sayısı */
-  'chat.read': { req: { room: string; at: number }; res: { unread: number } };
-  /** okunmamış ileti sayısı (imleçten sonra, başkasının yazdığı, konu yanıtı olmayan, kendisi hakkında olmayan; en çok 99). İmleç yoksa şimdi kurulur. */
-  'chat.unread': { req: { room: string }; res: { unread: number } };
+  'chat.read': { req: { room: string; at: number }; res: { unread: number; msgs?: number } };
+  /** okunmamış ileti sayısı (imleçten sonra, başkasının yazdığı, konu yanıtı olmayan, kendisi hakkında olmayan; en çok 99). İmleç yoksa şimdi kurulur.
+   *  msgs (1.3.0, ekleme): bunlardan yalnız mesajlar (güncellemeler sayılmaz, isTeamUpdate); Takım › Sohbet › Mesajlar rozeti. Eski sunucuda yok. */
+  'chat.unread': { req: { room: string }; res: { unread: number; msgs?: number } };
   /** v7: tüm takımlar (açık + başvuruyla), takım gücüne göre; filtre ve sayfalama isteğe bağlı (bkz. TAKIM BAŞVURUSU) */
   'team.list': { req: { query?: string; filter?: TeamListFilter; offset?: number; limit?: number }; res: { teams: TeamBrowseRow[]; next?: number | null; total?: number } };
   'team.create': { req: { name: string; emblem: string; description?: string; open?: boolean; minLevel?: number }; res: { team: TeamDetail } };
@@ -2035,4 +2049,42 @@ export interface OpMap {
   'admin.kurtarma.gonderildi': { req: { id: string; on: boolean }; res: { item: AdminKurtarma } };
   /** yönetici: bir hesap için tek kullanımlık geri alma kodu (GERI-XXXX-XXXX, 24 saat; aynı hesabın önceki kullanılmamış kodu geçersizleşir) */
   'admin.geri.kod': { req: { id: string }; res: { code: string; expiresAt: number } };
+}
+
+// ------------------------------------------------------------------ anlık bildirimler (1.3.0; sunucu apps/server/src/push.ts)
+/**
+ * Bildirim türleri (Ayarlar › Bildirimler). Sunucuda oyuncu başına saklanır; satır yoksa varsayılanlar geçerlidir.
+ * - dm: özel mesajlar (her mesaj; sessiz saat ve günlük sınır yok)
+ * - takim: takım sohbetindeki oyuncu mesajları (varsayılan kapalı; art arda gelenler bir özette toplanır)
+ * - arkadas: arkadaşlık isteği, kabul edilen istek, ödül kutusuna gelen hediye ve kilit hediyesi (arkadaş hediyeleri günde tek özet)
+ * - basvuru: takımına katılmak isteyen oyuncu (yalnız lider ve yardımcılar)
+ */
+export const PUSH_KATEGORILER = ['dm', 'takim', 'arkadas', 'basvuru'] as const;
+export type PushKategori = typeof PUSH_KATEGORILER[number];
+export type PushSettings = Record<PushKategori, boolean>;
+export const PUSH_VARSAYILAN: PushSettings = { dm: true, takim: false, arkadas: true, basvuru: true };
+export const PUSH_KATEGORI_AD: Record<PushKategori, { ad: string; aciklama: string }> = {
+  dm: { ad: 'Özel mesajlar', aciklama: 'Biri sana yazınca hemen haber verir.' },
+  takim: { ad: 'Takım sohbeti', aciklama: 'Takım arkadaşların yazınca haber verir. Art arda gelen mesajlar tek bildirimde toplanır.' },
+  arkadas: { ad: 'Arkadaşlar ve hediyeler', aciklama: 'Arkadaşlık isteği, kabul edilen istek ve ödül kutuna gelen hediyeler.' },
+  basvuru: { ad: 'Takım başvuruları', aciklama: 'Takımına katılmak isteyen biri olunca haber verir (lider ve yardımcılar).' },
+};
+/**
+ * Denge kuralları: oyun açıkken bildirim gitmez (oyuncu zaten görür). Özel mesaj dışındakiler İstanbul saatiyle 23.00 ile 08.00
+ * arasında gönderilmez (sabaha da ertelenmez) ve günde en çok `gunlukSinir` tanedir. Takım sohbetinde bir bildirimden sonra
+ * `takimPencereMs` boyunca gelenler beklenir, pencere bitince tek özet gider.
+ */
+export const PUSH_KURALLARI = { gunlukSinir: 5, sessizBas: 23, sessizBit: 8, takimPencereMs: 60_000, metinMax: 140 } as const;
+/** bildirime dokununca açılacak yer: dm (id = gönderen), takim, basvuru, arkadas, odul (ödül kutusu) */
+export type PushHedef = 'dm' | 'takim' | 'basvuru' | 'arkadas' | 'odul';
+export interface PushVeri { kind: PushHedef; id: string }
+export interface OpMap {
+  /** bu cihazın Expo bildirim anahtarını oyuncuya bağla (anahtar başka oyuncudaysa bu oyuncuya geçer). Bütün türler kapalıysa saklanmaz. */
+  'push.register': { req: { token: string; platform: 'ios' | 'android' }; res: { settings: PushSettings } };
+  /** bu cihazın anahtarını sil (telefonda bildirim izni kapalı) */
+  'push.unregister': { req: { token: string }; res: Record<string, never> };
+  /** bildirim türleri: boş istek okur, alan verilirse yazar. Bütün türler kapanırsa oyuncunun anahtarları silinir. */
+  'push.settings': { req: Partial<PushSettings>; res: { settings: PushSettings } };
+  /** uygulama arka plana geçti / öne geldi: arka plandayken bağlantı açık kalsa da bildirim gider */
+  'push.away': { req: { away: boolean }; res: Record<string, never> };
 }

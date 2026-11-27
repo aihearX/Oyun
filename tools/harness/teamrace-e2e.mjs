@@ -243,6 +243,7 @@ async function webSuite(bt) {
     // akış kartı + lig puanı
     await A[0].page.getByTestId('tr-takima-don').click();
     await teamTab(A[0], 'Sohbet');
+    await A[0].page.getByTestId('sohbet-guncellemeler').click(); // akış kartları Güncellemeler'de (1.3.0)
     await A[0].page.locator('[data-testid="akis-karti"][data-type="tyaris"]').first().waitFor({ timeout: 10_000 }).then(() => S.check(true, 'sonuç takım akışında (rövanş düğmesiyle)'), () => S.check(false, 'akış kartı yok'));
     await S.shot(A[0], 'akis-karti');
     const la = (await net(A[0], 'tlig.state', {})).state; const lb = (await net(B[0], 'tlig.state', {})).state;

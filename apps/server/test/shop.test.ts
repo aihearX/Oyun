@@ -270,10 +270,10 @@ describe('mağaza: gerçek ödeme, geri yükleme (YN-285, Apple 3.1.1)', () => {
   const gercek = () => setup({ testStore: false, revenueCatKey: 'sk_test_ornek' });
   const kristal = async (c: TC) => (await c.call('wallet.get', {})).wallet.kristal;
 
-  it('ürün türleri: Başlangıç Paketi tüketilmeyen, Sezon Kartı yenilenmeyen abonelik, öteki beşi tüketilebilir', () => {
+  it('ürün türleri: Başlangıç ve Kamp Kurucu tüketilmeyen, Sezon Kartı yenilenmeyen abonelik, öteki yedisi tüketilebilir (1.3.0)', () => {
     const tur = Object.fromEntries(SHOP.map((p) => [p.id, p.storeType]));
-    expect(tur).toEqual({ 'odi.baslangic': 'non-consumable', 'odi.kristal.1': 'consumable', 'odi.kristal.2': 'consumable', 'odi.kristal.3': 'consumable', 'odi.hiz.1': 'consumable', 'odi.hiz.2': 'consumable', 'odi.pass': 'non-renewing' });
-    expect(SHOP.filter(isRestorable).map((p) => p.id)).toEqual(['odi.baslangic', 'odi.pass']);
+    expect(tur).toEqual({ 'odi.baslangic': 'non-consumable', 'odi.kamp': 'non-consumable', 'odi.kristal.0': 'consumable', 'odi.kristal.1': 'consumable', 'odi.kristal.2': 'consumable', 'odi.kristal.3': 'consumable', 'odi.kristal.4': 'consumable', 'odi.hiz.1': 'consumable', 'odi.hiz.2': 'consumable', 'odi.pass': 'non-renewing' });
+    expect(SHOP.filter(isRestorable).map((p) => p.id)).toEqual(['odi.baslangic', 'odi.kamp', 'odi.pass']);
     // kalıcı ürünler hesap başına bir kez (ikinci alımda "Alındı")
     for (const p of SHOP.filter(isRestorable)) expect(p.limit).toBe(1);
   });

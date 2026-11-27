@@ -12,6 +12,7 @@ import { ROZET_SCHEMA } from './rozet';
 import { PHOTO_SCHEMA } from './foto-schema';
 import { KILIT_SCHEMA } from './kilit-schema';
 import { KURTARMA_SCHEMA } from './kurtarma-schema';
+import { PUSH_SCHEMA } from './push-schema';
 import { LEAGUE_RUNS_SCHEMA } from './league';
 import { dayNumber, DAY_MS } from './time';
 import { binaMetni } from './comm/bina-metni';
@@ -71,6 +72,8 @@ export function addColumn(db: DatabaseSync, table: string, column: string, defin
  *    listeyi ilk kez düzenleyene dek eski kuralla (rozet + "Adım listede görünsün") çalışır.
  * 21: 1.2.0 hesap kurtarma: isteğe bağlı kurtarma e-postası (`players.recovery_email`, küçük harf; aynı adres birden çok hesapta olabilir),
  *    giriş kodu istekleri, deneme kaydı, geri alma kodları ve geçersizleşen oturum anahtarları (kurtarma-schema.ts). Var olan hesaplarda e-posta yok.
+ * 22: 1.3.0 anlık bildirimler: cihazların Expo bildirim anahtarları (`push_tokens`) ve oyuncunun bildirim türleri (`push_settings`;
+ *    push-schema.ts). Yeni tablolar boş başlar: satırı olmayan oyuncu varsayılanları kullanır, anahtar cihaz bağlanınca yazılır.
  */
 export const MIGRATIONS: Migration[] = [
   { name: 'taban', up: () => { /* taban: şema CREATE TABLE IF NOT EXISTS ile kurulu */ } },
@@ -132,6 +135,7 @@ export const MIGRATIONS: Migration[] = [
     db.exec('CREATE INDEX IF NOT EXISTS players_recovery_email ON players(recovery_email)');
     db.exec(KURTARMA_SCHEMA);
   } },
+  { name: 'anlik-bildirim', up: (db) => { db.exec(PUSH_SCHEMA); } },
 ];
 
 /** eski satın alma hediyesi metni: "‹ad› takıma hediye gönderdi (‹ürün›)" */

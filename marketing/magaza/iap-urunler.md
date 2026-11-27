@@ -1,6 +1,6 @@
 # Uygulama içi ürün kataloğu (App Store + Google Play + RevenueCat)
 
-Sürüm 1.0.0 ile birlikte, ilk sürümde açık (sahip kararı, YN-032). Yükleme adımları: [`YUKLEME-GUNU.md`](YUKLEME-GUNU.md) (D, G, H).
+1.3.0 (28.11.2026): Mağaza TestFlight'ta vitrin olarak görünür (paketler ve içerikler, satın alma "yakında"); ödeme altyapısı (Apple Paid Apps sözleşmesi, RevenueCat) sahip banka bilgilerini verince açılacak. Sunucuda ODI_MAGAZA_GIZLI=1 Mağaza girişlerini yeni derleme almadan gizler (apps/web/src/magaza-gorunum.ts). Yükleme adımları: [`YUKLEME-GUNU.md`](YUKLEME-GUNU.md) (D, G, H).
 
 Kaynak: `packages/shared/src/social.ts` `SHOP` (sunucu `apps/server/src/shop.ts` bu listeyi satar). Yapıştırmaya hazır adlar ve
 açıklamalar: [`iap-urunler.json`](iap-urunler.json). `node tools/magaza/denetle.mjs` kimlik, fiyat ve sınırın kodla aynı olduğunu,
@@ -54,9 +54,12 @@ adların (Apple ≤ 30, Google ≤ 55) ve açıklamaların (Apple ≤ 45, Google
 | Ürün kimliği | TR ad | EN ad | İçerik | Sınır | Takım hediyesi | Önerilen fiyat (TRY) |
 |---|---|---|---|---|---|---|
 | `odi.baslangic` | Başlangıç Paketi | Starter Pack | 300 kristal, 10 × 5 dk hızlandırıcı, Kâşif Şapkası | Hesap başına 1 | Var | 49,99 |
+| `odi.kamp` | Kamp Kurucu Paketi | Camp Builder Pack | 700 kristal, 5 × 60 dk, 10 × 5 dk hızlandırıcı (1.3.0) | Hesap başına 1 | Var | 119,99 |
+| `odi.kristal.0` | Tutam Kristal | Pinch of Crystals | 60 kristal (1.3.0) | — | Yok | 14,99 |
 | `odi.kristal.1` | Avuç Kristal | Handful of Crystals | 120 kristal | — | Yok | 29,99 |
 | `odi.kristal.2` | Kese Kristal | Pouch of Crystals | 650 kristal (+%8) | — | Var | 149,99 |
 | `odi.kristal.3` | Sandık Kristal | Chest of Crystals | 1400 kristal (+%17) | — | Var | 299,99 |
+| `odi.kristal.4` | Hazine Kristal | Treasure of Crystals | 2600 kristal (+%30) (1.3.0, en iyi değer) | — | Var | 499,99 |
 | `odi.hiz.1` | İnşaatçı Paketi | Builder Pack | 10 × 60 dk, 20 × 5 dk hızlandırıcı | — | Var | 79,99 |
 | `odi.hiz.2` | Usta İnşaatçı | Master Builder | 5 × 8 saat, 20 × 60 dk hızlandırıcı | — | Var | 199,99 |
 | `odi.pass` | Odi Sezon Kartı | Odi Season Card | 28 gün her güne 30 kristal (ödül kutusuna; girilmeyen günlerinki birikir, toplam tam 840) + Altın Koklea kostümü (hemen) | Hesap başına 1 | Var | 99,99 |
@@ -66,9 +69,12 @@ adların (Apple ≤ 30, Google ≤ 55) ve açıklamaların (Apple ≤ 45, Google
 | Ürün kimliği | App Store Connect | Google Play Console | RevenueCat ürün türü (Play) | Geri yükleme |
 |---|---|---|---|---|
 | `odi.baslangic` | **Non-Consumable** (Tüketilmeyen) | Tek seferlik ürün (uygulama içi ürün) | **Non-consumable** (tüketilmez) | Var |
+| `odi.kamp` | **Non-Consumable** (Tüketilmeyen) | Tek seferlik ürün | **Non-consumable** (tüketilmez) | Var |
+| `odi.kristal.0` | Consumable (Tüketilebilir) | Tek seferlik ürün | Consumable | Yok (harcanır) |
 | `odi.kristal.1` | Consumable (Tüketilebilir) | Tek seferlik ürün | Consumable | Yok (harcanır) |
 | `odi.kristal.2` | Consumable | Tek seferlik ürün | Consumable | Yok |
 | `odi.kristal.3` | Consumable | Tek seferlik ürün | Consumable | Yok |
+| `odi.kristal.4` | Consumable | Tek seferlik ürün | Consumable | Yok |
 | `odi.hiz.1` | Consumable | Tek seferlik ürün | Consumable | Yok |
 | `odi.hiz.2` | Consumable | Tek seferlik ürün | Consumable | Yok |
 | `odi.pass` | **Non-Renewing Subscription** (Otomatik Yenilenmeyen Abonelik) | Tek seferlik ürün (abonelik **değil**) | Consumable | Var |

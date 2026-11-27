@@ -454,6 +454,7 @@ await step('sohbet', async () => {
   await say(mates[2], 'devam');
   await mates[2].c.call('progress.submit', runOf(mates[2].lv - 1)); await sleep(900);
   // sayfadaki oyuncu da hazır söz şeridinden yazar (serbest yazı hiç gönderilmez); şerit açık kalır
+  if (await page.getByTestId('hizli-tepki-ac').count()) await page.getByTestId('hizli-tepki-ac').click(); // serbest yazabilen oyuncuda tepsi (1.3.0)
   await page.getByRole('button', { name: 'Hazır sözler' }).click(); await page.locator('.quick-line .phrase[data-phrase="harika"]').click(); await sleep(1500);
   await sleep(1200); await settle(page);
   // kendi mesajı serbest yazı değil: hazır söz şeridinden; serbest yazı hiç gönderilmez

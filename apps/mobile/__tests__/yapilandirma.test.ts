@@ -108,6 +108,11 @@ describe('Yerel derleme yapılandırması', () => {
     expect(String(eklenti('expo-image-picker')?.[1].microphonePermission)).toMatch(/kullanmaz/);
     expect(String(eklenti('expo-image-picker')?.[1].photosPermission)).toMatch(/Profil fotoğrafı/);
     expect(app.android.permissions ?? []).toEqual([]);
+    // 1.3.0 anlık bildirimler: kanal sunucuyla aynı (push.ts PUSH_KANAL, src/bildirim.ts KANAL); arka plan bildirimi yok;
+    // Android 13+ bildirim izni (POST_NOTIFICATIONS) engellenmez, izin ilk açılışta değil oyun içinde istenir
+    expect(eklenti('expo-notifications')?.[1]).toMatchObject({ defaultChannel: 'varsayilan', enableBackgroundRemoteNotifications: false });
+    expect(engelli).not.toContain('android.permission.POST_NOTIFICATIONS');
+    expect(JSON.stringify(app.ios.infoPlist ?? {})).not.toMatch(/UIBackgroundModes/);
     expect(JSON.stringify(app)).not.toMatch(/usesCleartextTraffic/);
   });
 

@@ -1078,6 +1078,10 @@ html.buyuk-yazi .magaza .small-note { font-size:0.875rem; line-height:1.4; }
 .limit-first .chip-btn { text-align:left; padding:8px 14px; }
 .limit-tag { font-weight:700; opacity:.85; }
 /* Mağaza üstü ilke: tek kısa cümle + "Neler satılmaz?" açılır bölüm (OT-ilk-kez-oyun-28) */
+.magaza-kume { margin:10px 2px -2px; font-size:1rem; font-weight:900; letter-spacing:.02em; color:inherit; }
+.magaza-yakinda { border:2px dashed #f2b400; background:#fff7dc; color:var(--ink); }
+.magaza-yakinda .muted { color:var(--ink-2); }
+.magaza-yakinda b { font-size:1.05rem; }
 .magaza-ilke { display:flex; flex-direction:column; gap:2px; font-size:0.875rem; line-height:1.35; }
 .ilke-detay summary { min-height:44px; display:flex; align-items:center; gap:6px; cursor:pointer; color:#ffd56b; font-weight:900; font-size:0.875rem; list-style:none; }
 .ilke-detay summary::-webkit-details-marker { display:none; }
@@ -1298,9 +1302,65 @@ html.kb-open .with-tabs { padding-bottom:calc(var(--kb) + 16px); }
      açmaz, mesaj kutusunun sağ üst köşesinde durur: mesajlara ayrılan yer azalmaz */
   .chat-full-btn { width:32px; height:32px; border-radius:10px; }
   .chat { position:relative; }
-  .chat-top:not(:has(.online-row:not(.none))) { position:absolute; top:6px; right:6px; z-index:2; }
-  .chat-top:not(:has(.online-row:not(.none))) .chat-full-btn { background:rgba(26,14,64,.9); }
+  .chat:not(.panes) > .chat-top:not(:has(.online-row:not(.none))) { position:absolute; top:6px; right:6px; z-index:2; }
+  .chat:not(.panes) > .chat-top:not(:has(.online-row:not(.none))) .chat-full-btn { background:rgba(26,14,64,.9); }
 }
+/* Takım › Sohbet (1.3.0, sahibin isteği "mesajların olduğu alan çok dar"): sohbet açıkken takım kartı tek ince satıra iner (amblem, ad,
+   Sv / üye / yıldız, hediye ve başvuru çipleri, menü), grup sekmeleri alçalır, savaş uyarısı gizlenir (lider ve yardımcıya Savaş
+   rozeti); mesaj alanı ekranın çoğunu alır. Kısa ekranda (720 px ve altı) yukarıdaki düzen (amblem çipi sekme satırında) geçerli. */
+.th-pills { display:flex; flex-wrap:wrap; gap:4px 6px; }
+.team-screen:has(.team-body > .chat) .war-warn { display:none; }
+@media (min-height:721px) {
+  .team-screen:has(.team-body > .chat) .team-head { display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; grid-template-rows:auto auto; column-gap:10px; row-gap:0; align-items:center; padding:6px 8px; border-radius:18px; }
+  .team-screen:has(.team-body > .chat) .team-head > .grow, .team-screen:has(.team-body > .chat) .team-head .row.between { display:contents; }
+  .team-screen:has(.team-body > .chat) .th-emblem { grid-row:1 / span 2; width:42px; height:42px; font-size:24px; border-radius:13px; box-shadow:none; }
+  .team-screen:has(.team-body > .chat) .team-head h2 { grid-column:2; grid-row:1; font-size:1rem; align-self:end; }
+  .team-screen:has(.team-body > .chat) .th-meta { grid-column:2; grid-row:2; align-self:start; font-size:0.75rem; gap:0 10px; flex-wrap:nowrap; white-space:nowrap; overflow:hidden; }
+  .team-screen:has(.team-body > .chat) .th-pills { grid-column:3; grid-row:1 / span 2; flex-wrap:nowrap; }
+  .team-screen:has(.team-body > .chat) .team-head .row.between > .ibtn { grid-column:4; grid-row:1 / span 2; width:40px; height:40px; }
+  .team-screen:has(.team-body > .chat) .th-xp { display:none; }
+  .team-screen:has(.team-body > .chat) .ta-head-pill { margin:0; padding:5px 9px; }
+  .team-screen:has(.team-body > .chat) .thp-txt { display:none; }
+  .team-screen:has(.team-body > .chat) .subtabs-wrap[data-subtabs="takim-grup"] .subtab { min-height:44px; padding:3px 4px 2px; }
+}
+/* Mesajlar | Güncellemeler bölme düğmeleri (Chat.tsx); yanlarında çevrimiçi sayısı (dar ekranda yüzler gizli) ve tam ekran */
+.chat-panes { display:flex; flex:1 1 auto; min-width:0; gap:3px; padding:2px; border-radius:14px; background:rgba(5,2,20,.4); border:2px solid rgba(255,255,255,.08); }
+.chat-panes > button { appearance:none; flex:1 1 auto; min-width:0; display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:34px; padding:0 8px; border:0; border-radius:10px; background:none; color:var(--text-2); font:inherit; font-size:0.8125rem; font-weight:900; cursor:pointer; white-space:nowrap; }
+.chat-panes > button.on { background:var(--panel-2); color:var(--cream); box-shadow:inset 0 0 0 2px rgba(46,230,214,.6); }
+.chat-panes > button:focus-visible { outline:3px solid #8b6bff; outline-offset:1px; }
+.chat-panes .cp-label { min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.chat-panes .sbadge { flex:none; }
+/* telefon genişliğinde simgeler düşer, iki ad da kesilmeden sığar (360 px'te de) */
+@media (max-width:430px) { .chat-panes > button > .art { display:none; } .chat-panes > button { padding:0 6px; gap:4px; } }
+@media (max-height:720px) {
+  .chat-panes > button { min-height:30px; }
+  /* kısa ekran: amblem çipi ve grup sekmeleri biraz alçalır, satır araları daralır (mesajlara ~20 px) */
+  .team-screen:has(.team-body > .chat) { gap:8px; }
+  .team-screen:has(.team-body > .chat) .team-head .th-emblem { width:40px; height:40px; }
+  .team-screen:has(.team-body > .chat) .team-head .ibtn { width:40px; height:40px; }
+  .team-screen:has(.team-body > .chat) .subtabs-wrap[data-subtabs="takim-grup"] .subtab { min-height:46px; padding:3px 4px 2px; }
+  .team-body > .chat.panes { gap:6px; }
+}
+.cp-new { flex:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:rgba(46,230,214,.18); border:1.5px solid rgba(46,230,214,.55); color:var(--teal); font-size:0.6875rem; font-weight:900; display:inline-flex; align-items:center; justify-content:center; }
+.chat-top > .online-row.compact { flex:none; gap:5px; min-height:0; padding:0 2px; }
+.online-row.compact small { color:var(--lime); }
+.online-row.compact .or-avs { margin-left:2px; }
+.online-row.compact .or-av { width:28px; height:28px; }
+@media (max-width:400px) { .online-row.compact .or-avs { display:none; } }
+html.buyuk-yazi .online-row.compact .or-avs { display:none; }
+/* Güncellemeler açıkken yazı kutusu, hazır sözler ve kilit notu gizli: akış okunur, kartların kendi düğmeleri (Tebrik et, Yardım et…) çalışır */
+.chat.on-updates > :is(.quick-line, .chat-input, .chat-lock-note, .at-suggest, .chat-wait) { display:none; }
+/* Mesajlar'da güncelleme kartına yanıt: hangi karta yazıldığı (dokununca konu açılır) */
+.msg-ctx { appearance:none; border:0; border-left:3px solid rgba(46,230,214,.6); background:rgba(255,255,255,.05); font:inherit; display:flex; align-items:center; gap:5px; max-width:100%; min-width:0; margin:2px 0 3px 6px; padding:3px 8px; border-radius:4px 10px 10px 4px; color:var(--text-2); font-size:0.71875rem; font-weight:800; cursor:pointer; text-align:left; }
+.msg.mine .msg-ctx { align-self:flex-end; margin:2px 6px 3px 0; }
+.msg-ctx .ellipsis { min-width:0; }
+/* hızlı tepki tepsisi (1.3.0): serbest yazabilen oyuncuda tepki / hazır söz satırı yazı kutusunun solundaki düğmeyle, yazı kutusunun
+   hemen üstünde açılır (mesaj kutusunun boyu değişmez); gönderince, yazı kutusuna dokununca, geri tuşu / Escape ile kapanır */
+.chat-input { position:relative; }
+.quick-open { appearance:none; flex:none; width:44px; height:44px; border-radius:50%; border:2px solid rgba(255,255,255,.14); background:rgba(5,2,20,.35); color:var(--cream-2); display:grid; place-items:center; padding:0; cursor:pointer; }
+.quick-open.on { border-color:color-mix(in srgb, var(--teal) 70%, transparent); background:rgba(46,230,214,.14); color:var(--teal); }
+.quick-open:focus-visible { outline:3px solid #8b6bff; outline-offset:2px; }
+.quick-pop { position:absolute; left:0; right:0; bottom:calc(100% + 8px); z-index:4; padding:6px; border-radius:18px; background:var(--panel); border:2px solid rgba(46,230,214,.35); box-shadow:0 8px 24px rgba(5,2,20,.6); animation:fade .15s ease-out; }
 /* Takım ekranında üst çubukta tek sosyal kısayol (Arkadaşlar, rozetinde okunmamış mesajlar da var): başlık her genişlikte sığar */
 .team-screen .tb-pill[data-testid="mesaj-rozeti"], .camp-list-screen .tb-pill[data-testid="mesaj-rozeti"] { display:none; }
 @media (max-width:340px) {

@@ -26,6 +26,7 @@ import {
 import { fail, randomCode, sendJson, type App, type Handlers } from './app';
 import { announcePresence } from './players';
 import { DAY_MS } from './time';
+import { pushAnahtarlariSil } from './push';
 
 export { KURTARMA_SCHEMA } from './kurtarma-schema';
 
@@ -86,6 +87,7 @@ export function hesabiDevret(app: App, pid: string): string {
   const token = randomBytes(32).toString('hex');
   if (!eski.startsWith('silindi:')) app.db.run('INSERT OR REPLACE INTO tasinan_anahtar(token_hash, player_id, at) VALUES(?, ?, ?)', eski, pid, app.now());
   app.db.run('UPDATE players SET token_hash = ? WHERE id = ?', sha(token), pid);
+  pushAnahtarlariSil(app, pid); // 1.3.0: eski cihaz bu hesabın bildirimlerini almasın (yeni cihaz bağlanınca kendi anahtarını yazar)
   const c = app.online.get(pid);
   if (c) {
     app.after(() => {

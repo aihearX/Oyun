@@ -987,7 +987,12 @@ async function rawPlayer(wsUrl, name, levels, color) {
   for (let l = 1; l <= levels; l++) await c.call('progress.submit', runOf(l, { stars: l % 4 ? 3 : 2, coins: 90 }));
   return c;
 }
-async function teamChat(p) { await teamSub(p, 'Sohbet'); await p.page.locator('.chat-box').waitFor({ timeout: 10_000 }); await sleep(700); }
+/** Takım › Sohbet; bölme (1.3.0): Günün Sorusu ve mesajlar 'mesajlar'da, akış / yardım kartları 'guncellemeler'de */
+async function teamChat(p, pane) {
+  await teamSub(p, 'Sohbet'); await p.page.locator('.chat-box').waitFor({ timeout: 10_000 });
+  if (pane) await p.page.getByTestId(`sohbet-${pane}`).click().catch(() => undefined);
+  await sleep(700);
+}
 const scrollTo = async (p, sel) => { await p.page.locator(sel).last().scrollIntoViewIfNeeded().catch(() => undefined); await sleep(350); };
 
 async function sectionSosyal() {
@@ -1005,19 +1010,19 @@ async function sectionSosyal() {
     log('sosyal: tırmanış');
     for (let l = 15; l <= 17; l++) { const r = await Promise.race([net(A, 'progress.submit', runOf(l, { coins: 40 })).then(() => 'tamam', (e) => `hata ${e.message}`), sleep(12_000).then(() => 'zaman aşımı')]); log(`sosyal: A bölüm ${l}: ${r}`); }
     await step('gunun-sorusu', async () => {
-      await teamChat(A); const q0 = A.page.locator('[data-testid="gunun-sorusu"]').first(); await q0.waitFor({ timeout: 12_000 }); await scrollTo(A, '[data-testid="gunun-sorusu"]');
+      await teamChat(A, 'mesajlar'); const q0 = A.page.locator('[data-testid="gunun-sorusu"]').first(); await q0.waitFor({ timeout: 12_000 }); await scrollTo(A, '[data-testid="gunun-sorusu"]');
       await G.shot(A.page, 1, 'gunun-sorusu', { kind: 'sosyal', title: 'Günün Sorusu', caption: 'Tüy Dede her gün takım sohbetine bir kulak sorusu bırakır; herkese aynı soru. Açıklanana kadar yalnızca kaç kişinin cevapladığı görünür.' });
       await q0.locator('.dq-opt[data-choice="0"]').click(); await q0.locator('.dq-opt.picked').waitFor({ timeout: 8000 });
-      await teamChat(B); await B.page.locator('[data-testid="gunun-sorusu"] .dq-opt[data-choice="1"]').first().click().catch(() => undefined);
+      await teamChat(B, 'mesajlar'); await B.page.locator('[data-testid="gunun-sorusu"] .dq-opt[data-choice="1"]').first().click().catch(() => undefined);
     });
     await step('akis', async () => {
-      await teamChat(B); log('akış kartları: ' + JSON.stringify(await B.page.locator('[data-testid="akis-karti"]').evaluateAll((els) => els.map((e) => `${e.className}|${e.textContent.slice(0, 50)}`))));
+      await teamChat(B, 'guncellemeler'); log('akış kartları: ' + JSON.stringify(await B.page.locator('[data-testid="akis-karti"]').evaluateAll((els) => els.map((e) => `${e.className}|${e.textContent.slice(0, 50)}`))));
       const card = B.page.locator('[data-testid="akis-karti"]:not(.own)').filter({ hasText: 'Ayşe' }).last(); await card.waitFor({ state: 'attached', timeout: 15_000 });
       await card.scrollIntoViewIfNeeded().catch(() => undefined); await sleep(400);
       await G.shot(B.page, 10, 'takim-akisi-karti', { kind: 'sosyal', title: 'Takım Akışı kartı', caption: 'Gerçek olaylar takım sohbetine kart olarak düşer (ilk kez geçilen bölüm, boss, altın koklea, bina yükseltme, yeni üye…). Aynı oyuncunun 30 dakikadaki kartları birleşir; tek dokunuşla tepki ve "Tebrik et".' });
       await card.locator('[data-reaction="alkis"]').click(); await card.getByTestId('tebrik-et').click(); await sleep(1400);
-      await teamChat(C); await C.page.locator('[data-testid="akis-karti"]:not(.own)').filter({ hasText: 'Ayşe' }).last().locator('[data-reaction="kalp"]').click({ timeout: 5000 }).catch(() => undefined);
-      await teamChat(A); const aCard = A.page.locator('[data-testid="akis-karti"].own').last();
+      await teamChat(C, 'guncellemeler'); await C.page.locator('[data-testid="akis-karti"]:not(.own)').filter({ hasText: 'Ayşe' }).last().locator('[data-reaction="kalp"]').click({ timeout: 5000 }).catch(() => undefined);
+      await teamChat(A, 'guncellemeler'); const aCard = A.page.locator('[data-testid="akis-karti"].own').last();
       await aCard.locator('.thread .th-text', { hasText: 'Tebrik' }).waitFor({ timeout: 8000 }).catch(() => undefined); await aCard.scrollIntoViewIfNeeded().catch(() => undefined); await sleep(400);
       await G.shot(A.page, 11, 'tepkiler-ve-tebrik', { kind: 'sosyal', title: 'Tepkiler ve tebrik', caption: 'Takım arkadaşlarının alkış ve kalp tepkileri kartın altında sayılır; "Tebrik et" hazır sözü kartın konusuna yanıt olarak yazılır.' });
       await aCard.getByRole('button', { name: 'Yanıtla' }).click(); await A.page.getByTestId('konu-sayfasi').waitFor(); await sleep(600);
@@ -1033,19 +1038,19 @@ async function sectionSosyal() {
       await closeBanners(A.page);
     });
     await step('guvenli-sohbet', async () => {
-      await teamChat(C); await C.page.locator('.quick-line').waitFor({ timeout: 8000 }).catch(() => undefined);
+      await teamChat(C, 'mesajlar'); await C.page.locator('.quick-line').waitFor({ timeout: 8000 }).catch(() => undefined);
       await G.shot(C.page, 15, 'guvenli-sohbet-hazir-sozler', { kind: 'sosyal', title: 'Güvenli sohbet: hazır sözler', caption: 'Yeni oyuncu 8 bölümü geçene kadar serbest yazamaz; hazır sözler, emoji ve çıkartma her zaman açık. Giriş kutusu bunu dürüstçe söyler.' });
       await C.page.locator('.quick-line .phrase[data-phrase="selam"]').click().catch(() => undefined); await sleep(1300);
     });
     await step('yardim', async () => {
       await net(C, 'team.help.request', { level: 6 });
-      await teamChat(B); const help = B.page.locator('[data-testid="yardim-karti"]').last(); await help.waitFor({ timeout: 10_000 }); await scrollTo(B, '[data-testid="yardim-karti"]');
+      await teamChat(B, 'guncellemeler'); const help = B.page.locator('[data-testid="yardim-karti"]').last(); await help.waitFor({ timeout: 10_000 }); await scrollTo(B, '[data-testid="yardim-karti"]');
       await G.shot(B.page, 20, 'yardim-karti', { kind: 'sosyal', title: 'Yardım isteği kartı', caption: 'Takılan oyuncu takımından yardım ister; kartta üç gerçek eylem: ipucu ver, kalkan gönder, birlikte yarış.' });
       await help.getByTestId('ipucu-ver').click(); await B.page.locator('.tip-opt').first().waitFor(); await sleep(500);
       await G.shot(B.page, 21, 'ipucu-sec', { kind: 'sosyal', title: 'İpucu seç', caption: 'İpucu hazır sözlerden seçilir (serbest yazı açıksa kısa metin de olur); kartın altına yanıt olarak yazılır.' });
       await B.page.locator('.tip-opt').first().click(); await sleep(1300);
-      await teamChat(A); await A.page.locator('[data-testid="yardim-karti"]').last().getByTestId('kalkan-gonder').click().catch(() => undefined); await sleep(1200);
-      await teamChat(B); await net(C, 'progress.submit', runOf(6, { coins: 30 }));
+      await teamChat(A, 'guncellemeler'); await A.page.locator('[data-testid="yardim-karti"]').last().getByTestId('kalkan-gonder').click().catch(() => undefined); await sleep(1200);
+      await teamChat(B, 'guncellemeler'); await net(C, 'progress.submit', runOf(6, { coins: 30 }));
       const thanks = B.page.locator('[data-testid="iletisim-bildirimi"][data-kind="thanks"]'); await thanks.waitFor({ timeout: 10_000 }); await sleep(500);
       await G.shot(B.page, 22, 'yardim-tesekkur', { kind: 'sosyal', title: 'Teşekkür', caption: 'Yardım isteyen bölümü geçince yardım edenlere teşekkür şeridi ve ödül gelir; "Rica ederim" tek dokunuşla yazılır.' });
       await thanks.locator('[data-act="rica"]').click().catch(() => undefined); await sleep(1500);
@@ -1093,7 +1098,7 @@ async function sectionSosyal() {
       await G.shot(B.page, 42, 'mesaj-kutusu', { kind: 'sosyal', title: 'Mesajlar', caption: 'Mesaj kutusu: konuşmalar en yeni üstte, okunmamış sayılarıyla.' });
     });
     await step('dq-aciklama', async () => {
-      await teamChat(A); await A.page.locator('[data-testid="gunun-sorusu"][data-rev="1"]').first().waitFor({ timeout: 80_000 }); await scrollTo(A, '[data-testid="gunun-sorusu"]');
+      await teamChat(A, 'mesajlar'); await A.page.locator('[data-testid="gunun-sorusu"][data-rev="1"]').first().waitFor({ timeout: 80_000 }); await scrollTo(A, '[data-testid="gunun-sorusu"]');
       await G.shot(A.page, 2, 'gunun-sorusu-aciklandi', { kind: 'sosyal', title: 'Günün Sorusu açıklandı', caption: 'Akşam 20:00\'de doğru şık, kısa açıklama ve doğru bilenler açıklanır; doğru bilene 10 jeton. Kartın konusu tartışma alanıdır.' });
       await A.page.locator('[data-testid="gunun-sorusu"] .fc-reply', { hasText: 'Haftalık tablo' }).first().click(); await A.page.locator('.dq-board li').first().waitFor({ timeout: 8000 }); await sleep(500);
       await G.shot(A.page, 3, 'gunun-sorusu-haftalik-tablo', { kind: 'sosyal', title: 'Günün Sorusu: haftalık tablo', caption: 'Takımın haftalık doğru cevap tablosu; Çalışma Grubu açıksa sorular odyoloji öğrencisi düzeyinden seçilir.' });

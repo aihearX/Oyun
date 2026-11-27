@@ -1,6 +1,6 @@
 import { openProfile } from '../friends/state';
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNet } from '@odi/net/store';
+import { trimChat, useNet } from '@odi/net/store';
 import { CHAT_REACTIONS, COMM_RULES, REACTION_LABEL, SOCIAL_LIMITS, type ChatMessage, type ChatReaction } from '@odi/shared';
 import { newRunId } from '@odi/net';
 import { act, callSafe, errText, getNet, toast } from '../net';
@@ -12,6 +12,7 @@ import { FeedCard, SafeChatSheet, HelpCard, OnlineRow, PhraseStrip, QuestionCard
 import { KonsultCard } from '../camp/gorev/KonsultCard';
 import { clearMentions, useCanFreeText, useComm } from '../comm/state';
 import { foldSystemRows, type ChatRow } from '../comm/sysfold';
+import { markUpdatesSeen, newCount, setChatPane, splitTeamChat, useChatPane, type ChatPane } from '../comm/teamFeed';
 import { featureOpen } from '../ftue/useFeatures';
 import { Icon } from './icons';
 import { useBackLayer } from '../nav';
@@ -72,7 +73,9 @@ function placeholderFits(el: HTMLInputElement, text: string): boolean {
  *  bahsetme ve "Kim çevrimiçi". Uzun bas: tepki / yanıtla / şikâyet / sessize al. since: bakan oyuncunun takıma katıldığı an; ondan önceki
  *  art arda sistem satırları katlanır, art arda ayrılma satırları tek satır olur (comm/sysfold.ts, YN-148).
  *  placeholderShort: uzun ipucu kutuya sığmazsa (320 px, Büyük yazı, uzun takım adı) yazılan kısa ipucu (OT-eski-telefon-31).
- *  expandable: sohbet tam ekran açılabilir (takım kartı, sekmeler ve alt çubuk gizlenir; geri tuşu / Escape kapatır; YN-248). */
+ *  expandable: sohbet tam ekran açılabilir (takım kartı, sekmeler ve alt çubuk gizlenir; geri tuşu / Escape kapatır; YN-248).
+ *  Takım odası iki bölmedir (1.3.0, comm/teamFeed.ts): Mesajlar (oyuncuların yazdıkları; yazı kutusu burada) ve Güncellemeler (takım
+ *  arkadaşlarının gelişmeleri, yardım kartları, duyurular; kartlar burada da çalışır). Mesajlar rozeti yalnız mesajları sayar. */
 export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', placeholderShort, emptyText, members, since, expandable }: { room: string; offset?: number; placeholder?: string; placeholderShort?: string; emptyText?: string; members?: ChatMember[]; since?: number; expandable?: boolean }) {
   const me = useNet((s) => s.me);
   const msgs = useNet((s) => s.messages[room] ?? EMPTY);
@@ -92,6 +95,10 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
   const team = room.startsWith('takim:');
   const [full, setFull] = useState(false);
   useBackLayer(() => setFull(false), full);
+  // hızlı tepki ve hazır söz tepsisi (1.3.0): serbest yazabilen oyuncuda satır her zaman açık durmaz, yazı kutusunun solundaki düğmeyle
+  // yazı kutusunun üstünde açılır (mesajlara ~50 px). Serbest yazı kapalıyken (yeni oyuncu) hazır sözler konuşmanın tek yolu: hep açık.
+  const [tray, setTray] = useState(false);
+  useBackLayer(() => setTray(false), tray);
   // tam ekrana geçince ya da çıkınca kutu boyu değişir: sondaysa sonda kalsın
   useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [full]);
   const [shortPh, setShortPh] = useState(false);
@@ -120,7 +127,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
       if (!alive) return;
       useNet.setState((s) => {
         const live = (s.messages[room] ?? []).filter((m) => !history.some((h) => h.id === m.id));
-        return { messages: { ...s.messages, [room]: [...history, ...live].sort((a, b) => a.at - b.at).slice(-SOCIAL_LIMITS.historySize * 2) } };
+        return { messages: { ...s.messages, [room]: trimChat([...history, ...live].sort((a, b) => a.at - b.at), SOCIAL_LIMITS.historySize * 2) } };
       });
       setLoading(false);
       if (joins > 0) setErr((e) => (e && /bağlı değilsin|koptu/i.test(e) ? '' : e));
@@ -129,39 +136,57 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
   }, [room, joins]);
   useEffect(() => { clearMentions(room); }, [msgs.length]);
 
-  // konu yanıtları üst mesajın altında; üst mesaj listede yoksa tek başına (yanıt etiketiyle) görünür
-  const { top, repliesOf } = useMemo(() => {
+  // konu yanıtları üst mesajın altında; üst mesaj listede yoksa tek başına (yanıt etiketiyle) görünür. Takım odası iki bölme (teamFeed.ts).
+  const pane: ChatPane = useChatPane((s) => s.pane);
+  const split = useMemo(() => {
+    const hide = (m: ChatMessage) => muted.has(m.from) || (m.kind === 'soru' && !dqOpen);
+    if (team) return splitTeamChat(msgs, hide);
     const ids = new Set(msgs.map((m) => m.id));
     const by = new Map<string, ChatMessage[]>(); const t: ChatMessage[] = [];
     for (const m of msgs) {
-      if (muted.has(m.from)) continue;
-      if (m.kind === 'soru' && !dqOpen) continue;
+      if (hide(m)) continue;
       if (m.replyTo && ids.has(m.replyTo)) { const l = by.get(m.replyTo) ?? []; l.push(m); by.set(m.replyTo, l); continue; }
       t.push(m);
     }
-    return { top: t, repliesOf: by };
-  }, [msgs, muted, dqOpen]);
+    return { messages: t, updates: EMPTY, repliesOf: by, parentOf: new Map<string, ChatMessage>() };
+  }, [msgs, muted, dqOpen, team]);
+  const onUpdates = team && pane === 'guncelleme';
+  const top = onUpdates ? split.updates : split.messages;
+  const repliesOf = split.repliesOf;
 
   const rows = useMemo<ChatRow[]>(() => (team ? foldSystemRows(top, since) : top.map((m, i) => ({ kind: 'msg' as const, m, i }))), [top, since, team]);
+  // bölme rozetleri: Güncellemeler en son görülen güncellemeden (bu cihazda kalıcı) sonrakileri, Mesajlar (Güncellemeler açıkken) açılıştaki
+  // okunmamış sayısı + o andan sonra gelenleri sayar; Mesajlar açıkken sunucu imleci okundu yazar (aşağıda markRead)
+  const seenUpd = useChatPane((s) => s.seen[room]);
+  const updBadge = !team || onUpdates ? 0 : newCount(split.updates, seenUpd ?? since ?? 0, me?.id);
+  const [msgSeen, setMsgSeen] = useState(() => ({ at: Date.now(), carry: useNet.getState().unread[room] ?? 0 }));
+  const msgBadge = !onUpdates ? 0 : msgSeen.carry + newCount(split.messages, msgSeen.at, me?.id);
+  const lastMsgAt = split.messages.reduce((a, m) => Math.max(a, m.at), 0); const lastUpdAt = split.updates.reduce((a, m) => Math.max(a, m.at), 0);
+  useEffect(() => { if (team && !onUpdates && !loading) setMsgSeen((s) => (s.carry === 0 && s.at >= lastMsgAt ? s : { at: Math.max(lastMsgAt, s.at), carry: 0 })); }, [team, onUpdates, loading, lastMsgAt]);
+  useEffect(() => { if (onUpdates && !loading && lastUpdAt) markUpdatesSeen(room, lastUpdAt); }, [onUpdates, loading, lastUpdAt, room]);
+  // Güncellemeler açıkken ekrandan çıkılırsa görülmemiş mesajlar Takım sekmesi rozetinde kalır (açık oda sayacı sıfırlamıştı)
+  const unseenMsgs = useRef(0); unseenMsgs.current = msgBadge;
+  useEffect(() => () => { const n = unseenMsgs.current; if (team && n > 0) useNet.setState((s) => ({ unread: { ...s.unread, [room]: Math.min(99, n) } })); }, [room, team]);
+  const pickPane = (p: ChatPane) => { if (p === pane) return; stick.current = true; setChatPane(p); platform().haptic('light'); };
   const [unfolded, setUnfolded] = useState<Set<string>>(new Set());
   const ralliEnds = useMemo(() => (team ? rallyEnds(msgs) : new Map()), [msgs, team]);
-  useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading]);
+  useLayoutEffect(() => { const b = box.current; if (b && stick.current) b.scrollTop = b.scrollHeight; }, [msgs.length, loading, pane]);
   // Günün Sorusu sohbetin görünen alanına sığmıyorsa (sona kaydırınca başı kesik): ilk açılışta kartın başına hizalanır, soru ve şıklar
   // görünür (YN-172). Cevaplanmış ya da açıklanmış soruda ve kart tümüyle yukarıda kaldıysa sohbet sonda kalır.
   const aligned = useRef(false);
   useLayoutEffect(() => {
-    const b = box.current; if (!team || loading || !b || aligned.current) return;
+    const b = box.current; if (!team || loading || !b || aligned.current || onUpdates) return;
     aligned.current = true;
     const cards = b.querySelectorAll<HTMLElement>('[data-testid="gunun-sorusu"][data-rev="0"]');
     const card = cards[cards.length - 1]; if (!card?.querySelector('.dq-opt:not(:disabled)')) return;
     const q = useComm.getState().dq?.question; if (q && q.msgId === card.dataset.id && q.myChoice != null) return;
     const d = questionShift(b.getBoundingClientRect(), card.getBoundingClientRect(), parseFloat(getComputedStyle(b).paddingTop) || 0);
     if (d) { b.scrollTop += d; stick.current = false; }
-  }, [loading]);
+  }, [loading, onUpdates]);
   // takım sohbeti görünür ve sona kaydırılmışsa son iletiye kadar okundu (sunucu imleci; Takım sekmesi rozeti, YN-071)
   const readAt = useRef(0);
   const markRead = () => {
-    const b = box.current; if (!team || loading || !b || document.visibilityState === 'hidden') return;
+    const b = box.current; if (!team || onUpdates || loading || !b || document.visibilityState === 'hidden') return;
     if (b.scrollHeight - b.scrollTop - b.clientHeight >= 60) return;
     const last = msgs.reduce((a, m) => Math.max(a, m.at), 0); if (!last || last <= readAt.current) return;
     readAt.current = last;
@@ -183,7 +208,7 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
       const { msg } = await callSafe('chat.send', { room, text: clean, kind, cid: cid.current.id });
       cid.current = null;
       // kendi iletin (yeniden denemede yayın tekrarlanmaz): listede yoksa ekle
-      useNet.setState((s) => { const list = s.messages[room] ?? []; return list.some((m) => m.id === msg.id) ? {} : { messages: { ...s.messages, [room]: [...list, msg].slice(-SOCIAL_LIMITS.historySize * 2) } }; });
+      useNet.setState((s) => { const list = s.messages[room] ?? []; return list.some((m) => m.id === msg.id) ? {} : { messages: { ...s.messages, [room]: trimChat([...list, msg], SOCIAL_LIMITS.historySize * 2) } }; });
       if (kind === 'text') setText(''); stick.current = true; platform().haptic('light');
     } catch (e) { setErr(errText(e)); }
     finally { setSending(false); }
@@ -205,15 +230,18 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
     if (m.kind === 'soru') return <QuestionCard key={m.id} m={m} live={live} />;
     if (team && isRallyStart(m)) return <RallyChatCard key={m.id} m={m} end={ralliEnds.get(String(m.meta!.rallyId))} />;
     if (m.from === 'sistem') return <div key={m.id} className={`msg-sys kind-${m.kind}`}><span aria-hidden><Glyph e={sysIcon(m)} size="1.2em" /></span> {rich(m.text)}{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>;
-    const mine = m.from === me?.id; const head = !prev || prev.from !== m.from || m.at - prev.at > 5 * 60_000 || prev.kind === 'feed';
+    const parent = team ? split.parentOf.get(m.id) : undefined;
+    const mine = m.from === me?.id; const head = !!parent || !prev || prev.from !== m.from || m.at - prev.at > 5 * 60_000 || prev.kind === 'feed' || !!(prev && split.parentOf.has(prev.id));
     const at = typeof m.meta?.at === 'string' && !!me && m.meta.at.split(',').includes(me.id);
     return (
       <div key={m.id} className={`msg${mine ? ' mine' : ''}${m.kind === 'emoji' ? ' emoji' : ''}${m.kind === 'hazir' ? ' preset' : ''}${at ? ' mentioned' : ''}`} data-testid="mesaj"
         onPointerDown={() => startPress(m)} onPointerUp={endPress} onPointerLeave={endPress} onContextMenu={(e) => { e.preventDefault(); setMenu(m); }}>
         {head && !mine && <button type="button" className="msg-name linkish" style={{ color: hex(m.color) }} onClick={() => openProfile(m.from)}>{m.name}</button>}
+        {/* güncelleme kartına yanıt (Tebrik et, ipucu…): hangi karta yazıldığı; dokununca konu açılır */}
+        {parent && <button type="button" className="msg-ctx" data-testid="mesaj-karta-yanit" onClick={() => setThread(parent)} aria-label={`Takım güncellemesine yanıt: ${parent.text}`}><Icon name="megaphone" size={13} /><span className="ellipsis">{parent.text}</span></button>}
         {/* seçenekler düğmesi balonla aynı satırda, balonun hemen yanında (satırın sağ ucunda boşta durmaz) */}
         <div className="bubble-row">
-          <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{m.kind === 'emoji' ? <span className="emoji-art">{rich(m.text, '1.6em')}</span> : withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && <small className="msg-re"> · yanıt</small>}</div>
+          <div className="bubble">{m.kind === 'hazir' && <Art name="chat" size="1em" className="art-inline preset-ic" />}{m.kind === 'emoji' ? <span className="emoji-art">{rich(m.text, '1.6em')}</span> : withMentions(m.text, names)}<span className="msg-time">{fmtTime(m.at)}</span>{m.replyTo && !parent && <small className="msg-re"> · yanıt</small>}</div>
           {!mine && <button type="button" className="msg-more" onClick={() => setMenu(m)} aria-label={`${m.name} mesajı için seçenekler`}>⋯</button>}
         </div>
         {m.reactions && <ReactionBar msg={m} compact />}
@@ -237,28 +265,47 @@ export function ChatRoom({ room, offset = 360, placeholder = 'Mesaj yaz…', pla
     );
   };
 
+  const sendQuick = (t: string, kind: 'emoji' | 'hazir') => { void send(t, kind); setTray(false); };
+  const quickLine = phrases
+    ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Tepkilere geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => sendQuick(id, 'hazir')} /></div>
+    : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{CHAT_REACTIONS.map((r) => <button key={r} type="button" className="quick" onClick={() => sendQuick(QUICK_CODE[r], 'emoji')} aria-label={`Hızlı tepki: ${REACTION_LABEL[r]}`}><Art name={REACTION_ART[r]} size={22} /></button>)}</div></div>;
+
   return (
-    <div className={`chat${full ? ' full' : ''}`}>
-      {((team && members) || expandable) && (
+    <div className={`chat${full ? ' full' : ''}${team ? ` panes${onUpdates ? ' on-updates' : ''}` : ''}`}>
+      {(team || expandable) && (
         <div className="chat-top">
-          {team && members && <OnlineRow members={members} />}
+          {/* Mesajlar | Güncellemeler (1.3.0): takım arkadaşlarının gelişmeleri mesajların arasına karışmaz */}
+          {team && (
+            <div className="chat-panes" role="tablist" aria-label="Takım sohbeti">
+              <button type="button" role="tab" aria-selected={!onUpdates} className={onUpdates ? '' : 'on'} data-testid="sohbet-mesajlar" onClick={() => pickPane('mesaj')}
+                aria-label={`Mesajlar${msgBadge ? `: ${msgBadge} yeni` : ''}`}><Art name="chat" size={18} /><span className="cp-label">Mesajlar</span>{msgBadge > 0 && <span className="sbadge">{msgBadge > 99 ? '99+' : msgBadge}</span>}</button>
+              <button type="button" role="tab" aria-selected={onUpdates} className={onUpdates ? 'on' : ''} data-testid="sohbet-guncellemeler" onClick={() => pickPane('guncelleme')}
+                aria-label={`Takım güncellemeleri${updBadge ? `: ${updBadge} yeni` : ''}`}><Art name="megaphone" size={18} /><span className="cp-label">Güncellemeler</span>{updBadge > 0 && <span className="cp-new">{updBadge > 9 ? '9+' : updBadge}</span>}</button>
+            </div>
+          )}
+          {team && members && <OnlineRow members={members} compact />}
           {expandable && <button type="button" className="chat-full-btn" data-testid="sohbet-tam-ekran" aria-pressed={full} onClick={() => { setFull(!full); platform().haptic('light'); }}
             aria-label={full ? 'Tam ekrandan çık' : 'Sohbeti tam ekran aç'} title={full ? 'Tam ekrandan çık' : 'Sohbeti tam ekran aç'}><Icon name={full ? 'shrink' : 'expand'} size={20} /></button>}
         </div>
       )}
       <div className="chat-box" ref={box} onScroll={onScroll} style={{ ['--chat-off' as string]: `${offset}px` }}>
-        {loading ? <Skeleton rows={3} /> : top.length === 0 ? <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} /> : rows.map(renderRow)}
+        {loading ? <Skeleton rows={3} /> : top.length === 0
+          ? (onUpdates ? <Empty icon="📣" title="Henüz güncelleme yok" text="Takım arkadaşların bölüm geçince, bina kurunca ya da yardım isteyince burada görünür." />
+            : <Empty icon="💬" title="Henüz ses yok" text={emptyText ?? 'İlk mesajı sen yaz; bir “merhaba” bile yeter.'} />)
+          : rows.map(renderRow)}
       </div>
-      {phrases
-        ? <div className="quick-line"><button type="button" className="quick phr-toggle on" onClick={() => setPhrases(false)} aria-label="Tepkilere geç"><Art name="chat" size={20} /></button><PhraseStrip rewind ctx={['genel', 'tebrik', 'tesekkur']} onPick={(id) => void send(id, 'hazir')} /></div>
-        : <div className="quick-line"><button type="button" className="quick phr-toggle" onClick={() => setPhrases(true)} aria-label="Hazır sözler"><Art name="chat" size={20} /></button><div className="quick-row" aria-label="Hızlı tepkiler">{CHAT_REACTIONS.map((r) => <button key={r} type="button" className="quick" onClick={() => void send(QUICK_CODE[r], 'emoji')} aria-label={`Hızlı tepki: ${REACTION_LABEL[r]}`}><Art name={REACTION_ART[r]} size={22} /></button>)}</div></div>}
+      {/* serbest yazı kapalıyken satır hep açık; açıkken yazı kutusunun solundaki düğmeyle açılan tepside (aynı düğmeler, aynı adlar) */}
+      {!free && quickLine}
       {err && <div className="chat-err" role="alert">{err}</div>}
       {sending && st !== 'bağlı' && <div className="net-banner chat-wait" role="status" data-testid="sohbet-bekliyor">Bağlantı bekleniyor; iletin bağlanınca gönderilecek.</div>}
       {suggest.length > 0 && <div className="at-suggest" role="listbox" aria-label="Bahset">{suggest.map((m) => <button key={m.id} type="button" role="option" aria-selected={false} onClick={() => pickMention(m.name)}><span className="at-dot" style={{ background: hex(m.color) }} />@{m.name}</button>)}</div>}
       {!free && <div className="chat-lock-note" id={`kilit-${room}`} data-testid="serbest-kilit">Serbest yazı {freeAt}. bölümden sonra açılır; şimdilik hazır sözler ve tepkiler.</div>}
       <form className="chat-input" onSubmit={(e) => { e.preventDefault(); if (!free) { setOptIn(true); return; } void send(text); }}>
+        {free && tray && <div className="quick-pop" id={`hizli-${room}`} role="group" aria-label="Hızlı tepkiler ve hazır sözler" data-testid="hizli-tepsi">{quickLine}</div>}
+        {free && <button type="button" className={`quick-open${tray ? ' on' : ''}`} data-testid="hizli-tepki-ac" aria-expanded={tray} aria-controls={`hizli-${room}`}
+          aria-label={tray ? 'Hızlı tepkileri kapat' : 'Hızlı tepkiler ve hazır sözler'} onClick={() => { setTray(!tray); platform().haptic('light'); }}><Icon name={tray ? 'close' : 'smile'} size={22} /></button>}
         <input ref={inputRef} className="input" value={text} maxLength={SOCIAL_LIMITS.chatMax} readOnly={!free} onChange={(e) => setText(e.target.value)}
-          onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } }}
+          onFocus={() => { if (!free) { inputRef.current?.blur(); setOptIn(true); } else setTray(false); }}
           placeholder={free ? (shortPh && placeholderShort ? placeholderShort : placeholder) : 'Yazı kapalı'} aria-describedby={free ? undefined : `kilit-${room}`} aria-label="Mesaj" enterKeyHint="send" />
         <IconButton type="submit" icon="send" label="Gönder" tone="solid" disabled={free && !text.trim()} />
       </form>

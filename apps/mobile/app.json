@@ -2,7 +2,7 @@
   "expo": {
     "name": "ODI Sesin Yolu",
     "slug": "odi",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -182,6 +182,14 @@
           "photosPermission": "Profil fotoğrafı seçmek için fotoğraflarına erişim gerekir.",
           "cameraPermission": "ODİ kamerayı kullanmaz; profil fotoğrafı yalnız galeriden seçilir.",
           "microphonePermission": "ODİ mikrofonu kullanmaz."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#7c5cff",
+          "defaultChannel": "varsayilan",
+          "enableBackgroundRemoteNotifications": false
         }
       ]
     ],

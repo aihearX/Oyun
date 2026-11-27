@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useNet } from '@odi/net/store';
 import { PASS_DAILY_KRISTAL, PASS_DAYS, PASS_TOTAL_KRISTAL, SHOP, isRestorable, SPEND_LIMIT_FIRST_CHOICES, SPEND_LIMIT_OPTIONS, SPEND_LIMIT_SUGGESTED_TRY, TEAM_GIFT_ANON, type OpMap, type ShopProduct, type SpendState } from '@odi/shared';
 import { errText, getNet, odemeIslendi, odemeKuyrugu, odemeRetMetni, toast } from '../net';
@@ -13,6 +13,14 @@ import { Art, TeamEmblem } from '../ui/art';
 import { BEST_VALUE_LABEL, bestValue, fmtPerTry, kalanSatiri, limitBlock, listPriceNote, loadStorePrices, payLine, priceLabel, type ShopMode, type StorePriceMap } from '../shopPrice';
 
 type Product = ShopProduct & { bought: number };
+/** mağaza kümeleri (1.3.0): yalnız kristal → Kristal; yalnız hızlandırıcı → Hızlandırıcılar; öteki her şey (paket, sezon kartı) → Paketler */
+export type MagazaKumesi = 'paket' | 'kristal' | 'hiz';
+export function magazaKumesi(p: Pick<ShopProduct, 'contents'>): MagazaKumesi {
+  if (p.contents.length && p.contents.every((c) => c.kind === 'kristal')) return 'kristal';
+  if (p.contents.length && p.contents.every((c) => c.kind === 'm5' || c.kind === 'm60' || c.kind === 's8')) return 'hiz';
+  return 'paket';
+}
+const KUME_ADI: Record<MagazaKumesi, string> = { paket: 'Paketler', kristal: 'Kristal', hiz: 'Hızlandırıcılar' };
 type List = OpMap['shop.list']['res'];
 const SHOP_IDS = SHOP.map((p) => p.id);
 /** bu oturumda mağazadan gelen son fiyatlar (oyuncu başına): mağaza yeniden açılınca beklemeden gösterilir */
@@ -107,7 +115,8 @@ function Shop() {
   return (
     <div className="stack magaza">
       {mode === 'test' && <div className="test-banner" role="note"><Art name="flask" size="1.2em" className="art-inline" /> TEST MAĞAZASI — gerçek para çekilmez. Satın almalar yalnızca denemedir.</div>}
-      {mode === 'closed' && <div className="card"><b>Mağaza bu sürümde kapalı</b><div className="muted">Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
+      {/* 1.3.0 vitrin: ödeme altyapısı açılana kadar paketler ve içerikleri görünür, satın alma düğmesi "Yakında" */}
+      {mode === 'closed' && <div className="card magaza-yakinda" data-testid="magaza-yakinda"><b>Satın alma çok yakında açılıyor</b><div className="muted">Paketlere ve içeriklerine şimdiden göz atabilirsin. Oyunun tamamı oynayarak ilerler; mağaza yalnızca zaman ve stil kazandırır.</div></div>}
       {/* yeni oyuncu üstte tek kısa cümle okur; oyun kelimeleriyle ayrıntı açılır bölümde, içerik aynı (OT-ilk-kez-oyun-28) */}
       <div className="magaza-ilke" data-testid="magaza-ilke">
         <b>Burada bölüm geçirten ya da sıralamada öne geçiren bir şey satılmaz.</b>
@@ -119,13 +128,14 @@ function Shop() {
       {mode !== 'closed' && !prices && <div className="muted small-note" data-testid="fiyat-notu">{listPriceNote(mode)}</div>}
       <BekleyenOdemeler playerId={me.id} onIslendi={() => void load()} />
 
-      <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />
+      {mode !== 'closed' && <SpendCard sp={sp} storePrices={!!prices} onEdit={() => setLimitOpen(true)} />}
 
-      {data.products.map((p) => {
+      {data.products.map((p, i) => {
         // aylık sınırı aşan paket listede de gri ve sebebi yazılı; pencere aynı kuralı kullanır (limitBlock)
         const soldOut = p.limit > 0 && p.bought >= p.limit; const block = soldOut || mode === 'closed' ? null : limitBlock(sp, p.priceTry);
-        const isBest = best?.id === p.id; return (
-        <div className={`card product${isBest ? ' tag-en-iyi-deger' : p.tag === 'baslangic' ? ' tag-baslangic' : ''}`} key={p.id}>
+        const isBest = best?.id === p.id; const kume = magazaKumesi(p); const baslik = i === 0 || magazaKumesi(data.products[i - 1]!) !== kume; return (
+        <Fragment key={p.id}>{baslik && <h3 className="magaza-kume" data-testid={`kume-${kume}`}>{KUME_ADI[kume]}</h3>}
+        <div className={`card product${isBest ? ' tag-en-iyi-deger' : p.tag === 'baslangic' ? ' tag-baslangic' : ''}`}>
           {isBest ? <span className="ribbon" data-testid="en-iyi-deger">{BEST_VALUE_LABEL}</span> : p.tag === 'baslangic' && <span className="ribbon">Başlangıç</span>}
           {mode === 'test' && <span className="test-chip">TEST</span>}
           <div className="row"><div className="grow min0"><b>{p.name}</b><div className="muted">{p.desc}</div></div></div>
@@ -136,26 +146,35 @@ function Shop() {
           <div className="row between prod-foot">
             <span className="muted small-note">{p.limit > 0 ? `Kişi başı ${p.limit} · alındı ${p.bought}/${p.limit}` : p.bought ? `${p.bought} kez alındı` : ''}</span>
             {/* sınırı aşan paketin düğmesi gri ama dokunulabilir: dokununca kalan tutar ve sıfırlanma günü yazılır */}
-            <button className="btn small" disabled={mode === 'closed' || soldOut} aria-disabled={block ? true : undefined} onClick={() => (block ? setSinirNotu(p.id) : setSel(p))}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
+            <button className="btn small" disabled={soldOut} aria-disabled={block ? true : undefined} onClick={() => (block ? setSinirNotu(p.id) : setSel(p))}>{soldOut ? 'Alındı' : priceLabel(p, prices).text}</button>
           </div>
           {block && <div className="muted small-note sinir-asiyor" data-testid="sinir-asiyor">{block}</div>}
           {block && sinirNotu === p.id && <div className="small-note sinir-notu" role="status" data-testid="sinir-notu">{sp.limitTry > 0 ? `${kalanSatiri(sp)}.` : 'Aylık sınırın “Kapalı”: satın alma yok.'} Sınırı yukarıdaki “Sınırı ayarla”dan değiştirebilirsin.</div>}
-        </div>); })}
+        </div></Fragment>); })}
 
       {mode === 'real' && platform().restorePurchases && <GeriYukle playerId={me.id} onDone={(r) => setData({ ...data, spend: r.spend })} />}
 
-      <div className="card">
+      {(mode !== 'closed' || sp.purchases.length > 0) && <div className="card">
         <b>Satın alma geçmişi</b>{prices && sp.purchases.length > 0 && <span className="muted small-note"> · TL liste fiyatıyla</span>}
         {sp.purchases.length === 0 ? <div className="muted">Henüz satın alma yok.</div> : (
           <ul className="history">{sp.purchases.map((x) => <li key={x.id}><span className="grow ellipsis">{data.products.find((p) => p.id === x.productId)?.name ?? x.productId}</span><span className="muted">{fmtDate(x.at)}{x.store === 'test' ? ' · TEST' : ''}</span><b>{fmtTry(x.amountTry)}</b></li>)}</ul>
         )}
-      </div>
+      </div>}
 
-      {sel && !sp.limitChosen && (
+      {sel && mode === 'closed' && (
+        <Sheet title={sel.name} onClose={() => setSel(null)}>
+          <div className="confirm-price" data-testid="onay-fiyat">{priceLabel(sel, prices).text}</div>
+          <div className="muted">İçerik:</div><ItemChips items={sel.contents} />
+          {sel.id === 'odi.pass' && <PassTerms />}
+          {sel.teamGift && sel.teamGiftContents && <div className="team-gift-line"><Art name="gift" size="1.2em" className="art-inline" /> Takımındaki herkese: <GiftParts items={sel.teamGiftContents} /></div>}
+          <button className="btn" disabled data-testid="yakinda">Satın alma yakında açılacak</button>
+          <button className="btn ghost" onClick={() => setSel(null)}>Kapat</button>
+        </Sheet>)}
+      {sel && mode !== 'closed' && !sp.limitChosen && (
         <Sheet title="Önce aylık harcama sınırı" onClose={() => setSel(null)}>
           <FirstLimit onSaved={(s) => setData({ ...data, spend: s })} onCancel={() => setSel(null)} />
         </Sheet>)}
-      {sel && sp.limitChosen && (() => { const over = limitBlock(sp, sel.priceTry) != null; const pl = priceLabel(sel, prices); return (
+      {sel && mode !== 'closed' && sp.limitChosen && (() => { const over = limitBlock(sp, sel.priceTry) != null; const pl = priceLabel(sel, prices); return (
         <Sheet title={sel.name} onClose={() => setSel(null)}>
           {mode === 'test' && <div className="test-banner small"><Art name="flask" size="1.2em" className="art-inline" /> TEST — gerçek para çekilmez</div>}
           <div className="confirm-price" data-testid="onay-fiyat">{pl.text}</div>

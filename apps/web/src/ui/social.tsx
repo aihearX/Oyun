@@ -4,7 +4,7 @@ import { useNet } from '@odi/net/store';
 import { BUILDINGS, kilitOzeti, kilitRefOku, type InboxItemKind } from '@odi/shared';
 import { cardById, cosmeticById } from '@odi/content';
 import { useStore } from '../store';
-import { platform } from '../platform';
+import { magazaGizli, useMagazaGizli } from '../magaza-gorunum';
 import { reconnect, usePending, useSocial } from '../net';
 import { useBackLayer, useNav } from '../nav';
 import { useHudCount } from '../celebrate/hud';
@@ -98,7 +98,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
   const coins = useStore((s) => s.coins);
   const wallet = useNet((s) => s.wallet); const inbox = useNet((s) => s.inboxCount); const st = useNet((s) => s.status);
   const pending = usePending(); const nav = useNav();
-  const feat = useFeatures();
+  const feat = useFeatures(); const magazaKapali = useMagazaGizli();
   const linked = !!wallet; const shopOpen = linked && feat.open('shop');
   // bağlıyken yanıtı beklenen ödül/harcama (bölüm sonu, görev jetonu): jeton tahmindir, sunucu onaylayınca kum saati kalkar (MK-038)
   const waiting = useSocial((s) => s.queued > 0 || s.outbox.length > 0);
@@ -116,7 +116,7 @@ export function TopBar({ title, brand, extra }: { title?: string; brand?: boolea
         {extra}
         {linked && feat.open('friends') && <DmTopPill />}
         <span className={`pill tb-pill${jc.bump ? ' hud-pop' : ''}`} key={`j${jc.bump}`} data-hud="jeton" data-value={Math.round(jc.value)} aria-label={`Jeton: ${fmtNum(jc.value)}${saving ? ', kaydediliyor' : ''}`} title={offPend ? `${fmtNum(jc.value)} jeton · ${pending} jeton bağlanınca hesaba geçecek` : saving ? `${fmtNum(jc.value)} jeton · Kaydediliyor…` : `${fmtNum(jc.value)} jeton`}><Art name="coin" size={19} /><HudNum v={jc.value} />{(offPend || saving) && <i className={`pend${saving ? ' kayit' : ''}`} data-testid={saving ? 'jeton-kaydediliyor' : undefined}><Art name="hourglass" size={13} /></i>}</span>
-        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => { if (!platform().shopHidden) nav.open({ name: 'shop' }); }} aria-label={`${platform().shopHidden ? 'Kristal' : 'Kristal ve mağaza'}: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
+        {shopOpen && <button className={`pill tb-pill tap${kc.bump ? ' hud-pop' : ''}`} key={`k${kc.bump}`} data-hud="kristal" data-value={Math.round(kc.value)} title={`${fmtNum(kc.value)} kristal`} onClick={() => { if (!magazaGizli()) nav.open({ name: 'shop' }); }} aria-label={`${magazaKapali ? 'Kristal' : 'Kristal ve mağaza'}: ${fmtNum(kc.value)} kristal`}><Art name="crystal" size={19} /><HudNum v={kc.value} /></button>}
         {shopOpen && <button className="pill tb-pill tap ico env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Icon name="inbox" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
     </div>

@@ -17,6 +17,8 @@ export type StorePurchaseResult = { ok: true; store: 'app-store' | 'play'; recei
 export type StoreRestoreResult = { ok: true; store: 'app-store' | 'play' } | { ok: false; error: string };
 export interface SpeakOpts { rate?: number; pitch?: number; /** yalnız erkek tr-TR ses varsa oku (Tüy Dede kadın sesle konuşmaz) */ maleOnly?: boolean }
 export type HapticKind = 'light' | 'medium' | 'heavy' | 'success' | 'error';
+/** telefonun bildirim izni (1.3.0): verildi, reddedildi (yalnız telefon ayarından açılır), henüz sorulmadı */
+export type PushIzin = 'granted' | 'denied' | 'undetermined';
 export interface Platform {
   kind: 'web' | 'native';
   storage: { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void>; removeItem(key: string): Promise<void> };
@@ -84,6 +86,17 @@ export interface Platform {
    * tarafta tutulur: Sıfırla / restartApp WebView'i baştan kursa da "sesi açın" ve güncelleme sorusu soğuk açılışta bir kez çıkar.
    */
   onceThisLaunch?: (key: string) => Promise<boolean>;
+  /**
+   * Anlık bildirimler (1.3.0, yalnız telefon kabuğu; expo-notifications, apps/mobile/src/bildirim.ts). Tarayıcıda tanımsız.
+   * status: telefonun bildirim izni; request: sistem izin penceresi (daha önce reddedildiyse açılmaz, durum döner); token: Expo bildirim
+   * anahtarı (izin yoksa ya da alınamazsa null, ör. Android'de Firebase yapılandırılmamış); openSettings: telefonun ODİ ayarları.
+   */
+  push?: {
+    status: () => Promise<PushIzin>;
+    request: () => Promise<PushIzin>;
+    token: () => Promise<{ token: string; platform: 'ios' | 'android' } | null>;
+    openSettings: () => void;
+  };
 }
 
 const webStorage: Platform['storage'] = {

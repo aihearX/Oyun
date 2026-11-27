@@ -3,7 +3,7 @@
  * bileşenler `useNet((s) => s.wallet)` gibi seçicilerle okur. React ve zustand peer dependency'dir.
  */
 import { create } from 'zustand';
-import { inboxGroups, sameInboxGroup, type CampState, type ChatMessage, type EvtMap, type InboxItem, type MyProfile, type RaceRoom, type RaidState, type TeamDetail, type TeamExtra, type WarState, type Wallet } from '@odi/shared';
+import { inboxGroups, isTeamUpdate, sameInboxGroup, type CampState, type ChatMessage, type EvtMap, type InboxItem, type MyProfile, type RaceRoom, type RaidState, type TeamDetail, type TeamExtra, type WarState, type Wallet } from '@odi/shared';
 import type { NetClient, NetStatus } from './client';
 
 export type CampHelpRequest = EvtMap['team.campHelpNeeded']['requests'][number];
@@ -39,6 +39,17 @@ export interface NetState {
 }
 
 const MAX_MSGS = 50;
+/**
+ * oda listesini kırp: takım odasında mesajlar ve güncellemeler (isTeamUpdate) ayrı ayrı en çok `max` (1.3.0). Yoğun akış kartları
+ * oturum içinde oyuncu iletilerini listeden düşürmesin (Takım › Sohbet › Mesajlar boşalıyordu); başka odalarda son `max`.
+ */
+export function trimChat(list: ChatMessage[], max = MAX_MSGS): ChatMessage[] {
+  if (list.length <= max) return list;
+  if (!list[0]?.room.startsWith('takim:')) return list.slice(-max);
+  let upd = 0, msg = 0; const keep = new Array<boolean>(list.length);
+  for (let i = list.length - 1; i >= 0; i--) keep[i] = isTeamUpdate(list[i]!) ? ++upd <= max : ++msg <= max;
+  return list.filter((_, i) => keep[i]);
+}
 const giftsOf = (x: TeamExtra | null) => (x ? x.gifts.filter((g) => !g.claimed && g.expiresAt > Date.now()).length : 0);
 
 export const useNet = create<NetState>()((set) => ({
@@ -61,7 +72,8 @@ export function bindNet(client: NetClient): () => void {
       if (t.team) {
         const x = await client.call('team.extra', {}); set({ extra: x.extra, giftCount: giftsOf(x.extra) });
         // okunmamış takım iletileri sunucudaki okunma imlecinden (yeniden açılışta da doğru; YN-071); sohbet açıksa 0 kalır
-        const room = `takim:${t.team.id}`; const { unread } = await client.call('chat.unread', { room });
+        // msgs (1.3.0): yalnız mesajlar; eski sunucu göndermez, o zaman hepsi
+        const room = `takim:${t.team.id}`; const r = await client.call('chat.unread', { room }); const unread = r.msgs ?? r.unread;
         set((s) => ({ unread: { ...s.unread, [room]: s.activeRoom === room ? 0 : unread } }));
       }
       else set({ extra: null, giftCount: 0 });
@@ -89,10 +101,12 @@ export function bindNet(client: NetClient): () => void {
     const cur = s.messages[msg.room] ?? [];
     // aynı ileti iki kez gelirse (yanıtla birlikte eklenmiş, yeniden katılım) yerinde güncellenir
     const dup = cur.some((m) => m.id === msg.id);
-    const list = (dup ? cur.map((m) => (m.id === msg.id ? msg : m)) : [...cur, msg]).slice(-MAX_MSGS);
-    // sayılmaz: kendi iletin, seninle ilgili akış kartı (meta.pid), konu yanıtı (üst mesajın altında), açık oda (sunucu imleciyle aynı kural)
+    const list = trimChat(dup ? cur.map((m) => (m.id === msg.id ? msg : m)) : [...cur, msg]);
+    // sayılmaz: kendi iletin, seninle ilgili akış kartı (meta.pid), konu yanıtı (üst mesajın altında), açık oda (sunucu imleciyle aynı kural);
+    // takım odasında güncellemeler de (1.3.0: rozet yalnız mesajları sayar, sunucunun msgs sayısıyla aynı)
     const me = s.me?.id; const mine = msg.from === me || (!!me && msg.meta?.pid === me);
-    const unread = dup || s.activeRoom === msg.room || mine || msg.replyTo ? s.unread : { ...s.unread, [msg.room]: Math.min(99, (s.unread[msg.room] ?? 0) + 1) };
+    const upd = msg.room.startsWith('takim:') && isTeamUpdate(msg);
+    const unread = dup || s.activeRoom === msg.room || mine || upd || msg.replyTo ? s.unread : { ...s.unread, [msg.room]: Math.min(99, (s.unread[msg.room] ?? 0) + 1) };
     return { messages: { ...s.messages, [msg.room]: list }, unread };
   })));
   if (client.status === 'bağlı') void refresh();

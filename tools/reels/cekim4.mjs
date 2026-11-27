@@ -382,7 +382,9 @@ await step('takim', async () => {
   const say = async (c, id) => { await c.call('chat.send', { room, text: id, kind: 'hazir' }); await sleep(900); };
   await say(Y, 'hosgeldin'); await say(U, 'selam'); await say(H, 'birlikte'); await say(Y, 'hedef');
   await B.page.evaluate(() => undefined); await teamSub(B.page, 'Sohbet'); await B.page.locator('.chat-box').waitFor({ timeout: 10_000 });
+  await B.page.getByTestId('hizli-tepki-ac').click({ timeout: 1500 }).catch(() => undefined); // tepsi (1.3.0)
   await B.page.getByRole('button', { name: 'Hazır sözler' }).click().catch(() => undefined); await B.page.locator('.quick-line .phrase[data-phrase="tesekkur"]').click().catch(() => undefined); await sleep(1200);
+  await A.page.getByTestId('hizli-tepki-ac').click({ timeout: 1500 }).catch(() => undefined); // tepsi (1.3.0)
   await A.page.getByRole('button', { name: 'Hazır sözler' }).click().catch(() => undefined); await sleep(900);
   await settle(A.page);
   const free = await A.page.locator('.chat-box [data-kind="text"]').count().catch(() => 0); if (free) problems.push(`sohbet: ${free} serbest yazı`);

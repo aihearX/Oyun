@@ -106,10 +106,10 @@ describe('aylık sınır: kalan tutar ve sayacın sıfırlanma günü (YN-197, O
 });
 
 describe('"En iyi değer" rozeti gerçek oranlardan (OT-ekonomi-denetci-34)', () => {
-  it('kristal paketleri arasında lira başına en çok kristal: Sandık Kristal, 4,7 kristal/TL', () => {
+  it('kristal paketleri arasında lira başına en çok kristal: Hazine Kristal, 5,2 kristal/TL (1.3.0)', () => {
     const b = bestValue(SHOP);
-    expect(b?.id).toBe('odi.kristal.3');
-    expect(fmtPerTry(b!.perTry)).toBe('4,7');
+    expect(b?.id).toBe('odi.kristal.4');
+    expect(fmtPerTry(b!.perTry)).toBe('5,2');
     expect(BEST_VALUE_LABEL).toBe('Kristal paketlerinde en iyi değer');
     // veri etiketiyle aynı ürün (magaza.test.ts)
     expect(SHOP.find((p) => p.tag === 'en-iyi-deger')?.id).toBe(b?.id);
@@ -118,7 +118,7 @@ describe('"En iyi değer" rozeti gerçek oranlardan (OT-ekonomi-denetci-34)', ()
     // Sezon Kartı 840 kristal / 99,99 TL = 8,4 kristal/TL ama 28 güne yayılı; içerik "pass", kristal değil
     expect(840 / byId('odi.pass').priceTry).toBeGreaterThan(bestValue(SHOP)!.perTry);
     expect(crystalsPerTry(byId('odi.pass'))).toBe(0);
-    expect(bestValue(SHOP.filter((p) => p.id !== 'odi.kristal.3'))?.id).toBe('odi.kristal.2');
+    expect(bestValue(SHOP.filter((p) => p.id !== 'odi.kristal.4'))?.id).toBe('odi.kristal.3');
   });
   it('hesap sabit değil: oranlar değişirse rozet de değişir; eşitlik ya da tek paket → rozet yok', () => {
     const avuc = { ...byId('odi.kristal.1'), priceTry: 10 }; // 12 kristal/TL

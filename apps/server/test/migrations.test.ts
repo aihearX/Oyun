@@ -172,4 +172,27 @@ describe('şema sürümü ve göçler', () => {
     expect(db.get('SELECT jeton, credited, carried FROM local_grants WHERE ledger_id = ?', 'l1')).toEqual({ jeton: 110, credited: 40, carried: null });
     db.close();
   });
+  it('göç 22 (1.3.0 anlık bildirim): anahtar ve ayar tabloları kurulur, boş başlar; var olan oyuncu verisi değişmez; tekrar çalışması güvenli', () => {
+    expect(MIGRATIONS[21]!.name).toBe('anlik-bildirim');
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'odi-goc-'));
+    const file = path.join(tmp, 'eski.sqlite');
+    const old = new Db(file);
+    old.run('INSERT INTO players(id, token_hash, name, color, friend_code, depot_at, created_at, last_seen, jeton) VALUES(?, ?, ?, 0, ?, 0, 0, 0, 500)', 'p1', 'h1', 'p1', 'K1');
+    old.raw.exec('DROP TABLE push_tokens; DROP TABLE push_settings; PRAGMA user_version = 21');
+    old.close();
+    const db = new Db(file);
+    expect(userVersion(db.raw)).toBe(MIGRATIONS.length);
+    const tablolar = db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'push_%' ORDER BY name").map((r) => r.name);
+    expect(tablolar).toEqual(['push_settings', 'push_tokens']);
+    expect(db.get<{ n: number }>('SELECT COUNT(*) AS n FROM push_tokens')!.n).toBe(0);
+    expect(db.get('SELECT jeton FROM players WHERE id = ?', 'p1')).toEqual({ jeton: 500 });
+    // anahtar tek oyuncuya aittir (birincil anahtar); ayar satırının varsayılanları PUSH_VARSAYILAN ile aynı
+    db.run('INSERT INTO push_tokens(token, player_id, platform, at) VALUES(?, ?, ?, 1)', 'ExponentPushToken[a]', 'p1', 'ios');
+    expect(() => db.run('INSERT INTO push_tokens(token, player_id, platform, at) VALUES(?, ?, ?, 1)', 'ExponentPushToken[a]', 'p2', 'ios')).toThrow();
+    db.run('INSERT INTO push_settings(player_id, at) VALUES(?, 1)', 'p1');
+    expect(db.get('SELECT dm, takim, arkadas, basvuru FROM push_settings WHERE player_id = ?', 'p1')).toEqual({ dm: 1, takim: 0, arkadas: 1, basvuru: 1 });
+    MIGRATIONS[21]!.up(db.raw);
+    expect(db.get<{ n: number }>('SELECT COUNT(*) AS n FROM push_tokens')!.n).toBe(1);
+    db.close();
+  });
 });

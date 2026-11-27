@@ -239,6 +239,8 @@ export const VERI_SINIFI: Record<string, Tablo> = {
     degil: ['msg_id'],
   },
   comm_settings: { oyuncu: { player_id: SIL }, not: 'Kişisel iletişim ayarları: akışta paylaşım ve 1.2.0 "Kimler mesaj atabilir" (dm_kimden, göç 20). Hesap silinince silinir.' },
+  push_tokens: { oyuncu: { player_id: SIL }, not: 'Anlık bildirim anahtarı (1.3.0, push.ts): cihazın Expo bildirim anahtarı ve platformu (ios/android). Hesap silinince, bütün bildirimler kapatılınca, telefonda izin kapalıysa ya da Expo cihazı kayıtsız deyince silinir; hesap başka cihaza geçince eski cihazınki silinir.' },
+  push_settings: { oyuncu: { player_id: SIL }, not: 'Bildirim türleri (1.3.0, Ayarlar › Bildirimler): özel mesaj, takım sohbeti, arkadaşlar ve hediyeler, takım başvuruları. Hesap silinince silinir.' },
   comm_metrics: { not: 'Günlük toplam sayaçlar (ör. hazır söz sayısı); oyuncu kimliği yok.' },
   feedback: { degil: ['id'], not: 'Beta geri bildirimi (geribildirim.ts): konu, temizlenmiş metin (e-posta, telefon, uzun rakam dizisi çıkarılır), ekran, sürüm, derleme, platform, dakikaya yuvarlı zaman; oyuncu kimliği, takma ad, IP yok, hesapla eşleştirilemez. 90 günde silinir (pruneFeedback). id yalnız satır sırası.' },
   crash_reports: { not: 'Çökme raporları (YN-011, hata.ts): hata adı, temizlenmiş ileti, yığın, sürüm, platform, ekran, sayaç; oyuncu kimliği, takma ad, IP yok. 30 günde silinir (pruneCrashes).' },

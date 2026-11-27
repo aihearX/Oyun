@@ -35,6 +35,7 @@ import { photoHandlers, receivePhoto, servePhoto } from './foto';
 import { adminScreenHandlers } from './yonetici-ekran';
 import { kurucuAdminHandlers } from './kurucu-liste';
 import { kurtarmaHandlers, pruneKurtarma, receiveKurtarma } from './kurtarma';
+import { expoTransport, pushBekle, pushHandlers, pushSweep } from './push';
 
 export const SERVER_VERSION = '1.0.0';
 export const MAX_MESSAGE_BYTES = 8 * 1024;
@@ -62,6 +63,7 @@ const HANDLERS: Handlers = withKgHooks(withTeamRaceHooks(withCommHooks(withEvent
   ...warHandlers, ...raidHandlers, ...raceHandlers, ...leagueHandlers, ...shopHandlers, ...progressHandlers, ...walletHandlers,
   ...eventHandlers, ...commHandlers, ...rankHandlers, ...teamRaceHandlers, ...codeHandlers,
   ...kgHandlers, ...vakaHandlers, ...oyunHandlers, ...accountHandlers, ...photoHandlers, ...adminScreenHandlers, ...kurucuAdminHandlers, ...kurtarmaHandlers,
+  ...pushHandlers,
 }))));
 /** kendi işlemlerini kendisi yöneten (async) işlemler */
 const ASYNC_OPS = new Set<Op>(['shop.purchase', 'shop.restore']);
@@ -88,10 +90,13 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): ServerOptio
   if (env.ODI_BACKUP_DIR) o.backupDir = env.ODI_BACKUP_DIR;
   if (env.ODI_BACKUP_HOURS && Number(env.ODI_BACKUP_HOURS) > 0) o.backupHours = Number(env.ODI_BACKUP_HOURS);
   if (env.ODI_BACKUP_KEEP && /^\d+$/.test(env.ODI_BACKUP_KEEP)) o.backupKeep = Number(env.ODI_BACKUP_KEEP);
+  // 1.3.0 anlık bildirim: ücretsiz Expo Push API (anahtar gerekmez; EXPO_ACCESS_TOKEN isteğe bağlı). ODI_PUSH=0 kapatır.
+  if (env.ODI_PUSH !== '0') o.push = expoTransport(env.EXPO_ACCESS_TOKEN || undefined);
   // mağazadaki son sürüm (GET /surum): yalnız sürüm biçimindeki değer (1.2.3); yoksa alan yazılmaz
   const surum = (v: string | undefined) => (v && /^\d{1,4}(\.\d{1,4}){0,3}$/.test(v.trim()) ? v.trim() : undefined);
   const ios = surum(env.ODI_SON_SURUM_IOS); const android = surum(env.ODI_SON_SURUM_ANDROID);
   if (ios || android) o.sonSurum = { ...(ios ? { ios } : {}), ...(android ? { android } : {}) };
+  if (env.ODI_MAGAZA_GIZLI === '1') o.magazaGizli = true;
   return o;
 }
 
@@ -196,7 +201,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
     if (req.method === 'GET' && url === '/surum') {
       // açılıştaki güncelleme sorusu (1.1.0): mağazadaki son sürüm; kimlik doğrulama yok, kişisel veri yok
       res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300' });
-      res.end(JSON.stringify({ ...(cfg.sonSurum?.ios ? { ios: cfg.sonSurum.ios } : {}), ...(cfg.sonSurum?.android ? { android: cfg.sonSurum.android } : {}) }));
+      res.end(JSON.stringify({ ...(cfg.sonSurum?.ios ? { ios: cfg.sonSurum.ios } : {}), ...(cfg.sonSurum?.android ? { android: cfg.sonSurum.android } : {}), ...(cfg.magazaGizli ? { magaza: 'gizli' } : {}) }));
       return;
     }
     if (url === '/foto') {
@@ -349,6 +354,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
         commSweep(app);
         rankDayTick(app);
         expireApplications(app);
+        pushSweep(app); // takım sohbeti bildirim özetleri (pencere bitince), Expo makbuzları
         crashRatePrune(app); // gün değişince çökme sınırının IP özetleri bellekten silinir
         feedbackRatePrune(app); // geri bildirim sınırının IP özetleri de
         if (Date.now() - lastPrune > 3_600_000) { lastPrune = Date.now(); pruneChat(app); pruneRuns(app); prunePromoLog(app); pruneReports(app); pruneDeletedReports(app); prunePurchases(app); pruneNewAccountIps(app); pruneCrashes(app); pruneFeedback(app); pruneKurtarma(app); }
@@ -384,6 +390,7 @@ export async function startServer(opts: ServerOptions = {}): Promise<OdiServer> 
       teamRaceShutdown(app);
       eventsShutdown(app);
       for (const c of conns) { c.pid = null; c.ws.terminate(); }
+      await Promise.race([pushBekle(app), new Promise((r) => setTimeout(r, 3000).unref())]); // giden bildirimler (en çok 3 sn)
       await new Promise<void>((r) => wss.close(() => r()));
       await new Promise<void>((r) => httpServer.close(() => r()));
       app.close();

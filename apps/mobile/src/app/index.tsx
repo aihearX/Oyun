@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import WebApp from '@/dom/WebApp';
 import { ErrorBoundary } from '@/ui';
 import { createNativeStore } from '@/purchases';
@@ -12,11 +11,13 @@ import { voiceData, voiceManifest } from '@/voice/player';
 import { installNativeCrashReporting, nativeAppInfo } from '@/hata';
 import { serverUrl } from '@/sunucu';
 import { installAudioSession, onceThisLaunch, openUrl, pickPhoto } from '@/cihaz';
+import { useBildirimKoprusu } from '@/bildirim';
 import { isMaleVoice, pickTurkishVoice, ttsChunks, ttsParams } from '../../../web/src/ftue/voicePick';
 
 const nativeStore = createNativeStore();
-// mağaza derlemesi RevenueCat anahtarsız alındıysa (ilk sürüm satın almasız) Mağaza girişi gizlenir; Expo Go test mağazasını korur
-const shopHidden = !nativeStore && Constants.executionEnvironment !== 'storeClient';
+// 1.3.0: Mağaza her derlemede görünür. Anahtarsız derlemede (ödeme altyapısı henüz açılmadı) vitrin olur: paketler ve içerikler
+// görünür, satın alma "yakında". Mağazayı yeni derleme almadan gizlemek için sunucuda ODI_MAGAZA_GIZLI=1 (web: magaza-gorunum.ts).
+const shopHidden = false;
 
 
 // çökme raporu (YN-011): yalnız yayın derlemesinde ve sunucu adresi varken; kişisel veri yok (src/hata.ts)
@@ -76,6 +77,8 @@ export default function Home() {
   const insets = useSafeAreaInsets();
   // sıfırlamada WebView baştan kurulur (yeni JS bağlamı: bellekte hiçbir şey kalmaz)
   const [gen, setGen] = useState(0);
+  // 1.3.0 anlık bildirimler: izin, anahtar, dokunma, uygulama önde mi (src/bildirim.ts)
+  const push = useBildirimKoprusu();
   return (
     <ErrorBoundary report>
       <View style={{ flex: 1, backgroundColor: '#140c35' }} testID="odi-root">
@@ -95,6 +98,7 @@ export default function Home() {
           openUrl={async (u) => openUrl(u)}
           pickPhoto={pickPhoto}
           onceThisLaunch={onceThisLaunch}
+          {...push}
           {...(nativeStore ? { purchase: nativeStore.purchase, storePrices: nativeStore.prices, restorePurchases: nativeStore.restore } : {})}
           canPurchase={!!nativeStore}
           shopHidden={shopHidden}

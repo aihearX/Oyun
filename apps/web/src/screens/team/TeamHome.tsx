@@ -46,6 +46,8 @@ export function TeamHome() {
   // Takım Yarışı rozeti: açık lobi (ben içinde değilsem) ya da gelen dostluk daveti
   const raceBadge = useTeamRace((x) => { const l = x.state?.lobby; const me = useNet.getState().me?.id; return (l && l.status !== 'eslesti' && !l.members.some((m) => m.id === me) ? 1 : 0) + (l?.incoming.length ?? 0); });
   const claimableGoals = extra ? claimableTierCount(extra.goals) : 0;
+  // savaş hedefi seçilmemiş (OT-takim-kaptani-9); uyarı kartı sohbet açıkken gizli (mesajlara yer, 1.3.0): lider/yardımcıya Savaş rozeti
+  const noTargetAny = !!war && war.targets.length === 0;
   const joinedAt = team.roster.find((m) => m.id === me.id)?.joinedAt;
 
   useEffect(() => {
@@ -77,7 +79,7 @@ export function TeamHome() {
     { id: 'tekno', icon: '🔬', label: 'Teknoloji' },
     { id: 'hediye', icon: '🎁', label: 'Hediyeler', badge: gifts },
     { id: 'hedef', icon: '🎯', label: 'Hedefler', badge: claimableGoals },
-    { id: 'savas', icon: '⚔️', label: 'Savaş' },
+    { id: 'savas', icon: '⚔️', label: 'Savaş', badge: noTargetAny && approver && tab !== 'savas' ? 1 : 0 },
     { id: 'baskin', icon: '👹', label: 'Baskın' },
     ...(featureOpen('tyaris') ? [{ id: 'tyaris' as const, icon: '🏁', label: 'Takım Yarışı', badge: raceBadge }] : []),
     ...(featureOpen('tlig') ? [{ id: 'lig' as const, icon: '🛡️', label: 'Lig' }] : []),
@@ -99,19 +101,23 @@ export function TeamHome() {
     setTab(last && ids.includes(last) ? last : ids[0]!);
   };
   // savaş hedefi seçilmemiş (OT-takim-kaptani-9): seçilene dek kazanılan savaş puanı hiçbir bölgeye yazılmaz, sonradan da yazılmaz
-  const noTarget = !!war && war.targets.length === 0 && tab !== 'savas';
+  const noTarget = noTargetAny && tab !== 'savas';
   return (
     <>
       {/* başlık + alt sekmeler: normalde alt alta (display:contents); kısa ekranda sohbet açıkken başlık sekme satırının başında
-          küçük bir amblem çipine iner, mesajlara yer kalır (styles.css, MK-029) */}
+          küçük bir amblem çipine iner, mesajlara yer kalır (styles.css, MK-029); uzun ekranda sohbet açıkken başlık tek ince satır
+          olur, savaş uyarısı gizlenir (1.3.0, mesaj alanı; ui/Chat.tsx Mesajlar | Güncellemeler) */}
       <div className="team-top">
       <div className="card team-head">
         <span className="th-emblem" aria-hidden><TeamEmblem e={team.emblem} /></span>
         <div className="grow min0">
           <div className="row between"><h2 className="ellipsis">{team.name}</h2><IconButton icon="dots" label="Takım menüsü" onClick={() => setMenu(true)} /></div>
-          {approver && apps > 0 && tab !== 'basvuru' && <button type="button" className="ta-head-pill" onClick={() => setTab('basvuru')} data-testid="basvuru-rozeti"><Art name="mail" size={16} /> {apps} yeni başvuru</button>}
-          {/* Takım sekmesi rozeti alınmamış hediyeleri de sayar: nerede beklediği görünsün (YN-071) */}
-          {gifts > 0 && tab !== 'hediye' && <button type="button" className="ta-head-pill" onClick={() => setTab('hediye')} data-testid="hediye-rozeti"><Art name="gift" size={16} /> {gifts} hediye seni bekliyor</button>}
+          {/* sohbet açıkken haplar başlık satırında küçük çip olur: simge + sayı (styles.css, 1.3.0) */}
+          {((approver && apps > 0 && tab !== 'basvuru') || (gifts > 0 && tab !== 'hediye')) && <div className="th-pills">
+            {approver && apps > 0 && tab !== 'basvuru' && <button type="button" className="ta-head-pill" onClick={() => setTab('basvuru')} data-testid="basvuru-rozeti" aria-label={`${apps} yeni başvuru`}><Art name="mail" size={16} /> {apps}<span className="thp-txt"> yeni başvuru</span></button>}
+            {/* Takım sekmesi rozeti alınmamış hediyeleri de sayar: nerede beklediği görünsün (YN-071) */}
+            {gifts > 0 && tab !== 'hediye' && <button type="button" className="ta-head-pill" onClick={() => setTab('hediye')} data-testid="hediye-rozeti" aria-label={`${gifts} hediye seni bekliyor`}><Art name="gift" size={16} /> {gifts}<span className="thp-txt"> hediye seni bekliyor</span></button>}
+          </div>}
           <div className="th-meta"><span>Sv {extra?.level ?? '…'}</span><span><Art e="👥" size="1.15em" className="art-inline" /> {team.members}/{team.max}</span><span title="Üyelerin toplam yıldızı"><Art e="⭐" size="1.15em" className="art-inline" /> {fmtNum(team.power)}</span></div>
           {/* sayı çubukla aynı şeyi söyler: seviye içi ilerleme (OT-ilk-kez-oyun-65) */}
           {extra && xp && <div className="row th-xp" data-testid="takim-xp" title={`Sv ${extra.level + 1} için ${fmtNum(xp.left)} XP kaldı`}><Bar value={xp.ratio} tone="green" label={`Takım XP: Sv ${extra.level + 1} için ${fmtNum(xp.left)} XP kaldı`} /><span className="qn">{fmtNum(xp.have)}/{fmtNum(xp.need)}</span></div>}

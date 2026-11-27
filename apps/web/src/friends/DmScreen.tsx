@@ -16,6 +16,7 @@ import { featureOpen } from '../ftue/useFeatures';
 import { PhraseStrip, SafeChatSheet } from '../comm/Cards';
 import { useCanFreeText, useComm } from '../comm/state';
 import { refreshTeamRace, useTeamRace } from '../teamrace/state';
+import { bildirimOner } from '../bildirim/bildirim';
 
 /** simge paneli: her biri çizimle görünür (ui/art.tsx EMOJI_ART); iletiye emoji kodu yazılır, balonda çizim çıkar (YN-071) */
 const EMOJIS = ['😀', '😂', '😮', '😢', '😡', '👋', '👍', '👏', '💪', '🔥', '❤️', '⭐', '🏆', '🏁', '🎵', '👂', '🐚', '😴'];
@@ -106,6 +107,7 @@ export function DmScreen({ id, onBack }: { id: string; onBack: () => void }) {
     setErr('');
     stick.current = true;
     queueDm(id, clean, kind);
+    void bildirimOner(); // 1.3.0: ilk mesajdan sonra bir kez "cevap gelince haber verelim mi?"
     if (kind === 'text') setText('');
     platform().haptic('light');
   };

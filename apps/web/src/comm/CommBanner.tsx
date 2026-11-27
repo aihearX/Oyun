@@ -7,6 +7,8 @@ import { Av } from '../friends/common';
 import { Icon } from '../ui/icons';
 import { Art, type ArtName } from '../ui/art';
 import { dismissNotice, useComm } from './state';
+import { chatPaneFor, setChatPane } from './teamFeed';
+import { openTeamTab } from '../screens/team/teamTabs';
 import { useCoach } from '../ftue/Coach';
 import { useBaslikAltinda } from '../ui/Toasts';
 import type { CommNotice } from '@odi/shared';
@@ -58,7 +60,8 @@ export function CommBanner() {
   const go = () => {
     close();
     if (n.kind === 'mentor' || n.kind === 'duo') nav.open({ name: 'birlikte' });
-    else if (n.room?.startsWith('takim:')) nav.tab('team');
+    // takım sohbeti: bahsetme Mesajlar'da, meydan okuma / teşekkür kartı Güncellemeler'de (1.3.0)
+    else if (n.room?.startsWith('takim:')) { openTeamTab('sohbet'); setChatPane(chatPaneFor(n.kind)); nav.tab('team'); }
   };
   const run: Record<NoticeAct['id'], () => void> = { tesekkur: () => void reply('tesekkur'), rica: () => void reply('rica'), tebrik: () => void dmCheer(), bak: go };
   return (

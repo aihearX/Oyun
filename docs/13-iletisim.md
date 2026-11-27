@@ -135,6 +135,36 @@ Günde 3. Kart 48 saat açık; bu sürede bir takım arkadaşı aynı bölümde 
   (sunucu `emoji` türünü böyle doğrular, eski istemciler okur); balonda kod değil çizim görünür (`EMOJI_ART`; eski 😂 gibi kayıtlar da).
   Özel mesaj simge paneli, tepkileri ve Odi çıkartmaları da çizimdir.
 
+### 3.10 Mesajlar ve Takım güncellemeleri (1.3.0)
+Sahibin isteği: takım arkadaşlarının gelişmeleri mesajların arasına karışmasın; mesaj alanı telefonda geniş olsun.
+- Takım › Sohbet iki bölmedir: **Mesajlar** ve **Güncellemeler** (sohbet kutusunun üstünde iki düğme; yanında çevrimiçi sayısı ve tam
+  ekran düğmesi). Açık bölme oturum boyunca kalır.
+- Ayrım yalnız istemcide (`apps/web/src/comm/teamFeed.ts`, kural `isTeamUpdate` `packages/shared/src/social.ts`): sistemin yazdığı her
+  ileti (`from: 'sistem'`: Takım Akışı kartı, yardım kartı, katıldı/ayrıldı, hediye, teknoloji, hedef, savaş, baskın, ralli, bayrak, yarış
+  ve lig duyuruları) **güncelleme**; oyuncunun yazısı, emojisi, hazır sözü ve Günün Sorusu (tartışma kartı) **mesaj**. Protokol ve
+  iletiler aynı: 1.2.0 ve öncesi istemciler hepsini tek akışta görür.
+- Güncelleme kartları Güncellemeler'de olduğu gibi çalışır (tepki, Tebrik et, Yanıtla, İpucu ver, Kalkan gönder, Birlikte yarış,
+  ralliye Katıl). Bir oyuncunun güncelleme kartına yanıtı (tebrik, ipucu, "Rica ederim") kartın altında kalır ve Mesajlar'da da
+  görünür; üstünde hangi karta yazıldığı yazar, dokununca konu açılır. Sistemin konu yanıtları ("Bora 2.910 puanla geçti!") yalnız
+  kartın altında.
+- Güncellemeler açıkken yazı kutusu, hazır sözler ve tepki satırı gizlidir (akış okunur). Boşken: "Henüz güncelleme yok".
+- Hızlı tepki tepsisi (takım, genel sohbet; aynı bileşen): serbest yazabilen oyuncuda tepki / hazır söz satırı her zaman açık durmaz;
+  yazı kutusunun solundaki gülen yüz düğmesi (`hizli-tepki-ac`, "Hızlı tepkiler ve hazır sözler", `aria-expanded`) aynı satırı yazı
+  kutusunun hemen üstünde açar (mesaj kutusunun boyu değişmez). Gönderince, yazı kutusuna dokununca, geri tuşu / Escape ile kapanır.
+  Serbest yazı kapalıyken (yeni oyuncu) hazır söz satırı eskisi gibi hep açık. Özel mesajlar ayrı bileşendir (değişmedi).
+- Rozetler: Takım sekmesi ve Sohbet rozeti yalnız mesajları sayar. Sunucu `chat.unread` / `chat.read` yanıtına `msgs` ekler (yalnız
+  mesajlar; `unread` eskisi gibi hepsi, eski istemciler için); canlı iletide istemci aynı kuralı uygular. Güncellemeler düğmesinde
+  hafif bir sayı: bu cihazda en son görülen güncellemeden sonra gelenler (benimle ilgili kartlar sayılmaz; `localStorage`, en çok "9+").
+  Güncellemeler açıkken gelen mesajlar Mesajlar düğmesinde sayılır; sunucu okundu imleci yalnız Mesajlar açık ve sondayken ilerler.
+- Geçmiş (`chat.join`): son 50 iletiye ek olarak, pencereden düşmüş son 50 oyuncu iletisi de gelir (akış kartlarının yoğun olduğu günde
+  Mesajlar boş kalmasın); istemci listesi mesajları ve güncellemeleri ayrı ayrı en çok 50 tutar (`trimChat`).
+- Yönlendirmeler: bahsetme bildirimi ve Günün Sorusu ("Takım sohbetinde tartış") Mesajlar'ı, meydan okuma ve teşekkür bildirimi ile
+  Takım Akışı turu Güncellemeler'i açar.
+- Düzen (`styles.css`): sohbet açıkken takım kartı tek ince satıra iner (amblem, ad, Sv / üye / yıldız, hediye ve başvuru çipleri,
+  menü), grup sekmeleri alçalır, savaş hedefi uyarısı gizlenir (lider ve yardımcıya Rekabet › Savaş rozeti). Tepki tepsisiyle birlikte
+  390×844'te mesaj kutusu 185 px'ten 379 px'e çıktı; 360×640'ta (kısa ekran düzeni) 263'ten 323 px'e. Testler: `apps/web/src/takim-guncellemeler.test.ts`,
+  `apps/server/test/takim-guncellemeler.test.ts`.
+
 ## 4. Moderasyon ve güvenlik
 - **Küfür filtresi** (`apps/server/src/profanity.ts`, Türkçe + İngilizce, normalize edilmiş): sohbet, yanıt, ipucu metni, özel mesaj;
   isim ve takım adı reddedilir. Liste genişletildi; masum kelimeleri yakalamaması test edilir.

@@ -14,6 +14,7 @@ import { getNet, odulNe, useSocial } from '../net';
 import { hazinePenceresi, sinirNotu } from '../odul-durum';
 import { useNav } from '../nav';
 import { platform } from '../platform';
+import { magazaGizli, useMagazaGizli } from '../magaza-gorunum';
 import { HudNum, StatusDot, fmtNum } from '../ui/social';
 import { prefersReducedMotion } from '../ui/bits';
 import { celebrate, type RecapRow } from '../celebrate';
@@ -231,7 +232,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
   // büyük düğme: yolculuk bitince yıldız hedefinin bölümü (yoksa açık son bölüm)
   const playN = goal.go ?? unlocked;
   const done = (progress[HUMAN_JOURNEY.levels.length]?.stars ?? 0) > 0;
-  const feat = useFeatures();
+  const feat = useFeatures(); const magazaKapali = useMagazaGizli();
   // üst çubuktaki ses aç/kapat (1.1.0): oyuncunun genel ses ayarı (Ayarlar › Sesler ile aynı)
   const soundsOn = useStore((s) => s.sounds);
   // Tüy Dede'nin "Yeni yer açıldı" kartı (yeri gösterilmeyen rozet) ekranın üst ortasında: kutu o sürece gizli, kart yazısının
@@ -250,7 +251,7 @@ export function MapScreen({ onPlay, onToday }: { onPlay: (n: number) => void; on
         <button className="mh-pill tap ses" data-testid="harita-ses" onClick={() => { toggleSounds(); }} aria-pressed={soundsOn} aria-label={soundsOn ? 'Ses açık. Kapatmak için dokun' : 'Ses kapalı. Açmak için dokun'}><Art name={soundsOn ? 'sound' : 'mute'} size={18} /></button>
         <span className="grow" />
         <span className="mh-pill gold" data-hud="jeton" key={`j${coin.bump}`} aria-label={`${fmtNum(coin.value)} jeton`}><Art name="coin" size={18} /><HudNum v={coin.value} /></span>
-        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => { if (!platform().shopHidden) nav.open({ name: 'shop' }); }} aria-label={platform().shopHidden ? 'Kristal' : 'Kristal ve mağaza'}><Art name="crystal" size={18} /><HudNum v={kristal.value} /></button>}
+        {wallet && feat.open('shop') && <button className="mh-pill tap" data-hud="kristal" onClick={() => { if (!magazaGizli()) nav.open({ name: 'shop' }); }} aria-label={magazaKapali ? 'Kristal' : 'Kristal ve mağaza'}><Art name="crystal" size={18} /><HudNum v={kristal.value} /></button>}
         {wallet && feat.open('shop') && <button className="mh-pill tap env" onClick={() => nav.open({ name: 'inbox' })} aria-label={`Ödül kutusu: ${inbox} ödül`}><Art name="mail" size={20} />{inbox > 0 && <span className="dot">{inbox > 99 ? '99+' : inbox}</span>}</button>}
       </div>
       <div className="map-side-l">

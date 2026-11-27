@@ -125,13 +125,15 @@ async function settle(p) {
 async function backToTabs(p) {
   for (let i = 0; i < 4 && !(await p.page.locator('nav.tabbar').count()); i++) { await p.page.getByRole('button', { name: 'Geri' }).first().click({ timeout: 3000 }).catch(() => undefined); await sleep(350); }
 }
-async function teamChat(p) {
+/** Takım › Sohbet; bölme (1.3.0): 'mesajlar' (oyuncu iletileri, Günün Sorusu) ya da 'guncellemeler' (akış ve yardım kartları, duyurular) */
+async function teamChat(p, pane = 'mesajlar') {
   await closeBanners(p);
   await backToTabs(p);
   await p.page.locator('nav.tabbar .tab[data-tab="team"]').click();
   await p.page.locator('.team-head').waitFor({ timeout: 15_000 });
   await p.page.locator('.subtabs .subtab', { hasText: 'Sohbet' }).first().click();
   await p.page.locator('.chat-box').waitFor();
+  await p.page.getByTestId(`sohbet-${pane}`).click();
   await sleep(500);
 }
 async function scrollTo(p, sel) { await p.page.locator(sel).last().scrollIntoViewIfNeeded().catch(() => undefined); await sleep(250); }
@@ -202,13 +204,13 @@ async function webSuite(bt) {
     S.check(true, 'tartışma konusu (serbest yazı)');
     await A.page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click();
     // ---- Takım Akışı: kart + tepki + Tebrik et
-    await teamChat(B);
+    await teamChat(B, 'guncellemeler');
     const card = B.page.locator('[data-testid="akis-karti"][data-type="bolum"]').filter({ hasText: 'Ayşe' }).first();
     await card.waitFor({ timeout: 10_000 });
     S.check((await card.innerText()).includes('10 bölümde ilerledi (1–10)'), 'akış kartı birleşti: “Ayşe 10 bölümde ilerledi (1–10)”');
     await scrollTo(B, '[data-testid="akis-karti"][data-type="bolum"]');
     await S.shot(B, 'akis-karti');
-    await teamChat(A);
+    await teamChat(A, 'guncellemeler');
     await card.locator('[data-reaction="alkis"]').click();
     const aCard = A.page.locator('[data-testid="akis-karti"][data-type="bolum"]').first();
     await aCard.locator('[data-reaction="alkis"] .rc', { hasText: '1' }).waitFor({ timeout: 8000 });
@@ -218,7 +220,7 @@ async function webSuite(bt) {
     S.check(true, '“Tebrik et” kartın konusuna yazıldı');
     await sleep(1300);
     await C.page.evaluate(() => 0);
-    await teamChat(C);
+    await teamChat(C, 'guncellemeler');
     const cCard = C.page.locator('[data-testid="akis-karti"][data-type="bolum"]').first();
     await cCard.locator('[data-reaction="kalp"]').click();
     await aCard.locator('[data-reaction="kalp"] .rc', { hasText: '1' }).waitFor({ timeout: 8000 });
@@ -232,6 +234,7 @@ async function webSuite(bt) {
 
     // ---- @bahsetme (Ayşe başka sekmede)
     await A.page.locator('nav.tabbar .tab[data-tab="profile"]').click(); await sleep(400);
+    await B.page.getByTestId('sohbet-mesajlar').click(); // yazı kutusu Mesajlar bölmesinde (1.3.0)
     await B.page.getByRole('textbox', { name: 'Mesaj' }).fill('@Ay');
     await B.page.locator('.at-suggest button', { hasText: '@Ayşe' }).waitFor({ timeout: 4000 });
     await S.shot(B, 'bahsetme-oneri');
@@ -280,6 +283,7 @@ async function webSuite(bt) {
     await tid(C, 'yardim-iste-dugme').click();
     await tid(C, 'yardim-iste').locator('b', { hasText: 'Yardım istedin' }).waitFor({ timeout: 8000 });
     S.check(true, 'sonuç ekranından takımdan yardım istendi');
+    await B.page.getByTestId('sohbet-guncellemeler').click(); // yardım kartı Güncellemeler'de (1.3.0)
     const help = B.page.locator('[data-testid="yardim-karti"]').last();
     await help.waitFor({ timeout: 8000 });
     await scrollTo(B, '[data-testid="yardim-karti"]');
@@ -290,7 +294,7 @@ async function webSuite(bt) {
     await B.page.locator('.tip-opt[data-phrase="ipucu-bas"]').click();
     await help.locator('.thread .th-text', { hasText: 'uzun zıplamak' }).waitFor({ timeout: 8000 });
     S.check(true, 'ipucu kartın konusunda');
-    await teamChat(A);
+    await teamChat(A, 'guncellemeler');
     const aHelp = A.page.locator('[data-testid="yardim-karti"]').last();
     await aHelp.getByTestId('kalkan-gonder').click();
     await aHelp.locator('.fc-help-stats', { hasText: '1 kalkan' }).waitFor({ timeout: 8000 });
@@ -313,7 +317,7 @@ async function webSuite(bt) {
     await net(B, 'race.leave', {});
     await B.page.goto(base, { waitUntil: 'load' }); await B.page.waitForFunction(() => window.__etkinlik?.net()?.status === 'bağlı', null, { timeout: 25_000 });
     await B.page.getByRole('button', { name: /Yola çık|Devam et/ }).click(); await B.page.locator('nav.tabbar').waitFor(); await settle(B);
-    await teamChat(B);
+    await teamChat(B, 'guncellemeler');
     // Cem bölümü geçer → istek çözülür: teşekkür + ödül
     await closeBanners(C);
     await net(C, 'progress.submit', runOf(2, { coins: 40 }));
@@ -456,7 +460,7 @@ async function webSuite(bt) {
 
     // ---- son genel görünüm (takım sohbeti, Kim çevrimiçi)
     await teamChat(B);
-    S.check(await B.page.getByTestId('kim-cevrimici').innerText().then((t) => /başka 2 kişi çevrimiçi/.test(t)), 'Kim çevrimiçi: 2 takım arkadaşı');
+    S.check(await B.page.getByTestId('kim-cevrimici').getAttribute('aria-label').then((t) => /başka 2 kişi çevrimiçi/.test(t ?? '')), 'Kim çevrimiçi: 2 takım arkadaşı');
     await S.shot(B, 'takim-sohbeti-genel');
     for (const p of [A, B, C]) await p.ctx.close();
   } catch (e) {
@@ -716,7 +720,7 @@ async function domSuite(bt) {
     await card.waitFor({ timeout: 10_000 });
     await card.locator('[data-reaction="ates"]').click();
     await card.getByTestId('tebrik-et').click();
-    await teamChat(A);
+    await teamChat(A, 'guncellemeler');
     const aCard = A.page.locator('[data-testid="akis-karti"][data-type="boss"]').first();
     await aCard.locator('[data-reaction="ates"] .rc', { hasText: '1' }).waitFor({ timeout: 8000 });
     await aCard.locator('.thread .th-text', { hasText: 'Tebrikler!' }).waitFor({ timeout: 8000 });

@@ -6,6 +6,7 @@ import { EVENT_SCHEMAS } from './events/schemas';
 import { FRIEND_SCHEMAS } from './dm-schemas';
 import { COMM_SCHEMAS } from './comm/schemas';
 import { KG_SCHEMAS } from './camp-quests-schemas';
+import { PUSH_TOKEN_RE } from './push';
 
 const id = z.string().min(1).max(40).regex(/^[A-Za-z0-9]+$/);
 const empty = z.object({});
@@ -163,6 +164,11 @@ export const SCHEMAS: Record<Op, z.ZodType> = {
   'admin.kurtarma.list': z.object({ filtre: z.enum(['bekleyen', 'hepsi']).optional(), offset: z.number().int().min(0).max(1_000_000).optional() }),
   'admin.kurtarma.gonderildi': z.object({ id, on: z.boolean() }),
   'admin.geri.kod': z.object({ id }),
+  // 1.3.0 anlık bildirimler (push.ts)
+  'push.register': z.object({ token: z.string().max(240).regex(PUSH_TOKEN_RE), platform: z.enum(['ios', 'android']) }),
+  'push.unregister': z.object({ token: z.string().max(240) }),
+  'push.settings': z.object({ dm: z.boolean().optional(), takim: z.boolean().optional(), arkadas: z.boolean().optional(), basvuru: z.boolean().optional() }),
+  'push.away': z.object({ away: z.boolean() }),
 };
 
 export const firePosSchema = z.object({ x: z.number(), y: z.number(), pct: z.number() });

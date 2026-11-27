@@ -1204,6 +1204,8 @@ async function suite(browserName, target, [W, H]) {
         await bora.call('team.join', { code });
         await bora.call('progress.submit', { runId: `u${sno}a${Date.now()}`, level: 1, completed: true, stars: 3, score: 900, timeSec: 40, coins: 60, biome: 'dis-kulak', mechanic: 'kosu', cochleas: 2 });
         await bora.call('team.help.request', { level: 2 });
+        // yardım ve akış kartları Takım › Sohbet › Güncellemeler'de (1.3.0)
+        await page.getByTestId('sohbet-guncellemeler').click();
         await page.locator('[data-testid="yardim-karti"]').first().waitFor({ timeout: 10_000 });
         // Yardım listesinde istek satırı: bölüm/yardım ve süre ayrı satır, süre bölünmez (Büyük yazıda da, YN-115)
         await takimSekme(page, 'Yardım'); await page.locator('[data-testid="yardim-satiri"]').first().waitFor({ timeout: 10_000 });
@@ -1231,6 +1233,8 @@ async function suite(browserName, target, [W, H]) {
         await page.locator('[data-testid="yardim-karti"]').first().getByTestId('ipucu-ver').click();
         await page.locator('.tip-opt').first().waitFor(); await check('takim-ipucu-sayfasi', { scroll: false });
         await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300);
+        // Günün Sorusu Mesajlar bölmesinde (1.3.0)
+        await page.getByTestId('sohbet-mesajlar').click(); await sleep(300);
         const q = page.locator('[data-testid="gunun-sorusu"] .fc-reply', { hasText: 'Haftalık tablo' });
         if (await q.count()) { await q.first().click(); await page.locator('.sheet').waitFor(); await check('takim-haftalik-tablo', { scroll: false }); await page.locator('.sheet').getByRole('button', { name: 'Kapat' }).click(); await sleep(300); }
         // Günün Sorusu sohbetin son iletisiyken (yeni günün sorusu): ilk karede soru başı + dört şık sohbet kutusunda tam görünür;

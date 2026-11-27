@@ -6,6 +6,7 @@ import { susturmaMetni } from './chat';
 import { maskProfanity } from './profanity';
 import { canFreeText, metric, requireFreeText } from './comm/settings';
 import { raceMemberIds } from './race';
+import { pushDm } from './push';
 
 /**
  * Özel mesaj kutusu (kalıcı, sqlite). Konuşma = iki oyuncu (pair "a:b", a < b). Her konuşmada son 500 mesaj tutulur.
@@ -198,6 +199,7 @@ export const dmHandlers: Handlers = {
     const msg = toMsg(row);
     app.emit(to, 'dm.message', { msg, from: app.publicProfile(p) });
     pushUnread(app, to);
+    pushDm(app, p, to, msg); // 1.3.0 anlık bildirim (oyunda değilse)
     // yanıt vermek, karşıdan gelenleri okumak demektir
     const lastIn = app.db.get<{ seq: number }>('SELECT MAX(seq) AS seq FROM dm WHERE pair = ? AND to_id = ?', pair, s.pid)?.seq;
     if (lastIn) { markRead(app, s.pid, to, lastIn); pushUnread(app, s.pid); }

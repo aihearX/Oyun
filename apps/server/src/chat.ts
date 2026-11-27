@@ -4,6 +4,7 @@ import { commNotice, metric, requireFreeText } from './comm/settings';
 import { maskProfanity } from './profanity';
 import { raceMemberIds } from './race';
 import { DAY_MS } from './time';
+import { pushTakim } from './push';
 
 /** üç farklı şikâyetle gizlenen iletinin göndereni bu kadar sohbete yazamaz (gizlilik metni § 5 aynı sayıyı yazar; legal.test.ts) */
 export const CHAT_REPORT_MUTE_MS = 10 * 60_000;
@@ -157,6 +158,12 @@ export function history(app: App, pid: string, room: string): ChatMessage[] {
   if (teamOfRoom(room)) {
     const dq = app.db.get<ChatRow>("SELECT * FROM chat WHERE room = ? AND kind = 'soru' AND hidden = 0 ORDER BY at DESC, rowid DESC LIMIT 1", room);
     if (dq && !shown.some((r) => r.id === dq.id)) shown.unshift(dq);
+    // 1.3.0: Takım › Sohbet › Mesajlar güncellemelerden ayrı akar; akış kartlarının yoğun olduğu günde son historySize oyuncu iletisi
+    // pencereden düşmesin (Mesajlar boş görünüyordu). Eksik olanlar eklenir, sıra zamana göre; eski istemci aynı listeyi tek akışta çizer.
+    const human = app.db.all<ChatRow>(`SELECT * FROM chat WHERE room = ? AND hidden = 0 AND ${HUMAN_SQL} AND id NOT IN (SELECT msg_id FROM chat_thread) ORDER BY at DESC, rowid DESC LIMIT ?`, room, SOCIAL_LIMITS.historySize + muted.size * 5);
+    const have = new Set(shown.map((r) => r.id));
+    const extra = human.filter((r) => !hides(app, pid, r.from_id, muted)).slice(0, SOCIAL_LIMITS.historySize).filter((r) => !have.has(r.id));
+    if (extra.length) { shown.push(...extra); shown.sort((a, b) => a.at - b.at); }
   }
   return shown.map((r) => decorate(app, pid, toMsg(r), muted));
 }
@@ -164,13 +171,18 @@ export function history(app: App, pid: string, room: string): ChatMessage[] {
 /** okunmamış takım iletileri (Takım sekmesi rozeti): imleçten sonra, başkasının yazdığı (kendi iletin ve seninle ilgili akış kartı
  *  sayılmaz), konu yanıtı olmayan, sessize aldığın kişiden gelmeyen; en çok 99 */
 export const UNREAD_MAX = 99;
-function unreadCount(app: App, pid: string, room: string, since: number): number {
+/** takım sohbetinde mesaj (güncelleme değil): oyuncunun iletisi ya da Günün Sorusu (shared isTeamUpdate'in SQL eşi, 1.3.0) */
+const HUMAN_SQL = "(from_id <> 'sistem' OR kind = 'soru')";
+/** humanOnly: yalnız mesajlar (Mesajlar rozeti; chat.unread/chat.read yanıtında msgs) */
+function unreadCount(app: App, pid: string, room: string, since: number, humanOnly = false): number {
   const muted = mutedBy(app, pid);
-  const rows = app.db.all<{ from_id: string }>(`SELECT from_id FROM chat WHERE room = ? AND at > ? AND hidden = 0 AND from_id <> ?
+  const rows = app.db.all<{ from_id: string }>(`SELECT from_id FROM chat WHERE room = ? AND at > ? AND hidden = 0 AND from_id <> ?${humanOnly ? ` AND ${HUMAN_SQL}` : ''}
     AND id NOT IN (SELECT msg_id FROM chat_thread) AND (meta IS NULL OR json_extract(meta, '$.pid') IS NULL OR json_extract(meta, '$.pid') <> ?)
     ORDER BY at DESC LIMIT ?`, room, since, pid, pid, UNREAD_MAX + muted.size * 5);
   return Math.min(UNREAD_MAX, rows.filter((r) => !hides(app, pid, r.from_id, muted)).length);
 }
+/** okunmamış yanıtı: unread (eski istemciler: her şey) + msgs (yalnız mesajlar) */
+const unreadOf = (app: App, pid: string, room: string, since: number) => ({ unread: unreadCount(app, pid, room, since), msgs: unreadCount(app, pid, room, since, true) });
 const readCursor = (app: App, pid: string, room: string) => app.db.get<{ at: number }>('SELECT at FROM chat_read WHERE player_id = ? AND room = ?', pid, room)?.at;
 function checkTeamRoom(app: App, pid: string, room: string): void {
   if (!teamOfRoom(room)) fail('GECERSIZ', 'Okunma imleci yalnız takım sohbetinde tutulur.');
@@ -284,6 +296,8 @@ export const chatHandlers: Handlers = {
     }
     const msg = sendAs(app, app.player(s.pid), room, text, kind ?? 'text', replyTo);
     if (cid) app.db.run('INSERT OR REPLACE INTO chat_cid(player_id, cid, msg_id, at) VALUES(?, ?, ?, ?)', s.pid, cid, msg.id, app.now());
+    const teamId = teamOfRoom(room);
+    if (teamId) pushTakim(app, teamId, msg); // 1.3.0: takım sohbeti bildirimi (yalnız oyuncu mesajı; açanlara)
     return { msg };
   },
   'chat.react': (app, s, { msgId, reaction }) => {
@@ -330,14 +344,14 @@ export const chatHandlers: Handlers = {
     checkTeamRoom(app, s.pid, room);
     const t = Math.min(at, app.now());
     app.db.run('INSERT INTO chat_read(player_id, room, at) VALUES(?, ?, ?) ON CONFLICT(player_id, room) DO UPDATE SET at = MAX(at, excluded.at)', s.pid, room, t);
-    return { unread: unreadCount(app, s.pid, room, readCursor(app, s.pid, room) ?? t) };
+    return unreadOf(app, s.pid, room, readCursor(app, s.pid, room) ?? t);
   },
   'chat.unread': (app, s, { room }) => {
     checkTeamRoom(app, s.pid, room);
     const at = readCursor(app, s.pid, room);
     // imleç yoksa (ilk kez, takıma yeni katılmış): şimdiden başlar; geçmişi okunmamış saymaz
-    if (at === undefined) { app.db.run('INSERT OR IGNORE INTO chat_read(player_id, room, at) VALUES(?, ?, ?)', s.pid, room, app.now()); return { unread: 0 }; }
-    return { unread: unreadCount(app, s.pid, room, at) };
+    if (at === undefined) { app.db.run('INSERT OR IGNORE INTO chat_read(player_id, room, at) VALUES(?, ?, ?)', s.pid, room, app.now()); return { unread: 0, msgs: 0 }; }
+    return unreadOf(app, s.pid, room, at);
   },
   'chat.mute': (app, s, { id, on }) => {
     if (id === s.pid) fail('GECERSIZ', 'Kendini engelleyemezsin.');
