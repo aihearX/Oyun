@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // ODİ Kod Gir uçtan uca testi (docs/10-sunucu.md "Kodlar"): gerçek sunucu (ODI_DB=:memory:, ODI_ADMIN_CODE_HASH = TEST yönetici kodunun
 // özeti; gerçek yönetici kodu depoda yoktur) + web test derlemesi + iki tarayıcı oyuncusu.
-// Akış (her tarayıcıda): Profil › Kod gir → yanlış kod mesajı → test yönetici kodu → harita "Bölüm 40" oynanabilir, 40. bölüm açılır →
-//   Ayarlar'da "Yönetici modu açık" rozeti → Kod paneli'nden ödül kodu oluşturulur → ikinci oyuncu kodu küçük harf + boşlukla girer →
-//   sandık kutlaması + ödül kutusunda ödüller → ikinci kez "zaten kullandın" → süresi dolmuş kod → yönetici modu kapanır, harita gerçek
-//   ilerlemeye kilitlenir.
+// Akış (her tarayıcıda; 1.1.0'dan beri yönetici kodu hesabı yalnız YÖNETİCİ yapar, "her şey açık" oynama modu Profil › Admin'deki
+//   anahtarla açılır; 1.2.0'da mod tüm kilitleri açar): Profil › Kod gir → yanlış kod mesajı → test yönetici kodu → sonuç "Yönetici
+//   hesabı tanındı", harita hâlâ gerçek ilerlemede → Profil › Admin karosu → "Her şey açık" anahtarı açılır → harita "Bölüm 40"
+//   oynanabilir, 40. bölüm açılır, yeniden açılışta mod sürer → Admin › Kodlar panelinden ödül kodu oluşturulur → ikinci oyuncu kodu
+//   küçük harf + boşlukla girer → sandık kutlaması + ödül kutusunda ödüller → ikinci kez "zaten kullandın" → süresi dolmuş kod →
+//   Admin'de anahtar kapanır, harita gerçek ilerlemeye kilitlenir (sunucuda: yönetici hesabı, mod kapalı).
 // dom hedefi (bir akış): telefon paketi oyuncusu yanlış kod ve ödül kodu girer, ödül gelir.
 // Kullanım: node tools/harness/codes-e2e.mjs [--browsers chromium,webkit] [--target web|dom|both] [--no-build] [--build-dom]
 // Çıktı: tools/harness/out/kod-gir/<hedef>-<tarayıcı>/NN-oyuncu-ad.png
@@ -157,6 +159,13 @@ async function enterCode(p, code) {
   await p.page.getByTestId('kod-kullan').click();
 }
 const resultText = async (p) => { await p.page.getByTestId('kod-sonuc').waitFor({ timeout: 8000 }); return p.page.getByTestId('kod-sonuc').innerText(); };
+/** Profil › Admin (yalnız yönetici hesabında görünen karo) */
+async function adminScreen(p) {
+  await profileTab(p);
+  const tile = p.page.getByTestId('admin-karo');
+  await tile.waitFor({ timeout: 8000 }).catch(() => { throw new Error('Profil’de Admin karosu yok'); });
+  await tile.click(); await p.page.getByTestId('yonetici-ekrani').waitFor(); await p.page.getByTestId('yonetici-rozet').waitFor({ timeout: 8000 });
+}
 const mapPlay = async (p) => { await closeBanners(p); await toastGone(p); await backToTabs(p); await p.page.locator('nav.tabbar .tab[data-tab="map"]').click(); await p.page.locator('.map-play').waitFor({ timeout: 15_000 }); return (await p.page.locator('.map-play').innerText()).trim(); };
 
 // ---------------------------------------------------------------- 4) web
@@ -176,12 +185,21 @@ async function webSuite(bt) {
     await S.shot(A, 'yanlis-kod');
     // test yönetici kodu (küçük harf + boşluk; Türkçe güvenli biçim)
     await enterCode(A, ' testyonetici ');
-    await A.page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici modu açık' }).waitFor({ timeout: 8000 });
-    S.check(true, 'yönetici kodu kabul edildi');
-    await S.shot(A, 'yonetici-acildi');
+    // kod hesabı yalnız yönetici yapar (Codes.tsx CodeSheet); oynama modu kendiliğinden açılmaz
+    await A.page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici hesabı tanındı' }).waitFor({ timeout: 8000 });
+    S.check(true, 'yönetici kodu kabul edildi (“Yönetici hesabı tanındı”)');
+    await S.shot(A, 'yonetici-tanindi');
     await A.page.keyboard.press('Escape');
+    S.check(/Bölüm 1\b/.test(await mapPlay(A)), 'kod tek başına her şey açık modunu açmaz (harita Bölüm 1)');
+    // Profil › Admin: karo yalnız yönetici hesabında; anahtar varsayılan kapalı → aç
+    await adminScreen(A);
+    S.check(/kapalı/.test(await A.page.getByTestId('yonetici-rozet').innerText()), 'Admin ekranında “Her şey açık” başta kapalı');
+    await A.page.getByTestId('yonetici-anahtar').click();
+    await A.page.locator('[data-testid="yonetici-rozet"]', { hasText: 'Her şey açık: açık' }).waitFor({ timeout: 8000 });
+    S.check(await A.page.getByTestId('yonetici-anahtar').getAttribute('aria-checked') === 'true', 'Admin’de “Her şey açık” anahtarı açıldı');
+    await S.shot(A, 'admin-acik');
     // harita: 40. bölüm oynanabilir; yıldız sahte değil
-    S.check(/Bölüm 40\b/.test(await mapPlay(A)), 'yönetici modunda haritada “Bölüm 40” oynanabilir');
+    S.check(/Bölüm 40\b/.test(await mapPlay(A)), 'her şey açık modunda haritada “Bölüm 40” oynanabilir');
     S.check(await A.page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('odi-v1') ?? '{}').state?.progress ?? {}).length) === 0, 'yıldız/ilerleme sahte değil (kayıt boş)');
     await S.shot(A, 'harita-40');
     await A.page.locator('.map-play').click();
@@ -191,13 +209,16 @@ async function webSuite(bt) {
     await A.page.goto(base, { waitUntil: 'load' });
     await A.page.getByRole('button', { name: /Yola çık|Devam et/ }).click();
     await A.page.locator('nav.tabbar').waitFor({ timeout: 20_000 }); await settle(A);
-    S.check(/Bölüm 40\b/.test(await mapPlay(A)), 'yeniden açılışta yönetici modu sürüyor (yerelde kalıcı)');
-    // Ayarlar: rozet + panel → ödül kodu oluştur
+    S.check(/Bölüm 40\b/.test(await mapPlay(A)), 'yeniden açılışta her şey açık modu sürüyor (yerelde kalıcı)');
+    // Ayarlar: yalnız "Kod gir" kartı (yönetici işleri 1.1.0'dan beri Profil › Admin'de)
     await profileTab(A); await A.page.locator('.menu-tile[data-tile="settings"]').click();
-    await A.page.getByTestId('yonetici-rozet').waitFor();
-    S.check(/Yönetici modu açık/.test(await A.page.getByTestId('yonetici-rozet').innerText()), 'Ayarlar’da “Yönetici modu açık” rozeti');
-    await A.page.getByTestId('kod-ayar').scrollIntoViewIfNeeded(); await S.shot(A, 'ayarlar-rozet');
-    await A.page.getByTestId('kod-paneli-ac').click(); await A.page.getByTestId('kod-paneli').waitFor();
+    await A.page.getByTestId('kod-ayar').waitFor();
+    S.check(!(await A.page.getByTestId('yonetici-rozet').count()), 'Ayarlar’da “Kod gir” kartı; yönetici anahtarı Admin’de');
+    await A.page.getByTestId('kod-ayar').scrollIntoViewIfNeeded(); await S.shot(A, 'ayarlar-kod');
+    // Admin: rozet + Kodlar paneli → ödül kodu oluştur
+    await adminScreen(A);
+    S.check(/Her şey açık: açık/.test(await A.page.getByTestId('yonetici-rozet').innerText()), 'Admin’de “Her şey açık: açık” rozeti');
+    await A.page.getByTestId('yn-kodlar').click(); await A.page.getByTestId('kod-paneli').waitFor();
     const code = `E2E-${k}-ODUL`;
     await A.page.getByTestId('panel-code').fill(code.toLowerCase());
     await A.page.getByTestId('panel-jeton').fill('300'); await A.page.getByTestId('panel-kristal').fill('5'); await A.page.getByTestId('panel-max').fill('10');
@@ -205,7 +226,6 @@ async function webSuite(bt) {
     await A.page.getByTestId('panel-olustur').click();
     await A.page.locator(`[data-testid="panel-kod"][data-code="${code}"]`).waitFor({ timeout: 8000 }).then(() => S.check(true, `panelden kod oluşturuldu (${code})`), () => S.check(false, 'panel kodu listede yok'));
     await S.shot(A, 'kod-paneli');
-    await A.page.keyboard.press('Escape');
     await net(A, 'code.create', { code: `E2E-${k}-ESKI`, rewards: { jeton: 5 }, endsAt: Date.now() - 1000 });
     // ikinci oyuncu kodu kullanır: sandık + ödül kutusu
     await enterCode(B, `  ${code.toLowerCase()} `);
@@ -220,8 +240,8 @@ async function webSuite(bt) {
     S.check((await resultText(B)) === 'Bu kodun süresi dolmuş.', 'süresi dolmuş kod mesajı');
     await S.shot(B, 'suresi-dolmus');
     await B.page.keyboard.press('Escape');
-    // yönetici modunu kapat → harita gerçek ilerlemeye kilitlenir
-    await profileTab(A); await A.page.locator('.menu-tile[data-tile="settings"]').click();
+    // Admin'de her şey açık modunu kapat → harita gerçek ilerlemeye kilitlenir
+    await adminScreen(A);
     await A.page.getByTestId('yonetici-anahtar').click();
     await A.page.locator('[data-testid="yonetici-rozet"]', { hasText: 'kapalı' }).waitFor({ timeout: 8000 });
     S.check(/Bölüm 1\b/.test(await mapPlay(A)), 'kapatınca harita gerçek ilerlemeye kilitlendi (Bölüm 1)');
@@ -244,7 +264,7 @@ async function domSuite(bt) {
   try {
     const W = await newPlayer(bt, browser, 'Webci', 'webci', errors);
     await enterCode(W, TEST_ADMIN_CODE);
-    await W.page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici modu' }).waitFor({ timeout: 8000 });
+    await W.page.locator('[data-testid="kod-sonuc"]', { hasText: 'Yönetici hesabı tanındı' }).waitFor({ timeout: 8000 });
     await net(W, 'code.create', { code: 'TELEFON-ODUL', rewards: { kristal: 7 } });
     const ctx = await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1, hasTouch: true, ...(bt === 'chromium' ? { isMobile: true } : {}), locale: 'tr-TR', reducedMotion: 'reduce' });
     await ctx.addInitScript(domBridge, [wsUrl, 47, 34]);
